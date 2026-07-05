@@ -39,9 +39,9 @@ flowchart LR
   class ROUTINE routine;
 ```
 
-> 📷 *TODO 实操截图：Studio 中栏对话（用户居右 / 机侧居左带徽章 / 工具行 / 思考折叠）*
+> 📷 *截图待补（后续专项实拍）：Studio 中栏对话（用户居右 / 机侧居左带徽章 / 工具行 / 思考折叠）*
 
-> 📷 *TODO 实操截图：Routine Iterations Full View（task_dispatch / cc_request / human_reply / engine）*
+> 📷 *截图待补（后续专项实拍）：Routine Iterations Full View（task_dispatch / cc_request / human_reply / engine）*
 
 ## 2. Studio 中栏实操
 

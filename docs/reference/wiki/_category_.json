@@ -1,4 +1,5 @@
 {
   "position": 3,
-  "label": "Wiki 运维"
+  "label": "Wiki 运维",
+  "description": "纯静态 Wiki 站的部署、发布、设计与回归验证"
 }

@@ -85,7 +85,7 @@ flowchart LR
 | `/:pubSlug/:entrySlug` | `src/app/[pubSlug]/[entrySlug]/page.tsx` | 文档详情页：Markdown 渲染                                       |
 | `/:pubSlug/graph`      | `src/app/[pubSlug]/graph/page.tsx`       | 知识图谱页：按 Publication 切片的实体/关系可视化（Sigma WebGL） |
 
-> 知识图谱页设计详见 [Wiki 知识图谱（按 Publication 切片发布）](./knowledge-graph.md)；数据流与 Markdown 页面同构，仅运行时 `fetch` + ISR，无新增持久化或部署形态。
+> 知识图谱页设计详见 [Wiki 知识图谱（按 Publication 切片发布）](./knowledge-graph.md)；数据流与 Markdown 页面同构，仅构建期 `fetch` + 重建（运行时 ISR 已退役，见 [§5](#5-构建部署与内容刷新)），无新增持久化或部署形态。
 
 ### 2.3 数据流
 
@@ -197,7 +197,7 @@ async rewrites() {
 <html lang="zh-CN" data-theme="default">
 ```
 
-> **TODO**: 未来应根据 Publication 配置动态切换主题。
+> **后续增强**：未来可根据 Publication 配置动态切换主题。
 
 ### 7.3 深色模式
 
@@ -222,7 +222,7 @@ async rewrites() {
 | 问题                                              | 可能原因                                                                                                   | 解决方案                                                                                                                                                                                                                                                                                                                                 |
 | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 构建期告警 "Failed to fetch publications"         | 后端 API 不可达（WARN 级，不阻断构建）                                                                     | 后端暂不可达时 SSG 渲染空首页（纯静态站、无运行时自愈，需重新「发布」触发重建）；若需构建期预渲染真实数据，检查 `WIKI_API_BASE` 配置和网络连通性                                                                                                                                                                                                    |
-| 「同步并发布」后首页持续显示「暂无已发布的 Wiki」 | 端口错配 / webhook 未触达 / ISR 残留空缓存（详见 [docs/issue.md ISSUE-020](../../agents/issue.md#issue-020)） | (a) `curl http://localhost:3292/knowledge/wiki/publications?status=published` 验后端连通；(b) 检查 `WIKI_API_BASE` 是否被本地 `.env` 错误覆盖；(c) 确认后端 `NE_KNOWLEDGE_WIKI_REVALIDATE__URL` 未被错误覆盖；(d) 若曾混用 `pnpm start` 致 `.temp/` 残留，执行 `rm -rf apps/negentropy-wiki/.next apps/negentropy-wiki/.temp` 后重启 dev |
+| 「同步并发布」后首页持续显示「暂无已发布的 Wiki」 | 端口错配 / webhook 未触达 / ISR 残留空缓存（历史，纯静态化前；详见 [docs/issue.md ISSUE-020](../../agents/issue.md#issue-020)） | (a) `curl http://localhost:3292/knowledge/wiki/publications?status=published` 验后端连通；(b) 检查 `WIKI_API_BASE` 是否被本地 `.env` 错误覆盖；(c) 确认后端 `NE_KNOWLEDGE_WIKI_REVALIDATE__URL` 未被错误覆盖；(d) 若曾混用 `pnpm start` 致 `.temp/` 残留，执行 `rm -rf apps/negentropy-wiki/.next apps/negentropy-wiki/.temp` 后重启 dev |
 | 页面显示 "Wiki 未找到"                            | Publication 未发布或 slug 错误                                                                             | 检查后端 Publication 状态                                                                                                                                                                                                                                                                                                                |
 | 页面内容不更新                                    | 未重新发布/重建（纯静态站）                                                                                | wiki 为纯静态站（`output: export`），重新「发布」触发 fire-and-forget 重建后即更新；无运行时缓存自愈                                                                                                                                                                                                                                                                                                                    |
 | 深色模式样式异常                                  | 浏览器未启用深色模式                                                                                       | 检查系统深色模式设置                                                                                                                                                                                                                                                                                                                     |
@@ -463,7 +463,7 @@ SELECT COUNT(*) FROM wiki_publications
 COMMIT;
 ```
 
-回退后需手动触发 Wiki 站点 ISR revalidate（具体方式参考 [§5 部署 / 构建 / 缓存](#5-部署--构建--缓存)）。
+回退后需手动触发 Wiki 站点重建（具体方式参考 [§5 构建、部署与内容刷新](#5-构建部署与内容刷新)）。
 
 ### 12.4 故障应对
 

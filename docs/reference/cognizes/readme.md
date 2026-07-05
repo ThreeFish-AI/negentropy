@@ -1,3 +1,9 @@
+# Cognizes 引擎索引
+
+> Agentic AI 引擎内核验证资产索引：项目级 PRD/计划、五阶段实施方案（Pulse / Hippocampus / Perception / Realm / Mind / Demo）、配套 DDL 与开发指南；外部基线调研见「研究文献」。
+
+---
+
 ### 项目级 PRD / Plan / Checklist
 
 - [🗺️ 产品需求与架构](./prd/000-prd-architecture.md) - 产品需求与概要设计
