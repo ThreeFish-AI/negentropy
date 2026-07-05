@@ -136,4 +136,6 @@ def test_system_prompt_contains_protocol_and_contract():
     assert "pdf-fidelity-contract" in PATROL_SYSTEM_PROMPT
     # 零代码改动即无 PR（修「PR 仅含 patrol-candidate.md」根因：候选是 worktree 外临时产物、不纳入交付）
     assert "零代码改动" in PATROL_SYSTEM_PROMPT
+    # R10 沉淀：每轮重转前须清 checkpoint，否则 auto_batch resume 复用旧切片、perceives 改动不生效
+    assert ".batch_state" in PATROL_SYSTEM_PROMPT
     assert "doc_id" in CONTRACT_SCHEMA

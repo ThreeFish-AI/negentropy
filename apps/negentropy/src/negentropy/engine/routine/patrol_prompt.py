@@ -71,9 +71,12 @@ PATROL_SYSTEM_PROMPT = (
 - 改 perceives 仅 `grep -rn` 定位目标函数、只读该函数上下文，**单轮最多改一处**。
 - 候选 Markdown 只写指定候选路径，**绝不调生产 refresh-markdown / 写 knowledge_documents.markdown_content**。
 - 仅在 worktree 内改代码；源 PDF 只读。
+- **checkpoint 热更铁律**：每轮重转前 `rm -rf output/.batch_state`——auto_batch resume 按源 PDF SHA-1 缓存切片，不清则复用旧切片、你的 perceives 改动不生效（曾致 R10 白跑 2 次）；CLI 不暴露 `--no-resume`，只能靠清 checkpoint。
+- **图注勿双渲染**：多数图注已烘入 figure region PNG 像素，勿据 `alt` 另 render `figcaption`（会双图注）；仅核对像素内图注与源 PDF 是否一致。
 
 ## 闭环（严格顺序，勿偏离）
-1. 重转候选（baseline 转换，图片/表格/公式默认全提取）：
+1. 重转候选（**每轮先清 checkpoint 再转**；图片/表格/公式默认全提取）：
+   `rm -rf output/.batch_state`  # auto_batch resume 按源 PDF SHA-1 缓存切片，不清则复用旧切片、perceives 改动不生效
    `uv run --project apps/negentropy-perceives perceives parse-pdf "<source_pdf_path>" -o "<candidate_md_path>" --method auto`
 2. 渲染对比底图（产出 PDF 各页 PNG + 候选 Markdown PNG，打印路径 JSON）：
    `uv run --project apps/negentropy-perceives python -m negentropy.perceives.tools._fidelity_render --pdf "<source_pdf_path>" --markdown "<candidate_md_path>" --out-dir "/tmp/<doc_id>/render" --dpi 120 --width 900`
