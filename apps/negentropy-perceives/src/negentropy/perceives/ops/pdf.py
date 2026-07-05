@@ -718,6 +718,7 @@ async def _execute_slice_with_retry(
                 extract_formulas=extract_formulas,
                 embed_images=embed_images,
                 output_dir=output_dir,
+                slice_index=slice_index,
             )
             if getattr(result, "success", False):
                 return result
