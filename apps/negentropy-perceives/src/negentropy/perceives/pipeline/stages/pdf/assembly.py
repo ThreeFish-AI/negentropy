@@ -1359,6 +1359,13 @@ class BuiltinAssembler(PDFToolBase):
                         # 避免同编号 caption 已记录时把图片本身丢弃。
                         if cap_key in _seen_caption and elem.element_type == "text":
                             continue
+                        # table 元素：同编号 caption 已被独立文本块记录为
+                        # ``**Table N:**`` 粗体时，剥离表格 markdown 内嵌的明文
+                        # caption 首行(冗余裸文本副本)，但保留网格本身,不丢表格。
+                        if cap_key in _seen_caption and elem.element_type == "table":
+                            elem.content = _strip_leading_caption_paragraph(
+                                elem.content
+                            )
                         _seen_caption.add(cap_key)
                 _dd.append(elem)
             elements = _dd
@@ -1747,6 +1754,34 @@ _FIGURE_TABLE_CAPTION_RE = re.compile(
     r"^\s*(Figure|Fig\.?|Table|Tab\.?)\s+\d+\s*[:.\-|｜∣]",
     re.IGNORECASE,
 )
+
+# 表格 markdown 首段为 ``Table N: ...`` 明文 caption（docling 常把标题作为独立
+# 首行置于网格之上，非表头格，故 _strip_caption_row_from_grid 不处理）的识别。
+_LEADING_TABLE_CAPTION_LINE_RE = re.compile(
+    r"^\s*(?:Figure|Fig\.?|Table|Tab\.?)\s+S?\d+\s*[:.][^\n|]*\n",
+    re.IGNORECASE,
+)
+
+
+def _strip_leading_caption_paragraph(md: str) -> str:
+    """剥离表格 markdown 顶部的 ``Table N: ...`` 明文 caption 段落，保留网格。
+
+    用于 dedup：当同编号 caption 已由独立文本块渲染为 ``**Table N:**`` 粗体段落
+    时，表格元素内嵌的明文 caption 首行是冗余副本（渲染为重复的裸文本行）。仅
+    当首行是 caption 明文、且其后确有 GFM 网格（``|`` 起手行）时剥离，避免误伤
+    无网格的纯文本兜底表格。
+    """
+    if not md:
+        return md
+    m = _LEADING_TABLE_CAPTION_LINE_RE.match(md)
+    if not m:
+        return md
+    rest = md[m.end() :].lstrip("\n")
+    # 仅当剩余内容确为网格（首个非空行以 ``|`` 起手）才剥离 caption 行
+    first_rest = rest.split("\n", 1)[0].strip() if rest else ""
+    if first_rest.startswith("|"):
+        return rest
+    return md
 
 
 def _is_figure_or_table_caption_text(text: str) -> bool:
