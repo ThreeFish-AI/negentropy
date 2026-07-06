@@ -1381,6 +1381,11 @@ class BuiltinAssembler(PDFToolBase):
             # inline formula，省略号被 LaTeX 化为 ``\ldots``。此处仅对"触发词 +
             # 无真数学命令 + 像英文散文"的极明显误判解包还原，真公式一律保留。
             markdown = _unwrap_ellipsis_falsepositive_inline_math(markdown)
+            # JSON 文本段补栅栏：引擎（docling/marker）常把内嵌 JSON 例（如
+            # ``{ "trends": [...] }``）当作普通正文输出为折叠纯文本，丢失代码语义。
+            # 对"非已 fenced、``{``/``[`` 起 + 配对收尾 + ≥2 个 ``"key":`` 且括号
+            # 配平"的段落，包裹为 ```json 代码块。检测保守，仅命中明显 JSON。
+            markdown = _fence_json_text_paragraphs(markdown)
 
             # 4. 图片引用规范化
             images: List[ExtractedImage] = []
@@ -2602,6 +2607,59 @@ def _unwrap_ellipsis_falsepositive_inline_math(markdown: str) -> str:
         return inner.replace(r"\ldots", "...").replace(r"\dots", "...")
 
     return re.sub(r"(?<!\$)\$(?!\$)([^\n$]+?)\$(?!\$)", _repl, markdown)
+
+
+def _looks_like_json_block(s: str) -> bool:
+    """保守判断 ``s`` 是否为一个 JSON 对象/数组文本段。
+
+    必须同时满足（最大程度避免误伤散文）：
+      1. 以 ``{`` 或 ``[`` 开头，且以配对的 ``}`` / ``]`` 结尾；
+      2. 含 ≥2 个 ``"key":`` / ``'key':`` 映射模式（JSON 的本质特征）；
+      3. 花括号/方括号各自配平；
+      4. 不含未转义的 ```（避免与已有代码栅栏纠缠）。
+    """
+    stripped = s.strip()
+    if "```" in stripped:
+        return False
+    if stripped.startswith("{"):
+        if not stripped.endswith("}"):
+            return False
+    elif stripped.startswith("["):
+        if not stripped.endswith("]"):
+            return False
+    else:
+        return False
+    if len(re.findall(r'"[^"\n]{1,40}"\s*:|\'[^\'\n]{1,40}\'\s*:', stripped)) < 2:
+        return False
+    if stripped.count("{") != stripped.count("}") or stripped.count(
+        "["
+    ) != stripped.count("]"):
+        return False
+    return True
+
+
+def _fence_json_text_paragraphs(markdown: str) -> str:
+    """把误当正文输出的 JSON 文本段包裹为 ```json 代码块。
+
+    引擎常把内嵌 JSON 示例（如 ``{ "trends": [ ... ] }``）作为普通文本块输出，
+    渲染为折叠纯文本、丢失代码语义与等宽排版。对每个**非已 fenced**的段落，
+    若 ``_looks_like_json_block`` 判定成立，则包裹为 ````` ``json ... `` ``` ``。
+
+    通过段落（``\\n\\n`` 分隔）逐段处理；含 ````` ```` 的段落（已是代码块）原样保留，
+    避免双重栅栏。保守的形态判定使散文几乎不会被误判。
+    """
+    paragraphs = markdown.split("\n\n")
+    out: List[str] = []
+    for para in paragraphs:
+        if "```" in para:
+            out.append(para)
+            continue
+        s = para.strip()
+        if s and _looks_like_json_block(s):
+            out.append("```json\n" + s + "\n```")
+        else:
+            out.append(para)
+    return "\n\n".join(out)
 
 
 def _split_code_tail_section(code: str) -> Tuple[str, str]:
