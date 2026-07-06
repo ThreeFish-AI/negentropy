@@ -315,6 +315,37 @@ _FIGURE_CAPTION_HEAD = re.compile(
 )
 """Figure caption 起手识别（与 assembly._FIGURE_TABLE_CAPTION_RE 语义一致）。"""
 
+_MALFORMED_CAPTION_LINE_RE = re.compile(
+    r"^(?P<indent>[ \t]*)- \*(?P<body>(?:Figure|Fig\.?|Table|Tab\.?)\s+S?\d+.*\*\*)[ \t]*$",
+    re.IGNORECASE,
+)
+"""批合并引擎畸形加粗 caption 签名：行首 ``- *Figure/Table N`` 且行尾悬挂 ``**``。"""
+
+
+def _repair_malformed_caption_markers(markdown: str) -> str:
+    """修复批合并引擎产出的畸形 caption 标记。
+
+    MinerU/marker 引擎偶将加粗 caption ``**Table N: ...**`` 误输出为
+    ``- *Table N: ...**``（行首多出列表短横 + 非对称单星）。该形态既非合法列表项
+    （尾部悬挂 ``**``）、也非合法加粗，渲染端表现为破碎文本，是本类学术论文附录
+    表格的高频失真源。
+
+    仅当整行以 ``- *Figure/Table N`` 起手且以 ``**`` 收尾（畸形加粗签名）时，将行首
+    ``- *`` 归一为 ``**``，保留正文与尾部 ``**`` 不动；其余行原样返回，绝不误伤合法
+    列表项（``- Table 1 shows...`` 无尾部 ``**``，不匹配）。
+    """
+    if "- *" not in markdown:
+        return markdown
+    out_lines: List[str] = []
+    for line in markdown.split("\n"):
+        m = _MALFORMED_CAPTION_LINE_RE.match(line)
+        if m:
+            out_lines.append(f"{m.group('indent')}**{m.group('body')}")
+        else:
+            out_lines.append(line)
+    return "\n".join(out_lines)
+
+
 _IMG_BLOCK = re.compile(
     r"^\s*(?:!\[[^\]]*\]\([^)]+\)|<img\s[^>]*/?>(?:</img>)?|<figure[\s>].*?</figure>)\s*$",
     re.IGNORECASE | re.DOTALL,
@@ -425,7 +456,7 @@ def merge_slice_markdowns(
             s, e = slice_ranges[i + 1]
             parts.append(f"<!-- batch boundary: pages {s + 1}-{e} -->")
 
-    return "\n\n".join(parts)
+    return _repair_malformed_caption_markers("\n\n".join(parts))
 
 
 # ---------------------------------------------------------------------------
