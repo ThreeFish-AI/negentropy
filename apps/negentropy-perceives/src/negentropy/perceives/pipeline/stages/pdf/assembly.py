@@ -1462,6 +1462,10 @@ class BuiltinAssembler(PDFToolBase):
             # 圆点项目符展开（须在 formatter 之后：formatter 会把 PDF 硬换行的圆点
             # 项连成空格分隔的 run-on 段 `` ● ``，此处展开为 ``\n- `` 同级列表项）。
             markdown = _expand_bullet_paragraphs(markdown)
+            # 编号 run-on 列表拆分（须在 formatter/bullet 之后）：把段内
+            # "1. X 2. Y 3. Z" run-on 拆为独立编号项。强信号守卫（从 1 严格递增 +
+            # 无 TOC 标记 + 段长<2000 + 跳过 fenced/表格），避免误拆目录与散文。
+            markdown = _split_numbered_runon_paragraphs(markdown)
 
             # 6. 参考文献节条目分段（多条目连段 → 每条独占段落）
             markdown = _segment_references_section(markdown)
@@ -2788,6 +2792,54 @@ def _expand_bullet_paragraphs(markdown: str) -> str:
         new = re.sub(r"(?m)^[" + _BULLET_CHARS + r"]\s+", "- ", para)
         # 2. 中段内联圆点（空格分隔的 run-on）：" ● " -> "\n- "
         new = re.sub(r" [" + _BULLET_CHARS + r"] ", "\n- ", new)
+        out.append(new)
+    return "\n\n".join(out)
+
+
+# 目录（TOC）文本标记：目录条目也呈 ``1. Chapter 1... 2. Chapter 2...`` 的编号 run-on
+# 结构，必须排除以免把目录误拆。命中任一即视为目录段、跳过编号拆分。
+_TOC_MARKERS = re.compile(
+    r"Chapter \d|Appendix [A-G]|pages \[|last read done|\[final|Index of Terms"
+)
+
+
+def _split_numbered_runon_paragraphs(markdown: str) -> str:
+    r"""把 run-on 编号列表段（``1. X 2. Y 3. Z``）拆为独立 markdown 编号项。
+
+    PDF 编号列表经 text_extraction + formatter 常被压成单段 run-on。仅对**强信号**
+    的编号列表拆分，最大程度避免误伤散文与目录文本：
+
+      1. 段内含 ≥2 个 ``N. 大写字母`` 项，且编号从 1 起严格递增（1,2,3,...）；
+      2. 段**不含**目录标记（``_TOC_MARKERS``：``Chapter N``/``Appendix``/``pages [``
+         /``[final``/``last read done``/``Index of Terms``）——目录同为编号 run-on；
+      3. 段长 < 2000 字符（backstop，目录段常数千字符）；
+      4. 跳过 fenced 代码块与表格段（含 ```` ``` ```` 或 ``|``）。
+
+    命中则把每个 `` N. ``（前导空格的后续项）替换为 ``\nN. ``，首项 ``^1.`` 原位保留，
+    拆为独立编号项。注意：PDF 跨页编号列表常被 formatter 切散成多段，本函数仅拆
+    「段内 run-on」，跨段碎片不在处理范围（无信息丢失，仅未重组）。
+    """
+    paragraphs = markdown.split("\n\n")
+    out: List[str] = []
+    for para in paragraphs:
+        if "```" in para or "|" in para:
+            out.append(para)
+            continue
+        if _TOC_MARKERS.search(para) or len(para) > 2000:
+            out.append(para)
+            continue
+        marks = list(re.finditer(r"(?:(?<=^)|(?<= ))(\d+)\. +[A-Z]", para))
+        if len(marks) < 2:
+            out.append(para)
+            continue
+        nums = [int(m.group(1)) for m in marks]
+        if nums[0] != 1 or any(
+            nums[i + 1] != nums[i] + 1 for i in range(len(nums) - 1)
+        ):
+            out.append(para)
+            continue
+        # 拆分：把每个 " N. "（前导空格的后续项）替换为 "\nN. "；首项 ^1. 无前导空格不动
+        new = re.sub(r" (\d+)\. +", lambda m: "\n" + m.group(1) + ". ", para)
         out.append(new)
     return "\n\n".join(out)
 
