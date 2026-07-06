@@ -2356,6 +2356,31 @@ def _sanitize_latex(latex: str) -> str:
             )
             latex = new_latex.strip()
 
+    # 策略 5: 规整文本模式命令内 Docling 字母拆分（pdf-fidelity R10）
+    # Docling/Granite 抽取行间公式时常把 \mathrm{Attention} 输出为
+    # ``\mathrm{A t t e n t i o n}``（每字母独立 token + 空格），KaTeX 在文本
+    # 模式把这些空格当显式间距渲染，视觉上呈 "A t t e n t i o n" 而非 "Attention"，
+    # 与源 PDF 视觉不一致。仅当命令参数**整段**为"≥3 个单字母被空格串联"
+    # （纯字母、无多字母词、无符号/波浪号）时合并；``\text{hello world}`` 词间
+    # 空格、``\mathrm{O}`` 单字母 token、``\mathrm{where~head}`` 含 ``~`` 均不
+    # 满足 fullmatch，原样保留，杜绝误伤合法空格。
+    _TEXTUAL_CMD_RE = re.compile(
+        r"(\\(?:mathrm|mathit|mathbf|mathsf|texttt|operatorname)\*?\s*\{)([^{}]*)(\})"
+    )
+
+    def _merge_spaced_letters(content: str) -> str:
+        # 允许首尾空白：Docling 输出 ``\mathrm { A t t e n t i o n }`` 花括号内
+        # 首尾常带空格，纯 ``[a-zA-Z]`` 起手的 fullmatch 会因首空格失配而漏合并。
+        # 仅"≥3 个单字母被空格串联"整段匹配时合并。
+        if re.fullmatch(r"\s*[a-zA-Z](?:\s+[a-zA-Z]){2,}\s*", content):
+            return re.sub(r"\s+", "", content)
+        return content
+
+    latex = _TEXTUAL_CMD_RE.sub(
+        lambda m: m.group(1) + _merge_spaced_letters(m.group(2)) + m.group(3),
+        latex,
+    )
+
     return latex
 
 
