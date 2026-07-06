@@ -3,22 +3,34 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
-import type { DashboardFilters, ScheduledTaskDTO, TaskWritePayload } from "@/features/scheduler";
-import { runTaskNow, toggleTaskEnabled, createTask, updateTask, deleteTask, fetchTasks } from "@/features/scheduler/api";
+import type {
+  DashboardFilters,
+  ExecutionStatus,
+  ScheduledTaskDTO,
+  StatsWindow,
+  TaskWritePayload,
+} from "@/features/scheduler";
+import {
+  runTaskNow,
+  toggleTaskEnabled,
+  createTask,
+  updateTask,
+  deleteTask,
+  fetchTasks,
+  fetchExecutions,
+} from "@/features/scheduler/api";
 import { ErrorBanner } from "@/components/ui/ErrorState";
 import { InterfaceNav } from "@/components/ui/InterfaceNav";
 import { Pagination } from "@/components/ui/Pagination";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import { useInfiniteList, type CursorFetcher } from "@/hooks/useInfiniteList";
-import { useInfiniteScrollSentinel, useScrollPageSync } from "@/hooks/useInfiniteScrollSentinel";
 
 import { useSchedulerData } from "@/app/(home)/dashboard/_hooks/useSchedulerData";
 import { useSchedulerStream } from "@/app/(home)/dashboard/_hooks/useSchedulerStream";
 import type { TaskExecutionDTO } from "@/features/scheduler";
 
 import { SchedulerHeader } from "./_components/SchedulerHeader";
-import { SchedulerKpiStrip } from "./_components/SchedulerKpiStrip";
-import { SchedulerFilterBar } from "./_components/SchedulerFilterBar";
+import type { ExecutionStatusFilter } from "./_components/SchedulerFilterBar";
 import { SchedulerTaskTable } from "./_components/SchedulerTaskTable";
 import { SchedulerExecutionPanel } from "./_components/SchedulerExecutionPanel";
 import { SchedulerStatsPanel } from "./_components/SchedulerStatsPanel";
@@ -34,14 +46,27 @@ const DEFAULT_FILTERS: DashboardFilters = {
   window: "24h",
 };
 
-/** 任务列表每页条数（游标无限滚动加载粒度 + 页码跳页粒度）。 */
+/** 任务列表每页条数（纯分页：仅展示当前页 TASK_PAGE_SIZE 条，翻页由 goToPage 顺序补齐游标）。 */
 const TASK_PAGE_SIZE = 10;
+/** 执行列表每页条数（服务端游标分页：按页懒加载，total 反映当前时间窗+过滤下的全量）。 */
+const EXEC_PAGE_SIZE = 10;
 /** SSE 抖动合并到尾沿的去抖窗（对齐 Routine useRoutineLive）。 */
 const REFRESH_DEBOUNCE_MS = 500;
+
+/** 时间窗 → 起始 ISO 时间戳（对齐后端 `_window_to_delta`，让 executions 列表真正受时间窗约束）。 */
+const WINDOW_MS: Record<StatsWindow, number> = {
+  "1h": 3_600_000,
+  "24h": 86_400_000,
+  "7d": 604_800_000,
+};
+function windowToSince(window: StatsWindow): string {
+  return new Date(Date.now() - WINDOW_MS[window]).toISOString();
+}
 
 export default function SchedulerPage() {
   const [activeTab, setActiveTab] = useState<"tasks" | "executions" | "stats">("tasks");
   const [filters, setFilters] = useState<DashboardFilters>(DEFAULT_FILTERS);
+  const [executionStatus, setExecutionStatus] = useState<ExecutionStatusFilter>("");
   const [selectedTask, setSelectedTask] = useState<ScheduledTaskDTO | null>(null);
 
   // Form dialog state
@@ -51,12 +76,12 @@ export default function SchedulerPage() {
   // Delete confirmation
   const { confirm, confirmDialog } = useConfirmDialog();
 
-  // KPI / executions / stats + 全量任务快照（allTasks 仅用于派生 Role/Scenario/Category 筛选下拉
-  // 选项与 ?task_key 深链检索；展示用任务列表由下方 cursor list 独立分页，二者解耦避免回归）。
+  // KPI / stats + 全量任务快照（allTasks 仅用于派生 Role/Scenario/Category 筛选下拉选项与 ?task_key
+  // 深链检索）。executions 展示列表已改由下方 execList 服务端游标分页独立驱动，不再消费此处内存数组；
+  // pushExecution 仍用于 KPI/Stats 内存快照的 SSE 增量（其去重语义不变）。
   const {
     kpis,
     tasks: allTasks,
-    executions,
     statsByRole,
     statsByScenario,
     statsByOwner,
@@ -88,65 +113,82 @@ export default function SchedulerPage() {
     filters,
   });
 
-  // 无限滚动 + 翻页：页面级滚动容器 ref、程序化滚动闸门、待跳页号（mirror Routine 样板）。
-  const scrollRootRef = useRef<HTMLDivElement | null>(null);
-  const programmaticScrollRef = useRef(false);
-  const pendingPageRef = useRef<number | null>(null);
-
-  // 无限滚动哨兵：滚到底（提前 200px）→ 追加下一游标页。root = 页面级滚动容器。
-  const { sentinelRef } = useInfiniteScrollSentinel({
-    onReach: taskList.loadMore,
-    enabled: taskList.hasMore && !taskList.loadingMore && !taskList.loading,
-    root: scrollRootRef,
-  });
-
-  // 滚动联动当前页高亮：观测每页首行的 data-infinite-page 锚点，取最靠上可见页。
-  useScrollPageSync({
-    enabled: true,
-    onPageChange: taskList.goToPage,
-    root: scrollRootRef,
-    rescanKey: taskList.items.length,
-    programmaticRef: programmaticScrollRef,
-  });
-
-  // 点页码跳页：先经 hook 确保该页已加载（游标顺序补齐 / 已加载即时），再滚动到该页锚点。
-  const handleGoToPage = useCallback(
-    (target: number) => {
-      pendingPageRef.current = target;
-      programmaticScrollRef.current = true; // 抑制 observer 回写，防跳页与联动互相递归
-      taskList.goToPage(target);
-    },
-    [taskList],
+  // ── 执行列表：服务端游标分页（fetchExecutions 游标化）。按页懒加载、去掉旧 100 上限，
+  //    total 反映「当前时间窗 + role/scenario/agent + 状态」下的全量计数（后端 COUNT）。
+  //    时间窗经 since 下推，使 executions 真正受 1h/24h/7d 约束（此前时间窗对 executions 失效）。──
+  interface ExecFilters {
+    role: string | null;
+    scenario: string | null;
+    agent: string | null;
+    since: string;
+    status: ExecutionStatusFilter;
+  }
+  const execFilters = useMemo<ExecFilters>(
+    () => ({
+      role: filters.role,
+      scenario: filters.scenario,
+      agent: filters.agent,
+      since: windowToSince(filters.window),
+      status: executionStatus,
+    }),
+    [filters.role, filters.scenario, filters.agent, filters.window, executionStatus],
   );
+  const execFetcher = useMemo<CursorFetcher<TaskExecutionDTO, ExecFilters>>(
+    () => ({
+      kind: "cursor",
+      fetchPage: async ({ cursor, limit, filters: f, signal }) => {
+        const r = await fetchExecutions({
+          role: f?.role ?? null,
+          scenario: f?.scenario ?? null,
+          agent: f?.agent ?? null,
+          since: f?.since,
+          status: (f?.status || null) as ExecutionStatus | null,
+          limit,
+          cursor: cursor as string | null,
+          signal,
+        });
+        return {
+          items: r.items,
+          nextCursor: r.next_cursor,
+          hasMore: r.has_more ?? r.next_cursor != null,
+          total: r.total ?? null,
+        };
+      },
+    }),
+    [],
+  );
+  const execList = useInfiniteList<TaskExecutionDTO, ExecFilters>({
+    fetcher: execFetcher,
+    pageSize: EXEC_PAGE_SIZE,
+    filters: execFilters,
+    // 仅 executions tab 激活时才发请求，避免 Tasks/Stats tab 下无谓拉取。
+    enabled: activeTab === "executions",
+  });
+  const execPageStart = (execList.currentPage - 1) * EXEC_PAGE_SIZE;
+  const pagedExecutions = execList.items.slice(execPageStart, execPageStart + EXEC_PAGE_SIZE);
 
-  // 待跳页锚点出现即平滑滚动（cursor 顺序补齐时，锚点随 tasks 增长后再现 → effect 重跑命中）。
-  const taskPage = taskList.currentPage;
-  const taskItemsLen = taskList.items.length;
-  useEffect(() => {
-    const target = pendingPageRef.current;
-    if (target == null) return;
-    const anchor = scrollRootRef.current?.querySelector<HTMLElement>(`[data-infinite-page="${target}"]`);
-    if (!anchor) return; // 该页尚未渲染，待 tasks 增长后重跑
-    anchor.scrollIntoView({ behavior: "smooth", block: "start" });
-    pendingPageRef.current = null;
-    const t = window.setTimeout(() => {
-      programmaticScrollRef.current = false;
-    }, 600);
-    return () => window.clearTimeout(t);
-  }, [taskPage, taskItemsLen]);
+  // ── 纯分页（mirror Routine useRoutineData）：useInfiniteList 维护游标缓冲，展示层仅切片当前页，
+  //    不再累积渲染、无无限滚动哨兵 / 滚动联动；翻页由 goToPage 顺序补齐游标（每页 TASK_PAGE_SIZE 条）。──
+  const taskPageStart = (taskList.currentPage - 1) * TASK_PAGE_SIZE;
+  const pagedTasks = taskList.items.slice(taskPageStart, taskPageStart + TASK_PAGE_SIZE);
 
-  // ── SSE：执行事件 → pushExecution（更新时间线 + 全量任务快照内存字段，沿用 useSchedulerData 既有语义）
-  //    并去抖刷新任务【分页列表】，使其 Last/Recent/状态点对齐（mirror Routine：不在内存逐字段改分页列表）──
+  // ── SSE：执行事件 → pushExecution（更新 KPI/Stats 用的内存快照 + 全量任务快照内存字段，沿用既有语义）
+  //    并去抖刷新任务【分页列表】与执行【分页列表】，使其对齐最新数据（mirror Routine：不在内存逐字段改分页列表）──
   const taskRefreshRef = useRef(taskList.refresh);
   useEffect(() => {
     taskRefreshRef.current = taskList.refresh;
   }, [taskList.refresh]);
+  const execRefreshRef = useRef(execList.refresh);
+  useEffect(() => {
+    execRefreshRef.current = execList.refresh;
+  }, [execList.refresh]);
   const debTimer = useRef<number | null>(null);
-  const scheduleTaskRefresh = useCallback(() => {
+  const scheduleListRefresh = useCallback(() => {
     if (debTimer.current !== null) return; // 已有待发，合并
     debTimer.current = window.setTimeout(() => {
       debTimer.current = null;
       taskRefreshRef.current();
+      execRefreshRef.current(); // execList.refresh 仅重载已加载范围、不清空，安全（enabled=false 时为 no-op 语义）
     }, REFRESH_DEBOUNCE_MS);
   }, []);
   useEffect(() => {
@@ -156,10 +198,10 @@ export default function SchedulerPage() {
   }, []);
   const handleExecution = useCallback(
     (e: TaskExecutionDTO) => {
-      pushExecution(e); // 时间线头插 + 全量快照内存字段更新（沿用既有契约）
-      if (e.status !== "running") scheduleTaskRefresh(); // 分页列表去抖刷新对齐 Last/Recent
+      pushExecution(e); // KPI/Stats 内存快照更新 + 全量任务快照内存字段更新（沿用既有契约）
+      if (e.status !== "running") scheduleListRefresh(); // 分页列表去抖刷新对齐 Last/Recent + 新执行入列
     },
-    [pushExecution, scheduleTaskRefresh],
+    [pushExecution, scheduleListRefresh],
   );
   const { connected } = useSchedulerStream({ onExecution: handleExecution });
 
@@ -180,6 +222,7 @@ export default function SchedulerPage() {
   const handleRefresh = useCallback(() => {
     refresh();
     taskRefreshRef.current();
+    execRefreshRef.current();
   }, [refresh]);
 
   const handleRun = async (id: string) => {
@@ -270,8 +313,8 @@ export default function SchedulerPage() {
   return (
     <div className="flex h-full flex-col bg-muted">
       <InterfaceNav title="Scheduler" />
-      <div ref={scrollRootRef} className="flex-1 overflow-auto">
-        <div className="px-6 py-6 space-y-5">
+      <div className="flex-1 overflow-auto">
+        <div className="space-y-2.5 px-6 py-3">
           <SchedulerHeader
             connected={connected}
             activeTab={activeTab}
@@ -279,41 +322,38 @@ export default function SchedulerPage() {
             onRefresh={handleRefresh}
             loading={loading}
             onCreateTask={handleCreate}
+            kpis={kpis}
+            filters={filters}
+            tasks={allTasks}
+            onFiltersChange={setFilters}
+            executionStatus={executionStatus}
+            onExecutionStatusChange={setExecutionStatus}
           />
 
           {error && <ErrorBanner message={error} />}
 
-          <SchedulerKpiStrip kpis={kpis} loading={loading} />
-          <SchedulerFilterBar
-            filters={filters}
-            tasks={allTasks}
-            onFiltersChange={setFilters}
-          />
-
           {activeTab === "tasks" && (
             <>
               <SchedulerTaskTable
-                tasks={taskList.items}
-                total={taskList.total ?? taskList.items.length}
+                tasks={pagedTasks}
                 loading={taskList.loading}
                 onToggle={handleToggle}
                 onRun={handleRun}
                 onSelect={setSelectedTask}
-                pageSize={TASK_PAGE_SIZE}
               />
-              {/* 无限滚动哨兵：进入视口即追加下一页（taskList.hasMore 为否时 hook 自动停观察）。 */}
-              <div ref={sentinelRef} aria-hidden className="h-px w-full" />
-              {/* 居中翻页控件（页总数 + 控件组居中成组），与无限滚动并存；sticky 底栏始终可达。 */}
+              {/* 居中翻页控件（页总数 + 控件组居中成组）；sticky 底栏始终可达。纯分页：不累积、无无限滚动。 */}
               {taskList.items.length > 0 && (
                 <div className="sticky bottom-0 -mx-6 border-t border-border bg-muted/95 px-6 py-2.5 backdrop-blur supports-[backdrop-filter]:bg-muted/80">
                   <Pagination
                     page={taskList.currentPage}
                     totalPages={taskList.totalPages}
-                    onPageChange={handleGoToPage}
+                    onPageChange={taskList.goToPage}
                     total={taskList.total ?? undefined}
                     itemLabel="task"
                     disabled={taskList.loading}
                     loadingMore={taskList.loadingMore}
+                    // 计数字号增至 12px（对齐 Routine，比默认 10px 明显增大）。
+                    countClassName="text-xs"
                   />
                 </div>
               )}
@@ -321,7 +361,27 @@ export default function SchedulerPage() {
           )}
 
           {activeTab === "executions" && (
-            <SchedulerExecutionPanel executions={executions} loading={loading} />
+            <>
+              <SchedulerExecutionPanel
+                executions={pagedExecutions}
+                loading={execList.loading}
+              />
+              {/* 居中翻页控件；sticky 底栏始终可达。服务端游标分页：按页懒加载、total 反映时间窗内全量。 */}
+              {execList.total !== 0 && (
+                <div className="sticky bottom-0 -mx-6 border-t border-border bg-muted/95 px-6 py-2.5 backdrop-blur supports-[backdrop-filter]:bg-muted/80">
+                  <Pagination
+                    page={execList.currentPage}
+                    totalPages={execList.totalPages}
+                    onPageChange={execList.goToPage}
+                    total={execList.total ?? undefined}
+                    itemLabel="execution"
+                    disabled={execList.loading}
+                    loadingMore={execList.loadingMore}
+                    countClassName="text-xs"
+                  />
+                </div>
+              )}
+            </>
           )}
 
           {activeTab === "stats" && (

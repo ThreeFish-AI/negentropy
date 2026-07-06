@@ -274,18 +274,19 @@ test.describe("Interface / Scheduler 页面", () => {
   test("S-1 页面加载：标题、副标题、InterfaceNav、KPI 指标", async ({ page }) => {
     await page.goto("/interface/scheduler");
 
-    await expect(page.getByRole("heading", { name: "Scheduler", exact: true })).toBeVisible();
-    await expect(page.getByText("Unified task scheduling and execution management")).toBeVisible();
+    // 标题 h1 现内嵌 Info Tooltip 触发按钮（aria-label "Scheduler 运行指标"），
+    // 其可及名不再恰为 "Scheduler"，故用非 exact 子串匹配。
+    await expect(page.getByRole("heading", { name: "Scheduler" })).toBeVisible();
 
     // InterfaceNav 可见（子导航包含 Scheduler 链接）
     await expect(page.getByRole("link", { name: "Scheduler" })).toBeVisible();
 
-    // KPI strip: 6 个指标卡片
-    await expect(page.getByText("Tasks", { exact: true }).first()).toBeVisible();
+    // 副标题 + KPI 指标已迁入标题旁 Info Tooltip（Radix 浮层仅在触发时挂载），hover 后可见。
+    // 注：dev 下 React StrictMode 可能使 Radix 浮层内容瞬时双挂载，统一用 .first() 容错（prod 仅 1 个）。
+    await page.getByRole("button", { name: "Scheduler 运行指标" }).hover();
+    await expect(page.getByText("Unified task scheduling and execution management").first()).toBeVisible();
     await expect(page.getByText("Runs").first()).toBeVisible();
     await expect(page.getByText("Success Rate").first()).toBeVisible();
-    await expect(page.getByText("Running").first()).toBeVisible();
-    await expect(page.getByText("Failed").first()).toBeVisible();
     await expect(page.getByText("Avg Latency").first()).toBeVisible();
   });
 
@@ -294,6 +295,8 @@ test.describe("Interface / Scheduler 页面", () => {
   test("S-2 KPI 指标值正确渲染", async ({ page }) => {
     await page.goto("/interface/scheduler");
 
+    // KPI 指标值已迁入标题旁 Info Tooltip；hover 触发后校验各值。
+    await page.getByRole("button", { name: "Scheduler 运行指标" }).hover();
     await expect(page.getByText("9", { exact: true }).first()).toBeVisible();
     await expect(page.getByText("120").first()).toBeVisible();
     await expect(page.getByText("98.3%").first()).toBeVisible();
@@ -421,11 +424,18 @@ test.describe("Interface / Scheduler 页面", () => {
     await expect(page.getByText("ok", { exact: true }).first()).toBeVisible();
     await expect(page.getByText("failed", { exact: true }).first()).toBeVisible();
 
-    // Status filter pills
-    await expect(page.getByRole("button", { name: "All" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "OK" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Failed" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Running" })).toBeVisible();
+    // 状态过滤已由 pill 组改为筛选栏下拉（仅 executions tab 渲染），含 All Status / OK / Failed / Running 选项。
+    const statusSelect = page.getByLabel("执行状态");
+    await expect(statusSelect).toBeVisible();
+    await expect(statusSelect.locator("option")).toHaveText([
+      "All Status",
+      "OK",
+      "Failed",
+      "Running",
+    ]);
+    // 选择 Failed 触发服务端重查（?status=failed），页面不崩溃。
+    await statusSelect.selectOption("failed");
+    await expect(page).toHaveURL(/\/interface\/scheduler/);
 
     // Error text visible for failed execution
     await expect(page.getByText("timeout waiting for lock")).toBeVisible();
@@ -478,8 +488,8 @@ test.describe("Interface / Scheduler 页面", () => {
 
     await page.reload();
 
-    // Post-reload: same content rendered correctly
+    // Post-reload: same content rendered correctly（标题 h1 内嵌 Tooltip 触发按钮，故非 exact 匹配）。
     await expect(page.getByText("KB/KG Pipeline Watchdog")).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Scheduler", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Scheduler" })).toBeVisible();
   });
 });
