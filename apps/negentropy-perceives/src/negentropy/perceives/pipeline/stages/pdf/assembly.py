@@ -1361,6 +1361,37 @@ class BuiltinAssembler(PDFToolBase):
                     elements.insert(_target, _moved)
                 _img_i += 1
 
+            # 表格 run-on 文本回声抑制（须在下方段合并前执行）：PyMuPDF 对
+            # 同一表格另抽字符流(run-on, 无 | 分隔), 与 table_extraction 的
+            # markdown 表格重复。文本块签名与某 table 签名长度相近(0.5-2.0)
+            # 且 multiset coverage≥0.9 → 抑制。提前到段合并前, 防 run-on(以$
+            # 结尾非句末标点)被误并入下一段致 sig 变长漏判。
+            _table_sigs: List[str] = []
+            for _e in elements:
+                if _e.element_type == "table" and _e.content:
+                    _ts = _formula_text_signature(_e.content)
+                    if len(_ts) >= 20:
+                        _table_sigs.append(_ts)
+            if _table_sigs:
+                # 仅抑制紧邻表格之后的 run-on 回声（相邻性约束）：远处正文段
+                # 即使与长 table sig 字符集合巧合重叠（coverage 虚高）也不误杀。
+                _filtered_elems: List[_ContentElement] = []
+                for _idx, _e in enumerate(elements):
+                    if _e.element_type == "text" and _e.block is not None and _idx > 0:
+                        _prev_elem = elements[_idx - 1]
+                        if (
+                            _prev_elem.element_type == "table"
+                            and _prev_elem.content
+                            and len(_formula_text_signature(_prev_elem.content)) >= 20
+                            and _is_table_runon_echo(
+                                _formula_text_signature(_e.content or ""),
+                                [_formula_text_signature(_prev_elem.content)],
+                            )
+                        ):
+                            continue
+                    _filtered_elems.append(_e)
+                elements = _filtered_elems
+
             # 2.6.4 相邻同句段合并：docling 把一个完整段按视觉行拆成多个
             # TextBlock，致 markdown 输出多个独立段（空行分隔）。当前 text 段
             # 不以句末标点结尾 + 下一相邻 text 段以小写开头（句子延续）→ 合并
@@ -1946,6 +1977,32 @@ def _is_paragraph_boundary(elem) -> bool:
     if _LIST_ITEM_RE.match(t):
         return True
     return bool(re.search(r"[.!?][\"')\]]*\s*$", t))
+
+
+def _is_table_runon_echo(text_sig: str, table_sigs: List[str]) -> bool:
+    """文本块签名是否为某表格的 run-on 字符流回声。
+
+    PyMuPDF 对同一表格另抽字符流（run-on，无 ``|`` 分隔），与 table_extraction
+    的高保真 markdown 表格内容重复，作独立正文段显示是冗余。文本块签名与某
+    table 元素签名的字符 multiset coverage≥0.8 时判为回声抑制。
+
+    阈值 0.8：表格 run-on 回声 coverage 通常 ≥0.95（同一内容字符流），而
+    讨论表格的正文段（含 recurrence/convolution 等重叠词）coverage <0.75，
+    0.8 留足 FP 余量。
+    """
+    if len(text_sig) < 20:
+        return False
+    text_ctr = Counter(text_sig)
+    for tsig in table_sigs:
+        if len(tsig) < 20:
+            continue
+        overlap = sum((text_ctr & Counter(tsig)).values())
+        # coverage≥0.95: run-on 回声字符几乎全在 table sig(同一内容字符流,
+        # 回声可能是表格的一部分故不约束长度比例); 讨论表格的正文段(列表项/
+        # 单句含 encoder/contains/layers 等非表格词)coverage<0.95, 留足 FP 余量。
+        if overlap / len(text_sig) >= 0.95:
+            return True
+    return False
 
 
 def _normalize_for_dedup(text: str) -> str:
