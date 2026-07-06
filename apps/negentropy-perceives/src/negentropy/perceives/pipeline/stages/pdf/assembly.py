@@ -1320,6 +1320,30 @@ class BuiltinAssembler(PDFToolBase):
                 else:
                     _page_seen.add(_norm)
 
+            # 2.6.2 图子标签剔除（Figure 2 子图标签场景）：docling 把图内矢量
+            # 标签（如 Figure 2 子图标签 "Scaled Dot-Product Attention"/
+            # "Multi-Head Attention"）额外抽成独立文本块，而这些标签内容已含
+            # 于图的完整 caption。剔除"短词组(3-6词)、无句末标点、整体是某图
+            # caption 归一化子串"的冗余子标签，避免其作为独立正文行显示。
+            _img_caps_for_sublabel: List[str] = []
+            for _e in elements:
+                if _e.element_type == "image" and _e.image:
+                    _c = (_e.image.caption or "").strip()
+                    if len(_c) > 15:
+                        _img_caps_for_sublabel.append(_normalize_for_dedup(_c))
+            if _img_caps_for_sublabel:
+                elements = [
+                    _e
+                    for _e in elements
+                    if not (
+                        _e.element_type == "text"
+                        and _e.block is not None
+                        and _is_figure_sublabel(
+                            (_e.content or "").strip(), _img_caps_for_sublabel
+                        )
+                    )
+                ]
+
             # 2.7 去重：移除重复标题与重复 Figure/Table 注释
             #    标题去重：
             #    a) 两个相邻标题归一化后相同 → 移除前者（通常是 TOC 版本）
@@ -1766,6 +1790,37 @@ _COVER_BANNER_PATTERNS: List[re.Pattern] = [
         r"(?:Context|Lab|Project|Initiative|Institute|GenAI|Studio|Labs)\s*$"
     ),
 ]
+
+
+def _is_figure_sublabel(text: str, image_captions_norm: List[str]) -> bool:
+    """判断文本块是否为图内矢量标签（已含于图 caption 的冗余子标签）。
+
+    docling 把图内矢量文字（如 Figure 2 子图标签 ``Scaled Dot-Product
+    Attention`` / ``Multi-Head Attention``）额外抽成独立文本块，而这些标签
+    内容已完整出现在图的 caption（``Figure 2: (left) Scaled Dot-Product
+    Attention. (right) Multi-Head Attention ...``）中，作独立正文行显示是冗余。
+
+    判据（同时满足）：
+      1. 短词组：``3 <= 词数 <= 6``（子图标签典型长度，排除刻度碎片与长正文）；
+      2. 无句末标点（子图标签无 ``.!?``，正文完整句多有）；
+      3. 整体是某图 caption 归一化的子串（``norm(text) in norm(caption)``），
+         长度 ≥8 字符防超短巧合。
+
+    三判据联立 FP 极低：正文完整句不会整个落入某 caption 子串。
+    """
+    t = (text or "").strip()
+    if not t:
+        return False
+    if re.search(r"[.!?][\"')\]]*\s*$", t):
+        return False
+    # 词数按归一化后计：``Multi-Head Attention`` 归一为 ``multi head attention``
+    # （破折号转空格）算 3 词；用原始 split 会把 ``Multi-Head`` 当 1 词致漏判。
+    norm = _normalize_for_dedup(t)
+    if len(norm) < 8:
+        return False
+    if not (3 <= len(norm.split()) <= 6):
+        return False
+    return any(norm in cn for cn in image_captions_norm)
 
 
 def _normalize_for_dedup(text: str) -> str:
