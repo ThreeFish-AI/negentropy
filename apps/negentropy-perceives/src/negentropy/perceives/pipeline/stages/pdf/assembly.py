@@ -1376,6 +1376,11 @@ class BuiltinAssembler(PDFToolBase):
                 markdown_parts.append(elem.content)
 
             markdown = "\n\n".join(markdown_parts)
+            # 误判内联公式解包：含省略号的普通文本（典型为目录条目
+            # ``$Appendix B - AI Agentic \ldots.: From GUI ...$``）被引擎误标为
+            # inline formula，省略号被 LaTeX 化为 ``\ldots``。此处仅对"触发词 +
+            # 无真数学命令 + 像英文散文"的极明显误判解包还原，真公式一律保留。
+            markdown = _unwrap_ellipsis_falsepositive_inline_math(markdown)
 
             # 4. 图片引用规范化
             images: List[ExtractedImage] = []
@@ -2550,6 +2555,53 @@ def _code_block_to_markdown(
         return f"```{inferred_lang}\n{rest}\n```"
 
     return f"```\n{code}\n```"
+
+
+# 真数学命令/符号黑名单：内联 ``$...$`` 内容若命中任一则视为真公式，保守保留。
+# 覆盖常见 LaTeX 数学（分数/求和/积分/根号/关系符/希腊字母/上下标等）。
+_INLINE_MATH_FALSEPOS_DENY = re.compile(
+    r"\\(?:frac|sum|int|sqrt|lim|log|cdot|times|partial|infty|nabla|forall|exists|"
+    r"in|notin|le|ge|leq|geq|neq|approx|equiv|pm|mp|div|subset|supset|cup|cap|"
+    r"alpha|beta|gamma|delta|epsilon|varepsilon|zeta|eta|theta|iota|kappa|"
+    r"lambda|mu|nu|xi|pi|rho|sigma|tau|upsilon|phi|chi|psi|omega|Gamma|Delta|"
+    r"Theta|Lambda|Sigma|Phi|Psi|Omega|mathbb|mathcal|mathbf|mathrm|mathsf|"
+    r"text|textbf|begin|end|left|right|hat|bar|vec|dot|tilde|overline|underline)\b"
+    r"|[\^_]"
+)
+# 误判触发词：省略号被 LaTeX 化。
+_INLINE_MATH_FALSEPOS_TRIGGER = re.compile(r"\\l?dots\b")
+
+
+def _unwrap_ellipsis_falsepositive_inline_math(markdown: str) -> str:
+    """解包"省略号型"内联公式误判。
+
+    MinerU/marker 有时把含 ``...`` 的普通文本（典型为目录条目，如 ``Appendix B -
+    AI Agentic ...: From GUI to Real world environment``）误标为 inline formula，
+    输出 ``$Appendix B - AI Agentic \\ldots.: From GUI ...$``——省略号被 LaTeX 化为
+    ``\\ldots``，整段被 ``$...$`` 包裹，UI 渲染为乱码公式。
+
+    仅对**极明显**的误判解包还原（保守，避免误伤真公式），三条件全部满足才处理：
+      1. 内容含 ``\\ldots``/``\\dots``（误判触发词）；
+      2. 内容**不含**任何真数学命令/符号（黑名单 ``_INLINE_MATH_FALSEPOS_DENY``）；
+      3. 内容含 ≥2 个非 LaTeX-命令的英文词（≥4 字母）——真公式极少如此。
+
+    命中则去掉 ``$...$`` 包裹并把 ``\\ldots``/``\\dots`` 还原为 ``...``；
+    ``$$...$$`` 块公式与单行内的多 ``$`` 不受影响（正则用 ``(?<!\\$)\\$(?!\\$)``
+    锚定单个 ``$`` 且内容不含 ``$``/换行）。
+    """
+
+    def _repl(m: "re.Match[str]") -> str:
+        inner = m.group(1)
+        if not _INLINE_MATH_FALSEPOS_TRIGGER.search(inner):
+            return m.group(0)
+        if _INLINE_MATH_FALSEPOS_DENY.search(inner):
+            return m.group(0)  # 含真数学命令，保留
+        # 非 LaTeX-命令的英文词（≥4 字母）计数
+        if len(re.findall(r"(?<!\\)[A-Za-z]{4,}", inner)) < 2:
+            return m.group(0)  # 不像英文散文，保守保留（如真数学省略号 $1,\ldots,n$）
+        return inner.replace(r"\ldots", "...").replace(r"\dots", "...")
+
+    return re.sub(r"(?<!\$)\$(?!\$)([^\n$]+?)\$(?!\$)", _repl, markdown)
 
 
 def _split_code_tail_section(code: str) -> Tuple[str, str]:
