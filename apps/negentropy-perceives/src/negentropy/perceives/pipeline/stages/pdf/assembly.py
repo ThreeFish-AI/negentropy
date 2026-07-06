@@ -1361,6 +1361,55 @@ class BuiltinAssembler(PDFToolBase):
                     elements.insert(_target, _moved)
                 _img_i += 1
 
+            # 2.6.4 相邻同句段合并：docling 把一个完整段按视觉行拆成多个
+            # TextBlock，致 markdown 输出多个独立段（空行分隔）。当前 text 段
+            # 不以句末标点结尾 + 下一相邻 text 段以小写开头（句子延续）→ 合并
+            # 为一段，还原源 PDF 完整段。排除 heading / 列表项 / 以标点结尾的段。
+            _merge_i = 0
+            while _merge_i < len(elements) - 1:
+                _cur = elements[_merge_i]
+                _nxt = elements[_merge_i + 1]
+                if not (
+                    _cur.element_type == "text"
+                    and _cur.block is not None
+                    and _nxt.element_type == "text"
+                    and _nxt.block is not None
+                ):
+                    _merge_i += 1
+                    continue
+                _ct = (_cur.content or "").strip()
+                _nt = (_nxt.content or "").strip()
+                if (
+                    not _ct
+                    or not _nt
+                    or _ct.startswith("#")
+                    or _nt.startswith("#")
+                    or _LIST_ITEM_RE.match(_ct)
+                    or _LIST_ITEM_RE.match(_nt)
+                ):
+                    _merge_i += 1
+                    continue
+                _cur_ends_punct = bool(re.search(r"[.!?][\"')\]]*\s*$", _ct))
+                _nxt_starts_lower = _nt[0].islower()
+                if not _cur_ends_punct and _nxt_starts_lower:
+                    _cur.content = _ct + " " + _nt
+                    elements.pop(_merge_i + 1)
+                    continue
+                _merge_i += 1
+
+            # 2.6.5 行内公式 OCR 残片修复：docling 把行内分数 1/√X 误识为
+            # "$1$ $^{\sqrt}X$"（1 单独、sqrt 作上标、变量跟后），重组为
+            # $\frac{1}{\sqrt{X}}$。仅匹配 $^{\sqrt}X$ 变体（X 可含下标）；
+            # $^{\sqrt X}$ 变体下标信息已丢，无法恢复，不在本规则覆盖范围。
+            for _e in elements:
+                if _e.element_type != "text" or not _e.content:
+                    continue
+                _e.content = re.sub(
+                    r"\$1\$\s+\$\^?\{?\\sqrt[\}\s]*([a-zA-Z](?:_\{[^}]*\})?)\$",
+                    r"$\\frac{1}{\\sqrt{\1}}$",
+                    _e.content,
+                )
+
             # 2.7 去重：移除重复标题与重复 Figure/Table 注释
             #    标题去重：
             #    a) 两个相邻标题归一化后相同 → 移除前者（通常是 TOC 版本）
