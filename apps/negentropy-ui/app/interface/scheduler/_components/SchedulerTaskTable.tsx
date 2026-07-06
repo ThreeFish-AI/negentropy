@@ -93,19 +93,19 @@ export function SchedulerTaskTable({
       </div>
       <table className="w-full table-fixed text-sm">
         {/* 固定列宽（合计 100%，随容器等比缩放；超长内容由 TextTooltip + truncate 恢复全文）：
-            Task 15 · Description 19 · Handler 12 · Trigger 11 · Last 8 · Next 8 · Recent 6 · Enabled 8 · Actions 13。
+            Task 14 · Description 17 · Handler 12 · Trigger 11 · Last 8 · Next 8 · Recent 6 · Enabled 8 · Actions 16。
             9 列须与下方 9 个 <th> 严格对齐。注意：colgroup 内不得夹带空白文本节点（含 <col/> 后行内注释），
             否则触发 "whitespace text nodes cannot be a child of colgroup" hydration 报错。 */}
         <colgroup>
-          <col className="w-[15%]" />
-          <col className="w-[19%]" />
+          <col className="w-[14%]" />
+          <col className="w-[17%]" />
           <col className="w-[12%]" />
           <col className="w-[11%]" />
           <col className="w-[8%]" />
           <col className="w-[8%]" />
           <col className="w-[6%]" />
           <col className="w-[8%]" />
-          <col className="w-[13%]" />
+          <col className="w-[16%]" />
         </colgroup>
         <thead>
           <tr className="border-b border-border text-left text-xs uppercase tracking-overline text-text-secondary">
