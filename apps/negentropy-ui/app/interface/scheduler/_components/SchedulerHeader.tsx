@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/nav-styles";
 import type { DashboardFilters, KpiResponse, ScheduledTaskDTO } from "@/features/scheduler";
 
-import { SchedulerFilterBar } from "./SchedulerFilterBar";
+import { SchedulerFilterBar, type ExecutionStatusFilter } from "./SchedulerFilterBar";
 
 interface SchedulerHeaderProps {
   connected: boolean;
@@ -28,6 +28,9 @@ interface SchedulerHeaderProps {
   /** 全量任务快照，用于派生 Role/Scenario/Category 下拉选项。 */
   tasks: ScheduledTaskDTO[];
   onFiltersChange: (filters: DashboardFilters) => void;
+  /** 执行状态过滤（executions tab 专用，透传给 FilterBar 的状态下拉）。 */
+  executionStatus: ExecutionStatusFilter;
+  onExecutionStatusChange: (s: ExecutionStatusFilter) => void;
 }
 
 const TABS: { key: "tasks" | "executions" | "stats"; label: string }[] = [
@@ -121,6 +124,8 @@ export function SchedulerHeader({
   filters,
   tasks,
   onFiltersChange,
+  executionStatus,
+  onExecutionStatusChange,
 }: SchedulerHeaderProps) {
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
@@ -140,7 +145,14 @@ export function SchedulerHeader({
 
       {/* 筛选栏：居右、可伸缩；空间紧时最先让位。 */}
       <div className="flex min-w-[240px] flex-1 flex-wrap items-center justify-end gap-2">
-        <SchedulerFilterBar filters={filters} tasks={tasks} onFiltersChange={onFiltersChange} />
+        <SchedulerFilterBar
+          filters={filters}
+          tasks={tasks}
+          onFiltersChange={onFiltersChange}
+          activeTab={activeTab}
+          executionStatus={executionStatus}
+          onExecutionStatusChange={onExecutionStatusChange}
+        />
       </div>
 
       {/* 动作按钮组：不收缩、不内部换行 */}
