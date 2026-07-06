@@ -1459,6 +1459,9 @@ class BuiltinAssembler(PDFToolBase):
             # 5. Markdown 格式化
             formatter = MarkdownFormatter()
             markdown = formatter.format(markdown)
+            # 圆点项目符展开（须在 formatter 之后：formatter 会把 PDF 硬换行的圆点
+            # 项连成空格分隔的 run-on 段 `` ● ``，此处展开为 ``\n- `` 同级列表项）。
+            markdown = _expand_bullet_paragraphs(markdown)
 
             # 6. 参考文献节条目分段（多条目连段 → 每条独占段落）
             markdown = _segment_references_section(markdown)
@@ -2748,6 +2751,44 @@ def _fence_json_text_paragraphs(markdown: str) -> str:
             out.append("```json\n" + s + "\n```")
         else:
             out.append(para)
+    return "\n\n".join(out)
+
+
+# 圆点项目符（PDF 列表 bullet）集合：●/○/•。text_extraction 常把整列圆点项压成
+# 单段，首项可能已被识为 ``- `` 列表项，后续项以圆点符内联分隔。
+_BULLET_CHARS = "●○•▪◦"
+
+
+def _expand_bullet_paragraphs(markdown: str) -> str:
+    """把段落内折叠的圆点项目符（●/○/•/▪/◦）展开为同级 markdown 列表项。
+
+    PDF 源的圆点列表经 text_extraction 常被压成单段，形如：
+    ``- Prompt 1: 提取文本。 ● Prompt 2: 总结文本。 ● Prompt 3: 抽取实体。``
+    （首项已是 ``- `` 列表项，后续项以 `` ● `` 内联分隔）。本函数把
+    `` ● ``/`` ○ ``/`` • `` 等 ``" " + 圆点 + " "`` 替换为 ``"\\n- "``，展开为
+    同级 markdown 列表项，恢复可读的列表结构。
+
+    跳过 fenced 代码块与表格段落（含 ````` ```` 或 ``|`` 的段落），避免破坏代码
+    与 GFM 表格。**仅处理圆点符**——编号列表（``1. ... 2. ...``）因与目录文本
+    ``1. Chapter 1 ... 2. Chapter 2 ...`` 结构难区分、误分裂风险高，暂不处理。
+    段落首字符即为圆点的（无前置 ``- ``），亦规整为 ``- `` 列表项。同时兼容两种
+    形态：行首裸圆点（``\\n● item``，pre-formatter）与中段内联圆点（`` ● item``，
+    post-formatter run-on 段）。
+    """
+    paragraphs = markdown.split("\n\n")
+    out: List[str] = []
+    for para in paragraphs:
+        if "```" in para or "|" in para:
+            out.append(para)
+            continue
+        if not any(ch in para for ch in _BULLET_CHARS):
+            out.append(para)
+            continue
+        # 1. 行首裸圆点（含换行后的行首）："● Foo" / "\n● Foo" -> "- Foo"
+        new = re.sub(r"(?m)^[" + _BULLET_CHARS + r"]\s+", "- ", para)
+        # 2. 中段内联圆点（空格分隔的 run-on）：" ● " -> "\n- "
+        new = re.sub(r" [" + _BULLET_CHARS + r"] ", "\n- ", new)
+        out.append(new)
     return "\n\n".join(out)
 
 
