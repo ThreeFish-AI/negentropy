@@ -1,5 +1,6 @@
 "use client";
 
+import { CopyButton } from "@/components/ui/CopyButton";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { TextTooltip } from "@/components/ui/TextTooltip";
 import type { ScheduledTaskDTO } from "@/features/scheduler";
@@ -7,8 +8,6 @@ import type { ScheduledTaskDTO } from "@/features/scheduler";
 interface SchedulerTaskTableProps {
   /** 要渲染的任务（由调用方以连续前缀形式提供，后端 updated_at 倒序）。 */
   tasks: ScheduledTaskDTO[];
-  /** 任务总数，用于表头计数；缺省回退到 tasks.length。 */
-  total?: number;
   /** 无限滚动每页条数：每页首行挂 data-infinite-page 锚点，供翻页定位与滚动联动当前页。 */
   pageSize?: number;
   loading: boolean;
@@ -68,7 +67,7 @@ function StatusDots({ statuses }: { statuses: string[] }) {
 function SkeletonRow() {
   return (
     <tr className="border-b border-border/60 last:border-0">
-      {Array.from({ length: 9 }).map((_, i) => (
+      {Array.from({ length: 10 }).map((_, i) => (
         <td key={i} className="px-4 py-3">
           <Skeleton className="h-4" style={{ width: `${50 + (i * 13) % 40}%` }} />
         </td>
@@ -79,7 +78,6 @@ function SkeletonRow() {
 
 export function SchedulerTaskTable({
   tasks,
-  total,
   pageSize,
   loading,
   onToggle,
@@ -88,28 +86,27 @@ export function SchedulerTaskTable({
 }: SchedulerTaskTableProps) {
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card">
-      <div className="border-b border-border px-4 py-2.5 text-caption uppercase tracking-overline text-muted-foreground">
-        Tasks ({total ?? tasks.length})
-      </div>
       <table className="w-full table-fixed text-sm">
-        {/* 固定列宽（合计 100%，随容器等比缩放；超长内容由 TextTooltip + truncate 恢复全文）：
-            Task 14 · Description 17 · Handler 12 · Trigger 11 · Last 8 · Next 8 · Recent 6 · Enabled 8 · Actions 16。
-            9 列须与下方 9 个 <th> 严格对齐。注意：colgroup 内不得夹带空白文本节点（含 <col/> 后行内注释），
+        {/* 固定列宽（合计 100%，随容器等比缩放；超长内容由 TextTooltip + truncate 恢复全文，所有列单行不折）：
+            Task 14 · ID 12 · Description 18 · Handler 10 · Trigger 10 · Last 7 · Next 7 · Recent 5 · Enabled 7 · Actions 10。
+            10 列须与下方 10 个 <th> 严格对齐。注意：colgroup 内不得夹带空白文本节点（含 <col/> 后行内注释），
             否则触发 "whitespace text nodes cannot be a child of colgroup" hydration 报错。 */}
         <colgroup>
           <col className="w-[14%]" />
-          <col className="w-[17%]" />
           <col className="w-[12%]" />
-          <col className="w-[11%]" />
-          <col className="w-[8%]" />
-          <col className="w-[8%]" />
-          <col className="w-[6%]" />
-          <col className="w-[8%]" />
-          <col className="w-[16%]" />
+          <col className="w-[18%]" />
+          <col className="w-[10%]" />
+          <col className="w-[10%]" />
+          <col className="w-[7%]" />
+          <col className="w-[7%]" />
+          <col className="w-[5%]" />
+          <col className="w-[7%]" />
+          <col className="w-[10%]" />
         </colgroup>
         <thead>
           <tr className="border-b border-border text-left text-xs uppercase tracking-overline text-text-secondary">
             <th className="px-4 py-2.5 font-medium">Task</th>
+            <th className="px-4 py-2.5 font-medium">ID</th>
             <th className="px-4 py-2.5 font-medium">Description</th>
             <th className="px-4 py-2.5 font-medium">Handler</th>
             <th className="px-4 py-2.5 font-medium">Trigger</th>
@@ -125,7 +122,7 @@ export function SchedulerTaskTable({
             Array.from({ length: 8 }).map((_, i) => <SkeletonRow key={i} />)
           ) : tasks.length === 0 ? (
             <tr>
-              <td colSpan={9} className="px-4 py-6 text-center text-muted-foreground">
+              <td colSpan={10} className="px-4 py-6 text-center text-muted-foreground">
                 No tasks match current filters.
               </td>
             </tr>
@@ -139,16 +136,22 @@ export function SchedulerTaskTable({
               >
                 <td className="px-4 py-3">
                   <TextTooltip content={t.display_name || t.key}>
-                    <div className="truncate font-medium text-foreground">{t.display_name || t.key}</div>
+                    <span className="block truncate font-medium text-foreground">{t.display_name || t.key}</span>
                   </TextTooltip>
-                  <TextTooltip content={t.key}>
-                    <div className="truncate text-micro text-muted-foreground">{t.key}</div>
-                  </TextTooltip>
+                </td>
+                {/* 任务 ID（独立列）：约半宽截断展示，全文经悬浮单行恢复 + 一键复制（对齐 RoutineTable ID 列）。 */}
+                <td className="px-4 py-3">
+                  <div className="flex min-w-0 items-center gap-1">
+                    <TextTooltip content={t.key}>
+                      <span className="min-w-0 flex-1 truncate font-mono text-xs text-text-secondary">{t.key}</span>
+                    </TextTooltip>
+                    <CopyButton value={t.key} ariaLabel="复制 ID" className="shrink-0" />
+                  </div>
                 </td>
                 <td className="px-4 py-3 text-muted-foreground">
                   {t.description ? (
                     <TextTooltip content={t.description}>
-                      <div className="truncate">{t.description}</div>
+                      <span className="block truncate">{t.description}</span>
                     </TextTooltip>
                   ) : (
                     "—"
@@ -156,12 +159,12 @@ export function SchedulerTaskTable({
                 </td>
                 <td className="px-4 py-3 text-muted-foreground">
                   <TextTooltip content={t.handler_kind}>
-                    <div className="truncate">{t.handler_kind}</div>
+                    <span className="block truncate">{t.handler_kind}</span>
                   </TextTooltip>
                 </td>
                 <td className="px-4 py-3 text-muted-foreground">
                   <TextTooltip content={triggerText(t)}>
-                    <div className="truncate font-mono text-xs">{triggerText(t)}</div>
+                    <span className="block truncate font-mono text-xs">{triggerText(t)}</span>
                   </TextTooltip>
                 </td>
                 <td className="px-4 py-3 text-muted-foreground">
@@ -191,7 +194,7 @@ export function SchedulerTaskTable({
                   >
                     <button
                       onClick={() => onToggle(t.id, !t.enabled)}
-                      className={`shrink-0 rounded-md px-2 py-1 text-micro border border-border transition-colors ${
+                      className={`shrink-0 whitespace-nowrap rounded-md border border-border px-2 py-1 text-micro transition-colors ${
                         t.enabled
                           ? "text-foreground hover:bg-muted/50"
                           : "text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
@@ -201,7 +204,7 @@ export function SchedulerTaskTable({
                     </button>
                     <button
                       onClick={() => onRun(t.id)}
-                      className="shrink-0 rounded-md px-2 py-1 text-micro bg-foreground text-background hover:opacity-80 transition-opacity"
+                      className="shrink-0 whitespace-nowrap rounded-md bg-foreground px-2 py-1 text-micro text-background transition-opacity hover:opacity-80"
                     >
                       Run Now
                     </button>

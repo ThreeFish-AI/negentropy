@@ -168,15 +168,12 @@ export function SchedulerExecutionPanel({
   }, [currentPage, itemsLen]);
 
   const view = list.items;
-  const totalCount = list.total ?? filtered.length;
+  // 计数仅由底部分页承担（"N executions"），表头不再重复展示；此处仅保留状态过滤 pills。
 
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card">
-      {/* Status filter pills */}
-      <div className="flex items-center justify-between border-b border-border px-4 py-2">
-        <span className="text-caption uppercase tracking-overline text-muted-foreground">
-          Executions ({totalCount})
-        </span>
+      {/* Status filter pills（计数去重：仅在底部分页栏展示） */}
+      <div className="flex items-center justify-end border-b border-border px-4 py-2">
         <div className={`${navRailContainerClassName} gap-0.5 p-0.5`}>
           {STATUS_FILTERS.map((sf) => (
             <button

@@ -289,7 +289,6 @@ export default function SchedulerPage() {
             <>
               <SchedulerTaskTable
                 tasks={taskList.items}
-                total={taskList.total ?? taskList.items.length}
                 loading={taskList.loading}
                 onToggle={handleToggle}
                 onRun={handleRun}
