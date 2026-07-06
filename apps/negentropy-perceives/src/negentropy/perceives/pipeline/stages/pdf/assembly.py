@@ -14,6 +14,7 @@ import html
 import logging
 import re
 import unicodedata
+from collections import Counter
 from typing import Dict, List, Optional, Tuple
 
 from ...base import Stage, StageResult
@@ -34,6 +35,16 @@ logger = logging.getLogger(__name__)
 # 论文顶层结构标题 ``Part I. / Part II. ...``（罗马数字 + 句点）。用于 2.1a 段把
 # 四个 Part 归一到统一层级（H2），修复 docling 跨切片赋级不一致。
 _PART_HEADING_RE = re.compile(r"^Part\s+[IVXLCDM]+[.．:：]", re.IGNORECASE)
+
+
+# LaTeX 数学标记：``$...$`` 定界符或常见数学命令（``\sqrt``/``\frac``/``\sum``/
+# ``\mathrm``/``\operatorname``/``\begin``/希腊字母命令等）。用于区分 docling 把
+# 行间公式 OCR 成文本流的"残影"块与正常正文段——正文段几乎不含这些标记。
+_LATEX_MATH_MARKER_RE = re.compile(
+    r"\$|\\(?:sqrt|frac|sum|int|prod|mathrm|mathit|mathbf|mathsf|operatorname"
+    r"|begin|end|alpha|beta|gamma|delta|theta|lambda|mu|sigma|omega|phi|psi"
+    r"|infty|cdot|times|leq|geq|neq|approx|rightarrow|leftarrow)\b"
+)
 
 
 # ---------------------------------------------------------------------------
@@ -1657,6 +1668,21 @@ def _text_block_matches_formula(
         if text_sig in fsig:
             coverage = len(text_sig) / max(len(fsig), 1)
             if coverage >= 0.4:
+                return True
+    # multiset 兜底（上下标顺序致子串失配）：docling 把行间公式 OCR 成文本流时，
+    # 上下标顺序常与 LaTeX 块不一致（如 ``QW_i^Q`` → 文本 ``QW^Q_i``），字符级
+    # 子串失配。残影签名虽长(≥15)但其字符 multiset 几乎完全落入同页某公式签名
+    # (coverage≥0.75)，且原始文本含 LaTeX 数学标记(``$``/``\sqrt`` 等，强公式
+    # 信号——正文段几乎不含) → 判为残影过滤。正文段更长且已在正向子串路径被
+    # len_ratio 守卫放行，不会误进此分支；含行内公式的正文段 coverage 也不足
+    # (正文词字符占比拉低 overlap/len)。
+    if len(text_sig) >= 15 and _LATEX_MATH_MARKER_RE.search(block.text or ""):
+        text_ctr = Counter(text_sig)
+        for fsig in sigs:
+            if len(fsig) < 15:
+                continue
+            overlap = sum((text_ctr & Counter(fsig)).values())
+            if overlap / len(text_sig) >= 0.75:
                 return True
     return False
 
