@@ -49,9 +49,10 @@ const STATUS_OPTIONS: { value: ExecutionStatusFilter; label: string }[] = [
   { value: "running", label: "Running" },
 ];
 
-/** 统一下拉视觉：bg-input + focus ring + 固定紧凑宽度（对齐既有 SelectFilter）。 */
+/** 统一下拉视觉：bg-input + focus ring + 固定紧凑宽度。executions tab 需 7 个下拉共容单行，
+ *  故 w-24(96px)：7×96 + 6×gap-1(4px) = 696 ≤ 中间筛选区可用宽 ~706px，避免 All Status 折行。 */
 const SELECT_CLS =
-  "w-28 truncate rounded-md border border-border bg-input px-2 py-1.5 text-xs text-foreground focus:border-border focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50";
+  "w-24 truncate rounded-md border border-border bg-input px-2 py-1.5 text-xs text-foreground focus:border-border focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50";
 
 interface SelectFilterProps {
   label: string;
@@ -103,7 +104,7 @@ export function SchedulerFilterBar({
   const showStatus = activeTab === "executions" && onExecutionStatusChange != null;
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
+    <div className="flex flex-wrap items-center gap-1">
       <SelectFilter
         label="Role"
         value={filters.role}
