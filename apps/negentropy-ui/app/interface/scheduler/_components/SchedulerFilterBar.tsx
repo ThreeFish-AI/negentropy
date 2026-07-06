@@ -50,8 +50,8 @@ function SelectFilter({ label, value, options, loading, onChange }: SelectFilter
       value={value ?? ""}
       onChange={(e) => onChange(e.target.value || null)}
       disabled={loading}
-      // 对齐 Routine RoutineFilterBar 的 inputCls 观感（bg-input + focus ring）。
-      className="rounded-md border border-border bg-input px-3 py-1.5 text-xs text-foreground focus:border-border focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
+      // bg-input + focus ring 对齐 RoutineFilterBar；px 收窄以在窄屏单行容纳 5 下拉 + 3 时间窗。
+      className="rounded-md border border-border bg-input px-2 py-1.5 text-xs text-foreground focus:border-border focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
     >
       <option value="">{label}</option>
       {options.map((o) => (
@@ -76,7 +76,7 @@ export function SchedulerFilterBar({ filters, tasks, onFiltersChange }: Schedule
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-1.5">
       <SelectFilter
         label="Role"
         value={filters.role}
@@ -113,15 +113,15 @@ export function SchedulerFilterBar({ filters, tasks, onFiltersChange }: Schedule
         onChange={(v) => patch({ owner: v })}
       />
 
-      {/* Time window pills */}
-      <div className={`${navRailContainerClassName} ml-2`}>
+      {/* Time window pills（ml-2 由父级 gap-1.5 统一间距取代） */}
+      <div className={navRailContainerClassName}>
         {TIME_WINDOWS.map((tw) => (
           <button
             key={tw.key}
             onClick={() => patch({ window: tw.key })}
             className={navPillClassName(
               filters.window === tw.key,
-              "px-3 font-medium",
+              "px-2 font-medium",
             )}
           >
             {tw.label}

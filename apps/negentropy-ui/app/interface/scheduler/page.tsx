@@ -10,7 +10,6 @@ import { InterfaceNav } from "@/components/ui/InterfaceNav";
 import { Pagination } from "@/components/ui/Pagination";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import { useInfiniteList, type CursorFetcher } from "@/hooks/useInfiniteList";
-import { useInfiniteScrollSentinel, useScrollPageSync } from "@/hooks/useInfiniteScrollSentinel";
 
 import { useSchedulerData } from "@/app/(home)/dashboard/_hooks/useSchedulerData";
 import { useSchedulerStream } from "@/app/(home)/dashboard/_hooks/useSchedulerStream";
@@ -32,7 +31,7 @@ const DEFAULT_FILTERS: DashboardFilters = {
   window: "24h",
 };
 
-/** 任务列表每页条数（游标无限滚动加载粒度 + 页码跳页粒度）。 */
+/** 任务列表每页条数（纯分页：仅展示当前页 TASK_PAGE_SIZE 条，翻页由 goToPage 顺序补齐游标）。 */
 const TASK_PAGE_SIZE = 10;
 /** SSE 抖动合并到尾沿的去抖窗（对齐 Routine useRoutineLive）。 */
 const REFRESH_DEBOUNCE_MS = 500;
@@ -86,52 +85,10 @@ export default function SchedulerPage() {
     filters,
   });
 
-  // 无限滚动 + 翻页：页面级滚动容器 ref、程序化滚动闸门、待跳页号（mirror Routine 样板）。
-  const scrollRootRef = useRef<HTMLDivElement | null>(null);
-  const programmaticScrollRef = useRef(false);
-  const pendingPageRef = useRef<number | null>(null);
-
-  // 无限滚动哨兵：滚到底（提前 200px）→ 追加下一游标页。root = 页面级滚动容器。
-  const { sentinelRef } = useInfiniteScrollSentinel({
-    onReach: taskList.loadMore,
-    enabled: taskList.hasMore && !taskList.loadingMore && !taskList.loading,
-    root: scrollRootRef,
-  });
-
-  // 滚动联动当前页高亮：观测每页首行的 data-infinite-page 锚点，取最靠上可见页。
-  useScrollPageSync({
-    enabled: true,
-    onPageChange: taskList.goToPage,
-    root: scrollRootRef,
-    rescanKey: taskList.items.length,
-    programmaticRef: programmaticScrollRef,
-  });
-
-  // 点页码跳页：先经 hook 确保该页已加载（游标顺序补齐 / 已加载即时），再滚动到该页锚点。
-  const handleGoToPage = useCallback(
-    (target: number) => {
-      pendingPageRef.current = target;
-      programmaticScrollRef.current = true; // 抑制 observer 回写，防跳页与联动互相递归
-      taskList.goToPage(target);
-    },
-    [taskList],
-  );
-
-  // 待跳页锚点出现即平滑滚动（cursor 顺序补齐时，锚点随 tasks 增长后再现 → effect 重跑命中）。
-  const taskPage = taskList.currentPage;
-  const taskItemsLen = taskList.items.length;
-  useEffect(() => {
-    const target = pendingPageRef.current;
-    if (target == null) return;
-    const anchor = scrollRootRef.current?.querySelector<HTMLElement>(`[data-infinite-page="${target}"]`);
-    if (!anchor) return; // 该页尚未渲染，待 tasks 增长后重跑
-    anchor.scrollIntoView({ behavior: "smooth", block: "start" });
-    pendingPageRef.current = null;
-    const t = window.setTimeout(() => {
-      programmaticScrollRef.current = false;
-    }, 600);
-    return () => window.clearTimeout(t);
-  }, [taskPage, taskItemsLen]);
+  // ── 纯分页（mirror Routine useRoutineData）：useInfiniteList 维护游标缓冲，展示层仅切片当前页，
+  //    不再累积渲染、无无限滚动哨兵 / 滚动联动；翻页由 goToPage 顺序补齐游标（每页 TASK_PAGE_SIZE 条）。──
+  const taskPageStart = (taskList.currentPage - 1) * TASK_PAGE_SIZE;
+  const pagedTasks = taskList.items.slice(taskPageStart, taskPageStart + TASK_PAGE_SIZE);
 
   // ── SSE：执行事件 → pushExecution（更新时间线 + 全量任务快照内存字段，沿用 useSchedulerData 既有语义）
   //    并去抖刷新任务【分页列表】，使其 Last/Recent/状态点对齐（mirror Routine：不在内存逐字段改分页列表）──
@@ -268,7 +225,7 @@ export default function SchedulerPage() {
   return (
     <div className="flex h-full flex-col bg-muted">
       <InterfaceNav title="Scheduler" />
-      <div ref={scrollRootRef} className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto">
         <div className="space-y-2.5 px-6 py-3">
           <SchedulerHeader
             connected={connected}
@@ -288,22 +245,19 @@ export default function SchedulerPage() {
           {activeTab === "tasks" && (
             <>
               <SchedulerTaskTable
-                tasks={taskList.items}
+                tasks={pagedTasks}
                 loading={taskList.loading}
                 onToggle={handleToggle}
                 onRun={handleRun}
                 onSelect={setSelectedTask}
-                pageSize={TASK_PAGE_SIZE}
               />
-              {/* 无限滚动哨兵：进入视口即追加下一页（taskList.hasMore 为否时 hook 自动停观察）。 */}
-              <div ref={sentinelRef} aria-hidden className="h-px w-full" />
-              {/* 居中翻页控件（页总数 + 控件组居中成组），与无限滚动并存；sticky 底栏始终可达。 */}
+              {/* 居中翻页控件（页总数 + 控件组居中成组）；sticky 底栏始终可达。纯分页：不累积、无无限滚动。 */}
               {taskList.items.length > 0 && (
                 <div className="sticky bottom-0 -mx-6 border-t border-border bg-muted/95 px-6 py-2.5 backdrop-blur supports-[backdrop-filter]:bg-muted/80">
                   <Pagination
                     page={taskList.currentPage}
                     totalPages={taskList.totalPages}
-                    onPageChange={handleGoToPage}
+                    onPageChange={taskList.goToPage}
                     total={taskList.total ?? undefined}
                     itemLabel="task"
                     disabled={taskList.loading}

@@ -6,10 +6,8 @@ import { TextTooltip } from "@/components/ui/TextTooltip";
 import type { ScheduledTaskDTO } from "@/features/scheduler";
 
 interface SchedulerTaskTableProps {
-  /** 要渲染的任务（由调用方以连续前缀形式提供，后端 updated_at 倒序）。 */
+  /** 要渲染的任务（由调用方提供当前页的 TASK_PAGE_SIZE 条，后端 updated_at 倒序）。 */
   tasks: ScheduledTaskDTO[];
-  /** 无限滚动每页条数：每页首行挂 data-infinite-page 锚点，供翻页定位与滚动联动当前页。 */
-  pageSize?: number;
   loading: boolean;
   onToggle: (id: string, enabled: boolean) => void;
   onRun: (id: string) => void;
@@ -78,7 +76,6 @@ function SkeletonRow() {
 
 export function SchedulerTaskTable({
   tasks,
-  pageSize,
   loading,
   onToggle,
   onRun,
@@ -127,10 +124,9 @@ export function SchedulerTaskTable({
               </td>
             </tr>
           ) : (
-            tasks.map((t, i) => (
+            tasks.map((t) => (
               <tr
                 key={t.id}
-                data-infinite-page={pageSize && i % pageSize === 0 ? Math.floor(i / pageSize) + 1 : undefined}
                 onClick={() => onSelect(t)}
                 className="cursor-pointer border-b border-border/60 transition-colors last:border-0 hover:bg-muted/40"
               >
