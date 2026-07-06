@@ -29,7 +29,9 @@ _HTML_IMG_SRC_RE = re.compile(
 )
 
 
-def _build_img_html(img: "ImageMeta", image_dir: str) -> str:
+def _build_img_html(
+    img: "ImageMeta", image_dir: str, alt_override: Optional[str] = None
+) -> str:
     """把图片元数据构造为 ``<img>`` 标签（与 assembly._image_to_markdown 形态一致）。
 
     占位符替换 / 孤儿图追加原本输出裸 ``![alt](./images/filename)``，与正文
@@ -37,12 +39,15 @@ def _build_img_html(img: "ImageMeta", image_dir: str) -> str:
     （``local_path`` 或 ``base64_data``）读像素尺寸，宽 >800 等比缩放（引擎常以
     2x/3x 渲染 figure，原生像素直接做显示宽度会放大数倍）；读不到则输出无显式
     尺寸的响应式 ``<img>``。保证所有图片同为 ``<img>`` 形态、带尺寸（尽最大努力）。
+
+    ``alt_override`` 非空时优先用作 alt（如 ref 规范化路径保留原 markdown ``![alt]``
+    的 alt 文本），否则回退到 image.caption / filename。
     """
     import html as _html
     import os as _os
 
     filename = img.filename or "image"
-    alt = img.caption or filename
+    alt = alt_override or img.caption or filename
     src = f"{image_dir}/{filename}"
     w: Optional[int] = None
     h: Optional[int] = None
@@ -325,6 +330,7 @@ def _normalize_existing_refs(
         return markdown
 
     def _replacer(match: re.Match) -> str:
+        alt = match.group(1)
         path = match.group(2)
 
         # 跳过 base64 data URI
@@ -338,7 +344,9 @@ def _normalize_existing_refs(
         # 提取 basename 并校验是否为已知图片
         basename = PurePosixPath(path).name
         if basename in basename_to_img:
-            return _build_img_html(basename_to_img[basename], image_dir)
+            return _build_img_html(
+                basename_to_img[basename], image_dir, alt_override=alt or None
+            )
 
         return match.group(0)
 

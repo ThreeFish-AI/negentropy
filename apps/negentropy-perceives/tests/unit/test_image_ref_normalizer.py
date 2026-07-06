@@ -44,7 +44,7 @@ class TestReplaceImagePlaceholders:
         md = "Before\n\n<!-- image -->\n\nAfter"
         images = [FakeImage(filename="img_p1_0.png", caption="Figure 1")]
         result = normalize_image_references(md, images)
-        assert "![Figure 1](./images/img_p1_0.png)" in result
+        assert '<img src="./images/img_p1_0.png" alt="Figure 1"' in result
         assert "<!-- image -->" not in result
 
     def test_multiple_placeholders_in_order(self) -> None:
@@ -54,21 +54,21 @@ class TestReplaceImagePlaceholders:
             FakeImage(filename="b.png", caption="B"),
         ]
         result = normalize_image_references(md, images)
-        assert "![A](./images/a.png)" in result
-        assert "![B](./images/b.png)" in result
-        assert result.index("![A]") < result.index("![B]")
+        assert '<img src="./images/a.png" alt="A"' in result
+        assert '<img src="./images/b.png" alt="B"' in result
+        assert result.index("./images/a.png") < result.index("./images/b.png")
 
     def test_placeholder_with_extra_whitespace(self) -> None:
         md = "<!--  image  -->"
         images = [FakeImage(filename="x.png", caption="X")]
         result = normalize_image_references(md, images)
-        assert "![X](./images/x.png)" in result
+        assert '<img src="./images/x.png" alt="X"' in result
 
     def test_more_placeholders_than_images(self) -> None:
         md = "<!-- image -->\n<!-- image -->"
         images = [FakeImage(filename="only.png", caption="Only")]
         result = normalize_image_references(md, images)
-        assert "![Only](./images/only.png)" in result
+        assert '<img src="./images/only.png" alt="Only"' in result
         assert "<!-- image -->" in result  # 第二个保留
 
     def test_more_images_than_placeholders(self) -> None:
@@ -80,12 +80,12 @@ class TestReplaceImagePlaceholders:
             FakeImage(filename="b.png", caption="B"),
         ]
         result_default = normalize_image_references(md, images)
-        assert "![A](./images/a.png)" in result_default
+        assert '<img src="./images/a.png" alt="A"' in result_default
         # 默认追加孤儿（Phase 3）
-        assert "![B](./images/b.png)" in result_default
+        assert '<img src="./images/b.png" alt="B"' in result_default
 
         result_no_orphan = normalize_image_references(md, images, append_orphans=False)
-        assert "![A](./images/a.png)" in result_no_orphan
+        assert '<img src="./images/a.png" alt="A"' in result_no_orphan
         assert "b.png" not in result_no_orphan  # 关闭后多余图片不引用
 
     def test_no_placeholders_no_change(self) -> None:
@@ -101,14 +101,14 @@ class TestReplaceImagePlaceholders:
         ]
         result = normalize_image_references(md, images)
         # filename=None 被过滤，仅 "real.png" 参与匹配第一个占位符
-        assert "![Real](./images/real.png)" in result
+        assert '<img src="./images/real.png" alt="Real"' in result
         assert "<!-- image -->" in result  # 第二个保留
 
     def test_caption_fallback_to_filename(self) -> None:
         md = "<!-- image -->"
         images = [FakeImage(filename="chart.png", caption=None)]
         result = normalize_image_references(md, images)
-        assert "![chart.png](./images/chart.png)" in result
+        assert '<img src="./images/chart.png" alt="chart.png"' in result
 
     def test_caption_and_filename_both_none(self) -> None:
         md = "<!-- image -->"
@@ -128,19 +128,19 @@ class TestNormalizeExistingRefs:
         md = "![fig](img_p1_0.png)"
         images = [FakeImage(filename="img_p1_0.png")]
         result = normalize_image_references(md, images)
-        assert "![fig](./images/img_p1_0.png)" in result
+        assert '<img src="./images/img_p1_0.png" alt="fig"' in result
 
     def test_absolute_path_normalized(self) -> None:
         md = "![fig](/tmp/docling_images_xyz/img_p1_0.png)"
         images = [FakeImage(filename="img_p1_0.png")]
         result = normalize_image_references(md, images)
-        assert "![fig](./images/img_p1_0.png)" in result
+        assert '<img src="./images/img_p1_0.png" alt="fig"' in result
 
     def test_relative_subdir_path_normalized(self) -> None:
         md = "![fig](output/images/img_p1_0.png)"
         images = [FakeImage(filename="img_p1_0.png")]
         result = normalize_image_references(md, images)
-        assert "![fig](./images/img_p1_0.png)" in result
+        assert '<img src="./images/img_p1_0.png" alt="fig"' in result
 
     def test_base64_data_uri_untouched(self) -> None:
         md = "![fig](data:image/png;base64,iVBORw0KGgo=)"
@@ -172,10 +172,10 @@ class TestNormalizeExistingRefs:
             FakeImage(filename="img_d.png"),
         ]
         result = normalize_image_references(md, images)
-        assert "![a](./images/img_a.png)" in result
+        assert '<img src="./images/img_a.png" alt="a"' in result
         assert "![b](./images/img_b.png)" in result  # 保持不变
         assert "data:image/png;base64,abc=" in result  # data URI 不动
-        assert "![d](./images/img_d.png)" in result
+        assert '<img src="./images/img_d.png" alt="d"' in result
 
 
 # ============================================================
@@ -188,8 +188,8 @@ class TestOrphanImageAppend:
         md = "# Doc\n\nSome content."
         images = [FakeImage(filename="fig_p39_1.png", caption="Figure 13: lifecycle")]
         result = normalize_image_references(md, images)
-        assert "![Figure 13: lifecycle](./images/fig_p39_1.png)" in result
-        assert result.rstrip().endswith("(./images/fig_p39_1.png)")
+        assert '<img src="./images/fig_p39_1.png" alt="Figure 13: lifecycle"' in result
+        assert result.rstrip().endswith('auto;" />')
 
     def test_referenced_image_not_duplicated(self) -> None:
         md = "# Doc\n\n![a](./images/fig_a.png)"
@@ -204,8 +204,8 @@ class TestOrphanImageAppend:
             FakeImage(filename="fig_b.png", caption="B (orphan)"),
         ]
         result = normalize_image_references(md, images)
-        assert "![a](./images/fig_a.png)" in result
-        assert "![B (orphan)](./images/fig_b.png)" in result
+        assert '<img src="./images/fig_a.png" alt="a"' in result
+        assert '<img src="./images/fig_b.png" alt="B (orphan)"' in result
         # 顺序：a 在 b 之前
         assert result.index("fig_a.png") < result.index("fig_b.png")
 
@@ -213,7 +213,7 @@ class TestOrphanImageAppend:
         md = "# Doc"
         images = [FakeImage(filename="orphan.png", caption=None)]
         result = normalize_image_references(md, images)
-        assert "![orphan.png](./images/orphan.png)" in result
+        assert '<img src="./images/orphan.png" alt="orphan.png"' in result
 
     def test_append_orphans_disabled(self) -> None:
         md = "# Doc"
@@ -255,7 +255,7 @@ class TestOrphanImageAppend:
         assert result.count("fig_a.png") == 1
         assert result.count("fig_b.png") == 1
         # 真正未引用的孤儿 fig_c 才追加
-        assert "![C (real orphan)](./images/fig_c.png)" in result
+        assert '<img src="./images/fig_c.png" alt="C (real orphan)"' in result
 
     def test_html_img_with_api_path_counts_as_reference(self) -> None:
         """HTML ``src`` 含 ``/api/...`` 绝对路径时按 basename 匹配。
@@ -375,8 +375,8 @@ class TestEdgeCases:
         md = "<!-- image -->\n![fig](img.png)"
         images = [FakeImage(filename="img.png", caption="Img")]
         result = normalize_image_references(md, images, image_dir="./assets")
-        assert "![Img](./assets/img.png)" in result
-        assert "![fig](./assets/img.png)" in result
+        assert '<img src="./assets/img.png" alt="Img"' in result
+        assert '<img src="./assets/img.png" alt="fig"' in result
 
     def test_combined_placeholders_and_refs(self) -> None:
         md = "<!-- image -->\nSome text\n![existing](img_p2_0.png)"
@@ -385,8 +385,8 @@ class TestEdgeCases:
             FakeImage(filename="img_p2_0.png", caption="Second"),
         ]
         result = normalize_image_references(md, images)
-        assert "![First](./images/img_p1_0.png)" in result
-        assert "![existing](./images/img_p2_0.png)" in result
+        assert '<img src="./images/img_p1_0.png" alt="First"' in result
+        assert '<img src="./images/img_p2_0.png" alt="existing"' in result
 
 
 # ============================================================
