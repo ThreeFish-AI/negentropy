@@ -29,6 +29,72 @@ _HTML_IMG_SRC_RE = re.compile(
 )
 
 
+def _build_img_html(img: "ImageMeta", image_dir: str) -> str:
+    """把图片元数据构造为 ``<img>`` 标签（与 assembly._image_to_markdown 形态一致）。
+
+    占位符替换 / 孤儿图追加原本输出裸 ``![alt](./images/filename)``，与正文
+    ``<img src width height>`` 形态不一致。此处统一为 ``<img>``：尽力从原图
+    （``local_path`` 或 ``base64_data``）读像素尺寸，宽 >800 等比缩放（引擎常以
+    2x/3x 渲染 figure，原生像素直接做显示宽度会放大数倍）；读不到则输出无显式
+    尺寸的响应式 ``<img>``。保证所有图片同为 ``<img>`` 形态、带尺寸（尽最大努力）。
+    """
+    import html as _html
+    import os as _os
+
+    filename = img.filename or "image"
+    alt = img.caption or filename
+    src = f"{image_dir}/{filename}"
+    w: Optional[int] = None
+    h: Optional[int] = None
+    # 优先用图片对象自带的栅格尺寸（引擎报告的 width/height 字段）
+    _iw = getattr(img, "width", None)
+    _ih = getattr(img, "height", None)
+    if _iw:
+        w = int(_iw)
+    if _ih:
+        h = int(_ih)
+    try:
+        import base64 as _b64
+        import io as _io
+
+        from PIL import Image as _PILImage
+
+        _src = None
+        _lp = getattr(img, "local_path", None)
+        if _lp and _os.path.exists(_lp):
+            _src = _PILImage.open(_lp)
+        else:
+            _b64d = getattr(img, "base64_data", None)
+            if _b64d:
+                _src = _PILImage.open(_io.BytesIO(_b64.b64decode(_b64d)))
+        if _src is not None:
+            nw, nh = _src.size
+            _src.close()
+            if nw > 0 and nh > 0:
+                _maxw = 800
+                if nw > _maxw:
+                    w = _maxw
+                    h = int(round(nh * _maxw / nw))
+                else:
+                    w, h = nw, nh
+    except Exception:
+        pass
+    # 统一封顶：无论尺寸来源（字段 / PIL），宽 >800 等比缩放，避免 2x/3x 渲染图过大
+    if w and w > 800 and h and h > 0:
+        h = int(round(h * 800 / w))
+        w = 800
+    parts = [
+        f'<img src="{_html.escape(src, quote=True)}"',
+        f'alt="{_html.escape(alt, quote=True)}"',
+    ]
+    if w:
+        parts.append(f'width="{w}"')
+    if h:
+        parts.append(f'height="{h}"')
+    parts.append('style="max-width:100%;height:auto;" />')
+    return " ".join(parts)
+
+
 @runtime_checkable
 class ImageMeta(Protocol):
     """图片元数据协议，``DoclingImage`` 与 ``ExtractedImage`` 均满足。"""
@@ -130,9 +196,8 @@ def _append_orphan_images(
 
     appended_lines = ["", "<!-- orphan images appended by image_ref_normalizer -->"]
     for img in orphans:
-        alt = img.caption or img.filename or "image"
         appended_lines.append("")
-        appended_lines.append(f"![{alt}]({image_dir}/{img.filename})")
+        appended_lines.append(_build_img_html(img, image_dir))
     return markdown.rstrip() + "\n".join(appended_lines) + "\n"
 
 
@@ -233,8 +298,7 @@ def _replace_image_placeholders(
 
         if idx < len(available):
             img = available[idx]
-            alt = img.caption or img.filename or "image"
-            parts.append(f"![{alt}]({image_dir}/{img.filename})")
+            parts.append(_build_img_html(img, image_dir))
         else:
             logger.warning(
                 "<!-- image --> 占位符数量 (%d) 超出可用图片 (%d)，保留第 %d 个占位符",
@@ -256,12 +320,11 @@ def _normalize_existing_refs(
     image_dir: str,
 ) -> str:
     """规范化已有的 ``![alt](path)`` 引用路径。"""
-    filename_set = {img.filename for img in images if img.filename}
-    if not filename_set:
+    basename_to_img = {img.filename: img for img in images if img.filename}
+    if not basename_to_img:
         return markdown
 
     def _replacer(match: re.Match) -> str:
-        alt = match.group(1)
         path = match.group(2)
 
         # 跳过 base64 data URI
@@ -274,8 +337,8 @@ def _normalize_existing_refs(
 
         # 提取 basename 并校验是否为已知图片
         basename = PurePosixPath(path).name
-        if basename in filename_set:
-            return f"![{alt}]({image_dir}/{basename})"
+        if basename in basename_to_img:
+            return _build_img_html(basename_to_img[basename], image_dir)
 
         return match.group(0)
 

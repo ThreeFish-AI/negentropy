@@ -2949,6 +2949,38 @@ def _image_to_markdown(image: ExtractedImage) -> str:
     if display_h is None and image.height:
         display_h = int(image.height)
 
+    # 极端退化：bbox 与引擎 dims 均缺失时，尽力从原图（local_path 或 base64_data）
+    # 读像素尺寸，并按典型内容宽封顶（引擎常以 2x/3x 渲染 figure，原生像素如 2048px
+    # 直接做显示宽度会放大数倍）。封顶后等比缩放，确保仍输出**带尺寸的 ``<img>``**
+    # （与有 bbox 的图片形态一致），避免裸 ``![]()`` 造成渲染形态不一致。
+    if display_w is None and display_h is None:
+        try:
+            from PIL import Image as _PILImage
+            import os as _os
+            import base64 as _b64
+            import io as _io
+
+            _src = None
+            _lp = getattr(image, "local_path", None)
+            if _lp and _os.path.exists(_lp):
+                _src = _PILImage.open(_lp)
+            else:
+                _b64d = getattr(image, "base64_data", None)
+                if _b64d:
+                    _src = _PILImage.open(_io.BytesIO(_b64.b64decode(_b64d)))
+            if _src is not None:
+                _nw, _nh = _src.size
+                _src.close()
+                if _nw > 0 and _nh > 0:
+                    _MAX_DISPLAY_W = 800
+                    if _nw > _MAX_DISPLAY_W:
+                        display_w = _MAX_DISPLAY_W
+                        display_h = int(round(_nh * _MAX_DISPLAY_W / _nw))
+                    else:
+                        display_w, display_h = _nw, _nh
+        except Exception:
+            pass
+
     # R9 修复：始终输出 CSS px 像素值（PDF pt × 4/3）作为 width / height 属性，
     # 配合 ``style="max-width:100%;height:auto"`` 实现「PDF 原版尺寸 + 窄屏
     # 自适应」双赢。此前的 ``is_large_figure → width="100%"`` 分支会把所有
@@ -2966,7 +2998,13 @@ def _image_to_markdown(image: ExtractedImage) -> str:
             parts.append(f'height="{display_h}"')
         parts.append('style="max-width:100%;height:auto;" />')
         return " ".join(parts)
-    return f"![{alt_text}]({src})"
+    # 真无任何尺寸信息：仍输出响应式 ``<img>``（无显式 width/height）保证形态一致，
+    # 绝不裸 ``![]()``——与有尺寸图片同为 ``<img>`` 标签，渲染行为统一。
+    return (
+        f'<img src="{html.escape(src, quote=True)}" '
+        f'alt="{html.escape(alt_text, quote=True)}" '
+        f'style="max-width:100%;height:auto;" />'
+    )
 
 
 # ---------------------------------------------------------------------------
