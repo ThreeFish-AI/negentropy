@@ -350,34 +350,68 @@ class BuiltinAssembler(PDFToolBase):
                             )
                         )
                         continue
-                    # Docling 代码块：与同页文本块逐个比较
-                    _skip = False
+                    # Docling 代码块与同页"字符流文本回声"（PyMuPDF 把代码区另抽为
+                    # 文本块）的去重。按 effective language 分流：
+                    # **真实代码语言**（python/bash/json/yaml/js/...）：**保留权威的
+                    # fenced code、删除 text 回声**——text 副本常为折叠/转义低质量版本。
+                    # ratio>0.7 是强信号（text 含 ≥70% 代码标识符→必为回声；若 code 为
+                    # 引擎误检垃圾，不可能与 text 达 0.7 重叠），放宽 overlap>=5 覆盖短
+                    # 代码块（bash/import），消除 text+fenced 双出。
+                    # **误标代码语言**（html/xml/markdown/text 等，常把散文/TOC 误包）：
+                    # 保持原"优先 text"行为——code 与 text 重叠时 _skip 掉 code（text 更
+                    # 忠实），避免把 TOC/散文错渲染成 ```html 代码块。
                     code_words = set(
                         re.findall(r"[a-zA-Z_]{3,}", code_block.code.lower())
                     )
                     if code_words:
-                        for elem in elements:
-                            if (
-                                elem.element_type != "text"
-                                or not elem.block
-                                or elem.page_number != code_block.page_number
-                            ):
-                                continue
-                            block_words = set(
-                                re.findall(
-                                    r"[a-zA-Z_]{3,}",
-                                    elem.block.text.lower(),
+                        if _effective_code_lang(code_block) in _REAL_CODE_LANGS:
+                            _echo_indices: List[int] = []
+                            for _ei, elem in enumerate(elements):
+                                if (
+                                    elem.element_type != "text"
+                                    or not elem.block
+                                    or elem.page_number != code_block.page_number
+                                ):
+                                    continue
+                                block_words = set(
+                                    re.findall(
+                                        r"[a-zA-Z_]{3,}",
+                                        elem.block.text.lower(),
+                                    )
                                 )
-                            )
-                            if not block_words:
+                                if not block_words:
+                                    continue
+                                overlap = len(code_words & block_words)
+                                ratio = overlap / max(len(code_words), 1)
+                                if ratio > 0.7 and overlap >= 5:
+                                    _echo_indices.append(_ei)
+                            for _ei in reversed(_echo_indices):
+                                elements.pop(_ei)
+                        else:
+                            # 误标代码：重叠则 _skip code、保留 text（原逻辑）
+                            _skip = False
+                            for elem in elements:
+                                if (
+                                    elem.element_type != "text"
+                                    or not elem.block
+                                    or elem.page_number != code_block.page_number
+                                ):
+                                    continue
+                                block_words = set(
+                                    re.findall(
+                                        r"[a-zA-Z_]{3,}",
+                                        elem.block.text.lower(),
+                                    )
+                                )
+                                if not block_words:
+                                    continue
+                                overlap = len(code_words & block_words)
+                                ratio = overlap / max(len(code_words), 1)
+                                if ratio > 0.7 and overlap > 20:
+                                    _skip = True
+                                    break
+                            if _skip:
                                 continue
-                            overlap = len(code_words & block_words)
-                            ratio = overlap / max(len(code_words), 1)
-                            if ratio > 0.7 and overlap > 20:
-                                _skip = True
-                                break
-                    if _skip:
-                        continue
                     # 边界修正：截断引擎误纳的尾部章节标题/引言正文
                     _kept_code, _tail_text = _split_code_tail_section(
                         code_block.code or ""
@@ -2502,6 +2536,61 @@ _CODE_LANG_HEADER_MAP = {
     "protobuf": "protobuf",
     "proto": "protobuf",
 }
+
+# "真实代码/数据语言"白名单：effective lang 命中此处时，code 副本权威、删除 text
+# 回声（dedup 翻转）。刻意排除 ``html``/``xml``/``css``/``scss``/``markdown`` 等
+# 标记/文本类型——docling 常把 TOC、散文、配置说明误标为这些，text 版本更忠实，
+# 对它们保持原"优先 text"去重行为，避免把散文错渲染成代码块。
+_REAL_CODE_LANGS = frozenset(
+    {
+        "python",
+        "java",
+        "javascript",
+        "typescript",
+        "c",
+        "cpp",
+        "csharp",
+        "rust",
+        "go",
+        "ruby",
+        "php",
+        "swift",
+        "kotlin",
+        "scala",
+        "r",
+        "perl",
+        "lua",
+        "bash",
+        "powershell",
+        "sql",
+        "yaml",
+        "json",
+        "toml",
+        "ini",
+        "dockerfile",
+        "makefile",
+        "graphql",
+        "protobuf",
+    }
+)
+
+
+def _effective_code_lang(code_block: "ExtractedCodeBlock") -> str:
+    """计算 code_block 的有效 fence 语言（与 ``_code_block_to_markdown`` 一致）。
+
+    优先 ``code_block.language``（经 ``_CODE_LANG_HEADER_MAP`` 归一化）；为空时回退
+    到 "code 首行单独为 lang 关键词" 的推断；都无则返回空串。供 dedup 按 lang 分流。
+    """
+    lang = (code_block.language or "").strip().lower()
+    if lang:
+        return _CODE_LANG_HEADER_MAP.get(lang, lang)
+    code = code_block.code or ""
+    stripped = code.lstrip("\n")
+    nl = stripped.find("\n")
+    first_line = stripped[:nl] if nl >= 0 else stripped
+    return _CODE_LANG_HEADER_MAP.get(first_line.strip().lower(), "")
+
+
 """常见编程语言关键词归一化表 → markdown fence highlight 名称。
 
 来源：docling 在某些 PDF 上把代码块首行 ``Python`` / ``Javascript`` 字面字符
