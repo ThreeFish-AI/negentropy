@@ -336,6 +336,16 @@ export default function KnowledgePipelinesPage() {
 
   // KB 分页总量来自服务端，KG 运行在每页始终展示
   const total = kbTotal;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  // 页码越界收敛：total 缩小（cancel/retry 后 loadRuns 落在越界页）时把 page 夹回末页，
+  // 避免停留在空页。带 hasInitialLoad 守卫，防止初始 total===0 误把 page 夹到 1。
+  // setPage 触发既有 useEffect([page]) 以正确 offset 重取。
+  useEffect(() => {
+    if (!hasInitialLoad) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 由外部数据源（服务端 total 缩小）同步页码，属既有数据加载范式（同 useInfiniteList safePage / page.tsx ?task_key）
+    if (page > totalPages) setPage(totalPages);
+  }, [hasInitialLoad, page, totalPages]);
 
   const selectedKbRun =
     selected?.source === "kb" ? selected : undefined;
@@ -458,7 +468,7 @@ export default function KnowledgePipelinesPage() {
                   <div className="mt-4 border-t border-border pt-3">
                     <Pagination
                       page={page}
-                      totalPages={Math.max(1, Math.ceil(total / PAGE_SIZE))}
+                      totalPages={totalPages}
                       onPageChange={setPage}
                       total={total}
                       itemLabel="run"

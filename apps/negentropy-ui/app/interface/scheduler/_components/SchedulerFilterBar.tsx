@@ -34,11 +34,13 @@ interface SchedulerFilterBarProps {
   onExecutionStatusChange?: (s: ExecutionStatusFilter) => void;
 }
 
-/** 时间窗下拉选项（原 1h/24h/7d pills，改下拉以缩短控件宽度）。 */
+/** 时间窗下拉选项（原 1h/24h/7d pills，改下拉以缩短控件宽度）。
+ *  "All" = 不限时间，翻页浏览全部数据（executions/KPI/stats 均不下推 since 下界）。 */
 const TIME_WINDOWS: { value: StatsWindow; label: string }[] = [
   { value: "1h", label: "Last 1h" },
   { value: "24h", label: "Last 24h" },
   { value: "7d", label: "Last 7d" },
+  { value: "all", label: "All" },
 ];
 
 /** 执行状态下拉选项（"" = All）。 */

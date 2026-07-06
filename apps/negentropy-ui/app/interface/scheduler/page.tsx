@@ -53,13 +53,16 @@ const EXEC_PAGE_SIZE = 10;
 /** SSE 抖动合并到尾沿的去抖窗（对齐 Routine useRoutineLive）。 */
 const REFRESH_DEBOUNCE_MS = 500;
 
-/** 时间窗 → 起始 ISO 时间戳（对齐后端 `_window_to_delta`，让 executions 列表真正受时间窗约束）。 */
-const WINDOW_MS: Record<StatsWindow, number> = {
+/** 时间窗 → 起始 ISO 时间戳（对齐后端 `_window_to_delta`，让 executions 列表真正受时间窗约束）。
+ *  "all" 不在此表内（无时间下界），由 windowToSince 提前返回 null。 */
+const WINDOW_MS: Record<Exclude<StatsWindow, "all">, number> = {
   "1h": 3_600_000,
   "24h": 86_400_000,
   "7d": 604_800_000,
 };
-function windowToSince(window: StatsWindow): string {
+/** "all" → null（不下推 since，展示全量）；其余 → 时间窗下界 ISO 时间戳。 */
+function windowToSince(window: StatsWindow): string | null {
+  if (window === "all") return null;
   return new Date(Date.now() - WINDOW_MS[window]).toISOString();
 }
 
@@ -104,6 +107,8 @@ export default function SchedulerPage() {
           total: r.total ?? null,
         };
       },
+      // 深跳页单轮补齐上限，对齐后端 list_tasks 的 limit le=200（超出会 422）。
+      maxLimit: 200,
     }),
     [filters],
   );
@@ -120,7 +125,8 @@ export default function SchedulerPage() {
     role: string | null;
     scenario: string | null;
     agent: string | null;
-    since: string;
+    /** null = "all" 时间窗，不下推 since（后端返回全量）。 */
+    since: string | null;
     status: ExecutionStatusFilter;
   }
   const execFilters = useMemo<ExecFilters>(
@@ -154,6 +160,8 @@ export default function SchedulerPage() {
           total: r.total ?? null,
         };
       },
+      // 深跳页单轮补齐上限，对齐后端 list_executions 的 limit le=500（超出会 422）。
+      maxLimit: 500,
     }),
     [],
   );

@@ -27,6 +27,26 @@ def test_window_to_delta_unknown_falls_back_to_24h():
     assert _window_to_delta("xyz") == timedelta(hours=24)
 
 
+def test_kpis_and_stats_accept_all_window():
+    """/kpis 与 /stats 的 window 参数应接受 "all"（不限时间全量统计）。
+
+    校验 FastAPI 端点签名的 Literal 已含 "all"——避免前端下发 window=all 被 422 拒绝。
+    注：本模块 `from __future__ import annotations` 使注解为字符串，需 get_type_hints 求值。
+    """
+    from typing import get_args, get_type_hints
+
+    import negentropy.interface.scheduler_api as api
+
+    kpis_hints = get_type_hints(api.get_kpis)["window"]
+    assert set(get_args(kpis_hints)) == {"1h", "24h", "7d", "all"}
+
+    stats_hints = get_type_hints(api.get_stats)["window"]
+    assert set(get_args(stats_hints)) == {"1h", "24h", "7d", "all"}
+
+    # 默认值不变，仍为 24h（回归保护）。
+    assert api.get_kpis.__defaults__[0].default == "24h"
+
+
 def test_router_exposes_all_endpoints():
     from negentropy.interface.scheduler_api import router
 

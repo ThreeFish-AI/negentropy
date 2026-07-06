@@ -13,7 +13,8 @@ export type StatsGroupBy =
   | "owner"
   | "handler_kind"
   | "category";
-export type StatsWindow = "1h" | "24h" | "7d";
+/** 时间窗；"all" = 不限时间（后端不下推 since 下界，KPI/Stats/Executions 全量）。 */
+export type StatsWindow = "1h" | "24h" | "7d" | "all";
 
 export interface ScheduledTaskDTO {
   id: string;

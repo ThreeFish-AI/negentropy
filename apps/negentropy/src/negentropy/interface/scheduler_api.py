@@ -167,11 +167,12 @@ def _serialize_execution(e: TaskExecution, task: ScheduledTask | None = None) ->
 
 
 @router.get("/kpis")
-async def get_kpis(window: Literal["1h", "24h", "7d"] = Query("24h")) -> dict[str, Any]:
-    """返回 Dashboard 顶部 6 卡片所需 KPI 指标。"""
+async def get_kpis(window: Literal["1h", "24h", "7d", "all"] = Query("24h")) -> dict[str, Any]:
+    """返回 Dashboard 顶部 6 卡片所需 KPI 指标。window="all" 不限时间（全量统计）。"""
 
     async def _compute():
-        since = _utcnow() - _window_to_delta(window)
+        # "all" → 不下推时间下界（全量）；其余按时间窗计算 since。
+        since = None if window == "all" else _utcnow() - _window_to_delta(window)
         async with AsyncSessionLocal() as db:
             total_tasks = (await db.execute(select(func.count(ScheduledTask.id)))).scalar() or 0
             enabled_tasks = (
@@ -181,13 +182,15 @@ async def get_kpis(window: Literal["1h", "24h", "7d"] = Query("24h")) -> dict[st
                 await db.execute(select(func.count(TaskExecution.id)).where(TaskExecution.status == "running"))
             ).scalar() or 0
 
-            # 窗口内 runs / success / failed / avg_latency
+            # 窗口内 runs / success / failed / avg_latency（"all" 时无时间下界）
             window_stmt = select(
                 func.count(TaskExecution.id),
                 func.sum(case((TaskExecution.status == "ok", 1), else_=0)),
                 func.sum(case((TaskExecution.status == "failed", 1), else_=0)),
                 func.avg(TaskExecution.duration_ms),
-            ).where(TaskExecution.started_at >= since)
+            )
+            if since is not None:
+                window_stmt = window_stmt.where(TaskExecution.started_at >= since)
             row = (await db.execute(window_stmt)).one()
             runs = int(row[0] or 0)
             success = int(row[1] or 0)
@@ -410,14 +413,15 @@ async def list_executions(
 @router.get("/stats")
 async def get_stats(
     group_by: Literal["role", "scenario", "agent", "owner", "handler_kind", "category"] = Query(...),
-    window: Literal["1h", "24h", "7d"] = Query("24h"),
+    window: Literal["1h", "24h", "7d", "all"] = Query("24h"),
 ) -> dict[str, Any]:
-    """按指定维度聚合执行历史，驱动 Dashboard 多维统计图。"""
+    """按指定维度聚合执行历史，驱动 Dashboard 多维统计图。window="all" 不限时间（全量聚合）。"""
 
     cache_key = f"stats:{group_by}:{window}"
 
     async def _compute():
-        since = _utcnow() - _window_to_delta(window)
+        # "all" → 不下推时间下界（全量）；其余按时间窗计算 since。
+        since = None if window == "all" else _utcnow() - _window_to_delta(window)
         column_map = {
             "role": ScheduledTask.role,
             "scenario": ScheduledTask.scenario,
@@ -438,10 +442,11 @@ async def get_stats(
                     func.avg(TaskExecution.duration_ms).label("avg_ms"),
                 )
                 .join(ScheduledTask, ScheduledTask.id == TaskExecution.task_id)
-                .where(TaskExecution.started_at >= since)
                 .group_by(group_col)
                 .order_by(func.count(TaskExecution.id).desc())
             )
+            if since is not None:
+                stmt = stmt.where(TaskExecution.started_at >= since)
             rows = (await db.execute(stmt)).all()
 
             # --- Label resolution: owner / agent 维度需将 ID 映射为可读名称 ---
