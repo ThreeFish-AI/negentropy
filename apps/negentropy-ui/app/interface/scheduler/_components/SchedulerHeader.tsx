@@ -48,20 +48,21 @@ const SCHEDULER_DESCRIPTION = "Unified task scheduling and execution management"
 /** 单行 KPI：语义色 + 中点分隔，chip 不内部断行（对齐 Routine KpiStats）。 */
 function KpiStats({ kpis }: { kpis: KpiResponse }) {
   const successRate = kpis.runs > 0 ? kpis.success_rate * 100 : 0;
+  // 色号恒 -400：宿主为恒暗 Tooltip（bg-zinc-800/dark:zinc-700），-600 在 light 模式对比度不足（对齐 RoutineHeader）。
   const rateColor =
     successRate >= 95
-      ? "text-emerald-600 dark:text-emerald-400"
+      ? "text-emerald-400"
       : successRate >= 80
-        ? "text-amber-600 dark:text-amber-400"
-        : "text-red-600 dark:text-red-400";
+        ? "text-amber-400"
+        : "text-red-400";
 
   const rows: KpiRow[] = [
     { label: "Tasks", value: String(kpis.total_tasks) },
     { label: "Enabled", value: String(kpis.enabled_tasks) },
     { label: "Runs", value: String(kpis.runs) },
     { label: "Success Rate", value: `${successRate.toFixed(1)}%`, color: rateColor },
-    { label: "Running", value: String(kpis.running), color: "text-sky-600 dark:text-sky-400" },
-    { label: "Failed", value: String(kpis.failed), color: "text-red-600 dark:text-red-400" },
+    { label: "Running", value: String(kpis.running), color: "text-sky-400" },
+    { label: "Failed", value: String(kpis.failed), color: "text-red-400" },
     { label: "Avg Latency", value: `${Math.round(kpis.avg_latency_ms)}ms` },
   ];
 
