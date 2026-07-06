@@ -1300,6 +1300,26 @@ class BuiltinAssembler(PDFToolBase):
                     )
                 ]
 
+            # 2.6.1 图片 caption 重复去重（Figure 2 拆分子图场景）：
+            # caption 邻接注入(2.5.7)后，同页多张图可能携带完全相同的 caption
+            # （docling 把同一 figure 拆成多个子图却赋同一完整 caption，如
+            # Figure 2 左 Scaled Dot-Product + 右 Multi-Head）。首张保留完整 alt，
+            # 后续同 caption 的图重写为空 alt，避免同一图注重复显示；视觉内容
+            # （子图）仍各自保留。归一化比较避免尾随空白/标点差异致漏判。
+            _seen_img_caps: Dict[int, set[str]] = {}
+            for _elem in elements:
+                if _elem.element_type != "image" or _elem.image is None:
+                    continue
+                _cap = (_elem.image.caption or "").strip()
+                if not _cap:
+                    continue
+                _norm = _normalize_for_dedup(_cap)
+                _page_seen = _seen_img_caps.setdefault(_elem.page_number, set())
+                if _norm in _page_seen:
+                    _elem.content = _image_to_markdown(_elem.image, alt_override="")
+                else:
+                    _page_seen.add(_norm)
+
             # 2.7 去重：移除重复标题与重复 Figure/Table 注释
             #    标题去重：
             #    a) 两个相邻标题归一化后相同 → 移除前者（通常是 TOC 版本）
@@ -2667,7 +2687,9 @@ def _split_code_tail_section(code: str) -> Tuple[str, str]:
 _PDF_PT_TO_CSS_PX = 96.0 / 72.0
 
 
-def _image_to_markdown(image: ExtractedImage) -> str:
+def _image_to_markdown(
+    image: ExtractedImage, alt_override: Optional[str] = None
+) -> str:
     """将图片转换为 Markdown 图片引用，保留 PDF 原版显示尺寸。
 
     输出 **内嵌 HTML ``<img>``** 形式，并按以下优先级决定 ``width``/``height``：
@@ -2688,7 +2710,13 @@ def _image_to_markdown(image: ExtractedImage) -> str:
     DocumentMarkdownRenderer.tsx`` 中 ``DocumentImage`` 通过 ``parsePixelValue()``
     读取 ``width``/``height`` 像素值约束 ``max-width``。
     """
-    alt_text = image.caption or image.filename or "image"
+    # alt_override 非 None 时直接采用（含空串）：同页同 caption 的拆分子图
+    # （如 Figure 2 左右子图均被赋同一完整 caption）由调用方传 "" 去重，避免
+    # 同一图注重复显示；None 时维持原 caption 优先逻辑。
+    if alt_override is not None:
+        alt_text = alt_override
+    else:
+        alt_text = image.caption or image.filename or "image"
     src = f"./images/{image.filename}"
 
     display_w: Optional[int] = None
