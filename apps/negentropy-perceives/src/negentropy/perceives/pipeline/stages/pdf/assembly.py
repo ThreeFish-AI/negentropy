@@ -92,9 +92,23 @@ class BuiltinAssembler(PDFToolBase):
                         fy1 + _FORMULA_BBOX_MARGIN_PT,
                     )
                     special_regions.setdefault(formula.page_number, []).append(expanded)
+            # ``_grid_table_regions``：仅收录 **已产出合法 GFM 网格** 的表格 bbox。
+            # 用途：PyMuPDF 常把表格区域另抽为"字符流 run-on 文本块"（如
+            # ``Field Type Description model str LLM model identifier ...``），该块
+            # 与表格 bbox 空间重叠但既非 caption 亦非低内容碎片，会"落穿"下方
+            # figure-region 实质文本例外而被冗余输出，形成网格后的 run-on 回声
+            # （ISSUE: 附录表格 Tables 3–7 网格 + 回声并存）。仅当该表格已有高保真
+            # 网格时抑制其 run-on 回声；无网格的表格（如引擎漏检的 Tables 8/9）
+            # 不在此集合内，其文本块得以保留，避免误删唯一内容（防数据丢失）。
+            _grid_table_regions: Dict[int, List[Tuple[float, float, float, float]]] = {}
             for table in input_data.tables.tables if input_data.tables else []:
                 if table.bbox:
                     special_regions.setdefault(table.page_number, []).append(table.bbox)
+                    _tmd = table.markdown.strip() if table.markdown else ""
+                    if _tmd.startswith("|") and re.search(r"\n\s*\|[\s\-:|]+\|", _tmd):
+                        _grid_table_regions.setdefault(table.page_number, []).append(
+                            table.bbox
+                        )
             for img in input_data.images.images if input_data.images else []:
                 if img.bbox:
                     special_regions.setdefault(img.page_number, []).append(img.bbox)
@@ -198,6 +212,17 @@ class BuiltinAssembler(PDFToolBase):
                                     block=block,
                                 )
                             )
+                            continue
+                        # 网格表格的 run-on 文本回声抑制：caption 已在上方恒保留，
+                        # 此处若文本块与 **已产出合法网格** 的表格 bbox 重叠，则它
+                        # 是 PyMuPDF 对同一表格另抽的"字符流"冗余副本（表头回声 +
+                        # 塌缩单元格），高保真网格已由 table_extraction 提供，直接
+                        # 跳过。仅对 grid-backed 表格生效：无网格表格（引擎漏检的
+                        # Tables 8/9）不在 _grid_table_regions 内，其文本块继续保留，
+                        # 避免误删唯一内容。
+                        if _block_overlaps_special(
+                            block, _grid_table_regions, iou_threshold=0.3
+                        ):
                             continue
                         if _is_low_content_figure_label(block.text):
                             continue
