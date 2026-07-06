@@ -10,7 +10,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from ...base import Stage, StageResult
 from ...models import (
@@ -425,13 +425,28 @@ class TableExtractionStage(Stage[PreprocessingOutput, TableExtractionOutput]):
     async def execute(
         self, input_data: PreprocessingOutput
     ) -> StageResult[TableExtractionOutput]:
-        """按降级顺序执行表格提取。"""
+        """按降级顺序执行表格提取。
+
+        降级策略含 **空结果穿透**：主工具(docling)即使转换成功也可能在某些切片
+        漏检表格并返回 ``success=True`` 且 ``total_count==0``（典型如
+        auto_batch 末尾单页切片上的规则线表格被 TableFormer 漏检）。此时不应
+        直接返回空结果、令后续启发式工具(fitz 几何提取)失去机会——启发式工具
+        对清晰规则线表格往往能补获。故仅当某工具成功 **且确有表格** 时立即返回；
+        若所有成功工具均零表格,则回退到首个成功(空)结果保持既有契约。
+        """
+        first_empty_success: Optional[StageResult[TableExtractionOutput]] = None
         for tool_cls in _TOOLS.values():
             tool = tool_cls()
             if tool.is_available():
                 result = await tool.execute(input_data)
                 if result.success:
-                    return result
+                    if result.output is not None and result.output.total_count > 0:
+                        return result
+                    # 成功但零表格：暂存为兜底，继续尝试后续工具补获
+                    if first_empty_success is None:
+                        first_empty_success = result
+        if first_empty_success is not None:
+            return first_empty_success
 
         # 诊断：区分"工具不可用"和"工具可用但提取失败"两种场景
         unavailable = [name for name, cls in _TOOLS.items() if not cls().is_available()]
