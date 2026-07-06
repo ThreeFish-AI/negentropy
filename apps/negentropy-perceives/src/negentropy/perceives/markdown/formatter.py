@@ -588,6 +588,12 @@ class MarkdownFormatter:
             # 已有 inline ``$..$`` 由 pass 内 split-and-skip 保护。
             markdown_content = self._normalize_unicode_math(markdown_content)
 
+            # 撤销「散文误包成 inline $...$」失真：_normalize_unicode_math 会把含数学
+            # 字形且与散文粘连的 token（作者上标 'Name¹·²·³'、关键词列表）整段包成
+            # $...$，连同 prose 一起吞入数学体渲染。此处仅对内容含 ≥2 个多字母 ASCII
+            # 散文词的 inline 块解包（真实数学极少含多个散文词），还原为 prose+<sup>。
+            markdown_content = self._unwrap_prose_math(markdown_content)
+
             # 还原块级数学公式占位符（须在 _cleanup_math_blocks 之后，
             # 这样数学块整体仍由本管线统一治理，但 LaTeX 主体内容不被修改）
             markdown_content = self._restore_math_blocks(
@@ -878,6 +884,45 @@ class MarkdownFormatter:
             self._normalize_unicode_math_line(line)
             for line in markdown_content.split("\n")
         )
+
+    # 散文误包判定：inline ``$...$`` 内容含 ≥此数量个「长度≥3 的 ASCII 字母词」
+    # 即判为散文被误吞入数学体。取 3：作者-单位行（多个人名）/ 关键词列表天然含
+    # ≥3 个散文词，而真实数学公式几乎不可能含 3 个以上多字母 ASCII 散文词
+    # （通常为单字母变量 / ``\name`` 命令 / 至多 1-2 个 ``\text{word}``），
+    # 保守阈值最大程度规避对数学密集文档的回归风险。
+    _PROSE_MATH_MIN_WORDS = 3
+    _PROSE_MATH_WORD_RE = re.compile(r"[A-Za-z]{3,}")
+
+    def _unwrap_prose_math(self, markdown_content: str) -> str:
+        """撤销把散文（作者-单位行 / 关键词等）误包成 inline ``$...$`` 数学的失真。
+
+        背景：``_normalize_unicode_math`` 按空白切 token，当某 token 同时含数学字形
+        与散文（如 PDF 抽取的作者上标 ``Name¹·²·³``，上标为数学字母块字形、与名字
+        粘连成单 token）时，整 token 判为 MATH，run 跨多个此类 token 合并，把
+        ``Fadi Dornaika`` 等 prose 连同 ``\\cdot`` / ``^{1,2,3}`` 一起包进单个
+        ``$...$``，渲染为 LaTeX 数学体而非 prose+上标。
+
+        本 pass 在归一化之后扫描 inline ``$...$``：内容含 ≥ ``_PROSE_MATH_MIN_WORDS``
+        个长度≥3 的 ASCII 词即判为误包，撤销 ``$`` 并把 ``^{...}`` → ``<sup>...</sup>``、
+        ``\\cdot`` → ``·``。
+
+        安全性：仅解包满足散文判定的 inline 块；块公式 / 代码块此时为占位符（无 ``$``），
+        正常 inline 数学（无 ≥2 散文词）原样保留。
+        """
+        if "$" not in markdown_content:
+            return markdown_content
+
+        def _maybe_unwrap(m: "re.Match[str]") -> str:
+            body = m.group(1)
+            if len(self._PROSE_MATH_WORD_RE.findall(body)) < self._PROSE_MATH_MIN_WORDS:
+                return m.group(0)
+            # ^{...} → <sup>...</sup>；裸 ^x → <sup>x</sup>；\cdot → ·
+            unwrapped = re.sub(r"\^\{([^{}]*)\}", r"<sup>\1</sup>", body)
+            unwrapped = re.sub(r"\^(\w)", r"<sup>\1</sup>", unwrapped)
+            unwrapped = unwrapped.replace(r"\cdot", "·")
+            return unwrapped
+
+        return re.sub(r"\$([^$\n]+)\$", _maybe_unwrap, markdown_content)
 
     def _normalize_unicode_math_line(self, line: str) -> str:
         stripped = line.lstrip()
