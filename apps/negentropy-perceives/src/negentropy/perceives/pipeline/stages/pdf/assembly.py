@@ -2517,10 +2517,11 @@ def _sanitize_latex(latex: str) -> str:
     )
 
     def _merge_spaced_letters(content: str) -> str:
-        # 允许首尾空白：Docling 输出 ``\mathrm { A t t e n t i o n }`` 花括号内
-        # 首尾常带空格，纯 ``[a-zA-Z]`` 起手的 fullmatch 会因首空格失配而漏合并。
-        # 仅"≥3 个单字母被空格串联"整段匹配时合并。
-        if re.fullmatch(r"\s*[a-zA-Z](?:\s+[a-zA-Z]){2,}\s*", content):
+        # 允许首尾空白 + ``~``（LaTeX 不换行空格）作字母间分隔：Docling 输出
+        # ``\mathrm{A t t e n t i o n}`` 与 ``\mathrm{where~head}``（拆为
+        # ``w h e r e ~ h e a d``），~ 保留作词间分隔，仅合并字母间空白。
+        # 仅"≥3 个单字母被 空格/~ 串联"整段匹配时合并。
+        if re.fullmatch(r"\s*[a-zA-Z](?:[\s~]+[a-zA-Z]){2,}\s*", content):
             return re.sub(r"\s+", "", content)
         return content
 
