@@ -1466,6 +1466,11 @@ class BuiltinAssembler(PDFToolBase):
             # "1. X 2. Y 3. Z" run-on 拆为独立编号项。强信号守卫（从 1 严格递增 +
             # 无 TOC 标记 + 段长<2000 + 跳过 fenced/表格），避免误拆目录与散文。
             markdown = _split_numbered_runon_paragraphs(markdown)
+            # 标题首页码剥离：PDF 页眉/页脚的孤立页码（1-3 位数字）有时被引擎并入
+            # 下方标题，输出 ``## 1 All my royalties...``。保守剥离（数字后须紧跟空格
+            # 非 "."、剩余标题首词大写/引号、剩余 ≥2 词），保留 ``## 1. Get the Mission``
+            # 等编号标题与 ``## 10 Tips`` 等短标题。
+            markdown = _strip_heading_page_numbers(markdown)
 
             # 6. 参考文献节条目分段（多条目连段 → 每条独占段落）
             markdown = _segment_references_section(markdown)
@@ -2842,6 +2847,38 @@ def _split_numbered_runon_paragraphs(markdown: str) -> str:
         new = re.sub(r" (\d+)\. +", lambda m: "\n" + m.group(1) + ". ", para)
         out.append(new)
     return "\n\n".join(out)
+
+
+def _strip_heading_page_numbers(markdown: str) -> str:
+    r"""剥离标题行首被误并入的页码数字。
+
+    PDF 页眉/页脚的孤立页码（1-3 位数字）有时被引擎与下方标题并入同一文本块，
+    输出形如 ``## 1 All my royalties will be donated to Save the Children``。
+    对标题行（``#``~``######``）剥离首部的 1-3 位数字 + 空白，仅当全部满足：
+
+      - 数字后紧跟空白（**非 "."**），保留 ``## 1. Get the Mission`` 等编号标题；
+      - 剩余标题以大写字母或引号开头（标题首词大写的常规形态）；
+      - 剩余标题 ≥2 个词（避免误伤 ``## 10 Tips`` 等短标题）。
+
+    保守守卫，仅命中明显的页码-并入标题。
+    """
+
+    def _strip(m: "re.Match[str]") -> str:
+        hashes = m.group(1)
+        rest = m.group(2)
+        if not rest:
+            return m.group(0)
+        if rest[0].isupper() or rest[0] in "\"'“‘":
+            if len(rest.split()) >= 2:
+                return f"{hashes} {rest}"
+        return m.group(0)
+
+    return re.sub(
+        r"^(#{1,6}) \d{1,3}\s+(.+)$",
+        _strip,
+        markdown,
+        flags=re.MULTILINE,
+    )
 
 
 def _split_code_tail_section(code: str) -> Tuple[str, str]:
