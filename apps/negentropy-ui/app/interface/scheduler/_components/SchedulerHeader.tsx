@@ -1,10 +1,18 @@
 "use client";
 
+import { Fragment } from "react";
+import { Info } from "lucide-react";
+
 import { Button } from "@/components/ui/Button";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { Tooltip } from "@/components/ui/Tooltip";
 import {
   navPillClassName,
   navRailContainerClassName,
 } from "@/components/ui/nav-styles";
+import type { DashboardFilters, KpiResponse, ScheduledTaskDTO } from "@/features/scheduler";
+
+import { SchedulerFilterBar } from "./SchedulerFilterBar";
 
 interface SchedulerHeaderProps {
   connected: boolean;
@@ -13,6 +21,13 @@ interface SchedulerHeaderProps {
   onRefresh: () => void;
   loading: boolean;
   onCreateTask?: () => void;
+  /** 聚合 KPI；为 null 且非 loading 时展示占位文案，loading 时展示骨架。 */
+  kpis: KpiResponse | null;
+  /** 筛选状态（role/scenario/category/agent/owner/window）；变更触发列表 reset 回第 1 页。 */
+  filters: DashboardFilters;
+  /** 全量任务快照，用于派生 Role/Scenario/Category 下拉选项。 */
+  tasks: ScheduledTaskDTO[];
+  onFiltersChange: (filters: DashboardFilters) => void;
 }
 
 const TABS: { key: "tasks" | "executions" | "stats"; label: string }[] = [
@@ -21,6 +36,79 @@ const TABS: { key: "tasks" | "executions" | "stats"; label: string }[] = [
   { key: "stats", label: "Stats" },
 ];
 
+interface KpiRow {
+  label: string;
+  value: string;
+  color?: string;
+}
+
+/** Tooltip 顶部的作用说明（原头部 <p>，迁入以收敛纵向空间）。 */
+const SCHEDULER_DESCRIPTION = "Unified task scheduling and execution management";
+
+/** 单行 KPI：语义色 + 中点分隔，chip 不内部断行（对齐 Routine KpiStats）。 */
+function KpiStats({ kpis }: { kpis: KpiResponse }) {
+  const successRate = kpis.runs > 0 ? kpis.success_rate * 100 : 0;
+  const rateColor =
+    successRate >= 95
+      ? "text-emerald-600 dark:text-emerald-400"
+      : successRate >= 80
+        ? "text-amber-600 dark:text-amber-400"
+        : "text-red-600 dark:text-red-400";
+
+  const rows: KpiRow[] = [
+    { label: "Tasks", value: String(kpis.total_tasks) },
+    { label: "Enabled", value: String(kpis.enabled_tasks) },
+    { label: "Runs", value: String(kpis.runs) },
+    { label: "Success Rate", value: `${successRate.toFixed(1)}%`, color: rateColor },
+    { label: "Running", value: String(kpis.running), color: "text-sky-600 dark:text-sky-400" },
+    { label: "Failed", value: String(kpis.failed), color: "text-red-600 dark:text-red-400" },
+    { label: "Avg Latency", value: `${Math.round(kpis.avg_latency_ms)}ms` },
+  ];
+
+  return (
+    <div className="flex items-baseline gap-x-2">
+      {rows.map((r, i) => (
+        <Fragment key={r.label}>
+          {i > 0 && (
+            <span className="select-none text-zinc-500" aria-hidden>
+              ·
+            </span>
+          )}
+          <span className="inline-flex items-baseline gap-1 whitespace-nowrap">
+            <span className="text-micro uppercase tracking-overline text-zinc-400">{r.label}</span>
+            <span className={`text-caption font-bold tabular-nums ${r.color ?? "text-white dark:text-zinc-100"}`}>
+              {r.value}
+            </span>
+          </span>
+        </Fragment>
+      ))}
+    </div>
+  );
+}
+
+/** Tooltip：作用说明 → hairline → 单行 KPI / 骨架 / 占位。 */
+function KpiTooltipContent({ kpis, loading }: { kpis: KpiResponse | null; loading: boolean }) {
+  return (
+    <>
+      <p className="whitespace-nowrap text-caption leading-relaxed text-zinc-400">{SCHEDULER_DESCRIPTION}</p>
+      <div className="my-2 h-px bg-white/10" />
+      {/* loading 且无数据 → 骨架占位（保持 Tooltip 形态稳定）。 */}
+      {loading && !kpis ? (
+        <div className="flex items-center gap-2" aria-busy="true">
+          {Array.from({ length: 7 }).map((_, i) => (
+            <Skeleton key={i} className="h-3 w-12" />
+          ))}
+        </div>
+      ) : !kpis ? (
+        // 无数据（非 loading）→ 简短占位。
+        <span className="text-zinc-400">暂无指标数据</span>
+      ) : (
+        <KpiStats kpis={kpis} />
+      )}
+    </>
+  );
+}
+
 export function SchedulerHeader({
   connected,
   activeTab,
@@ -28,19 +116,34 @@ export function SchedulerHeader({
   onRefresh,
   loading,
   onCreateTask,
+  kpis,
+  filters,
+  tasks,
+  onFiltersChange,
 }: SchedulerHeaderProps) {
   return (
-    <div className="flex items-center justify-between">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">
-          Scheduler
-        </h1>
-        <p className="text-sm text-text-muted">
-          Unified task scheduling and execution management
-        </p>
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+      {/* 标题 + 运行指标 info */}
+      <h1 className="flex shrink-0 items-center gap-1.5 text-2xl font-bold text-foreground">
+        Scheduler
+        <Tooltip
+          side="right"
+          align="start"
+          contentClassName="w-max max-w-[92vw]"
+          triggerProps={{ "aria-label": "Scheduler 运行指标" }}
+          content={<KpiTooltipContent kpis={kpis} loading={loading} />}
+        >
+          <Info className="h-4 w-4 text-text-muted hover:text-text-secondary" aria-hidden />
+        </Tooltip>
+      </h1>
+
+      {/* 筛选栏：居右、可伸缩；空间紧时最先让位。 */}
+      <div className="flex min-w-[240px] flex-1 flex-wrap items-center justify-end gap-2">
+        <SchedulerFilterBar filters={filters} tasks={tasks} onFiltersChange={onFiltersChange} />
       </div>
 
-      <div className="flex items-center gap-3">
+      {/* 动作按钮组：不收缩、不内部换行 */}
+      <div className="flex shrink-0 items-center gap-3">
         {/* New Task button */}
         {onCreateTask && (
           <Button
@@ -56,6 +159,7 @@ export function SchedulerHeader({
             New Task
           </Button>
         )}
+
         {/* Tab pills */}
         <div className={navRailContainerClassName}>
           {TABS.map((tab) => (

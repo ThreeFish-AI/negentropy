@@ -17,8 +17,6 @@ import { useSchedulerStream } from "@/app/(home)/dashboard/_hooks/useSchedulerSt
 import type { TaskExecutionDTO } from "@/features/scheduler";
 
 import { SchedulerHeader } from "./_components/SchedulerHeader";
-import { SchedulerKpiStrip } from "./_components/SchedulerKpiStrip";
-import { SchedulerFilterBar } from "./_components/SchedulerFilterBar";
 import { SchedulerTaskTable } from "./_components/SchedulerTaskTable";
 import { SchedulerExecutionPanel } from "./_components/SchedulerExecutionPanel";
 import { SchedulerStatsPanel } from "./_components/SchedulerStatsPanel";
@@ -271,7 +269,7 @@ export default function SchedulerPage() {
     <div className="flex h-full flex-col bg-muted">
       <InterfaceNav title="Scheduler" />
       <div ref={scrollRootRef} className="flex-1 overflow-auto">
-        <div className="px-6 py-6 space-y-5">
+        <div className="space-y-2.5 px-6 py-3">
           <SchedulerHeader
             connected={connected}
             activeTab={activeTab}
@@ -279,16 +277,13 @@ export default function SchedulerPage() {
             onRefresh={handleRefresh}
             loading={loading}
             onCreateTask={handleCreate}
-          />
-
-          {error && <ErrorBanner message={error} />}
-
-          <SchedulerKpiStrip kpis={kpis} loading={loading} />
-          <SchedulerFilterBar
+            kpis={kpis}
             filters={filters}
             tasks={allTasks}
             onFiltersChange={setFilters}
           />
+
+          {error && <ErrorBanner message={error} />}
 
           {activeTab === "tasks" && (
             <>
@@ -314,6 +309,8 @@ export default function SchedulerPage() {
                     itemLabel="task"
                     disabled={taskList.loading}
                     loadingMore={taskList.loadingMore}
+                    // 计数字号增至 12px（对齐 Routine，比默认 10px 明显增大）。
+                    countClassName="text-xs"
                   />
                 </div>
               )}

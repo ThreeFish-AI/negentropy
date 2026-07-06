@@ -50,7 +50,8 @@ function SelectFilter({ label, value, options, loading, onChange }: SelectFilter
       value={value ?? ""}
       onChange={(e) => onChange(e.target.value || null)}
       disabled={loading}
-      className="rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground hover:bg-muted/50 transition-colors disabled:opacity-50"
+      // 对齐 Routine RoutineFilterBar 的 inputCls 观感（bg-input + focus ring）。
+      className="rounded-md border border-border bg-input px-3 py-1.5 text-xs text-foreground focus:border-border focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
     >
       <option value="">{label}</option>
       {options.map((o) => (

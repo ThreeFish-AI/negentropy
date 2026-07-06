@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/nav-styles";
 import { Pagination } from "@/components/ui/Pagination";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { TextTooltip } from "@/components/ui/TextTooltip";
 import { useInfiniteList, type ClientFetcher } from "@/hooks/useInfiniteList";
 import { useInfiniteScrollSentinel, useScrollPageSync } from "@/hooks/useInfiniteScrollSentinel";
 import type { ExecutionStatus, TaskExecutionDTO } from "@/features/scheduler";
@@ -76,9 +77,9 @@ function formatTime(iso: string | null): string {
 
 function SkeletonRow() {
   return (
-    <tr className="border-b border-border last:border-b-0">
+    <tr className="border-b border-border/60 last:border-0">
       {Array.from({ length: 6 }).map((_, i) => (
-        <td key={i} className="px-3 py-2">
+        <td key={i} className="px-4 py-3">
           <Skeleton
             className="h-4"
             style={{ width: `${50 + (i * 17) % 40}%` }}
@@ -170,9 +171,9 @@ export function SchedulerExecutionPanel({
   const totalCount = list.total ?? filtered.length;
 
   return (
-    <div className="rounded-xl border border-border bg-card shadow-sm">
+    <div className="overflow-hidden rounded-xl border border-border bg-card">
       {/* Status filter pills */}
-      <div className="flex items-center justify-between border-b border-border px-3 py-2">
+      <div className="flex items-center justify-between border-b border-border px-4 py-2">
         <span className="text-caption uppercase tracking-overline text-muted-foreground">
           Executions ({totalCount})
         </span>
@@ -194,15 +195,26 @@ export function SchedulerExecutionPanel({
 
       {/* 滚动容器（哨兵 / 滚动联动 root） */}
       <div ref={scrollRootRef} className="max-h-[540px] overflow-auto">
-        <table className="w-full text-xs">
-          <thead className="sticky top-0 bg-card text-muted-foreground z-10">
-            <tr className="border-b border-border">
-              <th className="px-3 py-2 text-left font-medium">Started</th>
-              <th className="px-3 py-2 text-left font-medium">Status</th>
-              <th className="px-3 py-2 text-left font-medium">Task</th>
-              <th className="px-3 py-2 text-left font-medium">Duration</th>
-              <th className="px-3 py-2 text-left font-medium">Reason</th>
-              <th className="px-3 py-2 text-left font-medium">Output</th>
+        <table className="w-full table-fixed text-sm">
+          {/* 固定列宽（合计 100%）：Started 16 · Status 10 · Task 16 · Duration 8 · Reason 14 · Output 36。
+              6 列须与下方 6 个 <th> 严格对齐。注意：colgroup 内不得夹带空白文本节点（含 <col/> 后行内注释），
+              否则触发 "whitespace text nodes cannot be a child of colgroup" hydration 报错。 */}
+          <colgroup>
+            <col className="w-[16%]" />
+            <col className="w-[10%]" />
+            <col className="w-[16%]" />
+            <col className="w-[8%]" />
+            <col className="w-[14%]" />
+            <col className="w-[36%]" />
+          </colgroup>
+          <thead className="sticky top-0 z-10 bg-card">
+            <tr className="border-b border-border text-left text-xs uppercase tracking-overline text-text-secondary">
+              <th className="px-4 py-2.5 font-medium">Started</th>
+              <th className="px-4 py-2.5 font-medium">Status</th>
+              <th className="px-4 py-2.5 font-medium">Task</th>
+              <th className="px-4 py-2.5 font-medium">Duration</th>
+              <th className="px-4 py-2.5 font-medium">Reason</th>
+              <th className="px-4 py-2.5 font-medium">Output</th>
             </tr>
           </thead>
           <tbody>
@@ -210,7 +222,7 @@ export function SchedulerExecutionPanel({
               Array.from({ length: 10 }).map((_, i) => <SkeletonRow key={i} />)
             ) : view.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">
+                <td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">
                   No executions match the current filter.
                 </td>
               </tr>
@@ -219,31 +231,41 @@ export function SchedulerExecutionPanel({
                 <tr
                   key={e.id}
                   data-infinite-page={i % PAGE_SIZE === 0 ? Math.floor(i / PAGE_SIZE) + 1 : undefined}
-                  className="border-b border-border last:border-b-0 hover:bg-muted/30 transition-colors"
+                  className="border-b border-border/60 transition-colors last:border-0 hover:bg-muted/40"
                 >
-                  <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
-                    {formatTime(e.started_at)}
+                  <td className="px-4 py-3 text-muted-foreground">
+                    <TextTooltip content={formatTime(e.started_at)}>
+                      <span className="block truncate">{formatTime(e.started_at)}</span>
+                    </TextTooltip>
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-4 py-3">
                     <span
                       className={`inline-flex items-center rounded-full px-2 py-0.5 text-micro font-semibold ${STATUS_STYLES[e.status]}`}
                     >
                       {e.status}
                     </span>
                   </td>
-                  <td className="px-3 py-2 text-foreground font-medium">
-                    {e.task_key ?? "—"}
+                  <td className="px-4 py-3 text-foreground font-medium">
+                    <TextTooltip content={e.task_key ?? "—"}>
+                      <span className="block truncate">{e.task_key ?? "—"}</span>
+                    </TextTooltip>
                   </td>
-                  <td className="px-3 py-2 text-muted-foreground">
-                    {formatDuration(e.duration_ms)}
+                  <td className="px-4 py-3 text-muted-foreground">
+                    <span className="block truncate">{formatDuration(e.duration_ms)}</span>
                   </td>
-                  <td className="px-3 py-2 text-muted-foreground">{e.fire_reason}</td>
-                  <td className="px-3 py-2 text-muted-foreground max-w-[260px]">
+                  <td className="px-4 py-3 text-muted-foreground">
+                    <TextTooltip content={e.fire_reason}>
+                      <span className="block truncate">{e.fire_reason}</span>
+                    </TextTooltip>
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">
                     {e.error ? (
-                      <span className="text-red-600 dark:text-red-400 truncate block">{e.error}</span>
+                      <TextTooltip content={e.error}>
+                        <span className="block truncate text-red-600 dark:text-red-400">{e.error}</span>
+                      </TextTooltip>
                     ) : (
-                      <div className="flex flex-col gap-0.5 min-w-0">
-                        <div className="flex items-center gap-1.5 min-w-0">
+                      <div className="flex min-w-0 flex-col gap-0.5">
+                        <div className="flex min-w-0 items-center gap-1.5">
                           {patrolReasonLabel(e.metrics?.reason) && (
                             <span
                               className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-micro font-semibold shrink-0 ${patrolReasonStyle(
@@ -253,7 +275,9 @@ export function SchedulerExecutionPanel({
                               {patrolReasonLabel(e.metrics?.reason)}
                             </span>
                           )}
-                          <span className="truncate block">{e.output_summary ?? "—"}</span>
+                          <TextTooltip content={e.output_summary ?? "—"}>
+                            <span className="block min-w-0 flex-1 truncate">{e.output_summary ?? "—"}</span>
+                          </TextTooltip>
                         </div>
                         <SpawnedRoutineLink metrics={e.metrics} />
                       </div>
@@ -280,6 +304,8 @@ export function SchedulerExecutionPanel({
             itemLabel="execution"
             disabled={loading}
             loadingMore={list.loadingMore}
+            // 计数字号增至 12px（对齐 Routine）。
+            countClassName="text-xs"
           />
         </div>
       )}
