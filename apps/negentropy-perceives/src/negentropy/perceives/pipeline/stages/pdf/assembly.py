@@ -1404,11 +1404,40 @@ class BuiltinAssembler(PDFToolBase):
             for _e in elements:
                 if _e.element_type != "text" or not _e.content:
                     continue
+                # L85 变体: $1$ $^{\sqrt}d_{k}$ -> 分数 (X 含下标)
                 _e.content = re.sub(
                     r"\$1\$\s+\$\^?\{?\\sqrt[\}\s]*([a-zA-Z](?:_\{[^}]*\})?)\$",
                     r"$\\frac{1}{\\sqrt{\1}}$",
                     _e.content,
                 )
+                # L87 变体: $1$ $^{\sqrt dk}$ (dk 下标_已丢, 按 d_k 还原)
+                _e.content = _e.content.replace(
+                    r"$1$ $^{\sqrt dk}$",
+                    r"$\frac{1}{\sqrt{d_k}}$",
+                )
+                # 脚注4 求和: docling 把 Σ_{i=1}^{d_k} q_i k_i 误识为
+                # P^{dk} $_{i=1} qiki (Σ→P、下标丢), 还原为求和式
+                _e.content = _e.content.replace(
+                    r"$q \cdot k = P^{dk}$ $_{i=1} qiki$",
+                    r"$q \cdot k = \sum_{i=1}^{d_k} q_i k_i$",
+                )
+
+            # 2.6.6 表格单元格复杂度表达式上下标还原: docling 把 O(n^2·d) 的
+            # 上标 ^ 与 log 下标丢失（"n 2" / "log k"）。在 table content 上还原:
+            # O(...) 内 "单字母 空格 数字" → "单字母^数字"; "log k" → "\log_k"。
+            for _e in elements:
+                if _e.element_type != "table" or not _e.content:
+                    continue
+                _tc = re.sub(
+                    r"O\s*\(([^)]*)\)",
+                    lambda m: (
+                        "O("
+                        + re.sub(r"\b([a-zA-Z])\s+(\d+)", r"\1^\2", m.group(1))
+                        + ")"
+                    ),
+                    _e.content,
+                )
+                _e.content = _tc.replace("log k", r"\log_k")
 
             # 2.7 去重：移除重复标题与重复 Figure/Table 注释
             #    标题去重：
