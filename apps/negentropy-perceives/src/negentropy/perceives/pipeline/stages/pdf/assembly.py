@@ -1344,6 +1344,23 @@ class BuiltinAssembler(PDFToolBase):
                     )
                 ]
 
+            # 2.6.3 图打断句子修正（Figure 2 reading_order 场景）：图插在句子中间
+            # （前文本块不以句末标点结尾）时，把图前移越过连续的"句子延续"文本块，
+            # 到最近的段落边界（heading / 句末标点 / 列表项 / 非 text 元素）之后。
+            # 源 PDF 中图位于段落上方，perceives 因 reading_order 把图排入句中。
+            _img_i = 0
+            while _img_i < len(elements):
+                if elements[_img_i].element_type != "image":
+                    _img_i += 1
+                    continue
+                _target = _img_i
+                while _target > 0 and not _is_paragraph_boundary(elements[_target - 1]):
+                    _target -= 1
+                if _target < _img_i:
+                    _moved = elements.pop(_img_i)
+                    elements.insert(_target, _moved)
+                _img_i += 1
+
             # 2.7 去重：移除重复标题与重复 Figure/Table 注释
             #    标题去重：
             #    a) 两个相邻标题归一化后相同 → 移除前者（通常是 TOC 版本）
@@ -1821,6 +1838,36 @@ def _is_figure_sublabel(text: str, image_captions_norm: List[str]) -> bool:
     if not (3 <= len(norm.split()) <= 6):
         return False
     return any(norm in cn for cn in image_captions_norm)
+
+
+# 列表项起手模式（无序 ``-``/``*``/``+`` 或有序 ``1.``/``2)``）
+_LIST_ITEM_RE = re.compile(r"^\s*(?:[-*+]\s|\d+[.)]\s)")
+
+
+def _is_paragraph_boundary(elem) -> bool:
+    """元素是否构成段落边界（图打断修正时图不应越过此边界）。
+
+    边界 = 段落的结束/开始：
+      - None 或非 text 元素（image/formula/table/code）= 边界；
+      - heading（content 以 ``#`` 起手）= 边界；
+      - 列表项（``- `` / ``* `` / ``1. `` 起手）= 边界；
+      - 以句末标点（``.!?``）结尾的 text = 边界。
+
+    非边界 = 句子延续的普通文本块（不以标点结尾），图可越过它前移到段落首。
+    空块视为非边界（可越过）。
+    """
+    if elem is None:
+        return True
+    if elem.element_type != "text" or getattr(elem, "block", None) is None:
+        return True
+    t = (elem.content or "").strip()
+    if not t:
+        return False
+    if t.startswith("#"):
+        return True
+    if _LIST_ITEM_RE.match(t):
+        return True
+    return bool(re.search(r"[.!?][\"')\]]*\s*$", t))
 
 
 def _normalize_for_dedup(text: str) -> str:
