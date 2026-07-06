@@ -50,8 +50,9 @@ function SelectFilter({ label, value, options, loading, onChange }: SelectFilter
       value={value ?? ""}
       onChange={(e) => onChange(e.target.value || null)}
       disabled={loading}
-      // bg-input + focus ring 对齐 RoutineFilterBar；px 收窄以在窄屏单行容纳 5 下拉 + 3 时间窗。
-      className="rounded-md border border-border bg-input px-2 py-1.5 text-xs text-foreground focus:border-border focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
+      // bg-input + focus ring 对齐 RoutineFilterBar；固定紧凑宽度 + truncate：原生 <select> 默认撑到最宽
+      // 选项宽度会溢出换行，故 w-28 封顶 + 超长值省略号截断，使 5 下拉 + 3 时间窗单行容纳（窄屏仍 flex-wrap 降级）。
+      className="w-28 truncate rounded-md border border-border bg-input px-2 py-1.5 text-xs text-foreground focus:border-border focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
     >
       <option value="">{label}</option>
       {options.map((o) => (
