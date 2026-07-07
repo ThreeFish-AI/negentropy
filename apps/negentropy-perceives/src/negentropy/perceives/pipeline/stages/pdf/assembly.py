@@ -361,34 +361,68 @@ class BuiltinAssembler(PDFToolBase):
                             )
                         )
                         continue
-                    # Docling 代码块：与同页文本块逐个比较
-                    _skip = False
+                    # Docling 代码块与同页"字符流文本回声"（PyMuPDF 把代码区另抽为
+                    # 文本块）的去重。按 effective language 分流：
+                    # **真实代码语言**（python/bash/json/yaml/js/...）：**保留权威的
+                    # fenced code、删除 text 回声**——text 副本常为折叠/转义低质量版本。
+                    # ratio>0.7 是强信号（text 含 ≥70% 代码标识符→必为回声；若 code 为
+                    # 引擎误检垃圾，不可能与 text 达 0.7 重叠），放宽 overlap>=5 覆盖短
+                    # 代码块（bash/import），消除 text+fenced 双出。
+                    # **误标代码语言**（html/xml/markdown/text 等，常把散文/TOC 误包）：
+                    # 保持原"优先 text"行为——code 与 text 重叠时 _skip 掉 code（text 更
+                    # 忠实），避免把 TOC/散文错渲染成 ```html 代码块。
                     code_words = set(
                         re.findall(r"[a-zA-Z_]{3,}", code_block.code.lower())
                     )
                     if code_words:
-                        for elem in elements:
-                            if (
-                                elem.element_type != "text"
-                                or not elem.block
-                                or elem.page_number != code_block.page_number
-                            ):
-                                continue
-                            block_words = set(
-                                re.findall(
-                                    r"[a-zA-Z_]{3,}",
-                                    elem.block.text.lower(),
+                        if _effective_code_lang(code_block) in _REAL_CODE_LANGS:
+                            _echo_indices: List[int] = []
+                            for _ei, elem in enumerate(elements):
+                                if (
+                                    elem.element_type != "text"
+                                    or not elem.block
+                                    or elem.page_number != code_block.page_number
+                                ):
+                                    continue
+                                block_words = set(
+                                    re.findall(
+                                        r"[a-zA-Z_]{3,}",
+                                        elem.block.text.lower(),
+                                    )
                                 )
-                            )
-                            if not block_words:
+                                if not block_words:
+                                    continue
+                                overlap = len(code_words & block_words)
+                                ratio = overlap / max(len(code_words), 1)
+                                if ratio > 0.7 and overlap >= 5:
+                                    _echo_indices.append(_ei)
+                            for _ei in reversed(_echo_indices):
+                                elements.pop(_ei)
+                        else:
+                            # 误标代码：重叠则 _skip code、保留 text（原逻辑）
+                            _skip = False
+                            for elem in elements:
+                                if (
+                                    elem.element_type != "text"
+                                    or not elem.block
+                                    or elem.page_number != code_block.page_number
+                                ):
+                                    continue
+                                block_words = set(
+                                    re.findall(
+                                        r"[a-zA-Z_]{3,}",
+                                        elem.block.text.lower(),
+                                    )
+                                )
+                                if not block_words:
+                                    continue
+                                overlap = len(code_words & block_words)
+                                ratio = overlap / max(len(code_words), 1)
+                                if ratio > 0.7 and overlap > 20:
+                                    _skip = True
+                                    break
+                            if _skip:
                                 continue
-                            overlap = len(code_words & block_words)
-                            ratio = overlap / max(len(code_words), 1)
-                            if ratio > 0.7 and overlap > 20:
-                                _skip = True
-                                break
-                    if _skip:
-                        continue
                     # 边界修正：截断引擎误纳的尾部章节标题/引言正文
                     _kept_code, _tail_text = _split_code_tail_section(
                         code_block.code or ""
@@ -1585,6 +1619,16 @@ class BuiltinAssembler(PDFToolBase):
                 markdown_parts.append(elem.content)
 
             markdown = "\n\n".join(markdown_parts)
+            # 误判内联公式解包：含省略号的普通文本（典型为目录条目
+            # ``$Appendix B - AI Agentic \ldots.: From GUI ...$``）被引擎误标为
+            # inline formula，省略号被 LaTeX 化为 ``\ldots``。此处仅对"触发词 +
+            # 无真数学命令 + 像英文散文"的极明显误判解包还原，真公式一律保留。
+            markdown = _unwrap_ellipsis_falsepositive_inline_math(markdown)
+            # JSON 文本段补栅栏：引擎（docling/marker）常把内嵌 JSON 例（如
+            # ``{ "trends": [...] }``）当作普通正文输出为折叠纯文本，丢失代码语义。
+            # 对"非已 fenced、``{``/``[`` 起 + 配对收尾 + ≥2 个 ``"key":`` 且括号
+            # 配平"的段落，包裹为 ```json 代码块。检测保守，仅命中明显 JSON。
+            markdown = _fence_json_text_paragraphs(markdown)
 
             # 4. 图片引用规范化
             images: List[ExtractedImage] = []
@@ -1624,6 +1668,18 @@ class BuiltinAssembler(PDFToolBase):
             # 5. Markdown 格式化
             formatter = MarkdownFormatter()
             markdown = formatter.format(markdown)
+            # 圆点项目符展开（须在 formatter 之后：formatter 会把 PDF 硬换行的圆点
+            # 项连成空格分隔的 run-on 段 `` ● ``，此处展开为 ``\n- `` 同级列表项）。
+            markdown = _expand_bullet_paragraphs(markdown)
+            # 编号 run-on 列表拆分（须在 formatter/bullet 之后）：把段内
+            # "1. X 2. Y 3. Z" run-on 拆为独立编号项。强信号守卫（从 1 严格递增 +
+            # 无 TOC 标记 + 段长<2000 + 跳过 fenced/表格），避免误拆目录与散文。
+            markdown = _split_numbered_runon_paragraphs(markdown)
+            # 标题首页码剥离：PDF 页眉/页脚的孤立页码（1-3 位数字）有时被引擎并入
+            # 下方标题，输出 ``## 1 All my royalties...``。保守剥离（数字后须紧跟空格
+            # 非 "."、剩余标题首词大写/引号、剩余 ≥2 词），保留 ``## 1. Get the Mission``
+            # 等编号标题与 ``## 10 Tips`` 等短标题。
+            markdown = _strip_heading_page_numbers(markdown)
 
             # 6. 参考文献节条目分段（多条目连段 → 每条独占段落）
             markdown = _segment_references_section(markdown)
@@ -2829,6 +2885,61 @@ _CODE_LANG_HEADER_MAP = {
     "protobuf": "protobuf",
     "proto": "protobuf",
 }
+
+# "真实代码/数据语言"白名单：effective lang 命中此处时，code 副本权威、删除 text
+# 回声（dedup 翻转）。刻意排除 ``html``/``xml``/``css``/``scss``/``markdown`` 等
+# 标记/文本类型——docling 常把 TOC、散文、配置说明误标为这些，text 版本更忠实，
+# 对它们保持原"优先 text"去重行为，避免把散文错渲染成代码块。
+_REAL_CODE_LANGS = frozenset(
+    {
+        "python",
+        "java",
+        "javascript",
+        "typescript",
+        "c",
+        "cpp",
+        "csharp",
+        "rust",
+        "go",
+        "ruby",
+        "php",
+        "swift",
+        "kotlin",
+        "scala",
+        "r",
+        "perl",
+        "lua",
+        "bash",
+        "powershell",
+        "sql",
+        "yaml",
+        "json",
+        "toml",
+        "ini",
+        "dockerfile",
+        "makefile",
+        "graphql",
+        "protobuf",
+    }
+)
+
+
+def _effective_code_lang(code_block: "ExtractedCodeBlock") -> str:
+    """计算 code_block 的有效 fence 语言（与 ``_code_block_to_markdown`` 一致）。
+
+    优先 ``code_block.language``（经 ``_CODE_LANG_HEADER_MAP`` 归一化）；为空时回退
+    到 "code 首行单独为 lang 关键词" 的推断；都无则返回空串。供 dedup 按 lang 分流。
+    """
+    lang = (code_block.language or "").strip().lower()
+    if lang:
+        return _CODE_LANG_HEADER_MAP.get(lang, lang)
+    code = code_block.code or ""
+    stripped = code.lstrip("\n")
+    nl = stripped.find("\n")
+    first_line = stripped[:nl] if nl >= 0 else stripped
+    return _CODE_LANG_HEADER_MAP.get(first_line.strip().lower(), "")
+
+
 """常见编程语言关键词归一化表 → markdown fence highlight 名称。
 
 来源：docling 在某些 PDF 上把代码块首行 ``Python`` / ``Javascript`` 字面字符
@@ -2887,6 +2998,224 @@ def _code_block_to_markdown(
         return f"```{inferred_lang}\n{rest}\n```"
 
     return f"```\n{code}\n```"
+
+
+# 真数学命令/符号黑名单：内联 ``$...$`` 内容若命中任一则视为真公式，保守保留。
+# 覆盖常见 LaTeX 数学（分数/求和/积分/根号/关系符/希腊字母/上下标等）。
+_INLINE_MATH_FALSEPOS_DENY = re.compile(
+    r"\\(?:frac|sum|int|sqrt|lim|log|cdot|times|partial|infty|nabla|forall|exists|"
+    r"in|notin|le|ge|leq|geq|neq|approx|equiv|pm|mp|div|subset|supset|cup|cap|"
+    r"alpha|beta|gamma|delta|epsilon|varepsilon|zeta|eta|theta|iota|kappa|"
+    r"lambda|mu|nu|xi|pi|rho|sigma|tau|upsilon|phi|chi|psi|omega|Gamma|Delta|"
+    r"Theta|Lambda|Sigma|Phi|Psi|Omega|mathbb|mathcal|mathbf|mathrm|mathsf|"
+    r"text|textbf|begin|end|left|right|hat|bar|vec|dot|tilde|overline|underline)\b"
+    r"|[\^_]"
+)
+# 误判触发词：省略号被 LaTeX 化。
+_INLINE_MATH_FALSEPOS_TRIGGER = re.compile(r"\\l?dots\b")
+
+
+def _unwrap_ellipsis_falsepositive_inline_math(markdown: str) -> str:
+    """解包"省略号型"内联公式误判。
+
+    MinerU/marker 有时把含 ``...`` 的普通文本（典型为目录条目，如 ``Appendix B -
+    AI Agentic ...: From GUI to Real world environment``）误标为 inline formula，
+    输出 ``$Appendix B - AI Agentic \\ldots.: From GUI ...$``——省略号被 LaTeX 化为
+    ``\\ldots``，整段被 ``$...$`` 包裹，UI 渲染为乱码公式。
+
+    仅对**极明显**的误判解包还原（保守，避免误伤真公式），三条件全部满足才处理：
+      1. 内容含 ``\\ldots``/``\\dots``（误判触发词）；
+      2. 内容**不含**任何真数学命令/符号（黑名单 ``_INLINE_MATH_FALSEPOS_DENY``）；
+      3. 内容含 ≥2 个非 LaTeX-命令的英文词（≥4 字母）——真公式极少如此。
+
+    命中则去掉 ``$...$`` 包裹并把 ``\\ldots``/``\\dots`` 还原为 ``...``；
+    ``$$...$$`` 块公式与单行内的多 ``$`` 不受影响（正则用 ``(?<!\\$)\\$(?!\\$)``
+    锚定单个 ``$`` 且内容不含 ``$``/换行）。
+    """
+
+    def _repl(m: "re.Match[str]") -> str:
+        inner = m.group(1)
+        if not _INLINE_MATH_FALSEPOS_TRIGGER.search(inner):
+            return m.group(0)
+        if _INLINE_MATH_FALSEPOS_DENY.search(inner):
+            return m.group(0)  # 含真数学命令，保留
+        # 非 LaTeX-命令的英文词（≥4 字母）计数
+        if len(re.findall(r"(?<!\\)[A-Za-z]{4,}", inner)) < 2:
+            return m.group(0)  # 不像英文散文，保守保留（如真数学省略号 $1,\ldots,n$）
+        return inner.replace(r"\ldots", "...").replace(r"\dots", "...")
+
+    return re.sub(r"(?<!\$)\$(?!\$)([^\n$]+?)\$(?!\$)", _repl, markdown)
+
+
+def _looks_like_json_block(s: str) -> bool:
+    """保守判断 ``s`` 是否为一个 JSON 对象/数组文本段。
+
+    必须同时满足（最大程度避免误伤散文）：
+      1. 以 ``{`` 或 ``[`` 开头，且以配对的 ``}`` / ``]`` 结尾；
+      2. 含 ≥2 个 ``"key":`` / ``'key':`` 映射模式（JSON 的本质特征）；
+      3. 花括号/方括号各自配平；
+      4. 不含未转义的 ```（避免与已有代码栅栏纠缠）。
+    """
+    stripped = s.strip()
+    if "```" in stripped:
+        return False
+    if stripped.startswith("{"):
+        if not stripped.endswith("}"):
+            return False
+    elif stripped.startswith("["):
+        if not stripped.endswith("]"):
+            return False
+    else:
+        return False
+    if len(re.findall(r'"[^"\n]{1,40}"\s*:|\'[^\'\n]{1,40}\'\s*:', stripped)) < 2:
+        return False
+    if stripped.count("{") != stripped.count("}") or stripped.count(
+        "["
+    ) != stripped.count("]"):
+        return False
+    return True
+
+
+def _fence_json_text_paragraphs(markdown: str) -> str:
+    """把误当正文输出的 JSON 文本段包裹为 ```json 代码块。
+
+    引擎常把内嵌 JSON 示例（如 ``{ "trends": [ ... ] }``）作为普通文本块输出，
+    渲染为折叠纯文本、丢失代码语义与等宽排版。对每个**非已 fenced**的段落，
+    若 ``_looks_like_json_block`` 判定成立，则包裹为 ````` ``json ... `` ``` ``。
+
+    通过段落（``\\n\\n`` 分隔）逐段处理；含 ````` ```` 的段落（已是代码块）原样保留，
+    避免双重栅栏。保守的形态判定使散文几乎不会被误判。
+    """
+    paragraphs = markdown.split("\n\n")
+    out: List[str] = []
+    for para in paragraphs:
+        if "```" in para:
+            out.append(para)
+            continue
+        s = para.strip()
+        if s and _looks_like_json_block(s):
+            out.append("```json\n" + s + "\n```")
+        else:
+            out.append(para)
+    return "\n\n".join(out)
+
+
+# 圆点项目符（PDF 列表 bullet）集合：●/○/•。text_extraction 常把整列圆点项压成
+# 单段，首项可能已被识为 ``- `` 列表项，后续项以圆点符内联分隔。
+_BULLET_CHARS = "●○•▪◦"
+
+
+def _expand_bullet_paragraphs(markdown: str) -> str:
+    """把段落内折叠的圆点项目符（●/○/•/▪/◦）展开为同级 markdown 列表项。
+
+    PDF 源的圆点列表经 text_extraction 常被压成单段，形如：
+    ``- Prompt 1: 提取文本。 ● Prompt 2: 总结文本。 ● Prompt 3: 抽取实体。``
+    （首项已是 ``- `` 列表项，后续项以 `` ● `` 内联分隔）。本函数把
+    `` ● ``/`` ○ ``/`` • `` 等 ``" " + 圆点 + " "`` 替换为 ``"\\n- "``，展开为
+    同级 markdown 列表项，恢复可读的列表结构。
+
+    跳过 fenced 代码块与表格段落（含 ````` ```` 或 ``|`` 的段落），避免破坏代码
+    与 GFM 表格。**仅处理圆点符**——编号列表（``1. ... 2. ...``）因与目录文本
+    ``1. Chapter 1 ... 2. Chapter 2 ...`` 结构难区分、误分裂风险高，暂不处理。
+    段落首字符即为圆点的（无前置 ``- ``），亦规整为 ``- `` 列表项。同时兼容两种
+    形态：行首裸圆点（``\\n● item``，pre-formatter）与中段内联圆点（`` ● item``，
+    post-formatter run-on 段）。
+    """
+    paragraphs = markdown.split("\n\n")
+    out: List[str] = []
+    for para in paragraphs:
+        if "```" in para or "|" in para:
+            out.append(para)
+            continue
+        if not any(ch in para for ch in _BULLET_CHARS):
+            out.append(para)
+            continue
+        # 1. 行首裸圆点（含换行后的行首）："● Foo" / "\n● Foo" -> "- Foo"
+        new = re.sub(r"(?m)^[" + _BULLET_CHARS + r"]\s+", "- ", para)
+        # 2. 中段内联圆点（空格分隔的 run-on）：" ● " -> "\n- "
+        new = re.sub(r" [" + _BULLET_CHARS + r"] ", "\n- ", new)
+        out.append(new)
+    return "\n\n".join(out)
+
+
+# 目录（TOC）文本标记：目录条目也呈 ``1. Chapter 1... 2. Chapter 2...`` 的编号 run-on
+# 结构，必须排除以免把目录误拆。命中任一即视为目录段、跳过编号拆分。
+_TOC_MARKERS = re.compile(
+    r"Chapter \d|Appendix [A-G]|pages \[|last read done|\[final|Index of Terms"
+)
+
+
+def _split_numbered_runon_paragraphs(markdown: str) -> str:
+    r"""把 run-on 编号列表段（``1. X 2. Y 3. Z``）拆为独立 markdown 编号项。
+
+    PDF 编号列表经 text_extraction + formatter 常被压成单段 run-on。仅对**强信号**
+    的编号列表拆分，最大程度避免误伤散文与目录文本：
+
+      1. 段内含 ≥2 个 ``N. 大写字母`` 项，且编号从 1 起严格递增（1,2,3,...）；
+      2. 段**不含**目录标记（``_TOC_MARKERS``：``Chapter N``/``Appendix``/``pages [``
+         /``[final``/``last read done``/``Index of Terms``）——目录同为编号 run-on；
+      3. 段长 < 2000 字符（backstop，目录段常数千字符）；
+      4. 跳过 fenced 代码块与表格段（含 ```` ``` ```` 或 ``|``）。
+
+    命中则把每个 `` N. ``（前导空格的后续项）替换为 ``\nN. ``，首项 ``^1.`` 原位保留，
+    拆为独立编号项。注意：PDF 跨页编号列表常被 formatter 切散成多段，本函数仅拆
+    「段内 run-on」，跨段碎片不在处理范围（无信息丢失，仅未重组）。
+    """
+    paragraphs = markdown.split("\n\n")
+    out: List[str] = []
+    for para in paragraphs:
+        if "```" in para or "|" in para:
+            out.append(para)
+            continue
+        if _TOC_MARKERS.search(para) or len(para) > 2000:
+            out.append(para)
+            continue
+        marks = list(re.finditer(r"(?:(?<=^)|(?<= ))(\d+)\. +[A-Z]", para))
+        if len(marks) < 2:
+            out.append(para)
+            continue
+        nums = [int(m.group(1)) for m in marks]
+        if nums[0] != 1 or any(
+            nums[i + 1] != nums[i] + 1 for i in range(len(nums) - 1)
+        ):
+            out.append(para)
+            continue
+        # 拆分：把每个 " N. "（前导空格的后续项）替换为 "\nN. "；首项 ^1. 无前导空格不动
+        new = re.sub(r" (\d+)\. +", lambda m: "\n" + m.group(1) + ". ", para)
+        out.append(new)
+    return "\n\n".join(out)
+
+
+def _strip_heading_page_numbers(markdown: str) -> str:
+    r"""剥离标题行首被误并入的页码数字。
+
+    PDF 页眉/页脚的孤立页码（1-3 位数字）有时被引擎与下方标题并入同一文本块，
+    输出形如 ``## 1 All my royalties will be donated to Save the Children``。
+    对标题行（``#``~``######``）剥离首部的 1-3 位数字 + 空白，仅当全部满足：
+
+      - 数字后紧跟空白（**非 "."**），保留 ``## 1. Get the Mission`` 等编号标题；
+      - 剩余标题以大写字母或引号开头（标题首词大写的常规形态）；
+      - 剩余标题 ≥2 个词（避免误伤 ``## 10 Tips`` 等短标题）。
+
+    保守守卫，仅命中明显的页码-并入标题。
+    """
+
+    def _strip(m: "re.Match[str]") -> str:
+        hashes = m.group(1)
+        rest = m.group(2)
+        if not rest:
+            return m.group(0)
+        if rest[0].isupper() or rest[0] in "\"'“‘":
+            if len(rest.split()) >= 2:
+                return f"{hashes} {rest}"
+        return m.group(0)
+
+    return re.sub(
+        r"^(#{1,6}) \d{1,3}\s+(.+)$",
+        _strip,
+        markdown,
+        flags=re.MULTILINE,
+    )
 
 
 def _split_code_tail_section(code: str) -> Tuple[str, str]:
@@ -3002,6 +3331,38 @@ def _image_to_markdown(
     if display_h is None and image.height:
         display_h = int(image.height)
 
+    # 极端退化：bbox 与引擎 dims 均缺失时，尽力从原图（local_path 或 base64_data）
+    # 读像素尺寸，并按典型内容宽封顶（引擎常以 2x/3x 渲染 figure，原生像素如 2048px
+    # 直接做显示宽度会放大数倍）。封顶后等比缩放，确保仍输出**带尺寸的 ``<img>``**
+    # （与有 bbox 的图片形态一致），避免裸 ``![]()`` 造成渲染形态不一致。
+    if display_w is None and display_h is None:
+        try:
+            from PIL import Image as _PILImage
+            import os as _os
+            import base64 as _b64
+            import io as _io
+
+            _src = None
+            _lp = getattr(image, "local_path", None)
+            if _lp and _os.path.exists(_lp):
+                _src = _PILImage.open(_lp)
+            else:
+                _b64d = getattr(image, "base64_data", None)
+                if _b64d:
+                    _src = _PILImage.open(_io.BytesIO(_b64.b64decode(_b64d)))
+            if _src is not None:
+                _nw, _nh = _src.size
+                _src.close()
+                if _nw > 0 and _nh > 0:
+                    _MAX_DISPLAY_W = 800
+                    if _nw > _MAX_DISPLAY_W:
+                        display_w = _MAX_DISPLAY_W
+                        display_h = int(round(_nh * _MAX_DISPLAY_W / _nw))
+                    else:
+                        display_w, display_h = _nw, _nh
+        except Exception:
+            pass
+
     # R9 修复：始终输出 CSS px 像素值（PDF pt × 4/3）作为 width / height 属性，
     # 配合 ``style="max-width:100%;height:auto"`` 实现「PDF 原版尺寸 + 窄屏
     # 自适应」双赢。此前的 ``is_large_figure → width="100%"`` 分支会把所有
@@ -3019,7 +3380,13 @@ def _image_to_markdown(
             parts.append(f'height="{display_h}"')
         parts.append('style="max-width:100%;height:auto;" />')
         return " ".join(parts)
-    return f"![{alt_text}]({src})"
+    # 真无任何尺寸信息：仍输出响应式 ``<img>``（无显式 width/height）保证形态一致，
+    # 绝不裸 ``![]()``——与有尺寸图片同为 ``<img>`` 标签，渲染行为统一。
+    return (
+        f'<img src="{html.escape(src, quote=True)}" '
+        f'alt="{html.escape(alt_text, quote=True)}" '
+        f'style="max-width:100%;height:auto;" />'
+    )
 
 
 # ---------------------------------------------------------------------------

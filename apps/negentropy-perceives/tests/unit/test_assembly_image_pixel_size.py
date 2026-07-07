@@ -66,11 +66,13 @@ class TestImageToMarkdownPixelSize:
         assert 'width="320"' in out
         assert 'height="240"' in out
 
-    def test_no_size_info_falls_back_to_markdown_syntax(self) -> None:
-        """无 bbox / width / height → 退化为 markdown ``![alt](src)`` 简写。"""
+    def test_no_size_info_falls_back_to_responsive_img(self) -> None:
+        """无 bbox / width / height 且读不到原图尺寸 → 退化为响应式 ``<img>``
+        （无显式 width/height），保证形态与其他 ``<img>`` 图片一致，不裸 ``![]()``。"""
         out = _image_to_markdown(_img(filename="x.png"))
-        assert out.startswith("![") and out.endswith(")")
-        assert "<img" not in out
+        assert out.startswith("<img ")
+        assert 'src="./images/x.png"' in out
+        assert 'style="max-width:100%;height:auto;"' in out
 
     def test_caption_used_as_alt(self) -> None:
         """有 caption → alt 文本用 caption。"""
