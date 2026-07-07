@@ -2321,16 +2321,22 @@ def _is_low_content_figure_label(text: str) -> bool:
         return True
     t = text.strip()
     words = re.findall(r"[A-Za-z]{3,}", text)
+    # 章节编号前缀要求编号后跟 ≥2 字母英文词（'4.2 Behavioral Evidence'/'A Related Work'），
+    # 避免把 '10 −1'（−1 非字母）、'1 B 300 M 20 M'（B/M 单字母）这类刻度/图例
+    # 噪声误判为 section 编号。
+    has_section_prefix = bool(re.match(r"^(?:\d+(?:\.\d+)*|[A-Z])\s+[A-Za-z]{2,}", t))
+    has_terminal_punct = bool(re.search(r"[.!?][\"')\]]*\s*$", t))
     # 信号 A + C：短碎片（≤2 个 ≥3 字母英文词）且非"章节编号前缀 / 句末标点"形态
     if len(words) <= 2:
-        # 章节编号前缀要求编号后跟 ≥2 字母英文词（'4.2 Behavioral Evidence'/'A Related Work'），
-        # 避免把 '10 −1'（−1 非字母）、'1 B 300 M 20 M'（B/M 单字母）这类刻度/图例
-        # 噪声误判为 section 编号。
-        has_section_prefix = bool(
-            re.match(r"^(?:\d+(?:\.\d+)*|[A-Z])\s+[A-Za-z]{2,}", t)
-        )
-        has_terminal_punct = bool(re.search(r"[.!?][\"')\]]*\s*$", t))
         if not has_section_prefix and not has_terminal_punct:
+            return True
+    elif 3 <= len(words) <= 6:
+        # 信号 D（多词图内标签 / 注释）：Figure 内的轴标题、图例短语、面板注释
+        # （"Compute Optimal Asymptotic Scaling data / model"、"Learning requires
+        # model scaling"）。判据：3-6 个 ≥3 字母英文词、≤60 字符、无章节编号前缀、
+        # 无句末标点（巡检 e669a5ea Fig 1）。真实 section 标题多带编号、真实段落
+        # 多带句末标点且更长，均不命中。仅作用于已落入 figure region 的文本块。
+        if not has_section_prefix and not has_terminal_punct and len(t) <= 60:
             return True
     # 信号 B：相邻纯数字序列（≥3 个）= 坐标轴刻度
     return bool(re.search(r"\d+(?:\.\d+)?(?:[\s,;]+\d+(?:\.\d+)?){2,}", text))
