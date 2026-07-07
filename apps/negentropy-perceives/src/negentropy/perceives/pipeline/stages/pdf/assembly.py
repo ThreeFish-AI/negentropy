@@ -120,9 +120,15 @@ class BuiltinAssembler(PDFToolBase):
                         _grid_table_regions.setdefault(table.page_number, []).append(
                             table.bbox
                         )
+            # ``_image_regions``：仅收录 image_extraction 提取的**位图本身** bbox
+            # （精确覆盖实际栅格区域，区别于 layout figure region 常过大）。用于
+            # 抑制完全落入位图内的矢量标签文本块（流程图节点文字 / 图例 / 轴标题）：
+            # 位图已烘入其像素，文本块为冗余副本。
+            _image_regions: Dict[int, List[Tuple[float, float, float, float]]] = {}
             for img in input_data.images.images if input_data.images else []:
                 if img.bbox:
                     special_regions.setdefault(img.page_number, []).append(img.bbox)
+                    _image_regions.setdefault(img.page_number, []).append(img.bbox)
 
             # layout_analysis 的 ``figure`` region 通常覆盖完整 figure 视觉框
             # （含位图 + 矢量标签 + 标题）。image_extraction 仅给出位图位图本身的
@@ -236,6 +242,15 @@ class BuiltinAssembler(PDFToolBase):
                         ):
                             continue
                         if _is_low_content_figure_label(block.text):
+                            continue
+                        # 文本块完全落入某张已提取位图 bbox 内 → 图内矢量标签
+                        # （流程图节点文字 / 图例 / 面板标题），位图已烘入其像素，
+                        # 抑制避免图内文字与正文双份。用"完全包含"（四角均在图内，
+                        # 2pt 容差吸收坐标取整）而非 overlap：精确位图 bbox 不会
+                        # 误吞图外真实内容（section 标题 / 段落位于图外，不满足
+                        # 完全包含）。caption 已由上方 _is_figure_or_table_caption_text
+                        # 恒保留，不在此处误伤。
+                        if _block_fully_inside_region(block, _image_regions):
                             continue
                     # 字符级签名兜底：剔除 PyMuPDF 把公式视觉渲染区抽成
                     # "字符流文本"产生的冗余文本块（典型如长式 ``M_l = f_long(...)``
@@ -1831,6 +1846,41 @@ def _block_overlaps_special(
             return True
         # 策略 2: IoU 检测 — 面积重叠
         if _compute_iou(block.bbox, (rx0, ry0, rx1, ry1)) >= iou_threshold:
+            return True
+    return False
+
+
+# 完全包含判定的坐标容差（pt）：吸收 PyMuPDF 文本块 bbox 与 image_extraction
+# 位图 bbox 间的取整 / 半像素偏移，避免标签因 1-2pt 越界而漏判。
+_FULL_INSIDE_TOLERANCE_PT = 2.0
+
+
+def _block_fully_inside_region(
+    block: TextBlock,
+    regions: Dict[int, List[Tuple[float, float, float, float]]],
+) -> bool:
+    """判断文本块 bbox 是否**完全落入**某区域（四角均在区域内，含 2pt 容差）。
+
+    用于抑制位图内的矢量标签：image_extraction 提取的位图 bbox 精确覆盖实际
+    栅格区域，完全落入其中的文本块是叠加在位图上的图内文字（流程图节点 /
+    图例 / 面板标题 / 轴标题），位图已烘入其像素，文本块为冗余副本应抑制。
+
+    区别于 ``_block_overlaps_special`` 的 overlap 判定（中心点包含 / IoU≥阈值）：
+    完全包含严格得多——要求文本块四角均在图内。图外真实内容（section 标题、
+    导言段落）即便与过大的 layout figure region 部分重叠，也不会满足对**精确
+    位图 bbox** 的完全包含（标题/段落位于位图实际栅格区之外），故不会被误吞。
+
+    None / 缺 bbox 时返回 False（保守保留，交由下游通用处理）。
+    """
+    if not block.bbox:
+        return False
+    rs = regions.get(block.page_number)
+    if not rs:
+        return False
+    bx0, by0, bx1, by1 = block.bbox
+    t = _FULL_INSIDE_TOLERANCE_PT
+    for rx0, ry0, rx1, ry1 in rs:
+        if rx0 - t <= bx0 and bx1 <= rx1 + t and ry0 - t <= by0 and by1 <= ry1 + t:
             return True
     return False
 
