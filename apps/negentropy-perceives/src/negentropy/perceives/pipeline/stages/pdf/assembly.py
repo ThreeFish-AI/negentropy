@@ -340,6 +340,11 @@ class BuiltinAssembler(PDFToolBase):
                             and latex_core in text_formula_fingerprints
                         ):
                             continue
+                        # 内联公式去重：公式签名（_formula_text_signature）是某同页
+                        # 正文段子串 → 公式已内联于正文段（raw 字面串），display $$
+                        # 块为重复抽取，跳过。≥6 字符启用（公式签名密集 alphanumeric，
+                        # 巧合子串风险低）。
+                        md = _formula_to_markdown(formula)
                         md = _formula_to_markdown(formula)
                         if not md:
                             continue
@@ -1724,6 +1729,9 @@ class BuiltinAssembler(PDFToolBase):
             # 非 "."、剩余标题首词大写/引号、剩余 ≥2 词），保留 ``## 1. Get the Mission``
             # 等编号标题与 ``## 10 Tips`` 等短标题。
             markdown = _strip_heading_page_numbers(markdown)
+            # display $$ 块去重：公式既以内联 raw LaTeX 字面串（非 $...$ 包裹）
+            # 出现在正文又作独立 $$...$$ display 块时，display 为重复抽取，去除。
+            markdown = _dedup_inline_display_formulas(markdown)
 
             # 6. 参考文献节条目分段（多条目连段 → 每条独占段落）
             markdown = _segment_references_section(markdown)
@@ -3365,6 +3373,42 @@ def _strip_heading_page_numbers(markdown: str) -> str:
         markdown,
         flags=re.MULTILINE,
     )
+
+
+def _dedup_inline_display_formulas(markdown: str) -> str:
+    r"""去除与正文内联 raw LaTeX 字面串重复的 display ``$$...$$`` 块。
+
+    公式既以内联 raw LaTeX 字面串（**非 ``$...$`` 包裹**，属抽取残留，如
+    ``C_{\phi} = {r_{i} \in F_{t} | \phi(r_{i}) = \phi}``）出现在正文段，又
+    作独立 ``$$...$$`` display 块时，display 块为重复抽取，去除之。内联 raw
+    字面串保留于正文（位置忠实于 PDF 的内联排版）。
+
+    判定：display 块 LaTeX 的 ``_formula_text_signature``（剥 LaTeX 命令 +
+    非 alphanumeric，使 ``\phi`` 与 Unicode ``φ`` 归一一致）是"剥离所有
+    ``$$...$$`` 与 ``$...$`` 后的正文 raw 文本签名"的子串 → display 重复。
+
+    **安全闸**：仅匹配 raw 字面串（先剥 ``$...$`` 行内数学）；故意内联
+    ``$...$`` 数学 + display 并存的论文（``$...$`` 被剥离不参与匹配）不受影响。
+    ``≥6`` 字符签名启用（公式签名密集 alphanumeric，巧合子串风险低）。
+    """
+
+    # 正文 raw 文本：剥离所有 $$...$$ display 块与 $...$ 行内数学
+    non_formula = re.sub(r"\$\$.*?\$\$", "", markdown, flags=re.DOTALL)
+    non_formula = re.sub(r"\$[^$]*\$", "", non_formula)
+    non_formula_sig = _formula_text_signature(non_formula)
+    if len(non_formula_sig) < 6:
+        return markdown
+
+    def _replace(m: "re.Match[str]") -> str:
+        latex = m.group(1)
+        f_sig = _formula_text_signature(latex)
+        if len(f_sig) >= 6 and f_sig in non_formula_sig:
+            return ""  # display 块与正文内联 raw 字面串重复，去除
+        return m.group(0)
+
+    new_md = re.sub(r"\$\$(.*?)\$\$", _replace, markdown, flags=re.DOTALL)
+    # 清理去除后遗留的多余空行（≥3 连续换行 → 2）
+    return re.sub(r"\n{3,}", "\n\n", new_md)
 
 
 def _split_code_tail_section(code: str) -> Tuple[str, str]:
