@@ -1239,6 +1239,121 @@ class BuiltinAssembler(PDFToolBase):
                     e for i, e in enumerate(elements) if i not in _fragment_remove
                 ]
 
+            # 2.5.5c 公式线性文本碎片 run vs block formula 签名去重（巡检 e669a5ea eq(1)）
+            # PyMuPDF 把公式视觉区字形抽为一串独立 text 碎片（``$L(N,D)=L_0+A$`` /
+            # ``$N_{}\alpha+B$`` / ``$D\beta ,$ (1)``），与 marker/docling 的 block
+            # formula LaTeX 主体（``$$\cal L(N,D)=...$$``）并存重复。碎片 run 常被
+            # 解释散文与 block 隔开（不相邻），致 §2.5.5 紧邻残片链与 §2.4 编号文本
+            # 去重（<200 字符守卫）双双漏判。此法：①收集所有 block 签名（global）；
+            # ②扫描连续"碎片候选 run"（纯 ``$...$`` text 碎片 / inline formula /
+            # 前导 ``$...$ (N)`` 胶质文本，允许空白穿插）；③run 累积签名若与某 block
+            # 签名互为子串且覆盖率 ≥0.6 → 判为公式线性文本重复：剔除纯碎片 / inline
+            # 副本，剥离胶质文本前导（剥空则整体删），保留解释散文。希腊字母被签名
+            # 剥除致单碎片过短，故用 run 累积签名 + 覆盖率守卫兼顾命中与低误杀。
+            _LEADING_MATH_EQFRAG_RE = re.compile(r"^\$([^$]{1,60})\$\s*\(\d+\)\s*")
+
+            def _leading_frag_strip_len(content: str) -> int:
+                m = _LEADING_MATH_EQFRAG_RE.match(content)
+                if not m:
+                    return 0
+                inner = m.group(1)
+                if not (
+                    any(c in inner for c in _MATH_FRAG_CHARS)
+                    or re.search(r"\\[a-zA-Z]{2,}", inner)
+                ):
+                    return 0
+                return m.end()
+
+            # 碎片候选判定：返回 (sig, kind, strip_len) 或 None
+            #   kind="frag"：整元素为公式碎片（纯 $...$ text 碎片 / inline formula）→ 整体删
+            #   kind="lead"：前导 $...$ (N) 碎片 + 解释散文 → 剥前导留散文（剥空则整体删）
+            #   kind="blank"：空白 text（允许 run 内穿插，不单独成 run）
+            def _frag_candidate(
+                elem: _ContentElement,
+            ) -> Optional[Tuple[str, str, int]]:
+                if (
+                    elem.element_type == "formula"
+                    and elem.formula is not None
+                    and not (elem.content or "").strip().startswith("$$")
+                ):
+                    return (
+                        _formula_text_signature(elem.formula.latex or ""),
+                        "frag",
+                        0,
+                    )
+                if elem.element_type == "text" and elem.block is not None:
+                    c = (elem.content or "").strip()
+                    if not c:
+                        return ("", "blank", 0)
+                    sl = _leading_frag_strip_len(c)
+                    if sl > 0:
+                        return (_formula_text_signature(c[:sl]), "lead", sl)
+                    if _is_formula_text_fragment(c):
+                        return (_formula_text_signature(c), "frag", 0)
+                return None
+
+            # 收集所有 block formula 签名（global，不依赖与碎片的位置邻接）
+            _block_sigs: List[str] = [
+                _formula_text_signature(e.formula.latex or "")
+                for e in elements
+                if e.element_type == "formula"
+                and e.formula is not None
+                and (
+                    e.formula.formula_type == "block"
+                    or (e.content or "").strip().startswith("$$")
+                )
+            ]
+            _block_sigs = [s for s in _block_sigs if len(s) >= 6]
+            _run_remove: set[int] = set()
+            _run_strip: dict[int, int] = {}
+            if _block_sigs:
+                _i = 0
+                while _i < len(elements):
+                    _fc = _frag_candidate(elements[_i])
+                    if _fc is None or _fc[1] == "blank":
+                        _i += 1
+                        continue
+                    # 收集连续碎片 run（允许空白穿插；遇非碎片候选即断）
+                    _run: List[Tuple[int, str, str, int]] = [(_i, *_fc)]
+                    _k = _i + 1
+                    while _k < len(elements):
+                        _fc2 = _frag_candidate(elements[_k])
+                        if _fc2 is None:
+                            break
+                        if _fc2[1] == "blank":
+                            _k += 1
+                            continue
+                        _run.append((_k, *_fc2))
+                        _k += 1
+                    _combined = "".join(_s for _, _s, _, _ in _run if _s)
+                    _matched = False
+                    if len(_combined) >= 6:
+                        for _bsig in _block_sigs:
+                            if _combined in _bsig or _bsig in _combined:
+                                _shorter = min(len(_combined), len(_bsig))
+                                _longer = max(len(_combined), len(_bsig))
+                                if _shorter / _longer >= 0.6:
+                                    _matched = True
+                                    break
+                    if _matched:
+                        for _idx, _sig, _kind, _sl in _run:
+                            if _kind == "frag":
+                                _run_remove.add(_idx)
+                            else:  # lead：剥前导；剥空则整体删
+                                _full = (elements[_idx].content or "").strip()
+                                if _sl >= len(_full):
+                                    _run_remove.add(_idx)
+                                else:
+                                    _run_strip[_idx] = _sl
+                    _i = _k if _k > _i else _i + 1
+            for _idx, _sl in _run_strip.items():
+                _pe = elements[_idx]
+                _pc = (_pe.content or "").strip()
+                if len(_pc) >= _sl:
+                    _pe.content = _pc[_sl:]
+            if _run_remove:
+                elements = [e for _i, e in enumerate(elements) if _i not in _run_remove]
+
             # 2.5.6 公式序号 gap-consistency 推断回填（ISSUE-094 R9 D-2/D-3/D-4）：
             # Docling ``iterate_items`` 路径下抽取的公式 LaTeX 主体常不带
             # ``\\tag{N}`` / ``\\quad (N)`` 编号，UI 视图等式编号缺失。
