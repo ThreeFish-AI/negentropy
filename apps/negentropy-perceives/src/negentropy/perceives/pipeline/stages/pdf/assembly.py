@@ -3276,13 +3276,35 @@ def _strip_heading_page_numbers(markdown: str) -> str:
       - 剩余标题以大写字母或引号开头（标题首词大写的常规形态）；
       - 剩余标题 ≥2 个词（避免误伤 ``## 10 Tips`` 等短标题）。
 
-    保守守卫，仅命中明显的页码-并入标题。
+    **防误剥章节号**：学术论文 "## 2 Background and Related Work" / "## 3 Methodology"
+    等多词标题的章节号曾被误当页码剥离（仅单词标题如 "## 4 Experiments" 因 <2 词
+    幸存）。预扫描所有编号标题的数字，若构成连续序列（存在 ≥1 对相邻整数，如
+    1,2,3,4,5），判为合法章节号序列——序列内数字（与序列某元素相邻的）**不剥离**；
+    仅游离数字（孤立页码）适用上述剥离逻辑。
     """
+
+    # 预扫描：收集所有编号标题的数字，检测连续序列（合法章节号）
+    _numbered_nums: set = set()
+    for _m in re.finditer(r"^#{1,6} (\d{1,3})\s+.+$", markdown, re.MULTILINE):
+        try:
+            _numbered_nums.add(int(_m.group(1)))
+        except ValueError:
+            pass
+    _section_nums: set = set()
+    if _numbered_nums:
+        for _n in _numbered_nums:
+            # 与某个其他编号相差 1 → 属于连续序列 → 章节号
+            if (_n - 1) in _numbered_nums or (_n + 1) in _numbered_nums:
+                _section_nums.add(_n)
 
     def _strip(m: "re.Match[str]") -> str:
         hashes = m.group(1)
-        rest = m.group(2)
+        num = int(m.group(2))
+        rest = m.group(3)
         if not rest:
+            return m.group(0)
+        # 合法章节号序列内的数字不剥离
+        if num in _section_nums:
             return m.group(0)
         if rest[0].isupper() or rest[0] in "\"'“‘":
             if len(rest.split()) >= 2:
@@ -3290,7 +3312,7 @@ def _strip_heading_page_numbers(markdown: str) -> str:
         return m.group(0)
 
     return re.sub(
-        r"^(#{1,6}) \d{1,3}\s+(.+)$",
+        r"^(#{1,6}) (\d{1,3})\s+(.+)$",
         _strip,
         markdown,
         flags=re.MULTILINE,
