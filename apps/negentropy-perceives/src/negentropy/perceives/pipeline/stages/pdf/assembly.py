@@ -1732,6 +1732,9 @@ class BuiltinAssembler(PDFToolBase):
             # display $$ 块去重：公式既以内联 raw LaTeX 字面串（非 $...$ 包裹）
             # 出现在正文又作独立 $$...$$ display 块时，display 为重复抽取，去除。
             markdown = _dedup_inline_display_formulas(markdown)
+            # 纯公式残留段落抑制：PyMuPDF 把 display 公式另抽为破碎 $...$ 行内
+            # 数学的独立段落（无 prose），抑制之（干净 display 块已保留内容）。
+            markdown = _strip_formula_dominated_paragraphs(markdown)
 
             # 6. 参考文献节条目分段（多条目连段 → 每条独占段落）
             markdown = _segment_references_section(markdown)
@@ -3409,6 +3412,35 @@ def _dedup_inline_display_formulas(markdown: str) -> str:
     new_md = re.sub(r"\$\$(.*?)\$\$", _replace, markdown, flags=re.DOTALL)
     # 清理去除后遗留的多余空行（≥3 连续换行 → 2）
     return re.sub(r"\n{3,}", "\n\n", new_md)
+
+
+def _strip_formula_dominated_paragraphs(markdown: str) -> str:
+    r"""抑制纯公式残留段落（PyMuPDF 把 display 公式另抽为破碎 ``$...$`` 段落）。
+
+    当文档含 ``$$...$$`` display 块时，若某段落去除 ``$...$`` 行内数学后剩余
+    prose < 15 字符（essentially 纯公式残留、无实际文字），抑制该段落——它是
+    display 公式的转换残留，干净 display 块已保留其内容。
+
+    安全性：仅当文档含 ``$$`` display 块时启用（否则可能误删唯一公式版本）；
+    保留 ``$$...$$`` display 段落与含实质 prose 的段落。混合 formula+prose 的
+    段落（如 Δ 定义后跟 "A candidate is accepted..." 句子）prose ≥15 字符，
+    不被抑制（需语义分离，超出本函数能力）。
+    """
+    if "$$" not in markdown:
+        return markdown
+    parts = re.split(r"(\n{2,})", markdown)
+    result: List[str] = []
+    for part in parts:
+        stripped = part.strip()
+        if not stripped or stripped.startswith("$$") or stripped.startswith("#"):
+            result.append(part)
+            continue
+        prose = re.sub(r"\$[^$]*\$", "", part)
+        prose_clean = re.sub(r"[\s\W_]+", "", prose)
+        if len(prose_clean) < 15:
+            continue  # 纯公式残留，抑制
+        result.append(part)
+    return "".join(result)
 
 
 def _split_code_tail_section(code: str) -> Tuple[str, str]:
