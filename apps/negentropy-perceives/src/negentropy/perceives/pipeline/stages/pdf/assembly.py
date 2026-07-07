@@ -3029,6 +3029,41 @@ def _effective_code_lang(code_block: "ExtractedCodeBlock") -> str:
 """
 
 
+# PDF 符号字体 PUA 编码 → 标准 Unicode 数学符号映射。
+# docling 对部分 PDF 符号字体（MathType / Symbol 系）的 PUA 码点无法映射到
+# 标准 Unicode，残留为不可见字符。按学术论文高频符号还原（上下文验证）。
+_PUA_MATH_CHAR_MAP: dict[str, str] = {
+    "\uf638": "∅",  # 空集（算法伪代码 "A <- ∅" / "if A = ∅ then"）
+}
+
+_PSEUDOCODE_ALGORITHM_HEADER_RE = re.compile(
+    r"^\s*Algorithm\s+\d+", re.IGNORECASE | re.MULTILINE
+)
+_PSEUDOCODE_REQUIRE_RE = re.compile(r"^\s*Require\s*:", re.IGNORECASE | re.MULTILINE)
+_PSEUDOCODE_ENSURE_RE = re.compile(r"^\s*Ensure\s*:", re.IGNORECASE | re.MULTILINE)
+
+
+def _is_pseudocode(code: str) -> bool:
+    r"""检测代码块是否为学术论文伪代码/算法（而非真实编程语言代码）。
+
+    docling/marker 常把 Algorithm 伪代码（含 ``do``/``end do``、``end if`` 等
+    Fortran-like 语法）误标为 ``fortran`` 等真实语言，致 fence 错误语法高亮。
+    伪代码强信号：
+
+      - 含 ``Algorithm N`` 标题行（最权威）；
+      - 同时含 ``Require:`` 与 ``Ensure:`` 算法关键字。
+
+    命中即判为伪代码 → fence 不带 lang info string。
+    """
+    if not code:
+        return False
+    if _PSEUDOCODE_ALGORITHM_HEADER_RE.search(code):
+        return True
+    if _PSEUDOCODE_REQUIRE_RE.search(code) and _PSEUDOCODE_ENSURE_RE.search(code):
+        return True
+    return False
+
+
 def _code_block_to_markdown(
     code_block: ExtractedCodeBlock, code_override: Optional[str] = None
 ) -> str:
@@ -3050,6 +3085,19 @@ def _code_block_to_markdown(
     """
     code = code_override if code_override is not None else (code_block.code or "")
     lang = (code_block.language or "").strip().lower()
+    # PUA 符号字体还原：部分 PDF 用符号字体的 PUA 编码渲染数学符号（如空集 ∅），
+    # docling 无法映射到标准 Unicode，残留为不可见 PUA 码点。按高频映射还原，
+    # 使代码块/算法伪代码中的符号可正确渲染。
+    if code and _PUA_MATH_CHAR_MAP:
+        for _pua, _uni in _PUA_MATH_CHAR_MAP.items():
+            if _pua in code:
+                code = code.replace(_pua, _uni)
+
+    # 伪代码/算法：docling/marker 常把 Algorithm 伪代码（含 do/end do 等
+    # Fortran-like 语法）误标为 fortran 等真实语言。检测伪代码特征 → 剥离
+    # lang，fence 不带 info string，避免错误语法高亮（伪代码无标准语法）。
+    if lang and _is_pseudocode(code):
+        lang = ""
 
     # 拆首行用于 lang 头识别
     stripped = code.lstrip("\n")
