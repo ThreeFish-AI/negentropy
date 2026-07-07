@@ -1111,7 +1111,19 @@ class BuiltinAssembler(PDFToolBase):
                             + r")\s*\)",
                             elem.content,
                         )
-                        and any(c in elem.content for c in _math_chars)
+                        and (
+                            any(c in elem.content for c in _math_chars)
+                            or (
+                                # 补充信号：高 inline-math 密度（≥6 个 ``$`` 即 ≥3 个
+                                # ``$...$`` span）+ LaTeX 命令——覆盖无 UNICODE 数学符
+                                # 但满是 LaTeX 命令的公式线性文本副本（巡检 e669a5ea
+                                # eq(6)/(7)/(8)：``$D^*$ $_k=\Lambda1/2$ ... (6)``）。
+                                # ``$``≥6 + ``(N)`` 编号锚定 + <200 字符三重守卫，散文
+                                # 几乎不命中（散文 inline math 通常 ≤2 span）。
+                                elem.content.count("$") >= 6
+                                and re.search(r"\\[a-zA-Z]{2,}", elem.content)
+                            )
+                        )
                         and len(elem.content.strip()) < 200
                         and not elem.content.strip().startswith("#")
                     )
