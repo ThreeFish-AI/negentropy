@@ -1,6 +1,6 @@
 """``pdf_fidelity_patrol`` handler — PDF→Markdown 高保真自拟合巡检的**节奏权威**。
 
-由统一调度引擎按 ``interval``（默认 3600s / 1h）tick。每 tick（轻量、仅 DB + 短 IO）：
+由统一调度引擎按 ``interval``（默认 600s / 10min）tick。每 tick（轻量、仅 DB + 短 IO）：
 
 1. **确保巡检 Repository**：幂等 upsert 名为 ``negentropy`` 的 Repository（local_path 从
    ``settings.routine.patrol_repo_local_path`` 或 negentropy 包路径推导；无法确定则返回
@@ -10,8 +10,8 @@
    把文档标 done（合格）/unfixable（尽力）——保证文档必进 ``skip_ids``、被推进，不再死循环；
    cancelled 不沉淀（用户干预，文档保持可被重新选中）。
 3. **跳过并发**：存在 ``status='running'`` 的巡检 Routine → 本 tick SKIP（保证「上一轮结束后
-   再启下一轮」；ScheduledTask 的 ``interval`` 计 ``next_fire_at = 完成时刻 + 3600s``，叠加此
-   互斥即满足「巡检进行中则等待其结束 + 1h」语义）。
+   再启下一轮」；ScheduledTask 的 ``interval`` 计 ``next_fire_at = 完成时刻 + 600s``，叠加此
+   互斥即满足「巡检进行中则等待其结束 + 10min」语义）。
 4. **选下一份待检生产 PDF**：``knowledge_documents`` 中 ``content_type LIKE '%pdf%'`` 且
    ``markdown_extract_status='completed'``，排除记忆中已 done/unfixable 的 doc_id。
 5. **预取源 PDF**：``BlobStorage.download(content_uri)`` → 暂存到 ``patrol_input_dir/<doc_id>/``。
@@ -79,7 +79,7 @@ register_descriptor(
         handler_kind=PATROL_HANDLER_KIND,
         label="PDF Fidelity Patrol",
         description=(
-            "每 1h 轮询一份生产 PDF 文档，启动一个 NegentropyEngine 巡检 Routine："
+            "每 600s 轮询一份生产 PDF 文档，启动一个 NegentropyEngine 巡检 Routine："
             "视觉对比 Markdown↔PDF、改 perceives、重转、评分，拟合至满分；"
             "Perceives 改进经非回归校验后以 PR 合回基线。"
         ),
