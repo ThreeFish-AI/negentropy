@@ -392,6 +392,7 @@ class BuiltinAssembler(PDFToolBase):
                     if code_words:
                         if _effective_code_lang(code_block) in _REAL_CODE_LANGS:
                             _echo_indices: List[int] = []
+                            _frag_candidates: List[Tuple[int, set]] = []
                             for _ei, elem in enumerate(elements):
                                 if (
                                     elem.element_type != "text"
@@ -407,11 +408,39 @@ class BuiltinAssembler(PDFToolBase):
                                 )
                                 if not block_words:
                                     continue
-                                overlap = len(code_words & block_words)
+                                overlap_words = code_words & block_words
+                                overlap = len(overlap_words)
                                 ratio = overlap / max(len(code_words), 1)
+                                # 整体回声：单块覆盖 code 标识符 ≥70%
                                 if ratio > 0.7 and overlap >= 5:
                                     _echo_indices.append(_ei)
-                            for _ei in reversed(_echo_indices):
+                                    continue
+                                # 分片回声候选：PyMuPDF 把代码区拆成多块文本，单块
+                                # 仅含部分标识符（ratio 不足 0.7），但块自身几乎全是
+                                # 代码标识符（overlap/len(block_words) ≥ 0.9）→ 代码
+                                # 碎片。caption（Figure N:/Table N: 起手）含较多代码词
+                                # （描述 harness 函数）但非回声，由
+                                # _is_figure_or_table_caption_text 守卫保留。
+                                block_code_ratio = overlap / max(len(block_words), 1)
+                                if (
+                                    block_code_ratio >= 0.9
+                                    and overlap >= 2
+                                    and not _is_figure_or_table_caption_text(
+                                        elem.block.text
+                                    )
+                                ):
+                                    _frag_candidates.append((_ei, overlap_words))
+                            # 分片并集覆盖 code_words ≥70% → 同一代码的分片回声，
+                            # 全部抑制。并集门槛杜绝单块巧合误杀（单个散文块不可能
+                            # 贡献 ≥70% 代码标识符）。
+                            if _frag_candidates:
+                                _frag_union: set = set()
+                                for _, _w in _frag_candidates:
+                                    _frag_union |= _w
+                                if len(_frag_union) / max(len(code_words), 1) >= 0.7:
+                                    for _ei, _ in _frag_candidates:
+                                        _echo_indices.append(_ei)
+                            for _ei in reversed(sorted(set(_echo_indices))):
                                 elements.pop(_ei)
                         else:
                             # 误标代码：重叠则 _skip code、保留 text（原逻辑）
