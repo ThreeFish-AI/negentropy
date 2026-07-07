@@ -188,13 +188,16 @@ def _append_orphan_images(
         if basename:
             referenced_basenames.add(basename)
 
+    redundant_basenames = _redundant_orphan_basenames(
+        markdown, images, referenced_basenames
+    ) | _adjacent_fragment_orphans(images, referenced_basenames)
+
     orphans = [
         img
         for img in images
         if img.filename
         and img.filename not in referenced_basenames
-        and img.filename
-        not in _redundant_orphan_basenames(markdown, images, referenced_basenames)
+        and img.filename not in redundant_basenames
     ]
     if not orphans:
         return markdown
@@ -279,6 +282,60 @@ def _redundant_orphan_basenames(
             continue
         if basename_to_page.get(fn) in dominant_pages:
             redundant.add(fn)
+    return redundant
+
+
+# 跨页 figure 过度分割碎片抑制：当某张图（完整 figure）已被正文 <img> 引用，
+# 其同页或相邻页(±1)的未引用 orphan 若像素面积 ≤ 该已放置图的 1/_FRAGMENT_RATIO，
+# 判为 docling 对同一 figure 的冗余局部裁切，抑制不追加到文末。
+# 取 0.5（即已放置图面积 ≥ orphan 2×）以仅捕获真正的子区域碎片，避免误伤
+# 同/邻页独立的小 figure（独立 figure 通常自带 caption 被正文引用，不会是 orphan）。
+_FRAGMENT_RATIO = 0.5
+
+
+def _adjacent_fragment_orphans(
+    images: Sequence[ImageMeta],
+    referenced_basenames: set[str],
+) -> set[str]:
+    """识别跨页/同页 figure 过度分割产出的 orphan 碎片。
+
+    场景：docling 将一张（常为跨页或结构复杂的）figure 同时输出为一张完整图
+    （被正文 ``<img>`` 引用）与若干局部裁切（无法匹配文本引用 → orphan）。
+    这些 orphan 追加到文末会与已内联的完整图视觉重复。
+
+    判定：orphan 与某张已引用图在同页或相邻页（|Δpage| ≤ 1），且已引用图像素
+    面积 ≥ orphan × ``1/_FRAGMENT_RATIO`` → orphan 判为冗余碎片，抑制。
+
+    安全性：需 width/height（像素）/page_number 均可用，否则 no-op（保留既有
+    loss-averse orphan 行为）；仅在确有同/邻页大图已放置且面积达碎片 N 倍时抑制，
+    不误伤多图正文页的合法孤立小图。
+    """
+    meta: dict[str, tuple[int, int, int]] = {}
+    for img in images:
+        fn = getattr(img, "filename", None)
+        if not fn:
+            continue
+        w = getattr(img, "width", None)
+        h = getattr(img, "height", None)
+        pg = getattr(img, "page_number", None)
+        if w and h and pg is not None:
+            meta[fn] = (int(w), int(h), int(pg))
+    if not meta:
+        return set()
+
+    placed = [(fn, m) for fn, m in meta.items() if fn in referenced_basenames]
+    if not placed:
+        return set()
+
+    redundant: set[str] = set()
+    for fn, (ow, oh, opg) in meta.items():
+        if fn in referenced_basenames or fn in redundant:
+            continue
+        orphan_area = ow * oh
+        for _pfn, (pw, ph, ppg) in placed:
+            if abs(ppg - opg) <= 1 and pw * ph >= orphan_area / _FRAGMENT_RATIO:
+                redundant.add(fn)
+                break
     return redundant
 
 
