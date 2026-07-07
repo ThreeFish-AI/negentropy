@@ -1756,6 +1756,10 @@ class BuiltinAssembler(PDFToolBase):
             # 对"非已 fenced、``{``/``[`` 起 + 配对收尾 + ≥2 个 ``"key":`` 且括号
             # 配平"的段落，包裹为 ```json 代码块。检测保守，仅命中明显 JSON。
             markdown = _fence_json_text_paragraphs(markdown)
+            # 作者 affiliation 上标规范化：把 ``$,a$`` / affiliation 行内 ``$X$``
+            # 单字母标记从 inline 数学转为 ``<sup>X</sup>``，避免渲染为斜体字母
+            # （巡检 e669a5ea 作者块：``,a$ Daniel``、``$a$ Stanford University``）。
+            markdown = _normalize_affiliation_inline_math(markdown)
 
             # 4. 图片引用规范化
             images: List[ExtractedImage] = []
@@ -3140,6 +3144,43 @@ _INLINE_MATH_FALSEPOS_DENY = re.compile(
 )
 # 误判触发词：省略号被 LaTeX 化。
 _INLINE_MATH_FALSEPOS_TRIGGER = re.compile(r"\\l?dots\b")
+
+
+def _normalize_affiliation_inline_math(markdown: str) -> str:
+    """把作者 affiliation 上标标记从 inline 数学规范化为 ``<sup>X</sup>``。
+
+    PyMuPDF 把作者署名行里的上标 affiliation 字母（a/b/c/d）抽为 inline 数学
+    （``$,a$``、``$^{b}$``、affiliation 行 ``$a$ Stanford University``），UI 渲染
+    为斜体字母而非上标（巡检 e669a5ea 作者块）。``$^{b}$`` 经 KaTeX 仍渲染为上标
+    （视觉正确），故仅处理两种"视觉错误"形态，零误杀真公式：
+
+    形态 1 ``$,X$``（逗号 + 单字母）：合法数学无此写法 → ``<sup>X</sup>``。
+    形态 2 affiliation 行：以 ``$X$`` 起手 + 含 ≥2 个 ``$X$`` 单字母标记 + 机构
+    关键词（University/Institute/MIT/Google 等）的行，行内 ``$X$`` → ``<sup>X</sup>``。
+    一般散文 ``$X$`` 单字母变量（如"loss $L$"）不满足"起手 + ≥2 + 关键词"，不动。
+    """
+    # 形态 1：$,X$ → <sup>X</sup>
+    markdown = re.sub(r"\$,([a-zA-Z])\$", r"<sup>\1</sup>", markdown)
+    # 形态 2：affiliation 行内 $X$ → <sup>X</sup>
+    _AFFIL_KW = re.compile(
+        r"University|Institute|College|Laborator|\bLab\b|\bMIT\b|Google|Microsoft|"
+        r"Amazon|Apple|\bMeta\b|DeepMind|School|Hospital|Research",
+        re.IGNORECASE,
+    )
+    _SINGLE_LETTER_MATH = re.compile(r"\$([a-z])\$")
+
+    def _affil_line(m: "re.Match[str]") -> str:
+        line = m.group(0)
+        if not re.match(r"\s*\$[a-z]\$", line):
+            return line
+        if len(_SINGLE_LETTER_MATH.findall(line)) < 2:
+            return line
+        if not _AFFIL_KW.search(line):
+            return line
+        return _SINGLE_LETTER_MATH.sub(r"<sup>\1</sup>", line)
+
+    markdown = re.sub(r"[^\n]*\$[a-z]\$[^\n]*", _affil_line, markdown)
+    return markdown
 
 
 def _unwrap_ellipsis_falsepositive_inline_math(markdown: str) -> str:
