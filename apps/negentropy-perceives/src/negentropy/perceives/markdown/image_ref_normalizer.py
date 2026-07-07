@@ -206,11 +206,14 @@ def _append_orphan_images(
     # 被左面板引用而自身 orphan），插入到该兄弟 <img> 之后，避免被甩到文末
     # 破坏阅读流。要求"唯一同页兄弟"以消除多图页的归属歧义（非回归安全）。
     ref_page: dict[str, int] = {}
+    _basename_to_caption: dict[str, Optional[str]] = {}
     for _img in images:
         _fn = getattr(_img, "filename", None)
         _pg = getattr(_img, "page_number", None)
         if _fn and _fn in referenced_basenames and _pg is not None:
             ref_page[_fn] = _pg
+        if _fn:
+            _basename_to_caption[_fn] = getattr(_img, "caption", None)
 
     placed_inline: set[str] = set()
     for orphan in orphans:
@@ -224,6 +227,12 @@ def _append_orphan_images(
         if len(_sib_bns) != 1:
             continue  # 无兄弟或多兄弟（歧义）→ 回退文末追加
         _sib_bn = _sib_bns[0]
+        # 仅当兄弟图无 caption（多面板 figure 的 panel，其 caption 由单独文本块
+        # 承载）时内联；兄弟有 caption（完整独立 figure）时 orphan 是另一独立
+        # figure → 回退文末追加，避免把独立图错并入兄弟图后。
+        _sib_caption = _basename_to_caption.get(_sib_bn)
+        if _sib_caption:
+            continue
         _orphan_html = _build_img_html(orphan, image_dir)
 
         def _repl(m: "re.Match[str]", oh: str = _orphan_html) -> str:
