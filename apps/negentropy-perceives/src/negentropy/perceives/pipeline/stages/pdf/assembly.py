@@ -1148,29 +1148,57 @@ class BuiltinAssembler(PDFToolBase):
             # 公式（含 ``\bigcup`` / ``\sum`` / 矩阵等多行结构）常仅抽出公式起手
             # 残片（典型如 ``C = [``、``M_l =``、``x = \{``），与公式 stage 的 LaTeX
             # 主体重复出现却互相不命中签名兜底（残片字符不足 20 触发 ``_formula_text_signature``
-            # 的最小长度阈值）。清理判据：text element 内容 ≤ 15 字符 + 形如
-            # ``<Identifier> = <Open-Bracket>`` 模式 + 紧邻下一个 element 是公式
-            # → 视为公式残片剔除，避免视图中"残片 + 公式"并存（ISSUE-094 R8）。
+            # 的最小长度阈值）。清理判据：text element 内容为公式残片形态 + 后续
+            # （经空白 + 残片链）能扫到一个公式元素 → 视为公式残片剔除，避免视图中
+            # "残片 + 公式"并存（ISSUE-094 R8）。
+            #
+            # 残片形态（两种）：
+            #   形态1（纯文本残片）：``<id> = <open-bracket>``，≤ 15 字符（如 ``C = [``）。
+            #   形态2（数学标记碎片）：PyMuPDF 数学字形检测把公式视觉区字符包成 ``$...$``
+            #     inline math 文本块，常落在 block 公式 bbox 正上方（y 不重叠）逃脱几何
+            #     去重，且 ``$`` 包裹使 ``_formula_text_signature`` 坍缩为极短签名（如
+            #     ``"$C =$ $[$"``→``"c"``）逃脱签名去重。判据：以 ``$`` 起手 + 含数学
+            #     符号/关系符 + ≤ 60 字符（如 ``"$C =$ $[$"``、``"$e\in E_{rel}$ Char $(e)$ (2)"``）。
             _FORMULA_FRAGMENT_RE = re.compile(r"^\s*[A-Za-z]\w*\s*=\s*[\[\(\{]\s*$")
+            _MATH_FRAG_CHARS = set("=∈∀∃∑∏∫→←↔≤≥≠≈⊆⊂⊃∪∩∧∨<>+\-*/^_")
+
+            def _is_formula_text_fragment(content: str) -> bool:
+                if not content:
+                    return False
+                if len(content) <= 15 and _FORMULA_FRAGMENT_RE.match(content):
+                    return True
+                if (
+                    content.startswith("$")
+                    and len(content) <= 60
+                    and any(c in content for c in _MATH_FRAG_CHARS)
+                ):
+                    return True
+                return False
+
+            _fragment_idx = {
+                i
+                for i, e in enumerate(elements)
+                if e.element_type == "text"
+                and e.block is not None
+                and _is_formula_text_fragment(e.content.strip())
+            }
+            # 仅保留"后续经（空白 + 残片链）能扫到一个公式元素"的残片，避免误删
+            # 合法的赋值起手 / 行内数学短句（必须能向前连到公式才判为冗余残片）。
             _fragment_remove: set[int] = set()
-            for i, elem in enumerate(elements):
-                if elem.element_type != "text" or elem.block is None:
-                    continue
-                content = elem.content.strip()
-                if not content or len(content) > 15:
-                    continue
-                if not _FORMULA_FRAGMENT_RE.match(content):
-                    continue
-                # 必须紧邻下一个公式元素才视为残片（否则可能是合法的赋值起手）
+            for i in _fragment_idx:
                 next_idx = i + 1
                 while next_idx < len(elements):
                     nxt = elements[next_idx]
                     if nxt.element_type == "formula":
                         _fragment_remove.add(i)
                         break
-                    # 遇到非空 text 即停止搜索（中间仅允许空白元素通过）
-                    if nxt.element_type == "text" and (nxt.content or "").strip():
-                        break
+                    if nxt.element_type == "text":
+                        nxt_content = (nxt.content or "").strip()
+                        # 中间仅允许空白或其他残片候选通过（残片链：多碎片连排到公式）
+                        if not nxt_content or next_idx in _fragment_idx:
+                            next_idx += 1
+                            continue
+                        break  # 遇到正常非空文本，无法连到公式 → 非残片
                     next_idx += 1
             if _fragment_remove:
                 elements = [
