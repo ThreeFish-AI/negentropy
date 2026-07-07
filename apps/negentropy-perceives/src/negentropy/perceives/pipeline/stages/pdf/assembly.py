@@ -729,6 +729,17 @@ class BuiltinAssembler(PDFToolBase):
                 # bullet 开头 → 列表项
                 elif heading_text.startswith("• ") or heading_text.startswith("- "):
                     is_bad = True
+                # Figure region 内的 heading → 图内分区文字（如 Figure 5 的
+                # "Planning for Agent Harness" 标签）被 docling 误提为 heading，
+                # 与带编号 section heading 文本重复、污染目录锚点。降级为正文
+                # 段落（内容保留、脱离标题层级）。真实 section 标题极少完全落入
+                # figure region（中心点包含检测）；即便被过大 region 误吞而降级，
+                # 作为段落保留亦优于重复 heading 破坏目录（ISSUE-094 figure-region
+                # trade-off，此处复用 _layout_figure_regions 的中心点+IoU 判定）。
+                elif elem.block and _block_overlaps_special(
+                    elem.block, _layout_figure_regions, iou_threshold=0.3
+                ):
+                    is_bad = True
                 if is_bad:
                     elem.element_type = "text"
                     elem.content = heading_text
