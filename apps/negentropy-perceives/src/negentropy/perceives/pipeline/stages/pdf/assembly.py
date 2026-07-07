@@ -229,9 +229,38 @@ class BuiltinAssembler(PDFToolBase):
                             if len(core) > 10:
                                 text_formula_fingerprints.add(core)
 
+            # figure-internal 标签簇预扫（cluster-based 抑制）：layout figure region
+            # 常含多个框图/箭头短标签（如 ``Meta-Agent continuously optimizes the
+            # Harness``、``Other External Updates``），它们含 ≥2 英文词故不被
+            # ``_is_low_content_figure_label`` 捕获而泄漏。但逐条扩展会误伤被过大
+            # figure region 吞噬的单条 section 标题/导言（ISSUE-094）。改用簇判定：
+            # 同一页 figure region 内 ≥3 个"短标签样"块（2-8 个 ≥3 字母英文词、无
+            # 章节编号前缀、无句末标点）→ 框图内部标签，主循环中抑制。<3 个则保留。
+            _figure_label_cluster_ids: set[int] = set()
+            if _layout_figure_regions and input_data.text and input_data.text.blocks:
+                _page_label_idxs: Dict[int, List[int]] = {}
+                for _bi, _lb in enumerate(input_data.text.blocks):
+                    if not _block_overlaps_special(_lb, _layout_figure_regions):
+                        continue
+                    _lt = (_lb.text or "").strip()
+                    _lwords = re.findall(r"[A-Za-z]{3,}", _lb.text or "")
+                    if not (2 <= len(_lwords) <= 8):
+                        continue
+                    if re.match(r"^(?:\d+(?:\.\d+)*|[A-Z])\s+[A-Za-z]{2,}", _lt):
+                        continue
+                    if re.search(r"[.!?][\"')\]]*\s*$", _lt):
+                        continue
+                    _page_label_idxs.setdefault(_lb.page_number, []).append(_bi)
+                for _idxs in _page_label_idxs.values():
+                    if len(_idxs) >= 3:
+                        _figure_label_cluster_ids.update(_idxs)
+
             # 文本块（反向去重：跳过落入专用 Stage 区域的文本块）
             if input_data.text and input_data.text.blocks:
-                for block in input_data.text.blocks:
+                for _blk_idx, block in enumerate(input_data.text.blocks):
+                    # figure-internal 标签簇抑制（见上方 _figure_label_cluster_ids 预扫）
+                    if _blk_idx in _figure_label_cluster_ids:
+                        continue
                     if _block_overlaps_special(
                         block, special_regions, iou_threshold=0.3
                     ):
@@ -2555,7 +2584,9 @@ def _text_block_to_markdown(block: TextBlock) -> str:
     text = block.text
     if text.startswith("#"):
         text = "\\" + text
-    return text
+    # 解包被引擎误裹为 inline math 的上标/匕首号/逗号（作者署名、脚注标记），
+    # 仅作用于纯上标/符号/标点的 $...$，真正含字母变量的数学式原样保留。
+    return _unwrap_byline_math(text)
 
 
 def _table_caption_to_paragraph(block: TextBlock) -> str:
@@ -2567,9 +2598,49 @@ def _table_caption_to_paragraph(block: TextBlock) -> str:
     return f"**{text}**"
 
 
+_BYLINE_MATH_INNER_STRIP_RE = re.compile(
+    r"\\(?:dagger|ddagger|ast|circ|star)\b"
+    r"|\^\{[^}]*\}"
+    r"|\^[A-Za-z0-9+\-]+"
+    r"|[\s0-9,;()*∗\[\]\-]"
+)
+
+
+def _unwrap_byline_math(text: str) -> str:
+    """解包作者署名行中被误裹为 inline math 的上标/匕首号/逗号。
+
+    引擎（docling/mineru）常把 affiliation 上标（``$^{1}$``）、匕首号
+    （``$\\dagger$`` / ``$∗\\dagger$``）、分隔逗号（``$,$``）抽成 inline math，
+    致渲染怪异。对 inner 仅含上标组 / 数字 / ∗ / 匕首号 / 逗号等非变量字符的
+    ``$...$`` 解包：``^{1}``→``<sup>1</sup>``、``\\dagger``→``†``、``\\ddagger``→``‡``、
+    ``\\ast``→``∗``，并去 ``$``。含字母变量的真正数学式（``$x^2$``、``$\\alpha$``）
+    经 strip 后仍残留字母 → 原样保留，不受影响。
+    """
+
+    def _repl(m: re.Match) -> str:
+        inner = m.group(1)
+        if _BYLINE_MATH_INNER_STRIP_RE.sub("", inner):
+            return m.group(0)  # 残留字母变量 → 真正数学式，保留
+        cleaned = (
+            inner.replace("\\dagger", "†")
+            .replace("\\ddagger", "‡")
+            .replace("\\ast", "∗")
+            .replace("\\circ", "∘")
+            .replace("\\star", "⋆")
+        )
+        cleaned = re.sub(r"\^\{([^}]*)\}", r"<sup>\1</sup>", cleaned)
+        cleaned = re.sub(r"\^([A-Za-z0-9+\-]+)", r"<sup>\1</sup>", cleaned)
+        return cleaned
+
+    return re.sub(r"\$([^$]+)\$", _repl, text)
+
+
 def _byline_to_paragraph(block: TextBlock) -> str:
-    """把作者署名从 heading 降级为纯文本段落（保留信息，去掉 # 层级）。"""
-    return block.text.strip()
+    """把作者署名从 heading 降级为纯文本段落（保留信息，去掉 # 层级）。
+
+    同时解包被引擎误裹为 inline math 的上标/匕首号/逗号（见 _unwrap_byline_math）。
+    """
+    return _unwrap_byline_math(block.text.strip())
 
 
 def _is_toc_table_text(text: str) -> bool:
