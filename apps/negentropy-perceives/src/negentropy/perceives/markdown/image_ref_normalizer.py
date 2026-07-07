@@ -202,8 +202,50 @@ def _append_orphan_images(
     if not orphans:
         return markdown
 
+    # 优先内联放置：orphan 若与唯一张已引用图同页（如多面板 figure 的右面板
+    # 被左面板引用而自身 orphan），插入到该兄弟 <img> 之后，避免被甩到文末
+    # 破坏阅读流。要求"唯一同页兄弟"以消除多图页的归属歧义（非回归安全）。
+    ref_page: dict[str, int] = {}
+    for _img in images:
+        _fn = getattr(_img, "filename", None)
+        _pg = getattr(_img, "page_number", None)
+        if _fn and _fn in referenced_basenames and _pg is not None:
+            ref_page[_fn] = _pg
+
+    placed_inline: set[str] = set()
+    for orphan in orphans:
+        _ofn = orphan.filename
+        if not _ofn:
+            continue
+        _opg = getattr(orphan, "page_number", None)
+        if _opg is None:
+            continue
+        _sib_bns = [fn for fn, pg in ref_page.items() if pg == _opg]
+        if len(_sib_bns) != 1:
+            continue  # 无兄弟或多兄弟（歧义）→ 回退文末追加
+        _sib_bn = _sib_bns[0]
+        _orphan_html = _build_img_html(orphan, image_dir)
+
+        def _repl(m: "re.Match[str]", oh: str = _orphan_html) -> str:
+            return m.group(0) + "\n" + oh
+
+        _sib_pat = re.compile(
+            r"(<img\b[^>]*\bsrc\s*=\s*[\"'][^\"']*"
+            + re.escape(_sib_bn)
+            + r"[^\"']*[\"'][^>]*>)",
+            re.IGNORECASE,
+        )
+        _new_md, _n = _sib_pat.subn(_repl, markdown, count=1)
+        if _n > 0:
+            markdown = _new_md
+            placed_inline.add(_ofn)
+
+    remaining = [img for img in orphans if img.filename not in placed_inline]
+    if not remaining:
+        return markdown
+
     appended_lines = ["", "<!-- orphan images appended by image_ref_normalizer -->"]
-    for img in orphans:
+    for img in remaining:
         appended_lines.append("")
         appended_lines.append(_build_img_html(img, image_dir))
     return markdown.rstrip() + "\n".join(appended_lines) + "\n"
