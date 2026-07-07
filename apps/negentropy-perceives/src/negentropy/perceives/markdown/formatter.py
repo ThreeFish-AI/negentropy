@@ -153,6 +153,8 @@ _COMPOUND_HYPHEN_PREFIXES = frozenset(
         "dry",
         "wet",
         "raw",
+        # 合成词前缀（保护 Human-in-the-Loop 等 ``human-X`` 短语的 left）
+        "human",
     }
 )
 
@@ -668,10 +670,32 @@ class MarkdownFormatter:
                 }
             )
 
+            # 合成词后缀保护集：right 为常见学术合成词后缀时保留连字符，避免
+            # _title_soft_hyphen_mh 误并 Structure-grounded / Search-based /
+            # Orchestration-based 等合成词（其 left 不在 _COMPOUND_HYPHEN_PREFIXES，
+            # 但 right grounded/based/oriented/... 是稳定合成词后缀）。
+            _compound_hyphen_suffixes = frozenset(
+                {
+                    "grounded",
+                    "based",
+                    "oriented",
+                    "driven",
+                    "centric",
+                    "aware",
+                    "enabled",
+                    "guided",
+                    "informed",
+                    "centred",
+                    "level",
+                }
+            )
+
             def _title_soft_hyphen_mh(mm: "re.Match[str]") -> str:
                 left, right = mm.group(1), mm.group(2)
                 low = left.lower()
                 if low in _COMPOUND_HYPHEN_PREFIXES or low in _title_compound_extra:
+                    return f"{left}-{right}"
+                if right.lower() in _compound_hyphen_suffixes:
                     return f"{left}-{right}"
                 return f"{left}{right}"
 
