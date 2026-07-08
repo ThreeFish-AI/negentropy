@@ -185,6 +185,14 @@ class BuiltinAssembler(PDFToolBase):
                             formula_text_signatures.setdefault(
                                 formula.page_number, []
                             ).append(sig)
+            # 跨引擎表格 loose 回声的内容级去重指纹：
+            # - table_row_label_tokens：每张 grid 表各行首列标签 token 集
+            #   （如 {ours,wang,chen,...}），用于"标记密集回声 + 行标签重叠"判定。
+            # - table_cell_tokens：每张 grid 表全单元格 token 集（所有行所有列），
+            #   用于"无标记的纯文本单元格回声"判定（如 Table 3/4 的问句+对象拼接）。
+            # bbox/页码级去重对跨引擎回声失效（坐标系/页码错位），改用内容级重叠。
+            table_row_label_tokens: list[set[str]] = []
+            table_cell_tokens: list[set[str]] = []
             if input_data.tables:
                 for table in input_data.tables.tables:
                     md = table.markdown.strip() if table.markdown else ""
@@ -192,6 +200,31 @@ class BuiltinAssembler(PDFToolBase):
                         fp = _extract_table_fingerprint(md)
                         if fp:
                             table_extraction_fingerprints.add(fp)
+                    # 提取不依赖 md 首字符：table.markdown 常以 caption 起手。
+                    labels: set[str] = set()
+                    cells_toks: set[str] = set()
+                    for _ln in md.split("\n"):
+                        _ln = _ln.strip()
+                        if _ln.startswith("|") and not set(
+                            _ln.replace("|", "")
+                            .replace("-", "")
+                            .replace(":", "")
+                            .strip()
+                        ) <= {" "}:
+                            _cells = [c.strip() for c in _ln.split("|") if c.strip()]
+                            if _cells:
+                                labels.update(
+                                    t.lower()
+                                    for t in re.findall(r"[A-Za-z]{3,}", _cells[0])
+                                )
+                            for _c in _cells:
+                                cells_toks.update(
+                                    t.lower() for t in re.findall(r"[A-Za-z]{3,}", _c)
+                                )
+                    if len(labels) >= 2:
+                        table_row_label_tokens.append(labels)
+                    if len(cells_toks) >= 4:
+                        table_cell_tokens.append(cells_toks)
             if input_data.text and input_data.text.blocks:
                 for block in input_data.text.blocks:
                     text = block.text.strip()
@@ -202,9 +235,38 @@ class BuiltinAssembler(PDFToolBase):
                             if len(core) > 10:
                                 text_formula_fingerprints.add(core)
 
+            # figure-internal 标签簇预扫（cluster-based 抑制）：layout figure region
+            # 常含多个框图/箭头短标签（如 ``Meta-Agent continuously optimizes the
+            # Harness``、``Other External Updates``），它们含 ≥2 英文词故不被
+            # ``_is_low_content_figure_label`` 捕获而泄漏。但逐条扩展会误伤被过大
+            # figure region 吞噬的单条 section 标题/导言（ISSUE-094）。改用簇判定：
+            # 同一页 figure region 内 ≥3 个"短标签样"块（2-8 个 ≥3 字母英文词、无
+            # 章节编号前缀、无句末标点）→ 框图内部标签，主循环中抑制。<3 个则保留。
+            _figure_label_cluster_ids: set[int] = set()
+            if _layout_figure_regions and input_data.text and input_data.text.blocks:
+                _page_label_idxs: Dict[int, List[int]] = {}
+                for _bi, _lb in enumerate(input_data.text.blocks):
+                    if not _block_overlaps_special(_lb, _layout_figure_regions):
+                        continue
+                    _lt = (_lb.text or "").strip()
+                    _lwords = re.findall(r"[A-Za-z]{3,}", _lb.text or "")
+                    if not (2 <= len(_lwords) <= 8):
+                        continue
+                    if re.match(r"^(?:\d+(?:\.\d+)*|[A-Z])\s+[A-Za-z]{2,}", _lt):
+                        continue
+                    if re.search(r"[.!?][\"')\]]*\s*$", _lt):
+                        continue
+                    _page_label_idxs.setdefault(_lb.page_number, []).append(_bi)
+                for _idxs in _page_label_idxs.values():
+                    if len(_idxs) >= 3:
+                        _figure_label_cluster_ids.update(_idxs)
+
             # 文本块（反向去重：跳过落入专用 Stage 区域的文本块）
             if input_data.text and input_data.text.blocks:
-                for block in input_data.text.blocks:
+                for _blk_idx, block in enumerate(input_data.text.blocks):
+                    # figure-internal 标签簇抑制（见上方 _figure_label_cluster_ids 预扫）
+                    if _blk_idx in _figure_label_cluster_ids:
+                        continue
                     if _block_overlaps_special(
                         block, special_regions, iou_threshold=0.3
                     ):
@@ -270,6 +332,24 @@ class BuiltinAssembler(PDFToolBase):
                         # 页码列，Markdown 无可靠的章节锚点
                         if _is_toc_table_text(block.text):
                             continue
+                    # 跨引擎表格 loose 回声抑制（内容级）：第二引擎把同一表格另抽
+                    # 成"标记符号密集"的散落文本（如 ``Wang et al. $\triangle$ ✓
+                    # $\triangle$ ...``），其 bbox/页码与 grid 表错位，绕过上方空间
+                    # 重叠去重与 pipe 指纹去重。改用内容级联合判定，精准匹配到具体
+                    # grid 表的行标签，避免误伤未被 table_extraction 覆盖的独立表格：
+                    #   A) 标记密集且与某 grid 表行标签 token 重叠 ≥3 → 回声；
+                    #   B) 标记密集且英文词 ≤2（如 ``Ours △ △ ✓ ✓ ✓ ✓ ✓ ✓`` 纯单元
+                    #      格回声）→ 回声（正文不可能 ≤2 词且 ≥4 表格标记）。
+                    # 跨引擎表格 loose 回声抑制（内容级，三层联合）：
+                    #   A) 标记密集 + 与某 grid 表首列行标签重叠 ≥3 → 回声；
+                    #   B) 标记密集 + 英文词 ≤2（纯单元格回声如 ``Ours △△ ✓✓ ...``）；
+                    #   C) 无标记的纯文本单元格回声：去停用词后 ≥85% 内容 token 落在
+                    #      某 grid 表全单元格 token 集内且内容词 ≥8（正文段总有超出
+                    #      表格词表之外的内容词，故高重叠率即回声）。
+                    if table_cell_tokens and _block_is_table_echo(
+                        block.text, table_row_label_tokens, table_cell_tokens
+                    ):
+                        continue
                     # 作者署名行（含 ∗†‡ 或邮箱标记，或多作者 affiliation 模式）
                     # 误识为 heading 时降级为正文段落，保留信息但脱离标题层级
                     if _is_author_byline(block):
@@ -1986,6 +2066,132 @@ def _extract_table_fingerprint(table_text: str) -> str:
     return ""
 
 
+# 跨引擎表格 loose 回声的标记符号集：△/×/✓/●/■ 等 Unicode 形，以及
+# \triangle / \times / \surd / \checkmark 等 LaTeX 形。正文几乎不含这些
+# 标记，故"标记数 ≥ 英文词数"可作为低假阳性的表格回声信号。
+_TABLE_ECHO_UNICODE_RE = re.compile(r"[△▵×✓✔●◼■◦○◯✗☐]")
+_TABLE_ECHO_LATEX_RE = re.compile(r"\\(?:triangle|times|surd|checkmark)\b")
+_TABLE_ECHO_WORD_RE = re.compile(r"[A-Za-z]{2,}")
+
+
+def _is_table_echo_text_block(text: str) -> bool:
+    """检测跨引擎表格 loose 回声文本块（与 grid 表内容重复的散落单元格文本）。
+
+    多引擎融合时，第二引擎常把同一表格抽成"标记符号密集"的 loose 文本
+    （如 ``Ours $\\triangle$ $\\triangle$ ✓ ✓ ✓ ✓ ✓ ✓``），其 bbox 与
+    table_extraction 表格 bbox 坐标系不一致：既绕过 ``_block_overlaps_special``
+    的空间重叠去重（L234 grid-overlap），又因不以 ``|`` 起手而绕过 pipe-gated
+    指纹去重（L250）。本函数以"表格标记符号数 ≥4 且 ≥英文词数"识别此类回声：
+    正文段落标记数近乎 0，而回声行（标签 + 一排 △/×/✓）标记数远大于词数。
+    调用方须再以"同页已存在 grid 表"门控，确保内容已由 table_extraction 结构化
+    保留，仅抑制冗余回声，避免误删唯一内容（如引擎漏检的无网格表）。
+    """
+    markers = len(_TABLE_ECHO_UNICODE_RE.findall(text)) + len(
+        _TABLE_ECHO_LATEX_RE.findall(text)
+    )
+    if markers < 4:
+        return False
+    # 计词前先剔除 LaTeX 标记宏（\triangle/\times/...），否则其字母序列
+    # （triangle/times）会被 [A-Za-z]{3,} 同时计入"词"，使标记密集的回声
+    # 被误判为 prose 而漏放。
+    cleaned = _TABLE_ECHO_LATEX_RE.sub(" ", text)
+    return markers >= len(_TABLE_ECHO_WORD_RE.findall(cleaned))
+
+
+# tier-C 纯文本单元格回声判定时剔除的高频英文虚词，使"内容词"重叠率能区分
+# 表格单元格拼接（内容词几乎全在表格词表内）与正文段落（总有表外内容词）。
+_TABLE_ECHO_STOPWORDS = frozenset(
+    {
+        "the",
+        "and",
+        "for",
+        "with",
+        "that",
+        "this",
+        "from",
+        "are",
+        "was",
+        "were",
+        "its",
+        "their",
+        "can",
+        "but",
+        "not",
+        "all",
+        "any",
+        "has",
+        "had",
+        "have",
+        "they",
+        "them",
+        "than",
+        "then",
+        "such",
+        "these",
+        "those",
+        "there",
+        "where",
+        "which",
+        "while",
+        "into",
+        "onto",
+        "over",
+        "under",
+        "also",
+        "more",
+        "most",
+        "some",
+        "each",
+        "both",
+        "very",
+        "only",
+        "same",
+        "other",
+        "what",
+        "when",
+        "how",
+        "why",
+        "who",
+    }
+)
+
+
+def _block_is_table_echo(
+    text: str,
+    row_label_tokens: list[set[str]],
+    cell_tokens: list[set[str]],
+) -> bool:
+    """判断文本块是否为某张 grid 表的跨引擎 loose 回声（内容级三层判定）。
+
+    A) 标记符号密集（``_is_table_echo_text_block``）且与某 grid 表首列行标签
+       token 重叠 ≥3 → 标记型回声（如 Table 1/5 的 △/×/✓ 数据行拼接）；
+    B) 标记符号密集且英文词 ≤2 → 纯单元格回声（如 ``Ours △ △ ✓ ✓ ✓ ✓ ✓ ✓``）；
+    C) 无标记的纯文本单元格回声（如 Table 3/4 的问句+对象拼接）：去停用词后
+       内容词 ≥8 且 ≥85% 落在某 grid 表全单元格 token 集内——正文段总有超出
+       表格词表之外的内容词，故高重叠率即回声。
+    三层互斥叠加，内容由 table_extraction 的 grid 表结构化保留，仅抑冗余。
+    """
+    btok = set(t.lower() for t in re.findall(r"[A-Za-z]{3,}", text))
+    if not btok:
+        return False
+    if _is_table_echo_text_block(text):
+        if any(len(btok & lab) >= 3 for lab in row_label_tokens):
+            return True
+        if len(btok) <= 2:
+            return True
+    # tier C：纯文本单元格回声（无标记符号的问句/对象/缺口拼接）。去停用词后
+    # 内容词 ≥5 且 ≥90% 落在某 grid 表全单元格 token 集内——正文段总有超出表格
+    # 词表之外的内容词（shows/however/importantly 等），故高重叠率即回声。≥5 词
+    # 避免极短短语误杀，0.9 容忍 1-2 个 OCR 噪声词的松弛。
+    content = btok - _TABLE_ECHO_STOPWORDS
+    if len(content) >= 5:
+        threshold = len(content) * 0.9
+        for cells in cell_tokens:
+            if len(content & cells) >= threshold:
+                return True
+    return False
+
+
 def _compute_iou(
     a: Tuple[float, float, float, float],
     b: Tuple[float, float, float, float],
@@ -2616,7 +2822,9 @@ def _text_block_to_markdown(block: TextBlock) -> str:
     text = block.text
     if text.startswith("#"):
         text = "\\" + text
-    return text
+    # 解包被引擎误裹为 inline math 的上标/匕首号/逗号（作者署名、脚注标记），
+    # 仅作用于纯上标/符号/标点的 $...$，真正含字母变量的数学式原样保留。
+    return _unwrap_byline_math(text)
 
 
 def _table_caption_to_paragraph(block: TextBlock) -> str:
@@ -2628,9 +2836,49 @@ def _table_caption_to_paragraph(block: TextBlock) -> str:
     return f"**{text}**"
 
 
+_BYLINE_MATH_INNER_STRIP_RE = re.compile(
+    r"\\(?:dagger|ddagger|ast|circ|star)\b"
+    r"|\^\{[^}]*\}"
+    r"|\^[A-Za-z0-9+\-]+"
+    r"|[\s0-9,;()*∗\[\]\-]"
+)
+
+
+def _unwrap_byline_math(text: str) -> str:
+    """解包作者署名行中被误裹为 inline math 的上标/匕首号/逗号。
+
+    引擎（docling/mineru）常把 affiliation 上标（``$^{1}$``）、匕首号
+    （``$\\dagger$`` / ``$∗\\dagger$``）、分隔逗号（``$,$``）抽成 inline math，
+    致渲染怪异。对 inner 仅含上标组 / 数字 / ∗ / 匕首号 / 逗号等非变量字符的
+    ``$...$`` 解包：``^{1}``→``<sup>1</sup>``、``\\dagger``→``†``、``\\ddagger``→``‡``、
+    ``\\ast``→``∗``，并去 ``$``。含字母变量的真正数学式（``$x^2$``、``$\\alpha$``）
+    经 strip 后仍残留字母 → 原样保留，不受影响。
+    """
+
+    def _repl(m: re.Match) -> str:
+        inner = m.group(1)
+        if _BYLINE_MATH_INNER_STRIP_RE.sub("", inner):
+            return m.group(0)  # 残留字母变量 → 真正数学式，保留
+        cleaned = (
+            inner.replace("\\dagger", "†")
+            .replace("\\ddagger", "‡")
+            .replace("\\ast", "∗")
+            .replace("\\circ", "∘")
+            .replace("\\star", "⋆")
+        )
+        cleaned = re.sub(r"\^\{([^}]*)\}", r"<sup>\1</sup>", cleaned)
+        cleaned = re.sub(r"\^([A-Za-z0-9+\-]+)", r"<sup>\1</sup>", cleaned)
+        return cleaned
+
+    return re.sub(r"\$([^$]+)\$", _repl, text)
+
+
 def _byline_to_paragraph(block: TextBlock) -> str:
-    """把作者署名从 heading 降级为纯文本段落（保留信息，去掉 # 层级）。"""
-    return block.text.strip()
+    """把作者署名从 heading 降级为纯文本段落（保留信息，去掉 # 层级）。
+
+    同时解包被引擎误裹为 inline math 的上标/匕首号/逗号（见 _unwrap_byline_math）。
+    """
+    return _unwrap_byline_math(block.text.strip())
 
 
 def _is_toc_table_text(text: str) -> bool:
