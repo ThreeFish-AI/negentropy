@@ -508,8 +508,8 @@ async def test_finalize_multiple_routines_same_doc_best_wins(db_engine):
 async def _seed_knowledge_pdf(db_engine, *, filename):
     """落库一条 knowledge_documents（pdf + completed）；返回其 id。
 
-    带 ``display_name``：命名门控（``_select_next_pending_doc``）要求文档至少有 display_name
-    或 metadata.title 之一，否则被跳过——测试文档须具名才可被选中（测试的是推进逻辑，非命名）。
+    带 ``display_name``：历史命名门控已移除（巡检资格不再预筛 display_name/metadata.title，命名
+    下沉至 ``_doc_display_title``），此处仍具名仅为测试可读性 / 与存量 fixture 一致。
     """
     from negentropy.config import settings
     from negentropy.models.perception import KnowledgeDocument
@@ -556,6 +556,38 @@ async def test_select_advances_after_done(db_engine):
     assert str(doc_a) in skip  # A 已 done → 进 skip_ids（推进核心信号）
     assert next_doc is not None  # 仍有待检文档（B 或其它 pending）
     assert str(next_doc["id"]) != str(doc_a)  # 推进：不再选中已合格的 A（修「始终卡 A」根因）
+
+
+async def test_select_next_pending_doc_includes_untitled_pdf(db_engine):
+    """回归：未巡检但 ``display_name``/``metadata.title`` 均空的 PDF 也应入选（命名门控已移除）。
+
+    复现并锁死「Scheduler 误报无待检 PDF 文档」根因——历史命名门控（display_name/metadata.title
+    非空预筛）把这类文档永久跳过。测试库累积且 selector 全局取最早一份（``skip_ids`` 已废弃不可
+    drain），故不直接断言 ``selector()==该 doc``，而是断言「该 no-title doc 满足 selector 的资格
+    谓词」（等价于 selector 在无更早 pending 时会选中它）。
+    """
+    # 无 display_name / 无 metadata.title（命名门控移除前的「被误排」形态）
+    doc_id = await _seed_pdf_document(db_engine, original_filename="patrol-untitled.pdf")
+
+    factory = _sf(db_engine)
+    async with factory() as db:
+        eligible = await db.execute(
+            text(
+                "SELECT 1 FROM negentropy.knowledge_documents "
+                "WHERE id = :d "
+                "  AND app_name = :app "
+                "  AND COALESCE(content_type,'') ILIKE '%pdf%' "
+                "  AND markdown_extract_status = 'completed' "
+                "  AND patrol_status IS NULL "
+                "  AND NOT EXISTS ("
+                "    SELECT 1 FROM negentropy.routines r "
+                "    WHERE r.config->>'patrol' = 'true' "
+                "      AND r.config->>'doc_id' = knowledge_documents.id::text "
+                "      AND r.status <> 'cancelled')"
+            ),
+            {"d": doc_id, "app": settings.app_name},
+        )
+        assert eligible.fetchone() is not None  # no-title 未巡检 PDF 资格通过（命名门控不再拦截）
 
 
 # ---------------------------------------------------------------------------

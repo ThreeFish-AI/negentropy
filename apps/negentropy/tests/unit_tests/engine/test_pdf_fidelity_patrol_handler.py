@@ -135,18 +135,19 @@ def test_select_next_pending_doc_reads_patrol_status_column():
 
 
 def test_select_next_pending_doc_sql_contains_per_doc_uniqueness_guard():
-    """Fix A + 命名门控：emitted SQL 必含「命名门控」+「一文一活跃巡检」NOT EXISTS 守卫（排除 cancelled）。
+    """Fix A：emitted SQL 必含「一文一活跃巡检」NOT EXISTS 守卫（排除 cancelled）；命名门控已移除（防回归）。
 
-    FakeDB 不解析 SQL，仅以串存在性守护不变量防回归——后续重构若误删命名门控 / NOT EXISTS /
-    把 cancelled 纳入阻塞，本断言即失败。真实 SQL 语义由集成测试覆盖。
+    FakeDB 不解析 SQL，仅以串存在性守护不变量防回归——后续重构若误删 NOT EXISTS / 把 cancelled 纳入
+    阻塞，或误加回「命名门控」（display_name/metadata.title 非空预筛，会误排未巡检但无标题文档致
+    Scheduler 误报「无待检」），本断言即失败。真实 SQL 语义由集成测试覆盖。
     """
     import asyncio
 
     db = _FakeDB(fetchone=None)
     asyncio.run(patrol._select_next_pending_doc(db, skip_ids=set()))
     stmt = db.executed[0][0]
-    # 命名门控：display_name 或 metadata->>'title' 至少一个非空（杜绝原始文件名兜底）
-    assert "COALESCE(NULLIF(display_name, ''), NULLIF(metadata->>'title', '')) IS NOT NULL" in stmt
+    # 命名门控已移除：巡检资格不再预筛 display_name/metadata.title（命名下沉至 _doc_display_title）
+    assert "COALESCE(NULLIF(display_name, ''), NULLIF(metadata->>'title', '')) IS NOT NULL" not in stmt
     assert "patrol_status IS NULL" in stmt  # 巡检态 SSOT 列（仅未巡检入选）
     assert "NOT EXISTS" in stmt
     assert "config->>'patrol'" in stmt
