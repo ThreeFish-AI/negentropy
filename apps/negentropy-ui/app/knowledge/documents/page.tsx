@@ -29,6 +29,7 @@ import { Check, Pencil, X } from "lucide-react";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
 import { Pagination } from "@/components/ui/Pagination";
+import { TextTooltip } from "@/components/ui/TextTooltip";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
 import {
   tableBodyClassName,
@@ -560,13 +561,12 @@ export default function DocumentsPage() {
                         ) : (
                           <div className="min-w-0 flex-1 flex items-center gap-1">
                             <div className="min-w-0">
-                              <p
-                                className="font-medium text-foreground truncate"
-                                title={effectiveDocumentName(doc)}
-                              >
-                                {effectiveDocumentName(doc)}
-                              </p>
-                              <p className="text-xs text-muted-foreground truncate">
+                              <TextTooltip content={effectiveDocumentName(doc)}>
+                                <p className="truncate font-medium text-foreground">
+                                  {effectiveDocumentName(doc)}
+                                </p>
+                              </TextTooltip>
+                              <p className="truncate text-xs text-muted-foreground">
                                 {doc.content_type || "Unknown"}
                               </p>
                             </div>
@@ -593,16 +593,15 @@ export default function DocumentsPage() {
                       </div>
 
                       {/* 所属语料库 - col-span-2；库文档（corpus_id=null）显示 Library 徽标 */}
-                      <div className="col-span-2 flex justify-end">
+                      <div className="col-span-2 flex min-w-0 justify-end">
                         {doc.corpus_id ? (
-                          <span
-                            className="text-muted-foreground truncate text-xs"
-                            title={getCorpusName(doc.corpus_id) ?? undefined}
-                          >
-                            {getCorpusName(doc.corpus_id)}
-                          </span>
+                          <TextTooltip content={getCorpusName(doc.corpus_id) ?? ""}>
+                            <span className="block max-w-full truncate text-xs text-muted-foreground">
+                              {getCorpusName(doc.corpus_id)}
+                            </span>
+                          </TextTooltip>
                         ) : (
-                          <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                          <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                             Library
                           </span>
                         )}
@@ -614,8 +613,12 @@ export default function DocumentsPage() {
                       </div>
 
                       {/* Created By - col-span-1 */}
-                      <div className="col-span-1 text-muted-foreground truncate text-xs text-center" title={doc.created_by_name || doc.created_by || ""}>
-                        {displayUser(doc.created_by, doc.created_by_name)}
+                      <div className="col-span-1 min-w-0 text-center">
+                        <TextTooltip content={doc.created_by_name || doc.created_by || ""}>
+                          <div className="block truncate text-xs text-muted-foreground">
+                            {displayUser(doc.created_by, doc.created_by_name)}
+                          </div>
+                        </TextTooltip>
                       </div>
 
                       {/* Created At - col-span-1 */}

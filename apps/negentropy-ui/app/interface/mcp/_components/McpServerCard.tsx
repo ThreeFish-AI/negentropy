@@ -5,6 +5,7 @@ import ReactMarkdown from "react-markdown";
 import { defaultRemarkPlugins, defaultRehypePlugins } from "@/utils/markdown-plugins";
 import { JsonViewer } from "@/components/ui/JsonViewer";
 import { SortableCardWrapper, SortableDragHandle } from "@/components/ui/SortableCardWrapper";
+import { TextTooltip } from "@/components/ui/TextTooltip";
 import { useAuth } from "@/components/providers/AuthProvider";
 
 const MARKDOWN_CONTENT_CLASS = [
@@ -378,48 +379,68 @@ function SchemaSection({
       </div>
 
       {rows.length > 0 ? (
-        <div className="overflow-x-auto rounded-md border border-border">
-          <table className="min-w-[640px] w-full text-left text-xs">
-            <thead className="bg-muted">
-              <tr>
-                <th className="px-3 py-2 font-medium text-text-secondary">
-                  Field
-                </th>
-                <th className="px-3 py-2 font-medium text-text-secondary">
-                  Type
-                </th>
-                <th className="px-3 py-2 font-medium text-text-secondary">
-                  Required
-                </th>
-                <th className="px-3 py-2 font-medium text-text-secondary">
-                  Description
-                </th>
-                <th className="px-3 py-2 font-medium text-text-secondary">
-                  Constraints
-                </th>
+        <div className="overflow-hidden rounded-md border border-border bg-card">
+          <table className="w-full table-fixed text-sm">
+            {/* 固定列宽（合计 100%）：Field 22 · Type 14 · Required 10 · Description 32 · Constraints 22。
+                5 列须与下方 5 个 <th> 严格对齐；colgroup 内不得夹带空白文本节点。 */}
+            <colgroup>
+              <col className="w-[22%]" />
+              <col className="w-[14%]" />
+              <col className="w-[10%]" />
+              <col className="w-[32%]" />
+              <col className="w-[22%]" />
+            </colgroup>
+            <thead>
+              <tr className="border-b border-border text-left text-xs uppercase tracking-overline text-text-secondary">
+                <th className="px-4 py-2.5 font-medium">Field</th>
+                <th className="px-4 py-2.5 font-medium">Type</th>
+                <th className="px-4 py-2.5 font-medium">Required</th>
+                <th className="px-4 py-2.5 font-medium">Description</th>
+                <th className="px-4 py-2.5 font-medium">Constraints</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border bg-card">
+            <tbody>
               {rows.map((row) => (
-                <tr key={row.path}>
-                  <td className="px-3 py-2 font-mono text-foreground">
-                    {row.path}
+                <tr
+                  key={row.path}
+                  className="border-b border-border/60 transition-colors last:border-0 hover:bg-muted/40"
+                >
+                  <td className="px-4 py-3">
+                    <TextTooltip content={row.path}>
+                      <span className="block truncate font-mono text-xs text-foreground">
+                        {row.path}
+                      </span>
+                    </TextTooltip>
                   </td>
-                  <td className="px-3 py-2 text-text-secondary">
-                    {row.type}
+                  <td className="px-4 py-3 text-text-secondary">
+                    <TextTooltip content={row.type}>
+                      <span className="block truncate">{row.type}</span>
+                    </TextTooltip>
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-4 py-3">
                     {row.required ? (
                       <span className="text-rose-600 dark:text-rose-400">Yes</span>
                     ) : (
                       <span className="text-text-muted">No</span>
                     )}
                   </td>
-                  <td className="px-3 py-2 text-text-secondary">
-                    {row.description || "-"}
+                  <td className="px-4 py-3 text-text-secondary">
+                    {row.description ? (
+                      <TextTooltip content={row.description}>
+                        <span className="block truncate">{row.description}</span>
+                      </TextTooltip>
+                    ) : (
+                      "-"
+                    )}
                   </td>
-                  <td className="px-3 py-2 text-text-muted">
-                    {row.constraints || "-"}
+                  <td className="px-4 py-3 text-text-muted">
+                    {row.constraints ? (
+                      <TextTooltip content={row.constraints}>
+                        <span className="block truncate">{row.constraints}</span>
+                      </TextTooltip>
+                    ) : (
+                      "-"
+                    )}
                   </td>
                 </tr>
               ))}
