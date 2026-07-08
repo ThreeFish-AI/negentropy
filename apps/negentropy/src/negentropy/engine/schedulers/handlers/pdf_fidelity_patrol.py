@@ -590,7 +590,9 @@ async def _reconcile_patrol_status(db) -> int:
     ``done`` 覆盖成 ``unfixable``（如 succeeded/95 被 failed/2 覆盖）。
 
     语义：``cancelled`` Routine 非真实结论（被取代 / 用户放弃），故 winner 仅取 ``succeeded``/``failed``
-    （非 cancelled）终态 Routine，按 ``created_at DESC`` 取最新，重算 done/unfixable + score。
+    （非 cancelled）终态 Routine，按 **``updated_at DESC``** 取最新——``updated_at`` 是 Routine 终态
+    达成（最后一次状态变更）时间，代表「最近一次巡检结论」；``created_at`` 仅是 spawn 时间，
+    完成顺序与创建顺序不一致时会误判（先创建后完成的 succeeded 应胜过后创建先完成的 failed）。
     - ``succeeded`` 或 ``best_score ≥ patrol_qualified_score_threshold`` → ``done``；否则 ``unfixable``。
     - 跳过「有 running/paused Routine」的 doc（spawn 写的 in_progress 为其当前真实态，不可回退）。
     - 幂等：仅在 ``patrol_status`` / ``patrol_routine_id`` 变化时写（避免每 tick 刷新 ``patrol_updated_at``）。
@@ -614,7 +616,7 @@ async def _reconcile_patrol_status(db) -> int:
                 WHERE r.config->>'patrol' = 'true'
                   AND r.status IN ('succeeded', 'failed')
                   AND r.config->>'doc_id' IS NOT NULL
-                ORDER BY r.config->>'doc_id', r.created_at DESC
+                ORDER BY r.config->>'doc_id', r.updated_at DESC
             )
             UPDATE negentropy.knowledge_documents kd
             SET patrol_status = w.new_status,

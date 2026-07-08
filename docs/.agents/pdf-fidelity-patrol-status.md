@@ -85,7 +85,7 @@ sequenceDiagram
 
 [`_reconcile_patrol_status`](../../apps/negentropy/src/negentropy/engine/schedulers/handlers/pdf_fidelity_patrol.py) 每 tick 在 collapse 之后运行，以**权威源 = routines 表**重算列：
 
-- 每 doc 取**最新的非 cancelled 终态 Routine**（`succeeded`/`failed`，按 `created_at DESC`）——`cancelled` = 被取代/放弃，非真实结论。
+- 每 doc 取**最新的非 cancelled 终态 Routine**（`succeeded`/`failed`，按 **`updated_at DESC`**）——`cancelled` = 被取代/放弃，非真实结论；`updated_at` 是终态达成时间（最后一次状态变更），代表「最近一次巡检结论」（`created_at` 仅 spawn 时间，完成顺序与创建顺序不一致时会误判）。
 - `succeeded` 或 `best_score ≥ patrol_qualified_score_threshold` → `done`；否则 `unfixable`。
 - **跳过有 `running`/`paused` Routine 的 doc**（spawn 写的 `in_progress` 是当前真实态，不可回退到旧终态）。
 - 幂等：仅在 `patrol_status`/`patrol_routine_id` 变化时写（不每 tick 刷新 `patrol_updated_at`）。

@@ -12,8 +12,9 @@ Create Date: 2026-07-08 12:00:00.000000+00:00
     （实测：succeeded/95 被 failed/2 覆盖）。回填把这条陈旧 Memory 落到了列。
 
     本迁移以**权威源 = routines 表**重算列：每 doc 取最新的**非 cancelled**（succeeded/failed）
-    终态 Routine（cancelled = 被取代/放弃，非真实结论），按 ``created_at DESC`` 取最新，
-    ``succeeded`` 或 ``best_score ≥ 95`` → ``done``，否则 ``unfixable``。与
+    终态 Routine（cancelled = 被取代/放弃，非真实结论），按 **``updated_at DESC``** 取最新——
+    ``updated_at`` 是终态达成时间，代表「最近一次巡检结论」（``created_at`` 仅 spawn 时间，完成顺序
+    与创建顺序不一致时会误判）。``succeeded`` 或 ``best_score ≥ 95`` → ``done``，否则 ``unfixable``。与
     ``engine/schedulers/handlers/pdf_fidelity_patrol.py::_reconcile_patrol_status`` 同语义
     （后者每 tick 持续校正；阈值默认 95 = ``patrol_qualified_score_threshold``）。
 
@@ -58,7 +59,7 @@ _RECONCILE_SQL = f"""
         WHERE r.config->>'patrol' = 'true'
           AND r.status IN ('succeeded', 'failed')
           AND r.config->>'doc_id' IS NOT NULL
-        ORDER BY r.config->>'doc_id', r.created_at DESC
+        ORDER BY r.config->>'doc_id', r.updated_at DESC
     )
     UPDATE {SCHEMA}.knowledge_documents kd
     SET patrol_status = w.new_status,
