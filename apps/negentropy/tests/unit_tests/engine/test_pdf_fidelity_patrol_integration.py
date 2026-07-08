@@ -559,6 +559,171 @@ async def test_select_advances_after_done(db_engine):
 
 
 # ---------------------------------------------------------------------------
+# 巡检态 SSOT 列（knowledge_documents.patrol_status）+ 「重置为未拟合」API
+# ---------------------------------------------------------------------------
+
+
+async def _patrol_column(db_engine, doc_id):
+    """读取某 doc 的巡检态列 (patrol_status, patrol_score, patrol_routine_id::text)。"""
+    factory = _sf(db_engine)
+    async with factory() as db:
+        return (
+            await db.execute(
+                text(
+                    "SELECT patrol_status, patrol_score, patrol_routine_id::text "
+                    "FROM negentropy.knowledge_documents WHERE id = :d"
+                ),
+                {"d": str(doc_id)},
+            )
+        ).fetchone()
+
+
+async def test_spawn_writes_in_progress_patrol_column(db_engine):
+    """spawn 巡检 Routine 时同步写 patrol_status='in_progress' + patrol_routine_id（SSOT 列）。"""
+    doc_id = await _seed_knowledge_pdf(db_engine, filename="patrol-spawn-col.pdf")
+    routine_id, _ = await _seed_terminal_patrol_with_outcome(
+        db_engine, status="succeeded", best_score=97, doc_id=str(doc_id)
+    )
+    # finalize 未跑 → 列保持 spawn 时写入的 in_progress
+    row = await _patrol_column(db_engine, doc_id)
+    assert row is not None
+    assert row[0] == "in_progress"
+    assert row[2] == str(routine_id)
+
+
+async def test_finalize_writes_patrol_status_column(db_engine):
+    """终态 finalize dual-write：patrol_status 列随 Memory 一致翻为 done/unfixable + score。"""
+    factory = _sf(db_engine)
+    doc_done = await _seed_knowledge_pdf(db_engine, filename="patrol-col-done.pdf")
+    doc_unfix = await _seed_knowledge_pdf(db_engine, filename="patrol-col-unfix.pdf")
+    await _seed_terminal_patrol_with_outcome(db_engine, status="failed", best_score=97, doc_id=str(doc_done))
+    await _seed_terminal_patrol_with_outcome(db_engine, status="failed", best_score=52, doc_id=str(doc_unfix))
+    async with factory() as db:
+        await patrol._finalize_terminal_patrols(db)
+        await db.commit()
+    done_row = await _patrol_column(db_engine, doc_done)
+    unfix_row = await _patrol_column(db_engine, doc_unfix)
+    assert done_row[0] == "done" and done_row[1] == 97
+    assert unfix_row[0] == "unfixable" and unfix_row[1] == 52
+
+
+async def test_reset_patrol_status_clears_column_and_cancels_routines(db_engine):
+    """reset_patrol_status：清 patrol_status 列 + 取消终态 Routine（解除 selector 门）→ 可二次巡检。"""
+    import pytest  # noqa: F401  (本地导入，避免顶层依赖)
+
+    from negentropy.storage.service import DocumentStorageService
+
+    factory = _sf(db_engine)
+    doc_id = await _seed_knowledge_pdf(db_engine, filename="patrol-reset.pdf")
+    routine_id, _ = await _seed_terminal_patrol_with_outcome(
+        db_engine, status="failed", best_score=97, doc_id=str(doc_id)
+    )
+    async with factory() as db:
+        await patrol._finalize_terminal_patrols(db)
+        await db.commit()
+    assert (await _patrol_column(db_engine, doc_id))[0] == "done"  # 重置前为 done
+
+    await DocumentStorageService().reset_patrol_status(document_id=doc_id, app_name=settings.app_name)
+
+    # 1) 巡检态列清空（patrol_status/score → NULL）
+    row = await _patrol_column(db_engine, doc_id)
+    assert row[0] is None and row[1] is None
+    # 2) 终态 Routine 已取消（解除 selector NOT EXISTS 门），无阻塞 Routine → 可二次巡检
+    async with factory() as db:
+        routine = await db.get(Routine, routine_id)
+        assert routine.status == "cancelled"
+        blocking = (
+            await db.execute(
+                text(
+                    "SELECT 1 FROM negentropy.routines "
+                    "WHERE config->>'patrol' = 'true' AND config->>'doc_id' = :d "
+                    "AND status <> 'cancelled' LIMIT 1"
+                ),
+                {"d": str(doc_id)},
+            )
+        ).fetchone()
+        assert blocking is None
+
+
+async def test_reset_patrol_status_refuses_when_running(db_engine):
+    """reset 在跑（running）巡检 Routine 时拒绝（ValueError），不杀在跑任务。"""
+    import pytest
+
+    from negentropy.storage.service import DocumentStorageService
+
+    factory = _sf(db_engine)
+    doc_id = await _seed_knowledge_pdf(db_engine, filename="patrol-reset-running.pdf")
+    routine_id, _ = await _seed_terminal_patrol_with_outcome(
+        db_engine, status="failed", best_score=97, doc_id=str(doc_id)
+    )
+    # 置 routine 为 running（模拟在跑巡检）
+    async with factory() as db:
+        routine = await db.get(Routine, routine_id)
+        routine.status = "running"
+        await db.commit()
+
+    with pytest.raises(ValueError):
+        await DocumentStorageService().reset_patrol_status(document_id=doc_id, app_name=settings.app_name)
+
+
+async def test_migration_0092_backfills_patrol_status_from_memories(db_engine):
+    """迁移 0092 回填：存量 memories(TAG_STATUS=done, score=97) → knowledge_documents 巡检态列。
+
+    按文件路径加载迁移模块（模块名 ``0092_...`` 非合法 Python 标识符，不能直接 import），
+    seed 一条 memories TAG_STATUS 后跑 ``_BACKFILL_SQL``，断言列被回填为 done/97。
+    幂等守卫 ``patrol_status IS NULL`` 使重跑安全。
+    """
+    import importlib.util
+    import json
+    from pathlib import Path
+
+    factory = _sf(db_engine)
+    doc_id = await _seed_knowledge_pdf(db_engine, filename="patrol-backfill.pdf")
+    # 插一条存量 memories TAG_STATUS(done, score=97)
+    async with factory() as db:
+        await db.execute(
+            text(
+                "INSERT INTO negentropy.memories (user_id, app_name, memory_type, content, metadata) "
+                "VALUES ('system', :app, 'semantic', :c, CAST(:m AS jsonb))"
+            ).bindparams(
+                app=settings.app_name,
+                c="backfill test",
+                m=json.dumps(
+                    {
+                        "tag": "pdf-fidelity-status",
+                        "doc_id": str(doc_id),
+                        "status": "done",
+                        "score": 97,
+                        "routine_id": None,
+                    }
+                ),
+            )
+        )
+        await db.commit()
+
+    # 按路径加载迁移模块并执行其回填 SQL
+    mig_path = (
+        Path(patrol.__file__).resolve().parents[3]
+        / "db"
+        / "migrations"
+        / "versions"
+        / "0092_pdf_fidelity_patrol_status_column.py"
+    )
+    spec = importlib.util.spec_from_file_location("mig_0092_patrol_status", mig_path)
+    assert spec is not None and spec.loader is not None
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    async with factory() as db:
+        await db.execute(text(mod._BACKFILL_SQL))
+        await db.commit()
+
+    row = await _patrol_column(db_engine, doc_id)
+    assert row is not None
+    assert row[0] == "done"  # status 回填
+    assert row[1] == 97  # score 回填（NULLIF(metadata->>'score','')::int）
+
+
+# ---------------------------------------------------------------------------
 # _finalize_execution：patrol_lifecycle 标记的延迟语义（per-tick 不声称聚合状态终态）
 # ---------------------------------------------------------------------------
 
@@ -731,18 +896,47 @@ async def _completed_pdf_doc_ids(db_engine) -> set[str]:
         return {r[0] for r in rows.fetchall()}
 
 
+async def _doc_is_pending_candidate(db_engine, doc_id) -> bool:
+    """该 doc 是否满足 ``_select_next_pending_doc`` 的全部门控（单 doc 视角，确定性）。
+
+    鲁棒于共享测试库 ``negentropy_test`` 的累积数据——不依赖 ``ORDER BY`` 选中顺序
+    （多次运行会残留多份 created_at 相近的 pending 文档，致 ``LIMIT 1`` 选中不确定）。
+    """
+    factory = _sf(db_engine)
+    async with factory() as db:
+        row = (
+            await db.execute(
+                text(
+                    "SELECT 1 FROM negentropy.knowledge_documents kd "
+                    "WHERE kd.id = CAST(:d AS uuid) "
+                    "AND kd.app_name = :app "
+                    "AND COALESCE(kd.content_type, '') ILIKE '%pdf%' "
+                    "AND kd.markdown_extract_status = 'completed' "
+                    "AND kd.patrol_status IS NULL "
+                    "AND COALESCE(NULLIF(kd.display_name, ''), NULLIF(kd.metadata->>'title', '')) IS NOT NULL "
+                    "AND NOT EXISTS ("
+                    "  SELECT 1 FROM negentropy.routines r "
+                    "  WHERE r.config->>'patrol' = 'true' AND r.config->>'doc_id' = kd.id::text "
+                    "  AND r.status <> 'cancelled')"
+                ).bindparams(d=str(doc_id), app=settings.app_name)
+            )
+        ).fetchone()
+        return row is not None
+
+
 async def test_select_next_pending_doc_one_active_patrol_per_doc_and_cancel_relets(db_engine):
-    """Fix A：已有非 cancelled 巡检 Routine 的文档不被重选；该 Routine cancelled 后重新入选（自愈复位）。"""
+    """Fix A：已有非 cancelled 巡检 Routine 的文档不被重选；该 Routine cancelled 后重新入选（自愈复位）。
+
+    用单 doc 视角的门控判定（``_doc_is_pending_candidate``）断言，鲁棒于共享测试库的累积数据
+    （selector 已迁至读 ``patrol_status`` 列；不再依赖 ``ORDER BY`` 选中顺序或废弃的 ``skip_ids``）。
+    """
     factory = _sf(db_engine)
     doc_id = await _seed_pdf_document(db_engine, original_filename="guard.pdf", display_name="Guard Doc")
-    others = (await _completed_pdf_doc_ids(db_engine)) - {str(doc_id)}  # 隔离：仅被测 doc 为候选
 
-    # 1) 无巡检 → 被测 doc 可选
-    async with factory() as db:
-        doc = await patrol._select_next_pending_doc(db, skip_ids=others)
-    assert doc is not None and str(doc["id"]) == str(doc_id)
+    # 1) 无巡检 → 被测 doc 是合法候选
+    assert await _doc_is_pending_candidate(db_engine, doc_id) is True
 
-    # 2) 建活跃巡检 → NOT EXISTS 阻塞被测 doc
+    # 2) 建活跃巡检 → NOT EXISTS 阻塞 → 不再是候选
     await _seed_patrol_routine(
         db_engine,
         doc_id=doc_id,
@@ -750,11 +944,9 @@ async def test_select_next_pending_doc_one_active_patrol_per_doc_and_cancel_rele
         display_name="PDF Fidelity Patrol · guard.pdf",
         status="running",
     )
-    async with factory() as db:
-        doc = await patrol._select_next_pending_doc(db, skip_ids=others)
-    assert doc is None or str(doc["id"]) != str(doc_id)
+    assert await _doc_is_pending_candidate(db_engine, doc_id) is False
 
-    # 3) 取消该巡检 → cancelled 排除 → 被测 doc 重新入选（自愈）
+    # 3) 取消该巡检 → cancelled 排除 → 重新成为候选（自愈复位）
     async with factory() as db:
         await db.execute(
             text(
@@ -763,9 +955,7 @@ async def test_select_next_pending_doc_one_active_patrol_per_doc_and_cancel_rele
             ).bindparams(did=str(doc_id))
         )
         await db.commit()
-    async with factory() as db:
-        doc = await patrol._select_next_pending_doc(db, skip_ids=others)
-    assert doc is not None and str(doc["id"]) == str(doc_id)
+    assert await _doc_is_pending_candidate(db_engine, doc_id) is True
 
 
 async def test_collapse_superseded_patrols_cancels_raw_keeps_corrected(db_engine):
