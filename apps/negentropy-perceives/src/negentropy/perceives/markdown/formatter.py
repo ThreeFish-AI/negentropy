@@ -916,6 +916,22 @@ class MarkdownFormatter:
     # 保守阈值最大程度规避对数学密集文档的回归风险。
     _PROSE_MATH_MIN_WORDS = 3
     _PROSE_MATH_WORD_RE = re.compile(r"[A-Za-z]{3,}")
+    # CJK 散文伪公式判定：中文文档里外国人名译名（如「约翰·诺伊曼」「冯·诺伊曼」）
+    # 的间隔号「·」被公式引擎 LaTeX 化为 ``\cdot`` 并整名包进 inline ``$...$``。
+    # 此类 body 无 ASCII 字母词，``_PROSE_MATH_WORD_RE`` 阈值恒不命中，故补 CJK 判定。
+    # 含 CJK 字形（含日韩）即强信号——真实数学公式不含 CJK。
+    _CJK_CHAR_RE = re.compile(r"[一-鿿㐀-䶿぀-ヿ가-힯]")
+    # 真实数学结构护栏：body 含这些结构命令时即便夹杂 CJK 也保留（防误伤真公式）。
+    # 覆盖分式/求和/积分/根号/极限/上下标 _{}^{}/Greek 字母/关系符/集合运算等。
+    _REAL_MATH_CMD_RE = re.compile(
+        r"\\(?:frac|dfrac|tfrac|binom|sum|int|oint|sqrt|lim|log|sin|cos|tan|cot|"
+        r"partial|nabla|dot|ddot|vec|hat|bar|tilde|overline|underline|"
+        r"stackrel|overset|underset|mathbb|mathcal|mathrm|mathbf|operatorname|"
+        r"begin|alpha|beta|gamma|delta|theta|lambda|mu|sigma|omega|phi|psi|"
+        r"epsilon|eta|zeta|nu|tau|rho|kappa|chi|le|ge|ne|approx|equiv|propto|"
+        r"rightarrow|leftarrow|subset|supset|subseteq|cup|cap|notin|forall|exists)\b"
+        r"|_\{|\^\{"
+    )
 
     def _unwrap_prose_math(self, markdown_content: str) -> str:
         """撤销把散文（作者-单位行 / 关键词等）误包成 inline ``$...$`` 数学的失真。
@@ -938,6 +954,15 @@ class MarkdownFormatter:
 
         def _maybe_unwrap(m: "re.Match[str]") -> str:
             body = m.group(1)
+            # CJK 散文伪公式：body 含 CJK 字形 + ``\cdot`` 且无真实数学结构 → 解包。
+            # 兜底中文人名译名（「约翰·诺伊曼」等）被引擎整名包成 inline $...$ 的失真：
+            # 此类 body 无 ASCII 字母词，下方 ASCII 散文阈值对 CJK 恒不命中。
+            if (
+                self._CJK_CHAR_RE.search(body)
+                and "\\cdot" in body
+                and not self._REAL_MATH_CMD_RE.search(body)
+            ):
+                return body.replace("\\cdot", "·")
             if len(self._PROSE_MATH_WORD_RE.findall(body)) < self._PROSE_MATH_MIN_WORDS:
                 return m.group(0)
             # ^{...} → <sup>...</sup>；裸 ^x → <sup>x</sup>；\cdot → ·
