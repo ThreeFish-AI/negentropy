@@ -767,6 +767,7 @@ def _build_patrol_routine(
     regression_sample: list[str],
     source_task_key: str,
     known_unfixable_regions: list[dict[str, Any]] | None = None,
+    wiki_env: dict[str, Any] | None = None,
 ) -> Routine:
     """构造巡检 Routine ORM 对象（纯函数，无 DB —— 可单测验证字段装配无 AttributeError）。
 
@@ -828,7 +829,10 @@ def _build_patrol_routine(
             candidate_md_path=candidate_md_path,
             source_read_dir=source_read_dir,
             regression_sample=regression_sample,
-            extra={"source_task_key": source_task_key},
+            extra={
+                "source_task_key": source_task_key,
+                **(wiki_env or {}),
+            },
         ),
         current_phase=phase_mod.initial_phase({}),  # 扁平工作流：IMPLEMENT 起；worktree 仍开 FINALIZE
         reflections={},
@@ -836,6 +840,58 @@ def _build_patrol_routine(
         agent_id=None,
         is_template=False,
     )
+
+
+def _setup_patrol_wiki_env(
+    *,
+    doc: dict[str, Any],
+    source_read_dir: str,
+) -> dict[str, Any]:
+    """编排 patrol wiki 渲染环境：写 content scaffold + spawn ``next dev``（非阻塞）。
+
+    返回注入 routine config 的 ``wiki_env`` 字典（CC/prompt 据此截图、publish-candidate）：
+
+    - 成功：``wiki_render_available=True`` + ``wiki_dev_port`` / ``wiki_dev_pid`` /
+      ``wiki_url`` / ``wiki_content_root`` / ``wiki_pub_slug`` / ``wiki_entry_id`` / ``wiki_entry_slug``。
+    - 失败（pnpm/next 缺失、spawn 异常）：降级 ``wiki_render_available=False``——巡检仍可推进，
+      CC 据此回退 legacy ``_fidelity_render`` 近似渲染 + 标本轮降级（不阻塞心跳、不致 Routine 创建失败）。
+
+    **非阻塞**：``start_wiki_dev_server`` 仅 ``Popen`` 立即返回 pid；ready 探测由 CC 截图前
+    调 ``patrol_wiki_env wait-ready``（在 bash 内阻塞），不在本 scheduler tick 内同步等待
+    （单 worker 后端事件循环不可冻结）。
+    """
+    try:
+        from negentropy.engine.routine import patrol_wiki_env
+
+        content_root = Path(source_read_dir) / "wiki-content"
+        doc_id = doc["id"]
+        doc_title = _doc_display_title(doc)
+        doc_filename = str(doc.get("original_filename") or "")
+        patrol_wiki_env.ensure_content_scaffold(
+            content_root,
+            doc_id=doc_id,
+            doc_title=doc_title,
+            doc_filename=doc_filename,
+        )
+        port = patrol_wiki_env.pick_free_port()
+        pid = patrol_wiki_env.start_wiki_dev_server(content_root, port=port)
+        return {
+            "wiki_render_available": True,
+            "wiki_content_root": str(content_root),
+            "wiki_dev_port": port,
+            "wiki_dev_pid": pid,
+            "wiki_url": patrol_wiki_env.wiki_url(port=port),
+            "wiki_pub_slug": patrol_wiki_env.PATROL_PUB_SLUG,
+            "wiki_entry_id": str(patrol_wiki_env.PATROL_ENTRY_ID),
+            "wiki_entry_slug": patrol_wiki_env.PATROL_ENTRY_SLUG,
+        }
+    except Exception as exc:  # noqa: BLE001 - 降级：wiki 真值不可用时巡检仍可走 legacy 渲染
+        logger.warning(
+            "patrol_wiki_env_setup_failed_degraded",
+            doc_id=str(doc.get("id")),
+            error=str(exc),
+        )
+        return {"wiki_render_available": False}
 
 
 async def _create_and_start_patrol_routine(
@@ -857,6 +913,7 @@ async def _create_and_start_patrol_routine(
     from negentropy.engine.routine.patrol_memory import PatrolMemoryStore
 
     known_unfixable_regions = await PatrolMemoryStore(db).get_unfixable_regions(str(doc["id"]))
+    wiki_env = _setup_patrol_wiki_env(doc=doc, source_read_dir=source_read_dir)
     routine = _build_patrol_routine(
         repo_id=repo_id,
         baseline_branch=baseline_branch,
@@ -866,6 +923,7 @@ async def _create_and_start_patrol_routine(
         regression_sample=regression_sample,
         source_task_key=source_task_key,
         known_unfixable_regions=known_unfixable_regions,
+        wiki_env=wiki_env,
     )
     db.add(routine)
     await db.flush()

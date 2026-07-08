@@ -362,12 +362,14 @@ class RoutineOrchestrator:
         """
         reaped = await self._reap_orphans()
         cleaned = await self._reap_workspaces()
+        wiki_reaped = await self._reap_wiki_dev_servers()
         pr_synced = await self._sync_pr_merge_status()
         evaluated = await self._evaluate_and_decide()
         launched = await self._dispatch_due()
         return {
             "reaped": reaped,
             "cleaned": cleaned,
+            "wiki_reaped": wiki_reaped,
             "pr_synced": pr_synced,
             "evaluated": evaluated,
             "launched": launched,
@@ -486,6 +488,49 @@ class RoutineOrchestrator:
         if cleaned:
             logger.info("routine_reaped_workspaces", count=cleaned, policy=policy)
         return cleaned
+
+    async def _reap_wiki_dev_servers(self) -> int:
+        """回收终态 patrol routine 的 wiki dev server 进程（集中式兜底，防 next dev 残骸占端口）。
+
+        巡检 Routine 创建期由 ``_setup_patrol_wiki_env`` spawn 的 ``next dev``（pid 记在
+        ``config.wiki_dev_pid``）须在终态收尾——本方法每 tick 扫所有终态 patrol routine 残留的
+        pid，best-effort kill 进程组并清 config 键。崩溃/重启遗留的 stale pid：``is_server_alive``
+        判否即跳过（进程已退出）。
+        """
+        # ① 短会话：拉取终态 patrol routine 残留的 wiki_dev_pid（detached 可读）。
+        async with db_session.AsyncSessionLocal() as db:
+            rows = (
+                await db.execute(
+                    text(
+                        "SELECT id, CAST(config->>'wiki_dev_pid' AS bigint) AS pid "
+                        "FROM negentropy.routines "
+                        "WHERE config->>'patrol' = 'true' "
+                        "AND status IN ('succeeded','failed','cancelled') "
+                        "AND config->>'wiki_dev_pid' IS NOT NULL"
+                    )
+                )
+            ).all()
+        # ② 会话外：逐个 best-effort kill 进程组。
+        from negentropy.engine.routine import patrol_wiki_env
+
+        for r in rows:
+            pid = int(r[1])
+            with suppress(Exception):
+                patrol_wiki_env.stop_wiki_dev_server(pid)
+        # ③ 短会话：清 config.wiki_dev_pid（PostgreSQL JSONB `-` 删键），保持「先 kill 后清」语义。
+        if rows:
+            async with db_session.AsyncSessionLocal() as db:
+                for r in rows:
+                    await db.execute(
+                        text(
+                            "UPDATE negentropy.routines SET config = config - 'wiki_dev_pid' "
+                            "WHERE id = CAST(:rid AS uuid)"
+                        ).bindparams(rid=str(r[0]))
+                    )
+                await db.commit()
+        if rows:
+            logger.info("patrol_wiki_dev_reaped", count=len(rows))
+        return len(rows)
 
     async def _sync_pr_merge_status(self) -> int:
         """巡检终态 routine 的 PR 状态（open/closed/merged）并回写 ``pr_state``（best-effort，绝不阻塞/崩溃心跳）。
