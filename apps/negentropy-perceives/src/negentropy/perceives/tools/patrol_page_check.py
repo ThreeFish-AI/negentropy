@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import contextlib
 import json
 from pathlib import Path
 from typing import Any
@@ -91,10 +92,9 @@ async def _probe_wiki_dom(
             )
             await page.goto(wiki_url, wait_until="load", timeout=timeout_ms)
             # 等 KaTeX/ Mermaid 异步渲染尽力完成；超时不阻断（结构仍可比对）。
-            try:
+            # 用 contextlib.suppress 代替 try/except: pass，规避 bandit B110（CWE-703）。
+            with contextlib.suppress(Exception):
                 await page.wait_for_load_state("networkidle", timeout=8000)
-            except Exception:  # noqa: BLE001
-                pass
             dom = await page.evaluate(_DOM_PROBE_JS)
             return dom
         finally:

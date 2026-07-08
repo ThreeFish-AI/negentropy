@@ -4018,7 +4018,7 @@ def _image_to_markdown(
                         display_h = int(round(_nh * _MAX_DISPLAY_W / _nw))
                     else:
                         display_w, display_h = _nw, _nh
-        except Exception:
+        except Exception:  # nosec B110 - PIL 尺寸解析失败回退默认尺寸（best-effort，无安全影响）
             pass
 
     # R9 修复：始终输出 CSS px 像素值（PDF pt × 4/3）作为 width / height 属性，

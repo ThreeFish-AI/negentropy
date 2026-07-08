@@ -82,7 +82,7 @@ def _build_img_html(
                     h = int(round(nh * _maxw / nw))
                 else:
                     w, h = nw, nh
-    except Exception:
+    except Exception:  # nosec B110 - PIL 尺寸解析失败回退默认尺寸（best-effort，无安全影响）
         pass
     # 统一封顶：无论尺寸来源（字段 / PIL），宽 >800 等比缩放，避免 2x/3x 渲染图过大
     if w and w > 800 and h and h > 0:
