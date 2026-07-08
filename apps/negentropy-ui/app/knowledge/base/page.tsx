@@ -47,6 +47,7 @@ import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
 import { Button } from "@/components/ui/Button";
 import { AnimatedList } from "@/components/ui/AnimatedList";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
+import { TextTooltip } from "@/components/ui/TextTooltip";
 import { navPillClassName, navRailContainerClassName } from "@/components/ui/nav-styles";
 import {
   tableBodyClassName,
@@ -947,13 +948,19 @@ export default function KnowledgeBasePage() {
                                 className="col-span-3 min-w-0 text-left"
                                 onClick={() => syncQueryState({ view: "corpus", corpusId: selectedCorpusId, tab: "document-chunks", documentId: doc.id })}
                               >
-                                <p className="truncate text-sm font-medium" title={effectiveDocumentName(doc)}>
-                                  {effectiveDocumentName(doc)}
-                                </p>
+                                <TextTooltip content={effectiveDocumentName(doc)}>
+                                  <p className="truncate text-sm font-medium">
+                                    {effectiveDocumentName(doc)}
+                                  </p>
+                                </TextTooltip>
                               </button>
                               {/* Source */}
-                              <div className="col-span-1 truncate text-center text-xs text-muted-foreground" title={sourceType}>
-                                {sourceType}
+                              <div className="col-span-1 min-w-0 text-center">
+                                <TextTooltip content={sourceType}>
+                                  <div className="block truncate text-xs text-muted-foreground">
+                                    {sourceType}
+                                  </div>
+                                </TextTooltip>
                               </div>
                               {/* Size */}
                               <div className="col-span-1 text-center text-xs text-muted-foreground">
