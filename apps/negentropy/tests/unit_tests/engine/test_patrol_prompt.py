@@ -23,8 +23,8 @@ def test_build_goal_injects_doc_params():
     assert "论文 A" in g
     assert "/tmp/patrol/doc-123/source.pdf" in g
     assert "patrol-candidate.md" in g
-    assert "保真度" in g  # 紧凑目标：本轮评分（非开放式「调度三系部」）
-    assert "采样" in g  # 防过度探查：采样比对
+    assert "保真度" in g  # 紧凑目标：本轮逐页视觉保真度（全绿率）
+    assert "分层闭环" in g  # 新闭环结构（inner + gate）
     assert "95" in g  # 合格阈值注入 done 判定
     assert "合格阈值" in g
 
@@ -64,12 +64,13 @@ def test_build_goal_no_unfixable_hint_when_empty():
 
 def test_build_acceptance_criteria_allows_unfixable_carveout():
     ac = build_acceptance_criteria(baseline_branch="origin/feature/1.x.x", qualified_threshold=95)
-    assert "95" in ac  # 合格阈值（取代旧「满分 100」门槛）
-    assert "100" in ac  # 收敛评分区间 95-100
+    assert "95" in ac  # 合格阈值（全绿率口径）
+    assert "100" in ac  # pass_pages/total_pages×100（全绿率公式）
     assert "unfixable" in ac
     assert "origin/feature/1.x.x" in ac
     assert "pdf-fidelity-contract" in ac
-    assert "评分指引" in ac  # 防评估器压分致本应成功的 Routine 误判 Failed
+    assert "评分口径" in ac  # 全绿率口径（防评估器压分致本应成功的 Routine 误判 Failed）
+    assert "pass_pages" in ac  # 全绿率公式字段
 
 
 def test_build_routine_config_shape():
@@ -123,19 +124,24 @@ def test_build_routine_config_source_task_key():
 
 
 def test_system_prompt_contains_protocol_and_contract():
-    # 紧凑闭环 + 防过度探查 + 非回归 + 红线 + JSON 契约 均应在协议中
+    # 分层闭环 + 三杠杆 + 防过度探查 + 非回归 + 红线 + JSON 契约 均应在协议中
     assert "uv run --project apps/negentropy-perceives perceives parse-pdf" in PATROL_SYSTEM_PROMPT
-    assert "_fidelity_render" in PATROL_SYSTEM_PROMPT  # 渲染对比底座
-    assert "采样" in PATROL_SYSTEM_PROMPT  # 防逐页读全图撑爆上下文
+    assert "_fidelity_render" in PATROL_SYSTEM_PROMPT  # legacy 降级渲染底座
+    assert "视觉聚焦" in PATROL_SYSTEM_PROMPT  # 程序化全页预筛 + 视觉聚焦（防逐页读全图撑爆上下文）
     assert "不 spawn Agent" in PATROL_SYSTEM_PROMPT  # 防过度探查（曾致 context 耗尽 abort）
-    assert "Contemplation" in PATROL_SYSTEM_PROMPT  # 三角色（轻量分工）
-    assert "Action" in PATROL_SYSTEM_PROMPT
-    assert "Internalization" in PATROL_SYSTEM_PROMPT
+    assert "三杠杆" in PATROL_SYSTEM_PROMPT  # 拟合范围：工程代码 + Skills + 流程
+    assert "Inner Loop" in PATROL_SYSTEM_PROMPT  # 分层闭环：fast inner loop
+    assert "Real-Render Gate" in PATROL_SYSTEM_PROMPT  # 分层闭环：地面真值门控
+    assert "归因路由表" in PATROL_SYSTEM_PROMPT  # 缺陷三杠杆归因
+    assert "双源验证决策树" in PATROL_SYSTEM_PROMPT  # 防误归因到 perceives
     assert "非回归" in PATROL_SYSTEM_PROMPT
-    assert "refresh-markdown" in PATROL_SYSTEM_PROMPT  # 红线：禁止调生产重转
+    assert "绝不写生产 knowledge_documents.markdown_content" in PATROL_SYSTEM_PROMPT  # inner loop 红线
+    assert "refresh_markdown(resume=false)" in PATROL_SYSTEM_PROMPT  # gate 真 Rebuild 入口
     assert "pdf-fidelity-contract" in PATROL_SYSTEM_PROMPT
     # 零代码改动即无 PR（修「PR 仅含 patrol-candidate.md」根因：候选是 worktree 外临时产物、不纳入交付）
     assert "零代码改动" in PATROL_SYSTEM_PROMPT
     # R10 沉淀：每轮重转前须清 checkpoint，否则 auto_batch resume 复用旧切片、perceives 改动不生效
     assert ".batch_state" in PATROL_SYSTEM_PROMPT
     assert "doc_id" in CONTRACT_SCHEMA
+    assert "page_pass_rate" in CONTRACT_SCHEMA  # 全绿率口径
+    assert "attribution" in CONTRACT_SCHEMA  # 三杠杆归因字段
