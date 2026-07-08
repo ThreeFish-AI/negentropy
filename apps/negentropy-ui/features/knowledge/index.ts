@@ -79,6 +79,7 @@ export {
   updateDocumentChunk,
   regenerateDocumentChunkFamily,
   refreshDocumentMarkdown,
+  resetDocumentPatrol,
   translateDocuments,
   deleteDocument,
   downloadDocument,

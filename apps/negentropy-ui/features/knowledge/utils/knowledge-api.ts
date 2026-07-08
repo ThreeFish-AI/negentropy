@@ -1358,6 +1358,20 @@ export interface KnowledgeDocument {
   markdown_extract_error?: string | null;
   archived?: boolean;
   metadata?: Record<string, unknown>;
+  /**
+   * PDF Fidelity Patrol 巡检态（SSOT：knowledge_documents.patrol_status 列）。
+   * - `null`/缺省 = 未巡检过
+   * - `in_progress` = 正在巡检
+   * - `unfixable` = 巡检失败
+   * - `done` = 拟合成功
+   */
+  patrol_status?: "in_progress" | "done" | "unfixable" | null;
+  /** 巡检 best_score 峰值（done/unfixable 携带）。 */
+  patrol_score?: number | null;
+  /** 当前巡检态归属 Routine（cancelled 回退幂等守卫）。 */
+  patrol_routine_id?: string | null;
+  /** 巡检态最后写入时间（ISO 字符串）。 */
+  patrol_updated_at?: string | null;
 }
 
 export interface KnowledgeDocumentDetail extends KnowledgeDocument {
@@ -1683,6 +1697,27 @@ export async function refreshDocumentMarkdown(
   }
 
   return handleKnowledgeError(res);
+}
+
+/**
+ * 重置文档 PDF 巡检态为「未巡检」（Documents 页「重置为未拟合」按钮）。
+ *
+ * 后端清 ``patrol_status`` 列 + 取消该 doc 的终态巡检 Routine（解除 selector 门）+
+ * 清 Memory TAG_STATUS/TAG_UNFIXABLE；成功返回更新后的文档。在跑（running/paused）巡检
+ * 时后端返回 409（``code=PATROL_IN_PROGRESS``）——调用方应捕获并提示用户先取消在跑巡检。
+ */
+export async function resetDocumentPatrol(
+  corpusId: string | null,
+  documentId: string,
+  params?: { appName?: string },
+): Promise<KnowledgeDocument> {
+  const base = documentApiBase(corpusId, documentId);
+  const res = await fetch(`${base}/reset-patrol`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ app_name: params?.appName }),
+  });
+  return handleKnowledgeError<KnowledgeDocument>(res);
 }
 
 /**

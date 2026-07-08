@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "@/lib/activity-toast";
 import {
   KnowledgeDocument,
+  KnowledgeError,
   DocumentTranslationMeta,
   fetchAllDocuments,
   deleteDocument,
@@ -18,6 +19,7 @@ import {
   translateDocuments,
   importDocumentUrl,
   importDocumentFile,
+  resetDocumentPatrol,
   fetchCorpora,
   CorpusRecord,
   formatRelativeTime,
@@ -25,11 +27,12 @@ import {
   effectiveDocumentName,
   useInlineDocumentRename,
 } from "@/features/knowledge";
-import { Check, Pencil, X } from "lucide-react";
+import { Check, Pencil, RotateCcw, X } from "lucide-react";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
 import { Pagination } from "@/components/ui/Pagination";
 import { TextTooltip } from "@/components/ui/TextTooltip";
+import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
 import {
   tableBodyClassName,
@@ -42,6 +45,7 @@ import { useInfiniteList, type OffsetFetcher } from "@/hooks/useInfiniteList";
 import { useInfiniteScrollSentinel, useScrollPageSync } from "@/hooks/useInfiniteScrollSentinel";
 import { useHeartbeatPoll } from "@/hooks/useHeartbeatPoll";
 import { ImportDocumentDialog } from "./_components/ImportDocumentDialog";
+import { PatrolStatusBadge, patrolStatusLabel } from "./_components/PatrolStatusBadge";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 /** 文档列表每页条数（偏移分页粒度 + 无限滚动加载粒度 + 页码跳页粒度）。 */
@@ -110,6 +114,12 @@ function isTranslatable(doc: KnowledgeDocument): boolean {
   if (getTranslatedFromId(doc)) return false;
   if ((doc.markdown_extract_status || "").toLowerCase() !== "completed") return false;
   return getTranslationMeta(doc)?.status !== "processing";
+}
+
+/** 是否为 PDF 文档（PDF Fidelity Patrol 仅针对 PDF；非 PDF 文档巡检状态列显示「—」）。 */
+function isPdfDocument(doc: KnowledgeDocument): boolean {
+  if (doc.content_type?.toLowerCase().includes("pdf")) return true;
+  return doc.original_filename.toLowerCase().endsWith(".pdf");
 }
 
 export default function DocumentsPage() {
@@ -352,6 +362,36 @@ export default function DocumentsPage() {
     }
   };
 
+  // 「重置为未拟合」：清 PDF 巡检态为「未巡检」，Scheduler 后续轮次对其二次巡检。
+  // 在跑（running/paused）巡检时后端返回 409（code=PATROL_IN_PROGRESS）——提示先取消在跑巡检。
+  const { confirm: confirmResetPatrol, confirmDialog: resetPatrolDialog } = useConfirmDialog();
+  const [resettingId, setResettingId] = useState<string | null>(null);
+  const handleResetPatrol = async (doc: KnowledgeDocument) => {
+    const ok = await confirmResetPatrol({
+      title: "重置为未拟合",
+      message:
+        "将该文档的 PDF 巡检态清回「未巡检」，Scheduler 会在后续轮次对其重新巡检与拟合。该文档已有的终态巡检 Routine 将被取消。",
+      confirmLabel: "重置",
+      cancelLabel: "取消",
+      destructive: true,
+    });
+    if (!ok) return;
+    setResettingId(doc.id);
+    try {
+      await resetDocumentPatrol(doc.corpus_id, doc.id, { appName: APP_NAME });
+      listRefresh();
+      toast.success("已重置为未拟合，等待 Scheduler 二次巡检");
+    } catch (err) {
+      if (err instanceof KnowledgeError && err.code === "PATROL_IN_PROGRESS") {
+        toast.error("该文档正在巡检，请先取消在跑巡检再重置");
+      } else {
+        toast.error(err instanceof Error ? err.message : "重置失败");
+      }
+    } finally {
+      setResettingId(null);
+    }
+  };
+
   const getCorpusName = (corpusId: string | null) => {
     if (!corpusId) return null;
     const corpus = corpora.find((c) => c.id === corpusId);
@@ -459,250 +499,297 @@ export default function DocumentsPage() {
             </div>
           </div>
           <div className={cn(tableContainerClassName, "flex flex-1 flex-col")}>
-            {/* 表头 */}
-            <div className={cn("flex items-center", tableHeaderClassName)}>
-              <div className="w-8 shrink-0 flex justify-center">
-                <input
-                  type="checkbox"
-                  checked={allSelected}
-                  onChange={toggleSelectAll}
-                  disabled={translatableDocs.length === 0}
-                  className="rounded"
-                  title="Select all translatable documents"
-                />
-              </div>
-              <div className="grid grid-cols-13 gap-2 flex-1">
-                <div className="col-span-3 text-center">File Name</div>
-                <div className="col-span-1 text-center">Size</div>
-                <div className="col-span-1 text-center">File Hash</div>
-                <div className="col-span-2 text-center">Corpus</div>
-                <div className="col-span-2 text-center">Translation</div>
-                <div className="col-span-1 text-center">Created By</div>
-                <div className="col-span-1 text-center">Created At</div>
-                <div className="col-span-1 text-center">Updated At</div>
-                <div className="col-span-1 text-center">Actions</div>
-              </div>
-            </div>
-
-            {/* 内容 — 滚动容器同时作为无限滚动哨兵 / 滚动联动 observer 的 root。 */}
+            {/* 内容 — 滚动容器同时作为无限滚动哨兵 / 滚动联动 observer 的 root。
+                黄金标准：<table table-fixed> + <colgroup> 百分比列宽（与 RoutineTable 一致，
+                修复旧 grid-cols-13 未定义隐患），sticky <thead> 保留固定表头。 */}
             <div ref={scrollRootRef} className="flex-1 overflow-y-auto">
-              {loading && documents.length === 0 ? (
-                <div className="p-6 text-center text-sm text-muted-foreground">
-                  Loading documents...
-                </div>
-              ) : error ? (
-                <div className="p-6 text-center text-sm text-red-500">{error}</div>
-              ) : documents.length === 0 ? (
-                <div className="p-6 text-center text-sm text-muted-foreground">
-                  No documents uploaded yet
-                </div>
-              ) : (
-                <div className={tableBodyClassName}>
-                  {documents.map((doc, i) => (
-                    <div
-                      key={doc.id}
-                      data-infinite-page={
-                        i % DOCUMENTS_PAGE_SIZE === 0 ? Math.floor(i / DOCUMENTS_PAGE_SIZE) + 1 : undefined
-                      }
-                      className={cn("group flex items-center text-sm", tableRowClassName)}
-                    >
-                      {/* 勾选 - 固定宽 */}
-                      <div className="w-8 shrink-0 flex justify-center">
-                        <input
-                          type="checkbox"
-                          checked={selectedIds.has(doc.id)}
-                          onChange={() => toggleSelect(doc.id)}
-                          disabled={!isTranslatable(doc)}
-                          className="rounded disabled:opacity-30"
-                          title={
-                            isTranslatable(doc)
-                              ? "Select for translation"
-                              : "Not translatable (library document, markdown not ready, already a translation, or translating)"
-                          }
-                        />
-                      </div>
-                      <div className="grid grid-cols-13 gap-2 flex-1 items-center">
-                      {/* 文件名 - col-span-3，支持就地重命名（写 display_name） */}
-                      <div className="col-span-3 flex items-center gap-2">
-                        {getFileIcon(doc.content_type)}
-                        {editingId === doc.id ? (
-                          <div className="flex items-center gap-1 min-w-0 flex-1">
-                            <input
-                              ref={editInputRef}
-                              type="text"
-                              value={editDraft}
-                              onChange={(e) => setEditDraft(e.target.value)}
-                              onKeyDown={(e) => handleKeyDown(e, doc)}
-                              placeholder="留空则使用源名称"
-                              maxLength={255}
-                              disabled={renaming}
-                              aria-label="编辑文件名称"
-                              className="flex-1 min-w-0 h-6 px-1.5 text-sm rounded border border-primary/50 bg-transparent focus:outline-none focus:ring-1 focus:ring-primary"
-                            />
-                            <button
-                              onClick={() => void commitEdit(doc)}
-                              disabled={renaming}
-                              title="保存"
-                              aria-label="保存文件名称"
-                              className="shrink-0 p-0.5 rounded text-muted-foreground hover:text-green-600 disabled:opacity-50"
-                            >
-                              <Check className="h-3.5 w-3.5" />
-                            </button>
-                            <button
-                              onClick={cancelEdit}
-                              disabled={renaming}
-                              title="取消"
-                              aria-label="取消编辑"
-                              className="shrink-0 p-0.5 rounded text-muted-foreground hover:text-red-500 disabled:opacity-50"
-                            >
-                              <X className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="min-w-0 flex-1 flex items-center gap-1">
-                            <div className="min-w-0">
-                              <TextTooltip content={effectiveDocumentName(doc)}>
-                                <p className="truncate font-medium text-foreground">
-                                  {effectiveDocumentName(doc)}
-                                </p>
-                              </TextTooltip>
-                              <p className="truncate text-xs text-muted-foreground">
-                                {doc.content_type || "Unknown"}
-                              </p>
-                            </div>
-                            <button
-                              onClick={() => startEdit(doc)}
-                              title="编辑文件名称"
-                              aria-label="编辑文件名称"
-                              className="shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100 p-1 rounded text-muted-foreground hover:text-blue-600 hover:bg-blue-50 transition-opacity"
-                            >
-                              <Pencil className="h-3 w-3" />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* 大小 - col-span-1 */}
-                      <div className="col-span-1 text-muted-foreground text-xs text-center">
-                        {formatFileSize(doc.file_size)}
-                      </div>
-
-                      {/* File Hash - col-span-1 */}
-                      <div className="col-span-1 text-center">
-                        {truncateHash(doc.file_hash)}
-                      </div>
-
-                      {/* 所属语料库 - col-span-2；库文档（corpus_id=null）显示 Library 徽标 */}
-                      <div className="col-span-2 flex min-w-0 justify-end">
-                        {doc.corpus_id ? (
-                          <TextTooltip content={getCorpusName(doc.corpus_id) ?? ""}>
-                            <span className="block max-w-full truncate text-xs text-muted-foreground">
-                              {getCorpusName(doc.corpus_id)}
-                            </span>
-                          </TextTooltip>
-                        ) : (
-                          <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                            Library
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Translation - col-span-2 */}
-                      <div className="col-span-2 flex justify-center">
-                        {renderTranslationCell(doc)}
-                      </div>
-
-                      {/* Created By - col-span-1 */}
-                      <div className="col-span-1 min-w-0 text-center">
-                        <TextTooltip content={doc.created_by_name || doc.created_by || ""}>
-                          <div className="block truncate text-xs text-muted-foreground">
-                            {displayUser(doc.created_by, doc.created_by_name)}
-                          </div>
-                        </TextTooltip>
-                      </div>
-
-                      {/* Created At - col-span-1 */}
-                      <div className="col-span-1 text-muted-foreground text-xs text-center">
-                        {formatRelativeTime(doc.created_at ?? undefined)}
-                      </div>
-
-                      {/* Updated At - col-span-1（按最终修改时间倒序，故置于 Created At 之后） */}
-                      <div className="col-span-1 text-muted-foreground text-xs text-center">
-                        {formatRelativeTime(doc.updated_at ?? undefined)}
-                      </div>
-
-                      {/* 操作 - col-span-1 */}
-                      <div className="col-span-1 flex justify-center items-center gap-2">
-                        {deleteConfirm === doc.id ? (
+              <table className="w-full table-fixed text-sm">
+                <colgroup>
+                  <col className="w-10" /> {/* 勾选 */}
+                  <col className="w-[18%]" /> {/* File Name */}
+                  <col className="w-[10%]" /> {/* 巡检状态 */}
+                  <col className="w-[6%]" /> {/* Size */}
+                  <col className="w-[8%]" /> {/* File Hash */}
+                  <col className="w-[9%]" /> {/* Corpus */}
+                  <col className="w-[10%]" /> {/* Translation */}
+                  <col className="w-[8%]" /> {/* Created By */}
+                  <col className="w-[7%]" /> {/* Created At */}
+                  <col className="w-[7%]" /> {/* Updated At */}
+                  <col className="w-[17%]" /> {/* Actions */}
+                </colgroup>
+                <thead className="sticky top-0 z-10 bg-card">
+                  <tr className={cn(tableHeaderClassName, "text-left")}>
+                    <th className="px-2 py-2.5 text-center">
+                      <input
+                        type="checkbox"
+                        checked={allSelected}
+                        onChange={toggleSelectAll}
+                        disabled={translatableDocs.length === 0}
+                        className="rounded"
+                        title="Select all translatable documents"
+                      />
+                    </th>
+                    <th className="px-3 py-2.5">File Name</th>
+                    <th className="px-3 py-2.5 text-center">巡检状态</th>
+                    <th className="px-3 py-2.5 text-center">Size</th>
+                    <th className="px-3 py-2.5 text-center">File Hash</th>
+                    <th className="px-3 py-2.5 text-center">Corpus</th>
+                    <th className="px-3 py-2.5 text-center">Translation</th>
+                    <th className="px-3 py-2.5 text-center">Created By</th>
+                    <th className="px-3 py-2.5 text-center">Created At</th>
+                    <th className="px-3 py-2.5 text-center">Updated At</th>
+                    <th className="px-3 py-2.5 text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className={tableBodyClassName}>
+                  {loading && documents.length === 0 ? (
+                    <tr>
+                      <td colSpan={11} className="p-6 text-center text-sm text-muted-foreground">
+                        Loading documents...
+                      </td>
+                    </tr>
+                  ) : error ? (
+                    <tr>
+                      <td colSpan={11} className="p-6 text-center text-sm text-red-500">{error}</td>
+                    </tr>
+                  ) : documents.length === 0 ? (
+                    <tr>
+                      <td colSpan={11} className="p-6 text-center text-sm text-muted-foreground">
+                        No documents uploaded yet
+                      </td>
+                    </tr>
+                  ) : (
+                    documents.map((doc, i) => (
+                      <tr
+                        key={doc.id}
+                        data-infinite-page={
+                          i % DOCUMENTS_PAGE_SIZE === 0 ? Math.floor(i / DOCUMENTS_PAGE_SIZE) + 1 : undefined
+                        }
+                        className={cn("group align-middle", tableRowClassName)}
+                      >
+                        {/* 勾选 */}
+                        <td className="px-2 py-2 text-center">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(doc.id)}
+                            onChange={() => toggleSelect(doc.id)}
+                            disabled={!isTranslatable(doc)}
+                            className="rounded disabled:opacity-30"
+                            title={
+                              isTranslatable(doc)
+                                ? "Select for translation"
+                                : "Not translatable (library document, markdown not ready, already a translation, or translating)"
+                            }
+                          />
+                        </td>
+                        {/* 文件名（支持就地重命名，写 display_name） */}
+                        <td className="px-3 py-2">
                           <div className="flex items-center gap-2">
-                            <label className="flex items-center gap-1 text-xs text-muted-foreground">
-                              <input
-                                type="checkbox"
-                                checked={deleteHard}
-                                onChange={(e) => setDeleteHard(e.target.checked)}
-                                className="rounded"
-                              />
-                              Permanent
-                            </label>
-                            <button
-                              onClick={() => handleDelete(doc)}
-                              className="rounded bg-red-600 px-2 py-1 text-xs text-white hover:bg-red-700"
-                            >
-                              Confirm
-                            </button>
-                            <button
-                              onClick={() => {
-                                setDeleteConfirm(null);
-                                setDeleteHard(false);
-                              }}
-                              className="rounded bg-muted px-2 py-1 text-xs text-foreground hover:bg-muted/80"
-                            >
-                              Cancel
-                            </button>
+                            {getFileIcon(doc.content_type)}
+                            {editingId === doc.id ? (
+                              <div className="flex items-center gap-1 min-w-0 flex-1">
+                                <input
+                                  ref={editInputRef}
+                                  type="text"
+                                  value={editDraft}
+                                  onChange={(e) => setEditDraft(e.target.value)}
+                                  onKeyDown={(e) => handleKeyDown(e, doc)}
+                                  placeholder="留空则使用源名称"
+                                  maxLength={255}
+                                  disabled={renaming}
+                                  aria-label="编辑文件名称"
+                                  className="flex-1 min-w-0 h-6 px-1.5 text-sm rounded border border-primary/50 bg-transparent focus:outline-none focus:ring-1 focus:ring-primary"
+                                />
+                                <button
+                                  onClick={() => void commitEdit(doc)}
+                                  disabled={renaming}
+                                  title="保存"
+                                  aria-label="保存文件名称"
+                                  className="shrink-0 p-0.5 rounded text-muted-foreground hover:text-green-600 disabled:opacity-50"
+                                >
+                                  <Check className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                  onClick={cancelEdit}
+                                  disabled={renaming}
+                                  title="取消"
+                                  aria-label="取消编辑"
+                                  className="shrink-0 p-0.5 rounded text-muted-foreground hover:text-red-500 disabled:opacity-50"
+                                >
+                                  <X className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="min-w-0 flex-1 flex items-center gap-1">
+                                <div className="min-w-0">
+                                  <TextTooltip content={effectiveDocumentName(doc)}>
+                                    <p className="truncate font-medium text-foreground">
+                                      {effectiveDocumentName(doc)}
+                                    </p>
+                                  </TextTooltip>
+                                  <p className="truncate text-xs text-muted-foreground">
+                                    {doc.content_type || "Unknown"}
+                                  </p>
+                                </div>
+                                <button
+                                  onClick={() => startEdit(doc)}
+                                  title="编辑文件名称"
+                                  aria-label="编辑文件名称"
+                                  className="shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100 p-1 rounded text-muted-foreground hover:text-blue-600 hover:bg-blue-50 transition-opacity"
+                                >
+                                  <Pencil className="h-3 w-3" />
+                                </button>
+                              </div>
+                            )}
                           </div>
-                        ) : (
-                          <>
-                            <button
-                              onClick={() =>
-                                router.push(
-                                  `/knowledge/documents/${doc.corpus_id ?? LIBRARY_CORPUS_SEGMENT}/${doc.id}`,
-                                )
+                        </td>
+                        {/* 巡检状态（仅 PDF 文档；PDF Fidelity Patrol 态 SSOT：patrol_status 列） */}
+                        <td className="px-3 py-2 text-center">
+                          {isPdfDocument(doc) ? (
+                            <TextTooltip
+                              content={
+                                doc.patrol_updated_at
+                                  ? `${patrolStatusLabel(doc.patrol_status ?? null)} · ${formatRelativeTime(doc.patrol_updated_at)}`
+                                  : patrolStatusLabel(doc.patrol_status ?? null)
                               }
-                              className="rounded p-1.5 text-muted-foreground hover:text-green-600 hover:bg-green-50 transition-colors"
-                              title="View document content"
                             >
-                              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                              </svg>
-                            </button>
-                            <button
-                              onClick={() => handleDownload(doc)}
-                              disabled={downloadingIds.has(doc.id)}
-                              className="rounded p-1.5 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-50"
-                              title="Download document"
-                            >
-                              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                              </svg>
-                            </button>
-                            <button
-                              onClick={() => setDeleteConfirm(doc.id)}
-                              className="rounded p-1.5 text-muted-foreground hover:text-red-600 hover:bg-red-50 transition-colors"
-                              title="Delete document"
-                            >
-                              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
-                          </>
-                        )}
-                      </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                              <PatrolStatusBadge
+                                status={doc.patrol_status ?? null}
+                                score={doc.patrol_score ?? null}
+                              />
+                            </TextTooltip>
+                          ) : (
+                            <span className="text-text-muted">—</span>
+                          )}
+                        </td>
+                        {/* 大小 */}
+                        <td className="px-3 py-2 text-center text-xs text-muted-foreground">
+                          {formatFileSize(doc.file_size)}
+                        </td>
+                        {/* File Hash */}
+                        <td className="px-3 py-2 text-center">{truncateHash(doc.file_hash)}</td>
+                        {/* 所属语料库；库文档（corpus_id=null）显示 Library 徽标 */}
+                        <td className="px-3 py-2">
+                          <div className="flex min-w-0 justify-center">
+                            {doc.corpus_id ? (
+                              <TextTooltip content={getCorpusName(doc.corpus_id) ?? ""}>
+                                <span className="block max-w-full truncate text-xs text-muted-foreground">
+                                  {getCorpusName(doc.corpus_id)}
+                                </span>
+                              </TextTooltip>
+                            ) : (
+                              <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                                Library
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        {/* Translation */}
+                        <td className="px-3 py-2">
+                          <div className="flex justify-center">{renderTranslationCell(doc)}</div>
+                        </td>
+                        {/* Created By */}
+                        <td className="px-3 py-2 text-center">
+                          <TextTooltip content={doc.created_by_name || doc.created_by || ""}>
+                            <div className="block truncate text-xs text-muted-foreground">
+                              {displayUser(doc.created_by, doc.created_by_name)}
+                            </div>
+                          </TextTooltip>
+                        </td>
+                        {/* Created At */}
+                        <td className="px-3 py-2 text-center text-xs text-muted-foreground">
+                          {formatRelativeTime(doc.created_at ?? undefined)}
+                        </td>
+                        {/* Updated At（按最终修改时间倒序，故置于 Created At 之后） */}
+                        <td className="px-3 py-2 text-center text-xs text-muted-foreground">
+                          {formatRelativeTime(doc.updated_at ?? undefined)}
+                        </td>
+                        {/* 操作 */}
+                        <td className="px-3 py-2">
+                          <div className="flex justify-center items-center gap-2">
+                            {deleteConfirm === doc.id ? (
+                              <div className="flex items-center gap-2">
+                                <label className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <input
+                                    type="checkbox"
+                                    checked={deleteHard}
+                                    onChange={(e) => setDeleteHard(e.target.checked)}
+                                    className="rounded"
+                                  />
+                                  Permanent
+                                </label>
+                                <button
+                                  onClick={() => handleDelete(doc)}
+                                  className="rounded bg-red-600 px-2 py-1 text-xs text-white hover:bg-red-700"
+                                >
+                                  Confirm
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setDeleteConfirm(null);
+                                    setDeleteHard(false);
+                                  }}
+                                  className="rounded bg-muted px-2 py-1 text-xs text-foreground hover:bg-muted/80"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() =>
+                                    router.push(
+                                      `/knowledge/documents/${doc.corpus_id ?? LIBRARY_CORPUS_SEGMENT}/${doc.id}`,
+                                    )
+                                  }
+                                  className="rounded p-1.5 text-muted-foreground hover:text-green-600 hover:bg-green-50 transition-colors"
+                                  title="View document content"
+                                >
+                                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                  </svg>
+                                </button>
+                                <button
+                                  onClick={() => handleDownload(doc)}
+                                  disabled={downloadingIds.has(doc.id)}
+                                  className="rounded p-1.5 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-50"
+                                  title="Download document"
+                                >
+                                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                  </svg>
+                                </button>
+                                {isPdfDocument(doc) &&
+                                  (doc.patrol_status === "done" ||
+                                    doc.patrol_status === "unfixable") && (
+                                    <button
+                                      onClick={() => void handleResetPatrol(doc)}
+                                      disabled={resettingId === doc.id}
+                                      className="rounded p-1.5 text-muted-foreground hover:text-amber-600 hover:bg-amber-50 transition-colors disabled:opacity-50"
+                                      title="重置为未拟合（二次巡检）"
+                                    >
+                                      <RotateCcw className="h-4 w-4" />
+                                    </button>
+                                  )}
+                                <button
+                                  onClick={() => setDeleteConfirm(doc.id)}
+                                  className="rounded p-1.5 text-muted-foreground hover:text-red-600 hover:bg-red-50 transition-colors"
+                                  title="Delete document"
+                                >
+                                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
 
               {/* 无限滚动哨兵：进入视口即追加下一页（hasMore 为否时 hook 自动停观察）。 */}
               <div ref={sentinelRef} aria-hidden className="h-px w-full" />
@@ -744,6 +831,9 @@ export default function DocumentsPage() {
         }
         onSuccess={() => setIsImportDialogOpen(false)}
       />
+
+      {/* 「重置为未拟合」确认对话框（命令式 useConfirmDialog） */}
+      {resetPatrolDialog}
     </div>
   );
 }
