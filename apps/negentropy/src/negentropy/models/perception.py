@@ -137,6 +137,26 @@ class KnowledgeDocument(Base, UUIDMixin, TimestampMixin):
     # Phase 2: 来源追踪外键
     source_id: Mapped[UUID | None] = mapped_column(fk("doc_sources", ondelete="SET NULL"), nullable=True)
 
+    # PDF Fidelity Patrol 巡检态（SSOT：文档级巡检状态权威源）
+    # NULL=未巡检 / in_progress=巡检中 / unfixable=失败 / done=拟合成功
+    # 详见 docs/.agents/pdf-fidelity-patrol-status.md 与迁移 0092。
+    patrol_status: Mapped[str | None] = mapped_column(
+        String(20),
+        nullable=True,
+        comment="PDF 巡检态：NULL=未巡检/in_progress=巡检中/unfixable=失败/done=拟合成功",
+    )
+    patrol_score: Mapped[int | None] = mapped_column(Integer, nullable=True, comment="巡检 best_score 峰值")
+    patrol_routine_id: Mapped[UUID | None] = mapped_column(
+        fk("routines", ondelete="SET NULL"),
+        nullable=True,
+        comment="当前巡检态归属 Routine（cancelled 回退的幂等守卫）",
+    )
+    patrol_updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="巡检态最后写入时间（可观测）",
+    )
+
     __table_args__ = (
         UniqueConstraint("corpus_id", "file_hash", name="uq_knowledge_documents_corpus_hash"),
         # 库文档去重：UNIQUE(corpus_id, file_hash) 对 NULL 行豁免（PG 视 NULL 互异），
@@ -153,6 +173,7 @@ class KnowledgeDocument(Base, UUIDMixin, TimestampMixin):
         Index("ix_knowledge_documents_status", "status"),
         Index("ix_knowledge_documents_markdown_extract_status", "markdown_extract_status"),
         Index("ix_knowledge_documents_source_id", "source_id"),
+        Index("ix_knowledge_documents_patrol_status", "patrol_status"),
         {"schema": NEGENTROPY_SCHEMA},
     )
 

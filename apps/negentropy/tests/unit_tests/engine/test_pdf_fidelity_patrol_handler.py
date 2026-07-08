@@ -119,16 +119,19 @@ def test_select_next_pending_doc_none_when_empty():
     assert asyncio.run(patrol._select_next_pending_doc(db, skip_ids={"a", "b"})) is None
 
 
-def test_select_next_pending_doc_skip_set_passes_expanding_param():
-    """skip 非空时走 expanding bindparam；FakeDB 不解析 SQL，仅断言不抛且参数透传。"""
+def test_select_next_pending_doc_reads_patrol_status_column():
+    """selector 读 patrol_status 列（SSOT）：emitted SQL 含 ``patrol_status IS NULL``，
+    不再使用 Memory skip_ids（迁移 0092 后废弃，形参过渡兼容）。"""
     import asyncio
 
     db = _FakeDB(fetchone=None)
     asyncio.run(patrol._select_next_pending_doc(db, skip_ids={"x1", "x2"}))
     assert db.executed  # 发出了一次 execute
-    _stmt, params = db.executed[0]
+    stmt, params = db.executed[0]
     assert params["app"]  # 含 app_name 绑定
-    assert "skip" in params
+    assert "patrol_status IS NULL" in stmt  # 4 态语义：仅未巡检入选
+    assert "skip" not in params  # skip_ids 已废弃
+    assert "NOT IN" not in stmt  # 不再走 Memory skip 路径
 
 
 def test_select_next_pending_doc_sql_contains_per_doc_uniqueness_guard():
@@ -144,6 +147,7 @@ def test_select_next_pending_doc_sql_contains_per_doc_uniqueness_guard():
     stmt = db.executed[0][0]
     # 命名门控：display_name 或 metadata->>'title' 至少一个非空（杜绝原始文件名兜底）
     assert "COALESCE(NULLIF(display_name, ''), NULLIF(metadata->>'title', '')) IS NOT NULL" in stmt
+    assert "patrol_status IS NULL" in stmt  # 巡检态 SSOT 列（仅未巡检入选）
     assert "NOT EXISTS" in stmt
     assert "config->>'patrol'" in stmt
     assert "config->>'doc_id'" in stmt
@@ -275,6 +279,41 @@ def test_finalize_terminal_patrols_branches_present():
     assert "patrol_qualified_score_threshold" in body  # 合格阈值注入
     # _mark_memory_persisted 抽出（消除重复 UPDATE）
     assert hasattr(patrol, "_mark_memory_persisted")
+
+
+def test_create_and_start_patrol_routine_writes_in_progress_column():
+    """白盒：spawn 巡检 Routine 时同步写 ``patrol_status='in_progress'`` 列（SSOT）。"""
+    import inspect
+
+    body = inspect.getsource(patrol._create_and_start_patrol_routine)
+    assert "patrol_status = 'in_progress'" in body
+    assert "patrol_routine_id = :rid" in body
+    assert "knowledge_documents" in body
+
+
+def test_finalize_cancelled_resets_in_progress_with_double_guard():
+    """白盒：cancelled 分支回退文档巡检态为 NULL，带 routine_id + in_progress 双守卫（防误覆盖 done/unfixable）。"""
+    import inspect
+
+    body = inspect.getsource(patrol._finalize_terminal_patrols)
+    # cancelled 分支回退列
+    assert "patrol_status = NULL" in body
+    # 双守卫：仅回退本 routine 在 spawn 时写的 in_progress
+    assert "patrol_routine_id = :rid" in body
+    assert "patrol_status = 'in_progress'" in body
+
+
+def test_has_running_patrol_still_reads_routines_table():
+    """白盒：_has_running_patrol 仍读 routines 表（SSOT：真实执行态），不读 patrol_status 列。
+
+    防回归——若误改成读列，routine 崩溃卡死会致 in_progress 残留而永久 SKIP 全系统巡检。
+    """
+    import inspect
+
+    body = inspect.getsource(patrol._has_running_patrol)
+    assert "negentropy.routines" in body
+    assert "status = 'running'" in body
+    assert "patrol_status" not in body
 
 
 # ---------------------------------------------------------------------------

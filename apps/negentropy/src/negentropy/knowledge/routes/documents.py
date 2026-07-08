@@ -229,6 +229,10 @@ async def _get_document_detail_impl(
         metadata=doc.metadata_ or {},
         markdown_content=markdown_content,
         markdown_uri=doc.markdown_uri,
+        patrol_status=getattr(doc, "patrol_status", None),
+        patrol_score=getattr(doc, "patrol_score", None),
+        patrol_routine_id=getattr(doc, "patrol_routine_id", None),
+        patrol_updated_at=(doc.patrol_updated_at.isoformat() if getattr(doc, "patrol_updated_at", None) else None),
     )
 
 
@@ -323,6 +327,66 @@ async def update_document(
 ) -> DocumentResponse:
     """更新文档元信息（display_name + Wiki 文章元数据）。"""
     return await _update_document_impl(document_id=document_id, corpus_id=corpus_id, payload=payload)
+
+
+async def _reset_document_patrol_impl(
+    *,
+    document_id: UUID,
+    corpus_id: UUID | None,
+    app_name: str | None,
+) -> DocumentResponse:
+    """重置文档 PDF 巡检态为「未巡检」，使其可被 Scheduler 二次巡检。
+
+    - 与 :func:`get_document_detail` 一致的 ``corpus_id`` / ``app_name`` 权限校验。
+    - 在跑（running/paused）巡检 → 409（不杀在跑任务）。
+    - 取消终态巡检 Routine（解除 selector NOT EXISTS 门）+ 清 ``patrol_status`` 列 +
+      清 Memory TAG_STATUS/TAG_UNFIXABLE；详见 ``DocumentStorageService.reset_patrol_status``。
+    """
+    resolved_app = _resolve_app_name(app_name)
+
+    from negentropy.storage.service import DocumentStorageService
+
+    try:
+        doc = await DocumentStorageService().reset_patrol_status(
+            document_id=document_id,
+            corpus_id=corpus_id,
+            app_name=resolved_app,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": "PATROL_IN_PROGRESS", "message": str(exc)},
+        ) from exc
+
+    if not doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "DOCUMENT_NOT_FOUND", "message": "Document not found"},
+        )
+
+    name_map = await _resolve_user_display_names([doc.created_by]) if doc.created_by else {}
+    source_uri = _resolve_document_source_uri(doc)
+    archived = False
+    if source_uri and doc.corpus_id is not None:
+        service = _get_service()
+        archived_set = await service.get_archived_source_uris(
+            pairs=[(doc.corpus_id, source_uri)],
+            app_name=resolved_app,
+        )
+        archived = (doc.corpus_id, source_uri) in archived_set
+
+    logger.info("api_reset_document_patrol", document_id=str(document_id))
+    return _build_document_response(doc, name_map, archived=archived)
+
+
+@router.post("/base/{corpus_id}/documents/{document_id}/reset-patrol", response_model=DocumentResponse)
+async def reset_document_patrol(
+    corpus_id: UUID,
+    document_id: UUID,
+    app_name: str | None = Query(default=None),
+) -> DocumentResponse:
+    """重置文档 PDF 巡检态为「未巡检」（二次巡检入口）。"""
+    return await _reset_document_patrol_impl(document_id=document_id, corpus_id=corpus_id, app_name=app_name)
 
 
 async def _refresh_document_markdown_impl(

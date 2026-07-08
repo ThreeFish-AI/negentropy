@@ -143,7 +143,11 @@ class PatrolMemoryStore:
         )
 
     async def _upsert_status(self, *, doc_id: str, status: str, score: int | None, routine_id: str) -> None:
-        """文档级状态 upsert：先删旧 status 记忆再写新（同事务，幂等）。"""
+        """文档级状态 upsert：先删旧 status 记忆再写新（同事务，幂等）。
+
+        dual-write：同时落 ``knowledge_documents`` 巡检态列（SSOT 读源）与 Memory TAG_STATUS
+        （过渡期保留，Phase 2 deprecate）。两写同会话同事务，一致 commit / 一致回滚。
+        """
         await self._db.execute(
             sa.text(
                 "DELETE FROM negentropy.memories "
@@ -163,6 +167,15 @@ class PatrolMemoryStore:
                 "routine_id": routine_id,
                 "decay_override": _DECAY_LONG,
             },
+        )
+        # TODO(phase2): deprecate 上述 Memory TAG_STATUS 写（读侧已迁至 patrol_status 列），仅保留列写。
+        await self._db.execute(
+            sa.text(
+                "UPDATE negentropy.knowledge_documents "
+                "SET patrol_status = :st, patrol_score = :sc, "
+                "patrol_routine_id = CAST(:rid AS uuid), patrol_updated_at = NOW() "
+                "WHERE id = CAST(:doc_id AS uuid)"
+            ).bindparams(st=status, sc=score, rid=routine_id, doc_id=doc_id)
         )
 
     async def record_done(self, *, doc_id: str, score: int | None, routine_id: str) -> None:
@@ -219,6 +232,8 @@ class PatrolMemoryStore:
 
     async def get_skip_doc_ids(self) -> set[str]:
         """已 done / unfixable 的文档 id 集合（selector 跳过）。"""
+        # NOTE: selector 已迁至读 ``knowledge_documents.patrol_status`` 列（迁移 0092）；
+        # 本方法仅过渡期/测试用，Phase 2 随 Memory TAG_STATUS deprecate 一并移除。
         rows = await self._db.execute(
             sa.text(
                 "SELECT DISTINCT metadata->>'doc_id' AS doc_id FROM negentropy.memories "
@@ -227,6 +242,21 @@ class PatrolMemoryStore:
             ).bindparams(app=self._app, u=_SYSTEM_USER, tag=TAG_STATUS)
         )
         return {r[0] for r in rows.fetchall() if r[0]}
+
+    async def clear_doc_legacy_memories(self, doc_id: str) -> None:
+        """清除某 doc 的 TAG_STATUS + TAG_UNFIXABLE 记忆（「重置为未拟合」用）。
+
+        解除该 doc 的终态沉淀与区域级避让，使其可被 selector 重新选中做二次巡检。
+        不清 TAG_PATTERN / TAG_BASELINE——它们是跨 doc 的方法 / 基线知识，非该 doc 状态。
+        """
+        for tag in (TAG_STATUS, TAG_UNFIXABLE):
+            await self._db.execute(
+                sa.text(
+                    "DELETE FROM negentropy.memories "
+                    "WHERE app_name = :app AND user_id = :u "
+                    "AND metadata->>'tag' = :tag AND metadata->>'doc_id' = :doc"
+                ).bindparams(app=self._app, u=_SYSTEM_USER, tag=tag, doc=doc_id)
+            )
 
     async def get_unfixable_regions(self, doc_id: str) -> list[dict[str, Any]]:
         """某文档已标记 unfixable 的区域（注入巡检会话避让）。"""

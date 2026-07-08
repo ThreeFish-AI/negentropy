@@ -623,6 +623,12 @@ class DocumentResponse(BaseModel):
     markdown_extract_error: str | None = None
     archived: bool = False
     metadata: dict[str, Any] = Field(default_factory=dict)
+    # PDF Fidelity Patrol 巡检态（SSOT：knowledge_documents.patrol_status 列）
+    # NULL=未巡检 / in_progress=巡检中 / unfixable=失败 / done=拟合成功
+    patrol_status: str | None = None
+    patrol_score: int | None = None
+    patrol_routine_id: UUID | None = None
+    patrol_updated_at: str | None = None
 
     class Config:
         from_attributes = True

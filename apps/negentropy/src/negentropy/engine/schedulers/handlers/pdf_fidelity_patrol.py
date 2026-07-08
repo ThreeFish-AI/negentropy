@@ -154,13 +154,9 @@ async def _run_patrol_tick(*, task_key: str) -> HandlerResult:
                 },
             )
 
-    # 选下一份待检 PDF
+    # 选下一份待检 PDF（巡检态 SSOT：knowledge_documents.patrol_status 列）
     async with AsyncSessionLocal() as db:
-        from negentropy.engine.routine.patrol_memory import PatrolMemoryStore
-
-        store = PatrolMemoryStore(db)
-        skip_ids = await store.get_skip_doc_ids()
-        doc = await _select_next_pending_doc(db, skip_ids=skip_ids)
+        doc = await _select_next_pending_doc(db)
     if doc is None:
         return HandlerResult(
             status="ok",
@@ -319,7 +315,19 @@ async def _finalize_terminal_patrols(db) -> int:
         rid = uuid.UUID(str(routine_id))
 
         if routine_status == "cancelled":
-            # 用户干预：不沉淀状态记忆（文档保持可被重新选中），仅标记避免每 tick 重扫。
+            # 用户干预：回退文档巡检态为 NULL（可被 selector 重新选中）。
+            # 双守卫——仅回退「由本 cancelled routine 在 spawn 时写入的 in_progress」，
+            # 绝不覆盖已被同 doc 另一更高分 Routine finalize 写成的 done/unfixable。
+            if doc_id_cfg:
+                await db.execute(
+                    sa.text(
+                        "UPDATE negentropy.knowledge_documents "
+                        "SET patrol_status = NULL, patrol_score = NULL, "
+                        "patrol_routine_id = NULL, patrol_updated_at = NOW() "
+                        "WHERE id = CAST(:doc_id AS uuid) AND patrol_routine_id = :rid "
+                        "AND patrol_status = 'in_progress'"
+                    ).bindparams(doc_id=str(doc_id_cfg), rid=rid)
+                )
             await _mark_memory_persisted(db, rid)
             count += 1
             continue
@@ -580,8 +588,8 @@ async def _has_running_patrol(db) -> bool:
 # ---------------------------------------------------------------------------
 
 
-async def _select_next_pending_doc(db, *, skip_ids: set[str]) -> dict[str, Any] | None:
-    """选最早入库、未 done/unfixable 的 PDF 文档（content_type=pdf 且转换已完成）。
+async def _select_next_pending_doc(db, *, skip_ids: set[str] | None = None) -> dict[str, Any] | None:
+    """选最早入库、未巡检（``patrol_status IS NULL``）的 PDF 文档（content_type=pdf 且转换已完成）。
 
     两道守卫（缺一不可）：
       - **命名门控**：``display_name`` 或 ``metadata->>'title'`` 至少有一个非空，否则跳过。
@@ -593,13 +601,12 @@ async def _select_next_pending_doc(db, *, skip_ids: set[str]) -> dict[str, Any] 
         （``config->>'doc_id'`` 为 SSOT 指针）。排除 cancelled 使「取消」成为合法复位——被取消的冗余
         Routine 不再阻塞同 doc 以当前有效名重建（见 ``_collapse_superseded_patrols``）。
 
-    与 ``skip_ids``（done/unfixable 终态语义）正交互补。
+    巡检态 SSOT 为 ``knowledge_documents.patrol_status`` 列（NULL=未巡检入选，``in_progress``/
+    ``done``/``unfixable`` 跳过）。``skip_ids`` 形参已废弃（过渡兼容，忽略），见迁移 0092 与
+    ``docs/.agents/pdf-fidelity-patrol-status.md``。
     """
-    params: dict[str, Any] = {"app": settings.app_name}
-    exclude_clause = ""
-    if skip_ids:
-        exclude_clause = "AND id::text NOT IN :skip"
-        params["skip"] = tuple(skip_ids)
+    # TODO(phase2): 移除 skip_ids 形参（巡检态已迁至 patrol_status 列，Memory TAG_STATUS deprecate 后删）。
+    del skip_ids  # 过渡期保留签名兼容，不再使用。
 
     sql = (
         "SELECT id, content_uri, original_filename, display_name, metadata->>'title' "
@@ -607,6 +614,7 @@ async def _select_next_pending_doc(db, *, skip_ids: set[str]) -> dict[str, Any] 
         "WHERE app_name = :app "
         "AND COALESCE(content_type,'') ILIKE '%pdf%' "
         "AND markdown_extract_status = 'completed' "
+        "AND patrol_status IS NULL "
         "AND COALESCE(NULLIF(display_name, ''), NULLIF(metadata->>'title', '')) IS NOT NULL "
         "AND NOT EXISTS ("
         "  SELECT 1 FROM negentropy.routines r "
@@ -614,13 +622,9 @@ async def _select_next_pending_doc(db, *, skip_ids: set[str]) -> dict[str, Any] 
         "  AND r.config->>'doc_id' = knowledge_documents.id::text "
         "  AND r.status <> 'cancelled'"
         ") "
-        f"{exclude_clause} "
         "ORDER BY created_at ASC LIMIT 1"
     )
-    stmt = sa.text(sql)
-    if skip_ids:
-        stmt = stmt.bindparams(sa.bindparam("skip", expanding=True))
-    row = await db.execute(stmt, params)
+    row = await db.execute(sa.text(sql), {"app": settings.app_name})
     r = row.fetchone()
     if not r:
         return None
@@ -797,6 +801,15 @@ async def _create_and_start_patrol_routine(
     )
     db.add(routine)
     await db.flush()
+    # 巡检态落库（SSOT 列）：spawn 即 in_progress；清空历史 score。同事务随 _run_patrol_tick commit。
+    await db.execute(
+        sa.text(
+            "UPDATE negentropy.knowledge_documents "
+            "SET patrol_status = 'in_progress', patrol_score = NULL, "
+            "patrol_routine_id = :rid, patrol_updated_at = NOW() "
+            "WHERE id = CAST(:doc_id AS uuid)"
+        ).bindparams(rid=routine.id, doc_id=str(doc["id"]))
+    )
     return routine.id
 
 
