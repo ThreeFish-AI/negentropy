@@ -79,6 +79,19 @@ sequenceDiagram
 
 > **`_has_running_patrol` 保持读 `routines` 表，不读列**——SSOT：它回答「全局是否有真实在跑的巡检」，权威源是 `routines.status`；若改读列，routine 崩溃卡死会致 `in_progress` 残留而永久 SKIP 全系统巡检。
 
+### 3.1 巡检态校正 reconcile（权威 = 最新非 cancelled 终态 Routine）
+
+`_finalize_terminal_patrols` 的 last-write-wins + `_collapse_superseded_patrols` 取消冗余 Routine 时**不回写状态**，会污染列：一个先以 `failed` 终态写入 `unfixable`、随后被 collapse 取消的 Routine，会把更早 `succeeded` 的 `done` 覆盖成 `unfixable`（实测：succeeded/95 被 failed/2 覆盖，ISSUE-159）。
+
+[`_reconcile_patrol_status`](../../apps/negentropy/src/negentropy/engine/schedulers/handlers/pdf_fidelity_patrol.py) 每 tick 在 collapse 之后运行，以**权威源 = routines 表**重算列：
+
+- 每 doc 取**最新的非 cancelled 终态 Routine**（`succeeded`/`failed`，按 `created_at DESC`）——`cancelled` = 被取代/放弃，非真实结论。
+- `succeeded` 或 `best_score ≥ patrol_qualified_score_threshold` → `done`；否则 `unfixable`。
+- **跳过有 `running`/`paused` Routine 的 doc**（spawn 写的 `in_progress` 是当前真实态，不可回退到旧终态）。
+- 幂等：仅在 `patrol_status`/`patrol_routine_id` 变化时写（不每 tick 刷新 `patrol_updated_at`）。
+
+存量受污染数据由迁移 [`0093`](../../apps/negentropy/src/negentropy/db/migrations/versions/0093_reconcile_patrol_status_from_winner.py)（同 SQL）在部署时一次性修复；之后由 tick reconcile 持续维持。
+
 ## 4. selector 迁移
 
 [`_select_next_pending_doc`](../../apps/negentropy/src/negentropy/engine/schedulers/handlers/pdf_fidelity_patrol.py) 的候选门控（缺一不可）：
@@ -116,13 +129,15 @@ flowchart LR
 - **Badge**：[`PatrolStatusBadge`](../../apps/negentropy-ui/app/knowledge/documents/_components/PatrolStatusBadge.tsx) 四态配色对齐 [`routineStatusClass`](../../apps/negentropy-ui/app/interface/routine/_components/status-style.ts)（`bg-{color}-500/15 ...`）与 [巡检语义表](../../apps/negentropy-ui/features/scheduler/patrol-reason.ts)；分数用 [`scoreColorClass`](../../apps/negentropy-ui/components/transcript/status-shared.ts) 上色；非 PDF 行显示「—」。
 - **重置按钮**：Actions 单元格内，仅对 `isPdfDocument(doc) && patrol_status ∈ {done, unfixable}` 显示；经 [`useConfirmDialog`](../../apps/negentropy-ui/components/ui/useConfirmDialog.tsx) 确认 → [`resetDocumentPatrol`](../../apps/negentropy-ui/features/knowledge/utils/knowledge-api.ts) → `listRefresh()`；409 时 toast 提示「该文档正在巡检，请先取消在跑巡检再重置」。
 
-## 7. 数据迁移（0092）
+## 7. 数据迁移（0092 建列 + 0093 校正）
 
 [`0092_pdf_fidelity_patrol_status_column.py`](../../apps/negentropy/src/negentropy/db/migrations/versions/0092_pdf_fidelity_patrol_status_column.py)：
 
 1. `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` 四列（`patrol_routine_id` 带 `REFERENCES routines(id) ON DELETE SET NULL`）。
 2. **回填**：从 `memories` 取每 doc 最新一条 `TAG_STATUS`（`DISTINCT ON (doc_id) ... ORDER BY created_at DESC`），`NULLIF(metadata->>'score','')::int` + `routine_id` uuid 正则守卫，写回 `patrol_status`/`patrol_score`/`patrol_routine_id`；带 `patrol_status IS NULL` 守卫，幂等可重跑。
 3. `CREATE INDEX IF NOT EXISTS ix_knowledge_documents_patrol_status`。
+
+> 0092 回填源（Memory）本身受 finalize last-write-wins 污染（见 §3.1）。[`0093_reconcile_patrol_status_from_winner.py`](../../apps/negentropy/src/negentropy/db/migrations/versions/0093_reconcile_patrol_status_from_winner.py) 紧随其后，以 routines 表为权威重算列（同 §3.1 reconcile SQL），一次性修复存量受污染数据。
 4. **downgrade 红线**：patrol 态可由重跑巡检确定性再生（终态 Routine 经 `_finalize_terminal_patrols` 重沉淀），故 `DROP COLUMN` 可接受、**不回写 memories**。
 
 ## 8. dual-write → Phase 2 路线

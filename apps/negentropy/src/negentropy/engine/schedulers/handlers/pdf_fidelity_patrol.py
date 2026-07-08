@@ -135,11 +135,16 @@ async def _run_patrol_tick(*, task_key: str) -> HandlerResult:
         finalized = await _finalize_terminal_patrols(db)
         propagated = await _propagate_patrol_outcomes(db)
         collapsed = await _collapse_superseded_patrols(db)
+        # 校正巡检态列：以「每 doc 最新的非 cancelled 终态 Routine」为权威，修 finalize
+        # last-write-wins + collapse 不回写状态导致的污染（如 succeeded/95 被 failed/2 覆盖）。
+        reconciled = await _reconcile_patrol_status(db)
         await db.commit()
         if propagated:
             logger.info("patrol_outcomes_propagated", count=propagated)
         if collapsed:
             logger.info("patrol_superseded_collapsed", count=collapsed)
+        if reconciled:
+            logger.info("patrol_status_reconciled", count=reconciled)
 
     # 跳过并发（独立短事务，避免长读）
     async with AsyncSessionLocal() as db:
@@ -567,6 +572,67 @@ async def _collapse_superseded_patrols(db) -> int:
             "     OR (has_name = 1 AND is_raw = 1)"
             ")"
         )
+    )
+    return result.rowcount or 0
+
+
+# ---------------------------------------------------------------------------
+# 巡检态校正：以「每 doc 最新的非 cancelled 终态 Routine」为权威（修 last-write-wins 污染）
+# ---------------------------------------------------------------------------
+
+
+async def _reconcile_patrol_status(db) -> int:
+    """以每 doc「最新的**非 cancelled** 终态 Routine」为权威，校正 ``knowledge_documents.patrol_status`` 列。
+
+    缺陷背景：``_finalize_terminal_patrols`` 按 finalize 顺序 last-write-wins 写列（不看 Routine
+    新旧），而 ``_collapse_superseded_patrols`` 取消冗余 Routine 时**不回写状态**。实测：一个先以
+    ``failed`` 终态写入 ``unfixable``、随后被 collapse 取消的 Routine，会把更早 ``succeeded`` 的
+    ``done`` 覆盖成 ``unfixable``（如 succeeded/95 被 failed/2 覆盖）。
+
+    语义：``cancelled`` Routine 非真实结论（被取代 / 用户放弃），故 winner 仅取 ``succeeded``/``failed``
+    （非 cancelled）终态 Routine，按 ``created_at DESC`` 取最新，重算 done/unfixable + score。
+    - ``succeeded`` 或 ``best_score ≥ patrol_qualified_score_threshold`` → ``done``；否则 ``unfixable``。
+    - 跳过「有 running/paused Routine」的 doc（spawn 写的 in_progress 为其当前真实态，不可回退）。
+    - 幂等：仅在 ``patrol_status`` / ``patrol_routine_id`` 变化时写（避免每 tick 刷新 ``patrol_updated_at``）。
+
+    列为 UI / selector 的唯一读源（迁移 0092 SSOT）；Memory ``TAG_STATUS`` 为 Phase 1 过渡，本函数不改。
+    返回实际校正行数。
+    """
+    threshold = settings.routine.patrol_qualified_score_threshold
+    result = await db.execute(
+        sa.text(
+            """
+            WITH winner AS (
+                SELECT DISTINCT ON (r.config->>'doc_id')
+                       r.config->>'doc_id' AS doc_id,
+                       r.id AS rid,
+                       r.status,
+                       r.best_score,
+                       CASE WHEN r.status = 'succeeded' OR r.best_score >= :threshold
+                            THEN 'done' ELSE 'unfixable' END AS new_status
+                FROM negentropy.routines r
+                WHERE r.config->>'patrol' = 'true'
+                  AND r.status IN ('succeeded', 'failed')
+                  AND r.config->>'doc_id' IS NOT NULL
+                ORDER BY r.config->>'doc_id', r.created_at DESC
+            )
+            UPDATE negentropy.knowledge_documents kd
+            SET patrol_status = w.new_status,
+                patrol_score = w.best_score,
+                patrol_routine_id = w.rid,
+                patrol_updated_at = NOW()
+            FROM winner w
+            WHERE kd.id::text = w.doc_id
+              AND NOT EXISTS (
+                  SELECT 1 FROM negentropy.routines rr
+                  WHERE rr.config->>'patrol' = 'true'
+                    AND rr.config->>'doc_id' = kd.id::text
+                    AND rr.status IN ('running', 'paused')
+              )
+              AND (kd.patrol_status IS DISTINCT FROM w.new_status
+                   OR kd.patrol_routine_id IS DISTINCT FROM w.rid)
+            """
+        ).bindparams(threshold=threshold)
     )
     return result.rowcount or 0
 
