@@ -421,6 +421,7 @@ async def _refresh_document_markdown_impl(
     background_tasks.add_task(
         _reparse_document_markdown,
         document_id=document_id,
+        resume=payload.resume,
     )
 
     return DocumentMarkdownRefreshResponse(

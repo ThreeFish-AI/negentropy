@@ -1678,10 +1678,17 @@ export async function refreshDocumentMarkdown(
   documentId: string,
   params?: {
     appName?: string;
+    /**
+     * perceives auto_batch checkpoint 复用语义（与后端 DocumentMarkdownRefreshRequest.resume 对齐）：
+     * - true = 断点续传（从最后完成切片继续，失败/partial 态的「Continue (resume)」）；
+     * - false（默认）= 全量重跑（清 .batch_state checkpoint，契合「Re-Parse / 彻底重走」）。
+     */
+    resume?: boolean;
   },
 ): Promise<DocumentMarkdownRefreshResponse> {
   const payload = JSON.stringify({
     app_name: params?.appName,
+    resume: params?.resume ?? false,
   });
   const requestInit: RequestInit = {
     method: "POST",
