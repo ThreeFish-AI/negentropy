@@ -99,9 +99,10 @@ sequenceDiagram
 1. `content_type ILIKE '%pdf%'`（PDF 文档）
 2. `markdown_extract_status = 'completed'`（转换完成）
 3. **`patrol_status IS NULL`**（4 态语义：仅未巡检入选；**替换**旧 `id NOT IN :skip` 的 Memory skip_ids 路径）
-4. 命名门控（`display_name` 或 `metadata->>'title'` 至少一个非空，杜绝原始文件名兜底）
-5. `NOT EXISTS` 非 cancelled 巡检 Routine（一文一活跃巡检并发互斥；与 `patrol_status` 正交保留）
+4. `NOT EXISTS` 非 cancelled 巡检 Routine（一文一活跃巡检并发互斥；与 `patrol_status` 正交保留）
 
+> **命名关注正交下沉**至 [`_doc_display_title`](../../apps/negentropy/src/negentropy/engine/schedulers/handlers/pdf_fidelity_patrol.py)（`display_name` → `metadata.title` → `original_filename` 三级兜底，复用 `resolve_effective_display_name`）：巡检资格不因缺名而被否决。历史「命名门控」（要求 `display_name`/`metadata.title` 非空）曾在此预筛，致未巡检但无标题文档被永久跳过而 Scheduler 误报「无待检 PDF 文档」，已移除——仅剩原始文件名（含 arxiv-ID 如 `2603.05344v3.pdf`）时仍发起巡检，Routine 名暂以文件名兜底，待更优名源出现（用户改名 / Fix B 标题回填）由 [`_collapse_superseded_patrols`](../../apps/negentropy/src/negentropy/engine/schedulers/handlers/pdf_fidelity_patrol.py) 自愈取消旧 Routine、下 tick 以更优名重建。
+>
 > `skip_ids` 形参保留为 Optional（过渡兼容，已忽略）；`get_skip_doc_ids()` 过渡期保留供测试，Phase 2 随 Memory TAG_STATUS deprecate 一并移除。
 
 ## 5. 「重置为未拟合」API

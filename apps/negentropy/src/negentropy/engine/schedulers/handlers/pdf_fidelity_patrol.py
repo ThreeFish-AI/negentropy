@@ -659,19 +659,21 @@ async def _has_running_patrol(db) -> bool:
 async def _select_next_pending_doc(db, *, skip_ids: set[str] | None = None) -> dict[str, Any] | None:
     """选最早入库、未巡检（``patrol_status IS NULL``）的 PDF 文档（content_type=pdf 且转换已完成）。
 
-    两道守卫（缺一不可）：
-      - **命名门控**：``display_name`` 或 ``metadata->>'title'`` 至少有一个非空，否则跳过。
-        巡检 Routine 名字在创建时刻定格（``_doc_display_title`` 三级解析），无更优名源时会兜底成
-        ``original_filename``（如 ``2603.05344v3.pdf``）——本门控从源头杜绝「原始文件名兜底」巡检。
-        新导入经 Fix B（Perceives 标题透传 + 回填）自动获得 ``metadata.title``；存量无标题文档待
-        用户改名 / 重新抽取后入选（绝不以原始文件名兜底发起巡检）。
+    巡检资格判定的两道正交守卫：
+      - **巡检态门控**（SSOT）：``patrol_status IS NULL`` = 未巡检入选；``in_progress``/``done``/
+        ``unfixable`` 均跳过（终态文档须用户「重置为未拟合」回 NULL 方可二次巡检）。
       - **一文一活跃巡检**（Fix A）：``NOT EXISTS`` 排除已有**非 cancelled** 巡检 Routine 的文档
         （``config->>'doc_id'`` 为 SSOT 指针）。排除 cancelled 使「取消」成为合法复位——被取消的冗余
-        Routine 不再阻塞同 doc 以当前有效名重建（见 ``_collapse_superseded_patrols``）。
+        Routine 不再阻塞同 doc 重建（见 ``_collapse_superseded_patrols``）；此门亦承担防重试死循环职责。
 
-    巡检态 SSOT 为 ``knowledge_documents.patrol_status`` 列（NULL=未巡检入选，``in_progress``/
-    ``done``/``unfixable`` 跳过）。``skip_ids`` 形参已废弃（过渡兼容，忽略），见迁移 0092 与
-    ``docs/.agents/pdf-fidelity-patrol-status.md``。
+    命名关注**正交下沉**至 ``_doc_display_title``（``display_name`` → ``metadata.title`` →
+    ``original_filename`` 三级兜底，复用纯函数 SSOT ``resolve_effective_display_name``）：巡检资格不因
+    缺名而被否决——仅剩原始文件名（含 arxiv-ID 如 ``2603.05344v3.pdf``）时仍发起巡检，Routine 名暂以
+    文件名兜底；待更优名源出现（用户改名 / Fix B 标题回填），``_collapse_superseded_patrols`` 自愈取消
+    旧 Routine、下一 tick 以更优名重建。历史「命名门控」（要求 display_name/metadata.title 非空）曾在此
+    预筛，致未巡检但无标题文档被永久跳过而 Scheduler 误报「无待检 PDF 文档」，已移除。
+
+    ``skip_ids`` 形参已废弃（过渡兼容，忽略），见迁移 0092 与 ``docs/.agents/pdf-fidelity-patrol-status.md``。
     """
     # TODO(phase2): 移除 skip_ids 形参（巡检态已迁至 patrol_status 列，Memory TAG_STATUS deprecate 后删）。
     del skip_ids  # 过渡期保留签名兼容，不再使用。
@@ -683,7 +685,6 @@ async def _select_next_pending_doc(db, *, skip_ids: set[str] | None = None) -> d
         "AND COALESCE(content_type,'') ILIKE '%pdf%' "
         "AND markdown_extract_status = 'completed' "
         "AND patrol_status IS NULL "
-        "AND COALESCE(NULLIF(display_name, ''), NULLIF(metadata->>'title', '')) IS NOT NULL "
         "AND NOT EXISTS ("
         "  SELECT 1 FROM negentropy.routines r "
         "  WHERE r.config->>'patrol' = 'true' "
