@@ -125,6 +125,11 @@ _JUDGE_PROMPT_ANCHORED = """你是一名严格、客观的任务评审员。请�
    - 若没有实质新进展证据，score 亦不得高于上一轮 10 分以上；
    - 轨迹只是锚点、不是地板或天花板：有确凿证据的真实退步或突破必须如实反映；第 3 条（门控失败封顶 60）
      与验收判定（acceptance_met）优先于本条。
+8. **PDF Fidelity Patrol 全绿率口径（巡检任务适用）**：当摘要含 ``pdf-fidelity-contract`` JSON
+   （``score_method=page_pass_rate``）时，score 须与契约 ``round(pass_pages/total_pages×100)`` 一致
+   （±5 容差，因 unfixable carve-out 计入差异）；并核对 defects 覆盖文字/段落顺序/图片/目录/表格/
+   公式/代码/脚注 8 维度、每个 defect 有 ``attribution.{lever,layer,target_file}`` + ``dual_source_check``。
+   done 判定（verdict=pass）须 defects 为空或仅剩 unfixable；仍有可修复 defect 时不得判 pass。
 
 仅输出 JSON（单行）：
 {{"progress_evidence": "<相对上一轮的进展/退步证据，中文，≤150字>", "acceptance_met": <true|false>,

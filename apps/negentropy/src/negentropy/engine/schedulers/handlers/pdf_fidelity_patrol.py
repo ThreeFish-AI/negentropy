@@ -768,6 +768,7 @@ def _build_patrol_routine(
     source_task_key: str,
     known_unfixable_regions: list[dict[str, Any]] | None = None,
     wiki_env: dict[str, Any] | None = None,
+    known_defects: list[dict[str, Any]] | None = None,
 ) -> Routine:
     """构造巡检 Routine ORM 对象（纯函数，无 DB —— 可单测验证字段装配无 AttributeError）。
 
@@ -807,6 +808,8 @@ def _build_patrol_routine(
             candidate_md_path=candidate_md_path,
             qualified_threshold=qualified_threshold,
             known_unfixable_regions=known_unfixable_regions,
+            wiki_env=wiki_env,
+            known_defects=known_defects,
         ),
         acceptance_criteria=build_acceptance_criteria(
             baseline_branch=baseline_branch,
@@ -912,7 +915,9 @@ async def _create_and_start_patrol_routine(
     """
     from negentropy.engine.routine.patrol_memory import PatrolMemoryStore
 
-    known_unfixable_regions = await PatrolMemoryStore(db).get_unfixable_regions(str(doc["id"]))
+    memory = PatrolMemoryStore(db)
+    known_unfixable_regions = await memory.get_unfixable_regions(str(doc["id"]))
+    known_defects = await memory.get_defects(str(doc["id"]))
     wiki_env = _setup_patrol_wiki_env(doc=doc, source_read_dir=source_read_dir)
     routine = _build_patrol_routine(
         repo_id=repo_id,
@@ -924,6 +929,7 @@ async def _create_and_start_patrol_routine(
         source_task_key=source_task_key,
         known_unfixable_regions=known_unfixable_regions,
         wiki_env=wiki_env,
+        known_defects=known_defects,
     )
     db.add(routine)
     await db.flush()
