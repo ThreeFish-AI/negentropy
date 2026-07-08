@@ -734,6 +734,12 @@ class MarkdownFormatter:
             while prev_math != markdown_content:
                 prev_math = markdown_content
                 markdown_content = _merge_math_once(markdown_content)
+            # 标题末尾多余中文句号「。」剥离：docling 提取大事记/年表条目
+            # （如「## 1875 贝尔和沃森发明电话。」）时把陈述句末句号带入标题
+            # 文本，与源 PDF（标题无句号，如 AT&T 大事记框）失真。中文出版规范
+            # 标题末尾不加标点；仅剥离末尾中文句号「。」，保留「？」「！」等可能
+            # 表语气的标点，英文「.」不处理（章节编号/缩写可能合法结尾）。
+            markdown_content = re.sub(r"(?m)^(#{1,6} .*?)。+$", r"\1", markdown_content)
             return markdown_content
         except Exception as e:
             logger.warning(f"Error in fidelity-safe formatting: {str(e)}")
