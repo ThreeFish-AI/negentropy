@@ -590,6 +590,96 @@ async def test_select_next_pending_doc_includes_untitled_pdf(db_engine):
         assert eligible.fetchone() is not None  # no-title 未巡检 PDF 资格通过（命名门控不再拦截）
 
 
+async def test_select_next_pending_doc_excludes_deleted_doc(db_engine):
+    """回归：``status='deleted'`` 的 PDF 即便 patrol_status NULL 也不入选（源 blob 可能已随删除清除）。
+
+    复现并锁死「选中已删除文档 → Blob not found → 整 tick failed 卡死队列」根因——selector 须
+    ``status = 'active'`` 门控（对齐全仓文档查询约定）。测试库累积，故断言「该 deleted doc 不满足
+    selector 资格谓词」。
+    """
+    doc_id = await _seed_pdf_document(db_engine, original_filename="patrol-deleted.pdf")
+    factory = _sf(db_engine)
+    async with factory() as db:
+        await db.execute(
+            text("UPDATE negentropy.knowledge_documents SET status='deleted' WHERE id=:d"),
+            {"d": doc_id},
+        )
+        await db.commit()
+    async with factory() as db:
+        eligible = await db.execute(
+            text(
+                "SELECT 1 FROM negentropy.knowledge_documents "
+                "WHERE id = :d AND status = 'active' "
+                "  AND app_name = :app AND COALESCE(content_type,'') ILIKE '%pdf%' "
+                "  AND markdown_extract_status = 'completed' AND patrol_status IS NULL "
+                "  AND NOT EXISTS (SELECT 1 FROM negentropy.routines r "
+                "    WHERE r.config->>'patrol'='true' "
+                "      AND r.config->>'doc_id'=knowledge_documents.id::text "
+                "      AND r.status<>'cancelled')"
+            ),
+            {"d": doc_id, "app": settings.app_name},
+        )
+        assert eligible.fetchone() is None  # deleted → status='active' 门控排除
+
+
+# ---------------------------------------------------------------------------
+# Fix 3 活性韧性：源 blob 永久丢失 → source_unavailable 终态 + ok；瞬态 → failed 重试
+# ---------------------------------------------------------------------------
+
+
+async def test_handle_stage_source_failure_marks_unavailable_on_blob_not_found(db_engine, monkeypatch):
+    """Fix 3 行为：源 blob 永久丢失（StorageError「Blob not found」）→ 标记 source_unavailable + ok。
+
+    文档由此被 selector（patrol_status IS NULL）排除，不再每 tick 重选卡死队列；本 tick 优雅 ok
+    （不累加 consecutive_failures、不触发任务禁用）。
+
+    注：``_handle_stage_source_failure`` 内部用模块级 ``AsyncSessionLocal``（import 时绑定生产
+    factory，``patch_db_globals`` autouse 仅改 ``db_session``/``db_deps`` 不及 ``patrol``），故此处显式
+    patch 到测试引擎工厂（参见 memory ``service-asyncsessionlocal-ci-cross-loop``）。
+    """
+    from negentropy.storage import StorageError
+
+    monkeypatch.setattr(patrol, "AsyncSessionLocal", _sf(db_engine))
+    doc_id = await _seed_pdf_document(db_engine, original_filename="patrol-blob-missing.pdf")
+    result = await patrol._handle_stage_source_failure(
+        doc_id=str(doc_id),
+        exc=StorageError("Blob not found: pgblob://knowledge/negentropy/library/x.pdf"),
+    )
+    assert result.status == "ok"
+    assert result.metrics["reason"] == "stage_source_pdf_unavailable"
+    assert result.metrics["doc_id"] == str(doc_id)
+    factory = _sf(db_engine)
+    async with factory() as db:
+        row = await db.execute(
+            text("SELECT patrol_status FROM negentropy.knowledge_documents WHERE id=:d"),
+            {"d": doc_id},
+        )
+        assert row.fetchone()[0] == "source_unavailable"  # 终态标记 → selector 即排除
+
+
+async def test_handle_stage_source_failure_fails_on_transient_error(db_engine):
+    """Fix 3 行为：瞬态 StorageError（如 DB 抖动 ``Failed to download``）→ 维持 failed，不永久标记。
+
+    doc 的 patrol_status 保持原状（未巡检 NULL），下一 tick 可重试——避免误杀可恢复故障。
+    """
+    from negentropy.storage import StorageError
+
+    doc_id = await _seed_pdf_document(db_engine, original_filename="patrol-transient.pdf")
+    result = await patrol._handle_stage_source_failure(
+        doc_id=str(doc_id),
+        exc=StorageError("Failed to download blob pgblob://x: connection reset"),
+    )
+    assert result.status == "failed"
+    assert result.metrics["reason"] == "stage_source_pdf_failed"
+    factory = _sf(db_engine)
+    async with factory() as db:
+        row = await db.execute(
+            text("SELECT patrol_status FROM negentropy.knowledge_documents WHERE id=:d"),
+            {"d": doc_id},
+        )
+        assert row.fetchone()[0] is None  # 未永久标记，保持未巡检可重试
+
+
 # ---------------------------------------------------------------------------
 # 巡检态 SSOT 列（knowledge_documents.patrol_status）+ 「重置为未拟合」API
 # ---------------------------------------------------------------------------
