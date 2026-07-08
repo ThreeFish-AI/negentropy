@@ -752,6 +752,10 @@ def _build_document_response(
         markdown_extract_error=doc.markdown_extract_error,
         archived=archived,
         metadata=doc.metadata_ or {},
+        patrol_status=getattr(doc, "patrol_status", None),
+        patrol_score=getattr(doc, "patrol_score", None),
+        patrol_routine_id=getattr(doc, "patrol_routine_id", None),
+        patrol_updated_at=(doc.patrol_updated_at.isoformat() if getattr(doc, "patrol_updated_at", None) else None),
     )
 
 

@@ -727,6 +727,84 @@ class DocumentStorageService:
             )
             return doc
 
+    async def reset_patrol_status(
+        self,
+        *,
+        document_id: UUID,
+        corpus_id: UUID | None = None,
+        app_name: str | None = None,
+    ) -> KnowledgeDocument | None:
+        """重置文档巡检态为「未巡检」（``patrol_status=NULL``），使其可被 Scheduler 二次巡检。
+
+        - 与 :meth:`get_document` 一致的 ``corpus_id`` / ``app_name`` 权限校验。
+        - 若该 doc 存在 ``running``/``paused`` 巡检 Routine → 抛 ``ValueError``（路由映射 409，
+          不杀在跑任务；调用方应先取消在跑巡检）。
+        - 取消该 doc 的非 cancelled 终态 Routine（``succeeded``/``failed``），解除 selector
+          ``NOT EXISTS`` 门——否则重置后仍被挡、无法被重新选中（关键约束）。取消范式镜像
+          ``_collapse_superseded_patrols``：置 ``outcome_propagated=true`` 防聚合态回写污染。
+        - 清 ``patrol_status``/``patrol_score``/``patrol_routine_id`` 列 + 清 Memory
+          ``TAG_STATUS``/``TAG_UNFIXABLE``（区域级避让一并解除，二次巡检重试这些区域）。
+
+        Returns:
+            更新后的 ``KnowledgeDocument``；若文档不存在或权限不匹配返回 ``None``
+        """
+        from negentropy.engine.routine.patrol_memory import PatrolMemoryStore
+
+        doc_id_str = str(document_id)
+        async with AsyncSessionLocal() as db:
+            conditions = [KnowledgeDocument.id == document_id]
+            if corpus_id:
+                conditions.append(KnowledgeDocument.corpus_id == corpus_id)
+            if app_name:
+                conditions.append(KnowledgeDocument.app_name == app_name)
+
+            stmt = select(KnowledgeDocument).where(*conditions)
+            result = await db.execute(stmt)
+            doc = result.scalar_one_or_none()
+            if not doc:
+                return None
+
+            # 1) running/paused 在跑 → 拒绝（不杀在跑任务）
+            running = await db.execute(
+                text(
+                    "SELECT 1 FROM negentropy.routines "
+                    "WHERE config->>'patrol' = 'true' AND config->>'doc_id' = :doc "
+                    "AND status IN ('running', 'paused') LIMIT 1"
+                ).bindparams(doc=doc_id_str)
+            )
+            if running.fetchone():
+                raise ValueError("patrol routine in progress; cancel it before reset")
+
+            # 2) 取消非 cancelled 终态 Routine（解除 selector NOT EXISTS 门），幂等
+            await db.execute(
+                text(
+                    "UPDATE negentropy.routines "
+                    "SET status = 'cancelled', termination_reason = 'patrol_reset', "
+                    "    config = COALESCE(config, '{}'::jsonb) "
+                    "      || jsonb_build_object('outcome_propagated', true) "
+                    "WHERE config->>'patrol' = 'true' AND config->>'doc_id' = :doc "
+                    "AND status IN ('succeeded', 'failed')"
+                ).bindparams(doc=doc_id_str)
+            )
+
+            # 3) 清巡检态列（SSOT）
+            await db.execute(
+                text(
+                    f"UPDATE {NEGENTROPY_SCHEMA}.knowledge_documents "
+                    "SET patrol_status = NULL, patrol_score = NULL, "
+                    "    patrol_routine_id = NULL, patrol_updated_at = NOW() "
+                    "WHERE id = :did"
+                ).bindparams(did=document_id)
+            )
+
+            # 4) 清 Memory TAG_STATUS + TAG_UNFIXABLE（区域级避让）
+            await PatrolMemoryStore(db).clear_doc_legacy_memories(doc_id_str)
+
+            await db.commit()
+            await db.refresh(doc)
+            logger.info("document_patrol_reset", doc_id=doc_id_str)
+            return doc
+
     async def delete_blob(self, *, content_uri: str) -> bool:
         """删除任意 blob URI；失败时仅记录日志。"""
         try:
