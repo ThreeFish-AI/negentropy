@@ -15,6 +15,10 @@ import {
 import { slugify } from "@/features/knowledge/utils/wiki-slug";
 import { toast } from "@/lib/activity-toast";
 import { BaseModal } from "@/components/ui/BaseModal";
+import { Field } from "@/components/ui/Field";
+import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
+import { Textarea } from "@/components/ui/Textarea";
 
 interface CreateWikiPublicationDialogProps {
   open: boolean;
@@ -99,52 +103,45 @@ export function CreateWikiPublicationDialog({
       }
     >
       <div className="space-y-3">
-        <div>
-          <label className="block text-xs font-medium text-muted-foreground mb-1">名称 *</label>
-          <input
+        <Field label="名称" required>
+          <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="例如：工程 Wiki"
-            className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-muted-foreground mb-1">Slug *</label>
-          <input
+        </Field>
+        <Field
+          label="Slug"
+          required
+          description={<>作为站点 URL 前缀，例如 /{slug || "engineering"}/...</>}
+        >
+          <Input
             value={slug}
             onChange={(e) => {
               setSlugEdited(true);
               setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"));
             }}
             placeholder="engineering"
-            className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
-          <p className="mt-1 text-caption text-muted-foreground">
-            作为站点 URL 前缀，例如 /{slug || "engineering"}/...
-          </p>
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-muted-foreground mb-1">描述</label>
-          <textarea
+        </Field>
+        <Field label="描述">
+          <Textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="简要说明本发布的目标受众与内容范围"
             rows={2}
-            className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-muted-foreground mb-1">主题</label>
-          <select
+        </Field>
+        <Field label="主题">
+          <Select
             value={theme}
             onChange={(e) => setTheme(e.target.value as WikiTheme)}
-            className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm focus:outline-none"
           >
             <option value="default">默认</option>
             <option value="book">图书（Book）</option>
             <option value="docs">文档（Docs）</option>
-          </select>
-        </div>
+          </Select>
+        </Field>
       </div>
     </BaseModal>
   );

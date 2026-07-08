@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 
 import { TextTooltip } from "@/components/ui/TextTooltip";
+import { TruncatedCell } from "@/components/ui/TruncatedCell";
 
 import type { DashboardFilters, ScheduledTaskDTO } from "../_lib/types";
 
@@ -127,16 +128,8 @@ export function TaskTable({ tasks, filters, onSelect }: TaskTableProps) {
                       </TextTooltip>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-text-secondary">
-                    <TextTooltip content={t.handler_kind}>
-                      <span className="block truncate">{t.handler_kind}</span>
-                    </TextTooltip>
-                  </td>
-                  <td className="px-4 py-3 text-text-secondary">
-                    <TextTooltip content={triggerText(t)}>
-                      <span className="block truncate font-mono text-xs">{triggerText(t)}</span>
-                    </TextTooltip>
-                  </td>
+                  <TruncatedCell text={t.handler_kind} textClassName="text-text-secondary" />
+                  <TruncatedCell text={triggerText(t)} mono textClassName="text-text-secondary" />
                   <td className="px-4 py-3 text-text-secondary">
                     <span className="block truncate">{relativeFromNow(t.last_fire_at)}</span>
                   </td>

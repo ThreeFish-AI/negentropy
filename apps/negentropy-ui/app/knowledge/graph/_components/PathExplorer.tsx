@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { Field } from "@/components/ui/Field";
+import { Select } from "@/components/ui/Select";
 import {
   type GraphEntityItem,
   fetchGraphEntities,
@@ -59,14 +61,10 @@ export function PathExplorer({ corpusId, onPathFound }: PathExplorerProps) {
   return (
     <div className="space-y-3">
       <div className="space-y-2">
-        <div>
-          <label className="block text-micro font-medium text-text-muted mb-0.5">
-            起始实体
-          </label>
-          <select
+        <Field label="起始实体">
+          <Select
             value={sourceId}
             onChange={(e) => setSourceId(e.target.value)}
-            className="w-full rounded-lg border border-input bg-background px-2 py-1.5 text-xs text-foreground"
           >
             <option value="">选择起始实体...</option>
             {entities.map((e) => (
@@ -74,16 +72,12 @@ export function PathExplorer({ corpusId, onPathFound }: PathExplorerProps) {
                 {e.name} ({e.entity_type})
               </option>
             ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-micro font-medium text-text-muted mb-0.5">
-            目标实体
-          </label>
-          <select
+          </Select>
+        </Field>
+        <Field label="目标实体">
+          <Select
             value={targetId}
             onChange={(e) => setTargetId(e.target.value)}
-            className="w-full rounded-lg border border-input bg-background px-2 py-1.5 text-xs text-foreground"
           >
             <option value="">选择目标实体...</option>
             {entities.map((e) => (
@@ -91,8 +85,8 @@ export function PathExplorer({ corpusId, onPathFound }: PathExplorerProps) {
                 {e.name} ({e.entity_type})
               </option>
             ))}
-          </select>
-        </div>
+          </Select>
+        </Field>
       </div>
 
       <button

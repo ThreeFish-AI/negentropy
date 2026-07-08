@@ -4,9 +4,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, ExternalLink, RotateCcw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { BaseDrawer } from "@/components/ui/BaseDrawer";
 import { Button } from "@/components/ui/Button";
 import { ErrorBanner } from "@/components/ui/ErrorState";
-import { BaseDrawer } from "@/components/ui/BaseDrawer";
+import { Field, InlineField } from "@/components/ui/Field";
+import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
+import { Textarea } from "@/components/ui/Textarea";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import { cn } from "@/lib/utils";
 import { createRoutine, updateRoutine } from "@/features/routine";
@@ -623,21 +627,6 @@ export function RoutineEditDrawer({
       : undefined;
   const sourceTaskKeyStr = typeof sourceTaskKey === "string" ? sourceTaskKey : null;
 
-  /* ── 样式常量 ── */
-  const inputCls =
-    "w-full rounded-control border border-border bg-input px-3 py-2 text-sm text-foreground placeholder:text-text-muted focus:border-border focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-60";
-  const labelCls = "mb-1 block text-xs font-medium text-text-secondary";
-  const labelInlineCls = "shrink-0 whitespace-nowrap text-xs font-medium text-text-secondary";
-  const reqMark = <span className="text-red-500"> *</span>;
-
-  // 字段级错误渲染助手（普通函数，非组件 —— 避免 render 期创建组件丢失状态）。
-  const renderFieldError = (name: string) =>
-    fieldErrors[name] ? (
-      <p role="alert" className="mt-0.5 text-xs text-red-500">
-        {fieldErrors[name]}
-      </p>
-    ) : null;
-
   return (
     <>
       <BaseDrawer
@@ -802,75 +791,81 @@ export function RoutineEditDrawer({
             {error && <ErrorBanner message={error} />}
 
             {/* ── Identity ── */}
-            <div>
-              <label className={labelCls}>Name{reqMark}</label>
-              <input
+            <Field label="Name" required error={fieldErrors.title}>
+              <Input
                 type="text"
                 value={form.title}
                 onChange={(e) => updateName(e.target.value)}
                 disabled={isFieldDisabled("title")}
                 placeholder="My routine"
-                className={cn(inputCls, fieldErrors.title && "border-red-400")}
+                className={fieldErrors.title ? "border-error focus:ring-error/60" : undefined}
               />
-              {renderFieldError("title")}
-              {/* Key: editable for create/builtin, muted text for edit */}
-              {(op === "create" || isBuiltinTemplate) ? (
-                <div className="mt-1.5">
-                  <label className={labelCls}>Key{reqMark}</label>
-                  <input
-                    type="text"
-                    value={form.key}
-                    onChange={(e) => update("key", e.target.value)}
-                    disabled={isFieldDisabled("key")}
-                    placeholder="unique_key"
-                    className={cn(inputCls, "font-mono text-xs", fieldErrors.key && "border-red-400")}
-                  />
-                  {renderFieldError("key")}
-                  {isBuiltinTemplate && !fieldErrors.key && (
-                    <p className="mt-0.5 text-xs text-text-secondary">Saved as a new template — pick a unique key.</p>
+            </Field>
+            {/* Key: editable for create/builtin, muted text for edit */}
+            {(op === "create" || isBuiltinTemplate) ? (
+              <Field
+                label="Key"
+                required
+                error={fieldErrors.key}
+                description={
+                  isBuiltinTemplate && !fieldErrors.key
+                    ? "Saved as a new template — pick a unique key."
+                    : undefined
+                }
+              >
+                <Input
+                  type="text"
+                  value={form.key}
+                  onChange={(e) => update("key", e.target.value)}
+                  disabled={isFieldDisabled("key")}
+                  placeholder="unique_key"
+                  className={cn(
+                    "font-mono text-xs",
+                    fieldErrors.key ? "border-error focus:ring-error/60" : undefined,
                   )}
-                </div>
-              ) : (
-                <p className="mt-1 text-xs font-mono text-text-secondary">key: {form.key}</p>
-              )}
-            </div>
+                />
+              </Field>
+            ) : (
+              <Field label="Key">
+                <p className="text-xs font-mono text-text-secondary">key: {form.key}</p>
+              </Field>
+            )}
 
             {/* ── Objective（视觉重心）── */}
-            <div>
-              <label className={labelCls}>Goal{!isFieldDisabled("goal") && reqMark}</label>
-              <textarea
+            <Field label="Goal" required={!isFieldDisabled("goal")} error={fieldErrors.goal}>
+              <Textarea
                 value={form.goal}
                 onChange={(e) => update("goal", e.target.value)}
                 disabled={isFieldDisabled("goal")}
                 rows={6}
                 placeholder="What should Claude Code accomplish?"
-                className={cn(inputCls, "resize-y", fieldErrors.goal && "border-red-400")}
               />
-              {renderFieldError("goal")}
-            </div>
-            <div>
-              <label className={labelCls}>Acceptance Criteria{!isFieldDisabled("acceptance_criteria") && reqMark}</label>
-              <textarea
+            </Field>
+            <Field
+              label="Acceptance Criteria"
+              required={!isFieldDisabled("acceptance_criteria")}
+              error={fieldErrors.acceptance_criteria}
+            >
+              <Textarea
                 value={form.acceptance_criteria}
                 onChange={(e) => update("acceptance_criteria", e.target.value)}
                 disabled={isFieldDisabled("acceptance_criteria")}
                 rows={4}
                 placeholder="How do you judge success?"
-                className={cn(inputCls, "resize-y", fieldErrors.acceptance_criteria && "border-red-400")}
               />
-              {renderFieldError("acceptance_criteria")}
-            </div>
+            </Field>
 
             {/* ── Execution Context（仅 routine entity）── */}
             {entity === "routine" && (
               <>
-                <div>
-                  <label className={labelCls}>Repository</label>
-                  <select
+                <Field
+                  label="Repository"
+                  description="选择已注册的 Repository 以自动派生 Project Path 与 Baseline Branch；或选 Manual 手动填写。"
+                >
+                  <Select
                     value={form.repository_id}
                     onChange={(e) => onPickRepository(e.target.value)}
                     disabled={isFieldDisabled("cwd")}
-                    className={inputCls}
                   >
                     <option value="">— Manual (enter path &amp; branch below) —</option>
                     {repos.map((r) => (
@@ -881,98 +876,97 @@ export function RoutineEditDrawer({
                     {repoLinked && !selectedRepo && (
                       <option value={form.repository_id}>(repository unavailable — switch to Manual)</option>
                     )}
-                  </select>
-                  <p className="mt-1 text-caption text-text-secondary">
-                    选择已注册的 Repository 以自动派生 Project Path 与 Baseline Branch；或选 Manual 手动填写。
-                  </p>
-                </div>
+                  </Select>
+                </Field>
 
                 {repoLinked ? (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className={labelCls}>Project Path</label>
-                      <input
+                  <>
+                    <Field label="Project Path">
+                      <Input
                         type="text"
                         value={selectedRepo?.local_path ?? ""}
                         disabled
                         readOnly
                         placeholder="（仓库信息加载中或不可用）"
-                        className={cn(inputCls, "opacity-70")}
+                        className="opacity-70"
                       />
-                    </div>
-                    <div>
-                      <label className={labelCls}>Baseline Branch</label>
-                      <input
+                    </Field>
+                    <Field label="Baseline Branch">
+                      <Input
                         type="text"
                         value={selectedRepo?.baseline_branch ?? ""}
                         disabled
                         readOnly
                         placeholder="（仓库信息加载中或不可用）"
-                        className={cn(inputCls, "opacity-70")}
+                        className="opacity-70"
                       />
-                    </div>
-                  </div>
+                    </Field>
+                  </>
                 ) : (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className={labelCls}>Project Path{requireWorktree && !isFieldDisabled("cwd") && reqMark}</label>
-                      <input
+                  <>
+                    <Field
+                      label="Project Path"
+                      required={requireWorktree && !isFieldDisabled("cwd")}
+                      error={fieldErrors.cwd}
+                    >
+                      <Input
                         type="text"
                         value={form.cwd}
                         onChange={(e) => update("cwd", e.target.value)}
                         disabled={isFieldDisabled("cwd")}
                         placeholder="/path/to/repo"
-                        className={cn(inputCls, fieldErrors.cwd && "border-red-400")}
+                        className={fieldErrors.cwd ? "border-error focus:ring-error/60" : undefined}
                       />
-                      {renderFieldError("cwd")}
-                    </div>
-                    <div>
-                      <label className={labelCls}>Baseline Branch{requireWorktree && !isFieldDisabled("baseline_branch") && reqMark}</label>
-                      <input
+                    </Field>
+                    <Field
+                      label="Baseline Branch"
+                      required={requireWorktree && !isFieldDisabled("baseline_branch")}
+                      error={fieldErrors.baseline_branch}
+                    >
+                      <Input
                         type="text"
                         value={form.baseline_branch}
                         onChange={(e) => update("baseline_branch", e.target.value)}
                         disabled={isFieldDisabled("baseline_branch")}
                         placeholder="e.g. origin/feature/1.x.x"
-                        className={cn(inputCls, fieldErrors.baseline_branch && "border-red-400")}
+                        className={fieldErrors.baseline_branch ? "border-error focus:ring-error/60" : undefined}
                       />
-                      {renderFieldError("baseline_branch")}
-                    </div>
-                  </div>
+                    </Field>
+                  </>
                 )}
-                <div>
-                  <label className={labelCls}>Additional Dirs</label>
-                  <input
+                <Field
+                  label="Additional Dirs"
+                  description={
+                    <>
+                      额外授予 Claude Code 只读访问的目录（逗号分隔），映射到{" "}
+                      <code className="text-xs">--add-dir</code>。仅 Project Worktree 可写，这些目录均为只读。
+                    </>
+                  }
+                >
+                  <Input
                     type="text"
                     value={form.read_dirs}
                     onChange={(e) => update("read_dirs", e.target.value)}
                     disabled={isFieldDisabled("read_dirs")}
                     placeholder="/path/to/other/repo, /path/to/docs"
-                    className={inputCls}
                   />
-                  <p className="mt-1 text-caption text-text-secondary">
-                    额外授予 Claude Code 只读访问的目录（逗号分隔），映射到 <code className="text-xs">--add-dir</code>。仅 Project
-                    Worktree 可写，这些目录均为只读。
-                  </p>
-                </div>
+                </Field>
               </>
             )}
 
             {/* ── Verification ── */}
-            <div>
-              <label className={labelCls}>Verification Command</label>
-              <input
+            <Field
+              label="Verification Command"
+              description="Test-driven gate — a non-zero exit code caps the score, mitigating LLM-judge bias."
+            >
+              <Input
                 type="text"
                 value={form.verification_command}
                 onChange={(e) => update("verification_command", e.target.value)}
                 disabled={isFieldDisabled("verification_command")}
                 placeholder="e.g. uv run pytest -q"
-                className={inputCls}
               />
-              <p className="mt-1 text-caption text-text-secondary">
-                Test-driven gate — a non-zero exit code caps the score, mitigating LLM-judge bias.
-              </p>
-            </div>
+            </Field>
 
             {/* ── Advanced Settings（统一折叠区）── */}
             <section>
@@ -995,66 +989,55 @@ export function RoutineEditDrawer({
                   <div>
                     <h4 className="mb-2 text-xs font-medium text-text-secondary">Budget &amp; Approval</h4>
                     <div className="grid grid-cols-3 gap-x-4 gap-y-2">
-                      <div className="flex items-center gap-2">
-                        <label className={labelInlineCls}>Max Iterations</label>
-                        <input
+                      <InlineField label="Max Iterations">
+                        <Input
                           type="number"
                           min={1}
                           value={form.max_iterations}
                           onChange={(e) => update("max_iterations", e.target.value)}
                           disabled={isFieldDisabled("max_iterations")}
-                          className={cn(inputCls, "min-w-0 flex-1")}
                         />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <label className={labelInlineCls}>Max Cost (USD)</label>
-                        <input
+                      </InlineField>
+                      <InlineField label="Max Cost (USD)">
+                        <Input
                           type="number"
                           min={0}
                           step="0.5"
                           value={form.max_cost_usd}
                           onChange={(e) => update("max_cost_usd", e.target.value)}
                           disabled={isFieldDisabled("max_cost_usd")}
-                          className={cn(inputCls, "min-w-0 flex-1")}
                         />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <label className={labelInlineCls}>Score Threshold</label>
-                        <input
+                      </InlineField>
+                      <InlineField label="Score Threshold">
+                        <Input
                           type="number"
                           min={0}
                           max={100}
                           value={form.success_score_threshold}
                           onChange={(e) => update("success_score_threshold", e.target.value)}
                           disabled={isFieldDisabled("success_score_threshold")}
-                          className={cn(inputCls, "min-w-0 flex-1")}
                         />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <label className={labelInlineCls}>No-Progress Limit</label>
-                        <input
+                      </InlineField>
+                      <InlineField label="No-Progress Limit">
+                        <Input
                           type="number"
                           min={1}
                           value={form.no_progress_patience}
                           onChange={(e) => update("no_progress_patience", e.target.value)}
                           disabled={isFieldDisabled("no_progress_patience")}
-                          className={cn(inputCls, "min-w-0 flex-1")}
                         />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <label className={labelInlineCls}>Max Turns / Iter.</label>
-                        <input
+                      </InlineField>
+                      <InlineField label="Max Turns / Iter.">
+                        <Input
                           type="number"
                           min={1}
                           value={form.max_turns}
                           onChange={(e) => update("max_turns", e.target.value)}
                           disabled={isFieldDisabled("max_turns")}
-                          className={cn(inputCls, "min-w-0 flex-1")}
                         />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <label className={labelInlineCls}>Max Events / Iter.</label>
-                        <input
+                      </InlineField>
+                      <InlineField label="Max Events / Iter.">
+                        <Input
                           type="number"
                           min={100}
                           max={100000}
@@ -1062,12 +1045,10 @@ export function RoutineEditDrawer({
                           onChange={(e) => update("max_events_per_iter", e.target.value)}
                           disabled={isFieldDisabled("max_events_per_iter")}
                           placeholder="5000"
-                          className={cn(inputCls, "min-w-0 flex-1")}
                         />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <label className={labelInlineCls}>Timeout</label>
-                        <input
+                      </InlineField>
+                      <InlineField label="Timeout">
+                        <Input
                           type="number"
                           min={300}
                           max={86400}
@@ -1075,144 +1056,126 @@ export function RoutineEditDrawer({
                           onChange={(e) => update("timeout_seconds", e.target.value)}
                           disabled={isFieldDisabled("timeout_seconds")}
                           placeholder="10800"
-                          className={cn(inputCls, "min-w-0 flex-1")}
                         />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <label className={labelInlineCls}>Deadline</label>
-                        <input
+                      </InlineField>
+                      <InlineField label="Deadline">
+                        <Input
                           type="datetime-local"
                           value={form.deadline_at}
                           onChange={(e) => update("deadline_at", e.target.value)}
                           disabled={isFieldDisabled("deadline_at")}
-                          className={cn(inputCls, "min-w-0 flex-1")}
                         />
-                      </div>
+                      </InlineField>
                     </div>
-                    <div className="mt-3 flex items-start gap-2">
-                      <label className={cn(labelInlineCls, "pt-2")}>Approval Mode</label>
-                      <div className="min-w-0 flex-1">
-                        <select
-                          value={form.approval_mode}
-                          onChange={(e) => update("approval_mode", e.target.value as ApprovalMode)}
-                          disabled={isFieldDisabled("approval_mode")}
-                          className={inputCls}
-                        >
-                          {APPROVAL_OPTIONS.map((o) => (
-                            <option key={o.value} value={o.value}>
-                              {o.label}
-                            </option>
-                          ))}
-                        </select>
-                        <p className="mt-1 text-caption text-text-secondary">{APPROVAL_HELP[form.approval_mode]}</p>
-                      </div>
-                    </div>
+                    <Field
+                      className="mt-3"
+                      label="Approval Mode"
+                      description={APPROVAL_HELP[form.approval_mode]}
+                    >
+                      <Select
+                        value={form.approval_mode}
+                        onChange={(e) => update("approval_mode", e.target.value as ApprovalMode)}
+                        disabled={isFieldDisabled("approval_mode")}
+                      >
+                        {APPROVAL_OPTIONS.map((o) => (
+                          <option key={o.value} value={o.value}>
+                            {o.label}
+                          </option>
+                        ))}
+                      </Select>
+                    </Field>
                   </div>
 
                   {/* Description */}
                   <div className="border-t border-border pt-3">
-                    <label className={labelCls}>Description</label>
-                    <textarea
-                      value={form.description}
-                      onChange={(e) => update("description", e.target.value)}
-                      disabled={isFieldDisabled("description")}
-                      rows={2}
-                      placeholder="Short summary of what this does"
-                      className={cn(inputCls, "resize-y")}
-                    />
+                    <Field label="Description">
+                      <Textarea
+                        value={form.description}
+                        onChange={(e) => update("description", e.target.value)}
+                        disabled={isFieldDisabled("description")}
+                        rows={2}
+                        placeholder="Short summary of what this does"
+                      />
+                    </Field>
                   </div>
 
                   {/* Template Metadata（仅 template entity）*/}
                   {entity === "template" && (
-                    <div className="border-t border-border pt-3">
-                      <h4 className="mb-2 text-xs font-medium text-text-secondary">Template Metadata</h4>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className={labelCls}>Category</label>
-                          <select
-                            value={form.category}
-                            onChange={(e) => update("category", e.target.value)}
-                            disabled={isFieldDisabled("category")}
-                            className={inputCls}
-                          >
-                            {CATEGORY_OPTIONS.map((o) => (
-                              <option key={o.value} value={o.value}>
-                                {o.label}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div>
-                          <label className={labelCls}>Version</label>
-                          <input
-                            type="text"
-                            value={form.version}
-                            onChange={(e) => update("version", e.target.value)}
-                            disabled={isFieldDisabled("version")}
-                            placeholder="1.0.0"
-                            className={inputCls}
-                          />
-                        </div>
-                      </div>
-                      <div className="mt-2">
-                        <label className={labelCls}>Features</label>
-                        <input
+                    <div className="space-y-3 border-t border-border pt-3">
+                      <h4 className="text-xs font-medium text-text-secondary">Template Metadata</h4>
+                      <Field label="Category">
+                        <Select
+                          value={form.category}
+                          onChange={(e) => update("category", e.target.value)}
+                          disabled={isFieldDisabled("category")}
+                        >
+                          {CATEGORY_OPTIONS.map((o) => (
+                            <option key={o.value} value={o.value}>
+                              {o.label}
+                            </option>
+                          ))}
+                        </Select>
+                      </Field>
+                      <Field label="Version">
+                        <Input
+                          type="text"
+                          value={form.version}
+                          onChange={(e) => update("version", e.target.value)}
+                          disabled={isFieldDisabled("version")}
+                          placeholder="1.0.0"
+                        />
+                      </Field>
+                      <Field
+                        label="Features"
+                        description="Feature tags shown on the template card (comma-separated)."
+                      >
+                        <Input
                           type="text"
                           value={form.features_showcase}
                           onChange={(e) => update("features_showcase", e.target.value)}
                           disabled={isFieldDisabled("features_showcase")}
                           placeholder="feature 1, feature 2, feature 3"
-                          className={inputCls}
                         />
-                        <p className="mt-1 text-caption text-text-secondary">
-                          Feature tags shown on the template card (comma-separated).
-                        </p>
-                      </div>
+                      </Field>
                     </div>
                   )}
 
                   {/* Claude Code Config */}
-                  <div className="border-t border-border pt-3">
-                      <h4 className="mb-2 text-xs font-medium text-text-secondary">Claude Code Config</h4>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="flex items-center gap-2">
-                          <label className={labelInlineCls}>Model</label>
-                          <input
-                            type="text"
-                            value={form.model}
-                            onChange={(e) => update("model", e.target.value)}
-                            disabled={isFieldDisabled("model")}
-                            placeholder="inherit global config"
-                            className={cn(inputCls, "min-w-0 flex-1")}
-                          />
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <label className={labelInlineCls}>Permission Mode</label>
-                          <select
-                            value={form.permission_mode}
-                            onChange={(e) => update("permission_mode", e.target.value)}
-                            disabled={isFieldDisabled("permission_mode")}
-                            className={cn(inputCls, "min-w-0 flex-1")}
-                          >
-                            <option value="">default</option>
-                            <option value="auto">auto</option>
-                            <option value="ask">ask</option>
-                            <option value="plan">plan</option>
-                          </select>
-                        </div>
-                      </div>
-                      <div className="mt-2 flex items-center gap-2">
-                        <label className={labelInlineCls}>Allowed Tools</label>
-                        <input
+                  <div className="space-y-2 border-t border-border pt-3">
+                    <h4 className="text-xs font-medium text-text-secondary">Claude Code Config</h4>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                      <InlineField label="Model">
+                        <Input
                           type="text"
-                          value={form.allowed_tools}
-                          onChange={(e) => update("allowed_tools", e.target.value)}
-                          disabled={isFieldDisabled("allowed_tools")}
-                          placeholder="Bash, Read, Write, Edit, Glob, Grep"
-                          className={cn(inputCls, "min-w-0 flex-1")}
+                          value={form.model}
+                          onChange={(e) => update("model", e.target.value)}
+                          disabled={isFieldDisabled("model")}
+                          placeholder="inherit global config"
                         />
-                      </div>
+                      </InlineField>
+                      <InlineField label="Permission Mode">
+                        <Select
+                          value={form.permission_mode}
+                          onChange={(e) => update("permission_mode", e.target.value)}
+                          disabled={isFieldDisabled("permission_mode")}
+                        >
+                          <option value="">default</option>
+                          <option value="auto">auto</option>
+                          <option value="ask">ask</option>
+                          <option value="plan">plan</option>
+                        </Select>
+                      </InlineField>
                     </div>
+                    <InlineField label="Allowed Tools">
+                      <Input
+                        type="text"
+                        value={form.allowed_tools}
+                        onChange={(e) => update("allowed_tools", e.target.value)}
+                        disabled={isFieldDisabled("allowed_tools")}
+                        placeholder="Bash, Read, Write, Edit, Glob, Grep"
+                      />
+                    </InlineField>
+                  </div>
                 </div>
               )}
             </section>

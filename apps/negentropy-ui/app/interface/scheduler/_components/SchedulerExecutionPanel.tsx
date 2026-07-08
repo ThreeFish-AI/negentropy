@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { Skeleton } from "@/components/ui/Skeleton";
 import { TextTooltip } from "@/components/ui/TextTooltip";
+import { TruncatedCell } from "@/components/ui/TruncatedCell";
 import type { ExecutionStatus, TaskExecutionDTO } from "@/features/scheduler";
 import { patrolReasonLabel, patrolReasonStyle } from "@/features/scheduler/patrol-reason";
 
@@ -115,11 +116,10 @@ export function SchedulerExecutionPanel({
                 key={e.id}
                 className="border-b border-border/60 transition-colors last:border-0 hover:bg-muted/40"
               >
-                <td className="px-4 py-3 text-muted-foreground">
-                  <TextTooltip content={formatTime(e.started_at)}>
-                    <span className="block truncate">{formatTime(e.started_at)}</span>
-                  </TextTooltip>
-                </td>
+                <TruncatedCell
+                  text={formatTime(e.started_at)}
+                  textClassName="text-muted-foreground"
+                />
                 <td className="px-4 py-3">
                   <span
                     className={`inline-flex items-center rounded-full px-2 py-0.5 text-micro font-semibold ${STATUS_STYLES[e.status]}`}
@@ -127,25 +127,21 @@ export function SchedulerExecutionPanel({
                     {e.status}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-foreground font-medium">
-                  <TextTooltip content={e.task_key ?? "—"}>
-                    <span className="block truncate">{e.task_key ?? "—"}</span>
-                  </TextTooltip>
-                </td>
+                <TruncatedCell
+                  text={e.task_key ?? "—"}
+                  textClassName="text-foreground font-medium"
+                />
                 <td className="px-4 py-3 text-muted-foreground">
                   <span className="block truncate">{formatDuration(e.duration_ms)}</span>
                 </td>
-                <td className="px-4 py-3 text-muted-foreground">
-                  <TextTooltip content={e.fire_reason}>
-                    <span className="block truncate">{e.fire_reason}</span>
-                  </TextTooltip>
-                </td>
-                <td className="px-4 py-3 text-muted-foreground">
-                  {e.error ? (
-                    <TextTooltip content={e.error}>
-                      <span className="block truncate text-red-600 dark:text-red-400">{e.error}</span>
-                    </TextTooltip>
-                  ) : (
+                <TruncatedCell
+                  text={e.fire_reason}
+                  textClassName="text-muted-foreground"
+                />
+                {e.error ? (
+                  <TruncatedCell text={e.error} textClassName="text-red-600 dark:text-red-400" />
+                ) : (
+                  <td className="px-4 py-3 text-muted-foreground">
                     <div className="flex min-w-0 flex-col gap-0.5">
                       <div className="flex min-w-0 items-center gap-1.5">
                         {patrolReasonLabel(e.metrics?.reason) && (
@@ -163,8 +159,8 @@ export function SchedulerExecutionPanel({
                       </div>
                       <SpawnedRoutineLink metrics={e.metrics} />
                     </div>
-                  )}
-                </td>
+                  </td>
+                )}
               </tr>
             ))
           )}

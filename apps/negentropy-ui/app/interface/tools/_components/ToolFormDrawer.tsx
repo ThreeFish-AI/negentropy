@@ -17,6 +17,10 @@ import {
 import { toast } from "sonner";
 import { BaseDrawer } from "@/components/ui/BaseDrawer";
 import { Button } from "@/components/ui/Button";
+import { Field } from "@/components/ui/Field";
+import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
+import { Textarea } from "@/components/ui/Textarea";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 
 interface BuiltinTool {
@@ -212,15 +216,13 @@ export function ToolFormDrawer({
     const max = schema.maximum;
 
     return (
-      <div key={key}>
-        <label className="block text-sm font-medium text-text-secondary mb-1">
-          {schema.title || key}
-          {schema.required && <span className="text-red-500 ml-1">*</span>}
-        </label>
-        {schema.description && (
-          <p className="text-xs text-text-muted mb-1">{schema.description}</p>
-        )}
-        <input
+      <Field
+        key={key}
+        label={schema.title || key}
+        required={schema.required}
+        description={schema.description}
+      >
+        <Input
           type={inputType}
           value={value === undefined || value === null ? String(schema.default ?? "") : String(value)}
           step={step}
@@ -233,9 +235,8 @@ export function ToolFormDrawer({
             }
             onChange(key, val);
           }}
-          className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
         />
-      </div>
+      </Field>
     );
   };
 
@@ -281,98 +282,77 @@ export function ToolFormDrawer({
       >
         <form id={formId} onSubmit={handleSubmit} className="space-y-6 px-5 py-5">
           {/* 基本信息 */}
-          <section className="space-y-4">
+          <section className="space-y-3">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
               Basic Information
             </h3>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {!tool && (
-                <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-text-secondary mb-1">
-                    Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm font-mono text-foreground"
-                    placeholder="e.g. google_search"
-                    required
-                  />
-                </div>
-              )}
-              <div>
-                <label className="block text-sm font-medium text-text-secondary mb-1">
-                  Display Name
-                </label>
-                <input
+            {!tool && (
+              <Field label="Name" required>
+                <Input
                   type="text"
-                  value={formData.display_name}
-                  onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
-                  className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
-                  placeholder="e.g. Google Search"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="font-mono"
+                  placeholder="e.g. google_search"
+                  required
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-text-secondary mb-1">
-                  Tool Type
-                </label>
-                <select
-                  value={formData.tool_type}
-                  onChange={(e) => setFormData({ ...formData, tool_type: e.target.value })}
-                  className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
-                  disabled={!!tool}
-                >
-                  <option value="search">Search</option>
-                  <option value="retrieval">Retrieval</option>
-                  <option value="custom">Custom</option>
-                  <option value="claude_code">Agent</option>
-                </select>
-              </div>
-              <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-text-secondary mb-1">
-                  Description
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
-                  rows={2}
-                  placeholder="Tool description"
-                />
-              </div>
-            </div>
+              </Field>
+            )}
+            <Field label="Display Name">
+              <Input
+                type="text"
+                value={formData.display_name}
+                onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
+                placeholder="e.g. Google Search"
+              />
+            </Field>
+            <Field label="Tool Type">
+              <Select
+                value={formData.tool_type}
+                onChange={(e) => setFormData({ ...formData, tool_type: e.target.value })}
+                disabled={!!tool}
+              >
+                <option value="search">Search</option>
+                <option value="retrieval">Retrieval</option>
+                <option value="custom">Custom</option>
+                <option value="claude_code">Agent</option>
+              </Select>
+            </Field>
+            <Field label="Description">
+              <Textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                rows={2}
+                placeholder="Tool description"
+              />
+            </Field>
           </section>
 
           {/* 凭证字段 */}
           {Object.keys(credentialFieldDefs).length > 0 && (
-            <section className="space-y-4">
+            <section className="space-y-3">
               <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
                 Credentials
               </h3>
-              <div className="grid gap-4 sm:grid-cols-2">
-                {Object.entries(credentialFieldDefs).map(([key, schema]) =>
-                  renderDynamicField(key, schema, credentialFields[key], (k, v) =>
-                    setCredentialFields((prev) => ({ ...prev, [k]: v })),
-                  ),
-                )}
-              </div>
+              {Object.entries(credentialFieldDefs).map(([key, schema]) =>
+                renderDynamicField(key, schema, credentialFields[key], (k, v) =>
+                  setCredentialFields((prev) => ({ ...prev, [k]: v })),
+                ),
+              )}
             </section>
           )}
 
           {/* 配置字段 */}
           {Object.keys(configFieldDefs).length > 0 && (
-            <section className="space-y-4">
+            <section className="space-y-3">
               <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
                 Configuration
               </h3>
-              <div className="grid gap-4 sm:grid-cols-2">
-                {Object.entries(configFieldDefs).map(([key, schema]) =>
-                  renderDynamicField(key, schema, configFields[key], (k, v) =>
-                    setConfigFields((prev) => ({ ...prev, [k]: v })),
-                  ),
-                )}
-              </div>
+              {Object.entries(configFieldDefs).map(([key, schema]) =>
+                renderDynamicField(key, schema, configFields[key], (k, v) =>
+                  setConfigFields((prev) => ({ ...prev, [k]: v })),
+                ),
+              )}
             </section>
           )}
 

@@ -3,7 +3,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/Button";
 import { ErrorBanner } from "@/components/ui/ErrorState";
+import { Field } from "@/components/ui/Field";
+import { Input } from "@/components/ui/Input";
 import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
+import { Select } from "@/components/ui/Select";
+import { Textarea } from "@/components/ui/Textarea";
 import type {
   ScheduledTaskDTO,
   HandlerDescriptor,
@@ -280,9 +284,6 @@ export function SchedulerTaskFormDialog({
 
   if (!open) return null;
 
-  const inputCls =
-    "w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground focus:border-border focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
-  const labelCls = "mb-1 block text-xs font-medium text-text-secondary";
   const sectionTitleCls = "text-micro uppercase tracking-overline text-text-muted mb-2";
 
   return (
@@ -313,36 +314,27 @@ export function SchedulerTaskFormDialog({
             <h3 className={sectionTitleCls}>Basic</h3>
             <div className="space-y-3">
               {isEdit ? (
-                <div>
-                  <label className={labelCls}>Key</label>
-                  <input type="text" value={formData.key} disabled className={inputCls} />
-                  <p className="mt-0.5 text-micro text-text-muted">Key cannot be changed after creation</p>
-                </div>
+                <Field label="Key" description="Key cannot be changed after creation">
+                  <Input type="text" value={formData.key} disabled />
+                </Field>
               ) : (
-                <div>
-                  <label className={labelCls}>
-                    Key <span className="text-red-500">*</span>
-                  </label>
-                  <input
+                <Field label="Key" required error={fieldErrors.key}>
+                  <Input
                     type="text"
                     value={formData.key}
                     onChange={(e) => updateField("key", e.target.value)}
                     placeholder="unique_task_key"
-                    className={`${inputCls} ${fieldErrors.key ? "border-red-400" : ""}`}
+                    className={fieldErrors.key ? "border-error focus:ring-error/60" : undefined}
                   />
-                  {fieldErrors.key && <p className="mt-0.5 text-micro text-red-500">{fieldErrors.key}</p>}
-                </div>
+                </Field>
               )}
 
-              <div>
-                <label className={labelCls}>
-                  Handler <span className="text-red-500">*</span>
-                </label>
-                <select
+              <Field label="Handler" required error={fieldErrors.handler_kind}>
+                <Select
                   value={formData.handler_kind}
                   onChange={(e) => updateField("handler_kind", e.target.value)}
                   disabled={isEdit || loadingHandlers}
-                  className={`${inputCls} ${fieldErrors.handler_kind ? "border-red-400" : ""}`}
+                  className={fieldErrors.handler_kind ? "border-error focus:ring-error/60" : undefined}
                 >
                   <option value="">— Select handler —</option>
                   {handlers.map((h) => (
@@ -350,43 +342,35 @@ export function SchedulerTaskFormDialog({
                       {h.label}
                     </option>
                   ))}
-                </select>
-                {fieldErrors.handler_kind && (
-                  <p className="mt-0.5 text-micro text-red-500">{fieldErrors.handler_kind}</p>
-                )}
-              </div>
+                </Select>
+              </Field>
 
-              <div>
-                <label className={labelCls}>Display Name</label>
-                <input
+              <Field label="Display Name">
+                <Input
                   type="text"
                   value={formData.display_name}
                   onChange={(e) => updateField("display_name", e.target.value)}
                   placeholder="Human-readable name"
-                  className={inputCls}
                 />
-              </div>
+              </Field>
 
-              <div>
-                <label className={labelCls}>Description</label>
-                <textarea
+              <Field label="Description">
+                <Textarea
                   value={formData.description}
                   onChange={(e) => updateField("description", e.target.value)}
                   placeholder="What this task does"
                   rows={2}
-                  className={inputCls}
                 />
-              </div>
+              </Field>
 
-              <label className="flex items-center gap-2">
+              <Field variant="check" label="Enabled">
                 <input
                   type="checkbox"
                   checked={formData.enabled}
                   onChange={(e) => updateField("enabled", e.target.checked)}
                   className="h-4 w-4 rounded border-border"
                 />
-                <span className={labelCls}>Enabled</span>
-              </label>
+              </Field>
             </div>
           </section>
 
@@ -394,58 +378,46 @@ export function SchedulerTaskFormDialog({
           <section>
             <h3 className={sectionTitleCls}>Schedule</h3>
             <div className="space-y-3">
-              <div>
-                <label className={labelCls}>Trigger Type</label>
-                <select
+              <Field label="Trigger Type">
+                <Select
                   value={formData.trigger_type}
                   onChange={(e) => updateField("trigger_type", e.target.value)}
-                  className={inputCls}
                 >
                   {(currentDescriptor?.trigger_types || ["interval", "cron", "oneshot"]).map((t) => (
                     <option key={t} value={t}>
                       {t}
                     </option>
                   ))}
-                </select>
-              </div>
+                </Select>
+              </Field>
               {formData.trigger_type === "interval" && (
-                <div>
-                  <label className={labelCls}>
-                    Interval (seconds) <span className="text-red-500">*</span>
-                  </label>
-                  <input
+                <Field label="Interval (seconds)" required error={fieldErrors.interval_seconds}>
+                  <Input
                     type="number"
                     step="1"
                     min="1"
                     value={formData.interval_seconds}
                     onChange={(e) => updateField("interval_seconds", e.target.value)}
                     placeholder="60"
-                    className={`${inputCls} ${fieldErrors.interval_seconds ? "border-red-400" : ""}`}
+                    className={fieldErrors.interval_seconds ? "border-error focus:ring-error/60" : undefined}
                   />
-                  {fieldErrors.interval_seconds && (
-                    <p className="mt-0.5 text-micro text-red-500">{fieldErrors.interval_seconds}</p>
-                  )}
-                </div>
+                </Field>
               )}
               {formData.trigger_type === "cron" && (
-                <div>
-                  <label className={labelCls}>
-                    Cron Expression <span className="text-red-500">*</span>
-                  </label>
-                  <input
+                <Field
+                  label="Cron Expression"
+                  required
+                  error={fieldErrors.cron_expr}
+                  description="5-field POSIX cron: min hour day month weekday"
+                >
+                  <Input
                     type="text"
                     value={formData.cron_expr}
                     onChange={(e) => updateField("cron_expr", e.target.value)}
                     placeholder="0 * * * *"
-                    className={`${inputCls} font-mono ${fieldErrors.cron_expr ? "border-red-400" : ""}`}
+                    className={`font-mono ${fieldErrors.cron_expr ? "border-error focus:ring-error/60" : ""}`}
                   />
-                  {fieldErrors.cron_expr && (
-                    <p className="mt-0.5 text-micro text-red-500">{fieldErrors.cron_expr}</p>
-                  )}
-                  <p className="mt-0.5 text-micro text-text-muted">
-                    5-field POSIX cron: min hour day month weekday
-                  </p>
-                </div>
+                </Field>
               )}
             </div>
           </section>
@@ -453,61 +425,52 @@ export function SchedulerTaskFormDialog({
           {/* Metadata */}
           <section>
             <h3 className={sectionTitleCls}>Metadata</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={labelCls}>Role</label>
-                <input
+            <div className="space-y-3">
+              <Field label="Role">
+                <Input
                   type="text"
                   value={formData.role}
                   onChange={(e) => updateField("role", e.target.value)}
                   placeholder="e.g. sentinel"
-                  className={inputCls}
                 />
-              </div>
-              <div>
-                <label className={labelCls}>Scenario</label>
-                <input
+              </Field>
+              <Field label="Scenario">
+                <Input
                   type="text"
                   value={formData.scenario}
                   onChange={(e) => updateField("scenario", e.target.value)}
                   placeholder="e.g. maintenance"
-                  className={inputCls}
                 />
-              </div>
-              <div>
-                <label className={labelCls}>Category</label>
-                <input
+              </Field>
+              <Field label="Category">
+                <Input
                   type="text"
                   value={formData.category}
                   onChange={(e) => updateField("category", e.target.value)}
                   placeholder="e.g. maintenance"
-                  className={inputCls}
                 />
-              </div>
-              <div>
-                <label className={labelCls}>Max Concurrency</label>
-                <input
+              </Field>
+              <Field label="Max Concurrency" error={fieldErrors.max_concurrency}>
+                <Input
                   type="number"
                   step="1"
                   min="1"
                   value={formData.max_concurrency}
                   onChange={(e) => updateField("max_concurrency", e.target.value)}
-                  className={`${inputCls} ${fieldErrors.max_concurrency ? "border-red-400" : ""}`}
+                  className={fieldErrors.max_concurrency ? "border-error focus:ring-error/60" : undefined}
                 />
-              </div>
+              </Field>
               {currentDescriptor?.supports_token_budget && (
-                <div>
-                  <label className={labelCls}>Token Budget</label>
-                  <input
+                <Field label="Token Budget">
+                  <Input
                     type="number"
                     step="1"
                     min="0"
                     value={formData.token_budget}
                     onChange={(e) => updateField("token_budget", e.target.value)}
                     placeholder="e.g. 100000"
-                    className={inputCls}
                   />
-                </div>
+                </Field>
               )}
             </div>
           </section>
@@ -569,12 +532,12 @@ export function SchedulerTaskFormDialog({
                 </div>
               ) : (
                 <div>
-                  <textarea
+                  <Textarea
                     value={payloadJsonText}
                     onChange={(e) => setPayloadJsonText(e.target.value)}
                     rows={6}
-                    className={`${inputCls} font-mono text-xs ${
-                      fieldErrors.payloadJson ? "border-red-400" : ""
+                    className={`font-mono text-xs ${
+                      fieldErrors.payloadJson ? "border-error focus:ring-error/60" : ""
                     }`}
                   />
                   {fieldErrors.payloadJson && (
@@ -589,11 +552,11 @@ export function SchedulerTaskFormDialog({
           {(!currentDescriptor || currentDescriptor.payload_fields.length === 0) && !loadingHandlers && formData.handler_kind && (
             <section>
               <h3 className={sectionTitleCls}>Payload (JSON)</h3>
-              <textarea
+              <Textarea
                 value={payloadJsonText}
                 onChange={(e) => setPayloadJsonText(e.target.value)}
                 rows={4}
-                className={`${inputCls} font-mono text-xs`}
+                className="font-mono text-xs"
                 placeholder="{}"
               />
             </section>

@@ -1,5 +1,8 @@
 "use client";
 
+import { Field } from "@/components/ui/Field";
+import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
 import type { PayloadFieldSchema } from "@/features/scheduler";
 
 interface ManifestFieldProps {
@@ -14,15 +17,11 @@ interface ManifestFieldProps {
  * 按 PayloadFieldSchema.type 映射到对应的表单控件。
  */
 export function ManifestField({ field, value, onChange, disabled }: ManifestFieldProps) {
-  const inputCls =
-    "w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground focus:border-border focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
-  const labelCls = "mb-1 block text-xs font-medium text-text-secondary";
-
   const handleChange = (v: unknown) => onChange(field.name, v);
 
   if (field.type === "boolean") {
     return (
-      <label className="flex items-center gap-2 py-1">
+      <Field variant="check" label={field.label} required={field.required}>
         <input
           type="checkbox"
           checked={!!value}
@@ -30,26 +29,17 @@ export function ManifestField({ field, value, onChange, disabled }: ManifestFiel
           disabled={disabled}
           className="h-4 w-4 rounded border-border text-foreground focus:ring-ring"
         />
-        <span className={labelCls}>
-          {field.label}
-          {field.required && <span className="ml-0.5 text-red-500">*</span>}
-        </span>
-      </label>
+      </Field>
     );
   }
 
   if (field.type === "enum" && field.enum_options) {
     return (
-      <div>
-        <label className={labelCls}>
-          {field.label}
-          {field.required && <span className="ml-0.5 text-red-500">*</span>}
-        </label>
-        <select
+      <Field label={field.label} required={field.required} description={field.help_text}>
+        <Select
           value={String(value ?? "")}
           onChange={(e) => handleChange(e.target.value)}
           disabled={disabled}
-          className={inputCls}
         >
           <option value="">—</option>
           {field.enum_options.map((opt) => (
@@ -57,69 +47,55 @@ export function ManifestField({ field, value, onChange, disabled }: ManifestFiel
               {opt}
             </option>
           ))}
-        </select>
-        {field.help_text && (
-          <p className="mt-0.5 text-micro text-text-muted">{field.help_text}</p>
-        )}
-      </div>
+        </Select>
+      </Field>
     );
   }
 
   if (field.type === "integer") {
     return (
-      <div>
-        <label className={labelCls}>
-          {field.label}
-          {field.required && <span className="ml-0.5 text-red-500">*</span>}
-        </label>
-        <input
+      <Field label={field.label} required={field.required}>
+        <Input
           type="number"
           step={1}
           value={value != null ? String(value) : ""}
-          onChange={(e) => handleChange(e.target.value === "" ? null : parseInt(e.target.value, 10))}
+          onChange={(e) =>
+            handleChange(e.target.value === "" ? null : parseInt(e.target.value, 10))
+          }
           disabled={disabled}
           placeholder={field.help_text}
-          className={inputCls}
         />
-      </div>
+      </Field>
     );
   }
 
   if (field.type === "number") {
     return (
-      <div>
-        <label className={labelCls}>
-          {field.label}
-          {field.required && <span className="ml-0.5 text-red-500">*</span>}
-        </label>
-        <input
+      <Field label={field.label} required={field.required}>
+        <Input
           type="number"
           step="any"
           value={value != null ? String(value) : ""}
-          onChange={(e) => handleChange(e.target.value === "" ? null : parseFloat(e.target.value))}
+          onChange={(e) =>
+            handleChange(e.target.value === "" ? null : parseFloat(e.target.value))
+          }
           disabled={disabled}
           placeholder={field.help_text}
-          className={inputCls}
         />
-      </div>
+      </Field>
     );
   }
 
   // default: string
   return (
-    <div>
-      <label className={labelCls}>
-        {field.label}
-        {field.required && <span className="ml-0.5 text-red-500">*</span>}
-      </label>
-      <input
+    <Field label={field.label} required={field.required}>
+      <Input
         type="text"
         value={String(value ?? "")}
         onChange={(e) => handleChange(e.target.value)}
         disabled={disabled}
         placeholder={field.help_text}
-        className={inputCls}
       />
-    </div>
+    </Field>
   );
 }

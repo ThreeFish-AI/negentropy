@@ -14,10 +14,15 @@ import {
   useMemo,
   useRef,
 } from "react";
+import { BaseDrawer } from "@/components/ui/BaseDrawer";
 import { Button } from "@/components/ui/Button";
 import { ErrorBanner } from "@/components/ui/ErrorState";
-import { BaseDrawer } from "@/components/ui/BaseDrawer";
+import { Field } from "@/components/ui/Field";
+import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
+import { Textarea } from "@/components/ui/Textarea";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
+import { cn } from "@/lib/utils";
 
 interface Skill {
   id: string;
@@ -301,154 +306,114 @@ export function SkillFormDrawer({
             </div>
           )}
 
-          <section className="space-y-4">
+          <section className="space-y-3">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
               Basic Information
             </h3>
-            <div className="grid gap-4 lg:grid-cols-2">
-              <div>
-                <label className="mb-1 block text-sm font-medium text-text-secondary">
-                  Name *
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
-                  placeholder="my-skill"
-                  required
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-text-secondary">
-                  Display Name
-                </label>
-                <input
-                  type="text"
-                  value={formData.display_name}
-                  onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
-                  className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
-                  placeholder="My Skill"
-                />
-              </div>
-              <div className="lg:col-span-2">
-                <label className="mb-1 block text-sm font-medium text-text-secondary">
-                  Description
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
-                  rows={2}
-                  placeholder="Description of this skill"
-                />
-              </div>
-            </div>
+            <Field label="Name" required>
+              <Input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="my-skill"
+                required
+              />
+            </Field>
+            <Field label="Display Name">
+              <Input
+                type="text"
+                value={formData.display_name}
+                onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
+                placeholder="My Skill"
+              />
+            </Field>
+            <Field label="Description">
+              <Textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                rows={2}
+                placeholder="Description of this skill"
+              />
+            </Field>
           </section>
 
-          <section className="space-y-4">
+          <section className="space-y-3">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
               Runtime Setup
             </h3>
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-              <div>
-                <label className="mb-1 block text-sm font-medium text-text-secondary">
-                  Category
-                </label>
-                <input
-                  type="text"
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
-                  placeholder="general"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-text-secondary">
-                  Version
-                </label>
-                <input
-                  type="text"
-                  value={formData.version}
-                  onChange={(e) => setFormData({ ...formData, version: e.target.value })}
-                  className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
-                  placeholder="1.0.0"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-text-secondary">
-                  Visibility
-                </label>
-                <select
-                  value={formData.visibility}
-                  onChange={(e) => setFormData({ ...formData, visibility: e.target.value })}
-                  className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
-                >
-                  <option value="private">Private</option>
-                  <option value="shared">Shared</option>
-                  <option value="public">Public</option>
-                </select>
-              </div>
-              <div className="flex items-end">
-                <label className="flex w-full items-center gap-2 rounded-md border border-border px-3 py-2 text-sm text-text-secondary">
-                  <input
-                    type="checkbox"
-                    checked={formData.is_enabled}
-                    onChange={(e) => setFormData({ ...formData, is_enabled: e.target.checked })}
-                    className="rounded border-border"
-                  />
-                  Enabled
-                </label>
-              </div>
-              <div className="flex items-end">
-                <label
-                  className="flex w-full items-center gap-2 rounded-md border border-border px-3 py-2 text-sm text-text-secondary"
-                  title="全局技能：自动注入全系统所有 Agent（一核五翼及未来新增）的 Progressive Disclosure"
-                >
-                  <input
-                    type="checkbox"
-                    data-testid="skills-form-is-global"
-                    checked={formData.is_global}
-                    onChange={(e) => setFormData({ ...formData, is_global: e.target.checked })}
-                    className="rounded border-border"
-                  />
+            <Field label="Category">
+              <Input
+                type="text"
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                placeholder="general"
+              />
+            </Field>
+            <Field label="Version">
+              <Input
+                type="text"
+                value={formData.version}
+                onChange={(e) => setFormData({ ...formData, version: e.target.value })}
+                placeholder="1.0.0"
+              />
+            </Field>
+            <Field label="Visibility">
+              <Select
+                value={formData.visibility}
+                onChange={(e) => setFormData({ ...formData, visibility: e.target.value })}
+              >
+                <option value="private">Private</option>
+                <option value="shared">Shared</option>
+                <option value="public">Public</option>
+              </Select>
+            </Field>
+            <Field variant="check" label="Enabled">
+              <input
+                type="checkbox"
+                checked={formData.is_enabled}
+                onChange={(e) => setFormData({ ...formData, is_enabled: e.target.checked })}
+                className="h-4 w-4"
+              />
+            </Field>
+            <Field
+              variant="check"
+              label={
+                <span title="全局技能：自动注入全系统所有 Agent（一核五翼及未来新增）的 Progressive Disclosure">
                   Global
-                </label>
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-text-secondary">
-                  Priority
-                </label>
-                <input
-                  type="number"
-                  value={formData.priority}
-                  onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) || 0 })}
-                  className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
-                />
-              </div>
-            </div>
+                </span>
+              }
+            >
+              <input
+                type="checkbox"
+                data-testid="skills-form-is-global"
+                checked={formData.is_global}
+                onChange={(e) => setFormData({ ...formData, is_global: e.target.checked })}
+                className="h-4 w-4"
+              />
+            </Field>
+            <Field label="Priority">
+              <Input
+                type="number"
+                value={formData.priority}
+                onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) || 0 })}
+              />
+            </Field>
           </section>
 
-          <section className="space-y-4">
+          <section className="space-y-3">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
               Prompt & Requirements
             </h3>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-text-secondary">
-                Prompt Template
-              </label>
-              <textarea
+            <Field label="Prompt Template">
+              <Textarea
                 value={formData.prompt_template}
                 onChange={(e) => setFormData({ ...formData, prompt_template: e.target.value })}
-                className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm font-mono text-foreground"
+                className="font-mono"
                 rows={5}
                 placeholder="Enter the skill's prompt template..."
               />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-text-secondary">
-                Required Tools
-              </label>
+            </Field>
+            <Field label="Required Tools">
               {availableTools.length > 0 && (
                 <div className="mb-2 flex flex-wrap gap-1.5">
                   {availableTools.map((t) => {
@@ -479,57 +444,59 @@ export function SkillFormDrawer({
                   })}
                 </div>
               )}
-              <textarea
+              <Textarea
                 value={formData.required_tools}
                 onChange={(e) => setFormData({ ...formData, required_tools: e.target.value })}
-                className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm font-mono text-foreground"
+                className="font-mono"
                 rows={3}
                 placeholder="Select from above or type tool names (one per line)"
               />
-            </div>
+            </Field>
           </section>
 
-          <section className="space-y-4">
+          <section className="space-y-3">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
               Tool Enforcement
             </h3>
-            <fieldset className="rounded-md border border-border p-3 text-sm">
-              <legend className="px-1 text-xs text-text-muted">
-                Required tools enforcement
-              </legend>
-              <div className="flex flex-wrap items-center gap-4">
-                <label className="inline-flex items-center gap-2">
-                  <input
-                    type="radio"
-                    name="enforcement_mode"
-                    value="warning"
-                    data-testid="skills-form-enforcement-warning"
-                    checked={formData.enforcement_mode === "warning"}
-                    onChange={() =>
-                      setFormData({ ...formData, enforcement_mode: "warning" })
-                    }
-                  />
-                  <span className="text-foreground">
-                    warning <span className="text-xs text-text-muted">(log missing tools, keep running)</span>
-                  </span>
-                </label>
-                <label className="inline-flex items-center gap-2">
-                  <input
-                    type="radio"
-                    name="enforcement_mode"
-                    value="strict"
-                    data-testid="skills-form-enforcement-strict"
-                    checked={formData.enforcement_mode === "strict"}
-                    onChange={() =>
-                      setFormData({ ...formData, enforcement_mode: "strict" })
-                    }
-                  />
-                  <span className="text-foreground">
-                    strict <span className="text-xs text-rose-600 dark:text-rose-400">(block Agent if any required tool is missing)</span>
-                  </span>
-                </label>
-              </div>
-            </fieldset>
+            <Field label="Enforcement Mode">
+              <fieldset className="text-sm">
+                <legend className="px-1 text-xs text-text-muted">
+                  Required tools enforcement
+                </legend>
+                <div className="flex flex-wrap items-center gap-4">
+                  <label className="inline-flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="enforcement_mode"
+                      value="warning"
+                      data-testid="skills-form-enforcement-warning"
+                      checked={formData.enforcement_mode === "warning"}
+                      onChange={() =>
+                        setFormData({ ...formData, enforcement_mode: "warning" })
+                      }
+                    />
+                    <span className="text-foreground">
+                      warning <span className="text-xs text-text-muted">(log missing tools, keep running)</span>
+                    </span>
+                  </label>
+                  <label className="inline-flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="enforcement_mode"
+                      value="strict"
+                      data-testid="skills-form-enforcement-strict"
+                      checked={formData.enforcement_mode === "strict"}
+                      onChange={() =>
+                        setFormData({ ...formData, enforcement_mode: "strict" })
+                      }
+                    />
+                    <span className="text-foreground">
+                      strict <span className="text-xs text-rose-600 dark:text-rose-400">(block Agent if any required tool is missing)</span>
+                    </span>
+                  </label>
+                </div>
+              </fieldset>
+            </Field>
           </section>
 
           <section className="space-y-4">
@@ -632,78 +599,66 @@ export function SkillFormDrawer({
             )}
           </section>
 
-          <section className="space-y-4">
+          <section className="space-y-3">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
               JSON Configuration
             </h3>
-            <div className="grid gap-4 xl:grid-cols-2">
-              <div>
-                <label className="mb-1 block text-sm font-medium text-text-secondary">
-                  Config Schema (JSON)
-                </label>
-                <textarea
-                  value={formData.config_schema}
-                  onChange={(e) => {
-                    setFormData({ ...formData, config_schema: e.target.value });
-                    if (fieldErrors.config_schema) {
-                      setFieldErrors((prev) => ({ ...prev, config_schema: undefined }));
-                    }
-                  }}
-                  aria-invalid={fieldErrors.config_schema ? "true" : undefined}
-                  data-testid="skills-form-config-schema"
-                  className={
-                    "min-h-[220px] w-full rounded-md border px-3 py-2 text-sm font-mono bg-input text-foreground " +
-                    (fieldErrors.config_schema
-                      ? "border-red-500 focus:border-red-500 focus:ring-red-500 dark:border-red-500"
-                      : "border-border")
+            <Field label="Config Schema (JSON)">
+              <Textarea
+                value={formData.config_schema}
+                onChange={(e) => {
+                  setFormData({ ...formData, config_schema: e.target.value });
+                  if (fieldErrors.config_schema) {
+                    setFieldErrors((prev) => ({ ...prev, config_schema: undefined }));
                   }
-                  rows={8}
-                  placeholder='{"type": "object"}'
-                />
-                {fieldErrors.config_schema && (
-                  <p
-                    role="status"
-                    data-testid="skills-form-config-schema-error"
-                    className="mt-1 text-xs text-red-600 dark:text-red-400"
-                  >
-                    Invalid JSON: {fieldErrors.config_schema}
-                  </p>
+                }}
+                aria-invalid={fieldErrors.config_schema ? "true" : undefined}
+                data-testid="skills-form-config-schema"
+                className={cn(
+                  "min-h-[220px] font-mono",
+                  fieldErrors.config_schema && "border-error focus:ring-error/60",
                 )}
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-text-secondary">
-                  Default Config (JSON)
-                </label>
-                <textarea
-                  value={formData.default_config}
-                  onChange={(e) => {
-                    setFormData({ ...formData, default_config: e.target.value });
-                    if (fieldErrors.default_config) {
-                      setFieldErrors((prev) => ({ ...prev, default_config: undefined }));
-                    }
-                  }}
-                  aria-invalid={fieldErrors.default_config ? "true" : undefined}
-                  data-testid="skills-form-default-config"
-                  className={
-                    "min-h-[220px] w-full rounded-md border px-3 py-2 text-sm font-mono bg-input text-foreground " +
-                    (fieldErrors.default_config
-                      ? "border-red-500 focus:border-red-500 focus:ring-red-500 dark:border-red-500"
-                      : "border-border")
+                rows={8}
+                placeholder='{"type": "object"}'
+              />
+              {fieldErrors.config_schema && (
+                <p
+                  role="status"
+                  data-testid="skills-form-config-schema-error"
+                  className="text-xs text-red-600 dark:text-red-400"
+                >
+                  Invalid JSON: {fieldErrors.config_schema}
+                </p>
+              )}
+            </Field>
+            <Field label="Default Config (JSON)">
+              <Textarea
+                value={formData.default_config}
+                onChange={(e) => {
+                  setFormData({ ...formData, default_config: e.target.value });
+                  if (fieldErrors.default_config) {
+                    setFieldErrors((prev) => ({ ...prev, default_config: undefined }));
                   }
-                  rows={8}
-                  placeholder="{}"
-                />
-                {fieldErrors.default_config && (
-                  <p
-                    role="status"
-                    data-testid="skills-form-default-config-error"
-                    className="mt-1 text-xs text-red-600 dark:text-red-400"
-                  >
-                    Invalid JSON: {fieldErrors.default_config}
-                  </p>
+                }}
+                aria-invalid={fieldErrors.default_config ? "true" : undefined}
+                data-testid="skills-form-default-config"
+                className={cn(
+                  "min-h-[220px] font-mono",
+                  fieldErrors.default_config && "border-error focus:ring-error/60",
                 )}
-              </div>
-            </div>
+                rows={8}
+                placeholder="{}"
+              />
+              {fieldErrors.default_config && (
+                <p
+                  role="status"
+                  data-testid="skills-form-default-config-error"
+                  className="text-xs text-red-600 dark:text-red-400"
+                >
+                  Invalid JSON: {fieldErrors.default_config}
+                </p>
+              )}
+            </Field>
           </section>
         </form>
       </BaseDrawer>

@@ -2,7 +2,7 @@
 
 import { CopyButton } from "@/components/ui/CopyButton";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { TextTooltip } from "@/components/ui/TextTooltip";
+import { TruncatedCell } from "@/components/ui/TruncatedCell";
 import type { ScheduledTaskDTO } from "@/features/scheduler";
 
 interface SchedulerTaskTableProps {
@@ -130,39 +130,24 @@ export function SchedulerTaskTable({
                 onClick={() => onSelect(t)}
                 className="cursor-pointer border-b border-border/60 transition-colors last:border-0 hover:bg-muted/40"
               >
-                <td className="px-4 py-3">
-                  <TextTooltip content={t.display_name || t.key}>
-                    <span className="block truncate font-medium text-foreground">{t.display_name || t.key}</span>
-                  </TextTooltip>
-                </td>
+                <TruncatedCell
+                  text={t.display_name || t.key}
+                  textClassName="font-medium text-foreground"
+                />
                 {/* 任务 ID（独立列）：约半宽截断展示，全文经悬浮单行恢复 + 一键复制（对齐 RoutineTable ID 列）。 */}
-                <td className="px-4 py-3">
-                  <div className="flex min-w-0 items-center gap-1">
-                    <TextTooltip content={t.key}>
-                      <span className="min-w-0 flex-1 truncate font-mono text-xs text-text-secondary">{t.key}</span>
-                    </TextTooltip>
-                    <CopyButton value={t.key} ariaLabel="复制 ID" className="shrink-0" />
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-muted-foreground">
-                  {t.description ? (
-                    <TextTooltip content={t.description}>
-                      <span className="block truncate">{t.description}</span>
-                    </TextTooltip>
-                  ) : (
-                    "—"
-                  )}
-                </td>
-                <td className="px-4 py-3 text-muted-foreground">
-                  <TextTooltip content={t.handler_kind}>
-                    <span className="block truncate">{t.handler_kind}</span>
-                  </TextTooltip>
-                </td>
-                <td className="px-4 py-3 text-muted-foreground">
-                  <TextTooltip content={triggerText(t)}>
-                    <span className="block truncate font-mono text-xs">{triggerText(t)}</span>
-                  </TextTooltip>
-                </td>
+                <TruncatedCell
+                  text={t.key}
+                  mono
+                  textClassName="text-text-secondary"
+                  trailing={<CopyButton value={t.key} ariaLabel="复制 ID" className="shrink-0" />}
+                />
+                {t.description ? (
+                  <TruncatedCell text={t.description} textClassName="text-muted-foreground" />
+                ) : (
+                  <td className="px-4 py-3 text-muted-foreground">—</td>
+                )}
+                <TruncatedCell text={t.handler_kind} textClassName="text-muted-foreground" />
+                <TruncatedCell text={triggerText(t)} mono textClassName="text-muted-foreground" />
                 <td className="px-4 py-3 text-muted-foreground">
                   <span className="block truncate">{relativeFromNow(t.last_fire_at)}</span>
                 </td>
