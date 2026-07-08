@@ -96,9 +96,10 @@ function truncateHash(hash: string | null): string {
 }
 
 // 根据当前 markdown_extract_status 与错误内容判定按钮语义并直接返回应展示文案。
-// 失败 / partial 状态下，后端 + perceives 已为每切片落 checkpoint；
-// 再次调用 refresh_markdown 会自动从最后一个完成的切片继续（resume=True）。
-// 因此 UI 在这些状态下把按钮文案改为 "Continue"，更准确表达「断点续传」语义。
+// refresh_markdown 经 resume 参数控制 perceives auto_batch checkpoint 复用：
+//   - 失败 / partial 态（isResumable=true）→「Continue (resume)」，显式传 resume=true 断点续传；
+//   - 常态（isResumable=false）→「Re-Parse」，传 resume=false 清 checkpoint 全量重跑。
+// handleRefreshMarkdown 据 isResumable 传 resume，后端经 _maybe_inject_resume 注入 perceives。
 function getMarkdownActionLabel(
   status: string,
   isWorking: boolean,
@@ -226,6 +227,8 @@ export default function DocumentDetailPage() {
     try {
       const result = await refreshDocumentMarkdown(corpusId, detail.id, {
         appName: requestAppName,
+        // 失败/partial 态（isResumable）走断点续传 resume=true；常态 Re-Parse 走全量重跑 resume=false。
+        resume: markdownAction.isResumable,
       });
       toast.success(result.message || "Markdown re-parse started");
       setDetail((prev) =>
@@ -391,8 +394,8 @@ export default function DocumentDetailPage() {
           )}
           title={
             markdownAction.isResumable
-              ? "从最后一个完成的切片继续解析（perceives auto_batch checkpoint）"
-              : "从已存储的源文档重新解析 Markdown"
+              ? "从最后一个完成的切片继续解析（perceives auto_batch checkpoint，resume=true）"
+              : "从已存储的源文档全量重新解析 Markdown（清 checkpoint，非断点续传，resume=false）"
           }
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

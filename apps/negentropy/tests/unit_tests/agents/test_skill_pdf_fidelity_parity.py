@@ -62,9 +62,9 @@ def test_twin_fidelity_dimensions_present_in_both():
 
 
 def test_yaml_version_bumped_and_perceives_link_fixed():
-    """version 升到 1.1.0，且 perceives 资源指针修死链→monorepo 子树。"""
+    """version 升到 1.2.0（三杠杆改造），且 perceives 资源指针修死链→monorepo 子树。"""
     tpl = {t.template_id: t for t in load_all()}["pdf_fidelity_restore"]
-    assert tpl.version == "1.1.0"
+    assert tpl.version == "1.2.0"
     refs = " ".join(str(r.get("ref", "")) for r in tpl.resources)
     assert "github.com/negentropy/negentropy-perceives" not in refs  # 旧死链已移除
     assert "ThreeFish-AI/negentropy" in refs  # 指向真实 monorepo
