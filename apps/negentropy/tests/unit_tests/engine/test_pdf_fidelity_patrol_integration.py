@@ -607,13 +607,18 @@ async def test_finalize_writes_patrol_status_column(db_engine):
     assert unfix_row[0] == "unfixable" and unfix_row[1] == 52
 
 
-async def test_reset_patrol_status_clears_column_and_cancels_routines(db_engine):
-    """reset_patrol_status：清 patrol_status 列 + 取消终态 Routine（解除 selector 门）→ 可二次巡检。"""
-    import pytest  # noqa: F401  (本地导入，避免顶层依赖)
+async def test_reset_patrol_status_clears_column_and_cancels_routines(db_engine, monkeypatch):
+    """reset_patrol_status：清 patrol_status 列 + 取消终态 Routine（解除 selector 门）→ 可二次巡检。
 
+    DocumentStorageService.reset_patrol_status 内部用全局 ``AsyncSessionLocal`` 开会话（import 时
+    绑定到非测试库），CI 中指向无 schema 的库 → UndefinedTableError + 跨事件循环。故 monkeypatch
+    把 ``AsyncSessionLocal`` 指到测试 factory（同 registry.AsyncSessionLocal 既有 patch 范式）。
+    """
     from negentropy.storage.service import DocumentStorageService
 
     factory = _sf(db_engine)
+    # 把 service 内部的全局会话工厂指到测试 db_engine（同 monkeypatch registry.AsyncSessionLocal 范式）
+    monkeypatch.setattr("negentropy.storage.service.AsyncSessionLocal", factory)
     doc_id = await _seed_knowledge_pdf(db_engine, filename="patrol-reset.pdf")
     routine_id, _ = await _seed_terminal_patrol_with_outcome(
         db_engine, status="failed", best_score=97, doc_id=str(doc_id)
@@ -645,13 +650,14 @@ async def test_reset_patrol_status_clears_column_and_cancels_routines(db_engine)
         assert blocking is None
 
 
-async def test_reset_patrol_status_refuses_when_running(db_engine):
+async def test_reset_patrol_status_refuses_when_running(db_engine, monkeypatch):
     """reset 在跑（running）巡检 Routine 时拒绝（ValueError），不杀在跑任务。"""
     import pytest
 
     from negentropy.storage.service import DocumentStorageService
 
     factory = _sf(db_engine)
+    monkeypatch.setattr("negentropy.storage.service.AsyncSessionLocal", factory)
     doc_id = await _seed_knowledge_pdf(db_engine, filename="patrol-reset-running.pdf")
     routine_id, _ = await _seed_terminal_patrol_with_outcome(
         db_engine, status="failed", best_score=97, doc_id=str(doc_id)
