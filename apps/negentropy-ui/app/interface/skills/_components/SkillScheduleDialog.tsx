@@ -7,6 +7,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Field } from "@/components/ui/Field";
+import { Input } from "@/components/ui/Input";
+import { Textarea } from "@/components/ui/Textarea";
 import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
 import { toast } from "sonner";
 
@@ -177,39 +180,34 @@ export function SkillScheduleDialog({
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-muted">
             New schedule
           </h3>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <label className="text-xs text-text-secondary">
-              cron_expr
-              <input
+          <div className="space-y-3">
+            <Field label="cron_expr">
+              <Input
                 data-testid="schedule-form-cron"
                 type="text"
                 value={cronExpr}
                 onChange={(e) => setCronExpr(e.target.value)}
                 placeholder="0 9 * * 1"
-                className="mt-1 w-full rounded-md border border-border bg-input px-2 py-1 text-sm font-mono text-foreground"
+                className="font-mono"
               />
-            </label>
-            <label className="text-xs text-text-secondary">
-              enabled
-              <div className="mt-1 inline-flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={enabled}
-                  onChange={(e) => setEnabled(e.target.checked)}
-                />
-                <span>{enabled ? "true" : "false"}</span>
-              </div>
-            </label>
-            <label className="text-xs text-text-secondary sm:col-span-2">
-              vars (JSON)
-              <textarea
+            </Field>
+            <Field variant="check" label="enabled">
+              <input
+                type="checkbox"
+                checked={enabled}
+                onChange={(e) => setEnabled(e.target.checked)}
+                className="h-4 w-4"
+              />
+            </Field>
+            <Field label="vars (JSON)">
+              <Textarea
                 data-testid="schedule-form-vars"
                 rows={4}
                 value={varsText}
                 onChange={(e) => setVarsText(e.target.value)}
-                className="mt-1 w-full rounded-md border border-border bg-input px-2 py-1 text-xs font-mono text-foreground"
+                className="font-mono text-xs"
               />
-            </label>
+            </Field>
           </div>
           <div className="mt-2 flex justify-end">
             <button

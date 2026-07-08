@@ -1,6 +1,6 @@
 "use client";
 
-import { TextTooltip } from "@/components/ui/TextTooltip";
+import { TruncatedCell } from "@/components/ui/TruncatedCell";
 import { KnowledgeItem } from "@/features/knowledge";
 
 interface ContentExplorerProps {
@@ -55,19 +55,12 @@ export function ContentExplorer({ items, loading, error, offset = 0 }: ContentEx
                   <td className="px-4 py-3 tabular-nums text-text-secondary">
                     {offset + index + 1}
                   </td>
-                  <td className="px-4 py-3">
-                    {/* 单行截断 + 悬浮全文（对齐 Routine/Scheduler 表格规范）。 */}
-                    <TextTooltip content={item.content}>
-                      <span className="block truncate text-foreground">{item.content}</span>
-                    </TextTooltip>
-                  </td>
-                  <td className="px-4 py-3">
-                    <TextTooltip content={new Date(item.created_at).toLocaleString()}>
-                      <span className="block truncate text-text-secondary">
-                        {new Date(item.created_at).toLocaleString()}
-                      </span>
-                    </TextTooltip>
-                  </td>
+                  {/* 单行截断 + 悬浮全文（对齐 Routine/Scheduler 表格规范）。 */}
+                  <TruncatedCell text={item.content} textClassName="text-foreground" />
+                  <TruncatedCell
+                    text={new Date(item.created_at).toLocaleString()}
+                    textClassName="text-text-secondary"
+                  />
                 </tr>
               ))}
             </tbody>

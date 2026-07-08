@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { toast } from "@/lib/activity-toast";
 import { AsyncPipelineResult } from "@/features/knowledge";
+import { Field } from "@/components/ui/Field";
+import { Textarea } from "@/components/ui/Textarea";
 import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
 
 interface ReplaceSourceDialogProps {
@@ -114,18 +116,14 @@ export function ReplaceSourceDialog({
         </div>
 
         {/* Content Input */}
-        <div>
-          <label className="mb-1 block text-xs font-medium text-text-secondary">
-            New Content <span className="text-red-500">*</span>
-          </label>
-          <textarea
-            className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-foreground focus:ring-1 focus:ring-foreground"
+        <Field label="New Content" required>
+          <Textarea
             rows={8}
             placeholder="Paste new content to replace the existing one..."
             value={text}
             onChange={(e) => setText(e.target.value)}
           />
-        </div>
+        </Field>
 
         {/* Error Message */}
         {error && (

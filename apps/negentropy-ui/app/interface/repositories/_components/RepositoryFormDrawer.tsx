@@ -17,6 +17,10 @@ import {
 import { toast } from "sonner";
 import { BaseDrawer } from "@/components/ui/BaseDrawer";
 import { Button } from "@/components/ui/Button";
+import { Field } from "@/components/ui/Field";
+import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
+import { Textarea } from "@/components/ui/Textarea";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import { inspectBranches } from "@/features/repositories";
 import type {
@@ -215,133 +219,103 @@ export function RepositoryFormDrawer({
       >
         <form id={formId} onSubmit={handleSubmit} className="space-y-6 px-5 py-5">
           {/* 基本信息 */}
-          <section className="space-y-4">
+          <section className="space-y-3">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
               Basic Information
             </h3>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className="block text-sm font-medium text-text-secondary mb-1">
-                  Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm font-mono text-foreground"
-                  placeholder="e.g. negentropy"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-text-secondary mb-1">
-                  Display Name
-                </label>
-                <input
-                  type="text"
-                  value={formData.display_name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, display_name: e.target.value })
-                  }
-                  className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
-                  placeholder="e.g. Negentropy"
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-text-secondary mb-1">
-                  GitHub URL <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="url"
-                  value={formData.github_url}
-                  onChange={(e) =>
-                    setFormData({ ...formData, github_url: e.target.value })
-                  }
-                  className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
-                  placeholder="https://github.com/org/repo"
-                  required
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-text-secondary mb-1">
-                  Description
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
-                  }
-                  className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
-                  rows={2}
-                  placeholder="Repository description"
-                />
-              </div>
-            </div>
+            <Field label="Name" required>
+              <Input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="font-mono"
+                placeholder="e.g. negentropy"
+                required
+              />
+            </Field>
+            <Field label="Display Name">
+              <Input
+                type="text"
+                value={formData.display_name}
+                onChange={(e) =>
+                  setFormData({ ...formData, display_name: e.target.value })
+                }
+                placeholder="e.g. Negentropy"
+              />
+            </Field>
+            <Field label="GitHub URL" required>
+              <Input
+                type="url"
+                value={formData.github_url}
+                onChange={(e) =>
+                  setFormData({ ...formData, github_url: e.target.value })
+                }
+                placeholder="https://github.com/org/repo"
+                required
+              />
+            </Field>
+            <Field label="Description">
+              <Textarea
+                value={formData.description}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
+                rows={2}
+                placeholder="Repository description"
+              />
+            </Field>
           </section>
 
           {/* 本地仓库 + 分支枚举 */}
-          <section className="space-y-4">
+          <section className="space-y-3">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
               Local Repository
             </h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-text-secondary mb-1">
-                  Local Path <span className="text-red-500">*</span>
-                </label>
-                <div className="flex items-start gap-2">
-                  <input
-                    type="text"
-                    value={formData.local_path}
-                    onChange={(e) =>
-                      setFormData({ ...formData, local_path: e.target.value })
-                    }
-                    className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm font-mono text-foreground"
-                    placeholder="/path/to/repo"
-                    required
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleInspect}
-                    disabled={inspecting || submitting}
-                    loading={inspecting}
-                    className="shrink-0"
-                  >
-                    Inspect Branches
-                  </Button>
-                </div>
-                {inspectError && (
-                  <p className="mt-1 text-xs text-red-600 dark:text-red-400">
-                    {inspectError}
-                  </p>
-                )}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-text-secondary mb-1">
-                  Baseline Branch <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={formData.baseline_branch}
+            <Field label="Local Path" required error={inspectError ?? undefined}>
+              <div className="flex items-start gap-2">
+                <Input
+                  type="text"
+                  value={formData.local_path}
                   onChange={(e) =>
-                    setFormData({ ...formData, baseline_branch: e.target.value })
+                    setFormData({ ...formData, local_path: e.target.value })
                   }
-                  className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm font-mono text-foreground disabled:opacity-50"
-                  disabled={branches.length === 0}
+                  className="font-mono"
+                  placeholder="/path/to/repo"
                   required
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleInspect}
+                  disabled={inspecting || submitting}
+                  loading={inspecting}
+                  className="shrink-0"
                 >
-                  {branches.length === 0 ? (
-                    <option value="">Inspect branches first…</option>
-                  ) : (
-                    branches.map((branch) => (
-                      <option key={branch} value={branch}>
-                        {branch}
-                      </option>
-                    ))
-                  )}
-                </select>
+                  Inspect Branches
+                </Button>
               </div>
-            </div>
+            </Field>
+            <Field label="Baseline Branch" required>
+              <Select
+                value={formData.baseline_branch}
+                onChange={(e) =>
+                  setFormData({ ...formData, baseline_branch: e.target.value })
+                }
+                className="font-mono"
+                disabled={branches.length === 0}
+                required
+              >
+                {branches.length === 0 ? (
+                  <option value="">Inspect branches first…</option>
+                ) : (
+                  branches.map((branch) => (
+                    <option key={branch} value={branch}>
+                      {branch}
+                    </option>
+                  ))
+                )}
+              </Select>
+            </Field>
           </section>
         </form>
       </BaseDrawer>

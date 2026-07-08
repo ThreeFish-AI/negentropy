@@ -405,7 +405,8 @@ describe("KnowledgeBasePage", () => {
       await flushPromises();
     });
 
-    await user.click(screen.getByRole("button", { name: "Delete" }));
+    await user.click(screen.getByRole("button", { name: "更多操作" }));
+    await user.click(screen.getByRole("menuitem", { name: "删除该文档及其全部 Chunks" }));
 
     const dialog = screen.getByRole("dialog", { name: "Delete Document" });
     expect(dialog).toHaveTextContent("example.md");
@@ -435,7 +436,8 @@ describe("KnowledgeBasePage", () => {
       await flushPromises();
     });
 
-    await user.click(screen.getByRole("button", { name: "Delete" }));
+    await user.click(screen.getByRole("button", { name: "更多操作" }));
+    await user.click(screen.getByRole("menuitem", { name: "删除该文档及其全部 Chunks" }));
     const dialog = screen.getByRole("dialog", { name: "Delete Document" });
     await user.click(within(dialog).getByRole("button", { name: "Delete" }));
 

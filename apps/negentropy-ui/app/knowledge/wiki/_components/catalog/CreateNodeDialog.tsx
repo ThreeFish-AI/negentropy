@@ -11,6 +11,8 @@ import {
   createCatalogNode,
   CatalogNode,
 } from "@/features/knowledge";
+import { Field } from "@/components/ui/Field";
+import { Input } from "@/components/ui/Input";
 import { toast } from "@/lib/activity-toast";
 
 function slugify(text: string): string {
@@ -101,22 +103,19 @@ export function CreateNodeDialog({
           目录节点用于组织子目录与文档。文档需通过节点详情页「挂载文档」入口添加，无需在此选择类型。
         </p>
         <div className="space-y-3">
-          <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">
-              名称 *
-            </label>
-            <input
+          <Field label="名称" required>
+            <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="节点名称"
-              className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Slug *
-            </label>
-            <input
+          </Field>
+          <Field
+            label="Slug"
+            required
+            description="仅支持小写字母、数字与短横线；将作为 URL 片段与 Wiki 层级标识。"
+          >
+            <Input
               value={slug}
               onChange={(e) => {
                 setSlugEdited(true);
@@ -125,12 +124,8 @@ export function CreateNodeDialog({
                 );
               }}
               placeholder="node-slug"
-              className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
-            <p className="mt-1 text-caption text-muted-foreground">
-              仅支持小写字母、数字与短横线；将作为 URL 片段与 Wiki 层级标识。
-            </p>
-          </div>
+          </Field>
         </div>
         <div className="flex justify-end gap-2 mt-5">
           <button

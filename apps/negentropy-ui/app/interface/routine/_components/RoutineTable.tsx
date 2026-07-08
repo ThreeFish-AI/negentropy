@@ -4,7 +4,7 @@ import { ExternalLink, GitMerge, GitPullRequest, Loader2, OctagonX, RotateCcw, T
 
 import { CopyButton } from "@/components/ui/CopyButton";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { TextTooltip } from "@/components/ui/TextTooltip";
+import { TruncatedCell } from "@/components/ui/TruncatedCell";
 import type { RoutineDTO } from "@/features/routine";
 
 import { canCancel, canCleanupWorktree, canRestart } from "./routine-controls";
@@ -86,95 +86,74 @@ export function RoutineTable({ routines, loading, onSelect, onOpenFull, onRestar
               onClick={() => onSelect(r)}
               className="cursor-pointer border-b border-border/60 transition-colors last:border-0 hover:bg-muted/40"
             >
-              <td className="px-4 py-3">
-                <div className="flex min-w-0 items-center gap-2 font-medium text-foreground">
-                  <TextTooltip content={r.display_name || r.title}>
-                    <span className="min-w-0 flex-1 truncate">{r.display_name || r.title}</span>
-                  </TextTooltip>
-                  {r.key.startsWith("pdf-fidelity-patrol/") && (
+              <TruncatedCell
+                text={r.display_name || r.title}
+                textClassName="font-medium text-foreground"
+                trailing={
+                  r.key.startsWith("pdf-fidelity-patrol/") ? (
                     <span className="inline-flex items-center rounded-full bg-violet-500/10 px-1.5 py-0.5 text-micro font-semibold text-violet-700 dark:text-violet-300 shrink-0">
                       巡检
                     </span>
+                  ) : undefined
+                }
+              />
+              {/* 任务 ID（独立列）：约半宽截断展示，全文经悬浮单行恢复 + 一键复制。 */}
+              <TruncatedCell
+                text={r.key}
+                mono
+                textClassName="text-text-secondary"
+                trailing={<CopyButton value={r.key} ariaLabel="复制 ID" className="shrink-0" />}
+              />
+              {/* 状态芯片单行展示：不折行，溢出由 overflow-hidden 右缘裁切；悬浮 Tooltip（单行）显示完整组合标题。 */}
+              <TruncatedCell text={composeStatusTitle(r)} showOnOverflowOnly={false}>
+                <div className="flex min-w-0 items-center gap-1.5 overflow-hidden">
+                  <span
+                    className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${routineStatusClass(r.status)}`}
+                  >
+                    {r.status}
+                  </span>
+                  {r.pr_merged && (
+                    <span className={`${mergedBadgeClass} shrink-0`}>
+                      <GitMerge className="h-3 w-3" aria-hidden />
+                      Merged
+                    </span>
+                  )}
+                  {r.pr_state === "closed" && (
+                    <span className={`${closedBadgeClass} shrink-0`}>
+                      <X className="h-3 w-3" aria-hidden />
+                      Closed
+                    </span>
+                  )}
+                  {r.pr_state === "open" && (
+                    <span className={`${openBadgeClass} shrink-0`}>
+                      <GitPullRequest className="h-3 w-3" aria-hidden />
+                      Open
+                    </span>
+                  )}
+                  {/* 终止原因：succeeded 恒配 "success"，与状态芯片冗余故略去；其余（失败原因）内联同行截断。 */}
+                  {r.termination_reason && r.termination_reason !== "success" && (
+                    <span className="min-w-0 truncate text-xs text-text-secondary">
+                      {r.termination_reason}
+                    </span>
                   )}
                 </div>
-              </td>
-              <td className="px-4 py-3">
-                {/* 任务 ID（独立列）：约半宽截断展示，全文经悬浮单行恢复 + 一键复制。 */}
-                <div className="flex min-w-0 items-center gap-1">
-                  <TextTooltip content={r.key}>
-                    <span className="min-w-0 flex-1 truncate font-mono text-xs text-text-secondary">
-                      {r.key}
-                    </span>
-                  </TextTooltip>
-                  <CopyButton value={r.key} ariaLabel="复制 ID" className="shrink-0" />
-                </div>
-              </td>
-              <td className="px-4 py-3">
-                {/* 状态芯片单行展示：不折行，溢出由 overflow-hidden 右缘裁切；悬浮 Tooltip（单行）显示完整组合标题。 */}
-                <TextTooltip content={composeStatusTitle(r)}>
-                  <div className="flex min-w-0 items-center gap-1.5 overflow-hidden">
-                    <span
-                      className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${routineStatusClass(r.status)}`}
-                    >
-                      {r.status}
-                    </span>
-                    {r.pr_merged && (
-                      <span className={`${mergedBadgeClass} shrink-0`}>
-                        <GitMerge className="h-3 w-3" aria-hidden />
-                        Merged
-                      </span>
-                    )}
-                    {r.pr_state === "closed" && (
-                      <span className={`${closedBadgeClass} shrink-0`}>
-                        <X className="h-3 w-3" aria-hidden />
-                        Closed
-                      </span>
-                    )}
-                    {r.pr_state === "open" && (
-                      <span className={`${openBadgeClass} shrink-0`}>
-                        <GitPullRequest className="h-3 w-3" aria-hidden />
-                        Open
-                      </span>
-                    )}
-                    {/* 终止原因：succeeded 恒配 "success"，与状态芯片冗余故略去；其余（失败原因）内联同行截断。 */}
-                    {r.termination_reason && r.termination_reason !== "success" && (
-                      <span className="min-w-0 truncate text-xs text-text-secondary">
-                        {r.termination_reason}
-                      </span>
-                    )}
-                  </div>
-                </TextTooltip>
-              </td>
-              <td className="px-4 py-3 tabular-nums text-text-secondary">
-                <TextTooltip content={`${r.iteration_count}${r.max_iterations ? ` / ${r.max_iterations}` : ""}`}>
-                  <span className="block truncate">
-                    {r.iteration_count}
-                    {r.max_iterations ? ` / ${r.max_iterations}` : ""}
-                  </span>
-                </TextTooltip>
-              </td>
-              <td className={`px-4 py-3 font-semibold tabular-nums ${scoreColorClass(r.best_score)}`}>
-                <TextTooltip content={String(r.best_score ?? "—")}>
-                  <span className="block truncate">{r.best_score ?? "—"}</span>
-                </TextTooltip>
-              </td>
-              <td className="px-4 py-3 tabular-nums text-text-secondary">
-                <TextTooltip
-                  content={`$${r.total_cost_usd.toFixed(3)}${r.max_cost_usd ? ` / $${r.max_cost_usd}` : ""}`}
-                >
-                  <span className="block truncate">
-                    ${r.total_cost_usd.toFixed(3)}
-                    {r.max_cost_usd ? <span className="text-text-secondary"> / ${r.max_cost_usd}</span> : null}
-                  </span>
-                </TextTooltip>
-              </td>
-              <td className="px-4 py-3 text-xs text-text-secondary">
-                <TextTooltip content={r.updated_at ? new Date(r.updated_at).toLocaleString() : "—"}>
-                  <span className="block truncate">
-                    {r.updated_at ? new Date(r.updated_at).toLocaleString() : "—"}
-                  </span>
-                </TextTooltip>
-              </td>
+              </TruncatedCell>
+              <TruncatedCell
+                text={`${r.iteration_count}${r.max_iterations ? ` / ${r.max_iterations}` : ""}`}
+                className="tabular-nums text-text-secondary"
+              />
+              <TruncatedCell
+                text={r.best_score ?? "—"}
+                className={`font-semibold tabular-nums ${scoreColorClass(r.best_score)}`}
+              />
+              <TruncatedCell
+                className="tabular-nums text-text-secondary"
+                text={`$${r.total_cost_usd.toFixed(3)}${r.max_cost_usd ? ` / $${r.max_cost_usd}` : ""}`}
+              />
+              <TruncatedCell
+                text={r.updated_at ? new Date(r.updated_at).toLocaleString() : "—"}
+                className="text-xs text-text-secondary"
+              />
               <td className="px-4 py-3 text-right">
                 <div className="flex items-center justify-end gap-2 overflow-hidden">
                   {onRestart && canRestart(r.status) && (

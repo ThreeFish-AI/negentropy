@@ -1,5 +1,7 @@
 "use client";
 
+import { Field } from "@/components/ui/Field";
+import { Input } from "@/components/ui/Input";
 import { FormFieldConfig } from "@/features/knowledge/utils/api-specs";
 
 interface NumberInputProps {
@@ -22,12 +24,12 @@ export function NumberInput({ field, value, onChange }: NumberInputProps) {
   };
 
   return (
-    <div>
-      <label className="block text-xs font-medium text-text-secondary">
-        {field.label}{" "}
-        {field.required && <span className="text-rose-500">*</span>}
-      </label>
-      <input
+    <Field
+      label={field.label}
+      required={field.required}
+      description={field.description}
+    >
+      <Input
         type="number"
         value={value ?? ""}
         onChange={handleChange}
@@ -35,13 +37,8 @@ export function NumberInput({ field, value, onChange }: NumberInputProps) {
         max={field.max}
         step={field.max && field.max < 10 ? 0.01 : 1}
         placeholder={field.placeholder}
-        className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-xs text-foreground tabular-nums focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+        className="tabular-nums"
       />
-      {field.description && (
-        <p className="mt-1 text-micro text-text-muted">
-          {field.description}
-        </p>
-      )}
-    </div>
+    </Field>
   );
 }

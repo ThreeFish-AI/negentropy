@@ -10,6 +10,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -47,7 +48,9 @@ import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
 import { Button } from "@/components/ui/Button";
 import { AnimatedList } from "@/components/ui/AnimatedList";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
+import { DropdownMenu, type DropdownMenuItem } from "@/components/ui/DropdownMenu";
 import { TextTooltip } from "@/components/ui/TextTooltip";
+import { TruncatedCell } from "@/components/ui/TruncatedCell";
 import { navPillClassName, navRailContainerClassName } from "@/components/ui/nav-styles";
 import {
   tableBodyClassName,
@@ -75,6 +78,108 @@ const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 
 type ViewMode = "overview" | "corpus";
 type CorpusTab = "documents" | "settings" | "document-chunks";
+
+/** 语料文档行内操作字面量联合（对齐 runDocumentAction 第一参）。 */
+type DocAction =
+  | "sync"
+  | "rebuild"
+  | "replace"
+  | "archive"
+  | "unarchive"
+  | "download"
+  | "view"
+  | "delete";
+
+/**
+ * Corpus Documents 行内 Actions —— 主操作（View / Download）单行内联 + 「More」溢出菜单
+ * 承载 Replace / Rebuild / Sync[url] / Archive|Unarchive / Delete，修复旧 `flex flex-wrap`
+ * 七按钮换行违规。**模块级**定义（非 page 内联），避免每次渲染重挂丢失 DropdownMenu 菜单态。
+ *
+ * `runDocumentAction` 作为 `onAction` 透传；action 字面量与条件（Sync 仅 url、Archive/Unarchive
+ * 互斥、Delete danger）逐字对齐原内联按钮，原 `title` 语义迁入菜单项 `ariaLabel`。
+ */
+function CorpusDocRowActions({
+  doc,
+  sourceType,
+  onAction,
+}: {
+  doc: KnowledgeDocument;
+  sourceType: string;
+  onAction: (action: DocAction, doc: KnowledgeDocument) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const anchorRef = useRef<HTMLButtonElement>(null);
+  const moreItems: DropdownMenuItem[] = [
+    {
+      label: "Replace",
+      ariaLabel: "用新文本替换该文档并重建索引（保留文档元信息）",
+      onSelect: () => onAction("replace", doc),
+    },
+    {
+      label: "Rebuild",
+      ariaLabel: "重新分块并重建向量索引（不更换原始内容）",
+      onSelect: () => onAction("rebuild", doc),
+    },
+    ...(sourceType === "url"
+      ? [
+          {
+            label: "Sync",
+            ariaLabel: "重新抓取该 URL 源并刷新内容（仅 URL 类型）",
+            onSelect: () => onAction("sync", doc),
+          },
+        ]
+      : []),
+    {
+      label: doc.archived ? "Unarchive" : "Archive",
+      ariaLabel: doc.archived
+        ? "取消归档，恢复参与检索"
+        : "归档该文档，将其从默认检索中排除（可解档恢复）",
+      onSelect: () => onAction(doc.archived ? "unarchive" : "archive", doc),
+    },
+    {
+      label: "Delete",
+      ariaLabel: "删除该文档及其全部 Chunks",
+      danger: true,
+      onSelect: () => onAction("delete", doc),
+    },
+  ];
+  return (
+    <div className="flex items-center justify-end gap-1">
+      <button
+        type="button"
+        onClick={() => onAction("view", doc)}
+        title="打开文档详情页查看解析后的 Markdown 正文"
+        className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-caption")}
+      >
+        View
+      </button>
+      <button
+        type="button"
+        onClick={() => onAction("download", doc)}
+        title="下载原始文件到本地"
+        className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-caption")}
+      >
+        Download
+      </button>
+      <button
+        ref={anchorRef}
+        type="button"
+        aria-label="更多操作"
+        onClick={() => setOpen((o) => !o)}
+        className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-caption")}
+      >
+        More
+      </button>
+      <DropdownMenu
+        open={open}
+        onClose={() => setOpen(false)}
+        anchorRef={anchorRef}
+        items={moreItems}
+        align="end"
+      />
+    </div>
+  );
+}
 
 export default function KnowledgeBasePage() {
   const pathname = usePathname();
@@ -920,135 +1025,90 @@ export default function KnowledgeBasePage() {
                   </div>
 
                   <div className={tableContainerClassName}>
-                    {/* 表头 */}
-                    <div className={cn("grid grid-cols-12 gap-2", tableHeaderClassName)}>
-                      <div className="col-span-3 text-center">Name</div>
-                      <div className="col-span-1 text-center">Source</div>
-                      <div className="col-span-1 text-center">Size</div>
-                      <div className="col-span-2 text-center">Status</div>
-                      <div className="col-span-2 text-center">Updated At</div>
-                      <div className="col-span-3 text-center">Actions</div>
-                    </div>
-
-                    {documentsLoading ? (
-                      <p className="px-4 py-6 text-center text-xs text-muted-foreground">Loading...</p>
-                    ) : documents.length === 0 ? (
-                      <p className="px-4 py-6 text-center text-xs text-muted-foreground">No documents.</p>
-                    ) : (
-                      <div className={tableBodyClassName}>
-                        {documents.map((doc) => {
-                          const sourceType = String(doc.metadata?.source_type || "file");
-                          return (
-                            <div
-                              key={doc.id}
-                              className={cn("grid grid-cols-12 items-center gap-2", tableRowClassName)}
-                            >
-                              {/* Name —— 点击进入 document-chunks 标签页 */}
-                              <button
-                                className="col-span-3 min-w-0 text-left"
-                                onClick={() => syncQueryState({ view: "corpus", corpusId: selectedCorpusId, tab: "document-chunks", documentId: doc.id })}
-                              >
-                                <TextTooltip content={effectiveDocumentName(doc)}>
-                                  <p className="truncate text-sm font-medium">
-                                    {effectiveDocumentName(doc)}
-                                  </p>
-                                </TextTooltip>
-                              </button>
-                              {/* Source */}
-                              <div className="col-span-1 min-w-0 text-center">
-                                <TextTooltip content={sourceType}>
-                                  <div className="block truncate text-xs text-muted-foreground">
-                                    {sourceType}
-                                  </div>
-                                </TextTooltip>
-                              </div>
-                              {/* Size */}
-                              <div className="col-span-1 text-center text-xs text-muted-foreground">
-                                {doc.file_size} bytes
-                              </div>
-                              {/* Status */}
-                              <div className="col-span-2 flex justify-center">
-                                <PipelineStatusBadge
-                                  status={
-                                    buildingDocIds.has(doc.id)
-                                      ? "processing"
-                                      : doc.markdown_extract_status || doc.status
-                                  }
-                                />
-                              </div>
-                              {/* Updated At —— 列表按最终修改时间倒序 */}
-                              <div className="col-span-2 text-center text-xs text-muted-foreground">
-                                {formatRelativeTime(doc.updated_at ?? undefined)}
-                              </div>
-                              {/* Actions */}
-                              <div className="col-span-3 flex flex-wrap items-center justify-end gap-1">
-                                <button
-                                  onClick={() => runDocumentAction("view", doc)}
-                                  title="打开文档详情页查看解析后的 Markdown 正文"
-                                  className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-caption")}
-                                >
-                                  View
-                                </button>
-                                <button
-                                  onClick={() => runDocumentAction("download", doc)}
-                                  title="下载原始文件到本地"
-                                  className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-caption")}
-                                >
-                                  Download
-                                </button>
-                                <button
-                                  onClick={() => runDocumentAction("replace", doc)}
-                                  title="用新文本替换该文档并重建索引（保留文档元信息）"
-                                  className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-caption")}
-                                >
-                                  Replace
-                                </button>
-                                <button
-                                  onClick={() => runDocumentAction("rebuild", doc)}
-                                  title="重新分块并重建向量索引（不更换原始内容）"
-                                  className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-caption")}
-                                >
-                                  Rebuild
-                                </button>
-                                {sourceType === "url" && (
+                    {/* 固定列宽：百分比合计 100%（6 列），随容器等比缩放；与 <th> 解耦，
+                        超长内容由单元格 truncate 截断。colgroup 内禁止行内 JSX 注释（hydration）。 */}
+                    <table className="w-full table-fixed text-sm">
+                      <colgroup>
+                        <col className="w-[30%]" />
+                        <col className="w-[12%]" />
+                        <col className="w-[10%]" />
+                        <col className="w-[16%]" />
+                        <col className="w-[14%]" />
+                        <col className="w-[18%]" />
+                      </colgroup>
+                      <thead>
+                        <tr className={cn("text-left", tableHeaderClassName)}>
+                          <th className="px-4 py-2.5 font-medium">Name</th>
+                          <th className="px-4 py-2.5 font-medium">Source</th>
+                          <th className="px-4 py-2.5 font-medium">Size</th>
+                          <th className="px-4 py-2.5 font-medium">Status</th>
+                          <th className="px-4 py-2.5 font-medium">Updated At</th>
+                          <th className="px-4 py-2.5 text-right font-medium">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className={tableBodyClassName}>
+                        {documentsLoading ? (
+                          <tr>
+                            <td colSpan={6} className="px-4 py-6 text-center text-xs text-muted-foreground">
+                              Loading...
+                            </td>
+                          </tr>
+                        ) : documents.length === 0 ? (
+                          <tr>
+                            <td colSpan={6} className="px-4 py-6 text-center text-xs text-muted-foreground">
+                              No documents.
+                            </td>
+                          </tr>
+                        ) : (
+                          documents.map((doc) => {
+                            const sourceType = String(doc.metadata?.source_type || "file");
+                            return (
+                              <tr key={doc.id} className={tableRowClassName}>
+                                {/* Name —— 点击进入 document-chunks 标签页（button 内嵌截断 span，
+                                    TruncatedCell 无 onClick 透传，故此列手写 td 保留导航语义） */}
+                                <td className="px-4 py-3">
                                   <button
-                                    onClick={() => runDocumentAction("sync", doc)}
-                                    title="重新抓取该 URL 源并刷新内容（仅 URL 类型）"
-                                    className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-caption")}
+                                    type="button"
+                                    className="block min-w-0 text-left"
+                                    onClick={() => syncQueryState({ view: "corpus", corpusId: selectedCorpusId, tab: "document-chunks", documentId: doc.id })}
                                   >
-                                    Sync
+                                    <TextTooltip content={effectiveDocumentName(doc)}>
+                                      <span className="block truncate text-sm font-medium">
+                                        {effectiveDocumentName(doc)}
+                                      </span>
+                                    </TextTooltip>
                                   </button>
-                                )}
-                                {!doc.archived ? (
-                                  <button
-                                    onClick={() => runDocumentAction("archive", doc)}
-                                    title="归档该文档，将其从默认检索中排除（可解档恢复）"
-                                    className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-caption")}
-                                  >
-                                    Archive
-                                  </button>
-                                ) : (
-                                  <button
-                                    onClick={() => runDocumentAction("unarchive", doc)}
-                                    title="取消归档，恢复参与检索"
-                                    className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-caption")}
-                                  >
-                                    Unarchive
-                                  </button>
-                                )}
-                                <button
-                                  onClick={() => runDocumentAction("delete", doc)}
-                                  title="删除该文档及其全部 Chunks"
-                                  className={outlineButtonClassName("danger", "rounded px-2 py-1 text-caption")}
-                                >
-                                  Delete
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                                </td>
+                                {/* Source */}
+                                <TruncatedCell text={sourceType} textClassName="text-xs text-text-secondary" />
+                                {/* Size */}
+                                <TruncatedCell text={`${doc.file_size} bytes`} textClassName="text-xs text-text-secondary" />
+                                {/* Status */}
+                                <td className="px-4 py-3">
+                                  <PipelineStatusBadge
+                                    status={
+                                      buildingDocIds.has(doc.id)
+                                        ? "processing"
+                                        : doc.markdown_extract_status || doc.status
+                                    }
+                                  />
+                                </td>
+                                {/* Updated At —— 列表按最终修改时间倒序 */}
+                                <TruncatedCell text={formatRelativeTime(doc.updated_at ?? undefined)} textClassName="text-xs text-text-secondary" />
+                                {/* Actions —— 单行：View/Download 内联 + More 溢出菜单 */}
+                                <td className="px-4 py-3">
+                                  <CorpusDocRowActions
+                                    doc={doc}
+                                    sourceType={sourceType}
+                                    onAction={runDocumentAction}
+                                  />
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
 
                     {/* 分页：每页 10 条 */}
                     {documentsTotal > 0 && (

@@ -8,6 +8,7 @@ import {
 
 import { Pagination } from "@/components/ui/Pagination";
 import { TextTooltip } from "@/components/ui/TextTooltip";
+import { TruncatedCell } from "@/components/ui/TruncatedCell";
 import { useInfiniteList, type OffsetFetcher } from "@/hooks/useInfiniteList";
 import { useInfiniteScrollSentinel, useScrollPageSync } from "@/hooks/useInfiniteScrollSentinel";
 
@@ -202,13 +203,10 @@ export function EntityListPanel({
                         : ""
                     }`}
                   >
-                    <td className="px-4 py-3">
-                      <TextTooltip content={entity.name}>
-                        <span className="block truncate font-medium text-foreground">
-                          {entity.name}
-                        </span>
-                      </TextTooltip>
-                    </td>
+                    <TruncatedCell
+                      text={entity.name}
+                      textClassName="font-medium text-foreground"
+                    />
                     <td className="px-4 py-3">
                       {/* 类型：色点 + label，单行截断，全文悬浮。 */}
                       <div className="flex min-w-0 items-center gap-1">

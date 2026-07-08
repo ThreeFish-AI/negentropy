@@ -1,7 +1,7 @@
 "use client";
 
 import { ApiEndpoint, getMethodColor } from "@/features/knowledge/utils/api-specs";
-import { TextTooltip } from "@/components/ui/TextTooltip";
+import { TruncatedCell } from "@/components/ui/TruncatedCell";
 import { CodeExample } from "./CodeExample";
 
 interface ApiDocPanelProps {
@@ -65,32 +65,21 @@ export function ApiDocPanel({ endpoint }: ApiDocPanelProps) {
                     key={param.name}
                     className="border-b border-border/60 transition-colors last:border-0 hover:bg-muted/40"
                   >
-                    <td className="px-4 py-3">
-                      <TextTooltip content={param.name}>
-                        <span className="block truncate font-mono text-xs text-foreground">
-                          {param.name}
-                        </span>
-                      </TextTooltip>
-                    </td>
-                    <td className="px-4 py-3 text-text-secondary">
-                      <TextTooltip content={param.in}>
-                        <span className="block truncate">{param.in}</span>
-                      </TextTooltip>
-                    </td>
-                    <td className="px-4 py-3 text-text-secondary">
-                      <TextTooltip
-                        content={`${param.type}${param.enum ? ` (${param.enum.join(", ")})` : ""}`}
-                      >
-                        <span className="block truncate">
+                    <TruncatedCell text={param.name} mono textClassName="text-foreground" />
+                    <TruncatedCell text={param.in} textClassName="text-text-secondary" />
+                    <TruncatedCell
+                      className="text-text-secondary"
+                      text={
+                        <>
                           {param.type}
                           {param.enum && (
                             <span className="text-text-muted">
                               {" "}({param.enum.join(", ")})
                             </span>
                           )}
-                        </span>
-                      </TextTooltip>
-                    </td>
+                        </>
+                      }
+                    />
                     <td className="px-4 py-3">
                       {param.required ? (
                         <span className="text-rose-500">是</span>
@@ -98,20 +87,19 @@ export function ApiDocPanel({ endpoint }: ApiDocPanelProps) {
                         <span className="text-text-muted">否</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-text-secondary">
-                      <TextTooltip
-                        content={`${param.description}${param.default !== undefined ? ` (默认: ${String(param.default)})` : ""}`}
-                      >
-                        <span className="block truncate">
+                    <TruncatedCell
+                      className="text-text-secondary"
+                      text={
+                        <>
                           {param.description}
                           {param.default !== undefined && (
                             <span className="text-text-muted">
                               {" "}(默认: {String(param.default)})
                             </span>
                           )}
-                        </span>
-                      </TextTooltip>
-                    </td>
+                        </>
+                      }
+                    />
                   </tr>
                 ))}
               </tbody>

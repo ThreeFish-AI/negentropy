@@ -9,6 +9,9 @@
 import { useEffect, useState } from "react";
 import { BaseDrawer } from "@/components/ui/BaseDrawer";
 import { Button } from "@/components/ui/Button";
+import { Field } from "@/components/ui/Field";
+import { Input } from "@/components/ui/Input";
+import { Textarea } from "@/components/ui/Textarea";
 import type { CoreBlockItem } from "@/features/memory";
 
 /**
@@ -119,11 +122,8 @@ export function CoreBlockEditorDrawer({
         )}
 
         {/* Scope */}
-        <div>
-          <label className="text-micro uppercase tracking-overline text-muted-foreground">
-            Scope
-          </label>
-          <div className="mt-1.5 flex gap-1.5">
+        <Field label="Scope">
+          <div className="flex gap-1.5">
             {SCOPES.map((s) => (
               <button
                 key={s}
@@ -140,53 +140,42 @@ export function CoreBlockEditorDrawer({
               </button>
             ))}
           </div>
-        </div>
+        </Field>
 
         {/* Thread ID (scope=thread only) */}
         {threadRequired && (
-          <div>
-            <label className="text-micro uppercase tracking-overline text-muted-foreground">
-              Thread ID
-            </label>
-            <input
-              className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs disabled:opacity-60"
+          <Field label="Thread ID">
+            <Input
               placeholder="UUID"
               value={threadId}
               disabled={isEdit}
               onChange={(e) => setThreadId(e.target.value)}
             />
-          </div>
+          </Field>
         )}
 
         {/* Label */}
-        <div>
-          <label className="text-micro uppercase tracking-overline text-muted-foreground">
-            Label
-          </label>
-          <input
-            className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs disabled:opacity-60"
+        <Field label="Label">
+          <Input
             placeholder="persona / human / …"
             value={label}
             disabled={isEdit}
             onChange={(e) => setLabel(e.target.value)}
           />
-        </div>
+        </Field>
 
         {/* Content */}
-        <div>
-          <label className="text-micro uppercase tracking-overline text-muted-foreground">
-            Content
-          </label>
-          <textarea
-            className="mt-1.5 h-48 w-full resize-y rounded-lg border border-border bg-background px-3 py-2 text-xs leading-relaxed"
+        <Field label="Content">
+          <Textarea
+            className="h-48 text-xs leading-relaxed"
             placeholder="常驻摘要内容（超长将由后端按 token 预算截断）"
             value={content}
             onChange={(e) => setContent(e.target.value)}
           />
-          <p className="mt-1 text-micro text-muted-foreground tabular-nums">
+          <p className="text-micro text-muted-foreground tabular-nums">
             {content.length} chars
           </p>
-        </div>
+        </Field>
       </div>
     </BaseDrawer>
   );

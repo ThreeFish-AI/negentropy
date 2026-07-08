@@ -5,7 +5,7 @@ import ReactMarkdown from "react-markdown";
 import { defaultRemarkPlugins, defaultRehypePlugins } from "@/utils/markdown-plugins";
 import { JsonViewer } from "@/components/ui/JsonViewer";
 import { SortableCardWrapper, SortableDragHandle } from "@/components/ui/SortableCardWrapper";
-import { TextTooltip } from "@/components/ui/TextTooltip";
+import { TruncatedCell } from "@/components/ui/TruncatedCell";
 import { useAuth } from "@/components/providers/AuthProvider";
 
 const MARKDOWN_CONTENT_CLASS = [
@@ -405,18 +405,8 @@ function SchemaSection({
                   key={row.path}
                   className="border-b border-border/60 transition-colors last:border-0 hover:bg-muted/40"
                 >
-                  <td className="px-4 py-3">
-                    <TextTooltip content={row.path}>
-                      <span className="block truncate font-mono text-xs text-foreground">
-                        {row.path}
-                      </span>
-                    </TextTooltip>
-                  </td>
-                  <td className="px-4 py-3 text-text-secondary">
-                    <TextTooltip content={row.type}>
-                      <span className="block truncate">{row.type}</span>
-                    </TextTooltip>
-                  </td>
+                  <TruncatedCell text={row.path} mono textClassName="text-foreground" />
+                  <TruncatedCell text={row.type} textClassName="text-text-secondary" />
                   <td className="px-4 py-3">
                     {row.required ? (
                       <span className="text-rose-600 dark:text-rose-400">Yes</span>
@@ -424,24 +414,16 @@ function SchemaSection({
                       <span className="text-text-muted">No</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-text-secondary">
-                    {row.description ? (
-                      <TextTooltip content={row.description}>
-                        <span className="block truncate">{row.description}</span>
-                      </TextTooltip>
-                    ) : (
-                      "-"
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-text-muted">
-                    {row.constraints ? (
-                      <TextTooltip content={row.constraints}>
-                        <span className="block truncate">{row.constraints}</span>
-                      </TextTooltip>
-                    ) : (
-                      "-"
-                    )}
-                  </td>
+                  {row.description ? (
+                    <TruncatedCell text={row.description} className="text-text-secondary" />
+                  ) : (
+                    <td className="px-4 py-3 text-text-secondary">-</td>
+                  )}
+                  {row.constraints ? (
+                    <TruncatedCell text={row.constraints} className="text-text-muted" />
+                  ) : (
+                    <td className="px-4 py-3 text-text-muted">-</td>
+                  )}
                 </tr>
               ))}
             </tbody>
