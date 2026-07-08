@@ -120,9 +120,15 @@ class BuiltinAssembler(PDFToolBase):
                         _grid_table_regions.setdefault(table.page_number, []).append(
                             table.bbox
                         )
+            # ``_image_regions``：仅收录 image_extraction 提取的**位图本身** bbox
+            # （精确覆盖实际栅格区域，区别于 layout figure region 常过大）。用于
+            # 抑制完全落入位图内的矢量标签文本块（流程图节点文字 / 图例 / 轴标题）：
+            # 位图已烘入其像素，文本块为冗余副本。
+            _image_regions: Dict[int, List[Tuple[float, float, float, float]]] = {}
             for img in input_data.images.images if input_data.images else []:
                 if img.bbox:
                     special_regions.setdefault(img.page_number, []).append(img.bbox)
+                    _image_regions.setdefault(img.page_number, []).append(img.bbox)
 
             # layout_analysis 的 ``figure`` region 通常覆盖完整 figure 视觉框
             # （含位图 + 矢量标签 + 标题）。image_extraction 仅给出位图位图本身的
@@ -237,6 +243,15 @@ class BuiltinAssembler(PDFToolBase):
                             continue
                         if _is_low_content_figure_label(block.text):
                             continue
+                        # 文本块完全落入某张已提取位图 bbox 内 → 图内矢量标签
+                        # （流程图节点文字 / 图例 / 面板标题），位图已烘入其像素，
+                        # 抑制避免图内文字与正文双份。用"完全包含"（四角均在图内，
+                        # 2pt 容差吸收坐标取整）而非 overlap：精确位图 bbox 不会
+                        # 误吞图外真实内容（section 标题 / 段落位于图外，不满足
+                        # 完全包含）。caption 已由上方 _is_figure_or_table_caption_text
+                        # 恒保留，不在此处误伤。
+                        if _block_fully_inside_region(block, _image_regions):
+                            continue
                     # 字符级签名兜底：剔除 PyMuPDF 把公式视觉渲染区抽成
                     # "字符流文本"产生的冗余文本块（典型如长式 ``M_l = f_long(...)``
                     # 的 PyMuPDF 字符序列与 MinerU LaTeX 经签名归一化后等价）
@@ -325,6 +340,11 @@ class BuiltinAssembler(PDFToolBase):
                             and latex_core in text_formula_fingerprints
                         ):
                             continue
+                        # 内联公式去重：公式签名（_formula_text_signature）是某同页
+                        # 正文段子串 → 公式已内联于正文段（raw 字面串），display $$
+                        # 块为重复抽取，跳过。≥6 字符启用（公式签名密集 alphanumeric，
+                        # 巧合子串风险低）。
+                        md = _formula_to_markdown(formula)
                         md = _formula_to_markdown(formula)
                         if not md:
                             continue
@@ -377,6 +397,7 @@ class BuiltinAssembler(PDFToolBase):
                     if code_words:
                         if _effective_code_lang(code_block) in _REAL_CODE_LANGS:
                             _echo_indices: List[int] = []
+                            _frag_candidates: List[Tuple[int, set]] = []
                             for _ei, elem in enumerate(elements):
                                 if (
                                     elem.element_type != "text"
@@ -392,11 +413,39 @@ class BuiltinAssembler(PDFToolBase):
                                 )
                                 if not block_words:
                                     continue
-                                overlap = len(code_words & block_words)
+                                overlap_words = code_words & block_words
+                                overlap = len(overlap_words)
                                 ratio = overlap / max(len(code_words), 1)
+                                # 整体回声：单块覆盖 code 标识符 ≥70%
                                 if ratio > 0.7 and overlap >= 5:
                                     _echo_indices.append(_ei)
-                            for _ei in reversed(_echo_indices):
+                                    continue
+                                # 分片回声候选：PyMuPDF 把代码区拆成多块文本，单块
+                                # 仅含部分标识符（ratio 不足 0.7），但块自身几乎全是
+                                # 代码标识符（overlap/len(block_words) ≥ 0.9）→ 代码
+                                # 碎片。caption（Figure N:/Table N: 起手）含较多代码词
+                                # （描述 harness 函数）但非回声，由
+                                # _is_figure_or_table_caption_text 守卫保留。
+                                block_code_ratio = overlap / max(len(block_words), 1)
+                                if (
+                                    block_code_ratio >= 0.9
+                                    and overlap >= 2
+                                    and not _is_figure_or_table_caption_text(
+                                        elem.block.text
+                                    )
+                                ):
+                                    _frag_candidates.append((_ei, overlap_words))
+                            # 分片并集覆盖 code_words ≥70% → 同一代码的分片回声，
+                            # 全部抑制。并集门槛杜绝单块巧合误杀（单个散文块不可能
+                            # 贡献 ≥70% 代码标识符）。
+                            if _frag_candidates:
+                                _frag_union: set = set()
+                                for _, _w in _frag_candidates:
+                                    _frag_union |= _w
+                                if len(_frag_union) / max(len(code_words), 1) >= 0.7:
+                                    for _ei, _ in _frag_candidates:
+                                        _echo_indices.append(_ei)
+                            for _ei in reversed(sorted(set(_echo_indices))):
                                 elements.pop(_ei)
                         else:
                             # 误标代码：重叠则 _skip code、保留 text（原逻辑）
@@ -1822,6 +1871,12 @@ class BuiltinAssembler(PDFToolBase):
             # 非 "."、剩余标题首词大写/引号、剩余 ≥2 词），保留 ``## 1. Get the Mission``
             # 等编号标题与 ``## 10 Tips`` 等短标题。
             markdown = _strip_heading_page_numbers(markdown)
+            # display $$ 块去重：公式既以内联 raw LaTeX 字面串（非 $...$ 包裹）
+            # 出现在正文又作独立 $$...$$ display 块时，display 为重复抽取，去除。
+            markdown = _dedup_inline_display_formulas(markdown)
+            # 纯公式残留段落抑制：PyMuPDF 把 display 公式另抽为破碎 $...$ 行内
+            # 数学的独立段落（无 prose），抑制之（干净 display 块已保留内容）。
+            markdown = _strip_formula_dominated_paragraphs(markdown)
 
             # 6. 参考文献节条目分段（多条目连段 → 每条独占段落）
             markdown = _segment_references_section(markdown)
@@ -1973,6 +2028,41 @@ def _block_overlaps_special(
             return True
         # 策略 2: IoU 检测 — 面积重叠
         if _compute_iou(block.bbox, (rx0, ry0, rx1, ry1)) >= iou_threshold:
+            return True
+    return False
+
+
+# 完全包含判定的坐标容差（pt）：吸收 PyMuPDF 文本块 bbox 与 image_extraction
+# 位图 bbox 间的取整 / 半像素偏移，避免标签因 1-2pt 越界而漏判。
+_FULL_INSIDE_TOLERANCE_PT = 2.0
+
+
+def _block_fully_inside_region(
+    block: TextBlock,
+    regions: Dict[int, List[Tuple[float, float, float, float]]],
+) -> bool:
+    """判断文本块 bbox 是否**完全落入**某区域（四角均在区域内，含 2pt 容差）。
+
+    用于抑制位图内的矢量标签：image_extraction 提取的位图 bbox 精确覆盖实际
+    栅格区域，完全落入其中的文本块是叠加在位图上的图内文字（流程图节点 /
+    图例 / 面板标题 / 轴标题），位图已烘入其像素，文本块为冗余副本应抑制。
+
+    区别于 ``_block_overlaps_special`` 的 overlap 判定（中心点包含 / IoU≥阈值）：
+    完全包含严格得多——要求文本块四角均在图内。图外真实内容（section 标题、
+    导言段落）即便与过大的 layout figure region 部分重叠，也不会满足对**精确
+    位图 bbox** 的完全包含（标题/段落位于位图实际栅格区之外），故不会被误吞。
+
+    None / 缺 bbox 时返回 False（保守保留，交由下游通用处理）。
+    """
+    if not block.bbox:
+        return False
+    rs = regions.get(block.page_number)
+    if not rs:
+        return False
+    bx0, by0, bx1, by1 = block.bbox
+    t = _FULL_INSIDE_TOLERANCE_PT
+    for rx0, ry0, rx1, ry1 in rs:
+        if rx0 - t <= bx0 and bx1 <= rx1 + t and ry0 - t <= by0 and by1 <= ry1 + t:
             return True
     return False
 
@@ -3098,6 +3188,41 @@ def _effective_code_lang(code_block: "ExtractedCodeBlock") -> str:
 """
 
 
+# PDF 符号字体 PUA 编码 → 标准 Unicode 数学符号映射。
+# docling 对部分 PDF 符号字体（MathType / Symbol 系）的 PUA 码点无法映射到
+# 标准 Unicode，残留为不可见字符。按学术论文高频符号还原（上下文验证）。
+_PUA_MATH_CHAR_MAP: dict[str, str] = {
+    "\uf638": "∅",  # 空集（算法伪代码 "A <- ∅" / "if A = ∅ then"）
+}
+
+_PSEUDOCODE_ALGORITHM_HEADER_RE = re.compile(
+    r"^\s*Algorithm\s+\d+", re.IGNORECASE | re.MULTILINE
+)
+_PSEUDOCODE_REQUIRE_RE = re.compile(r"^\s*Require\s*:", re.IGNORECASE | re.MULTILINE)
+_PSEUDOCODE_ENSURE_RE = re.compile(r"^\s*Ensure\s*:", re.IGNORECASE | re.MULTILINE)
+
+
+def _is_pseudocode(code: str) -> bool:
+    r"""检测代码块是否为学术论文伪代码/算法（而非真实编程语言代码）。
+
+    docling/marker 常把 Algorithm 伪代码（含 ``do``/``end do``、``end if`` 等
+    Fortran-like 语法）误标为 ``fortran`` 等真实语言，致 fence 错误语法高亮。
+    伪代码强信号：
+
+      - 含 ``Algorithm N`` 标题行（最权威）；
+      - 同时含 ``Require:`` 与 ``Ensure:`` 算法关键字。
+
+    命中即判为伪代码 → fence 不带 lang info string。
+    """
+    if not code:
+        return False
+    if _PSEUDOCODE_ALGORITHM_HEADER_RE.search(code):
+        return True
+    if _PSEUDOCODE_REQUIRE_RE.search(code) and _PSEUDOCODE_ENSURE_RE.search(code):
+        return True
+    return False
+
+
 def _code_block_to_markdown(
     code_block: ExtractedCodeBlock, code_override: Optional[str] = None
 ) -> str:
@@ -3119,6 +3244,19 @@ def _code_block_to_markdown(
     """
     code = code_override if code_override is not None else (code_block.code or "")
     lang = (code_block.language or "").strip().lower()
+    # PUA 符号字体还原：部分 PDF 用符号字体的 PUA 编码渲染数学符号（如空集 ∅），
+    # docling 无法映射到标准 Unicode，残留为不可见 PUA 码点。按高频映射还原，
+    # 使代码块/算法伪代码中的符号可正确渲染。
+    if code and _PUA_MATH_CHAR_MAP:
+        for _pua, _uni in _PUA_MATH_CHAR_MAP.items():
+            if _pua in code:
+                code = code.replace(_pua, _uni)
+
+    # 伪代码/算法：docling/marker 常把 Algorithm 伪代码（含 do/end do 等
+    # Fortran-like 语法）误标为 fortran 等真实语言。检测伪代码特征 → 剥离
+    # lang，fence 不带 info string，避免错误语法高亮（伪代码无标准语法）。
+    if lang and _is_pseudocode(code):
+        lang = ""
 
     # 拆首行用于 lang 头识别
     stripped = code.lstrip("\n")
@@ -3382,13 +3520,35 @@ def _strip_heading_page_numbers(markdown: str) -> str:
       - 剩余标题以大写字母或引号开头（标题首词大写的常规形态）；
       - 剩余标题 ≥2 个词（避免误伤 ``## 10 Tips`` 等短标题）。
 
-    保守守卫，仅命中明显的页码-并入标题。
+    **防误剥章节号**：学术论文 "## 2 Background and Related Work" / "## 3 Methodology"
+    等多词标题的章节号曾被误当页码剥离（仅单词标题如 "## 4 Experiments" 因 <2 词
+    幸存）。预扫描所有编号标题的数字，若构成连续序列（存在 ≥1 对相邻整数，如
+    1,2,3,4,5），判为合法章节号序列——序列内数字（与序列某元素相邻的）**不剥离**；
+    仅游离数字（孤立页码）适用上述剥离逻辑。
     """
+
+    # 预扫描：收集所有编号标题的数字，检测连续序列（合法章节号）
+    _numbered_nums: set = set()
+    for _m in re.finditer(r"^#{1,6} (\d{1,3})\s+.+$", markdown, re.MULTILINE):
+        try:
+            _numbered_nums.add(int(_m.group(1)))
+        except ValueError:
+            pass
+    _section_nums: set = set()
+    if _numbered_nums:
+        for _n in _numbered_nums:
+            # 与某个其他编号相差 1 → 属于连续序列 → 章节号
+            if (_n - 1) in _numbered_nums or (_n + 1) in _numbered_nums:
+                _section_nums.add(_n)
 
     def _strip(m: "re.Match[str]") -> str:
         hashes = m.group(1)
-        rest = m.group(2)
+        num = int(m.group(2))
+        rest = m.group(3)
         if not rest:
+            return m.group(0)
+        # 合法章节号序列内的数字不剥离
+        if num in _section_nums:
             return m.group(0)
         if rest[0].isupper() or rest[0] in "\"'“‘":
             if len(rest.split()) >= 2:
@@ -3396,11 +3556,76 @@ def _strip_heading_page_numbers(markdown: str) -> str:
         return m.group(0)
 
     return re.sub(
-        r"^(#{1,6}) \d{1,3}\s+(.+)$",
+        r"^(#{1,6}) (\d{1,3})\s+(.+)$",
         _strip,
         markdown,
         flags=re.MULTILINE,
     )
+
+
+def _dedup_inline_display_formulas(markdown: str) -> str:
+    r"""去除与正文内联 raw LaTeX 字面串重复的 display ``$$...$$`` 块。
+
+    公式既以内联 raw LaTeX 字面串（**非 ``$...$`` 包裹**，属抽取残留，如
+    ``C_{\phi} = {r_{i} \in F_{t} | \phi(r_{i}) = \phi}``）出现在正文段，又
+    作独立 ``$$...$$`` display 块时，display 块为重复抽取，去除之。内联 raw
+    字面串保留于正文（位置忠实于 PDF 的内联排版）。
+
+    判定：display 块 LaTeX 的 ``_formula_text_signature``（剥 LaTeX 命令 +
+    非 alphanumeric，使 ``\phi`` 与 Unicode ``φ`` 归一一致）是"剥离所有
+    ``$$...$$`` 与 ``$...$`` 后的正文 raw 文本签名"的子串 → display 重复。
+
+    **安全闸**：仅匹配 raw 字面串（先剥 ``$...$`` 行内数学）；故意内联
+    ``$...$`` 数学 + display 并存的论文（``$...$`` 被剥离不参与匹配）不受影响。
+    ``≥6`` 字符签名启用（公式签名密集 alphanumeric，巧合子串风险低）。
+    """
+
+    # 正文 raw 文本：剥离所有 $$...$$ display 块与 $...$ 行内数学
+    non_formula = re.sub(r"\$\$.*?\$\$", "", markdown, flags=re.DOTALL)
+    non_formula = re.sub(r"\$[^$]*\$", "", non_formula)
+    non_formula_sig = _formula_text_signature(non_formula)
+    if len(non_formula_sig) < 6:
+        return markdown
+
+    def _replace(m: "re.Match[str]") -> str:
+        latex = m.group(1)
+        f_sig = _formula_text_signature(latex)
+        if len(f_sig) >= 6 and f_sig in non_formula_sig:
+            return ""  # display 块与正文内联 raw 字面串重复，去除
+        return m.group(0)
+
+    new_md = re.sub(r"\$\$(.*?)\$\$", _replace, markdown, flags=re.DOTALL)
+    # 清理去除后遗留的多余空行（≥3 连续换行 → 2）
+    return re.sub(r"\n{3,}", "\n\n", new_md)
+
+
+def _strip_formula_dominated_paragraphs(markdown: str) -> str:
+    r"""抑制纯公式残留段落（PyMuPDF 把 display 公式另抽为破碎 ``$...$`` 段落）。
+
+    当文档含 ``$$...$$`` display 块时，若某段落去除 ``$...$`` 行内数学后剩余
+    prose < 15 字符（essentially 纯公式残留、无实际文字），抑制该段落——它是
+    display 公式的转换残留，干净 display 块已保留其内容。
+
+    安全性：仅当文档含 ``$$`` display 块时启用（否则可能误删唯一公式版本）；
+    保留 ``$$...$$`` display 段落与含实质 prose 的段落。混合 formula+prose 的
+    段落（如 Δ 定义后跟 "A candidate is accepted..." 句子）prose ≥15 字符，
+    不被抑制（需语义分离，超出本函数能力）。
+    """
+    if "$$" not in markdown:
+        return markdown
+    parts = re.split(r"(\n{2,})", markdown)
+    result: List[str] = []
+    for part in parts:
+        stripped = part.strip()
+        if not stripped or stripped.startswith("$$") or stripped.startswith("#"):
+            result.append(part)
+            continue
+        prose = re.sub(r"\$[^$]*\$", "", part)
+        prose_clean = re.sub(r"[\s\W_]+", "", prose)
+        if len(prose_clean) < 15:
+            continue  # 纯公式残留，抑制
+        result.append(part)
+    return "".join(result)
 
 
 def _split_code_tail_section(code: str) -> Tuple[str, str]:
