@@ -729,6 +729,137 @@ async def test_migration_0092_backfills_patrol_status_from_memories(db_engine):
     assert row[1] == 97  # score 回填（NULLIF(metadata->>'score','')::int）
 
 
+async def _set_patrol_routine_best_score(db_engine, routine_id, score) -> None:
+    """测试辅助：置一条 Routine 的 best_score（_seed_patrol_routine 不带 score）。"""
+    factory = _sf(db_engine)
+    async with factory() as db:
+        await db.execute(
+            text("UPDATE negentropy.routines SET best_score = :s WHERE id = CAST(:r AS uuid)").bindparams(
+                s=score, r=str(routine_id)
+            )
+        )
+        await db.commit()
+
+
+async def test_reconcile_picks_non_cancelled_winner_over_stale_cancelled(db_engine):
+    """reconcile：succeeded/95（非 cancelled）覆盖被污染的 stale unfixable/2（来自已 cancelled Routine）。
+
+    复现实测缺陷：一个先以 failed 写入 unfixable/2、随后被 collapse 取消的 Routine，把更早 succeeded/95
+    的 done 覆盖成 unfixable/2。reconcile 以「最新非 cancelled 终态 Routine」为权威校正回 done/95。
+    """
+    factory = _sf(db_engine)
+    doc_id = await _seed_pdf_document(db_engine, original_filename="reconcile.pdf", display_name="Reconcile Doc")
+    # routine A：succeeded/95（非 cancelled → 权威 winner）
+    rid_a = await _seed_patrol_routine(db_engine, doc_id=doc_id, title="t-a", display_name="d-a", status="succeeded")
+    await _set_patrol_routine_best_score(db_engine, rid_a, 95)
+    # routine B：cancelled/2（曾以 failed 写入 unfixable/2，后被 collapse 取消）
+    rid_b = await _seed_patrol_routine(db_engine, doc_id=doc_id, title="t-b", display_name="d-b", status="cancelled")
+    # 列被污染为 stale unfixable/2（指向已 cancelled 的 routine B）
+    async with factory() as db:
+        await db.execute(
+            text(
+                "UPDATE negentropy.knowledge_documents "
+                "SET patrol_status='unfixable', patrol_score=2, patrol_routine_id=CAST(:r AS uuid) "
+                "WHERE id=CAST(:d AS uuid)"
+            ).bindparams(r=str(rid_b), d=str(doc_id))
+        )
+        await db.commit()
+
+    async with factory() as db:
+        n = await patrol._reconcile_patrol_status(db)
+        await db.commit()
+    assert n >= 1
+
+    row = await _patrol_column(db_engine, doc_id)
+    assert row[0] == "done" and row[1] == 95  # winner A（succeeded/95）
+    assert str(row[2]) == str(rid_a)
+
+
+async def test_reconcile_skips_doc_with_running_routine(db_engine):
+    """reconcile 跳过有 running Routine 的 doc——保留 spawn 写的 in_progress，不回退到旧终态。"""
+    factory = _sf(db_engine)
+    doc_id = await _seed_pdf_document(
+        db_engine, original_filename="reconcile-running.pdf", display_name="Reconcile Running"
+    )
+    # 旧 failed 终态 Routine（若 reconcile 误选它会写 unfixable，覆盖 in_progress）
+    rid_old = await _seed_patrol_routine(db_engine, doc_id=doc_id, title="t-old", display_name="d-old", status="failed")
+    await _set_patrol_routine_best_score(db_engine, rid_old, 52)
+    # 当前 running Routine（spawn 写的 in_progress）
+    rid_run = await _seed_patrol_routine(
+        db_engine, doc_id=doc_id, title="t-run", display_name="d-run", status="running"
+    )
+    async with factory() as db:
+        await db.execute(
+            text(
+                "UPDATE negentropy.knowledge_documents "
+                "SET patrol_status='in_progress', patrol_routine_id=CAST(:r AS uuid) "
+                "WHERE id=CAST(:d AS uuid)"
+            ).bindparams(r=str(rid_run), d=str(doc_id))
+        )
+        await db.commit()
+
+    async with factory() as db:
+        await patrol._reconcile_patrol_status(db)
+        await db.commit()
+
+    row = await _patrol_column(db_engine, doc_id)
+    assert row[0] == "in_progress"  # 未被旧 failed/52 覆盖
+    assert str(row[2]) == str(rid_run)
+
+
+async def _set_routine_timestamps(db_engine, routine_id, *, created_at, updated_at) -> None:
+    """测试辅助：置一条 Routine 的 created_at / updated_at（控完成顺序 vs 创建顺序）。"""
+    factory = _sf(db_engine)
+    async with factory() as db:
+        await db.execute(
+            text(
+                "UPDATE negentropy.routines SET created_at = :c, updated_at = :u WHERE id = CAST(:r AS uuid)"
+            ).bindparams(c=created_at, u=updated_at, r=str(routine_id))
+        )
+        await db.commit()
+
+
+async def test_reconcile_picks_latest_by_updated_not_created(db_engine):
+    """reconcile 按 ``updated_at``（终态达成时间）而非 ``created_at`` 判定最新 Routine。
+
+    场景（完成顺序与创建顺序相反）：routine P「先创建(succeeded/95)后完成」、routine Q「后创建
+    (failed/52)先完成」。``created_at DESC`` 会误选 Q（创建更晚）→ unfixable/52（错）；
+    ``updated_at DESC`` 选 P（最近完成）→ done/95（对，代表最近一次巡检结论）。
+    """
+    factory = _sf(db_engine)
+    doc_id = await _seed_pdf_document(
+        db_engine, original_filename="reconcile-order.pdf", display_name="Reconcile Order"
+    )
+    # P：succeeded/95，created 早（07-01）但 updated 晚（07-08，最后完成）
+    rid_p = await _seed_patrol_routine(db_engine, doc_id=doc_id, title="t-p", display_name="d-p", status="succeeded")
+    await _set_patrol_routine_best_score(db_engine, rid_p, 95)
+    await _set_routine_timestamps(
+        db_engine,
+        rid_p,
+        created_at=datetime(2026, 7, 1, 0, 0, 0, tzinfo=UTC),
+        updated_at=datetime(2026, 7, 8, 10, 0, 0, tzinfo=UTC),
+    )
+    # Q：failed/52，created 晚（07-05）但 updated 早（07-06，先完成）
+    rid_q = await _seed_patrol_routine(db_engine, doc_id=doc_id, title="t-q", display_name="d-q", status="failed")
+    await _set_patrol_routine_best_score(db_engine, rid_q, 52)
+    await _set_routine_timestamps(
+        db_engine,
+        rid_q,
+        created_at=datetime(2026, 7, 5, 0, 0, 0, tzinfo=UTC),
+        updated_at=datetime(2026, 7, 6, 10, 0, 0, tzinfo=UTC),
+    )
+
+    async with factory() as db:
+        n = await patrol._reconcile_patrol_status(db)
+        await db.commit()
+    assert n >= 1
+
+    row = await _patrol_column(db_engine, doc_id)
+    # updated_at DESC → P（07-08 最近完成）胜出 → done/95（非 created_at 误判的 unfixable/52）
+    assert row[0] == "done" and row[1] == 95
+    assert str(row[2]) == str(rid_p)
+
+
 # ---------------------------------------------------------------------------
 # _finalize_execution：patrol_lifecycle 标记的延迟语义（per-tick 不声称聚合状态终态）
 # ---------------------------------------------------------------------------
