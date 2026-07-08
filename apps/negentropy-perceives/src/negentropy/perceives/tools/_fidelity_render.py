@@ -37,6 +37,7 @@ from typing import Any
 
 __all__ = [
     "render_pdf_pages",
+    "render_pdf_page_index",
     "markdown_to_html",
     "render_markdown_html_to_png",
     "render_page_pairs",
@@ -69,6 +70,71 @@ def render_pdf_pages(
             pix.save(str(png_path))
             pairs.append((i, str(png_path)))
     return pairs
+
+
+def _fingerprint(text: str, *, n: int = 80) -> str:
+    """文本块指纹：折叠空白 + 小写 + 截前 n 字符（供 PDF 页↔wiki DOM 锚点对齐）。"""
+    return " ".join((text or "").split())[:n].lower()
+
+
+def render_pdf_page_index(
+    pdf_path: str | Path,
+    *,
+    fingerprint_chars: int = 80,
+) -> dict[str, Any]:
+    """提取源 PDF 的逐页结构索引（供程序化逐页预筛 + 与 wiki DOM 指纹对齐）。
+
+    Returns:
+        ``{"page_count": int, "toc": [[level, title, page], ...], "pages": [
+            {"page": 1, "head_fingerprint": str, "tail_fingerprint": str,
+             "image_count": int, "table_count": int, "text_block_count": int}
+        ]}``
+
+    - ``head/tail_fingerprint``：每页首/末文本块指纹（PDF 页↔wiki 流式内容锚点对齐用）。
+    - ``table_count``：PyMuPDF ``page.find_tables()`` 检出的表格数（版本不支持则 0）。
+    - 用于 ``patrol_page_check`` 程序化预筛（零 context 成本），不替代视觉判定。
+    """
+    import fitz  # PyMuPDF  # noqa: PLC0415
+
+    pages: list[dict[str, Any]] = []
+    with fitz.open(str(pdf_path)) as doc:
+        page_count = doc.page_count
+        toc = doc.get_toc(simple=True)  # [[level, title, page], ...]
+        for i, page in enumerate(doc, start=1):
+            raw_blocks = page.get_text(
+                "blocks"
+            )  # (x0,y0,x1,y1,text,no,type) type 0=text 1=image
+            text_blocks = [
+                b for b in raw_blocks if len(b) > 6 and b[6] == 0 and str(b[4]).strip()
+            ]
+            head = (
+                _fingerprint(str(text_blocks[0][4]), n=fingerprint_chars)
+                if text_blocks
+                else ""
+            )
+            tail = (
+                _fingerprint(str(text_blocks[-1][4]), n=fingerprint_chars)
+                if text_blocks
+                else ""
+            )
+            image_count = len(page.get_images(full=True))
+            table_count = 0
+            try:
+                tabs = page.find_tables()
+                table_count = len(tabs.tables) if tabs is not None else 0
+            except Exception:  # noqa: BLE001 - 老版本 PyMuPDF 无 find_tables，降级 0
+                table_count = 0
+            pages.append(
+                {
+                    "page": i,
+                    "head_fingerprint": head,
+                    "tail_fingerprint": tail,
+                    "image_count": image_count,
+                    "table_count": table_count,
+                    "text_block_count": len(text_blocks),
+                }
+            )
+    return {"page_count": page_count, "toc": toc, "pages": pages}
 
 
 # ---------------------------------------------------------------------------
@@ -176,6 +242,12 @@ async def render_page_pairs(
     width: int = 900,
 ) -> dict[str, Any]:
     """渲染源 PDF 每页 PNG + 候选 Markdown HTML/PNG。
+
+    **Legacy / 离线降级**：候选 Markdown 经 Python-Markdown 近似渲染，与真实 wiki 栈
+    （react-markdown + remark/rehype）系统性不同（公式/Mermaid/figure/figcaption/图片尺寸/
+    代码高亮假阳性）。巡检 inner loop 优先走真实 wiki 渲染栈（``patrol_wiki_env`` +
+    Playwright 截 ``next dev`` 真页）；仅当 wiki dev server 不可用时（``wiki_render_available=False``）
+    回退本路径，并标记本轮降级。
 
     Returns:
         ``{"pdf_pages": [(page_n, png_path), ...], "markdown_html": html_path,
