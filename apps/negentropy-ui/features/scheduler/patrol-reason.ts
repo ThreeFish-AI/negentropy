@@ -15,7 +15,8 @@ export type PatrolReason =
   | "in_progress"
   | "patrol_disabled"
   | "routine_disabled"
-  | "stage_source_pdf_failed";
+  | "stage_source_pdf_failed"
+  | "stage_source_pdf_unavailable";
 
 export const PATROL_REASON_LABEL: Record<PatrolReason, string> = {
   spawned: "已派生 Routine",
@@ -25,6 +26,7 @@ export const PATROL_REASON_LABEL: Record<PatrolReason, string> = {
   patrol_disabled: "巡检已禁用",
   routine_disabled: "Routine 子系统未启用",
   stage_source_pdf_failed: "源 PDF 预取失败",
+  stage_source_pdf_unavailable: "源文件缺失·已跳过",
 };
 
 /** 徽标 tailwind class（成功 / 警示 / 中性 / 错误）。 */
@@ -36,6 +38,7 @@ export const PATROL_REASON_STYLE: Record<PatrolReason, string> = {
   patrol_disabled: "bg-muted text-text-secondary",
   routine_disabled: "bg-muted text-text-secondary",
   stage_source_pdf_failed: "bg-red-500/10 text-red-700 dark:text-red-300",
+  stage_source_pdf_unavailable: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
 };
 
 const ORDER: PatrolReason[] = [
@@ -46,6 +49,7 @@ const ORDER: PatrolReason[] = [
   "patrol_disabled",
   "routine_disabled",
   "stage_source_pdf_failed",
+  "stage_source_pdf_unavailable",
 ];
 
 export function isPatrolReason(value: unknown): value is PatrolReason {

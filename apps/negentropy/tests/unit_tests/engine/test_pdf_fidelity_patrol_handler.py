@@ -135,11 +135,12 @@ def test_select_next_pending_doc_reads_patrol_status_column():
 
 
 def test_select_next_pending_doc_sql_contains_per_doc_uniqueness_guard():
-    """Fix A：emitted SQL 必含「一文一活跃巡检」NOT EXISTS 守卫（排除 cancelled）；命名门控已移除（防回归）。
+    """Fix A：selector SQL 守卫不变量（NOT EXISTS / status='active' / patrol_status IS NULL）。
 
     FakeDB 不解析 SQL，仅以串存在性守护不变量防回归——后续重构若误删 NOT EXISTS / 把 cancelled 纳入
     阻塞，或误加回「命名门控」（display_name/metadata.title 非空预筛，会误排未巡检但无标题文档致
-    Scheduler 误报「无待检」），本断言即失败。真实 SQL 语义由集成测试覆盖。
+    Scheduler 误报「无待检」），或漏掉 status='active'（会选中软删文档→源 blob 丢失），本断言即失败。
+    真实 SQL 语义由集成测试覆盖。
     """
     import asyncio
 
@@ -149,6 +150,7 @@ def test_select_next_pending_doc_sql_contains_per_doc_uniqueness_guard():
     # 命名门控已移除：巡检资格不再预筛 display_name/metadata.title（命名下沉至 _doc_display_title）
     assert "COALESCE(NULLIF(display_name, ''), NULLIF(metadata->>'title', '')) IS NOT NULL" not in stmt
     assert "patrol_status IS NULL" in stmt  # 巡检态 SSOT 列（仅未巡检入选）
+    assert "AND status = 'active'" in stmt  # 仅 active 文档入选（排除软删，其源 blob 可能已清除）
     assert "NOT EXISTS" in stmt
     assert "config->>'patrol'" in stmt
     assert "config->>'doc_id'" in stmt
@@ -257,10 +259,29 @@ def test_run_patrol_tick_carries_lifecycle_markers():
     body = inspect.getsource(patrol._run_patrol_tick)
     # 源码中以标识符形式出现（非常量值）：spawn + in_progress = 2 处 in_flight
     assert body.count("PATROL_LIFECYCLE_IN_FLIGHT") >= 2
-    # no_pending_docs + repo_not_configured = 2 处 idle
+    # no_pending_docs + repo_not_configured = 2 处 idle（stage 失败的 idle 在 _handle_stage_source_failure）
     assert body.count("PATROL_LIFECYCLE_IDLE") >= 2
-    # stage_failed 是真失败（不打标记，走既有 failed 分支）
-    assert "stage_source_pdf_failed" in body
+    # stage 失败委托给 _handle_stage_source_failure（分类 + source_unavailable 标记见其专项白盒测试）
+    assert "_handle_stage_source_failure" in body
+
+
+def test_handle_stage_source_failure_branches_present():
+    """白盒：_handle_stage_source_failure 含两分支（活性韧性）。
+
+    - 永久 ``StorageError``「Blob not found」→ 标记 ``source_unavailable`` 终态 + ``ok`` + idle。
+    - 瞬态 ``StorageError``（如 ``Failed to download``）→ 维持 ``failed`` 重试，不永久标记。
+
+    防后续重构误删分类 / 把永久错误退回 failed（致队列卡死）/ 把瞬态错误误标终态（误杀可恢复文档）。
+    """
+    import inspect
+
+    body = inspect.getsource(patrol._handle_stage_source_failure)
+    assert "StorageError" in body
+    assert "Blob not found" in body  # 永久错误判定串（postgres_client.py:105 稳定文案）
+    assert "patrol_status = 'source_unavailable'" in body  # 永久分支标记终态 UPDATE
+    assert "stage_source_pdf_unavailable" in body  # 永久分支 reason（ok）
+    assert "stage_source_pdf_failed" in body  # 瞬态分支 reason（failed）
+    assert "PATROL_LIFECYCLE_IDLE" in body  # 永久分支 ok+idle（不累加 consecutive_failures）
 
 
 def test_finalize_terminal_patrols_branches_present():

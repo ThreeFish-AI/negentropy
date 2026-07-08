@@ -139,6 +139,7 @@ class KnowledgeDocument(Base, UUIDMixin, TimestampMixin):
 
     # PDF Fidelity Patrol 巡检态（SSOT：文档级巡检状态权威源）
     # NULL=未巡检 / in_progress=巡检中 / unfixable=失败 / done=拟合成功
+    # / source_unavailable=源文件缺失（源 blob 永久丢失，patrol 跳过；可「重置为未拟合」重试）
     # 详见 docs/.agents/pdf-fidelity-patrol-status.md 与迁移 0092。
     patrol_status: Mapped[str | None] = mapped_column(
         String(20),

@@ -174,12 +174,8 @@ async def _run_patrol_tick(*, task_key: str) -> HandlerResult:
     try:
         source_pdf_path, source_read_dir = await _stage_source_pdf(doc_id=doc_id, uri=doc["content_uri"])
     except Exception as exc:
-        logger.warning("patrol_stage_source_pdf_failed", doc_id=doc_id, error=str(exc))
-        return HandlerResult(
-            status="failed",
-            error=f"stage source pdf failed: {exc}",
-            metrics={"reason": "stage_source_pdf_failed", "doc_id": doc_id},
-        )
+        # 源 PDF 预取失败分类（活性韧性）——永久丢失标记 source_unavailable 终态，瞬态维持 failed 重试。
+        return await _handle_stage_source_failure(doc_id=doc_id, exc=exc)
 
     # 确保回归基线集 + 创建并启动巡检 Routine
     async with AsyncSessionLocal() as db:
@@ -657,7 +653,11 @@ async def _has_running_patrol(db) -> bool:
 
 
 async def _select_next_pending_doc(db, *, skip_ids: set[str] | None = None) -> dict[str, Any] | None:
-    """选最早入库、未巡检（``patrol_status IS NULL``）的 PDF 文档（content_type=pdf 且转换已完成）。
+    """选最早入库、未巡检（``patrol_status IS NULL``）的 **active** PDF 文档。
+
+    前置资格（文档级，对齐全仓 ``status == "active"`` 约定，见 ``storage/service.py`` 列查询）：
+    ``app_name`` / ``status = 'active'``（排除软删文档——其源 blob 可能已随删除清除）/ ``content_type``
+    ILIKE pdf / ``markdown_extract_status = 'completed'``。
 
     巡检资格判定的两道正交守卫：
       - **巡检态门控**（SSOT）：``patrol_status IS NULL`` = 未巡检入选；``in_progress``/``done``/
@@ -682,6 +682,7 @@ async def _select_next_pending_doc(db, *, skip_ids: set[str] | None = None) -> d
         "SELECT id, content_uri, original_filename, display_name, metadata->>'title' "
         "FROM negentropy.knowledge_documents "
         "WHERE app_name = :app "
+        "AND status = 'active' "
         "AND COALESCE(content_type,'') ILIKE '%pdf%' "
         "AND markdown_extract_status = 'completed' "
         "AND patrol_status IS NULL "
@@ -707,11 +708,16 @@ async def _select_next_pending_doc(db, *, skip_ids: set[str] | None = None) -> d
 
 
 async def _select_regression_sample(db, *, size: int) -> list[str]:
-    """分层抽取近 ``size`` 份已转换 PDF 作为回归基线样本（doc_id 字符串列表）。"""
+    """分层抽取近 ``size`` 份已转换 **active** PDF 作为回归基线样本（doc_id 字符串列表）。
+
+    ``status = 'active'`` 与 ``_select_next_pending_doc`` 对齐——避免把已删除文档（源 blob 可能已
+    清除）当作生产基线样本。
+    """
     rows = await db.execute(
         sa.text(
             "SELECT id::text FROM negentropy.knowledge_documents "
             "WHERE app_name = :app "
+            "AND status = 'active' "
             "AND COALESCE(content_type,'') ILIKE '%pdf%' "
             "AND markdown_extract_status = 'completed' "
             "ORDER BY created_at DESC LIMIT :n"
@@ -751,6 +757,48 @@ async def _stage_source_pdf(*, doc_id: str, uri: str) -> tuple[str, str]:
         data = await get_blob_storage().download(uri)
         source_path.write_bytes(data)
     return str(source_path), str(doc_dir)
+
+
+async def _handle_stage_source_failure(*, doc_id: str, exc: Exception) -> HandlerResult:
+    """源 PDF 预取失败的分类处理（活性韧性）；``_run_patrol_tick`` except 中直接 ``return await``。
+
+    - **永久丢失**（``StorageError``「Blob not found」，如已删除文档 blob 已清除）→ 标记
+      ``source_unavailable`` 终态：selector ``patrol_status IS NULL`` 即排除，不再每 tick 重选
+      卡死队列 / 累积 consecutive_failures 触发任务禁用；本 tick 优雅 ``ok`` 继续。
+    - **瞬态错误**（其余 ``StorageError``，如 DB 抖动 ``Failed to download``）→ 维持 ``failed``，
+      下一 tick 重试，不永久标记（避免误杀可恢复故障）。
+
+    ``source_unavailable`` 文档可经「重置为未拟合」清回 NULL 在 blob 恢复后重试。
+    """
+    from negentropy.storage import StorageError
+
+    logger.warning("patrol_stage_source_pdf_failed", doc_id=doc_id, error=str(exc))
+    if isinstance(exc, StorageError) and "Blob not found" in str(exc):
+        async with AsyncSessionLocal() as wdb:
+            await wdb.execute(
+                sa.text(
+                    "UPDATE negentropy.knowledge_documents "
+                    "SET patrol_status = 'source_unavailable', patrol_score = NULL, "
+                    "    patrol_routine_id = NULL, patrol_updated_at = NOW() "
+                    "WHERE id = CAST(:doc_id AS uuid)"
+                ).bindparams(doc_id=doc_id)
+            )
+            await wdb.commit()
+        logger.warning("patrol_doc_source_unavailable", doc_id=doc_id, error=str(exc))
+        return HandlerResult(
+            status="ok",
+            output_summary=f"source pdf unavailable, doc marked source_unavailable: doc={doc_id}",
+            metrics={
+                "reason": "stage_source_pdf_unavailable",
+                "doc_id": doc_id,
+                PATROL_LIFECYCLE_KEY: PATROL_LIFECYCLE_IDLE,
+            },
+        )
+    return HandlerResult(
+        status="failed",
+        error=f"stage source pdf failed: {exc}",
+        metrics={"reason": "stage_source_pdf_failed", "doc_id": doc_id},
+    )
 
 
 # ---------------------------------------------------------------------------

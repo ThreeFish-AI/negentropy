@@ -1,11 +1,12 @@
 /**
  * PDF Fidelity Patrol 巡检态徽标（Documents 列表「巡检状态」列用）。
  *
- * 4 态映射（对齐后端 ``knowledge_documents.patrol_status`` 列，SSOT）：
+ * 5 态映射（对齐后端 ``knowledge_documents.patrol_status`` 列，SSOT）：
  * - ``null``/缺省 → 未巡检（muted 中性）
  * - ``in_progress`` → 正在巡检（sky + 脉冲点）
  * - ``unfixable`` → 巡检失败（red）
  * - ``done`` → 拟合成功（emerald）+ 拟合分数
+ * - ``source_unavailable`` → 源文件缺失（amber；源 blob 永久丢失，patrol 跳过）
  *
  * 配色对齐黄金标准 ``app/interface/routine/_components/status-style.ts``（routineStatusClass）
  * 与巡检语义表 ``features/scheduler/patrol-reason.ts``；分数上色复用 ``scoreColorClass``。
@@ -13,7 +14,13 @@
 import { scoreColorClass } from "@/components/transcript/status-shared";
 import { cn } from "@/lib/utils";
 
-export type PatrolStatus = "in_progress" | "done" | "unfixable" | null | undefined;
+export type PatrolStatus =
+  | "in_progress"
+  | "done"
+  | "unfixable"
+  | "source_unavailable"
+  | null
+  | undefined;
 
 const BADGE_BASE =
   "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold whitespace-nowrap";
@@ -27,6 +34,8 @@ export function patrolStatusBadgeClass(status: PatrolStatus): string {
       return "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200";
     case "unfixable":
       return "bg-red-500/15 text-red-800 dark:text-red-200";
+    case "source_unavailable":
+      return "bg-amber-500/15 text-amber-800 dark:text-amber-200";
     default:
       return "bg-muted/60 text-text-secondary";
   }
@@ -41,6 +50,8 @@ export function patrolStatusLabel(status: PatrolStatus): string {
       return "拟合成功";
     case "unfixable":
       return "巡检失败";
+    case "source_unavailable":
+      return "源文件缺失";
     default:
       return "未巡检";
   }

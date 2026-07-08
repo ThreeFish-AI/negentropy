@@ -1364,8 +1364,9 @@ export interface KnowledgeDocument {
    * - `in_progress` = 正在巡检
    * - `unfixable` = 巡检失败
    * - `done` = 拟合成功
+   * - `source_unavailable` = 源文件缺失（源 blob 永久丢失，patrol 跳过）
    */
-  patrol_status?: "in_progress" | "done" | "unfixable" | null;
+  patrol_status?: "in_progress" | "done" | "unfixable" | "source_unavailable" | null;
   /** 巡检 best_score 峰值（done/unfixable 携带）。 */
   patrol_score?: number | null;
   /** 当前巡检态归属 Routine（cancelled 回退幂等守卫）。 */

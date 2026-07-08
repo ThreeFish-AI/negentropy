@@ -14,7 +14,7 @@
 
 **目标**：文档级巡检状态迁为 `KnowledgeDocument` 持久列（权威读源 SSOT），Documents 列表新增「巡检状态」列，并提供「重置为未拟合」操作。
 
-## 2. 四态机
+## 2. 五态机
 
 `knowledge_documents.patrol_status` 列的值域（NULL 语义为核心）：
 
@@ -24,6 +24,7 @@
 | 正在巡检 | `in_progress` | spawn 巡检 Routine 时刻写入 | NULL（清空历史分） |
 | 巡检失败 | `unfixable` | 终态沉淀（best_score < 95 阈值 或 契约未 done） | best_score 峰值 |
 | 拟合成功 · {score} | `done` | 终态沉淀（best_score ≥ 95 或 契约自报 done） | best_score 峰值 |
+| 源文件缺失 | `source_unavailable` | 源 blob 永久丢失（巡检预取 `StorageError`「Blob not found」，**未 spawn**）patrol 跳过 | NULL |
 
 合格阈值常量 [`patrol_qualified_score_threshold=95`](../../apps/negentropy/src/negentropy/config/routine.py)（env `NE_ROUTINE_PATROL_QUALIFIED_SCORE_THRESHOLD`）。非 PDF 文档巡检状态列显示「—」（巡检仅针对 PDF，判据 `content_type ILIKE '%pdf%'`）。
 
@@ -36,6 +37,8 @@ stateDiagram-v2
     正在巡检 --> 未巡检: Routine cancelled（双守卫回退 NULL）
     拟合成功 --> 未巡检: 用户「重置为未拟合」
     巡检失败 --> 未巡检: 用户「重置为未拟合」
+    未巡检 --> 源文件缺失: stage 源 blob 永久丢失（Blob not found，未 spawn）
+    源文件缺失 --> 未巡检: 用户「重置为未拟合」（blob 恢复后重试）
 ```
 
 ## 3. 写入路径（dual-write 过渡 → Phase 2 SSOT）
@@ -96,10 +99,13 @@ sequenceDiagram
 
 [`_select_next_pending_doc`](../../apps/negentropy/src/negentropy/engine/schedulers/handlers/pdf_fidelity_patrol.py) 的候选门控（缺一不可）：
 
-1. `content_type ILIKE '%pdf%'`（PDF 文档）
-2. `markdown_extract_status = 'completed'`（转换完成）
-3. **`patrol_status IS NULL`**（4 态语义：仅未巡检入选；**替换**旧 `id NOT IN :skip` 的 Memory skip_ids 路径）
-4. `NOT EXISTS` 非 cancelled 巡检 Routine（一文一活跃巡检并发互斥；与 `patrol_status` 正交保留）
+1. `status = 'active'`（排除软删文档——其源 blob 可能已随删除清除；对齐全仓文档查询 `status == "active"` 约定）
+2. `content_type ILIKE '%pdf%'`（PDF 文档）
+3. `markdown_extract_status = 'completed'`（转换完成）
+4. **`patrol_status IS NULL`**（5 态语义：仅未巡检入选；**替换**旧 `id NOT IN :skip` 的 Memory skip_ids 路径）
+5. `NOT EXISTS` 非 cancelled 巡检 Routine（一文一活跃巡检并发互斥；与 `patrol_status` 正交保留）
+
+> **源 blob 永久丢失韧性**：当选中的 active 文档源 blob 确已丢失（`_stage_source_pdf` 抛 `StorageError`「Blob not found」）时，[`_handle_stage_source_failure`](../../apps/negentropy/src/negentropy/engine/schedulers/handlers/pdf_fidelity_patrol.py) 标记 `source_unavailable` 终态并令 tick 优雅 `ok` 继续——不整 tick failed 卡死队列、不累积 `consecutive_failures` 触发任务禁用；瞬态错误（如 `Failed to download`）仍维持 failed 下一 tick 重试，不误杀可恢复文档。
 
 > **命名关注正交下沉**至 [`_doc_display_title`](../../apps/negentropy/src/negentropy/engine/schedulers/handlers/pdf_fidelity_patrol.py)（`display_name` → `metadata.title` → `original_filename` 三级兜底，复用 `resolve_effective_display_name`）：巡检资格不因缺名而被否决。历史「命名门控」（要求 `display_name`/`metadata.title` 非空）曾在此预筛，致未巡检但无标题文档被永久跳过而 Scheduler 误报「无待检 PDF 文档」，已移除——仅剩原始文件名（含 arxiv-ID 如 `2603.05344v3.pdf`）时仍发起巡检，Routine 名暂以文件名兜底，待更优名源出现（用户改名 / Fix B 标题回填）由 [`_collapse_superseded_patrols`](../../apps/negentropy/src/negentropy/engine/schedulers/handlers/pdf_fidelity_patrol.py) 自愈取消旧 Routine、下 tick 以更优名重建。
 >

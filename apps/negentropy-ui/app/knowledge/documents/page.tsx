@@ -762,7 +762,8 @@ export default function DocumentsPage() {
                                 </button>
                                 {isPdfDocument(doc) &&
                                   (doc.patrol_status === "done" ||
-                                    doc.patrol_status === "unfixable") && (
+                                    doc.patrol_status === "unfixable" ||
+                                    doc.patrol_status === "source_unavailable") && (
                                     <button
                                       onClick={() => void handleResetPatrol(doc)}
                                       disabled={resettingId === doc.id}
