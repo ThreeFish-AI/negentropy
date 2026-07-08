@@ -70,6 +70,18 @@ function resolveContentDir(): string {
 
 const CONTENT_DIR = resolveContentDir();
 
+/**
+ * 是否旁路进程级 fileCache/indexCache（每次都重读磁盘）。
+ *
+ * - ``next dev``（``NODE_ENV !== 'production'``）自动开启：使 dev server 能读到
+ *   内容根每轮覆盖写的文件（PDF Fidelity Patrol inner loop 每轮把候选 Markdown
+ *   原子写到 ``entries/{id}.json``，默认 ``fileCache`` 会锁旧值）。
+ * - 显式 ``WIKI_CONTENT_NO_CACHE=1`` 强制开启（即便生产 build 也旁路，仅诊断用）。
+ * - ``next build``（生产 SSG）保持缓存：构建期单进程多次读同一文件，缓存避免重复 IO。
+ */
+const bypassCache =
+  process.env.WIKI_CONTENT_NO_CACHE === "1" || process.env.NODE_ENV !== "production";
+
 /** 顶层索引结构（与后端导出 `index.json` 对齐）。 */
 interface ContentIndex {
   schema_version: number;
@@ -99,6 +111,12 @@ let idToSlugCache: Map<string, string> | null = null;
 
 async function readJson<T>(relativePath: string): Promise<T> {
   const abs = path.join(CONTENT_DIR, relativePath);
+  if (bypassCache) {
+    // dev / 巡检模式：跳过进程级 fileCache，每次重读磁盘，使 next dev 能读到每轮
+    // 覆盖写的候选内容（PDF Fidelity Patrol inner loop 原子写 entries/{id}.json）。
+    const raw = await fs.readFile(abs, "utf8");
+    return JSON.parse(raw) as T;
+  }
   const cached = fileCache.get(abs);
   if (cached !== undefined) return cached as T;
   const raw = await fs.readFile(abs, "utf8");
@@ -108,9 +126,9 @@ async function readJson<T>(relativePath: string): Promise<T> {
 }
 
 async function getIndex(): Promise<ContentIndex> {
-  if (indexCache) return indexCache;
+  if (!bypassCache && indexCache) return indexCache;
   const idx = await readJson<ContentIndex>("index.json");
-  indexCache = idx;
+  if (!bypassCache) indexCache = idx;
   return idx;
 }
 
