@@ -117,20 +117,44 @@ def _find_fingerprint_index(blocks: list[str], fingerprint: str) -> int:
     return -1
 
 
+def _is_weak_fingerprint(fp: str) -> bool:
+    """裸页码 / 空指纹不是可靠 DOM 锚点。
+
+    PDF 页脚页码经 ``_fingerprint`` 折叠后形如 ``"5"`` / ``"12"``，子串匹配会命中
+    DOM 中任意含该数字的**更早**块（如引用 ``[5]``、年份 ``2015``），致
+    ``tail_idx < head_idx`` 假性 misaligned（PDF p5 Contents 页即受此害：tail="5"
+    命中 §1 的引用 [5]）。此类指纹不应单独裁决 misaligned。
+    """
+    s = (fp or "").strip()
+    return (not s) or s.isdigit()
+
+
 def _align_pages(
     pdf_pages: list[dict[str, Any]],
     dom_blocks: list[str],
 ) -> list[dict[str, Any]]:
     """每 PDF 页 head/tail 指针在 DOM blocks 上定位，产出对齐索引。
 
-    对齐失败（head/tail 任一未命中）→ ``align=misaligned``（该页直接进 vision 队列，
-    对齐失败本身是内容流不一致的信号——正是要找的缺陷）。
+    对齐失败（强指纹未命中，或双强指纹均命中但 tail 早于 head）→ ``align=misaligned``
+    （内容流/顺序不一致的信号）。**弱指纹**（裸页码）不参与裁决——其一命中更早块
+    不应单独致 misaligned（防页脚页码假阳性）。
     """
     align_index: list[dict[str, Any]] = []
     for p in pdf_pages:
-        head_idx = _find_fingerprint_index(dom_blocks, p.get("head_fingerprint", ""))
-        tail_idx = _find_fingerprint_index(dom_blocks, p.get("tail_fingerprint", ""))
-        aligned = head_idx >= 0 and tail_idx >= 0 and tail_idx >= head_idx
+        head_fp = p.get("head_fingerprint", "")
+        tail_fp = p.get("tail_fingerprint", "")
+        head_idx = _find_fingerprint_index(dom_blocks, head_fp)
+        tail_idx = _find_fingerprint_index(dom_blocks, tail_fp)
+        head_strong = not _is_weak_fingerprint(head_fp)
+        tail_strong = not _is_weak_fingerprint(tail_fp)
+        # 强指纹须命中；弱指纹（裸页码）不单独致失败
+        head_ok = (not head_strong) or head_idx >= 0
+        tail_ok = (not tail_strong) or tail_idx >= 0
+        # 双强指纹均命中时才校验顺序（tail 不应早于 head）
+        order_ok = True
+        if head_strong and tail_strong and head_idx >= 0 and tail_idx >= 0:
+            order_ok = tail_idx >= head_idx
+        aligned = head_ok and tail_ok and order_ok
         align_index.append(
             {
                 "pdf_page": p["page"],
