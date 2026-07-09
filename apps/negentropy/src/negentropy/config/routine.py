@@ -379,7 +379,7 @@ class RoutineSettings(BaseSettings):
         description="非回归基线样本数（首次巡检时分层抽取的生产 PDF 文档数）。",
     )
     patrol_qualified_score_threshold: int = Field(
-        default=95,
+        default=99,
         ge=0,
         le=100,
         description="巡检文档「合格」分阈值（0-100）。巡检 Routine 的 success_score_threshold 取此值——"

@@ -77,7 +77,7 @@ async def test_create_and_start_patrol_routine_persists_real_row(db_engine):
         assert row.repository_id == repo_id
         assert row.baseline_branch == "origin/feature/1.x.x"
         assert row.no_progress_patience == 3  # per-Routine 默认（非 settings）—— 回归点
-        assert row.success_score_threshold == 95  # 合格阈值（patrol_qualified_score_threshold；原 100→收敛即 SUCCESS）
+        assert row.success_score_threshold == 99  # 合格阈值（patrol_qualified_score_threshold；原 100→收敛即 SUCCESS）
         assert row.max_iterations == 400  # settings.routine.patrol_max_iterations_per_doc（×50：原 8）
         assert row.max_cost_usd == 1500.0  # patrol 专属预算（×50：原 30；非全局 default_max_cost_usd=5）
         assert row.owner_id == "system"
@@ -408,25 +408,25 @@ async def _status_memory(db_engine, doc_id):
 
 
 async def test_finalize_failed_high_score_marks_done_and_advances(db_engine):
-    """failed best_score=97 ≥ 95 → done(score=97)，doc 进 skip_ids（推进生效，不再死循环）。"""
+    """failed best_score=99 ≥ 99 → done(score=99)，doc 进 skip_ids（推进生效，不再死循环）。"""
     from negentropy.engine.routine.patrol_memory import PatrolMemoryStore
 
     factory = _sf(db_engine)
-    _, doc_id = await _seed_terminal_patrol_with_outcome(db_engine, status="failed", best_score=97)
+    _, doc_id = await _seed_terminal_patrol_with_outcome(db_engine, status="failed", best_score=99)
     async with factory() as db:
         n = await patrol._finalize_terminal_patrols(db)
         await db.commit()
     assert n >= 1
 
     row = await _status_memory(db_engine, doc_id)
-    assert row is not None and row.st == "done" and row.sc == "97"
+    assert row is not None and row.st == "done" and row.sc == "99"
 
     async with factory() as db:
         assert doc_id in await PatrolMemoryStore(db).get_skip_doc_ids()
 
 
 async def test_finalize_failed_low_score_marks_unfixable_and_advances(db_engine):
-    """failed best_score=52 < 95 → unfixable(score=52)，doc 仍进 skip_ids（尽力亦推进）。"""
+    """failed best_score=52 < 99 → unfixable(score=52)，doc 仍进 skip_ids（尽力亦推进）。"""
     from negentropy.engine.routine.patrol_memory import PatrolMemoryStore
 
     factory = _sf(db_engine)
@@ -441,14 +441,14 @@ async def test_finalize_failed_low_score_marks_unfixable_and_advances(db_engine)
 
 
 async def test_finalize_progressing_contract_advances(db_engine):
-    """末轮 progressing 契约 + best_score=96 ≥ 95 → done（核心：progressing 不再致死循环）。"""
+    """末轮 progressing 契约 + best_score=99 ≥ 99 → done（核心：progressing 不再致死循环）。"""
     from negentropy.engine.routine.patrol_memory import PatrolMemoryStore
 
     factory = _sf(db_engine)
     _, doc_id = await _seed_terminal_patrol_with_outcome(
         db_engine,
         status="failed",
-        best_score=96,
+        best_score=99,
         contract_summary=_contract_summary(score=80, status="progressing"),
     )
     async with factory() as db:
@@ -461,7 +461,7 @@ async def test_finalize_progressing_contract_advances(db_engine):
 
 
 async def test_finalize_missing_contract_falls_back_to_best_score(db_engine):
-    """末轮无 evaluated summary（契约缺失）+ best_score=88 < 95 → unfixable（best_score 兜底沉淀）。"""
+    """末轮无 evaluated summary（契约缺失）+ best_score=88 < 99 → unfixable（best_score 兜底沉淀）。"""
     _, doc_id = await _seed_terminal_patrol_with_outcome(db_engine, status="failed", best_score=88)
     factory = _sf(db_engine)
     async with factory() as db:
@@ -493,16 +493,16 @@ async def test_finalize_cancelled_does_not_persist_status(db_engine):
 
 
 async def test_finalize_multiple_routines_same_doc_best_wins(db_engine):
-    """同 doc 两条终态 Routine（best_score 52 与 97）→ 最终 done(score=97)（ORDER BY best_score 最佳拟合胜出）。"""
+    """同 doc 两条终态 Routine（best_score 52 与 99）→ 最终 done(score=99)（ORDER BY best_score 最佳拟合胜出）。"""
     doc_id = str(uuid.uuid4())
     await _seed_terminal_patrol_with_outcome(db_engine, status="failed", best_score=52, doc_id=doc_id)
-    await _seed_terminal_patrol_with_outcome(db_engine, status="failed", best_score=97, doc_id=doc_id)
+    await _seed_terminal_patrol_with_outcome(db_engine, status="failed", best_score=99, doc_id=doc_id)
     factory = _sf(db_engine)
     async with factory() as db:
         await patrol._finalize_terminal_patrols(db)
         await db.commit()
     row = await _status_memory(db_engine, doc_id)
-    assert row is not None and row.st == "done" and row.sc == "97"
+    assert row is not None and row.st == "done" and row.sc == "99"
 
 
 async def _seed_knowledge_pdf(db_engine, *, filename):
@@ -545,7 +545,7 @@ async def test_select_advances_after_done(db_engine):
     await _seed_knowledge_pdf(db_engine, filename="patrol-advance-b.pdf")  # 保证至少一份 pending
 
     # A 经一次终态 Routine 标 done
-    await _seed_terminal_patrol_with_outcome(db_engine, status="failed", best_score=97, doc_id=str(doc_a))
+    await _seed_terminal_patrol_with_outcome(db_engine, status="failed", best_score=99, doc_id=str(doc_a))
     async with factory() as db:
         await patrol._finalize_terminal_patrols(db)
         await db.commit()
@@ -718,14 +718,14 @@ async def test_finalize_writes_patrol_status_column(db_engine):
     factory = _sf(db_engine)
     doc_done = await _seed_knowledge_pdf(db_engine, filename="patrol-col-done.pdf")
     doc_unfix = await _seed_knowledge_pdf(db_engine, filename="patrol-col-unfix.pdf")
-    await _seed_terminal_patrol_with_outcome(db_engine, status="failed", best_score=97, doc_id=str(doc_done))
+    await _seed_terminal_patrol_with_outcome(db_engine, status="failed", best_score=99, doc_id=str(doc_done))
     await _seed_terminal_patrol_with_outcome(db_engine, status="failed", best_score=52, doc_id=str(doc_unfix))
     async with factory() as db:
         await patrol._finalize_terminal_patrols(db)
         await db.commit()
     done_row = await _patrol_column(db_engine, doc_done)
     unfix_row = await _patrol_column(db_engine, doc_unfix)
-    assert done_row[0] == "done" and done_row[1] == 97
+    assert done_row[0] == "done" and done_row[1] == 99
     assert unfix_row[0] == "unfixable" and unfix_row[1] == 52
 
 
@@ -743,7 +743,7 @@ async def test_reset_patrol_status_clears_column_and_cancels_routines(db_engine,
     monkeypatch.setattr("negentropy.storage.service.AsyncSessionLocal", factory)
     doc_id = await _seed_knowledge_pdf(db_engine, filename="patrol-reset.pdf")
     routine_id, _ = await _seed_terminal_patrol_with_outcome(
-        db_engine, status="failed", best_score=97, doc_id=str(doc_id)
+        db_engine, status="failed", best_score=99, doc_id=str(doc_id)
     )
     async with factory() as db:
         await patrol._finalize_terminal_patrols(db)

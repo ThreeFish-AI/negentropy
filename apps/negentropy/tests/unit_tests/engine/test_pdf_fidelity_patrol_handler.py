@@ -364,7 +364,7 @@ def test_build_patrol_routine_constructs_without_attribute_error():
     )
     # 关键字段装配正确（与 routine_api.create_routine 口径对齐）
     assert routine.no_progress_patience == 3  # per-Routine 默认，非 settings
-    assert routine.success_score_threshold == 95  # 合格阈值（patrol_qualified_score_threshold；原 100→收敛即 SUCCESS）
+    assert routine.success_score_threshold == 99  # 合格阈值（patrol_qualified_score_threshold；原 100→收敛即 SUCCESS）
     assert routine.status == "running"
     assert routine.repository_id == repo_id
     assert routine.baseline_branch == "origin/feature/1.x.x"
