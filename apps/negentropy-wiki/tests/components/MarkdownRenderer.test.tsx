@@ -78,4 +78,52 @@ describe("MarkdownRenderer", () => {
     expect(style?.width).not.toBe("100%");
     expect(style?.maxWidth).toBe("100%");
   });
+
+  // notranslate：块级豁免——代码块/公式等不参与浏览器翻译，正文其余仍可翻译。
+  describe("notranslate 块级豁免", () => {
+    it("fenced 代码块的 <pre> 带 notranslate，内层 <code> 不污染（语言标签不受影响）", () => {
+      const md = "```js\nconst enabled = true;\n```";
+      const { container } = render(<MarkdownRenderer content={md} />);
+
+      const pre = container.querySelector(".wiki-code-block pre");
+      expect(pre).not.toBeNull();
+      expect(pre?.classList.contains("notranslate")).toBe(true);
+
+      // 内层 code 不应被追加 notranslate（否则会污染 CodeBlock 的语言标签计算）。
+      const code = container.querySelector(".wiki-code-block code");
+      expect(code).not.toBeNull();
+      expect(code?.classList.contains("notranslate")).toBe(false);
+    });
+
+    it("行内代码的 <code> 带 notranslate", () => {
+      const md = "使用 `useState` 钩子管理状态。";
+      const { container } = render(<MarkdownRenderer content={md} />);
+
+      const inlineCode = container.querySelector("code");
+      expect(inlineCode).not.toBeNull();
+      expect(inlineCode?.textContent).toBe("useState");
+      expect(inlineCode?.classList.contains("notranslate")).toBe(true);
+      // 行内代码不进 pre，应为裸 code。
+      expect(inlineCode?.closest("pre")).toBeNull();
+    });
+
+    it("块级公式 $$...$$ 的 .katex-display 带 notranslate", () => {
+      // 独占成行的 $$ 围栏才会被 remark-math 解析为 display 公式（同行 $$...$$ 是行内）。
+      const md = "$$\nE = mc^2\n$$";
+      const { container } = render(<MarkdownRenderer content={md} />);
+
+      const display = container.querySelector(".katex-display");
+      expect(display).not.toBeNull();
+      expect(display?.classList.contains("notranslate")).toBe(true);
+    });
+
+    it("行内公式 $...$ 的 .katex 带 notranslate", () => {
+      const md = "质能方程 $E=mc^2$ 广为人知。";
+      const { container } = render(<MarkdownRenderer content={md} />);
+
+      const katex = container.querySelector(".katex");
+      expect(katex).not.toBeNull();
+      expect(katex?.classList.contains("notranslate")).toBe(true);
+    });
+  });
 });

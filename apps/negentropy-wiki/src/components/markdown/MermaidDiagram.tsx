@@ -51,13 +51,16 @@ export function MermaidDiagram({ code }: MermaidDiagramProps) {
     return (
       <div className="wiki-mermaid-error">
         <p className="wiki-mermaid-error-title">Mermaid Error</p>
-        <pre className="wiki-mermaid-error-code">{code}</pre>
+        {/* notranslate：报错回退展示的是原始 mermaid 源码，不应被浏览器翻译。 */}
+        <pre className="wiki-mermaid-error-code notranslate">{code}</pre>
       </div>
     );
   }
 
   return (
-    <div className="wiki-mermaid-diagram">
+    // notranslate：运行期注入的 SVG 子树继承容器豁免，翻译引擎整体跳过，
+    // 防止节点文字被翻译后长度变化打乱图表布局。
+    <div className="wiki-mermaid-diagram notranslate">
       <div dangerouslySetInnerHTML={{ __html: svg }} />
     </div>
   );

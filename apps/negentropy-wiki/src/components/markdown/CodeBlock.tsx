@@ -37,7 +37,9 @@ export function CodeBlock({ children, className, codeText }: CodeBlockProps) {
       >
         {copied ? "已复制" : "复制"}
       </button>
-      <pre ref={preRef}>
+      {/* notranslate：Chrome / Google 翻译整棵跳过代码内容，避免 `true`、变量名等被误翻。
+          仅标 <pre>，语言标签与「复制」按钮仍随页面翻译。 */}
+      <pre ref={preRef} className="notranslate">
         <code className={className}>{children}</code>
       </pre>
     </div>

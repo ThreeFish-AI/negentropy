@@ -6,6 +6,7 @@ import rehypeRaw from "rehype-raw";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import rehypeKatex from "rehype-katex";
 import rehypeHighlight from "rehype-highlight";
+import { rehypeNotranslate } from "./rehype-notranslate";
 import { CodeBlock } from "./CodeBlock";
 import { AnchorHeading } from "./AnchorHeading";
 import { ResponsiveTable } from "./ResponsiveTable";
@@ -55,6 +56,8 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
           rehypeKatex,
           rehypeSlug,
           rehypeHighlight,
+          // 末尾运行：为代码/公式等注入 notranslate class，跳过浏览器翻译（须在 rehypeKatex 之后）。
+          rehypeNotranslate,
         ]}
         components={{
           h1: ({ id, children }) => <AnchorHeading level={1} id={id}>{children}</AnchorHeading>,
