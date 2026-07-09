@@ -196,16 +196,56 @@ def write_entry_content(
     return target
 
 
+def _detect_dev_asset_dirs(doc: str) -> list[Path]:
+    """检测运行中 ``next dev`` 进程的 wiki ``public/assets/{doc}/`` 目录。
+
+    patrol wiki dev 可能由 orchestrator 从【主仓】启动（cwd=主仓 apps/negentropy-wiki），
+    而非 CC agent 的 worktree。bake 须覆盖 dev server 实际服务的 public/，否则
+    worktree bake 不可达、图片 404。经 ``ps``+``lsof`` 取每个 ``next dev --port``
+    进程的 cwd，返回其 ``public/assets/{doc}``（仅当 ``public/`` 存在）。
+    """
+    dirs: list[Path] = []
+    try:
+        ps = subprocess.run(["ps", "-eo", "pid=,command="], capture_output=True, text=True, timeout=5).stdout
+        for ln in ps.splitlines():
+            if "next dev" not in ln or "--port" not in ln:
+                continue
+            pid = ln.split()[0]
+            try:
+                out = subprocess.run(
+                    ["lsof", "-a", "-p", pid, "-d", "cwd", "-Fn"],
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
+                ).stdout
+            except Exception:  # noqa: BLE001
+                continue
+            for line in out.splitlines():
+                if not line.startswith("n"):
+                    continue
+                wiki_cwd = Path(line[1:])
+                cand = wiki_cwd / "public" / "assets" / doc
+                if (wiki_cwd / "public").is_dir() and cand not in dirs:
+                    dirs.append(cand)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("patrol_dev_detect_failed", error=str(exc))
+    return dirs
+
+
 def _bake_patrol_assets(markdown: str, *, markdown_file: Path, doc_id: UUID) -> str:
     """把候选 MD 内的图片引用 bake 到 wiki dev 可服务的 ``public/assets/{doc}/``。
 
     patrol wiki dev（``next dev``）只经 next 静态机制服务 ``public/``——content_root
     下 ``entries/*.json`` 由 ``content-source.ts`` 读，但**图片不经其服务**（生产由
     ``sync-assets.mjs`` 同步 ``content/assets/`` → ``public/assets/``）。patrol staging
-    无 prebuild 钩子，故此处直接把候选引用的图片字节复制到
-    ``{repo}/apps/negentropy-wiki/public/assets/{doc}/{file}``（该路径已 .gitignore），
-    并把 markdown 引用重写为 ``/assets/{doc}/{file}``（与生产 ``bake_assets=True``
-    形态逐字一致，wiki 端零特判）。覆盖式清旧避免残留陈旧文件。
+    无 prebuild 钩子，故此处直接把候选引用的图片字节复制到 dev server 服务的
+    ``public/assets/{doc}/{file}``（该路径已 .gitignore），并把 markdown 引用重写为
+    ``/assets/{doc}/{file}``（与生产 ``bake_assets=True`` 形态逐字一致，wiki 端零特判）。
+
+    **多目标烘焙**：dev server 可能从主仓起（orchestrator 上下文，``_repo_root`` 为
+    worktree 时不可达），故同时烘焙到 ``_repo_root()`` public/ 与所有运行中 ``next dev``
+    进程 cwd 的 public/（``_detect_dev_asset_dirs``）。``public/assets/`` 为 gitignored
+    运行时产物（非分支污染），是 patrol 的预期 bake 服务位置。覆盖式清旧避免残留。
 
     支持两种引用形式（HTML ``<img src=...>`` 与 Markdown ``![..](..)`` 均覆盖）：
     - ``./images/{file}`` / ``images/{file}``（perceives CLI 产出）；
@@ -214,10 +254,14 @@ def _bake_patrol_assets(markdown: str, *, markdown_file: Path, doc_id: UUID) -> 
     """
 
     doc = str(doc_id)
-    assets_root = _repo_root() / "apps" / "negentropy-wiki" / "public" / "assets" / doc
-    if assets_root.exists():
-        shutil.rmtree(assets_root, ignore_errors=True)
-    assets_root.mkdir(parents=True, exist_ok=True)
+    targets: list[Path] = [_repo_root() / "apps" / "negentropy-wiki" / "public" / "assets" / doc]
+    for d in _detect_dev_asset_dirs(doc):
+        if d not in targets:
+            targets.append(d)
+    for t in targets:
+        if t.exists():
+            shutil.rmtree(t, ignore_errors=True)
+        t.mkdir(parents=True, exist_ok=True)
 
     src_dir = markdown_file.resolve().parent
     # 文件名允许字符（与生产 _ASSET_REF_PATTERN 的 filename 集对齐）
@@ -248,7 +292,8 @@ def _bake_patrol_assets(markdown: str, *, markdown_file: Path, doc_id: UUID) -> 
             if src_file is None:
                 state["missing"].append(filename)
                 return m.group(0)
-            shutil.copyfile(src_file, assets_root / filename)
+            for t in targets:
+                shutil.copyfile(src_file, t / filename)
             state["copied"] += 1
             return _rewrite_token(m, prefix, doc, filename)
 
@@ -261,7 +306,7 @@ def _bake_patrol_assets(markdown: str, *, markdown_file: Path, doc_id: UUID) -> 
         doc_id=doc,
         copied=state["copied"],
         missing=state["missing"][:10],
-        assets_root=str(assets_root),
+        targets=[str(t) for t in targets],
     )
     return new_md
 

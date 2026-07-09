@@ -63,6 +63,7 @@ _DOM_PROBE_JS = """
   const tables = root.querySelectorAll('table').length;
   const tableCells = root.querySelectorAll('td, th').length;
   const imgs = Array.from(root.querySelectorAll('img')).map(img => ({
+    src: img.currentSrc || img.src,
     natural_width: img.naturalWidth,
     rendered_width: Math.round(img.getBoundingClientRect().width),
   }));
@@ -171,10 +172,51 @@ def _align_pages(
 # ---------------------------------------------------------------------------
 
 
+def _serial_probe_images(
+    imgs: list[dict[str, Any]], wiki_url: str
+) -> tuple[int, int, list[str]]:
+    """串行 fetch 每个 wiki 图片 URL，返回 (去重总数, 可服务数, 不可服务 src 列表)。
+
+    headless 并发加载受 dev server ``output:export`` 并发误路由影响（部分图请求被
+    派给 catch-all SSG 路由 → 假性 naturalWidth=0）；串行 fetch 反映图片**真实可服务性**
+    （资产是否在 dev 服务位置 + 可达）。image 维度以串行可服务性为准，避免并发抖动
+    假 warn。
+    """
+    import urllib.request as ur
+    from urllib.parse import urljoin, urlparse
+
+    parsed = urlparse(wiki_url)
+    origin = f"{parsed.scheme}://{parsed.netloc}"
+    seen: dict[str, bool] = {}
+    unservable: list[str] = []
+    for im in imgs:
+        src = im.get("src") or im.get("url") or ""
+        if not src:
+            continue
+        url = urljoin(origin + "/", src)
+        if url in seen:
+            continue
+        seen[url] = False
+        try:
+            r = ur.urlopen(ur.Request(url, method="GET"), timeout=15)
+            body = r.read(16)
+            ct = r.headers.get("Content-Type", "")
+            if r.status == 200 and ct.startswith("image/") and body[:4] == b"\x89PNG":
+                seen[url] = True
+            else:
+                unservable.append(f"{src}[{r.status}/{ct[:15]}]")
+        except Exception:  # noqa: BLE001
+            unservable.append(f"{src}[ERR]")
+    servable = sum(1 for v in seen.values() if v)
+    return len(seen), servable, unservable
+
+
 def _grade_pages(
     pdf_index: dict[str, Any],
     dom: dict[str, Any],
     align_index: list[dict[str, Any]],
+    *,
+    wiki_url: str = "",
 ) -> dict[str, Any]:
     """逐页×维度 green/warn/red 判定（V1 维度：text/table/formula/image/code/toc）。"""
     dom_blocks = dom.get("blocks", [])
@@ -187,6 +229,12 @@ def _grade_pages(
 
     # 整文档级信号（不依赖页对齐）：formula（KaTeX 错误）、image（断图）。
     broken_imgs = sum(1 for im in dom_imgs if not im.get("natural_width"))
+    # 串行 fetch 交叉校验图片真实可服务性（headless 并发受 output:export 抖动）
+    serial_total, serial_servable, serial_unservable = (
+        _serial_probe_images(dom_imgs, wiki_url)
+        if wiki_url and dom_imgs
+        else (0, 0, [])
+    )
     pdf_total_imgs = sum(p.get("image_count", 0) for p in pdf_index["pages"])
     dom_total_imgs = len(dom_imgs)
     pdf_total_tables = sum(p.get("table_count", 0) for p in pdf_index["pages"])
@@ -209,13 +257,29 @@ def _grade_pages(
             if dom_katex_err > 0
             else "",
         }
-        # image：整文档断图>0 标 warn
-        checks["image"] = {
-            "status": "warn" if broken_imgs > 0 else "green",
-            "reason": f"整文档断图(naturalWidth=0) {broken_imgs} 处"
-            if broken_imgs > 0
-            else "",
-        }
+        # image：以串行 fetch 可服务性为准（headless 并发受 output:export 抖动假 broken）。
+        # 串行全部可服务 → green（headless naturalWidth=0 属并发误路由，非真实缺陷）；
+        # 串行有不可服务 → warn（真实断图/缺资产）。
+        if serial_total > 0:
+            img_status = "warn" if serial_unservable else "green"
+            img_reason = (
+                f"串行 fetch 不可服务 {len(serial_unservable)} 处: {serial_unservable[:3]}"
+                if serial_unservable
+                else f"串行 fetch {serial_servable}/{serial_total} 全可服务"
+                + (
+                    f"（headless 并发假断图 {broken_imgs}，output:export 抖动，非缺陷）"
+                    if broken_imgs
+                    else ""
+                )
+            )
+        else:
+            img_status = "warn" if broken_imgs > 0 else "green"
+            img_reason = (
+                f"整文档断图(naturalWidth=0) {broken_imgs} 处"
+                if broken_imgs > 0
+                else ""
+            )
+        checks["image"] = {"status": img_status, "reason": img_reason}
         # table/code：整文档计数差异（V1 不分页；页级精确对照待 DOM range 计数增强）
         if dom_tables > 0 or pdf_total_tables > 0:
             checks["table"] = {
@@ -249,6 +313,9 @@ def _grade_pages(
         "dom_code_blocks": dom_code,
         "dom_katex_errors": dom_katex_err,
         "dom_broken_images": broken_imgs,
+        "serial_image_total": serial_total,
+        "serial_image_servable": serial_servable,
+        "serial_image_unservable": len(serial_unservable),
         "pdf_toc_depth": len(pdf_index.get("toc", [])),
         "dom_heading_count": len(dom_headings),
     }
@@ -279,7 +346,7 @@ async def check_page_fidelity(
     pdf_index = render_pdf_page_index(pdf_path)
     dom = await _probe_wiki_dom(wiki_url, width=width)
     align_index = _align_pages(pdf_index["pages"], dom.get("blocks", []))
-    graded = _grade_pages(pdf_index, dom, align_index)
+    graded = _grade_pages(pdf_index, dom, align_index, wiki_url=wiki_url)
 
     program_checks = {
         "pdf": str(pdf_path),
