@@ -872,7 +872,7 @@ def _build_patrol_routine(
         max_iterations=settings.routine.patrol_max_iterations_per_doc,
         max_cost_usd=settings.routine.patrol_max_cost_usd_per_doc,
         deadline_at=None,
-        success_score_threshold=qualified_threshold,  # 合格阈值（默认 95）：收敛即 SUCCESS，不再误标 Failed
+        success_score_threshold=qualified_threshold,  # 合格阈值（默认 99）：收敛即 SUCCESS，不再误标 Failed
         no_progress_patience=3,  # per-Routine DB 列默认值（非 RoutineSettings 属性）
         approval_mode="auto",
         config=build_routine_config(
