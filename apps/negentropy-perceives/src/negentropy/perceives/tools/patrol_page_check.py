@@ -32,6 +32,7 @@ import argparse
 import asyncio
 import contextlib
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -65,6 +66,7 @@ _DOM_PROBE_JS = """
   const imgs = Array.from(root.querySelectorAll('img')).map(img => ({
     natural_width: img.naturalWidth,
     rendered_width: Math.round(img.getBoundingClientRect().width),
+    alt: img.getAttribute('alt') || '',
   }));
   const codeBlocks = root.querySelectorAll('pre code').length;
   const headings = Array.from(root.querySelectorAll('h1, h2, h3, h4')).map(h => norm(h.textContent));
@@ -73,6 +75,45 @@ _DOM_PROBE_JS = """
   return { blocks, tables, tableCells, imgs, codeBlocks, headings, katexErrors };
 }
 """
+
+
+def _resolve_chromium_executable() -> str | None:
+    """定位可用的 chromium 可执行文件；默认 headless-shell 缺失时回退完整 chromium。
+
+    patrol 运行环境（本地/CI）的 Playwright 缓存布局可能只装了完整 chromium 而无
+    chrome-headless-shell（headless 默认路径）；两者皆可 headless 运行。返回 None
+    则交由 Playwright 默认解析。
+    """
+    import os
+
+    candidates: list[Path] = []
+    for env in (
+        os.environ.get("PLAYWRIGHT_BROWSERS_PATH"),
+        os.path.expanduser("~/Library/Caches/ms-playwright"),
+        os.path.expanduser("~/.cache/ms-playwright"),
+    ):
+        if env:
+            candidates.append(Path(env))
+    for base in candidates:
+        if not base.is_dir():
+            continue
+        # 1) chrome-headless-shell-* （版本号最大优先）
+        for sub in sorted(base.glob("chromium_headless_shell-*"), reverse=True):
+            for rel in ("chrome-headless-shell-mac-arm64/chrome-headless-shell",):
+                c = sub / rel
+                if c.exists():
+                    return str(c)
+        # 2) 完整 chromium-* （mac/linux 布局）
+        for sub in sorted(base.glob("chromium-*"), reverse=True):
+            for rel in (
+                "chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+                "chrome-mac-x64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+                "chrome-linux/chrome",
+            ):
+                c = sub / rel
+                if c.exists():
+                    return str(c)
+    return None
 
 
 async def _probe_wiki_dom(
@@ -85,7 +126,9 @@ async def _probe_wiki_dom(
     from playwright.async_api import async_playwright  # noqa: PLC0415
 
     async with async_playwright() as p:
-        browser = await p.chromium.launch()
+        browser = await p.chromium.launch(
+            executable_path=_resolve_chromium_executable()
+        )
         try:
             page = await browser.new_page(
                 viewport={"width": int(width), "height": 1100}
@@ -95,6 +138,15 @@ async def _probe_wiki_dom(
             # 用 contextlib.suppress 代替 try/except: pass，规避 bandit B110（CWE-703）。
             with contextlib.suppress(Exception):
                 await page.wait_for_load_state("networkidle", timeout=8000)
+            # 滚屏触发懒载图（ZoomableImage loading=lazy）——否则屏外图 naturalWidth=0
+            # 被误判断图。逐段滚动一遍再回顶，让所有 <img> 有机会加载。
+            with contextlib.suppress(Exception):
+                scroll_h = await page.evaluate("document.body.scrollHeight")
+                for y in range(0, int(scroll_h), 900):
+                    await page.evaluate(f"window.scrollTo(0,{y})")
+                    await page.wait_for_timeout(80)
+                await page.evaluate("window.scrollTo(0,0)")
+                await page.wait_for_timeout(500)
             dom = await page.evaluate(_DOM_PROBE_JS)
             return dom
         finally:
@@ -104,6 +156,42 @@ async def _probe_wiki_dom(
 # ---------------------------------------------------------------------------
 # 锚点对齐：PDF 页 head/tail 指纹 → wiki DOM blocks 序列位置
 # ---------------------------------------------------------------------------
+
+
+def _norm_text(s: str) -> str:
+    """归一化文本：小写 + 非字母数字(保留 CJK)转空格 + 折叠空白。
+
+    抹平 PDF↔wiki 间的标点/空白差异，使子串包含判定抗 reflow（连续滚动渲染下，
+    PDF 页首文本会并入 wiki 前一块、页尾并入后一块，逐块 head/tail 指纹必然失配）。
+    """
+    s = (s or "").lower()
+    s = re.sub(r"[^a-z0-9一-鿿]+", " ", s)
+    return re.sub(r"\s+", " ", s).strip()
+
+
+def _contains_distinctive(
+    corpus_tokens: set[str],
+    fingerprint: str,
+    *,
+    min_tokens: int = 3,
+    threshold: float = 0.7,
+) -> bool:
+    """指纹的**区分性 token**在 wiki 语料 token 集中的覆盖率是否达标。
+
+    比 head/tail 子串匹配更抗 reflow 与截断：指纹是 PDF 页首/页尾文本块的前 80 字符，
+    连续滚动渲染下页首文本会并入 wiki 前一块、且 DOM 块也被探针截断到 80 字符，子串
+    边界难对齐。改取指纹的区分性 token（len>3，滤除页码/短虚词），只要足够比例出现在
+    wiki 全文档语料（含 img alt 图注）即判内容存在——reflow/截断不再误报，真缺失（区分
+    性技术词不在 wiki）仍能检出。短指纹（3-4 token，如小节标题 "provider model cache"）
+    要求全匹配以避免巧合命中。
+    """
+    fp_tokens = [t for t in _norm_text(fingerprint).split() if len(t) > 3]
+    if len(fp_tokens) < min_tokens:
+        return False  # 指纹过短（如页码 "6"/裸文件名）不具备区分性，交视觉兜底
+    hits = sum(1 for t in fp_tokens if t in corpus_tokens)
+    cov = hits / len(fp_tokens)
+    thr = 1.0 if len(fp_tokens) < 5 else threshold  # 短标题要求全匹配
+    return cov >= thr
 
 
 def _find_fingerprint_index(blocks: list[str], fingerprint: str) -> int:
@@ -161,6 +249,14 @@ def _grade_pages(
     dom_katex_err = dom.get("katexErrors", 0)
     dom_headings = dom.get("headings", [])
 
+    # text 维度抗-reflow 包含判定：归一化全 DOM 语料（blocks + img alt 图注）+ PDF 页指纹查表。
+    # 连续滚动 wiki 下 PDF 页首/页尾文本会跨块并入，逐块 head/tail 指纹（align_index）必然
+    # 失配；改在归一化全语料上做子串包含，reflow 不再误报，真缺失仍能检出。
+    img_alts = [str(im.get("alt", "")) for im in dom_imgs]
+    corpus_norm = _norm_text(" ".join(dom_blocks) + " " + " ".join(img_alts))
+    corpus_tokens = set(corpus_norm.split())
+    pdf_fp_by_page = {p["page"]: p for p in pdf_index.get("pages", [])}
+
     # 整文档级信号（不依赖页对齐）：formula（KaTeX 错误）、image（断图）。
     broken_imgs = sum(1 for im in dom_imgs if not im.get("natural_width"))
     pdf_total_imgs = sum(p.get("image_count", 0) for p in pdf_index["pages"])
@@ -171,12 +267,19 @@ def _grade_pages(
     for ai in align_index:
         n = ai["pdf_page"]
         checks: dict[str, Any] = {}
-        # text：对齐即 green
+        # text：归一化 head/tail 在全 DOM 语料（含 img alt 图注）中包含即 green（抗 reflow）。
+        # align_index 的逐块指纹仍作兜底（同序命中肯定 green）。
+        pf = pdf_fp_by_page.get(n, {})
+        text_ok = (
+            _contains_distinctive(corpus_tokens, pf.get("head_fingerprint", ""))
+            or _contains_distinctive(corpus_tokens, pf.get("tail_fingerprint", ""))
+            or ai["align"] == "ok"
+        )
         checks["text"] = {
-            "status": "green" if ai["align"] == "ok" else "red",
+            "status": "green" if text_ok else "red",
             "reason": ""
-            if ai["align"] == "ok"
-            else "head/tail 指纹未在 wiki DOM 命中（内容流/顺序不一致）",
+            if text_ok
+            else "head/tail 归一化指纹未在 wiki DOM 语料中命中（内容可能缺失/乱序）",
         }
         # formula：整文档 KaTeX 错误>0 则全部页标 warn（无法定位到页）
         checks["formula"] = {
