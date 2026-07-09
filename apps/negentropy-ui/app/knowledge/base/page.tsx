@@ -13,6 +13,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { ChevronLeft } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "@/lib/activity-toast";
 import {
@@ -968,12 +969,15 @@ export default function KnowledgeBasePage() {
                 data-testid="corpus-sidebar"
                 className="flex h-full flex-col rounded-2xl border border-border bg-card p-4 shadow-sm"
               >
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="mb-3 -ml-1.5 self-start"
+                  leftIcon={<ChevronLeft className="h-4 w-4" aria-hidden />}
                   onClick={() => syncQueryState({ view: "overview", corpusId: null, tab: null, documentId: null })}
-                  className={outlineButtonClassName("neutral", "mb-3 rounded px-2 py-1 text-xs")}
                 >
-                  ← Back
-                </button>
+                  Back
+                </Button>
                 <div className="mb-3 text-sm font-semibold">{selectedCorpus?.name || "Corpus"}</div>
                 <div className="space-y-2 text-xs">
                   <button
@@ -1069,7 +1073,7 @@ export default function KnowledgeBasePage() {
                                 <td className="px-4 py-3">
                                   <button
                                     type="button"
-                                    className="block min-w-0 text-left"
+                                    className="block w-full min-w-0 cursor-pointer text-left"
                                     onClick={() => syncQueryState({ view: "corpus", corpusId: selectedCorpusId, tab: "document-chunks", documentId: doc.id })}
                                   >
                                     <TextTooltip content={effectiveDocumentName(doc)}>
