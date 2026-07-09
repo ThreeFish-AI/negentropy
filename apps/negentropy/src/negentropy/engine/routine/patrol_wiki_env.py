@@ -17,10 +17,12 @@ highlight/sanitize 全栈）渲染，再由 Playwright 截图，作为与源 PDF
 - **schema 复用**：``build_entry_content_response`` 合成 entries/{id}.json，与生产导出
   （``WikiExportService``）逐字段一致（DRY），wiki 端零特判。
 
-V1 限制（已知，后续拟合补全）：候选/真值 Markdown 内 ``/api/documents/.../assets/`` 图片
-引用在 wiki dev 源下不解析（不同源、未 bake）——文字/段落/表格/公式/代码/布局类拟合已
-全覆盖；图片显示尺寸/figure 类拟合待 asset bake 管线接入（gate 可改调
-``WikiExportService.export_single_entry`` 走 DB publication + bake）。
+资产 bake：``publish-candidate`` 经 ``_bake_patrol_assets`` 把候选引用的图片字节
+复制到 ``apps/negentropy-wiki/public/assets/{doc}/``（.gitignore）并把引用重写为
+``/assets/{doc}/{file}``（与生产 ``WikiExportService`` 的 ``bake_assets=True`` 形态一致），
+wiki dev 经 next 静态机制服务 ``public/`` 即可渲染——图片显示尺寸/figure 类拟合在
+inner loop 即可验。Real-Render Gate 仍走 ``WikiExportService.export_single_entry``
+（DB publication + bake）作地面真值校准。
 
 CLI（CC 会话经 ``uv run --project apps/negentropy python -m
 negentropy.engine.routine.patrol_wiki_env <cmd>`` 调用）：
@@ -31,6 +33,8 @@ from __future__ import annotations
 
 import json
 import os
+import re
+import shutil
 import socket
 import subprocess
 import sys
@@ -190,6 +194,84 @@ def write_entry_content(
     target = entries_dir / f"{PATROL_ENTRY_ID}.json"
     _atomic_write_json(target, payload)
     return target
+
+
+def _bake_patrol_assets(markdown: str, *, markdown_file: Path, doc_id: UUID) -> str:
+    """把候选 MD 内的图片引用 bake 到 wiki dev 可服务的 ``public/assets/{doc}/``。
+
+    patrol wiki dev（``next dev``）只经 next 静态机制服务 ``public/``——content_root
+    下 ``entries/*.json`` 由 ``content-source.ts`` 读，但**图片不经其服务**（生产由
+    ``sync-assets.mjs`` 同步 ``content/assets/`` → ``public/assets/``）。patrol staging
+    无 prebuild 钩子，故此处直接把候选引用的图片字节复制到
+    ``{repo}/apps/negentropy-wiki/public/assets/{doc}/{file}``（该路径已 .gitignore），
+    并把 markdown 引用重写为 ``/assets/{doc}/{file}``（与生产 ``bake_assets=True``
+    形态逐字一致，wiki 端零特判）。覆盖式清旧避免残留陈旧文件。
+
+    支持两种引用形式（HTML ``<img src=...>`` 与 Markdown ``![..](..)`` 均覆盖）：
+    - ``./images/{file}`` / ``images/{file}``（perceives CLI 产出）；
+    - ``/api/documents/{doc}/assets/{file}``（ingestion 产出）。
+    字节解析：相对 ``markdown_file`` 同级 ``images/``，再退父级 ``images/``。
+    """
+
+    doc = str(doc_id)
+    assets_root = _repo_root() / "apps" / "negentropy-wiki" / "public" / "assets" / doc
+    if assets_root.exists():
+        shutil.rmtree(assets_root, ignore_errors=True)
+    assets_root.mkdir(parents=True, exist_ok=True)
+
+    src_dir = markdown_file.resolve().parent
+    # 文件名允许字符（与生产 _ASSET_REF_PATTERN 的 filename 集对齐）
+    name = r"[A-Za-z0-9._\-]+"
+    # 形态 A：HTML src="./images/x" / "images/x" / "/api/documents/<uuid>/assets/x"
+    src_pat = re.compile(
+        r'src="(?:\./)?images/(?P<f0>' + name + r')"'
+        r'|src="(?P<api>/api/documents/[0-9a-fA-F-]{36}/assets/)(?P<f1>' + name + r')"'
+    )
+    # 形态 B：Markdown ![alt](./images/x) / (images/x) / (/api/documents/<uuid>/assets/x)
+    md_pat = re.compile(
+        r"!\[[^\]]*\]\((?:\./)?images/(?P<f0>" + name + r")\)"
+        r"|!\[[^\]]*\]\((?P<api>/api/documents/[0-9a-fA-F-]{36}/assets/)(?P<f1>" + name + r")\)"
+    )
+
+    def _resolve(filename: str) -> Path | None:
+        for cand in (src_dir / "images" / filename, src_dir.parent / "images" / filename):
+            if cand.is_file():
+                return cand
+        return None
+
+    state = {"copied": 0, "missing": []}
+
+    def _make_repl(prefix: str):
+        def repl(m: re.Match) -> str:
+            filename = m.group("f0") or m.group("f1")
+            src_file = _resolve(filename)
+            if src_file is None:
+                state["missing"].append(filename)
+                return m.group(0)
+            shutil.copyfile(src_file, assets_root / filename)
+            state["copied"] += 1
+            return _rewrite_token(m, prefix, doc, filename)
+
+        return repl
+
+    new_md = src_pat.sub(_make_repl("src"), markdown)
+    new_md = md_pat.sub(_make_repl("md"), new_md)
+    logger.info(
+        "patrol_assets_baked",
+        doc_id=doc,
+        copied=state["copied"],
+        missing=state["missing"][:10],
+        assets_root=str(assets_root),
+    )
+    return new_md
+
+
+def _rewrite_token(m: re.Match, prefix: str, doc: str, filename: str) -> str:
+    """据匹配形态（HTML src / Markdown img）重写 URL token 为 /assets/{doc}/{file}。"""
+    raw = m.group(0)
+    if prefix == "src":
+        return re.sub(r'src="[^"]*"', f'src="/assets/{doc}/{filename}"', raw, count=1)
+    return re.sub(r"\]\([^)]*\)", f"](/assets/{doc}/{filename})", raw, count=1)
 
 
 # ---------------------------------------------------------------------------
@@ -370,7 +452,9 @@ def _cli() -> int:
 
     if args.cmd == "publish-candidate":
         content_root = Path(args.content_root)
-        markdown = Path(args.markdown_file).read_text(encoding="utf-8")
+        markdown_file = Path(args.markdown_file)
+        markdown = markdown_file.read_text(encoding="utf-8")
+        markdown = _bake_patrol_assets(markdown, markdown_file=markdown_file, doc_id=UUID(args.doc_id))
         target = write_entry_content(
             content_root,
             markdown=markdown,
