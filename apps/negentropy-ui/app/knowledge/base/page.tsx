@@ -1069,7 +1069,7 @@ export default function KnowledgeBasePage() {
                                 <td className="px-4 py-3">
                                   <button
                                     type="button"
-                                    className="block min-w-0 text-left"
+                                    className="block w-full min-w-0 cursor-pointer text-left"
                                     onClick={() => syncQueryState({ view: "corpus", corpusId: selectedCorpusId, tab: "document-chunks", documentId: doc.id })}
                                   >
                                     <TextTooltip content={effectiveDocumentName(doc)}>
