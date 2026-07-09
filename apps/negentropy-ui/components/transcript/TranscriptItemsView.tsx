@@ -38,12 +38,12 @@ function gapClass(item: TranscriptItem, prev: TranscriptItem | null, policy: Tra
 }
 
 /** 按 kind 分发渲染单项（key 与对齐/间距由外层 wrapper 统一处理）。 */
-function renderItem(item: TranscriptItem) {
+function renderItem(item: TranscriptItem, userAvatar?: ReactNode) {
   switch (item.kind) {
     case "task_dispatch":
       return <TaskDispatchBubble prompt={item.prompt} />;
     case "user":
-      return <UserBubble item={item} />;
+      return <UserBubble item={item} avatar={userAvatar} />;
     case "assistant":
       return <AssistantText item={item} />;
     case "tool":
@@ -83,6 +83,8 @@ export function TranscriptItemsView({
   live,
   policy,
   itemWrapper,
+  userAvatar,
+  workingElapsedStartMs,
 }: {
   items: TranscriptItem[];
   live?: boolean;
@@ -92,6 +94,16 @@ export function TranscriptItemsView({
    * Routine 不传 → 直接渲染内容（行为不变）。包裹器位于对齐/间距容器之内、内容之外。
    */
   itemWrapper?: (item: TranscriptItem, children: ReactNode) => ReactNode;
+  /**
+   * 可选的用户头像（Studio 经 ``useAuth`` + ``UserAvatar`` 注入到 ``user`` 气泡右侧，对齐 Conductor
+   * 用户侧头像）。Routine 不传 → ``UserBubble`` 不渲染头像（行为不变）。
+   */
+  userAvatar?: ReactNode;
+  /**
+   * 可选的在途态计时起点（epoch ms）。提供时 ``WorkingIndicator`` 追加等宽耗时（"1m 23s"，对齐
+   * Conductor typing）；不传则仅显脉冲 + 文案（行为不变）。
+   */
+  workingElapsedStartMs?: number;
 }) {
   const last = items[items.length - 1];
   const workingLabel =
@@ -104,7 +116,7 @@ export function TranscriptItemsView({
         const prev = i > 0 ? items[i - 1] : null;
         const side = policy.align(item);
         const headerRole = policy.roleHeaderFor(item, prev);
-        const content = renderItem(item);
+        const content = renderItem(item, userAvatar);
         return (
           <div
             key={itemKey(item)}
@@ -117,7 +129,7 @@ export function TranscriptItemsView({
       })}
       {live ? (
         <div className={items.length > 0 ? "mt-2" : ""}>
-          <WorkingIndicator label={workingLabel} />
+          <WorkingIndicator label={workingLabel} startedAtMs={workingElapsedStartMs} />
         </div>
       ) : null}
     </div>

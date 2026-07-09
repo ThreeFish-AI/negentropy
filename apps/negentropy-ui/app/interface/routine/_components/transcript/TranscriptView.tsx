@@ -13,18 +13,21 @@ import { normalizeTranscript } from "./normalize-transcript";
  *
  * 把扁平 ``RoutineIterationEventDTO[]`` 经 ``normalizeTranscript`` 折叠为
  * ``TranscriptItem[]``，前置合成的 ``task_dispatch`` 开场回合，再交共享渲染器
- * ``TranscriptItemsView`` + ``ROUTINE_POLICY`` 渲染。公共签名与外部引用路径不变，
- * 行为与历史逐像素等价（``ROUTINE_POLICY.roleHeaderFor`` 恒 null、对齐规则保留）。
+ * ``TranscriptItemsView`` + ``ROUTINE_POLICY`` 渲染。公共签名与外部引用路径不变；
+ * 机侧（Claude Code）在回合切换处显 ``claude_code`` 徽章，人↔CC 对话结构显化。
  */
 export function TranscriptView({
   events,
   live,
   openingPrompt,
+  workingElapsedStartMs,
 }: {
   events: RoutineIterationEventDTO[];
   live?: boolean;
   /** 迭代任务 prompt（人下发给 CC 的任务）——非空时合成为开场「人→机」task_dispatch 回合。 */
   openingPrompt?: string | null;
+  /** 在途态计时起点（epoch ms）——透传给 WorkingIndicator（对齐 Conductor 耗时）。 */
+  workingElapsedStartMs?: number;
 }) {
   const normalized = useMemo(() => normalizeTranscript(events, { live: !!live }), [events, live]);
   const items = useMemo<TranscriptItem[]>(
@@ -35,5 +38,12 @@ export function TranscriptView({
     [normalized, openingPrompt],
   );
 
-  return <TranscriptItemsView items={items} live={live} policy={ROUTINE_POLICY} />;
+  return (
+    <TranscriptItemsView
+      items={items}
+      live={live}
+      policy={ROUTINE_POLICY}
+      workingElapsedStartMs={live ? workingElapsedStartMs : undefined}
+    />
+  );
 }

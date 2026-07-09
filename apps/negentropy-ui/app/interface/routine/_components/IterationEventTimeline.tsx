@@ -24,12 +24,15 @@ export function IterationEventTimeline({
   events,
   live,
   openingPrompt,
+  workingElapsedStartMs,
 }: {
   events: RoutineIterationEventDTO[];
   /** 是否处于在途实时态（显示 LIVE 脉冲；驱动工具行运行态）。 */
   live?: boolean;
   /** 迭代任务 prompt（人下发给 CC 的任务）——非空时合成为开场「人→机」task_dispatch 回合。 */
   openingPrompt?: string | null;
+  /** 在途态计时起点（epoch ms，由 ``iteration.started_at`` 派生）——透传给 WorkingIndicator。 */
+  workingElapsedStartMs?: number;
 }) {
   const groups = useMemo(() => groupEvents(events), [events]);
 
@@ -63,7 +66,12 @@ export function IterationEventTimeline({
       </div>
 
       {/* 扁平转录流 */}
-      <TranscriptView events={events} live={live} openingPrompt={openingPrompt} />
+      <TranscriptView
+        events={events}
+        live={live}
+        openingPrompt={openingPrompt}
+        workingElapsedStartMs={live ? workingElapsedStartMs : undefined}
+      />
     </div>
   );
 }

@@ -6,9 +6,10 @@
  *
  * 1. ``align``：物理左右对齐——Routine 把 ``human_reply``/``task_dispatch``/``engine`` 居右、
  *    其余居左；Studio 把 ``user`` 居右、其余（一核五翼 + Claude Code）全居左。
- * 2. ``roleHeaderFor``：是否在机侧 item 上方渲染 per-agent ``RoleHeader`` 徽章——Routine 恒
- *    不渲染（徽章仍内嵌在 Engine/Human/TaskDispatch 块中，观感不变）；Studio 在 role 相对
- *    上一条机侧 item 变化时渲染（分组，避免同 agent 连续刷屏）。
+ * 2. ``roleHeaderFor``：是否在 item 上方渲染 ``RoleHeader`` 徽章——Routine 在机侧（Claude Code）
+ *    「回合切换处」（上一条非机侧或无 prev）渲染 ``claude_code`` 徽章（连续机侧不重复刷；人侧
+ *    engine/human_reply/task_dispatch 自带内嵌徽章，此处不重复）；Studio 在机侧 role 相对
+ *    上一条变化时渲染（分组，避免同 agent 连续刷屏）。
  */
 
 import type { AgentRole } from "@/features/agent-identity";
@@ -34,7 +35,13 @@ export interface TranscriptPolicy {
   workingLabel?(lastItem: TranscriptItem | undefined): string;
 }
 
-/** Routine 策略：与历史 ``TranscriptView`` 行为逐像素等价。 */
+/**
+ * Routine 策略：人 = 一核五翼 6 Agent + Engine（居右）；机 = Claude Code（居左）。
+ *
+ * ``roleHeaderFor`` 在机侧「回合切换处」显 ``claude_code`` 徽章，让人↔CC 对话结构显化（对齐
+ * Conductor 机侧身份标注）；连续机侧不重复刷，人侧块（engine/human_reply/task_dispatch）自带
+ * 内嵌徽章，此处返回 null 不重复。
+ */
 export const ROUTINE_POLICY: TranscriptPolicy = {
   align: (item) =>
     item.kind === "human_reply" || item.kind === "task_dispatch" || item.kind === "engine"
@@ -45,7 +52,10 @@ export const ROUTINE_POLICY: TranscriptPolicy = {
     if (item.kind === "engine") return "engine";
     return "cc";
   },
-  roleHeaderFor: () => null,
+  roleHeaderFor: (item, prev) => {
+    if (!isMachineItem(item)) return null;
+    return prev && isMachineItem(prev) ? null : "claude_code";
+  },
   workingLabel: (last) => (last?.kind === "cc_request" && last.pending ? "Planning…" : "Working…"),
 };
 
@@ -66,15 +76,26 @@ export const STUDIO_POLICY: TranscriptPolicy = {
   workingLabel: (last) => (last?.kind === "cc_request" && last.pending ? "Planning…" : "Working…"),
 };
 
-/** 取机侧 item 的 role（仅 assistant/tool/tool_summary/cc_request 携带；其余返回 null）。 */
+/** 机侧 kind 集合（assistant/tool/tool_summary/cc_request）——Routine 与 Studio 共用判定。 */
+const MACHINE_KINDS: ReadonlySet<TranscriptItem["kind"]> = new Set([
+  "assistant",
+  "tool",
+  "tool_summary",
+  "cc_request",
+]);
+
+/** 机侧 TranscriptItem（四个 kind 均携带可选 ``role``，供 ``machineRoleOf`` 收窄访问）。 */
+type MachineTranscriptItem = Extract<
+  TranscriptItem,
+  { kind: "assistant" | "tool" | "tool_summary" | "cc_request" }
+>;
+
+/** item 是否为机侧 kind（类型守卫：收窄为 ``MachineTranscriptItem``）。 */
+function isMachineItem(item: TranscriptItem): item is MachineTranscriptItem {
+  return MACHINE_KINDS.has(item.kind);
+}
+
+/** 取机侧 item 的 role（仅机侧 kind 携带；其余返回 null）。 */
 function machineRoleOf(item: TranscriptItem): AgentRole | null {
-  if (
-    item.kind === "assistant" ||
-    item.kind === "tool" ||
-    item.kind === "tool_summary" ||
-    item.kind === "cc_request"
-  ) {
-    return item.role ?? null;
-  }
-  return null;
+  return isMachineItem(item) ? (item.role ?? null) : null;
 }
