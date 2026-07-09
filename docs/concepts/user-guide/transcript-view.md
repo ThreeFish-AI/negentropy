@@ -50,8 +50,8 @@ flowchart LR
 **能做什么**：发送一条指令，看清谁的产出在哪。
 
 **怎么做**：
-1. 底部输入框打字 → Enter（或点 Send 上箭头）。你的消息**居右**显示（primary 浅底气泡）。
-2. 机的回复**居左**，每段产出上方挂一个**角色徽章**（图标 + 中文标签）。
+1. 底部输入框打字 → Enter（或点 Send 上箭头）。你的消息**居右**显示（primary 浅底气泡 + 右侧你的头像：OAuth 照片或首字母，锚定「人」的一方）。
+2. 机的回复**居左**（机侧 muted 气泡），每段产出上方挂一个**角色徽章**（图标 + 中文标签）。
 
 **徽章速查**：
 
@@ -112,7 +112,7 @@ Routine 详情页 → Iteration 时间线卡片 → 点「Full View」→ 右侧
 抽屉顶部 metadata bar（phase / status / verdict / score / turns / cost / agent 角色 count）→ 下方是按 seq 时序交织的人机回合：
 
 - **开场任务下发**（右）：`Negentropy → Claude Code` 的 `task_dispatch` 气泡，含目标 / 验收 / 反思 / 记忆注入（由 `iteration.prompt` 合成）。
-- **Claude Code 推理 / 工具**（左）：裸文 + 紧凑工具行（同 Studio 的工具卡范式）。
+- **Claude Code 推理 / 工具**（左）：机侧 muted 气泡 + 回合起始显 **Claude Code 徽章**（让人↔CC 结构一眼可辨，连续机侧不重复刷）+ 紧凑工具行（同 Studio 的工具卡范式）。长回复默认折叠为「展开全文」。
 - **待决卡片** `cc_request`（左，高亮）：CC 通过 `ExitPlanMode` / `AskUserQuestion` 向「人」提交 Plan / 问题，等待裁决；标题显 `Review plan` / `Answer question` / `Exit plan mode`，在途态显脉冲「等待裁决」。
 - **「人」侧应答** `human_reply`（右）：一核五翼 6 Agent 的裁决气泡，徽章按动作语义显化：
   - **元神 Contemplation**：审 Plan（approve ✔ / refine 🔄）/ 批准退出 / 迭代评估。

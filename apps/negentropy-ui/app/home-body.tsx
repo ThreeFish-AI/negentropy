@@ -376,6 +376,10 @@ export function HomeBody({
   // 并发 runId 隔离 — 记录当前活跃的 runId，过滤旧 run 的残留事件，防止双气泡。
   // doSend 时写入新 runId，RUN_FINISHED/RUN_ERROR 后清空。
   const activeRunIdRef = useRef<string | null>(null);
+  // 当前 run 的开始时刻（epoch ms）—— doSend 时写入、run 终止/取消时清空；透传给
+  // StudioTranscript 的在途态计时（对齐 Conductor 耗时）。用 state（非 ref）以触发重渲染，
+  // 让计时值流入 WorkingIndicator（activeRunIdRef 仅事件过滤用，无需重渲染，故仍为 ref）。
+  const [runStartedAtMs, setRunStartedAtMs] = useState<number | null>(null);
   const perThreadLlmRef = useRef<Record<string, string | null>>({});
   const perThreadThinkingRef = useRef<Record<string, boolean>>({});
   // 「无 session 时」用户预先选择的模型，待 startNewSession 后转入 perThreadLlmRef[newId]。
@@ -649,6 +653,7 @@ export function HomeBody({
       ) {
         // run 终止后清空活跃 runId，允许后续 run 的事件通过。
         activeRunIdRef.current = null;
+        setRunStartedAtMs(null);
         scheduleSessionHydration(sessionId, {
           reason: "run_terminal",
           runId:
@@ -717,6 +722,7 @@ export function HomeBody({
       userCancelledAtRef.current = Date.now();
       // 用户主动取消时清空活跃 runId，允许后续 run 立即开始。
       activeRunIdRef.current = null;
+      setRunStartedAtMs(null);
       try {
         agent.abortRun();
       } catch (error) {
@@ -867,6 +873,8 @@ export function HomeBody({
       const runId = randomUUID();
       // 设置活跃 runId，过滤旧 run 的残留事件（并发隔离）。
       activeRunIdRef.current = runId;
+      // 记录 run 开始时刻，供在途态耗时计时（与 activeRunIdRef 同步清空）。
+      setRunStartedAtMs(Date.now());
       const messageId = crypto.randomUUID();
       const createdAt = new Date();
       const newMessage = {
@@ -943,6 +951,7 @@ export function HomeBody({
         }
       } catch (error) {
         activeRunIdRef.current = null;
+        setRunStartedAtMs(null);
         setConnectionWithMetrics("error");
         addLog("error", "run_agent_failed", { message: String(error) });
         console.warn("Failed to run agent", error);
@@ -1418,6 +1427,7 @@ export function HomeBody({
                 effectiveConnection === "connecting" ||
                 effectiveConnection === "streaming"
               }
+              workingElapsedStartMs={runStartedAtMs ?? undefined}
               highlightedNodeIds={search.matchingNodeIds}
               scrollToNodeId={search.currentMatchNodeId}
               suggestions={STUDIO_SUGGESTIONS}
