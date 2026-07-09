@@ -96,6 +96,23 @@ async def _probe_wiki_dom(
             # 用 contextlib.suppress 代替 try/except: pass，规避 bandit B110（CWE-703）。
             with contextlib.suppress(Exception):
                 await page.wait_for_load_state("networkidle", timeout=8000)
+            # 滚动整页触发 lazy-load 图片 + 轮询等所有 <img> complete，否则下方图片
+            # naturalWidth 读早（未加载/未解码）致假断图（曾误判为 dev server 问题，
+            # 实为 checker 计时 bug——串行 fetch 全 PNG 可证图片可服务）。
+            with contextlib.suppress(Exception):
+                await page.evaluate(
+                    "async () => {"
+                    " for (let y = 0; y < document.body.scrollHeight; y += 800) {"
+                    "   window.scrollTo(0, y); await new Promise(r => setTimeout(r, 120));"
+                    " } window.scrollTo(0, 0);"
+                    "}"
+                )
+            for _ in range(30):
+                if await page.evaluate(
+                    "() => Array.from(document.querySelectorAll('img')).every(i => i.complete)"
+                ):
+                    break
+                await page.wait_for_timeout(400)
             dom = await page.evaluate(_DOM_PROBE_JS)
             return dom
         finally:
