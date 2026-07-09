@@ -71,6 +71,7 @@ class BuiltinAssembler(PDFToolBase):
             from ....markdown.formatter import (
                 MarkdownFormatter,
                 _rejoin_attested_inline_hyphens,
+                _rejoin_attested_ligatures,
             )
             from ....markdown.image_ref_normalizer import (
                 normalize_image_references,
@@ -1969,6 +1970,10 @@ class BuiltinAssembler(PDFToolBase):
             #    Ra-jasekaran → Rajasekaran（仅当 Rajasekaran 别处出现）；从不误并
             #    Sub-agents / state-of-the-art 等未佐证复合词。
             markdown = _rejoin_attested_inline_hyphens(markdown)
+            # 8. 同文佐证 + 白名单重组 ﬀ/ﬃ/ﬄ 连字拆字：须在全文落定后做以取得
+            #    佐证；区分词内（di ff erent→different）与词尾（hando ff skipped→
+            #    handoff skipped），避免误并 handoffskipped。
+            markdown = _rejoin_attested_ligatures(markdown)
 
             word_count = len(markdown.split())
 

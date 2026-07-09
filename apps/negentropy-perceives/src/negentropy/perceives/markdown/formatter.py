@@ -410,16 +410,24 @@ def _rejoin_heading_dropcap(line: str) -> str:
     )
     if not (is_heading or is_label):
         return line
-    matches = _DROPCAP_TOKEN_RE.findall(line)
+    # 仅处理「标题区」前缀（前 80 字符）。真实章节标题远短于此；当标题与正文被
+    # assembly 粘成超长一行时，前缀之外是正文，不能对其中的 ``A loop`` / ``I am``
+    # 等合法独立大写词施 drop-cap 重组（否则 ``Aloop`` / ``Iam`` 误并）。
+    HEAD_PREFIX = 80
+    if len(line) <= HEAD_PREFIX:
+        target, tail = line, ""
+    else:
+        target, tail = line[:HEAD_PREFIX], line[HEAD_PREFIX:]
+    matches = _DROPCAP_TOKEN_RE.findall(target)
     n = len(matches)
     if n >= 3:
-        return _DROPCAP_TOKEN_RE.sub(r"\1\2", line)
+        return _DROPCAP_TOKEN_RE.sub(r"\1\2", target) + tail
     if n == 2 and not {c for c, _ in matches} & {"I", "A"}:
-        return _DROPCAP_TOKEN_RE.sub(r"\1\2", line)
+        return _DROPCAP_TOKEN_RE.sub(r"\1\2", target) + tail
     if n == 1:
         cap, rest = matches[0]
         if (cap + rest).lower() in _SECTION_TITLE_WORDS:
-            return _DROPCAP_TOKEN_RE.sub(r"\1\2", line, count=1)
+            return _DROPCAP_TOKEN_RE.sub(r"\1\2", target, count=1) + tail
     return line
 
 
@@ -446,20 +454,18 @@ def _rejoin_attested_inline_hyphens(text: str) -> str:
 
 
 def _rejoin_dropcap_and_ligatures(text: str) -> str:
-    """重组 PDF 提取拆解的 drop-cap 首字母与连字（ﬀ/ﬃ/ﬄ）碎片。
+    """重组 PDF 提取拆解的 drop-cap 首字母与缩写撇号碎片（局部安全规则）。
 
-    覆盖三类 docling 常见拆字：
+    覆盖两类**局部即可判定、无需同文佐证**的 docling 拆字：
 
-    1. drop-cap 首字母：``I ntroduction`` → ``Introduction``（仅标题/标签行，
-       详见 :func:`_rejoin_heading_dropcap`）。
-    2. 连字 ﬀ/ﬃ/ﬄ：``di ff erent`` → ``different``、``o ffi cial`` →
-       ``official``、``hando ff,`` → ``handoff,``。**仅处理 ``ff/ffi/ffl``**，
-       不处理 ``fi/fl``——后者会误并 ``staff if`` / ``half fl`` 等合法两词。
-    3. 缩写撇号：``don ' t`` → ``don't``，仅限常见后缀（t/s/re/ve/ll/m/d），
+    1. drop-cap 首字母：``I ntroduction`` → ``Introduction``（仅标题/标签行的
+       前 80 字符标题区，详见 :func:`_rejoin_heading_dropcap`）。
+    2. 缩写撇号：``don ' t`` → ``don't``，仅限常见后缀（t/s/re/ve/ll/m/d），
        不动 ``'no'`` / ``'runs'`` 这类独立引号。
 
-    三类规则的共同特征是「拆字产物在合法英文中几乎不出现」，故可全局施加而
-    误伤极低。
+    ﬀ/ﬃ/ﬄ 连字拆字（``di ff erent`` / ``hando ff skipped``）须区分词内/词尾，
+    需同文佐证判定，由 :func:`_rejoin_attested_ligatures` 在 assembly 全文落定
+    后处理，不在此函数。
     """
     if not text:
         return text
@@ -467,21 +473,108 @@ def _rejoin_dropcap_and_ligatures(text: str) -> str:
     # 1) drop-cap：逐行只改标题/章节标签行
     text = "\n".join(_rejoin_heading_dropcap(ln) for ln in text.split("\n"))
 
-    # 1b) 同文佐证回并行内硬连字符（专有名跨行断字）：Ra-jasekaran → Rajasekaran
-    text = _rejoin_attested_inline_hyphens(text)
-
-    # 2) 连字 ﬃ/ﬄ（先于 ﬀ，避免 ``o ffi c`` 中 ``ff`` 被先部分吞掉）
-    text = re.sub(r"(?<=[a-z])[ \t](ffi|ffl)[ \t](?=[a-z])", r"\1", text)
-    # 3) 连字 ﬀ：词内 ``i ff e`` → ``iffe``
-    text = re.sub(r"(?<=[a-z])[ \t](ff)[ \t](?=[a-z])", r"\1", text)
-    # 4) 连字 ﬀ：词尾 ``o ff,`` / ``o ff)`` → ``off,`` / ``off)``
-    text = re.sub(r"(?<=[a-z])[ \t](ff)(?=[ \t.,;:!?)\]”’]|$)", r"\1", text)
-    # 5) 缩写撇号：``don ' t`` → ``don't``（curly 与 straight 引号皆收）
+    # 2) 缩写撇号：don ' t → don't（curly 与 straight 引号皆收；不动独立引号）
     text = re.sub(
         r"(?<=[a-z])[ \t][’'][ \t](?=(?:t|s|re|ve|ll|m|d)\b)",
         "’",
         text,
     )
+    return text
+
+
+# 常见含 ﬀ/ﬃ/ﬄ 的英文词：拆字后若该词在文档别处无干净形式可佐证，以此白名单兜底。
+_FF_LIGATURE_WORDS = frozenset(
+    (
+        "off",
+        "handoff",
+        "handoffs",
+        "different",
+        "difference",
+        "differences",
+        "differently",
+        "differ",
+        "differs",
+        "official",
+        "officially",
+        "office",
+        "offices",
+        "officer",
+        "officers",
+        "offer",
+        "offers",
+        "offered",
+        "offering",
+        "offerings",
+        "effort",
+        "efforts",
+        "afford",
+        "affordable",
+        "affordability",
+        "scaffold",
+        "scaffolding",
+        "difficulty",
+        "difficulties",
+        "staff",
+        "stiff",
+        "stuff",
+        "stuffs",
+        "scoff",
+        "skiff",
+        "sniff",
+        "snuff",
+        "fluff",
+        "bluff",
+        "raffle",
+        "shuffle",
+        "baffle",
+        "scuffle",
+        "snaffle",
+        "quaff",
+        "gaffe",
+    )
+)
+
+# 词内连字拆分：prefix + space + (ff|ffi|ffl) + space + post（如 di ff erent）
+_LIGATURE_SPLIT_RE = re.compile(r"\b([a-z]+)[ \t](ff|ffi|ffl)[ \t]([a-z]{2,})\b")
+# 词尾连字拆分：prefix + space + (ff|ffi|ffl) + 标点/行尾（如 hando ff,）
+_LIGATURE_FINAL_RE = re.compile(r"\b([a-z]+)[ \t](ff|ffi|ffl)(?=[ \t.,;:!?)\]”’\"]|$)")
+
+
+def _rejoin_attested_ligatures(text: str) -> str:
+    """同文佐证 + 白名单重组 ﬀ/ﬃ/ﬄ 连字拆字（须在全文落定后执行）。
+
+    docling 把 ``different`` 拆成 ``di ff erent``（词内，``ff`` 属两侧）、把
+    ``handoff`` 拆成 ``hando ff``（词尾，``ff`` 属前词），二者须区别对待：
+
+    - 词内（``di ff erent``）：去两侧空格 → ``different``。
+    - 词尾（``hando ff skipped``）：仅去前侧空格 → ``handoff skipped``，
+      **保留**与后词的空格——否则误并 ``handoffskipped``。
+
+    安全闸：仅当「全并」(different) 或「前词并」(handoff/off) 的结果落在同文
+    佐证集或 ``_FF_LIGATURE_WORDS`` 白名单时才动手；未知形态原样保留，绝不
+    误并。须在 assembly 全文落定后调用以取得同文佐证。
+    """
+    if not text:
+        return text
+    attested = {w.lower() for w in re.findall(r"\b[A-Za-z]{3,}\b", text)}
+    known = attested | _FF_LIGATURE_WORDS
+
+    def _internal(m: re.Match) -> str:
+        pre, lig, post = m.group(1), m.group(2), m.group(3)
+        if (pre + lig + post) in known:
+            return pre + lig + post  # 词内：different / official / effort
+        if (pre + lig) in known:
+            return pre + lig + " " + post  # 词尾：handoff skipped / off was
+        return m.group(0)
+
+    def _final(m: re.Match) -> str:
+        pre, lig = m.group(1), m.group(2)
+        if (pre + lig) in known:
+            return pre + lig  # handoff, / off.
+        return m.group(0)
+
+    text = _LIGATURE_SPLIT_RE.sub(_internal, text)
+    text = _LIGATURE_FINAL_RE.sub(_final, text)
     return text
 
 
