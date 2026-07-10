@@ -2,10 +2,16 @@ from google.adk.agents import LlmAgent
 
 from .._citation_protocol import CITATION_PROTOCOL
 from .._dynamic_instruction import make_instruction_provider
+from .._dynamic_tools import NegentropyToolset
 from .._model import create_subagent_model
-from ..tools.claude_code import invoke_claude_code
 from ..tools.common import log_activity
-from ..tools.influence import publish_content, send_notification
+
+# WS1：可摘工具集经 ``NegentropyToolset`` 按 ``agents.tools`` 运行时解析（单源来自
+# Interface/Agents 页）；恒常工具（log_activity）仍以裸 callable 挂常量位。
+# 注：``document-translate`` 技能依赖 ``invoke_claude_code``（默认挂载）；经 UI 摘除会导致
+# 分块翻译不可用，属预期的可配置行为。
+_DEFAULT_TOOL_NAMES = ["publish_content", "send_notification", "invoke_claude_code"]
+_MANDATORY_TOOL_NAMES = ["log_activity"]
 
 _DESCRIPTION = (
     "Handles: content publishing, report generation, documentation, user communication, value delivery. "
@@ -78,7 +84,14 @@ def create_influence_agent(*, output_key: str | None = None, mode: str | None = 
         model=create_subagent_model(agent_name="InfluenceFaculty"),
         description=_DESCRIPTION,
         instruction=make_instruction_provider("InfluenceFaculty", _INSTRUCTION),
-        tools=[log_activity, publish_content, send_notification, invoke_claude_code],
+        tools=[
+            log_activity,
+            NegentropyToolset(
+                agent_name="InfluenceFaculty",
+                default_names=_DEFAULT_TOOL_NAMES,
+                mandatory_names=_MANDATORY_TOOL_NAMES,
+            ),
+        ],
         output_key=output_key,
         mode=mode,
         # Pipeline 边界管控：在流水线内使用时，禁止 LLM 路由逃逸

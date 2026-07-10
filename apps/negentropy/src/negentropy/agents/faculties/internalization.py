@@ -3,11 +3,19 @@ from google.adk.tools import load_memory
 
 from .._citation_protocol import CITATION_PROTOCOL
 from .._dynamic_instruction import make_instruction_provider
+from .._dynamic_tools import NegentropyToolset
 from .._model import create_subagent_model
 from ..tools.common import log_activity
-from ..tools.ingest import ingest_to_corpus
-from ..tools.internalization import save_to_memory, update_knowledge_graph
-from ..tools.paper import ingest_paper
+
+# WS1：可摘工具集经 ``NegentropyToolset`` 按 ``agents.tools`` 运行时解析（单源来自
+# Interface/Agents 页）；恒常工具（log_activity / load_memory）仍以裸 callable 挂常量位。
+_DEFAULT_TOOL_NAMES = [
+    "save_to_memory",
+    "update_knowledge_graph",
+    "ingest_paper",
+    "ingest_to_corpus",
+]
+_MANDATORY_TOOL_NAMES = ["log_activity", "load_memory"]
 
 _DESCRIPTION = (
     "Handles: memory storage, knowledge structuring, knowledge graph updates, long-term retention. "
@@ -105,7 +113,15 @@ def create_internalization_agent(*, output_key: str | None = None, mode: str | N
         model=create_subagent_model(agent_name="InternalizationFaculty"),
         description=_DESCRIPTION,
         instruction=make_instruction_provider("InternalizationFaculty", _INSTRUCTION),
-        tools=[log_activity, save_to_memory, update_knowledge_graph, ingest_paper, ingest_to_corpus, load_memory],
+        tools=[
+            log_activity,
+            load_memory,
+            NegentropyToolset(
+                agent_name="InternalizationFaculty",
+                default_names=_DEFAULT_TOOL_NAMES,
+                mandatory_names=_MANDATORY_TOOL_NAMES,
+            ),
+        ],
         output_key=output_key,
         mode=mode,
         # Pipeline 边界管控：在流水线内使用时，禁止 LLM 路由逃逸
