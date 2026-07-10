@@ -47,6 +47,7 @@ from negentropy.engine.evolution.handlers._shared import (
     _parse_dt,
 )
 from negentropy.engine.evolution.proposer import _ProposerBase
+from negentropy.engine.routine.faculty_bridge import run_faculty_json
 from negentropy.engine.utils.json_extract import loads_lenient
 from negentropy.logging import get_logger
 from negentropy.models.eval_suite import (
@@ -129,14 +130,42 @@ class SkillProposer(_ProposerBase):
         )
         if prompt is None:
             return None
-        content = await self._call_llm(prompt)
-        if not content:
-            return None
-        return self._parse(content, active_template=active_template)
+        return await self._propose_skill_with_faculty(prompt, active_template=active_template)
 
     # ------------------------------------------------------------------
     # override
     # ------------------------------------------------------------------
+
+    async def _propose_skill_with_faculty(self, prompt: str, *, active_template: str) -> SkillProposalDraft | None:
+        """FacultyBridge(contemplation, read_only) 优先 + litellm 兜底（WS2 收编）。
+
+        ``_parse`` 带 ``active_template`` 形参（与基类 ``_parse(content)`` 签名不同），故本子类
+        内联 ``run_faculty_json`` 而非复用 ``_ProposerBase._propose_with_faculty``。``parse→None``
+        即降级 litellm；litellm 亦失败 → ``None``（「宁缺毋滥」）。
+        """
+        from negentropy.config import settings
+
+        enabled = settings.routine.faculty_bridge_enabled and settings.routine.faculty_bridge_evolution_enabled
+
+        def parse(text: str) -> SkillProposalDraft | None:
+            return self._parse(text, active_template=active_template)
+
+        async def fallback() -> SkillProposalDraft | None:
+            content = await self._call_llm(prompt)
+            if not content:
+                return None
+            return self._parse(content, active_template=active_template)
+
+        draft, _used = await run_faculty_json(
+            "contemplation",
+            prompt,
+            parse=parse,
+            fallback=fallback,
+            enabled=enabled,
+            timeout_seconds=float(settings.routine.faculty_bridge_timeout_seconds),
+            read_only=True,
+        )
+        return draft
 
     def _build_prompt(
         self,

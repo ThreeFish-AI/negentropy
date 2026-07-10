@@ -26,6 +26,7 @@ from typing import Any
 
 import litellm
 
+from negentropy.engine.routine.faculty_bridge import run_faculty_json
 from negentropy.engine.utils.json_extract import loads_lenient
 from negentropy.engine.utils.model_config import resolve_model_config_async
 from negentropy.logging import get_logger
@@ -261,16 +262,8 @@ class IterationMemoryExtractor:
         if not prompt:
             return MemoryExtractionResult(memories=[])
 
-        content, cost = await self._call_llm(prompt)
-        if not content:
-            return MemoryExtractionResult(memories=[], cost_usd=cost, model_used=self._model)
-
-        memories = self._parse_response(content)
-        return MemoryExtractionResult(
-            memories=memories,
-            cost_usd=cost,
-            model_used=self._model,
-        )
+        memories, cost, model = await self._extract_memories(prompt)
+        return MemoryExtractionResult(memories=memories, cost_usd=cost, model_used=model)
 
     # ------------------------------------------------------------------
     # 终止时批量提取
@@ -297,16 +290,8 @@ class IterationMemoryExtractor:
         if not prompt:
             return MemoryExtractionResult(memories=[])
 
-        content, cost = await self._call_llm(prompt)
-        if not content:
-            return MemoryExtractionResult(memories=[], cost_usd=cost, model_used=self._model)
-
-        memories = self._parse_response(content)
-        return MemoryExtractionResult(
-            memories=memories,
-            cost_usd=cost,
-            model_used=self._model,
-        )
+        memories, cost, model = await self._extract_memories(prompt)
+        return MemoryExtractionResult(memories=memories, cost_usd=cost, model_used=model)
 
     # ------------------------------------------------------------------
     # Prompt 构建
@@ -427,6 +412,40 @@ class IterationMemoryExtractor:
     # ------------------------------------------------------------------
     # 响应解析
     # ------------------------------------------------------------------
+
+    async def _extract_memories(self, prompt: str) -> tuple[list[ExtractedMemory], float, str]:
+        """LLM 提取记忆：FacultyBridge(internalization, read_only) 优先 + litellm 兜底（WS2 收编）。
+
+        命中 Faculty → cost=0.0（无 response 对象）、model=``InternalizationFaculty``（模型由
+        ``agents.model`` 决定）；降级 → 沿用 task_registry 模型 + litellm。开关关（默认）→ 直接
+        litellm，行为与改造前逐字节等价。``read_only=True`` 剥离副作用工具（save_to_memory 等），
+        防自治 Faculty 在 approval=never 下静默写记忆。
+        """
+        from negentropy.config import settings
+
+        enabled = settings.routine.faculty_bridge_enabled and settings.routine.faculty_bridge_memory_extract_enabled
+
+        def parse(text: str) -> tuple[list[ExtractedMemory], float, str] | None:
+            # 解析失败（非 dict）→ None 触发降级；有效 dict（含空 memories）→ 接受。
+            if not isinstance(loads_lenient(text), dict):
+                return None
+            return self._parse_response(text), 0.0, "InternalizationFaculty"
+
+        async def fallback() -> tuple[list[ExtractedMemory], float, str]:
+            content, cost = await self._call_llm(prompt)
+            if not content:
+                return [], cost, self._model
+            return self._parse_response(content), cost, self._model
+
+        return await run_faculty_json(
+            "internalization",
+            prompt,
+            parse=parse,
+            fallback=fallback,
+            enabled=enabled,
+            timeout_seconds=float(settings.routine.faculty_bridge_batch_timeout_seconds),
+            read_only=True,
+        )
 
     @staticmethod
     def _parse_response(content: str) -> list[ExtractedMemory]:

@@ -12,6 +12,7 @@ from collections.abc import Awaitable, Callable
 from contextlib import suppress
 from typing import Any
 
+from negentropy.engine.utils.json_extract import loads_lenient
 from negentropy.engine.utils.subprocess_env import inherited_env_without_engine_venv
 from negentropy.logging import get_logger
 
@@ -1203,7 +1204,7 @@ class ClaudeCodeService:
             # 解析异常即降级到下方 litellm 直调，保证答问永不因 Faculty 不可用而中断。
             from negentropy.config import settings as _settings
 
-            if _settings.routine.faculty_bridge_enabled:
+            if _settings.routine.faculty_bridge_enabled and _settings.routine.faculty_bridge_review_enabled:
                 with suppress(Exception):
                     from negentropy.engine.routine.faculty_bridge import run_faculty
 
@@ -1211,10 +1212,11 @@ class ClaudeCodeService:
                         "internalization",
                         judge_prompt,
                         timeout_seconds=min(float(_settings.routine.faculty_bridge_timeout_seconds), timeout),
+                        read_only=True,
                     )
                     if fac_text:
-                        fac_parsed = json.loads(fac_text)
-                        if isinstance(fac_parsed.get("answers"), list):
+                        fac_parsed = loads_lenient(fac_text)
+                        if isinstance(fac_parsed, dict) and isinstance(fac_parsed.get("answers"), list):
                             return "\n".join(str(a) for a in fac_parsed["answers"])
                     logger.info("claude_code_auto_answer_faculty_bridge_fallback_litellm")
 
@@ -1240,8 +1242,8 @@ class ClaudeCodeService:
             )
             content = response.choices[0].message.content or ""
             # 解析 JSON 提取 answers 并返回纯文本
-            parsed = json.loads(content)
-            if "answers" in parsed and isinstance(parsed["answers"], list):
+            parsed = loads_lenient(content)
+            if isinstance(parsed, dict) and isinstance(parsed.get("answers"), list):
                 return "\n".join(str(a) for a in parsed["answers"])
             return content  # 非 answers 格式也返回纯文本
         except Exception as exc:

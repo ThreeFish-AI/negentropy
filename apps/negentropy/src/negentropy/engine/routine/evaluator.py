@@ -483,7 +483,7 @@ class RoutineEvaluator:
         """
         from negentropy.config import settings
 
-        if settings.routine.faculty_bridge_enabled:
+        if settings.routine.faculty_bridge_enabled and settings.routine.faculty_bridge_review_enabled:
             with suppress(Exception):
                 from negentropy.engine.routine.faculty_bridge import run_faculty
 

@@ -26,6 +26,7 @@ from typing import Any
 
 import litellm
 
+from negentropy.engine.routine.faculty_bridge import run_faculty_json
 from negentropy.engine.utils.json_extract import loads_lenient
 from negentropy.engine.utils.model_config import resolve_model_config_async
 from negentropy.logging import get_logger
@@ -118,6 +119,34 @@ class _ProposerBase:
     def _parse(self, content: str) -> ProposalDraft | None:  # noqa: ARG002
         raise NotImplementedError
 
+    async def _propose_with_faculty(self, prompt: str) -> ProposalDraft | None:
+        """FacultyBridge(contemplation, read_only) 优先 + litellm 兜底（WS2 收编）。
+
+        ``parse→None``（解析失败 / 超界失控 / ``no_change=true``）即降级 litellm；litellm 亦失败
+        → ``None``（「宁缺毋滥」，不提案）。开关关（默认）→ 直接 litellm，行为与改造前逐字节等价。
+        提案属低频单发，用评审类超时（``faculty_bridge_timeout_seconds``）。
+        """
+        from negentropy.config import settings
+
+        enabled = settings.routine.faculty_bridge_enabled and settings.routine.faculty_bridge_evolution_enabled
+
+        async def fallback() -> ProposalDraft | None:
+            content = await self._call_llm(prompt)
+            if not content:
+                return None
+            return self._parse(content)
+
+        draft, _used = await run_faculty_json(
+            "contemplation",
+            prompt,
+            parse=self._parse,
+            fallback=fallback,
+            enabled=enabled,
+            timeout_seconds=float(settings.routine.faculty_bridge_timeout_seconds),
+            read_only=True,
+        )
+        return draft
+
 
 class RetrievalWeightProposer(_ProposerBase):
     """retrieval_config 面：对 hybrid 检索 semantic/keyword 权重做 GEPA 式有界变异。"""
@@ -151,10 +180,7 @@ class RetrievalWeightProposer(_ProposerBase):
         if prompt is None:
             return None
 
-        content = await self._call_llm(prompt)
-        if not content:
-            return None
-        return self._parse(content)
+        return await self._propose_with_faculty(prompt)
 
     # ------------------------------------------------------------------
     # override
