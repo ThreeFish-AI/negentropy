@@ -87,12 +87,18 @@ def _ensure_adapters_loaded() -> None:
     if _ADAPTERS_LOADED:
         return
     _ADAPTERS_LOADED = True
-    # Phase 1+：各 kind 适配器在此惰性注册（import 即触发 register_*）。
-    # 示例（随阶段解注释）：
-    #   from negentropy.agents import skill_templates as _st  # noqa: F401
-    #   from negentropy.agents import routine_presets as _rp  # noqa: F401
-    #   from negentropy.agents.definitions import harness_materializer as _hm  # noqa: F401
-    #   from negentropy.agents.definitions import agent_factory as _af  # noqa: F401
+    # 各 kind 适配器在此惰性 import（import 即触发 register_*）。单个失败仅降级为
+    # 「无领域校验」（走通用解析），不阻断其他 kind。
+    for mod in (
+        "negentropy.agents.skill_templates",  # Phase 1: skill_template
+        # "negentropy.agents.routine_presets",  # Phase 2: routine_preset
+        # "negentropy.agents.definitions.harness_materializer",  # Phase 3: harness_skill
+        # "negentropy.agents.definitions.agent_factory",  # Phase 4: agent
+    ):
+        try:
+            __import__(mod)
+        except Exception:  # pragma: no cover — 适配器缺失/导入失败降级为无领域校验
+            pass
 
 
 def _generic_meta(raw: dict[str, Any], body: str) -> dict[str, Any]:

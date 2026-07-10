@@ -106,8 +106,9 @@ Markdown（经真实 wiki 渲染栈渲染）与源 PDF 的逐页视觉保真度�
     （ZoomableImage/ResponsiveTable/AnchorHeading/CodeBlock/MermaidDiagram）；\
     渲染层 ui ``apps/negentropy-ui/features/knowledge/components/DocumentMarkdownRenderer.tsx``\
     （sanitize schema、DocumentImage figcaption、parsePixelValue）、``utils/markdown-plugins.ts``。
-- **②Skills 本体**：``.agent/skills/pdf-fidelity-restore/SKILL.md`` +\
-  ``apps/negentropy/.../agents/skill_templates/pdf_fidelity_restore.yaml``（SSOT 双写，沉淀跨 doc insight / 升级归因路由）。
+- **②Skills 本体**：``.agent/skills/pdf-fidelity-restore/SKILL.md``（供 Claude Code）+ DB 定义源\
+  ``definitions(kind=skill_template, key=pdf_fidelity_restore)``（供一核五翼，经 Definitions 管理页维护；\
+  原 ``skill_templates/*.yaml`` 已并入 DB SSOT，运行时注入的是 ``skills`` 行，经 re-seed 迁移刷新）。
 - **③流程自身**：本 prompt（采样/评分/归因/闭环编排）、``evaluator.py``（Judge 口径）——仅当拟合动作是\
   「改进巡检流程自身」时才改（慎改，影响面大）。
 
