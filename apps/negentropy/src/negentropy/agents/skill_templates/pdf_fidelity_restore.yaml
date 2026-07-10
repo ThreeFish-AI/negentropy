@@ -81,11 +81,13 @@ prompt_template: |
   - **三套渲染栈系统性差异**：旧 `_fidelity_render`（Python-Markdown 近似）/ wiki（react-markdown + remark/rehype）/ ui（另一套 react-markdown + sanitize）三栈不同——公式/Mermaid/figure/figcaption/图片尺寸/代码高亮会假阳性/假阴性。对照须用**真实 wiki 渲染栈**（巡检经 `patrol_wiki_env` 起 `next dev` 真页截图，非模拟渲染）。
   - **全绿率评分口径**：`score = round(pass_pages/total_pages×100)`（逐页校验清单全绿率），替代主观「100-Σ扣分」——CC 自评与 Judge 复核锁同一份程序化预筛 + defects，根治 ±20 振荡（ISSUE-128）。
   - **双源验证防误归因**：渲染层缺陷（候选 MD 正确、渲染器渲染错）会被误归到 perceives；归因前必走「候选 MD 源码层 vs 渲染层」双源决策树（见步骤 7）。
+  - **inner-loop staging wiki 不 bake/serve 图片（V1 工具链限制，process 层 carve-out）**：``patrol_wiki_env publish-candidate`` 仅写 entry Markdown、不烘焙资产；staging dev server（主仓 ``negentropy-wiki``，``public/assets/`` 无文档资产）对候选 MD 的 ``./images/...`` 相对引用返回 500/断图，``patrol_page_check`` 报 ``dom_broken_images=N``（且 Next SPA 对未匹配路由回退 200 HTML，curl 状态码会骗人，须看 content-type/PNG 头）。此为 **staging 工具链 V1 限制，非文档/渲染缺陷**——图资产本身忠实（全分辨率 PNG 落盘 ``/.../images/``），生产经 ``WikiExportService.export_single_entry(bake=True)`` 烘焙到 ``public/assets/{doc}/`` 后由 ZoomableImage 正常渲染。**inner loop 见全图断 → 记 process carve-out（不扣分、不逐图排查）；图片保真改由 (a) 直接核对落盘 PNG 资产尺寸/完整性 或 (b) Real-Render Gate bake 后截图二选一坐实。**
 
   ## 反模式（严禁）
   - 跳过逐页核对即声明完成；
   - 只比文字而忽略图 / 表 / 公式 / 代码 / 注释；
-  - 图片不还原原始显示尺寸（宽高）。
+  - 图片不还原原始显示尺寸（宽高）；
+  - 在 inner loop 对「全图断」（staging serving V1 限制）逐图排查或误归到 pipeline/render——context 耗尽根因；先认 staging carve-out，图片保真走资产直查或 Gate。
 
   ## 完成判据
   逐页校验清单全绿 + 关键页对比截图留证 + 整本 PDF 在 Documents 页可读性与一致性达最佳。
