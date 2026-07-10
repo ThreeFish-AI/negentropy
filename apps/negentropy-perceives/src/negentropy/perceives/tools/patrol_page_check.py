@@ -78,6 +78,45 @@ _DOM_PROBE_JS = """
 """
 
 
+def _resolve_chromium_executable() -> str | None:
+    """定位可用的 chromium 可执行文件；默认 headless-shell 缺失时回退完整 chromium。
+
+    patrol 运行环境（本地/CI）的 Playwright 缓存布局可能只装了完整 chromium 而无
+    chrome-headless-shell（headless 默认路径）；两者皆可 headless 运行。返回 None
+    则交由 Playwright 默认解析。
+    """
+    import os
+
+    candidates: list[Path] = []
+    for env in (
+        os.environ.get("PLAYWRIGHT_BROWSERS_PATH"),
+        os.path.expanduser("~/Library/Caches/ms-playwright"),
+        os.path.expanduser("~/.cache/ms-playwright"),
+    ):
+        if env:
+            candidates.append(Path(env))
+    for base in candidates:
+        if not base.is_dir():
+            continue
+        # 1) chrome-headless-shell-* （版本号最大优先）
+        for sub in sorted(base.glob("chromium_headless_shell-*"), reverse=True):
+            for rel in ("chrome-headless-shell-mac-arm64/chrome-headless-shell",):
+                c = sub / rel
+                if c.exists():
+                    return str(c)
+        # 2) 完整 chromium-* （mac/linux 布局）
+        for sub in sorted(base.glob("chromium-*"), reverse=True):
+            for rel in (
+                "chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+                "chrome-mac-x64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+                "chrome-linux/chrome",
+            ):
+                c = sub / rel
+                if c.exists():
+                    return str(c)
+    return None
+
+
 async def _probe_wiki_dom(
     wiki_url: str,
     *,
@@ -88,7 +127,9 @@ async def _probe_wiki_dom(
     from playwright.async_api import async_playwright  # noqa: PLC0415
 
     async with async_playwright() as p:
-        browser = await p.chromium.launch()
+        browser = await p.chromium.launch(
+            executable_path=_resolve_chromium_executable()
+        )
         try:
             page = await browser.new_page(
                 viewport={"width": int(width), "height": 1100}

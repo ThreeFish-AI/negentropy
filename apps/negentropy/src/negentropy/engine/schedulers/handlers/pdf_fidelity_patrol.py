@@ -867,7 +867,13 @@ def _build_patrol_routine(
         cwd=None,  # 由 repository_id 派生 worktree cwd（单一事实源指针）
         baseline_branch=baseline_branch,
         repository_id=repo_id,
-        verification_command=None,
+        verification_command=(
+            # 客观门控（RoutineEvaluator._run_gate 在 worktree 内执行，退出码锚定 Judge 评分）：
+            # 退出码 0 = 每页文本 distinctive-token 覆盖≥阈值 + 每个 figure 资产后端可达 200。
+            f"uv run --project apps/negentropy-perceives python -m"
+            f" negentropy.perceives.tools.patrol_verify_fidelity"
+            f" --doc-id {doc_id} --pdf {source_pdf_path}"
+        ),
         status="running",
         max_iterations=settings.routine.patrol_max_iterations_per_doc,
         max_cost_usd=settings.routine.patrol_max_cost_usd_per_doc,
