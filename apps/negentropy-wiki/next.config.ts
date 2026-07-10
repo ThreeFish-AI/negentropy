@@ -50,8 +50,15 @@ function stableBuildId(): string {
   }
 }
 
+// `output: "export"` 仅生产构建（next build / 静态导出）需要；dev（next dev）下保留
+// 它会强制 SSG 路由严格化（generateStaticParams 须枚举所有 param），致 dev server 把
+// public/ 静态文件请求（如 /assets/{doc}/{file}）误派给 catch-all 路由并 500（PDF
+// Fidelity Patrol inner-loop 图片渲染即受此害）。dev 下不设 output，public/ 走 next 原生
+// 静态服务即可靠；生产构建 NODE_ENV=production 不变，静态导出行为零变化。
+const isStaticExport = process.env.NODE_ENV === "production";
+
 const nextConfig: NextConfig = {
-  output: "export",
+  ...(isStaticExport ? { output: "export" as const } : {}),
   trailingSlash: true,
   // 不设 outputFileTracingRoot：曾尝试收敛到 wiki 包根（process.cwd()），但 CI 的 pnpm
   // hoisting 把 next 提升至 monorepo 根 node_modules，收缩 Turbopack 边界后从 src/app

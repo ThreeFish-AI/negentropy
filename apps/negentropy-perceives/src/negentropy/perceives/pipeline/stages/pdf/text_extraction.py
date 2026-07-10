@@ -693,9 +693,24 @@ class FitzTextExtractor(PDFToolBase):
             # 11. 不定式列表起首（``To identify, classify, and ...``）
             if re.match(r"^To\s+[a-z]+,\s+\w+,", section_title):
                 return None
-            # 12. 多逗号子句（≥ 2 个 ``, ``）且长度 > 60 —— 句子型正文
+            # 12. 多逗号子句（≥ 2 个 ``, ``）且长度 > 60 —— 句子型正文；
+            #     豁免「标题: 枚举副标题」型合法 heading（综述论文常见，如
+            #     "Harness Interface: Code for Reasoning, Acting, and Environment
+            #     Modeling"）。冒号后 ≥2 个 Title Case 起首的逗号项是 heading 强
+            #     信号；句子型副标题（"the model improves, reduces, ..."）小写起首，
+            #     不满足该指纹，仍按正文丢弃，避免回归。
             if section_title.count(", ") >= 2 and len(section_title) > 60:
-                return None
+                after_colon = (
+                    section_title.split(":", 1)[1].strip()
+                    if ":" in section_title
+                    else ""
+                )
+                items = [it.strip() for it in after_colon.split(",") if it.strip()]
+                is_enum_subtitle = ":" in section_title and (
+                    sum(1 for it in items if re.match(r"[A-Z]", it)) >= 2
+                )
+                if not is_enum_subtitle:
+                    return None
 
             # R10-D25：list-item label + 句子型 body 折叠到同一文本块的剩余信号。
             # 典型产物 ``Paradigm specialization by domain High-stakes, regulated``
