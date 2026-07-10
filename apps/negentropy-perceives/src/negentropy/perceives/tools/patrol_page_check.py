@@ -32,7 +32,6 @@ import argparse
 import asyncio
 import contextlib
 import json
-import re
 from pathlib import Path
 from typing import Any
 
@@ -66,13 +65,15 @@ _DOM_PROBE_JS = """
   const imgs = Array.from(root.querySelectorAll('img')).map(img => ({
     natural_width: img.naturalWidth,
     rendered_width: Math.round(img.getBoundingClientRect().width),
-    alt: img.getAttribute('alt') || '',
   }));
   const codeBlocks = root.querySelectorAll('pre code').length;
   const headings = Array.from(root.querySelectorAll('h1, h2, h3, h4')).map(h => norm(h.textContent));
   // KaTeX 渲染错误标记（rehype-katex 失败时残留 class）
   const katexErrors = root.querySelectorAll('.katex-error, .katex-invalid, .katex-parse-error').length;
-  return { blocks, tables, tableCells, imgs, codeBlocks, headings, katexErrors };
+  // 整页可见文本（innerText 含行内 code/公式/链接，且按视觉顺序拼接）——供 token 覆盖率判定，
+  // 比分块 textContent 拼接更完整（不漏行内元素、不割裂）。
+  const pageText = root.innerText || '';
+  return { blocks, tables, tableCells, imgs, codeBlocks, headings, katexErrors, pageText };
 }
 """
 
@@ -138,15 +139,18 @@ async def _probe_wiki_dom(
             # 用 contextlib.suppress 代替 try/except: pass，规避 bandit B110（CWE-703）。
             with contextlib.suppress(Exception):
                 await page.wait_for_load_state("networkidle", timeout=8000)
-            # 滚屏触发懒载图（ZoomableImage loading=lazy）——否则屏外图 naturalWidth=0
-            # 被误判断图。逐段滚动一遍再回顶，让所有 <img> 有机会加载。
+            # 触发懒加载图片（loading="lazy"）：逐张滚入视口后等其解码完成，避免把
+            # 「视口外未加载的懒加载图」误判为断图（naturalWidth=0 假阳性）。超时不阻断
+            # ——真断图 naturalWidth 恒 0，仍会被下方探针正确识别为 broken。
             with contextlib.suppress(Exception):
-                scroll_h = await page.evaluate("document.body.scrollHeight")
-                for y in range(0, int(scroll_h), 900):
-                    await page.evaluate(f"window.scrollTo(0,{y})")
-                    await page.wait_for_timeout(80)
-                await page.evaluate("window.scrollTo(0,0)")
-                await page.wait_for_timeout(500)
+                await page.evaluate(
+                    "() => { for (const i of document.querySelectorAll('img')) i.scrollIntoView(); }"
+                )
+                await page.wait_for_function(
+                    "() => Array.from(document.querySelectorAll('img'))"
+                    ".every(i => i.complete && i.naturalWidth > 0)",
+                    timeout=8000,
+                )
             dom = await page.evaluate(_DOM_PROBE_JS)
             return dom
         finally:
@@ -156,42 +160,6 @@ async def _probe_wiki_dom(
 # ---------------------------------------------------------------------------
 # 锚点对齐：PDF 页 head/tail 指纹 → wiki DOM blocks 序列位置
 # ---------------------------------------------------------------------------
-
-
-def _norm_text(s: str) -> str:
-    """归一化文本：小写 + 非字母数字(保留 CJK)转空格 + 折叠空白。
-
-    抹平 PDF↔wiki 间的标点/空白差异，使子串包含判定抗 reflow（连续滚动渲染下，
-    PDF 页首文本会并入 wiki 前一块、页尾并入后一块，逐块 head/tail 指纹必然失配）。
-    """
-    s = (s or "").lower()
-    s = re.sub(r"[^a-z0-9一-鿿]+", " ", s)
-    return re.sub(r"\s+", " ", s).strip()
-
-
-def _contains_distinctive(
-    corpus_tokens: set[str],
-    fingerprint: str,
-    *,
-    min_tokens: int = 3,
-    threshold: float = 0.7,
-) -> bool:
-    """指纹的**区分性 token**在 wiki 语料 token 集中的覆盖率是否达标。
-
-    比 head/tail 子串匹配更抗 reflow 与截断：指纹是 PDF 页首/页尾文本块的前 80 字符，
-    连续滚动渲染下页首文本会并入 wiki 前一块、且 DOM 块也被探针截断到 80 字符，子串
-    边界难对齐。改取指纹的区分性 token（len>3，滤除页码/短虚词），只要足够比例出现在
-    wiki 全文档语料（含 img alt 图注）即判内容存在——reflow/截断不再误报，真缺失（区分
-    性技术词不在 wiki）仍能检出。短指纹（3-4 token，如小节标题 "provider model cache"）
-    要求全匹配以避免巧合命中。
-    """
-    fp_tokens = [t for t in _norm_text(fingerprint).split() if len(t) > 3]
-    if len(fp_tokens) < min_tokens:
-        return False  # 指纹过短（如页码 "6"/裸文件名）不具备区分性，交视觉兜底
-    hits = sum(1 for t in fp_tokens if t in corpus_tokens)
-    cov = hits / len(fp_tokens)
-    thr = 1.0 if len(fp_tokens) < 5 else threshold  # 短标题要求全匹配
-    return cov >= thr
 
 
 def _find_fingerprint_index(blocks: list[str], fingerprint: str) -> int:
@@ -249,38 +217,69 @@ def _grade_pages(
     dom_katex_err = dom.get("katexErrors", 0)
     dom_headings = dom.get("headings", [])
 
-    # text 维度抗-reflow 包含判定：归一化全 DOM 语料（blocks + img alt 图注）+ PDF 页指纹查表。
-    # 连续滚动 wiki 下 PDF 页首/页尾文本会跨块并入，逐块 head/tail 指纹（align_index）必然
-    # 失配；改在归一化全语料上做子串包含，reflow 不再误报，真缺失仍能检出。
-    img_alts = [str(im.get("alt", "")) for im in dom_imgs]
-    corpus_norm = _norm_text(" ".join(dom_blocks) + " " + " ".join(img_alts))
-    corpus_tokens = set(corpus_norm.split())
-    pdf_fp_by_page = {p["page"]: p for p in pdf_index.get("pages", [])}
-
     # 整文档级信号（不依赖页对齐）：formula（KaTeX 错误）、image（断图）。
     broken_imgs = sum(1 for im in dom_imgs if not im.get("natural_width"))
     pdf_total_imgs = sum(p.get("image_count", 0) for p in pdf_index["pages"])
     dom_total_imgs = len(dom_imgs)
     pdf_total_tables = sum(p.get("table_count", 0) for p in pdf_index["pages"])
 
+    # text 维度：改用「token 覆盖率」而非「块顺序对齐」。双栏学术 PDF 的视觉块顺序 ≠
+    # 单栏化 DOM 线性顺序，且 PDF get_text("blocks") 块粒度 ≠ DOM 段落粒度、块内含软换行/
+    # 连字符/目录点线，精确子串对齐必假阳性。正确口径是「该页的实词是否都出现在 DOM 中」
+    # ——对语序、分块、换行不敏感，直接度量「内容是否缺失」。
+    import re as _re  # noqa: PLC0415
+
+    def _tokens(text: str) -> list[str]:
+        # 提取字母数字词（含 CJK），小写；过滤 1 字符噪声。在字母↔数字边界切分
+        # （PDF 把上标引用/编号粘连成 "Fu¹"→"fu1"，DOM 分词为 "fu"+"1"），避免把
+        # 「作者名+上标」等表示差异误判为内容缺失——纯分词正确性,非针对性放宽。
+        raw = _re.findall(r"[0-9a-zA-Z一-鿿]+", (text or "").lower())
+        out: list[str] = []
+        for w in raw:
+            parts = (
+                _re.findall(r"[a-z一-鿿]+|[0-9]+", w)
+                if _re.search(r"[a-z一-鿿][0-9]|[0-9][a-z一-鿿]", w)
+                else [w]
+            )
+            out.extend(p for p in parts if len(p) >= 2)
+        return out
+
+    # DOM 全文 token 集合：优先用 innerText（含行内 code/公式/链接、按视觉顺序），
+    # 回退分块拼接。另备去分隔符长串，兜底 PDF 跨行连字符断词（如 execu-tion → executiON）。
+    dom_page_text = dom.get("pageText") or " ".join(dom_blocks)
+    dom_token_set = set(_tokens(dom_page_text))
+    dom_collapsed = "".join(_tokens(dom_page_text))  # 无分隔连续串，兜底断词
+    pdf_pages = {p["page"]: p for p in pdf_index["pages"]}
+
+    def _text_coverage(page_meta: dict[str, Any]) -> tuple[str, str]:
+        """该页实词在 DOM 的覆盖率 ≥0.9 green，≥0.75 warn，否则 red（含断词兜底）。"""
+        page_text = page_meta.get("full_text") or " ".join(
+            page_meta.get("block_fingerprints", [])
+        )
+        uniq = set(_tokens(page_text))
+        if len(uniq) < 5:
+            return "green", "本页文本极少（纯图表/分隔页）"
+
+        # 命中：token 在 DOM token 集合，或（长度≥4 的词）作为子串出现在去分隔连续串中
+        # ——后者吸收连字符断词与 PDF/DOM 分词差异，避免把表示差异误判为内容缺失。
+        def _hit(t: str) -> bool:
+            return t in dom_token_set or (len(t) >= 4 and t in dom_collapsed)
+
+        hit = sum(1 for t in uniq if _hit(t))
+        cov = hit / len(uniq)
+        if cov >= 0.9:
+            return "green", ""
+        if cov >= 0.75:
+            return "warn", f"词覆盖率 {cov:.0%}（{hit}/{len(uniq)}）"
+        return "red", f"词覆盖率仅 {cov:.0%}（{hit}/{len(uniq)}），疑内容缺失"
+
     page_checks: list[dict[str, Any]] = []
     for ai in align_index:
         n = ai["pdf_page"]
         checks: dict[str, Any] = {}
-        # text：归一化 head/tail 在全 DOM 语料（含 img alt 图注）中包含即 green（抗 reflow）。
-        # align_index 的逐块指纹仍作兜底（同序命中肯定 green）。
-        pf = pdf_fp_by_page.get(n, {})
-        text_ok = (
-            _contains_distinctive(corpus_tokens, pf.get("head_fingerprint", ""))
-            or _contains_distinctive(corpus_tokens, pf.get("tail_fingerprint", ""))
-            or ai["align"] == "ok"
-        )
-        checks["text"] = {
-            "status": "green" if text_ok else "red",
-            "reason": ""
-            if text_ok
-            else "head/tail 归一化指纹未在 wiki DOM 语料中命中（内容可能缺失/乱序）",
-        }
+        # text：内容覆盖率判定（不依赖块顺序对齐）。
+        t_status, t_reason = _text_coverage(pdf_pages.get(n, {}))
+        checks["text"] = {"status": t_status, "reason": t_reason}
         # formula：整文档 KaTeX 错误>0 则全部页标 warn（无法定位到页）
         checks["formula"] = {
             "status": "warn" if dom_katex_err > 0 else "green",

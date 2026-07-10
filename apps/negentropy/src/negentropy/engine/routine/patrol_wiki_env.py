@@ -29,8 +29,11 @@ negentropy.engine.routine.patrol_wiki_env <cmd>`` 调用）：
 
 from __future__ import annotations
 
+import base64
 import json
+import mimetypes
 import os
+import re
 import socket
 import subprocess
 import sys
@@ -190,6 +193,56 @@ def write_entry_content(
     target = entries_dir / f"{PATROL_ENTRY_ID}.json"
     _atomic_write_json(target, payload)
     return target
+
+
+# ---------------------------------------------------------------------------
+# 图片资产 bake（staging 专属：相对路径 → 可解析 URL）
+# ---------------------------------------------------------------------------
+#
+# V1 限制拟合补全：候选 Markdown 内 ``<img src="./images/...">`` 相对引用在 wiki dev
+# 源下 404（content_root 不含候选兄弟 images/ 目录，且无后端 ``/api/.../assets``）。
+# publish 时把相对图引用重写为 wiki 渲染栈可解析的形式，保留 width/height/style。
+#
+# 两种 bake 模式（按是否提供 ``url_base`` 选择）：
+# - **http 模式**（``url_base`` 给定，推荐）：重写为 ``{url_base}/<相对路径>``，由巡检
+#   harness 起的本地静态服务（serve 候选兄弟 images/）供出。兼容 wiki 默认 sanitize
+#   （放行 http/https），无需改渲染层。
+# - **data 模式**（``url_base`` 缺省）：就地编码为 ``data:image/*;base64,...``，自包含、
+#   无需静态服务，但需渲染层 sanitize 放行 ``data:`` 协议。
+# 绝对 URL / 已有 data URI / 缺文件者原样保留（缺文件者仅仍 404，不致崩渲染）。
+
+_IMG_SRC_RE = re.compile(r'(<img\b[^>]*?\bsrc=")([^"]+)(")', re.IGNORECASE)
+_MD_IMG_RE = re.compile(r"(!\[[^\]]*\]\()([^)]+)(\))")
+
+
+def bake_relative_images(markdown: str, base_dir: Path, url_base: str | None = None) -> str:
+    """把 Markdown 中相对路径图片引用重写为 wiki 渲染栈可解析的 URL。
+
+    覆盖 ``<img src="...">`` 与 ``![alt](...)`` 两种语法。``url_base`` 给定走 http 模式
+    （重写为 ``{url_base}/<相对路径>``）；否则走 data 模式（base64 编码）。
+    """
+    abs_root = base_dir.resolve()
+    base = url_base.rstrip("/") if url_base else None
+
+    def _bake(src: str) -> str:
+        if src.startswith(("http://", "https://", "data:", "//", "mailto:", "#")):
+            return src
+        if base is not None:
+            # http 模式：拼接到 harness 静态服务 base（去掉前导 ./）。
+            return f"{base}/{src.removeprefix('./')}"
+        # data 模式：就地 base64 编码。
+        img_path = (abs_root / src).resolve()
+        try:
+            data = img_path.read_bytes()
+        except OSError:
+            return src
+        mime = mimetypes.guess_type(str(img_path))[0] or "image/png"
+        return f"data:{mime};base64,{base64.b64encode(data).decode('ascii')}"
+
+    def _repl(m: re.Match) -> str:
+        return f"{m.group(1)}{_bake(m.group(2))}{m.group(3)}"
+
+    return _MD_IMG_RE.sub(_repl, _IMG_SRC_RE.sub(_repl, markdown))
 
 
 # ---------------------------------------------------------------------------
@@ -361,6 +414,12 @@ def _cli() -> int:
     p_pub.add_argument("--doc-id", required=True)
     p_pub.add_argument("--title", default="")
     p_pub.add_argument("--filename", default="")
+    p_pub.add_argument(
+        "--asset-url-base",
+        default="",
+        help="图片 bake 的 http 静态服务 base（如 http://127.0.0.1:64300）；"
+        "给定则相对图引用重写为 http URL，否则走 base64 data URI",
+    )
 
     p_wait = sub.add_parser("wait-ready", help="阻塞至 wiki dev server 可服务（截图前调）")
     p_wait.add_argument("--port", type=int, required=True)
@@ -370,7 +429,10 @@ def _cli() -> int:
 
     if args.cmd == "publish-candidate":
         content_root = Path(args.content_root)
-        markdown = Path(args.markdown_file).read_text(encoding="utf-8")
+        md_path = Path(args.markdown_file)
+        markdown = md_path.read_text(encoding="utf-8")
+        # staging 图片 bake：相对路径 → 可解析 URL（见 bake_relative_images 注释）。
+        markdown = bake_relative_images(markdown, md_path.parent, url_base=args.asset_url_base or None)
         target = write_entry_content(
             content_root,
             markdown=markdown,

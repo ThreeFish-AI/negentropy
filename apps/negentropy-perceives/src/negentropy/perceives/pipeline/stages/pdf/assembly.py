@@ -68,7 +68,11 @@ class BuiltinAssembler(PDFToolBase):
     async def _run(self, input_data: AssemblyInput) -> StageResult[AssemblyOutput]:
         """组装 Markdown 文档。"""
         try:
-            from ....markdown.formatter import MarkdownFormatter
+            from ....markdown.formatter import (
+                MarkdownFormatter,
+                _rejoin_attested_inline_hyphens,
+                _rejoin_attested_ligatures,
+            )
             from ....markdown.image_ref_normalizer import (
                 normalize_image_references,
             )
@@ -1960,6 +1964,16 @@ class BuiltinAssembler(PDFToolBase):
 
             # 6. 参考文献节条目分段（多条目连段 → 每条独占段落）
             markdown = _segment_references_section(markdown)
+
+            # 7. 同文佐证回并行内硬连字符（专有名跨行断字）：须在全文落定后做，
+            #    以便「去连字符形式」能从文档别处（如参考文献）取得佐证。
+            #    Ra-jasekaran → Rajasekaran（仅当 Rajasekaran 别处出现）；从不误并
+            #    Sub-agents / state-of-the-art 等未佐证复合词。
+            markdown = _rejoin_attested_inline_hyphens(markdown)
+            # 8. 同文佐证 + 白名单重组 ﬀ/ﬃ/ﬄ 连字拆字：须在全文落定后做以取得
+            #    佐证；区分词内（di ff erent→different）与词尾（hando ff skipped→
+            #    handoff skipped），避免误并 handoffskipped。
+            markdown = _rejoin_attested_ligatures(markdown)
 
             word_count = len(markdown.split())
 
