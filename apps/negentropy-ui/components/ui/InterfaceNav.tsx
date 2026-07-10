@@ -22,6 +22,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/interface/repositories", label: "Repositories" },
   { href: "/interface/scheduler", label: "Scheduler" },
   { href: "/interface/routine", label: "Routine" },
+  { href: "/interface/definitions", label: "Definitions", adminOnly: true },
 ];
 
 export function InterfaceNav({
