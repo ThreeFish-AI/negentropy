@@ -20,6 +20,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 
 from negentropy.agents.definitions import DefinitionParseError, compute_checksum, parse_definition
+from negentropy.agents.definitions.harness_materializer import maybe_materialize_now
 from negentropy.auth.deps import get_current_user, resolve_user_with_db_roles
 from negentropy.auth.service import AuthUser
 from negentropy.db.session import AsyncSessionLocal
@@ -201,6 +202,8 @@ async def create_definition(
             ) from exc
         await db.refresh(d)
 
+    if payload.kind == "harness_skill":
+        maybe_materialize_now()  # fire-and-forget 渲染回盘（fail-soft，仓库根不可解析时跳过）
     return _definition_to_dict(d)
 
 
@@ -249,6 +252,8 @@ async def update_definition(
             ) from exc
         await db.refresh(d)
 
+    if d.kind == "harness_skill":
+        maybe_materialize_now()
     return _definition_to_dict(d)
 
 
