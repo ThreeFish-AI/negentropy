@@ -91,7 +91,7 @@ def _ensure_adapters_loaded() -> None:
     # 「无领域校验」（走通用解析），不阻断其他 kind。
     for mod in (
         "negentropy.agents.skill_templates",  # Phase 1: skill_template
-        # "negentropy.agents.routine_presets",  # Phase 2: routine_preset
+        "negentropy.agents.routine_presets",  # Phase 2: routine_preset
         # "negentropy.agents.definitions.harness_materializer",  # Phase 3: harness_skill
         # "negentropy.agents.definitions.agent_factory",  # Phase 4: agent
     ):

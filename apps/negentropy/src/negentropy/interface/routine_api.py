@@ -336,7 +336,7 @@ async def list_templates(
     from negentropy.agents.routine_presets import load_all
 
     builtin: list[dict[str, Any]] = []
-    for p in load_all():
+    for p in await load_all():
         if category and p.category != category:
             continue
         builtin.append(
