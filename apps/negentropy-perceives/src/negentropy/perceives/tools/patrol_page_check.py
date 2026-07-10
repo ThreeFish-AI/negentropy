@@ -70,7 +70,10 @@ _DOM_PROBE_JS = """
   const headings = Array.from(root.querySelectorAll('h1, h2, h3, h4')).map(h => norm(h.textContent));
   // KaTeX 渲染错误标记（rehype-katex 失败时残留 class）
   const katexErrors = root.querySelectorAll('.katex-error, .katex-invalid, .katex-parse-error').length;
-  return { blocks, tables, tableCells, imgs, codeBlocks, headings, katexErrors };
+  // 整页可见文本（innerText 含行内 code/公式/链接，且按视觉顺序拼接）——供 token 覆盖率判定，
+  // 比分块 textContent 拼接更完整（不漏行内元素、不割裂）。
+  const pageText = root.innerText || '';
+  return { blocks, tables, tableCells, imgs, codeBlocks, headings, katexErrors, pageText };
 }
 """
 
@@ -95,6 +98,18 @@ async def _probe_wiki_dom(
             # 用 contextlib.suppress 代替 try/except: pass，规避 bandit B110（CWE-703）。
             with contextlib.suppress(Exception):
                 await page.wait_for_load_state("networkidle", timeout=8000)
+            # 触发懒加载图片（loading="lazy"）：逐张滚入视口后等其解码完成，避免把
+            # 「视口外未加载的懒加载图」误判为断图（naturalWidth=0 假阳性）。超时不阻断
+            # ——真断图 naturalWidth 恒 0，仍会被下方探针正确识别为 broken。
+            with contextlib.suppress(Exception):
+                await page.evaluate(
+                    "() => { for (const i of document.querySelectorAll('img')) i.scrollIntoView(); }"
+                )
+                await page.wait_for_function(
+                    "() => Array.from(document.querySelectorAll('img'))"
+                    ".every(i => i.complete && i.naturalWidth > 0)",
+                    timeout=8000,
+                )
             dom = await page.evaluate(_DOM_PROBE_JS)
             return dom
         finally:
@@ -167,17 +182,63 @@ def _grade_pages(
     dom_total_imgs = len(dom_imgs)
     pdf_total_tables = sum(p.get("table_count", 0) for p in pdf_index["pages"])
 
+    # text 维度：改用「token 覆盖率」而非「块顺序对齐」。双栏学术 PDF 的视觉块顺序 ≠
+    # 单栏化 DOM 线性顺序，且 PDF get_text("blocks") 块粒度 ≠ DOM 段落粒度、块内含软换行/
+    # 连字符/目录点线，精确子串对齐必假阳性。正确口径是「该页的实词是否都出现在 DOM 中」
+    # ——对语序、分块、换行不敏感，直接度量「内容是否缺失」。
+    import re as _re  # noqa: PLC0415
+
+    def _tokens(text: str) -> list[str]:
+        # 提取字母数字词（含 CJK），小写；过滤 1 字符噪声。在字母↔数字边界切分
+        # （PDF 把上标引用/编号粘连成 "Fu¹"→"fu1"，DOM 分词为 "fu"+"1"），避免把
+        # 「作者名+上标」等表示差异误判为内容缺失——纯分词正确性,非针对性放宽。
+        raw = _re.findall(r"[0-9a-zA-Z一-鿿]+", (text or "").lower())
+        out: list[str] = []
+        for w in raw:
+            parts = (
+                _re.findall(r"[a-z一-鿿]+|[0-9]+", w)
+                if _re.search(r"[a-z一-鿿][0-9]|[0-9][a-z一-鿿]", w)
+                else [w]
+            )
+            out.extend(p for p in parts if len(p) >= 2)
+        return out
+
+    # DOM 全文 token 集合：优先用 innerText（含行内 code/公式/链接、按视觉顺序），
+    # 回退分块拼接。另备去分隔符长串，兜底 PDF 跨行连字符断词（如 execu-tion → executiON）。
+    dom_page_text = dom.get("pageText") or " ".join(dom_blocks)
+    dom_token_set = set(_tokens(dom_page_text))
+    dom_collapsed = "".join(_tokens(dom_page_text))  # 无分隔连续串，兜底断词
+    pdf_pages = {p["page"]: p for p in pdf_index["pages"]}
+
+    def _text_coverage(page_meta: dict[str, Any]) -> tuple[str, str]:
+        """该页实词在 DOM 的覆盖率 ≥0.9 green，≥0.75 warn，否则 red（含断词兜底）。"""
+        page_text = page_meta.get("full_text") or " ".join(
+            page_meta.get("block_fingerprints", [])
+        )
+        uniq = set(_tokens(page_text))
+        if len(uniq) < 5:
+            return "green", "本页文本极少（纯图表/分隔页）"
+
+        # 命中：token 在 DOM token 集合，或（长度≥4 的词）作为子串出现在去分隔连续串中
+        # ——后者吸收连字符断词与 PDF/DOM 分词差异，避免把表示差异误判为内容缺失。
+        def _hit(t: str) -> bool:
+            return t in dom_token_set or (len(t) >= 4 and t in dom_collapsed)
+
+        hit = sum(1 for t in uniq if _hit(t))
+        cov = hit / len(uniq)
+        if cov >= 0.9:
+            return "green", ""
+        if cov >= 0.75:
+            return "warn", f"词覆盖率 {cov:.0%}（{hit}/{len(uniq)}）"
+        return "red", f"词覆盖率仅 {cov:.0%}（{hit}/{len(uniq)}），疑内容缺失"
+
     page_checks: list[dict[str, Any]] = []
     for ai in align_index:
         n = ai["pdf_page"]
         checks: dict[str, Any] = {}
-        # text：对齐即 green
-        checks["text"] = {
-            "status": "green" if ai["align"] == "ok" else "red",
-            "reason": ""
-            if ai["align"] == "ok"
-            else "head/tail 指纹未在 wiki DOM 命中（内容流/顺序不一致）",
-        }
+        # text：内容覆盖率判定（不依赖块顺序对齐）。
+        t_status, t_reason = _text_coverage(pdf_pages.get(n, {}))
+        checks["text"] = {"status": t_status, "reason": t_reason}
         # formula：整文档 KaTeX 错误>0 则全部页标 warn（无法定位到页）
         checks["formula"] = {
             "status": "warn" if dom_katex_err > 0 else "green",

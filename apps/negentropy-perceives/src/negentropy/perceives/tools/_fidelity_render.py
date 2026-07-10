@@ -95,8 +95,13 @@ def render_pdf_page_index(
     - 用于 ``patrol_page_check`` 程序化预筛（零 context 成本），不替代视觉判定。
     """
     import fitz  # PyMuPDF  # noqa: PLC0415
+    from collections import Counter  # noqa: PLC0415
 
-    pages: list[dict[str, Any]] = []
+    page_blocks: list[list[str]] = []  # 每页文本块指纹序列
+    page_full_texts: list[str] = []  # 每页完整正文（token 覆盖率判定用）
+    page_meta: list[
+        tuple[int, int, int]
+    ] = []  # (image_count, table_count, text_block_count)
     with fitz.open(str(pdf_path)) as doc:
         page_count = doc.page_count
         toc = doc.get_toc(simple=True)  # [[level, title, page], ...]
@@ -107,16 +112,11 @@ def render_pdf_page_index(
             text_blocks = [
                 b for b in raw_blocks if len(b) > 6 and b[6] == 0 and str(b[4]).strip()
             ]
-            head = (
-                _fingerprint(str(text_blocks[0][4]), n=fingerprint_chars)
-                if text_blocks
-                else ""
+            page_blocks.append(
+                [_fingerprint(str(b[4]), n=fingerprint_chars) for b in text_blocks]
             )
-            tail = (
-                _fingerprint(str(text_blocks[-1][4]), n=fingerprint_chars)
-                if text_blocks
-                else ""
-            )
+            # 每页完整正文（未截断）：供 patrol_page_check 做 token 覆盖率判定。
+            page_full_texts.append(" ".join(str(b[4]) for b in text_blocks))
             image_count = len(page.get_images(full=True))
             table_count = 0
             try:
@@ -124,16 +124,39 @@ def render_pdf_page_index(
                 table_count = len(tabs.tables) if tabs is not None else 0
             except Exception:  # noqa: BLE001 - 老版本 PyMuPDF 无 find_tables，降级 0
                 table_count = 0
-            pages.append(
-                {
-                    "page": i,
-                    "head_fingerprint": head,
-                    "tail_fingerprint": tail,
-                    "image_count": image_count,
-                    "table_count": table_count,
-                    "text_block_count": len(text_blocks),
-                }
-            )
+            page_meta.append((image_count, table_count, len(text_blocks)))
+
+    # 检测 running header / footer：在 >40% 页重复出现的首/末文本块（页眉页脚家具）。
+    # 这类块在 wiki DOM 中不重复（管线正确剥离），须从内容对齐中剔除，避免系统性失配。
+    def _repeated(seq: list[str], threshold: float = 0.4) -> str:
+        if not seq:
+            return ""
+        value, count = Counter(seq).most_common(1)[0]
+        return value if count / len(seq) > threshold else ""
+
+    header = _repeated([b[0] for b in page_blocks if b])
+    footer = _repeated([b[-1] for b in page_blocks if b])
+
+    pages: list[dict[str, Any]] = []
+    for i, blocks in enumerate(page_blocks, start=1):
+        # 剔除页眉页脚家具后的内容块指纹列表（供 patrol_page_check 做「内容覆盖率」判定，
+        # 而非依赖块顺序对齐——双栏 PDF 的视觉块序 ≠ 单栏化 DOM 线性序，顺序对齐必假阳性）。
+        content = [x for x in blocks if x and x not in (header, footer)]
+        head = content[0] if content else ""
+        tail = content[-1] if content else ""
+        image_count, table_count, tbc = page_meta[i - 1]
+        pages.append(
+            {
+                "page": i,
+                "head_fingerprint": head,
+                "tail_fingerprint": tail,
+                "block_fingerprints": content,
+                "full_text": page_full_texts[i - 1],
+                "image_count": image_count,
+                "table_count": table_count,
+                "text_block_count": tbc,
+            }
+        )
     return {"page_count": page_count, "toc": toc, "pages": pages}
 
 
