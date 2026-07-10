@@ -189,12 +189,19 @@ def _grade_pages(
     import re as _re  # noqa: PLC0415
 
     def _tokens(text: str) -> list[str]:
-        # 提取字母数字词（含 CJK），小写；过滤 1 字符噪声与纯页码点线。
-        return [
-            t
-            for t in _re.findall(r"[0-9a-zA-Z一-鿿]+", (text or "").lower())
-            if len(t) >= 2
-        ]
+        # 提取字母数字词（含 CJK），小写；过滤 1 字符噪声。在字母↔数字边界切分
+        # （PDF 把上标引用/编号粘连成 "Fu¹"→"fu1"，DOM 分词为 "fu"+"1"），避免把
+        # 「作者名+上标」等表示差异误判为内容缺失——纯分词正确性,非针对性放宽。
+        raw = _re.findall(r"[0-9a-zA-Z一-鿿]+", (text or "").lower())
+        out: list[str] = []
+        for w in raw:
+            parts = (
+                _re.findall(r"[a-z一-鿿]+|[0-9]+", w)
+                if _re.search(r"[a-z一-鿿][0-9]|[0-9][a-z一-鿿]", w)
+                else [w]
+            )
+            out.extend(p for p in parts if len(p) >= 2)
+        return out
 
     # DOM 全文 token 集合：优先用 innerText（含行内 code/公式/链接、按视觉顺序），
     # 回退分块拼接。另备去分隔符长串，兜底 PDF 跨行连字符断词（如 execu-tion → executiON）。
