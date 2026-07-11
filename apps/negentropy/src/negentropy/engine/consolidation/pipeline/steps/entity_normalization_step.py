@@ -128,6 +128,12 @@ class EntityNormalizationStep:
                         **safe_kwargs,
                     )
                     content = response.choices[0].message.content
+                    # loads_lenient 对不可解析文本返回 {}（见 json_extract），会把脏输出伪装成
+                    # 「空实体成功」而丢失降级信号；故先校验响应确为含 entities 键的 dict，否则 raise
+                    # 触发重试 / 最终 RuntimeError → run() 捕获记为 degraded（与严格 json.loads 时代等价）。
+                    data = loads_lenient(content)
+                    if not isinstance(data, dict) or "entities" not in data:
+                        raise ValueError("entity_normalization: 响应非预期 JSON（缺 'entities' 键）")
                     return self._parse_entities(content)
                 except Exception as exc:
                     last_error = exc
