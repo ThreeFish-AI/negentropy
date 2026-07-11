@@ -248,6 +248,20 @@ async def _negentropy_lifespan(app):
     fail-soft：startup 失败不阻塞 FastAPI 启动（与旧 on_event 行为一致），
     shutdown 阶段任意子步骤抛错均被捕获并记 warning。
     """
+    # Phase 4 接线：NE_AGENTS_FROM_DB 开启时，在 lifespan（事件循环就绪 + DB 可达）
+    # 构造 DB 驱动 root agent 并安装进程级覆盖，供 ADK / Runner 两条解析路径命中；
+    # flag-off / 构造失败 → 不安装覆盖，两条路径回退代码 root_agent（fail-soft，零阻塞）。
+    try:
+        from negentropy.agents._root_override import set_root_override
+        from negentropy.agents.definitions.agent_factory import build_root_agent_from_db
+
+        db_root = await build_root_agent_from_db()
+        if db_root is not None:
+            set_root_override(db_root)
+            logger.info("db_driven_root_agent_installed", agent_name=getattr(db_root, "name", None))
+    except Exception as exc:
+        logger.warning("db_driven_root_agent_install_failed", error=str(exc))
+
     registry = None
     try:
         from negentropy.engine.schedulers.registry import ensure_registry_started
@@ -306,6 +320,13 @@ async def _negentropy_lifespan(app):
             logger.info("negentropy_lifespan_disposers_completed")
         except Exception as exc:
             logger.warning("negentropy_lifespan_disposers_failed", error=str(exc))
+        # Phase 4 接线：清除 DB 构造 root agent 覆盖（对称收尾，避免测试 / 重启残留）。
+        try:
+            from negentropy.agents._root_override import clear_root_override
+
+            clear_root_override()
+        except Exception as exc:  # pragma: no cover — 收尾 best-effort
+            logger.warning("db_driven_root_agent_clear_failed", error=str(exc))
         logger.info("negentropy_lifespan_shutdown_completed")
 
 

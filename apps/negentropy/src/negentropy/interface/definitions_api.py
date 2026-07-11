@@ -87,6 +87,27 @@ def _parse_or_422(kind: str, fmt: str, source: str) -> dict[str, Any]:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
 
 
+def _post_save_side_effects(kind: str) -> None:
+    """定义写入后的 fire-and-forget 副作用（fail-soft，绝不阻断响应）。
+
+    - ``harness_skill`` → 渲染回盘 ``.agent/skills/*/SKILL.md``；
+    - ``agent`` → 重建 DB root 覆盖 + 失效 runner 缓存（``NE_AGENTS_FROM_DB`` 开启才生效）。
+    """
+    if kind == "harness_skill":
+        maybe_materialize_now()
+    elif kind == "agent":
+        try:
+            import asyncio
+
+            from negentropy.agents.definitions.agent_factory import refresh_root_override
+
+            asyncio.create_task(refresh_root_override())  # noqa: RUF006 — fire-and-forget
+        except RuntimeError:
+            pass  # 无运行中事件循环（同步上下文）：跳过，下次重启/请求自然拾取
+        except Exception:  # pragma: no cover — fail-soft
+            logger.warning("agent_refresh_root_override_failed", exc_info=True)
+
+
 # =============================================================================
 # Schemas
 # =============================================================================
@@ -202,8 +223,7 @@ async def create_definition(
             ) from exc
         await db.refresh(d)
 
-    if payload.kind == "harness_skill":
-        maybe_materialize_now()  # fire-and-forget 渲染回盘（fail-soft，仓库根不可解析时跳过）
+    _post_save_side_effects(payload.kind)
     return _definition_to_dict(d)
 
 
@@ -252,8 +272,7 @@ async def update_definition(
             ) from exc
         await db.refresh(d)
 
-    if d.kind == "harness_skill":
-        maybe_materialize_now()
+    _post_save_side_effects(d.kind)
     return _definition_to_dict(d)
 
 

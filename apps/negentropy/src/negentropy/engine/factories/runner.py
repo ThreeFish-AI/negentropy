@@ -56,9 +56,15 @@ def get_runner(
         return _runner_instance
 
     if agent is None:
-        from negentropy.agents.agent import root_agent
+        # Phase 4 接线：优先用 DB 构造覆盖（NE_AGENTS_FROM_DB 开启且 lifespan 已安装），
+        # 否则回退代码 root_agent（flag-off 零行为变化）。
+        from negentropy.agents._root_override import get_root_override
 
-        agent = root_agent
+        agent = get_root_override()
+        if agent is None:
+            from negentropy.agents.agent import root_agent
+
+            agent = root_agent
 
     runner = Runner(
         app_name=app_name or settings.app_name,

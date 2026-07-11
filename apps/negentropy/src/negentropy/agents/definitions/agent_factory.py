@@ -190,6 +190,39 @@ async def build_root_agent_from_db() -> BaseAgent | None:
         return None
 
 
+async def refresh_root_override() -> bool:
+    """agent 定义变更后重建 DB root 覆盖 + 失效 runner 缓存（flag-on 才生效）。
+
+    供 ``definitions_api`` 在 create/update/delete ``kind=agent`` 后 fire-and-forget 调用，
+    使 UI 编辑即时生效，无需重启。flag-off / 构造失败 → 清除覆盖回退代码 root（fail-soft）。
+
+    Returns: True 表示成功安装了新的 DB 覆盖；False 表示已回退代码 root。
+    """
+    from negentropy.agents._root_override import clear_root_override, set_root_override
+
+    if not _agents_from_db_enabled():
+        return False
+    try:
+        db_root = await build_root_agent_from_db()
+    except Exception:  # pragma: no cover — fail-soft
+        _logger.warning("refresh_root_override_build_failed", exc_info=True)
+        db_root = None
+
+    # 失效 runner 单例缓存，使下次 get_runner() 拾取新覆盖 / 回退。
+    try:
+        from negentropy.engine.factories.runner import reset_runner
+
+        reset_runner()
+    except Exception:  # pragma: no cover — best-effort
+        _logger.warning("refresh_root_override_reset_runner_failed", exc_info=True)
+
+    if db_root is not None:
+        set_root_override(db_root)
+        return True
+    clear_root_override()
+    return False
+
+
 def _assemble_root(root_spec: dict[str, Any], nodes: dict[str, BaseAgent]) -> BaseAgent:
     """用代码 ``root_agent`` 的内部布线 + DB ``sub_agents`` 拓扑构造新 root。
 
