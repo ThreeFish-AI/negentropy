@@ -103,8 +103,11 @@ class EntityNormalizationStep:
         enabled = settings.routine.faculty_bridge_enabled and settings.routine.faculty_bridge_consolidation_enabled
 
         def parse(text: str) -> list[dict] | None:
-            # 解析失败（非 dict）→ None 触发降级；有效 dict（含空 entities）→ 接受 []。
-            if not isinstance(loads_lenient(text), dict):
+            # 缺 entities 键 / 非 dict → None 触发降级；含空 entities 的合法 dict → 接受 []。
+            # 注：loads_lenient 解析失败恒返回 {}（见 json_extract），故须靠键存在性而非
+            # isinstance(dict) 辨别脏输出，否则散文脏文本会被误判为「命中」而不降级 litellm。
+            data = loads_lenient(text)
+            if not isinstance(data, dict) or "entities" not in data:
                 return None
             return self._parse_entities(text)
 

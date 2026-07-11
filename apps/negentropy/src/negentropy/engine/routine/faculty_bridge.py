@@ -48,16 +48,12 @@ _ROLE_TO_FACULTY_FACTORY: dict[str, str] = {
 # 无人在环下静默真写记忆 / KG → 记忆重复 / KG 污染（ADR 040「副作用工具陷阱」）。
 # 注：read_only 同时整体剔除 ``BaseToolset``（六翼的可摘工具集经 WS1 以 toolset 承载，副作用工具
 # 藏于其内逐请求解析），故 read_only 调用不会触发任何可摘工具——契合「要确定性 JSON、不要工具漫游」。
+# 因 toolset 被整体剔除，唯有「常量位」裸 callable（log_activity / load_memory）才会走到本白名单
+# 比对；search_* / analyze_context / create_plan 等只读工具均在 toolset 内、已随 toolset 一并剥离，
+# 故不列于此（若未来把某只读工具移回常量位并希望 read_only 保留，再在此显式补名）。
 _READONLY_TOOL_ALLOWLIST: set[str] = {
     "log_activity",
     "load_memory",
-    "search_knowledge_base",
-    "search_knowledge_graph_global",
-    "search_knowledge_graph_with_papers",
-    "search_web",
-    "search_papers",
-    "analyze_context",
-    "create_plan",
 }
 
 # 单任务 Faculty 调用预算（contextvar）：consolidation 等多条目循环收编时，防止「条目越多、ADK
@@ -196,6 +192,11 @@ async def run_faculty_json(
     """
     budget = _faculty_budget.get()
     if enabled and (budget is None or budget > 0):
+        # 预算按「Runner 调用」计费：run_faculty 一旦驱动 ADK Runner，开销即已产生，与解析成败无关。
+        # 故进入本分支即自减一次（而非仅解析成功后），确保 Faculty 持续吐脏文本 / 空响应时预算仍如实
+        # 耗尽、多条目循环不会无上限重驱 Runner（与 contextvar / docstring「每次调用消耗 1」一致）。
+        if budget is not None:
+            _faculty_budget.set(budget - 1)
         try:
             text = await run_faculty(
                 role,
@@ -213,8 +214,6 @@ async def run_faculty_json(
                 logger.info("faculty_bridge_json_parse_failed_fallback", role=role)
                 parsed = None
             if parsed is not None:
-                if budget is not None:
-                    _faculty_budget.set(budget - 1)
                 return parsed, True
             logger.info("faculty_bridge_empty_or_unparsed_fallback", role=role)
         else:

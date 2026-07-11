@@ -186,11 +186,13 @@ class MemorySummarizer:
         enabled = settings.routine.faculty_bridge_enabled and settings.routine.faculty_bridge_consolidation_enabled
 
         def parse(text: str) -> str | None:
-            # 解析失败（非 dict）→ None 触发降级；有效 dict → 取 summary（可为空串）。
+            # 空 / 缺 summary → None 触发降级；非空 summary → 接受。
+            # 注：loads_lenient 解析失败恒返回 {}（见 json_extract），仅 isinstance(dict) 无法辨别
+            # 脏输出；空摘要亦视作失败，交由 litellm 兜底重试，契合「批任务不因 Faculty 破损而空转」。
             data = loads_lenient(text)
             if not isinstance(data, dict):
                 return None
-            return data.get("summary", "")
+            return data.get("summary") or None
 
         async def fallback() -> str | None:
             return await self._call_llm(prompt)
@@ -205,4 +207,3 @@ class MemorySummarizer:
             read_only=True,
         )
         return summary
-        return None

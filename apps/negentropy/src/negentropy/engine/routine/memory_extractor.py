@@ -426,8 +426,11 @@ class IterationMemoryExtractor:
         enabled = settings.routine.faculty_bridge_enabled and settings.routine.faculty_bridge_memory_extract_enabled
 
         def parse(text: str) -> tuple[list[ExtractedMemory], float, str] | None:
-            # 解析失败（非 dict）→ None 触发降级；有效 dict（含空 memories）→ 接受。
-            if not isinstance(loads_lenient(text), dict):
+            # 缺 memories 键 / 非 dict → None 触发降级；含空 memories 的合法 dict → 接受。
+            # 注：loads_lenient 解析失败恒返回 {}（见 json_extract），故须靠键存在性而非
+            # isinstance(dict) 辨别脏输出，否则散文脏文本会被误判为「命中」而不降级 litellm。
+            data = loads_lenient(text)
+            if not isinstance(data, dict) or "memories" not in data:
                 return None
             return self._parse_response(text), 0.0, "InternalizationFaculty"
 
@@ -437,7 +440,9 @@ class IterationMemoryExtractor:
                 return [], cost, self._model
             return self._parse_response(content), cost, self._model
 
-        return await run_faculty_json(
+        # run_faculty_json 返回 (result, used_faculty)；解包丢弃 flag，仅回 3 元组结果，
+        # 与调用方（extract_on_iteration / extract_on_termination）的三目标解包契合。
+        result, _used = await run_faculty_json(
             "internalization",
             prompt,
             parse=parse,
@@ -446,6 +451,7 @@ class IterationMemoryExtractor:
             timeout_seconds=float(settings.routine.faculty_bridge_batch_timeout_seconds),
             read_only=True,
         )
+        return result
 
     @staticmethod
     def _parse_response(content: str) -> list[ExtractedMemory]:
