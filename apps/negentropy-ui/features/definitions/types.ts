@@ -52,6 +52,8 @@ export interface DefinitionUpdatePayload {
   key?: string;
   format?: DefinitionFormat;
   is_enabled?: boolean;
+  /** 显式置 false 以解除保护标记（关闭「创建即永久不可删」陷阱）。 */
+  is_system?: boolean;
   sort_order?: number;
 }
 

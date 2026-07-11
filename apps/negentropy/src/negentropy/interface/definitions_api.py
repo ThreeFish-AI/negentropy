@@ -128,6 +128,8 @@ class DefinitionUpdateRequest(BaseModel):
     key: str | None = Field(default=None, min_length=1, max_length=255)
     format: str | None = None
     is_enabled: bool | None = None
+    # 可清除保护标记：admin 显式置 false 后该定义方可删除（关闭「创建即永久不可删」陷阱）。
+    is_system: bool | None = None
     sort_order: int | None = None
 
 
@@ -259,16 +261,23 @@ async def update_definition(
             d.key = payload.key.strip()
         if payload.is_enabled is not None:
             d.is_enabled = payload.is_enabled
+        if payload.is_system is not None:
+            d.is_system = payload.is_system
         if payload.sort_order is not None:
             d.sort_order = payload.sort_order
 
+        from sqlalchemy.exc import IntegrityError
+
+        # 在 commit 前捕获本地量拼装冲突文案：rollback 会 expire ORM 实例，async 下再读 d.* 会触发惰性 IO 报错。
+        conflict_kind, conflict_key = d.kind, d.key
         try:
             await db.commit()
-        except Exception as exc:
+        except IntegrityError as exc:
+            # 仅键冲突映射为 409（不回传 str(exc) 以免泄漏约束名 / SQL）；其余异常上抛按 500 处理。
             await db.rollback()
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail=f"definition update failed: {exc}",
+                detail=f"definition conflict: (kind={conflict_kind}, key={conflict_key}) 已存在",
             ) from exc
         await db.refresh(d)
 

@@ -97,12 +97,32 @@ async def _fetch_harness_skills() -> list[tuple[str, str]]:
     return out
 
 
+def _is_safe_skill_key(key: str) -> bool:
+    """key 必须是单段安全目录名（harness 按 ``.agent/skills/<key>/`` 发现）。
+
+    DB 中的 key 由 admin 经 Definitions 表单自由填写、无路径字符约束，写盘前必须在此设防：
+    拒绝空 / ``.`` / ``..`` / 绝对路径 / 含路径分隔符的值，防止 ``skills_dir / key`` 逃逸出
+    ``.agent/skills``（如 ``../../tmp/evil`` 或 ``/tmp/evil``）而向任意位置写文件。
+    """
+    if not key or key in (".", ".."):
+        return False
+    if os.path.isabs(key):
+        return False
+    return not ("/" in key or "\\" in key or os.sep in key or (os.altsep and os.altsep in key))
+
+
 def _write_to_disk(rows: list[tuple[str, str]], repo_root: Path) -> int:
-    """同步写盘：每条 → ``<repo_root>/.agent/skills/<key>/SKILL.md``；按内容幂等跳过。"""
+    """同步写盘：每条 → ``<repo_root>/.agent/skills/<key>/SKILL.md``；按内容幂等跳过。
+
+    非法 key（路径穿越 / 绝对路径 / 非单段名）跳过并告警，不写盘。
+    """
     skills_dir = repo_root / ".agent" / "skills"
     skills_dir.mkdir(parents=True, exist_ok=True)
     written = 0
     for key, source in rows:
+        if not _is_safe_skill_key(key):
+            _logger.warning("harness_skill_unsafe_key_skipped", key=key)
+            continue
         target_dir = skills_dir / key
         target_dir.mkdir(parents=True, exist_ok=True)
         target = target_dir / "SKILL.md"

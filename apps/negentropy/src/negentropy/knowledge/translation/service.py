@@ -315,7 +315,7 @@ class DocumentTranslationService:
 
         from negentropy.agents import skill_templates
 
-        for template in skill_templates.load_all():
+        for template in await skill_templates.load_all():
             if template.name == SKILL_NAME:
                 return ResolvedSkill(
                     id=template.template_id,
