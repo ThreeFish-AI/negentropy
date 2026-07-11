@@ -2,22 +2,25 @@
 Skill Templates 加载器 — 单元测试。
 
 覆盖：
-1. 内置 ``paper_hunter.yaml`` 必须能被加载并命中关键字段；
+1. 内置 ``paper_hunter`` / ``document_translate`` 定义源（DB, kind=skill_template）能被
+   ``load_all()`` 加载并命中关键字段；
 2. SemVer 校验：非法版本号被跳过且不冒泡；
 3. enforcement_mode 兜底：非法值降级为 ``warning``；
 4. 缺失必填字段时整个模板被丢弃。
+
+注：Phase 1 后 ``load_all()`` 从 DB（``definitions``）读取（原 ``skill_templates/*.yaml`` 已删除），
+故 (1) 依赖 conftest 的 ``upgrade head``（迁移 0096 已播种 4 个内置模板）；(2)(3)(4) 为
+``_coerce_template`` 纯单元测试。
 """
 
 from __future__ import annotations
 
-from pathlib import Path
-
 from negentropy.agents.skill_templates import SkillTemplate, _coerce_template, load_all
 
 
-def test_load_all_includes_paper_hunter():
-    templates = load_all()
-    assert templates, "至少应该加载到内置 paper_hunter.yaml"
+async def test_load_all_includes_paper_hunter():
+    templates = await load_all()
+    assert templates, "至少应该加载到内置 paper_hunter 定义源（DB 播种）"
     by_id = {t.template_id: t for t in templates}
     assert "paper_hunter" in by_id
     tpl = by_id["paper_hunter"]
@@ -58,15 +61,9 @@ def test_coerce_template_missing_required_field_returns_none():
     assert _coerce_template(raw) is None
 
 
-def test_paper_hunter_yaml_lives_under_skill_templates_dir():
-    """物理位置守门：避免无意中把 yaml 挪走破坏加载。"""
-    path = Path(__file__).resolve().parents[3] / "src/negentropy/agents/skill_templates/paper_hunter.yaml"
-    assert path.exists(), f"paper_hunter.yaml not found at {path}"
-
-
-def test_load_all_includes_document_translate():
+async def test_load_all_includes_document_translate():
     """内置 Translate 技能模板：精准挂载 InfluenceFaculty（is_global=False）。"""
-    templates = load_all()
+    templates = await load_all()
     by_id = {t.template_id: t for t in templates}
     assert "document_translate" in by_id
     tpl = by_id["document_translate"]
@@ -79,8 +76,3 @@ def test_load_all_includes_document_translate():
     # 模板变量齐全（服务端渲染依赖）
     for var in ("{{ workdir }}", "{{ chunk_count }}", "{{ target_language }}", "{{ tool_timeout }}"):
         assert var in (tpl.prompt_template or ""), f"missing template var: {var}"
-
-
-def test_document_translate_yaml_lives_under_skill_templates_dir():
-    path = Path(__file__).resolve().parents[3] / "src/negentropy/agents/skill_templates/document_translate.yaml"
-    assert path.exists(), f"document_translate.yaml not found at {path}"

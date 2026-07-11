@@ -1966,7 +1966,7 @@ async def list_skill_templates(
     """列出内置 Skill 模板（必须在 ``/skills/{skill_id}`` 之前声明，避免被动态路径吞噬）。"""
     from negentropy.agents.skill_templates import load_all
 
-    templates = load_all()
+    templates = await load_all()
     return [
         SkillTemplateSummary(
             template_id=t.template_id,
@@ -1997,7 +1997,7 @@ async def create_skill_from_template(
     """
     from negentropy.agents.skill_templates import load_all
 
-    templates = {t.template_id: t for t in load_all()}
+    templates = {t.template_id: t for t in await load_all()}
     tpl = templates.get(payload.template_id)
     if tpl is None:
         raise HTTPException(status_code=404, detail=f"Template '{payload.template_id}' not found")

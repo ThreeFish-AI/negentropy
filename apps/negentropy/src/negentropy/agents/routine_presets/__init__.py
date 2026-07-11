@@ -1,11 +1,14 @@
 """
-Routine Presets 包 — 内置 Routine 预设模版加载器
+Routine Presets 包 — 内置 Routine 预设模版加载器（DB 为源）。
 
-设计目标：
-- 用 YAML 文件作为预设分发载体（每个文件一个模版）；
-- 加载时进行字段完整性 + SemVer 合法性 + approval_mode 合法性校验，失败仅 warning 跳过；
-- 经合并端点 ``GET /routines/templates`` 暴露给前端（与用户自建模板合并为统一列表），
-  用户在前端 Templates 页选定模版后由 ``POST /routines`` 物化为自己的 Routine 行。
+设计目标（Phase 2）：
+- 定义源 SSOT 收敛到 ``negentropy.definitions``（kind=routine_preset），整段 YAML 入库、
+  界面表单编辑器维护；原 ``routine_presets/*.yaml`` 文件已删除。
+- ``load_all()`` 由「glob 目录」改为「查 DB 行 + 跑现有 ``_coerce_preset``」——
+  ``RoutinePreset`` dataclass 与校验逻辑保持不变，下游 ``GET /routines/templates``
+  的 ``source=builtin`` 分支透明生效。
+- 向 Definition Registry 注册 ``routine_preset`` 的校验器/元信息提取器，使经表单
+  create/update 时做服务端校验（非法源 422 不落库）。
 
 参考文献：
 [1] 本模块对标 ``skill_templates/__init__.py`` 的加载器模式。
@@ -16,21 +19,33 @@ Routine Presets 包 — 内置 Routine 预设模版加载器
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Any, Literal
 
 import yaml
 from packaging.version import InvalidVersion, Version
 
+from negentropy.agents.definitions import (
+    DefinitionParseError,
+    register_meta_extractor,
+    register_validator,
+)
 from negentropy.logging import get_logger
 
 _logger = get_logger("negentropy.agents.routine_presets")
 
-_PRESETS_DIR = Path(__file__).parent
+_KIND = "routine_preset"
 
 _REQUIRED_FIELDS = ("preset_id", "display_name", "description", "category", "version", "goal", "acceptance_criteria")
 
 _VALID_APPROVAL_MODES: frozenset[str] = frozenset({"auto", "first", "every"})
+
+_META_KEYS = (
+    "display_name",
+    "description",
+    "category",
+    "version",
+    "approval_mode",
+)
 
 
 @dataclass(frozen=True)
@@ -97,20 +112,67 @@ def _coerce_preset(raw: dict[str, Any]) -> RoutinePreset | None:
     )
 
 
-def load_all() -> list[RoutinePreset]:
-    """扫描同目录下所有 ``*.yaml`` 文件，逐一解析为 ``RoutinePreset``。
+# ── Definition Registry 适配器（校验器 / 元信息）─────────────────────
 
-    单个文件失败 → warning 并跳过；不冒泡到调用方。
+
+def _validate(raw: Any, source: str) -> None:
+    """经表单 create/update 时的服务端硬校验（映射为 422）。"""
+    if not isinstance(raw, dict):
+        raise DefinitionParseError("Routine 预设源顶层必须是 mapping")
+    missing = [k for k in _REQUIRED_FIELDS if not raw.get(k)]
+    if missing:
+        raise DefinitionParseError(f"Routine 预设缺少必填字段: {', '.join(missing)}")
+    version_str = str(raw.get("version") or "")
+    try:
+        Version(version_str)
+    except InvalidVersion as exc:
+        raise DefinitionParseError(f"Routine 预设 version 非合法 SemVer: {version_str!r}") from exc
+    approval = str(raw.get("approval_mode") or "auto")
+    if approval not in _VALID_APPROVAL_MODES:
+        raise DefinitionParseError(f"Routine 预设 approval_mode 非法: {approval!r}（允许 auto/first/every）")
+
+
+def _meta(raw: Any, body: str) -> dict[str, Any]:
+    if not isinstance(raw, dict):
+        return {}
+    return {k: raw[k] for k in _META_KEYS if k in raw}
+
+
+register_validator(_KIND, _validate)
+register_meta_extractor(_KIND, _meta)
+
+
+async def load_all() -> list[RoutinePreset]:
+    """查 ``definitions(kind=routine_preset, is_enabled)`` 行，逐一解析为 ``RoutinePreset``。
+
+    单行解析失败 → warning 并跳过；不冒泡到调用方（与原文件加载语义一致）。
     """
+    from sqlalchemy import select
+
+    from negentropy.db.session import AsyncSessionLocal
+    from negentropy.models.definition import Definition
+
     presets: list[RoutinePreset] = []
-    for path in sorted(_PRESETS_DIR.glob("*.yaml")):
+    async with AsyncSessionLocal() as db:
+        rows = (
+            (
+                await db.execute(
+                    select(Definition)
+                    .where(Definition.kind == _KIND, Definition.is_enabled.is_(True))
+                    .order_by(Definition.sort_order, Definition.key)
+                )
+            )
+            .scalars()
+            .all()
+        )
+    for row in rows:
         try:
-            raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+            raw = yaml.safe_load(row.source)
         except yaml.YAMLError as exc:
-            _logger.warning("routine_preset_yaml_error", path=str(path), error=str(exc))
+            _logger.warning("routine_preset_yaml_error", key=row.key, error=str(exc))
             continue
         if not isinstance(raw, dict):
-            _logger.warning("routine_preset_not_mapping", path=str(path))
+            _logger.warning("routine_preset_not_mapping", key=row.key)
             continue
         coerced = _coerce_preset(raw)
         if coerced is not None:

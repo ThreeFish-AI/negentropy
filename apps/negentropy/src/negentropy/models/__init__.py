@@ -2,6 +2,7 @@ from .action import Tool, ToolExecution
 from .agent import Agent, AgentVersion
 from .base import DEFAULT_EMBEDDING_DIM, NEGENTROPY_SCHEMA, Base, TimestampMixin, Vector, fk
 from .builtin_tool import BuiltinTool, BuiltinToolVersion
+from .definition import DEFINITION_FORMATS, DEFINITION_KINDS, Definition
 from .eval_suite import EvalCase, EvalResult, EvalRun, EvalSuite
 from .evolution import EvolutionProposal, MemoryConfigVersion
 from .internalization import ConsolidationJob, Fact, Memory, MemoryAuditLog, MemoryAutomationConfig
@@ -115,6 +116,10 @@ __all__ = [
     "Skill",
     "Agent",
     "AgentVersion",
+    # Definition Registry (定义源单一事实源：Skill 模板 / Routine 预设 / Harness 技能 / Agent 规格)
+    "Definition",
+    "DEFINITION_KINDS",
+    "DEFINITION_FORMATS",
     # Scheduled Task (统一心跳调度)
     "ScheduledTask",
     "TaskExecution",
