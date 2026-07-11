@@ -48,8 +48,11 @@ def test_override_slot_semantics():
 
 @pytest.mark.asyncio
 async def test_refresh_flag_off_no_override(monkeypatch):
-    """flag-off → refresh 返回 False，不安装覆盖；解析路径走代码 root。"""
-    monkeypatch.delenv("NE_AGENTS_FROM_DB", raising=False)
+    """显式 flag-off（NE_AGENTS_FROM_DB=0）→ refresh 返回 False，不安装覆盖；走代码 root。
+
+    注：default-on 后 off 用例须显式设 falsy 值（未设 = 开启）。
+    """
+    monkeypatch.setenv("NE_AGENTS_FROM_DB", "0")
     from negentropy.agents.definitions.agent_factory import refresh_root_override
 
     installed = await refresh_root_override()

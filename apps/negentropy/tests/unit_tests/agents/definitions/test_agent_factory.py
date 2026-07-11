@@ -31,10 +31,22 @@ def test_validate_requires_agent_type():
 
 @pytest.mark.asyncio
 async def test_build_nodes_flag_off_returns_none(monkeypatch):
-    """flag-off（默认）→ None，调用方回退代码 root_agent。"""
-    monkeypatch.delenv("NE_AGENTS_FROM_DB", raising=False)
+    """显式 flag-off（NE_AGENTS_FROM_DB=0）→ None，调用方回退代码 root_agent。
+
+    注：default-on 后「未设 / 空值」视为开启，故 off 用例须显式设 falsy 值。
+    """
+    monkeypatch.setenv("NE_AGENTS_FROM_DB", "0")
     assert await build_nodes_from_db() is None
     assert await build_root_agent_from_db() is None
+
+
+@pytest.mark.asyncio
+async def test_default_on_when_env_unset(monkeypatch):
+    """default-on：未设环境变量即开启（完整启用语义）。"""
+    monkeypatch.delenv("NE_AGENTS_FROM_DB", raising=False)
+    root = await build_root_agent_from_db()
+    assert root is not None
+    assert root.name == "NegentropyEngine"
 
 
 @pytest.mark.asyncio
@@ -69,3 +81,53 @@ async def test_build_root_flag_on_assembles_graph(monkeypatch):
     assert "PerceptionFaculty" in sub_names
     assert "KnowledgeAcquisitionPipeline" in sub_names
     assert len(sub_names) == 8
+
+
+def _tool_names(agent):
+    return sorted(getattr(t, "name", getattr(t, "__name__", "?")) for t in (getattr(agent, "tools", None) or []))
+
+
+def _node_snapshot(agent):
+    """节点行为快照（用于 DB↔代码等价性断言）。"""
+    return {
+        "name": agent.name,
+        "mode": getattr(agent, "mode", None),
+        "model": getattr(getattr(agent, "model", None), "model", None),
+        "output_key": getattr(agent, "output_key", None),
+        "tools": _tool_names(agent),
+        "disallow_parent": getattr(agent, "disallow_transfer_to_parent", None),
+        "disallow_peers": getattr(agent, "disallow_transfer_to_peers", None),
+        "sub_agents": [s.name for s in (getattr(agent, "sub_agents", None) or [])],
+    }
+
+
+@pytest.mark.asyncio
+async def test_db_root_is_behaviorally_equivalent_to_code_root(monkeypatch):
+    """核心守卫：DB 构造 root 与代码 root **逐节点行为等价**（完整启用的前提）。
+
+    防两类静默漂移回归：
+    1. 顶层 faculty 丢失 ``mode='single_turn'``（降级为 ADK 默认 ``chat``，改调度语义）；
+    2. root ``tools`` 因 sub_agents 二次派生导致 faculty transfer 工具重复。
+    """
+    monkeypatch.setenv("NE_AGENTS_FROM_DB", "1")
+    from negentropy.agents.agent import root_agent as code_root
+
+    db_root = await build_root_agent_from_db()
+    assert db_root is not None
+
+    # root 本体等价（含 tools 名单——无重复）
+    assert _node_snapshot(db_root) == _node_snapshot(code_root)
+
+    # 每个顶层 sub_agent 等价（mode / tools / output_key / disallow flags / 拓扑）
+    code_sub = {s.name: s for s in code_root.sub_agents}
+    db_sub = {s.name: s for s in db_root.sub_agents}
+    assert set(code_sub) == set(db_sub)
+    for name in code_sub:
+        assert _node_snapshot(db_sub[name]) == _node_snapshot(code_sub[name]), f"node drift: {name}"
+
+    # pipeline 内部 sub_agents（output_key）等价
+    for name, code_node in code_sub.items():
+        if "Pipeline" in name:
+            code_internals = [_node_snapshot(s) for s in code_node.sub_agents]
+            db_internals = [_node_snapshot(s) for s in db_sub[name].sub_agents]
+            assert code_internals == db_internals, f"pipeline internals drift: {name}"
