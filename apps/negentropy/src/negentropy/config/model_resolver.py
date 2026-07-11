@@ -15,6 +15,7 @@ Model Resolver — 默认模型 + vendor_configs 凭证的模型配置解析器�
 - resolve_embedding_config_for_task()   — 按 task_key (+ 可选 corpus_id) 解析 Embedding
 - resolve_subagent_model_name()         — 按 agent_name 读取 agents.model
 - resolve_subagent_instruction()        — 按 agent_name 读取 agents.system_prompt
+- resolve_subagent_tool_names()         — 按 agent_name 读取 agents.tools（工具名列表）
 - get_cached_llm_config()               — 同步缓存读取 (无法 await 的上下文)
 - get_cached_llm_config_for_task()      — 同步缓存读取 task 槽位 (无法 await 的上下文)
 - get_fallback_llm_config()             — 同步获取硬编码 LLM 默认值
@@ -232,11 +233,29 @@ async def resolve_subagent_instruction(agent_name: str | None) -> str | None:
     return row[1] or None
 
 
-async def _resolve_subagent_row(agent_name: str | None) -> tuple[str | None, str | None] | None:
-    """共用 Agent 行加载：返回 ``(model, system_prompt)``，未启用 / 不存在返回 ``None``。
+async def resolve_subagent_tool_names(agent_name: str | None) -> list[str] | None:
+    """按 ``agent_name`` 读取 ``agents.tools`` 字段（工具名列表）。
 
-    缓存键 ``subagent:<agent_name>`` 复用三元组：``(model_or_empty, kwargs={"i": instruction}, ts)``。
-    单次 DB 查询同时取 model + instruction，避免 model_resolver 与 instruction provider 双查。
+    - 行不存在、未启用或 ``tools`` 为空 → ``None``（调用方 ``NegentropyToolset`` 回退硬编码默认集）；
+    - 与 ``resolve_subagent_model_name`` / ``resolve_subagent_instruction`` 共用同一行查询与
+      ``subagent:<agent_name>`` 60s TTL 缓存；Agent PATCH/DELETE/Sync 调用
+      ``invalidate_cache(prefix="subagent:")`` 一并失效。
+    """
+    row = await _resolve_subagent_row(agent_name)
+    if row is None:
+        return None
+    tools = row[2]
+    return list(tools) if tools else None
+
+
+async def _resolve_subagent_row(
+    agent_name: str | None,
+) -> tuple[str | None, str | None, list[str] | None] | None:
+    """共用 Agent 行加载：返回 ``(model, system_prompt, tools)``，未启用 / 不存在返回 ``None``。
+
+    缓存键 ``subagent:<agent_name>`` 复用三元组：``(model_or_empty, extras={"i": instruction,
+    "t": tools}, ts)``。单次 DB 查询同时取 model + instruction + tools，避免 model_resolver、
+    instruction provider 与 tools toolset 三查。
     """
     if not agent_name:
         return None
@@ -247,8 +266,10 @@ async def _resolve_subagent_row(agent_name: str | None) -> tuple[str | None, str
     if entry is not None:
         cached_model, cached_extras, ts = entry
         if now - ts < _CACHE_TTL:
-            cached_instruction = cached_extras.get("i") if isinstance(cached_extras, dict) else None
-            return (cached_model or None, cached_instruction or None)
+            extras = cached_extras if isinstance(cached_extras, dict) else {}
+            cached_instruction = extras.get("i")
+            cached_tools = extras.get("t")
+            return (cached_model or None, cached_instruction or None, cached_tools or None)
 
     try:
         loaded = await _load_subagent_row(agent_name)
@@ -265,13 +286,17 @@ async def _resolve_subagent_row(agent_name: str | None) -> tuple[str | None, str
     if loaded is None:
         # 行不存在 / 未启用 → 同样写入空占位，让 60s TTL 覆盖负命中场景，
         # 避免每次 LLM 请求重复触发 DB 查询。
-        _cache[cache_key] = ("", {"i": ""}, now)
+        _cache[cache_key] = ("", {"i": "", "t": []}, now)
         return None
-    model_value, instruction_value = loaded
+    model_value, instruction_value, tools_value = loaded
 
-    # 空串占位：缓存同样适用于「未配置」场景，避免重复 DB 查询
-    _cache[cache_key] = (model_value or "", {"i": instruction_value or ""}, now)
-    return (model_value or None, instruction_value or None)
+    # 空串 / 空列表占位：缓存同样适用于「未配置」场景，避免重复 DB 查询
+    _cache[cache_key] = (
+        model_value or "",
+        {"i": instruction_value or "", "t": tools_value or []},
+        now,
+    )
+    return (model_value or None, instruction_value or None, tools_value or None)
 
 
 async def _load_model_config_row_by_name(model_type: str, vendor: str, model_name: str):
@@ -301,8 +326,10 @@ async def _load_model_config_row_by_name(model_type: str, vendor: str, model_nam
         return result.scalar_one_or_none()
 
 
-async def _load_subagent_row(agent_name: str) -> tuple[str | None, str | None] | None:
-    """从 ``agents`` 表读取 ``(model, system_prompt)``；行不存在或未启用返回 ``None``。
+async def _load_subagent_row(
+    agent_name: str,
+) -> tuple[str | None, str | None, list[str] | None] | None:
+    """从 ``agents`` 表读取 ``(model, system_prompt, tools)``；行不存在或未启用返回 ``None``。
 
     单次 SQL 同时取 model + instruction（system_prompt），避免双查；调用方负责把 ``""``
     视为「未配置」并兜底，本函数仅做 trim。
@@ -402,7 +429,11 @@ async def _load_subagent_row(agent_name: str) -> tuple[str | None, str | None] |
             )
 
     model_normalized = str(model_value).strip() if model_value else None
-    return (model_normalized or None, instruction_normalized or None)
+    # WS1：回源 tools —— ``tools_list`` 是 ``agents.tools``（JSONB ``list[str]``），供
+    # ``NegentropyToolset`` 运行时解析六翼工具集。此处随 model / instruction 同批返回，
+    # 复用同一行查询，零额外 DB 往返。
+    tool_names = [str(t) for t in tools_list] if tools_list else None
+    return (model_normalized or None, instruction_normalized or None, tool_names)
 
 
 async def resolve_embedding_config_by_id(config_id: UUID | str | None) -> tuple[str, dict[str, Any]]:

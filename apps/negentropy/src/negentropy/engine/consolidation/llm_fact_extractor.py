@@ -18,11 +18,12 @@ LLMFactExtractor: LLM 驱动的对话事实提取器
 from __future__ import annotations
 
 import asyncio
-import json
 
 import litellm
 
 from negentropy.engine.consolidation.fact_extractor import ExtractedFact, PatternFactExtractor
+from negentropy.engine.routine.faculty_bridge import faculty_bridge_budget, run_faculty_json
+from negentropy.engine.utils.json_extract import loads_lenient
 from negentropy.engine.utils.model_config import resolve_model_config_async
 from negentropy.logging import get_logger
 
@@ -105,17 +106,22 @@ class LLMFactExtractor:
         # 解析当前任务模型（resolver 内含 60s TTL 缓存，避免高频 DB 查询）
         await self._resolve_model()
 
+        from negentropy.config import settings
+
         try:
             all_facts: list[ExtractedFact] = []
             seen_keys: set[str] = set()
 
-            for batch in self._batch_turns(user_turns):
-                batch_facts = await self._extract_batch(batch)
-                for fact in batch_facts:
-                    dedup_key = f"{fact.fact_type}:{fact.key}"
-                    if dedup_key not in seen_keys and len(fact.key) >= _MIN_KEY_LENGTH:
-                        seen_keys.add(dedup_key)
-                        all_facts.append(fact)
+            # 成本护栏：单次 extract（一次对话固结）内 Faculty 调用上限，超限即降级 litellm，
+            # 防多条目循环下 ADK Runner 开销线性膨胀。开关关时 run_faculty_json 不消耗预算。
+            async with faculty_bridge_budget(settings.routine.faculty_bridge_max_calls_per_task):
+                for batch in self._batch_turns(user_turns):
+                    batch_facts = await self._extract_batch(batch)
+                    for fact in batch_facts:
+                        dedup_key = f"{fact.fact_type}:{fact.key}"
+                        if dedup_key not in seen_keys and len(fact.key) >= _MIN_KEY_LENGTH:
+                            seen_keys.add(dedup_key)
+                            all_facts.append(fact)
 
             logger.debug(
                 "llm_facts_extracted",
@@ -169,36 +175,59 @@ class LLMFactExtractor:
         # PatternFactExtractor。演化 proposer 须保留 ``{turns}`` 占位符约定（见 PipelinePromptProposer）。
         prompt = base_prompt.replace("{turns}", turns_text)
 
-        last_error = None
-        for attempt in range(self._max_retries):
-            try:
-                safe_kwargs = {
-                    k: v
-                    for k, v in self._model_kwargs.items()
-                    if k not in ("model", "messages", "temperature", "response_format")
-                }
-                response = await litellm.acompletion(
-                    model=self._model,
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=self._temperature,
-                    response_format={"type": "json_object"},
-                    **safe_kwargs,
-                )
-                content = response.choices[0].message.content
-                return self._parse_response(content)
-            except Exception as exc:
-                last_error = exc
-                logger.warning("llm_fact_extraction_retry", attempt=attempt + 1, error=str(exc))
-                await asyncio.sleep(2**attempt)
+        from negentropy.config import settings
 
-        raise RuntimeError(f"LLM fact extraction failed after {self._max_retries} retries: {last_error}")
+        enabled = settings.routine.faculty_bridge_enabled and settings.routine.faculty_bridge_consolidation_enabled
+
+        def parse(text: str) -> list[ExtractedFact] | None:
+            # 缺 facts 键 / 非 dict → None 触发降级；含空 facts 的合法 dict → 接受。
+            # 注：loads_lenient 解析失败恒返回 {}（见 json_extract），故须靠键存在性而非
+            # isinstance(dict) 辨别脏输出，否则散文脏文本会被误判为「命中」而不降级 litellm。
+            data = loads_lenient(text)
+            if not isinstance(data, dict) or "facts" not in data:
+                return None
+            return self._parse_response(text)
+
+        async def fallback() -> list[ExtractedFact]:
+            last_error: Exception | None = None
+            for attempt in range(self._max_retries):
+                try:
+                    safe_kwargs = {
+                        k: v
+                        for k, v in self._model_kwargs.items()
+                        if k not in ("model", "messages", "temperature", "response_format")
+                    }
+                    response = await litellm.acompletion(
+                        model=self._model,
+                        messages=[{"role": "user", "content": prompt}],
+                        temperature=self._temperature,
+                        response_format={"type": "json_object"},
+                        **safe_kwargs,
+                    )
+                    content = response.choices[0].message.content
+                    return self._parse_response(content)
+                except Exception as exc:
+                    last_error = exc
+                    logger.warning("llm_fact_extraction_retry", attempt=attempt + 1, error=str(exc))
+                    await asyncio.sleep(2**attempt)
+            raise RuntimeError(f"LLM fact extraction failed after {self._max_retries} retries: {last_error}")
+
+        facts, _used = await run_faculty_json(
+            "internalization",
+            prompt,
+            parse=parse,
+            fallback=fallback,
+            enabled=enabled,
+            timeout_seconds=float(settings.routine.faculty_bridge_batch_timeout_seconds),
+            read_only=True,
+        )
+        return facts
 
     def _parse_response(self, content: str) -> list[ExtractedFact]:
         """解析 LLM JSON 响应为 ExtractedFact 列表"""
-        try:
-            data = json.loads(content)
-        except json.JSONDecodeError:
-            logger.warning("llm_fact_response_not_json", content_preview=content[:200])
+        data = loads_lenient(content)
+        if not isinstance(data, dict):
+            logger.warning("llm_fact_response_not_json", content_preview=(content or "")[:200])
             return []
 
         facts_data = data.get("facts", [])

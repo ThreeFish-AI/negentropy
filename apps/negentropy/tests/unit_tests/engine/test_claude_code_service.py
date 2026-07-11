@@ -825,7 +825,7 @@ async def test_auto_answer_question_uses_faculty_bridge_when_enabled(monkeypatch
     try:
         captured: dict = {}
 
-        async def _fake_run_faculty(role, prompt, *, timeout_seconds=90.0):
+        async def _fake_run_faculty(role, prompt, *, timeout_seconds=90.0, read_only=False, **_):
             captured["role"] = role
             return '{"answers": ["120ms 去抖方案"]}'
 
@@ -854,7 +854,7 @@ async def test_auto_answer_question_falls_back_when_faculty_returns_none(monkeyp
     try:
         import negentropy.engine.routine.faculty_bridge as fb
 
-        async def _none_faculty(role, prompt, *, timeout_seconds=90.0):
+        async def _none_faculty(role, prompt, *, timeout_seconds=90.0, read_only=False, **_):
             return None
 
         monkeypatch.setattr(fb, "run_faculty", _none_faculty)

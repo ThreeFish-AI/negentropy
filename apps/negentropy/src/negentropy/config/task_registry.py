@@ -63,7 +63,9 @@ ALL_TASKS: tuple[TaskSlot, ...] = (
         scope="global",
         label="事实提取",
         category="Memory Consolidation",
-        description="从对话中提取用户偏好 / 资料 / 规则等结构化事实。",
+        description="从对话中提取用户偏好 / 资料 / 规则等结构化事实。"
+        "（WS2：启用 FacultyBridge consolidation 组后，命中路径经 InternalizationFaculty 产出，"
+        "模型由 ``agents.model`` 决定；本槽位作降级兜底。）",
     ),
     TaskSlot(
         task_key="consolidation.summarize",
@@ -71,7 +73,9 @@ ALL_TASKS: tuple[TaskSlot, ...] = (
         scope="global",
         label="用户画像摘要",
         category="Memory Consolidation",
-        description="基于事实生成用户画像摘要文本。",
+        description="基于事实生成用户画像摘要文本。"
+        "（WS2：启用 FacultyBridge consolidation 组后，命中路径经 InternalizationFaculty 产出，"
+        "模型由 ``agents.model`` 决定；本槽位作降级兜底。）",
     ),
     TaskSlot(
         task_key="consolidation.reflection",
@@ -79,7 +83,9 @@ ALL_TASKS: tuple[TaskSlot, ...] = (
         scope="global",
         label="记忆反思",
         category="Memory Consolidation",
-        description="从历史记忆生成更高阶的反思与归纳。",
+        description="从历史记忆生成更高阶的反思与归纳。"
+        "（WS2：启用 FacultyBridge consolidation 组后，命中路径经 ContemplationFaculty 产出，"
+        "模型由 ``agents.model`` 决定；本槽位作降级兜底。）",
     ),
     TaskSlot(
         task_key="consolidation.entity_normalization",
@@ -87,7 +93,9 @@ ALL_TASKS: tuple[TaskSlot, ...] = (
         scope="global",
         label="实体规范化",
         category="Memory Consolidation",
-        description="将实体的别名、缩写等归一到统一表达。",
+        description="将实体的别名、缩写等归一到统一表达。"
+        "（WS2：启用 FacultyBridge consolidation 组后，命中路径经 InternalizationFaculty 产出，"
+        "模型由 ``agents.model`` 决定；本槽位作降级兜底。）",
     ),
     # 注：dedup_merge / auto_link / topic_cluster 三个 step 目前为规则/嵌入驱动，
     # 不调用 LLM。未来若引入 LLM 评判，再在此处补充对应 task_key 并接入调用点。
@@ -98,7 +106,9 @@ ALL_TASKS: tuple[TaskSlot, ...] = (
         scope="global",
         label="进化提案",
         category="Evolution",
-        description="GEPA 式根据检索效果指标提出 hybrid 权重有界变异提案。",
+        description="GEPA 式根据检索效果指标提出 hybrid 权重有界变异提案。"
+        "（WS2：启用 FacultyBridge evolution 组后，命中路径经 ContemplationFaculty 产出，"
+        "模型由 ``agents.model`` 决定；本槽位作降级兜底。）",
     ),
     # --- Session (global) ---
     TaskSlot(
@@ -116,7 +126,9 @@ ALL_TASKS: tuple[TaskSlot, ...] = (
         scope="global",
         label="Routine 结果评估",
         category="Routine",
-        description="LLM-as-Judge 按验收标准为 Routine 迭代结果评分并生成反思反馈。",
+        description="LLM-as-Judge 按验收标准为 Routine 迭代结果评分并生成反思反馈。"
+        "（WS2：启用 FacultyBridge review 组后，命中路径经 ContemplationFaculty 产出，"
+        "模型由 ``agents.model`` 决定；本槽位作降级兜底。）",
     ),
     TaskSlot(
         task_key="routine.plan_review",
@@ -124,7 +136,9 @@ ALL_TASKS: tuple[TaskSlot, ...] = (
         scope="global",
         label="Routine Plan 审阅",
         category="Routine",
-        description="NegentropyEngine 作为 Agent-as-Judge 审阅 Claude Code 的实现方案，评估完整性、可行性与风险。",
+        description="NegentropyEngine 作为 Agent-as-Judge 审阅 Claude Code 的实现方案，评估完整性、可行性与风险。"
+        "（WS2：启用 FacultyBridge review 组后，命中路径经 ContemplationFaculty 产出，"
+        "模型由 ``agents.model`` 决定；本槽位作降级兜底。）",
     ),
     # --- Knowledge Graph (corpus) ---
     TaskSlot(

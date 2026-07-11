@@ -12,17 +12,17 @@ from negentropy.interface.agent_presets import (
     KIND_AGENT,
     KIND_ROOT,
     NEGENTROPY_AGENT_NAMES,
+    _expand_tool_names,
     build_negentropy_agent_payloads,
 )
 from negentropy.model_names import canonicalize_model_name
 
 
 def _tool_names(agent) -> list[str]:
-    names: list[str] = []
-    for tool in agent.tools or []:
-        name = getattr(tool, "name", None) or getattr(tool, "__name__", None) or tool.__class__.__name__
-        names.append(name)
-    return names
+    # 复用生产序列化的展开逻辑：WS1 后可摘工具以 NegentropyToolset 承载，直接取类名会得到
+    # 'NegentropyToolset'，与 build_negentropy_agent_payloads 落库的稳定工具名数组不符。委派到
+    # 生产的 _expand_tool_names（toolset → configured_tool_names，保序去重），保证测试口径单源一致。
+    return _expand_tool_names(agent)
 
 
 def test_builtin_payload_count_and_order():

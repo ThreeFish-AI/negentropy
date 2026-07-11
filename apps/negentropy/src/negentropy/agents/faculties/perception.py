@@ -3,15 +3,20 @@ from google.adk.tools import load_memory
 
 from .._citation_protocol import CITATION_PROTOCOL
 from .._dynamic_instruction import make_instruction_provider
+from .._dynamic_tools import NegentropyToolset
 from .._model import create_subagent_model
 from ..tools.common import log_activity
-from ..tools.paper import search_papers
-from ..tools.perception import (
-    search_knowledge_base,
-    search_knowledge_graph_global,
-    search_knowledge_graph_with_papers,
-    search_web,
-)
+
+# WS1：可摘工具集经 ``NegentropyToolset`` 按 ``agents.tools`` 运行时解析（单源来自
+# Interface/Agents 页）；恒常工具（log_activity / load_memory）仍以裸 callable 挂常量位。
+_DEFAULT_TOOL_NAMES = [
+    "search_knowledge_base",
+    "search_knowledge_graph_global",
+    "search_knowledge_graph_with_papers",
+    "search_web",
+    "search_papers",
+]
+_MANDATORY_TOOL_NAMES = ["log_activity", "load_memory"]
 
 _DESCRIPTION = (
     "Handles: information retrieval, web search, knowledge queries, fact-finding, data collection. "
@@ -122,14 +127,15 @@ def create_perception_agent(*, output_key: str | None = None, mode: str | None =
         description=_DESCRIPTION,
         instruction=make_instruction_provider("PerceptionFaculty", _INSTRUCTION),
         tools=[
+            # 恒常工具（常量位）：审计 + 长期记忆回溯（ADK 原生，经 tool_context 取 app_name/user_id）。
             log_activity,
-            search_knowledge_base,
-            search_knowledge_graph_global,
-            search_knowledge_graph_with_papers,
-            search_web,
-            search_papers,
-            # 长期记忆回溯（ADK 原生：经 tool_context 取 app_name/user_id，无越权风险）
             load_memory,
+            # 可摘工具集：运行时按 agents.tools 解析（单源 = Interface/Agents 页）。
+            NegentropyToolset(
+                agent_name="PerceptionFaculty",
+                default_names=_DEFAULT_TOOL_NAMES,
+                mandatory_names=_MANDATORY_TOOL_NAMES,
+            ),
         ],
         output_key=output_key,
         mode=mode,

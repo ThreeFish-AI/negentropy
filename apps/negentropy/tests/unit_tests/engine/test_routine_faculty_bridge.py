@@ -31,14 +31,14 @@ async def test_run_faculty_unknown_role_returns_none():
 @pytest.mark.asyncio
 async def test_run_faculty_build_failure_returns_none(monkeypatch):
     """Faculty 构造异常（如 ADK 不可用）→ None（调用方降级）。"""
-    monkeypatch.setattr(faculty_bridge, "_build_faculty_agent", lambda role: None)
+    monkeypatch.setattr(faculty_bridge, "_build_faculty_agent", lambda role, *, read_only=False: None)
     assert await faculty_bridge.run_faculty("contemplation", "task") is None
 
 
 @pytest.mark.asyncio
 async def test_run_faculty_timeout_returns_none(monkeypatch):
     """_drive 超时 → None。"""
-    monkeypatch.setattr(faculty_bridge, "_build_faculty_agent", lambda role: object())
+    monkeypatch.setattr(faculty_bridge, "_build_faculty_agent", lambda role, *, read_only=False: object())
 
     async def _slow(*args, **kwargs):
         await asyncio.sleep(10)
@@ -50,7 +50,7 @@ async def test_run_faculty_timeout_returns_none(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_run_faculty_drive_exception_returns_none(monkeypatch):
-    monkeypatch.setattr(faculty_bridge, "_build_faculty_agent", lambda role: object())
+    monkeypatch.setattr(faculty_bridge, "_build_faculty_agent", lambda role, *, read_only=False: object())
 
     async def _boom(*args, **kwargs):
         raise RuntimeError("adk down")
@@ -61,7 +61,7 @@ async def test_run_faculty_drive_exception_returns_none(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_run_faculty_success_returns_text(monkeypatch):
-    monkeypatch.setattr(faculty_bridge, "_build_faculty_agent", lambda role: object())
+    monkeypatch.setattr(faculty_bridge, "_build_faculty_agent", lambda role, *, read_only=False: object())
 
     async def _ok(*args, **kwargs):
         return '{"verdict": "approve"}'
@@ -168,3 +168,168 @@ async def test_drive_precreate_failure_does_not_block(monkeypatch):
     result = await faculty_bridge._drive(object(), "task", user_id="u")
     assert result is None
     assert runner_called, "预创建失败后 runner 仍应被调用"
+
+
+# ---------------------------------------------------------------------------
+# WS2: run_faculty_json（Faculty 优先 + litellm 兜底）+ read_only 护栏 + budget
+# ---------------------------------------------------------------------------
+
+
+async def test_run_faculty_json_disabled_goes_fallback(monkeypatch):
+    """enabled=False → 直接 fallback，run_faculty 不被调用。"""
+    called: list = []
+
+    async def _fac(*a, **kw):
+        called.append(1)
+        return "should-not-reach"
+
+    monkeypatch.setattr(faculty_bridge, "run_faculty", _fac)
+
+    async def _fallback():
+        return {"v": "litellm"}
+
+    res, used = await faculty_bridge.run_faculty_json(
+        "contemplation", "p", parse=lambda s: {"v": s}, fallback=_fallback, enabled=False
+    )
+    assert res == {"v": "litellm"}
+    assert used is False
+    assert not called  # faculty 未触发
+
+
+async def test_run_faculty_json_hit_returns_parsed(monkeypatch):
+    """faculty 返回有效文本 + parse 非 None → 用之，fallback 不调用。"""
+    fb_called: list = []
+
+    async def _fac(*a, **kw):
+        return '{"score": 88}'
+
+    monkeypatch.setattr(faculty_bridge, "run_faculty", _fac)
+
+    async def _fallback():
+        fb_called.append(1)
+        return {"score": 0}
+
+    def _parse(text):
+        import json
+
+        d = json.loads(text)
+        return {"score": d["score"]} if isinstance(d, dict) and "score" in d else None
+
+    res, used = await faculty_bridge.run_faculty_json(
+        "contemplation", "p", parse=_parse, fallback=_fallback, enabled=True
+    )
+    assert res == {"score": 88}
+    assert used is True
+    assert not fb_called
+
+
+async def test_run_faculty_json_none_text_falls_back(monkeypatch):
+    """faculty 返回 None → 降级 fallback。"""
+
+    async def _fac(*a, **kw):
+        return None
+
+    monkeypatch.setattr(faculty_bridge, "run_faculty", _fac)
+
+    async def _fallback():
+        return "litellm"
+
+    res, used = await faculty_bridge.run_faculty_json(
+        "contemplation", "p", parse=lambda s: s, fallback=_fallback, enabled=True
+    )
+    assert res == "litellm"
+    assert used is False
+
+
+async def test_run_faculty_json_parse_none_falls_back(monkeypatch):
+    """parse 返回 None（脏文本 / 非预期）→ 降级 fallback（硬闸）。"""
+
+    async def _fac(*a, **kw):
+        return "garbage not json"
+
+    monkeypatch.setattr(faculty_bridge, "run_faculty", _fac)
+
+    async def _fallback():
+        return "litellm-clean"
+
+    res, used = await faculty_bridge.run_faculty_json(
+        "contemplation", "p", parse=lambda s: None, fallback=_fallback, enabled=True
+    )
+    assert res == "litellm-clean"
+    assert used is False
+
+
+async def test_run_faculty_json_budget_exhausted_skips_faculty(monkeypatch):
+    """budget=0 + enabled=True → 跳过 faculty 直接 fallback（成本护栏）。"""
+    fac_called: list = []
+
+    async def _fac(*a, **kw):
+        fac_called.append(1)
+        return '{"score": 1}'
+
+    monkeypatch.setattr(faculty_bridge, "run_faculty", _fac)
+
+    async def _fallback():
+        return "litellm"
+
+    async with faculty_bridge.faculty_bridge_budget(0):
+        res, used = await faculty_bridge.run_faculty_json(
+            "contemplation", "p", parse=lambda s: "x", fallback=_fallback, enabled=True
+        )
+    assert res == "litellm"
+    assert used is False
+    assert not fac_called
+
+
+async def test_read_only_strips_side_effect_tools():
+    """read_only=True：Internalization 剥离副作用工具 + 整体剔除 BaseToolset。
+
+    核心安全测试（破解「副作用工具陷阱」）：桥接层注入 approval=never，若不剥离，
+    save_to_memory / update_knowledge_graph / ingest_* 会在无人在环下静默真写。
+    """
+    from google.adk.tools.base_toolset import BaseToolset
+
+    from negentropy.agents.tools.registry import tool_name
+
+    agent = faculty_bridge._build_faculty_agent("internalization", read_only=True)
+    tool_names = {tool_name(t) for t in agent.tools}
+    # 恒常只读工具保留
+    assert "log_activity" in tool_names
+    assert "load_memory" in tool_names
+    # 副作用工具全部剥离
+    for side_effect in ("save_to_memory", "update_knowledge_graph", "ingest_paper", "ingest_to_corpus"):
+        assert side_effect not in tool_names, f"read_only 未剥离副作用工具 {side_effect!r}"
+    # BaseToolset 整体剔除（副作用工具藏于其内）
+    assert not any(isinstance(t, BaseToolset) for t in agent.tools)
+
+
+async def test_read_only_false_keeps_toolset():
+    """read_only=False（默认）：保留 BaseToolset（完整可摘工具集）。"""
+    from google.adk.tools.base_toolset import BaseToolset
+
+    agent = faculty_bridge._build_faculty_agent("internalization", read_only=False)
+    assert any(isinstance(t, BaseToolset) for t in agent.tools)
+
+
+async def test_faculty_bridge_budget_decrements_on_hit(monkeypatch):
+    """budget 命中后自减；第二次调用仍可命中（budget>0），第三次耗尽则降级。"""
+
+    async def _fac(*a, **kw):
+        return "ok"
+
+    monkeypatch.setattr(faculty_bridge, "run_faculty", _fac)
+
+    async def _fallback():
+        return "litellm"
+
+    async with faculty_bridge.faculty_bridge_budget(2):
+        _, u1 = await faculty_bridge.run_faculty_json(
+            "contemplation", "p", parse=lambda s: s, fallback=_fallback, enabled=True
+        )
+        _, u2 = await faculty_bridge.run_faculty_json(
+            "contemplation", "p", parse=lambda s: s, fallback=_fallback, enabled=True
+        )
+        _, u3 = await faculty_bridge.run_faculty_json(
+            "contemplation", "p", parse=lambda s: s, fallback=_fallback, enabled=True
+        )
+    assert (u1, u2, u3) == (True, True, False)  # 第三次耗尽 → 降级
