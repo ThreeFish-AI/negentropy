@@ -201,6 +201,13 @@ jobs:
             # PYSEC-2025-211..218 同约束），待交集支持 5.3.0+ 后升级
             --ignore-vuln CVE-2026-4372
 
+            # transformers PYSEC-2026-2290（CVE-2026-5241）：LightGlue 模型加载路径 RCE——
+            # 恶意 config.json 覆盖 trust_remote_code=False 触发远程代码执行。与上方 CVE-2026-4372
+            # 同威胁模型：本项目仅加载第一方模型 artifact、不加载不可信 HF 仓库/config，攻击向量
+            # 不可达；且 upstream 无已发布修复版本（Last affected 5.2.0，fix 仅在未发布 commit），
+            # transformers 锁定 <5.0.0 亦受 marker-pdf / surya 兼容交集制约
+            --ignore-vuln PYSEC-2026-2290
+
             # torch 2.10.0 本地内存破坏 / DoS，需攻击者构造恶意 tensor / pt2 文件；
             # 本项目仅加载第一方模型 artifact，无不可信输入路径，upstream 暂无 fix
             --ignore-vuln PYSEC-2025-189
@@ -217,6 +224,14 @@ jobs:
 
             # torch 2.10.0 CVE-2025-3000：本地内存破坏 / DoS，同上（需构造恶意 tensor；本项目仅加载第一方模型 artifact，upstream 暂无 fix）
             --ignore-vuln CVE-2025-3000
+
+            # setuptools PYSEC-2026-3447（CVE-2026-59890，CVSS 6.1）：MANIFEST.in 排除规则在
+            # macOS APFS/HFS+ 上因缺 Unicode（NFD/NFC）归一化被绕过，构建 sdist 时可能误打包应
+            # 排除文件（本地向量、需在受影响 macOS 文件系统上构建 sdist）。本项目 CI 在 Linux
+            # 构建（非 APFS/HFS+）、产物不含敏感文件，攻击向量不可达；修复仅在 setuptools 83.0.0，
+            # 为保持既有 82.0.1 运行时 pin（见 pyproject，undetected-chromedriver 相关）不变、
+            # 不为不可达低危 flaw 变更 build 后端版本，故此处 ignore 而不升级
+            --ignore-vuln PYSEC-2026-3447
           )
           uv run pip-audit "${ignore_args[@]}"
 

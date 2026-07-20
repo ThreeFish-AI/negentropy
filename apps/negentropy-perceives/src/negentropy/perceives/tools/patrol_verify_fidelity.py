@@ -53,7 +53,7 @@ def _norm_nospace(s: str) -> str:
 
 def _http_code(url: str, timeout: int = 5) -> int:
     try:
-        return urllib.request.urlopen(url, timeout=timeout).getcode()
+        return urllib.request.urlopen(url, timeout=timeout).getcode()  # nosec B310 - URL 由内部基于受信 --backend（Routine 配置注入的本地端点）拼接，非用户输入
     except Exception as e:  # noqa: BLE001 - 任意异常都转退出码
         return getattr(e, "code", 0) or 0
 
@@ -70,7 +70,7 @@ def main() -> int:
 
     # 1) 取生产 markdown_content（wiki 忠实渲染它）
     try:
-        with urllib.request.urlopen(
+        with urllib.request.urlopen(  # nosec B310 - backend 由 Routine 配置注入的 http(s) 端点，非用户输入
             f"{args.backend}/knowledge/documents/{args.doc_id}", timeout=10
         ) as r:
             doc = json.load(r)
@@ -87,16 +87,42 @@ def main() -> int:
     # （空格/换行 artifact），exact-token 集合匹配会假阴性。改在去空白语料上做子串匹配——
     # page distinctive token 的字符连续出现在 markdown 中即覆盖（见 _norm_nospace）。
     md_nospace = _norm_nospace(md + " " + " ".join(alts))
+    corpus_id = doc.get("corpus_id")
 
     # 2) 每页文本 distinctive-token 覆盖（CJK 空格鲁棒子串匹配）
     import fitz  # PyMuPDF  # noqa: PLC0415
 
+    def _figure_coverage_ratio(pg) -> float:
+        """页内光栅图+矢量绘图面积占比（>0.5 判为图主导页）。
+
+        整页 figure（如多子图流水线图）的文字几乎全是图内标签/图注，由 image
+        维度覆盖、不应套用文本 token 覆盖率阈值（否则验证器对图主导页恒误报）。
+        """
+        page_area = pg.rect.width * pg.rect.height
+        if page_area <= 0:
+            return 0.0
+        area = 0.0
+        for info in pg.get_image_info():
+            b = info.get("bbox")
+            if b:
+                area += (b[2] - b[0]) * (b[3] - b[1])
+        for dr in pg.get_drawings():
+            r = dr.get("rect")
+            if r:
+                area += (r[2] - r[0]) * (r[3] - r[1])
+        return min(area, page_area) / page_area
+
     low: list[tuple[int, float]] = []
+    figure_pages: list[int] = []
     with fitz.open(args.pdf) as d:
         n_pages = d.page_count
         for i, pg in enumerate(d, start=1):
             toks = {t for t in _norm(pg.get_text("text")).split() if len(t) > 4}
             if not toks:  # 纯图页（由 image 维度覆盖）
+                continue
+            if _figure_coverage_ratio(pg) > 0.5:
+                # 图主导页：文字为图内标签/图注，由 image 维度覆盖
+                figure_pages.append(i)
                 continue
             cov = sum(1 for t in toks if t in md_nospace) / len(toks)
             if cov < args.text_thr:
@@ -111,18 +137,36 @@ def main() -> int:
             for m in re.findall(r'src=["\']([^"\']*fig_p\d+_\d+\.png)["\']', md)
         }
     )
-    bad_imgs = [
-        fn
-        for fn in fns
-        if _http_code(
-            f"{args.backend}/knowledge/wiki/documents/{args.doc_id}/assets/{fn}"
-        )
-        != 200
-    ]
+
+    def _asset_reachable(fn: str) -> bool:
+        # 巡检文档可能未发布到 wiki publication（wiki 资产端点的
+        # WikiPublicationEntry 授权 join 会 404），但资产字节已落
+        # derived/{doc}/assets/（refresh_markdown 持久化）。先探 wiki 公开端点
+        # （已发布文档命中），回退 corpus base 端点（无发布要求、同源 bytea）；
+        # 二者皆非 200 才判不可达。
+        if (
+            _http_code(
+                f"{args.backend}/knowledge/wiki/documents/{args.doc_id}/assets/{fn}"
+            )
+            == 200
+        ):
+            return True
+        if corpus_id:
+            return (
+                _http_code(
+                    f"{args.backend}/knowledge/base/{corpus_id}/documents/{args.doc_id}/assets/{fn}"
+                )
+                == 200
+            )
+        return False
+
+    bad_imgs = [fn for fn in fns if not _asset_reachable(fn)]
     if bad_imgs:
         fails.append(f"asset_not_200: {bad_imgs}")
 
-    print(f"pages={n_pages} text_thr={args.text_thr} low_cov={low}")
+    print(
+        f"pages={n_pages} text_thr={args.text_thr} low_cov={low} figure_pages={figure_pages}"
+    )
     print(f"images={len(fns)} asset_not_200={bad_imgs}")
     print(f"FAILS={fails}")
     return 0 if not fails else 1
