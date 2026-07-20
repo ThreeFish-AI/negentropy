@@ -15,6 +15,16 @@ import { ZoomableImage } from "./ZoomableImage";
 
 const wikiSanitizeSchema: typeof defaultSchema = {
   ...defaultSchema,
+  // 放行 img/media src 的 data: 协议（base64 内联图）。defaultSchema 仅允许
+  // http/https，会把巡检 staging 烘入（及管线偶发内联）的 data:image/<mime>;base64
+  // 整个 src 剥离，致 img 无 src 断图。安全：defaultSchema.tagNames 已剔除
+  // script/iframe/object/embed 等危险标签，protocols 按属性施加，src 仅作用于
+  // img/video/audio/source/track 等媒体上下文，浏览器对 <img src=data:text/html>
+  // 不会当 HTML 执行；javascript: 仍被 defaultSchema 拦截。
+  protocols: {
+    ...(defaultSchema.protocols ?? {}),
+    src: [...((defaultSchema.protocols ?? {}).src ?? []), "data"],
+  },
   tagNames: [
     ...(defaultSchema.tagNames ?? []),
     "figure",
