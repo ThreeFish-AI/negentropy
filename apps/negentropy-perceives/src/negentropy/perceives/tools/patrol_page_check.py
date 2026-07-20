@@ -139,17 +139,23 @@ async def _probe_wiki_dom(
             # 用 contextlib.suppress 代替 try/except: pass，规避 bandit B110（CWE-703）。
             with contextlib.suppress(Exception):
                 await page.wait_for_load_state("networkidle", timeout=8000)
-            # 触发懒加载图片（loading="lazy"）：逐张滚入视口后等其解码完成，避免把
-            # 「视口外未加载的懒加载图」误判为断图（naturalWidth=0 假阳性）。超时不阻断
-            # ——真断图 naturalWidth 恒 0，仍会被下方探针正确识别为 broken。
+            # 触发懒加载图片（loading="lazy"）：强制 eager + 重置 src 触发解码。
+            # 原 scrollIntoView-in-loop 在大长页（300+ 页单 entry）里与 IntersectionObserver
+            # 竞态——逐张 scrollIntoView 互相覆盖视口，中后段图 observer 未及触发即被滚离，
+            # 致 naturalWidth=0 假阳性断图（实测 308 页文档误报 52 张断图，实为有效 PNG）。
+            # 重置 src 强制浏览器拉取解码，与视口无关，稳健；超时仍不阻断——真断图恒 0。
             with contextlib.suppress(Exception):
                 await page.evaluate(
-                    "() => { for (const i of document.querySelectorAll('img')) i.scrollIntoView(); }"
+                    "() => { for (const i of document.querySelectorAll('img')) {"
+                    "  i.loading = 'eager';"
+                    "  const s = i.getAttribute('src');"
+                    "  if (s) { i.removeAttribute('src'); i.setAttribute('src', s); }"
+                    "} }"
                 )
                 await page.wait_for_function(
                     "() => Array.from(document.querySelectorAll('img'))"
                     ".every(i => i.complete && i.naturalWidth > 0)",
-                    timeout=8000,
+                    timeout=20000,
                 )
             dom = await page.evaluate(_DOM_PROBE_JS)
             return dom
