@@ -35,7 +35,7 @@ def _norm(s: str) -> str:
 
 def _http_code(url: str, timeout: int = 5) -> int:
     try:
-        return urllib.request.urlopen(url, timeout=timeout).getcode()
+        return urllib.request.urlopen(url, timeout=timeout).getcode()  # nosec B310 - URL 由内部基于受信 --backend（Routine 配置注入的本地端点）拼接，非用户输入
     except Exception as e:  # noqa: BLE001 - 任意异常都转退出码
         return getattr(e, "code", 0) or 0
 
@@ -52,7 +52,7 @@ def main() -> int:
 
     # 1) 取生产 markdown_content（wiki 忠实渲染它）
     try:
-        with urllib.request.urlopen(
+        with urllib.request.urlopen(  # nosec B310 - backend 由 Routine 配置注入的 http(s) 端点，非用户输入
             f"{args.backend}/knowledge/documents/{args.doc_id}", timeout=10
         ) as r:
             doc = json.load(r)
