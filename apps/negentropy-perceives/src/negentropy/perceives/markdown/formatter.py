@@ -11,6 +11,8 @@ import uuid
 from enum import Enum, auto
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
+from .fence_normalizer import balance_code_fences
+
 if TYPE_CHECKING:
     from .html_preprocessor import ImgDimensionRegistry, VideoRegistry
 
@@ -81,6 +83,110 @@ _NON_CODE_FENCE_CODE_SIGNALS = (
     re.compile(r"""["'][^"'\n]{1,80}["']"""),  # 引号字符串
     re.compile(r"(?<!:)//|/\*|\*/"),  # C 系注释（排除 URL ``https://`` 的 ``//``）
 )
+
+
+# ---------------------------------------------------------------------------
+# 散文误围栏降级（Layer 2）
+# ---------------------------------------------------------------------------
+# docling 代码增强对「API 请求/响应」等区域偶把大段中文正文（含章节标题、图表
+# 题注、目录点导引线）误包进代码围栏，并猜测 go/elixir/visualbasic 等语言标签，
+# 渲染为整段等宽字面文本，且其中的 `#` 标题不再是真标题（Wiki 目录随之截断）。
+# ``_demote_prose_fences`` 按内容判定，把散文块拆栏还原、并抹掉误标语言。
+
+# 强「文档章节标题」信号：多级章节号（1.2.5）或「第 N 章/节」。代码注释
+# ``# 1. 用户提问`` 不含多级点分号，不误命中；真代码块绝不含此类标题行。
+_FENCE_SECTION_HEADING_RE = re.compile(
+    r"^#{1,6}[ \t]+(?:\d+(?:\.\d+)+|第\s*\d+\s*[章节])", re.MULTILINE
+)
+# 印刷版目录点导引线：``全书结构............ 2``（正文/代码均无此形态）。
+_FENCE_TOC_LEADER_RE = re.compile(r"\.{5,}\s*\d+\s*$", re.MULTILINE)
+# 图/表题注起手（中文）：``图 1-1 ...`` / ``表 2：...``。
+_FENCE_FIG_CAPTION_RE = re.compile(
+    r"^[ \t]*[图表]\s*\d+(?:[-.]\d+)*[\s：:、]", re.MULTILINE
+)
+# CJK 字形（含日韩），用于散文占比估计（真代码正文 CJK 占比极低）。
+_FENCE_CJK_CHAR_RE = re.compile(r"[一-鿿㐀-䶿぀-ヿ가-힯]")
+# 强代码信号（逐行判定）。
+_FENCE_STRONG_ASSIGN_RE = re.compile(r"(?:^|\s)[A-Za-z_]\w*\s*=\s*\S")
+_FENCE_JSON_PAIR_RE = re.compile(r'"[^"\n]+"\s*:')
+_FENCE_STRONG_KW_RE = re.compile(
+    r"\b(?:def|function|class|import|return|const|let|var|public|private|"
+    r"void|func|package|SELECT|INSERT|UPDATE|DELETE)\b"
+)
+# 明显不属本语料、docling 高频误标的语言标签：保留围栏但抹掉标签，避免错误
+# 语法高亮。刻意排除 go/python/js/yaml 等常见合法语言，避免误伤真代码标注。
+_IMPLAUSIBLE_CODE_LANGS = frozenset(
+    {"elixir", "visualbasic", "vb", "cobol", "pascal", "erlang", "unknown"}
+)
+
+
+# ---------------------------------------------------------------------------
+# 标题质量归一（Layer 4）
+# ---------------------------------------------------------------------------
+# docling 字号启发式偶把「有序列表项 / 图表题注 / 散文句/lead-in / 页眉 running
+# header」误升为 Markdown 标题，污染正文层级与 Wiki 目录。以下常量供
+# ``_normalize_heading_quality`` 做定点、保守的降级/去重。
+
+_HEADING_LINE_RE = re.compile(r"^(#{1,6}) (.+?)[ \t]*$")
+# 有序列表项签名：单个整数 + ``.``/``、`` + 空格（排除多级章节号 ``1.2``）。
+_LIST_ITEM_HEADING_RE = re.compile(r"^(\d+)[\.、](?!\d)[ \t]+(.+)$")
+# 真实章节号/编号型标题：多级号 / 第 N 章节 / 实验 N / 附录 / 参考文献。
+_SEC_STRONG_HEADING_RE = re.compile(
+    r"^(?:\d+\.\d+|第\s*\d+\s*[章节]|实验\s*[\d\-]|附录|参考文献)"
+)
+# 图/表题注起手（应为题注段落而非标题）。
+_FIG_HEADING_RE = re.compile(r"^[图表]\s*\d")
+
+
+def _heading_is_prose(text: str) -> bool:
+    """判定标题文本是否实为散文句 / lead-in（应降级为段落）。
+
+    高置信信号（避免误伤真标题）：
+      - 含句号「。」（真标题几乎不含完整句号）；
+      - 长度 ≥ 12 且以 lead-in 标点「，：、」收尾（如「初始状态（…）：」）。
+    编号型标题（``_SEC_STRONG_HEADING_RE``）一律不判为散文。
+    """
+    if _SEC_STRONG_HEADING_RE.match(text):
+        return False
+    body = text.rstrip()
+    if "。" in body:
+        return True
+    return len(body) >= 12 and body[-1] in "，：、"
+
+
+def _fence_han_ratio(text: str) -> float:
+    """去空白后 CJK 字形占比（0~1）。空文本返回 0。"""
+    compact = "".join(text.split())
+    if not compact:
+        return 0.0
+    return len(_FENCE_CJK_CHAR_RE.findall(compact)) / len(compact)
+
+
+def _fence_looks_like_prose(body: str) -> bool:
+    """判定围栏体是否实为自然语言正文（应拆栏还原为段落）。
+
+    判定分层（任一命中即判散文）：
+      - D1 结构信号：含真实章节标题 / 目录点导引线 —— 二者绝不出现在代码中；
+      - CJK 主导：去空白 CJK 占比 ≥ 0.55；
+      - 图表题注密集：≥ 2 处图/表题注且 CJK 占比 ≥ 0.30；
+      - D2 中等 CJK 且无强代码信号：0.30 ≤ CJK < 0.55 且无「≥2 赋值 / ≥2 JSON
+        键值 / ≥3 花括号分号 / ≥1 代码关键字」——含中文注释的真 Python
+        （多处赋值/关键字）不命中，零误伤。
+    """
+    if _FENCE_SECTION_HEADING_RE.search(body) or _FENCE_TOC_LEADER_RE.search(body):
+        return True
+    han = _fence_han_ratio(body)
+    if han >= 0.55:
+        return True
+    if len(_FENCE_FIG_CAPTION_RE.findall(body)) >= 2 and han >= 0.30:
+        return True
+    lines = body.split("\n")
+    assigns = sum(1 for ln in lines if _FENCE_STRONG_ASSIGN_RE.search(ln))
+    jsons = sum(1 for ln in lines if _FENCE_JSON_PAIR_RE.search(ln))
+    braces = sum(ln.count("{") + ln.count("}") + ln.count(";") for ln in lines)
+    kw = sum(1 for ln in lines if _FENCE_STRONG_KW_RE.search(ln))
+    strong = assigns >= 2 or jsons >= 2 or braces >= 3 or kw >= 1
+    return 0.30 <= han < 0.55 and not strong
 
 
 # 跨行断字复合词守护：``([a-z]+)- ([a-z]+)`` 合并规则（行 910 附近）默认把所有
@@ -851,6 +957,10 @@ class MarkdownFormatter:
         用于 :mod:`ops.pdf` 各返回路径对最终 markdown 的轻量后处理。
         """
         try:
+            # 全局围栏平衡安全网：合并路径已逐切片平衡，但单次（非 auto_batch）路径
+            # 及任何残余奇偶失衡在此兜底闭合，确保下游 _format_code_blocks 的语言
+            # 标注/降级建立在配对围栏之上，绝不把正文误困入代码块。
+            markdown_content = balance_code_fences(markdown_content)
             markdown_content = self._format_code_blocks(markdown_content)
             markdown_content = self._strip_running_headers(markdown_content)
             markdown_content = self._strip_orphan_lang_labels(markdown_content)
@@ -964,6 +1074,10 @@ class MarkdownFormatter:
             # 标题末尾不加标点；仅剥离末尾中文句号「。」，保留「？」「！」等可能
             # 表语气的标点，英文「.」不处理（章节编号/缩写可能合法结尾）。
             markdown_content = re.sub(r"(?m)^(#{1,6} .*?)。+$", r"\1", markdown_content)
+            # 标题质量归一：有序列表项/图表题注/散文句被误升为标题的降级，及页眉
+            # running-header 重复标题去重。置于末尾（尾随句号剥离之后），避免把仅
+            # 带尾随句号的合法标题误判为散文句。
+            markdown_content = self._normalize_heading_quality(markdown_content)
             return markdown_content
         except Exception as e:
             logger.warning(f"Error in fidelity-safe formatting: {str(e)}")
@@ -1499,6 +1613,95 @@ class MarkdownFormatter:
             flags=re.MULTILINE | re.DOTALL,
         )
 
+    def _normalize_heading_quality(self, markdown_content: str) -> str:
+        """把 docling 误升为标题的非标题内容降级/去重（fence 外逐行处理）。
+
+        四条定点规则（仅作用于代码围栏外的标题行）：
+          1. **有序列表项**：``## 1. 核实用户身份`` → ``1. 核实用户身份``（订机票
+             四步、思考题编号等），还原为 Markdown 有序列表；
+          2. **图/表题注**：``#### 图 2-4 …`` → 题注段落（移出目录）；
+          3. **散文句/lead-in**：见 :func:`_heading_is_prose`，降级为普通段落；
+          4. **页眉 running-header 去重**：同级、文本相同、其间无更浅层标题（同一
+             父节点作用域内）的重复标题判为页眉回声，删除后者。作用域随更浅层
+             标题重置，故各章共有的「思考题」等同名标题（分处不同章）不被误删。
+
+        保守优先：编号型标题（``\\d+.\\d+`` / 第 N 章节 / 实验 N）绝不降级；去重仅在
+        同一父作用域内、逐字相同才触发。
+        """
+        lines = markdown_content.split("\n")
+        out: List[str] = []
+        in_fence = False
+        prev_at_level: Dict[int, str] = {}
+        for ln in lines:
+            if re.match(r"^\s*(```|~~~)", ln):
+                in_fence = not in_fence
+                out.append(ln)
+                continue
+            if in_fence:
+                out.append(ln)
+                continue
+            hm = _HEADING_LINE_RE.match(ln)
+            if not hm:
+                out.append(ln)
+                continue
+            level = len(hm.group(1))
+            text = hm.group(2)
+            # 规则 1：有序列表项还原
+            lm = _LIST_ITEM_HEADING_RE.match(text)
+            if lm:
+                out.append(f"{lm.group(1)}. {lm.group(2)}")
+                continue
+            # 规则 2：图/表题注 → 段落
+            if _FIG_HEADING_RE.match(text):
+                out.append(text)
+                continue
+            # 规则 3：散文句/lead-in → 段落
+            if _heading_is_prose(text):
+                out.append(text)
+                continue
+            # 规则 4：同作用域同级同文标题去重（页眉回声）
+            norm = re.sub(r"\s+", "", text)
+            if prev_at_level.get(level) == norm:
+                continue
+            prev_at_level[level] = norm
+            for deeper in [lv for lv in prev_at_level if lv > level]:
+                del prev_at_level[deeper]
+            out.append(ln)
+        return "\n".join(out)
+
+    def _demote_prose_fences(self, markdown_content: str) -> str:
+        """把实为自然语言正文的代码围栏还原为普通段落，并抹掉误标语言。
+
+        docling 代码增强对「API 示例」等区域偶把大段中文正文（含章节标题、图表
+        题注、目录点导引线）误包进围栏并猜测 go/elixir/visualbasic 等语言，渲染为
+        整段等宽字面文本，且其中的 `#` 标题不再是真标题（Wiki 目录随之截断）。
+
+        逐围栏块判定（见 :func:`_fence_looks_like_prose`）：
+          - 判为散文 → 拆栏还原为普通段落；
+          - 判为代码但语言标签明显不属本语料（``_IMPLAUSIBLE_CODE_LANGS``）→ 保留
+            围栏、抹掉误标语言（降为裸围栏），避免错误语法高亮。
+
+        对含中文注释的真 Python（多处赋值/关键字）零误伤。假定围栏已由
+        :func:`fence_normalizer.balance_code_fences` 平衡（闭合皆为裸 ``` ）。
+        """
+
+        def _handle(m: re.Match) -> str:
+            info = (m.group(1) or "").strip()
+            body = m.group(2)
+            if _fence_looks_like_prose(body):
+                return body.strip("\n")
+            lang = info.split()[0].lower() if info else ""
+            if lang in _IMPLAUSIBLE_CODE_LANGS:
+                return "```\n" + body.rstrip("\n") + "\n```"
+            return m.group(0)
+
+        return re.sub(
+            r"^```([^\n]*)\n(.*?)^```[ \t]*$",
+            _handle,
+            markdown_content,
+            flags=re.MULTILINE | re.DOTALL,
+        )
+
     def _format_code_blocks(self, markdown_content: str) -> str:
         """Enhance code block formatting with language detection.
 
@@ -1512,6 +1715,10 @@ class MarkdownFormatter:
         try:
             # 先把实为自然语言横幅（含 ©/®/™ 且无代码特征）的伪代码块降级为普通段落
             markdown_content = self._demote_non_code_fences(markdown_content)
+
+            # 再把 docling 误包进围栏的中文正文（含章节标题/图表题注/目录点导引线）
+            # 拆栏还原为段落，并抹掉 elixir/visualbasic 等误标语言。
+            markdown_content = self._demote_prose_fences(markdown_content)
 
             # 修复连续的代码围栏标记：```LANG\n``` filename → ```\n filename
             markdown_content = re.sub(

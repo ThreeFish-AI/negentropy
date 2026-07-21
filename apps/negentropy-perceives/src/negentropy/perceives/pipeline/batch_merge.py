@@ -31,6 +31,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List, Optional, Sequence, Tuple
 
+from ..markdown.fence_normalizer import balance_code_fences
 from .models import ImageAsset, PipelineResult
 
 logger = logging.getLogger(__name__)
@@ -447,6 +448,11 @@ def merge_slice_markdowns(
     for i in range(len(rescued) - 1):
         a, b = boundary_figure_caption_rescue(rescued[i], rescued[i + 1])
         rescued[i], rescued[i + 1] = a, b
+
+    # 逐切片平衡代码围栏：任一切片结尾遗留的悬空开围栏（docling 畸形序列所致）
+    # 若不在此闭合，拼接后会相位错位其后所有切片的围栏配对，把正文/标题误困入
+    # 代码块。在此保证每个切片自身围栏配对、以闭合收尾，切片永不污染邻片。
+    rescued = [balance_code_fences(md) for md in rescued]
 
     parts: List[str] = []
     for i, md in enumerate(rescued):
