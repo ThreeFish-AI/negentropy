@@ -162,6 +162,28 @@ def _fence_han_ratio(text: str) -> float:
     return len(_FENCE_CJK_CHAR_RE.findall(compact)) / len(compact)
 
 
+def _is_code_leadin_line(line: str) -> bool:
+    """判定行是否为「代码前的中文导语」（应移出代码块）。
+
+    典型：``…四步流程在 API 层面的简化表示如下：`` / ``以下是…消息列表:``。docling
+    代码增强偶把这类紧邻代码的导语句纳入代码围栏，渲染为等宽字面。
+
+    严格判定（避免误伤代码注释/带参标签，如 ``# 例 2: …`` / ``1 次调用后(…):``）：
+      - 以 ``：`` / ``:`` / ``。`` 收尾；
+      - 不以注释/列表/引用符起手（``#`` ``*`` ``-`` ``>`` ``|`` ``//`` ``/*``）；
+      - 不含代码标点 ``{}=;<>"()``；
+      - CJK 字形 ≥ 3 且去空白 CJK 占比 ≥ 0.30。
+    """
+    s = line.strip()
+    if not s or not s.endswith(("：", ":", "。")):
+        return False
+    if s[0] in "#*->|" or s.startswith(("//", "/*")):
+        return False
+    if any(c in s for c in '{}=;<>"()'):
+        return False
+    return len(_FENCE_CJK_CHAR_RE.findall(s)) >= 3 and _fence_han_ratio(s) >= 0.30
+
+
 def _fence_looks_like_prose(body: str) -> bool:
     """判定围栏体是否实为自然语言正文（应拆栏还原为段落）。
 
@@ -1078,6 +1100,9 @@ class MarkdownFormatter:
             # running-header 重复标题去重。置于末尾（尾随句号剥离之后），避免把仅
             # 带尾随句号的合法标题误判为散文句。
             markdown_content = self._normalize_heading_quality(markdown_content)
+            # 末尾剥离代码块开头误纳入的中文导语行（echo-aware），再补围栏平衡兜底。
+            markdown_content = self._extract_code_block_leadins(markdown_content)
+            markdown_content = balance_code_fences(markdown_content)
             return markdown_content
         except Exception as e:
             logger.warning(f"Error in fidelity-safe formatting: {str(e)}")
@@ -1701,6 +1726,61 @@ class MarkdownFormatter:
             markdown_content,
             flags=re.MULTILINE | re.DOTALL,
         )
+
+    def _extract_code_block_leadins(self, markdown_content: str) -> str:
+        """把代码块开头被误纳入的中文导语行移出（echo-aware，不制造重复）。
+
+        docling 偶把紧邻代码的中文导语句（``…如下：``）连同代码一并纳入围栏。本 pass
+        对每个围栏块剥离**开头连续**的导语行（见 :func:`_is_code_leadin_line`）：
+          - 若该导语在块前邻近正文中已有**逐字相同的回声**（docling text/code 双出），
+            则**丢弃**块内副本（保留块前正文即可），避免重复行；
+          - 否则把导语**移出**到围栏前作为普通段落。
+        仅当剥离后仍有代码本体时才处理（纯导语块由 _demote_prose_fences 兜底）。
+        置于 ``format_fidelity_safe`` 末尾运行，避开代码围栏正则对新析出段落边界的
+        干扰；调用方随后补一次围栏平衡兜底。
+        """
+        result: List[str] = []
+        last = 0
+        for m in re.finditer(
+            r"^```([^\n]*)\n(.*?)^```[ \t]*$",
+            markdown_content,
+            flags=re.MULTILINE | re.DOTALL,
+        ):
+            result.append(markdown_content[last : m.start()])
+            last = m.end()
+            info = m.group(1) or ""
+            body = m.group(2)
+            lines = body.split("\n")
+            lead: List[str] = []
+            idx = 0
+            while idx < len(lines):
+                s = lines[idx].strip()
+                if not s:
+                    idx += 1
+                    if lead:
+                        break
+                    continue
+                if _is_code_leadin_line(s):
+                    lead.append(s)
+                    idx += 1
+                else:
+                    break
+            rest = "\n".join(lines[idx:]).strip("\n") if lead else body
+            if not lead or not rest:
+                result.append(m.group(0))
+                continue
+            # echo 检测：块前邻近正文（含被 docling 双出的乱码回声段）内是否已有逐字
+            # 相同导语行；导语句高度可辨识，宽窗口不致误判。
+            preceding = "".join(result)[-4000:]
+            pre_norm = {re.sub(r"\s+", "", x) for x in preceding.split("\n")}
+            kept = [ln for ln in lead if re.sub(r"\s+", "", ln) not in pre_norm]
+            block = f"```{info}\n{rest}\n```"
+            if kept:
+                result.append("\n\n".join(kept) + "\n\n" + block)
+            else:
+                result.append(block)
+        result.append(markdown_content[last:])
+        return "".join(result)
 
     def _format_code_blocks(self, markdown_content: str) -> str:
         """Enhance code block formatting with language detection.

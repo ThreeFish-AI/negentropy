@@ -210,6 +210,38 @@ class TestHeadingQuality:
         assert out.count("### 思考题") == 2
 
 
+class TestCodeBlockLeadinExtraction:
+    def setup_method(self) -> None:
+        self.fmt = MarkdownFormatter()
+
+    def test_leadin_moved_out_when_no_echo(self) -> None:
+        md = "```yaml\n以一个查天气的场景为例，四步流程如下：\n\ntools: [1, 2]\n```"
+        out = self.fmt._extract_code_block_leadins(md)
+        assert out.startswith("以一个查天气的场景为例，四步流程如下：")
+        assert "```yaml\ntools: [1, 2]\n```" in out
+        assert count_fence_markers(out) % 2 == 0
+
+    def test_leadin_dropped_when_prose_echo_precedes(self) -> None:
+        md = (
+            "让我们通过伪代码来理解 Agent 轨迹的结构：\n\n"
+            "一些中间的乱码回声内容。\n\n"
+            "```python\n让我们通过伪代码来理解 Agent 轨迹的结构：\ntrace = build()\n```"
+        )
+        out = self.fmt._extract_code_block_leadins(md)
+        # 回声已在块前 → 块内导语被丢弃，不重复
+        assert out.count("让我们通过伪代码来理解 Agent 轨迹的结构：") == 1
+        assert "trace = build()" in out
+
+    def test_python_comment_not_extracted(self) -> None:
+        md = '```python\n# 例 2: 公司知识库，流程是什么：\nquery = "x"\nrun(query)\n```'
+        out = self.fmt._extract_code_block_leadins(md)
+        assert out == md  # 注释行保留在代码块内
+
+    def test_no_leadin_untouched(self) -> None:
+        md = '```json\n{"a": 1, "b": 2}\n```'
+        assert self.fmt._extract_code_block_leadins(md) == md
+
+
 class TestFidelitySafeFenceIntegrity:
     def test_dangling_fence_and_prose_block_both_repaired(self) -> None:
         fmt = MarkdownFormatter()
