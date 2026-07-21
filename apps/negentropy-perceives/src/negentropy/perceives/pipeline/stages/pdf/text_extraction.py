@@ -405,10 +405,146 @@ class FitzTextExtractor(PDFToolBase):
                     )
                     in_page_order += 1
 
+                # 段内自然换行误判段落边界修正：PyMuPDF 的 dict-mode 块级分段是几何
+                # 驱动（非语义驱动），对本类排版会把同一段落顶到页面右边缘自然换行
+                # 的相邻行拆成多个独立 block，每个 block 各自成为一个 TextBlock，
+                # 后续 assembly 阶段以 ``"\n\n".join`` 拼接 markdown 时，这些本应
+                # 连续的行就被误判为独立段落（新起一段）。此处按「句末未终结 + 行
+                # 间距为单行高量级 + 非列表/标题/图表 caption 起手」把这些碎片重新
+                # 合并回同一段落，在标题检测（已用各块自身字号完成，天然排除标题）
+                # 之后运行，绝不误伤真实段落边界。
+                page_blocks = FitzTextExtractor._merge_wrapped_paragraphs(
+                    page_blocks, body_font_size
+                )
+
                 out.append((page_idx, page_blocks))
         finally:
             doc.close()
         return out
+
+    # 句末终结符：CJK（。！？）与 ASCII（.!?），允许其后跟随收尾引号/括号。
+    # 真实段落必以句子终结符收尾——正文永不在句子中途结束一段；块级文本若不
+    # 以此收尾，几乎必是被几何分段切断的未完成句子。
+    _SENTENCE_END_RE = re.compile(r'[。！？.!?]["\'\)\]）」』]*\s*$')
+
+    # 结构起手守卫：即使几何/句末信号判定可合并，若下一块以列表项/章节/实验框/
+    # 图表 caption 起手，仍判定为独立结构元素起点，不并入前一段（防御性双保险，
+    # 正常应已被各自的标题/图注处理路径分流，此处兜底避免误并列表项边界）。
+    _STRUCTURAL_START_RE = re.compile(
+        r"^(?:"
+        r"\d+[\.、]\s|"
+        r"[-*•●○▪▫◦]\s|"
+        r"第\s*\d+\s*[章节]|"
+        r"(?:实验|图|表|Figure|Fig\.?|Table|Tab\.?)\s*\d"
+        r")"
+    )
+
+    # 印刷版目录点导引线：``标题 . . . . . 12`` / ``标题......12``。目录条目本身
+    # 也常因不以句末标点收尾而误判为"未完成句子"，但每条目均为独立结构行，绝
+    # 不应跨条目合并（否则把整页目录并成单个数千字符大段）。命中任一侧（prev
+    # 或 cur）即不合并——目录页中几乎每条目都含点导引线，足以斩断链式合并。
+    _TOC_LEADER_RE = re.compile(r"(?:\.\s?){3,}\d+\s*$")
+
+    # ASCII 字母/数字：用于判定合并拼接处是否需要补回空格（本书排版惯例：中西文
+    # 之间加空格，纯 CJK 边界不加空格——与语料实测统计一致）。
+    _ASCII_WORD_CHAR_RE = re.compile(r"[A-Za-z0-9]")
+
+    @staticmethod
+    def _join_wrapped_text(prev_text: str, cur_text: str) -> str:
+        """拼接被误拆的段内换行文本。
+
+        自然换行处本身不代表空格或段落边界——直接拼接；仅当拼接处任一侧为
+        ASCII 字母/数字（英文单词边界）时补回一个空格，与本书「中西文之间
+        加空格」的实测排版惯例一致；纯 CJK 边界（含中途被拆断的复合词，如
+        ``工`` + ``具`` -> ``工具``）不加空格。
+        """
+        if not prev_text:
+            return cur_text
+        if not cur_text:
+            return prev_text
+        need_space = bool(
+            FitzTextExtractor._ASCII_WORD_CHAR_RE.match(prev_text[-1])
+            or FitzTextExtractor._ASCII_WORD_CHAR_RE.match(cur_text[0])
+        )
+        return f"{prev_text}{' ' if need_space else ''}{cur_text}"
+
+    @staticmethod
+    def _should_merge_wrapped_paragraph(
+        prev: TextBlock, cur: TextBlock, body_font_size: float
+    ) -> bool:
+        """判定 ``cur`` 是否为 ``prev`` 段内自然换行的延续（应合并为同一段落）。
+
+        四重信号，缺一不合并：
+          1. **语法信号（主）**：``prev.text`` 不以句末终结符收尾——正常段落
+             恒在句子完结处结束，未终结意味着句子在几何分段处被截断；
+          2. **几何信号（安全网）**：行间距在单行高量级（``<= 1.5x
+             body_font_size``，容许字体/基线抖动的小负值下界），排除表格行/
+             代码块/图注等跨度显著更大（实测 >= 2x body_font_size）的无关内容；
+          3. **结构守卫**：``cur.text`` 不以列表项/章节号/实验框/图表 caption
+             起手，防止误并独立结构元素的边界；
+          4. **目录守卫**：``prev``/``cur`` 均不含目录点导引线——印刷版目录每
+             条目本身就不以句末标点收尾，若不排除会把整页目录条目链式并成单个
+             数千字符大段。
+
+        仅比较同页 ``block_type == "paragraph"`` 的相邻块（标题已在各自块级
+        字号检测中分流，不会进入此判定）。
+        """
+        if prev.block_type != "paragraph" or cur.block_type != "paragraph":
+            return False
+        if not prev.text or not cur.text:
+            return False
+        if FitzTextExtractor._SENTENCE_END_RE.search(prev.text):
+            return False
+        if FitzTextExtractor._STRUCTURAL_START_RE.match(cur.text):
+            return False
+        if FitzTextExtractor._TOC_LEADER_RE.search(
+            prev.text
+        ) or FitzTextExtractor._TOC_LEADER_RE.search(cur.text):
+            return False
+        if not prev.bbox or not cur.bbox:
+            return False
+        gap = cur.bbox[1] - prev.bbox[3]
+        return -0.5 * body_font_size <= gap <= 1.5 * body_font_size
+
+    @staticmethod
+    def _merge_wrapped_paragraphs(
+        page_blocks: List[TextBlock], body_font_size: float
+    ) -> List[TextBlock]:
+        """合并同页内被误拆的段内自然换行 TextBlock（见 ``_should_merge_wrapped_paragraph``）。
+
+        ``page_blocks`` 须已按阅读顺序排列。返回新列表，合并后的块以首块的
+        page_number/heading_level/reading_order 为准，bbox 取并集。
+        """
+        if len(page_blocks) < 2:
+            return page_blocks
+        merged: List[TextBlock] = [page_blocks[0]]
+        for cur in page_blocks[1:]:
+            prev = merged[-1]
+            if (
+                FitzTextExtractor._should_merge_wrapped_paragraph(
+                    prev, cur, body_font_size
+                )
+                and prev.bbox is not None
+                and cur.bbox is not None
+            ):
+                union_bbox = (
+                    min(prev.bbox[0], cur.bbox[0]),
+                    min(prev.bbox[1], cur.bbox[1]),
+                    max(prev.bbox[2], cur.bbox[2]),
+                    max(prev.bbox[3], cur.bbox[3]),
+                )
+                merged[-1] = TextBlock(
+                    text=FitzTextExtractor._join_wrapped_text(prev.text, cur.text),
+                    page_number=prev.page_number,
+                    bbox=union_bbox,
+                    block_type="paragraph",
+                    heading_level=None,
+                    reading_order=prev.reading_order,
+                    confidence=min(prev.confidence, cur.confidence),
+                )
+            else:
+                merged.append(cur)
+        return merged
 
     @staticmethod
     def _is_two_column_body(
