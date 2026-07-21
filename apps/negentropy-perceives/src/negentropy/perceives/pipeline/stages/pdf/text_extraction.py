@@ -520,10 +520,13 @@ class FitzTextExtractor(PDFToolBase):
         merged: List[TextBlock] = [page_blocks[0]]
         for cur in page_blocks[1:]:
             prev = merged[-1]
-            if FitzTextExtractor._should_merge_wrapped_paragraph(
-                prev, cur, body_font_size
+            if (
+                FitzTextExtractor._should_merge_wrapped_paragraph(
+                    prev, cur, body_font_size
+                )
+                and prev.bbox is not None
+                and cur.bbox is not None
             ):
-                assert prev.bbox is not None and cur.bbox is not None
                 union_bbox = (
                     min(prev.bbox[0], cur.bbox[0]),
                     min(prev.bbox[1], cur.bbox[1]),
