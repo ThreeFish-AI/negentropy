@@ -27,7 +27,7 @@ import {
   effectiveDocumentName,
   useInlineDocumentRename,
 } from "@/features/knowledge";
-import { Check, Pencil, RotateCcw, X } from "lucide-react";
+import { Check, Pencil, RotateCcw, Search, X } from "lucide-react";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
 import { Pagination } from "@/components/ui/Pagination";
@@ -50,6 +50,12 @@ import { PatrolStatusBadge, patrolStatusLabel } from "./_components/PatrolStatus
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 /** 文档列表每页条数（偏移分页粒度 + 无限滚动加载粒度 + 页码跳页粒度）。 */
 const DOCUMENTS_PAGE_SIZE = 10;
+
+/** 文档列表筛选状态（序列化进 useInfiniteList.filters，变化即 reset 回第 1 页）。 */
+interface DocumentFilters {
+  /** 按 文件名/显示名/作者姓名 模糊搜索的防抖提交值。 */
+  search: string;
+}
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -132,6 +138,9 @@ export default function DocumentsPage() {
   const [isTranslating, setIsTranslating] = useState(false);
   /** 乐观覆盖：Translate accepted 的文档即时置 processing，待 refresh/心跳带回真实状态后超时清除。 */
   const [optimisticProcessing, setOptimisticProcessing] = useState<Set<string>>(new Set());
+  // 文档搜索：searchInput 即时受控输入，search 为 300ms 防抖后的提交值（对齐 EntityListPanel）。
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
   const router = useRouter();
 
   // 无限滚动 + 翻页：滚动容器 ref（哨兵 / 滚动联动 observer 的 root）、程序化滚动闸门、待跳页号。
@@ -139,19 +148,37 @@ export default function DocumentsPage() {
   const programmaticScrollRef = useRef(false);
   const pendingPageRef = useRef<number | null>(null);
 
-  // 偏移分页适配器：薄包 fetchAllDocuments；响应 count 归一为 total。
-  const fetcher = useMemo<OffsetFetcher<KnowledgeDocument>>(
+  // 搜索防抖：输入停顿 300ms 后提交 search，避免每次按键都触发取数（对齐 EntityListPanel）。
+  useEffect(() => {
+    const timer = setTimeout(() => setSearch(searchInput), 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  // 筛选键：序列化后进 useInfiniteList.filters，search 变化即 reset 回第 1 页并重取。
+  const filters = useMemo<DocumentFilters>(() => ({ search }), [search]);
+
+  // 偏移分页适配器：薄包 fetchAllDocuments；响应 count 归一为 total；search 经 filters 透传至后端。
+  const fetcher = useMemo<OffsetFetcher<KnowledgeDocument, DocumentFilters>>(
     () => ({
       kind: "offset",
-      fetchRange: async ({ offset, limit }) => {
-        const data = await fetchAllDocuments({ appName: APP_NAME, limit, offset });
+      fetchRange: async ({ offset, limit, filters: f }) => {
+        const data = await fetchAllDocuments({
+          appName: APP_NAME,
+          limit,
+          offset,
+          search: f?.search || undefined,
+        });
         return { items: data.items, total: data.count };
       },
     }),
     [],
   );
 
-  const list = useInfiniteList<KnowledgeDocument>({ fetcher, pageSize: DOCUMENTS_PAGE_SIZE });
+  const list = useInfiniteList<KnowledgeDocument, DocumentFilters>({
+    fetcher,
+    pageSize: DOCUMENTS_PAGE_SIZE,
+    filters,
+  });
   // 乐观覆盖：对 Translate accepted 的文档叠加 translation.status=processing，使其即时显示「Translating…」。
   const documents = useMemo(() => {
     if (optimisticProcessing.size === 0) return list.items;
@@ -466,14 +493,29 @@ export default function DocumentsPage() {
       <div className="flex min-h-0 flex-1 px-6 py-6">
         {/* 文档列表 */}
         <main className="flex min-h-0 flex-1 flex-col">
-          {/* 工具栏：左侧勾选提示，右侧 Translate / Import 批量操作 */}
-          <div className="mb-3 flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">
+          {/* 工具栏：左侧勾选提示，中间文档搜索框，右侧 Translate / Import 批量操作 */}
+          <div className="mb-3 flex items-center justify-between gap-4">
+            <span className="shrink-0 text-xs text-muted-foreground">
               {selectedIds.size > 0
                 ? `${selectedIds.size} document${selectedIds.size !== 1 ? "s" : ""} selected`
                 : "Select documents to translate (EN → 中文)"}
             </span>
-            <div className="flex items-center gap-2">
+            {/* 文档搜索：按 文件名/显示名/作者姓名 模糊检索（300ms 防抖，服务端过滤）。 */}
+            <div className="relative min-w-0 max-w-md flex-1">
+              <Search
+                className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
+                aria-hidden="true"
+              />
+              <input
+                type="search"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="Search by name or author..."
+                aria-label="Search documents by name or author"
+                className="w-full rounded-lg border border-border bg-input py-1.5 pl-8 pr-3 text-xs text-foreground placeholder:text-input-placeholder focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
               <button
                 onClick={() => handleTranslate(Array.from(selectedIds))}
                 disabled={selectedIds.size === 0 || isTranslating}
@@ -555,7 +597,7 @@ export default function DocumentsPage() {
                   ) : documents.length === 0 ? (
                     <tr>
                       <td colSpan={11} className="p-6 text-center text-sm text-muted-foreground">
-                        No documents uploaded yet
+                        {search ? "No documents match your search" : "No documents uploaded yet"}
                       </td>
                     </tr>
                   ) : (

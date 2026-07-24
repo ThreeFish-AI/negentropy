@@ -1561,12 +1561,15 @@ export async function fetchAllDocuments(
     appName?: string;
     limit?: number;
     offset?: number;
+    /** 按 文件名/显示名/作者姓名 模糊搜索（大小写不敏感）。 */
+    search?: string;
   },
 ): Promise<DocumentListResponse> {
   const query = new URLSearchParams();
   if (params?.appName) query.set("app_name", params.appName);
   if (params?.limit) query.set("limit", String(params.limit));
   if (params?.offset) query.set("offset", String(params.offset));
+  if (params?.search) query.set("search", params.search);
 
   const res = await fetch(
     `/api/knowledge/documents?${query.toString()}`,
