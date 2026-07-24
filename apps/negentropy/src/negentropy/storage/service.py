@@ -14,10 +14,12 @@ from uuid import UUID
 from sqlalchemy import func, or_, select, text
 from sqlalchemy.exc import IntegrityError
 
+from negentropy.config import settings
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
 from negentropy.models.base import NEGENTROPY_SCHEMA
 from negentropy.models.perception import KnowledgeDocument
+from negentropy.models.state import UserState
 from negentropy.serialization import strip_nul_chars
 
 from .exceptions import StorageError
@@ -355,6 +357,7 @@ class DocumentStorageService:
         offset: int = 0,
         order_by: str = "created_at",
         markdown_status: str | None = None,
+        search: str | None = None,
     ) -> tuple[list[KnowledgeDocument], int]:
         """List documents with optional filtering.
 
@@ -369,6 +372,12 @@ class DocumentStorageService:
                 pagination when timestamps tie.
             markdown_status: Optional ``markdown_extract_status`` 过滤（如
                 ``"completed"``）。None 表示不过滤，保留既有调用方语义。
+            search: 可选模糊搜索词，对 文件名(``original_filename``)/
+                显示名(``display_name``)/作者姓名 做大小写不敏感 ILIKE。
+                作者维度：``created_by`` 存的是用户 ID 而非姓名，故经
+                ``user_states.state.profile.name`` 参数化子查询反解为匹配的
+                user_id 集合再过滤（对齐 ``_resolve_user_display_names``）。
+                None/空串表示不过滤。
 
         Returns:
             Tuple of (list of documents, total count)
@@ -382,6 +391,20 @@ class DocumentStorageService:
                 conditions.append(KnowledgeDocument.app_name == app_name)
             if markdown_status:
                 conditions.append(KnowledgeDocument.markdown_extract_status == markdown_status)
+            if search and search.strip():
+                like = f"%{search.strip()}%"
+                # 名称：文件名 / 用户显示名直接 ILIKE。
+                name_cond = KnowledgeDocument.original_filename.ilike(like) | (
+                    KnowledgeDocument.display_name.ilike(like)
+                )
+                # 作者：created_by 存的是 user_id，须经 user_states.state.profile.name
+                # 反解为匹配的 user_id 集合（子查询参数化，注入安全；app_name 作用域
+                # 对齐 _resolve_user_display_names → settings.app_name 兜底）。
+                author_subq = select(UserState.user_id).where(
+                    UserState.app_name == (app_name or settings.app_name),
+                    UserState.state["profile"]["name"].astext.ilike(like),
+                )
+                conditions.append(name_cond | KnowledgeDocument.created_by.in_(author_subq))
 
             # Count query
             count_stmt = select(func.count()).select_from(KnowledgeDocument).where(*conditions)

@@ -80,6 +80,7 @@ async def list_documents(
     app_name: str | None = Query(default=None),
     limit: int = Query(default=50, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
+    search: str | None = Query(default=None, description="按 文件名/显示名/作者姓名 模糊搜索（大小写不敏感）"),
 ) -> DocumentListResponse:
     """列出语料库中的已上传文档
 
@@ -88,6 +89,7 @@ async def list_documents(
         app_name: 应用名称
         limit: 分页大小
         offset: 偏移量
+        search: 可选模糊搜索词（文件名/显示名/作者姓名）
 
     Returns:
         DocumentListResponse: 文档列表
@@ -103,6 +105,7 @@ async def list_documents(
         limit=limit,
         offset=offset,
         order_by="updated_at",
+        search=search,
     )
 
     unique_user_ids = list({doc.created_by for doc in docs if doc.created_by})
@@ -125,6 +128,7 @@ async def list_all_documents(
     app_name: str | None = Query(default=None),
     limit: int = Query(default=50, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
+    search: str | None = Query(default=None, description="按 文件名/显示名/作者姓名 模糊搜索（大小写不敏感）"),
 ) -> DocumentListResponse:
     """列出所有已上传文档（跨语料库）
 
@@ -132,6 +136,7 @@ async def list_all_documents(
         app_name: 应用名称
         limit: 分页大小
         offset: 偏移量
+        search: 可选模糊搜索词（文件名/显示名/作者姓名）
 
     Returns:
         DocumentListResponse: 文档列表
@@ -147,6 +152,7 @@ async def list_all_documents(
         limit=limit,
         offset=offset,
         order_by="updated_at",
+        search=search,
     )
 
     unique_user_ids = list({doc.created_by for doc in docs if doc.created_by})

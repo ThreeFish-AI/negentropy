@@ -651,3 +651,26 @@ async def test_list_corpus_documents_orders_by_updated_at(monkeypatch):
     assert fake_storage.list_calls[0]["order_by"] == "updated_at"
     assert fake_storage.list_calls[0]["corpus_id"] == corpus_id
     assert result.items[0].updated_at is not None
+
+
+@pytest.mark.asyncio
+async def test_list_all_documents_threads_search_to_storage(monkeypatch):
+    """全局文档端点：search 查询参数透传至 storage.list_documents(search=...)。"""
+    fake_storage = _FakeListStorage([_make_list_doc()])
+    _patch_list_helpers(monkeypatch, fake_storage)
+
+    await documents.list_all_documents(app_name="negentropy", limit=10, offset=0, search="attention")
+
+    assert fake_storage.list_calls[0]["search"] == "attention"
+
+
+@pytest.mark.asyncio
+async def test_list_corpus_documents_threads_search_to_storage(monkeypatch):
+    """语料文档端点同样透传 search 至 storage.list_documents(search=...)。"""
+    corpus_id = uuid4()
+    fake_storage = _FakeListStorage([_make_list_doc(corpus_id=corpus_id)])
+    _patch_list_helpers(monkeypatch, fake_storage)
+
+    await documents.list_documents(corpus_id=corpus_id, app_name="negentropy", limit=10, offset=0, search="paper")
+
+    assert fake_storage.list_calls[0]["search"] == "paper"
