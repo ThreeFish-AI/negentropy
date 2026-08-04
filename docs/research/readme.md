@@ -11,6 +11,8 @@
 | [智能认知增强](./cognitive-context/000-cognitive-enhancement.md) | Agentic 认知增强总览与理论基线 |
 | [Context Engineering 通俗全解](./cognitive-context/010-context-engineering.md) | 上下文工程主流框架与论文精解 |
 
+> 上下文治理的工程落地方案见 [Context Layer · 上下文治理层技术方案](../concepts/design/context-layer.md)（对标 Snowflake Horizon Context，统领 Memory / KB / KG / Tools / Skills 的上下文契约）。
+
 ## 二、Agent 框架与引擎 · `agent-runtime/`
 
 | 文档 | 主旨 |
