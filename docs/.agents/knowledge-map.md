@@ -29,6 +29,7 @@
 - [Docker Compose 运维指引](../concepts/operations/docker-operations.md) — compose 栈 5 服务的部署、日常操作、开发工作流与故障排查：首次部署、首次发布、版本管理、健康检查、日志查看、卷备份、常见故障排除
 - [浏览器操作 MCP 集成方案](../concepts/design/browser-automation-mcp-integration.md) — Playwright MCP 全系统默认配备：单一注入点（builtin_tools.mcp_config）provision 至 Routine / Scheduler / 6 Agents，用于浏览器实机回归验证
 - [自进化 Agents Team 方案](../concepts/design/self-evolving-agents.md) — 四层自进化架构（固定框架 Meta-Layer / 动态 Agent 定义 / 外部能力工具 / 记忆与知识系统）：遥测→评测→提案→验证→门控发布全闭环，含 agent_versions 版本化、GEPA/ACE 进化算子、记忆/知识配置进化回路（基质/客体分轨 ADR-4）、Golden Set 双轨评测、金丝雀发布、护栏决策矩阵与四阶段演进路线（调研基础见 [130 号调研](../research/self-evolution/130-self-evolving-agents-team.md)）
+- [Context Layer · 上下文治理层技术方案](../concepts/design/context-layer.md) — 对标 Snowflake Horizon Context（Collect/Enrich/Activate 三相 + Structural/Operational/Semantic/Behavioral 四信号层 + 引擎级治理不可绕过）的横向治理织物：统一 Context Catalog（逻辑视图非新表）、信任信号归一、扩展 HybridPlanner 接入 Memory 与 ContextAssembler 接地 KB、ContextGuard 兜底治理、`context_strategy` 进化杠杆与三阶段演进路线（理论见 [Context Engineering 调研](../research/cognitive-context/010-context-engineering.md)，对标见 [Snowflake §D7](../research/retrieval-storage/034-snowflake-data-cloud.md)）
 
 ## 系统能力概览
 
