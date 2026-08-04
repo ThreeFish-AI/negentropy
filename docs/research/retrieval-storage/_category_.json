@@ -1,5 +1,5 @@
 {
   "position": 3,
   "label": "检索与存储",
-  "description": "向量检索算法、向量数据库选型与 OceanBase 簇（评估/对比/记忆/Schema）深度调研"
+  "description": "向量检索算法、向量数据库选型、OceanBase 簇与 Snowflake 数据云平台深度调研"
 }
