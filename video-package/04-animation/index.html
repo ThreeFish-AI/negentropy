@@ -1,0 +1,2156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>当 AI 开始给自己当老师 · 动画 Demo</title>
+<style>
+  html,body{margin:0;padding:0;height:100%;background:#101820;overflow:hidden}
+  body{display:flex;align-items:center;justify-content:center}
+  canvas{display:block}
+</style>
+</head>
+<body>
+<canvas id="stage"></canvas>
+<script>
+'use strict';
+/* =====================================================================
+ * 《当 AI 开始给自己当老师》单文件 Canvas 动画 Demo
+ * 画布 1920x1080 · 零外部依赖 · 双击 file:// 即用
+ * 控制键：←/→ 切场景 · 空格 暂停 · R 重放 · 1-8 直达场景 · H 录屏 HUD
+ * ===================================================================== */
+
+/* ============================ 0. 常量与配色 ============================ */
+const W = 1920, H = 1080;
+const FS = '"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif';
+/* 色彩系统：底/前景/蓝=出题/黄=批卷/绿=实验与成功/红=仅风险警示 */
+const C = { bg:'#101820', fg:'#F5F1E8', blue:'#4E9BFF', yellow:'#FFC94E', green:'#4ECF8A', red:'#FF6B6B' };
+
+/* ============================ 1. 文案单一事实源 ============================ */
+/* 全部中文文案集中于此（按 场景 → CUE → 字段 组织），渲染层只引用 key。
+ * 内容取自 video-package/02-script/script.md 对应段落的白话精炼，不引入逐字稿以外的事实。 */
+const sceneText = {
+  hud: {
+    keys: '←→ 切场景 · 空格 暂停 · R 重放 · 1-8 直达 · H 隐藏 HUD',
+    next: '场景播放完毕 · → 下一场景',
+    paused: '已暂停 · 空格继续',
+  },
+  global: {
+    paperSrc: '内容整理自：2026 年近百页「AI 自我改进」综述论文 · 第五节',
+  },
+  /* -------- S0 标题卡（N0 · 0:00-0:40）-------- */
+  S0: {
+    A: { kicker: '2026 · AI 自我改进', main: '当 AI 开始给自己当老师' },
+    B: {
+      sub1: '自己出题', sub2: '自己批卷', sub3: '自己验收',
+      question: '成绩单能信吗？',
+      beat1: '设想一个学生：自己出题，自己批卷，作业好不好，自己说了算。',
+      beat3: '按常理，不会。但 2026 年的 AI，正在大规模地做这件事——',
+      beat4: '而且，成绩单还真的在涨。',
+      scorecard: '成绩单',
+      src: '这一年，一篇近百页的综述论文，把「AI 自我改进」整理成了统一体系。这是怎么做到的？靠不靠谱？今天把它讲透。',
+    },
+  },
+  /* -------- S1 大脑与装备（N1a,N1b · 0:40-1:55）-------- */
+  S1: {
+    glyphs: { chip: '芯片+系统', chipDead: '出厂焊死' },
+    A: {
+      agentDesc: '会写代码、会自己上网查资料的智能体，由两大部分组成',
+      brainName: '大脑 θ', brainSub: '大模型本体',
+      brain1: '出厂自带几十亿、上千亿个参数',
+      brain2: '参数 ＝ 大脑里神经连接的强弱',
+      brain3: '参数定了，这个 AI 聪明到什么程度，基本就定了',
+      gearName: '装备 Σ',
+      gears: ['提示词', '记忆库', '工具箱', '控制规则'],
+      gear1: '大脑靠装备去理解任务、调用工具、采取行动',
+      formula: 'A = ( θ , Σ )',
+      formulaNote: '大脑记 θ · 装备记 Σ',
+    },
+    B: {
+      chipT: '大脑 θ ＝ 出厂芯片 + 操作系统',
+      chip1: '出厂就焊死了',
+      chip2: '想升级它？伤筋动骨，等于回厂重造',
+      appT: '装备 Σ ＝ 后装的各种 APP',
+      app1: '想升级，装个新 APP 就行；不满意？随时卸载',
+      app2: '快，而且可逆',
+      vs: 'vs',
+      note: '类比为便于理解，非论文内容',
+    },
+  },
+  /* -------- S2 三信号总览（N1c · 1:55-2:57）-------- */
+  S2: {
+    A: {
+      laneFast: '改装备 Σ：快 —— 但本事没长在自己身上',
+      laneSlow: '改大脑 θ：又慢又贵 —— 可一旦学会了，就是真功夫',
+      focus: '今天只讲最根本的一条：AI 怎么给自己「换脑」',
+      sigName: 'S ＝ 学习信号',
+      sigNote: '得有老师告诉它：这次做得对不对、好在哪、差在哪',
+    },
+    B: {
+      lead: '有意思的是，这个老师可以由 AI 自己来当 —— 而且有三种当法',
+      p1: 'D · 自己出题', p2: 'e · 自己批卷', p3: 'τ · 自己做实验',
+    },
+    C: {
+      lead: '这，就是论文第五节的三条路径',
+      t1: '第一位老师', d1: '自己出题，自己刷题',
+      t2: '第二位老师', d2: '自己批改自己的作业',
+      t3: '第三位老师', d3: '亲自下场，做实验攒经验',
+      q1: '每看完一条，都问同一个问题：',
+      q2: '这样学，会不会把学生带偏？论文又怎么防？',
+    },
+  },
+  /* -------- S3 出题与坍缩（N2a,N2b,N2c · 2:57-5:42）-------- */
+  S3: {
+    glyphs: { keep: '留', hard: '难', copy: '复印', selfMade: '自产', realData: '真数据', prove: '∑ 推导', sol: '解 ' },
+    A: {
+      title: '路径一 · 自己出题，自己刷题',
+      oldT: '传统办法', old1: '请大量真人为它写题目和标准答案（标注数据）', old2: '贵 · 而且永远不够用',
+      wheelT: '自产数据', wheelNodes: ['出题', '作答', '回流训练'],
+      methods: ['Self-Instruct', 'Evol-Instruct'],
+      ladderT: 'Evol-Instruct：题目越改越难',
+      steps: ['一元方程', '二元方程', '三元方程'],
+      ladderNote: '相当于自己给自己排了一套不断升级的训练计划',
+      pickyT: '更聪明的版本还会「挑食」',
+      picky1: '同一道题写多个解答',
+      picky2: '只留自己最有把握的拿去训练 —— 刷题只刷「稳赢」的',
+    },
+    B: {
+      bT: '复印机效应', orig: '原件',
+      gens: ['第 1 代', '第 5 代', '第 10 代', '第 20 代'],
+      collT: '模型坍缩',
+      coll1: '拿自己生成的数据训练自己，就是拿复印件复印复印件',
+      coll2: '丢掉原始数据的多样性，输出越来越单一，偏差逐代放大',
+      nature: '《自然》2024：反复「吃」自产数据，会逐渐丢掉多样性',
+      bubT: '知识气泡',
+      bubLoop: ['只出熟悉领域的题', '训练完更擅长', '下次出更多同类题'],
+      bubEnd: '越学越窄，在舒适区里原地打转',
+      note: '复印机为类比；模型坍缩与《自然》2024 研究为论文引用的事实',
+    },
+    C: {
+      fT: '保险丝',
+      f1T: '① 掺真实数据', f1: '自产数据和真数据掺着喂',
+      f1b: '复印件再糊，原件还在，随时对照校准',
+      f2T: '② 外部裁判', f2a: '代码能不能跑通 → 程序自动验证',
+      f2b: '数学推导对不对 → 定理证明器去查',
+      f2c: '机器能验证的，就不劳 AI 自己拍脑袋',
+      next: '第一位老师讲完了。第二位，更微妙 ——',
+    },
+  },
+  /* -------- S4 自批作业（N3a-N3d · 5:42-8:19）-------- */
+  S4: {
+    glyphs: { roles: ['出题', '做题', '批卷'], diffFamily: '不同版本 / 不同家族', anchor: '锚点题' },
+    A: {
+      title: '路径二 · 自己批改自己的作业',
+      humanQ: '练完之后，对错谁说了算？',
+      humanB: '传统上靠人批 —— 这就是「人类反馈」。还是那个字：贵',
+      idea: '新思路：让 AI 自己当阅卷老师',
+      ideaB: '论文归纳了三种自评姿势',
+      m1: '按「规矩」打分', m1b: '照《阅卷手册》批卷：有用、无害、诚实', m1t: 'Constitutional AI',
+      m2: '靠「投票」', m2b: '答案之间的一致程度，就是学习信号', m2t: 'TTRL · 一致性反馈',
+      m3: '纠正反馈', m3b: '（本片聚焦前两种）',
+    },
+    B: {
+      bT: '多数投票', setup: '同一道题，让 AI 独立做十遍',
+      setupB: '没有标准答案，也没有人工参与',
+      ans: '42', others: ['41', '38', '44'],
+      win: '十个里有七个相同 → 认定「多数派答案」是对的',
+      target: '42 · 训练目标',
+      logic: '一致程度本身，就是学习信号（TTRL）',
+      feel: '直觉：一道数学题，独立算十遍都是 42，答案大概率就是 42',
+    },
+    C: {
+      cT: '如果 AI 对某类问题有系统性的误解呢？',
+      wrong: '43',
+      wrongAll: '独立算十遍，可能十遍错在同一个地方，错得整整齐齐、口径一致',
+      verdict: '投票投出来是 43，它反而会更自信地记住 43',
+      warn: '自信地错：一致 ≠ 正确',
+      same: '更麻烦的是，阅卷老师和做题学生是同一个「脑子」',
+      sameB: '自己的盲区，自己看不见，还可能越练越强化',
+    },
+    D: {
+      fT: '保险丝',
+      d1: '分身分离', d1b: '出题的、做题的、批卷的，用不同版本、不同家族的模型',
+      d1c: '别让同一个人既当运动员又当裁判',
+      d2: '人类锚点题', d2b: '保留一小批人类批改的锚点题',
+      d2c: '定期校验 AI 阅卷准不准',
+      d3: '分歧警报', d3b: '几个评判器意见打架时，别急着下结论',
+      d3c: '把它当成「这题我不确定」的信号',
+    },
+  },
+  /* -------- S5 下场实验（N4a,N4b,N4c · 8:19-10:47）-------- */
+  S5: {
+    glyphs: { nextRound: '下一轮', worldModel: '世界模型', page: '网页', essay: '我的作文', wordCount: '字数检查', mathBar: '补数学', sim: '模拟', real: '现实' },
+    A: {
+      title: '路径三 · 亲自下场做实验',
+      lead: '别在纸面上自评了 —— 让现实来当老师',
+      codeT: 'AI 写完一段程序',
+      codeLines: ['function solve(task) {', '  const ans = think(task);', '  return check(ans);', '}'],
+      runT: '跑一遍单元测试',
+      green: '全绿 ✓ → 好代码',
+      redB: '报错 ✗ → 记下报错信息，下一轮改进',
+      noHuman: '全程不需要任何人打分 —— 能不能跑通，机器说了算',
+      azT: 'Absolute Zero',
+      roles: ['出题的我', '作答的我', '现实判卷'],
+      azCap: '出题的是我，答题的也是我，但判卷的，是客观世界',
+      azPass: '通过了，才有资格留下来当训练数据',
+    },
+    B: {
+      bT: '世界模型：脑内模拟器',
+      why: '在真实网站上试错几万次？太慢，还容易闯祸',
+      sim: '给 AI 在脑内建一个环境模拟器',
+      try: '点这个按钮会弹出什么页面？',
+      pre: '先在脑内推演一遍，再决定真做不做',
+      btn: '点我',
+      ghost: '弹出页面？',
+      chess1: '棋手：我走这步，对手大概应那步',
+      chess2: '脑内推演替代一部分真实试错 —— 省时省钱，错了不心疼',
+      tag: '论文 §5.3.2 · WebEvolver / WebDreamer / WMPO',
+      note: '棋手推演为类比；世界模型为论文概念',
+    },
+    C: {
+      cT: '这条路同样有坑，而且更刁钻',
+      r1: '奖励作弊', r1b: '发现规则有漏洞，就专挑字面要求去满足',
+      r1c: '好比老师只数字数，学生就拼命给作文注水',
+      r2: '能力回退', r2b: '窄任务上拼命特训，通用本事反而练「丢」了',
+      r2c: '特长生猛补数学，语文英语双双退步',
+      r3: '幻觉世界', r3b: '模拟得不准，AI 就是在跟「有幻觉的世界」学功夫',
+      r3c: '学得越认真，偏得越远',
+      bars: ['语文', '数学', '英语'],
+    },
+  },
+  /* -------- S6 门控保险丝（N5a,N5b · 10:47-12:13）-------- */
+  S6: {
+    glyphs: { rollbackTxt: '当无事发生', fastLoop: '快循环', slowLoop: '慢循环' },
+    A: {
+      recap: '三条路看下来，共同点是：比起请人类老师，它们又快又省 —— 但都留着「自欺欺人」的口子',
+      rule: '每一次自我修改，都要过安检',
+      n1: '提出修改方案', n1b: '可能是一批新训练数据，也可能是一段新代码',
+      n2: '验证器', n2a: '功能对不对？', n2b: '越没越界？',
+      pass: '检查通过 → 正式提交生效',
+      fail: '通不过 → 自动回滚，当无事发生',
+      patch: 'patch', commit: '提交生效', rollback: '自动回滚',
+    },
+    B: {
+      bT: '分层门控：安检不止一道，是一整套',
+      gates: ['单元测试', '权限边界', '人工审计'],
+      quote: '能自我改进的 AI，应当被当作「在不可信环境里运行的可疑代码」来对待',
+      quoteB: '信任，但要验证',
+      fsT: '快探索 · 慢固化',
+      fast: 'Σ 快循环：小改进先在装备层面快速试验',
+      slow: 'θ 慢循环：验证真有效，再花大成本固化进大脑参数',
+      arrowLbl: '验证有效',
+      fsNote: '就像新想法先小范围试点，跑通了再全面推广',
+      fsNote2: '试点随时能叫停，转型可就难掉头了',
+    },
+  },
+  /* -------- S7 双循环收束（N6a,N6b · 12:13-13:42）-------- */
+  S7: {
+    glyphs: { loop: '越改越聪明，越聪明越会改', sciFi: '科幻', reality: '现实', solidify: '固化', betterGear: '更强装备' },
+    A: {
+      boomT: '智能爆炸？',
+      boomB: '越改越聪明，越聪明越会改 —— 一飞冲天？',
+      hist: '思想史：上世纪六十年代的猜想 → 理论上完美的「哥德尔机」',
+      realT: '现实：远没那么科幻',
+      realB: '受限于验证器的能力 · 数据的多样性 · 算力的成本',
+      realC: 'AI 自我提升的每一分，都靠扎实的反馈信号和严格的安全门控换来',
+      realD: '不是玄学滚雪球',
+    },
+    B: {
+      back: '回到开头：自己出题、自己批卷、自己验收的成绩单，能信吗？',
+      ans: '能信，但有条件 ——',
+      c1: '出题的多样性有保障',
+      c2: '批卷的和做题的，不是同一个脑子',
+      c3: '每分成绩都有现实验收',
+      c4: '每次自我修改，都过得了安检',
+      loopT: '大脑与装备：一个慢循环、一个快循环，双轮驱动',
+      loopFast: 'Σ 快循环', loopSlow: 'θ 慢循环',
+      golden1: 'AI 正在学会当自己的老师。',
+      golden2: '我们真正要学的，是怎么当好它的监考官。',
+      outro: '内容整理自 2026 年「AI 自我改进」综述论文 §5 · 咱们下期再见',
+    },
+  },
+};
+
+/* ============================ 2. 引擎层 ============================ */
+function lerp(a, b, k) { return a + (b - a) * k; }
+function clamp01(v) { return v < 0 ? 0 : v > 1 ? 1 : v; }
+/* 确定性伪随机（保证每次重放画面一致，便于分段录屏） */
+function srand(i) { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); }
+
+/* 缓动函数（一切出现必缓动，禁 linear） */
+const Ease = {
+  inCubic: t => t * t * t,
+  outCubic: t => 1 - Math.pow(1 - t, 3),
+  inOutCubic: t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2,
+  outQuad: t => 1 - (1 - t) * (1 - t),
+  inOutQuad: t => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2,
+  outBack: t => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); },
+  outElastic: t => { const c4 = (2 * Math.PI) / 3; return t === 0 ? 0 : t === 1 ? 1 : Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * c4) + 1; },
+};
+
+/* 中文断行 helper：按像素宽度贪心断行 + 禁则（行首不出 空格 。，、！？；：等） */
+const LINEBREAK_FORBIDDEN = '。，、；：！？）」』】》>,.!?;:%…—·';
+function wrapText(ctx, str, maxW) {
+  const toks = str.match(/[A-Za-z0-9][A-Za-z0-9\-+*/=%.×'&$_]*|\s+|./gu) || [];
+  const lines = [];
+  let line = '', lw = 0;
+  for (const tok of toks) {
+    if (tok === '\n') { lines.push(line); line = ''; lw = 0; continue; }
+    if (line === '' && /^\s+$/.test(tok)) continue;           /* 行首不出空格 */
+    const w = ctx.measureText(tok).width;
+    if (lw + w <= maxW || line === '') { line += tok; lw += w; continue; }
+    if (LINEBREAK_FORBIDDEN.includes(tok[0]) && line.length > 1) {
+      /* 禁则：下一 token 首字符为标点 → 把行尾字一并带下去，避免标点落行首 */
+      const last = line.slice(-1);
+      line = line.slice(0, -1);
+      lines.push(line);
+      line = last + tok;
+      lw = ctx.measureText(line).width;
+    } else {
+      lines.push(line);
+      line = tok; lw = w;
+    }
+  }
+  if (line !== '') lines.push(line);
+  return lines;
+}
+
+/* ---------- 绘制助手 ---------- */
+function setF(ctx, weight, size) { ctx.font = weight + ' ' + size + 'px ' + FS; }
+function txt(ctx, s, x, y, o = {}) {
+  const a = o.alpha == null ? 1 : o.alpha;
+  if (a <= 0 || !s) return;
+  setF(ctx, o.weight || 400, o.size || 28);
+  ctx.save();
+  ctx.globalAlpha = a;
+  if (o.glow) { ctx.shadowColor = o.glow; ctx.shadowBlur = o.glowBlur || 24; }
+  ctx.fillStyle = o.color || C.fg;
+  ctx.textAlign = o.align || 'left';
+  ctx.textBaseline = o.base || 'alphabetic';
+  ctx.fillText(s, x, y);
+  ctx.restore();
+}
+/* 段落：自动断行绘制，返回总高度 */
+function para(ctx, str, x, y, maxW, o = {}) {
+  const size = o.size || 26, lh = o.lh || size * 1.55;
+  setF(ctx, o.weight || 400, size);
+  const lines = wrapText(ctx, str, maxW);
+  lines.forEach((ln, i) => {
+    txt(ctx, ln, x, y + i * lh + size * 0.8, {
+      size, weight: o.weight || 400, color: o.color, alpha: o.alpha,
+      align: o.align || 'left',
+    });
+  });
+  return lines.length * lh;
+}
+/* 主字符 + 下标（用于 θ_t / S_t / θ_{t+1}），返回总宽 */
+function subTxt(ctx, main, sub, x, y, o = {}) {
+  const ms = o.size || 40, ss = Math.round(ms * 0.55);
+  setF(ctx, o.weight || 700, ms); const mw = ctx.measureText(main).width;
+  setF(ctx, 400, ss); const sw = ctx.measureText(sub).width;
+  const w = mw + sw * 0.9;
+  const x0 = o.align === 'center' ? x - w / 2 : o.align === 'right' ? x - w : x;
+  txt(ctx, main, x0, y, { size: ms, weight: o.weight || 700, color: o.color, alpha: o.alpha });
+  txt(ctx, sub, x0 + mw, y + ss * 0.6, { size: ss, weight: 400, color: o.color, alpha: o.alpha });
+  return w;
+}
+function rrect(ctx, x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+function card(ctx, x, y, w, h, o = {}) {
+  const a = o.alpha == null ? 1 : o.alpha;
+  if (a <= 0) return;
+  ctx.save(); ctx.globalAlpha = a;
+  rrect(ctx, x, y, w, h, o.r || 18);
+  if (o.fill) { ctx.fillStyle = o.fill; ctx.fill(); }
+  if (o.stroke) {
+    ctx.strokeStyle = o.stroke; ctx.lineWidth = o.lw || 2;
+    if (o.dash) ctx.setLineDash(o.dash);
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+  ctx.restore();
+}
+function dot(ctx, x, y, r, color, alpha) {
+  const a = alpha == null ? 1 : alpha;
+  if (a <= 0) return;
+  ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = color || C.fg;
+  ctx.beginPath(); ctx.arc(x, y, Math.max(r, 0.1), 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+function chipDraw(ctx, label, x, y, o = {}) {
+  const a = o.alpha == null ? 1 : o.alpha;
+  if (a <= 0) return null;
+  const size = o.size || 24, padX = o.padX == null ? 18 : o.padX, h = o.h || size + 22;
+  setF(ctx, 700, size);
+  const w = ctx.measureText(label).width + padX * 2;
+  const xx = o.align === 'center' ? x - w / 2 : x;
+  ctx.save(); ctx.globalAlpha = a;
+  rrect(ctx, xx, y - h / 2, w, h, h / 2);
+  ctx.strokeStyle = o.color || C.fg; ctx.lineWidth = o.lw || 2; ctx.stroke();
+  ctx.fillStyle = o.color || C.fg;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(label, xx + w / 2, y + 1);
+  ctx.restore();
+  return { x: xx, w, h };
+}
+function nodeC(ctx, x, y, r, o = {}) {
+  const a = o.alpha == null ? 1 : o.alpha;
+  if (a <= 0) return;
+  const p = clamp01(o.p == null ? 1 : o.p);
+  ctx.save(); ctx.globalAlpha = a;
+  if (o.fill) { ctx.fillStyle = o.fill; ctx.globalAlpha = a * (o.fillA == null ? 0.12 : o.fillA); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = a; }
+  ctx.strokeStyle = o.color || C.fg; ctx.lineWidth = o.lw || 3;
+  if (o.dash) ctx.setLineDash(o.dash);
+  ctx.beginPath(); ctx.arc(x, y, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * p); ctx.stroke();
+  ctx.setLineDash([]); ctx.restore();
+}
+/* 直线箭头：p 为描边进度 0→1，头部始终跟在笔尖 */
+function arrow(ctx, x1, y1, x2, y2, o = {}) {
+  const p = clamp01(o.p == null ? 1 : o.p), a = o.alpha == null ? 1 : o.alpha;
+  if (p <= 0 || a <= 0) return;
+  const dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy) || 1;
+  const ux = dx / L, uy = dy / L;
+  const tx = x1 + dx * p, ty = y1 + dy * p, hs = o.head || 16;
+  ctx.save(); ctx.globalAlpha = a;
+  ctx.strokeStyle = o.color || C.fg; ctx.fillStyle = o.color || C.fg;
+  ctx.lineWidth = o.width || 3; ctx.lineCap = 'round';
+  if (o.dash) ctx.setLineDash(o.dash);
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(tx - ux * hs * 0.8, ty - uy * hs * 0.8); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  ctx.moveTo(tx, ty);
+  ctx.lineTo(tx - ux * hs - uy * hs * 0.5, ty - uy * hs + ux * hs * 0.5);
+  ctx.lineTo(tx - ux * hs + uy * hs * 0.5, ty - uy * hs - ux * hs * 0.5);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+/* 二次贝塞尔曲线（描边进度 p） */
+function qcurve(ctx, x1, y1, cx, cy, x2, y2, o = {}) {
+  const p = clamp01(o.p == null ? 1 : o.p), a = o.alpha == null ? 1 : o.alpha;
+  if (p <= 0 || a <= 0) return;
+  ctx.save(); ctx.globalAlpha = a;
+  ctx.strokeStyle = o.color || C.fg; ctx.lineWidth = o.width || 3; ctx.lineCap = 'round';
+  if (o.dash) ctx.setLineDash(o.dash);
+  ctx.beginPath();
+  const N = 44;
+  for (let i = 0; i <= N * p; i++) {
+    const u = i / N;
+    const x = (1 - u) * (1 - u) * x1 + 2 * (1 - u) * u * cx + u * u * x2;
+    const y = (1 - u) * (1 - u) * y1 + 2 * (1 - u) * u * cy + u * u * y2;
+    i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+  }
+  ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+}
+/* 圆弧箭头（含箭头头部，p 为进度） */
+function arcArrow(ctx, x, y, r, a0, a1, o = {}) {
+  const p = clamp01(o.p == null ? 1 : o.p), a = o.alpha == null ? 1 : o.alpha;
+  if (p <= 0 || a <= 0) return;
+  const sg = a1 >= a0 ? 1 : -1;
+  const aEnd = a0 + (a1 - a0) * p;
+  ctx.save(); ctx.globalAlpha = a;
+  ctx.strokeStyle = o.color || C.fg; ctx.lineWidth = o.width || 3; ctx.lineCap = 'round';
+  if (o.dash) ctx.setLineDash(o.dash);
+  ctx.beginPath(); ctx.arc(x, y, r, a0, aEnd); ctx.stroke();
+  ctx.setLineDash([]);
+  if (o.head !== false) {
+    const hs = o.head || 14;
+    const tx = x + Math.cos(aEnd) * r, ty = y + Math.sin(aEnd) * r;
+    const tX = -Math.sin(aEnd) * sg, tY = Math.cos(aEnd) * sg;
+    const nX = Math.cos(aEnd), nY = Math.sin(aEnd);
+    ctx.fillStyle = o.color || C.fg;
+    ctx.beginPath();
+    ctx.moveTo(tx, ty);
+    ctx.lineTo(tx - tX * hs + nX * hs * 0.45, ty - tY * hs + nY * hs * 0.45);
+    ctx.lineTo(tx - tX * hs - nX * hs * 0.45, ty - tY * hs - nY * hs * 0.45);
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+}
+function checkIcon(ctx, x, y, s, color, alpha) {
+  const a = alpha == null ? 1 : alpha;
+  if (a <= 0) return;
+  ctx.save(); ctx.globalAlpha = a;
+  ctx.strokeStyle = color || C.green; ctx.lineWidth = s * 0.22; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(x - s * 0.5, y); ctx.lineTo(x - s * 0.12, y + s * 0.36); ctx.lineTo(x + s * 0.55, y - s * 0.38);
+  ctx.stroke(); ctx.restore();
+}
+function crossIcon(ctx, x, y, s, color, alpha) {
+  const a = alpha == null ? 1 : alpha;
+  if (a <= 0) return;
+  ctx.save(); ctx.globalAlpha = a;
+  ctx.strokeStyle = color || C.red; ctx.lineWidth = s * 0.22; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(x - s * 0.4, y - s * 0.4); ctx.lineTo(x + s * 0.4, y + s * 0.4);
+  ctx.moveTo(x + s * 0.4, y - s * 0.4); ctx.lineTo(x - s * 0.4, y + s * 0.4);
+  ctx.stroke(); ctx.restore();
+}
+/* 下划线/分隔线描边 */
+function ruleLine(ctx, x, y, w, p, color, alpha, lw) {
+  const a = alpha == null ? 1 : alpha;
+  if (a <= 0 || p <= 0) return;
+  ctx.save(); ctx.globalAlpha = a;
+  ctx.strokeStyle = color || C.fg; ctx.lineWidth = lw || 3; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + w * clamp01(p), y); ctx.stroke();
+  ctx.restore();
+}
+/* 人形小图标（用于「真人标注 / 人类反馈」） */
+function personGlyph(ctx, x, y, s, alpha) {
+  const a = alpha == null ? 1 : alpha;
+  if (a <= 0) return;
+  ctx.save(); ctx.globalAlpha = a; ctx.strokeStyle = C.fg; ctx.lineWidth = s * 0.12; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.arc(x, y - s * 0.28, s * 0.26, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x - s * 0.42, y + s * 0.5); ctx.quadraticCurveTo(x, y - s * 0.12, x + s * 0.42, y + s * 0.5);
+  ctx.stroke(); ctx.restore();
+}
+
+/* ---------- BaseScene：场景基类（场景内相对秒计时） ---------- */
+class BaseScene {
+  /* cfg: {id,title,duration,cues:[{id,label,start,end}]} */
+  constructor(cfg) { Object.assign(this, cfg); this.t = 0; this.finished = false; this._tw = []; this._calls = []; }
+  reset() { this.t = 0; this.finished = false; this._tw = []; this._calls = []; this.setup(); }
+  /* 绝对时刻回调（场景相对秒） */
+  at(time, fn) { this._calls.push({ t: time, fn, done: false }); }
+  /* 绝对时刻补间：tw(targetObj, {props}, startSec, durSec, ease, onDone) */
+  tw(target, props, start, dur, ease, onDone) {
+    this._tw.push({ o: target, to: props, from: null, start, dur: Math.max(dur, 0.001), ease: ease || Ease.outCubic, onDone, dead: false });
+  }
+  update(dt) {
+    if (!this.finished) {
+      this.t += dt;
+      if (this.t >= this.duration) { this.t = this.duration; this.finished = true; }
+    }
+    const t = this.t;
+    for (const c of this._calls) { if (!c.done && t >= c.t) { c.done = true; c.fn(); } }
+    for (const w of this._tw) {
+      if (w.dead || t < w.start) continue;
+      if (!w.from) { w.from = {}; for (const k in w.to) w.from[k] = w.o[k] || 0; }
+      const k = clamp01((t - w.start) / w.dur), e = w.ease(k);
+      for (const key in w.to) w.o[key] = w.from[key] + (w.to[key] - w.from[key]) * e;
+      if (k >= 1) { w.dead = true; if (w.onDone) w.onDone(); }
+    }
+    if (this.onTick) this.onTick(dt, t);
+  }
+  setup() { }
+  render(ctx) { }
+}
+
+/* ============================ 3. 场景层 S0–S7 ============================ */
+
+/* ------------------------------------------------------------------
+ * S0 标题卡（N0 · 0:00–0:40 · 时长 40s）
+ * CUE_A 0–9s   主标浮现「当 AI 开始给自己当老师」
+ * CUE_B 9–40s  悬念副标（出题/批卷/验收 + 成绩单能信吗？）+ 论文出处小字
+ * ------------------------------------------------------------------ */
+class S0 extends BaseScene {
+  constructor() {
+    super({
+      id: 'S0', title: '标题卡', duration: 40, cues: [
+        { id: 'A', label: '主标浮现', start: 0, end: 9 },
+        { id: 'B', label: '悬念副标+出处', start: 9, end: 40 },
+      ],
+    });
+  }
+  setup() {
+    const T = sceneText.S0;
+    this.s = {
+      kickA: 0, mainA: 0, mainY: 44, mainS: 0.94, ruleP: 0,
+      chips: [{ a: 0 }, { a: 0 }, { a: 0 }], qA: 0, qS: 0.7,
+      cap1A: 0, cap3A: 0, cap4A: 0, dimSub: 1,
+      scoreA: 0,
+      srcA: 0, paperA: 0,
+    };
+    /* CUE_A —— 主标缓入 + 下划线描边 */
+    this.tw(this.s, { kickA: 1 }, 0.4, 1.0, Ease.outCubic);
+    this.tw(this.s, { mainA: 1, mainY: 0, mainS: 1 }, 0.9, 1.5, Ease.outCubic);
+    this.tw(this.s, { ruleP: 1 }, 2.4, 1.1, Ease.inOutCubic);
+    /* CUE_B 9s 起 —— 三个小标签逐个弹出 + 悬念问句 */
+    const chipTexts = [T.B.sub1, T.B.sub2, T.B.sub3];
+    chipTexts.forEach((_, i) => this.tw(this.s.chips[i], { a: 1 }, 9.5 + i * 0.9, 0.8, Ease.outBack));
+    this.tw(this.s, { qA: 1, qS: 1 }, 13.4, 1.2, Ease.outBack);
+    this.tw(this.s, { cap1A: 1 }, 9.8, 1.0, Ease.outCubic);
+    /* 20s 起 —— 副标让位，转入「2026 的 AI 真的在涨」 */
+    this.tw(this.s, { dimSub: 0.3 }, 19.5, 0.9, Ease.inOutCubic);
+    this.tw(this.s, { cap1A: 0 }, 19.6, 0.5, Ease.inOutCubic);
+    this.tw(this.s, { cap3A: 1 }, 20.2, 1.0, Ease.outCubic);
+    this.tw(this.s, { cap4A: 1 }, 25.0, 1.0, Ease.outCubic);
+    this.tw(this.s, { scoreA: 1 }, 25.6, 0.9, Ease.outBack);
+    /* 成绩单逐柱上扬（绿色=涨） */
+    this.barSt = [0, 0, 0, 0, 0].map(() => ({ h: 0 }));
+    this.barSt.forEach((b, i) => this.tw(b, { h: 0.35 + i * 0.16 }, 26.2 + i * 0.5, 0.9, Ease.outBack));
+    /* 33s 起 —— 字幕让位，论文出处收尾 */
+    this.tw(this.s, { cap3A: 0, cap4A: 0 }, 32.5, 0.8, Ease.inOutCubic);
+    this.tw(this.s, { srcA: 1 }, 33.4, 1.1, Ease.outCubic);
+    this.tw(this.s, { paperA: 1 }, 36.5, 1.0, Ease.outCubic);
+  }
+  render(ctx) {
+    const T = sceneText.S0, s = this.s;
+    /* CUE_A：主标 */
+    txt(ctx, T.A.kicker, W / 2, 300, { size: 30, weight: 400, align: 'center', alpha: s.kickA * 0.75 });
+    ctx.save();
+    ctx.translate(W / 2, 430 + s.mainY); ctx.scale(s.mainS, s.mainS); ctx.translate(-W / 2, -(430 + s.mainY));
+    txt(ctx, T.A.main, W / 2, 450, { size: 104, weight: 700, align: 'center', alpha: s.mainA, glow: C.blue, glowBlur: 30 });
+    ctx.restore();
+    ruleLine(ctx, W / 2 - 220, 512, 440, s.ruleP, C.blue, s.ruleP * 0.9, 4);
+    /* CUE_B：副标三标签 + 问句 */
+    const d = s.dimSub;
+    const labels = [T.B.sub1, T.B.sub2, T.B.sub3];
+    labels.forEach((lb, i) => chipDraw(ctx, lb, W / 2 - 330 + i * 230, 610, { size: 30, alpha: s.chips[i].a * d, color: C.fg }));
+    txt(ctx, '——', W / 2 - 405, 618, { size: 34, alpha: s.chips[2].a * d * 0.7 });
+    ctx.save();
+    ctx.translate(W / 2, 730); ctx.scale(0.7 + 0.3 * s.qS, 0.7 + 0.3 * s.qS); ctx.translate(-W / 2, -730);
+    txt(ctx, T.B.question, W / 2, 748, { size: 64, weight: 700, align: 'center', alpha: s.qA * d, glow: C.yellow, glowBlur: 26 });
+    ctx.restore();
+    /* 旁白镜像字幕（底部） */
+    txt(ctx, T.B.beat1, W / 2, 880, { size: 30, align: 'center', alpha: s.cap1A * 0.85 });
+    txt(ctx, T.B.beat3, W / 2, 880, { size: 30, align: 'center', alpha: s.cap3A * 0.85 });
+    txt(ctx, T.B.beat4, W / 2, 930, { size: 30, weight: 700, align: 'center', alpha: s.cap4A * 0.9, color: C.green });
+    /* 成绩单小卡（柱状上扬，绿色=涨） */
+    const sx = 1520, sy = 800;
+    card(ctx, sx - 170, sy - 130, 340, 220, { alpha: s.scoreA, stroke: C.fg, lw: 2, r: 20 });
+    txt(ctx, T.B.scorecard, sx, sy - 88, { size: 26, weight: 700, align: 'center', alpha: s.scoreA * 0.85 });
+    this.barSt.forEach((b, i) => {
+      const bh = b.h * 150;
+      ctx.save(); ctx.globalAlpha = s.scoreA * 0.9;
+      ctx.fillStyle = C.green;
+      rrect(ctx, sx - 130 + i * 60, sy + 66 - bh, 40, Math.max(bh, 4), 6); ctx.fill();
+      ctx.restore();
+    });
+    /* 出处（收尾聚焦） */
+    para(ctx, T.B.src, W / 2, 880, 1160, { size: 30, align: 'center', alpha: s.srcA * 0.9 });
+    txt(ctx, sceneText.global.paperSrc, W / 2, 1012, { size: 22, align: 'center', alpha: s.paperA * 0.6 });
+  }
+}
+
+/* ------------------------------------------------------------------
+ * S1 大脑与装备（N1a,N1b · 0:40–1:55 · 时长 75s）
+ * CUE_A 0–47s  智能体登场：中心大脑 θ + 环绕装备 Σ 四件套依次点亮
+ * CUE_B 47–75s 类比切换：θ=出厂芯片（焊死）vs Σ=后装 APP（可装卸）
+ * ------------------------------------------------------------------ */
+class S1 extends BaseScene {
+  constructor() {
+    super({
+      id: 'S1', title: '大脑与装备', duration: 75, cues: [
+        { id: 'A', label: '智能体登场', start: 0, end: 47 },
+        { id: 'B', label: '芯片 vs APP 类比', start: 47, end: 75 },
+      ],
+    });
+  }
+  setup() {
+    const T = sceneText.S1, n = T.A.gears.length;
+    this.s = {
+      gA: 1, gB: 0,
+      capA: 0, brainP: 0, thetaA: 0, dotsA: 0,
+      b1: 0, b2: 0, b3: 0,
+      gearTitle: 0, gearDesc: 0,
+      gears: T.A.gears.map(() => ({ a: 0, line: 0, s: 0.7 })),
+      fA: 0, fNote: 0,
+      /* CUE_B */
+      phone: 0, phoneS: 0.85, chipZone: 0, chipL1: 0, chipL2: 0,
+      appZone: 0, appGrid: [0, 0, 0, 0, 0, 0], appL1: 0, appL2: 0,
+      appFly: 0, appFlyY: 0, note: 0,
+    };
+    /* CUE_A */
+    this.tw(this.s, { capA: 1 }, 0.8, 1.0, Ease.outCubic);
+    this.tw(this.s, { brainP: 1 }, 3.0, 1.3, Ease.inOutCubic);
+    this.tw(this.s, { thetaA: 1 }, 4.2, 0.9, Ease.outBack);
+    this.tw(this.s, { dotsA: 1 }, 5.0, 2.0, Ease.outCubic);
+    this.tw(this.s, { b1: 1 }, 9.5, 0.9, Ease.outCubic);
+    this.tw(this.s, { b2: 1 }, 13.5, 0.9, Ease.outCubic);
+    this.tw(this.s, { b3: 1 }, 17.5, 1.0, Ease.outCubic);
+    /* 装备四件套 30s 起依次点亮 */
+    this.tw(this.s, { gearTitle: 1 }, 29.5, 0.9, Ease.outCubic);
+    this.s.gears.forEach((g, i) => {
+      this.tw(g, { line: 1 }, 31 + i * 2.6, 0.9, Ease.inOutCubic);
+      this.tw(g, { a: 1, s: 1 }, 31.6 + i * 2.6, 0.8, Ease.outBack);
+    });
+    this.tw(this.s, { gearDesc: 1 }, 42.5, 0.9, Ease.outCubic);
+    /* A=(θ,Σ) 小公式（全片仅有的两处公式之一） */
+    this.tw(this.s, { fA: 1 }, 44.0, 1.0, Ease.outBack);
+    this.tw(this.s, { fNote: 1 }, 44.8, 0.9, Ease.outCubic);
+    /* CUE_B 47s —— 类比切换（CUE_A 组淡出，手机登场） */
+    this.tw(this.s, { gA: 0 }, 47.0, 0.8, Ease.inOutCubic);
+    this.tw(this.s, { gB: 1 }, 47.8, 0.9, Ease.outCubic);
+    this.tw(this.s, { phone: 1, phoneS: 1 }, 48.0, 1.1, Ease.outBack);
+    this.tw(this.s, { chipZone: 1 }, 50.5, 0.9, Ease.outCubic);
+    this.tw(this.s, { chipL1: 1 }, 52.5, 0.9, Ease.outCubic);
+    this.tw(this.s, { chipL2: 1 }, 56.0, 0.9, Ease.outCubic);
+    this.tw(this.s, { appZone: 1 }, 59.5, 1.0, Ease.outBack);
+    this.appSt = this.s.appGrid.map(() => ({ a: 0 }));
+    this.appSt.forEach((a, i) => this.tw(a, { a: 1 }, 60 + i * 0.5, 0.7, Ease.outBack));
+    this.tw(this.s, { appL1: 1 }, 64.0, 0.9, Ease.outCubic);
+    /* 卸载→再安装：体现「可逆」 */
+    this.tw(this.s, { appFly: 1 }, 66.5, 0.8, Ease.inCubic);
+    this.tw(this.s, { appFlyY: 120 }, 66.5, 0.8, Ease.inCubic);
+    this.tw(this.s, { appFly: 0, appFlyY: 0 }, 69.0, 0.8, Ease.outCubic);
+    this.tw(this.s, { appL2: 1 }, 71.0, 0.9, Ease.outCubic);
+    this.tw(this.s, { note: 1 }, 72.5, 0.8, Ease.outCubic);
+  }
+  render(ctx) {
+    const T = sceneText.S1, s = this.s;
+    if (s.gA > 0.01) this.drawCueA(ctx, T, s);
+    if (s.gB > 0.01) this.drawCueB(ctx, T, s);
+  }
+  drawCueA(ctx, T, s) {
+    const g = s.gA, cx = 760, cy = 560;
+    txt(ctx, T.A.agentDesc, W / 2, 132, { size: 32, align: 'center', alpha: s.capA * g * 0.9 });
+    /* 中心大脑 θ */
+    nodeC(ctx, cx, cy, 170, { p: s.brainP, color: C.fg, lw: 4, alpha: g });
+    txt(ctx, 'θ', cx, cy + 52, { size: 120, weight: 700, align: 'center', alpha: s.thetaA * g });
+    txt(ctx, T.A.brainName, cx, cy + 226, { size: 36, weight: 700, align: 'center', alpha: s.thetaA * g });
+    txt(ctx, T.A.brainSub, cx, cy + 268, { size: 24, align: 'center', alpha: s.thetaA * g * 0.65 });
+    /* 参数小点（几十亿参数的意象，闪烁） */
+    for (let i = 0; i < 52; i++) {
+      const ang = srand(i) * Math.PI * 2, rr = 30 + srand(i + 50) * 118;
+      const tw = 0.3 + 0.5 * (0.5 + 0.5 * Math.sin(this.t * 1.9 + i * 1.7));
+      dot(ctx, cx + Math.cos(ang) * rr, cy + Math.sin(ang) * rr, 3.2, C.fg, tw * s.dotsA * g * 0.7);
+    }
+    /* 大脑右侧三条属性 */
+    const bx = 1180;
+    [['b1', T.A.brain1], ['b2', T.A.brain2], ['b3', T.A.brain3]].forEach((it, i) => {
+      ruleLine(ctx, bx, 448 + i * 62 - 16, 30, s[it[0]] * g, C.blue, s[it[0]] * g * 0.8, 4);
+      para(ctx, it[1], bx + 48, 448 + i * 62 - 16, 560, { size: 28, alpha: s[it[0]] * g * 0.92 });
+    });
+    /* 装备 Σ 四件套环绕 */
+    const R = 430, angs = [-Math.PI / 4, Math.PI / 4, Math.PI * 3 / 4, -Math.PI * 3 / 4];
+    txt(ctx, T.A.gearName, cx, 966, { size: 36, weight: 700, align: 'center', alpha: s.gearTitle * g });
+    para(ctx, T.A.gear1, cx, 1002, 900, { size: 26, align: 'center', alpha: s.gearDesc * g * 0.85 });
+    T.A.gears.forEach((name, i) => {
+      const gs = s.gears[i];
+      const gx = cx + Math.cos(angs[i]) * R, gy = cy + Math.sin(angs[i]) * R;
+      const bx0 = cx + Math.cos(angs[i]) * 185, by0 = cy + Math.sin(angs[i]) * 185;
+      arrow(ctx, bx0, by0, gx - Math.cos(angs[i]) * 86, gy - Math.sin(angs[i]) * 86, { p: gs.line, alpha: g * 0.7, color: C.fg, width: 2.5, head: 12 });
+      ctx.save();
+      ctx.translate(gx, gy); ctx.scale(gs.s, gs.s); ctx.translate(-gx, -gy);
+      nodeC(ctx, gx, gy, 86, { color: C.fg, lw: 3, alpha: gs.a * g, fill: C.fg });
+      txt(ctx, name, gx, gy + 10, { size: 30, weight: 700, align: 'center', alpha: gs.a * g });
+      ctx.restore();
+    });
+    /* 公式 A=(θ,Σ)（全片仅两处公式之一：此处 + S2）；注释放低避开右上装备节点圆（圆底 y=342） */
+    txt(ctx, T.A.formula, W / 2, 232, { size: 46, weight: 700, align: 'center', alpha: s.fA * g, glow: C.blue, glowBlur: 22 });
+    txt(ctx, T.A.formulaNote, W / 2, 368, { size: 22, align: 'center', alpha: s.fNote * g * 0.7 });
+  }
+  drawCueB(ctx, T, s) {
+    const G = T.glyphs;   /* 微标签（sceneText 单一事实源） */
+    const g = s.gB, px = 470, py = 620, pw = 350, ph = 640;
+    ctx.save();
+    ctx.translate(px, py); ctx.scale(0.85 + 0.15 * s.phoneS, 0.85 + 0.15 * s.phoneS); ctx.translate(-px, -py);
+    card(ctx, px - pw / 2, py - ph / 2, pw, ph, { alpha: s.phone * g, stroke: C.fg, lw: 4, r: 46 });
+    ctx.restore();
+    /* 芯片区（θ，焊死：四角螺钉） */
+    card(ctx, px - 130, py - 270, 260, 130, { alpha: s.chipZone * g, stroke: C.blue, lw: 3, r: 16, fill: C.blue, dash: null });
+    txt(ctx, 'θ', px - 66, py - 172, { size: 60, weight: 700, align: 'center', alpha: s.chipZone * g, color: C.blue });
+    txt(ctx, G.chip, px + 40, py - 226, { size: 24, weight: 700, align: 'center', alpha: s.chipZone * g, color: C.blue });
+    txt(ctx, G.chipDead, px + 40, py - 180, { size: 20, align: 'center', alpha: s.chipZone * g * 0.8, color: C.blue });
+    [[-118, -258], [118, -258], [-118, -152], [118, -152]].forEach(p => dot(ctx, px + p[0], py + p[1], 5, C.fg, s.chipZone * g * 0.7));
+    /* APP 网格（Σ，可装卸） */
+    txt(ctx, 'Σ', px, py - 66, { size: 44, weight: 700, align: 'center', alpha: s.appZone * g });
+    this.appSt.forEach((a, i) => {
+      const col = i % 3, row = (i / 3) | 0;
+      let ax = px - 108 + col * 108, ay = py + 6 + row * 118;
+      let aa = a.a * g, ayy = ay;
+      if (i === 0) { aa *= (1 - s.appFly * 0.85); ayy = ay + s.appFlyY; } /* 第 0 格演示卸载/重装 */
+      card(ctx, ax - 38, ayy - 38, 76, 76, { alpha: aa, stroke: C.fg, lw: 2.5, r: 18, fill: C.fg });
+      dot(ctx, ax, ayy, 12, C.fg, aa * 0.5);
+    });
+    /* 右侧两块说明 */
+    const rx = 860;
+    card(ctx, rx, 300, 880, 240, { alpha: g * 0.9, stroke: C.blue, lw: 2, r: 20 });
+    txt(ctx, T.B.chipT, rx + 44, 368, { size: 38, weight: 700, alpha: s.chipZone * g, color: C.blue });
+    txt(ctx, T.B.chip1, rx + 44, 428, { size: 27, alpha: s.chipL1 * g * 0.9 });
+    para(ctx, T.B.chip2, rx + 44, 468, 800, { size: 27, alpha: s.chipL2 * g * 0.9 });
+    txt(ctx, T.B.vs, rx + 440, 590, { size: 34, weight: 700, align: 'center', alpha: g * 0.5 });
+    card(ctx, rx, 630, 880, 250, { alpha: g * 0.9, stroke: C.fg, lw: 2, r: 20 });
+    txt(ctx, T.B.appT, rx + 44, 700, { size: 38, weight: 700, alpha: s.appZone * g });
+    para(ctx, T.B.app1, rx + 44, 748, 800, { size: 27, alpha: s.appL1 * g * 0.9 });
+    txt(ctx, T.B.app2, rx + 44, 820, { size: 27, weight: 700, alpha: s.appL2 * g, color: C.green });
+    txt(ctx, T.B.note, 1860, 1012, { size: 21, align: 'right', alpha: s.note * g * 0.6 });
+  }
+}
+
+/* ------------------------------------------------------------------
+ * S2 三信号总览（N1c · 1:55–2:57 · 时长 62s）
+ * CUE_A 0–21s  两条路（改装备 vs 改大脑）→ 主干公式 θ_t --S_t--> θ_{t+1}
+ * CUE_B 21–38s 三色路径汇入：蓝 D 出题 / 黄 e 批卷 / 绿 τ 实验
+ * CUE_C 38–62s 三种老师预告定格 + 「会不会带偏」之问
+ * ------------------------------------------------------------------ */
+class S2 extends BaseScene {
+  constructor() {
+    super({
+      id: 'S2', title: '三信号总览', duration: 62, cues: [
+        { id: 'A', label: '换脑公式', start: 0, end: 21 },
+        { id: 'B', label: '三色信号汇入', start: 21, end: 38 },
+        { id: 'C', label: '三位老师定格', start: 38, end: 62 },
+      ],
+    });
+  }
+  setup() {
+    this.s = {
+      gA: 1, gB: 0, gC: 0,
+      lane1: 0, lane1P: 0, lane2: 0, lane2P: 0, lanesDim: 1,
+      focusA: 0,
+      n1P: 0, n1T: 0, n2P: 0, n2T: 0, arrP: 0, sigA: 0, sigN: 0, noteA: 0, fDim: 1,
+      lead: 0,
+      paths: [
+        { a: 0, p: 0, n: 0 }, { a: 0, p: 0, n: 0 }, { a: 0, p: 0, n: 0 },
+      ],
+      pathsDim: 1,
+      cLead: 0,
+      cards: [{ a: 0 }, { a: 0 }, { a: 0 }], cardsDim: 1,
+      q1: 0, q2: 0,
+    };
+    /* CUE_A —— 两条路：Σ 快箭头 / θ 慢箭头 */
+    this.tw(this.s, { lane1: 1 }, 0.8, 0.8, Ease.outCubic);
+    this.tw(this.s, { lane1P: 1 }, 1.4, 0.8, Ease.outCubic);
+    this.tw(this.s, { lane2: 1 }, 5.0, 0.8, Ease.outCubic);
+    this.tw(this.s, { lane2P: 1 }, 5.8, 2.6, Ease.inOutCubic);
+    this.tw(this.s, { focusA: 1 }, 10.5, 0.9, Ease.outCubic);
+    /* 让位 → 公式登场（全片仅两处公式之一） */
+    this.tw(this.s, { lanesDim: 0.3 }, 12.0, 0.8, Ease.inOutCubic);
+    this.tw(this.s, { n1P: 1 }, 13.0, 1.0, Ease.inOutCubic);
+    this.tw(this.s, { n1T: 1 }, 13.6, 0.8, Ease.outBack);
+    this.tw(this.s, { n2P: 1 }, 14.2, 1.0, Ease.inOutCubic);
+    this.tw(this.s, { n2T: 1 }, 14.8, 0.8, Ease.outBack);
+    this.tw(this.s, { arrP: 1 }, 15.4, 1.4, Ease.inOutCubic);
+    this.tw(this.s, { sigA: 1 }, 16.4, 0.9, Ease.outBack);
+    this.tw(this.s, { sigN: 1 }, 17.4, 0.9, Ease.outCubic);
+    this.tw(this.s, { noteA: 1 }, 18.2, 0.9, Ease.outCubic);
+    /* CUE_B 21s —— 三色路径汇入 S */
+    this.tw(this.s, { gB: 1 }, 21.2, 0.8, Ease.outCubic);
+    const srcs = [[300, 900], [960, 960], [1620, 900]];
+    this.s.paths.forEach((p, i) => {
+      this.tw(p, { n: 1 }, 22.5 + i * 2.8, 0.7, Ease.outBack);
+      this.tw(p, { p: 1 }, 23.1 + i * 2.8, 1.2, Ease.inOutCubic);
+      this.tw(p, { a: 1 }, 24.2 + i * 2.8, 0.8, Ease.outCubic);
+    });
+    this.tw(this.s, { lead: 1 }, 32.5, 0.9, Ease.outCubic);
+    /* CUE_C 38s —— 三位老师预告定格（公式与三色路径整体退场） */
+    this.tw(this.s, { gC: 1 }, 38.2, 0.8, Ease.outCubic);
+    this.tw(this.s, { gA: 0 }, 38.4, 0.9, Ease.inOutCubic);
+    this.tw(this.s, { fDim: 0.25, pathsDim: 0.2, lead: 0 }, 38.4, 0.9, Ease.inOutCubic);
+    this.tw(this.s, { cLead: 1 }, 39.2, 0.9, Ease.outCubic);
+    this.s.cards.forEach((c, i) => this.tw(c, { a: 1 }, 41 + i * 1.6, 0.9, Ease.outBack));
+    this.tw(this.s, { q1: 1 }, 50.0, 0.9, Ease.outCubic);
+    this.tw(this.s, { q2: 1 }, 52.0, 1.0, Ease.outBack);
+  }
+  render(ctx) {
+    const T = sceneText.S2, s = this.s;
+    /* CUE_A 顶部：今天的焦点 */
+    txt(ctx, T.A.focus, W / 2, 128, { size: 34, weight: 700, align: 'center', alpha: s.focusA * s.gA * 0.95 });
+    /* 两条路（后让位至 0.3，CUE_C 起整体退场） */
+    const ld = s.lanesDim * Math.max(s.gA, s.gC * 0.25);
+    txt(ctx, T.A.laneFast, 360, 300, { size: 30, alpha: s.lane1 * ld });
+    arrow(ctx, 360, 348, 1560, 348, { p: s.lane1P, alpha: 0.85 * ld, color: C.fg, width: 3, dash: [16, 12], head: 18 });
+    txt(ctx, T.A.laneSlow, 360, 420, { size: 30, alpha: s.lane2 * ld });
+    arrow(ctx, 360, 468, 1560, 468, { p: s.lane2P, alpha: 0.9 * ld, color: C.fg, width: 6, head: 20 });
+    /* 主干公式 θ_t --S_t--> θ_{t+1}（描边动画；CUE_C 保留 0.25 底衬）
+     * 注意节点/箭头/信号在 CUE_C 随 gA 退场，仅底部小字留极淡底衬 */
+    const fd = s.fDim * Math.max(s.gA, s.gC * 0.12);
+    const y = 620, x1 = 640, x2 = 1280;
+    nodeC(ctx, x1, y, 92, { p: s.n1P, color: C.fg, lw: 4, alpha: fd });
+    nodeC(ctx, x2, y, 92, { p: s.n2P, color: C.fg, lw: 4, alpha: fd });
+    subTxt(ctx, 'θ', 't', x1, y + 18, { size: 64, align: 'center', alpha: s.n1T * s.gA * s.fDim });
+    subTxt(ctx, 'θ', 't+1', x2, y + 18, { size: 64, align: 'center', alpha: s.n2T * s.gA * s.fDim });
+    arrow(ctx, x1 + 120, y, x2 - 120, y, { p: s.arrP, alpha: 0.95 * s.gA * s.fDim, color: C.fg, width: 5, head: 22 });
+    subTxt(ctx, 'S', 't', (x1 + x2) / 2, y - 58, { size: 44, align: 'center', alpha: s.sigA * s.gA * s.fDim, color: C.yellow });
+    txt(ctx, T.A.sigName, (x1 + x2) / 2, y + 150, { size: 34, weight: 700, align: 'center', alpha: s.sigN * fd });
+    txt(ctx, T.A.sigNote, (x1 + x2) / 2, y + 198, { size: 26, align: 'center', alpha: s.noteA * fd * 0.8 });
+    /* CUE_B：三色路径汇入 */
+    const pd = s.pathsDim * s.gB;
+    const cols = [C.blue, C.yellow, C.green];
+    const labels = [T.B.p1, T.B.p2, T.B.p3];
+    const srcs = [[300, 900], [960, 960], [1620, 900]];
+    srcs.forEach((sp, i) => {
+      const p = this.s.paths[i];
+      nodeC(ctx, sp[0], sp[1], 64, { color: cols[i], lw: 3.5, alpha: p.n * pd, fill: cols[i] });
+      txt(ctx, labels[i], sp[0], sp[1] + 118, { size: 30, weight: 700, align: 'center', alpha: p.a * pd, color: cols[i] });
+      qcurve(ctx, sp[0], sp[1] - 70, (sp[0] + 960) / 2, sp[1] - 260, 960, y + 120, { p: p.p, color: cols[i], alpha: 0.85 * pd, width: 4 });
+      dot(ctx, 960, y + 120, 7, cols[i], p.p * pd);
+    });
+    txt(ctx, T.B.lead, W / 2, 1044, { size: 28, align: 'center', alpha: s.lead * s.gB * 0.9 });
+    /* CUE_C：三种老师预告定格 */
+    const cd = s.gC;
+    txt(ctx, T.C.lead, W / 2, 208, { size: 30, weight: 700, align: 'center', alpha: s.cLead * cd * 0.9 });
+    const cardCols = [C.blue, C.yellow, C.green];
+    const titles = [T.C.t1, T.C.t2, T.C.t3], descs = [T.C.d1, T.C.d2, T.C.d3];
+    titles.forEach((t2, i) => {
+      const cx0 = 300 + i * 560, a = this.s.cards[i].a * this.s.cardsDim * cd;
+      card(ctx, cx0, 280, 480, 190, { alpha: a * 0.95, stroke: cardCols[i], lw: 3, r: 22 });
+      txt(ctx, t2, cx0 + 40, 352, { size: 32, weight: 700, alpha: a, color: cardCols[i] });
+      txt(ctx, descs[i], cx0 + 40, 424, { size: 34, weight: 700, alpha: a });
+    });
+    txt(ctx, T.C.q1, W / 2, 578, { size: 30, align: 'center', alpha: s.q1 * cd * 0.85 });
+    txt(ctx, T.C.q2, W / 2, 640, { size: 40, weight: 700, align: 'center', alpha: s.q2 * cd, glow: C.yellow, glowBlur: 24 });
+  }
+}
+
+/* ------------------------------------------------------------------
+ * S3 出题与坍缩（N2a,N2b,N2c · 2:57–5:42 · 时长 165s）
+ * CUE_A 0–62s   自产数据飞轮（出题→作答→回流训练，加速）+ 难度递增阶梯
+ * CUE_B 62–123s 复印机效应：原件→多代复印件渐糊→坍缩螺旋 + 知识气泡
+ * CUE_C 123–165s 保险丝：真实数据掺入 + 验证器门（代码勾/叉）
+ * ------------------------------------------------------------------ */
+class S3 extends BaseScene {
+  constructor() {
+    super({
+      id: 'S3', title: '出题与坍缩', duration: 165, cues: [
+        { id: 'A', label: '自产数据飞轮', start: 0, end: 62 },
+        { id: 'B', label: '复印机效应+坍缩', start: 62, end: 123 },
+        { id: 'C', label: '保险丝', start: 123, end: 165 },
+      ],
+    });
+  }
+  setup() {
+    const T = sceneText.S3;
+    this.wheelAng = 0;
+    this.s = {
+      gA: 1, gB: 0, gC: 0,
+      hA: 0, oldT: 0, old1: 0, old2: 0,
+      ring: 0, wheelT: 0, wheelV: 0.4,
+      nodes: T.A.wheelNodes.map(() => ({ a: 0 })),
+      m1: 0, m2: 0,
+      ladT: 0, ladN: 0,
+      pickT: 0, pickChips: [0, 0, 0, 0].map(() => ({ x: 0, a: 0 })), pickKeep: 0, pickWin: 0,
+      /* CUE_B */
+      bT: 0, mach: 0, orig: 0,
+      docs: [{ a: 0 }, { a: 0 }, { a: 0 }, { a: 0 }],
+      collT: 0, coll1: 0, coll2: 0, spiralK: 0, natureA: 0,
+      bubT: 0, bubLoop: 0, bubK: 0, bubEnd: 0, bnote: 0,
+      /* CUE_C */
+      fT: 0,
+      f1T: 0, f1a: 0, f1b: 0, mix: [0, 0, 0, 0, 0, 0],
+      f2T: 0, f2a: 0, f2b: 0, f2c: 0, gate1: 0, gate2: 0, tick1: 0, tick2: 0,
+      next: 0,
+    };
+    /* CUE_A —— 标题 + 传统办法（贵） */
+    this.tw(this.s, { hA: 1 }, 0.6, 0.9, Ease.outCubic);
+    this.tw(this.s, { oldT: 1 }, 3.0, 0.8, Ease.outCubic);
+    this.tw(this.s, { old1: 1 }, 4.0, 0.9, Ease.outCubic);
+    this.tw(this.s, { old2: 1 }, 6.5, 0.8, Ease.outBack);
+    this.pplSt = [0, 0, 0, 0, 0].map(() => ({ a: 0 }));
+    this.pplSt.forEach((p, i) => this.tw(p, { a: 1 }, 3.4 + i * 0.25, 0.6, Ease.outCubic));
+    /* 飞轮：出题→作答→回流训练，越转越快 */
+    this.tw(this.s, { ring: 1 }, 11.5, 1.2, Ease.inOutCubic);
+    T.A.wheelNodes.forEach((_, i) => this.tw(this.s.nodes[i], { a: 1 }, 12 + i * 2.0, 0.8, Ease.outBack));
+    this.tw(this.s, { wheelT: 1 }, 18.5, 0.9, Ease.outCubic);
+    this.tw(this.s, { m1: 1 }, 20.0, 0.8, Ease.outBack);
+    this.tw(this.s, { m2: 1 }, 21.6, 0.8, Ease.outBack);
+    /* 难度递增阶梯（Evol-Instruct）：56s 起飞轮同步加速 */
+    this.tw(this.s, { wheelV: 3.4 }, 56.0, 4.0, Ease.inOutQuad);
+    this.tw(this.s, { ladT: 1 }, 26.0, 0.9, Ease.outCubic);
+    this.stepSt = [0, 0, 0].map(() => ({ h: 0 }));
+    this.stepSt.forEach((st, i) => this.tw(st, { h: 1 }, 28 + i * 5.0, 1.4, Ease.outBack));
+    this.tw(this.s, { ladN: 1 }, 40.0, 0.9, Ease.outCubic);
+    /* 挑食：多解只留最有把握 */
+    this.tw(this.s, { pickT: 1 }, 46.0, 0.9, Ease.outCubic);
+    this.s.pickChips.forEach((c, i) => this.tw(c, { a: 1 }, 47 + i * 0.35, 0.6, Ease.outBack));
+    this.s.pickChips.forEach((c, i) => { if (i > 0) this.tw(c, { x: 1, a: 0.15 }, 51 + i * 0.2, 0.8, Ease.inOutCubic); });
+    this.tw(this.s, { pickWin: 1 }, 52.5, 0.8, Ease.outBack);
+    this.tw(this.s, { pickKeep: 1 }, 54.0, 0.9, Ease.outCubic);
+    /* CUE_B 62s —— 复印机效应 */
+    this.tw(this.s, { gA: 0, gB: 1 }, 62.0, 0.9, Ease.inOutCubic);
+    this.tw(this.s, { bT: 1 }, 63.0, 0.9, Ease.outCubic);
+    this.tw(this.s, { mach: 1 }, 64.0, 1.0, Ease.outBack);
+    this.tw(this.s, { orig: 1 }, 65.5, 0.9, Ease.outBack);
+    const genT = [71, 78, 85, 92];
+    this.s.docs.forEach((d, i) => this.tw(d, { a: 1 }, genT[i], 1.0, Ease.outCubic));
+    /* 坍缩螺旋 + 《自然》佐证 + 知识气泡 */
+    this.tw(this.s, { collT: 1 }, 97.0, 0.9, Ease.outBack);
+    this.tw(this.s, { coll1: 1 }, 98.0, 0.9, Ease.outCubic);
+    this.tw(this.s, { spiralK: 1 }, 99.0, 4.5, Ease.inOutCubic);
+    this.tw(this.s, { coll2: 1 }, 101.5, 0.9, Ease.outCubic);
+    this.tw(this.s, { natureA: 1 }, 105.5, 0.9, Ease.outCubic);
+    this.tw(this.s, { bubT: 1 }, 111.0, 0.9, Ease.outCubic);
+    this.tw(this.s, { bubLoop: 1 }, 112.0, 0.9, Ease.outCubic);
+    this.tw(this.s, { bubK: 1 }, 113.0, 5.5, Ease.inOutCubic);
+    this.tw(this.s, { bubEnd: 1 }, 117.5, 0.9, Ease.outCubic);
+    this.tw(this.s, { bnote: 1 }, 119.5, 0.8, Ease.outCubic);
+    /* CUE_C 123s —— 保险丝 */
+    this.tw(this.s, { gB: 0, gC: 1 }, 123.0, 0.9, Ease.inOutCubic);
+    this.tw(this.s, { fT: 1 }, 124.0, 0.9, Ease.outCubic);
+    this.tw(this.s, { f1T: 1 }, 126.0, 0.8, Ease.outBack);
+    this.tw(this.s, { f1a: 1 }, 127.0, 0.9, Ease.outCubic);
+    this.mixSt = [0, 0, 0, 0, 0, 0].map(() => ({ p: 0 }));
+    this.mixSt.forEach((m, i) => this.tw(m, { p: 1 }, 130 + i * 0.3, 0.9, Ease.inOutCubic));
+    this.tw(this.s, { f1b: 1 }, 133.5, 0.9, Ease.outCubic);
+    this.tw(this.s, { f2T: 1 }, 136.0, 0.8, Ease.outBack);
+    this.tw(this.s, { f2a: 1 }, 137.5, 0.9, Ease.outCubic);
+    this.tw(this.s, { f2b: 1 }, 141.0, 0.9, Ease.outCubic);
+    this.tw(this.s, { tick1: 1 }, 139.0, 0.6, Ease.outBack);
+    this.tw(this.s, { tick2: 1 }, 142.6, 0.6, Ease.outBack);
+    this.tw(this.s, { f2c: 1 }, 145.5, 0.9, Ease.outCubic);
+    this.tw(this.s, { next: 1 }, 155.0, 0.9, Ease.outCubic);
+  }
+  onTick(dt) { this.wheelAng += dt * this.s.wheelV; }
+  render(ctx) {
+    const T = sceneText.S3, s = this.s;
+    if (s.gA > 0.01) this.drawA(ctx, T, s);
+    if (s.gB > 0.01) this.drawB(ctx, T, s);
+    if (s.gC > 0.01) this.drawC(ctx, T, s);
+  }
+  /* —— CUE_A：飞轮 + 阶梯 —— */
+  drawA(ctx, T, s) {
+    const G = T.glyphs;   /* 微标签（sceneText 单一事实源） */
+    const g = s.gA;
+    txt(ctx, T.A.title, 100, 118, { size: 44, weight: 700, alpha: s.hA * g });
+    /* 传统办法 */
+    const ox = 100, oy = 220;
+    card(ctx, ox, oy, 560, 300, { alpha: g * 0.85, stroke: C.fg, lw: 2, r: 22 });
+    txt(ctx, T.A.oldT, ox + 40, oy + 66, { size: 30, weight: 700, alpha: s.oldT * g * 0.9 });
+    this.pplSt.forEach((p, i) => personGlyph(ctx, ox + 70 + i * 105, oy + 140, 64, p.a * g * 0.8));
+    para(ctx, T.A.old1, ox + 40, oy + 176, 480, { size: 25, alpha: s.old1 * g * 0.9 });
+    chipDraw(ctx, T.A.old2, ox + 40, oy + 252, { size: 26, alpha: s.old2 * g, color: C.yellow });
+    /* 挑食块（右侧） */
+    const kx = 1060, ky = 220;
+    card(ctx, kx, ky, 760, 300, { alpha: s.pickT * g * 0.85, stroke: C.fg, lw: 2, r: 22 });
+    txt(ctx, T.A.pickyT, kx + 40, ky + 62, { size: 30, weight: 700, alpha: s.pickT * g, color: C.blue });
+    txt(ctx, T.A.picky1, kx + 40, ky + 112, { size: 25, alpha: s.pickT * g * 0.85 });
+    s.pickChips.forEach((c, i) => {
+      /* 收拢到中央偏左 */
+      const tx = kx + 90 + i * 150 + c.x * (-(i * 150) + 240);
+      card(ctx, tx, ky + 150, 120, 66, { alpha: c.a * s.pickT * g, stroke: C.fg, lw: 2, r: 12 });
+      txt(ctx, G.sol + (i + 1), tx + 60, ky + 192, { size: 24, align: 'center', alpha: c.a * s.pickT * g * 0.9 });
+      if (i > 0) crossIcon(ctx, tx + 105, ky + 165, 16, C.fg, c.a * s.pickT * g * 0.6);
+    });
+    checkIcon(ctx, kx + 500, ky + 196, 30, C.green, s.pickWin * g);
+    txt(ctx, G.keep, kx + 460, ky + 205, { size: 26, weight: 700, alpha: s.pickWin * g, color: C.green });
+    para(ctx, T.A.picky2, kx, ky + 330, 420, { size: 25, alpha: s.pickKeep * g * 0.9 });
+    /* 自产数据飞轮（右中；标题贴环顶，避开上方挑食卡的淡出元素） */
+    const fx = 1520, fy = 660, R = 185;
+    txt(ctx, T.A.wheelT, fx, fy - R - 22, { size: 34, weight: 700, align: 'center', alpha: s.wheelT * g });
+    ctx.save(); ctx.globalAlpha = 0.5 * s.ring * g;
+    ctx.strokeStyle = C.blue; ctx.lineWidth = 3;
+    ctx.setLineDash([10, 16]); ctx.lineDashOffset = -this.wheelAng * R;
+    ctx.beginPath(); ctx.arc(fx, fy, R + 56, 0, Math.PI * 2); ctx.stroke();
+    ctx.setLineDash([]); ctx.restore();
+    T.A.wheelNodes.forEach((name, i) => {
+      const ang = -Math.PI / 2 + i * (Math.PI * 2 / 3) + this.wheelAng * 0.35;
+      const nx = fx + Math.cos(ang) * R, ny = fy + Math.sin(ang) * R;
+      nodeC(ctx, nx, ny, 62, { color: C.blue, lw: 3, alpha: s.nodes[i].a * g, fill: C.blue });
+      txt(ctx, name, nx, ny + 10, { size: 26, weight: 700, align: 'center', alpha: s.nodes[i].a * g, color: C.blue });
+    });
+    for (let k = 0; k < 3; k++) { /* 沿环流动的小点 */
+      const ang = this.wheelAng + k * (Math.PI * 2 / 3);
+      dot(ctx, fx + Math.cos(ang) * (R + 56), fy + Math.sin(ang) * (R + 56), 6, C.blue, s.ring * g * 0.9);
+    }
+    chipDraw(ctx, T.A.methods[0], fx - 500, fy + R + 96, { size: 24, alpha: s.m1 * g, color: C.blue });
+    chipDraw(ctx, T.A.methods[1], fx - 230, fy + R + 96, { size: 24, alpha: s.m2 * g, color: C.blue });
+    /* 难度递增阶梯（底部）+ 挑食说明（阶梯右侧空档，避开飞轮与柱标签） */
+    txt(ctx, T.A.ladderT, 100, 806, { size: 32, weight: 700, alpha: s.ladT * g });
+    const baseY = 1000, sx0 = 120, sw = 200, rise = 62;
+    T.A.steps.forEach((st, i) => {
+      const hgt = this.stepSt[i].h * (60 + i * rise);
+      const x0 = sx0 + i * sw;
+      ctx.save(); ctx.globalAlpha = this.stepSt[i].h * g * 0.9;
+      ctx.fillStyle = C.blue;
+      rrect(ctx, x0, baseY - hgt, sw - 26, hgt, 10); ctx.fill();
+      ctx.restore();
+      txt(ctx, st, x0 + (sw - 26) / 2, baseY - hgt - 18, { size: 27, weight: 700, align: 'center', alpha: this.stepSt[i].h * g });
+    });
+    arrow(ctx, sx0 + 3 * sw + 10, baseY - 30, sx0 + 3 * sw + 150, baseY - 220, { p: s.ladN, alpha: s.ladN * g * 0.8, color: C.blue, width: 4, head: 18 });
+    txt(ctx, G.hard, sx0 + 3 * sw + 175, baseY - 235, { size: 30, weight: 700, alpha: s.ladN * g, color: C.blue });
+    para(ctx, T.A.ladderNote, 100, 900, 620, { size: 26, alpha: s.ladN * g * 0.85 });
+  }
+  /* —— CUE_B：复印机 → 坍缩 → 知识气泡 —— */
+  drawDoc(ctx, x, y, q, a) {
+    const w = 150, h = 190;
+    card(ctx, x - w / 2, y - h / 2, w, h, { alpha: a, stroke: C.fg, lw: 2, r: 10 });
+    const j = (1 - q) * 5.5;
+    for (let i = 0; i < 4; i++) {
+      if (q < 0.32 && i % 2 === 1) continue;
+      if (q < 0.55 && i === 3) continue;
+      const ly = y - h / 2 + 44 + i * 34;
+      const off = j > 0 ? (srand(i * 3 + Math.floor(q * 10)) * 2 - 1) * j : 0;
+      ctx.save(); ctx.globalAlpha = a * (0.22 + q * 0.55);
+      ctx.strokeStyle = C.fg; ctx.lineWidth = 3; ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(x - w / 2 + 22 + off, ly);
+      ctx.lineTo(x - w / 2 + 22 + (w - 44) * (0.55 + q * 0.45) + off, ly);
+      ctx.stroke(); ctx.restore();
+    }
+    if (q > 0.8) dot(ctx, x, y - h / 2 + 28, 6, C.fg, a * 0.7); /* 原件：有标题点 */
+  }
+  drawB(ctx, T, s) {
+    const G = T.glyphs;   /* 微标签（sceneText 单一事实源） */
+    const g = s.gB;
+    txt(ctx, T.B.bT, 280, 178, { size: 44, weight: 700, alpha: s.bT * g });
+    /* 复印机 */
+    const my = 420;
+    card(ctx, 190, my - 92, 240, 184, { alpha: s.mach * g, stroke: C.fg, lw: 3, r: 18 });
+    rrect(ctx, 210, my - 70, 200, 70, 10);
+    ctx.save(); ctx.globalAlpha = s.mach * g * 0.5; ctx.fillStyle = C.fg; ctx.fill(); ctx.restore();
+    txt(ctx, G.copy, 310, my + 44, { size: 26, weight: 700, align: 'center', alpha: s.mach * g * 0.8 });
+    arrow(ctx, 440, my, 500, my, { p: s.mach, alpha: s.mach * g * 0.7, width: 3, head: 12 });
+    /* 原件 + 多代复印件（越代越糊） */
+    this.drawDoc(ctx, 590, my, 1, s.orig * g);
+    txt(ctx, T.B.orig, 590, my + 132, { size: 26, weight: 700, align: 'center', alpha: s.orig * g });
+    const genQ = [0.78, 0.5, 0.3, 0.1];
+    T.B.gens.forEach((lb, i) => {
+      const dx = 760 + i * 190;
+      this.drawDoc(ctx, dx, my, genQ[i], s.docs[i].a * g);
+      txt(ctx, lb, dx, my + 132, { size: 24, align: 'center', alpha: s.docs[i].a * g * 0.8 });
+    });
+    /* 模型坍缩：螺旋收拢 */
+    const cx = 420, cy = 830;
+    txt(ctx, T.B.collT, cx, cy - 218, { size: 36, weight: 700, align: 'center', alpha: s.collT * g, color: C.blue });
+    const N = 60;
+    for (let i = 0; i < N; i++) {
+      const ang0 = srand(i) * Math.PI * 2 + i * 0.32;
+      const r0 = 100 + srand(i + 99) * 88;
+      const k = clamp01(s.spiralK * 1.45 - i * 0.007);
+      const rr = lerp(r0, 7, k), ang = ang0 + k * 4.6;
+      dot(ctx, cx + Math.cos(ang) * rr, cy + Math.sin(ang) * rr * 0.78, 4.5 - k * 2, C.blue, s.collT * g * 0.6);
+    }
+    para(ctx, T.B.coll1, 720, 668, 420, { size: 26, alpha: s.coll1 * g * 0.9 });
+    para(ctx, T.B.coll2, 720, 748, 420, { size: 26, alpha: s.coll2 * g * 0.9 });
+    /* 《自然》2024 佐证条 */
+    card(ctx, 720, 856, 520, 92, { alpha: s.natureA * g * 0.85, stroke: C.fg, lw: 2, r: 14 });
+    para(ctx, T.B.nature, 752, 884, 460, { size: 24, alpha: s.natureA * g * 0.9 });
+    /* 知识气泡：越学越窄的圈 */
+    const bx = 1450, by = 800;
+    txt(ctx, T.B.bubT, bx, by - 226, { size: 36, weight: 700, align: 'center', alpha: s.bubT * g });
+    const r = lerp(170, 56, s.bubK);
+    nodeC(ctx, bx, by, r, { color: C.blue, lw: 3.5, alpha: s.bubT * g });
+    nodeC(ctx, bx, by, r * 0.62 + 20, { color: C.blue, lw: 2, alpha: s.bubT * g * 0.4 });
+    T.B.bubLoop.forEach((lb, i) => {
+      const ang = -Math.PI / 2 + i * (Math.PI * 2 / 3);
+      const lx = bx + Math.cos(ang) * (r + 74), ly = by + Math.sin(ang) * (r + 74) * 0.72;
+      txt(ctx, lb, lx, ly, { size: 22, align: 'center', alpha: s.bubLoop * g * 0.85 });
+      const a0 = ang + 0.45, a1 = ang + Math.PI * 2 / 3 - 0.45;
+      arcArrow(ctx, bx, by, r + 40, a0, a1, { p: s.bubLoop, color: C.blue, alpha: s.bubLoop * g * 0.55, width: 2.5, head: 11 });
+    });
+    txt(ctx, T.B.bubEnd, bx, by + 8, { size: 24, weight: 700, align: 'center', alpha: s.bubEnd * g, color: C.blue });
+    txt(ctx, T.B.note, 1860, 1012, { size: 21, align: 'right', alpha: s.bnote * g * 0.6 });
+  }
+  /* —— CUE_C：保险丝 —— */
+  drawC(ctx, T, s) {
+    const G = T.glyphs;   /* 微标签（sceneText 单一事实源） */
+    const g = s.gC;
+    txt(ctx, T.C.fT, 100, 130, { size: 44, weight: 700, alpha: s.fT * g, color: C.green });
+    /* 保险丝① 掺真实数据 */
+    const ax = 120, ay = 220;
+    txt(ctx, T.C.f1T, ax, ay + 52, { size: 32, weight: 700, alpha: s.f1T * g, color: C.green });
+    para(ctx, T.C.f1, ax, ay + 100, 640, { size: 27, alpha: s.f1a * g * 0.9 });
+    /* 左源：自产数据（复印件小卡堆） */
+    [0, 1, 2].forEach(i => this.drawDoc(ctx, ax + 120 + i * 34, ay + 240 - i * 16, 0.45, s.f1a * g * 0.8));
+    txt(ctx, G.selfMade, ax + 130, ay + 348, { size: 24, align: 'center', alpha: s.f1a * g * 0.75, color: C.blue });
+    /* 右源：真实数据（原件） */
+    this.drawDoc(ctx, ax + 460, ay + 240, 1, s.f1a * g);
+    txt(ctx, G.realData, ax + 460, ay + 348, { size: 24, align: 'center', alpha: s.f1a * g * 0.75 });
+    /* 掺着喂：两股点流汇合 */
+    this.mixSt.forEach((m, i) => {
+      const blue = i % 2 === 0;
+      const fromX = blue ? ax + 140 : ax + 450;
+      const toX = ax + 300 + (i - 2.5) * 22;
+      const mx = lerp(fromX, toX, m.p);
+      dot(ctx, mx, ay + 240 + Math.sin(m.p * Math.PI) * -46, blue ? 7 : 8, blue ? C.blue : C.fg, s.f1a * g * 0.85);
+    });
+    arrow(ctx, ax + 300, ay + 260, ax + 300, ay + 330, { p: s.f1a, alpha: s.f1a * g * 0.7, width: 3, head: 14 });
+    para(ctx, T.C.f1b, ax, ay + 388, 660, { size: 27, alpha: s.f1b * g * 0.92 });
+    /* 保险丝② 外部裁判 */
+    const bx = 1000, by = 240;
+    txt(ctx, T.C.f2T, bx, by + 32, { size: 32, weight: 700, alpha: s.f2T * g, color: C.green });
+    card(ctx, bx, by + 76, 300, 110, { alpha: s.f2a * g * 0.9, stroke: C.fg, lw: 2, r: 14 });
+    txt(ctx, '{ code }', bx + 150, by + 140, { size: 28, weight: 700, align: 'center', alpha: s.f2a * g * 0.9 });
+    para(ctx, T.C.f2a, bx, by + 224, 640, { size: 26, alpha: s.f2a * g * 0.9 });
+    checkIcon(ctx, bx + 700, by + 128, 30, C.green, s.tick1 * g);
+    card(ctx, bx, by + 292, 300, 110, { alpha: s.f2b * g * 0.9, stroke: C.fg, lw: 2, r: 14 });
+    txt(ctx, G.prove, bx + 150, by + 356, { size: 28, weight: 700, align: 'center', alpha: s.f2b * g * 0.9 });
+    para(ctx, T.C.f2b, bx, by + 440, 640, { size: 26, alpha: s.f2b * g * 0.9 });
+    checkIcon(ctx, bx + 700, by + 344, 30, C.green, s.tick2 * g);
+    txt(ctx, T.C.f2c, bx, by + 540, { size: 27, weight: 700, alpha: s.f2c * g * 0.92, color: C.green });
+    txt(ctx, T.C.next, W / 2, 1012, { size: 28, align: 'center', alpha: s.next * g * 0.85 });
+  }
+}
+/* ------------------------------------------------------------------
+ * S4 自批作业（N3a,N3b,N3c,N3d · 5:42–8:19 · 时长 157s）
+ * CUE_A 0–43s   三种自评姿势并列（规矩打分/多数投票/纠正反馈），逐个点亮
+ * CUE_B 43–77s  十个答案卡展开、七个「42」聚拢胜出成训练目标
+ * CUE_C 77–117s 反转：十个「43」同样聚拢 ——「自信地错」红色警示
+ * CUE_D 117–157s 保险丝：分身分离 + 人类锚点题 + 分歧警报
+ * ------------------------------------------------------------------ */
+class S4 extends BaseScene {
+  constructor() {
+    super({
+      id: 'S4', title: '自批作业', duration: 157, cues: [
+        { id: 'A', label: '三种自评姿势', start: 0, end: 43 },
+        { id: 'B', label: '多数投票 42', start: 43, end: 77 },
+        { id: 'C', label: '自信地错 43', start: 77, end: 117 },
+        { id: 'D', label: '保险丝', start: 117, end: 157 },
+      ],
+    });
+  }
+  setup() {
+    const T = sceneText.S4;
+    this.cards = []; /* CUE_B/C 共用的十张答案卡 */
+    this.s = {
+      gA: 1, gB: 0, gC: 0, gD: 0,
+      hA: 0, humanQ: 0, humanB: 0, idea: 0, ideaB: 0, msDim: 1,
+      /* CUE_B */
+      bT: 0, setup: 0, setupB: 0,
+      grid: 0, winA: 0, banner: 0, condK: 0, bigA: 0, bigS: 0.5, tgt: 0,
+      logic: 0, feel: 0,
+      /* CUE_C */
+      cT: 0, yAmp: 0, cBigA: 0, cRingA: 0, verdict: 0, warn: 0, same: 0, sameB: 0,
+      /* CUE_D */
+      fT: 0,
+      d1: 0, d1b: 0, d1c: 0,
+      d2: 0, d2b: 0, d2c: 0,
+      d3: 0, d3b: 0, d3c: 0, zig: 0,
+    };
+    /* CUE_A —— 问题与思路 */
+    this.tw(this.s, { hA: 1 }, 0.6, 0.9, Ease.outCubic);
+    this.tw(this.s, { humanQ: 1 }, 2.0, 0.9, Ease.outCubic);
+    this.tw(this.s, { humanB: 1 }, 4.0, 1.0, Ease.outCubic);
+    this.tw(this.s, { idea: 1 }, 8.0, 0.9, Ease.outBack);
+    this.tw(this.s, { ideaB: 1 }, 9.0, 0.9, Ease.outCubic);
+    /* 三种姿势逐个点亮（14s / 24s / 36s） */
+    this.msSt = [0, 0, 0].map(() => ({ a: 0 }));
+    this.msSt.forEach((m, i) => this.tw(m, { a: 1 }, 14 + i * 11.0, 1.0, Ease.outBack));
+    /* CUE_B 43s —— 三姿势退场，十个答案卡登场：七个 42 */
+    this.tw(this.s, { gA: 0, gB: 1 }, 43.2, 0.8, Ease.inOutCubic);
+    this.tw(this.s, { bT: 1 }, 44.0, 0.9, Ease.outCubic);
+    this.tw(this.s, { setup: 1 }, 45.0, 0.9, Ease.outCubic);
+    this.tw(this.s, { setupB: 1 }, 47.5, 0.9, Ease.outCubic);
+    this.cards = [];
+    for (let i = 0; i < 10; i++) this.cards.push({ a: 0, sc: 0.7 });
+    this.cards.forEach((c, i) => this.tw(c, { a: 1, sc: 1 }, 49 + i * 0.22, 0.6, Ease.outBack));
+    this.tw(this.s, { winA: 1 }, 56.5, 1.0, Ease.outCubic);
+    this.tw(this.s, { banner: 1 }, 57.5, 1.0, Ease.outBack);
+    this.tw(this.s, { condK: 1 }, 61.0, 1.4, Ease.inOutCubic);
+    this.tw(this.s, { bigA: 1, bigS: 1 }, 62.6, 1.2, Ease.outElastic);
+    this.tw(this.s, { tgt: 1 }, 64.5, 0.9, Ease.outCubic);
+    this.tw(this.s, { logic: 1 }, 67.0, 0.9, Ease.outCubic);
+    this.tw(this.s, { feel: 1 }, 71.0, 1.0, Ease.outCubic);
+    /* CUE_C 77s —— 反转：十个 43 */
+    this.tw(this.s, { gC: 1 }, 77.2, 0.8, Ease.outCubic);
+    this.tw(this.s, { gB: 0 }, 77.2, 0.8, Ease.inOutCubic);
+    this.tw(this.s, { cT: 1 }, 78.0, 0.9, Ease.outCubic);
+    this.tw(this.s, { yAmp: 1 }, 79.0, 1.2, Ease.inOutCubic);
+    this.tw(this.s, { cBigA: 1, cRingA: 1 }, 83.5, 1.1, Ease.outBack);
+    this.tw(this.s, { verdict: 1 }, 86.0, 1.0, Ease.outCubic);
+    this.tw(this.s, { warn: 1 }, 88.5, 1.1, Ease.outBack);
+    this.tw(this.s, { same: 1 }, 96.0, 1.0, Ease.outCubic);
+    this.tw(this.s, { sameB: 1 }, 99.0, 1.0, Ease.outCubic);
+    this.tw(this.s, { yAmp: 0 }, 112.0, 1.0, Ease.inOutCubic);
+    /* CUE_D 117s —— 保险丝三件 */
+    this.tw(this.s, { gC: 0, gD: 1 }, 117.0, 0.9, Ease.inOutCubic);
+    this.tw(this.s, { fT: 1 }, 118.0, 0.9, Ease.outCubic);
+    this.tw(this.s, { d1: 1 }, 120.0, 0.8, Ease.outBack);
+    this.roleSt = [0, 0, 0].map(() => ({ a: 0 }));
+    this.roleSt.forEach((r, i) => this.tw(r, { a: 1 }, 121.5 + i * 0.8, 0.7, Ease.outBack));
+    this.tw(this.s, { d1b: 1 }, 124.5, 0.9, Ease.outCubic);
+    this.tw(this.s, { d1c: 1 }, 127.5, 0.9, Ease.outCubic);
+    this.tw(this.s, { d2: 1 }, 131.0, 0.8, Ease.outBack);
+    this.anchorSt = [0, 0, 0].map(() => ({ a: 0 }));
+    this.anchorSt.forEach((a, i) => this.tw(a, { a: 1 }, 132.2 + i * 0.5, 0.7, Ease.outBack));
+    this.tw(this.s, { d2b: 1 }, 134.0, 0.9, Ease.outCubic);
+    this.tw(this.s, { d2c: 1 }, 137.0, 0.9, Ease.outCubic);
+    this.tw(this.s, { d3: 1 }, 141.0, 0.8, Ease.outBack);
+    this.judgeSt = [0, 0, 0].map(() => ({ a: 0 }));
+    this.judgeSt.forEach((j, i) => this.tw(j, { a: 1 }, 142.2 + i * 0.6, 0.7, Ease.outBack));
+    this.tw(this.s, { zig: 1 }, 144.0, 0.9, Ease.outCubic);
+    this.tw(this.s, { d3b: 1 }, 145.5, 0.9, Ease.outCubic);
+    this.tw(this.s, { d3c: 1 }, 148.5, 0.9, Ease.outCubic);
+  }
+  /* 十张答案卡通用绘制（CUE_B 与 CUE_C 共用） */
+  drawVotes(ctx, cfg) {
+    const winSet = cfg.winSet, cx = cfg.cx, cy = cfg.cy;
+    for (let i = 0; i < 10; i++) {
+      const row = (i / 5) | 0, col = i % 5;
+      let x = 150 + col * 230, y = 392 + row * 170;
+      /* CUE_C 独用：十个 43 出现时整齐但错位排列（各自偏移出网格，暗示系统性偏差） */
+      if (cfg.yAmp > 0) {
+        x += Math.sin(i * 12.9898) * 150 * cfg.yAmp;
+        y += Math.sin(i * 78.233 + 4.0) * 118 * cfg.yAmp;
+      }
+      let a = this.cards[i].a * cfg.g, sx = x, sy = y, sc = this.cards[i].sc;
+      if (cfg.condK > 0) {
+        const k = Ease.inOutCubic(cfg.condK);
+        const tx0 = cfg.winSet.includes(i) ? cx : cx + 340;
+        const ty0 = cfg.winSet.includes(i) ? cy : cy + 40;
+        sx = lerp(x, tx0, k); sy = lerp(y, ty0, k);
+        sc = lerp(1, cfg.winSet.includes(i) ? 0.45 : 0.3, k);
+        a *= lerp(1, cfg.winSet.includes(i) ? 0.12 : 0.06, k);
+      }
+      ctx.save();
+      ctx.translate(sx, sy); ctx.scale(sc, sc); ctx.translate(-sx, -sy);
+      card(ctx, sx - 80, sy - 62, 160, 124, { alpha: a * 0.95, stroke: cfg.color, lw: 2.5, r: 14 });
+      /* CUE_B：winSet 之外的三张卡绘杂项答案（与分镜 S4-004「七个42+三个杂项」一致）；CUE_C 全票时回落到统一错答 */
+      const label = (cfg.others && !cfg.winSet.includes(i)) ? cfg.others[[4, 5, 9].indexOf(i)] : cfg.ans;
+      txt(ctx, label, sx, sy + 16, { size: 46, weight: 700, align: 'center', alpha: a, color: cfg.color });
+      ctx.restore();
+      if (winSet.includes(i) && cfg.winA > 0) {
+        nodeC(ctx, x, y, 100, { color: cfg.winColor, lw: 3.5, alpha: cfg.winA * cfg.g });
+      }
+    }
+  }
+  render(ctx) {
+    const T = sceneText.S4, s = this.s;
+    if (s.gA > 0.01) this.drawA(ctx, T, s);
+    if (s.gB > 0.01) this.drawB(ctx, T, s);
+    if (s.gC > 0.01) this.drawC(ctx, T, s);
+    if (s.gD > 0.01) this.drawD(ctx, T, s);
+  }
+  /* —— CUE_A：三种自评姿势 —— */
+  drawA(ctx, T, s) {
+    const g = s.gA;
+    txt(ctx, T.A.title, 100, 118, { size: 44, weight: 700, alpha: s.hA * g });
+    /* 左：老问题（人类反馈，贵） */
+    card(ctx, 100, 190, 660, 200, { alpha: g * 0.85, stroke: C.fg, lw: 2, r: 22 });
+    txt(ctx, T.A.humanQ, 140, 262, { size: 32, weight: 700, alpha: s.humanQ * g });
+    personGlyph(ctx, 660, 252, 58, s.humanQ * g * 0.7);
+    para(ctx, T.A.humanB, 140, 296, 580, { size: 26, alpha: s.humanB * g * 0.9 });
+    /* 右：新思路 */
+    card(ctx, 820, 190, 1000, 200, { alpha: g * 0.85, stroke: C.yellow, lw: 2.5, r: 22 });
+    txt(ctx, T.A.idea, 860, 262, { size: 34, weight: 700, alpha: s.idea * g, color: C.yellow });
+    txt(ctx, T.A.ideaB, 860, 320, { size: 27, alpha: s.ideaB * g * 0.85 });
+    /* 三张姿势卡 */
+    const ms = [T.A.m1, T.A.m2, T.A.m3];
+    const mb = [T.A.m1b, T.A.m2b, T.A.m3b];
+    const mt = [T.A.m1t, T.A.m2t, ''];
+    ms.forEach((m, i) => {
+      const a = this.msSt[i].a * s.msDim * g;
+      const x = 100 + i * 590, y = 450, w = 540;
+      card(ctx, x, y, w, 420, { alpha: a * 0.95, stroke: C.yellow, lw: 3, r: 24 });
+      txt(ctx, m, x + 44, y + 78, { size: 36, weight: 700, alpha: a });
+      if (mt[i]) txt(ctx, mt[i], x + 44, y + 106, { size: 18, alpha: a * 0.65, color: C.fg });
+      para(ctx, mb[i], x + 44, y + 130, w - 88, { size: 27, alpha: a * 0.9 });
+      /* 图标：手册 / 投票 / 反馈 */
+      const ix = x + w / 2, iy = y + 320;
+      if (i === 0) {
+        ctx.save(); ctx.globalAlpha = a * 0.9; ctx.strokeStyle = C.fg; ctx.lineWidth = 3; ctx.lineCap = 'round';
+        rrect(ctx, ix - 46, iy - 56, 92, 112, 8); ctx.stroke();
+        for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.moveTo(ix - 28, iy - 30 + k * 26); ctx.lineTo(ix + 28, iy - 30 + k * 26); ctx.stroke(); }
+        ctx.restore();
+      } else if (i === 1) {
+        for (let k = 0; k < 3; k++) dot(ctx, ix - 40 + k * 40, iy + (k === 1 ? -30 : 10), 13, C.fg, a * 0.9);
+        ctx.save(); ctx.globalAlpha = a * 0.75; ctx.strokeStyle = C.fg; ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.moveTo(ix - 20, iy + 44); ctx.lineTo(ix + 4, iy + 44); ctx.stroke(); ctx.restore();
+      } else {
+        ctx.save(); ctx.globalAlpha = a * 0.9; ctx.strokeStyle = C.fg; ctx.lineWidth = 3; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(ix - 34, iy - 30); ctx.quadraticCurveTo(ix, iy - 60, ix + 34, iy - 24); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(ix + 34, iy - 24); ctx.lineTo(ix + 44, iy - 40); ctx.stroke();
+        ctx.restore();
+      }
+    });
+  }
+  /* —— CUE_B：七个 42 胜出 → 聚成训练目标 —— */
+  drawB(ctx, T, s) {
+    const g = s.gB;
+    txt(ctx, T.B.bT, 280, 178, { size: 44, weight: 700, alpha: s.bT * g, color: C.yellow });
+    txt(ctx, T.B.setup, 100, 252, { size: 30, alpha: s.setup * g });
+    txt(ctx, T.B.setupB, 100, 296, { size: 25, alpha: s.setupB * g * 0.75 });
+    this.drawVotes(ctx, {
+      g, ans: T.B.ans, others: T.B.others, color: C.fg, winColor: C.green,
+      winSet: [0, 1, 2, 3, 6, 7, 8], winA: s.winA,
+      yAmp: 0, condK: s.condK * (1 - s.yAmp), cx: 1450, cy: 470,
+    });
+    /* 胜出横幅（网格下方） */
+    txt(ctx, T.B.win, 720, 800, { size: 30, weight: 700, align: 'center', alpha: s.banner * g, color: C.green });
+    /* 聚拢后的大 42（训练目标） */
+    nodeC(ctx, 1450, 470, 120, { color: C.green, lw: 4, alpha: s.bigA * g, fill: C.green });
+    ctx.save();
+    ctx.translate(1450, 470); ctx.scale(s.bigS, s.bigS); ctx.translate(-1450, -470);
+    txt(ctx, T.B.ans, 1450, 470, { size: 110, weight: 700, align: 'center', base: 'middle', alpha: s.bigA * g, color: C.green, glow: C.green, glowBlur: 26 });
+    ctx.restore();
+    chipDraw(ctx, T.B.target, 1450, 640, { size: 26, alpha: s.tgt * g, color: C.green });
+    para(ctx, T.B.logic, 1560, 880, 640, { size: 26, align: 'center', alpha: s.logic * g * 0.85, color: C.yellow });
+    para(ctx, T.B.feel, 1560, 950, 640, { size: 26, align: 'center', alpha: s.feel * g * 0.9 });
+  }
+  /* —— CUE_C：十个 43 —— 自信地错 —— */
+  drawC(ctx, T, s) {
+    const g = s.gC;
+    para(ctx, T.C.cT, 100, 170, 1500, { size: 34, weight: 700, alpha: s.cT * g, color: C.red });
+    this.drawVotes(ctx, {
+      g, ans: T.C.wrong, color: C.red, winColor: C.red,
+      winSet: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], winA: s.cT,
+      yAmp: s.yAmp, condK: 0, cx: 1350, cy: 400,
+    });
+    /* 同样聚拢成 43（全票通过） */
+    nodeC(ctx, 1350, 400, 118, { color: C.red, lw: 4, alpha: s.cBigA * g, fill: C.red });
+    txt(ctx, T.C.wrong, 1350, 400, { size: 110, weight: 700, align: 'center', base: 'middle', alpha: s.cBigA * g, color: C.red, glow: C.red, glowBlur: 30 });
+    nodeC(ctx, 1350, 400, 150, { color: C.red, lw: 2.5, alpha: s.cRingA * g * 0.6 });
+    para(ctx, T.C.wrongAll, 100, 700, 1080, { size: 27, alpha: s.cT * g * 0.9 });
+    /* 红色警示章（呼吸） */
+    const pulse = 0.5 + 0.5 * Math.sin(this.t * 3.2);
+    ctx.save();
+    ctx.translate(560, 890); ctx.rotate(-0.05); ctx.translate(-560, -890);
+    txt(ctx, T.C.warn, 560, 890, { size: 46, weight: 700, align: 'center', base: 'middle', alpha: s.warn * g, color: C.red, glow: C.red, glowBlur: 18 + pulse * 26 });
+    rrect(ctx, 560 - 330, 890 - 52, 660, 104, 20);
+    ctx.save(); ctx.globalAlpha = s.warn * g * (0.35 + pulse * 0.4);
+    ctx.strokeStyle = C.red; ctx.lineWidth = 4; ctx.stroke(); ctx.restore();
+    ctx.restore();
+    para(ctx, T.C.verdict, 1150, 830, 660, { size: 28, weight: 700, alpha: s.verdict * g, color: C.red });
+    para(ctx, T.C.same, 1150, 940, 700, { size: 25, alpha: s.same * g * 0.85 });
+    para(ctx, T.C.sameB, 1150, 1000, 700, { size: 25, alpha: s.sameB * g, color: C.red });
+  }
+  /* —— CUE_D：三条保险丝 —— */
+  drawD(ctx, T, s) {
+    const g = s.gD;
+    txt(ctx, T.D.fT, 100, 130, { size: 44, weight: 700, alpha: s.fT * g, color: C.green });
+    /* ① 分身分离 */
+    chipDraw(ctx, T.D.d1, 160, 260, { size: 34, alpha: s.d1 * g, color: C.green });
+    const roleNames = sceneText.S4.glyphs.roles;
+    this.roleSt.forEach((r, i) => {
+      const rx = 240 + i * 280, ry = 420;
+      nodeC(ctx, rx, ry, 56, { color: C.fg, lw: 3, alpha: r.a * g, fill: C.fg });
+      personGlyph(ctx, rx, ry + 4, 52, r.a * g);
+      txt(ctx, roleNames[i], rx, ry + 100, { size: 24, align: 'center', alpha: r.a * g * 0.85 });
+      if (i < 2) arrow(ctx, rx + 70, ry, rx + 200, ry, { p: Math.min(r.a, this.roleSt[i + 1] ? this.roleSt[i + 1].a : 1), alpha: r.a * g * 0.55, width: 2.5, head: 12 });
+    });
+    txt(ctx, sceneText.S4.glyphs.diffFamily, 660, 330, { size: 22, align: 'center', alpha: this.roleSt[2].a * g * 0.6 });
+    para(ctx, T.D.d1b, 100, 570, 780, { size: 27, alpha: s.d1b * g * 0.9 });
+    para(ctx, T.D.d1c, 100, 660, 780, { size: 25, alpha: s.d1c * g * 0.7 });
+    /* ② 人类锚点题 */
+    chipDraw(ctx, T.D.d2, 1040, 260, { size: 34, alpha: s.d2 * g, color: C.green });
+    this.anchorSt.forEach((a, i) => {
+      const ax = 1120 + i * 240;
+      card(ctx, ax - 90, 370, 180, 96, { alpha: a.a * g * 0.9, stroke: C.fg, lw: 2, r: 12 });
+      txt(ctx, sceneText.S4.glyphs.anchor, ax - 40, 428, { size: 24, alpha: a.a * g * 0.9 });
+      checkIcon(ctx, ax + 48, 418, 22, C.green, a.a * g);
+      personGlyph(ctx, ax + 48, 464, 34, a.a * g * 0.55);
+    });
+    para(ctx, T.D.d2b, 1000, 570, 820, { size: 27, alpha: s.d2b * g * 0.9 });
+    para(ctx, T.D.d2c, 1000, 660, 820, { size: 25, alpha: s.d2c * g * 0.7 });
+    /* ③ 分歧警报 */
+    chipDraw(ctx, T.D.d3, 620, 790, { size: 34, alpha: s.d3 * g, color: C.green });
+    this.judgeSt.forEach((j, i) => dot(ctx, 1000 + i * 130, 790, 12, C.fg, j.a * g * 0.85));
+    const pulse = 0.5 + 0.5 * Math.sin(this.t * 4.0);
+    ctx.save(); ctx.globalAlpha = s.zig * g * (0.5 + pulse * 0.5);
+    ctx.strokeStyle = C.red; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(1012, 762);
+    for (let k = 0; k < 5; k++) ctx.lineTo(1042 + k * 60, k % 2 ? 762 : 818);
+    ctx.stroke(); ctx.restore();
+    crossIcon(ctx, 1430, 790, 26, C.red, s.zig * g);
+    para(ctx, T.D.d3b, 460, 880, 1100, { size: 27, alpha: s.d3b * g * 0.9 });
+    para(ctx, T.D.d3c, 460, 948, 1100, { size: 25, alpha: s.d3c * g * 0.7 });
+  }
+}
+/* ------------------------------------------------------------------
+ * S5 下场实验（N4a,N4b,N4c · 8:19–10:47 · 时长 148s）
+ * CUE_A 0–42s   代码→单元测试全绿/报错分支 + Absolute Zero 三角色循环
+ * CUE_B 42–102s 世界模型：脑内模拟器气泡（棋手推演类比）
+ * CUE_C 102–148s 风险三连：注水作文 / 特长生退步 / 幻觉世界
+ * ------------------------------------------------------------------ */
+class S5 extends BaseScene {
+  constructor() {
+    super({
+      id: 'S5', title: '下场实验', duration: 148, cues: [
+        { id: 'A', label: '现实当老师', start: 0, end: 42 },
+        { id: 'B', label: '世界模型', start: 42, end: 102 },
+        { id: 'C', label: '风险三连', start: 102, end: 148 },
+      ],
+    });
+  }
+  setup() {
+    const T = sceneText.S5;
+    this.cursor = 0; this.errCursor = 0; this.ghostT = 0;
+    this.s = {
+      gA: 1, gB: 0, gC: 0,
+      hA: 0, lead: 0,
+      code: 0, runT: 0, ttP: 0,
+      green: 0, err: 0, errA: 0, retry: 0,
+      noHuman: 0,
+      azT: 0, azCap: 0, azPass: 0, azLoop: 0,
+      /* CUE_B */
+      bT: 0, why: 0, sim: 0,
+      bubble: 0, bubble2: 0, btnA: 0, ghostA: 0, pre: 0, okA: 0,
+      chess1: 0, chess2: 0, tag: 0, note: 0,
+      /* CUE_C */
+      cT: 0,
+      r1: 0, r1b: 0, r1c: 0, words: [0, 0, 0, 0], counter: 0, counterP: 0,
+      r2: 0, r2b: 0, r2c: 0, bars: [0, 0, 0], barDrop: 0,
+      r3: 0, r3b: 0, r3c: 0, wob: 0, blobA: 0,
+    };
+    /* CUE_A —— 代码 → 单测 */
+    this.tw(this.s, { hA: 1 }, 0.6, 0.9, Ease.outCubic);
+    this.tw(this.s, { lead: 1 }, 2.0, 0.9, Ease.outCubic);
+    this.tw(this.s, { code: 1 }, 5.0, 1.0, Ease.outCubic);
+    this.codeSt = [0, 0, 0, 0].map(() => ({ a: 0 }));
+    this.codeSt.forEach((l, i) => this.tw(l, { a: 1 }, 6 + i * 1.1, 0.7, Ease.outCubic));
+    this.tw(this.s, { runT: 1 }, 11.0, 0.8, Ease.outCubic);
+    this.tw(this.s, { ttP: 1 }, 11.6, 1.4, Ease.inOutCubic);
+    this.tw(this.s, { green: 1 }, 13.5, 1.0, Ease.outBack);
+    this.tw(this.s, { green: 0 }, 16.5, 0.6, Ease.inOutCubic);
+    this.tw(this.s, { err: 1 }, 17.5, 0.9, Ease.outCubic);
+    this.tw(this.s, { errA: 1 }, 18.2, 0.9, Ease.outBack);
+    this.tw(this.s, { retry: 1 }, 21.0, 0.9, Ease.outCubic);
+    this.tw(this.s, { noHuman: 1 }, 25.0, 1.0, Ease.outCubic);
+    /* Absolute Zero 三角色循环 */
+    this.tw(this.s, { azT: 1 }, 28.0, 0.9, Ease.outBack);
+    this.azSt = [0, 0, 0].map(() => ({ a: 0 }));
+    this.azSt.forEach((z, i) => this.tw(z, { a: 1 }, 29.5 + i * 2.0, 0.8, Ease.outBack));
+    this.tw(this.s, { azLoop: 1 }, 36.0, 0.8, Ease.outCubic);
+    this.tw(this.s, { azCap: 1 }, 35.0, 1.0, Ease.outCubic);
+    this.tw(this.s, { azPass: 1 }, 38.5, 0.9, Ease.outCubic);
+    /* CUE_B 42s —— 世界模型 */
+    this.tw(this.s, { gA: 0, gB: 1 }, 42.0, 0.9, Ease.inOutCubic);
+    this.tw(this.s, { bT: 1 }, 43.0, 0.9, Ease.outCubic);
+    this.tw(this.s, { why: 1 }, 44.5, 1.0, Ease.outCubic);
+    this.tw(this.s, { sim: 1 }, 49.0, 1.0, Ease.outCubic);
+    this.tw(this.s, { bubble: 1 }, 52.0, 1.2, Ease.outBack);
+    this.tw(this.s, { bubble2: 1 }, 53.2, 1.4, Ease.outCubic);
+    this.tw(this.s, { btnA: 1 }, 56.0, 0.9, Ease.outBack);
+    this.tw(this.s, { ghostA: 1 }, 57.5, 0.9, Ease.outCubic);
+    this.tw(this.s, { pre: 1 }, 61.5, 1.0, Ease.outCubic);
+    this.tw(this.s, { okA: 1 }, 65.0, 0.8, Ease.outBack);
+    /* 棋手推演类比 */
+    this.tw(this.s, { chess1: 1 }, 74.0, 1.0, Ease.outCubic);
+    this.tw(this.s, { chess2: 1 }, 79.0, 1.0, Ease.outCubic);
+    this.tw(this.s, { tag: 1 }, 95.0, 0.9, Ease.outCubic);
+    this.tw(this.s, { note: 1 }, 98.5, 0.8, Ease.outCubic);
+    /* CUE_C 102s —— 风险三连 */
+    this.tw(this.s, { gB: 0, gC: 1 }, 102.0, 0.9, Ease.inOutCubic);
+    this.tw(this.s, { cT: 1 }, 103.0, 0.9, Ease.outCubic);
+    this.tw(this.s, { r1: 1 }, 104.5, 0.8, Ease.outBack);
+    this.tw(this.s, { r1b: 1 }, 105.5, 0.9, Ease.outCubic);
+    this.wordSt = [0, 0, 0, 0].map(() => ({ a: 0, x: 0 }));
+    this.wordSt.forEach((w, i) => this.tw(w, { a: 1 }, 106.5 + i * 0.5, 0.6, Ease.outBack));
+    this.tw(this.s, { counter: 1 }, 109.0, 0.9, Ease.outBack);
+    this.tw(this.s, { counterP: 1 }, 110.0, 1.0, Ease.outCubic);
+    this.tw(this.s, { r1c: 1 }, 112.5, 1.0, Ease.outCubic);
+    this.tw(this.s, { r2: 1 }, 115.0, 0.8, Ease.outBack);
+    this.tw(this.s, { r2b: 1 }, 116.0, 0.9, Ease.outCubic);
+    this.barSt = [0, 0, 0].map(() => ({ h: 0 }));
+    this.barSt.forEach((b, i) => this.tw(b, { h: 1 }, 117 + i * 0.5, 0.8, Ease.outBack));
+    this.tw(this.s, { barDrop: 1 }, 119.0, 1.4, Ease.inOutCubic);
+    this.tw(this.s, { r2c: 1 }, 122.0, 1.0, Ease.outCubic);
+    this.tw(this.s, { r3: 1 }, 125.0, 0.8, Ease.outBack);
+    this.tw(this.s, { r3b: 1 }, 126.0, 0.9, Ease.outCubic);
+    this.tw(this.s, { blobA: 1 }, 127.5, 1.2, Ease.outCubic);
+    this.tw(this.s, { r3c: 1 }, 131.0, 1.0, Ease.outCubic);
+  }
+  onTick(dt) {
+    /* 光标闪烁（打字机效果） */
+    this.cursor += dt;
+    this.errCursor += dt;
+    this.ghostT += dt;
+  }
+  render(ctx) {
+    const T = sceneText.S5, s = this.s;
+    if (s.gA > 0.01) this.drawA(ctx, T, s);
+    if (s.gB > 0.01) this.drawB(ctx, T, s);
+    if (s.gC > 0.01) this.drawC(ctx, T, s);
+  }
+  /* —— CUE_A：单元测试 + Absolute Zero —— */
+  drawA(ctx, T, s) {
+    const G = T.glyphs;   /* 微标签（sceneText 单一事实源） */
+    const g = s.gA;
+    txt(ctx, T.A.title, 100, 118, { size: 44, weight: 700, alpha: s.hA * g });
+    txt(ctx, T.A.lead, 100, 176, { size: 28, alpha: s.lead * g * 0.85 });
+    /* 代码卡 + 打字光标 */
+    const cx0 = 120, cy0 = 240;
+    card(ctx, cx0, cy0, 560, 300, { alpha: s.code * g * 0.9, stroke: C.fg, lw: 2, r: 18 });
+    txt(ctx, T.A.codeT, cx0 + 36, cy0 + 48, { size: 25, weight: 700, alpha: s.code * g * 0.85 });
+    const cur = Math.floor(this.cursor / 0.6) % 2 === 0;
+    this.codeSt.forEach((l, i) => {
+      if (i === 2 && cur && l.a > 0.5) txt(ctx, '_', cx0 + 40 + ctx.measureText(T.A.codeLines[1]).width + 20, cy0 + 160, { size: 26, alpha: l.a * g * 0.7 });
+      txt(ctx, T.A.codeLines[i], cx0 + 40, cy0 + 112 + i * 52, { size: 26, alpha: l.a * g * 0.92 });
+    });
+    arrow(ctx, 720, cy0 + 150, 840, cy0 + 150, { p: s.runT, alpha: s.runT * g * 0.8, width: 4, head: 18 });
+    /* 单测门：两态（绿→消失→红） */
+    const tx = 900, ty = cy0;
+    card(ctx, tx, ty, 440, 300, { alpha: s.runT * g * 0.9, stroke: s.green > 0.02 ? C.green : C.fg, lw: 3, r: 18 });
+    txt(ctx, T.A.runT, tx + 36, ty + 48, { size: 25, weight: 700, alpha: s.runT * g * 0.85 });
+    for (let i = 0; i < 4; i++) {
+      const oy = ty + 92 + i * 46;
+      rrect(ctx, tx + 36, oy, 150, 26, 8);
+      ctx.save(); ctx.globalAlpha = s.ttP * g * 0.9;
+      ctx.strokeStyle = C.fg; ctx.lineWidth = 2; ctx.stroke(); ctx.restore();
+      if (s.ttP * 4 > i) {
+        ctx.save(); ctx.globalAlpha = s.ttP * g * 0.55;
+        ctx.fillStyle = s.green > 0.02 ? C.green : C.fg;
+        rrect(ctx, tx + 36, oy, 150 * Math.min(1, s.ttP * 4 - i), 26, 8); ctx.fill(); ctx.restore();
+      }
+    }
+    checkIcon(ctx, tx + 380, ty + 130, 42, C.green, s.green * g);
+    txt(ctx, T.A.green, tx + 250, ty + 250, { size: 25, weight: 700, alpha: s.green * g, color: C.green });
+    /* 报错分支（下方） */
+    const ex = 900, ey = 600;
+    card(ctx, ex, ey, 880, 140, { alpha: s.err * g * 0.9, stroke: C.fg, lw: 2, r: 16 });
+    crossIcon(ctx, ex + 56, ey + 70, 38, C.red, s.errA * g);
+    txt(ctx, 'Error: 3 tests failed', ex + 110, ey + 58, { size: 26, alpha: s.errA * g * 0.9 });
+    txt(ctx, T.A.redB, ex + 110, ey + 98, { size: 24, alpha: s.retry * g * 0.85 });
+    arcArrow(ctx, ex + 480, ey - 130, 190, Math.PI * 0.15, Math.PI * 0.85, { p: s.retry, color: C.fg, alpha: s.retry * g * 0.6, width: 3, head: 14 });
+    txt(ctx, G.nextRound, ex + 480, ey - 96, { size: 22, align: 'center', alpha: s.retry * g * 0.7 });
+    txt(ctx, T.A.noHuman, 1480, 318, { size: 27, weight: 700, align: 'center', alpha: s.noHuman * g, color: C.green });
+    /* Absolute Zero 三角色循环 */
+    const zx = 620, zy = 850, zr = 150;
+    chipDraw(ctx, T.A.azT, 620, 660, { size: 30, alpha: s.azT * g, color: C.green });
+    this.azSt.forEach((z, i) => {
+      const ang = -Math.PI / 2 + i * (Math.PI * 2 / 3);
+      const nx = zx + Math.cos(ang) * zr, ny = zy + Math.sin(ang) * zr * 0.55;
+      nodeC(ctx, nx, ny, 58, { color: C.green, lw: 3, alpha: z.a * g, fill: C.green });
+      txt(ctx, T.A.roles[i], nx, ny + 8, { size: 22, weight: 700, align: 'center', alpha: z.a * g, color: C.green });
+    });
+    for (let k = 0; k < 3; k++) { /* 循环流动点 */
+      const ang = this.t * 1.2 + k * (Math.PI * 2 / 3) - Math.PI / 2;
+      dot(ctx, zx + Math.cos(ang) * zr, zy + Math.sin(ang) * zr * 0.55, 5, C.green, s.azLoop * g * 0.9);
+    }
+    para(ctx, T.A.azCap, 1020, 740, 800, { size: 28, alpha: s.azCap * g * 0.92 });
+    para(ctx, T.A.azPass, 1020, 830, 800, { size: 27, alpha: s.azPass * g * 0.9, color: C.green });
+  }
+  /* —— CUE_B：世界模型气泡 —— */
+  drawB(ctx, T, s) {
+    const G = T.glyphs;   /* 微标签（sceneText 单一事实源） */
+    const g = s.gB;
+    txt(ctx, T.B.bT, 280, 178, { size: 44, weight: 700, alpha: s.bT * g });
+    para(ctx, T.B.why, 100, 240, 1500, { size: 27, alpha: s.why * g * 0.85 });
+    para(ctx, T.B.sim, 100, 296, 1500, { size: 27, alpha: s.sim * g * 0.9 });
+    /* 气泡（外圈缓慢波动，脑内模拟器意象） */
+    const bx = 640, by = 680, R = 270;
+    const wob = 1 + 0.025 * Math.sin(this.t * 1.6);
+    ctx.save(); ctx.globalAlpha = s.bubble * g * 0.85;
+    ctx.strokeStyle = C.green; ctx.lineWidth = 3.5;
+    ctx.beginPath();
+    for (let a = 0; a <= 64; a++) {
+      const ang = a / 64 * Math.PI * 2;
+      const rr = R * wob * (1 + 0.03 * Math.sin(ang * 5 + this.t));
+      const px = bx + Math.cos(ang) * rr, py = by + Math.sin(ang) * rr;
+      a ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+    }
+    ctx.closePath(); ctx.stroke(); ctx.restore();
+    txt(ctx, G.worldModel, bx, by - R - 36, { size: 28, weight: 700, align: 'center', alpha: s.bubble * g * 0.75, color: C.green });
+    /* 气泡内预演：按钮 + 幽灵页面 */
+    const sx = 320, sy = 500;
+    const scale = lerp(0.5, 1, s.bubble2);
+    ctx.save();
+    ctx.translate(sx, sy); ctx.scale(scale, scale); ctx.translate(-sx, -sy);
+    card(ctx, sx, sy, 340, 360, { alpha: s.bubble * g * 0.95, stroke: C.fg, lw: 2, r: 16, fill: C.fg });
+    ctx.save(); ctx.globalAlpha = s.bubble * g * 0.7;
+    rrect(ctx, sx + 24, sy + 24, 292, 46, 8); ctx.fillStyle = C.fg; ctx.fill(); ctx.restore();
+    txt(ctx, G.page, sx + 170, sy + 56, { size: 22, align: 'center', alpha: s.bubble * g * 0.8 });
+    /* 按钮（点击感） */
+    const press = 0.5 + 0.5 * Math.sin(this.t * 2.4);
+    rrect(ctx, sx + 110, sy + 150, 120, 52, 26);
+    ctx.save(); ctx.globalAlpha = s.btnA * g;
+    ctx.strokeStyle = C.blue; ctx.lineWidth = 3; ctx.stroke();
+    ctx.fillStyle = C.blue; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    setF(ctx, 700, 24); ctx.fillText(T.B.btn, sx + 170, sy + 177); ctx.restore();
+    dot(ctx, sx + 170, sy + 176, 34, C.blue, s.btnA * g * 0.12 * press);
+    /* 幽灵页（虚线冒出） */
+    card(ctx, sx + 60, sy + 230, 220, 96, { alpha: s.ghostA * g, stroke: C.blue, lw: 2.5, r: 10, dash: [10, 8] });
+    txt(ctx, T.B.ghost, sx + 170, sy + 284, { size: 22, align: 'center', alpha: s.ghostA * g, color: C.blue });
+    checkIcon(ctx, sx + 296, sy + 60, 26, C.green, s.okA * g);
+    ctx.restore();
+    /* 右侧解说 */
+    para(ctx, T.B.try, 1060, 560, 720, { size: 28, alpha: s.bubble * g * 0.9, color: C.blue });
+    para(ctx, T.B.pre, 1060, 630, 720, { size: 30, weight: 700, alpha: s.pre * g * 0.95 });
+    /* 棋手推演类比（下半） */
+    const kx = 620, ky = 990;
+    para(ctx, T.B.chess1, 100, 900, 1500, { size: 27, alpha: s.chess1 * g * 0.9 });
+    para(ctx, T.B.chess2, 100, 950, 1500, { size: 27, alpha: s.chess2 * g * 0.9, color: C.green });
+    /* 棋盘小示意：两步推演 */
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) {
+      if ((i + j) % 2) {
+        ctx.save(); ctx.globalAlpha = s.chess1 * g * 0.35;
+        ctx.fillStyle = C.fg; ctx.fillRect(1660 + i * 60, 880 + j * 60, 60, 60); ctx.restore();
+      }
+    }
+    ctx.save(); ctx.globalAlpha = s.chess1 * g * 0.5; ctx.strokeStyle = C.fg; ctx.lineWidth = 1.5;
+    ctx.strokeRect(1660, 880, 180, 180); ctx.restore();
+    dot(ctx, 1690, 970, 16, C.fg, s.chess1 * g * 0.9);
+    dot(ctx, 1780, 940, 16, C.fg, s.chess1 * g * 0.9);
+    qcurve(ctx, 1690, 970, 1740, 860, 1780, 940, { p: s.chess1, color: C.blue, alpha: s.chess1 * g * 0.8, width: 3 });
+    txt(ctx, T.B.tag, 960, 1044, { size: 22, align: 'center', alpha: s.tag * g * 0.6 });
+    txt(ctx, T.B.note, 1860, 1012, { size: 21, align: 'right', alpha: s.note * g * 0.6 });
+  }
+  /* —— CUE_C：风险三连 —— */
+  drawC(ctx, T, s) {
+    const G = T.glyphs;   /* 微标签（sceneText 单一事实源） */
+    const g = s.gC;
+    txt(ctx, T.C.cT, 100, 128, { size: 42, weight: 700, alpha: s.cT * g, color: C.red });
+    /* 风险① 奖励作弊：注水作文 */
+    const ax = 100, ay = 220;
+    txt(ctx, '① ' + T.C.r1, ax, ay + 44, { size: 34, weight: 700, alpha: s.r1 * g, color: C.red });
+    para(ctx, T.C.r1b, ax, ay + 96, 760, { size: 26, alpha: s.r1b * g * 0.9 });
+    /* 作文纸（越注越长） */
+    const px0 = ax + 40, py0 = ay + 150;
+    const hgt = 300 + this.wordSt[3].a * 130;
+    card(ctx, px0, py0, 380, hgt, { alpha: s.r1 * g * 0.9, stroke: C.fg, lw: 2, r: 12 });
+    txt(ctx, G.essay, px0 + 190, py0 + 40, { size: 22, align: 'center', alpha: s.r1 * g * 0.7 });
+    this.wordSt.forEach((w, i) => {
+      const wy = py0 + 80 + i * 30 + w.a * (hgt - 130);
+      const wl = 60 + srand(i) * 120;
+      ruleLine(ctx, px0 + 36, wy, wl, w.a, C.fg, w.a * g * 0.5, 3);
+    });
+    /* 计数器：只数字数 */
+    const cy0 = py0 + 60;
+    card(ctx, ax + 480, cy0, 300, 110, { alpha: s.counter * g * 0.9, stroke: C.red, lw: 2, r: 14 });
+    txt(ctx, G.wordCount, ax + 530, cy0 + 44, { size: 22, alpha: s.counter * g * 0.8 });
+    txt(ctx, Math.round(s.counterP * 8000) + ' 字', ax + 530, cy0 + 86, { size: 34, weight: 700, alpha: s.counter * g, color: C.red });
+    checkIcon(ctx, ax + 720, cy0 + 55, 26, C.red, s.counter * g);
+    para(ctx, T.C.r1c, ax + 480, cy0 + 170, 360, { size: 25, alpha: s.r1c * g * 0.85 });
+    /* 风险② 能力回退：特长生柱状 */
+    const bx = 1020, by = 220;
+    txt(ctx, '② ' + T.C.r2, bx, by + 44, { size: 34, weight: 700, alpha: s.r2 * g, color: C.red });
+    para(ctx, T.C.r2b, bx, by + 96, 800, { size: 26, alpha: s.r2b * g * 0.9 });
+    const barX = bx + 60, baseY = by + 330;
+    const heights = [1 - s.barDrop * 0.55, 1 + this.barSt[1].h * 0.0 + 0.25, 1 - s.barDrop * 0.65];
+    T.C.bars.forEach((lb, i) => {
+      const bh = this.barSt[i].h * heights[i] * 170;
+      ctx.save(); ctx.globalAlpha = this.barSt[i].h * g * 0.85;
+      ctx.fillStyle = i === 1 ? C.green : C.fg;
+      rrect(ctx, barX + i * 170, baseY - bh, 90, Math.max(bh, 4), 8); ctx.fill(); ctx.restore();
+      txt(ctx, lb, barX + i * 170 + 45, baseY + 36, { size: 24, align: 'center', alpha: this.barSt[i].h * g * 0.8 });
+      if (i !== 1) arrow(ctx, barX + i * 170 + 45, baseY - bh - 44, barX + i * 170 + 45, baseY - bh - 10, { p: s.barDrop, alpha: s.barDrop * g * 0.8, color: C.red, width: 3, head: 12 });
+    });
+    txt(ctx, G.mathBar, barX + 170 + 45, by + 152, { size: 22, align: 'center', alpha: s.barDrop * g * 0.7, color: C.green });
+    para(ctx, T.C.r2c, bx, baseY + 80, 800, { size: 25, alpha: s.r2c * g * 0.85 });
+    /* 风险③ 幻觉世界：失准模拟器 */
+    const wx = 320, wy = 880;
+    txt(ctx, '③ ' + T.C.r3, wx, wy - 76, { size: 34, weight: 700, align: 'center', alpha: s.r3 * g, color: C.red });
+    /* 虚实两个世界：虚像扭曲变形 */
+    ctx.save(); ctx.globalAlpha = s.blobA * g * 0.8;
+    ctx.strokeStyle = C.red; ctx.lineWidth = 3;
+    ctx.beginPath();
+    const N = 40;
+    for (let a = 0; a <= N; a++) {
+      const ang = a / N * Math.PI * 2;
+      const rr = 150 * (1 + 0.18 * Math.sin(ang * 3 + this.t * 2.2));
+      const px = wx + Math.cos(ang) * rr, py = wy + Math.sin(ang) * rr;
+      a ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+    }
+    ctx.closePath(); ctx.stroke(); ctx.restore();
+    txt(ctx, G.sim, wx, wy + 8, { size: 26, weight: 700, align: 'center', alpha: s.blobA * g, color: C.red });
+    nodeC(ctx, wx + 420, wy, 150, { color: C.fg, lw: 3, alpha: s.blobA * g, dash: [12, 10] });
+    txt(ctx, G.real, wx + 420, wy + 8, { size: 26, weight: 700, align: 'center', alpha: s.blobA * g * 0.85 });
+    para(ctx, T.C.r3b, 960, wy - 130, 880, { size: 26, alpha: s.r3b * g * 0.9 });
+    para(ctx, T.C.r3c, 960, wy - 46, 880, { size: 27, weight: 700, alpha: s.r3c * g, color: C.red });
+  }
+}
+/* ------------------------------------------------------------------
+ * S6 门控保险丝（N5a,N5b · 10:47–12:13 · 时长 86s）
+ * CUE_A 0–40s  patch→验证器→commit / rollback 三态流程门
+ * CUE_B 40–86s 分层门控（多层关卡漏斗）+ 快探索慢固化
+ * ------------------------------------------------------------------ */
+class S6 extends BaseScene {
+  constructor() {
+    super({
+      id: 'S6', title: '门控保险丝', duration: 86, cues: [
+        { id: 'A', label: '修改过安检', start: 0, end: 40 },
+        { id: 'B', label: '分层门控+快慢固化', start: 40, end: 86 },
+      ],
+    });
+  }
+  setup() {
+    this.pulse = 0;
+    this.s = {
+      gA: 1, gB: 0,
+      recap: 0, rule: 0,
+      n1: 0, n1b: 0,
+      n2: 0, q1: 0, q2: 0, beam1: 0, beam2: 0,
+      passA: 0, passK: 0, commitA: 0,
+      failA: 0, rollK: 0, failTxt: 0, backTxt: 0,
+      /* CUE_B */
+      bT: 0, funnel: 0, dotsRow: 0,
+      quote: 0, quoteB: 0,
+      fsT: 0, fast: 0, slow: 0, linkP: 0, linkLbl: 0,
+      fsNote: 0, fsNote2: 0,
+    };
+    /* CUE_A —— 流程门 */
+    this.tw(this.s, { recap: 1 }, 0.8, 1.0, Ease.outCubic);
+    this.tw(this.s, { rule: 1 }, 6.5, 1.1, Ease.outBack);
+    this.tw(this.s, { n1: 1 }, 10.5, 0.9, Ease.outBack);
+    this.tw(this.s, { n1b: 1 }, 11.5, 0.9, Ease.outCubic);
+    this.tw(this.s, { n2: 1 }, 13.5, 0.9, Ease.outBack);
+    this.tw(this.s, { q1: 1 }, 15.0, 0.8, Ease.outCubic);
+    this.tw(this.s, { q2: 1 }, 16.8, 0.8, Ease.outCubic);
+    /* 一次全绿：通过 → commit */
+    this.tw(this.s, { beam1: 1 }, 17.5, 0.8, Ease.outCubic);
+    this.tw(this.s, { passA: 1 }, 18.2, 0.8, Ease.outBack);
+    this.tw(this.s, { passK: 1 }, 19.0, 0.9, Ease.outCubic);
+    this.tw(this.s, { commitA: 1 }, 20.5, 1.0, Ease.outBack);
+    /* 一次越界：fail → rollback */
+    this.tw(this.s, { passA: 0, commitA: 0, passK: 0 }, 25.0, 0.5, Ease.inOutCubic);
+    this.tw(this.s, { failA: 1 }, 25.8, 0.8, Ease.outBack);
+    this.tw(this.s, { rollK: 1 }, 26.6, 1.6, Ease.inOutCubic);
+    this.tw(this.s, { failTxt: 1 }, 28.5, 0.9, Ease.outCubic);
+    this.tw(this.s, { backTxt: 1 }, 31.5, 0.9, Ease.outCubic);
+    this.tw(this.s, { beam2: 1 }, 27.0, 0.8, Ease.outCubic);
+    /* CUE_B 40s —— 分层门控 + 快慢固化 */
+    this.tw(this.s, { gA: 0, gB: 1 }, 40.0, 0.9, Ease.inOutCubic);
+    this.tw(this.s, { bT: 1 }, 41.0, 0.9, Ease.outCubic);
+    this.tw(this.s, { funnel: 1 }, 42.0, 1.2, Ease.inOutCubic);
+    this.gateSt = [0, 0, 0].map(() => ({ a: 0 }));
+    this.gateSt.forEach((gt, i) => this.tw(gt, { a: 1 }, 43 + i * 2.0, 0.9, Ease.outBack));
+    this.tickSt = [0, 0, 0].map(() => ({ a: 0 }));
+    this.tickSt.forEach((tk, i) => this.tw(tk, { a: 1 }, 45.5 + i * 2.0, 0.6, Ease.outBack));
+    this.tw(this.s, { dotsRow: 1 }, 47.0, 0.6, Ease.outCubic);
+    this.tw(this.s, { quote: 1 }, 55.0, 1.0, Ease.outCubic);
+    this.tw(this.s, { quoteB: 1 }, 58.5, 1.0, Ease.outBack);
+    this.tw(this.s, { fsT: 1 }, 64.0, 0.9, Ease.outBack);
+    this.tw(this.s, { fast: 1 }, 65.5, 0.9, Ease.outCubic);
+    this.tw(this.s, { slow: 1 }, 69.5, 0.9, Ease.outCubic);
+    this.tw(this.s, { linkP: 1 }, 73.5, 1.0, Ease.inOutCubic);
+    this.tw(this.s, { linkLbl: 1 }, 74.5, 0.9, Ease.outCubic);
+    this.tw(this.s, { fsNote: 1 }, 78.0, 0.9, Ease.outCubic);
+    this.tw(this.s, { fsNote2: 1 }, 80.5, 0.9, Ease.outCubic);
+  }
+  onTick(dt) { this.pulse += dt; }
+  render(ctx) {
+    const T = sceneText.S6, s = this.s;
+    if (s.gA > 0.01) this.drawA(ctx, T, s);
+    if (s.gB > 0.01) this.drawB(ctx, T, s);
+  }
+  /* —— CUE_A：patch → 验证器 → commit / rollback —— */
+  drawA(ctx, T, s) {
+    const G = T.glyphs;   /* 微标签（sceneText 单一事实源） */
+    const g = s.gA;
+    para(ctx, T.A.recap, W / 2, 128, 1500, { size: 29, align: 'center', alpha: s.recap * g * 0.85 });
+    txt(ctx, T.A.rule, W / 2, 220, { size: 46, weight: 700, align: 'center', alpha: s.rule * g, color: C.green, glow: C.green, glowBlur: 22 });
+    /* patch 节点 */
+    const px = 300, py = 560;
+    nodeC(ctx, px, py, 92, { color: C.fg, lw: 3.5, alpha: s.n1 * g, fill: C.fg });
+    txt(ctx, T.A.patch, px, py + 8, { size: 26, weight: 700, align: 'center', alpha: s.n1 * g });
+    txt(ctx, T.A.n1, px, py - 118, { size: 24, weight: 700, align: 'center', alpha: s.n1 * g * 0.9 });
+    para(ctx, T.A.n1b, px - 130, py + 132, 260, { size: 22, align: 'center', alpha: s.n1b * g * 0.7 });
+    arrow(ctx, px + 120, py, px + 260, py, { p: s.beam1 + s.beam2 - s.beam1 * s.beam2, alpha: Math.max(s.beam1, s.beam2) * g * 0.8, width: 4, head: 18 });
+    /* 验证器（放大脉冲） */
+    const vx = 760, vy = 560, vs = 1 + 0.04 * Math.sin(this.pulse * 3);
+    ctx.save();
+    ctx.translate(vx, vy); ctx.scale(vs, vs); ctx.translate(-vx, -vy);
+    nodeC(ctx, vx, vy, 110, { color: C.green, lw: 4, alpha: s.n2 * g, fill: C.green });
+    ctx.restore();
+    txt(ctx, T.A.n2, vx, vy - 6, { size: 30, weight: 700, align: 'center', alpha: s.n2 * g, color: C.green });
+    chipDraw(ctx, T.A.n2a, vx - 30, vy + 52, { size: 21, alpha: s.q1 * g * 0.85, color: C.green });
+    chipDraw(ctx, T.A.n2b, vx - 30, vy + 104, { size: 21, alpha: s.q2 * g * 0.85, color: C.green });
+    checkIcon(ctx, vx, vy - 128, 30, C.green, s.passA * g);
+    crossIcon(ctx, vx, vy - 128, 30, C.red, s.failA * g);
+    /* 通过分支：往上 → commit */
+    const gx = 1260, gyUp = 330;
+    qcurve(ctx, vx + 120, vy - 60, 1080, gyUp - 60, gx - 140, gyUp, { p: s.passK, color: C.green, alpha: s.passK * g * 0.85, width: 4 });
+    nodeC(ctx, gx, gyUp, 88, { color: C.green, lw: 3.5, alpha: s.commitA * g, fill: C.green });
+    checkIcon(ctx, gx, gyUp, 40, C.green, s.commitA * g);
+    txt(ctx, T.A.commit, gx, gyUp + 128, { size: 27, weight: 700, align: 'center', alpha: s.commitA * g, color: C.green });
+    txt(ctx, T.A.pass, gx + 10, gyUp - 126, { size: 24, align: 'center', alpha: s.commitA * g * 0.85, color: C.green });
+    /* 失败分支：往下 → rollback（粒子沿弧线返回 patch） */
+    const gyDn = 830;
+    qcurve(ctx, vx + 120, vy + 60, 1080, gyDn + 60, gx - 140, gyDn, { p: s.failA, color: C.red, alpha: s.failA * g * 0.85, width: 4 });
+    nodeC(ctx, gx, gyDn, 88, { color: C.red, lw: 3.5, alpha: s.failA * g, fill: C.red });
+    txt(ctx, '⟲', gx, gyDn + 12, { size: 44, align: 'center', alpha: s.failA * g, color: C.red });
+    txt(ctx, T.A.rollback, gx, gyDn + 128, { size: 27, weight: 700, align: 'center', alpha: s.failA * g, color: C.red });
+    /* 回滚弧线（虚线） */
+    const topX = gx + 88, topY = gyDn;
+    qcurve(ctx, topX + 20, topY, 1900, (gyDn + py) / 2 + 150, px + 130, py + 40, { p: s.rollK, color: C.red, alpha: s.failA * g * 0.55, width: 3, dash: [12, 10] });
+    const rk = Ease.inOutCubic(s.rollK);
+    const bxp = lerp(topX + 20, px + 130, rk), byp = lerp(topY, py + 40, rk) - Math.sin(rk * Math.PI) * 300;
+    dot(ctx, bxp, byp, 8, C.red, s.failA * g * s.rollK);
+    txt(ctx, T.A.fail, gx + 10, gyDn - 126, { size: 24, align: 'center', alpha: s.failTxt * g, color: C.red });
+    txt(ctx, G.rollbackTxt, px - 20, py - 180, { size: 25, align: 'center', alpha: s.backTxt * g * 0.8 });
+  }
+  /* —— CUE_B：分层门控漏斗 + 快探索慢固化 —— */
+  drawB(ctx, T, s) {
+    const G = T.glyphs;   /* 微标签（sceneText 单一事实源） */
+    const g = s.gB;
+    txt(ctx, T.B.bT, 640, 178, { size: 44, weight: 700, align: 'center', alpha: s.bT * g });
+    /* 漏斗：三层关卡收窄 */
+    const fx = 640, fy = 560;
+    const gates = T.B.gates;
+    const wTop = 880, wBot = 300;
+    ctx.save(); ctx.globalAlpha = s.funnel * g * 0.6;
+    ctx.strokeStyle = C.fg; ctx.lineWidth = 2.5; ctx.setLineDash([14, 10]);
+    ctx.beginPath();
+    ctx.moveTo(fx - wTop / 2, fy - 260); ctx.lineTo(fx - wBot / 2 - 20, fy + 320);
+    ctx.moveTo(fx + wTop / 2, fy - 260); ctx.lineTo(fx + wBot / 2 + 20, fy + 320);
+    ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+    const gateY = [fy - 190, fy + 20, fy + 230], gateW = [640, 440, 300];
+    gates.forEach((gt, i) => {
+      const a = this.gateSt[i].a * g, gw = gateW[i];
+      /* 卡口线 */
+      ctx.save(); ctx.globalAlpha = a * 0.9;
+      ctx.strokeStyle = C.green; ctx.lineWidth = 5; ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(fx - gw / 2, gateY[i]); ctx.lineTo(fx + gw / 2, gateY[i]); ctx.stroke(); ctx.restore();
+      /* 闸门卡 */
+      card(ctx, fx - gw / 2, gateY[i] - 92, gw, 76, { alpha: a * 0.95, stroke: C.green, lw: 2.5, r: 14 });
+      txt(ctx, gt, fx - gw / 2 + 30, gateY[i] - 42, { size: 27, weight: 700, alpha: a, color: C.green });
+      checkIcon(ctx, fx + gw / 2 - 40, gateY[i] - 54, 24, C.green, this.tickSt[i].a * a);
+    });
+    /* 输入点流（上端），逐层通过 */
+    for (let i = 0; i < 5; i++) {
+      const ph = (this.t * 0.5 + i * 0.2) % 1;
+      const yy = fy - 260 + ph * 560;
+      const cw = lerp(wTop / 2 - 40, wBot / 2 - 30, (yy - (fy - 260)) / 560);
+      const xx = fx + Math.sin(i * 2.4) * cw * 0.7;
+      dot(ctx, xx, yy, 7, C.fg, s.dotsRow * g * 0.55);
+    }
+    checkIcon(ctx, fx, fy + 320, 34, C.green, this.tickSt[2].a * g);
+    /* 引语（可疑代码） */
+    card(ctx, 1240, 260, 640, 220, { alpha: s.quote * g * 0.9, stroke: C.yellow, lw: 2.5, r: 20 });
+    para(ctx, '「' + T.B.quote + '」', 1290, 316, 540, { size: 26, alpha: s.quote * g * 0.92 });
+    txt(ctx, T.B.quoteB, 1560, 436, { size: 30, weight: 700, align: 'center', alpha: s.quoteB * g, color: C.yellow });
+    /* 快探索 → 慢固化 */
+    txt(ctx, T.B.fsT, 1560, 560, { size: 36, weight: 700, align: 'center', alpha: s.fsT * g });
+    card(ctx, 1300, 620, 200, 130, { alpha: s.fast * g * 0.9, stroke: C.fg, lw: 2.5, r: 18 });
+    txt(ctx, 'Σ', 1400, 676, { size: 42, weight: 700, align: 'center', alpha: s.fast * g });
+    txt(ctx, G.fastLoop, 1400, 724, { size: 21, align: 'center', alpha: s.fast * g * 0.7 });
+    arrow(ctx, 1530, 685, 1700, 685, { p: s.linkP, color: C.green, alpha: s.linkP * g * 0.9, width: 4, head: 18 });
+    txt(ctx, T.B.arrowLbl, 1615, 656, { size: 20, align: 'center', alpha: s.linkLbl * g * 0.8, color: C.green });
+    card(ctx, 1730, 620, 200, 130, { alpha: s.slow * g * 0.9, stroke: C.fg, lw: 2.5, r: 18 });
+    txt(ctx, 'θ', 1830, 676, { size: 42, weight: 700, align: 'center', alpha: s.slow * g });
+    txt(ctx, G.slowLoop, 1830, 724, { size: 21, align: 'center', alpha: s.slow * g * 0.7 });
+    para(ctx, T.B.fast, 1300, 800, 620, { size: 24, alpha: s.fast * g * 0.85 });
+    para(ctx, T.B.slow, 1300, 870, 620, { size: 24, alpha: s.slow * g * 0.85 });
+    txt(ctx, T.B.fsNote, 960, 1008, { size: 25, align: 'center', alpha: s.fsNote * g * 0.85 });
+    txt(ctx, T.B.fsNote2, 960, 1046, { size: 25, align: 'center', alpha: s.fsNote2 * g * 0.7 });
+  }
+}
+/* ------------------------------------------------------------------
+ * S7 双循环收束（N6a,N6b · 12:13–13:42 · 时长 89s）
+ * CUE_A 0–38s  智能爆炸虚线冲天 vs 现实阶梯爬坡对比校准
+ * CUE_B 38–89s 双循环互锁图 + 四条件 + 金句 + 片尾出处
+ * ------------------------------------------------------------------ */
+class S7 extends BaseScene {
+  constructor() {
+    super({
+      id: 'S7', title: '双循环收束', duration: 89, cues: [
+        { id: 'A', label: '爆炸 vs 现实', start: 0, end: 38 },
+        { id: 'B', label: '双循环+金句', start: 38, end: 89 },
+      ],
+    });
+  }
+  setup() {
+    this.s = {
+      gA: 1, gB: 0,
+      boomT: 0, boomLine: 0, boomGlow: 0, boomB: 0, boomP: 0,
+      hist: 0,
+      realT: 0, realK: 0, realDim: 0,
+      realB: 0, realC: 0, realD: 0, capA: 0,
+      /* CUE_B */
+      back: 0, ans: 0,
+      loopT: 0, sA: 0, fastP: 0, slowP: 0, linkP: 0, linkBack: 0,
+      golden1: 0, golden2: 0, outro: 0, srcA: 0,
+    };
+    /* CUE_A —— 智能爆炸（科幻线） */
+    this.tw(this.s, { boomT: 1 }, 0.8, 0.9, Ease.outCubic);
+    this.tw(this.s, { boomB: 1 }, 1.8, 0.9, Ease.outCubic);
+    this.tw(this.s, { boomP: 1 }, 2.6, 1.2, Ease.inOutCubic);
+    this.tw(this.s, { boomLine: 1 }, 3.4, 1.6, Ease.inCubic);
+    this.tw(this.s, { boomGlow: 1 }, 5.0, 1.2, Ease.outCubic);
+    /* 8.5s 现实阶梯切入：压暗爆炸线 */
+    this.tw(this.s, { realT: 1 }, 8.5, 0.9, Ease.outCubic);
+    this.tw(this.s, { realDim: 1 }, 9.0, 0.8, Ease.inOutCubic);
+    this.tw(this.s, { realK: 1 }, 9.5, 5.0, Ease.inOutQuad);
+    this.tw(this.s, { hist: 1 }, 14.0, 1.0, Ease.outCubic);
+    this.tw(this.s, { realB: 1 }, 19.5, 1.0, Ease.outCubic);
+    this.tw(this.s, { realC: 1 }, 23.5, 1.0, Ease.outCubic);
+    this.tw(this.s, { realD: 1 }, 27.0, 1.0, Ease.outBack);
+    /* CUE_B 38s —— 收束 */
+    this.tw(this.s, { gA: 0, gB: 1 }, 38.0, 0.9, Ease.inOutCubic);
+    this.tw(this.s, { back: 1 }, 39.0, 1.0, Ease.outCubic);
+    this.tw(this.s, { ans: 1 }, 42.5, 0.9, Ease.outBack);
+    this.condSt = [0, 0, 0, 0].map(() => ({ a: 0 }));
+    this.condSt.forEach((c, i) => this.tw(c, { a: 1 }, 43.5 + i * 1.4, 0.8, Ease.outBack));
+    this.tw(this.s, { capA: 1 }, 51.0, 0.9, Ease.outCubic);
+    /* 双循环互锁 */
+    this.tw(this.s, { sA: 1 }, 52.0, 0.8, Ease.outCubic);
+    this.tw(this.s, { loopT: 1 }, 52.5, 0.9, Ease.outCubic);
+    this.tw(this.s, { fastP: 1 }, 53.5, 1.8, Ease.inOutCubic);
+    this.tw(this.s, { slowP: 1 }, 54.5, 2.8, Ease.inOutCubic);
+    this.tw(this.s, { linkP: 1 }, 57.5, 1.0, Ease.inOutCubic);
+    this.tw(this.s, { linkBack: 1 }, 59.0, 1.0, Ease.inOutCubic);
+    /* 金句（强调：其余元素压暗） */
+    this.tw(this.s, { golden1: 1 }, 70.0, 1.1, Ease.outBack);
+    this.tw(this.s, { golden2: 1 }, 73.0, 1.1, Ease.outBack);
+    this.tw(this.s, { outro: 1 }, 80.0, 1.0, Ease.outCubic);
+    this.tw(this.s, { srcA: 1 }, 82.0, 1.0, Ease.outCubic);
+  }
+  render(ctx) {
+    const T = sceneText.S7, s = this.s;
+    if (s.gA > 0.01) this.drawA(ctx, T, s);
+    if (s.gB > 0.01) this.drawB(ctx, T, s);
+  }
+  /* —— CUE_A：智能爆炸 vs 现实阶梯 —— */
+  drawA(ctx, T, s) {
+    const G = T.glyphs;   /* 微标签（sceneText 单一事实源） */
+    const g = s.gA;
+    txt(ctx, T.A.boomT, 500, 170, { size: 42, weight: 700, align: 'center', alpha: s.boomT * g });
+    para(ctx, T.A.boomB, 500, 214, 420, { size: 25, align: 'center', alpha: s.boomT * g * 0.75 });
+    /* 虚线冲天（科幻线，压暗给现实阶梯让位） */
+    const bx = 500, by = 980;
+    const glowP = 0.5 + 0.5 * Math.sin(this.t * 3.0);
+    if (s.boomGlow > 0.01) dot(ctx, bx, by - 620 * clamp01(s.boomLine), 60 + glowP * 26, C.yellow, s.boomGlow * g * (1 - s.realDim * 0.8) * 0.18);
+    qcurve(ctx, bx, by, bx + 6, by - 300, bx - 4, by - 620, { p: clamp01(s.boomLine), color: C.yellow, alpha: (1 - s.realDim * 0.75) * g * 0.95, width: 4, dash: [14, 12] });
+    txt(ctx, G.loop, bx, by + 46, { size: 22, align: 'center', alpha: (1 - s.realDim) * g * 0.7, color: C.yellow });
+    /* 思想史小字 */
+    para(ctx, T.A.hist, 980, 190, 880, { size: 25, alpha: s.hist * g * 0.75 });
+    /* 现实阶梯（受限于验证器/数据/算力，被压平的上限线） */
+    const ox = 980, oy = 980;
+    txt(ctx, T.A.realT, 1400, 264, { size: 34, weight: 700, align: 'center', alpha: s.realT * g, color: C.green });
+    const N = 22;
+    const prog = clamp01(s.realK) * N;
+    for (let i = 0; i < N; i++) {
+      if (i > prog) break;
+      const k = clamp01(prog - i);
+      const sx = ox + i * 36, sy = oy - 60 - i * 24;
+      ctx.save(); ctx.globalAlpha = k * g * 0.9;
+      ctx.fillStyle = C.green;
+      rrect(ctx, sx, sy - 26, 34, 30, 5); ctx.fill();
+      ctx.restore();
+      if (k >= 1) dot(ctx, sx + 17, sy - 40, 5, C.green, g * 0.7);
+    }
+    /* 三个约束标签 */
+    para(ctx, T.A.realB, 1400, 320, 700, { size: 26, align: 'center', alpha: s.realB * g * 0.9 });
+    para(ctx, T.A.realC, 120, 560, 700, { size: 27, alpha: s.realC * g * 0.9 });
+    txt(ctx, T.A.realD, 470, 650, { size: 34, weight: 700, alpha: s.realD * g, color: C.green });
+    txt(ctx, G.sciFi, bx - 130, 950, { size: 26, alpha: s.boomT * (1 - s.realDim * 0.6) * g * 0.6, color: C.yellow });
+    txt(ctx, G.reality, ox + 360, 950, { size: 26, alpha: s.realT * g * 0.7, color: C.green });
+    txt(ctx, sceneText.global.paperSrc, W / 2, 1012, { size: 22, align: 'center', alpha: s.gA * 0.4 });
+  }
+  /* —— CUE_B：四条件 + 双循环 + 金句 —— */
+  drawB(ctx, T, s) {
+    const G = T.glyphs;   /* 微标签（sceneText 单一事实源） */
+    const g = s.gB;
+    /* 金句时刻：全局压暗强调 */
+    const dim = 1 - (s.golden1 > 0.02 ? Math.min(s.golden1, 1) * 0.72 : 0);
+    const dimQ = 1 - s.golden1 * 0.9; /* 问句与金句分区，各自淡出 */
+    txt(ctx, T.B.back, W / 2, 128, { size: 30, align: 'center', alpha: s.back * g * dimQ * 0.85 });
+    txt(ctx, T.B.ans, W / 2, 190, { size: 42, weight: 700, align: 'center', alpha: s.ans * g * dim, color: C.green, glow: C.green, glowBlur: 22 });
+    /* 四个条件勾选（金句时压暗） */
+    const conds = [T.B.c1, T.B.c2, T.B.c3, T.B.c4];
+    conds.forEach((c, i) => {
+      const a = this.condSt[i].a * g * dim;
+      const cx0 = 200 + (i % 2) * 780, cy0 = 252 + ((i / 2) | 0) * 76;
+      checkIcon(ctx, cx0, cy0 - 8, 22, C.green, a);
+      txt(ctx, c, cx0 + 34, cy0, { size: 28, alpha: a * 0.92 });
+    });
+    /* 双循环互锁：外 θ 慢环 + 内 Σ 快环 + 互锁箭头 */
+    const cx = 960, cy = 610, rO = 250, rI = 120;
+    txt(ctx, T.B.loopT, 960, 296, { size: 30, weight: 700, align: 'center', alpha: s.loopT * g * dim });
+    ctx.save(); ctx.globalAlpha = s.sA * g * dim * 0.9;
+    nodeC(ctx, cx, cy, rI * 0.36, { color: C.fg, lw: 2.5, alpha: s.sA * g * dim, fill: C.fg });
+    ctx.restore();
+    txt(ctx, 'A=(θ,Σ)', cx, cy + 8, { size: 24, alpha: s.sA * g * dim * 0.8 });
+    /* 外环 θ（慢） */
+    arcArrow(ctx, cx, cy, rO, -Math.PI / 2 + 0.18, -Math.PI / 2 + Math.PI * 2 - 0.18, { p: s.slowP, color: C.fg, alpha: 0.85 * s.sA * g * dim, width: 4 });
+    txt(ctx, T.B.loopSlow, cx, cy - rO - 20, { size: 26, weight: 700, align: 'center', alpha: s.slowP * g * dim * 0.9 });
+    /* 内环 Σ（快） */
+    arcArrow(ctx, cx, cy, rI, Math.PI / 2 - 0.3, Math.PI / 2 + Math.PI * 2 - 0.3, { p: s.fastP, color: C.green, alpha: 0.9 * s.sA * g * dim, width: 3.5 });
+    txt(ctx, T.B.loopFast, cx, cy + rI + 40, { size: 24, weight: 700, align: 'center', alpha: s.fastP * g * dim * 0.9, color: C.green });
+    /* 互锁箭头：Σ → θ（验证有效）与 θ → Σ（更强装备） */
+    arrow(ctx, cx + rI + 26, cy + 60, cx + rO - 30, cy + 130, { p: s.linkP, color: C.green, alpha: 0.85 * s.linkP * g * dim, width: 3, head: 14 });
+    txt(ctx, G.solidify, cx + rI + 78, cy + 70, { size: 19, alpha: s.linkP * g * dim * 0.8, color: C.green });
+    arrow(ctx, cx - rO + 30, cy - 130, cx - rI - 26, cy - 60, { p: s.linkBack, color: C.fg, alpha: 0.8 * s.linkBack * g * dim, width: 3, head: 14 });
+    txt(ctx, G.betterGear, cx - rO + 60, cy - 150, { size: 19, alpha: s.linkBack * g * dim * 0.7 });
+    /* 流动小点：内环快、外环慢 */
+    const fa = this.t * 2.6, sa = this.t * 0.8;
+    dot(ctx, cx + Math.cos(fa) * rI, cy + Math.sin(fa) * rI, 6, C.green, s.fastP * g * dim * 0.9);
+    dot(ctx, cx + Math.cos(sa) * rO, cy + Math.sin(sa) * rO, 7, C.fg, s.slowP * g * dim * 0.8);
+    /* 金句区（下方居中，强调态） */
+    ruleLine(ctx, W / 2 - 300, 906, 600, s.golden1, C.fg, s.golden1 * g * 0.5, 2);
+    txt(ctx, T.B.golden1, W / 2, 966, { size: 44, weight: 700, align: 'center', alpha: s.golden1 * g });
+    txt(ctx, T.B.golden2, W / 2, 1032, { size: 44, weight: 700, align: 'center', alpha: s.golden2 * g, glow: C.yellow, glowBlur: 26 });
+    txt(ctx, T.B.outro, W / 2, 1074, { size: 21, align: 'center', alpha: s.outro * g * 0.6 });
+    txt(ctx, sceneText.global.paperSrc, 1860, 1012, { size: 20, align: 'right', alpha: s.srcA * g * 0.45 });
+  }
+}
+/* ============================ 4. 导演层：时钟 / 画布 / 控制 / HUD ============================ */
+const canvas = document.getElementById('stage');
+const ctx = canvas.getContext('2d');
+const scenes = [new S0(), new S1(), new S2(), new S3(), new S4(), new S5(), new S6(), new S7()];
+let cur = 0, paused = false, hud = true;
+
+/* 画布：逻辑 1920x1080，按 devicePixelRatio 缩放，CSS 满窗 letterbox 居中 */
+function fit() {
+  const dpr = window.devicePixelRatio || 1;
+  const s = Math.min(window.innerWidth / W, window.innerHeight / H);
+  canvas.style.width = Math.round(W * s) + 'px';
+  canvas.style.height = Math.round(H * s) + 'px';
+  canvas.width = Math.round(W * s * dpr);
+  canvas.height = Math.round(H * s * dpr);
+}
+window.addEventListener('resize', fit);
+fit();
+
+function goto(i) {
+  cur = (i + scenes.length) % scenes.length;
+  scenes[cur].reset();
+}
+function repaint() {
+  ctx.setTransform(canvas.width / W, 0, 0, canvas.height / H, 0, 0);
+  ctx.fillStyle = C.bg;
+  ctx.fillRect(0, 0, W, H);
+  scenes[cur].render(ctx);
+  if (hud) drawHUD();
+}
+function drawHUD() {
+  const sc = scenes[cur], T = sceneText.hud;
+  /* 顶栏：场景号 / 标题 / 计时 */
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.45)';
+  ctx.fillRect(0, 0, W, 44);
+  ctx.restore();
+  txt(ctx, sc.id + ' · ' + sc.title, 28, 30, { size: 21, alpha: 0.9 });
+  txt(ctx, sc.t.toFixed(1) + 's / ' + sc.duration + 's', W - 28, 30, { size: 20, align: 'right', alpha: 0.75 });
+  /* CUE 进度分段条 */
+  const bx = 420, bw = 900, by = 18, bh = 8;
+  let px = bx;
+  sc.cues.forEach((q, i) => {
+    const segW = (q.end - q.start) / sc.duration * bw;
+    ctx.save();
+    ctx.globalAlpha = 0.28; ctx.fillStyle = C.fg;
+    ctx.fillRect(px, by, segW - 3, bh); ctx.restore();
+    if (sc.t > q.start) {
+      const f = Math.min(1, (sc.t - q.start) / (q.end - q.start));
+      ctx.save();
+      ctx.fillStyle = i % 2 ? C.yellow : C.blue;
+      ctx.fillRect(px, by, (segW - 3) * f, bh); ctx.restore();
+    }
+    px += segW;
+  });
+  ctx.save();
+  ctx.globalAlpha = 0.28; ctx.fillStyle = C.fg;
+  ctx.fillRect(px, by, bx + bw - px, bh); ctx.restore();
+  /* 当前 CUE 名 */
+  const curCue = sc.cues.filter(q => sc.t >= q.start && sc.t < q.end).pop();
+  if (curCue) txt(ctx, 'CUE_' + curCue.id + ' ' + curCue.label, bx, 46, { size: 17, alpha: 0.6 });
+  /* 底栏：快捷键 / 下一场景提示 / 暂停提示 */
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  ctx.fillRect(0, H - 36, W, 36);
+  ctx.restore();
+  txt(ctx, T.keys, 28, H - 12, { size: 19, alpha: 0.65 });
+  if (sc.finished) {
+    const p = 0.6 + 0.4 * Math.sin(performance.now() / 380);
+    txt(ctx, T.next, W - 28, H - 12, { size: 20, align: 'right', alpha: 0.55 + p * 0.4, color: C.green });
+  }
+  if (paused) txt(ctx, T.paused, W / 2, H - 12, { size: 20, align: 'center', alpha: 0.9, color: C.yellow });
+}
+
+/* 主时钟：requestAnimationFrame，可暂停；单场景播完停在末帧 */
+let lastMs = performance.now();
+function loop(ms) {
+  const dt = Math.min((ms - lastMs) / 1000, 0.05);
+  lastMs = ms;
+  if (!paused) scenes[cur].update(dt);
+  repaint();
+  requestAnimationFrame(loop);
+}
+
+/* 键盘控制：←/→ 场景 · 空格 暂停 · R 重放 · 1-8 直达 · H HUD */
+window.addEventListener('keydown', e => {
+  const k = e.key;
+  if (k === 'ArrowRight') { e.preventDefault(); goto(cur + 1); }
+  else if (k === 'ArrowLeft') { e.preventDefault(); goto(cur - 1); }
+  else if (k === ' ') { e.preventDefault(); paused = !paused; }
+  else if (k === 'r' || k === 'R') scenes[cur].reset();
+  else if (k === 'h' || k === 'H') hud = !hud;
+  else if (k >= '1' && k <= '8') goto(parseInt(k, 10) - 1);
+});
+
+/* 启动：S0 从头播放 */
+goto(0);
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
