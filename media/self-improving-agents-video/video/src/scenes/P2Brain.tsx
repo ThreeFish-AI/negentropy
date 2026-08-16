@@ -179,6 +179,10 @@ const QuestionLoop: React.FC<{step: number; skew?: number; danger?: boolean}> = 
           const mx = (p.x + q.x) / 2 + 320;
           const my = (p.y + q.y) / 2 + 250;
           const active = step % 4 === i;
+          // 动点沿本段二次贝塞尔按帧推进（帧驱动、渲染可复现；SMIL 动画不随 Remotion 时间轴走）
+          const u = (frame * 0.025) % 1;
+          const dotX = (1 - u) ** 2 * (p.x + 320) + 2 * (1 - u) * u * mx + u ** 2 * (q.x + 320);
+          const dotY = (1 - u) ** 2 * (p.y + 250) + 2 * (1 - u) * u * my + u ** 2 * (q.y + 250);
           return (
             <g key={i}>
               <path
@@ -188,15 +192,7 @@ const QuestionLoop: React.FC<{step: number; skew?: number; danger?: boolean}> = 
                 strokeWidth={active ? 3 : 1.5}
                 opacity={active ? 0.95 : 0.35}
               />
-              {active ? (
-                <circle r={7} fill={accent}>
-                  <animateMotion
-                    dur="1.2s"
-                    repeatCount="indefinite"
-                    path={`M ${p.x + 320} ${p.y + 250} Q ${mx} ${my} ${q.x + 320} ${q.y + 250}`}
-                  />
-                </circle>
-              ) : null}
+              {active ? <circle r={7} fill={accent} cx={dotX} cy={dotY} /> : null}
             </g>
           );
         })}

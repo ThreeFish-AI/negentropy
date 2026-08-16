@@ -22,8 +22,11 @@ import type {SceneRange} from '../types';
 const ci = (f: number, a: number, b: number) =>
   interpolate(f, [a, b], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
 
-/** 确定性伪随机（星空散布用，避免随机数导致渲染不可复现） */
-const rnd = (i: number, k: number) => (i * 127.1 + k * 311.7) % 1;
+/** 确定性伪随机（sin 哈希：散布均匀且渲染可复现；取模线性法会使坐标周期性重叠） */
+const rnd = (i: number, k: number) => {
+  const x = Math.sin(i * 127.1 + k * 311.7) * 43758.5453;
+  return x - Math.floor(x);
+};
 
 /* ------------------------------ 5-A 回望 ------------------------------
  * p5-01..03：回到 P1 分叉地图——两条路均已点亮，流向地平线；
@@ -1074,7 +1077,7 @@ export const P5Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
       <Sequence {...winB} name="5-B 哥德尔机">
         <GoedelBeat
-          flashDur={w('p5-04').durationInFrames}
+          flashDur={w('p5-04', 'p5-04a').durationInFrames}
           machineAt={at('p5-05') - winB.from}
           ceilingAt={at('p5-06') - winB.from}
           realityAt={at('p5-07') - winB.from}

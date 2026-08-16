@@ -50,17 +50,20 @@ const MethodTag: React.FC<{text: string; top?: number; delay?: number}> = ({
 /* ───────────────── 3-A 章头：四层阶梯 ───────────────── */
 
 /** 3-A：橙色章节卡"第二条路：改装备" + 四层阶梯自下而上点亮（p3-05），p3-05b 强调第四层 */
-const ChapterLadder: React.FC = () => {
+const ChapterLadder: React.FC<{at: (id: string) => number}> = ({at}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const enter = spring({frame, fps, config: {damping: 200}});
-  // p3-05（467f 起）"排成四层阶梯" → 逐层点亮；p3-05b（595f 起）→ 第四层强调
-  const lit = interpolate(frame, [470, 502, 534, 566, 598], [0, 1, 2, 3, 4], {
+  const t04 = at('p3-04');
+  const t05 = at('p3-05');
+  const t05b = at('p3-05b');
+  // p3-05 "排成四层阶梯" → 逐层点亮；p3-05b → 第四层强调
+  const lit = interpolate(frame, [t05, t05 + 32, t05 + 64, t05 + 96, t05b], [0, 1, 2, 3, 4], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  const subIn = interpolate(frame, [330, 362], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  const badge = interpolate(frame, [640, 672], [0, 1], {
+  const subIn = interpolate(frame, [t04 + 27, t04 + 59], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const badge = interpolate(frame, [t05b + 45, t05b + 77], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -166,12 +169,13 @@ const ChapterLadder: React.FC = () => {
 /* ───────────────── 3-B 换眼镜 ───────────────── */
 
 /** 3-B：眼镜特写，镜片提示词文本流动；p3-08 换镜片 → 世界重着色 */
-const Glasses: React.FC = () => {
+const Glasses: React.FC<{at: (id: string) => number}> = ({at}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const enter = spring({frame, fps, config: {damping: 200}});
-  // p3-08（274f 起）"换一段提示词，就换一副看世界的眼镜"
-  const swap = interpolate(frame, [274, 312], [0, 1], {
+  // p3-08 "换一段提示词，就换一副看世界的眼镜"
+  const t08 = at('p3-08');
+  const swap = interpolate(frame, [t08, t08 + 38], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
     easing: Easing.inOut(Easing.cubic),
@@ -180,7 +184,7 @@ const Glasses: React.FC = () => {
   const b = swap;
   const lensFill = `rgb(${Math.round(28 + a * 64)}, 58, ${Math.round(92 - a * 64)})`;
   const lensStroke = swap < 0.5 ? theme.gear : theme.brain;
-  const hint = interpolate(frame, [334, 364], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const hint = interpolate(frame, [t08 + 60, t08 + 90], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   const scroll = (frame * 1.6) % 250;
   const Lens: React.FC<{cx: number}> = ({cx}) => (
     <g>
@@ -274,14 +278,24 @@ const Glasses: React.FC = () => {
 /* ───────────────── 3-C 提示进化史 ───────────────── */
 
 /** 3-C：四阶段横向时间轴：打分(p3-10)→评语(p3-11)→种群进化(p3-12)→TextGrad(p3-13/14)，角标随 p3-15 */
-const PromptEvolution: React.FC = () => {
+const PromptEvolution: React.FC<{at: (id: string) => number}> = ({at}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
-  const t = interpolate(frame, [148, 162, 290, 304, 460, 474, 650, 664], [0, 1, 1, 2, 2, 3, 3, 4], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-  const capOpacity = interpolate(frame, [930, 958], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const t10 = at('p3-10');
+  const t11 = at('p3-11');
+  const t12 = at('p3-12');
+  const t13 = at('p3-13');
+  const t15 = at('p3-15');
+  const t = interpolate(
+    frame,
+    [t10, t10 + 14, t11, t11 + 14, t12, t12 + 14, t13, t13 + 14],
+    [0, 1, 1, 2, 2, 3, 3, 4],
+    {
+      extrapolateLeft: 'clamp',
+      extrapolateRight: 'clamp',
+    },
+  );
+  const capOpacity = interpolate(frame, [t15 + 15, t15 + 43], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   const X = [90, 510, 930, 1350];
   const M = X.map((x) => x + 84); // 轴点
   const cursorX = M[0] + ((t - 1) / 3) * (M[3] - M[0]);
@@ -291,7 +305,7 @@ const PromptEvolution: React.FC = () => {
     sub: React.ReactNode;
     children: React.ReactNode;
   }> = ({i, title, sub, children}) => {
-    const s = spring({frame: frame - [148, 290, 460, 650][i], fps, config: {damping: 200}});
+    const s = spring({frame: frame - [t10, t11, t12, t13][i], fps, config: {damping: 200}});
     const active = t > i;
     return (
       <div
@@ -418,7 +432,7 @@ const PromptEvolution: React.FC = () => {
           </svg>
         </Card>
       </div>
-      <MethodTag text="APE / OPRO → Reflexion → PromptBreeder → APO / TextGrad" top={716} delay={930} />
+      <MethodTag text="APE / OPRO → Reflexion → PromptBreeder → APO / TextGrad" top={716} delay={t15 + 15} />
       <div
         style={{
           position: 'absolute',
@@ -440,11 +454,12 @@ const PromptEvolution: React.FC = () => {
 /* ───────────────── 3-D 金句 + 天平 ───────────────── */
 
 /** 3-D：金句"反馈越具体，机器越不用靠猜"（p3-16）+ 玄学/工程学天平倾斜（p3-17） */
-const BalanceScale: React.FC = () => {
+const BalanceScale: React.FC<{at: (id: string) => number}> = ({at}) => {
   const frame = useCurrentFrame();
   const appear = interpolate(frame, [0, 20], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  // p3-17（172f 起）"玄学手艺 → 工程学"
-  const tilt = interpolate(frame, [176, 240], [0, 1], {
+  // p3-17 "玄学手艺 → 工程学"
+  const t17 = at('p3-17');
+  const tilt = interpolate(frame, [t17 + 4, t17 + 68], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
     easing: Easing.inOut(Easing.cubic),
@@ -455,7 +470,7 @@ const BalanceScale: React.FC = () => {
   const endL = {x: -beamHalf * Math.cos(rad), y: -beamHalf * Math.sin(rad)};
   const endR = {x: beamHalf * Math.cos(rad), y: beamHalf * Math.sin(rad)};
   const panY = 96;
-  const bottomLine = interpolate(frame, [250, 282], [0, 1], {
+  const bottomLine = interpolate(frame, [t17 + 78, t17 + 110], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -586,26 +601,31 @@ const BalanceScale: React.FC = () => {
 /* ───────────────── 3-E 记笔记 ───────────────── */
 
 /** 3-E：笔记本流水账（p3-19）→ 记/翻/改/忘 四动作随 p3-21..24 依次盖章 → 花生/美式例子（p3-24b/c） */
-const NotebookScene: React.FC = () => {
+const NotebookScene: React.FC<{at: (id: string) => number}> = ({at}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const enter = spring({frame, fps, config: {damping: 200}});
+  const t21 = at('p3-21');
+  const t22 = at('p3-22');
+  const t23 = at('p3-23');
+  const t24 = at('p3-24');
+  const t24b = at('p3-24b');
   const n = interpolate(
     frame,
-    [430, 446, 582, 598, 770, 786, 926, 942],
+    [t21, t22, t23, t24].flatMap((t0) => [t0, t0 + 16]),
     [0, 1, 1, 2, 2, 3, 3, 4],
     {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'},
   );
   const flip = Math.floor(frame / 30) % 2;
-  const example = interpolate(frame, [1150, 1188], [0, 1], {
+  const example = interpolate(frame, [t24b, t24b + 38], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
   const stamps = [
-    {label: '记', icon: '⬇️', note: '经验熬成套路', delay: 430},
-    {label: '翻', icon: '🔗', note: '按语义连线索账', delay: 582},
-    {label: '改', icon: '⚖️', note: '过时知识降权', delay: 770},
-    {label: '忘', icon: '🗑️', note: '无用记忆清除', delay: 926},
+    {label: '记', icon: '⬇️', note: '经验熬成套路', delay: t21},
+    {label: '翻', icon: '🔗', note: '按语义连线索账', delay: t22},
+    {label: '改', icon: '⚖️', note: '过时知识降权', delay: t23},
+    {label: '忘', icon: '🗑️', note: '无用记忆清除', delay: t24},
   ];
   return (
     <AbsoluteFill>
@@ -699,12 +719,14 @@ const NotebookScene: React.FC = () => {
 /* ───────────────── 3-F 记忆毛病 ───────────────── */
 
 /** 3-F：近因偏差（p3-26/27 时间轴高亮）+ 相似≠有用（p3-28/29 检索卡片全打 ✗） */
-const MemoryBugs: React.FC = () => {
+const MemoryBugs: React.FC<{at: (id: string) => number}> = ({at}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
-  const leftIn = spring({frame: frame - 100, fps, config: {damping: 200}});
-  // p3-28（342f 起）"相似，不等于有用"
-  const part = interpolate(frame, [342, 378], [0, 1], {
+  const t26 = at('p3-26');
+  const t28 = at('p3-28');
+  const leftIn = spring({frame: frame - t26 + 100, fps, config: {damping: 200}});
+  // p3-28 "相似，不等于有用"
+  const part = interpolate(frame, [t28, t28 + 36], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -742,7 +764,7 @@ const MemoryBugs: React.FC = () => {
         </div>
         {notes.map((txt, i) => {
           const hot = i >= 4;
-          const app = spring({frame: frame - 112 - i * 5, fps, config: {damping: 200}});
+          const app = spring({frame: frame - t26 + 112 - i * 5, fps, config: {damping: 200}});
           return (
             <div
               key={txt}
@@ -786,7 +808,7 @@ const MemoryBugs: React.FC = () => {
         </div>
         <div style={{marginTop: 20, display: 'flex', gap: 16, justifyContent: 'center'}}>
           {['📄', '📃', '📑', '📄', '📃'].map((e, i) => {
-            const app = interpolate(frame, [350 + i * 4, 372 + i * 4], [0, 1], {
+            const app = interpolate(frame, [t28 + 8 + i * 4, t28 + 30 + i * 4], [0, 1], {
               extrapolateLeft: 'clamp',
               extrapolateRight: 'clamp',
             });
@@ -848,15 +870,18 @@ const Pixel: React.FC<{x: number; y: number; s: number; fill: string; opacity?: 
 }) => <rect x={x} y={y} width={s} height={s} fill={fill} opacity={opacity} />;
 
 /** 3-G：方块机器人对树写代码（p3-32）→ 砍树程序 v1 卡 ✓（p3-33）→ 存入技能库书架（p3-33 后半）→ 再遇树秒调用（p3-34） */
-const VoyagerScene: React.FC = () => {
+const VoyagerScene: React.FC<{at: (id: string) => number}> = ({at}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const enter = spring({frame, fps, config: {damping: 200}});
-  // p3-32（217f 起）写代码；p3-33（379f 起）卡片 + 存库；p3-34（533f 起）再遇树
-  const code = interpolate(frame, [230, 360], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  const card = spring({frame: frame - 390, fps, config: {damping: 13}});
-  const store = interpolate(frame, [452, 492], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  const recall = interpolate(frame, [545, 575], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const t32 = at('p3-32');
+  const t33 = at('p3-33');
+  const t34 = at('p3-34');
+  // p3-32 写代码；p3-33 卡片 + 存库；p3-34 再遇树
+  const code = interpolate(frame, [t32 + 13, t32 + 143], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const card = spring({frame: frame - t33 - 11, fps, config: {damping: 13}});
+  const store = interpolate(frame, [t33 + 73, t33 + 113], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const recall = interpolate(frame, [t34 + 12, t34 + 42], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   const codeLines = Math.floor(code * 6);
   return (
     <AbsoluteFill>
@@ -997,7 +1022,7 @@ const VoyagerScene: React.FC = () => {
           ✓ 已注册 · 下次遇到树直接调用
         </div>
       </div>
-      <MethodTag text="Voyager · 2023 · Minecraft" top={716} delay={96} />
+      <MethodTag text="Voyager · 2023 · Minecraft" top={716} delay={t32 - 121} />
       <div
         style={{
           position: 'absolute',
@@ -1018,15 +1043,24 @@ const VoyagerScene: React.FC = () => {
 /* ───────────────── 3-H 工具闭环 ───────────────── */
 
 /** 3-H：选（p3-36）→ 修（p3-38）→ 造（p3-40）三节点循环图 + p3-42 金句浮条 */
-const ToolLoop: React.FC = () => {
+const ToolLoop: React.FC<{at: (id: string) => number}> = ({at}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
-  const focus = interpolate(frame, [189, 215, 492, 518, 830, 856], [0, 1, 1, 2, 2, 3], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-  // p3-42（1176f 起）金句
-  const quote = interpolate(frame, [1190, 1222], [0, 1], {
+  const t36 = at('p3-36');
+  const t38 = at('p3-38');
+  const t40 = at('p3-40');
+  const t42 = at('p3-42');
+  const focus = interpolate(
+    frame,
+    [t36, t36 + 26, t38, t38 + 26, t40, t40 + 26],
+    [0, 1, 1, 2, 2, 3],
+    {
+      extrapolateLeft: 'clamp',
+      extrapolateRight: 'clamp',
+    },
+  );
+  // p3-42 金句
+  const quote = interpolate(frame, [t42 + 14, t42 + 46], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -1136,22 +1170,25 @@ const ToolLoop: React.FC = () => {
 /* ───────────────── 3-I 莫比乌斯 / 黏土 ───────────────── */
 
 /** 3-I：第四层改整套装备——代码环上符号流动改写自己；大脑保持蓝色不动（p3-44b）；黏土（p3-48） */
-const MobiusClay: React.FC = () => {
+const MobiusClay: React.FC<{at: (id: string) => number}> = ({at}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const enter = spring({frame, fps, config: {damping: 200}});
-  // p3-44b（390f 起）大脑还是那个大脑
-  const brainCallout = interpolate(frame, [400, 432], [0, 1], {
+  // p3-44b 大脑还是那个大脑
+  const t44b = at('p3-44b');
+  // p3-46 能不能直接改写源代码
+  const t46 = at('p3-46');
+  // p3-48 黏土
+  const t48 = at('p3-48');
+  const brainCallout = interpolate(frame, [t44b + 10, t44b + 42], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  // p3-46（634f 起）能不能直接改写源代码
-  const question = interpolate(frame, [640, 682], [0, 1], {
+  const question = interpolate(frame, [t46 + 6, t46 + 48], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  // p3-48（861f 起）黏土
-  const clay = interpolate(frame, [872, 914], [0, 1], {
+  const clay = interpolate(frame, [t48 + 11, t48 + 53], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -1332,7 +1369,7 @@ type OffspringNode = {
 };
 
 /** 3-J：Darwin Gödel Machine 进化树：节点分叉过"测试"小闸，弱枝灰色进档案库，多路并行 */
-const OffspringTree: React.FC = () => {
+const OffspringTree: React.FC<{at: (id: string) => number}> = ({at}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const enter = spring({frame, fps, config: {damping: 200}});
@@ -1346,21 +1383,25 @@ const OffspringTree: React.FC = () => {
     {x: 300, y: 650, parent: 3, verdict: 'pass', label: 'v3'},
     {x: 600, y: 650, parent: 3, verdict: 'later', label: "v3'"},
   ];
-  // v0 @p3-50；第一代 @p3-51(363f)；二三代随 p3-52 生长
-  const delays = [10, 380, 424, 590, 628, 666, 792, 828];
+  // v0 @p3-50；第一代 @p3-51；二三代随 p3-52 生长
+  const t51 = at('p3-51');
+  const t52 = at('p3-52');
+  const t52b = at('p3-52b');
+  const t53 = at('p3-53');
+  const delays = [10, t51 + 17, t51 + 61, t52 + 29, t52 + 67, t52 + 105, t52b + 51, t52b + 87];
   const nodeIn = (i: number) => spring({frame: frame - delays[i], fps, config: {damping: 14}});
-  // p3-52（561f 起）档案库；p3-52b（741f 起）最弱一支是突破口；p3-53（901f 起）后代树
-  const archiveIn = interpolate(frame, [572, 604], [0, 1], {
+  // p3-52 档案库；p3-52b 最弱一支是突破口；p3-53 后代树
+  const archiveIn = interpolate(frame, [t52 + 11, t52 + 43], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  const multiIn = interpolate(frame, [768, 800], [0, 1], {
+  const multiIn = interpolate(frame, [t52b + 27, t52b + 59], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
   return (
     <AbsoluteFill>
-      <MethodTag text="Darwin Gödel Machine · DGM" top={70} delay={6} />
+      <MethodTag text="Darwin Gödel Machine · DGM" top={70} delay={at('p3-50') + 6} />
       <div style={{position: 'absolute', top: 116, width: '100%', textAlign: 'center', opacity: enter}}>
         <span style={{fontFamily: theme.sans, fontSize: 50, fontWeight: 800, color: theme.text}}>后代树</span>
         <span style={{marginLeft: 18, fontFamily: theme.sans, fontSize: 28, color: theme.dim}}>
@@ -1452,7 +1493,7 @@ const OffspringTree: React.FC = () => {
 /* ───────────────── 3-K 开船修船 ───────────────── */
 
 /** 3-K：船在行驶中被机械臂改造（p3-55 improver 住在系统里），扳手本身也在变形（p3-57） */
-const ShipRefit: React.FC = () => {
+const ShipRefit: React.FC<{at: (id: string) => number}> = ({at}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const enter = spring({frame, fps, config: {damping: 200}});
@@ -1461,10 +1502,13 @@ const ShipRefit: React.FC = () => {
   const armAngle = Math.sin(frame * 0.09) * 18;
   const wrenchMorph = Math.floor(frame / 16) % 3; // 扳手变形轮换
   const wrenchIcons = ['🔧', '🔨', '🪛'];
-  // p3-55（67f 起）改进程序住在被改进的系统里；p3-56（202f 起）一边开船一边修船；p3-57（310f 起）扳手变形
-  const heat = interpolate(frame, [90, 122], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  const titleIn = interpolate(frame, [205, 232], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  const lineO = interpolate(frame, [320, 352], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  // p3-55 改进程序住在被改进的系统里；p3-56 一边开船一边修船；p3-57 扳手变形
+  const t55 = at('p3-55');
+  const t56 = at('p3-56');
+  const t57 = at('p3-57');
+  const heat = interpolate(frame, [t55 + 23, t55 + 55], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const titleIn = interpolate(frame, [t56 + 3, t56 + 30], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const lineO = interpolate(frame, [t57 + 10, t57 + 42], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   return (
     <AbsoluteFill>
       {/* 海面 + 航迹 */}
@@ -1568,21 +1612,26 @@ const ShipRefit: React.FC = () => {
 /* ───────────────── 3-L 验证门 ───────────────── */
 
 /** 3-L：改动候选（p3-59）过三重闸机 单元测试/回归/安全（p3-60），不合格弹回 + 回滚（p3-61），收束与警示（p3-62/62b） */
-const ValidationGate: React.FC = () => {
+const ValidationGate: React.FC<{at: (id: string) => number}> = ({at}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const enter = spring({frame, fps, config: {damping: 200}});
-  // p3-59（156f）候选；p3-60（246f）三闸亮起逐关放行；p3-61（423f）弹回+回滚；p3-62（500f）；p3-62b（623f）
-  const cand = spring({frame: frame - 165, fps, config: {damping: 13}});
-  const pass1 = interpolate(frame, [300, 330], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  const pass2 = interpolate(frame, [348, 378], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  const reject = spring({frame: frame - 430, fps, config: {damping: 9}});
-  const rollback = interpolate(frame, [442, 472], [0, 1], {
+  // p3-59 候选；p3-60 三闸亮起逐关放行；p3-61 弹回+回滚；p3-62 收束；p3-62b 警示
+  const t59 = at('p3-59');
+  const t60 = at('p3-60');
+  const t61 = at('p3-61');
+  const t62 = at('p3-62');
+  const t62b = at('p3-62b');
+  const cand = spring({frame: frame - t59 - 9, fps, config: {damping: 13}});
+  const pass1 = interpolate(frame, [t60 + 54, t60 + 84], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const pass2 = interpolate(frame, [t60 + 102, t60 + 132], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const reject = spring({frame: frame - t61 - 7, fps, config: {damping: 9}});
+  const rollback = interpolate(frame, [t61 + 19, t61 + 49], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  const closing = interpolate(frame, [512, 542], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  const caution = interpolate(frame, [648, 682], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const closing = interpolate(frame, [t62 + 12, t62 + 42], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const caution = interpolate(frame, [t62b + 25, t62b + 59], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   const cardX = interpolate(cand, [0, 1], [-380, 0]) - reject * 520;
   const cardRotate = reject * -22;
   const cardOpacity = cand * Math.max(0, 1 - Math.max(0, reject - 0.7) * 3.5);
@@ -1631,7 +1680,7 @@ const ValidationGate: React.FC = () => {
       </div>
       {/* 三重闸机 */}
       {gates.map((g, i) => {
-        const up = spring({frame: frame - 250 - i * 6, fps, config: {damping: 200}});
+        const up = spring({frame: frame - t60 + 4 - i * 6, fps, config: {damping: 200}});
         const lit = g.pass > 0.5;
         const blocked = reject > 0.3 && i === 2;
         const barColor = lit ? theme.ok : blocked ? theme.danger : theme.panelBorder;
@@ -1744,43 +1793,52 @@ const ValidationGate: React.FC = () => {
 
 export const P3Gear: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (fromId: string, toId?: string) => beatWindow(scene.sentences, scene.from, fromId, toId);
+  /** 某镜 Sequence 内、指定句 id 的本地起始帧 */
+  const rel = (beatFirstId: string) => (id: string) => {
+    const first = scene.sentences.find((s) => s.id === beatFirstId);
+    const s = scene.sentences.find((x) => x.id === id);
+    if (!first || !s) {
+      throw new Error(`P3Gear: 未找到句 id ${beatFirstId}/${id}`);
+    }
+    return s.from - first.from;
+  };
   return (
     <AbsoluteFill>
       <Sequence {...w('p3-01', 'p3-05b')} name="3-A 章头四层阶梯">
-        <ChapterLadder />
+        <ChapterLadder at={rel('p3-01')} />
       </Sequence>
       <Sequence {...w('p3-06', 'p3-08')} name="3-B 换眼镜">
-        <Glasses />
+        <Glasses at={rel('p3-06')} />
       </Sequence>
       <Sequence {...w('p3-09', 'p3-15')} name="3-C 提示进化史">
-        <PromptEvolution />
+        <PromptEvolution at={rel('p3-09')} />
       </Sequence>
       <Sequence {...w('p3-16', 'p3-17')} name="3-D 金句天平">
-        <BalanceScale />
+        <BalanceScale at={rel('p3-16')} />
       </Sequence>
       <Sequence {...w('p3-18', 'p3-24c')} name="3-E 记笔记">
-        <NotebookScene />
+        <NotebookScene at={rel('p3-18')} />
       </Sequence>
       <Sequence {...w('p3-25', 'p3-29')} name="3-F 记忆毛病">
-        <MemoryBugs />
+        <MemoryBugs at={rel('p3-25')} />
       </Sequence>
       <Sequence {...w('p3-30', 'p3-34')} name="3-G Voyager">
-        <VoyagerScene />
+        <VoyagerScene at={rel('p3-30')} />
       </Sequence>
       <Sequence {...w('p3-35', 'p3-42')} name="3-H 工具闭环">
-        <ToolLoop />
+        <ToolLoop at={rel('p3-35')} />
       </Sequence>
       <Sequence {...w('p3-43', 'p3-48')} name="3-I 莫比乌斯黏土">
-        <MobiusClay />
+        <MobiusClay at={rel('p3-43')} />
       </Sequence>
       <Sequence {...w('p3-50', 'p3-53')} name="3-J 后代树">
-        <OffspringTree />
+        <OffspringTree at={rel('p3-50')} />
       </Sequence>
       <Sequence {...w('p3-54', 'p3-57')} name="3-K 开船修船">
-        <ShipRefit />
+        <ShipRefit at={rel('p3-54')} />
       </Sequence>
       <Sequence {...w('p3-58', 'p3-62b')} name="3-L 验证门">
-        <ValidationGate />
+        <ValidationGate at={rel('p3-58')} />
       </Sequence>
     </AbsoluteFill>
   );

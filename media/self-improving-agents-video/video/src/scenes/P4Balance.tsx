@@ -702,17 +702,17 @@ const DayNightLoop: React.FC<{t8: number; t9: number; t10: number}> = ({t8, t9, 
       </div>
 
       {/* 蒸馏漏斗 + 蓝色大脑 */}
-      <svg width={420} height={140} style={{position: 'absolute', left: 750, top: 506, opacity: 0.4 + 0.6 * night}}>
+      <svg width={420} height={186} viewBox="0 0 420 186" style={{position: 'absolute', left: 750, top: 460, opacity: 0.4 + 0.6 * night}}>
+        <text x={210} y={30} textAnchor="middle" fill={theme.brain} fontSize={26} fontFamily={theme.mono}>
+          distill
+        </text>
         <path
-          d="M 40 6 L 380 6 L 268 134 L 152 134 Z"
+          d="M 40 52 L 380 52 L 268 180 L 152 180 Z"
           fill="rgba(26,58,92,0.55)"
           stroke={theme.brain}
           strokeWidth={3}
           strokeDasharray="14 10"
         />
-        <text x={210} y={-8} textAnchor="middle" fill={theme.brain} fontSize={26} fontFamily={theme.mono}>
-          distill
-        </text>
       </svg>
 
       {/* 沉降颗粒 */}
