@@ -1066,8 +1066,8 @@ const ToolLoop: React.FC<{at: (id: string) => number}> = ({at}) => {
   });
   const nodes = [
     {label: '选', icon: '🧭', sub: '挑对工具本身就是门学问\n选错的成本会连锁放大', x: 960, y: 262},
-    {label: '造', icon: '⚒️', sub: '不够用就自己写一个\n验证 + 补文档 → 才准注册', x: 1460, y: 562},
-    {label: '修', icon: '🔧', sub: '边用边修 · 像坏习惯会污染\n修不好不许入库', x: 460, y: 562},
+    {label: '修', icon: '🔧', sub: '边用边修 · 像坏习惯会污染\n修不好不许入库', x: 1460, y: 562},
+    {label: '造', icon: '⚒️', sub: '不够用就自己写一个\n验证 + 补文档 → 才准注册', x: 460, y: 562},
   ];
   const edges = [
     {from: 0, to: 1, owner: 0},

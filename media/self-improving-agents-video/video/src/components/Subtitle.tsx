@@ -4,8 +4,9 @@ import {theme} from '../design/theme';
 import type {TimedSentence} from '../types';
 
 const CJK = /[⺀-鿿豈-﫿]/;
-/** 全角标点与 CJK 同宽（1em），不满足 CJK 区间，须并列判定 */
-const FULLWIDTH_PUNCT = /[，。！？：；、""''（）——…·《》「」]/;
+/** 全角标点与 CJK 同宽（1em），不满足 CJK 区间，须并列判定；
+ *  ASCII 引号 (U+0022/27) 字形实为半宽，不入此类、按 0.55 桶计 */
+const FULLWIDTH_PUNCT = /[，。！？：；、“”‘’（）——…·《》「」]/;
 
 /** 全片底部字幕条：一句一条，与配音逐句同步（storyboard.md 字幕规范） */
 export const Subtitle: React.FC<{timed: TimedSentence[]}> = ({timed}) => {
