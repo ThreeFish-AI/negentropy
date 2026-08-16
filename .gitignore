@@ -302,3 +302,10 @@ media/self-improving-agents-video/out/
 media/self-improving-agents-video/**/*.mp4
 media/self-improving-agents-video/**/*.mp3
 media/self-improving-agents-video/**/*.wav
+
+# 科普视频工程（media/experience-era-agents-video）本地产物：同上集规则。
+media/experience-era-agents-video/video/public/audio/
+media/experience-era-agents-video/out/
+media/experience-era-agents-video/**/*.mp4
+media/experience-era-agents-video/**/*.mp3
+media/experience-era-agents-video/**/*.wav
