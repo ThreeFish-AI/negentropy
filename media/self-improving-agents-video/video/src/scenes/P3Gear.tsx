@@ -1559,14 +1559,14 @@ const ShipRefit: React.FC<{at: (id: string) => number}> = ({at}) => {
             improver.py — 住在被改进的系统里
           </text>
         </svg>
-        {/* 机械臂（顶部） */}
-        <div style={{position: 'absolute', left: 150, top: -92, width: 200, height: 130}}>
-          <svg width={200} height={130} viewBox="0 0 200 130">
-            <rect x={86} y={50} width={28} height={80} rx={10} fill={theme.panelBorder} />
-            <g transform={`rotate(${armAngle} 100 50)`} style={{transformOrigin: '100px 50px'}}>
-              <rect x={94} y={2} width={12} height={58} rx={6} fill={theme.dim} />
-              <circle cx={100} cy={4} r={10} fill={theme.gear} />
-              <text x={100} y={-8} textAnchor="middle" fontSize={30}>
+        {/* 机械臂（顶部）：立柱对齐船上桅杆（船容器内 x≈400），下延至甲板（y=190） */}
+        <div style={{position: 'absolute', left: 305, top: -130, width: 200, height: 330}}>
+          <svg width={200} height={330} viewBox="0 0 200 330">
+            <rect x={86} y={140} width={28} height={58} rx={10} fill={theme.panelBorder} />
+            <g transform={`rotate(${armAngle} 100 140)`} style={{transformOrigin: '100px 140px'}}>
+              <rect x={94} y={92} width={12} height={58} rx={6} fill={theme.dim} />
+              <circle cx={100} cy={94} r={10} fill={theme.gear} />
+              <text x={100} y={82} textAnchor="middle" fontSize={30}>
                 {wrenchIcons[wrenchMorph]}
               </text>
             </g>

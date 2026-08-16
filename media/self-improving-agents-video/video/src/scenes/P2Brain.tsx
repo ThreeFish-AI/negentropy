@@ -1101,7 +1101,8 @@ const GoOutside: React.FC = () => {
   const {fps} = useVideoConfig();
   const walk = spring({frame: frame - 6, fps, config: {damping: 200}});
   const hit = spring({frame: frame - 40, fps, config: {damping: 7}});
-  const robotX = -190 + walk * 330;
+  // 行程 662：机器人（left 430 + 字宽 92）右缘在 walk=1 时贴到墙面（容器 right:60 + 厚 26 → x≈994）
+  const robotX = -190 + walk * 662;
   return (
     <div style={{position: 'relative', width: 1080, height: 480}}>
       <div
@@ -1141,7 +1142,7 @@ const GoOutside: React.FC = () => {
         style={{
           position: 'absolute',
           right: 120,
-          top: 250,
+          top: 320,
           writingMode: 'vertical-rl',
           fontFamily: theme.sans,
           fontSize: 30,
