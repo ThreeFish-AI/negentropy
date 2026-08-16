@@ -293,3 +293,12 @@ benchmarks/runs/
 # PDF Fidelity Patrol 临时候选产物（评估用重转 Markdown，正常落 worktree 外暂存目录；
 # 此条兜底 agent 路径漂移误在 worktree 写候选的极端场景，确保其永不进 commit/PR）
 patrol-candidate.md
+
+# 科普视频工程（media/self-improving-agents-video）本地产物：
+# tts.py 逐句音频 + manifest、Remotion 渲染产物均环境相关，不入 git。
+# 注：工程内的 .gitignore 被上方根级裸 `.gitignore` 规则挡住无法提交，规则须维护在此处。
+media/self-improving-agents-video/video/public/audio/
+media/self-improving-agents-video/out/
+media/self-improving-agents-video/**/*.mp4
+media/self-improving-agents-video/**/*.mp3
+media/self-improving-agents-video/**/*.wav
