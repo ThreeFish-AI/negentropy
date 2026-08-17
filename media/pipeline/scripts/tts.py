@@ -36,9 +36,9 @@ from pathlib import Path
 DEFAULT_VOICE = "zh-CN-YunxiNeural"
 DEFAULT_RATE = "+4%"
 CONCURRENCY_EDGE = 6
-CONCURRENCY_INDEXTTS = 2
+CONCURRENCY_INDEXTTS = 1  # 服务端串行锁推理；>1 会在锁后排队，排队时长计入客户端超时
 RETRIES = 4
-HTTP_TIMEOUT = 300
+HTTP_TIMEOUT = 600  # MPS fp32 长句可达数分钟；须覆盖队列等待
 MANUAL = "media/pipeline/VOICE-CLONING.md"
 
 # IndexTTS 8 维情感向量顺序（indextts/infer_v2_5.py 固定）：happy, angry, sad, afraid,
