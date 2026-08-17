@@ -156,6 +156,7 @@ class SynthesizeRequest(BaseModel):
     emo_alpha: float = 1.0
     duration_factor: float = 1.0
     lang: str = "ZH"
+    num_beams: int = 1
 
     @field_validator("emo_vector")
     @classmethod
@@ -184,6 +185,13 @@ class SynthesizeRequest(BaseModel):
             raise ValueError("duration_factor 必须在 [0.5, 2.0]")
         return v
 
+    @field_validator("num_beams")
+    @classmethod
+    def _beams_ok(cls, v: int) -> int:
+        if not 1 <= v <= 5:
+            raise ValueError("num_beams 必须在 [1, 5]")
+        return v
+
 
 STATE: dict = {}
 
@@ -198,6 +206,9 @@ def _infer_sync(tts, ref: Path, req: SynthesizeRequest, tmpdir: Path) -> Path:
         emo_alpha=req.emo_alpha,
         use_random=False,
         verbose=False,
+        # 束搜索宽度：上游默认 3；采样生成（do_sample=True）下 1 与 3 的听感差异可忽略，
+        # 但 GPT 段耗时约按束宽线性放大（MPS fp32 实测 RTF 40-58），管线长跑默认 1。
+        num_beams=req.num_beams,
     )
     if STATE["supports_duration_factor"]:
         kwargs["duration_factor"] = req.duration_factor

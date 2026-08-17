@@ -242,6 +242,7 @@ def http_synthesize(
     alpha: float,
     df: float,
     lang: str,
+    num_beams: int = 1,
 ) -> tuple[bytes, str]:
     """POST /synthesize → (mp3 bytes, X-Audio-Format)。4xx 不可重试。"""
     payload: dict = {
@@ -250,6 +251,7 @@ def http_synthesize(
         "emo_alpha": alpha,
         "duration_factor": df,
         "lang": lang,
+        "num_beams": num_beams,
     }
     if vec is not None:
         payload["emo_vector"] = vec
@@ -301,6 +303,7 @@ async def synth_indextts(
     engine_tag: str,
     server: str,
     out_dir: Path,
+    num_beams: int = 1,
 ) -> dict:
     sid, text = item["id"], item["text"]
     mp3 = out_dir / f"{sid}.mp3"
@@ -329,6 +332,7 @@ async def synth_indextts(
                         alpha,
                         df,
                         lang,
+                        num_beams,
                     )
                     if fmt != "mp3":
                         raise NonRetryableError(
@@ -408,6 +412,14 @@ async def main() -> None:
     )
     idx.add_argument("--lang", default="ZH", help="[indextts] 语言（默认 ZH）")
     idx.add_argument(
+        "--num-beams",
+        default=1,
+        type=int,
+        choices=[1, 2, 3, 4, 5],
+        help="[indextts] GPT 束搜索宽度（默认 1；采样生成下与上游默认 3 听感差异可忽略，"
+        "但 GPT 段耗时约按束宽线性放大——长篇管线跑 1，质量敏感单句可试 3）",
+    )
+    idx.add_argument(
         "--engine-tag",
         default="indextts",
         help="[indextts] 缓存标记；模型升级后自定义以失效旧缓存",
@@ -434,6 +446,7 @@ async def main() -> None:
                 "--emo-vector": args.emo_vector,
                 "--emo-alpha": args.emo_alpha,
                 "--duration-factor": args.duration_factor,
+                "--num-beams": args.num_beams != 1,
                 "--server": args.server != "http://127.0.0.1:8766",
                 "--style": args.style != "neutral",
                 "--lang": args.lang != "ZH",
@@ -524,6 +537,7 @@ async def main() -> None:
                     args.engine_tag,
                     args.server,
                     out_dir,
+                    num_beams=args.num_beams,
                 )
                 for i in items
             )
