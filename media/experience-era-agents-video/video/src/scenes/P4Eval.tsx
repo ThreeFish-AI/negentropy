@@ -167,15 +167,22 @@ const FlakyRuns: React.FC = () => {
   );
 };
 
-/** 4-D：T0→T1→T2 纵向体检 */
-const Longitudinal: React.FC = () => {
+/** 4-D：T0→T1→T2 纵向体检（v2：检查点卡化 + 四仪表通电） */
+const Longitudinal: React.FC<{metersAt: number}> = ({metersAt}) => {
   const frame = useCurrentFrame();
   const points = [
     {t: 'T0', label: '改进前', color: theme.dim},
     {t: 'T1', label: '改进后', color: theme.harness},
     {t: 'T2', label: '过段时间', color: theme.exp},
   ];
+  const meters = [
+    {label: '新任务涨分', icon: '📈'},
+    {label: '老任务不忘', icon: '🔁'},
+    {label: '功劳归谁', icon: '🔍'},
+    {label: '代价与风险', icon: '⚖️'},
+  ];
   const lineGrow = interpolate(frame, [10, 70], [0, 1], {extrapolateRight: 'clamp', extrapolateLeft: 'clamp'});
+  const metersOn = interpolate(frame, [metersAt, metersAt + 30], [0, 4], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <div style={{position: 'relative', width: 1300, height: 400}}>
@@ -204,26 +211,26 @@ const Longitudinal: React.FC = () => {
                 transform: `scale(${0.7 + enter * 0.3})`,
               }}
             >
+              {/* 检查点卡：圆点变卡片（体检点立起） */}
               <div
                 style={{
-                  width: 120,
-                  height: 120,
-                  borderRadius: 60,
+                  width: 150,
+                  height: 150,
+                  borderRadius: 20,
                   background: theme.panel,
                   border: `4px solid ${p.color}`,
                   display: 'flex',
+                  flexDirection: 'column',
                   justifyContent: 'center',
                   alignItems: 'center',
-                  fontSize: 38,
-                  color: p.color,
-                  fontFamily: theme.mono,
-                  fontWeight: 700,
+                  gap: 4,
+                  boxShadow: `0 0 30px ${p.color}33`,
                 }}
               >
-                {p.t}
+                <div style={{fontSize: 38, color: p.color, fontFamily: theme.mono, fontWeight: 700}}>{p.t}</div>
+                <div style={{fontSize: 26}}>🩺</div>
               </div>
               <div style={{marginTop: 14, fontFamily: theme.sans, fontSize: 26, color: p.color}}>{p.label}</div>
-              <div style={{marginTop: 6, fontSize: 34}}>🩺</div>
             </div>
           );
         })}
@@ -231,6 +238,32 @@ const Longitudinal: React.FC = () => {
         <FadeUp delay={60} style={{position: 'absolute', right: 60, top: 300}}>
           <Pill color={theme.exp}>留着旧题 · 反复重考</Pill>
         </FadeUp>
+      </div>
+      {/* 四仪表通电：p4-17「各考一轮」起逐个点亮（站点四指标问句的可视化） */}
+      <div style={{display: 'flex', gap: 34, marginTop: 8}}>
+        {meters.map((m, i) => {
+          const on = Math.max(0, Math.min(1, metersOn - i));
+          return (
+            <div
+              key={m.label}
+              style={{
+                width: 250,
+                padding: '16px 18px',
+                borderRadius: 14,
+                background: theme.panel,
+                border: `2.5px solid ${on > 0.5 ? theme.harness : theme.panelBorder}`,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                opacity: 0.35 + on * 0.65,
+                boxShadow: on > 0.5 ? `0 0 22px ${theme.harness}33` : 'none',
+              }}
+            >
+              <span style={{fontSize: 30, opacity: on > 0.3 ? 1 : 0.3}}>{m.icon}</span>
+              <span style={{fontFamily: theme.sans, fontSize: 24, color: on > 0.5 ? theme.text : theme.dim}}>{m.label}</span>
+            </div>
+          );
+        })}
       </div>
       <FadeUp delay={70} style={{position: 'absolute', bottom: 150}}>
         <div style={{fontFamily: theme.mono, fontSize: 24, color: theme.dim}}>
@@ -299,6 +332,14 @@ const RotBench: React.FC = () => {
 
 export const P4Eval: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (fromId: string, toId?: string) => beatWindow(scene.sentences, scene.from, fromId, toId);
+  const winD = w('p4-15', 'p4-18');
+  const at = (id: string) => {
+    const s = scene.sentences.find((x) => x.id === id);
+    if (!s) {
+      throw new Error(`P4Eval: 未找到句 id ${id}`);
+    }
+    return s.from - scene.from;
+  };
   return (
     <AbsoluteFill>
       <Sequence {...w('p4-01', 'p4-04')} name="4-A 体检中心">
@@ -310,8 +351,8 @@ export const P4Eval: React.FC<{scene: SceneRange}> = ({scene}) => {
       <Sequence {...w('p4-12', 'p4-14')} name="4-C 稳定性">
         <FlakyRuns />
       </Sequence>
-      <Sequence {...w('p4-15', 'p4-18')} name="4-D 纵向协议">
-        <Longitudinal />
+      <Sequence {...winD} name="4-D 纵向协议">
+        <Longitudinal metersAt={at('p4-17') - winD.from} />
       </Sequence>
       <Sequence {...w('p4-19', 'p4-21')} name="4-E 题库腐烂">
         <RotBench />

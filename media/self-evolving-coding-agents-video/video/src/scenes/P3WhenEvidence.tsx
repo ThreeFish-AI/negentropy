@@ -271,13 +271,15 @@ const TapeToCards: React.FC = () => {
   );
 };
 
-/** 3-F 3×3 矩阵 */
-const Matrix3x3: React.FC = () => {
+/** 3-F 3×3 矩阵（v3：p3-25b 后一条绿色斜线光带扫过——Table 2 结构规律可视化） */
+const Matrix3x3: React.FC<{diagonalFrom: number}> = ({diagonalFrom}) => {
   const frame = useCurrentFrame();
   const lit = Math.floor(frame / 7);
   const times = ['干活时', '下班后', '攒批换代'];
   const evidences = ['结果', '环境反馈', '轨迹'];
   const glowIn = interpolate(frame, [190, 220], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  // 斜线光带：从矩阵左上往右下扫掠（覆盖 工作流行→当场、记忆行→复盘、模型行→攒批 的对角带）
+  const diag = interpolate(frame, [diagonalFrom, diagonalFrom + 40], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <div style={{position: 'relative'}}>
@@ -318,6 +320,30 @@ const Matrix3x3: React.FC = () => {
             </React.Fragment>
           ))}
         </div>
+        {/* 斜线光带：SVG 覆盖层，pathLength 归一化描边（红线 3：不与像素 dasharray 混用） */}
+        {diag > 0 && (
+          <svg
+            width={180 + 250 * 3 + 10 * 3}
+            height={70 + 170 * 3 + 10 * 3}
+            viewBox={`0 0 ${180 + 250 * 3 + 10 * 3} ${70 + 170 * 3 + 10 * 3}`}
+            style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none'}}
+          >
+            <line
+              x1={180 + 10 + 250 * 0.5}
+              y1={70 + 10 + 170 * 0.5}
+              x2={180 + 10 + 250 * 2.5}
+              y2={70 + 10 + 170 * 2.5}
+              stroke={theme.ok}
+              strokeWidth={10}
+              strokeLinecap="round"
+              pathLength={1}
+              strokeDasharray={1}
+              strokeDashoffset={1 - diag}
+              opacity={0.9}
+              style={{filter: `drop-shadow(0 0 14px ${theme.ok})`}}
+            />
+          </svg>
+        )}
         <div
           style={{
             position: 'absolute',
@@ -356,6 +382,7 @@ const WhoDecides: React.FC = () => {
 
 export const P3WhenEvidence: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (fromId: string, toId?: string) => beatWindow(scene.sentences, scene.from, fromId, toId);
+  const matrixBeat = w('p3-23', 'p3-27');
   return (
     <AbsoluteFill>
       <Sequence {...w('p3-01', 'p3-02')} name="3-A 两把尺子">
@@ -375,8 +402,8 @@ export const P3WhenEvidence: React.FC<{scene: SceneRange}> = ({scene}) => {
       <Sequence {...w('p3-20', 'p3-22')} name="3-E 轨迹证据">
         <TapeToCards />
       </Sequence>
-      <Sequence {...w('p3-23', 'p3-27')} name="3-F 3×3矩阵">
-        <Matrix3x3 />
+      <Sequence {...matrixBeat} name="3-F 3×3矩阵">
+        <Matrix3x3 diagonalFrom={beatWindow(scene.sentences, scene.from, 'p3-25b').from - matrixBeat.from} />
       </Sequence>
       <Sequence {...w('p3-28')} name="3-G 幕尾钩">
         <WhoDecides />

@@ -978,8 +978,273 @@ const SmartDoor: React.FC<{askAt: number; safeAt: number}> = ({askAt, safeAt}) =
   );
 };
 
-/* ------------------------------ 5-F 原文卡 ------------------------------
- * p5-22 论文引用卡 → p5-23 arXiv 链接 + 推荐读原文 → p5-24 下期再见 + 渐黑收尾。
+/* ------------------------------ 5-F 活地图（v3 新增） ------------------------------
+ * p5-22a..22d：官方工程站点的收录统计——三色计数条并行生长（蓝 77 / 橙 176 / 灰 59），
+ * 数字 counter 滚动，随后合拢成环形统计图；橙段最长 = 「装备最火」的定量印证。
+ * 角标注明信源等级（官方工程站点统计，非论文正文数字）。
+ */
+const LivingMap: React.FC<{countAt: number; ringAt: number; insightAt: number}> = ({countAt, ringAt, insightAt}) => {
+  const frame = useCurrentFrame();
+  const {fps} = useVideoConfig();
+  const bars = [
+    {label: '改大脑 θ', en: 'FM improvement', n: 77, color: theme.brain, deep: theme.brainDeep},
+    {label: '改装备 Σ', en: 'Scaffolding improvement', n: 176, color: theme.gear, deep: theme.gearDeep},
+    {label: '评测', en: 'Evaluation & Benchmarking', n: 59, color: theme.dim, deep: '#2A2F3A'},
+  ];
+  const total = 312;
+  const grow = ci(frame, countAt, countAt + 42);
+  const ring = ci(frame, ringAt, ringAt + 36);
+  const insight = ci(frame, insightAt, insightAt + 16);
+  const orangePulse = insight > 0 ? 0.85 + 0.15 * Math.sin(frame * 0.1) : 1;
+  // 环形图几何（viewBox 360x360，中心 180,180，半径 110；蓝从顶部顺时针、橙紧随、灰收尾）
+  const R = 110;
+  const C = 2 * Math.PI * R;
+  const segs = [77 / total, 176 / total, 59 / total];
+  const offsets = [0, segs[0], segs[0] + segs[1]];
+  const enters = spring({frame, fps, config: {damping: 200}});
+  return (
+    <AbsoluteFill style={{opacity: enters}}>
+      {/* 左：三色计数条 */}
+      <div style={{position: 'absolute', left: 210, top: 250, width: 640, display: 'flex', flexDirection: 'column', gap: 44}}>
+        {bars.map((b, i) => {
+          const v = Math.round(b.n * ci(frame, countAt + i * 10, countAt + i * 10 + 36));
+          return (
+            <div key={b.label}>
+              <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10}}>
+                <div style={{fontFamily: theme.sans, fontSize: 30, fontWeight: 800, color: b.color}}>
+                  {b.label} <span style={{fontSize: 20, color: theme.dim, fontWeight: 400, fontFamily: theme.mono}}>{b.en}</span>
+                </div>
+                <div style={{fontFamily: theme.mono, fontSize: 44, fontWeight: 700, color: b.color}}>{v}</div>
+              </div>
+              <div style={{height: 26, borderRadius: 13, background: theme.panel, border: `2px solid ${theme.panelBorder}`, overflow: 'hidden'}}>
+                <div
+                  style={{
+                    height: '100%',
+                    width: `${(b.n / 176) * 100 * grow}%`,
+                    borderRadius: 11,
+                    background: b.color,
+                    boxShadow: i === 1 && insight > 0 ? `0 0 18px ${b.color}` : 'none',
+                    opacity: i === 1 ? orangePulse : 1,
+                  }}
+                />
+              </div>
+            </div>
+          );
+        })}
+        <FadeUp delay={countAt + 30}>
+          <div style={{fontFamily: theme.sans, fontSize: 26, color: theme.dim, marginTop: 4}}>
+            合计 <span style={{fontFamily: theme.mono, fontSize: 34, fontWeight: 700, color: theme.text}}>{Math.round(total * grow)}</span> 项收录
+          </div>
+        </FadeUp>
+      </div>
+
+      {/* 右：环形统计图合拢 */}
+      <svg width={360} height={360} viewBox="0 0 360 360" style={{position: 'absolute', left: 1020, top: 210, opacity: ring}}>
+        <circle cx={180} cy={180} r={R} fill="none" stroke={theme.panel} strokeWidth={40} opacity={0.5} />
+        {bars.map((b, i) => (
+          <circle
+            key={b.label}
+            cx={180}
+            cy={180}
+            r={R}
+            fill="none"
+            stroke={b.color}
+            strokeWidth={i === 1 && insight > 0 ? 46 : 40}
+            strokeLinecap="butt"
+            pathLength={1}
+            strokeDasharray={`${segs[i] * ring} ${1 - segs[i] * ring}`}
+            strokeDashoffset={-offsets[i]}
+            transform="rotate(-90 180 180)"
+            opacity={i === 1 ? orangePulse : 1}
+            style={i === 1 && insight > 0 ? {filter: `drop-shadow(0 0 10px ${b.color})`} : undefined}
+          />
+        ))}
+        <text x={180} y={172} textAnchor="middle" fill={theme.text} style={{fontFamily: theme.mono, fontSize: 56, fontWeight: 700}}>
+          {Math.round(total * Math.max(grow, ring))}
+        </text>
+        <text x={180} y={212} textAnchor="middle" fill={theme.dim} style={{fontFamily: theme.sans, fontSize: 22}}>
+          curated entries
+        </text>
+      </svg>
+
+      {/* p5-22d 洞察行：橙条两倍多 */}
+      <FadeUp delay={insightAt}>
+        <div
+          style={{
+            position: 'absolute',
+            left: 960,
+            top: 640,
+            transform: 'translateX(-50%)',
+            fontFamily: theme.sans,
+            fontSize: 30,
+            fontWeight: 700,
+            color: theme.text,
+            textAlign: 'center',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          装备条目数 ≈ 大脑的 <span style={{color: theme.gear}}>2.3 倍</span> —— 「最火的方向」就在这组数字里
+        </div>
+      </FadeUp>
+
+      {/* 信源等级角标（bottom≥150 避字幕条） */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 960,
+          top: 880,
+          transform: 'translateX(-50%)',
+          fontFamily: theme.mono,
+          fontSize: 21,
+          color: theme.dim,
+          opacity: ci(frame, 8, 22),
+        }}
+      >
+        living research map · 官方工程站点统计（2026-08）
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+/* ------------------------------ 5-G 敲门砖墙（v3 新增） ------------------------------
+ * p5-22e/f：站点 Quick-start 九篇论文卡片墙——3×3 交错飞入后按蓝/橙双色分拣重排（呼应 P1 分叉）。
+ */
+const QuickStartWall: React.FC<{sortAt: number}> = ({sortAt}) => {
+  const frame = useCurrentFrame();
+  const {fps} = useVideoConfig();
+  const cards = [
+    {t: 'Self-Instruct', side: 0},
+    {t: 'Constitutional AI', side: 0},
+    {t: 'WebRL', side: 0},
+    {t: 'Web Agents with\nWorld Models', side: 0},
+    {t: 'Self-Refine', side: 1},
+    {t: 'TextGrad', side: 1},
+    {t: 'MemoryBank', side: 1},
+    {t: 'Voyager', side: 1},
+    {t: 'Darwin Gödel\nMachine', side: 1},
+  ];
+  const sorted = ci(frame, sortAt, sortAt + 30);
+  return (
+    <AbsoluteFill>
+      <div
+        style={{
+          position: 'absolute',
+          left: 960,
+          top: 130,
+          transform: 'translateX(-50%)',
+          fontFamily: theme.sans,
+          fontSize: 32,
+          fontWeight: 800,
+          color: theme.text,
+          opacity: ci(frame, 2, 16),
+        }}
+      >
+        站点敲门砖 · 九篇上手清单
+      </div>
+
+      {cards.map((c, i) => {
+        const col = i % 3;
+        const row = Math.floor(i / 3);
+        // 网格位置（未分拣）
+        const gx = 960 + (col - 1) * 400;
+        const gy = 420 + row * 180;
+        // 分拣目标位置（蓝左列 / 橙右列，竖排 5+4）
+        const blueIdx = cards.slice(0, i).filter((x) => x.side === 0).length;
+        const blueRow = c.side === 0 ? blueIdx : 0;
+        const orangeIdx = cards.slice(0, i).filter((x) => x.side === 1).length;
+        const orangeRow = c.side === 1 ? orangeIdx : 0;
+        const sx = c.side === 0 ? 620 : 1300;
+        const sy = 250 + (c.side === 0 ? blueRow : orangeRow) * 132;
+        const x = gx + (sx - gx) * sorted;
+        const y = gy + (sy - gy) * sorted;
+        const e = spring({frame: frame - 4 - i * 5, fps, config: {damping: 13}});
+        const color = c.side === 0 ? theme.brain : theme.gear;
+        const deep = c.side === 0 ? theme.brainDeep : theme.gearDeep;
+        return (
+          <div
+            key={c.t}
+            style={{
+              position: 'absolute',
+              left: x,
+              top: y,
+              transform: `translate(-50%,-50%) scale(${0.86 + 0.14 * e})`,
+              width: 340,
+              padding: '16px 20px',
+              borderRadius: 14,
+              background: deep,
+              border: `2.5px solid ${color}`,
+              fontFamily: theme.mono,
+              fontSize: 25,
+              fontWeight: 700,
+              color,
+              textAlign: 'center',
+              lineHeight: 1.3,
+              whiteSpace: 'pre-line',
+              opacity: e,
+              boxShadow: `0 12px 36px rgba(0,0,0,0.4)`,
+            }}
+          >
+            {c.t}
+          </div>
+        );
+      })}
+
+      {/* 分拣后出现两路标签 */}
+      <FadeUp delay={sortAt + 10}>
+        <div
+          style={{
+            position: 'absolute',
+            left: 620,
+            top: 130,
+            transform: 'translateX(-50%)',
+            fontFamily: theme.sans,
+            fontSize: 28,
+            fontWeight: 800,
+            color: theme.brain,
+            opacity: sorted,
+          }}
+        >
+          🧠 改大脑
+        </div>
+        <div
+          style={{
+            position: 'absolute',
+            left: 1300,
+            top: 130,
+            transform: 'translateX(-50%)',
+            fontFamily: theme.sans,
+            fontSize: 28,
+            fontWeight: 800,
+            color: theme.gear,
+            opacity: sorted,
+          }}
+        >
+          🧰 改装备
+        </div>
+      </FadeUp>
+
+      <FadeUp delay={sortAt + 24}>
+        <div
+          style={{
+            position: 'absolute',
+            left: 960,
+            top: 900,
+            transform: 'translateX(-50%)',
+            fontFamily: theme.sans,
+            fontSize: 28,
+            color: theme.dim,
+            opacity: sorted,
+          }}
+        >
+          这期讲过的名字 · 都在上面
+        </div>
+      </FadeUp>
+    </AbsoluteFill>
+  );
+};
+
+/* ------------------------------ 5-H 原文卡 ------------------------------
+ * p5-23 论文引用卡 → p5-24 下期再见 + 渐黑收尾（时长从末 beat 实时推导）。
  */
 const CitationBeat: React.FC<{recAt: number; byeAt: number; dur: number}> = ({recAt, byeAt, dur}) => {
   const frame = useCurrentFrame();
@@ -1068,7 +1333,9 @@ export const P5Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
   const winC = w('p5-09', 'p5-14');
   const winD = w('p5-15', 'p5-18');
   const winE = w('p5-19', 'p5-21');
-  const winF = w('p5-22', 'p5-24');
+  const winF = w('p5-22', 'p5-22d');
+  const winG = w('p5-22e', 'p5-22f');
+  const winH = w('p5-23', 'p5-24');
 
   return (
     <AbsoluteFill>
@@ -1099,8 +1366,14 @@ export const P5Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
       <Sequence {...winE} name="5-E 开放问题">
         <SmartDoor askAt={at('p5-20') - winE.from} safeAt={at('p5-21') - winE.from} />
       </Sequence>
-      <Sequence {...winF} name="5-F 原文卡">
-        <CitationBeat recAt={at('p5-23') - winF.from} byeAt={at('p5-24') - winF.from} dur={winF.durationInFrames} />
+      <Sequence {...winF} name="5-F 活地图">
+        <LivingMap countAt={at('p5-22b') - winF.from} ringAt={at('p5-22c') - winF.from} insightAt={at('p5-22d') - winF.from} />
+      </Sequence>
+      <Sequence {...winG} name="5-G 敲门砖墙">
+        <QuickStartWall sortAt={at('p5-22f') - winG.from - 10} />
+      </Sequence>
+      <Sequence {...winH} name="5-H 原文卡">
+        <CitationBeat recAt={at('p5-23') - winH.from} byeAt={at('p5-24') - winH.from} dur={winH.durationInFrames} />
       </Sequence>
     </AbsoluteFill>
   );

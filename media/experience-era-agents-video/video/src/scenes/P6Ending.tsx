@@ -12,6 +12,10 @@ import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 
+/** 双端 clamp 的 0→1 进度 */
+const ci = (f: number, a: number, b: number) =>
+  interpolate(f, [a, b], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+
 /** 6-A：星空开放问题 */
 const OpenQuestions: React.FC = () => {
   const frame = useCurrentFrame();
@@ -76,7 +80,214 @@ const OpenQuestions: React.FC = () => {
   );
 };
 
-/** 6-C：三块拼图 */
+/** 6-B2：经验编译器闭环复盘（v2 新增，p6-06a..06d）
+ *  五节点环形流水：部署轨迹（金）→ 经验编译器（三步徽标）→ 双路（青快/紫慢，双速差流光）→ 评测+安全闸门（红脉冲）→ 回到部署。
+ *  青路流光速度快、紫路缓慢下沉——「快/可逆 vs 慢/持久」的时间尺度不对称是概念核心。 */
+const LoopRecap: React.FC<{compilerAt: number; pathsAt: number; gateAt: number}> = ({compilerAt, pathsAt, gateAt}) => {
+  const frame = useCurrentFrame();
+  const {fps} = useVideoConfig();
+  const enter = spring({frame, fps, config: {damping: 200}});
+  // 环几何：viewBox 900x640，中心 450,320
+  const R = 210;
+  const N = 5;
+  const nodeAngle = (i: number) => (-90 + (360 / N) * i) * (Math.PI / 180); // 从顶部顺时针
+  const nodePos = (i: number) => ({x: 450 + R * Math.cos(nodeAngle(i)), y: 320 + R * Math.sin(nodeAngle(i))});
+  const nodes = [
+    {label: '部署轨迹', sub: 'goals · actions · tests', color: theme.exp},
+    {label: '经验编译器', sub: '选证据 / 提抽象 / 记出处', color: theme.exp},
+    {label: '工位 · 快路', sub: '技能 / 记忆 / 工具', color: theme.harness},
+    {label: '大脑 · 慢路', sub: 'RL · 持续学习', color: theme.params},
+    {label: '评测 + 安全闸', sub: '才承认是「进步」', color: theme.danger},
+  ];
+  const ringDraw = ci(frame, 2, 40);
+  // 流光：青路（节点2→3 外弧）快转；紫路（节点3→4）慢沉——用两段弧上的游标点
+  const flowT = Math.max(0, frame - pathsAt);
+  const tealPhase = (flowT * 0.03) % 1; // 快：约 33 帧一圈
+  const purplePhase = (flowT * 0.011) % 1; // 慢：约 90 帧一圈
+  const gatePulse = gateAt > 0 && frame > gateAt ? 0.6 + 0.4 * Math.sin((frame - gateAt) * 0.14) : 0.7;
+  const compilerIn = ci(frame, compilerAt, compilerAt + 14);
+  const pathsIn = ci(frame, pathsAt, pathsAt + 14);
+  const gateIn = ci(frame, gateAt, gateAt + 14);
+
+  const arcPoint = (fromI: number, toI: number, t: number) => {
+    const a1 = nodeAngle(fromI);
+    const a2 = nodeAngle(toI);
+    const a = a1 + (a2 - a1) * t;
+    return {x: 450 + R * Math.cos(a), y: 320 + R * Math.sin(a)};
+  };
+  const tealDot = arcPoint(1, 2, tealPhase);
+  const purpleDot = arcPoint(2, 3, purplePhase);
+
+  return (
+    <AbsoluteFill style={{opacity: enter}}>
+      <div
+        style={{
+          position: 'absolute',
+          left: 960,
+          top: 92,
+          transform: 'translateX(-50%)',
+          fontFamily: theme.sans,
+          fontSize: 30,
+          fontWeight: 700,
+          color: theme.text,
+          opacity: ci(frame, 0, 14),
+        }}
+      >
+        全片拼成一张图 · 经验的闭环
+      </div>
+
+      <svg width={900} height={640} viewBox="0 0 900 640" style={{position: 'absolute', left: 510, top: 180}}>
+        {/* 环主干 */}
+        <circle
+          cx={450}
+          cy={320}
+          r={R}
+          fill="none"
+          stroke={theme.panelBorder}
+          strokeWidth={10}
+          pathLength={1}
+          strokeDasharray={1}
+          strokeDashoffset={1 - ringDraw}
+          transform="rotate(-90 450 320)"
+        />
+        {/* 青路段加亮（1→2 弧，快路） */}
+        <path
+          d={`M ${nodePos(1).x} ${nodePos(1).y} A ${R} ${R} 0 0 1 ${nodePos(2).x} ${nodePos(2).y}`}
+          fill="none"
+          stroke={theme.harness}
+          strokeWidth={12}
+          strokeLinecap="round"
+          opacity={0.8 * pathsIn}
+        />
+        {/* 紫路段加亮（2→3 弧，慢路） */}
+        <path
+          d={`M ${nodePos(2).x} ${nodePos(2).y} A ${R} ${R} 0 0 1 ${nodePos(3).x} ${nodePos(3).y}`}
+          fill="none"
+          stroke={theme.params}
+          strokeWidth={12}
+          strokeLinecap="round"
+          opacity={0.8 * pathsIn}
+        />
+        {/* 流光游标：青快 */}
+        {pathsIn > 0 && (
+          <circle cx={tealDot.x} cy={tealDot.y} r={9} fill={theme.harness} opacity={0.95} style={{filter: `drop-shadow(0 0 8px ${theme.harness})`}} />
+        )}
+        {/* 流光游标：紫慢 */}
+        {pathsIn > 0 && (
+          <circle cx={purpleDot.x} cy={purpleDot.y} r={9} fill={theme.params} opacity={0.95} style={{filter: `drop-shadow(0 0 8px ${theme.params})`}} />
+        )}
+      </svg>
+
+      {/* 节点卡 */}
+      {nodes.map((n, i) => {
+        const p = nodePos(i);
+        const isIn = i === 1 ? compilerIn : i === 2 || i === 3 ? pathsIn : i === 4 ? gateIn : ci(frame, 2 + i * 8, 14 + i * 8);
+        const pulse = i === 4 ? gatePulse : 1;
+        return (
+          <div
+            key={n.label}
+            style={{
+              position: 'absolute',
+              left: 510 + p.x,
+              top: 180 + p.y,
+              transform: `translate(-50%,-50%) scale(${0.8 + 0.2 * isIn})`,
+              width: 250,
+              padding: '18px 20px',
+              borderRadius: 16,
+              background: theme.panel,
+              border: `3px solid ${n.color}`,
+              textAlign: 'center',
+              opacity: isIn,
+              boxShadow: i === 4 ? `0 0 ${34 * pulse}px ${n.color}55` : `0 10px 30px rgba(0,0,0,0.4)`,
+            }}
+          >
+            <div style={{fontFamily: theme.sans, fontSize: 27, fontWeight: 800, color: n.color}}>{n.label}</div>
+            <div style={{marginTop: 8, fontFamily: theme.mono, fontSize: 17, color: theme.dim, lineHeight: 1.5}}>{n.sub}</div>
+          </div>
+        );
+      })}
+
+      {/* 双速标注 */}
+      <FadeUp delay={pathsAt + 8}>
+        <div
+          style={{
+            position: 'absolute',
+            left: 240,
+            top: 500,
+            fontFamily: theme.sans,
+            fontSize: 24,
+            color: theme.harness,
+            opacity: pathsIn,
+          }}
+        >
+          ⚡ 快 / 可逆 · 今天就能用
+        </div>
+        <div
+          style={{
+            position: 'absolute',
+            left: 1420,
+            top: 500,
+            fontFamily: theme.sans,
+            fontSize: 24,
+            color: theme.params,
+            opacity: pathsIn,
+          }}
+        >
+          🐢 慢 / 持久 · 变成本能
+        </div>
+      </FadeUp>
+
+      {/* 末端标签（bottom≥150 避字幕条） */}
+      <FadeUp delay={gateAt + 14}>
+        <div
+          style={{
+            position: 'absolute',
+            left: 960,
+            top: 872,
+            transform: 'translateX(-50%)',
+            fontFamily: theme.mono,
+            fontSize: 21,
+            color: theme.dim,
+            opacity: gateIn,
+          }}
+        >
+          durable capability under control · 受控的持久能力（官方工程站点闭环图）
+        </div>
+      </FadeUp>
+    </AbsoluteFill>
+  );
+};
+
+/** 6-C：金句四步收束（p6-07：接住、归档、验证、变实力 逐一下划线） */
+const QuoteRecap: React.FC = () => {
+  const frame = useCurrentFrame();
+  const steps = ['接住', '归档', '验证', '再变成实力'];
+  return (
+    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
+      <div style={{fontFamily: theme.serif, fontSize: 46, fontWeight: 700, color: theme.text, lineHeight: 1.7, textAlign: 'center'}}>
+        把经验
+        {steps.map((s, i) => (
+          <span key={s} style={{position: 'relative', margin: '0 10px', color: i === 3 ? theme.exp : theme.text}}>
+            {s}
+            <span
+              style={{
+                position: 'absolute',
+                left: 0,
+                bottom: -10,
+                height: 5,
+                borderRadius: 3,
+                background: i === 3 ? theme.exp : theme.harness,
+                width: `${ci(frame, 10 + i * 14, 22 + i * 14) * 100}%`,
+              }}
+            />
+          </span>
+        ))}
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+/** 6-D：三块拼图 */
 const ThreePuzzles: React.FC = () => {
   const frame = useCurrentFrame();
   const pieces = [
@@ -124,7 +335,7 @@ const ThreePuzzles: React.FC = () => {
   );
 };
 
-/** 6-D：系列呼应——上一集与本集并排 */
+/** 6-E：系列呼应——上一集与本集并排 */
 const SeriesEcho: React.FC = () => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
@@ -189,7 +400,65 @@ const SeriesEcho: React.FC = () => {
   );
 };
 
-/** 6-E：论文引用卡（fade-out 窗口收在本 beat 末帧内，避免渐黑被 Sequence 截断硬切） */
+/** 6-F：配套清单卡（v2 新增，p6-13a/b）——111 篇 × 9 章计数器 + 九章名胶囊环绕 */
+const RepoCard: React.FC = () => {
+  const frame = useCurrentFrame();
+  const {fps} = useVideoConfig();
+  const enter = spring({frame, fps, config: {damping: 200}});
+  const count = Math.round(111 * ci(frame, 6, 40));
+  const chapters = ['技能', '记忆', '环境', '工具', '参数', '元进化', '评测', '安全', '定义'];
+  return (
+    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
+      <div
+        style={{
+          width: 760,
+          padding: '40px 56px',
+          borderRadius: 20,
+          background: theme.panel,
+          border: `2px solid ${theme.panelBorder}`,
+          textAlign: 'center',
+          opacity: enter,
+        }}
+      >
+        <div style={{fontFamily: theme.mono, fontSize: 24, color: theme.exp}}>
+          github.com/FrontisAI/Awesome-Self-Improving-Agents
+        </div>
+        <div style={{marginTop: 20, display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 18}}>
+          <span style={{fontFamily: theme.mono, fontSize: 92, fontWeight: 700, color: theme.text}}>{count}</span>
+          <span style={{fontFamily: theme.sans, fontSize: 34, color: theme.dim}}>篇论文 · </span>
+          <span style={{fontFamily: theme.mono, fontSize: 58, fontWeight: 700, color: theme.exp}}>
+            {ci(frame, 20, 34) > 0.5 ? 9 : 0}
+          </span>
+          <span style={{fontFamily: theme.sans, fontSize: 34, color: theme.dim}}>章</span>
+        </div>
+        <div style={{marginTop: 26, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 12}}>
+          {chapters.map((c, i) => {
+            const e = ci(frame, 30 + i * 5, 40 + i * 5);
+            return (
+              <span
+                key={c}
+                style={{
+                  padding: '8px 18px',
+                  borderRadius: 999,
+                  border: `2px solid ${theme.harness}`,
+                  color: theme.harness,
+                  fontFamily: theme.sans,
+                  fontSize: 22,
+                  opacity: e,
+                  transform: `scale(${0.85 + 0.15 * e})`,
+                }}
+              >
+                {c}
+              </span>
+            );
+          })}
+        </div>
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+/** 6-G：论文引用卡（fade-out 窗口收在本 beat 末帧内，避免渐黑被 Sequence 截断硬切） */
 const FinalCard: React.FC<{endFrame: number}> = ({endFrame}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
@@ -245,12 +514,21 @@ export const P6Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
     }
     return s.from + s.durationInFrames - scene.from;
   };
+  /** 某句在本场景内的起始帧（局部坐标） */
+  const at = (id: string) => {
+    const s = scene.sentences.find((x) => x.id === id);
+    if (!s) {
+      throw new Error(`at: 未找到句 id ${id}`);
+    }
+    return s.from - scene.from;
+  };
+  const winB2 = w('p6-06a', 'p6-06d');
   return (
     <AbsoluteFill>
       <Sequence {...w('p6-01', 'p6-04')} name="6-A 星空问题">
         <OpenQuestions />
       </Sequence>
-      <Sequence {...w('p6-05', 'p6-07')} name="6-B 总金句">
+      <Sequence {...w('p6-05', 'p6-06')} name="6-B 总金句">
         <QuoteCard
           zh="部署后变聪明 = 从流水到能力"
           en="Making agents smarter after deployment is a trace-to-capability problem."
@@ -258,13 +536,26 @@ export const P6Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
           accent={theme.exp}
         />
       </Sequence>
-      <Sequence {...w('p6-08', 'p6-10')} name="6-C 三块拼图">
+      <Sequence {...winB2} name="6-B2 闭环复盘">
+        <LoopRecap
+          compilerAt={at('p6-06b') - winB2.from}
+          pathsAt={at('p6-06c') - winB2.from}
+          gateAt={at('p6-06d') - winB2.from}
+        />
+      </Sequence>
+      <Sequence {...w('p6-07')} name="6-C 总收束">
+        <QuoteRecap />
+      </Sequence>
+      <Sequence {...w('p6-08', 'p6-10')} name="6-D 三块拼图">
         <ThreePuzzles />
       </Sequence>
-      <Sequence {...w('p6-11', 'p6-13')} name="6-D 系列呼应">
+      <Sequence {...w('p6-11', 'p6-13')} name="6-E 系列呼应">
         <SeriesEcho />
       </Sequence>
-      <Sequence {...w('p6-14', 'p6-15')} name="6-E 原文卡">
+      <Sequence {...w('p6-13a', 'p6-13b')} name="6-F 配套清单卡">
+        <RepoCard />
+      </Sequence>
+      <Sequence {...w('p6-14', 'p6-15')} name="6-G 原文卡">
         <FinalCard endFrame={endFrame('p6-15')} />
       </Sequence>
     </AbsoluteFill>
