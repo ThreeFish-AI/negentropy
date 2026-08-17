@@ -40,9 +40,16 @@ def timeline(manifest: Path) -> dict[str, tuple[float, float]]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="按句 id 抽帧视觉 QA")
-    parser.add_argument("--project", default=".", help="视频工程根目录（含 video/ 与 out/）")
+    parser.add_argument(
+        "--project", default=".", help="视频工程根目录（含 video/ 与 out/）"
+    )
     parser.add_argument("--scene", help="按幕抽样（如 P1），与位置参数 ids 二选一")
-    parser.add_argument("--offset", type=float, default=0.0, help="时间轴整体偏移（草渲与终渲时间基准不一致时用）")
+    parser.add_argument(
+        "--offset",
+        type=float,
+        default=0.0,
+        help="时间轴整体偏移（草渲与终渲时间基准不一致时用）",
+    )
     parser.add_argument("video", help="渲染产物 mp4 路径")
     parser.add_argument("ids", nargs="*", help="句 id 列表（与 --scene 二选一）")
     args = parser.parse_args()
