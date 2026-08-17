@@ -309,3 +309,10 @@ media/experience-era-agents-video/out/
 media/experience-era-agents-video/**/*.mp4
 media/experience-era-agents-video/**/*.mp3
 media/experience-era-agents-video/**/*.wav
+
+# 科普视频工程（media/self-evolving-coding-agents-video）本地产物：同上集规则。
+media/self-evolving-coding-agents-video/video/public/audio/
+media/self-evolving-coding-agents-video/out/
+media/self-evolving-coding-agents-video/**/*.mp4
+media/self-evolving-coding-agents-video/**/*.mp3
+media/self-evolving-coding-agents-video/**/*.wav
