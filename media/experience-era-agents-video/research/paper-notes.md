@@ -881,3 +881,58 @@
 - 【收束金句】"Verification underlies each, and it is the capacity that scales least well as agents become more capable." → 验证是九个问题共同的地基，却是随智能体变强而扩展得最差的能力。
 - 【悬念】"the trajectory of improvement under repeated adaptation is not known to compound, saturate, or oscillate." → 反复适应之下，改进轨迹究竟会复利增长、饱和还是震荡——未知。画面：三条候选曲线（指数上扬、平台、正弦震荡）各打一个问号。
 - 【收束】"Progress will likely come less from individually stronger agents than from an account of how experience becomes capability, and of when post-deployment adaptation can be measured, internalized, and trusted." → 进步更少来自单兵更强的智能体，更多来自一套关于“经验如何变成能力、部署后适应何时可被测量、内化与信任”的理论。
+
+---
+
+## 信源补充（2026-08 升级；来源：官方工程站点，非论文正文）
+
+> 站点：https://frontisai.github.io/Awesome-Self-Improving-Agents/（访问日期 2026-08-18）。以下条目全部来自站点页面，与论文正文物理隔离；如与论文冲突以论文为准。
+
+### trace-to-capability 闭环（站点 Overview 原文转述）
+
+- 站点把论文主旨可视化为一条五段流水（逐字要点）：
+  1. **Deployment Traces**："Goals, actions, observations, feedback, corrections, tests."（部署轨迹：目标、动作、观察、反馈、纠正、测试）
+  2. **Experience Compiler**（经验编译器）："Selects evidence, abstracts reusable lessons, assigns provenance."（选证据、提抽象教训、记出处）
+  3. **Harness 侧（快/可逆）**："Skills, memory, tools, environments, workflows."
+  4. **参数侧（慢/持久）**："RL and continual learning absorb stable runtime priors."
+  5. **闸门**："Measure longitudinal gain, retention, attribution, efficiency, and non-regression before treating change as improvement."（先量纵向增益/保持/归因/效率/不退化，才承认这是改进）；终点标注 "Durable capability under control"（受控的持久能力）。
+- 与论文对应关系：站点「经验编译器」即论文 §2.1 的 z_i = H(τ_i) 编译步（过滤/压缩/归因/验证），站点把它拟人化为一个具名组件——**可视化叙事时可直接采用「经验编译器」这个站点命名**（标注来源）。
+
+### 三代演进（站点 Timeline 原文）
+
+- 站点逐字："From Gen 1 to Gen 3, the main object shifts from episodic tool-use loops, to cross-task reuse, to persistent harness-centered runtimes **whose adaptation surfaces can evolve after deployment**."（从片段式工具循环 → 跨任务复用 → 适应面本身可在部署后进化的持久运行时）。
+- v1 口播 p1-25 已说「工位本身成了可以自动升级的产品」；站点加强版语义是「**适应面本身可进化**」——升级方向（v3 加一句点破）。
+
+### SIP-Bench 协议（站点 Evaluation 原文）
+
+- 站点逐字："SIP-Bench evaluates one evolving agent across T0/T1/T2 checkpoints rather than reporting only a final score after adaptation."（对同一个进化中的智能体在 T0/T1/T2 三个检查点反复评测，而非只报适应后的最终分）。
+- 四指标原文：held-out gain（"does experience improve performance on tasks outside the adaptation stream?"）；backward retention（"does the same evolving agent keep old capabilities after updating?"）；path attribution（"did the gain come from skills, memory, tools, parameter updates, or their interaction?"）；efficiency/safety（"was the gain worth its cost and risk?"）。
+- 站点动机句："Without longitudinal evaluation, we cannot tell durable self-improvement from one-off elicitation, overfitting, drift, or unsafe mutation."
+
+### 收录规模与从业者要点
+
+- 【111 篇 × 9 章】站点计数器："111 papers / 9 paper chapters"（章即技能/记忆/环境/工具/RL 参数侧/元进化/评测/安全/harness 定义）。
+- 【三段式训练要点】站点 RL & Continual Learning 节给从业者的三句话（逐字）：Pre-deployment Training for Vertical Agent Capabilities（上线前：垂直能力训练）/ Pre-deployment Training for Harness Functional Units（上线前：工具·记忆·技能·子智能体的使用训练）/ Post-deployment Training from Agent Traces（上线后：从运行轨迹训练）。
+
+---
+
+## 2026-08 升级复核（第二遍重读校准）
+
+> 重读方式：本地 PDF（`assets/papers/source/Self-Improving Agents in the Era of Experience: A Survey of Self- to Meta-Evolution.pdf`，88 页）以既有精读笔记为底进行核对（笔记 2026-08-16 由 9 个并行代理从 PDF 全文产出，本轮重点复核 §1–2 harness 形式化、§8 SIP-Bench、§10 开放问题三处与 v1 口播的对应）+ 站点实时抓取（2026-08-18）。
+> **结论**：narration v1 全部断言与论文一致，零事实漂移。+16.2pp / 16/84 负迁移 / ~1,200 恶意技能 / >90% 记忆操纵 / tau-bench 可靠性 / AI-45° Law 等关键数字锚点均维持。
+
+### 审计发现与处置
+
+| # | 发现 | 类别 | 处置 |
+|---|---|---|---|
+| 1 | 站点「经验编译器闭环」五段图把全片结构浓缩为一张图，v1 的 p6-06/07 金句（trace-to-capability）只有两句话、无画面展开 | 站点信源·结构复盘缺口 | 新增 P6 闭环复盘镜（4 句）：五段环动画把金句升格为全片结构总图 |
+| 2 | 站点 Gen3 精确语义「适应面本身可在部署后进化」比 v1 p1-25「可以自动升级的产品」更进一步 | 核心遗漏（轻） | 新增 p1-25a 一句点破 |
+| 3 | v1 P4 已有六指标 + SIP-Bench 三时间点；站点四指标问句表述更利口播（新旧任务/归因/代价风险） | 已覆盖（强化） | 不加句，storyboard 4-F 动效升级为三检查点卡+四仪表 |
+| 4 | 站点 111 篇×9 章规模数 | 站点信源 | 新增 p6-13a/b 两句（配套清单卡） |
+| 5 | 考虑补 §10 九大开放问题中的多智能体涌现、多模态经验压缩 | — | **放弃**：v1 已选三问（激发 vs 习得/越吃越窄/多模态压缩），planning.md 取舍声明仍成立 |
+
+### 本轮新增断言锚点（v2 新句用）
+
+- 【站点闭环五段】见「信源补充」——「经验编译器」命名与三步（选证据/提抽象/记出处）引站点；两路去向与闸门语义与论文 §2.1/§8 一致（站点为论文可视化）。
+- 【站点 Gen3】"whose adaptation surfaces can evolve after deployment"。
+- 【站点规模】111 papers / 9 chapters（2026-08-18 访问）。
