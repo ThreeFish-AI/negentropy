@@ -495,7 +495,7 @@ const ThreeGens: React.FC<{gen3At: number}> = ({gen3At}) => {
 
 export const P1Anatomy: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (fromId: string, toId?: string) => beatWindow(scene.sentences, scene.from, fromId, toId);
-  const winG = w('p1-22', 'p1-26a');
+  const winG = w('p1-22', 'p1-26');
   const at = (id: string) => {
     const s = scene.sentences.find((x) => x.id === id);
     if (!s) {
