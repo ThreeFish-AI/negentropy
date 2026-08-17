@@ -1,0 +1,58 @@
+# 《上线之后，AI 才开始上学》科普视频工程
+
+> 基于 Che Jiang, Jincheng Zhong, Yu Fu, *et al.*, "Self-Improving Agents in the Era of Experience: A Survey of Self- to Meta-Evolution," *Frontis.AI / Tsinghua University*, Jun. 2026（88 页综述，无公开 arXiv 号）的动效图解式科普视频（B 站/YouTube，约 13.6 分钟）。
+> 形态：AI 配音（edge-tts）+ Remotion 代码动画，无真人出镜。
+> 与上一集《AI 如何自己变强？》（[../self-improving-agents-video/](../self-improving-agents-video/README.md)，Schmidhuber 团队综述）互补：上集讲「自我进化改什么」，本集讲「部署之后经验怎么攒」；片尾互相引用。
+
+## 目录结构
+
+| 路径 | 说明 |
+|---|---|
+| `research/paper-notes.md` | 论文精读笔记——全部口播内容的**单一事实源**（9 个并行提取代理逐章产出） |
+| `script/planning.md` | 策划案：受众、七幕结构、三色视觉契约（金=经验流 / 青=Harness / 紫=参数内化） |
+| `script/narration.md` | 逐字稿（唯一维护处），`- [句id] 文本` 一句一行 |
+| `script/narration.json` | 派生物：拆句结果，供 TTS 与字幕消费（勿手改） |
+| `script/storyboard.md` | 分镜表：镜号 ↔ 句 id 区间 ↔ 画面动效（场景组件实现规格） |
+| `scripts/*.py` | 薄包装 → 公共管线 [media/pipeline/scripts/](../pipeline/scripts/)（`--project` 透传） |
+| `video/` | Remotion 工程（独立 pnpm 项目，`ignore-workspace` 与主仓隔离） |
+| `out/` | 渲染产物（gitignored） |
+
+## 复现流水线
+
+```bash
+# 1. 改稿后重建逐句 JSON
+uv run --no-project scripts/build_narration.py
+
+# 2. 合成配音（增量幂等；首跑约 3-5 分钟，需网络）
+uv run --no-project --with edge-tts --with mutagen scripts/tts.py
+
+# 3. 预览
+cd video && pnpm install --ignore-workspace && pnpm dev
+
+# 4. 草渲（半分辨率快速迭代）
+cd video && pnpm run render:draft        # -> ../out/draft.mp4
+
+# 5. 抽帧 QA（在工程根目录；--scene 与句 id 二选一）
+uv run --no-project scripts/qa_frames.py out/draft.mp4 --scene P2
+
+# 6. 终渲 1080p30
+cd video && pnpm run render               # -> ../out/final.mp4
+```
+
+## 音画同步机制
+
+每句一段 MP3；`tts.py` 产出 `video/public/audio/manifest.json`（含每句实测时长）；Remotion `calculateMetadata` 读取 manifest 计算全片时间轴（句间 0.32s、幕间 +0.9s、片头 0.6s、片尾 2s）——改稿后**只需重跑 1→2→4**，无需手工对轨。
+
+## 内容修改守则
+
+- 口播内容改动只发生在 `script/narration.md`；所有论文断言须可回溯 `research/paper-notes.md`；
+- 新增/修改句后，受影响 beat 的句 id 区间需在对应场景组件（`video/src/scenes/`）同步；
+- 三色语义是全片视觉契约：金 `#F5C542` = 经验流（trace→z），青 `#2DD4BF` = Harness 运行时，紫 `#B78CFF` = 参数内化。
+
+## 论文引用（IEEE）
+
+[1] C. Jiang, J. Zhong, Y. Fu, *et al.*, "Self-Improving Agents in the Era of Experience: A Survey of Self- to Meta-Evolution," *Frontis.AI / Tsinghua University*, Jun. 2026.（Harness 形式化、技能/记忆/环境/参数四面、元进化、SI 六评测目标、移动攻击面）
+
+## 许可注意
+
+Remotion 对超过 3 人的公司需商业授权（个人/小团队免费）；若本视频转为公司用途，请评估许可或迁移 MIT 协议的 Motion Canvas。配音来自 edge-tts（微软在线语音），发布前请自行确认平台对合成语音的标注要求。
