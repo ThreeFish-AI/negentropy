@@ -54,7 +54,9 @@ media/<slug>-video/
 | 脚本 | 用途 | 工程内等价调用 |
 |---|---|---|
 | [scripts/build_narration.py](./scripts/build_narration.py) | narration.md → narration.json + 时长估算 | `uv run --no-project scripts/build_narration.py` |
-| [scripts/tts.py](./scripts/tts.py) | 逐句 edge-tts 合成 + 时长 manifest（幂等） | `uv run --no-project --with edge-tts --with mutagen scripts/tts.py` |
+| [scripts/tts.py](./scripts/tts.py) | 逐句配音合成 + 时长 manifest（幂等，双引擎：edge 预置音色 / indextts 声音克隆） | `uv run --no-project --with edge-tts --with mutagen scripts/tts.py`（克隆模式免 edge-tts，见 [VOICE-CLONING.md](./VOICE-CLONING.md)） |
+| [scripts/tts_server.py](./scripts/tts_server.py) | IndexTTS 推理服务（声音克隆后端，**运行于 index-tts 环境**，非本仓） | 在 `~/tools/index-tts` 内启动，见 [VOICE-CLONING.md §二](./VOICE-CLONING.md) |
+| [scripts/prepare_ref.py](./scripts/prepare_ref.py) | 参考音色样本裁剪/规范化（长录音 → 5–15s 干净 WAV） | `uv run --no-project --with soundfile --with numpy scripts/prepare_ref.py <源音频>` |
 | [scripts/qa_frames.py](./scripts/qa_frames.py) | 按句 id 抽帧视觉 QA | `uv run --no-project scripts/qa_frames.py out/draft.mp4 --scene P2` |
 
 中心脚本以 `--project <工程根>` 参数化；工程内 `scripts/*.py` 为薄包装（透传参数、保持原 CLI）。改造/迭代只改 `media/pipeline/scripts/`，验证门 = 受影响工程的 `narration.json` / `manifest.json` 字节级不变。
@@ -67,7 +69,7 @@ media/<slug>-video/
 
 ## 五、音画同步机制（零手工对轨）
 
-每句一段 MP3；`tts.py` 产出 `video/public/audio/manifest.json`（含每句实测时长）；Remotion `calculateMetadata` 读取 manifest 计算全片时间轴（默认句间 0.32s、幕间 +0.9s、片头 0.6s、片尾 2s）。**改稿后只需重跑：build → tts → render**。
+每句一段 MP3；`tts.py` 产出 `video/public/audio/manifest.json`（含每句实测时长）；Remotion `calculateMetadata` 读取 manifest 计算全片时间轴（默认句间 0.32s、幕间 +0.9s、片头 0.6s、片尾 2s）。**改稿后只需重跑：build → tts → render**。引擎可选 edge 预置音色（默认）或用自己的声音克隆（[VOICE-CLONING.md](./VOICE-CLONING.md)），两种引擎的 manifest 契约完全一致。
 
 ⚠️ 若工程自定义了 `timing.ts` 常量，须同步 `qa_frames.py` 顶部的镜像常量，否则抽帧时间错位。
 
@@ -98,4 +100,4 @@ media/<slug>-video/
 
 ## 八、许可注意
 
-Remotion 对超过 3 人的公司需商业授权（个人/小团队免费）；edge-tts 为微软在线语音，发布前确认平台对合成语音的标注要求；不使用任何未经授权的第三方图片/音频素材。
+Remotion 对超过 3 人的公司需商业授权（个人/小团队免费）；edge-tts 为微软在线语音，发布前确认平台对合成语音的标注要求；**IndexTTS-2.5 按 bilibili 模型使用许可发布，个人/研究可用，商用需联系 indexspeech@bilibili.com**（详见 [VOICE-CLONING.md §八](./VOICE-CLONING.md)）；不使用任何未经授权的第三方图片/音频素材。

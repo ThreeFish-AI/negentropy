@@ -309,3 +309,8 @@ media/experience-era-agents-video/out/
 media/experience-era-agents-video/**/*.mp4
 media/experience-era-agents-video/**/*.mp3
 media/experience-era-agents-video/**/*.wav
+
+# 声音克隆参考样本（media/pipeline/voices/）：个人声音属生物特征信息，绝不入库。
+# 目录级忽略 + README 白名单，防漏网音频格式（ogg/opus/wma 等）。
+media/pipeline/voices/*
+!media/pipeline/voices/README.md
