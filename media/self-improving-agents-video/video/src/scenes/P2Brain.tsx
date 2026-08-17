@@ -192,7 +192,21 @@ const QuestionLoop: React.FC<{step: number; skew?: number; danger?: boolean}> = 
                 strokeWidth={active ? 3 : 1.5}
                 opacity={active ? 0.95 : 0.35}
               />
-              {active ? <circle r={7} fill={accent} cx={dotX} cy={dotY} /> : null}
+              {/* v3：活动段流光虚线巡游（pathLength 归一化） */}
+              {active ? (
+                <path
+                  d={`M ${p.x + 320} ${p.y + 250} Q ${mx} ${my} ${q.x + 320} ${q.y + 250}`}
+                  fill="none"
+                  stroke={theme.text}
+                  strokeWidth={1.5}
+                  strokeLinecap="round"
+                  pathLength={1}
+                  strokeDasharray="0.03 0.05"
+                  strokeDashoffset={-u}
+                  opacity={0.5}
+                />
+              ) : null}
+              {active ? <circle r={7} fill={accent} cx={dotX} cy={dotY} style={{filter: `drop-shadow(0 0 6px ${accent})`}} /> : null}
             </g>
           );
         })}
