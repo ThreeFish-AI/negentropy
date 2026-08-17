@@ -135,7 +135,8 @@ const ScoreCard: React.FC = () => {
         </div>
       </div>
       <div style={{display: 'flex', flexDirection: 'column', gap: 20}}>
-        {['变体 A · 0.17', '变体 B · 0.53', '变体 C · 0.31'].map((v, i) => (
+        {/* 数字仅 A/B 取 SICA 实测（paper-notes.md）；C 为示意，不配数字防误读为实测 */}
+        {['变体 A · 0.17', '变体 B · 0.53', '变体 C · —'].map((v, i) => (
           <div
             key={v}
             style={{

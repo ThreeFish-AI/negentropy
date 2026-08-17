@@ -5,11 +5,17 @@ import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {FadeUp, QuoteCard} from '../components/cards';
 
-/** 5-A 墨滴水库：坏信号跨代遗传 */
-const InkReservoir: React.FC = () => {
+/** 5-A 墨滴水库：坏信号跨代遗传
+ *  阶段按句 id 边界驱动：p5-04 墨滴落下、p5-05..06 四管线逐个染红（p5-06「全变黑」时全红）、p5-07 金句 */
+const InkReservoir: React.FC<{
+  dropFrom: number; // p5-04 相对本 beat 的起始帧
+  spreadFrom: number; // p5-05 相对本 beat 的起始帧
+  blackFrom: number; // p5-06 相对本 beat 的起始帧（扩散完成锚点）
+  quoteFrom: number; // p5-07 相对本 beat 的起始帧
+}> = ({dropFrom, spreadFrom, blackFrom, quoteFrom}) => {
   const frame = useCurrentFrame();
-  const drop = interpolate(frame, [30, 55], [-160, 0], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  const spread = interpolate(frame, [55, 130], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const drop = interpolate(frame, [dropFrom, dropFrom + 25], [-160, 0], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const spread = interpolate(frame, [spreadFrom, blackFrom], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   const targets = ['记忆库', '技能库', '工作流图', '模型大脑'];
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
@@ -76,7 +82,7 @@ const InkReservoir: React.FC = () => {
             </div>
           ))}
         </div>
-        <FadeUp delay={140}>
+        <FadeUp delay={quoteFrom}>
           <div style={{fontFamily: theme.serif, fontSize: 40, fontWeight: 700, color: theme.text}}>
             静态 AI 错一单，<span style={{color: theme.danger}}>会进化的 AI 错一辈子</span>
           </div>
@@ -272,10 +278,13 @@ const FiveMechanisms: React.FC = () => {
 
 export const P5Trust: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (fromId: string, toId?: string) => beatWindow(scene.sentences, scene.from, fromId, toId);
+  // 5-A beat 内的句边界（相对帧）：墨滴三阶段随口播切换
+  const beat = w('p5-01', 'p5-07');
+  const rel = (id: string) => beatWindow(scene.sentences, scene.from, id).from - beat.from;
   return (
     <AbsoluteFill>
-      <Sequence {...w('p5-01', 'p5-07')} name="5-A 墨滴水库">
-        <InkReservoir />
+      <Sequence {...beat} name="5-A 墨滴水库">
+        <InkReservoir dropFrom={rel('p5-04')} spreadFrom={rel('p5-05')} blackFrom={rel('p5-06')} quoteFrom={rel('p5-07')} />
       </Sequence>
       <Sequence {...w('p5-08', 'p5-11')} name="5-B 三假动作">
         <FakeMoves />

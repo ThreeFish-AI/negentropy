@@ -146,14 +146,21 @@ const PouredGears: React.FC = () => {
   );
 };
 
-/** 0-C 反转钩子：编辑器停在 agent.py —— 它自己的源码 */
-const SelfSourceReveal: React.FC = () => {
+/** 0-C 反转钩子：编辑器停在 agent.py —— 它自己的源码
+ *  阶段按句 id 边界驱动：p0-10 打开文件、p0-11 源码逐行渲染、p0-12 洋红 reveal、p0-13 金句定格 */
+const SelfSourceReveal: React.FC<{
+  openFrom: number; // p0-10 相对本 beat 的起始帧
+  codeFrom: number; // p0-11 相对本 beat 的起始帧
+  revealFrom: number; // p0-12 相对本 beat 的起始帧
+  quoteFrom: number; // p0-13 相对本 beat 的起始帧
+}> = ({openFrom, codeFrom, revealFrom, quoteFrom}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const tabs = ['cart/total.py', 'api/order.ts', 'agent.py', 'README.md'];
   const stopAt = 2;
-  const spin = Math.min(frame / 3, stopAt);
-  const reveal = spring({frame: frame - 90, fps, config: {damping: 200}});
+  // 标签滚动：openFrom 后开始，每 ~1.2s 切一格，滚到 agent.py 定格
+  const spin = Math.min(Math.max(0, (frame - openFrom) / 36), stopAt);
+  const reveal = spring({frame: frame - revealFrom, fps, config: {damping: 200}});
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <FadeUp>
@@ -190,14 +197,14 @@ const SelfSourceReveal: React.FC = () => {
               {t: '    if benchmark(agent.apply(patch)) > agent.score:', c: theme.text},
               {t: '        return agent.evolve(patch)   # 保留', c: theme.code},
             ].map((l, i) => (
-              <div key={l.t} style={{color: l.c, opacity: interpolate(frame, [50 + i * 10, 62 + i * 10], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'})}}>
+              <div key={l.t} style={{color: l.c, opacity: interpolate(frame, [codeFrom + i * 14, codeFrom + i * 14 + 12], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'})}}>
                 {l.t}
               </div>
             ))}
           </div>
         </div>
       </FadeUp>
-      <FadeUp delay={95} style={{marginTop: 36}}>
+      <FadeUp delay={quoteFrom} style={{marginTop: 36}}>
         <div style={{fontFamily: theme.serif, fontSize: 54, fontWeight: 700, color: theme.evo, textAlign: 'center'}}>
           它打开的，是它自己的源码
         </div>
@@ -344,6 +351,9 @@ const TitleCard: React.FC = () => {
 
 export const P0Hook: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (fromId: string, toId?: string) => beatWindow(scene.sentences, scene.from, fromId, toId);
+  // 0-C beat 内的句边界（相对帧）：标签滚动/源码/reveal/金句随口播切换
+  const beat = w('p0-09', 'p0-13');
+  const rel = (id: string) => beatWindow(scene.sentences, scene.from, id).from - beat.from;
   return (
     <AbsoluteFill>
       <Sequence {...w('p0-01', 'p0-04')} name="0-A 工位日志">
@@ -353,7 +363,12 @@ export const P0Hook: React.FC<{scene: SceneRange}> = ({scene}) => {
         <PouredGears />
       </Sequence>
       <Sequence {...w('p0-09', 'p0-13')} name="0-C 反转钩子">
-        <SelfSourceReveal />
+        <SelfSourceReveal
+          openFrom={rel('p0-10')}
+          codeFrom={rel('p0-11')}
+          revealFrom={rel('p0-12')}
+          quoteFrom={rel('p0-13')}
+        />
       </Sequence>
       <Sequence {...w('p0-14', 'p0-15')} name="0-D 主线双问">
         <DoubleQuestion />

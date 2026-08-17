@@ -99,12 +99,17 @@ const CornerBadge: React.FC<{text: string; color?: string}> = ({text, color = th
   </div>
 );
 
-/** 2-B 器官① SICA：agent.py diff + 分数翻牌（SWE-bench Verified 0.17→0.53，arXiv:2504.15228 真实数字） */
-const SicaDiff: React.FC = () => {
+/** 2-B 器官① SICA：agent.py diff + 分数翻牌（SWE-bench Verified 0.17→0.53，arXiv:2504.15228 真实数字）
+ *  翻牌/保留徽章按句 id 边界驱动：p2-06 讲 SICA（diff 渲染 + 翻牌起）、p2-07「分数涨了就留下」（徽章） */
+const SicaDiff: React.FC<{
+  sicaFrom: number; // p2-06 相对本 beat 的起始帧
+  keepFrom: number; // p2-07 相对本 beat 的起始帧
+}> = ({sicaFrom, keepFrom}) => {
   const frame = useCurrentFrame();
   const oldScore = 0.17;
-  const newScore = interpolate(frame, [70, 95], [0.17, 0.53], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  const keep = interpolate(frame, [95, 115], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const newScore = interpolate(frame, [sicaFrom, sicaFrom + 60], [0.17, 0.53], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const keep = interpolate(frame, [keepFrom, keepFrom + 20], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const diffF = frame - sicaFrom;
   return (
     <AbsoluteFill style={{flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 70}}>
       <div
@@ -127,7 +132,7 @@ const SicaDiff: React.FC = () => {
             {t: '+     return graph_walk(repo)', c: theme.evo},
             {t: '  # 其余保持不变 ...', c: theme.dim},
           ].map((l, i) => (
-            <div key={l.t} style={{color: l.c, opacity: interpolate(frame, [i * 12, i * 12 + 10], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'})}}>
+            <div key={l.t} style={{color: l.c, opacity: interpolate(diffF, [i * 12, i * 12 + 10], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'})}}>
               {l.t}
             </div>
           ))}
@@ -953,13 +958,16 @@ const P2Wrap: React.FC = () => (
 
 export const P2FiveObjects: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (fromId: string, toId?: string) => beatWindow(scene.sentences, scene.from, fromId, toId);
+  // 2-B beat 内的句边界（相对帧）：diff 渲染/翻牌与保留徽章随口播切换
+  const sicaBeat = w('p2-03', 'p2-07');
+  const rel = (id: string, beat: {from: number}) => beatWindow(scene.sentences, scene.from, id).from - beat.from;
   return (
     <AbsoluteFill>
       <Sequence {...w('p2-01', 'p2-02')} name="2-A 器官总览">
         <OrganMap lit={1} />
       </Sequence>
-      <Sequence {...w('p2-03', 'p2-07')} name="2-B 框架·SICA">
-        <SicaDiff />
+      <Sequence {...sicaBeat} name="2-B 框架·SICA">
+        <SicaDiff sicaFrom={rel('p2-06', sicaBeat)} keepFrom={rel('p2-07', sicaBeat)} />
       </Sequence>
       <Sequence {...w('p2-08', 'p2-11')} name="2-C 框架·递归与档案">
         <RecursionAndArchive />

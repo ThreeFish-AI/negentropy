@@ -26,17 +26,17 @@ uv run --no-project scripts/build_narration.py
 # 2. 合成配音（增量幂等；首跑约 3-5 分钟，需网络）
 uv run --no-project --with edge-tts --with mutagen scripts/tts.py
 
-# 3. 预览
-cd video && pnpm install --ignore-workspace && pnpm dev
+# 3. 预览（工具一律 ./node_modules/.bin/ 直调，防 pnpm run 污染根 workspace node_modules）
+cd video && pnpm install --ignore-workspace && ./node_modules/.bin/remotion studio
 
 # 4. 草渲（半分辨率快速迭代）
-cd video && pnpm run render:draft        # -> ../out/draft.mp4
+cd video && ./node_modules/.bin/remotion render Main ../out/draft.mp4 --scale=0.5 --jpeg-quality=60
 
 # 5. 抽帧 QA（在工程根目录；--scene 与句 id 二选一）
 uv run --no-project scripts/qa_frames.py out/draft.mp4 --scene P2
 
 # 6. 终渲 1080p30
-cd video && pnpm run render               # -> ../out/final.mp4
+cd video && ./node_modules/.bin/remotion render Main ../out/final.mp4
 ```
 
 ## 音画同步机制
