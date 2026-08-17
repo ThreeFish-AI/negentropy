@@ -127,7 +127,7 @@ uv run --no-project --with soundfile --with numpy \
 
 ### 4.2 自定义向量（--emo-vector）
 
-`--emo-vector "happy:0.6,calm:0.2"` 语法覆盖预设；与 `--style` 非默认值互斥。**各分量非负且总和 ≤0.8**（客户端与服务端双重校验；管线直调 `infer` 不做自动归一，超界会拒绝请求）。alpha ≤0.8 推荐（官方建议）。
+`--emo-vector "happy:0.6,calm:0.2"` 语法覆盖预设；与 `--style` 非默认值互斥。**各分量非负，且有效和（Σ分量×emo-alpha）≤ 0.8**（客户端与服务端双重校验；管线直调 `infer` 不做自动归一，超界会拒绝请求；如 `happy:1.0` 在 alpha=0.6 下有效和 0.6，可放行）。alpha ≤0.8 推荐（官方建议）。
 
 ### 4.3 语速（--duration-factor）
 

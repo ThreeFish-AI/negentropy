@@ -26,6 +26,7 @@ import argparse
 import asyncio
 import hashlib
 import json
+import math
 import sys
 import urllib.error
 import urllib.request
@@ -42,7 +43,7 @@ HTTP_TIMEOUT = 600  # MPS fp32 长句可达数分钟；须覆盖队列等待
 MANUAL = "media/pipeline/VOICE-CLONING.md"
 
 # IndexTTS 8 维情感向量顺序（indextts/infer_v2_5.py 固定）：happy, angry, sad, afraid,
-# disgusted, melancholic, surprised, calm。分量和须 ≤0.8（直调 infer 不自动归一，双端校验）。
+# disgusted, melancholic, surprised, calm。有效和（Σ分量×emo_alpha）须 ≤0.8（直调 infer 不自动归一，双端校验）。
 EMO_KEYS = [
     "happy",
     "angry",
@@ -105,9 +106,7 @@ def parse_emo_vector(spec: str) -> list[float]:
         if not val:
             raise ValueError(f"情感权重缺失：{key}（格式如 happy:0.6）")
         weight = float(val)
-        if not (weight >= 0) or weight == float(
-            "inf"
-        ):  # 拦 NaN/Inf（比较恒 False 漏网）
+        if not math.isfinite(weight) or weight < 0:  # isfinite 显式拦 NaN/Inf
             raise ValueError(f"情感权重必须为非负有限数值：{key}")
         vec[EMO_KEYS.index(key)] = weight
         seen += 1
