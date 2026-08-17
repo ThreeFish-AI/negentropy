@@ -6,7 +6,9 @@
 
 ### Added
 
+- **自进化系列三集科普视频内容升级与本人音色克隆配音**：三集（[《AI 如何自己变强？》](media/self-improving-agents-video/README.md) v3 / [《上线之后，AI 才开始上学》](media/experience-era-agents-video/README.md) v2 / [《会写代码的 AI，开始给自己写代码》](media/self-evolving-coding-agents-video/README.md) v3）统一换用本人音色克隆配音（IndexTTS-2.5 `passionate` 激情风格，me-1.wav 样本经 RMS 预筛裁剪）；源论文第二遍重读校准（三集全部断言零事实漂移）+ 官方工程站点信源补充（ep1 312 条收录统计/九篇敲门砖→P5 活地图+卡片墙镜；ep2 经验编译器闭环/Gen3 适应面语义/SIP-Bench 四指标/111 篇×9 章→6-B2 闭环复盘+6-F 清单卡镜；ep3 无站点，SICA 三选择信号+Table 2 斜线规律两句锚定）；每集新增 `research/upgrade-2026-08.md` 审计文档（校准审计表+句级 delta+双重校验 delta RISKY/REWRITE=0+G2 验证记录）；动画增强（计数器滚动/环形图合拢/双色分拣重排/青紫双速差流光/斜线光带扫掠/检查点卡+四仪表/数值轨迹雷达/流光巡游，全部 skill-06 四红线合规）。
 - **科普视频管线新增「激情」配音风格预设与官方工程站点信源补充规范**：`media/pipeline/scripts/tts.py` 的 IndexTTS 风格预设表新增 `passionate`（充满激情与轻快：happy 0.70 主载高唤醒正价 + surprised 0.20 跳跃感 + calm 0.10 锚定咬字，有效和 1.00×0.7=0.70 ≤ 0.8 上限，语速 0.97 护密集技术句清晰度），`--list-styles` 与 [VOICE-CLONING.md](media/pipeline/VOICE-CLONING.md) §四 同步收录并给出科普长视频推荐位；[skills/01-paper-extraction.md](media/pipeline/skills/01-paper-extraction.md) 扩展「官方工程站点信源补充」纪律——只收事实性内容、逐字引用+URL+访问日期、落 `paper-notes.md` 末尾独立「信源补充」大节并与论文正文物理隔离、严禁下载/嵌入站点图片（概念转文字规格供 Remotion 代码动画重建）、站点信源单集专属不跨集。
+- **IndexTTS 推理束搜索宽度旋钮（`--num-beams`，长跑提速主开关）**：服务端 `tts_server.py` 请求模型与推理透传 num_beams（1–5），客户端 `tts.py` 新增 `--num-beams`（默认 1）；根因为 MPS fp32 实测每句墙钟 RTF 40–58（上游库内部 num_beams=3 使 GPT 段耗时按束宽线性放大），降为 1 束后 RTF≈12–15（采样生成下听感差异可忽略）；[VOICE-CLONING.md](media/pipeline/VOICE-CLONING.md) §4.3b 沉淀实测数据并修正原「每句 5–30 秒」的失实估计（整集实际数小时，需 nohup 后台+断点续跑）。
 
 ### Fixed
 
