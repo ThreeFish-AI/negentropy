@@ -314,3 +314,10 @@ media/experience-era-agents-video/**/*.wav
 # 目录级忽略 + README 白名单，防漏网音频格式（ogg/opus/wma 等）。
 media/pipeline/voices/*
 !media/pipeline/voices/README.md
+
+# 科普视频工程（media/self-evolving-coding-agents-video）本地产物：同上集规则。
+media/self-evolving-coding-agents-video/video/public/audio/
+media/self-evolving-coding-agents-video/out/
+media/self-evolving-coding-agents-video/**/*.mp4
+media/self-evolving-coding-agents-video/**/*.mp3
+media/self-evolving-coding-agents-video/**/*.wav

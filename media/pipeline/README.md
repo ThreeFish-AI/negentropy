@@ -25,7 +25,7 @@ flowchart LR
     style I fill:#2d5c1a,stroke:#7ED321,color:#fff
 ```
 
-每个 Stage 的代理提示词规格见 [skills/](./skills/)（01–05 覆盖内容层），可直接作为子代理 prompt 或未来挂载为 `.claude/skills/` 的底稿。
+每个 Stage 的代理提示词规格见 [skills/](./skills/)（01–05 覆盖内容层，06 覆盖生产层 Stage ⑦ 的 Remotion 实现），可直接作为子代理 prompt 或未来挂载为 `.claude/skills/` 的底稿。
 
 ## 二、工程目录约定
 
