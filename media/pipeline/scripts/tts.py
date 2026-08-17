@@ -6,7 +6,7 @@
 - 引擎：
   - edge（默认）：edge-tts 预置音色，免密钥，行为与历史版本完全一致；
   - indextts：声音克隆（IndexTTS-2.5 本地服务），需先启动 tts_server.py，
-    通过 --ref 提供参考音色样本、--style 选择风格（轻快/自信/正能量等）。
+    通过 --ref 提供参考音色样本、--style 选择风格（激情/轻快/自信/正能量等）。
 - 幂等：参数与文本未变则跳过（SHA1 摘要 sidecar 缓存）。
 
 用法：
@@ -14,7 +14,7 @@
                 --project media/<工程> [--voice zh-CN-YunxiNeural] [--rate +4%] [--force]
   indextts：uv run --no-project --with mutagen media/pipeline/scripts/tts.py \
                 --project media/<工程> --engine indextts --ref <参考样本.wav> \
-                [--style lively] [--server http://127.0.0.1:8766] [--force]
+                [--style passionate] [--server http://127.0.0.1:8766] [--force]
   （工程内薄包装等价于在工程目录下运行 scripts/tts.py）
 
 声音克隆完整手册（部署/风格/排障/许可）见 media/pipeline/VOICE-CLONING.md。
@@ -55,9 +55,17 @@ EMO_KEYS = [
     "calm",
 ]
 
-# 风格预设：轻快/自信/正能量 —— 数值为初值，可实测试听后微调。
+# 风格预设：激情/轻快/自信/正能量 —— 数值为初值，可实测试听后微调。
 STYLE_PRESETS: dict[str, dict] = {
     "neutral": {"label": "中性", "vec": None, "alpha": 1.0, "df": 1.0},
+    "passionate": {
+        "label": "激情",
+        # 高唤醒正价（happy 主载）+ 跳跃感（surprised）+ 少量 calm 锚定咬字；
+        # 有效和 1.00×0.7=0.70 ≤0.8；df 0.97 护密集技术句清晰度。
+        "vec": [0.70, 0, 0, 0, 0, 0, 0.20, 0.10],
+        "alpha": 0.7,
+        "df": 0.97,
+    },
     "lively": {
         "label": "轻快",
         "vec": [0.55, 0, 0, 0, 0, 0, 0.15, 0.15],

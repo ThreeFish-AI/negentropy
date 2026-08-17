@@ -121,6 +121,7 @@ uv run --no-project --with soundfile --with numpy \
 | 预设 | 定位 | emo_vector（顺序：happy, angry, sad, afraid, disgusted, melancholic, surprised, calm） | alpha | df |
 |---|---|---|---|---|
 | neutral | 中性（默认） | 不注入情感，纯克隆参考音色 | — | 1.0 |
+| passionate 激情 | 充满激情与轻快 | happy=.70, surprised=.20, calm=.10 | 0.7 | 0.97 |
 | lively 轻快 | 明快跳跃 | happy=.55, surprised=.15, calm=.15 | 0.6 | 0.95 |
 | confident 自信 | 沉稳有力 | calm=.65, happy=.25 | 0.7 | 1.05 |
 | positive 正能量 | 昂扬向上 | happy=.75, calm=.20 | 0.7 | 1.0 |
@@ -135,7 +136,7 @@ uv run --no-project --with soundfile --with numpy \
 
 ### 4.4 调参建议
 
-风格向量是 8 维情感空间中的方向+强度，首次使用建议：固定一句文本，`--style` 四档各合成一次试听对比；同风格微调用 `--emo-alpha 0.5`（更含蓄）或 `--duration-factor 0.92`（更紧凑）。**先跑 3 句小样确认，再全量合成**。
+风格向量是 8 维情感空间中的方向+强度，首次使用建议：固定一句文本，`--style` 各档合成一次试听对比；同风格微调用 `--emo-alpha 0.5`（更含蓄）或 `--duration-factor 0.92`（更紧凑）。**先跑 3 句小样确认，再全量合成**。科普长视频推荐 `passionate`（充满激情与轻快：高唤醒正价 happy 主载 + surprised 跳跃感 + 少量 calm 锚定咬字）；数字/术语密集的段落若嫌糊，可 `--duration-factor 1.0` 重跑该集。
 
 ## 五、逐集使用
 
@@ -146,7 +147,7 @@ curl -s http://127.0.0.1:8766/health
 # 1) 全量合成（工程内薄包装等价）
 cd media/<工程>
 uv run --no-project --with mutagen scripts/tts.py --engine indextts \
-    --ref <绝对路径>/media/pipeline/voices/me-1.wav --style lively
+    --ref <绝对路径>/media/pipeline/voices/me-1.wav --style passionate
 
 # 2) 小样试听（先只跑 3 句：临时 narration.json 或 --force 单句验证均可）
 # 3) 全量后重渲染（render 脚本定义在 video/package.json，须进入 video/）

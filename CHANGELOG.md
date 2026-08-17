@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- **科普视频管线新增「激情」配音风格预设与官方工程站点信源补充规范**：`media/pipeline/scripts/tts.py` 的 IndexTTS 风格预设表新增 `passionate`（充满激情与轻快：happy 0.70 主载高唤醒正价 + surprised 0.20 跳跃感 + calm 0.10 锚定咬字，有效和 1.00×0.7=0.70 ≤ 0.8 上限，语速 0.97 护密集技术句清晰度），`--list-styles` 与 [VOICE-CLONING.md](media/pipeline/VOICE-CLONING.md) §四 同步收录并给出科普长视频推荐位；[skills/01-paper-extraction.md](media/pipeline/skills/01-paper-extraction.md) 扩展「官方工程站点信源补充」纪律——只收事实性内容、逐字引用+URL+访问日期、落 `paper-notes.md` 末尾独立「信源补充」大节并与论文正文物理隔离、严禁下载/嵌入站点图片（概念转文字规格供 Remotion 代码动画重建）、站点信源单集专属不跨集。
+
 ### Fixed
 
 - **`cli.sh restart` Phase 3 报 `PostgreSQL 未运行` 直接中止**：`postgresql@16` 非正常退出后数据目录残留 `postmaster.pid`（其 PID 被 OS 回收复用为他进程，本例为 WebKit），brew launchd 反复重试撞 `FATAL: lock file "postmaster.pid" already exists` → 服务进入 `error` 态，而 Phase 3（`cli.sh`）原先仅 `pg_isready -h localhost -p 5432` 探测一次、未运行即 `exit 1`，无自愈、不区分 PG 版本。根因实证：残留 pid 记录 PID `4174` 实为 `com.apple.WebKit.WebContent`（非 postgres），`/opt/homebrew/var/log/postgresql@16.log` 尾部 60+ 条同款 FATAL。修复：新增 `_ensure_postgres` 自愈链——解析 Homebrew formula（默认 `postgresql@16` 对齐 CI `pgvector:pg16`，按 `@16→@17→@18→postgresql` 探测，可 `NEGENTROPY_PG_FORMULA` 覆盖）→ `_clean_stale_pg_pid` 仅当 PID 已死或存活但非 postgres 进程时清理残留锁 → `brew services restart`（覆盖 error/已加载态，start 兜底）→ `_wait_pg_ready` 壁钟轮询就绪（默认 30s，`NEGENTROPY_PG_READY_TIMEOUT` 覆盖）；全失败才报错并附诊断（`brew services list` / 日志路径 / 版本核对）。无 `pg_isready` 时保留原「不探测、退由 alembic 校验」行为（最小干预）。新增 `scripts/tests/test_pg_selfheal.sh` 函数级回归测试（9 用例全通过）。本次即时清理 `@16` 残留锁并 restart 恢复，`SELECT version()` 核对为 16.14。防范：本机共存 PG@16/17/18，5432 易错位——残留 `postmaster.pid` 致 brew `error` 态是可复用判据，优先核 `ps comm` 而非 `kill -0`（后者对 OS 回收复用的 PID 误判存活）。
