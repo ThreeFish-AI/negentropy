@@ -7,7 +7,6 @@
 
 from __future__ import annotations
 
-import runpy
 import subprocess
 import sys
 from pathlib import Path
