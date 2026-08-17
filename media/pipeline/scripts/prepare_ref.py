@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """参考音色样本预处理——裁剪并规范化为 IndexTTS 克隆用 WAV。
 
-- 输入：任意 mp3/wav/m4a/flac 录音（如手机录音、长片段素材）
+- 输入：任意 mp3/wav/flac 录音（如手机录音、长片段素材；m4a 不受 libsndfile 支持，
+  需先 `ffmpeg -i in.m4a out.wav`）
 - 输出：media/pipeline/voices/<名字>.wav —— 16-bit PCM 单声道，保留原始采样率（IndexTTS 内部重采样）
 - 动机：克隆参考音频建议 5–15 秒干净人声；过长样本（如 4 分钟录音）会拖慢每句合成的
   条件提取，且质量并不更好。
@@ -27,7 +28,7 @@ def main() -> int:
         description="裁剪/规范化参考音色样本 → 16-bit 单声道 WAV"
     )
     parser.add_argument(
-        "source", help="源音频文件（mp3/wav/m4a/flac 等 soundfile 可读格式）"
+        "source", help="源音频文件（mp3/wav/flac 等 soundfile 可读格式；m4a 需先 ffmpeg 转 wav）"
     )
     parser.add_argument(
         "--start", type=float, default=0.0, help="裁剪起点（秒，默认 0）"

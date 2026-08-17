@@ -101,7 +101,7 @@ uv run --frozen --with fastapi --with uvicorn --with soundfile --with numpy --wi
 | 内容 | 自然说话，与目标成片语速/语调一致（韵律风格会被一并克隆） |
 | 环境 | 安静房间、固定麦克风距离、无 BGM/混响/系统降噪痕迹 |
 | 说话人 | 仅本人一人 |
-| 格式 | WAV 16-bit ≥22.05kHz 优先（mp3/m4a 经 `prepare_ref.py` 转换） |
+| 格式 | WAV 16-bit ≥22.05kHz 优先（mp3/flac 经 `prepare_ref.py` 转换；m4a 需先 `ffmpeg -i in.m4a out.wav`） |
 
 ### 3.2 长录音裁剪（prepare_ref.py）
 
@@ -149,14 +149,14 @@ uv run --no-project --with mutagen scripts/tts.py --engine indextts \
     --ref <绝对路径>/media/pipeline/voices/me-1.wav --style lively
 
 # 2) 小样试听（先只跑 3 句：临时 narration.json 或 --force 单句验证均可）
-# 3) 全量后重渲染
-pnpm run render:draft && pnpm run render
+# 3) 全量后重渲染（render 脚本定义在 video/package.json，须进入 video/）
+cd video && pnpm run render:draft && pnpm run render
 ```
 
 - 服务启动一次可服务多集；管线客户端不常驻模型；
 - 每句 5–30 秒（MPS fp32，与文本长度相关），整集（约 100 句）预计 20–60 分钟，按句缓存可断点续跑（见 §六）；
 - 引擎/风格/样本任一变化都会改写时长，合成后**必须重跑草渲**让时间轴重算；
-- 超长句（>120 token）服务端内部自动分段，但极端长句连续排队可能触发客户端 300s 超时——重跑即续传，无需干预。客户端并发为 1（与服务端串行推理对齐，避免排队时间计入超时），HTTP 超时 600s。
+- 超长句（>120 token）服务端内部自动分段；极端长句推理可达数分钟。客户端并发为 1（与服务端串行推理对齐，避免排队时间计入超时），HTTP 超时 600s；万一超时——重跑即续传，无需干预。
 
 
 ## 六、缓存与幂等
@@ -182,7 +182,7 @@ pnpm run render:draft && pnpm run render
 | `X-Audio-Format=wav` | 服务端 MP3 编码器探测失败 | 按 §2.3 带 `--with lameenc` 重启服务 |
 | `/health` 报 `supports_duration_factor=false` | 服务为 IndexTTS-2 | 语速控制需 v2.5：重启服务 `--indextts-version 2.5` |
 | 生成音色「不像我」 | 样本质量问题 | 按 §三 重录/重裁：换更干净段落、保证单说话人、5–15s |
-| 长句合成失败 | 超时（HTTP_TIMEOUT=300s） | 重跑（缓存续传）；超长句在逐字稿层面拆句 |
+| 长句合成失败 | 超时（HTTP_TIMEOUT=600s） | 重跑（缓存续传）；超长句在逐字稿层面拆句 |
 | edge 模式失败 | 网络 | 与历史行为一致（重试 4 次后报错） |
 
 ## 八、许可与合规
