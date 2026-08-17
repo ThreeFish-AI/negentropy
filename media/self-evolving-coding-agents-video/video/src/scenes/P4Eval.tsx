@@ -210,7 +210,7 @@ const FiveSuspects: React.FC = () => {
           transform: `rotate(${spin}deg)`,
         }}
       >
-        74.6
+        ↑ 分数
       </div>
       <FadeUp delay={70}>
         <div style={{marginTop: 20, fontFamily: theme.sans, fontSize: 30, color: theme.text}}>

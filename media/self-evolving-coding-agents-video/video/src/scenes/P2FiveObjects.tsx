@@ -99,11 +99,11 @@ const CornerBadge: React.FC<{text: string; color?: string}> = ({text, color = th
   </div>
 );
 
-/** 2-B 器官① SICA：agent.py diff + 分数翻牌 */
+/** 2-B 器官① SICA：agent.py diff + 分数翻牌（SWE-bench Verified 0.17→0.53，arXiv:2504.15228 真实数字） */
 const SicaDiff: React.FC = () => {
   const frame = useCurrentFrame();
-  const oldScore = 71.3;
-  const newScore = interpolate(frame, [70, 95], [71.3, 74.6], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const oldScore = 0.17;
+  const newScore = interpolate(frame, [70, 95], [0.17, 0.53], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   const keep = interpolate(frame, [95, 115], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   return (
     <AbsoluteFill style={{flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 70}}>
@@ -134,9 +134,9 @@ const SicaDiff: React.FC = () => {
         </div>
       </div>
       <div style={{display: 'flex', flexDirection: 'column', gap: 30, alignItems: 'center'}}>
-        <div style={{fontFamily: theme.sans, fontSize: 28, color: theme.dim}}>编码基准分数</div>
+        <div style={{fontFamily: theme.sans, fontSize: 28, color: theme.dim}}>SWE-bench Verified 通过率</div>
         <div style={{fontFamily: theme.mono, fontSize: 96, fontWeight: 700, color: newScore > oldScore ? theme.ok : theme.text}}>
-          {newScore.toFixed(1)}
+          {newScore.toFixed(2)}
         </div>
         <div
           style={{
@@ -459,7 +459,6 @@ const SkillDrawer: React.FC = () => {
             {s}
           </div>
         ))}
-        <CornerBadge text="CODESKILL · 轨迹蒸馏技能库" />
       </div>
       {/* gskill 入职文档 */}
       <div
@@ -487,6 +486,7 @@ const SkillDrawer: React.FC = () => {
         </div>
         <div style={{marginTop: 20, fontFamily: theme.sans, fontSize: 22, color: '#8a7a50'}}>—— 给 AI 新员工的入职第一天</div>
       </div>
+      <CornerBadge text="CODESKILL · 轨迹蒸馏技能库" />
     </AbsoluteFill>
   );
 };
@@ -855,11 +855,14 @@ const GymBoundary: React.FC = () => {
   );
 };
 
-/** 2-P 器官⑤ 工作流 DAG */
-const WorkflowDag: React.FC = () => {
+/** 2-P 器官⑤ 工作流 DAG
+ *  切换点按句 id 驱动：失败流水线保留到 p2-57 起始（口播 p2-57 讲「挨个试流程」），
+ *  DAG 双图随后展开——观众听到失败三连（p2-55/56）时看得到红色 ✗。 */
+const WorkflowDag: React.FC<{switchFrom: number}> = ({switchFrom}) => {
   const frame = useCurrentFrame();
-  const showFail = frame < 110;
-  const easyMode = interpolate(frame, [110, 140], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const showFail = frame < switchFrom;
+  const f = frame - switchFrom; // DAG 半场局部帧
+  const easyMode = interpolate(f, [0, 30], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   const failNodes = showFail
     ? [
         {label: '定位', fail: '❌ 定位错文件'},
@@ -891,7 +894,7 @@ const WorkflowDag: React.FC = () => {
                 {n.label}
               </div>
               {n.fail && (
-                <div style={{marginTop: 10, fontFamily: theme.sans, fontSize: 22, color: theme.danger, opacity: interpolate(frame, [30, 45], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'})}}>
+                <div style={{marginTop: 10, fontFamily: theme.sans, fontSize: 22, color: theme.danger, opacity: interpolate(frame, [200 + i * 30, 215 + i * 30], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'})}}>
                   {n.fail}
                 </div>
               )}
@@ -906,7 +909,7 @@ const WorkflowDag: React.FC = () => {
             <div style={{fontFamily: theme.sans, fontSize: 28, color: theme.dim}}>简单任务 · 少开会</div>
             <div style={{marginTop: 24, display: 'flex', flexDirection: 'column', gap: 20, alignItems: 'center'}}>
               {['编码', '测试'].map((n, i) => (
-                <div key={n} style={{padding: '18px 44px', borderRadius: 10, border: `2px solid ${theme.code}`, background: theme.panel, color: theme.text, fontFamily: theme.sans, fontSize: 26, opacity: interpolate(frame, [150 + i * 12, 162 + i * 12], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'})}}>
+                <div key={n} style={{padding: '18px 44px', borderRadius: 10, border: `2px solid ${theme.code}`, background: theme.panel, color: theme.text, fontFamily: theme.sans, fontSize: 26, opacity: interpolate(f, [40 + i * 12, 52 + i * 12], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'})}}>
                   {n}
                 </div>
               ))}
@@ -917,7 +920,7 @@ const WorkflowDag: React.FC = () => {
             <div style={{fontFamily: theme.sans, fontSize: 28, color: theme.dim}}>困难任务 · 多协作</div>
             <div style={{marginTop: 24, display: 'flex', gap: 18, flexWrap: 'wrap', justifyContent: 'center'}}>
               {['规划', '编码 A', '编码 B', '测试', '评审', '调试'].map((n, i) => (
-                <div key={n} style={{padding: '14px 24px', borderRadius: 10, border: `2px solid ${theme.evo}`, background: theme.panel, color: theme.text, fontFamily: theme.sans, fontSize: 24, opacity: interpolate(frame, [170 + i * 10, 182 + i * 10], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'})}}>
+                <div key={n} style={{padding: '14px 24px', borderRadius: 10, border: `2px solid ${theme.evo}`, background: theme.panel, color: theme.text, fontFamily: theme.sans, fontSize: 24, opacity: interpolate(f, [60 + i * 10, 72 + i * 10], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'})}}>
                   {n}
                 </div>
               ))}
@@ -998,7 +1001,7 @@ export const P2FiveObjects: React.FC<{scene: SceneRange}> = ({scene}) => {
         <GymBoundary />
       </Sequence>
       <Sequence {...w('p2-52', 'p2-59')} name="2-P 工作流DAG">
-        <WorkflowDag />
+        <WorkflowDag switchFrom={beatWindow(scene.sentences, scene.from, 'p2-57').from - w('p2-52', 'p2-59').from} />
       </Sequence>
       <Sequence {...w('p2-60', 'p2-61')} name="2-Q 收束全景">
         <P2Wrap />

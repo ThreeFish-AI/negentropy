@@ -172,7 +172,7 @@
 
 （形式一：scaffold rewriting 脚手架改写）：
 
-- **SICA / A Self-Improving Coding Agent（Robeyns, Szummer & Aitchison, 2025, arXiv:2504.15228）**：给编码智能体配上基础软件工具，让它编辑自己的代码库、发现新的提示方案或工具，并在编码基准上验证改出来的新智能体。（例："equipping a coding agent with basic software tools and allowing it to edit its own codebase, discover new prompting schemes or tools, and validate the resulting agent on coding benchmarks"；§4.2 补充其选择信号为 "coding benchmark performance, cost, and runtime"）
+- **SICA / A Self-Improving Coding Agent（Robeyns, Szummer & Aitchison, 2025, arXiv:2504.15228）**：给编码智能体配上基础软件工具，让它编辑自己的代码库、发现新的提示方案或工具，并在编码基准上验证改出来的新智能体。（例："equipping a coding agent with basic software tools and allowing it to edit its own codebase, discover new prompting schemes or tools, and validate the resulting agent on coding benchmarks"；§4.2 补充其选择信号为 "coding benchmark performance, cost, and runtime"；原文实测数字：SWE-bench Verified 50 题随机子集 0.17 → 0.53（17%→53%），LiveCodeBench 0.65→0.71——分镜 2-B/3-C 画面引用此真实数字）
 - **SIFT / Self-improvement via fast tree-search（Fu, Kulanthaivelu & Yamada, 2026, ICLR）**：与 SICA 同一 scaffold 级设定，但把自我修改的搜索做得更省样本——不完整评估每个候选自我修改，而是用 LLM-as-a-judge 信号加轻量树搜索来优先评估最有希望的补丁。（例："instead of fully evaluating every candidate self-modification, it uses an LLM-as-a-judge signal and lightweight tree search to prioritize the most promising patches"）
 - **STOP / Self-Taught Optimizer（Zelikman, Lorch, Mackey & Kalai, 2024, COLM）**：研究递归自我改进的代码生成脚手架，被 §3.1 定位为 SICA/SIFT 方向的概念先声。（例："This direction is conceptually related to STOP, which studies recursively self-improving code-generation scaffolds"）
 

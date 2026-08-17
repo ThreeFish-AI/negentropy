@@ -86,10 +86,10 @@ const InkReservoir: React.FC = () => {
   );
 };
 
-/** 5-B 三假动作小剧场 */
+/** 5-B 三假动作小剧场（三卡循环点亮，覆盖口播枚举窗口，不随帧溢出熄灭） */
 const FakeMoves: React.FC = () => {
   const frame = useCurrentFrame();
-  const stage = Math.floor(frame / 42);
+  const stage = Math.floor(frame / 42) % 3;
   const acts = [
     {icon: '🤫', title: '背题', sub: '袖子里藏着小抄', en: 'memorization'},
     {icon: '🔁', title: '反复刷榜', sub: '同一份榜刷到熟', en: 'repeated benchmark tuning'},

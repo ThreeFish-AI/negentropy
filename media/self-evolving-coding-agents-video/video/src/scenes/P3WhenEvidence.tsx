@@ -39,10 +39,11 @@ const TwoRulers: React.FC = () => {
   );
 };
 
-/** 3-B 时间三态：秒表 / 日记本 / 进化树 */
-const ThreeClocks: React.FC = () => {
+/** 3-B 时间三态：秒表 / 日记本 / 进化树
+ *  stage 按句 id 边界驱动（p3-03/06/09 各段起始帧），与口播同步且不随帧溢出 */
+const ThreeClocks: React.FC<{stages: number[]}> = ({stages}) => {
   const frame = useCurrentFrame();
-  const stage = Math.floor(frame / 55);
+  const stage = frame >= stages[2] ? 2 : frame >= stages[1] ? 1 : 0;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <div style={{display: 'flex', gap: 70}}>
@@ -122,8 +123,8 @@ const ScoreCard: React.FC = () => {
       >
         <div style={{fontFamily: theme.serif, fontSize: 30, fontWeight: 700}}>成绩单 · 编码基准</div>
         <div style={{marginTop: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-          <span style={{fontFamily: theme.sans, fontSize: 26}}>名次</span>
-          <span style={{fontFamily: theme.mono, fontSize: 40, fontWeight: 700, color: '#1d6b3a'}}>↑ 74.6</span>
+          <span style={{fontFamily: theme.sans, fontSize: 26}}>分数</span>
+          <span style={{fontFamily: theme.mono, fontSize: 40, fontWeight: 700, color: '#1d6b3a'}}>↑ 0.53</span>
         </div>
         <div style={{marginTop: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
           <span style={{fontFamily: theme.sans, fontSize: 26}}>评语</span>
@@ -134,7 +135,7 @@ const ScoreCard: React.FC = () => {
         </div>
       </div>
       <div style={{display: 'flex', flexDirection: 'column', gap: 20}}>
-        {['变体 A · 71.3', '变体 B · 74.6', '变体 C · 72.1'].map((v, i) => (
+        {['变体 A · 0.17', '变体 B · 0.53', '变体 C · 0.31'].map((v, i) => (
           <div
             key={v}
             style={{
@@ -360,7 +361,9 @@ export const P3WhenEvidence: React.FC<{scene: SceneRange}> = ({scene}) => {
         <TwoRulers />
       </Sequence>
       <Sequence {...w('p3-03', 'p3-11')} name="3-B 时间三态">
-        <ThreeClocks />
+        <ThreeClocks
+          stages={['p3-03', 'p3-06', 'p3-09'].map((id) => beatWindow(scene.sentences, scene.from, id).from - w('p3-03', 'p3-11').from)}
+        />
       </Sequence>
       <Sequence {...w('p3-12', 'p3-16')} name="3-C 结果证据">
         <ScoreCard />
