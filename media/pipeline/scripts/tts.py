@@ -97,20 +97,22 @@ def mp3_duration(path: Path) -> float:
 def parse_emo_vector(spec: str) -> list[float]:
     """`happy:0.6,calm:0.2` → 8 维向量；未知键/负值/空集报错。"""
     vec = [0.0] * 8
-    seen = 0
+    seen: set[str] = set()
     for part in spec.split(","):
         key, _, val = part.partition(":")
         key, val = key.strip().lower(), val.strip()
         if key not in EMO_KEYS:
             raise ValueError(f"未知情感键 {key!r}（可用：{','.join(EMO_KEYS)}）")
+        if key in seen:
+            raise ValueError(f"情感键重复：{key}")
         if not val:
             raise ValueError(f"情感权重缺失：{key}（格式如 happy:0.6）")
         weight = float(val)
         if not math.isfinite(weight) or weight < 0:  # isfinite 显式拦 NaN/Inf
             raise ValueError(f"情感权重必须为非负有限数值：{key}")
         vec[EMO_KEYS.index(key)] = weight
-        seen += 1
-    if seen == 0:
+        seen.add(key)
+    if not seen:
         raise ValueError("--emo-vector 不能为空")
     return vec
 
@@ -244,7 +246,7 @@ def http_synthesize(
     if vec is not None:
         payload["emo_vector"] = vec
     req = urllib.request.Request(
-        f"{server.rstrip('/')}/synthesize",
+        f"{server}/synthesize",
         data=json.dumps(payload).encode(),
         method="POST",
         headers={"Content-Type": "application/json"},
@@ -403,6 +405,7 @@ async def main() -> None:
         help="[indextts] 缓存标记；模型升级后自定义以失效旧缓存",
     )
     args = parser.parse_args()
+    args.server = args.server.rstrip("/")  # 尾斜杠归一：health/synthesize 两处拼 URL 前收口
 
     if args.list_styles:
         print(
