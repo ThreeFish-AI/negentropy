@@ -405,7 +405,7 @@ const FortyFive: React.FC = () => {
           ⚠ 拉开差距 = 系统性欠账
         </text>
       </svg>
-      <FadeUp delay={72} style={{position: 'absolute', bottom: 96}}>
+      <FadeUp delay={72} style={{position: 'absolute', bottom: 150}}>
         <div style={{fontFamily: theme.mono, fontSize: 24, color: theme.dim}}>AI-45° Law：能力涨多快，安全就得涨多快</div>
       </FadeUp>
     </AbsoluteFill>

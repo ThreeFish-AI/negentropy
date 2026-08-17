@@ -189,12 +189,13 @@ const SeriesEcho: React.FC = () => {
   );
 };
 
-/** 6-E：论文引用卡 */
-const FinalCard: React.FC = () => {
+/** 6-E：论文引用卡（fade-out 窗口收在本 beat 末帧内，避免渐黑被 Sequence 截断硬切） */
+const FinalCard: React.FC<{endFrame: number}> = ({endFrame}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const enter = spring({frame, fps, config: {damping: 200}});
-  const fade = interpolate(frame, [220, 260], [1, 0], {extrapolateRight: 'clamp', extrapolateLeft: 'clamp'});
+  const fadeStart = Math.max(0, endFrame - 50);
+  const fade = interpolate(frame, [fadeStart, endFrame], [1, 0], {extrapolateRight: 'clamp', extrapolateLeft: 'clamp'});
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center', opacity: fade}}>
       <div
@@ -236,6 +237,14 @@ const FinalCard: React.FC = () => {
 
 export const P6Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (fromId: string, toId?: string) => beatWindow(scene.sentences, scene.from, fromId, toId);
+  /** 某句在本 Sequence 内的结束帧（局部坐标），供结尾渐黑对齐 beat 实际时长 */
+  const endFrame = (id: string) => {
+    const s = scene.sentences.find((x) => x.id === id);
+    if (!s) {
+      throw new Error(`endFrame: 未找到句 id ${id}`);
+    }
+    return s.from + s.durationInFrames - scene.from;
+  };
   return (
     <AbsoluteFill>
       <Sequence {...w('p6-01', 'p6-04')} name="6-A 星空问题">
@@ -256,7 +265,7 @@ export const P6Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
         <SeriesEcho />
       </Sequence>
       <Sequence {...w('p6-14', 'p6-15')} name="6-E 原文卡">
-        <FinalCard />
+        <FinalCard endFrame={endFrame('p6-15')} />
       </Sequence>
     </AbsoluteFill>
   );

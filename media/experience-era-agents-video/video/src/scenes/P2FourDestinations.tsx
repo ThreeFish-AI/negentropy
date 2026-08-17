@@ -72,7 +72,7 @@ const SkillDrawer: React.FC = () => {
           })}
         </div>
       </div>
-      <FadeUp delay={50} style={{position: 'absolute', bottom: 96}}>
+      <FadeUp delay={50} style={{position: 'absolute', bottom: 150}}>
         <div style={{fontFamily: theme.mono, fontSize: 28, color: theme.exp}}>σ = ⟨ M, I, R, A ⟩ · SKILL.md 规范</div>
       </FadeUp>
     </AbsoluteFill>

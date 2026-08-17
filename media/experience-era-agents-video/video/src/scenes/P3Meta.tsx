@@ -156,7 +156,7 @@ const LevelTwo: React.FC = () => {
           </div>
         </div>
       </div>
-      <FadeUp delay={56} style={{marginTop: 46, position: 'absolute', bottom: 96}}>
+      <FadeUp delay={56} style={{marginTop: 46, position: 'absolute', bottom: 150}}>
         <div style={{fontFamily: theme.mono, fontSize: 24, color: theme.dim}}>MetaEvo：原则化自我修正</div>
       </FadeUp>
     </AbsoluteFill>
@@ -228,7 +228,7 @@ const LevelThree: React.FC = () => {
       <div
         style={{
           position: 'absolute',
-          bottom: 120,
+          bottom: 230,
           padding: '18px 36px',
           borderRadius: 16,
           background: theme.panel,
@@ -245,7 +245,7 @@ const LevelThree: React.FC = () => {
           每次改库，拿后面任务的成绩算绩效
         </span>
       </div>
-      <FadeUp delay={40} style={{position: 'absolute', bottom: 66}}>
+      <FadeUp delay={40} style={{position: 'absolute', bottom: 150}}>
         <div style={{fontFamily: theme.mono, fontSize: 22, color: theme.dim}}>
           SkillOS：冻结 Executor + 独立 Curator
         </div>
@@ -268,8 +268,8 @@ const SelfReference: React.FC = () => {
               key={i}
               style={{
                 position: 'absolute',
-                left: `${50 - (scale * 900) / 2}%`,
-                top: `${50 - (scale * 460) / 2}%`,
+                left: (900 - scale * 900) / 2,
+                top: (560 - scale * 460) / 2,
                 width: scale * 900,
                 height: scale * 460,
                 borderRadius: 24,
@@ -295,7 +295,7 @@ const SelfReference: React.FC = () => {
           );
         })}
       </div>
-      <FadeUp delay={60} style={{position: 'absolute', bottom: 110}}>
+      <FadeUp delay={60} style={{position: 'absolute', bottom: 150}}>
         <div style={{fontFamily: theme.mono, fontSize: 24, color: theme.dim}}>
           Hyperagents：连「怎么改进自己」的代码，也可以被改进
         </div>

@@ -49,7 +49,7 @@ const FourParts: React.FC = () => {
           </div>
         );
       })}
-      <FadeUp delay={28} style={{position: 'absolute', bottom: 90}}>
+      <FadeUp delay={28} style={{position: 'absolute', bottom: 150}}>
         <div style={{fontFamily: theme.mono, fontSize: 30, color: theme.exp}}>A_t = ⟨ M, H, U, E ⟩</div>
       </FadeUp>
     </AbsoluteFill>
@@ -117,7 +117,7 @@ const HarnessZoom: React.FC = () => {
           );
         })}
       </div>
-      <FadeUp delay={34} style={{position: 'absolute', bottom: 100}}>
+      <FadeUp delay={34} style={{position: 'absolute', bottom: 150}}>
         <Pill color={theme.harness}>Harness = 经验基础设施</Pill>
       </FadeUp>
     </AbsoluteFill>
@@ -279,7 +279,7 @@ const Refinery: React.FC = () => {
           </div>
         </div>
       </div>
-      <FadeUp delay={40} style={{position: 'absolute', bottom: 100}}>
+      <FadeUp delay={40} style={{position: 'absolute', bottom: 150}}>
         <div style={{fontFamily: theme.mono, fontSize: 30, color: theme.exp}}>z_i = H(τ_i)</div>
       </FadeUp>
     </AbsoluteFill>
@@ -306,8 +306,34 @@ const TwoPaths: React.FC = () => {
             boxShadow: `0 0 40px ${theme.exp}`,
           }}
         />
-        {/* 快路：上弧线到工位 */}
+        {/* 快路：上弧线到工位；慢路：下弧线到大脑。
+            渐进绘制用 mask（pathLength=1 归一化坐标），虚线样式保留在原 path 上——
+            两者须分离，否则 dash 量纲互相抵消（评审 #3） */}
         <svg width="1400" height="560" style={{position: 'absolute', inset: 0}}>
+          <defs>
+            <mask id="twopaths-fast">
+              <path
+                d="M 130 270 Q 500 80 1180 200"
+                fill="none"
+                stroke="#fff"
+                strokeWidth={10}
+                pathLength={1}
+                strokeDasharray={1}
+                strokeDashoffset={1 - fast}
+              />
+            </mask>
+            <mask id="twopaths-slow">
+              <path
+                d="M 130 275 Q 500 470 1180 350"
+                fill="none"
+                stroke="#fff"
+                strokeWidth={10}
+                pathLength={1}
+                strokeDasharray={1}
+                strokeDashoffset={1 - slow}
+              />
+            </mask>
+          </defs>
           <path
             d="M 130 270 Q 500 80 1180 200"
             fill="none"
@@ -315,8 +341,7 @@ const TwoPaths: React.FC = () => {
             strokeWidth={7}
             strokeDasharray="16 10"
             opacity={0.85}
-            pathLength={1}
-            strokeDashoffset={1 - fast}
+            mask="url(#twopaths-fast)"
           />
           <path
             d="M 130 275 Q 500 470 1180 350"
@@ -325,8 +350,7 @@ const TwoPaths: React.FC = () => {
             strokeWidth={7}
             strokeDasharray="16 10"
             opacity={0.85}
-            pathLength={1}
-            strokeDashoffset={1 - slow}
+            mask="url(#twopaths-slow)"
           />
         </svg>
         <div

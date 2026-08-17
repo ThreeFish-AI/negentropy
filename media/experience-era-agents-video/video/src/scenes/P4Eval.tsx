@@ -187,7 +187,6 @@ const Longitudinal: React.FC = () => {
             y2={200}
             stroke={theme.exp}
             strokeWidth={6}
-            pathLength={1}
             strokeDasharray="14 10"
           />
         </svg>
@@ -233,7 +232,7 @@ const Longitudinal: React.FC = () => {
           <Pill color={theme.exp}>留着旧题 · 反复重考</Pill>
         </FadeUp>
       </div>
-      <FadeUp delay={70} style={{position: 'absolute', bottom: 92}}>
+      <FadeUp delay={70} style={{position: 'absolute', bottom: 150}}>
         <div style={{fontFamily: theme.mono, fontSize: 24, color: theme.dim}}>
           SIP-Bench：追着同一个进化的 AI 反复体检
         </div>
