@@ -6,20 +6,20 @@ import {theme} from './design/theme';
 import {computeTimeline} from './timing';
 import type {ManifestItem, SceneRange} from './types';
 import {P0Hook} from './scenes/P0Hook';
-import {P1Anatomy} from './scenes/P1Anatomy';
-import {P2FourDestinations} from './scenes/P2FourDestinations';
-import {P3Meta} from './scenes/P3Meta';
+import {P1Boundary} from './scenes/P1Boundary';
+import {P2FiveObjects} from './scenes/P2FiveObjects';
+import {P3WhenEvidence} from './scenes/P3WhenEvidence';
 import {P4Eval} from './scenes/P4Eval';
-import {P5Safety} from './scenes/P5Safety';
+import {P5Trust} from './scenes/P5Trust';
 import {P6Ending} from './scenes/P6Ending';
 
 const SCENE_COMPONENTS: Record<string, React.FC<{scene: SceneRange}>> = {
   P0: P0Hook,
-  P1: P1Anatomy,
-  P2: P2FourDestinations,
-  P3: P3Meta,
+  P1: P1Boundary,
+  P2: P2FiveObjects,
+  P3: P3WhenEvidence,
   P4: P4Eval,
-  P5: P5Safety,
+  P5: P5Trust,
   P6: P6Ending,
 };
 
