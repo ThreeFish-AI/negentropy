@@ -58,45 +58,6 @@ export const QuoteCard: React.FC<{
   );
 };
 
-/** 章节卡：大标题 + 通路色光带 */
-export const ChapterCard: React.FC<{
-  kicker: string;
-  title: string;
-  accent: string;
-}> = ({kicker, title, accent}) => {
-  const frame = useCurrentFrame();
-  const {fps} = useVideoConfig();
-  const enter = spring({frame, fps, config: {damping: 200}});
-  const sweep = interpolate(frame, [0, 25], [0, 100], {extrapolateRight: 'clamp'});
-  return (
-    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <div style={{textAlign: 'center', opacity: enter}}>
-        <div style={{fontFamily: theme.sans, fontSize: 34, color: accent, letterSpacing: 8}}>{kicker}</div>
-        <div
-          style={{
-            marginTop: 28,
-            fontFamily: theme.sans,
-            fontWeight: 800,
-            fontSize: 96,
-            color: theme.text,
-          }}
-        >
-          {title}
-        </div>
-        <div
-          style={{
-            margin: '36px auto 0',
-            height: 6,
-            width: `${sweep * 5.2}px`,
-            borderRadius: 3,
-            background: `linear-gradient(90deg, transparent, ${accent}, transparent)`,
-          }}
-        />
-      </div>
-    </AbsoluteFill>
-  );
-};
-
 /** 简单淡入上移容器 */
 export const FadeUp: React.FC<{delay?: number; children: React.ReactNode; style?: React.CSSProperties}> = ({
   delay = 0,

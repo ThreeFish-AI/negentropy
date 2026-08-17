@@ -13,7 +13,7 @@ import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 
 /** 3-A：三级阶梯 + 谁控制进化 */
-const Ladder: React.FC<{lit: number}> = ({lit}) => {
+const Ladder: React.FC = () => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const levels = [
@@ -29,7 +29,6 @@ const Ladder: React.FC<{lit: number}> = ({lit}) => {
       <div style={{display: 'flex', alignItems: 'flex-end', gap: 60, marginTop: 80}}>
         {levels.map((l, i) => {
           const h = 200 + i * 110;
-          const on = lit < 0 || i <= lit;
           const enter = spring({frame: frame - i * 12, fps, config: {damping: 200}});
           return (
             <div key={l.name} style={{textAlign: 'center', opacity: enter}}>
@@ -38,8 +37,8 @@ const Ladder: React.FC<{lit: number}> = ({lit}) => {
                   width: 340,
                   height: h,
                   borderRadius: '18px 18px 0 0',
-                  background: on ? theme.panel : '#10141a',
-                  border: `3px solid ${on ? (i === 2 ? theme.exp : theme.harness) : theme.panelBorder}`,
+                  background: theme.panel,
+                  border: `3px solid ${i === 2 ? theme.exp : theme.harness}`,
                   borderTopWidth: 6,
                   display: 'flex',
                   flexDirection: 'column',
@@ -47,11 +46,10 @@ const Ladder: React.FC<{lit: number}> = ({lit}) => {
                   alignItems: 'center',
                   paddingTop: 28,
                   gap: 12,
-                  opacity: on ? 1 : 0.45,
                 }}
               >
                 <div style={{fontSize: 58}}>{l.icon}</div>
-                <div style={{fontFamily: theme.sans, fontSize: 28, fontWeight: 700, color: on ? (i === 2 ? theme.exp : theme.harness) : theme.dim}}>
+                <div style={{fontFamily: theme.sans, fontSize: 28, fontWeight: 700, color: i === 2 ? theme.exp : theme.harness}}>
                   第 {i + 1} 级 · {l.name}
                 </div>
                 <div style={{fontFamily: theme.sans, fontSize: 22, color: theme.dim, padding: '0 18px'}}>{l.desc}</div>
@@ -339,7 +337,7 @@ export const P3Meta: React.FC<{scene: SceneRange}> = ({scene}) => {
   return (
     <AbsoluteFill>
       <Sequence {...w('p3-01', 'p3-03')} name="3-A 三级阶梯">
-        <Ladder lit={-1} />
+        <Ladder />
       </Sequence>
       <Sequence {...w('p3-04', 'p3-05')} name="3-B 第一级">
         <LevelOne />

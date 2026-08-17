@@ -480,7 +480,7 @@ export const P1Anatomy: React.FC<{scene: SceneRange}> = ({scene}) => {
 };
 
 /** 1-H / 2-A 共用：四管道总图 */
-export const FourDestinationsPreview: React.FC<{highlight?: number}> = ({highlight = -1}) => {
+export const FourDestinationsPreview: React.FC = () => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const dests = [
@@ -504,7 +504,6 @@ export const FourDestinationsPreview: React.FC<{highlight?: number}> = ({highlig
       <div style={{display: 'flex', gap: 44}}>
         {dests.map((d, i) => {
           const enter = spring({frame: frame - 6 - i * 5, fps, config: {damping: 200}});
-          const lit = highlight < 0 || highlight === i;
           return (
             <div
               key={d.label}
@@ -513,7 +512,7 @@ export const FourDestinationsPreview: React.FC<{highlight?: number}> = ({highlig
                 flexDirection: 'column',
                 alignItems: 'center',
                 gap: 14,
-                opacity: enter * (lit ? 1 : 0.25),
+                opacity: enter,
                 transform: `translateY(${(1 - enter) * 30}px)`,
               }}
             >
@@ -526,7 +525,7 @@ export const FourDestinationsPreview: React.FC<{highlight?: number}> = ({highlig
                   color: d.color,
                   padding: '6px 22px',
                   borderRadius: 12,
-                  border: `2px solid ${lit ? d.color : theme.panelBorder}`,
+                  border: `2px solid ${d.color}`,
                 }}
               >
                 {d.label}

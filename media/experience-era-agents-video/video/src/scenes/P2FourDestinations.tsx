@@ -588,22 +588,22 @@ export const P2FourDestinations: React.FC<{scene: SceneRange}> = ({scene}) => {
       <Sequence {...w('p2-07', 'p2-12')} name="2-C 生命周期">
         <LifecycleRing />
       </Sequence>
-      <Sequence {...w('p2-13', 'p2-18')} name="2-D/E 验证门">
+      <Sequence {...w('p2-13', 'p2-18')} name="2-D 验证门">
         <ValidationGate />
       </Sequence>
-      <Sequence {...w('p2-19', 'p2-26')} name="2-F 记忆五动作">
+      <Sequence {...w('p2-19', 'p2-26')} name="2-E 记忆五动作">
         <MemoryOps />
       </Sequence>
-      <Sequence {...w('p2-27', 'p2-30')} name="2-G 记忆三层">
+      <Sequence {...w('p2-27', 'p2-30')} name="2-F 记忆三层">
         <MemoryLayers />
       </Sequence>
-      <Sequence {...w('p2-31', 'p2-37')} name="2-H 环境三层楼">
+      <Sequence {...w('p2-31', 'p2-37')} name="2-G 环境三层楼">
         <EnvFloors />
       </Sequence>
-      <Sequence {...w('p2-38', 'p2-41')} name="2-I 参数巩固">
+      <Sequence {...w('p2-38', 'p2-41')} name="2-H 参数巩固">
         <Consolidate />
       </Sequence>
-      <Sequence {...w('p2-42', 'p2-47')} name="2-J 工业现实">
+      <Sequence {...w('p2-42', 'p2-47')} name="2-I 工业现实">
         <IndustryReality />
       </Sequence>
     </AbsoluteFill>

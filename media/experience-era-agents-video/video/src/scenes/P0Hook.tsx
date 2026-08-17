@@ -15,7 +15,7 @@ import type {SceneRange} from '../types';
 /** 0-A：经验时代宣言打字机金句卡 */
 const Manifesto: React.FC = () => {
   const frame = useCurrentFrame();
-  const zh = '"AI 的下一个时代，叫经验时代。"';
+  const zh = '「AI 的下一个时代，叫经验时代。」';
   const shown = Math.min(zh.length, Math.floor(frame / 2.2));
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center', padding: '0 180px'}}>
@@ -47,7 +47,7 @@ const Manifesto: React.FC = () => {
             opacity: interpolate(frame, [60, 90], [0, 1], {extrapolateRight: 'clamp'}),
           }}
         >
-          "Progress will come from experience generated as agents interact with their environments."
+          "A new generation of agents will acquire superhuman capabilities by learning predominantly from experience."
         </div>
         <div
           style={{

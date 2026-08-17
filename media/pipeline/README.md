@@ -73,7 +73,7 @@ media/<slug>-video/
 
 ## 六、新集脚手架清单
 
-1. `git cp` 上一集工程目录骨架（README/research/script/scripts/video），改 slug 与内容。
+1. `cp -r` 上一集工程目录骨架（README/research/script/scripts/video），改 slug 与内容。
 2. `video/package.json` 改 `name`；清空 scenes 重建；`theme.ts` 换本集色板。
 3. 根 `.gitignore` 追加本集产物规则（**不能放工程内**——根级裸 `.gitignore` 规则会挡住嵌套 ignore 文件）：
    ```
