@@ -282,10 +282,13 @@ def digest_indextts(
     lang: str,
     engine_tag: str,
     text: str,
+    num_beams: int = 1,
 ) -> str:
     vec_str = ",".join(repr(x) for x in vec) if vec else "none"
+    # 束宽改变合成结果，须入键；默认 1 时省略字段——沿用历史摘要格式，存量缓存不失效
+    beams_part = "" if num_beams == 1 else f"|beams={num_beams}"
     return hashlib.sha1(
-        f"indextts|{engine_tag}|{ref_sha1}|{lang}|{style}|{vec_str}|{alpha!r}|{df!r}|{text}".encode()
+        f"indextts|{engine_tag}|{ref_sha1}|{lang}|{style}|{vec_str}|{alpha!r}|{df!r}|{text}{beams_part}".encode()
     ).hexdigest()
 
 
@@ -308,7 +311,7 @@ async def synth_indextts(
     sid, text = item["id"], item["text"]
     mp3 = out_dir / f"{sid}.mp3"
     meta = out_dir / f"{sid}.sha"
-    digest = digest_indextts(ref_sha1, style, vec, alpha, df, lang, engine_tag, text)
+    digest = digest_indextts(ref_sha1, style, vec, alpha, df, lang, engine_tag, text, num_beams)
 
     if (
         not force
