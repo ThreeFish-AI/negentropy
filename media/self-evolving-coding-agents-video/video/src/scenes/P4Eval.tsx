@@ -221,14 +221,17 @@ const FiveSuspects: React.FC = () => {
   );
 };
 
-/** 4-E 六维雷达 */
+/** 4-E 六维雷达（v3：数值轨迹线 + 当前展开轴辉光） */
 const Radar: React.FC = () => {
   const frame = useCurrentFrame();
   const axes = ['正确性', '成本', 'token', '步数', '迁移', '稳定'];
+  const target = [0.9, 0.62, 0.7, 0.55, 0.48, 0.6];
   const R = 210;
   const cx = 420;
   const cy = 300;
-  const values = axes.map((_, i) => interpolate(frame, [i * 12, i * 12 + 20], [0, [0.9, 0.62, 0.7, 0.55, 0.48, 0.6][i]], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}));
+  const values = axes.map((_, i) => interpolate(frame, [i * 12, i * 12 + 20], [0, target[i]], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}));
+  // 当前正在展开的轴（辉光跟随）
+  const activeAxis = Math.min(axes.length - 1, Math.floor(frame / 12));
   const pt = (i: number, r: number) => {
     const a = (-90 + (i / axes.length) * 360) * (Math.PI / 180);
     return [cx + Math.cos(a) * r, cy + Math.sin(a) * r];
@@ -248,7 +251,36 @@ const Radar: React.FC = () => {
         ))}
         {axes.map((_, i) => {
           const [x, y] = pt(i, R);
-          return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke={theme.panelBorder} strokeWidth={2} />;
+          const active = i === activeAxis && values[i] < target[i];
+          return (
+            <line
+              key={i}
+              x1={cx}
+              y1={cy}
+              x2={x}
+              y2={y}
+              stroke={active ? theme.code : theme.panelBorder}
+              strokeWidth={active ? 5 : 2}
+              opacity={active ? 0.9 : 1}
+              style={active ? {filter: `drop-shadow(0 0 8px ${theme.code})`} : undefined}
+            />
+          );
+        })}
+        {/* 数值轨迹点 + 数值标注（轴展开完成后浮现） */}
+        {axes.map((a, i) => {
+          const [x, y] = pt(i, values[i] * R);
+          const done = values[i] >= target[i];
+          const [lx, ly] = pt(i, values[i] * R + 30);
+          return (
+            <g key={`v${a}`}>
+              <circle cx={x} cy={y} r={7} fill={done ? theme.code : theme.panelBorder} style={done ? {filter: `drop-shadow(0 0 6px ${theme.code})`} : undefined} />
+              {done && (
+                <text x={lx} y={ly} textAnchor="middle" dominantBaseline="middle" fill={theme.dim} fontSize={20} fontFamily={theme.mono}>
+                  {(target[i] * 100).toFixed(0)}
+                </text>
+              )}
+            </g>
+          );
         })}
         <polygon points={poly} fill={`${theme.code}33`} stroke={theme.code} strokeWidth={3} />
         {axes.map((a, i) => {

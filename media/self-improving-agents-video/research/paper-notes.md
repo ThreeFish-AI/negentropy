@@ -805,3 +805,47 @@ Takeaway 重申：该类别最接近 RSI，因为它把源码与运行逻辑当�
 - 【全文最佳收尾金句】"we should transition from building stateless AI tools that reset after every interaction to designing systems capable of continuous self-improvement"（我们应当从构建每次交互后就归零的无状态 AI 工具，转向设计能够持续自我改进的系统）。通俗版：今天的 AI 像得了失忆症的天才，每次见面都要重新自我介绍；我们要造的是会成长的同事。
 - 【提醒观众别只盯着模型变大】原文明确说这一愿景"goes beyond simply scaling foundation models"，还需要"robust feedback mechanisms, safe architectures for self-modification, and a fundamental rethinking of evaluation as an ongoing, integrated process rather than a static benchmark"。通俗版：AI 的下一步不在于把大脑做多大，而在于有没有靠谱的反馈、安全的改造流程，和一场永不结束的体检。
 
+---
+
+## 信源补充（2026-08 升级；来源：官方工程站点，非论文正文）
+
+> 站点：https://selfimproving-agent.github.io/（访问日期 2026-08-18）。以下条目全部来自站点页面，与论文正文物理隔离；如与论文冲突以论文为准。
+
+### 收录统计（P5 收尾「活地图」镜依据）
+
+- 【312 条收录】站点 Survey statistics 原文："312 curated entries"，分系 "77 FM improvement / 176 Scaffolding improvement / 59 Evaluation & Benchmarking"（"312 categorized entries in total"）。→ **视觉映射**：蓝（改大脑 θ=FM）77 / 橙（改装备 Σ=Scaffolding）176 / 灰（评测）59 三色计数条——橙色条最长，恰好印证论文侧重（Scaffolding 条目数是 FM 的两倍多）。
+- 【living research map 定位】站点原文："This survey is maintained as a living research map."（读者可 suggest missing work / report corrections / help improve the taxonomy）→ 视觉映射：地图持续生长意象，与「论文不是终点而是持续更新的地图」呼应。
+
+### 九篇敲门砖（P5 收尾「卡片墙」镜依据）
+
+- 站点 Quick start 列出的 9 篇代表工作（逐字）：**Self-Instruct、Constitutional AI、WebRL、Web Agents with World Models、Self-Refine、TextGrad、MemoryBank、Voyager、Darwin Gödel Machine**。
+- 与本片两路结构对位：Self-Instruct / Constitutional AI / WebRL / Web Agents with World Models ≈ 改大脑线（§5）；Self-Refine / TextGrad / MemoryBank / Voyager / Darwin Gödel Machine ≈ 改装备线（§6）。→ 视觉映射：3×3 卡片墙按蓝/橙双色分拣入场。
+
+### 题记与作者（既有内容佐证）
+
+- 站点题记逐字："The first ultraintelligent machine is the last invention that man need ever make." — I. J. Good (1966)（与 P0 冷开场金句一致，可作片尾回响佐证）。
+- 作者名单含 Jürgen Schmidhuber（KAUST / IDSIA-USI-SUPSI），与 P0 「作者名单压轴 Schmidhuber」一致。
+
+---
+
+## 2026-08 升级复核（第二遍重读校准）
+
+> 重读方式：本地 PDF（`assets/papers/source/Self-Improvements in Modern Agentic Systems: A Survey.pdf`，97 页）p11–19（§3 Definitions / §4 Taxonomy）与 p48–56（§8 Evaluation / §9 Discussion）二次精读（pymupdf 抽取，2026-08-18）。
+> **结论**：narration v2 全部断言与原文一致，零事实漂移。§3 形式化（A=(θ,Σ)、𝒰 算子、两模式、Skill 定义）、§4 分类法（两路×信号形式）、§8 评测（预算内轨迹报告、held-out 迁移、judge 过优化风险）、§9 讨论（快探索/慢固化、critic 即攻击面、分层门禁）均已充分覆盖。
+
+### 审计发现与处置
+
+| # | 发现 | 类别 | 处置 |
+|---|---|---|---|
+| 1 | 站点 312 条统计（77/176/59）是论文之外最有分量的定量事实，且橙色（装备）条目约为蓝色两倍半——正好给 P3「这两年最火的方向」（p3-02）提供外部印证 | 站点信源 | 新增 P5 收尾活地图镜（3–4 句） |
+| 2 | 站点 9 篇敲门砖与片内已讲方法高度重合（观众全程听过名字） | 站点信源 | 新增 P5 卡片墙镜（2 句），双色分拣呼应 P1 分叉 |
+| 3 | §3.2「Skill = 可复用更新算子」在 v2 中仅以「技能库」侧写（p3-33/34），未点破「技能=把一次升级打包」这一定义 | 核心遗漏（轻） | 新增 p3-34b/c 两句（P3 第三层内） |
+| 4 | §8.1.1「报告完整学习曲线而非只报峰值」是评测章的纲领句，v2 P5「持续体检」已意译覆盖 | 已覆盖 | 不动 |
+| 5 | 考虑补 §7 应用域扩展、§9.2 六方向逐条展开 | — | **放弃**：篇幅所限，v2 的取含已在 planning.md 声明，本轮不加新幕 |
+
+### 本轮新增断言锚点（v3 新句用）
+
+- 【站点 312 统计】见「信源补充」节——77/176/59 数字必须引用为站点统计（非论文正文数字）。
+- 【§3.2 Skill 定义·逐字】"We model a skill as a reusable instance of the self-induced update operator U: a named update to the agent's own configuration that it retains and reuses."——「技能就是把一次自我升级打包保存、随取随用」。
+- 【§4.1 参数历史支持回滚·逐字】"θ1:t denotes the parameter history, enabling validation and rollback (e.g., reverting to a prior checkpoint) when a proposed update degrades performance or violates constraints."
+- 【§8.1.1 曲线报告·逐字】"Evaluation should therefore report the full performance trajectory (mt) across update iterations (t) rather than exclusively highlighting a final peak score, bounded by a predefined resource budget (Bmax)."

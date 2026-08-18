@@ -8,7 +8,7 @@
 ```mermaid
 flowchart LR
     subgraph S["内容层（文档驱动）"]
-        A[① 论文精读提取<br/>并行子代理] --> B[② 策划案<br/>受众/结构/视觉契约]
+        A[① 论文精读提取<br/>并行子代理<br/>含官方站点信源补充] --> B[② 策划案<br/>受众/结构/视觉契约]
         B --> C[③ 逐字稿 narration.md<br/>★单一事实源]
         C --> D[④ 双重校验<br/>真实性回溯+易懂性]
         D --> E[⑤ 分镜表 storyboard.md]
@@ -54,7 +54,7 @@ media/<slug>-video/
 | 脚本 | 用途 | 工程内等价调用 |
 |---|---|---|
 | [scripts/build_narration.py](./scripts/build_narration.py) | narration.md → narration.json + 时长估算 | `uv run --no-project scripts/build_narration.py` |
-| [scripts/tts.py](./scripts/tts.py) | 逐句配音合成 + 时长 manifest（幂等，双引擎：edge 预置音色 / indextts 声音克隆） | `uv run --no-project --with edge-tts --with mutagen scripts/tts.py`（克隆模式免 edge-tts，见 [VOICE-CLONING.md](./VOICE-CLONING.md)） |
+| [scripts/tts.py](./scripts/tts.py) | 逐句配音合成 + 时长 manifest（幂等，双引擎：edge 预置音色 / indextts 声音克隆，风格含 passionate 激情 / lively 轻快等） | `uv run --no-project --with edge-tts --with mutagen scripts/tts.py`（克隆模式免 edge-tts，见 [VOICE-CLONING.md](./VOICE-CLONING.md)） |
 | [scripts/tts_server.py](./scripts/tts_server.py) | IndexTTS 推理服务（声音克隆后端，**运行于 index-tts 环境**，非本仓） | 在 `~/tools/index-tts` 内启动，见 [VOICE-CLONING.md §二](./VOICE-CLONING.md) |
 | [scripts/prepare_ref.py](./scripts/prepare_ref.py) | 参考音色样本裁剪/规范化（长录音 → 5–15s 干净 WAV） | 无工程薄包装（与具体工程无关），从仓库根调用：`uv run --no-project --with soundfile --with numpy media/pipeline/scripts/prepare_ref.py <源音频>` |
 | [scripts/qa_frames.py](./scripts/qa_frames.py) | 按句 id 抽帧视觉 QA | `uv run --no-project scripts/qa_frames.py out/draft.mp4 --scene P2` |

@@ -100,15 +100,20 @@ const CornerBadge: React.FC<{text: string; color?: string}> = ({text, color = th
 );
 
 /** 2-B 器官① SICA：agent.py diff + 分数翻牌（SWE-bench Verified 0.17→0.53，arXiv:2504.15228 真实数字）
- *  翻牌/保留徽章按句 id 边界驱动：p2-06 讲 SICA（diff 渲染 + 翻牌起）、p2-07「分数涨了就留下」（徽章） */
+ *  翻牌/保留徽章/双仪表按句 id 边界驱动：p2-06 讲 SICA（diff 渲染 + 翻牌起）、p2-07「分数涨了就留下」（徽章）、
+ *  p2-07b「还要看花的钱、跑的时间」（成本/时长双仪表点亮，§4.2 选择信号 = benchmark + cost + runtime） */
 const SicaDiff: React.FC<{
   sicaFrom: number; // p2-06 相对本 beat 的起始帧
   keepFrom: number; // p2-07 相对本 beat 的起始帧
-}> = ({sicaFrom, keepFrom}) => {
+  metersFrom: number; // p2-07b 相对本 beat 的起始帧
+}> = ({sicaFrom, keepFrom, metersFrom}) => {
   const frame = useCurrentFrame();
   const oldScore = 0.17;
   const newScore = interpolate(frame, [sicaFrom, sicaFrom + 60], [0.17, 0.53], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   const keep = interpolate(frame, [keepFrom, keepFrom + 20], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const meters = interpolate(frame, [metersFrom, metersFrom + 18], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  // p2-07b 后数字轻微脉冲强调（幅度小、不喧宾）
+  const pulse = meters >= 1 ? 1 + Math.sin((frame - metersFrom) * 0.12) * 0.02 : 1;
   const diffF = frame - sicaFrom;
   return (
     <AbsoluteFill style={{flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 70}}>
@@ -140,7 +145,15 @@ const SicaDiff: React.FC<{
       </div>
       <div style={{display: 'flex', flexDirection: 'column', gap: 30, alignItems: 'center'}}>
         <div style={{fontFamily: theme.sans, fontSize: 28, color: theme.dim}}>SWE-bench Verified 通过率</div>
-        <div style={{fontFamily: theme.mono, fontSize: 96, fontWeight: 700, color: newScore > oldScore ? theme.ok : theme.text}}>
+        <div
+          style={{
+            fontFamily: theme.mono,
+            fontSize: 96,
+            fontWeight: 700,
+            color: newScore > oldScore ? theme.ok : theme.text,
+            transform: `scale(${pulse})`,
+          }}
+        >
           {newScore.toFixed(2)}
         </div>
         <div
@@ -157,6 +170,32 @@ const SicaDiff: React.FC<{
           }}
         >
           ✓ 保留这一版
+        </div>
+        {/* p2-07b 双仪表：成本 / 运行时长（选择信号的另两维） */}
+        <div style={{display: 'flex', gap: 26, opacity: meters}}>
+          {[
+            {label: '成本 ¥', val: '达标'},
+            {label: '时长 ⏱', val: '达标'},
+          ].map((m, i) => (
+            <div
+              key={m.label}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                padding: '10px 20px',
+                borderRadius: 10,
+                border: `2px solid ${theme.ok}`,
+                fontFamily: theme.sans,
+                fontSize: 26,
+                color: theme.ok,
+                opacity: interpolate(meters, [i * 0.5, i * 0.5 + 0.5], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}),
+              }}
+            >
+              <span style={{fontSize: 30}}>✓</span>
+              {m.label}
+            </div>
+          ))}
         </div>
       </div>
       <CornerBadge text="SICA · Robeyns et al., 2025" />
@@ -958,8 +997,8 @@ const P2Wrap: React.FC = () => (
 
 export const P2FiveObjects: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (fromId: string, toId?: string) => beatWindow(scene.sentences, scene.from, fromId, toId);
-  // 2-B beat 内的句边界（相对帧）：diff 渲染/翻牌与保留徽章随口播切换
-  const sicaBeat = w('p2-03', 'p2-07');
+  // 2-B beat 内的句边界（相对帧）：diff 渲染/翻牌/保留徽章/双仪表随口播切换
+  const sicaBeat = w('p2-03', 'p2-07b');
   const rel = (id: string, beat: {from: number}) => beatWindow(scene.sentences, scene.from, id).from - beat.from;
   return (
     <AbsoluteFill>
@@ -967,7 +1006,7 @@ export const P2FiveObjects: React.FC<{scene: SceneRange}> = ({scene}) => {
         <OrganMap lit={1} />
       </Sequence>
       <Sequence {...sicaBeat} name="2-B 框架·SICA">
-        <SicaDiff sicaFrom={rel('p2-06', sicaBeat)} keepFrom={rel('p2-07', sicaBeat)} />
+        <SicaDiff sicaFrom={rel('p2-06', sicaBeat)} keepFrom={rel('p2-07', sicaBeat)} metersFrom={rel('p2-07b', sicaBeat)} />
       </Sequence>
       <Sequence {...w('p2-08', 'p2-11')} name="2-C 框架·递归与档案">
         <RecursionAndArchive />

@@ -869,10 +869,12 @@ const Pixel: React.FC<{x: number; y: number; s: number; fill: string; opacity?: 
   opacity = 1,
 }) => <rect x={x} y={y} width={s} height={s} fill={fill} opacity={opacity} />;
 
-/** 3-G：方块机器人对树写代码（p3-32）→ 砍树程序 v1 卡 ✓（p3-33）→ 存入技能库书架（p3-33 后半）→ 再遇树秒调用（p3-34） */
+/** 3-G：方块机器人对树写代码（p3-32）→ 砍树程序 v1 卡 ✓（p3-33）→ 存入技能库书架（p3-33 后半）→ 再遇树秒调用（p3-34）
+ *  v3：p3-34b/c 技能库书架下方翻出金句条——「技能 = 打包保存的一次自我升级」（锚 §3.2 Skill 定义） */
 const VoyagerScene: React.FC<{at: (id: string) => number}> = ({at}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
+  const t34b = at('p3-34b');
   const enter = spring({frame, fps, config: {damping: 200}});
   const t32 = at('p3-32');
   const t33 = at('p3-33');
@@ -1035,6 +1037,28 @@ const VoyagerScene: React.FC<{at: (id: string) => number}> = ({at}) => {
         }}
       >
         自己写代码 → 调试通过 → 存技能库 → 越玩越强
+      </div>
+      {/* v3：p3-34b/c 金句条（书架下方翻出，衬线体；红线 2：底部角标 bottom≥150 已满足——此处为内容条非角标，置于流程条上方） */}
+      <div
+        style={{
+          position: 'absolute',
+          top: V - 168,
+          left: 960,
+          transform: `translateX(-50%) translateY(${interpolate(frame, [t34b, t34b + 16], [26, 0], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'})}px)`,
+          padding: '14px 34px',
+          borderRadius: 12,
+          background: 'rgba(255,159,69,0.08)',
+          border: `2px solid ${theme.gear}`,
+          fontFamily: theme.serif,
+          fontSize: 30,
+          fontWeight: 700,
+          color: theme.gear,
+          whiteSpace: 'nowrap',
+          opacity: interpolate(frame, [t34b, t34b + 14], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}),
+          boxShadow: `0 0 34px rgba(255,159,69,0.18)`,
+        }}
+      >
+        技能，就是把一次自我升级打包保存，随取随用
       </div>
     </AbsoluteFill>
   );
@@ -1822,7 +1846,7 @@ export const P3Gear: React.FC<{scene: SceneRange}> = ({scene}) => {
       <Sequence {...w('p3-25', 'p3-29')} name="3-F 记忆毛病">
         <MemoryBugs at={rel('p3-25')} />
       </Sequence>
-      <Sequence {...w('p3-30', 'p3-34')} name="3-G Voyager">
+      <Sequence {...w('p3-30', 'p3-34c')} name="3-G Voyager">
         <VoyagerScene at={rel('p3-30')} />
       </Sequence>
       <Sequence {...w('p3-35', 'p3-42')} name="3-H 工具闭环">

@@ -6,7 +6,7 @@
 - 引擎：
   - edge（默认）：edge-tts 预置音色，免密钥，行为与历史版本完全一致；
   - indextts：声音克隆（IndexTTS-2.5 本地服务），需先启动 tts_server.py，
-    通过 --ref 提供参考音色样本、--style 选择风格（轻快/自信/正能量等）。
+    通过 --ref 提供参考音色样本、--style 选择风格（激情/轻快/自信/正能量等）。
 - 幂等：参数与文本未变则跳过（SHA1 摘要 sidecar 缓存）。
 
 用法：
@@ -14,7 +14,7 @@
                 --project media/<工程> [--voice zh-CN-YunxiNeural] [--rate +4%] [--force]
   indextts：uv run --no-project --with mutagen media/pipeline/scripts/tts.py \
                 --project media/<工程> --engine indextts --ref <参考样本.wav> \
-                [--style lively] [--server http://127.0.0.1:8766] [--force]
+                [--style passionate] [--server http://127.0.0.1:8766] [--force]
   （工程内薄包装等价于在工程目录下运行 scripts/tts.py）
 
 声音克隆完整手册（部署/风格/排障/许可）见 media/pipeline/VOICE-CLONING.md。
@@ -55,9 +55,17 @@ EMO_KEYS = [
     "calm",
 ]
 
-# 风格预设：轻快/自信/正能量 —— 数值为初值，可实测试听后微调。
+# 风格预设：激情/轻快/自信/正能量 —— 数值为初值，可实测试听后微调。
 STYLE_PRESETS: dict[str, dict] = {
     "neutral": {"label": "中性", "vec": None, "alpha": 1.0, "df": 1.0},
+    "passionate": {
+        "label": "激情",
+        # 高唤醒正价（happy 主载）+ 跳跃感（surprised）+ 少量 calm 锚定咬字；
+        # 有效和 1.00×0.7=0.70 ≤0.8；df 0.97 护密集技术句清晰度。
+        "vec": [0.70, 0, 0, 0, 0, 0, 0.20, 0.10],
+        "alpha": 0.7,
+        "df": 0.97,
+    },
     "lively": {
         "label": "轻快",
         "vec": [0.55, 0, 0, 0, 0, 0, 0.15, 0.15],
@@ -234,6 +242,7 @@ def http_synthesize(
     alpha: float,
     df: float,
     lang: str,
+    num_beams: int = 1,
 ) -> tuple[bytes, str]:
     """POST /synthesize → (mp3 bytes, X-Audio-Format)。4xx 不可重试。"""
     payload: dict = {
@@ -242,6 +251,7 @@ def http_synthesize(
         "emo_alpha": alpha,
         "duration_factor": df,
         "lang": lang,
+        "num_beams": num_beams,
     }
     if vec is not None:
         payload["emo_vector"] = vec
@@ -293,6 +303,7 @@ async def synth_indextts(
     engine_tag: str,
     server: str,
     out_dir: Path,
+    num_beams: int = 1,
 ) -> dict:
     sid, text = item["id"], item["text"]
     mp3 = out_dir / f"{sid}.mp3"
@@ -321,6 +332,7 @@ async def synth_indextts(
                         alpha,
                         df,
                         lang,
+                        num_beams,
                     )
                     if fmt != "mp3":
                         raise NonRetryableError(
@@ -400,6 +412,14 @@ async def main() -> None:
     )
     idx.add_argument("--lang", default="ZH", help="[indextts] 语言（默认 ZH）")
     idx.add_argument(
+        "--num-beams",
+        default=1,
+        type=int,
+        choices=[1, 2, 3, 4, 5],
+        help="[indextts] GPT 束搜索宽度（默认 1；采样生成下与上游默认 3 听感差异可忽略，"
+        "但 GPT 段耗时约按束宽线性放大——长篇管线跑 1，质量敏感单句可试 3）",
+    )
+    idx.add_argument(
         "--engine-tag",
         default="indextts",
         help="[indextts] 缓存标记；模型升级后自定义以失效旧缓存",
@@ -426,6 +446,7 @@ async def main() -> None:
                 "--emo-vector": args.emo_vector,
                 "--emo-alpha": args.emo_alpha,
                 "--duration-factor": args.duration_factor,
+                "--num-beams": args.num_beams != 1,
                 "--server": args.server != "http://127.0.0.1:8766",
                 "--style": args.style != "neutral",
                 "--lang": args.lang != "ZH",
@@ -516,6 +537,7 @@ async def main() -> None:
                     args.engine_tag,
                     args.server,
                     out_dir,
+                    num_beams=args.num_beams,
                 )
                 for i in items
             )

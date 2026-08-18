@@ -121,6 +121,7 @@ uv run --no-project --with soundfile --with numpy \
 | 预设 | 定位 | emo_vector（顺序：happy, angry, sad, afraid, disgusted, melancholic, surprised, calm） | alpha | df |
 |---|---|---|---|---|
 | neutral | 中性（默认） | 不注入情感，纯克隆参考音色 | — | 1.0 |
+| passionate 激情 | 充满激情与轻快 | happy=.70, surprised=.20, calm=.10 | 0.7 | 0.97 |
 | lively 轻快 | 明快跳跃 | happy=.55, surprised=.15, calm=.15 | 0.6 | 0.95 |
 | confident 自信 | 沉稳有力 | calm=.65, happy=.25 | 0.7 | 1.05 |
 | positive 正能量 | 昂扬向上 | happy=.75, calm=.20 | 0.7 | 1.0 |
@@ -133,9 +134,13 @@ uv run --no-project --with soundfile --with numpy \
 
 0.5–2.0（>1 变慢、<1 变快）。仅 v2.5 支持；`--emo-vector` 模式默认 1.0（手动传 df 需服务为 v2.5）。
 
+### 4.3b 束搜索宽度（--num-beams，速度主旋钮）
+
+GPT 声码段的束搜索宽度，默认 **1**（上游库内部默认 3）。采样生成（`do_sample=True`）下 1 与 3 的听感差异可忽略，但 GPT 段耗时约按束宽线性放大。**MPS fp32 实测**（2026-08-18，M3 系列）：每句墙钟 = GPT 束搜索 + 扩散声码 + BigVGAN，RTF（耗时/音频时长）约 40–58（beams=3）与 20–30（beams=1）；整集（约 180–230 句）预计数小时，按句缓存可断点续跑。质量敏感的单句可 `--num-beams 3` 单独重合成。
+
 ### 4.4 调参建议
 
-风格向量是 8 维情感空间中的方向+强度，首次使用建议：固定一句文本，`--style` 四档各合成一次试听对比；同风格微调用 `--emo-alpha 0.5`（更含蓄）或 `--duration-factor 0.92`（更紧凑）。**先跑 3 句小样确认，再全量合成**。
+风格向量是 8 维情感空间中的方向+强度，首次使用建议：固定一句文本，`--style` 各档合成一次试听对比；同风格微调用 `--emo-alpha 0.5`（更含蓄）或 `--duration-factor 0.92`（更紧凑）。**先跑 3 句小样确认，再全量合成**。科普长视频推荐 `passionate`（充满激情与轻快：高唤醒正价 happy 主载 + surprised 跳跃感 + 少量 calm 锚定咬字）；数字/术语密集的段落若嫌糊，可 `--duration-factor 1.0` 重跑该集。
 
 ## 五、逐集使用
 
@@ -146,7 +151,7 @@ curl -s http://127.0.0.1:8766/health
 # 1) 全量合成（工程内薄包装等价）
 cd media/<工程>
 uv run --no-project --with mutagen scripts/tts.py --engine indextts \
-    --ref <绝对路径>/media/pipeline/voices/me-1.wav --style lively
+    --ref <绝对路径>/media/pipeline/voices/me-1.wav --style passionate
 
 # 2) 小样试听（先只跑 3 句：临时 narration.json 或 --force 单句验证均可）
 # 3) 全量后重渲染（render 脚本定义在 video/package.json，须进入 video/）
@@ -154,7 +159,7 @@ cd video && pnpm run render:draft && pnpm run render
 ```
 
 - 服务启动一次可服务多集；管线客户端不常驻模型；
-- 每句 5–30 秒（MPS fp32，与文本长度相关），整集（约 100 句）预计 20–60 分钟，按句缓存可断点续跑（见 §六）；
+- 每句墙钟与文本长度及束宽相关：MPS fp32 实测 RTF≈40–58（`--num-beams 3`）/ ≈20–30（默认 `--num-beams 1`），即 5 秒的句子约需 2–5 分钟；整集（约 180–230 句）预计 6–10 小时，建议 `nohup` 挂后台跑、按句缓存断点续跑（见 §六）；长篇管线**不要**用默认 3 束逐句等待；
 - 引擎/风格/样本任一变化都会改写时长，合成后**必须重跑草渲**让时间轴重算；
 - 超长句（>120 token）服务端内部自动分段；极端长句推理可达数分钟。客户端并发为 1（与服务端串行推理对齐，避免排队时间计入超时），HTTP 超时 600s；万一超时——重跑即续传，无需干预。
 

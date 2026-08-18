@@ -388,8 +388,8 @@ const TwoPaths: React.FC = () => {
   );
 };
 
-/** 1-G：三代演进时间轴 */
-const ThreeGens: React.FC = () => {
+/** 1-G：三代演进时间轴（v2：p1-25a 时 Gen3 卡片定格放大，卡片上「可改接口」小面板逐个亮起） */
+const ThreeGens: React.FC<{gen3At: number}> = ({gen3At}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const gens = [
@@ -397,6 +397,11 @@ const ThreeGens: React.FC = () => {
     {name: 'Gen 2 · 跨任务复用', icon: '📚', desc: '有记忆技能库 · 靠人配置', year: '2023', color: theme.harness},
     {name: 'Gen 3 · 运行时系统', icon: '🏢', desc: '工位本身自动升级', year: '2025', color: theme.exp},
   ];
+  // Gen3 定格放大 + 其余两卡让位
+  const zoom = interpolate(frame, [gen3At, gen3At + 18], [1, 1.14], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const othersDim = interpolate(frame, [gen3At, gen3At + 18], [1, 0.55], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  // Gen3 楼体上的「可改接口」面板
+  const panels = ['技能', '记忆', '工具', '流程'];
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <div style={{position: 'relative', width: 1500}}>
@@ -411,11 +416,20 @@ const ThreeGens: React.FC = () => {
             borderRadius: 3,
           }}
         />
-        <div style={{display: 'flex', gap: 60, marginTop: 90}}>
+        <div style={{display: 'flex', gap: 60, marginTop: 90, alignItems: 'flex-start'}}>
           {gens.map((g, i) => {
             const enter = spring({frame: frame - i * 16, fps, config: {damping: 200}});
+            const isGen3 = i === 2;
             return (
-              <div key={g.name} style={{flex: 1, opacity: enter}}>
+              <div
+                key={g.name}
+                style={{
+                  flex: 1,
+                  opacity: enter * (isGen3 ? 1 : othersDim),
+                  transform: isGen3 ? `scale(${zoom}) translateY(${interpolate(frame, [gen3At, gen3At + 18], [0, -8], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'})}px)` : undefined,
+                  transformOrigin: 'center top',
+                }}
+              >
                 <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
                   <div
                     style={{
@@ -428,7 +442,39 @@ const ThreeGens: React.FC = () => {
                   />
                   <span style={{fontFamily: theme.mono, fontSize: 24, color: theme.dim}}>{g.year}</span>
                 </div>
-                <div style={{marginTop: 24, fontSize: 84}}>{g.icon}</div>
+                <div style={{marginTop: 24, fontSize: 84, position: 'relative'}}>
+                  {g.icon}
+                  {/* Gen3 可改接口面板：p1-25a 逐个亮起（适应面自进化） */}
+                  {isGen3 &&
+                    panels.map((p, j) => {
+                      const on = interpolate(frame, [gen3At + 8 + j * 10, gen3At + 16 + j * 10], [0, 1], {
+                        extrapolateLeft: 'clamp',
+                        extrapolateRight: 'clamp',
+                      });
+                      return (
+                        <div
+                          key={p}
+                          style={{
+                            position: 'absolute',
+                            left: 66 + (j % 2) * 108,
+                            top: 20 + Math.floor(j / 2) * 40,
+                            padding: '4px 12px',
+                            borderRadius: 8,
+                            border: `2px solid ${theme.harness}`,
+                            background: '#0E1116',
+                            color: theme.harness,
+                            fontFamily: theme.sans,
+                            fontSize: 19,
+                            opacity: on,
+                            transform: `scale(${0.8 + 0.2 * on})`,
+                            boxShadow: `0 0 14px ${theme.harness}44`,
+                          }}
+                        >
+                          {p} ↻
+                        </div>
+                      );
+                    })}
+                </div>
                 <div style={{marginTop: 14, fontFamily: theme.sans, fontSize: 32, fontWeight: 700, color: g.color}}>
                   {g.name}
                 </div>
@@ -449,6 +495,14 @@ const ThreeGens: React.FC = () => {
 
 export const P1Anatomy: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (fromId: string, toId?: string) => beatWindow(scene.sentences, scene.from, fromId, toId);
+  const winG = w('p1-22', 'p1-26');
+  const at = (id: string) => {
+    const s = scene.sentences.find((x) => x.id === id);
+    if (!s) {
+      throw new Error(`P1Anatomy: 未找到句 id ${id}`);
+    }
+    return s.from - scene.from;
+  };
   return (
     <AbsoluteFill>
       <Sequence {...w('p1-01', 'p1-02')} name="1-A 四件套">
@@ -469,8 +523,8 @@ export const P1Anatomy: React.FC<{scene: SceneRange}> = ({scene}) => {
       <Sequence {...w('p1-19', 'p1-21')} name="1-F 快慢去路">
         <TwoPaths />
       </Sequence>
-      <Sequence {...w('p1-22', 'p1-26')} name="1-G 三代史">
-        <ThreeGens />
+      <Sequence {...winG} name="1-G 三代史">
+        <ThreeGens gen3At={at('p1-25a') - winG.from} />
       </Sequence>
       <Sequence {...w('p1-27', 'p1-28')} name="1-H 转场钩子">
         <FourDestinationsPreview />

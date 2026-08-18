@@ -312,6 +312,32 @@ Table 2 中本类归类（六系统 SICA/SIFT/STOP/DGM/Mendel/Huxley 均为）�
 
 Sources: [arXiv:2608.03392 HTML 全文](https://arxiv.org/html/2608.03392v1)；交叉核对 [gskill 官方博客（GEPA）](https://gepa-ai.github.io/gepa/blog/2026/02/18/automatically-learning-skills-for-coding-agents/)、[Socratic-SWE arXiv:2606.07412](https://arxiv.org/abs/2606.07412)（仅用于系统存在性核对，笔记内容以综述正文为准）。
 
+---
+
+## 2026-08 升级复核（第二遍全文重读校准）
+
+> **目的**：视频配音升级轮（v2→v3）前的全文重读，逐幕核对 narration 断言与原文的一致性，并沉淀本轮升级新增断言的锚点。重读方式：WebFetch 再次全文精读 §2.3 / §3.1 / §3.4 / §4 / §5 / §7（2026-08-17）。
+> **结论**：现有 narration v2 的全部论文断言与原文一致，无需事实修正；SICA 0.17→0.53 与 LiveCodeBench 0.65→0.71 数字锚点维持（原笔记 §3.1 已核）。**重要边界发现**：综述正文本身不含 SICA/DGM 的迭代次数、代数、档案规模等工程数字——首轮提取的「SWE-bench Verified 50 题随机子集」数字出自 SICA 原论文（arXiv:2504.15228）在综述 §3.1 的实例引用，本页复核未见正文展开；逐字稿不得新增任何「综述未展开」的工程数字。
+
+### 本轮新增断言锚点（v3 新句用）
+
+- 【§2.3 工作定义·逐字】"an agentic software engineering system that updates its behavior or internal components based on previous coding attempts and software-specific feedback"——v3 若在 P1 补定义句，以此为准。
+- 【§2.3 独特性句·逐字】"the distinctiveness of self-evolving coding agents lies in the nature of the software engineering loop in which evolution occurs"。
+- 【§4.1 三时机定义·逐字】Task-time "occurs while the agent is still solving the current coding task, such as when test failures, compiler errors, or tool failures" trigger immediate changes；Post-task "occurs after a task or trajectory has ended, when the agent abstracts the outcome into memory, skills, repository knowledge, or" repair experience；Stage-wise "occurs after a larger body of evidence has accumulated, such as a batch of verified trajectories, self-play tasks, repository" interactions, or validation results。
+- 【§4.2 三证据定义·逐字】Outcome "summarizes whether an attempted change improves observable software-engineering performance"（例 solve rates / test pass rates / verifier scores）；Environmental "produced during the agent's interaction with the software environment"（compiler diagnostics / runtime exceptions / failed test logs / tool responses）；Trajectory-derived "comes from the complete record of an agent's attempts rather than from a single score or observation"。
+- 【§4.2 时机×证据耦合规律（Table 2 结构观察）】Task-time 5 系统（Live-SWE-Agent、SEW、SEMAG、EvoMAC、AgentConductor）有 4 个属 Workflow 类；Model 类 7 系统全部 Stage-wise；Memory 类 6 系统全部 Post-task + Trajectory-derived——「改组织可当场改、改模型必须攒批、攒记忆靠复盘」的规律在 Table 2 肉眼可见（v3 P3 矩阵镜的落格动画据此强化）。
+- 【§5.2 指标维度·逐字】"pass rate, solve rate, resolve rate, repair rate, benchmark score, and Pass@k" + "cost, runtime, token usage, step counts, or retrieval overhead" + 泛化（held-out repositories, new benchmarks, different models/languages）。
+- 【§7 KEY QUOTE·逐字】"The central challenge for future work is therefore not merely to make coding agents evolve, but to make their evolution" trustworthy.（分页断行，语义完整即此句）。
+- 【收集规模】综述正文未给出收录论文总数；Table 2 分类约 30 个代表系统；论文集在 GitHub Awesome 仓库（正文原句 "The papers we collect can be found at" + repo URL）。
+
+### 本轮升级断言复核（v2 存量句抽查）
+
+- p1-16「软件工程自带六份免费体检报告」↔ §1 原文六信号清单（unit tests / compiler errors / runtime traces / lint warnings / CI results / human code reviews）✓（首段笔记【六种体检信号】锚点）。
+- p2-07「跑基准测试，分数涨了就留下」↔ §4.2 SICA 锚点 "selects improved versions of the agent using coding benchmark performance, cost, and runtime"——narration 简化为「分数涨」，Strictly 说还应含 cost/runtime；v3 在 2-B 数字角标镜补一句成本维（见 upgrade 文档 delta 表）。
+- p3-25「改流程的，基本当场改；改模型的，必须攒批；攒记忆的，全靠复盘」↔ Table 2 结构观察 ✓（本轮新增锚点）。
+- p4-16「可维护性、安全性、长期可靠性，现在还测得很弱」↔ §5 自评边界句 ✓。
+- p5-07「静态 AI 出错，错一单；会进化的 AI 学错，错一辈子」↔ §6 开题金句意译 ✓（"may not only affect one patch, but also be stored as memory..."）。
+
 
 ---
 
