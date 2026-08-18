@@ -331,8 +331,8 @@ const Matrix3x3: React.FC<{diagonalFrom: number}> = ({diagonalFrom}) => {
             <line
               x1={180 + 10 + 250 * 0.5}
               y1={70 + 10 + 170 * 0.5}
-              x2={180 + 10 + 250 * 2.5}
-              y2={70 + 10 + 170 * 2.5}
+              x2={180 + 10 + 2 * (250 + 10) + 250 * 0.5}
+              y2={70 + 10 + 2 * (170 + 10) + 170 * 0.5}
               stroke={theme.ok}
               strokeWidth={10}
               strokeLinecap="round"
