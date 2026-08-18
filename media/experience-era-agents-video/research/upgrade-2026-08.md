@@ -51,4 +51,4 @@ RISKY = 0，REWRITE = 0。✓
 
 - `build_narration.py` 重建通过（实测见执行日志）。
 - 未触碰句 text 字节稳定：build 前后公共 id（172 个）text 全等 ✓。
-- storyboard 引用 id ⊆ narration id 集 ✓（1-G 扩 ..26a；P6 重排为 6-B/6-B2/6-C/6-D/6-E/6-F/6-G）。
+- storyboard 引用 id ⊆ narration id 集 ✓（1-G 扩至 p1-26、新增句为 p1-25a；P6 重排为 6-B/6-B2/6-C/6-D/6-E/6-F/6-G）。

@@ -2,7 +2,7 @@
 
 > 基于 Che Jiang, Jincheng Zhong, Yu Fu, *et al.*, "Self-Improving Agents in the Era of Experience: A Survey of Self- to Meta-Evolution," *Frontis.AI / Tsinghua University*, Jun. 2026（88 页综述，无公开 arXiv 号）的动效图解式科普视频（B 站/YouTube，约 13.6 分钟）。
 > 形态：**本人音色克隆配音**（IndexTTS-2.5，passionate 激情风格）+ Remotion 代码动画，无真人出镜。
-> （v3 前为 edge-tts 预置音色，两种引擎 manifest 契约一致，可随时切回。）
+> （v2 前为 edge-tts 预置音色，两种引擎 manifest 契约一致，可随时切回。）
 > 与上一集《AI 如何自己变强？》（[../self-improving-agents-video/](../self-improving-agents-video/README.md)，Schmidhuber 团队综述）互补：上集讲「自我进化改什么」，本集讲「部署之后经验怎么攒」；片尾互相引用。
 
 ## 目录结构

@@ -987,9 +987,9 @@ const LivingMap: React.FC<{countAt: number; ringAt: number; insightAt: number}> 
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const bars = [
-    {label: '改大脑 θ', en: 'FM improvement', n: 77, color: theme.brain, deep: theme.brainDeep},
-    {label: '改装备 Σ', en: 'Scaffolding improvement', n: 176, color: theme.gear, deep: theme.gearDeep},
-    {label: '评测', en: 'Evaluation & Benchmarking', n: 59, color: theme.dim, deep: '#2A2F3A'},
+    {label: '改大脑 θ', en: 'FM improvement', n: 77, color: theme.brain},
+    {label: '改装备 Σ', en: 'Scaffolding improvement', n: 176, color: theme.gear},
+    {label: '评测', en: 'Evaluation & Benchmarking', n: 59, color: theme.dim},
   ];
   const total = 312;
   const grow = ci(frame, countAt, countAt + 42);
@@ -998,7 +998,6 @@ const LivingMap: React.FC<{countAt: number; ringAt: number; insightAt: number}> 
   const orangePulse = insight > 0 ? 0.85 + 0.15 * Math.sin(frame * 0.1) : 1;
   // 环形图几何（viewBox 360x360，中心 180,180，半径 110；蓝从顶部顺时针、橙紧随、灰收尾）
   const R = 110;
-  const C = 2 * Math.PI * R;
   const segs = [77 / total, 176 / total, 59 / total];
   const offsets = [0, segs[0], segs[0] + segs[1]];
   const enters = spring({frame, fps, config: {damping: 200}});
