@@ -51,13 +51,13 @@ media/<slug>-video/
 
 ## 三、公共脚本（单一事实源）
 
-| 脚本 | 用途 | 工程内等价调用 |
-|---|---|---|
-| [scripts/build_narration.py](./scripts/build_narration.py) | narration.md → narration.json + 时长估算 | `uv run --no-project scripts/build_narration.py` |
-| [scripts/tts.py](./scripts/tts.py) | 逐句配音合成 + 时长 manifest（幂等，双引擎：edge 预置音色 / indextts 声音克隆，风格含 passionate 激情 / lively 轻快等） | `uv run --no-project --with edge-tts --with mutagen scripts/tts.py`（克隆模式免 edge-tts，见 [VOICE-CLONING.md](./VOICE-CLONING.md)） |
-| [scripts/tts_server.py](./scripts/tts_server.py) | IndexTTS 推理服务（声音克隆后端，**运行于 index-tts 环境**，非本仓） | 在 `~/tools/index-tts` 内启动，见 [VOICE-CLONING.md §二](./VOICE-CLONING.md) |
-| [scripts/prepare_ref.py](./scripts/prepare_ref.py) | 参考音色样本裁剪/规范化（长录音 → 5–15s 干净 WAV） | 无工程薄包装（与具体工程无关），从仓库根调用：`uv run --no-project --with soundfile --with numpy media/pipeline/scripts/prepare_ref.py <源音频>` |
-| [scripts/qa_frames.py](./scripts/qa_frames.py) | 按句 id 抽帧视觉 QA | `uv run --no-project scripts/qa_frames.py out/draft.mp4 --scene P2` |
+| 脚本                                                       | 用途                                                                                                                    | 工程内等价调用                                                                                                                                   |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [scripts/build_narration.py](./scripts/build_narration.py) | narration.md → narration.json + 时长估算                                                                                | `uv run --no-project scripts/build_narration.py`                                                                                                 |
+| [scripts/tts.py](./scripts/tts.py)                         | 逐句配音合成 + 时长 manifest（幂等，双引擎：edge 预置音色 / indextts 声音克隆，风格含 passionate 激情 / lively 轻快等） | `uv run --no-project --with edge-tts --with mutagen scripts/tts.py`（克隆模式免 edge-tts，见 [VOICE-CLONING.md](./VOICE-CLONING.md)）            |
+| [scripts/tts_server.py](./scripts/tts_server.py)           | IndexTTS 推理服务（声音克隆后端，**运行于 index-tts 环境**，非本仓）                                                    | 在 `~/tools/index-tts` 内启动，见 [VOICE-CLONING.md §二](./VOICE-CLONING.md)                                                                     |
+| [scripts/prepare_ref.py](./scripts/prepare_ref.py)         | 参考音色样本裁剪/规范化（长录音 → 5–15s 干净 WAV）                                                                      | 无工程薄包装（与具体工程无关），从仓库根调用：`uv run --no-project --with soundfile --with numpy media/pipeline/scripts/prepare_ref.py <源音频>` |
+| [scripts/qa_frames.py](./scripts/qa_frames.py)             | 按句 id 抽帧视觉 QA                                                                                                     | `uv run --no-project scripts/qa_frames.py out/draft.mp4 --scene P2`                                                                              |
 
 中心脚本以 `--project <工程根>` 参数化；工程内 `scripts/*.py` 为薄包装（透传参数、保持原 CLI）。改造/迭代只改 `media/pipeline/scripts/`，验证门 = 受影响工程的 `narration.json` / `manifest.json` 字节级不变。
 
@@ -88,14 +88,14 @@ media/<slug>-video/
 4. `cd video && pnpm install --ignore-workspace`（必须显式忽略根 workspace；`onlyBuiltDependencies: [esbuild]` 已在 package.json）；装完检查根 lockfile 零变更。
 5. 按 [skills/](./skills/) 01→05 顺序走内容层，再进生产层。
 
-## 七、两种工程模式
+## 七、工程模式
 
-| | Remotion 工程模式 | 轻量制作包模式 |
-|---|---|---|
-| 载体 | `media/<slug>-video/video/`（Remotion + React） | `video-package/`（单文件 Canvas HTML） |
-| 动画 | 全代码动画，可编程复渲 | 浏览器手动录屏 |
-| 配音 | edge-tts + manifest 自动对轨 | 人工录音/剪辑对齐 |
-| 适用 | 中长视频、多轮迭代、可复现 | 快速产出、低工程成本 |
+|      | ✅ Remotion 工程模式                                               | ❌ 轻量制作包模式                                            |
+| ---- | ----------------------------------------------------------------- | ----------------------------------------------------------- |
+| 载体 | `media/<slug>-video/video/`（Remotion + React）                   | `video-package/`（单文件 Canvas HTML）                      |
+| 动画 | 全代码动画，可编程复渲                                            | 浏览器手动录屏                                              |
+| 配音 | edge-tts + manifest 自动对轨                                      | 人工录音/剪辑对齐                                           |
+| 适用 | 中长视频、多轮迭代、可复现                                        | 快速产出、低工程成本                                        |
 | 范例 | [《AI 如何自己变强？》](../self-improving-agents-video/README.md) | [《当 AI 开始给自己当老师》](../../video-package/README.md) |
 
 ## 八、许可注意
