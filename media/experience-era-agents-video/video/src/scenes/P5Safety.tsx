@@ -322,6 +322,122 @@ const FeedbackHack: React.FC = () => {
   );
 };
 
+
+/** 5-D2：对齐漂移（v3 新增，§9.2.3 + §9.2.5）——p5-21a 工具链组合攻击：
+ *  连接器/协议/工作流各件单独✓、拼线连出意外路径；p5-21b 四招汇入
+ *  「对齐漂移」罗盘，系统轮廓从实线渐虚（一步步偏出当初那套规矩）。 */
+const DriftLens: React.FC = () => {
+  const frame = useCurrentFrame();
+  const chain = ['连接器', '协议', '工作流'];
+  const chainIn = interpolate(frame, [4, 22], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const pathIn = interpolate(frame, [26, 44], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const compass = interpolate(frame, [52, 72], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const fade = interpolate(frame, [76, 104], [1, 0.35], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const stage2 = frame > 48;
+  return (
+    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
+      {!stage2 ? (
+        <div style={{display: 'flex', alignItems: 'center', gap: 26, opacity: chainIn}}>
+          {chain.map((c, i) => (
+            <React.Fragment key={c}>
+              {i > 0 ? (
+                <svg width={70} height={30}>
+                  <line
+                    x1={6}
+                    y1={15}
+                    x2={6 + 58 * (pathIn > i / chain.length ? 1 : 0)}
+                    y2={15}
+                    stroke={theme.danger}
+                    strokeWidth={3}
+                  />
+                </svg>
+              ) : null}
+              <div
+                style={{
+                  padding: '14px 22px',
+                  borderRadius: 12,
+                  background: theme.panel,
+                  border: `2px solid ${theme.ok}`,
+                  fontFamily: theme.sans,
+                  fontSize: 24,
+                  color: theme.text,
+                }}
+              >
+                {c} ✓
+              </div>
+            </React.Fragment>
+          ))}
+          <svg width={80} height={30}>
+            <line x1={6} y1={15} x2={6 + 68 * pathIn} y2={15} stroke={theme.danger} strokeWidth={4} />
+            {pathIn > 0.95 ? <polygon points="74,15 62,8 62,22" fill={theme.danger} /> : null}
+          </svg>
+          <div
+            style={{
+              padding: '14px 20px',
+              borderRadius: 12,
+              background: '#1c1114',
+              border: `2px solid ${theme.danger}`,
+              fontFamily: theme.sans,
+              fontSize: 23,
+              color: theme.danger,
+              opacity: pathIn,
+            }}
+          >
+            没人预期的路径
+          </div>
+        </div>
+      ) : (
+        <div style={{display: 'flex', alignItems: 'center', gap: 70, opacity: compass}}>
+          {/* 四类攻击汇入罗盘 */}
+          {['技能投毒', '记忆投毒', '工具链', '反馈操纵'].map((t, i) => (
+            <div
+              key={t}
+              style={{
+                padding: '10px 18px',
+                borderRadius: 999,
+                border: `2px solid ${theme.danger}`,
+                color: theme.danger,
+                fontFamily: theme.sans,
+                fontSize: 21,
+                opacity: interpolate(frame, [52 + i * 5, 62 + i * 5], [0, 1], {
+                  extrapolateLeft: 'clamp',
+                  extrapolateRight: 'clamp',
+                }),
+              }}
+            >
+              {t}
+            </div>
+          ))}
+          {/* 罗盘 + 渐虚轮廓 */}
+          <svg width={300} height={300}>
+            <circle
+              cx={150}
+              cy={150}
+              r={120}
+              fill="none"
+              stroke={theme.exp}
+              strokeWidth={3}
+              strokeDasharray={frame > 76 ? `${14 * fade + 2} ${10}` : '0'}
+              opacity={fade}
+            />
+            <circle cx={150} cy={150} r={86} fill="none" stroke={theme.panelBorder} strokeWidth={2} />
+            <text x={150} y={144} textAnchor="middle" fill={theme.text} fontSize={30} fontFamily={theme.serif} fontWeight={700}>
+              对齐漂移
+            </text>
+            <text x={150} y={176} textAnchor="middle" fill={theme.dim} fontSize={17} fontFamily={theme.mono}>
+              alignment drift
+            </text>
+            {Array.from({length: 4}).map((_, i) => {
+              const a = (i * Math.PI) / 2 + Math.PI / 4 + frame * 0.012;
+              return <circle key={i} cx={150 + 120 * Math.cos(a)} cy={150 + 120 * Math.sin(a)} r={5} fill={theme.danger} />;
+            })}
+          </svg>
+        </div>
+      )}
+    </AbsoluteFill>
+  );
+};
+
 /** 5-E：四味药 */
 const FourRemedies: React.FC = () => {
   const frame = useCurrentFrame();
@@ -430,6 +546,9 @@ export const P5Safety: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
       <Sequence {...w('p5-19', 'p5-21')} name="5-D 反馈操纵">
         <FeedbackHack />
+      </Sequence>
+      <Sequence {...w('p5-21a', 'p5-21b')} name="5-D2 对齐漂移">
+        <DriftLens />
       </Sequence>
       <Sequence {...w('p5-22', 'p5-26')} name="5-E 四味药">
         <FourRemedies />
