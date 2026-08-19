@@ -222,7 +222,8 @@ def main() -> None:
     parser.add_argument(
         "--all-styles",
         action="store_true",
-        help="逐档合成全部风格预设做 A/B（与 --emo-vector/--emo-alpha/--duration-factor 互斥）",
+        help="逐档合成全部风格预设做 A/B（各档取自带的 alpha/语速/束宽，"
+        "故与 --emo-vector/--emo-alpha/--duration-factor/--num-beams 互斥）",
     )
     parser.add_argument(
         "--emo-vector",
@@ -252,8 +253,10 @@ def main() -> None:
         default=None,
         type=int,
         choices=[1, 2, 3, 4, 5],
-        help="GPT 束搜索宽度（缺省随风格：多数预设 1、sunny-steady 3）；越大韵律越稳但耗时"
-        "约按束宽线性放大，见 " + MANUAL + " §4.3b",
+        help="GPT 束搜索宽度（缺省随风格：多数预设 1、sunny-steady 3；显式给值压过预设，"
+        "但与 --all-styles 互斥）；越大韵律越稳但耗时约按束宽线性放大，见 "
+        + MANUAL
+        + " §4.3b",
     )
     parser.add_argument("--server", default="http://127.0.0.1:8766", help="服务地址")
     parser.add_argument(
@@ -297,21 +300,25 @@ def main() -> None:
             parser.error(f"情感参考音频不存在: {p}")
         args.emo_ref = str(p)  # 绝对路径：服务端按自身文件系统解析
     if args.all_styles:
+        # 束宽同为「预设自带、A/B 要如实呈现」的一项：统一压成 1 会让 sunny 与 sunny-steady
+        # 产出完全相同的音频（两档只差束宽），A/B 失去意义，故与 alpha/语速同口径拒绝
         overrides = [
             flag
             for flag, val in {
                 "--emo-vector": args.emo_vector,
                 "--emo-alpha": args.emo_alpha,
                 "--duration-factor": args.duration_factor,
+                "--num-beams": args.num_beams,
             }.items()
             if val is not None
         ]
         if overrides:
             parser.error(
-                f"--all-styles 会逐档取各预设自带的 alpha/语速，不能与 {' '.join(overrides)} 同用"
+                f"--all-styles 会逐档取各预设自带的 alpha/语速/束宽，不能与 {' '.join(overrides)} 同用"
             )
-    if args.style != "neutral" and args.emo_vector:
-        parser.error("--style 非默认值与 --emo-vector 互斥")
+    # 与 tts.py 同口径：风格本身即一条情感通路，故与 --emo-vector/--emo-ref/--emo-text 互斥
+    if args.style != "neutral" and emo_sources:
+        parser.error(f"--style 非默认值与 {emo_sources[0]} 互斥")
     if args.emo_alpha is not None and not 0.0 <= args.emo_alpha <= 1.0:
         parser.error("--emo-alpha 必须在 [0, 1]")
     if args.duration_factor is not None and not 0.5 <= args.duration_factor <= 2.0:
@@ -403,16 +410,23 @@ def main() -> None:
     print(f"\n完成 {len(results)} 档，总墙钟 {total_wall / 60:.1f} 分钟")
     if args.play:
         play(results)
-    if (
-        len(results) == 1 and results[0]["style"] == "raw"
-    ):  # 手动向量：回显向量而非不存在的 --style raw
+    # raw / emoref / emotext 都是本脚本内部的档名，并非 tts.py `--style` 的合法取值
+    #（其 choices=list(STYLE_PRESETS)），故须回显各自的开关，否则这条命令照抄即 argparse 报错
+    if len(results) == 1 and results[0]["style"] == "raw":
         chosen = f'--emo-vector "{args.emo_vector}"'
-        if args.emo_alpha is not None:
-            chosen += f" --emo-alpha {args.emo_alpha:g}"
-        if args.duration_factor is not None:
-            chosen += f" --duration-factor {args.duration_factor:g}"
+    elif args.emo_ref:
+        chosen = f"--emo-ref {args.emo_ref}"
+    elif args.emo_text:
+        chosen = f'--emo-text "{args.emo_text}"'
     else:
         chosen = f"--style {results[0]['style'] if len(results) == 1 else '<选定风格>'}"
+    for flag, val in (  # 显式给的覆盖值一并带上，否则全量合成会悄悄退回预设值
+        ("--emo-alpha", args.emo_alpha),
+        ("--duration-factor", args.duration_factor),
+        ("--num-beams", args.num_beams),
+    ):
+        if val is not None:
+            chosen += f" {flag} {val:g}"
     print(
         f"\n下一步 · 选定风格后全量合成一集：\n"
         f"  cd media/<工程> && uv run --no-project --with mutagen scripts/tts.py \\\n"

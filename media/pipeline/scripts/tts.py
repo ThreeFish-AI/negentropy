@@ -603,6 +603,13 @@ async def main() -> None:
         return
 
     if args.engine == "edge":
+        # --plan 语义是「只看不跑」，而 edge 无束宽/无估时口径。若沿用「提示后照跑」的处理，
+        # 漏写 --engine indextts 时会静默全量合成，把整集克隆音频改写成 edge 预置音色
+        #（两引擎摘要必然不同，且 {id}.mp3 单槽位），故此处硬失败而非忽略。
+        if args.plan:
+            parser.error(
+                "--plan 仅对 --engine indextts 生效（是否漏写 --engine indextts？）"
+            )
         ignored = [
             flag
             for flag, val in {
@@ -613,6 +620,8 @@ async def main() -> None:
                 "--emo-alpha": args.emo_alpha,
                 "--duration-factor": args.duration_factor,
                 "--num-beams": args.num_beams is not None,
+                "--steady": args.steady,
+                "--steady-beams": args.steady_beams != 3,
                 "--server": args.server != "http://127.0.0.1:8766",
                 "--style": args.style != "neutral",
                 "--lang": args.lang != "ZH",
