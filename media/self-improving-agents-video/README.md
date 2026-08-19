@@ -25,10 +25,9 @@
 # 1. 改稿后重建逐句 JSON
 uv run --no-project scripts/build_narration.py
 
-# 2. 合成配音（本人音色克隆，增量幂等；需先启动 IndexTTS 服务，见 ../pipeline/VOICE-CLONING.md）
-uv run --no-project --with mutagen scripts/tts.py --engine indextts \
-    --ref <仓库绝对路径>/media/pipeline/voices/me-1.wav --style passionate
-#    （声音样本不入库：me-1.wav 需从本人录音经 prepare_ref.py 裁剪生成；整集约数小时，断点续跑）
+# 2. 合成配音（本人音色克隆，增量幂等；参数读自本集 pipeline.toml（复现已上线音频的档：passionate + me-1.wav）；
+#    需先启动 IndexTTS 服务，见 ../pipeline/VOICE-CLONING.md）
+uv run --no-project media/pipeline/scripts/pipeline.py --project . tts
 
 # 3. 预览
 cd video && pnpm install --ignore-workspace && pnpm dev

@@ -14,6 +14,7 @@
 | `script/narration.md` | 逐字稿（唯一维护处），`- [句id] 文本` 一句一行 |
 | `script/narration.json` | 派生物：拆句结果，供 TTS 与字幕消费（勿手改） |
 | `script/storyboard.md` | 分镜表：镜号 ↔ 句 id 区间 ↔ 画面动效（场景组件实现规格） |
+| `pipeline.toml` | 本集管线配置（配音/渲染/时长预算）——`pipeline.py` 的参数源 |
 | `scripts/*.py` | 薄包装 → 公共管线 [media/pipeline/scripts/](../pipeline/scripts/)（`--project` 透传） |
 | `video/` | Remotion 工程（独立 pnpm 项目，`ignore-workspace` 与主仓隔离） |
 | `out/` | 渲染产物（gitignored） |
@@ -24,10 +25,9 @@
 # 1. 改稿后重建逐句 JSON
 uv run --no-project scripts/build_narration.py
 
-# 2. 合成配音（本人音色克隆，增量幂等；需先启动 IndexTTS 服务，见 ../pipeline/VOICE-CLONING.md）
-uv run --no-project --with mutagen scripts/tts.py --engine indextts \
-    --ref <仓库绝对路径>/media/pipeline/voices/me-1.wav --style passionate
-#    （声音样本不入库：me-1.wav 需从本人录音经 prepare_ref.py 裁剪生成；整集约数小时，断点续跑）
+# 2. 合成配音（本人音色克隆，增量幂等；参数读自本集 pipeline.toml——成片档 sunny-steady，草稿遍加 --style sunny；
+#    需先启动 IndexTTS 服务，见 ../pipeline/VOICE-CLONING.md）
+uv run --no-project media/pipeline/scripts/pipeline.py --project . tts
 
 # 3. 预览
 cd video && pnpm install --ignore-workspace && pnpm dev
