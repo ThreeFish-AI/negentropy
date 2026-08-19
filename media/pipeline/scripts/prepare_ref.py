@@ -28,7 +28,8 @@ def main() -> int:
         description="裁剪/规范化参考音色样本 → 16-bit 单声道 WAV"
     )
     parser.add_argument(
-        "source", help="源音频文件（mp3/wav/flac 等 soundfile 可读格式；m4a 需先 ffmpeg 转 wav）"
+        "source",
+        help="源音频文件（mp3/wav/flac 等 soundfile 可读格式；m4a 需先 ffmpeg 转 wav）",
     )
     parser.add_argument(
         "--start", type=float, default=0.0, help="裁剪起点（秒，默认 0）"

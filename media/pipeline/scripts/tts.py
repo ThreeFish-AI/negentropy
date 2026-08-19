@@ -68,7 +68,7 @@ EMO_KEYS = [
 # 风格预设 —— 数值为初值，可实测试听后微调。
 # 可选键 "beams"：预设自带的束搜索宽度（缺省 1）。束宽会改变韵律稳定度，属风格的一部分，
 # 故允许写进预设；命令行 --num-beams 显式给值时优先。注意束宽 3 使整集墙钟约 ×3.4
-#（长跑折算 RTF 13→45），若只想让关键句更稳，用 --steady 混合档而非整集升档。
+# （长跑折算 RTF 13→45），若只想让关键句更稳，用 --steady 混合档而非整集升档。
 STYLE_PRESETS: dict[str, dict] = {
     "neutral": {"label": "中性", "vec": None, "alpha": 1.0, "df": 1.0},
     "passionate": {
@@ -660,7 +660,7 @@ async def main() -> None:
     if args.engine == "edge":
         # --plan 语义是「只看不跑」，而 edge 无束宽/无估时口径。若沿用「提示后照跑」的处理，
         # 漏写 --engine indextts 时会静默全量合成，把整集克隆音频改写成 edge 预置音色
-        #（两引擎摘要必然不同，且 {id}.mp3 单槽位），故此处硬失败而非忽略。
+        # （两引擎摘要必然不同，且 {id}.mp3 单槽位），故此处硬失败而非忽略。
         if args.plan:
             parser.error(
                 "--plan 仅对 --engine indextts 生效（是否漏写 --engine indextts？）"
@@ -868,9 +868,7 @@ async def main() -> None:
                 raise RuntimeError(f"health.ok=false: {health}")
         except Exception as e:  # noqa: BLE001 - 服务未启动给出可操作指引
             print(
-                f"IndexTTS 服务不可用（{e}）。请先启动：\n"
-                f"{server_launch_hint()}\n"
-                f"详见 {MANUAL} §二",
+                f"IndexTTS 服务不可用（{e}）。请先启动：\n{server_launch_hint()}\n详见 {MANUAL} §二",
                 file=sys.stderr,
             )
             sys.exit(1)

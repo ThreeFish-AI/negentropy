@@ -94,9 +94,7 @@ def check_server(
             raise RuntimeError(f"health.ok=false: {health}")
     except Exception as e:  # noqa: BLE001 - 任何不可达都归一为可操作指引
         sys.exit(
-            f"IndexTTS 服务不可用（{e}）。请先启动：\n"
-            f"{server_launch_hint()}\n"
-            f"详见 {MANUAL} §2.3"
+            f"IndexTTS 服务不可用（{e}）。请先启动：\n{server_launch_hint()}\n详见 {MANUAL} §2.3"
         )
     print(
         f">> 服务就绪：IndexTTS-{health.get('version')} device={health.get('device')} "
@@ -153,8 +151,7 @@ def synthesize_one(
         wall = time.perf_counter() - t0
         if fmt != "mp3":
             sys.exit(
-                f"[{name}] 服务端 MP3 编码器不可用（X-Audio-Format={fmt}）—— "
-                f"按 {MANUAL} §七 带 --with lameenc 重启服务"
+                f"[{name}] 服务端 MP3 编码器不可用（X-Audio-Format={fmt}）—— 按 {MANUAL} §七 带 --with lameenc 重启服务"
             )
         if not audio:
             last_err = RuntimeError("空音频响应")
@@ -349,7 +346,7 @@ def main() -> None:
         jobs = build_jobs(args)
     except ValueError as e:  # parse_emo_vector 的键名/权重错误
         parser.error(str(e))
-    for name, vec, alpha, df, _beams in jobs:
+    for name, vec, alpha, _df, _beams in jobs:
         if (
             vec is not None and sum(vec) * alpha > 0.8
         ):  # 与服务端同口径：alpha 缩放后校验有效和
@@ -418,7 +415,7 @@ def main() -> None:
     if args.play:
         play(results)
     # raw / emoref / emotext 都是本脚本内部的档名，并非 tts.py `--style` 的合法取值
-    #（其 choices=list(STYLE_PRESETS)），故须回显各自的开关，否则这条命令照抄即 argparse 报错
+    # （其 choices=list(STYLE_PRESETS)），故须回显各自的开关，否则这条命令照抄即 argparse 报错
     if len(results) == 1 and results[0]["style"] == "raw":
         chosen = f'--emo-vector "{args.emo_vector}"'
     elif args.emo_ref:

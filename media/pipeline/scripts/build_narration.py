@@ -47,8 +47,7 @@ def main() -> None:
                 # 幕名为空时下一条校验会报出「与所在幕  不一致」这种令人困惑的信息，
                 # 故先明确指出真正的原因：首句之前缺 `## Pn` 标题。
                 sys.exit(
-                    f"{src}:{lineno} 句 {sid} 出现在任何 `## Pn` 分幕标题之前 —— "
-                    f"每句必须归属于某一幕，见 {FORMAT_DOC}"
+                    f"{src}:{lineno} 句 {sid} 出现在任何 `## Pn` 分幕标题之前 —— 每句必须归属于某一幕，见 {FORMAT_DOC}"
                 )
             if sid in seen:
                 sys.exit(f"{src}:{lineno} 重复句 id: {sid}")

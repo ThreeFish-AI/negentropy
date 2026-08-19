@@ -68,8 +68,7 @@ def cmd_verify(refs: dict, args: argparse.Namespace) -> int:
         wav = VOICES_DIR / f"{name}.wav"
         if not wav.is_file():
             print(
-                f"⚠️  {name}: 盘上缺失（{wav}）——音频不入库属预期；"
-                f"需要时用 rebuild 重建后复验"
+                f"⚠️  {name}: 盘上缺失（{wav}）——音频不入库属预期；需要时用 rebuild 重建后复验"
             )
             continue
         sha1, sha256 = digest(wav)
@@ -97,8 +96,7 @@ def cmd_rebuild(refs: dict, args: argparse.Namespace) -> int:
     source = Path(r["source"]).expanduser()
     if not source.is_file():
         sys.exit(
-            f"源录音不存在: {source}\n  清单记录的是生成该样本时的源文件路径，"
-            f"请把本人录音放回该位置或更新清单"
+            f"源录音不存在: {source}\n  清单记录的是生成该样本时的源文件路径，请把本人录音放回该位置或更新清单"
         )
     cmd = [
         sys.executable,

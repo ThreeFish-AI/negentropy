@@ -46,6 +46,18 @@ repos:
         files: ^apps/negentropy/
         types_or: [python, pyi]
 
+      # ── Python: media/pipeline（科普视频公共管线） ─────────────────────────
+      # 与 negentropy 同一 ruff 修订版；此前仅覆盖 apps/negentropy/，管线脚本无 lint 门
+      - id: ruff
+        name: ruff lint (media-pipeline)
+        args: [--fix, --exit-non-zero-on-fix]
+        files: ^media/pipeline/
+        types_or: [python, pyi]
+      - id: ruff-format
+        name: ruff format (media-pipeline)
+        files: ^media/pipeline/
+        types_or: [python, pyi]
+
   # ── Node.js: apps/negentropy-ui ──────────────────────────────────────────
   # ESLint v9 flat config（eslint.config.mjs），零警告策略（--max-warnings=0）
   - repo: local

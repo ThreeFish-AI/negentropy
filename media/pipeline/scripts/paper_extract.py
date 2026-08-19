@@ -29,9 +29,7 @@ from pathlib import Path
 try:
     import pymupdf
 except ImportError:  # pragma: no cover - 依赖缺失时给可操作提示
-    sys.exit(
-        "缺少 pymupdf —— 请以 `uv run --no-project --with pymupdf` 方式调用本脚本"
-    )
+    sys.exit("缺少 pymupdf —— 请以 `uv run --no-project --with pymupdf` 方式调用本脚本")
 
 # § 标题行：编号 + 标题正文。要求标题以大写字母开头，排除正文里的「1. 」列表项
 SECTION_RE = re.compile(r"^\s*(\d+(?:\.\d+)*)\.?\s+([A-Z][^\n]{3,80})$", re.M)
@@ -71,7 +69,10 @@ def cmd_map(doc: pymupdf.Document, args: argparse.Namespace) -> None:
     for i, page in enumerate(doc):
         hits = SECTION_RE.findall(page.get_text("text"))
         if hits:
-            joined = " · ".join(f"{num} {title.strip()[:60]}" for num, title in hits[: args.max_per_page])
+            joined = " · ".join(
+                f"{num} {title.strip()[:60]}"
+                for num, title in hits[: args.max_per_page]
+            )
             print(f"p{i + 1:>3}  {joined}")
 
 
@@ -112,7 +113,10 @@ def cmd_find(doc: pymupdf.Document, args: argparse.Namespace) -> None:
     for i, page in enumerate(doc):
         for rect in page.search_for(args.query):
             clip = pymupdf.Rect(
-                rect.x0 - args.context, rect.y0 - 40, rect.x1 + args.context, rect.y1 + 80
+                rect.x0 - args.context,
+                rect.y0 - 40,
+                rect.x1 + args.context,
+                rect.y1 + 80,
             )
             block = " ".join(page.get_text("text", clip=clip, sort=True).split())
             print(f"p{i + 1:>3}  {block[: args.chars]}")
@@ -148,23 +152,33 @@ def main() -> None:
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     p = sub.add_parser("map", help="§ 编号 → 页码映射")
-    p.add_argument("--max-per-page", type=int, default=4, help="每页最多列出几个标题（默认 4）")
+    p.add_argument(
+        "--max-per-page", type=int, default=4, help="每页最多列出几个标题（默认 4）"
+    )
     p.set_defaults(func=cmd_map)
 
     p = sub.add_parser("text", help="按页范围取正文（默认双栏分列）")
     p.add_argument("--pages", required=True, help="页码，如 12-24 或 1,7,8")
-    p.add_argument("--columns", type=int, default=2, help="分栏数，单栏排版传 1（默认 2）")
+    p.add_argument(
+        "--columns", type=int, default=2, help="分栏数，单栏排版传 1（默认 2）"
+    )
     p.set_defaults(func=cmd_text)
 
     p = sub.add_parser("captions", help="图表 caption 收割")
-    p.add_argument("--chars", type=int, default=300, help="每条 caption 截断长度（默认 300）")
+    p.add_argument(
+        "--chars", type=int, default=300, help="每条 caption 截断长度（默认 300）"
+    )
     p.set_defaults(func=cmd_captions)
 
     p = sub.add_parser("find", help="定点搜索并返回上下文（未命中时退出码 1）")
     p.add_argument("query", help="要检索的原文措辞")
     p.add_argument("--context", type=int, default=280, help="左右扩展像素（默认 280）")
-    p.add_argument("--chars", type=int, default=400, help="每条上下文截断长度（默认 400）")
-    p.add_argument("--limit", type=int, default=6, help="最多返回几条，0 = 不限（默认 6）")
+    p.add_argument(
+        "--chars", type=int, default=400, help="每条上下文截断长度（默认 400）"
+    )
+    p.add_argument(
+        "--limit", type=int, default=6, help="最多返回几条，0 = 不限（默认 6）"
+    )
     p.set_defaults(func=cmd_find)
 
     p = sub.add_parser("render", help="指定页光栅化为 PNG（看图，无需 poppler）")

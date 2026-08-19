@@ -166,7 +166,7 @@ def main() -> int:
         - 20.0 * np.maximum(0, sil - 0.22)
         - 15.0 * np.maximum(0, 0.45 - voiced)
     )
-    for r, s in zip(rows, score):
+    for r, s in zip(rows, score, strict=True):
         r["score"] = float(s)
 
     print(
