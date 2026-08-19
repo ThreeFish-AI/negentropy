@@ -9,7 +9,7 @@
 2. [一次性部署（index-tts + 模型）](#二一次性部署index-tts--模型)
 3. [参考音色样本](#三参考音色样本)
 4. [风格与参数](#四风格与参数)
-5. [逐集使用](#五逐集使用)
+5. [小样试听与逐集合成](#五小样试听与逐集合成)
 6. [缓存与幂等](#六缓存与幂等)
 7. [故障排查](#七故障排查)
 8. [许可与合规](#八许可与合规)
@@ -17,7 +17,7 @@
 
 ## 一、总览与架构
 
-**能力**：用一段 5–15 秒的本人录音作为参考音色，零样本（zero-shot）克隆出本人音色，逐句合成整集配音；并通过情感向量注入轻快、自信、正能量等风格。
+**能力**：用一段 5–15 秒的本人录音作为参考音色，零样本（zero-shot）克隆出本人音色，逐句合成整集配音；并通过情感向量注入轻快、自信、正能量等风格。整集要跑数小时，故**定稿前先用单句小样试听择优**（§5.1），再全量合成（§5.2）。
 
 **架构**（管线脚本轻依赖 与 重型推理环境 完全解耦）：
 
@@ -25,6 +25,7 @@
 flowchart LR
     subgraph 管线侧["本仓 media/pipeline（轻依赖）"]
         A["tts.py<br/>--engine indextts"] -->|"HTTP 127.0.0.1:8766<br/>逐句 POST /synthesize"| B
+        S["tts_sample.py<br/>单句小样试听"] -.->|"单次 POST /synthesize"| B
     end
     subgraph 推理侧["~/tools/index-tts（重依赖：torch/indextts）"]
         B["tts_server.py<br/>FastAPI + IndexTTS-2.5"] --> C["模型常驻内存<br/>MPS 串行推理"]
@@ -33,6 +34,7 @@ flowchart LR
     end
     B -->|"MP3 bytes<br/>X-Audio-Format 头"| A
     A --> F["{id}.mp3 + manifest.json<br/>Remotion 时间轴自动重算"]
+    S -.-> G[".temp/voice-samples/{风格}.mp3<br/>afplay 试听择优"]
 ```
 
 **契约不变**：无论哪个引擎，输出仍是 `<工程>/video/public/audio/{id}.mp3` 与 `manifest.json`（`durationSec` 为实测时长），下游（Remotion 场景、字幕、抽帧 QA）零改动。
@@ -106,13 +108,33 @@ uv run --frozen --with fastapi --with uvicorn --with soundfile --with numpy --wi
 ### 3.2 长录音裁剪（prepare_ref.py）
 
 ```bash
-# 从长录音截取 [8s, 22s) 共 14s，归一化峰值、转 16-bit 单声道 WAV，输出到 voices/
+# 从长录音截取 [180s, 192s) 共 12s，归一化峰值、转 16-bit 单声道 WAV，输出到 voices/
 uv run --no-project --with soundfile --with numpy \
-    media/pipeline/scripts/prepare_ref.py ~/Documents/dify/me-1.mp3 --start 8 --duration 14
-# → media/pipeline/voices/me-1.wav
+    media/pipeline/scripts/prepare_ref.py ~/Documents/dify/me-1.mp3 --start 180 --duration 12
+# → media/pipeline/voices/me-1.wav（此段即已上线三集成片所用样本，sha1 3ed0d9d60d4b）
 ```
 
-裁剪段须试听确认：该段人声干净、无背景音乐、语句完整。样本 SHA1 参与缓存摘要（见 §六），替换样本自动失效缓存。
+裁剪段须试听确认（`afplay media/pipeline/voices/me-1.wav`）：该段人声干净、无背景音乐、语句完整。样本 SHA1 参与缓存摘要（见 §六），替换样本自动失效缓存。
+
+**选段辅助**——长录音里挑哪一段？按滑窗扫响度与停顿，先筛出候选起点再逐个试听：
+
+```bash
+uv run --no-project --with soundfile --with numpy python - <<'PY'
+import numpy as np, soundfile as sf
+x, sr = sf.read("/Users/<你>/Documents/dify/me-1.mp3", dtype="float32", always_2d=True)
+x, W, rows = x.mean(axis=1), 12, []   # W = 目标样本时长（秒）
+for s in range(0, int(len(x) / sr) - W + 1):
+    seg = x[s * sr : (s + W) * sr]
+    frames = seg[: len(seg) // (sr // 50) * (sr // 50)].reshape(-1, sr // 50)  # 20ms 帧
+    rms = float(np.sqrt(np.mean(seg**2)))
+    sil = float(np.mean(np.sqrt(np.mean(frames**2, axis=1)) < 0.1 * rms))      # 静音占比
+    rows.append((rms, s, sil))
+for rms, s, sil in sorted(rows, reverse=True)[:8]:
+    print(f"--start {s:<4d} rms={rms:.4f} 静音占比={sil:.2f}")
+PY
+```
+
+响度高只代表「不太小声」，**不代表段落好**（成片所用的 180s 段在 253 个候选窗口中 RMS 仅排 67）；真正的判据是人声干净、单说话人、语句完整、语速语调贴近目标成片——只能靠试听定夺。
 
 ## 四、风格与参数
 
@@ -140,28 +162,108 @@ GPT 声码段的束搜索宽度，默认 **1**（上游库内部默认 3）。�
 
 ### 4.4 调参建议
 
-风格向量是 8 维情感空间中的方向+强度，首次使用建议：固定一句文本，`--style` 各档合成一次试听对比；同风格微调用 `--emo-alpha 0.5`（更含蓄）或 `--duration-factor 0.92`（更紧凑）。**先跑 3 句小样确认，再全量合成**。科普长视频推荐 `passionate`（充满激情与轻快：高唤醒正价 happy 主载 + surprised 跳跃感 + 少量 calm 锚定咬字）；数字/术语密集的段落若嫌糊，可 `--duration-factor 1.0` 重跑该集。
+风格向量是 8 维情感空间中的方向+强度，首次使用建议：固定一句文本，`--style` 各档合成一次试听对比（一条命令跑完五档，见 §5.1 的 `--all-styles`）；同风格微调用 `--emo-alpha 0.5`（更含蓄）或 `--duration-factor 0.92`（更紧凑）。**先跑小样确认，再全量合成**。科普长视频推荐 `passionate`（充满激情与轻快：高唤醒正价 happy 主载 + surprised 跳跃感 + 少量 calm 锚定咬字）；数字/术语密集的段落若嫌糊，可 `--duration-factor 1.0` 重跑该集。
 
-## 五、逐集使用
+## 五、小样试听与逐集合成
+
+### 5.1 小样试听（单句直调服务，不需要工程）
+
+全量一集要跑 2.5–3.5 小时，而「克隆出的音色像不像我」「哪档风格适合本集」用**一句话**就能判定——所以**定稿风格前必须先听小样**。[scripts/tts_sample.py](./scripts/tts_sample.py) 直调 IndexTTS 服务合成单句，无需 `narration.json`、无需视频工程；它复用 `tts.py` 的风格预设与口播文本预处理（单一事实源），故小样与成片走**完全相同**的合成路径，听感可直接外推。
 
 ```bash
-# 0) 确认服务在线
+# 1) 生成参考样本（已有可跳过；本人长录音截取一段干净人声）
+uv run --no-project --with soundfile --with numpy \
+    media/pipeline/scripts/prepare_ref.py ~/Documents/dify/me-1.mp3 --start 180 --duration 12
+# → media/pipeline/voices/me-1.wav（12.0s · 32 kHz · 单声道 · 16-bit · sha1 3ed0d9d60d4b）
+
+# 2) 确认服务在线（未启动见 §2.3）
 curl -s http://127.0.0.1:8766/health
 
-# 1) 全量合成（工程内薄包装等价）
-cd media/<工程>
+# 3) 单档试听：合成后立即播放
+uv run --no-project --with mutagen media/pipeline/scripts/tts_sample.py \
+    --ref media/pipeline/voices/me-1.wav --style passionate --play
+
+# 4) 五风格 A/B：neutral→passionate→lively→confident→positive 各一遍，顺序试听择优
+uv run --no-project --with mutagen media/pipeline/scripts/tts_sample.py \
+    --ref media/pipeline/voices/me-1.wav --all-styles --play
+```
+
+> **`--start 180 --duration 12` 就是已上线三集成片所用的同源样本**：该段裁剪结果的 `sha1` 前 12 位为 `3ed0d9d60d4b`，与三集音频缓存 sidecar 摘要中的 `ref_sha1` 一致，直接复用即可听到与成片完全一致的音色。想换段落见 §3.2。
+
+**常用开关**
+
+| 开关 | 作用 | 默认 |
+|---|---|---|
+| `--text` / `--text-file` | 试听文本（建议 20–40 字，带数字/术语更易暴露咬字问题） | 内置一句科普文本 |
+| `--style` / `--all-styles` | 单档 / 全部预设 A/B（`--all-styles` 逐档取预设自带 alpha 与语速，故与下一行三参数互斥） | `neutral` |
+| `--emo-vector` `--emo-alpha` `--duration-factor` | 手动调参，语义与取值范围同 §四 | 随风格 |
+| `--num-beams` | 束宽；质量敏感的单句可试 `3`（耗时约按束宽线性放大，见 §4.3b） | `1` |
+| `--dry-run` | 只解析并打印各档向量/alpha/语速，不连服务（秒级核参，改风格后先跑这个） | 关 |
+| `--play` / `--out-dir` | 合成后 `afplay` 顺序试听 / 产物目录 | 关 / `.temp/voice-samples/` |
+
+**耗时实测**（2026-08-19 · M3 系列 · MPS fp32 · `num_beams=1` · 上述 34 字文本，机器空闲）
+
+| 环节 | 音频时长 | 墙钟 | RTF |
+|---|---|---|---|
+| 单档 · 首档（含服务暖机） | 6.86s | 47.0s | 6.8 |
+| 单档 · 暖机后 | 6.0–6.9s | 20–22s | 3.2–3.4 |
+| 五风格 A/B 全跑 | 合计 32.3s | **2.2 分钟** | — |
+
+> **口径提醒**：小样 RTF（≈3.3）与 §4.3b 整集折算 RTF（≈12–14）测的不是同一件事——前者是暖机后、机器空闲、单句；后者含数小时长跑的降频、机器争用与逐句开销。**小样耗时不可线性外推到整集**，整集排期仍按 §4.3b。
+
+**注意事项**
+
+- 参考样本路径由客户端解析为**绝对路径**后传给服务端（服务与客户端可分处不同 checkout，本机即如此），但文件须对**服务进程**可见；
+- 小样文本会经与成片相同的预处理（`——`→`，`、`……`→`。`）；改用下方 curl 直调则**不做**该替换，破折号会念出怪音；
+- 风格/样本一改，整集时长随之改变 → 定稿后必须重跑草渲让时间轴重算（见 5.3、§六）；
+- 产物落 `.temp/voice-samples/`（已被根 `.gitignore` 忽略）。**小样内含本人音色，属生物特征信息，试听后请 `rm -rf .temp/voice-samples`**。
+
+#### 附：纯 HTTP 直调（协议级排障 / 无 Python 环境时）
+
+服务只暴露 `/health` 与 `/synthesize` 两个端点，一条 `curl` 即可完成合成——用于判定「问题在服务端还是客户端」：
+
+```bash
+mkdir -p .temp/voice-samples && cat > .temp/voice-samples/payload.json <<'JSON'
+{
+  "text": "自进化编码智能体的核心不是写代码，而是让 AI 学会修改自己写代码的方式。",
+  "ref_path": "/绝对路径/media/pipeline/voices/me-1.wav",
+  "emo_vector": [0.7, 0, 0, 0, 0, 0, 0.2, 0.1],
+  "emo_alpha": 0.7,
+  "duration_factor": 0.97,
+  "lang": "ZH",
+  "num_beams": 1
+}
+JSON
+curl -sS -X POST http://127.0.0.1:8766/synthesize \
+    -H 'Content-Type: application/json' -d @.temp/voice-samples/payload.json \
+    -D .temp/voice-samples/headers.txt -o .temp/voice-samples/curl.mp3 \
+    -w '状态 %{http_code} · 墙钟 %{time_total}s\n' --max-time 900
+grep -i '^x-' .temp/voice-samples/headers.txt   # 期望 X-Audio-Format: mp3 与 X-Duration-Sec
+afplay .temp/voice-samples/curl.mp3
+```
+
+- `emo_vector` 为 8 维（顺序见 §4.1），**取值以 §4.1 表或 `tts.py --list-styles` 输出为准**（勿另抄副本）；`neutral` 档传 `null` 或整字段省略即不注入情感；
+- 状态码非 200 时响应体是 JSON 错误详情、被 `-o` 写进了 `.mp3`：`cat .temp/voice-samples/curl.mp3` 即可看到 `detail`（如情感有效和超界、参考音频不存在）。
+
+### 5.2 全量合成（逐集）
+
+```bash
+cd media/<工程>   # 工程内薄包装等价于中心脚本；风格取 5.1 试听定稿的那一档
 uv run --no-project --with mutagen scripts/tts.py --engine indextts \
     --ref <绝对路径>/media/pipeline/voices/me-1.wav --style passionate
-
-# 2) 小样试听（先只跑 3 句：临时 narration.json 或 --force 单句验证均可）
-# 3) 全量后重渲染（render 脚本定义在 video/package.json，须进入 video/）
-cd video && pnpm run render:draft && pnpm run render
 ```
 
 - 服务启动一次可服务多集；管线客户端不常驻模型；
 - 每句墙钟与文本长度及束宽相关：MPS fp32 实测 RTF≈40–58（`--num-beams 3`）/ ≈12–14（默认 `--num-beams 1`），即 5 秒的句子约需 1–1.5 分钟；整集（约 180–230 句）约 2.5–3.5 小时，建议 `nohup` 挂后台跑、按句缓存断点续跑（见 §六）；长篇管线**不要**用默认 3 束逐句等待；
-- 引擎/风格/样本任一变化都会改写时长，合成后**必须重跑草渲**让时间轴重算；
 - 超长句（>120 token）服务端内部自动分段；极端长句推理可达数分钟。客户端并发为 1（与服务端串行推理对齐，避免排队时间计入超时），HTTP 超时 600s；万一超时——重跑即续传，无需干预。
+
+### 5.3 合成后重渲染
+
+```bash
+cd video && pnpm run render:draft && pnpm run render   # render 脚本定义在 video/package.json
+```
+
+引擎/风格/样本任一变化都会改写每句时长，合成后**必须重跑草渲**让 Remotion 时间轴重算。
 
 
 ## 六、缓存与幂等
