@@ -221,7 +221,8 @@ curl -s http://127.0.0.1:8766/health
 uv run --no-project --with mutagen media/pipeline/scripts/tts_sample.py \
     --ref media/pipeline/voices/me-bright.wav --style sunny --play
 
-# 4) 全风格 A/B：sunny→neutral→passionate→lively→confident→positive 各一遍，顺序试听择优
+# 4) 全风格 A/B：7 档预设按 STYLE_PRESETS 顺序各一遍，顺序试听择优
+#    neutral→passionate→lively→confident→positive→sunny→sunny-steady（末档自带 3 束，耗时见下表）
 uv run --no-project --with mutagen media/pipeline/scripts/tts_sample.py \
     --ref media/pipeline/voices/me-bright.wav --all-styles --play
 
@@ -243,24 +244,24 @@ uv run --no-project --with mutagen media/pipeline/scripts/tts_sample.py \
 | 开关 | 作用 | 默认 |
 |---|---|---|
 | `--text` / `--text-file` | 试听文本（建议 20–40 字，带数字/术语更易暴露咬字问题） | 内置一句科普文本 |
-| `--style` / `--all-styles` | 单档 / 全部预设 A/B（`--all-styles` 逐档取预设自带 alpha 与语速，故与下一行三参数互斥） | `neutral` |
+| `--style` / `--all-styles` | 单档 / 全部 7 档预设 A/B（`--all-styles` 逐档取预设自带的 alpha/语速/束宽，故与 `--emo-vector` `--emo-alpha` `--duration-factor` `--num-beams` 互斥） | `neutral` |
 | `--emo-vector` `--emo-alpha` `--duration-factor` | 手动调参，语义与取值范围同 §四 | 随风格 |
 | `--emo-ref <录音>` | 语调迁移：音色仍取 `--ref`，语气来自这段录音（见 §四） | 关 |
 | `--emo-text "<描述>"` | 自然语言描述情感（需服务端 `--use-qwen-emo`）；推出的向量会打印，可用 `--emo-vector` 固化 | 关 |
-| `--num-beams` | 束宽；越大韵律越稳、耗时约按束宽线性放大（见 §4.3b）。显式给值会压过预设 | 随风格（`sunny-steady` 为 3，其余 1） |
-| `--dry-run` | 只解析并打印各档向量/alpha/语速，不连服务（秒级核参，改风格后先跑这个） | 关 |
+| `--num-beams` | 束宽；越大韵律越稳、耗时约按束宽线性放大（见 §4.3b）。显式给值会压过预设，但与 `--all-styles` 互斥（否则 sunny 与 sunny-steady 会产出完全相同的音频） | 随风格（`sunny-steady` 为 3，其余 1） |
+| `--dry-run` | 只解析并打印各档向量/alpha/语速/束宽，不连服务（秒级核参，改风格后先跑这个） | 关 |
 | `--label` | 产物文件名（多档时作前缀 `{label}-{风格}`）——**横向对比多个参考样本或多组自定义向量时必用**，否则同名互相覆盖 | 取风格名 |
 | `--play` / `--out-dir` | 合成后 `afplay` 顺序试听 / 产物目录 | 关 / `.temp/voice-samples/` |
 
-**耗时实测**（2026-08-19 · M3 系列 · MPS fp32 · `num_beams=1` · 上述 34 字文本，机器空闲）
+**耗时实测**（2026-08-19 · M3 系列 · MPS fp32 · 上述 34 字文本）
 
 | 环节 | 音频时长 | 墙钟 | RTF |
 |---|---|---|---|
-| 单档 · 首档（含服务暖机） | 6.86s | 47.0s | 6.8 |
-| 单档 · 暖机后 | 6.0–6.9s | 20–22s | 3.2–3.4 |
-| 五风格 A/B 全跑 | 合计 32.3s | **2.2 分钟** | — |
+| 单档 · 首档（含服务暖机，1 束，机器空闲） | 6.86s | 47.0s | 6.8 |
+| 单档 · 暖机后（1 束，机器空闲） | 6.0–6.9s | 20–22s | 3.2–3.4 |
+| 全 7 档 A/B（`--all-styles`，含 sunny-steady 的 3 束档，机器有其它负载） | 合计 46.2s | **6.3 分钟** | — |
 
-> **口径提醒**：小样 RTF（≈3.3）与 §4.3b 整集折算 RTF（≈12–14）测的不是同一件事——前者是暖机后、机器空闲、单句；后者含数小时长跑的降频、机器争用与逐句开销。**小样耗时不可线性外推到整集**，整集排期仍按 §4.3b。
+> **口径提醒**：小样 RTF（暖机后、机器空闲、单句，≈3.3）与 §4.3b 整集折算 RTF（≈12–14）测的不是同一件事——后者含数小时长跑的降频、机器争用与逐句开销。上表 A/B 行即反例：机器有其它负载时单档墙钟散布在 37.7–86.6 秒（最慢的是该服务会话内首次用该样本的那档），其中 3 束的 sunny-steady 只用 38.6 秒、并未比 1 束档更慢。**小样耗时既不可线性外推到整集，也不足以据单次样本推断束宽代价**——束宽的系统性代价与整集排期一律以 §4.3b 的长跑折算口径为准。
 
 **注意事项**
 
