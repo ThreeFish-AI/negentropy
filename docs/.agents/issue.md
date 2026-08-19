@@ -3507,3 +3507,26 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **后续防范**：① **新增 `urlopen`/`urlretrieve` 等 B310 家族调用必须同步附 `# nosec B310` + 理由**——在无 `[tool.bandit]` 配置、闸门依赖逐行豁免的仓库里，任何未豁免的 Medium+ 发现都会红灯；`# nosec` 注释须落在 bandit 报告的**确切行号**（多行调用取起始行）。② URL 拼接优先约束受信来源（内部常量 / 配置注入），把「豁免理由真实可辩护」作为提交前自检项。③ **routine 自动生成的 PR 若引入新第三方/标准库调用，须过一遍 SAST 闸门**——本文件由 pdf-fidelity-patrol routine 产出，生成侧无 bandit 意识，人工兜底不可省。
 - **同类问题影响**：所有 perceives 内经 `urllib`/`subprocess`/`random` 等 bandit 黑名单 API 的新代码，均须遵循逐行 `# nosec` + 理由约定；其它子应用若同样无 `[tool.bandit]` 配置，须比照办理。改动文件：`apps/negentropy-perceives/src/negentropy/perceives/tools/patrol_verify_fidelity.py`（+2 行注释）。
 - **连带效应（bandit 放行后暴露 pip-audit）**：本次 bandit 转绿后，同 `Security Audit` job 的 `pip-audit` 步骤首次得以执行，暴露 15 条既存依赖 advisory（advisory DB 增补，非本 PR 引入）。该 pip-audit 复发按其归属统一记于 [ISSUE-092 的 2026-07-20 复发增补](#issue-092-perceives-security-audit-因-pysec-数据库增补-21-条新告警致-pip-audit-退出-12026-05-20)（升级 4 包 + ignore transformers/setuptools 各 1 条），同 PR #1093 一并处理，避免同 Issue 多处维护。
+
+## ISSUE-161 科普视频管线配置漂移：分集 README 复现命令与推荐位分叉，照跑即作废整集声纹缓存（2026-08-19）
+
+- **表因**：三集 README 的复现命令写 `--style passionate --ref …/me-1.wav`，而 [VOICE-CLONING.md](../../media/pipeline/VOICE-CLONING.md) §5 推荐位已迁至 `sunny`/`sunny-steady` + `me-bright.wav`（PR #1107）——文档间口径分叉且无任何机制提示。
+- **根因**：**无分集声明式配置**。可执行参数以复制粘贴形式散落三份 README，推荐位一迁移，旧命令全部变成「合法但错误」——`{id}.mp3` 单槽位 + 摘要含 style/ref_sha1（tts.py `digest_indextts`），照旧命令跑会把整集克隆音频静默改写成 deprecated 风格（179–228 句、数小时级返工）。
+- **处理方式**：① 每集新增 `pipeline.toml`（episode/narration/tts/render 四节）作为可执行参数唯一来源，README 只留 `pipeline.py tts` 一行；② `pipeline.py` 编排入口从配置装配参数并自动带 `--expect-ref-sha1` 指纹硬校验；③ 新增 `.engine` 音色签名标记 + `--allow-voice-switch` 显式放行（含 `--plan` 路径前置，排期阶段即拦截误重录）；④ `refs.py` + `voices/refs.toml` 指纹清单（只存哈希与生成参数，.gitignore 白名单例外放行）。见 [pipeline README](../../media/pipeline/README.md)。
+- **后续防范**：**可执行参数不落散文文档，文档只引用配置**。任何「文档里手写命令行参数」的流水线都有同款漂移面；评审时见到 README/文档内联长命令行（含风格/样本/版本等会变参数）应要求收敛到声明式配置。
+- **同类影响与注意**：本类漂移在「推荐位会迁移」的领域（模型档位、样本、API 版本）必然复发；修复时务必同时上「拦截层」（签名/指纹硬失败）而不只改文档——文档改对了，下一次迁移照样分叉。
+
+## ISSUE-162 站点数字取自未水合 HTML 源码，把占位符写进口播（111 vs 331）（2026-08-19）
+
+- **表因**：第一集口播 p6-13a 说配套仓库「收录了**一百一十一篇**论文」、p6-13b 九章含「工具」「定义」两章——与真实数据（331 篇/330 唯一 id；九章为 引言/Harness/技能/记忆/环境/RL 与持续学习/元进化/评测/安全）不符。
+- **根因**：官方站点 `index.html:57` 的 `<dt id="stat-papers">111</dt>` 是**未水合占位符**，`app.js:333` 实际执行 `els.statPapers.textContent = String(papers.length)`（真实访客看到 331）；上一轮信源补充把 **HTML 源码当渲染结果读**，占位数字进入口播；九章清单则是基于占位数字的**推断**而非站点原文（`data/manuscript.json` 的 chapterOrder 才是权威）。旁证：`DEV_LOG.md` 明写 "331-paper data set unchanged"、`index.html` 加载 `papers.js?v=links-331`。取证链见 [paper-notes.md](../../media/experience-era-agents-video/research/paper-notes.md)「2026-08 v3 重读校准」节。
+- **处理方式**：口播改「三百多篇」约数 + 画面标精确值 331 与取数日期（活数据说死数字到发布必陈旧）；paper-notes 记全取证链；九章按章序用片中已教过的词重写。
+- **后续防范**：**站点数字只能取自数据文件（JSON/CSV 端点）或水合后 DOM，绝不取 HTML 源码**；静态抓取（curl/gh api/wget）拿到的一切统计数字都应视为占位符直至与数据文件互证。同批连带教训：正文引用年份 ≠ 事件纪年（ClawHavoc [Jiang et al., 2026b] 是引用年）；统计单位口径以原文为准（>90% 的单位是 trials 不是场景）。
+- **同类影响与注意**：凡「官方工程站点信源补充」（skills/01 规范）都适用；提取数字时优先找 `/data/*.json` 类端点或页面脚本里的赋值语句。
+
+## ISSUE-163 tts.py 漏写 --engine indextts 会静默用预置音色覆写整集克隆音频（2026-08-19）
+
+- **表因**：`tts.py` 对克隆专属参数（--ref/--style 等）在 edge 引擎下只打 stderr「提示后忽略」并照常合成。
+- **根因**：`{id}.mp3` 单槽位 + 摘要不含引擎标识——换引擎=每句摘要都「合法地」变了，逐句 sidecar 察觉不到「整集正在被换音色」；且硬化不对称：`--plan` 路径已按同一危害论证改为硬失败（tts.py:605-612 注释写明），**合成路径漏了同样的处理**。
+- **处理方式**：带值克隆参数（--ref/--style/--lang/--emo-*/--duration-factor/--num-beams/--steady）在 edge 下 `parser.error` 硬失败（典型手型=「照抄文档打了 --ref/--style 却丢了 --engine」）；`.engine` 音色签名标记作第二层（覆盖「一个参数都没打」的场景），不一致须 `--allow-voice-switch`。测试 `test_engine_guard.py` 六个用例锁定行为。
+- **后续防范**：**破坏性默认值必须硬失败而非提示**——静默降级的输出会覆盖唯一产物槽位时尤甚；修一处同类风险要横向扫全部入口（plan/合成/编排三层当时只硬化了一层）。
