@@ -366,7 +366,7 @@ const RotBench: React.FC = () => {
 
 export const P4Eval: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (fromId: string, toId?: string) => beatWindow(scene.sentences, scene.from, fromId, toId);
-  const winD = w('p4-15', 'p4-18');
+  const winD = w('p4-15', 'p4-18a');
   const at = (id: string) => {
     const s = scene.sentences.find((x) => x.id === id);
     if (!s) {
