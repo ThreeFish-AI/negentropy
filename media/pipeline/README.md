@@ -1,7 +1,7 @@
 # 科普视频制作 Pipeline（公共基建）
 
 > 从「论文精读 → 逐字稿 → 配音 → 代码动画 → 终渲」全链路中沉淀的**仓库级可复用流水线**。
-> 首个完整范例：[《AI 如何自己变强？》](../self-improving-agents-video/README.md)（Remotion 工程模式）；轻量替代：[video-package 制作包模式](../../video-package/README.md)。
+> 首个建成的完整范例：[《AI 如何自己变强？》](../self-improving-agents-video/README.md)（建成时间上的第一个，非系列首集；发布顺序见 [../series.json](../series.json)）。
 
 ## 一、Pipeline 总览（9 Stages）
 
@@ -92,13 +92,7 @@ media/<slug>-video/
 
 ## 七、工程模式
 
-|      | ✅ Remotion 工程模式                                               | ❌ 轻量制作包模式                                            |
-| ---- | ----------------------------------------------------------------- | ----------------------------------------------------------- |
-| 载体 | `media/<slug>-video/video/`（Remotion + React）                   | `video-package/`（单文件 Canvas HTML）                      |
-| 动画 | 全代码动画，可编程复渲                                            | 浏览器手动录屏                                              |
-| 配音 | edge-tts + manifest 自动对轨                                      | 人工录音/剪辑对齐                                           |
-| 适用 | 中长视频、多轮迭代、可复现                                        | 快速产出、低工程成本                                        |
-| 范例 | [《AI 如何自己变强？》](../self-improving-agents-video/README.md) | [《当 AI 开始给自己当老师》](../../video-package/README.md) |
+本仓统一采用 **Remotion 工程模式**（全代码动画 + manifest 自动对轨、可编程复渲）。早期的单文件 Canvas 轻量制作包模式已于 2026-08 废弃移除（见 commit `f7d72814`）。
 
 ## 八、许可注意
 
