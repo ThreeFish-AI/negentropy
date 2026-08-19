@@ -6,7 +6,8 @@
 - 引擎：
   - edge（默认）：edge-tts 预置音色，免密钥，行为与历史版本完全一致；
   - indextts：声音克隆（IndexTTS-2.5 本地服务），需先启动 tts_server.py，
-    通过 --ref 提供参考音色样本、--style 选择风格（激情/轻快/自信/正能量等）。
+    通过 --ref 提供参考音色样本、--style 选择风格（sunny 明快阳光为推荐位，
+    sunny-steady 为其定稿档＝同参数 + 束宽 3；另有激情/轻快/自信/正能量）。
 - 幂等：参数与文本未变则跳过（SHA1 摘要 sidecar 缓存）。
 
 用法：
@@ -57,7 +58,9 @@ EMO_KEYS = [
     "calm",
 ]
 
-# 风格预设：激情/轻快/自信/正能量 —— 数值为初值，可实测试听后微调。
+# 风格预设 —— 数值为初值，可实测试听后微调。
+# 可选键 "beams"：预设自带的束搜索宽度（缺省 1）。束宽会改变韵律稳定度，属风格的一部分，
+# 故允许写进预设；命令行 --num-beams 显式给值时优先。注意束宽 3 使整集墙钟约 ×3。
 STYLE_PRESETS: dict[str, dict] = {
     "neutral": {"label": "中性", "vec": None, "alpha": 1.0, "df": 1.0},
     "passionate": {
@@ -97,6 +100,18 @@ STYLE_PRESETS: dict[str, dict] = {
         "vec": [0.95, 0, 0, 0, 0, 0, 0.02, 0.03],
         "alpha": 0.35,
         "df": 0.95,
+    },
+    "sunny-steady": {
+        "label": "明快稳健",
+        # = sunny 同方向同强度同语速，只把束宽提到 3：GPT 段搜索更宽 → 韵律更收敛。
+        # 实测（同文本同样本）：语调起伏 48.4 → 43.5、音节率 4.10 → 4.55，亮度基本不掉
+        # （质心 1245 → 1223）——是唯一「不牺牲明快度就让语气更稳」的旋钮。
+        # 代价：GPT 段耗时约按束宽线性放大，**整集墙钟约 ×3**（见 VOICE-CLONING.md §4.3b），
+        # 适合成片定稿或质量敏感段落；长篇批量赶工仍用 sunny。
+        "vec": [0.95, 0, 0, 0, 0, 0, 0.02, 0.03],
+        "alpha": 0.35,
+        "df": 0.95,
+        "beams": 3,
     },
 }
 
@@ -141,17 +156,24 @@ def parse_emo_vector(spec: str) -> list[float]:
 
 def resolve_style(
     args: argparse.Namespace,
-) -> tuple[str, list[float] | None, float, float]:
-    """返回 (风格名, 情感向量|None, emo_alpha, duration_factor)。"""
+) -> tuple[str, list[float] | None, float, float, int]:
+    """返回 (风格名, 情感向量|None, emo_alpha, duration_factor, num_beams)。
+
+    三个可覆盖参数（alpha / df / beams）一律「命令行显式给值优先，否则取预设」——
+    故 --num-beams 的 argparse 默认值必须是 None 而非 1，否则无法区分「没给」与「给了 1」。
+    """
+    beams = args.num_beams if args.num_beams is not None else 1
     if args.emo_vector:
         vec = parse_emo_vector(args.emo_vector)
         alpha = args.emo_alpha if args.emo_alpha is not None else 0.6
         df = args.duration_factor if args.duration_factor is not None else 1.0
-        return "raw", vec, alpha, df
+        return "raw", vec, alpha, df, beams
     preset = STYLE_PRESETS[args.style]
     alpha = args.emo_alpha if args.emo_alpha is not None else preset["alpha"]
     df = args.duration_factor if args.duration_factor is not None else preset["df"]
-    return args.style, preset["vec"], alpha, df
+    if args.num_beams is None:  # 预设可自带束宽（如 sunny-steady=3），缺省为 1
+        beams = preset.get("beams", 1)
+    return args.style, preset["vec"], alpha, df, beams
 
 
 # ---------------- 引擎一：edge-tts（历史路径，保持字节级一致） ----------------
@@ -478,11 +500,11 @@ async def main() -> None:
     idx.add_argument("--lang", default="ZH", help="[indextts] 语言（默认 ZH）")
     idx.add_argument(
         "--num-beams",
-        default=1,
+        default=None,
         type=int,
         choices=[1, 2, 3, 4, 5],
-        help="[indextts] GPT 束搜索宽度（默认 1；采样生成下与上游默认 3 听感差异可忽略，"
-        "但 GPT 段耗时约按束宽线性放大——长篇管线跑 1，质量敏感单句可试 3）",
+        help="[indextts] GPT 束搜索宽度（缺省随风格，多数预设为 1、sunny-steady 为 3；"
+        "束宽越大韵律越稳但 GPT 段耗时约按束宽线性放大——长篇批量跑 1，定稿可试 3）",
     )
     idx.add_argument(
         "--engine-tag",
@@ -496,13 +518,18 @@ async def main() -> None:
 
     if args.list_styles:
         print(
-            "风格        说明    情感向量（happy,angry,sad,afraid,disgusted,melancholic,surprised,calm）  alpha  语速"
+            "风格            说明      情感向量（happy,angry,sad,afraid,disgusted,melancholic,surprised,calm）"
+            "  alpha  有效注入  语速  束宽"
         )
         for name, p in STYLE_PRESETS.items():
             vec = (
                 ",".join(f"{x:g}" for x in p["vec"]) if p["vec"] else "—（不注入情感）"
             )
-            print(f"{name:<10}  {p['label']:<6}  {vec:<62}  {p['alpha']:<5}  {p['df']}")
+            eff = (sum(p["vec"]) * p["alpha"]) if p["vec"] else 0.0
+            print(
+                f"{name:<14}  {p['label']:<6}  {vec:<62}  {p['alpha']:<5}  "
+                f"{eff:<8.3g}  {p['df']:<4}  {p.get('beams', 1)}"
+            )
         return
 
     if args.engine == "edge":
@@ -515,7 +542,7 @@ async def main() -> None:
                 "--emo-text": args.emo_text,
                 "--emo-alpha": args.emo_alpha,
                 "--duration-factor": args.duration_factor,
-                "--num-beams": args.num_beams != 1,
+                "--num-beams": args.num_beams is not None,
                 "--server": args.server != "http://127.0.0.1:8766",
                 "--style": args.style != "neutral",
                 "--lang": args.lang != "ZH",
@@ -566,9 +593,10 @@ async def main() -> None:
             vec = None
             alpha = args.emo_alpha if args.emo_alpha is not None else 1.0
             df = args.duration_factor if args.duration_factor is not None else 1.0
+            beams = args.num_beams if args.num_beams is not None else 1
         else:
             try:
-                style_name, vec, alpha, df = resolve_style(args)
+                style_name, vec, alpha, df, beams = resolve_style(args)
             except ValueError as e:
                 parser.error(str(e))
         if not args.ref:
@@ -643,7 +671,7 @@ async def main() -> None:
                     args.engine_tag,
                     args.server,
                     out_dir,
-                    num_beams=args.num_beams,
+                    num_beams=beams,  # 已含「命令行优先、否则取预设」的解析结果
                     emo_ref=emo_ref_path,
                     emo_ref_sha1=emo_ref_sha1,
                     emo_text=args.emo_text,

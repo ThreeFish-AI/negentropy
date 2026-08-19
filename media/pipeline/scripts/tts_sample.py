@@ -8,12 +8,12 @@
 - 前置：参考音色样本（prepare_ref.py 产出）+ 已启动的 tts_server.py。
 
 用法（仓库根执行）：
-  # 单档试听
+  # 单档试听（科普推荐档）
   uv run --no-project --with mutagen media/pipeline/scripts/tts_sample.py \
-      --ref media/pipeline/voices/me-1.wav --style passionate --play
-  # 五风格 A/B（neutral/passionate/lively/confident/positive 各合成一遍）
+      --ref media/pipeline/voices/me-bright.wav --style sunny --play
+  # 全风格 A/B（STYLE_PRESETS 逐档各合成一遍，含各自的 alpha/语速/束宽）
   uv run --no-project --with mutagen media/pipeline/scripts/tts_sample.py \
-      --ref media/pipeline/voices/me-1.wav --all-styles --play
+      --ref media/pipeline/voices/me-bright.wav --all-styles --play
 
 产物：<仓库根>/.temp/voice-samples/{风格}.mp3（已被根 .gitignore 忽略）——内含本人音色，
 属生物特征信息，试听后请及时清理。完整手册见 media/pipeline/VOICE-CLONING.md §5.1。
@@ -52,10 +52,10 @@ ATTEMPTS = 2  # 非 4xx（如 MPS 数值问题致的 500）再试一次；4xx �
 
 def build_jobs(
     args: argparse.Namespace,
-) -> list[tuple[str, list[float] | None, float, float]]:
-    """→ [(风格名, 情感向量|None, emo_alpha, duration_factor)]。
+) -> list[tuple[str, list[float] | None, float, float, int]]:
+    """→ [(风格名, 情感向量|None, emo_alpha, duration_factor, num_beams)]。
 
-    --all-styles 逐档取各预设自带的 alpha/df（这正是 A/B 的意义，故与手动覆盖互斥）。
+    --all-styles 逐档取各预设自带的 alpha/df/beams（这正是 A/B 的意义，故与手动覆盖互斥）。
     """
     if args.emo_ref or args.emo_text:
         # 音频/文本驱动情感：不注入向量，alpha 默认 1.0（完全采用该情感来源）
@@ -65,13 +65,18 @@ def build_jobs(
                 None,
                 args.emo_alpha if args.emo_alpha is not None else 1.0,
                 args.duration_factor if args.duration_factor is not None else 1.0,
+                args.num_beams if args.num_beams is not None else 1,
             )
         ]
     if args.all_styles:
         return [
             resolve_style(
                 argparse.Namespace(
-                    emo_vector=None, style=name, emo_alpha=None, duration_factor=None
+                    emo_vector=None,
+                    style=name,
+                    emo_alpha=None,
+                    duration_factor=None,
+                    num_beams=None,  # 让每档取自己的束宽（sunny-steady=3，其余 1）
                 )
             )
             for name in STYLE_PRESETS
@@ -117,6 +122,7 @@ def synthesize_one(
     vec: list[float] | None,
     alpha: float,
     df: float,
+    beams: int,
     out_dir: Path,
     stem: str | None = None,
 ) -> dict:
@@ -135,7 +141,7 @@ def synthesize_one(
                 alpha,
                 df,
                 args.lang,
-                args.num_beams,
+                beams,
                 args.emo_ref,
                 args.emo_text,
                 headers,
@@ -243,10 +249,11 @@ def main() -> None:
     parser.add_argument("--lang", default="ZH", help="语言（默认 ZH）")
     parser.add_argument(
         "--num-beams",
-        default=1,
+        default=None,
         type=int,
         choices=[1, 2, 3, 4, 5],
-        help="GPT 束搜索宽度（默认 1；耗时约按束宽线性放大，见 " + MANUAL + " §4.3b）",
+        help="GPT 束搜索宽度（缺省随风格：多数预设 1、sunny-steady 3）；越大韵律越稳但耗时"
+        "约按束宽线性放大，见 " + MANUAL + " §4.3b",
     )
     parser.add_argument("--server", default="http://127.0.0.1:8766", help="服务地址")
     parser.add_argument(
@@ -328,7 +335,7 @@ def main() -> None:
         jobs = build_jobs(args)
     except ValueError as e:  # parse_emo_vector 的键名/权重错误
         parser.error(str(e))
-    for name, vec, alpha, df in jobs:
+    for name, vec, alpha, df, _beams in jobs:
         if (
             vec is not None and sum(vec) * alpha > 0.8
         ):  # 与服务端同口径：alpha 缩放后校验有效和
@@ -345,10 +352,13 @@ def main() -> None:
         print(f">> 情感参考音频：{args.emo_ref}（音色仍取上面的参考样本）")
     if args.emo_text:
         print(f">> 情感描述：{args.emo_text}（服务端 QwenEmotion 转向量）")
-    print(f">> 风格 {len(jobs)} 档 · num_beams={args.num_beams} · lang={args.lang}")
-    for name, vec, alpha, df in jobs:
+    print(f">> 风格 {len(jobs)} 档 · lang={args.lang}")
+    for name, vec, alpha, df, beams in jobs:
         vec_str = ",".join(f"{x:g}" for x in vec) if vec else "—（不注入情感）"
-        print(f"   {name:<10} vec=[{vec_str}] alpha={alpha:g} df={df:g}")
+        slow = "（束宽 3，约慢 3 倍）" if beams >= 3 else ""
+        print(
+            f"   {name:<14} vec=[{vec_str}] alpha={alpha:g} df={df:g} beams={beams}{slow}"
+        )
     if args.dry_run:
         print(">> --dry-run：仅解析参数，未连接服务")
         return
@@ -362,7 +372,7 @@ def main() -> None:
 
     check_server(
         args.server,
-        need_duration_factor=any(df != 1.0 for *_, df in jobs),
+        need_duration_factor=any(df != 1.0 for _n, _v, _a, df, _b in jobs),
         need_emo_text=bool(args.emo_text),
     )
 
@@ -380,12 +390,13 @@ def main() -> None:
             vec,
             alpha,
             df,
+            beams,
             out_dir,
             stem=None
             if not args.label
             else (args.label if len(jobs) == 1 else f"{args.label}-{name}"),
         )
-        for name, vec, alpha, df in jobs
+        for name, vec, alpha, df, beams in jobs
     ]
 
     total_wall = sum(r["wall"] for r in results)
