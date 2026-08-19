@@ -49,7 +49,24 @@ media/<slug>-video/
 - narration.md：`## P0 标题` 分幕 + `- [p0-01] 文本` 一句一行；句 id 必须以幕名小写为前缀、全片唯一。
 - `>` 引用块为画面备注，不进配音；英文方法名做角标不口播。
 
-## 三、公共脚本（单一事实源）
+## 三、公共脚本（单一事实源）与编排入口
+
+**单入口 `pipeline.py`**（参数读各集 `pipeline.toml`；阶段契约见下表）：
+
+```
+uv run --no-project media/pipeline/scripts/pipeline.py --project media/<slug>-video     {status|doctor|build|check|tts|captions|render|qa|all|clean-samples}
+```
+
+| Stage | 命令 | 输入 → 产出 | 幂等/续跑 |
+|---|---|---|---|
+| ③ | `build` | narration.md → narration.json | 纯函数 |
+| ④⑤ | `check` | narration.json + storyboard.md + pipeline.toml → 门 | — |
+| ⑥ | `tts [--plan]` | narration.json + 参考样本 → 逐句 mp3 + manifest | sidecar 摘要 / 逐句续跑 |
+| ⑥+ | `captions` | manifest + timing.json → out/captions.{srt,vtt} | 纯函数 |
+| ⑧ | `render` + `qa` | src + audio → draft.mp4 + 抽帧体检 | 渲染否 / 抽帧是 |
+| ⑨ | `render --final` | 同上 → final.mp4（前置：⑧ 零 FAIL） | 否 |
+
+`status` 为派生式新鲜度表（无状态文件——幂等已由内容摘要提供，再存阶段状态即第二事实源）；`doctor` 自检配置/时序 SSOT/样本指纹/IndexTTS 服务。
 
 | 脚本                                                       | 用途                                                                                                                    | 工程内等价调用                                                                                                                                   |
 | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -59,7 +76,14 @@ media/<slug>-video/
 | [scripts/tts_sample.py](./scripts/tts_sample.py)           | 单句声音小样试听（直调 IndexTTS 服务合成一句话 + 全风格 A/B，定稿风格前的必经关口）                                      | 无工程薄包装，从仓库根调用：`uv run --no-project --with mutagen media/pipeline/scripts/tts_sample.py --ref <样本.wav> --all-styles --play`，见 [VOICE-CLONING.md §5.1](./VOICE-CLONING.md) |
 | [scripts/prepare_ref.py](./scripts/prepare_ref.py)         | 参考音色样本裁剪/规范化（长录音 → 5–15s 干净 WAV）                                                                      | 无工程薄包装（与具体工程无关），从仓库根调用：`uv run --no-project --with soundfile --with numpy media/pipeline/scripts/prepare_ref.py <源音频>` |
 | [scripts/prospect_ref.py](./scripts/prospect_ref.py)       | 参考样本选段勘探（按 F0/起伏/音节率/谱质心筛「更亮更轻快」的候选起点，喂给 prepare_ref.py）                              | 无工程薄包装，从仓库根调用：`uv run --no-project --with soundfile --with numpy media/pipeline/scripts/prospect_ref.py <源音频…>`，见 [VOICE-CLONING.md §3.2](./VOICE-CLONING.md) |
-| [scripts/qa_frames.py](./scripts/qa_frames.py)             | 按句 id 抽帧视觉 QA                                                                                                     | `uv run --no-project scripts/qa_frames.py out/draft.mp4 --scene P2`                                                                              |
+| [scripts/pipeline.py](./scripts/pipeline.py)             | **单入口编排**（上表）                                                                                                  | `uv run --no-project media/pipeline/scripts/pipeline.py --project media/<工程> tts --plan`                                                      |
+| [scripts/timeline.py](./scripts/timeline.py)             | 时间轴 Python 侧实现（与 timing.ts 同构，直读 timing.json）                                                            | 被 qa_frames/captions/check_script 复用                                                                                                          |
+| [scripts/check_script.py](./scripts/check_script.py)     | ④⑤ 内容门：beat 覆盖性 / 时长预算双口径 / SceneFade 不变式 / `--check-scenes` 分镜↔代码互比                            | `uv run --no-project scripts/check_script.py --check-scenes`                                                                                   |
+| [scripts/check_series.py](./scripts/check_series.py)     | 系列一致性五规则（口播反串线 / 多标题顺序 / 序号绑定 / 清单完整性 / 死链），执法 [../series.json](../series.json)         | 仓库根：`uv run --no-project media/pipeline/scripts/check_series.py`（已挂 pre-commit）                                                          |
+| [scripts/captions.py](./scripts/captions.py)             | 导出 srt/vtt（cue 终点不含句间停顿——外挂字幕静默期不留字）                                                             | `uv run --no-project scripts/captions.py`                                                                                                        |
+| [scripts/qa_frames.py](./scripts/qa_frames.py)           | 抽帧 QA（幕/句/`--last-n` 末 N 句）+ `--check` 四项自动体检 + `--check-theme` WCAG 对比度                               | `uv run --no-project --with pillow --with numpy scripts/qa_frames.py out/draft.mp4 --last-n 6 --check`                                          |
+| [scripts/paper_extract.py](./scripts/paper_extract.py)   | Stage ① 取证工具箱（§→页映射 / 分栏取文 / caption 收割 / 定点 find / 页面光栅化）                                       | `uv run --no-project --with pymupdf media/pipeline/scripts/paper_extract.py "<PDF>" find "原文措辞"`                                             |
+| [scripts/refs.py](./scripts/refs.py)                     | 参考样本可复现清单（verify/rebuild；指纹在 [voices/refs.toml](./voices/refs.toml)，只存哈希不存音频）                    | `uv run --no-project media/pipeline/scripts/refs.py verify`                                                                                     |
 
 中心脚本以 `--project <工程根>` 参数化；工程内 `scripts/*.py` 为薄包装（透传参数、保持原 CLI）。改造/迭代只改 `media/pipeline/scripts/`，验证门 = 受影响工程的 `narration.json` / `manifest.json` 字节级不变。
 
@@ -71,9 +95,9 @@ media/<slug>-video/
 
 ## 五、音画同步机制（零手工对轨）
 
-每句一段 MP3；`tts.py` 产出 `video/public/audio/manifest.json`（含每句实测时长）；Remotion `calculateMetadata` 读取 manifest 计算全片时间轴（默认句间 0.32s、幕间 +0.9s、片头 0.6s、片尾 2s）。**改稿后只需重跑：build → tts → render**。引擎可选 edge 预置音色（默认）或用自己的声音克隆（[VOICE-CLONING.md](./VOICE-CLONING.md)），两种引擎的 manifest 契约完全一致。
+每句一段 MP3；`tts.py` 产出 `video/public/audio/manifest.json`（含每句实测时长）；Remotion `calculateMetadata` 读取 manifest 计算全片时间轴。**改稿后只需重跑：build → tts → render**。引擎可选 edge 预置音色（默认）或用自己的声音克隆（[VOICE-CLONING.md](./VOICE-CLONING.md)），两种引擎的 manifest 契约完全一致。
 
-⚠️ 若工程自定义了 `timing.ts` 常量，须同步 `qa_frames.py` 顶部的镜像常量，否则抽帧时间错位。
+**时序常数单一事实源** = 每集 `video/src/timing.json`（句间/幕间/片头/片尾/幕间淡入淡出）：`timing.ts` 经 `resolveJsonModule` 同步 import，Python 侧（qa_frames/captions/check_script）经 `timeline.py` 直读同一文件——改节奏只动 JSON，双语言镜像漂移结构性不存在。**渲染主机约束**：三集未内嵌 CJK 字体（PingFang SC/Songti SC/SF Mono 系统栈），渲染仅限 macOS；两个重启触发器见 [skills/06 事实条](./skills/06-remotion-implementation.md)。
 
 ## 六、新集脚手架清单
 
