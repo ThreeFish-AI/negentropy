@@ -66,7 +66,7 @@ media/<slug>-video/
 ## 四、复用边界（显式权衡）
 
 - **Python 脚本：集中共享（SSOT）**——三个纯文本变换工具，跨集零差异，中心化防 split-brain。
-- **Remotion 工程原语：复制适配，不做共享包**——`timing.ts` / `Subtitle` / `cards.tsx` / `theme.ts` 等每集复制后按本集视觉契约修改。理由：每集工程须保持 pnpm `--ignore-workspace` 独立可渲染（嵌套 workspace 隔离 + Remotion 版本自由），共享 TS 包会把「一集的视觉改动」泄漏进其他集。复用时以首集工程为模板复制 `video/` 骨架。
+- **Remotion 工程原语：复制适配，不做共享包**——`timing.ts` / `Subtitle` / `cards.tsx` / `theme.ts` 等每集复制后按本集视觉契约修改。理由：每集工程须保持 pnpm `--ignore-workspace` 独立可渲染（嵌套 workspace 隔离 + Remotion 版本自由），共享 TS 包会把「一集的视觉改动」泄漏进其他集。复用时以任一既有集工程为模板复制 `video/` 骨架（发布顺序见 [../series.json](../series.json)，与模板选择无关）。
 - **每集视觉契约独立设计**（色彩语义映射到本集核心概念），但底层规范复用：深色底 `#0E1116` 系、警示红 `#FF5C5C`、确认绿 `#7ED321`、金句卡衬线体、公式只作角标彩蛋。
 
 ## 五、音画同步机制（零手工对轨）
@@ -77,7 +77,7 @@ media/<slug>-video/
 
 ## 六、新集脚手架清单
 
-1. `cp -r` 上一集工程目录骨架（README/research/script/scripts/video），改 slug 与内容。
+1. `cp -r` 任一既有集工程目录骨架（README/research/script/scripts/video/pipeline.toml），改 slug 与内容。
 2. `video/package.json` 改 `name`；清空 scenes 重建；`theme.ts` 换本集色板。
 3. 根 `.gitignore` 追加本集产物规则（**不能放工程内**——根级裸 `.gitignore` 规则会挡住嵌套 ignore 文件）：
    ```

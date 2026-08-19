@@ -31,9 +31,9 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[3]
 SERIES_JSON = REPO / "media" / "series.json"
 
-#: 顺序词（「下期」白名单——顺序无关的收尾语不算串线）
+#: 顺序词。白名单：「下期」顺序无关收尾语；「前两集」从终集视角恒真（相对表述，改序仍成立）
 ORDINAL_WORDS = re.compile(
-    r"上一集|上集|上期|下一集|下集|第[一二三四五六七八九十]集|前两集|前一集|本系列"
+    r"上一集|上集|上期|下一集|下集|第[一二三四五六七八九十]集|前一集|本系列"
 )
 SPOKEN_LINE_RE = re.compile(r"^- \[(?P<id>[a-z0-9-]+)\]\s+(?P<text>.+)$", re.M)
 REL_LINK_RE = re.compile(r"\]\((\.{1,2}/[^)#?]+)\)")
@@ -104,16 +104,24 @@ def rule_spoken_interleave(series: dict, msgs: list[str]) -> None:
 
 
 def rule_title_order(series: dict, files: list[Path], msgs: list[str]) -> None:
-    """规则 2：同一文件内多集标题的首现顺序 == 清单顺序。"""
+    """规则 2：同一文件内多集标题的首现顺序 == 清单顺序。
+
+    文件位于某集工程内时排除其自集标题——本集文件以自己的片名开篇（H1/组件数组）
+    是自然形态，不该被计入顺序。
+    """
     for f in files:
         try:
             text = f.read_text(encoding="utf-8")
         except UnicodeDecodeError:
             continue
+        segs = set(f.parts)
+        own = next(
+            (e for e in series["episodes"] if e["path"].split("/")[-1] in segs), None
+        )
         present = [
             (text.find(e["title"]), e["episode"], e["title"])
             for e in series["episodes"]
-            if e["title"] in text
+            if e["title"] in text and e is not own
         ]
         if len(present) >= 2:
             seq = [ep for _, ep, _ in sorted(present)]  # 按文本首现位置排序
@@ -129,11 +137,26 @@ def rule_ordinal_binding(series: dict, files: list[Path], msgs: list[str]) -> No
     by_ep = {e["episode"]: e["title"] for e in series["episodes"]}
     title_to_ep = {e["title"]: e["episode"] for e in series["episodes"]}
     for f in files:
+        if (
+            f.suffix != ".md"
+        ):  # 仅散文：TSX 里标签常在标题之后，近邻法必误报（规则2已覆盖数组）
+            continue
+        segs = set(f.parts)
+        own_ep = next(
+            (
+                e["episode"]
+                for e in series["episodes"]
+                if e["path"].split("/")[-1] in segs
+            ),
+            None,
+        )
         try:
             text = f.read_text(encoding="utf-8")
         except UnicodeDecodeError:
             continue
         for m in EP_NUM.finditer(text):
+            if own_ep and CN_NUM.get(m.group(1)) == own_ep:
+                continue  # 本集自称序号合法（如 EP3 README 开篇「系列第三集」）
             n = CN_NUM.get(m.group(1), 0)
             if n not in by_ep:
                 continue

@@ -9,7 +9,7 @@
 
 > **格式约定**：`- [句id] 口播文本`——每行一句，一句 = 一条字幕 = 一段配音。
 > `>` 引用块为画面备注，不进入配音。英文方法名原则上不口播，做成画面角标。
-> 事实源：[../research/paper-notes.md](../research/paper-notes.md)
+> 事实源：`media/<slug>-video/research/paper-notes.md`（各集工程内相对路径引用）
 
 ## P0 幕标题
 

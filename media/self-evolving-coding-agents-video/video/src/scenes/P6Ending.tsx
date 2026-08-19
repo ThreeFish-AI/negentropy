@@ -101,13 +101,12 @@ const OpenQuestion: React.FC = () => {
   );
 };
 
-/** 6-C 系列三卡 */
+/** 6-C 系列三卡（顺序与 media/series.json 对齐；本集高亮由 self 标志驱动，非位置耦合） */
 const SeriesThree: React.FC = () => {
-  const frame = useCurrentFrame();
   const eps = [
-    {title: 'AI 如何自己变强？', sub: '自我进化 · 改什么', c1: '#4A9EFF', c2: '#FF9F45', ep: '第一集'},
-    {title: '上线之后，AI 才开始上学', sub: '经验 · 怎么攒', c1: '#F5C542', c2: '#2DD4BF', ep: '第二集'},
-    {title: '会写代码的 AI，开始给自己写代码', sub: '代码田野 · 全图', c1: '#4ADE80', c2: '#FF6EC7', ep: '第三集 · 本集'},
+    {title: '上线之后，AI 才开始上学', sub: '经验 · 怎么攒', c1: '#F5C542', c2: '#2DD4BF', ep: '第一集', self: false},
+    {title: 'AI 如何自己变强？', sub: '自我进化 · 改什么', c1: '#4A9EFF', c2: '#FF9F45', ep: '第二集', self: false},
+    {title: '会写代码的 AI，开始给自己写代码', sub: '代码田野 · 全图', c1: '#4ADE80', c2: '#FF6EC7', ep: '第三集 · 本集', self: true},
   ];
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
@@ -120,8 +119,8 @@ const SeriesThree: React.FC = () => {
                 padding: '30px 26px',
                 borderRadius: 16,
                 background: theme.panel,
-                border: `2px solid ${i === 2 ? theme.text : theme.panelBorder}`,
-                boxShadow: i === 2 ? `0 0 44px ${theme.codeDeep}` : 'none',
+                border: `2px solid ${ep.self ? theme.text : theme.panelBorder}`,
+                boxShadow: ep.self ? `0 0 44px ${theme.codeDeep}` : 'none',
                 textAlign: 'center',
               }}
             >
@@ -144,7 +143,7 @@ const SeriesThree: React.FC = () => {
       </div>
       <FadeUp delay={70}>
         <div style={{marginTop: 50, fontFamily: theme.sans, fontSize: 28, color: theme.text}}>
-          三块拼图：改什么 → 怎么攒 → <span style={{color: theme.code, fontWeight: 700}}>代码领域全图</span>
+          三块拼图：怎么攒 → 改什么 → <span style={{color: theme.code, fontWeight: 700}}>代码领域全图</span>
         </div>
       </FadeUp>
     </AbsoluteFill>

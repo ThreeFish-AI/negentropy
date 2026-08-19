@@ -98,7 +98,8 @@ def test_spoken_own_title_passes(tmp_path):
 
 
 def test_title_order_inverted_fails(tmp_path):
-    files = {"media/ep-b/README.md": "先提《乙集标题》再提《甲集标题》，顺序倒置。\n"}
+    # 中性位置（非本集工程内）出现 ≥2 集标题时按首现位置判序——knowledge-map/CHANGELOG 场景
+    files = {"media/notes.md": "先提《乙集标题》再提《甲集标题》，顺序倒置。\n"}
     repo = build_repo(tmp_path, [EP1, EP2], files)
     rc, out = run_check(repo)
     assert rc == 1 and "规则2" in out
