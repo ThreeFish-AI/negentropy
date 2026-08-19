@@ -1,14 +1,19 @@
 import type {ManifestItem, SceneRange, TimedSentence} from './types';
+import constants from './timing.json';
 
-export const FPS = 30;
+/** 时序常量单一事实源：本目录 timing.json（qa_frames.py / captions.py 读同一文件，
+ *  双语言镜像由此消灭；本集要调节奏只改 timing.json，不动代码） */
+export const FPS = constants.fps;
 /** 句间停顿 */
-const SENTENCE_GAP_SEC = 0.32;
+const SENTENCE_GAP_SEC = constants.sentenceGapSec;
 /** 幕间额外停顿（转场呼吸） */
-const SCENE_GAP_SEC = 0.9;
+const SCENE_GAP_SEC = constants.sceneGapSec;
 /** 片头静默引导 */
-const LEAD_IN_SEC = 0.6;
+const LEAD_IN_SEC = constants.leadInSec;
 /** 片尾静默淡出 */
-const TAIL_SEC = 2.0;
+const TAIL_SEC = constants.tailSec;
+/** 幕间呼吸淡入淡出帧数（见 components/SceneFade.tsx；首幕不淡入、末幕不淡出） */
+export const SCENE_FADE_FRAMES = Math.round(constants.sceneCrossFadeSec * constants.fps);
 
 export function computeTimeline(manifest: ManifestItem[]): {
   timed: TimedSentence[];

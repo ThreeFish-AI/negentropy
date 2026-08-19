@@ -558,6 +558,13 @@ async def main() -> None:
         "--ref", default=None, help="[indextts] 参考音色样本路径（建议 5–15s 干净人声）"
     )
     idx.add_argument(
+        "--expect-ref-sha1",
+        default=None,
+        metavar="12HEX",
+        help="[indextts] 期望的参考样本 sha1 前 12 位，不符即硬失败——pipeline.py 从"
+        "各集 pipeline.toml 自动带上，防「换样本静默重录整集」（指纹清单见 voices/refs.toml）",
+    )
+    idx.add_argument(
         "--server", default="http://127.0.0.1:8766", help="[indextts] 服务地址"
     )
     idx.add_argument(
@@ -771,6 +778,13 @@ async def main() -> None:
             # 情感样本按内容入摘要：换情感录音必须失效缓存（与 ref 同口径）
             emo_ref_sha1 = hashlib.sha1(p.read_bytes()).hexdigest()[:12]
         ref_sha1 = hashlib.sha1(ref_path.read_bytes()).hexdigest()[:12]
+        # 指纹硬校验：样本即音色。换样本 = 整集换音色，必须在长跑开始前失败
+        if args.expect_ref_sha1 and args.expect_ref_sha1 != ref_sha1:
+            parser.error(
+                f"参考样本指纹不符：期望 {args.expect_ref_sha1}，实得 {ref_sha1}"
+                f"（{ref_path}）——源录音或裁剪参数已变。"
+                f"勿在未核验音色上跑长合成；指纹清单见 media/pipeline/voices/refs.toml"
+            )
 
         # 混合档：解析选择器并逐句定束宽（此处即失败，避免典型的「id 拼错→静默全按低束宽跑完」）
         beams_of: dict[str, int] = dict.fromkeys((i["id"] for i in items), beams)

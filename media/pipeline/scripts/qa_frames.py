@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """按句 id 从渲染产物中抽帧，用于视觉 QA——公共管线版本。
 
-时序常量须与工程的 video/src/timing.ts 保持一致（FPS/句间停顿/幕间停顿/片头引导）。
-若工程自定义了 timing 常量，须同步本文件顶部的镜像常量。
+时序常数直读 <工程>/video/src/timing.json（单一事实源，与 timing.ts / captions.py
+同源），镜像常量已删除——工程改节奏只动 timing.json，本脚本自动跟随。
 
 用法：uv run --no-project media/pipeline/scripts/qa_frames.py --project media/<工程> \
           <video.mp4> <句id> [句id ...]
@@ -16,26 +16,23 @@ from __future__ import annotations
 import argparse
 import json
 import subprocess
+import sys
 from pathlib import Path
 
-# 与各工程 video/src/timing.ts 对齐（管线默认值；改过 timing 的工程须同步）
-FPS = 30
-SENTENCE_GAP = 0.32
-SCENE_GAP = 0.9
-LEAD_IN = 0.6
+sys.path.insert(0, str(Path(__file__).resolve().parent))  # noqa: E402 - 导入同目录 timeline
+from timeline import compute, load_constants  # noqa: E402
 
 
-def timeline(manifest: Path) -> dict[str, tuple[float, float]]:
+def timeline(root: Path) -> dict[str, tuple[float, float]]:
+    """读 manifest + timing.json，返回 {句id: (startSec, spanSec)}。"""
+    manifest = root / "video" / "public" / "audio" / "manifest.json"
+    if not manifest.is_file():
+        sys.exit(
+            f"manifest.json 不存在: {manifest} —— 先运行 scripts/tts.py 合成配音"
+        )
     items = json.loads(manifest.read_text(encoding="utf-8"))
-    result: dict[str, tuple[float, float]] = {}
-    cursor_frames = round(LEAD_IN * FPS)
-    for i, item in enumerate(items):
-        nxt = items[i + 1] if i + 1 < len(items) else None
-        gap = SENTENCE_GAP + (SCENE_GAP if nxt and nxt["scene"] != item["scene"] else 0)
-        dur_frames = max(1, round((item["durationSec"] + gap) * FPS))
-        result[item["id"]] = (cursor_frames / FPS, dur_frames / FPS)
-        cursor_frames += dur_frames
-    return result
+    c = load_constants(root)
+    return {r["id"]: (r["startSec"], r["spanSec"]) for r in compute(items, c)}
 
 
 def main() -> None:
@@ -58,10 +55,9 @@ def main() -> None:
 
     root = Path(args.project).resolve()
     video = Path(args.video).resolve()
-    manifest = root / "video" / "public" / "audio" / "manifest.json"
     out = root / "out" / "frames"
 
-    tl = timeline(manifest)
+    tl = timeline(root)
     offset = args.offset
     if args.scene:
         prefix = args.scene.lower() + "-"
