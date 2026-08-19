@@ -493,7 +493,7 @@ const RepoCard: React.FC = () => {
   const enter = spring({frame, fps, config: {damping: 200}});
   // 331 = data/papers.json 实测条数（2026-08-19 取数；站点首页 111 为未水合占位，勿引用）
   const count = Math.round(331 * ci(frame, 6, 40));
-  const chapters = ['引言', '工位', '技能', '记忆', '环境', '参数', '元进化', '评测', '安全'];
+  const chapters = ['引言', '工位', '技能', '记忆', '环境', '大脑', '元进化', '评测', '安全'];
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <div
