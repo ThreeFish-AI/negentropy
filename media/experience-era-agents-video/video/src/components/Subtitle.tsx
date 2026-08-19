@@ -1,14 +1,21 @@
 import React from 'react';
 import {AbsoluteFill, interpolate, useCurrentFrame} from 'remotion';
+import {fitText} from '@remotion/layout-utils';
 import {theme} from '../design/theme';
 import type {TimedSentence} from '../types';
 
-const CJK = /[⺀-鿿豈-﫿]/;
-/** 全角标点与 CJK 同宽（1em），不满足 CJK 区间，须并列判定；
- *  ASCII 引号 (U+0022/27) 字形实为半宽，不入此类、按 0.55 桶计 */
-const FULLWIDTH_PUNCT = /[，。！？：；、“”‘’（）——…·《》「」]/;
+const MAX_WIDTH = 1600;
+const PADDING_X = 36;
+/** Remotion 默认样式表为 box-sizing: border-box，内容预算须减去左右 padding */
+const CONTENT_WIDTH = MAX_WIDTH - PADDING_X * 2;
+const MAX_FONT_SIZE = 44;
+const MIN_FONT_SIZE = 30;
 
-/** 全片底部字幕条：一句一条，与配音逐句同步（storyboard.md 字幕规范） */
+/** 全片底部字幕条：一句一条，与配音逐句同步（storyboard.md 字幕规范）。
+ *  字号用 @remotion/layout-utils 的 fitText 真实测量（替代此前手写的全角 1.0/半角
+ *  0.55 宽度估算与魔法阈值）。validateFontIsLoaded 保持 4.x 默认 false——系统字体
+ *  栈无 loadFont() promise 可等；⚠️ Remotion 5.0 起该开关默认翻 true，届时若仍未
+ *  内嵌字体会开始抛错（重启触发器见 pipeline/README 字体约束节）。 */
 export const Subtitle: React.FC<{timed: TimedSentence[]}> = ({timed}) => {
   const frame = useCurrentFrame();
   const current = timed.find((s) => frame >= s.from && frame < s.from + s.durationInFrames);
@@ -19,21 +26,20 @@ export const Subtitle: React.FC<{timed: TimedSentence[]}> = ({timed}) => {
   const opacity = interpolate(local, [0, 4], [0, 1], {
     extrapolateRight: 'clamp',
   });
-  // 长句防御性收缩：估算宽度超限时缩小字号，保证单行不溢出（全角≈1 字宽，半角≈0.55）。
-  // 内容预算 = maxWidth 1600 − 左右 padding 72 = 1528，估算含 ~2% 字距余量故用 1500 触发
-  const estWidth =
-    current.text.split('').reduce(
-      (w, ch) => w + (CJK.test(ch) || FULLWIDTH_PUNCT.test(ch) ? 1 : 0.55),
-      0,
-    ) * 44;
-  const fontSize = estWidth > 1500 ? Math.max(30, 44 - (estWidth - 1500) / 25) : 44;
+  const fitted = fitText({
+    text: current.text,
+    withinWidth: CONTENT_WIDTH,
+    fontFamily: theme.sans,
+    fontWeight: 500, // 须与下方 div 的 fontWeight 一致，否则测量偏小
+  }).fontSize;
+  const fontSize = Math.max(MIN_FONT_SIZE, Math.min(MAX_FONT_SIZE, fitted));
   return (
     <AbsoluteFill style={{justifyContent: 'flex-end', alignItems: 'center', pointerEvents: 'none'}}>
       <div
         style={{
           marginBottom: 54,
-          maxWidth: 1600,
-          padding: '12px 36px',
+          maxWidth: MAX_WIDTH,
+          padding: `12px ${PADDING_X}px`,
           borderRadius: 12,
           background: 'rgba(6, 8, 12, 0.68)',
           color: theme.text,
