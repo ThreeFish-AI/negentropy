@@ -15,6 +15,8 @@
   indextts：uv run --no-project --with mutagen media/pipeline/scripts/tts.py \
                 --project media/<工程> --engine indextts --ref <参考样本.wav> \
                 [--style passionate] [--server http://127.0.0.1:8766] [--force]
+  情感三来源（互斥）：--style/--emo-vector 向量注入 · --emo-ref <另一段录音> 语调迁移
+                （更自然）· --emo-text "轻快爽朗、自信阳光" 自然语言（需服务端 --use-qwen-emo）
   （工程内薄包装等价于在工程目录下运行 scripts/tts.py）
 
 声音克隆完整手册（部署/风格/排障/许可）见 media/pipeline/VOICE-CLONING.md。
@@ -243,8 +245,17 @@ def http_synthesize(
     df: float,
     lang: str,
     num_beams: int = 1,
+    emo_ref: str | None = None,
+    emo_text: str | None = None,
+    headers_out: dict | None = None,
 ) -> tuple[bytes, str]:
-    """POST /synthesize → (mp3 bytes, X-Audio-Format)。4xx 不可重试。"""
+    """POST /synthesize → (mp3 bytes, X-Audio-Format)。4xx 不可重试。
+
+    headers_out：可选出参，传入 dict 时回填全部响应头（如 emo_text 模式的 X-Emo-Vector），
+    供试听工具回显；管线主路径不需要，故保持返回值签名不变。
+    **键统一小写**——urllib 的 HTTPMessage 查找不分大小写，但拷进普通 dict 后会变成
+    大小写敏感，而 Starlette 下发的响应头名是小写的，故此处归一避免调用方取不到值。
+    """
     payload: dict = {
         "text": text,
         "ref_path": ref,
@@ -255,6 +266,10 @@ def http_synthesize(
     }
     if vec is not None:
         payload["emo_vector"] = vec
+    if emo_ref:  # 情感参考音频：音色仍取 ref，语调迁移自 emo_ref（服务端与向量互斥）
+        payload["emo_ref_path"] = emo_ref
+    if emo_text:  # 自然语言情感描述（服务端 QwenEmotion 转向量）
+        payload["emo_text"] = emo_text
     req = urllib.request.Request(
         f"{server}/synthesize",
         data=json.dumps(payload).encode(),
@@ -263,6 +278,8 @@ def http_synthesize(
     )
     try:
         with urllib.request.urlopen(req, timeout=HTTP_TIMEOUT) as resp:
+            if headers_out is not None:
+                headers_out.update({k.lower(): v for k, v in resp.headers.items()})
             return resp.read(), resp.headers.get("X-Audio-Format", "unknown")
     except urllib.error.HTTPError as e:
         detail = _http_error_detail(e)
@@ -283,12 +300,16 @@ def digest_indextts(
     engine_tag: str,
     text: str,
     num_beams: int = 1,
+    emo_ref_sha1: str | None = None,
+    emo_text: str | None = None,
 ) -> str:
     vec_str = ",".join(repr(x) for x in vec) if vec else "none"
-    # 束宽改变合成结果，须入键；默认 1 时省略字段——沿用历史摘要格式，存量缓存不失效
+    # 束宽/情感来源改变合成结果，须入键；未使用时省略字段——沿用历史摘要格式，存量缓存不失效
     beams_part = "" if num_beams == 1 else f"|beams={num_beams}"
+    emo_part = f"|emoref={emo_ref_sha1}" if emo_ref_sha1 else ""
+    emo_part += f"|emotext={emo_text}" if emo_text else ""
     return hashlib.sha1(
-        f"indextts|{engine_tag}|{ref_sha1}|{lang}|{style}|{vec_str}|{alpha!r}|{df!r}|{text}{beams_part}".encode()
+        f"indextts|{engine_tag}|{ref_sha1}|{lang}|{style}|{vec_str}|{alpha!r}|{df!r}|{text}{beams_part}{emo_part}".encode()
     ).hexdigest()
 
 
@@ -307,11 +328,26 @@ async def synth_indextts(
     server: str,
     out_dir: Path,
     num_beams: int = 1,
+    emo_ref: str | None = None,
+    emo_ref_sha1: str | None = None,
+    emo_text: str | None = None,
 ) -> dict:
     sid, text = item["id"], item["text"]
     mp3 = out_dir / f"{sid}.mp3"
     meta = out_dir / f"{sid}.sha"
-    digest = digest_indextts(ref_sha1, style, vec, alpha, df, lang, engine_tag, text, num_beams)
+    digest = digest_indextts(
+        ref_sha1,
+        style,
+        vec,
+        alpha,
+        df,
+        lang,
+        engine_tag,
+        text,
+        num_beams,
+        emo_ref_sha1,
+        emo_text,
+    )
 
     if (
         not force
@@ -336,6 +372,8 @@ async def synth_indextts(
                         df,
                         lang,
                         num_beams,
+                        emo_ref,
+                        emo_text,
                     )
                     if fmt != "mp3":
                         raise NonRetryableError(
@@ -402,6 +440,18 @@ async def main() -> None:
         help="[indextts] 原始情感向量，如 happy:0.6,calm:0.2（与 --style 非默认值互斥）",
     )
     idx.add_argument(
+        "--emo-ref",
+        default=None,
+        help="[indextts] 情感参考音频：音色仍取 --ref，语调/情绪迁移自这段录音（比向量注入更自然；"
+        "与 --style 非默认值/--emo-vector/--emo-text 互斥）",
+    )
+    idx.add_argument(
+        "--emo-text",
+        default=None,
+        help="[indextts] 自然语言情感描述，如「轻快爽朗、自信阳光」（需服务端 --use-qwen-emo；"
+        "与 --style 非默认值/--emo-vector/--emo-ref 互斥）",
+    )
+    idx.add_argument(
         "--emo-alpha",
         default=None,
         type=float,
@@ -428,7 +478,9 @@ async def main() -> None:
         help="[indextts] 缓存标记；模型升级后自定义以失效旧缓存",
     )
     args = parser.parse_args()
-    args.server = args.server.rstrip("/")  # 尾斜杠归一：health/synthesize 两处拼 URL 前收口
+    args.server = args.server.rstrip(
+        "/"
+    )  # 尾斜杠归一：health/synthesize 两处拼 URL 前收口
 
     if args.list_styles:
         print(
@@ -447,6 +499,8 @@ async def main() -> None:
             for flag, val in {
                 "--ref": args.ref,
                 "--emo-vector": args.emo_vector,
+                "--emo-ref": args.emo_ref,
+                "--emo-text": args.emo_text,
                 "--emo-alpha": args.emo_alpha,
                 "--duration-factor": args.duration_factor,
                 "--num-beams": args.num_beams != 1,
@@ -480,12 +534,31 @@ async def main() -> None:
             )
         )
     else:
-        if args.style != "neutral" and args.emo_vector:
-            parser.error("--style 非默认值与 --emo-vector 互斥")
-        try:
-            style_name, vec, alpha, df = resolve_style(args)
-        except ValueError as e:
-            parser.error(str(e))
+        # 情感三来源互斥：显式向量 / 情感参考音频 / 自然语言描述（服务端亦校验，此处提前失败）
+        emo_sources = [
+            f
+            for f, v in (
+                ("--emo-vector", args.emo_vector),
+                ("--emo-ref", args.emo_ref),
+                ("--emo-text", args.emo_text),
+            )
+            if v
+        ]
+        if len(emo_sources) > 1:
+            parser.error(f"情感来源互斥，只能给一个：{' '.join(emo_sources)}")
+        if args.style != "neutral" and emo_sources:
+            parser.error(f"--style 非默认值与 {emo_sources[0]} 互斥")
+        if args.emo_ref or args.emo_text:
+            # 音频/文本驱动情感时不注入向量；alpha 默认 1.0（完全采用该情感来源）
+            style_name = "emoref" if args.emo_ref else "emotext"
+            vec = None
+            alpha = args.emo_alpha if args.emo_alpha is not None else 1.0
+            df = args.duration_factor if args.duration_factor is not None else 1.0
+        else:
+            try:
+                style_name, vec, alpha, df = resolve_style(args)
+            except ValueError as e:
+                parser.error(str(e))
         if not args.ref:
             parser.error(
                 "--engine indextts 需要 --ref 参考音色样本（见 " + MANUAL + " §三）"
@@ -495,8 +568,12 @@ async def main() -> None:
             parser.error(f"参考样本不存在: {ref_path}")
         if args.emo_alpha is not None and not 0.0 <= args.emo_alpha <= 1.0:
             parser.error("--emo-alpha 必须在 [0, 1]")
-        if vec is not None and sum(vec) * alpha > 0.8:  # infer 内部以 alpha 缩放，校验有效和
-            parser.error(f"情感向量有效和 {sum(vec) * alpha:.3f}（Σvec×alpha）超过 0.8 上限")
+        if (
+            vec is not None and sum(vec) * alpha > 0.8
+        ):  # infer 内部以 alpha 缩放，校验有效和
+            parser.error(
+                f"情感向量有效和 {sum(vec) * alpha:.3f}（Σvec×alpha）超过 0.8 上限"
+            )
         if args.duration_factor is not None and not 0.5 <= args.duration_factor <= 2.0:
             parser.error("--duration-factor 必须在 [0.5, 2.0]")
 
@@ -521,6 +598,20 @@ async def main() -> None:
                 "当前服务为 IndexTTS-2（无语速控制）：去掉 --duration-factor，或风格选 neutral，见 "
                 + MANUAL
             )
+        if args.emo_text and not health.get("supports_emo_text"):
+            parser.error(
+                "当前服务未加载 QwenEmotion：重启服务加 --use-qwen-emo，或改用 --emo-vector/--emo-ref，见 "
+                + MANUAL
+            )
+
+        emo_ref_path = emo_ref_sha1 = None
+        if args.emo_ref:
+            p = Path(args.emo_ref).expanduser().resolve()
+            if not p.is_file():
+                parser.error(f"情感参考音频不存在: {p}")
+            emo_ref_path = str(p)
+            # 情感样本按内容入摘要：换情感录音必须失效缓存（与 ref 同口径）
+            emo_ref_sha1 = hashlib.sha1(p.read_bytes()).hexdigest()[:12]
 
         ref_sha1 = hashlib.sha1(ref_path.read_bytes()).hexdigest()[:12]
         sem = asyncio.Semaphore(CONCURRENCY_INDEXTTS)
@@ -541,6 +632,9 @@ async def main() -> None:
                     args.server,
                     out_dir,
                     num_beams=args.num_beams,
+                    emo_ref=emo_ref_path,
+                    emo_ref_sha1=emo_ref_sha1,
+                    emo_text=args.emo_text,
                 )
                 for i in items
             )

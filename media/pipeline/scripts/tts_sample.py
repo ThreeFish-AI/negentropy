@@ -57,6 +57,16 @@ def build_jobs(
 
     --all-styles 逐档取各预设自带的 alpha/df（这正是 A/B 的意义，故与手动覆盖互斥）。
     """
+    if args.emo_ref or args.emo_text:
+        # 音频/文本驱动情感：不注入向量，alpha 默认 1.0（完全采用该情感来源）
+        return [
+            (
+                "emoref" if args.emo_ref else "emotext",
+                None,
+                args.emo_alpha if args.emo_alpha is not None else 1.0,
+                args.duration_factor if args.duration_factor is not None else 1.0,
+            )
+        ]
     if args.all_styles:
         return [
             resolve_style(
@@ -69,7 +79,9 @@ def build_jobs(
     return [resolve_style(args)]
 
 
-def check_server(server: str, need_duration_factor: bool) -> None:
+def check_server(
+    server: str, need_duration_factor: bool, need_emo_text: bool = False
+) -> None:
     """健康检查——服务未起时给出可直接粘贴的启动命令，避免等到合成阶段才失败。"""
     try:
         health = http_json("GET", f"{server}/health", None, 10)
@@ -92,6 +104,11 @@ def check_server(server: str, need_duration_factor: bool) -> None:
             "当前服务为 IndexTTS-2（无语速控制），而所选风格的 duration_factor≠1.0：\n"
             f"  改用 --style neutral，或以 --indextts-version 2.5 重启服务（见 {MANUAL} §七）"
         )
+    if need_emo_text and not health.get("supports_emo_text"):
+        sys.exit(
+            "当前服务未加载 QwenEmotion，无法用 --emo-text：\n"
+            "  重启服务时加 --use-qwen-emo（约 +1.5 GB 内存），或改用 --emo-vector / --emo-ref"
+        )
 
 
 def synthesize_one(
@@ -101,12 +118,14 @@ def synthesize_one(
     alpha: float,
     df: float,
     out_dir: Path,
+    stem: str | None = None,
 ) -> dict:
     """合成一档并落盘 → {style, path, duration, wall, rtf}。失败即退出（小样无需容错累积）。"""
-    out = out_dir / f"{name}.mp3"
+    out = out_dir / f"{stem or name}.mp3"
     last_err: Exception | None = None
     for attempt in range(ATTEMPTS):
         t0 = time.perf_counter()
+        headers: dict = {}
         try:
             audio, fmt = http_synthesize(
                 args.server,
@@ -117,6 +136,9 @@ def synthesize_one(
                 df,
                 args.lang,
                 args.num_beams,
+                args.emo_ref,
+                args.emo_text,
+                headers,
             )
         except NonRetryableError as e:
             sys.exit(f"[{name}] 请求被拒（4xx，重试无意义）：{e}")
@@ -136,8 +158,16 @@ def synthesize_one(
         out.write_bytes(audio)
         duration = mp3_duration(out)
         rtf = wall / duration if duration else float("nan")
+        derived = headers.get(
+            "x-emo-vector"
+        )  # headers_out 的键已由 http_synthesize 归一为小写
         print(  # flush：长跑常被 tee/nohup 重定向，缓冲会让进度看起来「卡住」
-            f"[{name:<10}] 音频 {duration:5.2f}s · 墙钟 {wall:6.1f}s · RTF {rtf:5.1f} · {out}",
+            f"[{name:<10}] 音频 {duration:5.2f}s · 墙钟 {wall:6.1f}s · RTF {rtf:5.1f} · {out}"
+            + (
+                f"\n           情感向量（Qwen 推出，可用 --emo-vector 固化）：{derived}"
+                if derived
+                else ""
+            ),
             flush=True,
         )
         return {
@@ -194,6 +224,17 @@ def main() -> None:
         help="原始情感向量，如 happy:0.6,calm:0.2（与非默认 --style 互斥）",
     )
     parser.add_argument(
+        "--emo-ref",
+        default=None,
+        help="情感参考音频：音色仍取 --ref，语调/情绪迁移自这段录音——比向量注入更自然",
+    )
+    parser.add_argument(
+        "--emo-text",
+        default=None,
+        help='自然语言情感描述，如 "轻快爽朗、自信阳光"（需服务端 --use-qwen-emo；'
+        "推出的向量会回显，可再用 --emo-vector 固化)",
+    )
+    parser.add_argument(
         "--emo-alpha", default=None, type=float, help="情感强度 0–1（默认随风格）"
     )
     parser.add_argument(
@@ -209,6 +250,11 @@ def main() -> None:
     )
     parser.add_argument("--server", default="http://127.0.0.1:8766", help="服务地址")
     parser.add_argument(
+        "--label",
+        default=None,
+        help="产物文件名（不含扩展名，默认取风格名）——横向对比多个样本/自定义向量时用于避免互相覆盖",
+    )
+    parser.add_argument(
         "--out-dir",
         default=None,
         help=f"产物目录（默认 {DEFAULT_OUT_DIR}，已被 .gitignore 忽略）",
@@ -223,6 +269,26 @@ def main() -> None:
     # ---- 参数互斥与取值校验（尽早失败：单档合成约 2 分钟，不能等到最后才报错）----
     if args.text and args.text_file:
         parser.error("--text 与 --text-file 互斥")
+    if args.label and ("/" in args.label or args.label in (".", "..")):
+        parser.error("--label 只能是文件名片段，不能含路径分隔符")
+    emo_sources = [
+        f
+        for f, v in (
+            ("--emo-vector", args.emo_vector),
+            ("--emo-ref", args.emo_ref),
+            ("--emo-text", args.emo_text),
+        )
+        if v
+    ]
+    if len(emo_sources) > 1:
+        parser.error(f"情感来源互斥，只能给一个：{' '.join(emo_sources)}")
+    if emo_sources and args.all_styles:
+        parser.error(f"--all-styles 遍历风格预设，不能与 {emo_sources[0]} 同用")
+    if args.emo_ref:
+        p = Path(args.emo_ref).expanduser().resolve()
+        if not p.is_file():
+            parser.error(f"情感参考音频不存在: {p}")
+        args.emo_ref = str(p)  # 绝对路径：服务端按自身文件系统解析
     if args.all_styles:
         overrides = [
             flag
@@ -275,6 +341,10 @@ def main() -> None:
     ]  # 与缓存摘要同前缀，便于与 .sha 对账
     print(f">> 文本（预处理后）：{tts_text(args.text)}")
     print(f">> 参考样本：{ref}（sha1 {ref_sha1}）")
+    if args.emo_ref:
+        print(f">> 情感参考音频：{args.emo_ref}（音色仍取上面的参考样本）")
+    if args.emo_text:
+        print(f">> 情感描述：{args.emo_text}（服务端 QwenEmotion 转向量）")
     print(f">> 风格 {len(jobs)} 档 · num_beams={args.num_beams} · lang={args.lang}")
     for name, vec, alpha, df in jobs:
         vec_str = ",".join(f"{x:g}" for x in vec) if vec else "—（不注入情感）"
@@ -290,7 +360,11 @@ def main() -> None:
             "缺少 mutagen（实测 MP3 时长用）：请以 `uv run --no-project --with mutagen ...` 执行"
         )
 
-    check_server(args.server, need_duration_factor=any(df != 1.0 for *_, df in jobs))
+    check_server(
+        args.server,
+        need_duration_factor=any(df != 1.0 for *_, df in jobs),
+        need_emo_text=bool(args.emo_text),
+    )
 
     out_dir = (
         Path(args.out_dir).expanduser().resolve() if args.out_dir else DEFAULT_OUT_DIR
@@ -298,8 +372,19 @@ def main() -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     print(f">> 产物目录：{out_dir}\n")
 
+    # --label 单档时即文件名、多档时作前缀（{label}-{风格}），横向对比不同样本时不互相覆盖
     results = [
-        synthesize_one(args, name, vec, alpha, df, out_dir)
+        synthesize_one(
+            args,
+            name,
+            vec,
+            alpha,
+            df,
+            out_dir,
+            stem=None
+            if not args.label
+            else (args.label if len(jobs) == 1 else f"{args.label}-{name}"),
+        )
         for name, vec, alpha, df in jobs
     ]
 

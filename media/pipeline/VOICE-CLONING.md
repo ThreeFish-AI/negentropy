@@ -75,11 +75,12 @@ uv run hf download IndexTeam/IndexTTS-2.5 --local-dir checkpoints
 cd ~/tools/index-tts
 uv run --frozen --with fastapi --with uvicorn --with soundfile --with numpy --with lameenc \
     python <本仓绝对路径>/media/pipeline/scripts/tts_server.py \
-    --model-dir checkpoints --indextts-version 2.5 --host 127.0.0.1 --port 8766
+    --model-dir checkpoints --indextts-version 2.5 --host 127.0.0.1 --port 8766 \
+    [--use-qwen-emo]   # 可选：加载 QwenEmotion（0.6B，约 +1.5 GB 内存），启用 --emo-text 自然语言情感
 ```
 
-- 启动即加载模型（约 30–60 秒），出现 `>> 就绪：IndexTTS-2.5 device=mps ...` 后可服务请求；
-- 健康检查：`curl http://127.0.0.1:8766/health` → `{"ok": true, "version": "2.5", "device": "mps", "synthesizing": false, "dtype": "fp32", "encoder": "soundfile", "supports_duration_factor": true}`（MPS 上 dtype 恒为 fp32，属预期）；
+- 启动即加载模型（约 30–60 秒），出现 `>> 就绪：IndexTTS-2.5 device=mps ... emo_text=on|off` 后可服务请求；
+- 健康检查：`curl http://127.0.0.1:8766/health` → `{"ok": true, "version": "2.5", "device": "mps", "synthesizing": false, "dtype": "fp32", "encoder": "soundfile", "supports_duration_factor": true, "supports_emo_text": false}`（MPS 上 dtype 恒为 fp32，属预期；`supports_emo_text` 随 `--use-qwen-emo` 变化）；
 - **仅监听 127.0.0.1、无鉴权，勿暴露公网**；`ref_path` 为服务端本地绝对路径。
 
 
@@ -89,6 +90,7 @@ uv run --frozen --with fastapi --with uvicorn --with soundfile --with numpy --wi
 |---|---|
 | `uv run --with` 报依赖解析冲突（与 gradio/torch 锁冲突） | 先 `uv pip install fastapi uvicorn soundfile lameenc` 装进 checkout 的 venv，再 `uv run --no-sync python ...` 启动 |
 | `uv run --frozen` 报锁不同步 | 去掉 `--frozen`（仅当 checkout 的 uv.lock 与 pyproject 状态异常时） |
+| `--use-qwen-emo` 启动失败：`no file named model.safetensors ... qwen0.6bemo4-merge/` | 首轮 `hf download` 只落了该子目录的 config/tokenizer，权重（1.19 GB）缺失。补齐：`cd ~/tools/index-tts && uv run hf download IndexTeam/IndexTTS-2.5 --include "qwen0.6bemo4-merge/*" --local-dir checkpoints`（约 20 秒），再带 `--use-qwen-emo` 重启 |
 | HF 下载超时/中断 | 重跑 `hf download` 即续传；或改用 ModelScope（见 2.2） |
 | 下载中途「假死」（进程在但字节零增长，连接 CLOSE_WAIT） | 强杀进程重跑即可续传：`pkill -f "hf download"` 后重复 `uv run hf download ...`；可循环重试直至完成 |
 | 磁盘不足 | checkpoints 可与其它 index-tts 部署共享（启动时 `--model-dir` 指向同一目录） |
@@ -100,7 +102,7 @@ uv run --frozen --with fastapi --with uvicorn --with soundfile --with numpy --wi
 | 项 | 要求 |
 |---|---|
 | 时长 | **5–15 秒**（上限 30s） |
-| 内容 | 自然说话，与目标成片语速/语调一致（韵律风格会被一并克隆） |
+| 内容 | 自然说话，**与目标成片语速/语调一致**——韵律风格会被一并克隆，样本定基线、情感向量只能在基线上微调（实测见 3.3） |
 | 环境 | 安静房间、固定麦克风距离、无 BGM/混响/系统降噪痕迹 |
 | 说话人 | 仅本人一人 |
 | 格式 | WAV 16-bit ≥22.05kHz 优先（mp3/flac 经 `prepare_ref.py` 转换；m4a 需先 `ffmpeg -i in.m4a out.wav`） |
@@ -116,27 +118,43 @@ uv run --no-project --with soundfile --with numpy \
 
 裁剪段须试听确认（`afplay media/pipeline/voices/me-1.wav`）：该段人声干净、无背景音乐、语句完整。样本 SHA1 参与缓存摘要（见 §六），替换样本自动失效缓存。
 
-**选段辅助**——长录音里挑哪一段？按滑窗扫响度与停顿，先筛出候选起点再逐个试听：
+**选段辅助**——长录音里挑哪一段？用 [scripts/prospect_ref.py](./scripts/prospect_ref.py) 按滑窗扫客观指标（F0 中位=音高、F0 起伏=语调、音节率=语速、谱质心=明亮度，并对静音过多/发声过少扣分），先筛候选再试听：
 
 ```bash
-uv run --no-project --with soundfile --with numpy python - <<'PY'
-import numpy as np, soundfile as sf
-x, sr = sf.read("/Users/<你>/Documents/dify/me-1.mp3", dtype="float32", always_2d=True)
-x, W, rows = x.mean(axis=1), 12, []   # W = 目标样本时长（秒）
-for s in range(0, int(len(x) / sr) - W + 1):
-    seg = x[s * sr : (s + W) * sr]
-    frames = seg[: len(seg) // (sr // 50) * (sr // 50)].reshape(-1, sr // 50)  # 20ms 帧
-    rms = float(np.sqrt(np.mean(seg**2)))
-    sil = float(np.mean(np.sqrt(np.mean(frames**2, axis=1)) < 0.1 * rms))      # 静音占比
-    rows.append((rms, s, sil))
-for rms, s, sil in sorted(rows, reverse=True)[:8]:
-    print(f"--start {s:<4d} rms={rms:.4f} 静音占比={sil:.2f}")
-PY
+uv run --no-project --with soundfile --with numpy media/pipeline/scripts/prospect_ref.py \
+    ~/Documents/dify/me-1.mp3 ~/Documents/dify/me-2.mp3 --window 12 --top 4
+# 输出可直接当 prepare_ref.py 的 --start 用；多个文件会放在同一把尺子下排序
 ```
 
-响度高只代表「不太小声」，**不代表段落好**（成片所用的 180s 段在 253 个候选窗口中 RMS 仅排 67）；真正的判据是人声干净、单说话人、语句完整、语速语调贴近目标成片——只能靠试听定夺。
+分高只代表「不小声、不平、不慢」，**不代表段落好**（成片在用的 180s 段综合分仅排 157/275）；真正的判据是人声干净、单说话人、语句完整、语速语调贴近目标成片——只能靠试听定夺。
+
+### 3.3 样本决定基线：换段落比调参数更管用（实测）
+
+若合成结果「不够轻快/不够阳光」，**先怀疑样本，再怀疑向量**。2026-08-19 在同一位说话人的 4 段录音上做 12s 滑窗勘探（指标：F0 中位=音高、F0 四分位距=语调起伏、音节率=语速、谱质心=明亮度），并对每个候选样本做**纯克隆**（`--style neutral`，不注入任何情感）小样：
+
+| 候选样本（12s） | 样本 F0 中位 | 样本起伏 | 样本音节率 | 样本质心 | → 纯克隆小样 F0 | 小样起伏 | 小样质心 |
+|---|---|---|---|---|---|---|---|
+| me-1 @180s（**成片在用**） | 142.2 Hz | 31.2 | 4.42 | 1698 Hz | 140.4 Hz | 26.2 | 1120 Hz |
+| me-1 @0s | 161.6 Hz | 36.4 | 4.67 | 1728 Hz | 157.5 Hz | 34.1 | 1181 Hz |
+| me-1 @28s | 153.8 Hz | 25.5 | 4.75 | **1898 Hz** | **163.3 Hz** | 35.2 | 1286 Hz |
+| me-2 @172s | 151.3 Hz | **38.9** | **4.92** | 1840 Hz | 145.1 Hz | 32.8 | 1152 Hz |
+| me-3 @48s | 156.9 Hz | 31.8 | 4.83 | 1765 Hz | 156.4 Hz | 36.4 | 1268 Hz |
+
+结论：**成片在用的那一段恰好是说话人自己最低、最平、最暗的一档**（综合分排名 157/275），换一段同一人的录音即可让克隆音的音高 +12~16%、语调起伏 +25~40%、明亮度 +5~15%——这个幅度靠情感向量很难补回来，且向量越加越假（见 §四）。所以定式是：**`prospect_ref.py` 挑 3–4 段候选 → `prepare_ref.py` 各裁一份 → 各跑一次 `--style neutral` 小样比对 → 选定样本后再谈风格。**
+
+> 最省力的做法其实是**重录一段 10–15 秒的目标风格样本**：用你想要的那种语气念一段自己视频的开场逐字稿（比平时略快、句尾略上扬、带笑意），克隆会把这份韵律一起继承，之后连情感向量都可以只加一点点。
 
 ## 四、风格与参数
+
+**情感有三个来源，互斥，只能给一个**（客户端与服务端双向校验；上游对「向量 + 情感音频」是**静默丢弃音频**，本管线改为显式报错）：
+
+| 来源 | 开关 | 机制 | 适用 |
+|---|---|---|---|
+| **向量注入** | `--style` / `--emo-vector` | 8 维情感基向量加权混合，强度由 `--emo-alpha` 控制 | 要可复现、可微调的确定性风格 |
+| **语调迁移** | `--emo-ref <另一段录音>` | 音色仍取 `--ref`，**语调/情绪整体迁移自这段录音** | 觉得向量注入「有合成味」时的首选；用本人一段本来就轻快的录音最自然 |
+| **自然语言** | `--emo-text "轻快爽朗、自信阳光"` | 服务端 QwenEmotion 把描述转成向量（需启动带 `--use-qwen-emo`） | 说不清参数、只说得清感觉时；推出的向量会回显，可再用 `--emo-vector` 固化 |
+
+**为什么「少注入」往往更自然**：上游把情感嵌入按 `emovec = Σ(wᵢ·基向量ᵢ) + (1 − Σwᵢ) · 参考音频情感` 混合（`indextts/infer_v2_5.py`，`wᵢ` 为 alpha 缩放后的分量）。可见 **Σw 就是「合成情感」挤掉「本人真实情感」的比例**：Σw=0.7 时只剩 30% 是你自己的语调；Σw>1 更会让参考音频项变成**负权重**（发音劣化）——这正是本管线把有效和卡在 ≤0.8 的原因。听感偏假时，先把 `--emo-alpha` 往下调（0.3–0.45），而不是继续加权重。
 
 ### 4.1 风格预设（--style）
 
@@ -186,6 +204,16 @@ uv run --no-project --with mutagen media/pipeline/scripts/tts_sample.py \
 # 4) 五风格 A/B：neutral→passionate→lively→confident→positive 各一遍，顺序试听择优
 uv run --no-project --with mutagen media/pipeline/scripts/tts_sample.py \
     --ref media/pipeline/voices/me-1.wav --all-styles --play
+
+# 5) 觉得向量注入「有合成味」：改用语调迁移——音色仍是样本 A，语气搬自样本 B
+uv run --no-project --with mutagen media/pipeline/scripts/tts_sample.py \
+    --ref media/pipeline/voices/me-1.wav --emo-ref media/pipeline/voices/me-bright.wav \
+    --label emoref-bright --play          # --emo-alpha 0.7 可只迁移七成
+
+# 6) 说不清参数、只说得清感觉：用自己的话描述（服务需 --use-qwen-emo）
+uv run --no-project --with mutagen media/pipeline/scripts/tts_sample.py \
+    --ref media/pipeline/voices/me-1.wav --emo-text "轻快、爽朗、自信、阳光" \
+    --label qwen-brisk --play             # 终端会回显推出的 8 维向量，满意就用 --emo-vector 固化
 ```
 
 > **`--start 180 --duration 12` 就是已上线三集成片所用的同源样本**：该段裁剪结果的 `sha1` 前 12 位为 `3ed0d9d60d4b`，与三集音频缓存 sidecar 摘要中的 `ref_sha1` 一致，直接复用即可听到与成片完全一致的音色。想换段落见 §3.2。
@@ -197,8 +225,11 @@ uv run --no-project --with mutagen media/pipeline/scripts/tts_sample.py \
 | `--text` / `--text-file` | 试听文本（建议 20–40 字，带数字/术语更易暴露咬字问题） | 内置一句科普文本 |
 | `--style` / `--all-styles` | 单档 / 全部预设 A/B（`--all-styles` 逐档取预设自带 alpha 与语速，故与下一行三参数互斥） | `neutral` |
 | `--emo-vector` `--emo-alpha` `--duration-factor` | 手动调参，语义与取值范围同 §四 | 随风格 |
+| `--emo-ref <录音>` | 语调迁移：音色仍取 `--ref`，语气来自这段录音（见 §四） | 关 |
+| `--emo-text "<描述>"` | 自然语言描述情感（需服务端 `--use-qwen-emo`）；推出的向量会打印，可用 `--emo-vector` 固化 | 关 |
 | `--num-beams` | 束宽；质量敏感的单句可试 `3`（耗时约按束宽线性放大，见 §4.3b） | `1` |
 | `--dry-run` | 只解析并打印各档向量/alpha/语速，不连服务（秒级核参，改风格后先跑这个） | 关 |
+| `--label` | 产物文件名（多档时作前缀 `{label}-{风格}`）——**横向对比多个参考样本或多组自定义向量时必用**，否则同名互相覆盖 | 取风格名 |
 | `--play` / `--out-dir` | 合成后 `afplay` 顺序试听 / 产物目录 | 关 / `.temp/voice-samples/` |
 
 **耗时实测**（2026-08-19 · M3 系列 · MPS fp32 · `num_beams=1` · 上述 34 字文本，机器空闲）
@@ -271,8 +302,10 @@ cd video && pnpm run render:draft && pnpm run render   # render 脚本定义在 
 | 引擎 | 摘要公式 |
 |---|---|
 | edge（历史不变） | `sha1(voice\|rate\|text)` |
-| indextts | `sha1(indextts\|engine_tag\|ref_sha1前12位\|lang\|style\|vec\|alpha\|df\|text)` |
+| indextts | `sha1(indextts\|engine_tag\|ref_sha1前12位\|lang\|style\|vec\|alpha\|df\|text[\|beams=N][\|emoref=情感样本sha1前12位][\|emotext=描述原文])` |
 
+- 方括号内为**可选后缀，仅在该项被使用时才拼入**（`--num-beams 1` / 无情感音频 / 无情感描述时省略）——这样新增能力不会失效任何存量缓存（已对已上线三集 189 句逐句核对：摘要 100% 不变）；
+- 情感样本按**内容 SHA1** 入键，换一段情感录音会自动失效缓存，与 `--ref` 同口径；
 - sidecar `{id}.sha` 与 `{id}.mp3` 一一对应、单槽位：换引擎/风格/样本/语速 = 全量重合成（一个句 id 只有一个 mp3 槽位，这是 Remotion 契约决定的）；
 - 模型/服务升级后想强制刷新全部音频：`--engine-tag v2.5b`（自定义标记进摘要）；
 - 中断后续跑：直接重跑同命令（已完成句子全部命中缓存跳过）。
@@ -288,6 +321,8 @@ cd video && pnpm run render:draft && pnpm run render   # render 脚本定义在 
 | 服务日志 `QwenEmotion not loaded` | 正常 | 仅向量模式，不加载 Qwen（省内存） |
 | `X-Audio-Format=wav` | 服务端 MP3 编码器探测失败 | 按 §2.3 带 `--with lameenc` 重启服务 |
 | `/health` 报 `supports_duration_factor=false` | 服务为 IndexTTS-2 | 语速控制需 v2.5：重启服务 `--indextts-version 2.5` |
+| `/health` 报 `supports_emo_text=false`，`--emo-text` 被拒 | 服务未加载 QwenEmotion | 带 `--use-qwen-emo` 重启；若报缺 `model.safetensors` 见 §2.4 补权重 |
+| 报「情感来源互斥，只能给一个」 | 同时给了 `--emo-vector`/`--emo-ref`/`--emo-text` 中的两个以上 | 三者择一（上游遇「向量+音频」会静默丢弃音频，故本管线显式拒绝，见 §四） |
 | 生成音色「不像我」 | 样本质量问题 | 按 §三 重录/重裁：换更干净段落、保证单说话人、5–15s |
 | 长句合成失败 | 超时（HTTP_TIMEOUT=600s） | 重跑（缓存续传）；超长句在逐字稿层面拆句 |
 | edge 模式失败 | 网络 | 与历史行为一致（重试 4 次后报错） |
