@@ -645,6 +645,9 @@ export const P6Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
       <Sequence {...w('p6-13a', 'p6-13b')} name="6-F 配套清单卡">
         <RepoCard />
       </Sequence>
+      <Sequence {...w('p6-13c', 'p6-13d')} name="6-F2 三条曲线">
+        <ThreeCurves />
+      </Sequence>
       <Sequence {...w('p6-14', 'p6-15')} name="6-G 原文卡">
         <FinalCard endFrame={endFrame('p6-15')} />
       </Sequence>
