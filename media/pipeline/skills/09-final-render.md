@@ -5,11 +5,15 @@
 ## 终渲
 
 ```bash
-# 1)（每台渲染主机一次）定并发——写死进共享配置是要消灭的漂移类型，故走 CLI：
-cd media/<slug>-video/video && ./node_modules/.bin/remotion benchmark
-# 2) 终渲（codec/crf/pixel-format/audio 已固化在 remotion.config.ts；覆盖项只留 --concurrency）
-./node_modules/.bin/remotion render Main ../out/final.mp4 --concurrency=<benchmark 建议值>
+cd media/<slug>-video/video
+# 终渲（codec/crf/pixel-format/audio 已固化在 remotion.config.ts）
+./node_modules/.bin/remotion render Main ../out/final.mp4
 ```
+
+**关于并发**：并发度是机器属性、不进共享配置（见 §渲染硬化）。但 `remotion benchmark`
+**对本类长片不实用**——它要按不同并发把整片渲多轮，25000 帧规模下 20 分钟不出结果
+（2026-08-20 实测放弃）。实践口径：直接用 Remotion 默认并发（它已按 CPU 核数自适应）；
+仅当终渲耗时明显异常时，才对**单幕**做 `--frames=<区间>` 的小样对比来选 `--concurrency=N`。
 
 渲染主机约束：**macOS + PingFang SC/Songti SC/SF Mono 系统字体**（三集未内嵌 CJK 字体，Linux/CI 渲染不在支持范围；重启触发器见 pipeline/README「字体可复现性」——渲染迁 Linux/CI，或 Remotion 5.0 将 validateFontIsLoaded 默认翻 true 时必须内嵌子集字体）。
 

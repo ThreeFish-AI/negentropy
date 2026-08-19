@@ -454,7 +454,16 @@ const ThreeCurves: React.FC = () => {
         <text x={x0 - 58} y={y0 - 292} fill={theme.dim} fontSize={19} fontFamily={theme.sans} opacity={axis}>
           进步
         </text>
-        <text x={x0 + span - 28} y={y0 + 30} fill={theme.dim} fontSize={19} fontFamily={theme.sans} opacity={axis}>
+        {/* 右端轴标签用 text-anchor="end" 贴住轴末端，避免超出 svg 画布被截断 */}
+        <text
+          x={x0 + span}
+          y={y0 + 30}
+          textAnchor="end"
+          fill={theme.dim}
+          fontSize={19}
+          fontFamily={theme.sans}
+          opacity={axis}
+        >
           反复自我改进
         </text>
         {/* 三条轨迹：线型区分（实线/虚线/点线），全金色 */}
