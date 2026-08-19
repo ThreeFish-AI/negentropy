@@ -238,6 +238,40 @@ const Longitudinal: React.FC<{metersAt: number}> = ({metersAt}) => {
         <FadeUp delay={60} style={{position: 'absolute', right: 60, top: 300}}>
           <Pill color={theme.exp}>留着旧题 · 反复重考</Pill>
         </FadeUp>
+        {/* Figure 9 三分带：题目分三摞——replay（旧题重考）/ adapt（改进时用的新题，
+            记录实际用过的经验）/ held-out（从没见过的，专验真泛化——§8.3 的核心检验） */}
+        <div
+          style={{
+            position: 'absolute',
+            left: 80,
+            right: 80,
+            top: 330,
+            display: 'flex',
+            gap: 10,
+            opacity: interpolate(frame, [76, 92], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}),
+          }}
+        >
+          {[
+            {name: 'replay · 旧题重考', w: '31%', c: theme.exp},
+            {name: 'adapt · 改进用的新题', w: '31%', c: theme.harness},
+            {name: 'held-out · 从没见过', w: '31%', c: theme.params},
+          ].map((seg) => (
+            <div
+              key={seg.name}
+              style={{
+                width: seg.w,
+                textAlign: 'center',
+                fontFamily: theme.mono,
+                fontSize: 17,
+                color: seg.c,
+                borderTop: `3px solid ${seg.c}`,
+                paddingTop: 6,
+              }}
+            >
+              {seg.name}
+            </div>
+          ))}
+        </div>
       </div>
       {/* 四仪表通电：p4-17「各考一轮」起逐个点亮（站点四指标问句的可视化） */}
       <div style={{display: 'flex', gap: 34, marginTop: 8}}>
