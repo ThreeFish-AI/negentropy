@@ -40,10 +40,10 @@ from tts import (  # noqa: E402 - 必须在 sys.path 注入之后导入
     http_synthesize,
     mp3_duration,
     resolve_style,
+    server_launch_hint,
     tts_text,
 )
 
-SERVER_SCRIPT = Path(__file__).resolve().parent / "tts_server.py"
 # parents: [0]=scripts [1]=pipeline [2]=media [3]=仓库根（与 prepare_ref.py 的 parents[1] 同惯例）
 DEFAULT_OUT_DIR = Path(__file__).resolve().parents[3] / ".temp" / "voice-samples"
 DEFAULT_TEXT = "自进化编码智能体的核心不是写代码，而是让 AI 学会修改自己写代码的方式。"
@@ -95,9 +95,7 @@ def check_server(
     except Exception as e:  # noqa: BLE001 - 任何不可达都归一为可操作指引
         sys.exit(
             f"IndexTTS 服务不可用（{e}）。请先启动：\n"
-            f"  cd ~/tools/index-tts && uv run --frozen --with fastapi --with uvicorn \\\n"
-            f"      --with soundfile --with numpy --with lameenc \\\n"
-            f"      python {SERVER_SCRIPT} --model-dir checkpoints --port 8766\n"
+            f"{server_launch_hint()}\n"
             f"详见 {MANUAL} §2.3"
         )
     print(
@@ -271,6 +269,11 @@ def main() -> None:
     )
     parser.add_argument("--play", action="store_true", help="合成后用 afplay 顺序试听")
     parser.add_argument(
+        "--cleanup",
+        action="store_true",
+        help="试听结束后立即删除产物目录（小样含本人音色，属生物特征信息）",
+    )
+    parser.add_argument(
         "--dry-run", action="store_true", help="只解析并打印参数，不连服务、不合成"
     )
     args = parser.parse_args()
@@ -434,9 +437,16 @@ def main() -> None:
     print(
         f"\n下一步 · 选定风格后全量合成一集：\n"
         f"  cd media/<工程> && uv run --no-project --with mutagen scripts/tts.py \\\n"
-        f"      --engine indextts --ref {ref} {chosen}\n"
-        f"清理 · 小样含本人音色（生物特征信息），试听后请删除：rm -rf {out_dir}"
+        f"      --engine indextts --ref {ref} {chosen}"
     )
+    if args.cleanup:
+        shutil.rmtree(out_dir, ignore_errors=True)
+        print(f"清理 · 已删除产物目录（生物特征信息）：{out_dir}")
+    else:
+        print(
+            f"清理 · 小样含本人音色（生物特征信息），试听后请删除：rm -rf {out_dir}\n"
+            f"       （下次可直接加 --cleanup 让脚本自动删除）"
+        )
 
 
 if __name__ == "__main__":
