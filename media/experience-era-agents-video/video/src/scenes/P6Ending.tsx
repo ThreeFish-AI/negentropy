@@ -486,7 +486,7 @@ const ThreeCurves: React.FC = () => {
   );
 };
 
-/** 6-F：配套清单卡（v2 新增，p6-13a/b）——111 篇 × 9 章计数器 + 九章名胶囊环绕 */
+/** 6-F：配套清单卡（p6-13a/b）——331 篇 × 9 章计数器（数据文件口径，v3 更正）+ 九章名胶囊环绕 */
 const RepoCard: React.FC = () => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
