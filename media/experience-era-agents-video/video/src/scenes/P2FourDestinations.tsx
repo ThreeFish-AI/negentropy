@@ -423,11 +423,52 @@ const EnvFloors: React.FC = () => {
           </div>
         </div>
       </div>
-      <FadeUp delay={60} style={{marginTop: 54}}>
+      <FadeUp delay={60} style={{marginTop: 44}}>
         <div style={{fontFamily: theme.sans, fontSize: 27, color: theme.dim}}>
-          大部分环境卡在一楼半：能跑，但反馈太稀、没法学
+          就算能跑、接口也通了，反馈却稀得没法学（§5.4）
         </div>
       </FadeUp>
+      {/* 三条天花板轴（Fig 6）：p2-32 时标尺扫入，p2-32a 三条依次生长且都停在天花板前 */}
+      <div style={{marginTop: 34, display: 'flex', flexDirection: 'column', gap: 14, alignItems: 'center'}}>
+        {[
+          {label: '能动的花样', fill: 0.86},
+          {label: '反馈的密度', fill: 0.42},
+          {label: '任务的长度', fill: 0.64},
+        ].map((axis, i) => {
+          const e = interpolate(frame, [86 + i * 10, 106 + i * 10], [0, 1], {
+            extrapolateLeft: 'clamp', extrapolateRight: 'clamp',
+          });
+          return (
+            <div key={axis.label} style={{display: 'flex', alignItems: 'center', gap: 16}}>
+              <span style={{width: 130, textAlign: 'right', fontFamily: theme.sans, fontSize: 21, color: theme.text}}>
+                {axis.label}
+              </span>
+              <div
+                style={{
+                  width: 460,
+                  height: 20,
+                  borderRadius: 10,
+                  background: theme.panel,
+                  border: `1.5px solid ${theme.panelBorder}`,
+                  overflow: 'hidden',
+                }}
+              >
+                <div
+                  style={{
+                    width: `${axis.fill * e * 100}%`,
+                    height: '100%',
+                    background: theme.exp,
+                    opacity: 0.82,
+                  }}
+                />
+              </div>
+            </div>
+          );
+        })}
+        <div style={{fontFamily: theme.mono, fontSize: 16, color: theme.dim, opacity: interpolate(frame, [118, 132], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'})}}>
+          action diversity · feedback density · task horizon（Fig 6）
+        </div>
+      </div>
     </AbsoluteFill>
   );
 };
@@ -571,6 +612,106 @@ const IndustryReality: React.FC = () => {
           </div>
         </div>
       </div>
+    </AbsoluteFill>
+  );
+};
+
+/** 2-J：晋升闸门（v3 新增）——§10.2 "With no promotion criterion, the decision of
+ *  what to write to the weights rests on manual judgment." 的画面化：
+ *  左半青色 = 工位侧快路（钥匙只对上五把锁中的一把）；右半紫色 = 大脑侧慢路
+ *  （能力随身带走）；中间闸门的判准铭牌是**空白**（红问号脉冲），按下按钮后
+ *  紫侧点亮、闸下画出单向红箭头「很难逆转」。 */
+const PromotionGate: React.FC = () => {
+  const frame = useCurrentFrame();
+  const plateIn = interpolate(frame, [4, 18], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const pulse = 0.5 + 0.5 * Math.sin(frame * 0.14);
+  const press = interpolate(frame, [66, 74], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const oneWay = interpolate(frame, [78, 96], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  return (
+    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
+      <div style={{display: 'flex', alignItems: 'stretch', gap: 0}}>
+        {/* 左：工位侧（青）——改 harness 像换触发条件 */}
+        <div style={{width: 430, padding: '30px 28px', background: theme.panel, borderRadius: '16px 0 0 16px', border: `2px solid ${theme.harness}55`}}>
+          <div style={{fontFamily: theme.sans, fontSize: 26, fontWeight: 700, color: theme.harness}}>工位 · 快 / 可逆</div>
+          <div style={{marginTop: 22, display: 'flex', gap: 10, justifyContent: 'center'}}>
+            {[1, 0, 0, 0, 0].map((on, i) => (
+              <div key={i} style={{width: 38, height: 50, borderRadius: 7, background: on ? theme.harness : theme.panel, border: `1.5px solid ${on ? theme.harness : theme.panelBorder}`, opacity: on ? 1 : 0.55}} />
+            ))}
+          </div>
+          <div style={{marginTop: 14, fontFamily: theme.sans, fontSize: 20, color: theme.dim, textAlign: 'center'}}>
+            换个条件就能生效
+          </div>
+        </div>
+        {/* 中：闸门——判准铭牌空白 */}
+        <div style={{width: 300, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#10141d', borderTop: `2px solid ${theme.panelBorder}`, borderBottom: `2px solid ${theme.panelBorder}`}}>
+          <div
+            style={{
+              width: 190,
+              height: 84,
+              borderRadius: 10,
+              background: '#0c0f16',
+              border: `2px dashed ${theme.danger}88`,
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              opacity: plateIn,
+            }}
+          >
+            <span style={{fontSize: 40, color: theme.danger, opacity: 0.35 + 0.65 * pulse}}>?</span>
+          </div>
+          <div style={{marginTop: 10, fontFamily: theme.mono, fontSize: 15, color: theme.danger, opacity: plateIn}}>
+            promotion criterion: absent（§10.2）
+          </div>
+          {/* 按钮 */}
+          <div
+            style={{
+              marginTop: 16,
+              width: 54,
+              height: 54,
+              borderRadius: 27,
+              background: press > 0 ? theme.danger : '#2a1418',
+              border: `2px solid ${theme.danger}`,
+              transform: `scale(${1 - 0.18 * press})`,
+              boxShadow: press > 0 ? `0 0 26px ${theme.danger}66` : 'none',
+            }}
+          />
+        </div>
+        {/* 右：大脑侧（紫）——能力随身带走 */}
+        <div style={{width: 430, padding: '30px 28px', background: theme.panel, borderRadius: '0 16px 16px 0', border: `2px solid ${press > 0 ? theme.params : theme.panelBorder}`}}>
+          <div style={{fontFamily: theme.sans, fontSize: 26, fontWeight: 700, color: theme.params, opacity: 0.55 + 0.45 * press}}>大脑 · 慢 / 持久</div>
+          <div style={{marginTop: 20, display: 'flex', justifyContent: 'center'}}>
+            <div
+              style={{
+                width: 92,
+                height: 92,
+                borderRadius: 46,
+                background: `radial-gradient(circle, ${theme.params}44 0%, transparent 70%)`,
+                border: `2.5px solid ${theme.params}`,
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                fontSize: 44,
+                opacity: 0.45 + 0.55 * press,
+              }}
+            >
+              🧠
+            </div>
+          </div>
+          <div style={{marginTop: 14, fontFamily: theme.sans, fontSize: 20, color: theme.dim, textAlign: 'center', opacity: 0.6 + 0.4 * press}}>
+            写进去，跨任务都带得走
+          </div>
+        </div>
+      </div>
+      {/* 单向箭头：很难逆转 */}
+      <svg width={620} height={54} style={{marginTop: 24}}>
+        <line x1={30} y1={20} x2={30 + 540 * oneWay} y2={20} stroke={theme.danger} strokeWidth={4} strokeLinecap="round" />
+        {oneWay > 0.96 ? (
+          <polygon points={`${30 + 540},${20} ${30 + 516},${8} ${30 + 516},${32}`} fill={theme.danger} />
+        ) : null}
+        <text x={30} y={46} fill={theme.danger} fontSize={19} fontFamily={theme.sans} opacity={oneWay}>
+          很难逆转
+        </text>
+      </svg>
     </AbsoluteFill>
   );
 };

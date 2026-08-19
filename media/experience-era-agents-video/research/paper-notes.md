@@ -909,30 +909,51 @@
 - 四指标原文：held-out gain（"does experience improve performance on tasks outside the adaptation stream?"）；backward retention（"does the same evolving agent keep old capabilities after updating?"）；path attribution（"did the gain come from skills, memory, tools, parameter updates, or their interaction?"）；efficiency/safety（"was the gain worth its cost and risk?"）。
 - 站点动机句："Without longitudinal evaluation, we cannot tell durable self-improvement from one-off elicitation, overfitting, drift, or unsafe mutation."
 
+### 官方站点 8 图 = 论文原图的逐字 caption（动画规格权威依据）
+
+> gh-pages `index.html` 的 alt 文本证实每张 PNG 均 "rendered from the LaTeX-referenced *X* PDF"——站点图就是论文自己的图。skill-01 规范「不下载图片、转文字规格」据此完全可行：caption + 精读笔记描述 + 本地 PDF 光栅化参考（`out/figs/`，不入库）三源合一。
+
+| 站点图 | 论文图 | caption 逐字（截要） |
+|---|---|---|
+| harness | Fig 2 (p7) | "The user side U_t supplies goals, instructions, preferences, approvals, and corrections, while the environment side E_t supplies executable state, observations, tests, and verifiable feedback. The harness H_t mediates context, action routing, per…" |
+| timeline | Fig 3 (p8) | "From Gen 1 to Gen 3, the main object shifts from episodic tool use, to cross-task memory and workflow structuring, to persistent harness-centered runtimes whose adaptation surfaces can evolve after deployment." |
+| skill | Fig 4 (p13) | "Skill Creation adds externally produced skills to the bank; Skill Use organizes, retrieves, composes, and executes the current bank; Skill Evolution converts compiled deployment experience into updates…" |
+| memory | Fig 5 (p20) | "Memory representations define what is stored, memory operations decide how stored information is written, compressed, retrieved, updated, and reintroduced into active context, and memory evolution captures…" |
+| environment | Fig 6 (p26) | "A deployed agent can improve through prompting, memory, skills, and harness-side control only within the executable world exposed by the environment. Raising the practical ceiling therefore requires richer action surfaces, denser observations and fee[dback]…" |
+| parameter-path | Fig 7 (p32) | "Stable runtime priors first accumulate in harness-side artifacts and interaction traces; the parameter path consolidates selected lessons into model updates that reduce repeated context orchestration, transfer beyond context replay…" |
+| evaluation | Fig 9 (p50) | "SIP-Bench: A Longitudinal Protocol for Evaluating Self-Improving Agents — Protocol infrastructure for improvement, retention, stability, and cost · A Wrapping Existing Benchmarks · B Longitudinal Evaluation Across Time · C Outputs and Metrics" |
+| chapters | 章节地图 | "Harness, skills, memory, environments, RL, meta-evolution, evaluation, and safety are organized as experience destinations and update surfaces."（站点 figcaption） |
+
+论文独有、站点未收的关键图：**Figure 8 (p39)** 二维 regime 矩阵——"Columns indicate what evolves: TaskAgent content assets, TaskAgent mechanisms or structures, TaskAgent improvement strategies, or the meta-layer itself. Rows indicate who controls evolution: TaskAgent-internal control or persistent meta-l[ayer control]"。
+
 ### 收录规模与从业者要点
 
-- 【111 篇 × 9 章】站点计数器："111 papers / 9 paper chapters"（章即技能/记忆/环境/工具/RL 参数侧/元进化/评测/安全/harness 定义）。
+- 【❌ 已更正：111 → 331；见下方「2026-08 v3 重读校准」取证】站点 HTML 源码 `index.html:57` 的 `<dt id="stat-papers">111</dt>` 是**未水合占位符**——`app.js:333` 实际执行 `els.statPapers.textContent = String(papers.length)`，真实访客看到的是数据文件条数。`data/papers.json` = **331 条记录 / 330 唯一 id**（日期跨 2003-01…2026-06）。真实九章（`data/manuscript.json` + `papers.json` `roles[].chapterOrder`，括号内为唯一论文数）：①Introduction(18) ②Harness as Experience Infrastructure(19) ③Skills(34) ④Memory(42) ⑤Environment(45) ⑥RL and Continual Learning(25) ⑦Meta-Evolving Agents(52) ⑧Measuring Self-Improvement(46) ⑨Safety(50)。**「工具」「定义」不是章**——上一轮的章名清单是推断而非站点原文。
 - 【三段式训练要点】站点 RL & Continual Learning 节给从业者的三句话（逐字）：Pre-deployment Training for Vertical Agent Capabilities（上线前：垂直能力训练）/ Pre-deployment Training for Harness Functional Units（上线前：工具·记忆·技能·子智能体的使用训练）/ Post-deployment Training from Agent Traces（上线后：从运行轨迹训练）。
 
 ---
 
-## 2026-08 升级复核（第二遍重读校准）
+## 2026-08 v3 重读校准（第三遍，发布顺序调整 + sunny-steady 重录之际）
 
-> 重读方式：本地 PDF（`assets/papers/source/Self-Improving Agents in the Era of Experience: A Survey of Self- to Meta-Evolution.pdf`，88 页）以既有精读笔记为底进行核对（笔记 2026-08-16 由 9 个并行代理从 PDF 全文产出，本轮重点复核 §1–2 harness 形式化、§8 SIP-Bench、§10 开放问题三处与 v1 口播的对应）+ 站点实时抓取（2026-08-18）。
-> **结论**：narration v1 全部断言与论文一致，零事实漂移。+16.2pp / 16/84 负迁移 / ~1,200 恶意技能 / >90% 记忆操纵 / tau-bench 可靠性 / AI-45° Law 等关键数字锚点均维持。
+> 重读方式：7 个按幕并行校准代理（A1 P0+P1 / A2 p2-01..18 / A3 p2-19..37 / A4 p2-38..47+P3 / A5 P4 / A6 P5 / A7 P6）对照 PDF 全文逐句审计，**审计单位是句而非章**——承接句强制记 `—` 档，正是上一轮「只审有趣句子」让两处 ❌ 漏网。取证工具：`media/pipeline/scripts/paper_extract.py`（map/text/captions/find/render）。
+> **结论**：上一轮「零事实漂移」的结论**不成立**。本轮确证 3 处事实错误（p0-01 归属、p1-10 编造倍数、p6-13a/b 站点占位数字）并逐句复核其余 176 句。
 
-### 审计发现与处置
+### 取证记录（111 vs 331 全链）
 
-| # | 发现 | 类别 | 处置 |
-|---|---|---|---|
-| 1 | 站点「经验编译器闭环」五段图把全片结构浓缩为一张图，v1 的 p6-06/07 金句（trace-to-capability）只有两句话、无画面展开 | 站点信源·结构复盘缺口 | 新增 P6 闭环复盘镜（4 句）：五段环动画把金句升格为全片结构总图 |
-| 2 | 站点 Gen3 精确语义「适应面本身可在部署后进化」比 v1 p1-25「可以自动升级的产品」更进一步 | 核心遗漏（轻） | 新增 p1-25a 一句点破 |
-| 3 | v1 P4 已有六指标 + SIP-Bench 三时间点；站点四指标问句表述更利口播（新旧任务/归因/代价风险） | 已覆盖（强化） | 不加句，storyboard 4-F 动效升级为三检查点卡+四仪表 |
-| 4 | 站点 111 篇×9 章规模数 | 站点信源 | 新增 p6-13a/b 两句（配套清单卡） |
-| 5 | 考虑补 §10 九大开放问题中的多智能体涌现、多模态经验压缩 | — | **放弃**：v1 已选三问（激发 vs 习得/越吃越窄/多模态压缩），planning.md 取舍声明仍成立 |
+- `gh api "repos/FrontisAI/Awesome-Self-Improving-Agents/contents/index.html?ref=gh-pages"`：`<dt id="stat-papers">111</dt>`（静态占位）。
+- `gh api …/contents/app.js?ref=gh-pages`：line 333 `els.statPapers.textContent = String(papers.length);`（水合真相）。
+- `gh api …/contents/data/papers.json?ref=gh-pages`：331 记录 / 330 唯一 id。
+- `gh api …/contents/DEV_LOG.md?ref=gh-pages`（2026-07-30）：明写 "keeping … the current OpenRSI-aligned layout and **331-paper data set** unchanged"。
+- 访问日期：2026-08-19。
+- **过程规则（记入 issue.md）**：站点数字只能取自数据文件或水合后 DOM，绝不取 HTML 源码。
 
-### 本轮新增断言锚点（v2 新句用）
+### SkillsBench「引用冲突」裁决（更正 v1 笔记的误读）
 
-- 【站点闭环五段】见「信源补充」——「经验编译器」命名与三步（选证据/提抽象/记出处）引站点；两路去向与闸门语义与论文 §2.1/§8 一致（站点为论文可视化）。
-- 【站点 Gen3】"whose adaptation surfaces can evolve after deployment"。
-- 【站点规模】111 papers / 9 chapters（2026-08-18 访问）。
+§3.5 (p18) 双引 `[Han et al., 2026, Li et al., 2026c]` 与 §8 (p44) 单引 `[Li et al., 2026c]` **不是冲突**：那句话同时讨论两个基准——
+- `Li et al., 2026c` (References p70, arXiv:2602.12670) = **SkillsBench**（口播 +16.2pp / 86 任务 / 16-of-84 的唯一出处，数字全部正确）；
+- `Han et al., 2026` (References p67, arXiv:2604.16706 前后条目) = **SWE-Skills-Bench**（另一基准，口播未引其数字）。
+§8 只谈 SkillsBench 故只引 Li。v1 笔记把双基准双引记为「引用冲突」属误读，特此更正。
+
+### 关键锚点复核（维持不变）
+
++16.2pp / 86 tasks & 11 domains / 16-of-84 directly comparable / nearly 1,200 malicious skills（**正文无事件纪年**，见 A6 处置）/ >90%（**单位是 trials 而非场景**，见 A6 处置）/ tau-bench 可靠性 / AI-45° Law（**论文自称 diagnostic lens，出处为 roadmap 提议**，见 A6 处置）。
