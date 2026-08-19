@@ -158,13 +158,16 @@ uv run --no-project --with soundfile --with numpy media/pipeline/scripts/prospec
 
 ### 4.1 风格预设（--style）
 
-| 预设 | 定位 | emo_vector（顺序：happy, angry, sad, afraid, disgusted, melancholic, surprised, calm） | alpha | df |
-|---|---|---|---|---|
-| neutral | 中性（默认） | 不注入情感，纯克隆参考音色 | — | 1.0 |
-| passionate 激情 | 充满激情与轻快 | happy=.70, surprised=.20, calm=.10 | 0.7 | 0.97 |
-| lively 轻快 | 明快跳跃 | happy=.55, surprised=.15, calm=.15 | 0.6 | 0.95 |
-| confident 自信 | 沉稳有力 | calm=.65, happy=.25 | 0.7 | 1.05 |
-| positive 正能量 | 昂扬向上 | happy=.75, calm=.20 | 0.7 | 1.0 |
+| 预设 | 定位 | emo_vector（顺序：happy, angry, sad, afraid, disgusted, melancholic, surprised, calm） | alpha | 有效注入 | df |
+|---|---|---|---|---|---|
+| **sunny 明快阳光** | **科普长视频推荐位**（2026-08-19 试听定档） | happy=.95, surprised=.02, calm=.03 | **0.35** | **0.35** | 0.95 |
+| neutral | 中性（默认） | 不注入情感，纯克隆参考音色 | — | 0 | 1.0 |
+| passionate 激情 | 充满激情与轻快 | happy=.70, surprised=.20, calm=.10 | 0.7 | 0.70 | 0.97 |
+| lively 轻快 | 明快跳跃 | happy=.55, surprised=.15, calm=.15 | 0.6 | 0.51 | 0.95 |
+| confident 自信 | 沉稳有力 | calm=.65, happy=.25 | 0.7 | 0.63 | 1.05 |
+| positive 正能量 | 昂扬向上 | happy=.75, calm=.20 | 0.7 | 0.665 | 1.0 |
+
+> **`sunny` 的来历**（也是一份调参范例）：方向由 QwenEmotion 对「轻快、爽朗、自信、阳光」推出——happy 近乎独载；但 Qwen 的原始强度会顶到 Σ=0.8 上限，实测把克隆音高推到 **199–223 Hz**，而该说话人自然区间只有 142–163 Hz，听感"像另一个人在用力"。**保留方向、把强度压到 0.35**（留 65% 给本人真实语调）+ `df 0.95` 后即为 `sunny`。**该档在 `voices/me-bright.wav` 上定档**（`prepare_ref.py ~/Documents/dify/me-1.mp3 --start 0.36 --duration 12`），换回更闷的样本会失去明快感（见 §3.3）。定式可复用：**Qwen 选方向 → 人工压强度 → 固化成预设**。
 
 ### 4.2 自定义向量（--emo-vector）
 
@@ -180,7 +183,14 @@ GPT 声码段的束搜索宽度，默认 **1**（上游库内部默认 3）。�
 
 ### 4.4 调参建议
 
-风格向量是 8 维情感空间中的方向+强度，首次使用建议：固定一句文本，`--style` 各档合成一次试听对比（一条命令跑完五档，见 §5.1 的 `--all-styles`）；同风格微调用 `--emo-alpha 0.5`（更含蓄）或 `--duration-factor 0.92`（更紧凑）。**先跑小样确认，再全量合成**。科普长视频推荐 `passionate`（充满激情与轻快：高唤醒正价 happy 主载 + surprised 跳跃感 + 少量 calm 锚定咬字）；数字/术语密集的段落若嫌糊，可 `--duration-factor 1.0` 重跑该集。
+风格向量是 8 维情感空间中的**方向 + 强度**，两者要分开调：
+
+1. **先定样本**（§3.3）——样本决定基线明亮度与语速，这一步的收益最大且零副作用；
+2. **再定方向**：固定一句文本，`--style` 各档跑一遍对比（`--all-styles` 一条命令跑完，见 §5.1）；说不清就用 `--emo-text` 让 Qwen 选方向，再把回显向量固化；
+3. **最后压强度**：`--emo-alpha` 才是"像不像真人"的开关。**注入 ≥0.6 普遍开始"用力/像另一个人"，0.3–0.45 是自然与风格的平衡带**（实测：同一方向 0.35 → 音高 169 Hz，0.60 → 188 Hz，0.80 → 199–223 Hz，而说话人自然区间 142–163 Hz）；
+4. 语速用 `--duration-factor` 微调：0.92–0.95 更明快，1.0+ 更稳；术语密集的段落嫌糊就回到 1.0。
+
+**科普长视频推荐 `sunny`（明快阳光）**——本人音色 + happy 主载方向 + 强度 0.35 + 语速 0.95，配 `voices/me-bright.wav`。历史上曾推荐 `passionate`，但其有效注入 0.70 在本人样本上偏"用力"，已改为 `sunny`。**任何情况下都先跑小样确认，再全量合成。**
 
 ## 五、小样试听与逐集合成
 
@@ -189,31 +199,32 @@ GPT 声码段的束搜索宽度，默认 **1**（上游库内部默认 3）。�
 全量一集要跑 2.5–3.5 小时，而「克隆出的音色像不像我」「哪档风格适合本集」用**一句话**就能判定——所以**定稿风格前必须先听小样**。[scripts/tts_sample.py](./scripts/tts_sample.py) 直调 IndexTTS 服务合成单句，无需 `narration.json`、无需视频工程；它复用 `tts.py` 的风格预设与口播文本预处理（单一事实源），故小样与成片走**完全相同**的合成路径，听感可直接外推。
 
 ```bash
-# 1) 生成参考样本（已有可跳过；本人长录音截取一段干净人声）
+# 1) 生成参考样本（已有可跳过）。推荐档：me-1.mp3 的 [0.36s, 12.36s) 这一段更亮更快
 uv run --no-project --with soundfile --with numpy \
-    media/pipeline/scripts/prepare_ref.py ~/Documents/dify/me-1.mp3 --start 180 --duration 12
-# → media/pipeline/voices/me-1.wav（12.0s · 32 kHz · 单声道 · 16-bit · sha1 3ed0d9d60d4b）
+    media/pipeline/scripts/prepare_ref.py ~/Documents/dify/me-1.mp3 --start 0.36 --duration 12 \
+    --out media/pipeline/voices/me-bright.wav      # sha1 54b699cce97f · sunny 档即在此样本上定档
+# 换段落先用 prospect_ref.py 筛候选（§3.2），成片曾用的更闷一档是 --start 180（§3.3）
 
 # 2) 确认服务在线（未启动见 §2.3）
 curl -s http://127.0.0.1:8766/health
 
 # 3) 单档试听：合成后立即播放
 uv run --no-project --with mutagen media/pipeline/scripts/tts_sample.py \
-    --ref media/pipeline/voices/me-1.wav --style passionate --play
+    --ref media/pipeline/voices/me-bright.wav --style sunny --play
 
-# 4) 五风格 A/B：neutral→passionate→lively→confident→positive 各一遍，顺序试听择优
+# 4) 全风格 A/B：sunny→neutral→passionate→lively→confident→positive 各一遍，顺序试听择优
 uv run --no-project --with mutagen media/pipeline/scripts/tts_sample.py \
-    --ref media/pipeline/voices/me-1.wav --all-styles --play
+    --ref media/pipeline/voices/me-bright.wav --all-styles --play
 
-# 5) 觉得向量注入「有合成味」：改用语调迁移——音色仍是样本 A，语气搬自样本 B
+# 5) 觉得向量注入「有合成味」：改用语调迁移——音色仍是本样本，语气搬自另一段录音
 uv run --no-project --with mutagen media/pipeline/scripts/tts_sample.py \
     --ref media/pipeline/voices/me-1.wav --emo-ref media/pipeline/voices/me-bright.wav \
     --label emoref-bright --play          # --emo-alpha 0.7 可只迁移七成
 
 # 6) 说不清参数、只说得清感觉：用自己的话描述（服务需 --use-qwen-emo）
 uv run --no-project --with mutagen media/pipeline/scripts/tts_sample.py \
-    --ref media/pipeline/voices/me-1.wav --emo-text "轻快、爽朗、自信、阳光" \
-    --label qwen-brisk --play             # 终端会回显推出的 8 维向量，满意就用 --emo-vector 固化
+    --ref media/pipeline/voices/me-bright.wav --emo-text "轻快、爽朗、自信、阳光" \
+    --label qwen-brisk --play             # 回显 8 维向量；强度务必自己再压（§4.4 第 3 步）
 ```
 
 > **`--start 180 --duration 12` 就是已上线三集成片所用的同源样本**：该段裁剪结果的 `sha1` 前 12 位为 `3ed0d9d60d4b`，与三集音频缓存 sidecar 摘要中的 `ref_sha1` 一致，直接复用即可听到与成片完全一致的音色。想换段落见 §3.2。
@@ -281,7 +292,7 @@ afplay .temp/voice-samples/curl.mp3
 ```bash
 cd media/<工程>   # 工程内薄包装等价于中心脚本；风格取 5.1 试听定稿的那一档
 uv run --no-project --with mutagen scripts/tts.py --engine indextts \
-    --ref <绝对路径>/media/pipeline/voices/me-1.wav --style passionate
+    --ref <绝对路径>/media/pipeline/voices/me-bright.wav --style sunny
 ```
 
 - 服务启动一次可服务多集；管线客户端不常驻模型；
