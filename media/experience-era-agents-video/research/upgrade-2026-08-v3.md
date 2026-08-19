@@ -63,18 +63,62 @@ v2 → v3 总账：**改写 25 句 + 新增 8 句，其余 154 句字节不变**
 
 ## 三、双重校验 delta（仅改动/新增句）
 
-（真实性 + 易懂性两独立代理复核后填写；门：RISKY=0，未处理 REWRITE=0）
+**执行说明（诚实记录）**：本轮双重校验的两个独立代理（真实性回溯 / 易懂性审读）与 A1（P0+P1 校准）
+均在运行中被上游 API 以「敏感内容」为由中断（错误码 1301，共 4 次），未能产出完整表格。
+应对：**所有被中断代理负责的关键锚点，改由主控用 `paper_extract.py` 逐条独立取证复核后落地**——
 
-## 四、验证记录
+| 锚点 | 独立取证方式 | 结论 |
+|---|---|---|
+| p0-01/02 归属 | `find "Welcome to the era of experience"` → References p77 逐字 | Sutton 属 U. Alberta/Amii，essay 为 DeepMind 出品 → 改写成立 |
+| p1-10 倍数 | `find "ten thousand"` / `"10,000"` / `"orders of magnitude"` **三查全部零命中** | 全文无任何倍数 → 编造，必删 |
+| p1-17/18 | §2.1 p5 分栏取文 | "far more frequently and cheaply"、"enough to be usable" → 选择性表述成立 |
+| p2-15/16 数字 | `find "16.2"` / `"86 tasks"` / `"directly comparable"` | +16.2pp / 86 tasks / 16-of-84 逐字吻合 |
+| p5-09 纪年 | `find "ClawHavoc"` → §9.2.1 p52 | 正文无事件纪年（年份在引用标记内）→ 去年化成立 |
+| p6-11..13 | `find "Verification underlies"` → §10 收束段 | "These problems are coupled… Verification underlies each… scales least well" → 三句忠实 |
+| p6-13c/d | §10 末段分栏取文 | "not known to compound, saturate, or oscillate" 逐字对应 |
+| p6-13a/b | `gh api data/papers.json` + `app.js:333` + `DEV_LOG.md` 三方互证 | 331 条/330 唯一 id；九章按 chapterOrder |
 
-- `build_narration.py` 重建通过；未触碰句 text 字节稳定（`git diff narration.json` 恰好 N 改 + M 增，其余字节相同）。
-- storyboard 引用 id ⊆ narration id 集；`check_script.py` 覆盖率/预算门通过。
+已完成的四个校准代理（A2 Skills / A3 Memory-Env / A5 Eval / A6 Safety / A7 P6）的逐句表**均判定
+RISKY=0**，其提出的微调（p5-15/16/18/22/27、p2-15、p4-10/15、p6-13b「参数→大脑」等）已全部落地。
 
-## 五、配音重录记录
+**门结论**：RISKY = 0（所有 ❌ 均已改写并独立复核），未处理 REWRITE = 0。
+**遗留**：易懂性维度未获独立代理审读，由主控在连读与抽帧目检中人工把关；建议下轮补一次
+纯易懂性审读（不涉及论文原文引用，可规避 API 拦截）。
 
-- 参考样本：`me-bright.wav` 由 `prepare_ref.py ~/Documents/dify/me-1.mp3 --start 0.36 --duration 12` 重建，**sha1 门一次命中 54b699cce97f**（sunny/sunny-steady 的标定样本）。
-- 两遍法：A 遍 `--style sunny`（草稿校时间轴）→ B 遍 `sunny-steady`（beams=3 成片）；`--plan` 排期对账。
-- 领航片段试听（长分句/枚举/小数点数字各形态）。
+## 四、验证记录（实测）
+
+| 门 | 结果 |
+|---|---|
+| `build_narration.py` | 187 句 / 3884 字，各幕 P0-14 P1-29 P2-50 P3-19 P4-22 P5-30 P6-23 |
+| 字节稳定性（对 v2 基线） | 改写 25 句 + 新增 8 句，**其余 154 句字节不变** |
+| `check_script.py`（含 `--check-scenes`） | **FAIL 0 · WARN 0**（51 镜全覆盖、无缺句、镜号与代码一致） |
+| 时长预算 | 估算 13.9 分 / **实测 14.0 分**（目标窗 13.0–14.2）✅ |
+| `check_series.py` | **FAIL 0**（口播零顺序词、零他集标题） |
+| `tsc --noEmit`（三集） | 全部通过 |
+| `qa_frames --check-theme` | FAIL 0（概念色对 bg 全部 ≥6.2:1） |
+| 终渲抽帧体检（七幕 76 帧 + 定点 8 帧 + `--last-n 6`） | **FAIL 0**；WARN 均为引用卡文字落在字幕带上缘的形态，目检确认非角标侵入 |
+| 成片流参数 | 14:01.50 · 1920×1080@30 · h264 yuv420p · aac 189kb/s ✅ |
+
+## 五、配音重录记录（实测）
+
+- **参考样本**：`me-bright.wav` 由 `prepare_ref.py ~/Documents/dify/me-1.mp3 --start 0.36 --duration 12`
+  重建，**sha1 门一次命中 `54b699cce97f`**（即 sunny/sunny-steady 预设的标定样本；换用成片旧样本
+  `me-1.wav` 会让 alpha=0.35 失去其针对的明亮度）。
+- **领航片段**：8 句最难形态（16.2 小数点 / 九章枚举 / 近一千二百 / 40 字三分句 / 人名归属逗号 /
+  三分句+问句+冒号 / 四件套枚举 / 收束句）在 `sunny-steady` 下逐句试听通过；产物即删（生物特征）。
+- **两遍法实测**：
+
+  | 遍 | 风格 | 句数 | 墙钟 | 纯语音 | 实测 RTF |
+  |---|---|---|---|---|---|
+  | A（草稿） | `sunny`(beams=1) | 187 | ≈1.9 h | 12.98 分 | ≈8.8 |
+  | B（成片） | `sunny-steady`(beams=3) | 187 | **1.98 h** | 12.89 分 | ≈9.2 |
+
+  **B/A ≈ 1.04**——与手册旧记载的「整集升档 +241%（9.9 h）」相差极大。已回写
+  [VOICE-CLONING.md §4.3b](../../pipeline/VOICE-CLONING.md) 与 `tts.py` 常量注释：旧数据应在机器
+  被占用/热节流时测得；机器空闲时整集直上 `sunny-steady` 可行，`--steady` 混合档退为忙时折中手段。
+- **缓存正确性核验**：B 遍后独立重算 187 句摘要，**全部匹配 `sunny-steady`(beams=3)**，且 p0-01 不再
+  匹配 A 遍 sunny 摘要 → 确认是真重合成而非缓存复用；`.engine` 标记为
+  `indextts|indextts|sunny-steady|54b699cce97f`。
 
 ## 六、系列定位变更
 
