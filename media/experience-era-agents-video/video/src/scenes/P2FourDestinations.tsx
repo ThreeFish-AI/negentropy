@@ -747,6 +747,9 @@ export const P2FourDestinations: React.FC<{scene: SceneRange}> = ({scene}) => {
       <Sequence {...w('p2-42', 'p2-47')} name="2-I 工业现实">
         <IndustryReality />
       </Sequence>
+      <Sequence {...w('p2-47a', 'p2-47b')} name="2-J 晋升闸门">
+        <PromotionGate />
+      </Sequence>
     </AbsoluteFill>
   );
 };
