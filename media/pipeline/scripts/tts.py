@@ -45,6 +45,13 @@ RETRIES = 4
 HTTP_TIMEOUT = 600  # MPS fp32 长句可达数分钟；须覆盖队列等待
 MANUAL = "media/pipeline/VOICE-CLONING.md"
 
+# --plan 排期估算用的实测常数（MPS fp32，长跑折算口径：含降频、机器争用与逐句开销）。
+# RTF_1BEAM 来自三集 596 句连续跑 8.5 小时 / 40.2 分钟纯语音；RTF_MULTIBEAM 由同句
+# 1↔3 束 A/B 实测的约 3.2 倍推得（与早期 3 束直测的 RTF 40–58 区间一致）。
+RTF_1BEAM = 13.0
+RTF_MULTIBEAM = 45.0
+AVG_SEC_PER_LINE = 4.2  # 三集每句音频均值
+
 # IndexTTS 8 维情感向量顺序（indextts/infer_v2_5.py 固定）：happy, angry, sad, afraid,
 # disgusted, melancholic, surprised, calm。有效和（Σ分量×emo_alpha）须 ≤0.8（直调 infer 不自动归一，双端校验）。
 EMO_KEYS = [
@@ -60,7 +67,8 @@ EMO_KEYS = [
 
 # 风格预设 —— 数值为初值，可实测试听后微调。
 # 可选键 "beams"：预设自带的束搜索宽度（缺省 1）。束宽会改变韵律稳定度，属风格的一部分，
-# 故允许写进预设；命令行 --num-beams 显式给值时优先。注意束宽 3 使整集墙钟约 ×3。
+# 故允许写进预设；命令行 --num-beams 显式给值时优先。注意束宽 3 使整集墙钟约 ×3.4
+#（长跑折算 RTF 13→45），若只想让关键句更稳，用 --steady 混合档而非整集升档。
 STYLE_PRESETS: dict[str, dict] = {
     "neutral": {"label": "中性", "vec": None, "alpha": 1.0, "df": 1.0},
     "passionate": {
@@ -106,8 +114,8 @@ STYLE_PRESETS: dict[str, dict] = {
         # = sunny 同方向同强度同语速，只把束宽提到 3：GPT 段搜索更宽 → 韵律更收敛。
         # 实测（同文本同样本）：语调起伏 48.4 → 43.5、音节率 4.10 → 4.55，亮度基本不掉
         # （质心 1245 → 1223）——是唯一「不牺牲明快度就让语气更稳」的旋钮。
-        # 代价：GPT 段耗时约按束宽线性放大，**整集墙钟约 ×3**（见 VOICE-CLONING.md §4.3b），
-        # 适合成片定稿或质量敏感段落；长篇批量赶工仍用 sunny。
+        # 代价：GPT 段耗时约按束宽线性放大，**整集墙钟约 ×3.4**（189 句估算 2.9→9.9 小时，
+        # 见 VOICE-CLONING.md §4.3b）。想只让关键句变稳请用 `--steady` 混合档，别整集升档。
         "vec": [0.95, 0, 0, 0, 0, 0, 0.02, 0.03],
         "alpha": 0.35,
         "df": 0.95,
@@ -174,6 +182,48 @@ def resolve_style(
     if args.num_beams is None:  # 预设可自带束宽（如 sunny-steady=3），缺省为 1
         beams = preset.get("beams", 1)
     return args.style, preset["vec"], alpha, df, beams
+
+
+# ---------------- 混合档：整集低束宽 + 指定句高束宽 ----------------
+#
+# 动机（实测）：3 束把语调起伏收窄约 10–20%、听感更「稳/可信」，但短句 RTF 从 6–7 涨到
+# 20–31（数字密集句可达 31.5），整集从 2.5–3.5 小时涨到 8–15 小时。而真正决定第一印象的
+# 只是冷开场与各幕金句——把这几句单独升到 3 束即可。代价按句线性：189 句一集里每升 1 句
+# 约 +2.2 分钟（+1.3%），升 5 句 2.9→3.1 小时、升 20 句 →3.6 小时，而整集升档要 9.9 小时。
+# 缓存 sidecar 按句独立（摘要含 |beams=N），故同一集内混用两种束宽完全安全、可分批补跑。
+
+
+def parse_steady_selector(spec: str) -> tuple[set[str], set[str], list[str]]:
+    """`P0,p3-25b,p5-*` → (精确句 id, 幕名, 前缀)。
+
+    判定规则（可预测、无歧义）：以 `*` 结尾→前缀通配；含 `-`→精确句 id；其余→幕名。
+    全部大小写不敏感。
+    """
+    ids: set[str] = set()
+    scenes: set[str] = set()
+    prefixes: list[str] = []
+    for raw in spec.split(","):
+        tok = raw.strip().lower()
+        if not tok:
+            continue
+        if tok.endswith("*"):
+            prefixes.append(tok[:-1])
+        elif "-" in tok:
+            ids.add(tok)
+        else:
+            scenes.add(tok)
+    if not (ids or scenes or prefixes):
+        raise ValueError("--steady 不能为空")
+    return ids, scenes, prefixes
+
+
+def steady_match(
+    item: dict, ids: set[str], scenes: set[str], prefixes: list[str]
+) -> bool:
+    sid = str(item["id"]).lower()
+    if sid in ids or str(item.get("scene", "")).lower() in scenes:
+        return True
+    return any(sid.startswith(p) for p in prefixes)
 
 
 # ---------------- 引擎一：edge-tts（历史路径，保持字节级一致） ----------------
@@ -507,6 +557,26 @@ async def main() -> None:
         "束宽越大韵律越稳但 GPT 段耗时约按束宽线性放大——长篇批量跑 1，定稿可试 3）",
     )
     idx.add_argument(
+        "--steady",
+        default=None,
+        metavar="P0,p3-25b,p5-*",
+        help="[indextts] 混合档：仅这些句子改用高束宽（默认 3），其余仍按风格的束宽。"
+        "支持幕名（P0）/精确句 id（p3-25b）/前缀通配（p5-*），逗号分隔、大小写不敏感。"
+        "用于把冷开场与金句升到更稳的档而不拖长整集耗时",
+    )
+    idx.add_argument(
+        "--steady-beams",
+        default=3,
+        type=int,
+        choices=[2, 3, 4, 5],
+        help="[indextts] --steady 命中句所用束宽（默认 3）",
+    )
+    idx.add_argument(
+        "--plan",
+        action="store_true",
+        help="[indextts] 只打印合成计划（各束宽句数、缓存命中/待合成、耗时估算）并退出，不连服务",
+    )
+    idx.add_argument(
         "--engine-tag",
         default="indextts",
         help="[indextts] 缓存标记；模型升级后自定义以失效旧缓存",
@@ -617,6 +687,86 @@ async def main() -> None:
         if args.duration_factor is not None and not 0.5 <= args.duration_factor <= 2.0:
             parser.error("--duration-factor 必须在 [0.5, 2.0]")
 
+        emo_ref_path = emo_ref_sha1 = None
+        if args.emo_ref:
+            p = Path(args.emo_ref).expanduser().resolve()
+            if not p.is_file():
+                parser.error(f"情感参考音频不存在: {p}")
+            emo_ref_path = str(p)
+            # 情感样本按内容入摘要：换情感录音必须失效缓存（与 ref 同口径）
+            emo_ref_sha1 = hashlib.sha1(p.read_bytes()).hexdigest()[:12]
+        ref_sha1 = hashlib.sha1(ref_path.read_bytes()).hexdigest()[:12]
+
+        # 混合档：解析选择器并逐句定束宽（此处即失败，避免典型的「id 拼错→静默全按低束宽跑完」）
+        beams_of: dict[str, int] = dict.fromkeys((i["id"] for i in items), beams)
+        if args.steady:
+            if args.steady_beams <= beams:
+                parser.error(
+                    f"--steady-beams {args.steady_beams} 不高于基础束宽 {beams}，混合档无意义"
+                )
+            try:
+                sids, scenes, prefixes = parse_steady_selector(args.steady)
+            except ValueError as e:
+                parser.error(str(e))
+            for tok in sorted(sids | scenes) + [p + "*" for p in prefixes]:
+                one_id, one_scene, one_pre = parse_steady_selector(tok)
+                if not any(steady_match(i, one_id, one_scene, one_pre) for i in items):
+                    parser.error(
+                        f"--steady 的 {tok!r} 未命中任何句子（幕名/句 id 拼错？）"
+                    )
+            for i in items:
+                if steady_match(i, sids, scenes, prefixes):
+                    beams_of[i["id"]] = args.steady_beams
+
+        if args.plan:  # 计划模式：纯本地计算，不连服务
+            print(
+                f">> 计划：{root.name} · 风格 {style_name} · alpha {alpha:g} · 语速 {df:g}"
+            )
+            todo = {b: 0 for b in sorted(set(beams_of.values()))}
+            cached = dict(todo)
+            for i in items:
+                b = beams_of[i["id"]]
+                d = digest_indextts(
+                    ref_sha1,
+                    style_name,
+                    vec,
+                    alpha,
+                    df,
+                    args.lang,
+                    args.engine_tag,
+                    i["text"],
+                    b,
+                    emo_ref_sha1,
+                    args.emo_text,
+                )
+                meta, mp3 = out_dir / f"{i['id']}.sha", out_dir / f"{i['id']}.mp3"
+                hit = (
+                    not args.force
+                    and mp3.exists()
+                    and mp3.stat().st_size > 0
+                    and meta.exists()
+                    and meta.read_text() == d
+                )
+                (cached if hit else todo)[b] += 1
+            # 估时用**整集长跑折算口径**（含降频、机器争用与逐句开销），不是单句空闲口径：
+            # 1 束 RTF≈13（三集 596 句实测 8.5 h 折算）、≥2 束≈45（短句 A/B 实测约 3.2 倍）；
+            # 每句音频按 4.2s（三集均值）。单句空闲时可快到 RTF 6–7，故本估算偏保守。
+            est = sum(
+                n * AVG_SEC_PER_LINE * (RTF_1BEAM if b == 1 else RTF_MULTIBEAM)
+                for b, n in todo.items()
+            )
+            for b in sorted(todo):
+                print(
+                    f"   束宽 {b}：待合成 {todo[b]:>3} 句 · 已缓存 {cached[b]:>3} 句"
+                    + ("" if b == 1 else "（高束宽档）")
+                )
+            print(
+                f">> 待合成合计 {sum(todo.values())} 句，估算墙钟约 {est / 3600:.1f} 小时"
+                f"（长跑折算口径 RTF 1 束≈{RTF_1BEAM:g} / 高束宽≈{RTF_MULTIBEAM:g}，"
+                f"机器负载会显著影响，仅作排期参考）"
+            )
+            return
+
         try:
             health = await asyncio.to_thread(
                 http_json, "GET", f"{args.server}/health", None, 10
@@ -644,16 +794,6 @@ async def main() -> None:
                 + MANUAL
             )
 
-        emo_ref_path = emo_ref_sha1 = None
-        if args.emo_ref:
-            p = Path(args.emo_ref).expanduser().resolve()
-            if not p.is_file():
-                parser.error(f"情感参考音频不存在: {p}")
-            emo_ref_path = str(p)
-            # 情感样本按内容入摘要：换情感录音必须失效缓存（与 ref 同口径）
-            emo_ref_sha1 = hashlib.sha1(p.read_bytes()).hexdigest()[:12]
-
-        ref_sha1 = hashlib.sha1(ref_path.read_bytes()).hexdigest()[:12]
         sem = asyncio.Semaphore(CONCURRENCY_INDEXTTS)
         results = await asyncio.gather(
             *(
@@ -671,7 +811,8 @@ async def main() -> None:
                     args.engine_tag,
                     args.server,
                     out_dir,
-                    num_beams=beams,  # 已含「命令行优先、否则取预设」的解析结果
+                    # 逐句束宽：基础值来自「命令行优先、否则取预设」，--steady 命中句再提高
+                    num_beams=beams_of[i["id"]],
                     emo_ref=emo_ref_path,
                     emo_ref_sha1=emo_ref_sha1,
                     emo_text=args.emo_text,
@@ -686,6 +827,12 @@ async def main() -> None:
     )
     total = sum(r["durationSec"] for r in results)
     print(f"合成 {len(results)} 句，纯语音总时长 {total / 60:.2f} 分钟")
+    if args.engine == "indextts" and args.steady:  # 混合档：回执两档各多少句，便于对账
+        hi = sum(1 for i in items if beams_of[i["id"]] != beams)
+        print(
+            f"混合档：{len(items) - hi} 句按束宽 {beams}（{style_name}）+ "
+            f"{hi} 句按束宽 {args.steady_beams}（--steady {args.steady}）"
+        )
     print(f"manifest: {manifest_path}")
 
 
