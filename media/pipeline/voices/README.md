@@ -15,14 +15,26 @@
 ## 使用方式
 
 ```bash
-# 长录音先裁剪（截取 10s–25s 的一段干净人声）：
-uv run --no-project --with soundfile media/pipeline/scripts/prepare_ref.py \
-    ~/Documents/dify/me-1.mp3 --start 10 --duration 15
+# 0) 长录音里挑哪一段？先按客观指标筛候选（F0/起伏/音节率/谱质心）：
+uv run --no-project --with soundfile --with numpy media/pipeline/scripts/prospect_ref.py \
+    ~/Documents/dify/me-1.mp3 --window 12
 
-# 合成时通过 --ref 指定：
+# 1) 裁剪并规范化（当前推荐档：me-1.mp3 的 [0.36s, 12.36s)，sunny 风格即在此样本上定档）：
+uv run --no-project --with soundfile media/pipeline/scripts/prepare_ref.py \
+    ~/Documents/dify/me-1.mp3 --start 0.36 --duration 12 \
+    --out media/pipeline/voices/me-bright.wav
+
+# 2) 先用单句小样试听择优（不需要视频工程）：
+uv run --no-project --with mutagen media/pipeline/scripts/tts_sample.py \
+    --ref media/pipeline/voices/me-bright.wav --all-styles --play
+
+# 3) 定稿后全量合成：
 uv run --no-project --with mutagen media/pipeline/scripts/tts.py \
-    --project media/<工程> --engine indextts --ref media/pipeline/voices/me-1.wav --style lively
+    --project media/<工程> --engine indextts \
+    --ref media/pipeline/voices/me-bright.wav --style sunny
 ```
+
+**样本决定基线**：克隆会连韵律一起继承，样本比参数更关键——同一位说话人换一段录音，克隆音的音高可差 12~16%、语调起伏差 25~40%（实测见 [VOICE-CLONING.md](../VOICE-CLONING.md) §3.3）。
 
 ## 隐私提醒
 

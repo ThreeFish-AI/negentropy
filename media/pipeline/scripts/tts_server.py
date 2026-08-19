@@ -7,9 +7,14 @@
     uv run --frozen --with fastapi --with uvicorn --with soundfile --with numpy --with lameenc \
         python <本仓>/media/pipeline/scripts/tts_server.py --model-dir checkpoints --port 8766
 - 端点：
-    GET  /health     —— 服务与模型元信息（version/device/dtype/encoder/supports_duration_factor）
+    GET  /health     —— 服务与模型元信息（version/device/dtype/encoder/supports_duration_factor/
+                        supports_emo_text）
     POST /synthesize —— JSON 请求合成，返回 MP3 bytes（X-Audio-Format 头）
-- 安全：仅监听 127.0.0.1，无鉴权，勿暴露公网；ref_path 为服务端本地绝对路径。
+- 情感三来源（互斥，只能给一个）：
+    emo_vector   —— 8 维显式向量（有效和 Σvec×alpha ≤ 0.8）
+    emo_ref_path —— 情感参考音频：音色仍取 ref_path，语调/情绪迁移自这段录音（无合成味）
+    emo_text     —— 自然语言描述（需 --use-qwen-emo），服务端转向量并在 X-Emo-Vector 头回显
+- 安全：仅监听 127.0.0.1，无鉴权，勿暴露公网；ref_path / emo_ref_path 为服务端本地绝对路径。
 
 完整部署/排障手册见 media/pipeline/VOICE-CLONING.md。
 """
@@ -40,9 +45,12 @@ def ensure_indextts_import(index_tts_root: Path) -> None:
         sys.path.insert(0, str(index_tts_root.resolve()))
 
 
-def load_model(version: str, model_dir: Path, dtype: str, device: str):
+def load_model(
+    version: str, model_dir: Path, dtype: str, device: str, use_qwen_emo: bool = False
+):
     """按版本构造 IndexTTS2；构造器差异以 webui.py build_tts() 为锚点：
-    v2.5 仅 use_bf16（MPS 分支内部强制关闭），v2 为 use_fp16。均不加载 QwenEmotion（仅向量模式）。
+    v2.5 仅 use_bf16（MPS 分支内部强制关闭），v2 为 use_fp16。
+    use_qwen_emo 决定是否加载 QwenEmotion（自然语言情感描述→向量，约 +1.5 GB 内存）。
 
     返回 (tts 对象, 元信息 dict)。
     """
@@ -56,7 +64,7 @@ def load_model(version: str, model_dir: Path, dtype: str, device: str):
             use_bf16=use_bf16,
             use_cuda_kernel=False,
             use_deepspeed=False,
-            use_qwen_emo=False,
+            use_qwen_emo=use_qwen_emo,
             device=None if device == "auto" else device,
         )
         return tts, {
@@ -75,7 +83,7 @@ def load_model(version: str, model_dir: Path, dtype: str, device: str):
         use_fp16=use_fp16,
         use_cuda_kernel=False,
         use_deepspeed=False,
-        use_qwen_emo=False,
+        use_qwen_emo=use_qwen_emo,
         device=None if device == "auto" else device,
     )
     return tts, {
@@ -153,6 +161,12 @@ class SynthesizeRequest(BaseModel):
     text: str
     ref_path: str
     emo_vector: list[float] | None = None
+    # 情感参考音频：音色取自 ref_path，语调/情绪取自本字段（另一段录音），无合成味的风格迁移。
+    # 上游 infer() 在 emo_vector 存在时会「静默丢弃」emo_audio_prompt，故本服务显式拒绝二者同传。
+    emo_ref_path: str | None = None
+    # 自然语言情感描述（如「轻快爽朗、自信阳光」）：服务端先用 QwenEmotion 转成 8 维向量，
+    # 再按 ≤0.8 有效和规则缩放后当作 emo_vector 使用，并在 X-Emo-Vector 响应头回显供固化复用。
+    emo_text: str | None = None
     emo_alpha: float = 1.0
     duration_factor: float = 1.0
     lang: str = "ZH"
@@ -196,6 +210,21 @@ class SynthesizeRequest(BaseModel):
 STATE: dict = {}
 
 
+def _qwen_vector_sync(tts, emo_text: str, alpha: float) -> list[float]:
+    """自然语言情感描述 → 8 维向量（QwenEmotion），并按 ≤0.8 有效和规则整体缩放。
+
+    Qwen 每维 clamp 在 [0, 1.2] 但**不做和归一**，Σ 可能 >1；而上游混合式为
+    `emovec = Σ(w·基向量) + (1 - Σw)·参考音频情感`，Σw>1 会让参考音频项变负权重（发音劣化）。
+    故此处等比缩放（保留 Qwen 选定的「方向」，只压「强度」），保底留 ≥0.2 的自然情感残量。
+    """
+    vec = list(tts.qwen_emo.inference(emo_text).values())
+    total = sum(vec) * alpha
+    if total > 0.8:
+        scale = 0.8 / total
+        vec = [round(x * scale, 4) for x in vec]
+    return vec
+
+
 def _infer_sync(tts, ref: Path, req: SynthesizeRequest, tmpdir: Path) -> Path:
     wav_path = tmpdir / "out.wav"
     kwargs = dict(
@@ -203,6 +232,7 @@ def _infer_sync(tts, ref: Path, req: SynthesizeRequest, tmpdir: Path) -> Path:
         text=req.text,
         output_path=str(wav_path),
         emo_vector=req.emo_vector,
+        emo_audio_prompt=req.emo_ref_path,
         emo_alpha=req.emo_alpha,
         use_random=False,
         verbose=False,
@@ -232,7 +262,9 @@ async def lifespan(app: FastAPI):
     args = app.state.args
     ensure_indextts_import(args.index_tts_root)
     print(">> 加载 IndexTTS 模型（首次运行会自动下载 w2v-bert 等辅助模型）…")
-    tts, meta = load_model(args.version, args.model_dir, args.dtype, args.device)
+    tts, meta = load_model(
+        args.version, args.model_dir, args.dtype, args.device, args.use_qwen_emo
+    )
     encoder = _probe_encoders()
     STATE.update(
         tts=tts,
@@ -241,10 +273,12 @@ async def lifespan(app: FastAPI):
         dtype=meta["dtype_flag"],
         encoder=encoder,
         supports_duration_factor=meta["supports_duration_factor"],
+        supports_emo_text=getattr(tts, "qwen_emo", None) is not None,
         infer_lock=asyncio.Lock(),
     )
     print(
-        f">> 就绪：IndexTTS-{STATE['version']} device={STATE['device']} dtype={STATE['dtype']} encoder={encoder}"
+        f">> 就绪：IndexTTS-{STATE['version']} device={STATE['device']} dtype={STATE['dtype']} "
+        f"encoder={encoder} emo_text={'on' if STATE['supports_emo_text'] else 'off'}"
     )
     yield
     STATE.clear()
@@ -265,6 +299,7 @@ async def health():
         "dtype": STATE.get("dtype"),
         "encoder": STATE.get("encoder"),
         "supports_duration_factor": STATE.get("supports_duration_factor"),
+        "supports_emo_text": STATE.get("supports_emo_text", False),
     }
 
 
@@ -275,6 +310,29 @@ async def synthesize(req: SynthesizeRequest):
     ref = Path(req.ref_path).expanduser()
     if not ref.is_file():
         raise HTTPException(400, f"参考音频不存在: {ref}")
+    # 三种情感来源互斥：向量 / 参考音频 / 自然语言描述。上游对「向量+音频」是静默丢弃音频，
+    # 静默降级比报错更难排查，故此处显式拒绝。
+    sources = [
+        name
+        for name, val in (
+            ("emo_vector", req.emo_vector),
+            ("emo_ref_path", req.emo_ref_path),
+            ("emo_text", req.emo_text),
+        )
+        if val
+    ]
+    if len(sources) > 1:
+        raise HTTPException(400, f"情感来源互斥，只能给一个：{' / '.join(sources)}")
+    if req.emo_ref_path:
+        emo_ref = Path(req.emo_ref_path).expanduser()
+        if not emo_ref.is_file():
+            raise HTTPException(400, f"情感参考音频不存在: {emo_ref}")
+        req.emo_ref_path = str(emo_ref)
+    if req.emo_text and not STATE.get("supports_emo_text"):
+        raise HTTPException(
+            400,
+            "emo_text 需要 QwenEmotion：服务启动时加 --use-qwen-emo（约 +1.5 GB 内存）",
+        )
     effective_sum = (sum(req.emo_vector) if req.emo_vector else 0.0) * req.emo_alpha
     if effective_sum > 0.8:  # infer 内部以 alpha 缩放向量，有效和超界会产生负混合权重
         raise HTTPException(
@@ -287,17 +345,28 @@ async def synthesize(req: SynthesizeRequest):
             "IndexTTS-2 不支持 duration_factor（v2.5 专属），请改用 v2.5 服务或去掉 --duration-factor",
         )
 
+    derived: list[float] | None = None
     async with STATE["infer_lock"]:
+        if (
+            req.emo_text
+        ):  # 先算向量（占 GPU，须在锁内），再走与显式向量完全相同的合成路径
+            derived = await asyncio.to_thread(
+                _qwen_vector_sync, STATE["tts"], req.emo_text, req.emo_alpha
+            )
+            req.emo_vector = derived
         with tempfile.TemporaryDirectory(prefix="indextts_") as td:
             wav_path = await asyncio.to_thread(
                 _infer_sync, STATE["tts"], ref, req, Path(td)
             )
             data, sr = await asyncio.to_thread(_read_audio, wav_path)
             audio, fmt = await asyncio.to_thread(encode_mp3, data, sr)
+    headers = {"X-Audio-Format": fmt, "X-Duration-Sec": f"{len(data) / sr:.3f}"}
+    if derived is not None:  # 回显 Qwen 推出的向量，便于事后用 --emo-vector 固化复现
+        headers["X-Emo-Vector"] = ",".join(f"{x:g}" for x in derived)
     return Response(
         audio,
         media_type="audio/mpeg" if fmt == "mp3" else "audio/wav",
-        headers={"X-Audio-Format": fmt, "X-Duration-Sec": f"{len(data) / sr:.3f}"},
+        headers=headers,
     )
 
 
@@ -323,6 +392,11 @@ def main() -> None:
         help="auto：v2.5→bf16（MPS 强制 fp32）/ v2→fp16；显式 fp32 两个版本均安全",
     )
     parser.add_argument("--device", choices=["auto", "mps", "cpu"], default="auto")
+    parser.add_argument(
+        "--use-qwen-emo",
+        action="store_true",
+        help="加载 QwenEmotion（0.6B，约 +1.5 GB 内存），开启后请求可用 emo_text 自然语言描述情感",
+    )
     args = parser.parse_args()
 
     args.index_tts_root = Path(args.index_tts_root).resolve()
