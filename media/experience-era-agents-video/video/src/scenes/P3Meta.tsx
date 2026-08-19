@@ -21,12 +21,67 @@ const Ladder: React.FC = () => {
     {name: '学会怎么改进', icon: '🧭', desc: '失败 → 原则 → 下次引用'},
     {name: '专职进化部门', icon: '🏛️', desc: '独立的 meta 层管进化'},
   ];
+  // Figure 8 二维格阵 underlay：先以淡格阵出现（p3-01..02），轴标签随 p3-03 点亮，
+  // 再让位给三级阶梯（A4 校准：1↔2 级分界是「改什么」，2↔3 才是控制权）
+  const grid = interpolate(frame, [6, 22], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const axes = interpolate(frame, [28, 44], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const toLadder = interpolate(frame, [48, 66], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const cols = ['内容资产', '机制/结构', '改进策略', '元层自身'];
+  const rows = ['meta 层控制', '任务体自控'];
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <FadeUp style={{position: 'absolute', top: 110}}>
         <div style={{fontFamily: theme.sans, fontSize: 38, color: theme.exp}}>谁来决定，经验往哪送？</div>
       </FadeUp>
-      <div style={{display: 'flex', alignItems: 'flex-end', gap: 60, marginTop: 80}}>
+      {/* 二维格阵（Figure 8）：2 行 × 4 列，对角两格为空（–） */}
+      <div
+        style={{
+          position: 'absolute',
+          opacity: grid * (1 - toLadder),
+          transform: `translateY(${toLadder * 90}px) scale(${1 - 0.12 * toLadder})`,
+        }}
+      >
+        <div style={{display: 'grid', gridTemplateColumns: `repeat(4, 190px)`, gap: 10, marginLeft: 150}}>
+          {cols.map((c) => (
+            <div key={c} style={{textAlign: 'center', fontFamily: theme.mono, fontSize: 17, color: theme.harness, opacity: axes}}>
+              {c}
+            </div>
+          ))}
+        </div>
+        {rows.map((r, ri) => (
+          <div key={r} style={{display: 'grid', gridTemplateColumns: '140px repeat(4, 190px)', gap: 10, marginTop: 10, alignItems: 'center'}}>
+            <div style={{textAlign: 'right', fontFamily: theme.mono, fontSize: 17, color: theme.harness, opacity: axes}}>{r}</div>
+            {cols.map((c, ci) => {
+              const empty = (ri === 0 && ci === 0) || (ri === 1 && ci === 3);
+              const cellIn = interpolate(frame, [10 + (ri * 4 + ci) * 2, 20 + (ri * 4 + ci) * 2], [0, 1], {
+                extrapolateLeft: 'clamp',
+                extrapolateRight: 'clamp',
+              });
+              return (
+                <div
+                  key={c}
+                  style={{
+                    height: 108,
+                    borderRadius: 10,
+                    background: empty ? 'transparent' : theme.panel,
+                    border: `1.5px dashed ${empty ? theme.panelBorder : theme.harness}`,
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    fontFamily: empty ? theme.mono : theme.sans,
+                    fontSize: empty ? 26 : 19,
+                    color: theme.dim,
+                    opacity: cellIn * (empty ? 0.6 : 1),
+                  }}
+                >
+                  {empty ? '–' : ['MetaMem 系', 'MetaEvo', 'Hyperagents', '', 'SkillClaw 系', 'SkillOS', 'SkillRL', ''][ri * 4 + ci] || '…'}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+      <div style={{display: 'flex', alignItems: 'flex-end', gap: 60, marginTop: 80, opacity: toLadder}}>
         {levels.map((l, i) => {
           const h = 200 + i * 110;
           const enter = spring({frame: frame - i * 12, fps, config: {damping: 200}});
