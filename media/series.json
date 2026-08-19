@@ -12,7 +12,11 @@
       "title": "上线之后，AI 才开始上学",
       "topic": "部署之后经验怎么攒",
       "cardSub": "经验 · 怎么攒",
-      "accents": ["#F5C542", "#2DD4BF", "#B78CFF"],
+      "accents": [
+        "#F5C542",
+        "#2DD4BF",
+        "#B78CFF"
+      ],
       "paper": {
         "title": "Self-Improving Agents in the Era of Experience: A Survey of Self- to Meta-Evolution",
         "id": null,
@@ -21,7 +25,7 @@
         "date": "2026-06"
       },
       "status": "in-production",
-      "statusNote": "v3 重制中：内容校准 + sunny-steady 全片重配",
+      "statusNote": "v3 重制中：内容校准已定稿（187 句，25 改写 + 8 新增）；sunny-steady 重配进行中",
       "voice": "sunny-steady + me-bright.wav（2026-08 重录决策）"
     },
     {
@@ -31,7 +35,10 @@
       "title": "AI 如何自己变强？",
       "topic": "自我进化改什么",
       "cardSub": "自我进化 · 改什么",
-      "accents": ["#4A9EFF", "#FF9F45"],
+      "accents": [
+        "#4A9EFF",
+        "#FF9F45"
+      ],
       "paper": {
         "title": "Self-Improvements in Modern Agentic Systems: A Survey",
         "id": "arXiv:2607.13104",
@@ -50,7 +57,10 @@
       "title": "会写代码的 AI，开始给自己写代码",
       "topic": "代码领域全图",
       "cardSub": "代码田野 · 全图",
-      "accents": ["#4ADE80", "#FF6EC7"],
+      "accents": [
+        "#4ADE80",
+        "#FF6EC7"
+      ],
       "paper": {
         "title": "Self-Evolving Coding Agents: A Survey",
         "id": "arXiv:2608.03392",
