@@ -24,8 +24,8 @@
         "venue": "清华大学 × Horizon Research (Frontis.AI)",
         "date": "2026-06"
       },
-      "status": "in-production",
-      "statusNote": "v3 重制中：内容校准已定稿（187 句，25 改写 + 8 新增）；sunny-steady 重配进行中",
+      "status": "ready",
+      "statusNote": "v3 已完成：内容校准（187 句，25 改写 + 8 新增）+ sunny-steady 全片重配 + 终渲 14:01",
       "voice": "sunny-steady + me-bright.wav（2026-08 重录决策）"
     },
     {

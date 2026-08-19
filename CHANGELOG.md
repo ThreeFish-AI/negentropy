@@ -14,6 +14,8 @@
 - **科普视频管线新增「激情」配音风格预设与官方工程站点信源补充规范**：`media/pipeline/scripts/tts.py` 的 IndexTTS 风格预设表新增 `passionate`（充满激情与轻快：happy 0.70 主载高唤醒正价 + surprised 0.20 跳跃感 + calm 0.10 锚定咬字，有效和 1.00×0.7=0.70 ≤ 0.8 上限，语速 0.97 护密集技术句清晰度），`--list-styles` 与 [VOICE-CLONING.md](media/pipeline/VOICE-CLONING.md) §四 同步收录并给出科普长视频推荐位；[skills/01-paper-extraction.md](media/pipeline/skills/01-paper-extraction.md) 扩展「官方工程站点信源补充」纪律——只收事实性内容、逐字引用+URL+访问日期、落 `paper-notes.md` 末尾独立「信源补充」大节并与论文正文物理隔离、严禁下载/嵌入站点图片（概念转文字规格供 Remotion 代码动画重建）、站点信源单集专属不跨集。
 - **IndexTTS 推理束搜索宽度旋钮（`--num-beams`，长跑提速主开关）**：服务端 `tts_server.py` 请求模型与推理透传 num_beams（1–5），客户端 `tts.py` 新增 `--num-beams`（默认 1）；根因为 MPS fp32 实测每句墙钟 RTF 40–58（上游库内部 num_beams=3 使 GPT 段耗时按束宽线性放大），降为 1 束后 RTF≈12–15（采样生成下听感差异可忽略）；[VOICE-CLONING.md](media/pipeline/VOICE-CLONING.md) §4.3b 沉淀实测数据并修正原「每句 5–30 秒」的失实估计（整集实际数小时，需 nohup 后台+断点续跑）。
 
+- **《上线之后，AI 才开始上学》v3 重制交付（系列第一集）**：源论文第三遍重读校准（7 个按幕并行代理逐句审计，`paper_extract.py` 逐条取证）**确证并修复 3 处事实错误**——p0-01 Sutton 机构归属、p1-10「便宜一万倍」（论文全文无任何倍数，三查零命中）、p6-13a/b 站点「111 篇」（未水合 HTML 占位符，真实 331 篇/九章，见 ISSUE-162）；**5 处口径深化**——P3 补 Figure 8 二维地图（regime 是行×列分组，1↔2 分界是「改什么」）、P5 补第四类威胁与「对齐漂移」统摄透镜、环境天花板三轴、SIP-Bench 三分带（replay/adapt/held-out）、§10.2 晋升判准缺失（快慢双路之间的开关没有判准，本轮最高价值新增）。逐字稿 187 句（25 改写 + 8 新增，其余 154 句字节不变）；6 个新动画组件（VerificationBedrock/ThreeCurves/DriftLens/PromotionGate/EnvCeiling 三轴/Fig8 格阵 underlay）；**全片换用 `sunny-steady` 本人音色克隆重配**（me-bright.wav 一次命中 sha1 门，8 句领航形态试听通过），成片 14:01 · 1080p30 · h264/aac；质量门全绿（内容门 FAIL0/WARN0、系列一致性 FAIL0、抽帧体检 FAIL0、主题对比度 FAIL0）。
+
 ### Fixed
 
 - **`cli.sh restart` Phase 3 报 `PostgreSQL 未运行` 直接中止**：`postgresql@16` 非正常退出后数据目录残留 `postmaster.pid`（其 PID 被 OS 回收复用为他进程，本例为 WebKit），brew launchd 反复重试撞 `FATAL: lock file "postmaster.pid" already exists` → 服务进入 `error` 态，而 Phase 3（`cli.sh`）原先仅 `pg_isready -h localhost -p 5432` 探测一次、未运行即 `exit 1`，无自愈、不区分 PG 版本。根因实证：残留 pid 记录 PID `4174` 实为 `com.apple.WebKit.WebContent`（非 postgres），`/opt/homebrew/var/log/postgresql@16.log` 尾部 60+ 条同款 FATAL。修复：新增 `_ensure_postgres` 自愈链——解析 Homebrew formula（默认 `postgresql@16` 对齐 CI `pgvector:pg16`，按 `@16→@17→@18→postgresql` 探测，可 `NEGENTROPY_PG_FORMULA` 覆盖）→ `_clean_stale_pg_pid` 仅当 PID 已死或存活但非 postgres 进程时清理残留锁 → `brew services restart`（覆盖 error/已加载态，start 兜底）→ `_wait_pg_ready` 壁钟轮询就绪（默认 30s，`NEGENTROPY_PG_READY_TIMEOUT` 覆盖）；全失败才报错并附诊断（`brew services list` / 日志路径 / 版本核对）。无 `pg_isready` 时保留原「不探测、退由 alembic 校验」行为（最小干预）。新增 `scripts/tests/test_pg_selfheal.sh` 函数级回归测试（9 用例全通过）。本次即时清理 `@16` 残留锁并 restart 恢复，`SELECT version()` 核对为 16.14。防范：本机共存 PG@16/17/18，5432 易错位——残留 `postmaster.pid` 致 brew `error` 态是可复用判据，优先核 `ps comm` 而非 `kill -0`（后者对 OS 回收复用的 PID 误判存活）。
@@ -44,6 +46,8 @@
 - **身份与权限**：Google OAuth SSO 单点登录 + RBAC（admin/user 双层守卫）。
 - **数据与执行隔离**：记忆 PII 治理贯穿全链路；代码执行经双通道沙箱隔离，OAuth/SSO 登录态禁止代理或模拟。
 - **可观测留痕**：structlog + OpenTelemetry + Langfuse 三层观测，每次「思考」均可审计。
+
+- **《上线之后，AI 才开始上学》v3 重制交付（系列第一集）**：源论文第三遍重读校准（7 个按幕并行代理逐句审计，`paper_extract.py` 逐条取证）**确证并修复 3 处事实错误**——p0-01 Sutton 机构归属、p1-10「便宜一万倍」（论文全文无任何倍数，三查零命中）、p6-13a/b 站点「111 篇」（未水合 HTML 占位符，真实 331 篇/九章，见 ISSUE-162）；**5 处口径深化**——P3 补 Figure 8 二维地图（regime 是行×列分组，1↔2 分界是「改什么」）、P5 补第四类威胁与「对齐漂移」统摄透镜、环境天花板三轴、SIP-Bench 三分带（replay/adapt/held-out）、§10.2 晋升判准缺失（快慢双路之间的开关没有判准，本轮最高价值新增）。逐字稿 187 句（25 改写 + 8 新增，其余 154 句字节不变）；6 个新动画组件（VerificationBedrock/ThreeCurves/DriftLens/PromotionGate/EnvCeiling 三轴/Fig8 格阵 underlay）；**全片换用 `sunny-steady` 本人音色克隆重配**（me-bright.wav 一次命中 sha1 门，8 句领航形态试听通过），成片 14:01 · 1080p30 · h264/aac；质量门全绿（内容门 FAIL0/WARN0、系列一致性 FAIL0、抽帧体检 FAIL0、主题对比度 FAIL0）。
 
 ### Fixed
 

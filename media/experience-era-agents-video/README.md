@@ -5,6 +5,17 @@
 > （v2 前为 edge-tts 预置音色，两种引擎 manifest 契约一致，可随时切回。）
 > 三集系列第 1 集（各集独立成片，口播不出现他集标题与集数序号）；同系列：[《AI 如何自己变强？》](../self-improving-agents-video/README.md)（自我进化改什么）、[《会写代码的 AI，开始给自己写代码》](../self-evolving-coding-agents-video/README.md)（代码领域全图），发布顺序见 [../series.json](../series.json)。
 
+## 交付状态（v3，2026-08-20）
+
+| 项 | 值 |
+|---|---|
+| 成片 | `out/final.mp4` · 14:01 · 1920×1080@30 · h264/yuv420p · aac 189kb/s |
+| 配音 | IndexTTS-2.5 本人音色克隆 · `sunny-steady`(beams=3) · `me-bright.wav`(sha1 54b699cce97f) |
+| 逐字稿 | 187 句 / 3884 字（v2→v3：25 改写 + 8 新增，其余 154 句字节不变） |
+| 字幕 | `out/captions.srt` + `.vtt`（187 cues） |
+| 质量门 | 内容门 FAIL0/WARN0 · 系列一致性 FAIL0 · 抽帧体检 FAIL0 · 主题对比度 FAIL0 |
+| 审计 | [upgrade-2026-08-v3.md](./research/upgrade-2026-08-v3.md)（含 3 处事实错误的取证与修复记录） |
+
 ## 目录结构
 
 | 路径 | 说明 |
