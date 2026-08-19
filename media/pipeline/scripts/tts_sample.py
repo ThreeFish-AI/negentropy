@@ -334,6 +334,10 @@ def main() -> None:
         if not text_path.is_file():
             parser.error(f"文本文件不存在: {text_path}")
         args.text = text_path.read_text(encoding="utf-8").strip()
+        # 显式给了 --text-file 却读到空内容：必须硬失败。否则下一行的 `or DEFAULT_TEXT`
+        # 会把它当"没给文本"而静默替换成内置默认句，用户以为在听自己的文本、实则听到别的。
+        if not args.text:
+            parser.error(f"文本文件内容为空: {text_path}")
     args.text = (args.text or DEFAULT_TEXT).strip()
     if not args.text:
         parser.error("试听文本为空")
