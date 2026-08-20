@@ -6,6 +6,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "check_script.py"
 
 
@@ -125,3 +127,87 @@ def test_fade_invariant(project):
     rc, out = run_check(project)
     assert rc == 1
     assert "淡入淡出" in out or "sceneCrossFadeSec" in out
+
+
+# ---------------- 读法陷阱（上游中文归一化的实测错读写法）----------------
+#
+# 每条断言对应一次在本机 index-tts venv 上直接跑 TextNormalizer.normalize() 的实测
+# （2026-08-20）。反例组同样重要：`0.5~1.0 秒`→`零点五到一点零秒`、`9:30`→`九点三十分`
+# 实测**正确**，故不得报错——加规则前先跑探针，别凭直觉扩大清单。
+
+
+def write_narration(root: Path, texts: list[str]) -> None:
+    """按 BOARD_OK 的 4 句骨架（p0-01/02 + p1-01/02）写 narration.json。"""
+    import json as _json
+
+    ids = ["p0-01", "p0-02", "p1-01", "p1-02"]
+    items = [
+        {"id": i, "scene": "P0" if i.startswith("p0") else "P1", "text": t}
+        for i, t in zip(ids, texts, strict=True)
+    ]
+    (root / "script" / "narration.json").write_text(
+        _json.dumps(items, ensure_ascii=False), encoding="utf-8"
+    )
+
+
+BENIGN = "这是一句普通的中文口播。"
+
+
+@pytest.mark.parametrize(
+    ("bad", "frag"),
+    [
+        ("论文发表于 2026 年六月。", "两千零二十六"),  # 4 位年份 + 空格
+        ("升级到版本 2.5.1 之后。", "三段版本号"),
+        ("速度快了 3-5 倍。", "三减五"),
+        ("测量误差是 ±3 个点。", "正负"),
+        ("整体提速 10x 左右。", "十x"),
+    ],
+)
+def test_reading_trap_fails(project, bad, frag):
+    write_board(project, BOARD_OK)
+    write_config(project, CFG_OK)
+    write_narration(project, [bad, BENIGN, BENIGN, BENIGN])
+    rc, out = run_check(project)
+    assert rc == 1, out
+    assert "读法陷阱" in out and frag in out
+
+
+def test_sentence_without_han_fails(project):
+    """整句无汉字会被上游 use_chinese() 路由到英文归一化（2.5 → two point five）。"""
+    write_board(project, BOARD_OK)
+    write_config(project, CFG_OK)
+    write_narration(project, ["IndexTTS 2.5", BENIGN, BENIGN, BENIGN])
+    rc, out = run_check(project)
+    assert rc == 1, out
+    assert "整句无汉字" in out
+
+
+@pytest.mark.parametrize(
+    "ok",
+    [
+        "论文发表于 2026年六月。",  # 无空格才读「二零二六年」
+        "耗时 0.5~1.0 秒。",  # 实测 → 零点五到一点零秒（正确）
+        "上午 9:30 开始录制。",  # 实测 → 九点三十分（正确）
+        "提升 16.2 个百分点。",  # 实测正确
+        "6 月 20 日发布。",  # 实测正确
+        "第 3 章第 1.2 节。",  # 实测正确
+        "AI 与 LLM 都能做到。",  # 纯缩写原样透传
+    ],
+)
+def test_reading_trap_no_false_positive(project, ok):
+    write_board(project, BOARD_OK)
+    write_config(project, CFG_OK)
+    write_narration(project, [ok, BENIGN, BENIGN, BENIGN])
+    rc, out = run_check(project)
+    assert rc == 0, out
+    assert "命中 0 处" in out
+
+
+def test_model_designator_warns_not_fails(project):
+    """`1080P` 读成「一千零八十P」——是缺陷但不阻断（型号写法多样，避免误伤）。"""
+    write_board(project, BOARD_OK)
+    write_config(project, CFG_OK)
+    write_narration(project, ["输出 1080P 视频。", BENIGN, BENIGN, BENIGN])
+    rc, out = run_check(project)
+    assert rc == 0, out
+    assert "WARN" in out and "一千零八十" in out

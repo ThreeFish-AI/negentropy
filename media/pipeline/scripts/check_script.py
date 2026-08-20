@@ -7,7 +7,9 @@
   2. 时长预算：narration.json 字数估算与 manifest 实测（若已合成）两个口径都对
      pipeline.toml 的 target_minutes 负责——首次把「策划宣称/估算/实测」三处接上；
   3. 幕间呼吸淡入淡出的不变式：2×sceneCrossFadeSec ≤ sentenceGap+sceneGap
-    （淡入淡出必须花在既有静默里，时间轴零位移的前提）。
+    （淡入淡出必须花在既有静默里，时间轴零位移的前提）；
+  4. 读法陷阱：上游中文归一化实测会读错的写法（4 位年份带空格、三段版本号、
+     数字区间连字符、±、10x、整句无汉字…）——见 READING_TRAPS，每条都附实测输出。
 
 可选 --check-scenes：从 video/src/scenes/*.tsx 提取 beatWindow/w('id','id')
 调用，与分镜表互比（WARN-only，TSX 正则本质近似）。
@@ -131,6 +133,86 @@ def check_budget(root: Path, items: list[dict], cfg: dict, msgs: list[str]) -> N
         print("  实测口径：manifest 未生成（跳过；合成后复跑本门）")
 
 
+#: 读法陷阱：上游中文文本归一化（macOS 上是 wetext，`indextts/utils/front.py:116-142`）
+#: 会把数字展开成口语读法，绝大多数写法都正确，但下列写法**实测读错**。
+#:
+#: 每条都标注了 2026-08-20 在本机 index-tts venv 上直接跑 `TextNormalizer.normalize()`
+#: 得到的真实输出——加规则前先跑探针拿证据，不要凭直觉列清单（本轮就有两条「疑似错误」
+#: 实测其实是对的：`0.5~1.0 秒`→`零点五到一点零秒`、`9:30`→`九点三十分`，故未列入）。
+#:
+#: 归一化是**幂等**的：把读法预写成汉字后再过一遍结果不变，所以修复可逐句增量做。
+READING_TRAPS: tuple[tuple[str, str, str], ...] = (
+    (
+        r"\d{4}\s+年",
+        "FAIL",
+        "4 位年份与「年」之间有空格：`2026 年` 读成「两千零二十六年」（写成 `2026年` 才读「二零二六年」）",
+    ),
+    (
+        r"\d+\.\d+\.\d+",
+        "FAIL",
+        "三段版本号：`2.5.1` 读成「二.五点一」（残留字面小数点）——改写为「二点五点一」",
+    ),
+    (
+        r"\d\s*[-–—]\s*\d",
+        "FAIL",
+        "数字区间用连字符：`3-5 倍` 读成「三减五倍」——改写为「三到五倍」",
+    ),
+    (
+        r"±",
+        "FAIL",
+        "正负号：`±3%` 读成「百分之正负三」（顺序颠倒）——改写为「正负百分之三」",
+    ),
+    (
+        r"\d\s*[xX](?![A-Za-z])",
+        "FAIL",
+        "倍数用 x：`10x` 读成「十x」（裸字母）——改写为「十倍」",
+    ),
+    (
+        r"\d{3,}\s*[A-Za-z]",
+        "WARN",
+        (
+            "数字串+字母型号：`1080P` 读成「一千零八十P」（按基数读且裸字母）——"
+            "若要逐位读需改写为「一零八零 P」"
+        ),
+    ),
+    (
+        r"≈",
+        "WARN",
+        "约等于号未被归一化展开（原样透传），大概率不发音——改写为「大约」",
+    ),
+)
+READING_TRAPS_COMPILED = tuple(
+    (re.compile(p), level, msg) for p, level, msg in READING_TRAPS
+)
+
+#: 汉字。整句无汉字时上游按 `use_chinese()`（front.py:106-114）逐句嗅探路由到**英文**
+#: normalizer：实测 `IndexTTS 2.5`→`IndexTTS two point five`、`RTF 0.2065`→
+#: `RTF oh point two oh six five`。逐字稿为字幕可读性把句子拆到 ≤43 字，反而**提高**了
+#: 出现纯 ASCII 短句的概率——两个既有约束的隐性冲突，故必须成门。
+HAN_RE = re.compile(r"[一-鿿]")
+
+
+def check_reading_traps(items: list[dict], msgs: list[str]) -> None:
+    """逐句扫描已知会被读错的写法（上游归一化的实测行为）。"""
+    hits = 0
+    for it in items:
+        text = it["text"]
+        for pattern, level, why in READING_TRAPS_COMPILED:
+            if m := pattern.search(text):
+                hits += 1
+                (fail if level == "FAIL" else warn)(
+                    msgs, f"句 {it['id']} 命中读法陷阱 {m.group(0)!r}：{why}"
+                )
+        if not HAN_RE.search(text):
+            hits += 1
+            fail(
+                msgs,
+                f"句 {it['id']} 整句无汉字（{text!r}）：上游按整句嗅探路由到英文归一化，"
+                "数字会读成英文（`2.5`→`two point five`）——请并入相邻句或补中文",
+            )
+    print(f"  读法陷阱：{len(items)} 句扫描，命中 {hits} 处")
+
+
 def check_fade_invariant(root: Path, msgs: list[str]) -> None:
     c = load_constants(root)
     budget = c["sentenceGapSec"] + c["sceneGapSec"]
@@ -194,6 +276,7 @@ def main() -> None:
         fail(msgs, f"未能从 {board.name} 解析出任何 beat 行（格式变化？）")
     check_coverage(items, beats, msgs)
     check_budget(root, items, cfg, msgs)
+    check_reading_traps(items, msgs)
     check_fade_invariant(root, msgs)
     if args.check_scenes:
         check_scenes(root, beats, msgs)
