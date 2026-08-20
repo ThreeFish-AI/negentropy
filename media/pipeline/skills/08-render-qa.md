@@ -10,12 +10,13 @@ uv run --no-project media/pipeline/scripts/pipeline.py --project media/<slug>-vi
 
 # 抽帧三选一：幕抽样 / 指定句 / 末 N 句（尾幕渐黑缺陷的必查项）
 # ⚠️ 草渲 --check 须带 --scale 0.5：字幕带/亮块间隔按全分辨率像素常数计算，不折算则判据双向失真
+# ⚠️ 视频路径按 CWD 解析（非 --project 相对）——从仓库根调用须写 media/<slug>-video/out/draft.mp4
 uv run --no-project --with pillow --with numpy media/pipeline/scripts/qa_frames.py \
-    --project media/<slug>-video out/draft.mp4 --scene P2 [--check --scale 0.5]
+    --project media/<slug>-video media/<slug>-video/out/draft.mp4 --scene P2 [--check --scale 0.5]
 uv run --no-project --with pillow --with numpy media/pipeline/scripts/qa_frames.py \
-    --project media/<slug>-video out/draft.mp4 p6-11 p6-13b --check --scale 0.5
+    --project media/<slug>-video media/<slug>-video/out/draft.mp4 p6-11 p6-13b --check --scale 0.5
 uv run --no-project --with pillow --with numpy media/pipeline/scripts/qa_frames.py \
-    --project media/<slug>-video out/draft.mp4 --last-n 6 --check --scale 0.5
+    --project media/<slug>-video media/<slug>-video/out/draft.mp4 --last-n 6 --check --scale 0.5
 
 # 主题对比度（零依赖，不需视频；新配色/改 theme.ts 后必跑）
 uv run --no-project media/pipeline/scripts/qa_frames.py --project media/<slug>-video --check-theme

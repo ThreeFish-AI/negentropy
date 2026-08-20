@@ -264,11 +264,12 @@ def cmd_all(root: Path, cfg: dict) -> int:
         if rc := step():
             return rc
     print("\n>> 草渲完成。尾幕必查（渐黑过早缺陷的回归点）：")
+    # 全部路径用绝对值：脚本/工程/视频各自相对不同 CWD，混用相对路径则任一工作目录照抄必有一端落空
     print(
-        "   uv run --no-project --with pillow --with numpy media/pipeline/scripts/qa_frames.py \\"
+        f"   uv run --no-project --with pillow --with numpy {SCRIPTS / 'qa_frames.py'} \\"
     )
     print(
-        f"       --project {root} out/draft.mp4 --last-n 6 --check"
+        f"       --project {root} {root / 'out' / 'draft.mp4'} --last-n 6 --check"
         f" --scale {cfg.get('render', {}).get('draft_scale', 0.5)}   # 草渲像素折算，不可省"
     )
     return 0
