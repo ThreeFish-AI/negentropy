@@ -3530,3 +3530,27 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **根因**：`{id}.mp3` 单槽位 + 摘要不含引擎标识——换引擎=每句摘要都「合法地」变了，逐句 sidecar 察觉不到「整集正在被换音色」；且硬化不对称：`--plan` 路径已按同一危害论证改为硬失败（tts.py:605-612 注释写明），**合成路径漏了同样的处理**。
 - **处理方式**：带值克隆参数（--ref/--style/--lang/--emo-*/--duration-factor/--num-beams/--steady）在 edge 下 `parser.error` 硬失败（典型手型=「照抄文档打了 --ref/--style 却丢了 --engine」）；`.engine` 音色签名标记作第二层（覆盖「一个参数都没打」的场景），不一致须 `--allow-voice-switch`。测试 `test_engine_guard.py` 六个用例锁定行为。
 - **后续防范**：**破坏性默认值必须硬失败而非提示**——静默降级的输出会覆盖唯一产物槽位时尤甚；修一处同类风险要横向扫全部入口（plan/合成/编排三层当时只硬化了一层）。
+
+## ISSUE-164 站点标注的规模数字与固定提交实测复算不一致（102/135/180/232 vs 141/191/241/255）（2026-08-21）
+
+- **表因**：制作《拆开 Claude Code》时，课程站点四章各自标注 `102 / 135 / 180 / 232 LOC`。按 [ISSUE-162](#issue-162-站点数字取自未水合-html-源码把占位符写进口播111-vs-3312026-08-19) 的教训先验证「是否未水合」——结论是**站点为 SSG 预渲染，数字同时出现在可见文本与框架载荷中，不存在占位符问题**。但把同一批文件按固定提交拉下来实测，四章 `code.py` 是 `141 / 191 / 241 / 255` 行（`wc -l`），「非空非注释」口径是 `106 / 145 / 181 / 203`——**没有任何一种口径能同时对上那四个数**（s04 尤其致命：站点声称 232，而实测非空行只有 213，比声称值还少）。
+- **根因**：**这是与 ISSUE-162 不同的失效模式**。162 是「取数姿势错」（读了未水合的 DOM），本例是「**信源自身的数字已相对其代码陈旧**」——站点数字应为某个早期提交上的统计，而课程仓库持续演进（本次固定的 `f9e8b28` 与站点文案不同步）。一个「取数姿势完全正确」的流程照样会把陈旧数字搬进口播，因为**页面上的数字与页面旁边的代码本来就不是同一时刻的产物**。
+- **处理方式**：
+  1. 口播**只说趋势不说绝对值**（「从一百四十行出头长到两百五十多行」），画面角标给**我方实测值 + 口径名 + 固定提交号 + 取数日期**；
+  2. 事实源 `research/source-notes.md` 增「站点与仓库分歧清单」大节，逐条记录分歧点/两轨说法/处置，本条列为第 3 项；
+  3. 新增 `source_ledger.py`：`repo` 类信源强制 URL 含 commit sha 且 raw 指纹漂移即 FAIL，`site` 类只比归一正文、漂移报 WARN，把「信源陈旧可发现」变成机器门。
+- **后续防范**：
+  1. **凡引用他方标注的规模数字（行数/条目数/参数量），必须在固定版本上自己复算一遍，并写明口径**；复算不上就降级为趋势表述——「复算不出」本身就是「该数字已陈旧」的证据，不是自己算错了。
+  2. **散文与代码的新鲜度要分别评估**：同一个信源的不同部分（文案 / 代码 / 图）改版节奏不同，不能因为「取自同一个站点」就认为同龄。
+  3. 双轨取证（站点叙事 + 仓库固定提交）应作为**文档/代码型选题的默认姿势**，规格见 [skills/01-source-extraction.md](../../media/pipeline/skills/01-source-extraction.md) B 型大节。
+
+## ISSUE-165 `ERR_PNPM_IGNORED_BUILDS` 在 esbuild 上是无害噪声——不要为消音改动跨集冻结文件（2026-08-21）
+
+- **表因**：新建 `media/claude-code-explained-video/video` 后首次 `pnpm install --ignore-workspace`（pnpm 11.17.0）报 `[WARN] The "pnpm" field in package.json is no longer read` + `[ERR_PNPM_IGNORED_BUILDS] Ignored build scripts: esbuild@0.28.1`，与 [ISSUE-076](#issue-076-pnpm-v11-升级后-pnpm-install-报-err_pnpm_ignored_builds--packagejsonpnpmoverrides-静默失效2026-05-08) 同源（四集视频工程的 `package.json#pnpm.onlyBuiltDependencies` 都是 v10 写法）。
+- **误判与纠正**：起初判定为「首个卡点」，依次尝试 `.npmrc` 的 `only-built-dependencies[]=esbuild`（v11 不读）、`--allow-build` 旗标（11.17 无此旗标）、本地 `pnpm-workspace.yaml` + `allowBuilds`（能消掉报错，但需去掉 `ignore-workspace=true`，否则连本目录的 workspace 文件一起被忽略）。**随后做端到端验证才发现方向错了**：旧写法下 `@esbuild/darwin-arm64` 平台包与二进制**本来就落地**（它是 optionalDependency，不依赖 postinstall），`esbuild.transform()` 正常、既有集 `remotion bundle` 跑到 100% 并产出 `build/`。
+- **根因**：`ERR_PNPM_IGNORED_BUILDS` 只表示「postinstall 被跳过」，**不等于「依赖不可用」**。是否有害取决于该包的 postinstall 是否**承载功能**：esbuild 的 postinstall 只做校验/链接，平台二进制走 optionalDependencies 分发，故跳过无实际后果；而 ISSUE-076 里的 `sharp` / `unrs-resolver` 才是真正依赖 postinstall 的。
+- **处理方式**：**撤销全部修改**，把 `.npmrc` 恢复到与另外三集逐字节一致（md5 四集相同），只在 [media/pipeline/README.md](../../media/pipeline/README.md) 新集脚手架清单里留一条说明：这条提示已实测无害、刻意不消音。
+- **后续防范**：
+  1. **报错不等于故障——先做端到端验证再动手修**。为消掉一条无害提示而改动「A 档跨集冻结文件」，代价是给隔离基线引入一处纯噪声差异，比那条提示本身更贵。
+  2. 判据可复用：遇 `ERR_PNPM_IGNORED_BUILDS`，先查该包的平台二进制是否走 optionalDependencies（走 = 大概率无害），再查功能是否真的可用（`require` + 实际调用 + 端到端构建）。
+  3. 与 ISSUE-076 的边界：**应用工程**（negentropy-ui/wiki，含 sharp 等真需 postinstall 的依赖）必须按 v11 迁移；**视频工程**（只有 esbuild）无需迁移。
