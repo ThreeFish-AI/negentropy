@@ -350,14 +350,15 @@ const ConcurrencyTable: React.FC<{
   );
 };
 
-/** 2-G 连续块分批：括号扫描落位，组内同时脉冲 */
-const Batching: React.FC = () => {
+/** 2-G 连续块分批：括号扫描落位，组内同时脉冲。
+ *  分组时点由调用方按句边界传入——硬编码帧数会在配音时长变化后与口播错位。 */
+const Batching: React.FC<{groupAt: number[]; noteAt: number}> = ({groupAt, noteAt}) => {
   const frame = useCurrentFrame();
   const calls = ['read A', 'read B', 'glob *.py', 'bash rm x', 'read C'];
   const groups = [
-    {idx: [0, 1, 2], label: 'batch 1 · 并发', at: 12},
-    {idx: [3], label: 'batch 2 · 串行', at: 34},
-    {idx: [4], label: 'batch 3 · 并发', at: 52},
+    {idx: [0, 1, 2], label: 'batch 1 · 并发', at: groupAt[0]},
+    {idx: [3], label: 'batch 2 · 串行', at: groupAt[1]},
+    {idx: [4], label: 'batch 3 · 并发', at: groupAt[2]},
   ];
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
@@ -405,7 +406,7 @@ const Batching: React.FC = () => {
           );
         })}
       </div>
-      <Footnote delay={54}>{'组内并行，组间严格按顺序'}</Footnote>
+      <Footnote delay={noteAt}>{'组内并行，组间严格按顺序'}</Footnote>
     </AbsoluteFill>
   );
 };
@@ -520,6 +521,7 @@ export const P2Dispatch: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bD = w('p2-11', 'p2-13');
   const bE = w('p2-14', 'p2-16');
   const bF = w('p2-17', 'p2-24');
+  const bG = w('p2-25', 'p2-26');
   const bH = w('p2-27', 'p2-31');
   const rel = (b: {from: number}, id: string) => w(id).from - b.from;
   return (
@@ -547,8 +549,13 @@ export const P2Dispatch: React.FC<{scene: SceneRange}> = ({scene}) => {
           quoteAt={rel(bF, 'p2-24')}
         />
       </Sequence>
-      <Sequence {...w('p2-25', 'p2-26')} name="2-G 连续块分批">
-        <Batching />
+      <Sequence {...bG} name="2-G 连续块分批">
+        {/* 三组的落位跟着口播推进：p2-25 讲「连着能并行的划成一组」、
+            p2-26 讲「中间夹着不能并行的就单独一组」 */}
+        <Batching
+          groupAt={[8, rel(bG, 'p2-26'), rel(bG, 'p2-26') + 26]}
+          noteAt={rel(bG, 'p2-26') + 40}
+        />
       </Sequence>
       <Sequence {...bH} name="2-H 落盘自循环">
         <SpillLoop markAt={rel(bH, 'p2-29')} loopAt={rel(bH, 'p2-30')} />
