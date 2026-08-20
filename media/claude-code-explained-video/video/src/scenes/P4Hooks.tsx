@@ -13,6 +13,8 @@ import {
   LoopRing,
   Panel,
   SceneTag,
+  SLOT_GAP,
+  SLOT_W,
   SlotRing,
   useRingDot,
 } from '../components/motifs';
@@ -213,23 +215,36 @@ const SlotsLightUp: React.FC<{slotAt: number[]; gateMoveAt: number; backflowAt: 
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
+  // 容器尺寸由 SlotRing 的定位契约推导（见该组件 docstring），环居中
+  const RING = 400;
+  const W = RING + 2 * (SLOT_W + SLOT_GAP);
+  const H = RING + 260;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <div style={{position: 'relative', width: 1120, height: 560}}>
-        <div style={{position: 'absolute', left: 345, top: 70}}>
-          <LoopRing size={430} draw={1} dotProgress={dot} activeNode={lit === 3 ? 0 : undefined} />
+      <div style={{position: 'relative', width: W, height: H}}>
+        <div style={{position: 'absolute', left: (W - RING) / 2, top: (H - RING) / 2}}>
+          <LoopRing size={RING} draw={1} dotProgress={dot} activeNode={lit === 3 ? 0 : undefined} />
         </div>
-        <div style={{position: 'absolute', left: 0, top: 26, width: 1120, height: 500}}>
-          <SlotRing slots={SLOTS} lit={lit} size={430} />
-        </div>
-        {/* P3 的三道闸门缩小平移进「执行前」插槽（跨幕视觉呼应） */}
+        <SlotRing slots={SLOTS} lit={lit} size={RING} />
+        {/* P3 的三道闸门缩小平移进右上角的「工具执行之前」插槽（跨幕视觉呼应） */}
         {gm > 0 ? (
-          <svg width={300} height={80} style={{position: 'absolute', left: 700 + gm * 60, top: 250 - gm * 40, opacity: 1 - gm * 0.2}}>
+          <svg
+            width={220}
+            height={90}
+            style={{
+              position: 'absolute',
+              /* 终点对准右上角插槽的左缘与垂直中部：起点在环右侧（P3 闸门的位置），
+                 gm=1 时贴到该插槽旁，读作「闸门被搬进这个插口」 */
+              left: W / 2 + 60 + gm * (W - SLOT_W - 100 - (W / 2 + 60)),
+              top: H / 2 - 45 - gm * (H / 2 - 105),
+              opacity: 1 - gm * 0.35,
+            }}
+          >
             {[0, 1, 2].map((i) => (
               <rect
                 key={i}
-                x={30 + i * 46}
-                y={20 * gm}
+                x={20 + i * 42}
+                y={18 * gm}
                 width={11 * (1 - gm * 0.4)}
                 height={54 * (1 - gm * 0.45)}
                 rx={4}
@@ -241,10 +256,15 @@ const SlotsLightUp: React.FC<{slotAt: number[]; gateMoveAt: number; backflowAt: 
             ))}
           </svg>
         ) : null}
+        {/* 「别停，接着干」：从左下角插槽回流到环的入口（问模型节点） */}
         {back > 0 ? (
-          <svg width={1120} height={560} style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none'}}>
+          <svg
+            width={W}
+            height={H}
+            style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none'}}
+          >
             <path
-              d="M 300 470 C 180 470, 150 200, 420 130"
+              d={`M ${SLOT_W - 20} ${H - 90} C ${SLOT_W + 60} ${H - 60}, ${W / 2 - 130} ${H / 2}, ${W / 2 - 8} ${(H - RING) / 2 + 30}`}
               stroke={theme.core}
               strokeWidth={4}
               fill="none"
@@ -253,7 +273,13 @@ const SlotsLightUp: React.FC<{slotAt: number[]; gateMoveAt: number; backflowAt: 
               strokeDashoffset={1 - back}
             />
             {back > 0.9 ? (
-              <text x={150} y={330} fontFamily={theme.sans} fontSize={24} fill={theme.core}>
+              <text
+                x={SLOT_W + 90}
+                y={H / 2 + 70}
+                fontFamily={theme.sans}
+                fontSize={24}
+                fill={theme.core}
+              >
                 {'别停，接着干'}
               </text>
             ) : null}

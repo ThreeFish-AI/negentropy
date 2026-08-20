@@ -486,36 +486,52 @@ export const GateRouter: React.FC<{
 
 export type Slot = {name: string; when: string; callbacks: string[]};
 
-/** 环外四个插槽（按一整轮的时间顺序分布在环的四个方位） */
+/**
+ * 环外四个插槽，按一整轮的时间顺序排在**四个角**（左上→右上→右下→左下）。
+ *
+ * 定位契约：本组件用 `position:absolute`，故调用方必须给一个
+ * `position:relative` 的容器，且容器尺寸至少为 `size + 2*(SLOT_W + SLOT_GAP)`
+ * 宽、`size + 220` 高 —— 否则卡片会压到环上或互相重叠（4-D 曾踩：卡片盖住环、
+ * 「工具执行之后」被完全遮住）。环应居中于该容器。
+ */
+export const SLOT_W = 330;
+export const SLOT_GAP = 40;
+
 export const SlotRing: React.FC<{
   slots: Slot[];
   /** 已点亮到第几个（-1 全暗） */
   lit: number;
+  /** 环直径——用于推导容器尺寸，须与同容器内 LoopRing 的 size 一致 */
   size?: number;
 }> = ({slots, lit, size = 430}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
+  const W = size + 2 * (SLOT_W + SLOT_GAP);
+  const right = W - SLOT_W;
+  // 四角：上排贴顶、下排贴底，横向让出环的直径
   const pos = [
-    {left: 0, top: -6, align: 'flex-start'},
-    {left: size + 74, top: size * 0.24, align: 'flex-start'},
-    {left: size + 74, top: size * 0.68, align: 'flex-start'},
-    {left: 0, top: size * 0.74, align: 'flex-start'},
+    {left: 0, top: 0},
+    {left: right, top: 0},
+    {left: right, top: undefined as number | undefined, bottom: 0},
+    {left: 0, top: undefined as number | undefined, bottom: 0},
   ];
   return (
     <>
       {slots.map((s, i) => {
         const on = i <= lit;
         const enter = spring({frame: frame - i * 6, fps, config: {damping: 200}});
+        const p = pos[i];
         return (
           <div
             key={s.name}
             style={{
               position: 'absolute',
-              left: pos[i].left,
-              top: pos[i].top,
-              width: 330,
+              left: p.left,
+              top: p.top,
+              bottom: p.bottom,
+              width: SLOT_W,
               opacity: on ? enter : 0.22,
-              transform: `translateX(${on ? 0 : (i === 1 || i === 2 ? 18 : -18)}px)`,
+              transform: `translateX(${on ? 0 : i === 1 || i === 2 ? 18 : -18}px)`,
             }}
           >
             <Panel
