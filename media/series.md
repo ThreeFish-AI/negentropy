@@ -27,7 +27,7 @@
 
 | # | 作品 | 一句话主题 | 视觉契约（主色） | 信源 | 状态 |
 |---|---|---|---|---|---|
-| 1 | [《拆开 Claude Code：让 AI 动手的四层机制》](./claude-code-explained-video/README.md) | 工具与执行的四层机制 | 陶土橙/石青/警示红 | [Learn Claude Code](https://learn.shareai.run/zh/s01/) s01–s04 + 仓库 @ `f9e8b28`（MIT），2026-08 | 制作中（逐字稿/分镜/场景就绪，配音合成中） |
+| 1 | [《拆开 Claude Code：让 AI 动手的四层机制》](./claude-code-explained-video/README.md) | 工具与执行的四层机制 | 陶土橙/石青/警示红 | [Learn Claude Code](https://learn.shareai.run/zh/s01/) s01–s04 + 仓库 @ `f9e8b28`（MIT），2026-08 | **已交付**（成片 14:14，终渲抽帧 FAIL 0） |
 
 **系列纪律**：各集独立成片，口播互不引用、不出现集数序号——顺序只存在于本清单与片尾视觉卡片，
 发布顺序变更的 TTS 代价恒为零。
