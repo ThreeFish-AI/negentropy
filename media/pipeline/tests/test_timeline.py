@@ -6,7 +6,12 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
-from timeline import compute, load_constants, total_duration_in_frames  # noqa: E402
+from timeline import (  # noqa: E402
+    compute,
+    js_round,
+    load_constants,
+    total_duration_in_frames,
+)
 
 C = {
     "fps": 30,
@@ -40,6 +45,24 @@ def test_golden_frames():
 def test_total_includes_tail():
     items = [{"id": "p0-01", "scene": "P0", "text": "a", "durationSec": 4.10}]
     assert total_duration_in_frames(items, C) == 18 + 133 + round(2.0 * 30)
+
+
+def test_js_round_matches_math_round_semantics():
+    """js_round = JS Math.round（.5 恒向上），非 banker's rounding——
+    (0.03+0.32)*30 = 10.5 类精确 .5 落点上，内置 round() 会给 10 而 JS 给 11，
+    从该句起抽帧帧号整体漂移。"""
+    assert js_round(10.5) == 11  # 内置 round(10.5) == 10
+    assert js_round(0.5) == 1  # 内置 round(0.5) == 0
+    assert js_round(2.5) == 3  # 内置 round(2.5) == 2
+    assert js_round(100.49999999999999) == 100  # 非精确 .5 时与内置一致
+    # 真实形态：(0.03+0.32)*30 恰为 10.5 —— durationSec 三位小数可命中的边界类
+    assert js_round((0.03 + 0.32) * 30) == 11
+    assert (
+        compute([{"id": "p0-01", "scene": "P0", "text": "x", "durationSec": 0.03}], C)[
+            0
+        ]["durationInFrames"]
+        == 11
+    )
 
 
 def test_load_constants_missing_exits(tmp_path):

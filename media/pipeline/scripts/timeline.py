@@ -5,8 +5,11 @@
 `video/src/timing.json`（时序常数的单一事实源），与 timing.ts 同一份事实。
 
 ⚠️ 与 timing.ts 的对齐契约：compute() 的游标推进逻辑必须逐行同构——
-  - 句时长 = max(1, round((durationSec + gap) * fps))，gap 在幕界 = 句间 + 幕间；
-  - 总时长 = 游标 + round(tailSec * fps)。
+  - 句时长 = max(1, js_round((durationSec + gap) * fps))，gap 在幕界 = 句间 + 幕间；
+    （js_round = JS Math.round 语义：.5 恒向上。内置 round() 是 banker's rounding，
+     .5 向偶数——durationSec 三位小数 × fps 落在精确 .5 时两语言分岔，从该句起
+     全片抽帧时间漂移。现有三集 manifest 实测无命中，但语义对齐须显式而非侥幸。）
+  - 总时长 = 游标 + js_round(tailSec * fps)。
 任何一侧改动须同步另一侧，并以 tests/test_timeline.py 的黄金帧号兜底。
 
 用法（被 qa_frames.py / captions.py 复用，也可独立调用对拍）：
@@ -19,8 +22,20 @@
 from __future__ import annotations
 
 import json
+import math
 import sys
 from pathlib import Path
+
+
+def js_round(x: float) -> int:
+    """JS `Math.round` 语义（.5 恒向上）——非负数域与 timing.ts 逐位一致。
+
+    Python 内置 round() 是 banker's rounding（round-half-to-even）：0.5→0、10.5→10，
+    而 JS Math.round(10.5)=11。本模块输出供抽帧/字幕与 timing.ts 渲染帧号对拍，
+    两侧舍入语义必须相同，否则 .5 边界处帧号分岔。
+    """
+    return math.floor(x + 0.5)
+
 
 #: timing.json 必备字段（与 video/src/timing.ts 的消费面一致）
 REQUIRED_KEYS = (
@@ -58,7 +73,7 @@ def compute(items: list[dict], c: dict) -> list[dict]:
     """
     fps = c["fps"]
     timed: list[dict] = []
-    cursor = round(c["leadInSec"] * fps)
+    cursor = js_round(c["leadInSec"] * fps)
     for i, item in enumerate(items):
         nxt = items[i + 1] if i + 1 < len(items) else None
         gap = (
@@ -66,7 +81,7 @@ def compute(items: list[dict], c: dict) -> list[dict]:
             if nxt and nxt["scene"] != item["scene"]
             else c["sentenceGapSec"]
         )
-        duration_in_frames = max(1, round((item["durationSec"] + gap) * fps))
+        duration_in_frames = max(1, js_round((item["durationSec"] + gap) * fps))
         timed.append(
             {
                 **item,
@@ -83,6 +98,8 @@ def compute(items: list[dict], c: dict) -> list[dict]:
 def total_duration_in_frames(items: list[dict], c: dict) -> int:
     rows = compute(items, c)
     if not rows:
-        return round(c["tailSec"] * c["fps"])
+        return js_round(c["tailSec"] * c["fps"])
     last = rows[-1]
-    return last["fromFrame"] + last["durationInFrames"] + round(c["tailSec"] * c["fps"])
+    return (
+        last["fromFrame"] + last["durationInFrames"] + js_round(c["tailSec"] * c["fps"])
+    )

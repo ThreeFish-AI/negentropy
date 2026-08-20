@@ -164,6 +164,7 @@ def cmd_tts(
     force: bool,
     steady: str | None,
     style: str | None,
+    allow_voice_switch: bool = False,
 ) -> int:
     tts = cfg.get("tts", {})
     cmd = [
@@ -192,6 +193,10 @@ def cmd_tts(
         cmd.append("--force")
     if steady:
         cmd += ["--steady", steady]
+    if allow_voice_switch:
+        # 两遍法经单入口的放行阀：.engine 签名护栏会拦「换风格=整集重录」，
+        # 草稿遍(A)/定稿遍(B)任一换档都须显式带上（护栏原理见 tts.py §音色签名）
+        cmd.append("--allow-voice-switch")
     return run(cmd, cwd=root)
 
 
@@ -313,6 +318,11 @@ def main() -> None:
     p.add_argument("--force", action="store_true", help="忽略缓存")
     p.add_argument("--steady", help="混合档选择器")
     p.add_argument("--style", help="覆写风格（两遍法草稿遍用 --style sunny）")
+    p.add_argument(
+        "--allow-voice-switch",
+        action="store_true",
+        help="放行音色签名变更（两遍法换档经单入口时须带上，否则被 .engine 护栏硬拦）",
+    )
     p = sub.add_parser("render", help="⑧⑨ 渲染")
     p.add_argument("--final", action="store_true", help="终渲（默认草渲）")
     p = sub.add_parser("qa", help="⑧ 抽帧 QA")
@@ -338,7 +348,13 @@ def main() -> None:
         "build": lambda: cmd_build(root, cfg),
         "check": lambda: cmd_check(root, cfg, args.check_scenes),
         "tts": lambda: cmd_tts(
-            root, cfg, args.plan, args.force, args.steady, args.style
+            root,
+            cfg,
+            args.plan,
+            args.force,
+            args.steady,
+            args.style,
+            args.allow_voice_switch,
         ),
         "captions": lambda: cmd_captions(root, cfg),
         "render": lambda: cmd_render(root, cfg, args.final),
