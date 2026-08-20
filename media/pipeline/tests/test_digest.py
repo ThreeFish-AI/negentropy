@@ -18,6 +18,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from tts import (  # noqa: E402
     SAMPLING_DEFAULTS,
+    STYLE_PRESETS,
     digest_edge,
     digest_indextts,
     resolve_sampling,
@@ -258,3 +259,64 @@ def test_synth_source_text_prefers_tts_text():
     )
     # 空字符串 ttsText 视为未提供（防 build_narration 写出空字段导致合成空文本）
     assert synth_source_text({"id": "x", "text": "正文", "ttsText": ""}) == "正文"
+
+
+# ---------------- 风格预设：名义向量归一化的不变量 ----------------
+
+
+def _upstream_trunc(vec, alpha):
+    """复刻上游 infer_v2_5.py:608 的量化：int(x*alpha*10000)/10000（**截断**非四舍五入）。"""
+    return [int(x * alpha * 10000) / 10000 for x in vec]
+
+
+def test_preset_nominal_sums_are_one():
+    """只有 Σvec=1.0 时 alpha 才等于「替换掉本人语调的百分比」，否则跨预设不可比。"""
+    for name, p in STYLE_PRESETS.items():
+        if p["vec"] is None:
+            continue
+        assert abs(sum(p["vec"]) - 1.0) < 1e-6, f"{name} 的名义向量和不是 1.0"
+
+
+def test_preset_normalization_preserves_injection():
+    """归一化前后的**有效注入**必须在上游量化的 1 个单位（1e-4）内一致。
+
+    不能断言「逐项完全一致」：上游用 int() 截断，而 0.33 / 0.455 恰在截断边界上，
+    故 lively/confident/positive 各有一个分量差 1e-4（相对 0.03%，远低于听感阈）。
+    这三档未被任何已上线剧集使用，即便真有差异也无影响。
+    """
+    # (预设名, 归一化前的 vec, 归一化前的 alpha)
+    before = {
+        "lively": ([0.55, 0, 0, 0, 0, 0, 0.15, 0.15], 0.6),
+        "confident": ([0.25, 0, 0, 0, 0, 0, 0, 0.65], 0.7),
+        "positive": ([0.75, 0, 0, 0, 0, 0, 0, 0.2], 0.7),
+        "passionate": ([0.70, 0, 0, 0, 0, 0, 0.20, 0.10], 0.7),
+        "sunny": ([0.95, 0, 0, 0, 0, 0, 0.02, 0.03], 0.35),
+    }
+    for name, (old_vec, old_alpha) in before.items():
+        p = STYLE_PRESETS[name]
+        w_old = _upstream_trunc(old_vec, old_alpha)
+        w_new = _upstream_trunc(p["vec"], p["alpha"])
+        for a, b in zip(w_old, w_new, strict=True):
+            assert abs(a - b) <= 1e-4, f"{name}: 有效注入偏移 {abs(a - b):.2e} > 1e-4"
+
+
+def test_production_presets_untouched():
+    """已上线三集用的两档必须逐字不变 —— 改它们即整集重录（ISSUE-161 的教训）。"""
+    assert STYLE_PRESETS["passionate"]["vec"] == [0.70, 0, 0, 0, 0, 0, 0.20, 0.10]
+    assert STYLE_PRESETS["passionate"]["alpha"] == 0.7
+    assert STYLE_PRESETS["passionate"]["df"] == 0.97
+    for name in ("sunny", "sunny-steady"):
+        assert STYLE_PRESETS[name]["vec"] == [0.95, 0, 0, 0, 0, 0, 0.02, 0.03]
+        assert STYLE_PRESETS[name]["alpha"] == 0.35
+        assert STYLE_PRESETS[name]["df"] == 0.95
+    assert STYLE_PRESETS["sunny-steady"]["beams"] == 3
+
+
+def test_candidate_presets_are_additive_only():
+    """#10/#11 的候选档是**新增**，不得改动任何生产档的数值。"""
+    assert set(STYLE_PRESETS) >= {"sunny-pure", "sunny-clear"}
+    assert STYLE_PRESETS["sunny-pure"]["vec"] == [1.0, 0, 0, 0, 0, 0, 0, 0]
+    assert STYLE_PRESETS["sunny-clear"]["df"] == 1.05, "候选 #11 的要点是 df>1"
+    # 候选档未定档前不得带 sampling 覆盖（那会改摘要）
+    for name in ("sunny-pure", "sunny-clear"):
+        assert "sampling" not in STYLE_PRESETS[name]

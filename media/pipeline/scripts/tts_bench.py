@@ -26,6 +26,21 @@
 `--empty-cache` 在每次调用后清 MPS 缓存并 gc——用于判定漂移是否来自分配器累积。
 若开启后漂移消失，则长跑（整集 2 小时）也应在服务端逐句清理。
 
+## 成对 A/B 模式（`--ab-param`）
+
+    ./.venv/bin/python <本仓>/media/pipeline/scripts/tts_bench.py \
+        --ref <样本.wav> --texts <每行一句的文本文件> \
+        --ab-param length_penalty --ab-values 0.0,0.8 --num-beams 3 --cooldown 60
+
+对每句**成对**跑两个取值，并**逐句交替先后顺序**——热漂移随时间单调，交替后它对两组的
+影响相互抵消，故即使环境仍有残余漂移，逐对比值依然可用。这是本机唯一可靠的参数归因方式。
+
+判据除耗时外还含 **ASR 回转写**（whisper，若可用）：
+  `cer`      整句字错率
+  `tail_cov` **尾部覆盖率**——参考文本后 20% 的字符被转写命中的比例。这是 #7
+             （`length_penalty=0.0` 系统性偏好短假设 ⇒ 吞尾）的直接判据，
+             比总墙钟稳健得多，且对残余热漂移天然不敏感。
+
 产物与完整方法论见 media/pipeline/INDEXTTS-2.5-ADVANCED.md §6.4。
 """
 
@@ -258,6 +273,45 @@ def stable_window(walls: list[float]) -> tuple[int, int, float, float, float]:
     return trip
 
 
+def _strip_punct(t: str) -> str:
+    return "".join(c for c in t if c.isalnum())
+
+
+def asr_metrics(model, wav: Path, ref: str) -> dict:
+    """whisper 回转写 → {hyp, cer, tail_cov}。model 为 None 时返回空 dict。
+
+    `tail_cov` 是参考文本**后 20%** 字符的命中比例：用 difflib 对齐 ref 与 hyp，统计
+    落在尾部区间内的匹配字符占该区间长度的比例。吞尾会让它显著下降，而它不受机器
+    热漂移影响——这正是 #7 需要的判据（对比总墙钟：那个会被漂移淹没）。
+    """
+    if model is None:
+        return {}
+    import difflib
+
+    import librosa
+
+    # **不能传路径**：whisper 内部会 shell 调 ffmpeg 解码，而本机 PATH 上没有 ffmpeg
+    # （仓库用的是 Remotion 内置那份）。直接喂 16 kHz float32 数组即可绕开。
+    audio, _ = librosa.load(str(wav), sr=16000, mono=True)
+    hyp = model.transcribe(audio, language="zh", fp16=False)["text"]
+    r, h = _strip_punct(ref), _strip_punct(hyp)
+    if not r:
+        return {"hyp": hyp}
+    sm = difflib.SequenceMatcher(None, r, h, autojunk=False)
+    matched = sum(b.size for b in sm.get_matching_blocks())
+    tail_start = int(len(r) * 0.8)
+    tail_hit = sum(
+        max(0, min(b.a + b.size, len(r)) - max(b.a, tail_start))
+        for b in sm.get_matching_blocks()
+    )
+    tail_len = len(r) - tail_start
+    return {
+        "hyp": hyp.strip(),
+        "cer": 1.0 - matched / len(r),
+        "tail_cov": (tail_hit / tail_len) if tail_len else 1.0,
+    }
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="IndexTTS 合成耗时基准与测量环境体检")
     ap.add_argument("--ref", default=None, help="参考音色样本（A/A 运行必需）")
@@ -292,6 +346,19 @@ def main() -> None:
         "--force", action="store_true", help="环境门不合格也继续（结果仅供参考）"
     )
     ap.add_argument("--json", default=None, help="把逐次读数写入 JSON")
+    ap.add_argument("--texts", default=None, help="A/B 模式：每行一句的文本文件")
+    ap.add_argument(
+        "--ab-param",
+        default=None,
+        help="A/B 模式：要对比的参数名（如 length_penalty / repetition_penalty / "
+        "temperature / duration_factor / num_beams）",
+    )
+    ap.add_argument("--ab-values", default=None, help="A/B 模式：两个取值，逗号分隔")
+    ap.add_argument(
+        "--asr",
+        default="small",
+        help="whisper 模型名（A/B 模式用于回转写判据）；none = 关闭",
+    )
     args = ap.parse_args()
 
     env_ok = check_env(strict=not args.check_only)
@@ -374,6 +441,138 @@ def main() -> None:
             if mps_ok:
                 torch.mps.empty_cache()
         return rec
+
+    # ---------------- 成对 A/B 模式 ----------------
+    if args.ab_param:
+        if not (args.texts and args.ab_values):
+            sys.exit("--ab-param 需同时给 --texts 与 --ab-values")
+        vals = [float(v) for v in args.ab_values.split(",")]
+        if len(vals) != 2:
+            sys.exit("--ab-values 需给正好两个取值")
+        texts = [
+            ln.strip()
+            for ln in Path(args.texts).read_text(encoding="utf-8").splitlines()
+            if ln.strip()
+        ]
+        model = None
+        if args.asr != "none":
+            try:
+                import whisper
+
+                print(f">> 加载 whisper {args.asr}（ASR 判据）…", flush=True)
+                model = whisper.load_model(args.asr)
+            except Exception as e:  # noqa: BLE001 - ASR 不可用时降级为纯耗时判据
+                print(f">> whisper 不可用（{e}），仅用耗时判据", file=sys.stderr)
+
+        def ab_call(txt: str, val: float, tag: str) -> dict:
+            kw: dict = {
+                "spk_audio_prompt": str(ref),
+                "text": txt,
+                "output_path": str(tmp / f"{tag}.wav"),
+                "lang": "ZH",
+                "emo_vector": emo,
+                "emo_alpha": args.emo_alpha,
+                "use_random": False,
+                "verbose": False,
+                "num_beams": args.num_beams,
+            }
+            if args.ab_param == "num_beams":
+                kw["num_beams"] = int(val)
+            else:
+                kw[args.ab_param] = val
+            set_seed(args.seed)
+            buf = io.StringIO()
+            t = time.perf_counter()
+            with contextlib.redirect_stdout(buf):
+                tts.infer(**kw)
+            wall = time.perf_counter() - t
+            data, sr = sf.read(str(tmp / f"{tag}.wav"))
+            dur = len(data) / sr
+            stg = {
+                m.group(1): float(m.group(2)) for m in TIMER_RE.finditer(buf.getvalue())
+            }
+            return {
+                "text": txt,
+                "value": val,
+                "audio": dur,
+                "synth": wall,
+                "sec_per_char": dur / max(1, len(_strip_punct(txt))),
+                **stg,
+                **asr_metrics(model, tmp / f"{tag}.wav", txt),
+            }
+
+        print(
+            f"\n>> 成对 A/B：{args.ab_param} ∈ {vals}，{len(texts)} 句，"
+            f"束宽 {args.num_beams}，seed {args.seed}，冷却 {args.cooldown:g}s\n"
+            f"   逐句**交替先后顺序**以抵消热漂移"
+        )
+        ab_rows: list[dict] = []
+        for n, txt in enumerate(texts):
+            order = vals if n % 2 == 0 else vals[::-1]
+            for v in order:
+                if args.cooldown and ab_rows:
+                    time.sleep(args.cooldown)
+                r = ab_call(txt, v, f"ab{n}_{v}")
+                ab_rows.append({**r, "idx": n})
+                cer = (
+                    f" CER {r['cer']:.3f} 尾覆盖 {r['tail_cov']:.2f}"
+                    if "cer" in r
+                    else ""
+                )
+                print(
+                    f"   [{n + 1:>2}/{len(texts)}] {args.ab_param}={v:<5g} "
+                    f"音频 {r['audio']:5.2f}s  synth {r['synth']:6.2f}s  "
+                    f"秒/字 {r['sec_per_char']:.3f}{cer}",
+                    flush=True,
+                )
+        print(f"\n>> A/B 汇总（{args.ab_param}）")
+        for v in vals:
+            g = [r for r in ab_rows if r["value"] == v]
+            line = (
+                f"   {args.ab_param}={v:<5g} n={len(g)}  "
+                f"音频中位 {st.median([r['audio'] for r in g]):5.2f}s  "
+                f"秒/字中位 {st.median([r['sec_per_char'] for r in g]):.3f}  "
+                f"synth 中位 {st.median([r['synth'] for r in g]):6.2f}s"
+            )
+            if "cer" in g[0]:
+                line += (
+                    f"  CER 中位 {st.median([r['cer'] for r in g]):.3f}"
+                    f"  尾覆盖中位 {st.median([r['tail_cov'] for r in g]):.3f}"
+                    f"  尾覆盖<0.9 的句数 {sum(1 for r in g if r['tail_cov'] < 0.9)}"
+                )
+            print(line)
+        # 逐句配对差（同句同种子，只差被测参数 ⇒ 配对差比组间中位更可信）
+        pairs = []
+        for n in range(len(texts)):
+            g = {r["value"]: r for r in ab_rows if r["idx"] == n}
+            if len(g) == 2:
+                pairs.append((g[vals[0]], g[vals[1]]))
+        if pairs:
+            print(f"\n   逐句配对（{len(pairs)} 对，B 相对 A）：")
+            for key, label in (
+                ("sec_per_char", "秒/字"),
+                ("tail_cov", "尾覆盖"),
+                ("cer", "CER"),
+            ):
+                if key not in pairs[0][0]:
+                    continue
+                d = [b[key] - a[key] for a, b in pairs]
+                wins = sum(1 for x in d if x > 0)
+                print(
+                    f"     Δ{label:<6} 中位 {st.median(d):+.4f}  "
+                    f"B 更大的句数 {wins}/{len(d)}"
+                )
+        if args.json:
+            Path(args.json).write_text(
+                json.dumps(
+                    {"config": vars(args), "rows": ab_rows},
+                    ensure_ascii=False,
+                    indent=1,
+                ),
+                encoding="utf-8",
+            )
+            print(f"\n   读数已写入 {args.json}")
+        return
 
     one(-1)  # 预热：填充上游按路径缓存的说话人条件（等价「排除 clone」）
     print(
