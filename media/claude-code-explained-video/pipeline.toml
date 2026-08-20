@@ -1,0 +1,26 @@
+# 本集可执行参数的**唯一来源**（ISSUE-161：可执行参数不落散文文档，README 只引用配置）。
+# 编排入口：uv run --no-project media/pipeline/scripts/pipeline.py --project media/claude-code-explained-video <cmd>
+
+[episode]
+slug = "claude-code-explained-video"
+title = "拆开 Claude Code：让 AI 动手的四层机制"
+
+[narration]
+# 口径来自三集实测反推：4.5 s/句（含句间/幕间停顿），EP1 187 句 → 成片 14:01。
+# 用户要求 ≤15 min，故安全窗取 [13.0, 14.6]，约 185–195 句。
+# 注意：单按 chars_per_min 裸算会高估约 12% 的句容量（不含停顿），双口径门以实测为准。
+target_minutes = [13.0, 14.6]
+chars_per_min = 280
+
+[tts]
+engine = "indextts"
+# me-bright = ~/Documents/dify/me-1.mp3 的 start=0.36 / 12s 选段。
+# sunny 系预设的 alpha=0.35 就是在这个选段上标定的，换选段标定即失效（voices/refs.toml）。
+ref = "media/pipeline/voices/me-bright.wav"
+ref_sha1 = "54b699cce97f"
+style = "sunny-steady"
+lang = "ZH"
+
+[render]
+draft_scale = 0.5
+draft_jpeg_quality = 60

@@ -84,6 +84,7 @@ uv run --no-project media/pipeline/scripts/pipeline.py --project media/<slug>-vi
 | [scripts/qa_frames.py](./scripts/qa_frames.py)           | 抽帧 QA（幕/句/`--last-n` 末 N 句）+ `--check` 四项自动体检 + `--check-theme` WCAG 对比度                               | `uv run --no-project --with pillow --with numpy scripts/qa_frames.py out/draft.mp4 --last-n 6 --check`（工程根；视频路径按 CWD 解析，仓库根调用写全 `media/<工程>/out/draft.mp4`）                                          |
 | [scripts/paper_extract.py](./scripts/paper_extract.py)   | Stage ① 取证工具箱（§→页映射 / 分栏取文 / caption 收割 / 定点 find / 页面光栅化）                                       | `uv run --no-project --with pymupdf media/pipeline/scripts/paper_extract.py "<PDF>" find "原文措辞"`                                             |
 | [scripts/refs.py](./scripts/refs.py)                     | 参考样本可复现清单（verify/rebuild；指纹在 [voices/refs.toml](./voices/refs.toml)，只存哈希不存音频）                    | `uv run --no-project media/pipeline/scripts/refs.py verify`                                                                                     |
+| [scripts/source_ledger.py](./scripts/source_ledger.py)   | Stage ① **B 型信源**可复现清单（fetch/list/verify；`repo` 类固定提交 raw 指纹漂移即 FAIL，`site` 类只比归一正文、漂移报 WARN） | `uv run --no-project media/pipeline/scripts/source_ledger.py --project media/<slug>-video verify`                                               |
 
 中心脚本以 `--project <工程根>` 参数化；工程内 `scripts/*.py` 为薄包装（透传参数、保持原 CLI）。改造/迭代只改 `media/pipeline/scripts/`，验证门 = 受影响工程的 `narration.json` / `manifest.json` 字节级不变。
 
@@ -112,7 +113,18 @@ uv run --no-project media/pipeline/scripts/pipeline.py --project media/<slug>-vi
    media/<slug>-video/**/*.wav
    ```
 4. `cd video && pnpm install --ignore-workspace`（必须显式忽略根 workspace；`onlyBuiltDependencies: [esbuild]` 已在 package.json）；装完检查根 lockfile 零变更。
-5. 按 [skills/](./skills/) 01→05 顺序走内容层，再进生产层。
+   > pnpm ≥ 11 会提示 `package.json` 的 `pnpm` 字段不再被读取，并报 `ERR_PNPM_IGNORED_BUILDS: esbuild`
+   > （[ISSUE-076](../../docs/.agents/issue.md)）。**已实测确认对本工程无害**：esbuild 的平台二进制
+   > 是 optionalDependency，落地不依赖 postinstall —— 旧写法下 `remotion bundle` 端到端通过。
+   > 故**刻意不改** `.npmrc`/`package.json` 去消掉这条提示（改了会让 A 档冻结文件产生一处
+   > 只为静音噪声的跨集差异）。真正需要 postinstall 的依赖若将来出现，再按官方新家
+   > `pnpm-workspace.yaml` 的 `allowBuilds` 处理。
+5. **登记到 [../series.json](../series.json)**：顶层是 `seriesList[]`，新系列追加一个 series 对象
+   （`id` / `title` / `sourceKind` / `rule` / `episodes`），既有系列的新集追加到其 `episodes`。
+   同步 [../series.md](../series.md) 的分节表格。`check_series.py` 已挂 pre-commit，漏登即 FAIL。
+6. 按 [skills/](./skills/) 01→05 顺序走内容层，再进生产层。Stage ① 先判**信源型别**：
+   论文型走 A 型（`paper_extract.py` + `paper-notes.md`），文档/代码/课程站点型走 B 型
+   （`source_ledger.py` + `source-notes.md` + 证据三级），见 [skills/01](./skills/01-source-extraction.md)。
 
 ## 七、工程模式
 
