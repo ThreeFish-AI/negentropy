@@ -12,7 +12,7 @@
 
 自动体检（--check，惰性依赖 pillow+numpy）：
     黑帧/早渐黑    帧平均相对亮度 < 0.02 → FAIL（仅末 beat 且分镜末行写「渐黑」时豁免）
-    字幕区侵入     字幕带 y∈[H-160,H) 内、字幕框 x 区间之外 p95 亮度超阈 → WARN
+    字幕区侵入     字幕带 y∈[H-160,H) 内、字幕框 x 区间之外有独立亮列连通段 → WARN
                    （对应 skills/06 渲染缺陷清单第 2 条「角标 bottom ≥ 150」）
     冻帧           同幕相邻采样帧 16×16 灰度均值哈希 Hamming 距离 0 → WARN
                    （beat 窗口错位/未覆盖句区间渲染空白）
@@ -87,7 +87,7 @@ def extract_frame(
 #: 亮度/对比阈值（经验值：深色底 #0E1116 的相对亮度 ≈ 0.006）
 BLACK_MEAN_LIMIT = 0.02
 SUBTITLE_BAND_PX = 160  # 字幕安全带高度（对应「bottom ≥ 150」清单位）
-SUBTITLE_P95_LIMIT = 0.55
+SUBTITLE_GAP_PX = 80  # 字幕框与角标亮块的横向最小间隔（全分辨率口径，随 --scale 折算）
 TEXT_BRIGHTNESS = 0.45
 CONTRAST_MIN = 4.5
 
@@ -170,6 +170,7 @@ def check_frames(
         )
 
     band_px = round(SUBTITLE_BAND_PX * scale)
+    gap_px = round(SUBTITLE_GAP_PX * scale)  # 横向间隔阈值与带高同口径折算
     hashes: dict[str, int] = {}
     ordered: list[tuple[str, Path]] = []
     for sid in ids:
@@ -207,7 +208,7 @@ def check_frames(
             if segments:
                 x0, x1 = max(segments, key=lambda s: s[1] - s[0])  # 最宽段 = 字幕框
                 for a, b in segments:
-                    if (a < x0 - 80 or a > x1 + 80) and (b - a) < (x1 - x0):
+                    if (a < x0 - gap_px or a > x1 + gap_px) and (b - a) < (x1 - x0):
                         msgs.append(
                             f"WARN {sid}: 字幕带内字幕框（x{x0}–{x1}）之外有独立亮块 x{a}–{b}"
                             f"（角标/图形侵入 bottom≥{SUBTITLE_BAND_PX}px 安全区）"

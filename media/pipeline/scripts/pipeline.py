@@ -299,7 +299,12 @@ def main() -> None:
     sub.add_parser("status", help="阶段新鲜度（实时派生）")
     sub.add_parser("doctor", help="环境自检")
     sub.add_parser("build", help="③ narration.md → narration.json")
-    sub.add_parser("check", help="④⑤ 内容门")
+    p = sub.add_parser("check", help="④⑤ 内容门")
+    p.add_argument(
+        "--check-scenes",
+        action="store_true",
+        help="附:分镜↔场景代码 beat 互比（WARN-only）",
+    )
     sub.add_parser("captions", help="⑥+ 导出 srt/vtt")
     sub.add_parser("clean-samples", help="清理 .temp/voice-samples（生物特征）")
     p = sub.add_parser("tts", help="⑥ 配音合成（参数来自 pipeline.toml）")
@@ -320,6 +325,7 @@ def main() -> None:
         help="产物缩放系数（草渲不传时按 draft.mp4 自动取 pipeline.toml 的 draft_scale）",
     )
     p.add_argument("ids", nargs="*")
+    sub.add_parser("all", help="build→check→tts→captions→render(草渲) 一键链")
     args = ap.parse_args()
 
     root = Path(args.project).resolve()
@@ -329,7 +335,7 @@ def main() -> None:
         "status": lambda: cmd_status(root, cfg),
         "doctor": lambda: cmd_doctor(root, cfg),
         "build": lambda: cmd_build(root, cfg),
-        "check": lambda: cmd_check(root, cfg),
+        "check": lambda: cmd_check(root, cfg, args.check_scenes),
         "tts": lambda: cmd_tts(
             root, cfg, args.plan, args.force, args.steady, args.style
         ),
