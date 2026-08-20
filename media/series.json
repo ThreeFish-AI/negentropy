@@ -25,7 +25,7 @@
         "date": "2026-06"
       },
       "status": "ready",
-      "statusNote": "v3 已完成：内容校准（187 句，25 改写 + 8 新增）+ sunny-steady 全片重配 + 终渲 14:01",
+      "statusNote": "v3 已完成：内容校准（187 句，25 改写 + 8 新增）+ sunny-steady 全片重配 + 终渲 14:01；源码含未重渲改动（P3 Figure 8 格阵落格校准，见 PR 说明），发布前须重渲",
       "voice": "sunny-steady + me-bright.wav（2026-08 重录决策）"
     },
     {

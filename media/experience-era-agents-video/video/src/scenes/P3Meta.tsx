@@ -13,6 +13,15 @@ import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 
 /** 3-A：三级阶梯 + 谁控制进化 */
+// Figure 8 格阵落格（行×列展开，与下方 cols/rows 同序）：MetaMem=7.3.1（meta 层控制·记忆
+// 机制）、MetaEvo/SkillOS=7.3.2（meta 层控制·改进策略）、Hyperagents=7.3.3（meta 层控制·
+// 元层自身）；SkillClaw=Fig8 第一列（任务体自控·内容资产）、SkillRL=7.2.2（任务体自控·
+// 改进策略）；任务体自控×机制列（7.2.1）无本片点名的范例，留 '…' 通配。
+const GRID_CELLS = [
+  '', 'MetaMem', 'MetaEvo · SkillOS', 'Hyperagents',
+  'SkillClaw 系', '…', 'SkillRL', '',
+];
+
 const Ladder: React.FC = () => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
@@ -52,6 +61,8 @@ const Ladder: React.FC = () => {
           <div key={r} style={{display: 'grid', gridTemplateColumns: '140px repeat(4, 190px)', gap: 10, marginTop: 10, alignItems: 'center'}}>
             <div style={{textAlign: 'right', fontFamily: theme.mono, fontSize: 17, color: theme.harness, opacity: axes}}>{r}</div>
             {cols.map((c, ci) => {
+              // 对角两格为空（–）：meta 层×内容资产（§7.3 判据下内容资产归任务体自管）与
+              // 任务体×元层自身（元层自身只能由 meta 层进化）是分类法上的空格
               const empty = (ri === 0 && ci === 0) || (ri === 1 && ci === 3);
               const cellIn = interpolate(frame, [10 + (ri * 4 + ci) * 2, 20 + (ri * 4 + ci) * 2], [0, 1], {
                 extrapolateLeft: 'clamp',
@@ -74,7 +85,7 @@ const Ladder: React.FC = () => {
                     opacity: cellIn * (empty ? 0.6 : 1),
                   }}
                 >
-                  {empty ? '–' : ['MetaMem 系', 'MetaEvo', 'Hyperagents', '', 'SkillClaw 系', 'SkillOS', 'SkillRL', ''][ri * 4 + ci] || '…'}
+                  {empty ? '–' : GRID_CELLS[ri * 4 + ci]}
                 </div>
               );
             })}
