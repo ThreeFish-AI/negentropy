@@ -154,13 +154,26 @@ const AskAndPass: React.FC<{askAt: number; passAt: number}> = ({askAt, passAt}) 
   const asking = frame >= askAt;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <div style={{opacity: asking ? 0.35 : 1}}>
+      {/* 审批卡弹出时闸门整体上移让位——否则卡片会盖住三道闸，
+          「停在第三道闸门前等待」这层语义就看不见了 */}
+      <div
+        style={{
+          opacity: asking ? 0.45 : 1,
+          transform: `translateY(${asking ? -150 : 0}px)`,
+        }}
+      >
         <GateRouter gates={[1, 1, 1]} travel={t1} blockedBy={2} />
       </div>
       {asking ? (
         <Panel
           accent={theme.mech}
-          style={{position: 'absolute', width: 700, padding: '26px 30px', background: theme.panel}}
+          style={{
+            position: 'absolute',
+            width: 760,
+            padding: '26px 30px',
+            background: theme.panel,
+            top: '52%',
+          }}
         >
           <div style={{fontFamily: theme.sans, fontSize: 24, color: theme.mech}}>
             {'⚠  Potentially destructive command'}
@@ -372,67 +385,110 @@ const EightSources: React.FC<{stackAt: number; arrowAt: number; overrideAt: numb
   });
   const over = frame >= overrideAt;
   return (
-    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center', flexDirection: 'row', gap: 90}}>
+    // gap 须容纳左栏右侧外挂的「压过」括号（宽 128）+ 呼吸间距
+    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center', flexDirection: 'row', gap: 200}}>
       <div style={{position: 'relative', width: 520}}>
-        {stack.map((s, i) => {
-          const idx = stack.length - 1 - i; // 自下向上堆叠
-          const at = stackAt + idx * 7;
+        {/* stack 按优先级**升序**声明（user < project < local < flag < policy）。
+            画面必须与口播「越靠近组织越大 / 公司策略压过本地配置」一致，故**倒序渲染**：
+            最高优先级的公司管理策略在最上方。此前正序渲染 + 高亮首项，等于让画面
+            宣称「全局配置最大」，与旁白相反。 */}
+        {[...stack].reverse().map((s, r) => {
+          const prio = stack.length - 1 - r; // 0=最低（全局配置）… 4=最高（公司策略）
+          const at = stackAt + r * 7; // 自上而下依次落位（先出现最高优先级）
           const e = spring({frame: frame - at, fps, config: {damping: 200}});
-          const top = idx * -4;
-          const isTop = idx === stack.length - 1;
-          const dimmed = over && !isTop && idx !== stack.length - 2;
+          const isHighest = prio === stack.length - 1;
+          // 收束时只留口播点名的两级亮着：公司管理策略（最高，prio 4）与本地配置（prio 2）
+          const dimmed = over && prio !== stack.length - 1 && prio !== 2;
           return (
             <div
               key={s}
               style={{
                 position: 'relative',
-                marginTop: i === 0 ? 0 : 10,
-                transform: `translateY(${(1 - e) * 26 + top}px)`,
-                opacity: e * (dimmed ? 0.5 : 1),
+                marginTop: r === 0 ? 0 : 10,
+                transform: `translateY(${(1 - e) * 26 - r * 4}px)`,
+                opacity: e * (dimmed ? 0.45 : 1),
               }}
             >
               <Panel
-                accent={isTop && arrow > 0.85 ? theme.mech : theme.panelBorder}
+                accent={isHighest && arrow > 0.85 ? theme.mech : theme.panelBorder}
                 style={{
                   padding: '16px 22px',
                   boxShadow: '0 6px 16px rgba(0,0,0,0.35)',
-                  background: isTop && arrow > 0.85 ? theme.mechDeep : theme.panel,
+                  background: isHighest && arrow > 0.85 ? theme.mechDeep : theme.panel,
                 }}
               >
-                <span style={{fontFamily: theme.sans, fontSize: 27, color: theme.text}}>{s}</span>
+                {/* 「越靠近组织越大」用亮度阶梯编码（不用色相——反枚举原则）：
+                    优先级越高越亮，静帧上也读得出层级 */}
+                <span
+                  style={{
+                    fontFamily: theme.sans,
+                    fontSize: 27,
+                    color: theme.text,
+                    opacity: 0.62 + 0.38 * (prio / (stack.length - 1)),
+                  }}
+                >
+                  {s}
+                </span>
               </Panel>
             </div>
           );
         })}
+        {/* 优先级箭头：自下（最低）指向上（最高），与倒序堆叠后的画面一致 */}
         {arrow > 0 ? (
-          <svg width={70} height={330} style={{position: 'absolute', left: -60, top: 6}}>
+          <svg width={80} height={360} style={{position: 'absolute', left: -68, top: 6}}>
             <line
-              x1={35}
-              y1={320}
-              x2={35}
-              y2={320 - 300 * arrow}
+              x1={40}
+              y1={340}
+              x2={40}
+              y2={340 - 320 * arrow}
               stroke={theme.mech}
               strokeWidth={4}
             />
             <polygon
-              points={`35,${320 - 300 * arrow} 27,${332 - 300 * arrow} 43,${332 - 300 * arrow}`}
+              points={`40,${340 - 320 * arrow} 31,${354 - 320 * arrow} 49,${354 - 320 * arrow}`}
               fill={theme.mech}
               opacity={arrow > 0.2 ? 1 : 0}
             />
+            {arrow > 0.9 ? (
+              <text
+                x={40}
+                y={368}
+                textAnchor="middle"
+                fontFamily={theme.sans}
+                fontSize={19}
+                fill={theme.dim}
+              >
+                {'优先级'}
+              </text>
+            ) : null}
           </svg>
         ) : null}
+        {/* 「压过」跨越第 1 行（公司管理策略）到第 3 行（本地配置）——即口播点名的那一对。
+            纵向连线让「谁压过谁」在静帧上也明确，不靠观众自己配对。 */}
         {over ? (
-          <div
-            style={{
-              position: 'absolute',
-              right: -34,
-              top: 26,
-              fontFamily: theme.sans,
-              fontSize: 24,
-              color: theme.mech,
-            }}
-          >
-            {'压过 ↓'}
+          <div style={{position: 'absolute', right: -128, top: 22, width: 120}}>
+            <svg width={120} height={160}>
+              <path
+                d="M 10 132 L 34 132 L 34 22 L 10 22"
+                stroke={theme.mech}
+                strokeWidth={3}
+                fill="none"
+              />
+              <polygon points="10,22 20,16 20,28" fill={theme.mech} />
+            </svg>
+            <div
+              style={{
+                position: 'absolute',
+                left: 44,
+                top: 58,
+                fontFamily: theme.sans,
+                fontSize: 23,
+                color: theme.mech,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {'压过'}
+            </div>
           </div>
         ) : null}
       </div>
@@ -476,15 +532,38 @@ const AutoApprove: React.FC<{funnelAt: number; travelAt: number; brakeAt: number
     {t: '交给一个小模型判断', w: 500},
   ];
   const braked = frame >= brakeAt;
+  //: 漏斗最宽一级的宽度——「命中即出」标签统一挂在这个右边界上
+  const WIDEST = 900;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16}}>
+      <div
+        style={{
+          position: 'relative',
+          width: WIDEST + 260,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 16,
+        }}
+      >
         {stages.map((s, i) => {
           const at = funnelAt + i * 10;
           const on = frame >= at;
           const passing = frame >= travelAt + i * 14 && frame < travelAt + i * 14 + 14;
           return (
-            <div key={s.t} style={{position: 'relative', opacity: on ? 1 : 0.15}}>
+            <div
+              key={s.t}
+              style={{
+                position: 'relative',
+                opacity: on ? 1 : 0.15,
+                /* 每级都占满容器宽度、内部再放各自宽度的卡片 —— 这样
+                   「命中即出」标签能挂在统一的右边界上，不随各级宽度参差 */
+                width: WIDEST + 260,
+                display: 'flex',
+                justifyContent: 'flex-start',
+                paddingLeft: (WIDEST - s.w) / 2,
+              }}
+            >
               <Panel
                 accent={passing ? theme.mech : theme.panelBorder}
                 style={{
@@ -496,18 +575,20 @@ const AutoApprove: React.FC<{funnelAt: number; travelAt: number; brakeAt: number
               >
                 <span style={{fontFamily: theme.sans, fontSize: 27, color: theme.text}}>{s.t}</span>
               </Panel>
+              {/* 「命中即出」：三条标签左端统一在 WIDEST 右侧，读作同一个侧向出口 */}
               {on ? (
                 <div
                   style={{
                     position: 'absolute',
-                    right: -104,
-                    top: 20,
+                    left: WIDEST + 34,
+                    top: 22,
+                    whiteSpace: 'nowrap',
                     fontFamily: theme.sans,
                     fontSize: 21,
                     color: theme.core,
                   }}
                 >
-                  {'命中即出'}
+                  {'→ 命中即出'}
                 </div>
               ) : null}
             </div>
