@@ -1,6 +1,6 @@
 # 《上线之后，AI 才开始上学》科普视频工程
 
-> 基于 Che Jiang, Jincheng Zhong, Yu Fu, *et al.*, "Self-Improving Agents in the Era of Experience: A Survey of Self- to Meta-Evolution," *Frontis.AI / Tsinghua University*, Jun. 2026（88 页综述，无公开 arXiv 号）的动效图解式科普视频（B 站/YouTube，约 13.6 分钟）。
+> 基于 Che Jiang, Jincheng Zhong, Yu Fu, *et al.*, "Self-Improving Agents in the Era of Experience: A Survey of Self- to Meta-Evolution," *Frontis.AI / Tsinghua University*, Jun. 2026（88 页综述，无公开 arXiv 号）的动效图解式科普视频（B 站/YouTube，约 14 分钟）。
 > 形态：**本人音色克隆配音**（IndexTTS-2.5，sunny-steady 明快稳健成片档，me-bright.wav 样本）+ Remotion 代码动画，无真人出镜。
 > （v2 前为 edge-tts 预置音色，两种引擎 manifest 契约一致，可随时切回。）
 > 三集系列第 1 集（各集独立成片，口播不出现他集标题与集数序号）；同系列：[《AI 如何自己变强？》](../self-improving-agents-video/README.md)（自我进化改什么）、[《会写代码的 AI，开始给自己写代码》](../self-evolving-coding-agents-video/README.md)（代码领域全图），发布顺序见 [../series.json](../series.json)。
@@ -38,7 +38,7 @@ uv run --no-project scripts/build_narration.py
 
 # 2. 合成配音（本人音色克隆，增量幂等；参数读自本集 pipeline.toml——成片档 sunny-steady，草稿遍加 --style sunny；
 #    需先启动 IndexTTS 服务，见 ../pipeline/VOICE-CLONING.md）
-uv run --no-project media/pipeline/scripts/pipeline.py --project . tts
+uv run --no-project ../pipeline/scripts/pipeline.py --project . tts
 
 # 3. 预览
 cd video && pnpm install --ignore-workspace && pnpm dev

@@ -221,12 +221,13 @@ def cmd_render(root: Path, cfg: dict, final: bool) -> int:
 
 def cmd_qa(
     root: Path,
-    _cfg: dict,
+    cfg: dict,
     video: str | None,
     scene: str | None,
     last_n: int | None,
     ids: list[str],
     check: bool,
+    scale: float | None,
 ) -> int:
     cmd = ["uv", "run", "--no-project"]
     if check:
@@ -238,6 +239,13 @@ def cmd_qa(
         cmd += ["--last-n", str(last_n)]
     if check:
         cmd += ["--check"]
+        # 字幕带/亮块间隔是全分辨率像素常数：草渲（0.5x）不折算则带高×2、间隔×2，
+        # 侵入判据双向失真。显式 --scale 优先；未给时按产物名推断（draft → pipeline.toml）
+        eff = scale
+        if eff is None and video and Path(video).name == "draft.mp4":
+            eff = cfg.get("render", {}).get("draft_scale", 0.5)
+        if eff is not None:
+            cmd += ["--scale", str(eff)]
     if video:
         cmd.append(video)
     cmd += ids
@@ -259,7 +267,10 @@ def cmd_all(root: Path, cfg: dict) -> int:
     print(
         "   uv run --no-project --with pillow --with numpy media/pipeline/scripts/qa_frames.py \\"
     )
-    print(f"       --project {root} out/draft.mp4 --last-n 6 --check")
+    print(
+        f"       --project {root} out/draft.mp4 --last-n 6 --check"
+        f" --scale {cfg.get('render', {}).get('draft_scale', 0.5)}   # 草渲像素折算，不可省"
+    )
     return 0
 
 
@@ -303,6 +314,11 @@ def main() -> None:
     p.add_argument("--scene")
     p.add_argument("--last-n", type=int)
     p.add_argument("--check", action="store_true", help="自动体检")
+    p.add_argument(
+        "--scale",
+        type=float,
+        help="产物缩放系数（草渲不传时按 draft.mp4 自动取 pipeline.toml 的 draft_scale）",
+    )
     p.add_argument("ids", nargs="*")
     args = ap.parse_args()
 
@@ -320,7 +336,14 @@ def main() -> None:
         "captions": lambda: cmd_captions(root, cfg),
         "render": lambda: cmd_render(root, cfg, args.final),
         "qa": lambda: cmd_qa(
-            root, cfg, args.video, args.scene, args.last_n, args.ids, args.check
+            root,
+            cfg,
+            args.video,
+            args.scene,
+            args.last_n,
+            args.ids,
+            args.check,
+            args.scale,
         ),
         "all": lambda: cmd_all(root, cfg),
         "clean-samples": lambda: cmd_clean_samples(root, cfg),

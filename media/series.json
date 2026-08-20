@@ -47,7 +47,7 @@
         "date": "2026-07"
       },
       "status": "ready",
-      "statusNote": "待升级项：换 sunny-steady 重配（约 10h，未排期）",
+      "statusNote": "待升级项：换 sunny-steady 重配（机器空闲口径约 2–3h，未排期；旧 10h 为忙时实测，见 VOICE-CLONING §4.3b 复测）",
       "voice": "passionate + me-1.wav（已上线成片所用）"
     },
     {

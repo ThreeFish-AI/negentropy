@@ -423,7 +423,11 @@ const ThreeGens: React.FC<{gen3At: number}> = ({gen3At}) => {
           ['25-05', 'Codex'], ['26-02', 'OpenClaw'], ['26-04', 'Cursor 3'],
         ].map(([date, name], i) => {
           const t = (i + 0.5) / 11;
-          const on = frame > 12 + i * 7;
+          // 帧驱动渐显（0.85 目标值），不写 CSS transition——渲染侧截图相位须确定
+          const on = interpolate(frame, [12 + i * 7, 21 + i * 7], [0, 0.85], {
+            extrapolateLeft: 'clamp',
+            extrapolateRight: 'clamp',
+          });
           return (
             <div
               key={name}
@@ -433,8 +437,7 @@ const ThreeGens: React.FC<{gen3At: number}> = ({gen3At}) => {
                 left: `${t * 100}%`,
                 transform: 'translateX(-50%)',
                 textAlign: 'center',
-                opacity: on ? 0.85 : 0,
-                transition: 'opacity 0.3s',
+                opacity: on,
               }}
             >
               <div style={{width: 2, height: 12, background: theme.dim, margin: '0 auto'}} />

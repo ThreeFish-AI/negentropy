@@ -20,7 +20,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 | ⑥ TTS 配音 | 本人音色克隆（IndexTTS-2.5） | [07](../../../media/pipeline/skills/07-tts-voice.md) | `pipeline.py tts --plan` | refs 指纹门 + 试听 + ETA |
 | ⑦ Remotion 场景 | 代码动画实现 | [06](../../../media/pipeline/skills/06-remotion-implementation.md) | `tsc --noEmit` | 七条渲染红线 |
 | ⑧ 草渲 + 抽帧 QA | 半分辨率快速迭代 | [08](../../../media/pipeline/skills/08-render-qa.md) | `pipeline.py render` + `qa` | 自动体检零 FAIL |
-| ⑨ 终渲 + 交付 | 1080p30 + srt/vtt | [09](../../../media/pipeline/skills/09-final-render.md) | `benchmark → render --final` + `captions` | 实测时长在预算窗 |
+| ⑨ 终渲 + 交付 | 1080p30 + srt/vtt | [09](../../../media/pipeline/skills/09-final-render.md) | `render --final` + `captions` | 实测时长在预算窗 |
 
 ## 关键不变量
 

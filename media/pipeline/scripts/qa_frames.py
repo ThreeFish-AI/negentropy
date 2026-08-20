@@ -142,6 +142,22 @@ def mean_hash(gray) -> int:
     return bits
 
 
+def tail_row_has_fade(board: Path) -> bool:
+    """分镜表**最后一个表格行**（`| … |`）是否含「渐黑」——末 beat 渐黑豁免判据。
+
+    按表格行而非文件末行：分镜表末尾常跟「字幕规范/实现映射」散文节，
+    文件末 5 行判定会让豁免永不命中（EP1/EP2 实测如此，渐黑行距文件末约 10 行）。
+    """
+    if not board.is_file():
+        return False
+    rows = [
+        ln
+        for ln in board.read_text(encoding="utf-8").splitlines()
+        if ln.strip().startswith("|")
+    ]
+    return bool(rows) and any("渐黑" in ln for ln in rows[-2:])
+
+
 def check_frames(
     out: Path, ids: list[str], scale: float, fade_exempt_last: bool, msgs: list[str]
 ) -> None:
@@ -288,12 +304,11 @@ def main() -> None:
         print(f"{sid} @ {ts:.2f}s -> {dst.relative_to(root)}")
 
     if args.check:
-        # 末 beat 渐黑豁免：分镜最后一行含「渐黑」字样时，最后一个抽帧允许黑
+        # 末 beat 渐黑豁免：分镜**最后一个表格行**含「渐黑」字样时，最后一个抽帧允许黑。
+        # 按表格行而非文件末行——分镜表末尾常跟「字幕规范/实现映射」散文节，文件末行
+        # 判定会让豁免永不命中（EP1/EP2 实测如此）。
         board = root / "script" / "storyboard.md"
-        fade_tail = (
-            board.is_file()
-            and "渐黑" in board.read_text(encoding="utf-8").strip().splitlines()[-5:]
-        )
+        fade_tail = tail_row_has_fade(board)
         msgs: list[str] = []
         check_frames(out, extracted, args.scale, fade_tail, msgs)
         for m in msgs:

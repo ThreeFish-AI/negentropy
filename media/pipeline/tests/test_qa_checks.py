@@ -9,7 +9,7 @@ import numpy as np
 from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
-from qa_frames import check_frames, check_theme, wcag_ratio  # noqa: E402
+from qa_frames import check_frames, check_theme, tail_row_has_fade, wcag_ratio  # noqa: E402
 
 
 def make_png(path: Path, mode: str, scale: float = 1.0) -> None:
@@ -105,3 +105,22 @@ def test_theme_check_passes_and_fails(tmp_path):
     joined = "\n".join(msgs)
     assert "good" not in joined  # 4.5:1 以上不进 msgs
     assert any("bad" in m and m.startswith("FAIL") for m in msgs)
+
+
+def test_tail_row_has_fade_ignores_trailing_prose(tmp_path):
+    """渐黑行距文件末尾有散文节时（EP1/EP2 真实形态），豁免仍须命中。"""
+    board = tmp_path / "storyboard.md"
+    board.write_text(
+        "| 6-F2 三条曲线 | p6-13c..13d | … | 三线描画 |\n"
+        "| 6-G 原文卡 | p6-14..15 | …；渐黑 | 卡片停留 + 渐黑 |\n"
+        "\n## 字幕规范\n\n- 单行字幕。\n\n## 实现映射\n\n每幕一个组件。\n",
+        encoding="utf-8",
+    )
+    assert tail_row_has_fade(board)
+
+
+def test_tail_row_has_fade_false_without_marker(tmp_path):
+    board = tmp_path / "storyboard.md"
+    board.write_text("| 6-G 原文卡 | p6-14..15 | … | 卡片停留 |\n", encoding="utf-8")
+    assert not tail_row_has_fade(board)
+    assert not tail_row_has_fade(tmp_path / "absent.md")  # 缺文件不炸、不豁免

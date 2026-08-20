@@ -9,12 +9,13 @@
 uv run --no-project media/pipeline/scripts/pipeline.py --project media/<slug>-video render
 
 # 抽帧三选一：幕抽样 / 指定句 / 末 N 句（尾幕渐黑缺陷的必查项）
+# ⚠️ 草渲 --check 须带 --scale 0.5：字幕带/亮块间隔按全分辨率像素常数计算，不折算则判据双向失真
 uv run --no-project --with pillow --with numpy media/pipeline/scripts/qa_frames.py \
-    --project media/<slug>-video out/draft.mp4 --scene P2 [--check]
+    --project media/<slug>-video out/draft.mp4 --scene P2 [--check --scale 0.5]
 uv run --no-project --with pillow --with numpy media/pipeline/scripts/qa_frames.py \
-    --project media/<slug>-video out/draft.mp4 p6-11 p6-13b --check
+    --project media/<slug>-video out/draft.mp4 p6-11 p6-13b --check --scale 0.5
 uv run --no-project --with pillow --with numpy media/pipeline/scripts/qa_frames.py \
-    --project media/<slug>-video out/draft.mp4 --last-n 6 --check
+    --project media/<slug>-video out/draft.mp4 --last-n 6 --check --scale 0.5
 
 # 主题对比度（零依赖，不需视频；新配色/改 theme.ts 后必跑）
 uv run --no-project media/pipeline/scripts/qa_frames.py --project media/<slug>-video --check-theme
@@ -25,7 +26,7 @@ uv run --no-project media/pipeline/scripts/qa_frames.py --project media/<slug>-v
 | 判据 | 级别 | 处置 |
 |---|---|---|
 | 黑帧/早渐黑（均值 <0.02；末 beat 且分镜标「渐黑」豁免） | FAIL | 查尾幕渐黑是否从**末 beat** 而非末句推导（skills/06 红线 4）；查 SceneFade 末幕是否误开淡出 |
-| 字幕带侵入（字幕框 x 区间外有独立亮块） | WARN | 角标/图形挪出 bottom≥160px 安全区；新组件一律用 `CornerLabel`（默认值化） |
+| 字幕带侵入（字幕框 x 区间外有独立亮块） | WARN | 角标/图形挪出 bottom≥160px 安全区（角标一律绝对定位并写死 `bottom ≥ 150`） |
 | 冻帧（相邻采样帧 16×16 指纹相同） | WARN | 查 beat 窗口是否错位/句子未被分镜覆盖（`check_script.py --check-scenes`） |
 | 字幕缺失（字幕带无文字亮度像素） | WARN | 查该句 Subtitle 是否被遮挡或文本为空 |
 | 主题对比度 <4.5:1 | FAIL | 换色或加深；概念色清单见 skills/06 视觉契约 |

@@ -17,9 +17,6 @@ importers:
       '@remotion/media':
         specifier: 4.0.512
         version: 4.0.512(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      '@remotion/paths':
-        specifier: 4.0.512
-        version: 4.0.512
       react:
         specifier: ^19.0.0
         version: 19.2.8
@@ -410,9 +407,6 @@ packages:
     peerDependencies:
       react: '>=16.8.0'
       react-dom: '>=16.8.0'
-
-  '@remotion/paths@4.0.512':
-    resolution: {integrity: sha512-QsfbV9VPigd5lePokb0HthDY1ik7vvEN80D3qpVlGZ1FTSdysYn488Faa2+s06RL/2XZpJ185KfSMzba1iSjVg==}
 
   '@remotion/player@4.0.512':
     resolution: {integrity: sha512-Brc+aqjIyEEkwLncTNMrQf8MkfS/HhOSJs7qpDfK68nqOu/u3ULOtdIIXGPArvS3TkSea1FUA2VxP+1vqXwY2g==}
@@ -1709,8 +1703,6 @@ snapshots:
       react-dom: 19.2.8(react@19.2.8)
       remotion: 4.0.512(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       zod: 4.4.3
-
-  '@remotion/paths@4.0.512': {}
 
   '@remotion/player@4.0.512(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
     dependencies:
