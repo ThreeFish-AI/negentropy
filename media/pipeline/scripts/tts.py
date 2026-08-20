@@ -60,7 +60,19 @@ RTF_MULTIBEAM = 45.0
 AVG_SEC_PER_LINE = 4.2  # 三集每句音频均值
 
 # IndexTTS 8 维情感向量顺序（indextts/infer_v2_5.py 固定）：happy, angry, sad, afraid,
-# disgusted, melancholic, surprised, calm。有效和（Σ分量×emo_alpha）须 ≤0.8（直调 infer 不自动归一，双端校验）。
+# disgusted, melancholic, surprised, calm。
+#
+# 有效和护栏 Σ分量×emo_alpha ≤ 0.8 是**本管线自定的口径**，不是上游行为（2026-08-20 核验）：
+# 上游 infer() 从不归一化，normalize_emo_vec 全仓唯一调用点是 webui.py:665 的「自定义向量」
+# 分支，且那条的 0.8 作用在**已乘 emo_bias 的和**上、且在 alpha 之前。
+# emo_bias（infer_v2_5.py:493 硬编码）8 维严重不等权：
+#   sad/afraid=1.0 > happy/disgusted/melancholic=0.9375 > angry=0.875 > surprised=0.6875 > calm=0.5625
+# 后果：从社区/WebUI 抄来的 (vec, alpha) 经本仓复现实际**强 16%–33%**（含 calm 越重偏差越大，
+# confident 档最失真），跨来源参数迁移必须重新试听定档。详见 INDEXTTS-2.5-ADVANCED.md §3.2。
+#
+# 另注：alpha 恰好等于「替换掉本人语调的百分比」**仅当名义向量和 = 1.0** ——
+# sunny/passionate 刚好是 1.00，而 lively(0.85)/confident(0.90)/positive(0.95) 不是，
+# 其 alpha 跨预设不可直接比较。
 EMO_KEYS = [
     "happy",
     "angry",
@@ -74,14 +86,21 @@ EMO_KEYS = [
 
 # 风格预设 —— 数值为初值，可实测试听后微调。
 # 可选键 "beams"：预设自带的束搜索宽度（缺省 1）。束宽会改变韵律稳定度，属风格的一部分，
-# 故允许写进预设；命令行 --num-beams 显式给值时优先。注意束宽 3 使整集墙钟约 ×3.4
-# （长跑折算 RTF 13→45），若只想让关键句更稳，用 --steady 混合档而非整集升档。
+# 故允许写进预设；命令行 --num-beams 显式给值时优先。束宽代价见下方 sunny-steady 注释
+# （MPS 上近乎免费，CUDA 上近线性）；机器忙时想只让关键句更稳，用 --steady 混合档。
+# 可选键 "sampling"：预设自带的采样参数覆盖（见 SAMPLING_DEFAULTS）。当前所有预设都不带 ——
+# 任何写进预设的值都会改缓存摘要 ⇒ 整集重录，故须先 A/B 拿到证据再定档。
 STYLE_PRESETS: dict[str, dict] = {
     "neutral": {"label": "中性", "vec": None, "alpha": 1.0, "df": 1.0},
     "passionate": {
         "label": "激情",
         # 高唤醒正价（happy 主载）+ 跳跃感（surprised）+ 少量 calm 锚定咬字；
-        # 有效和 1.00×0.7=0.70 ≤0.8；df 0.97 护密集技术句清晰度。
+        # 有效和 1.00×0.7=0.70 ≤0.8。
+        # ⚠️ 校准（2026-08-20）：此处原注「df 0.97 护密集技术句清晰度」**方向写反了**。
+        # duration_factor 作用于 S2M 的时间轴重采样（infer_v2_5.py:832 target_lengths），
+        # df<1 → 梅尔帧更少 → 语速更快 → 每个音素分到的时间更短、咬字更紧，密集技术句
+        # 应当**更糊**而非更清。护清晰度的正确方向是 df>1。0.97 的实际效果是「略快」，
+        # 与本档「激情」的定位自洽，故数值保留、只更正因果表述。
         "vec": [0.70, 0, 0, 0, 0, 0, 0.20, 0.10],
         "alpha": 0.7,
         "df": 0.97,
@@ -121,8 +140,11 @@ STYLE_PRESETS: dict[str, dict] = {
         # = sunny 同方向同强度同语速，只把束宽提到 3：GPT 段搜索更宽 → 韵律更收敛。
         # 实测（同文本同样本）：语调起伏 48.4 → 43.5、音节率 4.10 → 4.55，亮度基本不掉
         # （质心 1245 → 1223）——是唯一「不牺牲明快度就让语气更稳」的旋钮。
-        # 代价：GPT 段耗时约按束宽线性放大，**整集墙钟约 ×3.4**（189 句估算 2.9→9.9 小时，
-        # 见 VOICE-CLONING.md §4.3b）。想只让关键句变稳请用 `--steady` 混合档，别整集升档。
+        # 代价高度依赖硬件，**不是无条件的「线性放大」**：束宽只作用于 T2S（S2M 入口的
+        # codes 形状与束宽无关），而 MPS 上 T2S 只占三段耗时的 18–46%（2026-08-20 本机
+        # 13 样本分段 profile：s2mel 反而占 45–73%）。整集实测 1→3 束仅 +4%
+        # （EP1 v3 两遍法 1.9h → 1.98h）。故：CUDA 上近线性放大，MPS 上近乎免费。
+        # 机器忙/热节流时仍可能出现数倍差，此时用 `--steady` 混合档只升关键句。
         "vec": [0.95, 0, 0, 0, 0, 0, 0.02, 0.03],
         "alpha": 0.35,
         "df": 0.95,
@@ -131,9 +153,55 @@ STYLE_PRESETS: dict[str, dict] = {
 }
 
 
+# 上游自回归采样参数的默认值 —— 已知副本，锚点 indextts/infer_v2_5.py:731-739（HEAD 4f8792f）；
+# 与服务端 tts_server.py 的 SAMPLING_DEFAULTS 必须逐字一致（那里有机制说明）。
+#
+# 本副本只有一个用途：判定「这一项是否被显式改过」，从而决定**要不要进缓存摘要**。
+# 摘要沿用「未使用即省略」规则（同 |beams=N），故全部取默认时摘要与历史逐字节相同 ——
+# 这是已上线三集近 600 句缓存零失效的前提，由 tests/test_digest.py 黄金哈希钉死。
+SAMPLING_DEFAULTS: dict[str, float | int | bool | None] = {
+    "temperature": 0.8,
+    "top_p": 0.8,
+    "top_k": 30,
+    "length_penalty": 0.0,
+    "repetition_penalty": 10.0,
+    "max_mel_tokens": 1500,
+    "interval_silence": 200,
+    "text_normalization": True,
+    "seed": None,
+}
+
+#: 采样参数的合法区间（对齐上游 webui.py:901-910 的滑杆），用于长跑前提前失败。
+#: max_mel_tokens 上限 1815 = config.yaml 的 gpt.max_mel_tokens（mel 位置嵌入容量 ≈36.2 s）。
+SAMPLING_RANGES: dict[str, tuple[float, float]] = {
+    "temperature": (0.1, 2.0),
+    "top_p": (0.0, 1.0),
+    "top_k": (0, 100),
+    "length_penalty": (-2.0, 2.0),
+    "repetition_penalty": (0.1, 20.0),
+    "max_mel_tokens": (50, 1815),
+    "interval_silence": (0, 2000),
+}
+
+
 def tts_text(text: str) -> str:
-    """口播文本微调：破折号换为逗号停顿，避免 TTS 念成怪音。"""
+    """口播文本微调：破折号换为逗号停顿，避免 TTS 念成怪音。
+
+    注意这是**唯一**的程序化文本预处理：数字/百分号/量词的读法由上游中文归一化
+    （wetext）承担，多音字与英文专名读音由逐字稿里的发音标注 `<字|读音>` 承担。
+    归一化的已知陷阱（4 位年份与「年」之间不能有空格）由 check_script.py 的写稿 lint 拦。
+    """
     return text.replace("——", "，").replace("……", "。")
+
+
+def synth_source_text(item: dict) -> str:
+    """取该句真正送去合成的文本：优先 `ttsText`（含发音标注），否则 `text`。
+
+    `narration.json` 的 `text` 是**人读文本**，同时被字幕（captions.py）与字数预算
+    （check_script.py）消费；发音标注只能进 `ttsText`，否则会泄漏到 SRT/VTT 并污染预算。
+    未标注的句子没有 `ttsText` 字段 ⇒ 取值与历史完全一致 ⇒ 存量缓存不失效。
+    """
+    return item.get("ttsText") or item["text"]
 
 
 def mp3_duration(path: Path) -> float:
@@ -189,6 +257,63 @@ def resolve_style(
     if args.num_beams is None:  # 预设可自带束宽（如 sunny-steady=3），缺省为 1
         beams = preset.get("beams", 1)
     return args.style, preset["vec"], alpha, df, beams
+
+
+#: 采样参数的 CLI 名 → 属性名（argparse 把连字符转下划线）。text_normalization / seed 单独处理。
+SAMPLING_CLI = (
+    "temperature",
+    "top_p",
+    "top_k",
+    "length_penalty",
+    "repetition_penalty",
+    "max_mel_tokens",
+    "interval_silence",
+)
+
+
+def resolve_sampling(args: argparse.Namespace) -> dict[str, float | int | bool]:
+    """收集所有**被显式改动过**的采样参数；全默认时返回空 dict（摘要因此不变）。
+
+    优先级同 alpha/df/beams：命令行显式给值 > 风格预设的 `sampling` 键 > 上游默认。
+    预设自带采样参数是刻意留的扩展位——束宽已证明「属于风格的一部分」，length_penalty
+    这类同样影响韵律的旋钮理应能随风格走；但**任何写进预设的值都会改摘要 ⇒ 整集重录**，
+    故当前所有预设都不带 sampling，待 A/B 拿到证据后再定档。
+    """
+    preset_sampling: dict = (
+        STYLE_PRESETS.get(args.style, {}).get("sampling", {}) if args.style else {}
+    )
+    out: dict[str, float | int | bool] = {}
+    for key in SAMPLING_CLI:
+        cli_val = getattr(args, key, None)
+        val = cli_val if cli_val is not None else preset_sampling.get(key)
+        if val is None:
+            continue
+        lo, hi = SAMPLING_RANGES[key]
+        if not lo <= val <= hi:  # NaN 比较恒 False，一并被拦
+            raise ValueError(f"--{key.replace('_', '-')} 必须在 [{lo:g}, {hi:g}]")
+        if key == "top_k" and val == 1:
+            raise ValueError(
+                "--top-k 1 在束搜索下不安全（每束需保底 2 个候选）：用 0 关闭或 ≥2"
+            )
+        if val != SAMPLING_DEFAULTS[key]:
+            out[key] = val
+    if getattr(args, "no_text_normalization", False):
+        out["text_normalization"] = False
+    if getattr(args, "seed", None) is not None:
+        # --seed-offset 是「换一条 take」的逃生口：固定种子会把某句锁死在一条可能不佳的
+        # 采样结果上，偏移一位即可换一条而仍然可复现。
+        out["seed"] = int(args.seed) + int(getattr(args, "seed_offset", 0) or 0)
+    return out
+
+
+def sampling_suffix(sampling: dict | None) -> str:
+    """采样参数 → 缓存摘要后缀。空 dict 返回空串（存量缓存零失效的关键）。
+
+    键按字母序，值用 repr()（防 0.7 → 0.70 之类的表示漂移，与 alpha/df 同口径）。
+    """
+    if not sampling:
+        return ""
+    return "".join(f"|{k}={sampling[k]!r}" for k in sorted(sampling))
 
 
 # ---------------- 混合档：整集低束宽 + 指定句高束宽 ----------------
@@ -382,6 +507,7 @@ def http_synthesize(
     emo_ref: str | None = None,
     emo_text: str | None = None,
     headers_out: dict | None = None,
+    sampling: dict | None = None,
 ) -> tuple[bytes, str]:
     """POST /synthesize → (mp3 bytes, X-Audio-Format)。4xx 不可重试。
 
@@ -404,6 +530,8 @@ def http_synthesize(
         payload["emo_ref_path"] = emo_ref
     if emo_text:  # 自然语言情感描述（服务端 QwenEmotion 转向量）
         payload["emo_text"] = emo_text
+    if sampling:  # 只发被显式改过的采样参数，其余由服务端取上游默认
+        payload.update(sampling)
     req = urllib.request.Request(
         f"{server}/synthesize",
         data=json.dumps(payload).encode(),
@@ -436,14 +564,17 @@ def digest_indextts(
     num_beams: int = 1,
     emo_ref_sha1: str | None = None,
     emo_text: str | None = None,
+    sampling: dict | None = None,
 ) -> str:
     vec_str = ",".join(repr(x) for x in vec) if vec else "none"
-    # 束宽/情感来源改变合成结果，须入键；未使用时省略字段——沿用历史摘要格式，存量缓存不失效
+    # 束宽/情感来源/采样参数改变合成结果，须入键；未使用时省略字段——沿用历史摘要格式，
+    # 存量缓存不失效。新增字段一律追加在**末尾**且默认省略，故摘要格式可持续扩展。
     beams_part = "" if num_beams == 1 else f"|beams={num_beams}"
     emo_part = f"|emoref={emo_ref_sha1}" if emo_ref_sha1 else ""
     emo_part += f"|emotext={emo_text}" if emo_text else ""
     return hashlib.sha1(
-        f"indextts|{engine_tag}|{ref_sha1}|{lang}|{style}|{vec_str}|{alpha!r}|{df!r}|{text}{beams_part}{emo_part}".encode()
+        f"indextts|{engine_tag}|{ref_sha1}|{lang}|{style}|{vec_str}|{alpha!r}|{df!r}|{text}"
+        f"{beams_part}{emo_part}{sampling_suffix(sampling)}".encode()
     ).hexdigest()
 
 
@@ -465,8 +596,9 @@ async def synth_indextts(
     emo_ref: str | None = None,
     emo_ref_sha1: str | None = None,
     emo_text: str | None = None,
+    sampling: dict | None = None,
 ) -> dict:
-    sid, text = item["id"], item["text"]
+    sid, text = item["id"], synth_source_text(item)
     mp3 = out_dir / f"{sid}.mp3"
     meta = out_dir / f"{sid}.sha"
     digest = digest_indextts(
@@ -481,6 +613,7 @@ async def synth_indextts(
         num_beams,
         emo_ref_sha1,
         emo_text,
+        sampling,
     )
 
     if (
@@ -508,6 +641,8 @@ async def synth_indextts(
                         num_beams,
                         emo_ref,
                         emo_text,
+                        None,  # headers_out：管线主路径不需要回填响应头
+                        sampling,
                     )
                     if fmt != "mp3":
                         raise NonRetryableError(
@@ -643,6 +778,84 @@ async def main() -> None:
         default="indextts",
         help="[indextts] 缓存标记；模型升级后自定义以失效旧缓存",
     )
+
+    # 采样参数族：上游经 **generation_kwargs 透传给 HF generate，此前全部隐式继承上游默认，
+    # 任何调优都得改服务源码。显式化后它们会**进缓存摘要**（仅在 ≠ 上游默认时），故改参必然
+    # 重合成，不会出现「改了参数却命中旧缓存 ⇒ 误判无效果」这类假验证。
+    # 缺省一律 None = 取风格预设的 sampling，再退到上游默认（见 resolve_sampling）。
+    smp = parser.add_argument_group(
+        "indextts 采样参数（专家级，缺省即上游默认；改任一项都会失效该句缓存）"
+    )
+    smp.add_argument(
+        "--temperature",
+        default=None,
+        type=float,
+        help="[indextts] 采样温度 0.1–2.0（上游默认 0.8）。收紧可降低长视频的句间韵律漂移，"
+        "过紧会滑向单调播报",
+    )
+    smp.add_argument(
+        "--top-p",
+        default=None,
+        type=float,
+        help="[indextts] 核采样 0–1（上游默认 0.8）",
+    )
+    smp.add_argument(
+        "--top-k",
+        default=None,
+        type=int,
+        help="[indextts] top-k 0–100（上游默认 30；0=关闭，1 在束搜索下不安全故禁用）",
+    )
+    smp.add_argument(
+        "--length-penalty",
+        default=None,
+        type=float,
+        help="[indextts] 束打分长度惩罚 -2–2（上游默认 0.0）。**0.0 不是中性**：打分不做长度"
+        "归一化而对数概率恒负，故系统性偏好更短假设，是 --num-beams>1 时吞尾/漏字的机制来源。"
+        "抬到 0.3–1.0 可缓解；仅束搜索打分时生效，--num-beams 1 下改它无效",
+    )
+    smp.add_argument(
+        "--repetition-penalty",
+        default=None,
+        type=float,
+        help="[indextts] 重复惩罚 0.1–20（上游默认 10.0，自 v1 沿用且无测试支撑）。"
+        "作用在语义码头上、是对 logit 的符号相关缩放；有效强度依赖 logit 绝对尺度，"
+        "故**与音色/情感向量耦合**，跨音色不可迁移调参结论",
+    )
+    smp.add_argument(
+        "--max-mel-tokens",
+        default=None,
+        type=int,
+        help="[indextts] 生成上限 50–1815（上游默认 1500 ≈30 s；1815 为架构上限 ≈36.2 s）。"
+        "溢出后果不是音频被裁短，而是文本尾部根本没被念出。本仓单句远未触顶，通常不需要动",
+    )
+    smp.add_argument(
+        "--interval-silence",
+        default=None,
+        type=int,
+        help="[indextts] 单请求内**分段之间**的静音毫秒（上游默认 200）。本管线逐句合成、"
+        "单句远低于分段预算，故默认不生效；句间停顿由 video/src/timing.json 的 sentenceGapSec 决定",
+    )
+    smp.add_argument(
+        "--no-text-normalization",
+        action="store_true",
+        help="[indextts] 关闭上游中文文本归一化（v2.5 专属）。**通常不要用**：实测 %% / 小数 /"
+        "量词 / 月日 / 章节的读法本来就正确，关掉等于把全部读法责任推给逐字稿；"
+        "发音标注 <字|读音> 本身免疫归一化，不需要为保标记而关它",
+    )
+    smp.add_argument(
+        "--seed",
+        default=None,
+        type=int,
+        help="[indextts] 随机种子。上游 do_sample 恒 True 且全链路无种子，同句每次合成都是"
+        "不同的 take；给定种子后逐句可复现——这是任何参数 A/B 可信的前提",
+    )
+    smp.add_argument(
+        "--seed-offset",
+        default=0,
+        type=int,
+        help="[indextts] 与 --seed 相加（默认 0）。固定种子会把某句锁死在一条可能不佳的"
+        "采样结果上，偏移一位即可换一条 take 而仍然可复现",
+    )
     args = parser.parse_args()
     args.server = args.server.rstrip(
         "/"
@@ -658,10 +871,22 @@ async def main() -> None:
                 ",".join(f"{x:g}" for x in p["vec"]) if p["vec"] else "—（不注入情感）"
             )
             eff = (sum(p["vec"]) * p["alpha"]) if p["vec"] else 0.0
+            smp_note = (
+                ""
+                if not p.get("sampling")
+                else "  采样 "
+                + ",".join(f"{k}={v!r}" for k, v in sorted(p["sampling"].items()))
+            )
             print(
                 f"{name:<14}  {p['label']:<6}  {vec:<62}  {p['alpha']:<5}  "
-                f"{eff:<8.3g}  {p['df']:<4}  {p.get('beams', 1)}"
+                f"{eff:<8.3g}  {p['df']:<4}  {p.get('beams', 1)}{smp_note}"
             )
+        print(
+            "\n采样参数（temperature/top_p/top_k/length_penalty/repetition_penalty/"
+            "max_mel_tokens/interval_silence）未在任何预设中覆盖，"
+            "均取上游默认："
+            + ", ".join(f"{k}={v!r}" for k, v in SAMPLING_DEFAULTS.items())
+        )
         return
 
     if args.engine == "edge":
@@ -689,6 +914,17 @@ async def main() -> None:
                 "--steady": args.steady,
                 "--style": args.style != "neutral",
                 "--lang": args.lang != "ZH",
+                # 采样参数族同属克隆专属：edge 不认这些旋钮，且两引擎摘要必然不同，
+                # 照跑同样会把整集克隆音频改写成 edge 预置音色 ⇒ 与上面同口径硬失败。
+                "--temperature": args.temperature is not None,
+                "--top-p": args.top_p is not None,
+                "--top-k": args.top_k is not None,
+                "--length-penalty": args.length_penalty is not None,
+                "--repetition-penalty": args.repetition_penalty is not None,
+                "--max-mel-tokens": args.max_mel_tokens is not None,
+                "--interval-silence": args.interval_silence is not None,
+                "--no-text-normalization": args.no_text_normalization,
+                "--seed": args.seed is not None,
             }.items()
             if val
         ]
@@ -704,6 +940,8 @@ async def main() -> None:
                 "--steady-beams": args.steady_beams != 3,
                 "--server": args.server != "http://127.0.0.1:8766",
                 "--engine-tag": args.engine_tag != "indextts",
+                # --seed-offset 单独给值而没给 --seed 时无任何效果（见 resolve_sampling）
+                "--seed-offset": args.seed_offset != 0 and args.seed is None,
             }.items()
             if val
         ]
@@ -758,6 +996,10 @@ async def main() -> None:
                 style_name, vec, alpha, df, beams = resolve_style(args)
             except ValueError as e:
                 parser.error(str(e))
+        try:
+            sampling = resolve_sampling(args)
+        except ValueError as e:
+            parser.error(str(e))
         if not args.ref:
             parser.error(
                 "--engine indextts 需要 --ref 参考音色样本（见 " + MANUAL + " §三）"
@@ -821,6 +1063,12 @@ async def main() -> None:
         if args.plan:  # 计划模式：纯本地计算，不连服务
             print(
                 f">> 计划：{root.name} · 风格 {style_name} · alpha {alpha:g} · 语速 {df:g}"
+                + (
+                    ""
+                    if not sampling
+                    else " · 采样 "
+                    + ",".join(f"{k}={sampling[k]!r}" for k in sorted(sampling))
+                )
             )
             todo = {b: 0 for b in sorted(set(beams_of.values()))}
             cached = dict(todo)
@@ -834,10 +1082,11 @@ async def main() -> None:
                     df,
                     args.lang,
                     args.engine_tag,
-                    i["text"],
+                    synth_source_text(i),
                     b,
                     emo_ref_sha1,
                     args.emo_text,
+                    sampling,
                 )
                 meta, mp3 = out_dir / f"{i['id']}.sha", out_dir / f"{i['id']}.mp3"
                 hit = (
@@ -889,6 +1138,25 @@ async def main() -> None:
                 "当前服务未加载 QwenEmotion：重启服务加 --use-qwen-emo，或改用 --emo-vector/--emo-ref，见 "
                 + MANUAL
             )
+        # 采样参数/种子对旧服务是**静默丢弃**（Pydantic 默认忽略未声明字段），而摘要这边已经
+        # 按新参数变了 ⇒ 会产出「摘要说改过、音频其实没改」的假验证。故显式硬失败。
+        sampling_only = {k: v for k, v in sampling.items() if k != "seed"}
+        if sampling_only and not health.get("supports_sampling_params"):
+            parser.error(
+                f"当前服务不支持采样参数（{','.join(sorted(sampling_only))}）：服务端代码过旧，"
+                f"请用本仓当前 tts_server.py 重启服务，见 {MANUAL} §二"
+            )
+        if "seed" in sampling and not health.get("supports_seed"):
+            parser.error(
+                f"当前服务不支持 --seed：服务端代码过旧，请用本仓当前 tts_server.py 重启服务，见 {MANUAL} §二"
+            )
+        if sampling.get("text_normalization") is False and not health.get(
+            "supports_text_normalization"
+        ):
+            parser.error(
+                "当前服务为 IndexTTS-2（infer() 无 text_normalization 形参）："
+                "去掉 --no-text-normalization，或改用 v2.5 服务"
+            )
 
         sem = asyncio.Semaphore(CONCURRENCY_INDEXTTS)
         results = await asyncio.gather(
@@ -912,6 +1180,7 @@ async def main() -> None:
                     emo_ref=emo_ref_path,
                     emo_ref_sha1=emo_ref_sha1,
                     emo_text=args.emo_text,
+                    sampling=sampling,
                 )
                 for i in items
             )

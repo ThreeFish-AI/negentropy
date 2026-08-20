@@ -1,17 +1,29 @@
 """digest 黄金值——「TTS 缓存零失效」的守门人。
 
 钉死 digest_indextts 的「未使用即省略」后缀规则：beams=1 不带 |beams=N、
-beams≥2 才带；emoref/emotext 同理。此前靠这条规则保住了已上线三集 596 句的
-缓存摘要 100% 不变；未来任何人改摘要公式，这里先红。
+beams≥2 才带；emoref/emotext/采样参数族同理。此前靠这条规则保住了已上线三集
+604 句的缓存摘要 100% 不变；未来任何人改摘要公式，这里先红。
+
+新增字段一律追加在摘要**末尾**且默认省略，故格式可持续扩展而不动存量缓存。
 """
 
 from __future__ import annotations
 
+import argparse
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
-from tts import digest_edge, digest_indextts  # noqa: E402
+from tts import (  # noqa: E402
+    SAMPLING_DEFAULTS,
+    digest_edge,
+    digest_indextts,
+    resolve_sampling,
+    sampling_suffix,
+    synth_source_text,
+)
 
 
 def test_digest_indextts_golden():
@@ -120,3 +132,129 @@ def test_digest_edge_golden():
     import hashlib
 
     assert digest_edge("v", "r", "t") == hashlib.sha1(b"v|r|t").hexdigest()
+
+
+# ---------------- 采样参数族：同一条「未使用即省略」规则 ----------------
+
+
+#: resolve_sampling 期望的 Namespace 形状（全 None = 全取上游默认）
+_NS_BASE = {
+    "style": "neutral",
+    "temperature": None,
+    "top_p": None,
+    "top_k": None,
+    "length_penalty": None,
+    "repetition_penalty": None,
+    "max_mel_tokens": None,
+    "interval_silence": None,
+    "no_text_normalization": False,
+    "seed": None,
+    "seed_offset": 0,
+}
+
+
+def _ns(**kw) -> argparse.Namespace:
+    return argparse.Namespace(**{**_NS_BASE, **kw})
+
+
+def test_sampling_suffix_omitted_when_default():
+    """空 sampling 必须产出空后缀 —— 这是存量三集 604 句缓存零失效的唯一依据。"""
+    assert sampling_suffix(None) == ""
+    assert sampling_suffix({}) == ""
+    vec = (0.95, 0, 0, 0, 0, 0, 0.02, 0.03)
+    args = ("3ed0d9d60d4b", "passionate", vec, 0.7, 0.97, "ZH", "indextts", "测试句。")
+    # 三种写法（不传 / 传 None / 传空 dict）必须与历史摘要逐字节相同
+    base = digest_indextts(*args, 1, None, None)
+    assert digest_indextts(*args, 1, None, None, None) == base
+    assert digest_indextts(*args, 1, None, None, {}) == base
+    assert base == "b6ccdeea2d913069c87bb679d67043a602bddfcb", base
+
+
+def test_sampling_suffix_key_order_is_stable():
+    """键按字母序 —— 否则 dict 插入序不同就会算出不同摘要（同参数却重合成整集）。"""
+    a = sampling_suffix({"top_p": 0.7, "length_penalty": 0.8, "seed": 1})
+    b = sampling_suffix({"seed": 1, "top_p": 0.7, "length_penalty": 0.8})
+    assert a == b == "|length_penalty=0.8|seed=1|top_p=0.7"
+
+
+def test_sampling_participates_in_digest():
+    """任一采样参数改动都必须失效缓存，否则会得出「改了参数没效果」的假结论。"""
+    vec = (0.95, 0, 0, 0, 0, 0, 0.02, 0.03)
+    args = ("aa", "sunny", vec, 0.35, 0.95, "ZH", "indextts", "测试句。")
+    base = digest_indextts(*args, 1, None, None, {})
+    seen = {base}
+    for key, val in (
+        ("temperature", 0.6),
+        ("top_p", 0.7),
+        ("top_k", 0),
+        ("length_penalty", 0.8),
+        ("repetition_penalty", 2.0),
+        ("max_mel_tokens", 1815),
+        ("interval_silence", 0),
+        ("text_normalization", False),
+        ("seed", 1234),
+    ):
+        d = digest_indextts(*args, 1, None, None, {key: val})
+        assert d != base, f"{key} 未参与摘要"
+        assert d not in seen, f"{key} 与其它参数摘要碰撞"
+        seen.add(d)
+
+
+def test_sampling_suffix_uses_repr_not_str():
+    """用 repr 而非 str：防 0.8 与 0.80 算出不同摘要（与 alpha/df 同口径）。"""
+    assert sampling_suffix({"length_penalty": 0.80}) == "|length_penalty=0.8"
+    assert sampling_suffix({"text_normalization": False}) == "|text_normalization=False"
+    assert sampling_suffix({"top_k": 0}) == "|top_k=0"
+
+
+def test_resolve_sampling_drops_upstream_defaults():
+    """显式传入与上游默认相同的值不得进摘要——否则「照抄 --list-styles 输出」会整集重录。"""
+    ns = _ns(
+        temperature=SAMPLING_DEFAULTS["temperature"],
+        length_penalty=SAMPLING_DEFAULTS["length_penalty"],
+    )
+    assert resolve_sampling(ns) == {}
+    ns.length_penalty = 0.8
+    assert resolve_sampling(ns) == {"length_penalty": 0.8}
+
+
+def test_resolve_sampling_validates_ranges():
+    for kw, frag in (
+        ({"temperature": 0.05}, "temperature"),
+        ({"top_p": 1.5}, "top-p"),
+        ({"top_k": 1}, "束搜索下不安全"),
+        ({"length_penalty": 3.0}, "length-penalty"),
+        ({"repetition_penalty": 25.0}, "repetition-penalty"),
+        ({"max_mel_tokens": 1816}, "max-mel-tokens"),
+        ({"interval_silence": 3000}, "interval-silence"),
+    ):
+        with pytest.raises(ValueError, match=frag):
+            resolve_sampling(_ns(**kw))
+    # top_k=0 是「关闭 TopK」的合法值，不能被上面的 1 规则误伤
+    assert resolve_sampling(_ns(top_k=0)) == {"top_k": 0}
+
+
+def test_resolve_sampling_seed_offset():
+    """--seed-offset 是「换一条 take」的逃生口；单独给 offset 而无 seed 时不生效。"""
+    assert resolve_sampling(_ns(seed=1000, seed_offset=0)) == {"seed": 1000}
+    assert resolve_sampling(_ns(seed=1000, seed_offset=3)) == {"seed": 1003}
+    assert resolve_sampling(_ns(seed=None, seed_offset=3)) == {}
+
+
+def test_synth_source_text_prefers_tts_text():
+    """发音标注走 ttsText，字幕用的 text 不受影响；无标注句取值与历史完全一致。"""
+    assert (
+        synth_source_text({"id": "p0-01", "text": "他在银行里走。"}) == "他在银行里走。"
+    )
+    assert (
+        synth_source_text(
+            {
+                "id": "p0-01",
+                "text": "他在银行里走。",
+                "ttsText": "他在银<行|HANG2>里走。",
+            }
+        )
+        == "他在银<行|HANG2>里走。"
+    )
+    # 空字符串 ttsText 视为未提供（防 build_narration 写出空字段导致合成空文本）
+    assert synth_source_text({"id": "x", "text": "正文", "ttsText": ""}) == "正文"
