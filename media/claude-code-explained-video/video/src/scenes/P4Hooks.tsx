@@ -421,13 +421,19 @@ const StampClash: React.FC<{
     extrapolateRight: 'clamp',
   });
   const blocked = frame >= blockAt;
+  /* 「顶住」不能是一次性瞬间事件：旁白「配置里的禁止和询问仍然要再走一遍」有 4 秒多，
+     若冲击波 16 帧就衰减完，画面在这句的大部分时间里是静止的、读不出对撞。
+     故弹回后保持一个持续的抵抗抖动（幅度小、周期慢），直到本 beat 结束。 */
   const bounce = blocked
     ? interpolate(frame - blockAt, [0, 10, 24], [0, -34, -22], {
         extrapolateLeft: 'clamp',
         extrapolateRight: 'clamp',
-      })
+      }) + (frame - blockAt > 24 ? Math.sin((frame - blockAt) / 7) * 3.5 : 0)
     : 0;
-  const shock = blocked ? interpolate(frame - blockAt, [0, 16], [0, 1], {extrapolateRight: 'clamp'}) : 0;
+  // 冲击波每 34 帧复发一次（持续施压 → 持续被顶回）
+  const shock = blocked
+    ? interpolate((frame - blockAt) % 34, [0, 16], [0, 1], {extrapolateRight: 'clamp'})
+    : 0;
   const arrow = interpolate(frame - arrowAt, [0, 20], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
