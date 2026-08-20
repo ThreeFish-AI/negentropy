@@ -262,7 +262,7 @@ const UnreliableFlag: React.FC<{crossAt: number; quoteAt: number}> = ({crossAt, 
       </Panel>
       <div style={{position: 'relative'}}>
         <Panel
-          accent={flipped ? theme.mech : theme.panelBorder}
+          accent={cross > 0.2 ? theme.deny : flipped ? theme.mech : theme.panelBorder}
           style={{width: 520, padding: '22px 26px', textAlign: 'center'}}
         >
           <div style={{fontFamily: theme.sans, fontSize: 22, color: theme.dim}}>
@@ -274,7 +274,9 @@ const UnreliableFlag: React.FC<{crossAt: number; quoteAt: number}> = ({crossAt, 
               fontSize: 36,
               fontWeight: 700,
               marginTop: 8,
-              color: flipped ? theme.mech : theme.dim,
+              /* 打叉后标记文字压暗：斜叉压在亮字上会互相干扰可读性 */
+              color: cross > 0.2 ? theme.dim : flipped ? theme.mech : theme.dim,
+              opacity: cross > 0.2 ? 0.55 : 1,
             }}
           >
             {flipped ? 'tool_use' : '进行中…'}
@@ -282,15 +284,26 @@ const UnreliableFlag: React.FC<{crossAt: number; quoteAt: number}> = ({crossAt, 
         </Panel>
         {cross > 0 ? (
           <svg
-            width={520}
-            height={120}
-            style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none'}}
+            width={560}
+            height={130}
+            style={{position: 'absolute', left: -20, top: -4, pointerEvents: 'none'}}
           >
+            {/* 描边+主线两层：让斜叉在文字上仍清晰可辨 */}
             <line
-              x1={40}
-              y1={20}
-              x2={40 + 440 * cross}
-              y2={20 + 82 * cross}
+              x1={44}
+              y1={16}
+              x2={44 + 470 * cross}
+              y2={16 + 96 * cross}
+              stroke={theme.bg}
+              strokeWidth={13}
+              strokeLinecap="round"
+              opacity={0.85}
+            />
+            <line
+              x1={44}
+              y1={16}
+              x2={44 + 470 * cross}
+              y2={16 + 96 * cross}
               stroke={theme.deny}
               strokeWidth={7}
               strokeLinecap="round"
@@ -313,6 +326,7 @@ const TenDrawers: React.FC<{restAt: number; chapterAt: number; recedeAt: number}
   const {fps} = useVideoConfig();
   // 钩子必须无条件调用：环在 recede 之后才渲染，故进度值先取出来再按需使用
   const dot = useRingDot(2.5);
+  // 章号只是「每个抽屉都指向后面某一章」的视觉证据，不进口播（活数据纪律）
   const drawers = [
     {label: '消息列表', ch: 's01'},
     {label: '工具与权限上下文', ch: 's02'},
@@ -365,6 +379,9 @@ const TenDrawers: React.FC<{restAt: number; chapterAt: number; recedeAt: number}
                     color: theme.text,
                     marginTop: 6,
                     lineHeight: 1.3,
+                    /* 章号固定在右下角，标签须留出让位宽度，否则最长的
+                       「工具与权限上下文」会压到章号上 */
+                    paddingRight: 34,
                   }}
                 >
                   {d.label}
