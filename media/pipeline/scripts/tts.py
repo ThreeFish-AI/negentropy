@@ -48,6 +48,13 @@ MANUAL = "media/pipeline/VOICE-CLONING.md"
 # --plan 排期估算用的实测常数（MPS fp32，长跑折算口径：含降频、机器争用与逐句开销）。
 # RTF_1BEAM 来自三集 596 句连续跑 8.5 小时 / 40.2 分钟纯语音；RTF_MULTIBEAM 由同句
 # 1↔3 束 A/B 实测的约 3.2 倍推得（与早期 3 束直测的 RTF 40–58 区间一致）。
+#
+# ⚠️ 2026-08-20 实测偏差（EP1 v3 两遍法，187 句）：
+#   A 遍 sunny(beams=1)：墙钟 ~1.9 h、纯语音 12.98 分 → 实测 RTF ≈ 8.8（常量 13 偏保守 1.5×）
+#   B 遍 sunny-steady(beams=3)：墙钟 1.98 h、纯语音 12.89 分 → 实测 RTF ≈ 9.2（常量 45 偏保守 4.9×）
+# 即机器空闲时 3 束的实际代价远低于「+241%」的旧口径（本次 B/A ≈ 1.04），旧数据应是
+# 在机器被占用/热节流时测得。**常量刻意不下调**：--plan 的用途是排期决策，宁可高估
+# 让人留出窗口，也不要低估导致长跑撞上其他任务；但看到估算与实测差 3–5 倍属正常。
 RTF_1BEAM = 13.0
 RTF_MULTIBEAM = 45.0
 AVG_SEC_PER_LINE = 4.2  # 三集每句音频均值
@@ -68,7 +75,7 @@ EMO_KEYS = [
 # 风格预设 —— 数值为初值，可实测试听后微调。
 # 可选键 "beams"：预设自带的束搜索宽度（缺省 1）。束宽会改变韵律稳定度，属风格的一部分，
 # 故允许写进预设；命令行 --num-beams 显式给值时优先。注意束宽 3 使整集墙钟约 ×3.4
-#（长跑折算 RTF 13→45），若只想让关键句更稳，用 --steady 混合档而非整集升档。
+# （长跑折算 RTF 13→45），若只想让关键句更稳，用 --steady 混合档而非整集升档。
 STYLE_PRESETS: dict[str, dict] = {
     "neutral": {"label": "中性", "vec": None, "alpha": 1.0, "df": 1.0},
     "passionate": {
@@ -224,6 +231,49 @@ def steady_match(
     if sid in ids or str(item.get("scene", "")).lower() in scenes:
         return True
     return any(sid.startswith(p) for p in prefixes)
+
+
+# ---------------- 音色签名护栏（防整集静默改写） ----------------
+
+#: 音频目录下的音色签名标记。逐句 `{id}.sha` 只能发现「这一句该重合成」，
+#: 发现不了「整集正被换成另一种声音」——因为换音色时每一句的摘要都合法地变了。
+#: 本标记补的正是这个缺口：它记录上次成功合成的引擎/音色/风格，
+#: 与本次不一致时硬失败，要求显式 --allow-voice-switch。不参与逐句摘要，故零缓存影响。
+ENGINE_MARKER = ".engine"
+
+#: tts_server.py 的启动命令此前有三份副本（本文件、tts_sample.py、VOICE-CLONING.md），
+#: 其中一份还留着 `<仓库路径>` 占位符——粘贴即错。收敛为唯一生成处。
+SERVER_SCRIPT = Path(__file__).resolve().parent / "tts_server.py"
+
+
+def server_launch_hint(port: int = 8766) -> str:
+    """返回可直接粘贴的 IndexTTS 服务启动命令（服务须运行在 index-tts 自己的环境里）。"""
+    return (
+        "  cd ~/tools/index-tts && uv run --frozen --with fastapi --with uvicorn \\\n"
+        "      --with soundfile --with numpy --with lameenc \\\n"
+        f"      python {SERVER_SCRIPT} --model-dir checkpoints --port {port}"
+    )
+
+
+def check_voice_marker(out_dir: Path, signature: str, allow_switch: bool) -> None:
+    """比对音色签名；不一致且未显式放行时硬失败。"""
+    marker = out_dir / ENGINE_MARKER
+    if not marker.exists():
+        return
+    previous = marker.read_text(encoding="utf-8").strip()
+    if previous == signature or allow_switch:
+        return
+    sys.exit(
+        f"音色签名与上次合成不一致，将整集改写（{len(list(out_dir.glob('*.mp3')))} 个 mp3 单槽位覆盖）：\n"
+        f"  上次: {previous}\n"
+        f"  本次: {signature}\n"
+        f"若确为有意重录，请显式加 --allow-voice-switch；否则请检查 --engine/--ref/--style 是否写错。\n"
+        f"详见 {MANUAL} §六"
+    )
+
+
+def write_voice_marker(out_dir: Path, signature: str) -> None:
+    (out_dir / ENGINE_MARKER).write_text(signature + "\n", encoding="utf-8")
 
 
 # ---------------- 引擎一：edge-tts（历史路径，保持字节级一致） ----------------
@@ -503,11 +553,23 @@ async def main() -> None:
     )
     parser.add_argument("--rate", default=DEFAULT_RATE, help="[edge] 语速（默认 +4%%）")
     parser.add_argument("--force", action="store_true", help="忽略缓存强制重合成")
+    parser.add_argument(
+        "--allow-voice-switch",
+        action="store_true",
+        help="放行音色签名变更（引擎/音色/风格换档＝整集重录，须显式确认）",
+    )
     parser.add_argument("--list-styles", action="store_true", help="列出风格预设并退出")
 
     idx = parser.add_argument_group("indextts 声音克隆")
     idx.add_argument(
         "--ref", default=None, help="[indextts] 参考音色样本路径（建议 5–15s 干净人声）"
+    )
+    idx.add_argument(
+        "--expect-ref-sha1",
+        default=None,
+        metavar="12HEX",
+        help="[indextts] 期望的参考样本 sha1 前 12 位，不符即硬失败——pipeline.py 从"
+        "各集 pipeline.toml 自动带上，防「换样本静默重录整集」（指纹清单见 voices/refs.toml）",
     )
     idx.add_argument(
         "--server", default="http://127.0.0.1:8766", help="[indextts] 服务地址"
@@ -605,33 +667,49 @@ async def main() -> None:
     if args.engine == "edge":
         # --plan 语义是「只看不跑」，而 edge 无束宽/无估时口径。若沿用「提示后照跑」的处理，
         # 漏写 --engine indextts 时会静默全量合成，把整集克隆音频改写成 edge 预置音色
-        #（两引擎摘要必然不同，且 {id}.mp3 单槽位），故此处硬失败而非忽略。
+        # （两引擎摘要必然不同，且 {id}.mp3 单槽位），故此处硬失败而非忽略。
         if args.plan:
             parser.error(
                 "--plan 仅对 --engine indextts 生效（是否漏写 --engine indextts？）"
             )
-        ignored = [
+        # 克隆专属参数分两类处置。**带值参数硬失败**：漏写 --engine indextts 的典型手型
+        # 就是「照抄文档打了 --ref/--style 却丢了 --engine」，而 {id}.mp3 是单槽位、
+        # 两引擎摘要必然不同 ⇒ 照跑就会把整集克隆音频静默改写成 edge 预置音色。
+        # 上面 --plan 已按此论证硬化，合成路径同理（否则只硬化了「看」、没硬化「跑」）。
+        clone_only = [
             flag
             for flag, val in {
                 "--ref": args.ref,
                 "--emo-vector": args.emo_vector,
                 "--emo-ref": args.emo_ref,
                 "--emo-text": args.emo_text,
-                "--emo-alpha": args.emo_alpha,
-                "--duration-factor": args.duration_factor,
+                "--emo-alpha": args.emo_alpha is not None,
+                "--duration-factor": args.duration_factor is not None,
                 "--num-beams": args.num_beams is not None,
                 "--steady": args.steady,
-                "--steady-beams": args.steady_beams != 3,
-                "--server": args.server != "http://127.0.0.1:8766",
                 "--style": args.style != "neutral",
                 "--lang": args.lang != "ZH",
+            }.items()
+            if val
+        ]
+        if clone_only:
+            parser.error(
+                f"以下参数仅对 --engine indextts 生效: {' '.join(clone_only)}"
+                "（是否漏写 --engine indextts？若确实要用 edge 预置音色，请去掉这些参数）"
+            )
+        # 无副作用的旁路参数：给不到默认值也不会改变输出，只提示不失败
+        benign = [
+            flag
+            for flag, val in {
+                "--steady-beams": args.steady_beams != 3,
+                "--server": args.server != "http://127.0.0.1:8766",
                 "--engine-tag": args.engine_tag != "indextts",
             }.items()
             if val
         ]
-        if ignored:
+        if benign:
             print(
-                f"提示：以下参数仅对 --engine indextts 生效，已忽略: {' '.join(ignored)}",
+                f"提示：以下参数仅对 --engine indextts 生效，已忽略: {' '.join(benign)}",
                 file=sys.stderr,
             )
 
@@ -644,6 +722,8 @@ async def main() -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     if args.engine == "edge":
+        signature = f"edge|{args.voice}|{args.rate}"
+        check_voice_marker(out_dir, signature, args.allow_voice_switch)
         sem = asyncio.Semaphore(CONCURRENCY_EDGE)
         results = await asyncio.gather(
             *(
@@ -705,6 +785,13 @@ async def main() -> None:
             # 情感样本按内容入摘要：换情感录音必须失效缓存（与 ref 同口径）
             emo_ref_sha1 = hashlib.sha1(p.read_bytes()).hexdigest()[:12]
         ref_sha1 = hashlib.sha1(ref_path.read_bytes()).hexdigest()[:12]
+        # 指纹硬校验：样本即音色。换样本 = 整集换音色，必须在长跑开始前失败
+        if args.expect_ref_sha1 and args.expect_ref_sha1 != ref_sha1:
+            parser.error(
+                f"参考样本指纹不符：期望 {args.expect_ref_sha1}，实得 {ref_sha1}"
+                f"（{ref_path}）——源录音或裁剪参数已变。"
+                f"勿在未核验音色上跑长合成；指纹清单见 media/pipeline/voices/refs.toml"
+            )
 
         # 混合档：解析选择器并逐句定束宽（此处即失败，避免典型的「id 拼错→静默全按低束宽跑完」）
         beams_of: dict[str, int] = dict.fromkeys((i["id"] for i in items), beams)
@@ -726,6 +813,10 @@ async def main() -> None:
             for i in items:
                 if steady_match(i, sids, scenes, prefixes):
                     beams_of[i["id"]] = args.steady_beams
+
+        signature = f"indextts|{args.engine_tag}|{style_name}|{ref_sha1}"
+        # 在 --plan 之前检查：排期正是发现「这次长跑将整集换音色」的最佳时机
+        check_voice_marker(out_dir, signature, args.allow_voice_switch)
 
         if args.plan:  # 计划模式：纯本地计算，不连服务
             print(
@@ -784,11 +875,7 @@ async def main() -> None:
                 raise RuntimeError(f"health.ok=false: {health}")
         except Exception as e:  # noqa: BLE001 - 服务未启动给出可操作指引
             print(
-                f"IndexTTS 服务不可用（{e}）。请先启动：\n"
-                f"  cd ~/tools/index-tts && uv run --frozen --with fastapi --with uvicorn --with soundfile \\\n"
-                f"      --with numpy --with lameenc python <仓库路径>/media/pipeline/scripts/tts_server.py \\\n"
-                f"      --model-dir checkpoints --port 8766\n"
-                f"详见 {MANUAL} §二",
+                f"IndexTTS 服务不可用（{e}）。请先启动：\n{server_launch_hint()}\n详见 {MANUAL} §二",
                 file=sys.stderr,
             )
             sys.exit(1)
@@ -834,6 +921,7 @@ async def main() -> None:
     manifest_path.write_text(
         json.dumps(results, ensure_ascii=False, indent=1) + "\n", encoding="utf-8"
     )
+    write_voice_marker(out_dir, signature)  # 成功收尾才落签名，中途失败不改变基线
     total = sum(r["durationSec"] for r in results)
     print(f"合成 {len(results)} 句，纯语音总时长 {total / 60:.2f} 分钟")
     if args.engine == "indextts" and args.steady:  # 混合档：回执两档各多少句，便于对账

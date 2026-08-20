@@ -46,6 +46,18 @@ repos:
         files: ^apps/negentropy/
         types_or: [python, pyi]
 
+      # ── Python: media/pipeline（科普视频公共管线） ─────────────────────────
+      # 与 negentropy 同一 ruff 修订版；此前仅覆盖 apps/negentropy/，管线脚本无 lint 门
+      - id: ruff
+        name: ruff lint (media-pipeline)
+        args: [--fix, --exit-non-zero-on-fix]
+        files: ^media/pipeline/
+        types_or: [python, pyi]
+      - id: ruff-format
+        name: ruff format (media-pipeline)
+        files: ^media/pipeline/
+        types_or: [python, pyi]
+
   # ── Node.js: apps/negentropy-ui ──────────────────────────────────────────
   # ESLint v9 flat config（eslint.config.mjs），零警告策略（--max-warnings=0）
   - repo: local
@@ -105,4 +117,16 @@ repos:
         language: system
         entry: uv run scripts/sync_versions.py check
         files: ^(VERSION|scripts/sync_versions\.py|package\.json|apps/negentropy/(pyproject\.toml|uv\.lock)|apps/negentropy-ui/package\.json|apps/negentropy-wiki/package\.json|apps/negentropy-perceives/(pyproject\.toml|uv\.lock)|packages/agents-chat-core/package\.json)$
+        pass_filenames: false
+
+  # ── 科普视频系列一致性（media/series.json 执法） ─────────────────────────
+  # 规则：口播反串线（自身标题排除）/多标题顺序/序号绑定/清单完整性/相对链接死链。
+  # 注意：挂在内容修复之后落地；顺序调整类变更须先改 series.json 再动散文。
+  - repo: local
+    hooks:
+      - id: series-consistency-check
+        name: Series consistency (media/series.json)
+        language: system
+        entry: uv run --no-project media/pipeline/scripts/check_series.py
+        files: ^(media/|docs/\.agents/knowledge-map\.md|CHANGELOG\.md)
         pass_filenames: false

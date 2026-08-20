@@ -7,18 +7,29 @@
 
 - `script/storyboard.md`（分镜规格：镜号 ↔ 句 id 区间 ↔ 画面 ↔ 动效）
 - `video/public/audio/manifest.json`（TTS 产物：每句实测时长）
-- 上一集工程的 `video/` 骨架（脚手架来源）
+- 任一既有集工程的 `video/` 骨架（脚手架来源；与发布顺序无关）
 
 ## 骨架复制适配策略
 
-从上一集 `cp -r` 复制后，**逐字节保留**（跨集零差异，勿改）：
+从既有集工程 `cp -r` 复制后，冻结清单分两档：
 
-- `src/timing.ts`（computeTimeline + beatWindow；常量与 `qa_frames.py` 镜像对齐——改常量必须双改）
+**A 档 · 逐字节保留**（跨集零差异，改任何一处须三集同步并验 md5 唯一）：
+
+- `src/timing.ts`（computeTimeline + beatWindow + SCENE_FADE_FRAMES 导出；常数读同目录 `timing.json`）
 - `src/types.ts` / `src/Root.tsx` / `src/index.ts`
-- `src/components/Subtitle.tsx`（CJK 宽度估算防溢出）/ `NarrationAudio.tsx` / `cards.tsx`
+- `src/components/NarrationAudio.tsx`（@remotion/media 的 `<Audio>`，from/durationInFrames 原生定位 + premountFor）/ `Subtitle.tsx`（fitText 真实测量）/ `SceneFade.tsx`（幕间呼吸淡入淡出）/ `cards.tsx`
 - `scripts/*.py` 薄包装、`remotion.config.ts`、`.npmrc`、`tsconfig.json`
 
-**每集改写**：`package.json`（name）、`src/design/theme.ts`（本集色板）、`src/scenes/*`（全部重写）、`src/Main.tsx`（仅 import 与 SCENE_COMPONENTS 注册表）。
+**B 档 · 默认逐字节相同、允许本集覆写**：`src/timing.json`（时序常数 SSOT——timing.ts 与 Python 侧 qa_frames/captions 共读同一文件，**改常量只改此处**，勿再双改代码）。
+
+**每集改写**：`package.json`（name）、`src/design/theme.ts`（本集色板）、`src/scenes/*`（全部重写）、`src/Main.tsx`（仅 import 与 SCENE_COMPONENTS 注册表）、`pipeline.toml`（本集配音/渲染参数）。
+
+## 事实条（防重复论证）
+
+- `premountFor` 在**渲染期自动关闭**（active 含 `!env.isRendering`）——只优化 Studio 拖拽与 Player 预览；渲染侧收益是 Mediabunny 抽轨与时间轴同步，不是渲染速度。
+- 幕间转场**不用** `@remotion/transitions` 的 TransitionSeries：其总时长 = Σ序列 − Σ转场，会把视觉层整体左移而旁白（manifest 帧号绝对定位的独立层）不动 → 逐幕递增失同步。用 `SceneFade`（只花幕间既有静默，from/总时长零改动；不变式 `2×sceneCrossFadeSec ≤ sentenceGap+sceneGap` 由 check_script.py 强制）。
+- 字体可复现性：三集用 macOS 系统字体栈（PingFang SC/Songti SC/SF Mono），未内嵌 CJK 字体——**渲染仅限 macOS 主机**。两个重启触发器：渲染迁 Linux/CI；Remotion 5.0 把 fitText 的 validateFontIsLoaded 默认翻 true（届时须内嵌子集字体，注意 pre-commit --maxkb=1024）。
+- 路径描画优先 `@remotion/paths`（evolvePath/getPointAtLength）——它是「pathLength 与 px 版 strokeDasharray 互斥」红线的官方正解；线型样式（虚线/点线）另置静态叠加路径，勿与描画动画挤在同一元素。
 
 复用边界的原则（见 [../README.md](../README.md) 第四节）：Python 脚本集中 SSOT；**Remotion 原语复制适配不共享**——共享 TS 包会把一集的视觉改动泄漏进其他集。
 

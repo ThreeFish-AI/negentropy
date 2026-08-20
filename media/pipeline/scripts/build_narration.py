@@ -13,10 +13,12 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import sys
 from pathlib import Path
 
 LINE_RE = re.compile(r"^- \[(?P<id>[a-z0-9-]+)\]\s+(?P<text>.+)$")
 SCENE_RE = re.compile(r"^## (?P<scene>P\d+)\b")
+FORMAT_DOC = "media/pipeline/README.md 第二节格式契约"
 
 
 def main() -> None:
@@ -28,19 +30,32 @@ def main() -> None:
     src = root / "script" / "narration.md"
     dst = root / "script" / "narration.json"
 
+    # 与 tts.py 同口径的可操作退出（而非裸 FileNotFoundError 栈）
+    if not src.is_file():
+        sys.exit(f"narration.md 不存在: {src} —— 见 {FORMAT_DOC}")
+
     scene = ""
     items: list[dict[str, str]] = []
     seen: set[str] = set()
-    for raw in src.read_text(encoding="utf-8").splitlines():
+    for lineno, raw in enumerate(src.read_text(encoding="utf-8").splitlines(), 1):
         if m := SCENE_RE.match(raw):
             scene = m.group("scene")
             continue
         if m := LINE_RE.match(raw):
             sid, text = m.group("id"), m.group("text").strip()
+            if not scene:
+                # 幕名为空时下一条校验会报出「与所在幕  不一致」这种令人困惑的信息，
+                # 故先明确指出真正的原因：首句之前缺 `## Pn` 标题。
+                sys.exit(
+                    f"{src}:{lineno} 句 {sid} 出现在任何 `## Pn` 分幕标题之前 —— 每句必须归属于某一幕，见 {FORMAT_DOC}"
+                )
             if sid in seen:
-                raise SystemExit(f"重复句 id: {sid}")
+                sys.exit(f"{src}:{lineno} 重复句 id: {sid}")
             if not sid.startswith(scene.lower() + "-"):
-                raise SystemExit(f"句 id {sid} 与所在幕 {scene} 不一致")
+                sys.exit(
+                    f"{src}:{lineno} 句 id {sid} 与所在幕 {scene} 不一致 —— "
+                    f"句 id 必须以幕名小写为前缀（应为 {scene.lower()}-…）"
+                )
             seen.add(sid)
             items.append({"id": sid, "scene": scene, "text": text})
 

@@ -335,78 +335,174 @@ const ThreePuzzles: React.FC = () => {
   );
 };
 
-/** 6-E：系列呼应——上一集与本集并排 */
-const SeriesEcho: React.FC = () => {
+/** 6-E：共同的地基·验证——§10 收束论点的画面化（v3 替代原系列呼应卡）
+ *  九个开放问题（小面板，反枚举：不配九色）落成一排，共同压在金色基石「验证」上；
+ *  末句左侧青色能力曲线陡升、基石厚度只微增——"scales least well" 的视觉。 */
+const VerificationBedrock: React.FC = () => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
-  const prev = spring({frame: frame - 6, fps, config: {damping: 200}});
-  const curr = spring({frame: frame - 20, fps, config: {damping: 200}});
+  const settle = spring({frame: frame - 4, fps, config: {damping: 200}});
+  const slabIn = ci(frame, 30, 48);
+  const labelIn = ci(frame, 44, 58);
+  const curveIn = ci(frame, 74, 116);
+  const tiles = ['激发?', '越吃越窄?', '多模态', '判据缺失', '弱反馈', '自产漂移', '纵向评测', '跨版本', '改元层'];
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <div style={{display: 'flex', gap: 60, alignItems: 'center'}}>
-        <div
-          style={{
-            width: 480,
-            padding: 40,
-            borderRadius: 20,
-            background: theme.panel,
-            border: `3px solid #4A9EFF`,
-            opacity: prev * 0.92,
-            transform: `translateY(${(1 - prev) * 40}px)`,
-          }}
-        >
-          <div style={{display: 'flex', gap: 8, marginBottom: 18}}>
-            <span style={{width: 40, height: 8, borderRadius: 4, background: '#4A9EFF'}} />
-            <span style={{width: 40, height: 8, borderRadius: 4, background: '#FF9F45'}} />
-          </div>
-          <div style={{fontFamily: theme.sans, fontSize: 30, fontWeight: 700, color: theme.text}}>
-            上期：AI 如何自己变强？
-          </div>
-          <div style={{marginTop: 12, fontFamily: theme.sans, fontSize: 24, color: theme.dim, lineHeight: 1.6}}>
-            改大脑，还是改装备？
-            <br />
-            ——「改什么」
-          </div>
-        </div>
-        <div style={{fontSize: 50, color: theme.exp, opacity: curr}}>＋</div>
-        <div
-          style={{
-            width: 480,
-            padding: 40,
-            borderRadius: 20,
-            background: theme.panel,
-            border: `3px solid ${theme.exp}`,
-            opacity: curr,
-            transform: `translateY(${(1 - curr) * 40}px)`,
-            boxShadow: `0 0 70px ${theme.exp}22`,
-          }}
-        >
-          <div style={{display: 'flex', gap: 8, marginBottom: 18}}>
-            <span style={{width: 40, height: 8, borderRadius: 4, background: theme.exp}} />
-            <span style={{width: 40, height: 8, borderRadius: 4, background: theme.harness}} />
-            <span style={{width: 40, height: 8, borderRadius: 4, background: theme.params}} />
-          </div>
-          <div style={{fontFamily: theme.sans, fontSize: 30, fontWeight: 700, color: theme.text}}>
-            本期：上线之后，AI 才开始上学
-          </div>
-          <div style={{marginTop: 12, fontFamily: theme.sans, fontSize: 24, color: theme.dim, lineHeight: 1.6}}>
-            上了班之后，经验怎么攒？
-            <br />
-            ——「怎么攒」
-          </div>
-        </div>
+      {/* 左侧能力曲线（青）：随末句陡升 */}
+      <svg width={300} height={360} style={{position: 'absolute', left: 150, top: 360, opacity: curveIn}}>
+        <path
+          d={`M 30 330 Q ${30 + 80 * curveIn} ${330 - 60 * curveIn}, ${30 + 240 * curveIn} ${330 - 280 * curveIn}`}
+          fill="none"
+          stroke={theme.harness}
+          strokeWidth={5}
+          strokeLinecap="round"
+        />
+        <text x={30} y={352} fill={theme.dim} fontSize={20} fontFamily={theme.sans}>
+          能力
+        </text>
+      </svg>
+      <div style={{display: 'flex', gap: 14, alignItems: 'flex-end', transform: `translateY(${(1 - settle) * 30}px)`, opacity: settle}}>
+        {tiles.map((t, i) => {
+          const e = ci(frame, 6 + i * 3, 16 + i * 3);
+          return (
+            <div
+              key={t}
+              style={{
+                width: 118,
+                height: 86,
+                borderRadius: 10,
+                background: theme.panel,
+                border: `1.5px solid ${theme.panelBorder}`,
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                fontFamily: theme.sans,
+                fontSize: 19,
+                color: theme.dim,
+                opacity: e,
+                transform: `translateY(${(1 - e) * 22}px)`,
+              }}
+            >
+              {t}
+            </div>
+          );
+        })}
+      </div>
+      {/* 金色基石：验证——厚度几乎不长（对比左图能力曲线） */}
+      <div
+        style={{
+          marginTop: 26,
+          width: 1210,
+          height: 52 + 6 * labelIn, // 末句只微增 6px —— 这就是 "scales least well"
+          borderRadius: 8,
+          background: `linear-gradient(180deg, ${theme.exp}, ${theme.expDeep})`,
+          opacity: slabIn,
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+      >
+        <span style={{fontFamily: theme.serif, fontSize: 30, fontWeight: 700, color: '#0E1116', opacity: labelIn}}>
+          验证
+        </span>
+      </div>
+      <div style={{marginTop: 18, fontFamily: theme.mono, fontSize: 17, color: theme.dim, opacity: curveIn}}>
+        &quot;the capacity that scales least well as agents become more capable&quot;（§10）
       </div>
     </AbsoluteFill>
   );
 };
 
-/** 6-F：配套清单卡（v2 新增，p6-13a/b）——111 篇 × 9 章计数器 + 九章名胶囊环绕 */
+/** 6-F2：三条曲线——§10 末段悬念 "not known to compound, saturate, or oscillate"。
+ *  三条候选轨迹全金色、以线型区分（反枚举不用三色）；描画用 pathLength（与 px 版
+ *  strokeDasharray 互斥，线型样式另置静态叠加路径——skills/06 清单第 3 条）。 */
+const ThreeCurves: React.FC = () => {
+  const frame = useCurrentFrame();
+  const axis = ci(frame, 0, 14);
+  const draw = ci(frame, 16, 46);
+  const hold = ci(frame, 60, 74);
+  const W = 1160;
+  const H = 420;
+  const x0 = 90;
+  const y0 = 350;
+  const span = W - x0 - 60;
+    // 三条路径（二次贝塞尔近似）：上扬 / 平台 / 震荡
+  const pathOf = (kind: 'compound' | 'saturate' | 'oscillate') => {
+    if (kind === 'compound') {
+      return `M ${x0} ${y0} Q ${x0 + span * 0.45} ${y0 - 60}, ${x0 + span * draw} ${y0 - 250 * draw - 20 * (1 - draw)}`;
+    }
+    if (kind === 'saturate') {
+      const end = x0 + span * draw;
+      return `M ${x0} ${y0} Q ${x0 + span * 0.3} ${y0 - 170}, ${end} ${y0 - 150 - 20 * (1 - draw)}`;
+    }
+    const seg = 8;
+    let d = `M ${x0} ${y0}`;
+    for (let k = 1; k <= seg; k++) {
+      const t = (k / seg) * draw;
+      const x = x0 + span * t;
+      const y = y0 - 90 * t - Math.sin(t * Math.PI * 6) * 62 * t;
+      d += ` L ${x.toFixed(1)} ${y.toFixed(1)}`;
+    }
+    return d;
+  };
+  return (
+    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
+      <svg width={W} height={H}>
+        {/* 坐标轴 */}
+        <line x1={x0} y1={y0} x2={x0 + span * axis} y2={y0} stroke={theme.panelBorder} strokeWidth={2} />
+        <line x1={x0} y1={y0} x2={x0} y2={y0 - 300 * axis} stroke={theme.panelBorder} strokeWidth={2} />
+        <text x={x0 - 58} y={y0 - 292} fill={theme.dim} fontSize={19} fontFamily={theme.sans} opacity={axis}>
+          进步
+        </text>
+        {/* 右端轴标签用 text-anchor="end" 贴住轴末端，避免超出 svg 画布被截断 */}
+        <text
+          x={x0 + span}
+          y={y0 + 30}
+          textAnchor="end"
+          fill={theme.dim}
+          fontSize={19}
+          fontFamily={theme.sans}
+          opacity={axis}
+        >
+          反复自我改进
+        </text>
+        {/* 三条轨迹：线型区分（实线/虚线/点线），全金色 */}
+        <path d={pathOf('compound')} fill="none" stroke={theme.exp} strokeWidth={4.5} strokeLinecap="round" />
+        <path
+          d={pathOf('saturate')}
+          fill="none"
+          stroke={theme.exp}
+          strokeWidth={4.5}
+          strokeLinecap="round"
+          strokeDasharray="16 12"
+        />
+        <path d={pathOf('oscillate')} fill="none" stroke={theme.exp} strokeWidth={4.5} strokeDasharray="2 9" />
+        {/* 三个问号（衬线）随 hold 渐显 */}
+        {[
+          {x: x0 + span - 30, y: y0 - 262, o: hold},
+          {x: x0 + span - 30, y: y0 - 168, o: ci(frame, 64, 78)},
+          {x: x0 + span - 30, y: y0 - 40, o: ci(frame, 68, 82)},
+        ].map((p, i) => (
+          <text key={i} x={p.x} y={p.y} fill={theme.exp} fontSize={44} fontFamily={theme.serif} opacity={p.o}>
+            ?
+          </text>
+        ))}
+      </svg>
+      <div style={{marginTop: 6, fontFamily: theme.mono, fontSize: 17, color: theme.dim, opacity: hold}}>
+        not known to compound, saturate, or oscillate（§10）
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+/** 6-F：配套清单卡（p6-13a/b）——331 篇 × 9 章计数器（数据文件口径，v3 更正）+ 九章名胶囊环绕 */
 const RepoCard: React.FC = () => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const enter = spring({frame, fps, config: {damping: 200}});
-  const count = Math.round(111 * ci(frame, 6, 40));
-  const chapters = ['技能', '记忆', '环境', '工具', '参数', '元进化', '评测', '安全', '定义'];
+  // 331 = data/papers.json 实测条数（2026-08-19 取数；站点首页 111 为未水合占位，勿引用）
+  const count = Math.round(331 * ci(frame, 6, 40));
+  const chapters = ['引言', '工位', '技能', '记忆', '环境', '大脑', '元进化', '评测', '安全'];
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <div
@@ -430,6 +526,9 @@ const RepoCard: React.FC = () => {
             {ci(frame, 20, 34) > 0.5 ? 9 : 0}
           </span>
           <span style={{fontFamily: theme.sans, fontSize: 34, color: theme.dim}}>章</span>
+        </div>
+        <div style={{marginTop: 22, fontFamily: theme.mono, fontSize: 17, color: theme.dim, opacity: ci(frame, 44, 56)}}>
+          数据取自配套站点 data/papers.json · 2026-08-19
         </div>
         <div style={{marginTop: 26, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 12}}>
           {chapters.map((c, i) => {
@@ -549,11 +648,14 @@ export const P6Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
       <Sequence {...w('p6-08', 'p6-10')} name="6-D 三块拼图">
         <ThreePuzzles />
       </Sequence>
-      <Sequence {...w('p6-11', 'p6-13')} name="6-E 系列呼应">
-        <SeriesEcho />
+      <Sequence {...w('p6-11', 'p6-13')} name="6-E 共同的地基">
+        <VerificationBedrock />
       </Sequence>
       <Sequence {...w('p6-13a', 'p6-13b')} name="6-F 配套清单卡">
         <RepoCard />
+      </Sequence>
+      <Sequence {...w('p6-13c', 'p6-13d')} name="6-F2 三条曲线">
+        <ThreeCurves />
       </Sequence>
       <Sequence {...w('p6-14', 'p6-15')} name="6-G 原文卡">
         <FinalCard endFrame={endFrame('p6-15')} />

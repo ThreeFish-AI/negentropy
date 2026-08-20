@@ -416,6 +416,49 @@ const ThreeGens: React.FC<{gen3At: number}> = ({gen3At}) => {
             borderRadius: 3,
           }}
         />
+        {/* Figure 3 的 11 个带日期里程碑（约四年半）：刻度随时间轴展开依次点亮 */}
+        {[
+          ['21-12', 'WebGPT'], ['22-10', 'ReAct'], ['23-03', 'Reflexion'], ['23-08', 'AutoGen'],
+          ['24-01', 'LangGraph'], ['24-05', 'SWE-agent'], ['24-07', 'OpenHands'], ['25-02', 'Claude Code'],
+          ['25-05', 'Codex'], ['26-02', 'OpenClaw'], ['26-04', 'Cursor 3'],
+        ].map(([date, name], i) => {
+          const t = (i + 0.5) / 11;
+          // 帧驱动渐显（0.85 目标值），不写 CSS transition——渲染侧截图相位须确定
+          const on = interpolate(frame, [12 + i * 7, 21 + i * 7], [0, 0.85], {
+            extrapolateLeft: 'clamp',
+            extrapolateRight: 'clamp',
+          });
+          return (
+            <div
+              key={name}
+              style={{
+                position: 'absolute',
+                top: 14,
+                left: `${t * 100}%`,
+                transform: 'translateX(-50%)',
+                textAlign: 'center',
+                opacity: on,
+              }}
+            >
+              <div style={{width: 2, height: 12, background: theme.dim, margin: '0 auto'}} />
+              <div style={{fontFamily: theme.mono, fontSize: 13, color: theme.dim, marginTop: 2}}>{date}</div>
+              <div style={{fontFamily: theme.sans, fontSize: 15, color: theme.text}}>{name}</div>
+            </div>
+          );
+        })}
+        <div
+          style={{
+            position: 'absolute',
+            top: -26,
+            right: 0,
+            fontFamily: theme.sans,
+            fontSize: 19,
+            color: theme.exp,
+            opacity: interpolate(frame, [96, 112], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}),
+          }}
+        >
+          任务循环 → 部署运行时自适应 · 约四年半
+        </div>
         <div style={{display: 'flex', gap: 60, marginTop: 90, alignItems: 'flex-start'}}>
           {gens.map((g, i) => {
             const enter = spring({frame: frame - i * 16, fps, config: {damping: 200}});

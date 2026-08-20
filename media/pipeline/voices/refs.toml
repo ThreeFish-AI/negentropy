@@ -1,0 +1,23 @@
+# 参考音色样本清单（唯一入库文件——voices/ 其余内容因生物特征隐私被 gitignore，
+# 本文件经 .gitignore 白名单例外放行）。指纹口径：sha1 取前 12 位（同 tts.py 摘要），
+# sha256 为完整指纹（人工核对用）。verify/rebuild 见 scripts/refs.py。
+#
+# 关键背景：sunny / sunny-steady 预设的 alpha=0.35 是在 me-bright 选段上标定的
+#（Qwen 原始 Σ=0.8 会把克隆音高推到 199–223 Hz，本人自然区间 142–163 Hz），
+# 复现的不是这个选段，标定即失效——重建后必须 verify。
+
+[me-bright]
+source = "~/Documents/dify/me-1.mp3"
+start = 0.36
+duration = 12
+sha1 = "54b699cce97f"
+sha256 = ""   # 首次 verify 通过后回填（样本不在库，无法预置）
+locked_styles = ["sunny", "sunny-steady"]
+
+[me-1]
+source = "~/Documents/dify/me-1.mp3"
+start = 180
+duration = 12
+sha1 = "3ed0d9d60d4b"
+sha256 = ""
+locked_styles = ["passionate", "neutral"]   # 已上线三集成片所用样本
