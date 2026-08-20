@@ -12,8 +12,8 @@
 
 自动体检（--check，惰性依赖 pillow+numpy）：
     黑帧/早渐黑    帧平均相对亮度 < 0.02 → FAIL（仅末 beat 且分镜末行写「渐黑」时豁免）
-    字幕区侵入     字幕带 y∈[H-160,H) 内、字幕框 x 区间之外有独立亮列连通段 → WARN
-                   （对应 skills/06 渲染缺陷清单第 2 条「角标 bottom ≥ 150」）
+    字幕区侵入     字幕框**上方**的安全带（y∈[H-160, H-132)）内出现宽度 ≥24px 的亮块
+                   → WARN（对应 skills/06 渲染缺陷清单第 2 条「角标 bottom ≥ 150」）
     冻帧           同幕相邻采样帧 16×16 灰度均值哈希 Hamming 距离 0 → WARN
                    （beat 窗口错位/未覆盖句区间渲染空白）
     字幕缺失       字幕带内无任何像素达文字亮度 → WARN（单句字幕渲染失败）
@@ -37,11 +37,13 @@ import subprocess
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))  # noqa: E402 - 导入同目录 timeline
-from timeline import compute, load_constants  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from timeline import compute, load_constants
 
 #: theme.ts 中颜色令牌（'#RRGGBB' 字面量）；bg 单独作为对比基准
-THEME_COLOR_RE = re.compile(r"^\s{2}(?P<key>\w+):\s*'(?P<val>#[0-9A-Fa-f]{6})'", re.M)
+THEME_COLOR_RE = re.compile(
+    r"^\s{2}(?P<key>\w+):\s*'(?P<val>#[0-9A-Fa-f]{6})'", re.MULTILINE
+)
 
 
 def timeline(root: Path) -> dict[str, tuple[float, float]]:
@@ -87,9 +89,43 @@ def extract_frame(
 #: 亮度/对比阈值（经验值：深色底 #0E1116 的相对亮度 ≈ 0.006）
 BLACK_MEAN_LIMIT = 0.02
 SUBTITLE_BAND_PX = 160  # 字幕安全带高度（对应「bottom ≥ 150」清单位）
-SUBTITLE_GAP_PX = 80  # 字幕框与角标亮块的横向最小间隔（全分辨率口径，随 --scale 折算）
 TEXT_BRIGHTNESS = 0.45
+#: 字幕框占据安全带底部的高度（全分辨率像素）。来自 Subtitle.tsx 的**已知几何**：
+#: marginBottom 54 + 上下 padding 各 12 + 行高 fontSize(≤44)×1.35 ≈ 125，留余量取 132。
+#: 侵入检测只看**框上方**这条窄带——「角标/图形是否压进字幕安全区」本就是这个问题。
+#:
+#: 为什么不用「亮列连通段 + 最宽段=字幕框」的老判据（2026-08-21 废弃）：Subtitle.tsx
+#: 的底是半透明 rgba(6,8,12,0.68) 压在 #0E1116 上，实测灰度仅 ≈0.10–0.14，而文字笔画
+#: 0.45+。用文字阈值找框 → 每个汉字成一段（14 字字幕 → 14 段，最宽段 20px）→ 每帧刷
+#: 十几条假报（本集全片 500+ 条 WARN，逐帧目检画面完全干净）；改用低阈值找框也不稳：
+#: 抗锯齿会把框切碎，而放宽到能连成片时又与页面底色（0.045）区分不开。几何法无这些
+#: 自由度，且与「bottom ≥ 150」这条清单位是同一口径。
+SUBTITLE_BOX_H_PX = 132
+#: 侵入物最小宽度（全分辨率像素，随 scale 折算）：窄于此的多是抗锯齿碎片
+INTRUSION_MIN_W_PX = 24
 CONTRAST_MIN = 4.5
+
+
+def bright_segments(col, threshold: float) -> list[tuple[int, int]]:
+    """列向亮度投影中，超过 threshold 的连通段 [(起, 止), …]（闭区间）。
+
+    `col` 是 numpy 1-D 数组，但**刻意不加类型标注**：numpy 在本模块是
+    `check_frames` 内的惰性导入（`--check` 才需要，`--check-theme` 零依赖），
+    模块级没有 `np` 这个名字，标注会触发 F821。
+    """
+    bright = col > threshold
+    segments: list[tuple[int, int]] = []
+    i = 0
+    while i < len(col):
+        if bright[i]:
+            j = i
+            while j < len(col) and bright[j]:
+                j += 1
+            segments.append((i, j - 1))
+            i = j
+        else:
+            i += 1
+    return segments
 
 
 def rel_luminance(r: int, g: int, b: int) -> float:
@@ -170,7 +206,8 @@ def check_frames(
         )
 
     band_px = round(SUBTITLE_BAND_PX * scale)
-    gap_px = round(SUBTITLE_GAP_PX * scale)  # 横向间隔阈值与带高同口径折算
+    min_w_px = round(INTRUSION_MIN_W_PX * scale)  # 侵入物最小宽度，同口径折算
+    box_h_px = round(SUBTITLE_BOX_H_PX * scale)  # 字幕框高度，同口径折算
     hashes: dict[str, int] = {}
     ordered: list[tuple[str, Path]] = []
     for sid in ids:
@@ -189,30 +226,16 @@ def check_frames(
         bright_px = float((band > TEXT_BRIGHTNESS).mean())
         if bright_px == 0:
             msgs.append(f"WARN {sid}: 字幕带内无文字亮度像素（字幕缺失？）")
-        else:
-            # 侵入检测按「亮列连通段」做：字幕框 = 最宽连通段；与它保持 >80px 间隔的
-            # 其他亮段 = 角标/图形侵入字幕安全带（单纯 min–max 会被远端角标吞掉边界）
-            col = band.max(axis=0)
-            bright = col > TEXT_BRIGHTNESS
-            segments: list[tuple[int, int]] = []
-            i = 0
-            while i < len(col):
-                if bright[i]:
-                    j = i
-                    while j < len(col) and bright[j]:
-                        j += 1
-                    segments.append((i, j - 1))
-                    i = j
-                else:
-                    i += 1
-            if segments:
-                x0, x1 = max(segments, key=lambda s: s[1] - s[0])  # 最宽段 = 字幕框
-                for a, b in segments:
-                    if (a < x0 - gap_px or a > x1 + gap_px) and (b - a) < (x1 - x0):
-                        msgs.append(
-                            f"WARN {sid}: 字幕带内字幕框（x{x0}–{x1}）之外有独立亮块 x{a}–{b}"
-                            f"（角标/图形侵入 bottom≥{SUBTITLE_BAND_PX}px 安全区）"
-                        )
+        elif band_px > box_h_px:
+            # 侵入检测按**几何**做（见 SUBTITLE_BOX_H_PX 注释）：只看字幕框上方那条窄带，
+            # 里面出现宽于 min_w_px 的亮块 = 角标/图形压进了字幕安全区。
+            above = band[: band_px - box_h_px, :]
+            for a, b in bright_segments(above.max(axis=0), TEXT_BRIGHTNESS):
+                if (b - a) >= min_w_px:
+                    msgs.append(
+                        f"WARN {sid}: 字幕框上方安全带内有亮块 x{a}–{b}"
+                        f"（角标/图形侵入 bottom≥{SUBTITLE_BAND_PX}px 安全区）"
+                    )
         hashes[sid] = mean_hash(
             np.asarray(Image.open(png).convert("L").resize((16, 16)))
         )
