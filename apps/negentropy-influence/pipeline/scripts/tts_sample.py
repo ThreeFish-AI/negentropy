@@ -10,10 +10,10 @@
 用法（仓库根执行）：
   # 单档试听（科普推荐档）
   uv run --no-project --with mutagen $R/tts_sample.py \
-      --ref pipeline/voices/me-bright.wav --style sunny --play
+      --ref $V/me-bright.wav --style sunny --play
   # 全风格 A/B（STYLE_PRESETS 逐档各合成一遍，含各自的 alpha/语速/束宽）
   uv run --no-project --with mutagen $R/tts_sample.py \
-      --ref pipeline/voices/me-bright.wav --all-styles --play
+      --ref $V/me-bright.wav --all-styles --play
 
 产物：<仓库根>/.temp/voice-samples/{风格}.mp3（已被根 .gitignore 忽略）——内含本人音色，
 属生物特征信息，试听后请及时清理。完整手册见 pipeline/VOICE-CLONING.md §5.1。

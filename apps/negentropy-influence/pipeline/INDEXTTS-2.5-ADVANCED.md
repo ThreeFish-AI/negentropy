@@ -652,13 +652,13 @@ cd ~/tools/index-tts
 # 1) 客观面：同一批句子在两档之间成对 A/B（逐句交替顺序以抵消热漂移）
 #    #10 比「表达力密度」——F0 中位/起伏/音节率/限带质心；#11 比清晰度——ASR 回转写 CER
 ./.venv/bin/python <本仓>/$R/tts_bench.py \
-    --ref <本仓>/pipeline/voices/me-bright.wav \
+    --ref <本仓>/$V/me-bright.wav \
     --texts <混合句集.txt> --ab-param duration_factor --ab-values 0.95,1.05 \
     --num-beams 3 --cooldown 60 --json .temp/ab-df.json
 
 # 2) 主观面：小样 A/B + 人耳（客观指标只能排除明显更差的，选不出「更好听」）
 uv run --no-project --with mutagen $R/tts_sample.py \
-    --ref pipeline/voices/me-bright.wav --style sunny-pure --seed 4242 --play
+    --ref $V/me-bright.wav --style sunny-pure --seed 4242 --play
 ```
 
 定档后要做的三件事：把选定值写进各集 `pipeline.toml`（**不是**写进散文文档——ISSUE-161 的

@@ -22,16 +22,16 @@ uv run --no-project --with soundfile --with numpy $R/prospect_ref.py \
 # 1) 裁剪并规范化（当前推荐档：me-1.mp3 的 [0.36s, 12.36s)，sunny 风格即在此样本上定档）：
 uv run --no-project --with soundfile $R/prepare_ref.py \
     ~/Documents/dify/me-1.mp3 --start 0.36 --duration 12 \
-    --out pipeline/voices/me-bright.wav
+    --out $V/me-bright.wav
 
 # 2) 先用单句小样试听择优（不需要视频工程）：
 uv run --no-project --with mutagen $R/tts_sample.py \
-    --ref pipeline/voices/me-bright.wav --all-styles --play
+    --ref $V/me-bright.wav --all-styles --play
 
 # 3) 定稿后全量合成：
 uv run --no-project --with mutagen $R/tts.py \
     --project $P --engine indextts \
-    --ref pipeline/voices/me-bright.wav --style sunny
+    --ref $V/me-bright.wav --style sunny
 ```
 
 **样本决定基线**：克隆会连韵律一起继承，样本比参数更关键——同一位说话人换一段录音，克隆音的音高可差 12~16%、语调起伏差 25~40%（实测见 [VOICE-CLONING.md](../VOICE-CLONING.md) §3.3）。

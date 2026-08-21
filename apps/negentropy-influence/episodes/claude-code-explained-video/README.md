@@ -39,7 +39,7 @@
 | [script/narration.md](./script/narration.md) | ★逐字稿 SSOT（唯一人工维护处） |
 | `script/narration.json` | 派生物，`pipeline.py build` 生成，勿手改 |
 | [script/storyboard.md](./script/storyboard.md) | 分镜表（镜号 ↔ 句区间 ↔ 画面 ↔ 动效） |
-| `scripts/*.py` | 薄包装，转发到 `../pipeline/scripts/` |
+| `scripts/*.py` | 薄包装，转发到 [`../../pipeline/scripts/`](../../pipeline/scripts/) |
 | [video/](./video/) | Remotion 独立 pnpm 工程 |
 | `video/src/components/motifs.tsx` | 本集五个视觉母题（终端 / 环形循环 / 分发表 / 闸门 / 插槽） |
 | `out/` | 渲染产物（gitignored） |
@@ -47,7 +47,8 @@
 ## 复现流水线
 
 ```bash
-R=pipeline/scripts; P=episodes/claude-code-explained-video
+# 在仓库根执行。$I/$R/$V 的定义见 ../../pipeline/README.md 路径变量约定（唯一定义处）
+P=$I/episodes/claude-code-explained-video
 
 # ① 信源核验（repo 类固定提交硬校验；site 类只比正文，漂移报 WARN）
 uv run --no-project $R/source_ledger.py --project $P verify
@@ -64,8 +65,8 @@ uv run --no-project $R/pipeline.py --project $P tts          # 长跑，建议 n
 # ④ 渲染与体检
 cd $P/video && pnpm install --ignore-workspace && ./node_modules/.bin/tsc --noEmit
 cd - && uv run --no-project $R/pipeline.py --project $P render
-uv run --no-project $R/pipeline.py --project $P qa --video $P/out/draft.mp4 --check
-uv run --no-project $R/pipeline.py --project $P qa --video $P/out/draft.mp4 --last-n 6 --check   # 尾幕渐黑必查
+uv run --no-project $R/pipeline.py --project $P qa --video out/draft.mp4 --check
+uv run --no-project $R/pipeline.py --project $P qa --video out/draft.mp4 --last-n 6 --check   # 尾幕渐黑必查（--video 按工程目录解析）
 
 # ⑤ 交付
 uv run --no-project $R/pipeline.py --project $P captions

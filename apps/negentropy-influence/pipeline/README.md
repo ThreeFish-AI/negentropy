@@ -31,12 +31,20 @@ flowchart LR
 
 ## 路径变量约定
 
-本文档与 [skills/](./skills/) 中的**命令**统一用两个变量书写，使命令与子项目位置解耦（下次搬迁零改动）；**散文里的链接保持真实相对路径**（`check_series.py` 规则 5 正在执法它们的存活，变量化会造出死链）：
+本文档、[skills/](./skills/) 与各分集 README 中的**命令**统一用下面四个变量书写，使命令与子项目位置解耦（下次搬迁零改动）；**散文里的链接保持真实相对路径**（`check_series.py` 规则 5 正在执法它们的存活，变量化会造出死链）：
 
 ```bash
-R=apps/negentropy-influence/pipeline/scripts          # 公共脚本目录
-P=apps/negentropy-influence/episodes/<slug>-video     # 目标分集工程
+I=apps/negentropy-influence          # 子项目根 —— 全仓唯一一处位置字面量
+R=$I/pipeline/scripts                # 公共脚本目录
+P=$I/episodes/<slug>-video           # 目标分集工程（各集 README 里换成本集 slug）
+V=$I/pipeline/voices                 # 声音样本目录（整目录 gitignored）
 ```
+
+**四者同锚于仓库根**，故可自由同现在一条命令里。⚠️ 反面教训：`pipeline.toml` 的
+`tts.ref` 与 `series.json` 的 `path` 是**子项目根相对**（由 `paths.INFLUENCE` 拼接），
+把那套写法搬进命令行会造出 `$R/tts_sample.py --ref pipeline/voices/x.wav` 这类
+**在任何 CWD 下都不成立**的混锚命令——命令行里的样本路径一律走 `$V`。
+该纪律由 [tests/test_docs_paths.py](./tests/test_docs_paths.py) 执法。
 
 ## 二、工程目录约定
 

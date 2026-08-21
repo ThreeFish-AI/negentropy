@@ -1,14 +1,18 @@
-"""技能文档的路径无关性执法。
+"""文档与脚本文件头里**命令**的路径无关性执法。
 
 纪律（两类引用，方向相反）：
-  - **代码块里的命令** → 必须用 `$R` / `$P` 变量。命令是可执行文本，变量化后
-    与子项目在仓库中的位置解耦，下次搬迁零改动。
+  - **命令** → 必须用 `$I`/`$R`/`$P`/`$V` 变量。命令是可执行文本，变量化后与
+    子项目在仓库中的位置解耦，下次搬迁零改动。
   - **散文里的 Markdown 链接** → 必须保持真实相对路径。AGENTS.md 强制可跳转
     链接，且 `check_series.py` 规则 5 正在执法它们的存活；把链接变量化会一次性
     造出十几条死链，并让规则 5 的覆盖面凭空缩小。
 
-本文件只管前者：断言围栏代码块内不出现任何「子项目在仓库中的位置」字面量。
-它把「路径无关」从愿望变成判据，并自动阻止未来有人把硬编码写回命令里。
+本文件只管前者，三条判据：
+  1. 命令内不出现「子项目在仓库中的位置」字面量（skills/*.md）
+  2. 变量定义只存在于 pipeline/README.md，且位置字面量只写在 `I=` 一行
+  3. 同一条命令内不混用两种锚点 —— 迁移留下的 `$R + pipeline/voices/…` 组合在
+     任何 CWD 下都不成立，且因为不是 Markdown 链接，规则 5 完全看不到。判据 3
+     的受检面**必须**含 `.py`：脚本文件头的用法段既无围栏也无反引号。
 """
 
 from __future__ import annotations
@@ -95,17 +99,88 @@ def test_fences_are_balanced():
         assert n % 2 == 0, f"{p.name}: 围栏数 {n} 为奇数（悬空围栏）"
 
 
-def test_variable_convention_is_defined_exactly_once():
-    """`$R`/`$P` 的定义只允许出现在 pipeline/README.md（单一事实源）。
+#: 子项目在仓库中的位置。**全仓只允许出现在 pipeline/README.md 的 `I=` 一行**，
+#: 其余一切命令都从 `$I` 派生（`$R`/`$P`/`$V`）。
+LOCATION_LITERAL = "apps/negentropy-influence"
 
-    各 skills 文档引用变量但不重复定义 —— 否则搬迁时又要改 N 处。
+
+def test_variable_convention_is_defined_exactly_once():
+    """`$I`/`$R`/`$P`/`$V` 的定义只允许出现在 pipeline/README.md（单一事实源）。
+
+    位置字面量只写一次（`I=`），其余变量派生自它 —— 否则搬迁时要改 N 处，
+    而这次迁移正是靠 N 处未同步暴露出来的。
     """
     readme = (PIPELINE / "README.md").read_text(encoding="utf-8")
-    assert "R=apps/negentropy-influence/pipeline/scripts" in readme, (
-        "pipeline/README.md 缺少 $R/$P 路径变量约定小节"
-    )
+    for line in (
+        f"I={LOCATION_LITERAL}",
+        "R=$I/pipeline/scripts",
+        "P=$I/episodes/<slug>-video",
+        "V=$I/pipeline/voices",
+    ):
+        assert line in readme, f"pipeline/README.md 的路径变量约定缺 `{line}`"
     for p in sorted(SKILLS.glob("*.md")):
         text = p.read_text(encoding="utf-8")
-        assert "R=apps/negentropy-influence" not in text, (
-            f"{p.name}: 重复定义了 $R —— 定义应只在 pipeline/README.md"
+        assert f"I={LOCATION_LITERAL}" not in text, (
+            f"{p.name}: 重复定义了 $I —— 定义应只在 pipeline/README.md"
         )
+        assert not re.search(r"^\s*[IRPV]=", text, re.MULTILINE), (
+            f"{p.name}: 自行赋值路径变量 —— skills 只引用不定义"
+        )
+
+
+#: 命令行的**行级**识别：不能只看围栏与行内代码跨——脚本文件头里的用法段既没有
+#: 围栏也没有反引号（tts_sample.py 就是），只覆盖那两种形态会让检查在 .py 上空转。
+COMMAND_LINE_RE = re.compile(r"(uv run|\.venv/bin/python|afplay|realpath)\b")
+
+
+def command_lines(text: str) -> list[tuple[int, str]]:
+    """→ [(行号, 整行)]，凡看起来是命令调用的行都算，续行一并接上。"""
+    out: list[tuple[int, str]] = []
+    lines = text.split("\n")
+    for i, line in enumerate(lines, 1):
+        if not COMMAND_LINE_RE.search(line):
+            continue
+        joined, j = line, i
+        while joined.rstrip().endswith("\\") and j < len(lines):
+            joined = joined.rstrip().rstrip("\\") + " " + lines[j]
+            j += 1
+        out.append((i, joined))
+    return out
+
+
+#: 混锚检测的受检面：命令散落在 skills 之外的这些文档与脚本文件头里，
+#: 而 2026-08 的迁移恰恰在这些地方留下了「$R + 子项目相对样本路径」的组合。
+def command_bearing_files() -> list[Path]:
+    out = sorted(SKILLS.glob("*.md"))
+    out += [
+        PIPELINE / "VOICE-CLONING.md",
+        PIPELINE / "INDEXTTS-2.5-ADVANCED.md",
+        PIPELINE / "voices" / "README.md",
+        PIPELINE / "templates" / "video-skeleton" / "README.md.tmpl",
+    ]
+    out += sorted((PIPELINE / "scripts").glob("*.py"))
+    out += sorted((PIPELINE.parent / "episodes").glob("*/README.md"))
+    return [p for p in out if p.is_file()]
+
+
+def test_no_mixed_anchor_commands():
+    """同一条命令里不得混用两种锚点。
+
+    `$I/$R/$P/$V` 同锚于**仓库根**；而 `pipeline.toml` 的 `tts.ref` 与
+    `series.json` 的 `path` 是**子项目根相对**（由 paths.INFLUENCE 拼接）。把后者
+    的写法搬进命令行就会造出 `$R/tts_sample.py --ref pipeline/voices/x.wav` 这类
+    **在任何 CWD 下都不成立**的命令——迁移后这个组合一次出现在 7 个文件里，
+    且因为不是 Markdown 链接，check_series 的规则 5 完全看不到。
+    """
+    subproject_relative = re.compile(r"(?<![\w./$<])(pipeline|episodes)/")
+    offenders: list[str] = []
+    for p in command_bearing_files():
+        for lineno, line in command_lines(p.read_text(encoding="utf-8")):
+            if not re.search(r"\$[IRPV]\b", line):
+                continue
+            if m := subproject_relative.search(line):
+                offenders.append(f"{p.name}:{lineno} `{m.group(0)}…` ← {line.strip()}")
+    assert not offenders, (
+        "命令内混用仓库根变量与子项目相对路径（样本路径请用 $V）：\n  "
+        + "\n  ".join(offenders)
+    )

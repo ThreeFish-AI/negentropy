@@ -410,7 +410,7 @@ def main() -> int:
     print(
         f"\n下一步：挑 3–4 个候选各裁一份，再各跑一次 `--style neutral` 小样比对（见 {MANUAL} §3.3）：\n"
         f"  uv run --no-project --with soundfile --with numpy $R/prepare_ref.py \\\n"
-        f"      <源音频> --start <上表 --start> --duration {win:g} --out pipeline/voices/<名字>.wav\n"
+        f"      <源音频> --start <上表 --start> --duration {win:g} --out $V/<名字>.wav\n"
         "分高只代表「不小声、不平、不慢」，**不代表段落好**——务必 afplay 试听确认人声干净、单说话人、语句完整。\n"
         "保真旗标与风格分**正交**：⚠️ 的段落即使分高也别用（削波/底噪/动态不足/低码率转码的\n"
         "损伤事后无法弥补——事后增强会提升 UTMOS 却降低说话人相似度）。旗标目前只告警不否决，\n"

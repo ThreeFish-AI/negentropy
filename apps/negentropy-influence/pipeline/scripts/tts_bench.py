@@ -21,7 +21,7 @@
     cd ~/tools/index-tts
     ./.venv/bin/python <本仓>/$R/tts_bench.py --check-only
     ./.venv/bin/python <本仓>/$R/tts_bench.py \
-        --ref <本仓>/pipeline/voices/me-bright.wav --runs 8 [--empty-cache]
+        --ref <本仓>/$V/me-bright.wav --runs 8 [--empty-cache]
 
 `--empty-cache` 在每次调用后清 MPS 缓存并 gc——用于判定漂移是否来自分配器累积。
 若开启后漂移消失，则长跑（整集 2 小时）也应在服务端逐句清理。

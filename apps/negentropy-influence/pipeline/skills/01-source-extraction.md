@@ -88,7 +88,6 @@
 B 轨只比对**剥标签归一后的正文**指纹，漂移报 **WARN**（去复核笔记），因为构建产物哈希天天变。
 
 ```bash
-R=pipeline/scripts; P=$P
 uv run --no-project $R/source_ledger.py --project $P fetch --name s01-code --kind repo \
     --pinned-ref <sha> --via "pinned commit, MIT" --url https://raw.githubusercontent.com/o/r/<sha>/f.py
 uv run --no-project $R/source_ledger.py --project $P fetch --name s01-site --kind site \

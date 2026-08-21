@@ -15,12 +15,13 @@
 # 隔离前提。各分集的 `video/` 在 depth 4，不被匹配，安全。
 
 [tool.pytest.ini_options]
-# 此前这 130 个测试没有任何 pytest 配置、也没有文档化的运行命令：
+# 此前这套测试没有任何 pytest 配置、也没有文档化的运行命令：
 #   rootdir 由参数向上推断、无 configfile。现在固定下来。
 # 依赖需在调用侧注入（本套无 requirements）：
 #   uv run --no-project --with pytest --with numpy --with pillow --with mutagen \
 #       --with soundfile python -m pytest apps/negentropy-influence/pipeline/tests -q
 # 不设 pythonpath：conftest.py 已注入 scripts/，第二套机制即 split-brain。
-# 不设 --cov：本套的价值是 130 项 5 秒内跑完、零基建依赖。
+# 不设 --cov：本套的价值是全量 5 秒内跑完、零基建依赖。
+# 刻意不在任何文档里写测试条数：它每加一个用例就漂，且三处曾各写 130/164/实际值。
 testpaths = ["pipeline/tests"]
 addopts = "-q"

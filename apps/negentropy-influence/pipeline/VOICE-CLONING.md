@@ -114,10 +114,10 @@ uv run --frozen --with fastapi --with uvicorn --with soundfile --with numpy --wi
 # 从长录音截取 [180s, 192s) 共 12s，归一化峰值、转 16-bit 单声道 WAV，输出到 voices/
 uv run --no-project --with soundfile --with numpy \
     $R/prepare_ref.py ~/Documents/dify/me-1.mp3 --start 180 --duration 12
-# → pipeline/voices/me-1.wav（此段即已上线三集成片所用样本，sha1 3ed0d9d60d4b）
+# → $V/me-1.wav（此段即已上线三集成片所用样本，sha1 3ed0d9d60d4b）
 ```
 
-裁剪段须试听确认（`afplay pipeline/voices/me-1.wav`）：该段人声干净、无背景音乐、语句完整。样本 SHA1 参与缓存摘要（见 §六），替换样本自动失效缓存。
+裁剪段须试听确认（`afplay $V/me-1.wav`）：该段人声干净、无背景音乐、语句完整。样本 SHA1 参与缓存摘要（见 §六），替换样本自动失效缓存。
 
 **选段辅助**——长录音里挑哪一段？用 [scripts/prospect_ref.py](./scripts/prospect_ref.py) 按滑窗扫客观指标（F0 中位=音高、F0 起伏=语调、音节率=语速、谱质心=明亮度，并对静音过多/发声过少扣分），先筛候选再试听：
 
@@ -265,7 +265,7 @@ GPT 声码段的束搜索宽度，**缺省随风格**（多数预设 1、`sunny-
 # 1) 生成参考样本（已有可跳过）。推荐档：me-1.mp3 的 [0.36s, 12.36s) 这一段更亮更快
 uv run --no-project --with soundfile --with numpy \
     $R/prepare_ref.py ~/Documents/dify/me-1.mp3 --start 0.36 --duration 12 \
-    --out pipeline/voices/me-bright.wav      # sha1 54b699cce97f · sunny 档即在此样本上定档
+    --out $V/me-bright.wav      # sha1 54b699cce97f · sunny 档即在此样本上定档
 # 换段落先用 prospect_ref.py 筛候选（§3.2），成片曾用的更闷一档是 --start 180（§3.3）
 
 # 2) 确认服务在线（未启动见 §2.3）
@@ -273,21 +273,21 @@ curl -s http://127.0.0.1:8766/health
 
 # 3) 单档试听：合成后立即播放
 uv run --no-project --with mutagen $R/tts_sample.py \
-    --ref pipeline/voices/me-bright.wav --style sunny --play
+    --ref $V/me-bright.wav --style sunny --play
 
 # 4) 全风格 A/B：7 档预设按 STYLE_PRESETS 顺序各一遍，顺序试听择优
 #    neutral→passionate→lively→confident→positive→sunny→sunny-steady（末档自带 3 束，耗时见下表）
 uv run --no-project --with mutagen $R/tts_sample.py \
-    --ref pipeline/voices/me-bright.wav --all-styles --play
+    --ref $V/me-bright.wav --all-styles --play
 
 # 5) 觉得向量注入「有合成味」：改用语调迁移——音色仍是本样本，语气搬自另一段录音
 uv run --no-project --with mutagen $R/tts_sample.py \
-    --ref pipeline/voices/me-1.wav --emo-ref pipeline/voices/me-bright.wav \
+    --ref $V/me-1.wav --emo-ref $V/me-bright.wav \
     --label emoref-bright --play          # --emo-alpha 0.7 可只迁移七成
 
 # 6) 说不清参数、只说得清感觉：用自己的话描述（服务需 --use-qwen-emo）
 uv run --no-project --with mutagen $R/tts_sample.py \
-    --ref pipeline/voices/me-bright.wav --emo-text "轻快、爽朗、自信、阳光" \
+    --ref $V/me-bright.wav --emo-text "轻快、爽朗、自信、阳光" \
     --label qwen-brisk --play             # 回显 8 维向量；强度务必自己再压（§4.4 第 3 步）
 ```
 
@@ -332,7 +332,7 @@ uv run --no-project --with mutagen $R/tts_sample.py \
 mkdir -p .temp/voice-samples && cat > .temp/voice-samples/payload.json <<'JSON'
 {
   "text": "自进化编码智能体的核心不是写代码，而是让 AI 学会修改自己写代码的方式。",
-  "ref_path": "/绝对路径/pipeline/voices/me-1.wav",
+  "ref_path": "<样本绝对路径>/me-1.wav",
   "emo_vector": [0.7, 0, 0, 0, 0, 0, 0.2, 0.1],
   "emo_alpha": 0.7,
   "duration_factor": 0.97,
@@ -358,11 +358,11 @@ cd $P   # 工程内薄包装等价于中心脚本；风格取 5.1 试听定稿�
 
 # 0) 先看计划（纯本地计算，不连服务、不合成）：各束宽多少句、缓存命中多少、大致要跑多久
 uv run --no-project --with mutagen scripts/tts.py --engine indextts \
-    --ref <绝对路径>/pipeline/voices/me-bright.wav --style sunny --plan
+    --ref <样本绝对路径>/me-bright.wav --style sunny --plan
 
 # 1) 全量合成
 uv run --no-project --with mutagen scripts/tts.py --engine indextts \
-    --ref <绝对路径>/pipeline/voices/me-bright.wav --style sunny
+    --ref <样本绝对路径>/me-bright.wav --style sunny
 ```
 
 **`--plan` 是长跑前的必经一步**：它逐句算摘要并与 sidecar 比对，告诉你「真正要合成几句」——改了几行稿子后重跑，往往只有那几句是 miss，不必按整集排期。
@@ -373,7 +373,7 @@ uv run --no-project --with mutagen scripts/tts.py --engine indextts \
 
 ```bash
 uv run --no-project --with mutagen scripts/tts.py --engine indextts \
-    --ref <绝对路径>/pipeline/voices/me-bright.wav --style sunny \
+    --ref <样本绝对路径>/me-bright.wav --style sunny \
     --steady 'P0,p3-25b,p5-01' [--steady-beams 3] --plan   # 先 --plan 核对命中句数，再去掉 --plan 实跑
 ```
 
@@ -449,7 +449,7 @@ cd video && pnpm run render:draft && pnpm run render   # render 脚本定义在 
 ## 八、许可与合规
 
 - **模型许可**：IndexTTS-2.5 按 [bilibili 模型使用许可协议](https://github.com/index-tts/index-tts/blob/main/LICENSE)（bilibili Model Use License）发布——**个人/研究用途可用；商用需联系 indexspeech@bilibili.com**。制作对外发布的视频前请自行评估许可范围。
-- **声音权利**：克隆他人声音必须获得本人书面同意；本仓 `pipeline/voices/` 下样本已被根 `.gitignore` 忽略，绝不入库。
+- **声音权利**：克隆他人声音必须获得本人书面同意；本仓 `$V/`（即 `pipeline/voices/`）下样本已被根 `.gitignore` 忽略，绝不入库。
 - **edge-tts 义务**：edge-tts 为微软服务免费接口，成品需遵守微软服务条款；当前默认引擎仍为 edge，行为与历史完全一致。
 
 ## 九、备选方案与参考文献

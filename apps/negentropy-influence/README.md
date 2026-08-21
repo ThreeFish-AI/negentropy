@@ -13,9 +13,9 @@ apps/negentropy-influence/
 ├── series.md                # 作品总览（人读）
 ├── pipeline/                # ── 机制：跨集共享，单一事实源 ──
 │   ├── README.md            #    九阶段总览 / 目录约定 / 脚本表 / 复用边界 / 新集清单
-│   ├── scripts/             #    17 个公共脚本，pipeline.py 为单入口编排
+│   ├── scripts/             #    公共脚本，pipeline.py 为单入口编排
 │   ├── skills/01–09         #    九阶段代理提示词规格（内容 SSOT）
-│   ├── tests/               #    130 项，5 秒内跑完，零基建依赖
+│   ├── tests/               #    全量 5 秒内跑完，零基建依赖（刻意不写条数：会漂）
 │   ├── voices/              #    声音样本指纹清单（refs.toml，只存哈希不存音频）
 │   ├── VOICE-CLONING.md     #    IndexTTS 声音克隆操作手册
 │   ├── INDEXTTS-2.5-ADVANCED.md  # 上游能力面与机制循证
@@ -26,12 +26,9 @@ apps/negentropy-influence/
 
 ## 路径变量约定（`$R` / `$P`）
 
-公共脚本与技能文档中的命令统一用两个变量书写，使命令与子项目位置解耦：
-
-```bash
-R=apps/negentropy-influence/pipeline/scripts          # 公共脚本目录
-P=apps/negentropy-influence/episodes/<slug>-video     # 目标分集工程
-```
+公共脚本与技能文档中的命令统一用 `$I`/`$R`/`$P`/`$V` 四个变量书写，使命令与子项目位置
+解耦。**定义只有一处**（本文件刻意不复制，否则搬迁时又要改两份）：
+[pipeline/README.md 路径变量约定](./pipeline/README.md#路径变量约定)。
 
 单入口编排（参数读各集 `pipeline.toml`）：
 
