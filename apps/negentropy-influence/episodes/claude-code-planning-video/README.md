@@ -1,6 +1,21 @@
 # 《AI 的视野是安排出来的：写下来的计划，另开的桌子》科普视频工程
 
-> 交付状态：**①–⑤ 就绪**（信源台账 verify FAIL 0 · 129 句逐字稿冻结 · 双校验 RISKY=0 · 分镜覆盖 FAIL 0）；⑥–⑨ 进行中。发布顺序见 [../../series.json](../../series.json)。
+> 交付状态：**已交付**。发布顺序见 [../../series.json](../../series.json)。
+
+## 交付状态
+
+| 项 | 状态 |
+|---|---|
+| 逐字稿 | ✅ 134 句 / 3906 字 / 7 幕 |
+| 分镜 | ✅ 29 镜，覆盖性 FAIL 0 |
+| 信源取证 | ✅ 15 条双轨（5 章 × readme/code/site）@ `67a9126c`，`source_ledger verify` FAIL 0；取证字节归档 `research/source-archive/` |
+| 场景实现 | ✅ 7 幕 29 镜 3389 行，`tsc --noEmit` 零错；`--check-scenes` FAIL 0 · WARN 0 |
+| 配音 | ✅ 134/134 句，`sunny-steady` + `me-bright.wav`；纯语音 12.39 分钟，实测语速 315 字/分 |
+| 时长双口径门 | ✅ 估算 13.9 分（3906÷280）· **实测含时距 13.2 分**，落窗 13.0–14.6 |
+| 字幕 | ✅ `out/captions.srt` + `.vtt`，各 134 cue |
+| 草渲 + 抽帧 QA | ✅ 7 幕 **FAIL 0 · WARN 1**（p6-05/06 信源卡刻意停留） |
+| **终渲交付** | ✅ `out/final.mp4` **13:11.81** · 1920×1080@30 · 37.7 MB；全分辨率尾幕末 6 句 **FAIL 0 · WARN 1**（同上） |
+| 交付件 | ✅ `final.mp4` + `captions.srt` + `captions.vtt` |
 
 ## 目录结构
 
