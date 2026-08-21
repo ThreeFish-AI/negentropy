@@ -37,9 +37,14 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 #: 同机同档（sunny-steady，EP1 v3 B 遍 187 句）的历史实测折算，监视判据的分母。
+#: ⚠️ 该基线取自**机器空闲**时的长跑。分母是「空闲态」这件事必须记住：
+#: 2026-08-22 EP3 长跑期间 ratio 稳在 1.4–1.5×，`pmset -g therm` 无任何告警，
+#: 而 `vm.loadavg` 是 10+（编辑器 + 会话 + 浏览器与 TTS 争 CPU）——**负载竞争，不是热节流**。
+#: 两者判据不同：竞争只是变慢（产物无损，可继续，只需重排期）；热节流才需要中止验证环境。
 SEC_PER_CHAR_BASELINE = 1.868
-#: 判据阈值（对基线的倍数）：>1.2× 提示（机器被压热，暂停别的任务或等它跑完）；
-#: >1.5× 建议（热节流已坐实，先中止再按 §6.5 协议验证环境）。
+#: 判据阈值（对基线的倍数）：>1.2× 提示；>1.5× 建议中止。
+#: 越阈时**先分因**：`sysctl -n vm.loadavg` 高 + `pmset -g therm` 无告警 ⇒ 竞争；
+#: 反之（负载低而仍慢）⇒ 才是热节流，按 INDEXTTS-2.5-ADVANCED §6.5 验证环境。
 PAUSE_RATIO = 1.2
 ABORT_RATIO = 1.5
 
@@ -113,13 +118,20 @@ def main() -> None:
     )
     if ratio > ABORT_RATIO:
         print(
-            f"   ❌ {ratio:.1f}× > {ABORT_RATIO}×：热节流征象已坐实（§6.5）。建议中止长跑，"
-            f"先跑 tts_bench.py --check-only 确认环境，空闲时段再续（逐句缓存可无损续跑）"
+            f"   ❌ {ratio:.1f}× > {ABORT_RATIO}×：慢得离谱。**先分因再处置**——"
+            f"`sysctl -n vm.loadavg` 与 `pmset -g therm` 各看一眼："
+        )
+        print(
+            "      · 负载高 + 无热告警 ⇒ 只是 CPU 竞争：产物无损，停掉别的活或就这么等，重排期即可"
+        )
+        print(
+            "      · 负载低 + 仍慢（或有热告警）⇒ 热节流坐实：中止，跑 tts_bench.py --check-only "
+            "验证环境，空闲时段再续（逐句缓存无损续跑）"
         )
     elif ratio > PAUSE_RATIO:
         print(
-            f"   ⚠️  {ratio:.1f}× > {PAUSE_RATIO}×：机器疑似被并行任务压热。暂停闲置负载 "
-            f"20 分钟再观察；仍 >{ABORT_RATIO}× 则按上一条处置"
+            f"   ⚠️  {ratio:.1f}× > {PAUSE_RATIO}×：比空闲基线慢。多半是同机争 CPU"
+            f"（渲染/编辑器/浏览器），先停掉能停的；仍 >{ABORT_RATIO}× 按上一条分因"
         )
     else:
         print("   ✅ OK：节奏与基线同量级（判据用量级不用秩相关，见 §6.5）")
