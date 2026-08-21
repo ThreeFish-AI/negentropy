@@ -4,7 +4,7 @@
 此前顺序只活在散文与 React 常量里（EP3 的 SeriesThree 数组说「第一集=AI 如何
 自己变强」而意图已变），且反串线 lint 无法只用 grep 实现：EP1 的 p1-25a 会命中
 自己的片名「上线之后」——正确排除自身标题必须知道标题属于哪个工程，也就是
-必须有清单。本脚本按价值降序执行五条规则：
+必须有清单。本脚本按价值降序执行六条规则：
 
   1. 口播反串线：任一集 narration.md 的口播行出现**他集标题**或顺序词
      （上一集/上期/第N集/前两集/本系列…）即 FAIL；自身标题排除；「下期」白名单
@@ -14,16 +14,25 @@
      planning、知识索引
   3. 序号↔标题绑定：`第N集` 附近的标题必须与该标题自身的 episode 匹配
   4. 清单完整性：每个系列内 episode 连续无重、slug 全局唯一、路径存在、
-     accents 色值在该集 theme.ts 中存在
+     accents 色值在该集 theme.ts 中存在且系列内不撞色；**反向登记**——
+     episodes/ 下未登记目录分级执法（narration.md 已落盘即 FAIL，见
+     rule_manifest_integrity 的死锁注释）
   5. 相对链接死链：受检文件集内的 `](./x.md)` / `](../x)` 目标必须存在
     （抓 video-package 类残留并防复发）
+  6. 可渲染性：storyboard 已定稿的集，video/src/scenes/*.tsx 非空，且
+     Main.tsx 的 SCENE_COMPONENTS 注册表与场景文件双向对齐——注册→文件
+     是 FAIL 方向（注册了却渲染不出来，build 必炸），文件→注册只 WARN
+     （未注册的可能是被其他场景 import 的合法辅助组件）
 
 多系列语义（2026-08 起 series.json 顶层为 seriesList[]）：
   - 规则 1 **跨系列全局生效**——不同系列各自独立成片，口播互不引用，故「他集」
     范围取全部系列的全部集，只按 slug 排除自身。
   - 规则 2/3/4 **按系列内判定**——两个系列的发布顺序互相无关，同一文件（知识
     索引 / CHANGELOG / series.md）同时提及多个系列属正常形态；episode 的
-    `1..N` 连续性也只在系列内成立。
+    `1..N` 连续性也只在系列内成立。撞色同理：色相错开是系列内视觉契约
+    （skills/06「与已用色撞车」登记表按系列维护），**跨系列撞色是接受态**
+    ——实测真树 #4A9EFF（self-evolution）与 #4ADE80（claude-code 系）同处
+    蓝/绿邻域；expand 的二维平行列表天然按系列分组，跨系列互不可见。
 
 用法：uv run --no-project apps/negentropy-influence/pipeline/scripts/check_series.py
 退出码：0 = 一致；1 = 有 FAIL。挂牌 pre-commit 后自动覆盖子项目相关提交。
@@ -222,7 +231,14 @@ def rule_ordinal_binding(
 
 
 def rule_manifest_integrity(series_list: list[dict], msgs: list[str]) -> None:
-    """规则 4：清单完整性——episode 连续性按系列内判定，slug 全局唯一。"""
+    """规则 4：清单完整性——episode 连续性按系列内判定，slug 全局唯一。
+
+    撞色只按系列内、且只认**精确同值**（不做色相邻近 WARN）：「色相与已用色
+    错开」是 skills/06 定义的系列内视觉契约，skills/06 的登记表也按系列维护；
+    跨系列撞色是接受态（见模块 docstring 多系列语义）。色相邻近则是弹性建议
+    ——判据松一分就漏、紧一分就假报（蓝 #4A9EFF 与青 #2DD4BF 本就相邻共存），
+    假报一多门就会被关掉（ISSUE-167 防范 3 的教训）。
+    """
     seen_slugs: dict[str, str] = {}
     for series in series_list:
         eps = series["episodes"]
@@ -231,6 +247,8 @@ def rule_manifest_integrity(series_list: list[dict], msgs: list[str]) -> None:
             msgs.append(
                 f"FAIL 规则4：系列 {series['id']} 的 episode 序列 {nums} 不连续或有重复"
             )
+        #: hex → slug 二维映射：撞色要报「谁与谁」，还要按系列内分组（跨系列豁免）。
+        by_hex: dict[str, list[str]] = {}
         for e in eps:
             # slug 是工程目录名，必须全局唯一（否则两系列指向同一工程）
             if e["slug"] in seen_slugs:
@@ -247,6 +265,7 @@ def rule_manifest_integrity(series_list: list[dict], msgs: list[str]) -> None:
             if theme.is_file():
                 src = theme.read_text(encoding="utf-8")
                 for hexv in e.get("accents", []):
+                    by_hex.setdefault(hexv, []).append(e["slug"])
                     if hexv not in src:
                         msgs.append(
                             f"FAIL 规则4：{e['slug']} 的 accents 色值 {hexv} "
@@ -254,6 +273,45 @@ def rule_manifest_integrity(series_list: list[dict], msgs: list[str]) -> None:
                         )
             else:
                 msgs.append(f"WARN 规则4：{e['slug']} 缺 theme.ts（工程未初始化？）")
+                for hexv in e.get("accents", []):
+                    by_hex.setdefault(hexv, []).append(e["slug"])
+        for hexv, slugs in by_hex.items():
+            if len(slugs) > 1:
+                msgs.append(
+                    f"FAIL 规则4：系列内撞色 {hexv} 同时出现在 {slugs[0]} 与 {slugs[1]}"
+                )
+        #: 供下一集选色参考（skills/06 的「已用色」登记表在此机器化）；
+        #: 空系列不刷（无信息量的输出行只会稀释信噪比）。
+        if by_hex:
+            msgs.append(
+                f"INFO 规则4：{series['id']} 已用色：{' '.join(sorted(by_hex))}"
+            )
+
+    # ── 反向登记：episodes/ 下存在、series.json 却没登记的工程目录 ──────────
+    # ⚠️ 判据是**分级**的，且分级是承重设计而非折衷：若一概 FAIL，脚手架→登记
+    # 的窗口期会被两条门**前后夹死**——scaffold 刻意不写 series.json（登记发布
+    # 顺序是内容决策，见 scaffold.py 的「刻意不做的三件事」），此时新目录若是
+    # FAIL，那就先登记再写；可一旦登记，规则 4 的 accents 校验立即要求该集
+    # theme.ts 已含登记的色值——而 theme 恰恰是脚手架刻意留 TODO 的 seeded 档。
+    # 于是「先登记」这条路要求先定色板色值，「先写」这条路要求先登记：死锁。
+    # 分级触发把 FAIL 挪到 narration.md 落盘（= 口播定稿，规则 1 的判据已生效，
+    # 反串线扫描唯独看不见这集才是真风险），而登记期以 WARN 提示不阻塞。
+    episodes_dir = INFLUENCE / "episodes"
+    if not episodes_dir.is_dir():
+        return
+    for p in sorted(episodes_dir.iterdir()):
+        if not p.is_dir() or p.name in seen_slugs:
+            continue
+        if (p / "script" / "narration.md").is_file():
+            msgs.append(
+                f"FAIL 规则4：{p.name} 未登记到 series.json"
+                "（已有 narration.md —— 规则 1 的反串线扫描看不到它）"
+            )
+        else:
+            msgs.append(
+                f"WARN 规则4：{p.name} 未登记到 series.json"
+                "（脚手架期；写下 narration.md 后本条转 FAIL）"
+            )
 
 
 def rule_dead_links(files: list[Path], msgs: list[str]) -> None:
@@ -269,6 +327,95 @@ def rule_dead_links(files: list[Path], msgs: list[str]) -> None:
                 msgs.append(f"FAIL 规则5：{f.relative_to(REPO)} 死链 {m.group(1)}")
 
 
+#: Main.tsx（regioned 档）每集两处可变区域，形状在四集上稳定（verify_skeleton.py
+#: 的 SCENE_IMPORT_RE / REGISTRY_ENTRY_RE 同源）：
+#:   import {P2Dispatch} from './scenes/P2Dispatch';
+#:   P2: P2Dispatch,
+SCENE_IMPORT_LINE_RE = re.compile(
+    r"import\s*\{(?P<names>[^}]+)\}\s*from\s*['\"](?P<path>\./scenes/[^'\"]+)['\"]"
+)
+SCENE_REGISTRY_LINE_RE = re.compile(
+    r"^\s*(?P<key>P\d+)\s*:\s*(?P<val>\w+)\s*,?\s*$", re.M
+)
+#: 注册表的对象字面量本体。起点不能取 `SCENE_COMPONENTS` 后的第一个 `{`——它落在
+#: 泛型参数 `Record<string, React.FC<{scene: SceneRange}>>` **内部**（那对花括号
+#: 属于类型层）；锚定 `>= {`（类型层以 `>` 收口）才落在字面量上。
+SCENE_REGISTRY_BODY_RE = re.compile(
+    r"SCENE_COMPONENTS[^=]*=\s*[^{]*>=\s*(?P<body>\{.*?\})\s*(?:;|$)", re.S
+)
+
+
+def rule_renderability(series_list: list[dict], msgs: list[str]) -> None:
+    """规则 6：storyboard 已定稿的集，注册表 ↔ 场景文件双向对齐。
+
+    触发条件是 `script/storyboard.md` **存在**——storyboard 是场景拆解的 SSOT
+    （skills/05→06 的交接物），它落地之前 scenes/ 留空是合法的脚手架期状态
+    （scaffold 刻意不生成 scenes/），此刻执法只会把门变成「一建工程就红」。
+
+    判据方向不对称是刻意的：**注册 → 文件是 FAIL**（注册了却不存在的场景，
+    tsc / build 必炸——这是可以在提交前拦住的生产事故）；**文件 → 注册只
+    WARN**（未注册进 SCENE_COMPONENTS 的 .tsx 可能是被其他场景 import 的合法
+    辅助组件，一概 FAIL 会把那个合法形态误杀成假报）。
+
+    解析必须**失败容忍**：Main.tsx 是 regioned 档（每集两处可变区域的 boilerplate
+    文件），本规则不执法它的形状——解析不出注册表本体时跳过该集（零消息），
+    绝不基于「没解析到」发 FAIL。判据的适用前提是「读到了注册表」，读不到就
+    装作没看见，同 ISSUE-167 防范 3：一个常假报的门等于被关掉的门。
+    """
+    for ep in all_episodes(series_list):
+        root = INFLUENCE / ep["path"]
+        if not (root / "script" / "storyboard.md").is_file():
+            continue
+        src_dir = root / "video" / "src"
+        scenes_dir = src_dir / "scenes"
+        scene_files = sorted(scenes_dir.glob("*.tsx")) if scenes_dir.is_dir() else []
+        if not scene_files:
+            msgs.append(
+                f"FAIL 规则6：{ep['slug']} storyboard 已定稿但 video/src/scenes/ 为空"
+                "（场景组件一个未写）"
+            )
+            continue
+
+        main_path = src_dir / "Main.tsx"
+        if not main_path.is_file():
+            continue  # theme.ts 缺失已有规则 4 的 WARN，此处不重复点名
+        text = main_path.read_text(encoding="utf-8")
+
+        # 组件标识符 → import 语句声明的路径（判定「注册值是否有实体文件」）
+        ident_to_path: dict[str, str] = {}
+        for m in SCENE_IMPORT_LINE_RE.finditer(text):
+            for name in m.group("names").split(","):
+                if name.strip():
+                    ident_to_path[name.strip()] = m.group("path")
+
+        body = SCENE_REGISTRY_BODY_RE.search(text)
+        if body is None:
+            continue  # 解析不结论：跳过（见 docstring 的失败容忍原则）
+        registered_idents: list[str] = []
+        for m in SCENE_REGISTRY_LINE_RE.finditer(body.group("body")):
+            key, ident = m.group("key"), m.group("val")
+            registered_idents.append(ident)
+            # (b) 注册表条目必须有 import 且 import 指向存在的文件
+            if ident not in ident_to_path:
+                msgs.append(
+                    f"FAIL 规则6：{ep['slug']} Main.tsx 注册 {key}: {ident} "
+                    "但无对应的 scenes/ import（渲染必炸）"
+                )
+            elif not (src_dir / f"{ident_to_path[ident]}.tsx").is_file():
+                msgs.append(
+                    f"FAIL 规则6：{ep['slug']} Main.tsx 注册 {key}: {ident} "
+                    f"但 {ident_to_path[ident]}.tsx 不存在"
+                )
+        # (c) 场景文件未进注册表 → 只 WARN（可能是被 import 的辅助组件）
+        for f in scene_files:
+            base = f.stem
+            if base not in ident_to_path.values():
+                msgs.append(
+                    f"WARN 规则6：{ep['slug']} {base}.tsx 未注册进 Main.tsx"
+                    "（可能是辅助组件，若是请确认）"
+                )
+
+
 def main() -> None:
     series_list = load_series()
     files = covered_files()
@@ -278,6 +425,7 @@ def main() -> None:
     rule_ordinal_binding(series_list, files, msgs)
     rule_manifest_integrity(series_list, msgs)
     rule_dead_links(files, msgs)
+    rule_renderability(series_list, msgs)
 
     fails = [m for m in msgs if m.startswith("FAIL")]
     warns = [m for m in msgs if m.startswith("WARN")]

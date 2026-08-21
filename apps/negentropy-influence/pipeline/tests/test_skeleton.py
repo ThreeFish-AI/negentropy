@@ -331,6 +331,13 @@ def test_scaffold_produces_gate_clean_episode(tmp_path):
         a = hashlib.md5((TEMPLATE / rel).read_bytes()).hexdigest()
         b = hashlib.md5((dest / rel).read_bytes()).hexdigest()
         assert a == b, f"scaffold 产物与模板不一致：{rel}"
+    # seeded 档同样经 rglob 整树复制（scaffold 无显式文件清单）——chrome 层
+    # motifs.tsx 若被未来改动漏掉，新集将连 Panel 都没有。钉住它。
+    # （theme.ts 是 .tmpl 渲染产物，非字节直拷，故不在此列。）
+    rel = "video/src/components/motifs.tsx"
+    assert (dest / rel).read_bytes() == (TEMPLATE / rel).read_bytes(), (
+        f"scaffold 未原样复制 seeded 文件：{rel}"
+    )
     # scenes/ 刻意留空；样例只留在模板
     assert not (dest / "scenes-EXAMPLE.tsx.txt").exists()
     assert not any((dest / "video/src/scenes").glob("*.tsx"))
@@ -426,17 +433,27 @@ THEME_KEY_RE = re.compile(r"^ {2}([A-Za-z][A-Za-z0-9]*)\s*:", re.MULTILINE)
 THEME_CONSUMER_CLASSES = ("frozen", "regioned")
 
 
-def test_template_theme_covers_frozen_component_tokens():
-    """模板 theme.ts 必须覆盖 frozen 组件读到的每个 token（零依赖静态判据）。
+def seed_theme_keys() -> set[str]:
+    """→ 模板 theme seed 中**未注释**的键（占位注释不算已定义）。
 
-    不拉 tsc：这套测试的定位是零基建依赖 / 5 秒跑完。判据贴着真实失效模式——
-    「组件读了 seed 里没有的键」——而非贴着类型系统。
+    供 frozen 消费面与 chrome 层 motifs 两条判据共用：键集合从 tmpl 动态解析，
+    seed 将来增删底座键（如并入 danger）时判据零改动跟上。
     """
     seed = (TEMPLATE / "video/src/design/theme.ts.tmpl").read_text(encoding="utf-8")
     body = THEME_LITERAL_RE.search(seed)
     assert body, "seed 里找不到 `export const theme = {…} as const;`（形态变了？）"
     defined = set(THEME_KEY_RE.findall(body.group(1)))
     assert "bg" in defined, "seed 解析失效（键的缩进形态变了？检测器该更新了）"
+    return defined
+
+
+def test_template_theme_covers_frozen_component_tokens():
+    """模板 theme.ts 必须覆盖 frozen 组件读到的每个 token（零依赖静态判据）。
+
+    不拉 tsc：这套测试的定位是零基建依赖 / 5 秒跑完。判据贴着真实失效模式——
+    「组件读了 seed 里没有的键」——而非贴着类型系统。
+    """
+    defined = seed_theme_keys()
 
     skel = skeleton()
     missing: list[str] = []
@@ -453,4 +470,83 @@ def test_template_theme_covers_frozen_component_tokens():
     assert not missing, (
         "frozen 组件依赖的 token 不在模板 theme seed 里 —— scaffold 出的新集会"
         "直接 tsc 失败：\n  " + "\n  ".join(missing)
+    )
+
+
+# ── chrome 层 motifs 播种（seeded 档）──────────────────────────────────────
+#
+# motifs.tsx 的正交切分：chrome（机械排版/标注，模板播种）vs 母题（创作性，
+# 各集复制 ep1 后裁剪）。seeded 档不受漂移门执法，但「模板 seed 只读底座
+# token」这条接口性质必须有自己的判据——否则 chrome 层一次「顺手」引用了
+# 某集概念色（core/mech/…），scaffold 出的新集就会开箱即 TS2339，且漂移门
+# 照样报 0 处（theme.ts 属 seeded、无门）。这是上面那条 seeded↔frozen 缺口
+# 的姊妹缺口：seeded↔seeded 同样无门。
+
+#: chrome 层应播种的导出（含一个值导出与一个纯函数）。ep1 的调用面证明了
+#: 这七个是跨集机械；清单变动 = 显式决策，须同步 skills/06 母题节首段。
+CHROME_EXPORTS = frozenset(
+    {"Panel", "Footnote", "SceneTag", "Counter", "CodeCard", "NumberedCard", "ease"}
+)
+#: 刻意不进模板的创作性母题（ep1 拥有；借用方式=复制后裁剪，见 skills/06 表）。
+MOTIF_EXPORTS = frozenset(
+    {"Terminal", "LoopRing", "DispatchTable", "GateRouter", "SlotRing", "useRingDot"}
+)
+MOTIFS_REL = "video/src/components/motifs.tsx"
+
+
+def motifs_source(*, strip_comments: bool = False) -> str:
+    text = (TEMPLATE / MOTIFS_REL).read_text(encoding="utf-8")
+    if not strip_comments:
+        return text
+    #: 文件头注释里合法地写着「theme.ts」「Terminal」等字样——不剥注释的话
+    #: token/导出提取会把散文当代码，判据直接误报。剥 `/* */` 与 `//` 两形态。
+    text = re.sub(r"/\*.*?\*/", "", text, flags=re.DOTALL)
+    return re.sub(r"//[^\n]*", "", text)
+
+
+def export_names(text: str) -> set[str]:
+    """→ 文件里的具名导出（`export const/type X` 与文件尾 `export {X};` 一并计，
+    小写导出如 `ease` 同样要抓——ep1 的惯用形态就是文件尾 re-export）。"""
+    names = re.findall(
+        r"^export (?:const|type) ([A-Za-z][A-Za-z0-9]*)", text, re.MULTILINE
+    )
+    names += re.findall(r"^export \{([A-Za-z][A-Za-z0-9]*)\};", text, re.MULTILINE)
+    return set(names)
+
+
+def test_seed_class_lists_motifs_and_file_exists():
+    """seeded 档登记了 motifs.tsx 且模板侧真实存在（清单不能指空，同上）。"""
+    skel = skeleton()
+    assert MOTIFS_REL in skel["classes"]["seeded"], (
+        f"{MOTIFS_REL} 应在 [classes].seeded（chrome 层由模板播种）"
+    )
+    assert (TEMPLATE / MOTIFS_REL).is_file(), f"模板缺 {MOTIFS_REL}"
+
+
+def test_chrome_motifs_split_is_enforced():
+    """模板 motifs.tsx 导出的恰是 chrome 集：七个机械导出在、五个母题不在。
+
+    「多导出」比「少导出」更危险：多出来的若带了概念色依赖（如 ep1 的
+    DispatchTable 读 theme.mech），它随 scaffold 复制进新集即 TS2339；少导出
+    只是新集少个便利，无破坏。故两侧都钉死，清单变化须改这里的常量。
+    """
+    exports = export_names(motifs_source(strip_comments=True))
+    leaked = exports & MOTIF_EXPORTS
+    assert not leaked, f"母题不得进模板（复制 ep1 后裁剪才是正道）：{sorted(leaked)}"
+    missing = CHROME_EXPORTS - exports
+    assert not missing, f"chrome 层缺导出（调用面见 ep1 各 scenes）：{sorted(missing)}"
+
+
+def test_chrome_motifs_only_read_base_theme_tokens():
+    """chrome 层只读**未注释的**底座 token——概念色经 accent prop 注入。
+
+    判据复用 test_template_theme_covers_frozen_component_tokens 的解析形态
+    （seed_theme_keys），但受检面是 seeded↔seeded 接口（motifs ↔ theme.ts.tmpl）。
+    """
+    defined = seed_theme_keys()
+    used = set(THEME_TOKEN_RE.findall(motifs_source(strip_comments=True)))
+    missing = sorted(used - defined)
+    assert not missing, (
+        f"模板 motifs.tsx 读了 seed 未定义的 theme.{missing} —— 概念色须经 "
+        "accent prop 注入，否则 scaffold 出的新集开箱即 TS2339"
     )
