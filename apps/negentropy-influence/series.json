@@ -126,6 +126,72 @@
           "status": "drafting",
           "statusNote": "阶段①–③ 完成（信源 15 条 verify FAIL 0；narration 129 句 3743 字）",
           "voice": "sunny-steady + me-bright.wav"
+        },
+        {
+          "episode": 3,
+          "slug": "claude-code-memory-video",
+          "path": "episodes/claude-code-memory-video",
+          "title": "AI 的记忆：会丢的和不能丢的",
+          "topic": "记忆管理：压缩与持久层",
+          "cardSub": "记忆管理 · 两层",
+          "accents": [
+            "#A9C46C"
+          ],
+          "source": {
+            "title": "Learn Claude Code · 记忆管理（s08 Context Compact / s09 Memory）",
+            "site": "https://learn.shareai.run/zh/s08/",
+            "repo": "https://github.com/shareAI-lab/learn-claude-code",
+            "pinnedRef": "67a9126c6435a8654ba7a6f68c0fd2130f00a462",
+            "license": "MIT",
+            "accessed": "2026-08-22"
+          },
+          "status": "drafting",
+          "statusNote": "阶段①–③ 完成（台账 6 条 FAIL 0；narration 134 句 3728 字）",
+          "voice": "sunny-steady + me-bright.wav"
+        },
+        {
+          "episode": 4,
+          "slug": "claude-code-concurrency-video",
+          "path": "episodes/claude-code-concurrency-video",
+          "title": "AI 会自己开工吗？后台与定时",
+          "topic": "并发与调度：谁来按下开始",
+          "cardSub": "并发与调度 · 谁按的开始",
+          "accents": [
+            "#7FB2E0"
+          ],
+          "source": {
+            "title": "Learn Claude Code · 并发（s13 Background Tasks / s14 Cron Scheduler）",
+            "site": "https://learn.shareai.run/zh/s13/",
+            "repo": "https://github.com/shareAI-lab/learn-claude-code",
+            "pinnedRef": "67a9126c6435a8654ba7a6f68c0fd2130f00a462",
+            "license": "MIT",
+            "accessed": "2026-08-22"
+          },
+          "status": "drafting",
+          "statusNote": "阶段①–③ 完成（台账 6 条 FAIL 0；narration 134 句 3744 字）",
+          "voice": "sunny-steady + me-bright.wav"
+        },
+        {
+          "episode": 5,
+          "slug": "claude-code-multiagent-video",
+          "path": "episodes/claude-code-multiagent-video",
+          "title": "一群 AI 怎么干活：看板、信箱与各自的桌子",
+          "topic": "多 Agent 平台：从一个到一群",
+          "cardSub": "多 Agent 平台 · 从一个到一群",
+          "accents": [
+            "#D9B36B"
+          ],
+          "source": {
+            "title": "Learn Claude Code · 多 Agent 平台（s12 / s15 / s16 / s17 / s18 / s19 / s20）",
+            "site": "https://learn.shareai.run/zh/s12/",
+            "repo": "https://github.com/shareAI-lab/learn-claude-code",
+            "pinnedRef": "67a9126c6435a8654ba7a6f68c0fd2130f00a462",
+            "license": "MIT",
+            "accessed": "2026-08-22"
+          },
+          "status": "drafting",
+          "statusNote": "阶段①–③ 完成（台账 21 条 FAIL 0；narration 130 句 3835 字）",
+          "voice": "sunny-steady + me-bright.wav"
         }
       ]
     }

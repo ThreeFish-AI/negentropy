@@ -14,6 +14,16 @@
 可选 --check-scenes：从 video/src/scenes/*.tsx 提取 beatWindow/w('id','id')
 调用，与分镜表互比（WARN-only，TSX 正则本质近似）。
 
+可选 --pre-tts（TTS 前置门）：只跑**不需要分镜**的检查——时长预算（估算口径；
+manifest 若在则含实测口径）+ 读法陷阱 + 发音标注合法性（build_narration 已在
+生成期拦非法标注，此处对 narration.json 再收口一遍）。两遍法草稿遍（A 遍）写完
+稿就要排配音、storyboard.md 尚未写——本模式在 storyboard.md 缺失时照常完成并
+以 0 退出；storyboard 相关的覆盖性/淡入/场景互比在此模式下一律跳过。
+
+可选 --pron-candidates（报告，非门）：逐句列出命中多音字候选表的句子
+（候选表见 pron_marks.POLYPHONE_CANDIDATES；与 --pre-tts 互斥——一个是门、
+一个是注意力清单，混跑会让退出码语义含混）。退出码恒 0。
+
 用法：uv run --no-project $R/check_script.py --project $P
 退出码：0 = 通过；1 = 有 FAIL。WARN 不影响退出码但会列明。
 """
@@ -28,6 +38,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))  # noqa: E402
 import config  # noqa: E402 - 同目录模块，须在 sys.path 注入之后
+from pron_marks import scan_candidates, validate  # noqa: E402
 from timeline import load_constants, total_duration_in_frames  # noqa: E402
 
 #: 分镜表行：| 镜号 | 句区间 | 画面 | 动效 |。镜号形如 `0-A`/`2-B2`，句区间形如
@@ -277,9 +288,22 @@ def main() -> None:
         help="附:分镜↔场景代码 beat 互比（WARN-only）",
     )
     ap.add_argument(
+        "--pre-tts",
+        action="store_true",
+        help="TTS 前置门：只跑不需要分镜的检查（预算/读法陷阱/标注合法性），"
+        "storyboard.md 缺失时照常完成（两遍法草稿遍场景）",
+    )
+    ap.add_argument(
+        "--pron-candidates",
+        action="store_true",
+        help="报告（非门）：列出命中多音字候选表的句子，供复听时重点关注；退出码恒 0",
+    )
+    ap.add_argument(
         "--json", action="store_true", help="以 JSON 输出结果（供 pipeline.py 汇总）"
     )
     args = ap.parse_args()
+    if args.pre_tts and args.pron_candidates:
+        ap.error("--pre-tts 是门、--pron-candidates 是报告，两者互斥")
 
     root = Path(args.project).resolve()
     # required=False：内容门在没有 pipeline.toml 时仍应能跑（如新集脚手架期）。
@@ -289,8 +313,17 @@ def main() -> None:
         root, required=False, scope={"narration"}
     )
     items = json.loads((root / "script" / "narration.json").read_text(encoding="utf-8"))
+
+    if args.pron_candidates:
+        hits = scan_candidates(items)
+        print(f">> 多音字候选 · {root.name} · {len(items)} 句（候选 ≠ 台账，非门）")
+        for sid, char, risk, advice in hits:
+            print(f"  {sid}  {char}  {risk}  → 若听出错读：{advice}")
+        print(f">> 候选命中 {len(hits)} 处（确认读错才写台账，不要预防性标注）")
+        return
+
     board = root / "script" / "storyboard.md"
-    if not board.is_file():
+    if not args.pre_tts and not board.is_file():
         sys.exit(f"storyboard.md 不存在: {board}")
 
     msgs: list[str] = []
@@ -298,15 +331,29 @@ def main() -> None:
         fail(msgs, f"配置：{f}")
     for w in cfg_warns:
         warn(msgs, f"配置：{w}")
-    beats = parse_storyboard(board)
-    if not beats:
-        fail(msgs, f"未能从 {board.name} 解析出任何 beat 行（格式变化？）")
-    check_coverage(items, beats, msgs)
-    check_budget(root, items, cfg, msgs)
-    check_reading_traps(items, msgs)
-    check_fade_invariant(root, msgs)
-    if args.check_scenes:
-        check_scenes(root, beats, msgs)
+    if args.pre_tts:
+        # 两遍法草稿遍的形态：稿已定、分镜未写。只跑「文本自身」可判定的门——
+        # 分镜覆盖性/淡入不变式/场景互比都依赖 storyboard 或 timing 常数随分镜
+        # 联动，此时跳过并**点名**（静默跳过的门比没有门更糟）。
+        print(
+            f">> pre-TTS 前置门 · {root.name} · {len(items)} 句（分镜未写，跳过覆盖性/淡入/场景互比）"
+        )
+        check_budget(root, items, cfg, msgs)
+        check_reading_traps(items, msgs)
+        for it in items:
+            errs, _warns = validate(it.get("ttsText") or it["text"])
+            if errs:
+                fail(msgs, f"句 {it['id']} 发音标注非法：{errs[0]}")
+    else:
+        beats = parse_storyboard(board)
+        if not beats:
+            fail(msgs, f"未能从 {board.name} 解析出任何 beat 行（格式变化？）")
+        check_coverage(items, beats, msgs)
+        check_budget(root, items, cfg, msgs)
+        check_reading_traps(items, msgs)
+        check_fade_invariant(root, msgs)
+        if args.check_scenes:
+            check_scenes(root, beats, msgs)
 
     fails = [m for m in msgs if m.startswith("FAIL")]
     warns = [m for m in msgs if m.startswith("WARN")]
@@ -315,7 +362,8 @@ def main() -> None:
             json.dumps({"fails": fails, "warns": warns}, ensure_ascii=False, indent=1)
         )
     else:
-        print(f">> 内容门 · {root.name} · {len(items)} 句 / {len(beats)} 镜")
+        n_beats = "—" if args.pre_tts else len(beats)
+        print(f">> 内容门 · {root.name} · {len(items)} 句 / {n_beats} 镜")
         for m in msgs:
             print(f"  {m}")
         print(f">> FAIL {len(fails)} · WARN {len(warns)}")

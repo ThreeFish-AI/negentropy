@@ -7,6 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from timeline import (  # noqa: E402
+    blend,
     compute,
     js_round,
     load_constants,
@@ -82,3 +83,53 @@ def test_load_constants_missing_fields(tmp_path):
     p.write_text(json.dumps({"fps": 30}), encoding="utf-8")
     with pytest.raises(SystemExit, match="缺少字段"):
         load_constants(tmp_path)
+
+
+# ---------------- blend：部分 manifest 混合时间轴 ----------------
+
+
+def test_blend_measured_prefix_matches_full_manifest():
+    """黄金判据：已实测前缀的 fromFrame 与全量 manifest 逐帧相等。
+
+    这是分幕复检（skills/08「长跑期间做，不要等成片」）能提前给出可靠结论的
+    前提：compute() 是顺序游标，前缀帧位只取决于前面的时长，后段外推值不回
+    污染前缀。若此性质破，混排时间轴上的前缀结论全部作废。
+    """
+    items = [
+        {"id": "p0-01", "scene": "P0", "text": "一二三四五", "durationSec": 0},
+        {"id": "p0-02", "scene": "P0", "text": "一二三", "durationSec": 0},
+        {"id": "p1-01", "scene": "P1", "text": "一二三四五六七八", "durationSec": 0},
+        {"id": "p1-02", "scene": "P1", "text": "一二", "durationSec": 0},
+        {"id": "p2-01", "scene": "P2", "text": "一二三四", "durationSec": 0},
+    ]
+    full = {  # 全量实测（合成完的世界线），dur 值刻意与字数外推错开
+        "p0-01": 2.31,
+        "p0-02": 1.07,
+        "p1-01": 3.89,
+        "p1-02": 0.55,
+        "p2-01": 1.66,
+    }
+    reference = compute(blend(items, full, chars_per_sec=5.0), C)
+    assert [r["fromFrame"] for r in reference]  # 自身非退化
+
+    partial = {sid: full[sid] for sid in ("p0-01", "p0-02")}  # 只合成完前 2 句
+    rolled = compute(blend(items, partial, chars_per_sec=5.0), C)
+    assert [r["fromFrame"] for r in rolled[:2]] == [
+        r["fromFrame"] for r in reference[:2]
+    ]
+    # 未实测句的时长确实来自外推（len(text)/cps），不是 measured 也不是 0
+    assert rolled[2]["durationSec"] == len(items[2]["text"]) / 5.0
+
+
+def test_blend_is_pure_and_covers_all_ids():
+    items = [
+        {"id": "p0-01", "scene": "P0", "text": "四字文本"},
+        {"id": "p1-01", "scene": "P1", "text": "六字文本测试"},
+    ]
+    snapshot = [dict(i) for i in items]
+    out = blend(items, {"p1-01": 4.2}, chars_per_sec=4.0)
+    assert items == snapshot, "blend 不得改写入参"
+    assert [i["id"] for i in out] == ["p0-01", "p1-01"], "输出须覆盖全部句 id"
+    assert out[0]["durationSec"] == 4.0 / 4.0  # 未实测：字数外推
+    assert out[1]["durationSec"] == 4.2  # 已实测：原值透传
+    assert out[0] is not items[0], "blend 返回新对象（浅拷贝逐项展开）"

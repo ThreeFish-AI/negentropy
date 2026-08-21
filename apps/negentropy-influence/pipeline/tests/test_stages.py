@@ -90,6 +90,53 @@ def test_documented_subcommand_lists_match_the_parser():
         )
 
 
+# ---------------- 系列扇出白名单 ----------------
+
+
+def registered_subcommands() -> set[str]:
+    src = PIPELINE_PY.read_text(encoding="utf-8")
+    return set(re.findall(r'add_parser\("([a-z-]+)"', src))
+
+
+def fanout_ok() -> set[str]:
+    """从 pipeline.py 源码取 FANOUT_OK 字面量（import 会执行 paths 哨兵搜索，
+    在 tmp_path 布局的测试里语义不明；AST 取值与 registered 同族、同样会被
+    「找不到 FANOUT_OK 赋值」式的断言兜底）。"""
+    import ast
+
+    tree = ast.parse(PIPELINE_PY.read_text(encoding="utf-8"))
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and any(
+            t.id == "FANOUT_OK" for t in node.targets if isinstance(t, ast.Name)
+        ):
+            # 形态为 frozenset({...})/set({...})/{...}，取第一个 set 字面量求值
+            inner = node.value
+            if isinstance(inner, ast.Call):
+                inner = inner.args[0]
+            return set(ast.literal_eval(inner))
+    raise AssertionError("pipeline.py 里找不到 FANOUT_OK 赋值——检测器该更新了")
+
+
+def test_fanout_whitelist_is_subset_of_registered_subcommands():
+    """白名单不得声明未注册的子命令（否则 --series 白名单项跑起来即 argparse 报错）。"""
+    assert fanout_ok() <= registered_subcommands(), (
+        f"FANOUT_OK 含未注册子命令：{sorted(fanout_ok() - registered_subcommands())}"
+    )
+
+
+def test_fanout_complement_is_nonempty_and_keeps_destructive_out():
+    """反向：**未列入白名单**的子命令必须非空，且 tts/render/qa/all/clean-samples
+    恰在其中——这是白名单（而非黑名单）的意义：未来新增子命令默认不可扇出，
+    不会静默继承「一条命令跑遍全系列」的破坏半径（4 集 × tts = 8 小时不可逆）。
+    """
+    outside = registered_subcommands() - fanout_ok()
+    assert outside, "FANOUT_OK 收编了全部子命令——扇出默认不再安全"
+    for destructive in ("tts", "render", "qa", "all", "clean-samples"):
+        assert destructive in outside, (
+            f"{destructive} 必须留在扇出白名单之外（昂贵/破坏性命令须显式逐集执行）"
+        )
+
+
 def test_ordinals_are_exactly_one_through_nine():
     got = [st["ordinal"] for st in stages()]
     assert got == list(ORDINALS), f"ordinal 应恰为 ①..⑨ 且按序声明，实际 {got}"

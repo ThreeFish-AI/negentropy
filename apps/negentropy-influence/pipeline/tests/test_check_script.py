@@ -224,3 +224,85 @@ def test_model_designator_warns_not_fails(project):
     rc, out = run_check(project)
     assert rc == 0, out
     assert "WARN" in out and "一千零八十" in out
+
+
+# ---------------- --pre-tts：TTS 前置门（两遍法草稿遍，分镜未写） ----------------
+
+
+def test_pre_tts_completes_without_storyboard(project):
+    """两遍法草稿遍形态：storyboard.md 缺失时照常完成、退出 0——前置门只跑
+    不需要分镜的检查，缺分镜在它这里是**预期**而非错误。"""
+    (project / "script" / "storyboard.md").unlink()
+    write_config(project, CFG_OK)
+    rc, out = run_check(project, "--pre-tts")
+    assert rc == 0, out
+    assert "pre-TTS" in out
+    # 分镜相关门须**点名跳过**（静默跳过的门比没有门更糟）
+    assert "跳过覆盖性" in out
+
+
+def test_pre_tts_fails_on_over_budget(project):
+    """分镜缺席不影响预算门：超窗必须拦（否则草稿遍带着超长稿进 2 小时长跑）。"""
+    (project / "script" / "storyboard.md").unlink()
+    write_config(
+        project, "[narration]\ntarget_minutes = [0.0, 0.01]\nchars_per_min = 280\n"
+    )
+    rc, out = run_check(project, "--pre-tts")
+    assert rc == 1
+    assert "超预算" in out
+
+
+def test_pre_tts_fails_on_reading_trap(project):
+    """读法陷阱在前置门内同样成门（ISSUE-164：8 句年份空格错误进了三集成片）。"""
+    (project / "script" / "storyboard.md").unlink()
+    write_config(project, CFG_OK)
+    write_narration(project, ["论文发表于 2026 年六月。", BENIGN, BENIGN, BENIGN])
+    rc, out = run_check(project, "--pre-tts")
+    assert rc == 1, out
+    assert "读法陷阱" in out and "两千零二十六" in out
+
+
+def test_pre_tts_fails_on_illegal_pron_mark(project):
+    """非法发音标注必须在前置门内红（标注错 = 必然读错，长跑前拦最便宜）。"""
+    (project / "script" / "storyboard.md").unlink()
+    write_config(project, CFG_OK)
+    write_narration(project, ["他在银<行|HANG>里走。", BENIGN, BENIGN, BENIGN])
+    rc, out = run_check(project, "--pre-tts")
+    assert rc == 1, out
+    assert "发音标注非法" in out
+
+
+def test_pre_tts_json_output_without_storyboard(project):
+    """pipeline.py cmd_tts 以 --json 消费前置门：JSON 输出路径同样不依赖分镜。"""
+    (project / "script" / "storyboard.md").unlink()
+    write_config(project, CFG_OK)
+    rc, out = run_check(project, "--pre-tts", "--json")
+    assert rc == 0, out
+    import json as _j
+
+    # 输出 = 前置门头部行（人读）+ 多行 JSON（indent=1）；从第一个 "{" 起解析
+    payload = _j.loads(out[out.index("{") :])
+    assert payload == {"fails": [], "warns": []}
+
+
+# ---------------- --pron-candidates：多音字候选报告（非门） ----------------
+
+
+def test_pron_candidates_lists_planted_polyphone(project):
+    write_board(project, BOARD_OK)
+    write_config(project, CFG_OK)
+    write_narration(project, ["先写一行代码试试。", BENIGN, BENIGN, BENIGN])
+    rc, out = run_check(project, "--pron-candidates")
+    assert rc == 0, out
+    assert "p0-01" in out and "行" in out
+    assert "候选命中" in out and "非门" in out  # 非门声明不打诳语
+
+
+def test_pron_candidates_silent_on_clean_text(project):
+    """无候选字命中时零行输出（只打头部与汇总行）——报告的静默即干净。"""
+    write_board(project, BOARD_OK)
+    write_config(project, CFG_OK)
+    write_narration(project, [BENIGN, BENIGN, BENIGN, BENIGN])
+    rc, out = run_check(project, "--pron-candidates")
+    assert rc == 0, out
+    assert "候选命中 0 处" in out

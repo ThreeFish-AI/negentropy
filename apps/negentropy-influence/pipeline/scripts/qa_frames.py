@@ -22,9 +22,16 @@
     解析 video/src/design/theme.ts 的 #RRGGBB，按 WCAG 2.x 相对亮度对比
     theme.bg；概念色 < 4.5:1 → FAIL（此前只能肉眼估，见 skills/06 清单）。
 
+抽帧计划（--stills-plan，零依赖、不需要视频）：
+    TTS 长跑中途的分幕复检排期器（skills/08 ★节步骤 2–3 的机械化）：读部分
+    manifest + narration.json + storyboard beats，混合时间轴（timeline.blend）
+    后按每镜中点帧号，逐行打印 `remotion still` 命令——复制即可执行，无需先有
+    draft.mp4（`still` 直接渲帧，首帧打包 ~100s、后续 4–5s/帧）。
+
 用法：uv run --no-project [--with pillow --with numpy] $R/qa_frames.py \
           --project $P <video.mp4> [--scene P2|--last-n 6|句id…] [--check]
      uv run --no-project $R/qa_frames.py --project $P --check-theme
+     uv run --no-project $R/qa_frames.py --project $P --stills-plan [--chars-per-sec 5]
 输出：抽帧 <工程>/out/frames/{句id}.png；体检结果打屏，FAIL 使退出码非零。
 """
 
@@ -38,7 +45,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from timeline import compute, load_constants
+from timeline import blend, compute, load_constants  # noqa: E402
 
 #: theme.ts 中颜色令牌（'#RRGGBB' 字面量）；bg 单独作为对比基准
 THEME_COLOR_RE = re.compile(
@@ -54,6 +61,56 @@ def timeline(root: Path) -> dict[str, tuple[float, float]]:
     items = json.loads(manifest.read_text(encoding="utf-8"))
     c = load_constants(root)
     return {r["id"]: (r["startSec"], r["spanSec"]) for r in compute(items, c)}
+
+
+def stills_plan(root: Path, chars_per_sec: float) -> None:
+    """按分镜每镜中点打印 `remotion still` 命令行（混合部分 manifest 的时间轴）。
+
+    复用 check_script 的分镜解析（BEAT_ROW_RE 形态同源）而不是再写一份——两个
+    消费者读同一个 storyboard.md，解析规则分叉即 split-brain。
+    """
+    from check_script import parse_storyboard
+
+    board = root / "script" / "storyboard.md"
+    if not board.is_file():
+        sys.exit(f"storyboard.md 不存在: {board} —— 分镜复检的前置是分镜本身")
+    beats = parse_storyboard(board)
+    if not beats:
+        sys.exit(f"未能从 {board} 解析出任何 beat 行（格式变化？）")
+
+    manifest = root / "video" / "public" / "audio" / "manifest.json"
+    narration = root / "script" / "narration.json"
+    # manifest 缺失/部分句缺失都合法（长跑中途本来就只有一部分）：实测口径有多少
+    # 用多少，其余按语速外推（timeline.blend 的职责）。
+    m_items = (
+        json.loads(manifest.read_text(encoding="utf-8")) if manifest.is_file() else []
+    )
+    measured = {i["id"]: i["durationSec"] for i in m_items}
+    items = json.loads(narration.read_text(encoding="utf-8"))
+    rows = compute(blend(items, measured, chars_per_sec), load_constants(root))
+    by_id = {r["id"]: r for r in rows}
+    ids = [r["id"] for r in rows]
+
+    covered = len(measured)
+    print(
+        f">> 抽帧计划 · {root.name} · {len(beats)} 镜 · "
+        f"实测 {covered}/{len(items)} 句（其余按 {chars_per_sec:g} 字/秒外推）\n"
+        f"    在 video/ 目录下执行（首帧含打包 ~100s，之后每帧 4–5s）："
+    )
+    for beat_id, left, right, _cell in beats:
+        if left not in by_id or right not in by_id:
+            print(
+                f"    # 镜 {beat_id}：句区间 {left}..{right} 不在 narration.json，跳过"
+            )
+            continue
+        a, b = ids.index(left), ids.index(right)
+        mid = rows[(a + b) // 2]  # 镜中点：区间内句的时长加权中位近似——取中段句中点
+        frame = mid["fromFrame"] + mid["durationInFrames"] // 2
+        out = f"out/still-{beat_id}.png"
+        print(
+            f"    ./node_modules/.bin/remotion still Main {out} "
+            f"--frame={frame} --scale=0.4   # 镜 {beat_id}（{left}..{right}）"
+        )
 
 
 def extract_frame(
@@ -272,6 +329,18 @@ def main() -> None:
         help="只做主题对比度检查（零依赖，无需视频）",
     )
     parser.add_argument(
+        "--stills-plan",
+        action="store_true",
+        help="只打印分幕复检的 remotion still 命令计划（零依赖，无需视频；"
+        "实测句用 manifest 时长、其余按语速外推）",
+    )
+    parser.add_argument(
+        "--chars-per-sec",
+        type=float,
+        default=5.0,
+        help="[--stills-plan] 未合成句的外推语速（字/秒；首集实测起步值 300 字/分）",
+    )
+    parser.add_argument(
         "--scale",
         type=float,
         default=1.0,
@@ -288,6 +357,10 @@ def main() -> None:
     args = parser.parse_args()
 
     root = Path(args.project).resolve()
+
+    if args.stills_plan:
+        stills_plan(root, args.chars_per_sec)
+        return
 
     if args.check_theme:
         msgs: list[str] = []

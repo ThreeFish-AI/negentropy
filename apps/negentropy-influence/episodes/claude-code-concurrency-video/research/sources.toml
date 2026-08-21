@@ -1,0 +1,70 @@
+# 非论文信源清单（可复现取证链，工具：$R/source_ledger.py）
+#
+# kind=repo 指向固定 commit，raw 指纹漂移即 FAIL（说明 URL 里的 ref 不是不可变引用）。
+# kind=site 指向线上页面，只对剥标签归一后的正文比对指纹，漂移报 WARN（去复核笔记）。
+# text_sha256 是判据；raw_sha256 仅供 repo 类硬校验与人工核对。
+
+
+[s13-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s13_background_tasks/README.md"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-08-22"
+raw_sha256 = "752eee73ced127ea"
+text_sha256 = "fd65fc7f95134c81"
+bytes = 11410
+lines = 261
+via = "pinned commit (site-matching revision), MIT"
+
+[s13-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s13_background_tasks/code.py"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-08-22"
+raw_sha256 = "cd68265f806cdedb"
+text_sha256 = "e78bd3165cd0813f"
+bytes = 17212
+lines = 480
+via = "pinned commit (site-matching revision), MIT"
+
+[s13-site]
+url = "https://learn.shareai.run/zh/s13/"
+kind = "site"
+accessed = "2026-08-22"
+raw_sha256 = "f6f9e70f7ce472ac"
+text_sha256 = "b7cc79aa0644826d"
+bytes = 71444
+lines = 258
+via = "SSG 预渲染"
+
+[s14-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s14_cron_scheduler/README.md"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-08-22"
+raw_sha256 = "0ef9b157e69f5feb"
+text_sha256 = "2304f4002d56d17d"
+bytes = 12241
+lines = 305
+via = "pinned commit (site-matching revision), MIT"
+
+[s14-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s14_cron_scheduler/code.py"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-08-22"
+raw_sha256 = "5edd9d0d55d60cdd"
+text_sha256 = "0b412918794a3b12"
+bytes = 28577
+lines = 804
+via = "pinned commit (site-matching revision), MIT"
+
+[s14-site]
+url = "https://learn.shareai.run/zh/s14/"
+kind = "site"
+accessed = "2026-08-22"
+raw_sha256 = "6081e1cfb20982f4"
+text_sha256 = "2165920cb96917b6"
+bytes = 87494
+lines = 294
+via = "SSG 预渲染"

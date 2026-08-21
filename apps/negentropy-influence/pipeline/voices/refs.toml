@@ -11,7 +11,7 @@ source = "~/Documents/dify/me-1.mp3"
 start = 0.36
 duration = 12
 sha1 = "54b699cce97f"
-sha256 = ""   # 首次 verify 通过后回填（样本不在库，无法预置）
+sha256 = "6c191452e6f79e3386c2b7441d235de61d05aeb006acb6e79e39c686a1f4c53f"   # 2026-08-22 首次 verify 通过后回填
 locked_styles = ["sunny", "sunny-steady"]
 
 [me-1]

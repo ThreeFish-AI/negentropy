@@ -16,7 +16,9 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from pron_marks import (  # noqa: E402
+    POLYPHONE_CANDIDATES,
     has_marks,
+    scan_candidates,
     strip_marks,
     validate,
 )
@@ -141,3 +143,77 @@ def test_vocab_miss_is_warning_not_error():
 def test_in_vocab_no_warning():
     errs, warns = validate("他在银<行|HANG2>里走。", VOCAB)
     assert errs == [] and warns == []
+
+
+# ---------------- 候选表：每个建议标注都必须本身合法 ----------------
+#
+# 候选表是「若读错则标注」的复听提示——若表里的建议标注自身非法（如 ü 写 U、
+# 缺声调），复听者照抄即产出必然读错的音频（上游丢弃原字无兜底）。故每条建议
+# 须先通过 validate() 才有资格出现在表里。
+
+
+def _marked_forms(advice: str) -> list[str]:
+    """`"<行|HANG2>` / `<行|XING2>"` → 取出全部 `<…|…>` 形态并各配一个宿主汉字。
+
+    形态自带原字（`<行|HANG2>`），本身就是可校验的完整标注句。
+    """
+    import re
+
+    return re.findall(r"<[^>]+>", advice)
+
+
+def test_every_candidate_advice_passes_validation():
+    assert POLYPHONE_CANDIDATES, "候选表为空——检测器失效或表被误删"
+    for char, risk, advice in POLYPHONE_CANDIDATES:
+        forms = _marked_forms(advice)
+        assert forms, f"候选 {char!r} 的建议列没有任何标注形态：{advice!r}"
+        for form in forms:
+            errs, _ = validate(f"测试句{form}测试。")
+            assert errs == [], f"候选 {char!r} 的建议标注 {form} 非法：{errs}"
+
+
+def test_candidates_cover_series_vocabulary():
+    """claude-code 系列追加的词表必须在场（拆解 Claude Code 口播高频命中）。"""
+    chars = {c for c, *_ in POLYPHONE_CANDIDATES}
+    for needed in "行重差卷量更":
+        assert needed in chars, f"系列词表缺 {needed!r}"
+
+
+def test_scan_candidates_finds_planted_char_with_id():
+    items = [
+        {"id": "p0-01", "scene": "P0", "text": "普通句子没有候选字。"},
+        {"id": "p1-02", "scene": "P1", "text": "重试一次很重要。"},
+    ]
+    hits = scan_candidates(items)
+    ids = {h[0] for h in hits}
+    chars = {h[1] for h in hits}
+    assert "p1-02" in ids and "p0-01" not in ids
+    assert "重" in chars
+    # 四元组形态：(句id, 字, 易错点, 建议标注)
+    row = next(h for h in hits if h[1] == "重")
+    assert len(row) == 4 and row[2] and row[3]
+
+
+def test_scan_candidates_empty_on_clean_text():
+    items = [{"id": "p0-01", "scene": "P0", "text": "普通句子没有候选字。"}]
+    assert scan_candidates(items) == []
+
+
+def test_glossary_points_to_scanner_not_a_second_table():
+    """PRON-GLOSSARY.md 的候选清单已收敛为指针——文档里的表没有消费者，只会
+    与扫描器漂移；旧表头若回归（手工补表），split-brain 即复现。
+    """
+    glossary = (Path(__file__).resolve().parents[1] / "PRON-GLOSSARY.md").read_text(
+        encoding="utf-8"
+    )
+    assert "若读错则标注 |" not in glossary, (
+        "旧候选表头回归——候选表 SSOT 在 pron_marks.py"
+    )
+    assert "POLYPHONE_CANDIDATES" in glossary, (
+        "指针缺失：文档须指向 pron_marks.py 的候选表"
+    )
+    assert "--pron-candidates" in glossary, (
+        "须给出精确命令（check_script.py --pron-candidates）"
+    )
+    # 纪律句必须保留：候选 ≠ 台账，确认读错才标注
+    assert "不要预防性标注" in glossary

@@ -337,12 +337,12 @@ SCENE_IMPORT_LINE_RE = re.compile(
 SCENE_REGISTRY_LINE_RE = re.compile(
     r"^\s*(?P<key>P\d+)\s*:\s*(?P<val>\w+)\s*,?\s*$", re.M
 )
-#: 注册表的对象字面量本体。起点不能取 `SCENE_COMPONENTS` 后的第一个 `{`——它落在
-#: 泛型参数 `Record<string, React.FC<{scene: SceneRange}>>` **内部**（那对花括号
-#: 属于类型层）；锚定 `>= {`（类型层以 `>` 收口）才落在字面量上。
-SCENE_REGISTRY_BODY_RE = re.compile(
-    r"SCENE_COMPONENTS[^=]*=\s*[^{]*>=\s*(?P<body>\{.*?\})\s*(?:;|$)", re.S
-)
+#: 注册表的对象字面量本体。锚点的坑：`SCENE_COMPONENTS` 与赋值 `=` 之间隔着
+#: 泛型注解 `: Record<string, React.FC<{scene: SceneRange}>>`——它**自带两对
+#: 花括号**，取「SCENE_COMPONENTS 后第一个 `{`」会落进类型层。注解内没有
+#: `=`，故先懒扫到赋值号、再取第一个 `{...}`（条目是 `P0: P0Hook,` 形状的
+#: 标识符对，字面量内部无嵌套花括号，`[^{}]*` 即为本体）。
+SCENE_REGISTRY_BODY_RE = re.compile(r"SCENE_COMPONENTS[^=]*=\s*(?P<body>\{[^{}]*\})")
 
 
 def rule_renderability(series_list: list[dict], msgs: list[str]) -> None:
@@ -391,10 +391,9 @@ def rule_renderability(series_list: list[dict], msgs: list[str]) -> None:
         body = SCENE_REGISTRY_BODY_RE.search(text)
         if body is None:
             continue  # 解析不结论：跳过（见 docstring 的失败容忍原则）
-        registered_idents: list[str] = []
+        imported_basenames = {Path(v).stem for v in ident_to_path.values()}
         for m in SCENE_REGISTRY_LINE_RE.finditer(body.group("body")):
             key, ident = m.group("key"), m.group("val")
-            registered_idents.append(ident)
             # (b) 注册表条目必须有 import 且 import 指向存在的文件
             if ident not in ident_to_path:
                 msgs.append(
@@ -406,12 +405,12 @@ def rule_renderability(series_list: list[dict], msgs: list[str]) -> None:
                     f"FAIL 规则6：{ep['slug']} Main.tsx 注册 {key}: {ident} "
                     f"但 {ident_to_path[ident]}.tsx 不存在"
                 )
-        # (c) 场景文件未进注册表 → 只 WARN（可能是被 import 的辅助组件）
+        # (c) 场景文件未被任何 import 引用 → 只 WARN（可能是场景内部拆出的合法
+        # 辅助组件，也可能是写完忘了接线——两种形态人眼一秒可辨，机器不可辨）
         for f in scene_files:
-            base = f.stem
-            if base not in ident_to_path.values():
+            if f.stem not in imported_basenames:
                 msgs.append(
-                    f"WARN 规则6：{ep['slug']} {base}.tsx 未注册进 Main.tsx"
+                    f"WARN 规则6：{ep['slug']} {f.stem}.tsx 未注册进 Main.tsx"
                     "（可能是辅助组件，若是请确认）"
                 )
 
