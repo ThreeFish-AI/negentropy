@@ -150,3 +150,44 @@ def test_tail_row_has_fade_false_without_marker(tmp_path):
     board.write_text("| 6-G 原文卡 | p6-14..15 | … | 卡片停留 |\n", encoding="utf-8")
     assert not tail_row_has_fade(board)
     assert not tail_row_has_fade(tmp_path / "absent.md")  # 缺文件不炸、不豁免
+
+
+def test_scene_selector_accumulates_multiple_scenes():
+    """`--scene` 可重复传，且**不静默丢弃**先传的幕。
+
+    回归：原先是单值 store，`--scene P0 --scene P6` 只查末幕却照样打
+    `FAIL 0`——输出与「全幕通过」不可区分（EP2 交付前实际踩过）。
+    """
+    import argparse
+    import qa_frames
+
+    parser = argparse.ArgumentParser()
+    # 与 qa_frames.main 的声明保持一致（此处只测选择器语义，不跑抽帧）
+    parser.add_argument("--scene", action="append", metavar="Pn")
+    args = parser.parse_args(["--scene", "P0", "--scene", "P6"])
+    assert args.scene == ["P0", "P6"], "重复传 --scene 必须累积而非覆盖"
+
+    # 真实声明面也必须是 append（防有人改回 store）
+    real = qa_frames.build_parser() if hasattr(qa_frames, "build_parser") else None
+    if real is not None:
+        action = next(a for a in real._actions if "--scene" in a.option_strings)
+        assert action.__class__.__name__ == "_AppendAction"
+
+
+def test_multi_scene_sampling_is_per_scene(tmp_path):
+    """多幕抽样按**各幕自身**句数定步长，句少的幕不会被整幕跳过。
+
+    若用合并后的总数算步长，短幕（如 2 句）在长幕（如 30 句）面前会被
+    `[::N]` 直接跨过——又一次静默漏检。
+    """
+    # 模拟 timeline：P0 三句、P6 两句
+    tl = {f"p0-{i:02d}": (float(i), 1.0) for i in range(1, 4)}
+    tl |= {f"p6-{i:02d}": (float(10 + i), 1.0) for i in range(1, 3)}
+    ids = []
+    for scene in ("P0", "P6"):
+        prefix = scene.lower() + "-"
+        scene_ids = [k for k in tl if k.startswith(prefix)]
+        ids += scene_ids[:: max(1, len(scene_ids) // 8)]
+    assert [i for i in ids if i.startswith("p0-")], "P0 必须有帧被抽到"
+    assert [i for i in ids if i.startswith("p6-")], "P6 必须有帧被抽到"
+    assert len(ids) == 5

@@ -281,7 +281,7 @@ def cmd_qa(
     root: Path,
     cfg: dict,
     video: str | None,
-    scene: str | None,
+    scene: list[str] | None,
     last_n: int | None,
     ids: list[str],
     check: bool,
@@ -291,8 +291,8 @@ def cmd_qa(
     if check:
         cmd += ["--with", "pillow", "--with", "numpy"]
     cmd += [str(SCRIPTS / "qa_frames.py"), "--project", str(root)]
-    if scene:
-        cmd += ["--scene", scene]
+    for s in scene or []:
+        cmd += ["--scene", s]
     if last_n:
         cmd += ["--last-n", str(last_n)]
     if check:
@@ -465,7 +465,8 @@ def main() -> None:
         help="渲染产物路径，**按分集工程目录解析**（本入口以 cwd=<工程> 启动 "
         "qa_frames.py）——写 out/draft.mp4，勿写 $P/out/draft.mp4",
     )
-    p.add_argument("--scene")
+    # 与 qa_frames 对齐：可重复传多幕（单值 store 会静默只留末幕，见 qa_frames 注释）
+    p.add_argument("--scene", action="append", metavar="Pn")
     p.add_argument("--last-n", type=int)
     p.add_argument("--check", action="store_true", help="自动体检")
     p.add_argument(

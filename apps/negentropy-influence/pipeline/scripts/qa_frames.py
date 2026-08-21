@@ -318,7 +318,13 @@ def main() -> None:
     parser.add_argument(
         "--project", default=".", help="视频工程根目录（含 video/ 与 out/）"
     )
-    parser.add_argument("--scene", help="按幕抽样（如 P1）")
+    # action="append"：可重复传（`--scene P0 --scene P1`）。原先是单值 store——
+    # 重复传时 argparse **静默只留最后一个**，于是「七幕体检」实际只查了末幕，
+    # 而输出的 `FAIL 0` 长得跟全幕通过一模一样（本轮 EP2 交付前踩过：以为查了 7 幕，
+    # 实际只查了 P6）。静默缩小检查面的默认值比报错更贵，故改为累积。
+    parser.add_argument(
+        "--scene", action="append", metavar="Pn", help="按幕抽样（如 P1；可重复传多幕）"
+    )
     parser.add_argument("--last-n", type=int, help="抽末 N 句（尾幕渐黑必查）")
     parser.add_argument(
         "--check", action="store_true", help="对抽出的帧做自动体检（需 pillow+numpy）"
@@ -381,9 +387,17 @@ def main() -> None:
     tl = timeline(root)
     offset = args.offset
     if args.scene:
-        prefix = args.scene.lower() + "-"
-        ids = [k for k in tl if k.startswith(prefix)]
-        ids = ids[:: max(1, len(ids) // 8)]  # 每幕最多抽 ~8 帧
+        # 每幕**独立**抽样再拼接：抽样步长按各幕自身句数算，否则多幕合并后
+        # 步长被总数放大，句少的幕会被整幕跳过（静默漏检，与 --scene 单值那个
+        # 坑同族）。幕序按 tl 的出现顺序，与传参顺序无关。
+        ids = []
+        for scene in args.scene:
+            prefix = scene.lower() + "-"
+            scene_ids = [k for k in tl if k.startswith(prefix)]
+            if not scene_ids:
+                print(f"跳过无匹配句的幕: {scene}")
+                continue
+            ids += scene_ids[:: max(1, len(scene_ids) // 8)]  # 每幕最多抽 ~8 帧
     elif args.last_n:
         ids = list(tl)[-args.last_n :]
     else:
