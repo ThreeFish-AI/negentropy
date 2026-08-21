@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -224,3 +225,43 @@ def test_missing_config_announces_skipped_gate():
         assert "跳过时长预算门" in out, out[-2000:]
     finally:
         toml.write_bytes(saved)
+
+
+#: 消费者脚本里，凡对 SCHEMA 叶子键做 `.get(key, <兜底>)` 的地方，兜底**必须**取自
+#: `config.default()`。节名（tts/render/…）的 `.get(sec, {})` 不在此列——那是取节。
+_LEAF_KEYS = {k.split(".", 1)[1] for k, *_ in config.SCHEMA}
+_GET_WITH_DEFAULT = re.compile(r'\.get\(\s*"(?P<key>[a-z_]+)"\s*,\s*(?P<dflt>[^)]+)')
+CONSUMERS = ("pipeline.py", "check_script.py")
+
+
+def test_consumers_do_not_inline_schema_defaults():
+    """默认值只许有一份。
+
+    `load(required=False)` 缺文件时直接返回 `{}`（不走 `resolve()`），所以消费者
+    里内联的 `.get("chars_per_min", 280)` 是**可达**的第二事实源：改 SCHEMA 时
+    那条路径会静默沿用旧口径。`required=True` 的调用点虽恒被 resolve 填过、内联
+    默认不可达，但同样是重复声明——一并禁掉，免得下一个人照抄。
+    """
+    offenders: list[str] = []
+    for name in CONSUMERS:
+        text = (SCRIPTS / name).read_text(encoding="utf-8")
+        for lineno, line in enumerate(text.split("\n"), 1):
+            for m in _GET_WITH_DEFAULT.finditer(line):
+                if m.group("key") not in _LEAF_KEYS:
+                    continue
+                if "config.default(" in m.group("dflt"):
+                    continue
+                offenders.append(f"{name}:{lineno} {line.strip()}")
+    assert not offenders, (
+        'SCHEMA 叶子键的兜底默认值须写成 config.default("<节>.<键>")：\n  '
+        + "\n  ".join(offenders)
+    )
+
+
+def test_default_accessor_matches_schema_and_rejects_unknown():
+    import pytest
+
+    for dotted, _t, dflt, *_ in config.SCHEMA:
+        assert config.default(dotted) == dflt
+    with pytest.raises(KeyError):
+        config.default("tts.styl")

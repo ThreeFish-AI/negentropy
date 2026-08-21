@@ -9,11 +9,18 @@
 另注：模板里的 `.tsx` 不被任何 tsconfig 覆盖，因此没有 tsc 检查。这不是漏洞，
 而是漂移门保证的性质：模板与真集字节相同 ⟹ 真集的 `tsc --noEmit` 传递性地
 验证了模板。门被关掉时会同时失去这层保障——该耦合已写入 skeleton.toml。
+
+**但这条传递性有一个缺口**：它只覆盖受门档位。`theme.ts` 是 **seeded** 档、
+不受门，而 frozen 组件对 `theme.serif` / `theme.sans` 有硬依赖——真集的 theme.ts
+恰好齐全，模板的 seed 却曾缺这两个键，于是 scaffold 出的新集开箱即 6 个 TS2339
+而漂移门照样报 0 处。补口在 `test_template_theme_covers_frozen_component_tokens`：
+凡 seeded 档被 frozen 档消费，那个接口必须单独立判据。
 """
 
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 import tomllib
@@ -343,8 +350,6 @@ def test_template_readme_qa_commands_are_runnable():
     """模板 README 是每个新集经 scaffold 继承的「复现流水线」正典，qa 命令必须
     与 pipeline.py 的真实参数契约一致——曾整段缺 --video，照抄即 parser.error。
     """
-    import re
-
     text = (TEMPLATE / "README.md.tmpl").read_text(encoding="utf-8")
     qa_cmds = re.findall(r"^\s*uv run.*pipeline\.py.*\bqa\b.*$", text, re.MULTILINE)
     assert qa_cmds, "模板 README 里没找到 qa 命令（检测器失效？）"
@@ -362,8 +367,6 @@ def test_paths_docstring_lists_all_real_importers():
     """paths.py 的「导入边界（承重，勿破）」须与实际导入方一致——契约在落地时
     就与代码矛盾的话，下一位读者会误判新增脚本违规。
     """
-    import re
-
     doc = (SCRIPTS / "paths.py").read_text(encoding="utf-8")
     m = re.search(r"## 导入边界.*?`(.*?)`.*?可以 `import paths`", doc, re.DOTALL)
     assert m, "paths.py 导入边界小节形态变化，检测器该更新了"
@@ -379,3 +382,50 @@ def test_paths_docstring_lists_all_real_importers():
     allowed = set(re.findall(r"`(\w+\.py)`", doc))
     assert real <= allowed, f"实际导入方超出清单：{real - allowed}"
     assert "tts.py" not in real, "红线：tts.py 不可 import paths（拷出路径会断）"
+
+
+#: 模板组件里读的 theme token。`theme.ts` 属 **seeded** 档、不受漂移门执法，
+#: 而 frozen 组件对它有硬依赖——这个 seeded↔frozen 接口是本文件文件头那条
+#: 「模板≡真集 ⟹ 真集 tsc 传递性验证模板」推理的**唯一缺口**：真集的 theme.ts
+#: 是人写的、恰好齐全，模板的 seed 却可以缺键而无人发现。实测代价是 scaffold
+#: 出的新集开箱即 6 个 TS2339（`theme.serif` / `theme.sans` 不存在）。
+THEME_TOKEN_RE = re.compile(r"\btheme\.([A-Za-z][A-Za-z0-9]*)")
+#: **必须先切出 `theme` 对象字面量再取键**：整文件扫会把同缩进的兄弟导出
+#: （曾存在的 `export const font = { serif: … }`）一并算作已定义，于是把这条
+#: 判据变成永真——注入正控时实测过一次假通过。
+THEME_LITERAL_RE = re.compile(r"export const theme = \{(.*?)\n\} as const;", re.DOTALL)
+#: seed 里以注释形式留给本集填的占位（concept/conceptDeep/deny 之类）不算已定义，
+#: 但组件也不该引用它们——故只需比对「未注释的键」。
+THEME_KEY_RE = re.compile(r"^ {2}([A-Za-z][A-Za-z0-9]*)\s*:", re.MULTILINE)
+#: 受检面含 regioned：Main.tsx 同样由 scaffold 原样复制，它读 `theme.bg`。
+THEME_CONSUMER_CLASSES = ("frozen", "regioned")
+
+
+def test_template_theme_covers_frozen_component_tokens():
+    """模板 theme.ts 必须覆盖 frozen 组件读到的每个 token（零依赖静态判据）。
+
+    不拉 tsc：这套测试的定位是零基建依赖 / 5 秒跑完。判据贴着真实失效模式——
+    「组件读了 seed 里没有的键」——而非贴着类型系统。
+    """
+    seed = (TEMPLATE / "video/src/design/theme.ts.tmpl").read_text(encoding="utf-8")
+    body = THEME_LITERAL_RE.search(seed)
+    assert body, "seed 里找不到 `export const theme = {…} as const;`（形态变了？）"
+    defined = set(THEME_KEY_RE.findall(body.group(1)))
+    assert "bg" in defined, "seed 解析失效（键的缩进形态变了？检测器该更新了）"
+
+    skel = skeleton()
+    missing: list[str] = []
+    gated = [
+        rel for cls in THEME_CONSUMER_CLASSES for rel in skel["classes"].get(cls, [])
+    ]
+    for rel in gated:
+        if not rel.endswith((".tsx", ".ts")):
+            continue
+        text = (TEMPLATE / rel).read_text(encoding="utf-8")
+        for token in sorted(set(THEME_TOKEN_RE.findall(text))):
+            if token not in defined:
+                missing.append(f"{rel} 读了 theme.{token}")
+    assert not missing, (
+        "frozen 组件依赖的 token 不在模板 theme seed 里 —— scaffold 出的新集会"
+        "直接 tsc 失败：\n  " + "\n  ".join(missing)
+    )

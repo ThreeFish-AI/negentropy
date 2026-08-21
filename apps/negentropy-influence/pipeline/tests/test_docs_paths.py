@@ -184,3 +184,64 @@ def test_no_mixed_anchor_commands():
         "命令内混用仓库根变量与子项目相对路径（样本路径请用 $V）：\n  "
         + "\n  ".join(offenders)
     )
+
+
+#: `$P` 是每集自己的（各集 README 在 bash 块首行赋值它，见
+#: episodes/*/README.md），故 `P=` 全域允许；`I=`/`R=`/`V=` 是全局定义，
+#: 只允许出现在 pipeline/README.md。
+GLOBAL_VARS = frozenset("IRV")
+VAR_ASSIGN_RE = re.compile(r"^\s*([IRPV])=(\S*)", re.MULTILINE)
+
+
+def definition_bearing_files() -> list[Path]:
+    """可能写下变量定义的全部文件 = 命令承载文件 + 子项目 README。"""
+    return [
+        p
+        for p in [*command_bearing_files(), PIPELINE.parent / "README.md"]
+        if p.is_file()
+    ]
+
+
+def test_global_var_definitions_and_literals_stay_out_of_consumers():
+    """判据 2 的**受检面必须含 `.py` 与各集 README**，不能只有 skills/*.md。
+
+    实测漏网：`pipeline.py` 文件头曾写 `R=apps/…/scripts; P=apps/…/episodes/<工程>`,
+    把位置字面量复制了两遍进脚本——而当时的定义检查只扫 skills/*.md，看不到 .py
+    文件头，于是这处违反不报红。判据要贴着「位置字面量有几份副本」，不贴着文件后缀。
+    """
+    readme = PIPELINE / "README.md"
+    offenders: list[str] = []
+    for p in definition_bearing_files():
+        if p == readme:
+            continue
+        for m in VAR_ASSIGN_RE.finditer(p.read_text(encoding="utf-8")):
+            name, value = m.group(1), m.group(2)
+            if name in GLOBAL_VARS:
+                offenders.append(
+                    f"{p.name}: 定义了 ${name} —— 定义应只在 pipeline/README.md"
+                )
+            if LOCATION_LITERAL in value:
+                offenders.append(
+                    f"{p.name}: {name}={value} 内联了位置字面量，应从 $I 派生"
+                )
+    assert not offenders, "\n  ".join(["路径变量定义/位置字面量越界：", *offenders])
+
+
+def test_episode_and_template_readmes_carry_no_location_literal():
+    """分集 README 是**按集复制**的：位置字面量落进去就会随新集数量线性繁殖。
+
+    模板 README 尤其承重——它是每个 scaffold 出的新集继承的那一份。
+    """
+    targets = [PIPELINE / "templates" / "video-skeleton" / "README.md.tmpl"]
+    targets += sorted((PIPELINE.parent / "episodes").glob("*/README.md"))
+    offenders = [
+        f"{p.relative_to(PIPELINE.parent)}:{i}"
+        for p in targets
+        if p.is_file()
+        for i, line in enumerate(p.read_text(encoding="utf-8").split("\n"), 1)
+        if LOCATION_LITERAL in line
+    ]
+    assert not offenders, (
+        "分集/模板 README 不得出现位置字面量（用 $I 派生，见 pipeline/README.md）：\n  "
+        + "\n  ".join(offenders)
+    )
