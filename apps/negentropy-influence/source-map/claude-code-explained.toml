@@ -1,0 +1,166 @@
+# 《Learn Claude Code》系列信源地图（机器可读 SSOT）
+#
+# ★ 单一事实源约定：站点↔仓库的章节映射、修订分叉、层→集归属，全系列**只登记在本文件**
+# （人读版见 [claude-code-explained.md](./claude-code-explained.md)）。各集 research/source-notes.md
+# 只允许**链接**到本文件，不得重述章节映射——防止四个集的笔记各自成为同权真理声明者。
+#
+# 消费方：pipeline/scripts/source_ledger.py 的 sync / audit 子命令
+#（规格见 [../pipeline/skills/01-source-extraction.md](../pipeline/skills/01-source-extraction.md) §多章批量取证）。
+#
+# ⚠️ 修订分叉（2026-08-22 查明）：线上站点是课程的 **20 章旧修订**，与仓库默认分支的
+# **17 章整合版**不是同一时刻的产物。故本系列**双钉**——各集选用与自身叙事一致的修订：
+
+seriesId  = "claude-code-explained"
+repo      = "https://github.com/shareAI-lab/learn-claude-code"
+rawBase   = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code"
+license   = "MIT"
+siteBase  = "https://learn.shareai.run/zh"
+codeFile  = "code.py"
+
+# ─────────────────────────────────────────────────────────── 双钉登记
+
+[[pin]]
+ref = "f9e8b280f715f9ba107d4517fd39bc5f8ddda618"
+date = "2026-08-18"
+label = "仓库 main · 17 章整合版"
+readmeFile = "README.zh.md"   # main 起中文文件名；20 章修订是 README.md
+episodes = [1]
+
+[[pin]]
+ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+date = "2026-07-28"
+label = "站点同源修订 · 20 章版（分支 fix/s08-s20-sync-frontmatter-parser，站点整站逐字对应此版）"
+readmeFile = "README.md"      # 该修订的中文文件名
+episodes = [2, 3, 4, 5]
+
+# ─────────────────────────────────────────────────────────── 章节归属
+# id     = 仓库目录名（判据轨身份，目录名以该章所属 pin 的修订为准）
+# slug   = 台表条目名前缀（{slug}-readme / {slug}-code / {slug}-site）
+# episode= 归属集；sitePaths = 站点路径段（一页 = 单元素；空 = 站点该修订无对应页）
+
+[[chapter]]
+id = "s01_agent_loop"
+slug = "s01"
+episode = 1
+sitePaths = ["s01"]
+
+[[chapter]]
+id = "s02_tool_use"
+slug = "s02"
+episode = 1
+sitePaths = ["s02"]
+
+[[chapter]]
+id = "s03_permission"
+slug = "s03"
+episode = 1
+sitePaths = ["s03"]
+
+[[chapter]]
+id = "s04_hooks"
+slug = "s04"
+episode = 1
+sitePaths = ["s04"]
+
+[[chapter]]
+id = "s05_todo_write"
+slug = "s05"
+episode = 2
+sitePaths = ["s05"]
+
+[[chapter]]
+id = "s06_subagent"
+slug = "s06"
+episode = 2
+sitePaths = ["s06"]
+
+[[chapter]]
+id = "s07_skill_loading"
+slug = "s07"
+episode = 2
+sitePaths = ["s07"]
+
+[[chapter]]
+id = "s10_system_prompt"
+slug = "s10"
+episode = 2
+sitePaths = ["s10"]
+note = "main 17 章版无对应章（整合时移除）；仅存在于站点同源修订"
+
+[[chapter]]
+id = "s11_error_recovery"
+slug = "s11"
+episode = 2
+sitePaths = ["s11"]
+note = "main 17 章版无对应章（整合时移除）；仅存在于站点同源修订"
+
+[[chapter]]
+id = "s08_context_compact"
+slug = "s08"
+episode = 3
+sitePaths = ["s08"]
+
+[[chapter]]
+id = "s09_memory"
+slug = "s09"
+episode = 3
+sitePaths = ["s09"]
+
+[[chapter]]
+id = "s13_background_tasks"
+slug = "s13"
+episode = 4
+sitePaths = ["s13"]
+
+[[chapter]]
+id = "s14_cron_scheduler"
+slug = "s14"
+episode = 4
+sitePaths = ["s14"]
+
+[[chapter]]
+id = "s12_task_system"
+slug = "s12"
+episode = 5
+sitePaths = ["s12"]
+
+[[chapter]]
+id = "s15_agent_teams"
+slug = "s15"
+episode = 5
+sitePaths = ["s15"]
+
+[[chapter]]
+id = "s16_team_protocols"
+slug = "s16"
+episode = 5
+sitePaths = ["s16"]
+note = "main 整合后并入 s13_agent_teams；归属第 5 集"
+
+[[chapter]]
+id = "s17_autonomous_agents"
+slug = "s17"
+episode = 5
+sitePaths = ["s17"]
+note = "main 整合后由 s17_goal_loop 接续（主题已变），本系列按站点版讲自治认领"
+
+[[chapter]]
+id = "s18_worktree_isolation"
+slug = "s18"
+episode = 5
+sitePaths = ["s18"]
+note = "main 整合后并入 s13_agent_teams 的 worktree 机制；归属第 5 集"
+
+[[chapter]]
+id = "s19_mcp_plugin"
+slug = "s19"
+episode = 5
+sitePaths = ["s19"]
+note = "第 5 集一句话带过（标准协议 + 命名防重名，详见该集 notes 的取舍说明）"
+
+[[chapter]]
+id = "s20_comprehensive"
+slug = "s20"
+episode = 5
+sitePaths = ["s20"]
+note = "不作独立章讲，作第 5 集 P6 的收束装置（一整轮七步 + 「机制很多，循环一个」）"

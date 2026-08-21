@@ -27,7 +27,14 @@
 
 | # | 作品 | 一句话主题 | 视觉契约（主色） | 信源 | 状态 |
 |---|---|---|---|---|---|
-| 1 | [《拆开 Claude Code：让 AI 动手的四层机制》](./episodes/claude-code-explained-video/README.md) | 工具与执行的四层机制 | 陶土橙/石青/警示红 | [Learn Claude Code](https://learn.shareai.run/zh/s01/) s01–s04 + 仓库 @ `f9e8b28`（MIT），2026-08 | **已交付**（成片 14:14，终渲抽帧 FAIL 0） |
+| 1 | [《拆开 Claude Code：让 AI 动手的四层机制》](./episodes/claude-code-explained-video/README.md) | 工具与执行的四层机制 | 陶土橙/石青/警示红 | [Learn Claude Code](https://learn.shareai.run/zh/s01/) s01–s04 + 仓库 @ `f9e8b28`（MIT），2026-08 | **已交付**（成片 14:14；2026-08-22 画面优化版 14:12，抽帧 FAIL 0 · WARN 0） |
+| 2 | [《AI 的视野是安排出来的：写下来的计划，另开的桌子》](./episodes/claude-code-planning-video/README.md) | 规划与协调：谁来安排模型看到什么 | 陶土橙/鸢紫/石青 | s05–s07 · s10 · s11 @ 站点同源修订 `67a9126c`（MIT） | 制作中 |
+| 3 | [《AI 的记忆：会丢的和不能丢的》](./episodes/claude-code-memory-video/README.md) | 记忆管理：压缩与持久层 | 陶土橙/苔绿/警示红 | s08 · s09 @ `67a9126c`（MIT） | 制作中 |
+| 4 | [《AI 会自己开工吗？后台与定时》](./episodes/claude-code-concurrency-video/README.md) | 并发与调度：谁来按下开始 | 陶土橙/霜蓝/石青 | s13 · s14 @ `67a9126c`（MIT） | 制作中 |
+| 5 | [《一群 AI 怎么干活：看板、信箱与各自的桌子》](./episodes/claude-code-multiagent-video/README.md) | 多 Agent 平台：从一个到一群 | 陶土橙/赭金/石青 | s12 · s15–s20 @ `67a9126c`（MIT） | 制作中 |
+
+> 章节→集归属与**站点/仓库修订分叉**（站点为 20 章旧修订、仓库 main 已整合为 17 章，故双钉）：
+> 系列级登记见 [source-map/claude-code-explained.md](./source-map/claude-code-explained.md)。
 
 **系列纪律**：各集独立成片，口播互不引用、不出现集数序号——顺序只存在于本清单与片尾视觉卡片，
 发布顺序变更的 TTS 代价恒为零。

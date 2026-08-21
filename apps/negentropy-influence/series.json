@@ -102,7 +102,7 @@
             "accessed": "2026-08-21"
           },
           "status": "ready",
-          "statusNote": "已交付：成片 14:14（1080p30 h264/aac192K，42.1 MB）+ srt/vtt 各 170 cue + 封面帧；终渲抽帧 FAIL 0（WARN 1 为刻意的画面凝住）",
+          "statusNote": "已交付：成片 14:14（1080p30 h264/aac192K，42.1 MB）+ srt/vtt 各 170 cue + 封面帧；终渲抽帧 FAIL 0（WARN 1 为刻意的画面凝住）；2026-08-22 tier-i 画面优化版 14:12.52 · 42.7 MB（零口播零配音改动，抽帧 FAIL 0 · WARN 0）",
           "voice": "sunny-steady + me-bright.wav"
         }
       ]
