@@ -101,6 +101,26 @@ uv run --no-project $R/pipeline.py --project $P     {status|doctor|build|check|t
 
 中心脚本以 `--project <工程根>` 参数化；工程内 `scripts/*.py` 为薄包装（透传参数、保持原 CLI）。改造/迭代只改 `$R/`，验证门 = 受影响工程的 `narration.json` / `manifest.json` 字节级不变。
 
+### pipeline.toml 字段表
+
+schema、默认值与校验的单一事实源是 [scripts/config.py](./scripts/config.py) 的 `SCHEMA`（此前 schema 只是「两个脚本里 `.get()` 调用的并集」，无处可查、键名 typo 静默生效）。**默认值在代码、toml 只写偏离**——判据是「删机制常数、留策略声明」。跑 `pipeline.py doctor` 打印带来源标注（`pipeline.toml` / `default` / `env:*`）的生效配置表。
+
+| 键 | 必填 | 默认 | 性质 |
+|---|---|---|---|
+| `episode.slug` | ✅ | — | 须等于工程目录名，且能在 series.json 命中（跨源身份校验） |
+| `narration.target_minutes` | ✅ | — | `[下限, 上限]` 分钟；缺失会让时长预算门**点名跳过** |
+| `narration.chars_per_min` | | `280` | 机制常数 |
+| `tts.engine` | | `indextts` | **策略声明**（有替代项 edge，且受 `.engine` 签名护栏约束），故保留在 toml |
+| `tts.ref` | engine=indextts | — | **子项目根相对**；内容入缓存摘要（改拼法不失效缓存） |
+| `tts.ref_sha1` | engine=indextts | — | 12 位，同 tts.py 口径 |
+| `tts.style` | engine=indextts | — | STYLE_PRESETS 档名 |
+| `tts.lang` | | `ZH` | 机制常数 |
+| `tts.server` | | `http://127.0.0.1:8766` | **机器属性**：可用 `INDEXTTS_SERVER` 覆盖，永不写进 toml |
+| `render.draft_scale` | | `0.5` | 机制常数（`qa --scale` 推断依赖它） |
+| `render.draft_jpeg_quality` | | `60` | 机制常数 |
+
+未知键报 WARN 并给最近邻建议（保留前向兼容）；类型/取值域/必填/slug 不符报 FAIL。`status` 与 `doctor` 只报不退——诊断工具因被诊断对象有病而拒绝运行是荒谬的；其余子命令 FAIL 即退出。
+
 ## 四、复用边界（显式权衡）
 
 - **Python 脚本：集中共享（SSOT）**——三个纯文本变换工具，跨集零差异，中心化防 split-brain。

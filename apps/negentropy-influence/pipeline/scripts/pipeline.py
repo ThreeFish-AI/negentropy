@@ -32,19 +32,25 @@ from pathlib import Path
 SCRIPTS = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPTS))  # noqa: E402 - 复用 timeline 的 load_constants
 
-from paths import INFLUENCE, REPO  # noqa: E402 - 必须在 sys.path 注入之后导入
+import config  # noqa: E402 - 必须在 sys.path 注入之后导入
+from paths import INFLUENCE, REPO  # noqa: E402
 
 MANUAL = "pipeline/VOICE-CLONING.md"  # 子项目根相对（见 paths.py）
 
 
-def load_config(root: Path) -> dict:
-    cfg_path = root / "pipeline.toml"
-    if not cfg_path.is_file():
-        sys.exit(
-            f"缺少分集配置: {cfg_path}\n  可执行参数已收敛至 pipeline.toml"
-            "（见 pipeline/README.md 字段表）；直接调用底层脚本亦可"
-        )
-    return tomllib.loads(cfg_path.read_text(encoding="utf-8"))
+def load_config(root: Path) -> tuple[dict, dict[str, str]]:
+    """→ (填过默认值的配置, {键: 来源})。schema/默认值/校验全在 config.py。
+
+    编排器对缺配置是硬失败：没有配置就真的无法装配 TTS 与渲染参数。
+    校验 FAIL 同样硬失败——但 `status`/`doctor` 例外（见 main()）：诊断工具
+    因为被诊断对象有病而拒绝运行是荒谬的。
+    """
+    cfg, origin, fails, warns = config.load(root, required=True)
+    for w in warns:
+        print(f"  ⚠️  {w}")
+    if fails:
+        sys.exit("配置校验失败：\n  " + "\n  ".join(f"❌ {f}" for f in fails))
+    return cfg, origin
 
 
 def run(cmd: list[str], cwd: Path | None = None) -> int:
@@ -105,11 +111,17 @@ def cmd_status(root: Path, _cfg: dict) -> int:
     return 0
 
 
-def cmd_doctor(root: Path, cfg: dict) -> int:
+def cmd_doctor(root: Path, cfg: dict, origin: dict[str, str] | None = None) -> int:
     """环境自检：配置、时序 SSOT、参考样本、IndexTTS 服务、node_modules。"""
     ok = True
     tts = cfg.get("tts", {})
     print(">> doctor")
+    if origin:
+        # 默认值集中进 config.py 后，单看 toml 不再自证全貌——这张带来源标记的
+        # 表就是发现性补偿（git config --list --show-origin 的同类做法）。
+        print("  ℹ️  生效配置（来源标注）：")
+        for line in config.format_table(cfg, origin):
+            print(line)
     from timeline import load_constants
 
     try:
@@ -372,11 +384,19 @@ def main() -> None:
         sys.exit(cmd_stages())
     if args.cmd == "clean-samples":
         sys.exit(cmd_clean_samples(root, {}))
-    cfg = load_config(root)
+    # status/doctor 是诊断工具：配置有病时它们尤其该运行，故只报不退
+    if args.cmd in {"status", "doctor"}:
+        cfg, origin, fails, warns = config.load(root, required=True)
+        for w in warns:
+            print(f"  ⚠️  {w}")
+        for f in fails:
+            print(f"  ❌ 配置：{f}")
+    else:
+        cfg, origin = load_config(root)
     t0 = time.time()
     rc = {
         "status": lambda: cmd_status(root, cfg),
-        "doctor": lambda: cmd_doctor(root, cfg),
+        "doctor": lambda: cmd_doctor(root, cfg, origin),
         "build": lambda: cmd_build(root, cfg),
         "check": lambda: cmd_check(root, cfg, args.check_scenes),
         "tts": lambda: cmd_tts(

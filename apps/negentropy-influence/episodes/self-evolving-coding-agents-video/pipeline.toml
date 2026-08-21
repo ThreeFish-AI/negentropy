@@ -4,11 +4,9 @@
 
 [episode]
 slug  = "self-evolving-coding-agents-video"
-title = "会写代码的 AI，开始给自己写代码"
 
 [narration]
 target_minutes = [12.0, 15.0]
-chars_per_min  = 280
 
 [tts]
 # ⚠️ 本配置记录的是「复现已上线音频」的档：三集成片统一 passionate + me-1.wav。
@@ -18,8 +16,3 @@ engine   = "indextts"
 ref      = "pipeline/voices/me-1.wav"
 ref_sha1 = "3ed0d9d60d4b"
 style    = "passionate"
-lang     = "ZH"
-
-[render]
-draft_scale        = 0.5
-draft_jpeg_quality = 60

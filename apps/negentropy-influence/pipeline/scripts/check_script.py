@@ -24,10 +24,10 @@ import argparse
 import json
 import re
 import sys
-import tomllib
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))  # noqa: E402
+import config  # noqa: E402 - 同目录模块，须在 sys.path 注入之后
 from timeline import load_constants, total_duration_in_frames  # noqa: E402
 
 #: 分镜表行：| 镜号 | 句区间 | 画面 | 动效 |。镜号形如 `0-A`/`2-B2`，句区间形如
@@ -108,7 +108,17 @@ def check_coverage(
 
 def check_budget(root: Path, items: list[dict], cfg: dict, msgs: list[str]) -> None:
     narr = cfg.get("narration", {})
-    lo, hi = narr.get("target_minutes", [0, 999])
+    budget = narr.get("target_minutes")
+    if budget is None:
+        # 此前这里静默退化为 [0, 999]——一个「你以为开着其实关着的门」。
+        # 点名 WARN 是本次改动的要点：门被跳过必须说出来。
+        warn(
+            msgs,
+            "缺 narration.target_minutes：**跳过时长预算门**（无 pipeline.toml？）",
+        )
+        lo, hi = 0, 999
+    else:
+        lo, hi = budget
     cpm = narr.get("chars_per_min", 280)
     chars = sum(len(i["text"]) for i in items)
     est_min = chars / cpm
@@ -262,11 +272,11 @@ def main() -> None:
     args = ap.parse_args()
 
     root = Path(args.project).resolve()
-    cfg_path = root / "pipeline.toml"
-    cfg = (
-        tomllib.loads(cfg_path.read_text(encoding="utf-8"))
-        if cfg_path.is_file()
-        else {}
+    # required=False：内容门在没有 pipeline.toml 时仍应能跑（如新集脚手架期）。
+    # 但受影响的门必须点名 WARN（见 check_budget）——静默跳过的门是 config.py
+    # 存在的首要原因。schema/默认值与 pipeline.py 共用同一事实源。
+    cfg, _origin, cfg_fails, cfg_warns = config.load(
+        root, required=False, scope={"narration"}
     )
     items = json.loads((root / "script" / "narration.json").read_text(encoding="utf-8"))
     board = root / "script" / "storyboard.md"
@@ -274,6 +284,10 @@ def main() -> None:
         sys.exit(f"storyboard.md 不存在: {board}")
 
     msgs: list[str] = []
+    for f in cfg_fails:
+        fail(msgs, f"配置：{f}")
+    for w in cfg_warns:
+        warn(msgs, f"配置：{w}")
     beats = parse_storyboard(board)
     if not beats:
         fail(msgs, f"未能从 {board.name} 解析出任何 beat 行（格式变化？）")
