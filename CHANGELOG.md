@@ -4,6 +4,17 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **`media/` 迁移为 `apps/negentropy-influence/`（分层布局）+ 公共层四项抽取**：子项目从仓库根迁入 `apps/` 约定位置，「机制」（`pipeline/`）与「内容」（`episodes/<slug>-video/`）边界显式化。迁移本身是 191 文件 R100 纯重命名（0 增 0 删），语义修复独立成提交。四项基建：
+  ① **路径锚点抽取**（[paths.py](apps/negentropy-influence/pipeline/scripts/paths.py) + `.influence-root` 哨兵）：替换三处「数目录层数」的 `parents[N]`——迁移已实证其脆弱（错位后 tts.ref 解析失败、check_series 门静默失效、生物特征小样写错位置，三种失败**都不报错**）。`tts.ref` 与 `series.json` 的 `path` 同步改为**子项目根相对**（缓存摘要只含字节 sha1 不含路径，零句缓存失效）。
+  ② **产物 ignore 通配化**（根 `.gitignore` 28 行→16 行）：迁移后实测 `voices/*.wav`、逐句 mp3、`.engine`、`*.wav` 全部会变为**可提交**（`check-added-large-files` 阈值 1024KB 拦不住 768KB 的声音样本）；通配到分集级同时修掉既存漏洞——**新集在补齐那 5 行之前完全没有覆盖**，新集清单第 3 步随之删除。
+  ③ **[stages.toml](apps/negentropy-influence/pipeline/stages.toml) 九阶段唯一声明**：杀掉「散文/子命令/mermaid/路由表」四处分裂脑；序号↔文件号错位（⑥↔07、⑦↔06）显式化 + `test_stages.py` 执法；9 篇 H1 统一为 `# Stage <序号> <名字>`。
+  ④ **`pipeline.toml` schema 与默认值层**（[config.py](apps/negentropy-influence/pipeline/scripts/config.py)）：每集 11 键收缩到 6 键（机制常数进代码、`episode.title` 删除、`engine` 留作策略声明、`server` 走环境变量）；**等价变换已证明**（解析填默认后全部 schema 键 4 集逐一相等）；修掉一个**静默跳过的门**（缺 toml 时时长预算退化为 [0,999]——现在点名 WARN）；`episode.slug` 升级为跨源身份校验；`doctor` 打印带来源标注的配置表。
+  ⑤ **骨架模板三件套**（[templates/video-skeleton/](apps/negentropy-influence/pipeline/templates/video-skeleton/skeleton.toml)）：复制源头从「任一既有集」收敛为**命名模板**（scaffold.py 实例化 + verify_skeleton.py 按系列分组 md5 漂移门），把「改一处须同步」从纸面义务变成秒级判据——此前 391 行冻结基建有 4 个同权真理声明者且义务从未执行过（实测 Main.tsx/cards.tsx 均已漂移，3 处既存漂移登记在案）。README §四「复制适配不做共享包」的决策**不被推翻、而是被补完**（运行期仍是物理副本、仍 `--ignore-workspace` 独立可渲染）。
+  ⑥ **`$R`/`$P` 路径变量约定 + skills 死链执法**：命令变量化（定义只在 pipeline/README.md 一处，`test_docs_paths.py` 守围栏块与行内两种形态）、散文链接保持相对路径（规则 5 执法）；`.agent/skills/science-video-pipeline` 路由壳的 13 条链接**此前完全无死链校验**，现入 `check_series` 受检面；4 集 README 的三种互不一致调用风格统一为 `./node_modules/.bin/` 直调。
+  测试 130 → **164 项全绿**（每条新守卫均做正控：注入漂移必红、还原转绿）；4 集内容门/主题对比度与迁移前基线逐项一致；`pnpm ls -r` 仍恰 5 项目、根 lockfile 零变更、4 集 `tsc --noEmit` 全过、全仓 `media/` 引用归零（`--text --hidden --no-ignore` 三旗扫描）。⚠️ 各兄弟 worktree 的 gitignored TTS 产物（canberra 187 mp3 / philadelphia-v2 170 mp3）**留在旧路径**，须按 README runbook 在各 worktree 内搬迁，全程禁 `git clean -xdf`。
+
 ### Added
 
 - **新系列「Claude Code 通俗全解」首集 + 管线多系列化与 B 型信源取证基建**：新增 [《拆开 Claude Code：让 AI 动手的四层机制》](apps/negentropy-influence/episodes/claude-code-explained-video/README.md)（陶土橙 `#D97757` 内核 / 石青 `#64C4C0` 外挂机制 / 警示红 `#EF6461` 拒绝闸门，三色对 `#0E1116` 实测 6.06 / 9.18 / 6.00 : 1；170 句 4048 字 7 幕 39 镜；配音 `sunny-steady` + `me-bright.wav`），选题为开源课程 [Learn Claude Code](https://learn.shareai.run/zh/s01/) 的工具与执行四章（s01 Agent Loop / s02 Tool Use / s03 Permission / s04 Hooks）。为此做三件基建：

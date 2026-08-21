@@ -44,13 +44,13 @@ uv run --no-project ../pipeline/scripts/pipeline.py --project . tts
 cd video && pnpm install --ignore-workspace && pnpm dev
 
 # 4. 草渲（半分辨率快速迭代）
-cd video && pnpm run render:draft        # -> ../out/draft.mp4
+cd video && ./node_modules/.bin/remotion render Main ../out/draft.mp4 --scale=0.5 --jpeg-quality=60
 
 # 5. 抽帧 QA（在工程根目录；--scene 与句 id 二选一）
 uv run --no-project scripts/qa_frames.py out/draft.mp4 --scene P2
 
 # 6. 终渲 1080p30
-cd video && pnpm run render               # -> ../out/final.mp4
+cd video && ./node_modules/.bin/remotion render Main ../out/final.mp4
 ```
 
 ## 音画同步机制
