@@ -129,6 +129,8 @@ schema、默认值与校验的单一事实源是 [scripts/config.py](./scripts/c
 
 未知键报 WARN 并给最近邻建议（保留前向兼容）；类型/取值域/必填/slug 不符报 FAIL。`status` 与 `doctor` 只报不退——诊断工具因被诊断对象有病而拒绝运行是荒谬的；其余子命令 FAIL 即退出。
 
+**默认值只许有一份**：消费者脚本需要兜底时一律写 `config.default("<节>.<键>")`，不得内联字面量。`config.load(required=False)` 在缺 `pipeline.toml` 时直接返回 `{}`（不走 `resolve()`），所以内联的 `.get(k, 280)` 是**可达**的第二事实源——改 SCHEMA 时那条路径会静默沿用旧口径。该纪律由 [tests/test_config.py](./tests/test_config.py) 执法。
+
 ## 四、复用边界（显式权衡）
 
 - **Python 脚本：集中共享（SSOT）**——三个纯文本变换工具，跨集零差异，中心化防 split-brain。

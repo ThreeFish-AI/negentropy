@@ -54,7 +54,8 @@ uv run --no-project --with pytest --with numpy --with pillow --with mutagen --wi
 - **Python 脚本集中共享（SSOT）**：纯文本变换工具跨集零差异，中心化防 split-brain。
 - **Remotion 工程原语复制适配、不做共享包**：每集须保持 `pnpm install --ignore-workspace`
   独立可渲染（嵌套 workspace 隔离 + Remotion 版本自由），共享 TS 包会把「一集的视觉改动」
-  泄漏进**已发布**的其他集。复制源头是 [pipeline/templates/](./pipeline/README.md)，
+  泄漏进**已发布**的其他集。复制源头是
+  [pipeline/templates/video-skeleton/](./pipeline/templates/video-skeleton/)，
   冻结档位与漂移判据同见 pipeline/README.md 第四节。
 
 声音样本属生物特征信息，永不入库；`.gitignore` 已按分集通配覆盖音频与渲染产物。
