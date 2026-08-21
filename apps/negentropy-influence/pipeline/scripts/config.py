@@ -39,7 +39,13 @@ from pathlib import Path
 #: (点分键路径, 类型, 默认值, 必填条件, 说明)
 #: 必填条件：True = 恒必填；str = 条件表达式（当前只支持 "engine==indextts"）；False = 可选
 SCHEMA: tuple[tuple[str, type, object, object, str], ...] = (
-    ("episode.slug", str, None, True, "须等于工程目录名，且能在 series.json 中命中"),
+    (
+        "episode.slug",
+        str,
+        None,
+        True,
+        "须等于工程目录名；是否登记进 series.json 仅由 verify_skeleton 警告",
+    ),
     ("narration.target_minutes", list, None, True, "[下限, 上限] 两元素，单位分钟"),
     ("narration.chars_per_min", int, 280, False, "机制常数：含停顿的等效口径"),
     ("tts.engine", str, "indextts", False, "策略声明：indextts | edge"),
@@ -138,6 +144,8 @@ def validate(
     每个消费者只校验自己消费的东西。内容门（check_script）不该因为「还没挑配音
     样本」而拒绝检查分镜覆盖性——那是把 TTS 的前置条件强加给 ④⑤ 阶段。
     未知键 WARN 始终全局报告：typo 检测对谁都有用，且只是 WARN。
+    「节应为表」同属边界之内、按 scope 分流：越界者降为 WARN——理由与上一条相反
+    （它本来是 FAIL），故不能靠「只是 WARN」豁免，只能靠降级。
     """
     fails: list[str] = []
     warns: list[str] = []
@@ -149,7 +157,11 @@ def validate(
             warns.append(f"未知配置节 [{sec}]")
             continue
         if not isinstance(body, dict):
-            fails.append(f"[{sec}] 应为表（table），实际 {type(body).__name__}")
+            # 结构病也受 scope 约束：内容门（scope={"narration"}）不该因为它不消费
+            # 的 `[tts]` 被写成标量就以 1 退出——那正是 scope 要挡住的形态。越界者
+            # 降为 WARN 而非丢弃：畸形节对谁都值得知道，只是不该替别人拦门。
+            msg = f"[{sec}] 应为表（table），实际 {type(body).__name__}"
+            (fails if scope is None or sec in scope else warns).append(msg)
             continue
         for key in body:
             dotted = f"{sec}.{key}"
@@ -198,9 +210,12 @@ def validate(
     if isinstance(sha, str) and len(sha) != 12:
         fails.append(f"tts.ref_sha1 应为 12 位（同 tts.py 口径），实际 {len(sha)} 位")
 
-    # 跨源身份校验：把一份「无人读取的死数据」变成两个 SSOT 之间的连接件。
-    # 它防的不是运行期 bug（没人读 slug），而是 `cp -r` 出来的陈旧 toml
-    # 看起来很权威 —— 而现行脚手架恰恰就是 cp -r。
+    # 身份校验：把一份「无人读取的死数据」变成 toml 与工程目录之间的连接件。
+    # 它防的不是运行期 bug（没人读 slug），而是**手抄来的陈旧 toml 看起来很权威**
+    # —— scaffold.py 已改为从模板渲染 slug，但 `cp -r` 既有集这条老路仍走得通
+    # （现存四集就是这么来的），`scaffold --force` 覆盖已有目录时同理。
+    # **不在此校验是否登记进 series.json**：那归 verify_skeleton.py 的孤儿警告
+    # （非阻塞），本模块不读 series.json —— 一处执法只留一个落点。
     slug = _get(cfg, "episode.slug") if in_scope("episode.x") else None
     if slug and slug != root.name:
         fails.append(f"episode.slug={slug!r} 与工程目录名 {root.name!r} 不一致")

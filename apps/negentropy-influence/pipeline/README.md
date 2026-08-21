@@ -118,7 +118,7 @@ schema、默认值与校验的单一事实源是 [scripts/config.py](./scripts/c
 
 | 键 | 必填 | 默认 | 性质 |
 |---|---|---|---|
-| `episode.slug` | ✅ | — | 须等于工程目录名，且能在 series.json 命中（跨源身份校验） |
+| `episode.slug` | ✅ | — | 须等于工程目录名（拦手抄来的陈旧 toml）；**是否登记进 series.json 不在此校验**，那归 `verify_skeleton.py` 的孤儿警告（非阻塞） |
 | `narration.target_minutes` | ✅ | — | `[下限, 上限]` 分钟；缺失会让时长预算门**点名跳过** |
 | `narration.chars_per_min` | | `280` | 机制常数 |
 | `tts.engine` | | `indextts` | **策略声明**（有替代项 edge，且受 `.engine` 签名护栏约束），故保留在 toml |
