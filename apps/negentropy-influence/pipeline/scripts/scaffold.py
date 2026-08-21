@@ -15,7 +15,9 @@
 2. **不改根 .gitignore**。会修改仓库根文件的脚手架是爆炸半径的意外扩张；且
    ignore 规则已通配到分集级，新集自动覆盖，本来就无需这一步。
 3. **不写 series.json**。登记发布顺序是内容决策（要定 episode 序号、色板、
-   sourceKind），不是机械步骤；`check_series.py` 会对漏登记大声 FAIL。
+   sourceKind），不是机械步骤。⚠️ 漏登**没有阻塞门**：`check_series.py` 只遍历
+   series.json，看不见孤儿目录；`verify_skeleton.py` 会点名警告但不计入未登记
+   漂移（`--strict` 不失败）。故下方 step 6 必须由人执行，别指望门兜住。
 
 用法：
   uv run --no-project $R/scaffold.py <slug>-video --title "本集标题"

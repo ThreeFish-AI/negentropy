@@ -194,8 +194,13 @@ def main() -> int:
             # I2 同样尊重逃逸口：全部偏离集都已登记时不报 STALE。否则**单集系列**
             # 拿不到文档承诺的豁免——I1 放行、I2 仍红，登记者无路可走（I1 的
             # 空条件性质正是 I2 存在的理由，两者对逃逸口的语义必须一致）。
+            # 同理 I2 必须**尊重档位**：`overridable` 的覆写许可在 I1 只换来 INFO，
+            # 若 I2 仍判 STALE，则「全系列都行使许可」——而**单集系列行使一次即是**
+            # ——会让 --strict 变红，逼人为一次合法覆写去登记 [[drift]]，等于把
+            # 档位声明的许可撤回一半（timing.json 恰是文档鼓励「改节奏只动 JSON」
+            # 的那个文件，claude-code-explained 今天恰是单集系列）。
             unreg = [s for s in eps if not exempt(registered, s, rel, fps[s])]
-            if tmpl_fp and tmpl_fp not in seen and unreg:
+            if cls != "overridable" and tmpl_fp and tmpl_fp not in seen and unreg:
                 unregistered += 1
                 scope = "基线系列" if is_baseline else "系列"
                 print(

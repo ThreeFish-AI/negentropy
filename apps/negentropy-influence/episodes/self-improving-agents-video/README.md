@@ -29,8 +29,8 @@ uv run --no-project scripts/build_narration.py
 #    需先启动 IndexTTS 服务，见 ../../pipeline/VOICE-CLONING.md）
 uv run --no-project ../../pipeline/scripts/pipeline.py --project . tts
 
-# 3. 预览
-cd video && pnpm install --ignore-workspace && pnpm dev
+# 3. 预览（工具一律 ./node_modules/.bin/ 直调，防 pnpm run 污染根 workspace node_modules）
+cd video && pnpm install --ignore-workspace && ./node_modules/.bin/remotion studio
 
 # 4. 草渲（半分辨率快速迭代）
 cd video && ./node_modules/.bin/remotion render Main ../out/draft.mp4 --scale=0.5 --jpeg-quality=60

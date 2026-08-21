@@ -14,7 +14,9 @@
 用法（$R/$P 的定义见 ../README.md 路径变量约定——那里是唯一定义处，此处不复制
 位置字面量，否则搬迁时又多两处要改）：
   uv run --no-project $R/pipeline.py --project $P <cmd>
-子命令：status / doctor / build / check / tts / captions / render / qa / all / clean-samples
+子命令：status / doctor / build / check / tts / captions / render / qa / all / clean-samples / stages
+（本行与 pipeline/README.md、子项目 README 的三份抄件由 tests/test_stages.py 对齐 argparse
+真实注册表——`stages` 上线时三处全漏，抄件无执法必漂。）
 """
 
 from __future__ import annotations

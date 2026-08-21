@@ -73,8 +73,11 @@ $P/
 **单入口 `pipeline.py`**（参数读各集 `pipeline.toml`；阶段契约见下表）：
 
 ```
-uv run --no-project $R/pipeline.py --project $P     {status|doctor|build|check|tts|captions|render|qa|all|clean-samples}
+uv run --no-project $R/pipeline.py --project $P     {status|doctor|build|check|tts|captions|render|qa|all|clean-samples|stages}
 ```
+
+> `clean-samples` 与 `stages` 与具体工程无关，不读 `pipeline.toml`（`--project` 可省）。
+> 本清单与 `pipeline.py` 文件头、[子项目 README](../README.md) 的抄件由 [tests/test_stages.py](./tests/test_stages.py) 对齐 argparse 真实注册表。
 
 | Stage | 命令 | 输入 → 产出 | 幂等/续跑 |
 |---|---|---|---|

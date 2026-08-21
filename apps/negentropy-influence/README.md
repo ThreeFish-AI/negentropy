@@ -33,7 +33,7 @@ apps/negentropy-influence/
 单入口编排（参数读各集 `pipeline.toml`）：
 
 ```bash
-uv run --no-project $R/pipeline.py --project $P {status|doctor|build|check|tts|captions|render|qa|all}
+uv run --no-project $R/pipeline.py --project $P {status|doctor|build|check|tts|captions|render|qa|all|clean-samples|stages}
 ```
 
 各阶段的完整契约、脚本表与复用边界见 [pipeline/README.md](./pipeline/README.md)；
