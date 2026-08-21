@@ -312,3 +312,15 @@ apps/negentropy-influence/episodes/**/*.wav
 apps/negentropy-influence/pipeline/voices/*
 !apps/negentropy-influence/pipeline/voices/README.md
 !apps/negentropy-influence/pipeline/voices/refs.toml
+
+# negentropy-influence 的 uv 锁文件：该子项目**刻意不是可构建的 Python 包**
+# （pyproject.toml 无 `[project]` 表，全部脚本走 `uv run --no-project` + 调用点
+# `--with` 注入依赖），故它不该有锁文件。但漏打 `--no-project` 时 uv 会当场把本
+# 目录当项目根，生成 `uv.lock` 与 `.venv/`——后者已由上方通用 `.venv` 规则覆盖，
+# 前者没有，于是留下一个**可提交**的产物，一旦入库就与「不参与任何 uv workspace」
+# 的声明直接矛盾。
+# ⚠️ 必须逐路径锚定：兄弟子项目（negentropy / negentropy-perceives / cognizes）
+# 的 uv.lock 是**受版本控制的依赖 SSOT**，裸 `uv.lock` 规则会把它们一起吞掉。
+# 执法（双向：本条命中 + 兄弟三份不被误伤）见
+# apps/negentropy-influence/pipeline/tests/test_subproject_hygiene.py。
+apps/negentropy-influence/uv.lock
