@@ -90,3 +90,19 @@ def test_no_qualifying_window_returns_steadiest_triple():
     assert not (sp <= MAX_SPREAD_RATIO and cv <= MAX_CV and abs(dr) <= MAX_REL_DRIFT), (
         "回退窗口本身不应满足判据"
     )
+
+
+@pytest.mark.parametrize("walls", [[15.0], [15.0, 15.2]], ids=["runs=1", "runs=2"])
+def test_fewer_than_three_runs_does_not_crash(walls):
+    """`--runs 1/2` 时无任何 3 连窗口——不得在回退分支抛 ValueError 崩掉：
+    读数打印与 --json 落盘发生在判定之后，一崩整轮测量丢失。判据须判不合格
+    （len(tail) >= 3 是必要条件），退出码 1 引导加 --runs 重跑。
+    """
+    i, j, sp, cv, dr = stable_window(walls)
+    assert 0 <= i <= j < len(walls)
+    assert not (
+        sp <= MAX_SPREAD_RATIO
+        and cv <= MAX_CV
+        and abs(dr) <= MAX_REL_DRIFT
+        and (j - i + 1) >= 3
+    ), "不足 3 点不得判合格"

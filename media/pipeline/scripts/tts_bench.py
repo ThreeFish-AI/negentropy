@@ -241,8 +241,20 @@ def stable_window(walls: list[float]) -> tuple[int, int, float, float, float]:
     只裁头部的判据永远裁不掉尾部异常点，于是把一个明显合格的环境判成不合格。
 
     故改为在所有连续窗口里取最长的合格者：既容忍带余热的头部，也容忍单点异常的尾部。
+
+    n < 3（--runs 1/2）时无任何 3 连窗口，直接返回退化结果（极差比按两点/一点算，
+    CV 记 0）——不崩：读数打印与 --json 落盘必须先于判定完成，否则整轮测量丢失。
     """
     n = len(walls)
+    if n < 3:
+        w = walls or [0.0]
+        return (
+            0,
+            n - 1,
+            max(w) / min(w) if w and min(w) > 0 else 0.0,
+            0.0,
+            _rel_drift(walls),
+        )
     best: tuple[int, int, float, float, float] | None = None
     for i in range(n):
         for j in range(i + 2, n):  # 至少 3 个点
