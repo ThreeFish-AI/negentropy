@@ -14,7 +14,7 @@
  *  ask 走 mech（需要一次外部介入）、deny 走 danger。
  *
  *  对比度（对 bg #0E1116，WCAG 2.x 相对亮度法，qa_frames.py --check-theme 复验）：
- *    core 6.06:1 · mech 9.19:1 · deny 6.00:1 —— 均过 4.5:1。
+ *    core 6.06:1 · mech 9.18:1 · deny 6.00:1 —— 均过 4.5:1。
  */
 export const theme = {
   bg: '#0E1116',

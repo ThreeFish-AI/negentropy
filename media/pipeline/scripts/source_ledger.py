@@ -20,10 +20,10 @@
         毫无信噪比；故 site 只对**剥标签归一后的正文文本**比对指纹，漂移报 **WARN**
         （「正文已变，去复核笔记」），raw 漂移则完全忽略。
 
-用法（仓库根，零第三方依赖）：
-    uv run --no-project media/pipeline/scripts/source_ledger.py list   --project media/<slug>-video
-    uv run --no-project media/pipeline/scripts/source_ledger.py verify --project media/<slug>-video
-    uv run --no-project media/pipeline/scripts/source_ledger.py fetch  --project media/<slug>-video \\
+用法（仓库根，零第三方依赖）。注意 `--project` 定义在顶层 parser，须写在子命令**之前**：
+    uv run --no-project media/pipeline/scripts/source_ledger.py --project media/<slug>-video list
+    uv run --no-project media/pipeline/scripts/source_ledger.py --project media/<slug>-video verify
+    uv run --no-project media/pipeline/scripts/source_ledger.py --project media/<slug>-video fetch \\
         --name s01-repo --kind repo --via "pinned commit" \\
         --url https://raw.githubusercontent.com/o/r/<sha>/s01/README.zh.md
 
