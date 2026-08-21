@@ -17,14 +17,18 @@ export const theme = {
   dim: '#9AA7B8',
   ok: '#7ED321',
 
+  // ── 字体族（跨集通用，勿改）──
+  // **必须留在 theme 内**：frozen 档的 cards.tsx 与 Subtitle.tsx 读的是
+  // `theme.serif` / `theme.sans`。拆成独立的 `font` 导出会让 scaffold 出的新集
+  // 开箱即 6 个 TS2339 —— 而 theme.ts 属 seeded 档、不受 verify_skeleton 执法，
+  // 漂移门报 0 处也证明不了新集可编译（判据见 tests/test_skeleton.py 的
+  // test_template_theme_covers_frozen_component_tokens）。
+  serif: "'Songti SC', 'STSong', 'Noto Serif SC', serif",
+  sans: "'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', sans-serif",
+  mono: "'SF Mono', 'Menlo', 'JetBrains Mono', monospace",
+
   // ── 本集概念色（TODO：替换为本集设计，删掉这三行占位）──
   // concept: '#XXXXXX',
   // conceptDeep: '#XXXXXX',
   // deny: '#XXXXXX',
-} as const;
-
-export const font = {
-  serif: "'Songti SC', 'STSong', 'Noto Serif SC', serif",
-  sans: "'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', sans-serif",
-  mono: "'SF Mono', 'Menlo', 'JetBrains Mono', monospace",
 } as const;

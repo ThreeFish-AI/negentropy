@@ -11,8 +11,8 @@
     就是第二事实源，必然漂移。`status` 实时派生新鲜度，零存储。
   - 不假装能跑写作阶段（①②④⑤中的人/代理部分）——只跑工具与其质量门。
 
-用法（$R/$P 路径变量约定见 ../README.md）：
-  R=apps/negentropy-influence/pipeline/scripts; P=apps/negentropy-influence/episodes/<工程>
+用法（$R/$P 的定义见 ../README.md 路径变量约定——那里是唯一定义处，此处不复制
+位置字面量，否则搬迁时又多两处要改）：
   uv run --no-project $R/pipeline.py --project $P <cmd>
 子命令：status / doctor / build / check / tts / captions / render / qa / all / clean-samples
 """
@@ -133,8 +133,16 @@ def cmd_doctor(root: Path, cfg: dict, origin: dict[str, str] | None = None) -> i
         print(f"  ❌ {e}")
         ok = False
     if tts.get("engine") == "indextts":
-        ref = INFLUENCE / tts.get("ref", "")
-        if ref.is_file():
+        # doctor 容忍配置 FAIL 继续跑（见 main()），故 ref 可能真的没配。此时须
+        # 明说「未配置」——`INFLUENCE / ""` 会解析成子项目根，把它报成「样本缺失」
+        # 是在用一个不存在的路径掩盖配置缺失，两种病因不可混为一谈。
+        ref_rel = tts.get("ref")
+        if not ref_rel:
+            print(
+                "  ❌ 未配置 tts.ref（engine=indextts 时必填，字段表见 pipeline/README.md）"
+            )
+            ok = False
+        elif (ref := INFLUENCE / ref_rel).is_file():
             import hashlib
 
             sha1 = hashlib.sha1(ref.read_bytes()).hexdigest()[:12]
@@ -144,7 +152,7 @@ def cmd_doctor(root: Path, cfg: dict, origin: dict[str, str] | None = None) -> i
         else:
             print(f"  ⚠️  参考样本缺失: {ref}（音频不入库；用 refs.py rebuild 重建）")
         try:
-            server = tts.get("server", "http://127.0.0.1:8766")
+            server = tts.get("server", config.default("tts.server"))
             with urllib.request.urlopen(f"{server}/health", timeout=5) as resp:
                 h = json.loads(resp.read())
             print(
@@ -190,17 +198,19 @@ def cmd_tts(
         "mutagen",
         str(root / "scripts" / "tts.py"),  # 工程内薄包装（注入 --project）
         "--engine",
-        tts.get("engine", "indextts"),
+        tts.get("engine", config.default("tts.engine")),
     ]
-    if tts.get("engine", "indextts") == "indextts":
+    if tts.get("engine", config.default("tts.engine")) == "indextts":
         cmd += ["--ref", str(INFLUENCE / tts["ref"])]
         if tts.get("ref_sha1"):
             cmd += ["--expect-ref-sha1", tts["ref_sha1"]]
+        # style 无 SCHEMA 默认值（engine=indextts 时必填、已由 config.validate 拦），
+        # 故直取而不编造兜底档名——凭空的 "sunny-steady" 会盖住配置缺失。
         cmd += [
             "--style",
-            style or tts.get("style", "sunny-steady"),
+            style or tts["style"],
             "--lang",
-            tts.get("lang", "ZH"),
+            tts.get("lang", config.default("tts.lang")),
         ]
     if plan:
         cmd.append("--plan")
@@ -232,9 +242,11 @@ def cmd_render(root: Path, cfg: dict, final: bool) -> int:
     if not final:
         cmd += [
             "--scale",
-            str(r.get("draft_scale", 0.5)),
+            str(r.get("draft_scale", config.default("render.draft_scale"))),
             "--jpeg-quality",
-            str(r.get("draft_jpeg_quality", 60)),
+            str(
+                r.get("draft_jpeg_quality", config.default("render.draft_jpeg_quality"))
+            ),
         ]
     return run(cmd, cwd=video)
 
@@ -263,7 +275,9 @@ def cmd_qa(
         # 侵入判据双向失真。显式 --scale 优先；未给时按产物名推断（draft → pipeline.toml）
         eff = scale
         if eff is None and video and Path(video).name == "draft.mp4":
-            eff = cfg.get("render", {}).get("draft_scale", 0.5)
+            eff = cfg.get("render", {}).get(
+                "draft_scale", config.default("render.draft_scale")
+            )
         if eff is not None:
             cmd += ["--scale", str(eff)]
         else:
@@ -290,9 +304,12 @@ def cmd_all(root: Path, cfg: dict) -> int:
     print(
         f"   uv run --no-project --with pillow --with numpy {SCRIPTS / 'qa_frames.py'} \\"
     )
+    draft_scale = cfg.get("render", {}).get(
+        "draft_scale", config.default("render.draft_scale")
+    )
     print(
         f"       --project {root} {root / 'out' / 'draft.mp4'} --last-n 6 --check"
-        f" --scale {cfg.get('render', {}).get('draft_scale', 0.5)}   # 草渲像素折算，不可省"
+        f" --scale {draft_scale}   # 草渲像素折算，不可省"
     )
     return 0
 

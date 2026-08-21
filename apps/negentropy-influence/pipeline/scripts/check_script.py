@@ -127,7 +127,9 @@ def check_budget(root: Path, items: list[dict], cfg: dict, msgs: list[str]) -> N
         lo, hi = 0, 999
     else:
         lo, hi = budget
-    cpm = narr.get("chars_per_min", 280)
+    # 默认值取自 config.SCHEMA：本函数在 `required=False` 且缺 pipeline.toml 时
+    # 拿到的 cfg 是 `{}`（load 不走 resolve），内联一份 280 就是第二事实源。
+    cpm = narr.get("chars_per_min", config.default("narration.chars_per_min"))
     chars = sum(len(i["text"]) for i in items)
     est_min = chars / cpm
     print(

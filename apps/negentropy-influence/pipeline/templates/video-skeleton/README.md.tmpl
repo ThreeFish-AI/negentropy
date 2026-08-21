@@ -17,10 +17,10 @@
 
 ## 复现流水线
 
-`$R`/`$P` 路径变量约定见 [../../pipeline/README.md](../../pipeline/README.md)；
-本集 `$P=apps/negentropy-influence/episodes/{{SLUG}}`。
-
 ```bash
+# 在仓库根执行。$I/$R/$V 的定义见 ../../pipeline/README.md 路径变量约定（唯一定义处）
+P=$I/episodes/{{SLUG}}
+
 # ① 信源核验（B 型信源；A 型论文集跳过）
 uv run --no-project $R/source_ledger.py --project $P verify
 

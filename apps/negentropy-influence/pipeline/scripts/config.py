@@ -63,6 +63,21 @@ ENV_OVERRIDES = {"tts.server": "INDEXTTS_SERVER"}
 
 _KNOWN = {k for k, *_ in SCHEMA}
 _SECTIONS = {k.split(".")[0] for k in _KNOWN}
+_DEFAULTS = {k: d for k, _t, d, _r, _n in SCHEMA}
+
+
+def default(dotted: str):
+    """→ SCHEMA 里该键的默认值。**消费者不得内联默认值副本。**
+
+    `resolve()` 只在配置文件存在时跑；`load(required=False)` 缺文件时直接返回
+    `{}`，那条路径上的 `.get(k, 280)` 就是第二事实源——改 SCHEMA 时它会静默
+    沿用旧口径，而这正是本模块要消灭的东西。故凡需要兜底默认值的调用点一律
+    写 `.get(k, config.default("<节>.<键>"))`。
+    执法见 tests/test_config.py::test_consumers_do_not_inline_schema_defaults。
+    """
+    if dotted not in _DEFAULTS:
+        raise KeyError(f"{dotted} 不在 SCHEMA 中（拼错？可选键表见本模块 SCHEMA）")
+    return _DEFAULTS[dotted]
 
 
 def _get(cfg: dict, dotted: str):
