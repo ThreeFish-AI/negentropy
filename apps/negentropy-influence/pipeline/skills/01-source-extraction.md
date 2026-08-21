@@ -137,3 +137,27 @@ uv run --no-project $R/source_ledger.py --project $P verify    # 交付前必跑
 - 抽 10 条断言回溯到事实源命中；其中至少 3 条是【三级】，逐条确认逐字稿里有归属句。
 - 分歧清单非空（真实项目几乎不可能零分歧；为空说明取证不够细）。
 - 所有数字都能在固定提交上复算，且口径已写明。
+
+---
+
+## 多章批量取证（多集系列 / 多章一集）
+
+> 规格落地：[source-map/](../../source-map/)（首例 [claude-code-explained](../../source-map/claude-code-explained.md)）。
+> 适用：一个系列吃同一信源的多章（如课程站点 + 仓库），或一集吃 ≥3 章。
+
+1. **章节→集归属、钉选（pinnedRef）、README 文件名（随修订变）只在系列级 `source-map/<series-id>.toml` 登记一次**；
+   人读版 `.md` 讲清为什么（含修订分叉叙事）。各集 `source-notes.md` **只链接、永不重述**——
+   重述即第二事实源，两轨章号错位时必然漂移（ISSUE-165 的教训上探一层：站点与仓库的切分
+   本来就不是同一时刻的产物，散文与代码的新鲜度要分别评估之外，还要评估**切分本身**的年龄）。
+2. **台账条目由 `sync` 从地图派生、不手写**（`{slug}-readme` / `{slug}-code` / `{slug}-site`，
+   多 sitePath 时 `{slug}-site-{path}`）——与既有交付集的字节兼容，防命名漂移：
+   ```bash
+   uv run --no-project $R/source_ledger.py --project $P sync  --map $I/source-map/<sid>.toml --episode N [--dry-run] [--refetch]
+   uv run --no-project $R/source_ledger.py --project $P audit --map $I/source-map/<sid>.toml --episode N   # 离线，无网络
+   ```
+   `audit` 三断言：条目齐 / 无跨集混入（防证据串集）/ repo 条目 `pinned_ref` = 地图钉值。
+3. **钉在未合并分支时**（raw URL 随分支强推/删除而失效，verify 会 FAIL 兜底）：台账已登记
+   raw_sha256 全指纹；另把取证字节归档至各集 `research/source-archive/<pin 前 7 位>/`
+   （归档文件用 `.md.txt`/`.py` 后缀，避免第三方原文里的相对链接被 check_series 规则 5 误判）。
+4. 验收追加：`audit` 离线零报警 + `verify` FAIL 0 之外，地图本身的形状由
+   `tests/test_source_map.py` 执法（pin 覆盖、slug 唯一、派生名全局不撞等）。
