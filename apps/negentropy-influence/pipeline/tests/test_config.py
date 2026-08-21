@@ -179,6 +179,21 @@ def test_unknown_key_warning_is_global_regardless_of_scope(tmp_path):
     assert any("tts.styl" in w for w in warns), warns
 
 
+def test_non_table_section_reports_fail_instead_of_crashing(tmp_path):
+    """已知节写成标量（如 `episode = "slug"`）时不得崩溃——否则 validate() 的
+    「应为表」FAIL 分支不可达，且 status/doctor 这类诊断命令会一并死掉
+    （与「配置有病时诊断工具尤其该运行」的设计声明直接矛盾）。
+    """
+    root = _write(
+        tmp_path,
+        'episode = "some-episode-video"\n[narration]\ntarget_minutes = [1.0, 2.0]\n',
+    )
+    cfg, _o, fails, _w = config.load(root, required=True)
+    assert any("应为表" in f and "episode" in f for f in fails), fails
+    # 非表节按「键不存在」处理：其余节的解析不受牵连
+    assert cfg["narration"]["target_minutes"] == [1.0, 2.0]
+
+
 def test_missing_config_is_fatal_when_required_soft_otherwise(tmp_path):
     root = tmp_path / "bare-episode-video"
     root.mkdir()

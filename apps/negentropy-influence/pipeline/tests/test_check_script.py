@@ -106,6 +106,19 @@ def test_budget_window_fails(project):
     assert "超预算" in out
 
 
+def test_malformed_budget_warns_and_skips_instead_of_crashing(project):
+    """单元素 target_minutes：形状 FAIL 由 config.validate 报，此处点名 WARN 跳过
+    预算门——此前 lo, hi = budget 无条件解包直接 traceback，FAIL 清单一条也打不出。
+    """
+    write_board(project, BOARD_OK)
+    write_config(project, "[narration]\ntarget_minutes = [13.0]\n")
+    rc, out = run_check(project)
+    assert "Traceback" not in out, out
+    assert "跳过时长预算门" in out, out
+    assert "应为 [下限, 上限]" in out, out  # 配置校验的 FAIL 仍须报出
+    assert rc == 1
+
+
 def test_measured_budget_uses_manifest(project):
     write_board(project, BOARD_OK)
     # fixture manifest 实测 ≈ (3.10+0.32)+(2.05+1.22)+(4.77+0.32)+(1.02)+tail 2.0 ≈ 14.8s

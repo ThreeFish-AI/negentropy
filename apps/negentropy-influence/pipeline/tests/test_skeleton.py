@@ -138,6 +138,33 @@ def test_gate_actually_detects_drift(tmp_path):
     assert run(VERIFY, "--strict").returncode == 0
 
 
+def test_gate_catches_structured_drift_via_tmpl_fallback():
+    """**正控（structured 档）**：模板侧只有 `package.json.tmpl`，fingerprint 曾因此
+    返回 None、I2 整段跳过——单集系列连 I1 也无比较对象，package.json 于是完全
+    不受门。注入依赖漂移必须被 STALE 抓到（回退读 .tmpl 后模板指纹可得）。
+    """
+    import json
+
+    victim = (
+        INFLUENCE
+        / "episodes"
+        / "claude-code-explained-video"
+        / "video"
+        / "package.json"
+    )
+    saved = victim.read_bytes()
+    d = json.loads(saved)
+    d["dependencies"]["react"] = "^18.0.0"  # 依赖漂移 = structured 档的执法对象
+    victim.write_text(json.dumps(d, ensure_ascii=False, indent=2), encoding="utf-8")
+    try:
+        r = run(VERIFY, "--strict")
+        assert r.returncode == 1, f"structured 漂移未被抓住：\n{r.stdout}"
+        assert "package.json" in r.stdout, r.stdout
+    finally:
+        victim.write_bytes(saved)
+    assert run(VERIFY, "--strict").returncode == 0
+
+
 def test_scaffold_produces_gate_clean_episode(tmp_path, monkeypatch):
     """scaffold 出来的新集必须立刻通过冻结档比对（模板即真理）。"""
     slug = "pytest-probe-video"
@@ -173,3 +200,40 @@ def test_scaffold_rejects_bad_slug_and_existing_dir():
     assert r.returncode != 0 and "-video" in (r.stdout + r.stderr)
     r = run(SCAFFOLD, "claude-code-explained-video", "--title", "x")
     assert r.returncode != 0 and "已存在" in (r.stdout + r.stderr)
+
+
+def test_template_readme_qa_commands_are_runnable():
+    """模板 README 是每个新集经 scaffold 继承的「复现流水线」正典，qa 命令必须
+    与 pipeline.py 的真实参数契约一致——曾整段缺 --video，照抄即 parser.error。
+    """
+    import re
+
+    text = (TEMPLATE / "README.md.tmpl").read_text(encoding="utf-8")
+    qa_cmds = re.findall(r"^\s*uv run.*pipeline\.py.*\bqa\b.*$", text, re.MULTILINE)
+    assert qa_cmds, "模板 README 里没找到 qa 命令（检测器失效？）"
+    for cmd in qa_cmds:
+        assert "--video" in cmd, f"qa 命令缺 --video：{cmd}"
+        assert "$P/out/" in cmd, f"qa 命令的产物路径未用 $P 锚定：{cmd}"
+
+
+def test_paths_docstring_lists_all_real_importers():
+    """paths.py 的「导入边界（承重，勿破）」须与实际导入方一致——契约在落地时
+    就与代码矛盾的话，下一位读者会误判新增脚本违规。
+    """
+    import re
+
+    doc = (SCRIPTS / "paths.py").read_text(encoding="utf-8")
+    m = re.search(r"## 导入边界.*?`(.*?)`.*?可以 `import paths`", doc, re.DOTALL)
+    assert m, "paths.py 导入边界小节形态变化，检测器该更新了"
+    import subprocess
+
+    r = subprocess.run(
+        ["grep", "-l", r"from paths import", "-r", str(SCRIPTS)],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    real = {Path(p).name for p in r.stdout.split()} - {"paths.py"}
+    allowed = set(re.findall(r"`(\w+\.py)`", doc))
+    assert real <= allowed, f"实际导入方超出清单：{real - allowed}"
+    assert "tts.py" not in real, "红线：tts.py 不可 import paths（拷出路径会断）"
