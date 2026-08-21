@@ -78,7 +78,7 @@
 **排版与安全区**：底部角标 `bottom ≥ 150px`（避让字幕条）；代码块用 `mono`，金句卡用 `serif`；
 金句卡每幕 ≤ 3 处（过密则贬值）。
 
-**本集独有的视觉母题**（沉淀进 [../../pipeline/skills/06-remotion-implementation.md](../../../pipeline/skills/06-remotion-implementation.md)）
+**本集独有的视觉母题**（沉淀进 [skills/06-remotion-implementation.md](../../../pipeline/skills/06-remotion-implementation.md)）
 1. **终端打字**：等宽字逐字浮现 + 光标闪烁，用于 P0 痛点与各章「试一下」。
 2. **环形循环**：陶土橙闭合轨道 + 沿轨运动的光点，是全片的恒定锚。
 3. **字典分发表**：左键右值两列，命中行整行推入 `mech` 辉光。

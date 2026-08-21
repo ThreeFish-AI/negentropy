@@ -78,4 +78,4 @@ flowchart LR
 - BGM 留空轨（版权考量，用户后期自选）；不使用任何未经授权的第三方图片/音频素材，全部画面为代码生成。
 - 论文之外的观点不进口播正文；需要延伸时明确口播"论文之外多说一句"。
 - 论文无公开 arXiv 号：引用卡写机构 + 日期，不编造编号。
-- Remotion 采用个人科普用途免费授权；IndexTTS-2.5 按 bilibili 模型许可（个人/研究可用），发布前确认平台对合成语音的标注要求（详见 [../../pipeline/VOICE-CLONING.md §八](../../../pipeline/VOICE-CLONING.md)）。
+- Remotion 采用个人科普用途免费授权；IndexTTS-2.5 按 bilibili 模型许可（个人/研究可用），发布前确认平台对合成语音的标注要求（详见 [VOICE-CLONING.md §八](../../../pipeline/VOICE-CLONING.md)）。

@@ -26,8 +26,8 @@
 uv run --no-project scripts/build_narration.py
 
 # 2. 合成配音（本人音色克隆，增量幂等；参数读自本集 pipeline.toml（复现已上线音频的档：passionate + me-1.wav）；
-#    需先启动 IndexTTS 服务，见 ../pipeline/VOICE-CLONING.md）
-uv run --no-project ../pipeline/scripts/pipeline.py --project . tts
+#    需先启动 IndexTTS 服务，见 ../../pipeline/VOICE-CLONING.md）
+uv run --no-project ../../pipeline/scripts/pipeline.py --project . tts
 
 # 3. 预览（工具一律 ./node_modules/.bin/ 直调，防 pnpm run 污染根 workspace node_modules）
 cd video && pnpm install --ignore-workspace && ./node_modules/.bin/remotion studio
@@ -58,4 +58,4 @@ cd video && ./node_modules/.bin/remotion render Main ../out/final.mp4
 
 ## 许可注意
 
-Remotion 对超过 3 人的公司需商业授权（个人/小团队免费）；若本视频转为公司用途，请评估许可或迁移 MIT 协议的 Motion Canvas。配音为**本人声音的自愿克隆**（IndexTTS-2.5，按 bilibili 模型使用许可：个人/研究用途可用，商用需联系 indexspeech@bilibili.com；克隆他人声音须获本人书面同意，详见 [../pipeline/VOICE-CLONING.md](../../pipeline/VOICE-CLONING.md) §八）。发布前请自行确认平台对合成语音的标注要求。
+Remotion 对超过 3 人的公司需商业授权（个人/小团队免费）；若本视频转为公司用途，请评估许可或迁移 MIT 协议的 Motion Canvas。配音为**本人声音的自愿克隆**（IndexTTS-2.5，按 bilibili 模型使用许可：个人/研究用途可用，商用需联系 indexspeech@bilibili.com；克隆他人声音须获本人书面同意，详见 [VOICE-CLONING.md](../../pipeline/VOICE-CLONING.md) §八）。发布前请自行确认平台对合成语音的标注要求。

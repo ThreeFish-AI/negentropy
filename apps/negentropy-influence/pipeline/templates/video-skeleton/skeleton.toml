@@ -25,6 +25,9 @@
 #   regioned     区外冻结：Main.tsx 的场景 import 块与 SCENE_COMPONENTS 注册表
 #                是每集内容，其余是承重 boilerplate（含 SceneFade 首幕/末幕逻辑）。
 #                用**归一化比对**而非插入标记注释——后者要改动 4 个已发布集。
+#                模板侧这两处**刻意留空**：留着某一集的 7 条 `./scenes/*` import
+#                会让新集开箱即 7 个 module-not-found（归一化恰好剥掉它们，所以
+#                留空不影响任何既有集的指纹——留着则纯粹是给新集埋坑）。
 #   structured   结构化比对：package.json 忽略 name/description，但门住
 #                dependencies/devDependencies/scripts/pnpm。有价值的不变量不是
 #                字节而是「零依赖漂移」——版本漂移会让 A 档 TS 文件行为不同。
@@ -82,9 +85,18 @@ seeded = [
 # 逃逸口必须存在，但必须**被记录**（同 `# noqa` / `eslint-disable` / Copier
 # `_exclude`）。不设逃逸口的门必死：第一次合法偏离会让人直接把门关掉，于是
 # 付了全部成本却比什么都不做更糟。
+#
+# `fingerprint` 钉住的是**已知的那一处偏离**（12 位，档位对应的指纹口径：frozen
+# 取字节 md5、regioned 取归一化后 md5、structured 取结构键 md5）。没有它，豁免
+# 就是「该文件从此永久免检」——而 Main.tsx 恰是每集都要动的文件，等于把最该看的
+# 地方蒙上。钉住之后偏离内容一变，门报 DRIFT-CHANGED 而非静默放行；这也让下面
+# 每条 reason 里的「撤销条件」从散文变成机器判据。同类做法：`# type: ignore[code]`
+# 只豁免指定错误码、`eslint-disable-next-line <rule>` 只豁免指定规则。
+# 指纹取法：`uv run --no-project $R/verify_skeleton.py` 会在报告里打印当前值。
 [[drift]]
 episode = "self-improving-agents-video"
 path = "video/src/components/cards.tsx"
+fingerprint = "4bba8c190f21"
 reason = "多一个 ChapterCard（39 行），仅本集 P2Brain.tsx 使用；迁出至 components/chapter.tsx 后可撤销本条"
 
 # 下面两条是**门上线时就已存在**的漂移，非本次引入。两集的 Main.tsx 落后于
@@ -94,9 +106,11 @@ reason = "多一个 ChapterCard（39 行），仅本集 P2Brain.tsx 使用；迁
 [[drift]]
 episode = "self-improving-agents-video"
 path = "video/src/Main.tsx"
+fingerprint = "2b2eef5947c8"
 reason = "SceneFade 块的注释扩写与换行落后于模板（语义等价，纯排版）；收敛需动已发布集，另行决策"
 
 [[drift]]
 episode = "self-evolving-coding-agents-video"
 path = "video/src/Main.tsx"
+fingerprint = "2b2eef5947c8"
 reason = "同上：SceneFade 块排版落后于模板（语义等价）"

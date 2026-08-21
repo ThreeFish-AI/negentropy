@@ -10,6 +10,10 @@
   I2 模板不过期：baselineOf 指定的系列必须与 templates/video-skeleton 一致
       —— 单集系列的 I1 是空条件（无比较对象），故 I2 不可省
 
+两者**共用同一个逃逸口**（skeleton.toml 的 `[[drift]]`，见 exempt()）：语义不一致
+会让单集系列拿不到文档承诺的豁免（I1 放行、I2 仍红，登记者无路可走）。豁免按
+指纹钉住，偏离内容一变即报 DRIFT-CHANGED——否则「登记一次、永久免检」。
+
 本档**只报告不阻塞**（退出码恒 0，除非 --strict）：转阻塞前须先把既有漂移登记
 或收敛，否则第一次运行就红，而一个「一上线就红」的门只会被立刻关掉。
 
@@ -89,6 +93,21 @@ def fingerprint(path: Path, rel: str, cls: str) -> str | None:
     return md5(path)
 
 
+#: 登记表类型：(episode, path) → (reason, fingerprint|None)
+Registry = dict[tuple[str, str], tuple[str, str | None]]
+
+
+def exempt(registry: Registry, slug: str, rel: str, fp: str) -> bool:
+    """该集该文件的**当前**指纹是否被登记表放行。
+
+    登记了但指纹已变 → 不放行，由调用方报 DRIFT-CHANGED：这正是「豁免随偏离
+    内容改变而自动失效」的落点。未写 fingerprint 的旧条目仍无条件放行（向前
+    兼容），但 tests/test_skeleton.py 要求每条 `[[drift]]` 都带指纹。
+    """
+    hit = registry.get((slug, rel))
+    return hit is not None and (hit[1] is None or hit[1] == fp)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="骨架漂移门（默认只报告）")
     ap.add_argument("--strict", action="store_true", help="有未登记漂移即退出码 1")
@@ -97,8 +116,14 @@ def main() -> int:
     skel = tomllib.loads(SKELETON_TOML.read_text(encoding="utf-8"))
     classes: dict[str, list[str]] = skel["classes"]
     baseline_series = skel.get("baselineOf")
-    registered = {
-        (d["episode"], d["path"]): d.get("reason", "") for d in skel.get("drift", [])
+    #: 登记表 → (reason, fingerprint|None)。**指纹钉住的是「已知的那处偏离」**：
+    #: 不带指纹的豁免以 (episode, path) 为键无条件放行，于是该文件此后对任何改动
+    #: 都永久免检——而 Main.tsx 恰是每集都要动的文件，等于把最该看的地方蒙上。
+    #: 带指纹后豁免会在偏离内容改变时自动失效（同 `# type: ignore[code]` 只豁免
+    #: 指定错误码，而非整行）；skeleton.toml 里写的「撤销条件」也随之成为机器判据。
+    registered: Registry = {
+        (d["episode"], d["path"]): (d.get("reason", ""), d.get("fingerprint"))
+        for d in skel.get("drift", [])
     }
     series_list = json.loads((INFLUENCE / "series.json").read_text(encoding="utf-8"))[
         "seriesList"
@@ -124,11 +149,14 @@ def main() -> int:
         for rel, cls in gated:
             tmpl_path = template_source(rel)
             tmpl_fp = fingerprint(tmpl_path, rel, cls)
+            fps = {
+                slug: fingerprint(INFLUENCE / "episodes" / slug / rel, rel, cls)
+                or "缺失"
+                for slug in eps
+            }
             seen: dict[str, list[str]] = {}
-            for slug in eps:
-                ep_path = INFLUENCE / "episodes" / slug / rel
-                fp = fingerprint(ep_path, rel, cls)
-                seen.setdefault(fp or "缺失", []).append(slug)
+            for slug, fp in fps.items():
+                seen.setdefault(fp, []).append(slug)
 
             # 参照系：优先取模板指纹，其次取系列内多数——否则「与某人不一致」
             # 会把符合模板的多数集反过来报成偏离方（判据必须有方向）。
@@ -142,7 +170,15 @@ def main() -> int:
                 if fp == ref:
                     continue
                 for slug in slugs:
-                    if (slug, rel) in registered:
+                    if exempt(registered, slug, rel, fp):
+                        continue
+                    if (slug, rel) in registered:  # 登记在册但指纹已变
+                        unregistered += 1
+                        print(
+                            f"    DRIFT-CHANGED {rel} · {slug} 现为 {fp}，"
+                            f"登记的是 {registered[(slug, rel)][1]}"
+                            f" —— 偏离内容已变，豁免失效：请复核后更新 skeleton.toml"
+                        )
                         continue
                     if cls == "overridable":
                         print(f"    INFO  {rel} · {slug} 行使了覆写许可（{fp}）")
@@ -155,12 +191,16 @@ def main() -> int:
             # 初版被自己的正控击穿——单集系列的 I1 是空条件（无同侪可比较），
             # 非基线的单集系列就完全落进了盲区。待将来出现第二份模板
             # （跨系列基线分叉），才回退为「仅基线系列」的窄语义。
-            if tmpl_fp and tmpl_fp not in seen:
+            # I2 同样尊重逃逸口：全部偏离集都已登记时不报 STALE。否则**单集系列**
+            # 拿不到文档承诺的豁免——I1 放行、I2 仍红，登记者无路可走（I1 的
+            # 空条件性质正是 I2 存在的理由，两者对逃逸口的语义必须一致）。
+            unreg = [s for s in eps if not exempt(registered, s, rel, fps[s])]
+            if tmpl_fp and tmpl_fp not in seen and unreg:
                 unregistered += 1
                 scope = "基线系列" if is_baseline else "系列"
                 print(
                     f"    STALE {rel} · {scope} {series['id']} 无一集匹配模板"
-                    f"（模板 {tmpl_fp}，实际 {sorted(seen)}）"
+                    f"（模板 {tmpl_fp}，实际 {sorted(seen)}；未登记 {unreg}）"
                 )
 
     # 孤儿工程：scaffold 出来但忘了登记 series.json 的目录。这类目录对
@@ -179,8 +219,8 @@ def main() -> int:
 
     if registered:
         print("\n  已登记的合法偏离（逃逸口必须存在，但必须被记录）：")
-        for (slug, rel), why in sorted(registered.items()):
-            print(f"    · {slug} / {rel}\n        {why}")
+        for (slug, rel), (why, pin) in sorted(registered.items()):
+            print(f"    · {slug} / {rel}  [指纹 {pin or '未钉'}]\n        {why}")
 
     print(
         f"\n>> 未登记漂移 {unregistered} 处"

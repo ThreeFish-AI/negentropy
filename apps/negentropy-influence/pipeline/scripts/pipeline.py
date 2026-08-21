@@ -365,7 +365,11 @@ def main() -> None:
     p = sub.add_parser("render", help="⑧⑨ 渲染")
     p.add_argument("--final", action="store_true", help="终渲（默认草渲）")
     p = sub.add_parser("qa", help="⑧ 抽帧 QA")
-    p.add_argument("--video", help="渲染产物路径")
+    p.add_argument(
+        "--video",
+        help="渲染产物路径，**按分集工程目录解析**（本入口以 cwd=<工程> 启动 "
+        "qa_frames.py）——写 out/draft.mp4，勿写 $P/out/draft.mp4",
+    )
     p.add_argument("--scene")
     p.add_argument("--last-n", type=int)
     p.add_argument("--check", action="store_true", help="自动体检")

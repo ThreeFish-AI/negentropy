@@ -51,7 +51,11 @@ def main() -> int:
         "--title", required=True, help="本集标题（写入 README 与 package.json）"
     )
     ap.add_argument("--ref", default="me-bright", help="参考样本名（见 refs.py list）")
-    ap.add_argument("--ref-sha1", default="TODO_12_HEX", help="样本 12 位指纹")
+    #: 占位符**必须自身合规**（12 位）：config.validate 的位数检查是全节执法，
+    #: 而 pipeline.py 对每个子命令都以 scope=None 校验——一个 11 位的占位会让刚
+    #: 实例化的新集连 `build`（Stage ③，与 TTS 无关）都跑不起来。指纹不符仍由
+    #: doctor 与 tts.py 的 --expect-ref-sha1 硬拦，占位不会被误当成真值。
+    ap.add_argument("--ref-sha1", default="TODOTODOTODO", help="样本 12 位指纹")
     ap.add_argument("--style", default="sunny-steady", help="风格预设档名")
     ap.add_argument("--force", action="store_true", help="目标已存在时仍继续（危险）")
     args = ap.parse_args()
@@ -111,7 +115,10 @@ def main() -> int:
     print(
         "  4. script/narration.md → storyboard.md → video/src/scenes/*.tsx（全部新写）"
     )
-    print("  5. video/src/Main.tsx：补场景 import 与 SCENE_COMPONENTS 注册表")
+    print(
+        "  5. video/src/Main.tsx：填 scenes/ import 与 SCENE_COMPONENTS 注册表"
+        "（模板两处刻意留空，故新集开箱即 tsc 干净）"
+    )
     print(
         "  6. 登记到 series.json（漏登无阻塞门：verify_skeleton.py 会点名警告孤儿目录）"
     )
