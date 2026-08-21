@@ -7,13 +7,18 @@
     uv run --frozen --with fastapi --with uvicorn --with soundfile --with numpy --with lameenc \
         python <本仓>/media/pipeline/scripts/tts_server.py --model-dir checkpoints --port 8766
 - 端点：
-    GET  /health     —— 服务与模型元信息（version/device/dtype/encoder/supports_duration_factor/
-                        supports_emo_text）
+    GET  /health     —— 服务与模型元信息（version/device/dtype/encoder + 四个 supports_* 能力位）
     POST /synthesize —— JSON 请求合成，返回 MP3 bytes（X-Audio-Format 头）
 - 情感三来源（互斥，只能给一个）：
     emo_vector   —— 8 维显式向量（有效和 Σvec×alpha ≤ 0.8）
     emo_ref_path —— 情感参考音频：音色仍取 ref_path，语调/情绪迁移自这段录音（无合成味）
     emo_text     —— 自然语言描述（需 --use-qwen-emo），服务端转向量并在 X-Emo-Vector 头回显
+- 采样参数族（temperature/top_p/top_k/length_penalty/repetition_penalty/max_mel_tokens）：
+  上游经 **generation_kwargs 透传给 HF generate，全部生效（唯一例外是 do_sample——上游
+  infer_v2_5.py:780 用字面量 True 覆盖，故本服务不暴露它）。缺省一律取上游默认值，
+  见 SAMPLING_DEFAULTS。
+- seed：上游全链路无种子且 do_sample 恒 True，同句每次合成韵律都不同；给 seed 即可复现，
+  这是任何参数 A/B 可信的前提。
 - 安全：仅监听 127.0.0.1，无鉴权，勿暴露公网；ref_path / emo_ref_path 为服务端本地绝对路径。
 
 完整部署/排障手册见 media/pipeline/VOICE-CLONING.md。
@@ -35,6 +40,11 @@ import soundfile as sf
 import uvicorn
 from fastapi import FastAPI, HTTPException, Response
 from pydantic import BaseModel, field_validator
+
+# 客户端 tts.py 与本服务分属两个运行环境（本仓轻依赖 vs index-tts venv），但服务启动
+# 脚本就是从本仓拷贝/引用这份 tts_server.py —— 采样默认值等共享常量以 tts.py 为 SSOT。
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from tts import SAMPLING_PASSTHROUGH_DEFAULTS as SAMPLING_DEFAULTS  # noqa: E402
 
 
 def ensure_indextts_import(index_tts_root: Path) -> None:
@@ -70,6 +80,8 @@ def load_model(
         return tts, {
             "version": "2.5",
             "supports_duration_factor": True,
+            # v2 的 infer() 签名里没有 text_normalization（infer_v2.py 无该形参），v2.5 才有
+            "supports_text_normalization": True,
             # 从对象实际状态派生：MPS 分支构造器内部强制 use_bf16=False（实际 fp32）
             "dtype_flag": "bf16" if getattr(tts, "use_bf16", use_bf16) else "fp32",
         }
@@ -89,6 +101,7 @@ def load_model(
     return tts, {
         "version": "2",
         "supports_duration_factor": False,
+        "supports_text_normalization": False,
         "dtype_flag": "fp16" if getattr(tts, "use_fp16", use_fp16) else "fp32",
     }
 
@@ -156,13 +169,34 @@ def encode_mp3(data: np.ndarray, sr: int) -> tuple[bytes, str]:
 
 EMO_LABELS = "happy,angry,sad,afraid,disgusted,melancholic,surprised,calm"
 
+# 上游自回归采样参数的默认值 —— SSOT 在客户端 tts.py（SAMPLING_PASSTHROUGH_DEFAULTS，
+# 锚点 indextts/infer_v2_5.py:731-739（HEAD 4f8792f），与 infer_v2.py:536-544 完全一致），
+# 本文件经文件头 import 引用（别名 SAMPLING_DEFAULTS 供下方请求模型取默认值）。
+# 此前这里持有一份手抄副本、靠注释约束「逐字一致」——两份 7/9 键字典已经漂移过一次
+# （服务端缺 text_normalization/seed 两键），现改为运行时导入，改一处两端同步。
+# 注意 SSOT 只覆盖 7 个**透传 generation_kwargs** 的键；text_normalization（v2.5 独立形参）
+# 与 seed（本服务自行 set_seed）不在此列，由下方请求模型单独定义。
+#
+# 三条口径提醒（写进注释而非文档，因为它们直接决定该不该动这些值）：
+#   length_penalty=0.0 **不是中性**——束打分 score = sum_logprobs / len**0 = sum_logprobs，
+#     对数概率恒负故越长越吃亏，即系统性偏好更短假设，是 num_beams>1 时吞尾/漏字的机制来源；
+#     仅在束搜索打分时生效，num_beams=1 下改它无效。
+#   repetition_penalty=10.0 作用在 8194 类语义码头上、是对 logit 的符号相关缩放（非概率硬禁），
+#     故能取到远超文本 LM 常用 1.0-1.2 的值；但其有效强度依赖 logit 绝对尺度，因而与音色/情感
+#     向量耦合——跨音色迁移调参结论必须重新验证。
+#   max_mel_tokens=1500 ≈ 30 s 音频（语义码率 50 Hz × 1.72 mel 帧/token，hop 256 @ 22050）；
+#     溢出后果不是音频被裁短，而是文本尾部根本没被念出（infer_v2_5.py:792-813）。
+
 
 class SynthesizeRequest(BaseModel):
     text: str
     ref_path: str
     emo_vector: list[float] | None = None
     # 情感参考音频：音色取自 ref_path，语调/情绪取自本字段（另一段录音），无合成味的风格迁移。
-    # 上游 infer() 在 emo_vector 存在时会「静默丢弃」emo_audio_prompt，故本服务显式拒绝二者同传。
+    # 本服务拒绝它与 emo_vector 同传 —— 但理由不是「上游会静默丢弃音频」（那是误读：
+    # infer_v2_5.py:611 的 `if emo_audio_prompt is None` 不成立，音频仍会经 merge_emovec 以
+    # (1−Σw) 权重混进最终 emovec）。真实问题是 **emo_alpha 被消费两次**：先在 :605-608 缩放
+    # 8 维向量，又在 :763 用作参考音频的隐空间插值系数，语义混乱且不可预测。
     emo_ref_path: str | None = None
     # 自然语言情感描述（如「轻快爽朗、自信阳光」）：服务端先用 QwenEmotion 转成 8 维向量，
     # 再按 ≤0.8 有效和规则缩放后当作 emo_vector 使用，并在 X-Emo-Vector 响应头回显供固化复用。
@@ -171,6 +205,24 @@ class SynthesizeRequest(BaseModel):
     duration_factor: float = 1.0
     lang: str = "ZH"
     num_beams: int = 1
+    # ---- 采样参数族：缺省即上游默认，取值域对齐 webui.py:901-910 的滑杆区间 ----
+    temperature: float = SAMPLING_DEFAULTS["temperature"]
+    top_p: float = SAMPLING_DEFAULTS["top_p"]
+    top_k: int = SAMPLING_DEFAULTS["top_k"]
+    length_penalty: float = SAMPLING_DEFAULTS["length_penalty"]
+    repetition_penalty: float = SAMPLING_DEFAULTS["repetition_penalty"]
+    max_mel_tokens: int = SAMPLING_DEFAULTS["max_mel_tokens"]
+    # 段间静音（毫秒）：仅作用于**单请求内**因超 max_text_tokens_per_segment 而被上游切开的分段
+    # 之间。本管线逐句合成、单句远低于分段预算，故默认路径下不生效；句间停顿由时间轴常数
+    # video/src/timing.json 的 sentenceGapSec 提供，二者不是同一件事。
+    interval_silence: int = SAMPLING_DEFAULTS["interval_silence"]
+    # 中文文本归一化（数字/百分号/量词 → 口语读法）。保持 True：实测 % / 小数 / 量词 / 月日 /
+    # 章节的读法都正确，关掉会把全部读法责任推给逐字稿。发音标注 <字|读音> 由上游占位符机制
+    # 保护、天然免疫归一化，故**不需要**为保标记而关它。v2.5 专属参数。
+    text_normalization: bool = True
+    # 随机种子：上游 do_sample 恒 True 且全链路无种子，同句每次合成都是不同的 take。
+    # 给定即可复现（transformers.set_seed 覆盖 random/numpy/torch）。None = 保持上游随机行为。
+    seed: int | None = None
 
     @field_validator("emo_vector")
     @classmethod
@@ -206,6 +258,64 @@ class SynthesizeRequest(BaseModel):
             raise ValueError("num_beams 必须在 [1, 5]")
         return v
 
+    @field_validator("temperature")
+    @classmethod
+    def _temp_ok(cls, v: float) -> float:
+        if not 0.1 <= v <= 2.0:  # NaN 比较恒 False，一并被拦
+            raise ValueError("temperature 必须在 [0.1, 2.0]")
+        return v
+
+    @field_validator("top_p")
+    @classmethod
+    def _top_p_ok(cls, v: float) -> float:
+        if not 0.0 <= v <= 1.0:
+            raise ValueError("top_p 必须在 [0.0, 1.0]")
+        return v
+
+    @field_validator("top_k")
+    @classmethod
+    def _top_k_ok(cls, v: int) -> int:
+        # 0 = 关闭 TopK warper（上游门控为 top_k != 0）。1 在 num_beams>1 下会踩到
+        # multinomial 的非零元素数下界（min_tokens_to_keep = n_eos+1 = 2），故禁用 1。
+        if v == 1:
+            raise ValueError(
+                "top_k=1 在束搜索下不安全（每束需保底 2 个候选）：用 0 关闭或 ≥2"
+            )
+        if not 0 <= v <= 100:
+            raise ValueError("top_k 必须在 [0, 100]")
+        return v
+
+    @field_validator("length_penalty")
+    @classmethod
+    def _len_pen_ok(cls, v: float) -> float:
+        if not -2.0 <= v <= 2.0:
+            raise ValueError("length_penalty 必须在 [-2.0, 2.0]")
+        return v
+
+    @field_validator("repetition_penalty")
+    @classmethod
+    def _rep_pen_ok(cls, v: float) -> float:
+        if not 0.1 <= v <= 20.0:
+            raise ValueError("repetition_penalty 必须在 [0.1, 20.0]")
+        return v
+
+    @field_validator("max_mel_tokens")
+    @classmethod
+    def _max_mel_ok(cls, v: int) -> int:
+        # 上限 1815 = config.yaml 的 gpt.max_mel_tokens（mel 位置嵌入容量，≈36.2 s），越界即报错。
+        if not 50 <= v <= 1815:
+            raise ValueError(
+                "max_mel_tokens 必须在 [50, 1815]（1815 为架构上限 ≈36.2 s）"
+            )
+        return v
+
+    @field_validator("interval_silence")
+    @classmethod
+    def _interval_ok(cls, v: int) -> int:
+        if not 0 <= v <= 2000:
+            raise ValueError("interval_silence 必须在 [0, 2000] 毫秒")
+        return v
+
 
 STATE: dict = {}
 
@@ -215,7 +325,10 @@ def _qwen_vector_sync(tts, emo_text: str, alpha: float) -> list[float]:
 
     Qwen 每维 clamp 在 [0, 1.2] 但**不做和归一**，Σ 可能 >1；而上游混合式为
     `emovec = Σ(w·基向量) + (1 - Σw)·参考音频情感`，Σw>1 会让参考音频项变负权重（发音劣化）。
-    故此处等比缩放（保留 Qwen 选定的「方向」，只压「强度」），保底留 ≥0.2 的自然情感残量。
+    故此处等比缩放（保留 Qwen 选定的「方向」，只压「强度」），使残留的本人语调 ≥0.2。
+
+    注意上游 emo_text 路径**完全没有**这层保护：webui 只对「自定义向量」模式调 normalize_emo_vec，
+    emo_text 模式把 Qwen 输出直接交给 infer()。这个 0.8 是本管线补的，不是上游行为。
     """
     vec = list(tts.qwen_emo.inference(emo_text).values())
     total = sum(vec) * alpha
@@ -227,6 +340,11 @@ def _qwen_vector_sync(tts, emo_text: str, alpha: float) -> list[float]:
 
 def _infer_sync(tts, ref: Path, req: SynthesizeRequest, tmpdir: Path) -> Path:
     wav_path = tmpdir / "out.wav"
+    if req.seed is not None:
+        # 必须在 infer 之前、且在同一线程内设置：generate 的多项式采样读的是全局 RNG。
+        from transformers import set_seed
+
+        set_seed(req.seed)
     kwargs = dict(
         spk_audio_prompt=str(ref),
         text=req.text,
@@ -234,15 +352,29 @@ def _infer_sync(tts, ref: Path, req: SynthesizeRequest, tmpdir: Path) -> Path:
         emo_vector=req.emo_vector,
         emo_audio_prompt=req.emo_ref_path,
         emo_alpha=req.emo_alpha,
+        # use_random=True 会为每个情感维度从 73 行原型里均匀乱抽，放弃「按你的 CAMPPlus 风格
+        # 挑最像你的那行」这一步 —— 等于让陌生人来演这个情绪，直接掉克隆保真度。恒 False。
         use_random=False,
         verbose=False,
-        # 束搜索宽度：上游默认 3；采样生成（do_sample=True）下 1 与 3 的听感差异可忽略，
-        # 但 GPT 段耗时约按束宽线性放大（MPS fp32 实测 RTF 40-58），管线长跑默认 1。
+        # 束搜索宽度：上游默认 3，管线长跑默认 1。束宽只作用于 T2S（S2M 入口 codes 形状与
+        # 束宽无关）；代价高度依赖硬件——CUDA 上近线性放大，MPS 上近乎免费（整集实测 1→3
+        # 仅 +4%，因 beam 扩张只把 batch 1→3 而 kernel 发射与逐步同步点不变）。
         num_beams=req.num_beams,
+        interval_silence=req.interval_silence,
+        # 以下六项经 **generation_kwargs 透传到 HF generate，全部生效（唯一失效的 do_sample
+        # 被上游 infer_v2_5.py:780 用字面量 True 覆盖，故不暴露）。
+        temperature=req.temperature,
+        top_p=req.top_p,
+        top_k=req.top_k,
+        length_penalty=req.length_penalty,
+        repetition_penalty=req.repetition_penalty,
+        max_mel_tokens=req.max_mel_tokens,
     )
     if STATE["supports_duration_factor"]:
         kwargs["duration_factor"] = req.duration_factor
         kwargs["lang"] = req.lang
+    if STATE["supports_text_normalization"]:
+        kwargs["text_normalization"] = req.text_normalization
     tts.infer(**kwargs)
     return wav_path
 
@@ -273,12 +405,14 @@ async def lifespan(app: FastAPI):
         dtype=meta["dtype_flag"],
         encoder=encoder,
         supports_duration_factor=meta["supports_duration_factor"],
+        supports_text_normalization=meta["supports_text_normalization"],
         supports_emo_text=getattr(tts, "qwen_emo", None) is not None,
         infer_lock=asyncio.Lock(),
     )
     print(
         f">> 就绪：IndexTTS-{STATE['version']} device={STATE['device']} dtype={STATE['dtype']} "
-        f"encoder={encoder} emo_text={'on' if STATE['supports_emo_text'] else 'off'}"
+        f"encoder={encoder} emo_text={'on' if STATE['supports_emo_text'] else 'off'} "
+        f"sampling=on seed=on"
     )
     yield
     STATE.clear()
@@ -300,6 +434,11 @@ async def health():
         "encoder": STATE.get("encoder"),
         "supports_duration_factor": STATE.get("supports_duration_factor"),
         "supports_emo_text": STATE.get("supports_emo_text", False),
+        "supports_text_normalization": STATE.get("supports_text_normalization", False),
+        # 采样参数族与 seed 由本服务自身实现（不依赖模型版本，v2/v2.5 的 generation_kwargs
+        # 默认值完全一致），故恒为 True。客户端据此在旧服务上对非默认取值硬失败。
+        "supports_sampling_params": True,
+        "supports_seed": True,
     }
 
 
@@ -333,6 +472,11 @@ async def synthesize(req: SynthesizeRequest):
             400,
             "emo_text 需要 QwenEmotion：服务启动时加 --use-qwen-emo（约 +1.5 GB 内存）",
         )
+    # 有效和护栏 Σvec×alpha ≤ 0.8 是**本管线自定的口径**，不是上游行为：上游 infer() 从不做
+    # 归一（normalize_emo_vec 只被 webui.py:665 的自定义向量分支调用），且 webui 那条的 0.8
+    # 作用在「已乘 emo_bias 的和」上、且在 alpha 之前。因此从社区/WebUI 抄来的 (vec, alpha)
+    # 在本服务上实际比原意强 16%–33%（含 calm 越重偏差越大）——跨来源参数迁移需重新试听定档。
+    # 详见 media/pipeline/INDEXTTS-2.5-ADVANCED.md §3.2。
     effective_sum = (sum(req.emo_vector) if req.emo_vector else 0.0) * req.emo_alpha
     if effective_sum > 0.8:  # infer 内部以 alpha 缩放向量，有效和超界会产生负混合权重
         raise HTTPException(
@@ -343,6 +487,12 @@ async def synthesize(req: SynthesizeRequest):
         raise HTTPException(
             400,
             "IndexTTS-2 不支持 duration_factor（v2.5 专属），请改用 v2.5 服务或去掉 --duration-factor",
+        )
+    if not req.text_normalization and not STATE["supports_text_normalization"]:
+        raise HTTPException(
+            400,
+            "IndexTTS-2 的 infer() 没有 text_normalization 形参（v2.5 专属）："
+            "请改用 v2.5 服务，或去掉 --no-text-normalization",
         )
 
     derived: list[float] | None = None

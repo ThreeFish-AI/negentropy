@@ -34,11 +34,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from tts import (  # noqa: E402 - 必须在 sys.path 注入之后导入
     MANUAL,
+    SAMPLING_CLI,
     STYLE_PRESETS,
     NonRetryableError,
     http_json,
     http_synthesize,
     mp3_duration,
+    resolve_sampling,
     resolve_style,
     server_launch_hint,
     tts_text,
@@ -85,7 +87,10 @@ def build_jobs(
 
 
 def check_server(
-    server: str, need_duration_factor: bool, need_emo_text: bool = False
+    server: str,
+    need_duration_factor: bool,
+    need_emo_text: bool = False,
+    sampling: dict | None = None,
 ) -> None:
     """健康检查——服务未起时给出可直接粘贴的启动命令，避免等到合成阶段才失败。"""
     try:
@@ -110,6 +115,29 @@ def check_server(
             "当前服务未加载 QwenEmotion，无法用 --emo-text：\n"
             "  重启服务时加 --use-qwen-emo（约 +1.5 GB 内存），或改用 --emo-vector / --emo-ref"
         )
+    # 旧服务对未声明字段是**静默忽略**（Pydantic 默认行为），会让 A/B 得出「改了没效果」的
+    # 错误结论。与 tts.py 同口径显式硬失败。
+    sampling = sampling or {}
+    if {k for k in sampling if k != "seed"} and not health.get(
+        "supports_sampling_params"
+    ):
+        sys.exit(
+            "当前服务不支持采样参数（temperature/top_p/top_k/length_penalty/"
+            "repetition_penalty/max_mel_tokens/interval_silence）：\n"
+            f"  服务端代码过旧，请用本仓当前 tts_server.py 重启服务：\n{server_launch_hint()}"
+        )
+    if "seed" in sampling and not health.get("supports_seed"):
+        sys.exit(
+            "当前服务不支持 --seed：服务端代码过旧，请用本仓当前 tts_server.py 重启服务：\n"
+            f"{server_launch_hint()}"
+        )
+    if sampling.get("text_normalization") is False and not health.get(
+        "supports_text_normalization"
+    ):
+        sys.exit(
+            "当前服务为 IndexTTS-2（infer() 无 text_normalization 形参）：\n"
+            "  去掉 --no-text-normalization，或以 --indextts-version 2.5 重启服务"
+        )
 
 
 def synthesize_one(
@@ -121,6 +149,7 @@ def synthesize_one(
     beams: int,
     out_dir: Path,
     stem: str | None = None,
+    sampling: dict | None = None,
 ) -> dict:
     """合成一档并落盘 → {style, path, duration, wall, rtf}。失败即退出（小样无需容错累积）。"""
     out = out_dir / f"{stem or name}.mp3"
@@ -141,6 +170,7 @@ def synthesize_one(
                 args.emo_ref,
                 args.emo_text,
                 headers,
+                sampling,
             )
         except NonRetryableError as e:
             sys.exit(f"[{name}] 请求被拒（4xx，重试无意义）：{e}")
@@ -253,6 +283,66 @@ def main() -> None:
         + MANUAL
         + " §4.3b",
     )
+    # 采样参数族（与 tts.py 同名同区间，语义与机制说明见 tts.py 的 SAMPLING_DEFAULTS 注释）。
+    # 小样是这些参数的**主战场**：它们全都需要 A/B 才能定档，而整集长跑一次数小时。
+    smp = parser.add_argument_group("采样参数（专家级，缺省即上游默认）")
+    smp.add_argument(
+        "--temperature",
+        default=None,
+        type=float,
+        help="采样温度 0.1–2.0（上游默认 0.8）",
+    )
+    smp.add_argument(
+        "--top-p", default=None, type=float, help="核采样 0–1（上游默认 0.8）"
+    )
+    smp.add_argument(
+        "--top-k", default=None, type=int, help="top-k 0–100（上游默认 30；0=关闭）"
+    )
+    smp.add_argument(
+        "--length-penalty",
+        default=None,
+        type=float,
+        help="束打分长度惩罚 -2–2（上游默认 0.0，**非中性**：系统性偏好更短假设，"
+        "是 --num-beams>1 时吞尾/漏字的机制来源）。仅束搜索时生效",
+    )
+    smp.add_argument(
+        "--repetition-penalty",
+        default=None,
+        type=float,
+        help="重复惩罚 0.1–20（上游默认 10.0）。有效强度依赖 logit 尺度，故与音色/情感耦合",
+    )
+    smp.add_argument(
+        "--max-mel-tokens",
+        default=None,
+        type=int,
+        help="生成上限 50–1815（上游默认 1500 ≈30 s）。溢出表现为文本尾部未被念出",
+    )
+    smp.add_argument(
+        "--interval-silence",
+        default=None,
+        type=int,
+        help="单请求内分段间静音毫秒（上游默认 200）；单句试听通常不分段，故一般无效果",
+    )
+    smp.add_argument(
+        "--no-text-normalization",
+        action="store_true",
+        help="关闭上游中文归一化（v2.5 专属）。通常不要用——%% / 小数 / 量词的读法本来就对，"
+        "且发音标注 <字|读音> 免疫归一化，不需要为保标记而关它",
+    )
+    smp.add_argument(
+        "--seed",
+        default=None,
+        type=int,
+        help="随机种子。上游 do_sample 恒 True 且无种子，同句每次都是不同 take；"
+        "**做任何参数 A/B 都应先固定种子**，否则听到的差异可能只是采样噪声",
+    )
+    smp.add_argument(
+        "--seed-offset",
+        default=0,
+        type=int,
+        help="与 --seed 相加（默认 0），用于换一条 take",
+    )
+
     parser.add_argument("--server", default="http://127.0.0.1:8766", help="服务地址")
     parser.add_argument(
         "--label",
@@ -343,6 +433,16 @@ def main() -> None:
         parser.error("试听文本为空")
 
     try:
+        sampling = resolve_sampling(args)
+    except ValueError as e:
+        parser.error(str(e))
+    # --all-styles 下 resolve_sampling 只取命令行值（args.style 仍是默认 neutral，其预设无
+    # sampling）。将来若给某个预设加了 sampling，A/B 就会静默丢掉那一档的采样口径 —— 提前拦住。
+    if args.all_styles and any(p.get("sampling") for p in STYLE_PRESETS.values()):
+        parser.error(
+            "有预设自带 sampling，--all-styles 无法逐档正确应用：请改用单档 --style 逐个 A/B"
+        )
+    try:
         jobs = build_jobs(args)
     except ValueError as e:  # parse_emo_vector 的键名/权重错误
         parser.error(str(e))
@@ -364,6 +464,16 @@ def main() -> None:
     if args.emo_text:
         print(f">> 情感描述：{args.emo_text}（服务端 QwenEmotion 转向量）")
     print(f">> 风格 {len(jobs)} 档 · lang={args.lang}")
+    if sampling:
+        print(
+            ">> 采样参数（非上游默认，会入缓存摘要）："
+            + ", ".join(f"{k}={sampling[k]!r}" for k in sorted(sampling))
+        )
+    if "seed" not in sampling:
+        print(
+            ">> 提示：未固定 --seed —— 上游 do_sample 恒 True，同句每次合成都是不同 take，"
+            "档间差异可能只是采样噪声。做 A/B 请加 --seed"
+        )
     for name, vec, alpha, df, beams in jobs:
         vec_str = ",".join(f"{x:g}" for x in vec) if vec else "—（不注入情感）"
         slow = "（束宽 3，约慢 3 倍）" if beams >= 3 else ""
@@ -385,6 +495,7 @@ def main() -> None:
         args.server,
         need_duration_factor=any(df != 1.0 for _n, _v, _a, df, _b in jobs),
         need_emo_text=bool(args.emo_text),
+        sampling=sampling,
     )
 
     out_dir = (
@@ -406,6 +517,7 @@ def main() -> None:
             stem=None
             if not args.label
             else (args.label if len(jobs) == 1 else f"{args.label}-{name}"),
+            sampling=sampling,
         )
         for name, vec, alpha, df, beams in jobs
     ]
@@ -431,6 +543,14 @@ def main() -> None:
     ):
         if val is not None:
             chosen += f" {flag} {val:g}"
+    # 采样参数同理必须回显：它们进缓存摘要，漏带一个就是另一套音频（且会静默命中/失效缓存）
+    for key in SAMPLING_CLI:
+        if key in sampling:
+            chosen += f" --{key.replace('_', '-')} {sampling[key]:g}"
+    if sampling.get("text_normalization") is False:
+        chosen += " --no-text-normalization"
+    if "seed" in sampling:
+        chosen += f" --seed {sampling['seed']}"
     print(
         f"\n下一步 · 选定风格后全量合成一集：\n"
         f"  cd media/<工程> && uv run --no-project --with mutagen scripts/tts.py \\\n"
