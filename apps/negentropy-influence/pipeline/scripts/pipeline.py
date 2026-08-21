@@ -11,7 +11,9 @@
     就是第二事实源，必然漂移。`status` 实时派生新鲜度，零存储。
   - 不假装能跑写作阶段（①②④⑤中的人/代理部分）——只跑工具与其质量门。
 
-用法：uv run --no-project media/pipeline/scripts/pipeline.py <cmd> --project media/<工程>
+用法（$R/$P 路径变量约定见 ../README.md）：
+  R=apps/negentropy-influence/pipeline/scripts; P=apps/negentropy-influence/episodes/<工程>
+  uv run --no-project $R/pipeline.py --project $P <cmd>
 子命令：status / doctor / build / check / tts / captions / render / qa / all / clean-samples
 """
 
@@ -28,10 +30,11 @@ import urllib.request
 from pathlib import Path
 
 SCRIPTS = Path(__file__).resolve().parent
-REPO = SCRIPTS.parents[2]
 sys.path.insert(0, str(SCRIPTS))  # noqa: E402 - 复用 timeline 的 load_constants
 
-MANUAL = "media/pipeline/VOICE-CLONING.md"
+from paths import INFLUENCE, REPO  # noqa: E402 - 必须在 sys.path 注入之后导入
+
+MANUAL = "pipeline/VOICE-CLONING.md"  # 子项目根相对（见 paths.py）
 
 
 def load_config(root: Path) -> dict:
@@ -39,7 +42,7 @@ def load_config(root: Path) -> dict:
     if not cfg_path.is_file():
         sys.exit(
             f"缺少分集配置: {cfg_path}\n  可执行参数已收敛至 pipeline.toml"
-            "（见 media/pipeline/README.md 字段表）；直接调用底层脚本亦可"
+            "（见 pipeline/README.md 字段表）；直接调用底层脚本亦可"
         )
     return tomllib.loads(cfg_path.read_text(encoding="utf-8"))
 
@@ -118,7 +121,7 @@ def cmd_doctor(root: Path, cfg: dict) -> int:
         print(f"  ❌ {e}")
         ok = False
     if tts.get("engine") == "indextts":
-        ref = REPO / tts.get("ref", "")
+        ref = INFLUENCE / tts.get("ref", "")
         if ref.is_file():
             import hashlib
 
@@ -178,7 +181,7 @@ def cmd_tts(
         tts.get("engine", "indextts"),
     ]
     if tts.get("engine", "indextts") == "indextts":
-        cmd += ["--ref", str(REPO / tts["ref"])]
+        cmd += ["--ref", str(INFLUENCE / tts["ref"])]
         if tts.get("ref_sha1"):
             cmd += ["--expect-ref-sha1", tts["ref_sha1"]]
         cmd += [
@@ -294,7 +297,7 @@ def cmd_clean_samples(_root: Path, _cfg: dict) -> int:
 
 def main() -> None:
     ap = argparse.ArgumentParser(
-        description="科普视频管线单入口（薄编排，阶段契约见 media/pipeline/README.md）"
+        description="科普视频管线单入口（薄编排，阶段契约见 pipeline/README.md）"
     )
     ap.add_argument(
         "--project",

@@ -11,16 +11,16 @@
 - 幂等：参数与文本未变则跳过（SHA1 摘要 sidecar 缓存）。
 
 用法：
-  edge：    uv run --no-project --with edge-tts --with mutagen media/pipeline/scripts/tts.py \
-                --project media/<工程> [--voice zh-CN-YunxiNeural] [--rate +4%] [--force]
-  indextts：uv run --no-project --with mutagen media/pipeline/scripts/tts.py \
-                --project media/<工程> --engine indextts --ref <参考样本.wav> \
+  edge：    uv run --no-project --with edge-tts --with mutagen $R/tts.py \
+                --project $P [--voice zh-CN-YunxiNeural] [--rate +4%] [--force]
+  indextts：uv run --no-project --with mutagen $R/tts.py \
+                --project $P --engine indextts --ref <参考样本.wav> \
                 [--style passionate] [--server http://127.0.0.1:8766] [--force]
   情感三来源（互斥）：--style/--emo-vector 向量注入 · --emo-ref <另一段录音> 语调迁移
                 （更自然）· --emo-text "轻快爽朗、自信阳光" 自然语言（需服务端 --use-qwen-emo）
   （工程内薄包装等价于在工程目录下运行 scripts/tts.py）
 
-声音克隆完整手册（部署/风格/排障/许可）见 media/pipeline/VOICE-CLONING.md。
+声音克隆完整手册（部署/风格/排障/许可）见 pipeline/VOICE-CLONING.md。
 """
 
 from __future__ import annotations
@@ -43,7 +43,7 @@ CONCURRENCY_EDGE = 6
 CONCURRENCY_INDEXTTS = 1  # 服务端串行锁推理；>1 会在锁后排队，排队时长计入客户端超时
 RETRIES = 4
 HTTP_TIMEOUT = 600  # MPS fp32 长句可达数分钟；须覆盖队列等待
-MANUAL = "media/pipeline/VOICE-CLONING.md"
+MANUAL = "pipeline/VOICE-CLONING.md"
 
 # --plan 排期估算用的实测常数（MPS fp32，长跑折算口径：含降频、机器争用与逐句开销）。
 # RTF_1BEAM 来自三集 596 句连续跑 8.5 小时 / 40.2 分钟纯语音；RTF_MULTIBEAM 由同句
@@ -1085,7 +1085,7 @@ async def main() -> None:
             parser.error(
                 f"参考样本指纹不符：期望 {args.expect_ref_sha1}，实得 {ref_sha1}"
                 f"（{ref_path}）——源录音或裁剪参数已变。"
-                f"勿在未核验音色上跑长合成；指纹清单见 media/pipeline/voices/refs.toml"
+                f"勿在未核验音色上跑长合成；指纹清单见 pipeline/voices/refs.toml"
             )
 
         # 混合档：解析选择器并逐句定束宽（此处即失败，避免典型的「id 拼错→静默全按低束宽跑完」）

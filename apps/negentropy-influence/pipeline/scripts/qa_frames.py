@@ -22,9 +22,9 @@
     解析 video/src/design/theme.ts 的 #RRGGBB，按 WCAG 2.x 相对亮度对比
     theme.bg；概念色 < 4.5:1 → FAIL（此前只能肉眼估，见 skills/06 清单）。
 
-用法：uv run --no-project [--with pillow --with numpy] media/pipeline/scripts/qa_frames.py \
-          --project media/<工程> <video.mp4> [--scene P2|--last-n 6|句id…] [--check]
-     uv run --no-project media/pipeline/scripts/qa_frames.py --project media/<工程> --check-theme
+用法：uv run --no-project [--with pillow --with numpy] $R/qa_frames.py \
+          --project $P <video.mp4> [--scene P2|--last-n 6|句id…] [--check]
+     uv run --no-project $R/qa_frames.py --project $P --check-theme
 输出：抽帧 <工程>/out/frames/{句id}.png；体检结果打屏，FAIL 使退出码非零。
 """
 

@@ -3,7 +3,7 @@
 
 - 输入：任意 mp3/wav/flac 录音（如手机录音、长片段素材；m4a 不受 libsndfile 支持，
   需先 `ffmpeg -i in.m4a out.wav`）
-- 输出：media/pipeline/voices/<名字>.wav —— 16-bit PCM 单声道，保留原始采样率
+- 输出：pipeline/voices/<名字>.wav —— 16-bit PCM 单声道，保留原始采样率
 - 动机：克隆参考音频 **10–14 秒**干净人声（硬上限 15 秒，见下）。
 
 **两条实测口径（2026-08-20 核验上游 ~/tools/index-tts，HEAD 4f8792f）**：
@@ -24,8 +24,8 @@
 本机实测（同文本同种子、交错 3 组）把参考从 12 秒换到 6 秒，`s2mel_time` 中位数
 21.81s → 10.02s（−54%）——但音色与语速也随之改变，**不可为提速缩短参考**。
 
-用法：uv run --no-project --with soundfile media/pipeline/scripts/prepare_ref.py \
-          <源音频> [--start 10] [--duration 15] [--out media/pipeline/voices/me.wav]
+用法：uv run --no-project --with soundfile $R/prepare_ref.py \
+          <源音频> [--start 10] [--duration 15] [--out pipeline/voices/me.wav]
 """
 
 from __future__ import annotations
@@ -60,7 +60,7 @@ def main() -> int:
     parser.add_argument(
         "--out",
         default=None,
-        help="输出路径（默认 media/pipeline/voices/<源文件名>.wav）",
+        help="输出路径（默认 pipeline/voices/<源文件名>.wav）",
     )
     args = parser.parse_args()
 

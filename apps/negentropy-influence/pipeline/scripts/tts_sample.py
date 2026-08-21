@@ -9,14 +9,14 @@
 
 用法（仓库根执行）：
   # 单档试听（科普推荐档）
-  uv run --no-project --with mutagen media/pipeline/scripts/tts_sample.py \
-      --ref media/pipeline/voices/me-bright.wav --style sunny --play
+  uv run --no-project --with mutagen $R/tts_sample.py \
+      --ref pipeline/voices/me-bright.wav --style sunny --play
   # 全风格 A/B（STYLE_PRESETS 逐档各合成一遍，含各自的 alpha/语速/束宽）
-  uv run --no-project --with mutagen media/pipeline/scripts/tts_sample.py \
-      --ref media/pipeline/voices/me-bright.wav --all-styles --play
+  uv run --no-project --with mutagen $R/tts_sample.py \
+      --ref pipeline/voices/me-bright.wav --all-styles --play
 
 产物：<仓库根>/.temp/voice-samples/{风格}.mp3（已被根 .gitignore 忽略）——内含本人音色，
-属生物特征信息，试听后请及时清理。完整手册见 media/pipeline/VOICE-CLONING.md §5.1。
+属生物特征信息，试听后请及时清理。完整手册见 pipeline/VOICE-CLONING.md §5.1。
 """
 
 from __future__ import annotations
@@ -46,8 +46,11 @@ from tts import (  # noqa: E402 - 必须在 sys.path 注入之后导入
     tts_text,
 )
 
-# parents: [0]=scripts [1]=pipeline [2]=media [3]=仓库根（与 prepare_ref.py 的 parents[1] 同惯例）
-DEFAULT_OUT_DIR = Path(__file__).resolve().parents[3] / ".temp" / "voice-samples"
+# 试听小样落仓库根 .temp/（AGENTS.md：临时产物一律收敛至此），由 pipeline.py
+# clean-samples 清理 —— 两处路径必须一致，故统一取自 paths.REPO。
+from paths import REPO  # noqa: E402 - 必须在 sys.path 注入之后导入
+
+DEFAULT_OUT_DIR = REPO / ".temp" / "voice-samples"
 DEFAULT_TEXT = "自进化编码智能体的核心不是写代码，而是让 AI 学会修改自己写代码的方式。"
 ATTEMPTS = 2  # 非 4xx（如 MPS 数值问题致的 500）再试一次；4xx 立即失败
 
@@ -553,7 +556,7 @@ def main() -> None:
         chosen += f" --seed {sampling['seed']}"
     print(
         f"\n下一步 · 选定风格后全量合成一集：\n"
-        f"  cd media/<工程> && uv run --no-project --with mutagen scripts/tts.py \\\n"
+        f"  cd $P && uv run --no-project --with mutagen scripts/tts.py \\\n"
         f"      --engine indextts --ref {ref} {chosen}"
     )
     if args.cleanup:

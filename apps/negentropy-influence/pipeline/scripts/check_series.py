@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""系列一致性校验——media/series.json（发布顺序 SSOT）的机械化执法。
+"""系列一致性校验——series.json（发布顺序 SSOT）的机械化执法。
 
 此前顺序只活在散文与 React 常量里（EP3 的 SeriesThree 数组说「第一集=AI 如何
 自己变强」而意图已变），且反串线 lint 无法只用 grep 实现：EP1 的 p1-25a 会命中
@@ -25,8 +25,11 @@
     索引 / CHANGELOG / series.md）同时提及多个系列属正常形态；episode 的
     `1..N` 连续性也只在系列内成立。
 
-用法：uv run --no-project media/pipeline/scripts/check_series.py
-退出码：0 = 一致；1 = 有 FAIL。挂牌 pre-commit 后自动覆盖 media/ 相关提交。
+用法：uv run --no-project apps/negentropy-influence/pipeline/scripts/check_series.py
+退出码：0 = 一致；1 = 有 FAIL。挂牌 pre-commit 后自动覆盖子项目相关提交。
+
+受检范围按根拆分（见 COVERED_GLOBS_INFLUENCE / COVERED_GLOBS_REPO）：子项目侧
+用相对 glob，故本脚本内不出现任何「子项目在仓库中的位置」字面量。
 """
 
 from __future__ import annotations
@@ -36,8 +39,10 @@ import re
 import sys
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parents[3]
-SERIES_JSON = REPO / "media" / "series.json"
+# 同目录模块：作为脚本运行时脚本目录即 sys.path[0]，无需注入
+from paths import INFLUENCE, REPO
+
+SERIES_JSON = INFLUENCE / "series.json"
 
 #: 顺序词。白名单：「下期」顺序无关收尾语；「前两集」从终集视角恒真（相对表述，改序仍成立）
 ORDINAL_WORDS = re.compile(
@@ -60,13 +65,24 @@ CN_NUM = {
     "十": 10,
 }
 
-#: 受检文件集（规则 2/3/5 的扫描范围；.context 等工作区目录不含）
-COVERED_GLOBS = (
-    "media/**/*.md",
-    "media/**/*.tsx",
-    "media/**/*.ts",
+#: 受检文件集（规则 2/3/5 的扫描范围；.context 等工作区目录不含）。
+#: **按根拆分**是刻意的：子项目侧写相对 glob，路径字面量便从本脚本彻底消失
+#: —— 于是「误把 `apps/negentropy-influence/**` 写宽成 `apps/**`」这个陷阱
+#: 结构性不可能发生（实测宽化会炸出 12 条其他子项目的既存死链假 FAIL）。
+COVERED_GLOBS_INFLUENCE = (
+    "**/*.md",
+    "**/*.tsx",
+    "**/*.ts",
+)
+#: 仓库级受检文件。science-video-pipeline 路由壳此前**完全没有死链校验**，而它
+#: 有 13 条指向本子项目的链接——正是整目录迁移会一次性打断的东西。
+#: 刻意只收该技能而非 `.agent/skills/**`：后者会连带执法其他技能的既存债
+#: （实测 pdf-reader 有一条示意用占位链接 `../images/pdf_name/...`），
+#: 把无关的假 FAIL 引进来，最终只会促使有人把这条 glob 整行删掉。
+COVERED_GLOBS_REPO = (
     "docs/.agents/knowledge-map.md",
     "CHANGELOG.md",
+    ".agent/skills/science-video-pipeline/**/*.md",
 )
 
 
@@ -91,10 +107,14 @@ def all_episodes(series_list: list[dict]) -> list[dict]:
 
 def covered_files() -> list[Path]:
     out: list[Path] = []
-    for g in COVERED_GLOBS:
-        out.extend(
-            p for p in REPO.glob(g) if p.is_file() and "node_modules" not in p.parts
-        )
+    for base, globs in (
+        (INFLUENCE, COVERED_GLOBS_INFLUENCE),
+        (REPO, COVERED_GLOBS_REPO),
+    ):
+        for g in globs:
+            out.extend(
+                p for p in base.glob(g) if p.is_file() and "node_modules" not in p.parts
+            )
     return sorted(set(out))
 
 
@@ -103,7 +123,7 @@ def rule_spoken_interleave(series_list: list[dict], msgs: list[str]) -> None:
     eps = all_episodes(series_list)
     for ep in eps:
         others = [e["title"] for e in eps if e["slug"] != ep["slug"]]
-        narration = REPO / ep["path"] / "script" / "narration.md"
+        narration = INFLUENCE / ep["path"] / "script" / "narration.md"
         if not narration.is_file():
             msgs.append(f"FAIL 规则1：{ep['slug']} 缺 {narration.relative_to(REPO)}")
             continue
@@ -213,7 +233,7 @@ def rule_manifest_integrity(series_list: list[dict], msgs: list[str]) -> None:
                     f"与 {series['id']} 重复"
                 )
             seen_slugs[e["slug"]] = series["id"]
-            root = REPO / e["path"]
+            root = INFLUENCE / e["path"]
             for need in ("README.md", "script/narration.md"):
                 if not (root / need).is_file():
                     msgs.append(f"FAIL 规则4：{e['slug']} 缺 {need}")

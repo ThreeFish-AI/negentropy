@@ -12,7 +12,7 @@
 | 形态 | 动效图解式：**本人音色克隆配音**（IndexTTS-2.5 sunny-steady 成片档）+ Remotion 代码动画，无真人出镜 |
 | 受众 | 对 AI 好奇的普通观众；不预设机器学习背景 |
 | 核心内容 | 全文主线：Harness=经验基础设施 → 经验的四个去处 → 元进化 → SI 评测 → 移动攻击面 |
-| 系列关系 | 三集系列第 1 集，完全独立成片：口播不出现其他集标题与集数序号（发布顺序见 [../../series.json](../../series.json)） |
+| 系列关系 | 三集系列第 1 集，完全独立成片：口播不出现其他集标题与集数序号（发布顺序见 [../../series.json](../../../series.json)） |
 
 ## 二、叙事策略
 
@@ -69,7 +69,7 @@ flowchart LR
     style I fill:#2d5c1a,stroke:#7ED321,color:#fff
 ```
 
-- 公共脚本已收敛至 [media/pipeline/](../../pipeline/README.md)（本工程 scripts/ 为薄包装）。
+- 公共脚本已收敛至 [pipeline/](../../../pipeline/README.md)（本工程 scripts/ 为薄包装）。
 - 同步机制：每句一段 MP3；Remotion `calculateMetadata` 读 manifest 自动计算时间轴（句间 0.32s、幕间 +0.9s、片头 0.6s、片尾 2s）——改稿后只需重跑 build→tts→render。
 - 质量门：逐字稿定稿前过 `pipeline/skills/04-verification.md` 双重校验（真实性回溯 + 易懂性评审）；渲染后逐幕抽帧目检。
 
@@ -78,4 +78,4 @@ flowchart LR
 - BGM 留空轨（版权考量，用户后期自选）；不使用任何未经授权的第三方图片/音频素材，全部画面为代码生成。
 - 论文之外的观点不进口播正文；需要延伸时明确口播"论文之外多说一句"。
 - 论文无公开 arXiv 号：引用卡写机构 + 日期，不编造编号。
-- Remotion 采用个人科普用途免费授权；IndexTTS-2.5 按 bilibili 模型许可（个人/研究可用），发布前确认平台对合成语音的标注要求（详见 [../../pipeline/VOICE-CLONING.md §八](../../pipeline/VOICE-CLONING.md)）。
+- Remotion 采用个人科普用途免费授权；IndexTTS-2.5 按 bilibili 模型许可（个人/研究可用），发布前确认平台对合成语音的标注要求（详见 [../../pipeline/VOICE-CLONING.md §八](../../../pipeline/VOICE-CLONING.md)）。

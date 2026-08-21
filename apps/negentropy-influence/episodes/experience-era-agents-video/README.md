@@ -3,7 +3,7 @@
 > 基于 Che Jiang, Jincheng Zhong, Yu Fu, *et al.*, "Self-Improving Agents in the Era of Experience: A Survey of Self- to Meta-Evolution," *Frontis.AI / Tsinghua University*, Jun. 2026（88 页综述，无公开 arXiv 号）的动效图解式科普视频（B 站/YouTube，约 14 分钟）。
 > 形态：**本人音色克隆配音**（IndexTTS-2.5，sunny-steady 明快稳健成片档，me-bright.wav 样本）+ Remotion 代码动画，无真人出镜。
 > （v2 前为 edge-tts 预置音色，两种引擎 manifest 契约一致，可随时切回。）
-> 三集系列第 1 集（各集独立成片，口播不出现他集标题与集数序号）；同系列：[《AI 如何自己变强？》](../self-improving-agents-video/README.md)（自我进化改什么）、[《会写代码的 AI，开始给自己写代码》](../self-evolving-coding-agents-video/README.md)（代码领域全图），发布顺序见 [../series.json](../series.json)。
+> 三集系列第 1 集（各集独立成片，口播不出现他集标题与集数序号）；同系列：[《AI 如何自己变强？》](../self-improving-agents-video/README.md)（自我进化改什么）、[《会写代码的 AI，开始给自己写代码》](../self-evolving-coding-agents-video/README.md)（代码领域全图），发布顺序见 [../series.json](../../series.json)。
 
 ## 交付状态（v3，2026-08-20）
 
@@ -26,7 +26,7 @@
 | `script/narration.json` | 派生物：拆句结果，供 TTS 与字幕消费（勿手改） |
 | `script/storyboard.md` | 分镜表：镜号 ↔ 句 id 区间 ↔ 画面动效（场景组件实现规格） |
 | `pipeline.toml` | 本集管线配置（配音/渲染/时长预算）——`pipeline.py` 的参数源 |
-| `scripts/*.py` | 薄包装 → 公共管线 [media/pipeline/scripts/](../pipeline/scripts/)（`--project` 透传） |
+| `scripts/*.py` | 薄包装 → 公共管线 [$R/](../../pipeline/scripts/)（`--project` 透传） |
 | `video/` | Remotion 工程（独立 pnpm 项目，`ignore-workspace` 与主仓隔离） |
 | `out/` | 渲染产物（gitignored） |
 
@@ -69,4 +69,4 @@ cd video && pnpm run render               # -> ../out/final.mp4
 
 ## 许可注意
 
-Remotion 对超过 3 人的公司需商业授权（个人/小团队免费）；若本视频转为公司用途，请评估许可或迁移 MIT 协议的 Motion Canvas。配音为**本人声音的自愿克隆**（IndexTTS-2.5，按 bilibili 模型使用许可：个人/研究用途可用，商用需联系 indexspeech@bilibili.com；克隆他人声音须获本人书面同意，详见 [../pipeline/VOICE-CLONING.md](../pipeline/VOICE-CLONING.md) §八）。发布前请自行确认平台对合成语音的标注要求。
+Remotion 对超过 3 人的公司需商业授权（个人/小团队免费）；若本视频转为公司用途，请评估许可或迁移 MIT 协议的 Motion Canvas。配音为**本人声音的自愿克隆**（IndexTTS-2.5，按 bilibili 模型使用许可：个人/研究用途可用，商用需联系 indexspeech@bilibili.com；克隆他人声音须获本人书面同意，详见 [../pipeline/VOICE-CLONING.md](../../pipeline/VOICE-CLONING.md) §八）。发布前请自行确认平台对合成语音的标注要求。

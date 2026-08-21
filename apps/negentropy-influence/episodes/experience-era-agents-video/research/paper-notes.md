@@ -4,8 +4,8 @@
 > **作者**：清华大学 × Horizon Research (Frontis.AI) 联合团队（Che Jiang、Kaiyan Zhang 项目负责；Ning Ding、Kaiyan Zhang、Bowen Zhou 通讯）
 > **用途**：本笔记是科普视频《经验时代》的**单一事实源**——逐字稿中的每个论文断言必须能回溯到本文件的对应条目。
 > **提取方式**：2026-08-16 由 9 个并行提取代理对论文 PDF 全文逐节精读产出（§1–2、§3、§4、§5、§6、§7、§8、§9、§10 各一代理）。
-> **交叉引用**：工程向应用调研见 [docs/research/self-evolution/140-experience-era-self-improvement.md](../../../docs/research/self-evolution/140-experience-era-self-improvement.md)（同一论文映射到本仓 Routine 闭环的双支柱改进）。
-> **与同系列另两集的关系**（事实追溯用，非串线依据）：《AI 如何自己变强？》依据 Schmidhuber 团队综述（arXiv:2607.13104，聚焦“自我进化改什么：大脑 θ / 装备 Σ”）；本集论文聚焦“部署之后经验如何变成实力”（Harness=经验基础设施、trace→经验、四代更新面、元进化、SI 评测、移动攻击面）。两篇互补：一篇回答“改哪”，本集回答“上线之后怎么攒”。各集独立成片、口播互不引用（发布顺序见 [../../series.json](../../series.json)）。
+> **交叉引用**：工程向应用调研见 [docs/research/self-evolution/140-experience-era-self-improvement.md](../../../../../docs/research/self-evolution/140-experience-era-self-improvement.md)（同一论文映射到本仓 Routine 闭环的双支柱改进）。
+> **与同系列另两集的关系**（事实追溯用，非串线依据）：《AI 如何自己变强？》依据 Schmidhuber 团队综述（arXiv:2607.13104，聚焦“自我进化改什么：大脑 θ / 装备 Σ”）；本集论文聚焦“部署之后经验如何变成实力”（Harness=经验基础设施、trace→经验、四代更新面、元进化、SI 评测、移动攻击面）。两篇互补：一篇回答“改哪”，本集回答“上线之后怎么攒”。各集独立成片、口播互不引用（发布顺序见 [../../series.json](../../../series.json)）。
 
 ---
 
@@ -935,7 +935,7 @@
 
 ## 2026-08 v3 重读校准（第三遍，发布顺序调整 + sunny-steady 重录之际）
 
-> 重读方式：7 个按幕并行校准代理（A1 P0+P1 / A2 p2-01..18 / A3 p2-19..37 / A4 p2-38..47+P3 / A5 P4 / A6 P5 / A7 P6）对照 PDF 全文逐句审计，**审计单位是句而非章**——承接句强制记 `—` 档，正是上一轮「只审有趣句子」让两处 ❌ 漏网。取证工具：`media/pipeline/scripts/paper_extract.py`（map/text/captions/find/render）。
+> 重读方式：7 个按幕并行校准代理（A1 P0+P1 / A2 p2-01..18 / A3 p2-19..37 / A4 p2-38..47+P3 / A5 P4 / A6 P5 / A7 P6）对照 PDF 全文逐句审计，**审计单位是句而非章**——承接句强制记 `—` 档，正是上一轮「只审有趣句子」让两处 ❌ 漏网。取证工具：`$R/paper_extract.py`（map/text/captions/find/render）。
 > **结论**：上一轮「零事实漂移」的结论**不成立**。本轮确证 3 处事实错误（p0-01 归属、p1-10 编造倍数、p6-13a/b 站点占位数字）并逐句复核其余 176 句。
 
 ### 取证记录（111 vs 331 全链）

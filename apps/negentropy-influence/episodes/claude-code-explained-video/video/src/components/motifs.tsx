@@ -1,4 +1,4 @@
-/** 本集视觉母题库（每集独有；复用边界见 media/pipeline/README.md §四——
+/** 本集视觉母题库（每集独有；复用边界见 pipeline/README.md §四——
  *  Remotion 原语复制适配、不做跨集共享包）。
  *
  *  五个母题，对应 script/storyboard.md 反复出现的画面语言：

@@ -5,7 +5,7 @@
 
 ## 决策树（按序过闸，任何一闸不过不进长跑）
 
-1. **样本就位？** `uv run --no-project media/pipeline/scripts/refs.py list` → 缺失则 `refs.py rebuild --name <样本>`（源录音是本人私有文件，路径记录在 `voices/refs.toml`）。
+1. **样本就位？** `uv run --no-project $R/refs.py list` → 缺失则 `refs.py rebuild --name <样本>`（源录音是本人私有文件，路径记录在 `voices/refs.toml`）。
 2. **指纹一致？** `refs.py verify --name <样本>` 必须全绿——sha1 与清单不符说明源文件/裁剪参数变了，**勿在未核验音色上烧 10 小时**；新样本须先过第 4 步试听再回填清单。
 3. **风格定档？** 首次/换风格必过小样 A/B：`tts_sample.py --ref <样本> --all-styles --play`；再用**领航片段**（本集最难的 6–8 句：长分句/枚举清单/带小数点数字/含英文专名/含多音字）在该风格下整句合成试听。**边听边记读错字**到 [PRON-GLOSSARY.md](../PRON-GLOSSARY.md)，用 `<字|读音>` 标注修（写稿规约见 [skills/03](./03-narration.md)）。听完 `--cleanup` 或 `pipeline.py clean-samples`（生物特征）。
 4. **排期对账？** `pipeline.py tts --plan`（纯本地）：待合成句数 × 束宽档 + 墙钟估算。ETA 与预期差 >15% 先查机器负载。
@@ -22,7 +22,7 @@
 
 ## 调用形态
 
-- 编排入口（参数读自各集 `pipeline.toml`）：`uv run --no-project media/pipeline/scripts/pipeline.py --project media/<slug>-video tts [--plan|--style sunny]`
+- 编排入口（参数读自各集 `pipeline.toml`）：`uv run --no-project $R/pipeline.py --project $P tts [--plan|--style sunny]`
 - 直接薄包装（工程内）：`uv run --no-project --with mutagen scripts/tts.py --engine indextts …`（须带 `--expect-ref-sha1`，编排入口会自动带上）
 - 服务端启动命令由 `tts.py`/`tts_sample.py` 在不可达时自动打印（可直接粘贴），手册见 [VOICE-CLONING.md §二](../VOICE-CLONING.md)
 

@@ -21,9 +21,9 @@
         （「正文已变，去复核笔记」），raw 漂移则完全忽略。
 
 用法（仓库根，零第三方依赖）。注意 `--project` 定义在顶层 parser，须写在子命令**之前**：
-    uv run --no-project media/pipeline/scripts/source_ledger.py --project media/<slug>-video list
-    uv run --no-project media/pipeline/scripts/source_ledger.py --project media/<slug>-video verify
-    uv run --no-project media/pipeline/scripts/source_ledger.py --project media/<slug>-video fetch \\
+    uv run --no-project $R/source_ledger.py --project $P list
+    uv run --no-project $R/source_ledger.py --project $P verify
+    uv run --no-project $R/source_ledger.py --project $P fetch \\
         --name s01-repo --kind repo --via "pinned commit" \\
         --url https://raw.githubusercontent.com/o/r/<sha>/s01/README.zh.md
 
@@ -48,7 +48,7 @@ import tomllib
 _BLOCK_RE = re.compile(r"(?is)<(script|style)\b.*?</\1>")
 _TAG_RE = re.compile(r"<[^>]+>")
 _WS_RE = re.compile(r"\s+")
-USER_AGENT = "negentropy-source-ledger/1.0 (+media/pipeline)"
+USER_AGENT = "negentropy-source-ledger/1.0 (+pipeline)"
 TIMEOUT = 30
 
 
@@ -93,7 +93,7 @@ def toml_escape(s: str) -> str:
 
 def render_ledger(entries: dict) -> str:
     head = (
-        "# 非论文信源清单（可复现取证链，工具：media/pipeline/scripts/source_ledger.py）\n"
+        "# 非论文信源清单（可复现取证链，工具：$R/source_ledger.py）\n"
         "#\n"
         "# kind=repo 指向固定 commit，raw 指纹漂移即 FAIL（说明 URL 里的 ref 不是不可变引用）。\n"
         "# kind=site 指向线上页面，只对剥标签归一后的正文比对指纹，漂移报 WARN（去复核笔记）。\n"

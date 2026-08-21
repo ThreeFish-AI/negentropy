@@ -5,7 +5,7 @@
   的 uv 环境内运行（torch/indextts 等重依赖不进入本仓）；
 - 启动（在 index-tts 根目录）：
     uv run --frozen --with fastapi --with uvicorn --with soundfile --with numpy --with lameenc \
-        python <本仓>/media/pipeline/scripts/tts_server.py --model-dir checkpoints --port 8766
+        python <本仓>/$R/tts_server.py --model-dir checkpoints --port 8766
 - 端点：
     GET  /health     —— 服务与模型元信息（version/device/dtype/encoder + 四个 supports_* 能力位）
     POST /synthesize —— JSON 请求合成，返回 MP3 bytes（X-Audio-Format 头）
@@ -21,7 +21,7 @@
   这是任何参数 A/B 可信的前提。
 - 安全：仅监听 127.0.0.1，无鉴权，勿暴露公网；ref_path / emo_ref_path 为服务端本地绝对路径。
 
-完整部署/排障手册见 media/pipeline/VOICE-CLONING.md。
+完整部署/排障手册见 pipeline/VOICE-CLONING.md。
 """
 
 from __future__ import annotations
@@ -476,7 +476,7 @@ async def synthesize(req: SynthesizeRequest):
     # 归一（normalize_emo_vec 只被 webui.py:665 的自定义向量分支调用），且 webui 那条的 0.8
     # 作用在「已乘 emo_bias 的和」上、且在 alpha 之前。因此从社区/WebUI 抄来的 (vec, alpha)
     # 在本服务上实际比原意强 16%–33%（含 calm 越重偏差越大）——跨来源参数迁移需重新试听定档。
-    # 详见 media/pipeline/INDEXTTS-2.5-ADVANCED.md §3.2。
+    # 详见 pipeline/INDEXTTS-2.5-ADVANCED.md §3.2。
     effective_sum = (sum(req.emo_vector) if req.emo_vector else 0.0) * req.emo_alpha
     if effective_sum > 0.8:  # infer 内部以 alpha 缩放向量，有效和超界会产生负混合权重
         raise HTTPException(

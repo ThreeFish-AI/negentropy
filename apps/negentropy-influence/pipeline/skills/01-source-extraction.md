@@ -67,14 +67,14 @@
 
 # B 型信源 · 文档 / 代码 / 课程站点
 
-> 首次实践：[claude-code-explained-video](../../claude-code-explained-video/research/source-notes.md)
+> 首次实践：[claude-code-explained-video](../../episodes/claude-code-explained-video/research/source-notes.md)
 > （课程站点 4 页 + 代码仓库 @ 固定提交）。产出文件名用 `research/source-notes.md`
 > 以区别于 A 型的 `paper-notes.md`。
 
 ## 与 A 型的根本差异
 
 论文是冻结的，站点和仓库是活的。**逐字稿在录完音之后就冻住了，而信源还在动** —— 这就是
-[ISSUE-162](../../../docs/.agents/issue.md) 的成因。B 型的全部增量纪律都从这一条推出。
+[ISSUE-162](../../../../docs/.agents/issue.md) 的成因。B 型的全部增量纪律都从这一条推出。
 
 ## 一、双轨取证（缺一不可）
 
@@ -88,7 +88,7 @@
 B 轨只比对**剥标签归一后的正文**指纹，漂移报 **WARN**（去复核笔记），因为构建产物哈希天天变。
 
 ```bash
-R=media/pipeline/scripts; P=media/<slug>-video
+R=pipeline/scripts; P=$P
 uv run --no-project $R/source_ledger.py --project $P fetch --name s01-code --kind repo \
     --pinned-ref <sha> --via "pinned commit, MIT" --url https://raw.githubusercontent.com/o/r/<sha>/f.py
 uv run --no-project $R/source_ledger.py --project $P fetch --name s01-site --kind site \

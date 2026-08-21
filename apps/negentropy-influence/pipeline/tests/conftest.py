@@ -1,4 +1,4 @@
-"""media/pipeline 测试公共夹具。
+"""pipeline 测试公共夹具。
 
 落位说明：仓库根无 tests/；apps/negentropy 的 tests/conftest.py 是 session 级
 autouse 建 Postgres 夹具，pytest 只加载 rootdir→测试文件路径上的 conftest，

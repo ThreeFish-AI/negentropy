@@ -7,7 +7,7 @@ import {AbsoluteFill, interpolate, useCurrentFrame} from 'remotion';
  *
  * 为什么不用 @remotion/transitions 的 TransitionSeries：其总时长 = Σ序列 − Σ转场，
  * 会把视觉层整体左移而旁白（按 manifest 帧号绝对定位的独立层）不动，产生逐幕
- * 递增的失同步。见 media/pipeline/skills/06-remotion-implementation.md。
+ * 递增的失同步。见 pipeline/skills/06-remotion-implementation.md。
  *
  * 用法（Main.tsx 的 scenes.map 内包一层）：
  *   <SceneFade durationInFrames={sc.durationInFrames}

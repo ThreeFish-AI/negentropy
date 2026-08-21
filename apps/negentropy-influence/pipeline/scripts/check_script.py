@@ -14,7 +14,7 @@
 可选 --check-scenes：从 video/src/scenes/*.tsx 提取 beatWindow/w('id','id')
 调用，与分镜表互比（WARN-only，TSX 正则本质近似）。
 
-用法：uv run --no-project media/pipeline/scripts/check_script.py --project media/<工程>
+用法：uv run --no-project $R/check_script.py --project $P
 退出码：0 = 通过；1 = 有 FAIL。WARN 不影响退出码但会列明。
 """
 

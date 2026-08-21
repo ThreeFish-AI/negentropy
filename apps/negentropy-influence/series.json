@@ -4,12 +4,12 @@
       "id": "self-evolution",
       "title": "自进化系列科普视频",
       "sourceKind": "paper",
-      "rule": "各集独立成片。口播文本严禁出现其他集标题、集数序号或「上一集/上期/第 N 集」等顺序词；序号只存在于视觉层与本文件，据此保证发布顺序变更的 TTS 代价为零（「下期再见」一类顺序无关的收尾语不受此限）。校验器：media/pipeline/scripts/check_series.py。",
+      "rule": "各集独立成片。口播文本严禁出现其他集标题、集数序号或「上一集/上期/第 N 集」等顺序词；序号只存在于视觉层与本文件，据此保证发布顺序变更的 TTS 代价为零（「下期再见」一类顺序无关的收尾语不受此限）。校验器：pipeline/scripts/check_series.py（路径均为本子项目相对）。",
       "episodes": [
         {
           "episode": 1,
           "slug": "experience-era-agents-video",
-          "path": "media/experience-era-agents-video",
+          "path": "episodes/experience-era-agents-video",
           "title": "上线之后，AI 才开始上学",
           "topic": "部署之后经验怎么攒",
           "cardSub": "经验 · 怎么攒",
@@ -32,7 +32,7 @@
         {
           "episode": 2,
           "slug": "self-improving-agents-video",
-          "path": "media/self-improving-agents-video",
+          "path": "episodes/self-improving-agents-video",
           "title": "AI 如何自己变强？",
           "topic": "自我进化改什么",
           "cardSub": "自我进化 · 改什么",
@@ -54,7 +54,7 @@
         {
           "episode": 3,
           "slug": "self-evolving-coding-agents-video",
-          "path": "media/self-evolving-coding-agents-video",
+          "path": "episodes/self-evolving-coding-agents-video",
           "title": "会写代码的 AI，开始给自己写代码",
           "topic": "代码领域全图",
           "cardSub": "代码田野 · 全图",
@@ -84,7 +84,7 @@
         {
           "episode": 1,
           "slug": "claude-code-explained-video",
-          "path": "media/claude-code-explained-video",
+          "path": "episodes/claude-code-explained-video",
           "title": "拆开 Claude Code：让 AI 动手的四层机制",
           "topic": "工具与执行的四层机制",
           "cardSub": "工具与执行 · 四层",

@@ -5,7 +5,7 @@
 
 ## 一、重读方式与结论
 
-- **论文**：88 页 PDF 全文按幕分 7 个并行校准代理（A1 P0+P1 / A2 p2-01..18 / A3 p2-19..37 / A4 p2-38..47+P3 / A5 P4 / A6 P5 / A7 P6），每句一行校准表（承接句强制 `—` 档）；取证工具 `media/pipeline/scripts/paper_extract.py`（§→页映射 / 分栏取文 / caption 收割 / 定点 find / 页面光栅化到 `out/figs/` 供看图，不入库）。
+- **论文**：88 页 PDF 全文按幕分 7 个并行校准代理（A1 P0+P1 / A2 p2-01..18 / A3 p2-19..37 / A4 p2-38..47+P3 / A5 P4 / A6 P5 / A7 P6），每句一行校准表（承接句强制 `—` 档）；取证工具 `$R/paper_extract.py`（§→页映射 / 分栏取文 / caption 收割 / 定点 find / 页面光栅化到 `out/figs/` 供看图，不入库）。
 - **站点**：以数据文件为准（`data/papers.json` / `data/manuscript.json`，访问 2026-08-19）——首页 HTML 计数为未水合占位（取证链见 [paper-notes.md](./paper-notes.md)「2026-08 v3 重读校准」节）。
 - **结论**：v2 审计「零事实漂移」**不成立**。本轮确证 3 处事实错误（p0-01 归属 / p1-10 编造倍数 / p6-13a.b 站点占位数字与章名）并复核其余全部口播句。
 
@@ -114,7 +114,7 @@ RISKY=0**，其提出的微调（p5-15/16/18/22/27、p2-15、p4-10/15、p6-13b�
   | B（成片） | `sunny-steady`(beams=3) | 187 | **1.98 h** | 12.89 分 | ≈9.2 |
 
   **B/A ≈ 1.04**——与手册旧记载的「整集升档 +241%（9.9 h）」相差极大。已回写
-  [VOICE-CLONING.md §4.3b](../../pipeline/VOICE-CLONING.md) 与 `tts.py` 常量注释：旧数据应在机器
+  [VOICE-CLONING.md §4.3b](../../../pipeline/VOICE-CLONING.md) 与 `tts.py` 常量注释：旧数据应在机器
   被占用/热节流时测得；机器空闲时整集直上 `sunny-steady` 可行，`--steady` 混合档退为忙时折中手段。
 - **缓存正确性核验**：B 遍后独立重算 187 句摘要，**全部匹配 `sunny-steady`(beams=3)**，且 p0-01 不再
   匹配 A 遍 sunny 摘要 → 确认是真重合成而非缓存复用；`.engine` 标记为

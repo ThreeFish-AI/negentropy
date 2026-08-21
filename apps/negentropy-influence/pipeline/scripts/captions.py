@@ -6,7 +6,7 @@
 （含句间停顿，便于阅读）；外挂字幕的 cue 终点 = 起点 + durationSec——静默期
 不该留字，否则平台播放器里上一句会挂到下一句开口。
 
-用法：uv run --no-project media/pipeline/scripts/captions.py --project media/<工程> \
+用法：uv run --no-project $R/captions.py --project $P \
           [--format srt,vtt] [--out out]
 输出：<工程>/out/captions.srt 与 .vtt（out/ 已 gitignore）
 """

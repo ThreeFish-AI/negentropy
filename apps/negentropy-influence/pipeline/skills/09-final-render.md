@@ -5,7 +5,7 @@
 ## 终渲
 
 ```bash
-cd media/<slug>-video/video
+cd $P/video
 # 终渲（codec/crf/pixel-format/audio 已固化在 remotion.config.ts）
 ./node_modules/.bin/remotion render Main ../out/final.mp4
 ```
@@ -36,7 +36,7 @@ cd media/<slug>-video/video
 
 ```bash
 # 字幕（B 站/YouTube 上传件；cue 终点不含句间停顿——外挂字幕静默期不留字）
-uv run --no-project media/pipeline/scripts/captions.py --project media/<slug>-video
+uv run --no-project $R/captions.py --project $P
 ```
 
 - [ ] `out/final.mp4`（1080p30，h264/aac192K；`remotion ffmpeg -i` 核流摘要）

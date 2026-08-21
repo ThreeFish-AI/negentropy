@@ -19,16 +19,16 @@
 ## 用法（在 index-tts 根目录）
 
     cd ~/tools/index-tts
-    ./.venv/bin/python <本仓>/media/pipeline/scripts/tts_bench.py --check-only
-    ./.venv/bin/python <本仓>/media/pipeline/scripts/tts_bench.py \
-        --ref <本仓>/media/pipeline/voices/me-bright.wav --runs 8 [--empty-cache]
+    ./.venv/bin/python <本仓>/$R/tts_bench.py --check-only
+    ./.venv/bin/python <本仓>/$R/tts_bench.py \
+        --ref <本仓>/pipeline/voices/me-bright.wav --runs 8 [--empty-cache]
 
 `--empty-cache` 在每次调用后清 MPS 缓存并 gc——用于判定漂移是否来自分配器累积。
 若开启后漂移消失，则长跑（整集 2 小时）也应在服务端逐句清理。
 
 ## 成对 A/B 模式（`--ab-param`）
 
-    ./.venv/bin/python <本仓>/media/pipeline/scripts/tts_bench.py \
+    ./.venv/bin/python <本仓>/$R/tts_bench.py \
         --ref <样本.wav> --texts <每行一句的文本文件> \
         --ab-param length_penalty --ab-values 0.0,0.8 --num-beams 3 --cooldown 60
 
@@ -41,7 +41,7 @@
              （`length_penalty=0.0` 系统性偏好短假设 ⇒ 吞尾）的直接判据，
              比总墙钟稳健得多，且对残余热漂移天然不敏感。
 
-产物与完整方法论见 media/pipeline/INDEXTTS-2.5-ADVANCED.md §6.4。
+产物与完整方法论见 pipeline/INDEXTTS-2.5-ADVANCED.md §6.4。
 """
 
 from __future__ import annotations

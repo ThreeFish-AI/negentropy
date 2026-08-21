@@ -101,7 +101,7 @@ const OpenQuestion: React.FC = () => {
   );
 };
 
-/** 6-C 系列三卡（顺序与 media/series.json 对齐；本集高亮由 self 标志驱动，非位置耦合） */
+/** 6-C 系列三卡（顺序与 series.json 对齐；本集高亮由 self 标志驱动，非位置耦合） */
 const SeriesThree: React.FC = () => {
   const eps = [
     {title: '上线之后，AI 才开始上学', sub: '经验 · 怎么攒', c1: '#F5C542', c2: '#2DD4BF', ep: '第一集', self: false},

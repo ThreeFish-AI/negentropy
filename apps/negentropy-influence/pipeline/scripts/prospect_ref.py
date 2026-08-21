@@ -19,7 +19,7 @@
 
 用法（仓库根）：
   uv run --no-project --with soundfile --with numpy \
-      media/pipeline/scripts/prospect_ref.py ~/Documents/dify/me-1.mp3 [更多音频…] \
+      $R/prospect_ref.py ~/Documents/dify/me-1.mp3 [更多音频…] \
       [--window 12] [--step 2] [--top 4]
 
 **响度/音高高不等于段落好**：候选仍须逐个 afplay 试听，确认人声干净、单说话人、
@@ -38,7 +38,7 @@ import soundfile as sf
 FRAME, HOP = 1024, 512  # 32ms 帧 / 16ms 跳（sr=32k）
 F0_MIN, F0_MAX = 75.0, 400.0
 VOICED_AC = 0.35  # 自相关归一峰值阈：判定该帧是否为浊音
-MANUAL = "media/pipeline/VOICE-CLONING.md"
+MANUAL = "pipeline/VOICE-CLONING.md"
 
 #: 保真度阈值。**只做告警与旁注，不进加权分、不硬失败**——阈值是跨录音设备的绝对值，
 #: 先观察一轮真实录音的分布再决定是否升级为硬门（否则容易把风格问题误判成音质问题）。
@@ -293,7 +293,7 @@ def accept_mode(sources: list[str]) -> int:
             )
     print(
         f"\n下一步：对**通过保真度**的候选各跑一次纯克隆小样，比风格而非比样本：\n"
-        f"  uv run --no-project --with mutagen media/pipeline/scripts/tts_sample.py \\\n"
+        f"  uv run --no-project --with mutagen $R/tts_sample.py \\\n"
         f"      --ref <裁剪后的样本.wav> --style neutral --seed 4242 --label <名字>\n"
         f"合格线（对**小样**，非样本）：F0 中位 ≥{ACCEPT_CLONE_F0:g} Hz 且起伏 ≥{ACCEPT_CLONE_IQR:g}"
         f"——即达到「换段落所能拿到的最好水平」的九成（见 {MANUAL} §3.3）；\n"
@@ -409,8 +409,8 @@ def main() -> int:
 
     print(
         f"\n下一步：挑 3–4 个候选各裁一份，再各跑一次 `--style neutral` 小样比对（见 {MANUAL} §3.3）：\n"
-        f"  uv run --no-project --with soundfile --with numpy media/pipeline/scripts/prepare_ref.py \\\n"
-        f"      <源音频> --start <上表 --start> --duration {win:g} --out media/pipeline/voices/<名字>.wav\n"
+        f"  uv run --no-project --with soundfile --with numpy $R/prepare_ref.py \\\n"
+        f"      <源音频> --start <上表 --start> --duration {win:g} --out pipeline/voices/<名字>.wav\n"
         "分高只代表「不小声、不平、不慢」，**不代表段落好**——务必 afplay 试听确认人声干净、单说话人、语句完整。\n"
         "保真旗标与风格分**正交**：⚠️ 的段落即使分高也别用（削波/底噪/动态不足/低码率转码的\n"
         "损伤事后无法弥补——事后增强会提升 UTMOS 却降低说话人相似度）。旗标目前只告警不否决，\n"

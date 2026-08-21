@@ -12,7 +12,7 @@
 
 依赖仅 pymupdf，从仓库根调用：
 
-    uv run --no-project --with pymupdf media/pipeline/scripts/paper_extract.py \\
+    uv run --no-project --with pymupdf $R/paper_extract.py \\
         "<论文.pdf>" find "far more frequently and cheaply"
 
 注意：论文 PDF 通常不入库（根 .gitignore 屏蔽 /assets/），须传绝对路径；

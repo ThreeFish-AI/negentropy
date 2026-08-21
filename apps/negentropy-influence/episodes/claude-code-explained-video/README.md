@@ -1,10 +1,10 @@
 # 《拆开 Claude Code：让 AI 动手的四层机制》
 
-> 系列「Claude Code 通俗全解」首作（发布顺序 SSOT：[../series.json](../series.json)；口播永不携带集数序号）。
+> 系列「Claude Code 通俗全解」首作（发布顺序 SSOT：[../series.json](../../series.json)；口播永不携带集数序号）。
 > 选题：开源课程 [Learn Claude Code](https://learn.shareai.run/zh/s01/) 的「工具与执行」四章
 > —— s01 Agent Loop / s02 Tool Use / s03 Permission / s04 Hooks。
 > 形态：1080p30 横屏，代码动画图解 + 本人音色克隆旁白，无真人出镜、无 BGM。
-> 制作走[公共管线](../pipeline/README.md)九阶段；本集的可执行参数唯一来源是 [pipeline.toml](./pipeline.toml)。
+> 制作走[公共管线](../../pipeline/README.md)九阶段；本集的可执行参数唯一来源是 [pipeline.toml](./pipeline.toml)。
 
 ## 交付状态
 
@@ -47,7 +47,7 @@
 ## 复现流水线
 
 ```bash
-R=media/pipeline/scripts; P=media/claude-code-explained-video
+R=pipeline/scripts; P=episodes/claude-code-explained-video
 
 # ① 信源核验（repo 类固定提交硬校验；site 类只比正文，漂移报 WARN）
 uv run --no-project $R/source_ledger.py --project $P verify

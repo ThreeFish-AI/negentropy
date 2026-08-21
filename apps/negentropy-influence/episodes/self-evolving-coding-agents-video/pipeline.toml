@@ -13,9 +13,9 @@ chars_per_min  = 280
 [tts]
 # ⚠️ 本配置记录的是「复现已上线音频」的档：三集成片统一 passionate + me-1.wav。
 # 摘要含 style 与 ref_sha1，改档 = 整集重合成（须 --allow-voice-switch 显式放行）。
-# 升级 sunny-steady 属独立重录决策，登记于 media/series.json 的待升级项。
+# 升级 sunny-steady 属独立重录决策，登记于 series.json 的待升级项。
 engine   = "indextts"
-ref      = "media/pipeline/voices/me-1.wav"
+ref      = "pipeline/voices/me-1.wav"
 ref_sha1 = "3ed0d9d60d4b"
 style    = "passionate"
 lang     = "ZH"

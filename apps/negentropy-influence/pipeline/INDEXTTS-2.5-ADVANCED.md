@@ -118,7 +118,7 @@ flowchart TD
 归一化。逐字稿为字幕可读性把句子拆到 ≤43 字，反而**提高**了出现纯 ASCII 短句的概率——
 两个既有约束的隐性冲突。
 
-已上线三集曾有 8 句年份读错，修复与成门记于 [issue.md ISSUE-164](../../docs/.agents/issue.md)；
+已上线三集曾有 8 句年份读错，修复与成门记于 [issue.md ISSUE-164](../../../docs/.agents/issue.md)；
 禁写清单是 [check_script.py](./scripts/check_script.py) 的 `READING_TRAPS`，写稿侧规约见
 [skills/03-narration.md](./skills/03-narration.md)。
 
@@ -647,18 +647,18 @@ TensorRT-LLM）。仓库内**无 vLLM 后端**，README 只给外链 recipe。
 ```bash
 # 0) 先确认测量环境合格（§6.5）——否则听感之外的任何数字都不可归因
 cd ~/tools/index-tts
-./.venv/bin/python <本仓>/media/pipeline/scripts/tts_bench.py --check-only
+./.venv/bin/python <本仓>/$R/tts_bench.py --check-only
 
 # 1) 客观面：同一批句子在两档之间成对 A/B（逐句交替顺序以抵消热漂移）
 #    #10 比「表达力密度」——F0 中位/起伏/音节率/限带质心；#11 比清晰度——ASR 回转写 CER
-./.venv/bin/python <本仓>/media/pipeline/scripts/tts_bench.py \
-    --ref <本仓>/media/pipeline/voices/me-bright.wav \
+./.venv/bin/python <本仓>/$R/tts_bench.py \
+    --ref <本仓>/pipeline/voices/me-bright.wav \
     --texts <混合句集.txt> --ab-param duration_factor --ab-values 0.95,1.05 \
     --num-beams 3 --cooldown 60 --json .temp/ab-df.json
 
 # 2) 主观面：小样 A/B + 人耳（客观指标只能排除明显更差的，选不出「更好听」）
-uv run --no-project --with mutagen media/pipeline/scripts/tts_sample.py \
-    --ref media/pipeline/voices/me-bright.wav --style sunny-pure --seed 4242 --play
+uv run --no-project --with mutagen $R/tts_sample.py \
+    --ref pipeline/voices/me-bright.wav --style sunny-pure --seed 4242 --play
 ```
 
 定档后要做的三件事：把选定值写进各集 `pipeline.toml`（**不是**写进散文文档——ISSUE-161 的

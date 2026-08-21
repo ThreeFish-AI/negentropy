@@ -9,7 +9,7 @@
 >   取法：`raw.githubusercontent.com/<repo>/<sha>/sNN_*/{README.zh.md,code.py}`，指纹与行数见 [sources.toml](./sources.toml)。
 > - **轨 B · 课程站点（用户指定）**：`https://learn.shareai.run/zh/s01/` … `/zh/s04/`，访问日期 **2026-08-21**。
 >   站点为 Next.js **SSG 预渲染**（关键数字同时出现在可见文本与 Flight 载荷 `"children":[102," LOC"]` 中），
->   故 HTML 文本即渲染结果，不存在 [ISSUE-162](../../../docs/.agents/issue.md) 的「未水合占位符」风险。
+>   故 HTML 文本即渲染结果，不存在 [ISSUE-162](../../../../../docs/.agents/issue.md) 的「未水合占位符」风险。
 >
 > **证据三级（本集最重要的真实性纪律）**
 > | 级 | 含义 | 口播允许的表述 |

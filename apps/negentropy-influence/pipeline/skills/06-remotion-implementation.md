@@ -43,7 +43,7 @@
 
 | 母题 | 出处 | 适用 |
 |---|---|---|
-| 终端窗口 + 打字机 | [claude-code-explained-video](../../claude-code-explained-video/video/src/components/motifs.tsx) `Terminal` | 任何「人机对话/命令行」痛点开场 |
+| 终端窗口 + 打字机 | [claude-code-explained-video](../../episodes/claude-code-explained-video/video/src/components/motifs.tsx) `Terminal` | 任何「人机对话/命令行」痛点开场 |
 | **恒定视觉锚**（环形循环） | 同上 `LoopRing` | 主题是「某个东西始终不变」时：锁死 `stroke` 与 `strokeWidth`（绝对像素、不随 size 缩放），让「不变」被**看见**而不是被听说 |
 | 字典分发表 | 同上 `DispatchTable` | 键值查表、注册表、路由表 |
 | 闸门路由 | 同上 `GateRouter` | 多级判定/准入/过滤管线 |

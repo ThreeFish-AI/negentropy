@@ -14,9 +14,9 @@ sha1 只活在文档散文里（me-bright.wav 的 54b699cce97f 散见 VOICE-CLON
     list     列出清单条目
 
 用法（仓库根，零第三方依赖；rebuild 才需要 soundfile/numpy）：
-    uv run --no-project media/pipeline/scripts/refs.py list
-    uv run --no-project media/pipeline/scripts/refs.py verify [--name me-bright]
-    uv run --no-project --with soundfile --with numpy media/pipeline/scripts/refs.py \
+    uv run --no-project $R/refs.py list
+    uv run --no-project $R/refs.py verify [--name me-bright]
+    uv run --no-project --with soundfile --with numpy $R/refs.py \
         rebuild --name me-bright
 """
 

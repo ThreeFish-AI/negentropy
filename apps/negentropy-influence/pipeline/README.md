@@ -1,7 +1,7 @@
 # 科普视频制作 Pipeline（公共基建）
 
 > 从「论文精读 → 逐字稿 → 配音 → 代码动画 → 终渲」全链路中沉淀的**仓库级可复用流水线**。
-> 首个建成的完整范例：[《AI 如何自己变强？》](../self-improving-agents-video/README.md)（建成时间上的第一个，非系列首集；发布顺序见 [../series.json](../series.json)）。
+> 首个建成的完整范例：[《AI 如何自己变强？》](../episodes/self-improving-agents-video/README.md)（建成时间上的第一个，非系列首集；发布顺序见 [../series.json](../series.json)）。
 
 ## 一、Pipeline 总览（9 Stages）
 
@@ -29,10 +29,10 @@ flowchart LR
 
 ## 二、工程目录约定
 
-每集视频一个 `media/<slug>-video/` 工程：
+每集视频一个 `$P/` 工程：
 
 ```
-media/<slug>-video/
+$P/
 ├── README.md               # 本集说明（目录表/复现流水线/视觉契约/许可）
 ├── research/paper-notes.md # 事实源：全部口播断言须可回溯至此
 ├── script/
@@ -54,7 +54,7 @@ media/<slug>-video/
 **单入口 `pipeline.py`**（参数读各集 `pipeline.toml`；阶段契约见下表）：
 
 ```
-uv run --no-project media/pipeline/scripts/pipeline.py --project media/<slug>-video     {status|doctor|build|check|tts|captions|render|qa|all|clean-samples}
+uv run --no-project $R/pipeline.py --project $P     {status|doctor|build|check|tts|captions|render|qa|all|clean-samples}
 ```
 
 | Stage | 命令 | 输入 → 产出 | 幂等/续跑 |
@@ -73,22 +73,22 @@ uv run --no-project media/pipeline/scripts/pipeline.py --project media/<slug>-vi
 | [scripts/build_narration.py](./scripts/build_narration.py) | narration.md → narration.json + 时长估算                                                                                | `uv run --no-project scripts/build_narration.py`                                                                                                 |
 | [scripts/tts.py](./scripts/tts.py)                         | 逐句配音合成 + 时长 manifest（幂等，双引擎：edge 预置音色 / indextts 声音克隆；风格推荐位 sunny 明快阳光，`--steady` 混合档让关键句单独升束宽，`--plan` 预演排期） | `uv run --no-project --with edge-tts --with mutagen scripts/tts.py`（克隆模式免 edge-tts，见 [VOICE-CLONING.md](./VOICE-CLONING.md)）            |
 | [scripts/tts_server.py](./scripts/tts_server.py)           | IndexTTS 推理服务（声音克隆后端，**运行于 index-tts 环境**，非本仓）                                                    | 在 `~/tools/index-tts` 内启动，见 [VOICE-CLONING.md §二](./VOICE-CLONING.md)                                                                     |
-| [scripts/tts_sample.py](./scripts/tts_sample.py)           | 单句声音小样试听（直调 IndexTTS 服务合成一句话 + 全风格 A/B，定稿风格前的必经关口）                                      | 无工程薄包装，从仓库根调用：`uv run --no-project --with mutagen media/pipeline/scripts/tts_sample.py --ref <样本.wav> --all-styles --play`，见 [VOICE-CLONING.md §5.1](./VOICE-CLONING.md) |
-| [scripts/prepare_ref.py](./scripts/prepare_ref.py)         | 参考音色样本裁剪/规范化（长录音 → **10–14s** 干净 WAV；硬上限 15s——上游超出即静默前截）                                                                      | 无工程薄包装（与具体工程无关），从仓库根调用：`uv run --no-project --with soundfile --with numpy media/pipeline/scripts/prepare_ref.py <源音频>` |
-| [scripts/prospect_ref.py](./scripts/prospect_ref.py)       | 参考样本选段勘探（按 F0/起伏/音节率/限带质心筛「更亮更轻快」的候选起点）+ `--accept` **保真度验收**（削波/底噪/动态/有效带宽/超 15s，与风格分正交；损伤事后无法弥补故只否决不加权）                              | 无工程薄包装，从仓库根调用：`uv run --no-project --with soundfile --with numpy media/pipeline/scripts/prospect_ref.py <源音频…>`，见 [VOICE-CLONING.md §3.2](./VOICE-CLONING.md) |
-| [scripts/pipeline.py](./scripts/pipeline.py)             | **单入口编排**（上表）                                                                                                  | `uv run --no-project media/pipeline/scripts/pipeline.py --project media/<工程> tts --plan`                                                      |
+| [scripts/tts_sample.py](./scripts/tts_sample.py)           | 单句声音小样试听（直调 IndexTTS 服务合成一句话 + 全风格 A/B，定稿风格前的必经关口）                                      | 无工程薄包装，从仓库根调用：`uv run --no-project --with mutagen $R/tts_sample.py --ref <样本.wav> --all-styles --play`，见 [VOICE-CLONING.md §5.1](./VOICE-CLONING.md) |
+| [scripts/prepare_ref.py](./scripts/prepare_ref.py)         | 参考音色样本裁剪/规范化（长录音 → **10–14s** 干净 WAV；硬上限 15s——上游超出即静默前截）                                                                      | 无工程薄包装（与具体工程无关），从仓库根调用：`uv run --no-project --with soundfile --with numpy $R/prepare_ref.py <源音频>` |
+| [scripts/prospect_ref.py](./scripts/prospect_ref.py)       | 参考样本选段勘探（按 F0/起伏/音节率/限带质心筛「更亮更轻快」的候选起点）+ `--accept` **保真度验收**（削波/底噪/动态/有效带宽/超 15s，与风格分正交；损伤事后无法弥补故只否决不加权）                              | 无工程薄包装，从仓库根调用：`uv run --no-project --with soundfile --with numpy $R/prospect_ref.py <源音频…>`，见 [VOICE-CLONING.md §3.2](./VOICE-CLONING.md) |
+| [scripts/pipeline.py](./scripts/pipeline.py)             | **单入口编排**（上表）                                                                                                  | `uv run --no-project $R/pipeline.py --project $P tts --plan`                                                      |
 | [scripts/timeline.py](./scripts/timeline.py)             | 时间轴 Python 侧实现（与 timing.ts 同构，直读 timing.json）                                                            | 被 qa_frames/captions/check_script 复用                                                                                                          |
 | [scripts/check_script.py](./scripts/check_script.py)     | ④⑤ 内容门：beat 覆盖性 / 时长预算双口径 / SceneFade 不变式 / `--check-scenes` 分镜↔代码互比                            | `uv run --no-project scripts/check_script.py --check-scenes`                                                                                   |
-| [scripts/check_series.py](./scripts/check_series.py)     | 系列一致性五规则（口播反串线 / 多标题顺序 / 序号绑定 / 清单完整性 / 死链），执法 [../series.json](../series.json)         | 仓库根：`uv run --no-project media/pipeline/scripts/check_series.py`（已挂 pre-commit）                                                          |
+| [scripts/check_series.py](./scripts/check_series.py)     | 系列一致性五规则（口播反串线 / 多标题顺序 / 序号绑定 / 清单完整性 / 死链），执法 [../series.json](../series.json)         | 仓库根：`uv run --no-project $R/check_series.py`（已挂 pre-commit）                                                          |
 | [scripts/captions.py](./scripts/captions.py)             | 导出 srt/vtt（cue 终点不含句间停顿——外挂字幕静默期不留字）                                                             | `uv run --no-project scripts/captions.py`                                                                                                        |
-| [scripts/qa_frames.py](./scripts/qa_frames.py)           | 抽帧 QA（幕/句/`--last-n` 末 N 句）+ `--check` 四项自动体检 + `--check-theme` WCAG 对比度                               | `uv run --no-project --with pillow --with numpy scripts/qa_frames.py out/draft.mp4 --last-n 6 --check`（工程根；视频路径按 CWD 解析，仓库根调用写全 `media/<工程>/out/draft.mp4`）                                          |
-| [scripts/paper_extract.py](./scripts/paper_extract.py)   | Stage ① 取证工具箱（§→页映射 / 分栏取文 / caption 收割 / 定点 find / 页面光栅化）                                       | `uv run --no-project --with pymupdf media/pipeline/scripts/paper_extract.py "<PDF>" find "原文措辞"`                                             |
-| [scripts/refs.py](./scripts/refs.py)                     | 参考样本可复现清单（verify/rebuild；指纹在 [voices/refs.toml](./voices/refs.toml)，只存哈希不存音频）                    | `uv run --no-project media/pipeline/scripts/refs.py verify`                                                                                     |
-| [scripts/source_ledger.py](./scripts/source_ledger.py)   | Stage ① **B 型信源**可复现清单（fetch/list/verify；`repo` 类固定提交 raw 指纹漂移即 FAIL，`site` 类只比归一正文、漂移报 WARN） | `uv run --no-project media/pipeline/scripts/source_ledger.py --project media/<slug>-video verify`                                               |
+| [scripts/qa_frames.py](./scripts/qa_frames.py)           | 抽帧 QA（幕/句/`--last-n` 末 N 句）+ `--check` 四项自动体检 + `--check-theme` WCAG 对比度                               | `uv run --no-project --with pillow --with numpy scripts/qa_frames.py out/draft.mp4 --last-n 6 --check`（工程根；视频路径按 CWD 解析，仓库根调用写全 `$P/out/draft.mp4`）                                          |
+| [scripts/paper_extract.py](./scripts/paper_extract.py)   | Stage ① 取证工具箱（§→页映射 / 分栏取文 / caption 收割 / 定点 find / 页面光栅化）                                       | `uv run --no-project --with pymupdf $R/paper_extract.py "<PDF>" find "原文措辞"`                                             |
+| [scripts/refs.py](./scripts/refs.py)                     | 参考样本可复现清单（verify/rebuild；指纹在 [voices/refs.toml](./voices/refs.toml)，只存哈希不存音频）                    | `uv run --no-project $R/refs.py verify`                                                                                     |
+| [scripts/source_ledger.py](./scripts/source_ledger.py)   | Stage ① **B 型信源**可复现清单（fetch/list/verify；`repo` 类固定提交 raw 指纹漂移即 FAIL，`site` 类只比归一正文、漂移报 WARN） | `uv run --no-project $R/source_ledger.py --project $P verify`                                               |
 | [scripts/pron_marks.py](./scripts/pron_marks.py)         | 发音标注 `<原文\|读音>` 的解析与校验（纯函数库，无 IO）：多音字/英文专名的精确读音控制；被 `build_narration.py` 用于硬失败拦非法标注 | 库，不直接调用；语法与规则见其模块文档，台账见 [PRON-GLOSSARY.md](./PRON-GLOSSARY.md)                                                            |
-| [scripts/tts_bench.py](./scripts/tts_bench.py)           | 合成耗时基准与**测量环境体检**（**运行于 index-tts 环境**，同 tts_server.py）：A/A 复现性判定 + 分段计时 + 换页/分配器诊断。本机漂移已定因为热节流，做任何耗时 A/B 前先用它确认环境合格 | 在 `~/tools/index-tts` 内：`./.venv/bin/python <本仓>/media/pipeline/scripts/tts_bench.py --check-only`；A/A 见 [INDEXTTS-2.5-ADVANCED.md §6.5](./INDEXTTS-2.5-ADVANCED.md) |
+| [scripts/tts_bench.py](./scripts/tts_bench.py)           | 合成耗时基准与**测量环境体检**（**运行于 index-tts 环境**，同 tts_server.py）：A/A 复现性判定 + 分段计时 + 换页/分配器诊断。本机漂移已定因为热节流，做任何耗时 A/B 前先用它确认环境合格 | 在 `~/tools/index-tts` 内：`./.venv/bin/python <本仓>/$R/tts_bench.py --check-only`；A/A 见 [INDEXTTS-2.5-ADVANCED.md §6.5](./INDEXTTS-2.5-ADVANCED.md) |
 
-中心脚本以 `--project <工程根>` 参数化；工程内 `scripts/*.py` 为薄包装（透传参数、保持原 CLI）。改造/迭代只改 `media/pipeline/scripts/`，验证门 = 受影响工程的 `narration.json` / `manifest.json` 字节级不变。
+中心脚本以 `--project <工程根>` 参数化；工程内 `scripts/*.py` 为薄包装（透传参数、保持原 CLI）。改造/迭代只改 `$R/`，验证门 = 受影响工程的 `narration.json` / `manifest.json` 字节级不变。
 
 ## 四、复用边界（显式权衡）
 
@@ -106,17 +106,13 @@ uv run --no-project media/pipeline/scripts/pipeline.py --project media/<slug>-vi
 
 1. `cp -r` 任一既有集工程目录骨架（README/research/script/scripts/video/pipeline.toml），改 slug 与内容。
 2. `video/package.json` 改 `name`；清空 scenes 重建；`theme.ts` 换本集色板。
-3. 根 `.gitignore` 追加本集产物规则（**不能放工程内**——根级裸 `.gitignore` 规则会挡住嵌套 ignore 文件）：
-   ```
-   media/<slug>-video/video/public/audio/
-   media/<slug>-video/out/
-   media/<slug>-video/**/*.mp4
-   media/<slug>-video/**/*.mp3
-   media/<slug>-video/**/*.wav
-   ```
+3. ~~根 `.gitignore` 追加本集产物规则~~ —— **已无需手工步骤**。根 `.gitignore` 的规则
+   已通配到分集级（`episodes/*/video/public/audio/`、`episodes/**/*.{mp4,mp3,wav}`），
+   新集自动覆盖。（规则仍**只能**放在根 `.gitignore`：根级裸 `.gitignore` 规则会挡住
+   嵌套 ignore 文件，故工程内放不了。逐集枚举的旧写法曾让新集在补齐 5 行前完全裸奔。）
 4. `cd video && pnpm install --ignore-workspace`（必须显式忽略根 workspace；`onlyBuiltDependencies: [esbuild]` 已在 package.json）；装完检查根 lockfile 零变更。
    > pnpm ≥ 11 会提示 `package.json` 的 `pnpm` 字段不再被读取，并报 `ERR_PNPM_IGNORED_BUILDS: esbuild`
-   > （[ISSUE-076](../../docs/.agents/issue.md)）。**已实测确认对本工程无害**：esbuild 的平台二进制
+   > （[ISSUE-076](../../../docs/.agents/issue.md)）。**已实测确认对本工程无害**：esbuild 的平台二进制
    > 是 optionalDependency，落地不依赖 postinstall —— 旧写法下 `remotion bundle` 端到端通过。
    > 故**刻意不改** `.npmrc`/`package.json` 去消掉这条提示（改了会让 A 档冻结文件产生一处
    > 只为静音噪声的跨集差异）。真正需要 postinstall 的依赖若将来出现，再按官方新家

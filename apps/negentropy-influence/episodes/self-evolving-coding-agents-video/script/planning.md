@@ -12,7 +12,7 @@
 | 形态 | 动效图解式：AI 配音（edge-tts）+ Remotion 代码动画，无真人出镜 |
 | 受众 | 对 AI 好奇的普通观众；不预设机器学习或软件工程背景 |
 | 核心内容 | 全文主线：概念边界（三圈）→ 五个进化的对象 → 时机×证据 → 评测 → 可信进化 |
-| 系列关系 | 第三集=**领域深潜**：前两集讲通用道理（部署后经验怎么攒 / 自我进化改什么），本集看自进化最先真实落地的田野——代码（可执行反馈让进化可测量）；片尾三卡回顾，顺序以 [../../series.json](../../series.json) 为准，各集独立成片 |
+| 系列关系 | 第三集=**领域深潜**：前两集讲通用道理（部署后经验怎么攒 / 自我进化改什么），本集看自进化最先真实落地的田野——代码（可执行反馈让进化可测量）；片尾三卡回顾，顺序以 [../../series.json](../../../series.json) 为准，各集独立成片 |
 
 ## 二、叙事策略
 
@@ -78,7 +78,7 @@ flowchart LR
     style I fill:#2d5c1a,stroke:#7ED321,color:#fff
 ```
 
-- 公共脚本收敛于 [media/pipeline/](../../pipeline/README.md)（本工程 scripts/ 为薄包装）。
+- 公共脚本收敛于 [pipeline/](../../../pipeline/README.md)（本工程 scripts/ 为薄包装）。
 - 同步机制：每句一段 MP3；Remotion `calculateMetadata` 读 manifest 自动计算时间轴（句间 0.32s、幕间 +0.9s、片头 0.6s、片尾 2s）——改稿后只需重跑 build→tts→render。
 - 质量门：逐字稿定稿前过 `pipeline/skills/04-verification.md` 双重校验（真实性回溯 + 易懂性评审）；渲染后逐幕抽帧目检。
 

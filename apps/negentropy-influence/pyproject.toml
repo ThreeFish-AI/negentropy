@@ -1,0 +1,26 @@
+# negentropy-influence 工具配置
+#
+# **刻意不含 `[project]` 表** —— 本目录不是可构建的 Python 包：全部脚本经
+# `uv run --no-project` + 调用点 `--with` 注入依赖运行，不参与任何 uv workspace。
+# 加了 `[project]` 会让 `uv run`（不带 --no-project）试图构建安装本目录。
+#
+# **刻意不含 `[tool.ruff]`** —— 管线当前以 ruff **默认档**（line-length 88）通过
+# pre-commit 门（实测 `check` 全过、31 文件 format 全净）。一旦在此声明配置，
+# ruff 的向上配置发现就会开始命中本目录：实测 `line-length = 120` 会重排
+# 24/31 个文件，把语义 diff 彻底埋掉并毁掉整条管线的 git blame。
+# 要改风格请单独开 PR，并在其中承担那次重排。
+#
+# **刻意不放 `package.json`** —— 根 `pnpm-workspace.yaml` 的 `apps/*` 是 depth-1
+# glob，会当场把本子项目吸进根 workspace，击穿各分集 `--ignore-workspace` 的
+# 隔离前提。各分集的 `video/` 在 depth 4，不被匹配，安全。
+
+[tool.pytest.ini_options]
+# 此前这 130 个测试没有任何 pytest 配置、也没有文档化的运行命令：
+#   rootdir 由参数向上推断、无 configfile。现在固定下来。
+# 依赖需在调用侧注入（本套无 requirements）：
+#   uv run --no-project --with pytest --with numpy --with pillow --with mutagen \
+#       --with soundfile python -m pytest apps/negentropy-influence/pipeline/tests -q
+# 不设 pythonpath：conftest.py 已注入 scripts/，第二套机制即 split-brain。
+# 不设 --cov：本套的价值是 130 项 5 秒内跑完、零基建依赖。
+testpaths = ["pipeline/tests"]
+addopts = "-q"

@@ -9,7 +9,7 @@
 | 项 | 定义 |
 |---|---|
 | 系列 | **Claude Code 通俗全解**（新系列，与自进化系列完全无关，不互相引用） |
-| 集次 | 首集（序号只存在于 [../../series.json](../../series.json) 与视觉层） |
+| 集次 | 首集（序号只存在于 [../../series.json](../../../series.json) 与视觉层） |
 | 平台 / 形态 | B 站 / YouTube 横屏 1080p30，代码动画图解 + 本人音色克隆旁白，无真人出镜、无 BGM |
 | 时长 | 13:00–14:36（用户上限 15 分钟，`target_minutes = [13.0, 14.6]`） |
 | 受众 | **不预设编程背景的普通人**：知道「AI 能写代码」，但不知道「AI 怎么真的动手」。次级受众是用过 Claude Code 但没读过源码的开发者 |
@@ -78,7 +78,7 @@
 **排版与安全区**：底部角标 `bottom ≥ 150px`（避让字幕条）；代码块用 `mono`，金句卡用 `serif`；
 金句卡每幕 ≤ 3 处（过密则贬值）。
 
-**本集独有的视觉母题**（沉淀进 [../../pipeline/skills/06-remotion-implementation.md](../../pipeline/skills/06-remotion-implementation.md)）
+**本集独有的视觉母题**（沉淀进 [../../pipeline/skills/06-remotion-implementation.md](../../../pipeline/skills/06-remotion-implementation.md)）
 1. **终端打字**：等宽字逐字浮现 + 光标闪烁，用于 P0 痛点与各章「试一下」。
 2. **环形循环**：陶土橙闭合轨道 + 沿轨运动的光点，是全片的恒定锚。
 3. **字典分发表**：左键右值两列，命中行整行推入 `mech` 辉光。
