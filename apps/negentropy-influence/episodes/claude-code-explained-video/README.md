@@ -14,7 +14,7 @@
 | 分镜 | ✅ 39 镜，`check_script` 覆盖性 FAIL 0 |
 | 信源取证 | ✅ 12 条双轨信源入清单（8 条仓库 @ 固定提交 + 4 条站点），`source_ledger verify` FAIL 0 |
 | 场景实现 | ✅ 7 幕 / 39 镜，`tsc --noEmit` 通过；39 镜逐镜抽帧复检无黑帧、无重复帧 |
-| 配音 | ✅ 170/170 句，`sunny-steady` + `me-bright.wav`（`.engine` 签名 `indextts\|sunny-steady\|54b699cce97f`）；纯语音 13.20 分钟，**实测语速 307 字/分**；合成墙钟 2.1 h |
+| 配音 | ✅ 170/170 句，`sunny-steady` + `me-bright.wav`（`.engine` 签名 `indextts\|sunny-steady\|54b699cce97f`）；纯语音 13.20 分钟，**实测语速 307 字/分**；合成墙钟 2.1 h；2026-08-22 缓存随 `--update` 迁移复验 `tts --plan`：**待合成 0 句 / 已缓存 170 句**（画面优化零重合成）|
 | 时长双口径门 | ✅ 估算 14.5 分钟（4048 字 ÷ 280）· **实测含时距 14.2 分钟**，均落预算窗 13.0–14.6；`check` FAIL 0 WARN 0 |
 | 字幕 | ✅ `out/captions.srt` + `.vtt`，各 170 cue |
 | 主题对比度 | ✅ `--check-theme` FAIL 0（core 6.06 / mech 9.18 / deny 6.00 : 1，全过 4.5:1） |
