@@ -294,39 +294,33 @@ benchmarks/runs/
 # 此条兜底 agent 路径漂移误在 worktree 写候选的极端场景，确保其永不进 commit/PR）
 patrol-candidate.md
 
-# 科普视频工程（media/self-improving-agents-video）本地产物：
+# 科普视频工程（apps/negentropy-influence/episodes/<slug>-video）本地产物：
 # tts.py 逐句音频 + manifest、Remotion 渲染产物均环境相关，不入 git。
 # 注：工程内的 .gitignore 被上方根级裸 `.gitignore` 规则挡住无法提交，规则须维护在此处。
-media/self-improving-agents-video/video/public/audio/
-media/self-improving-agents-video/out/
-media/self-improving-agents-video/**/*.mp4
-media/self-improving-agents-video/**/*.mp3
-media/self-improving-agents-video/**/*.wav
+# 通配到集：`*` 只吃一级目录名（= 分集目录），故**新增分集无需再改本文件**
+#   —— 此前逐集枚举导致新集的音频产物在补齐 5 行前完全未被覆盖。
+# `out/` 已由上方通用规则（第 223 行 `out/`，非锚定）覆盖，此处不再逐集重复。
+apps/negentropy-influence/episodes/*/video/public/audio/
+apps/negentropy-influence/episodes/**/*.mp4
+apps/negentropy-influence/episodes/**/*.mp3
+apps/negentropy-influence/episodes/**/*.wav
 
-# 科普视频工程（media/experience-era-agents-video）本地产物：同上集规则。
-media/experience-era-agents-video/video/public/audio/
-media/experience-era-agents-video/out/
-media/experience-era-agents-video/**/*.mp4
-media/experience-era-agents-video/**/*.mp3
-media/experience-era-agents-video/**/*.wav
+# 声音克隆参考样本（apps/negentropy-influence/pipeline/voices/）：个人声音属生物
+# 特征信息，绝不入库。目录级忽略 + 白名单例外（README 与 refs.toml 指纹清单——
+# 后者只存哈希与生成参数，不含音频字节），防漏网音频格式（ogg/opus/wma 等）。
+# 注：必须写 `/*` 而非 `/` —— git 无法用 `!` 把被排除**目录**内的文件重新纳入。
+apps/negentropy-influence/pipeline/voices/*
+!apps/negentropy-influence/pipeline/voices/README.md
+!apps/negentropy-influence/pipeline/voices/refs.toml
 
-# 声音克隆参考样本（media/pipeline/voices/）：个人声音属生物特征信息，绝不入库。
-# 目录级忽略 + 白名单例外（README 与 refs.toml 指纹清单——后者只存哈希与生成参数，
-# 不含音频字节），防漏网音频格式（ogg/opus/wma 等）。
-media/pipeline/voices/*
-!media/pipeline/voices/README.md
-!media/pipeline/voices/refs.toml
-
-# 科普视频工程（media/self-evolving-coding-agents-video）本地产物：同上集规则。
-media/self-evolving-coding-agents-video/video/public/audio/
-media/self-evolving-coding-agents-video/out/
-media/self-evolving-coding-agents-video/**/*.mp4
-media/self-evolving-coding-agents-video/**/*.mp3
-media/self-evolving-coding-agents-video/**/*.wav
-
-# 科普视频工程（media/claude-code-explained-video）本地产物：同上集规则。
-media/claude-code-explained-video/video/public/audio/
-media/claude-code-explained-video/out/
-media/claude-code-explained-video/**/*.mp4
-media/claude-code-explained-video/**/*.mp3
-media/claude-code-explained-video/**/*.wav
+# negentropy-influence 的 uv 锁文件：该子项目**刻意不是可构建的 Python 包**
+# （pyproject.toml 无 `[project]` 表，全部脚本走 `uv run --no-project` + 调用点
+# `--with` 注入依赖），故它不该有锁文件。但漏打 `--no-project` 时 uv 会当场把本
+# 目录当项目根，生成 `uv.lock` 与 `.venv/`——后者已由上方通用 `.venv` 规则覆盖，
+# 前者没有，于是留下一个**可提交**的产物，一旦入库就与「不参与任何 uv workspace」
+# 的声明直接矛盾。
+# ⚠️ 必须逐路径锚定：兄弟子项目（negentropy / negentropy-perceives / cognizes）
+# 的 uv.lock 是**受版本控制的依赖 SSOT**，裸 `uv.lock` 规则会把它们一起吞掉。
+# 执法（双向：本条命中 + 兄弟三份不被误伤）见
+# apps/negentropy-influence/pipeline/tests/test_subproject_hygiene.py。
+apps/negentropy-influence/uv.lock
