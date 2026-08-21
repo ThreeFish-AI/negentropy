@@ -242,4 +242,202 @@ export const NumberedCard: React.FC<{
   );
 };
 
+// ─────────────────────────────────────────────────────────── 本集创作母题
+// 六母题（script/planning.md §三）：RingHerd / TaskBoard / Mailboxes /
+// HandshakeRail / SeparateDesks / FullTurn。环形母题自系列首集
+// claude-code-explained-video 的 motifs.tsx 复制裁剪——复用边界：不做跨集
+// import（pipeline/README §四），本集副本自由演进。
+//
+// ★ LoopRing 双色不变量：strokeWidth 恒为 RING_STROKE（6 绝对像素，不随
+//   size 缩放）；领队环恒 core、队友环恒 peer——**N 个队友绝不 N 色**，
+//   靠铭牌与位置区分（反枚举最难考验）。节点文案恒
+//   问模型 / 看回答 / 执行工具 / 填回结果；size < 260 时标签自动关闭
+//   （0°/180° 两侧标签会在小尺寸下互相压字——系列首集实测教训）。
+
+export const RING_STROKE = 6;
+
+export type RingNode = {label: string; angle: number};
+
+/** 环上四个节点的固定角度（12 点起顺时针）——各幕一致，位置即语义 */
+export const RING_NODES: RingNode[] = [
+  {label: '问模型', angle: -90},
+  {label: '看回答', angle: 0},
+  {label: '执行工具', angle: 90},
+  {label: '填回结果', angle: 180},
+];
+
+export const polar = (cx: number, cy: number, r: number, deg: number) => {
+  const rad = (deg * Math.PI) / 180;
+  return {x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad)};
+};
+
+/** 帧驱动的 0→1 段进度（起 start、长 dur 帧，两端 clamp；dur 下限 1 防退化区间） */
+export const phase = (frame: number, start: number, dur: number): number =>
+  interpolate(frame - start, [0, Math.max(1, dur)], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+
+/** 二次贝塞尔取点（消息飞行弧线 / 解锁波光点共用的轨迹数学） */
+export const qBezier = (
+  p0: {x: number; y: number},
+  c: {x: number; y: number},
+  p1: {x: number; y: number},
+  t: number,
+) => ({
+  x: (1 - t) * (1 - t) * p0.x + 2 * (1 - t) * t * c.x + t * t * p1.x,
+  y: (1 - t) * (1 - t) * p0.y + 2 * (1 - t) * t * c.y + t * t * p1.y,
+});
+
+/** 全片恒定的环形循环（本集双色：领队 core / 队友 peer，线宽与节点恒定） */
+export const LoopRing: React.FC<{
+  size?: number;
+  draw?: number;
+  dotProgress?: number;
+  activeNode?: number;
+  dimNodes?: boolean;
+  /** 领队 core（默认）/ 队友 peer——双色不变量仅此一处开关 */
+  tone?: 'core' | 'peer';
+  showLabels?: boolean;
+}> = ({
+  size = 460,
+  draw = 1,
+  dotProgress,
+  activeNode,
+  dimNodes = false,
+  tone = 'core',
+  showLabels,
+}) => {
+  const labelsOn = showLabels ?? size >= 260;
+  const frame = useCurrentFrame();
+  const color = tone === 'peer' ? theme.peer : theme.core;
+  const cx = size / 2;
+  const cy = size / 2;
+  const r = size / 2 - 46;
+  const pulse = 0.55 + 0.45 * Math.sin(frame / 5);
+
+  const dot =
+    dotProgress === undefined ? null : polar(cx, cy, r, -90 + dotProgress * 360);
+
+  return (
+    <svg width={size} height={size} style={{overflow: 'visible'}}>
+      {/* 环本体：pathLength 归一化描线（红线三：不与像素 dasharray 混用） */}
+      <circle
+        cx={cx}
+        cy={cy}
+        r={r}
+        fill="none"
+        stroke={color}
+        strokeWidth={RING_STROKE}
+        strokeLinecap="round"
+        pathLength={1}
+        strokeDasharray={1}
+        strokeDashoffset={1 - Math.max(0, Math.min(1, draw))}
+        transform={`rotate(-90 ${cx} ${cy})`}
+      />
+      {RING_NODES.map((n, i) => {
+        const p = polar(cx, cy, r, n.angle);
+        const on = activeNode === i;
+        const o = draw > 0.85 ? 1 : 0;
+        return (
+          <g key={n.label} opacity={o}>
+            <circle
+              cx={p.x}
+              cy={p.y}
+              r={on ? 16 + 5 * pulse : 13}
+              fill={theme.bg}
+              stroke={on ? theme.mech : color}
+              strokeWidth={4}
+              opacity={dimNodes && !on ? 0.4 : 1}
+            />
+            {labelsOn ? (
+              <text
+                x={p.x}
+                y={p.y + (n.angle === 90 ? 46 : n.angle === -90 ? -28 : 6)}
+                textAnchor={n.angle === 0 ? 'start' : n.angle === 180 ? 'end' : 'middle'}
+                dx={n.angle === 0 ? 26 : n.angle === 180 ? -26 : 0}
+                fontFamily={theme.sans}
+                fontSize={24}
+                fontWeight={600}
+                fill={on ? theme.mech : dimNodes ? theme.dim : theme.text}
+              >
+                {n.label}
+              </text>
+            ) : null}
+          </g>
+        );
+      })}
+      {dot ? <circle cx={dot.x} cy={dot.y} r={11} fill={color} /> : null}
+    </svg>
+  );
+};
+
+/** 环的匀速巡游进度（周期 secPerLap 秒），供各幕共用系列首集同一节律 */
+export const useRingDot = (secPerLap = 2.5, offset = 0) => {
+  const frame = useCurrentFrame();
+  const {fps} = useVideoConfig();
+  return ((frame - offset) / (fps * secPerLap)) % 1;
+};
+
+/** 铭牌（铭牌/标签牌）：N 个队友绝不 N 色的区分装置——peer 色边、mono 字 */
+export const NamePlate: React.FC<{
+  name: string;
+  sub?: string;
+  tone?: 'core' | 'peer' | 'mech';
+  style?: React.CSSProperties;
+}> = ({name, sub, tone = 'peer', style}) => {
+  const frame = useCurrentFrame();
+  const {fps} = useVideoConfig();
+  const drop = spring({frame, fps, config: {damping: 200}});
+  const color = tone === 'core' ? theme.core : tone === 'mech' ? theme.mech : theme.peer;
+  return (
+    <div
+      style={{
+        display: 'inline-flex',
+        alignItems: 'baseline',
+        gap: 8,
+        padding: '5px 14px',
+        background: theme.panel,
+        border: `2px solid ${color}`,
+        borderRadius: 8,
+        fontFamily: theme.mono,
+        fontSize: 22,
+        color,
+        opacity: drop,
+        transform: `translateY(${(1 - drop) * -16}px)`,
+        whiteSpace: 'nowrap',
+        ...style,
+      }}
+    >
+      {name}
+      {sub ? (
+        <span style={{fontSize: 17, color: theme.dim, fontFamily: theme.sans}}>{sub}</span>
+      ) : null}
+    </div>
+  );
+};
+
+/** 队友：peer 环 + 下方铭牌（RingHerd 的成员单元；全部同色同宽同节点） */
+export const Teammate: React.FC<{name: string; size?: number; dot?: boolean; dim?: boolean}> = ({
+  name,
+  size = 220,
+  dot = true,
+  dim = false,
+}) => {
+  const dotP = useRingDot(2.5);
+  return (
+    <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10}}>
+      <LoopRing
+        size={size}
+        draw={1}
+        dotProgress={dot ? dotP : undefined}
+        tone="peer"
+        dimNodes={dim}
+        showLabels={false}
+      />
+      <NamePlate name={name} />
+    </div>
+  );
+};
+
 export {ease};

@@ -242,4 +242,425 @@ export const NumberedCard: React.FC<{
   );
 };
 
+// ─────────────────────────────────────────────────────────── 本集母题
+// 从《拆开 Claude Code》集（claude-code-explained-video）motifs.tsx 复制裁剪：
+// Terminal / LoopRing 族（系列同款终端 + 恒定视觉锚环）；另新增本集三件——
+// Desk（视野台面：全片主舞台）、Chip（对话流色块行）、Stamp（印章：催更 / SAVE /
+// cache hit / 停 / 职责）。复制适配、不做跨集 import（pipeline/README.md §四）。
+
+/** 环线宽（绝对像素，全片恒定，勿随 size 缩放） */
+export const RING_STROKE = 6;
+
+// ─────────────────────────────────────────────── 母题：终端（复制自 ep1 后扩展）
+
+export type TermLine = {text: string; color?: string; delay: number; prompt?: string};
+
+/** 终端窗口 + 逐字打字机。cps = 每秒字数（帧驱动，可复现）。
+ *  本集扩展：scrollShift（行区整体上移——首行被工具输出顶出可视区）与
+ *  ghostLine / ghostAt（滚出后停在顶端的 dim 残影，P0「被挤走」要被看见）。 */
+export const Terminal: React.FC<{
+  lines: TermLine[];
+  width?: number;
+  height?: number;
+  cps?: number;
+  /** 打完后光标是否停闪并变灰 */
+  freezeCursorAt?: number;
+  title?: string;
+  scrollShift?: number;
+  ghostLine?: string;
+  ghostAt?: number;
+  promptColor?: string;
+}> = ({
+  lines,
+  width = 1180,
+  height = 470,
+  cps = 26,
+  freezeCursorAt,
+  title = 'zsh',
+  scrollShift = 0,
+  ghostLine,
+  ghostAt,
+  promptColor,
+}) => {
+  const frame = useCurrentFrame();
+  const {fps} = useVideoConfig();
+  const frozen = freezeCursorAt !== undefined && frame >= freezeCursorAt;
+  const blink = frozen ? 0.35 : Math.floor((frame / fps) * 2) % 2 === 0 ? 1 : 0.15;
+  const ghostO =
+    ghostAt !== undefined
+      ? interpolate(frame - ghostAt, [0, 12], [0, 0.55], {
+          extrapolateLeft: 'clamp',
+          extrapolateRight: 'clamp',
+        })
+      : 0;
+  return (
+    <Panel style={{width, height, padding: 0, overflow: 'hidden'}}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          height: 44,
+          padding: '0 18px',
+          borderBottom: `2px solid ${theme.panelBorder}`,
+        }}
+      >
+        {[0, 1, 2].map((i) => (
+          <div
+            key={i}
+            style={{width: 12, height: 12, borderRadius: 999, background: theme.panelBorder}}
+          />
+        ))}
+        <div style={{marginLeft: 10, fontFamily: theme.mono, fontSize: 20, color: theme.dim}}>
+          {title}
+        </div>
+      </div>
+      <div
+        style={{
+          position: 'relative',
+          padding: '22px 26px',
+          fontFamily: theme.mono,
+          fontSize: 27,
+          lineHeight: 1.65,
+        }}
+      >
+        {/* 残影：滚出可视区的行停在顶端变 dim（0-A 的「被挤走」） */}
+        {ghostO > 0 && ghostLine ? (
+          <div
+            style={{
+              position: 'absolute',
+              left: 26,
+              top: 10,
+              color: theme.dim,
+              opacity: ghostO,
+              whiteSpace: 'pre',
+            }}
+          >
+            {ghostLine}
+          </div>
+        ) : null}
+        <div style={{transform: `translateY(${-scrollShift}px)`}}>
+          {lines.map((ln, i) => {
+            const shown = Math.max(0, Math.floor(((frame - ln.delay) / fps) * cps));
+            if (shown <= 0) return null;
+            const isLast = i === lines.length - 1;
+            const done = shown >= ln.text.length;
+            return (
+              <div key={i} style={{color: ln.color ?? theme.text, whiteSpace: 'pre'}}>
+                {ln.prompt ? (
+                  <span style={{color: promptColor ?? theme.dim}}>{ln.prompt} </span>
+                ) : null}
+                {ln.text.slice(0, shown)}
+                {isLast && done ? (
+                  <span style={{opacity: blink, color: frozen ? theme.dim : theme.mech}}>▍</span>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </Panel>
+  );
+};
+
+// ─────────────────────────────────────────────── 母题：环形循环（复制自 ep1，逐字）
+
+export type RingNode = {label: string; angle: number};
+
+/** 环上四个节点的固定角度（12 点起顺时针）——各幕一致，位置即语义 */
+export const RING_NODES: RingNode[] = [
+  {label: '问模型', angle: -90},
+  {label: '看回答', angle: 0},
+  {label: '执行工具', angle: 90},
+  {label: '填回结果', angle: 180},
+];
+
+const polar = (cx: number, cy: number, r: number, deg: number) => {
+  const rad = (deg * Math.PI) / 180;
+  return {x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad)};
+};
+
+/**
+ * 全片恒定的环形循环（系列锚：同色 core 同线宽 6px，绝不覆写）。
+ * - `draw` 0→1 描线进度；`dotProgress` 光点沿环位置（0–1，undefined 则不显示）
+ * - `activeNode` 高亮某节点（石青脉冲）；`exitPull` 光点滑出到「停机」出口的比例
+ * - `nodeLabels` 覆写节点文案
+ */
+export const LoopRing: React.FC<{
+  size?: number;
+  draw?: number;
+  dotProgress?: number;
+  activeNode?: number;
+  exitPull?: number;
+  dimNodes?: boolean;
+  nodeLabels?: string[];
+  showExit?: boolean;
+  /** 节点文案。size < 260 时必须关掉——0°/180° 两侧的标签会在小尺寸下互相压字 */
+  showLabels?: boolean;
+}> = ({
+  size = 460,
+  draw = 1,
+  dotProgress,
+  activeNode,
+  exitPull = 0,
+  dimNodes = false,
+  nodeLabels,
+  showExit = true,
+  showLabels,
+}) => {
+  const labelsOn = showLabels ?? size >= 260;
+  const frame = useCurrentFrame();
+  const cx = size / 2;
+  const cy = size / 2;
+  const r = size / 2 - 46;
+  const pulse = 0.55 + 0.45 * Math.sin(frame / 5);
+
+  // 光点位置：沿环 + 可选地向右侧「停机」出口外拉
+  const dot = dotProgress === undefined ? null : polar(cx, cy, r, -90 + dotProgress * 360);
+  const exitX = dot ? dot.x + exitPull * (size - cx + 90) : 0;
+  const exitY = dot ? dot.y + exitPull * -18 : 0;
+
+  return (
+    <svg width={size} height={size} style={{overflow: 'visible'}}>
+      {/* 环本体：pathLength 归一化描线（红线三：不与像素 dasharray 混用） */}
+      <circle
+        cx={cx}
+        cy={cy}
+        r={r}
+        fill="none"
+        stroke={theme.core}
+        strokeWidth={RING_STROKE}
+        strokeLinecap="round"
+        pathLength={1}
+        strokeDasharray={1}
+        strokeDashoffset={1 - Math.max(0, Math.min(1, draw))}
+        transform={`rotate(-90 ${cx} ${cy})`}
+      />
+      {showExit ? (
+        <line
+          x1={cx + r}
+          y1={cy}
+          x2={cx + r + 78}
+          y2={cy - 14}
+          stroke={theme.core}
+          strokeWidth={RING_STROKE - 2}
+          strokeDasharray="8 8"
+          opacity={0.5 * draw}
+        />
+      ) : null}
+      {RING_NODES.map((n, i) => {
+        const p = polar(cx, cy, r, n.angle);
+        const on = activeNode === i;
+        const o = draw > 0.85 ? 1 : 0;
+        return (
+          <g key={n.label} opacity={o}>
+            <circle
+              cx={p.x}
+              cy={p.y}
+              r={on ? 16 + 5 * pulse : 13}
+              fill={theme.bg}
+              stroke={on ? theme.mech : theme.core}
+              strokeWidth={4}
+              opacity={dimNodes && !on ? 0.4 : 1}
+            />
+            {labelsOn ? (
+              <text
+                x={p.x}
+                y={p.y + (n.angle === 90 ? 46 : n.angle === -90 ? -28 : 6)}
+                textAnchor={n.angle === 0 ? 'start' : n.angle === 180 ? 'end' : 'middle'}
+                dx={n.angle === 0 ? 26 : n.angle === 180 ? -26 : 0}
+                fontFamily={theme.sans}
+                fontSize={24}
+                fontWeight={600}
+                fill={on ? theme.mech : dimNodes ? theme.dim : theme.text}
+              >
+                {nodeLabels?.[i] ?? n.label}
+              </text>
+            ) : null}
+          </g>
+        );
+      })}
+      {dot ? (
+        <circle
+          cx={exitPull > 0 ? exitX : dot.x}
+          cy={exitPull > 0 ? exitY : dot.y}
+          r={11}
+          fill={theme.core}
+          opacity={exitPull > 0.9 ? 0.5 : 1}
+        />
+      ) : null}
+    </svg>
+  );
+};
+
+/** 环的匀速巡游进度（周期 secPerLap 秒），供各幕共用同一节律 */
+export const useRingDot = (secPerLap = 2.5, offset = 0) => {
+  const frame = useCurrentFrame();
+  const {fps} = useVideoConfig();
+  return ((frame - offset) / (fps * secPerLap)) % 1;
+};
+
+// ─────────────────────────────────────────────── 母题：视野台面（本集新增）
+
+/**
+ * Desk —— 全片主舞台：一张亮面桌子。物件进出都在这张桌面上发生。
+ * - `outline` 0→1 线稿化（5-B 桌子退后：描边保留、填充淡出）
+ * - `fillOpacity` 半透明填充（0-C 环在桌后，需透出环的弧线）
+ */
+export const Desk: React.FC<{
+  width: number;
+  height: number;
+  outline?: number;
+  fillOpacity?: number;
+  accent?: string;
+  style?: React.CSSProperties;
+  children?: React.ReactNode;
+}> = ({width, height, outline = 0, fillOpacity = 1, accent, style, children}) => (
+  <div
+    style={{
+      position: 'relative',
+      width,
+      height,
+      borderRadius: 20,
+      border: `3px solid ${accent ?? theme.panelBorder}`,
+      ...style,
+    }}
+  >
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        borderRadius: 17,
+        background: theme.panel,
+        opacity: (1 - outline * 0.94) * fillOpacity,
+      }}
+    />
+    {/* 亮面高光条 */}
+    <div
+      style={{
+        position: 'absolute',
+        left: 10,
+        right: 10,
+        top: 3,
+        height: 4,
+        borderRadius: 2,
+        background: 'rgba(255,255,255,0.06)',
+        opacity: 1 - outline,
+      }}
+    />
+    {children}
+  </div>
+);
+
+// ─────────────────────────────────────────────── 母题：对话流色块行（本集新增）
+
+/**
+ * Chip —— 对话内容的色块行：全部对话平铺在桌上的最小单位。
+ * 色彩契约：用户句 dim / 模型句 text / 工具输出 mech / 任务单·视野内容 view。
+ * （任务单 storyboard 原文写 core 描边；本集 core 收敛为环/循环锚专用，
+ * 「进它视野的东西」一律 view——与 planning.md §三的深层轴一致。）
+ */
+export const Chip: React.FC<{
+  kind: 'user' | 'model' | 'tool' | 'task' | 'summary';
+  label: string;
+  width: number;
+  height?: number;
+  style?: React.CSSProperties;
+}> = ({kind, label, width, height = 30, style}) => {
+  const conf = {
+    user: {bg: theme.panel, bd: theme.panelBorder, fg: theme.dim},
+    model: {bg: theme.panel, bd: theme.panelBorder, fg: theme.text},
+    tool: {bg: theme.mechDeep, bd: `${theme.mech}66`, fg: theme.mech},
+    task: {bg: theme.panel, bd: theme.view, fg: theme.view},
+    summary: {bg: theme.viewDeep, bd: theme.view, fg: theme.view},
+  }[kind];
+  return (
+    <div
+      style={{
+        width,
+        height,
+        borderRadius: 7,
+        background: conf.bg,
+        border: `2px solid ${conf.bd}`,
+        display: 'flex',
+        alignItems: 'center',
+        paddingLeft: 12,
+        paddingRight: 8,
+        boxSizing: 'border-box',
+        fontFamily: theme.mono,
+        fontSize: 19,
+        color: conf.fg,
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        ...style,
+      }}
+    >
+      {label}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────── 母题：印章（本集新增）
+
+/**
+ * Stamp —— 印章：spring 落下（过冲）+ 涟漪扩散 + 轻微旋转。
+ * 用途：催更提醒（1-D）/ SAVE（2-E）/ cache hit（3-E）/ 停（4-E）/ 职责（5-A）。
+ * 调用方以 style 定位（须在 position:relative 容器内）。
+ */
+export const Stamp: React.FC<{
+  text: string;
+  color: string;
+  at: number;
+  size?: number;
+  rotate?: number;
+  fontSize?: number;
+  style?: React.CSSProperties;
+}> = ({text, color, at, size = 120, rotate = -12, fontSize, style}) => {
+  const frame = useCurrentFrame();
+  const {fps} = useVideoConfig();
+  if (frame < at) return null;
+  const drop = spring({frame: frame - at, fps, config: {damping: 12}});
+  const rippleT = interpolate(frame - at, [0, 20], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const rippleO = frame - at < 20 ? 1 - rippleT : 0;
+  const fs = fontSize ?? size * (text.length > 3 ? 0.22 : 0.3);
+  return (
+    <div style={{position: 'relative', width: size, height: size, ...style}}>
+      {rippleO > 0 ? (
+        <div
+          style={{
+            position: 'absolute',
+            inset: -6 - 20 * rippleT,
+            border: `3px solid ${color}`,
+            borderRadius: 999,
+            opacity: rippleO * 0.7,
+          }}
+        />
+      ) : null}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          borderRadius: 999,
+          border: `4px solid ${color}`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontFamily: theme.serif,
+          fontWeight: 700,
+          fontSize: fs,
+          color,
+          background: `${color}14`,
+          opacity: 0.5 + 0.5 * drop,
+          transform: `rotate(${rotate * drop}deg) scale(${1.9 - 0.9 * drop})`,
+        }}
+      >
+        {text}
+      </div>
+    </div>
+  );
+};
+
 export {ease};

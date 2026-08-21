@@ -6,8 +6,22 @@ import {Subtitle} from './components/Subtitle';
 import {theme} from './design/theme';
 import {computeTimeline, SCENE_FADE_FRAMES} from './timing';
 import type {ManifestItem, SceneRange} from './types';
+import {P0Hook} from './scenes/P0Hook';
+import {P1Board} from './scenes/P1Board';
+import {P2Mail} from './scenes/P2Mail';
+import {P3Handshake} from './scenes/P3Handshake';
+import {P4Autonomy} from './scenes/P4Autonomy';
+import {P5Desks} from './scenes/P5Desks';
+import {P6Finale} from './scenes/P6Finale';
 
 const SCENE_COMPONENTS: Record<string, React.FC<{scene: SceneRange}>> = {
+  P0: P0Hook,
+  P1: P1Board,
+  P2: P2Mail,
+  P3: P3Handshake,
+  P4: P4Autonomy,
+  P5: P5Desks,
+  P6: P6Finale,
 };
 
 export type MainProps = {manifest: ManifestItem[]};

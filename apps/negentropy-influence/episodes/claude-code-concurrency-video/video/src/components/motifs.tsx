@@ -1,15 +1,10 @@
 /** chrome 层组件种子（seeded 档——scaffold 复制后完全自由，无门，随集演进）。
  *
- *  本文件从《拆开 Claude Code》集（claude-code-explained-video）的 motifs.tsx
- *  抽出**通用排版/标注机械**，只读底座 token（panel/panelBorder/text/dim +
- *  字体三族）；概念色一律经 `accent` prop 由调用方注入。任何集的 theme.ts
- *  底座都齐，故 scaffold 后无需改动即可 tsc 通过。随集演进时直接改本集副本
- *  （复制适配、不做跨集 import——复用边界见 pipeline/README.md §四）。
- *
- *  刻意**不进模板**的是创作性母题（Terminal / LoopRing / DispatchTable /
- *  GateRouter / SlotRing）：它们承载各集的叙事隐喻，属于每集的创作产物。
- *  需要时从 claude-code-explained-video 的 motifs.tsx 复制对应段落后裁剪、
- *  追加到本文件；母题目录与适用场景见 pipeline/skills/06 的母题表。
+ *  通用排版/标注机械只读底座 token；概念色一律经 `accent` prop 注入。
+ *  创作性母题已按 skills/06 母题表从《拆开 Claude Code》集复制裁剪至本文件
+ *  （复制适配、不做跨集 import——复用边界见 pipeline/README.md §四）：
+ *    Terminal 终端窗口 + 打字机（P0 痛点开场）
+ *    LoopRing 环形循环 —— 本集题眼：环一秒不停（恒定视觉锚）
  */
 import React from 'react';
 import {interpolate, spring, useCurrentFrame, useVideoConfig} from 'remotion';
@@ -17,6 +12,9 @@ import {theme} from '../design/theme';
 
 /** 缓入缓出：用于描线与推进，避免线性运动的机械感 */
 const ease = (t: number) => (t < 0.5 ? 2 * t * t : 1 - (1 - t) * (1 - t) * 2);
+
+/** 环线宽（绝对像素，全片恒定，勿随 size 缩放） */
+export const RING_STROKE = 6;
 
 // ─────────────────────────────────────────────────────────── chrome 组件
 
@@ -240,6 +238,166 @@ export const NumberedCard: React.FC<{
       </Panel>
     </div>
   );
+};
+
+// ─────────────────────────────────────────────────────── 创作母题 1：终端（复制自 ep1 裁剪）
+
+export type TermLine = {text: string; color?: string; delay: number; prompt?: string};
+
+/** 终端窗口 + 逐字打字机。cps = 每秒字数（帧驱动，可复现） */
+export const Terminal: React.FC<{
+  lines: TermLine[];
+  width?: number;
+  height?: number;
+  cps?: number;
+  freezeCursorAt?: number;
+  title?: string;
+}> = ({lines, width = 1180, height = 470, cps = 26, freezeCursorAt, title = 'zsh'}) => {
+  const frame = useCurrentFrame();
+  const {fps} = useVideoConfig();
+  const frozen = freezeCursorAt !== undefined && frame >= freezeCursorAt;
+  const blink = frozen ? 0.35 : Math.floor((frame / fps) * 2) % 2 === 0 ? 1 : 0.15;
+  return (
+    <Panel style={{width, height, padding: 0, overflow: 'hidden'}}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          height: 44,
+          padding: '0 18px',
+          borderBottom: `2px solid ${theme.panelBorder}`,
+        }}
+      >
+        {[0, 1, 2].map((i) => (
+          <div
+            key={i}
+            style={{width: 12, height: 12, borderRadius: 999, background: theme.panelBorder}}
+          />
+        ))}
+        <div style={{marginLeft: 10, fontFamily: theme.mono, fontSize: 20, color: theme.dim}}>
+          {title}
+        </div>
+      </div>
+      <div style={{padding: '22px 26px', fontFamily: theme.mono, fontSize: 27, lineHeight: 1.65}}>
+        {lines.map((ln, i) => {
+          const shown = Math.max(0, Math.floor(((frame - ln.delay) / fps) * cps));
+          if (shown <= 0) return null;
+          const isLast = i === lines.length - 1;
+          const done = shown >= ln.text.length;
+          return (
+            <div key={i} style={{color: ln.color ?? theme.text, whiteSpace: 'pre'}}>
+              {ln.prompt ? <span style={{color: theme.core}}>{ln.prompt} </span> : null}
+              {ln.text.slice(0, shown)}
+              {isLast && done ? (
+                <span style={{opacity: blink, color: frozen ? theme.dim : theme.core}}>▍</span>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+    </Panel>
+  );
+};
+
+// ─────────────────────────────────────────────────────── 创作母题 2：环形循环（复制自 ep1 裁剪）
+
+export type RingNode = {label: string; angle: number};
+
+/** 环上四个节点的固定角度（12 点起顺时针）——各幕一致，位置即语义 */
+export const RING_NODES: RingNode[] = [
+  {label: '问模型', angle: -90},
+  {label: '看回答', angle: 0},
+  {label: '执行工具', angle: 90},
+  {label: '填回结果', angle: 180},
+];
+
+export const polar = (cx: number, cy: number, r: number, deg: number) => {
+  const rad = (deg * Math.PI) / 180;
+  return {x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad)};
+};
+
+/**
+ * 全片恒定的环形循环。★本集题眼：环一秒不停——`dotProgress` 用 useRingDot
+ * 匀速驱动，环速不因任何旁轨/队列事件而变化；`stroke` 恒 core、`strokeWidth`
+ * 恒绝对像素（不随 size 缩放），调用点不得覆写（复用 ep1 不变量）。
+ * `ringOffset` 平移相位起点，用于跨镜衔接时保持光点连续。
+ */
+export const LoopRing: React.FC<{
+  size?: number;
+  draw?: number;
+  dotProgress?: number;
+  activeNode?: number;
+  dimNodes?: boolean;
+  nodeLabels?: string[];
+  /** 节点文案。size < 260 时必须关掉——0°/180° 两侧的标签会在小尺寸下互相压字 */
+  showLabels?: boolean;
+}> = ({size = 460, draw = 1, dotProgress, activeNode, dimNodes = false, nodeLabels, showLabels}) => {
+  const labelsOn = showLabels ?? size >= 260;
+  const frame = useCurrentFrame();
+  const cx = size / 2;
+  const cy = size / 2;
+  const r = size / 2 - 46;
+  const pulse = 0.55 + 0.45 * Math.sin(frame / 5);
+  const dot = dotProgress === undefined ? null : polar(cx, cy, r, -90 + dotProgress * 360);
+  return (
+    <svg width={size} height={size} style={{overflow: 'visible'}}>
+      {/* 环本体：pathLength 归一化描线（红线三：不与像素 dasharray 混用） */}
+      <circle
+        cx={cx}
+        cy={cy}
+        r={r}
+        fill="none"
+        stroke={theme.core}
+        strokeWidth={RING_STROKE}
+        strokeLinecap="round"
+        pathLength={1}
+        strokeDasharray={1}
+        strokeDashoffset={1 - Math.max(0, Math.min(1, draw))}
+        transform={`rotate(-90 ${cx} ${cy})`}
+      />
+      {RING_NODES.map((n, i) => {
+        const p = polar(cx, cy, r, n.angle);
+        const on = activeNode === i;
+        const o = draw > 0.85 ? 1 : 0;
+        return (
+          <g key={n.label} opacity={o}>
+            <circle
+              cx={p.x}
+              cy={p.y}
+              r={on ? 16 + 5 * pulse : 13}
+              fill={theme.bg}
+              stroke={on ? theme.mech : theme.core}
+              strokeWidth={4}
+              opacity={dimNodes && !on ? 0.4 : 1}
+            />
+            {labelsOn ? (
+              <text
+                x={p.x}
+                y={p.y + (n.angle === 90 ? 46 : n.angle === -90 ? -28 : 6)}
+                textAnchor={n.angle === 0 ? 'start' : n.angle === 180 ? 'end' : 'middle'}
+                dx={n.angle === 0 ? 26 : n.angle === 180 ? -26 : 0}
+                fontFamily={theme.sans}
+                fontSize={24}
+                fontWeight={600}
+                fill={on ? theme.mech : dimNodes ? theme.dim : theme.text}
+              >
+                {nodeLabels?.[i] ?? n.label}
+              </text>
+            ) : null}
+          </g>
+        );
+      })}
+      {dot ? <circle cx={dot.x} cy={dot.y} r={11} fill={theme.core} /> : null}
+    </svg>
+  );
+};
+
+/** 环的匀速巡游进度（周期 secPerLap 秒）。offset 平移相位（帧），跨镜衔接用 */
+export const useRingDot = (secPerLap = 2.5, offset = 0) => {
+  const frame = useCurrentFrame();
+  const {fps} = useVideoConfig();
+  return (((frame - offset) / (fps * secPerLap)) % 1 + 1) % 1;
 };
 
 export {ease};

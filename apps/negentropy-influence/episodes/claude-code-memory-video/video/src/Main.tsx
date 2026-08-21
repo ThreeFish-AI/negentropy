@@ -6,8 +6,22 @@ import {Subtitle} from './components/Subtitle';
 import {theme} from './design/theme';
 import {computeTimeline, SCENE_FADE_FRAMES} from './timing';
 import type {ManifestItem, SceneRange} from './types';
+import {P0Reject} from './scenes/P0Reject';
+import {P1Desk} from './scenes/P1Desk';
+import {P2Tidy} from './scenes/P2Tidy';
+import {P3Helper} from './scenes/P3Helper';
+import {P4Ledger} from './scenes/P4Ledger';
+import {P5Hinge} from './scenes/P5Hinge';
+import {P6Ending} from './scenes/P6Ending';
 
 const SCENE_COMPONENTS: Record<string, React.FC<{scene: SceneRange}>> = {
+  P0: P0Reject,
+  P1: P1Desk,
+  P2: P2Tidy,
+  P3: P3Helper,
+  P4: P4Ledger,
+  P5: P5Hinge,
+  P6: P6Ending,
 };
 
 export type MainProps = {manifest: ManifestItem[]};

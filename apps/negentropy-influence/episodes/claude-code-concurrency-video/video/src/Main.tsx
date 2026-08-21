@@ -6,8 +6,22 @@ import {Subtitle} from './components/Subtitle';
 import {theme} from './design/theme';
 import {computeTimeline, SCENE_FADE_FRAMES} from './timing';
 import type {ManifestItem, SceneRange} from './types';
+import {P0Wait} from './scenes/P0Wait';
+import {P1Dereg} from './scenes/P1Dereg';
+import {P2Rejoin} from './scenes/P2Rejoin';
+import {P3Watchdog} from './scenes/P3Watchdog';
+import {P4Timer} from './scenes/P4Timer';
+import {P5Truths} from './scenes/P5Truths';
+import {P6Ending} from './scenes/P6Ending';
 
 const SCENE_COMPONENTS: Record<string, React.FC<{scene: SceneRange}>> = {
+  P0: P0Wait,
+  P1: P1Dereg,
+  P2: P2Rejoin,
+  P3: P3Watchdog,
+  P4: P4Timer,
+  P5: P5Truths,
+  P6: P6Ending,
 };
 
 export type MainProps = {manifest: ManifestItem[]};
