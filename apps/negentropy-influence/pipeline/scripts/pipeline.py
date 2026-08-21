@@ -266,6 +266,8 @@ def cmd_qa(
             eff = cfg.get("render", {}).get("draft_scale", 0.5)
         if eff is not None:
             cmd += ["--scale", str(eff)]
+        else:
+            print("  ⚠️  未指定 --scale 且产物非 draft.mp4：按全分辨率（1.0）体检")
     if video:
         cmd.append(video)
     cmd += ids

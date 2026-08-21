@@ -67,7 +67,9 @@ _SECTIONS = {k.split(".")[0] for k in _KNOWN}
 
 def _get(cfg: dict, dotted: str):
     sec, key = dotted.split(".", 1)
-    return cfg.get(sec, {}).get(key)
+    body = cfg.get(sec, {})
+    # 节可能是标量/列表（toml 把节写成非表）：按「键不存在」处理，判定归 validate()
+    return body.get(key) if isinstance(body, dict) else None
 
 
 def _set(cfg: dict, dotted: str, value) -> None:
@@ -92,8 +94,11 @@ def resolve(raw: dict) -> tuple[dict, dict[str, str]]:
     """填默认值 + 应用环境变量覆盖 → (完整配置, {键: 来源})。
 
     来源取值：pipeline.toml | default | env:<VAR>，供 doctor 打印。
+    已知节被写成非表（如 `episode = "slug"`）时以空表进入 cfg——「应为表」的
+    FAIL 判定归 validate()，此处若崩溃则该分支永远不可达，且 status/doctor
+    这类「配置有病也必须能跑」的诊断命令会一并死掉。
     """
-    cfg = {s: dict(raw.get(s, {})) for s in _SECTIONS}
+    cfg = {s: dict(raw[s]) if isinstance(raw.get(s), dict) else {} for s in _SECTIONS}
     origin: dict[str, str] = {}
     for dotted, _t, default, _req, _note in SCHEMA:
         if (env := ENV_OVERRIDES.get(dotted)) and os.environ.get(env):

@@ -64,6 +64,17 @@ def structured_package(text: str) -> str:
     )
 
 
+def template_source(rel: str) -> Path:
+    """模板侧路径：`.tmpl` 是唯一例外——scaffold 渲染前后的同构性由 scaffold.py
+    保证（frozen 档字节直拷、structured 档只比结构键），故比对时读渲染前原文。
+    structured 的占位符 {{SLUG}}/{{TITLE}} 恰在被忽略的 name/description 里，
+    json 解析不受影响；frozen 档无 .tmpl 文件，此回退对它不生效。"""
+    plain = TEMPLATE / rel
+    if plain.is_file() or not (TEMPLATE / f"{rel}.tmpl").is_file():
+        return plain
+    return TEMPLATE / f"{rel}.tmpl"
+
+
 def fingerprint(path: Path, rel: str, cls: str) -> str | None:
     if not path.is_file():
         return None
@@ -111,7 +122,7 @@ def main() -> int:
         tag = " [模板基线]" if is_baseline else ""
         print(f"  系列 {series['id']}（{len(eps)} 集）{tag}")
         for rel, cls in gated:
-            tmpl_path = TEMPLATE / rel
+            tmpl_path = template_source(rel)
             tmpl_fp = fingerprint(tmpl_path, rel, cls)
             seen: dict[str, list[str]] = {}
             for slug in eps:

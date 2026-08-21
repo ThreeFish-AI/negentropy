@@ -64,8 +64,8 @@ uv run --no-project $R/pipeline.py --project $P tts          # 长跑，建议 n
 # ④ 渲染与体检
 cd $P/video && pnpm install --ignore-workspace && ./node_modules/.bin/tsc --noEmit
 cd - && uv run --no-project $R/pipeline.py --project $P render
-uv run --no-project $R/pipeline.py --project $P qa --check --scale 0.5
-uv run --no-project $R/pipeline.py --project $P qa --last-n 6 --check   # 尾幕渐黑必查
+uv run --no-project $R/pipeline.py --project $P qa --video $P/out/draft.mp4 --check
+uv run --no-project $R/pipeline.py --project $P qa --video $P/out/draft.mp4 --last-n 6 --check   # 尾幕渐黑必查
 
 # ⑤ 交付
 uv run --no-project $R/pipeline.py --project $P captions

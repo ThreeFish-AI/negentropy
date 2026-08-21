@@ -33,10 +33,12 @@
 
 ## 导入边界（承重，勿破）
 
-只有 `pipeline.py` / `check_series.py` / `tts_sample.py` 可以 `import paths`。
-**`tts.py` 绝不可以** —— `tts_server.py` 文件头记载它会被拷到 `~/tools/index-tts`
-的 venv 里运行并 `from tts import ...`，给 `tts.py` 增加任何同目录依赖都会
-断掉那条拷出路径。`tts.py` 全靠 `--ref` 入参，本就不需要任何根。
+`pipeline.py` / `check_series.py` / `tts_sample.py` / `scaffold.py` /
+`verify_skeleton.py` 可以 `import paths`（前三个需要 INFLUENCE 与 REPO 双锚点，
+后两个只消费 INFLUENCE）。**`tts.py` 绝不可以** —— `tts_server.py` 文件头记载
+它会被拷到 `~/tools/index-tts` 的 venv 里运行并 `from tts import ...`，给
+`tts.py` 增加任何同目录依赖都会断掉那条拷出路径。`tts.py` 全靠 `--ref` 入参，
+本就不需要任何根。同理 `tts_server.py` 自身也不可导入（同一条拷出路径）。
 """
 
 from __future__ import annotations

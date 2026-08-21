@@ -112,7 +112,9 @@ def main() -> int:
         "  4. script/narration.md → storyboard.md → video/src/scenes/*.tsx（全部新写）"
     )
     print("  5. video/src/Main.tsx：补场景 import 与 SCENE_COMPONENTS 注册表")
-    print("  6. 登记到 series.json（漏登 check_series.py 会 FAIL）")
+    print(
+        "  6. 登记到 series.json（漏登无阻塞门：verify_skeleton.py 会点名警告孤儿目录）"
+    )
     print(
         "  7. cd video && pnpm install --ignore-workspace（装完核对根 lockfile 零变更）"
     )

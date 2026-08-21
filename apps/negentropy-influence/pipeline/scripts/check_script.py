@@ -109,12 +109,20 @@ def check_coverage(
 def check_budget(root: Path, items: list[dict], cfg: dict, msgs: list[str]) -> None:
     narr = cfg.get("narration", {})
     budget = narr.get("target_minutes")
-    if budget is None:
-        # 此前这里静默退化为 [0, 999]——一个「你以为开着其实关着的门」。
+    # 形状校验归 config.validate（FAIL 已在那里报过）；此处只管「能否作为预算窗使用」。
+    # 缺失与形状非法同路处理：解包前崩溃会让 FAIL 清单一条也打不出来。
+    usable = (
+        isinstance(budget, list)
+        and len(budget) == 2
+        and all(isinstance(x, (int, float)) for x in budget)
+    )
+    if not usable:
+        # 此前缺失时静默退化为 [0, 999]——一个「你以为开着其实关着的门」。
         # 点名 WARN 是本次改动的要点：门被跳过必须说出来。
         warn(
             msgs,
-            "缺 narration.target_minutes：**跳过时长预算门**（无 pipeline.toml？）",
+            f"narration.target_minutes 缺失或形状非法（{budget!r}）："
+            "**跳过时长预算门**（无 pipeline.toml？）",
         )
         lo, hi = 0, 999
     else:

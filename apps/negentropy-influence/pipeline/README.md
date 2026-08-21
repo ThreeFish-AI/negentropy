@@ -153,8 +153,9 @@ schema、默认值与校验的单一事实源是 [scripts/config.py](./scripts/c
    > `pnpm-workspace.yaml` 的 `allowBuilds` 处理。
 4. **登记到 [../series.json](../series.json)**：顶层是 `seriesList[]`，新系列追加一个 series 对象
    （`id` / `title` / `sourceKind` / `rule` / `episodes`），既有系列的新集追加到其 `episodes`。
-   同步 [../series.md](../series.md) 的分节表格。`check_series.py` 已挂 pre-commit，漏登即 FAIL
-   （`verify_skeleton.py` 也会点名**未登记的孤儿工程目录**）。
+   同步 [../series.md](../series.md) 的分节表格。注意**漏登没有阻塞门**：`check_series.py` 只遍历
+   series.json（看不见孤儿目录），`verify_skeleton.py` 会点名**未登记的孤儿工程目录**但不计入
+   未登记漂移（`--strict` 不失败）——登记义务靠这条警告 + 本清单自觉执行。
 5. 按 [skills/](./skills/) 01→05 顺序走内容层，再进生产层。Stage ① 先判**信源型别**：
    论文型走 A 型（`paper_extract.py` + `paper-notes.md`），文档/代码/课程站点型走 B 型
    （`source_ledger.py` + `source-notes.md` + 证据三级），见 [skills/01](./skills/01-source-extraction.md)。
