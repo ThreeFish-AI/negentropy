@@ -91,7 +91,10 @@ BLACK_MEAN_LIMIT = 0.02
 SUBTITLE_BAND_PX = 160  # 字幕安全带高度（对应「bottom ≥ 150」清单位）
 TEXT_BRIGHTNESS = 0.45
 #: 字幕框占据安全带底部的高度（全分辨率像素）。来自 Subtitle.tsx 的**已知几何**：
-#: marginBottom 54 + 上下 padding 各 12 + 行高 fontSize(≤44)×1.35 ≈ 125，留余量取 132。
+#: 框顶距画底 = marginBottom 54 + 上下 padding 各 12 + 行高 fontSize(≤44)×1.35 = 137.4；
+#: 墨水顶距画底实测 ≈118（44px 满字号，CJK em box 顶在行盒内还有半行距余量）。
+#: 检查线取 132——在框顶 137.4 之下、墨水顶 118 之上，即窄带下缘只探进框顶 padding
+#: （无墨水区），既不漏检框顶附近的侵入物，也不被字幕笔画误报。
 #: 侵入检测只看**框上方**这条窄带——「角标/图形是否压进字幕安全区」本就是这个问题。
 #:
 #: 为什么不用「亮列连通段 + 最宽段=字幕框」的老判据（2026-08-21 废弃）：Subtitle.tsx
@@ -231,7 +234,7 @@ def check_frames(
             # 里面出现宽于 min_w_px 的亮块 = 角标/图形压进了字幕安全区。
             above = band[: band_px - box_h_px, :]
             for a, b in bright_segments(above.max(axis=0), TEXT_BRIGHTNESS):
-                if (b - a) >= min_w_px:
+                if (b - a + 1) >= min_w_px:  # 闭区间：真实宽度 = b - a + 1
                     msgs.append(
                         f"WARN {sid}: 字幕框上方安全带内有亮块 x{a}–{b}"
                         f"（角标/图形侵入 bottom≥{SUBTITLE_BAND_PX}px 安全区）"

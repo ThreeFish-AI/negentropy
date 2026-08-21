@@ -47,7 +47,7 @@ uv run --no-project media/pipeline/scripts/qa_frames.py --project media/<slug>-v
 做法（`out/draft.mp4` 还不存在时也能做，走 `remotion still` 而非 `qa_frames`）：
 
 1. 混合 manifest：已合成句用 `mutagen` 读实测时长，未合成句按**实测语速**外推
-   （首集可用 300 字/秒÷60 起步，跑出几十句后改用本集实测值）；
+   （首集可用 300 字/分 ÷ 60 = 5 字/秒起步，跑出几十句后改用本集实测值）；
 2. 用 `timeline.compute()` 算 beat 帧位（与 `timing.ts` 同构，见 `timeline.py`），
    取每镜中点 + 关键转折句的帧号；
 3. `remotion still Main out.png --frame=N --scale=0.4` 逐帧渲（**首帧含打包约 100 秒，

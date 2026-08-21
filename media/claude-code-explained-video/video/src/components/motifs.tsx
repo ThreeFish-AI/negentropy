@@ -366,9 +366,7 @@ export const DispatchTable: React.FC<{
             }}
           >
             <div style={{flex: 1, color: isHit ? theme.mech : theme.text}}>{r.key}</div>
-            <div style={{flex: 1, color: isHit ? theme.mech : theme.dim}}>
-              {isHit || !emptySlot ? r.value : r.value}
-            </div>
+            <div style={{flex: 1, color: isHit ? theme.mech : theme.dim}}>{r.value}</div>
           </div>
         );
       })}
@@ -626,7 +624,7 @@ export const CodeCard: React.FC<{
                 {i + 1}
               </span>
             ) : null}
-            <span style={{color: hot ? theme.text : theme.text, whiteSpace: 'pre'}}>{ln}</span>
+            <span style={{color: theme.text, whiteSpace: 'pre'}}>{ln}</span>
           </div>
         );
       })}

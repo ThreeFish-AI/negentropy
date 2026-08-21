@@ -177,21 +177,24 @@ const TitleCard: React.FC = () => {
 
 export const P0Hook: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (fromId: string, toId?: string) => beatWindow(scene.sentences, scene.from, fromId, toId);
+  // at() = 时点锚（只取某句的起始帧，不是分镜 beat 窗口）。刻意不叫 w()——
+  // check_script --check-scenes 只把 w() 视为分镜窗口，混用会让时点锚刷「分镜陈旧」假 WARN。
+  const at = (id: string) => w(id).from;
   const bA = w('p0-01', 'p0-03');
   const bB = w('p0-04', 'p0-06');
-  const relB = (id: string) => w(id).from - bB.from;
+  const relB = (id: string) => at(id) - bB.from;
   const bC = w('p0-07', 'p0-08');
   return (
     <AbsoluteFill>
       <Sequence {...bA} name="0-A 终端打字与凝住">
         {/* 凝住点落在 p0-03「它不会自己去跑」——光标停闪变灰 */}
-        <AskAndStall freezeAt={w('p0-03').from - bA.from} />
+        <AskAndStall freezeAt={at('p0-03') - bA.from} />
       </Sequence>
       <Sequence {...bB} name="0-B 复制粘贴往复">
         <CopyPasteLoop roundStarts={[0, relB('p0-05'), relB('p0-06')]} />
       </Sequence>
       <Sequence {...bC} name="0-C 中间搬东西的是你">
-        <YouInTheMiddle questionAt={w('p0-08').from - bC.from} />
+        <YouInTheMiddle questionAt={at('p0-08') - bC.from} />
       </Sequence>
       <Sequence {...w('p0-09', 'p0-10')} name="0-D 标题卡">
         <TitleCard />
