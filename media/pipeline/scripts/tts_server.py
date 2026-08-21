@@ -41,6 +41,11 @@ import uvicorn
 from fastapi import FastAPI, HTTPException, Response
 from pydantic import BaseModel, field_validator
 
+# 客户端 tts.py 与本服务分属两个运行环境（本仓轻依赖 vs index-tts venv），但服务启动
+# 脚本就是从本仓拷贝/引用这份 tts_server.py —— 采样默认值等共享常量以 tts.py 为 SSOT。
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from tts import SAMPLING_PASSTHROUGH_DEFAULTS as SAMPLING_DEFAULTS  # noqa: E402
+
 
 def ensure_indextts_import(index_tts_root: Path) -> None:
     """优先依赖 venv 已安装的 indextts；仅源码未安装时把 checkout 根目录塞进 sys.path 兜底。"""
@@ -164,9 +169,13 @@ def encode_mp3(data: np.ndarray, sr: int) -> tuple[bytes, str]:
 
 EMO_LABELS = "happy,angry,sad,afraid,disgusted,melancholic,surprised,calm"
 
-# 上游自回归采样参数的默认值 —— 已知副本，锚点 indextts/infer_v2_5.py:731-739（HEAD 4f8792f）
-# 与 infer_v2.py:536-544 完全一致，两版共享同一组默认。客户端 tts.py 持有同一份副本用于
-# 「摘要按未使用即省略」判定，二者必须同步（见 tts.py SAMPLING_DEFAULTS 的同名注释）。
+# 上游自回归采样参数的默认值 —— SSOT 在客户端 tts.py（SAMPLING_PASSTHROUGH_DEFAULTS，
+# 锚点 indextts/infer_v2_5.py:731-739（HEAD 4f8792f），与 infer_v2.py:536-544 完全一致），
+# 本文件经文件头 import 引用（别名 SAMPLING_DEFAULTS 供下方请求模型取默认值）。
+# 此前这里持有一份手抄副本、靠注释约束「逐字一致」——两份 7/9 键字典已经漂移过一次
+# （服务端缺 text_normalization/seed 两键），现改为运行时导入，改一处两端同步。
+# 注意 SSOT 只覆盖 7 个**透传 generation_kwargs** 的键；text_normalization（v2.5 独立形参）
+# 与 seed（本服务自行 set_seed）不在此列，由下方请求模型单独定义。
 #
 # 三条口径提醒（写进注释而非文档，因为它们直接决定该不该动这些值）：
 #   length_penalty=0.0 **不是中性**——束打分 score = sum_logprobs / len**0 = sum_logprobs，
@@ -177,15 +186,6 @@ EMO_LABELS = "happy,angry,sad,afraid,disgusted,melancholic,surprised,calm"
 #     向量耦合——跨音色迁移调参结论必须重新验证。
 #   max_mel_tokens=1500 ≈ 30 s 音频（语义码率 50 Hz × 1.72 mel 帧/token，hop 256 @ 22050）；
 #     溢出后果不是音频被裁短，而是文本尾部根本没被念出（infer_v2_5.py:792-813）。
-SAMPLING_DEFAULTS: dict[str, float | int] = {
-    "temperature": 0.8,
-    "top_p": 0.8,
-    "top_k": 30,
-    "length_penalty": 0.0,
-    "repetition_penalty": 10.0,
-    "max_mel_tokens": 1500,
-    "interval_silence": 200,
-}
 
 
 class SynthesizeRequest(BaseModel):

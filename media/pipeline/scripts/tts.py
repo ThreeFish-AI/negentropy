@@ -196,12 +196,18 @@ STYLE_PRESETS: dict[str, dict] = {
 
 
 # 上游自回归采样参数的默认值 —— 已知副本，锚点 indextts/infer_v2_5.py:731-739（HEAD 4f8792f）；
-# 与服务端 tts_server.py 的 SAMPLING_DEFAULTS 必须逐字一致（那里有机制说明）。
+# 与 infer_v2.py:536-544 完全一致，两版共享同一组默认。
+#
+# **分层 SSOT**：`SAMPLING_PASSTHROUGH_DEFAULTS`（7 个经 **generation_kwargs 透传给 HF
+# generate 的参数）是唯一的数据副本，服务端 tts_server.py 运行时从本模块导入它（那个进程
+# 不受本仓版本控制约束之外的依赖影响——导入是纯常量读取）；本字典在其上追加两个
+# **非透传**键：text_normalization（v2.5 infer() 的独立形参）与 seed（本服务自己 set_seed），
+# 它们不进 SAMPLING_RANGES/SAMPLING_CLI 的透传校验路径。
 #
 # 本副本只有一个用途：判定「这一项是否被显式改过」，从而决定**要不要进缓存摘要**。
 # 摘要沿用「未使用即省略」规则（同 |beams=N），故全部取默认时摘要与历史逐字节相同 ——
 # 这是已上线三集近 600 句缓存零失效的前提，由 tests/test_digest.py 黄金哈希钉死。
-SAMPLING_DEFAULTS: dict[str, float | int | bool | None] = {
+SAMPLING_PASSTHROUGH_DEFAULTS: dict[str, float | int] = {
     "temperature": 0.8,
     "top_p": 0.8,
     "top_k": 30,
@@ -209,6 +215,9 @@ SAMPLING_DEFAULTS: dict[str, float | int | bool | None] = {
     "repetition_penalty": 10.0,
     "max_mel_tokens": 1500,
     "interval_silence": 200,
+}
+SAMPLING_DEFAULTS: dict[str, float | int | bool | None] = {
+    **SAMPLING_PASSTHROUGH_DEFAULTS,
     "text_normalization": True,
     "seed": None,
 }
