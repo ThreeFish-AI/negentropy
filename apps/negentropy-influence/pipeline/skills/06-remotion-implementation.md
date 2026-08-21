@@ -11,18 +11,19 @@
 
 ## 骨架复制适配策略
 
-从既有集工程 `cp -r` 复制后，冻结清单分两档：
+**复制源头有名字**：[templates/video-skeleton/](../templates/video-skeleton/)。新集用它实例化（`uv run --no-project $R/scaffold.py <slug>-video --title "…"`），**不要**再 `cp -r` 任一既有集——「任一」意味着 4 个同权真理声明者。冻结档位（frozen / overridable / regioned / structured / seeded）、分组语义与已登记漂移的**机器可读单一事实源**是 [skeleton.toml](../templates/video-skeleton/skeleton.toml)，判据由 `verify_skeleton.py` 执行：
 
-**A 档 · 逐字节保留**（跨集零差异，改任何一处须三集同步并验 md5 唯一）：
+```bash
+uv run --no-project $R/verify_skeleton.py          # 漂移报告
+uv run --no-project $R/verify_skeleton.py --strict  # 有未登记漂移即失败
+```
 
-- `src/timing.ts`（computeTimeline + beatWindow + SCENE_FADE_FRAMES 导出；常数读同目录 `timing.json`）
-- `src/types.ts` / `src/Root.tsx` / `src/index.ts`
-- `src/components/NarrationAudio.tsx`（@remotion/media 的 `<Audio>`，from/durationInFrames 原生定位 + premountFor）/ `Subtitle.tsx`（fitText 真实测量）/ `SceneFade.tsx`（幕间呼吸淡入淡出）/ `cards.tsx`
-- `scripts/*.py` 薄包装、`remotion.config.ts`、`.npmrc`、`tsconfig.json`
+要点（详见 skeleton.toml 内注）：
 
-**B 档 · 默认逐字节相同、允许本集覆写**：`src/timing.json`（时序常数 SSOT——timing.ts 与 Python 侧 qa_frames/captions 共读同一文件，**改常量只改此处**，勿再双改代码）。
-
-**每集改写**：`package.json`（name）、`src/design/theme.ts`（本集色板）、`src/scenes/*`（全部重写）、`src/Main.tsx`（仅 import 与 SCENE_COMPONENTS 注册表）、`pipeline.toml`（本集配音/渲染参数）。
+- **A 档 · frozen 逐字节保留**（14 个文件，含 `src/timing.ts` 的 computeTimeline + beatWindow + SCENE_FADE_FRAMES、`@remotion/media` 的 NarrationAudio、fitText 的 Subtitle、幕间呼吸淡入淡出的 SceneFade、cards、三份薄包装与全部工程配置）。改任何一处 = 改模板 + 改各集，`--strict` 会盯住。
+- **B 档 · overridable**：`src/timing.json`（时序常数 SSOT——timing.ts 与 Python 侧共读同一文件，**改常量只改此处**）。覆写许可存在但四集从未行使过。
+- **regioned**：`src/Main.tsx` 区外冻结（每集内容只有场景 import 与 SCENE_COMPONENTS 注册表）；**structured**：`package.json` 门住依赖零漂移、忽略 name/description。
+- **每集改写**：`src/design/theme.ts`（本集色板）、`src/scenes/*`（全部重写；骨架样例见模板里的 scenes-EXAMPLE.tsx.txt）。
 
 ## 事实条（防重复论证）
 
@@ -34,8 +35,10 @@
 复用边界的原则（见 [../README.md](../README.md) 第四节）：Python 脚本集中 SSOT；**Remotion 原语复制适配不共享**——共享 TS 包会把一集的视觉改动泄漏进其他集。
 
 **A 档冻结的同步义务范围（多系列后必须显式化）**：「改任何一处须同步并验 md5 唯一」的义务
-**限于同一系列内**。新系列的首集从既有集复制后即**建立自己的基线**，此后与其他系列各自演进——
-否则「复制不共享」的隔离初衷会被一条跨系列的同步义务反向击穿。判据：md5 一致性按系列分组核对。
+**限于同一系列内**。新系列的首集从模板实例化后即**建立自己的基线**，此后与其他系列各自演进——
+否则「复制不共享」的隔离初衷会被一条跨系列的同步义务反向击穿。判据：md5 一致性按系列分组核对
+（`verify_skeleton.py` 已按 series.json 分组；`baselineOf` 指定哪个系列担保模板不过期。
+将来真出现跨系列基线分叉时，`cp -r` 一份模板目录 + 改一行 `baselineOf` 即可，验证器不用动）。
 
 ## 本集之外可复用的视觉母题
 

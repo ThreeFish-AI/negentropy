@@ -11,12 +11,20 @@ import subprocess
 import sys
 from pathlib import Path
 
-PIPELINE_SCRIPT = Path(__file__).resolve().parents[3] / "pipeline" / "scripts" / "build_narration.py"
+PIPELINE_SCRIPT = (
+    Path(__file__).resolve().parents[3] / "pipeline" / "scripts" / "build_narration.py"
+)
 
 if __name__ == "__main__":
     sys.exit(
         subprocess.run(
-            [sys.executable, str(PIPELINE_SCRIPT), "--project", str(Path(__file__).resolve().parent.parent), *sys.argv[1:]],
+            [
+                sys.executable,
+                str(PIPELINE_SCRIPT),
+                "--project",
+                str(Path(__file__).resolve().parent.parent),
+                *sys.argv[1:],
+            ],
             check=False,
         ).returncode
     )

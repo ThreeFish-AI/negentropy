@@ -1,0 +1,30 @@
+/**
+ * 本集视觉契约（seed —— scaffold 复制后**必须**按本集重写概念色）。
+ *
+ * 底座常量四集通用、不要改；概念色是每集独立设计的产物，规则见
+ * pipeline/skills/06-remotion-implementation.md：
+ *   - 2–3 个概念色，映射「深度轴」而非枚举条目
+ *   - 对 bg (#0E1116) 对比度 ≥ 4.5:1（用 `qa_frames.py --check-theme` 实测）
+ *   - 色相不得与系列已用色撞车（登记表在 skills/06）
+ *   - 覆写任何底座 token 须在 theme.ts / planning.md / README 三处留决策记录
+ */
+export const theme = {
+  // ── 底座（跨集通用，勿改）──
+  bg: '#0E1116',
+  panel: '#171C26',
+  panelBorder: '#2A3242',
+  text: '#F2F5FA',
+  dim: '#9AA7B8',
+  ok: '#7ED321',
+
+  // ── 本集概念色（TODO：替换为本集设计，删掉这三行占位）──
+  // concept: '#XXXXXX',
+  // conceptDeep: '#XXXXXX',
+  // deny: '#XXXXXX',
+} as const;
+
+export const font = {
+  serif: "'Songti SC', 'STSong', 'Noto Serif SC', serif",
+  sans: "'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', sans-serif",
+  mono: "'SF Mono', 'Menlo', 'JetBrains Mono', monospace",
+} as const;

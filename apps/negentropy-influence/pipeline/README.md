@@ -124,7 +124,7 @@ schema、默认值与校验的单一事实源是 [scripts/config.py](./scripts/c
 ## 四、复用边界（显式权衡）
 
 - **Python 脚本：集中共享（SSOT）**——三个纯文本变换工具，跨集零差异，中心化防 split-brain。
-- **Remotion 工程原语：复制适配，不做共享包**——`timing.ts` / `Subtitle` / `cards.tsx` / `theme.ts` 等每集复制后按本集视觉契约修改。理由：每集工程须保持 pnpm `--ignore-workspace` 独立可渲染（嵌套 workspace 隔离 + Remotion 版本自由），共享 TS 包会把「一集的视觉改动」泄漏进其他集。复用时以任一既有集工程为模板复制 `video/` 骨架（发布顺序见 [../series.json](../series.json)，与模板选择无关）。
+- **Remotion 工程原语：复制适配，不做共享包**——`timing.ts` / `Subtitle` / `cards.tsx` / `theme.ts` 等每集复制后按本集视觉契约修改。理由：每集工程须保持 pnpm `--ignore-workspace` 独立可渲染（嵌套 workspace 隔离 + Remotion 版本自由），共享 TS 包会把「一集的视觉改动」泄漏进其他集。**复制源头是 [templates/video-skeleton/](./templates/video-skeleton/)**（14 个 frozen 文件 + skeleton.toml 档位清单），新集用 `scaffold.py` 实例化、「改任何一处须同步」由 `verify_skeleton.py` 机器执法——此前「以任一既有集为模板」的说法等于给 391 行冻结基建设 4 个同权真理声明者，且纸面义务从未被执行过（详见 skeleton.toml 内注）。同类做法：`go mod vendor` + `go mod verify`（物理副本 + 校验门）、Copier（模板 + 应答记录）。
 - **每集视觉契约独立设计**（色彩语义映射到本集核心概念），但底层规范复用：深色底 `#0E1116` 系、警示红 `#FF5C5C`、确认绿 `#7ED321`、金句卡衬线体、公式只作角标彩蛋。
 
 ## 五、音画同步机制（零手工对轨）
@@ -135,23 +135,27 @@ schema、默认值与校验的单一事实源是 [scripts/config.py](./scripts/c
 
 ## 六、新集脚手架清单
 
-1. `cp -r` 任一既有集工程目录骨架（README/research/script/scripts/video/pipeline.toml），改 slug 与内容。
-2. `video/package.json` 改 `name`；清空 scenes 重建；`theme.ts` 换本集色板。
-3. ~~根 `.gitignore` 追加本集产物规则~~ —— **已无需手工步骤**。根 `.gitignore` 的规则
-   已通配到分集级（`episodes/*/video/public/audio/`、`episodes/**/*.{mp4,mp3,wav}`），
-   新集自动覆盖。（规则仍**只能**放在根 `.gitignore`：根级裸 `.gitignore` 规则会挡住
-   嵌套 ignore 文件，故工程内放不了。逐集枚举的旧写法曾让新集在补齐 5 行前完全裸奔。）
-4. `cd video && pnpm install --ignore-workspace`（必须显式忽略根 workspace；`onlyBuiltDependencies: [esbuild]` 已在 package.json）；装完检查根 lockfile 零变更。
+1. 实例化骨架（替代旧的「`cp -r` 任一既有集」——那句话给 391 行冻结基建留了 4 个同权真理声明者）：
+   ```bash
+   uv run --no-project $R/scaffold.py <slug>-video --title "本集标题" \
+       --ref <样本名> --ref-sha1 <12位指纹> --style <档名>
+   ```
+   scaffold 复制 14 个 frozen 文件 + 渲染 4 个模板（package.json / theme.ts / pipeline.toml / README），
+   **刻意不生成 scenes/**（样例留在模板里）、不改根 `.gitignore`（已通配到分集级）、不写 series.json。
+   跑完立刻 `uv run --no-project $R/verify_skeleton.py` 确认新集与模板零漂移。
+2. `theme.ts` 换本集概念色；`video/src/scenes/*` 与 `Main.tsx` 注册表全部新写。
+3. `cd video && pnpm install --ignore-workspace`（必须显式忽略根 workspace；`onlyBuiltDependencies: [esbuild]` 已在 package.json）；装完检查根 lockfile 零变更。
    > pnpm ≥ 11 会提示 `package.json` 的 `pnpm` 字段不再被读取，并报 `ERR_PNPM_IGNORED_BUILDS: esbuild`
    > （[ISSUE-076](../../../docs/.agents/issue.md)）。**已实测确认对本工程无害**：esbuild 的平台二进制
    > 是 optionalDependency，落地不依赖 postinstall —— 旧写法下 `remotion bundle` 端到端通过。
    > 故**刻意不改** `.npmrc`/`package.json` 去消掉这条提示（改了会让 A 档冻结文件产生一处
    > 只为静音噪声的跨集差异）。真正需要 postinstall 的依赖若将来出现，再按官方新家
    > `pnpm-workspace.yaml` 的 `allowBuilds` 处理。
-5. **登记到 [../series.json](../series.json)**：顶层是 `seriesList[]`，新系列追加一个 series 对象
+4. **登记到 [../series.json](../series.json)**：顶层是 `seriesList[]`，新系列追加一个 series 对象
    （`id` / `title` / `sourceKind` / `rule` / `episodes`），既有系列的新集追加到其 `episodes`。
-   同步 [../series.md](../series.md) 的分节表格。`check_series.py` 已挂 pre-commit，漏登即 FAIL。
-6. 按 [skills/](./skills/) 01→05 顺序走内容层，再进生产层。Stage ① 先判**信源型别**：
+   同步 [../series.md](../series.md) 的分节表格。`check_series.py` 已挂 pre-commit，漏登即 FAIL
+   （`verify_skeleton.py` 也会点名**未登记的孤儿工程目录**）。
+5. 按 [skills/](./skills/) 01→05 顺序走内容层，再进生产层。Stage ① 先判**信源型别**：
    论文型走 A 型（`paper_extract.py` + `paper-notes.md`），文档/代码/课程站点型走 B 型
    （`source_ledger.py` + `source-notes.md` + 证据三级），见 [skills/01](./skills/01-source-extraction.md)。
 

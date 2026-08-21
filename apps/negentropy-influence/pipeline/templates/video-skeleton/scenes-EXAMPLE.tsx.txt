@@ -1,0 +1,40 @@
+场景组件骨架样例（**刻意不是 .tsx 后缀**——否则会被 video/tsconfig.json 收进
+编译范围，而模板目录里的文件没有对应的 node_modules）。
+
+scaffold 不把本文件复制进新集：场景是创作产物，抄骨架的过程本身有价值。
+写场景前先读 pipeline/skills/06-remotion-implementation.md（七条渲染红线）。
+
+────────────────────────────────────────────────────────────────────────────
+固定 5 行 import 前导（27 个既有场景文件全部相同）：
+
+  import React from 'react';
+  import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig} from 'remotion';
+  import {theme} from '../design/theme';
+  import {beatWindow} from '../timing';
+  import type {SceneRange} from '../types';
+  // 再按需 import {FadeUp, Pill, QuoteCard} from '../components/cards';
+
+────────────────────────────────────────────────────────────────────────────
+包装器骨架。⚠️ `const w = (fromId, toId?) => beatWindow(...)` 这一行的**字面
+形态是解析器契约**：check_script.py 的 SCENE_CALL_RE 只认 `w('id','id')`，
+把它改名或抽成 hook 会让 `--check-scenes` 的分镜↔代码互比静默失效。
+
+  export const P0Name: React.FC<{scene: SceneRange}> = ({scene}) => {
+    const w = (fromId: string, toId?: string) => beatWindow(scene.sentences, scene.from, fromId, toId);
+    // at() = 时点锚（只取某句起始帧，不是分镜窗口）。刻意不叫 w()——混用会让
+    // 时点锚刷出「分镜陈旧」假 WARN。
+    const at = (id: string) => w(id).from;
+    const bA = w('p0-01', 'p0-03');
+    return (
+      <AbsoluteFill>
+        <Sequence {...bA} name="0-A 分镜标题（与 storyboard.md 镜号一致）">
+          <YourOneOffComponent freezeAt={at('p0-03') - bA.from} />
+        </Sequence>
+      </AbsoluteFill>
+    );
+  };
+
+────────────────────────────────────────────────────────────────────────────
+比例参考（实测四集）：包装器只占场景代码的 3.3–8.4%（每集 251–303 行），
+其余 92–97% 是本集独有的一次性子组件。所以「抽取包装器」省不下什么，
+而它换来的是击穿解析器契约——故明确不做，只留样例。

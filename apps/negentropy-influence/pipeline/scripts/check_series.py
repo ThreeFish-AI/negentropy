@@ -69,6 +69,8 @@ CN_NUM = {
 #: **按根拆分**是刻意的：子项目侧写相对 glob，路径字面量便从本脚本彻底消失
 #: —— 于是「误把 `apps/negentropy-influence/**` 写宽成 `apps/**`」这个陷阱
 #: 结构性不可能发生（实测宽化会炸出 12 条其他子项目的既存死链假 FAIL）。
+#: 排除 templates/：模板是**机制**（与各集字面同源、由 verify_skeleton.py 执法），
+#: 不是内容——被规则 2/3 扫进结果集只会稀释信号。
 COVERED_GLOBS_INFLUENCE = (
     "**/*.md",
     "**/*.tsx",
@@ -113,7 +115,11 @@ def covered_files() -> list[Path]:
     ):
         for g in globs:
             out.extend(
-                p for p in base.glob(g) if p.is_file() and "node_modules" not in p.parts
+                p
+                for p in base.glob(g)
+                if p.is_file()
+                and "node_modules" not in p.parts
+                and "templates" not in p.parts  # 机制目录，非内容（见上方注释）
             )
     return sorted(set(out))
 
