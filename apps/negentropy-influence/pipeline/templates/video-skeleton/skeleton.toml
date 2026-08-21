@@ -102,18 +102,9 @@ path = "video/src/components/cards.tsx"
 fingerprint = "4bba8c190f21"
 reason = "多一个 ChapterCard（39 行），仅本集 P2Brain.tsx 使用；迁出至 components/chapter.tsx 后可撤销本条"
 
-# 下面两条是**门上线时就已存在**的漂移，非本次引入。两集的 Main.tsx 落后于
-# 后两集的一处注释扩写与换行调整（`<SceneFade>` 的 props 语义完全相同，行为零差异）。
-# 刻意只登记不收敛：收敛要动两个**已发布**集的文件，属独立决策，不搭在建门这次里。
-# 撤销条件：把两集 Main.tsx 的 SceneFade 块对齐到模板即可删除这两条。
-[[drift]]
-episode = "self-improving-agents-video"
-path = "video/src/Main.tsx"
-fingerprint = "2b2eef5947c8"
-reason = "SceneFade 块的注释扩写与换行落后于模板（语义等价，纯排版）；收敛需动已发布集，另行决策"
-
-[[drift]]
-episode = "self-evolving-coding-agents-video"
-path = "video/src/Main.tsx"
-fingerprint = "2b2eef5947c8"
-reason = "同上：SceneFade 块排版落后于模板（语义等价）"
+# 已撤销（2026-08）：`Main.tsx` 的两条登记。建门时那两集的 SceneFade 块落后于模板
+# 一处注释扩写与换行调整，当时刻意只登记不收敛（收敛要动两个**已发布**集，属独立
+# 决策）。现已对齐到模板并删除登记 —— 逃逸口用完即收，否则登记表会单调增长成
+# 「历史遗留清单」，而它本该是「当前合法偏离的完整枚举」。
+# 收敛判据：归一化 diff 证明差异仅为注释文字与 JSX 属性折行，三个 props 表达式
+# 逐字相同 ⇒ 渲染输出零变化，两集**无需重渲**。

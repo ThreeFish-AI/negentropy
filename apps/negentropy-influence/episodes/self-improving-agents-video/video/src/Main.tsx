@@ -35,8 +35,13 @@ export const Main: React.FC<MainProps> = ({manifest}) => {
         }
         return (
           <Sequence key={sc.scene} from={sc.from} durationInFrames={sc.durationInFrames} name={sc.scene}>
-            {/* 幕间呼吸淡入淡出：只花幕间既有静默，from/总时长零改动 */}
-            <SceneFade durationInFrames={sc.durationInFrames} fadeIn={i === 0 ? 0 : SCENE_FADE_FRAMES} fadeOut={i === scenes.length - 1 ? 0 : SCENE_FADE_FRAMES}>
+            {/* 幕间呼吸淡入淡出：只花幕间既有静默，from/总时长零改动；首幕不淡入、
+                末幕不淡出（尾幕渐黑由 P6 从末 beat 推导，叠加成双重渐黑） */}
+            <SceneFade
+              durationInFrames={sc.durationInFrames}
+              fadeIn={i === 0 ? 0 : SCENE_FADE_FRAMES}
+              fadeOut={i === scenes.length - 1 ? 0 : SCENE_FADE_FRAMES}
+            >
               <SceneComp scene={sc} />
             </SceneFade>
           </Sequence>
