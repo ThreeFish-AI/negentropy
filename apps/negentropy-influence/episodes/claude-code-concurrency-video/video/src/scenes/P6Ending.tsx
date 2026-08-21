@@ -316,8 +316,8 @@ export const P6Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (fromId: string, toId?: string) => beatWindow(scene.sentences, scene.from, fromId, toId);
   const at = (id: string) => w(id).from;
   const bA = w('p6-01', 'p6-06');
-  const bB = w('p6-07', 'p6-11');
-  const bC = w('p6-12', 'p6-14');
+  const bB = w('p6-07', 'p6-12');
+  const bC = w('p6-13', 'p6-15');
   return (
     <AbsoluteFill>
       <Sequence {...bA} name="6-A 三种开始的位置">

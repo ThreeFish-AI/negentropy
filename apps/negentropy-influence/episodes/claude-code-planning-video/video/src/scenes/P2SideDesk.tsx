@@ -287,7 +287,8 @@ const SplitReceipt: React.FC<{receiptAt: number; fadeAt: number}> = ({receiptAt,
               {receipt > 0 ? (
                 <div
                   style={{
-                    transform: `translate(${(1 - receipt) * -420}px, ${(1 - receipt) * -180}px) scale(${0.7 + 0.3 * receipt})`,
+                    /* 回执从右侧副桌飞回主桌：起点在主桌右外 480px、上方 160px */
+                    transform: `translate(${(1 - receipt) * 480}px, ${(1 - receipt) * -160}px) scale(${0.7 + 0.3 * receipt})`,
                     opacity: receipt,
                   }}
                 >
@@ -483,8 +484,8 @@ const FiveFactorLock: React.FC<{compareAt: number[]; lockAt: number; saveAt: num
         <div style={{position: 'absolute', right: 20, top: 30}}>
           <MiniDeskLabel title="分身桌" accent={theme.mech} />
         </div>
-        {/* 五要素卡：左右滑入逐字节对齐（每对上一张亮 mech） */}
-        <div style={{position: 'absolute', left: 0, right: 0, top: 130}}>
+        {/* 五要素卡：左右滑入逐字节对齐（每对上一张亮 mech）。行内容 880px 居中（px 数学，红线一） */}
+        <div style={{position: 'absolute', left: 1560 / 2 - 440, top: 130}}>
           {factors.map((f, i) => {
             const t = interpolate(frame - compareAt[i], [0, 18], [0, 1], {
               extrapolateLeft: 'clamp',
@@ -756,7 +757,7 @@ export const P2SideDesk: React.FC<{scene: SceneRange}> = ({scene}) => {
   const relD = (id: string) => at(id) - bD.from;
   const bE = w('p2-16', 'p2-24');
   const relE = (id: string) => at(id) - bE.from;
-  const bF = w('p2-25', 'p2-29');
+  const bF = w('p2-25', 'p2-30');
   const relF = (id: string) => at(id) - bF.from;
   return (
     <AbsoluteFill>

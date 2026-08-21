@@ -424,7 +424,7 @@ export const P0Reject: React.FC<{scene: SceneRange}> = ({scene}) => {
   const relB = (id: string) => at(id) - bB.from;
   const bC = w('p0-09', 'p0-12');
   const relC = (id: string) => at(id) - bC.from;
-  const bD = w('p0-13', 'p0-16');
+  const bD = w('p0-13', 'p0-17');
   const relD = (id: string) => at(id) - bD.from;
   return (
     <AbsoluteFill>

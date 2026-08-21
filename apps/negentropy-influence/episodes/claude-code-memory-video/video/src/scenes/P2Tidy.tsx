@@ -642,7 +642,7 @@ export const P2Tidy: React.FC<{scene: SceneRange}> = ({scene}) => {
   const relB = (id: string) => at(id) - bB.from;
   const bC = w('p2-14', 'p2-15');
   const relC = (id: string) => at(id) - bC.from;
-  const bD = w('p2-16', 'p2-23');
+  const bD = w('p2-16', 'p2-24');
   const relD = (id: string) => at(id) - bD.from;
   return (
     <AbsoluteFill>

@@ -70,10 +70,17 @@ const DeskFillsUp: React.FC<{fillPerFrame: number; shoveAt: number; dropAt: numb
   const kinds: Array<'user' | 'model' | 'tool'> = ['user', 'model', 'tool', 'model', 'tool', 'user', 'model'];
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      {/* 终端缩小上移（0-A 的余像：上一镜的内容退为背景） */}
+      {/* 终端缩小上移（0-A 的余像：上一镜的内容退为背景）。
+          先位移再缩放：位移按未缩放坐标系算（transform 从右往左作用），
+          -560px 把 1240×330 的终端推到桌面上方、仅露下半截。 */}
       <div
         style={{
-          transform: 'scale(0.52) translateY(-560px)',
+          position: 'absolute',
+          top: 40,
+          left: 1920 / 2 - 1240 * 0.52 / 2,
+          width: 1240,
+          transform: 'translateY(-560px) scale(0.52)',
+          transformOrigin: 'top left',
           opacity: 0.3,
         }}
       >
@@ -135,11 +142,19 @@ const DeskFillsUp: React.FC<{fillPerFrame: number; shoveAt: number; dropAt: numb
 };
 
 /** 0-C 桌面定格，主线问题两行 serif 大字；环（core）第一次在桌后浮现（35% 透明）。 */
-const QuestionAndRingBehind: React.FC<{qAt: number; ringAt: number}> = ({qAt, ringAt}) => {
+const QuestionAndRingBehind: React.FC<{qAt: number; answerAt: number; ringAt: number}> = ({
+  qAt,
+  answerAt,
+  ringAt,
+}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const deskIn = spring({frame: frame - 2, fps, config: {damping: 200}});
   const qo = interpolate(frame - qAt, [0, 22], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const ao = interpolate(frame - answerAt, [0, 18], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -199,7 +214,7 @@ const QuestionAndRingBehind: React.FC<{qAt: number; ringAt: number}> = ({qAt, ri
               fontFamily: theme.sans,
               fontSize: 27,
               color: theme.view,
-              opacity: qo,
+              opacity: ao,
             }}
           >
             {'答案：不是。有一整套东西，在替它安排视野。'}
@@ -232,7 +247,8 @@ export const P0Hook: React.FC<{scene: SceneRange}> = ({scene}) => {
         <DeskFillsUp fillPerFrame={0.22} shoveAt={relB('p0-07')} dropAt={relB('p0-08')} />
       </Sequence>
       <Sequence {...bC} name="0-C 主线问题与桌后之环">
-        <QuestionAndRingBehind qAt={relC('p0-10')} ringAt={relC('p0-11')} />
+        {/* p0-09 抛问题（两行 serif）；p0-10 答案句 + 环在桌后描线（35% 透明） */}
+        <QuestionAndRingBehind qAt={relC('p0-09')} answerAt={relC('p0-10')} ringAt={relC('p0-10')} />
       </Sequence>
     </AbsoluteFill>
   );

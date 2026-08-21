@@ -369,7 +369,7 @@ export const P1Dereg: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bA = w('p1-01', 'p1-05');
   const bB = w('p1-06', 'p1-10');
   const bC = w('p1-11', 'p1-15');
-  const bD = w('p1-16', 'p1-23');
+  const bD = w('p1-16', 'p1-24');
   return (
     <AbsoluteFill>
       <Sequence {...bA} name="1-A 后台开关与关键词兜底">

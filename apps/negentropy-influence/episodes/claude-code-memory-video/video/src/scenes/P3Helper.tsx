@@ -418,7 +418,7 @@ export const P3Helper: React.FC<{scene: SceneRange}> = ({scene}) => {
   const relA = (id: string) => at(id) - bA.from;
   const bB = w('p3-07', 'p3-08');
   const relB = (id: string) => at(id) - bB.from;
-  const bC = w('p3-09', 'p3-15');
+  const bC = w('p3-09', 'p3-16');
   const relC = (id: string) => at(id) - bC.from;
   return (
     <AbsoluteFill>

@@ -290,11 +290,11 @@ const BudgetValve: React.FC<{barAt: number; bounceAt: number}> = ({barAt, bounce
                 {'load_skill("sql_style")'}
               </text>
             </g>
-            {/* 非法路径请求：撞阀被弹回 */}
+            {/* 非法路径请求：从右向左撞阀，被弹回右退 */}
             {travel > 0 ? (
               <g>
-                <circle cx={1080 - travel * 320 + bounce * 0} cy={160} r={12} fill={theme.deny} opacity={blocked ? 1 : travel} />
-                <text x={1010 + bounce * 0.6} y={130} fontFamily={theme.mono} fontSize={19} fill={theme.deny}>
+                <circle cx={1080 - travel * 320 + bounce} cy={160} r={12} fill={theme.deny} opacity={blocked ? 1 : travel} />
+                <text x={1010 + bounce} y={130} fontFamily={theme.mono} fontSize={19} fill={theme.deny}>
                   {'load_skill("../../etc/passwd")'}
                 </text>
                 {blocked ? (
@@ -719,7 +719,7 @@ export const P3Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
   const relD = (id: string) => at(id) - bD.from;
   const bE = w('p3-16', 'p3-19');
   const relE = (id: string) => at(id) - bE.from;
-  const bF = w('p3-20', 'p3-25');
+  const bF = w('p3-20', 'p3-26');
   const relF = (id: string) => at(id) - bF.from;
   return (
     <AbsoluteFill>

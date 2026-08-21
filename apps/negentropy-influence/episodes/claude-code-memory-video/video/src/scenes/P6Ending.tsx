@@ -176,7 +176,7 @@ export const P6Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
   const at = (id: string) => w(id).from;
   const bA = w('p6-01', 'p6-06');
   const relA = (id: string) => at(id) - bA.from;
-  const bB = w('p6-07', 'p6-11');
+  const bB = w('p6-07', 'p6-12');
   const relB = (id: string) => at(id) - bB.from;
   return (
     <AbsoluteFill>

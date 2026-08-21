@@ -397,7 +397,7 @@ export const P2Rejoin: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bB = w('p2-06', 'p2-09');
   const bC = w('p2-10', 'p2-12');
   const bD = w('p2-13', 'p2-19');
-  const bE = w('p2-20', 'p2-26');
+  const bE = w('p2-20', 'p2-27');
   return (
     <AbsoluteFill>
       <Sequence {...bA} name="2-A 配对锁扣">

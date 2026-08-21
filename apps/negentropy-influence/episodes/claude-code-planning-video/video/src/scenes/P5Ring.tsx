@@ -181,17 +181,22 @@ const RingFloatsForward: React.FC<{floatAt: number; footnoteAt: number}> = ({flo
       >
         <LoopRing size={520} draw={draw} dotProgress={draw > 0.98 ? dot : undefined} showExit={false} />
       </div>
-      {/* 外挂注记：五个装置全部挂在循环外 */}
-      <svg width={1500} height={700} style={{position: 'absolute', pointerEvents: 'none', opacity: outline * 0.8}}>
+      {/* 外挂注记：五个装置全部挂在循环外（全屏画布，px 坐标直取，红线一） */}
+      <svg
+        width={1920}
+        height={1080}
+        style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none', opacity: outline * 0.8}}
+      >
         {[0, 1, 2, 3, 4].map((i) => {
-          const x = 340 + i * 205;
-          const y = 560;
-          const cx = 750;
-          const cy = 330;
+          // 桌组：1130px 宽居中于 1920 → 左缘 395；每桌 210 + 间隙 20
+          const x = 395 + i * 230 + 105;
+          const y = 700;
+          const cx = 960;
+          const cy = 540;
           return (
             <path
               key={i}
-              d={`M${x} ${y} Q ${(x + cx) / 2} ${y + 40}, ${cx} ${cy}`}
+              d={`M${x} ${y} Q ${(x + cx) / 2} ${y + 60}, ${cx} ${cy}`}
               fill="none"
               stroke={theme.view}
               strokeWidth={2.5}
@@ -268,7 +273,7 @@ export const P5Ring: React.FC<{scene: SceneRange}> = ({scene}) => {
   const relA = (id: string) => at(id) - bA.from;
   const bB = w('p5-07', 'p5-12');
   const relB = (id: string) => at(id) - bB.from;
-  const bC = w('p5-13', 'p5-15');
+  const bC = w('p5-13', 'p5-16');
   const relC = (id: string) => at(id) - bC.from;
   return (
     <AbsoluteFill>

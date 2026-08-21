@@ -6,7 +6,7 @@ import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoCo
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Counter, Footnote, LoopRing, NamePlate, Panel, phase, SceneTag} from '../components/motifs';
+import {Footnote, LoopRing, NamePlate, Panel, phase, SceneTag} from '../components/motifs';
 
 /** 4-A 派工之累 ×10 快闪 → 三段生命周期环描线登场 */
 const DispatchFatigue: React.FC<{cycleAt: number}> = ({cycleAt}) => {

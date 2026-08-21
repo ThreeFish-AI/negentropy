@@ -42,7 +42,7 @@ const ChecklistSlidesIn: React.FC<{iconAt: number[]}> = ({iconAt}) => {
           </div>
           {/* 右侧：三态清单卡滑入落桌 */}
           <div style={{transform: `translateX(${(1 - slideIn) * 240}px)`, opacity: slideIn}}>
-            <Panel accent={theme.view} style={{width: 560, padding: '26px 30px', background: '#141a2b'}}>
+            <Panel accent={theme.view} style={{width: 560, padding: '26px 30px', background: `${theme.panel}e6`}}>
               <div style={{fontFamily: theme.mono, fontSize: 21, color: theme.dim, marginBottom: 18}}>
                 {'todo_write · 计划清单'}
               </div>
@@ -371,7 +371,7 @@ export const P1Plan: React.FC<{scene: SceneRange}> = ({scene}) => {
   const relB = (id: string) => at(id) - bB.from;
   const bC = w('p1-10', 'p1-13');
   const relC = (id: string) => at(id) - bC.from;
-  const bD = w('p1-14', 'p1-18');
+  const bD = w('p1-14', 'p1-19');
   const relD = (id: string) => at(id) - bD.from;
   return (
     <AbsoluteFill>

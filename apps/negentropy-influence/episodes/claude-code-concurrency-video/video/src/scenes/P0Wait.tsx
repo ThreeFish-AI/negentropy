@@ -390,7 +390,7 @@ export const P0Wait: React.FC<{scene: SceneRange}> = ({scene}) => {
   const at = (id: string) => w(id).from;
   const bA = w('p0-01', 'p0-04');
   const bB = w('p0-05', 'p0-08');
-  const bC = w('p0-09', 'p0-16');
+  const bC = w('p0-09', 'p0-17');
   return (
     <AbsoluteFill>
       <Sequence {...bA} name="0-A 进度条与计费表">

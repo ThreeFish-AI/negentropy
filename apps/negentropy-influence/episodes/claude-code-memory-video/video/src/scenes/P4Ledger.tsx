@@ -599,7 +599,7 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
   const relC = (id: string) => at(id) - bC.from;
   const bD = w('p4-13', 'p4-17');
   const relD = (id: string) => at(id) - bD.from;
-  const bE = w('p4-18', 'p4-28');
+  const bE = w('p4-18', 'p4-29');
   const relE = (id: string) => at(id) - bE.from;
   return (
     <AbsoluteFill>

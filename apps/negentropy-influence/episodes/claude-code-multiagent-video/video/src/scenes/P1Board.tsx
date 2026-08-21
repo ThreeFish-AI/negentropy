@@ -6,7 +6,7 @@ import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoCo
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Counter, Footnote, LoopRing, Panel, phase, qBezier, SceneTag, useRingDot} from '../components/motifs';
+import {Footnote, Panel, phase, qBezier, SceneTag} from '../components/motifs';
 
 /** 任务卡：五格（编号/标题/状态/主人/等谁）；TaskBoard 的成员单元 */
 const TaskCard: React.FC<{

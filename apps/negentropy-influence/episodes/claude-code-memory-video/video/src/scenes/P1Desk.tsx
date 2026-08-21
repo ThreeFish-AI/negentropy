@@ -357,7 +357,7 @@ export const P1Desk: React.FC<{scene: SceneRange}> = ({scene}) => {
   const relA = (id: string) => at(id) - bA.from;
   const bB = w('p1-05', 'p1-12');
   const relB = (id: string) => at(id) - bB.from;
-  const bC = w('p1-13', 'p1-19');
+  const bC = w('p1-13', 'p1-20');
   const relC = (id: string) => at(id) - bC.from;
   return (
     <AbsoluteFill>

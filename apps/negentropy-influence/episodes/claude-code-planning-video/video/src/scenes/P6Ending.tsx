@@ -21,7 +21,7 @@ const ContractCard: React.FC<{nextAt: number}> = ({nextAt}) => {
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <div style={{opacity: enter, transform: `translateY(${(1 - enter) * 24}px)`, textAlign: 'center'}}>
-        <Panel accent={theme.view} style={{padding: '44px 64px', background: '#141a2b'}}>
+        <Panel accent={theme.view} style={{padding: '44px 64px', background: `${theme.panel}e6`}}>
           <div style={{fontFamily: theme.mono, fontSize: 21, color: theme.dim, marginBottom: 20}}>
             {'一句话合同'}
           </div>

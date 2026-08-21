@@ -337,9 +337,9 @@ const TierThree: React.FC<{warnAt: number; waitAt: number; flipAt: number; jitte
   const stepIdx = Math.min(steps.length - 1, Math.floor(t / stepDur));
   const stepT = (t % stepDur) / stepDur;
   const eased = 1 - Math.pow(1 - stepT, 3);
-  const curVal = steps[Math.max(0, stepIdx - 1)] * (stepIdx === 0 ? 2 * eased : 2) > steps[stepIdx]
-    ? steps[stepIdx]
-    : Math.min(steps[stepIdx], steps[Math.max(0, stepIdx - 1)] * Math.pow(2, eased));
+  // 当前等待值：从上一步值翻倍爬升到本步值（首步从 0.25 起爬到 0.5），封顶后恒 32
+  const prevVal = stepIdx === 0 ? steps[0] / 2 : steps[stepIdx - 1];
+  const curVal = prevVal + (steps[stepIdx] - prevVal) * eased;
   const atCap = stepIdx >= steps.length - 1 && stepT > 0.5;
   const capClang = atCap && t % stepDur < 8;
   // 抖动毛边：条身抖动
@@ -638,7 +638,7 @@ export const P4Ladder: React.FC<{scene: SceneRange}> = ({scene}) => {
   const relC = (id: string) => at(id) - bC.from;
   const bD = w('p4-11', 'p4-17');
   const relD = (id: string) => at(id) - bD.from;
-  const bE = w('p4-18', 'p4-21');
+  const bE = w('p4-18', 'p4-22');
   const relE = (id: string) => at(id) - bE.from;
   return (
     <AbsoluteFill>

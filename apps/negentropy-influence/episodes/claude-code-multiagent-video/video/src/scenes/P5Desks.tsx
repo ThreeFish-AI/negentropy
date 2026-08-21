@@ -670,7 +670,7 @@ const McpPlug: React.FC<{noteAt: number; plugAt: number; plateAt: number}> = ({
           style={{
             position: 'absolute',
             left: 620 - plug * 421,
-            top: 300,
+            top: 340,
             opacity: plug > 0 ? 1 : 0,
           }}
         >
@@ -772,7 +772,7 @@ export const P5Desks: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bA = w('p5-01', 'p5-05');
   const bB = w('p5-06', 'p5-09');
   const bC = w('p5-10', 'p5-15');
-  const bD = w('p5-16', 'p5-22');
+  const bD = w('p5-16', 'p5-23');
   const rel = (b: {from: number}, id: string) => at(id) - b.from;
   return (
     <AbsoluteFill>

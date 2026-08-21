@@ -6,7 +6,6 @@ import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoCo
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {QuoteCard} from '../components/cards';
 import {
   Footnote,
   LoopRing,
