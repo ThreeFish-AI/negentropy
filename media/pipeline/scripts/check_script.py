@@ -146,6 +146,9 @@ READING_TRAPS: tuple[tuple[str, str, str], ...] = (
         r"\d{4}\s+年",
         "FAIL",
         "4 位年份与「年」之间有空格：`2026 年` 读成「两千零二十六年」（写成 `2026年` 才读「二零二六年」）",
+        # ⚠️ 空格位置敏感（2026-08-21 探针复核）：错读只发生在空格**夹在年份与「年」之间**；
+        # 空格在年份**前**（`这篇 2026年的`）读法正确（「二零二六年」），门也不触发——不要
+        # 把这类句子「顺手规范化」成年份前无空格以外的别的形态。
     ),
     (
         r"\d+\.\d+\.\d+",
@@ -182,7 +185,7 @@ READING_TRAPS: tuple[tuple[str, str, str], ...] = (
     ),
 )
 READING_TRAPS_COMPILED = tuple(
-    (re.compile(p), level, msg) for p, level, msg in READING_TRAPS
+    (re.compile(p), level, msg) for p, level, msg, *_ in READING_TRAPS
 )
 
 #: 汉字。整句无汉字时上游按 `use_chinese()`（front.py:106-114）逐句嗅探路由到**英文**
