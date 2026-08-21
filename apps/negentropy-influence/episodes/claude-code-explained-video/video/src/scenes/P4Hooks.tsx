@@ -310,24 +310,49 @@ const BoringOnPurpose: React.FC<{quoteAt: number}> = ({quoteAt}) => {
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <div style={{position: 'relative'}}>
         <LoopRing size={460} draw={1} dotProgress={dot} activeNode={which} />
-        {[0, 1, 2, 3].map((i) => {
-          const ang = -90 + i * 90;
-          const rad = (ang * Math.PI) / 180;
-          return (
-            <div
-              key={i}
-              style={{
-                position: 'absolute',
-                left: 230 + 184 * Math.cos(rad) - 13,
-                top: 230 + 184 * Math.sin(rad) - 13,
-                fontSize: 26,
-                opacity: which === i ? 1 : 0.3,
-              }}
-            >
-              {'📣'}
-            </div>
-          );
-        })}
+        {/* 四个「喊一声」点：绘制喇叭（喇叭口朝外），不用 emoji——
+            Apple Color Emoji 可能以全彩字形击穿三色契约（全系列纪律） */}
+        <svg
+          width={460}
+          height={460}
+          style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none'}}
+        >
+          {[0, 1, 2, 3].map((i) => {
+            const ang = -90 + i * 90;
+            const rad = (ang * Math.PI) / 180;
+            const cx = 230 + 184 * Math.cos(rad);
+            const cy = 230 + 184 * Math.sin(rad);
+            const o = which === i ? 1 : 0.3;
+            // 喇叭主体朝外旋转（角点指向环外）
+            const rot = ang + 90;
+            return (
+              <g
+                key={i}
+                transform={`translate(${cx} ${cy}) rotate(${rot})`}
+                stroke={theme.mech}
+                strokeWidth={3.5}
+                strokeLinejoin="round"
+                strokeLinecap="round"
+                opacity={o}
+              >
+                <path d="M-4 -9 L5 -9 L14 -17 L14 17 L5 9 L-4 9 Z" fill={theme.panel} />
+                {which === i
+                  ? [0, 1].map((a) => (
+                      <path
+                        key={a}
+                        d={
+                          a === 0
+                            ? 'M19 -7 A9 9 0 0 1 19 7'
+                            : 'M24 -12 A14 14 0 0 1 24 12'
+                        }
+                        fill="none"
+                      />
+                    ))
+                  : null}
+              </g>
+            );
+          })}
+        </svg>
       </div>
       <Footnote delay={10}>{'循环只负责在这四个点上喊一声'}</Footnote>
     </AbsoluteFill>
