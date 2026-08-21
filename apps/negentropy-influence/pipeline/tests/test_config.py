@@ -195,6 +195,74 @@ def test_non_table_section_reports_fail_instead_of_crashing(tmp_path):
     assert cfg["narration"]["target_minutes"] == [1.0, 2.0]
 
 
+def test_non_table_section_out_of_scope_degrades_to_warn(tmp_path):
+    """「节应为表」这条 FAIL 必须同样受 scope 约束。
+
+    此前它无条件进 `fails`：把 `tts` 写成标量时，`check_script.py`
+    （scope={"narration"}）会以 1 退出——④⑤ 内容门因为一个**它不消费的节**
+    而拒绝检查分镜覆盖性，正是 scope 机制要挡住的形态（同
+    `test_scope_limits_required_key_enforcement` 的必填性那一半）。
+    降级而非丢弃：畸形节对谁都值得知道，只是不该替别人拦门。
+    """
+    root = _write(
+        tmp_path,
+        'tts = "indextts"\nrender = 1\n[narration]\ntarget_minutes = [1.0, 2.0]\n',
+    )
+    _cfg, _o, fails, warns = config.load(root, required=False, scope={"narration"})
+    assert not fails, f"越界的结构病不该拦内容门：{fails}"
+    for sec in ("tts", "render"):
+        assert any("应为表" in w and sec in w for w in warns), (sec, warns)
+
+    # 正控（判据有方向）：范围之内仍必须是 FAIL，否则这条修复等于把门关掉
+    _cfg, _o, in_scope_fails, _w = config.load(root, required=False, scope={"tts"})
+    assert any("应为表" in f and "tts" in f for f in in_scope_fails), in_scope_fails
+
+
+def test_config_module_never_reads_series_json():
+    """执法落点唯一：series.json 的登记校验归 `verify_skeleton.py`，本模块不碰。
+
+    由来：`episode.slug` 的说明曾写「且能在 series.json 中命中」，而 `validate()`
+    只比目录名（同一措辞还曾出现在 README 字段表与 CHANGELOG）——一个「你以为拦
+    得住其实没有」的声明，与本模块要消灭的「静默跳过的门」同病。
+
+    判据取**导入面**而非源码里的字符串：「series.json」这几个字如今正出现在
+    `validate()` 的注释里（声明它刻意不做这件事），用源码 grep 会两边同时为真、
+    当场假通过（同 CHANGELOG 记载的 theme 判据首版翻车模式）。真要在门内读它，
+    必须新增 `json` 或 `paths` 之一的导入——那才是有信噪比的判据。
+    行为侧的正面记录见下一条用例。
+    """
+    import ast
+
+    tree = ast.parse((SCRIPTS / "config.py").read_text(encoding="utf-8"))
+    imported: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            imported |= {a.name.split(".")[0] for a in node.names}
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            imported.add(node.module.split(".")[0])
+    assert not (imported & {"json", "paths"}), (
+        f"config.py 出现了 {sorted(imported & {'json', 'paths'})} 导入 —— 若确要在"
+        "配置门内校验 series.json 登记，须同步改 SCHEMA 说明、pipeline/README.md"
+        "字段表与 verify_skeleton.py 的孤儿警告职责，勿留两个执法落点"
+    )
+
+
+def test_slug_matching_dir_but_unregistered_is_not_a_config_fail(tmp_path):
+    """执法边界的正面记录：目录名一致即通过配置门。
+
+    是否登记进 series.json 归 `verify_skeleton.py` 的孤儿目录警告（非阻塞，
+    `--strict` 也不失败）——执法只留一个落点，本模块不做第二处。
+    """
+    root = _write(
+        tmp_path,
+        '[episode]\nslug = "some-episode-video"\n[narration]\n'
+        "target_minutes = [1.0, 2.0]\n"
+        '[tts]\nengine = "edge"\n',
+    )
+    _cfg, _o, fails, _w = config.load(root, required=True)
+    assert not fails, f"未登记进 series.json 不该是配置门的 FAIL：{fails}"
+
+
 def test_missing_config_is_fatal_when_required_soft_otherwise(tmp_path):
     root = tmp_path / "bare-episode-video"
     root.mkdir()
