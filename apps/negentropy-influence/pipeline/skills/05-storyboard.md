@@ -1,4 +1,4 @@
-# Skill 05 · 分镜表生成
+# Stage ⑤ 分镜表生成（skill 规格 · 05）
 
 > Stage ⑤：把逐字稿切「镜」，产出 `script/storyboard.md`——Remotion 场景组件的实现规格。
 

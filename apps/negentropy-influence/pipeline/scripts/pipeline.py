@@ -295,6 +295,28 @@ def cmd_clean_samples(_root: Path, _cfg: dict) -> int:
     return 0
 
 
+def cmd_stages() -> int:
+    """打印九阶段声明表（替代 README 手维护的阶段表；声明源 pipeline/stages.toml）。
+
+    与工程无关，故不读 pipeline.toml。
+    """
+    decl = tomllib.loads((SCRIPTS.parent / "stages.toml").read_text(encoding="utf-8"))
+    print(
+        ">> 九阶段（声明源 pipeline/stages.toml；authored=撰写产出 / tooled=工具产出）\n"
+    )
+    for st in decl["stage"]:
+        cmds = " ".join(st["commands"]) or "—"
+        print(
+            f"  {st['ordinal']} {st['name']:<22} [{st['kind']:<8}] 命令 {cmds:<18} {st['skill']}"
+        )
+        print(f"      门：{st['gate']}")
+    print(
+        "\n  注：序号与文件号刻意不对齐 —— ⑥↔07-tts-voice、⑦↔06-remotion-implementation"
+        "（入链 ≥5 处，重命名代价大于收益；由 tests/test_stages.py 守住）"
+    )
+    return 0
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(
         description="科普视频管线单入口（薄编排，阶段契约见 pipeline/README.md）"
@@ -340,9 +362,16 @@ def main() -> None:
     )
     p.add_argument("ids", nargs="*")
     sub.add_parser("all", help="build→check→tts→captions→render(草渲) 一键链")
+    sub.add_parser("stages", help="打印九阶段声明表（与工程无关）")
     args = ap.parse_args()
 
     root = Path(args.project).resolve()
+    # 与具体工程无关的子命令不读 pipeline.toml —— 否则「某集 toml 写坏」会连带
+    # 让「清理生物特征小样」和「查阶段表」都无法执行，属荒谬耦合。
+    if args.cmd == "stages":
+        sys.exit(cmd_stages())
+    if args.cmd == "clean-samples":
+        sys.exit(cmd_clean_samples(root, {}))
     cfg = load_config(root)
     t0 = time.time()
     rc = {

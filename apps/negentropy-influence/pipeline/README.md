@@ -25,7 +25,18 @@ flowchart LR
     style I fill:#2d5c1a,stroke:#7ED321,color:#fff
 ```
 
-每个 Stage 的代理提示词规格见 [skills/](./skills/)（01–05 覆盖内容层，06 覆盖生产层 Stage ⑦ 的 Remotion 实现），可直接作为子代理 prompt 或未来挂载为 `.claude/skills/` 的底稿。
+每个 Stage 的代理提示词规格见 [skills/](./skills/)，可直接作为子代理 prompt 或未来挂载为 `.claude/skills/` 的底稿。
+
+**九阶段的声明源是 [stages.toml](./stages.toml)**（上图与下表都是它的人读视图）。执行 `uv run --no-project $R/pipeline.py stages` 打印全表。此前「有哪九个阶段」同时声明在四处（skills 散文标题 / `pipeline.py` 子命令 / 上面的 mermaid / [.agent 路由壳](../../../.agent/skills/science-video-pipeline/SKILL.md)），四份可各自漂移且**已经漂移**——⚠️ **序号与文件号刻意不对齐**：Stage ⑥ 是 `07-tts-voice.md`、Stage ⑦ 是 `06-remotion-implementation.md`（入链 ≥5 处，重命名代价大于收益）。该错位现由 [tests/test_stages.py](./tests/test_stages.py) 连同 skill H1、子命令注册表、路由壳覆盖面一起执法。
+
+## 路径变量约定
+
+本文档与 [skills/](./skills/) 中的**命令**统一用两个变量书写，使命令与子项目位置解耦（下次搬迁零改动）；**散文里的链接保持真实相对路径**（`check_series.py` 规则 5 正在执法它们的存活，变量化会造出死链）：
+
+```bash
+R=apps/negentropy-influence/pipeline/scripts          # 公共脚本目录
+P=apps/negentropy-influence/episodes/<slug>-video     # 目标分集工程
+```
 
 ## 二、工程目录约定
 

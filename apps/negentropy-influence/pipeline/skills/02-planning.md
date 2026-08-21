@@ -1,4 +1,4 @@
-# Skill 02 · 策划案生成
+# Stage ② 策划案生成（skill 规格 · 02）
 
 > Stage ②：基于 `research/paper-notes.md` 产出 `script/planning.md`——全片的叙事与视觉蓝图。
 

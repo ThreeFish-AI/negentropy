@@ -1,4 +1,4 @@
-# Skill 03 · 逐字稿写作
+# Stage ③ 逐字稿写作（skill 规格 · 03）
 
 > Stage ③：撰写 `script/narration.md`——全片口播的**单一事实源**。定稿后一切下游（TTS/字幕/分镜/动画）均由它派生。
 
