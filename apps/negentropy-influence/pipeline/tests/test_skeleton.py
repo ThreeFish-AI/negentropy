@@ -287,6 +287,31 @@ def test_i2_honours_the_drift_registry(tmp_path):
     assert r.returncode == 0, f"已登记的偏离仍被 STALE 判红：\n{r.stdout}"
 
 
+def test_i2_honours_the_overridable_class(tmp_path):
+    """`overridable` 的覆写许可对 I1 与 I2 必须**同时**有效。
+
+    I2 若不认档位，「全系列都行使许可」就会报 STALE —— 而**单集系列行使一次即是
+    全系列**（claude-code-explained 今天就是单集系列，timing.json 恰是文档鼓励
+    「改节奏只动 JSON」的那个文件）。于是档位声明的「只报 INFO，不 FAIL」变成
+    只在多集系列成立，等于把许可撤回一半，并逼人为一次合法覆写去登记 [[drift]]。
+    """
+    rel = "video/src/timing.json"
+    assert rel in skeleton()["classes"]["overridable"], "档位前提变了，本用例该更新"
+    inf = mirror(tmp_path, episodes=[CLEAN_A], scripts=("verify_skeleton.py",))
+    write_series(inf, [("solo", [CLEAN_A])])
+    verify = inf / "pipeline" / "scripts" / "verify_skeleton.py"
+    assert run(verify, "--strict").returncode == 0, "镜像基线本身就不干净"
+
+    victim = inf / "episodes" / CLEAN_A / rel
+    timing = json.loads(victim.read_text(encoding="utf-8"))
+    timing["sceneGapSec"] = timing["sceneGapSec"] + 0.3  # 行使覆写许可
+    victim.write_text(json.dumps(timing), encoding="utf-8")
+
+    r = run(verify, "--strict")
+    assert r.returncode == 0, f"行使 overridable 许可却被判红：\n{r.stdout}"
+    assert "STALE" not in r.stdout, r.stdout
+
+
 def test_scaffold_produces_gate_clean_episode(tmp_path):
     """scaffold 出来的新集必须立刻通过冻结档比对（模板即真理）。
 

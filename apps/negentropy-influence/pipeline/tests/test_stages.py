@@ -58,6 +58,38 @@ def test_commands_are_registered_subcommands():
             )
 
 
+#: 子命令清单被抄进三份散文。抄件无执法就会漂——`stages` 上线时三处**全部**漏更，
+#: 而当时的守卫只查 stages.toml→parser 一个方向（声明多于实现），看不见反向缺口。
+BRACE_LIST_RE = re.compile(r"\{([a-z|-]{20,})\}")
+DOCSTRING_LIST_RE = re.compile(r"^子命令：(.+)$", re.MULTILINE)
+
+
+def documented_subcommand_lists() -> list[tuple[str, set[str]]]:
+    """→ [(出处, 该处声明的子命令集合)]。找不到清单即视为检测器失效并报错。"""
+    out: list[tuple[str, set[str]]] = []
+    m = DOCSTRING_LIST_RE.search(PIPELINE_PY.read_text(encoding="utf-8"))
+    assert m, "pipeline.py 文件头的「子命令：」行形态变了，检测器该更新了"
+    out.append(("pipeline.py 文件头", {s.strip() for s in m.group(1).split("/")}))
+    for doc in (PIPELINE / "README.md", INFLUENCE / "README.md"):
+        hits = BRACE_LIST_RE.findall(doc.read_text(encoding="utf-8"))
+        assert hits, f"{doc.name}: 未找到 {{a|b|c}} 形态的子命令清单（检测器失效？）"
+        out += [(doc.name, set(h.split("|"))) for h in hits]
+    return out
+
+
+def test_documented_subcommand_lists_match_the_parser():
+    """三份散文抄件必须逐项等于 argparse 真实注册表。"""
+    registered = set(
+        re.findall(r'add_parser\("([a-z-]+)"', PIPELINE_PY.read_text(encoding="utf-8"))
+    )
+    assert registered, "未能从 pipeline.py 解析出任何子命令——解析器该更新了"
+    for where, listed in documented_subcommand_lists():
+        assert listed == registered, (
+            f"{where} 的子命令清单与 argparse 注册表不符："
+            f"缺 {sorted(registered - listed)} / 多 {sorted(listed - registered)}"
+        )
+
+
 def test_ordinals_are_exactly_one_through_nine():
     got = [st["ordinal"] for st in stages()]
     assert got == list(ORDINALS), f"ordinal 应恰为 ①..⑨ 且按序声明，实际 {got}"

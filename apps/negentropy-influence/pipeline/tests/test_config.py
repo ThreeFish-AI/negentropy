@@ -204,27 +204,30 @@ def test_missing_config_is_fatal_when_required_soft_otherwise(tmp_path):
     assert not fails2 and warns2, "required=False 时缺文件应只 WARN"
 
 
-def test_missing_config_announces_skipped_gate():
+def test_missing_config_announces_skipped_gate(project):
     """缺 target_minutes 时，时长预算门必须**点名说自己被跳过**。
 
-    此前它静默退化为 [0, 999]。用真实工程做：临时移走 toml，跑 check_script，
-    断言输出里出现那句 WARN，再原样放回。
+    此前它静默退化为 [0, 999]。**在 conftest 的临时工程上做**——它本来就没有
+    pipeline.toml，正是这条用例要的形态。初版是「删掉真集的 pipeline.toml、
+    finally 放回」：pytest 被 Ctrl-C 或进程被杀就会把某集**唯一的可执行参数源**
+    留在删除态。同一个教训已写在 tests/test_skeleton.py 文件头（正控一律在镜像
+    副本上做，绝不改受版本控制的真文件）。
     """
-    ep = INFLUENCE / "episodes" / "claude-code-explained-video"
-    toml = ep / "pipeline.toml"
-    saved = toml.read_bytes()
-    toml.unlink()
-    try:
-        r = subprocess.run(
-            [sys.executable, str(SCRIPTS / "check_script.py"), "--project", str(ep)],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        out = r.stdout + r.stderr
-        assert "跳过时长预算门" in out, out[-2000:]
-    finally:
-        toml.write_bytes(saved)
+    r = subprocess.run(
+        [sys.executable, str(SCRIPTS / "check_script.py"), "--project", str(project)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    out = r.stdout + r.stderr
+    assert "Traceback" not in out, out[-2000:]
+    assert "跳过时长预算门" in out, out[-2000:]  # 门被跳过必须说出来
+    assert "无 pipeline.toml" in out, out[-2000:]  # 且须说清病因
+
+
+# 这条教训的执法在 conftest.py 的 `_episodes_stay_pristine`（会话级快照）：
+# 静态扫描做不准——原违规是 `ep = INFLUENCE / "episodes" / …` 与几行之后的
+# `toml.unlink()` 分处两行，单行正则一律漏，而漏报的门等于没门。
 
 
 #: 消费者脚本里，凡对 SCHEMA 叶子键做 `.get(key, <兜底>)` 的地方，兜底**必须**取自
