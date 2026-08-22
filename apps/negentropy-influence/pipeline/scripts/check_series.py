@@ -378,7 +378,7 @@ def rule_renderability(series_list: list[dict], msgs: list[str]) -> None:
 
         main_path = src_dir / "Main.tsx"
         if not main_path.is_file():
-            continue  # theme.ts 缺失已有规则 4 的 WARN，此处不重复点名
+            continue  # Main.tsx 缺失由 verify_skeleton 的 regioned 受门档兜底
         text = main_path.read_text(encoding="utf-8")
 
         # 组件标识符 → import 语句声明的路径（判定「注册值是否有实体文件」）
