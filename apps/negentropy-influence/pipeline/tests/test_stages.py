@@ -124,6 +124,46 @@ def test_fanout_whitelist_is_subset_of_registered_subcommands():
     )
 
 
+def test_fanout_forwards_subcommand_flags_verbatim():
+    """扇出必须**逐字转发**子命令自己的 flag。
+
+    回归：此前子进程只拼 `--project <root> <cmd>`，于是
+    `--series X check --check-scenes` 里 argparse 正常解析了 flag、五集却全按
+    窄检查跑完，而扇出汇总照样逐集打 ✅——输出与「全集全项通过」不可区分。
+    与 ISSUE-168 的 `--scene` 单值 store 同一失效形态，只是搬到了编排器这层。
+
+    `sub_argv` 是纯切片函数（无路径依赖），故此处直接 import pipeline；
+    FANOUT_OK 那两条判据仍走 AST，因为它们要读源码字面量。
+    """
+    from pipeline import sub_argv
+
+    base = ["pipeline.py", "--series", "claude-code-explained"]
+    assert sub_argv("check", [*base, "check", "--check-scenes"]) == ["--check-scenes"]
+    assert sub_argv("status", [*base, "status"]) == []
+    # `--opt=value` 单 token 形态自然跳过，无需登记进 GLOBAL_OPTS_WITH_VALUE
+    assert sub_argv("check", ["pipeline.py", "--series=x", "check", "-v"]) == ["-v"]
+    # 与 --project 共存（仅默认值 "." 时合法，见 main 的互斥判定）也须切对
+    assert sub_argv(
+        "check", ["pipeline.py", "--project", ".", "--series", "x", "check", "--a"]
+    ) == ["--a"]
+
+
+def test_fanout_slice_skips_global_option_values():
+    """系列 id 恰与子命令同名时不得切错位置。
+
+    `--series check check --check-scenes`：朴素的「从左找第一个等于 cmd 的
+    token」会命中 `--series` 的**取值**，于是把真正的子命令当成 flag 转发过去，
+    每集都收到一条 `check --check-scenes` 的错位命令行。带取值的顶层选项必须
+    连值一起跳（GLOBAL_OPTS_WITH_VALUE 的存在理由）。
+    """
+    from pipeline import GLOBAL_OPTS_WITH_VALUE, sub_argv
+
+    argv = ["pipeline.py", "--series", "check", "check", "--check-scenes"]
+    assert sub_argv("check", argv) == ["--check-scenes"]
+    # 顶层带取值的选项全部在册——漏一个就会在「取值恰等于子命令名」时切错
+    assert set(GLOBAL_OPTS_WITH_VALUE) == {"--series", "--project"}
+
+
 def test_fanout_complement_is_nonempty_and_keeps_destructive_out():
     """反向：**未列入白名单**的子命令必须非空，且 tts/render/qa/all/clean-samples
     恰在其中——这是白名单（而非黑名单）的意义：未来新增子命令默认不可扇出，

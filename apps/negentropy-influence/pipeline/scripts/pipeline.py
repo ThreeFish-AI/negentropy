@@ -18,8 +18,9 @@
 （本行与 pipeline/README.md、子项目 README 的三份抄件由 tests/test_stages.py 对齐 argparse
 真实注册表——`stages` 上线时三处全漏，抄件无执法必漂。）
 系列扇出（--series <id>，与 --project 互斥）：
-  uv run --no-project $R/pipeline.py --series <series-id> <cmd>
-按 series.json 把该系列各集逐集执行（仅白名单命令，见 FANOUT_OK）。
+  uv run --no-project $R/pipeline.py --series <series-id> <cmd> [<cmd 自己的 flag>…]
+按 series.json 把该系列各集逐集执行（仅白名单命令，见 FANOUT_OK）；子命令后的
+flag 原样转发给每集（见 sub_argv——不转发就是静默缩小检查面）。
 """
 
 from __future__ import annotations
@@ -374,11 +375,44 @@ def cmd_stages() -> int:
     return 0
 
 
-def fanout(series_id: str, cmd: str) -> int:
-    """把 <cmd> 逐集执行在该系列全部集上（--series 入口）。
+#: 顶层选项中**带取值**的那些。`sub_argv` 切片时必须连取值一起跳过——否则
+#: `--series check check`（系列 id 恰与子命令同名）会把取值误认成子命令，
+#: 转发面从错误的位置开始切。`--opt=value` 单 token 形态无需登记（自然跳过）。
+GLOBAL_OPTS_WITH_VALUE = ("--series", "--project")
+
+
+def sub_argv(cmd: str, argv: list[str]) -> list[str]:
+    """→ 命令行里**子命令之后**的原样 token（扇出须逐字转发给每集）。
+
+    转发而非按 Namespace 重建：子命令的 flag 声明面只有 argparse 一处，重建就要
+    再维护一张 dest→flag 抄件，而抄件漏登记的表现恰是**静默缩小检查面**
+    （`--check-scenes` 被丢弃就是这么发生的，同 ISSUE-168 一族）。切片对新增
+    flag 零维护，声明面仍只有一处。
+
+    纯切片、不判合法性：argparse 已在调用前解析并校验过整条命令行。
+    """
+    i = 1
+    while i < len(argv):
+        tok = argv[i]
+        if tok in GLOBAL_OPTS_WITH_VALUE:
+            i += 2  # 选项 + 取值两个 token 一起跳
+            continue
+        if tok == cmd:
+            return argv[i + 1 :]
+        i += 1
+    return []
+
+
+def fanout(series_id: str, cmd: str, extra: list[str]) -> int:
+    """把 <cmd>（连同它自己的 flag）逐集执行在该系列全部集上（--series 入口）。
 
     每集独立进程跑本脚本自身（而非进程内循环调 cmd_*）：保持各子命令的
     「读配置→跑→打完成行」语义与单集调用逐字相同，扇出只是外层循环。
+
+    `extra` = 子命令之后的原样 token（见 sub_argv）。**必须转发**：此前只拼
+    `--project <root> <cmd>`，于是 `--series X check --check-scenes` 里 argparse
+    正常解析了 flag、五集却全按窄检查跑完，汇总照样逐集打 ✅——输出与「全集全项
+    通过」不可区分，与 ISSUE-168 的 `--scene` 单值 store 同一失效形态。
     """
     if cmd not in FANOUT_OK:
         sys.exit(
@@ -394,13 +428,24 @@ def fanout(series_id: str, cmd: str) -> int:
         ids = [s["id"] for s in series_list]
         sys.exit(f"series.json 无此系列 id: {series_id}（现有：{ids}）")
     eps = hit["episodes"]
-    print(f">> 扇出 {cmd!r} · 系列 {series_id} · {len(eps)} 集")
+    print(
+        f">> 扇出 {cmd!r} · 系列 {series_id} · {len(eps)} 集"
+        # 转发面显式打出来：检查面必须随判定行一起可见（ISSUE-168 防范 2）
+        + (f" · 转发 {' '.join(extra)}" if extra else "")
+    )
     t0 = time.time()
     results: list[tuple[str, int]] = []
     for ep in eps:
         root = INFLUENCE / ep["path"]
         rc = run(
-            [sys.executable, str(Path(__file__).resolve()), "--project", str(root), cmd]
+            [
+                sys.executable,
+                str(Path(__file__).resolve()),
+                "--project",
+                str(root),
+                cmd,
+                *extra,
+            ]
         )
         results.append((ep["slug"], rc))
     print(f"\n>> 扇出汇总（{time.time() - t0:.1f}s）")
@@ -426,7 +471,7 @@ def main() -> None:
     ap.add_argument(
         "--series",
         help="按 series.json 扇出到该系列各集（与 --project 互斥；仅 "
-        f"{sorted(FANOUT_OK)} 可扇出）",
+        f"{sorted(FANOUT_OK)} 可扇出）。子命令自身的 flag 逐字转发给每集",
     )
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("status", help="阶段新鲜度（实时派生）")
@@ -482,7 +527,7 @@ def main() -> None:
     if args.series is not None and args.project != ".":
         ap.error("--series 与 --project 互斥（系列扇出按 series.json 定位各集工程）")
     if args.series is not None:
-        sys.exit(fanout(args.series, args.cmd))
+        sys.exit(fanout(args.series, args.cmd, sub_argv(args.cmd, sys.argv)))
 
     root = Path(args.project).resolve()
     # 与具体工程无关的子命令不读 pipeline.toml —— 否则「某集 toml 写坏」会连带
