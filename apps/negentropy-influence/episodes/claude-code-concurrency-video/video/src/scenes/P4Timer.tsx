@@ -541,7 +541,7 @@ export const P4Timer: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bB = w('p4-05', 'p4-08');
   const bC = w('p4-09', 'p4-10');
   const bD = w('p4-11', 'p4-18');
-  const bE = w('p4-19', 'p4-26');
+  const bE = w('p4-19', 'p4-27');
   return (
     <AbsoluteFill>
       <Sequence {...bA} name="4-A 木偶与闹钟">

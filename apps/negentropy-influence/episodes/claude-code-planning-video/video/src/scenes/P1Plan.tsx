@@ -284,79 +284,99 @@ const TwoLineDiff: React.FC<{quoteAt: number}> = ({quoteAt}) => {
   );
 };
 
-/** 1-D 三轮计数圆点亮起后「提醒」印章落在清单卡上；末尾角标另一套任务系统。 */
-const NagReminder: React.FC<{roundAt: number[]; stampAt: number; noteAt: number}> = ({
-  roundAt,
+/** 1-D 退位帧：官方默认停用清单工具——「收回」钢印 + 官方公告条（Harness Engineering 改造版） */
+const RetirementStamp: React.FC<{noticeAt: number; stampAt: number; taskSysAt: number}> = ({
+  noticeAt,
   stampAt,
-  noteAt,
+  taskSysAt,
 }) => {
   const frame = useCurrentFrame();
-  const rounds = roundAt.map((a, i) => ({
-    n: String(i + 1).padStart(2, '0'),
-    on: frame >= a,
-    at: a,
-  }));
+  const {fps} = useVideoConfig();
+  const notice = interpolate(frame - noticeAt, [0, 18], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const stamp = spring({frame: frame - stampAt, fps, config: {damping: 140}});
+  const taskSys = interpolate(frame - taskSysAt, [0, 16], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <div style={{position: 'relative'}}>
-        <Panel accent={theme.view} style={{width: 620, padding: '26px 32px'}}>
-          <div style={{fontFamily: theme.mono, fontSize: 20, color: theme.dim, marginBottom: 16}}>
-            {'todo_write · 清单卡'}
-          </div>
-          {['✓ 统一文件名', '✓ 跑一遍测试', '▸ 修好失败的测试'].map((t, i) => (
-            <div key={i} style={{fontFamily: theme.mono, fontSize: 26, color: theme.text, marginBottom: 8}}>
-              {t}
+      <div style={{position: 'relative', width: 1100, height: 560}}>
+        {/* 清单卡（缩小版，居中） */}
+        <Panel accent={theme.view} style={{position: 'absolute', left: 280, top: 60, width: 540, padding: '22px 28px'}}>
+          <div style={{fontFamily: theme.mono, fontSize: 22, color: theme.dim}}>{'todo_write'}</div>
+          {['pending 待办', 'in_progress 干着', 'completed 完事'].map((s, i) => (
+            <div key={s} style={{fontFamily: theme.sans, fontSize: 23, color: theme.text, marginTop: 10, opacity: 0.85}}>
+              {s}
             </div>
           ))}
-          {/* 印章：三轮没更新清单后落下 */}
-          <Stamp text="提醒" color={theme.deny} at={stampAt} size={132} rotate={-14} style={{position: 'absolute', right: -40, top: -44}} />
-          {/* 印章内文：注入的提醒消息 */}
-          {frame >= stampAt + 12 ? (
-            <div
-              style={{
-                marginTop: 12,
-                fontFamily: theme.mono,
-                fontSize: 20,
-                color: theme.deny,
-                opacity: interpolate(frame - stampAt - 12, [0, 12], [0, 0.9], {
-                  extrapolateLeft: 'clamp',
-                  extrapolateRight: 'clamp',
-                }),
-              }}
-            >
-              {'<reminder>Update your todos.</reminder>'}
-            </div>
-          ) : null}
         </Panel>
-        {/* 三轮计数圆点 */}
-        <div style={{position: 'absolute', left: -190, top: 40, display: 'flex', flexDirection: 'column', gap: 20}}>
-          {rounds.map((r) => (
-            <div key={r.n} style={{display: 'flex', alignItems: 'center', gap: 14, opacity: r.on ? 1 : 0.25}}>
-              <div
-                style={{
-                  width: 54,
-                  height: 54,
-                  borderRadius: 999,
-                  border: `3px solid ${r.on ? theme.deny : theme.panelBorder}`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontFamily: theme.mono,
-                  fontSize: 24,
-                  fontWeight: 700,
-                  color: r.on ? theme.deny : theme.dim,
-                  background: r.on ? theme.denyDeep : 'transparent',
-                }}
-              >
-                {r.n}
-              </div>
-              <div style={{fontFamily: theme.sans, fontSize: 20, color: theme.dim}}>{'轮未更新'}</div>
+        {/* 官方公告条 */}
+        <div
+          style={{
+            position: 'absolute',
+            left: 60,
+            top: 300,
+            width: 980,
+            opacity: notice,
+            transform: `translateY(${(1 - notice) * 16}px)`,
+          }}
+        >
+          <Panel accent={theme.view} style={{padding: '18px 26px'}}>
+            <div style={{fontFamily: theme.sans, fontSize: 26, color: theme.text}}>
+              {'官方：新一代模型上，清单工具默认不再安装'}
             </div>
-          ))}
+            <div style={{fontFamily: theme.mono, fontSize: 18, color: theme.dim, marginTop: 8}}>
+              {'官方理由：这些模型自己就能记住要干什么 · code.claude.com'}
+            </div>
+          </Panel>
         </div>
+        {/* 收回钢印 */}
+        {stamp > 0 ? (
+          <div
+            style={{
+              position: 'absolute',
+              left: 430,
+              top: 110,
+              opacity: Math.min(1, stamp * 1.4),
+              transform: `rotate(${-12 + 4 * stamp}deg) scale(${1.5 - 0.5 * stamp})`,
+              border: `5px solid ${theme.deny}`,
+              borderRadius: 12,
+              padding: '10px 30px',
+              fontFamily: theme.serif,
+              fontSize: 46,
+              fontWeight: 700,
+              color: theme.deny,
+              letterSpacing: 10,
+              boxShadow: `0 0 24px ${theme.deny}44`,
+            }}
+          >
+            {'收 回'}
+          </div>
+        ) : null}
+        {/* 任务系统预告 */}
+        {taskSys > 0 ? (
+          <div
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: -60,
+              textAlign: 'center',
+              opacity: taskSys,
+              fontFamily: theme.sans,
+              fontSize: 23,
+              color: theme.dim,
+            }}
+          >
+            {'清单背后那套更重的任务系统（带依赖·能锁·落盘）——以后单拆'}
+          </div>
+        ) : null}
       </div>
-      <Footnote delay={noteAt}>
-        {'教学版设计：固定 3 轮催更 · 产品里是另一套更重的任务系统（以后单拆一期）'}
+      <Footnote delay={noticeAt}>
+        {'零件押的是「模型记不住」的赌注 —— 模型变强，赌注过期（官方文档口径）'}
       </Footnote>
     </AbsoluteFill>
   );
@@ -387,12 +407,12 @@ export const P1Plan: React.FC<{scene: SceneRange}> = ({scene}) => {
         {/* p1-12/13 金句：全屏金句卡（beat 内时点锚） */}
         <TwoLineDiff quoteAt={relC('p1-12')} />
       </Sequence>
-      <Sequence {...bD} name="1-D 催更印章">
-        {/* p1-14 讲「连着三轮」：计数点逐轮点亮；p1-16 起角标 */}
-        <NagReminder
-          roundAt={[relD('p1-14'), relD('p1-14') + 18, relD('p1-14') + 36]}
-          stampAt={relD('p1-14') + 54}
-          noteAt={relD('p1-16')}
+      <Sequence {...bD} name="1-D 退位帧">
+        {/* p1-14 官方公告；p1-15 收回钢印；p1-16 任务系统预告 */}
+        <RetirementStamp
+          noticeAt={relD('p1-14')}
+          stampAt={relD('p1-15')}
+          taskSysAt={relD('p1-16')}
         />
       </Sequence>
     </AbsoluteFill>

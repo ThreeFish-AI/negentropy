@@ -463,8 +463,8 @@ export const P5Truths: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bA = w('p5-01', 'p5-04');
   const bB = w('p5-05', 'p5-08');
   const bC = w('p5-09', 'p5-10');
-  const bD = w('p5-11', 'p5-14');
-  const bE = w('p5-15', 'p5-21');
+  const bD = w('p5-11', 'p5-18');
+  const bE = w('p5-19', 'p5-23');
   return (
     <AbsoluteFill>
       <Sequence {...bA} name="5-A 踩踏帧">
@@ -488,7 +488,7 @@ export const P5Truths: React.FC<{scene: SceneRange}> = ({scene}) => {
         <HonestEdge offAt={at('p5-14') - bD.from} drawerAt={at('p5-14') - bD.from + 50} />
       </Sequence>
       <Sequence {...bE} name="5-E 上限与低优先级">
-        <CapAndQuote lowAt={at('p5-19') - bE.from} quoteAt={at('p5-21') - bE.from} />
+        <CapAndQuote lowAt={at('p5-19') - bE.from} quoteAt={at('p5-23') - bE.from} />
       </Sequence>
     </AbsoluteFill>
   );

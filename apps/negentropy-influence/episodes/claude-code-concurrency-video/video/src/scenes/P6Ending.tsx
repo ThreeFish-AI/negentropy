@@ -299,10 +299,24 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; seriesAt: number}> 
               marginTop: 18,
             }}
           >
-            {'AI 会自己开工吗？'}
+            {'时机层：谁来按下开始'}
           </div>
-          <div style={{fontFamily: theme.sans, fontSize: 28, color: theme.text, marginTop: 14}}>
-            {'后台与定时'}
+          {/* 下期预告卡：标题只在画面（反串线纪律） */}
+          <div
+            style={{
+              marginTop: 26,
+              padding: '13px 28px',
+              border: `1.5px solid ${theme.panelBorder}`,
+              borderRadius: 12,
+              background: theme.panel,
+            }}
+          >
+            <div style={{fontFamily: theme.sans, fontSize: 20, color: theme.dim, letterSpacing: 2}}>
+              {'下期 · 协作层'}
+            </div>
+            <div style={{fontFamily: theme.serif, fontSize: 31, color: theme.text, marginTop: 5}}>
+              {'从一个到一群'}
+            </div>
           </div>
         </div>
       ) : null}

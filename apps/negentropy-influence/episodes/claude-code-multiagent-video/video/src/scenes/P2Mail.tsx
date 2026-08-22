@@ -749,8 +749,8 @@ export const P2Mail: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bA = w('p2-01', 'p2-05');
   const bB = w('p2-06', 'p2-11');
   const bC = w('p2-12', 'p2-14');
-  const bD = w('p2-15', 'p2-17');
-  const bE = w('p2-18', 'p2-25');
+  const bD = w('p2-15', 'p2-19');
+  const bE = w('p2-20', 'p2-25');
   const rel = (b: {from: number}, id: string) => at(id) - b.from;
   return (
     <AbsoluteFill>

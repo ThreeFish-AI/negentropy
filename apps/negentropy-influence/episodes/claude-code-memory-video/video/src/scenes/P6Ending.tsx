@@ -74,12 +74,10 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; idAt: number}> = ({
   const {fps} = useVideoConfig();
   const enter = spring({frame: frame - 4, fps, config: {damping: 200}});
   const rows = [
-    ['官方文档', 'code.claude.com/docs · 取数 2026-08'],
+    ['官方文档', 'code.claude.com/docs · 取数2026年8月'],
     ['工程博客', 'anthropic.com/engineering'],
     ['源码分析', '第三方逆向分析 · 片中逐处标注'],
-    ['仓库钉版', '67a9126c（2026-08-22 取证）'],
-    ['归档', '取证字节随片归档（research/source-archive/）'],
-    ['许可', 'MIT'],
+    ['数字口径', '开源仓库钉版 67a9126c 实测 · 字节归档'],
   ];
   const idT = interpolate(frame - idAt, [0, 20], [0, 1], {
     extrapolateLeft: 'clamp',
@@ -158,10 +156,24 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; idAt: number}> = ({
               marginTop: 18,
             }}
           >
-            {'AI 的记忆'}
+            {'记忆层：会丢的和不能丢的'}
           </div>
-          <div style={{fontFamily: theme.serif, fontSize: 40, color: theme.text, marginTop: 8}}>
-            {'会丢的和不能丢的'}
+          {/* 下期预告卡：标题只在画面（反串线纪律） */}
+          <div
+            style={{
+              marginTop: 26,
+              padding: '13px 28px',
+              border: `1.5px solid ${theme.panelBorder}`,
+              borderRadius: 12,
+              background: theme.panel,
+            }}
+          >
+            <div style={{fontFamily: theme.sans, fontSize: 20, color: theme.dim, letterSpacing: 2}}>
+              {'下期 · 时机层'}
+            </div>
+            <div style={{fontFamily: theme.serif, fontSize: 31, color: theme.text, marginTop: 5}}>
+              {'谁来按下开始'}
+            </div>
           </div>
         </div>
       ) : null}
@@ -176,7 +188,7 @@ export const P6Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
   const at = (id: string) => w(id).from;
   const bA = w('p6-01', 'p6-06');
   const relA = (id: string) => at(id) - bA.from;
-  const bB = w('p6-07', 'p6-12');
+  const bB = w('p6-07', 'p6-10');
   const relB = (id: string) => at(id) - bB.from;
   return (
     <AbsoluteFill>

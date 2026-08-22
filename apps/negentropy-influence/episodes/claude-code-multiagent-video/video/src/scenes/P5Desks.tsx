@@ -772,7 +772,7 @@ export const P5Desks: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bA = w('p5-01', 'p5-05');
   const bB = w('p5-06', 'p5-09');
   const bC = w('p5-10', 'p5-17');
-  const bD = w('p5-18', 'p5-24');
+  const bD = w('p5-18', 'p5-22');
   const rel = (b: {from: number}, id: string) => at(id) - b.from;
   return (
     <AbsoluteFill>

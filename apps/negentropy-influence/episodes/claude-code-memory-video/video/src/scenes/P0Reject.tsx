@@ -418,7 +418,7 @@ const TwoAnswers: React.FC<{leftAt: number; rightAt: number; lineAt: number}> = 
 export const P0Reject: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (fromId: string, toId?: string) => beatWindow(scene.sentences, scene.from, fromId, toId);
   const at = (id: string) => w(id).from;
-  const bA = w('p0-01', 'p0-03');
+  const bA = w('p0-01', 'p0-02');
   const relA = (id: string) => at(id) - bA.from;
   const bB = w('p0-04', 'p0-08');
   const relB = (id: string) => at(id) - bB.from;

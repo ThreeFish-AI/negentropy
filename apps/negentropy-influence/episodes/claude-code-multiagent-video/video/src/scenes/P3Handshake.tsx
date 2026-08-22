@@ -718,7 +718,7 @@ export const P3Handshake: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bA = w('p3-01', 'p3-05');
   const bB = w('p3-06', 'p3-09');
   const bC = w('p3-10', 'p3-11');
-  const bD = w('p3-12', 'p3-17');
+  const bD = w('p3-12', 'p3-16');
   const rel = (b: {from: number}, id: string) => at(id) - b.from;
   return (
     <AbsoluteFill>

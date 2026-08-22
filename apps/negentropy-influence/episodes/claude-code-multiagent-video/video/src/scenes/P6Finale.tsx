@@ -394,88 +394,180 @@ const SeriesFinale: React.FC<{riseAt: number; quoteAt: number}> = ({riseAt, quot
   );
 };
 
-/** 6-D 旧零件四连小图：看板=文件夹 / 信箱=文本 / 握手=对照表 / 隔离=空目录 */
-const PlainParts: React.FC = () => {
+/** 6-D ★谁持有计划：四象对比（Harness Engineering 收官纲图）
+ *  官方 workflows 的四方对比——临时工/技能包/队友：计划由模型逐回合现场决定；
+ *  第四种（动态工作流）：脚本持有计划，中间结果住变量、上下文只装最终答案。
+ *  分水岭竖线落下是全片思想高点；收官反转「挽具第一次由它自己来写」。 */
+const WhoHoldsPlan: React.FC<{gridAt: number; divideAt: number; runtimeAt: number; twistAt: number}> = ({
+  gridAt,
+  divideAt,
+  runtimeAt,
+  twistAt,
+}) => {
   const frame = useCurrentFrame();
-  const parts = [
-    {t: '看板', v: '一个文件夹', kind: 'folder'},
-    {t: '信箱', v: '一个文本文件', kind: 'file'},
-    {t: '握手', v: '一张对照表', kind: 'table'},
-    {t: '隔离', v: '一间空目录', kind: 'dir'},
+  const {fps} = useVideoConfig();
+  const cols = [
+    {t: '临时工', who: '模型逐回合', mid: '各自的上下文'},
+    {t: '技能包', who: '模型按提示', mid: '上下文窗口'},
+    {t: '队友', who: '领队逐回合', mid: '共享任务表'},
+    {t: '脚本', who: '脚本决定', mid: '脚本变量', fourth: true},
   ];
+  const divide = spring({frame: frame - divideAt, fps, config: {damping: 160}});
+  const runtime = interpolate(frame - runtimeAt, [0, 26], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const twist = interpolate(frame - twistAt, [0, 20], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const CX = 960;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <div style={{display: 'flex', gap: 40}}>
-        {parts.map((p, i) => {
-          const e = interpolate(frame - 8 - i * 12, [0, 14], [0, 1], {
-            extrapolateLeft: 'clamp',
-            extrapolateRight: 'clamp',
-          });
-          const c = theme.text;
-          return (
-            <div key={p.t} style={{width: 330, opacity: e, transform: `translateY(${(1 - e) * 22}px)`}}>
-              <Panel style={{padding: '26px 24px', textAlign: 'center'}}>
-                {/* 旧零件小图（mono 标注：terminal 风格文件树/表） */}
-                <svg width={200} height={130}>
-                  {p.kind === 'folder' ? (
-                    <>
-                      <path d="M30 30 L60 30 L70 42 L170 42 L170 106 L30 106 Z" fill="none" stroke={c} strokeWidth={4} />
-                      {['task-01.json', 'task-02.json', 'task-03.json'].map((f, k) => (
-                        <text key={f} x={46} y={66 + k * 17} fontFamily={theme.mono} fontSize={14} fill={theme.dim}>
-                          {f}
-                        </text>
-                      ))}
-                    </>
-                  ) : p.kind === 'file' ? (
-                    <>
-                      <path d="M60 18 L120 18 L140 38 L140 112 L60 112 Z" fill="none" stroke={c} strokeWidth={4} />
-                      <path d="M120 18 L120 38 L140 38" fill="none" stroke={c} strokeWidth={3} />
-                      {['report', 'assign', 'ack'].map((f, k) => (
-                        <g key={f}>
-                          <line x1={74} y1={60 + k * 17} x2={126} y2={60 + k * 17} stroke={c} strokeWidth={3} />
-                          <line x1={74} y1={55 + k * 17} x2={126} y2={65 + k * 17} stroke={theme.deny} strokeWidth={2} opacity={0.7} />
-                        </g>
-                      ))}
-                    </>
-                  ) : p.kind === 'table' ? (
-                    <>
-                      <rect x={40} y={24} width={120} height={84} rx={6} fill="none" stroke={c} strokeWidth={4} />
-                      <line x1={40} y1={50} x2={160} y2={50} stroke={c} strokeWidth={3} />
-                      <line x1={40} y1={76} x2={160} y2={76} stroke={c} strokeWidth={3} />
-                      <text x={58} y={44} fontFamily={theme.mono} fontSize={13} fill={theme.dim}>
-                        {'req_0042'}
-                      </text>
-                      <text x={58} y={70} fontFamily={theme.mono} fontSize={13} fill={theme.dim}>
-                        {'req_0042'}
-                      </text>
-                      <text x={58} y={96} fontFamily={theme.mono} fontSize={13} fill={theme.dim}>
-                        {'approved'}
-                      </text>
-                    </>
-                  ) : (
-                    <>
-                      <rect x={46} y={26} width={108} height={80} rx={6} fill="none" stroke={c} strokeWidth={4} strokeDasharray="8 6" />
-                      <text x={100} y={74} textAnchor="middle" fontFamily={theme.mono} fontSize={15} fill={theme.dim}>
-                        {'(空)'}
-                      </text>
-                    </>
-                  )}
-                </svg>
-                <div style={{fontFamily: theme.serif, fontSize: 32, fontWeight: 700, color: theme.text, marginTop: 10}}>
-                  {p.t}
+      <div style={{position: 'relative', width: 1760, height: 640}}>
+        <div style={{fontFamily: theme.serif, fontSize: 40, color: theme.text, textAlign: 'center', marginBottom: 24}}>
+          {'谁持有计划？'}
+        </div>
+        <div style={{display: 'flex', gap: 18, justifyContent: 'center'}}>
+          {cols.map((c, i) => {
+            const e = spring({frame: frame - gridAt - i * 7, fps, config: {damping: 200}});
+            const color = c.fourth ? theme.core : theme.panelBorder;
+            return (
+              <div
+                key={c.t}
+                style={{
+                  width: 340,
+                  opacity: e,
+                  transform: `translateY(${(1 - e) * 24}px)`,
+                  border: `2.5px solid ${color}`,
+                  borderRadius: 14,
+                  background: c.fourth ? theme.coreDeep : theme.panel,
+                  padding: '18px 20px',
+                  boxShadow: c.fourth ? `0 0 22px ${theme.core}44` : 'none',
+                }}
+              >
+                {/* 列顶：计划持有者图章 */}
+                <div style={{display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12}}>
+                  <div
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 20,
+                      border: `2.5px solid ${c.fourth ? theme.core : theme.dim}`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 20,
+                      color: c.fourth ? theme.core : theme.dim,
+                    }}
+                  >
+                    {c.fourth ? 'S' : 'M'}
+                  </div>
+                  <div>
+                    <div style={{fontFamily: theme.sans, fontSize: 25, color: theme.text}}>{c.t}</div>
+                    <div style={{fontFamily: theme.sans, fontSize: 16, color: theme.dim}}>{c.who}</div>
+                  </div>
                 </div>
-                <div style={{fontFamily: theme.mono, fontSize: 22, color: theme.mech, marginTop: 8}}>{p.v}</div>
-              </Panel>
-            </div>
-          );
-        })}
+                <div style={{fontFamily: theme.sans, fontSize: 17, color: theme.dim, lineHeight: 1.6}}>
+                  <div>{'中间结果：'}</div>
+                  <div style={{color: theme.text}}>{c.mid}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        {/* 分水岭竖线：三四列之间落下 */}
+        {divide > 0 ? (
+          <div
+            style={{
+              position: 'absolute',
+              left: CX - 9,
+              top: 90,
+              width: 5,
+              height: 420 * divide,
+              background: theme.core,
+              boxShadow: `0 0 18px ${theme.core}88`,
+            }}
+          />
+        ) : null}
+        {divide > 0.9 ? (
+          <div
+            style={{
+              position: 'absolute',
+              left: CX,
+              top: 62,
+              transform: 'translateX(-50%)',
+              fontFamily: theme.sans,
+              fontSize: 20,
+              color: theme.core,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {'分水岭'}
+          </div>
+        ) : null}
+        {/* 运行时三分区一行（缩略） */}
+        {runtime > 0 ? (
+          <div
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: 60,
+              display: 'flex',
+              justifyContent: 'center',
+              gap: 26,
+              opacity: runtime,
+              transform: `translateY(${(1 - runtime) * 14}px)`,
+            }}
+          >
+            {[
+              {t: '会话侧', s: '只装最终答案'},
+              {t: '运行时侧', s: '循环·分支·中间结果'},
+              {t: 'agent 侧', s: '并发 16 · 总量 1000'},
+            ].map((z) => (
+              <div
+                key={z.t}
+                style={{
+                  border: `1.5px solid ${theme.panelBorder}`,
+                  borderRadius: 10,
+                  padding: '10px 22px',
+                  background: theme.panel,
+                  textAlign: 'center',
+                }}
+              >
+                <div style={{fontFamily: theme.sans, fontSize: 20, color: theme.text}}>{z.t}</div>
+                <div style={{fontFamily: theme.mono, fontSize: 16, color: theme.dim, marginTop: 3}}>{z.s}</div>
+              </div>
+            ))}
+          </div>
+        ) : null}
+        {/* 收官反转 */}
+        {twist > 0 ? (
+          <div
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: -46,
+              textAlign: 'center',
+              opacity: twist,
+              fontFamily: theme.serif,
+              fontSize: 34,
+              color: theme.core,
+            }}
+          >
+            {'挽具第一次，开始由它自己来写'}
+          </div>
+        ) : null}
       </div>
-      <Footnote delay={40}>{'听起来越神的功能，拆开越是旧零件'}</Footnote>
+      <Footnote delay={runtimeAt}>
+        {'四形态对比与并发护栏 —— 官方文档 workflows'}
+      </Footnote>
     </AbsoluteFill>
   );
 };
 
-/** 6-E 信源卡 + 身份卡 + 渐黑（末 beat 总时长推导，红线四） */
 const SourceAndFade: React.FC<{beatDurationInFrames: number; seriesAt: number}> = ({
   beatDurationInFrames,
   seriesAt,
@@ -484,12 +576,10 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; seriesAt: number}> 
   const {fps} = useVideoConfig();
   const enter = spring({frame: frame - 4, fps, config: {damping: 200}});
   const rows = [
-    ['官方文档', 'code.claude.com/docs · 取数 2026-08'],
+    ['官方文档', 'code.claude.com/docs · 取数2026年8月'],
     ['工程博客', 'anthropic.com/engineering'],
     ['源码分析', '第三方逆向分析 · 片中逐处标注'],
-    ['仓库钉版', 'main @ 67a9126c（2026-08-22）'],
-    ['访问日期', '2026-08-22'],
-    ['许可', 'MIT'],
+    ['数字口径', '开源仓库钉版 67a9126c 实测 · 字节归档'],
   ];
   const seriesT = phase(frame, seriesAt, 20);
   // 渐黑：末 1.2 秒线性压暗到全黑，窗口从 beat 总时长反推
@@ -565,10 +655,24 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; seriesAt: number}> 
               marginTop: 18,
             }}
           >
-            {'一群 AI 怎么干活'}
+            {'协作层：从一个到一群'}
           </div>
-          <div style={{fontFamily: theme.sans, fontSize: 28, color: theme.text, marginTop: 14}}>
-            {'看板、信箱与各自的桌子'}
+          {/* 下期预告卡：标题只在画面（反串线纪律） */}
+          <div
+            style={{
+              marginTop: 26,
+              padding: '13px 28px',
+              border: `1.5px solid ${theme.panelBorder}`,
+              borderRadius: 12,
+              background: theme.panel,
+            }}
+          >
+            <div style={{fontFamily: theme.sans, fontSize: 20, color: theme.dim, letterSpacing: 2}}>
+              {'下期 · 新方向'}
+            </div>
+            <div style={{fontFamily: theme.serif, fontSize: 31, color: theme.text, marginTop: 5}}>
+              {'给这样的系统打分'}
+            </div>
           </div>
         </div>
       ) : null}
@@ -577,33 +681,37 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; seriesAt: number}> 
     </AbsoluteFill>
   );
 };
-
 export const P6Finale: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (fromId: string, toId?: string) => beatWindow(scene.sentences, scene.from, fromId, toId);
   const at = (id: string) => w(id).from;
   const bA = w('p6-01', 'p6-02');
-  const bB = w('p6-03', 'p6-06');
-  const bC = w('p6-07', 'p6-11');
-  const bD = w('p6-12', 'p6-15');
-  const bE = w('p6-16', 'p6-19');
+  const bB = w('p6-03', 'p6-04');
+  const bC = w('p6-05', 'p6-06');
+  const bD = w('p6-07', 'p6-11');
+  const bE = w('p6-12', 'p6-17');
   const rel = (b: {from: number}, id: string) => at(id) - b.from;
   return (
     <AbsoluteFill>
       <Sequence {...bA} name="6-A 四样归位与传送带">
         <ConveyorForms beltAt={rel(bA, 'p6-02')} />
       </Sequence>
-      <Sequence {...bB} name="6-B 一整轮">
+      <Sequence {...bB} name="6-B 一整轮快闪">
         <FullTurn pkgAt={rel(bB, 'p6-03')} />
       </Sequence>
       <Sequence {...bC} name="6-C 系列终曲帧">
-        <SeriesFinale riseAt={rel(bC, 'p6-07')} quoteAt={rel(bC, 'p6-09')} />
+        <SeriesFinale riseAt={0} quoteAt={rel(bC, 'p6-06')} />
       </Sequence>
-      <Sequence {...bD} name="6-D 旧零件四连">
-        <PlainParts />
+      <Sequence {...bD} name="6-D 谁持有计划">
+        <WhoHoldsPlan
+          gridAt={rel(bD, 'p6-07')}
+          divideAt={rel(bD, 'p6-08')}
+          runtimeAt={rel(bD, 'p6-10')}
+          twistAt={rel(bD, 'p6-11')}
+        />
       </Sequence>
       <Sequence {...bE} name="6-E 信源卡与渐黑">
         {/* 渐黑窗口从**本 beat 总时长**推导，不是末句时长（红线四） */}
-        <SourceAndFade beatDurationInFrames={bE.durationInFrames} seriesAt={rel(bE, 'p6-19')} />
+        <SourceAndFade beatDurationInFrames={bE.durationInFrames} seriesAt={rel(bE, 'p6-16')} />
       </Sequence>
     </AbsoluteFill>
   );

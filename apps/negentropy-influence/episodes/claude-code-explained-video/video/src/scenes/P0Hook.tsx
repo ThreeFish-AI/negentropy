@@ -1,5 +1,6 @@
-/** P0 你在当那个中间人（分镜 0-A…0-D）
- *  痛点：模型写出命令就停住，人在做复制粘贴的中间层。 */
+/** P0 钩子与命名帧（分镜 0-A…0-C）
+ *  三句内完成：搬运工痛点 → 官方命名「挽具」→ 五辐条供给图。
+ *  改造（2026-08 Harness Engineering）：10 句压缩为 7 句，命名帧是全系列的开场锚。 */
 import React from 'react';
 import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig} from 'remotion';
 import {theme} from '../design/theme';
@@ -7,93 +8,36 @@ import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {Footnote, Panel, Terminal} from '../components/motifs';
 
-/** 0-A 终端打字 → 模型吐出一条命令后画面凝住；右侧走秒芯片在凝住点停死 */
-const AskAndStall: React.FC<{freezeAt: number}> = ({freezeAt}) => {
-  const frame = useCurrentFrame();
-  const {fps} = useVideoConfig();
-  const frozen = frame >= freezeAt;
-  // 「想了想」的计时：打字期间正常走秒，凝住瞬间停死——把 p0-02 的「停在那儿了」量化成画面
-  const elapsed = frozen ? freezeAt : frame;
-  const secs = Math.floor((elapsed / fps) * 2) / 2; // 0.5s 步进，减少帧内数字抖动
-  return (
-    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <div style={{position: 'relative'}}>
-        <Terminal
-          width={1320}
-          height={330}
-          freezeCursorAt={freezeAt}
-          lines={[
-            {prompt: '›', text: '看看项目里有哪些文件，再跑一下其中一个脚本', delay: 6},
-            {text: '好的，先列出目录下的 Python 文件：', color: theme.dim, delay: 46},
-            {text: 'find . -name "*.py" -maxdepth 2', color: theme.core, delay: 90},
-          ]}
-        />
-        <div
-          style={{
-            position: 'absolute',
-            right: -108,
-            top: 8,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            opacity: interpolate(frame, [8, 20], [0, 1], {extrapolateRight: 'clamp'}),
-          }}
-        >
-          <div
-            style={{
-              fontFamily: theme.mono,
-              fontSize: 30,
-              fontVariantNumeric: 'tabular-nums',
-              color: frozen ? theme.dim : theme.mech,
-              border: `2px solid ${frozen ? theme.panelBorder : theme.mech}`,
-              borderRadius: 10,
-              padding: '10px 14px',
-              background: theme.panel,
-            }}
-          >
-            {`${secs.toFixed(1)}s`}
-          </div>
-          <div
-            style={{
-              fontFamily: theme.sans,
-              fontSize: 21,
-              color: frozen ? theme.deny : theme.dim,
-              marginTop: 10,
-              writingMode: 'vertical-rl',
-              letterSpacing: 4,
-            }}
-          >
-            {frozen ? '计时停了' : '它还在想'}
-          </div>
-        </div>
-      </div>
-    </AbsoluteFill>
-  );
-};
-
-/** 0-B 复制粘贴往复三轮：灰色搬运痕迹累积不消失 + 轮次钢印 + 剪贴板逐轮老化 */
-const CopyPasteLoop: React.FC<{roundStarts: number[]}> = ({roundStarts}) => {
+/** 0-A 终端打字 → 命令凝住 → 复制粘贴弧线加速塞满（两句内完成旧版六句的信息量） */
+const StallAndCarry: React.FC<{carryAt: number}> = ({carryAt}) => {
   const frame = useCurrentFrame();
   const W = 1560;
-  const H = 430;
+  const H = 400;
+  const frozen = frame >= carryAt - 6;
+  // 三轮搬运轨迹（加速：每轮 9 帧，旧版是 15 帧——钩子提速）
+  const roundGap = [0, 9, 18];
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <div style={{position: 'relative', width: W, height: H}}>
-        <Panel style={{position: 'absolute', left: 0, top: 40, width: 640, height: 300, padding: 20}}>
-          <div style={{fontFamily: theme.mono, fontSize: 22, color: theme.dim}}>终端</div>
-        </Panel>
-        <Panel style={{position: 'absolute', left: W - 640, top: 40, width: 640, height: 300, padding: 20}}>
-          <div style={{fontFamily: theme.mono, fontSize: 22, color: theme.dim}}>对话框</div>
-        </Panel>
+        <Terminal
+          width={1300}
+          height={330}
+          freezeCursorAt={carryAt - 6}
+          lines={[
+            {prompt: '›', text: '看看项目里有哪些文件，再跑一下其中一个脚本', delay: 4},
+            {text: 'find . -name "*.py" -maxdepth 2', color: theme.core, delay: 38},
+          ]}
+        />
+        {/* 搬运弧线：命令→终端、输出→对话框，三轮残影累积 */}
         <svg width={W} height={H} style={{position: 'absolute', left: 0, top: 0}}>
-          {roundStarts.map((s, i) => {
-            // 一轮 = 命令右→左（贴进终端） + 输出左→右（贴回对话框）
+          {roundGap.map((gap, i) => {
+            const base = carryAt + gap;
             const legs = [
-              {a: W - 640, b: 300, y: 120 + i * 26, dir: -1},
-              {a: 300, b: W - 640, y: 250 + i * 26, dir: 1},
+              {a: W - 300, b: 300, y: 90 + i * 22, dir: -1},
+              {a: 300, b: W - 300, y: 240 + i * 22, dir: 1},
             ];
             return legs.map((lg, k) => {
-              const t = interpolate(frame - s - k * 15, [0, 15], [0, 1], {
+              const t = interpolate(frame - base - k * 6, [0, 9], [0, 1], {
                 extrapolateLeft: 'clamp',
                 extrapolateRight: 'clamp',
               });
@@ -101,247 +45,323 @@ const CopyPasteLoop: React.FC<{roundStarts: number[]}> = ({roundStarts}) => {
               const x = lg.a + (lg.b - lg.a) * t;
               return (
                 <g key={`${i}-${k}`}>
-                  {/* 残影：已走过的轨迹留下不消失的灰痕 */}
-                  <line
-                    x1={lg.a}
-                    y1={lg.y}
-                    x2={x}
-                    y2={lg.y}
-                    stroke={theme.dim}
-                    strokeWidth={3}
-                    opacity={0.3}
-                  />
-                  <circle cx={x} cy={lg.y} r={8} fill={theme.dim} opacity={0.8} />
+                  <line x1={lg.a} y1={lg.y} x2={x} y2={lg.y} stroke={theme.dim} strokeWidth={3} opacity={0.32} />
+                  <circle cx={x} cy={lg.y} r={7} fill={theme.dim} opacity={0.85} />
                 </g>
               );
             });
           })}
         </svg>
-        {/* 轮次钢印：每开始一轮，右上角落下一枚 01/02/03——「你」的劳动被计数 */}
-        {roundStarts.map((s, i) => {
-          const drop = spring({
-            frame: frame - s,
-            fps: 30,
-            config: {damping: 200},
-          });
-          if (frame < s) return null;
+        {frozen ? (
+          <div
+            style={{
+              position: 'absolute',
+              right: -96,
+              top: 10,
+              fontFamily: theme.sans,
+              fontSize: 24,
+              color: theme.deny,
+              writingMode: 'vertical-rl',
+              letterSpacing: 5,
+              opacity: interpolate(frame, [carryAt - 6, carryAt + 6], [0, 0.9], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}),
+            }}
+          >
+            {'每一轮的搬运工，是你'}
+          </div>
+        ) : null}
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+/** 0-B 命名帧：搬运残影收束成外框，包住「模型」内核——外框即挽具 + 官方引文条 */
+const NamingFrame: React.FC<{officialAt: number}> = ({officialAt}) => {
+  const frame = useCurrentFrame();
+  const {fps} = useVideoConfig();
+  // 外框四面合拢（spring 收拢感）
+  const close = spring({frame, fps, config: {damping: 180}});
+  const CX = 960;
+  const CY = 460;
+  const full = 420;
+  const wHalf = full / 2 + (1 - close) * 620;
+  const hHalf = full / 2 + (1 - close) * 380;
+  const label = interpolate(frame - 22, [0, 14], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const quote = interpolate(frame - officialAt, [0, 18], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  // 呼吸辉光（命名帧的「仪式感」）
+  const breathe = 0.5 + 0.5 * Math.sin(frame / 26);
+  return (
+    <AbsoluteFill>
+      {/* 四面合拢的残影 → 外框 */}
+      <svg width={1920} height={1080} style={{position: 'absolute'}}>
+        <rect
+          x={CX - wHalf}
+          y={CY - hHalf}
+          width={wHalf * 2}
+          height={hHalf * 2}
+          rx={26}
+          fill="none"
+          stroke={theme.mech}
+          strokeWidth={5}
+          style={{filter: `drop-shadow(0 0 ${10 + breathe * 16}px ${theme.mech}66)`}}
+        />
+        {/* 四角的旧搬运残影淡出（收束感） */}
+        {[
+          [-1, -1],
+          [1, -1],
+          [-1, 1],
+          [1, 1],
+        ].map(([sx, sy], i) => {
+          const o = interpolate(frame, [0, 18], [0.35, 0], {extrapolateRight: 'clamp'});
           return (
-            <div
-              key={s}
-              style={{
-                position: 'absolute',
-                right: 8 + (roundStarts.length - 1 - i) * 74,
-                top: -34,
-                fontFamily: theme.mono,
-                fontSize: 34,
-                fontWeight: 700,
-                color: theme.dim,
-                border: `3px solid ${theme.dim}`,
-                borderRadius: 8,
-                padding: '2px 12px',
-                opacity: 0.55 * drop,
-                transform: `rotate(${(-8 + i * 9) * drop}deg) scale(${0.6 + 0.4 * drop})`,
-              }}
-            >
-              {String(i + 1).padStart(2, '0')}
-            </div>
+            <line
+              key={i}
+              x1={CX + sx * (wHalf - 120)}
+              y1={CY + sy * (hHalf - 60)}
+              x2={CX + sx * (wHalf + 40)}
+              y2={CY + sy * (hHalf + 40)}
+              stroke={theme.dim}
+              strokeWidth={4}
+              opacity={o}
+            />
           );
         })}
-        {/* 剪贴板：板身恒定，板上的搬运痕迹随轮次变淡（见下方 line 的 0.3 - i*0.06）
-            ——搬运这件事件件在耗损你 */}
-        <svg width={64} height={84} style={{position: 'absolute', left: W / 2 - 32, top: -58}}>
-          <rect
-            x={6}
-            y={14}
-            width={52}
-            height={64}
-            rx={6}
-            fill={theme.panel}
-            stroke={theme.dim}
-            strokeWidth={3}
-            opacity={0.9}
-          />
-          <rect x={22} y={8} width={20} height={12} rx={3} fill="none" stroke={theme.dim} strokeWidth={3} />
-          {roundStarts.map((s, i) =>
-            frame > s + 20 ? (
-              <line
-                key={s}
-                x1={16}
-                y1={30 + i * 14}
-                x2={48}
-                y2={30 + i * 14}
-                stroke={theme.dim}
-                strokeWidth={3}
-                strokeLinecap="round"
-                opacity={0.3 - i * 0.06}
-              />
-            ) : null,
-          )}
-        </svg>
-      </div>
-      <Footnote delay={20}>{'你 = 模型与终端之间的搬运层'}</Footnote>
-    </AbsoluteFill>
-  );
-};
-
-/** 0-C 人形剪影被两侧箭头夹住并微微下沉 + 主线问题浮现 */
-const YouInTheMiddle: React.FC<{questionAt: number}> = ({questionAt}) => {
-  const frame = useCurrentFrame();
-  const {fps} = useVideoConfig();
-  const enter = spring({frame, fps, config: {damping: 200}});
-  const sink = interpolate(frame, [10, 44], [0, 14], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-  const qo = interpolate(frame - questionAt, [0, 22], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-  return (
-    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
+      </svg>
+      {/* 内核：模型 */}
       <div
         style={{
-          position: 'relative',
-          transform: `translateY(${(1 - enter) * 30 + sink}px)`,
-          opacity: enter,
-        }}
-      >
-        <svg width={560} height={230} style={{overflow: 'visible'}}>
-          <g transform="translate(140 0)">
-            <circle cx={140} cy={54} r={34} fill={theme.dim} opacity={0.75} />
-            <path d="M140 96 L140 168 M140 118 L86 152 M140 118 L194 152 M140 168 L104 220 M140 168 L176 220"
-              stroke={theme.dim} strokeWidth={13} strokeLinecap="round" fill="none" opacity={0.75} />
-            {/* 载荷：左来的命令芯片（右向）与右来的输出块（左向）都压在你手上——
-                「搬运」在第一眼就成立，不靠字幕解释 */}
-            {[
-              {dir: -1, label: '命令', y: 96},
-              {dir: 1, label: '输出', y: 168},
-            ].map((p) => {
-              const o = interpolate(frame - 14, [0, 12], [0, 1], {
-                extrapolateLeft: 'clamp',
-                extrapolateRight: 'clamp',
-              });
-              const x = 140 + p.dir * 128;
-              return (
-                <g key={p.label} opacity={o}>
-                  <line
-                    x1={x}
-                    y1={p.y}
-                    x2={140 + p.dir * 84}
-                    y2={p.y}
-                    stroke={theme.dim}
-                    strokeWidth={5}
-                    strokeLinecap="round"
-                  />
-                  <path
-                    d={
-                      p.dir === -1
-                        ? `M${140 - 84} ${p.y} l-14 -8 v16 Z`
-                        : `M${140 + 84} ${p.y} l14 -8 v16 Z`
-                    }
-                    fill={theme.dim}
-                  />
-                  <text
-                    x={x + p.dir * 6}
-                    y={p.y - 18}
-                    textAnchor={p.dir === -1 ? 'end' : 'start'}
-                    fontFamily={theme.mono}
-                    fontSize={22}
-                    fill={theme.dim}
-                  >
-                    {p.label}
-                  </text>
-                </g>
-              );
-            })}
-          </g>
-        </svg>
-      </div>
-      <div
-        style={{
-          marginTop: 40,
-          opacity: qo,
+          position: 'absolute',
+          left: CX,
+          top: CY,
+          transform: 'translate(-50%, -50%)',
           textAlign: 'center',
-          fontFamily: theme.serif,
-          fontSize: 46,
-          lineHeight: 1.55,
-          color: theme.text,
-          maxWidth: 1280,
+          opacity: interpolate(close, [0.3, 1], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}),
         }}
       >
-        {'从「能写出这条命令」，'}
-        <br />
-        {'到「它真的在你电脑上跑起来」——'}
-      </div>
-    </AbsoluteFill>
-  );
-};
-
-/** 0-D 标题卡 */
-const TitleCard: React.FC = () => {
-  const frame = useCurrentFrame();
-  const {fps} = useVideoConfig();
-  const enter = spring({frame: frame - 6, fps, config: {damping: 200}});
-  const line = interpolate(frame, [18, 48], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-  return (
-    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <div style={{textAlign: 'center', opacity: enter, transform: `translateY(${(1 - enter) * 22}px)`}}>
-        <div style={{fontFamily: theme.serif, fontSize: 84, fontWeight: 700, color: theme.core}}>
-          {'执行层：一个循环，就是全部'}
-        </div>
         <div
           style={{
-            marginTop: 26,
-            fontFamily: theme.sans,
-            fontSize: 38,
+            fontFamily: theme.mono,
+            fontSize: 40,
             color: theme.text,
-            letterSpacing: 2,
+            border: `3px solid ${theme.panelBorder}`,
+            borderRadius: 14,
+            padding: '16px 34px',
+            background: theme.panel,
           }}
         >
-          {'让 AI 动手的四层机制'}
+          {'模型 Claude'}
         </div>
-        <div
-          style={{
-            margin: '34px auto 0',
-            height: 3,
-            width: 520 * line,
-            background: theme.core,
-          }}
-        />
-        <div style={{marginTop: 22, fontFamily: theme.sans, fontSize: 24, color: theme.dim}}>
-          {'工具与执行 · 四章'}
+        <div style={{fontFamily: theme.sans, fontSize: 23, color: theme.dim, marginTop: 14}}>
+          {'判断力在里面'}
         </div>
       </div>
+      {/* 「挽具」落框 */}
+      <div
+        style={{
+          position: 'absolute',
+          left: CX,
+          top: CY - hHalf - 86,
+          transform: `translate(-50%, 0) scale(${0.7 + 0.3 * label})`,
+          opacity: label,
+          fontFamily: theme.serif,
+          fontSize: 56,
+          fontWeight: 700,
+          color: theme.core,
+          letterSpacing: 8,
+        }}
+      >
+        {'挽 具'}
+      </div>
+      <div
+        style={{
+          position: 'absolute',
+          left: CX,
+          top: CY + hHalf + 40,
+          transform: 'translate(-50%, 0)',
+          opacity: label,
+          fontFamily: theme.sans,
+          fontSize: 22,
+          color: theme.dim,
+        }}
+      >
+        {'把动力源，套进一个可控的结构里'}
+      </div>
+      {/* 官方引文条（p0-05 句锚） */}
+      {quote > 0 ? (
+        <div
+          style={{
+            position: 'absolute',
+            left: CX,
+            bottom: 200,
+            transform: `translate(-50%, ${(1 - quote) * 14}px)`,
+            opacity: quote,
+            textAlign: 'center',
+          }}
+        >
+          <Panel style={{padding: '18px 34px', maxWidth: 1200}}>
+            <div style={{fontFamily: theme.serif, fontSize: 27, color: theme.text}}>
+              {'“Claude Code 是挽具，Claude 是里面的模型。”'}
+            </div>
+            <div style={{fontFamily: theme.mono, fontSize: 19, color: theme.dim, marginTop: 8}}>
+              {'— 官方文档 how-claude-code-works（code.claude.com，取数2026年8月）'}
+            </div>
+          </Panel>
+        </div>
+      ) : null}
+    </AbsoluteFill>
+  );
+};
+
+/** 0-C 五辐条供给图：外框上长出五根辐条（文件/命令/权限/记忆/护栏）+ 标题卡收尾 */
+const SupplySpokes: React.FC<{titleAt: number}> = ({titleAt}) => {
+  const frame = useCurrentFrame();
+  const {fps} = useVideoConfig();
+  const CX = 960;
+  const CY = 440;
+  const R = 300;
+  const spokes = [
+    {label: '文件', zh: '读写项目'},
+    {label: '命令', zh: '执行与回传'},
+    {label: '权限', zh: '闸门与审批'},
+    {label: '记忆', zh: '上下文与规则', later: true},
+    {label: '护栏', zh: '拦截与兜底'},
+  ];
+  const title = spring({frame: frame - titleAt, fps, config: {damping: 200}});
+    const line = interpolate(frame - titleAt, [4, 40], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const ring = interpolate(frame, [0, 16], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  return (
+    <AbsoluteFill>
+      <svg width={1920} height={1080} style={{position: 'absolute'}}>
+        {/* 外框（挽具轮廓，缩小型持续在场） */}
+        <rect
+          x={CX - 380 * ring}
+          y={CY - 250 * ring}
+          width={760 * ring}
+          height={500 * ring}
+          rx={22}
+          fill="none"
+          stroke={theme.mech}
+          strokeWidth={4}
+          opacity={0.85}
+        />
+        <text x={CX} y={CY + 6} textAnchor="middle" fontFamily={theme.mono} fontSize={34} fill={theme.text}>
+          {'模型 Claude'}
+        </text>
+        {/* 五辐条：自外框上沿五点连向内核 */}
+        {spokes.map((sp, i) => {
+          const t = interpolate(frame - 6 - i * 8, [0, 12], [0, 1], {
+            extrapolateLeft: 'clamp',
+            extrapolateRight: 'clamp',
+          });
+          if (t <= 0) return null;
+          // 五点沿外框上沿分布
+          const fx = CX - 300 + i * 150;
+          const fy = CY - 250;
+          const ix = CX + (fx - CX) * 0.24;
+          const iy = CY - 40;
+          const glow = sp.later ? 0 : 0.5 + 0.5 * Math.sin((frame - i * 8) / 9);
+          return (
+            <g key={sp.label} opacity={t * (sp.later ? 0.35 : 1)}>
+              <line
+                x1={fx}
+                y1={fy}
+                x2={fx + (ix - fx) * t}
+                y2={fy + (iy - fy) * t}
+                stroke={sp.later ? theme.dim : theme.mech}
+                strokeWidth={5}
+                style={sp.later ? undefined : {filter: `drop-shadow(0 0 ${4 + glow * 8}px ${theme.mech}88)`}}
+              />
+              <circle cx={fx} cy={fy - 46} r={34 * t} fill={theme.panel} stroke={sp.later ? theme.dim : theme.mech} strokeWidth={3} />
+              <text x={fx} y={fy - 92} textAnchor="middle" fontFamily={theme.sans} fontSize={26} fill={sp.later ? theme.dim : theme.text}>
+                {sp.label}
+              </text>
+              <text x={fx} y={fy + 26} textAnchor="middle" fontFamily={theme.sans} fontSize={19} fill={theme.dim}>
+                {sp.zh}
+              </text>
+            </g>
+          );
+        })}
+        {/* 「记忆」辐条的「后面拆」小标 */}
+        {(() => {
+          const o = interpolate(frame - 6 - 3 * 8 - 10, [0, 10], [0, 1], {
+            extrapolateLeft: 'clamp',
+            extrapolateRight: 'clamp',
+          });
+          return o > 0 ? (
+            <text
+              x={CX + 0}
+              y={CY - 250 - 132}
+              textAnchor="middle"
+              fontFamily={theme.sans}
+              fontSize={20}
+              fill={theme.dim}
+              opacity={o}
+            >
+              {'后面单独拆'}
+            </text>
+          ) : null;
+        })()}
+      </svg>
+      {/* 标题卡（p0-07 收尾压入） */}
+      {title > 0 ? (
+        <div
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: 210,
+            textAlign: 'center',
+            opacity: title,
+            transform: `translateY(${(1 - title) * 18}px)`,
+          }}
+        >
+          <div style={{fontFamily: theme.serif, fontSize: 58, fontWeight: 700, color: theme.core}}>
+            {'执行层：一个循环，就是全部'}
+          </div>
+          <div
+            style={{
+              margin: '22px auto 0',
+              height: 3,
+              width: 560 * line,
+              background: theme.core,
+            }}
+          />
+          <div style={{marginTop: 16, fontFamily: theme.sans, fontSize: 23, color: theme.dim}}>
+            {'Claude Code Harness Engineering · 执行层'}
+          </div>
+        </div>
+      ) : null}
     </AbsoluteFill>
   );
 };
 
 export const P0Hook: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (fromId: string, toId?: string) => beatWindow(scene.sentences, scene.from, fromId, toId);
-  // at() = 时点锚（只取某句的起始帧，不是分镜 beat 窗口）。刻意不叫 w()——
-  // check_script --check-scenes 只把 w() 视为分镜窗口，混用会让时点锚刷「分镜陈旧」假 WARN。
   const at = (id: string) => w(id).from;
-  const bA = w('p0-01', 'p0-03');
-  const bB = w('p0-04', 'p0-06');
-  const relB = (id: string) => at(id) - bB.from;
-  const bC = w('p0-07', 'p0-08');
+  const bA = w('p0-01', 'p0-02');
+  const bB = w('p0-03', 'p0-05');
+  const bC = w('p0-06', 'p0-07');
   return (
     <AbsoluteFill>
-      <Sequence {...bA} name="0-A 终端打字与凝住">
-        {/* 凝住点落在 p0-03「它不会自己去跑」——光标停闪变灰 */}
-        <AskAndStall freezeAt={at('p0-03') - bA.from} />
+      <Sequence {...bA} name="0-A 停住与搬运">
+        <StallAndCarry carryAt={at('p0-02') - bA.from} />
       </Sequence>
-      <Sequence {...bB} name="0-B 复制粘贴往复">
-        <CopyPasteLoop roundStarts={[0, relB('p0-05'), relB('p0-06')]} />
+      <Sequence {...bB} name="0-B 命名帧：挽具">
+        <NamingFrame officialAt={at('p0-05') - bB.from} />
       </Sequence>
-      <Sequence {...bC} name="0-C 中间搬东西的是你">
-        <YouInTheMiddle questionAt={at('p0-08') - bC.from} />
-      </Sequence>
-      <Sequence {...w('p0-09', 'p0-10')} name="0-D 标题卡">
-        <TitleCard />
+      <Sequence {...bC} name="0-C 五辐条与标题">
+        <SupplySpokes titleAt={at('p0-07') - bC.from + 24} />
       </Sequence>
     </AbsoluteFill>
   );

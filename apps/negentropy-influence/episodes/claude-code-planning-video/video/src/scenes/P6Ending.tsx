@@ -152,10 +152,24 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; seriesAt: number}> 
               marginTop: 16,
             }}
           >
-            {'AI 的视野是安排出来的'}
+            {'规划层：模型的视野是安排出来的'}
           </div>
-          <div style={{fontFamily: theme.sans, fontSize: 27, color: theme.text, marginTop: 12}}>
-            {'写下来的计划，另开的桌子'}
+          {/* 下期预告卡：标题只在画面（反串线纪律） */}
+          <div
+            style={{
+              marginTop: 26,
+              padding: '13px 28px',
+              border: `1.5px solid ${theme.panelBorder}`,
+              borderRadius: 12,
+              background: theme.panel,
+            }}
+          >
+            <div style={{fontFamily: theme.sans, fontSize: 20, color: theme.dim, letterSpacing: 2}}>
+              {'下期 · 记忆层'}
+            </div>
+            <div style={{fontFamily: theme.serif, fontSize: 31, color: theme.text, marginTop: 5}}>
+              {'会丢的和不能丢的'}
+            </div>
           </div>
         </div>
       ) : null}

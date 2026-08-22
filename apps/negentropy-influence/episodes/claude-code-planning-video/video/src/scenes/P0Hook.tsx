@@ -230,25 +230,25 @@ export const P0Hook: React.FC<{scene: SceneRange}> = ({scene}) => {
   // at() = 时点锚（只取某句的起始帧，不是分镜 beat 窗口）。刻意不叫 w()——
   // check_script --check-scenes 只把 w() 视为分镜窗口，混用会让时点锚刷「分镜陈旧」假 WARN。
   const at = (id: string) => w(id).from;
-  const bA = w('p0-01', 'p0-04');
+  const bA = w('p0-01', 'p0-03');
   const relA = (id: string) => at(id) - bA.from;
-  const bB = w('p0-05', 'p0-08');
+  const bB = w('p0-04', 'p0-05');
   const relB = (id: string) => at(id) - bB.from;
-  const bC = w('p0-09', 'p0-12');
+  const bC = w('p0-06', 'p0-08');
   const relC = (id: string) => at(id) - bC.from;
   return (
     <AbsoluteFill>
       <Sequence {...bA} name="0-A 任务单滚出视野">
-        {/* p0-03 起上滚（「修着修着，它忘了」），残影在滚出瞬间定格 */}
-        <TaskScrollsOut scrollAt={relA('p0-03')} ghostAt={relA('p0-03') + 40} />
+        {/* p0-01 钩子即上滚；p0-03「被官方收回去」：收回钢印 */}
+        <TaskScrollsOut scrollAt={relA('p0-01') + 20} ghostAt={relA('p0-02')} />
       </Sequence>
       <Sequence {...bB} name="0-B 桌面色块流">
-        {/* p0-06「从头到尾重读」起色块开始堆；p0-08 任务单被挤出桌沿 */}
-        <DeskFillsUp fillPerFrame={0.22} shoveAt={relB('p0-07')} dropAt={relB('p0-08')} />
+        {/* p0-04「平铺在桌上」起色块堆高；p0-05 主线问句 */}
+        <DeskFillsUp fillPerFrame={0.22} shoveAt={relB('p0-04')} dropAt={relB('p0-05')} />
       </Sequence>
       <Sequence {...bC} name="0-C 主线问题与桌后之环">
-        {/* p0-09 抛问题（两行 serif）；p0-10 答案句 + 环在桌后描线（35% 透明） */}
-        <QuestionAndRingBehind qAt={relC('p0-09')} answerAt={relC('p0-10')} ringAt={relC('p0-10')} />
+        {/* p0-05 抛问题；p0-06 答案句 + 环在桌后描线（35% 透明）；p0-07 五样装置列队 */}
+        <QuestionAndRingBehind qAt={relC('p0-06')} answerAt={relC('p0-06') + 20} ringAt={relC('p0-06')} />
       </Sequence>
     </AbsoluteFill>
   );

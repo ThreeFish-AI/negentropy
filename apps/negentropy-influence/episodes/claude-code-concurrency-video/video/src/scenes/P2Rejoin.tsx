@@ -396,8 +396,8 @@ export const P2Rejoin: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bA = w('p2-01', 'p2-05');
   const bB = w('p2-06', 'p2-09');
   const bC = w('p2-10', 'p2-12');
-  const bD = w('p2-13', 'p2-19');
-  const bE = w('p2-20', 'p2-27');
+  const bD = w('p2-13', 'p2-15');
+  const bE = w('p2-16', 'p2-23');
   return (
     <AbsoluteFill>
       <Sequence {...bA} name="2-A 配对锁扣">
@@ -413,7 +413,7 @@ export const P2Rejoin: React.FC<{scene: SceneRange}> = ({scene}) => {
         <SevenTasks lightAt={at('p2-14') - bD.from} labelAt={at('p2-16') - bD.from} />
       </Sequence>
       <Sequence {...bE} name="2-E 取件码与天平">
-        <ClaimCheckScale matchAt={at('p2-21') - bE.from} scaleAt={at('p2-23') - bE.from} stampAt={at('p2-26') - bE.from} />
+        <ClaimCheckScale matchAt={at('p2-19') - bE.from} scaleAt={at('p2-21') - bE.from} stampAt={at('p2-23') - bE.from} />
       </Sequence>
     </AbsoluteFill>
   );

@@ -260,6 +260,23 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; seriesAt: number}> 
           <div style={{fontFamily: theme.sans, fontSize: 28, color: theme.text, marginTop: 14}}>
             {'让 AI 动手的四层机制'}
           </div>
+          {/* 下期预告卡：读 series.json 顺序（标题只在画面，口播为话题描述——反串线纪律） */}
+          <div
+            style={{
+              marginTop: 30,
+              padding: '14px 30px',
+              border: `1.5px solid ${theme.panelBorder}`,
+              borderRadius: 12,
+              background: theme.panel,
+            }}
+          >
+            <div style={{fontFamily: theme.sans, fontSize: 21, color: theme.dim, letterSpacing: 2}}>
+              {'下期 · 规划层'}
+            </div>
+            <div style={{fontFamily: theme.serif, fontSize: 33, color: theme.text, marginTop: 6}}>
+              {'模型的视野是安排出来的'}
+            </div>
+          </div>
         </div>
       ) : null}
       {/* 渐黑遮罩 */}

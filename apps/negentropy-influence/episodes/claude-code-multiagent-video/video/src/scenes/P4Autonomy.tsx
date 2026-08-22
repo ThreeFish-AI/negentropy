@@ -700,9 +700,9 @@ export const P4Autonomy: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (fromId: string, toId?: string) => beatWindow(scene.sentences, scene.from, fromId, toId);
   const at = (id: string) => w(id).from;
   const bA = w('p4-01', 'p4-03');
-  const bB = w('p4-04', 'p4-08');
-  const bC = w('p4-09', 'p4-13');
-  const bD = w('p4-14', 'p4-17');
+  const bB = w('p4-04', 'p4-09');
+  const bC = w('p4-10', 'p4-13');
+  const bD = w('p4-14', 'p4-16');
   const rel = (b: {from: number}, id: string) => at(id) - b.from;
   return (
     <AbsoluteFill>

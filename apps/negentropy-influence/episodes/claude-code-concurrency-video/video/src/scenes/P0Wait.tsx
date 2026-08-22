@@ -390,7 +390,7 @@ export const P0Wait: React.FC<{scene: SceneRange}> = ({scene}) => {
   const at = (id: string) => w(id).from;
   const bA = w('p0-01', 'p0-04');
   const bB = w('p0-05', 'p0-08');
-  const bC = w('p0-09', 'p0-17');
+  const bC = w('p0-09', 'p0-13');
   return (
     <AbsoluteFill>
       <Sequence {...bA} name="0-A 进度条与计费表">
@@ -400,7 +400,7 @@ export const P0Wait: React.FC<{scene: SceneRange}> = ({scene}) => {
         <LaundryLeave turnAt={at('p0-06') - bB.from} ringAt={at('p0-07') - bB.from} />
       </Sequence>
       <Sequence {...bC} name="0-C 三种开始与停摆的房间">
-        <ThreeStartsRoom twoAt={at('p0-10') - bC.from} roomAt={at('p0-14') - bC.from} />
+        <ThreeStartsRoom twoAt={at('p0-11') - bC.from} roomAt={at('p0-12') - bC.from} />
       </Sequence>
     </AbsoluteFill>
   );
