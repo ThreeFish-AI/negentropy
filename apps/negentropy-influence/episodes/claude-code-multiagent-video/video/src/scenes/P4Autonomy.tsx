@@ -31,7 +31,7 @@ const DispatchFatigue: React.FC<{cycleAt: number}> = ({cycleAt}) => {
   };
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="s17 · Autonomous Agents" tagline="Claim Your Own Work" accent={theme.peer} />
+      <SceneTag chapter="Autonomous Agents" tagline="Claim Your Own Work" accent={theme.peer} />
       {!showCycle ? (
         <div style={{position: 'relative', width: 1240, height: 420}}>
           {/* 领队（左）：一张张派 */}

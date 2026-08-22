@@ -387,3 +387,96 @@ def test_no_storyboard_rule6_silent(tmp_path):
     repo = build_repo(tmp_path, [S("t", EP1)], {}, scene_names={EP1["slug"]: None})
     rc, out = run_check(repo)
     assert rc == 0 and "规则6" not in out
+
+
+# ── 规则 7 · 去站点化（2026-08-23 系列改造引入）──────────────────────────────
+#: 强标识（learn.shareai / Learn Claude Code / shareAI / 课程 / 章号 s01–s20）
+#: 全系列执法；「站点」一词只对课程系执法（论文系用它指论文配套网站）。
+COURSE_S = {
+    "episode": 1,
+    "slug": "ep-course",
+    "path": "episodes/ep-course",
+    "title": "课程系首集",
+    "accents": ["#F5C542"],
+    "paper": {},
+}
+
+
+def test_rule7_course_word_in_narration_fails(tmp_path):
+    repo = build_repo(tmp_path, [S("claude-code-explained", COURSE_S)], {})
+    (ep_root(repo, COURSE_S) / "script/narration.md").write_text(
+        "## P0\n\n- [p0-02] 课程作者拆过源码，他说……\n", encoding="utf-8"
+    )
+    rc, out = run_check(repo)
+    assert rc == 1 and "规则7" in out and "课程" in out
+
+
+def test_rule7_chapter_id_in_storyboard_fails(tmp_path):
+    repo = build_repo(tmp_path, [S("claude-code-explained", COURSE_S)], {})
+    (ep_root(repo, COURSE_S) / "script/storyboard.md").write_text(
+        "## P0\n\n- 0-A 开场（对应 s01）\n", encoding="utf-8"
+    )
+    rc, out = run_check(repo)
+    assert rc == 1 and "规则7" in out and "s01" in out
+
+
+def test_rule7_site_url_in_scene_fails(tmp_path):
+    repo = build_repo(tmp_path, [S("claude-code-explained", COURSE_S)], {})
+    scene = ep_root(repo, COURSE_S) / "video/src/scenes/P0Hook.tsx"
+    scene.write_text(
+        "export const P0Hook = () => null;\n// 信源：learn.shareai.run/zh/s01/\n",
+        encoding="utf-8",
+    )
+    rc, out = run_check(repo)
+    assert rc == 1 and "规则7" in out and "learn.shareai" in out
+
+
+def test_rule7_anonymized_attribution_passes(tmp_path):
+    """三级证据归属匿名化后的合法形态：有人拆过它的源码。"""
+    repo = build_repo(tmp_path, [S("claude-code-explained", COURSE_S)], {})
+    (ep_root(repo, COURSE_S) / "script/narration.md").write_text(
+        "## P0\n\n- [p0-02] 有人拆过它的源码，他说……\n", encoding="utf-8"
+    )
+    rc, out = run_check(repo)
+    assert rc == 0, out
+
+
+def test_rule7_research_layer_not_policed(tmp_path):
+    """内部取证层保留具名归属（research/ 不进门）——两层口径的执法边界。"""
+    repo = build_repo(tmp_path, [S("claude-code-explained", COURSE_S)], {})
+    (ep_root(repo, COURSE_S) / "research").mkdir(parents=True)
+    (ep_root(repo, COURSE_S) / "research/source-notes.md").write_text(
+        "课程作者拆过源码（具名归属，仓内义务）。\n", encoding="utf-8"
+    )
+    rc, out = run_check(repo)
+    assert rc == 0, out
+
+
+def test_rule7_zhandian_word_course_series_fails(tmp_path):
+    """「站点」在课程系是站点指称——FAIL。"""
+    repo = build_repo(tmp_path, [S("claude-code-explained", COURSE_S)], {})
+    (ep_root(repo, COURSE_S) / "script/narration.md").write_text(
+        "## P0\n\n- [p0-02] 配套站点上还有一张图。\n", encoding="utf-8"
+    )
+    rc, out = run_check(repo)
+    assert rc == 1 and "规则7" in out and "站点" in out
+
+
+def test_rule7_zhandian_word_paper_series_passes(tmp_path):
+    """「站点」在论文系指论文配套网站——正常用法，静默。"""
+    repo = build_repo(tmp_path, [S("self-evolution", EP1)], {})
+    (ep_root(repo, EP1) / "script/narration.md").write_text(
+        "## P0\n\n- [p0-02] 官方工程站点统计出的三张活地图。\n", encoding="utf-8"
+    )
+    rc, out = run_check(repo)
+    assert rc == 0, out
+
+
+def test_rule7_strong_marker_in_paper_series_fails(tmp_path):
+    """强标识全系列执法：论文系出现课程章号同样异常。"""
+    repo = build_repo(tmp_path, [S("self-evolution", EP1)], {})
+    (ep_root(repo, EP1) / "script/storyboard.md").write_text(
+        "## P0\n\n- 0-A 开场（对应 s13 后台任务）\n", encoding="utf-8"
+    )
+    rc, out = run_check(repo)
+    assert rc == 1 and "规则7" in out and "s13" in out

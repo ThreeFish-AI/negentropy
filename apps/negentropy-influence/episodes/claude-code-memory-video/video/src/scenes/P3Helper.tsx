@@ -177,7 +177,7 @@ const HelperDiscipline: React.FC<{firstAt: number; lastAt: number; handAt: numbe
         })}
       </div>
       <Footnote delay={firstAt}>
-        {'指令原文由课程作者从产品里抄出（首尾各一遍）—— 课程作者的源码分析'}
+        {'指令原文由第三方从产品里抄出（首尾各一遍）—— 第三方的源码分析'}
       </Footnote>
     </AbsoluteFill>
   );
@@ -280,7 +280,7 @@ const DraftThenFair: React.FC<{draftAt: number; fairAt: number; tearAt: number}>
           </div>
         </div>
       </div>
-      <Footnote delay={tearAt}>{'草稿写完就撕掉，不留在桌上 —— 仓库实测（s08 摘要双标签）'}</Footnote>
+      <Footnote delay={tearAt}>{'草稿写完就撕掉，不留在桌上 —— 仓库实测（摘要双标签）'}</Footnote>
     </AbsoluteFill>
   );
 };
@@ -404,7 +404,7 @@ const SalvageHook: React.FC<{openAt: number; hookAt: number; honestAt: number}> 
             }),
           }}
         >
-          {'本段为课程作者的源码分析（产品行为，教学版未做）'}
+          {'本段为第三方的源码分析（产品行为，教学版未做）'}
         </div>
       </div>
     </AbsoluteFill>

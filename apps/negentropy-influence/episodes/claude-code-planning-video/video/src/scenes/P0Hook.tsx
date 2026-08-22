@@ -21,7 +21,7 @@ const TaskScrollsOut: React.FC<{scrollAt: number; ghostAt: number}> = ({scrollAt
   });
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="s05 · TodoWrite" tagline="An Agent Without a Plan Drifts Off Course" accent={theme.view} />
+      <SceneTag chapter="TodoWrite" tagline="An Agent Without a Plan Drifts Off Course" accent={theme.view} />
       <div style={{transform: `translateY(${drift}px)`}}>
         <Terminal
           width={1240}

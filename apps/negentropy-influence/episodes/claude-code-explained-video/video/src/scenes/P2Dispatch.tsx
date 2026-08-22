@@ -1,4 +1,4 @@
-/** P2 加一个工具，只改一行（分镜 2-A…2-H）—— 站点「Tool Dispatch Map」的概念重建
+/** P2 加一个工具，只改一行（分镜 2-A…2-H）—— 开源教学素材「Tool Dispatch Map」的概念重建
  *  重点视觉演绎：并发安全 ≠ 只读（真值表对撞）、连续块分批、读文件落盘自循环。 */
 import React from 'react';
 import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig} from 'remotion';
@@ -37,7 +37,7 @@ const ClumsyCommands: React.FC<{typoAt: number}> = ({typoAt}) => {
   const shake = bad ? Math.sin((frame - typoAt) / 1.6) * 3 : 0;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="s02 · Tool Use" tagline="Add a Tool, Add Just One Line" />
+      <SceneTag chapter="Tool Use" tagline="Add a Tool, Add Just One Line" />
       <CornerRing />
       <div style={{display: 'flex', alignItems: 'center', gap: 44}}>
         <Panel accent={theme.mech} style={{width: 330, padding: '20px 24px'}}>
@@ -344,7 +344,7 @@ const ConcurrencyTable: React.FC<{
         </div>
       ) : null}
       <Footnote delay={splitAt}>
-        {'isConcurrencySafe ≠ isReadOnly —— 课程作者的源码分析'}
+        {'isConcurrencySafe ≠ isReadOnly —— 第三方的源码分析'}
       </Footnote>
     </AbsoluteFill>
   );

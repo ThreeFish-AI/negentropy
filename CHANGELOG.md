@@ -3,6 +3,8 @@
 本文件遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 约定，版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
 ## [Unreleased]
+- **《Claude Code 通俗全解》更名《Claude Code Harness Engineering》+ 去站点化改造启动**：系列定位从「介绍开源课程」升级为「拆解 harness 工程」（官方术语表已正式定义 Agentic harness，how-it-works 页明确「Claude Code 是 harness、Claude 是里面的模型」）。五集标题统一收进五层命名体系——[《执行层：一个循环，就是全部》](apps/negentropy-influence/episodes/claude-code-explained-video/README.md) → [《规划层：模型的视野是安排出来的》](apps/negentropy-influence/episodes/claude-code-planning-video/README.md) → [《记忆层：会丢的和不能丢的》](apps/negentropy-influence/episodes/claude-code-memory-video/README.md) → [《时机层：谁来按下开始》](apps/negentropy-influence/episodes/claude-code-concurrency-video/README.md) → [《协作层：从一个到一群》](apps/negentropy-influence/episodes/claude-code-multiagent-video/README.md)（标题只进画面与元数据不进口播，配音成本零）。配套基建：`check_series.py` 新增**规则 7 去站点化门**（观众可见层禁课程站点标识，按系列豁免论文系「站点」一词，8 个新测试用例）；skills/06 沉淀五层 HarnessStack 母题规格 + 五集统一动效语法 + 信源卡新四行；5 集 716 句配音缓存自 istanbul-v6 迁移并验证 100% 命中（`tts --plan` 全零待合成）。
+
 
 ### Added
 

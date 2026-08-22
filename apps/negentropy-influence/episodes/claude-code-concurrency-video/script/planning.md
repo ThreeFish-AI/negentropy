@@ -1,4 +1,4 @@
-# 策划案：《AI 会自己开工吗？后台与定时》
+# 策划案：《时机层：谁来按下开始》
 
 > 事实源：[../research/source-notes.md](../research/source-notes.md)（信源清单 [../research/sources.toml](../research/sources.toml)）
 > 逐字稿 SSOT：[narration.md](./narration.md) · 分镜：[storyboard.md](./storyboard.md)
@@ -8,7 +8,7 @@
 
 | 项 | 定义 |
 |---|---|
-| 系列 | Claude Code 通俗全解（独立成片） |
+| 系列 | Claude Code Harness Engineering（独立成片） |
 | 平台 / 形态 | B 站 / YouTube 1080p30，代码动画 + 本人克隆音色，无 BGM、无 emoji |
 | 时长 | `target_minutes = [13.0, 14.6]`；≈3900 字 |
 | 受众 | 普通人：都体验过「让 AI 装个依赖然后干等」；没想过「等待」本身是被设计掉的 |

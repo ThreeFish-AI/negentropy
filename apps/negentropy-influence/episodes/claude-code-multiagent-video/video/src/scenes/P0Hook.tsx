@@ -409,7 +409,7 @@ export const P0Hook: React.FC<{scene: SceneRange}> = ({scene}) => {
   return (
     <AbsoluteFill>
       <Sequence {...bA} name="0-A 清单溢出与孤环">
-        <SceneTag chapter="s15 · Agent Teams" tagline="One Agent Is Not Enough" accent={theme.peer} />
+        <SceneTag chapter="Agent Teams" tagline="One Agent Is Not Enough" accent={theme.peer} />
         {/* 拉镜点在 p0-03「一个注意力，盖不住一整个后端」 */}
         <OverflowThenZoom zoomAt={at('p0-03') - bA.from} />
       </Sequence>

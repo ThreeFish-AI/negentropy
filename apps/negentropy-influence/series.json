@@ -77,17 +77,17 @@
     },
     {
       "id": "claude-code-explained",
-      "title": "Claude Code 通俗全解",
+      "title": "Claude Code Harness Engineering",
       "sourceKind": "course",
-      "rule": "与自进化系列完全独立：两个系列的口播互不引用（校验器规则 1 跨系列全局生效），发布顺序与视觉契约各自独立（规则 2/3/4 按系列内判定）。信源为在线课程 + 代码仓库而非论文，故 episode 用 source 字段（含 pinnedRef 与访问日期）而非 paper 字段——证据等级分层见各集 research/source-notes.md。",
+      "rule": "与自进化系列完全独立：两个系列的口播互不引用（校验器规则 1 跨系列全局生效），发布顺序与视觉契约各自独立（规则 2/3/4 按系列内判定）。信源为官方文档 + Anthropic 工程博客 + 开源课程仓库（站点 20 章/5 阶段只作组织骨架，观众层匿名化——规则 7），故 episode 用 source 字段（含 pinnedRef 与访问日期）而非 paper 字段——证据等级分层见各集 research/source-notes.md。",
       "episodes": [
         {
           "episode": 1,
           "slug": "claude-code-explained-video",
           "path": "episodes/claude-code-explained-video",
-          "title": "拆开 Claude Code：让 AI 动手的四层机制",
-          "topic": "工具与执行的四层机制",
-          "cardSub": "工具与执行 · 四层",
+          "title": "执行层：一个循环，就是全部",
+          "topic": "工具与执行：把模型装进挽具",
+          "cardSub": "执行层 · 循环",
           "accents": [
             "#D97757",
             "#64C4C0",
@@ -109,9 +109,9 @@
           "episode": 2,
           "slug": "claude-code-planning-video",
           "path": "episodes/claude-code-planning-video",
-          "title": "AI 的视野是安排出来的：写下来的计划，另开的桌子",
-          "topic": "规划与协调：谁来安排模型看到什么",
-          "cardSub": "规划与协调 · 视野",
+          "title": "规划层：模型的视野是安排出来的",
+          "topic": "规划与协调：谁替它安排视野",
+          "cardSub": "规划层 · 视野",
           "accents": [
             "#9C90EE"
           ],
@@ -131,9 +131,9 @@
           "episode": 3,
           "slug": "claude-code-memory-video",
           "path": "episodes/claude-code-memory-video",
-          "title": "AI 的记忆：会丢的和不能丢的",
-          "topic": "记忆管理：压缩与持久层",
-          "cardSub": "记忆管理 · 两层",
+          "title": "记忆层：会丢的和不能丢的",
+          "topic": "记忆管理：窗口内外的两本账",
+          "cardSub": "记忆层 · 两本账",
           "accents": [
             "#A9C46C"
           ],
@@ -153,9 +153,9 @@
           "episode": 4,
           "slug": "claude-code-concurrency-video",
           "path": "episodes/claude-code-concurrency-video",
-          "title": "AI 会自己开工吗？后台与定时",
-          "topic": "并发与调度：谁来按下开始",
-          "cardSub": "并发与调度 · 谁按的开始",
+          "title": "时机层：谁来按下开始",
+          "topic": "并发与调度：谁替它看表",
+          "cardSub": "时机层 · 看表",
           "accents": [
             "#7FB2E0"
           ],
@@ -175,9 +175,9 @@
           "episode": 5,
           "slug": "claude-code-multiagent-video",
           "path": "episodes/claude-code-multiagent-video",
-          "title": "一群 AI 怎么干活：看板、信箱与各自的桌子",
-          "topic": "多 Agent 平台：从一个到一群",
-          "cardSub": "多 Agent 平台 · 从一个到一群",
+          "title": "协作层：从一个到一群",
+          "topic": "多 Agent 协作：谁持有计划",
+          "cardSub": "协作层 · 计划",
           "accents": [
             "#D9B36B"
           ],

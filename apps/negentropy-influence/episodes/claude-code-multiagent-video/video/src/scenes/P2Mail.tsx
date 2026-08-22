@@ -26,7 +26,7 @@ const TempVsTeammate: React.FC<{fadeAt: number; seatAt: number}> = ({fadeAt, sea
   const seat = phase(frame, seatAt, 16);
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="s15 · Agent Teams" tagline="Teammates Are Not Temps" accent={theme.peer} />
+      <SceneTag chapter="Agent Teams" tagline="Teammates Are Not Temps" accent={theme.peer} />
       <div style={{display: 'flex', alignItems: 'center', gap: 120}}>
         {/* 左：临时工剪影（干完即走）——淡出 */}
         <div style={{width: 380, textAlign: 'center', opacity: 1 - fade}}>
@@ -303,7 +303,7 @@ const MailboxRow: React.FC<{sendAt: number; readAt: number}> = ({sendAt, readAt}
           </div>
         ) : null}
       </div>
-      <Footnote delay={readAt}>{'写文件带锁，防两个队友投信写串行——课程作者的源码分析'}</Footnote>
+      <Footnote delay={readAt}>{'写文件带锁，防两个队友投信写串行——第三方的源码分析'}</Footnote>
     </AbsoluteFill>
   );
 };
@@ -356,7 +356,7 @@ const FifteenTypes: React.FC<{wallAt: number; shrinkAt: number}> = ({wallAt, shr
         {'往文件里加一行带类型的字'}
       </div>
       {shrink < 0.5 ? (
-        <Footnote delay={wallAt + 10}>{'消息类型 15 种——课程作者的源码分析'}</Footnote>
+        <Footnote delay={wallAt + 10}>{'消息类型 15 种——第三方的源码分析'}</Footnote>
       ) : null}
     </AbsoluteFill>
   );

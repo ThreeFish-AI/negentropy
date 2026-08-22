@@ -1,4 +1,4 @@
-/** P4 挂在循环上，不写进循环里（分镜 4-A…4-H）—— 站点「Hook Workbench」的概念重建
+/** P4 挂在循环上，不写进循环里（分镜 4-A…4-H）—— 开源教学素材「Hook Workbench」的概念重建
  *  4-E 刻意「无动效」表达「循环是故意保持无聊的」；4-G 是全片安全主题的收口。 */
 import React from 'react';
 import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig} from 'remotion';
@@ -37,7 +37,7 @@ const NeedsPierce: React.FC<{needAt: number; pierceAt: number}> = ({needAt, pier
   });
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center', flexDirection: 'row', gap: 80}}>
-      <SceneTag chapter="s04 · Hooks" tagline="Hang on the Loop, Don't Write into It" />
+      <SceneTag chapter="Hooks" tagline="Hang on the Loop, Don't Write into It" />
       <div style={{position: 'relative'}}>
         <LoopRing size={400} draw={1} dotProgress={dot} />
         {pierce > 0.4 ? (
@@ -424,7 +424,7 @@ const EventMatrix: React.FC<{countAt: number; labelAt: number}> = ({countAt, lab
           {'个时机（教学版只讲了 4 个）'}
         </span>
       </div>
-      <Footnote delay={labelAt}>{'27 hook events —— 课程作者的源码分析'}</Footnote>
+      <Footnote delay={labelAt}>{'27 hook events —— 第三方的源码分析'}</Footnote>
     </AbsoluteFill>
   );
 };
@@ -563,7 +563,7 @@ const StampClash: React.FC<{
         ) : null}
       </div>
       <Footnote delay={arrowAt}>
-        {'hook allow 不能绕过 settings 的 deny/ask —— 课程作者的源码分析'}
+        {'hook allow 不能绕过 settings 的 deny/ask —— 第三方的源码分析'}
       </Footnote>
     </AbsoluteFill>
   );

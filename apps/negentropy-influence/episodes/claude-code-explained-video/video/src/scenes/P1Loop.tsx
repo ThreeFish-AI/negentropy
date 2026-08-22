@@ -1,4 +1,4 @@
-/** P1 一个循环，就是全部（分镜 1-A…1-F）—— 站点「Agent While-Loop」可视化的概念重建
+/** P1 一个循环，就是全部（分镜 1-A…1-F）—— 开源教学素材「Agent While-Loop」可视化的概念重建
  *  ★ 本幕建立全片视觉锚：LoopRing 的色与线宽从此不再改变。 */
 import React from 'react';
 import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig} from 'remotion';
@@ -32,7 +32,7 @@ const RingBirth: React.FC<{yesAt: number; noAt: number}> = ({yesAt, noAt}) => {
   const active = frame >= yesAt && frame < noAt ? 2 : undefined;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="s01 · Agent Loop" tagline="One Loop Is All You Need" />
+      <SceneTag chapter="Agent Loop" tagline="One Loop Is All You Need" />
       <LoopRing size={520} draw={draw} dotProgress={draw > 0.98 ? dot : undefined} activeNode={active} exitPull={pull} />
       <Footnote delay={yesAt}>
         {'有 tool_use → 继续　·　没有 → 退出'}
@@ -312,7 +312,7 @@ const UnreliableFlag: React.FC<{crossAt: number; quoteAt: number}> = ({crossAt, 
         ) : null}
       </div>
       <Footnote delay={crossAt}>
-        {'stop_reason is unreliable —— 课程作者的源码分析 · 站点教学版仍按停止标记判定，仓库版已改为查内容块'}
+        {'stop_reason is unreliable —— 第三方的源码分析 · 开源教学版仍按停止标记判定，官方实现已改为查内容块'}
       </Footnote>
     </AbsoluteFill>
   );
@@ -330,16 +330,16 @@ const TenDrawers: React.FC<{restAt: number; chapterAt: number; recedeAt: number}
   const dot = useRingDot(2.5);
   // 章号只是「每个抽屉都指向后面某一章」的视觉证据，不进口播（活数据纪律）
   const drawers = [
-    {label: '消息列表', ch: 's01'},
-    {label: '工具与权限上下文', ch: 's02'},
-    {label: '压缩状态追踪', ch: 's08'},
-    {label: '输出补救次数', ch: 's11'},
-    {label: '本轮是否压缩过', ch: 's08'},
-    {label: '输出上限覆盖', ch: 's11'},
-    {label: '后台摘要', ch: 's08'},
-    {label: '钩子拦过停机', ch: 's04'},
-    {label: '轮数计数', ch: 's01'},
-    {label: '上次继续原因', ch: 's11'},
+    {label: '消息列表', ch: '循环'},
+    {label: '工具与权限上下文', ch: '工具'},
+    {label: '压缩状态追踪', ch: '压缩'},
+    {label: '输出补救次数', ch: '补救'},
+    {label: '本轮是否压缩过', ch: '压缩'},
+    {label: '输出上限覆盖', ch: '补救'},
+    {label: '后台摘要', ch: '压缩'},
+    {label: '钩子拦过停机', ch: '钩子'},
+    {label: '轮数计数', ch: '循环'},
+    {label: '上次继续原因', ch: '补救'},
   ];
   const recede = interpolate(frame - recedeAt, [0, 24], [0, 1], {
     extrapolateLeft: 'clamp',
@@ -412,7 +412,7 @@ const TenDrawers: React.FC<{restAt: number; chapterAt: number; recedeAt: number}
           <LoopRing size={340} draw={1} dotProgress={dot} showExit={false} />
         </div>
       ) : null}
-      <Footnote delay={chapterAt}>{'State 10 字段 —— 课程作者的源码分析'}</Footnote>
+      <Footnote delay={chapterAt}>{'State 10 字段 —— 第三方的源码分析'}</Footnote>
     </AbsoluteFill>
   );
 };

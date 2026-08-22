@@ -1,4 +1,4 @@
-/** P3 执行之前，先过闸门（分镜 3-A…3-G）—— 站点「Permission Desk」的概念重建
+/** P3 执行之前，先过闸门（分镜 3-A…3-G）—— 开源教学素材「Permission Desk」的概念重建
  *  三种结果不各占一色：allow 回 core（放行=回主干）、ask 用 mech、deny 用 danger。 */
 import React from 'react';
 import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig} from 'remotion';
@@ -34,7 +34,7 @@ const UnguardedShell: React.FC<{frameAt: number; cmdAt: number; execAt: number}>
   const dim = showCmd ? 0.55 : 1;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="s03 · Permission" tagline="Check Permissions Before Execution" />
+      <SceneTag chapter="Permission" tagline="Check Permissions Before Execution" />
       <div style={{opacity: dim, display: 'flex', alignItems: 'center', gap: 26}}>
         {/* 工作目录框：把四张 file tool 收进去 */}
         <div
@@ -225,7 +225,7 @@ const AskAndPass: React.FC<{askAt: number; passAt: number}> = ({askAt, passAt}) 
           </div>
         </div>
       ) : null}
-      {/* 三判定小抄（站点 Permission Desk 的信息结构）：allow / ask / deny 各带真实载荷 ——
+      {/* 三判定小抄（开源教学素材 Permission Desk 的信息结构）：allow / ask / deny 各带真实载荷 ——
           本幕上方只演了 ask 与 allow，这里把第三条补齐，路由器的三种出口一目了然。
           落位约束：小抄出现时（t2 > 0.4）闸门已整体上移 -150，GateRouter 的闸门名
           （`y - h - 18`）落在 y≈235–258、闸柱顶到 y≈272——小抄必须整体收在其上方，
@@ -422,7 +422,7 @@ const FourResults: React.FC<{fourthAt: number; arcAt: number}> = ({fourthAt, arc
           </svg>
         ) : null}
       </div>
-      <Footnote delay={fourthAt}>{'PermissionResult 四种 —— 课程作者的源码分析'}</Footnote>
+      <Footnote delay={fourthAt}>{'PermissionResult 四种 —— 第三方的源码分析'}</Footnote>
     </AbsoluteFill>
   );
 };
@@ -571,7 +571,7 @@ const EightSources: React.FC<{stackAt: number; arrowAt: number; overrideAt: numb
         ))}
       </div>
       <Footnote delay={arrowAt}>
-        {'user < project < local < flag < policy —— 课程作者的源码分析'}
+        {'user < project < local < flag < policy —— 第三方的源码分析'}
       </Footnote>
     </AbsoluteFill>
   );

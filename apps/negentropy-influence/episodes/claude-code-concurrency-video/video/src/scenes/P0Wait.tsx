@@ -80,7 +80,7 @@ const StallBar: React.FC<{tickAt: number; costAt: number; zeroAt: number}> = ({t
   });
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="s13 · Background Tasks" tagline="Slow Operations Go to the Background" />
+      <SceneTag chapter="Background Tasks" tagline="Slow Operations Go to the Background" />
       <div style={{display: 'flex', alignItems: 'center', gap: 70}}>
         <Terminal
           width={820}

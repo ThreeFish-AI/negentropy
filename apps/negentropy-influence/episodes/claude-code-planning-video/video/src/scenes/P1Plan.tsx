@@ -1,4 +1,4 @@
-/** P1 把清单钉在桌上（分镜 1-A…1-D）—— s05 TodoWrite
+/** P1 把清单钉在桌上（分镜 1-A…1-D）—— TodoWrite
  *  三态清单卡滑入 → 钉进对话流（后续色块被顶开）→ 两行 diff + 金句 → 三轮催更印章。 */
 import React from 'react';
 import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig} from 'remotion';
@@ -25,7 +25,7 @@ const ChecklistSlidesIn: React.FC<{iconAt: number[]}> = ({iconAt}) => {
   ];
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="s05 · todo_write" tagline="三态：pending / in_progress / completed" accent={theme.view} />
+      <SceneTag chapter="todo_write" tagline="三态：pending / in_progress / completed" accent={theme.view} />
       <Desk width={1380} height={560} style={{opacity: deskIn}}>
         <div style={{position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', paddingLeft: 90}}>
           {/* 左侧：桌面上已有的对话流（安静地垫底） */}
@@ -271,13 +271,13 @@ const TwoLineDiff: React.FC<{quoteAt: number}> = ({quoteAt}) => {
                   {'是规划能力。'}
                 </div>
                 <div style={{fontFamily: theme.sans, fontSize: 21, color: theme.dim, marginTop: 16}}>
-                  {'—— 课程作者（s05 README）'}
+                  {'—— 教学版 README'}
                 </div>
               </Panel>
             </div>
           </>
         ) : (
-          <QuoteCard zh="增加的不是执行能力，是规划能力。" cite="s05 README 关键洞察" accent={theme.view} />
+          <QuoteCard zh="增加的不是执行能力，是规划能力。" cite="教学版 README 关键洞察" accent={theme.view} />
         )}
       </div>
     </AbsoluteFill>

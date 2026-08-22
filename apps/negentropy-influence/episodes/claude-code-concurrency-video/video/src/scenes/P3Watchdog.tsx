@@ -122,7 +122,7 @@ const DogWatching: React.FC<{stopAt: number}> = ({stopAt}) => {
   const frame = useCurrentFrame();
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="s13 · Background Tasks" tagline="A Dog Watches Every Task" />
+      <SceneTag chapter="Background Tasks" tagline="A Dog Watches Every Task" />
       <div style={{display: 'flex', alignItems: 'center', gap: 50}}>
         <div style={{position: 'relative'}}>
           <OutputLine stopAt={stopAt} focusAt={9999} />
@@ -164,7 +164,7 @@ const DogRises: React.FC<{watchAt: number; riseAt: number; contrastAt: number; q
   });
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="s13 · Background Tasks" tagline="Not Speed. Aliveness." />
+      <SceneTag chapter="Background Tasks" tagline="Not Speed. Aliveness." />
       <div style={{display: 'flex', alignItems: 'center', gap: 66, opacity: 1 - quoteO * 0.7}}>
         {/* 45 秒刻度盘 */}
         <div style={{position: 'relative'}}>
@@ -253,7 +253,7 @@ const DogRises: React.FC<{watchAt: number; riseAt: number; contrastAt: number; q
           {'不猜快慢，只看死活'}
         </div>
       ) : null}
-      <Footnote delay={riseAt}>{'看门狗 · 45 秒停滞检测 —— 课程作者的源码分析'}</Footnote>
+      <Footnote delay={riseAt}>{'看门狗 · 45 秒停滞检测 —— 第三方的源码分析'}</Footnote>
     </AbsoluteFill>
   );
 };

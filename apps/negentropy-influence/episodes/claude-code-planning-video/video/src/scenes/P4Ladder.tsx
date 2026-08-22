@@ -1,4 +1,4 @@
-/** P4 桌边的补救梯（分镜 4-A…4-E）—— s11 Error Recovery
+/** P4 桌边的补救梯（分镜 4-A…4-E）—— Error Recovery
  *  三级梯垂下 → 话没说完（断截 + 8K→64K 标尺 + 续写×3）→ 桌上太满（压缩被拦）
  *  → 门外施工（等待条翻倍 0.5→32s 封顶 + 名牌翻面）→ 收益递减「停」章。 */
 import React from 'react';
@@ -52,7 +52,7 @@ const LadderDrops: React.FC<{dropAt: number}> = ({dropAt}) => {
   const drop = spring({frame: frame - dropAt, fps: 30, config: {damping: 11}});
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="s11 · Error Recovery" tagline="错误不是终点，是重试的起点" accent={theme.deny} />
+      <SceneTag chapter="Error Recovery" tagline="错误不是终点，是重试的起点" accent={theme.deny} />
       <div style={{position: 'relative', width: 1300, height: 620}}>
         {/* 桌子 */}
         <div style={{position: 'absolute', left: 60, top: 200}}>
@@ -203,7 +203,7 @@ const TierOne: React.FC<{snapAt: number; rulerAt: number; contAt: number[]; seal
           ) : null}
         </div>
       </div>
-      <Footnote delay={rulerAt}>{'续写提示原文：query.ts:1225 —— 课程作者的源码分析'}</Footnote>
+      <Footnote delay={rulerAt}>{'续写提示原文：query.ts:1225 —— 第三方的源码分析'}</Footnote>
     </AbsoluteFill>
   );
 };
@@ -539,7 +539,7 @@ const TierThree: React.FC<{warnAt: number; waitAt: number; flipAt: number; jitte
         </div>
       </div>
       <Footnote delay={flipAt}>
-        {'恢复路径十几种（实测 17）· 教学版挑最常见的三种 —— 课程作者的源码分析'}
+        {'恢复路径十几种（实测 17）· 教学版挑最常见的三种 —— 第三方的源码分析'}
       </Footnote>
     </AbsoluteFill>
   );

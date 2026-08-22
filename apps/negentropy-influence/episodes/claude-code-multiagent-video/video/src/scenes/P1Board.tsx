@@ -113,7 +113,7 @@ const BoardRises: React.FC<{cardsAt: number; arrowsAt: number}> = ({cardsAt, arr
   ];
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="s12 · Task System" tagline="Big Goal, Small Files, On a Board" accent={theme.mech} />
+      <SceneTag chapter="Task System" tagline="Big Goal, Small Files, On a Board" accent={theme.mech} />
       <div style={{position: 'relative', width: 1460, height: 620}}>
         {/* 看板框架描线（pathLength 归一化，红线三） */}
         <svg width={1460} height={620} style={{position: 'absolute', left: 0, top: 0}}>
@@ -589,7 +589,7 @@ const FileLock: React.FC<{lockAt: number; handAt: number; countAt: number}> = ({
         </div>
       </div>
       <Footnote delay={lockAt + 4}>
-        {'认领包进文件锁 · 高水位编号——课程作者的源码分析'}
+        {'认领包进文件锁 · 高水位编号——第三方的源码分析'}
       </Footnote>
     </AbsoluteFill>
   );

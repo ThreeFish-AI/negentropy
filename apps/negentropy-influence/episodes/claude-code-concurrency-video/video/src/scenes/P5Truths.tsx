@@ -49,7 +49,7 @@ const Stampede: React.FC<{fireAt: number; crashAt: number}> = ({fireAt, crashAt}
   const jit = (i: number) => Math.sin((frame / 3.1) + i * 2.4) * 7 * crash;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="s14 · Cron Scheduler" tagline="Everyone Fires at 9:00" />
+      <SceneTag chapter="Cron Scheduler" tagline="Everyone Fires at 9:00" />
       <svg width={1600} height={560} style={{overflow: 'visible'}}>
         {/* 一排表：全部指 9:00（时针 270°、分针 270°） */}
         {Array.from({length: N}, (_, i) => (
@@ -100,7 +100,7 @@ const Stampede: React.FC<{fireAt: number; crashAt: number}> = ({fireAt, crashAt}
           </text>
         </g>
       </svg>
-      <Footnote delay={crashAt}>{'全世界的定时器都卡整点 —— 课程作者的源码分析'}</Footnote>
+      <Footnote delay={crashAt}>{'全世界的定时器都卡整点 —— 第三方的源码分析'}</Footnote>
     </AbsoluteFill>
   );
 };
@@ -133,7 +133,7 @@ const DeterministicJitter: React.FC<{staggerAt: number; randomAt: number; earlyA
   });
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="s14 · Cron Scheduler" tagline="Computed, Not Random" />
+      <SceneTag chapter="Cron Scheduler" tagline="Computed, Not Random" />
       <svg width={1700} height={620} style={{overflow: 'visible'}}>
         {/* 错峰一排表：各按固定偏移「落下」 */}
         {Array.from({length: N}, (_, i) => (
@@ -219,7 +219,7 @@ const RetireStamp: React.FC<{flipAt: number; stampAt: number}> = ({flipAt, stamp
   }) : 0;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="s14 · Cron Scheduler" tagline="Retire After Seven Silent Days" />
+      <SceneTag chapter="Cron Scheduler" tagline="Retire After Seven Silent Days" />
       <div style={{display: 'flex', alignItems: 'center', gap: 100}}>
         {/* 日历：翻页计数 */}
         <div style={{position: 'relative', textAlign: 'center'}}>
@@ -305,7 +305,7 @@ const HonestEdge: React.FC<{offAt: number; drawerAt: number}> = ({offAt, drawerA
   });
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="s14 · Cron Scheduler" tagline="The Clock Lives Inside" />
+      <SceneTag chapter="Cron Scheduler" tagline="The Clock Lives Inside" />
       <div style={{display: 'flex', alignItems: 'center', gap: 70}}>
         {/* 进程盒子：灯 + 秒摆 */}
         <div style={{position: 'relative', textAlign: 'center'}}>
@@ -452,7 +452,7 @@ const CapAndQuote: React.FC<{lowAt: number; quoteAt: number}> = ({lowAt, quoteAt
           </div>
         </div>
       </div>
-      <Footnote delay={lowAt}>{'上限与低优先级标记 —— 课程作者的源码分析'}</Footnote>
+      <Footnote delay={lowAt}>{'上限与低优先级标记 —— 第三方的源码分析'}</Footnote>
     </AbsoluteFill>
   );
 };

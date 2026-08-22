@@ -24,7 +24,7 @@ const PuppetVsClock: React.FC<{clockAt: number}> = ({clockAt}) => {
   const clockOn = frame >= clockAt;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="s14 · Cron Scheduler" tagline="Nobody Presses Start" />
+      <SceneTag chapter="Cron Scheduler" tagline="Nobody Presses Start" />
       <div style={{display: 'flex', gap: 120, alignItems: 'center'}}>
         {/* 左：提线木偶 */}
         <div style={{textAlign: 'center'}}>
@@ -110,7 +110,7 @@ const FiveFieldTable: React.FC<{frameAt: number; ex1At: number; ex2At: number; e
   ];
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="s14 · Cron Scheduler" tagline="Five Fields, Fifty Years" />
+      <SceneTag chapter="Cron Scheduler" tagline="Five Fields, Fifty Years" />
       {/* 五格框架 */}
       <div style={{display: 'flex', gap: 16, opacity: frameT}}>
         {cols.map((c, i) => (
@@ -217,7 +217,7 @@ const TwoGuards: React.FC<{rejectAt: number; skipAt: number}> = ({rejectAt, skip
   ];
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="s14 · Cron Scheduler" tagline="Two Safety Nets" />
+      <SceneTag chapter="Cron Scheduler" tagline="Two Safety Nets" />
       <div style={{display: 'flex', gap: 90}}>
         {/* 保险一：写表验格式 */}
         <div style={{position: 'relative'}}>
@@ -339,7 +339,7 @@ const FourLayerModel: React.FC<{dropAt: number; gateAt: number; dupAt: number}> 
   });
   return (
     <AbsoluteFill>
-      <SceneTag chapter="s14 · Cron Scheduler" tagline="Tick, Queue, Gate, Loop" />
+      <SceneTag chapter="Cron Scheduler" tagline="Tick, Queue, Gate, Loop" />
       <svg width={1920} height={1080} style={{position: 'absolute', inset: 0}}>
         {/* 层 1：秒摆线程（每秒一跳） */}
         <g transform="translate(240 300)">
@@ -459,7 +459,7 @@ const TwoStorages: React.FC<{memAt: number; swapAt: number}> = ({memAt, swapAt})
   ];
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="s14 · Cron Scheduler" tagline="Swap Parts, Keep the Loop" />
+      <SceneTag chapter="Cron Scheduler" tagline="Swap Parts, Keep the Loop" />
       <div style={{display: 'flex', gap: 80, marginBottom: 40}}>
         {/* 磁盘文件：重启绕回 */}
         <div style={{textAlign: 'center', opacity: diskO}}>

@@ -38,7 +38,7 @@ const PairLock: React.FC<{lockAt: number; swapAt: number; queueAt: number}> = ({
   const resultShift = queue * 260;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="s13 · Background Tasks" tagline="Call ⇄ Result, Always Paired" />
+      <SceneTag chapter="Background Tasks" tagline="Call ⇄ Result, Always Paired" />
       <svg width={1500} height={520} style={{overflow: 'visible'}}>
         {/* 调用卡（左） */}
         <g transform={`translate(${560 - gap} 180)`}>
@@ -104,7 +104,7 @@ const TwoTierQueue: React.FC<{dropAt: number; userAt: number}> = ({dropAt, userA
   const user = spring({frame: frame - userAt, fps, config: {damping: 200}});
   return (
     <AbsoluteFill>
-      <SceneTag chapter="s13 · Background Tasks" tagline="Next Round First, Later Second" />
+      <SceneTag chapter="Background Tasks" tagline="Next Round First, Later Second" />
       <svg width={1920} height={1080} style={{position: 'absolute', inset: 0}}>
         <g transform="translate(280 250)">
           <LoopRing size={380} draw={1} dotProgress={dot} showLabels={false} />
@@ -149,7 +149,7 @@ const TwoTierQueue: React.FC<{dropAt: number; userAt: number}> = ({dropAt, userA
           </text>
         </g>
       </svg>
-      <Footnote delay={userAt}>{'队列两级：下一轮 ＞ 稍后 —— 课程作者的源码分析'}</Footnote>
+      <Footnote delay={userAt}>{'队列两级：下一轮 ＞ 稍后 —— 第三方的源码分析'}</Footnote>
     </AbsoluteFill>
   );
 };
@@ -272,7 +272,7 @@ const SevenTasks: React.FC<{lightAt: number; labelAt: number}> = ({lightAt, labe
           </Panel>
         </div>
       ) : null}
-      <Footnote delay={lightAt}>{'七种 —— 课程作者数过 · 跑命令只是其一'}</Footnote>
+      <Footnote delay={lightAt}>{'七种 —— 有人数过 · 跑命令只是其一'}</Footnote>
     </AbsoluteFill>
   );
 };

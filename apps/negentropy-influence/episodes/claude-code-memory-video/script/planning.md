@@ -1,4 +1,4 @@
-# 策划案：《AI 的记忆：会丢的和不能丢的》
+# 策划案：《记忆层：会丢的和不能丢的》
 
 > 事实源：[../research/source-notes.md](../research/source-notes.md)（信源清单 [../research/sources.toml](../research/sources.toml)）
 > 逐字稿 SSOT：[narration.md](./narration.md) · 分镜：[storyboard.md](./storyboard.md)
@@ -8,7 +8,7 @@
 
 | 项 | 定义 |
 |---|---|
-| 系列 | Claude Code 通俗全解（独立成片，口播不引他集） |
+| 系列 | Claude Code Harness Engineering（独立成片，口播不引他集） |
 | 平台 / 形态 | B 站 / YouTube 横屏 1080p30，代码动画 + 本人克隆音色，无 BGM、无 emoji |
 | 时长 | `target_minutes = [13.0, 14.6]`；创作目标 ≈3900 字 / 165–195 句 |
 | 受众 | 普通人：都听过「AI 没记性」，但没想过记性是可以被工程拆成「会丢的桌面」和「不丢的本子」的 |

@@ -1,4 +1,4 @@
-/** P2 另开一张副桌（分镜 2-A…2-F）—— s06 Subagent
+/** P2 另开一张副桌（分镜 2-A…2-F）—— Subagent
  *  桌面暴涨 → 副桌滑出（缩小克隆环）→ 分屏回执 → 派活上锁 + 迷你闸门
  *  → ★五要素等号锁（本集最反直觉深挖帧）→ 共享抽屉 + 审批冒泡。 */
 import React from 'react';
@@ -23,7 +23,7 @@ const DeskFlood: React.FC<{floodAt: number; billAt: number}> = ({floodAt, billAt
   });
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="s06 · task tool" tagline="全新 messages[] · 只回传结论" accent={theme.view} />
+      <SceneTag chapter="task tool" tagline="全新 messages[] · 只回传结论" accent={theme.view} />
       <div style={{position: 'relative'}}>
         <Desk width={1420} height={540}>
           <div style={{position: 'absolute', inset: 14, overflow: 'hidden', borderRadius: 12}}>
@@ -573,7 +573,7 @@ const FiveFactorLock: React.FC<{compareAt: number[]; lockAt: number; saveAt: num
         ) : null}
       </div>
       <Footnote delay={saveAt + 6}>
-        {'缓存命中的前提：五要素字节级一致 —— 课程作者的源码分析'}
+        {'缓存命中的前提：五要素字节级一致 —— 第三方的源码分析'}
       </Footnote>
     </AbsoluteFill>
   );

@@ -23,6 +23,14 @@
      Main.tsx 的 SCENE_COMPONENTS 注册表与场景文件双向对齐——注册→文件
      是 FAIL 方向（注册了却渲染不出来，build 必炸），文件→注册只 WARN
      （未注册的可能是被其他场景 import 的合法辅助组件）
+  7. 去站点化：观众可见层（narration.md 口播行+画面备注 / storyboard.md /
+     scenes/*.tsx 字符串）不得出现课程站点标识（课程/站点/learn.shareai/
+     Learn Claude Code/shareAI/章号 s01–s20）。归档期豁免：`{slug}-archive-*`
+     的 research/ 台账与 source-map/ 不在受检文件集（内部取证保留具名归属）。
+     背景：系列更名《Claude Code Harness Engineering》（2026-08-23）时定位
+     从「介绍开源课程」转为「拆解 harness 工程」——站点只作组织骨架，观众
+     不得感知其存在。改写示例：「课程作者拆过源码，他说…」→「有人拆过它的
+     源码，他说…」（三级证据归属保留、不点名）。
 
 多系列语义（2026-08 起 series.json 顶层为 seriesList[]）：
   - 规则 1 **跨系列全局生效**——不同系列各自独立成片，口播互不引用，故「他集」
@@ -60,6 +68,28 @@ ORDINAL_WORDS = re.compile(
 SPOKEN_LINE_RE = re.compile(r"^- \[(?P<id>[a-z0-9-]+)\]\s+(?P<text>.+)$", re.M)
 REL_LINK_RE = re.compile(r"\]\((\.{1,2}/[^)#?]+)\)")
 EP_NUM = re.compile(r"第([一二三四五六七八九十])集")
+
+#: 规则 7 · 课程站点标识（观众可见层禁词）。`课程/站点` 单独成词太宽——
+#: 「教程/网站」一类常用词不受牵连；章号用词边界锚死（`\bs01\b` 不命中
+#: `s01e02` 或 `as01`），且只认 20 章真实编号范围。
+#: 「站点」按系列豁免：self-evolution 系（论文型）用它指论文的**配套网站**
+#: （「官方工程站点统计」「配套站点 data/papers.json」）——与课程站点无关，
+#: 执法进去是纯假报。课程系指站点一律用「课程」或显式 URL，语义不重叠。
+SITE_MARKER_RE = re.compile(
+    r"learn\.shareai|Learn Claude Code|shareAI"
+    r"|课程"
+    r"|\bs(?:0[1-9]|1[0-9]|20)\b"
+)
+COURSE_SERIES_IDS = frozenset({"claude-code-explained"})
+SITE_WORD_RE = re.compile(r"站点")
+#: 规则 7 的受检文件（观众可见层）：口播/分镜/场景组件。research/、
+#: source-map/、series.json 属内部取证与元数据——具名归属的署名义务在
+#: 仓库层履行，观众层匿名化（系列改造决策 2026-08-23）。
+AUDIENCE_GLOBS = (
+    "episodes/*/script/narration.md",
+    "episodes/*/script/storyboard.md",
+    "episodes/*/video/src/scenes/*.tsx",
+)
 
 CN_NUM = {
     "一": 1,
@@ -415,6 +445,42 @@ def rule_renderability(series_list: list[dict], msgs: list[str]) -> None:
                 )
 
 
+def rule_site_marker(series_list: list[dict], msgs: list[str]) -> None:
+    """规则 7：去站点化——观众可见层不得出现课程站点标识。
+
+    受检面刻意只收**观众会看到的**三类文件（narration 口播+画面备注、
+    storyboard、scenes 的字符串字面量），而 research/、sources.toml、
+    source-map/ 不进门：内部取证链保留具名归属（署名义务在仓库层履行），
+    观众层匿名化——两层口径不同是系列定位决策，不是疏漏。
+
+    按系列分级：强标识（learn.shareai / Learn Claude Code / shareAI / 课程 /
+    章号 s01–s20）全系列执法（其他系列本不该出现这些词，出现即异常）；
+    「站点」一词只对课程系执法——论文系用它指论文配套网站，属正常用法。
+    """
+    course_paths = set()
+    for series in series_list:
+        if series["id"] in COURSE_SERIES_IDS:
+            course_paths.update(e["path"] for e in series["episodes"])
+    for g in AUDIENCE_GLOBS:
+        for f in sorted(INFLUENCE.glob(g)):
+            try:
+                text = f.read_text(encoding="utf-8")
+            except UnicodeDecodeError:
+                continue
+            rel = f.relative_to(REPO)
+            hits = list(SITE_MARKER_RE.finditer(text))
+            is_course = f.relative_to(INFLUENCE).parts[1] in {
+                p.split("/")[-1] for p in course_paths
+            }
+            if is_course:
+                hits.extend(SITE_WORD_RE.finditer(text))
+            for m in hits:
+                msgs.append(
+                    f"FAIL 规则7：{rel} 出现课程站点标识「{m.group(0)}」"
+                    "（观众可见层须匿名化，改法见模块 docstring 规则 7）"
+                )
+
+
 def main() -> None:
     series_list = load_series()
     files = covered_files()
@@ -425,6 +491,7 @@ def main() -> None:
     rule_manifest_integrity(series_list, msgs)
     rule_dead_links(files, msgs)
     rule_renderability(series_list, msgs)
+    rule_site_marker(series_list, msgs)
 
     fails = [m for m in msgs if m.startswith("FAIL")]
     warns = [m for m in msgs if m.startswith("WARN")]

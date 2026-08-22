@@ -171,11 +171,11 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; seriesAt: number}> 
   const {fps} = useVideoConfig();
   const enter = spring({frame: frame - 4, fps, config: {damping: 200}});
   const rows = [
-    ['课程', 'Learn Claude Code · 工具与执行四章'],
-    ['站点', 'learn.shareai.run/zh/s01..s04'],
-    ['仓库', 'github.com/shareAI-lab/learn-claude-code'],
+    ['官方文档', 'code.claude.com/docs · 取数 2026-08'],
+    ['工程博客', 'anthropic.com/engineering'],
+    ['源码分析', '第三方逆向分析 · 片中逐处标注'],
     ['仓库钉版', 'main @ f9e8b28（2026-08-18）'],
-    ['站点同源修订', '67a9126c（2026-07-28，20 章版）'],
+    ['数字口径', '画面行数均为固定提交实测'],
     ['访问日期', '2026-08-21'],
     ['许可', 'MIT'],
   ];
@@ -230,7 +230,7 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; seriesAt: number}> 
               }),
             }}
           >
-            {'画面中的行数均为本片在钉定提交上的实测（非空非注释口径），非课程标注'}
+            {'画面中的行数均为本片在固定提交上的实测（非空非注释口径）'}
           </div>
         </Panel>
       </div>
@@ -244,7 +244,7 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; seriesAt: number}> 
           }}
         >
           <div style={{fontFamily: theme.serif, fontSize: 34, color: theme.dim, letterSpacing: 3}}>
-            {'Claude Code 通俗全解'}
+            {'Claude Code Harness Engineering'}
           </div>
           <div
             style={{
@@ -255,7 +255,7 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; seriesAt: number}> 
               marginTop: 18,
             }}
           >
-            {'拆开 Claude Code'}
+            {'执行层：一个循环，就是全部'}
           </div>
           <div style={{fontFamily: theme.sans, fontSize: 28, color: theme.text, marginTop: 14}}>
             {'让 AI 动手的四层机制'}

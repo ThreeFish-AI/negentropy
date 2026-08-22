@@ -10,7 +10,7 @@ import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {Footnote, LoopRing, Panel, phase, SceneTag, useRingDot} from '../components/motifs';
 
-/** 七段传送带：进料 / 护栏 / 选面 / 执行 / 外接 / 补救 / 记账（s20 一整轮） */
+/** 七段传送带：进料 / 护栏 / 选面 / 执行 / 外接 / 补救 / 记账（一整轮） */
 const SEGMENTS = [
   {t: '进料', s: '你说一句话'},
   {t: '护栏', s: '输入前钩子'},
@@ -39,7 +39,7 @@ const ConveyorForms: React.FC<{beltAt: number}> = ({beltAt}) => {
   });
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="s20 · Comprehensive" tagline="Many Mechanisms, One Loop" accent={theme.core} />
+      <SceneTag chapter="Comprehensive" tagline="Many Mechanisms, One Loop" accent={theme.core} />
       {/* 四小图标（顶部一排） */}
       <div style={{display: 'flex', gap: 44, marginBottom: 90}}>
         {four.map((f, i) => {
@@ -133,7 +133,7 @@ const ConveyorForms: React.FC<{beltAt: number}> = ({beltAt}) => {
           );
         })}
       </div>
-      <Footnote delay={beltAt + 24}>{'课程最后一章：一整轮，从头到尾走一遍'}</Footnote>
+      <Footnote delay={beltAt + 24}>{'收尾全景：一整轮，从头到尾走一遍'}</Footnote>
     </AbsoluteFill>
   );
 };
@@ -484,9 +484,9 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; seriesAt: number}> 
   const {fps} = useVideoConfig();
   const enter = spring({frame: frame - 4, fps, config: {damping: 200}});
   const rows = [
-    ['课程', 'Learn Claude Code · 多 Agent 平台七章'],
-    ['站点', 'learn.shareai.run/zh/s12..s20'],
-    ['仓库', 'github.com/shareAI-lab/learn-claude-code'],
+    ['官方文档', 'code.claude.com/docs · 取数 2026-08'],
+    ['工程博客', 'anthropic.com/engineering'],
+    ['源码分析', '第三方逆向分析 · 片中逐处标注'],
     ['仓库钉版', 'main @ 67a9126c（2026-08-22）'],
     ['访问日期', '2026-08-22'],
     ['许可', 'MIT'],
@@ -539,7 +539,7 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; seriesAt: number}> 
               }),
             }}
           >
-            {'涉及产品内部的部分，均为课程作者的源码分析，片中已逐处标注'}
+            {'涉及产品内部的部分，均为第三方的源码分析，片中已逐处标注'}
           </div>
         </Panel>
       </div>
@@ -554,7 +554,7 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; seriesAt: number}> 
           }}
         >
           <div style={{fontFamily: theme.serif, fontSize: 34, color: theme.dim, letterSpacing: 3}}>
-            {'Claude Code 通俗全解'}
+            {'Claude Code Harness Engineering'}
           </div>
           <div
             style={{

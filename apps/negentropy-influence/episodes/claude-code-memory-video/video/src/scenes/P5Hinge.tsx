@@ -406,7 +406,7 @@ const OrderStamp: React.FC<{stampAt: number; settleAt: number}> = ({stampAt, set
           </Ledger>
         </div>
       </div>
-      <Footnote delay={stampAt}>{'停机钩子触发提取 · 压缩前快照 —— 课程作者的源码分析'}</Footnote>
+      <Footnote delay={stampAt}>{'停机钩子触发提取 · 压缩前快照 —— 第三方的源码分析'}</Footnote>
     </AbsoluteFill>
   );
 };
@@ -491,7 +491,7 @@ const DreamPlate: React.FC<{thickenAt: number; nightAt: number; plateAt: number}
           </div>
         </div>
       </div>
-      <Footnote delay={plateAt}>{'同一件事记了三遍、过时的没淘汰，就得整理 —— 课程作者的源码分析'}</Footnote>
+      <Footnote delay={plateAt}>{'同一件事记了三遍、过时的没淘汰，就得整理 —— 第三方的源码分析'}</Footnote>
     </AbsoluteFill>
   );
 };
@@ -596,7 +596,7 @@ const FourGatesFall: React.FC<{gateAt: number[]}> = ({gateAt}) => {
         ) : null}
       </div>
       <Footnote delay={gateAt[0]}>
-        {'四道闸（24h / 节流 / 会话数 / 文件锁）—— 课程作者的源码分析'}
+        {'四道闸（24h / 节流 / 会话数 / 文件锁）—— 第三方的源码分析'}
       </Footnote>
     </AbsoluteFill>
   );
@@ -727,7 +727,7 @@ const LockIsClock: React.FC<{faceAt: number; crashAt: number; spinAt: number; qu
           {'整理到一半崩了？一小时后锁自动过期，不会死锁'}
         </div>
       </div>
-      <Footnote delay={faceAt}>{'锁即时钟 · 1 小时过期 —— 课程作者的源码分析'}</Footnote>
+      <Footnote delay={faceAt}>{'锁即时钟 · 1 小时过期 —— 第三方的源码分析'}</Footnote>
     </AbsoluteFill>
   );
 };

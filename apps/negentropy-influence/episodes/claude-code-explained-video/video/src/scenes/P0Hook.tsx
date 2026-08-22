@@ -290,7 +290,7 @@ const TitleCard: React.FC = () => {
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <div style={{textAlign: 'center', opacity: enter, transform: `translateY(${(1 - enter) * 22}px)`}}>
         <div style={{fontFamily: theme.serif, fontSize: 84, fontWeight: 700, color: theme.core}}>
-          {'拆开 Claude Code'}
+          {'执行层：一个循环，就是全部'}
         </div>
         <div
           style={{

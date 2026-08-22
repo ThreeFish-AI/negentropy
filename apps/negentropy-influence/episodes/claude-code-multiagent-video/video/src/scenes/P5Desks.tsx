@@ -25,7 +25,7 @@ const Collision: React.FC<{writeAt: number; crushAt: number; knotAt: number}> = 
   const knot = phase(frame, knotAt, 18);
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="s18 · Worktree Isolation" tagline="One Desk Each" accent={theme.mech} />
+      <SceneTag chapter="Worktree Isolation" tagline="One Desk Each" accent={theme.mech} />
       <div style={{position: 'relative', width: 1520, height: 700}}>
         {/* 同一目录面板（中上） */}
         <div
@@ -755,7 +755,7 @@ const McpPlug: React.FC<{noteAt: number; plugAt: number; plateAt: number}> = ({
                 {'产品里进出目录是整个进程跟着切；任务与目录也不强制绑定'}
               </div>
               <div style={{fontFamily: theme.mono, fontSize: 17, color: theme.dim, marginTop: 8}}>
-                {'——课程作者的源码分析（教学版做成默认绑定）'}
+                {'——第三方的源码分析（教学版做成默认绑定）'}
               </div>
             </Panel>
           </div>

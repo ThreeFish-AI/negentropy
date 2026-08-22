@@ -59,7 +59,7 @@ const ErrorSlam: React.FC<{errAt: number}> = ({errAt}) => {
           </div>
         ) : null}
       </div>
-      <Footnote delay={errAt}>{'s08 Context Compact · "Context Will Fill Up"'}</Footnote>
+      <Footnote delay={errAt}>{'Context Compact · "Context Will Fill Up"'}</Footnote>
     </AbsoluteFill>
   );
 };

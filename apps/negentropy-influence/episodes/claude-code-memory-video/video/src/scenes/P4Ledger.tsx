@@ -227,7 +227,7 @@ const TabToSummary: React.FC<{beamAt: number; rewriteAt: number; shredAt: number
           {'摘要没有做错什么——可有些细节，恰恰是主干'}
         </div>
       </div>
-      <Footnote delay={rewriteAt}>{'例子出自课程 s09 原文（README @ 67a9126c）'}</Footnote>
+      <Footnote delay={rewriteAt}>{'例子出自开源教学仓库原文（README @ 67a9126c）'}</Footnote>
     </AbsoluteFill>
   );
 };
@@ -245,7 +245,7 @@ const LedgerArrives: React.FC<{bookAt: number; fmAt: number[]; indexAt: number; 
   const dup = spring({frame: frame - dupAt, fps, config: {damping: 13}});
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="s09 · Memory" tagline="A Layer That Never Compacts" accent={theme.keep} />
+      <SceneTag chapter="Memory" tagline="A Layer That Never Compacts" accent={theme.keep} />
       <div style={{position: 'relative', display: 'flex', gap: 90, alignItems: 'center', marginTop: 30}}>
         {/* 登记簿：keep 实体 */}
         <div
@@ -438,7 +438,7 @@ const FourKinds: React.FC<{litAt: number[]}> = ({litAt}) => {
           );
         })}
       </div>
-      <Footnote delay={litAt[0]}>{'四类记忆，就是四个问题 —— 站点/仓库【一】'}</Footnote>
+      <Footnote delay={litAt[0]}>{'四类记忆，就是四个问题 —— 开源仓库实测【一】'}</Footnote>
     </AbsoluteFill>
   );
 };
@@ -583,7 +583,7 @@ const TwoPaths: React.FC<{sideAt: number; cardsAt: number; shrinkAt: number; deg
           ) : null}
         </div>
       </div>
-      <Footnote delay={degradeAt}>{'产品用小号模型挑选 —— 课程作者的源码分析'}</Footnote>
+      <Footnote delay={degradeAt}>{'产品用小号模型挑选 —— 第三方的源码分析'}</Footnote>
     </AbsoluteFill>
   );
 };

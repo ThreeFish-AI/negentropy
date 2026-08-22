@@ -56,8 +56,8 @@ const ContractCard: React.FC<{nextAt: number}> = ({nextAt}) => {
 };
 
 /**
- * 6-B 信源卡（钉版 67a9126c / 站点 / 仓库 / 字节归档 / 访问日期 / MIT /
- * 「产品内部均为课程作者的源码分析」诚实行）→ 系列身份卡 → 渐黑。
+ * 6-B 信源卡（官方文档 + 取数日期 / 第三方源码分析 / 实测口径；
+ * 「产品内部均为第三方的源码分析」诚实行）→ 系列身份卡 → 渐黑。
  * `beatDurationInFrames` 是**本 beat 的总时长**，渐黑窗口据此反推。
  */
 const SourceAndFade: React.FC<{beatDurationInFrames: number; seriesAt: number}> = ({
@@ -68,9 +68,9 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; seriesAt: number}> 
   const {fps} = useVideoConfig();
   const enter = spring({frame: frame - 4, fps, config: {damping: 200}});
   const rows = [
-    ['课程', 'Learn Claude Code · 规划与协调五章（s05–s07, s10, s11）'],
-    ['站点', 'learn.shareai.run/zh/s05..s11'],
-    ['仓库', 'github.com/shareAI-lab/learn-claude-code'],
+    ['官方文档', 'code.claude.com/docs · 取数 2026-08'],
+    ['工程博客', 'anthropic.com/engineering'],
+    ['源码分析', '第三方逆向分析 · 片中逐处标注'],
     ['仓库钉版', '67a9126c（2026-07-28，20 章版）'],
     ['字节归档', '取证文件已随片归档（research/source-archive/）'],
     ['访问日期', '2026-08-22'],
@@ -112,7 +112,7 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; seriesAt: number}> 
               <div style={{fontFamily: theme.mono, fontSize: 21, color: theme.text}}>{v}</div>
             </div>
           ))}
-          {/* 诚实行：产品内部断言均为课程作者的源码分析 */}
+          {/* 诚实行：产品内部断言均为第三方的源码分析 */}
           <div
             style={{
               marginTop: 12,
@@ -127,7 +127,7 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; seriesAt: number}> 
               }),
             }}
           >
-            {'涉及产品内部的部分，均为课程作者的源码分析，片中已逐处标注'}
+            {'涉及产品内部的部分，均为第三方的源码分析，片中已逐处标注'}
           </div>
         </Panel>
       </div>
@@ -141,7 +141,7 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; seriesAt: number}> 
           }}
         >
           <div style={{fontFamily: theme.serif, fontSize: 32, color: theme.dim, letterSpacing: 3}}>
-            {'Claude Code 通俗全解'}
+            {'Claude Code Harness Engineering'}
           </div>
           <div
             style={{
