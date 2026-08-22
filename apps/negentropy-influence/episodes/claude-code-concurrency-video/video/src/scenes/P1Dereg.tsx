@@ -11,7 +11,7 @@ import {Footnote, LoopRing, Panel, SceneTag, useRingDot} from '../components/mot
 /** 环外旁轨的几何常数：与 LoopRing 同心、半径外扩（本幕内推导基线，P2 自带几何） */
 const TRACK_R = 340;
 const TRACK_CX = 620;
-const TRACK_CY = 560;
+const TRACK_CY = 520;
 
 /** 沿旁轨的弧上取点（deg 从 12 点起顺时针） */
 const trackPoint = (deg: number, extra = 0) => {
