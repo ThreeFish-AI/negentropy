@@ -15,6 +15,7 @@
 | 字幕 | ✅ srt/vtt 各 140 cue |
 | 草渲 + 抽帧 QA | ✅ 七幕 **FAIL 0 · WARN 2**（p5-03/05 时间铰链对照期、p6-03/04 金句卡停留，均为刻意设计）；尾幕必查 FAIL 0 · WARN 0 |
 | **终渲交付** | ✅ `out/final.mp4` **13:12.26** · 1920×1080@30 · 34.4 MB；全分辨率尾幕末 6 句 **FAIL 0 · WARN 0** |
+| 交付件 | ✅ `final.mp4` + `captions.srt` + `captions.vtt` + `cover.png`（标题卡帧 1920×1080） |
 
 ## 目录结构
 

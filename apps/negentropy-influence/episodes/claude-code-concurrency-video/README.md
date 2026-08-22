@@ -15,6 +15,7 @@
 | 字幕 | ✅ srt/vtt 各 139 cue |
 | 草渲 + 抽帧 QA | ✅ 七幕 **FAIL 0 · WARN 1**（p6-11/12 收尾卡停留，刻意）；**首渲曾报 p1-10 安全带侵入（旁轨 WorkBlock 底部 y934 压带）——TRACK_CY 560→520 修复后复检侵入消失** |
 | **终渲交付** | ✅ `out/final.mp4` **13:06.71** · 1920×1080@30 · 40.9 MB；全分辨率尾幕 **FAIL 0 · WARN 0** |
+| 交付件 | ✅ `final.mp4` + `captions.srt` + `captions.vtt` + `cover.png`（标题卡帧 1920×1080） |
 
 ## 目录结构
 
