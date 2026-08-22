@@ -21,6 +21,11 @@ const ShellLayers: React.FC<{layerAt: number[]}> = ({layerAt}) => {
   const RING_R = (R * 2 + 76) / 2 - 46;
   const CX = 560;
   const CY = 540;
+  // 字幕安全带上沿：与 qa_frames.py 的 SUBTITLE_BAND_PX = 160 同口径（比 skills/06
+  // 红线二「角标 bottom ≥ 150」再严 10px，留出体检余量）。入场轨迹必须自己让开它——
+  // **落位态干净、入场越界**这一类缺陷 `--check` 每幕只抽 ~8 帧，结构性看不见。
+  const SAFE_TOP_Y = 1080 - 160;
+  const CARD_HALF_H = 36; // 卡片 rect 半高 34 + 描边 2.5 的一半，向上取整
   // 三张挂件卡沿环 120° 均分，且刻意避开 0/±90/180 —— LoopRing 的四个节点文案
   // （问模型/看回答/执行工具/填回结果）就画在那四个方位上，挂脚会横穿它们。
   const attach = [
@@ -50,7 +55,16 @@ const ShellLayers: React.FC<{layerAt: number[]}> = ({layerAt}) => {
             const dist = R + 96;
             // 挂脚长度 = 卡心到环线的径向距离；本组已按 ang 旋转，故 -x 指向环心
             const stem = dist - RING_R;
-            const px = 1.6 - 0.6 * t;
+            // 入场自环外 startPx 倍半径径向滑入。**向下**的卡（sin > 0）滑到最远处时
+            // 会探进字幕安全带（1.6 倍时闸门卡下沿到 y≈1047，被字幕条切掉半张），
+            // 故其起步倍率按「卡片下沿贴住 SAFE_TOP_Y」封顶；向上的两张不受此限，
+            // 仍走完整行程。三张卡入场时刻错开，行程长短不同不构成可比性问题。
+            const sinA = Math.sin(rad);
+            const startPx = Math.min(
+              1.6,
+              sinA > 0 ? (SAFE_TOP_Y - CARD_HALF_H - CY) / (sinA * dist) : Infinity,
+            );
+            const px = startPx - (startPx - 1) * t;
             const x = Math.cos(rad) * dist * px;
             const y = Math.sin(rad) * dist * px;
             return (

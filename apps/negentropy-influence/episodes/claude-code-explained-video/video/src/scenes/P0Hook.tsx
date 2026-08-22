@@ -147,7 +147,8 @@ const CopyPasteLoop: React.FC<{roundStarts: number[]}> = ({roundStarts}) => {
             </div>
           );
         })}
-        {/* 剪贴板：随轮次老化（透明度递减）——搬运这件事件件在耗损你 */}
+        {/* 剪贴板：板身恒定，板上的搬运痕迹随轮次变淡（见下方 line 的 0.3 - i*0.06）
+            ——搬运这件事件件在耗损你 */}
         <svg width={64} height={84} style={{position: 'absolute', left: W / 2 - 32, top: -58}}>
           <rect
             x={6}
@@ -158,7 +159,7 @@ const CopyPasteLoop: React.FC<{roundStarts: number[]}> = ({roundStarts}) => {
             fill={theme.panel}
             stroke={theme.dim}
             strokeWidth={3}
-            opacity={interpolate(frame, [0, 24], [0.9, 0.9], {extrapolateRight: 'clamp'})}
+            opacity={0.9}
           />
           <rect x={22} y={8} width={20} height={12} rx={3} fill="none" stroke={theme.dim} strokeWidth={3} />
           {roundStarts.map((s, i) =>

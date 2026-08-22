@@ -14,7 +14,7 @@
 | 时长双口径门 | ✅ **实测含时距 13.2 分**，落窗 13.0–14.6 |
 | 字幕 | ✅ srt/vtt 各 140 cue |
 | 草渲 + 抽帧 QA | ✅ 七幕 **FAIL 0 · WARN 2**（p5-03/05 时间铰链对照期、p6-03/04 金句卡停留，均为刻意设计）；尾幕必查 FAIL 0 · WARN 0 |
-| **终渲交付** | ✅ `out/final.mp4` **13:12.26** · 1920×1080@30 · 34.4 MB；全分辨率尾幕末 6 句 **FAIL 0 · WARN 0** |
+| **终渲交付** | ✅ `out/final.mp4` **13:14.47** · 1920×1080@30 · 36.1 MB（时长可复算：`total_duration_in_frames(narration.json, timing.json)` = 23834 帧 @30fps = 794.47s）；全分辨率尾幕末 6 句 **FAIL 0 · WARN 0** |
 | 交付件 | ✅ `final.mp4` + `captions.srt` + `captions.vtt` + `cover.png`（标题卡帧 1920×1080） |
 
 ## 目录结构

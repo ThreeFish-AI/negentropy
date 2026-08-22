@@ -14,7 +14,7 @@
 | 时长双口径门 | ✅ **实测含时距 13.1 分**，落窗 13.0–14.6 |
 | 字幕 | ✅ srt/vtt 各 139 cue |
 | 草渲 + 抽帧 QA | ✅ 七幕 **FAIL 0 · WARN 1**（p6-11/12 收尾卡停留，刻意）；**首渲曾报 p1-10 安全带侵入（旁轨 WorkBlock 底部 y934 压带）——TRACK_CY 560→520 修复后复检侵入消失** |
-| **终渲交付** | ✅ `out/final.mp4` **13:06.71** · 1920×1080@30 · 40.9 MB；全分辨率尾幕 **FAIL 0 · WARN 0** |
+| **终渲交付** | ✅ `out/final.mp4` **13:08.90** · 1920×1080@30 · 40.9 MB（时长可复算：`total_duration_in_frames(narration.json, timing.json)` = 23667 帧 @30fps = 788.90s）；全分辨率尾幕 **FAIL 0 · WARN 0** |
 | 交付件 | ✅ `final.mp4` + `captions.srt` + `captions.vtt` + `cover.png`（标题卡帧 1920×1080） |
 
 ## 目录结构

@@ -102,7 +102,7 @@
             "accessed": "2026-08-21"
           },
           "status": "ready",
-          "statusNote": "已交付：成片 14:14（1080p30 h264/aac192K，42.1 MB）+ srt/vtt 各 170 cue + 封面帧；终渲抽帧 FAIL 0（WARN 1 为刻意的画面凝住）；2026-08-22 tier-i 画面优化版 14:12.52 · 42.7 MB（零口播零配音改动，抽帧 FAIL 0 · WARN 0）",
+          "statusNote": "已交付：成片 14:14（1080p30 h264/aac192K，42.1 MB）+ srt/vtt 各 170 cue + 封面帧；终渲抽帧 FAIL 0（WARN 1 为刻意的画面凝住）；2026-08-22 tier-i 画面优化 + 评审四修版 14:14.73 · 42.6 MB（total_duration_in_frames 复算 25642 帧 @30fps；零口播零配音改动，七幕抽帧 FAIL 0 · WARN 1）",
           "voice": "sunny-steady + me-bright.wav"
         },
         {
@@ -124,7 +124,7 @@
             "accessed": "2026-08-22"
           },
           "status": "ready",
-          "statusNote": "已交付：成片 13:11.81（1080p30，37.7 MB）+ srt/vtt 各 134 cue；终渲尾幕抽帧 FAIL 0（WARN 1 为信源卡刻意停留）",
+          "statusNote": "已交付：成片 13:14.00（1080p30，39.5 MB · total_duration_in_frames 复算 23820 帧 @30fps）+ srt/vtt 各 134 cue；终渲尾幕抽帧 FAIL 0（WARN 1 为信源卡刻意停留）",
           "voice": "sunny-steady + me-bright.wav"
         },
         {
@@ -146,7 +146,7 @@
             "accessed": "2026-08-22"
           },
           "status": "ready",
-          "statusNote": "已交付：成片 13:12.26（1080p30，34.4 MB）+ srt/vtt 各 140 cue；七幕 FAIL 0（WARN 2 均刻意停留）；终渲尾幕 FAIL 0 · WARN 0",
+          "statusNote": "已交付：成片 13:14.47（1080p30，36.1 MB · total_duration_in_frames 复算 23834 帧 @30fps）+ srt/vtt 各 140 cue；七幕 FAIL 0（WARN 2 均刻意停留）；终渲尾幕 FAIL 0 · WARN 0",
           "voice": "sunny-steady + me-bright.wav"
         },
         {
@@ -168,7 +168,7 @@
             "accessed": "2026-08-22"
           },
           "status": "ready",
-          "statusNote": "已交付：成片 13:06.71（1080p30，40.9 MB）+ srt/vtt 各 139 cue；七幕 FAIL 0（首渲 p1-10 侵入已修）；终渲尾幕 FAIL 0 · WARN 0",
+          "statusNote": "已交付：成片 13:08.90（1080p30，40.9 MB · total_duration_in_frames 复算 23667 帧 @30fps）+ srt/vtt 各 139 cue；七幕 FAIL 0（首渲 p1-10 侵入已修）；终渲尾幕 FAIL 0 · WARN 0",
           "voice": "sunny-steady + me-bright.wav"
         },
         {
@@ -190,7 +190,7 @@
             "accessed": "2026-08-22"
           },
           "status": "ready",
-          "statusNote": "已交付：成片 13:01.08（1080p30，42.4 MB）+ srt/vtt 各 133 cue；七幕 FAIL 0 · WARN 0（系列唯一全零）",
+          "statusNote": "已交付：成片 13:03.27（1080p30，42.4 MB · total_duration_in_frames 复算 23498 帧 @30fps）+ srt/vtt 各 133 cue；七幕 FAIL 0 · WARN 0（系列唯一全零）",
           "voice": "sunny-steady + me-bright.wav"
         }
       ]

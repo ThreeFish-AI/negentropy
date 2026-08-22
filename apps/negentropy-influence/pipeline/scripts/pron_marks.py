@@ -191,7 +191,7 @@ POLYPHONE_CANDIDATES: tuple[tuple[str, str, str], ...] = (
     ("差", "误差/差异 chā · 差不多 chà", "`<差|CHA1>` / `<差|CHA4>`"),
     ("重", "重复/重试 chóng · 重要 zhòng", "`<重|CHONG2>` / `<重|ZHONG4>`"),
     ("量", "数量/量化 liàng · 测量 liáng", "`<量|LIANG4>`"),
-    ("卷", "卷积 juǎn · 卷起 juàn（j+ü→JV）", "`<卷|JVAN3>`"),
+    ("卷", "卷积/卷起 juǎn · 试卷/问卷 juàn（j+ü→JV）", "`<卷|JVAN3>`"),
     ("系", "系统/关系 xì（口语易读 jì）", "`<系|XI4>`"),
     ("更", "更新/变更 gēng · 更加 gèng", "`<更|GENG1>` / `<更|GENG4>`"),
 )

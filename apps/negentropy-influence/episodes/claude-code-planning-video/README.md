@@ -14,7 +14,7 @@
 | 时长双口径门 | ✅ 估算 13.9 分（3906÷280）· **实测含时距 13.2 分**，落窗 13.0–14.6 |
 | 字幕 | ✅ `out/captions.srt` + `.vtt`，各 134 cue |
 | 草渲 + 抽帧 QA | ✅ 7 幕逐幕独立体检 **FAIL 0**；WARN 2 均为刻意设计（p0-03/04 打字机凝住、p6-05/06 信源卡停留）<br>（首轮命令因 `--scene` 单值 store 实际只查了末幕，已修为 append 并重跑——见 [ISSUE-168](../../../../docs/.agents/issue.md)） |
-| **终渲交付** | ✅ `out/final.mp4` **13:11.81** · 1920×1080@30 · 37.7 MB；全分辨率尾幕末 6 句 **FAIL 0 · WARN 1**（同上） |
+| **终渲交付** | ✅ `out/final.mp4` **13:14.00** · 1920×1080@30 · 39.5 MB（时长可复算：`total_duration_in_frames(narration.json, timing.json)` = 23820 帧 @30fps = 794.00s）；全分辨率尾幕末 6 句 **FAIL 0 · WARN 1**（同上） |
 | 交付件 | ✅ `final.mp4` + `captions.srt` + `captions.vtt` + `cover.png`（标题卡帧 1920×1080） |
 | 交付件 | ✅ `final.mp4` + `captions.srt` + `captions.vtt` |
 
