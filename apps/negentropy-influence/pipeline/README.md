@@ -167,9 +167,11 @@ schema、默认值与校验的单一事实源是 [scripts/config.py](./scripts/c
 4. **登记到 [../series.json](../series.json)**（阻塞门：`check_series.py` 规则 4 反向执法——
    未登记目录一旦写下 `script/narration.md` 即 FAIL；脚手架期为 WARN 分级）：顶层是 `seriesList[]`，新系列追加一个 series 对象
    （`id` / `title` / `sourceKind` / `rule` / `episodes`），既有系列的新集追加到其 `episodes`。
-   同步 [../series.md](../series.md) 的分节表格。注意**漏登没有阻塞门**：`check_series.py` 只遍历
-   series.json（看不见孤儿目录），`verify_skeleton.py` 会点名**未登记的孤儿工程目录**但不计入
-   未登记漂移（`--strict` 不失败）——登记义务靠这条警告 + 本清单自觉执行。
+   同步 [../series.md](../series.md) 的分节表格。**分级是刻意的**：脚手架期（还没写
+   `narration.md`）只报 WARN，否则「先登记要先定色板色值、先写要先登记」会把新集夹死在
+   两条门之间；`narration.md` 一落盘即转 FAIL——那一刻规则 1 的反串线扫描才真正需要看见它。
+   `verify_skeleton.py` 也会点名孤儿工程目录，但保持 WARN 不计入未登记漂移（`--strict` 不失败）：
+   漂移门管骨架一致性，登记是清单问题，阻塞执法只放在 `check_series.py` 一处。
 5. 按 [skills/](./skills/) 01→05 顺序走内容层，再进生产层。Stage ① 先判**信源型别**：
    论文型走 A 型（`paper_extract.py` + `paper-notes.md`），文档/代码/课程站点型走 B 型
    （`source_ledger.py` + `source-notes.md` + 证据三级），见 [skills/01](./skills/01-source-extraction.md)。
