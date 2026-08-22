@@ -7,23 +7,71 @@ import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {Footnote, Panel, Terminal} from '../components/motifs';
 
-/** 0-A 终端打字 → 模型吐出一条命令后画面凝住 */
-const AskAndStall: React.FC<{freezeAt: number}> = ({freezeAt}) => (
-  <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-    <Terminal
-      width={1320}
-      height={330}
-      freezeCursorAt={freezeAt}
-      lines={[
-        {prompt: '›', text: '看看项目里有哪些文件，再跑一下其中一个脚本', delay: 6},
-        {text: '好的，先列出目录下的 Python 文件：', color: theme.dim, delay: 46},
-        {text: 'find . -name "*.py" -maxdepth 2', color: theme.core, delay: 90},
-      ]}
-    />
-  </AbsoluteFill>
-);
+/** 0-A 终端打字 → 模型吐出一条命令后画面凝住；右侧走秒芯片在凝住点停死 */
+const AskAndStall: React.FC<{freezeAt: number}> = ({freezeAt}) => {
+  const frame = useCurrentFrame();
+  const {fps} = useVideoConfig();
+  const frozen = frame >= freezeAt;
+  // 「想了想」的计时：打字期间正常走秒，凝住瞬间停死——把 p0-02 的「停在那儿了」量化成画面
+  const elapsed = frozen ? freezeAt : frame;
+  const secs = Math.floor((elapsed / fps) * 2) / 2; // 0.5s 步进，减少帧内数字抖动
+  return (
+    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
+      <div style={{position: 'relative'}}>
+        <Terminal
+          width={1320}
+          height={330}
+          freezeCursorAt={freezeAt}
+          lines={[
+            {prompt: '›', text: '看看项目里有哪些文件，再跑一下其中一个脚本', delay: 6},
+            {text: '好的，先列出目录下的 Python 文件：', color: theme.dim, delay: 46},
+            {text: 'find . -name "*.py" -maxdepth 2', color: theme.core, delay: 90},
+          ]}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            right: -108,
+            top: 8,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            opacity: interpolate(frame, [8, 20], [0, 1], {extrapolateRight: 'clamp'}),
+          }}
+        >
+          <div
+            style={{
+              fontFamily: theme.mono,
+              fontSize: 30,
+              fontVariantNumeric: 'tabular-nums',
+              color: frozen ? theme.dim : theme.mech,
+              border: `2px solid ${frozen ? theme.panelBorder : theme.mech}`,
+              borderRadius: 10,
+              padding: '10px 14px',
+              background: theme.panel,
+            }}
+          >
+            {`${secs.toFixed(1)}s`}
+          </div>
+          <div
+            style={{
+              fontFamily: theme.sans,
+              fontSize: 21,
+              color: frozen ? theme.deny : theme.dim,
+              marginTop: 10,
+              writingMode: 'vertical-rl',
+              letterSpacing: 4,
+            }}
+          >
+            {frozen ? '计时停了' : '它还在想'}
+          </div>
+        </div>
+      </div>
+    </AbsoluteFill>
+  );
+};
 
-/** 0-B 复制粘贴往复三轮，灰色搬运痕迹累积不消失 */
+/** 0-B 复制粘贴往复三轮：灰色搬运痕迹累积不消失 + 轮次钢印 + 剪贴板逐轮老化 */
 const CopyPasteLoop: React.FC<{roundStarts: number[]}> = ({roundStarts}) => {
   const frame = useCurrentFrame();
   const W = 1560;
@@ -69,6 +117,67 @@ const CopyPasteLoop: React.FC<{roundStarts: number[]}> = ({roundStarts}) => {
             });
           })}
         </svg>
+        {/* 轮次钢印：每开始一轮，右上角落下一枚 01/02/03——「你」的劳动被计数 */}
+        {roundStarts.map((s, i) => {
+          const drop = spring({
+            frame: frame - s,
+            fps: 30,
+            config: {damping: 200},
+          });
+          if (frame < s) return null;
+          return (
+            <div
+              key={s}
+              style={{
+                position: 'absolute',
+                right: 8 + (roundStarts.length - 1 - i) * 74,
+                top: -34,
+                fontFamily: theme.mono,
+                fontSize: 34,
+                fontWeight: 700,
+                color: theme.dim,
+                border: `3px solid ${theme.dim}`,
+                borderRadius: 8,
+                padding: '2px 12px',
+                opacity: 0.55 * drop,
+                transform: `rotate(${(-8 + i * 9) * drop}deg) scale(${0.6 + 0.4 * drop})`,
+              }}
+            >
+              {String(i + 1).padStart(2, '0')}
+            </div>
+          );
+        })}
+        {/* 剪贴板：板身恒定，板上的搬运痕迹随轮次变淡（见下方 line 的 0.3 - i*0.06）
+            ——搬运这件事件件在耗损你 */}
+        <svg width={64} height={84} style={{position: 'absolute', left: W / 2 - 32, top: -58}}>
+          <rect
+            x={6}
+            y={14}
+            width={52}
+            height={64}
+            rx={6}
+            fill={theme.panel}
+            stroke={theme.dim}
+            strokeWidth={3}
+            opacity={0.9}
+          />
+          <rect x={22} y={8} width={20} height={12} rx={3} fill="none" stroke={theme.dim} strokeWidth={3} />
+          {roundStarts.map((s, i) =>
+            frame > s + 20 ? (
+              <line
+                key={s}
+                x1={16}
+                y1={30 + i * 14}
+                x2={48}
+                y2={30 + i * 14}
+                stroke={theme.dim}
+                strokeWidth={3}
+                strokeLinecap="round"
+                opacity={0.3 - i * 0.06}
+              />
+            ) : null,
+          )}
+        </svg>
       </div>
       <Footnote delay={20}>{'你 = 模型与终端之间的搬运层'}</Footnote>
     </AbsoluteFill>
@@ -97,20 +206,55 @@ const YouInTheMiddle: React.FC<{questionAt: number}> = ({questionAt}) => {
           opacity: enter,
         }}
       >
-        <svg width={280} height={230}>
-          <circle cx={140} cy={54} r={34} fill={theme.dim} opacity={0.75} />
-          <path d="M140 96 L140 168 M140 118 L86 152 M140 118 L194 152 M140 168 L104 220 M140 168 L176 220"
-            stroke={theme.dim} strokeWidth={13} strokeLinecap="round" fill="none" opacity={0.75} />
-          {[-1, 1].map((d) => (
-            <path
-              key={d}
-              d={`M${140 + d * 132} 130 L${140 + d * 74} 130`}
-              stroke={theme.dim}
-              strokeWidth={5}
-              markerEnd=""
-              opacity={0.9}
-            />
-          ))}
+        <svg width={560} height={230} style={{overflow: 'visible'}}>
+          <g transform="translate(140 0)">
+            <circle cx={140} cy={54} r={34} fill={theme.dim} opacity={0.75} />
+            <path d="M140 96 L140 168 M140 118 L86 152 M140 118 L194 152 M140 168 L104 220 M140 168 L176 220"
+              stroke={theme.dim} strokeWidth={13} strokeLinecap="round" fill="none" opacity={0.75} />
+            {/* 载荷：左来的命令芯片（右向）与右来的输出块（左向）都压在你手上——
+                「搬运」在第一眼就成立，不靠字幕解释 */}
+            {[
+              {dir: -1, label: '命令', y: 96},
+              {dir: 1, label: '输出', y: 168},
+            ].map((p) => {
+              const o = interpolate(frame - 14, [0, 12], [0, 1], {
+                extrapolateLeft: 'clamp',
+                extrapolateRight: 'clamp',
+              });
+              const x = 140 + p.dir * 128;
+              return (
+                <g key={p.label} opacity={o}>
+                  <line
+                    x1={x}
+                    y1={p.y}
+                    x2={140 + p.dir * 84}
+                    y2={p.y}
+                    stroke={theme.dim}
+                    strokeWidth={5}
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d={
+                      p.dir === -1
+                        ? `M${140 - 84} ${p.y} l-14 -8 v16 Z`
+                        : `M${140 + 84} ${p.y} l14 -8 v16 Z`
+                    }
+                    fill={theme.dim}
+                  />
+                  <text
+                    x={x + p.dir * 6}
+                    y={p.y - 18}
+                    textAnchor={p.dir === -1 ? 'end' : 'start'}
+                    fontFamily={theme.mono}
+                    fontSize={22}
+                    fill={theme.dim}
+                  >
+                    {p.label}
+                  </text>
+                </g>
+              );
+            })}
+          </g>
         </svg>
       </div>
       <div

@@ -42,7 +42,14 @@ uv run --no-project $R/verify_skeleton.py --strict  # 有未登记漂移即失�
 
 ## 本集之外可复用的视觉母题
 
-每集的 `scenes/*` 是一次性的，但**母题**（可参数化的画面语言）值得跨集借用。已沉淀：
+每集的 `scenes/*` 是一次性的，但可复用的画面语言分两层，落点不同：
+
+- **chrome 层（机械排版/标注）已随骨架播种**：`Panel` / `Footnote` / `SceneTag` /
+  `Counter` / `CodeCard` / `NumberedCard` / `ease` 在模板
+  [motifs.tsx](../templates/video-skeleton/video/src/components/motifs.tsx)（seeded 档，
+  随 scaffold 复制、复制后自由演进）。它只读底座 token，概念色一律经 `accent` prop
+  注入——scaffold 后 tsc 直接干净，无需先动 theme。
+- **创作性母题**（承载各集叙事隐喻）不进模板，从出处集复制后裁剪：
 
 | 母题 | 出处 | 适用 |
 |---|---|---|
@@ -51,9 +58,10 @@ uv run --no-project $R/verify_skeleton.py --strict  # 有未登记漂移即失�
 | 字典分发表 | 同上 `DispatchTable` | 键值查表、注册表、路由表 |
 | 闸门路由 | 同上 `GateRouter` | 多级判定/准入/过滤管线 |
 | 插槽注册板 | 同上 `SlotRing` | 扩展点、生命周期钩子、插件位 |
-| 反枚举并列项 | 同上 `NumberedCard` | N 个并列概念：panel 底 + 编号，**激活时才染色** |
 
-借用方式仍是**复制该文件后裁剪**，不做跨集 import。两条经验：
+借用方式仍是**复制该文件后裁剪、追加进本集的 motifs.tsx**，不做跨集 import。
+「反枚举并列项」模式（N 个并列概念不给 N 色，panel 底 + 编号、激活时才染色）
+已随 chrome 层播种——用 `NumberedCard` 传本集概念色即可。两条经验：
 - 小尺寸下 SVG 环形节点的 0°/180° 标签会互相压字 —— 需要 `showLabels` 之类的显式开关
   （本集实测：size < 260 必须关掉）。
 - 「用无动效表达无聊」是有效手法：金句期间让主体继续匀速运动、**不加任何强调动效**。
@@ -82,7 +90,7 @@ export const P2FiveObjects: React.FC<{scene: SceneRange}> = ({scene}) => {
 
 1. 底座恒定：bg `#0E1116` / panel / panelBorder / text / dim / danger `#FF5C5C`（恒配 ✗，仅失败态）/ 字体三族。
 2. 本集概念色 2–3 个，映射**深层轴**而非枚举项（反枚举色彩原则：N 个并列概念不给 N 色，统一 panel 底+编号，被"激活"时加主色辉光）。
-3. 深底对比度：主色对 `#0E1116` 亮度比 ≥ 4.5:1；与已用色相错开（系列已用：蓝 #4A9EFF/橙 #FF9F45/金 #F5C542/青 #2DD4BF/紫 #B78CFF）。
+3. 深底对比度：主色对 `#0E1116` 亮度比 ≥ 4.5:1；**系列内**不得与已用色撞值——当前占用以 `check_series.py` 的「已用色 INFO 行」实时输出为准（勿在文档里维护静态清单，必陈旧；跨系列撞色已不可避免，不作设计目标）。
 4. 若覆写底座语义色（如 ok 与主色合一），在 theme.ts 注释 + planning.md + README 三处记录。
 5. 时间/顺序等非色彩维度用**位置、线型、亮度**编码，不用色相。
 

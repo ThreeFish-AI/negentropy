@@ -175,8 +175,22 @@ const AskAndPass: React.FC<{askAt: number; passAt: number}> = ({askAt, passAt}) 
             top: '52%',
           }}
         >
-          <div style={{fontFamily: theme.sans, fontSize: 24, color: theme.mech}}>
-            {'⚠  Potentially destructive command'}
+          <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
+            {/* 绘制的三角叹号（不用 emoji——全彩字形会击穿三色契约） */}
+            <svg width={30} height={27} style={{flexShrink: 0}}>
+              <path
+                d="M15 2 L28 25 L2 25 Z"
+                fill="none"
+                stroke={theme.deny}
+                strokeWidth={3}
+                strokeLinejoin="round"
+              />
+              <line x1="15" y1="10" x2="15" y2="18" stroke={theme.deny} strokeWidth={3} strokeLinecap="round" />
+              <circle cx="15" cy="22.5" r="1.8" fill={theme.deny} />
+            </svg>
+            <span style={{fontFamily: theme.sans, fontSize: 24, color: theme.mech}}>
+              {'Potentially destructive command'}
+            </span>
           </div>
           <div style={{fontFamily: theme.mono, fontSize: 26, color: theme.text, marginTop: 14}}>
             {'bash("rm -rf ./tmp/build-cache")'}
@@ -209,6 +223,50 @@ const AskAndPass: React.FC<{askAt: number; passAt: number}> = ({askAt, passAt}) 
               }}
             />
           </div>
+        </div>
+      ) : null}
+      {/* 三判定小抄（站点 Permission Desk 的信息结构）：allow / ask / deny 各带真实载荷 ——
+          本幕上方只演了 ask 与 allow，这里把第三条补齐，路由器的三种出口一目了然。
+          落位约束：小抄出现时（t2 > 0.4）闸门已整体上移 -150，GateRouter 的闸门名
+          （`y - h - 18`）落在 y≈235–258、闸柱顶到 y≈272——小抄必须整体收在其上方，
+          否则「三道闸门各自是什么」会被前两张卡盖掉（本幕只剩「问你」露出过）。 */}
+      {t2 > 0.4 ? (
+        <div
+          style={{
+            position: 'absolute',
+            left: 120,
+            top: 56,
+            display: 'flex',
+            gap: 18,
+            opacity: interpolate(t2, [0.4, 0.8], [0, 1], {extrapolateRight: 'clamp'}),
+          }}
+        >
+          {[
+            {v: 'allow', c: theme.core, op: 'read_file README.md', note: '只读、工作区内'},
+            {v: 'ask', c: theme.mech, op: 'rm -rf ./tmp/build-cache', note: '要你点一次头'},
+            {v: 'deny', c: theme.deny, op: 'sudo rm -rf /', note: '根本到不了执行口'},
+          ].map((r) => (
+            <div
+              key={r.v}
+              style={{
+                border: `2px solid ${r.c}`,
+                borderRadius: 10,
+                padding: '10px 16px',
+                background: theme.panel,
+                minWidth: 300,
+              }}
+            >
+              <div style={{fontFamily: theme.mono, fontSize: 24, fontWeight: 700, color: r.c}}>
+                {r.v}
+              </div>
+              <div style={{fontFamily: theme.mono, fontSize: 20, color: theme.text, marginTop: 6}}>
+                {r.op}
+              </div>
+              <div style={{fontFamily: theme.sans, fontSize: 19, color: theme.dim, marginTop: 4}}>
+                {r.note}
+              </div>
+            </div>
+          ))}
         </div>
       ) : null}
     </AbsoluteFill>

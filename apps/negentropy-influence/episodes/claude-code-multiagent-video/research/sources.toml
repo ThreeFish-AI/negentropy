@@ -1,0 +1,230 @@
+# 非论文信源清单（可复现取证链，工具：$R/source_ledger.py）
+#
+# kind=repo 指向固定 commit，raw 指纹漂移即 FAIL（说明 URL 里的 ref 不是不可变引用）。
+# kind=site 指向线上页面，只对剥标签归一后的正文比对指纹，漂移报 WARN（去复核笔记）。
+# text_sha256 是判据；raw_sha256 仅供 repo 类硬校验与人工核对。
+
+
+[s12-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s12_task_system/README.md"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-08-22"
+raw_sha256 = "d36c589aadde0f07"
+text_sha256 = "224e6a262d7d5b95"
+bytes = 11872
+lines = 282
+via = "pinned commit (site-matching revision), MIT"
+
+[s12-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s12_task_system/code.py"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-08-22"
+raw_sha256 = "8c3405c84a4ebfb0"
+text_sha256 = "ea3a8ca6fd2bc90e"
+bytes = 13116
+lines = 378
+via = "pinned commit (site-matching revision), MIT"
+
+[s12-site]
+url = "https://learn.shareai.run/zh/s12/"
+kind = "site"
+accessed = "2026-08-22"
+raw_sha256 = "677fac3c8e0ad7eb"
+text_sha256 = "342dcfbd0028fff5"
+bytes = 73673
+lines = 322
+via = "SSG 预渲染"
+
+[s15-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s15_agent_teams/README.md"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-08-22"
+raw_sha256 = "03206e9ac1356c44"
+text_sha256 = "ae566add03e2fa37"
+bytes = 10857
+lines = 254
+via = "pinned commit (site-matching revision), MIT"
+
+[s15-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s15_agent_teams/code.py"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-08-22"
+raw_sha256 = "8cee51a2c815b3f6"
+text_sha256 = "056096515c72a2a3"
+bytes = 36566
+lines = 985
+via = "pinned commit (site-matching revision), MIT"
+
+[s15-site]
+url = "https://learn.shareai.run/zh/s15/"
+kind = "site"
+accessed = "2026-08-22"
+raw_sha256 = "6242a99cd186c07c"
+text_sha256 = "bd4c3c6b406514f7"
+bytes = 91237
+lines = 325
+via = "SSG 预渲染"
+
+[s16-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s16_team_protocols/README.md"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-08-22"
+raw_sha256 = "4afa758a1b8d40d4"
+text_sha256 = "2546486854024d70"
+bytes = 11140
+lines = 243
+via = "pinned commit (site-matching revision), MIT"
+
+[s16-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s16_team_protocols/code.py"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-08-22"
+raw_sha256 = "64bbf40ff37db22b"
+text_sha256 = "f94efbf83b2875e9"
+bytes = 34329
+lines = 882
+via = "pinned commit (site-matching revision), MIT"
+
+[s16-site]
+url = "https://learn.shareai.run/zh/s16/"
+kind = "site"
+accessed = "2026-08-22"
+raw_sha256 = "bff6e11ec1ad7ed1"
+text_sha256 = "212537c5606f766b"
+bytes = 91727
+lines = 245
+via = "SSG 预渲染"
+
+[s17-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s17_autonomous_agents/README.md"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-08-22"
+raw_sha256 = "53277b2b0b249692"
+text_sha256 = "9dbb2f8aad8c267f"
+bytes = 12846
+lines = 271
+via = "pinned commit (site-matching revision), MIT"
+
+[s17-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s17_autonomous_agents/code.py"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-08-22"
+raw_sha256 = "76359df33f09b3c1"
+text_sha256 = "a3fd0a2e7596bbcd"
+bytes = 30718
+lines = 813
+via = "pinned commit (site-matching revision), MIT"
+
+[s17-site]
+url = "https://learn.shareai.run/zh/s17/"
+kind = "site"
+accessed = "2026-08-22"
+raw_sha256 = "4928383da5a63ac9"
+text_sha256 = "bd52a6acbbf32356"
+bytes = 92289
+lines = 317
+via = "SSG 预渲染"
+
+[s18-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s18_worktree_isolation/README.md"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-08-22"
+raw_sha256 = "b60158d6ac2c007d"
+text_sha256 = "4f7837443419cedd"
+bytes = 9354
+lines = 208
+via = "pinned commit (site-matching revision), MIT"
+
+[s18-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s18_worktree_isolation/code.py"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-08-22"
+raw_sha256 = "4eea5d5f319c3b50"
+text_sha256 = "3bdcde89060c416e"
+bytes = 38087
+lines = 998
+via = "pinned commit (site-matching revision), MIT"
+
+[s18-site]
+url = "https://learn.shareai.run/zh/s18/"
+kind = "site"
+accessed = "2026-08-22"
+raw_sha256 = "56f6ba47849a0e15"
+text_sha256 = "62f8bd916ae2a49c"
+bytes = 91756
+lines = 203
+via = "SSG 预渲染"
+
+[s19-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s19_mcp_plugin/README.md"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-08-22"
+raw_sha256 = "4f77add32afd790f"
+text_sha256 = "a50094854595c327"
+bytes = 11719
+lines = 282
+via = "pinned commit (site-matching revision), MIT"
+
+[s19-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s19_mcp_plugin/code.py"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-08-22"
+raw_sha256 = "303f0e185c1c29ce"
+text_sha256 = "1f28491b8c548bbd"
+bytes = 38675
+lines = 1026
+via = "pinned commit (site-matching revision), MIT"
+
+[s19-site]
+url = "https://learn.shareai.run/zh/s19/"
+kind = "site"
+accessed = "2026-08-22"
+raw_sha256 = "2d7a8cc14a0f0f1d"
+text_sha256 = "cc3009bddeb4b61f"
+bytes = 96895
+lines = 302
+via = "SSG 预渲染"
+
+[s20-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s20_comprehensive/README.md"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-08-22"
+raw_sha256 = "3f4374f17351d190"
+text_sha256 = "ca28a7fc923773cb"
+bytes = 8516
+lines = 250
+via = "pinned commit (site-matching revision), MIT"
+
+[s20-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s20_comprehensive/code.py"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-08-22"
+raw_sha256 = "9c44ca255bf5c57e"
+text_sha256 = "7520c6dcd081c371"
+bytes = 80007
+lines = 2130
+via = "pinned commit (site-matching revision), MIT"
+
+[s20-site]
+url = "https://learn.shareai.run/zh/s20/"
+kind = "site"
+accessed = "2026-08-22"
+raw_sha256 = "ff393a59cf53efb7"
+text_sha256 = "6636957b98a42259"
+bytes = 144393
+lines = 308
+via = "SSG 预渲染"

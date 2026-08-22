@@ -210,7 +210,10 @@ def main() -> int:
 
     # 孤儿工程：scaffold 出来但忘了登记 series.json 的目录。这类目录对
     # check_series（只遍历 series.json）与本门（同）**双向不可见**——脚手架
-    # 让新建变便宜之后，这个缺口才真正需要堵。
+    # 让新建变便宜之后，这个缺口才真正需要堵。阻塞执法在 check_series.py
+    # 规则 4（未登记且 narration.md 已落盘即 FAIL，且分级触发以免死锁，判据
+    # 与死锁分析见其 rule_manifest_integrity）；本门保持 WARN——漂移门的
+    # 职责是骨架一致性，登记是清单问题，只在报告里点名即可。
     registered_slugs = {e["slug"] for s in series_list for e in s["episodes"]}
     orphans = sorted(
         p.name
@@ -219,7 +222,8 @@ def main() -> int:
     )
     if orphans:
         print(
-            f"\n  ⚠️  未登记到 series.json 的工程目录（两个门都看不到它们）：{orphans}"
+            f"\n  ⚠️  未登记到 series.json 的工程目录（阻塞门在 check_series.py 规则4；"
+            f"narration.md 落盘后该处 FAIL）：{orphans}"
         )
 
     if registered:

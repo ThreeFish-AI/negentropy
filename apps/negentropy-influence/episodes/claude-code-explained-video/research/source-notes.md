@@ -115,8 +115,11 @@
 - 【一】分发表：
   ```python
   TOOL_HANDLERS = {
-      "bash": run_bash, "read_file": run_read, "write_file": run_write,
-      "edit_file": run_edit, "glob": run_glob,
+      "bash": run_bash,
+      "read_file": run_read,
+      "write_file": run_write,
+      "edit_file": run_edit,
+      "glob": run_glob,
   }
   ```
 - 【一】加一个工具 = `TOOLS` 数组加一条 + `TOOL_HANDLERS` 字典加一行映射。
@@ -235,11 +238,11 @@ def agent_loop(messages):
         for block in response.content:
             if block.type != "tool_use":
                 continue
-            log_to_file(block)          # 加一行
-            check_permission(block)     # 加一行
-            notify_slack(block)         # 又加一行
+            log_to_file(block)  # 加一行
+            check_permission(block)  # 加一行
+            notify_slack(block)  # 又加一行
             output = execute(block)
-            auto_git_add(block)         # 再加一行
+            auto_git_add(block)  # 再加一行
             # ... 很快循环就认不出来了
 ```
 > 【一】「**你想扩展的是 Agent 的行为，但你改的却是循环本身。循环应该是一个稳定的核心，扩展应该挂在外面。**」
@@ -249,13 +252,15 @@ def agent_loop(messages):
   ```python
   HOOKS = {"UserPromptSubmit": [], "PreToolUse": [], "PostToolUse": [], "Stop": []}
 
+
   def register_hook(event: str, callback):
       HOOKS[event].append(callback)
+
 
   def trigger_hooks(event: str, *args):
       for callback in HOOKS[event]:
           result = callback(*args)
-          if result is not None:   # 返回值 ≠ None → hook 说"停"
+          if result is not None:  # 返回值 ≠ None → hook 说"停"
               return result
       return None
   ```
@@ -320,7 +325,13 @@ def agent_loop(messages):
 - **s02 → s03**（+8/−1）：在执行前插入权限门 ——
   ```python
   if not check_permission(block):
-      results.append({"type": "tool_result", "tool_use_id": block.id, "content": "Permission denied."})
+      results.append(
+          {
+              "type": "tool_result",
+              "tool_use_id": block.id,
+              "content": "Permission denied.",
+          }
+      )
       continue
   ```
   → ⚠️ 这是**插入 5 行**（if + append + continue），不是「只加一行」。课程原文说「s02 的循环只加了一行」，**口径偏乐观**。

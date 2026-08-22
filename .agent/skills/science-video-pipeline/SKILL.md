@@ -13,7 +13,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 
 | Stage | 做什么 | 规格链接 | 工具/命令（编排入口 `pipeline.py`） | 通过门 |
 |---|---|---|---|---|
-| ① 信源精读取证 | **A 型论文**：并行子代理逐章 + 官方站点补充；**B 型文档/代码/课程站点**：固定提交取证 + 证据三级 | [01](../../../apps/negentropy-influence/pipeline/skills/01-source-extraction.md) | A 型 `paper_extract.py`（map/text/captions/find/render）；B 型 `source_ledger.py`（fetch/list/verify） | 全部断言可回溯；RISKY=0 |
+| ① 信源精读取证 | **A 型论文**：并行子代理逐章 + 官方站点补充；**B 型文档/代码/课程站点**：固定提交取证 + 证据三级 | [01](../../../apps/negentropy-influence/pipeline/skills/01-source-extraction.md) | A 型 `paper_extract.py`（map/text/captions/find/render）；B 型 `source_ledger.py`（fetch/list/verify/sync/audit——sync/audit 消费系列级 [source-map](../../../apps/negentropy-influence/source-map/claude-code-explained.md)） | 全部断言可回溯；RISKY=0 |
 | ② 策划 | 受众/结构/视觉契约（色彩语义） | [02](../../../apps/negentropy-influence/pipeline/skills/02-planning.md) | — | planning.md 六节齐 |
 | ③ 逐字稿 | narration.md ★单一事实源 | [03](../../../apps/negentropy-influence/pipeline/skills/03-narration.md) | `pipeline.py build` | `build_narration.py` 通过 |
 | ④⑤ 双重校验 + 分镜 | 真实性回溯 + 易懂性；beat 覆盖性 | [04](../../../apps/negentropy-influence/pipeline/skills/04-verification.md) / [05](../../../apps/negentropy-influence/pipeline/skills/05-storyboard.md) | `pipeline.py check`（+`--check-scenes`） | RISKY=0；覆盖率无缺句 |

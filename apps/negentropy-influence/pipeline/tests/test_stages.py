@@ -90,6 +90,93 @@ def test_documented_subcommand_lists_match_the_parser():
         )
 
 
+# ---------------- 系列扇出白名单 ----------------
+
+
+def registered_subcommands() -> set[str]:
+    src = PIPELINE_PY.read_text(encoding="utf-8")
+    return set(re.findall(r'add_parser\("([a-z-]+)"', src))
+
+
+def fanout_ok() -> set[str]:
+    """从 pipeline.py 源码取 FANOUT_OK 字面量（import 会执行 paths 哨兵搜索，
+    在 tmp_path 布局的测试里语义不明；AST 取值与 registered 同族、同样会被
+    「找不到 FANOUT_OK 赋值」式的断言兜底）。"""
+    import ast
+
+    tree = ast.parse(PIPELINE_PY.read_text(encoding="utf-8"))
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and any(
+            t.id == "FANOUT_OK" for t in node.targets if isinstance(t, ast.Name)
+        ):
+            # 形态为 frozenset({...})/set({...})/{...}，取第一个 set 字面量求值
+            inner = node.value
+            if isinstance(inner, ast.Call):
+                inner = inner.args[0]
+            return set(ast.literal_eval(inner))
+    raise AssertionError("pipeline.py 里找不到 FANOUT_OK 赋值——检测器该更新了")
+
+
+def test_fanout_whitelist_is_subset_of_registered_subcommands():
+    """白名单不得声明未注册的子命令（否则 --series 白名单项跑起来即 argparse 报错）。"""
+    assert fanout_ok() <= registered_subcommands(), (
+        f"FANOUT_OK 含未注册子命令：{sorted(fanout_ok() - registered_subcommands())}"
+    )
+
+
+def test_fanout_forwards_subcommand_flags_verbatim():
+    """扇出必须**逐字转发**子命令自己的 flag。
+
+    回归：此前子进程只拼 `--project <root> <cmd>`，于是
+    `--series X check --check-scenes` 里 argparse 正常解析了 flag、五集却全按
+    窄检查跑完，而扇出汇总照样逐集打 ✅——输出与「全集全项通过」不可区分。
+    与 ISSUE-168 的 `--scene` 单值 store 同一失效形态，只是搬到了编排器这层。
+
+    `sub_argv` 是纯切片函数（无路径依赖），故此处直接 import pipeline；
+    FANOUT_OK 那两条判据仍走 AST，因为它们要读源码字面量。
+    """
+    from pipeline import sub_argv
+
+    base = ["pipeline.py", "--series", "claude-code-explained"]
+    assert sub_argv("check", [*base, "check", "--check-scenes"]) == ["--check-scenes"]
+    assert sub_argv("status", [*base, "status"]) == []
+    # `--opt=value` 单 token 形态自然跳过，无需登记进 GLOBAL_OPTS_WITH_VALUE
+    assert sub_argv("check", ["pipeline.py", "--series=x", "check", "-v"]) == ["-v"]
+    # 与 --project 共存（仅默认值 "." 时合法，见 main 的互斥判定）也须切对
+    assert sub_argv(
+        "check", ["pipeline.py", "--project", ".", "--series", "x", "check", "--a"]
+    ) == ["--a"]
+
+
+def test_fanout_slice_skips_global_option_values():
+    """系列 id 恰与子命令同名时不得切错位置。
+
+    `--series check check --check-scenes`：朴素的「从左找第一个等于 cmd 的
+    token」会命中 `--series` 的**取值**，于是把真正的子命令当成 flag 转发过去，
+    每集都收到一条 `check --check-scenes` 的错位命令行。带取值的顶层选项必须
+    连值一起跳（GLOBAL_OPTS_WITH_VALUE 的存在理由）。
+    """
+    from pipeline import GLOBAL_OPTS_WITH_VALUE, sub_argv
+
+    argv = ["pipeline.py", "--series", "check", "check", "--check-scenes"]
+    assert sub_argv("check", argv) == ["--check-scenes"]
+    # 顶层带取值的选项全部在册——漏一个就会在「取值恰等于子命令名」时切错
+    assert set(GLOBAL_OPTS_WITH_VALUE) == {"--series", "--project"}
+
+
+def test_fanout_complement_is_nonempty_and_keeps_destructive_out():
+    """反向：**未列入白名单**的子命令必须非空，且 tts/render/qa/all/clean-samples
+    恰在其中——这是白名单（而非黑名单）的意义：未来新增子命令默认不可扇出，
+    不会静默继承「一条命令跑遍全系列」的破坏半径（4 集 × tts = 8 小时不可逆）。
+    """
+    outside = registered_subcommands() - fanout_ok()
+    assert outside, "FANOUT_OK 收编了全部子命令——扇出默认不再安全"
+    for destructive in ("tts", "render", "qa", "all", "clean-samples"):
+        assert destructive in outside, (
+            f"{destructive} 必须留在扇出白名单之外（昂贵/破坏性命令须显式逐集执行）"
+        )
+
+
 def test_ordinals_are_exactly_one_through_nine():
     got = [st["ordinal"] for st in stages()]
     assert got == list(ORDINALS), f"ordinal 应恰为 ①..⑨ 且按序声明，实际 {got}"

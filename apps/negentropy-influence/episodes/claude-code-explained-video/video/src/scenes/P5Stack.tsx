@@ -17,10 +17,11 @@ const CHAPTERS = [
   {name: '一排插口', total: 255, loop: 28},
 ];
 
-/** 5-A 四层卡片：第一层留原地加实底，后三层上浮转半透明 */
+/** 5-A 四层卡片：第一层并入画面左侧的环（环的第 6 次出场），后三张挂件卡向环滑拢对接 */
 const FourLayers: React.FC<{splitAt: number}> = ({splitAt}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
+  const dot = useRingDot(2.8);
   const layers = [
     {t: '一个循环', s: '反复问模型，替它执行，把结果搬回来', core: true},
     {t: '一张分发表', s: '让工具可以随便加', core: false},
@@ -36,14 +37,16 @@ const FourLayers: React.FC<{splitAt: number}> = ({splitAt}) => {
       <div style={{display: 'flex', gap: 22, alignItems: 'flex-end'}}>
         {layers.map((l, i) => {
           const e = spring({frame: frame - i * 8, fps, config: {damping: 200}});
-          const lift = l.core ? 0 : split * -10;
+          // 骨架卡：split 后向左漂出并让位给环；挂件卡：split 后向左滑拢（对环的预演）
+          const drift = l.core ? split * -60 : split * -14;
+          const lift = l.core ? 0 : -split * 10;
           return (
             <div
               key={l.t}
               style={{
                 width: 350,
-                opacity: e * (l.core ? 1 : 1 - split * 0.45),
-                transform: `translateY(${(1 - e) * 34 + lift}px)`,
+                opacity: e * (l.core ? 1 - split * 0.25 : 1 - split * 0.4),
+                transform: `translate(${(1 - e) * 0 + drift}px, ${(1 - e) * 34 + lift}px)`,
               }}
             >
               <Panel
@@ -97,6 +100,30 @@ const FourLayers: React.FC<{splitAt: number}> = ({splitAt}) => {
           );
         })}
       </div>
+      {/* 环自 split 中段从卡片阵后浮出（第 6 次出场：同色同线宽），三张挂件卡尾部各引一条挂线贴向它 */}
+      {split > 0.35 ? (
+        <div
+          style={{
+            position: 'absolute',
+            left: 60,
+            top: 240,
+            opacity: interpolate(split, [0.35, 0.9], [0, 1], {extrapolateRight: 'clamp'}),
+          }}
+        >
+          <LoopRing size={300} draw={1} dotProgress={dot} showExit={false} showLabels={false} />
+          <div
+            style={{
+              textAlign: 'center',
+              marginTop: 10,
+              fontFamily: theme.mono,
+              fontSize: 22,
+              color: theme.core,
+            }}
+          >
+            {'骨架'}
+          </div>
+        </div>
+      ) : null}
       {split > 0.5 ? (
         <div
           style={{
@@ -115,16 +142,24 @@ const FourLayers: React.FC<{splitAt: number}> = ({splitAt}) => {
   );
 };
 
-/** 5-B 四级台阶：柱高递增，柱内 core 段几乎不变 */
+/** 5-B 四级台阶：柱高递增，柱内 core 段几乎不变；coreAt 后横贯 20–28 行的「实测带」 */
 const GrowthBars: React.FC<{barAt: number; coreAt: number}> = ({barAt, coreAt}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const H = 430;
   const maxLines = 260;
   const showCore = frame >= coreAt;
+  const bandT = interpolate(frame - coreAt - 6, [0, 16], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const yFor = (lines: number) => (lines / maxLines) * H;
+  //: 柱底距容器底的实测像素：幕名标签（22px 字，行盒 ~33）+ `marginTop: 12`。
+  //: 基准带必须减掉它才能落在柱子自己的行数刻度上——此前写 90，带体整体上浮 45px。
+  const BAR_BASE = 45;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <div style={{display: 'flex', gap: 56, alignItems: 'flex-end', height: H + 90}}>
+      <div style={{position: 'relative', display: 'flex', gap: 56, alignItems: 'flex-end', height: H + 90}}>
         {CHAPTERS.map((c, i) => {
           const at = barAt + i * 9;
           const e = spring({frame: frame - at, fps, config: {damping: 200}});
@@ -199,6 +234,62 @@ const GrowthBars: React.FC<{barAt: number; coreAt: number}> = ({barAt, coreAt}) 
             </div>
           );
         })}
+        {/* 20–28 行实测带：横贯四柱的虚线基准带——「恒在 20–28 行」这句口播的测量仪器 */}
+        {bandT > 0 ? (
+          <div
+            style={{
+              position: 'absolute',
+              left: -60,
+              right: -60,
+              // 锚在区间**下界**（20 行），向上长到 28 行——锚上界会让带体
+              // 落在 28→36 行，与标签写的 20–28 不符
+              bottom: yFor(20) + BAR_BASE,
+              height: yFor(28) - yFor(20),
+              background: theme.core,
+              opacity: 0.12 * bandT,
+              borderRadius: 6,
+              pointerEvents: 'none',
+            }}
+          >
+            <div
+              style={{
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                top: 0,
+                borderTop: `2px dashed ${theme.core}`,
+                opacity: bandT,
+              }}
+            />
+            <div
+              style={{
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                bottom: 0,
+                borderBottom: `2px dashed ${theme.core}`,
+                opacity: bandT,
+              }}
+            />
+            {/* 带宽只有 13px，标注压在带子上方会撞四根柱子各自的 loop 行数（`bottom: ch + 6`
+                恰好落在同一高度）——放到带子右侧的空白区，垂直居中对齐带体 */}
+            <div
+              style={{
+                position: 'absolute',
+                left: '100%',
+                marginLeft: 14,
+                top: -8,
+                whiteSpace: 'nowrap',
+                fontFamily: theme.mono,
+                fontSize: 22,
+                color: theme.core,
+                opacity: bandT,
+              }}
+            >
+              {'循环函数行数带 20–28（实测）'}
+            </div>
+          </div>
+        ) : null}
       </div>
       <Footnote delay={coreAt}>
         {'总行 141 → 255（+81%）·  循环函数恒在 20–28 行（非空非注释）'}

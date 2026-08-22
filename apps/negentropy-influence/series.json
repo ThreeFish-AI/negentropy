@@ -102,7 +102,95 @@
             "accessed": "2026-08-21"
           },
           "status": "ready",
-          "statusNote": "已交付：成片 14:14（1080p30 h264/aac192K，42.1 MB）+ srt/vtt 各 170 cue + 封面帧；终渲抽帧 FAIL 0（WARN 1 为刻意的画面凝住）",
+          "statusNote": "已交付：成片 14:14（1080p30 h264/aac192K，42.1 MB）+ srt/vtt 各 170 cue + 封面帧；终渲抽帧 FAIL 0（WARN 1 为刻意的画面凝住）；2026-08-22 tier-i 画面优化 + 评审四修版 14:14.73 · 42.6 MB（total_duration_in_frames 复算 25642 帧 @30fps；零口播零配音改动，七幕抽帧 FAIL 0 · WARN 1）",
+          "voice": "sunny-steady + me-bright.wav"
+        },
+        {
+          "episode": 2,
+          "slug": "claude-code-planning-video",
+          "path": "episodes/claude-code-planning-video",
+          "title": "AI 的视野是安排出来的：写下来的计划，另开的桌子",
+          "topic": "规划与协调：谁来安排模型看到什么",
+          "cardSub": "规划与协调 · 视野",
+          "accents": [
+            "#9C90EE"
+          ],
+          "source": {
+            "title": "Learn Claude Code · 规划与协调（s05 / s06 / s07 / s10 / s11）",
+            "site": "https://learn.shareai.run/zh/s05/",
+            "repo": "https://github.com/shareAI-lab/learn-claude-code",
+            "pinnedRef": "67a9126c6435a8654ba7a6f68c0fd2130f00a462",
+            "license": "MIT",
+            "accessed": "2026-08-22"
+          },
+          "status": "ready",
+          "statusNote": "已交付：成片 13:14.00（1080p30，39.5 MB · total_duration_in_frames 复算 23820 帧 @30fps）+ srt/vtt 各 134 cue；终渲尾幕抽帧 FAIL 0（WARN 1 为信源卡刻意停留）",
+          "voice": "sunny-steady + me-bright.wav"
+        },
+        {
+          "episode": 3,
+          "slug": "claude-code-memory-video",
+          "path": "episodes/claude-code-memory-video",
+          "title": "AI 的记忆：会丢的和不能丢的",
+          "topic": "记忆管理：压缩与持久层",
+          "cardSub": "记忆管理 · 两层",
+          "accents": [
+            "#A9C46C"
+          ],
+          "source": {
+            "title": "Learn Claude Code · 记忆管理（s08 Context Compact / s09 Memory）",
+            "site": "https://learn.shareai.run/zh/s08/",
+            "repo": "https://github.com/shareAI-lab/learn-claude-code",
+            "pinnedRef": "67a9126c6435a8654ba7a6f68c0fd2130f00a462",
+            "license": "MIT",
+            "accessed": "2026-08-22"
+          },
+          "status": "ready",
+          "statusNote": "已交付：成片 13:14.47（1080p30，36.1 MB · total_duration_in_frames 复算 23834 帧 @30fps）+ srt/vtt 各 140 cue；七幕 FAIL 0（WARN 2 均刻意停留）；终渲尾幕 FAIL 0 · WARN 0",
+          "voice": "sunny-steady + me-bright.wav"
+        },
+        {
+          "episode": 4,
+          "slug": "claude-code-concurrency-video",
+          "path": "episodes/claude-code-concurrency-video",
+          "title": "AI 会自己开工吗？后台与定时",
+          "topic": "并发与调度：谁来按下开始",
+          "cardSub": "并发与调度 · 谁按的开始",
+          "accents": [
+            "#7FB2E0"
+          ],
+          "source": {
+            "title": "Learn Claude Code · 并发（s13 Background Tasks / s14 Cron Scheduler）",
+            "site": "https://learn.shareai.run/zh/s13/",
+            "repo": "https://github.com/shareAI-lab/learn-claude-code",
+            "pinnedRef": "67a9126c6435a8654ba7a6f68c0fd2130f00a462",
+            "license": "MIT",
+            "accessed": "2026-08-22"
+          },
+          "status": "ready",
+          "statusNote": "已交付：成片 13:08.90（1080p30，40.9 MB · total_duration_in_frames 复算 23667 帧 @30fps）+ srt/vtt 各 139 cue；七幕 FAIL 0（首渲 p1-10 侵入已修）；终渲尾幕 FAIL 0 · WARN 0",
+          "voice": "sunny-steady + me-bright.wav"
+        },
+        {
+          "episode": 5,
+          "slug": "claude-code-multiagent-video",
+          "path": "episodes/claude-code-multiagent-video",
+          "title": "一群 AI 怎么干活：看板、信箱与各自的桌子",
+          "topic": "多 Agent 平台：从一个到一群",
+          "cardSub": "多 Agent 平台 · 从一个到一群",
+          "accents": [
+            "#D9B36B"
+          ],
+          "source": {
+            "title": "Learn Claude Code · 多 Agent 平台（s12 / s15 / s16 / s17 / s18 / s19 / s20）",
+            "site": "https://learn.shareai.run/zh/s12/",
+            "repo": "https://github.com/shareAI-lab/learn-claude-code",
+            "pinnedRef": "67a9126c6435a8654ba7a6f68c0fd2130f00a462",
+            "license": "MIT",
+            "accessed": "2026-08-22"
+          },
+          "status": "ready",
+          "statusNote": "已交付：成片 13:03.27（1080p30，42.4 MB · total_duration_in_frames 复算 23498 帧 @30fps）+ srt/vtt 各 133 cue；七幕 FAIL 0 · WARN 0（系列唯一全零）",
           "voice": "sunny-steady + me-bright.wav"
         }
       ]

@@ -101,12 +101,12 @@ uv run --no-project $R/pipeline.py --project $P     {status|doctor|build|check|t
 | [scripts/pipeline.py](./scripts/pipeline.py)             | **单入口编排**（上表）                                                                                                  | `uv run --no-project $R/pipeline.py --project $P tts --plan`                                                      |
 | [scripts/timeline.py](./scripts/timeline.py)             | 时间轴 Python 侧实现（与 timing.ts 同构，直读 timing.json）                                                            | 被 qa_frames/captions/check_script 复用                                                                                                          |
 | [scripts/check_script.py](./scripts/check_script.py)     | ④⑤ 内容门：beat 覆盖性 / 时长预算双口径 / SceneFade 不变式 / `--check-scenes` 分镜↔代码互比                            | `uv run --no-project scripts/check_script.py --check-scenes`                                                                                   |
-| [scripts/check_series.py](./scripts/check_series.py)     | 系列一致性五规则（口播反串线 / 多标题顺序 / 序号绑定 / 清单完整性 / 死链），执法 [../series.json](../series.json)         | 仓库根：`uv run --no-project $R/check_series.py`（已挂 pre-commit）                                                          |
+| [scripts/check_series.py](./scripts/check_series.py)     | 系列一致性六规则（口播反串线 / 多标题顺序 / 序号绑定 / 清单完整性 / 死链 / 可渲染性），执法 [../series.json](../series.json)         | 仓库根：`uv run --no-project $R/check_series.py`（已挂 pre-commit）                                                          |
 | [scripts/captions.py](./scripts/captions.py)             | 导出 srt/vtt（cue 终点不含句间停顿——外挂字幕静默期不留字）                                                             | `uv run --no-project scripts/captions.py`                                                                                                        |
 | [scripts/qa_frames.py](./scripts/qa_frames.py)           | 抽帧 QA（幕/句/`--last-n` 末 N 句）+ `--check` 四项自动体检 + `--check-theme` WCAG 对比度                               | `uv run --no-project --with pillow --with numpy scripts/qa_frames.py out/draft.mp4 --last-n 6 --check`（工程根；视频路径按 CWD 解析，仓库根调用写全 `$P/out/draft.mp4`）                                          |
 | [scripts/paper_extract.py](./scripts/paper_extract.py)   | Stage ① 取证工具箱（§→页映射 / 分栏取文 / caption 收割 / 定点 find / 页面光栅化）                                       | `uv run --no-project --with pymupdf $R/paper_extract.py "<PDF>" find "原文措辞"`                                             |
 | [scripts/refs.py](./scripts/refs.py)                     | 参考样本可复现清单（verify/rebuild；指纹在 [voices/refs.toml](./voices/refs.toml)，只存哈希不存音频）                    | `uv run --no-project $R/refs.py verify`                                                                                     |
-| [scripts/source_ledger.py](./scripts/source_ledger.py)   | Stage ① **B 型信源**可复现清单（fetch/list/verify；`repo` 类固定提交 raw 指纹漂移即 FAIL，`site` 类只比归一正文、漂移报 WARN） | `uv run --no-project $R/source_ledger.py --project $P verify`                                               |
+| [scripts/source_ledger.py](./scripts/source_ledger.py)   | Stage ① **B 型信源**可复现清单（fetch/list/verify + sync/audit——后两者消费系列级 [source-map](../source-map/) 地图，幂等批量建台账 + 离线三断言；`repo` 类固定提交 raw 指纹漂移即 FAIL，`site` 类只比归一正文、漂移报 WARN） | `uv run --no-project $R/source_ledger.py --project $P verify`；`sync --map <map.toml> --episode N` / `audit --map <map.toml> --episode N` |
 | [scripts/pron_marks.py](./scripts/pron_marks.py)         | 发音标注 `<原文\|读音>` 的解析与校验（纯函数库，无 IO）：多音字/英文专名的精确读音控制；被 `build_narration.py` 用于硬失败拦非法标注 | 库，不直接调用；语法与规则见其模块文档，台账见 [PRON-GLOSSARY.md](./PRON-GLOSSARY.md)                                                            |
 | [scripts/tts_bench.py](./scripts/tts_bench.py)           | 合成耗时基准与**测量环境体检**（**运行于 index-tts 环境**，同 tts_server.py）：A/A 复现性判定 + 分段计时 + 换页/分配器诊断。本机漂移已定因为热节流，做任何耗时 A/B 前先用它确认环境合格 | 在 `~/tools/index-tts` 内：`./.venv/bin/python <本仓>/$R/tts_bench.py --check-only`；A/A 见 [INDEXTTS-2.5-ADVANCED.md §6.5](./INDEXTTS-2.5-ADVANCED.md) |
 
@@ -164,11 +164,14 @@ schema、默认值与校验的单一事实源是 [scripts/config.py](./scripts/c
    > 故**刻意不改** `.npmrc`/`package.json` 去消掉这条提示（改了会让 A 档冻结文件产生一处
    > 只为静音噪声的跨集差异）。真正需要 postinstall 的依赖若将来出现，再按官方新家
    > `pnpm-workspace.yaml` 的 `allowBuilds` 处理。
-4. **登记到 [../series.json](../series.json)**：顶层是 `seriesList[]`，新系列追加一个 series 对象
+4. **登记到 [../series.json](../series.json)**（阻塞门：`check_series.py` 规则 4 反向执法——
+   未登记目录一旦写下 `script/narration.md` 即 FAIL；脚手架期为 WARN 分级）：顶层是 `seriesList[]`，新系列追加一个 series 对象
    （`id` / `title` / `sourceKind` / `rule` / `episodes`），既有系列的新集追加到其 `episodes`。
-   同步 [../series.md](../series.md) 的分节表格。注意**漏登没有阻塞门**：`check_series.py` 只遍历
-   series.json（看不见孤儿目录），`verify_skeleton.py` 会点名**未登记的孤儿工程目录**但不计入
-   未登记漂移（`--strict` 不失败）——登记义务靠这条警告 + 本清单自觉执行。
+   同步 [../series.md](../series.md) 的分节表格。**分级是刻意的**：脚手架期（还没写
+   `narration.md`）只报 WARN，否则「先登记要先定色板色值、先写要先登记」会把新集夹死在
+   两条门之间；`narration.md` 一落盘即转 FAIL——那一刻规则 1 的反串线扫描才真正需要看见它。
+   `verify_skeleton.py` 也会点名孤儿工程目录，但保持 WARN 不计入未登记漂移（`--strict` 不失败）：
+   漂移门管骨架一致性，登记是清单问题，阻塞执法只放在 `check_series.py` 一处。
 5. 按 [skills/](./skills/) 01→05 顺序走内容层，再进生产层。Stage ① 先判**信源型别**：
    论文型走 A 型（`paper_extract.py` + `paper-notes.md`），文档/代码/课程站点型走 B 型
    （`source_ledger.py` + `source-notes.md` + 证据三级），见 [skills/01](./skills/01-source-extraction.md)。

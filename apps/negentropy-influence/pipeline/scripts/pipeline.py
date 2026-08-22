@@ -17,6 +17,10 @@
 子命令：status / doctor / build / check / tts / captions / render / qa / all / clean-samples / stages
 （本行与 pipeline/README.md、子项目 README 的三份抄件由 tests/test_stages.py 对齐 argparse
 真实注册表——`stages` 上线时三处全漏，抄件无执法必漂。）
+系列扇出（--series <id>，与 --project 互斥）：
+  uv run --no-project $R/pipeline.py --series <series-id> <cmd> [<cmd 自己的 flag>…]
+按 series.json 把该系列各集逐集执行（仅白名单命令，见 FANOUT_OK）；子命令后的
+flag 原样转发给每集（见 sub_argv——不转发就是静默缩小检查面）。
 """
 
 from __future__ import annotations
@@ -38,6 +42,12 @@ import config  # noqa: E402 - 必须在 sys.path 注入之后导入
 from paths import INFLUENCE, REPO  # noqa: E402
 
 MANUAL = "pipeline/VOICE-CLONING.md"  # 子项目根相对（见 paths.py）
+
+#: 可扇出的子命令。白名单而非黑名单：新增子命令默认不可扇出。
+#: tts/render/qa/all/clean-samples 刻意在外——4 集扇出 tts 是一条 8 小时不可逆无人值守
+#: 命令，昂贵/破坏性默认必须显式逐集执行（ISSUE-163 教训：破坏性默认值必须硬失败
+#: 而非提示，静默降级的输出会覆盖唯一产物槽位时尤甚）。
+FANOUT_OK = frozenset({"status", "doctor", "build", "check"})
 
 
 def load_config(root: Path) -> tuple[dict, dict[str, str]]:
@@ -190,7 +200,22 @@ def cmd_tts(
     steady: str | None,
     style: str | None,
     allow_voice_switch: bool = False,
+    skip_pre_tts: bool = False,
 ) -> int:
+    if not skip_pre_tts:
+        # TTS 前置门：预算/读法陷阱/标注合法性都是「合成前可判定的文本门」——
+        # 长跑 2 小时量级、mp3 单槽位，读法错误事后只能靠听发现（ISSUE-164 教训：
+        # 8 句年份空格错误进了三集成片）。与 cmd_check 同一调用形态（uv 子进程，
+        # check_script 的 import 面不被本编排器绑死）。
+        rc = run(
+            uv_no_project("check_script.py", [], "--pre-tts", "--json", project=root)
+        )
+        if rc:
+            print(
+                "\n❌ pre-TTS 前置门未过——预算超窗/读法陷阱/非法标注任一命中都会在此拦截，"
+                "详情见上方 JSON。修复 narration.md 后重跑 build，或确认无误后加 --skip-pre-tts。"
+            )
+            return rc
     tts = cfg.get("tts", {})
     cmd = [
         "uv",
@@ -257,7 +282,7 @@ def cmd_qa(
     root: Path,
     cfg: dict,
     video: str | None,
-    scene: str | None,
+    scene: list[str] | None,
     last_n: int | None,
     ids: list[str],
     check: bool,
@@ -267,8 +292,8 @@ def cmd_qa(
     if check:
         cmd += ["--with", "pillow", "--with", "numpy"]
     cmd += [str(SCRIPTS / "qa_frames.py"), "--project", str(root)]
-    if scene:
-        cmd += ["--scene", scene]
+    for s in scene or []:
+        cmd += ["--scene", s]
     if last_n:
         cmd += ["--last-n", str(last_n)]
     if check:
@@ -350,6 +375,90 @@ def cmd_stages() -> int:
     return 0
 
 
+#: 顶层选项中**带取值**的那些。`sub_argv` 切片时必须连取值一起跳过——否则
+#: `--series check check`（系列 id 恰与子命令同名）会把取值误认成子命令，
+#: 转发面从错误的位置开始切。`--opt=value` 单 token 形态无需登记（自然跳过）。
+GLOBAL_OPTS_WITH_VALUE = ("--series", "--project")
+
+
+def sub_argv(cmd: str, argv: list[str]) -> list[str]:
+    """→ 命令行里**子命令之后**的原样 token（扇出须逐字转发给每集）。
+
+    转发而非按 Namespace 重建：子命令的 flag 声明面只有 argparse 一处，重建就要
+    再维护一张 dest→flag 抄件，而抄件漏登记的表现恰是**静默缩小检查面**
+    （`--check-scenes` 被丢弃就是这么发生的，同 ISSUE-168 一族）。切片对新增
+    flag 零维护，声明面仍只有一处。
+
+    纯切片、不判合法性：argparse 已在调用前解析并校验过整条命令行。
+    """
+    i = 1
+    while i < len(argv):
+        tok = argv[i]
+        if tok in GLOBAL_OPTS_WITH_VALUE:
+            i += 2  # 选项 + 取值两个 token 一起跳
+            continue
+        if tok == cmd:
+            return argv[i + 1 :]
+        i += 1
+    return []
+
+
+def fanout(series_id: str, cmd: str, extra: list[str]) -> int:
+    """把 <cmd>（连同它自己的 flag）逐集执行在该系列全部集上（--series 入口）。
+
+    每集独立进程跑本脚本自身（而非进程内循环调 cmd_*）：保持各子命令的
+    「读配置→跑→打完成行」语义与单集调用逐字相同，扇出只是外层循环。
+
+    `extra` = 子命令之后的原样 token（见 sub_argv）。**必须转发**：此前只拼
+    `--project <root> <cmd>`，于是 `--series X check --check-scenes` 里 argparse
+    正常解析了 flag、五集却全按窄检查跑完，汇总照样逐集打 ✅——输出与「全集全项
+    通过」不可区分，与 ISSUE-168 的 `--scene` 单值 store 同一失效形态。
+    """
+    if cmd not in FANOUT_OK:
+        sys.exit(
+            f"❌ `--series` 不支持子命令 {cmd!r}：可扇出的只有 {sorted(FANOUT_OK)}。\n"
+            f"   tts/render/qa/all/clean-samples 刻意不可扇出——4 集扇出 tts 即一条"
+            f" 8 小时不可逆无人值守命令（mp3 单槽位覆盖），昂贵/破坏性操作必须显式逐集执行。"
+        )
+    series_list = json.loads((INFLUENCE / "series.json").read_text(encoding="utf-8"))[
+        "seriesList"
+    ]
+    hit = next((s for s in series_list if s["id"] == series_id), None)
+    if hit is None:
+        ids = [s["id"] for s in series_list]
+        sys.exit(f"series.json 无此系列 id: {series_id}（现有：{ids}）")
+    eps = hit["episodes"]
+    print(
+        f">> 扇出 {cmd!r} · 系列 {series_id} · {len(eps)} 集"
+        # 转发面显式打出来：检查面必须随判定行一起可见（ISSUE-168 防范 2）
+        + (f" · 转发 {' '.join(extra)}" if extra else "")
+    )
+    t0 = time.time()
+    results: list[tuple[str, int]] = []
+    for ep in eps:
+        root = INFLUENCE / ep["path"]
+        rc = run(
+            [
+                sys.executable,
+                str(Path(__file__).resolve()),
+                "--project",
+                str(root),
+                cmd,
+                *extra,
+            ]
+        )
+        results.append((ep["slug"], rc))
+    print(f"\n>> 扇出汇总（{time.time() - t0:.1f}s）")
+    failed = 0
+    for slug, rc in results:
+        mark = "✅" if rc == 0 else f"❌ rc={rc}"
+        failed += rc != 0
+        print(f"   {mark}  {slug}")
+    if failed:
+        print(f"   {failed}/{len(results)} 集失败")
+    return 1 if failed else 0
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(
         description="科普视频管线单入口（薄编排，阶段契约见 pipeline/README.md）"
@@ -358,6 +467,11 @@ def main() -> None:
         "--project",
         default=".",
         help="视频工程根目录（含 pipeline.toml）；须置于子命令之前",
+    )
+    ap.add_argument(
+        "--series",
+        help="按 series.json 扇出到该系列各集（与 --project 互斥；仅 "
+        f"{sorted(FANOUT_OK)} 可扇出）。子命令自身的 flag 逐字转发给每集",
     )
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("status", help="阶段新鲜度（实时派生）")
@@ -381,6 +495,13 @@ def main() -> None:
         action="store_true",
         help="放行音色签名变更（两遍法换档经单入口时须带上，否则被 .engine 护栏硬拦）",
     )
+    p.add_argument(
+        "--skip-pre-tts",
+        action="store_true",
+        help="跳过 pre-TTS 前置门（预算/读法陷阱/标注合法性）。直调 $P/scripts/tts.py"
+        " 薄包装不走本入口、天然无此门——那不是绕过的设计，是 tts.py 的导入边界"
+        "（不可 import check_script，见 paths.py 文件头）使然；要门就走本入口",
+    )
     p = sub.add_parser("render", help="⑧⑨ 渲染")
     p.add_argument("--final", action="store_true", help="终渲（默认草渲）")
     p = sub.add_parser("qa", help="⑧ 抽帧 QA")
@@ -389,7 +510,8 @@ def main() -> None:
         help="渲染产物路径，**按分集工程目录解析**（本入口以 cwd=<工程> 启动 "
         "qa_frames.py）——写 out/draft.mp4，勿写 $P/out/draft.mp4",
     )
-    p.add_argument("--scene")
+    # 与 qa_frames 对齐：可重复传多幕（单值 store 会静默只留末幕，见 qa_frames 注释）
+    p.add_argument("--scene", action="append", metavar="Pn")
     p.add_argument("--last-n", type=int)
     p.add_argument("--check", action="store_true", help="自动体检")
     p.add_argument(
@@ -401,6 +523,11 @@ def main() -> None:
     sub.add_parser("all", help="build→check→tts→captions→render(草渲) 一键链")
     sub.add_parser("stages", help="打印九阶段声明表（与工程无关）")
     args = ap.parse_args()
+
+    if args.series is not None and args.project != ".":
+        ap.error("--series 与 --project 互斥（系列扇出按 series.json 定位各集工程）")
+    if args.series is not None:
+        sys.exit(fanout(args.series, args.cmd, sub_argv(args.cmd, sys.argv)))
 
     root = Path(args.project).resolve()
     # 与具体工程无关的子命令不读 pipeline.toml —— 否则「某集 toml 写坏」会连带
@@ -432,6 +559,7 @@ def main() -> None:
             args.steady,
             args.style,
             args.allow_voice_switch,
+            args.skip_pre_tts,
         ),
         "captions": lambda: cmd_captions(root, cfg),
         "render": lambda: cmd_render(root, cfg, args.final),

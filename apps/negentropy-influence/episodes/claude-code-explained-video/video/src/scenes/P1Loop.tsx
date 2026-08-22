@@ -311,7 +311,9 @@ const UnreliableFlag: React.FC<{crossAt: number; quoteAt: number}> = ({crossAt, 
           </svg>
         ) : null}
       </div>
-      <Footnote delay={crossAt}>{'stop_reason is unreliable —— 课程作者的源码分析'}</Footnote>
+      <Footnote delay={crossAt}>
+        {'stop_reason is unreliable —— 课程作者的源码分析 · 站点教学版仍按停止标记判定，仓库版已改为查内容块'}
+      </Footnote>
     </AbsoluteFill>
   );
 };

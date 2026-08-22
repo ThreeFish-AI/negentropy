@@ -170,3 +170,43 @@ def load_vocab(path) -> frozenset[str] | None:
             return frozenset(line.strip() for line in fh if line.strip())
     except OSError:
         return None
+
+
+#: 多音字候选表：(字, 易错点, 若读错则标注)。**候选 ≠ 台账**——未经实测确认模型
+#: 真的读错，只作复听时的注意力清单（PRON-GLOSSARY.md）；确认读错才回填台账并
+#: 在稿中标注，预防性标注反而引入风险（标注错 = 必然读错，上游丢弃原字无兜底）。
+#: 候选表本体收敛在此而非 PRON-GLOSSARY.md：文档里的表没有消费者，只会与扫描器漂移。
+#:
+#: 前半 = PRON-GLOSSARY.md 原观察清单（科普题材高频多音字）；「一行代码 / 运行 /
+#: 重试 / 差异 CHA4 / 更加 / 变更」等语境为 claude-code 系列（拆解 Claude Code）
+#: 追加的词表——该系列口播高频命中这批字，复听时按系列词表加权关注。
+POLYPHONE_CANDIDATES: tuple[tuple[str, str, str], ...] = (
+    (
+        "行",
+        "银行/一行代码 háng · 行走/运行 xíng",
+        "`<行|HANG2>` / `<行|XING2>`",
+    ),
+    ("模", "模型 mó · 模具 mú", "`<模|MO2>`"),
+    ("率", "效率 lǜ · 率领 shuài（ü 一律写 V）", "`<率|LV4>`"),
+    ("差", "误差/差异 chā · 差不多 chà", "`<差|CHA1>` / `<差|CHA4>`"),
+    ("重", "重复/重试 chóng · 重要 zhòng", "`<重|CHONG2>` / `<重|ZHONG4>`"),
+    ("量", "数量/量化 liàng · 测量 liáng", "`<量|LIANG4>`"),
+    ("卷", "卷积/卷起 juǎn · 试卷/问卷 juàn（j+ü→JV）", "`<卷|JVAN3>`"),
+    ("系", "系统/关系 xì（口语易读 jì）", "`<系|XI4>`"),
+    ("更", "更新/变更 gēng · 更加 gèng", "`<更|GENG1>` / `<更|GENG4>`"),
+)
+
+
+def scan_candidates(items: list[dict]) -> list[tuple[str, str, str, str]]:
+    """逐句扫描候选多音字 → [(句id, 字, 易错点, 建议标注)]。纯函数、不判错。
+
+    消费者：`check_script.py --pron-candidates`（复听注意力报告，非门）。扫描
+    `text`（人读面）即可——标注自带原字，`ttsText` 里的候选字在 `text` 中必然
+    同样出现，不存在只落在 ttsText 的多音字。
+    """
+    out: list[tuple[str, str, str, str]] = []
+    for it in items:
+        for char, risk, advice in POLYPHONE_CANDIDATES:
+            if char in it["text"]:
+                out.append((it["id"], char, risk, advice))
+    return out

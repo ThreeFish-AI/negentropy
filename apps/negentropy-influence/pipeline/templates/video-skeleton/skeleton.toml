@@ -77,9 +77,14 @@ frozen = [
 overridable = ["video/src/timing.json"]
 regioned = ["video/src/Main.tsx"]
 structured = ["video/package.json"]
+# motifs.tsx 只播种 chrome 层（Panel/Footnote/SceneTag/Counter/CodeCard/
+# NumberedCard/ease——通用排版机械，只读底座 token）；创作性母题（Terminal/
+# LoopRing/DispatchTable/GateRouter/SlotRing）不进模板，各集复制 ep1 的
+# motifs.tsx 后裁剪（目录见 skills/06 母题表）。seeded=复制后自由，无门。
 seeded = [
   "video/pnpm-lock.yaml",
   "video/src/design/theme.ts",
+  "video/src/components/motifs.tsx",
   "pipeline.toml",
   "README.md",
 ]
