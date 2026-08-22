@@ -226,13 +226,16 @@ const AskAndPass: React.FC<{askAt: number; passAt: number}> = ({askAt, passAt}) 
         </div>
       ) : null}
       {/* 三判定小抄（站点 Permission Desk 的信息结构）：allow / ask / deny 各带真实载荷 ——
-          本幕上方只演了 ask 与 allow，这里把第三条补齐，路由器的三种出口一目了然 */}
+          本幕上方只演了 ask 与 allow，这里把第三条补齐，路由器的三种出口一目了然。
+          落位约束：小抄出现时（t2 > 0.4）闸门已整体上移 -150，GateRouter 的闸门名
+          （`y - h - 18`）落在 y≈235–258、闸柱顶到 y≈272——小抄必须整体收在其上方，
+          否则「三道闸门各自是什么」会被前两张卡盖掉（本幕只剩「问你」露出过）。 */}
       {t2 > 0.4 ? (
         <div
           style={{
             position: 'absolute',
             left: 120,
-            top: 150,
+            top: 56,
             display: 'flex',
             gap: 18,
             opacity: interpolate(t2, [0.4, 0.8], [0, 1], {extrapolateRight: 'clamp'}),

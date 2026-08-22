@@ -154,6 +154,9 @@ const GrowthBars: React.FC<{barAt: number; coreAt: number}> = ({barAt, coreAt}) 
     extrapolateRight: 'clamp',
   });
   const yFor = (lines: number) => (lines / maxLines) * H;
+  //: 柱底距容器底的实测像素：幕名标签（22px 字，行盒 ~33）+ `marginTop: 12`。
+  //: 基准带必须减掉它才能落在柱子自己的行数刻度上——此前写 90，带体整体上浮 45px。
+  const BAR_BASE = 45;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <div style={{position: 'relative', display: 'flex', gap: 56, alignItems: 'flex-end', height: H + 90}}>
@@ -238,7 +241,9 @@ const GrowthBars: React.FC<{barAt: number; coreAt: number}> = ({barAt, coreAt}) 
               position: 'absolute',
               left: -60,
               right: -60,
-              bottom: yFor(28) + 90,
+              // 锚在区间**下界**（20 行），向上长到 28 行——锚上界会让带体
+              // 落在 28→36 行，与标签写的 20–28 不符
+              bottom: yFor(20) + BAR_BASE,
               height: yFor(28) - yFor(20),
               background: theme.core,
               opacity: 0.12 * bandT,
@@ -266,11 +271,15 @@ const GrowthBars: React.FC<{barAt: number; coreAt: number}> = ({barAt, coreAt}) 
                 opacity: bandT,
               }}
             />
+            {/* 带宽只有 13px，标注压在带子上方会撞四根柱子各自的 loop 行数（`bottom: ch + 6`
+                恰好落在同一高度）——放到带子右侧的空白区，垂直居中对齐带体 */}
             <div
               style={{
                 position: 'absolute',
-                right: 0,
-                top: -38,
+                left: '100%',
+                marginLeft: 14,
+                top: -8,
+                whiteSpace: 'nowrap',
                 fontFamily: theme.mono,
                 fontSize: 22,
                 color: theme.core,

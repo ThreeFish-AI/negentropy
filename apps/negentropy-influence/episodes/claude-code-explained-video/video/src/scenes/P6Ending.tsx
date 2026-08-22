@@ -9,19 +9,24 @@ import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {LoopRing, Panel, useRingDot} from '../components/motifs';
 
-/** 6-A 壳的四层：三张挂件卡从右侧滑入、逐一「咬合」上环（骨架 vs 挂件的物理化收束）。
- *  循环层不用卡——它就是环本身（p6-03 的口播顺序：循环→分发表→闸门→插口）。 */
+/** 6-A 壳的四层：三张挂件卡沿径向滑入、逐一「咬合」上环（骨架 vs 挂件的物理化收束）。
+ *  循环层不用卡——它就是环本身（p6-03 的口播顺序：循环→分发表→闸门→插口）。
+ *  卡片恒正立（见下方 `rotate(${-a.ang})`），只有挂脚吃挂点角度。 */
 const ShellLayers: React.FC<{layerAt: number[]}> = ({layerAt}) => {
   const frame = useCurrentFrame();
   const dot = useRingDot(2.8);
-  const R = 210; // 环半径
+  const R = 210; // LoopRing 的外框半参（size = 2R + 76）
+  // 环线真实半径：LoopRing 内部取 size/2 - 46，与 R 差 8px。夹爪要咬在**环线**上，
+  // 所以必须由 size 反算，直接用 R 会差出 8px 的悬空。
+  const RING_R = (R * 2 + 76) / 2 - 46;
   const CX = 560;
   const CY = 540;
-  // 三张挂件卡挂在环的三个方位（与 P2/P3/P4 的挂靠语言一致）；入射角决定卡片转角
+  // 三张挂件卡沿环 120° 均分，且刻意避开 0/±90/180 —— LoopRing 的四个节点文案
+  // （问模型/看回答/执行工具/填回结果）就画在那四个方位上，挂脚会横穿它们。
   const attach = [
-    {t: '分发表', s: '给它工具', c: theme.mech, ang: -30},
-    {t: '闸门', s: '守着底线', c: theme.deny, ang: 90},
-    {t: '插口', s: '留给你发挥', c: theme.mech, ang: 210},
+    {t: '分发表', s: '给它工具', c: theme.mech, ang: -45},
+    {t: '闸门', s: '守着底线', c: theme.deny, ang: 75},
+    {t: '插口', s: '留给你发挥', c: theme.mech, ang: 195},
   ];
   const allOn = frame >= layerAt[3];
   const breathe = allOn ? 1 - 0.02 * Math.max(0, Math.sin((frame - layerAt[3]) / 9)) : 1;
@@ -40,25 +45,30 @@ const ShellLayers: React.FC<{layerAt: number[]}> = ({layerAt}) => {
             });
             if (!on) return null;
             const rad = (a.ang * Math.PI) / 180;
-            // 卡片从远处（1.6×）滑到挂点，最后一程 spring 过冲轻微「咬合」
+            // 卡片中心的落位半径：环外一圈（dist > RING_R，卡片整体在环之外——
+            // 底部那句「挂件 ×3，都挂在外面」是字面意思，卡片不得压在环线上）
             const dist = R + 96;
+            // 挂脚长度 = 卡心到环线的径向距离；本组已按 ang 旋转，故 -x 指向环心
+            const stem = dist - RING_R;
             const px = 1.6 - 0.6 * t;
             const x = Math.cos(rad) * dist * px;
             const y = Math.sin(rad) * dist * px;
             return (
               <g key={a.t} transform={`translate(${x} ${y}) rotate(${a.ang})`} opacity={t}>
-                {/* 挂脚：卡片与环之间的短连线，末端一个小夹爪 */}
+                {/* 挂脚：自环线伸到卡片内缘，末端夹爪咬在环线上 */}
                 <line
-                  x1={-Math.cos(0) * 0}
+                  x1={-stem}
                   y1={0}
-                  x2={-72}
+                  x2={-40}
                   y2={0}
                   stroke={a.c}
                   strokeWidth={4}
                   strokeLinecap="round"
                 />
-                <path d="M-72 0 l-12 -9 v18 Z" fill={a.c} />
-                <g transform="translate(-104 0)">
+                <path d={`M${-stem} 0 l12 -9 v18 Z`} fill={a.c} />
+                {/* 卡片反向抵消 ang：挂点角度不该变成文字角度（否则 75° 侧倒、
+                    195° 倒置，文字直接不可读） */}
+                <g transform={`rotate(${-a.ang})`}>
                   <rect
                     x={-84}
                     y={-34}
