@@ -31,7 +31,7 @@
 | 2 | [《AI 的视野是安排出来的：写下来的计划，另开的桌子》](./episodes/claude-code-planning-video/README.md) | 规划与协调：谁来安排模型看到什么 | 鸢紫 `view`（底座陶土橙/石青全系列共享） | s05–s07 · s10 · s11 @ 站点同源修订 `67a9126c`（MIT） | **已交付**（成片 13:11.81，134 句 3906 字，七幕抽帧 FAIL 0） |
 | 3 | [《AI 的记忆：会丢的和不能丢的》](./episodes/claude-code-memory-video/README.md) | 记忆管理：压缩与持久层 | 苔绿 `keep` | s08 · s09 @ `67a9126c`（MIT） | **已交付**（成片 13:12.26，140 句 3900 字，七幕 FAIL 0） |
 | 4 | [《AI 会自己开工吗？后台与定时》](./episodes/claude-code-concurrency-video/README.md) | 并发与调度：谁来按下开始 | 霜蓝 `later` | s13 · s14 @ `67a9126c`（MIT） | 制作中（①–⑦ 就绪：139 句 3882 字 / 27 镜 / 场景 2918 行；待配音） |
-| 5 | [《一群 AI 怎么干活：看板、信箱与各自的桌子》](./episodes/claude-code-multiagent-video/README.md) | 多 Agent 平台：从一个到一群 | 赭金 `peer` | s12 · s15–s20 @ `67a9126c`（MIT） | 制作中（①–⑦ 就绪：131 句 3863 字 / 29 镜 / 场景 4865 行；待配音） |
+| 5 | [《一群 AI 怎么干活：看板、信箱与各自的桌子》](./episodes/claude-code-multiagent-video/README.md) | 多 Agent 平台：从一个到一群 | 赭金 `peer` | s12 · s15–s20 @ `67a9126c`（MIT） | **已交付**（成片 13:01.08，133 句 3912 字，七幕 FAIL 0 · WARN 0） |
 
 > 章节→集归属与**站点/仓库修订分叉**（站点为 20 章旧修订、仓库 main 已整合为 17 章，故双钉）：
 > 系列级登记见 [source-map/claude-code-explained.md](./source-map/claude-code-explained.md)。
