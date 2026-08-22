@@ -132,7 +132,7 @@ const StallBar: React.FC<{tickAt: number; costAt: number; zeroAt: number}> = ({t
 };
 
 /** 0-B 洗衣机剪影：人形站在滚筒前逐步转身离开；滚筒上出现小计时环自己转 */
-const LaundryLeave: React.FC<{turnAt: number; ringAt: number}> = ({turnAt, ringAt}) => {
+const LaundryLeave: React.FC<{turnAt: number; ringAt: number; quoteAt?: number}> = ({turnAt, ringAt, quoteAt}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const turn = interpolate(frame - turnAt, [0, 26], [0, 1], {
@@ -205,6 +205,42 @@ const LaundryLeave: React.FC<{turnAt: number; ringAt: number}> = ({turnAt, ringA
         ) : null}
       </svg>
       <Footnote delay={turnAt}>{'活儿交给机器，人不陪着等'}</Footnote>
+          {/* 官方引文条：时间盲症（Harness Engineering 改造） */}
+      {quoteAt !== undefined && frame >= quoteAt ? (
+        <div
+          style={{
+            position: 'absolute',
+            left: '50%',
+            bottom: 190,
+            transform: `translateX(-50%) translateY(${interpolate(frame - quoteAt, [0, 16], [14, 0], {
+              extrapolateLeft: 'clamp',
+              extrapolateRight: 'clamp',
+            })}px)`,
+            opacity: interpolate(frame - quoteAt, [0, 16], [0, 1], {
+              extrapolateLeft: 'clamp',
+              extrapolateRight: 'clamp',
+            }),
+          }}
+        >
+          <div
+            style={{
+              padding: '14px 28px',
+              border: `1.5px solid ${theme.panelBorder}`,
+              borderRadius: 12,
+              background: theme.panel,
+              maxWidth: 1050,
+              textAlign: 'center',
+            }}
+          >
+            <div style={{fontFamily: theme.serif, fontSize: 25, color: theme.text}}>
+              {'“它感觉不到时间——不看着，会高高兴兴把测试跑上几个小时。”'}
+            </div>
+            <div style={{fontFamily: theme.mono, fontSize: 16, color: theme.dim, marginTop: 6}}>
+              {'— 官方工程博客 claude-code-auto-mode'}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </AbsoluteFill>
   );
 };
@@ -397,7 +433,7 @@ export const P0Wait: React.FC<{scene: SceneRange}> = ({scene}) => {
         <StallBar tickAt={at('p0-01') - bA.from} costAt={at('p0-03') - bA.from} zeroAt={at('p0-04') - bA.from} />
       </Sequence>
       <Sequence {...bB} name="0-B 洗衣机与人走开">
-        <LaundryLeave turnAt={at('p0-06') - bB.from} ringAt={at('p0-07') - bB.from} />
+        <LaundryLeave turnAt={at('p0-06') - bB.from} ringAt={at('p0-07') - bB.from} quoteAt={6} />
       </Sequence>
       <Sequence {...bC} name="0-C 三种开始与停摆的房间">
         <ThreeStartsRoom twoAt={at('p0-11') - bC.from} roomAt={at('p0-12') - bC.from} />

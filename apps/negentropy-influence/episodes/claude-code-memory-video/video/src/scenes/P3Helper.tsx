@@ -7,7 +7,7 @@ import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoCo
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Cabinet, Desk, Footnote, HelperFigure, PaperCard} from '../components/motifs';
+import {Cabinet, Desk, Footnote, HelperFigure, Panel, PaperCard} from '../components/motifs';
 
 /** 3-A 帮工特写：指令卡首（top 指令）尾（bottom 叮嘱）各弹一次 + 工具之手两次被挡 */
 const HelperDiscipline: React.FC<{firstAt: number; lastAt: number; handAt: number[]}> = ({
@@ -411,6 +411,58 @@ const SalvageHook: React.FC<{openAt: number; hookAt: number; honestAt: number}> 
   );
 };
 
+/** 3-C 压缩存活矩阵（官方口径）+ 回捞钩（Harness Engineering 改造版）
+ *  谁活过压缩：系统提示绕行不变；规则与自动记忆从磁盘重注入；技能正文重注入（封顶五千、最旧先丢）。 */
+const SurvivalMatrix: React.FC<{matrixAt: number; openAt: number; hookAt: number; honestAt: number}> = ({
+  matrixAt,
+  openAt,
+  hookAt,
+  honestAt,
+}) => {
+  const frame = useCurrentFrame();
+  const rows = [
+    {t: '系统提示', fate: '绕行不变', alive: true},
+    {t: '根规则 + 自动记忆', fate: '从磁盘重注入', alive: true},
+    {t: '带路径的规则', fate: '丢到再读到匹配文件', alive: false},
+    {t: '已用技能正文', fate: '重注入 · 每份封顶五千 · 最旧先丢', alive: true},
+  ];
+  return (
+    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
+      <div style={{position: 'relative', width: 1300, height: 560}}>
+        <div style={{fontFamily: theme.sans, fontSize: 26, color: theme.dim, marginBottom: 20, textAlign: 'center'}}>
+          {'压缩之后，谁活下来？'}
+        </div>
+        <div style={{display: 'flex', flexDirection: 'column', gap: 14}}>
+          {rows.map((r, i) => {
+            const e = interpolate(frame - matrixAt - i * 8, [0, 12], [0, 1], {
+              extrapolateLeft: 'clamp',
+              extrapolateRight: 'clamp',
+            });
+            return (
+              <div key={r.t} style={{display: 'flex', alignItems: 'center', gap: 18, opacity: e}}>
+                <Panel
+                  accent={r.alive ? theme.keep : theme.panelBorder}
+                  style={{padding: '13px 22px', width: 360, background: r.alive ? theme.keepDeep : theme.panel}}
+                >
+                  <span style={{fontFamily: theme.mono, fontSize: 23, color: theme.text}}>{r.t}</span>
+                </Panel>
+                <span style={{fontFamily: theme.sans, fontSize: 24, color: r.alive ? theme.keep : theme.dim}}>
+                  {r.fate}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+        {/* 回捞钩（p3-12/13）：文件卡被钩回 */}
+        {frame >= openAt ? <SalvageHook openAt={openAt} hookAt={hookAt} honestAt={honestAt} /> : null}
+      </div>
+      <Footnote delay={matrixAt + 30}>
+        {'压缩存活矩阵 —— 官方文档 context-window（取数2026年8月）'}
+      </Footnote>
+    </AbsoluteFill>
+  );
+};
+
 export const P3Helper: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (fromId: string, toId?: string) => beatWindow(scene.sentences, scene.from, fromId, toId);
   const at = (id: string) => w(id).from;
@@ -436,12 +488,8 @@ export const P3Helper: React.FC<{scene: SceneRange}> = ({scene}) => {
           tearAt={relB('p3-08') + 40}
         />
       </Sequence>
-      <Sequence {...bC} name="3-C 回捞钩">
-        <SalvageHook
-          openAt={relC('p3-10')}
-          hookAt={relC('p3-11')}
-          honestAt={relC('p3-15')}
-        />
+      <Sequence {...bC} name="3-C 存活矩阵与回捞">
+        <SurvivalMatrix matrixAt={relC('p3-09')} openAt={relC('p3-12')} hookAt={relC('p3-13')} honestAt={relC('p3-15')} />
       </Sequence>
     </AbsoluteFill>
   );

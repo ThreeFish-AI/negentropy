@@ -291,96 +291,127 @@ const RetireStamp: React.FC<{flipAt: number; stampAt: number}> = ({flipAt, stamp
   );
 };
 
-/** 5-D 诚实边界：进程灯灭秒摆停 / 持久化抽屉只有任务定义 / 墙上闹钟虚影对照 */
-const HonestEdge: React.FC<{offAt: number; drawerAt: number}> = ({offAt, drawerAt}) => {
+/** 5-D 官方新答案：后台会话由独立管家进程托管（Harness Engineering 改造版）
+ *  六状态记账、行摘要小模型、状态落盘穿重启、接回从停点续跑。 */
+const SupervisorFrame: React.FC<{supAt: number; statesAt: number; persistAt: number; resumeAt: number}> = ({
+  supAt,
+  statesAt,
+  persistAt,
+  resumeAt,
+}) => {
   const frame = useCurrentFrame();
-  const off = frame >= offAt;
-  // 秒摆：off 前自摆，off 后停死（停在某个固定角度）
-  const swing = off ? 0.62 : Math.sin((frame / 15) * Math.PI);
-  const lampOn = !off;
-  // 抽屉开合：展示任务定义文件
-  const drawer = interpolate(frame - drawerAt, [0, 18], [0, 1], {
+  const {fps} = useVideoConfig();
+  const sup = spring({frame: frame - supAt, fps, config: {damping: 200}});
+  const states = ['排队', '跑着', '等审批', '被拦', '收尾', '完事'];
+  const persist = interpolate(frame - persistAt, [0, 22], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const resume = interpolate(frame - resumeAt, [0, 22], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="Cron Scheduler" tagline="The Clock Lives Inside" />
-      <div style={{display: 'flex', alignItems: 'center', gap: 70}}>
-        {/* 进程盒子：灯 + 秒摆 */}
-        <div style={{position: 'relative', textAlign: 'center'}}>
-          <svg width={360} height={330} style={{overflow: 'visible'}}>
-            {/* 进程边界 */}
-            <rect x={20} y={30} width={320} height={250} rx={20} fill={theme.panel} stroke={off ? theme.deny : theme.panelBorder} strokeWidth={3.5} />
-            <text x={180} y={66} textAnchor="middle" fontFamily={theme.sans} fontSize={21} fill={theme.dim}>
-              {'进程（它的身体）'}
-            </text>
-            {/* 指示灯 */}
-            <circle cx={300} cy={60} r={11} fill={lampOn ? theme.ok : theme.panelBorder} opacity={lampOn ? 1 : 0.8} />
-            {lampOn ? <circle cx={300} cy={60} r={18} fill="none" stroke={theme.ok} strokeWidth={2} opacity={0.5} /> : null}
-            {/* 秒摆：off 后停死 */}
-            <g transform={`translate(180 110) rotate(${swing * 24})`}>
-              <line x1={0} y1={0} x2={0} y2={110} stroke={theme.later} strokeWidth={4} />
-              <circle cx={0} cy={120} r={16} fill={theme.laterDeep} stroke={theme.later} strokeWidth={3.5} />
-            </g>
-            {/* 表盘（秒摆上的小表） */}
-            <g transform="translate(180 260)">
-              <circle cx={0} cy={0} r={40} fill={theme.bg} stroke={off ? theme.panelBorder : theme.later} strokeWidth={3.5} />
-              <line
-                x1={0}
-                y1={0}
-                x2={off ? 0 : Math.sin((frame / 15) * Math.PI) * 24}
-                y2={off ? -26 : -Math.cos((frame / 15) * Math.PI) * 24}
-                stroke={off ? theme.dim : theme.later}
-                strokeWidth={3}
-                strokeLinecap="round"
-              />
-            </g>
+      <div style={{position: 'relative', width: 1500, height: 640}}>
+        {/* 管家进程：不眠的眼睛 */}
+        <div
+          style={{
+            position: 'absolute',
+            left: 660,
+            top: 0,
+            textAlign: 'center',
+            opacity: sup,
+            transform: `translateY(${(1 - sup) * -30}px)`,
+          }}
+        >
+          <svg width={180} height={110}>
+            <circle cx={90} cy={44} r={36} fill="none" stroke={theme.later} strokeWidth={5} />
+            <circle cx={74} cy={44} r={7} fill={theme.later} />
+            <circle cx={106} cy={44} r={7} fill={theme.later} />
+            <path d="M90 96 L90 110" stroke={theme.later} strokeWidth={5} />
           </svg>
-          <div style={{fontFamily: theme.sans, fontSize: 22, color: off ? theme.deny : theme.dim, marginTop: 0}}>
-            {off ? '进程关了 · 表就停了' : '调度器活在进程里'}
+          <div style={{fontFamily: theme.sans, fontSize: 27, color: theme.text, marginTop: 4}}>
+            {'管家进程（独立常驻）'}
+          </div>
+          <div style={{fontFamily: theme.sans, fontSize: 20, color: theme.dim}}>
+            {'不需要任何终端活着'}
           </div>
         </div>
-        {/* 持久化抽屉：只有任务定义 */}
-        <div style={{textAlign: 'center'}}>
-          <svg width={340} height={330} style={{overflow: 'visible'}}>
-            {/* 抽屉柜 */}
-            <rect x={40} y={50} width={260} height={230} rx={14} fill={theme.panel} stroke={theme.panelBorder} strokeWidth={3.5} />
-            {/* 抽屉拉开 */}
-            <g transform={`translate(0 ${drawer * 90})`}>
-              <rect x={60} y={90} width={220} height={70} rx={10} fill={theme.laterDeep} stroke={theme.later} strokeWidth={3} />
-              <text x={170} y={132} textAnchor="middle" fontFamily={theme.mono} fontSize={21} fill={theme.text}>
-                {'任务定义.json'}
-              </text>
-            </g>
-            {/* 空格：没有别的 */}
-            <text x={170} y={230} textAnchor="middle" fontFamily={theme.sans} fontSize={20} fill={theme.dim} opacity={drawer}>
-              {'只有定义 · 睡着时真的不响'}
-            </text>
-            <text x={170} y={316} textAnchor="middle" fontFamily={theme.sans} fontSize={22} fill={theme.text}>
-              {'持久化抽屉'}
-            </text>
-          </svg>
+        {/* 六状态小环 */}
+        <div style={{position: 'absolute', left: 0, right: 0, top: 250, display: 'flex', justifyContent: 'center', gap: 20}}>
+          {states.map((s, i) => {
+            const e = interpolate(frame - statesAt - i * 6, [0, 10], [0, 1], {
+              extrapolateLeft: 'clamp',
+              extrapolateRight: 'clamp',
+            });
+            return (
+              <div
+                key={s}
+                style={{
+                  border: `2px solid ${theme.later}`,
+                  borderRadius: 999,
+                  padding: '8px 20px',
+                  fontFamily: theme.sans,
+                  fontSize: 21,
+                  color: theme.text,
+                  background: theme.panel,
+                  opacity: e,
+                }}
+              >
+                {s}
+              </div>
+            );
+          })}
         </div>
-        {/* 墙上闹钟虚影（OS 层）：另一回事 */}
-        <div style={{textAlign: 'center', opacity: 0.4}}>
-          <svg width={280} height={330} style={{overflow: 'visible'}}>
-            {/* 虚影钟：虚线描边 */}
-            <circle cx={140} cy={160} r={86} fill="none" stroke={theme.dim} strokeWidth={3} strokeDasharray="10 10" />
-            <line x1={140} y1={160} x2={140} y2={94} stroke={theme.dim} strokeWidth={3.5} strokeDasharray="6 6" />
-            <line x1={140} y1={160} x2={186} y2={176} stroke={theme.dim} strokeWidth={3} strokeDasharray="6 6" />
-            <circle cx={60} cy={86} r={14} fill="none" stroke={theme.dim} strokeWidth={3} strokeDasharray="6 6" />
-            <circle cx={220} cy={86} r={14} fill="none" stroke={theme.dim} strokeWidth={3} strokeDasharray="6 6" />
-            <text x={140} y={286} textAnchor="middle" fontFamily={theme.sans} fontSize={22} fill={theme.dim}>
-              {'操作系统层的闹钟'}
-            </text>
-            <text x={140} y={314} textAnchor="middle" fontFamily={theme.sans} fontSize={20} fill={theme.dim}>
-              {'另一回事'}
-            </text>
-          </svg>
-        </div>
+        {/* 状态落盘 + 穿重启 */}
+        {persist > 0 ? (
+          <div
+            style={{
+              position: 'absolute',
+              left: 180,
+              bottom: 120,
+              width: 500,
+              opacity: persist,
+              transform: `translateY(${(1 - persist) * 16}px)`,
+            }}
+          >
+            <Panel accent={theme.later} style={{padding: '16px 22px'}}>
+              <div style={{fontFamily: theme.sans, fontSize: 23, color: theme.text}}>
+                {'状态落盘 · 穿过自动更新与重启'}
+              </div>
+              <div style={{fontFamily: theme.mono, fontSize: 17, color: theme.dim, marginTop: 6}}>
+                {'sleep → wake 自动重连'}
+              </div>
+            </Panel>
+          </div>
+        ) : null}
+        {/* 接回续跑 */}
+        {resume > 0 ? (
+          <div
+            style={{
+              position: 'absolute',
+              right: 180,
+              bottom: 120,
+              width: 500,
+              opacity: resume,
+              transform: `translateY(${(1 - resume) * 16}px)`,
+            }}
+          >
+            <Panel accent={theme.later} style={{padding: '16px 22px'}}>
+              <div style={{fontFamily: theme.sans, fontSize: 23, color: theme.text}}>
+                {'进程退出 ≠ 任务没了'}
+              </div>
+              <div style={{fontFamily: theme.sans, fontSize: 19, color: theme.dim, marginTop: 6}}>
+                {'接回后，从停的地方继续'}
+              </div>
+            </Panel>
+          </div>
+        ) : null}
       </div>
-      <Footnote delay={offAt}>{'它不是闹钟服务 —— 时钟装在它的身体里，不在墙上'}</Footnote>
+      <Footnote delay={supAt}>
+        {'agent view：后台会话托管 —— 官方文档 agent-view'}
+      </Footnote>
     </AbsoluteFill>
   );
 };
@@ -485,7 +516,7 @@ export const P5Truths: React.FC<{scene: SceneRange}> = ({scene}) => {
       <Sequence {...bD} name="5-D 诚实边界">
         {/* p5-15 讲「持久化保存的是定义」但属下一镜句区间——抽屉锚在本镜末句尾段展示，
             p5-15 口播接续解释（镜内画面与镜间口播的刻意交叠） */}
-        <HonestEdge offAt={at('p5-14') - bD.from} drawerAt={at('p5-14') - bD.from + 50} />
+        <SupervisorFrame supAt={at('p5-14') - bD.from} statesAt={at('p5-16') - bD.from} persistAt={at('p5-15') - bD.from} resumeAt={at('p5-18') - bD.from} />
       </Sequence>
       <Sequence {...bE} name="5-E 上限与低优先级">
         <CapAndQuote lowAt={at('p5-19') - bE.from} quoteAt={at('p5-23') - bE.from} />

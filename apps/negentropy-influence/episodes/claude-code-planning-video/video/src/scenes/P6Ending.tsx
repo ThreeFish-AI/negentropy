@@ -68,13 +68,10 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; seriesAt: number}> 
   const {fps} = useVideoConfig();
   const enter = spring({frame: frame - 4, fps, config: {damping: 200}});
   const rows = [
-    ['官方文档', 'code.claude.com/docs · 取数 2026-08'],
+    ['官方文档', 'code.claude.com/docs · 取数2026年8月'],
     ['工程博客', 'anthropic.com/engineering'],
     ['源码分析', '第三方逆向分析 · 片中逐处标注'],
-    ['仓库钉版', '67a9126c（2026-07-28，20 章版）'],
-    ['字节归档', '取证文件已随片归档（research/source-archive/）'],
-    ['访问日期', '2026-08-22'],
-    ['许可', 'MIT'],
+    ['数字口径', '开源仓库钉版 67a9126c 实测 · 字节归档'],
   ];
   const seriesT = interpolate(frame - seriesAt, [0, 20], [0, 1], {
     extrapolateLeft: 'clamp',
