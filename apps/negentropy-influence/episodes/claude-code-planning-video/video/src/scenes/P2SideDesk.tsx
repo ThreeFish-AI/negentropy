@@ -573,7 +573,7 @@ const FiveFactorLock: React.FC<{compareAt: number[]; lockAt: number; saveAt: num
         ) : null}
       </div>
       <Footnote delay={saveAt + 6}>
-        {'缓存命中的前提：五要素字节级一致 —— 第三方的源码分析'}
+        {'fork 继承完整对话 · 共享提示缓存 —— 官方文档 sub-agents'}
       </Footnote>
     </AbsoluteFill>
   );

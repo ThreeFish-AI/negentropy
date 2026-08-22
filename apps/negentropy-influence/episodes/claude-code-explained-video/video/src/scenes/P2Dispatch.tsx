@@ -69,16 +69,63 @@ const ClumsyCommands: React.FC<{typoAt: number}> = ({typoAt}) => {
 
 /** 2-B 五张工具卡（反枚举：只有编号染色） */
 const FiveTools: React.FC = () => {
+  const frame = useCurrentFrame();
   const tools = ['跑命令', '读文件', '写文件', '改文件', '按模式找文件'];
   const mono = ['bash', 'read_file', 'write_file', 'edit_file', 'glob'];
+  // 官方五类工具地图（how-claude-code-works）：教学五件归位官方分区，两个空槽亮虚线（Harness Engineering 改造）
+  const zones = ['文件操作', '文件操作', '文件操作', '文件操作', '搜索'];
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <CornerRing />
       <div style={{display: 'flex', gap: 20}}>
         {tools.map((t, i) => (
-          <NumberedCard key={t} index={i + 1} label={t} sub={mono[i]} active delay={i * 4} />
+          <div key={t} style={{textAlign: 'center'}}>
+            <NumberedCard index={i + 1} label={t} sub={mono[i]} active delay={i * 4} />
+            <div
+              style={{
+                fontFamily: theme.sans,
+                fontSize: 17,
+                color: theme.dim,
+                marginTop: 10,
+                opacity: interpolate(frame - 20, [0, 12], [0, 1], {
+                  extrapolateLeft: 'clamp',
+                  extrapolateRight: 'clamp',
+                }),
+              }}
+            >
+              {zones[i]}
+            </div>
+          </div>
+        ))}
+        {/* 官方地图的两个空槽（执行类之外的 执行/网页/代码智能 区） */}
+        {['执行', '网页'].map((z, i) => (
+          <div
+            key={z}
+            style={{
+              width: 220,
+              height: 130,
+              border: `2px dashed ${theme.panelBorder}`,
+              borderRadius: 12,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              opacity: interpolate(frame - 26 - i * 8, [0, 12], [0, 0.8], {
+                extrapolateLeft: 'clamp',
+                extrapolateRight: 'clamp',
+              }),
+              alignSelf: 'center',
+            }}
+          >
+            <span style={{fontFamily: theme.sans, fontSize: 22, color: theme.dim}}>{z}</span>
+            <span style={{fontFamily: theme.sans, fontSize: 16, color: theme.dim}}>{'官方地图另有'}</span>
+          </div>
         ))}
       </div>
+      <Footnote delay={34}>
+        {'官方内置工具五类：文件 / 搜索 / 执行 / 网页 / 代码智能 —— how-claude-code-works'}
+      </Footnote>
     </AbsoluteFill>
   );
 };
