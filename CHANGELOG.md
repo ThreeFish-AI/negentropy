@@ -5,6 +5,18 @@
 ## [Unreleased]
 
 ### Changed
+### Added
+
+- **新系列《Claude Code 通俗全解》四集连发 + 首集画面优化**（[series.md](apps/negentropy-influence/series.md) 现两系列 8 集）：
+  - **EP1 [《拆开 Claude Code：让 AI 动手的四层机制》](apps/negentropy-influence/episodes/claude-code-explained-video/README.md) tier-i 画面优化**（零口播零配音改动，缓存 170/170 命中零重合成）：P6 三挂件卡物理咬合上环 + 双钉信源卡；P0 走秒芯片/轮次钢印/载荷箭头；P5 环第 6 次出场 + 20–28 行实测基准带；1-D 诚实角注；3-C 三判定小抄；emoji 全部换绘制图形。成片 **14:12.52**，抽帧 FAIL 0 · WARN 0。
+  - **EP2 [《AI 的视野是安排出来的：写下来的计划，另开的桌子》](apps/negentropy-influence/episodes/claude-code-planning-video/README.md)**（s05/s06/s07/s10/s11 五章，鸢紫 `#9C90EE` 己色）：一张桌子比喻体系（钉清单/副桌/目录卡/垫纸/补救梯）；深挖 s06「分叉为缓存而生·五要素字节级一致」与 s10「唯一不许进缓存的外接工具段」；134 句 3906 字成片 **13:11.81**。
+  - **EP3 [《AI 的记忆：会丢的和不能丢的》](apps/negentropy-influence/episodes/claude-code-memory-video/README.md)**（s08/s09，苔绿 `#A9C46C`）：★「丢失不用颜色画」——被压内容向 dim 褪色即遗忘；四级腾位**顺序论证**（入库必须先于折叠·换序自毁演示）、摘要帮工纪律、「tab→风格偏好」转折、先抢救再碎纸的时间铰链、做梦四道闸；140 句 3900 字成片 **13:12.26**。
+  - **EP4 [《AI 会自己开工吗？后台与定时》](apps/negentropy-influence/episodes/claude-code-concurrency-video/README.md)**（s13/s14，霜蓝 `#7FB2E0`）：★环一秒不停题眼（工作块走环外旁轨）；洗衣机与闹钟比喻；单线程真相、看门狗、五格时间表、确定性抖动防踩踏；139 句 3882 字成片 **13:06.71**（含 p1-10 旁轨侵入修复重渲）。
+  - **EP5 [《一群 AI 怎么干活：看板、信箱与各自的桌子》](apps/negentropy-influence/episodes/claude-code-multiagent-video/README.md)**（s12/s15–s20 七章，赭金 `#D9B36B`）：★N 队友同色铭牌区分（反枚举最难考验）；递进四问主线（活挂哪/话从哪/怎么谈判/谁的桌子）；信箱=文件读一条划一条、编号握手、脏桌不删；s20 作收束装置——「机制很多，循环一个」系列终曲帧（环从传送带中央升起重描一遍）；133 句 3912 字成片 **13:01.08**，七幕抽帧 **FAIL 0 · WARN 0**（系列唯一全零）。
+- **系列级信源地图（source-map）与多章批量取证基建**：站点↔仓库**修订分叉**的系列级唯一登记处（ISSUE-165 根因再上探：站点整站是课程 20 章旧修订 `67a9126c`，main 已整合为 17 章版，故双钉——ep1 钉 main、ep2–5 钉站点同源修订）；机器版 TOML 供 `source_ledger.py sync/audit` 派生台账条目名并离线执法三断言（条目齐/无跨集混入/pinned_ref 一致）；各集 source-notes 只链接不重述；取证字节归档 `research/source-archive/`（钉在未合并分支的耐久性）。[skills/01](apps/negentropy-influence/pipeline/skills/01-source-extraction.md) 增「多章批量取证」规格。
+- **管线新门与工具（测试 188 → 242）**：`check_series.py` 三新门（规则 4 反向登记门——未登记目录写下 narration 即 FAIL、脚手架期 WARN 分级防死锁；系列内 accents 精确撞色 FAIL + 已用色 INFO 行；规则 6 可渲染性——storyboard 定稿后 scenes 须与 Main.tsx 注册表互对齐）；`pipeline.py --series` 白名单扇出（仅 status/doctor/build/check，tts/render 刻意不可扇出）；`check_script.py --pre-tts` 预算前置门（时长窗 + 读法陷阱 + 发音标注，`pipeline.py tts` 自动调用）；`pron_marks.POLYPHONE_CANDIDATES` 常量 + `--pron-candidates` 扫描报告；`timeline.blend()` + `qa_frames.py --stills-plan`（分幕 A/V 复检算术半自动化）；`tts_progress.py` 热漂移旁路监视（s/char 滚动中位 vs 空闲基线，越阈**先分因**：loadavg/therm 二分——竞争=产物无损重排期，节流才中止验证环境）；模板 `motifs.tsx` chrome 层播种（seeded 档，7 个通用组件从 ep1 抽出，创作母题仍复制适配不做共享包）；`theme.ts.tmpl` 补 `danger` token。
+- **两个实战修复立 issue**：[ISSUE-168](docs/.agents/issue.md)（`qa_frames --scene` 单值 store 使多幕体检静默只查末幕——argparse 静默丢弃先传的 flag 而 `FAIL 0` 不携带检查面，改 `action="append"` + 每幕独立抽样防短幕被整幕跨过）；[ISSUE-169](docs/.agents/issue.md)（TTS 漂移判据把负载竞争误当热节流——基线 1.868 s/char 取自**机器空闲**长跑的前置条件没写在判据旁，越阈文案改先分因后处置）。EP4 的 p1-10 旁轨安全带侵入（WorkBlock 滑过轨道底部 y934 压带）由几何判据抓出、`TRACK_CY` 上移 40px 修复复检消失——判据与渲染实现对账的又一次实证。
+
 
 - **`media/` 迁移为 `apps/negentropy-influence/`（分层布局）+ 公共层四项抽取**：子项目从仓库根迁入 `apps/` 约定位置，「机制」（`pipeline/`）与「内容」（`episodes/<slug>-video/`）边界显式化。迁移本身是 191 文件 R100 纯重命名（0 增 0 删），语义修复独立成提交。四项基建：
   ① **路径锚点抽取**（[paths.py](apps/negentropy-influence/pipeline/scripts/paths.py) + `.influence-root` 哨兵）：替换三处「数目录层数」的 `parents[N]`——迁移已实证其脆弱（错位后 tts.ref 解析失败、check_series 门静默失效、生物特征小样写错位置，三种失败**都不报错**）。`tts.ref` 与 `series.json` 的 `path` 同步改为**子项目根相对**（缓存摘要只含字节 sha1 不含路径，零句缓存失效）。
