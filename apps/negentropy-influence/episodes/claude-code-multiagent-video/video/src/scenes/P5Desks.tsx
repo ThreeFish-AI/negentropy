@@ -766,6 +766,59 @@ const McpPlug: React.FC<{noteAt: number; plugAt: number; plateAt: number}> = ({
   );
 };
 
+/** 5-B' 官方四道闸（Harness Engineering 改造版）：主检出与工作目录之间一堵墙、四道闸
+ *  ①指向主检出的编辑拦 ②工作目录解析不对/确认不了拦 ③git 重定向四种写法拦
+ *  ④命令形状无法静态验证拦——第四道焊死，不能关（官方 worktrees）。 */
+const FourGates: React.FC<{gatesAt: number}> = ({gatesAt}) => {
+  const frame = useCurrentFrame();
+  const {fps} = useVideoConfig();
+  const gates = [
+    {t: '编辑闸', s: '指向主检出的编辑，拦'},
+    {t: '目录闸', s: '解析不对 / 确认不了，拦'},
+    {t: '重定向闸', s: 'git 四种写法，拦'},
+    {t: '形状闸', s: '无法静态验证，拦', locked: true},
+  ];
+  return (
+    <AbsoluteFill>
+      <div style={{position: 'absolute', left: 0, right: 0, bottom: 190, display: 'flex', justifyContent: 'center', gap: 18}}>
+        {gates.map((g, i) => {
+          const e = spring({frame: frame - gatesAt - i * 9, fps, config: {damping: 150}});
+          if (e <= 0) return null;
+          return (
+            <div
+              key={g.t}
+              style={{
+                width: 300,
+                border: `2.5px solid ${g.locked ? theme.deny : theme.peer}`,
+                borderRadius: 10,
+                background: theme.panel,
+                padding: '12px 16px',
+                textAlign: 'center',
+                opacity: Math.min(1, e * 1.2),
+                transform: `translateY(${(1 - e) * -26}px) rotate(${(i % 2 === 0 ? -1 : 1) * (1 - e) * 4}deg)`,
+                boxShadow: g.locked ? `0 0 18px ${theme.deny}44` : 'none',
+              }}
+            >
+              <div style={{fontFamily: theme.serif, fontSize: 24, color: g.locked ? theme.deny : theme.text}}>
+                {g.t}
+              </div>
+              <div style={{fontFamily: theme.sans, fontSize: 16, color: theme.dim, marginTop: 4}}>{g.s}</div>
+              {g.locked ? (
+                <div style={{fontFamily: theme.sans, fontSize: 15, color: theme.deny, marginTop: 6}}>
+                  {'🔒 这道不能关'}
+                </div>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+      <Footnote delay={gatesAt + 40}>
+        {'隔离四检查 —— 官方文档 worktrees（取数2026年8月）'}
+      </Footnote>
+    </AbsoluteFill>
+  );
+};
+
 export const P5Desks: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (fromId: string, toId?: string) => beatWindow(scene.sentences, scene.from, fromId, toId);
   const at = (id: string) => w(id).from;
@@ -783,12 +836,13 @@ export const P5Desks: React.FC<{scene: SceneRange}> = ({scene}) => {
           knotAt={rel(bA, 'p5-04')}
         />
       </Sequence>
-      <Sequence {...bB} name="5-B 平行目录长出">
+      <Sequence {...bB} name="5-B 各开一桌与四道闸">
         <ParallelDesks
           growAt={rel(bB, 'p5-06')}
           bounceAt={rel(bB, 'p5-07')}
           tieAt={rel(bB, 'p5-08')}
         />
+        <FourGates gatesAt={rel(bB, 'p5-07')} />
       </Sequence>
       <Sequence {...bC} name="5-C 视野收束与脏桌不删">
         <DeskHygiene
