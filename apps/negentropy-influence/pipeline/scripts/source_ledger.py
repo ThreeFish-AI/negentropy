@@ -329,7 +329,7 @@ def cmd_sync(project: Path, args: argparse.Namespace) -> int:
             "via": spec.get("via", ""),
         }
         print(
-            f"✅ {name}: 已登记 · {len(raw)} bytes / {raw.count(b'\\n')} lines"
+            f"✅ {name}: 已登记 · {len(raw)} bytes / {raw.count(b'\n')} lines"
             f" · raw {raw_sha} · text {text_sha}"
         )
     if entries:

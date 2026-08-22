@@ -152,6 +152,35 @@ def test_tail_row_has_fade_false_without_marker(tmp_path):
     assert not tail_row_has_fade(tmp_path / "absent.md")  # 缺文件不炸、不豁免
 
 
+def declared_action(script: str, flag: str) -> str | None:
+    """→ 源码里 `add_argument("<flag>", …)` 声明的 action 字面量（无则 None）。
+
+    parser 建在 `main()` 内、拿不到对象，判据只能落在源码上；用 AST 而非字符串
+    匹配，是因为 ruff format 会改换行、正则必漂。找不到该 flag 直接炸——「检测器
+    自己失效」必须是硬失败，不能退化成静默放行（此前那版 `hasattr(build_parser)`
+    守卫恒为假、断言从不执行，等于没有门）。
+    """
+    import ast
+
+    src = (Path(__file__).resolve().parents[1] / "scripts" / script).read_text(
+        encoding="utf-8"
+    )
+    for node in ast.walk(ast.parse(src)):
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "add_argument"
+            and node.args
+            and isinstance(node.args[0], ast.Constant)
+            and node.args[0].value == flag
+        ):
+            for kw in node.keywords:
+                if kw.arg == "action" and isinstance(kw.value, ast.Constant):
+                    return kw.value.value
+            return None
+    raise AssertionError(f"{script} 里找不到 {flag} 的 add_argument——检测器该更新了")
+
+
 def test_scene_selector_accumulates_multiple_scenes():
     """`--scene` 可重复传，且**不静默丢弃**先传的幕。
 
@@ -159,7 +188,6 @@ def test_scene_selector_accumulates_multiple_scenes():
     `FAIL 0`——输出与「全幕通过」不可区分（EP2 交付前实际踩过）。
     """
     import argparse
-    import qa_frames
 
     parser = argparse.ArgumentParser()
     # 与 qa_frames.main 的声明保持一致（此处只测选择器语义，不跑抽帧）
@@ -167,11 +195,10 @@ def test_scene_selector_accumulates_multiple_scenes():
     args = parser.parse_args(["--scene", "P0", "--scene", "P6"])
     assert args.scene == ["P0", "P6"], "重复传 --scene 必须累积而非覆盖"
 
-    # 真实声明面也必须是 append（防有人改回 store）
-    real = qa_frames.build_parser() if hasattr(qa_frames, "build_parser") else None
-    if real is not None:
-        action = next(a for a in real._actions if "--scene" in a.option_strings)
-        assert action.__class__.__name__ == "_AppendAction"
+    # 真实声明面也必须是 append（防有人改回 store），两端各查一次：抽帧工具本体，
+    # 与 pipeline.py 的转发面（后者若退回单值，多幕会在编排器这一层就被丢掉）
+    assert declared_action("qa_frames.py", "--scene") == "append"
+    assert declared_action("pipeline.py", "--scene") == "append"
 
 
 def test_multi_scene_sampling_is_per_scene(tmp_path):
