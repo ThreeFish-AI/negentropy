@@ -233,6 +233,96 @@ const TabToSummary: React.FC<{beamAt: number; rewriteAt: number; shredAt: number
 };
 
 /** 4-C 登记簿登场：本子弹入 + frontmatter 三行打出 + 索引追加 + 重复卡被「已有」退回 */
+/** 4-C 两条腿框架（Harness Engineering 改造版）：
+ *  第一条腿你写（项目规则文件夹：四层拼接/四兆上限/两百行）+ 第二条腿它自己写（自动记忆，四类有门限）。
+ *  内嵌原 LedgerArrives 登记簿动画。 */
+const TwoLegsFrame: React.FC<{legAt: number; autoAt: number; children: React.ReactNode}> = ({
+  legAt,
+  autoAt,
+  children,
+}) => {
+  const frame = useCurrentFrame();
+  const leg = interpolate(frame - legAt, [0, 18], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const auto = interpolate(frame - autoAt, [0, 18], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  return (
+    <AbsoluteFill>
+      {/* 左腿：你写的 */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 60,
+          top: 180,
+          width: 380,
+          opacity: leg,
+          transform: `translateX(${(1 - leg) * -30}px)`,
+        }}
+      >
+        <div style={{fontFamily: theme.sans, fontSize: 24, color: theme.keep, marginBottom: 10}}>
+          {'第一条腿：你写'}
+        </div>
+        {['四层拼接 · 不覆盖', '越近工作目录越后读', '单文件超四兆整份跳过', '超两百行开始不听话'].map((s, i) => (
+          <div
+            key={s}
+            style={{
+              fontFamily: theme.sans,
+              fontSize: 19,
+              color: theme.dim,
+              marginBottom: 7,
+              opacity: interpolate(frame - legAt - 6 - i * 5, [0, 8], [0, 1], {
+                extrapolateLeft: 'clamp',
+                extrapolateRight: 'clamp',
+              }),
+            }}
+          >
+            {'· ' + s}
+          </div>
+        ))}
+      </div>
+      {/* 右腿：它自己写 */}
+      <div
+        style={{
+          position: 'absolute',
+          right: 60,
+          top: 180,
+          width: 380,
+          textAlign: 'right',
+          opacity: auto,
+          transform: `translateX(${(1 - auto) * 30}px)`,
+        }}
+      >
+        <div style={{fontFamily: theme.sans, fontSize: 24, color: theme.keep, marginBottom: 10}}>
+          {'第二条腿：它自己写'}
+        </div>
+        {['自动记忆 · 用户目录', '按四类落卡', '有门限（25KB / 200 行）', '压缩后照常重注入'].map((s, i) => (
+          <div
+            key={s}
+            style={{
+              fontFamily: theme.sans,
+              fontSize: 19,
+              color: theme.dim,
+              marginBottom: 7,
+              opacity: interpolate(frame - autoAt - 6 - i * 5, [0, 8], [0, 1], {
+                extrapolateLeft: 'clamp',
+                extrapolateRight: 'clamp',
+              }),
+            }}
+          >
+            {s + ' ·'}
+          </div>
+        ))}
+      </div>
+      {/* 中央：登记簿动画（原 4-C 主体） */}
+      <div style={{position: 'absolute', inset: 0}}>{children}</div>
+    </AbsoluteFill>
+  );
+};
+
 const LedgerArrives: React.FC<{bookAt: number; fmAt: number[]; indexAt: number; dupAt: number}> = ({
   bookAt,
   fmAt,
@@ -444,6 +534,71 @@ const FourKinds: React.FC<{litAt: number[]}> = ({litAt}) => {
 };
 
 /** 4-E 两条取路：索引常驻（桌角常亮）+ 旁路小问（≤5 卡、犹豫卡缩回、关键词降级） */
+/** 4-E 尾钩：前缀缓存三层条（Harness Engineering 改造版）
+ *  系统提示 → 项目上下文 → 对话；上层一动其后全重算——解释「改规则要新开会话」「中途换模型那轮慢」。 */
+const PrefixCacheStrip: React.FC<{stripAt: number}> = ({stripAt}) => {
+  const frame = useCurrentFrame();
+  const layers = [
+    {t: '系统提示', sub: '最稳'},
+    {t: '项目上下文', sub: '规则/记忆'},
+    {t: '对话', sub: '每轮增长'},
+  ];
+  const strip = interpolate(frame - stripAt, [0, 18], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  // 顶层闪烁 → 下层全红重算（p4-25 句锚后）
+  const shake = frame >= stripAt + 30 ? Math.sin((frame - stripAt - 30) / 4) * 2 : 0;
+  const invalid = frame >= stripAt + 30;
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left: '50%',
+        bottom: 168,
+        transform: `translateX(-50%) translateY(${(1 - strip) * 24}px)`,
+        opacity: strip * 0.96,
+        display: 'flex',
+        gap: 10,
+        alignItems: 'flex-end',
+      }}
+    >
+      {layers.map((l, i) => {
+        const e = interpolate(frame - stripAt - i * 5, [0, 10], [0, 1], {
+          extrapolateLeft: 'clamp',
+          extrapolateRight: 'clamp',
+        });
+        const red = invalid && i >= 1;
+        return (
+          <div
+            key={l.t}
+            style={{
+              width: 220,
+              padding: '9px 14px',
+              border: `2px solid ${red ? theme.deny : theme.keep}`,
+              borderRadius: 8,
+              background: theme.panel,
+              textAlign: 'center',
+              opacity: e,
+              transform: `translateY(${i === 0 ? shake : 0}px)`,
+            }}
+          >
+            <div style={{fontFamily: theme.sans, fontSize: 20, color: theme.text}}>{l.t}</div>
+            <div style={{fontFamily: theme.mono, fontSize: 14, color: red ? theme.deny : theme.dim}}>
+              {red ? '重算' : l.sub}
+            </div>
+          </div>
+        );
+      })}
+      {invalid ? (
+        <div style={{position: 'absolute', right: -250, top: 8, width: 230, fontFamily: theme.sans, fontSize: 16, color: theme.dim}}>
+          {'改规则要新开会话 · 中途换模型那轮慢'}
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
 const TwoPaths: React.FC<{sideAt: number; cardsAt: number; shrinkAt: number; degradeAt: number}> = ({
   sideAt,
   cardsAt,
@@ -613,13 +768,15 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
           shredAt={relB('p4-06')}
         />
       </Sequence>
-      <Sequence {...bC} name="4-C 登记簿登场">
-        <LedgerArrives
-          bookAt={relC('p4-08')}
-          fmAt={[relC('p4-10'), relC('p4-10') + 12, relC('p4-10') + 24]}
-          indexAt={relC('p4-11')}
-          dupAt={relC('p4-12')}
-        />
+      <Sequence {...bC} name="4-C 记忆两条腿">
+        <TwoLegsFrame legAt={relC('p4-08')} autoAt={relC('p4-11')}>
+          <LedgerArrives
+            bookAt={relC('p4-09') - relC('p4-08')}
+            fmAt={[relC('p4-10'), relC('p4-10') + 12, relC('p4-10') + 24]}
+            indexAt={relC('p4-11')}
+            dupAt={relC('p4-12')}
+          />
+        </TwoLegsFrame>
       </Sequence>
       <Sequence {...bD} name="4-D 四类记忆四宫格">
         <FourKinds
@@ -631,13 +788,14 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
           ]}
         />
       </Sequence>
-      <Sequence {...bE} name="4-E 两条取路">
+      <Sequence {...bE} name="4-E 两条取路与前缀缓存">
         <TwoPaths
           sideAt={relE('p4-21')}
           cardsAt={relE('p4-22')}
           shrinkAt={relE('p4-22') + 70}
           degradeAt={relE('p4-24')}
         />
+        <PrefixCacheStrip stripAt={relE('p4-24')} />
       </Sequence>
     </AbsoluteFill>
   );
