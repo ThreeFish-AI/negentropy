@@ -126,3 +126,43 @@ def test_map_has_human_counterpart_md():
     """机器/人读配对纪律：每个 .toml 地图须有同名 .md（series.json/series.md 同款）。"""
     for m in maps():
         assert m.with_suffix(".md").is_file(), f"{m.name} 缺人读版 {m.stem}.md"
+
+
+# ---------------------------------------------------------------- 归档的许可声明
+
+
+def archive_dirs() -> list[Path]:
+    """→ 全部 `research/source-archive/` 目录（有归档的集才有）。"""
+    return sorted(p for p in INFLUENCE.glob("episodes/*/research/source-archive"))
+
+
+def test_every_source_archive_carries_upstream_license():
+    """归档即分发：上游整文件级副本必须附带许可与版权声明（skills/01 §多章批量取证 4）。
+
+    判据落在**存在性**而非内容：许可文本因上游而异，能机器判定的是「建了归档却
+    没放声明」这一形态——而它恰是最容易漏的（归档由 sync 之外的手工步骤产生，
+    脚手架不会替你补）。声明必须按集落地，因为各集工程目录是可单独取出的交付单位。
+    """
+    missing: list[str] = []
+    for d in archive_dirs():
+        rel = d.relative_to(INFLUENCE)
+        for name in ("LICENSE", "README.md"):
+            if not (d / name).is_file():
+                missing.append(f"{rel}/{name}")
+    assert not missing, (
+        "source-archive 缺许可/出处声明（MIT 等许可要求副本附带声明，"
+        "且须随集落地）：\n  " + "\n  ".join(missing)
+    )
+
+
+def test_source_archive_license_is_nonempty_text():
+    """空文件占位不算声明——「有个文件」与「有声明」必须不可混淆。"""
+    for d in archive_dirs():
+        lic = d / "LICENSE"
+        if not lic.is_file():
+            continue  # 缺失由上一条点名，此处不重复报
+        text = lic.read_text(encoding="utf-8").strip()
+        assert len(text) > 200, f"{lic.relative_to(INFLUENCE)} 内容过短，疑为占位"
+        assert "Copyright" in text, (
+            f"{lic.relative_to(INFLUENCE)} 无 Copyright 行——版权声明是许可要求的一半"
+        )

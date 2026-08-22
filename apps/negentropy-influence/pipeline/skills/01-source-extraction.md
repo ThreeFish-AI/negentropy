@@ -159,5 +159,18 @@ uv run --no-project $R/source_ledger.py --project $P verify    # 交付前必跑
 3. **钉在未合并分支时**（raw URL 随分支强推/删除而失效，verify 会 FAIL 兜底）：台账已登记
    raw_sha256 全指纹；另把取证字节归档至各集 `research/source-archive/<pin 前 7 位>/`
    （归档文件用 `.md.txt`/`.py` 后缀，避免第三方原文里的相对链接被 check_series 规则 5 误判）。
-4. 验收追加：`audit` 离线零报警 + `verify` FAIL 0 之外，地图本身的形状由
-   `tests/test_source_map.py` 执法（pin 覆盖、slug 唯一、派生名全局不撞等）。
+4. **归档即分发，许可声明必须随副本落地**：`source-archive/` 下放的是上游整文件级字节副本
+   （本系列单文件逾两千行），属各主流开源许可所称的「实质性部分」——MIT/BSD/Apache 都要求
+   副本附带版权与许可声明。故每个建了归档的集，其 `research/source-archive/` 下须有：
+   - `LICENSE`——上游**同一固定提交**下许可文件的字节副本（连同 sha256 记录在旁，
+     日后可复核取的是哪一版）；
+   - `README.md`——出处表（上游项目 / 仓库 URL / 许可 / 固定提交 / 取数日期 / 指纹台账位置），
+     章节归属只链接系列地图、不重述。
+
+   **这是单一事实源纪律的显式例外，且是唯一一处**：各集工程目录是可被单独取出、单独交付的
+   单位，声明收敛到系列级一处，取出单集时就会丢。归档之外的一切出处信息仍只登记在系列地图。
+   上游无许可文件或许可不允许再分发时，**不建归档**——只留台账指纹，改在 source-notes 里
+   记明「原文不可归档」的理由。
+5. 验收追加：`audit` 离线零报警 + `verify` FAIL 0 之外，地图本身的形状由
+   `tests/test_source_map.py` 执法（pin 覆盖、slug 唯一、派生名全局不撞等）；
+   建了归档的集另核 `source-archive/{LICENSE,README.md}` 二者齐备。
