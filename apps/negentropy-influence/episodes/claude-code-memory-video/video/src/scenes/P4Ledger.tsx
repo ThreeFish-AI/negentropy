@@ -534,9 +534,10 @@ const FourKinds: React.FC<{litAt: number[]}> = ({litAt}) => {
 };
 
 /** 4-E 两条取路：索引常驻（桌角常亮）+ 旁路小问（≤5 卡、犹豫卡缩回、关键词降级） */
-/** 4-E 尾钩：前缀缓存三层条（Harness Engineering 改造版）
- *  系统提示 → 项目上下文 → 对话；上层一动其后全重算——解释「改规则要新开会话」「中途换模型那轮慢」。 */
-const PrefixCacheStrip: React.FC<{stripAt: number}> = ({stripAt}) => {
+/** 4-E 尾钩：前缀缓存三层条 + 价目（Harness Engineering 改造版）
+ *  系统提示 → 项目上下文 → 对话；上层一动其后全重算——解释「改规则要新开会话」「中途换模型那轮慢」；
+ *  p4-25a/b 价目：命中一折计费 · 写入加四分之一 · 两次一问就回本——稳定放前面就是在给钱排座位。 */
+const PrefixCacheStrip: React.FC<{stripAt: number; priceAt: number}> = ({stripAt, priceAt}) => {
   const frame = useCurrentFrame();
   const layers = [
     {t: '系统提示', sub: '最稳'},
@@ -593,6 +594,35 @@ const PrefixCacheStrip: React.FC<{stripAt: number}> = ({stripAt}) => {
       {invalid ? (
         <div style={{position: 'absolute', right: -250, top: 8, width: 230, fontFamily: theme.sans, fontSize: 16, color: theme.dim}}>
           {'改规则要新开会话 · 中途换模型那轮慢'}
+        </div>
+      ) : null}
+      {/* p4-25a/b 价目条：命中一折 · 写入 +1/4 · 两次回本 */}
+      {frame >= priceAt ? (
+        <div
+          style={{
+            position: 'absolute',
+            left: '50%',
+            top: '100%',
+            marginTop: 14,
+            transform: `translateX(-50%) translateY(${interpolate(frame - priceAt, [0, 12], [12, 0], {
+              extrapolateLeft: 'clamp',
+              extrapolateRight: 'clamp',
+            })}px)`,
+            opacity: interpolate(frame - priceAt, [0, 12], [0, 1], {
+              extrapolateLeft: 'clamp',
+              extrapolateRight: 'clamp',
+            }),
+            whiteSpace: 'nowrap',
+            fontFamily: theme.mono,
+            fontSize: 18,
+            color: theme.keep,
+            border: `1.5px solid ${theme.keep}88`,
+            borderRadius: 8,
+            padding: '7px 16px',
+            background: theme.panel,
+          }}
+        >
+          {'价目：命中 ×0.1 · 写入 +1/4 —— 两次一问就回本'}
         </div>
       ) : null}
     </div>
@@ -795,7 +825,7 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
           shrinkAt={relE('p4-22') + 70}
           degradeAt={relE('p4-24')}
         />
-        <PrefixCacheStrip stripAt={relE('p4-24')} />
+        <PrefixCacheStrip stripAt={relE('p4-24')} priceAt={relE('p4-25a')} />
       </Sequence>
     </AbsoluteFill>
   );
