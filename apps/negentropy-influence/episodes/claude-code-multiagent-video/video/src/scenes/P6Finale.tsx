@@ -687,7 +687,7 @@ export const P6Finale: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bA = w('p6-01', 'p6-02');
   const bB = w('p6-03', 'p6-04');
   const bC = w('p6-05', 'p6-06');
-  const bD = w('p6-07', 'p6-11');
+  const bD = w('p6-07', 'p6-11d');
   const bE = w('p6-12', 'p6-17');
   const rel = (b: {from: number}, id: string) => at(id) - b.from;
   return (
