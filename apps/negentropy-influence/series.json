@@ -102,7 +102,7 @@
             "accessed": "2026-08-21"
           },
           "status": "draft-review",
-          "statusNote": "Harness Engineering 改造草渲待审：13:56 = 25096 帧 @30fps（167 句）；七幕抽帧 FAIL 0 · WARN 0；高风险 8 帧逐帧目检通过；终渲未启动",
+          "statusNote": "Harness Engineering 改造草渲待审：13:58 = 25151 帧 @30fps（167 句）；七幕抽帧 FAIL 0 · WARN 0；高风险帧逐帧目检通过；终渲未启动",
           "voice": "sunny-steady + me-bright.wav"
         },
         {
@@ -146,7 +146,7 @@
             "accessed": "2026-08-22"
           },
           "status": "draft-review",
-          "statusNote": "Harness Engineering 改造草渲待审：13:06 = 23607 帧 @30fps（139 句）；七幕 FAIL 0（WARN 3 均金句卡刻意静止）；终渲未启动",
+          "statusNote": "Harness Engineering 改造草渲待审：13:07 = 23622 帧 @30fps（139 句）；七幕 FAIL 0（WARN 3 均金句卡刻意静止）；终渲未启动",
           "voice": "sunny-steady + me-bright.wav"
         },
         {
@@ -190,7 +190,7 @@
             "accessed": "2026-08-22"
           },
           "status": "draft-review",
-          "statusNote": "Harness Engineering 改造草渲待审：13:08 = 23667 帧 @30fps（134 句）；七幕 FAIL 0 · WARN 0（尾帧 WARN 1 为收束卡刻意停留）；终渲未启动",
+          "statusNote": "Harness Engineering 改造草渲待审：13:08 = 23666 帧 @30fps（134 句）；七幕 FAIL 0 · WARN 0（尾帧 WARN 1 为收束卡刻意停留）；终渲未启动",
           "voice": "sunny-steady + me-bright.wav"
         }
       ]
