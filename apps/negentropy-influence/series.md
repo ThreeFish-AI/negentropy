@@ -29,7 +29,7 @@
 
 | # | 作品 | 一句话主题 | 视觉契约（主色） | 信源 | 状态 |
 |---|---|---|---|---|---|
-| 1 | [《执行层：一个循环，就是全部》](./episodes/claude-code-explained-video/README.md) | 工具与执行：把模型装进挽具 | 陶土橙/石青/警示红 | [Learn Claude Code](https://learn.shareai.run/zh/s01/) s01–s04 + 仓库 @ `f9e8b28`（MIT），2026-08 | **Harness Engineering 改造中**（配音缓存 170/170 迁移命中；改造草渲后交付） |
+| 1 | [《执行层：一个循环，就是全部》](./episodes/claude-code-explained-video/README.md) | 工具与执行：把模型装进Harness | 陶土橙/石青/警示红 | [Learn Claude Code](https://learn.shareai.run/zh/s01/) s01–s04 + 仓库 @ `f9e8b28`（MIT），2026-08 | **Harness Engineering 改造中**（配音缓存 170/170 迁移命中；改造草渲后交付） |
 | 2 | [《规划层：模型的视野是安排出来的》](./episodes/claude-code-planning-video/README.md) | 规划与协调：谁替它安排视野 | 鸢紫 `view`（底座陶土橙/石青全系列共享） | s05–s07 · s10 · s11 @ 站点同源修订 `67a9126c`（MIT） | **Harness Engineering 改造中**（134 句基线；改造草渲后交付） |
 | 3 | [《记忆层：会丢的和不能丢的》](./episodes/claude-code-memory-video/README.md) | 记忆管理：窗口内外的两本账 | 苔绿 `keep` | s08 · s09 @ `67a9126c`（MIT） | **Harness Engineering 改造中**（140 句基线；改造草渲后交付） |
 | 4 | [《时机层：谁来按下开始》](./episodes/claude-code-concurrency-video/README.md) | 并发与调度：谁替它看表 | 霜蓝 `later` | s13 · s14 @ `67a9126c`（MIT） | **Harness Engineering 改造中**（139 句基线；改造草渲后交付） |

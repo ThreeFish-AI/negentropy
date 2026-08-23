@@ -9,7 +9,7 @@
 | p2-20..22 | 三禁止（不替批权限/不代同意/被拒不转给别的队友） | 【二】 | agent-teams「Messages between agents」 | ✅ VERIFIED |
 | p5-07..09 | worktree 四道闸 · 第四道不能关 | 【二】 | worktrees「How Claude Code enforces isolation」 | ✅ VERIFIED |
 | p5-22 | 装十个服务上下文几乎不占（按需取用） | 【二】 | mcp（tool search 延迟装载） | ✅ VERIFIED |
-| p6-08..11 | 谁持有计划四形态 · 中间结果住变量 · 并发十六/一千 · 挽具由它自己写 | 【二】 | workflows（When to use a workflow + Behavior and limits） | ✅ VERIFIED |
+| p6-08..11 | 谁持有计划四形态 · 中间结果住变量 · 并发十六/一千 · Harness由它自己写 | 【二】 | workflows（When to use a workflow + Behavior and limits） | ✅ VERIFIED |
 | p6-13..14 | 协调成本 · 十五倍 token | 【二】 | 官方工程博客（multi-agent research system） | ✅ VERIFIED |
 | p3-12..14 | 三向关机 | 【三】 | 第三方源码分析（归属句保留） | ✅ VERIFIED（带归属） |
 

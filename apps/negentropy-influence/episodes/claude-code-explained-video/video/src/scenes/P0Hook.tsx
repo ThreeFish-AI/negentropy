@@ -1,5 +1,5 @@
 /** P0 钩子与命名帧（分镜 0-A…0-C）
- *  三句内完成：搬运工痛点 → 官方命名「挽具」→ 五辐条供给图。
+ *  三句内完成：搬运工痛点 → 官方命名「Harness」→ 五辐条供给图。
  *  改造（2026-08 Harness Engineering）：10 句压缩为 7 句，命名帧是全系列的开场锚。 */
 import React from 'react';
 import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig} from 'remotion';
@@ -74,7 +74,7 @@ const StallAndCarry: React.FC<{carryAt: number}> = ({carryAt}) => {
   );
 };
 
-/** 0-B 命名帧：搬运残影收束成外框，包住「模型」内核——外框即挽具 + 官方引文条 */
+/** 0-B 命名帧：搬运残影收束成外框，包住「模型」内核——外框即 Harness + 官方引文条 */
 const NamingFrame: React.FC<{officialAt: number}> = ({officialAt}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
@@ -160,7 +160,7 @@ const NamingFrame: React.FC<{officialAt: number}> = ({officialAt}) => {
           {'判断力在里面'}
         </div>
       </div>
-      {/* 「挽具」落框 */}
+      {/* 「Harness」落框 */}
       <div
         style={{
           position: 'absolute',
@@ -169,13 +169,13 @@ const NamingFrame: React.FC<{officialAt: number}> = ({officialAt}) => {
           transform: `translate(-50%, 0) scale(${0.7 + 0.3 * label})`,
           opacity: label,
           fontFamily: theme.serif,
-          fontSize: 56,
+          fontSize: 58,
           fontWeight: 700,
           color: theme.core,
-          letterSpacing: 8,
+          letterSpacing: 2,
         }}
       >
-        {'挽 具'}
+        {'Harness'}
       </div>
       <div
         style={{
@@ -205,7 +205,7 @@ const NamingFrame: React.FC<{officialAt: number}> = ({officialAt}) => {
         >
           <Panel style={{padding: '18px 34px', maxWidth: 1200}}>
             <div style={{fontFamily: theme.serif, fontSize: 27, color: theme.text}}>
-              {'“Claude Code 是挽具，Claude 是里面的模型。”'}
+              {'“Claude Code 是 Harness，Claude 是里面的模型。”'}
             </div>
             <div style={{fontFamily: theme.mono, fontSize: 19, color: theme.dim, marginTop: 8}}>
               {'— 官方文档 how-claude-code-works（code.claude.com，取数2026年8月）'}
@@ -243,7 +243,7 @@ const SupplySpokes: React.FC<{titleAt: number}> = ({titleAt}) => {
   return (
     <AbsoluteFill>
       <svg width={1920} height={1080} style={{position: 'absolute'}}>
-        {/* 外框（挽具轮廓，缩小型持续在场） */}
+        {/* 外框（Harness 轮廓，缩小型持续在场） */}
         <rect
           x={CX - 380 * ring}
           y={CY - 250 * ring}
@@ -357,7 +357,7 @@ export const P0Hook: React.FC<{scene: SceneRange}> = ({scene}) => {
       <Sequence {...bA} name="0-A 停住与搬运">
         <StallAndCarry carryAt={at('p0-02') - bA.from} />
       </Sequence>
-      <Sequence {...bB} name="0-B 命名帧：挽具">
+      <Sequence {...bB} name="0-B 命名帧：Harness">
         <NamingFrame officialAt={at('p0-05') - bB.from} />
       </Sequence>
       <Sequence {...bC} name="0-C 五辐条与标题">

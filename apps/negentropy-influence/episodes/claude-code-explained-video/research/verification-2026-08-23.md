@@ -7,7 +7,7 @@
 
 | 口播句 | 断言 | 证据级 | 事实源锚点 | 判定 |
 |---|---|---|---|---|
-| p0-04..06 | 「挽具」官方命名 + 模型在挽具里面 + 供给五样 | 【二】 | code.claude.com/docs/en/glossary（Agentic harness 条目）· how-claude-code-works | ✅ VERIFIED |
+| p0-04..06 | 「Harness」官方命名 + 模型在Harness里面 + 供给五样 | 【二】 | code.claude.com/docs/en/glossary（Agentic harness 条目）· how-claude-code-works | ✅ VERIFIED |
 | p1-25..27 | 三相循环交融 + 人随时可打断 | 【二】 | how-claude-code-works（gather/take/verify） | ✅ VERIFIED |
 | p1-28..29 | State 十字段（角标化） | 【三】 | 第三方源码分析（归属句保留） | ✅ VERIFIED（带归属） |
 | p3-06 | 权限由代码执行不由模型执行 | 【二】 | code.claude.com/docs/en/permissions | ✅ VERIFIED |
@@ -25,7 +25,7 @@
 
 ## 二、易懂性校验
 
-- 新概念首现配比喻：挽具（p0-04「把动力源，套进一个可控的结构里」）；三相（p1-26「不是硬阶段」）；
+- 新概念首现配比喻：Harness（p0-04「把动力源，套进一个可控的结构里」）；三相（p1-26「不是硬阶段」）；
   六闸（沿三闸门认知升级，画面先轨道后闸）。
 - 金句节奏保留：每幕收尾金句未动（1-D/2-F/3-D/4-G2/5-C 全保留）。
 - 英文标识符只在角标（agentic harness / deny/ask/allow / hook / workflow 等全画面层）。

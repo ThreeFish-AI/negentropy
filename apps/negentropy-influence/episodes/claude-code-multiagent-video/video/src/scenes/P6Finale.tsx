@@ -397,7 +397,7 @@ const SeriesFinale: React.FC<{riseAt: number; quoteAt: number}> = ({riseAt, quot
 /** 6-D ★谁持有计划：四象对比（Harness Engineering 收官纲图）
  *  官方 workflows 的四方对比——临时工/技能包/队友：计划由模型逐回合现场决定；
  *  第四种（动态工作流）：脚本持有计划，中间结果住变量、上下文只装最终答案。
- *  分水岭竖线落下是全片思想高点；收官反转「挽具第一次由它自己来写」。 */
+ *  分水岭竖线落下是全片思想高点；收官反转「Harness 第一次由它自己来写」。 */
 const WhoHoldsPlan: React.FC<{gridAt: number; divideAt: number; runtimeAt: number; twistAt: number}> = ({
   gridAt,
   divideAt,
@@ -557,7 +557,7 @@ const WhoHoldsPlan: React.FC<{gridAt: number; divideAt: number; runtimeAt: numbe
               color: theme.core,
             }}
           >
-            {'挽具第一次，开始由它自己来写'}
+            {'Harness 第一次，开始由它自己来写'}
           </div>
         ) : null}
       </div>

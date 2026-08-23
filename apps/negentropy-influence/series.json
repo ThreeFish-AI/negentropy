@@ -86,7 +86,7 @@
           "slug": "claude-code-explained-video",
           "path": "episodes/claude-code-explained-video",
           "title": "执行层：一个循环，就是全部",
-          "topic": "工具与执行：把模型装进挽具",
+          "topic": "工具与执行：把模型装进Harness",
           "cardSub": "执行层 · 循环",
           "accents": [
             "#D97757",

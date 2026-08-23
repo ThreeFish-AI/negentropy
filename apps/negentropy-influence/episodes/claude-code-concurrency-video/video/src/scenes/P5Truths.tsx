@@ -495,7 +495,7 @@ export const P5Truths: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bB = w('p5-05', 'p5-08');
   const bC = w('p5-09', 'p5-10');
   const bD = w('p5-11', 'p5-18');
-  const bE = w('p5-19', 'p5-23');
+  const bE = w('p5-19', 'p5-23b');
   return (
     <AbsoluteFill>
       <Sequence {...bA} name="5-A 踩踏帧">
