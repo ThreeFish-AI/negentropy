@@ -480,3 +480,138 @@ def test_rule7_strong_marker_in_paper_series_fails(tmp_path):
     )
     rc, out = run_check(repo)
     assert rc == 1 and "规则7" in out and "s13" in out
+
+
+def test_rule7_chapter_id_cjk_adjacent_fails(tmp_path):
+    """章号贴邻汉字（无空格）同样命中——`\b` 在 CJK 邻接下不成立（评审修复），
+    改用 ASCII 侧环视后「对应s01」这类中文最自然的笔误形态不再逃过执法。"""
+    repo = build_repo(tmp_path, [S("claude-code-explained", COURSE_S)], {})
+    (ep_root(repo, COURSE_S) / "script/storyboard.md").write_text(
+        "## P0\n\n- 0-A 开场（对应s01的循环）\n", encoding="utf-8"
+    )
+    rc, out = run_check(repo)
+    assert rc == 1 and "规则7" in out and "s01" in out
+
+
+def test_rule7_chapter_id_cjk_adjacent_trailing_fails(tmp_path):
+    """章号后紧跟汉字（「看s13的后台」）同样命中。"""
+    repo = build_repo(tmp_path, [S("claude-code-explained", COURSE_S)], {})
+    (ep_root(repo, COURSE_S) / "script/narration.md").write_text(
+        "## P0\n\n- [p0-02] 看s13的后台任务。\n", encoding="utf-8"
+    )
+    rc, out = run_check(repo)
+    assert rc == 1 and "规则7" in out and "s13" in out
+
+
+def test_rule7_chapter_id_prefix_suffix_ascii_still_exempt(tmp_path):
+    """ASCII 词符贴邻（`s01e02` / `as01` / `s01_agent_loop` 目录名）仍豁免——
+    环视排除集与原 `\b` 行为对齐，仅补上 CJK 贴邻盲区。"""
+    repo = build_repo(tmp_path, [S("claude-code-explained", COURSE_S)], {})
+    (ep_root(repo, COURSE_S) / "script/storyboard.md").write_text(
+        "## P0\n\n- 0-A 开场（对比 as01 / s01e02 / s01_agent_loop 三种写法）\n",
+        encoding="utf-8",
+    )
+    rc, out = run_check(repo)
+    assert rc == 0, out
+
+
+# ── 规则 8 · 下期卡与 series.json 同步（2026-08-23 评审修复引入）──────────────
+#: P6 文本须含本集标题与下集标题的主段（「：」后半）；标题带主副结构时画面卡
+#: 只放副题。系列 id 须在 NEXT_CARD_SERIES_IDS（配了统一收尾装置的系列）。
+#: accent 与 COURSE_S 错开（规则 4 系列内禁撞色）。
+NEXT_EP2 = {
+    "episode": 2,
+    "slug": "ep-next2",
+    "path": "episodes/ep-next2",
+    "title": "规划层：视野是安排出来的",
+    "accents": ["#9C90EE"],
+    "paper": {},
+}
+
+
+def _write_p6(repo, ep, body):
+    p6 = ep_root(repo, ep) / "video/src/scenes"
+    p6.mkdir(parents=True, exist_ok=True)
+    (p6 / "P6Ending.tsx").write_text(
+        "export const P6Ending = () => null;\n" + body, encoding="utf-8"
+    )
+
+
+def test_rule8_next_card_stale_title_fails(tmp_path):
+    """下期卡硬编码的旧标题与 series.json 不符——系列更名时的陈旧预告，FAIL。"""
+    repo = build_repo(
+        tmp_path,
+        [
+            S(
+                "claude-code-explained",
+                {**COURSE_S, "title": "执行层：一个循环"},
+                NEXT_EP2,
+            )
+        ],
+        {},
+    )
+    _write_p6(
+        repo,
+        COURSE_S,
+        "// {'下期 · 规划层'} {'视野是安排出来的'}",
+    )
+    # 用 series.json 的最新标题替换画面卡的旧串 → 陈旧
+    p6 = ep_root(repo, COURSE_S) / "video/src/scenes/P6Ending.tsx"
+    p6.write_text(
+        "export const P6Ending = () => null;\n// {'下期 · 规划层'} {'旧标题占位'}\n",
+        encoding="utf-8",
+    )
+    rc, out = run_check(repo)
+    assert rc == 1 and "规则8" in out and "视野是安排出来的" in out
+
+
+def test_rule8_own_identity_card_missing_fails(tmp_path):
+    """身份卡缺本集标题（更名后只改了下期卡）——FAIL。"""
+    repo = build_repo(
+        tmp_path,
+        [S("claude-code-explained", COURSE_S, NEXT_EP2)],
+        {},
+    )
+    _write_p6(
+        repo,
+        COURSE_S,
+        "// 只有下期卡：{'视野是安排出来的'}，身份卡标题没更新",
+    )
+    rc, out = run_check(repo)
+    assert rc == 1 and "规则8" in out and "身份卡缺本集标题" in out
+
+
+def test_rule8_synced_cards_pass(tmp_path):
+    """身份卡 + 下期卡都与 series.json 主段一致——静默。"""
+    repo = build_repo(
+        tmp_path,
+        [
+            S(
+                "claude-code-explained",
+                {**COURSE_S, "title": "执行层：一个循环"},
+                NEXT_EP2,
+            )
+        ],
+        {},
+    )
+    _write_p6(
+        repo,
+        COURSE_S,
+        "// {'执行层：一个循环'} {'下期 · 规划层'} {'视野是安排出来的'}",
+    )
+    _write_p6(
+        repo,
+        NEXT_EP2,
+        "// {'视野是安排出来的'}（末集，无下期断言）",
+    )
+    rc, out = run_check(repo)
+    assert rc == 0, out
+
+
+def test_rule8_paper_series_not_policed(tmp_path):
+    """self-evolution 系无身份卡装置（旧版论文型收尾）——规则 8 不进门。"""
+    repo = build_repo(tmp_path, [S("self-evolution", EP1, EP2)], {})
+    # EP1 的 P6 只有「我们下期再见」，无任何标题卡
+    _write_p6(repo, EP1, "// {'我们下期再见'}")
+    rc, out = run_check(repo)
+    assert rc == 0, out
