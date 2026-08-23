@@ -417,7 +417,8 @@ const SupervisorFrame: React.FC<{supAt: number; statesAt: number; persistAt: num
 };
 
 /** 5-E 上限 50/50 + 低优先级标记排队尾 + 金句卡 */
-const CapAndQuote: React.FC<{lowAt: number; quoteAt: number}> = ({lowAt, quoteAt}) => {
+/** 5-E 上限与低优先级 + 自定速发条（p5-23a/b：干完一轮顺手定下一次，间隔自己定）。 */
+const CapAndQuote: React.FC<{lowAt: number; windAt: number; quoteAt: number}> = ({lowAt, windAt, quoteAt}) => {
   const frame = useCurrentFrame();
   if (frame >= quoteAt) {
     return (
@@ -483,6 +484,62 @@ const CapAndQuote: React.FC<{lowAt: number; quoteAt: number}> = ({lowAt, quoteAt
           </div>
         </div>
       </div>
+      {/* p5-23a/b 自定速发条：干完一轮 → 顺手拨出下一格（间隔自己定，不靠墙上的钟） */}
+      {frame >= windAt ? (
+        <div
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: 118,
+            display: 'flex',
+            justifyContent: 'center',
+            opacity: interpolate(frame - windAt, [0, 14], [0, 1], {
+              extrapolateLeft: 'clamp',
+              extrapolateRight: 'clamp',
+            }),
+          }}
+        >
+          <div style={{display: 'flex', alignItems: 'center', gap: 18}}>
+            <svg width={120} height={120} style={{overflow: 'visible'}}>
+              {/* 发条旋钮：自转一圈、拨出一格 */}
+              <circle cx={60} cy={60} r={44} fill="none" stroke={theme.later} strokeWidth={5} />
+              {Array.from({length: 8}, (_, i) => {
+                const a = ((i * 45 + (frame / 2.2) * 45) * Math.PI) / 180;
+                return (
+                  <line
+                    key={i}
+                    x1={60 + 44 * Math.cos(a)}
+                    y1={60 + 44 * Math.sin(a)}
+                    x2={60 + 56 * Math.cos(a)}
+                    y2={60 + 56 * Math.sin(a)}
+                    stroke={theme.later}
+                    strokeWidth={4}
+                    strokeLinecap="round"
+                  />
+                );
+              })}
+              <line
+                x1={60}
+                y1={60}
+                x2={60 + 34 * Math.cos(((frame / 2.2) * 45 * Math.PI) / 180)}
+                y2={60 + 34 * Math.sin(((frame / 2.2) * 45 * Math.PI) / 180)}
+                stroke={theme.later}
+                strokeWidth={5}
+                strokeLinecap="round"
+              />
+            </svg>
+            <div>
+              <div style={{fontFamily: theme.sans, fontSize: 24, color: theme.text}}>
+                {'干完一轮，顺手定下一次 —— 间隔自己定'}
+              </div>
+              <div style={{fontFamily: theme.sans, fontSize: 20, color: theme.dim, marginTop: 6}}>
+                {'不靠墙上的钟，靠它自己的一句「回头再来」'}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <Footnote delay={lowAt}>{'上限与低优先级标记 —— 第三方的源码分析'}</Footnote>
     </AbsoluteFill>
   );
@@ -518,8 +575,12 @@ export const P5Truths: React.FC<{scene: SceneRange}> = ({scene}) => {
             p5-15 口播接续解释（镜内画面与镜间口播的刻意交叠） */}
         <SupervisorFrame supAt={at('p5-14') - bD.from} statesAt={at('p5-16') - bD.from} persistAt={at('p5-15') - bD.from} resumeAt={at('p5-18') - bD.from} />
       </Sequence>
-      <Sequence {...bE} name="5-E 上限与低优先级">
-        <CapAndQuote lowAt={at('p5-19') - bE.from} quoteAt={at('p5-23') - bE.from} />
+      <Sequence {...bE} name="5-E 上限·低优先级·发条">
+        <CapAndQuote
+          lowAt={at('p5-19') - bE.from}
+          windAt={at('p5-23a') - bE.from}
+          quoteAt={at('p5-23') - bE.from}
+        />
       </Sequence>
     </AbsoluteFill>
   );

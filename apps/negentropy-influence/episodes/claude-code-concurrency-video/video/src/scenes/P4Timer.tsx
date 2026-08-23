@@ -435,18 +435,33 @@ const FourLayerModel: React.FC<{dropAt: number; gateAt: number; dupAt: number}> 
 };
 
 /** 4-E 持久化两种（磁盘绕回重启箭头 / 内存淡出）+ 四层独立换件 */
-const TwoStorages: React.FC<{memAt: number; swapAt: number}> = ({memAt, swapAt}) => {
+/** 4-E 官方三档调度（Harness Engineering 改造版）：云端例程（关机也跑·不碰本地文件）/
+ *  桌面定时（本机跨会话）/ 会话内循环（散场清空·只恢复没过期的）——
+ *  老答案「系统定时表落盘」降为三档里的一档（虚影）；解耦四层换件收尾。 */
+const ThreeTiers: React.FC<{tier1At: number; tier2At: number; tier3At: number; oldAt: number; swapAt: number}> = ({
+  tier1At,
+  tier2At,
+  tier3At,
+  oldAt,
+  swapAt,
+}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
-  // 磁盘：文件图标 + 重启箭头绕回
-  const diskO = interpolate(frame, [6, 20], [0, 1], {extrapolateRight: 'clamp'});
-  const arrow = ((frame / (fps * 3)) % 1) * 360; // 环绕箭头匀速
-  // 内存：会话即弃 → 淡出
-  const memFade = interpolate(frame - memAt - 10, [0, 24], [1, 0.12], {
+  const tiers = [
+    {
+      t: '云端例程',
+      s: '关机也跑 · 不碰本地文件',
+      icon: 'cloud',
+      at: tier1At,
+      strong: true,
+    },
+    {t: '桌面定时', s: '本机 · 跨会话', icon: 'house', at: tier2At},
+    {t: '会话内循环', s: '新对话清空 · 只恢复没过期的', icon: 'chat', at: tier3At},
+  ];
+  const oldFade = interpolate(frame - oldAt, [0, 18], [1, 0.3], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  // 四层独立换件：换表/换队列/循环不动
   const swap = interpolate(frame - swapAt, [0, 18], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
@@ -459,53 +474,81 @@ const TwoStorages: React.FC<{memAt: number; swapAt: number}> = ({memAt, swapAt})
   ];
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="Cron Scheduler" tagline="Swap Parts, Keep the Loop" />
-      <div style={{display: 'flex', gap: 80, marginBottom: 40}}>
-        {/* 磁盘文件：重启绕回 */}
-        <div style={{textAlign: 'center', opacity: diskO}}>
-          <svg width={300} height={250} style={{overflow: 'visible'}}>
-            {/* 文件图标 */}
-            <path
-              d="M110 40 h64 l36 36 v104 a8 8 0 0 1 -8 8 h-92 a8 8 0 0 1 -8 -8 v-132 a8 8 0 0 1 8 -8 Z"
-              fill={theme.panel}
-              stroke={theme.mech}
-              strokeWidth={3.5}
-            />
-            <path d="M174 40 v36 h36" fill="none" stroke={theme.mech} strokeWidth={3.5} />
-            <text x={148} y={140} textAnchor="middle" fontFamily={theme.mono} fontSize={20} fill={theme.mech}>
-              {'任务定义'}
-            </text>
-            {/* 重启绕回箭头：绕文件一圈的弧 + 箭头 */}
-            <g transform={`rotate(${arrow} 148 118)`}>
-              <path d="M148 8 a110 110 0 0 1 96 56" fill="none" stroke={theme.mech} strokeWidth={4} />
-              <path d="M244 64 l10 -18 l-26 2 Z" fill={theme.mech} />
-            </g>
-            <text x={148} y={222} textAnchor="middle" fontFamily={theme.sans} fontSize={23} fill={theme.text}>
-              {'磁盘 · 重启找得回'}
-            </text>
-          </svg>
-        </div>
-        {/* 内存卡：会话即弃 → 淡出 */}
-        <div style={{textAlign: 'center'}}>
-          <svg width={300} height={250} style={{overflow: 'visible', opacity: memFade}}>
-            <rect x={70} y={44} width={156} height={132} rx={12} fill={theme.laterDeep} stroke={theme.later} strokeWidth={3.5} />
-            {Array.from({length: 6}, (_, i) => (
-              <line
-                key={i}
-                x1={92}
-                y1={76 + i * 18}
-                x2={204}
-                y2={76 + i * 18}
-                stroke={theme.later}
-                strokeWidth={3}
-                strokeLinecap="round"
-                opacity={0.35 + (i % 3) * 0.2}
-              />
-            ))}
-            <text x={148} y={222} textAnchor="middle" fontFamily={theme.sans} fontSize={23} fill={theme.dim}>
-              {'内存 · 会话结束就消失'}
-            </text>
-          </svg>
+      <SceneTag chapter="Cron Scheduler" tagline="Three Tiers, One Loop" />
+      {/* 三档卡片自上而下（自左而右）点亮 */}
+      <div style={{display: 'flex', gap: 30, marginBottom: 44, alignItems: 'stretch'}}>
+        {tiers.map((tr, i) => {
+          const e = spring({frame: frame - tr.at, fps, config: {damping: 200}});
+          if (e <= 0) return <div key={tr.t} style={{width: 340}} />;
+          return (
+            <div key={tr.t} style={{width: 340, opacity: e, transform: `translateY(${(1 - e) * 22}px)`}}>
+              <Panel
+                accent={tr.strong ? theme.later : theme.panelBorder}
+                style={{
+                  padding: '18px 20px',
+                  textAlign: 'center',
+                  background: tr.strong ? theme.laterDeep : theme.panel,
+                }}
+              >
+                <svg width={300} height={96} style={{display: 'block', margin: '0 auto'}}>
+                  {tr.icon === 'cloud' ? (
+                    <>
+                      <path
+                        d="M96 74 a24 24 0 0 1 6 -47 a32 32 0 0 1 60 8 a22 22 0 0 1 -2 39 Z"
+                        fill="none"
+                        stroke={theme.later}
+                        strokeWidth={4}
+                      />
+                      {/* 关机也跑：电源符嵌在云心 */}
+                      <line x1={150} y1={44} x2={150} y2={60} stroke={theme.later} strokeWidth={4} strokeLinecap="round" />
+                      <path d="M142 48 a11 11 0 1 0 16 0" fill="none" stroke={theme.later} strokeWidth={4} strokeLinecap="round" />
+                    </>
+                  ) : tr.icon === 'house' ? (
+                    <>
+                      <path d="M110 78 L110 46 L150 20 L190 46 L190 78 Z" fill="none" stroke={theme.dim} strokeWidth={4} />
+                      <rect x={136} y={56} width={28} height={22} fill="none" stroke={theme.dim} strokeWidth={4} />
+                      {/* 桌面即本机：小钟挂在屋顶 */}
+                      <circle cx={150} cy={10} r={7} fill="none" stroke={theme.dim} strokeWidth={3} />
+                    </>
+                  ) : (
+                    <>
+                      <rect x={104} y={26} width={92} height={56} rx={12} fill="none" stroke={theme.dim} strokeWidth={4} />
+                      <path d="M104 40 h92" stroke={theme.dim} strokeWidth={4} />
+                      {/* 散场即清空：气泡里一只擦除斜线 */}
+                      <line x1={130} y1={48} x2={170} y2={72} stroke={theme.dim} strokeWidth={3.5} strokeLinecap="round" />
+                    </>
+                  )}
+                </svg>
+                <div style={{fontFamily: theme.sans, fontSize: 27, color: theme.text}}>{tr.t}</div>
+                <div style={{fontFamily: theme.sans, fontSize: 19, color: theme.dim, marginTop: 6}}>{tr.s}</div>
+              </Panel>
+            </div>
+          );
+        })}
+      </div>
+      {/* 老答案降级：系统定时表落盘 → 虚影（现在只是三档里的一档） */}
+      <div
+        style={{
+          opacity: oldFade,
+          filter: 'saturate(0.4)',
+          marginBottom: 34,
+          transform: 'translateY(0)',
+        }}
+      >
+        <div
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 12,
+            border: `2px dashed ${theme.panelBorder}`,
+            borderRadius: 10,
+            padding: '10px 22px',
+            fontFamily: theme.sans,
+            fontSize: 21,
+            color: theme.dim,
+          }}
+        >
+          {'老答案：系统定时表落盘 —— 现在只是三档里的一档'}
         </div>
       </div>
       {/* 四层独立换件 */}
@@ -529,7 +572,9 @@ const TwoStorages: React.FC<{memAt: number; swapAt: number}> = ({memAt, swapAt})
           </div>
         ))}
       </div>
-      <Footnote delay={swapAt}>{'看表的不干活，干活的不看表 —— 生产和消费解耦'}</Footnote>
+      <Footnote delay={tier1At}>
+        {'三档调度（云端例程 / 桌面定时 / 会话内）—— 官方文档 scheduled-tasks'}
+      </Footnote>
     </AbsoluteFill>
   );
 };
@@ -565,8 +610,15 @@ export const P4Timer: React.FC<{scene: SceneRange}> = ({scene}) => {
           dupAt={at('p4-12') - bD.from}
         />
       </Sequence>
-      <Sequence {...bE} name="4-E 持久化与换件">
-        <TwoStorages memAt={at('p4-21') - bE.from} swapAt={at('p4-24') - bE.from} />
+      <Sequence {...bE} name="4-E 三档调度与换件">
+        {/* p4-19 云端例程；p4-20 桌面定时+会话内；p4-21 老答案降级；p4-24 解耦收尾 */}
+        <ThreeTiers
+          tier1At={at('p4-19') - bE.from}
+          tier2At={at('p4-20') - bE.from}
+          tier3At={at('p4-20') - bE.from + 14}
+          oldAt={at('p4-21') - bE.from}
+          swapAt={at('p4-24') - bE.from}
+        />
       </Sequence>
     </AbsoluteFill>
   );
