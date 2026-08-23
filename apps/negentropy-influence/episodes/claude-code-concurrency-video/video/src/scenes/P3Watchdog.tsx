@@ -262,7 +262,7 @@ export const P3Watchdog: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (fromId: string, toId?: string) => beatWindow(scene.sentences, scene.from, fromId, toId);
   const at = (id: string) => w(id).from;
   const bA = w('p3-01', 'p3-03');
-  const bB = w('p3-04', 'p3-09');
+  const bB = w('p3-04', 'p3-09c');
   return (
     <AbsoluteFill>
       <Sequence {...bA} name="3-A 输出停在问句上">
