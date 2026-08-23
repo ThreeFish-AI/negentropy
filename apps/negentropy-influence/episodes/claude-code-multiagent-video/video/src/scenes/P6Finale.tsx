@@ -397,13 +397,17 @@ const SeriesFinale: React.FC<{riseAt: number; quoteAt: number}> = ({riseAt, quot
 /** 6-D ★谁持有计划：四象对比（Harness Engineering 收官纲图）
  *  官方 workflows 的四方对比——临时工/技能包/队友：计划由模型逐回合现场决定；
  *  第四种（动态工作流）：脚本持有计划，中间结果住变量、上下文只装最终答案。
+ *  p6-11a/b 六模式选二（扇出汇总 / 对抗核验）；p6-11c/d resume 重放
+ *  （干完的秒亮 / 没干完的重跑 / 其后启动的全部重跑）。
  *  分水岭竖线落下是全片思想高点；收官反转「Harness 第一次由它自己来写」。 */
-const WhoHoldsPlan: React.FC<{gridAt: number; divideAt: number; runtimeAt: number; twistAt: number}> = ({
-  gridAt,
-  divideAt,
-  runtimeAt,
-  twistAt,
-}) => {
+const WhoHoldsPlan: React.FC<{
+  gridAt: number;
+  divideAt: number;
+  runtimeAt: number;
+  modesAt: number;
+  resumeAt: number;
+  twistAt: number;
+}> = ({gridAt, divideAt, runtimeAt, modesAt, resumeAt, twistAt}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const cols = [
@@ -542,6 +546,132 @@ const WhoHoldsPlan: React.FC<{gridAt: number; divideAt: number; runtimeAt: numbe
             ))}
           </div>
         ) : null}
+        {/* p6-11a/b 六模式选二：扇出汇总 / 对抗核验（两张小卡浮在四象图上方） */}
+        {frame >= modesAt && frame < resumeAt ? (
+          <div
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              top: 66,
+              display: 'flex',
+              justifyContent: 'center',
+              gap: 26,
+              opacity: interpolate(frame - modesAt, [0, 12], [0, 1], {
+                extrapolateLeft: 'clamp',
+                extrapolateRight: 'clamp',
+              }),
+            }}
+          >
+            {/* 扇出→汇总漏斗 */}
+            <div
+              style={{
+                border: `2px solid ${theme.mech}`,
+                borderRadius: 12,
+                background: theme.panel,
+                padding: '12px 18px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 14,
+              }}
+            >
+              <svg width={150} height={64}>
+                {[0, 1, 2].map((k) => (
+                  <circle key={k} cx={26} cy={14 + k * 18} r={7} fill={theme.mech} />
+                ))}
+                <path d="M40 32 C 74 32, 86 32, 118 32" fill="none" stroke={theme.mech} strokeWidth={2.5} opacity={0.6} />
+                <polygon points="148,32 132,24 132,40" fill={theme.mech} />
+              </svg>
+              <div>
+                <div style={{fontFamily: theme.sans, fontSize: 21, color: theme.text}}>{'扇出 → 汇总'}</div>
+                <div style={{fontFamily: theme.sans, fontSize: 16, color: theme.dim, marginTop: 2}}>
+                  {'一批活各自干完，合成一份'}
+                </div>
+              </div>
+            </div>
+            {/* 对抗核验：挑刺→改到合格 */}
+            <div
+              style={{
+                border: `2px solid ${theme.mech}`,
+                borderRadius: 12,
+                background: theme.panel,
+                padding: '12px 18px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 14,
+              }}
+            >
+              <svg width={150} height={64}>
+                <rect x={12} y={12} width={52} height={40} rx={8} fill="none" stroke={theme.mech} strokeWidth={2.5} />
+                <text x={38} y={38} textAnchor="middle" fontFamily={theme.mono} fontSize={17} fill={theme.mech}>
+                  干
+                </text>
+                <text x={92} y={38} textAnchor="middle" fontFamily={theme.mono} fontSize={19} fill={theme.peer}>
+                  挑刺
+                </text>
+                <path d="M66 32 C 76 32, 80 32, 84 32" fill="none" stroke={theme.dim} strokeWidth={2.5} />
+                <polygon points="84,32 78,28 78,36" fill={theme.dim} />
+              </svg>
+              <div>
+                <div style={{fontFamily: theme.sans, fontSize: 21, color: theme.text}}>{'干完 → 挑刺 → 改'}</div>
+                <div style={{fontFamily: theme.sans, fontSize: 16, color: theme.dim, marginTop: 2}}>
+                  {'改到合格才算完'}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
+        {/* p6-11c/d resume 重放：A 干完秒亮（绿）/ B 没干完重跑（黄）/ C、D 其后启动全部重跑（对勾抹掉） */}
+        {frame >= resumeAt && twist <= 0 ? (
+          <div
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: 58,
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              gap: 14,
+              opacity: interpolate(frame - resumeAt, [0, 12], [0, 1], {
+                extrapolateLeft: 'clamp',
+                extrapolateRight: 'clamp',
+              }),
+            }}
+          >
+            <div style={{fontFamily: theme.sans, fontSize: 21, color: theme.dim, marginRight: 8}}>
+              {'中断重放：'}
+            </div>
+            {[
+              {t: 'A · 已干完', fate: '秒亮', ok: true},
+              {t: 'B · 没干完', fate: '从头重跑', warn: true},
+              {t: 'C · 其后启动', fate: '全部重跑', fail: true},
+              {t: 'D · 其后启动', fate: '全部重跑', fail: true},
+            ].map((r, i) => {
+              const e = interpolate(frame - resumeAt - 4 - i * 5, [0, 8], [0, 1], {
+                extrapolateLeft: 'clamp',
+                extrapolateRight: 'clamp',
+              });
+              const c = r.ok ? theme.ok : r.warn ? theme.peer : theme.deny;
+              return (
+                <div
+                  key={r.t}
+                  style={{
+                    border: `2px solid ${c}`,
+                    borderRadius: 10,
+                    background: theme.panel,
+                    padding: '10px 16px',
+                    textAlign: 'center',
+                    opacity: e,
+                  }}
+                >
+                  <div style={{fontFamily: theme.mono, fontSize: 18, color: theme.text}}>{r.t}</div>
+                  <div style={{fontFamily: theme.sans, fontSize: 17, color: c, marginTop: 3}}>{r.fate}</div>
+                </div>
+              );
+            })}
+          </div>
+        ) : null}
         {/* 收官反转 */}
         {twist > 0 ? (
           <div
@@ -562,19 +692,34 @@ const WhoHoldsPlan: React.FC<{gridAt: number; divideAt: number; runtimeAt: numbe
         ) : null}
       </div>
       <Footnote delay={runtimeAt}>
-        {'四形态对比与并发护栏 —— 官方文档 workflows'}
+        {'四形态对比·六模式选二·resume 重放 —— 官方文档 workflows'}
       </Footnote>
     </AbsoluteFill>
   );
 };
 
-const SourceAndFade: React.FC<{beatDurationInFrames: number; seriesAt: number}> = ({
+const SourceAndFade: React.FC<{beatDurationInFrames: number; partsAt: number; costAt: number; seriesAt: number}> = ({
   beatDurationInFrames,
+  partsAt,
+  costAt,
   seriesAt,
 }) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
-  const enter = spring({frame: frame - 4, fps, config: {damping: 200}});
+  // p6-12 零件四连小图（板/箱/号/桌）与 p6-13/14 十五倍对比条先于信源卡（分镜 6-E 承诺）
+  const partsT = interpolate(frame - partsAt, [0, 18], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const costT = interpolate(frame - costAt, [0, 18], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const preludeGone = interpolate(frame - (seriesAt - 26), [0, 20], [1, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const enter = spring({frame: frame - (seriesAt - 22), fps, config: {damping: 200}});
   const rows = [
     ['官方文档', 'code.claude.com/docs · 取数2026年8月'],
     ['工程博客', 'anthropic.com/engineering'],
@@ -591,6 +736,65 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; seriesAt: number}> 
   });
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
+      {/* p6-12 零件四连小图 + p6-13/14 官方冷水（十五倍）——信源卡之前的收束段 */}
+      {preludeGone > 0.01 ? (
+        <div
+          style={{
+            position: 'absolute',
+            opacity: partsT * preludeGone,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 30,
+          }}
+        >
+          <div style={{display: 'flex', gap: 40}}>
+            {[
+              {t: '板子', d: 'M14 10 h36 v26 h-36 Z M22 42 v8 M42 42 v8'},
+              {t: '信箱', d: 'M12 14 h40 v26 h-40 Z M12 22 h40 M44 22 v6 a4 4 0 0 1 -8 0 v-6'},
+              {t: '编号', d: 'M10 16 h44 v24 h-44 Z M10 24 h44 M10 32 h44 M20 16 v24'},
+              {t: '桌子', d: 'M10 20 h48 M14 20 v24 M54 20 v24 M28 30 h12 v8 h-12 Z'},
+            ].map((p, i) => (
+              <div key={p.t} style={{textAlign: 'center'}}>
+                <svg width={68} height={60} style={{overflow: 'visible'}}>
+                  <path d={p.d} fill="none" stroke={theme.dim} strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                <div style={{fontFamily: theme.sans, fontSize: 21, color: theme.text, marginTop: 6}}>{p.t}</div>
+              </div>
+            ))}
+          </div>
+          {/* 十五倍对比条：普通对话 1× vs 多智能体 15× */}
+          {costT > 0 ? (
+            <div style={{opacity: costT, display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center'}}>
+              <div style={{display: 'flex', alignItems: 'center', gap: 14}}>
+                <span style={{fontFamily: theme.sans, fontSize: 20, color: theme.dim, width: 150, textAlign: 'right'}}>
+                  {'普通对话'}
+                </span>
+                <div style={{width: 90, height: 18, borderRadius: 5, background: theme.dim, opacity: 0.7}} />
+                <span style={{fontFamily: theme.mono, fontSize: 19, color: theme.dim}}>{'1×'}</span>
+              </div>
+              <div style={{display: 'flex', alignItems: 'center', gap: 14}}>
+                <span style={{fontFamily: theme.sans, fontSize: 20, color: theme.text, width: 150, textAlign: 'right'}}>
+                  {'多智能体'}
+                </span>
+                <div
+                  style={{
+                    width: interpolate(frame - costAt, [0, 22], [90, 90 * 15], {extrapolateRight: 'clamp'}),
+                    maxWidth: 1350,
+                    height: 18,
+                    borderRadius: 5,
+                    background: theme.peer,
+                  }}
+                />
+                <span style={{fontFamily: theme.mono, fontSize: 19, color: theme.peer}}>{'≈15×'}</span>
+              </div>
+              <div style={{fontFamily: theme.sans, fontSize: 19, color: theme.dim, marginTop: 4}}>
+                {'并行和专精，必须挣回它们的协调成本 —— 官方工程博客'}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
       <div style={{opacity: enter * (1 - seriesT * 0.85), transform: `translateY(${(1 - enter) * 20}px)`}}>
         <Panel style={{padding: '30px 40px', width: 940}}>
           <div style={{fontFamily: theme.sans, fontSize: 24, color: theme.peer, marginBottom: 18}}>
@@ -706,12 +910,19 @@ export const P6Finale: React.FC<{scene: SceneRange}> = ({scene}) => {
           gridAt={rel(bD, 'p6-07')}
           divideAt={rel(bD, 'p6-08')}
           runtimeAt={rel(bD, 'p6-10')}
+          modesAt={rel(bD, 'p6-11a')}
+          resumeAt={rel(bD, 'p6-11c')}
           twistAt={rel(bD, 'p6-11')}
         />
       </Sequence>
-      <Sequence {...bE} name="6-E 信源卡与渐黑">
-        {/* 渐黑窗口从**本 beat 总时长**推导，不是末句时长（红线四） */}
-        <SourceAndFade beatDurationInFrames={bE.durationInFrames} seriesAt={rel(bE, 'p6-16')} />
+      <Sequence {...bE} name="6-E 零件·十五倍·信源卡·渐黑">
+        {/* p6-12 零件四连；p6-13/14 十五倍对比条；p6-15 起信源卡；渐黑窗口从本 beat 总时长推导（红线四） */}
+        <SourceAndFade
+          beatDurationInFrames={bE.durationInFrames}
+          partsAt={rel(bE, 'p6-12')}
+          costAt={rel(bE, 'p6-13')}
+          seriesAt={rel(bE, 'p6-15')}
+        />
       </Sequence>
     </AbsoluteFill>
   );
