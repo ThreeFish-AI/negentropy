@@ -726,7 +726,7 @@ export const P4Autonomy: React.FC<{scene: SceneRange}> = ({scene}) => {
         />
       </Sequence>
       <Sequence {...bD} name="4-D 包工头换项目经理">
-        <ForemanToManager swapAt={rel(bD, 'p4-17')} cardsAt={rel(bD, 'p4-15')} />
+        <ForemanToManager swapAt={rel(bD, 'p4-16')} cardsAt={rel(bD, 'p4-15')} />
       </Sequence>
     </AbsoluteFill>
   );
