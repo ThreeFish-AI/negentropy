@@ -545,16 +545,18 @@ const TierThree: React.FC<{warnAt: number; waitAt: number; flipAt: number; jitte
   );
 };
 
-/** 4-E 收益递减：产出曲线三次爬升依次趋平；第三次的增量 < 阈值标线；「停」章落下 + 金句。 */
-const Diminishing: React.FC<{curveAt: number; lineAt: number; stopAt: number; quoteAt: number}> = ({
-  curveAt,
-  lineAt,
-  stopAt,
-  quoteAt,
-}) => {
+/** 4-E 收益递减：产出曲线三次爬升依次趋平；第三次的增量 < 阈值标线；「停」章落下；
+ *  p4-21a/b 官方检查点回退（只看文件改动）→ 金句「每一级补救都带着上限」（Harness Engineering 改造）。 */
+const Diminishing: React.FC<{
+  curveAt: number;
+  lineAt: number;
+  stopAt: number;
+  ckptAt: number;
+  quoteAt: number;
+}> = ({curveAt, lineAt, stopAt, ckptAt, quoteAt}) => {
   const frame = useCurrentFrame();
   if (frame >= quoteAt) {
-    return <QuoteCard zh="出错不是终点。不恋战，也是一种能力。" accent={theme.mech} />;
+    return <QuoteCard zh="每一级补救，都带着上限。" accent={theme.mech} />;
   }
   const W = 1100;
   const H = 460;
@@ -622,6 +624,36 @@ const Diminishing: React.FC<{curveAt: number; lineAt: number; stopAt: number; qu
         {/* 「停」章落下 */}
         <Stamp text="停" color={theme.deny} at={stopAt} size={150} rotate={-14} style={{position: 'absolute', right: 130, top: 130}} />
       </div>
+      {/* p4-21a/b 官方检查点回退：改动可回退，但只含文件改动——命令与外部状态不在其中 */}
+      {frame >= ckptAt ? (
+        <div
+          style={{
+            position: 'absolute',
+            left: '50%',
+            bottom: 150,
+            transform: `translateX(-50%) translateY(${interpolate(frame - ckptAt, [0, 14], [16, 0], {
+              extrapolateLeft: 'clamp',
+              extrapolateRight: 'clamp',
+            })}px)`,
+            opacity: interpolate(frame - ckptAt, [0, 14], [0, 1], {
+              extrapolateLeft: 'clamp',
+              extrapolateRight: 'clamp',
+            }),
+            display: 'flex',
+            alignItems: 'center',
+            gap: 14,
+          }}
+        >
+          <Panel accent={theme.view} style={{padding: '14px 24px'}}>
+            <div style={{fontFamily: theme.sans, fontSize: 23, color: theme.text}}>
+              {'兜底后悔药：改动回退到检查点'}
+            </div>
+            <div style={{fontFamily: theme.sans, fontSize: 19, color: theme.dim, marginTop: 6}}>
+              {'只含文件改动 ✓　跑过的命令 · 改过的外部状态 ✗'}
+            </div>
+          </Panel>
+        </div>
+      ) : null}
       <Footnote delay={lineAt}>{'连续 3 次续写无实质产出 → 直接判定停 —— 不恋战'}</Footnote>
     </AbsoluteFill>
   );
@@ -668,9 +700,15 @@ export const P4Ladder: React.FC<{scene: SceneRange}> = ({scene}) => {
           flipAt={relD('p4-17')}
         />
       </Sequence>
-      <Sequence {...bE} name="4-E 收益递减与停章">
-        {/* p4-19 递减检测；p4-20 停；p4-21 金句 */}
-        <Diminishing curveAt={relE('p4-19')} lineAt={relE('p4-19') + 34} stopAt={relE('p4-20')} quoteAt={relE('p4-21')} />
+      <Sequence {...bE} name="4-E 收益递减·检查点·金句">
+        {/* p4-19 递减检测；p4-20 停；p4-21a 检查点回退；p4-22 金句（每级都带上限） */}
+        <Diminishing
+          curveAt={relE('p4-19')}
+          lineAt={relE('p4-19') + 34}
+          stopAt={relE('p4-20')}
+          ckptAt={relE('p4-21a')}
+          quoteAt={relE('p4-22')}
+        />
       </Sequence>
     </AbsoluteFill>
   );
