@@ -257,7 +257,9 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; seriesAt: number}> 
           <div style={{fontFamily: theme.sans, fontSize: 28, color: theme.text, marginTop: 14}}>
             {'让 AI 动手的四层机制'}
           </div>
-          {/* 下期预告卡：读 series.json 顺序（标题只在画面，口播为话题描述——反串线纪律） */}
+          {/* 下期预告卡：标题只在画面（口播为话题描述——反串线纪律）。
+              标题为 series.json 派生数据的硬编码镜像，由 check_series 规则 8
+              与清单对账（改标题先改 series.json，再同步此串——规则会拦漂移）。 */}
           <div
             style={{
               marginTop: 30,

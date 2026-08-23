@@ -204,8 +204,20 @@ const NamingFrame: React.FC<{officialAt: number}> = ({officialAt}) => {
           }}
         >
           <Panel style={{padding: '18px 34px', maxWidth: 1200}}>
+            {/* 中英并列（分镜 0-B 承诺）：中文口播句 + 英文原句 */}
             <div style={{fontFamily: theme.serif, fontSize: 27, color: theme.text}}>
               {'“Claude Code 是 Harness，Claude 是里面的模型。”'}
+            </div>
+            <div
+              style={{
+                fontFamily: theme.serif,
+                fontSize: 21,
+                color: theme.dim,
+                marginTop: 7,
+                fontStyle: 'italic',
+              }}
+            >
+              {'“Claude Code is the harness, Claude is the model.”'}
             </div>
             <div style={{fontFamily: theme.mono, fontSize: 19, color: theme.dim, marginTop: 8}}>
               {'— 官方文档 how-claude-code-works（code.claude.com，取数2026年8月）'}

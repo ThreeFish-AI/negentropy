@@ -17,8 +17,12 @@ const CHAPTERS = [
   {name: '一排插口', total: 255, loop: 28},
 ];
 
-/** 5-A 四层卡片：第一层并入画面左侧的环（环的第 6 次出场），后三张挂件卡向环滑拢对接 */
-const FourLayers: React.FC<{splitAt: number}> = ({splitAt}) => {
+/** 5-A 四层卡片 → 官方四件套映射（p5-05/06，Harness Engineering 改造版）：
+ *  口播「官方定义正好四件：循环、工具、上下文管理、护栏」——四张章节卡上方
+ *  落下官方四格标尺，本集三层各连一格（循环↔循环 / 分发表↔工具 / 插口↔护栏 之一），
+ *  「上下文管理」格保持虚线空置 + 「后面拆」小标（视觉与 p5-06 口播逐字对齐）。
+ *  随后原有「骨架 vs 挂件」分层（环 + 挂线）不变。 */
+const FourLayers: React.FC<{splitAt: number; mapAt: number}> = ({splitAt, mapAt}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const dot = useRingDot(2.8);
@@ -32,8 +36,90 @@ const FourLayers: React.FC<{splitAt: number}> = ({splitAt}) => {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
+  // 官方四件套标尺：位置对齐下方四卡的水平中心（卡宽 350 + gap 22 → 步距 372）
+  const OFFICIAL = [
+    {t: '循环', link: 0},
+    {t: '工具', link: 1},
+    {t: '上下文管理', link: -1},
+    {t: '护栏', link: 3},
+  ];
+  const map = interpolate(frame - mapAt, [0, 18], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const linkOn = interpolate(frame - mapAt - 10, [0, 14], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const CARD_W = 350;
+  const GAP = 22;
+  const stripLeft = 960 - (CARD_W * 4 + GAP * 3) / 2;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
+      {/* 官方四件套标尺（p5-05 落下；p5-06 连线 + 空格标注） */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 96,
+          left: stripLeft,
+          display: 'flex',
+          gap: GAP,
+          opacity: map,
+          transform: `translateY(${(1 - map) * -18}px)`,
+        }}
+      >
+        {OFFICIAL.map((o) => {
+          const filled = o.link >= 0;
+          return (
+            <div key={o.t} style={{width: CARD_W, textAlign: 'center'}}>
+              <div
+                style={{
+                  padding: '12px 0',
+                  borderRadius: 10,
+                  border: filled ? `2.5px solid ${theme.mech}` : `2px dashed ${theme.panelBorder}`,
+                  background: filled ? theme.mechDeep : 'transparent',
+                  fontFamily: theme.sans,
+                  fontSize: 27,
+                  color: filled ? theme.text : theme.dim,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {o.t}
+              </div>
+              {filled ? (
+                <svg width={CARD_W} height={64} style={{display: 'block'}}>
+                  <line
+                    x1={CARD_W / 2}
+                    y1={4}
+                    x2={CARD_W / 2}
+                    y2={4 + 52 * linkOn}
+                    stroke={theme.mech}
+                    strokeWidth={4}
+                  />
+                  <polygon
+                    points={`${CARD_W / 2},${60} ${CARD_W / 2 - 9},${52} ${CARD_W / 2 + 9},${52}`}
+                    fill={theme.mech}
+                    opacity={linkOn}
+                  />
+                </svg>
+              ) : (
+                <div
+                  style={{
+                    fontFamily: theme.sans,
+                    fontSize: 21,
+                    color: theme.dim,
+                    marginTop: 18,
+                    opacity: linkOn,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {'空着 · 后面拆'}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
       <div style={{display: 'flex', gap: 22, alignItems: 'flex-end'}}>
         {layers.map((l, i) => {
           const e = spring({frame: frame - i * 8, fps, config: {damping: 200}});
@@ -402,8 +488,8 @@ export const P5Stack: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bD = w('p5-15', 'p5-19');
   return (
     <AbsoluteFill>
-      <Sequence {...bA} name="5-A 四层卡片">
-        <FourLayers splitAt={rel(bA, 'p5-06')} />
+      <Sequence {...bA} name="5-A 四层卡片与官方四件套">
+        <FourLayers splitAt={rel(bA, 'p5-06')} mapAt={rel(bA, 'p5-05')} />
       </Sequence>
       <Sequence {...bB} name="5-B 四级台阶">
         <GrowthBars barAt={rel(bB, 'p5-08')} coreAt={rel(bB, 'p5-10')} />
