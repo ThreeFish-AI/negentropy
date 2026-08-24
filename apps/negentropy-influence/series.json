@@ -190,7 +190,7 @@
             "accessed": "2026-08-22"
           },
           "status": "draft-review",
-          "statusNote": "Harness Engineering 改造草渲待审：13:08 = 23666 帧 @30fps（134 句）；七幕 FAIL 0 · WARN 0（尾帧 WARN 1 为收束卡刻意停留）；终渲未启动",
+          "statusNote": "Harness Engineering 改造草渲待审：13:08 = 23666 帧 @30fps（134 句）；七幕 FAIL 0 · WARN 0（尾帧 WARN 1 为收束卡刻意停留；口径为 08-23 草渲版）——08-24 评审修复 6-D resume 死门+分水岭压卡、2-E 补名册/对比卡两页，remotion still 逐帧复检通过；终渲未启动",
           "voice": "sunny-steady + me-bright.wav"
         }
       ]
