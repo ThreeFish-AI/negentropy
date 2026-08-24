@@ -535,13 +535,19 @@ const BubbleUp: React.FC<{riseAt: number; nodAt: number; downAt: number}> = ({ri
 
 /** 2-E 三禁止章：队友消息不构成用户同意（Harness Engineering 改造版，官方直断）
  *  一条 A→B 消息到达前被「来自另一个会话——不是你的用户」来源标签盖灰；
- *  三枚 deny 红章依次盖下；末段不许孵队友 + 保险丝横幅保留。 */
-const ThreeProhibitions: React.FC<{msgAt: number; stampAt: number; noSubAt: number; bannerAt: number}> = ({
-  msgAt,
-  stampAt,
-  noSubAt,
-  bannerAt,
-}) => {
+ *  三枚 deny 红章依次盖下；末段不许孵队友 + 保险丝横幅保留。
+ *  红章之下的中景舞台随口播换页（评审修复：后缀四句原本零视觉支持）：
+ *  p2-23a/b 名册文件卡（用户目录团队文件夹·成员+信箱；会话结束自动清掉）；
+ *  p2-24a/b 信箱 vs 上下文对比（信箱管传话一行字；整段上下文须恢复会话）。 */
+const ThreeProhibitions: React.FC<{
+  msgAt: number;
+  stampAt: number;
+  noSubAt: number;
+  bannerAt: number;
+  rosterAt: number;
+  clearAt: number;
+  textAt: number;
+}> = ({msgAt, stampAt, noSubAt, bannerAt, rosterAt, clearAt, textAt}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const msg = interpolate(frame - msgAt, [0, 20], [0, 1], {
@@ -554,6 +560,29 @@ const ThreeProhibitions: React.FC<{msgAt: number; stampAt: number; noSubAt: numb
     extrapolateRight: 'clamp',
   });
   const banner = interpolate(frame - bannerAt, [0, 18], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  // 名册卡：rosterAt 落下；textAt（对比卡登场）淡出让位。签字栏句同理在
+  // rosterAt 淡出——中景一次只演一层，与 6-D 底部条带同款换页语法。
+  const noSubOut = interpolate(frame - rosterAt, [0, 12], [1, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const rosterIn = interpolate(frame - rosterAt, [0, 14], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const rosterOut = interpolate(frame - textAt, [0, 12], [1, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  // 名册清空：成员行划掉、边框转虚线、盖「自动清掉」小标（p2-23b 口播内）
+  const cleared = interpolate(frame - clearAt, [0, 16], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const textIn = interpolate(frame - textAt, [0, 14], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -642,8 +671,8 @@ const ThreeProhibitions: React.FC<{msgAt: number; stampAt: number; noSubAt: numb
             </div>
           );
         })}
-        {/* 签字栏画面（组队不是权限洗白） */}
-        {noSub > 0 ? (
+        {/* 签字栏画面（组队不是权限洗白）——名册卡登场时让位 */}
+        {noSub > 0 && noSubOut > 0.01 ? (
           <div
             style={{
               position: 'absolute',
@@ -651,13 +680,129 @@ const ThreeProhibitions: React.FC<{msgAt: number; stampAt: number; noSubAt: numb
               right: 0,
               bottom: 96,
               textAlign: 'center',
-              opacity: noSub,
+              opacity: noSub * noSubOut,
               fontFamily: theme.sans,
               fontSize: 26,
               color: theme.text,
             }}
           >
             {'组队不是权限洗白机——孩子们的签字栏，还在家长的原处'}
+          </div>
+        ) : null}
+        {/* p2-23a/b 名册卡：用户目录的团队文件夹里的 roster 文件；会话结束自动清掉 */}
+        {rosterIn > 0 && rosterOut > 0.01 ? (
+          <div
+            style={{
+              position: 'absolute',
+              left: 510,
+              bottom: 96,
+              width: 480,
+              opacity: rosterIn * rosterOut,
+              transform: `translateY(${(1 - rosterIn) * 16}px)`,
+              border: `2px solid ${cleared > 0.5 ? theme.panelBorder : theme.peer}`,
+              borderStyle: cleared > 0.5 ? 'dashed' : 'solid',
+              borderRadius: 12,
+              background: theme.panel,
+              padding: '14px 20px',
+            }}
+          >
+            <div style={{fontFamily: theme.mono, fontSize: 19, color: theme.dim}}>
+              {'~/.claude/teams/roster.json'}
+            </div>
+            {/* 成员行：领队 + 两队友，每人一只信箱（信箱与 2-B 母题同构） */}
+            {[
+              {n: '领队', box: 'mailbox: 领队'},
+              {n: '阿强', box: 'mailbox: 阿强'},
+              {n: '阿珍', box: 'mailbox: 阿珍'},
+            ].map((m, i) => {
+              const gone = Math.max(0, Math.min(1, cleared * 1.6 - i * 0.3));
+              return (
+                <div
+                  key={m.n}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    fontFamily: theme.mono,
+                    fontSize: 20,
+                    color: theme.text,
+                    marginTop: 8,
+                    opacity: 1 - gone,
+                    textDecoration: gone > 0.4 ? 'line-through' : 'none',
+                  }}
+                >
+                  <span>{m.n}</span>
+                  <span style={{color: theme.dim}}>{m.box}</span>
+                </div>
+              );
+            })}
+            {cleared > 0 ? (
+              <div
+                style={{
+                  marginTop: 10,
+                  textAlign: 'center',
+                  fontFamily: theme.sans,
+                  fontSize: 20,
+                  color: theme.dim,
+                  opacity: cleared,
+                }}
+              >
+                {'会话结束 · 名册自动清掉——队伍是临时的，桌子才是留下的'}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+        {/* p2-24a/b 消息 vs 上下文：信箱管传话（一行字），整段上下文须恢复会话 */}
+        {textIn > 0 ? (
+          <div
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: 88,
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              gap: 40,
+              opacity: textIn,
+              transform: `translateY(${(1 - textIn) * 16}px)`,
+            }}
+          >
+            {/* 信箱：只装一段文字 */}
+            <div style={{textAlign: 'center'}}>
+              <svg width={120} height={78}>
+                <path d="M14 18 h92 v46 h-92 Z" fill="none" stroke={theme.peer} strokeWidth={3} />
+                <path d="M14 18 L60 46 L106 18" fill="none" stroke={theme.peer} strokeWidth={3} />
+              </svg>
+              <div style={{fontFamily: theme.mono, fontSize: 18, color: theme.text, marginTop: 4}}>
+                {'一段文字'}
+              </div>
+              <div style={{fontFamily: theme.sans, fontSize: 18, color: theme.dim}}>{'信箱管传话'}</div>
+            </div>
+            {/* 传不过去的：整段上下文 */}
+            <svg width={70} height={60}>
+              <line x1={8} y1={30} x2={62} y2={30} stroke={theme.deny} strokeWidth={4} />
+              <text x={35} y={52} textAnchor="middle" fontFamily={theme.sans} fontSize={17} fill={theme.deny}>
+                {'搬不过去'}
+              </text>
+            </svg>
+            {/* 上下文：须恢复会话 */}
+            <div style={{textAlign: 'center'}}>
+              <svg width={120} height={78}>
+                {[0, 1, 2, 3].map((k) => (
+                  <g key={k}>
+                    <rect x={22} y={10 + k * 15} width={76} height={9} rx={2} fill="none" stroke={theme.dim} strokeWidth={2} />
+                    <rect x={22} y={10 + k * 15} width={30 + ((k * 23) % 40)} height={9} rx={2} fill={theme.dim} opacity={0.55} />
+                  </g>
+                ))}
+              </svg>
+              <div style={{fontFamily: theme.mono, fontSize: 18, color: theme.text, marginTop: 4}}>
+                {'整段上下文'}
+              </div>
+              <div style={{fontFamily: theme.sans, fontSize: 18, color: theme.dim}}>
+                {'要搬它，得恢复会话'}
+              </div>
+            </div>
           </div>
         ) : null}
         {/* 不许孵队友 + 保险丝横幅 */}
@@ -715,6 +860,9 @@ export const P2Mail: React.FC<{scene: SceneRange}> = ({scene}) => {
           stampAt={rel(bE, 'p2-21')}
           noSubAt={rel(bE, 'p2-22')}
           bannerAt={rel(bE, 'p2-23')}
+          rosterAt={rel(bE, 'p2-23a')}
+          clearAt={rel(bE, 'p2-23b')}
+          textAt={rel(bE, 'p2-24a')}
         />
       </Sequence>
     </AbsoluteFill>

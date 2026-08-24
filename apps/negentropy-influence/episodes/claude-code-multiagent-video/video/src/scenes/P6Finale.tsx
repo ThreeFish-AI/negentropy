@@ -397,8 +397,8 @@ const SeriesFinale: React.FC<{riseAt: number; quoteAt: number}> = ({riseAt, quot
 /** 6-D ★谁持有计划：四象对比（Harness Engineering 收官纲图）
  *  官方 workflows 的四方对比——临时工/技能包/队友：计划由模型逐回合现场决定；
  *  第四种（动态工作流）：脚本持有计划，中间结果住变量、上下文只装最终答案。
- *  p6-11a/b 六模式选二（扇出汇总 / 对抗核验）；p6-11c/d resume 重放
- *  （干完的秒亮 / 没干完的重跑 / 其后启动的全部重跑）。
+ *  底部条带三段轮换：运行时三分区（p6-09/10）→ 六模式选二（p6-11a/b）→
+ *  resume 重放（p6-11c/d，干完的秒亮 / 没干完的重跑 / 其后启动的全部重跑）。
  *  分水岭竖线落下是全片思想高点；收官反转「Harness 第一次由它自己来写」。 */
 const WhoHoldsPlan: React.FC<{
   gridAt: number;
@@ -425,7 +425,30 @@ const WhoHoldsPlan: React.FC<{
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  const CX = 960;
+  // 底部条带三段互斥轮换：三分区 →(modesAt) 六模式 →(resumeAt) resume 重放。
+  // 原实现模式卡浮 top:66 压住四象卡头、resume 卡被 `twist <= 0` 锁死——twistAt
+  // 绑 p6-11，在音频顺序上早于 p6-11c，门恒假（评审修复：改为同条带换页）。
+  const runtimeOut = interpolate(frame - modesAt, [0, 10], [1, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const modesIn = interpolate(frame - modesAt, [0, 10], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const modesOut = interpolate(frame - resumeAt, [-10, 0], [1, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const resumeIn = interpolate(frame - resumeAt, [0, 12], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  // 分水岭竖线落点：三四列间隙中心。列行 4×340 + 3×18 居中于 1760 容器，
+  // 第 3/4 列间隙中心 = (1760-1412)/2 + 3×358 - 9 = 1239（画布 x≈1319）——
+  // 此前误取画布中心 960，线压在「队友」卡身上（评审修复：由列布局推导）。
+  const COLS_W = 340 * 4 + 18 * 3;
+  const CX = (1760 - COLS_W) / 2 + 3 * (340 + 18) - 18 / 2;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <div style={{position: 'relative', width: 1760, height: 640}}>
@@ -480,7 +503,8 @@ const WhoHoldsPlan: React.FC<{
             );
           })}
         </div>
-        {/* 分水岭竖线：三四列之间落下 */}
+        {/* 分水岭竖线：三四列之间落下（终点收在底部条带上方——resume 卡
+            （y≈506 起）入场时不与线尾辉光相撞，评审补渲实测 420 会擦到卡角） */}
         {divide > 0 ? (
           <div
             style={{
@@ -488,7 +512,7 @@ const WhoHoldsPlan: React.FC<{
               left: CX - 9,
               top: 90,
               width: 5,
-              height: 420 * divide,
+              height: 370 * divide,
               background: theme.core,
               boxShadow: `0 0 18px ${theme.core}88`,
             }}
@@ -510,8 +534,8 @@ const WhoHoldsPlan: React.FC<{
             {'分水岭'}
           </div>
         ) : null}
-        {/* 运行时三分区一行（缩略） */}
-        {runtime > 0 ? (
+        {/* 运行时三分区一行（缩略）——modesAt 起换页让位给六模式卡 */}
+        {runtime > 0 && runtimeOut > 0.01 ? (
           <div
             style={{
               position: 'absolute',
@@ -521,7 +545,7 @@ const WhoHoldsPlan: React.FC<{
               display: 'flex',
               justifyContent: 'center',
               gap: 26,
-              opacity: runtime,
+              opacity: runtime * runtimeOut,
               transform: `translateY(${(1 - runtime) * 14}px)`,
             }}
           >
@@ -546,21 +570,19 @@ const WhoHoldsPlan: React.FC<{
             ))}
           </div>
         ) : null}
-        {/* p6-11a/b 六模式选二：扇出汇总 / 对抗核验（两张小卡浮在四象图上方） */}
-        {frame >= modesAt && frame < resumeAt ? (
+        {/* p6-11a/b 六模式选二：扇出汇总 / 对抗核验（底部条带第二页；resumeAt 起换页） */}
+        {modesIn > 0 && modesOut > 0.01 ? (
           <div
             style={{
               position: 'absolute',
               left: 0,
               right: 0,
-              top: 66,
+              bottom: 60,
               display: 'flex',
               justifyContent: 'center',
               gap: 26,
-              opacity: interpolate(frame - modesAt, [0, 12], [0, 1], {
-                extrapolateLeft: 'clamp',
-                extrapolateRight: 'clamp',
-              }),
+              opacity: modesIn * modesOut,
+              transform: `translateY(${(1 - modesIn) * 14}px)`,
             }}
           >
             {/* 扇出→汇总漏斗 */}
@@ -621,8 +643,10 @@ const WhoHoldsPlan: React.FC<{
             </div>
           </div>
         ) : null}
-        {/* p6-11c/d resume 重放：A 干完秒亮（绿）/ B 没干完重跑（黄）/ C、D 其后启动全部重跑（对勾抹掉） */}
-        {frame >= resumeAt && twist <= 0 ? (
+        {/* p6-11c/d resume 重放：A 干完秒亮（绿）/ B 没干完重跑（黄）/ C、D 其后启动全部重跑（对勾抹掉）。
+            此前门 `frame >= resumeAt && twist <= 0` 恒假（twistAt 绑 p6-11 早于 p6-11c，
+            评审修复：换页进入、不再依赖 twist 退出——反转金句卡在 6-D 末尾叠印不冲突） */}
+        {resumeIn > 0 ? (
           <div
             style={{
               position: 'absolute',
@@ -633,10 +657,7 @@ const WhoHoldsPlan: React.FC<{
               justifyContent: 'center',
               alignItems: 'center',
               gap: 14,
-              opacity: interpolate(frame - resumeAt, [0, 12], [0, 1], {
-                extrapolateLeft: 'clamp',
-                extrapolateRight: 'clamp',
-              }),
+              opacity: resumeIn,
             }}
           >
             <div style={{fontFamily: theme.sans, fontSize: 21, color: theme.dim, marginRight: 8}}>
