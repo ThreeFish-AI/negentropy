@@ -120,7 +120,7 @@ const ThreePositions: React.FC<{l1: number; l2: number; l3: number; layerAt: num
   });
   return (
     <AbsoluteFill>
-      <SceneTag chapter="s13 + s14" tagline="Who Presses Start" />
+      <SceneTag chapter="None" tagline="Who Presses Start" />
       <div style={{position: 'absolute', left: 0, right: 0, top: 190, display: 'flex', justifyContent: 'center', gap: 36}}>
         <div style={{opacity: e1}}>
           <StartPanel mode="onRing" title="01 · 有人按并等着" sub="最笨也最常见" active={frame >= l1} />
@@ -216,12 +216,10 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; seriesAt: number}> 
   const {fps} = useVideoConfig();
   const enter = spring({frame: frame - 4, fps, config: {damping: 200}});
   const rows = [
-    ['课程', 'Learn Claude Code · 并发两章'],
-    ['站点', 'learn.shareai.run/zh/s13 · /s14'],
-    ['仓库', 'github.com/shareAI-lab/learn-claude-code'],
-    ['仓库钉版', 'main @ 67a9126c（站点同源修订）'],
-    ['访问日期', '2026-08-22'],
-    ['许可', 'MIT'],
+    ['官方文档', 'code.claude.com/docs · 取数2026年8月'],
+    ['工程博客', 'anthropic.com/engineering'],
+    ['源码分析', '第三方逆向分析 · 片中逐处标注'],
+    ['数字口径', '开源仓库钉版 67a9126c 实测 · 字节归档'],
   ];
   const seriesT = interpolate(frame - seriesAt, [0, 20], [0, 1], {
     extrapolateLeft: 'clamp',
@@ -259,7 +257,7 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; seriesAt: number}> 
               <div style={{fontFamily: theme.mono, fontSize: 23, color: theme.text}}>{v}</div>
             </div>
           ))}
-          {/* 诚实行：产品内部断言均为课程作者的源码分析（【三】归属句的公开落点） */}
+          {/* 诚实行：产品内部断言均为第三方的源码分析（【三】归属句的公开落点） */}
           <div
             style={{
               marginTop: 14,
@@ -274,7 +272,7 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; seriesAt: number}> 
               }),
             }}
           >
-            {'涉及产品内部的部分，均为课程作者的源码分析，片中已逐处标注；取证字节已随片归档'}
+            {'涉及产品内部的部分，均为第三方的源码分析，片中已逐处标注；取证字节已随片归档'}
           </div>
         </Panel>
       </div>
@@ -288,7 +286,7 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; seriesAt: number}> 
           }}
         >
           <div style={{fontFamily: theme.serif, fontSize: 34, color: theme.dim, letterSpacing: 3}}>
-            {'Claude Code 通俗全解'}
+            {'Claude Code Harness Engineering'}
           </div>
           <div
             style={{
@@ -299,10 +297,24 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; seriesAt: number}> 
               marginTop: 18,
             }}
           >
-            {'AI 会自己开工吗？'}
+            {'时机层：谁来按下开始'}
           </div>
-          <div style={{fontFamily: theme.sans, fontSize: 28, color: theme.text, marginTop: 14}}>
-            {'后台与定时'}
+          {/* 下期预告卡：标题只在画面（反串线纪律） */}
+          <div
+            style={{
+              marginTop: 26,
+              padding: '13px 28px',
+              border: `1.5px solid ${theme.panelBorder}`,
+              borderRadius: 12,
+              background: theme.panel,
+            }}
+          >
+            <div style={{fontFamily: theme.sans, fontSize: 20, color: theme.dim, letterSpacing: 2}}>
+              {'下期 · 协作层'}
+            </div>
+            <div style={{fontFamily: theme.serif, fontSize: 31, color: theme.text, marginTop: 5}}>
+              {'从一个到一群'}
+            </div>
           </div>
         </div>
       ) : null}

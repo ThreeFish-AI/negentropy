@@ -1,4 +1,4 @@
-# 策划案：《一群 AI 怎么干活：看板、信箱与各自的桌子》
+# 策划案：《协作层：从一个到一群》
 
 > 事实源：[../research/source-notes.md](../research/source-notes.md)（信源清单 [../research/sources.toml](../research/sources.toml)）
 > 逐字稿 SSOT：[narration.md](./narration.md) · 分镜：[storyboard.md](./storyboard.md)
@@ -8,7 +8,7 @@
 
 | 项 | 定义 |
 |---|---|
-| 系列 | Claude Code 通俗全解（独立成片） |
+| 系列 | Claude Code Harness Engineering（独立成片） |
 | 平台 / 形态 | B 站 / YouTube 1080p30，代码动画 + 本人克隆音色，无 BGM、无 emoji |
 | 时长 | `target_minutes = [13.0, 14.6]`；≈3900 字 |
 | 受众 | 普通人：听过「AI 智能体协作」的营销话术，没见过它到底由哪几样朴素的东西拼成 |

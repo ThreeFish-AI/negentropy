@@ -122,7 +122,7 @@ const DogWatching: React.FC<{stopAt: number}> = ({stopAt}) => {
   const frame = useCurrentFrame();
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="s13 · Background Tasks" tagline="A Dog Watches Every Task" />
+      <SceneTag chapter="Background Tasks" tagline="A Dog Watches Every Task" />
       <div style={{display: 'flex', alignItems: 'center', gap: 50}}>
         <div style={{position: 'relative'}}>
           <OutputLine stopAt={stopAt} focusAt={9999} />
@@ -140,12 +140,13 @@ const DogWatching: React.FC<{stopAt: number}> = ({stopAt}) => {
 };
 
 /** 3-B 45 秒刻度走满 → 狗起身 + 放大镜聚焦 + 正常增长对照线一闪而过 */
-const DogRises: React.FC<{watchAt: number; riseAt: number; contrastAt: number; quoteAt: number}> = ({
-  watchAt,
-  riseAt,
-  contrastAt,
-  quoteAt,
-}) => {
+const DogRises: React.FC<{
+  watchAt: number;
+  riseAt: number;
+  contrastAt: number;
+  pathsAt: number;
+  quoteAt: number;
+}> = ({watchAt, riseAt, contrastAt, pathsAt, quoteAt}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   // 45 秒刻度：压缩为 2.5 秒演示（视觉 45 格刻度走满）
@@ -164,7 +165,7 @@ const DogRises: React.FC<{watchAt: number; riseAt: number; contrastAt: number; q
   });
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="s13 · Background Tasks" tagline="Not Speed. Aliveness." />
+      <SceneTag chapter="Background Tasks" tagline="Not Speed. Aliveness." />
       <div style={{display: 'flex', alignItems: 'center', gap: 66, opacity: 1 - quoteO * 0.7}}>
         {/* 45 秒刻度盘 */}
         <div style={{position: 'relative'}}>
@@ -220,6 +221,100 @@ const DogRises: React.FC<{watchAt: number; riseAt: number; contrastAt: number; q
           <OutputLine stopAt={1} focusAt={riseAt + 6} />
         </div>
       </div>
+      {/* p3-09a..c 两条看路：轮询走廊（隔段回头，空跑计费灯闪）vs 事件传送带（结果自己滚来） */}
+      {frame >= pathsAt ? (
+        <div
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: 120,
+            display: 'flex',
+            justifyContent: 'center',
+            gap: 26,
+            opacity: interpolate(frame - pathsAt, [0, 14], [0, 1], {
+              extrapolateLeft: 'clamp',
+              extrapolateRight: 'clamp',
+            }),
+          }}
+        >
+          {/* 走廊：问号卡往返（费字灯闪） */}
+          <Panel style={{width: 560, padding: '14px 18px'}}>
+            <div style={{fontFamily: theme.sans, fontSize: 22, color: theme.text}}>{'轮询走廊'}</div>
+            <svg width={520} height={86} style={{display: 'block', marginTop: 8}}>
+              <line x1={20} y1={48} x2={500} y2={48} stroke={theme.panelBorder} strokeWidth={4} />
+              {[110, 260, 410].map((x, i) => (
+                <g key={x}>
+                  <circle
+                    cx={x + Math.sin((frame / 14) + i * 2) * 70}
+                    cy={48}
+                    r={16}
+                    fill={theme.panel}
+                    stroke={theme.later}
+                    strokeWidth={3}
+                  />
+                  <text
+                    x={x + Math.sin((frame / 14) + i * 2) * 70}
+                    y={54}
+                    textAnchor="middle"
+                    fontFamily={theme.mono}
+                    fontSize={16}
+                    fill={theme.later}
+                  >
+                    ?
+                  </text>
+                </g>
+              ))}
+            </svg>
+            <div
+              style={{
+                fontFamily: theme.mono,
+                fontSize: 17,
+                color: theme.deny,
+                marginTop: 2,
+                opacity: 0.55 + 0.45 * Math.sin(frame / 6),
+              }}
+            >
+              {'每隔一段回头问一次 —— 空跑也是钱'}
+            </div>
+          </Panel>
+          {/* 传送带：包裹自动滚到脚边 */}
+          <Panel accent={theme.mech} style={{width: 560, padding: '14px 18px'}}>
+            <div style={{fontFamily: theme.sans, fontSize: 22, color: theme.text}}>{'事件传送带'}</div>
+            <svg width={520} height={86} style={{display: 'block', marginTop: 8}}>
+              {Array.from({length: 26}, (_, i) => (
+                <circle
+                  key={i}
+                  cx={20 + i * 20}
+                  cy={62}
+                  r={7}
+                  fill={theme.mech}
+                  opacity={(i + Math.floor(frame / 3)) % 3 === 0 ? 0.9 : 0.25}
+                />
+              ))}
+              {[0, 1].map((k) => {
+                const bx = 20 + (((frame * 4 + k * 260) % 500) as number);
+                return (
+                  <rect
+                    key={k}
+                    x={bx}
+                    y={26}
+                    width={38}
+                    height={24}
+                    rx={6}
+                    fill={theme.panel}
+                    stroke={theme.mech}
+                    strokeWidth={3}
+                  />
+                );
+              })}
+            </svg>
+            <div style={{fontFamily: theme.sans, fontSize: 17, color: theme.mech, marginTop: 2}}>
+              {'活儿一出结果就自己滚过来 —— 不空跑，不迟到'}
+            </div>
+          </Panel>
+        </div>
+      ) : null}
       {/* 正常增长的对照线：一闪而过 */}
       {contrast > 0 && contrast < 1 ? (
         <div
@@ -253,7 +348,7 @@ const DogRises: React.FC<{watchAt: number; riseAt: number; contrastAt: number; q
           {'不猜快慢，只看死活'}
         </div>
       ) : null}
-      <Footnote delay={riseAt}>{'看门狗 · 45 秒停滞检测 —— 课程作者的源码分析'}</Footnote>
+      <Footnote delay={riseAt}>{'看门狗 · 45 秒停滞检测 —— 第三方的源码分析'}</Footnote>
     </AbsoluteFill>
   );
 };
@@ -262,17 +357,18 @@ export const P3Watchdog: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (fromId: string, toId?: string) => beatWindow(scene.sentences, scene.from, fromId, toId);
   const at = (id: string) => w(id).from;
   const bA = w('p3-01', 'p3-03');
-  const bB = w('p3-04', 'p3-09');
+  const bB = w('p3-04', 'p3-09c');
   return (
     <AbsoluteFill>
       <Sequence {...bA} name="3-A 输出停在问句上">
         <DogWatching stopAt={at('p3-03') - bA.from} />
       </Sequence>
-      <Sequence {...bB} name="3-B 四十五秒与起身">
+      <Sequence {...bB} name="3-B 四十五秒起身与两条看路">
         <DogRises
           watchAt={0}
           riseAt={at('p3-08') - bB.from}
           contrastAt={at('p3-07') - bB.from}
+          pathsAt={at('p3-09a') - bB.from}
           quoteAt={at('p3-08') - bB.from + 40}
         />
       </Sequence>

@@ -62,7 +62,7 @@ const ToggleAndFallback: React.FC<{toggleAt: number; kwAt: number; mergeAt: numb
   const dstY = 430;
   return (
     <AbsoluteFill>
-      <SceneTag chapter="s13 · Background Tasks" tagline="Press Start, Then Walk Away" />
+      <SceneTag chapter="Background Tasks" tagline="Press Start, Then Walk Away" />
       <svg width={1920} height={1080} style={{position: 'absolute', inset: 0}}>
         <g transform={`translate(${TRACK_CX - 260} ${TRACK_CY - 260})`}>
           <LoopRing size={520} draw={1} dotProgress={dot} activeNode={2} />
@@ -185,7 +185,7 @@ const OffLoopSideTrack: React.FC<{slideAt: number; stubAt: number; nextAt: numbe
   });
   return (
     <AbsoluteFill>
-      <SceneTag chapter="s13 · Background Tasks" tagline="The Ring Never Stops" />
+      <SceneTag chapter="Background Tasks" tagline="The Ring Never Stops" />
       <svg width={1920} height={1080} style={{position: 'absolute', inset: 0}}>
         {/* 旁轨：later 虚线弧（120°→310°），环外一层 */}
         <path
@@ -286,7 +286,7 @@ const SingleThreadTruth: React.FC<{mergeAt: number; labelAt: number}> = ({mergeA
           </text>
         ) : null}
       </svg>
-      <Footnote delay={labelAt}>{'单线程真相 —— 课程作者的源码分析'}</Footnote>
+      <Footnote delay={labelAt}>{'单线程真相 —— 第三方的源码分析'}</Footnote>
       {labelO > 0 ? (
         <div
           style={{
@@ -372,7 +372,7 @@ export const P1Dereg: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bD = w('p1-16', 'p1-24');
   return (
     <AbsoluteFill>
-      <Sequence {...bA} name="1-A 后台开关与关键词兜底">
+      <Sequence {...bA} name="1-A 后台开关与超时转道">
         <ToggleAndFallback
           toggleAt={at('p1-03') - bA.from}
           kwAt={at('p1-04') - bA.from}

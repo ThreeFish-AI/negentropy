@@ -1,6 +1,7 @@
-# 《拆开 Claude Code：让 AI 动手的四层机制》
+# 《执行层：一个循环，就是全部》
 
-> 系列「Claude Code 通俗全解」首作（发布顺序 SSOT：[../series.json](../../series.json)；口播永不携带集数序号）。
+> 系列「Claude Code Harness Engineering」首作（发布顺序 SSOT：[../series.json](../../series.json)；口播永不携带集数序号）。
+> **改造状态（2026-08-23）**：Harness Engineering 改造版——口播 v-next 已定稿、场景组件已升级、配音完成（167 句全缓存，`tts --plan` 待合成 0）；草渲交付待审（终渲未启动）。
 > 选题：开源课程 [Learn Claude Code](https://learn.shareai.run/zh/s01/) 的「工具与执行」四章
 > —— s01 Agent Loop / s02 Tool Use / s03 Permission / s04 Hooks。
 > 形态：1080p30 横屏，代码动画图解 + 本人音色克隆旁白，无真人出镜、无 BGM。

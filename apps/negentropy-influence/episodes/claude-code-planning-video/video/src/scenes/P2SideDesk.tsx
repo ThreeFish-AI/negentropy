@@ -1,4 +1,4 @@
-/** P2 另开一张副桌（分镜 2-A…2-F）—— s06 Subagent
+/** P2 另开一张副桌（分镜 2-A…2-F）—— Subagent
  *  桌面暴涨 → 副桌滑出（缩小克隆环）→ 分屏回执 → 派活上锁 + 迷你闸门
  *  → ★五要素等号锁（本集最反直觉深挖帧）→ 共享抽屉 + 审批冒泡。 */
 import React from 'react';
@@ -23,7 +23,7 @@ const DeskFlood: React.FC<{floodAt: number; billAt: number}> = ({floodAt, billAt
   });
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="s06 · task tool" tagline="全新 messages[] · 只回传结论" accent={theme.view} />
+      <SceneTag chapter="task tool" tagline="全新 messages[] · 只回传结论" accent={theme.view} />
       <div style={{position: 'relative'}}>
         <Desk width={1420} height={540}>
           <div style={{position: 'absolute', inset: 14, overflow: 'hidden', borderRadius: 12}}>
@@ -573,7 +573,7 @@ const FiveFactorLock: React.FC<{compareAt: number[]; lockAt: number; saveAt: num
         ) : null}
       </div>
       <Footnote delay={saveAt + 6}>
-        {'缓存命中的前提：五要素字节级一致 —— 课程作者的源码分析'}
+        {'fork 继承完整对话 · 共享提示缓存 —— 官方文档 sub-agents'}
       </Footnote>
     </AbsoluteFill>
   );
@@ -596,9 +596,10 @@ const MiniDeskLabel: React.FC<{title: string; accent: string}> = ({title, accent
 );
 
 /** 2-F 半拉隔离：共享抽屉 + 审批卡冒泡上浮 + 收束金句。 */
-const SharedDrawer: React.FC<{drawerAt: number; bubbleAt: number; quoteAt: number}> = ({
+const SharedDrawer: React.FC<{drawerAt: number; bubbleAt: number; cagesAt: number; quoteAt: number}> = ({
   drawerAt,
   bubbleAt,
+  cagesAt,
   quoteAt,
 }) => {
   const frame = useCurrentFrame();
@@ -720,6 +721,49 @@ const SharedDrawer: React.FC<{drawerAt: number; bubbleAt: number; quoteAt: numbe
             </Panel>
           </div>
         ) : null}
+        {/* p2-28a..c 三只笼子：在场上限 20 / 轮数上限 / 上下文配额（Harness Engineering 改造） */}
+        {frame >= cagesAt ? (
+          <div
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              top: 368,
+              display: 'flex',
+              justifyContent: 'center',
+              gap: 22,
+            }}
+          >
+            {[
+              {t: '同时在场', n: '≤ 20'},
+              {t: '轮数上限', n: '每只有限'},
+              {t: '上下文配额', n: '烧完收工'},
+            ].map((c, i) => {
+              const e = interpolate(frame - cagesAt - i * 6, [0, 10], [0, 1], {
+                extrapolateLeft: 'clamp',
+                extrapolateRight: 'clamp',
+              });
+              return (
+                <div
+                  key={c.t}
+                  style={{
+                    width: 300,
+                    border: `2.5px solid ${theme.mech}`,
+                    borderRadius: 10,
+                    background: theme.panel,
+                    padding: '12px 16px',
+                    textAlign: 'center',
+                    opacity: e,
+                    transform: `translateY(${(1 - e) * 14}px)`,
+                  }}
+                >
+                  <div style={{fontFamily: theme.sans, fontSize: 23, color: theme.text}}>{c.t}</div>
+                  <div style={{fontFamily: theme.mono, fontSize: 19, color: theme.mech, marginTop: 4}}>{c.n}</div>
+                </div>
+              );
+            })}
+          </div>
+        ) : null}
         {/* 虚线连线标签：桌是分开了，有些抽屉还是共用的 */}
         <div
           style={{
@@ -790,9 +834,14 @@ export const P2SideDesk: React.FC<{scene: SceneRange}> = ({scene}) => {
           saveAt={relE('p2-23') + 24}
         />
       </Sequence>
-      <Sequence {...bF} name="2-F 共享抽屉与审批冒泡">
-        {/* p2-26「有些抽屉还是共用的」抽屉拉开；p2-27 审批卡冒泡；p2-29 收束金句 */}
-        <SharedDrawer drawerAt={relF('p2-26')} bubbleAt={relF('p2-27')} quoteAt={relF('p2-29')} />
+      <Sequence {...bF} name="2-F 共享抽屉·审批冒泡·三只笼子">
+        {/* p2-26「有些抽屉还是共用的」抽屉拉开；p2-27 审批卡冒泡；p2-28a 三只笼子；p2-29 收束金句 */}
+        <SharedDrawer
+          drawerAt={relF('p2-26')}
+          bubbleAt={relF('p2-27')}
+          cagesAt={relF('p2-28a')}
+          quoteAt={relF('p2-29')}
+        />
       </Sequence>
     </AbsoluteFill>
   );

@@ -38,7 +38,7 @@ const PairLock: React.FC<{lockAt: number; swapAt: number; queueAt: number}> = ({
   const resultShift = queue * 260;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="s13 · Background Tasks" tagline="Call ⇄ Result, Always Paired" />
+      <SceneTag chapter="Background Tasks" tagline="Call ⇄ Result, Always Paired" />
       <svg width={1500} height={520} style={{overflow: 'visible'}}>
         {/* 调用卡（左） */}
         <g transform={`translate(${560 - gap} 180)`}>
@@ -104,7 +104,7 @@ const TwoTierQueue: React.FC<{dropAt: number; userAt: number}> = ({dropAt, userA
   const user = spring({frame: frame - userAt, fps, config: {damping: 200}});
   return (
     <AbsoluteFill>
-      <SceneTag chapter="s13 · Background Tasks" tagline="Next Round First, Later Second" />
+      <SceneTag chapter="Background Tasks" tagline="Next Round First, Later Second" />
       <svg width={1920} height={1080} style={{position: 'absolute', inset: 0}}>
         <g transform="translate(280 250)">
           <LoopRing size={380} draw={1} dotProgress={dot} showLabels={false} />
@@ -149,7 +149,7 @@ const TwoTierQueue: React.FC<{dropAt: number; userAt: number}> = ({dropAt, userA
           </text>
         </g>
       </svg>
-      <Footnote delay={userAt}>{'队列两级：下一轮 ＞ 稍后 —— 课程作者的源码分析'}</Footnote>
+      <Footnote delay={userAt}>{'队列两级：下一轮 ＞ 稍后 —— 第三方的源码分析'}</Footnote>
     </AbsoluteFill>
   );
 };
@@ -272,7 +272,7 @@ const SevenTasks: React.FC<{lightAt: number; labelAt: number}> = ({lightAt, labe
           </Panel>
         </div>
       ) : null}
-      <Footnote delay={lightAt}>{'七种 —— 课程作者数过 · 跑命令只是其一'}</Footnote>
+      <Footnote delay={lightAt}>{'七种 —— 有人数过 · 跑命令只是其一'}</Footnote>
     </AbsoluteFill>
   );
 };
@@ -396,8 +396,8 @@ export const P2Rejoin: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bA = w('p2-01', 'p2-05');
   const bB = w('p2-06', 'p2-09');
   const bC = w('p2-10', 'p2-12');
-  const bD = w('p2-13', 'p2-19');
-  const bE = w('p2-20', 'p2-27');
+  const bD = w('p2-13', 'p2-15');
+  const bE = w('p2-16', 'p2-23');
   return (
     <AbsoluteFill>
       <Sequence {...bA} name="2-A 配对锁扣">
@@ -413,7 +413,7 @@ export const P2Rejoin: React.FC<{scene: SceneRange}> = ({scene}) => {
         <SevenTasks lightAt={at('p2-14') - bD.from} labelAt={at('p2-16') - bD.from} />
       </Sequence>
       <Sequence {...bE} name="2-E 取件码与天平">
-        <ClaimCheckScale matchAt={at('p2-21') - bE.from} scaleAt={at('p2-23') - bE.from} stampAt={at('p2-26') - bE.from} />
+        <ClaimCheckScale matchAt={at('p2-19') - bE.from} scaleAt={at('p2-21') - bE.from} stampAt={at('p2-23') - bE.from} />
       </Sequence>
     </AbsoluteFill>
   );

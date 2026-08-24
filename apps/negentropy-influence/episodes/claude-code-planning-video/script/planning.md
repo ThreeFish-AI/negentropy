@@ -1,4 +1,4 @@
-# 策划案：《AI 的视野是安排出来的：写下来的计划，另开的桌子》
+# 策划案：《规划层：模型的视野是安排出来的》
 
 > 事实源：[../research/source-notes.md](../research/source-notes.md)（信源清单 [../research/sources.toml](../research/sources.toml)）
 > 逐字稿 SSOT：[narration.md](./narration.md) · 分镜：storyboard.md（阶段⑤产出后回填链接）
@@ -8,7 +8,7 @@
 
 | 项 | 定义 |
 |---|---|
-| 系列 | **Claude Code 通俗全解**（与自进化系列完全无关，口播互不引用） |
+| 系列 | **Claude Code Harness Engineering**（与自进化系列完全无关，口播互不引用） |
 | 集次 | 序号只存在于 [../../series.json](../../../series.json) 与视觉层 |
 | 平台 / 形态 | B 站 / YouTube 横屏 1080p30，代码动画图解 + 本人音色克隆旁白，无真人出镜、无 BGM |
 | 时长 | 13:00–14:36（`target_minutes = [13.0, 14.6]`；创作目标 ≈3900 字） |

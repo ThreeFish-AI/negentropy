@@ -1,4 +1,4 @@
-/** P3 目录卡与垫纸（分镜 3-A…3-F）—— s07 Skill Loading + s10 System Prompt
+/** P3 目录卡与垫纸（分镜 3-A…3-F）—— Skill Loading + System Prompt
  *  厚手册压桌计价 → 目录卡扇形展开 → 预算横杆 + 单向阀 → 垫纸碎成四段
  *  → 探针 vs 关键词 → ★段落入缓存仓（外接工具段被拦在仓外闪断）。 */
 import React from 'react';
@@ -26,7 +26,7 @@ const ThickManualSlams: React.FC<{slamAt: number}> = ({slamAt}) => {
   });
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="s07 · load_skill" tagline="目录常驻，内容按需" accent={theme.view} />
+      <SceneTag chapter="load_skill" tagline="目录常驻，内容按需" accent={theme.view} />
       <div style={{position: 'relative', width: 1560, height: 620, transform: `translateY(${sink + jitter}px)`}}>
         {/* 左：桌角薄目录卡叠 */}
         <div style={{position: 'absolute', left: 60, top: 100}}>
@@ -700,7 +700,7 @@ const CacheShed: React.FC<{enterAt: number; blockAt: number; flickerAt: number; 
         </div>
       </div>
       <Footnote delay={blockAt + 10}>
-        {'唯一不缓存的段落：外接工具段 —— 课程作者的源码分析'}
+        {'唯一不缓存的段落：外接工具段 —— 第三方的源码分析'}
       </Footnote>
     </AbsoluteFill>
   );

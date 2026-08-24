@@ -1,4 +1,4 @@
-/** P2 加一个工具，只改一行（分镜 2-A…2-H）—— 站点「Tool Dispatch Map」的概念重建
+/** P2 加一个工具，只改一行（分镜 2-A…2-H）—— 开源教学素材「Tool Dispatch Map」的概念重建
  *  重点视觉演绎：并发安全 ≠ 只读（真值表对撞）、连续块分批、读文件落盘自循环。 */
 import React from 'react';
 import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig} from 'remotion';
@@ -37,7 +37,7 @@ const ClumsyCommands: React.FC<{typoAt: number}> = ({typoAt}) => {
   const shake = bad ? Math.sin((frame - typoAt) / 1.6) * 3 : 0;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="s02 · Tool Use" tagline="Add a Tool, Add Just One Line" />
+      <SceneTag chapter="Tool Use" tagline="Add a Tool, Add Just One Line" />
       <CornerRing />
       <div style={{display: 'flex', alignItems: 'center', gap: 44}}>
         <Panel accent={theme.mech} style={{width: 330, padding: '20px 24px'}}>
@@ -69,16 +69,63 @@ const ClumsyCommands: React.FC<{typoAt: number}> = ({typoAt}) => {
 
 /** 2-B 五张工具卡（反枚举：只有编号染色） */
 const FiveTools: React.FC = () => {
+  const frame = useCurrentFrame();
   const tools = ['跑命令', '读文件', '写文件', '改文件', '按模式找文件'];
   const mono = ['bash', 'read_file', 'write_file', 'edit_file', 'glob'];
+  // 官方五类工具地图（how-claude-code-works）：教学五件归位官方分区，两个空槽亮虚线（Harness Engineering 改造）
+  const zones = ['文件操作', '文件操作', '文件操作', '文件操作', '搜索'];
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <CornerRing />
       <div style={{display: 'flex', gap: 20}}>
         {tools.map((t, i) => (
-          <NumberedCard key={t} index={i + 1} label={t} sub={mono[i]} active delay={i * 4} />
+          <div key={t} style={{textAlign: 'center'}}>
+            <NumberedCard index={i + 1} label={t} sub={mono[i]} active delay={i * 4} />
+            <div
+              style={{
+                fontFamily: theme.sans,
+                fontSize: 17,
+                color: theme.dim,
+                marginTop: 10,
+                opacity: interpolate(frame - 20, [0, 12], [0, 1], {
+                  extrapolateLeft: 'clamp',
+                  extrapolateRight: 'clamp',
+                }),
+              }}
+            >
+              {zones[i]}
+            </div>
+          </div>
+        ))}
+        {/* 官方地图的两个空槽（执行类之外的 执行/网页/代码智能 区） */}
+        {['执行', '网页'].map((z, i) => (
+          <div
+            key={z}
+            style={{
+              width: 220,
+              height: 130,
+              border: `2px dashed ${theme.panelBorder}`,
+              borderRadius: 12,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              opacity: interpolate(frame - 26 - i * 8, [0, 12], [0, 0.8], {
+                extrapolateLeft: 'clamp',
+                extrapolateRight: 'clamp',
+              }),
+              alignSelf: 'center',
+            }}
+          >
+            <span style={{fontFamily: theme.sans, fontSize: 22, color: theme.dim}}>{z}</span>
+            <span style={{fontFamily: theme.sans, fontSize: 16, color: theme.dim}}>{'官方地图另有'}</span>
+          </div>
         ))}
       </div>
+      <Footnote delay={34}>
+        {'官方内置工具五类：文件 / 搜索 / 执行 / 网页 / 代码智能 —— how-claude-code-works'}
+      </Footnote>
     </AbsoluteFill>
   );
 };
@@ -344,7 +391,7 @@ const ConcurrencyTable: React.FC<{
         </div>
       ) : null}
       <Footnote delay={splitAt}>
-        {'isConcurrencySafe ≠ isReadOnly —— 课程作者的源码分析'}
+        {'isConcurrencySafe ≠ isReadOnly —— 第三方的源码分析'}
       </Footnote>
     </AbsoluteFill>
   );

@@ -1,4 +1,4 @@
-# 策划案：《拆开 Claude Code：让 AI 动手的四层机制》
+# 策划案：《执行层：一个循环，就是全部》
 
 > 事实源：[../research/source-notes.md](../research/source-notes.md)（信源清单 [../research/sources.toml](../research/sources.toml)）
 > 逐字稿 SSOT：[narration.md](./narration.md) · 分镜：[storyboard.md](./storyboard.md)
@@ -8,7 +8,7 @@
 
 | 项 | 定义 |
 |---|---|
-| 系列 | **Claude Code 通俗全解**（新系列，与自进化系列完全无关，不互相引用） |
+| 系列 | **Claude Code Harness Engineering**（新系列，与自进化系列完全无关，不互相引用） |
 | 集次 | 首集（序号只存在于 [../../series.json](../../../series.json) 与视觉层） |
 | 平台 / 形态 | B 站 / YouTube 横屏 1080p30，代码动画图解 + 本人音色克隆旁白，无真人出镜、无 BGM |
 | 时长 | 13:00–14:36（用户上限 15 分钟，`target_minutes = [13.0, 14.6]`） |

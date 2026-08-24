@@ -1,4 +1,4 @@
-/** P4 挂在循环上，不写进循环里（分镜 4-A…4-H）—— 站点「Hook Workbench」的概念重建
+/** P4 挂在循环上，不写进循环里（分镜 4-A…4-H）—— 开源教学素材「Hook Workbench」的概念重建
  *  4-E 刻意「无动效」表达「循环是故意保持无聊的」；4-G 是全片安全主题的收口。 */
 import React from 'react';
 import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig} from 'remotion';
@@ -37,7 +37,7 @@ const NeedsPierce: React.FC<{needAt: number; pierceAt: number}> = ({needAt, pier
   });
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center', flexDirection: 'row', gap: 80}}>
-      <SceneTag chapter="s04 · Hooks" tagline="Hang on the Loop, Don't Write into It" />
+      <SceneTag chapter="Hooks" tagline="Hang on the Loop, Don't Write into It" />
       <div style={{position: 'relative'}}>
         <LoopRing size={400} draw={1} dotProgress={dot} />
         {pierce > 0.4 ? (
@@ -359,72 +359,162 @@ const BoringOnPurpose: React.FC<{quoteAt: number}> = ({quoteAt}) => {
   );
 };
 
-/** 4-F 27 格事件矩阵：4 格已实心，23 格快速点亮 */
-const EventMatrix: React.FC<{countAt: number; labelAt: number}> = ({countAt, labelAt}) => {
+/** 4-F 31 事件 × 三节奏三层嵌套（Harness Engineering 改造版，官方文档口径）
+ *  三层嵌套：外层 = 会话（一次）、中层 = 回合（每轮一次）、内层 = 工具调用（每次前后）。
+ *  计数徽章滚到 31；右栏异步事件（不入嵌套的独立时机）。 */
+const HookNesting: React.FC<{outerAt: number; midAt: number; innerAt: number; countAt: number; asyncAt: number}> = ({
+  outerAt,
+  midAt,
+  innerAt,
+  countAt,
+  asyncAt,
+}) => {
   const frame = useCurrentFrame();
-  const names = [
-    'PreToolUse', 'PostToolUse', 'PostToolUseFailure',
-    'SessionStart', 'SessionEnd', 'Stop', 'StopFailure', 'Setup',
-    'UserPromptSubmit', 'Notification', 'PermissionRequest', 'PermissionDenied',
-    'SubagentStart', 'SubagentStop',
-    'PreCompact', 'PostCompact',
-    'TeammateIdle', 'TaskCreated', 'TaskCompleted',
-    'Elicitation', 'ElicitationResult', 'ConfigChange', 'WorktreeCreate',
-    'WorktreeRemove', 'InstructionsLoaded', 'CwdChanged', 'FileChanged',
-  ];
-  // 教学版覆盖的四个
-  const taught = new Set(['PreToolUse', 'PostToolUse', 'Stop', 'UserPromptSubmit']);
-  const highlighted = new Set([
-    'SessionStart', 'SessionEnd', 'PermissionRequest', 'PermissionDenied',
-    'SubagentStart', 'SubagentStop', 'PreCompact', 'PostCompact', 'FileChanged',
-  ]);
+  const {fps} = useVideoConfig();
+  // 三层依次成形的进度
+  const o = interpolate(frame - outerAt, [0, 16], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const m = interpolate(frame - midAt, [0, 16], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const i = interpolate(frame - innerAt, [0, 16], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  // 内层光点沿「工具前→执行→工具后→整批落定」跑一圈
+  const lap = ((frame - innerAt) % 80) / 80;
+  const lapOn = frame >= innerAt + 16;
+  const asyncEvents = ['会话开始', '会话结束', '配置变更', '目录切换', '文件被改', '通知'];
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <div style={{display: 'grid', gridTemplateColumns: 'repeat(9, 176px)', gap: 10}}>
-        {names.map((n, i) => {
-          const isTaught = taught.has(n);
-          const at = countAt + i * 2;
-          const on = isTaught || frame >= at;
-          const lab = frame >= labelAt && highlighted.has(n);
-          return (
+      <div style={{position: 'relative', width: 1500, height: 640}}>
+        {/* 外层：会话框 */}
+        <div
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            right: 460,
+            bottom: 0,
+            border: `3px solid ${o < 1 ? theme.mech : theme.panelBorder}`,
+            borderRadius: 18,
+            opacity: o,
+            padding: '18px 26px',
+            background: o < 1 ? `${theme.mech}10` : 'transparent',
+          }}
+        >
+          <div style={{fontFamily: theme.sans, fontSize: 26, color: theme.text}}>
+            {'会话 Session'}
+            <span style={{fontFamily: theme.sans, fontSize: 19, color: theme.dim, marginLeft: 14}}>
+              {'一次'}
+            </span>
+          </div>
+          {/* 中层：回合框（×N 视觉重复） */}
+          <div
+            style={{
+              margin: '22px 6px 0',
+              border: `2px solid ${m < 1 ? theme.mech : theme.panelBorder}`,
+              borderRadius: 14,
+              opacity: m,
+              padding: '14px 20px',
+              position: 'relative',
+            }}
+          >
+            <div style={{fontFamily: theme.sans, fontSize: 23, color: theme.text}}>
+              {'回合 Turn'}
+              <span style={{fontFamily: theme.mono, fontSize: 20, color: theme.dim, marginLeft: 10}}>{'×N'}</span>
+              <span style={{fontFamily: theme.sans, fontSize: 17, color: theme.dim, marginLeft: 12}}>{'每轮一次'}</span>
+            </div>
+            {/* 内层：工具调用链 */}
             <div
-              key={n}
               style={{
-                height: 68,
-                borderRadius: 8,
-                border: `2px solid ${on ? theme.mech : theme.panelBorder}`,
-                background: isTaught ? theme.mech : on ? theme.mechDeep : 'transparent',
-                opacity: on ? 1 : 0.35,
+                margin: '18px 4px 0',
+                border: `2px dashed ${i < 1 ? theme.mech : theme.panelBorder}`,
+                borderRadius: 12,
+                opacity: i,
+                padding: '14px 18px',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                padding: '0 6px',
-                boxShadow: lab ? `0 0 0 2px ${theme.core}` : 'none',
+                gap: 22,
               }}
             >
-              <span
+              {['工具前', '执行', '工具后', '整批落定'].map((s, k) => {
+                const active = lapOn && lap > k / 4 && lap < (k + 1) / 4;
+                return (
+                  <React.Fragment key={s}>
+                    {k > 0 ? (
+                      <svg width={54} height={20}>
+                        <line x1={0} y1={10} x2={44} y2={10} stroke={theme.dim} strokeWidth={2.5} />
+                        <polygon points="44,10 36,5 36,15" fill={theme.dim} />
+                      </svg>
+                    ) : null}
+                    <span
+                      style={{
+                        fontFamily: theme.sans,
+                        fontSize: 21,
+                        color: active ? theme.mech : theme.dim,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {s}
+                    </span>
+                  </React.Fragment>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+        {/* 右栏：异步事件 */}
+        <div
+          style={{
+            position: 'absolute',
+            right: 0,
+            top: 10,
+            width: 420,
+            opacity: interpolate(frame - asyncAt, [0, 16], [0, 1], {
+              extrapolateLeft: 'clamp',
+              extrapolateRight: 'clamp',
+            }),
+          }}
+        >
+          <div style={{fontFamily: theme.sans, fontSize: 22, color: theme.dim, marginBottom: 12}}>
+            {'另有独立的时机（异步）'}
+          </div>
+          <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10}}>
+            {asyncEvents.map((e, k) => (
+              <div
+                key={e}
                 style={{
-                  fontFamily: theme.mono,
-                  fontSize: 15,
-                  color: isTaught ? theme.bg : theme.text,
-                  textAlign: 'center',
-                  lineHeight: 1.2,
-                  fontWeight: isTaught ? 700 : 400,
+                  border: `1px solid ${theme.panelBorder}`,
+                  borderRadius: 8,
+                  padding: '9px 12px',
+                  fontFamily: theme.sans,
+                  fontSize: 19,
+                  color: theme.dim,
+                  background: theme.panel,
+                  opacity: interpolate(frame - asyncAt - k * 3, [0, 8], [0, 1], {
+                    extrapolateLeft: 'clamp',
+                    extrapolateRight: 'clamp',
+                  }),
                 }}
               >
-                {n}
-              </span>
-            </div>
-          );
-        })}
+                {e}
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* 计数徽章 */}
+        <div
+          style={{
+            position: 'absolute',
+            right: 30,
+            bottom: 24,
+            display: 'flex',
+            alignItems: 'baseline',
+            gap: 12,
+          }}
+        >
+          <Counter from={0} to={31} start={countAt} frames={50} style={{fontSize: 70, color: theme.mech, fontWeight: 700}} />
+          <span style={{fontFamily: theme.sans, fontSize: 24, color: theme.dim}}>{'个时机'}</span>
+        </div>
       </div>
-      <div style={{marginTop: 30, display: 'flex', alignItems: 'baseline', gap: 12}}>
-        <Counter from={4} to={27} start={countAt} frames={40} style={{fontSize: 74, color: theme.mech, fontWeight: 700}} />
-        <span style={{fontFamily: theme.sans, fontSize: 28, color: theme.dim}}>
-          {'个时机（教学版只讲了 4 个）'}
-        </span>
-      </div>
-      <Footnote delay={labelAt}>{'27 hook events —— 课程作者的源码分析'}</Footnote>
+      <Footnote delay={asyncAt}>
+        {'31 个 hook 事件 × 三种节奏 —— 官方文档 hooks reference（事件表逐行计数，取数2026年8月）'}
+      </Footnote>
     </AbsoluteFill>
   );
 };
@@ -563,7 +653,118 @@ const StampClash: React.FC<{
         ) : null}
       </div>
       <Footnote delay={arrowAt}>
-        {'hook allow 不能绕过 settings 的 deny/ask —— 课程作者的源码分析'}
+        {'hook allow 不能绕过 settings 的 deny/ask —— 第三方的源码分析'}
+      </Footnote>
+    </AbsoluteFill>
+  );
+};
+
+/** 4-G' 六道闸门流水线（官方 SDK 权限判定图）：hook 的放行仍要穿过后面的 deny/ask 两站
+ *  官方把权限判定画成六站；本片高潮句「扩展点能加限制，不能解除限制」的官方背书。 */
+const SixGatePipeline: React.FC<{railAt: number; runAt: number; yoloAt: number}> = ({railAt, runAt, yoloAt}) => {
+  const frame = useCurrentFrame();
+  const stations = [
+    {t: 'hook', sub: '扩展点'},
+    {t: 'deny', sub: '拒绝'},
+    {t: 'ask', sub: '询问'},
+    {t: 'settings', sub: '配置'},
+    {t: 'mode', sub: '模式'},
+    {t: '默认', sub: '兜底问你'},
+  ];
+  const rail = interpolate(frame - railAt, [0, 22], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const travel = interpolate(frame - runAt, [0, 50], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const yolo = frame >= yoloAt;
+  // 两轮演示：第一轮光点在 deny 站被截；第二轮（全放行模式）仍在 deny 站被截
+  const cutAt = 1 / 6 + 0.5 / 6;
+  const stopped = travel > cutAt;
+  const PX = 160;
+  const GAP = 260;
+  const ballX = PX + (GAP * 5) * Math.min(travel, cutAt);
+  return (
+    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
+      <div style={{position: 'relative', width: 1660, height: 480}}>
+        <svg width={1660} height={480} style={{position: 'absolute'}}>
+          <line x1={PX} y1={250} x2={PX + GAP * 5 + 60} y2={250} stroke={theme.panelBorder} strokeWidth={5} opacity={rail} />
+          {/* 两端终点：Execute / Blocked */}
+          {rail > 0.8 ? (
+            <>
+              <circle cx={PX + GAP * 5 + 110} cy={250} r={40} fill="none" stroke={theme.core} strokeWidth={4} opacity={0.9} />
+              <text x={PX + GAP * 5 + 110} y={258} textAnchor="middle" fontFamily={theme.mono} fontSize={17} fill={theme.core}>
+                Execute
+              </text>
+              <circle cx={PX + GAP * 0.5} cy={330} r={36} fill="none" stroke={theme.deny} strokeWidth={4} />
+              <text x={PX + GAP * 0.5} y={338} textAnchor="middle" fontFamily={theme.mono} fontSize={16} fill={theme.deny}>
+                Blocked
+              </text>
+            </>
+          ) : null}
+          {/* 请求光点 */}
+          {rail > 0.8 ? (
+            <>
+              <circle cx={ballX} cy={250} r={14} fill={stopped ? theme.deny : theme.core}
+                style={stopped ? {filter: `drop-shadow(0 0 16px ${theme.deny})`} : undefined} />
+              {!stopped ? (
+                <line x1={PX} y1={250} x2={ballX} y2={250} stroke={theme.core} strokeWidth={3} opacity={0.5} />
+              ) : (
+                <line x1={ballX} y1={250} x2={PX + GAP * 0.5} y2={330} stroke={theme.deny} strokeWidth={3} strokeDasharray="6 5" />
+              )}
+            </>
+          ) : null}
+        </svg>
+        {/* 六站 */}
+        {stations.map((st, i) => {
+          const at = railAt + 6 + i * 4;
+          const e = interpolate(frame - at, [0, 10], [0, 1], {
+            extrapolateLeft: 'clamp',
+            extrapolateRight: 'clamp',
+          });
+          const isDeny = st.t === 'deny';
+          const bypassed = yolo && (st.t === 'mode');
+          return (
+            <div
+              key={st.t}
+              style={{
+                position: 'absolute',
+                left: PX + GAP * i - 90,
+                top: 108,
+                width: 180,
+                textAlign: 'center',
+                opacity: e * (bypassed ? 0.35 : 1),
+              }}
+            >
+              <svg width={60} height={64} style={{display: 'block', margin: '0 auto 6px'}}>
+                <line x1={30} y1={64} x2={30} y2={26} stroke={isDeny ? theme.deny : theme.mech} strokeWidth={6} />
+                <circle cx={30} cy={16} r={9} fill={isDeny ? theme.deny : theme.mech} />
+              </svg>
+              <div style={{fontFamily: theme.mono, fontSize: 22, color: isDeny ? theme.deny : theme.text}}>{st.t}</div>
+              <div style={{fontFamily: theme.sans, fontSize: 17, color: theme.dim, marginTop: 2}}>{st.sub}</div>
+            </div>
+          );
+        })}
+        {yolo ? (
+          <div
+            style={{
+              position: 'absolute',
+              right: 30,
+              bottom: 20,
+              fontFamily: theme.sans,
+              fontSize: 23,
+              color: theme.deny,
+              opacity: interpolate(frame - yoloAt, [0, 12], [0, 1], {extrapolateRight: 'clamp'}),
+            }}
+          >
+            {'全放行模式也一样：拒绝压得住'}
+          </div>
+        ) : null}
+      </div>
+      <Footnote delay={railAt}>
+        {'六道闸门判定顺序 —— 官方 Agent SDK permissions 文档'}
       </Footnote>
     </AbsoluteFill>
   );
@@ -652,7 +853,8 @@ export const P4Hooks: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bD = w('p4-13', 'p4-19');
   const bE = w('p4-20', 'p4-22');
   const bF = w('p4-23', 'p4-25');
-  const bG = w('p4-27', 'p4-34');
+  const bG1 = w('p4-27', 'p4-31');
+  const bG2 = w('p4-32', 'p4-34');
   const bH = w('p4-35', 'p4-37');
   return (
     <AbsoluteFill>
@@ -675,16 +877,19 @@ export const P4Hooks: React.FC<{scene: SceneRange}> = ({scene}) => {
       <Sequence {...bE} name="4-E 故意保持无聊">
         <BoringOnPurpose quoteAt={rel(bE, 'p4-22')} />
       </Sequence>
-      <Sequence {...bF} name="4-F 27 格事件矩阵">
-        <EventMatrix countAt={rel(bF, 'p4-24')} labelAt={rel(bF, 'p4-25')} />
+      <Sequence {...bF} name="4-F 31 事件三层嵌套">
+        <HookNesting outerAt={rel(bF, 'p4-23')} midAt={rel(bF, 'p4-24')} innerAt={rel(bF, 'p4-24') + 30} countAt={rel(bF, 'p4-24') + 10} asyncAt={rel(bF, 'p4-25')} />
       </Sequence>
-      <Sequence {...bG} name="4-G 印章对撞">
+      <Sequence {...bG1} name="4-G1 六闸流水线">
+        <SixGatePipeline railAt={rel(bG1, 'p4-29')} runAt={rel(bG1, 'p4-30')} yoloAt={rel(bG1, 'p4-31')} />
+      </Sequence>
+      <Sequence {...bG2} name="4-G2 印章对撞">
         <StampClash
-          pushAt={rel(bG, 'p4-29')}
-          blockAt={rel(bG, 'p4-31')}
-          arrowAt={rel(bG, 'p4-32')}
-          gapAt={rel(bG, 'p4-33')}
-          quoteAt={rel(bG, 'p4-34')}
+          pushAt={4}
+          blockAt={26}
+          arrowAt={rel(bG2, 'p4-32')}
+          gapAt={rel(bG2, 'p4-33')}
+          quoteAt={rel(bG2, 'p4-34')}
         />
       </Sequence>
       <Sequence {...bH} name="4-H 自激闭环被截断">

@@ -1,4 +1,4 @@
-# 系列信源地图 ·《Claude Code 通俗全解》
+# 系列信源地图 · Claude Code Harness Engineering（原「通俗全解」，2026-08-23 更名）
 
 > 机器可读版：[claude-code-explained.toml](./claude-code-explained.toml)。本文件与
 > [series.json](../series.json) / [series.md](../series.md) 是同一配对纪律：机器版供

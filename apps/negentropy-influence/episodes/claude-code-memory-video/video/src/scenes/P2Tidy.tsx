@@ -124,7 +124,7 @@ const VaultBig: React.FC<{dropAt: number; flyAt: number; previewAt: number}> = (
           style={{position: 'absolute', right: 60, top: 30}}
         />
       </div>
-      <Footnote delay={dropAt}>{'超过 200KB 才入库 · 预览 2000 字 —— 仓库实测（s08 macro_compact）'}</Footnote>
+      <Footnote delay={dropAt}>{'超过 200KB 才入库 · 预览 2000 字 —— 仓库实测（macro_compact）'}</Footnote>
     </AbsoluteFill>
   );
 };
@@ -406,7 +406,7 @@ const RescueLane: React.FC = () => {
           {'重试 ×1 · 再不行把错误往上交'}
         </div>
       </div>
-      <Footnote delay={0}>{'保 5 条 · 重试 1 次 —— 仓库实测（s08 reactive_compact）'}</Footnote>
+      <Footnote delay={0}>{'保 5 条 · 重试 1 次 —— 仓库实测（reactive_compact）'}</Footnote>
     </AbsoluteFill>
   );
 };
@@ -628,7 +628,7 @@ const OrderMatters: React.FC<{normalAt: number; swapAt: number; grabAt: number; 
           />
         ))}
       </div>
-      <Footnote delay={grabAt}>{'课程作者核对源码：产品真实顺序入库在前 —— 「先保存、再丢弃」'}</Footnote>
+      <Footnote delay={grabAt}>{'第三方核对源码：产品真实顺序入库在前 —— 「先保存、再丢弃」'}</Footnote>
     </AbsoluteFill>
   );
 };

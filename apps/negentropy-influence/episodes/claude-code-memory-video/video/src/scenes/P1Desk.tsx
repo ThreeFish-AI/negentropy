@@ -16,7 +16,7 @@ const DeskIntro: React.FC<{ruleAt: number}> = ({ruleAt}) => {
   const drop = spring({frame: frame - ruleAt, fps, config: {damping: 13}});
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="s08 · Context Compact" tagline="Context Will Fill Up" accent={theme.mech} />
+      <SceneTag chapter="Context Compact" tagline="Context Will Fill Up" accent={theme.mech} />
       <div style={{position: 'relative', marginTop: 40}}>
         <Desk w={1460} h={430} label="桌面 = 随身携带的全部对话">
           <div style={{position: 'absolute', left: 34, top: 44, display: 'flex', flexWrap: 'wrap', gap: 14, width: 1392}}>
@@ -276,7 +276,7 @@ const SnipMiddle: React.FC<{
           <span style={{color: theme.text}}>{'尾 47'}</span>
         </div>
       </div>
-      <Footnote delay={headAt}>{'超过 50 条才触发 · 头 3 尾 47 —— 仓库实测（s08 snip_compact）'}</Footnote>
+      <Footnote delay={headAt}>{'超过 50 条才触发 · 头 3 尾 47 —— 仓库实测（snip_compact）'}</Footnote>
     </AbsoluteFill>
   );
 };
@@ -344,7 +344,7 @@ const FoldOld: React.FC<{foldAt: number[]; recentAt: number}> = ({foldAt, recent
         </div>
       </div>
       <Footnote delay={recentAt}>
-        {'只折超过 120 字的旧结果 · 折叠不重跑 —— 仓库实测（s08 micro_compact）'}
+        {'只折超过 120 字的旧结果 · 折叠不重跑 —— 仓库实测（micro_compact）'}
       </Footnote>
     </AbsoluteFill>
   );

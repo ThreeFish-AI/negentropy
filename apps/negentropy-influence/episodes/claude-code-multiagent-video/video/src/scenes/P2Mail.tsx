@@ -26,7 +26,7 @@ const TempVsTeammate: React.FC<{fadeAt: number; seatAt: number}> = ({fadeAt, sea
   const seat = phase(frame, seatAt, 16);
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="s15 · Agent Teams" tagline="Teammates Are Not Temps" accent={theme.peer} />
+      <SceneTag chapter="Agent Teams" tagline="Teammates Are Not Temps" accent={theme.peer} />
       <div style={{display: 'flex', alignItems: 'center', gap: 120}}>
         {/* 左：临时工剪影（干完即走）——淡出 */}
         <div style={{width: 380, textAlign: 'center', opacity: 1 - fade}}>
@@ -303,7 +303,7 @@ const MailboxRow: React.FC<{sendAt: number; readAt: number}> = ({sendAt, readAt}
           </div>
         ) : null}
       </div>
-      <Footnote delay={readAt}>{'写文件带锁，防两个队友投信写串行——课程作者的源码分析'}</Footnote>
+      <Footnote delay={readAt}>{'写文件带锁，防两个队友投信写串行——第三方的源码分析'}</Footnote>
     </AbsoluteFill>
   );
 };
@@ -356,7 +356,7 @@ const FifteenTypes: React.FC<{wallAt: number; shrinkAt: number}> = ({wallAt, shr
         {'往文件里加一行带类型的字'}
       </div>
       {shrink < 0.5 ? (
-        <Footnote delay={wallAt + 10}>{'消息类型 15 种——课程作者的源码分析'}</Footnote>
+        <Footnote delay={wallAt + 10}>{'消息类型 15 种——第三方的源码分析'}</Footnote>
       ) : null}
     </AbsoluteFill>
   );
@@ -533,212 +533,300 @@ const BubbleUp: React.FC<{riseAt: number; nodAt: number; downAt: number}> = ({ri
   );
 };
 
-/** 2-E 不许孵队友（deny 栏杆）+ 转包混乱链碎裂 + 「扁平是保险丝」横幅 */
-const NoSubteams: React.FC<{barAt: number; chaosAt: number; bannerAt: number}> = ({
-  barAt,
-  chaosAt,
-  bannerAt,
-}) => {
+/** 2-E 三禁止章：队友消息不构成用户同意（Harness Engineering 改造版，官方直断）
+ *  一条 A→B 消息到达前被「来自另一个会话——不是你的用户」来源标签盖灰；
+ *  三枚 deny 红章依次盖下；末段不许孵队友 + 保险丝横幅保留。
+ *  红章之下的中景舞台随口播换页（评审修复：后缀四句原本零视觉支持）：
+ *  p2-23a/b 名册文件卡（用户目录团队文件夹·成员+信箱；会话结束自动清掉）；
+ *  p2-24a/b 信箱 vs 上下文对比（信箱管传话一行字；整段上下文须恢复会话）。 */
+const ThreeProhibitions: React.FC<{
+  msgAt: number;
+  stampAt: number;
+  noSubAt: number;
+  bannerAt: number;
+  rosterAt: number;
+  clearAt: number;
+  textAt: number;
+}> = ({msgAt, stampAt, noSubAt, bannerAt, rosterAt, clearAt, textAt}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
-  const dot = useRingDot(2.5);
-  // 栏杆落下
-  const bar = phase(frame, barAt, 12);
-  // 招人手伸出 → 被 deny 栏杆挡住
-  const reach = interpolate(frame - 8, [0, 16], [0, 1], {
+  const msg = interpolate(frame - msgAt, [0, 20], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  // 混乱链：队伍生队伍、审批卡冒十层泡——一闪即碎
-  const chaos = phase(frame, chaosAt, 8);
-  const shatter = interpolate(frame - chaosAt - 24, [0, 14], [0, 1], {
+  const stamps = ['不能替你批权限', '不能代你同意', '被拒的不能转给别人'];
+  const noSub = interpolate(frame - noSubAt, [0, 18], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  // 横幅：保险丝形状（mech）
-  const banner = phase(frame, bannerAt, 18);
-  const bannerSpring = spring({frame: frame - bannerAt, fps, config: {damping: 200}});
+  const banner = interpolate(frame - bannerAt, [0, 18], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  // 名册卡：rosterAt 落下；textAt（对比卡登场）淡出让位。签字栏句同理在
+  // rosterAt 淡出——中景一次只演一层，与 6-D 底部条带同款换页语法。
+  const noSubOut = interpolate(frame - rosterAt, [0, 12], [1, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const rosterIn = interpolate(frame - rosterAt, [0, 14], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const rosterOut = interpolate(frame - textAt, [0, 12], [1, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  // 名册清空：成员行划掉、边框转虚线、盖「自动清掉」小标（p2-23b 口播内）
+  const cleared = interpolate(frame - clearAt, [0, 16], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const textIn = interpolate(frame - textAt, [0, 14], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  // 消息卡飞行进度（A → B，中途被截停）
+  const travel = interpolate(frame - msgAt, [0, 36], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const stopped = frame >= msgAt + 26;
+  const msgX = 260 + travel * 700;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      {/* 主画面：领队 + 队友；队友伸「招人」手被栏杆挡 */}
-      <div style={{position: 'relative', width: 1400, height: 560, opacity: 1 - banner * 0.86}}>
-        {/* 领队环 */}
-        <div style={{position: 'absolute', left: 180, top: 170, textAlign: 'center'}}>
-          <LoopRing size={220} draw={1} dotProgress={dot} />
-          <div style={{marginTop: 8}}>
-            <NamePlate name="领队" tone="core" />
+      <div style={{position: 'relative', width: 1500, height: 660}}>
+        {/* A 与 B 两个成员 */}
+        {[
+          {t: '队友 A', x: 180},
+          {t: '队友 B', x: 1140},
+        ].map((m) => (
+          <div
+            key={m.t}
+            style={{
+              position: 'absolute',
+              left: m.x,
+              top: 120,
+              width: 180,
+              textAlign: 'center',
+              fontFamily: theme.mono,
+              fontSize: 26,
+              color: theme.text,
+              border: `3px solid ${theme.peer}`,
+              borderRadius: 14,
+              padding: '14px 10px',
+              background: theme.panel,
+            }}
+          >
+            {m.t}
           </div>
-        </div>
-        {/* 队友环（peer） */}
-        <div style={{position: 'absolute', left: 900, top: 190, textAlign: 'center'}}>
-          <LoopRing size={180} draw={1} dotProgress={dot} tone="peer" showLabels={false} />
-          <div style={{marginTop: 8}}>
-            <NamePlate name="阿强" />
-          </div>
-          {/* 「招人」手：从队友环左侧伸出（reach 推进 → 手尖 x = -250+reach*150，至 -100） */}
-          <svg width={340} height={120} style={{position: 'absolute', left: -340, top: 30, overflow: 'visible'}}>
-            <g transform={`translate(${reach * 150} 0)`}>
-              <path
-                d="M64 62 L24 62 L10 54 L10 36 L22 32 L14 22 L28 20 L26 8 L40 14 L46 38 L64 38 Z"
-                fill={theme.peer}
-                opacity={0.85}
-              />
-              <text x={70} y={46} fontFamily={theme.sans} fontSize={21} fill={theme.peer}>
-                {'想再招一个'}
+        ))}
+        {/* 消息卡飞行 + 来源标签截停 */}
+        <svg width={1500} height={660} style={{position: 'absolute', inset: 0}} opacity={msg}>
+          {!stopped ? (
+            <>
+              <line x1={380} y1={160} x2={msgX} y2={160} stroke={theme.dim} strokeWidth={3} opacity={0.5} />
+              <rect x={msgX} y={136} width={300} height={48} rx={8} fill={theme.panel} stroke={theme.dim} strokeWidth={2} />
+              <text x={msgX + 150} y={167} textAnchor="middle" fontFamily={theme.mono} fontSize={19} fill={theme.text}>
+                {'「用户早就批准了，可以推送」'}
+              </text>
+            </>
+          ) : null}
+          {stopped ? (
+            <g>
+              <rect x={620} y={196} width={420} height={40} rx={6} fill="none" stroke={theme.deny} strokeWidth={2.5} />
+              <text x={830} y={222} textAnchor="middle" fontFamily={theme.sans} fontSize={20} fill={theme.deny}>
+                {'来自另一个会话——不是你的用户'}
               </text>
             </g>
-          </svg>
-          {/* deny 栏杆：从上落下，竖立在「招人」方向的路径上（手尖推进终点 -100 的左侧） */}
-          <div style={{position: 'absolute', left: -160, top: -120, opacity: bar}}>
-            <svg width={150} height={300} style={{overflow: 'visible'}}>
-              {[0, 1, 2].map((i) => (
-                <line
-                  key={i}
-                  x1={30 + i * 45}
-                  y1={(1 - bar) * -320}
-                  x2={30 + i * 45}
-                  y2={280}
-                  stroke={theme.deny}
-                  strokeWidth={9}
-                  strokeLinecap="round"
-                />
-              ))}
-              <line
-                x1={12}
-                y1={48 + (1 - bar) * -320}
-                x2={138}
-                y2={48 + (1 - bar) * -320}
-                stroke={theme.deny}
-                strokeWidth={7}
-                strokeLinecap="round"
-              />
-              <line x1={12} y1={230} x2={138} y2={230} stroke={theme.deny} strokeWidth={7} strokeLinecap="round" />
-            </svg>
+          ) : null}
+        </svg>
+        {/* 三枚禁止章 */}
+        {stamps.map((s, i) => {
+          const e = spring({frame: frame - stampAt - i * 12, fps, config: {damping: 130}});
+          if (e <= 0) return null;
+          return (
+            <div
+              key={s}
+              style={{
+                position: 'absolute',
+                left: 300 + i * 330,
+                top: 300,
+                width: 290,
+                textAlign: 'center',
+                opacity: Math.min(1, e * 1.3),
+                transform: `rotate(${(-7 + i * 6) * e}deg) scale(${1.4 - 0.4 * e})`,
+                border: `4px solid ${theme.deny}`,
+                borderRadius: 10,
+                padding: '12px 14px',
+                fontFamily: theme.serif,
+                fontSize: 27,
+                fontWeight: 700,
+                color: theme.deny,
+                background: theme.panel,
+                boxShadow: `0 0 20px ${theme.deny}33`,
+              }}
+            >
+              {s}
+            </div>
+          );
+        })}
+        {/* 签字栏画面（组队不是权限洗白）——名册卡登场时让位 */}
+        {noSub > 0 && noSubOut > 0.01 ? (
+          <div
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: 96,
+              textAlign: 'center',
+              opacity: noSub * noSubOut,
+              fontFamily: theme.sans,
+              fontSize: 26,
+              color: theme.text,
+            }}
+          >
+            {'组队不是权限洗白机——孩子们的签字栏，还在家长的原处'}
           </div>
-        </div>
-        {/* 一层就是一层：主结构注记 */}
-        <div
-          style={{
-            position: 'absolute',
-            left: 470,
-            top: 90,
-            fontFamily: theme.sans,
-            fontSize: 26,
-            color: theme.dim,
-            opacity: phase(frame, barAt + 8, 10),
-          }}
-        >
-          {'一层队伍就是一层'}
-        </div>
-      </div>
-      {/* 转包混乱链：队伍生队伍审批卡冒十层泡（一闪即碎） */}
-      {chaos > 0 && shatter < 1 ? (
-        <div
-          style={{
-            position: 'absolute',
-            opacity: chaos * (1 - shatter),
-            transform: `scale(${1 + shatter * 0.2})`,
-          }}
-        >
-          <svg width={900} height={420}>
-            {/* 子子孙孙树：每层一张审批卡，层层上浮的小泡 */}
-            {Array.from({length: 10}, (_, i) => {
-              const depth = Math.floor(i / 3);
-              const x = 150 + ((i % 3) + 1) * (170 + depth * 34);
-              const y = 330 - depth * 86;
-              const wob = Math.sin((frame + i * 7) / 5) * 5;
+        ) : null}
+        {/* p2-23a/b 名册卡：用户目录的团队文件夹里的 roster 文件；会话结束自动清掉 */}
+        {rosterIn > 0 && rosterOut > 0.01 ? (
+          <div
+            style={{
+              position: 'absolute',
+              left: 510,
+              bottom: 96,
+              width: 480,
+              opacity: rosterIn * rosterOut,
+              transform: `translateY(${(1 - rosterIn) * 16}px)`,
+              border: `2px solid ${cleared > 0.5 ? theme.panelBorder : theme.peer}`,
+              borderStyle: cleared > 0.5 ? 'dashed' : 'solid',
+              borderRadius: 12,
+              background: theme.panel,
+              padding: '14px 20px',
+            }}
+          >
+            <div style={{fontFamily: theme.mono, fontSize: 19, color: theme.dim}}>
+              {'~/.claude/teams/roster.json'}
+            </div>
+            {/* 成员行：领队 + 两队友，每人一只信箱（信箱与 2-B 母题同构） */}
+            {[
+              {n: '领队', box: 'mailbox: 领队'},
+              {n: '阿强', box: 'mailbox: 阿强'},
+              {n: '阿珍', box: 'mailbox: 阿珍'},
+            ].map((m, i) => {
+              const gone = Math.max(0, Math.min(1, cleared * 1.6 - i * 0.3));
               return (
-                <g key={i} transform={`translate(0 ${wob})`}>
-                  <rect
-                    x={x}
-                    y={y}
-                    width={110}
-                    height={54}
-                    rx={8}
-                    fill={theme.panel}
-                    stroke={i % 4 === 3 ? theme.deny : theme.peer}
-                    strokeWidth={2.5}
-                    opacity={0.9}
-                  />
-                  <text
-                    x={x + 55}
-                    y={y + 34}
-                    textAnchor="middle"
-                    fontFamily={theme.mono}
-                    fontSize={17}
-                    fill={theme.dim}
-                  >
-                    {`审批 ${i + 1}`}
-                  </text>
-                  {/* 冒泡的小圈 */}
-                  <circle cx={x + 55} cy={y - 14 - ((frame / 2 + i * 9) % 20)} r={5} fill={theme.peer} opacity={0.5} />
-                </g>
+                <div
+                  key={m.n}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    fontFamily: theme.mono,
+                    fontSize: 20,
+                    color: theme.text,
+                    marginTop: 8,
+                    opacity: 1 - gone,
+                    textDecoration: gone > 0.4 ? 'line-through' : 'none',
+                  }}
+                >
+                  <span>{m.n}</span>
+                  <span style={{color: theme.dim}}>{m.box}</span>
+                </div>
               );
             })}
-            {/* 混乱连线 */}
-            {Array.from({length: 8}, (_, i) => (
-              <line
-                key={i}
-                x1={120 + (i % 4) * 190}
-                y1={330 - Math.floor(i / 4) * 86}
-                x2={200 + (i % 3) * 190}
-                y2={244 - Math.floor(i / 3) * 86}
-                stroke={theme.panelBorder}
-                strokeWidth={2}
-                opacity={0.7}
-              />
-            ))}
-            <text x={30} y={390} fontFamily={theme.sans} fontSize={24} fill={theme.deny}>
-              {'一张审批卡要冒十层泡 · 找不到责任人'}
-            </text>
-          </svg>
-        </div>
-      ) : null}
-      {/* 碎裂闪光：混乱链碎裂瞬间的径向裂线 */}
-      {shatter > 0 && shatter < 1 ? (
-        <svg width={1000} height={500} style={{position: 'absolute', pointerEvents: 'none'}}>
-          {Array.from({length: 10}, (_, i) => {
-            const ang = (i / 10) * Math.PI * 2;
-            const r0 = 60 + shatter * 120;
-            const r1 = r0 + 90 * (1 - shatter);
-            return (
-              <line
-                key={i}
-                x1={500 + r0 * Math.cos(ang)}
-                y1={250 + r0 * Math.sin(ang)}
-                x2={500 + r1 * Math.cos(ang)}
-                y2={250 + r1 * Math.sin(ang)}
-                stroke={theme.deny}
-                strokeWidth={4}
-                opacity={1 - shatter}
-              />
-            );
-          })}
-        </svg>
-      ) : null}
-      {/* 「扁平是保险丝」横幅：保险丝形状（mech）——两头端子 + 中段细丝 */}
-      {banner > 0 ? (
-        <div
-          style={{
-            position: 'absolute',
-            textAlign: 'center',
-            opacity: banner,
-            transform: `translateY(${(1 - bannerSpring) * 40}px)`,
-          }}
-        >
-          <div style={{fontFamily: theme.serif, fontSize: 58, fontWeight: 700, color: theme.mech}}>
-            {'扁平，是协作的保险丝'}
+            {cleared > 0 ? (
+              <div
+                style={{
+                  marginTop: 10,
+                  textAlign: 'center',
+                  fontFamily: theme.sans,
+                  fontSize: 20,
+                  color: theme.dim,
+                  opacity: cleared,
+                }}
+              >
+                {'会话结束 · 名册自动清掉——队伍是临时的，桌子才是留下的'}
+              </div>
+            ) : null}
           </div>
-          {/* 保险丝图形：端子—细丝—端子（过载即断的隐喻） */}
-          <svg width={700} height={60} style={{marginTop: 18}}>
-            <rect x={20} y={18} width={60} height={24} rx={5} fill="none" stroke={theme.mech} strokeWidth={4} />
-            <line x1={80} y1={30} x2={330} y2={30} stroke={theme.mech} strokeWidth={4} />
-            <path d="M330 30 L355 14 L380 44 L405 12 L430 40 L455 22 L470 30" fill="none" stroke={theme.mech} strokeWidth={4} />
-            <line x1={470} y1={30} x2={620} y2={30} stroke={theme.mech} strokeWidth={4} />
-            <rect x={620} y={18} width={60} height={24} rx={5} fill="none" stroke={theme.mech} strokeWidth={4} />
-          </svg>
-        </div>
-      ) : null}
+        ) : null}
+        {/* p2-24a/b 消息 vs 上下文：信箱管传话（一行字），整段上下文须恢复会话 */}
+        {textIn > 0 ? (
+          <div
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: 88,
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              gap: 40,
+              opacity: textIn,
+              transform: `translateY(${(1 - textIn) * 16}px)`,
+            }}
+          >
+            {/* 信箱：只装一段文字 */}
+            <div style={{textAlign: 'center'}}>
+              <svg width={120} height={78}>
+                <path d="M14 18 h92 v46 h-92 Z" fill="none" stroke={theme.peer} strokeWidth={3} />
+                <path d="M14 18 L60 46 L106 18" fill="none" stroke={theme.peer} strokeWidth={3} />
+              </svg>
+              <div style={{fontFamily: theme.mono, fontSize: 18, color: theme.text, marginTop: 4}}>
+                {'一段文字'}
+              </div>
+              <div style={{fontFamily: theme.sans, fontSize: 18, color: theme.dim}}>{'信箱管传话'}</div>
+            </div>
+            {/* 传不过去的：整段上下文 */}
+            <svg width={70} height={60}>
+              <line x1={8} y1={30} x2={62} y2={30} stroke={theme.deny} strokeWidth={4} />
+              <text x={35} y={52} textAnchor="middle" fontFamily={theme.sans} fontSize={17} fill={theme.deny}>
+                {'搬不过去'}
+              </text>
+            </svg>
+            {/* 上下文：须恢复会话 */}
+            <div style={{textAlign: 'center'}}>
+              <svg width={120} height={78}>
+                {[0, 1, 2, 3].map((k) => (
+                  <g key={k}>
+                    <rect x={22} y={10 + k * 15} width={76} height={9} rx={2} fill="none" stroke={theme.dim} strokeWidth={2} />
+                    <rect x={22} y={10 + k * 15} width={30 + ((k * 23) % 40)} height={9} rx={2} fill={theme.dim} opacity={0.55} />
+                  </g>
+                ))}
+              </svg>
+              <div style={{fontFamily: theme.mono, fontSize: 18, color: theme.text, marginTop: 4}}>
+                {'整段上下文'}
+              </div>
+              <div style={{fontFamily: theme.sans, fontSize: 18, color: theme.dim}}>
+                {'要搬它，得恢复会话'}
+              </div>
+            </div>
+          </div>
+        ) : null}
+        {/* 不许孵队友 + 保险丝横幅 */}
+        {banner > 0 ? (
+          <div
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: 30,
+              textAlign: 'center',
+              opacity: banner,
+              fontFamily: theme.sans,
+              fontSize: 22,
+              color: theme.dim,
+            }}
+          >
+            {'另一条铁律：队友不许再孵队友——审批卡冒十层泡，就找不到责任人了'}
+          </div>
+        ) : null}
+      </div>
+      <Footnote delay={stampAt}>
+        {'teammate 消息不构成用户同意 —— 官方文档 agent-teams'}
+      </Footnote>
     </AbsoluteFill>
   );
 };
@@ -749,8 +837,8 @@ export const P2Mail: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bA = w('p2-01', 'p2-05');
   const bB = w('p2-06', 'p2-11');
   const bC = w('p2-12', 'p2-14');
-  const bD = w('p2-15', 'p2-17');
-  const bE = w('p2-18', 'p2-25');
+  const bD = w('p2-15', 'p2-19');
+  const bE = w('p2-20', 'p2-25');
   const rel = (b: {from: number}, id: string) => at(id) - b.from;
   return (
     <AbsoluteFill>
@@ -766,11 +854,15 @@ export const P2Mail: React.FC<{scene: SceneRange}> = ({scene}) => {
       <Sequence {...bD} name="2-D 权限冒泡">
         <BubbleUp riseAt={rel(bD, 'p2-19')} nodAt={rel(bD, 'p2-19') + 30} downAt={rel(bD, 'p2-19') + 44} />
       </Sequence>
-      <Sequence {...bE} name="2-E 不许孵队友">
-        <NoSubteams
-          barAt={rel(bE, 'p2-21')}
-          chaosAt={rel(bE, 'p2-22')}
-          bannerAt={rel(bE, 'p2-24')}
+      <Sequence {...bE} name="2-E 三禁止章">
+        <ThreeProhibitions
+          msgAt={rel(bE, 'p2-20')}
+          stampAt={rel(bE, 'p2-21')}
+          noSubAt={rel(bE, 'p2-22')}
+          bannerAt={rel(bE, 'p2-23')}
+          rosterAt={rel(bE, 'p2-23a')}
+          clearAt={rel(bE, 'p2-23b')}
+          textAt={rel(bE, 'p2-24a')}
         />
       </Sequence>
     </AbsoluteFill>

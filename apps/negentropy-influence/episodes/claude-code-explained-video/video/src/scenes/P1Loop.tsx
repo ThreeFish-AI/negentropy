@@ -1,4 +1,4 @@
-/** P1 一个循环，就是全部（分镜 1-A…1-F）—— 站点「Agent While-Loop」可视化的概念重建
+/** P1 一个循环，就是全部（分镜 1-A…1-F）—— 开源教学素材「Agent While-Loop」可视化的概念重建
  *  ★ 本幕建立全片视觉锚：LoopRing 的色与线宽从此不再改变。 */
 import React from 'react';
 import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig} from 'remotion';
@@ -32,7 +32,7 @@ const RingBirth: React.FC<{yesAt: number; noAt: number}> = ({yesAt, noAt}) => {
   const active = frame >= yesAt && frame < noAt ? 2 : undefined;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="s01 · Agent Loop" tagline="One Loop Is All You Need" />
+      <SceneTag chapter="Agent Loop" tagline="One Loop Is All You Need" />
       <LoopRing size={520} draw={draw} dotProgress={draw > 0.98 ? dot : undefined} activeNode={active} exitPull={pull} />
       <Footnote delay={yesAt}>
         {'有 tool_use → 继续　·　没有 → 退出'}
@@ -312,107 +312,160 @@ const UnreliableFlag: React.FC<{crossAt: number; quoteAt: number}> = ({crossAt, 
         ) : null}
       </div>
       <Footnote delay={crossAt}>
-        {'stop_reason is unreliable —— 课程作者的源码分析 · 站点教学版仍按停止标记判定，仓库版已改为查内容块'}
+        {'stop_reason is unreliable —— 第三方的源码分析 · 开源教学版仍按停止标记判定，官方实现已改为查内容块'}
       </Footnote>
     </AbsoluteFill>
   );
 };
 
-/** 1-E 十个抽屉：第一个先亮，其余九个依次亮，末尾浮出章号 */
-const TenDrawers: React.FC<{restAt: number; chapterAt: number; recedeAt: number}> = ({
-  restAt,
-  chapterAt,
+/** 1-E 三相环 + 人的打断针 + State 十格抽屉墙（Harness Engineering 改造版）
+ *  官方三相：收集上下文 / 采取行动 / 验证结果——交融旋转，不是硬阶段；
+ *  手图标随时落向环上节点（人可打断）；右侧十格抽屉墙以角标清单形式一闪。 */
+const ThreePhaseRing: React.FC<{phaseAt: number; handAt: number; drawersAt: number; recedeAt: number}> = ({
+  phaseAt,
+  handAt,
+  drawersAt,
   recedeAt,
 }) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
-  // 钩子必须无条件调用：环在 recede 之后才渲染，故进度值先取出来再按需使用
   const dot = useRingDot(2.5);
-  // 章号只是「每个抽屉都指向后面某一章」的视觉证据，不进口播（活数据纪律）
-  const drawers = [
-    {label: '消息列表', ch: 's01'},
-    {label: '工具与权限上下文', ch: 's02'},
-    {label: '压缩状态追踪', ch: 's08'},
-    {label: '输出补救次数', ch: 's11'},
-    {label: '本轮是否压缩过', ch: 's08'},
-    {label: '输出上限覆盖', ch: 's11'},
-    {label: '后台摘要', ch: 's08'},
-    {label: '钩子拦过停机', ch: 's04'},
-    {label: '轮数计数', ch: 's01'},
-    {label: '上次继续原因', ch: 's11'},
+  const phases = [
+    {label: '收集上下文', zh: '读文件 · 搜代码', ang: -90},
+    {label: '采取行动', zh: '改文件 · 跑命令', ang: 30},
+    {label: '验证结果', zh: '看输出 · 再补一刀', ang: 150},
   ];
   const recede = interpolate(frame - recedeAt, [0, 24], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  const chOn = interpolate(frame - chapterAt, [0, 16], [0, 1], {
+  const hand = spring({frame: frame - handAt, fps, config: {damping: 170}});
+  const drawerOn = interpolate(frame - drawersAt, [0, 30], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
+  const CX = 560;
+  const CY = 500;
+  const R = 250;
   return (
-    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
+    <AbsoluteFill>
       <div
         style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(5, 296px)',
-          gap: 18,
-          transform: `scale(${1 - recede * 0.14}) translateY(${recede * -26}px)`,
-          opacity: 1 - recede * 0.55,
+          position: 'absolute',
+          left: CX - 420,
+          top: CY - 340,
+          transform: `scale(${1 - recede * 0.12})`,
+          opacity: 1 - recede * 0.5,
         }}
       >
-        {drawers.map((d, i) => {
-          const at = i === 0 ? 0 : restAt + (i - 1) * 4;
-          const on = frame >= at;
-          const e = spring({frame: frame - at, fps, config: {damping: 200}});
-          const first = i === 0;
+        <LoopRing size={340} draw={1} dotProgress={dot} showExit={false} />
+      </div>
+      <svg width={1920} height={1080} style={{position: 'absolute'}}>
+        {/* 三个相位标签：沿环依次点亮并保持同时可见（交融感） */}
+        {phases.map((ph, i) => {
+          const on = interpolate(frame - phaseAt - i * 10, [0, 12], [0, 1], {
+            extrapolateLeft: 'clamp',
+            extrapolateRight: 'clamp',
+          });
+          const rad = (ph.ang * Math.PI) / 180;
+          const lx = CX + Math.cos(rad) * (R + 96);
+          const ly = CY + Math.sin(rad) * (R + 96);
+          const nodeX = CX + Math.cos(rad) * R;
+          const nodeY = CY + Math.sin(rad) * R;
           return (
-            <div key={d.label} style={{opacity: on ? 1 : 0.18, transform: `translateX(${(1 - e) * 14}px)`}}>
-              <Panel
-                accent={on ? (first ? theme.core : theme.mech) : theme.panelBorder}
-                style={{padding: '14px 16px', height: 116, position: 'relative'}}
-              >
-                <div style={{fontFamily: theme.mono, fontSize: 20, color: theme.dim}}>
-                  {String(i + 1).padStart(2, '0')}
-                </div>
-                <div
-                  style={{
-                    fontFamily: theme.sans,
-                    fontSize: 24,
-                    color: theme.text,
-                    marginTop: 6,
-                    lineHeight: 1.3,
-                    /* 章号固定在右下角，标签须留出让位宽度，否则最长的
-                       「工具与权限上下文」会压到章号上 */
-                    paddingRight: 34,
-                  }}
-                >
-                  {d.label}
-                </div>
-                <div
-                  style={{
-                    position: 'absolute',
-                    right: 12,
-                    bottom: 8,
-                    fontFamily: theme.mono,
-                    fontSize: 19,
-                    color: theme.core,
-                    opacity: chOn,
-                  }}
-                >
-                  {d.ch}
-                </div>
-              </Panel>
-            </div>
+            <g key={ph.label} opacity={on}>
+              <line x1={nodeX} y1={nodeY} x2={lx} y2={ly} stroke={theme.mech} strokeWidth={3} opacity={0.55} />
+              <circle cx={nodeX} cy={nodeY} r={11} fill={theme.mech} opacity={0.9} />
+              <text x={lx} y={ly - 10} textAnchor="middle" fontFamily={theme.sans} fontSize={30} fill={theme.text}>
+                {ph.label}
+              </text>
+              <text x={lx} y={ly + 26} textAnchor="middle" fontFamily={theme.sans} fontSize={21} fill={theme.dim}>
+                {ph.zh}
+              </text>
+            </g>
           );
         })}
-      </div>
-      {/* 抽屉后移后，环形循环浮回前景——尺寸与颜色完全不变 */}
-      {recede > 0.2 ? (
-        <div style={{position: 'absolute', opacity: (recede - 0.2) / 0.8}}>
-          <LoopRing size={340} draw={1} dotProgress={dot} showExit={false} />
+        {/* 「交融」标注：三段弧互相咬合（非硬阶段） */}
+        {frame > phaseAt + 34 ? (
+          <text x={CX} y={CY - R - 148} textAnchor="middle" fontFamily={theme.sans} fontSize={24} fill={theme.dim}>
+            {'三相互相交融——不是硬阶段'}
+          </text>
+        ) : null}
+        {/* 人的手：落向「行动」节点，环上光点被拨偏一档 */}
+        {hand > 0 ? (
+          <g opacity={hand} transform={`translate(0 ${(1 - hand) * -60})`}>
+            <path
+              d={`M${CX + R + 210} ${CY - 250} l-52 88`}
+              stroke={theme.core}
+              strokeWidth={9}
+              strokeLinecap="round"
+            />
+            <circle cx={CX + R + 216} cy={CY - 262} r={26} fill="none" stroke={theme.core} strokeWidth={7} />
+            <text
+              x={CX + R + 210}
+              y={CY - 300}
+              textAnchor="middle"
+              fontFamily={theme.sans}
+              fontSize={25}
+              fill={theme.core}
+            >
+              {'你，随时插入'}
+            </text>
+          </g>
+        ) : null}
+      </svg>
+      {/* 右侧十格抽屉墙（State 字段，角标清单形式） */}
+      <div
+        style={{
+          position: 'absolute',
+          right: 170,
+          top: 320,
+          width: 460,
+          opacity: drawerOn * (1 - recede * 0.35),
+          transform: `translateX(${(1 - drawerOn) * 30}px)`,
+        }}
+      >
+        <div style={{fontFamily: theme.sans, fontSize: 22, color: theme.dim, marginBottom: 12}}>
+          {'真实产品随身带的状态（十样）'}
         </div>
-      ) : null}
-      <Footnote delay={chapterAt}>{'State 10 字段 —— 课程作者的源码分析'}</Footnote>
+        <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10}}>
+          {[
+            '消息列表',
+            '工具与权限上下文',
+            '压缩状态追踪',
+            '输出补救次数',
+            '本轮是否压缩过',
+            '输出上限覆盖',
+            '后台摘要',
+            '钩子拦过停机',
+            '轮数计数',
+            '上次继续原因',
+          ].map((label, i) => {
+            const e = interpolate(frame - drawersAt - i * 2, [0, 8], [0, 1], {
+              extrapolateLeft: 'clamp',
+              extrapolateRight: 'clamp',
+            });
+            return (
+              <div
+                key={label}
+                style={{
+                  border: `1px solid ${theme.panelBorder}`,
+                  borderRadius: 8,
+                  padding: '8px 12px',
+                  fontFamily: theme.sans,
+                  fontSize: 19,
+                  color: theme.dim,
+                  background: theme.panel,
+                  opacity: e,
+                }}
+              >
+                {label}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <Footnote delay={drawersAt}>{'三相与打断 —— 官方文档 how-claude-code-works · State 字段为第三方的源码分析'}</Footnote>
     </AbsoluteFill>
   );
 };
@@ -499,8 +552,8 @@ export const P1Loop: React.FC<{scene: SceneRange}> = ({scene}) => {
       <Sequence {...bD} name="1-D 停止标记不可靠">
         <UnreliableFlag crossAt={rD('p1-22')} quoteAt={rD('p1-24')} />
       </Sequence>
-      <Sequence {...bE} name="1-E 十个抽屉">
-        <TenDrawers restAt={rE('p1-26')} chapterAt={rE('p1-28')} recedeAt={rE('p1-29')} />
+      <Sequence {...bE} name="1-E 三相环与打断">
+        <ThreePhaseRing phaseAt={rE('p1-25')} handAt={rE('p1-27')} drawersAt={rE('p1-28')} recedeAt={rE('p1-29')} />
       </Sequence>
       <Sequence {...bF} name="1-F 退出路径">
         <ExitPaths branchAt={rF('p1-30')} dimAt={rF('p1-32')} />

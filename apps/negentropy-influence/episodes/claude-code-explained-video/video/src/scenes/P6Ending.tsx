@@ -171,13 +171,10 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; seriesAt: number}> 
   const {fps} = useVideoConfig();
   const enter = spring({frame: frame - 4, fps, config: {damping: 200}});
   const rows = [
-    ['课程', 'Learn Claude Code · 工具与执行四章'],
-    ['站点', 'learn.shareai.run/zh/s01..s04'],
-    ['仓库', 'github.com/shareAI-lab/learn-claude-code'],
-    ['仓库钉版', 'main @ f9e8b28（2026-08-18）'],
-    ['站点同源修订', '67a9126c（2026-07-28，20 章版）'],
-    ['访问日期', '2026-08-21'],
-    ['许可', 'MIT'],
+    ['官方文档', 'code.claude.com/docs · 取数2026年8月'],
+    ['工程博客', 'anthropic.com/engineering'],
+    ['源码分析', '第三方逆向分析 · 片中逐处标注'],
+    ['数字口径', '开源仓库钉版实测 · 行数均为非空非注释口径'],
   ];
   const seriesT = interpolate(frame - seriesAt, [0, 20], [0, 1], {
     extrapolateLeft: 'clamp',
@@ -230,7 +227,7 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; seriesAt: number}> 
               }),
             }}
           >
-            {'画面中的行数均为本片在钉定提交上的实测（非空非注释口径），非课程标注'}
+            {'画面中的行数均为本片在固定提交上的实测（非空非注释口径）'}
           </div>
         </Panel>
       </div>
@@ -244,7 +241,7 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; seriesAt: number}> 
           }}
         >
           <div style={{fontFamily: theme.serif, fontSize: 34, color: theme.dim, letterSpacing: 3}}>
-            {'Claude Code 通俗全解'}
+            {'Claude Code Harness Engineering'}
           </div>
           <div
             style={{
@@ -255,10 +252,26 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; seriesAt: number}> 
               marginTop: 18,
             }}
           >
-            {'拆开 Claude Code'}
+            {'执行层：一个循环，就是全部'}
           </div>
-          <div style={{fontFamily: theme.sans, fontSize: 28, color: theme.text, marginTop: 14}}>
-            {'让 AI 动手的四层机制'}
+          {/* 下期预告卡：标题只在画面（口播为话题描述——反串线纪律）。
+              标题为 series.json 派生数据的硬编码镜像，由 check_series 规则 8
+              与清单对账（改标题先改 series.json，再同步此串——规则会拦漂移）。 */}
+          <div
+            style={{
+              marginTop: 30,
+              padding: '14px 30px',
+              border: `1.5px solid ${theme.panelBorder}`,
+              borderRadius: 12,
+              background: theme.panel,
+            }}
+          >
+            <div style={{fontFamily: theme.sans, fontSize: 21, color: theme.dim, letterSpacing: 2}}>
+              {'下期 · 规划层'}
+            </div>
+            <div style={{fontFamily: theme.serif, fontSize: 33, color: theme.text, marginTop: 6}}>
+              {'模型的视野是安排出来的'}
+            </div>
           </div>
         </div>
       ) : null}

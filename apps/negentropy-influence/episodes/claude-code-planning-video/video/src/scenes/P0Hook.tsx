@@ -5,11 +5,25 @@ import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoCo
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Chip, Desk, Footnote, LoopRing, SceneTag, Terminal} from '../components/motifs';
+import {Chip, Desk, Footnote, LoopRing, SceneTag, Stamp, Terminal} from '../components/motifs';
+
+/** p0-07 五样装置（0-C 列队用）：顺序与口播逐字对齐。 */
+const DEVICES = [
+  {t: '清单', kind: 'list'},
+  {t: '副桌', kind: 'desk'},
+  {t: '目录', kind: 'card'},
+  {t: '垫纸', kind: 'pad'},
+  {t: '补救梯', kind: 'ladder'},
+] as const;
 
 /** 0-A 系列同款终端：最初的「任务：改命名」首行逐渐被工具输出顶出可视区。
- *  行区整体上移（scrollShift），滚出瞬间残影停在顶端变 dim——「被挤走」被看见。 */
-const TaskScrollsOut: React.FC<{scrollAt: number; ghostAt: number}> = ({scrollAt, ghostAt}) => {
+ *  行区整体上移（scrollShift），滚出瞬间残影停在顶端变 dim——「被挤走」被看见。
+ *  p0-03「其中一样，刚刚被官方收回去」：右下角「收回」钢印砸下（退位悬念第一分钟埋下）。 */
+const TaskScrollsOut: React.FC<{scrollAt: number; ghostAt: number; recallAt: number}> = ({
+  scrollAt,
+  ghostAt,
+  recallAt,
+}) => {
   const frame = useCurrentFrame();
   const shift = interpolate(frame - scrollAt, [0, 40], [0, 56], {
     extrapolateLeft: 'clamp',
@@ -21,7 +35,7 @@ const TaskScrollsOut: React.FC<{scrollAt: number; ghostAt: number}> = ({scrollAt
   });
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="s05 · TodoWrite" tagline="An Agent Without a Plan Drifts Off Course" accent={theme.view} />
+      <SceneTag chapter="TodoWrite" tagline="An Agent Without a Plan Drifts Off Course" accent={theme.view} />
       <div style={{transform: `translateY(${drift}px)`}}>
         <Terminal
           width={1240}
@@ -39,6 +53,22 @@ const TaskScrollsOut: React.FC<{scrollAt: number; ghostAt: number}> = ({scrollAt
           ]}
         />
       </div>
+      {/* p0-03 收回钢印：deny 色虚影砸下，停半拍后淡出（分镜 0-A 承诺的退位悬念） */}
+      {frame >= recallAt ? (
+        <div
+          style={{
+            position: 'absolute',
+            right: 300,
+            bottom: 250,
+            opacity: interpolate(frame - recallAt, [0, 8, 26, 40], [0, 1, 1, 0], {
+              extrapolateLeft: 'clamp',
+              extrapolateRight: 'clamp',
+            }),
+          }}
+        >
+          <Stamp text="收回" color={theme.deny} at={recallAt} size={150} rotate={-14} />
+        </div>
+      ) : null}
       <Footnote delay={ghostAt}>{'最初的目标句滚出可视区 —— 注意力没有「锚」'}</Footnote>
     </AbsoluteFill>
   );
@@ -141,11 +171,13 @@ const DeskFillsUp: React.FC<{fillPerFrame: number; shoveAt: number; dropAt: numb
   );
 };
 
-/** 0-C 桌面定格，主线问题两行 serif 大字；环（core）第一次在桌后浮现（35% 透明）。 */
-const QuestionAndRingBehind: React.FC<{qAt: number; answerAt: number; ringAt: number}> = ({
+/** 0-C 桌面定格，主线问题两行 serif 大字；环（core）第一次在桌后浮现（35% 透明）。
+ *  p0-07 答句后：五样装置小图标自左向右列队点亮（清单/副桌/目录/垫纸/梯子）。 */
+const QuestionAndRingBehind: React.FC<{qAt: number; answerAt: number; ringAt: number; devicesAt: number}> = ({
   qAt,
   answerAt,
   ringAt,
+  devicesAt,
 }) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
@@ -219,6 +251,69 @@ const QuestionAndRingBehind: React.FC<{qAt: number; answerAt: number; ringAt: nu
           >
             {'答案：不是。有一整套东西，在替它安排视野。'}
           </div>
+          {/* p0-07 五样装置列队：清单/副桌/目录/垫纸/梯子依次点亮（分镜 0-C 承诺） */}
+          <div style={{display: 'flex', gap: 26, marginTop: 40}}>
+            {DEVICES.map((d, i) => {
+              const e = interpolate(frame - devicesAt - i * 6, [0, 10], [0, 1], {
+                extrapolateLeft: 'clamp',
+                extrapolateRight: 'clamp',
+              });
+              return (
+                <div key={d.t} style={{textAlign: 'center', opacity: e, transform: `translateY(${(1 - e) * 12}px)`}}>
+                  <svg width={64} height={54} style={{display: 'block', margin: '0 auto'}}>
+                    <g stroke={theme.view} strokeWidth={3.5} fill="none" strokeLinecap="round">
+                      {d.kind === 'list'
+                        ? // 清单：三行勾选
+                          [0, 1, 2].map((k) => (
+                            <g key={k}>
+                              <line x1={8} y1={12 + k * 15} x2={20} y2={12 + k * 15} />
+                              <line x1={26} y1={12 + k * 15} x2={56} y2={12 + k * 15} stroke={theme.dim} />
+                            </g>
+                          ))
+                        : d.kind === 'desk'
+                          ? // 副桌：小桌 + 旁挂一张
+                            (() => (
+                              <>
+                                <rect x={6} y={26} width={34} height={4} />
+                                <line x1={10} y1={30} x2={10} y2={48} />
+                                <line x1={36} y1={30} x2={36} y2={48} />
+                                <rect x={40} y={34} width={18} height={3} stroke={theme.dim} />
+                              </>
+                            ))()
+                          : d.kind === 'card'
+                            ? // 目录：一叠薄卡
+                              (() => (
+                                <>
+                                  <rect x={10} y={8} width={44} height={10} />
+                                  <rect x={14} y={24} width={36} height={10} stroke={theme.dim} />
+                                  <rect x={18} y={40} width={28} height={10} stroke={theme.dim} />
+                                </>
+                              ))()
+                            : d.kind === 'pad'
+                              ? // 垫纸：一张纸 + 拼装角
+                                (() => (
+                                  <>
+                                    <rect x={12} y={6} width={40} height={42} />
+                                    <rect x={38} y={34} width={18} height={16} stroke={theme.dim} />
+                                  </>
+                                ))()
+                              : // 梯子：三级
+                                (() => (
+                                  <>
+                                    <line x1={14} y1={4} x2={14} y2={50} />
+                                    <line x1={50} y1={4} x2={50} y2={50} />
+                                    <line x1={14} y1={16} x2={50} y2={16} />
+                                    <line x1={14} y1={30} x2={50} y2={30} />
+                                    <line x1={14} y1={44} x2={50} y2={44} />
+                                  </>
+                                ))()}
+                    </g>
+                  </svg>
+                  <div style={{fontFamily: theme.sans, fontSize: 21, color: theme.text, marginTop: 8}}>{d.t}</div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </Desk>
     </AbsoluteFill>
@@ -230,25 +325,30 @@ export const P0Hook: React.FC<{scene: SceneRange}> = ({scene}) => {
   // at() = 时点锚（只取某句的起始帧，不是分镜 beat 窗口）。刻意不叫 w()——
   // check_script --check-scenes 只把 w() 视为分镜窗口，混用会让时点锚刷「分镜陈旧」假 WARN。
   const at = (id: string) => w(id).from;
-  const bA = w('p0-01', 'p0-04');
+  const bA = w('p0-01', 'p0-03');
   const relA = (id: string) => at(id) - bA.from;
-  const bB = w('p0-05', 'p0-08');
+  const bB = w('p0-04', 'p0-05');
   const relB = (id: string) => at(id) - bB.from;
-  const bC = w('p0-09', 'p0-12');
+  const bC = w('p0-06', 'p0-08');
   const relC = (id: string) => at(id) - bC.from;
   return (
     <AbsoluteFill>
       <Sequence {...bA} name="0-A 任务单滚出视野">
-        {/* p0-03 起上滚（「修着修着，它忘了」），残影在滚出瞬间定格 */}
-        <TaskScrollsOut scrollAt={relA('p0-03')} ghostAt={relA('p0-03') + 40} />
+        {/* p0-01 钩子即上滚；p0-03「被官方收回去」：收回钢印 */}
+        <TaskScrollsOut scrollAt={relA('p0-01') + 20} ghostAt={relA('p0-02')} recallAt={relA('p0-03')} />
       </Sequence>
       <Sequence {...bB} name="0-B 桌面色块流">
-        {/* p0-06「从头到尾重读」起色块开始堆；p0-08 任务单被挤出桌沿 */}
-        <DeskFillsUp fillPerFrame={0.22} shoveAt={relB('p0-07')} dropAt={relB('p0-08')} />
+        {/* p0-04「平铺在桌上」起色块堆高；p0-05 主线问句 */}
+        <DeskFillsUp fillPerFrame={0.22} shoveAt={relB('p0-04')} dropAt={relB('p0-05')} />
       </Sequence>
       <Sequence {...bC} name="0-C 主线问题与桌后之环">
-        {/* p0-09 抛问题（两行 serif）；p0-10 答案句 + 环在桌后描线（35% 透明） */}
-        <QuestionAndRingBehind qAt={relC('p0-09')} answerAt={relC('p0-10')} ringAt={relC('p0-10')} />
+        {/* p0-06 抛问题+答案句 + 环在桌后描线（35% 透明）；p0-07 五样装置列队 */}
+        <QuestionAndRingBehind
+          qAt={relC('p0-06')}
+          answerAt={relC('p0-06') + 20}
+          ringAt={relC('p0-06')}
+          devicesAt={relC('p0-07')}
+        />
       </Sequence>
     </AbsoluteFill>
   );

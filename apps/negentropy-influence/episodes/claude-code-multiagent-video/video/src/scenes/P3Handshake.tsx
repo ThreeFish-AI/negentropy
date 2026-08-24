@@ -259,7 +259,7 @@ const KillVsHandshake: React.FC<{crackAt: number; stepsAt: number}> = ({crackAt,
   const cur = steps ? Math.min(3, Math.floor((frame - stepsAt) / 18)) : -1;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="s16 · Team Protocols" tagline="Handshake, Not Kill" accent={theme.mech} />
+      <SceneTag chapter="Team Protocols" tagline="Handshake, Not Kill" accent={theme.mech} />
       {!steps ? (
         <div style={{display: 'flex', alignItems: 'center', gap: 110}}>
           {/* 掐线程的手：从上方掐住虚线线程 */}
@@ -706,7 +706,7 @@ const ThreeWay: React.FC<{askAt: number; replyAt: number; castAt: number; settle
         ) : null}
       </div>
       <Footnote delay={castAt}>
-        {'三向关机 · 拒绝可附理由——课程作者的源码分析；教学版未做执行门控（诚实标注）'}
+        {'三向关机 · 拒绝可附理由——第三方的源码分析；教学版未做执行门控（诚实标注）'}
       </Footnote>
     </AbsoluteFill>
   );
@@ -718,7 +718,7 @@ export const P3Handshake: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bA = w('p3-01', 'p3-05');
   const bB = w('p3-06', 'p3-09');
   const bC = w('p3-10', 'p3-11');
-  const bD = w('p3-12', 'p3-17');
+  const bD = w('p3-12', 'p3-16');
   const rel = (b: {from: number}, id: string) => at(id) - b.from;
   return (
     <AbsoluteFill>

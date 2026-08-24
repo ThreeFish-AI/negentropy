@@ -1,6 +1,6 @@
 /** P0 十分钟干等（分镜 0-A…0-C）
  *  痛点：进度条慢慢爬，计费表狂转——钱在飞，活没动。洗衣机剪影离场引出
- *  「按下→走开」；三格预告三种开始（位置编码，不给三色），收在「一切停摆的房间」。 */
+ *  「按下→走开」；0-C 收在时间盲症三无小图（无钟/无闹钟/无回头）+ 两步预告。 */
 import React from 'react';
 import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig} from 'remotion';
 import {theme} from '../design/theme';
@@ -80,7 +80,7 @@ const StallBar: React.FC<{tickAt: number; costAt: number; zeroAt: number}> = ({t
   });
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="s13 · Background Tasks" tagline="Slow Operations Go to the Background" />
+      <SceneTag chapter="Background Tasks" tagline="Slow Operations Go to the Background" />
       <div style={{display: 'flex', alignItems: 'center', gap: 70}}>
         <Terminal
           width={820}
@@ -132,7 +132,7 @@ const StallBar: React.FC<{tickAt: number; costAt: number; zeroAt: number}> = ({t
 };
 
 /** 0-B 洗衣机剪影：人形站在滚筒前逐步转身离开；滚筒上出现小计时环自己转 */
-const LaundryLeave: React.FC<{turnAt: number; ringAt: number}> = ({turnAt, ringAt}) => {
+const LaundryLeave: React.FC<{turnAt: number; ringAt: number; quoteAt?: number}> = ({turnAt, ringAt, quoteAt}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const turn = interpolate(frame - turnAt, [0, 26], [0, 1], {
@@ -205,6 +205,42 @@ const LaundryLeave: React.FC<{turnAt: number; ringAt: number}> = ({turnAt, ringA
         ) : null}
       </svg>
       <Footnote delay={turnAt}>{'活儿交给机器，人不陪着等'}</Footnote>
+          {/* 官方引文条：时间盲症（Harness Engineering 改造） */}
+      {quoteAt !== undefined && frame >= quoteAt ? (
+        <div
+          style={{
+            position: 'absolute',
+            left: '50%',
+            bottom: 190,
+            transform: `translateX(-50%) translateY(${interpolate(frame - quoteAt, [0, 16], [14, 0], {
+              extrapolateLeft: 'clamp',
+              extrapolateRight: 'clamp',
+            })}px)`,
+            opacity: interpolate(frame - quoteAt, [0, 16], [0, 1], {
+              extrapolateLeft: 'clamp',
+              extrapolateRight: 'clamp',
+            }),
+          }}
+        >
+          <div
+            style={{
+              padding: '14px 28px',
+              border: `1.5px solid ${theme.panelBorder}`,
+              borderRadius: 12,
+              background: theme.panel,
+              maxWidth: 1050,
+              textAlign: 'center',
+            }}
+          >
+            <div style={{fontFamily: theme.serif, fontSize: 25, color: theme.text}}>
+              {'“它感觉不到时间——不看着，会高高兴兴把测试跑上几个小时。”'}
+            </div>
+            <div style={{fontFamily: theme.mono, fontSize: 16, color: theme.dim, marginTop: 6}}>
+              {'— 官方工程博客 claude-code-auto-mode'}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </AbsoluteFill>
   );
 };
@@ -279,108 +315,137 @@ const MiniStart: React.FC<{mode: 'onRing' | 'offRing' | 'noOne'; active: boolean
   );
 };
 
-/** 0-C 三种开始三格预告（later 描边统一）→ 荒诞升级：一切停摆的房间 */
-const ThreeStartsRoom: React.FC<{twoAt: number; roomAt: number}> = ({twoAt, roomAt}) => {
+/** 0-C 时间盲症三无小图（p0-09/10）→ 两步预告（p0-11/12，Harness Engineering 改造版）。
+ *  三无：没有钟、没有闹钟、没有「回头再看」的本能（官方口径的时间盲症）；
+ *  两步：第一步把「等」摘掉（有人按，不等了）；第二步连按的人都不要（没人按，时间按）。 */
+const BlindnessAndPlan: React.FC<{blindAt: number; step1At: number; step2At: number}> = ({
+  blindAt,
+  step1At,
+  step2At,
+}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
-  const cards = [
-    {mode: 'onRing' as const, t: '有人按，并等着'},
-    {mode: 'offRing' as const, t: '有人按，不等了'},
-    {mode: 'noOne' as const, t: '没人按，时间按'},
+  // 三无小图：钟（虚影划掉）/ 闹钟（虚影划掉）/ 回头箭头（虚影划掉）
+  const absents = [
+    {t: '没有钟', kind: 'clock' as const},
+    {t: '没有闹钟', kind: 'alarm' as const},
+    {t: '没有「回头再看」', kind: 'back' as const},
   ];
-  const litAt = [0, 16, twoAt];
-  const roomT = interpolate(frame - roomAt, [0, 22], [0, 1], {
+  const stepT = interpolate(frame - step1At, [0, 20], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  // 房间里别的活：待办灯亮（later）但整行冻结；只有第一个活的时间条在走（core）
-  const rows = [
-    {t: '读别的文件', moving: false},
-    {t: '想别的问题', moving: false},
-    {t: '安排别的活', moving: false},
-  ];
-  const barA = ((frame / fps) * 0.6) % 1;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <div
-        style={{
-          display: 'flex',
-          gap: 28,
-          opacity: 1 - roomT,
-          transform: `scale(${1 - roomT * 0.1})`,
-        }}
-      >
-        {cards.map((c, i) => {
-          const on = frame >= litAt[i];
-          const e = spring({frame: frame - litAt[i], fps, config: {damping: 200}});
+      {/* 三无小图（p0-09/10）：deny 虚影 + 划掉的图样——「时间盲症」的视觉落点 */}
+      <div style={{display: 'flex', gap: 34}}>
+        {absents.map((a, i) => {
+          const e = spring({frame: frame - blindAt - i * 9, fps, config: {damping: 200}});
+          const crossed = frame >= blindAt + 26 + i * 9;
+          if (e <= 0) return null;
           return (
-            <div key={c.t} style={{opacity: on ? e : 0}}>
+            <div key={a.t} style={{opacity: Math.min(1, e)}}>
               <Panel
-                accent={on ? theme.later : theme.panelBorder}
-                style={{width: 300, padding: '18px 20px 12px'}}
+                accent={crossed ? theme.deny : theme.panelBorder}
+                style={{width: 320, padding: '20px 22px 16px'}}
               >
-                <div style={{display: 'flex', justifyContent: 'center'}}>
-                  <MiniStart mode={c.mode} active={on} />
-                </div>
+                <svg width={276} height={120} style={{display: 'block', margin: '0 auto'}}>
+                  {a.kind === 'clock' ? (
+                    <>
+                      <circle cx={138} cy={58} r={40} fill="none" stroke={theme.dim} strokeWidth={4} opacity={0.75} />
+                      <line x1={138} y1={58} x2={138} y2={32} stroke={theme.dim} strokeWidth={4} strokeLinecap="round" opacity={0.75} />
+                      <line x1={138} y1={58} x2={158} y2={68} stroke={theme.dim} strokeWidth={4} strokeLinecap="round" opacity={0.75} />
+                    </>
+                  ) : a.kind === 'alarm' ? (
+                    <>
+                      <circle cx={138} cy={62} r={36} fill="none" stroke={theme.dim} strokeWidth={4} opacity={0.75} />
+                      <line x1={138} y1={62} x2={138} y2={40} stroke={theme.dim} strokeWidth={4} strokeLinecap="round" opacity={0.75} />
+                      <line x1={138} y1={62} x2={154} y2={70} stroke={theme.dim} strokeWidth={4} strokeLinecap="round" opacity={0.75} />
+                      <line x1={110} y1={22} x2={120} y2={34} stroke={theme.dim} strokeWidth={4.5} strokeLinecap="round" opacity={0.75} />
+                      <line x1={166} y1={22} x2={156} y2={34} stroke={theme.dim} strokeWidth={4.5} strokeLinecap="round" opacity={0.75} />
+                    </>
+                  ) : (
+                    <>
+                      <path
+                        d="M92 78 C 92 44, 184 44, 184 72"
+                        fill="none"
+                        stroke={theme.dim}
+                        strokeWidth={4}
+                        opacity={0.75}
+                      />
+                      <polygon points="184,72 172,62 176,80" fill={theme.dim} opacity={0.75} />
+                      {/* 一步向前、不回头的箭头（「没有回头」的正面表达） */}
+                      <line x1={92} y1={92} x2={176} y2={92} stroke={theme.dim} strokeWidth={4} opacity={0.5} strokeDasharray="3 10" strokeLinecap="round" />
+                    </>
+                  )}
+                  {/* deny 划线：它没有这能力 */}
+                  {crossed ? (
+                    <line
+                      x1={78}
+                      y1={94}
+                      x2={198}
+                      y2={22}
+                      stroke={theme.deny}
+                      strokeWidth={6}
+                      strokeLinecap="round"
+                      opacity={0.9}
+                    />
+                  ) : null}
+                </svg>
                 <div
                   style={{
                     textAlign: 'center',
                     fontFamily: theme.sans,
                     fontSize: 24,
-                    color: on ? theme.text : theme.dim,
-                    paddingBottom: 6,
+                    color: crossed ? theme.deny : theme.text,
+                    marginTop: 8,
                   }}
                 >
-                  {c.t}
+                  {a.t}
                 </div>
               </Panel>
             </div>
           );
         })}
       </div>
-      {roomT > 0 ? (
-        <div
-          style={{
-            position: 'absolute',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 16,
-            alignItems: 'center',
-            opacity: roomT,
-            transform: `translateY(${(1 - roomT) * 24}px)`,
-          }}
-        >
-          <Panel accent={theme.core} style={{width: 780, padding: '16px 24px'}}>
-            <div style={{display: 'flex', alignItems: 'center', gap: 16, marginBottom: 14}}>
-              <div style={{fontFamily: theme.mono, fontSize: 22, color: theme.core}}>{'npm install'}</div>
-              <div style={{flex: 1, height: 12, borderRadius: 999, background: theme.panelBorder, overflow: 'hidden'}}>
-                <div style={{width: `${barA * 100}%`, height: '100%', background: theme.core}} />
+      {/* 两步预告（p0-11/12）：三格开始中的后两格浮出（later 描边统一） */}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 130,
+          display: 'flex',
+          gap: 30,
+          opacity: stepT,
+          transform: `translateY(${(1 - stepT) * 24}px)`,
+        }}
+      >
+        <Panel accent={theme.later} style={{width: 460, padding: '14px 18px 10px'}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: 18}}>
+            <MiniStart mode="offRing" active={frame >= step1At} />
+            <div>
+              <div style={{fontFamily: theme.mono, fontSize: 19, color: theme.dim}}>{'第一步'}</div>
+              <div style={{fontFamily: theme.sans, fontSize: 26, color: theme.text, marginTop: 4}}>
+                {'把「等」摘掉：按下就走开'}
               </div>
-              <div style={{fontFamily: theme.sans, fontSize: 20, color: theme.core}}>{'时间条在走'}</div>
             </div>
-            {rows.map((r) => (
-              <div key={r.t} style={{display: 'flex', alignItems: 'center', gap: 16, opacity: 0.75}}>
-                <div
-                  style={{
-                    width: 14,
-                    height: 14,
-                    borderRadius: 999,
-                    background: theme.later,
-                    boxShadow: `0 0 10px ${theme.later}`,
-                  }}
-                />
-                <div style={{fontFamily: theme.sans, fontSize: 23, color: theme.dim, width: 220}}>{r.t}</div>
-                <div style={{flex: 1, height: 10, borderRadius: 999, background: theme.panelBorder}} />
-                <div style={{fontFamily: theme.sans, fontSize: 20, color: theme.later}}>{'冻结'}</div>
-              </div>
-            ))}
-          </Panel>
-          <div style={{fontFamily: theme.serif, fontSize: 34, color: theme.text, marginTop: 6}}>
-            {'一切都停着，就因为第一个活还没完'}
           </div>
-        </div>
-      ) : null}
-      <Footnote delay={roomAt}>{'这一集把「等」从人身上摘走'}</Footnote>
+        </Panel>
+        <Panel
+          accent={frame >= step2At ? theme.later : theme.panelBorder}
+          style={{width: 460, padding: '14px 18px 10px', opacity: frame >= step2At ? 1 : 0.35}}
+        >
+          <div style={{display: 'flex', alignItems: 'center', gap: 18}}>
+            <MiniStart mode="noOne" active={frame >= step2At} />
+            <div>
+              <div style={{fontFamily: theme.mono, fontSize: 19, color: theme.dim}}>{'第二步'}</div>
+              <div style={{fontFamily: theme.sans, fontSize: 26, color: theme.text, marginTop: 4}}>
+                {'连按的人都不要：时间到了自己开始'}
+              </div>
+            </div>
+          </div>
+        </Panel>
+      </div>
+      <Footnote delay={blindAt}>{'时间盲症 —— 没有钟 · 没有闹钟 · 没有「回头再看」'}</Footnote>
     </AbsoluteFill>
   );
 };
@@ -390,17 +455,22 @@ export const P0Wait: React.FC<{scene: SceneRange}> = ({scene}) => {
   const at = (id: string) => w(id).from;
   const bA = w('p0-01', 'p0-04');
   const bB = w('p0-05', 'p0-08');
-  const bC = w('p0-09', 'p0-17');
+  const bC = w('p0-09', 'p0-13');
   return (
     <AbsoluteFill>
       <Sequence {...bA} name="0-A 进度条与计费表">
         <StallBar tickAt={at('p0-01') - bA.from} costAt={at('p0-03') - bA.from} zeroAt={at('p0-04') - bA.from} />
       </Sequence>
       <Sequence {...bB} name="0-B 洗衣机与人走开">
-        <LaundryLeave turnAt={at('p0-06') - bB.from} ringAt={at('p0-07') - bB.from} />
+        <LaundryLeave turnAt={at('p0-06') - bB.from} ringAt={at('p0-07') - bB.from} quoteAt={6} />
       </Sequence>
-      <Sequence {...bC} name="0-C 三种开始与停摆的房间">
-        <ThreeStartsRoom twoAt={at('p0-10') - bC.from} roomAt={at('p0-14') - bC.from} />
+      <Sequence {...bC} name="0-C 时间盲症与两步预告">
+        {/* p0-09/10 三无小图（盲症）；p0-11/12 两步预告（摘等 / 没人按） */}
+        <BlindnessAndPlan
+          blindAt={at('p0-09') - bC.from}
+          step1At={at('p0-11') - bC.from}
+          step2At={at('p0-12') - bC.from}
+        />
       </Sequence>
     </AbsoluteFill>
   );
