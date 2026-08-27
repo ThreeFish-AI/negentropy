@@ -6,7 +6,7 @@ import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoCo
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Footnote, LoopRing, NamePlate, Panel, phase, SceneTag} from '../components/motifs';
+import {Footnote, LoopRing, NamePlate, Panel, SceneHeader, SceneTag, phase} from '../components/motifs';
 
 /** 5-A 阿珍阿强双写冲突：同名 config.py 互覆碎裂 + 回滚死结 */
 const Collision: React.FC<{writeAt: number; crushAt: number; knotAt: number}> = ({
@@ -829,6 +829,7 @@ export const P5Desks: React.FC<{scene: SceneRange}> = ({scene}) => {
   const rel = (b: {from: number}, id: string) => at(id) - b.from;
   return (
     <AbsoluteFill>
+      <SceneHeader index="P5" title="谁的桌子：各干各的" meta="worktree · 4 gates, one cannot close" />
       <Sequence {...bA} name="5-A 双写冲突">
         <Collision
           writeAt={rel(bA, 'p5-03')}

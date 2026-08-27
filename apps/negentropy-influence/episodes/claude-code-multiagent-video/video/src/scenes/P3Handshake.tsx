@@ -6,7 +6,7 @@ import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoCo
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Footnote, LoopRing, NamePlate, Panel, phase, SceneTag, useRingDot} from '../components/motifs';
+import {Footnote, LoopRing, NamePlate, Panel, SceneHeader, SceneTag, phase, useRingDot} from '../components/motifs';
 
 /** 握手轨：横向轨道 + 请求卡 / 应答卡对开。双方端点 + 中央「等回话」位。 */
 const HandshakeRail: React.FC<{
@@ -722,6 +722,7 @@ export const P3Handshake: React.FC<{scene: SceneRange}> = ({scene}) => {
   const rel = (b: {from: number}, id: string) => at(id) - b.from;
   return (
     <AbsoluteFill>
+      <SceneHeader index="P3" title="怎么谈判：握手" meta="request_id · 3-way shutdown" />
       <Sequence {...bA} name="3-A 杀线程之祸与四步">
         <KillVsHandshake crackAt={rel(bA, 'p3-03')} stepsAt={rel(bA, 'p3-05')} />
       </Sequence>

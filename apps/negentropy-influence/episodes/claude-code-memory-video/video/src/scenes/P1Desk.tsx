@@ -7,7 +7,7 @@ import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoCo
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Counter, Desk, Footnote, PaperCard, SceneTag} from '../components/motifs';
+import {Counter, Desk, Footnote, PaperCard, SceneHeader, SceneTag} from '../components/motifs';
 
 /** 桌面全景 + 原则条自顶落下钉住 */
 const DeskIntro: React.FC<{ruleAt: number}> = ({ruleAt}) => {
@@ -361,6 +361,7 @@ export const P1Desk: React.FC<{scene: SceneRange}> = ({scene}) => {
   const relC = (id: string) => at(id) - bC.from;
   return (
     <AbsoluteFill>
+      <SceneHeader index="P1" title="桌面的收拾法" meta="cheap first, expensive last" />
       <Sequence {...bA} name="1-A 桌面全景与原则条">
         <DeskIntro ruleAt={relA('p1-03')} />
       </Sequence>

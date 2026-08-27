@@ -6,7 +6,7 @@ import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame} from 'remo
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Footnote, LoopRing, Panel, SceneTag, useRingDot} from '../components/motifs';
+import {Footnote, LoopRing, Panel, SceneHeader, SceneTag, useRingDot} from '../components/motifs';
 
 /** 环外旁轨的几何常数：与 LoopRing 同心、半径外扩（本幕内推导基线，P2 自带几何） */
 const TRACK_R = 340;
@@ -372,6 +372,7 @@ export const P1Dereg: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bD = w('p1-16', 'p1-24');
   return (
     <AbsoluteFill>
+      <SceneHeader index="P1" title="按下就走开" meta="run in background · daemon threads" />
       <Sequence {...bA} name="1-A 后台开关与超时转道">
         <ToggleAndFallback
           toggleAt={at('p1-03') - bA.from}

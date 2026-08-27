@@ -9,7 +9,7 @@ import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoCo
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Desk, Footnote, Ledger, PaperCard, SceneTag} from '../components/motifs';
+import {Desk, Footnote, Ledger, PaperCard, SceneHeader, SceneTag} from '../components/motifs';
 
 /** 4-A 全景回望：已讲机制小图标环绕桌面；桌面整体轻微褪色一次 */
 const AllOnDesk: React.FC<{fadeAt: number}> = ({fadeAt}) => {
@@ -788,6 +788,7 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
   const relE = (id: string) => at(id) - bE.from;
   return (
     <AbsoluteFill>
+      <SceneHeader index="P4" title="不丢的那一层" meta="two legs · CLAUDE.md + auto memory" />
       <Sequence {...bA} name="4-A 全景回望桌面褪色一次">
         <AllOnDesk fadeAt={relA('p4-02')} />
       </Sequence>

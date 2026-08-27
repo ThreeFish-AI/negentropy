@@ -6,7 +6,7 @@ import {AbsoluteFill, interpolate, Sequence, useCurrentFrame, useVideoConfig} fr
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Footnote, Panel, SceneTag} from '../components/motifs';
+import {Footnote, Panel, SceneHeader, SceneTag} from '../components/motifs';
 
 /** 后台命令输出线：逐字爬行，随后停在一个 (y/n) 提示上闪烁等待 */
 const OutputLine: React.FC<{stopAt: number; focusAt: number}> = ({stopAt, focusAt}) => {
@@ -360,6 +360,7 @@ export const P3Watchdog: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bB = w('p3-04', 'p3-09c');
   return (
     <AbsoluteFill>
+      <SceneHeader index="P3" title="有一只狗盯着" meta="watchdog · poll vs event stream" />
       <Sequence {...bA} name="3-A 输出停在问句上">
         <DogWatching stopAt={at('p3-03') - bA.from} />
       </Sequence>

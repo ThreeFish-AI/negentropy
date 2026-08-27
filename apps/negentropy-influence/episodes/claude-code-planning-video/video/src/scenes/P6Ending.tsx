@@ -7,7 +7,7 @@ import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoCo
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Panel} from '../components/motifs';
+import {Panel, SceneHeader} from '../components/motifs';
 
 /** 6-A 一句话合同金句卡（serif，view 描边）→ p6-04「同一门手艺」次行浮现。 */
 const ContractCard: React.FC<{nextAt: number}> = ({nextAt}) => {
@@ -184,6 +184,7 @@ export const P6Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bB = w('p6-05', 'p6-09');
   return (
     <AbsoluteFill>
+      <SceneHeader index="P6" title="落点与信源" meta="Claude Code Harness Engineering" />
       <Sequence {...bA} name="6-A 一句话合同">
         {/* p6-04「同一门手艺」次行浮现 */}
         <ContractCard nextAt={rel(bA, 'p6-04')} />

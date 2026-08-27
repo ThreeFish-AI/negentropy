@@ -7,7 +7,7 @@ import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoCo
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {LoopRing, Panel, useRingDot} from '../components/motifs';
+import {LoopRing, Panel, SceneHeader, useRingDot} from '../components/motifs';
 
 /** 6-A 壳的四层：三张挂件卡沿径向滑入、逐一「咬合」上环（骨架 vs 挂件的物理化收束）。
  *  循环层不用卡——它就是环本身（p6-03 的口播顺序：循环→分发表→闸门→插口）。
@@ -288,6 +288,7 @@ export const P6Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bB = w('p6-05', 'p6-08');
   return (
     <AbsoluteFill>
+      <SceneHeader index="P6" title="落点与信源" meta="Claude Code Harness Engineering" />
       <Sequence {...bA} name="6-A 壳的四层">
         <ShellLayers
           layerAt={[rel(bA, 'p6-01'), rel(bA, 'p6-02'), rel(bA, 'p6-03'), rel(bA, 'p6-04')]}

@@ -7,7 +7,7 @@ import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {QuoteCard} from '../components/cards';
-import {Chip, Desk, Footnote, Panel, SceneTag, Stamp} from '../components/motifs';
+import {Chip, Desk, Footnote, Panel, SceneHeader, SceneTag, Stamp} from '../components/motifs';
 
 /** 梯子骨架（mech）：三级木梯挂在桌右缘，自上垂下挂稳（rope 微弹）。 */
 const Ladder: React.FC<{drop: number; labels?: [string, string, string]}> = ({drop, labels}) => {
@@ -674,6 +674,7 @@ export const P4Ladder: React.FC<{scene: SceneRange}> = ({scene}) => {
   const relE = (id: string) => at(id) - bE.from;
   return (
     <AbsoluteFill>
+      <SceneHeader index="P4" title="桌边的补救梯" meta="Error Recovery · 10 retries · exp backoff" />
       <Sequence {...bA} name="4-A 补救梯垂下">
         {/* p4-01「管的是意外」桌子亮出；p4-02 岔子预告，梯子自上垂下挂稳 */}
         <LadderDrops dropAt={relA('p4-02')} />

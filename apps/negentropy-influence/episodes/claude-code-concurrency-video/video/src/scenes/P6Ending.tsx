@@ -6,7 +6,7 @@ import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoCo
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Footnote, LoopRing, Panel, SceneTag, useRingDot} from '../components/motifs';
+import {Footnote, LoopRing, Panel, SceneHeader, SceneTag, useRingDot} from '../components/motifs';
 
 /** 三段位置图的一段：人（或表）与环的位置关系——「谁按的开始」用位置编码 */
 const StartPanel: React.FC<{
@@ -332,6 +332,7 @@ export const P6Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bC = w('p6-13', 'p6-15');
   return (
     <AbsoluteFill>
+      <SceneHeader index="P6" title="落点与信源" meta="three answers to who starts" />
       <Sequence {...bA} name="6-A 三种开始的位置">
         <ThreePositions
           l1={at('p6-02') - bA.from}

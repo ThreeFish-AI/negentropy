@@ -6,7 +6,7 @@ import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoCo
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Footnote, LoopRing, Panel, SceneTag, useRingDot} from '../components/motifs';
+import {Footnote, LoopRing, Panel, SceneHeader, SceneTag, useRingDot} from '../components/motifs';
 
 /** 0-A 终端任务清单溢出 → 拉镜：孤环悬在四个模块群中央，注意力只覆盖一小块 */
 const OverflowThenZoom: React.FC<{zoomAt: number; cardsAt?: number}> = ({zoomAt, cardsAt}) => {
@@ -444,6 +444,7 @@ export const P0Hook: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bC = w('p0-09', 'p0-10');
   return (
     <AbsoluteFill>
+      <SceneHeader index="P0" title="一个注意力，盖不住一个后端" meta="agentic laziness · bias · drift" />
       <Sequence {...bA} name="0-A 清单溢出与孤环">
         <SceneTag chapter="Agent Teams" tagline="One Agent Is Not Enough" accent={theme.peer} />
         {/* 拉镜点在 p0-03；cardsAt：官方三失败模式症状卡（Harness Engineering 改造） */}

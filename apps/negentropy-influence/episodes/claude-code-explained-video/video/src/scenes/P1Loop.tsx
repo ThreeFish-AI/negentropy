@@ -6,15 +6,7 @@ import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {QuoteCard} from '../components/cards';
-import {
-  CodeCard,
-  Counter,
-  Footnote,
-  LoopRing,
-  Panel,
-  SceneTag,
-  useRingDot,
-} from '../components/motifs';
+import {CodeCard, Counter, Footnote, LoopRing, Panel, SceneHeader, SceneTag, useRingDot} from '../components/motifs';
 
 /** 1-A 环形循环成形 + 两个信号分支 */
 const RingBirth: React.FC<{yesAt: number; noAt: number}> = ({yesAt, noAt}) => {
@@ -540,6 +532,7 @@ export const P1Loop: React.FC<{scene: SceneRange}> = ({scene}) => {
   const rF = (id: string) => w(id).from - bF.from;
   return (
     <AbsoluteFill>
+      <SceneHeader index="P1" title="一个循环，就是全部" meta="Agent Loop · gather / act / verify" />
       <Sequence {...bA} name="1-A 环形循环成形">
         <RingBirth yesAt={rA('p1-04')} noAt={rA('p1-06')} />
       </Sequence>

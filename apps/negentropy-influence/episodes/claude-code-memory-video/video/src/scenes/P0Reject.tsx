@@ -6,7 +6,7 @@ import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoCo
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Footnote, Panel, PaperCard, Terminal} from '../components/motifs';
+import {Footnote, Panel, PaperCard, SceneHeader, Terminal} from '../components/motifs';
 
 /** 0-A 系列终端：命令链滚动 → 一行 deny 报错砸落（画面压暗一档、光标停闪） */
 const ErrorSlam: React.FC<{errAt: number}> = ({errAt}) => {
@@ -428,6 +428,7 @@ export const P0Reject: React.FC<{scene: SceneRange}> = ({scene}) => {
   const relD = (id: string) => at(id) - bD.from;
   return (
     <AbsoluteFill>
+      <SceneHeader index="P0" title="一次拒收" meta="prompt_too_long · context will fill up" />
       <Sequence {...bA} name="0-A 终端报错砸落">
         <ErrorSlam errAt={relA('p0-02')} />
       </Sequence>
@@ -438,7 +439,7 @@ export const P0Reject: React.FC<{scene: SceneRange}> = ({scene}) => {
         />
       </Sequence>
       <Sequence {...bC} name="0-C 删东西三恶果快闪">
-        <DeleteSins taskAt={relC('p0-11')} receiptAt={relC('p0-12')} />
+        <DeleteSins taskAt={relC('p0-09')} receiptAt={relC('p0-11')} />
       </Sequence>
       <Sequence {...bD} name="0-D 两层答案画中画预告">
         <TwoAnswers

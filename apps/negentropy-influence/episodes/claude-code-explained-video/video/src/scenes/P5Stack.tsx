@@ -8,7 +8,7 @@ import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {QuoteCard} from '../components/cards';
-import {Footnote, LoopRing, Panel, Terminal, useRingDot} from '../components/motifs';
+import {Footnote, LoopRing, Panel, SceneHeader, Terminal, useRingDot} from '../components/motifs';
 
 const CHAPTERS = [
   {name: '一个循环', total: 141, loop: 23},
@@ -488,6 +488,7 @@ export const P5Stack: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bD = w('p5-15', 'p5-19');
   return (
     <AbsoluteFill>
+      <SceneHeader index="P5" title="四层叠起来是什么" meta="Harness = loop + tools + context + guardrails" />
       <Sequence {...bA} name="5-A 四层卡片与官方四件套">
         <FourLayers splitAt={rel(bA, 'p5-06')} mapAt={rel(bA, 'p5-05')} />
       </Sequence>

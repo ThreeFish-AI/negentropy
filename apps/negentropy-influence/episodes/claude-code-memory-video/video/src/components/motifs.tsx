@@ -94,6 +94,64 @@ export const SceneTag: React.FC<{
   );
 };
 
+/** 幕级常驻抬头带（2026-08 品控改造）——修复「顶部 1/3 全片闲置」的构图缺陷。
+ *
+ *  实测动机：五集 3×3 宫格抽样显示顶带 ink 仅 0.4–2.0%，而 SceneTag 的
+ *  Sequence 覆盖率只有 7–59%。本组件由**幕**（而非镜）挂载一次，全幕常驻，
+ *  一次性补齐顶部信息层：左＝幕序与幕名，右＝本幕机制英文名（角标层，不进口播）。
+ *
+ *  纪律：只读底座 token 与传入的 accent；不参与句锚动画（避免与镜内动效抢注意力），
+ *  仅在幕首 12 帧淡入；高度锁死 ≤96px，不侵占镜内主体区。 */
+export const SceneHeader: React.FC<{
+  index: string;
+  title: string;
+  meta?: string;
+  accent?: string;
+}> = ({index, title, meta, accent}) => {
+  const frame = useCurrentFrame();
+  const o = interpolate(frame, [0, 12], [0, 1], {extrapolateRight: 'clamp'});
+  const c = accent ?? theme.core;
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left: 72,
+        right: 72,
+        top: 52,
+        height: 60,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        opacity: o * 0.92,
+        pointerEvents: 'none',
+      }}
+    >
+      <div style={{display: 'flex', alignItems: 'baseline', gap: 16}}>
+        <span
+          style={{
+            fontFamily: theme.mono,
+            fontSize: 22,
+            color: c,
+            letterSpacing: 3,
+            borderLeft: `3px solid ${c}`,
+            paddingLeft: 12,
+          }}
+        >
+          {index}
+        </span>
+        <span style={{fontFamily: theme.serif, fontSize: 27, color: theme.text, letterSpacing: 1}}>
+          {title}
+        </span>
+      </div>
+      {meta ? (
+        <span style={{fontFamily: theme.mono, fontSize: 18, color: theme.dim, letterSpacing: 1}}>
+          {meta}
+        </span>
+      ) : null}
+    </div>
+  );
+};
+
 /** 数字滚动计数器（帧驱动，无随机） */
 export const Counter: React.FC<{
   from: number;

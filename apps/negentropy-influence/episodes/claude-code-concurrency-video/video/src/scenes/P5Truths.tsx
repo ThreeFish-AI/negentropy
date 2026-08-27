@@ -7,7 +7,7 @@ import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {QuoteCard} from '../components/cards';
-import {Footnote, Panel, SceneTag} from '../components/motifs';
+import {Footnote, Panel, SceneHeader, SceneTag} from '../components/motifs';
 
 /** 迷你钟面：时针/分针可指定角度，可选表盘描边色 */
 const MiniClock: React.FC<{
@@ -555,6 +555,7 @@ export const P5Truths: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bE = w('p5-19', 'p5-23b');
   return (
     <AbsoluteFill>
+      <SceneHeader index="P5" title="时间表的真话" meta="jitter · retirement · supervisor" />
       <Sequence {...bA} name="5-A 踩踏帧">
         <Stampede fireAt={at('p5-03') - bA.from} crashAt={at('p5-04') - bA.from} />
       </Sequence>

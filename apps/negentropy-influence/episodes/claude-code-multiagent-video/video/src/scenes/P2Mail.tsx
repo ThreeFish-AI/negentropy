@@ -6,17 +6,7 @@ import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoCo
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {
-  Footnote,
-  LoopRing,
-  NamePlate,
-  NumberedCard,
-  Panel,
-  phase,
-  qBezier,
-  SceneTag,
-  useRingDot,
-} from '../components/motifs';
+import {Footnote, LoopRing, NamePlate, NumberedCard, Panel, SceneHeader, SceneTag, phase, qBezier, useRingDot} from '../components/motifs';
 
 /** 0-A 临时工 vs 队友：左剪影淡出、右 peer 小环落位打铭牌 */
 const TempVsTeammate: React.FC<{fadeAt: number; seatAt: number}> = ({fadeAt, seatAt}) => {
@@ -842,6 +832,7 @@ export const P2Mail: React.FC<{scene: SceneRange}> = ({scene}) => {
   const rel = (b: {from: number}, id: string) => at(id) - b.from;
   return (
     <AbsoluteFill>
+      <SceneHeader index="P2" title="话从哪里走：信箱" meta="mailbox = a file · 3 prohibitions" />
       <Sequence {...bA} name="2-A 临时工与队友">
         <TempVsTeammate fadeAt={rel(bA, 'p2-04')} seatAt={rel(bA, 'p2-03')} />
       </Sequence>

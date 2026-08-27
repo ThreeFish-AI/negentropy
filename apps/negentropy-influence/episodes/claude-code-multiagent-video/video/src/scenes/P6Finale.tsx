@@ -8,7 +8,7 @@ import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoCo
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Footnote, LoopRing, Panel, phase, SceneTag, useRingDot} from '../components/motifs';
+import {Footnote, LoopRing, Panel, SceneHeader, SceneTag, phase, useRingDot} from '../components/motifs';
 
 /** 七段传送带：进料 / 护栏 / 选面 / 执行 / 外接 / 补救 / 记账（一整轮） */
 const SEGMENTS = [
@@ -917,6 +917,7 @@ export const P6Finale: React.FC<{scene: SceneRange}> = ({scene}) => {
   const rel = (b: {from: number}, id: string) => at(id) - b.from;
   return (
     <AbsoluteFill>
+      <SceneHeader index="P6" title="收束：机制很多，循环一个" meta="who holds the plan" />
       <Sequence {...bA} name="6-A 四样归位与传送带">
         <ConveyorForms beltAt={rel(bA, 'p6-02')} />
       </Sequence>

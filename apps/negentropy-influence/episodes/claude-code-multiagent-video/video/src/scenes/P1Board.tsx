@@ -6,7 +6,7 @@ import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoCo
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Footnote, Panel, phase, qBezier, SceneTag} from '../components/motifs';
+import {Footnote, Panel, SceneHeader, SceneTag, phase, qBezier} from '../components/motifs';
 
 /** 任务卡：五格（编号/标题/状态/主人/等谁）；TaskBoard 的成员单元 */
 const TaskCard: React.FC<{
@@ -738,6 +738,7 @@ export const P1Board: React.FC<{scene: SceneRange}> = ({scene}) => {
   const rel = (b: {from: number}, id: string) => at(id) - b.from;
   return (
     <AbsoluteFill>
+      <SceneHeader index="P1" title="活挂在哪里：看板" meta="task board · file-locked claims" />
       <Sequence {...bA} name="1-A 看板立起">
         <BoardRises cardsAt={rel(bA, 'p1-03')} arrowsAt={rel(bA, 'p1-05')} />
       </Sequence>

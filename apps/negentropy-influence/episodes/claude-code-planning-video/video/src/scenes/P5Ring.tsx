@@ -6,7 +6,7 @@ import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoCo
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Desk, Footnote, LoopRing, Panel, SceneTag, Stamp, useRingDot} from '../components/motifs';
+import {Desk, Footnote, LoopRing, Panel, SceneHeader, SceneTag, Stamp, useRingDot} from '../components/motifs';
 
 /** 五样装置（编号即桌面位置——反枚举：不给五色）。
  *  装置缩略图统一 panel 底 + 编号；职责字以印章形式落下。 */
@@ -277,6 +277,7 @@ export const P5Ring: React.FC<{scene: SceneRange}> = ({scene}) => {
   const relC = (id: string) => at(id) - bC.from;
   return (
     <AbsoluteFill>
+      <SceneHeader index="P5" title="桌子换了五样，环没动" meta="five parts hang outside the loop" />
       <Sequence {...bA} name="5-A 五装置归位">
         {/* p5-02 五样摆在一起：自左向右滑入；p5-04..05 职责印章逐枚落下 */}
         <FiveDevices

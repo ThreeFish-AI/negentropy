@@ -8,7 +8,7 @@ import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoCo
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Cabinet, Desk, Footnote, HelperFigure, PaperCard} from '../components/motifs';
+import {Cabinet, Desk, Footnote, HelperFigure, PaperCard, SceneHeader} from '../components/motifs';
 
 /** 2-A 大件入库：五个大块拍上桌 → 排队弧线飞入文件柜 → 预览卡弹回落位 */
 const VaultBig: React.FC<{dropAt: number; flyAt: number; previewAt: number}> = ({
@@ -646,6 +646,7 @@ export const P2Tidy: React.FC<{scene: SceneRange}> = ({scene}) => {
   const relD = (id: string) => at(id) - bD.from;
   return (
     <AbsoluteFill>
+      <SceneHeader index="P2" title="大件入库与顺序论证" meta="store before you fold" />
       <Sequence {...bA} name="2-A 大件入库">
         <VaultBig dropAt={relA('p2-02')} flyAt={relA('p2-03')} previewAt={relA('p2-04')} />
       </Sequence>

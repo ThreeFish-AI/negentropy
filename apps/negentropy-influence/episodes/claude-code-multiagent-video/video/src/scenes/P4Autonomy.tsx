@@ -6,7 +6,7 @@ import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoCo
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Footnote, LoopRing, NamePlate, Panel, phase, SceneTag} from '../components/motifs';
+import {Footnote, LoopRing, NamePlate, Panel, SceneHeader, SceneTag, phase} from '../components/motifs';
 
 /** 4-A 派工之累 ×10 快闪 → 三段生命周期环描线登场 */
 const DispatchFatigue: React.FC<{cycleAt: number}> = ({cycleAt}) => {
@@ -706,6 +706,7 @@ export const P4Autonomy: React.FC<{scene: SceneRange}> = ({scene}) => {
   const rel = (b: {from: number}, id: string) => at(id) - b.from;
   return (
     <AbsoluteFill>
+      <SceneHeader index="P4" title="自己看板，自己认领" meta="WORK · IDLE · SHUTDOWN" />
       <Sequence {...bA} name="4-A 派工之累与生命周期">
         <DispatchFatigue cycleAt={rel(bA, 'p4-03')} />
       </Sequence>

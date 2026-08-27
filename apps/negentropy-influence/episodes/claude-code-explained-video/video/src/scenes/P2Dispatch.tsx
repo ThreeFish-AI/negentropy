@@ -6,17 +6,7 @@ import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {QuoteCard} from '../components/cards';
-import {
-  CodeCard,
-  DispatchTable,
-  Footnote,
-  LoopRing,
-  NumberedCard,
-  Panel,
-  SceneTag,
-  Terminal,
-  useRingDot,
-} from '../components/motifs';
+import {CodeCard, DispatchTable, Footnote, LoopRing, NumberedCard, Panel, SceneHeader, SceneTag, Terminal, useRingDot} from '../components/motifs';
 
 /** 环留在左上角：缩小但同色同线宽 */
 const CornerRing: React.FC<{pulse?: boolean}> = ({pulse = false}) => {
@@ -573,6 +563,7 @@ export const P2Dispatch: React.FC<{scene: SceneRange}> = ({scene}) => {
   const rel = (b: {from: number}, id: string) => w(id).from - b.from;
   return (
     <AbsoluteFill>
+      <SceneHeader index="P2" title="加一个工具，只改一行" meta="Tool Dispatch · registry" />
       <Sequence {...bA} name="2-A 命令行拼接的笨拙">
         <ClumsyCommands typoAt={rel(bA, 'p2-04')} />
       </Sequence>

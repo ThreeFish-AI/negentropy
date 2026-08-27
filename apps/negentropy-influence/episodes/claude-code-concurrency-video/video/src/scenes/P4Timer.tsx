@@ -6,13 +6,7 @@ import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoCo
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {
-  Footnote,
-  LoopRing,
-  Panel,
-  SceneTag,
-  useRingDot,
-} from '../components/motifs';
+import {Footnote, LoopRing, Panel, SceneHeader, SceneTag, useRingDot} from '../components/motifs';
 
 /** 4-A 提线木偶（你说一句它动一下）vs 闹钟自摆（自己响） */
 const PuppetVsClock: React.FC<{clockAt: number}> = ({clockAt}) => {
@@ -589,6 +583,7 @@ export const P4Timer: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bE = w('p4-19', 'p4-27');
   return (
     <AbsoluteFill>
+      <SceneHeader index="P4" title="没人按的开始" meta="cron · 5-field schedule" />
       <Sequence {...bA} name="4-A 木偶与闹钟">
         <PuppetVsClock clockAt={at('p4-04') - bA.from} />
       </Sequence>

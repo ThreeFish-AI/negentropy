@@ -6,7 +6,7 @@ import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoCo
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Footnote, Panel, Terminal} from '../components/motifs';
+import {Footnote, Panel, SceneHeader, Terminal} from '../components/motifs';
 
 /** 0-A 终端打字 → 命令凝住 → 复制粘贴弧线加速塞满（两句内完成旧版六句的信息量） */
 const StallAndCarry: React.FC<{carryAt: number}> = ({carryAt}) => {
@@ -366,6 +366,7 @@ export const P0Hook: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bC = w('p0-06', 'p0-07');
   return (
     <AbsoluteFill>
+      <SceneHeader index="P0" title="你在当那个中间人" meta="the missing layer" />
       <Sequence {...bA} name="0-A 停住与搬运">
         <StallAndCarry carryAt={at('p0-02') - bA.from} />
       </Sequence>

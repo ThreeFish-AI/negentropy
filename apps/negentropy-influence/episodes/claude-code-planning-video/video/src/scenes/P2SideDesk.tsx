@@ -7,7 +7,7 @@ import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {QuoteCard} from '../components/cards';
-import {Chip, Counter, Desk, Footnote, LoopRing, Panel, SceneTag, Stamp, useRingDot} from '../components/motifs';
+import {Chip, Counter, Desk, Footnote, LoopRing, Panel, SceneHeader, SceneTag, Stamp, useRingDot} from '../components/motifs';
 
 /** 2-A 桌面色块暴涨成灾：一百多条记录填满桌面；计费计数器持续跳字。 */
 const DeskFlood: React.FC<{floodAt: number; billAt: number}> = ({floodAt, billAt}) => {
@@ -805,6 +805,7 @@ export const P2SideDesk: React.FC<{scene: SceneRange}> = ({scene}) => {
   const relF = (id: string) => at(id) - bF.from;
   return (
     <AbsoluteFill>
+      <SceneHeader index="P2" title="另开一张副桌" meta="Subagent · fork shares prefix cache" />
       <Sequence {...bA} name="2-A 桌面暴涨与计费">
         {/* p2-03「一百多条」起暴涨；p2-04「一直计着费」起计数器 */}
         <DeskFlood floodAt={relA('p2-03')} billAt={relA('p2-04')} />

@@ -6,16 +6,7 @@ import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {QuoteCard} from '../components/cards';
-import {
-  CodeCard,
-  Footnote,
-  GateRouter,
-  LoopRing,
-  NumberedCard,
-  Panel,
-  SceneTag,
-  useRingDot,
-} from '../components/motifs';
+import {CodeCard, Footnote, GateRouter, LoopRing, NumberedCard, Panel, SceneHeader, SceneTag, useRingDot} from '../components/motifs';
 
 /** 3-A 五张工具卡，跑命令那张在「工作目录」框外 */
 const UnguardedShell: React.FC<{frameAt: number; cmdAt: number; execAt: number}> = ({
@@ -699,6 +690,7 @@ export const P3Gates: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bG = w('p3-30', 'p3-35');
   return (
     <AbsoluteFill>
+      <SceneHeader index="P3" title="执行之前，先过闸门" meta="Permissions · deny → ask → allow" />
       <Sequence {...bA} name="3-A 没人管的跑命令">
         <UnguardedShell
           frameAt={rel(bA, 'p3-02')}

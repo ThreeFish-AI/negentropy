@@ -7,7 +7,7 @@ import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoCo
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Cabinet, Desk, Footnote, HelperFigure, Panel, PaperCard} from '../components/motifs';
+import {Cabinet, Desk, Footnote, HelperFigure, Panel, PaperCard, SceneHeader} from '../components/motifs';
 
 /** 3-A 帮工特写：指令卡首（top 指令）尾（bottom 叮嘱）各弹一次 + 工具之手两次被挡 */
 const HelperDiscipline: React.FC<{firstAt: number; lastAt: number; handAt: number[]}> = ({
@@ -474,6 +474,7 @@ export const P3Helper: React.FC<{scene: SceneRange}> = ({scene}) => {
   const relC = (id: string) => at(id) - bC.from;
   return (
     <AbsoluteFill>
+      <SceneHeader index="P3" title="应急通道与帮工纪律" meta="compaction survival matrix" />
       <Sequence {...bA} name="3-A 帮工特写与工具之手">
         <HelperDiscipline
           firstAt={relA('p3-04')}

@@ -11,7 +11,7 @@ import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {QuoteCard} from '../components/cards';
-import {Footnote, Ledger, LoopRing, Panel, useRingDot} from '../components/motifs';
+import {Footnote, Ledger, LoopRing, Panel, SceneHeader, useRingDot} from '../components/motifs';
 
 /** 5-A ★时间铰链：双时间线并行 + 中缝环照转。
  *  左线：从完整对话快照抄走 tab 字条 → keep 登记簿（先完成）；
@@ -747,6 +747,7 @@ export const P5Hinge: React.FC<{scene: SceneRange}> = ({scene}) => {
   const relE = (id: string) => at(id) - bE.from;
   return (
     <AbsoluteFill>
+      <SceneHeader index="P5" title="先抢救，再碎纸" meta="salvage before shred · dream gates" />
       <Sequence {...bA} name="5-A 时间铰链">
         <TimeHinge leftAt={relA('p5-02')} rightAt={relA('p5-03')} />
       </Sequence>

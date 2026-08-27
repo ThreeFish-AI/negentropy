@@ -6,14 +6,7 @@ import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoCo
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {
-  Footnote,
-  LoopRing,
-  NumberedCard,
-  Panel,
-  SceneTag,
-  useRingDot,
-} from '../components/motifs';
+import {Footnote, LoopRing, NumberedCard, Panel, SceneHeader, SceneTag, useRingDot} from '../components/motifs';
 
 /** 2-A 配对语义：一次调用卡 ↔ 一条结果卡的锁扣「咔」；真结果换装成完成通知入队 */
 const PairLock: React.FC<{lockAt: number; swapAt: number; queueAt: number}> = ({lockAt, swapAt, queueAt}) => {
@@ -400,6 +393,7 @@ export const P2Rejoin: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bE = w('p2-16', 'p2-23');
   return (
     <AbsoluteFill>
+      <SceneHeader index="P2" title="干完怎么接回来" meta="notification queue · next > later" />
       <Sequence {...bA} name="2-A 配对锁扣">
         <PairLock lockAt={at('p2-03') - bA.from} swapAt={at('p2-04') - bA.from} queueAt={at('p2-05') - bA.from} />
       </Sequence>

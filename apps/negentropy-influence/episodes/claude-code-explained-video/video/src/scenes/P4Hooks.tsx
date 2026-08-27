@@ -6,18 +6,7 @@ import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {QuoteCard} from '../components/cards';
-import {
-  CodeCard,
-  Counter,
-  Footnote,
-  LoopRing,
-  Panel,
-  SceneTag,
-  SLOT_GAP,
-  SLOT_W,
-  SlotRing,
-  useRingDot,
-} from '../components/motifs';
+import {CodeCard, Counter, Footnote, LoopRing, Panel, SLOT_GAP, SLOT_W, SceneHeader, SceneTag, SlotRing, useRingDot} from '../components/motifs';
 
 const SLOTS = [
   {name: '进入模型之前', when: '你的话交出去，还没进模型', callbacks: ['校验输入 / 补背景']},
@@ -858,6 +847,7 @@ export const P4Hooks: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bH = w('p4-35', 'p4-37');
   return (
     <AbsoluteFill>
+      <SceneHeader index="P4" title="挂在循环上，不写进循环里" meta="Hooks · 31 events × 3 rhythms" />
       <Sequence {...bA} name="4-A 需求扎进循环">
         <NeedsPierce needAt={rel(bA, 'p4-03')} pierceAt={rel(bA, 'p4-04')} />
       </Sequence>

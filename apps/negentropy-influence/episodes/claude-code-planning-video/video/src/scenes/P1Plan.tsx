@@ -6,7 +6,7 @@ import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {QuoteCard} from '../components/cards';
-import {Chip, CodeCard, Desk, Footnote, Panel, SceneTag, Stamp} from '../components/motifs';
+import {Chip, CodeCard, Desk, Footnote, Panel, SceneHeader, SceneTag, Stamp} from '../components/motifs';
 
 /** 三态行：空格 → ▸ → ✓ 各一次演示态（storyboard 1-A）。 */
 const STATE_ICONS = ['　', '▸', '✓'] as const;
@@ -395,6 +395,7 @@ export const P1Plan: React.FC<{scene: SceneRange}> = ({scene}) => {
   const relD = (id: string) => at(id) - bD.from;
   return (
     <AbsoluteFill>
+      <SceneHeader index="P1" title="把清单钉在桌上" meta="TodoWrite · retired by default" />
       <Sequence {...bA} name="1-A 三态清单滑入">
         {/* 三态图标演示态跟随 p1-02（每条标一个状态）逐个闪现 */}
         <ChecklistSlidesIn iconAt={[relA('p1-02'), relA('p1-02') + 16, relA('p1-02') + 32]} />

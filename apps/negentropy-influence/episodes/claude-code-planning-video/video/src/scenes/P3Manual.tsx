@@ -6,7 +6,7 @@ import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoCo
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Counter, Desk, Footnote, Panel, SceneTag, Stamp} from '../components/motifs';
+import {Counter, Desk, Footnote, Panel, SceneHeader, SceneTag, Stamp} from '../components/motifs';
 
 /** 3-A 左：桌角薄目录卡叠（每张一行 ~100）；右：整块厚手册拍上桌（~2000+），桌面被压得下沉。 */
 const ThickManualSlams: React.FC<{slamAt: number}> = ({slamAt}) => {
@@ -723,6 +723,7 @@ export const P3Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
   const relF = (id: string) => at(id) - bF.from;
   return (
     <AbsoluteFill>
+      <SceneHeader index="P3" title="目录卡与垫纸" meta="Skills · progressive disclosure" />
       <Sequence {...bA} name="3-A 厚手册压桌">
         {/* p3-02「全贴进基本设定」手册拍上桌；p3-03 计价器跳红 */}
         <ThickManualSlams slamAt={relA('p3-02')} />
