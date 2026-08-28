@@ -448,8 +448,9 @@ export const P0Hook: React.FC<{scene: SceneRange}> = ({scene}) => {
       <SceneHeader index="P0" title="一个注意力，盖不住一个后端" meta="agentic laziness · bias · drift" durationInFrames={scene.durationInFrames} />
       <Sequence {...bA} name="0-A 清单溢出与孤环">
         <SceneTag chapter="Agent Teams" tagline="One Agent Is Not Enough" accent={theme.peer} />
-        {/* 拉镜点在 p0-03；cardsAt：官方三失败模式症状卡（Harness Engineering 改造） */}
-        <OverflowThenZoom zoomAt={at('p0-03') - bA.from} cardsAt={at('p0-03') - bA.from + 40} />
+        {/* 拉镜点在 p0-03；cardsAt：官方三失败模式症状卡（Harness Engineering 改造）。
+            三个名字的列举已拆到 p0-03a（B 方案改稿），卡片跟着列举句走 */}
+        <OverflowThenZoom zoomAt={at('p0-03') - bA.from} cardsAt={at('p0-03a') - bA.from} />
       </Sequence>
       <Sequence {...bB} name="0-B 四问铭牌">
         {/* 图标预览点在 p0-08「一堆文件、几个信箱、一张编号表」 */}

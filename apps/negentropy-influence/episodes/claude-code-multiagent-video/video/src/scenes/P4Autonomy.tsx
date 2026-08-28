@@ -1,6 +1,7 @@
-/** P4 自己看板，自己认领（分镜 4-A…4-D）
+/** P4 自己看板，自己认领（分镜 4-A…4-E）
  *  三段生命周期环（干活/歇着/走人）；五秒心跳两看（先信箱后看板）；
- *  认领三查 + 锁闪光；六十秒表盘走满收工；身份重注入；包工头→项目经理。 */
+ *  认领三查 + 锁闪光；六十秒表盘走满收工；身份重注入；包工头→项目经理；
+ *  4-E 官方战例：十六个它写编译器（B 方案改稿新增镜）。 */
 import React from 'react';
 import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig} from 'remotion';
 import {theme} from '../design/theme';
@@ -584,6 +585,423 @@ const SixtyClock: React.FC<{clockAt: number; doneAt: number; compactAt: number; 
   );
 };
 
+/** 4-E ★官方战例：十六个它写编译器（B 方案改稿新增镜，p4-17..24）。
+ *  舞台主体 = 4×4 容器网格（每格 peer 色小环 + 容器描边——16 个不 16 色，
+ *  反枚举），随句锚依次换「配件层」：锁文件占坑（p4-18）→ 战果数字带 + 空席
+ *  盖章（p4-19）→ boot 脉冲 + 账单停格（p4-20）→ deny 冻霜级联（p4-21/22）→
+ *  文件块分流两堆 + 二分箭头收敛（p4-23/24）。全部时点由句锚推导。 */
+const CompilerCase: React.FC<{
+  gridAt: number;
+  lockAt: number;
+  scoreAt: number;
+  bootAt: number;
+  frostAt: number;
+  splitAt: number;
+}> = ({gridAt, lockAt, scoreAt, bootAt, frostAt, splitAt}) => {
+  const frame = useCurrentFrame();
+  const {fps} = useVideoConfig();
+  // 4×4 容器网格：逐格点亮（间隔 4 帧，分镜动效约定）
+  const lit = (i: number) =>
+    interpolate(frame - gridAt - i * 4, [0, 8], [0, 1], {
+      extrapolateLeft: 'clamp',
+      extrapolateRight: 'clamp',
+    });
+  // 锁文件卡：飞入 + 写入闪光（p4-18）
+  const lockFly = interpolate(frame - lockAt, [0, 20], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const lockFlash = interpolate(frame - lockAt - 18, [0, 6, 22], [0, 1, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  // 战果数字带：逐项滚动（p4-19）——确定性 ease，无随机
+  const scoreItems = [
+    {t: '并行', v: 16},
+    {t: '会话', v: 2000},
+    {t: '代码行', v: 100000},
+  ];
+  const scoreIn = phase(frame, scoreAt, 14);
+  // 空席盖章：领队席空 + deny 叉章（p4-19「没有总调度，没有领队」）
+  const seatStamp = spring({frame: frame - scoreAt - 14, fps, config: {damping: 130}});
+  // boot 脉冲 + 账单停格（p4-20）
+  const bootPulse =
+    frame >= bootAt
+      ? interpolate((frame - bootAt) % 36, [0, 6, 30], [0, 1, 0], {extrapolateRight: 'clamp'})
+      : 0;
+  const billIn = phase(frame, bootAt + 10, 14);
+  // 冻霜级联：从第 0 格扩散冻结全部 16 格（p4-21/22——一个报错全场停摆）
+  const frostSpread = interpolate(frame - frostAt, [0, 52], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const cellFrost = (i: number) =>
+    Math.max(0, Math.min(1, (frostSpread * 17 - i) / 2));
+  // 分流：文件块分两堆 + 二分箭头逐轮收敛（p4-23/24）
+  const split = phase(frame, splitAt, 20);
+  const bisectRounds = interpolate(frame - splitAt - 10, [0, 60], [0, 3], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  // 网格几何：4×4 紧凑格（CELL 112——给底部分流条带与角标让出垂直空间，
+  // 避开字幕带与 Footnote 双行区，skills/06 红线二）
+  const GX = 150;
+  const GY = 90;
+  const CELL = 112;
+  const GAP = 14;
+  const GRID_W = 4 * CELL + 3 * GAP;
+  return (
+    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
+      <div style={{position: 'relative', width: 1760, height: 760}}>
+        {/* 主体：4×4 容器网格（16 个 peer 同色小环，反枚举） */}
+        <div style={{position: 'absolute', left: GX, top: GY}}>
+          {Array.from({length: 16}, (_, i) => {
+            const e = lit(i);
+            if (e <= 0) return null;
+            const r = Math.floor(i / 4);
+            const c = i % 4;
+            const fr = cellFrost(i);
+            return (
+              <div
+                key={i}
+                style={{
+                  position: 'absolute',
+                  left: c * (CELL + GAP),
+                  top: r * (CELL + GAP),
+                  width: CELL,
+                  height: CELL,
+                  borderRadius: 12,
+                  border: `2px solid ${fr > 0.3 ? theme.deny : theme.peer}`,
+                  background: fr > 0.3 ? `${theme.deny}1a` : theme.panel,
+                  opacity: e,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <svg width={CELL - 24} height={CELL - 24} style={{overflow: 'visible'}}>
+                  <circle
+                    cx={(CELL - 24) / 2}
+                    cy={(CELL - 24) / 2}
+                    r={(CELL - 24) / 2 - 14}
+                    fill="none"
+                    stroke={fr > 0.3 ? theme.dim : theme.peer}
+                    strokeWidth={4}
+                    opacity={fr > 0.3 ? 0.4 : 1}
+                  />
+                  {/* 占坑一行：认领 = 往锁文件写一行 */}
+                  <text
+                    x={(CELL - 24) / 2}
+                    y={(CELL - 24) / 2 + 5}
+                    textAnchor="middle"
+                    fontFamily={theme.mono}
+                    fontSize={15}
+                    fill={fr > 0.3 ? theme.dim : theme.text}
+                  >
+                    {`ag-${String(i + 1).padStart(2, '0')}`}
+                  </text>
+                </svg>
+                {/* 冻霜角标：格内右上小雪花刻线（deny，确定性六线星） */}
+                {fr > 0.4 ? (
+                  <svg
+                    width={30}
+                    height={30}
+                    style={{position: 'absolute', right: 4, top: 4, opacity: (fr - 0.4) / 0.6}}
+                  >
+                    {[0, 60, 120].map((a) => (
+                      <line
+                        key={a}
+                        x1={15 - 11 * Math.cos((a * Math.PI) / 180)}
+                        y1={15 - 11 * Math.sin((a * Math.PI) / 180)}
+                        x2={15 + 11 * Math.cos((a * Math.PI) / 180)}
+                        y2={15 + 11 * Math.sin((a * Math.PI) / 180)}
+                        stroke={theme.deny}
+                        strokeWidth={2.5}
+                        strokeLinecap="round"
+                      />
+                    ))}
+                  </svg>
+                ) : null}
+              </div>
+            );
+          })}
+          {/* 冻霜扩散波纹（从一格级联） */}
+          {frostSpread > 0 && frostSpread < 1 ? (
+            <svg
+              width={GRID_W}
+              height={GRID_W}
+              style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none'}}
+            >
+              <circle
+                cx={CELL / 2}
+                cy={CELL / 2}
+                r={frostSpread * GRID_W}
+                fill="none"
+                stroke={theme.deny}
+                strokeWidth={3}
+                opacity={0.35 * (1 - frostSpread)}
+              />
+            </svg>
+          ) : null}
+          {/* 领队席：空（盖 deny 叉章——没有总调度；网格右缘旁） */}
+          {seatStamp > 0 ? (
+            <div
+              style={{
+                position: 'absolute',
+                left: GRID_W + 34,
+                top: GRID_W / 2 - 64,
+                width: 190,
+                textAlign: 'center',
+                opacity: Math.min(1, seatStamp * 1.2),
+                transform: `rotate(${-6 * seatStamp}deg)`,
+              }}
+            >
+              <div
+                style={{
+                  border: `3px dashed ${theme.panelBorder}`,
+                  borderRadius: 12,
+                  padding: '16px 12px',
+                  background: 'transparent',
+                  color: theme.dim,
+                  fontFamily: theme.sans,
+                  fontSize: 22,
+                  position: 'relative',
+                }}
+              >
+                {'领队席：空'}
+                <svg
+                  width={60}
+                  height={60}
+                  style={{position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-55%)'}}
+                >
+                  <circle cx={30} cy={30} r={26} fill="none" stroke={theme.deny} strokeWidth={4} opacity={seatStamp} />
+                  <line x1={12} y1={12} x2={48} y2={48} stroke={theme.deny} strokeWidth={4} strokeLinecap="round" opacity={seatStamp} />
+                  <line x1={48} y1={12} x2={12} y2={48} stroke={theme.deny} strokeWidth={4} strokeLinecap="round" opacity={seatStamp} />
+                </svg>
+              </div>
+            </div>
+          ) : null}
+        </div>
+        {/* 右侧配件列：锁文件 → 战果带 → boot/账单（随句锚换页；右移避让领队席） */}
+        <div style={{position: 'absolute', left: 1040, top: 110, width: 600}}>
+          {/* 锁文件卡：current_tasks/xxx.txt 飞入 + 占坑标签（p4-18） */}
+          {lockFly > 0 ? (
+            <div
+              style={{
+                transform: `translateX(${(1 - lockFly) * 130}px)`,
+                opacity: lockFly,
+                boxShadow: lockFlash > 0 ? `0 0 ${26 * lockFlash}px ${theme.mech}` : 'none',
+              }}
+            >
+              <Panel accent={theme.mech} style={{padding: '14px 18px', width: 440}}>
+                <div style={{fontFamily: theme.mono, fontSize: 18, color: theme.dim}}>
+                  {'current_tasks/'}
+                </div>
+                <div style={{fontFamily: theme.mono, fontSize: 21, color: theme.text, marginTop: 4}}>
+                  {'ag-03.txt'}
+                </div>
+                <div
+                  style={{
+                    display: 'inline-block',
+                    marginTop: 8,
+                    padding: '3px 12px',
+                    borderRadius: 6,
+                    border: `1.5px solid ${theme.mech}`,
+                    fontFamily: theme.sans,
+                    fontSize: 18,
+                    color: theme.mech,
+                  }}
+                >
+                  {'占坑'}
+                </div>
+              </Panel>
+            </div>
+          ) : null}
+          {/* 战果数字带：逐项滚动（p4-19） */}
+          {scoreIn > 0 ? (
+            <div style={{opacity: scoreIn, marginTop: 24, transform: `translateY(${(1 - scoreIn) * 14}px)`}}>
+              <Panel accent={theme.peer} style={{padding: '14px 20px', width: 440}}>
+                {scoreItems.map((s, k) => {
+                  const o = phase(frame, scoreAt + k * 8, 10);
+                  const n = Math.round(s.v * phase(frame, scoreAt + k * 8, 22));
+                  return (
+                    <div
+                      key={s.t}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        fontFamily: theme.mono,
+                        fontSize: 21,
+                        color: theme.text,
+                        marginTop: 6,
+                        opacity: o,
+                      }}
+                    >
+                      <span style={{color: theme.dim}}>{s.t}</span>
+                      <span style={{fontVariantNumeric: 'tabular-nums'}}>
+                        {n.toLocaleString('en-US')}
+                      </span>
+                    </div>
+                  );
+                })}
+                {/* boot 脉冲行：可启动内核（p4-20） */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    marginTop: 12,
+                    opacity: bootPulse > 0 ? 1 : billIn > 0 ? 0.75 : 0,
+                  }}
+                >
+                  <svg width={70} height={18}>
+                    <line x1={2} y1={9} x2={58} y2={9} stroke={theme.dim} strokeWidth={3} />
+                    <line
+                      x1={2}
+                      y1={9}
+                      x2={2 + 54 * Math.max(0.15, bootPulse)}
+                      y2={9}
+                      stroke={theme.mech}
+                      strokeWidth={4}
+                      strokeLinecap="round"
+                    />
+                    <polygon points="68,9 58,4 58,14" fill={theme.mech} opacity={bootPulse > 0 ? 1 : 0.6} />
+                  </svg>
+                  <span style={{fontFamily: theme.sans, fontSize: 19, color: theme.text}}>
+                    {'可启动的内核'}
+                  </span>
+                </div>
+                {/* 账单停格（p4-20） */}
+                {billIn > 0 ? (
+                  <div
+                    style={{
+                      marginTop: 10,
+                      paddingTop: 8,
+                      borderTop: `1px solid ${theme.panelBorder}`,
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      opacity: billIn,
+                    }}
+                  >
+                    <span style={{fontFamily: theme.sans, fontSize: 19, color: theme.dim}}>{'账单'}</span>
+                    <span style={{fontFamily: theme.mono, fontSize: 21, color: theme.text}}>{'< $20,000'}</span>
+                  </div>
+                ) : null}
+              </Panel>
+            </div>
+          ) : null}
+        </div>
+        {/* 底部条带：文件块分流两堆 + 二分箭头收敛（p4-23/24） */}
+        {split > 0 ? (
+          <div
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: 26,
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              gap: 34,
+              opacity: split,
+              transform: `translateY(${(1 - split) * 16}px)`,
+            }}
+          >
+            {/* 大堆：走现成的编译器（mech） */}
+            <div style={{textAlign: 'center'}}>
+              <div style={{display: 'flex', gap: 5, alignItems: 'flex-end', height: 66}}>
+                {Array.from({length: 10}, (_, i) => {
+                  const o = interpolate(frame - splitAt - 4 - i * 2, [0, 6], [0, 1], {
+                    extrapolateLeft: 'clamp',
+                    extrapolateRight: 'clamp',
+                  });
+                  const h = 30 + ((i * 37) % 36);
+                  return (
+                    <div
+                      key={i}
+                      style={{
+                        width: 22,
+                        height: h,
+                        borderRadius: 4,
+                        border: `2px solid ${theme.mech}`,
+                        background: `${theme.mech}22`,
+                        opacity: o,
+                      }}
+                    />
+                  );
+                })}
+              </div>
+              <div style={{fontFamily: theme.sans, fontSize: 18, color: theme.mech, marginTop: 6}}>
+                {'大部分文件 → 现成的编译器'}
+              </div>
+            </div>
+            {/* 二分箭头：逐轮收敛（三轮，确定性——每轮一对更短的叉线） */}
+            <svg width={200} height={90}>
+              {[0, 1, 2].map((k) => {
+                const on = bisectRounds >= k + 1;
+                const half = 32 - k * 10; // 每轮摆幅收窄
+                const yMid = 45;
+                const x1 = 40 + k * 14;
+                const x2 = 150 - k * 14;
+                return (
+                  <g key={k} opacity={on ? 1 : 0.25}>
+                    <line
+                      x1={x1}
+                      y1={yMid - half}
+                      x2={x2}
+                      y2={yMid + half}
+                      stroke={on ? theme.mech : theme.panelBorder}
+                      strokeWidth={3.5}
+                      strokeLinecap="round"
+                    />
+                    <polygon
+                      points={`${x2 - 10},${yMid + half - 6} ${x2},${yMid + half} ${x2 - 4},${yMid + half - 12}`}
+                      fill={on ? theme.mech : theme.panelBorder}
+                    />
+                  </g>
+                );
+              })}
+              <text x={100} y={84} textAnchor="middle" fontFamily={theme.sans} fontSize={16} fill={theme.dim}>
+                {'二分 · 谁也不挡谁'}
+              </text>
+            </svg>
+            {/* 小堆：留给它（peer） */}
+            <div style={{textAlign: 'center'}}>
+              <div style={{display: 'flex', gap: 5, alignItems: 'flex-end', height: 66}}>
+                {Array.from({length: 3}, (_, i) => {
+                  const o = interpolate(frame - splitAt - 10 - i * 3, [0, 6], [0, 1], {
+                    extrapolateLeft: 'clamp',
+                    extrapolateRight: 'clamp',
+                  });
+                  return (
+                    <div
+                      key={i}
+                      style={{
+                        width: 22,
+                        height: 40 + i * 10,
+                        borderRadius: 4,
+                        border: `2px solid ${theme.peer}`,
+                        background: `${theme.peer}22`,
+                        opacity: o,
+                      }}
+                    />
+                  );
+                })}
+              </div>
+              <div style={{fontFamily: theme.sans, fontSize: 18, color: theme.peer, marginTop: 6}}>
+                {'一小撮 → 它'}
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </div>
+      <Footnote delay={gridAt + 30}>
+        {'16 并行 · ~2,000 会话 · ~$20K · ~100K LOC —— 官方工程博客 2026-02-05'}
+      </Footnote>
+    </AbsoluteFill>
+  );
+};
+
 /** 4-D 包工头帽 → 项目经理牌：帽子换牌 + 两件事卡片钉在环旁 */
 const ForemanToManager: React.FC<{swapAt: number; cardsAt: number}> = ({swapAt, cardsAt}) => {
   const frame = useCurrentFrame();
@@ -703,6 +1121,7 @@ export const P4Autonomy: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bB = w('p4-04', 'p4-09');
   const bC = w('p4-10', 'p4-13');
   const bD = w('p4-14', 'p4-16');
+  const bE = w('p4-17', 'p4-24');
   const rel = (b: {from: number}, id: string) => at(id) - b.from;
   return (
     <AbsoluteFill>
@@ -728,6 +1147,16 @@ export const P4Autonomy: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
       <Sequence {...bD} name="4-D 包工头换项目经理">
         <ForemanToManager swapAt={rel(bD, 'p4-16')} cardsAt={rel(bD, 'p4-15')} />
+      </Sequence>
+      <Sequence {...bE} name="4-E 官方战例：十六个它写编译器">
+        <CompilerCase
+          gridAt={rel(bE, 'p4-17')}
+          lockAt={rel(bE, 'p4-18')}
+          scoreAt={rel(bE, 'p4-19')}
+          bootAt={rel(bE, 'p4-20')}
+          frostAt={rel(bE, 'p4-21')}
+          splitAt={rel(bE, 'p4-23')}
+        />
       </Sequence>
     </AbsoluteFill>
   );

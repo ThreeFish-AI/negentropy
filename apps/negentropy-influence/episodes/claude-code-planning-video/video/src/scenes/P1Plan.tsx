@@ -1,5 +1,6 @@
-/** P1 把清单钉在桌上（分镜 1-A…1-D）—— TodoWrite
- *  三态清单卡滑入 → 钉进对话流（后续色块被顶开）→ 两行 diff + 金句 → 三轮催更印章。 */
+/** P1 把清单钉在桌上（分镜 1-A…1-F）—— TodoWrite
+ *  三态清单卡滑入 → 钉进对话流（后续色块被顶开）→ 两行 diff + 金句 → 退位帧（钢印）
+ *  → 计划闸（玻璃罩 + 三选一）→ 任务系统预告 + 零件生命周期时间轴。 */
 import React from 'react';
 import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig} from 'remotion';
 import {theme} from '../design/theme';
@@ -284,11 +285,13 @@ const TwoLineDiff: React.FC<{quoteAt: number}> = ({quoteAt}) => {
   );
 };
 
-/** 1-D 退位帧：官方默认停用清单工具——「收回」钢印 + 官方公告条（Harness Engineering 改造版） */
-const RetirementStamp: React.FC<{noticeAt: number; stampAt: number; taskSysAt: number}> = ({
+/** 1-D 退位帧：官方默认停用清单工具——「收回」钢印 + 官方公告条（Harness Engineering 改造版）。
+ *  分镜 1-D：damping:12 过冲 + ripple；被盖章的 todo_write 卡本体有反应——
+ *  描边 view→panelBorder 褪色、三行状态字依次划线、整卡下沉 12px 降到 0.45 透明；「押注押到期」标签。 */
+const RetirementStamp: React.FC<{noticeAt: number; stampAt: number; betAt: number}> = ({
   noticeAt,
   stampAt,
-  taskSysAt,
+  betAt,
 }) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
@@ -296,19 +299,53 @@ const RetirementStamp: React.FC<{noticeAt: number; stampAt: number; taskSysAt: n
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  const stamp = spring({frame: frame - stampAt, fps, config: {damping: 140}});
-  const taskSys = interpolate(frame - taskSysAt, [0, 16], [0, 1], {
+  const stamp = spring({frame: frame - stampAt, fps, config: {damping: 12}});
+  // 盖章冲击：容器同帧 translateY(3px) 下沉、8 帧回弹
+  const shakeT = interpolate(frame - stampAt, [0, 8], [1, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const cardSink = frame >= stampAt ? Math.min(1, (frame - stampAt) / 14) : 0;
+  const struck = (i: number) => frame >= stampAt + 6 + i * 6;
+  const bet = interpolate(frame - betAt, [0, 14], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <div style={{position: 'relative', width: 1100, height: 560}}>
-        {/* 清单卡（缩小版，居中） */}
-        <Panel accent={theme.view} style={{position: 'absolute', left: 280, top: 60, width: 540, padding: '22px 28px'}}>
+      <div
+        style={{
+          position: 'relative',
+          width: 1100,
+          height: 560,
+          transform: `translateY(${3 * shakeT}px)`,
+        }}
+      >
+        {/* 清单卡（缩小版，居中）——盖章后褪色、划线、下沉、降透明 */}
+        <Panel
+          accent={cardSink > 0 ? theme.panelBorder : theme.view}
+          style={{
+            position: 'absolute',
+            left: 280,
+            top: 60 + 12 * cardSink,
+            width: 540,
+            padding: '22px 28px',
+            opacity: 1 - 0.55 * cardSink,
+          }}
+        >
           <div style={{fontFamily: theme.mono, fontSize: 22, color: theme.dim}}>{'todo_write'}</div>
           {['pending 待办', 'in_progress 干着', 'completed 完事'].map((s, i) => (
-            <div key={s} style={{fontFamily: theme.sans, fontSize: 23, color: theme.text, marginTop: 10, opacity: 0.85}}>
+            <div
+              key={s}
+              style={{
+                fontFamily: theme.sans,
+                fontSize: 23,
+                color: struck(i) ? theme.dim : theme.text,
+                marginTop: 10,
+                textDecoration: struck(i) ? 'line-through' : 'none',
+                opacity: 0.85,
+              }}
+            >
               {s}
             </div>
           ))}
@@ -333,45 +370,28 @@ const RetirementStamp: React.FC<{noticeAt: number; stampAt: number; taskSysAt: n
             </div>
           </Panel>
         </div>
-        {/* 收回钢印 */}
-        {stamp > 0 ? (
+        {/* 收回钢印（damping:12 过冲 + ripple，来自 motifs.Stamp） */}
+        <Stamp text="收回" color={theme.deny} at={stampAt} size={150} rotate={-12} style={{position: 'absolute', left: 430, top: 110}} />
+        {/* 「押注押到期」标签 */}
+        {bet > 0 ? (
           <div
             style={{
               position: 'absolute',
-              left: 430,
-              top: 110,
-              opacity: Math.min(1, stamp * 1.4),
-              transform: `rotate(${-12 + 4 * stamp}deg) scale(${1.5 - 0.5 * stamp})`,
-              border: `5px solid ${theme.deny}`,
-              borderRadius: 12,
-              padding: '10px 30px',
+              left: 770,
+              top: 180,
+              opacity: bet,
+              transform: `translateY(${(1 - bet) * 12}px) rotate(6deg)`,
+              border: `2px solid ${theme.deny}`,
+              borderRadius: 8,
+              padding: '6px 16px',
               fontFamily: theme.serif,
-              fontSize: 46,
+              fontSize: 26,
               fontWeight: 700,
               color: theme.deny,
-              letterSpacing: 10,
-              boxShadow: `0 0 24px ${theme.deny}44`,
+              background: `${theme.deny}12`,
             }}
           >
-            {'收 回'}
-          </div>
-        ) : null}
-        {/* 任务系统预告 */}
-        {taskSys > 0 ? (
-          <div
-            style={{
-              position: 'absolute',
-              left: 0,
-              right: 0,
-              bottom: -60,
-              textAlign: 'center',
-              opacity: taskSys,
-              fontFamily: theme.sans,
-              fontSize: 23,
-              color: theme.dim,
-            }}
-          >
-            {'清单背后那套更重的任务系统（带依赖·能锁·落盘）——以后单拆'}
+            {'押注押到期'}
           </div>
         ) : null}
       </div>
@@ -382,20 +402,290 @@ const RetirementStamp: React.FC<{noticeAt: number; stampAt: number; taskSysAt: n
   );
 };
 
+/** 1-E 新镜「计划闸」：只读探索的手被玻璃罩罩住；view 计划卡落桌；「改文件」动作块
+ *  撞罩被 deny 弹回；三选一按钮（反枚举：panel 底 + 编号 01/02/03）；末句金句卡。 */
+const PlanGate: React.FC<{
+  glassAt: number;
+  planAt: number;
+  bounceAt: number;
+  choicesAt: number;
+  quoteAt: number;
+}> = ({glassAt, planAt, bounceAt, choicesAt, quoteAt}) => {
+  const frame = useCurrentFrame();
+  const {fps} = useVideoConfig();
+  if (frame >= quoteAt) {
+    return <QuoteCard zh="清单是写给它自己看的；计划，是写给你看的。" accent={theme.view} />;
+  }
+  // 玻璃罩自上罩下（spring）
+  const glass = spring({frame: frame - glassAt, fps, config: {damping: 200}});
+  // 计划卡落桌（damping:200）
+  const plan = spring({frame: frame - planAt, fps, config: {damping: 200}});
+  // 「改文件」动作块撞罩弹回：复用 3-C 单向阀 bounce 曲线（0→-46→-32 位移 + deny 闪）
+  const blocked = frame >= bounceAt;
+  const travel = interpolate(frame - bounceAt, [-16, 18], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const bounce = blocked
+    ? interpolate(frame - bounceAt, [0, 12, 26], [0, -46, -32], {
+        extrapolateLeft: 'clamp',
+        extrapolateRight: 'clamp',
+      })
+    : 0;
+  const CHOICES = ['交给自动闸门', '逐条人工点头', '继续再想'] as const;
+  return (
+    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
+      <div style={{position: 'relative', width: 1300, height: 640}}>
+        {/* 文件（只读探索的对象）+ 玻璃罩 */}
+        <div style={{position: 'absolute', left: 120, top: 120}}>
+          <Panel style={{width: 300, padding: '18px 22px'}}>
+            <div style={{fontFamily: theme.mono, fontSize: 19, color: theme.dim}}>{'src/query.ts'}</div>
+            <div style={{fontFamily: theme.mono, fontSize: 22, color: theme.text, marginTop: 8, whiteSpace: 'pre'}}>
+              {'只读探索：\n读结构 · 记结论\n不动一行'}
+            </div>
+          </Panel>
+          {/* 玻璃罩：mech 描边 + 8% 白底，自上罩下 */}
+          <div
+            style={{
+              position: 'absolute',
+              left: -18,
+              top: -120 * glass,
+              width: 336,
+              height: 200,
+              border: `3px solid ${theme.mech}`,
+              borderRadius: '12px 12px 0 0',
+              background: 'rgba(255,255,255,0.08)',
+              opacity: glass,
+            }}
+          >
+            <div style={{fontFamily: theme.sans, fontSize: 20, color: theme.mech, textAlign: 'center', marginTop: 10}}>
+              {'计划模式 · 玻璃罩'}
+            </div>
+            <div style={{fontFamily: theme.sans, fontSize: 19, color: theme.dim, textAlign: 'center', marginTop: 6}}>
+              {'罩住：看得见，改不得'}
+            </div>
+          </div>
+        </div>
+        {/* 计划卡：从上落桌（view 描边） */}
+        <div style={{position: 'absolute', left: 560, top: 100 + (1 - plan) * -160, opacity: plan}}>
+          <Panel accent={theme.view} style={{width: 380, padding: '16px 22px'}}>
+            <div style={{fontFamily: theme.mono, fontSize: 19, color: theme.dim}}>{'计划（写给你过目）'}</div>
+            {['① 摸清调用链', '② 列出改法两套', '③ 标注风险点'].map((s) => (
+              <div key={s} style={{fontFamily: theme.sans, fontSize: 22, color: theme.text, marginTop: 7}}>
+                {s}
+              </div>
+            ))}
+          </Panel>
+        </div>
+        {/* 「改文件」动作块：从右侧飞向玻璃罩，撞罩被 deny 弹回（复用 3-C 单向阀曲线） */}
+        {blocked ? (
+          <div
+            style={{
+              position: 'absolute',
+              left: 760 - travel * 220 - bounce,
+              top: 250,
+              opacity: travel > 0.05 ? 1 : 0,
+            }}
+          >
+            <Chip kind="tool" label="[edit] 改文件" width={210} style={{borderColor: theme.deny}} />
+            <div style={{fontFamily: theme.sans, fontSize: 19, color: theme.deny, marginTop: 6}}>
+              {'计划没批，一律拦住'}
+            </div>
+          </div>
+        ) : null}
+        {/* 三选一按钮：反枚举（panel 底 + 编号 01/02/03，仅当前项染 mech） */}
+        <div style={{position: 'absolute', left: 0, right: 0, bottom: 40, display: 'flex', justifyContent: 'center', gap: 22}}>
+          {CHOICES.map((c, i) => {
+            const on = frame >= choicesAt + i * 9;
+            const lit = frame >= choicesAt + i * 9 + 18;
+            return (
+              <div
+                key={c}
+                style={{
+                  width: 300,
+                  padding: '13px 18px',
+                  borderRadius: 10,
+                  background: theme.panel,
+                  border: `2px solid ${lit ? theme.mech : theme.panelBorder}`,
+                  opacity: on ? 1 : 0.35,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  transform: `translateY(${on ? 0 : 8}px)`,
+                }}
+              >
+                <span style={{fontFamily: theme.mono, fontSize: 20, color: lit ? theme.mech : theme.dim}}>
+                  {String(i + 1).padStart(2, '0')}
+                </span>
+                <span style={{fontFamily: theme.sans, fontSize: 22, color: lit ? theme.mech : theme.dim}}>{c}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <Footnote delay={choicesAt}>{'计划模式：只读探索 → 写计划 → 批准那一下三选一（官方文档口径）'}</Footnote>
+    </AbsoluteFill>
+  );
+};
+
+/** 1-F 任务系统预告（小图标一闪）+「装在循环外」收束 + 零件生命周期时间轴：
+ *  左端「模型记不住 → 需要清单」、右端「模型记住了 → 清单过期」；core 光点自左滑右，抵达右端清单卡消失。 */
+const LifecycleTimeline: React.FC<{taskSysAt: number; axisAt: number; dotAt: number; quoteAt: number}> = ({
+  taskSysAt,
+  axisAt,
+  dotAt,
+  quoteAt,
+}) => {
+  const frame = useCurrentFrame();
+  if (frame >= quoteAt) {
+    return <QuoteCard zh="把计划写下来，本身就是一种能力。" accent={theme.view} />;
+  }
+  const taskSys = interpolate(frame - taskSysAt, [0, 16], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  // 时间轴描出
+  const axis = interpolate(frame - axisAt, [0, 26], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  // core 光点自左滑向右
+  const dot = interpolate(frame - dotAt, [0, 50], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  // 抵达右端：清单卡彻底消失
+  const listGone = interpolate(frame - dotAt, [42, 50], [1, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  return (
+    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
+      {/* 任务系统预告：三个小图标一闪（「以后单拆」） */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 130,
+          display: 'flex',
+          gap: 18,
+          opacity: taskSys * 0.85,
+        }}
+      >
+        {[
+          {t: '带依赖', d: 'A→B'},
+          {t: '能锁', d: '锁定'},
+          {t: '落盘', d: '落盘'},
+        ].map((x, i) => (
+          <div
+            key={x.t}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: '8px 16px',
+              borderRadius: 999,
+              border: `2px solid ${theme.panelBorder}`,
+              fontFamily: theme.sans,
+              fontSize: 21,
+              color: theme.dim,
+              opacity: interpolate(frame - taskSysAt - i * 5, [0, 8], [0, 1], {
+                extrapolateLeft: 'clamp',
+                extrapolateRight: 'clamp',
+              }),
+            }}
+          >
+            <span style={{fontFamily: theme.mono, color: theme.mech}}>{x.d}</span>
+            {x.t}
+          </div>
+        ))}
+        <div style={{fontFamily: theme.sans, fontSize: 21, color: theme.dim, alignSelf: 'center', marginLeft: 8}}>
+          {'—— 那套以后单拆'}
+        </div>
+      </div>
+      {/* 生命周期时间轴 */}
+      <div style={{position: 'relative', width: 1200, height: 380, marginTop: 60}}>
+        {/* 轴线 */}
+        <svg width={1200} height={120} style={{position: 'absolute', left: 0, top: 120}}>
+          <line
+            x1={80}
+            y1={60}
+            x2={80 + 1040 * axis}
+            y2={60}
+            stroke={theme.panelBorder}
+            strokeWidth={4}
+            strokeLinecap="round"
+          />
+          {/* core 光点 */}
+          <circle cx={80 + 1040 * dot} cy={60} r={11} fill={theme.core} opacity={axis} />
+          {/* 右端箭头（axis 描满后出现） */}
+          {axis > 0.98 ? (
+            <path d="M1120 60 L1106 50 L1106 70 Z" fill={theme.panelBorder} />
+          ) : null}
+        </svg>
+        {/* 左端：模型记不住 → 需要清单（清单卡小样） */}
+        <div style={{position: 'absolute', left: 60, top: 20, width: 300}}>
+          <div style={{fontFamily: theme.sans, fontSize: 22, color: theme.dim}}>{'模型记不住'}</div>
+          <div style={{fontFamily: theme.serif, fontSize: 28, fontWeight: 700, color: theme.view, marginTop: 4}}>
+            {'→ 需要清单'}
+          </div>
+          <div style={{marginTop: 12, opacity: 0.7}}>
+            <Chip kind="task" label="todo_write" width={180} />
+          </div>
+        </div>
+        {/* 右端：模型记住了 → 清单过期（清单卡随光点抵达而消失） */}
+        <div style={{position: 'absolute', right: 60, top: 20, width: 320, textAlign: 'right'}}>
+          <div style={{fontFamily: theme.sans, fontSize: 22, color: theme.dim}}>{'模型记住了'}</div>
+          <div style={{fontFamily: theme.serif, fontSize: 28, fontWeight: 700, color: theme.deny, marginTop: 4}}>
+            {'→ 清单过期'}
+          </div>
+          <div style={{marginTop: 12, opacity: 0.7 * listGone}}>
+            <div style={{display: 'flex', justifyContent: 'flex-end'}}>
+              <Chip kind="task" label="todo_write" width={180} style={{textDecoration: 'line-through'}} />
+            </div>
+          </div>
+        </div>
+        {/* 中段注记：装在循环外的能力 */}
+        <div
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            top: 250,
+            textAlign: 'center',
+            fontFamily: theme.sans,
+            fontSize: 24,
+            color: theme.dim,
+            opacity: interpolate(frame - dotAt, [10, 30], [0, 1], {
+              extrapolateLeft: 'clamp',
+              extrapolateRight: 'clamp',
+            }),
+          }}
+        >
+          {'清单是装在循环外面的能力 —— 循环本身一行没动'}
+        </div>
+      </div>
+    </AbsoluteFill>
+  );
+};
+
 export const P1Plan: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (fromId: string, toId?: string) => beatWindow(scene.sentences, scene.from, fromId, toId);
   const at = (id: string) => w(id).from;
   const bA = w('p1-01', 'p1-03');
   const relA = (id: string) => at(id) - bA.from;
-  const bB = w('p1-04', 'p1-09');
+  const bB = w('p1-05', 'p1-09');
   const relB = (id: string) => at(id) - bB.from;
   const bC = w('p1-10', 'p1-13');
   const relC = (id: string) => at(id) - bC.from;
-  const bD = w('p1-14', 'p1-19');
+  const bD = w('p1-14', 'p1-15');
   const relD = (id: string) => at(id) - bD.from;
+  const bE = w('p1-15a', 'p1-15e');
+  const relE = (id: string) => at(id) - bE.from;
+  const bF = w('p1-16', 'p1-19');
+  const relF = (id: string) => at(id) - bF.from;
   return (
     <AbsoluteFill>
-      <SceneHeader index="P1" title="把清单钉在桌上" meta="TodoWrite · retired by default" durationInFrames={scene.durationInFrames} />
+      <SceneHeader index="P1" title="把清单钉在桌上" meta="TodoWrite · plan mode" durationInFrames={scene.durationInFrames} />
       <Sequence {...bA} name="1-A 三态清单滑入">
         {/* 三态图标演示态跟随 p1-02（每条标一个状态）逐个闪现 */}
         <ChecklistSlidesIn iconAt={[relA('p1-02'), relA('p1-02') + 16, relA('p1-02') + 32]} />
@@ -409,11 +699,26 @@ export const P1Plan: React.FC<{scene: SceneRange}> = ({scene}) => {
         <TwoLineDiff quoteAt={relC('p1-12')} />
       </Sequence>
       <Sequence {...bD} name="1-D 退位帧">
-        {/* p1-14 官方公告；p1-15 收回钢印；p1-16 任务系统预告 */}
-        <RetirementStamp
-          noticeAt={relD('p1-14')}
-          stampAt={relD('p1-15')}
-          taskSysAt={relD('p1-16')}
+        {/* p1-14 官方公告 + 收回钢印；p1-15 押注押到期标签 + 卡片盖章反应 */}
+        <RetirementStamp noticeAt={relD('p1-14')} stampAt={relD('p1-15')} betAt={relD('p1-15') + 30} />
+      </Sequence>
+      <Sequence {...bE} name="1-E 计划闸">
+        {/* p1-15a 玻璃罩罩下；15b 计划卡落桌；15c 改文件撞罩弹回；15d 三选一；15e 金句卡 */}
+        <PlanGate
+          glassAt={relE('p1-15a')}
+          planAt={relE('p1-15b')}
+          bounceAt={relE('p1-15c')}
+          choicesAt={relE('p1-15d')}
+          quoteAt={relE('p1-15e')}
+        />
+      </Sequence>
+      <Sequence {...bF} name="1-F 任务系统与生命周期">
+        {/* p1-16 任务系统预告一闪；p1-18/19 金句；时间轴：模型记不住→需要清单 ↔ 模型记住了→清单过期 */}
+        <LifecycleTimeline
+          taskSysAt={relF('p1-16')}
+          axisAt={relF('p1-16') + 24}
+          dotAt={relF('p1-16') + 40}
+          quoteAt={relF('p1-18')}
         />
       </Sequence>
     </AbsoluteFill>

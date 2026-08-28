@@ -1,13 +1,14 @@
 /** P4 桌边的补救梯（分镜 4-A…4-E）—— Error Recovery
  *  三级梯垂下 → 话没说完（断截 + 8K→64K 标尺 + 续写×3）→ 桌上太满（压缩被拦）
- *  → 门外施工（等待条翻倍 0.5→32s 封顶 + 名牌翻面）→ 收益递减「停」章。 */
+ *  → 门外施工（等待条翻倍 0.5→32s 封顶 + 名牌翻面）→ 不重试的两类（分叉轨 + 分裂重放）
+ *  → 收益递减「停」章。 */
 import React from 'react';
 import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig} from 'remotion';
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {QuoteCard} from '../components/cards';
-import {Chip, Desk, Footnote, Panel, SceneHeader, SceneTag, Stamp} from '../components/motifs';
+import {Chip, Counter, Desk, Footnote, Panel, SceneHeader, SceneTag, Stamp} from '../components/motifs';
 
 /** 梯子骨架（mech）：三级木梯挂在桌右缘，自上垂下挂稳（rope 微弹）。 */
 const Ladder: React.FC<{drop: number; labels?: [string, string, string]}> = ({drop, labels}) => {
@@ -318,18 +319,22 @@ const TierTwo: React.FC<{squashAt: number; blockAt: number; exitAt: number}> = (
 };
 
 /** 4-D 三级梯「门外施工」：警示牌砸落；等待条按节拍翻倍伸长（0.5→32s 封顶横杠）；
- *  三连 529 后模型名牌翻面换人。 */
-const TierThree: React.FC<{warnAt: number; waitAt: number; flipAt: number; jitterAt: number}> = ({
+ *  一张「稍后再来」字条贴上并改写等待值（p4-14）；三连 529 后模型名牌翻面换人。 */
+const TierThree: React.FC<{warnAt: number; waitAt: number; flipAt: number; jitterAt: number; noteAt: number}> = ({
   warnAt,
   waitAt,
   flipAt,
   jitterAt,
+  noteAt,
 }) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   // 警示牌砸落抖动
   const warn = spring({frame: frame - warnAt, fps: 30, config: {damping: 12}});
   const warnShake = frame > warnAt + 6 && frame < warnAt + 24 ? Math.sin((frame - warnAt) / 1.3) * 4 : 0;
+  // 「稍后再来」字条飘落覆盖公式值（p4-14）：贴上后等待值改听字条的
+  const noteOn = frame >= noteAt;
+  const noteDrop = spring({frame: frame - noteAt, fps: 30, config: {damping: 12}});
   // 等待条按节拍翻倍：0.5 → 1 → 2 → 4 → 8 → 16 → 32（封顶）
   const steps = [0.5, 1, 2, 4, 8, 16, 32];
   const stepDur = 16;
@@ -448,8 +453,31 @@ const TierThree: React.FC<{warnAt: number; waitAt: number; flipAt: number; jitte
               ) : null}
             </div>
             <div style={{fontFamily: theme.sans, fontSize: 20, color: theme.dim, marginTop: 6}}>
-              {'再撒一点随机抖动，免得全世界的重试同一秒一起冲回来'}
+              {noteOn ? '对方留了「稍后再来」的字条 —— 就听字条的（等待值改写）' : '再撒一点随机抖动，免得全世界的重试同一秒一起冲回来'}
             </div>
+            {/* 「稍后再来」字条：飘落贴上（p4-14），等待值改听字条的（不虚构具体秒数） */}
+            {noteOn ? (
+              <div
+                style={{
+                  position: 'absolute',
+                  right: 30,
+                  top: -46,
+                  transform: `translateY(${(1 - noteDrop) * -60}px) rotate(${(-8 + 3 * noteDrop).toFixed(1)}deg)`,
+                  opacity: noteDrop,
+                  border: `2.5px solid ${theme.view}`,
+                  borderRadius: 8,
+                  padding: '8px 18px',
+                  fontFamily: theme.serif,
+                  fontSize: 24,
+                  fontWeight: 700,
+                  color: theme.view,
+                  background: `${theme.view}14`,
+                  boxShadow: '0 8px 20px rgba(0,0,0,0.35)',
+                }}
+              >
+                {'稍后再来 →'}
+              </div>
+            ) : null}
           </div>
           {/* 模型名牌：三连 529 后翻面换人 */}
           <div style={{marginTop: 30, display: 'flex', alignItems: 'center', gap: 26}}>
@@ -541,6 +569,295 @@ const TierThree: React.FC<{warnAt: number; waitAt: number; flipAt: number; jitte
       <Footnote delay={flipAt}>
         {'恢复路径十几种（实测 17）· 教学版挑最常见的三种 —— 第三方的源码分析'}
       </Footnote>
+    </AbsoluteFill>
+  );
+};
+
+/** 4-D2 新镜「不重试的两类」：梯右岔出 deny 分叉轨（轨口牌「不重试」）；
+ *  证书滑上轨第一帧就打红叉「去修它」；输出条断在半途 + 已发出的工具调用卡；
+ *  ★工具卡原地分裂成两张各跑一遍、右下计数器 1→2「同一个动作跑了两遍」；
+ *  两卡收回合一贴「没写完」标签，core 光点从上一个已完成调用续向右；
+ *  右下刻度盘 0→10、外圈虚线刻到 15。 */
+const NoRetrySplit: React.FC<{
+  forkAt: number;
+  certAt: number;
+  toolAt: number;
+  splitAt: number;
+  mergeAt: number;
+  dialAt: number;
+}> = ({forkAt, certAt, toolAt, splitAt, mergeAt, dialAt}) => {
+  const frame = useCurrentFrame();
+  // 分叉轨描线（26 帧）
+  const fork = interpolate(frame - forkAt, [0, 26], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  // 证书卡滑入 + 即打叉
+  const cert = interpolate(frame - certAt, [0, 14], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const certX = frame >= certAt + 8;
+  // 输出条断口 ▌闪烁 + 工具卡同帧闪 deny
+  const tool = frame >= toolAt;
+  const flash = tool ? interpolate((frame - toolAt) % 30, [0, 8], [1, 0], {extrapolateRight: 'clamp'}) : 0;
+  // 分裂：scaleX 1→2 中缝裂开成两张、计数器滚动
+  const splitT = interpolate(frame - splitAt, [0, 16], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const splitCount = Math.round(1 + splitT);
+  // 合一 + 标签 + 光点续接
+  const merge = interpolate(frame - mergeAt, [0, 16], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  // 刻度盘：Counter 0→10（20 帧），外圈 dashed 到 15
+  const dialOn = frame >= dialAt;
+  return (
+    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
+      <div style={{position: 'relative', width: 1560, height: 720}}>
+        {/* 左侧：梯子缩略 + deny 分叉轨岔出 */}
+        <div style={{position: 'absolute', left: 60, top: 70, opacity: 0.9}}>
+          <Ladder drop={1} labels={['', '', '三级 · 门外施工']} />
+        </div>
+        <svg width={420} height={720} style={{position: 'absolute', left: 0, top: 0}}>
+          {/* 分叉轨：从梯右缘岔出向右上（pathLength=1 归一化，dash 长度 0→满描出，完成后切虚线） */}
+          <path
+            d={`M300 400 Q 360 380, 420 300`}
+            fill="none"
+            stroke={theme.deny}
+            strokeWidth={5}
+            pathLength={1}
+            strokeDasharray={`${fork} 1`}
+            opacity={0.9}
+          />
+          {fork > 0.98 ? (
+            <path
+              d={`M300 400 Q 360 380, 420 300`}
+              fill="none"
+              stroke={theme.deny}
+              strokeWidth={5}
+              strokeDasharray="14 10"
+              opacity={0.9}
+            />
+          ) : null}
+        </svg>
+        {/* 轨口牌子「不重试」 */}
+        <div
+          style={{
+            position: 'absolute',
+            left: 330,
+            top: 218,
+            opacity: fork,
+            transform: `translateY(${(1 - fork) * 10}px) rotate(-6deg)`,
+            border: `3px solid ${theme.deny}`,
+            borderRadius: 10,
+            padding: '8px 18px',
+            fontFamily: theme.serif,
+            fontSize: 28,
+            fontWeight: 700,
+            color: theme.deny,
+            background: `${theme.deny}12`,
+          }}
+        >
+          {'不重试'}
+        </div>
+        {/* 证书卡：滑上轨、第一帧就打红叉「去修它」 */}
+        <div
+          style={{
+            position: 'absolute',
+            left: 356,
+            top: 268,
+            opacity: cert,
+            transform: `translateY(${(1 - cert) * 18}px)`,
+          }}
+        >
+          <Panel style={{width: 300, padding: '14px 20px', position: 'relative'}}>
+            <div style={{display: 'flex', alignItems: 'center', gap: 14}}>
+              <svg width={44} height={44}>
+                <rect x={4} y={8} width={36} height={28} rx={3} fill="none" stroke={theme.dim} strokeWidth={3} />
+                <line x1={12} y1={30} x2={12} y2={22} stroke={theme.dim} strokeWidth={2.5} />
+                <line x1={19} y1={30} x2={19} y2={18} stroke={theme.dim} strokeWidth={2.5} />
+                <line x1={26} y1={30} x2={26} y2={24} stroke={theme.dim} strokeWidth={2.5} />
+              </svg>
+              <div>
+                <div style={{fontFamily: theme.sans, fontSize: 22, color: theme.text}}>{'证书对不上'}</div>
+                <div style={{fontFamily: theme.mono, fontSize: 18, color: theme.dim, marginTop: 3}}>{'TLS · 第一帧即报错'}</div>
+              </div>
+            </div>
+            {/* 红叉：滑入即打 */}
+            {certX ? (
+              <svg width={120} height={120} style={{position: 'absolute', left: -34, top: -20}}>
+                <g
+                  stroke={theme.deny}
+                  strokeWidth={9}
+                  strokeLinecap="round"
+                  opacity={interpolate(frame - certAt - 8, [0, 6], [0, 1], {
+                    extrapolateLeft: 'clamp',
+                    extrapolateRight: 'clamp',
+                  })}
+                >
+                  <line x1={16} y1={16} x2={104} y2={104} />
+                  <line x1={104} y1={16} x2={16} y2={104} />
+                </g>
+              </svg>
+            ) : null}
+          </Panel>
+          {certX ? (
+            <div style={{fontFamily: theme.sans, fontSize: 21, color: theme.deny, marginTop: 8}}>
+              {'那是要你去修的 —— 退避一百遍也一样'}
+            </div>
+          ) : null}
+        </div>
+        {/* 中央：输出文本条断在半途 + 已发出的工具调用卡 */}
+        <div style={{position: 'absolute', left: 700, top: 150, width: 760}}>
+          <Panel style={{width: 720, padding: '16px 22px'}}>
+            <div style={{fontFamily: theme.sans, fontSize: 19, color: theme.dim, marginBottom: 8}}>
+              {'模型的回答（输出中）'}
+            </div>
+            <div style={{fontFamily: theme.mono, fontSize: 24, color: theme.text, whiteSpace: 'pre'}}>
+              {'第一步统一文件名，第二步跑测试，第三步修好失败的'}
+              <span
+                style={{
+                  color: theme.deny,
+                  fontWeight: 700,
+                  opacity: tool ? 0.35 + 0.65 * flash : 0,
+                  textShadow: `0 0 ${12 * flash}px ${theme.deny}`,
+                }}
+              >
+                {'▌'}
+              </span>
+            </div>
+          </Panel>
+        </div>
+        {/* ★工具卡：原地分裂成两张（scaleX 1→2 中缝裂开）→ 收回合一 + 「没写完」标签 */}
+        <div style={{position: 'absolute', left: 700, top: 330, width: 760}}>
+          {splitCount === 1 ? (
+            <div
+              style={{
+                width: 360,
+                padding: '14px 20px',
+                borderRadius: 12,
+                border: `3px solid ${tool ? theme.deny : theme.panelBorder}`,
+                background: theme.panel,
+                boxShadow: tool ? `0 0 20px ${theme.deny}55` : 'none',
+              }}
+            >
+              <div style={{fontFamily: theme.mono, fontSize: 21, color: theme.text}}>{'[bash] pytest -k perf'}</div>
+              <div style={{fontFamily: theme.sans, fontSize: 18, color: theme.dim, marginTop: 4}}>
+                {'工具调用 · 已发出'}
+              </div>
+            </div>
+          ) : (
+            <div>
+              {/* 分裂成两张：各跑一遍同样的动作 */}
+              <div style={{display: 'flex', gap: 20}}>
+                {[0, 1].map((k) => (
+                  <div
+                    key={k}
+                    style={{
+                      width: 360,
+                      padding: '14px 20px',
+                      borderRadius: 12,
+                      border: `3px solid ${merge > 0.5 ? theme.panelBorder : theme.deny}`,
+                      background: theme.panel,
+                      opacity: splitT,
+                    }}
+                  >
+                    <div style={{fontFamily: theme.mono, fontSize: 21, color: theme.text}}>{'[bash] pytest -k perf'}</div>
+                    <div style={{fontFamily: theme.sans, fontSize: 18, color: theme.dim, marginTop: 4}}>
+                      {merge > 0.5 ? '两卡收回合一' : `跑第 ${k + 1} 遍`}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {/* 压字：同一个动作跑了两遍 */}
+              {merge < 0.5 ? (
+                <div style={{fontFamily: theme.sans, fontSize: 22, color: theme.deny, marginTop: 10, opacity: splitT}}>
+                  {'同一个动作跑了两遍'}
+                </div>
+              ) : null}
+            </div>
+          )}
+          {/* 合一后：贴「没写完」标签 + core 光点从上一个已完成调用续向右 */}
+          {merge > 0.5 ? (
+            <div style={{marginTop: 14}}>
+              <div
+                style={{
+                  display: 'inline-block',
+                  border: `2px solid ${theme.view}`,
+                  borderRadius: 8,
+                  padding: '7px 16px',
+                  fontFamily: theme.sans,
+                  fontSize: 21,
+                  color: theme.view,
+                  background: `${theme.view}12`,
+                }}
+              >
+                {'没写完 —— 从断点接着来'}
+              </div>
+              {/* core 光点续接：从上一个已完成调用处续向右 */}
+              <svg width={720} height={60} style={{marginTop: 14}}>
+                <line x1={0} y1={30} x2={620 * merge} y2={30} stroke={theme.panelBorder} strokeWidth={3} />
+                <circle cx={Math.max(20, 620 * merge)} cy={30} r={9} fill={theme.core} />
+                <text x={0} y={12} fontFamily={theme.sans} fontSize={18} fill={theme.dim}>
+                  {'上一个已完成调用'}
+                </text>
+                <text x={640} y={34} fontFamily={theme.sans} fontSize={18} fill={theme.core}>
+                  {'→ 续写'}
+                </text>
+              </svg>
+            </div>
+          ) : null}
+        </div>
+        {/* 右下：计数器 1→2（分裂时滚动） */}
+        <div style={{position: 'absolute', right: 90, top: 380, textAlign: 'center'}}>
+          <div style={{fontFamily: theme.mono, fontSize: 20, color: theme.dim}}>{'动作计数'}</div>
+          <div style={{fontFamily: theme.mono, fontSize: 58, fontWeight: 700, color: splitCount === 1 ? theme.text : theme.deny}}>
+            <Counter from={1} to={2} start={splitAt} frames={16} />
+          </div>
+        </div>
+        {/* 右下刻度盘：0→10，外圈虚线刻到 15 */}
+        {dialOn ? (
+          <div
+            style={{
+              position: 'absolute',
+              right: 110,
+              bottom: 190,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 20,
+              opacity: interpolate(frame - dialAt, [0, 12], [0, 1], {
+                extrapolateLeft: 'clamp',
+                extrapolateRight: 'clamp',
+              }),
+            }}
+          >
+            <div style={{position: 'relative', width: 150, height: 150}}>
+              <svg width={150} height={150} style={{position: 'absolute', inset: 0}}>
+                {/* 外圈：dashed 刻到 15（10/15 弧长实线 + 余下虚线示意上限） */}
+                <circle cx={75} cy={75} r={62} fill="none" stroke={theme.panelBorder} strokeWidth={5} strokeDasharray={`${(62 * 2 * Math.PI * 10) / 15} 999`} strokeLinecap="round" transform="rotate(-90 75 75)" />
+                <circle cx={75} cy={75} r={62} fill="none" stroke={theme.deny} strokeWidth={5} strokeDasharray="2 14" opacity={0.85} />
+              </svg>
+              <div style={{position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'}}>
+                <div style={{fontFamily: theme.mono, fontSize: 40, fontWeight: 700, color: theme.mech}}>
+                  <Counter from={0} to={10} start={dialAt} frames={20} />
+                </div>
+                <div style={{fontFamily: theme.sans, fontSize: 17, color: theme.dim, marginTop: 2}}>
+                  {'上限 15'}
+                </div>
+              </div>
+            </div>
+            <div style={{fontFamily: theme.sans, fontSize: 21, color: theme.dim}}>
+              {'默认最多重试 10 次'}
+              <br />
+              {'上限 15 次'}
+            </div>
+          </div>
+        ) : null}
+      </div>
+      <Footnote delay={dialAt}>{'不重试的两类：证书对不上（去修它）· 已发出动作（防跑两遍）—— 第三方的源码分析'}</Footnote>
     </AbsoluteFill>
   );
 };
@@ -670,7 +987,9 @@ export const P4Ladder: React.FC<{scene: SceneRange}> = ({scene}) => {
   const relC = (id: string) => at(id) - bC.from;
   const bD = w('p4-11', 'p4-17');
   const relD = (id: string) => at(id) - bD.from;
-  const bE = w('p4-18', 'p4-22');
+  const bD2 = w('p4-17a', 'p4-17f');
+  const relD2 = (id: string) => at(id) - bD2.from;
+  const bE = w('p4-19', 'p4-22');
   const relE = (id: string) => at(id) - bE.from;
   return (
     <AbsoluteFill>
@@ -693,12 +1012,24 @@ export const P4Ladder: React.FC<{scene: SceneRange}> = ({scene}) => {
         <TierTwo squashAt={relC('p4-09')} blockAt={relC('p4-09') + 40} exitAt={relC('p4-10')} />
       </Sequence>
       <Sequence {...bD} name="4-D 三级门外施工">
-        {/* p4-11 警示牌；p4-13 等待翻倍；p4-15 抖动；p4-17 换人翻面 */}
+        {/* p4-11 警示牌；p4-12 等待翻倍；p4-13 抖动；p4-14 字条贴上；p4-17 换人翻面 */}
         <TierThree
           warnAt={relD('p4-11')}
-          waitAt={relD('p4-13')}
-          jitterAt={relD('p4-15')}
+          waitAt={relD('p4-12')}
+          jitterAt={relD('p4-13')}
+          noteAt={relD('p4-14')}
           flipAt={relD('p4-17')}
+        />
+      </Sequence>
+      <Sequence {...bD2} name="4-D2 不重试的两类">
+        {/* 17a 分叉轨；17b 证书打叉；17c 断口+工具卡闪 deny；17d 分裂成两卡；17e 合一+标签+光点；17f 刻度盘 */}
+        <NoRetrySplit
+          forkAt={relD2('p4-17a')}
+          certAt={relD2('p4-17b')}
+          toolAt={relD2('p4-17c')}
+          splitAt={relD2('p4-17d')}
+          mergeAt={relD2('p4-17e')}
+          dialAt={relD2('p4-17f')}
         />
       </Sequence>
       <Sequence {...bE} name="4-E 收益递减·检查点·金句">

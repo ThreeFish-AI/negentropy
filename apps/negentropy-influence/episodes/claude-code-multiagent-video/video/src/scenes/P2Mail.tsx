@@ -293,61 +293,208 @@ const MailboxRow: React.FC<{sendAt: number; readAt: number}> = ({sendAt, readAt}
           </div>
         ) : null}
       </div>
-      <Footnote delay={readAt}>{'写文件带锁，防两个队友投信写串行——第三方的源码分析'}</Footnote>
+      <Footnote delay={readAt}>
+        {'写文件带锁（防串行）· 消息类型 15 种——第三方的源码分析'}
+      </Footnote>
     </AbsoluteFill>
   );
 };
 
-/** 2-C 十五种消息类型墙（反枚举：统一 panel 底编号）缩成一行字 */
-const FifteenTypes: React.FC<{wallAt: number; shrinkAt: number}> = ({wallAt, shrinkAt}) => {
+/** 2-C ★领队信箱：队友干完活把总结信投进领队信箱（飞入闪光）；领队收信、
+ *  信里内容行贴进小对话泡；写锁 chip 亮一下（B 方案改稿：p2-16/17 十五种类型
+ *  墙两句已删，类型口径并入 2-B 角标；本镜回到「领队也走信箱」的主线画面）。 */
+const LeaderMailbox: React.FC<{dropAt: number; readAt: number; lockAt: number}> = ({
+  dropAt,
+  readAt,
+  lockAt,
+}) => {
   const frame = useCurrentFrame();
-  const names = [
-    '普通消息', '空闲通知', '权限请求', '权限回复', '计划审批',
-    '审批回复', '关机请求', '关机同意', '关机拒绝', '任务分派',
-    '权限广播', '模式修改', '沙箱权限', '移除通知', '广播通知',
+  // 总结信飞行：阿强/阿珍的信先后沿弧线投进领队信箱（peer→core 方向即语义）
+  const flights = [
+    {from: {x: 360, y: 260}, to: {x: 880, y: 360}, at: dropAt, tag: '阿强 · 总结'},
+    {from: {x: 1420, y: 260}, to: {x: 880, y: 360}, at: dropAt + 30, tag: '阿珍 · 总结'},
   ];
-  const shrink = phase(frame, shrinkAt, 20);
+  // 投中闪光：两封信先后落到信箱口的接触涟漪
+  const hits = flights.map((f) => phase(frame, f.at + 20, 10));
+  // 收信：领队信箱面板上的信行展开；readAt 起内容行贴进小对话泡
+  const read = phase(frame, readAt, 16);
+  // 写锁 chip：p2-15「写文件加了一把锁」亮一下
+  const lock = phase(frame, lockAt, 12);
+  const lockPulse =
+    lock > 0 ? interpolate(frame - lockAt, [0, 8, 26], [0, 1, 0.55], {extrapolateRight: 'clamp'}) : 0;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      {/* 类型墙：5×3 编号卡（反枚举：无 N 色，激活时才 mech 染色） */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(5, 250px)',
-          gap: 16,
-          transform: `scale(${1 - shrink * 0.55}) translateY(${shrink * -60}px)`,
-          opacity: 1 - shrink,
-        }}
-      >
-        {names.map((n, i) => (
-          <NumberedCard
-            key={n}
-            index={i + 1}
-            label={n}
-            width={250}
-            delay={wallAt + i * 2}
-            active
-            accent={theme.mech}
-          />
+      <div style={{position: 'relative', width: 1600, height: 660}}>
+        {/* 中央：领队环 + 信箱 */}
+        <div style={{position: 'absolute', left: 880 - 110, top: 20, textAlign: 'center'}}>
+          <LoopRing size={190} draw={1} dotProgress={useRingDot(2.5)} showLabels={false} />
+          <div style={{marginTop: 4}}>
+            <NamePlate name="领队" tone="core" />
+          </div>
+        </div>
+        {/* 两翼：队友环（peer 同色同宽同节点——反枚举） */}
+        {[
+          {name: '阿强', x: 220},
+          {name: '阿珍', x: 1280},
+        ].map((m) => (
+          <div key={m.name} style={{position: 'absolute', left: m.x - 80, top: 60, textAlign: 'center'}}>
+            <LoopRing size={150} draw={1} dotProgress={useRingDot(2.5)} tone="peer" showLabels={false} />
+            <div style={{marginTop: 4}}>
+              <NamePlate name={m.name} />
+            </div>
+          </div>
         ))}
+        {/* 领队信箱文件：投进来的总结信行（收信前在此展开） */}
+        <div style={{position: 'absolute', left: 880 - 210, top: 260}}>
+          <MailFile
+            name="领队"
+            x={0}
+            y={0}
+            lines={[
+              {text: 'report: 接口改完（阿强）', at: dropAt + 22, struckAt: readAt},
+              {text: 'report: 文档写好（阿珍）', at: dropAt + 52, struckAt: readAt + 12},
+            ]}
+            flashAt={readAt}
+          />
+          {/* 写锁 chip：防串行的写锁亮一下（p2-15 句锚） */}
+          {lockPulse > 0 ? (
+            <div
+              style={{
+                marginTop: 12,
+                display: 'flex',
+                justifyContent: 'center',
+                opacity: lockPulse,
+              }}
+            >
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '5px 14px',
+                  borderRadius: 999,
+                  border: `2px solid ${theme.mech}`,
+                  background: lockPulse > 0.7 ? theme.mechDeep : theme.panel,
+                  boxShadow: `0 0 ${18 * lockPulse}px ${theme.mech}`,
+                  fontFamily: theme.sans,
+                  fontSize: 20,
+                  color: theme.mech,
+                }}
+              >
+                <svg width={17} height={17}>
+                  <rect x={3} y={7} width={11} height={8} rx={2} fill="none" stroke={theme.mech} strokeWidth={2} />
+                  <path d="M6 7 V4.5 A2.5 2.5 0 0 1 11 4.5 V7" fill="none" stroke={theme.mech} strokeWidth={2} />
+                </svg>
+                {'写带锁 · 防串行'}
+              </div>
+            </div>
+          ) : null}
+        </div>
+        {/* 总结信飞行弧线 + 投中闪光 */}
+        <svg width={1600} height={660} style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none'}}>
+          {flights.map((f, i) => {
+            const t = interpolate(frame - f.at, [0, 22], [0, 1], {
+              extrapolateLeft: 'clamp',
+              extrapolateRight: 'clamp',
+            });
+            if (t <= 0 || t >= 1) return null;
+            const c = {x: (f.from.x + f.to.x) / 2, y: Math.min(f.from.y, f.to.y) - 130};
+            const p = qBezier(f.from, c, f.to, t);
+            return (
+              <g key={i}>
+                <path
+                  d={`M${f.from.x} ${f.from.y} Q ${c.x} ${c.y}, ${f.to.x} ${f.to.y}`}
+                  fill="none"
+                  stroke={theme.peer}
+                  strokeWidth={3}
+                  opacity={0.3}
+                />
+                <rect
+                  x={p.x - 92}
+                  y={p.y - 19}
+                  width={184}
+                  height={38}
+                  rx={7}
+                  fill={theme.panel}
+                  stroke={theme.peer}
+                  strokeWidth={2}
+                />
+                <text
+                  x={p.x}
+                  y={p.y + 6}
+                  textAnchor="middle"
+                  fontFamily={theme.mono}
+                  fontSize={17}
+                  fill={theme.text}
+                >
+                  {f.tag}
+                </text>
+              </g>
+            );
+          })}
+          {hits.map((h, i) =>
+            h > 0 ? (
+              [0, 1].map((k) => (
+                <circle
+                  key={`${i}-${k}`}
+                  cx={880}
+                  cy={360}
+                  r={14 + h * (46 + k * 26)}
+                  fill="none"
+                  stroke={theme.core}
+                  strokeWidth={3.5 - k * 1.5}
+                  opacity={(1 - h) * (0.8 - k * 0.35)}
+                />
+              ))
+            ) : null,
+          )}
+        </svg>
+        {/* 收信注入：信里内容行贴进领队的小对话泡 */}
+        {read > 0 ? (
+          <div
+            style={{
+              position: 'absolute',
+              left: 1120,
+              top: 280,
+              width: 420,
+              opacity: read,
+              transform: `translateY(${(1 - read) * 16}px)`,
+            }}
+          >
+            <Panel accent={theme.core} style={{padding: '12px 16px'}}>
+              <div style={{fontFamily: theme.mono, fontSize: 17, color: theme.dim}}>
+                {'领队的对话'}
+              </div>
+              {[
+                {t: '接口改完，可以安排联调', at: readAt + 6},
+                {t: '文档写好，等你过目', at: readAt + 18},
+              ].map((ln) => {
+                const o = phase(frame, ln.at, 8);
+                return (
+                  <div
+                    key={ln.t}
+                    style={{
+                      fontFamily: theme.sans,
+                      fontSize: 20,
+                      color: theme.text,
+                      marginTop: 6,
+                      opacity: o,
+                      paddingLeft: 10,
+                      borderLeft: `3px solid ${theme.core}`,
+                    }}
+                  >
+                    {ln.t}
+                  </div>
+                );
+              })}
+              <div style={{fontFamily: theme.sans, fontSize: 17, color: theme.dim, marginTop: 8}}>
+                {'收信 → 贴进对话 → 接着指挥'}
+              </div>
+            </Panel>
+          </div>
+        ) : null}
       </div>
-      {/* 收束句：全部缩成一行字 */}
-      <div
-        style={{
-          position: 'absolute',
-          fontFamily: theme.serif,
-          fontSize: 52,
-          fontWeight: 700,
-          color: theme.mech,
-          opacity: shrink,
-          transform: `translateY(${(1 - shrink) * 30}px)`,
-        }}
-      >
-        {'往文件里加一行带类型的字'}
-      </div>
-      {shrink < 0.5 ? (
-        <Footnote delay={wallAt + 10}>{'消息类型 15 种——第三方的源码分析'}</Footnote>
-      ) : null}
+      <Footnote delay={readAt + 6}>{'领队也走信箱——收信贴进对话，接着指挥'}</Footnote>
     </AbsoluteFill>
   );
 };
@@ -826,8 +973,8 @@ export const P2Mail: React.FC<{scene: SceneRange}> = ({scene}) => {
   const at = (id: string) => w(id).from;
   const bA = w('p2-01', 'p2-05');
   const bB = w('p2-06', 'p2-11');
-  const bC = w('p2-12', 'p2-14');
-  const bD = w('p2-15', 'p2-19');
+  const bC = w('p2-12', 'p2-15');
+  const bD = w('p2-18', 'p2-19');
   const bE = w('p2-20', 'p2-25');
   const rel = (b: {from: number}, id: string) => at(id) - b.from;
   return (
@@ -839,8 +986,12 @@ export const P2Mail: React.FC<{scene: SceneRange}> = ({scene}) => {
       <Sequence {...bB} name="2-B 信箱行">
         <MailboxRow sendAt={rel(bB, 'p2-06')} readAt={rel(bB, 'p2-07')} />
       </Sequence>
-      <Sequence {...bC} name="2-C 十五种消息类型">
-        <FifteenTypes wallAt={6} shrinkAt={rel(bC, 'p2-14')} />
+      <Sequence {...bC} name="2-C 领队信箱">
+        <LeaderMailbox
+          dropAt={rel(bC, 'p2-12')}
+          readAt={rel(bC, 'p2-13')}
+          lockAt={rel(bC, 'p2-15')}
+        />
       </Sequence>
       <Sequence {...bD} name="2-D 权限冒泡">
         <BubbleUp riseAt={rel(bD, 'p2-19')} nodAt={rel(bD, 'p2-19') + 30} downAt={rel(bD, 'p2-19') + 44} />

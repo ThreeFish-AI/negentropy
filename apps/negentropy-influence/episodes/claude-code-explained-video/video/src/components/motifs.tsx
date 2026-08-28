@@ -662,7 +662,7 @@ export const SlotRing: React.FC<{
 
 // ─────────────────────────────────────────────────────────── 代码卡
 
-/** 代码卡：逐行渲染（每行 framesPerLine 帧），可高亮/压暗指定行 */
+/** 代码卡：逐行渲染（每行 framesPerLine 帧，自 startAt 帧起算），可高亮/压暗指定行 */
 export const CodeCard: React.FC<{
   lines: string[];
   framesPerLine?: number;
@@ -672,6 +672,8 @@ export const CodeCard: React.FC<{
   showLineNumbers?: boolean;
   glowLineNumbersAt?: number;
   accent?: string;
+  /** 逐行渲染的起始帧（默认 0）——前置动画（标签条/对照列）要先占画布时用 */
+  startAt?: number;
 }> = ({
   lines,
   framesPerLine = 3,
@@ -681,6 +683,7 @@ export const CodeCard: React.FC<{
   showLineNumbers = true,
   glowLineNumbersAt,
   accent,
+  startAt = 0,
 }) => {
   const frame = useCurrentFrame();
   const glow =
@@ -693,7 +696,7 @@ export const CodeCard: React.FC<{
   return (
     <Panel accent={accent} style={{width, padding: '20px 24px'}}>
       {lines.map((ln, i) => {
-        const shown = frame >= i * framesPerLine;
+        const shown = frame - startAt >= i * framesPerLine;
         const hot = highlight.includes(i);
         return (
           <div

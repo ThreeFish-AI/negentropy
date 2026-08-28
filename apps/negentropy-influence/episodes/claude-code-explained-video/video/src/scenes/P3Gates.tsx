@@ -1,4 +1,4 @@
-/** P3 执行之前，先过闸门（分镜 3-A…3-G）—— 开源教学素材「Permission Desk」的概念重建
+/** P3 执行之前，先过闸门（分镜 3-A…3-G，含新镜 3-D2 沙箱横切面）—— 开源教学素材「Permission Desk」的概念重建
  *  三种结果不各占一色：allow 回 core（放行=回主干）、ask 用 mech、deny 用 danger。 */
 import React from 'react';
 import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig} from 'remotion';
@@ -264,16 +264,20 @@ const AskAndPass: React.FC<{askAt: number; passAt: number}> = ({askAt, passAt}) 
   );
 };
 
-/** 3-D 拒绝表降级为「示意」+ 变体绕过 */
+/** 3-D 拒绝表降级为「示意」+ 变体绕过。
+ *  金句卡改**底部叠加**（不整屏替换，为 3-D2 沙箱镜留画布）：p3-15 起 +18 帧以底部 Panel
+ *  浮出、hold 70 帧淡出——代码卡与变体全程留在原位（分镜 3-D 规格）。 */
 const DenyListHonesty: React.FC<{degradeAt: number; bypassAt: number; quoteAt: number}> = ({
   degradeAt,
   bypassAt,
   quoteAt,
 }) => {
   const frame = useCurrentFrame();
-  if (frame >= quoteAt) {
-    return <QuoteCard zh="它告诉你闸门装在哪儿，不是替你把门守住。" accent={theme.deny} />;
-  }
+  // 金句：底部 Panel 浮出（+18 帧起），hold 70 帧后淡出
+  const quote = interpolate(frame - quoteAt, [0, 14, 70 + 14, 70 + 14 + 16], [0, 1, 1, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
   const degraded = frame >= degradeAt;
   const lines = [
     'DENY_LIST = [',
@@ -347,6 +351,233 @@ const DenyListHonesty: React.FC<{degradeAt: number; bypassAt: number; quoteAt: n
           </div>
         ) : null}
       </div>
+      {/* 金句卡：底部叠加（不整屏替换——下一镜 3-D2 沙箱接着用这块画布） */}
+      {quote > 0 ? (
+        <div
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: 210,
+            display: 'flex',
+            justifyContent: 'center',
+            opacity: quote,
+            transform: `translateY(${(1 - quote) * 16}px)`,
+            pointerEvents: 'none',
+          }}
+        >
+          <Panel accent={theme.deny} style={{padding: '18px 40px', background: theme.panel}}>
+            <span style={{fontFamily: theme.serif, fontSize: 34, fontWeight: 700, color: theme.deny}}>
+              {'它告诉你闸门装在哪儿，不是替你把门守住。'}
+            </span>
+          </Panel>
+        </div>
+      ) : null}
+    </AbsoluteFill>
+  );
+};
+
+/** 3-D2 沙箱横切面（新镜，回答 3-D 金句抛出的问题）：左侧缩小的拒绝表代码卡，
+ *  右侧圆角实心壳罩住「跑命令 + 子进程树」，上下两道边界带（文件/网络）。
+ *  p3-19a 壳合拢；p3-19b 两道边界带各闪一次；p3-19c 三条变体飞向壳壁被弹回 +
+ *  密钥箭头飞出边界（deny）——「拆掉任一道墙」的反例；p3-19d 压官方角标。 */
+const SandboxCrossSection: React.FC<{
+  shrinkAt: number;
+  shellAt: number;
+  bandsAt: number;
+  bounceAt: number;
+  noteAt: number;
+}> = ({shrinkAt, shellAt, bandsAt, bounceAt, noteAt}) => {
+  const frame = useCurrentFrame();
+  const {fps} = useVideoConfig();
+  // 代码卡缩至左侧 55%
+  const shrink = interpolate(frame - shrinkAt, [0, 18], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  // 壳自四周合拢（spring）
+  const shell = spring({frame: frame - shellAt, fps, config: {damping: 180}});
+  // 两道边界带各闪一次（p3-19b）
+  const bandOn = (i: number) =>
+    interpolate(frame - bandsAt - i * 16, [0, 6, 22], [0.55, 1, 0.9], {
+      extrapolateLeft: 'clamp',
+      extrapolateRight: 'clamp',
+    });
+  // 变体飞向壳壁被弹回（复用 3-D 轨迹，末端 8 帧反弹）
+  const fly = interpolate(frame - bounceAt, [0, 26], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const bounceBack = interpolate(frame - bounceAt - 26, [0, 8], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  // 密钥箭头飞出边界（deny）——「拆掉任一道墙」的反例
+  const leak = interpolate(frame - bounceAt - 18, [0, 24], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const note = interpolate(frame - noteAt, [0, 12], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const lines = [
+    'DENY_LIST = [',
+    '    "rm -rf /", "sudo", …',
+    ']',
+  ];
+  const variants = ['rm  -rf  /', 'rm -fr /', 'sudo${IFS}rm'];
+  // 壳几何：右侧画布中心
+  const CX = 1240;
+  const CY = 500;
+  const W = 620;
+  const H = 440;
+  const halfW = W / 2 + (1 - shell) * 560;
+  const halfH = H / 2 + (1 - shell) * 400;
+  return (
+    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
+      <div style={{display: 'flex', alignItems: 'center', gap: 40, transform: `translateX(${shrink * -180}px)`}}>
+        {/* 左：缩小的代码卡（3-D 的延续，画面 55% 区） */}
+        <div style={{transform: `scale(${1 - shrink * 0.3})`, opacity: 0.5 + (1 - shrink) * 0.5}}>
+          <CodeCard lines={lines} width={520} framesPerLine={1} showLineNumbers={false} accent={theme.dim} />
+          {/* 变体列表：飞向壳壁（p3-19c 复用 3-D 轨迹） */}
+          <div style={{marginTop: 26, paddingLeft: 10}}>
+            {variants.map((v, i) => {
+              if (fly <= 0) return null;
+              const goX = interpolate(fly, [0, 1], [0, 300]);
+              const backX = bounceBack * (1 - Math.min(1, bounceBack)) * -180 + bounceBack * -120;
+              return (
+                <div
+                  key={v}
+                  style={{
+                    fontFamily: theme.mono,
+                    fontSize: 24,
+                    color: theme.deny,
+                    marginBottom: 14,
+                    opacity: fly > 0 ? 1 - bounceBack * 0.4 : 0,
+                    transform: `translateX(${goX + backX + i * 14}px)`,
+                  }}
+                >
+                  {v}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        {/* 右：沙箱壳（圆角实心壳罩住进程树） */}
+        <svg width={760} height={620}>
+          {/* 壳体：mech 描边 4px、rx=26、辉光，spring 合拢 */}
+          <rect
+            x={CX - halfW}
+            y={CY - halfH}
+            width={halfW * 2}
+            height={halfH * 2}
+            rx={26}
+            fill={`${theme.mech}0d`}
+            stroke={theme.mech}
+            strokeWidth={4}
+            opacity={shell}
+            style={{filter: `drop-shadow(0 0 12px ${theme.mech}44)`}}
+          />
+          {/* 上下两道边界带（文件 / 网络——内核强制的两堵墙） */}
+          {['文件：只许工作区', '网络：只走代管口子'].map((t, i) => {
+            const top = i === 0;
+            const o = bandOn(i) * shell;
+            if (o <= 0) return null;
+            return (
+              <g key={t} opacity={o}>
+                <line
+                  x1={CX - halfW + 30}
+                  y1={top ? CY - halfH + 34 : CY + halfH - 34}
+                  x2={CX + halfW - 30}
+                  y2={top ? CY - halfH + 34 : CY + halfH - 34}
+                  stroke={theme.mech}
+                  strokeWidth={3}
+                  strokeDasharray="10 7"
+                />
+                <text
+                  x={CX}
+                  y={top ? CY - halfH + 22 : CY + halfH - 44}
+                  textAnchor="middle"
+                  fontFamily={theme.sans}
+                  fontSize={21}
+                  fill={theme.mech}
+                >
+                  {t}
+                </text>
+              </g>
+            );
+          })}
+          {/* 壳内：跑命令 + 子进程树 */}
+          <g opacity={shell}>
+            <text x={CX} y={CY - 90} textAnchor="middle" fontFamily={theme.mono} fontSize={26} fill={theme.text}>
+              {'bash'}
+            </text>
+            {[0, 1, 2].map((k) => (
+              <g key={k}>
+                <line
+                  x1={CX}
+                  y1={CY - 62}
+                  x2={CX - 140 + k * 140}
+                  y2={CY - 6}
+                  stroke={theme.panelBorder}
+                  strokeWidth={2.5}
+                />
+                <rect
+                  x={CX - 190 + k * 140}
+                  y={CY - 6}
+                  width={100}
+                  height={40}
+                  rx={8}
+                  fill={theme.panel}
+                  stroke={theme.panelBorder}
+                  strokeWidth={2}
+                />
+                <text
+                  x={CX - 140 + k * 140}
+                  y={CY + 20}
+                  textAnchor="middle"
+                  fontFamily={theme.mono}
+                  fontSize={18}
+                  fill={theme.dim}
+                >
+                  {['子进程', '子进程', '子进程'][k]}
+                </text>
+              </g>
+            ))}
+          </g>
+          {/* 密钥箭头飞出边界（拆墙反例）：deny */}
+          {leak > 0 && leak < 0.85 ? (
+            <g>
+              <line
+                x1={CX + 60}
+                y1={CY + 60}
+                x2={CX + 60 + leak * 190}
+                y2={CY + 60 - leak * 150}
+                stroke={theme.deny}
+                strokeWidth={4}
+                strokeLinecap="round"
+              />
+              <polygon
+                points={`${CX + 60 + leak * 190},${CY + 60 - leak * 150} ${CX + 48 + leak * 190},${CY + 52 - leak * 150} ${CX + 56 + leak * 190},${CY + 40 - leak * 150}`}
+                fill={theme.deny}
+              />
+              <text x={CX + 90} y={CY + 96} fontFamily={theme.mono} fontSize={19} fill={theme.deny}>
+                {'~/.ssh/id_rsa'}
+              </text>
+            </g>
+          ) : null}
+          {leak >= 0.85 ? (
+            <text x={CX + 130} y={CY - 40} textAnchor="middle" fontFamily={theme.sans} fontSize={22} fill={theme.deny}>
+              {'拆掉一道墙：密钥直接飞出'}
+            </text>
+          ) : null}
+        </svg>
+      </div>
+      {/* p3-19d 官方角标 */}
+      <Footnote delay={noteAt}>
+        {'Seatbelt / bubblewrap + socat · 权限提示 −84%（官方工程博客，取数 2025-10）'}
+      </Footnote>
     </AbsoluteFill>
   );
 };
@@ -550,13 +781,16 @@ const EvalOrder: React.FC<{orderAt: number; ballAt: number; denyHitAt: number; n
 
 /** 3-G auto 分类器视野分屏：审判者只看用户消息与裸命令（Harness Engineering 改造版）
  *  官方工程博客：模型的自我辩解、工具结果、调用描述全被剥在视野外——
- *  评它做了什么，而非它说了什么；网页注入的文本骗不到审判者。 */
-const ClassifierVision: React.FC<{scrollAt: number; stripAt: number; goldenAt: number; spoofAt: number}> = ({
-  scrollAt,
-  stripAt,
-  goldenAt,
-  spoofAt,
-}) => {
+ *  评它做了什么，而非它说了什么；网页注入的文本骗不到审判者。
+ *  右上成绩单卡（p3-31a/b）：快筛误杀率 8.5% → 复核 0.4%（两段对照，220px 轨道）。 */
+const ClassifierVision: React.FC<{
+  scrollAt: number;
+  reportAt: number;
+  barAt: number;
+  stripAt: number;
+  goldenAt: number;
+  spoofAt: number;
+}> = ({scrollAt, reportAt, barAt, stripAt, goldenAt, spoofAt}) => {
   const frame = useCurrentFrame();
   const rows = [
     {t: '模型的自我辩解：我确认这是安全的操作', why: '辩解不看', strike: true},
@@ -567,6 +801,22 @@ const ClassifierVision: React.FC<{scrollAt: number; stripAt: number; goldenAt: n
   ];
   const spoofOn = frame >= spoofAt;
   const golden = interpolate(frame - goldenAt, [0, 18], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  // 成绩单卡（p3-31a 浮出）
+  const report = interpolate(frame - reportAt, [0, 16], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  // 误杀率色条：deny→core 从 8.5% 宽收到 0.4% 宽（p3-31b，220px 轨道）
+  const TRACK = 220;
+  const shrinkBar = interpolate(frame - barAt, [0, 26], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const barPct = 0.085 + (0.004 - 0.085) * shrinkBar;
+  const stage2On = interpolate(frame - barAt - 16, [0, 8], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -583,7 +833,64 @@ const ClassifierVision: React.FC<{scrollAt: number; stripAt: number; goldenAt: n
         >
           {'审判者的视野：先做减法'}
         </div>
-        <div style={{display: 'flex', flexDirection: 'column', gap: 14}}>
+        {/* 右上成绩单卡（p3-31a/b） */}
+        {report > 0 ? (
+          <div
+            style={{
+              position: 'absolute',
+              right: 0,
+              top: -16,
+              width: 420,
+              opacity: report,
+              transform: `translateY(${(1 - report) * -14}px)`,
+            }}
+          >
+            <Panel accent={theme.deny} style={{padding: '16px 20px'}}>
+              <div style={{fontFamily: theme.sans, fontSize: 22, fontWeight: 700, color: theme.text}}>
+                {'审判者的成绩单'}
+              </div>
+              {/* 误杀率色条：220px 轨道，deny→core */}
+              <div style={{marginTop: 14}}>
+                <div style={{width: TRACK, height: 18, borderRadius: 9, background: theme.panelBorder, overflow: 'hidden'}}>
+                  <div
+                    style={{
+                      width: `${Math.max(0.4, barPct * 100 * 2)}%`,
+                      height: '100%',
+                      background: shrinkBar > 0.6 ? theme.core : theme.deny,
+                    }}
+                  />
+                </div>
+                <div style={{display: 'flex', justifyContent: 'space-between', width: TRACK, marginTop: 8}}>
+                  <span style={{fontFamily: theme.sans, fontSize: 19, color: theme.dim}}>
+                    {'快筛 8.5%'}
+                  </span>
+                  <span
+                    style={{
+                      fontFamily: theme.sans,
+                      fontSize: 19,
+                      color: theme.core,
+                      opacity: stage2On,
+                    }}
+                  >
+                    {'复核 0.4%'}
+                  </span>
+                </div>
+              </div>
+              <div
+                style={{
+                  marginTop: 12,
+                  fontFamily: theme.mono,
+                  fontSize: 17,
+                  color: theme.dim,
+                  opacity: stage2On,
+                }}
+              >
+                {'Stage1 FPR 8.5% → Stage2 0.4%（官方工程博客，取数 2026-03）'}
+              </div>
+            </Panel>
+          </div>
+        ) : null}
+        <div style={{display: 'flex', flexDirection: 'column', gap: 14, width: 900}}>
           {rows.map((r, i) => {
             const at = scrollAt + i * 9;
             const e = interpolate(frame - at, [0, 12], [0, 1], {
@@ -681,10 +988,17 @@ const ClassifierVision: React.FC<{scrollAt: number; stripAt: number; goldenAt: n
 export const P3Gates: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (fromId: string, toId?: string) => beatWindow(scene.sentences, scene.from, fromId, toId);
   const rel = (b: {from: number}, id: string) => w(id).from - b.from;
+  /** 句尾锚（全局帧）：分镜「pX-YY 尾（+N 帧）」的机械化落点 */
+  const endAt = (id: string) => w(id).from + w(id).durationInFrames;
+  /** 句尾锚封顶进 Sequence 窗口（末句 +N 会探出窗口——窗口只含句间 gap）：
+   *  cap 为「窗口末尾 − need 帧可见」，动效仍发生不被剪掉。 */
+  const tailAt = (b: {from: number; durationInFrames: number}, id: string, plus: number, need: number) =>
+    Math.min(endAt(id) + plus - b.from, b.durationInFrames - need);
   const bA = w('p3-01', 'p3-06');
   const bB = w('p3-07', 'p3-09');
-  const bC = w('p3-10', 'p3-13');
-  const bD = w('p3-14', 'p3-19');
+  const bC = w('p3-10', 'p3-12');
+  const bD = w('p3-14', 'p3-15');
+  const bD2 = w('p3-19a', 'p3-19d');
   const bE = w('p3-20', 'p3-24');
   const bF = w('p3-25', 'p3-29');
   const bG = w('p3-30', 'p3-35');
@@ -692,10 +1006,11 @@ export const P3Gates: React.FC<{scene: SceneRange}> = ({scene}) => {
     <AbsoluteFill>
       <SceneHeader index="P3" title="执行之前，先过闸门" meta="Permissions · deny → ask → allow" durationInFrames={scene.durationInFrames} />
       <Sequence {...bA} name="3-A 没人管的跑命令">
+        {/* p3-05 已删：执行节点反讽锚点改挂 p3-04 句尾 +16 帧 */}
         <UnguardedShell
           frameAt={rel(bA, 'p3-02')}
           cmdAt={rel(bA, 'p3-04')}
-          execAt={rel(bA, 'p3-05')}
+          execAt={endAt('p3-04') + 16 - bA.from}
         />
       </Sequence>
       <Sequence {...bB} name="3-B 三道闸门落下">
@@ -705,31 +1020,48 @@ export const P3Gates: React.FC<{scene: SceneRange}> = ({scene}) => {
         />
       </Sequence>
       <Sequence {...bC} name="3-C 审批与放行">
-        <AskAndPass askAt={rel(bC, 'p3-12')} passAt={rel(bC, 'p3-13')} />
+        {/* p3-13 已删：畅通通路锚点改挂 p3-12 句尾 +25 帧（「弃权不等于放行」由 3-E 承载）。
+            p3-12 是本 beat 末句——封顶到窗口末尾留 34 帧可见尾迹动画。 */}
+        <AskAndPass askAt={rel(bC, 'p3-12')} passAt={tailAt(bC, 'p3-12', 25, 34)} />
       </Sequence>
       <Sequence {...bD} name="3-D 拒绝表的诚实">
+        {/* p3-16..19 已删：降级/绕过/金句全部压在 p3-14/15 两句的句内偏移上（分镜 3-D 规格） */}
         <DenyListHonesty
-          degradeAt={rel(bD, 'p3-16')}
-          bypassAt={rel(bD, 'p3-18')}
-          quoteAt={rel(bD, 'p3-19')}
+          degradeAt={rel(bD, 'p3-14') + 14}
+          bypassAt={rel(bD, 'p3-14') + 30}
+          quoteAt={rel(bD, 'p3-15') + 18}
+        />
+      </Sequence>
+      <Sequence {...bD2} name="3-D2 沙箱横切面">
+        {/* p3-19a 代码卡缩位+壳合拢；19b 边界带；19c 变体弹回+密钥反例；19d 角标 */}
+        <SandboxCrossSection
+          shrinkAt={rel(bD2, 'p3-19a')}
+          shellAt={rel(bD2, 'p3-19a') + 8}
+          bandsAt={rel(bD2, 'p3-19b')}
+          bounceAt={rel(bD2, 'p3-19c')}
+          noteAt={rel(bD2, 'p3-19d')}
         />
       </Sequence>
       <Sequence {...bE} name="3-E 四种结果">
         <FourResults fourthAt={rel(bE, 'p3-23')} arcAt={rel(bE, 'p3-24')} />
       </Sequence>
       <Sequence {...bF} name="3-F 官方求值顺序">
+        {/* p3-27 已删：拒绝站截获锚点前挂到 p3-26 句尾 +30 帧 */}
         <EvalOrder
           orderAt={rel(bF, 'p3-25')}
           ballAt={rel(bF, 'p3-26')}
-          denyHitAt={rel(bF, 'p3-27')}
+          denyHitAt={endAt('p3-26') + 30 - bF.from}
           nakedAt={rel(bF, 'p3-28')}
         />
       </Sequence>
       <Sequence {...bG} name="3-G auto 分类器视野">
+        {/* p3-33 已删：末两行高亮锚点并入 p3-32 +20 帧；31a/b 成绩单卡随动 */}
         <ClassifierVision
           scrollAt={rel(bG, 'p3-31')}
+          reportAt={rel(bG, 'p3-31a')}
+          barAt={rel(bG, 'p3-31b')}
           stripAt={rel(bG, 'p3-32')}
-          goldenAt={rel(bG, 'p3-33')}
+          goldenAt={rel(bG, 'p3-32') + 20}
           spoofAt={rel(bG, 'p3-34')}
         />
       </Sequence>

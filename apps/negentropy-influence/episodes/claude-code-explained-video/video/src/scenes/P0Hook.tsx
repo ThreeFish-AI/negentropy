@@ -1,6 +1,8 @@
 /** P0 钩子与命名帧（分镜 0-A…0-C）
- *  三句内完成：搬运工痛点 → 官方命名「Harness」→ 五辐条供给图。
- *  改造（2026-08 Harness Engineering）：10 句压缩为 7 句，命名帧是全系列的开场锚。 */
+ *  三句内完成：搬运工痛点 → 官方命名「Harness」→ 四件套辐条图。
+ *  改造（2026-08 Harness Engineering）：10 句压缩为 7 句，命名帧是全系列的开场锚；
+ *  评审改造（B 方案）：0-B 增官方赌注卡（p0-03a..c，SWE-bench 同模型换脚手架 22%→49%）、
+ *  外框合拢改锚 p0-04；0-C 五辐条改四件套（循环/工具/上下文管理/护栏，与 5-A 标尺同清单）。 */
 import React from 'react';
 import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig} from 'remotion';
 import {theme} from '../design/theme';
@@ -74,18 +76,41 @@ const StallAndCarry: React.FC<{carryAt: number}> = ({carryAt}) => {
   );
 };
 
-/** 0-B 命名帧：搬运残影收束成外框，包住「模型」内核——外框即 Harness + 官方引文条 */
-const NamingFrame: React.FC<{officialAt: number}> = ({officialAt}) => {
+/** 0-B 命名帧：搬运残影收束成外框，包住「模型」内核——外框即 Harness。
+ *  p0-03a..c 底部浮出官方赌注卡（SWE-bench 同模型换脚手架 22%→49%）；
+ *  外框合拢改锚 p0-04（「名字就叫」句才落框，消除头空转）；p0-05 官方引文条压上。 */
+const NamingFrame: React.FC<{
+  betAt: number;
+  barsAt: number;
+  settleAt: number;
+  frameAt: number;
+  officialAt: number;
+}> = ({betAt, barsAt, settleAt, frameAt, officialAt}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
-  // 外框四面合拢（spring 收拢感）
-  const close = spring({frame, fps, config: {damping: 180}});
+  // 赌注卡自底浮出（p0-03a，FadeUp 语义）
+  const bet = interpolate(frame - betAt, [0, 16], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  // 两条 core 分数条在 320px 轨道上增长（p0-03b：0→22% / 0→49%）
+  const bars = interpolate(frame - barsAt, [0, 30], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  // 分数条定格并压「你的力气 = 它的分数」（p0-03c）
+  const settle = interpolate(frame - settleAt, [0, 12], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  // 外框四面合拢改锚 p0-04（「名字就叫」句才落框——此前锚 beat 首帧，头两句空转）
+  const close = spring({frame: frame - frameAt, fps, config: {damping: 180}});
   const CX = 960;
   const CY = 460;
   const full = 420;
   const wHalf = full / 2 + (1 - close) * 620;
   const hHalf = full / 2 + (1 - close) * 380;
-  const label = interpolate(frame - 22, [0, 14], [0, 1], {
+  const label = interpolate(frame - frameAt - 22, [0, 14], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -191,6 +216,83 @@ const NamingFrame: React.FC<{officialAt: number}> = ({officialAt}) => {
       >
         {'把动力源，套进一个可控的结构里'}
       </div>
+      {/* 官方赌注卡（p0-03a..c）：bottom:210 避让字幕带；p0-05 引文条压上时让位淡出 */}
+      {bet > 0 ? (
+        <div
+          style={{
+            position: 'absolute',
+            left: CX,
+            bottom: 210,
+            transform: `translate(-50%, ${(1 - bet) * 30}px)`,
+            opacity: bet * (1 - quote * 0.9),
+          }}
+        >
+          <Panel accent={theme.core} style={{padding: '18px 30px', width: 780}}>
+            <div style={{fontFamily: theme.serif, fontSize: 23, color: theme.text}}>
+              {'“同一个底层模型，换一套脚手架，成绩能差出一大截。”'}
+            </div>
+            {/* 双分数条：320px 轨道 interpolate 增长（0→22% / 0→49%） */}
+            <div style={{marginTop: 14, display: 'flex', flexDirection: 'column', gap: 11}}>
+              {[
+                {label: '旧脚手架', v: 0.22},
+                {label: '新脚手架', v: 0.49},
+              ].map((b) => (
+                <div key={b.label} style={{display: 'flex', alignItems: 'center', gap: 14}}>
+                  <span style={{width: 104, fontFamily: theme.sans, fontSize: 20, color: theme.dim}}>
+                    {b.label}
+                  </span>
+                  <div
+                    style={{
+                      width: 320,
+                      height: 15,
+                      borderRadius: 8,
+                      background: theme.panelBorder,
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <div style={{width: `${b.v * bars * 100}%`, height: '100%', background: theme.core}} />
+                  </div>
+                  <span
+                    style={{
+                      fontFamily: theme.mono,
+                      fontSize: 22,
+                      fontWeight: 700,
+                      color: theme.core,
+                      opacity: bars > 0.99 ? 1 : 0.35,
+                    }}
+                  >
+                    {`${Math.round(b.v * Math.min(1, bars) * 100)}%`}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div
+              style={{
+                marginTop: 11,
+                fontFamily: theme.mono,
+                fontSize: 17,
+                color: theme.dim,
+                opacity: bars > 0.99 ? 1 : 0,
+              }}
+            >
+              {'SWE-bench Verified 500 题 · 同脚手架代际 22%→49% · 官方自报 2025-01-06'}
+            </div>
+            {/* p0-03c：分数条定格 + 结论句压上 */}
+            <div
+              style={{
+                marginTop: 9,
+                fontFamily: theme.serif,
+                fontSize: 23,
+                fontWeight: 700,
+                color: theme.core,
+                opacity: settle,
+              }}
+            >
+              {'你的力气 = 它的分数'}
+            </div>
+          </Panel>
+        </div>
+      ) : null}
       {/* 官方引文条（p0-05 句锚） */}
       {quote > 0 ? (
         <div
@@ -229,7 +331,9 @@ const NamingFrame: React.FC<{officialAt: number}> = ({officialAt}) => {
   );
 };
 
-/** 0-C 五辐条供给图：外框上长出五根辐条（文件/命令/权限/记忆/护栏）+ 标题卡收尾 */
+/** 0-C 四件套辐条图：外框上长出四根辐条（循环 / 工具 / 上下文管理 / 护栏），
+ *  内侧连着模型内核（与 p5-05 官方四件套标尺同一张清单——5-A 回指此处）。
+ *  「上下文管理」那根先灰（与 5-A 标尺空格、p5-06「后面拆」承诺同构）。 */
 const SupplySpokes: React.FC<{titleAt: number}> = ({titleAt}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
@@ -237,11 +341,10 @@ const SupplySpokes: React.FC<{titleAt: number}> = ({titleAt}) => {
   const CY = 440;
   const R = 300;
   const spokes = [
-    {label: '文件', zh: '读写项目'},
-    {label: '命令', zh: '执行与回传'},
-    {label: '权限', zh: '闸门与审批'},
-    {label: '记忆', zh: '上下文与规则', later: true},
-    {label: '护栏', zh: '拦截与兜底'},
+    {label: '循环', zh: '问模型·执行·填回'},
+    {label: '工具', zh: '查表分发'},
+    {label: '上下文管理', zh: '后面单独拆', later: true},
+    {label: '护栏', zh: '闸门·沙箱·插口'},
   ];
   const title = spring({frame: frame - titleAt, fps, config: {damping: 200}});
     const line = interpolate(frame - titleAt, [4, 40], [0, 1], {
@@ -270,15 +373,14 @@ const SupplySpokes: React.FC<{titleAt: number}> = ({titleAt}) => {
         <text x={CX} y={CY + 6} textAnchor="middle" fontFamily={theme.mono} fontSize={34} fill={theme.text}>
           {'模型 Claude'}
         </text>
-        {/* 五辐条：自外框上沿五点连向内核 */}
+        {/* 四辐条：自外框上沿四点连向内核（辐点均布 fx = CX − 225 + i*150） */}
         {spokes.map((sp, i) => {
           const t = interpolate(frame - 6 - i * 8, [0, 12], [0, 1], {
             extrapolateLeft: 'clamp',
             extrapolateRight: 'clamp',
           });
           if (t <= 0) return null;
-          // 五点沿外框上沿分布
-          const fx = CX - 300 + i * 150;
+          const fx = CX - 225 + i * 150;
           const fy = CY - 250;
           const ix = CX + (fx - CX) * 0.24;
           const iy = CY - 40;
@@ -295,7 +397,7 @@ const SupplySpokes: React.FC<{titleAt: number}> = ({titleAt}) => {
                 style={sp.later ? undefined : {filter: `drop-shadow(0 0 ${4 + glow * 8}px ${theme.mech}88)`}}
               />
               <circle cx={fx} cy={fy - 46} r={34 * t} fill={theme.panel} stroke={sp.later ? theme.dim : theme.mech} strokeWidth={3} />
-              <text x={fx} y={fy - 92} textAnchor="middle" fontFamily={theme.sans} fontSize={26} fill={sp.later ? theme.dim : theme.text}>
+              <text x={fx} y={fy - 92} textAnchor="middle" fontFamily={theme.sans} fontSize={sp.later ? 21 : 26} fill={sp.later ? theme.dim : theme.text}>
                 {sp.label}
               </text>
               <text x={fx} y={fy + 26} textAnchor="middle" fontFamily={theme.sans} fontSize={19} fill={theme.dim}>
@@ -304,26 +406,6 @@ const SupplySpokes: React.FC<{titleAt: number}> = ({titleAt}) => {
             </g>
           );
         })}
-        {/* 「记忆」辐条的「后面拆」小标 */}
-        {(() => {
-          const o = interpolate(frame - 6 - 3 * 8 - 10, [0, 10], [0, 1], {
-            extrapolateLeft: 'clamp',
-            extrapolateRight: 'clamp',
-          });
-          return o > 0 ? (
-            <text
-              x={CX + 0}
-              y={CY - 250 - 132}
-              textAnchor="middle"
-              fontFamily={theme.sans}
-              fontSize={20}
-              fill={theme.dim}
-              opacity={o}
-            >
-              {'后面单独拆'}
-            </text>
-          ) : null;
-        })()}
       </svg>
       {/* 标题卡（p0-07 收尾压入） */}
       {title > 0 ? (
@@ -371,9 +453,16 @@ export const P0Hook: React.FC<{scene: SceneRange}> = ({scene}) => {
         <StallAndCarry carryAt={at('p0-02') - bA.from} />
       </Sequence>
       <Sequence {...bB} name="0-B 命名帧：Harness">
-        <NamingFrame officialAt={at('p0-05') - bB.from} />
+        {/* p0-03a 赌注卡浮出；p0-03b 双分数条增长；p0-03c 定格+结论；p0-04 外框合拢；p0-05 引文条 */}
+        <NamingFrame
+          betAt={at('p0-03a') - bB.from}
+          barsAt={at('p0-03b') - bB.from}
+          settleAt={at('p0-03c') - bB.from}
+          frameAt={at('p0-04') - bB.from}
+          officialAt={at('p0-05') - bB.from}
+        />
       </Sequence>
-      <Sequence {...bC} name="0-C 五辐条与标题">
+      <Sequence {...bC} name="0-C 四辐条与标题">
         <SupplySpokes titleAt={at('p0-07') - bC.from + 24} />
       </Sequence>
     </AbsoluteFill>

@@ -6,6 +6,7 @@ import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoCo
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
+import {QuoteCard} from '../components/cards';
 import {Counter, Desk, Footnote, Panel, SceneHeader, SceneTag, Stamp} from '../components/motifs';
 
 /** 3-A 左：桌角薄目录卡叠（每张一行 ~100）；右：整块厚手册拍上桌（~2000+），桌面被压得下沉。 */
@@ -530,14 +531,31 @@ const ProbesVsKeywords: React.FC<{probeAt: number[]; crossAt: number; stampAt: n
   );
 };
 
-/** 3-F ★静态/动态段落分层图：段落卡排成两层进缓存仓；外接工具段被拦在仓外闪断。 */
-const CacheShed: React.FC<{enterAt: number; blockAt: number; flickerAt: number; noteAt: number}> = ({
-  enterAt,
-  blockAt,
-  flickerAt,
-  noteAt,
-}) => {
+/** 3-F ★深挖帧：先**官方削层**——整块垫纸剖面从满高削掉八成（p3-21，24 帧），旁边评测计分板
+ *  数字纹丝不动并打勾，压字「删掉八成以上，评测不掉分 · 官方 2026-07」；p3-21a 金句短卡；
+ *  随后静态/动态段落分层图：段落卡排成两层进缓存仓（p3-22 起），外接工具段被拦在仓外闪断；
+ *  p3-25 收束句浮现。 */
+const CacheShed: React.FC<{
+  trimAt: number;
+  quoteAt: number;
+  enterAt: number;
+  blockAt: number;
+  flickerAt: number;
+  closeAt: number;
+}> = ({trimAt, quoteAt, enterAt, blockAt, flickerAt, closeAt}) => {
   const frame = useCurrentFrame();
+  // p3-21a 金句短卡（整拍切卡）
+  if (frame >= quoteAt && frame < enterAt) {
+    return <QuoteCard zh="纸能写多长，取决于模型有多不需要你替它写。" accent={theme.view} />;
+  }
+  // 削层阶段（p3-20..p3-21a）：剖面 + 计分板
+  const trim = interpolate(frame - trimAt, [0, 24], [1, 0.2], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  // 被削掉的部分向上碎裂淡出
+  const debris = frame > trimAt && frame < trimAt + 34;
+  const scoreOn = frame >= trimAt + 10;
   const layers = [
     {t: '静态层', items: ['身份', '语气风格', '任务守则'], color: theme.view},
     {t: '动态层', items: ['会话指引', '记忆', '环境信息'], color: theme.view},
@@ -546,9 +564,119 @@ const CacheShed: React.FC<{enterAt: number; blockAt: number; flickerAt: number; 
   // 卡身闪断：模拟掉线（方波闪烁，确定性）
   const flicker =
     frame >= flickerAt ? (Math.floor((frame - flickerAt) / 6) % 2 === 0 ? 1 : 0.25) : 1;
+  // p3-25 收束句
+  const close = interpolate(frame - closeAt, [0, 18], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  // 分层图阶段（p3-22 起）
+  const shedOn = frame >= enterAt;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <div style={{position: 'relative', width: 1560, height: 720}}>
+      {!shedOn ? (
+        <div style={{position: 'relative', width: 1360, height: 640}}>
+          {/* 整块垫纸剖面：height 由 100% 插值到 20%（24 帧） */}
+          <div style={{position: 'absolute', left: 240, top: 60, width: 460}}>
+            <div style={{fontFamily: theme.sans, fontSize: 24, color: theme.dim, marginBottom: 14}}>
+              {'垫纸剖面（system prompt）'}
+            </div>
+            <div style={{position: 'relative', width: 460, height: 400}}>
+              {/* 保留段 */}
+              <div
+                style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  width: 460,
+                  height: 400 * trim,
+                  border: `3px solid ${theme.view}`,
+                  borderRadius: 10,
+                  background: `${theme.viewDeep}66`,
+                }}
+              />
+              {/* 被削掉的部分：向上碎裂淡出（三条碎块错帧上浮） */}
+              {debris
+                ? [0, 1, 2].map((k) => (
+                    <div
+                      key={k}
+                      style={{
+                        position: 'absolute',
+                        bottom: 400 * trim + k * 36,
+                        width: 460 - k * 70,
+                        left: k * 35,
+                        height: 20,
+                        background: theme.dim,
+                        borderRadius: 4,
+                        opacity: interpolate(frame - trimAt - k * 4, [0, 26], [0.7, 0], {
+                          extrapolateLeft: 'clamp',
+                          extrapolateRight: 'clamp',
+                        }),
+                        transform: `translateY(${interpolate(frame - trimAt - k * 4, [0, 26], [0, -50], {
+                          extrapolateLeft: 'clamp',
+                          extrapolateRight: 'clamp',
+                        })}px)`,
+                      }}
+                    />
+                  ))
+                : null}
+            </div>
+            {/* 压字 */}
+            <div
+              style={{
+                marginTop: 18,
+                fontFamily: theme.serif,
+                fontSize: 27,
+                fontWeight: 700,
+                color: theme.view,
+                opacity: interpolate(frame - trimAt - 18, [0, 14], [0, 1], {
+                  extrapolateLeft: 'clamp',
+                  extrapolateRight: 'clamp',
+                }),
+              }}
+            >
+              {'删掉八成以上，评测不掉分'}
+            </div>
+            <div style={{fontFamily: theme.mono, fontSize: 19, color: theme.dim, marginTop: 6}}>
+              {'官方 2026-07 · code.claude.com'}
+            </div>
+            {/* p3-20 体量角标（三级归属：源码分析） */}
+            <div
+              style={{
+                marginTop: 16,
+                fontFamily: theme.mono,
+                fontSize: 20,
+                color: theme.dim,
+                opacity: interpolate(frame, [10, 24], [0, 0.95], {
+                  extrapolateLeft: 'clamp',
+                  extrapolateRight: 'clamp',
+                }),
+              }}
+            >
+              {'常规两三万字 · 极简两行 —— 第三方的源码分析'}
+            </div>
+          </div>
+          {/* 评测计分板：数字纹丝不动并打勾 */}
+          <div style={{position: 'absolute', right: 200, top: 130}}>
+            <Panel style={{width: 380, padding: '22px 28px'}}>
+              <div style={{fontFamily: theme.sans, fontSize: 22, color: theme.dim}}>{'评测计分板'}</div>
+              {/* 数字纹丝不动：只呈现「不变」本身，不虚构具体分数 */}
+              <div style={{display: 'flex', alignItems: 'baseline', gap: 14, marginTop: 10}}>
+                <div style={{fontFamily: theme.mono, fontSize: 44, fontWeight: 700, color: theme.text}}>
+                  {'— . —'}
+                </div>
+                <div style={{fontFamily: theme.mono, fontSize: 24, color: theme.dim}}>{'= 削层前'}</div>
+              </div>
+              <div style={{fontFamily: theme.sans, fontSize: 20, color: theme.dim, marginTop: 6}}>
+                {'删掉八成以上，分数纹丝不动'}
+              </div>
+            </Panel>
+            {/* 打勾：削层完成后落下 */}
+            {scoreOn ? (
+              <Stamp text="✓" color={theme.view} at={trimAt + 10} size={120} rotate={8} style={{position: 'absolute', right: -50, top: -40}} />
+            ) : null}
+          </div>
+        </div>
+      ) : (
+        <div style={{position: 'relative', width: 1560, height: 720}}>
         {/* 缓存仓：右侧一座两层仓 */}
         <div style={{position: 'absolute', right: 60, top: 40}}>
           <div
@@ -681,24 +809,28 @@ const CacheShed: React.FC<{enterAt: number; blockAt: number; flickerAt: number; 
             {'缓存它就是在缓存一个谎言'}
           </div>
         </div>
-        {/* 体量对比角标：两行 vs 两三万字 */}
-        <div
-          style={{
-            position: 'absolute',
-            left: 60,
-            bottom: 30,
-            fontFamily: theme.mono,
-            fontSize: 22,
-            color: theme.dim,
-            opacity: interpolate(frame - noteAt, [0, 14], [0, 0.95], {
-              extrapolateLeft: 'clamp',
-              extrapolateRight: 'clamp',
-            }),
-          }}
-        >
-          {'极简模式：两行 · 常规模式：20–30KB —— 同一个人，两种铺法'}
+        {/* p3-25 收束句：这张垫纸拼得比谁都勤俭 */}
+        {close > 0 ? (
+          <div
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: 30,
+              textAlign: 'center',
+              fontFamily: theme.serif,
+              fontSize: 30,
+              fontWeight: 700,
+              color: theme.view,
+              opacity: close,
+              transform: `translateY(${(1 - close) * 12}px)`,
+            }}
+          >
+            {'每轮都在拼，但拼得比谁都勤俭'}
+          </div>
+        ) : null}
         </div>
-      </div>
+      )}
       <Footnote delay={blockAt + 10}>
         {'唯一不缓存的段落：外接工具段 —— 第三方的源码分析'}
       </Footnote>
@@ -748,9 +880,17 @@ export const P3Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
           stampAt={relE('p3-19')}
         />
       </Sequence>
-      <Sequence {...bF} name="3-F 缓存仓与外接段">
-        {/* p3-20 两层体量；p3-22 唯一不缓存段被拦；p3-24 收束句；p3-25 角标 */}
-        <CacheShed enterAt={relF('p3-20')} blockAt={relF('p3-22')} flickerAt={relF('p3-23')} noteAt={relF('p3-24')} />
+      <Sequence {...bF} name="3-F 削层与缓存仓">
+        {/* p3-20 体量角标；p3-21 官方削层（剖面 100%→20% + 计分板打勾）；p3-21a 金句短卡；
+            p3-22 起段落入仓；p3-23 外接段拦 + 闪断；p3-25 收束句 */}
+        <CacheShed
+          trimAt={relF('p3-21')}
+          quoteAt={relF('p3-21a')}
+          enterAt={relF('p3-22')}
+          blockAt={relF('p3-22') + 20}
+          flickerAt={relF('p3-23')}
+          closeAt={relF('p3-25')}
+        />
       </Sequence>
     </AbsoluteFill>
   );

@@ -553,7 +553,13 @@ const SpillLoop: React.FC<{markAt: number; loopAt: number}> = ({markAt, loopAt})
 
 export const P2Dispatch: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (fromId: string, toId?: string) => beatWindow(scene.sentences, scene.from, fromId, toId);
-  const bA = w('p2-01', 'p2-04');
+  /** 句尾锚（beat 内相对帧）：分镜「pX-YY 尾（+N 帧）」的机械化落点。
+   *  句尾是本 beat 末句时，+N 会探出 Sequence 窗口（窗口只含句间 gap ≈10 帧）——
+   *  封顶到「窗口末尾 − need 帧可见」：动效仍然发生，不被窗口剪掉。 */
+  const endAt = (id: string) => w(id).from + w(id).durationInFrames;
+  const tailAt = (b: {from: number; durationInFrames: number}, id: string, plus: number, need: number) =>
+    Math.min(endAt(id) + plus - b.from, b.durationInFrames - need);
+  const bA = w('p2-01', 'p2-03');
   const bC = w('p2-07', 'p2-10');
   const bD = w('p2-11', 'p2-13');
   const bE = w('p2-14', 'p2-16');
@@ -565,7 +571,9 @@ export const P2Dispatch: React.FC<{scene: SceneRange}> = ({scene}) => {
     <AbsoluteFill>
       <SceneHeader index="P2" title="加一个工具，只改一行" meta="Tool Dispatch · registry" durationInFrames={scene.durationInFrames} />
       <Sequence {...bA} name="2-A 命令行拼接的笨拙">
-        <ClumsyCommands typoAt={rel(bA, 'p2-04')} />
+        {/* p2-03 尾 +22 帧：命令里一个字符高亮成 deny 并抖动（原 p2-04 已删，语义由角标承载）。
+            p2-03 是本 beat 末句——+22 会探出窗口，封顶到末尾仍留 26 帧可见抖动+角标。 */}
+        <ClumsyCommands typoAt={tailAt(bA, 'p2-03', 22, 26)} />
       </Sequence>
       <Sequence {...w('p2-05', 'p2-06')} name="2-B 五件工具">
         <FiveTools />

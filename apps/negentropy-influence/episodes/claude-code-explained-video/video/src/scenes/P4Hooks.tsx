@@ -279,8 +279,9 @@ const SlotsLightUp: React.FC<{slotAt: number[]; gateMoveAt: number; backflowAt: 
   );
 };
 
-/** 4-E 四点沿环脉冲一圈；金句期间刻意零动效 */
-const BoringOnPurpose: React.FC<{quoteAt: number}> = ({quoteAt}) => {
+/** 4-E 四点沿环脉冲一圈；金句期间刻意零动效。
+ *  喇叭图标改挂 p4-20 句尾（原 p4-21 已并入 p4-20——四点脉冲走完后喇叭才落位）。 */
+const BoringOnPurpose: React.FC<{hornsAt: number; quoteAt: number}> = ({hornsAt, quoteAt}) => {
   const frame = useCurrentFrame();
   const dot = useRingDot(2.5);
   if (frame >= quoteAt) {
@@ -295,6 +296,11 @@ const BoringOnPurpose: React.FC<{quoteAt: number}> = ({quoteAt}) => {
     );
   }
   const which = Math.floor(frame / 8) % 4;
+  // 四点脉冲一圈（各 8 帧）后喇叭浮出（p4-20 句尾）
+  const horns = interpolate(frame - hornsAt, [0, 10], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <div style={{position: 'relative'}}>
@@ -311,7 +317,7 @@ const BoringOnPurpose: React.FC<{quoteAt: number}> = ({quoteAt}) => {
             const rad = (ang * Math.PI) / 180;
             const cx = 230 + 184 * Math.cos(rad);
             const cy = 230 + 184 * Math.sin(rad);
-            const o = which === i ? 1 : 0.3;
+            const o = (which === i ? 1 : 0.3) * horns;
             // 喇叭主体朝外旋转（角点指向环外）
             const rot = ang + 90;
             return (
@@ -648,9 +654,19 @@ const StampClash: React.FC<{
   );
 };
 
-/** 4-G' 六道闸门流水线（官方 SDK 权限判定图）：hook 的放行仍要穿过后面的 deny/ask 两站
+/** 4-G' 六道闸门流水线（官方 SDK 权限判定图）：同一轨道跑三枚球做对照——
+ *  球 A「沉默」（p4-28，hook 站无扰动通过，沉默≠批准照走流程）、
+ *  球 B「我拦了」（p4-28a/b，全速穿六站直达 Execute，到达瞬间标签翻「静默失效」）、
+ *  球 C「我批了」（p4-29/30，deny 站被截入 Blocked）+ p4-31 全放行模式重跑仍被截。
  *  官方把权限判定画成六站；本片高潮句「扩展点能加限制，不能解除限制」的官方背书。 */
-const SixGatePipeline: React.FC<{railAt: number; runAt: number; yoloAt: number}> = ({railAt, runAt, yoloAt}) => {
+const SixGatePipeline: React.FC<{
+  railAt: number;
+  silentAt: number;
+  fakeAt: number;
+  exitNoteAt: number;
+  runAt: number;
+  yoloAt: number;
+}> = ({railAt, silentAt, fakeAt, exitNoteAt, runAt, yoloAt}) => {
   const frame = useCurrentFrame();
   const stations = [
     {t: 'hook', sub: '扩展点'},
@@ -664,17 +680,55 @@ const SixGatePipeline: React.FC<{railAt: number; runAt: number; yoloAt: number}>
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  const travel = interpolate(frame - runAt, [0, 50], [0, 1], {
+  // 球 A（p4-28）：从 hook 站无扰动通过、继续走 deny/ask 站——沉默≠批准，照走正常流程
+  const travelA = interpolate(frame - silentAt, [0, 50], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  // 球 B（p4-28a/b）：全速穿过全部六站直达 Execute；到达瞬间标签翻「静默失效」
+  const travelB = interpolate(frame - fakeAt, [0, 40], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  // 球 C（p4-29/30）：行至 deny 站被截入 Blocked
+  const travelC = interpolate(frame - runAt, [0, 50], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
   const yolo = frame >= yoloAt;
-  // 两轮演示：第一轮光点在 deny 站被截；第二轮（全放行模式）仍在 deny 站被截
+  // 球 C 在 deny 站（第 2 站，轨道 1/6~2/6 段中点）被截
   const cutAt = 1 / 6 + 0.5 / 6;
-  const stopped = travel > cutAt;
+  const stopped = travelC > cutAt;
   const PX = 160;
   const GAP = 260;
-  const ballX = PX + (GAP * 5) * Math.min(travel, cutAt);
+  const RAIL_END = PX + GAP * 5;
+  const ballAX = PX + (GAP * 5) * travelA;
+  const ballBX = PX + (GAP * 5) * Math.min(travelB, 1);
+  const ballCX = PX + (GAP * 5) * Math.min(travelC, cutAt);
+  const bDone = travelB >= 1;
+  // 球 A 停在 ask 站后淡出（把注意力让给 B/C 两球）
+  const aFade = interpolate(frame - silentAt - 56, [0, 14], [1, 0.25], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  // exit 码角标（p4-28c）
+  const exitNote = interpolate(frame - exitNoteAt, [0, 12], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const label = (x: number, y: number, text: string, color: string, strike = false) => (
+    <text
+      x={x}
+      y={y}
+      textAnchor="middle"
+      fontFamily={theme.sans}
+      fontSize={21}
+      fill={color}
+      textDecoration={strike ? 'line-through' : 'none'}
+    >
+      {text}
+    </text>
+  );
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <div style={{position: 'relative', width: 1660, height: 480}}>
@@ -693,16 +747,48 @@ const SixGatePipeline: React.FC<{railAt: number; runAt: number; yoloAt: number}>
               </text>
             </>
           ) : null}
-          {/* 请求光点 */}
-          {rail > 0.8 ? (
+          {/* 球 A（沉默，dim）：hook 站无扰动通过——hook 沉默≠批准，照走 deny/ask */}
+          {rail > 0.8 && travelA > 0 ? (
             <>
-              <circle cx={ballX} cy={250} r={14} fill={stopped ? theme.deny : theme.core}
-                style={stopped ? {filter: `drop-shadow(0 0 16px ${theme.deny})`} : undefined} />
+              <line x1={PX} y1={250} x2={ballAX} y2={250} stroke={theme.dim} strokeWidth={3} opacity={0.45 * aFade} />
+              <circle cx={ballAX} cy={250} r={12} fill={theme.dim} opacity={aFade} />
+              {label(ballAX, 218, '沉默', theme.dim)}
+            </>
+          ) : null}
+          {/* 球 B（我拦了，deny）：全速直达 Execute；到达瞬间标签翻「静默失效」 */}
+          {rail > 0.8 && travelB > 0 ? (
+            <>
+              <line x1={PX} y1={250} x2={ballBX} y2={250} stroke={theme.deny} strokeWidth={3} opacity={0.5} />
+              <circle
+                cx={ballBX}
+                cy={250}
+                r={12}
+                fill={theme.deny}
+                style={bDone ? {filter: `drop-shadow(0 0 14px ${theme.deny})`} : undefined}
+              />
+              {bDone
+                ? label(ballBX, 218, '静默失效', theme.deny)
+                : label(ballBX, 218, '我拦了', theme.deny)}
+            </>
+          ) : null}
+          {/* 球 C（我批了，core）：deny 站被截入 Blocked（deny 辉光） */}
+          {rail > 0.8 && travelC > 0 ? (
+            <>
+              <circle
+                cx={ballCX}
+                cy={stopped ? 292 : 250}
+                r={13}
+                fill={stopped ? theme.deny : theme.core}
+                style={stopped ? {filter: `drop-shadow(0 0 16px ${theme.deny})`} : undefined}
+              />
               {!stopped ? (
-                <line x1={PX} y1={250} x2={ballX} y2={250} stroke={theme.core} strokeWidth={3} opacity={0.5} />
+                <line x1={PX} y1={250} x2={ballCX} y2={250} stroke={theme.core} strokeWidth={3} opacity={0.5} />
               ) : (
-                <line x1={ballX} y1={250} x2={PX + GAP * 0.5} y2={330} stroke={theme.deny} strokeWidth={3} strokeDasharray="6 5" />
+                <line x1={ballCX} y1={250} x2={PX + GAP * 0.5} y2={330} stroke={theme.deny} strokeWidth={3} strokeDasharray="6 5" />
               )}
+              {stopped
+                ? label(ballCX, 270, '出局', theme.deny)
+                : label(ballCX, 218, '我批了', theme.core)}
             </>
           ) : null}
         </svg>
@@ -736,6 +822,24 @@ const SixGatePipeline: React.FC<{railAt: number; runAt: number; yoloAt: number}>
             </div>
           );
         })}
+        {/* exit 码角标（p4-28c）：唯一硬信号 */}
+        {exitNote > 0 ? (
+          <div
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: 64,
+              textAlign: 'center',
+              fontFamily: theme.mono,
+              fontSize: 21,
+              color: theme.dim,
+              opacity: exitNote,
+            }}
+          >
+            {'唯一凭退出码单独阻断的是 exit 2；exit 1 = 非阻断错误，动作照跑'}
+          </div>
+        ) : null}
         {yolo ? (
           <div
             style={{
@@ -836,6 +940,8 @@ const SelfLoopBreak: React.FC<{spinAt: number; markAt: number}> = ({spinAt, mark
 export const P4Hooks: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (fromId: string, toId?: string) => beatWindow(scene.sentences, scene.from, fromId, toId);
   const rel = (b: {from: number}, id: string) => w(id).from - b.from;
+  /** 句尾锚（全局帧）：分镜「pX-YY 句尾」的机械化落点 */
+  const endAt = (id: string) => w(id).from + w(id).durationInFrames;
   const bA = w('p4-01', 'p4-04');
   const bB = w('p4-05', 'p4-07');
   const bC = w('p4-08', 'p4-12');
@@ -865,13 +971,23 @@ export const P4Hooks: React.FC<{scene: SceneRange}> = ({scene}) => {
         />
       </Sequence>
       <Sequence {...bE} name="4-E 故意保持无聊">
-        <BoringOnPurpose quoteAt={rel(bE, 'p4-22')} />
+        {/* p4-20 句尾喇叭浮出（原 p4-21 并入 p4-20）；p4-22 金句（期间零强调动效） */}
+        <BoringOnPurpose hornsAt={endAt('p4-20') - bE.from} quoteAt={rel(bE, 'p4-22')} />
       </Sequence>
       <Sequence {...bF} name="4-F 31 事件三层嵌套">
         <HookNesting outerAt={rel(bF, 'p4-23')} midAt={rel(bF, 'p4-24')} innerAt={rel(bF, 'p4-24') + 30} countAt={rel(bF, 'p4-24') + 10} asyncAt={rel(bF, 'p4-25')} />
       </Sequence>
       <Sequence {...bG1} name="4-G1 六闸流水线">
-        <SixGatePipeline railAt={rel(bG1, 'p4-29')} runAt={rel(bG1, 'p4-30')} yoloAt={rel(bG1, 'p4-31')} />
+        {/* p4-27 起 +6 帧轨道描出（消除头空转）；p4-28 球 A；p4-28a/b 球 B；p4-28c 角标；
+            p4-29/30 球 C 被截；p4-31 全放行重跑仍被截 */}
+        <SixGatePipeline
+          railAt={rel(bG1, 'p4-27') + 6}
+          silentAt={rel(bG1, 'p4-28')}
+          fakeAt={rel(bG1, 'p4-28a')}
+          exitNoteAt={rel(bG1, 'p4-28c')}
+          runAt={rel(bG1, 'p4-29')}
+          yoloAt={rel(bG1, 'p4-31')}
+        />
       </Sequence>
       <Sequence {...bG2} name="4-G2 印章对撞">
         <StampClash

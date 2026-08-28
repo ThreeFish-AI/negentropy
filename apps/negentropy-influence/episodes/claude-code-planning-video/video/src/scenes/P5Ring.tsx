@@ -125,8 +125,13 @@ const FiveDevices: React.FC<{devAt: number[]; stampAt: number[]}> = ({devAt, sta
   );
 };
 
-/** 5-B ★系列锚帧：环从桌后浮到画面中央（第二次出场，同色同宽同节点），桌子与五装置整体淡为线稿退后。 */
-const RingFloatsForward: React.FC<{floatAt: number; footnoteAt: number}> = ({floatAt, footnoteAt}) => {
+/** 5-B ★系列锚帧：环从桌后浮到画面中央（第二次出场，同色同宽同节点），桌子与五装置整体淡为线稿退后。
+ *  p5-09 起：五条外挂虚线把五样装置逐条挂到环外（strokeDashoffset 逐条描出，stagger i×6 帧）。 */
+const RingFloatsForward: React.FC<{floatAt: number; hooksAt: number; footnoteAt: number}> = ({
+  floatAt,
+  hooksAt,
+  footnoteAt,
+}) => {
   const frame = useCurrentFrame();
   const dot = useRingDot(2.5);
   // 环：从桌后（半透明、偏下）浮到中央（100% 亮度）——尺寸不变，位置与透明度变
@@ -193,16 +198,35 @@ const RingFloatsForward: React.FC<{floatAt: number; footnoteAt: number}> = ({flo
           const y = 700;
           const cx = 960;
           const cy = 540;
+          // 逐条描出（stagger i×6 帧，p5-09 起）：先实线描出（dash 长度 0→满），
+          // 描满后切为虚线挂钩（pathLength=1 归一化，dashoffset 不参与）
+          const drawT = interpolate(frame - hooksAt - i * 6, [0, 18], [0, 1], {
+            extrapolateLeft: 'clamp',
+            extrapolateRight: 'clamp',
+          });
+          const d = `M${x} ${y} Q ${(x + cx) / 2} ${y + 60}, ${cx} ${cy}`;
           return (
-            <path
-              key={i}
-              d={`M${x} ${y} Q ${(x + cx) / 2} ${y + 60}, ${cx} ${cy}`}
-              fill="none"
-              stroke={theme.view}
-              strokeWidth={2.5}
-              strokeDasharray="6 6"
-              opacity={outline * 0.6}
-            />
+            <g key={i}>
+              <path
+                d={d}
+                fill="none"
+                stroke={theme.view}
+                strokeWidth={2.5}
+                pathLength={1}
+                strokeDasharray={`${drawT} 1`}
+                opacity={outline * 0.5}
+              />
+              {drawT > 0.98 ? (
+                <path
+                  d={d}
+                  fill="none"
+                  stroke={theme.view}
+                  strokeWidth={2.5}
+                  strokeDasharray="6 6"
+                  opacity={outline * 0.6}
+                />
+              ) : null}
+            </g>
           );
         })}
       </svg>
@@ -271,7 +295,7 @@ export const P5Ring: React.FC<{scene: SceneRange}> = ({scene}) => {
   const at = (id: string) => w(id).from;
   const bA = w('p5-01', 'p5-06');
   const relA = (id: string) => at(id) - bA.from;
-  const bB = w('p5-07', 'p5-12');
+  const bB = w('p5-07', 'p5-09');
   const relB = (id: string) => at(id) - bB.from;
   const bC = w('p5-13', 'p5-16');
   const relC = (id: string) => at(id) - bC.from;
@@ -292,8 +316,8 @@ export const P5Ring: React.FC<{scene: SceneRange}> = ({scene}) => {
         />
       </Sequence>
       <Sequence {...bB} name="5-B 环浮中央">
-        {/* p5-09「全部挂在循环外面」起：环描线一遍 + 亮度升满；桌子线稿化 */}
-        <RingFloatsForward floatAt={relB('p5-09')} footnoteAt={relB('p5-11')} />
+        {/* p5-07 环起浮；p5-08 环描线一遍 + 亮度升满、桌子线稿化；p5-09 五条挂钩虚线逐条描出 */}
+        <RingFloatsForward floatAt={relB('p5-08')} hooksAt={relB('p5-09')} footnoteAt={relB('p5-09') + 20} />
       </Sequence>
       <Sequence {...bC} name="5-C 金句两行">
         {/* p5-14 第一行；p5-15 第二行 */}

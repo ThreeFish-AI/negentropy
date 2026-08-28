@@ -857,7 +857,8 @@ export const P2SideDesk: React.FC<{scene: SceneRange}> = ({scene}) => {
         <SideDeskSlidesOut slideAt={relB('p2-06')} flyAt={relB('p2-06') + 26} cleanAt={relB('p2-07')} />
       </Sequence>
       <Sequence {...bC} name="2-C 分屏回执">
-        <SplitReceipt receiptAt={relC('p2-09')} fadeAt={relC('p2-10')} />
+        {/* p2-09 回执卡落定；p2-11 副桌纸堆淡出——「丢的只是纸」 */}
+        <SplitReceipt receiptAt={relC('p2-09')} fadeAt={relC('p2-11')} />
       </Sequence>
       <Sequence {...bD} name="2-D 派活上锁与迷你闸门">
         {/* p2-12 第一条纪律（无派活工具）；p2-14 第二条（照样过闸） */}

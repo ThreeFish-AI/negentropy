@@ -1,6 +1,9 @@
 /** P6 落点与信源（分镜 6-A…6-C）
- *  三种开始三段位置图（位置编码，不用三色）+ 共享小环匀速贯穿 → 一句话合同金句卡
- *  → 信源卡 + 身份卡 + 渐黑（末 beat 总时长推导，skills/06 红线四）。 */
+ *  三种开始三段位置图（位置编码，不用三色）+ 共享小环匀速贯穿
+ *  → 6-B 免责两句前置（p6-13/14 信源样式小字）→ 一句话合同金句卡（p6-07）
+ *  → p6-09「钟挪进不睡的管家」过渡 →「守时的自主」边界两句 → 四件套回收条
+ *  （p6-12 循环/工具/上下文管理/护栏；p6-12a 本集钉进「循环」格，仅循环格 core 描边+呼吸辉光）
+ *  → 6-C 身份卡 → 下期卡 → 渐黑（末 beat 总时长推导，skills/06 红线四）。 */
 import React from 'react';
 import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig} from 'remotion';
 import {theme} from '../design/theme';
@@ -167,61 +170,184 @@ const ThreePositions: React.FC<{l1: number; l2: number; l3: number; layerAt: num
   );
 };
 
-/** 6-B 一句话合同金句卡（core）+ 边界两句小字跟随 */
-const ContractQuote: React.FC<{boundAt: number}> = ({boundAt}) => {
+/** 6-B 免责两句前置（p6-13/14 信源样式小字）→ 一句话合同金句卡（p6-07）
+ *  → p6-09 钟挪进管家过渡 → 守时的自主边界两句（p6-10/11）
+ *  → 四件套回收条（p6-12）+ 本集钉进「循环」格（p6-12a）。 */
+const ContractAndRecap: React.FC<{disclaim2At: number; quoteAt: number; boundAt: number; fourAt: number; pinAt: number}> = ({
+  disclaim2At,
+  quoteAt,
+  boundAt,
+  fourAt,
+  pinAt,
+}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
-  const enter = spring({frame: frame - 4, fps, config: {damping: 200}});
-  const bound = interpolate(frame - boundAt, [0, 18], [0, 1], {
+  // 免责两行：p6-13 句首浮出第一行，p6-14 句锚浮出第二行（信源样式小字）
+  const d1 = interpolate(frame - 6, [0, 12], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
+  const d2 = interpolate(frame - disclaim2At, [0, 12], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  // 金句卡（p6-07）spring 淡入；免责区随之淡出让位
+  const quote = spring({frame: frame - quoteAt, fps, config: {damping: 200}});
+  const disclaimGone = interpolate(frame - quoteAt, [0, 16], [1, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  // p6-09 过渡 + p6-10/11 边界两句
+  const clock = interpolate(frame - boundAt, [0, 18], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  // 四件套回收条（p6-12）四格依次亮
+  const four = interpolate(frame - fourAt, [0, 16], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const FOUR = ['循环', '工具', '上下文管理', '护栏'];
+  // p6-12a 本集钉进「循环」格：core 描边 + 呼吸辉光（帧驱动 sin，确定性）
+  const pin = interpolate(frame - pinAt, [0, 14], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const glow = 0.55 + 0.45 * Math.sin(frame / 5);
   return (
-    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center', padding: '0 160px'}}>
-      <div style={{textAlign: 'center', opacity: enter, transform: `translateY(${(1 - enter) * 26}px)`}}>
-        <div style={{fontFamily: theme.serif, fontSize: 70, fontWeight: 700, color: theme.core, lineHeight: 1.4}}>
-          {'按下的不一定是它，'}
-          <br />
-          {'等的一定不是你。'}
-        </div>
+    <AbsoluteFill>
+      {/* 免责两句前置：信源样式小字（p6-13 官方文档 / p6-14 第三方标注） */}
+      {disclaimGone > 0.01 ? (
+        <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
+          <div style={{textAlign: 'center', opacity: disclaimGone}}>
+            <div style={{fontFamily: theme.sans, fontSize: 30, color: theme.dim, opacity: d1}}>
+              {'本片机制依据官方文档 · 取数 2026 年 8 月，以官方最新表述为准'}
+            </div>
+            <div style={{fontFamily: theme.sans, fontSize: 30, color: theme.dim, marginTop: 22, opacity: d2}}>
+              {'产品内部的部分为第三方源码分析 · 片中已逐处标注'}
+            </div>
+          </div>
+        </AbsoluteFill>
+      ) : null}
+      {/* 一句话合同金句卡 + 边界两句（p6-07 起，随后 p6-09..11 跟随；
+          paddingBottom 抬高中线——p6-12 四件套回收条在 bottom:246 带下方让位） */}
+      {quote > 0 ? (
+        <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center', padding: '0 160px 150px'}}>
+          <div style={{textAlign: 'center', opacity: quote, transform: `translateY(${(1 - quote) * 26}px)`}}>
+            <div style={{fontFamily: theme.serif, fontSize: 68, fontWeight: 700, color: theme.core, lineHeight: 1.4}}>
+              {'按下的不一定是它，'}
+              <br />
+              {'等的一定不是你。'}
+            </div>
+            {/* p6-09「钟挪进不睡的管家」过渡 + p6-10/11 守时的自主边界 */}
+            <div
+              style={{
+                marginTop: 44,
+                fontFamily: theme.serif,
+                fontSize: 29,
+                color: theme.text,
+                opacity: clock,
+                lineHeight: 1.8,
+              }}
+            >
+              {'钟曾经装在它身体里，现在挪进了一个不睡的管家。'}
+              <br />
+              <span style={{color: theme.dim, fontSize: 26}}>
+                {'它的自主，到此为止是「守时的自主」——'}
+                <br />
+                {'「自己决定该干什么活」是更大的一步，我们后面再拆。'}
+              </span>
+            </div>
+          </div>
+        </AbsoluteFill>
+      ) : null}
+      {/* 四件套回收条（p6-12 四格依次亮；反枚举：四格不给四色）。
+          带 bottom:246 与 6-A「机制外挪」同一水平带，避开 Footnote（bottom:168）压字 */}
+      {four > 0 ? (
         <div
           style={{
-            marginTop: 54,
-            fontFamily: theme.serif,
-            fontSize: 30,
-            color: theme.text,
-            opacity: bound,
-            lineHeight: 1.8,
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: 246,
+            display: 'flex',
+            justifyContent: 'center',
+            gap: 26,
+            opacity: four,
+            transform: `translateY(${(1 - four) * 22}px)`,
           }}
         >
-          {'有人在等它，但它从不等你；它也开始学着不等任何东西。'}
-          <br />
-          <span style={{color: theme.dim, fontSize: 27}}>{'时钟装在它的身体里，不在墙上 —— 守时的自主'}</span>
+          {FOUR.map((t, i) => {
+            const cell = interpolate(frame - fourAt - i * 6, [0, 10], [0, 1], {
+              extrapolateLeft: 'clamp',
+              extrapolateRight: 'clamp',
+            });
+            const isLoop = i === 0;
+            return (
+              <div key={t} style={{position: 'relative'}}>
+                <div
+                  style={{
+                    padding: '14px 30px',
+                    borderRadius: 12,
+                    border: isLoop && pin > 0 ? `3px solid ${theme.core}` : `2px solid ${theme.panelBorder}`,
+                    background: isLoop && pin > 0 ? `${theme.coreDeep}` : theme.panel,
+                    fontFamily: theme.sans,
+                    fontSize: 26,
+                    color: isLoop && pin > 0 ? theme.text : theme.dim,
+                    opacity: cell,
+                    whiteSpace: 'nowrap',
+                    boxShadow: isLoop && pin > 0 ? `0 0 ${26 * glow}px ${theme.core}` : 'none',
+                  }}
+                >
+                  {t}
+                </div>
+                {/* p6-12a 本集钉进「循环」格：图钉落下 */}
+                {isLoop && pin > 0 ? (
+                  <svg
+                    width={34}
+                    height={38}
+                    style={{
+                      position: 'absolute',
+                      left: '50%',
+                      top: -24,
+                      marginLeft: -17,
+                      transform: `scale(${0.6 + 0.4 * pin})`,
+                      overflow: 'visible',
+                    }}
+                  >
+                    <circle cx={17} cy={16} r={12} fill={theme.core} stroke={theme.coreDeep} strokeWidth={3} />
+                    <circle cx={17} cy={16} r={4} fill={theme.bg} />
+                    <line x1={17} y1={28} x2={17} y2={38} stroke={theme.coreDeep} strokeWidth={4} strokeLinecap="round" />
+                  </svg>
+                ) : null}
+              </div>
+            );
+          })}
         </div>
-      </div>
+      ) : null}
+      {/* 四件套画像的出处角标（p6-12 起，【二】官方工程博客） */}
+      <Footnote delay={fourAt}>
+        {'循环 · 工具 · 上下文管理 · 护栏 —— 官方工程博客'}
+      </Footnote>
     </AbsoluteFill>
   );
 };
 
 /**
- * 6-C 信源卡 + 身份卡 + 渐黑。
+ * 6-C 身份卡 → 下期卡 → 渐黑（单句 p6-15）。
  * `beatDurationInFrames` 是**本 beat 的总时长**，渐黑窗口据此反推（红线四：
  * 不写死帧数、不用末句时长——末句短于 beat 时会提前收尾）。
+ * 下期卡在句内后半段浮出：窗口从 beat 总时长按固定比例推导（句锚不可分——
+ * 单句镜无第二锚，比例锚定在句中段「为什么还有人这么干」分句处）。
  */
-const SourceAndFade: React.FC<{beatDurationInFrames: number; seriesAt: number}> = ({
-  beatDurationInFrames,
-  seriesAt,
-}) => {
+const IdentityAndFade: React.FC<{beatDurationInFrames: number}> = ({beatDurationInFrames}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const enter = spring({frame: frame - 4, fps, config: {damping: 200}});
-  const rows = [
-    ['官方文档', 'code.claude.com/docs · 取数2026年8月'],
-    ['工程博客', 'anthropic.com/engineering'],
-    ['源码分析', '第三方逆向分析 · 片中逐处标注'],
-    ['数字口径', '开源仓库钉版 67a9126c 实测 · 字节归档'],
-  ];
-  const seriesT = interpolate(frame - seriesAt, [0, 20], [0, 1], {
+  // 下期卡：身份卡稳住一拍后浮出（beat 总时长 × 0.52 处——口播念到
+  // 「为什么还有人这么干」时下期卡就位，「下期见」前视觉先到）
+  const nextAt = Math.round(beatDurationInFrames * 0.52);
+  const nextT = interpolate(frame - nextAt, [0, 18], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -234,72 +360,23 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; seriesAt: number}> 
   });
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <div style={{opacity: enter * (1 - seriesT * 0.85), transform: `translateY(${(1 - enter) * 20}px)`}}>
-        <Panel style={{padding: '30px 40px', width: 920}}>
-          <div style={{fontFamily: theme.sans, fontSize: 24, color: theme.later, marginBottom: 18}}>
-            {'信源'}
-          </div>
-          {rows.map(([k, v], i) => (
-            <div
-              key={k}
-              style={{
-                display: 'flex',
-                marginBottom: 10,
-                opacity: interpolate(frame - 8 - i * 4, [0, 10], [0, 1], {
-                  extrapolateLeft: 'clamp',
-                  extrapolateRight: 'clamp',
-                }),
-              }}
-            >
-              <div style={{width: 160, fontFamily: theme.sans, fontSize: 23, color: theme.dim}}>
-                {k}
-              </div>
-              <div style={{fontFamily: theme.mono, fontSize: 23, color: theme.text}}>{v}</div>
-            </div>
-          ))}
-          {/* 诚实行：产品内部断言均为第三方的源码分析（【三】归属句的公开落点） */}
-          <div
-            style={{
-              marginTop: 14,
-              paddingTop: 12,
-              borderTop: `1px solid ${theme.panelBorder}`,
-              fontFamily: theme.sans,
-              fontSize: 20,
-              color: theme.dim,
-              opacity: interpolate(frame - 8 - rows.length * 4, [0, 10], [0, 0.9], {
-                extrapolateLeft: 'clamp',
-                extrapolateRight: 'clamp',
-              }),
-            }}
-          >
-            {'涉及产品内部的部分，均为第三方的源码分析，片中已逐处标注；取证字节已随片归档'}
-          </div>
-        </Panel>
-      </div>
-      {seriesT > 0 ? (
+      <div style={{textAlign: 'center', opacity: enter, transform: `translateY(${(1 - enter) * 18}px)`}}>
+        <div style={{fontFamily: theme.serif, fontSize: 32, color: theme.dim, letterSpacing: 3}}>
+          {'Claude Code Harness Engineering'}
+        </div>
         <div
           style={{
-            position: 'absolute',
-            textAlign: 'center',
-            opacity: seriesT,
-            transform: `translateY(${(1 - seriesT) * 18}px)`,
+            fontFamily: theme.serif,
+            fontSize: 60,
+            fontWeight: 700,
+            color: theme.core,
+            marginTop: 16,
           }}
         >
-          <div style={{fontFamily: theme.serif, fontSize: 34, color: theme.dim, letterSpacing: 3}}>
-            {'Claude Code Harness Engineering'}
-          </div>
-          <div
-            style={{
-              fontFamily: theme.serif,
-              fontSize: 62,
-              fontWeight: 700,
-              color: theme.core,
-              marginTop: 18,
-            }}
-          >
-            {'时机层：谁来按下开始'}
-          </div>
-          {/* 下期预告卡：标题只在画面（反串线纪律） */}
+          {'时机层：谁来按下开始'}
+        </div>
+        {/* 下期预告卡：标题只在画面（反串线纪律） */}
+        {nextT > 0 ? (
           <div
             style={{
               marginTop: 26,
@@ -307,17 +384,20 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; seriesAt: number}> 
               border: `1.5px solid ${theme.panelBorder}`,
               borderRadius: 12,
               background: theme.panel,
+              opacity: nextT,
+              transform: `translateY(${(1 - nextT) * 14}px)`,
+              display: 'inline-block',
             }}
           >
             <div style={{fontFamily: theme.sans, fontSize: 20, color: theme.dim, letterSpacing: 2}}>
               {'下期 · 协作层'}
             </div>
-            <div style={{fontFamily: theme.serif, fontSize: 31, color: theme.text, marginTop: 5}}>
+            <div style={{fontFamily: theme.serif, fontSize: 30, color: theme.text, marginTop: 5}}>
               {'从一个到一群'}
             </div>
           </div>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
       {/* 渐黑遮罩 */}
       <AbsoluteFill style={{background: '#000', opacity: dark, pointerEvents: 'none'}} />
     </AbsoluteFill>
@@ -328,8 +408,8 @@ export const P6Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (fromId: string, toId?: string) => beatWindow(scene.sentences, scene.from, fromId, toId);
   const at = (id: string) => w(id).from;
   const bA = w('p6-01', 'p6-06');
-  const bB = w('p6-07', 'p6-12');
-  const bC = w('p6-13', 'p6-15');
+  const bB = w('p6-13', 'p6-12a');
+  const bC = w('p6-15');
   return (
     <AbsoluteFill>
       <SceneHeader index="P6" title="落点与信源" meta="three answers to who starts" durationInFrames={scene.durationInFrames} />
@@ -342,15 +422,19 @@ export const P6Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
           ringAt={at('p6-06') - bA.from}
         />
       </Sequence>
-      <Sequence {...bB} name="6-B 一句话合同">
-        <ContractQuote boundAt={at('p6-09') - bB.from} />
-      </Sequence>
-      <Sequence {...bC} name="6-C 信源卡与渐黑">
-        {/* 渐黑窗口从**本 beat 总时长**推导，不是末句时长（红线四） */}
-        <SourceAndFade
-          beatDurationInFrames={bC.durationInFrames}
-          seriesAt={at('p6-14') - bC.from}
+      <Sequence {...bB} name="6-B 免责·金句·四件套">
+        {/* p6-13/14 免责前置；p6-07 金句；p6-09..11 边界；p6-12 四件套；p6-12a 钉进循环格 */}
+        <ContractAndRecap
+          disclaim2At={at('p6-14') - bB.from}
+          quoteAt={at('p6-07') - bB.from}
+          boundAt={at('p6-09') - bB.from}
+          fourAt={at('p6-12') - bB.from}
+          pinAt={at('p6-12a') - bB.from}
         />
+      </Sequence>
+      <Sequence {...bC} name="6-C 身份卡与渐黑">
+        {/* 渐黑窗口从**本 beat 总时长**推导，不是末句时长（红线四） */}
+        <IdentityAndFade beatDurationInFrames={bC.durationInFrames} />
       </Sequence>
     </AbsoluteFill>
   );

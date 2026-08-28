@@ -16,6 +16,10 @@ const DEVICES = [
   {t: '补救梯', kind: 'ladder'},
 ] as const;
 
+/** p0-08/09 官方四件套标尺（0-C 用）：循环／工具／上下文管理／护栏——
+ *  前两格与末格不点亮（panelBorder 虚线 + dim 字），唯「上下文管理」格 view 描边。 */
+const FOUR_PIECES = ['循环', '工具', '上下文管理', '护栏'] as const;
+
 /** 0-A 系列同款终端：最初的「任务：改命名」首行逐渐被工具输出顶出可视区。
  *  行区整体上移（scrollShift），滚出瞬间残影停在顶端变 dim——「被挤走」被看见。
  *  p0-03「其中一样，刚刚被官方收回去」：右下角「收回」钢印砸下（退位悬念第一分钟埋下）。 */
@@ -172,13 +176,16 @@ const DeskFillsUp: React.FC<{fillPerFrame: number; shoveAt: number; dropAt: numb
 };
 
 /** 0-C 桌面定格，主线问题两行 serif 大字；环（core）第一次在桌后浮现（35% 透明）。
- *  p0-07 答句后：五样装置小图标自左向右列队点亮（清单/副桌/目录/垫纸/梯子）。 */
-const QuestionAndRingBehind: React.FC<{qAt: number; answerAt: number; ringAt: number; devicesAt: number}> = ({
-  qAt,
-  answerAt,
-  ringAt,
-  devicesAt,
-}) => {
+ *  p0-07 答句后：五样装置小图标自左向右列队点亮（清单/副桌/目录/垫纸/梯子）；
+ *  p0-08 起：官方四件套标尺自桌下升起，p0-09「上下文管理」格左半点亮——今天补前半。 */
+const QuestionAndRingBehind: React.FC<{
+  qAt: number;
+  answerAt: number;
+  ringAt: number;
+  devicesAt: number;
+  rulerAt: number;
+  fillAt: number;
+}> = ({qAt, answerAt, ringAt, devicesAt, rulerAt, fillAt}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const deskIn = spring({frame: frame - 2, fps, config: {damping: 200}});
@@ -191,6 +198,16 @@ const QuestionAndRingBehind: React.FC<{qAt: number; answerAt: number; ringAt: nu
     extrapolateRight: 'clamp',
   });
   const ringDraw = interpolate(frame - ringAt, [0, 46], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  // 四件套标尺：自桌下升起（p0-08）；逐格描边（stagger）
+  const ruler = interpolate(frame - rulerAt, [0, 20], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  // 「上下文管理」格左半：viewDeep 线性填充（24 帧，p0-09 起）
+  const halfFill = interpolate(frame - fillAt, [0, 24], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -207,7 +224,7 @@ const QuestionAndRingBehind: React.FC<{qAt: number; answerAt: number; ringAt: nu
       </div>
       <Desk
         width={1380}
-        height={460}
+        height={700}
         fillOpacity={0.9}
         style={{
           opacity: deskIn,
@@ -314,6 +331,73 @@ const QuestionAndRingBehind: React.FC<{qAt: number; answerAt: number; ringAt: nu
               );
             })}
           </div>
+          {/* p0-08/09 官方四件套标尺：自桌下升起（分镜 0-C 承诺「今天补前半」） */}
+          <div
+            style={{
+              display: 'flex',
+              gap: 14,
+              marginTop: 34,
+              opacity: ruler,
+              transform: `translateY(${(1 - ruler) * 22}px)`,
+            }}
+          >
+            {FOUR_PIECES.map((p, i) => {
+              const hot = p === '上下文管理';
+              // 逐格描边：自升起后 stagger 点亮边框
+              const cell = interpolate(frame - rulerAt - 20 - i * 5, [0, 10], [0, 1], {
+                extrapolateLeft: 'clamp',
+                extrapolateRight: 'clamp',
+              });
+              return (
+                <div key={p} style={{position: 'relative'}}>
+                  <div
+                    style={{
+                      width: 170,
+                      padding: '10px 0',
+                      textAlign: 'center',
+                      fontFamily: theme.sans,
+                      fontSize: 22,
+                      color: hot ? theme.view : theme.dim,
+                      border: `2px ${hot ? 'solid' : 'dashed'} ${
+                        cell > 0 ? (hot ? theme.view : theme.panelBorder) : 'transparent'
+                      }`,
+                      borderRadius: 8,
+                      overflow: 'hidden',
+                      position: 'relative',
+                    }}
+                  >
+                    {/* 「上下文管理」格只填左半格（viewDeep 线性填充，p0-09 起） */}
+                    {hot ? (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          left: 0,
+                          top: 0,
+                          bottom: 0,
+                          width: `${50 * halfFill}%`,
+                          background: theme.viewDeep,
+                          opacity: 0.75,
+                        }}
+                      />
+                    ) : null}
+                    <span style={{position: 'relative'}}>{p}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {/* 格下小字：今天补前半（随半格填充浮现） */}
+          <div
+            style={{
+              marginTop: 12,
+              fontFamily: theme.sans,
+              fontSize: 21,
+              color: theme.view,
+              opacity: halfFill,
+            }}
+          >
+            {'今天补的正是前半：它每一轮能看见什么'}
+          </div>
         </div>
       </Desk>
     </AbsoluteFill>
@@ -329,7 +413,7 @@ export const P0Hook: React.FC<{scene: SceneRange}> = ({scene}) => {
   const relA = (id: string) => at(id) - bA.from;
   const bB = w('p0-04', 'p0-05');
   const relB = (id: string) => at(id) - bB.from;
-  const bC = w('p0-06', 'p0-08');
+  const bC = w('p0-06', 'p0-09');
   const relC = (id: string) => at(id) - bC.from;
   return (
     <AbsoluteFill>
@@ -343,12 +427,15 @@ export const P0Hook: React.FC<{scene: SceneRange}> = ({scene}) => {
         <DeskFillsUp fillPerFrame={0.22} shoveAt={relB('p0-04')} dropAt={relB('p0-05')} />
       </Sequence>
       <Sequence {...bC} name="0-C 主线问题与桌后之环">
-        {/* p0-06 抛问题+答案句 + 环在桌后描线（35% 透明）；p0-07 五样装置列队 */}
+        {/* p0-06 抛问题+答案句 + 环在桌后描线（35% 透明）；p0-07 五样装置列队；
+            p0-08 四件套标尺升起；p0-09「上下文管理」格左半点亮 + 小字 */}
         <QuestionAndRingBehind
           qAt={relC('p0-06')}
           answerAt={relC('p0-06') + 20}
           ringAt={relC('p0-06')}
           devicesAt={relC('p0-07')}
+          rulerAt={relC('p0-08')}
+          fillAt={relC('p0-09')}
         />
       </Sequence>
     </AbsoluteFill>

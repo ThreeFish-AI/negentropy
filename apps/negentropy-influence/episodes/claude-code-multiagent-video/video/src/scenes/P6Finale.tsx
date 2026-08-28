@@ -719,12 +719,15 @@ const WhoHoldsPlan: React.FC<{
   );
 };
 
-const SourceAndFade: React.FC<{beatDurationInFrames: number; partsAt: number; costAt: number; seriesAt: number}> = ({
-  beatDurationInFrames,
-  partsAt,
-  costAt,
-  seriesAt,
-}) => {
+const SourceAndFade: React.FC<{
+  beatDurationInFrames: number;
+  partsAt: number;
+  costAt: number;
+  seriesAt: number;
+  lawAt: number;
+  lawEndAt: number;
+  idAt: number;
+}> = ({beatDurationInFrames, partsAt, costAt, seriesAt, lawAt, lawEndAt, idAt}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   // p6-12 零件四连小图（板/箱/号/桌）与 p6-13/14 十五倍对比条先于信源卡（分镜 6-E 承诺）
@@ -736,10 +739,30 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; partsAt: number; co
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
+  // 换页语法（与 2-E/6-D 同款）：收束段（零件+十五倍）让位给信源卡（p6-15）；
+  // p6-16a 第一定律两句时零件四连**带着「赌注」标签回归**，逐个 dim 变灰
+  // （p6-16b 末全灰）；身份卡 + 下期卡从 p6-17 进。
   const preludeGone = interpolate(frame - (seriesAt - 26), [0, 20], [1, 0], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
+  const preludeBack = interpolate(frame - (lawAt - 18), [0, 16], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const preludeOut = interpolate(frame - (lawEndAt + 26), [0, 18], [1, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const preludeO =
+    partsT * Math.max(preludeGone, preludeBack * preludeOut);
+  // 赌注标签 + 逐个变灰：lawAt 起标签淡入，四枚依次 dim（每 10 帧一枚，p6-16b 末全灰）
+  const betOn = phase(frame, lawAt, 12);
+  const partDim = (i: number) =>
+    interpolate(frame - lawAt - 8 - i * 10, [0, 10], [0, 1], {
+      extrapolateLeft: 'clamp',
+      extrapolateRight: 'clamp',
+    });
   const enter = spring({frame: frame - (seriesAt - 22), fps, config: {damping: 200}});
   const rows = [
     ['官方文档', 'code.claude.com/docs · 取数2026年8月'],
@@ -747,7 +770,16 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; partsAt: number; co
     ['源码分析', '第三方逆向分析 · 片中逐处标注'],
     ['数字口径', '开源仓库钉版 67a9126c 实测 · 字节归档'],
   ];
-  const seriesT = phase(frame, seriesAt, 20);
+  // 信源卡退场：第一定律回归段（lawAt..lawEnd）压到背景 0.3；身份卡起全隐
+  const sourceOut = interpolate(frame - (lawAt - 18), [0, 14], [1, 0.3], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  }) * interpolate(frame - (idAt - 10), [0, 12], [1, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  // 身份卡（+ 下期预告卡）：p6-17 起
+  const idT = phase(frame, idAt, 20);
   // 渐黑：末 1.2 秒线性压暗到全黑，窗口从 beat 总时长反推
   const fadeFrames = Math.round(1.2 * fps);
   const fadeStart = beatDurationInFrames - fadeFrames;
@@ -757,12 +789,13 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; partsAt: number; co
   });
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      {/* p6-12 零件四连小图 + p6-13/14 官方冷水（十五倍）——信源卡之前的收束段 */}
-      {preludeGone > 0.01 ? (
+      {/* p6-12 零件四连小图 + p6-13/14 官方冷水（十五倍）——信源卡之前的收束段；
+          p6-16a/b 第一定律段带「赌注」标签回归并逐个变灰 */}
+      {preludeO > 0.01 ? (
         <div
           style={{
             position: 'absolute',
-            opacity: partsT * preludeGone,
+            opacity: preludeO,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
@@ -778,15 +811,44 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; partsAt: number; co
             ].map((p, i) => (
               <div key={p.t} style={{textAlign: 'center'}}>
                 <svg width={68} height={60} style={{overflow: 'visible'}}>
-                  <path d={p.d} fill="none" stroke={theme.dim} strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round" />
+                  <path
+                    d={p.d}
+                    fill="none"
+                    stroke={theme.dim}
+                    strokeWidth={3.5}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    opacity={1 - partDim(i) * 0.75}
+                  />
                 </svg>
-                <div style={{fontFamily: theme.sans, fontSize: 21, color: theme.text, marginTop: 6}}>{p.t}</div>
+                <div style={{fontFamily: theme.sans, fontSize: 21, color: theme.text, marginTop: 6, opacity: 1 - partDim(i) * 0.8}}>
+                  {p.t}
+                </div>
+                {/* p6-16b「押着『模型做不到』的赌注」：四枚各加一枚赌注小标签，
+                    随各自 dim 一起变灰淡出 */}
+                {betOn > 0 ? (
+                  <div
+                    style={{
+                      display: 'inline-block',
+                      marginTop: 5,
+                      padding: '2px 9px',
+                      borderRadius: 6,
+                      border: `1.5px solid ${partDim(i) > 0.5 ? theme.panelBorder : theme.peer}`,
+                      fontFamily: theme.sans,
+                      fontSize: 15,
+                      color: partDim(i) > 0.5 ? theme.dim : theme.peer,
+                      opacity: betOn * (1 - partDim(i) * 0.7),
+                    }}
+                  >
+                    {'赌注'}
+                  </div>
+                ) : null}
               </div>
             ))}
           </div>
-          {/* 十五倍对比条：普通对话 1× vs 多智能体 15× */}
-          {costT > 0 ? (
-            <div style={{opacity: costT, display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center'}}>
+          {/* 十五倍对比条：普通对话 1× vs 多智能体 15×（收束段；第一定律回归段不再重演） */}
+          {costT > 0 && preludeGone > 0.01 ? (
+            <div style={{opacity: costT * preludeGone, display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center'}}>
               <div style={{display: 'flex', alignItems: 'center', gap: 14}}>
                 <span style={{fontFamily: theme.sans, fontSize: 20, color: theme.dim, width: 150, textAlign: 'right'}}>
                   {'普通对话'}
@@ -816,7 +878,7 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; partsAt: number; co
           ) : null}
         </div>
       ) : null}
-      <div style={{opacity: enter * (1 - seriesT * 0.85), transform: `translateY(${(1 - enter) * 20}px)`}}>
+      <div style={{opacity: enter * sourceOut, transform: `translateY(${(1 - enter) * 20}px)`}}>
         <Panel style={{padding: '30px 40px', width: 940}}>
           <div style={{fontFamily: theme.sans, fontSize: 24, color: theme.peer, marginBottom: 18}}>
             {'信源'}
@@ -858,14 +920,14 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; partsAt: number; co
           </div>
         </Panel>
       </div>
-      {/* 系列身份卡 */}
-      {seriesT > 0 ? (
+      {/* 系列身份卡 + 下期预告卡（p6-17 起——收尾句序：信源→第一定律→身份+下期） */}
+      {idT > 0 ? (
         <div
           style={{
             position: 'absolute',
             textAlign: 'center',
-            opacity: seriesT,
-            transform: `translateY(${(1 - seriesT) * 18}px)`,
+            opacity: idT,
+            transform: `translateY(${(1 - idT) * 18}px)`,
           }}
         >
           <div style={{fontFamily: theme.serif, fontSize: 34, color: theme.dim, letterSpacing: 3}}>
@@ -899,6 +961,24 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; partsAt: number; co
               {'给这样的系统打分'}
             </div>
           </div>
+        </div>
+      ) : null}
+      {/* p6-16a/b 第一定律角标：自省句（bottom ≥ 150 避让字幕带） */}
+      {betOn > 0 && preludeOut > 0.05 ? (
+        <div
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: 168,
+            textAlign: 'center',
+            fontFamily: theme.sans,
+            fontSize: 24,
+            color: theme.dim,
+            opacity: betOn * preludeOut,
+          }}
+        >
+          {'常问自己：我可以停止做什么？'}
         </div>
       ) : null}
       {/* 渐黑遮罩（末 1.2s 线性压暗；窗口从 beat 总时长推导——红线四） */}
@@ -944,6 +1024,9 @@ export const P6Finale: React.FC<{scene: SceneRange}> = ({scene}) => {
           partsAt={rel(bE, 'p6-12')}
           costAt={rel(bE, 'p6-13')}
           seriesAt={rel(bE, 'p6-15')}
+          lawAt={rel(bE, 'p6-16a')}
+          lawEndAt={rel(bE, 'p6-16b')}
+          idAt={rel(bE, 'p6-17')}
         />
       </Sequence>
     </AbsoluteFill>

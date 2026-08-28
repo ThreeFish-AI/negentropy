@@ -1,12 +1,12 @@
 /** P5 时间表的真话（分镜 5-A…5-E）
- *  ★踩踏帧（一排表全指 9:00 齐射）→ ★确定性抖动（固定偏移错峰 / 随机漂移对照）
- *  → 七天退休章 → 诚实边界（进程灯灭秒摆停）→ 上限 50/低优先级/金句。 */
+ *  ★踩踏帧（一排表全指 9:00 齐射）→ ★确定性抖动（固定偏移错峰 / 随机漂移 / 整点提前一分半）
+ *  → 七天退休章 → 诚实边界（p5-13 终端关了表停被 deny 斜划 → p5-14 管家进程接管）
+ *  → 上限 50/低优先级 → 金句卡 → 自定速发条（p5-23a/b）。 */
 import React from 'react';
 import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig} from 'remotion';
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {QuoteCard} from '../components/cards';
 import {Footnote, Panel, SceneHeader, SceneTag} from '../components/motifs';
 
 /** 迷你钟面：时针/分针可指定角度，可选表盘描边色 */
@@ -291,9 +291,11 @@ const RetireStamp: React.FC<{flipAt: number; stampAt: number}> = ({flipAt, stamp
   );
 };
 
-/** 5-D 官方新答案：后台会话由独立管家进程托管（Harness Engineering 改造版）
- *  六状态记账、行摘要小模型、状态落盘穿重启、接回从停点续跑。 */
-const SupervisorFrame: React.FC<{supAt: number; statesAt: number; persistAt: number; resumeAt: number}> = ({
+/** 5-D 诚实边界 + 官方新答案：p5-13 旧真话（终端关了表停）被 deny 斜划，
+ *  p5-14 管家进程 spring 立起把它推成虚影；六状态记账、行摘要小模型、
+ *  状态落盘穿重启、接回从停点续跑（Harness Engineering 改造版）。 */
+const SupervisorFrame: React.FC<{denyAt: number; supAt: number; statesAt: number; persistAt: number; resumeAt: number}> = ({
+  denyAt,
   supAt,
   statesAt,
   persistAt,
@@ -301,6 +303,10 @@ const SupervisorFrame: React.FC<{supAt: number; statesAt: number; persistAt: num
 }) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
+  const deny = interpolate(frame - denyAt, [0, 12], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
   const sup = spring({frame: frame - supAt, fps, config: {damping: 200}});
   const states = ['排队', '跑着', '等审批', '被拦', '收尾', '完事'];
   const persist = interpolate(frame - persistAt, [0, 22], [0, 1], {
@@ -311,18 +317,60 @@ const SupervisorFrame: React.FC<{supAt: number; statesAt: number; persistAt: num
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
+  // 旧真话卡被管家立起后推成虚影（p5-14 起）
+  const ghost = 1 - sup * 0.72;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <div style={{position: 'relative', width: 1500, height: 640}}>
-        {/* 管家进程：不眠的眼睛 */}
+        {/* p5-13 旧真话卡：终端图标 + 「进程关了 → 表停」→ p5-14 被 deny 斜划 + 推成虚影 */}
         <div
           style={{
             position: 'absolute',
-            left: 660,
+            left: 0,
+            right: 0,
             top: 0,
+            display: 'flex',
+            justifyContent: 'center',
+            opacity: deny * ghost,
+            transform: `translateY(${sup * -14}px)`,
+          }}
+        >
+          <div style={{position: 'relative', display: 'flex', alignItems: 'center', gap: 22}}>
+            <svg width={84} height={64} style={{overflow: 'visible'}}>
+              {/* 终端窗（P1 母题缩略） */}
+              <rect x={4} y={4} width={76} height={56} rx={8} fill={theme.panel} stroke={theme.panelBorder} strokeWidth={3} />
+              <line x1={4} y1={18} x2={80} y2={18} stroke={theme.panelBorder} strokeWidth={2} />
+              <polyline points="14,30 24,38 14,46" fill="none" stroke={theme.dim} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
+              <line x1={30} y1={48} x2={52} y2={48} stroke={theme.dim} strokeWidth={3} strokeLinecap="round" />
+            </svg>
+            <div style={{fontFamily: theme.sans, fontSize: 26, color: theme.text}}>
+              {'把进程关了，'}
+              <span style={{color: theme.deny}}>{'表就停了'}</span>
+            </div>
+            {/* deny 斜划（p5-13 尾段落下） */}
+            <svg width={520} height={84} style={{position: 'absolute', left: -10, top: -8, overflow: 'visible'}}>
+              <line
+                x1={0}
+                y1={72}
+                x2={500 * deny}
+                y2={72 - 62 * deny}
+                stroke={theme.deny}
+                strokeWidth={5}
+                strokeLinecap="round"
+              />
+            </svg>
+          </div>
+        </div>
+        {/* p5-14 管家进程：不眠的眼睛，spring 立起 */}
+        <div
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            top: 108,
             textAlign: 'center',
             opacity: sup,
-            transform: `translateY(${(1 - sup) * -30}px)`,
+            transform: `translateY(${(1 - sup) * -26}px)`,
           }}
         >
           <svg width={180} height={110}>
@@ -339,7 +387,7 @@ const SupervisorFrame: React.FC<{supAt: number; statesAt: number; persistAt: num
           </div>
         </div>
         {/* 六状态小环 */}
-        <div style={{position: 'absolute', left: 0, right: 0, top: 250, display: 'flex', justifyContent: 'center', gap: 20}}>
+        <div style={{position: 'absolute', left: 0, right: 0, top: 320, display: 'flex', justifyContent: 'center', gap: 20}}>
           {states.map((s, i) => {
             const e = interpolate(frame - statesAt - i * 6, [0, 10], [0, 1], {
               extrapolateLeft: 'clamp',
@@ -364,13 +412,13 @@ const SupervisorFrame: React.FC<{supAt: number; statesAt: number; persistAt: num
             );
           })}
         </div>
-        {/* 状态落盘 + 穿重启 */}
+        {/* 状态落盘 + 穿重启（p5-15） */}
         {persist > 0 ? (
           <div
             style={{
               position: 'absolute',
               left: 180,
-              bottom: 120,
+              bottom: 40,
               width: 500,
               opacity: persist,
               transform: `translateY(${(1 - persist) * 16}px)`,
@@ -386,13 +434,13 @@ const SupervisorFrame: React.FC<{supAt: number; statesAt: number; persistAt: num
             </Panel>
           </div>
         ) : null}
-        {/* 接回续跑 */}
+        {/* 接回续跑（p5-18） */}
         {resume > 0 ? (
           <div
             style={{
               position: 'absolute',
               right: 180,
-              bottom: 120,
+              bottom: 40,
               width: 500,
               opacity: resume,
               transform: `translateY(${(1 - resume) * 16}px)`,
@@ -416,16 +464,73 @@ const SupervisorFrame: React.FC<{supAt: number; statesAt: number; persistAt: num
   );
 };
 
-/** 5-E 上限 50/50 + 低优先级标记排队尾 + 金句卡 */
-/** 5-E 上限与低优先级 + 自定速发条（p5-23a/b：干完一轮顺手定下一次，间隔自己定）。 */
-const CapAndQuote: React.FC<{lowAt: number; windAt: number; quoteAt: number}> = ({lowAt, windAt, quoteAt}) => {
+/** 5-E 上限 50/50 + 低优先级标记排队尾（p5-19..22）→ 金句卡（p5-23）
+ *  → 自定速发条（p5-23a/b：干完一轮顺手定下一次，间隔自己定——金句上移让位，不发条不盖金句）。 */
+const CapAndQuote: React.FC<{lowAt: number; quoteAt: number; windAt: number}> = ({lowAt, quoteAt, windAt}) => {
   const frame = useCurrentFrame();
+  const {fps} = useVideoConfig();
+  const quoteE = spring({frame: frame - quoteAt, fps, config: {damping: 200}});
+  const wind = spring({frame: frame - windAt, fps, config: {damping: 200}});
   if (frame >= quoteAt) {
     return (
-      <QuoteCard
-        zh="定时这件事，想象很浪漫，工程都在打补丁。"
-        accent={theme.later}
-      />
+      <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
+        {/* 金句卡：wind 阶段上移收小，给发条让位 */}
+        <div
+          style={{
+            textAlign: 'center',
+            opacity: quoteE,
+            transform: `translateY(${(1 - quoteE) * 30 - wind * 150}px) scale(${1 - wind * 0.24})`,
+          }}
+        >
+          <div style={{fontFamily: theme.serif, fontSize: 58, fontWeight: 700, color: theme.later, lineHeight: 1.5}}>
+            {'定时这件事，想象很浪漫，'}
+            <br />
+            {'工程都在打补丁。'}
+          </div>
+        </div>
+        {/* p5-23a/b 自定速发条：干完一轮 → 顺手拨出下一格（间隔自己定，不靠墙上的钟） */}
+        <div style={{opacity: wind, transform: `translateY(${(1 - wind) * 70}px)`, marginTop: 26}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: 26}}>
+            <svg width={128} height={128} style={{overflow: 'visible'}}>
+              {/* 发条旋钮：自转一圈、拨出一格 */}
+              <circle cx={64} cy={64} r={46} fill="none" stroke={theme.later} strokeWidth={5} />
+              {Array.from({length: 8}, (_, i) => {
+                const a = ((i * 45 + (frame / 2.2) * 45) * Math.PI) / 180;
+                return (
+                  <line
+                    key={i}
+                    x1={64 + 46 * Math.cos(a)}
+                    y1={64 + 46 * Math.sin(a)}
+                    x2={64 + 58 * Math.cos(a)}
+                    y2={64 + 58 * Math.sin(a)}
+                    stroke={theme.later}
+                    strokeWidth={4}
+                    strokeLinecap="round"
+                  />
+                );
+              })}
+              <line
+                x1={64}
+                y1={64}
+                x2={64 + 36 * Math.cos(((frame / 2.2) * 45 * Math.PI) / 180)}
+                y2={64 + 36 * Math.sin(((frame / 2.2) * 45 * Math.PI) / 180)}
+                stroke={theme.later}
+                strokeWidth={5}
+                strokeLinecap="round"
+              />
+            </svg>
+            <div>
+              <div style={{fontFamily: theme.sans, fontSize: 25, color: theme.text}}>
+                {'干完一轮，顺手定下一次 —— 间隔自己定'}
+              </div>
+              <div style={{fontFamily: theme.sans, fontSize: 21, color: theme.dim, marginTop: 8}}>
+                {'不靠墙上的钟，靠它自己的一句「回头再来」'}
+              </div>
+            </div>
+          </div>
+        </div>
+        <Footnote delay={windAt}>{'自定速：任务自己排自己的下一次 —— 官方文档 scheduled-tasks'}</Footnote>
+      </AbsoluteFill>
     );
   }
   const low = interpolate(frame - lowAt, [0, 18], [0, 1], {
@@ -484,62 +589,6 @@ const CapAndQuote: React.FC<{lowAt: number; windAt: number; quoteAt: number}> = 
           </div>
         </div>
       </div>
-      {/* p5-23a/b 自定速发条：干完一轮 → 顺手拨出下一格（间隔自己定，不靠墙上的钟） */}
-      {frame >= windAt ? (
-        <div
-          style={{
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            bottom: 118,
-            display: 'flex',
-            justifyContent: 'center',
-            opacity: interpolate(frame - windAt, [0, 14], [0, 1], {
-              extrapolateLeft: 'clamp',
-              extrapolateRight: 'clamp',
-            }),
-          }}
-        >
-          <div style={{display: 'flex', alignItems: 'center', gap: 18}}>
-            <svg width={120} height={120} style={{overflow: 'visible'}}>
-              {/* 发条旋钮：自转一圈、拨出一格 */}
-              <circle cx={60} cy={60} r={44} fill="none" stroke={theme.later} strokeWidth={5} />
-              {Array.from({length: 8}, (_, i) => {
-                const a = ((i * 45 + (frame / 2.2) * 45) * Math.PI) / 180;
-                return (
-                  <line
-                    key={i}
-                    x1={60 + 44 * Math.cos(a)}
-                    y1={60 + 44 * Math.sin(a)}
-                    x2={60 + 56 * Math.cos(a)}
-                    y2={60 + 56 * Math.sin(a)}
-                    stroke={theme.later}
-                    strokeWidth={4}
-                    strokeLinecap="round"
-                  />
-                );
-              })}
-              <line
-                x1={60}
-                y1={60}
-                x2={60 + 34 * Math.cos(((frame / 2.2) * 45 * Math.PI) / 180)}
-                y2={60 + 34 * Math.sin(((frame / 2.2) * 45 * Math.PI) / 180)}
-                stroke={theme.later}
-                strokeWidth={5}
-                strokeLinecap="round"
-              />
-            </svg>
-            <div>
-              <div style={{fontFamily: theme.sans, fontSize: 24, color: theme.text}}>
-                {'干完一轮，顺手定下一次 —— 间隔自己定'}
-              </div>
-              <div style={{fontFamily: theme.sans, fontSize: 20, color: theme.dim, marginTop: 6}}>
-                {'不靠墙上的钟，靠它自己的一句「回头再来」'}
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
       <Footnote delay={lowAt}>{'上限与低优先级标记 —— 第三方的源码分析'}</Footnote>
     </AbsoluteFill>
   );
@@ -549,9 +598,9 @@ export const P5Truths: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (fromId: string, toId?: string) => beatWindow(scene.sentences, scene.from, fromId, toId);
   const at = (id: string) => w(id).from;
   const bA = w('p5-01', 'p5-04');
-  const bB = w('p5-05', 'p5-08');
-  const bC = w('p5-09', 'p5-10');
-  const bD = w('p5-11', 'p5-18');
+  const bB = w('p5-05', 'p5-10');
+  const bC = w('p5-11', 'p5-12');
+  const bD = w('p5-13', 'p5-18');
   const bE = w('p5-19', 'p5-23b');
   return (
     <AbsoluteFill>
@@ -560,27 +609,33 @@ export const P5Truths: React.FC<{scene: SceneRange}> = ({scene}) => {
         <Stampede fireAt={at('p5-03') - bA.from} crashAt={at('p5-04') - bA.from} />
       </Sequence>
       <Sequence {...bB} name="5-B 确定性抖动">
-        {/* 提前 90 秒的口播落在下一镜（p5-09），但分镜 5-B 动效列要求逆行箭头——
-            锚在本镜末句尾段，先给视觉再由下镜口播收口 */}
+        {/* 整点提前 90 秒口播（p5-09/10）已并入本镜——逆行箭头锚 p5-09 句首 */}
         <DeterministicJitter
           staggerAt={at('p5-05') - bB.from}
           randomAt={at('p5-07') - bB.from}
-          earlyAt={at('p5-08') - bB.from + 40}
+          earlyAt={at('p5-09') - bB.from}
         />
       </Sequence>
       <Sequence {...bC} name="5-C 七天退休">
-        <RetireStamp flipAt={0} stampAt={at('p5-10') - bC.from} />
+        <RetireStamp flipAt={0} stampAt={at('p5-12') - bC.from} />
       </Sequence>
       <Sequence {...bD} name="5-D 诚实边界">
-        {/* p5-15 讲「持久化保存的是定义」但属下一镜句区间——抽屉锚在本镜末句尾段展示，
-            p5-15 口播接续解释（镜内画面与镜间口播的刻意交叠） */}
-        <SupervisorFrame supAt={at('p5-14') - bD.from} statesAt={at('p5-16') - bD.from} persistAt={at('p5-15') - bD.from} resumeAt={at('p5-18') - bD.from} />
+        {/* p5-13 旧真话 deny 斜划（末句尾落下）→ p5-14 管家立起；
+            p5-15 状态落盘、p5-16 六状态、p5-18 接回续跑 */}
+        <SupervisorFrame
+          denyAt={at('p5-13') - bD.from}
+          supAt={at('p5-14') - bD.from}
+          statesAt={at('p5-16') - bD.from}
+          persistAt={at('p5-15') - bD.from}
+          resumeAt={at('p5-18') - bD.from}
+        />
       </Sequence>
       <Sequence {...bE} name="5-E 上限·低优先级·发条">
+        {/* p5-19 容量；p5-21 低优先级；p5-23 金句；p5-23a/b 自定速发条（金句上移让位） */}
         <CapAndQuote
-          lowAt={at('p5-19') - bE.from}
-          windAt={at('p5-23a') - bE.from}
+          lowAt={at('p5-21') - bE.from}
           quoteAt={at('p5-23') - bE.from}
+          windAt={at('p5-23a') - bE.from}
         />
       </Sequence>
     </AbsoluteFill>

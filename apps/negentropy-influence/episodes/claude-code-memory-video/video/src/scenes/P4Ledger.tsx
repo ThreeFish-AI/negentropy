@@ -236,12 +236,18 @@ const TabToSummary: React.FC<{beamAt: number; rewriteAt: number; shredAt: number
 /** 4-C 两条腿框架（Harness Engineering 改造版）：
  *  第一条腿你写（项目规则文件夹：四层拼接/四兆上限/两百行）+ 第二条腿它自己写（自动记忆，四类有门限）。
  *  内嵌原 LedgerArrives 登记簿动画。 */
-const TwoLegsFrame: React.FC<{legAt: number; autoAt: number; children: React.ReactNode}> = ({
-  legAt,
-  autoAt,
-  children,
-}) => {
+const TwoLegsFrame: React.FC<{
+  legAt: number;
+  autoAt: number;
+  /** p4-08a..d 层位纠正插段：规则卡飞向「基本设定」被弹回、落进「你开口之前」通道 */
+  ghostAt: number;
+  bounceAt: number;
+  quoteAt: number;
+  badgeAt: number;
+  children: React.ReactNode;
+}> = ({legAt, autoAt, ghostAt, bounceAt, quoteAt, badgeAt, children}) => {
   const frame = useCurrentFrame();
+  const {fps} = useVideoConfig();
   const leg = interpolate(frame - legAt, [0, 18], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
@@ -250,9 +256,36 @@ const TwoLegsFrame: React.FC<{legAt: number; autoAt: number; children: React.Rea
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
+  // p4-08a：规则卡沿弧线上飞（0→1）；p4-08b：被横杆弹回落位（1→0，spring 过冲）
+  const fly = interpolate(frame - ghostAt, [0, 22], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const bounce = spring({frame: frame - bounceAt, fps, config: {damping: 11}});
+  const settled = interpolate(bounce, [0, 1], [1, 0]);
+  // 弹回后通道标签描出（p4-08b 尾）
+  const lane = interpolate(frame - bounceAt - 8, [0, 12], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const quote = interpolate(frame - quoteAt, [0, 12], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const badge = interpolate(frame - badgeAt, [0, 10], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  // 卡的合成位置：起点（左腿上方）→ 顶部「基本设定」框；被弹回时停在通道层
+  const cardX = 240 + fly * 620 - (fly - Math.max(fly, settled)) * 0;
+  const cardY = 620 - fly * 440 - (1 - settled) * 0;
+  const cardShow = interpolate(frame - ghostAt, [0, 8], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
   return (
     <AbsoluteFill>
-      {/* 左腿：你写的 */}
+      {/* 左腿：你写 */}
       <div
         style={{
           position: 'absolute',
@@ -263,8 +296,25 @@ const TwoLegsFrame: React.FC<{legAt: number; autoAt: number; children: React.Rea
           transform: `translateX(${(1 - leg) * -30}px)`,
         }}
       >
-        <div style={{fontFamily: theme.sans, fontSize: 24, color: theme.keep, marginBottom: 10}}>
-          {'第一条腿：你写'}
+        <div style={{display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10}}>
+          <span style={{fontFamily: theme.sans, fontSize: 24, color: theme.keep}}>{'第一条腿：你写'}</span>
+          {/* p4-08d：「建议 ≠ 配置」小徽标 */}
+          {badge > 0 ? (
+            <span
+              style={{
+                padding: '2px 9px',
+                border: `1.5px solid ${theme.keep}`,
+                borderRadius: 6,
+                fontFamily: theme.mono,
+                fontSize: 14,
+                color: theme.keep,
+                opacity: badge,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {'建议 ≠ 配置'}
+            </span>
+          ) : null}
         </div>
         {['四层拼接 · 不覆盖', '越近工作目录越后读', '单文件超四兆整份跳过', '超两百行开始不听话'].map((s, i) => (
           <div
@@ -317,8 +367,105 @@ const TwoLegsFrame: React.FC<{legAt: number; autoAt: number; children: React.Rea
           </div>
         ))}
       </div>
+      {/* 层位纠正插段：顶部「基本设定」框 + 横杆 + 通道（p4-08a..b） */}
+      {frame >= ghostAt ? (
+        <div style={{position: 'absolute', left: 860, top: 96, opacity: cardShow}}>
+          {/* 基本设定框（规则卡飞向它，但从不属于它） */}
+          <div
+            style={{
+              width: 480,
+              padding: '10px 18px',
+              borderRadius: 10,
+              border: `2px dashed ${theme.panelBorder}`,
+              fontFamily: theme.mono,
+              fontSize: 19,
+              color: theme.dim,
+              textAlign: 'center',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {'基本设定（系统提示）——它不在这层'}
+          </div>
+          {/* 弹回横杆：p4-08b 砸下 */}
+          <div
+            style={{
+              marginTop: 4,
+              height: 6,
+              borderRadius: 3,
+              background: theme.deny,
+              opacity: Math.min(1, bounce * 1.6),
+              transform: `scaleX(${Math.min(1, bounce * 1.6)})`,
+              transformOrigin: 'center',
+            }}
+          />
+          {/* 通道：你开口之前 · 第一张便条（规则卡真正的层位） */}
+          <div
+            style={{
+              marginTop: 14,
+              padding: '8px 16px',
+              border: `2px solid ${lane > 0 ? theme.keep : theme.panelBorder}`,
+              borderRadius: 10,
+              fontFamily: theme.mono,
+              fontSize: 17,
+              color: lane > 0 ? theme.keep : theme.dim,
+              textAlign: 'center',
+              opacity: 0.35 + lane * 0.65,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {'你开口之前 · 第一张便条（与你说的话同一身份）'}
+          </div>
+        </div>
+      ) : null}
+      {/* 飞行的「项目规则」卡：上飞→弹回→驻停通道 */}
+      {frame >= ghostAt ? (
+        <div
+          style={{
+            position: 'absolute',
+            left: cardX,
+            top: cardY,
+            opacity: cardShow,
+            transform: `rotate(${fly * -6 + settled * 4}deg)`,
+            zIndex: 2,
+          }}
+        >
+          <div
+            style={{
+              padding: '9px 18px',
+              borderRadius: 9,
+              border: `2.5px solid ${fly > 0.9 && settled < 0.5 ? theme.deny : theme.keep}`,
+              background: theme.panel,
+              fontFamily: theme.mono,
+              fontSize: 20,
+              fontWeight: 700,
+              color: theme.text,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {'项目规则'}
+          </div>
+        </div>
+      ) : null}
       {/* 中央：登记簿动画（原 4-C 主体） */}
       <div style={{position: 'absolute', inset: 0}}>{children}</div>
+      {/* p4-08c：官方引语角标（三秒内浮现，勿与登记簿抢焦点——压在底部安全带上方） */}
+      {quote > 0 ? (
+        <div
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: 210,
+            textAlign: 'center',
+            fontFamily: theme.sans,
+            fontSize: 21,
+            color: theme.dim,
+            opacity: quote,
+          }}
+        >
+          {'「会读、会尽量照做，但不保证严格执行」 · memory 页 · 取数 2026-08'}
+        </div>
+      ) : null}
     </AbsoluteFill>
   );
 };
@@ -564,6 +711,8 @@ const PrefixCacheStrip: React.FC<{stripAt: number; priceAt: number}> = ({stripAt
         alignItems: 'flex-end',
       }}
     >
+      {/* 价目条挂 strip 上方（bottom:'100%'）——旧 top:'100%' 位实测 y≈926–964 距底仅
+          116px 破「角标 bottom≥150」红线，且与 TwoPaths 的 Footnote 同挤 168 带 */}
       {layers.map((l, i) => {
         const e = interpolate(frame - stripAt - i * 5, [0, 10], [0, 1], {
           extrapolateLeft: 'clamp',
@@ -596,15 +745,15 @@ const PrefixCacheStrip: React.FC<{stripAt: number; priceAt: number}> = ({stripAt
           {'改规则要新开会话 · 中途换模型那轮慢'}
         </div>
       ) : null}
-      {/* p4-25a/b 价目条：命中一折 · 写入 +1/4 · 两次回本 */}
+      {/* p4-25a/b 价目条：命中一折 · 写入 +1/4 · 两次回本（自下滑入，挂 strip 上方） */}
       {frame >= priceAt ? (
         <div
           style={{
             position: 'absolute',
             left: '50%',
-            top: '100%',
-            marginTop: 14,
-            transform: `translateX(-50%) translateY(${interpolate(frame - priceAt, [0, 12], [12, 0], {
+            bottom: '100%',
+            marginBottom: 14,
+            transform: `translateX(-50%) translateY(${interpolate(frame - priceAt, [0, 12], [14, 0], {
               extrapolateLeft: 'clamp',
               extrapolateRight: 'clamp',
             })}px)`,
@@ -629,12 +778,18 @@ const PrefixCacheStrip: React.FC<{stripAt: number; priceAt: number}> = ({stripAt
   );
 };
 
-const TwoPaths: React.FC<{sideAt: number; cardsAt: number; shrinkAt: number; degradeAt: number}> = ({
-  sideAt,
-  cardsAt,
-  shrinkAt,
-  degradeAt,
-}) => {
+const TwoPaths: React.FC<{
+  sideAt: number;
+  cardsAt: number;
+  shrinkAt: number;
+  degradeAt: number;
+  /** p4-26：小号模型旁落「向量库」虚影并划斜线（不是向量检索） */
+  vecAt: number;
+  /** p4-27+：飞回的卡逐张褪色滑出（用完就过气——褪色即遗忘纪律） */
+  evapAt: number[];
+  /** p4-29：收束——索引卡辉光脉冲一次、旁支整组退场 */
+  settleAt: number;
+}> = ({sideAt, cardsAt, shrinkAt, degradeAt, vecAt, evapAt, settleAt}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const side = interpolate(frame - sideAt, [0, 20], [0, 1], {
@@ -646,6 +801,27 @@ const TwoPaths: React.FC<{sideAt: number; cardsAt: number; shrinkAt: number; deg
     extrapolateRight: 'clamp',
   });
   const degraded = frame >= degradeAt;
+  // p4-26：向量库虚影出现 → 划斜线（「反而可靠」的对照物）
+  const vec = interpolate(frame - vecAt, [0, 10], [0, 0.5], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const vecSlash = interpolate(frame - vecAt - 12, [0, 10], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  // p4-27 起：五张卡逐张蒸发（每张 i×8 帧错峰；tone 全转 faded + 滑出）
+  const evap = (i: number) =>
+    interpolate(frame - evapAt[Math.min(i, evapAt.length - 1)] - i * 8, [0, 16], [0, 1], {
+      extrapolateLeft: 'clamp',
+      extrapolateRight: 'clamp',
+    });
+  // p4-29：索引卡辉光脉冲一次（sin 半周期）、右侧旁支整组退场
+  const settle = interpolate(frame - settleAt, [0, 26], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const pulse = settle > 0 && settle < 1 ? Math.sin(settle * Math.PI) : 0;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <div style={{display: 'flex', gap: 70, alignItems: 'stretch'}}>
@@ -660,7 +836,7 @@ const TwoPaths: React.FC<{sideAt: number; cardsAt: number; shrinkAt: number; deg
               border: `3px solid ${theme.keep}`,
               background: theme.panel,
               padding: '18px 24px',
-              boxShadow: `0 0 ${Math.round(18 + 10 * (0.5 + 0.5 * Math.sin(frame / 9)))}px ${theme.keepDeep}`,
+              boxShadow: `0 0 ${Math.round(18 + 10 * (0.5 + 0.5 * Math.sin(frame / 9)) + pulse * 26)}px ${theme.keepDeep}`,
             }}
           >
             <div style={{fontFamily: theme.mono, fontSize: 22, color: theme.keep}}>{'MEMORY.md'}</div>
@@ -683,11 +859,11 @@ const TwoPaths: React.FC<{sideAt: number; cardsAt: number; shrinkAt: number; deg
             ))}
           </div>
           <div style={{fontFamily: theme.sans, fontSize: 22, color: theme.dim, marginTop: 12}}>
-            {'贴在基本设定里 · 每次开工扫一眼家底 · 便宜、全天候'}
+            {'垫在你开口之前 · 每次开工扫一眼家底 · 便宜、全天候'}
           </div>
         </div>
-        {/* 路二：旁路小问 */}
-        <div style={{width: 640, position: 'relative'}}>
+        {/* 路二：旁路小问（p4-29 收束时整组退场让位给「一层永久的存」） */}
+        <div style={{width: 640, position: 'relative', opacity: 1 - settle * 0.85}}>
           <div style={{fontFamily: theme.mono, fontSize: 22, color: theme.dim, marginBottom: 12}}>
             {'路二 · 旁路小问（按需取）'}
           </div>
@@ -705,23 +881,61 @@ const TwoPaths: React.FC<{sideAt: number; cardsAt: number; shrinkAt: number; deg
             <circle cx={10} cy={44} r={8} fill={theme.text} opacity={0.6} />
             {side > 0.95 ? <polygon points="480,44 462,34 462,54" fill={theme.mech} /> : null}
           </svg>
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 10,
-              padding: '8px 18px',
-              borderRadius: 999,
-              border: `2px solid ${theme.mech}`,
-              fontFamily: theme.sans,
-              fontSize: 22,
-              color: theme.mech,
-              opacity: side,
-            }}
-          >
-            {'小号模型 · 挑真正用得上的'}
+          <div style={{position: 'relative', display: 'inline-flex', alignItems: 'center', gap: 18}}>
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 10,
+                padding: '8px 18px',
+                borderRadius: 999,
+                border: `2px solid ${theme.mech}`,
+                fontFamily: theme.sans,
+                fontSize: 22,
+                color: theme.mech,
+                opacity: side,
+              }}
+            >
+              {'小号模型 · 挑真正用得上的'}
+            </div>
+            {/* p4-26：向量库虚影圆柱 + 斜线（不是向量检索，反而可靠） */}
+            {vec > 0 ? (
+              <div style={{position: 'relative', opacity: vec}}>
+                <svg width={54} height={62}>
+                  <ellipse cx={27} cy={10} rx={20} ry={7} fill="none" stroke={theme.deny} strokeWidth={2.5} />
+                  <line x1={7} y1={10} x2={7} y2={48} stroke={theme.deny} strokeWidth={2.5} />
+                  <line x1={47} y1={10} x2={47} y2={48} stroke={theme.deny} strokeWidth={2.5} />
+                  <path d="M 7 48 A 20 7 0 0 0 47 48" fill="none" stroke={theme.deny} strokeWidth={2.5} />
+                  {vecSlash > 0 ? (
+                    <line
+                      x1={4}
+                      y1={58}
+                      x2={4 + 46 * vecSlash}
+                      y2={58 - 52 * vecSlash}
+                      stroke={theme.deny}
+                      strokeWidth={3.5}
+                      strokeLinecap="round"
+                    />
+                  ) : null}
+                </svg>
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    top: 62,
+                    fontFamily: theme.mono,
+                    fontSize: 13,
+                    color: theme.deny,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {'不是向量库'}
+                </div>
+              </div>
+            ) : null}
           </div>
-          {/* 飞回的 ≤5 卡：一张犹豫卡自动缩回 */}
+          {/* 飞回的 ≤5 卡：一张犹豫卡自动缩回；p4-27 起逐张蒸发（用完就过气） */}
           <div style={{display: 'flex', gap: 12, marginTop: 26, minHeight: 120, alignItems: 'center'}}>
             {[0, 1, 2, 3, 4].map((i) => {
               const t = spring({frame: frame - cardsAt - i * 6, fps, config: {damping: 200}});
@@ -729,15 +943,23 @@ const TwoPaths: React.FC<{sideAt: number; cardsAt: number; shrinkAt: number; deg
               const hesitant = i === 4;
               const scale = hesitant ? Math.max(0, shrink) * t : t;
               const op = hesitant ? Math.max(0, shrink) : 1;
+              const gone = evapAt.length > 0 ? evap(i) : 0;
               return (
                 <div
                   key={i}
                   style={{
-                    transform: `translateY(${(1 - t) * -46}px) scale(${scale === 0 ? 0.001 : scale})`,
-                    opacity: op,
+                    transform: `translateY(${(1 - t) * -46 + gone * 40}px) scale(${scale === 0 ? 0.001 : scale})`,
+                    opacity: op * (1 - gone),
+                    filter: `brightness(${1 - gone * 0.45})`,
                   }}
                 >
-                  <PaperCard w={100} h={78} bars={3} tone="full" label={hesitant ? '拿不准' : undefined} />
+                  <PaperCard
+                    w={100}
+                    h={78}
+                    bars={3}
+                    tone={gone > 0.3 ? 'faded' : 'full'}
+                    label={hesitant ? '拿不准' : undefined}
+                  />
                 </div>
               );
             })}
@@ -800,7 +1022,14 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
         />
       </Sequence>
       <Sequence {...bC} name="4-C 记忆两条腿">
-        <TwoLegsFrame legAt={relC('p4-08')} autoAt={relC('p4-11')}>
+        <TwoLegsFrame
+          legAt={relC('p4-08')}
+          autoAt={relC('p4-11')}
+          ghostAt={relC('p4-08a')}
+          bounceAt={relC('p4-08b')}
+          quoteAt={relC('p4-08c')}
+          badgeAt={relC('p4-08d')}
+        >
           <LedgerArrives
             bookAt={relC('p4-09') - relC('p4-08')}
             fmAt={[relC('p4-10'), relC('p4-10') + 12, relC('p4-10') + 24]}
@@ -825,6 +1054,9 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
           cardsAt={relE('p4-22')}
           shrinkAt={relE('p4-22') + 70}
           degradeAt={relE('p4-24')}
+          vecAt={relE('p4-26')}
+          evapAt={[relE('p4-27')]}
+          settleAt={relE('p4-29')}
         />
         <PrefixCacheStrip stripAt={relE('p4-24')} priceAt={relE('p4-25a')} />
       </Sequence>

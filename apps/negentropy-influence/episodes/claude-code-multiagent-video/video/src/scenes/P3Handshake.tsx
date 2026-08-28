@@ -394,14 +394,13 @@ const KillVsHandshake: React.FC<{crackAt: number; stepsAt: number}> = ({crackAt,
   );
 };
 
-/** 3-B ★握手轨全流程：请求 req_0042 滑出停等回话 → pending 亮 → 同号应答合拢咔 → 错类型弹开 */
-const RailFull: React.FC<{reqAt: number; pendAt: number; ackAt: number; lockAt: number; wrongAt: number}> = ({
-  reqAt,
-  pendAt,
-  ackAt,
-  lockAt,
-  wrongAt,
-}) => {
+/** 3-B ★握手轨全流程：请求 req_0042 滑出停等回话 → pending 亮 → 同号应答合拢咔 → 错类型弹开。
+ *  B 方案改稿：原 p3-08/09 两句压进 p3-06/07，锁扣与错类型弹开改为句内相位推进
+ *  （pendAt 起的相对帧），不再各自吃一个句锚。 */
+const RailFull: React.FC<{reqAt: number; pendAt: number}> = ({reqAt, pendAt}) => {
+  const ackAt = pendAt + 18;
+  const lockAt = pendAt + 40;
+  const wrongAt = pendAt + 62;
   const frame = useCurrentFrame();
   const reqGo = interpolate(frame - reqAt, [0, 22], [0, 1], {
     extrapolateLeft: 'clamp',
@@ -716,7 +715,7 @@ export const P3Handshake: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (fromId: string, toId?: string) => beatWindow(scene.sentences, scene.from, fromId, toId);
   const at = (id: string) => w(id).from;
   const bA = w('p3-01', 'p3-05');
-  const bB = w('p3-06', 'p3-09');
+  const bB = w('p3-06', 'p3-07');
   const bC = w('p3-10', 'p3-11');
   const bD = w('p3-12', 'p3-16');
   const rel = (b: {from: number}, id: string) => at(id) - b.from;
@@ -727,13 +726,7 @@ export const P3Handshake: React.FC<{scene: SceneRange}> = ({scene}) => {
         <KillVsHandshake crackAt={rel(bA, 'p3-03')} stepsAt={rel(bA, 'p3-05')} />
       </Sequence>
       <Sequence {...bB} name="3-B 握手轨与三重对号">
-        <RailFull
-          reqAt={rel(bB, 'p3-06')}
-          pendAt={rel(bB, 'p3-07')}
-          ackAt={rel(bB, 'p3-07') + 30}
-          lockAt={rel(bB, 'p3-08')}
-          wrongAt={rel(bB, 'p3-09')}
-        />
+        <RailFull reqAt={rel(bB, 'p3-06')} pendAt={rel(bB, 'p3-07')} />
       </Sequence>
       <Sequence {...bC} name="3-C 计划审批同轨">
         <PlanApproval

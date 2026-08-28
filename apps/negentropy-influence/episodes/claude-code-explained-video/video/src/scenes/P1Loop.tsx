@@ -8,7 +8,7 @@ import type {SceneRange} from '../types';
 import {QuoteCard} from '../components/cards';
 import {CodeCard, Counter, Footnote, LoopRing, Panel, SceneHeader, SceneTag, useRingDot} from '../components/motifs';
 
-/** 1-A 环形循环成形 + 两个信号分支 */
+/** 1-A 环形循环成形 + 两个信号分支（原 p1-07 已删：「传送带转不转」的语义收在 p1-06 的定格收镜上） */
 const RingBirth: React.FC<{yesAt: number; noAt: number}> = ({yesAt, noAt}) => {
   const frame = useCurrentFrame();
   const draw = interpolate(frame, [4, 40], [0, 1], {
@@ -16,7 +16,7 @@ const RingBirth: React.FC<{yesAt: number; noAt: number}> = ({yesAt, noAt}) => {
     extrapolateRight: 'clamp',
   });
   const dot = useRingDot(2.5, 40);
-  // 讲到「没有」时光点滑出到停机出口并定格
+  // 讲到「没有」时光点滑出到停机出口并定格收镜
   const pull = interpolate(frame - noAt, [8, 30], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
@@ -147,8 +147,16 @@ const FiveSteps: React.FC<{stepAt: number[]}> = ({stepAt}) => {
   );
 };
 
-/** 1-C 二十三行代码卡 + 分工左右分屏 */
-const TwentyThreeLines: React.FC<{countAt: number; splitAt: number}> = ({countAt, splitAt}) => {
+/** 1-C 二十三行代码卡 + 来源标签条 + 对照列 + 分工左右分屏。
+ *  p1-12a 卡眉滑入来源标签条（「开源最小实现 · 照着同一套机制搭的」，无具名信息——
+ *  教学版锚，先交代这份代码是谁、再开始读）；p1-12b 右侧浮出「对照对象：真实产品」
+ *  半亮列；随后代码逐行渲染 → 二十三行计数 → 左右分屏。 */
+const TwentyThreeLines: React.FC<{
+  tagAt: number;
+  compareAt: number;
+  countAt: number;
+  splitAt: number;
+}> = ({tagAt, compareAt, countAt, splitAt}) => {
   const frame = useCurrentFrame();
   const lines = [
     'while True:',
@@ -168,15 +176,81 @@ const TwentyThreeLines: React.FC<{countAt: number; splitAt: number}> = ({countAt
     '            "tool_use_id": block.id, "content": output})',
     '    messages.append({"role": "user", "content": results})',
   ];
+  // 标签条自卡眉滑入（mech 描边）
+  const tag = interpolate(frame - tagAt, [0, 14], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  // 右侧「对照对象」半亮列
+  const compare = interpolate(frame - compareAt, [0, 16], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
   const split = interpolate(frame - splitAt, [0, 20], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
+  // 代码逐行渲染让位给前置动画：标签条（~14 帧）+ 对照列（~16 帧）先占画布
+  const codeStart = compareAt + 18;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <div style={{opacity: 1 - split * 0.75, transform: `scale(${1 - split * 0.08})`}}>
-        <CodeCard lines={lines} width={1060} glowLineNumbersAt={countAt} />
+        {/* 来源标签条：卡眉上方滑入（mech 描边，无具名信息） */}
+        <div
+          style={{
+            width: 1060,
+            marginBottom: 10,
+            display: 'flex',
+            justifyContent: 'center',
+            opacity: tag,
+            transform: `translateY(${(1 - tag) * -12}px)`,
+          }}
+        >
+          <div
+            style={{
+              border: `2px solid ${theme.mech}`,
+              borderRadius: 999,
+              padding: '7px 22px',
+              background: theme.panel,
+              fontFamily: theme.sans,
+              fontSize: 21,
+              color: theme.mech,
+            }}
+          >
+            {'开源最小实现 · 照着同一套机制搭的'}
+          </div>
+        </div>
+        <CodeCard lines={lines} width={1060} glowLineNumbersAt={countAt} startAt={codeStart} />
       </div>
+      {/* 对照对象半亮列（p1-12b）：读教学实现时，右边始终立着真实产品这一极 */}
+      {compare > 0 ? (
+        <div
+          style={{
+            position: 'absolute',
+            left: 1280,
+            top: 300,
+            width: 240,
+            opacity: compare * (1 - split),
+          }}
+        >
+          <div
+            style={{
+              border: `2px dashed ${theme.panelBorder}`,
+              borderRadius: 12,
+              padding: '14px 16px',
+              fontFamily: theme.sans,
+              fontSize: 20,
+              color: theme.dim,
+              textAlign: 'center',
+            }}
+          >
+            {'对照对象'}
+            <div style={{fontFamily: theme.serif, fontSize: 26, color: theme.dim, marginTop: 6}}>
+              {'真实产品'}
+            </div>
+          </div>
+        </div>
+      ) : null}
       <div
         style={{
           position: 'absolute',
@@ -518,11 +592,11 @@ const ExitPaths: React.FC<{branchAt: number; dimAt: number}> = ({branchAt, dimAt
 
 export const P1Loop: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (fromId: string, toId?: string) => beatWindow(scene.sentences, scene.from, fromId, toId);
-  const bA = w('p1-01', 'p1-07');
+  const bA = w('p1-01', 'p1-06');
   const rA = (id: string) => w(id).from - bA.from;
   const bB = w('p1-08', 'p1-12');
   const rB = (id: string) => w(id).from - bB.from;
-  const bC = w('p1-13', 'p1-16');
+  const bC = w('p1-12a', 'p1-16');
   const rC = (id: string) => w(id).from - bC.from;
   const bD = w('p1-17', 'p1-24');
   const rD = (id: string) => w(id).from - bD.from;
@@ -540,7 +614,13 @@ export const P1Loop: React.FC<{scene: SceneRange}> = ({scene}) => {
         <FiveSteps stepAt={[rB('p1-09'), rB('p1-09') + 20, rB('p1-10'), rB('p1-11'), rB('p1-12')]} />
       </Sequence>
       <Sequence {...bC} name="1-C 二十三行与分工">
-        <TwentyThreeLines countAt={rC('p1-14')} splitAt={rC('p1-15')} />
+        {/* p1-12a 来源标签条滑入 → p1-12b 对照列浮出 → 代码逐行 → p1-14 计数 → p1-15 分屏 */}
+        <TwentyThreeLines
+          tagAt={rC('p1-12a')}
+          compareAt={rC('p1-12b')}
+          countAt={rC('p1-14')}
+          splitAt={rC('p1-15')}
+        />
       </Sequence>
       <Sequence {...bD} name="1-D 停止标记不可靠">
         <UnreliableFlag crossAt={rD('p1-22')} quoteAt={rD('p1-24')} />

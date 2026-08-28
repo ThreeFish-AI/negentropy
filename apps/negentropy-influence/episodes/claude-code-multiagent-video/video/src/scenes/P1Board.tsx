@@ -733,7 +733,7 @@ export const P1Board: React.FC<{scene: SceneRange}> = ({scene}) => {
   const at = (id: string) => w(id).from;
   const bA = w('p1-01', 'p1-06');
   const bB = w('p1-07', 'p1-10');
-  const bC = w('p1-11', 'p1-15');
+  const bC = w('p1-13', 'p1-15');
   const bD = w('p1-16', 'p1-21');
   const rel = (b: {from: number}, id: string) => at(id) - b.from;
   return (

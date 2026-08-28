@@ -1,4 +1,6 @@
-/** P6 收尾（分镜 6-A…6-B）
+/** P6 收尾（分镜 6-A…6-B，2026-08 改序：免责前置）
+ *  6-A 壳的四层（p6-01..04；原 p6-03 已删——第三、四层在 p6-04 上错开 8 帧落位）
+ *  → 6-B 句序重排：p6-06/07 免责信源卡 → p6-05 金句压系列身份卡 → p6-08 下期预告 → 渐黑。
  *  ★ 渐黑窗口从**末 beat 总时长**推导（beatDurationInFrames），不是末句时长
  *    —— 第三集上线教训：末句短于 beat 时渐黑提前收尾，导致收尾长黑屏
  *    （skills/06 渲染红线四）。 */
@@ -10,7 +12,8 @@ import type {SceneRange} from '../types';
 import {LoopRing, Panel, SceneHeader, useRingDot} from '../components/motifs';
 
 /** 6-A 壳的四层：三张挂件卡沿径向滑入、逐一「咬合」上环（骨架 vs 挂件的物理化收束）。
- *  循环层不用卡——它就是环本身（p6-03 的口播顺序：循环→分发表→闸门→插口）。
+ *  循环层不用卡——它就是环本身（p6-01/02 的口播：循环→分发表→闸门→插口；
+ *  原 p6-03 已删，第三、四层在 p6-04 上错开 8 帧落位）。
  *  卡片恒正立（见下方 `rotate(${-a.ang})`），只有挂脚吃挂点角度。 */
 const ShellLayers: React.FC<{layerAt: number[]}> = ({layerAt}) => {
   const frame = useCurrentFrame();
@@ -160,12 +163,13 @@ const ShellLayers: React.FC<{layerAt: number[]}> = ({layerAt}) => {
 };
 
 /**
- * 6-B 信源卡 + 系列身份卡 + 渐黑。
+ * 6-B 信源卡（p6-06/07 免责两句）→ 金句压系列身份卡（p6-05）→ 下期预告卡（p6-08）→ 渐黑。
  * `beatDurationInFrames` 是**本 beat 的总时长**，渐黑窗口据此反推。
- */
-const SourceAndFade: React.FC<{beatDurationInFrames: number; seriesAt: number}> = ({
+ * 句序重排后免责前移：情绪高点（金句+身份卡）与转化动作（下期卡）不再被隔开。 */
+const SourceAndFade: React.FC<{beatDurationInFrames: number; seriesAt: number; nextAt: number}> = ({
   beatDurationInFrames,
   seriesAt,
+  nextAt,
 }) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
@@ -177,6 +181,11 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; seriesAt: number}> 
     ['数字口径', '开源仓库钉版实测 · 行数均为非空非注释口径'],
   ];
   const seriesT = interpolate(frame - seriesAt, [0, 20], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  // 下期预告卡（p6-08 句锚——句序重排后与金句卡分离，各自独立浮现）
+  const nextT = interpolate(frame - nextAt, [0, 18], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -243,27 +252,57 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; seriesAt: number}> 
           <div style={{fontFamily: theme.serif, fontSize: 34, color: theme.dim, letterSpacing: 3}}>
             {'Claude Code Harness Engineering'}
           </div>
+          {/* 金句压在系列身份卡上方（免责前移后，情绪高点与转化动作不再被隔开） */}
           <div
             style={{
               fontFamily: theme.serif,
-              fontSize: 62,
+              fontSize: 46,
               fontWeight: 700,
               color: theme.core,
-              marginTop: 18,
+              marginTop: 16,
+            }}
+          >
+            {'学会给 Harness 做加减法，'}
+          </div>
+          <div style={{fontFamily: theme.serif, fontSize: 46, fontWeight: 700, color: theme.core}}>
+            {'这本身就是一门手艺。'}
+          </div>
+          <div
+            style={{
+              fontFamily: theme.serif,
+              fontSize: 56,
+              fontWeight: 700,
+              color: theme.core,
+              marginTop: 22,
             }}
           >
             {'执行层：一个循环，就是全部'}
           </div>
-          {/* 下期预告卡：标题只在画面（口播为话题描述——反串线纪律）。
-              标题为 series.json 派生数据的硬编码镜像，由 check_series 规则 8
-              与清单对账（改标题先改 series.json，再同步此串——规则会拦漂移）。 */}
+        </div>
+      ) : null}
+      {/* 下期预告卡：p6-08 句锚独立浮现（标题只在画面——反串线纪律）。
+          标题为 series.json 派生数据的硬编码镜像，由 check_series 规则 8
+          与清单对账（改标题先改 series.json，再同步此串——规则会拦漂移）。 */}
+      {nextT > 0 ? (
+        <div
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: 220,
+            display: 'flex',
+            justifyContent: 'center',
+            opacity: nextT,
+            transform: `translateY(${(1 - nextT) * 16}px)`,
+          }}
+        >
           <div
             style={{
-              marginTop: 30,
               padding: '14px 30px',
               border: `1.5px solid ${theme.panelBorder}`,
               borderRadius: 12,
               background: theme.panel,
+              textAlign: 'center',
             }}
           >
             <div style={{fontFamily: theme.sans, fontSize: 21, color: theme.dim, letterSpacing: 2}}>
@@ -285,20 +324,24 @@ export const P6Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (fromId: string, toId?: string) => beatWindow(scene.sentences, scene.from, fromId, toId);
   const rel = (b: {from: number}, id: string) => w(id).from - b.from;
   const bA = w('p6-01', 'p6-04');
-  const bB = w('p6-05', 'p6-08');
+  const bB = w('p6-06', 'p6-08');
   return (
     <AbsoluteFill>
       <SceneHeader index="P6" title="落点与信源" meta="Claude Code Harness Engineering" durationInFrames={scene.durationInFrames} />
       <Sequence {...bA} name="6-A 壳的四层">
+        {/* p6-03 已删：第三、四层在 p6-04 上错开 8 帧落位（分镜 6-A 规格） */}
         <ShellLayers
-          layerAt={[rel(bA, 'p6-01'), rel(bA, 'p6-02'), rel(bA, 'p6-03'), rel(bA, 'p6-04')]}
+          layerAt={[rel(bA, 'p6-01'), rel(bA, 'p6-02'), rel(bA, 'p6-04'), rel(bA, 'p6-04') + 8]}
         />
       </Sequence>
       <Sequence {...bB} name="6-B 信源卡与渐黑">
-        {/* 渐黑窗口从**本 beat 总时长**推导，不是末句时长（红线四） */}
+        {/* 句序重排（narration 实际顺序 06→07→05→08）：
+            p6-06/07 信源卡 → p6-05 金句压系列身份卡 → p6-08 下期卡。
+            渐黑窗口从**本 beat 总时长**推导，不是末句时长（红线四）。 */}
         <SourceAndFade
           beatDurationInFrames={bB.durationInFrames}
-          seriesAt={rel(bB, 'p6-08')}
+          seriesAt={rel(bB, 'p6-05')}
+          nextAt={rel(bB, 'p6-08')}
         />
       </Sequence>
     </AbsoluteFill>
