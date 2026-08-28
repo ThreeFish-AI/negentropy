@@ -102,7 +102,7 @@
             "accessed": "2026-08-21"
           },
           "status": "delivered",
-          "statusNote": "终渲 v2 已交付（B 方案品控后）：14:06 = 25393 帧 @30fps（167 句）· 46.9 MB；七幕+尾幕 FAIL 0 · WARN 0；沙箱镜/赌注卡/退出码三球镜目检通过",
+          "statusNote": "终渲 v3：14:11 = 25541 帧 @30fps（167 句）· 47.1 MB；叙事去对照化（16 句直陈框架）+ 金句卡升维；七幕 FAIL 0 · WARN 0",
           "voice": "sunny-steady + me-bright.wav"
         },
         {
@@ -124,7 +124,7 @@
             "accessed": "2026-08-22"
           },
           "status": "delivered",
-          "statusNote": "终渲 v2 已交付（B 方案品控后）：13:27 = 24214 帧 @30fps（139 句）· 42.6 MB；七幕+尾幕 FAIL 0 · WARN 0（检查点卡侵入已修）",
+          "statusNote": "终渲 v3：13:27 = 24215 帧 @30fps（139 句）· 42.7 MB；叙事去对照化（10 句）+ 金句卡升维；七幕 FAIL 0 · WARN 0",
           "voice": "sunny-steady + me-bright.wav"
         },
         {
@@ -146,7 +146,7 @@
             "accessed": "2026-08-22"
           },
           "status": "delivered",
-          "statusNote": "终渲 v2 已交付（B 方案品控后）：13:35 = 24452 帧 @30fps（146 句）· 41.7 MB；七幕+尾幕 FAIL 0 · WARN 0",
+          "statusNote": "终渲 v3：13:36 = 24492 帧 @30fps（146 句）· 41.7 MB；叙事去对照化（13 句）；七幕 FAIL 0 · WARN 0",
           "voice": "sunny-steady + me-bright.wav"
         },
         {
@@ -168,7 +168,7 @@
             "accessed": "2026-08-22"
           },
           "status": "delivered",
-          "statusNote": "终渲 v2 已交付（B 方案品控后）：13:09 = 23672 帧 @30fps（139 句）· 44.7 MB；七幕+尾幕 FAIL 0 · WARN 0（两条看路侵入已修）",
+          "statusNote": "终渲 v3：13:09 = 23672 帧 @30fps（139 句）· 44.7 MB；金句卡升维（无口播改动）；七幕 FAIL 0 · WARN 0",
           "voice": "sunny-steady + me-bright.wav"
         },
         {
@@ -190,7 +190,7 @@
             "accessed": "2026-08-22"
           },
           "status": "delivered",
-          "statusNote": "终渲 v2 已交付（B 方案品控后）：13:25 = 24150 帧 @30fps（139 句）· 47.0 MB；七幕+尾幕 FAIL 0 · WARN 0（信箱循环演示已加）",
+          "statusNote": "终渲 v3：13:26 = 24197 帧 @30fps（139 句）· 47.2 MB；叙事去对照化（10 句）；七幕 FAIL 0 · WARN 0",
           "voice": "sunny-steady + me-bright.wav"
         }
       ]
