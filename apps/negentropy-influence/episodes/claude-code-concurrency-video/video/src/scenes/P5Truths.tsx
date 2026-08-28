@@ -555,7 +555,7 @@ export const P5Truths: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bE = w('p5-19', 'p5-23b');
   return (
     <AbsoluteFill>
-      <SceneHeader index="P5" title="时间表的真话" meta="jitter · retirement · supervisor" />
+      <SceneHeader index="P5" title="时间表的真话" meta="jitter · retirement · supervisor" durationInFrames={scene.durationInFrames} />
       <Sequence {...bA} name="5-A 踩踏帧">
         <Stampede fireAt={at('p5-03') - bA.from} crashAt={at('p5-04') - bA.from} />
       </Sequence>

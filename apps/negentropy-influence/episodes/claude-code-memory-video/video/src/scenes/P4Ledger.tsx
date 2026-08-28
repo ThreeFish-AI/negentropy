@@ -788,7 +788,7 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
   const relE = (id: string) => at(id) - bE.from;
   return (
     <AbsoluteFill>
-      <SceneHeader index="P4" title="不丢的那一层" meta="two legs · CLAUDE.md + auto memory" />
+      <SceneHeader index="P4" title="不丢的那一层" meta="two legs · CLAUDE.md + auto memory" durationInFrames={scene.durationInFrames} />
       <Sequence {...bA} name="4-A 全景回望桌面褪色一次">
         <AllOnDesk fadeAt={relA('p4-02')} />
       </Sequence>

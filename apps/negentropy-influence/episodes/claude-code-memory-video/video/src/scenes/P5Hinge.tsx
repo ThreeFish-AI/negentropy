@@ -747,7 +747,7 @@ export const P5Hinge: React.FC<{scene: SceneRange}> = ({scene}) => {
   const relE = (id: string) => at(id) - bE.from;
   return (
     <AbsoluteFill>
-      <SceneHeader index="P5" title="先抢救，再碎纸" meta="salvage before shred · dream gates" />
+      <SceneHeader index="P5" title="先抢救，再碎纸" meta="salvage before shred · dream gates" durationInFrames={scene.durationInFrames} />
       <Sequence {...bA} name="5-A 时间铰链">
         <TimeHinge leftAt={relA('p5-02')} rightAt={relA('p5-03')} />
       </Sequence>

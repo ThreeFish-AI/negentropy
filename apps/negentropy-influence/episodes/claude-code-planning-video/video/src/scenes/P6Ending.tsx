@@ -184,7 +184,7 @@ export const P6Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bB = w('p6-05', 'p6-09');
   return (
     <AbsoluteFill>
-      <SceneHeader index="P6" title="落点与信源" meta="Claude Code Harness Engineering" />
+      <SceneHeader index="P6" title="落点与信源" meta="Claude Code Harness Engineering" durationInFrames={scene.durationInFrames} />
       <Sequence {...bA} name="6-A 一句话合同">
         {/* p6-04「同一门手艺」次行浮现 */}
         <ContractCard nextAt={rel(bA, 'p6-04')} />

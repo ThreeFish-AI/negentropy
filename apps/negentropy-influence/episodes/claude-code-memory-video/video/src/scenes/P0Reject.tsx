@@ -428,7 +428,7 @@ export const P0Reject: React.FC<{scene: SceneRange}> = ({scene}) => {
   const relD = (id: string) => at(id) - bD.from;
   return (
     <AbsoluteFill>
-      <SceneHeader index="P0" title="一次拒收" meta="prompt_too_long · context will fill up" />
+      <SceneHeader index="P0" title="一次拒收" meta="prompt_too_long · context will fill up" durationInFrames={scene.durationInFrames} />
       <Sequence {...bA} name="0-A 终端报错砸落">
         <ErrorSlam errAt={relA('p0-02')} />
       </Sequence>

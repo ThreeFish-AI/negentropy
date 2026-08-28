@@ -646,7 +646,7 @@ export const P2Tidy: React.FC<{scene: SceneRange}> = ({scene}) => {
   const relD = (id: string) => at(id) - bD.from;
   return (
     <AbsoluteFill>
-      <SceneHeader index="P2" title="大件入库与顺序论证" meta="store before you fold" />
+      <SceneHeader index="P2" title="大件入库与顺序论证" meta="store before you fold" durationInFrames={scene.durationInFrames} />
       <Sequence {...bA} name="2-A 大件入库">
         <VaultBig dropAt={relA('p2-02')} flyAt={relA('p2-03')} previewAt={relA('p2-04')} />
       </Sequence>

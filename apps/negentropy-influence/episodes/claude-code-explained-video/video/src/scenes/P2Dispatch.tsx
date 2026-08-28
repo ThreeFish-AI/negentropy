@@ -563,7 +563,7 @@ export const P2Dispatch: React.FC<{scene: SceneRange}> = ({scene}) => {
   const rel = (b: {from: number}, id: string) => w(id).from - b.from;
   return (
     <AbsoluteFill>
-      <SceneHeader index="P2" title="加一个工具，只改一行" meta="Tool Dispatch · registry" />
+      <SceneHeader index="P2" title="加一个工具，只改一行" meta="Tool Dispatch · registry" durationInFrames={scene.durationInFrames} />
       <Sequence {...bA} name="2-A 命令行拼接的笨拙">
         <ClumsyCommands typoAt={rel(bA, 'p2-04')} />
       </Sequence>

@@ -372,7 +372,7 @@ export const P1Dereg: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bD = w('p1-16', 'p1-24');
   return (
     <AbsoluteFill>
-      <SceneHeader index="P1" title="按下就走开" meta="run in background · daemon threads" />
+      <SceneHeader index="P1" title="按下就走开" meta="run in background · daemon threads" durationInFrames={scene.durationInFrames} />
       <Sequence {...bA} name="1-A 后台开关与超时转道">
         <ToggleAndFallback
           toggleAt={at('p1-03') - bA.from}

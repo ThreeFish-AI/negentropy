@@ -360,7 +360,7 @@ export const P3Watchdog: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bB = w('p3-04', 'p3-09c');
   return (
     <AbsoluteFill>
-      <SceneHeader index="P3" title="有一只狗盯着" meta="watchdog · poll vs event stream" />
+      <SceneHeader index="P3" title="有一只狗盯着" meta="watchdog · poll vs event stream" durationInFrames={scene.durationInFrames} />
       <Sequence {...bA} name="3-A 输出停在问句上">
         <DogWatching stopAt={at('p3-03') - bA.from} />
       </Sequence>

@@ -192,7 +192,7 @@ export const P6Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
   const relB = (id: string) => at(id) - bB.from;
   return (
     <AbsoluteFill>
-      <SceneHeader index="P6" title="落点与信源" meta="memory is context, not a gate" />
+      <SceneHeader index="P6" title="落点与信源" meta="memory is context, not a gate" durationInFrames={scene.durationInFrames} />
       <Sequence {...bA} name="6-A 一句话合同金句卡">
         <OneLineContract recycleAt={relA('p6-03')} />
       </Sequence>

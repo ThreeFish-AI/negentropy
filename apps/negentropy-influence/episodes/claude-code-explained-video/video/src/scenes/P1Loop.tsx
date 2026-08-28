@@ -532,7 +532,7 @@ export const P1Loop: React.FC<{scene: SceneRange}> = ({scene}) => {
   const rF = (id: string) => w(id).from - bF.from;
   return (
     <AbsoluteFill>
-      <SceneHeader index="P1" title="一个循环，就是全部" meta="Agent Loop · gather / act / verify" />
+      <SceneHeader index="P1" title="一个循环，就是全部" meta="Agent Loop · gather / act / verify" durationInFrames={scene.durationInFrames} />
       <Sequence {...bA} name="1-A 环形循环成形">
         <RingBirth yesAt={rA('p1-04')} noAt={rA('p1-06')} />
       </Sequence>

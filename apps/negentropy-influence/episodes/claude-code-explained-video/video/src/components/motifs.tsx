@@ -102,10 +102,17 @@ export const SceneHeader: React.FC<{
   title: string;
   meta?: string;
   accent?: string;
-}> = ({index, title, meta, accent}) => {
+  /** 本幕总帧数：给出即渲染幕内进度条（见下方 ambient 说明） */
+  durationInFrames?: number;
+}> = ({index, title, meta, accent, durationInFrames}) => {
   const frame = useCurrentFrame();
   const o = interpolate(frame, [0, 12], [0, 1], {extrapolateRight: 'clamp'});
   const c = accent ?? theme.core;
+  // ambient（2026-08 品控修）：实测五集随机采样点 92% 在 0.2 秒内画面**完全静止**——
+  // 镜内动效只在句锚附近发生，锚与锚之间是长时间冻帧。这条幕内进度条是全片唯一
+  // **每帧都在变**的元素，既消除「视频卡住了」的错觉，又给观众「这一幕还剩多久」的
+  // 真实信息。帧驱动、确定性，不违反禁随机数纪律。
+  const prog = durationInFrames && durationInFrames > 0 ? Math.min(1, frame / durationInFrames) : 0;
   return (
     <div
       style={{
@@ -142,6 +149,37 @@ export const SceneHeader: React.FC<{
         <span style={{fontFamily: theme.mono, fontSize: 18, color: theme.dim, letterSpacing: 1}}>
           {meta}
         </span>
+      ) : null}
+      {/* 幕内进度条：常驻底线 + 已走过的一段染主色 */}
+      {durationInFrames ? (
+        <div
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: -14,
+            height: 2,
+            background: theme.panelBorder,
+            opacity: 0.5,
+          }}
+        >
+          <div style={{width: `${prog * 100}%`, height: '100%', background: c, opacity: 0.75}} />
+          {/* 游标：进度条头部的一枚亮点 + 光晕。2px 的条在缩略图上几乎不可见，
+              游标把「每帧都在动」放大到肉眼可辨，同时不抢镜内主体的注意力。 */}
+          <div
+            style={{
+              position: 'absolute',
+              left: `${prog * 100}%`,
+              top: -3,
+              width: 8,
+              height: 8,
+              marginLeft: -4,
+              borderRadius: 999,
+              background: c,
+              boxShadow: `0 0 10px ${c}`,
+            }}
+          />
+        </div>
       ) : null}
     </div>
   );

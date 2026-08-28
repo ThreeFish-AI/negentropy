@@ -445,7 +445,7 @@ export const P0Hook: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bC = w('p0-09', 'p0-10');
   return (
     <AbsoluteFill>
-      <SceneHeader index="P0" title="一个注意力，盖不住一个后端" meta="agentic laziness · bias · drift" />
+      <SceneHeader index="P0" title="一个注意力，盖不住一个后端" meta="agentic laziness · bias · drift" durationInFrames={scene.durationInFrames} />
       <Sequence {...bA} name="0-A 清单溢出与孤环">
         <SceneTag chapter="Agent Teams" tagline="One Agent Is Not Enough" accent={theme.peer} />
         {/* 拉镜点在 p0-03；cardsAt：官方三失败模式症状卡（Harness Engineering 改造） */}

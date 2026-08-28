@@ -458,7 +458,7 @@ export const P0Wait: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bC = w('p0-09', 'p0-13');
   return (
     <AbsoluteFill>
-      <SceneHeader index="P0" title="十分钟干等" meta="time blindness · it cannot feel time" />
+      <SceneHeader index="P0" title="十分钟干等" meta="time blindness · it cannot feel time" durationInFrames={scene.durationInFrames} />
       <Sequence {...bA} name="0-A 进度条与计费表">
         <StallBar tickAt={at('p0-01') - bA.from} costAt={at('p0-03') - bA.from} zeroAt={at('p0-04') - bA.from} />
       </Sequence>

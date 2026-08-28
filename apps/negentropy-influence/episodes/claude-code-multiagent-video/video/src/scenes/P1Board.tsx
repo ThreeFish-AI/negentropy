@@ -738,7 +738,7 @@ export const P1Board: React.FC<{scene: SceneRange}> = ({scene}) => {
   const rel = (b: {from: number}, id: string) => at(id) - b.from;
   return (
     <AbsoluteFill>
-      <SceneHeader index="P1" title="活挂在哪里：看板" meta="task board · file-locked claims" />
+      <SceneHeader index="P1" title="活挂在哪里：看板" meta="task board · file-locked claims" durationInFrames={scene.durationInFrames} />
       <Sequence {...bA} name="1-A 看板立起">
         <BoardRises cardsAt={rel(bA, 'p1-03')} arrowsAt={rel(bA, 'p1-05')} />
       </Sequence>

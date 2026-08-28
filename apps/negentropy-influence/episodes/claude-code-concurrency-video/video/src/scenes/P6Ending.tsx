@@ -332,7 +332,7 @@ export const P6Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bC = w('p6-13', 'p6-15');
   return (
     <AbsoluteFill>
-      <SceneHeader index="P6" title="落点与信源" meta="three answers to who starts" />
+      <SceneHeader index="P6" title="落点与信源" meta="three answers to who starts" durationInFrames={scene.durationInFrames} />
       <Sequence {...bA} name="6-A 三种开始的位置">
         <ThreePositions
           l1={at('p6-02') - bA.from}

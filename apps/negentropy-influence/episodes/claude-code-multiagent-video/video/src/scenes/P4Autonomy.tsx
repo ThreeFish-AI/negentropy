@@ -706,7 +706,7 @@ export const P4Autonomy: React.FC<{scene: SceneRange}> = ({scene}) => {
   const rel = (b: {from: number}, id: string) => at(id) - b.from;
   return (
     <AbsoluteFill>
-      <SceneHeader index="P4" title="自己看板，自己认领" meta="WORK · IDLE · SHUTDOWN" />
+      <SceneHeader index="P4" title="自己看板，自己认领" meta="WORK · IDLE · SHUTDOWN" durationInFrames={scene.durationInFrames} />
       <Sequence {...bA} name="4-A 派工之累与生命周期">
         <DispatchFatigue cycleAt={rel(bA, 'p4-03')} />
       </Sequence>

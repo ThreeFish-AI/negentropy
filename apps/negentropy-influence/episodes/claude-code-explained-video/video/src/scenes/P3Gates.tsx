@@ -690,7 +690,7 @@ export const P3Gates: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bG = w('p3-30', 'p3-35');
   return (
     <AbsoluteFill>
-      <SceneHeader index="P3" title="执行之前，先过闸门" meta="Permissions · deny → ask → allow" />
+      <SceneHeader index="P3" title="执行之前，先过闸门" meta="Permissions · deny → ask → allow" durationInFrames={scene.durationInFrames} />
       <Sequence {...bA} name="3-A 没人管的跑命令">
         <UnguardedShell
           frameAt={rel(bA, 'p3-02')}

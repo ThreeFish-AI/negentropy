@@ -288,7 +288,7 @@ export const P6Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bB = w('p6-05', 'p6-08');
   return (
     <AbsoluteFill>
-      <SceneHeader index="P6" title="落点与信源" meta="Claude Code Harness Engineering" />
+      <SceneHeader index="P6" title="落点与信源" meta="Claude Code Harness Engineering" durationInFrames={scene.durationInFrames} />
       <Sequence {...bA} name="6-A 壳的四层">
         <ShellLayers
           layerAt={[rel(bA, 'p6-01'), rel(bA, 'p6-02'), rel(bA, 'p6-03'), rel(bA, 'p6-04')]}

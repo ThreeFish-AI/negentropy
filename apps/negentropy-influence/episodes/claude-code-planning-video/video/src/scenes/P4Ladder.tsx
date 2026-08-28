@@ -674,7 +674,7 @@ export const P4Ladder: React.FC<{scene: SceneRange}> = ({scene}) => {
   const relE = (id: string) => at(id) - bE.from;
   return (
     <AbsoluteFill>
-      <SceneHeader index="P4" title="桌边的补救梯" meta="Error Recovery · 10 retries · exp backoff" />
+      <SceneHeader index="P4" title="桌边的补救梯" meta="Error Recovery · 10 retries · exp backoff" durationInFrames={scene.durationInFrames} />
       <Sequence {...bA} name="4-A 补救梯垂下">
         {/* p4-01「管的是意外」桌子亮出；p4-02 岔子预告，梯子自上垂下挂稳 */}
         <LadderDrops dropAt={relA('p4-02')} />

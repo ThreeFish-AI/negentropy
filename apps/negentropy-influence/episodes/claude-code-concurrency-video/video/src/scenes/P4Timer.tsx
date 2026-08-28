@@ -583,7 +583,7 @@ export const P4Timer: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bE = w('p4-19', 'p4-27');
   return (
     <AbsoluteFill>
-      <SceneHeader index="P4" title="没人按的开始" meta="cron · 5-field schedule" />
+      <SceneHeader index="P4" title="没人按的开始" meta="cron · 5-field schedule" durationInFrames={scene.durationInFrames} />
       <Sequence {...bA} name="4-A 木偶与闹钟">
         <PuppetVsClock clockAt={at('p4-04') - bA.from} />
       </Sequence>

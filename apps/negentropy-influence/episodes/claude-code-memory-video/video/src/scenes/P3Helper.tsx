@@ -474,7 +474,7 @@ export const P3Helper: React.FC<{scene: SceneRange}> = ({scene}) => {
   const relC = (id: string) => at(id) - bC.from;
   return (
     <AbsoluteFill>
-      <SceneHeader index="P3" title="应急通道与帮工纪律" meta="compaction survival matrix" />
+      <SceneHeader index="P3" title="应急通道与帮工纪律" meta="compaction survival matrix" durationInFrames={scene.durationInFrames} />
       <Sequence {...bA} name="3-A 帮工特写与工具之手">
         <HelperDiscipline
           firstAt={relA('p3-04')}

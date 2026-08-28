@@ -361,7 +361,7 @@ export const P1Desk: React.FC<{scene: SceneRange}> = ({scene}) => {
   const relC = (id: string) => at(id) - bC.from;
   return (
     <AbsoluteFill>
-      <SceneHeader index="P1" title="桌面的收拾法" meta="cheap first, expensive last" />
+      <SceneHeader index="P1" title="桌面的收拾法" meta="cheap first, expensive last" durationInFrames={scene.durationInFrames} />
       <Sequence {...bA} name="1-A 桌面全景与原则条">
         <DeskIntro ruleAt={relA('p1-03')} />
       </Sequence>

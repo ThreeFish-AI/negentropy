@@ -393,7 +393,7 @@ export const P2Rejoin: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bE = w('p2-16', 'p2-23');
   return (
     <AbsoluteFill>
-      <SceneHeader index="P2" title="干完怎么接回来" meta="notification queue · next > later" />
+      <SceneHeader index="P2" title="干完怎么接回来" meta="notification queue · next > later" durationInFrames={scene.durationInFrames} />
       <Sequence {...bA} name="2-A 配对锁扣">
         <PairLock lockAt={at('p2-03') - bA.from} swapAt={at('p2-04') - bA.from} queueAt={at('p2-05') - bA.from} />
       </Sequence>

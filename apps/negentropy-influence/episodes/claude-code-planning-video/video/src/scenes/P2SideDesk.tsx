@@ -847,7 +847,7 @@ export const P2SideDesk: React.FC<{scene: SceneRange}> = ({scene}) => {
   const relF = (id: string) => at(id) - bF.from;
   return (
     <AbsoluteFill>
-      <SceneHeader index="P2" title="另开一张副桌" meta="Subagent · fork shares prefix cache" />
+      <SceneHeader index="P2" title="另开一张副桌" meta="Subagent · fork shares prefix cache" durationInFrames={scene.durationInFrames} />
       <Sequence {...bA} name="2-A 桌面暴涨与计费">
         {/* p2-03「一百多条」起暴涨；p2-04「一直计着费」起计数器 */}
         <DeskFlood floodAt={relA('p2-03')} billAt={relA('p2-04')} />

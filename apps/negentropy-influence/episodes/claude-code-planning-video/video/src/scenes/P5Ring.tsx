@@ -277,7 +277,7 @@ export const P5Ring: React.FC<{scene: SceneRange}> = ({scene}) => {
   const relC = (id: string) => at(id) - bC.from;
   return (
     <AbsoluteFill>
-      <SceneHeader index="P5" title="桌子换了五样，环没动" meta="five parts hang outside the loop" />
+      <SceneHeader index="P5" title="桌子换了五样，环没动" meta="five parts hang outside the loop" durationInFrames={scene.durationInFrames} />
       <Sequence {...bA} name="5-A 五装置归位">
         {/* p5-02 五样摆在一起：自左向右滑入；p5-04..05 职责印章逐枚落下 */}
         <FiveDevices

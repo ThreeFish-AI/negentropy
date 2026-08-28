@@ -366,7 +366,7 @@ export const P0Hook: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bC = w('p0-06', 'p0-07');
   return (
     <AbsoluteFill>
-      <SceneHeader index="P0" title="你在当那个中间人" meta="the missing layer" />
+      <SceneHeader index="P0" title="你在当那个中间人" meta="the missing layer" durationInFrames={scene.durationInFrames} />
       <Sequence {...bA} name="0-A 停住与搬运">
         <StallAndCarry carryAt={at('p0-02') - bA.from} />
       </Sequence>

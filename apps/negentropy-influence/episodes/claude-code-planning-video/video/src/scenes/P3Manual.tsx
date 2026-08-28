@@ -723,7 +723,7 @@ export const P3Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
   const relF = (id: string) => at(id) - bF.from;
   return (
     <AbsoluteFill>
-      <SceneHeader index="P3" title="目录卡与垫纸" meta="Skills · progressive disclosure" />
+      <SceneHeader index="P3" title="目录卡与垫纸" meta="Skills · progressive disclosure" durationInFrames={scene.durationInFrames} />
       <Sequence {...bA} name="3-A 厚手册压桌">
         {/* p3-02「全贴进基本设定」手册拍上桌；p3-03 计价器跳红 */}
         <ThickManualSlams slamAt={relA('p3-02')} />

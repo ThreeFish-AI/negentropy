@@ -847,7 +847,7 @@ export const P4Hooks: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bH = w('p4-35', 'p4-37');
   return (
     <AbsoluteFill>
-      <SceneHeader index="P4" title="挂在循环上，不写进循环里" meta="Hooks · 31 events × 3 rhythms" />
+      <SceneHeader index="P4" title="挂在循环上，不写进循环里" meta="Hooks · 31 events × 3 rhythms" durationInFrames={scene.durationInFrames} />
       <Sequence {...bA} name="4-A 需求扎进循环">
         <NeedsPierce needAt={rel(bA, 'p4-03')} pierceAt={rel(bA, 'p4-04')} />
       </Sequence>

@@ -917,7 +917,7 @@ export const P6Finale: React.FC<{scene: SceneRange}> = ({scene}) => {
   const rel = (b: {from: number}, id: string) => at(id) - b.from;
   return (
     <AbsoluteFill>
-      <SceneHeader index="P6" title="收束：机制很多，循环一个" meta="who holds the plan" />
+      <SceneHeader index="P6" title="收束：机制很多，循环一个" meta="who holds the plan" durationInFrames={scene.durationInFrames} />
       <Sequence {...bA} name="6-A 四样归位与传送带">
         <ConveyorForms beltAt={rel(bA, 'p6-02')} />
       </Sequence>

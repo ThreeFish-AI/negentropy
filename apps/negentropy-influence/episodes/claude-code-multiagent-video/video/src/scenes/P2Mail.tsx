@@ -832,7 +832,7 @@ export const P2Mail: React.FC<{scene: SceneRange}> = ({scene}) => {
   const rel = (b: {from: number}, id: string) => at(id) - b.from;
   return (
     <AbsoluteFill>
-      <SceneHeader index="P2" title="话从哪里走：信箱" meta="mailbox = a file · 3 prohibitions" />
+      <SceneHeader index="P2" title="话从哪里走：信箱" meta="mailbox = a file · 3 prohibitions" durationInFrames={scene.durationInFrames} />
       <Sequence {...bA} name="2-A 临时工与队友">
         <TempVsTeammate fadeAt={rel(bA, 'p2-04')} seatAt={rel(bA, 'p2-03')} />
       </Sequence>

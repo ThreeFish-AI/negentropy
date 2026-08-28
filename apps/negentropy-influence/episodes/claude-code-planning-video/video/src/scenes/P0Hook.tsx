@@ -333,7 +333,7 @@ export const P0Hook: React.FC<{scene: SceneRange}> = ({scene}) => {
   const relC = (id: string) => at(id) - bC.from;
   return (
     <AbsoluteFill>
-      <SceneHeader index="P0" title="它没有「昨天」" meta="no yesterday · attention is positional" />
+      <SceneHeader index="P0" title="它没有「昨天」" meta="no yesterday · attention is positional" durationInFrames={scene.durationInFrames} />
       <Sequence {...bA} name="0-A 任务单滚出视野">
         {/* p0-01 钩子即上滚；p0-03「被官方收回去」：收回钢印 */}
         <TaskScrollsOut scrollAt={relA('p0-01') + 20} ghostAt={relA('p0-02')} recallAt={relA('p0-03')} />

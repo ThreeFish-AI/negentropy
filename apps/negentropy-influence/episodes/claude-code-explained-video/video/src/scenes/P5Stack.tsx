@@ -488,7 +488,7 @@ export const P5Stack: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bD = w('p5-15', 'p5-19');
   return (
     <AbsoluteFill>
-      <SceneHeader index="P5" title="四层叠起来是什么" meta="Harness = loop + tools + context + guardrails" />
+      <SceneHeader index="P5" title="四层叠起来是什么" meta="Harness = loop + tools + context + guardrails" durationInFrames={scene.durationInFrames} />
       <Sequence {...bA} name="5-A 四层卡片与官方四件套">
         <FourLayers splitAt={rel(bA, 'p5-06')} mapAt={rel(bA, 'p5-05')} />
       </Sequence>

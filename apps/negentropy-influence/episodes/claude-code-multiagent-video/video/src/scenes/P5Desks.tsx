@@ -830,7 +830,7 @@ export const P5Desks: React.FC<{scene: SceneRange}> = ({scene}) => {
   const rel = (b: {from: number}, id: string) => at(id) - b.from;
   return (
     <AbsoluteFill>
-      <SceneHeader index="P5" title="谁的桌子：各干各的" meta="worktree · 4 gates, one cannot close" />
+      <SceneHeader index="P5" title="谁的桌子：各干各的" meta="worktree · 4 gates, one cannot close" durationInFrames={scene.durationInFrames} />
       <Sequence {...bA} name="5-A 双写冲突">
         <Collision
           writeAt={rel(bA, 'p5-03')}

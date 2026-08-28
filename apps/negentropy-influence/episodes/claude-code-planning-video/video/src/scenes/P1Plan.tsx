@@ -395,7 +395,7 @@ export const P1Plan: React.FC<{scene: SceneRange}> = ({scene}) => {
   const relD = (id: string) => at(id) - bD.from;
   return (
     <AbsoluteFill>
-      <SceneHeader index="P1" title="把清单钉在桌上" meta="TodoWrite · retired by default" />
+      <SceneHeader index="P1" title="把清单钉在桌上" meta="TodoWrite · retired by default" durationInFrames={scene.durationInFrames} />
       <Sequence {...bA} name="1-A 三态清单滑入">
         {/* 三态图标演示态跟随 p1-02（每条标一个状态）逐个闪现 */}
         <ChecklistSlidesIn iconAt={[relA('p1-02'), relA('p1-02') + 16, relA('p1-02') + 32]} />
