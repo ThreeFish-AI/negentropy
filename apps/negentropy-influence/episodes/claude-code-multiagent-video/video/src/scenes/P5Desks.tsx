@@ -780,7 +780,8 @@ const FourGates: React.FC<{gatesAt: number}> = ({gatesAt}) => {
   ];
   return (
     <AbsoluteFill>
-      <div style={{position: 'absolute', left: 0, right: 0, bottom: 190, display: 'flex', justifyContent: 'center', gap: 18}}>
+      {/* 四道闸横排：上移到中带下沿（避免压住 repo 底座与 Footnote 双行区，2026-08 实拍修） */}
+      <div style={{position: 'absolute', left: 0, right: 0, bottom: 268, display: 'flex', justifyContent: 'center', gap: 14}}>
         {gates.map((g, i) => {
           const e = spring({frame: frame - gatesAt - i * 9, fps, config: {damping: 150}});
           if (e <= 0) return null;
@@ -788,7 +789,7 @@ const FourGates: React.FC<{gatesAt: number}> = ({gatesAt}) => {
             <div
               key={g.t}
               style={{
-                width: 300,
+                width: 262,
                 border: `2.5px solid ${g.locked ? theme.deny : theme.peer}`,
                 borderRadius: 10,
                 background: theme.panel,
@@ -805,14 +806,14 @@ const FourGates: React.FC<{gatesAt: number}> = ({gatesAt}) => {
               <div style={{fontFamily: theme.sans, fontSize: 16, color: theme.dim, marginTop: 4}}>{g.s}</div>
               {g.locked ? (
                 <div style={{fontFamily: theme.sans, fontSize: 15, color: theme.deny, marginTop: 6}}>
-                  {'🔒 这道不能关'}
+                  {'● 这道不能关'}
                 </div>
               ) : null}
             </div>
           );
         })}
       </div>
-      <Footnote delay={gatesAt + 40}>
+      <Footnote delay={gatesAt + 40} slot={1}>
         {'隔离四检查 —— 官方文档 worktrees（取数2026年8月）'}
       </Footnote>
     </AbsoluteFill>

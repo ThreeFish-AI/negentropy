@@ -198,21 +198,22 @@ const OverflowThenZoom: React.FC<{zoomAt: number; cardsAt?: number}> = ({zoomAt,
 /** 官方博客三失败模式：agentic laziness / self-preferential bias / goal drift */
 const SymptomCards: React.FC<{at: number}> = ({at}) => {
   const frame = useCurrentFrame();
+  // 下移到环下方（原为 AbsoluteFill 居中，与孤环几何中心重合、三卡钉穿环腰——2026-08 实拍修）
   const cards = [
     {t: '干一半就宣布完成', sub: '进度条半途打勾', en: 'agentic laziness'},
     {t: '偏爱自己的产出', sub: '自评五星', en: 'self-preferential bias'},
     {t: '目标越走越散', sub: '链条逐级褪色', en: 'goal drift'},
   ];
   return (
-    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <div style={{display: 'flex', gap: 26}}>
+    <AbsoluteFill>
+      <div style={{position: 'absolute', left: 0, right: 0, bottom: 226, display: 'flex', gap: 22, justifyContent: 'center'}}>
         {cards.map((c, i) => {
           const e = interpolate(frame - at - i * 9, [0, 14], [0, 1], {
             extrapolateLeft: 'clamp',
             extrapolateRight: 'clamp',
           });
           return (
-            <div key={c.t} style={{width: 380, opacity: e, transform: `translateX(${(1 - e) * 40}px)`}}>
+            <div key={c.t} style={{width: 320, opacity: e, transform: `translateX(${(1 - e) * 40}px)`}}>
               <Panel accent={theme.peer} style={{padding: '20px 22px'}}>
                 <div style={{fontFamily: theme.sans, fontSize: 26, color: theme.text}}>{c.t}</div>
                 <div style={{fontFamily: theme.sans, fontSize: 19, color: theme.dim, marginTop: 8}}>{c.sub}</div>
@@ -448,7 +449,7 @@ export const P0Hook: React.FC<{scene: SceneRange}> = ({scene}) => {
       <Sequence {...bA} name="0-A 清单溢出与孤环">
         <SceneTag chapter="Agent Teams" tagline="One Agent Is Not Enough" accent={theme.peer} />
         {/* 拉镜点在 p0-03；cardsAt：官方三失败模式症状卡（Harness Engineering 改造） */}
-        <OverflowThenZoom zoomAt={at('p0-03') - bA.from} cardsAt={at('p0-03') - bA.from + 26} />
+        <OverflowThenZoom zoomAt={at('p0-03') - bA.from} cardsAt={at('p0-03') - bA.from + 40} />
       </Sequence>
       <Sequence {...bB} name="0-B 四问铭牌">
         {/* 图标预览点在 p0-08「一堆文件、几个信箱、一张编号表」 */}

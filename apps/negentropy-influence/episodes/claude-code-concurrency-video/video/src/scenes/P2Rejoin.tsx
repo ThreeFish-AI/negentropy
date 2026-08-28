@@ -404,7 +404,7 @@ export const P2Rejoin: React.FC<{scene: SceneRange}> = ({scene}) => {
         <NoCutIn badAt={at('p2-11') - bC.from} goodAt={at('p2-12') - bC.from} />
       </Sequence>
       <Sequence {...bD} name="2-D 七种后台任务">
-        <SevenTasks lightAt={at('p2-14') - bD.from} labelAt={at('p2-16') - bD.from} />
+        <SevenTasks lightAt={at('p2-13') - bD.from} labelAt={at('p2-15') - bD.from} />
       </Sequence>
       <Sequence {...bE} name="2-E 取件码与天平">
         <ClaimCheckScale matchAt={at('p2-19') - bE.from} scaleAt={at('p2-21') - bE.from} stampAt={at('p2-23') - bE.from} />

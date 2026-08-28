@@ -211,7 +211,7 @@ const LaundryLeave: React.FC<{turnAt: number; ringAt: number; quoteAt?: number}>
           style={{
             position: 'absolute',
             left: '50%',
-            bottom: 190,
+            bottom: 262,
             transform: `translateX(-50%) translateY(${interpolate(frame - quoteAt, [0, 16], [14, 0], {
               extrapolateLeft: 'clamp',
               extrapolateRight: 'clamp',

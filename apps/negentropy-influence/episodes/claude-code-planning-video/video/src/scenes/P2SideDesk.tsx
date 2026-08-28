@@ -463,15 +463,23 @@ const TwoDisciplines: React.FC<{lockAt: number; gateAt: number; dotAt: number}> 
 };
 
 /** 2-E ★五要素等号锁：两桌并置，五要素卡逐张比对，全部对上后锁扣合拢、SAVE 印章砸下。 */
-const FiveFactorLock: React.FC<{compareAt: number[]; lockAt: number; saveAt: number}> = ({
-  compareAt,
-  lockAt,
-  saveAt,
-}) => {
+const FiveFactorLock: React.FC<{
+  compareAt: number[];
+  lockAt: number;
+  saveAt: number;
+  costAt?: number;
+  recalcAt?: number;
+  copyAt?: number;
+}> = ({compareAt, lockAt, saveAt, costAt, recalcAt, copyAt}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const factors = ['系统提示', '工具表', '模型', '消息前缀', '思考配置'];
   const matched = compareAt.map((a) => frame >= a + 14);
+  // 前段视觉事件（2026-08 品控修）：本 beat 覆盖 9 句 50.7 秒，原首锚落在第 7 句（p2-22），
+  // 前 34 秒只有两个静态标签 + 五个孤立「≠」。补三拍：计价 → 原价重算 → 原样搬。
+  const cost = costAt === undefined ? 0 : interpolate(frame - costAt, [0, 16], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const recalc = recalcAt === undefined ? 0 : interpolate(frame - recalcAt, [0, 20], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const copy = copyAt === undefined ? 0 : interpolate(frame - copyAt, [0, 22], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   const allOn = frame >= lockAt;
   const lock = spring({frame: frame - lockAt, fps, config: {damping: 13}});
   return (
@@ -484,6 +492,40 @@ const FiveFactorLock: React.FC<{compareAt: number[]; lockAt: number; saveAt: num
         <div style={{position: 'absolute', right: 20, top: 30}}>
           <MiniDeskLabel title="分身桌" accent={theme.mech} />
         </div>
+        {/* 前段三拍（p2-19/20/21）：计价条 → 前缀全变红重算 → 原样搬回绿 */}
+        {cost > 0 ? (
+          <div style={{position: 'absolute', left: 1560 / 2 - 300, top: 92, width: 600, opacity: cost}}>
+            <div style={{fontFamily: theme.sans, fontSize: 22, color: theme.dim, textAlign: 'center'}}>
+              {'对话按字数花钱 · 同样的开头，第二遍近乎免费'}
+            </div>
+            <div style={{display: 'flex', gap: 6, marginTop: 10, justifyContent: 'center'}}>
+              {Array.from({length: 12}).map((_, i) => {
+                // 前缀 8 格：recalc 时整体转红（原价重算），copy 时转回 mech（命中）
+                const isPrefix = i < 8;
+                const red = isPrefix && recalc > 0.3 && copy < 0.3;
+                const hit = isPrefix && copy > 0.3;
+                return (
+                  <div
+                    key={i}
+                    style={{
+                      width: 34,
+                      height: 16,
+                      borderRadius: 3,
+                      background: red ? theme.deny : hit ? theme.mech : isPrefix ? theme.panelBorder : theme.panel,
+                      border: `1px solid ${red ? theme.deny : hit ? theme.mech : theme.panelBorder}`,
+                      opacity: isPrefix ? 1 : 0.45,
+                    }}
+                  />
+                );
+              })}
+            </div>
+            {recalc > 0.3 ? (
+              <div style={{fontFamily: theme.sans, fontSize: 20, color: copy > 0.3 ? theme.mech : theme.deny, textAlign: 'center', marginTop: 8}}>
+                {copy > 0.3 ? '原样搬过去 · 前缀一致 → 命中' : '前缀全变 → 每一段原价重算'}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
         {/* 五要素卡：左右滑入逐字节对齐（每对上一张亮 mech）。行内容 880px 居中（px 数学，红线一） */}
         <div style={{position: 'absolute', left: 1560 / 2 - 440, top: 130}}>
           {factors.map((f, i) => {
@@ -507,7 +549,7 @@ const FiveFactorLock: React.FC<{compareAt: number[]; lockAt: number; saveAt: num
                   </Panel>
                 </div>
                 {/* 中缝：等号或问号 */}
-                <div style={{width: 200, textAlign: 'center', fontFamily: theme.mono, fontSize: 40, fontWeight: 700, color: m ? theme.mech : theme.dim}}>
+                <div style={{width: 200, textAlign: 'center', fontFamily: theme.mono, fontSize: 40, fontWeight: 700, color: m ? theme.mech : theme.dim, opacity: t}}>
                   {m ? '=' : '≠'}
                 </div>
                 {/* 子侧卡（从右滑入） */}
@@ -833,6 +875,9 @@ export const P2SideDesk: React.FC<{scene: SceneRange}> = ({scene}) => {
           ]}
           lockAt={relE('p2-23')}
           saveAt={relE('p2-23') + 24}
+          costAt={relE('p2-19')}
+          recalcAt={relE('p2-20')}
+          copyAt={relE('p2-21')}
         />
       </Sequence>
       <Sequence {...bF} name="2-F 共享抽屉·审批冒泡·三只笼子">

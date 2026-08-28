@@ -38,9 +38,10 @@ export const Panel: React.FC<{
 );
 
 /** 底部角标——统一压在 bottom ≥ 150（避让字幕条，skills/06 红线二） */
-export const Footnote: React.FC<{children: React.ReactNode; delay?: number}> = ({
+export const Footnote: React.FC<{children: React.ReactNode; delay?: number; slot?: 0 | 1}> = ({
   children,
   delay = 0,
+  slot = 0,
 }) => {
   const frame = useCurrentFrame();
   const o = interpolate(frame - delay, [0, 14], [0, 1], {
@@ -53,7 +54,9 @@ export const Footnote: React.FC<{children: React.ReactNode; delay?: number}> = (
         position: 'absolute',
         left: 0,
         right: 0,
-        bottom: 168,
+        // slot：同一 Sequence 里并列两个组件各带一条 Footnote 时，两条会在
+        // bottom:168 完全重印成一团糊字（2026-08 品控实拍坐实）。slot=1 抬到 206 错行。
+        bottom: slot === 1 ? 206 : 168,
         textAlign: 'center',
         fontFamily: theme.mono,
         fontSize: 24,

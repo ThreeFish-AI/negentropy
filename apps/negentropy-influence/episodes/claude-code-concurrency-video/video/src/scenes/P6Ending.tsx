@@ -120,7 +120,7 @@ const ThreePositions: React.FC<{l1: number; l2: number; l3: number; layerAt: num
   });
   return (
     <AbsoluteFill>
-      <SceneTag chapter="None" tagline="Who Presses Start" />
+      <SceneTag chapter="Who Starts" tagline="Who Presses Start" />
       <div style={{position: 'absolute', left: 0, right: 0, top: 190, display: 'flex', justifyContent: 'center', gap: 36}}>
         <div style={{opacity: e1}}>
           <StartPanel mode="onRing" title="01 · 有人按并等着" sub="最笨也最常见" active={frame >= l1} />

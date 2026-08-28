@@ -556,7 +556,7 @@ const PrefixCacheStrip: React.FC<{stripAt: number; priceAt: number}> = ({stripAt
       style={{
         position: 'absolute',
         left: '50%',
-        bottom: 168,
+        bottom: 250,
         transform: `translateX(-50%) translateY(${(1 - strip) * 24}px)`,
         opacity: strip * 0.96,
         display: 'flex',
