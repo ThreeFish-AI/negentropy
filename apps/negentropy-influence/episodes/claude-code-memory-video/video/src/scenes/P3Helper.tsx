@@ -177,7 +177,7 @@ const HelperDiscipline: React.FC<{firstAt: number; lastAt: number; handAt: numbe
         })}
       </div>
       <Footnote delay={firstAt}>
-        {'指令原文由第三方从产品里抄出（首尾各一遍）—— 第三方的源码分析'}
+        {'指令原文由第三方从真实实现里抄出（首尾各一遍）—— 第三方的源码分析'}
       </Footnote>
     </AbsoluteFill>
   );
@@ -404,7 +404,7 @@ const SalvageHook: React.FC<{openAt: number; hookAt: number; honestAt: number}> 
             }),
           }}
         >
-          {'本段为第三方的源码分析（产品行为，教学版未做）'}
+          {'本段为第三方的源码分析（真实实现的行为，超出最简示例范围）'}
         </div>
       </div>
     </AbsoluteFill>

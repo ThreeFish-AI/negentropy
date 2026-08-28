@@ -567,7 +567,7 @@ const TierThree: React.FC<{warnAt: number; waitAt: number; flipAt: number; jitte
         </div>
       </div>
       <Footnote delay={flipAt}>
-        {'恢复路径十几种（实测 17）· 教学版挑最常见的三种 —— 第三方的源码分析'}
+        {'恢复路径十几种（实测 17）· 最简实现挑最常见的三种 —— 第三方的源码分析'}
       </Footnote>
     </AbsoluteFill>
   );
@@ -873,7 +873,7 @@ const Diminishing: React.FC<{
 }> = ({curveAt, lineAt, stopAt, ckptAt, quoteAt}) => {
   const frame = useCurrentFrame();
   if (frame >= quoteAt) {
-    return <QuoteCard zh="每一级补救，都带着上限。" accent={theme.mech} />;
+    return <QuoteCard zh="每次重试有上限 · 每次升档只一次 · 不恋战" accent={theme.mech} />;
   }
   const W = 1100;
   const H = 460;

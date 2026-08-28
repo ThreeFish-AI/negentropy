@@ -752,10 +752,10 @@ const McpPlug: React.FC<{noteAt: number; plugAt: number; plateAt: number}> = ({
           >
             <Panel style={{padding: '14px 18px'}}>
               <div style={{fontFamily: theme.sans, fontSize: 21, color: theme.dim, lineHeight: 1.55}}>
-                {'产品里进出目录是整个进程跟着切；任务与目录也不强制绑定'}
+                {'实际实现里进出目录是整个进程跟着切；任务与目录也不强制绑定'}
               </div>
               <div style={{fontFamily: theme.mono, fontSize: 17, color: theme.dim, marginTop: 8}}>
-                {'——第三方的源码分析（教学版做成默认绑定）'}
+                {'——第三方的源码分析（最简示例做成默认绑定）'}
               </div>
             </Panel>
           </div>

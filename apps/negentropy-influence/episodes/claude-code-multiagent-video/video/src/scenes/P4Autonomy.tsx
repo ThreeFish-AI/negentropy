@@ -580,7 +580,7 @@ const SixtyClock: React.FC<{clockAt: number; doneAt: number; compactAt: number; 
           </div>
         </div>
       </div>
-      <Footnote delay={doneAt}>{'六十秒收工为教学版设计；产品无固定时限（源码分析）'}</Footnote>
+      <Footnote delay={doneAt}>{'六十秒收工为示教设计；实际实现无固定时限（源码分析）'}</Footnote>
     </AbsoluteFill>
   );
 };

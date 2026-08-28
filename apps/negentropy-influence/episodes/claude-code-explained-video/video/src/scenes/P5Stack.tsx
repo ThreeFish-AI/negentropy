@@ -433,7 +433,7 @@ const SelfRunning: React.FC<{shellAt: number; quoteAt: number}> = ({shellAt, quo
   if (frame >= quoteAt) {
     return (
       <QuoteCard
-        zh="能动性来自模型，而这层壳，给能动性一个落地的地方。"
+        zh="Agency comes from the model — the harness gives it a place to land"
         en="Agency comes from the model. The harness gives agency a place to land."
         accent={theme.core}
       />

@@ -227,7 +227,7 @@ const TabToSummary: React.FC<{beamAt: number; rewriteAt: number; shredAt: number
           {'摘要没有做错什么——可有些细节，恰恰是主干'}
         </div>
       </div>
-      <Footnote delay={rewriteAt}>{'例子出自开源教学仓库原文（README @ 67a9126c）'}</Footnote>
+      <Footnote delay={rewriteAt}>{'例子出自开源最简实现原文（README @ 67a9126c）'}</Footnote>
     </AbsoluteFill>
   );
 };
@@ -990,7 +990,7 @@ const TwoPaths: React.FC<{
           ) : null}
         </div>
       </div>
-      <Footnote delay={degradeAt}>{'产品用小号模型挑选 —— 第三方的源码分析'}</Footnote>
+      <Footnote delay={degradeAt}>{'真实实现用小号模型挑选 —— 第三方的源码分析'}</Footnote>
     </AbsoluteFill>
   );
 };

@@ -628,7 +628,7 @@ const OrderMatters: React.FC<{normalAt: number; swapAt: number; grabAt: number; 
           />
         ))}
       </div>
-      <Footnote delay={grabAt}>{'第三方核对源码：产品真实顺序入库在前 —— 「先保存、再丢弃」'}</Footnote>
+      <Footnote delay={grabAt}>{'第三方核对源码：真实实现里顺序也是入库在前 —— 「先保存、再丢弃」'}</Footnote>
     </AbsoluteFill>
   );
 };

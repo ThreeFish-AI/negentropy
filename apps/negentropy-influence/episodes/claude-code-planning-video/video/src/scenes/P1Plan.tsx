@@ -272,13 +272,13 @@ const TwoLineDiff: React.FC<{quoteAt: number}> = ({quoteAt}) => {
                   {'是规划能力。'}
                 </div>
                 <div style={{fontFamily: theme.sans, fontSize: 21, color: theme.dim, marginTop: 16}}>
-                  {'—— 教学版 README'}
+                  {'—— 最简实现 README'}
                 </div>
               </Panel>
             </div>
           </>
         ) : (
-          <QuoteCard zh="增加的不是执行能力，是规划能力。" cite="教学版 README 关键洞察" accent={theme.view} />
+          <QuoteCard zh="增加的不是执行能力，是规划能力。" cite="最简实现 README 关键洞察" accent={theme.view} />
         )}
       </div>
     </AbsoluteFill>
@@ -414,7 +414,7 @@ const PlanGate: React.FC<{
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   if (frame >= quoteAt) {
-    return <QuoteCard zh="清单是写给它自己看的；计划，是写给你看的。" accent={theme.view} />;
+    return <QuoteCard zh="清单给执行者 · 计划给决策者 —— 两份文件，两种读者" accent={theme.view} />;
   }
   // 玻璃罩自上罩下（spring）
   const glass = spring({frame: frame - glassAt, fps, config: {damping: 200}});
@@ -538,7 +538,7 @@ const LifecycleTimeline: React.FC<{taskSysAt: number; axisAt: number; dotAt: num
 }) => {
   const frame = useCurrentFrame();
   if (frame >= quoteAt) {
-    return <QuoteCard zh="把计划写下来，本身就是一种能力。" accent={theme.view} />;
+    return <QuoteCard zh="Planning is a capability, not a feature —— 规划是能力，不是功能" accent={theme.view} />;
   }
   const taskSys = interpolate(frame - taskSysAt, [0, 16], [0, 1], {
     extrapolateLeft: 'clamp',

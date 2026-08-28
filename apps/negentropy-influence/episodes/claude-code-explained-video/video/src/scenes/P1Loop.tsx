@@ -1,4 +1,4 @@
-/** P1 一个循环，就是全部（分镜 1-A…1-F）—— 开源教学素材「Agent While-Loop」可视化的概念重建
+/** P1 一个循环，就是全部（分镜 1-A…1-F）—— 开源示教素材「Agent While-Loop」可视化的概念重建
  *  ★ 本幕建立全片视觉锚：LoopRing 的色与线宽从此不再改变。 */
 import React from 'react';
 import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig} from 'remotion';
@@ -147,9 +147,9 @@ const FiveSteps: React.FC<{stepAt: number[]}> = ({stepAt}) => {
   );
 };
 
-/** 1-C 二十三行代码卡 + 来源标签条 + 对照列 + 分工左右分屏。
+/** 1-C 二十三行代码卡 + 来源标签条 + 延伸列 + 分工左右分屏。
  *  p1-12a 卡眉滑入来源标签条（「开源最小实现 · 照着同一套机制搭的」，无具名信息——
- *  教学版锚，先交代这份代码是谁、再开始读）；p1-12b 右侧浮出「对照对象：真实产品」
+ *  示例锚，先交代这份代码是谁、再开始读）；p1-12b 右侧浮出「边读边说：实际实现」
  *  半亮列；随后代码逐行渲染 → 二十三行计数 → 左右分屏。 */
 const TwentyThreeLines: React.FC<{
   tagAt: number;
@@ -222,7 +222,7 @@ const TwentyThreeLines: React.FC<{
         </div>
         <CodeCard lines={lines} width={1060} glowLineNumbersAt={countAt} startAt={codeStart} />
       </div>
-      {/* 对照对象半亮列（p1-12b）：读教学实现时，右边始终立着真实产品这一极 */}
+      {/* 延伸半亮列（p1-12b）：读最简实现时，右边始终立着实际实现的落点 */}
       {compare > 0 ? (
         <div
           style={{
@@ -244,9 +244,9 @@ const TwentyThreeLines: React.FC<{
               textAlign: 'center',
             }}
           >
-            {'对照对象'}
+            {'边读边说'}
             <div style={{fontFamily: theme.serif, fontSize: 26, color: theme.dim, marginTop: 6}}>
-              {'真实产品'}
+              {'实际实现'}
             </div>
           </div>
         </div>
@@ -309,7 +309,7 @@ const UnreliableFlag: React.FC<{crossAt: number; quoteAt: number}> = ({crossAt, 
   });
   if (frame >= quoteAt) {
     return (
-      <QuoteCard zh="别听它说「我说完了」，去看它手里还有没有活。" accent={theme.core} />
+      <QuoteCard zh="流式到达 ≠ 状态更新 —— 观察输出，不观察承诺" accent={theme.core} />
     );
   }
   return (
@@ -378,7 +378,7 @@ const UnreliableFlag: React.FC<{crossAt: number; quoteAt: number}> = ({crossAt, 
         ) : null}
       </div>
       <Footnote delay={crossAt}>
-        {'stop_reason is unreliable —— 第三方的源码分析 · 开源教学版仍按停止标记判定，官方实现已改为查内容块'}
+        {'stop_reason is unreliable —— 第三方的源码分析 · 开源最简实现仍按停止标记判定，官方实现已改为查内容块'}
       </Footnote>
     </AbsoluteFill>
   );
@@ -492,7 +492,7 @@ const ThreePhaseRing: React.FC<{phaseAt: number; handAt: number; drawersAt: numb
         }}
       >
         <div style={{fontFamily: theme.sans, fontSize: 22, color: theme.dim, marginBottom: 12}}>
-          {'真实产品随身带的状态（十样）'}
+          {'实际实现随身带的状态（十样）'}
         </div>
         <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10}}>
           {[

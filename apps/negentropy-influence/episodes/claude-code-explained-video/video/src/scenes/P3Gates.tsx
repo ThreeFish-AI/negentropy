@@ -1,4 +1,4 @@
-/** P3 执行之前，先过闸门（分镜 3-A…3-G，含新镜 3-D2 沙箱横切面）—— 开源教学素材「Permission Desk」的概念重建
+/** P3 执行之前，先过闸门（分镜 3-A…3-G，含新镜 3-D2 沙箱横切面）—— 开源示教素材「Permission Desk」的概念重建
  *  三种结果不各占一色：allow 回 core（放行=回主干）、ask 用 mech、deny 用 danger。 */
 import React from 'react';
 import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig} from 'remotion';
@@ -216,7 +216,7 @@ const AskAndPass: React.FC<{askAt: number; passAt: number}> = ({askAt, passAt}) 
           </div>
         </div>
       ) : null}
-      {/* 三判定小抄（开源教学素材 Permission Desk 的信息结构）：allow / ask / deny 各带真实载荷 ——
+      {/* 三判定小抄（开源示教素材 Permission Desk 的信息结构）：allow / ask / deny 各带真实载荷 ——
           本幕上方只演了 ask 与 allow，这里把第三条补齐，路由器的三种出口一目了然。
           落位约束：小抄出现时（t2 > 0.4）闸门已整体上移 -150，GateRouter 的闸门名
           （`y - h - 18`）落在 y≈235–258、闸柱顶到 y≈272——小抄必须整体收在其上方，
@@ -318,7 +318,7 @@ const DenyListHonesty: React.FC<{degradeAt: number; bypassAt: number; quoteAt: n
               textAlign: 'center',
             }}
           >
-            {'教学示意，不是安全边界'}
+            {'示教示意，不是安全边界'}
           </div>
         ) : null}
       </div>

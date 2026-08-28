@@ -1,4 +1,4 @@
-/** P2 加一个工具，只改一行（分镜 2-A…2-H）—— 开源教学素材「Tool Dispatch Map」的概念重建
+/** P2 加一个工具，只改一行（分镜 2-A…2-H）—— 开源示教素材「Tool Dispatch Map」的概念重建
  *  重点视觉演绎：并发安全 ≠ 只读（真值表对撞）、连续块分批、读文件落盘自循环。 */
 import React from 'react';
 import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig} from 'remotion';
@@ -62,7 +62,7 @@ const FiveTools: React.FC = () => {
   const frame = useCurrentFrame();
   const tools = ['跑命令', '读文件', '写文件', '改文件', '按模式找文件'];
   const mono = ['bash', 'read_file', 'write_file', 'edit_file', 'glob'];
-  // 官方五类工具地图（how-claude-code-works）：教学五件归位官方分区，两个空槽亮虚线（Harness Engineering 改造）
+  // 官方五类工具地图（how-claude-code-works）：示例五件归位官方分区，两个空槽亮虚线（Harness Engineering 改造）
   const zones = ['文件操作', '文件操作', '文件操作', '文件操作', '搜索'];
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
@@ -251,8 +251,8 @@ const QueueVsParallel: React.FC<{splitAt: number}> = ({splitAt}) => {
       ) : (
         <div style={{display: 'flex', gap: 90}}>
           {[
-            {t: '教学版：排队', par: false},
-            {t: '真实产品：能并行的并行', par: true},
+            {t: '最简示例：排队', par: false},
+            {t: '实际实现：能并行的并行', par: true},
           ].map((col) => (
             <div key={col.t}>
               <div style={{fontFamily: theme.sans, fontSize: 26, color: theme.dim, marginBottom: 14}}>
@@ -295,7 +295,7 @@ const ConcurrencyTable: React.FC<{
   if (frame >= quoteAt) {
     return (
       <QuoteCard
-        zh="「能不能一起跑」跟「是不是只读」，是两条独立的判断。"
+        zh="并发安全 ⊥ 只读性 —— 两个正交的维度，四种组合都存在"
         accent={theme.mech}
       />
     );

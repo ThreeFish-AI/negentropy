@@ -546,7 +546,7 @@ const CacheShed: React.FC<{
   const frame = useCurrentFrame();
   // p3-21a 金句短卡（整拍切卡）
   if (frame >= quoteAt && frame < enterAt) {
-    return <QuoteCard zh="纸能写多长，取决于模型有多不需要你替它写。" accent={theme.view} />;
+    return <QuoteCard zh="提示的长度，反比于模型的记忆 —— 模型越强，纸越短" accent={theme.view} />;
   }
   // 削层阶段（p3-20..p3-21a）：剖面 + 计分板
   const trim = interpolate(frame - trimAt, [0, 24], [1, 0.2], {

@@ -1,4 +1,4 @@
-/** P4 挂在循环上，不写进循环里（分镜 4-A…4-H）—— 开源教学素材「Hook Workbench」的概念重建
+/** P4 挂在循环上，不写进循环里（分镜 4-A…4-H）—— 开源示教素材「Hook Workbench」的概念重建
  *  4-E 刻意「无动效」表达「循环是故意保持无聊的」；4-G 是全片安全主题的收口。 */
 import React from 'react';
 import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig} from 'remotion';
@@ -76,7 +76,7 @@ const NeedsPierce: React.FC<{needAt: number; pierceAt: number}> = ({needAt, pier
 const DegradedLoop: React.FC<{quoteAt: number}> = ({quoteAt}) => {
   const frame = useCurrentFrame();
   if (frame >= quoteAt) {
-    return <QuoteCard zh="你想扩展的是它的行为，你改的却是循环本身。" accent={theme.deny} />;
+    return <QuoteCard zh="扩展行为 ≠ 修改内核 —— 挂在外面，而不是写进去" accent={theme.deny} />;
   }
   const lines = [
     'def agent_loop(messages):',
@@ -291,7 +291,7 @@ const BoringOnPurpose: React.FC<{hornsAt: number; quoteAt: number}> = ({hornsAt,
         <div style={{position: 'absolute', opacity: 0.35}}>
           <LoopRing size={420} draw={1} dotProgress={dot} showExit={false} />
         </div>
-        <QuoteCard zh="这个循环是故意保持无聊的。" accent={theme.core} />
+        <QuoteCard zh="Boring by design —— 内核越无聊，系统越可靠" accent={theme.core} />
       </AbsoluteFill>
     );
   }
@@ -524,7 +524,7 @@ const StampClash: React.FC<{
 }> = ({pushAt, blockAt, arrowAt, gapAt, quoteAt}) => {
   const frame = useCurrentFrame();
   if (frame >= quoteAt) {
-    return <QuoteCard zh="扩展点能加限制，不能解除限制。" accent={theme.core} />;
+    return <QuoteCard zh="限制只能叠加，不能削减 —— 单向棘轮" accent={theme.core} />;
   }
   const push = interpolate(frame - pushAt, [0, 18], [0, 1], {
     extrapolateLeft: 'clamp',
@@ -643,7 +643,7 @@ const StampClash: React.FC<{
               textAlign: 'center',
             }}
           >
-            {'教学版缺这一层 → 生产环境的安全漏洞'}
+            {'最简实现缺这一层 → 生产环境的安全漏洞'}
           </div>
         ) : null}
       </div>

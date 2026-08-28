@@ -705,7 +705,7 @@ const ThreeWay: React.FC<{askAt: number; replyAt: number; castAt: number; settle
         ) : null}
       </div>
       <Footnote delay={castAt}>
-        {'三向关机 · 拒绝可附理由——第三方的源码分析；教学版未做执行门控（诚实标注）'}
+        {'三向关机 · 拒绝可附理由——第三方的源码分析；最简示例未做执行门控（诚实标注）'}
       </Footnote>
     </AbsoluteFill>
   );

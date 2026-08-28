@@ -613,7 +613,7 @@ const LockIsClock: React.FC<{faceAt: number; crashAt: number; spinAt: number; qu
   if (frame >= quoteAt) {
     return (
       <QuoteCard
-        zh="有些事，就该趁夜深人静做——比如整理自己是谁。"
+        zh="整理记忆，是低峰期的后台作业 —— 不占干活的桌"
         accent={theme.keep}
       />
     );
