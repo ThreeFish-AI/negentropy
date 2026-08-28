@@ -228,7 +228,7 @@ const DogRises: React.FC<{
             position: 'absolute',
             left: 0,
             right: 0,
-            bottom: 120,
+            bottom: 196,
             display: 'flex',
             justifyContent: 'center',
             gap: 26,

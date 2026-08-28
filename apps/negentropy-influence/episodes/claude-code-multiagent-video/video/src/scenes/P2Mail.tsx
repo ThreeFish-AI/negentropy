@@ -227,6 +227,19 @@ const MailboxRow: React.FC<{sendAt: number; readAt: number}> = ({sendAt, readAt}
             lines={[
               {text: 'report: 接口改完', at: sendAt + 20, struckAt: readAt},
               {text: 'report: 文档写好', at: sendAt + 40, struckAt: readAt + 14},
+              // readAt 后进入「读一条划一条」循环演示（p2-08..11 讲透明性/排查时使用）：
+              // 帧驱动周期 34 帧一行，行进到划掉再落新行——消除 15 秒静止
+              ...[
+                'report: 测试补齐',
+                'assign: 复审接口',
+                'ack: 收到',
+                'report: 全绿',
+                'assign: 收尾归档',
+              ].map((s, i) => ({
+                text: s,
+                at: readAt + 30 + i * 46,
+                struckAt: readAt + 30 + i * 46 + 26,
+              })),
             ]}
             flashAt={readAt}
           />

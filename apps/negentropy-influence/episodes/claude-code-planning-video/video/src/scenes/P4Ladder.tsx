@@ -947,7 +947,7 @@ const Diminishing: React.FC<{
           style={{
             position: 'absolute',
             left: '50%',
-            bottom: 150,
+            bottom: 216,
             transform: `translateX(-50%) translateY(${interpolate(frame - ckptAt, [0, 14], [16, 0], {
               extrapolateLeft: 'clamp',
               extrapolateRight: 'clamp',
