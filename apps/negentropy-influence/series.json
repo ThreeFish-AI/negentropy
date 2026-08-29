@@ -102,7 +102,7 @@
             "accessed": "2026-08-21"
           },
           "status": "delivered",
-          "statusNote": "终渲 v4：14:11 = 25541 帧 @30fps · 47.1 MB；W8 帧级审查 892 帧 60 缺陷 49 修（SceneTag 叠印根因+越窗+穿字）；回归 52 帧全净",
+          "statusNote": "终渲 v5：14:12 = 25582 帧 · 47.1 MB；W9 文案 9 句润色 + EP1 帧审 120 帧净；七幕 FAIL 0",
           "voice": "sunny-steady + me-bright.wav"
         },
         {
@@ -124,7 +124,7 @@
             "accessed": "2026-08-22"
           },
           "status": "delivered",
-          "statusNote": "终渲 v4：13:27 = 24215 帧 @30fps · 42.7 MB；W8 修复 9 处（终端糊字/金句劈行母题级修复等）；回归 11 帧全净",
+          "statusNote": "终渲 v5：13:23 = 24103 帧 · 42.2 MB；W9 文案 42 句润色 + 视觉 5 处（镜首真空/过稀/音画错位）；七幕 FAIL 0",
           "voice": "sunny-steady + me-bright.wav"
         },
         {
@@ -146,7 +146,7 @@
             "accessed": "2026-08-22"
           },
           "status": "delivered",
-          "statusNote": "终渲 v4：13:36 = 24492 帧 @30fps · 41.7 MB；W8 修复 7 处（矩阵×回捞桌 24 秒叠印/死代码根因）；回归 7 帧全净",
+          "statusNote": "终渲 v5：13:37 = 24512 帧 · 41.9 MB；W9 文案 19 句润色 + 视觉 5 处死空气根除；七幕 FAIL 0",
           "voice": "sunny-steady + me-bright.wav"
         },
         {
@@ -168,7 +168,7 @@
             "accessed": "2026-08-22"
           },
           "status": "delivered",
-          "statusNote": "终渲 v4：13:09 = 23672 帧 @30fps · 44.7 MB；W8 修复 11 处（SceneTag 残留 10 处/天平重印等）；回归 10 帧全净",
+          "statusNote": "终渲 v5：13:05 = 23571 帧 · 44.5 MB；W9 文案 21 句润色 + 视觉 2 处（秒针切字/锚点压标）；七幕 FAIL 0",
           "voice": "sunny-steady + me-bright.wav"
         },
         {
@@ -190,7 +190,7 @@
             "accessed": "2026-08-22"
           },
           "status": "delivered",
-          "statusNote": "终渲 v4：13:26 = 24197 帧 @30fps · 47.2 MB；W8 修复 14 处（四道闸压底座/收官金句×角标压印等）；回归 14 帧全净",
+          "statusNote": "终渲 v5：13:27 = 24236 帧 · 47.8 MB；W9 文案 31 句润色 + 沙箱镜整镜 21.6s 空白根因修复；七幕 FAIL 0",
           "voice": "sunny-steady + me-bright.wav"
         }
       ]
