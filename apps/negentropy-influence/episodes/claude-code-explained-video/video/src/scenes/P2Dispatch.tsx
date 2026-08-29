@@ -6,7 +6,7 @@ import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {QuoteCard} from '../components/cards';
-import {CodeCard, DispatchTable, Footnote, LoopRing, NumberedCard, Panel, SceneHeader, SceneTag, Terminal, useRingDot} from '../components/motifs';
+import {CodeCard, DispatchTable, Footnote, LoopRing, NumberedCard, Panel, SceneHeader, Terminal, useRingDot} from '../components/motifs';
 
 /** 环留在左上角：缩小但同色同线宽 */
 const CornerRing: React.FC<{pulse?: boolean}> = ({pulse = false}) => {
@@ -27,8 +27,7 @@ const ClumsyCommands: React.FC<{typoAt: number}> = ({typoAt}) => {
   const shake = bad ? Math.sin((frame - typoAt) / 1.6) * 3 : 0;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="Tool Use" tagline="Add a Tool, Add Just One Line" />
-      <CornerRing />
+            <CornerRing />
       <div style={{display: 'flex', alignItems: 'center', gap: 44}}>
         <Panel accent={theme.mech} style={{width: 330, padding: '20px 24px'}}>
           <div style={{fontFamily: theme.sans, fontSize: 22, color: theme.dim}}>{'模型想的是'}</div>

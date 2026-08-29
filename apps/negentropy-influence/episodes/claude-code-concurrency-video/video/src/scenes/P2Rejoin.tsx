@@ -31,8 +31,7 @@ const PairLock: React.FC<{lockAt: number; swapAt: number; queueAt: number}> = ({
   const resultShift = queue * 260;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="Background Tasks" tagline="Call ⇄ Result, Always Paired" />
-      <svg width={1500} height={520} style={{overflow: 'visible'}}>
+            <svg width={1500} height={520} style={{overflow: 'visible'}}>
         {/* 调用卡（左） */}
         <g transform={`translate(${560 - gap} 180)`}>
           <rect x={-170} y={-62} width={340} height={124} rx={14} fill={theme.panel} stroke={theme.core} strokeWidth={3} />

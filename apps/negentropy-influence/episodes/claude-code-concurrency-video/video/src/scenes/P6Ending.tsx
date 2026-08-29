@@ -9,7 +9,7 @@ import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoCo
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Footnote, LoopRing, Panel, SceneHeader, SceneTag, useRingDot} from '../components/motifs';
+import {Footnote, LoopRing, Panel, SceneHeader, useRingDot} from '../components/motifs';
 
 /** 三段位置图的一段：人（或表）与环的位置关系——「谁按的开始」用位置编码 */
 const StartPanel: React.FC<{
@@ -123,8 +123,7 @@ const ThreePositions: React.FC<{l1: number; l2: number; l3: number; layerAt: num
   });
   return (
     <AbsoluteFill>
-      <SceneTag chapter="Who Starts" tagline="Who Presses Start" />
-      <div style={{position: 'absolute', left: 0, right: 0, top: 190, display: 'flex', justifyContent: 'center', gap: 36}}>
+            <div style={{position: 'absolute', left: 0, right: 0, top: 190, display: 'flex', justifyContent: 'center', gap: 36}}>
         <div style={{opacity: e1}}>
           <StartPanel mode="onRing" title="01 · 有人按并等着" sub="最笨也最常见" active={frame >= l1} />
         </div>

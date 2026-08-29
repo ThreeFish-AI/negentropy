@@ -7,7 +7,7 @@ import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {QuoteCard} from '../components/cards';
-import {Chip, Counter, Desk, Footnote, LoopRing, Panel, SceneHeader, SceneTag, Stamp, useRingDot} from '../components/motifs';
+import {Chip, Counter, Desk, Footnote, LoopRing, Panel, SceneHeader, Stamp, useRingDot} from '../components/motifs';
 
 /** 2-A 桌面色块暴涨成灾：一百多条记录填满桌面；计费计数器持续跳字。 */
 const DeskFlood: React.FC<{floodAt: number; billAt: number}> = ({floodAt, billAt}) => {
@@ -23,8 +23,7 @@ const DeskFlood: React.FC<{floodAt: number; billAt: number}> = ({floodAt, billAt
   });
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="task tool" tagline="全新 messages[] · 只回传结论" accent={theme.view} />
-      <div style={{position: 'relative'}}>
+            <div style={{position: 'relative'}}>
         <Desk width={1420} height={540}>
           <div style={{position: 'absolute', inset: 14, overflow: 'hidden', borderRadius: 12}}>
             {Array.from({length: rows}).map((_, r) => (

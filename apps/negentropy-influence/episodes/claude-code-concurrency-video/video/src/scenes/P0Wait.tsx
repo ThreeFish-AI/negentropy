@@ -6,7 +6,7 @@ import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoCo
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Footnote, Panel, SceneHeader, SceneTag, Terminal} from '../components/motifs';
+import {Footnote, Panel, SceneHeader, Terminal} from '../components/motifs';
 
 /** 计费表：表盘 + 一根按帧匀速狂转的秒针（转速恒快，与进度条形成反差） */
 const MeterDial: React.FC<{spinFrom: number}> = ({spinFrom}) => {
@@ -80,8 +80,7 @@ const StallBar: React.FC<{tickAt: number; costAt: number; zeroAt: number}> = ({t
   });
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="Background Tasks" tagline="Slow Operations Go to the Background" />
-      <div style={{display: 'flex', alignItems: 'center', gap: 70}}>
+            <div style={{display: 'flex', alignItems: 'center', gap: 70}}>
         <Terminal
           width={820}
           height={360}

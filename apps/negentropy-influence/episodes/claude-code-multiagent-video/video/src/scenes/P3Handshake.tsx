@@ -6,7 +6,7 @@ import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoCo
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Footnote, LoopRing, NamePlate, Panel, SceneHeader, SceneTag, phase, useRingDot} from '../components/motifs';
+import {Footnote, LoopRing, NamePlate, Panel, SceneHeader, phase, useRingDot} from '../components/motifs';
 
 /** 握手轨：横向轨道 + 请求卡 / 应答卡对开。双方端点 + 中央「等回话」位。 */
 const HandshakeRail: React.FC<{
@@ -259,8 +259,7 @@ const KillVsHandshake: React.FC<{crackAt: number; stepsAt: number}> = ({crackAt,
   const cur = steps ? Math.min(3, Math.floor((frame - stepsAt) / 18)) : -1;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="Team Protocols" tagline="Handshake, Not Kill" accent={theme.mech} />
-      {!steps ? (
+            {!steps ? (
         <div style={{display: 'flex', alignItems: 'center', gap: 110}}>
           {/* 掐线程的手：从上方掐住虚线线程 */}
           <div style={{position: 'relative', width: 420, height: 480}}>

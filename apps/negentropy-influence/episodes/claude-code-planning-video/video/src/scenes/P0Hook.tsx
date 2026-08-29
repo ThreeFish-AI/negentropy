@@ -5,7 +5,7 @@ import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoCo
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Chip, Desk, Footnote, LoopRing, SceneHeader, SceneTag, Stamp, Terminal} from '../components/motifs';
+import {Chip, Desk, Footnote, LoopRing, SceneHeader, Stamp, Terminal} from '../components/motifs';
 
 /** p0-07 五样装置（0-C 列队用）：顺序与口播逐字对齐。 */
 const DEVICES = [
@@ -39,8 +39,7 @@ const TaskScrollsOut: React.FC<{scrollAt: number; ghostAt: number; recallAt: num
   });
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="TodoWrite" tagline="An Agent Without a Plan Drifts Off Course" accent={theme.view} />
-      <div style={{transform: `translateY(${drift}px)`}}>
+            <div style={{transform: `translateY(${drift}px)`}}>
         <Terminal
           width={1240}
           height={360}

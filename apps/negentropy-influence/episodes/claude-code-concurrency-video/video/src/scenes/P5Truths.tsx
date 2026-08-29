@@ -49,8 +49,7 @@ const Stampede: React.FC<{fireAt: number; crashAt: number}> = ({fireAt, crashAt}
   const jit = (i: number) => Math.sin((frame / 3.1) + i * 2.4) * 7 * crash;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="Cron Scheduler" tagline="Everyone Fires at 9:00" />
-      <svg width={1600} height={560} style={{overflow: 'visible'}}>
+            <svg width={1600} height={560} style={{overflow: 'visible'}}>
         {/* 一排表：全部指 9:00（时针 270°、分针 270°） */}
         {Array.from({length: N}, (_, i) => (
           <g key={i} transform={`translate(${180 + i * 210} 160)`}>

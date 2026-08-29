@@ -8,7 +8,7 @@ import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoCo
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Footnote, LoopRing, Panel, SceneHeader, SceneTag, phase, useRingDot} from '../components/motifs';
+import {Footnote, LoopRing, Panel, SceneHeader, phase, useRingDot} from '../components/motifs';
 
 /** 七段传送带：进料 / 护栏 / 选面 / 执行 / 外接 / 补救 / 记账（一整轮） */
 const SEGMENTS = [
@@ -39,8 +39,7 @@ const ConveyorForms: React.FC<{beltAt: number}> = ({beltAt}) => {
   });
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="Comprehensive" tagline="Many Mechanisms, One Loop" accent={theme.core} />
-      {/* 四小图标（顶部一排） */}
+            {/* 四小图标（顶部一排） */}
       <div style={{display: 'flex', gap: 44, marginBottom: 90}}>
         {four.map((f, i) => {
           const e = spring({frame: frame - 6 - i * 7, fps, config: {damping: 200}});

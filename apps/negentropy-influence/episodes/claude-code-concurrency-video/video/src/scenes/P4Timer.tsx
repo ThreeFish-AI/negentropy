@@ -18,8 +18,7 @@ const PuppetVsClock: React.FC<{clockAt: number}> = ({clockAt}) => {
   const clockOn = frame >= clockAt;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="Cron Scheduler" tagline="Nobody Presses Start" />
-      <div style={{display: 'flex', gap: 120, alignItems: 'center'}}>
+            <div style={{display: 'flex', gap: 120, alignItems: 'center'}}>
         {/* 左：提线木偶 */}
         <div style={{textAlign: 'center'}}>
           <svg width={320} height={380} style={{overflow: 'visible'}}>

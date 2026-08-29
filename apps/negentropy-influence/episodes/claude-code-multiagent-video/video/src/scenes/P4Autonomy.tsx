@@ -7,7 +7,7 @@ import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoCo
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Footnote, LoopRing, NamePlate, Panel, SceneHeader, SceneTag, phase} from '../components/motifs';
+import {Footnote, LoopRing, NamePlate, Panel, SceneHeader, phase} from '../components/motifs';
 
 /** 4-A 派工之累 ×10 快闪 → 三段生命周期环描线登场 */
 const DispatchFatigue: React.FC<{cycleAt: number}> = ({cycleAt}) => {
@@ -32,8 +32,7 @@ const DispatchFatigue: React.FC<{cycleAt: number}> = ({cycleAt}) => {
   };
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="Autonomous Agents" tagline="Claim Your Own Work" accent={theme.peer} />
-      {!showCycle ? (
+            {!showCycle ? (
         <div style={{position: 'relative', width: 1240, height: 420}}>
           {/* 领队（左）：一张张派 */}
           <div style={{position: 'absolute', left: 40, top: 110, textAlign: 'center'}}>

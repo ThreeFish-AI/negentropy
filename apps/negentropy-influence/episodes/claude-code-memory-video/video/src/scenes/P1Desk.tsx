@@ -7,7 +7,7 @@ import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoCo
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Counter, Desk, Footnote, PaperCard, SceneHeader, SceneTag} from '../components/motifs';
+import {Counter, Desk, Footnote, PaperCard, SceneHeader} from '../components/motifs';
 
 /** 桌面全景 + 原则条自顶落下钉住 */
 const DeskIntro: React.FC<{ruleAt: number}> = ({ruleAt}) => {
@@ -16,8 +16,7 @@ const DeskIntro: React.FC<{ruleAt: number}> = ({ruleAt}) => {
   const drop = spring({frame: frame - ruleAt, fps, config: {damping: 13}});
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="Context Compact" tagline="Context Will Fill Up" accent={theme.mech} />
-      <div style={{position: 'relative', marginTop: 40}}>
+            <div style={{position: 'relative', marginTop: 40}}>
         <Desk w={1460} h={430} label="桌面 = 随身携带的全部对话">
           <div style={{position: 'absolute', left: 34, top: 44, display: 'flex', flexWrap: 'wrap', gap: 14, width: 1392}}>
             {Array.from({length: 26}).map((_, i) => (

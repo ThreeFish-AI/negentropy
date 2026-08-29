@@ -6,7 +6,7 @@ import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {QuoteCard} from '../components/cards';
-import {CodeCard, Counter, Footnote, LoopRing, Panel, SLOT_GAP, SLOT_W, SceneHeader, SceneTag, SlotRing, useRingDot} from '../components/motifs';
+import {CodeCard, Counter, Footnote, LoopRing, Panel, SLOT_GAP, SLOT_W, SceneHeader, SlotRing, useRingDot} from '../components/motifs';
 
 const SLOTS = [
   {name: '进入模型之前', when: '你的话交出去，还没进模型', callbacks: ['校验输入 / 补背景']},
@@ -26,8 +26,7 @@ const NeedsPierce: React.FC<{needAt: number; pierceAt: number}> = ({needAt, pier
   });
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center', flexDirection: 'row', gap: 80}}>
-      <SceneTag chapter="Hooks" tagline="Hang on the Loop, Don't Write into It" />
-      <div style={{position: 'relative'}}>
+            <div style={{position: 'relative'}}>
         <LoopRing size={400} draw={1} dotProgress={dot} />
         {pierce > 0.4 ? (
           <div

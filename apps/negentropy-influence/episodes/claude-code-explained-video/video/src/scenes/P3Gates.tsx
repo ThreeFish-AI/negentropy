@@ -6,7 +6,7 @@ import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {QuoteCard} from '../components/cards';
-import {CodeCard, Footnote, GateRouter, LoopRing, NumberedCard, Panel, SceneHeader, SceneTag, useRingDot} from '../components/motifs';
+import {CodeCard, Footnote, GateRouter, LoopRing, NumberedCard, Panel, SceneHeader, useRingDot} from '../components/motifs';
 
 /** 3-A 五张工具卡，跑命令那张在「工作目录」框外 */
 const UnguardedShell: React.FC<{frameAt: number; cmdAt: number; execAt: number}> = ({
@@ -25,8 +25,7 @@ const UnguardedShell: React.FC<{frameAt: number; cmdAt: number; execAt: number}>
   const dim = showCmd ? 0.55 : 1;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="Permission" tagline="Check Permissions Before Execution" />
-      <div style={{opacity: dim, display: 'flex', alignItems: 'center', gap: 26}}>
+            <div style={{opacity: dim, display: 'flex', alignItems: 'center', gap: 26}}>
         {/* 工作目录框：把四张 file tool 收进去 */}
         <div
           style={{

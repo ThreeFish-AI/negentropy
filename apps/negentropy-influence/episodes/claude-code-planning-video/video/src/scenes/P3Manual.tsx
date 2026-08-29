@@ -7,7 +7,7 @@ import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {QuoteCard} from '../components/cards';
-import {Counter, Desk, Footnote, Panel, SceneHeader, SceneTag, Stamp} from '../components/motifs';
+import {Counter, Desk, Footnote, Panel, SceneHeader, Stamp} from '../components/motifs';
 
 /** 3-A 左：桌角薄目录卡叠（每张一行 ~100）；右：整块厚手册拍上桌（~2000+），桌面被压得下沉。 */
 const ThickManualSlams: React.FC<{slamAt: number}> = ({slamAt}) => {
@@ -27,8 +27,7 @@ const ThickManualSlams: React.FC<{slamAt: number}> = ({slamAt}) => {
   });
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="load_skill" tagline="目录常驻，内容按需" accent={theme.view} />
-      <div style={{position: 'relative', width: 1560, height: 620, transform: `translateY(${sink + jitter}px)`}}>
+            <div style={{position: 'relative', width: 1560, height: 620, transform: `translateY(${sink + jitter}px)`}}>
         {/* 左：桌角薄目录卡叠 */}
         <div style={{position: 'absolute', left: 60, top: 100}}>
           <div style={{fontFamily: theme.sans, fontSize: 24, color: theme.dim, marginBottom: 14}}>

@@ -7,7 +7,7 @@ import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {QuoteCard} from '../components/cards';
-import {Chip, CodeCard, Desk, Footnote, Panel, SceneHeader, SceneTag, Stamp} from '../components/motifs';
+import {Chip, CodeCard, Desk, Footnote, Panel, SceneHeader, Stamp} from '../components/motifs';
 
 /** 三态行：空格 → ▸ → ✓ 各一次演示态（storyboard 1-A）。 */
 const STATE_ICONS = ['　', '▸', '✓'] as const;
@@ -26,8 +26,7 @@ const ChecklistSlidesIn: React.FC<{iconAt: number[]}> = ({iconAt}) => {
   ];
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="todo_write" tagline="三态：pending / in_progress / completed" accent={theme.view} />
-      <Desk width={1380} height={560} style={{opacity: deskIn}}>
+            <Desk width={1380} height={560} style={{opacity: deskIn}}>
         <div style={{position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', paddingLeft: 90}}>
           {/* 左侧：桌面上已有的对话流（安静地垫底） */}
           <div style={{opacity: 0.45, width: 320}}>

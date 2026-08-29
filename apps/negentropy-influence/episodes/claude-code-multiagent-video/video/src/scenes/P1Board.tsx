@@ -6,7 +6,7 @@ import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoCo
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Footnote, Panel, SceneHeader, SceneTag, phase, qBezier} from '../components/motifs';
+import {Footnote, Panel, SceneHeader, phase, qBezier} from '../components/motifs';
 
 /** 任务卡：五格（编号/标题/状态/主人/等谁）；TaskBoard 的成员单元 */
 const TaskCard: React.FC<{
@@ -113,8 +113,7 @@ const BoardRises: React.FC<{cardsAt: number; arrowsAt: number}> = ({cardsAt, arr
   ];
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="Task System" tagline="Big Goal, Small Files, On a Board" accent={theme.mech} />
-      <div style={{position: 'relative', width: 1460, height: 620}}>
+            <div style={{position: 'relative', width: 1460, height: 620}}>
         {/* 看板框架描线（pathLength 归一化，红线三） */}
         <svg width={1460} height={620} style={{position: 'absolute', left: 0, top: 0}}>
           <rect

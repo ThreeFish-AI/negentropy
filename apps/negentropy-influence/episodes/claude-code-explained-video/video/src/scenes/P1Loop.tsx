@@ -6,7 +6,7 @@ import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {QuoteCard} from '../components/cards';
-import {CodeCard, Counter, Footnote, LoopRing, Panel, SceneHeader, SceneTag, useRingDot} from '../components/motifs';
+import {CodeCard, Counter, Footnote, LoopRing, Panel, SceneHeader, useRingDot} from '../components/motifs';
 
 /** 1-A 环形循环成形 + 两个信号分支（原 p1-07 已删：「传送带转不转」的语义收在 p1-06 的定格收镜上） */
 const RingBirth: React.FC<{yesAt: number; noAt: number}> = ({yesAt, noAt}) => {
@@ -24,8 +24,7 @@ const RingBirth: React.FC<{yesAt: number; noAt: number}> = ({yesAt, noAt}) => {
   const active = frame >= yesAt && frame < noAt ? 2 : undefined;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="Agent Loop" tagline="One Loop Is All You Need" />
-      <LoopRing size={520} draw={draw} dotProgress={draw > 0.98 ? dot : undefined} activeNode={active} exitPull={pull} />
+            <LoopRing size={520} draw={draw} dotProgress={draw > 0.98 ? dot : undefined} activeNode={active} exitPull={pull} />
       <Footnote delay={yesAt}>
         {'有 tool_use → 继续　·　没有 → 退出'}
       </Footnote>

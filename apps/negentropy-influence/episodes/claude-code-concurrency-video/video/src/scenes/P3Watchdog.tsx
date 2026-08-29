@@ -122,8 +122,7 @@ const DogWatching: React.FC<{stopAt: number}> = ({stopAt}) => {
   const frame = useCurrentFrame();
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="Background Tasks" tagline="A Dog Watches Every Task" />
-      <div style={{display: 'flex', alignItems: 'center', gap: 50}}>
+            <div style={{display: 'flex', alignItems: 'center', gap: 50}}>
         <div style={{position: 'relative'}}>
           <OutputLine stopAt={stopAt} focusAt={9999} />
         </div>

@@ -6,7 +6,7 @@ import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoCo
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Desk, Footnote, LoopRing, Panel, SceneHeader, SceneTag, Stamp, useRingDot} from '../components/motifs';
+import {Desk, Footnote, LoopRing, Panel, SceneHeader, Stamp, useRingDot} from '../components/motifs';
 
 /** 五样装置（编号即桌面位置——反枚举：不给五色）。
  *  装置缩略图统一 panel 底 + 编号；职责字以印章形式落下。 */
@@ -69,8 +69,7 @@ const FiveDevices: React.FC<{devAt: number[]; stampAt: number[]}> = ({devAt, sta
   const {fps} = useVideoConfig();
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="五章回顾" tagline="视野管理：别忘 · 别堵 · 别贪 · 别写死 · 别断" accent={theme.view} />
-      <div style={{display: 'flex', gap: 24, alignItems: 'flex-end'}}>
+            <div style={{display: 'flex', gap: 24, alignItems: 'flex-end'}}>
         {DEVICES.map((d, i) => {
           const e = spring({frame: frame - devAt[i], fps, config: {damping: 200}});
           const on = frame >= devAt[i];

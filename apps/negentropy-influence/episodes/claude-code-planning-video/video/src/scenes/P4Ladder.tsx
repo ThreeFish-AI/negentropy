@@ -8,7 +8,7 @@ import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {QuoteCard} from '../components/cards';
-import {Chip, Counter, Desk, Footnote, Panel, SceneHeader, SceneTag, Stamp} from '../components/motifs';
+import {Chip, Counter, Desk, Footnote, Panel, SceneHeader, Stamp} from '../components/motifs';
 
 /** 梯子骨架（mech）：三级木梯挂在桌右缘，自上垂下挂稳（rope 微弹）。 */
 const Ladder: React.FC<{drop: number; labels?: [string, string, string]}> = ({drop, labels}) => {
@@ -53,8 +53,7 @@ const LadderDrops: React.FC<{dropAt: number}> = ({dropAt}) => {
   const drop = spring({frame: frame - dropAt, fps: 30, config: {damping: 11}});
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="Error Recovery" tagline="错误不是终点，是重试的起点" accent={theme.deny} />
-      <div style={{position: 'relative', width: 1300, height: 620}}>
+            <div style={{position: 'relative', width: 1300, height: 620}}>
         {/* 桌子 */}
         <div style={{position: 'absolute', left: 60, top: 200}}>
           <Desk width={760} height={380}>

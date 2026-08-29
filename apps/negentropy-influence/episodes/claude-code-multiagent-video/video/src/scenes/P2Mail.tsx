@@ -6,7 +6,7 @@ import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoCo
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Footnote, LoopRing, NamePlate, NumberedCard, Panel, SceneHeader, SceneTag, phase, qBezier, useRingDot} from '../components/motifs';
+import {Footnote, LoopRing, NamePlate, NumberedCard, Panel, SceneHeader, phase, qBezier, useRingDot} from '../components/motifs';
 
 /** 0-A 临时工 vs 队友：左剪影淡出、右 peer 小环落位打铭牌 */
 const TempVsTeammate: React.FC<{fadeAt: number; seatAt: number}> = ({fadeAt, seatAt}) => {
@@ -16,8 +16,7 @@ const TempVsTeammate: React.FC<{fadeAt: number; seatAt: number}> = ({fadeAt, sea
   const seat = phase(frame, seatAt, 16);
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="Agent Teams" tagline="Teammates Are Not Temps" accent={theme.peer} />
-      <div style={{display: 'flex', alignItems: 'center', gap: 120}}>
+            <div style={{display: 'flex', alignItems: 'center', gap: 120}}>
         {/* 左：临时工剪影（干完即走）——淡出 */}
         <div style={{width: 380, textAlign: 'center', opacity: 1 - fade}}>
           <svg width={300} height={330} style={{overflow: 'visible'}}>

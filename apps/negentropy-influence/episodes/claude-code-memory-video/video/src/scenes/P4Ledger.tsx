@@ -9,7 +9,7 @@ import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoCo
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Desk, Footnote, Ledger, PaperCard, SceneHeader, SceneTag} from '../components/motifs';
+import {Desk, Footnote, Ledger, PaperCard, SceneHeader} from '../components/motifs';
 
 /** 4-A 全景回望：已讲机制小图标环绕桌面；桌面整体轻微褪色一次 */
 const AllOnDesk: React.FC<{fadeAt: number}> = ({fadeAt}) => {
@@ -482,8 +482,7 @@ const LedgerArrives: React.FC<{bookAt: number; fmAt: number[]; indexAt: number; 
   const dup = spring({frame: frame - dupAt, fps, config: {damping: 13}});
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="Memory" tagline="A Layer That Never Compacts" accent={theme.keep} />
-      <div style={{position: 'relative', display: 'flex', gap: 90, alignItems: 'center', marginTop: 30}}>
+            <div style={{position: 'relative', display: 'flex', gap: 90, alignItems: 'center', marginTop: 30}}>
         {/* 登记簿：keep 实体 */}
         <div
           style={{

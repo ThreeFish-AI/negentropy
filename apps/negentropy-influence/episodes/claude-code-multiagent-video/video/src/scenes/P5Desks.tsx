@@ -6,7 +6,7 @@ import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoCo
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Footnote, LoopRing, NamePlate, Panel, SceneHeader, SceneTag, phase} from '../components/motifs';
+import {Footnote, LoopRing, NamePlate, Panel, SceneHeader, phase} from '../components/motifs';
 
 /** 5-A 阿珍阿强双写冲突：同名 config.py 互覆碎裂 + 回滚死结 */
 const Collision: React.FC<{writeAt: number; crushAt: number; knotAt: number}> = ({
@@ -25,8 +25,7 @@ const Collision: React.FC<{writeAt: number; crushAt: number; knotAt: number}> = 
   const knot = phase(frame, knotAt, 18);
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="Worktree Isolation" tagline="One Desk Each" accent={theme.mech} />
-      <div style={{position: 'relative', width: 1520, height: 700}}>
+            <div style={{position: 'relative', width: 1520, height: 700}}>
         {/* 同一目录面板（中上） */}
         <div
           style={{

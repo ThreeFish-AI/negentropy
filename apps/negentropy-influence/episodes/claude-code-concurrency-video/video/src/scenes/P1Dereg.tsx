@@ -62,8 +62,7 @@ const ToggleAndFallback: React.FC<{toggleAt: number; kwAt: number; mergeAt: numb
   const dstY = 430;
   return (
     <AbsoluteFill>
-      <SceneTag chapter="Background Tasks" tagline="Press Start, Then Walk Away" />
-      <svg width={1920} height={1080} style={{position: 'absolute', inset: 0}}>
+            <svg width={1920} height={1080} style={{position: 'absolute', inset: 0}}>
         <g transform={`translate(${TRACK_CX - 260} ${TRACK_CY - 260})`}>
           <LoopRing size={520} draw={1} dotProgress={dot} activeNode={2} />
         </g>
