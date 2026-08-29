@@ -6,7 +6,7 @@ import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoCo
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Footnote, LoopRing, NumberedCard, Panel, SceneHeader, SceneTag, useRingDot} from '../components/motifs';
+import {Footnote, LoopRing, NumberedCard, Panel, SceneHeader, useRingDot} from '../components/motifs';
 
 /** 2-A 配对语义：一次调用卡 ↔ 一条结果卡的锁扣「咔」；真结果换装成完成通知入队 */
 const PairLock: React.FC<{lockAt: number; swapAt: number; queueAt: number}> = ({lockAt, swapAt, queueAt}) => {
@@ -96,7 +96,6 @@ const TwoTierQueue: React.FC<{dropAt: number; userAt: number}> = ({dropAt, userA
   const user = spring({frame: frame - userAt, fps, config: {damping: 200}});
   return (
     <AbsoluteFill>
-      <SceneTag chapter="Background Tasks" tagline="Next Round First, Later Second" />
       <svg width={1920} height={1080} style={{position: 'absolute', inset: 0}}>
         <g transform="translate(280 250)">
           <LoopRing size={380} draw={1} dotProgress={dot} showLabels={false} />
@@ -324,8 +323,11 @@ const ClaimCheckScale: React.FC<{matchAt: number; scaleAt: number; stampAt: numb
             {'对上号 —— 该补哪句话，它知道'}
           </text>
         ) : null}
-        {/* 天平（下半） */}
-        <g transform={`translate(960 830)`} opacity={frame >= scaleAt ? 1 : 0.25}>
+        {/* 天平（下半）。cy=830 时其脚注（内部 y=64 → 绝对 894）正落在
+            Footnote 的行高区间（bottom:168 → 约 883–912）上，两行文字整行
+            重印成一团糊字——2026-08 抽帧实拍坐实。整组上提到 cy=770：
+            脚注移到绝对 834，与 Footnote 顶缘留 49px 净空。 */}
+        <g transform={`translate(960 770)`} opacity={frame >= scaleAt ? 1 : 0.25}>
           <line x1={-30} y1={-140} x2={-30} y2={20} stroke={theme.panelBorder} strokeWidth={6} />
           <g transform={`rotate(${tilt})`}>
             <line x1={-220} y1={-140} x2={220} y2={-140} stroke={theme.dim} strokeWidth={6} strokeLinecap="round" />
@@ -355,12 +357,16 @@ const ClaimCheckScale: React.FC<{matchAt: number; scaleAt: number; stampAt: numb
       <div style={{position: 'absolute', left: 200, top: 180}}>
         <LoopRing size={210} draw={1} dotProgress={dot} showLabels={false} />
       </div>
+      {/* 盖章：bottom:300 让章体（y 约 695–780）横穿天平右盘与横梁，
+          章框把「占位再补通知」盘压掉一角——2026-08 抽帧实拍坐实。
+          改锚到右上空带 top:250（本 beat 全程零 ink 实测），既避开天平，
+          也避开左上 SceneHeader 与左侧小环。 */}
       {stampOn ? (
         <div
           style={{
             position: 'absolute',
             right: 210,
-            bottom: 300,
+            top: 250,
             fontFamily: theme.serif,
             fontSize: 44,
             fontWeight: 700,

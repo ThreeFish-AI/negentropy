@@ -255,8 +255,13 @@ const MiniStart: React.FC<{mode: 'onRing' | 'offRing' | 'noOne'; active: boolean
   const cy = 108;
   const r = 62;
   const stroke = active ? theme.core : theme.panelBorder;
+  // ⚠️ overflow:'visible' + 定死 192×216 会让 offRing 的人形（x 最远 220）画到
+  // svg 框外，直接压在右侧「第一步」标题上——2026-08 抽帧实拍坐实。
+  // 改用 viewBox 把三种 mode 的真实包围盒（x -8..228 / y -10..190）全收进来，
+  // 并去掉 overflow:visible：几何坐标一律不动，只是渲染尺寸缩到 142×120，
+  // 图元再也不可能溢出到文字区。
   return (
-    <svg width={192} height={216} style={{overflow: 'visible'}}>
+    <svg width={142} height={120} viewBox="-8 -10 236 200">
       <circle cx={cx} cy={cy} r={r} fill="none" stroke={stroke} strokeWidth={5} />
       <circle cx={cx + r * Math.cos(rad)} cy={cy + r * Math.sin(rad)} r={8} fill={stroke} />
       {mode === 'onRing' ? (
@@ -407,18 +412,23 @@ const BlindnessAndPlan: React.FC<{blindAt: number; step1At: number; step2At: num
           );
         })}
       </div>
-      {/* 两步预告（p0-11/12）：三格开始中的后两格浮出（later 描边统一） */}
+      {/* 两步预告（p0-11/12）：三格开始中的后两格浮出（later 描边统一）。
+          bottom:130 时卡体（顶 ~700、底 ~950）整个盖住 Footnote（bottom:168
+          → 约 883–912），角标一行字从两张卡中间横穿而过，且卡底逼到字幕带
+          （bottom:54 起）——2026-08 抽帧实拍坐实。抬到 bottom:232：卡底
+          848，与 Footnote 顶缘留 35px 净空；卡宽 460→560 让标题一行放得下，
+          不再折行去撞左侧环图。 */}
       <div
         style={{
           position: 'absolute',
-          bottom: 130,
+          bottom: 232,
           display: 'flex',
           gap: 30,
           opacity: stepT,
           transform: `translateY(${(1 - stepT) * 24}px)`,
         }}
       >
-        <Panel accent={theme.later} style={{width: 460, padding: '14px 18px 10px'}}>
+        <Panel accent={theme.later} style={{width: 620, padding: '14px 18px 10px'}}>
           <div style={{display: 'flex', alignItems: 'center', gap: 18}}>
             <MiniStart mode="offRing" active={frame >= step1At} />
             <div>
@@ -431,7 +441,7 @@ const BlindnessAndPlan: React.FC<{blindAt: number; step1At: number; step2At: num
         </Panel>
         <Panel
           accent={frame >= step2At ? theme.later : theme.panelBorder}
-          style={{width: 460, padding: '14px 18px 10px', opacity: frame >= step2At ? 1 : 0.35}}
+          style={{width: 620, padding: '14px 18px 10px', opacity: frame >= step2At ? 1 : 0.35}}
         >
           <div style={{display: 'flex', alignItems: 'center', gap: 18}}>
             <MiniStart mode="noOne" active={frame >= step2At} />

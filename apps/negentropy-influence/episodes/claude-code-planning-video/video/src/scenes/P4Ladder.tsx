@@ -35,7 +35,11 @@ const Ladder: React.FC<{drop: number; labels?: [string, string, string]}> = ({dr
             <g key={y} opacity={p}>
               <line x1={120} y1={y} x2={120 + 90 * p} y2={y} stroke={theme.mech} strokeWidth={7} strokeLinecap="round" />
               {labelsOn[i] ? (
-                <text x={235} y={y + 8} fontFamily={theme.sans} fontSize={21} fontWeight={600} fill={theme.mech}>
+                // 标签压在梯级正上方、与左梯柱左对齐。此前贴在梯右侧（x=235）时，
+                // 「一级 · 话没说完」这类 7 字标签会横穿到各镜内容面板的左缘
+                // （TierOne/Two/Three 的 left:380），被面板不透明底色整段裁掉——
+                // 2026-08 帧检在 f16263 / f17221 / f18449 三处实拍坐实。
+                <text x={120} y={y - 16} fontFamily={theme.sans} fontSize={21} fontWeight={600} fill={theme.mech}>
                   {labelsOn[i]}
                 </text>
               ) : null}
@@ -441,7 +445,10 @@ const TierThree: React.FC<{warnAt: number; waitAt: number; flipAt: number; jitte
                   style={{
                     position: 'absolute',
                     left: maxW - 120,
-                    top: -18,
+                    // 上一行右端是同色的 36px「32s」读数（baseline 对齐在 y≈-24），
+                    // top:-18 会让这枚角标与读数叠成「封顶 32s / 32s」一团
+                    // （2026-08 帧检 f18449 实拍）。改挂到条身下方。
+                    top: 70,
                     fontFamily: theme.mono,
                     fontSize: 20,
                     color: theme.deny,
@@ -672,7 +679,10 @@ const NoRetrySplit: React.FC<{
             transform: `translateY(${(1 - cert) * 18}px)`,
           }}
         >
-          <Panel style={{width: 300, padding: '14px 20px', position: 'relative'}}>
+          <Panel
+            accent={certX ? theme.deny : undefined}
+            style={{width: 300, padding: '14px 20px', position: 'relative'}}
+          >
             <div style={{display: 'flex', alignItems: 'center', gap: 14}}>
               <svg width={44} height={44}>
                 <rect x={4} y={8} width={36} height={28} rx={3} fill="none" stroke={theme.dim} strokeWidth={3} />
@@ -685,26 +695,46 @@ const NoRetrySplit: React.FC<{
                 <div style={{fontFamily: theme.mono, fontSize: 18, color: theme.dim, marginTop: 3}}>{'TLS · 第一帧即报错'}</div>
               </div>
             </div>
-            {/* 红叉：滑入即打 */}
+            {/* 否决标记：滑入即打。
+                ⚠️ 此前是一枚 120px 红叉挂在 left:-34 / top:-20 —— 叉心正落在卡内的证书
+                图标上，两条粗笔画（strokeWidth 9）把图标涂成一团，叉的左上角还顶进上方
+                「不重试」牌子（2026-08 帧检 f19098 实拍）。改画整卡叉之后仍横穿
+                「证书对不上 / TLS · 第一帧即报错」两行字（重渲 f19098 复检坐实）。
+                最终改为**卡右侧留白处的独立否决角标**：不覆盖任何文字，
+                「这张卡被否掉」由 deny 色边框 + ✕ 角标共同表达。 */}
             {certX ? (
-              <svg width={120} height={120} style={{position: 'absolute', left: -34, top: -20}}>
-                <g
-                  stroke={theme.deny}
-                  strokeWidth={9}
-                  strokeLinecap="round"
-                  opacity={interpolate(frame - certAt - 8, [0, 6], [0, 1], {
+              <div
+                style={{
+                  position: 'absolute',
+                  right: -18,
+                  top: -18,
+                  width: 44,
+                  height: 44,
+                  borderRadius: 999,
+                  border: `3px solid ${theme.deny}`,
+                  background: theme.panel,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontFamily: theme.sans,
+                  fontSize: 26,
+                  fontWeight: 700,
+                  color: theme.deny,
+                  opacity: interpolate(frame - certAt - 8, [0, 6], [0, 1], {
                     extrapolateLeft: 'clamp',
                     extrapolateRight: 'clamp',
-                  })}
-                >
-                  <line x1={16} y1={16} x2={104} y2={104} />
-                  <line x1={104} y1={16} x2={16} y2={104} />
-                </g>
-              </svg>
+                  }),
+                }}
+              >
+                {'✕'}
+              </div>
             ) : null}
           </Panel>
+          {/* 压字宽度须收在证书卡宽（300）内：此前这行单行不折、实际铺到 x≈700 以外，
+              被中央「[bash] pytest -k perf」卡（left:700）挡掉尾字，画面读成
+              「退避一百遍也—」（2026-08 帧检 f19098 实拍）。限宽 + 允许折行。 */}
           {certX ? (
-            <div style={{fontFamily: theme.sans, fontSize: 21, color: theme.deny, marginTop: 8}}>
+            <div style={{width: 300, fontFamily: theme.sans, fontSize: 21, lineHeight: 1.4, color: theme.deny, marginTop: 8}}>
               {'那是要你去修的 —— 退避一百遍也一样'}
             </div>
           ) : null}
@@ -810,8 +840,13 @@ const NoRetrySplit: React.FC<{
             </div>
           ) : null}
         </div>
-        {/* 右下：计数器 1→2（分裂时滚动） */}
-        <div style={{position: 'absolute', right: 90, top: 380, textAlign: 'center'}}>
+        {/* 右上：计数器 1→2（分裂时滚动）。
+            ⚠️ 此前挂在 right:90 / top:380，与下方刻度盘组（right:110 / bottom:190
+            → 实占 y 560..710、x 1260..1630）在 y 560..640 这段同时在场：
+            58px 的红色「2」正压在刻度盘右侧的「默认最多重试 10 次」上
+            （2026-08 帧检 f19570 实拍）。移到容器右上的空带（top:20 → y 200..290），
+            与下方输出面板（y 330 起）仍留 40px。 */}
+        <div style={{position: 'absolute', right: 90, top: 20, textAlign: 'center'}}>
           <div style={{fontFamily: theme.mono, fontSize: 20, color: theme.dim}}>{'动作计数'}</div>
           <div style={{fontFamily: theme.mono, fontSize: 58, fontWeight: 700, color: splitCount === 1 ? theme.text : theme.deny}}>
             <Counter from={1} to={2} start={splitAt} frames={16} />
@@ -937,8 +972,15 @@ const Diminishing: React.FC<{
             </g>
           ) : null}
         </svg>
-        {/* 「停」章落下 */}
-        <Stamp text="停" color={theme.deny} at={stopAt} size={150} rotate={-14} style={{position: 'absolute', right: 130, top: 130}} />
+        {/* 「停」章落下。
+            ⚠️ 阈值标线的压字「增量 < 500 token」是右对齐挂在 y = H-60-0.5*(H-140)-12
+            ≈ 240 这条线上的；章此前落在 right:130 / top:130（章心 y≈205、半径 75），
+            正好把那行字连同虚线一起罩进章圈，读成「增量 停 500 token」
+            （2026-08 帧检 f20097 实拍）。移到 top:300 后又骑上了 x 轴（y=H-60=400）
+            与「续写次数 →」轴标（重渲复检坐实）。
+            最终落点 right:150 / top:270：章心 y≈345，稳居标线（240）与 x 轴（400）
+            之间的空带，上下各留 ~30px 余量。 */}
+        <Stamp text="停" color={theme.deny} at={stopAt} size={150} rotate={-14} style={{position: 'absolute', right: 150, top: 270}} />
       </div>
       {/* p4-21a/b 官方检查点回退：改动可回退，但只含文件改动——命令与外部状态不在其中 */}
       {frame >= ckptAt ? (

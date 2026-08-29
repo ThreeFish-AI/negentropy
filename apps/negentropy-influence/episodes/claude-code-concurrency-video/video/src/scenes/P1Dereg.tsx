@@ -6,7 +6,7 @@ import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame} from 'remo
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Footnote, LoopRing, Panel, SceneHeader, SceneTag, useRingDot} from '../components/motifs';
+import {Footnote, LoopRing, Panel, SceneHeader, useRingDot} from '../components/motifs';
 
 /** 环外旁轨的几何常数：与 LoopRing 同心、半径外扩（本幕内推导基线，P2 自带几何） */
 const TRACK_R = 340;
@@ -184,7 +184,6 @@ const OffLoopSideTrack: React.FC<{slideAt: number; stubAt: number; nextAt: numbe
   });
   return (
     <AbsoluteFill>
-      <SceneTag chapter="Background Tasks" tagline="The Ring Never Stops" />
       <svg width={1920} height={1080} style={{position: 'absolute', inset: 0}}>
         {/* 旁轨：later 虚线弧（120°→310°），环外一层 */}
         <path
@@ -203,8 +202,12 @@ const OffLoopSideTrack: React.FC<{slideAt: number; stubAt: number; nextAt: numbe
         {/* 占位条：贴回环口 */}
         {stubE > 0 ? <TicketStub cx={stubP.x} cy={stubP.y} o={stubE} scale={0.85 + 0.15 * stubE} /> : null}
         {/* 环速不变：旁轨事件全程，环上光点匀速（由 useRingDot 保证） */}
+        {/* 「循环接着转」标签：原锚在 (TRACK_CX-90, TRACK_CY+330) = (530, 850)，
+            正是命令块沿旁轨缓行必经的落点——block 漂到此处后两者整行压字
+            （2026-08 抽帧实拍坐实）。旁轨弧只走到 310°，环右外侧 (1010, 690)
+            全 beat 无 ink，把标签移到那里彻底避开运动轨迹。 */}
         {nextO > 0 ? (
-          <text x={TRACK_CX - 90} y={TRACK_CY + 330} fontFamily={theme.sans} fontSize={24} fill={theme.core} opacity={nextO}>
+          <text x={1010} y={690} fontFamily={theme.sans} fontSize={24} fill={theme.core} opacity={nextO}>
             {'循环接着转，去干下一件'}
           </text>
         ) : null}
@@ -252,8 +255,12 @@ const SingleThreadTruth: React.FC<{mergeAt: number; labelAt: number}> = ({mergeA
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
+  // paddingBottom 把居中的轨道图整体上提 90px：合并后的下排块落在
+  // yMid+34（绝对 798），与下方金句（bottom:236 → 顶缘 798）恰好贴死，
+  // 「后台块」与「后台 = 不等它」两行字压在一起——2026-08 抽帧实拍坐实。
+  // 上方本就是整片空带（顶部 1/3 闲置），上提不挤压任何元素。
   return (
-    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
+    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center', paddingBottom: 180}}>
       <svg width={1720} height={560} style={{overflow: 'visible'}}>
         {/* 轨道线：两条 → 一条 */}
         <line x1={140} y1={yA} x2={1660} y2={yA} stroke={theme.core} strokeWidth={5} opacity={0.85} />

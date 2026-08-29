@@ -470,7 +470,9 @@ const ContextRot: React.FC<{curveAt: number; graphAt: number; thinAt: number; st
             <text x={54} y={404} fill={theme.dim} fontSize={19} fontFamily={theme.mono}>
               {'低'}
             </text>
-            <text x={70} y={434} fill={theme.dim} fontSize={19} fontFamily={theme.mono}>
+            {/* 轴题另起一行（y=462）——旧 y=434 与首个刻度 10³ 同行同 x 起点，
+                实测帧 1503「窗口字数 →」压住「10³」；刻度行 y=430，轴题下沉 32px 分行 */}
+            <text x={70} y={462} fill={theme.dim} fontSize={19} fontFamily={theme.mono}>
               {'窗口字数 →'}
             </text>
             {/* X 轴 log 刻度 */}
@@ -623,13 +625,16 @@ const TwoAnswers: React.FC<{leftAt: number; rightAt: number; lineAt: number}> = 
             {'把丢管起来——分级、有序、有保底'}
           </div>
         </div>
-        {/* 右：登记簿（不丢的那层）——keep 描边本子 */}
+        {/* 右：登记簿（不丢的那层）——keep 描边本子。
+            宽 700→780：700 减去本子 svg 240 与 gap 34 只剩 426，装不下 15 字 ×30px
+            的副标题（450），实测帧 2449 末字「来」被挤到第二行成孤字；780 留 506 可单行。
+            右块按 scale(0.66) 从右缘起算 → 左缘 1660-780×0.66=1145，仍在中央分隔线 828 右侧。 */}
         <div
           style={{
             position: 'absolute',
             right: 0,
             top: 40,
-            width: 700,
+            width: 780,
             opacity: eR,
             transform: `scale(${F}) translateY(${(1 - eR) * 40}px)`,
             transformOrigin: 'right center',
@@ -667,7 +672,16 @@ const TwoAnswers: React.FC<{leftAt: number; rightAt: number; lineAt: number}> = 
             >
               {'第二层：保证不丢'}
             </div>
-            <div style={{fontFamily: theme.sans, fontSize: 30, color: theme.dim, marginTop: 10, lineHeight: 1.5}}>
+            <div
+              style={{
+                fontFamily: theme.sans,
+                fontSize: 30,
+                color: theme.dim,
+                marginTop: 10,
+                lineHeight: 1.5,
+                whiteSpace: 'nowrap',
+              }}
+            >
               {'另立账本，重要的写进去就不出来'}
             </div>
           </div>

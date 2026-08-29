@@ -285,7 +285,14 @@ const DraftThenFair: React.FC<{draftAt: number; fairAt: number; tearAt: number}>
   );
 };
 
-/** 3-C ★回捞钩：压缩后柜门开，五张文件卡按重要性被钩回桌面 */
+/** 3-C ★回捞钩：压缩后柜门开，五张文件卡按重要性被钩回桌面。
+ *
+ *  ⚠️ 版位纪律（2026-08 逐帧品控）：本组件与上方 SurvivalMatrix 同屏共存，
+ *  必须**整体压在矩阵下方的独立横带**里。旧版把整台戏挂在矩阵容器内并居中，
+ *  桌面（900×430）正落在矩阵四行上：实测帧 12285–12987（约 24 秒）「已用技能正文」
+ *  被卡片截成「用技能正文」、注记「重注入 · 每份封顶五千 · 最旧先丢」被拦腰打断。
+ *  现在：桌与柜同高 345、同 top 278（页面 y 508–853），矩阵 dock 后占 y 150–496，
+ *  柜标注单占 y 474–496 那一行——三条带互不相交。 */
 const SalvageHook: React.FC<{openAt: number; hookAt: number; honestAt: number}> = ({
   openAt,
   hookAt,
@@ -297,11 +304,31 @@ const SalvageHook: React.FC<{openAt: number; hookAt: number; honestAt: number}> 
     extrapolateRight: 'clamp',
   });
   const grabbed = hookAt + 10;
+  /** 舞台带顶（容器内坐标）：容器 1640×620 居中 → 页面 top 230，故 278 ≙ 页面 508。
+   *  上邻矩阵 dock 后底边 496 → 留 12px；下邻脚注带 878 → 桌底 853 留 25px。 */
+  const STAGE_TOP = 278;
+  /** 桌与柜统一高度：旧柜高 560 会顶到脚注带（页面 y 878） */
+  const STAGE_H = 345;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <div style={{position: 'relative', width: 1640, height: 620}}>
-        {/* 桌面（左）：捞回的卡按重要性排队落位 */}
-        <Desk w={900} h={430} style={{position: 'absolute', left: 0, top: 100}} label="桌面（压缩后）">
+        {/* 桌面（左）：捞回的卡按重要性排队落位。
+            不用 Desk 的 label（它挂在框外 top:-36，即页面 y 472，正插进矩阵第四行
+            「已用技能正文」的 435–496 带）——改成框内左上角常规标注。 */}
+        <Desk w={900} h={STAGE_H} style={{position: 'absolute', left: 0, top: STAGE_TOP}}>
+          <div
+            style={{
+              position: 'absolute',
+              left: 20,
+              top: 12,
+              fontFamily: theme.mono,
+              fontSize: 22,
+              color: theme.dim,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {'桌面（压缩后）'}
+          </div>
           {[0, 1, 2, 3, 4].map((i) => {
             // 钩爪依次捞回：第 i 张在 hookAt + i*10 后从柜（x0，Desk 外右侧）飞到桌面
             const t = interpolate(frame - (hookAt + i * 10), [0, 22], [0, 1], {
@@ -309,11 +336,13 @@ const SalvageHook: React.FC<{openAt: number; hookAt: number; honestAt: number}> 
               extrapolateRight: 'clamp',
             });
             const x0 = 820; // 柜内起点（Desk 右缘外的文件柜方向）
-            const y0 = 120 + i * 66;
-            const x1 = 70 + i * 158; // 桌面落位
-            const y1 = 200 + (i % 2) * 90;
+            const y0 = 20 + i * 60;
+            const x1 = 70 + i * 158; // 桌面落位（w150 → 末张右缘 852 < 900）
+            // 落位两排 118/168：+卡高 80 → 最低 248，与底部标注行顶（345-18-28=299）
+            // 留 51px。旧值 150/210 让偶数张压到 290，正骑在标注上（实测帧 12656）。
+            const y1 = 118 + (i % 2) * 50;
             const x = x0 + (x1 - x0) * t;
-            const y = y0 + (y1 - y0) * t - Math.sin(t * Math.PI) * 90;
+            const y = y0 + (y1 - y0) * t - Math.sin(t * Math.PI) * 70;
             return (
               <div
                 key={i}
@@ -352,17 +381,36 @@ const SalvageHook: React.FC<{openAt: number; hookAt: number; honestAt: number}> 
             {'≤ 5 个文件 · 单份限额 · 总量预算 · 按重要性排队'}
           </div>
         </Desk>
-        {/* 文件柜（右）：门开，钩爪伸入 */}
+        {/* 文件柜（右）：门开，钩爪伸入。与桌同带同高，避免顶穿矩阵/脚注。
+            label 同样不走组件内建的 top:-36（会插进矩阵行带），改为柜上方 26px 独立行——
+            该处 x≥1130 在矩阵右缘（注记末字 ~1060）之外，横向不撞。 */}
         <Cabinet
           w={480}
-          h={560}
+          h={STAGE_H}
           drawers={5}
           openIndex={open > 0.3 ? 2 : -1}
-          label="文件柜"
-          style={{position: 'absolute', right: 30, top: 30}}
+          style={{position: 'absolute', right: 30, top: STAGE_TOP}}
         />
-        {/* 钩爪：从桌面伸向柜内的弧线钩 */}
-        <svg width={900} height={620} style={{position: 'absolute', left: 380, top: 0, pointerEvents: 'none'}}>
+        <div
+          style={{
+            position: 'absolute',
+            right: 30,
+            top: STAGE_TOP - 34,
+            width: 480,
+            fontFamily: theme.mono,
+            fontSize: 22,
+            color: theme.dim,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {'文件柜'}
+        </div>
+        {/* 钩爪：从桌面伸向柜内的弧线钩（svg 随舞台带下移，端点按新带高重算） */}
+        <svg
+          width={900}
+          height={STAGE_H}
+          style={{position: 'absolute', left: 380, top: STAGE_TOP, pointerEvents: 'none'}}
+        >
           {open > 0.3 ? (
             <g opacity={open}>
               {/* 钩臂：随第 i 张卡回收摆动（最近一次） */}
@@ -373,10 +421,11 @@ const SalvageHook: React.FC<{openAt: number; hookAt: number; honestAt: number}> 
                 });
                 if (t <= 0 || t >= 1) return null;
                 const bend = Math.sin(t * Math.PI) * 70;
+                const yEnd = 40 + i * 62;
                 return (
                   <path
                     key={i}
-                    d={`M 60 300 C ${260 - bend} ${240 - bend}, ${560 - bend} ${180 + i * 70}, ${840} ${180 + i * 70}`}
+                    d={`M 60 210 C ${260 - bend} ${170 - bend}, ${560 - bend} ${yEnd}, ${840} ${yEnd}`}
                     stroke={theme.mech}
                     strokeWidth={4}
                     fill="none"
@@ -387,26 +436,16 @@ const SalvageHook: React.FC<{openAt: number; hookAt: number; honestAt: number}> 
             </g>
           ) : null}
         </svg>
-        {/* 诚实角标：末句浮现（三级证据归属） */}
-        <div
-          style={{
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            bottom: -64,
-            textAlign: 'center',
-            fontFamily: theme.sans,
-            fontSize: 24,
-            color: theme.keep,
-            opacity: interpolate(frame - honestAt, [0, 14], [0, 1], {
-              extrapolateLeft: 'clamp',
-              extrapolateRight: 'clamp',
-            }),
-          }}
-        >
-          {'本段为第三方的源码分析（真实实现的行为，超出最简示例范围）'}
-        </div>
       </div>
+      {/* 诚实角标：末句浮现（三级证据归属）。
+          必须走 Footnote 的 slot=1，不能再用容器内 bottom:-64——那个写法只在旧结构下
+          «凑巧» 成立：当时 SalvageHook 嵌在矩阵的 1300×560 相对框内，AbsoluteFill 被
+          父框裁到那个盒子，角标落在半空。现在它挂到幕级、AbsoluteFill 覆盖整幅画布，
+          bottom:-64 会正压上同屏 SurvivalMatrix 的 Footnote（bottom 168）。slot=1
+          （bottom 206）是本仓为「同屏两条脚注」预留的错行位。 */}
+      <Footnote delay={honestAt} slot={1}>
+        {'本段为第三方的源码分析（真实实现的行为，超出最简示例范围）'}
+      </Footnote>
     </AbsoluteFill>
   );
 };
@@ -426,9 +465,25 @@ const SurvivalMatrix: React.FC<{matrixAt: number; openAt: number; hookAt: number
     {t: '带路径的规则', fate: '丢到再读到匹配文件', alive: false},
     {t: '已用技能正文', fate: '重注入 · 每份封顶五千 · 最旧先丢', alive: true},
   ];
+  // 回捞段登场后矩阵上移让位：矩阵单独在场时居中；SalvageHook 一进来就上推到
+  // 顶带（页面 y 150–421），把 y 493 以下整条横带让给桌与柜——两者不再共占同一
+  // 版位（旧版重叠 24 秒，见 SalvageHook 注释）。用 frame 判定，帧驱动确定性。
+  const docked = interpolate(frame - openAt, [0, 14], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <div style={{position: 'relative', width: 1300, height: 560}}>
+      <div
+        style={{
+          position: 'relative',
+          width: 1300,
+          height: 560,
+          // 矩阵实高 ≈ 271（标题 35 + 20 + 四行 4×54 + 3×14）；容器 560 居中于 1080
+          // → 顶 260。dock 时上移 110 → 顶 150，底 421，与舞台带顶 493 之间留 72px。
+          transform: `translateY(${docked * -110}px)`,
+        }}
+      >
         <div style={{fontFamily: theme.sans, fontSize: 26, color: theme.dim, marginBottom: 20, textAlign: 'center'}}>
           {'压缩之后，谁活下来？'}
         </div>
@@ -453,9 +508,11 @@ const SurvivalMatrix: React.FC<{matrixAt: number; openAt: number; hookAt: number
             );
           })}
         </div>
-        {/* 回捞钩（p3-12/13）：文件卡被钩回 */}
-        {frame >= openAt ? <SalvageHook openAt={openAt} hookAt={hookAt} honestAt={honestAt} /> : null}
       </div>
+      {/* 回捞钩（p3-12/13）：文件卡被钩回。
+          必须挂在矩阵容器**外**——放容器内会一起吃掉上面那条 translateY(-110)，
+          让位就白让了。它自带 AbsoluteFill，按整幅画布定位。 */}
+      {frame >= openAt ? <SalvageHook openAt={openAt} hookAt={hookAt} honestAt={honestAt} /> : null}
       <Footnote delay={matrixAt + 30}>
         {'压缩存活矩阵 —— 官方文档 context-window（取数2026年8月）'}
       </Footnote>

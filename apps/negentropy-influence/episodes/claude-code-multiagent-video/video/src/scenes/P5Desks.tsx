@@ -271,29 +271,41 @@ const ParallelDesks: React.FC<{growAt: number; bounceAt: number; tieAt: number}>
             style={{
               position: 'absolute',
               left: 620 + badNear * 180 - badBack * 320,
-              top: 90,
+              // 顶带（40..135）：与下方登记卡（180..232）分带，见本组件竖向预算注释
+              top: 40,
               opacity: 1,
               transform: `rotate(${badBack * -12}deg)`,
             }}
           >
-            <Panel accent={badBack > 0.2 ? theme.deny : theme.panelBorder} style={{width: 360, padding: '12px 16px'}}>
+            <Panel accent={badBack > 0.2 ? theme.deny : theme.panelBorder} style={{width: 430, padding: '12px 18px'}}>
               <div style={{fontFamily: theme.mono, fontSize: 22, color: badBack > 0.2 ? theme.deny : theme.text}}>
                 {'../../etc/passwd'}
               </div>
-              <div style={{fontFamily: theme.sans, fontSize: 19, color: theme.dim, marginTop: 4}}>
+              <div
+                style={{
+                  fontFamily: theme.sans,
+                  fontSize: 19,
+                  color: theme.dim,
+                  marginTop: 6,
+                  // 2026-08 实拍修：360 宽装不下这 18 字，折行后第二行与上一行 mono
+                  // 文本在旋转卡内互相压印成糊字（f17456 坐实）。加宽 + nowrap 锁单行。
+                  whiteSpace: 'nowrap',
+                }}
+              >
                 {'只许字母数字点横线——路径越狱被弹回'}
               </div>
             </Panel>
           </div>
         ) : null}
-        {/* 登记虚线：任务卡与桌子卡之间（状态格不动） */}
+        {/* 登记虚线：任务卡与桌子卡之间（状态格不动）。
+            虚线从登记卡下沿（232）垂到抽屉上沿（300），与闸带（bottom:344 ⇒ 局部 556 起）不相交。 */}
         {tie > 0 ? (
           <svg width={1600} height={720} style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none'}}>
             <line
               x1={640}
-              y1={560}
+              y1={236}
               x2={640}
-              y2={480}
+              y2={296}
               stroke={theme.mech}
               strokeWidth={4}
               strokeDasharray="9 9"
@@ -301,9 +313,9 @@ const ParallelDesks: React.FC<{growAt: number; bounceAt: number; tieAt: number}>
             />
             <line
               x1={960}
-              y1={480}
+              y1={236}
               x2={960}
-              y2={560}
+              y2={296}
               stroke={theme.mech}
               strokeWidth={4}
               strokeDasharray="9 9"
@@ -311,13 +323,17 @@ const ParallelDesks: React.FC<{growAt: number; bounceAt: number; tieAt: number}>
             />
           </svg>
         ) : null}
-        {/* 任务卡 + 状态格不动注记（底部） */}
+        {/* 任务卡 + 状态格不动注记。
+            2026-08 实拍修：原 top:580 落在 repo 底座（局部 ~646..720）之上，
+            实拍 f17456 里「T-02 接口」整条压在底座文字上。改挂到抽屉带上方
+            （180..232）——本组件竖向预算：40 名字卡 · 180 登记卡 · 300 抽屉 ·
+            556 四道闸（FourGates bottom:344）· 646 repo 底座，五带互不相交。 */}
         {tie > 0 ? (
           <div
             style={{
               position: 'absolute',
               left: 560,
-              top: 580,
+              top: 180,
               width: 480,
               opacity: tie,
             }}
@@ -408,9 +424,13 @@ const DeskHygiene: React.FC<{visionAt: number; doorsAt: number; sealAt: number; 
                 strokeDasharray="12 10"
                 opacity={vision * 0.8}
               />
+              {/* 2026-08 实拍修：标签跟着收束中的光圈走，vision→1 时半径收到 150，
+                  标签落到 y=162——正压在桌面板（top:150）的上沿里，被面板背景切掉
+                  上半截（f18500/f18752 坐实）。改为钉在桌面板上方的固定行（y=118），
+                  不再随半径浮动；光圈仍收束，语义不变。 */}
               <text
                 x={480}
-                y={330 - (340 - vision * 190) - 18}
+                y={118}
                 textAnchor="middle"
                 fontFamily={theme.sans}
                 fontSize={24}
@@ -503,8 +523,13 @@ const DeskHygiene: React.FC<{visionAt: number; doorsAt: number; sealAt: number; 
             opacity: doors,
           }}
         >
-          {/* 保留门 */}
-          <div style={{width: 240}}>
+          {/* 保留门。
+              2026-08 实拍修：门卡原宽 240，两张卡的副标题（「分支留着 · 等人审查合并」
+              12 字 / 「明说「丢弃改动」后才开」11 字）都要折行，且都在末尾断出一个
+              孤字（「并」「开」）挂在第二行——实拍 f18500 里两张卡下沿都拖着一行单字。
+              加宽到 280 让副标题各自单行落定（右列总宽 280×2+34=594，右边距 180，
+              左沿 1146，仍在桌面板 250..710 之外）。 */}
+          <div style={{width: 280}}>
             <Panel accent={theme.mech} style={{padding: '18px 20px', textAlign: 'center'}}>
               <svg width={120} height={80} style={{overflow: 'visible'}}>
                 {/* 门形图标：双开门 */}
@@ -521,8 +546,8 @@ const DeskHygiene: React.FC<{visionAt: number; doorsAt: number; sealAt: number; 
               </div>
             </Panel>
           </div>
-          {/* 删除门：被 deny 封条挡 */}
-          <div style={{width: 240, position: 'relative'}}>
+          {/* 删除门：被 deny 封条挡（宽度同保留门，见上方注释） */}
+          <div style={{width: 280, position: 'relative'}}>
             <Panel
               accent={sealed && !torn ? theme.deny : theme.panelBorder}
               style={{padding: '18px 20px', textAlign: 'center'}}
@@ -547,11 +572,11 @@ const DeskHygiene: React.FC<{visionAt: number; doorsAt: number; sealAt: number; 
               </div>
             </Panel>
             {sealed && !torn ? (
-              <svg width={240} height={70} style={{position: 'absolute', left: 0, top: 50, pointerEvents: 'none'}}>
-                <g transform="rotate(10 120 35)">
-                  <rect x={20} y={14} width={200} height={42} rx={7} fill={theme.denyDeep} stroke={theme.deny} strokeWidth={3.5} />
+              <svg width={280} height={70} style={{position: 'absolute', left: 0, top: 50, pointerEvents: 'none'}}>
+                <g transform="rotate(10 140 35)">
+                  <rect x={40} y={14} width={200} height={42} rx={7} fill={theme.denyDeep} stroke={theme.deny} strokeWidth={3.5} />
                   <text
-                    x={120}
+                    x={140}
                     y={42}
                     textAnchor="middle"
                     fontFamily={theme.serif}
@@ -664,12 +689,17 @@ const McpPlug: React.FC<{noteAt: number; plugAt: number; plateAt: number}> = ({
             </div>
           </Panel>
         </div>
-        {/* 插头：自右向左滑向工具池的空插口（px 推导：pin1 对准第 2 行第 1 格中心 ≈ x 281） */}
+        {/* 插头：自右向左滑向工具池的空插口（px 推导：pin1 对准第 2 行第 1 格中心 ≈ x 281）。
+            2026-08 实拍修：原 top:340 让插头本体（svg 局部 y 30..100 ⇒ 绝对 370..440）
+            与插脚（y 12..30 ⇒ 352..370）一起压在空插口格（工具池 top:200，第 2 行格
+            约 306..370）上，落座后「别人造的」四字整块盖住「空插口/接上了」（f19947 坐实）。
+            下移到 388：插脚顶端 400 贴着插口格下沿 370 之外 30px，插头本体落在
+            工具池(≤370)与铭牌(≥480)之间的空带里，「插进去」的语义靠插脚指向保持。 */}
         <div
           style={{
             position: 'absolute',
             left: 620 - plug * 421,
-            top: 340,
+            top: 388,
             opacity: plug > 0 ? 1 : 0,
           }}
         >
@@ -779,8 +809,13 @@ const FourGates: React.FC<{gatesAt: number}> = ({gatesAt}) => {
   ];
   return (
     <AbsoluteFill>
-      {/* 四道闸横排：上移到中带下沿（避免压住 repo 底座与 Footnote 双行区，2026-08 实拍修） */}
-      <div style={{position: 'absolute', left: 0, right: 0, bottom: 268, display: 'flex', justifyContent: 'center', gap: 14}}>
+      {/* 四道闸横排：上移到中带下沿（避免压住 repo 底座与 Footnote 双行区，2026-08 实拍修）。
+          ⚠️ FourGates 与 ParallelDesks 是同一 Sequence 下的两个兄弟 AbsoluteFill，
+          几何互不可见——bottom 必须按 ParallelDesks 的 repo 底座实测反推：底座容器
+          1600×720 居中（顶 180），底座 bottom:60 ⇒ 绝对 766..840。闸卡最高一张（形状闸
+          带第三行）约 111px，故 bottom 需 ≥ 324 才能让闸底(1080-bottom)落在 766 之上。
+          268 时闸底 812 侵入底座 46px，实拍 f17456 坐实压字；这里取 344 留 26px 余量。 */}
+      <div style={{position: 'absolute', left: 0, right: 0, bottom: 344, display: 'flex', justifyContent: 'center', gap: 14}}>
         {gates.map((g, i) => {
           const e = spring({frame: frame - gatesAt - i * 9, fps, config: {damping: 150}});
           if (e <= 0) return null;

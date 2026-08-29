@@ -55,8 +55,15 @@ const HandshakeRail: React.FC<{
   const LEFT_X = 130;
   const RIGHT_X = W - 130;
   const MID_X = W / 2;
-  const reqX = LEFT_X + (MID_X - 96 - LEFT_X) * reqGo;
-  const ackX = RIGHT_X - (RIGHT_X - MID_X) * ackGo;
+  // 2026-08 实拍修：起点原取 LEFT_X(130)，卡片以 reqX-96 落笔 ⇒ 左沿 34，正压在
+  // 左端环+铭牌块（LEFT_X-90=40 起、宽 180 ⇒ 40..220）上，t=0 时「req_0042 关机请求」
+  // 骑在领队环上（f10541 坐实）。起点抬到 316（卡左沿 220 = 端点块右沿）。
+  const REQ_START_X = LEFT_X + 186;
+  const reqX = REQ_START_X + (MID_X - 96 - REQ_START_X) * reqGo;
+  // 应答卡对称处理：起点左沿 = 右端点块左沿(RIGHT_X-90=1240) 之外，故 ackX 起点
+  // 取 RIGHT_X-186 ⇒ 卡区间 1048..1240，与右端环+铭牌块不相交。
+  const ACK_START_X = RIGHT_X - 186;
+  const ackX = ACK_START_X - (ACK_START_X - MID_X) * ackGo;
   // 锁扣「咔」：合拢瞬间的一次性冲击闪光
   const clack = lockT > 0.9 && lockT < 1 ? 1 - Math.abs(lockT - 0.95) / 0.05 : 0;
   return (
@@ -156,12 +163,16 @@ const HandshakeRail: React.FC<{
           </g>
         ) : null}
       </svg>
-      {/* 请求卡：从左滑出，停在等回话位 */}
+      {/* 请求卡：从左滑出，停在等回话位。
+          2026-08 实拍修：请求卡(top RAIL_Y-58)与应答卡(top RAIL_Y-22)两张各约 72px 高，
+          竖向只错开 36px——合拢后两张在等回话位互相压掉一半，「关机请求」被「同意」
+          盖住（f10823/f11173 坐实）。改为请求走轨**上**行、应答走轨**下**行，
+          各让开 RAIL_Y 一个半卡高，合拢的语义靠水平会合与锁扣「咔」表达。 */}
       <div
         style={{
           position: 'absolute',
           left: reqX - 96,
-          top: RAIL_Y - 58,
+          top: RAIL_Y - 104,
           opacity: reqGo > 0 ? 1 : 0,
           zIndex: 2,
         }}
@@ -171,12 +182,13 @@ const HandshakeRail: React.FC<{
           <div style={{fontFamily: theme.sans, fontSize: 21, color: theme.text, marginTop: 2}}>{reqKind}</div>
         </Panel>
       </div>
-      {/* 同号应答卡：从右归来合拢（已合拢的常态——错类型卡是另一次尝试，不顶掉它） */}
+      {/* 同号应答卡：从右归来合拢（已合拢的常态——错类型卡是另一次尝试，不顶掉它）。
+          轨下行，与请求卡（轨上行 RAIL_Y-104）分带，见上方注释。 */}
       <div
         style={{
           position: 'absolute',
           left: ackX - 96,
-          top: RAIL_Y - 22,
+          top: RAIL_Y + 32,
           opacity: ackGo > 0 && bounceT <= 0 ? 1 : bounceT > 0 ? 1 : 0,
           zIndex: 2,
         }}
@@ -207,8 +219,12 @@ const HandshakeRail: React.FC<{
           </Panel>
         </div>
       ) : null}
-      {/* 状态表：pending → approved/rejected（右下） */}
-      <div style={{position: 'absolute', left: W / 2 - 260, top: 388}}>
+      {/* 状态表：pending → approved/rejected（右下）。
+          2026-08 实拍修：本组件底部三样东西原本挤在 388..560 —— 状态表(388..500)、
+          注记(450)、以及 3-C 里同层挂载的门闸块（bottom:196 ⇒ 局部 494..624）。
+          注记被状态表压印（f10716/f11069 坐实）。这里把状态表整体上提到 356，
+          腾出 468..494 给注记，门闸块以下不动。 */}
+      <div style={{position: 'absolute', left: W / 2 - 260, top: 356}}>
         <Panel style={{width: 520, padding: '12px 18px'}}>
           <div style={{fontFamily: theme.mono, fontSize: 18, color: theme.dim}}>{'状态表'}</div>
           {[
@@ -238,7 +254,10 @@ const HandshakeRail: React.FC<{
           ))}
         </Panel>
       </div>
-      <div style={{position: 'absolute', left: 0, right: 0, top: RAIL_Y + 200, textAlign: 'center'}}>
+      {/* 2026-08 实拍修：这行注记原挂 RAIL_Y+200=450，被 top:388 的状态表整条压住
+          （f10716/f11069 坐实）。状态表已上提到 356（下沿 468），注记落在 472——
+          再往下 494 起是 3-C 的门闸块，故这 26px 是本组件唯一可用空档。 */}
+      <div style={{position: 'absolute', left: 0, right: 0, top: 472, textAlign: 'center'}}>
         <span style={{fontFamily: theme.sans, fontSize: 22, color: theme.dim, opacity: pendingOn ? 1 : 0.4}}>
           {'同一个编号 · 隔着信箱与轮次，编号就是暗号'}
         </span>
@@ -606,8 +625,15 @@ const ThreeWay: React.FC<{askAt: number; replyAt: number; castAt: number; settle
           });
           if (t <= 0) return null;
           const y = 190 + i * 96;
-          const stopX = i === 0 ? 1180 : i === 1 ? 320 : 750;
-          const fromX = i % 2 === 0 ? 320 : 1180;
+          // 2026-08 实拍修：原 stopX 取 320/1180，卡宽 340 居中 ⇒ 左沿 150 / 右沿 1350，
+          // 直接骑在两端的环+铭牌块上（领队 x 90..290、阿强 x 1210..1410），实拍 f11693
+          // 里「阿强 同意」整条盖住领队铭牌。这里把飞行走廊夹在两端块之间：
+          // 左界 490（卡左沿 320，离领队右沿 290 留 30px）、右界 1010（卡右沿 1180，
+          // 离阿强左沿 1210 留 30px）。方向即语义（谁发给谁）保持不变。
+          const CORRIDOR_L = 490;
+          const CORRIDOR_R = 1010;
+          const stopX = i === 0 ? CORRIDOR_R : i === 1 ? CORRIDOR_L : 750;
+          const fromX = i % 2 === 0 ? CORRIDOR_L : CORRIDOR_R;
           const x = fromX + (stopX - fromX) * t;
           const e = spring({frame: frame - m.at, fps, config: {damping: 200}});
           return (

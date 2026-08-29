@@ -8,13 +8,18 @@ import type {SceneRange} from '../types';
 import {QuoteCard} from '../components/cards';
 import {CodeCard, DispatchTable, Footnote, LoopRing, NumberedCard, Panel, SceneHeader, Terminal, useRingDot} from '../components/motifs';
 
-/** 环留在左上角：缩小但同色同线宽 */
+/** 环留在左上角：缩小但同色同线宽。
+ *  落位约束：SceneHeader 占 top 52..112（含 bottom:-14 的幕内进度条，实际到 y≈126），
+ *  角环必须整体落在其**下方**。此前 top:56 让环上半圈直接压在幕标题「P2 加一个工具，
+ *  只改一行」上、环线又横穿进度条（2026-08 帧级复查 f7431/f9041/f10615 实拍坐实）。
+ *  size=190 的 LoopRing 内部半径 = 95−46 = 49，环上沿 = top + 95 − 49 − 3(线宽半)；
+ *  取 top:150 ⇒ 环上沿 y≈193，与进度条留 67px 净空。 */
 const CornerRing: React.FC<{pulse?: boolean}> = ({pulse = false}) => {
   const frame = useCurrentFrame();
   const dot = useRingDot(2.5);
   const p = pulse ? 0.6 + 0.4 * Math.sin(frame / 4) : 1;
   return (
-    <div style={{position: 'absolute', left: 64, top: 56, opacity: p}}>
+    <div style={{position: 'absolute', left: 64, top: 150, opacity: p}}>
       <LoopRing size={190} draw={1} dotProgress={dot} showExit={false} />
     </div>
   );

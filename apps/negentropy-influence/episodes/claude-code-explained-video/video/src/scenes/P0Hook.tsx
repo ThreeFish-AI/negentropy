@@ -108,8 +108,13 @@ const NamingFrame: React.FC<{
   const CX = 960;
   const CY = 460;
   const full = 420;
-  const wHalf = full / 2 + (1 - close) * 620;
-  const hHalf = full / 2 + (1 - close) * 380;
+  // 合拢起手的张开量：**必须**让展开态的外框仍落在安全区内。此前 620/380 的起手
+  // 让 close=0 时外框上沿到 y=-130（探出画面顶）、右沿 x=1790 横穿 SceneHeader 的
+  // meta 文字「the missing layer」——2026-08 帧级复查 f332/f851 实拍坐实。
+  // 上限反推：外框上沿 = CY − hHalf ≥ 150（抬头带含进度条到 y≈126），故
+  // hHalf ≤ 310；四角残影再外扩 40，故 hHalf ≤ 270。横向同理收进 72..1848。
+  const wHalf = full / 2 + (1 - close) * 420;
+  const hHalf = full / 2 + (1 - close) * 60;
   const label = interpolate(frame - frameAt - 22, [0, 14], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
@@ -202,13 +207,17 @@ const NamingFrame: React.FC<{
       >
         {'Harness'}
       </div>
+      {/* 外框注脚：与赌注卡同为「引文条压上时让位」的一层。引文条上沿在
+          y≈718（bottom:200 + 面板高），此注脚落在 CY+hHalf+40 = 710，两者
+          仅差 8px 而互相压字（2026-08 帧级复查 f1100 实拍坐实）——随引文条
+          淡出即可，语义已由引文条本身承接。 */}
       <div
         style={{
           position: 'absolute',
           left: CX,
           top: CY + hHalf + 40,
           transform: 'translate(-50%, 0)',
-          opacity: label,
+          opacity: label * (1 - quote),
           fontFamily: theme.sans,
           fontSize: 22,
           color: theme.dim,
@@ -216,15 +225,18 @@ const NamingFrame: React.FC<{
       >
         {'把动力源，套进一个可控的结构里'}
       </div>
-      {/* 官方赌注卡（p0-03a..c）：bottom:210 避让字幕带；p0-05 引文条压上时让位淡出 */}
-      {bet > 0 ? (
+      {/* 官方赌注卡（p0-03a..c）：bottom:210 避让字幕带；p0-05 引文条压上时让位淡出。
+          淡出必须**清零并卸载**：旧写法留 (1 - quote*0.9) = 0.1 的残影，引文条
+          （半透明 Panel）压上后两层文字互相透印成糊字（2026-08 帧级复查 f1100
+          实拍坐实）。改为 quote ≥ 0.999 时整块卸载，之前按 1-quote 线性到 0。 */}
+      {bet > 0 && quote < 0.999 ? (
         <div
           style={{
             position: 'absolute',
             left: CX,
             bottom: 210,
             transform: `translate(-50%, ${(1 - bet) * 30}px)`,
-            opacity: bet * (1 - quote * 0.9),
+            opacity: bet * (1 - quote),
           }}
         >
           <Panel accent={theme.core} style={{padding: '18px 30px', width: 780}}>
@@ -338,7 +350,15 @@ const SupplySpokes: React.FC<{titleAt: number}> = ({titleAt}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const CX = 960;
-  const CY = 440;
+  // 外框由 760×500@CY440 收成 700×420@CY490（2026-08 帧级复查 f1420 实拍）：
+  //   旧几何下辐点 fy = CY−250 = 190，辐条名（fy−92 = 98）正落在 SceneHeader
+  //   的 52..112 带内，「循环/工具/上下文管理/护栏」与幕标题同行印字；辐点圆
+  //   （110..178）又被抬头带的进度线（y≈126）横穿。
+  // 新几何下辐条名落 y≈188、辐点圆 234..302，均在抬头带下沿之外；外框下沿
+  // 700 仍与标题卡上沿（bottom:210 → y≈736）留 36px。
+  const CY = 490;
+  const HALF_W = 350;
+  const HALF_H = 210;
   const R = 300;
   const spokes = [
     {label: '循环', zh: '问模型·执行·填回'},
@@ -360,10 +380,10 @@ const SupplySpokes: React.FC<{titleAt: number}> = ({titleAt}) => {
       <svg width={1920} height={1080} style={{position: 'absolute'}}>
         {/* 外框（Harness 轮廓，缩小型持续在场） */}
         <rect
-          x={CX - 380 * ring}
-          y={CY - 250 * ring}
-          width={760 * ring}
-          height={500 * ring}
+          x={CX - HALF_W * ring}
+          y={CY - HALF_H * ring}
+          width={HALF_W * 2 * ring}
+          height={HALF_H * 2 * ring}
           rx={22}
           fill="none"
           stroke={theme.mech}
@@ -381,7 +401,7 @@ const SupplySpokes: React.FC<{titleAt: number}> = ({titleAt}) => {
           });
           if (t <= 0) return null;
           const fx = CX - 225 + i * 150;
-          const fy = CY - 250;
+          const fy = CY - HALF_H;
           const ix = CX + (fx - CX) * 0.24;
           const iy = CY - 40;
           const glow = sp.later ? 0 : 0.5 + 0.5 * Math.sin((frame - i * 8) / 9);
@@ -396,11 +416,15 @@ const SupplySpokes: React.FC<{titleAt: number}> = ({titleAt}) => {
                 strokeWidth={5}
                 style={sp.later ? undefined : {filter: `drop-shadow(0 0 ${4 + glow * 8}px ${theme.mech}88)`}}
               />
-              <circle cx={fx} cy={fy - 46} r={34 * t} fill={theme.panel} stroke={sp.later ? theme.dim : theme.mech} strokeWidth={3} />
-              <text x={fx} y={fy - 92} textAnchor="middle" fontFamily={theme.sans} fontSize={sp.later ? 21 : 26} fill={sp.later ? theme.dim : theme.text}>
+              <circle cx={fx} cy={fy - 38} r={30 * t} fill={theme.panel} stroke={sp.later ? theme.dim : theme.mech} strokeWidth={3} />
+              <text x={fx} y={fy - 112} textAnchor="middle" fontFamily={theme.sans} fontSize={sp.later ? 21 : 26} fill={sp.later ? theme.dim : theme.text}>
                 {sp.label}
               </text>
-              <text x={fx} y={fy + 26} textAnchor="middle" fontFamily={theme.sans} fontSize={19} fill={theme.dim}>
+              {/* 小字说明改挂**辐点上方**（原 fy+26 在框内）：辐条自 (fx, fy) 射向
+                  内核，在 y≈306 处横向已偏出 26px，正好从「问模型·执行·填回」这类
+                  8 字标签的字面中间穿过（2026-08 帧级复查 f1420/f1540 实拍坐实）。
+                  上移到 fy-82 后，标签整体落在辐条起点之上，与线零相交。 */}
+              <text x={fx} y={fy - 82} textAnchor="middle" fontFamily={theme.sans} fontSize={19} fill={theme.dim}>
                 {sp.zh}
               </text>
             </g>

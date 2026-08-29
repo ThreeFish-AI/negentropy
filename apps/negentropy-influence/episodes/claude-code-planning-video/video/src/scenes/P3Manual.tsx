@@ -139,10 +139,15 @@ const CatalogFan: React.FC<{fanAt: number; pickAt: number; pullAt: number}> = ({
                 key={c.name}
                 style={{
                   position: 'absolute',
-                  left: i * 90,
+                  // 卡宽 300 而步进只有 90 → 后一张盖掉前一张 70% 的卡面，
+                  // 三张卡的 name/use/token 三行互相压字（2026-08 帧检 f11390 实拍）。
+                  // 步进放到 215：仍保留「叠成一摞」的层次，但每张的文字带完整露出，
+                  // 且卡排右缘（240+430+300=970）不撞右侧厚手册卡的左缘（1020）。
+                  left: i * 215,
                   top: i * 26,
                   transform: `rotate(${ang}deg) translateY(${(1 - fan) * 60}px)`,
                   opacity: fan,
+                  zIndex: i,
                 }}
               >
                 <Panel
@@ -657,10 +662,14 @@ const CacheShed: React.FC<{
           <div style={{position: 'absolute', right: 200, top: 130}}>
             <Panel style={{width: 380, padding: '22px 28px'}}>
               <div style={{fontFamily: theme.sans, fontSize: 22, color: theme.dim}}>{'评测计分板'}</div>
-              {/* 数字纹丝不动：只呈现「不变」本身，不虚构具体分数 */}
+              {/* 数字纹丝不动：只呈现「不变」本身，不虚构具体分数。
+                  ⚠️ 占位符曾写作全角破折号「— . —」：等宽字体里这三个字符渲染成
+                  两根粗横杠夹一个小方点，读者看到的是三块无意义的色块而非「某个分数」
+                  （2026-08 帧检 f14477 实拍）。改用等宽数字占位符 ##.#，
+                  「有个分数、但具体值不重要」的语义反而立住，且不虚构任何数字。 */}
               <div style={{display: 'flex', alignItems: 'baseline', gap: 14, marginTop: 10}}>
                 <div style={{fontFamily: theme.mono, fontSize: 44, fontWeight: 700, color: theme.text}}>
-                  {'— . —'}
+                  {'##.#'}
                 </div>
                 <div style={{fontFamily: theme.mono, fontSize: 24, color: theme.dim}}>{'= 削层前'}</div>
               </div>

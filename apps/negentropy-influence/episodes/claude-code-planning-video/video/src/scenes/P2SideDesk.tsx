@@ -158,10 +158,14 @@ const SideDeskSlidesOut: React.FC<{slideAt: number; flyAt: number; cleanAt: numb
         >
           <div style={{position: 'relative'}}>
             <MiniDeskWithRing cleanAt={cleanAt} fly={fly} />
+            {/* 桌名与 MiniDeskWithRing 内部的 messages[] 角标（absolute bottom:-32）同处
+                桌下一带：marginTop:12 时两者压成「messages[] = [任务说明]」穿过「副桌
+                （分身的干净桌面）」的三层叠字（2026-08 帧检 f06327 实拍）。
+                角标占 bottom:-32 一行，桌名下压到 52 走它的下一行。 */}
             <div
               style={{
                 textAlign: 'center',
-                marginTop: 12,
+                marginTop: 52,
                 fontFamily: theme.sans,
                 fontSize: 24,
                 color: theme.mech,
@@ -673,8 +677,12 @@ const SharedDrawer: React.FC<{drawerAt: number; bubbleAt: number; cagesAt: numbe
             </div>
           </Desk>
         </div>
-        {/* 共享抽屉：虚线双桌共连，盖半开、两端各画一只手同时拉开 */}
-        <div style={{position: 'absolute', left: 0, right: 0, top: 380}}>
+        {/* 共享抽屉：虚线双桌共连，盖半开、两端各画一只手同时拉开。
+            ⚠️ 抽屉曾与三只笼子（旧 top:368）几乎同高：笼子一落下就把抽屉里的
+            「读过的文件（readFileState）」拦腰盖成「读…」两个残字
+            （2026-08 帧检 f09998 / f10089 实拍）。现在三段各自成行：
+            笼子排 336..427、抽屉 455..585、底部压字 ~605。 */}
+        <div style={{position: 'absolute', left: 0, right: 0, top: 455}}>
           <div
             style={{
               margin: '0 auto',
@@ -735,8 +743,9 @@ const SharedDrawer: React.FC<{drawerAt: number; bubbleAt: number; cagesAt: numbe
         {/* 审批卡气泡：沿虚线路径从副桌冒泡上浮到主桌屏幕 */}
         {bubble > 0 && bubble < 1 ? (
           <svg width={1500} height={660} style={{position: 'absolute', inset: 0, pointerEvents: 'none'}}>
+            {/* 路径终点跟随卡片终点（left:150 + 半卡宽 165 ≈ 315，top:120 + 半卡高 ≈ 175） */}
             <path
-              d="M 1120 320 C 1180 240, 760 190, 380 250"
+              d="M 1120 320 C 1180 240, 700 130, 315 175"
               fill="none"
               stroke={theme.view}
               strokeWidth={3}
@@ -745,11 +754,17 @@ const SharedDrawer: React.FC<{drawerAt: number; bubbleAt: number; cagesAt: numbe
             />
           </svg>
         ) : null}
+        {/* 冒泡终点须**落进父亲桌内**（桌体 left:40..560、top:40..320）：
+            此前终点 left≈570 / top≈120，卡（宽 330）横跨在桌右缘 560 上，
+            半张卡悬在两桌之间的空档里，卡底还伸出桌下沿（2026-08 帧检 f09998 实拍）。
+            收到 left:120 后卡左缘（120）虽已进桌，但卡底仍压着桌下沿（重渲复检坐实）。
+            终点定为 left:150 / top:120：卡体 150..480 × 120..~230，
+            四边都留在父亲桌内，语义（冒泡到父亲屏幕）反而更准。 */}
         {bubble > 0 ? (
           <div
             style={{
               position: 'absolute',
-              left: 940 + (1 - bubble) * 130 - bubble * 500,
+              left: 940 + (1 - bubble) * 130 - bubble * 920,
               top: 320 - bubble * 200,
               opacity: Math.min(1, bubble * 2),
             }}
@@ -762,14 +777,15 @@ const SharedDrawer: React.FC<{drawerAt: number; bubbleAt: number; cagesAt: numbe
             </Panel>
           </div>
         ) : null}
-        {/* p2-28a..c 三只笼子：在场上限 20 / 轮数上限 / 上下文配额（Harness Engineering 改造） */}
+        {/* p2-28a..c 三只笼子：在场上限 20 / 轮数上限 / 上下文配额（Harness Engineering 改造）。
+            笼子排上移到 336（两桌下沿 320 之下、抽屉顶 455 之上），与抽屉互不压字。 */}
         {frame >= cagesAt ? (
           <div
             style={{
               position: 'absolute',
               left: 0,
               right: 0,
-              top: 368,
+              top: 336,
               display: 'flex',
               justifyContent: 'center',
               gap: 22,

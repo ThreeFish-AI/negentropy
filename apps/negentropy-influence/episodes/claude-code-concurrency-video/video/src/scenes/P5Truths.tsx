@@ -7,7 +7,7 @@ import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoCo
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Footnote, Panel, SceneHeader, SceneTag} from '../components/motifs';
+import {Footnote, Panel, SceneHeader} from '../components/motifs';
 
 /** 迷你钟面：时针/分针可指定角度，可选表盘描边色 */
 const MiniClock: React.FC<{
@@ -132,7 +132,6 @@ const DeterministicJitter: React.FC<{staggerAt: number; randomAt: number; earlyA
   });
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="Cron Scheduler" tagline="Computed, Not Random" />
       <svg width={1700} height={620} style={{overflow: 'visible'}}>
         {/* 错峰一排表：各按固定偏移「落下」 */}
         {Array.from({length: N}, (_, i) => (
@@ -218,7 +217,6 @@ const RetireStamp: React.FC<{flipAt: number; stampAt: number}> = ({flipAt, stamp
   }) : 0;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="Cron Scheduler" tagline="Retire After Seven Silent Days" />
       <div style={{display: 'flex', alignItems: 'center', gap: 100}}>
         {/* 日历：翻页计数 */}
         <div style={{position: 'relative', textAlign: 'center'}}>

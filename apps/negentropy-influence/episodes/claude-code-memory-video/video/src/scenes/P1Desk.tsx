@@ -180,14 +180,17 @@ const SnipMiddle: React.FC<{
               strokeDasharray="14 10"
             />
           </svg>
-          {/* 尾部四十七张：亮起（正在用的不能动） */}
+          {/* 尾部四十七张：亮起（正在用的不能动）。
+              标注改为跟在卡格之后的常规流（原 position:absolute bottom:-34 相对
+              height:220 的容器定位，但 15 张 ×(52+8) 按 420 宽折成 4 行实占 ~236px，
+              标注被压回最后一行卡上——实测帧 3301/4142 文字与卡重叠）。
+              容器去掉固定 height 由内容撑开，标注 marginTop 隔开 10px。 */}
           <div
             style={{
               position: 'absolute',
               right: 26,
               top: 30,
               width: 420,
-              height: 220,
               opacity: tailOn ? 1 : 0.25,
             }}
           >
@@ -198,9 +201,7 @@ const SnipMiddle: React.FC<{
             </div>
             <div
               style={{
-                position: 'absolute',
-                left: 0,
-                bottom: -34,
+                marginTop: 10,
                 fontFamily: theme.mono,
                 fontSize: 23,
                 color: theme.text,
@@ -287,7 +288,8 @@ const FoldOld: React.FC<{foldAt: number[]; recentAt: number}> = ({foldAt, recent
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <div style={{width: 1400}}>
-        <div style={{display: 'flex', gap: 22, justifyContent: 'center', alignItems: 'flex-start'}}>
+        {/* gap 22→34：折叠后的一行动字按列宽折行后，列间仍需可辨的留白 */}
+        <div style={{display: 'flex', gap: 34, justifyContent: 'center', alignItems: 'flex-start'}}>
           {[0, 1, 2, 3].map((i) => {
             // 折叠动画：大卡高度缩到一行（scaleY 压扁 + 褪色）
             const t = interpolate(frame - foldAt[i], [0, 14], [0, 1], {
@@ -296,7 +298,10 @@ const FoldOld: React.FC<{foldAt: number[]; recentAt: number}> = ({foldAt, recent
             });
             const folding = i >= 1; // 第一张是最近三张的代表，不折
             return (
-              <div key={i} style={{display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+              // 列宽锁死到卡宽 190：下面两行说明文字原为 nowrap，单行实宽 ~288px，
+              // 在 190 列里向两侧溢出并与邻列同款文案首尾相接（实测帧 5004 三段
+              // 「早前结果已收起，需要再跑一遍」间隔仅 25px，读成一整行）。
+              <div key={i} style={{width: 190, display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
                 <div
                   style={{
                     transform: `scaleY(${folding ? 1 - 0.82 * t : 1})`,
@@ -321,7 +326,8 @@ const FoldOld: React.FC<{foldAt: number[]; recentAt: number}> = ({foldAt, recent
                       fontSize: 20,
                       color: theme.dim,
                       opacity: interpolate(t, [0.7, 1], [0, 1], {extrapolateRight: 'clamp'}),
-                      whiteSpace: 'nowrap',
+                      textAlign: 'center',
+                      lineHeight: 1.4,
                     }}
                   >
                     {'早前结果已收起，需要再跑一遍'}
@@ -333,6 +339,8 @@ const FoldOld: React.FC<{foldAt: number[]; recentAt: number}> = ({foldAt, recent
                     fontFamily: theme.mono,
                     fontSize: 22,
                     color: i === 0 ? theme.mech : theme.dim,
+                    textAlign: 'center',
+                    lineHeight: 1.4,
                   }}
                 >
                   {i === 0 ? '最近 3 条 · 完整保留' : '更早 · 已折成一行'}

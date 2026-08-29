@@ -423,39 +423,53 @@ export const Terminal: React.FC<{
           lineHeight: 1.65,
         }}
       >
-        {/* 残影：滚出可视区的行停在顶端变 dim（0-A 的「被挤走」） */}
-        {ghostO > 0 && ghostLine ? (
-          <div
-            style={{
-              position: 'absolute',
-              left: 26,
-              top: 10,
-              color: theme.dim,
-              opacity: ghostO,
-              whiteSpace: 'pre',
-            }}
-          >
-            {ghostLine}
+        {/* 残影行：滚出可视区的行停在顶端变 dim（0-A 的「被挤走」）。
+            ⚠️ 此前残影是绝对定位、不随 scrollShift 走，而行区上移 56px 后第二行正好
+            爬到同一条基线 —— 「任务：把文件名统一改成 snake_case」与「已改 3 个文件，
+            跑测试 → 2 个失败」两串汉字逐字穿插成一团糊字（2026-08 帧检 f00273 实拍）。
+            改为在行区**上方独占一行**（高度由 ghostLine 是否传入决定，静态 prop 驱动、
+            不随帧跳动），残影与活字不再共占基线。 */}
+        {ghostLine ? (
+          <div style={{height: 34, position: 'relative'}}>
+            {ghostO > 0 ? (
+              <div
+                style={{
+                  position: 'absolute',
+                  left: 0,
+                  top: 0,
+                  fontSize: 22,
+                  color: theme.dim,
+                  opacity: ghostO,
+                  whiteSpace: 'pre',
+                }}
+              >
+                {ghostLine}
+              </div>
+            ) : null}
           </div>
         ) : null}
-        <div style={{transform: `translateY(${-scrollShift}px)`}}>
-          {lines.map((ln, i) => {
-            const shown = Math.max(0, Math.floor(((frame - ln.delay) / fps) * cps));
-            if (shown <= 0) return null;
-            const isLast = i === lines.length - 1;
-            const done = shown >= ln.text.length;
-            return (
-              <div key={i} style={{color: ln.color ?? theme.text, whiteSpace: 'pre'}}>
-                {ln.prompt ? (
-                  <span style={{color: promptColor ?? theme.dim}}>{ln.prompt} </span>
-                ) : null}
-                {ln.text.slice(0, shown)}
-                {isLast && done ? (
-                  <span style={{opacity: blink, color: frozen ? theme.dim : theme.mech}}>▍</span>
-                ) : null}
-              </div>
-            );
-          })}
+        {/* 行区自带裁剪窗：scrollShift 上移的首行必须**真的被裁掉**，否则它会溢出到
+            上方 title bar 上把「zsh」标题压成叠字（同帧 f00273 实拍）。 */}
+        <div style={{overflow: 'hidden'}}>
+          <div style={{transform: `translateY(${-scrollShift}px)`}}>
+            {lines.map((ln, i) => {
+              const shown = Math.max(0, Math.floor(((frame - ln.delay) / fps) * cps));
+              if (shown <= 0) return null;
+              const isLast = i === lines.length - 1;
+              const done = shown >= ln.text.length;
+              return (
+                <div key={i} style={{color: ln.color ?? theme.text, whiteSpace: 'pre'}}>
+                  {ln.prompt ? (
+                    <span style={{color: promptColor ?? theme.dim}}>{ln.prompt} </span>
+                  ) : null}
+                  {ln.text.slice(0, shown)}
+                  {isLast && done ? (
+                    <span style={{opacity: blink, color: frozen ? theme.dim : theme.mech}}>▍</span>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </Panel>

@@ -154,11 +154,21 @@ const RingFloatsForward: React.FC<{floatAt: number; hooksAt: number; footnoteAt:
   const recede = outline;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      {/* 桌子 + 五装置：线稿化退后 */}
+      {/* 桌子 + 五装置：线稿化退后。
+          环与卡默认都居中于同一个 AbsoluteFill，故必须**一升一降**才拉得开：
+          原始下沉量 recede*40 太小，环（size 520）浮到中央后 0°/180° 两侧的
+          「看回答」「填回结果」标签正落在卡的标题行上（f21908 / f22050 实拍）；
+          只把卡下沉到 210 仍不够——帧上量得环含底部「执行工具」标签铺到 y≈800，
+          而卡排 684..815、字幕条自 y≈884 起，卡已无处可退（重渲复检坐实）。
+          现在改为：环整体上提 130（见下方 translateY），卡下沉 240。
+          三轮实测定标：环上提 130 后环底 y=623、底部「执行工具」标签占 648..669；
+          卡排基位（recede=0）474..605，下沉 240 → 714..845；
+          与标签留 45px、与角标（top ≈ 882）留 37px。环再往上会让顶部「问模型」
+          标签撞到页眉横线（y≈124），故只能靠卡下沉补足这一段。 */}
       <div
         style={{
           position: 'absolute',
-          transform: `translateY(${recede * 40}px) scale(${1 - recede * 0.06})`,
+          transform: `translateY(${recede * 240}px) scale(${1 - recede * 0.06})`,
           opacity: 1 - recede * 0.25,
         }}
       >
@@ -175,12 +185,14 @@ const RingFloatsForward: React.FC<{floatAt: number; hooksAt: number; footnoteAt:
           ))}
         </div>
       </div>
-      {/* 环：从桌后浮到画面中央（第二次出场） */}
+      {/* 环：从桌后浮到画面中上部（第二次出场）。
+          rise 完成后额外上提 130px（-130 * rise），把环连同它的四个节点标签
+          抬离下方卡排所在的带（见上方注释的实测坐标）。 */}
       <div
         style={{
           position: 'absolute',
           opacity: 0.35 + bright * 0.65,
-          transform: `translateY(${(1 - rise) * 130}px)`,
+          transform: `translateY(${(1 - rise) * 130 - rise * 130}px)`,
         }}
       >
         <LoopRing size={520} draw={draw} dotProgress={draw > 0.98 ? dot : undefined} showExit={false} />
@@ -194,9 +206,11 @@ const RingFloatsForward: React.FC<{floatAt: number; hooksAt: number; footnoteAt:
         {[0, 1, 2, 3, 4].map((i) => {
           // 桌组：1130px 宽居中于 1920 → 左缘 395；每桌 210 + 间隙 20
           const x = 395 + i * 230 + 105;
-          const y = 700;
+          // 挂钩两端都必须跟着走位：起点跟卡排的 recede 下沉（translateY(recede*240)），
+          // 终点跟环的上提（translateY(-rise*130)）；否则虚线会挂在空气里。
+          const y = 610 + outline * 240;
           const cx = 960;
-          const cy = 540;
+          const cy = 540 - rise * 130;
           // 逐条描出（stagger i×6 帧，p5-09 起）：先实线描出（dash 长度 0→满），
           // 描满后切为虚线挂钩（pathLength=1 归一化，dashoffset 不参与）
           const drawT = interpolate(frame - hooksAt - i * 6, [0, 18], [0, 1], {

@@ -98,7 +98,11 @@ const FiveSteps: React.FC<{stepAt: number[]}> = ({stepAt}) => {
           );
         })}
       </div>
-      <Panel style={{width: 300, padding: 18, alignSelf: 'flex-start', marginTop: 40}}>
+      {/* alignSelf:flex-start + marginTop:40 会把面板顶到 y≈40，整块压在
+          SceneHeader 的 meta「Agent Loop · gather / act / verify」上（2026-08
+          帧级复查 f2473/f2554 实拍坐实）。抬头带含进度条到 y≈126，故改用
+          marginTop:170 把面板压到抬头带之下。 */}
+      <Panel style={{width: 300, padding: 18, alignSelf: 'flex-start', marginTop: 170}}>
         <div style={{fontFamily: theme.mono, fontSize: 22, color: theme.dim, marginBottom: 12}}>
           {'messages[]'}
         </div>
@@ -410,7 +414,11 @@ const ThreePhaseRing: React.FC<{phaseAt: number; handAt: number; drawersAt: numb
     extrapolateRight: 'clamp',
   });
   const CX = 560;
-  const CY = 500;
+  // 环心下移 +80：此前 CY=500 时 -90° 相位标签落在 y = CY − R − 96 − 10 ≈ 144，
+  // 与 SceneHeader（top 52，含进度条到 y≈126）只差 18px，「收集上下文」贴着抬头带
+  // 印字；上方的「三相互相交融」标注（y = CY − R − 148 ≈ 102）更是直接横穿幕标题。
+  // 下移后：相位标签 y≈224、交融标注 y≈182，均落在抬头带下沿之外。
+  const CY = 580;
   const R = 250;
   return (
     <AbsoluteFill>

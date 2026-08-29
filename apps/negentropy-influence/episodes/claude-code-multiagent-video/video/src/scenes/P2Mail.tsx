@@ -200,11 +200,14 @@ const MailboxRow: React.FC<{sendAt: number; readAt: number}> = ({sendAt, readAt}
             <div style={{textAlign: 'center', marginTop: 6}}>
               <NamePlate name={m.name} />
             </div>
-            <div style={{marginTop: 18}}>
+            {/* 2026-08 实拍修：MailFile 内部是 position:absolute + top:y，父层的
+                marginTop 对它完全无效——它从队友环的原点起画，把环与铭牌整个盖住
+                （f5994/f6549 坐实）。这里改用 y 把信箱压到环(160)+铭牌(~46)之下。 */}
+            <div>
               <MailFile
                 name={m.name}
                 x={0}
-                y={0}
+                y={228}
                 lines={
                   m.name === '阿强'
                     ? [{text: 'report: 接口改完', at: sendAt + 22}]
@@ -291,8 +294,12 @@ const MailboxRow: React.FC<{sendAt: number; readAt: number}> = ({sendAt, readAt}
           <div
             style={{
               position: 'absolute',
+              // 2026-08 实拍修：原 top:600 压在领队信箱最后一条消息上（f6549 坐实）——
+              // 该 Panel 行数会从 2 长到 7，下沿浮动到 ~630。横向也无空档：两侧 480/900
+              // 是阿强/阿珍的信箱列。故改挂到领队信箱**正上方**——领队环+铭牌占
+              // 30..236，信箱 top 330，中间 236..330 恰是空带。
               left: 700 - 210,
-              top: 600,
+              top: 280,
               width: 420,
               textAlign: 'center',
               fontFamily: theme.sans,
@@ -741,7 +748,10 @@ const ThreeProhibitions: React.FC<{
     extrapolateRight: 'clamp',
   });
   const stopped = frame >= msgAt + 26;
-  const msgX = 260 + travel * 700;
+  // 2026-08 实拍修：起点 260 落在「队友 A」卡的水平区间（left:180 + width:180 +
+  // padding/border ⇒ 180..386）内，t=0 时消息卡左沿直接压在铭牌上（f8106 坐实）。
+  // 起点抬到 A 卡右沿 + 14px 呼吸；终点仍停在 B 卡左沿（1140）之前。
+  const msgX = 400 + travel * 560;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <div style={{position: 'relative', width: 1500, height: 660}}>

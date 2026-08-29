@@ -225,7 +225,12 @@ const AskAndPass: React.FC<{askAt: number; passAt: number}> = ({askAt, passAt}) 
           style={{
             position: 'absolute',
             left: 120,
-            top: 56,
+            // top:56 会把三张卡整体压在 SceneHeader 上——幕序「P3」与幕标题
+            // 「执行之前，先过闸门」被 allow/ask 两张卡完全盖住（2026-08 帧级复查
+            // f13080 实拍坐实）。抬头带含进度条到 y≈126，故小抄下移到 150；
+            // 卡高约 108（10+30+26+23+10+边框），下沿 y≈258 仍收在闸门名
+            // （y≈235–258）之上的约束由「闸门整体上移 -150」保障。
+            top: 150,
             display: 'flex',
             gap: 18,
             opacity: interpolate(t2, [0.4, 0.8], [0, 1], {extrapolateRight: 'clamp'}),
@@ -624,10 +629,16 @@ const FourResults: React.FC<{fourthAt: number; arcAt: number}> = ({fourthAt, arc
             );
           })}
         </div>
+        {/* 「不表态 → 问你」的回连弧走**格子外侧**（右缘之外）。
+            旧弧 M400 210 C520 210,560 120,470 96 起点落在第四格内部，
+            整条弧横穿「不表态」四个大字、「兜底」二字又压在格内（2026-08
+            帧级复查 f14473 实拍坐实）。改为自第四格右缘中点出发、绕右侧
+            外空白上行、收在第二格（拒绝）右缘——全程 x ≥ 704 = 格阵右缘，
+            与任何文字零相交。 */}
         {arc > 0 ? (
-          <svg width={760} height={260} style={{position: 'absolute', left: -30, top: 30, pointerEvents: 'none'}}>
+          <svg width={900} height={330} style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none'}}>
             <path
-              d="M 400 210 C 520 210, 560 120, 470 96"
+              d="M 704 268 C 790 268, 800 190, 790 150 C 782 118, 750 106, 704 106"
               stroke={theme.mech}
               strokeWidth={4}
               fill="none"
@@ -636,9 +647,13 @@ const FourResults: React.FC<{fourthAt: number; arcAt: number}> = ({fourthAt, arc
               strokeDashoffset={1 - arc}
             />
             {arc > 0.9 ? (
-              <text x={545} y={165} fontFamily={theme.sans} fontSize={24} fill={theme.mech}>
-                {'兜底'}
-              </text>
+              <>
+                {/* 箭头收口指回「拒绝/问你」一侧 */}
+                <path d="M704 106 l14 -7 v14 Z" fill={theme.mech} />
+                <text x={806} y={196} fontFamily={theme.sans} fontSize={24} fill={theme.mech}>
+                  {'兜底'}
+                </text>
+              </>
             ) : null}
           </svg>
         ) : null}

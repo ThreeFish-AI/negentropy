@@ -450,7 +450,13 @@ const PlanGate: React.FC<{
               left: -18,
               top: -120 * glass,
               width: 336,
-              height: 200,
+              // 罩体须整体盖住下方 Panel，否则罩沿会把卡里的某一行字拦腰切断。
+              // 帧上量得（f04612 全分辨率）：罩顶 y=220、文件卡 y=340..499，
+              // 卡内四行文字末行「不动一行」占 453..474。
+              // 200px → 罩沿 420 切「读结构」那行；236px → 罩沿 456 正好切「不动一行」
+              // （两轮实拍先后坐实）。罩高须 ≥ 499-220=279 才能整体罩住卡体，
+              // 取 300 让罩沿落到卡下沿之下 21px 的空白处。
+              height: 300,
               border: `3px solid ${theme.mech}`,
               borderRadius: '12px 12px 0 0',
               background: 'rgba(255,255,255,0.08)',
@@ -482,7 +488,10 @@ const PlanGate: React.FC<{
             style={{
               position: 'absolute',
               left: 760 - travel * 220 - bounce,
-              top: 250,
+              // 计划卡（left:560 top:100，实测高 ~160）下沿落在 y≈260；此前 top:250
+              // 让「[edit] 改文件」动作块正压在「③ 标注风险点」那一行上
+              // （2026-08 帧检 f4612 实拍）。下移到 300 走计划卡下方的空带。
+              top: 300,
               opacity: travel > 0.05 ? 1 : 0,
             }}
           >

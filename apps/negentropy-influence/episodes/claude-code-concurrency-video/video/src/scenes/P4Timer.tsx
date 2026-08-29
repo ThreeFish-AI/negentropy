@@ -6,7 +6,7 @@ import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoCo
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Footnote, LoopRing, Panel, SceneHeader, SceneTag, useRingDot} from '../components/motifs';
+import {Footnote, LoopRing, Panel, SceneHeader, useRingDot} from '../components/motifs';
 
 /** 4-A 提线木偶（你说一句它动一下）vs 闹钟自摆（自己响） */
 const PuppetVsClock: React.FC<{clockAt: number}> = ({clockAt}) => {
@@ -103,7 +103,6 @@ const FiveFieldTable: React.FC<{frameAt: number; ex1At: number; ex2At: number; e
   ];
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="Cron Scheduler" tagline="Five Fields, Fifty Years" />
       {/* 五格框架 */}
       <div style={{display: 'flex', gap: 16, opacity: frameT}}>
         {cols.map((c, i) => (
@@ -120,13 +119,20 @@ const FiveFieldTable: React.FC<{frameAt: number; ex1At: number; ex2At: number; e
               {c}
             </div>
             <div style={{position: 'relative', height: 96, marginTop: 14}}>
-              {/* 底格（星号占位） */}
+              {/* 底格（星号占位）：40px 字 + lineHeight 96px 使其字心落在 y≈48，
+                  正压住第一条实例行（top:26、26px 字，跨 26..60），两个星号叠印
+                  成毛刺——2026-08 抽帧实拍坐实。占位符只在「实例未出」时承担
+                  空态提示，第一条实例落下即让位（帧驱动淡出，确定性）。 */}
               <div
                 style={{
                   fontFamily: theme.mono,
                   fontSize: 40,
                   color: theme.panelBorder,
                   lineHeight: '96px',
+                  opacity: interpolate(frame - examples[0].at, [0, 10], [1, 0], {
+                    extrapolateLeft: 'clamp',
+                    extrapolateRight: 'clamp',
+                  }),
                 }}
               >
                 {'*'}
@@ -210,7 +216,6 @@ const TwoGuards: React.FC<{rejectAt: number; skipAt: number}> = ({rejectAt, skip
   ];
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="Cron Scheduler" tagline="Two Safety Nets" />
       <div style={{display: 'flex', gap: 90}}>
         {/* 保险一：写表验格式 */}
         <div style={{position: 'relative'}}>
@@ -332,7 +337,6 @@ const FourLayerModel: React.FC<{dropAt: number; gateAt: number; dupAt: number}> 
   });
   return (
     <AbsoluteFill>
-      <SceneTag chapter="Cron Scheduler" tagline="Tick, Queue, Gate, Loop" />
       <svg width={1920} height={1080} style={{position: 'absolute', inset: 0}}>
         {/* 层 1：秒摆线程（每秒一跳） */}
         <g transform="translate(240 300)">
@@ -354,9 +358,12 @@ const FourLayerModel: React.FC<{dropAt: number; gateAt: number; dupAt: number}> 
             {`每秒一跳 · 第 ${sec} 秒`}
           </text>
         </g>
-        {/* 命中分钟：卡片塞进队列（dropT 落下） */}
+        {/* 命中分钟：卡片塞进队列（dropT 落下）。
+            行程 300 会把卡停在 x=600：卡右缘 692 + 命中圆点 701 越过队列框
+            左边（x=700），卡与虚线框压边、「到点 · 塞进一张」被叠住——2026-08
+            抽帧实拍坐实。收到 270（终点 570，右缘 671），与队列框留 29px 净空。 */}
         {dropT > 0 ? (
-          <g transform={`translate(${300 + dropT * 300} ${320 + dropT * 60})`} opacity={Math.min(1, dropT * 2)}>
+          <g transform={`translate(${300 + dropT * 270} ${320 + dropT * 60})`} opacity={Math.min(1, dropT * 2)}>
             <rect x={-92} y={-26} width={184} height={52} rx={9} fill={theme.laterDeep} stroke={theme.later} strokeWidth={2.5} />
             <text x={0} y={8} textAnchor="middle" fontFamily={theme.mono} fontSize={21} fill={theme.text}>
               {'0 9 * * *'}
@@ -370,7 +377,10 @@ const FourLayerModel: React.FC<{dropAt: number; gateAt: number; dupAt: number}> 
           <text x={150} y={6} textAnchor="middle" fontFamily={theme.sans} fontSize={24} fill={theme.later}>
             {'队列'}
           </text>
-          <text x={150} y={52} textAnchor="middle" fontFamily={theme.mono} fontSize={19} fill={theme.dim}>
+          {/* 状态字：y=52 时字身（约 33..52）被队列框下边（y=40，线宽 4）
+              拦腰横穿，「等待」二字被虚线切成两半——2026-08 抽帧实拍坐实。
+              下移到 68：字顶 49，距框下缘 42 留 7px 净空。 */}
+          <text x={150} y={68} textAnchor="middle" fontFamily={theme.mono} fontSize={19} fill={theme.dim}>
             {hit ? '到点 · 塞进一张' : '等待'}
           </text>
         </g>
@@ -415,7 +425,10 @@ const FourLayerModel: React.FC<{dropAt: number; gateAt: number; dupAt: number}> 
               <text x={0} y={8} textAnchor="middle" fontFamily={theme.mono} fontSize={20} fill={theme.deny}>
                 {'第 2 枪 ✗'}
               </text>
-              <text x={0} y={48} textAnchor="middle" fontFamily={theme.sans} fontSize={19} fill={theme.deny}>
+              {/* 卡片 rotate(-14°) 后半高从 26 涨到 64·sin14+26·cos14 ≈ 41，
+                  y=48 的说明字（字顶约 29）被卡下缘压住——2026-08 抽帧实拍坐实。
+                  下移到 70：字顶 51，与旋转后的卡下缘留 10px 净空。 */}
+              <text x={0} y={70} textAnchor="middle" fontFamily={theme.sans} fontSize={19} fill={theme.deny}>
                 {'已记「这一分钟发过了」'}
               </text>
             </g>
@@ -467,7 +480,6 @@ const ThreeTiers: React.FC<{tier1At: number; tier2At: number; tier3At: number; o
   ];
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="Cron Scheduler" tagline="Three Tiers, One Loop" />
       {/* 三档卡片自上而下（自左而右）点亮 */}
       <div style={{display: 'flex', gap: 30, marginBottom: 44, alignItems: 'stretch'}}>
         {tiers.map((tr, i) => {

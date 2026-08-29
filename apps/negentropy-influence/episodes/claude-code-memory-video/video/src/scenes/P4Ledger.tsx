@@ -276,9 +276,28 @@ const TwoLegsFrame: React.FC<{
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  // 卡的合成位置：起点（左腿上方）→ 顶部「基本设定」框；被弹回时停在通道层
-  const cardX = 240 + fly * 620 - (fly - Math.max(fly, settled)) * 0;
-  const cardY = 620 - fly * 440 - (1 - settled) * 0;
+  // 卡的合成位置：起点（左腿上方）→ 上飞撞「基本设定」框 → 被弹回、停在通道**左侧**。
+  //
+  // ⚠️ 旧式 `240 + fly*620` / `620 - fly*440` 里两个 settled 修正项都乘 0（死代码），
+  // 于是卡不管弹没弹回都钉死在 (860,180)——正压住通道框（left 860 / top 96 起算，
+  // 通道体 y≈167–208、x≈860–1340）。实测帧 14433–15658 约 40 秒，通道里
+  // 「你开口之前 · 第一张便条（与你说的话同一身份）」被卡遮成「…前 · 第一张便条…」。
+  //
+  // 现在两段真正串起来：fly 把卡送到撞击点，settled（spring 反相，含过冲）再把它
+  // 落到通道左邻位。
+  //   · 撞击点 UP：停在「基本设定」框**上沿之外**。框体 top 96、含 padding 高约 44
+  //     → 96–140；卡高约 46，故 UP_Y=44 时卡底 90、距框顶 6px——「顶到了但没盖住」，
+  //     框里那行字全程可读（UP_Y=100 会压进框内，遮成「项目规则统提示）——…」）。
+  //   · 停位 REST：x 700–821 落在左腿右缘 440 与通道左缘 860 之间的空档，纵向与通道
+  //     同高但不横向相交——「贴着通道停」的语义保住，字一个不挡。
+  const UP_X = 940;
+  const UP_Y = 44;
+  const REST_X = 700;
+  const REST_Y = 156;
+  const upX = 240 + fly * (UP_X - 240);
+  const upY = 620 - fly * (620 - UP_Y);
+  const cardX = REST_X + (upX - REST_X) * settled;
+  const cardY = REST_Y + (upY - REST_Y) * settled;
   const cardShow = interpolate(frame - ghostAt, [0, 8], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
@@ -744,15 +763,21 @@ const PrefixCacheStrip: React.FC<{stripAt: number; priceAt: number}> = ({stripAt
           {'改规则要新开会话 · 中途换模型那轮慢'}
         </div>
       ) : null}
-      {/* p4-25a/b 价目条：命中一折 · 写入 +1/4 · 两次回本（自下滑入，挂 strip 上方） */}
+      {/* p4-25a/b 价目条：命中一折 · 写入 +1/4 · 两次回本（自下滑入，挂 strip 上方左半）。
+          ⚠️ 横向必须左避：本条与 TwoPaths 右栏的虚线条「支路失败 → 退回关键词匹配
+          （便宜的兜底）」是互不知情的兄弟节点，纵向同占 y≈700–790 带。旧 left:'50%'
+          居中 → 实宽 505px 落在 x 725–1229，与虚线条 x 955–1594 正面对撞，实测帧
+          17718/18193 两段文字彼此穿字、双双不可读。
+          改左对齐偏移 -190（相对 strip 容器左缘 620）→ x 430–935，与虚线条留 20px；
+          纵向不动（仍贴 strip 上沿），语义仍是「给这三层标价」。 */}
       {frame >= priceAt ? (
         <div
           style={{
             position: 'absolute',
-            left: '50%',
+            left: -190,
             bottom: '100%',
             marginBottom: 14,
-            transform: `translateX(-50%) translateY(${interpolate(frame - priceAt, [0, 12], [14, 0], {
+            transform: `translateY(${interpolate(frame - priceAt, [0, 12], [14, 0], {
               extrapolateLeft: 'clamp',
               extrapolateRight: 'clamp',
             })}px)`,

@@ -692,14 +692,19 @@ const WhoHoldsPlan: React.FC<{
             })}
           </div>
         ) : null}
-        {/* 收官反转 */}
+        {/* 收官反转。
+            2026-08 实拍修：原 bottom:-46 把这句推到容器**外**（容器 1760×640 居中
+            ⇒ 顶 220、底 860，故绝对 y≈906），正撞上同一 Sequence 里 Footnote 的
+            bottom:168（绝对 y≈912）——两串字逐字压印成糊团（f22375/f21917 坐实，
+            源码里「叠印不冲突」的注释被实拍证伪）。resume 条带下沿约 802，
+            改挂 bottom:12（绝对 y≈848）落在 802 与 Footnote 之间的空带里。 */}
         {twist > 0 ? (
           <div
             style={{
               position: 'absolute',
               left: 0,
               right: 0,
-              bottom: -46,
+              bottom: 12,
               textAlign: 'center',
               opacity: twist,
               fontFamily: theme.serif,
@@ -711,6 +716,8 @@ const WhoHoldsPlan: React.FC<{
           </div>
         ) : null}
       </div>
+      {/* 角标留在 slot=0（bottom:168 ⇒ 元素底 912），与上方反转句（848）差 64px。
+          ⚠️ 勿改 slot=1：206 对应元素底 874，反而会撞上反转句。 */}
       <Footnote delay={runtimeAt}>
         {'四形态对比·六模式选二·resume 重放 —— 官方文档 workflows'}
       </Footnote>

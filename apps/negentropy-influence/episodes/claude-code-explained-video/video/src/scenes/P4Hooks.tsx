@@ -115,8 +115,12 @@ const PullOut: React.FC<{tableAt: number; plugAt: number}> = ({tableAt, plugAt})
   const out = interpolate(frame, [0, 26], [0, 1], {extrapolateRight: 'clamp'});
   const plug = spring({frame: frame - plugAt, fps, config: {damping: 12}});
   const flash = frame >= plugAt + 6 && frame < plugAt + 8;
+  // gap:70 只隔开两个 flex 盒，但 LoopRing 的节点文案是 SVG overflow:visible
+  // 画到盒外的——0° 的「看回答」自环右缘再向外 26+文字宽 ≈ 100px，实际净空
+  // 只剩 ~-30px，字紧贴时机表左缘（2026-08 帧级复查 f17878 实拍坐实）。
+  // gap 提到 190 给标签让出真实占位。
   return (
-    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center', flexDirection: 'row', gap: 70}}>
+    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center', flexDirection: 'row', gap: 190}}>
       <div style={{position: 'relative'}}>
         <LoopRing size={380} draw={1} dotProgress={dot} />
         {[0, 1, 2, 3].map((i) => {

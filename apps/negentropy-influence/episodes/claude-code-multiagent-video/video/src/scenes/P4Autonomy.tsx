@@ -262,13 +262,16 @@ const HeartbeatTwoLooks: React.FC<{beatAt: number; mailAt: number; boardAt: numb
           <div style={{marginTop: 8}}>
             <NamePlate name="阿珍" />
           </div>
-          {/* 心跳外圈脉冲 */}
+          {/* 心跳外圈脉冲。
+              2026-08 实拍修：原半径 120→146 以环心(120,120)为心，最大时下沿到 y=266，
+              而铭牌自环底(240)+marginTop(8) 起画，脉冲圈整条横穿「阿珍」铭牌
+              （f12622 坐实）。半径收到 96→114：最大下沿 234，落在环内，不再越到铭牌带。 */}
           {pulse > 0 ? (
             <svg width={280} height={280} style={{position: 'absolute', left: -20, top: -20, pointerEvents: 'none'}}>
               <circle
                 cx={140}
                 cy={140}
-                r={120 + (1 - pulse) * 26}
+                r={96 + (1 - pulse) * 18}
                 fill="none"
                 stroke={theme.peer}
                 strokeWidth={3}
@@ -755,28 +758,30 @@ const CompilerCase: React.FC<{
                 transform: `rotate(${-6 * seatStamp}deg)`,
               }}
             >
+              {/* 2026-08 实拍修：叉章原用 absolute + translate(-50%,-55%) 盖在文字正中，
+                  「领队席：空」被 deny 圆叉切成两半、中间三字读不出（f15662 坐实）。
+                  改为叉章在上、文字在下的竖排——语义（这一席被否掉）不变，两者不再压印。 */}
               <div
                 style={{
                   border: `3px dashed ${theme.panelBorder}`,
                   borderRadius: 12,
-                  padding: '16px 12px',
+                  padding: '14px 12px',
                   background: 'transparent',
                   color: theme.dim,
                   fontFamily: theme.sans,
                   fontSize: 22,
-                  position: 'relative',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 8,
                 }}
               >
-                {'领队席：空'}
-                <svg
-                  width={60}
-                  height={60}
-                  style={{position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-55%)'}}
-                >
+                <svg width={60} height={60}>
                   <circle cx={30} cy={30} r={26} fill="none" stroke={theme.deny} strokeWidth={4} opacity={seatStamp} />
                   <line x1={12} y1={12} x2={48} y2={48} stroke={theme.deny} strokeWidth={4} strokeLinecap="round" opacity={seatStamp} />
                   <line x1={48} y1={12} x2={12} y2={48} stroke={theme.deny} strokeWidth={4} strokeLinecap="round" opacity={seatStamp} />
                 </svg>
+                <span style={{whiteSpace: 'nowrap'}}>{'领队席：空'}</span>
               </div>
             </div>
           ) : null}
@@ -1065,11 +1070,19 @@ const ForemanToManager: React.FC<{swapAt: number; cardsAt: number}> = ({swapAt, 
             <div
               style={{
                 position: 'absolute',
-                left: 130,
-                top: 96,
+                // 2026-08 实拍修：原 left:130/top:96 正落在环的顶节点标签「问模型」上
+                // （环 left:60/top:100/size:340 ⇒ 顶节点标签基线约 y=172、居中 x=230），
+                // 两串字直接压印（f14471 坐实）。帽与环顶之间没有可用竖向空档，
+                // 故横向让位：挂到环左外侧（环左沿 60，标签右对齐到 44）与帽同高，
+                // 随帽一起升走、badgeOn 后消失。
+                left: 0,
+                top: 40 - hatOff * 90,
+                opacity: 1 - hatOff,
                 fontFamily: theme.serif,
                 fontSize: 26,
                 color: theme.dim,
+                textAlign: 'right',
+                width: 116,
               }}
             >
               {'包工头'}

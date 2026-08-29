@@ -6,7 +6,7 @@ import {AbsoluteFill, interpolate, Sequence, useCurrentFrame, useVideoConfig} fr
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Footnote, Panel, SceneHeader, SceneTag} from '../components/motifs';
+import {Footnote, Panel, SceneHeader} from '../components/motifs';
 
 /** 后台命令输出线：逐字爬行，随后停在一个 (y/n) 提示上闪烁等待 */
 const OutputLine: React.FC<{stopAt: number; focusAt: number}> = ({stopAt, focusAt}) => {
@@ -164,7 +164,6 @@ const DogRises: React.FC<{
   });
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="Background Tasks" tagline="Not Speed. Aliveness." />
       <div style={{display: 'flex', alignItems: 'center', gap: 66, opacity: 1 - quoteO * 0.7}}>
         {/* 45 秒刻度盘 */}
         <div style={{position: 'relative'}}>
@@ -333,10 +332,17 @@ const DogRises: React.FC<{
           </Panel>
         </div>
       ) : null}
+      {/* 金句：必须显式落在 SceneHeader 与主体行之间的上部空带。
+          缺省的 position:absolute（无 top/left）会退回父级 flex 居中位，
+          正好压在中央的输出线面板上——2026-08 抽帧实拍坐实的叠印。 */}
       {quoteO > 0 ? (
         <div
           style={{
             position: 'absolute',
+            left: 0,
+            right: 0,
+            top: 186,
+            textAlign: 'center',
             fontFamily: theme.serif,
             fontSize: 52,
             fontWeight: 700,
