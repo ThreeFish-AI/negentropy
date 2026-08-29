@@ -318,10 +318,11 @@ const BudgetValve: React.FC<{barAt: number; bounceAt: number}> = ({barAt, bounce
 };
 
 /** 3-D 垫纸（system prompt）：写死整纸满屏铺开（dim）→ 碎成四段卡 → 每轮重新拼装。 */
-const PadPaper: React.FC<{solidAt: number; crackAt: number; assembleAt: number}> = ({
+const PadPaper: React.FC<{solidAt: number; crackAt: number; assembleAt: number; padAt: number}> = ({
   solidAt,
   crackAt,
   assembleAt,
+  padAt,
 }) => {
   const frame = useCurrentFrame();
   const solid = interpolate(frame - solidAt, [0, 22], [0, 1], {
@@ -336,6 +337,22 @@ const PadPaper: React.FC<{solidAt: number; crackAt: number; assembleAt: number}>
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
+  /* 垫纸前置：solidAt 锚在 p3-13，而 beat 从 p3-11 起 —— v5 抽帧实拍
+     f12703–f13068（12.2s）整拍 opacity=0，正文零墨水（画面只剩 header+字幕）。
+     先按 p3-12 口播把垫纸「垫在每句话下面」立起来，整纸铺开前淡出让位。 */
+  const padGone = interpolate(frame - solidAt + 10, [0, 16], [1, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const padIn = interpolate(frame - padAt, [0, 18], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const PAD_QA = [
+    ['你是谁', 'identity'],
+    ['你在哪', 'workspace'],
+    ['能干什么', 'tools'],
+  ];
   const sections = [
     {t: '身份', s: 'identity', d: '你是谁'},
     {t: '工具清单', s: 'tools', d: '实际注册了哪些'},
@@ -345,13 +362,67 @@ const PadPaper: React.FC<{solidAt: number; crackAt: number; assembleAt: number}>
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <div style={{position: 'relative', width: 1400, height: 640}}>
-        {/* 写死整纸：先满屏铺开（dim） */}
+        {/* 垫纸前置：每句话下面都垫着一张纸 */}
+        {padGone > 0.01 ? (
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: padGone * padIn,
+              zIndex: 1,
+            }}
+          >
+            <div style={{display: 'flex', gap: 60, alignItems: 'flex-end', marginBottom: 26}}>
+              {PAD_QA.map(([q], i) => (
+                <div
+                  key={q}
+                  style={{
+                    fontFamily: theme.mono,
+                    fontSize: 25,
+                    color: theme.text,
+                    background: theme.panel,
+                    border: `2px solid ${theme.panelBorder}`,
+                    borderRadius: 8,
+                    padding: '10px 22px',
+                    opacity: interpolate(frame - padAt - 10 - i * 7, [0, 12], [0, 1], {
+                      extrapolateLeft: 'clamp',
+                      extrapolateRight: 'clamp',
+                    }),
+                  }}
+                >
+                  {q}
+                </div>
+              ))}
+            </div>
+            <div
+              style={{
+                fontFamily: theme.sans,
+                fontSize: 24,
+                color: theme.dim,
+                opacity: interpolate(frame - padAt - 30, [0, 14], [0, 1], {
+                  extrapolateLeft: 'clamp',
+                  extrapolateRight: 'clamp',
+                }),
+              }}
+            >
+              {'每轮对话之前，都垫着这么一张纸'}
+            </div>
+          </div>
+        ) : null}
+        {/* 写死整纸：先满屏铺开（dim）。背景 z 序压在垫纸前置层之下：换装期
+            （solid 淡入 22 帧 > 前置层淡出 16 帧）两层短暂同屏，前置字样落在
+            dim 桌面之上而不是半透明纸上，避免「纸上叠纸」的双重底色。 */}
         <div
           style={{
             position: 'absolute',
             inset: 0,
             opacity: solid * (1 - crack),
             transform: `scale(${1 - crack * 0.3})`,
+            zIndex: 0,
           }}
         >
           <Desk width={1400} height={620} accent={theme.dim} fillOpacity={0.8}>
@@ -877,8 +948,8 @@ export const P3Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
         <BudgetValve barAt={relC('p3-09')} bounceAt={relC('p3-10')} />
       </Sequence>
       <Sequence {...bD} name="3-D 垫纸碎成四段">
-        {/* p3-13「写死的」整纸铺开；p3-15「拆成几段」碎裂；p3-16 重拼 */}
-        <PadPaper solidAt={relD('p3-13')} crackAt={relD('p3-15')} assembleAt={relD('p3-16')} />
+        {/* p3-12 起垫纸前置（见 PadPaper 注释）；p3-13「写死的」整纸铺开；p3-15「拆成几段」碎裂；p3-16 重拼 */}
+        <PadPaper solidAt={relD('p3-13')} crackAt={relD('p3-15')} assembleAt={relD('p3-16')} padAt={relD('p3-12')} />
       </Sequence>
       <Sequence {...bE} name="3-E 探针与关键词">
         {/* p3-17 两个探针；p3-18 关键词路径打叉；p3-19 cache hit 章 */}

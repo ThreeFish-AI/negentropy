@@ -10,12 +10,17 @@ import type {SceneRange} from '../types';
 import {Footnote, LoopRing, NamePlate, Panel, SceneHeader, phase} from '../components/motifs';
 
 /** 4-A 派工之累 ×10 快闪 → 三段生命周期环描线登场 */
-const DispatchFatigue: React.FC<{cycleAt: number}> = ({cycleAt}) => {
+const DispatchFatigue: React.FC<{cycleAt: number; montAt: number}> = ({cycleAt, montAt}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
-  // 十次派工快闪：每 4 帧一张分发卡从领队飞向队友（p4-01「十个任务分十次」约 1.3s 的快蒙太奇）
+  // 十次派工快闪：每 4 帧一张分发卡从领队飞向队友（p4-01「十个任务分十次」约 1.3s 的快蒙太奇）。
+  // 2026-08 v5 全片回归修：蒙太奇原从 beat 第 0 帧起跑（对齐句首「到这里你可能会想」），
+  // 而关键词「十个任务分十次」位于句内 ~72%（5.7s 句的第 ~4.1s）——卡全部飞完时这句话
+  // 还没念到，随后 406.6-416.1 近 10s 只剩双环静置（f12210 像素坐实 ink<0.02）。
+  // montAt 把快闪锚到句内 ~55%（帧 94），飞完 ~4.7s 恰好覆盖关键词段。
   const per = 4;
-  const flashes = Math.min(10, Math.floor(frame / per) + 1);
+  const mf = frame - montAt;
+  const flashes = mf < 0 ? 0 : Math.min(10, Math.floor(mf / per) + 1);
   const showCycle = frame >= cycleAt;
   const draw = interpolate(frame - cycleAt, [0, 36], [0, 1], {
     extrapolateLeft: 'clamp',
@@ -44,11 +49,11 @@ const DispatchFatigue: React.FC<{cycleAt: number}> = ({cycleAt}) => {
           {/* 分发卡 ×10：叠层快闪（每张停留一小段后飞走） */}
           <svg width={1240} height={420} style={{position: 'absolute', left: 0, top: 0}}>
             {Array.from({length: 10}, (_, i) => {
-              const t = interpolate(frame - i * per, [0, 2, per + 3], [0, 1, 1], {
+              const t = interpolate(mf - i * per, [0, 2, per + 3], [0, 1, 1], {
                 extrapolateLeft: 'clamp',
                 extrapolateRight: 'clamp',
               });
-              const gone = interpolate(frame - i * per - per - 3, [0, 8], [0, 1], {
+              const gone = interpolate(mf - i * per - per - 3, [0, 8], [0, 1], {
                 extrapolateLeft: 'clamp',
                 extrapolateRight: 'clamp',
               });
@@ -101,7 +106,7 @@ const DispatchFatigue: React.FC<{cycleAt: number}> = ({cycleAt}) => {
               fontVariantNumeric: 'tabular-nums',
             }}
           >
-            {`派工 ×${flashes}`}
+            {flashes > 0 ? `派工 ×${flashes}` : '派工 ×…'}
           </div>
         </div>
       ) : (
@@ -1139,7 +1144,7 @@ export const P4Autonomy: React.FC<{scene: SceneRange}> = ({scene}) => {
     <AbsoluteFill>
       <SceneHeader index="P4" title="自己看板，自己认领" meta="WORK · IDLE · SHUTDOWN" durationInFrames={scene.durationInFrames} />
       <Sequence {...bA} name="4-A 派工之累与生命周期">
-        <DispatchFatigue cycleAt={rel(bA, 'p4-03')} />
+        <DispatchFatigue cycleAt={rel(bA, 'p4-03')} montAt={Math.round(0.55 * (rel(bA, 'p4-02'))) } />
       </Sequence>
       <Sequence {...bB} name="4-B 五秒心跳两看">
         <HeartbeatTwoLooks

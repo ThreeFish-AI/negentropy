@@ -285,15 +285,18 @@ const TwoLegsFrame: React.FC<{
   //
   // 现在两段真正串起来：fly 把卡送到撞击点，settled（spring 反相，含过冲）再把它
   // 落到通道左邻位。
-  //   · 撞击点 UP：停在「基本设定」框**上沿之外**。框体 top 96、含 padding 高约 44
-  //     → 96–140；卡高约 46，故 UP_Y=44 时卡底 90、距框顶 6px——「顶到了但没盖住」，
-  //     框里那行字全程可读（UP_Y=100 会压进框内，遮成「项目规则统提示）——…」）。
+  //   · 撞击点 UP：停在「基本设定」框**上沿之外**。框体 top 150（自 96 下移避
+  //     SceneHeader 进度条，见下方 top:150 注释）、含 padding 高约 44 → 150–194；
+  //     卡高约 46，UP_Y=150 时卡体 150–196 恰好「贴住框顶」但不入框内——框里那行
+  //     字全程可读；卡顶 150 也在 SceneHeader 带底（≈122）之下 28px，撞击驻留的
+  //     4.6s（bounceAt 前 fly=1 钉在 UP）全程不进抬头带。
   //   · 停位 REST：x 700–821 落在左腿右缘 440 与通道左缘 860 之间的空档，纵向与通道
-  //     同高但不横向相交——「贴着通道停」的语义保住，字一个不挡。
+  //     同高但不横向相交——「贴着通道停」的语义保住，字一个不挡。REST_Y 随框下移
+  //     156→210（与通道体 y≈218–259 同高带）。
   const UP_X = 940;
-  const UP_Y = 44;
+  const UP_Y = 150;
   const REST_X = 700;
-  const REST_Y = 156;
+  const REST_Y = 210;
   const upX = 240 + fly * (UP_X - 240);
   const upY = 620 - fly * (620 - UP_Y);
   const cardX = REST_X + (upX - REST_X) * settled;
@@ -386,9 +389,13 @@ const TwoLegsFrame: React.FC<{
           </div>
         ))}
       </div>
-      {/* 层位纠正插段：顶部「基本设定」框 + 横杆 + 通道（p4-08a..b） */}
+      {/* 层位纠正插段：顶部「基本设定」框 + 横杆 + 通道（p4-08a..b）。
+          top 96→150：原 96 时通道体 y≈113–129 正压 SceneHeader 幕内进度条（y≈124–125，
+          x 72–1847 满宽），文字与轨/游标双重叠印约 44s（实测帧 14358–15682）——
+          与 SceneHeader「高度锁死 ≤96px、不侵占镜内主体区」纪律冲突。整体下移 54px
+          后框顶 150 仍在画面上三分之一，语义层级（「基本设定」在顶）不变。 */}
       {frame >= ghostAt ? (
-        <div style={{position: 'absolute', left: 860, top: 96, opacity: cardShow}}>
+        <div style={{position: 'absolute', left: 860, top: 150, opacity: cardShow}}>
           {/* 基本设定框（规则卡飞向它，但从不属于它） */}
           <div
             style={{

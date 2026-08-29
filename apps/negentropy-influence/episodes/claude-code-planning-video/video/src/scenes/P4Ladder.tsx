@@ -10,7 +10,11 @@ import type {SceneRange} from '../types';
 import {QuoteCard} from '../components/cards';
 import {Chip, Counter, Desk, Footnote, Panel, SceneHeader, Stamp} from '../components/motifs';
 
-/** 梯子骨架（mech）：三级木梯挂在桌右缘，自上垂下挂稳（rope 微弹）。 */
+/** 梯子骨架（mech）：三级木梯挂在桌右缘，自上垂下挂稳（rope 微弹）。
+ *  PARK = 停靠行程：drop=0 时整梯（含挂绳）平移到停靠位。行程必须 ≥ H + 挂绳 40px，
+ *  否则梯柱顶端残留可见（见下方 LadderDrops 的剪裁注释）。 */
+const LADDER_PARK = 620;
+
 const Ladder: React.FC<{drop: number; labels?: [string, string, string]}> = ({drop, labels}) => {
   const frame = useCurrentFrame();
   const H = 560;
@@ -18,7 +22,7 @@ const Ladder: React.FC<{drop: number; labels?: [string, string, string]}> = ({dr
   const labelsOn = labels ?? ['', '', ''];
   return (
     <svg width={300} height={H} style={{overflow: 'visible'}}>
-      <g transform={`translate(0 ${-(1 - drop) * H})`}>
+      <g transform={`translate(0 ${-(1 - drop) * LADDER_PARK})`}>
         {/* 挂绳：微弹 */}
         <line x1={120} y1={-40} x2={120} y2={0} stroke={theme.mech} strokeWidth={4} />
         <line x1={210} y1={-40} x2={210} y2={0} stroke={theme.mech} strokeWidth={4} />
@@ -66,8 +70,13 @@ const LadderDrops: React.FC<{dropAt: number}> = ({dropAt}) => {
             </div>
           </Desk>
         </div>
-        {/* 梯子挂右缘 */}
-        <div style={{position: 'absolute', right: 110, top: 40}}>
+        {/* 梯子挂右缘。剪裁罩（overflow:hidden）盖住挂绳以上全部天空：4-A 的
+            dropAt 锚在 p4-02，而 beat 从 p4-01 起 —— v5 抽帧实拍 f15834–f16022
+            （6.3s）spring 恒为 0，梯子以 -620px 停靠位画出，svg overflow:visible
+            让两根梯柱戳出画布顶边、直接压在 SceneHeader 的 meta 行上（y≤240 区
+            全被穿越）。罩顶对齐挂绳根（svg y=-40），停靠/下落穿越期被剪成
+            「从罩顶垂下」，动画锚 dropAt 零改动。 */}
+        <div style={{position: 'absolute', right: 110, top: 80, width: 300, height: 560, overflow: 'hidden'}}>
           <Ladder drop={drop} />
         </div>
       </div>

@@ -10,7 +10,11 @@ import {QuoteCard} from '../components/cards';
 import {Chip, Counter, Desk, Footnote, LoopRing, Panel, SceneHeader, Stamp, useRingDot} from '../components/motifs';
 
 /** 2-A 桌面色块暴涨成灾：一百多条记录填满桌面；计费计数器持续跳字。 */
-const DeskFlood: React.FC<{floodAt: number; billAt: number}> = ({floodAt, billAt}) => {
+const DeskFlood: React.FC<{floodAt: number; billAt: number; chaseAt: number}> = ({
+  floodAt,
+  billAt,
+  chaseAt,
+}) => {
   const frame = useCurrentFrame();
   const rows = 10;
   const cols = 16;
@@ -21,10 +25,72 @@ const DeskFlood: React.FC<{floodAt: number; billAt: number}> = ({floodAt, billAt
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
+  /* 追缺陷任务卡：floodAt 前的 p2-01/02（口播点名「追一个缺陷…读三十个文件」）
+     整段只有空桌——v5 抽帧实拍 f5377–f5690（10.4s）正文零墨水。任务卡先立
+     在桌上给前两句视觉，色块暴涨前淡出让位（帧驱动，确定性）。 */
+  const chaseGone = interpolate(frame - floodAt + 10, [0, 16], [1, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const chaseIn = interpolate(frame - chaseAt, [0, 18], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const CHASE_ROWS = [
+    ['tool: read', '读文件'],
+    ['tool: bash', '跑命令'],
+    ['assistant', '下结论'],
+  ];
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
             <div style={{position: 'relative'}}>
         <Desk width={1420} height={540}>
+          {chaseGone > 0.01 ? (
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 40,
+                opacity: chaseGone * chaseIn,
+              }}
+            >
+              <Panel accent={theme.view} style={{width: 520, padding: '24px 30px'}}>
+                <div style={{fontFamily: theme.sans, fontSize: 21, color: theme.view, marginBottom: 14}}>
+                  {'任务卡 · 追一个缺陷'}
+                </div>
+                {CHASE_ROWS.map(([t, d], i) => (
+                  <div
+                    key={t}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      fontFamily: theme.mono,
+                      fontSize: 20,
+                      color: theme.text,
+                      marginBottom: 10,
+                      opacity: interpolate(frame - chaseAt - 8 - i * 5, [0, 12], [0, 1], {
+                        extrapolateLeft: 'clamp',
+                        extrapolateRight: 'clamp',
+                      }),
+                    }}
+                  >
+                    <span>{t}</span>
+                    <span style={{color: theme.dim}}>{d}</span>
+                  </div>
+                ))}
+                <div style={{fontFamily: theme.sans, fontSize: 18, color: theme.dim, marginTop: 6}}>
+                  {'读 30 个文件 · 翻 60 轮对话'}
+                </div>
+              </Panel>
+              <div style={{textAlign: 'center', opacity: interpolate(frame - chaseAt - 20, [0, 14], [0, 1], {extrapolateRight: 'clamp'})}}>
+                <div style={{fontFamily: theme.mono, fontSize: 56, fontWeight: 700, color: theme.dim}}>{'30×60'}</div>
+                <div style={{fontFamily: theme.sans, fontSize: 19, color: theme.dim}}>{'轮轮从头读 —— 找问题在哪'}</div>
+              </div>
+            </div>
+          ) : null}
           <div style={{position: 'absolute', inset: 14, overflow: 'hidden', borderRadius: 12}}>
             {Array.from({length: rows}).map((_, r) => (
               <div key={r} style={{display: 'flex', gap: 6, marginBottom: 6, paddingLeft: 6}}>
@@ -864,8 +930,8 @@ export const P2SideDesk: React.FC<{scene: SceneRange}> = ({scene}) => {
     <AbsoluteFill>
       <SceneHeader index="P2" title="另开一张副桌" meta="Subagent · fork shares prefix cache" durationInFrames={scene.durationInFrames} />
       <Sequence {...bA} name="2-A 桌面暴涨与计费">
-        {/* p2-03「一百多条」起暴涨；p2-04「一直计着费」起计数器 */}
-        <DeskFlood floodAt={relA('p2-03')} billAt={relA('p2-04')} />
+        {/* p2-03「一百多条」起暴涨；p2-04「一直计着费」起计数器；p2-02 起追缺陷任务卡（见 DeskFlood 注释） */}
+        <DeskFlood floodAt={relA('p2-03')} billAt={relA('p2-04')} chaseAt={relA('p2-02')} />
       </Sequence>
       <Sequence {...bB} name="2-B 副桌滑出">
         {/* p2-06「另开一张干净的副桌」滑入；纸堆随即飞过去 */}

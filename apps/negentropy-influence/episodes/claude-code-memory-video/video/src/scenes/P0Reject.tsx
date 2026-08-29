@@ -568,6 +568,12 @@ const TwoAnswers: React.FC<{leftAt: number; rightAt: number; lineAt: number}> = 
 }) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
+  // 开场引导：p0-13「答案分两层」先亮一道中缝预备线，避免首锚 leftAt 前约 5 秒
+  // 主体全空（v5 回归实拍：f2105–2256 仅余抬头带与字幕——「死空气」缺陷）。
+  const prep = interpolate(frame, [8, 26], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
   const eL = spring({frame: frame - leftAt, fps, config: {damping: 200}});
   const eR = spring({frame: frame - rightAt, fps, config: {damping: 200}});
   const line = interpolate(frame - lineAt, [0, 20], [0, 1], {
@@ -578,6 +584,19 @@ const TwoAnswers: React.FC<{leftAt: number; rightAt: number; lineAt: number}> = 
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <div style={{position: 'relative', width: 1660, height: 560}}>
+        {/* 中缝预备线：beat 开场先给一条暗分隔，预告「这里将分成两半」；
+            lineAt 后被正式生长线接替（同一位置，色加深） */}
+        <div
+          style={{
+            position: 'absolute',
+            left: 828,
+            top: 60,
+            height: 420 * prep,
+            width: 3,
+            background: theme.panelBorder,
+            opacity: 0.4 * (1 - line),
+          }}
+        />
         {/* 左：桌面（会丢的那层）——桌上纸卡，其中几张褪色 */}
         <div
           style={{
