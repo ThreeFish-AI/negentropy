@@ -155,7 +155,11 @@ const LaundryLeave: React.FC<{turnAt: number; ringAt: number; quoteAt?: number}>
   const drumA = ((frame / fps) * 60) % 360;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <svg width={1360} height={560} style={{overflow: 'visible'}}>
+      {/* 终渲 v5 审查实拍：引文条（bottom:262 → 顶缘 y≈726）把洗衣机底边（y≈750，
+          含 rx26 圆角）拦腰盖掉 24px——机身看起来没有底。svg 整体上移 60px：
+          洗衣机底 y≈690 与引文条顶 726 留 36px 纵净空；顶部计时环（原 y≈394）
+          上移到 y≈334，仍在 SceneHeader（y≤150）之下的空带。动画锚零改动。 */}
+      <svg width={1360} height={560} style={{overflow: 'visible', transform: 'translateY(-60px)'}}>
         {/* 洗衣机：方机身 + 圆滚筒 */}
         <g transform="translate(300 90)">
           <rect x={0} y={0} width={340} height={400} rx={26} fill={theme.panel} stroke={theme.dim} strokeWidth={3} />

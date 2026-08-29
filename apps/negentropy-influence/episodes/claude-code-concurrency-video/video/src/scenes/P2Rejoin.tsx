@@ -110,9 +110,11 @@ const TwoTierQueue: React.FC<{dropAt: number; userAt: number}> = ({dropAt, userA
         <text x={640} y={300} fontFamily={theme.sans} fontSize={26} fill={theme.mech}>
           {'下一轮 · next'}
         </text>
-        {/* 「稍后」道（下）：默认道 */}
+        {/* 「稍后」道（下）：默认道。
+            终渲 v5 审查实拍：用户输入卡落定在 x900（左缘 778.5），标签尾部到 x775，
+            仅 4px 净空——降半级压角。标签整体左移 20px（x620 起排），与卡缘留 ~24px。 */}
         <line x1={560} y1={470} x2={1460} y2={470} stroke={theme.later} strokeWidth={4} />
-        <text x={640} y={440} fontFamily={theme.sans} fontSize={26} fill={theme.later}>
+        <text x={620} y={440} fontFamily={theme.sans} fontSize={26} fill={theme.later}>
           {'稍后 · later'}
         </text>
         {/* 完成通知卡：落到「稍后」道尾 */}
