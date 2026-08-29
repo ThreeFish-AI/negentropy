@@ -413,8 +413,11 @@ export const P6Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
     <AbsoluteFill>
       <SceneHeader index="P6" title="落点与信源" meta="three answers to who starts" durationInFrames={scene.durationInFrames} />
       <Sequence {...bA} name="6-A 三种开始的位置">
+        {/* l1 锚 p6-01（W10 抽帧实拍：原锚 p6-02 使首句 5.3s 全幕只剩抬头，
+            收尾句「这一集其实只回答了一个问题：谁来按开始」配真空画面）。
+            第一张卡随首句浮出，p6-02 口播「有人按并等着」时它已就位 */}
         <ThreePositions
-          l1={at('p6-02') - bA.from}
+          l1={at('p6-01') - bA.from}
           l2={at('p6-03') - bA.from}
           l3={at('p6-04') - bA.from}
           layerAt={at('p6-05') - bA.from}

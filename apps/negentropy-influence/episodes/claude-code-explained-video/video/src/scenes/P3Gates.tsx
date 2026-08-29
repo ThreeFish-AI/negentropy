@@ -98,7 +98,11 @@ const UnguardedShell: React.FC<{frameAt: number; cmdAt: number; execAt: number}>
 };
 
 /** 3-B 三道闸门落下，第一道把请求弹回 */
-const GatesFall: React.FC<{gateAt: number[]; bounceAt: number}> = ({gateAt, bounceAt}) => {
+const GatesFall: React.FC<{gateAt: number[]; bounceAt: number; pillAt?: number}> = ({
+  gateAt,
+  bounceAt,
+  pillAt,
+}) => {
   const frame = useCurrentFrame();
   const g = gateAt.map((a) =>
     interpolate(frame - a, [0, 16], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}),
@@ -107,10 +111,13 @@ const GatesFall: React.FC<{gateAt: number[]; bounceAt: number}> = ({gateAt, boun
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
+  /* 拒绝表胶囊锚 p3-08（口播点名「删根目录、提权…」那句）。闸门前移到 p3-07 后，
+     旧式 gateAt[0]+12 会让胶囊抢在句前 ~1.3s 出现——提前落门可以，提前念清单不行。 */
+  const pillStart = pillAt ?? gateAt[0] + 12;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <GateRouter gates={g} travel={travel} blockedBy={0} />
-      {g[0] > 0.8 ? (
+      {g[0] > 0.8 && frame >= pillStart ? (
         <div style={{display: 'flex', gap: 14, marginTop: 34}}>
           {['删根目录', '提权', '关机', '格式化'].map((t, i) => (
             <Panel
@@ -118,7 +125,7 @@ const GatesFall: React.FC<{gateAt: number[]; bounceAt: number}> = ({gateAt, boun
               accent={theme.deny}
               style={{
                 padding: '10px 20px',
-                opacity: interpolate(frame - gateAt[0] - 12 - i * 4, [0, 10], [0, 1], {
+                opacity: interpolate(frame - pillStart - i * 4, [0, 10], [0, 1], {
                   extrapolateLeft: 'clamp',
                   extrapolateRight: 'clamp',
                 }),
@@ -431,9 +438,14 @@ const SandboxCrossSection: React.FC<{
     ']',
   ];
   const variants = ['rm  -rf  /', 'rm -fr /', 'sudo${IFS}rm'];
-  // 壳几何：右侧画布中心
-  const CX = 1240;
-  const CY = 500;
+  // 壳几何：右侧画布中心。CX/CY 是**svg 内部坐标系**（svg width=760 height=620，
+  //  默认 overflow:hidden 会把界外内容整块裁掉）——旧值 1240/500 是 1920 全画布
+  //  坐标，壳 x=930..1550 全部落在 760 宽的 svg 之外，整镜 21.6s 壳体/边界带/
+  //  进程树/密钥箭头一行都没渲染出来（右侧全程空白，2026-08-29 三密度全扫
+  //  f13420..f13950 逐帧实拍坐实）。取 svg 中心 (380, 310) 后，壳在画布上落于
+  //  x≈750..1370、y≈320..760，左侧代码卡与右侧壳重新构成双栏构图。
+  const CX = 380;
+  const CY = 310;
   const W = 620;
   const H = 440;
   const halfW = W / 2 + (1 - shell) * 560;
@@ -1028,8 +1040,12 @@ export const P3Gates: React.FC<{scene: SceneRange}> = ({scene}) => {
         />
       </Sequence>
       <Sequence {...bB} name="3-B 三道闸门落下">
+        {/* 闸门落下前移到 p3-07 句内（+48 帧）：此前锚 p3-08，p3-07 整句
+            「拦法是三道闸门」99 帧里画布只有一条空轨道（三密度审查 fr12226 实拍）。
+            句子点名「三道」时闸门就该在场——p3-08 讲第一道时已可指认。 */}
         <GatesFall
-          gateAt={[rel(bB, 'p3-08'), rel(bB, 'p3-08') + 14, rel(bB, 'p3-08') + 28]}
+          gateAt={[rel(bB, 'p3-07') + 48, rel(bB, 'p3-07') + 62, rel(bB, 'p3-07') + 76]}
+          pillAt={rel(bB, 'p3-08')}
           bounceAt={rel(bB, 'p3-09')}
         />
       </Sequence>
@@ -1069,9 +1085,12 @@ export const P3Gates: React.FC<{scene: SceneRange}> = ({scene}) => {
         />
       </Sequence>
       <Sequence {...bG} name="3-G auto 分类器视野">
-        {/* p3-33 已删：末两行高亮锚点并入 p3-32 +20 帧；31a/b 成绩单卡随动 */}
+        {/* p3-33 已删：末两行高亮锚点并入 p3-32 +20 帧；31a/b 成绩单卡随动。
+            scrollAt 前挂 p3-30 句内（+70 帧）：旧锚 p3-31 让 p3-30 整句
+            「靠另一个模型当闸门」159 帧里画布只有标题一行（三密度审查 fr15119 实拍）。
+            五行视野清单在 p3-30 尾段就开始铺，p3-31 讲遥测数字时审判已在画面上。 */}
         <ClassifierVision
-          scrollAt={rel(bG, 'p3-31')}
+          scrollAt={rel(bG, 'p3-30') + 70}
           reportAt={rel(bG, 'p3-31a')}
           barAt={rel(bG, 'p3-31b')}
           stripAt={rel(bG, 'p3-32')}

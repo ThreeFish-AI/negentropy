@@ -217,7 +217,10 @@ const RetireStamp: React.FC<{flipAt: number; stampAt: number}> = ({flipAt, stamp
   }) : 0;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <div style={{display: 'flex', alignItems: 'center', gap: 100}}>
+      {/* W10 抽帧实拍：主体（日历 250px + 章 170px）仅占画面宽 30%、全 beat 核心墨水
+          0.0044——本集最空一镜（视觉模型判「密度偏稀」）。整体放大 1.3 倍并拉大
+          间距，动画锚（flipAt/stampAt/pulse）零改动 */}
+      <div style={{display: 'flex', alignItems: 'center', gap: 150, transform: 'scale(1.3)'}}>
         {/* 日历：翻页计数 */}
         <div style={{position: 'relative', textAlign: 'center'}}>
           <svg width={300} height={330}>

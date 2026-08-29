@@ -31,7 +31,9 @@ const PairLock: React.FC<{lockAt: number; swapAt: number; queueAt: number}> = ({
   const resultShift = queue * 260;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-            <svg width={1500} height={520} style={{overflow: 'visible'}}>
+      {/* W10 抽帧实拍：主体卡带仅高 122px、孤立在画面中线，核心墨水 0.0165（视觉
+          模型判「偏稀/太空」）。整体放大 1.18 倍上移 30px，动画锚零改动 */}
+      <svg width={1500} height={520} style={{overflow: 'visible', transform: 'translateY(-30px) scale(1.18)'}}>
         {/* 调用卡（左） */}
         <g transform={`translate(${560 - gap} 180)`}>
           <rect x={-170} y={-62} width={340} height={124} rx={14} fill={theme.panel} stroke={theme.core} strokeWidth={3} />
@@ -157,7 +159,10 @@ const NoCutIn: React.FC<{badAt: number; goodAt: number}> = ({badAt, goodAt}) => 
   const denyFlash = badOn && !goodOn ? (Math.floor(frame / 4) % 2 === 0 ? 1 : 0.45) : 0.85;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <div style={{display: 'flex', gap: 60}}>
+      {/* W10 抽帧实拍：两卡带仅高 210px 且前半 beat 两卡为 0.35 暗态（核心墨水
+          0.011–0.015，视觉模型判「信息量很低、偏空」）。整体放大 1.2 倍，动画
+          锚（badAt/goodAt/cut/denyFlash）零改动 */}
+      <div style={{display: 'flex', gap: 60, transform: 'scale(1.2)'}}>
         {/* ✗ 帧：气泡被截断 */}
         <div style={{position: 'relative'}}>
           <div style={{fontFamily: theme.sans, fontSize: 24, color: badOn ? theme.deny : theme.dim, marginBottom: 14, textAlign: 'center'}}>
@@ -269,10 +274,11 @@ const SevenTasks: React.FC<{lightAt: number; labelAt: number}> = ({lightAt, labe
 };
 
 /** 2-E 取件码回巢 + 账目天平 + 第一层全景盖章 */
-const ClaimCheckScale: React.FC<{matchAt: number; scaleAt: number; stampAt: number}> = ({
+const ClaimCheckScale: React.FC<{matchAt: number; scaleAt: number; stampAt: number; inboxAt: number}> = ({
   matchAt,
   scaleAt,
   stampAt,
+  inboxAt,
 }) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
@@ -296,8 +302,64 @@ const ClaimCheckScale: React.FC<{matchAt: number; scaleAt: number; stampAt: numb
   // 盖章
   const stamp = spring({frame: frame - stampAt, fps, config: {damping: 200}});
   const stampOn = frame >= stampAt;
+  // W10 抽帧实拍：p2-16..18（前 ~17s）口播讲「信箱查状态」，画面却只有占位条
+  // 与小环——信箱三态零视觉。三枚状态签在 matchAt 前自右向左依次亮，
+  // 对号动画起飞前整组淡出让位（帧驱动，确定性）
+  const inboxGone = interpolate(frame - matchAt + 18, [0, 14], [1, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const INBOX = [
+    {t: '还在跑', c: theme.later},
+    {t: '跑完了', c: theme.mech},
+    {t: '没这条活', c: theme.deny},
+  ];
   return (
     <AbsoluteFill>
+      {inboxGone > 0.01 ? (
+        <div
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            /* 避让实拍两连撞：top:300 穿左上小环（y≤390）右缘；top:420 又压
+               占位条标签/条体（y382-458）。整行落到 y560——环下、占位条下、
+               天平横梁（y≥630 且此时仅 0.25 幽灵态）之上的空档 */
+            top: 560,
+            display: 'flex',
+            justifyContent: 'center',
+            gap: 26,
+            opacity: inboxGone,
+          }}
+        >
+          <div style={{fontFamily: theme.sans, fontSize: 24, color: theme.dim, alignSelf: 'center'}}>
+            {'主动开信箱一问 —— 每条活的三种答话'}
+          </div>
+          {INBOX.map((s, i) => {
+            const e = interpolate(frame - inboxAt - i * 8, [0, 12], [0, 1], {
+              extrapolateLeft: 'clamp',
+              extrapolateRight: 'clamp',
+            });
+            return (
+              <div
+                key={s.t}
+                style={{
+                  padding: '10px 24px',
+                  borderRadius: 999,
+                  border: `2px solid ${s.c}`,
+                  background: theme.panel,
+                  fontFamily: theme.sans,
+                  fontSize: 23,
+                  color: theme.text,
+                  opacity: e,
+                }}
+              >
+                {s.t}
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
       <svg width={1920} height={1080} style={{position: 'absolute', inset: 0}}>
         {/* 占位条（左）：等结果的位置 */}
         <g transform="translate(640 430)">
@@ -412,7 +474,12 @@ export const P2Rejoin: React.FC<{scene: SceneRange}> = ({scene}) => {
         <SevenTasks lightAt={at('p2-13') - bD.from} labelAt={at('p2-15') - bD.from} />
       </Sequence>
       <Sequence {...bE} name="2-E 取件码与天平">
-        <ClaimCheckScale matchAt={at('p2-19') - bE.from} scaleAt={at('p2-21') - bE.from} stampAt={at('p2-23') - bE.from} />
+        <ClaimCheckScale
+          matchAt={at('p2-19') - bE.from}
+          scaleAt={at('p2-21') - bE.from}
+          stampAt={at('p2-23') - bE.from}
+          inboxAt={at('p2-17') - bE.from}
+        />
       </Sequence>
     </AbsoluteFill>
   );

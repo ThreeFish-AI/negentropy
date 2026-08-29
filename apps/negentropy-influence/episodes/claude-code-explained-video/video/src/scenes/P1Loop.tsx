@@ -193,8 +193,12 @@ const TwentyThreeLines: React.FC<{
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  // 代码逐行渲染让位给前置动画：标签条（~14 帧）+ 对照列（~16 帧）先占画布
-  const codeStart = compareAt + 18;
+  // 代码逐行渲染：标签条（~14 帧）落下后即开卷——不再等对照列。
+  // 旧锚 compareAt+18 让 p1-12a 整句（164 帧 ≈ 5.5s）画布上只有一颗孤零零的
+  // 药丸标签（三密度审查 fr3195 实拍：body 仅 [82,112] 一行）。代码卡提前到
+  // 标签条就位后立刻逐行铺开，p1-12a 说「有人照着这套机制搭了一份开源的最小实现」
+  // 时代码已经在屏幕上生长。
+  const codeStart = tagAt + 16;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <div style={{opacity: 1 - split * 0.75, transform: `scale(${1 - split * 0.08})`}}>

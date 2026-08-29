@@ -243,9 +243,28 @@ const GrowthBars: React.FC<{barAt: number; coreAt: number}> = ({barAt, coreAt}) 
   //: 柱底距容器底的实测像素：幕名标签（22px 字，行盒 ~33）+ `marginTop: 12`。
   //: 基准带必须减掉它才能落在柱子自己的行数刻度上——此前写 90，带体整体上浮 45px。
   const BAR_BASE = 45;
+  // 量尺先行：p5-07（「这不是我的说法，是可以数出来的」）整句 111 帧里柱子还没长
+  // （barAt 锚 p5-08），画布除幕头外全空（2026-08 三密度审查 fr22625 实拍）。
+  // 让刻度横轴 + 四柱的空基座在 beat 第 0 帧就位——「可以数出来」先看到尺，再看到数。
+  const rulerT = interpolate(frame, [0, 14], [0, 1], {extrapolateRight: 'clamp'});
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <div style={{position: 'relative', display: 'flex', gap: 56, alignItems: 'flex-end', height: H + 90}}>
+        {/* 刻度横轴：柱底基线（rulerT 淡入，全程在场）。
+            用 mech 描边而非 panelBorder——#2A3242 在黑底上亮度仅 49，起不到
+            「量尺先行」的视觉锚定作用（三密度审查复验实拍）。 */}
+        <div
+          style={{
+            position: 'absolute',
+            left: -60,
+            right: -60,
+            bottom: BAR_BASE,
+            height: 0,
+            borderTop: `2px solid ${theme.mech}`,
+            opacity: 0.55 * rulerT,
+            pointerEvents: 'none',
+          }}
+        />
         {CHAPTERS.map((c, i) => {
           const at = barAt + i * 9;
           const e = spring({frame: frame - at, fps, config: {damping: 200}});
@@ -312,7 +331,8 @@ const GrowthBars: React.FC<{barAt: number; coreAt: number}> = ({barAt, coreAt}) 
                   fontSize: 22,
                   color: theme.dim,
                   marginTop: 12,
-                  opacity: e,
+                  /* 基座名与刻度轴同步先位（rulerT），数值 e 仍等柱子长出才亮 */
+                  opacity: Math.max(rulerT, e),
                 }}
               >
                 {c.name}

@@ -38,17 +38,21 @@ const MeterDial: React.FC<{spinFrom: number}> = ({spinFrom}) => {
           <line x1={115} y1={115} x2={115} y2={33} stroke={theme.deny} strokeWidth={6} strokeLinecap="round" />
           <circle cx={115} cy={115} r={9} fill={theme.deny} />
         </g>
-        <text
-          x={115}
-          y={168}
-          textAnchor="middle"
-          fontFamily={theme.sans}
-          fontSize={19}
-          fill={theme.dim}
-        >
-          {'按字计费'}
-        </text>
+        {/* W9 抽帧实拍：秒针狂转 720°/s 会周期性扫过盘心下方的「按字计费」，四字被切断
+            （0-A mid 帧实拍坐实）。表盘内不放文字，标签移到表盘外正下方，
+            几何上彻底避开旋转件。 */}
       </svg>
+      <div
+        style={{
+          textAlign: 'center',
+          fontFamily: theme.sans,
+          fontSize: 19,
+          color: theme.dim,
+          marginTop: 4,
+        }}
+      >
+        {'按字计费'}
+      </div>
       <div
         style={{
           textAlign: 'center',

@@ -172,7 +172,10 @@ const OffLoopSideTrack: React.FC<{slideAt: number; stubAt: number; nextAt: numbe
   const p = onTrack ? trackPoint(blockDeg, 6) : trackPoint(blockDeg, -88);
   // 占位条：从旁轨口「啪」地贴回环口（spring）
   const stubE = spring({frame: frame - stubAt, fps: 30, config: {damping: 200}});
-  const stubP = trackPoint(150, -84);
+  // W9 抽帧实拍：150° 锚点的 stub 左缘（x664）与环底「执行工具」标签右缘（x668）
+  // 压角 4px（1-B mid 帧实拍坐实）。逆时针挪到 144°、再内收 2px：标签带 y≥760 之上
+  // 留 10px 纵净空、x 向 17px 净空，且仍在 slide 弧（r256）与 drift 弧（r346）之间的空档。
+  const stubP = trackPoint(144, -86);
   // 「接着转去干下一件」：下一件活的短标签在环口闪现
   const nextO = interpolate(frame - nextAt, [0, 10, 40], [0, 1, 1], {
     extrapolateLeft: 'clamp',
