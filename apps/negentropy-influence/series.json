@@ -102,7 +102,7 @@
             "accessed": "2026-08-21"
           },
           "status": "delivered",
-          "statusNote": "终渲 v6：语体级重写 94 句（破折号 0/对照名词清零/短句爆点）+ v5 回归净；七幕 FAIL 0",
+          "statusNote": "终渲 v7：收尾三段式顺句（金句→免责→预告，id 乱序缝消除，零重配）；七幕 FAIL 0",
           "voice": "sunny-steady + me-bright.wav"
         },
         {
@@ -124,7 +124,7 @@
             "accessed": "2026-08-22"
           },
           "status": "delivered",
-          "statusNote": "终渲 v6：语体级重写 105 句 + 回归修复（补救梯越顶）；七幕 FAIL 0",
+          "statusNote": "终渲 v7：收尾顺句（主题→免责→预告）；七幕 FAIL 0",
           "voice": "sunny-steady + me-bright.wav"
         },
         {
@@ -146,7 +146,7 @@
             "accessed": "2026-08-22"
           },
           "status": "delivered",
-          "statusNote": "终渲 v6：语体级重写 114 句 + 回归修复（画中画死空气/顶部框组）；七幕 FAIL 0",
+          "statusNote": "终渲 v7：收尾顺句（主题→免责→预告）；七幕 FAIL 0",
           "voice": "sunny-steady + me-bright.wav"
         },
         {
@@ -168,7 +168,7 @@
             "accessed": "2026-08-22"
           },
           "status": "delivered",
-          "statusNote": "终渲 v6：语体级重写 105 句 + 回归修复（洗衣机底边切割）；七幕 FAIL 0",
+          "statusNote": "终渲 v7：收尾顺句（主题→免责→金句预告）；七幕 FAIL 0",
           "voice": "sunny-steady + me-bright.wav"
         },
         {
@@ -190,7 +190,7 @@
             "accessed": "2026-08-22"
           },
           "status": "delivered",
-          "statusNote": "终渲 v6：语体级重写 109 句 + 回归修复（十卡快闪音画错位 10 秒死空）；七幕 FAIL 0",
+          "statusNote": "终渲 v7：句序本无乱序，v6 直渲；七幕 FAIL 0",
           "voice": "sunny-steady + me-bright.wav"
         }
       ]
