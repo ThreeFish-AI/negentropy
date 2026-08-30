@@ -102,7 +102,7 @@
             "accessed": "2026-08-21"
           },
           "status": "delivered",
-          "statusNote": "终渲 v5：14:12 = 25582 帧 · 47.1 MB；W9 文案 9 句润色 + EP1 帧审 120 帧净；七幕 FAIL 0",
+          "statusNote": "终渲 v6：语体级重写 94 句（破折号 0/对照名词清零/短句爆点）+ v5 回归净；七幕 FAIL 0",
           "voice": "sunny-steady + me-bright.wav"
         },
         {
@@ -124,7 +124,7 @@
             "accessed": "2026-08-22"
           },
           "status": "delivered",
-          "statusNote": "终渲 v5：13:23 = 24103 帧 · 42.2 MB；W9 文案 42 句润色 + 视觉 5 处（镜首真空/过稀/音画错位）；七幕 FAIL 0",
+          "statusNote": "终渲 v6：语体级重写 105 句 + 回归修复（补救梯越顶）；七幕 FAIL 0",
           "voice": "sunny-steady + me-bright.wav"
         },
         {
@@ -146,7 +146,7 @@
             "accessed": "2026-08-22"
           },
           "status": "delivered",
-          "statusNote": "终渲 v5：13:37 = 24512 帧 · 41.9 MB；W9 文案 19 句润色 + 视觉 5 处死空气根除；七幕 FAIL 0",
+          "statusNote": "终渲 v6：语体级重写 114 句 + 回归修复（画中画死空气/顶部框组）；七幕 FAIL 0",
           "voice": "sunny-steady + me-bright.wav"
         },
         {
@@ -168,7 +168,7 @@
             "accessed": "2026-08-22"
           },
           "status": "delivered",
-          "statusNote": "终渲 v5：13:05 = 23571 帧 · 44.5 MB；W9 文案 21 句润色 + 视觉 2 处（秒针切字/锚点压标）；七幕 FAIL 0",
+          "statusNote": "终渲 v6：语体级重写 105 句 + 回归修复（洗衣机底边切割）；七幕 FAIL 0",
           "voice": "sunny-steady + me-bright.wav"
         },
         {
@@ -190,7 +190,7 @@
             "accessed": "2026-08-22"
           },
           "status": "delivered",
-          "statusNote": "终渲 v5：13:27 = 24236 帧 · 47.8 MB；W9 文案 31 句润色 + 沙箱镜整镜 21.6s 空白根因修复；七幕 FAIL 0",
+          "statusNote": "终渲 v6：语体级重写 109 句 + 回归修复（十卡快闪音画错位 10 秒死空）；七幕 FAIL 0",
           "voice": "sunny-steady + me-bright.wav"
         }
       ]
