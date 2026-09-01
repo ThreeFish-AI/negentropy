@@ -12,13 +12,15 @@ import { visit } from "unist-util-visit";
  *     误配对，降级回正文 text 节点（补回字面 `$`）。仅作用于 inlineMath——真实
  *     display 公式（`$$` 围栏）无货币配对形态，且误降级代价高（丢公式渲染）。
  *  2. `%` 未转义：`$11.5%\to15.0%$` 中 `%` 是 TeX 注释符，渲染吞掉其后内容
- *     （commentAtEnd 告警即其末态）。处置：未转义的 `%` → `\%`。
+ *     （commentAtEnd 告警即其末态）。处置：未转义的 `%` → `\%`，作用于整串——
+ *     `%` 是 KaTeX 词法层 catcode 14，文本模式内不豁免（见 escapePercent）。
  *  3. Unicode 符号无度量：`‖`/`∥`/`•` KaTeX 无字形度量（unknownSymbol + No
  *     character metrics，渲染为 tofu）。处置：映射为 LaTeX 等价命令
  *     `\Vert`/`\parallel`/`\bullet`（Pandoc texmath 同款归一化思路）。
  *
  * 判据均先剥离 `\text{...}` 片段再检验——`\text{中文}` 是合法用法（正文注释进公式），
- * 不得触发 CJK 误判，`\text` 内的符号也保持原样（走浏览器字体）。
+ * 不得触发 CJK 误判，`\text` 内的 Unicode 符号也保持原样（走浏览器字体）。
+ * 例外是 `%`：它在词法层被吞，`\text{}` 内外一律转义。
  */
 
 /** 最小 mdast 节点结构（仅用到 type / value / data.hChildren）；避免直接依赖 `mdast` 类型包。 */
@@ -67,16 +69,36 @@ function setMathValue(node: MathNode, value: string): void {
   for (const child of node.data?.hChildren ?? []) sync(child);
 }
 
-const CJK_RE = /[㐀-鿿豈-﫿]/;
+/**
+ * CJK 字符类源串：统一表意文字扩展 A 起至基本区（U+3400–U+9FFF）+ 兼容表意文字
+ * （U+F900–U+FAFF）。以转义码位书写——兼容区 U+F900 与普通汉字 U+8C48 字形相同码位
+ * 不同，字面量易混淆致区间误跨谚文段与代理项。下方两处判据共用此串，避免双处漂移。
+ */
+const CJK_CLASS = "[\\u3400-\\u9FFF\\uF900-\\uFAFF]";
+const CJK_RE = new RegExp(CJK_CLASS);
+
+/**
+ * KaTeX 文本模式宏全集（`src/functions/text.ts` 的 `names`）+ `\mathrm` / `\mbox`。
+ * 遗漏项会使其内的 CJK 逃过剥离，被货币误配对分支判为误配对而整条降级丢渲染。
+ */
+const TEXT_MACRO_SOURCE =
+  "\\\\(?:text|textrm|textsf|texttt|textnormal|textbf|textmd|textit|textup|emph|mathrm|mbox)\\s*\\{[^{}]*\\}";
 
 /** 剥离 `\text{...}` / `\textbf{...}` 等文本宏片段，仅在剩余「数学体」部分做判据检验。 */
 function stripTextMacros(src: string): string {
-  return src.replace(/\\(?:text|textbf|textit|texttt|mathrm|mbox)\s*\{[^{}]*\}/g, "");
+  return src.replace(new RegExp(TEXT_MACRO_SOURCE, "g"), "");
 }
 
-/** 转义数学体中未转义的 `%`（TeX 注释符）。 */
+/**
+ * 转义未转义的 `%`（TeX 注释符）。按前导反斜杠奇偶判定——`\\%`（换行符紧邻裸 `%`）
+ * 中的 `%` 实为未转义，单字符回看 `(?<!\\)` 会漏判。作用于整串而非仅数学体：
+ * KaTeX 的 `%` 是 Lexer 构造期设定的 catcode 14，与数学/文本模式无关，
+ * `\text{增长 50%}` 的 `%` 会注释掉闭合 `}` 直接抛 ParseError。
+ */
 function escapePercent(src: string): string {
-  return src.replace(/(?<!\\)%/g, "\\%");
+  return src.replace(/(\\*)%/g, (_m, slashes: string) =>
+    slashes.length % 2 === 0 ? `${slashes}\\%` : `${slashes}%`,
+  );
 }
 
 /** 数学体中 Unicode 符号 → LaTeX 等价命令（KaTeX 有度量，消除 tofu）。 */
@@ -87,7 +109,10 @@ function normalizeSymbols(src: string): string {
     .replace(/•/g, "\\bullet ")
     // 下标裸 CJK（`\underbrace{…}_{常数 2}` 这类 PDF 提取的标注）包进 `\text{}`，
     // 消除逐字 unicodeTextInMathMode 告警（KaTeX 对 \text 内 Unicode 走文本模式）。
-    .replace(/(_\{|\^\{)([^{}]*[㐀-鿿豈-﫿][^{}]*)\}/g, "$1\\text{$2}}");
+    .replace(
+      new RegExp(`(_\\{|\\^\\{)([^{}]*${CJK_CLASS}[^{}]*)\\}`, "g"),
+      "$1\\text{$2}}",
+    );
 }
 
 /** 可写父节点结构（demote 时按索引替换 child）。 */
@@ -109,17 +134,16 @@ export const remarkMathSanitize: Plugin = () => (tree) => {
       return;
     }
 
-    // 2 & 3. `%` 转义 + 符号归一，均限于数学体（`\text{...}` 内保持原样）。
-    const cleaned = replaceOutsideTextMacros(node.value, (s) =>
-      normalizeSymbols(escapePercent(s)),
-    );
+    // 2. `%` 转义作用于整串（catcode 14 不分模式）；3. 符号归一仅限数学体
+    //    （`\text{...}` 内的 Unicode 符号保持原样，走浏览器字体）。
+    const cleaned = escapePercent(replaceOutsideTextMacros(node.value, normalizeSymbols));
     if (cleaned !== node.value) setMathValue(node, cleaned);
   });
 };
 
 /** 仅对 `\text{...}` 片段之外的部分应用 transform，文本宏片段原样保留。 */
 function replaceOutsideTextMacros(src: string, transform: (s: string) => string): string {
-  const TEXT_MACRO_RE = /\\(?:text|textbf|textit|texttt|mathrm|mbox)\s*\{[^{}]*\}/g;
+  const TEXT_MACRO_RE = new RegExp(TEXT_MACRO_SOURCE, "g");
   let out = "";
   let last = 0;
   for (const m of src.matchAll(TEXT_MACRO_RE)) {

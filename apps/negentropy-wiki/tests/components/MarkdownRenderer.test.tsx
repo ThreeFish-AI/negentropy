@@ -211,5 +211,67 @@ describe("MarkdownRenderer", () => {
         warn.mockRestore();
       }
     });
+
+    it("\\text{} 内的裸 % 同样被转义（catcode 14 不分模式，否则抛 ParseError）", () => {
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      try {
+        const md = "$\\text{增长 50%}$";
+        const { container } = render(<MarkdownRenderer content={md} />);
+
+        const katex = container.querySelector(".katex");
+        expect(katex).not.toBeNull();
+        // 未转义时 % 会注释掉闭合 }，KaTeX 抛错并渲染 .katex-error。
+        expect(container.querySelector(".katex-error")).toBeNull();
+        // KaTeX 文本模式把空格输出为 NBSP（U+00A0），归一后再比对。
+        expect(katex?.textContent?.replace(/ /g, " ")).toContain("增长 50%");
+        expect(warn).not.toHaveBeenCalled();
+      } finally {
+        warn.mockRestore();
+      }
+    });
+
+    it("换行符 \\\\ 紧邻的裸 % 被识别为未转义（奇偶判定，非单字符回看）", () => {
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      try {
+        // aligned 环境内 \\ 是合法换行（裸 display 模式下才有 newLineInDisplayMode 告警）。
+        const md = "$$\n\\begin{aligned} a \\\\% b \\end{aligned}\n$$";
+        const { container } = render(<MarkdownRenderer content={md} />);
+
+        // 单字符回看会把 \\% 的 % 误判为已转义，导致 % 及其后内容被当注释吞掉。
+        const ann = container.querySelector("annotation")?.textContent ?? "";
+        expect(ann).toContain("\\\\\\%");
+        expect(container.querySelector(".katex")?.textContent).toContain("%");
+        expect(warn).not.toHaveBeenCalled();
+      } finally {
+        warn.mockRestore();
+      }
+    });
+
+    it("已转义的 \\% 不被二次转义（幂等）", () => {
+      const md = "$11.5\\% \\to 15.0\\%$";
+      const { container } = render(<MarkdownRenderer content={md} />);
+
+      const ann = container.querySelector("annotation")?.textContent ?? "";
+      expect(ann).not.toContain("\\\\%");
+      expect(container.querySelector(".katex")?.textContent).toContain("11.5%");
+    });
+
+    it("\\textrm 等 KaTeX 文本宏内的 CJK 不触发误降级", () => {
+      // 文本宏白名单若漏项，其内 CJK 会逃过剥离而被货币误配对分支整条降级。
+      const md = "梯度 $g = \\textrm{方向导数}$ 与 $h = \\textnormal{常规}$ 及 $k = \\textsf{无衬线}$";
+      const { container } = render(<MarkdownRenderer content={md} />);
+
+      expect(container.querySelectorAll(".katex").length).toBe(3);
+    });
+
+    it("下标非 CJK 文本（谚文/emoji）不被包进 \\text{}", () => {
+      // CJK 区间若因字形混淆误写下界，会跨越谚文段与代理项而误纳非 CJK 字符。
+      const md = "$$\nd_{한글} + e_{L2}\n$$";
+      const { container } = render(<MarkdownRenderer content={md} />);
+
+      const ann = container.querySelector("annotation")?.textContent ?? "";
+      expect(ann).toContain("d_{한글}");
+      expect(ann).not.toContain("\\text{한글}");
+    });
   });
 });
