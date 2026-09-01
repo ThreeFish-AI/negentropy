@@ -126,4 +126,90 @@ describe("MarkdownRenderer", () => {
       expect(katex?.classList.contains("notranslate")).toBe(true);
     });
   });
+
+  // remark-math-sanitize：净化 PDF 提取语料的病态公式节点（货币误配对/未转义 %/Unicode 符号）。
+  describe("remark-math-sanitize", () => {
+    it("货币 $ 误配对（数学体含 CJK）降级回正文文本，$ 字面可见", () => {
+      // 真实语料形态：相邻货币 $ 被 remark-math 配成 inlineMath，中间中文全进 math mode。
+      const md = "按输入 $3/ 百万 token 、输出 $15/ 百万 token 的示例价格计算";
+      const { container } = render(<MarkdownRenderer content={md} />);
+
+      expect(container.querySelector(".katex")).toBeNull();
+      const text = container.querySelector(".wiki-markdown-body")?.textContent ?? "";
+      expect(text).toContain("$3/ 百万 token 、输出 $15/ 百万 token");
+    });
+
+    it("正常行内公式（数学体无 CJK）不受影响", () => {
+      const md = "质能方程 $E=mc^2$ 广为人知。";
+      const { container } = render(<MarkdownRenderer content={md} />);
+
+      expect(container.querySelector(".katex")).not.toBeNull();
+    });
+
+    it("\\text{中文} 是合法用法，不触发 CJK 误降级", () => {
+      const md = "向量投影 $\\text{A 在 B 上的投影} = \\frac{\\text{点积}}{\\text{B 的长度}}$";
+      const { container } = render(<MarkdownRenderer content={md} />);
+
+      expect(container.querySelector(".katex")).not.toBeNull();
+    });
+
+    it("未转义的 % 被转义，渲染不再吞掉其后内容（commentAtEnd 修复）", () => {
+      const md = "$11.5%\\to15.0%$";
+      const { container } = render(<MarkdownRenderer content={md} />);
+
+      const katex = container.querySelector(".katex");
+      expect(katex).not.toBeNull();
+      // 修复前 % 后内容被当 TeX 注释吞掉，只剩 11.5；修复后应完整可见。
+      expect(katex?.textContent).toContain("15.0");
+      expect(katex?.textContent).toContain("%");
+    });
+
+    it("‖ 归一为 \\Vert，公式正常渲染（unknownSymbol 修复）", () => {
+      const md = "KL 散度不对称：KL $(P‖Q) \\neq$ KL $(Q‖P)$";
+      const { container } = render(<MarkdownRenderer content={md} />);
+
+      const maths = container.querySelectorAll(".katex");
+      expect(maths.length).toBe(2);
+    });
+
+    it("• 归一为 \\bullet，公式正常渲染", () => {
+      const md = "$•$ Action model: Primary execution model for tool-";
+      const { container } = render(<MarkdownRenderer content={md} />);
+
+      expect(container.querySelector(".katex")).not.toBeNull();
+    });
+
+    it("病态公式净化后渲染零 KaTeX 告警（循证验证）", () => {
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      try {
+        const md = [
+          "三轮调用总共 $0.022 ——看似很便宜。如果完全没有缓存，三轮输入成本约为 $0.029 ，加上输出后合计约 $0.036",
+          "$11.5%\\to15.0%$",
+          "KL $(P‖Q) \\neq$ KL $(Q‖P)$",
+          "$•$ Action model",
+          "$$\n    d_{L2}^2 = \\underbrace{\\|a\\|^2 + \\|b\\|^2}_{常数 2}\n$$",
+        ].join("\n\n");
+        const { container } = render(<MarkdownRenderer content={md} />);
+        expect(container.querySelector(".wiki-markdown-body")).not.toBeNull();
+        expect(warn).not.toHaveBeenCalled();
+      } finally {
+        warn.mockRestore();
+      }
+    });
+
+    it("display 公式下标裸 CJK 包进 \\text{}，渲染为文本模式", () => {
+      // mdast-util-math 对 display 公式把值存两份（node.value + data.hChildren 内
+      // code>text 副本），须同步更新才能到达 KaTeX——本用例锁住该路径。
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      try {
+        const md = "$$\n    d_{L2}^2 = \\underbrace{\\|a\\|^2 + \\|b\\|^2}_{常数 2} - 2\\underbrace{(a\\cdot b)}_{\\text{点积/Cos}}\n$$";
+        const { container } = render(<MarkdownRenderer content={md} />);
+        const anns = [...container.querySelectorAll("annotation")].map((a) => a.textContent ?? "");
+        const target = anns.find((t) => t.includes("d_{L2}"));
+        expect(target).toContain("_{\\text{常数 2}}");
+      } finally {
+        warn.mockRestore();
+      }
+    });
+  });
 });
