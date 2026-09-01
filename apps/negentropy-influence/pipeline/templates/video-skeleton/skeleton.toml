@@ -58,6 +58,8 @@ baselineOf = "self-evolution"
 [classes]
 frozen = [
   "video/.npmrc",
+  # 与 .npmrc 同属隔离契约：缺此文件时嵌套 install 会覆写根 lockfile（ISSUE-175）
+  "video/pnpm-workspace.yaml",
   "video/tsconfig.json",
   "video/remotion.config.ts",
   "video/src/index.ts",

@@ -3745,3 +3745,106 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **同类问题影响**：所有会改 `sampling_suffix` 的参数（temperature/top-p/top-k/length-penalty/
   repetition-penalty/max-mel-tokens）都有同一形态——对成片集做**实验性**参数调整时，
   先 `--plan` 看失配面，再决定。
+
+## ISSUE-175 pnpm 12 升级：嵌套工程 `install --ignore-workspace` 会**静默覆写根 lockfile**，故障延后到 Docker 才以「overrides 不符」现形（2026-09-01）
+
+- **问题描述**：把 pnpm 从 11.25.0 升到 12.2.1（`latest` dist-tag 当时仍指向 11.25.0）时踩到四个坑，
+  其中第 ④ 个会**破坏数据**：① `packageManager` 的 integrity 编码抄错；② 旧 lockfile 上
+  `--frozen-lockfile` 直接硬失败；③ 嵌套工程加 `--frozen-lockfile` 报
+  `ERR_PNPM_PACKAGE_MANAGER_NO_IMPORTER`；④ **嵌套工程 `pnpm install --ignore-workspace`
+  把仓库根 `pnpm-lock.yaml` 覆写成"只含该嵌套工程"的 lockfile，全部 overrides 丢失**。
+- **表因与根因**：
+  1. **integrity 编码不同源**。npm registry 的 `dist.integrity` 是 SRI 标准的 **base64**
+     （`sha512-9Vymiqy…==`），`packageManager` 字段要的是 corepack 的 **hex**
+     （`sha512.f55ca68a…`）。二者只差一个分隔符（`-` vs `.`），肉眼极易误判为同一编码。
+     换算：`Buffer.from(b64,'base64').toString('hex')`；**换算方法必须先用在用版本反向复算验证**
+     （本次用 11.25.0 复算命中仓库原值后才敢写 12.2.1）。corepack 这次报错友好，别的工具未必。
+  2. **v12 新增 `packageManagerDependencies`**：把 pnpm 自身与 8 个平台的 `@pnpm/exe.*` 原生二进制
+     （v12 起 CLI 是 Rust 实现）记进 lockfile，落盘为**多文档 YAML**——第 1–100 行是新增的
+     packageManager 文档，第 101 行 `---` 之后才是原项目文档（原文档逐字节未变）。
+     关键后果：**旧 lockfile 上 `pnpm install --frozen-lockfile` 会硬失败**
+     （`Cannot update packageManagerDependencies with "frozen-lockfile"`），即 CI / Docker 的执行路径
+     会当场红。**这一段 lockfile 变更是升级的必要组成，不是可选副产品。**
+  3. 同一机制在嵌套工程上翻车两次。嵌套 Remotion 工程不 pin `packageManager`，corepack 沿目录树
+     向上找到仓库根的 pin，于是 pnpm 把**仓库根**当作 lockfile 锚点——`--frozen-lockfile` 下
+     禁止写入且找不到对应 importer，报 ③；**不带 frozen 时它就直接写**，用嵌套工程的解析结果
+     覆盖根 lockfile，这就是 ④。全过程零报错，唯一线索是进度条上一个不起眼的 `../..` 前缀。
+  4. **④ 的症状与病灶相距极远**：根 lockfile 被毁后本地一切照常（node_modules 已就绪），
+     直到 `docker build` 才以 `ERR_PNPM_LOCKFILE_CONFIG_MISMATCH`（"当前 overrides 配置与 lockfile
+     中的值不符"）现形——报错指向 overrides，而真正被动过的是 lockfile 的**整体身份**。
+- **实测取证（隔离夹具，非推断）**：
+  - v12 复现：根 lockfile 128 行 / `overrides=1` / importers=`.`+`pkgs/a`
+    → 在嵌套目录跑一次 `pnpm install --ignore-workspace`
+    → 123 行 / **`overrides=0`** / importers=`.`+`episodes/vid`，且嵌套工程自己的 lockfile **未生成**。
+  - **v11 对照组：根 lockfile 逐字节不变，嵌套 lockfile 正常生成** ⇒ 确证为 v12 独有回归。
+  - **失败的缓解**：给嵌套工程自身补 `packageManager` pin **无效**，根 lockfile 照样被覆写。
+- **处理方式**：
+  1. 根 `package.json#packageManager` → `pnpm@12.2.1+sha512.f55ca68a…`（hex）。CI 的
+     [`setup-pnpm-ui`](../../.github/actions/setup-pnpm-ui/action.yml) /
+     [`setup-pnpm-wiki`](../../.github/actions/setup-pnpm-wiki/action.yml) 用不带 version 的
+     `pnpm/action-setup@v4` 自动继承，无需改动——**单一事实源在这里兑现了收益**。
+  2. **给 8 集 + 骨架模板的 `video/` 各加一份 `pnpm-workspace.yaml`（`packages: []`）**，把每个嵌套
+     工程钉成它自己的 workspace 根。实测：带不带 `--ignore-workspace`，根 lockfile 均零变更，
+     嵌套工程正常生成 22 行单文档 lockfile（不含 packageManagerDependencies，故 8 份既有
+     lockfile 无需改动）。该文件已登记进
+     [`skeleton.toml`](../../apps/negentropy-influence/pipeline/templates/video-skeleton/skeleton.toml)
+     的 `frozen` 清单受漂移门执法（受门 17→18 文件）；`scaffold.py` 用 `rglob` 全量复制，新集自动继承。
+  3. 顺带消除两处**第二事实源**：[`docker/frontend/Dockerfile`](../../docker/frontend/Dockerfile) 与
+     [`docker/wiki/Dockerfile`](../../docker/wiki/Dockerfile) 原为 `corepack prepare pnpm@latest
+     --activate`。npm 的 `latest` 与 `packageManager` 是两条独立漂移的轨道，升级后立即分叉
+     （该层预热 11.25.0，`pnpm install` 却按 pin 另取 12.2.1）。改为 `corepack enable`
+     + COPY 清单后 `corepack install`（不带参数＝读本地 `packageManager`），层缓存不变。
+  4. lockfile 用非 frozen install 重建（+101 行），并**逐字节校验 doc2 与升级前一致**，
+     确保没有夹带依赖重解析。
+  5. 多文档格式撞上 pre-commit 的 `check-yaml`（默认只许单文档），加
+     `exclude: ^pnpm-lock\.yaml$` **只豁免这份机器产物**——而非全局开
+     `--allow-multiple-documents` 把手写 YAML 的约束一起放掉。已做反向正控：
+     给 `pnpm-workspace.yaml` 临时插入第二个文档，门确实报红。
+- **验证结论**：workspace 键校验（v12 把未识别键从静默忽略改为硬报错
+  `ERR_PNPM_UNRECOGNIZED_WORKSPACE_SETTINGS`）**通过**，`packages`/`allowBuilds`/`catalog`/`overrides`
+  均在册；最担心的 peer 解析 canonical cycle breaking **未触发 re-key**（`Lockfile is up to date`）；
+  `pnpm -r typecheck` 0 error、`pnpm test` 1152 passed、`pnpm build` 三个 Next 应用全绿；
+  **两个 Docker 镜像本地构建成功**（frontend 493MB / wiki 24.6MB，`corepack install` 正确解析到
+  12.2.1）；`pipeline/tests` 261 项全绿、`verify_skeleton --strict` 未登记漂移 0 处；
+  `globalShims` 新默认（`{node,deno,bun:true}`）**零副作用**——未生成任何全局 shim，`node` 仍首位
+  命中 nvm。另注意 v12 每次 install 会跑一遍 supply-chain policy 校验（根 workspace 1264 entries ≈ 43s），
+  是新增的固定开销。
+- **回滚可行性（已实测，勿凭直觉推断）**：先验假设是"多文档 lockfile 会让 v11 读不懂，回滚不对称"，
+  **实测推翻**——隔离工程里用 v12 生成多文档 lockfile 后把 `packageManager` 回退到 11.25.0，
+  pnpm 11.25.0 `install --frozen-lockfile` 正常通过（`Lockfile is up to date`），且**原样保留**
+  v12 写入的 packageManager 文档（frozen 与非 frozen 两种写法皆不剥离）。即 v11 对该文档是前向兼容的
+  惰性忽略，回滚只需改回 `package.json` 一处。
+- **后续防范**：
+  1. **升级包管理器后，第一个要验的不是"能不能装"，而是"lockfile 还是不是原来那个 lockfile"**。
+     本次 `git status` 只显示"pnpm-lock.yaml modified"——与预期中的变更同名，于是被一眼放过；
+     真正该做的是 `git diff --stat` 看量级、并核对 `overrides` / `importers` 等结构性锚点仍在。
+     [`pipeline/README.md`](../../apps/negentropy-influence/pipeline/README.md) 早有"装完检查根
+     lockfile 零变更"的纪律，说明这个危险区**此前已被识别**，只是 v12 把"偶尔"变成了"必然"。
+  2. **`latest` dist-tag 未切换＝上游自己说"还不建议默认"**。本次是在 `latest` 仍指向 11.25.0 时
+     抢升（12.0.0 发布 6 天内已迭代到 12.2.1），属知情决策；后续同类升级须显式核对
+     `npm view pnpm dist-tags`，把"`latest` 指向哪"作为独立于版本号的判据记录下来。
+  3. **`@latest` 与显式 pin 并存即分叉**——可跨文件复用的类模式。仓库内任何
+     `install/prepare <tool>@latest` 都应先问"这个工具是否已有单一事实源 pin"。
+  4. **"隔离"不是一个布尔量**。嵌套工程此前有三重隔离声明（`.npmrc` 的 `ignore-workspace=true`、
+     命令行 `--ignore-workspace`、根 workspace glob 不匹配），v12 仍从第四个维度
+     （`packageManager` 的目录树向上查找）穿透进来。判断隔离是否成立，要问的是
+     "**还有哪些机制会沿目录树向上走**"，而不是"我声明了几次隔离"。
+  5. `package.json#pnpm` 字段自 v11 起失效（[ISSUE-076](#issue-076-pnpm-v11-升级后-pnpm-install-报-err_pnpm_ignored_builds--packagejsonpnpmoverrides-静默失效2026-05-08)）
+     的状况在 v12 **未恶化**，仍是 WARN；[ISSUE-166](#issue-166-err_pnpm_ignored_builds-在-esbuild-上是无害噪声不要为消音改动跨集冻结文件2026-08-21)
+     "不为消音改动跨集冻结文件"的裁决继续有效——本次新增 `pnpm-workspace.yaml` 是出于
+     **数据安全的独立必要性**，故**刻意不**顺手把失效的 `onlyBuiltDependencies` 迁进去：
+     那会让已发布集的 esbuild postinstall 从"被拦"变成"执行"，是与本次无关的行为变更。
+- **同类问题影响**：与 [ISSUE-076](#issue-076-pnpm-v11-升级后-pnpm-install-报-err_pnpm_ignored_builds--packagejsonpnpmoverrides-静默失效2026-05-08)
+  （v10→v11）构成升级序列。凡"子目录里跑包管理器"的场景都需重新体检。
+  [`travel-agent-ui`](../../apps/cognizes/src/cognizes/examples/e2e_travel_agent/frontend/travel-agent-ui)
+  （同为解耦独立安装，见 `pnpm-workspace.yaml` 内注）**已用完整 5 member 夹具实测**，是本仓
+  当前唯一还敞着的同款入口——它连 `.npmrc` 都没有，三重隔离声明一条不具备（8 集 `video/` 至少还有）：
+  - 根 `pnpm-workspace.yaml` 内注教的**裸 `pnpm install` 不覆写**根 lockfile，只是
+    `Scope: all 5 workspace projects` 装到仓库根、子目录不生成 `node_modules/`
+    ——**该示例按文档跑不起来，但无数据损失**。
+  - 覆写根 lockfile 的是 **`pnpm install --ignore-workspace`**：实测 12991 行 → 12705 行、
+    `overrides` 归零、子目录不生成 lockfile，与 8 集 `video/` 同一形态，线索同样只有
+    进度条上的 `../../../../../../../..`。
+  - 故危险路径是"**发现裸 install 没装到子目录 → 照 8 集的习惯补 `--ignore-workspace`**"。
+    修复照搬本次方案（补一份 `packages: []` 的 `pnpm-workspace.yaml`）即可，因不属 pnpm 升级
+    的必要变更而未纳入本次改动；触碰该示例前先补文件，勿先跑安装。

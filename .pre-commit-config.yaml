@@ -24,6 +24,9 @@ repos:
         args: [--markdown-linebreak-ext=md]
       - id: end-of-file-fixer
       - id: check-yaml
+        # pnpm 12 起根 pnpm-lock.yaml 是多文档 YAML（packageManagerDependencies 独占首个
+        # 文档，见 ISSUE-175）；只豁免这份机器产物，手写 YAML 仍受单文档校验约束。
+        exclude: ^pnpm-lock\.yaml$
       - id: check-toml
       - id: check-merge-conflict
       - id: check-added-large-files
