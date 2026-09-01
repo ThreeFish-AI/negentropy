@@ -62,3 +62,4 @@
   1. **字段 label 与输入控件对一致性**：表单中字段的 label 与输入控件对应当总是处在同一行（不要各占一行），此外 label 一律仅占 1/12 的宽度，label 长度超过占位宽度时直接截断，并使用 Tooltip 显示完整 label；
   2. **Field 的 label 与说明文案**：Field 的 label 统一使用英文词汇，说明文案一律使用 label 右侧的 提示 Tooltip 进行显示；
 - **Reference Specifications (IEEE)**：为保障工程决策的可追溯性与学术严谨性，核心引用需遵循 [reference-specifications.md](docs/.agents/reference-specifications.md)IEEE 标准引用格式；
+- **精简注释**：注释要保持精简明要，可以修改对齐注释含义，不要一味增加内容；
