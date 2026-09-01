@@ -1,0 +1,4 @@
+# 把本工程钉成它自己的 pnpm workspace 根——这是本文件存在的唯一理由。
+# pnpm 12 起仅靠 `--ignore-workspace` 不够：pnpm 仍会沿 packageManager 向上锚定到仓库根，
+# 用本工程的解析结果覆写根 pnpm-lock.yaml（overrides 全丢）且当场不报错。见 ISSUE-175。
+packages: []

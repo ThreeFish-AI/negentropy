@@ -60,7 +60,7 @@ $P/
 │   ├── narration.json      # 派生物（build_narration.py 生成）
 │   └── storyboard.md       # 分镜表（镜号↔句 id 区间↔画面↔动效）
 ├── scripts/*.py            # 薄包装 → ../../pipeline/scripts/（保 CLI 契约）
-├── video/                  # Remotion 独立 pnpm 工程（--ignore-workspace 隔离）
+├── video/                  # Remotion 独立 pnpm 工程（自带 pnpm-workspace.yaml，钉为独立 workspace 根）
 └── out/                    # 渲染产物（gitignored）
 ```
 
@@ -158,6 +158,9 @@ schema、默认值与校验的单一事实源是 [scripts/config.py](./scripts/c
    跑完立刻 `uv run --no-project $R/verify_skeleton.py` 确认新集与模板零漂移。
 2. `theme.ts` 换本集概念色；`video/src/scenes/*` 与 `Main.tsx` 注册表全部新写。
 3. `cd video && pnpm install --ignore-workspace`（必须显式忽略根 workspace；`onlyBuiltDependencies: [esbuild]` 已在 package.json）；装完检查根 lockfile 零变更。
+   > pnpm 12 起只声明 `--ignore-workspace` 不够：pnpm 仍会沿 `packageManager` 向上锚定到仓库根，
+   > **覆写根 `pnpm-lock.yaml`** 且当场不报错。隔离由 `video/pnpm-workspace.yaml` 真正兜住
+   > （[ISSUE-175](../../../docs/.agents/issue.md)）。
    > pnpm ≥ 11 会提示 `package.json` 的 `pnpm` 字段不再被读取，并报 `ERR_PNPM_IGNORED_BUILDS: esbuild`
    > （[ISSUE-076](../../../docs/.agents/issue.md)）。**已实测确认对本工程无害**：esbuild 的平台二进制
    > 是 optionalDependency，落地不依赖 postinstall —— 旧写法下 `remotion bundle` 端到端通过。

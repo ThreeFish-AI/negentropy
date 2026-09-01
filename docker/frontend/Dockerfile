@@ -11,12 +11,16 @@ ARG TARGET_SERVICE=negentropy-ui
 # ── Stage 1: Install dependencies ───────────────────────────────────────────
 FROM node:22-slim AS deps
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable
 
 WORKDIR /app
 
 # 先复制 workspace 根文件（利用 Docker 层缓存）
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+
+# pnpm 版本单一事实源＝根 package.json#packageManager（`corepack install` 不带参数即读本地清单）。
+# 勿改回 `corepack prepare pnpm@latest`：npm 的 latest 与 packageManager 会各自漂移（ISSUE-175）。
+RUN corepack install
 
 # 复制所有 package.json（workspace resolution 需要）
 COPY packages/agents-chat-core/package.json ./packages/agents-chat-core/package.json
