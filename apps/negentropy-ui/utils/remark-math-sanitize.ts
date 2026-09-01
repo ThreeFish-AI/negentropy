@@ -5,11 +5,14 @@ import { visit } from "unist-util-visit";
  * remarkMathSanitize —— 净化 PDF 提取语料中 remark-math 产生的病态公式节点，
  * 消除 rehype-katex 构建期告警与实际渲染缺陷。须挂在 `remarkMath` 之后。
  *
- * ⚠️ 本文件与 `apps/negentropy-wiki/src/components/markdown/remark-math-sanitize.ts`
- * 是**逐字节孪生副本**。两端渲染同一份 PDF 提取语料（wiki 静态站 / UI 知识库文档详情页），
- * 判据一旦单边漂移即产生渲染不对称。未提为共享包是因 wiki 无 workspace 依赖且以
- * GitHub Pages 为出口，为单个插件引入构建链的爆炸半径过大（参照 rehype-notranslate
- * 亦为单端持有）。**改动此文件时必须同步另一端，并同步两端回归用例。**
+ * ⚠️ 本文件是**逐字节孪生副本**，同时存在于：
+ *   - `apps/negentropy-wiki/src/components/markdown/remark-math-sanitize.ts`
+ *   - `apps/negentropy-ui/utils/remark-math-sanitize.ts`
+ * 两端渲染同一份 PDF 提取语料（wiki 静态站 / UI 知识库文档详情页），判据一旦单边漂移
+ * 即产生渲染不对称。未提为共享包是因 wiki 无 workspace 依赖且以 GitHub Pages 为出口，
+ * 为单个插件引入构建链的爆炸半径过大（参照 rehype-notranslate 亦为单端持有）。
+ * **改动任一份时必须同步另一份，并同步两端回归用例。**
+ * 一致性由 `scripts/check_twin_files.py` 在 pre-commit 与 CI 双侧执法（精确字节相等）。
  *
  * 三类病灶与处置：
  *  1. 货币 `$` 误配对：正文「按输入 $3/ 百万 token 、输出 $15/ 百万 token」的相邻
