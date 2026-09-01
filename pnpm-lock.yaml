@@ -411,6 +411,12 @@ importers:
       three-spritetext:
         specifier: ^1.10.0
         version: 1.10.0(three@0.184.0)
+      unified:
+        specifier: ^11.0.5
+        version: 11.0.5
+      unist-util-visit:
+        specifier: ^5.0.0
+        version: 5.1.0
       zod:
         specifier: 3.24.4
         version: 3.24.4

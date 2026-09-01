@@ -223,7 +223,7 @@ describe("MarkdownRenderer", () => {
         // 未转义时 % 会注释掉闭合 }，KaTeX 抛错并渲染 .katex-error。
         expect(container.querySelector(".katex-error")).toBeNull();
         // KaTeX 文本模式把空格输出为 NBSP（U+00A0），归一后再比对。
-        expect(katex?.textContent?.replace(/ /g, " ")).toContain("增长 50%");
+        expect(katex?.textContent?.replace(/\u00A0/g, " ")).toContain("增长 50%");
         expect(warn).not.toHaveBeenCalled();
       } finally {
         warn.mockRestore();
