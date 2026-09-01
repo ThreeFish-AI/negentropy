@@ -137,7 +137,7 @@ schema、默认值与校验的单一事实源是 [scripts/config.py](./scripts/c
 ## 四、复用边界（显式权衡）
 
 - **Python 脚本：集中共享（SSOT）**——三个纯文本变换工具，跨集零差异，中心化防 split-brain。
-- **Remotion 工程原语：复制适配，不做共享包**——`timing.ts` / `Subtitle` / `cards.tsx` / `theme.ts` 等每集复制后按本集视觉契约修改。理由：每集工程须保持 pnpm `--ignore-workspace` 独立可渲染（嵌套 workspace 隔离 + Remotion 版本自由），共享 TS 包会把「一集的视觉改动」泄漏进其他集。**复制源头是 [templates/video-skeleton/](./templates/video-skeleton/)**（14 个 frozen 文件 + skeleton.toml 档位清单），新集用 `scaffold.py` 实例化、「改任何一处须同步」由 `verify_skeleton.py` 机器执法——此前「以任一既有集为模板」的说法等于给 391 行冻结基建设 4 个同权真理声明者，且纸面义务从未被执行过（详见 skeleton.toml 内注）。同类做法：`go mod vendor` + `go mod verify`（物理副本 + 校验门）、Copier（模板 + 应答记录）。
+- **Remotion 工程原语：复制适配，不做共享包**——`timing.ts` / `Subtitle` / `cards.tsx` / `theme.ts` 等每集复制后按本集视觉契约修改。理由：每集工程须保持 pnpm `--ignore-workspace` 独立可渲染（嵌套 workspace 隔离 + Remotion 版本自由），共享 TS 包会把「一集的视觉改动」泄漏进其他集。**复制源头是 [templates/video-skeleton/](./templates/video-skeleton/)**（15 个 frozen 文件 + skeleton.toml 档位清单），新集用 `scaffold.py` 实例化、「改任何一处须同步」由 `verify_skeleton.py` 机器执法——此前「以任一既有集为模板」的说法等于给 391 行冻结基建设 4 个同权真理声明者，且纸面义务从未被执行过（详见 skeleton.toml 内注）。同类做法：`go mod vendor` + `go mod verify`（物理副本 + 校验门）、Copier（模板 + 应答记录）。
 - **每集视觉契约独立设计**（色彩语义映射到本集核心概念），但底层规范复用：深色底 `#0E1116` 系、警示红 `#FF5C5C`、确认绿 `#7ED321`、金句卡衬线体、公式只作角标彩蛋。
 
 ## 五、音画同步机制（零手工对轨）
@@ -153,7 +153,7 @@ schema、默认值与校验的单一事实源是 [scripts/config.py](./scripts/c
    uv run --no-project $R/scaffold.py <slug>-video --title "本集标题" \
        --ref <样本名> --ref-sha1 <12位指纹> --style <档名>
    ```
-   scaffold 复制 14 个 frozen 文件 + 渲染 4 个模板（package.json / theme.ts / pipeline.toml / README），
+   scaffold 复制 15 个 frozen 文件 + 渲染 4 个模板（package.json / theme.ts / pipeline.toml / README），
    **刻意不生成 scenes/**（样例留在模板里）、不改根 `.gitignore`（已通配到分集级）、不写 series.json。
    跑完立刻 `uv run --no-project $R/verify_skeleton.py` 确认新集与模板零漂移。
 2. `theme.ts` 换本集概念色；`video/src/scenes/*` 与 `Main.tsx` 注册表全部新写。

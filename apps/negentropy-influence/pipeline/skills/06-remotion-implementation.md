@@ -20,7 +20,7 @@ uv run --no-project $R/verify_skeleton.py --strict  # 有未登记漂移即失�
 
 要点（详见 skeleton.toml 内注）：
 
-- **A 档 · frozen 逐字节保留**（14 个文件，含 `src/timing.ts` 的 computeTimeline + beatWindow + SCENE_FADE_FRAMES、`@remotion/media` 的 NarrationAudio、fitText 的 Subtitle、幕间呼吸淡入淡出的 SceneFade、cards、三份薄包装与全部工程配置）。改任何一处 = 改模板 + 改各集，`--strict` 会盯住。
+- **A 档 · frozen 逐字节保留**（15 个文件，含 `src/timing.ts` 的 computeTimeline + beatWindow + SCENE_FADE_FRAMES、`@remotion/media` 的 NarrationAudio、fitText 的 Subtitle、幕间呼吸淡入淡出的 SceneFade、cards、三份薄包装与全部工程配置）。改任何一处 = 改模板 + 改各集，`--strict` 会盯住。
 - **B 档 · overridable**：`src/timing.json`（时序常数 SSOT——timing.ts 与 Python 侧共读同一文件，**改常量只改此处**）。覆写许可存在但四集从未行使过。
 - **regioned**：`src/Main.tsx` 区外冻结（每集内容只有场景 import 与 SCENE_COMPONENTS 注册表）；**structured**：`package.json` 门住依赖零漂移、忽略 name/description。
 - **每集改写**：`src/design/theme.ts`（本集色板）、`src/scenes/*`（全部重写；骨架样例见模板里的 scenes-EXAMPLE.tsx.txt）。

@@ -3835,6 +3835,16 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
      **数据安全的独立必要性**，故**刻意不**顺手把失效的 `onlyBuiltDependencies` 迁进去：
      那会让已发布集的 esbuild postinstall 从"被拦"变成"执行"，是与本次无关的行为变更。
 - **同类问题影响**：与 [ISSUE-076](#issue-076-pnpm-v11-升级后-pnpm-install-报-err_pnpm_ignored_builds--packagejsonpnpmoverrides-静默失效2026-05-08)
-  （v10→v11）构成升级序列。凡"子目录里跑包管理器"的场景都需重新体检：
+  （v10→v11）构成升级序列。凡"子目录里跑包管理器"的场景都需重新体检。
   [`travel-agent-ui`](../../apps/cognizes/src/cognizes/examples/e2e_travel_agent/frontend/travel-agent-ui)
-  （同为解耦独立安装，见 `pnpm-workspace.yaml` 内注）尚未验证，下次触碰时须先备份根 lockfile。
+  （同为解耦独立安装，见 `pnpm-workspace.yaml` 内注）**已用完整 5 member 夹具实测**，是本仓
+  当前唯一还敞着的同款入口——它连 `.npmrc` 都没有，三重隔离声明一条不具备（8 集 `video/` 至少还有）：
+  - 根 `pnpm-workspace.yaml` 内注教的**裸 `pnpm install` 不覆写**根 lockfile，只是
+    `Scope: all 5 workspace projects` 装到仓库根、子目录不生成 `node_modules/`
+    ——**该示例按文档跑不起来，但无数据损失**。
+  - 覆写根 lockfile 的是 **`pnpm install --ignore-workspace`**：实测 12991 行 → 12705 行、
+    `overrides` 归零、子目录不生成 lockfile，与 8 集 `video/` 同一形态，线索同样只有
+    进度条上的 `../../../../../../../..`。
+  - 故危险路径是"**发现裸 install 没装到子目录 → 照 8 集的习惯补 `--ignore-workspace`**"。
+    修复照搬本次方案（补一份 `packages: []` 的 `pnpm-workspace.yaml`）即可，因不属 pnpm 升级
+    的必要变更而未纳入本次改动；触碰该示例前先补文件，勿先跑安装。
