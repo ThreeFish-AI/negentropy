@@ -449,8 +449,8 @@ async def synthesize(req: SynthesizeRequest):
     ref = Path(req.ref_path).expanduser()
     if not ref.is_file():
         raise HTTPException(400, f"参考音频不存在: {ref}")
-    # 三种情感来源互斥：向量 / 参考音频 / 自然语言描述。上游对「向量+音频」是静默丢弃音频，
-    # 静默降级比报错更难排查，故此处显式拒绝。
+    # 三种情感来源互斥：向量 / 参考音频 / 自然语言描述。上游会把向量与音频共同混合，
+    # 但 emo_alpha 会被消费两次；静默降级比报错更难排查，故此处显式拒绝。
     sources = [
         name
         for name, val in (
