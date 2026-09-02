@@ -1,0 +1,43 @@
+name: Twin Files Consistency
+
+# 孪生文件（逐字节副本）一致性校验 —— 横切关注点，正交于各 app CI。
+#
+# 某些模块因构建边界无法提为共享包，只能以逐字节副本形式在多处持有。
+# 副本的固有风险是单边漂移：改了一处忘了另一处，缺陷从此静默分叉。
+# 本 job 校验登记表内每组副本精确字节相等，漂移时打印统一 diff 指明同步方向。
+#
+# 登记表与判据详见 scripts/check_twin_files.py。pre-commit 侧有同名钩子做本地前置拦截；
+# CI 侧是兜底 —— 未装 hooks 或 --no-verify 绕过的提交仍会在此被拦下。
+#
+# fail-only：检测到漂移即阻塞合并，不自动同步（哪份权威取决于改动意图，机器不该代猜）。
+
+on:
+  pull_request:
+    paths:
+      - "scripts/check_twin_files.py"
+      - "apps/negentropy-wiki/src/components/markdown/remark-math-sanitize.ts"
+      - "apps/negentropy-ui/utils/remark-math-sanitize.ts"
+      - ".github/workflows/twin-files-consistency.yml"
+  push:
+    branches: [master, main]
+    paths:
+      - "scripts/check_twin_files.py"
+      - "apps/negentropy-wiki/src/components/markdown/remark-math-sanitize.ts"
+      - "apps/negentropy-ui/utils/remark-math-sanitize.ts"
+
+permissions:
+  contents: read
+
+jobs:
+  twin-files-consistency:
+    name: Twin Files Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Check twin files are byte-identical
+        run: uv run --no-project scripts/check_twin_files.py

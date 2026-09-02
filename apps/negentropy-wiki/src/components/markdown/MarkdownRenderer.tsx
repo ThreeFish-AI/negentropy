@@ -7,6 +7,7 @@ import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import rehypeKatex from "rehype-katex";
 import rehypeHighlight from "rehype-highlight";
 import { rehypeNotranslate } from "./rehype-notranslate";
+import { remarkMathSanitize } from "./remark-math-sanitize";
 import { CodeBlock } from "./CodeBlock";
 import { AnchorHeading } from "./AnchorHeading";
 import { ResponsiveTable } from "./ResponsiveTable";
@@ -59,7 +60,7 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
     // Snapshot 锚定 + MutationObserver 自动重应用 + CSS Highlight API 渲染。
     <div className="wiki-markdown-body">
       <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkMath]}
+        remarkPlugins={[remarkGfm, remarkMath, remarkMathSanitize]}
         rehypePlugins={[
           rehypeRaw,
           [rehypeSanitize, wikiSanitizeSchema],

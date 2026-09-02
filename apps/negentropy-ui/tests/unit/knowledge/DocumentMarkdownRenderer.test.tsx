@@ -108,4 +108,30 @@ describe("DocumentMarkdownRenderer", () => {
     expect(figcaption).not.toBeNull();
     expect(figcaption?.textContent).toContain("Figure 1");
   });
+
+  it("PDF 语料的病态公式经 remarkMathSanitize 净化后零 KaTeX 告警", () => {
+    // 与 wiki 端 MarkdownRenderer 共用同一份提取语料，插件链须对齐（判据见
+    // utils/remark-math-sanitize.ts 的孪生副本说明）。
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const content = [
+        "按输入 $3/ 百万 token 、输出 $15/ 百万 token 的示例价格计算",
+        "$11.5%\\to15.0%$",
+        "KL $(P‖Q) \\neq$ KL $(Q‖P)$",
+        "$$\n    d_{L2}^2 = \\underbrace{\\|a\\|^2 + \\|b\\|^2}_{常数 2}\n$$",
+      ].join("\n\n");
+      const { container } = render(
+        <DocumentMarkdownRenderer
+          content={content}
+          corpusId="corpus-1"
+          documentId="document-1"
+        />,
+      );
+
+      expect(container.querySelector(".katex-error")).toBeNull();
+      expect(warn).not.toHaveBeenCalled();
+    } finally {
+      warn.mockRestore();
+    }
+  });
 });
