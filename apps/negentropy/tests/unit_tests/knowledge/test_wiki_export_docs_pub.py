@@ -126,6 +126,68 @@ async def test_db_slug_conflict_skips_docs(tmp_path: Path, docs_tree: Path):
 
 
 @pytest.mark.asyncio
+async def test_progress_bounded_and_summary_counts_docs_pack(tmp_path: Path, docs_tree: Path):
+    """进度日志按 publication 有界（与 entry 数解耦），且汇总计数含注入的 docs pack。
+
+    回归背景：``wiki_export_done`` 曾用 ``len(pubs)`` 计数，漏掉 L204 追加的合成
+    docs publication，导致同一次运行日志报 1 而 CLI 汇总报 2。
+    """
+    out = tmp_path / "content"
+    from types import SimpleNamespace
+    from uuid import UUID
+
+    from structlog.testing import capture_logs
+
+    db_pub = SimpleNamespace(
+        id=UUID("22222222-2222-4222-8222-222222222222"),
+        catalog_id=UUID("44444444-4444-4444-8444-444444444442"),
+        app_name="negentropy",
+        publish_mode="LIVE",
+        name="Wiki",
+        slug="wiki",
+        description=None,
+        status="published",
+        theme=None,
+        version=1,
+        published_at=None,
+        created_at=None,
+        updated_at=None,
+    )
+    # 全部 CONTAINER（document_id=None）：只驱动进度循环，不触发内容读取与资产下载。
+    entries = [
+        SimpleNamespace(
+            id=UUID(f"33333333-3333-4333-8333-{i:012d}"),
+            document_id=None,
+            entry_slug=f"e{i}",
+            entry_title=f"E{i}",
+            is_index_page=False,
+            entry_kind="CONTAINER",
+        )
+        for i in range(50)
+    ]
+
+    svc = WikiExportService()
+    with _patch_docs_cfg(docs_tree):
+        with (
+            patch(f"{_MOD}.WikiDao.list_publications", new=AsyncMock(return_value=([db_pub], 1))),
+            patch(f"{_MOD}.WikiDao.get_entries", new=AsyncMock(return_value=entries)),
+            patch(f"{_MOD}.WikiDao.get_nav_tree", new=AsyncMock(return_value=[])),
+            patch(f"{_MOD}.get_publication_graph", new=AsyncMock(return_value=None)),
+            capture_logs() as logs,
+        ):
+            await svc.export_all_published(db=None, out_dir=out)
+
+    # 50 个 entry → step=5 → 10 条；无论语料多大都不逐条刷屏。
+    progress = [r for r in logs if r["event"] == "wiki_export_progress"]
+    assert 1 <= len(progress) <= 11, f"进度日志应有界，实际 {len(progress)} 条"
+    assert progress[-1]["entries_done"] == len(entries), "末条进度须覆盖最后一个 entry"
+
+    done = next(r for r in logs if r["event"] == "wiki_export_done")
+    # DB pub（wiki）+ 合成 docs pack（negentropy）= 2；修复前此处为 len(pubs)=1。
+    assert done["publications"] == 2
+
+
+@pytest.mark.asyncio
 async def test_idempotent_across_exports(tmp_path: Path, docs_tree: Path):
     out1, out2 = tmp_path / "c1", tmp_path / "c2"
     with _patch_docs_cfg(docs_tree):

@@ -95,6 +95,7 @@ class WikiExportService:
         result.generated_at = datetime.utcnow().isoformat() + "Z"
 
         pubs, _total = await WikiDao.list_publications(db, status="published", offset=0, limit=200)
+        logger.info("wiki_export_started", publications=len(pubs), out_dir=str(out_dir))
 
         self._reset(out_dir)
         entries_dir = out_dir / "entries"
@@ -118,6 +119,7 @@ class WikiExportService:
             entries = await WikiDao.get_entries(db, pub.id)
             doc_entries = [e for e in entries if e.document_id is not None]
             entries_count = sum(1 for e in entries if getattr(e, "entry_kind", None) == "DOCUMENT") or len(doc_entries)
+            logger.info("wiki_export_publication", slug=slug, entries=len(entries))
 
             # publication.json
             pub_payload = self._serialize_publication(pub, entries_count)
@@ -134,7 +136,10 @@ class WikiExportService:
             # entries-index.json + entries/{id}.json
             entry_items: list[dict[str, Any]] = []
             slug_to_id: dict[str, str] = {}
-            for e in entries:
+            entries_total = len(entries)
+            # 进度节流：每 publication 恒定约 10 行，输出量与语料规模解耦（逐条明细见 debug）。
+            progress_step = max(1, entries_total // 10)
+            for idx, e in enumerate(entries, start=1):
                 entry_items.append(
                     {
                         "id": str(e.id),
@@ -150,14 +155,23 @@ class WikiExportService:
                     content_data = await WikiDao.get_entry_content(db, e.id)
                     if content_data is None:
                         logger.warning("wiki_export_entry_no_content", entry_id=str(e.id))
-                        continue
-                    resp = build_entry_content_response(e.id, content_data, entry_slug=e.entry_slug)
-                    payload = resp.model_dump(mode="json")
-                    payload["markdown_content"] = await self._rewrite_asset_links(
-                        payload.get("markdown_content") or "", assets_dir=assets_dir
+                    else:
+                        resp = build_entry_content_response(e.id, content_data, entry_slug=e.entry_slug)
+                        payload = resp.model_dump(mode="json")
+                        payload["markdown_content"] = await self._rewrite_asset_links(
+                            payload.get("markdown_content") or "", assets_dir=assets_dir
+                        )
+                        self._write_json(entries_dir / f"{e.id}.json", payload, result)
+                        result.entries += 1
+
+                if idx % progress_step == 0 or idx == entries_total:
+                    logger.info(
+                        "wiki_export_progress",
+                        slug=slug,
+                        entries_done=idx,
+                        entries_total=entries_total,
+                        assets=len(self._asset_files),
                     )
-                    self._write_json(entries_dir / f"{e.id}.json", payload, result)
-                    result.entries += 1
 
             self._write_json(
                 pub_dir / "entries-index.json",
@@ -230,7 +244,8 @@ class WikiExportService:
 
         logger.info(
             "wiki_export_done",
-            publications=len(pubs),
+            # 用 result.publications：含注入的 docs pack，与 to_dict()/CLI 汇总口径一致。
+            publications=len(result.publications),
             entries=result.entries,
             graphs=result.graphs,
             assets=len(self._asset_files),
