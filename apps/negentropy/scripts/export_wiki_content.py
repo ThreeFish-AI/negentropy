@@ -21,27 +21,45 @@ from pathlib import Path
 # 让 `from _db import ...` 可用（scripts/ 同目录共享工具）。
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from _logging import configure_script_logging  # noqa: E402
+
+# 顺序即正确性：先配置日志，再 import 下方重型模块——后者在 import 期即注册 disposer
+# 等并打日志，若晚于本行，这些早期事件会落到 structlog 出厂默认（不过滤 DEBUG、非项目格式）。
+configure_script_logging()
+
 from _db import run_script, script_engine  # noqa: E402
 from sqlalchemy.ext.asyncio import async_sessionmaker  # noqa: E402
 
 from negentropy.knowledge.lifecycle.wiki_export_service import WikiExportService  # noqa: E402
+from negentropy.logging import get_logger  # noqa: E402
+
+logger = get_logger("negentropy.scripts.export_wiki_content")
 
 
-async def _run(out_dir: Path) -> None:
-    async with script_engine() as engine:
-        session_factory = async_sessionmaker(engine, expire_on_commit=False)
-        async with session_factory() as db:
-            service = WikiExportService()
-            result = await service.export_all_published(db, out_dir=out_dir)
+async def _run(out_dir: Path) -> int:
+    try:
+        async with script_engine() as engine:
+            session_factory = async_sessionmaker(engine, expire_on_commit=False)
+            async with session_factory() as db:
+                service = WikiExportService()
+                result = await service.export_all_published(db, out_dir=out_dir)
+    except Exception:
+        # error 级保证失败原因不被 NE_LOG_LEVEL≥WARNING 门控（stderr 已被接管，
+        # run_script 的 print 只会落成 INFO 级日志行）。退出码交由 run_script。
+        logger.exception("wiki_export_cli_failed", out_dir=str(out_dir))
+        return 1
 
+    # 用结构化事件而非 print 输出汇总：configure_script_logging 已接管 sys.stdout。
     summary = result.to_dict()
-    print(
-        "[wiki-export] 已导出静态内容包："
-        f"{summary['publications_count']} publications / "
-        f"{summary['entries']} entries / "
-        f"{summary['graphs']} graphs / "
-        f"{summary['files_count']} files → {out_dir}"
+    logger.info(
+        "wiki_export_cli_done",
+        publications=summary["publications_count"],
+        entries=summary["entries"],
+        graphs=summary["graphs"],
+        files=summary["files_count"],
+        out_dir=str(out_dir),
     )
+    return 0
 
 
 def main() -> None:
