@@ -36,12 +36,18 @@ from negentropy.logging import get_logger  # noqa: E402
 logger = get_logger("negentropy.scripts.export_wiki_content")
 
 
-async def _run(out_dir: Path) -> None:
-    async with script_engine() as engine:
-        session_factory = async_sessionmaker(engine, expire_on_commit=False)
-        async with session_factory() as db:
-            service = WikiExportService()
-            result = await service.export_all_published(db, out_dir=out_dir)
+async def _run(out_dir: Path) -> int:
+    try:
+        async with script_engine() as engine:
+            session_factory = async_sessionmaker(engine, expire_on_commit=False)
+            async with session_factory() as db:
+                service = WikiExportService()
+                result = await service.export_all_published(db, out_dir=out_dir)
+    except Exception:
+        # error 级保证失败原因不被 NE_LOG_LEVEL≥WARNING 门控（stderr 已被接管，
+        # run_script 的 print 只会落成 INFO 级日志行）。退出码交由 run_script。
+        logger.exception("wiki_export_cli_failed", out_dir=str(out_dir))
+        return 1
 
     # 用结构化事件而非 print 输出汇总：configure_script_logging 已接管 sys.stdout。
     summary = result.to_dict()
@@ -53,6 +59,7 @@ async def _run(out_dir: Path) -> None:
         files=summary["files_count"],
         out_dir=str(out_dir),
     )
+    return 0
 
 
 def main() -> None:

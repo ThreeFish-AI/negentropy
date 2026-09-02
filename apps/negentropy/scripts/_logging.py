@@ -21,6 +21,8 @@ def configure_script_logging(*, level: str | None = None) -> None:
 
     注意：``configure_logging`` 会以 ``StreamToLogger`` 接管 ``sys.stdout`` /
     ``sys.stderr``，故调用方的 ``print`` 会被转为日志行——脚本应改用 logger 输出汇总。
+    失败路径必须显式走 ``logger.error`` / ``logger.exception``：print 只落 INFO 级，
+    会被 ``NE_LOG_LEVEL>=WARNING`` 过滤为静默失败。
     """
     configure_logging(
         level=level or settings.log_level,
