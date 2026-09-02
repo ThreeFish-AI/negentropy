@@ -155,9 +155,29 @@ uv run --no-project --with soundfile --with numpy \
 
 > 最省力的做法其实是**重录一段 10–15 秒的目标风格样本**：用你想要的那种语气念一段自己视频的开场逐字稿（比平时略快、句尾略上扬、带笑意），克隆会把这份韵律一起继承，之后连情感向量都可以只加一点点。
 
+#### 3.3b 第二轮勘探：把 `me-full-*` 纳入，并换用无量纲主指标（2026-09-02）
+
+上表的质心列是路线图 #13 改「限带质心」**之前**的旧尺子（1698–1898 Hz），与本轮的限带值（1223–1353 Hz）**不同尺，不可混排**；故本轮单列一张表。本轮新增两件事：把从未勘探的 `me-full-1`、`me-full-2-1`、`me-full-2-2`、`me-full-3`（共 663 s）纳入同一把尺子，并把主指标换成无量纲的 `IQR_rel = 起伏 ÷ F0 中位`（理由见 [ADVANCED §6.6](./INDEXTTS-2.5-ADVANCED.md)：Hz 量纲下起伏与音高耦合，「整体抬高」会假装成「起伏变大」）。目标是**抑扬顿挫**，故同时看静音占比（顿）。
+
+| 候选（12 s） | 样本 F0 | 样本起伏 | 样本音节率 | 样本限带质心 | 样本静音 | → 小样 F0 | 小样起伏 | **小样 IQR_rel** | 小样静音 |
+|---|---|---|---|---|---|---|---|---|---|
+| `me-1` @0.36s（= `me-bright`，成片在用） | 161.6 | 36.4 | 4.67 | 1223 | 0.16 | 164.6 | 38.5 | 0.234 | 0.14 |
+| **`me-1` @106s** | 151.7 | **46.9** | 4.17 | 1267 | **0.23** | **169.6** | **46.8** | **0.276** | **0.22** |
+| `me-full-3` @108s | 154.2 | 43.7 | 4.50 | 1288 | 0.19 | 158.6 | 39.7 | 0.250 | 0.15 |
+| `me-full-1` @146s | 149.5 | 44.7 | 4.42 | 1270 | 0.19 | 155.3 | 37.4 | 0.241 | 0.20 |
+| `me-full-1` @100s | 153.1 | 43.0 | 4.58 | 1353 | 0.20 | 154.2 | 35.1 | 0.228 | 0.20 |
+
+（小样 = `--style neutral --seed 4242` 纯克隆，不注入任何情感；四段候选保真旗标全 ✅。）
+
+**三条可直接复用的结论：**
+
+1. **`me-1` @106s 是目前所有已勘探选段里韵律动态最大的一段**：`IQR_rel` 比成片在用的 `me-bright` 段高 **+18%**，静音占比高 0.08——即「起伏更大且停顿更多」，正是抑扬顿挫的两个维度。且它与 `me-bright`（@0.36s）、`me-1.wav`（@180s）同源不同窗，无重叠。复现：`uv run --no-project --with soundfile --with numpy $R/prepare_ref.py ~/Documents/dify/me-1.mp3 --start 106 --duration 12 --out $V/me-1-106.wav`（sha1 `3c109eff6aa8`）。
+2. **样本起伏高 ≠ 克隆起伏高，本轮又添两个反例**：`me-full-1` @146s / @100s 的样本起伏分别 44.7 / 43.0（均高于 `me-bright` 的 36.4），克隆出来却只有 37.4 / 35.1（低于 `me-bright` 的 38.5）。**唯一有效判据始终是纯克隆小样**，样本侧指标只能用来生成候选、不能用来否决候选。
+3. **take 噪声只能在同一协议下估计**：§6.6 对 `sunny-steady @ me-bright` 的 7 句配对得到 `|ΔIQR_rel|` 中位 10.4%；旧表 `me-1` @0s 的原始 `f0_iqr` 34.1 与本表 `me-1` @0.36s 的 38.5 既不是同一窗口，也不是同一指标，不能拿来验证该噪声。故行间差异是否可解读，须在同一窗口、文本、seed 和 `IQR_rel` 口径下复测；§3.3 那句「换段落即起伏 +25~40%」仍应按原实验口径理解。
+
 ## 四、风格与参数
 
-**情感有三个来源，互斥，只能给一个**（客户端与服务端双向校验；上游对「向量 + 情感音频」是**静默丢弃音频**，本管线改为显式报错）：
+**情感有三个来源，互斥，只能给一个**（客户端与服务端双向校验；上游允许「向量 + 情感音频」共同参与混合，本管线因 `emo_alpha` 会被消费两次而显式拒绝同传）：
 
 | 来源 | 开关 | 机制 | 适用 |
 |---|---|---|---|
@@ -190,13 +210,14 @@ uv run --no-project --with soundfile --with numpy \
 | confident 自信 | 沉稳有力 | calm=.65, happy=.25 | 0.7 | 0.63 | 1.05 | 1 |
 | positive 正能量 | 昂扬向上 | happy=.75, calm=.20 | 0.7 | 0.665 | 1.0 | 1 |
 
-> **两个候选档（2026-08-20 新增，尚未定档）**：`sunny-pure`（happy 单载，砍掉 sunny 里
-> 有效强度仅 0.5625/0.6875 的 calm/surprised 配料）与 `sunny-clear`（= `sunny-steady`
+> **两个候选档（2026-08-20 新增，尚未定档）**：`sunny-pure`（happy 单载，去掉 sunny 里的
+> calm/surprised 配料；本管线不应用 WebUI 的 `emo_bias`，不能据 0.5625/0.6875 推断其
+> “不划算”，是否保留须以 A/B 与试听为准）与 `sunny-clear`（= `sunny-steady`
 > 但 df 1.05，护术语密集句的清晰度——df 方向勘误见 §4.3）。二者是**新增**而非改动生产档，
 > 故对已上线三集的缓存零影响；定档前须按
 > [INDEXTTS-2.5-ADVANCED.md §6.5](./INDEXTTS-2.5-ADVANCED.md) 的测量协议做 A/B + 人耳确认。
 
-预设可自带**束宽**（`STYLE_PRESETS` 的可选键 `beams`，缺省 1）——束宽改变韵律稳定度，属风格的一部分；命令行 `--num-beams` 显式给值时优先（故其 argparse 默认值是 `None` 而非 `1`，否则无法区分"没给"与"给了 1"）。`--list-styles` 会打印全部七档的向量/alpha/有效注入/语速/束宽。
+预设可自带**束宽**（`STYLE_PRESETS` 的可选键 `beams`，缺省 1）——束宽改变韵律稳定度，属风格的一部分；命令行 `--num-beams` 显式给值时优先（故其 argparse 默认值是 `None` 而非 `1`，否则无法区分"没给"与"给了 1"）。`--list-styles` 会打印**全部预设**的向量/alpha/有效注入/语速/束宽（档数以该输出为准——本文不复制一个会随代码漂移的数字）。
 
 > **`sunny-steady` 的来历**：与 `sunny` 同方向同强度同语速，只把束宽 1→3。同文本同样本实测：语调起伏 **48.4 → 43.5**（更收敛、更"稳"）、音节率 4.10 → 4.55，而亮度基本不掉（谱质心 1245 → 1223）——是目前唯一"不牺牲明快度就让语气更可信"的旋钮。代价是 GPT 段耗时按束宽放大：单句墙钟由 20–35 秒变为 **56–131 秒**（同机同参两次实测的区间，受机器负载影响大），整集排期须按 §4.3b 的 3 束口径乘上去。
 
@@ -275,8 +296,9 @@ curl -s http://127.0.0.1:8766/health
 uv run --no-project --with mutagen $R/tts_sample.py \
     --ref $V/me-bright.wav --style sunny --play
 
-# 4) 全风格 A/B：7 档预设按 STYLE_PRESETS 顺序各一遍，顺序试听择优
-#    neutral→passionate→lively→confident→positive→sunny→sunny-steady（末档自带 3 束，耗时见下表）
+# 4) 全风格 A/B：全部预设按 STYLE_PRESETS 顺序各一遍，顺序试听择优（档数见 --list-styles）
+#    顺序即 STYLE_PRESETS 的定义序，含 §4.1 的候选档；sunny-steady/sunny-clear 自带 3 束。
+#    下方 6.3 分钟是仅 7 档的历史测量；当前排期以 --list-styles 输出的档数与各档束宽重新估算。
 uv run --no-project --with mutagen $R/tts_sample.py \
     --ref $V/me-bright.wav --all-styles --play
 
@@ -298,7 +320,7 @@ uv run --no-project --with mutagen $R/tts_sample.py \
 | 开关 | 作用 | 默认 |
 |---|---|---|
 | `--text` / `--text-file` | 试听文本（建议 20–40 字，带数字/术语更易暴露咬字问题） | 内置一句科普文本 |
-| `--style` / `--all-styles` | 单档 / 全部 7 档预设 A/B（`--all-styles` 逐档取预设自带的 alpha/语速/束宽，故与 `--emo-vector` `--emo-alpha` `--duration-factor` `--num-beams` 互斥） | `neutral` |
+| `--style` / `--all-styles` | 单档 / **全部预设** A/B（`--all-styles` 逐档取预设自带的 alpha/语速/束宽，故与 `--emo-vector` `--emo-alpha` `--duration-factor` `--num-beams` 互斥） | `neutral` |
 | `--emo-vector` `--emo-alpha` `--duration-factor` | 手动调参，语义与取值范围同 §四 | 随风格 |
 | `--emo-ref <录音>` | 语调迁移：音色仍取 `--ref`，语气来自这段录音（见 §四） | 关 |
 | `--emo-text "<描述>"` | 自然语言描述情感（需服务端 `--use-qwen-emo`）；推出的向量会打印，可用 `--emo-vector` 固化 | 关 |
@@ -313,7 +335,7 @@ uv run --no-project --with mutagen $R/tts_sample.py \
 |---|---|---|---|
 | 单档 · 首档（含服务暖机，1 束，机器空闲） | 6.86s | 47.0s | 6.8 |
 | 单档 · 暖机后（1 束，机器空闲） | 6.0–6.9s | 20–22s | 3.2–3.4 |
-| 全 7 档 A/B（`--all-styles`，含 sunny-steady 的 3 束档，机器有其它负载） | 合计 46.2s | **6.3 分钟** | — |
+| 全档 A/B（历史基准：2026-08-19；仅 7 档，含 sunny-steady 的 3 束档，机器有其它负载） | 合计 46.2s | **6.3 分钟（历史值）** | — |
 
 > **口径提醒**：小样 RTF（暖机后、机器空闲、单句，≈3.3）与 §4.3b 整集折算 RTF（≈12–14）测的不是同一件事——后者含数小时长跑的降频、机器争用与逐句开销。上表 A/B 行即反例：机器有其它负载时单档墙钟散布在 37.7–86.6 秒（最慢的是该服务会话内首次用该样本的那档），其中 3 束的 sunny-steady 只用 38.6 秒、并未比 1 束档更慢。**小样耗时既不可线性外推到整集，也不足以据单次样本推断束宽代价**——束宽的系统性代价与整集排期一律以 §4.3b 的长跑折算口径为准。
 
@@ -441,7 +463,7 @@ cd video && pnpm run render:draft && pnpm run render   # render 脚本定义在 
 | `X-Audio-Format=wav` | 服务端 MP3 编码器探测失败 | 按 §2.3 带 `--with lameenc` 重启服务 |
 | `/health` 报 `supports_duration_factor=false` | 服务为 IndexTTS-2 | 语速控制需 v2.5：重启服务 `--indextts-version 2.5` |
 | `/health` 报 `supports_emo_text=false`，`--emo-text` 被拒 | 服务未加载 QwenEmotion | 带 `--use-qwen-emo` 重启；若报缺 `model.safetensors` 见 §2.4 补权重 |
-| 报「情感来源互斥，只能给一个」 | 同时给了 `--emo-vector`/`--emo-ref`/`--emo-text` 中的两个以上 | 三者择一（上游遇「向量+音频」会静默丢弃音频，故本管线显式拒绝，见 §四） |
+| 报「情感来源互斥，只能给一个」 | 同时给了 `--emo-vector`/`--emo-ref`/`--emo-text` 中的两个以上 | 三者择一（上游会把向量与音频共同混合，但 `emo_alpha` 会被消费两次，故本管线显式拒绝，见 §四） |
 | 生成音色「不像我」 | 样本质量问题 | 按 §三 重录/重裁：换更干净段落、保证单说话人、10–14s（先跑 `prospect_ref.py --accept` 过保真度） |
 | 长句合成失败 | 超时（HTTP_TIMEOUT=600s） | 重跑（缓存续传）；超长句在逐字稿层面拆句 |
 | edge 模式失败 | 网络 | 与历史行为一致（重试 4 次后报错） |
@@ -461,7 +483,7 @@ cd video && pnpm run render:draft && pnpm run render   # render 脚本定义在 
 | edge-tts | ❌ 仅预置 | 仅 rate | 无需部署 | 本管线默认引擎（零成本回退） |
 | **IndexTTS-2.5** | ✅ 单样本零样本 | ✅ 向量+强度+语速 | ✅ MPS fp32 | **主方案**；中英日西阿 |
 | IndexTTS-2 | ✅ | ✅ 向量（无语速） | ✅ fp16 成熟 | 服务端一键回退档（`--indextts-version 2`） |
-| index-tts-2.5-mlx（社区 MLX 移植） | ✅ | ❌ 砍掉全部情感控制 | ✅ 最省内存 | 0.1.1（2026-08-14）**已支持 2.5**、自带 int8 GPT 权重、uvx 一键；但主动放弃 `emo_vector`/`emo_audio_prompt`/`emo_text` 与束搜索 ⇒ 本仓 7 档风格体系与 alpha 标定全部失效，不可直接替换（评估前置动作见进阶篇 §6） |
+| index-tts-2.5-mlx（社区 MLX 移植） | ✅ | ❌ 砍掉全部情感控制 | ✅ 最省内存 | 0.1.1（2026-08-14）**已支持 2.5**、自带 int8 GPT 权重、uvx 一键；但主动放弃 `emo_vector`/`emo_audio_prompt`/`emo_text` 与束搜索 ⇒ 本仓风格体系与 alpha 标定全部失效，不可直接替换（评估前置动作见进阶篇 §6） |
 | GPT-SoVITS | ✅ 微调最佳 | 依赖参考音频 | 推理可/训练差 | 需训练工作流，过重 |
 | CosyVoice 2 | ✅ 3–10s | instruct 指令 | ✅ | 克隆相似度略逊 |
 | 云端（Azure Custom Voice 等） | ✅ | ✅ | 无需 | 收费/审核/隐私，不采纳 |
