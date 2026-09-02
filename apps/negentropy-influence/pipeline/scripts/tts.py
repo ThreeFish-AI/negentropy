@@ -172,11 +172,15 @@ STYLE_PRESETS: dict[str, dict] = {
     #    定档前必须按 INDEXTTS-2.5-ADVANCED.md §6.5 的测量协议做 A/B + 人耳确认。
     "sunny-pure": {
         "label": "明快纯载",
-        # 候选（路线图 #10）：砍掉 sunny 里的配料维度。依据是上游 emo_bias
-        # （infer_v2_5.py:493）8 维不等权——surprised 只有 0.6875、calm 只有 0.5625，
-        # 它们既占 Σw 预算（等量挤掉本人语调）又只兑付 69%/56% 的表达力。sunny 里的
-        # surprised=0.02（加 bias 后 0.0138、占比 1.5%）基本是装饰。
-        # 同时这是唯一使 Σvec=1.0 与「happy 单载」同时成立的写法 ⇒ alpha 语义最干净。
+        # 候选（路线图 #10）：砍掉 sunny 里的配料维度，使 Σvec=1.0 与「happy 单载」
+        # 同时成立 ⇒ alpha 语义最干净（它就是被替换掉的本人语调比例）。
+        # ⚠️ 立论勘误（2026-09-02）：本档原注以 emo_bias「surprised 只兑付 69%、
+        # calm 56%」为依据——该折扣**在本管线不生效**。施加 bias 的 normalize_emo_vec
+        # （infer_v2_5.py:488）全仓唯一调用点是 webui.py:665；infer() 内对 emo_vector
+        # 的唯一变换是 :605-607 的 int(x*alpha*10000)/10000，无 bias 相乘。故本管线
+        # 名义权重即实际权重，「配料维度不划算」这条理由作废，本档退回纯 alpha 语义论证。
+        # 顺带：surprised 的原型数是 10（happy 只有 3，emo_num=[3,17,2,8,4,5,10,24]），
+        # 表达基底并不贫乏——砍它的代价可能比原注设想的大，定档须以试听为准。
         "vec": [1.0, 0, 0, 0, 0, 0, 0, 0],
         "alpha": 0.35,
         "df": 0.95,
