@@ -20,7 +20,7 @@ uv run --no-project $R/verify_skeleton.py --strict  # 有未登记漂移即失�
 
 要点（详见 skeleton.toml 内注）：
 
-- **A 档 · frozen 逐字节保留**（15 个文件，含 `src/timing.ts` 的 computeTimeline + beatWindow + SCENE_FADE_FRAMES、`@remotion/media` 的 NarrationAudio、fitText 的 Subtitle、幕间呼吸淡入淡出的 SceneFade、cards、三份薄包装与全部工程配置）。改任何一处 = 改模板 + 改各集，`--strict` 会盯住。
+- **A 档 · frozen 逐字节保留**（清单见 skeleton.toml，含 `src/timing.ts` 的 computeTimeline + beatWindow + SCENE_FADE_FRAMES、`@remotion/media` 的 NarrationAudio、fitText 的 Subtitle、幕间呼吸淡入淡出的 SceneFade、cards、`src/motion/` 运动层（见下节）、三份薄包装与全部工程配置）。改任何一处 = 改模板 + 改各集，`--strict` 会盯住。
 - **B 档 · overridable**：`src/timing.json`（时序常数 SSOT——timing.ts 与 Python 侧共读同一文件，**改常量只改此处**）。覆写许可存在但四集从未行使过。
 - **regioned**：`src/Main.tsx` 区外冻结（每集内容只有场景 import 与 SCENE_COMPONENTS 注册表）；**structured**：`package.json` 门住依赖零漂移、忽略 name/description。
 - **每集改写**：`src/design/theme.ts`（本集色板）、`src/scenes/*`（全部重写；骨架样例见模板里的 scenes-EXAMPLE.tsx.txt）。
@@ -66,6 +66,44 @@ uv run --no-project $R/verify_skeleton.py --strict  # 有未登记漂移即失�
   （本集实测：size < 260 必须关掉）。
 - 「用无动效表达无聊」是有效手法：金句期间让主体继续匀速运动、**不加任何强调动效**。
 
+## 运动层（video/src/motion/，frozen 跨集共享）
+
+**共享的是「怎么动」（机制），不是「画什么」（策略）**：时长/缓动/弹簧/错峰/巡游
+等时序语汇跨集一致（同一只手感），theme/motifs/场景构图仍各集自由。落地为
+`src/motion/` 七文件（tokens/window/schedule/hooks/index/gallery + 单测），frozen 档
+md5 门执法——判据与「不读 theme token」约束见 tests/test_skeleton.py 的 motion 三条。
+
+- **令牌（tokens.ts）**：时长六档 `DUR.f1..f6`（2/3/5/7/12/21 帧，Carbon DTCG 六档
+  @30fps；弃 M3 十六档——30fps 量化下 6 对相邻档同帧数，伪选择）；缓动
+  `standard/decelerate/accelerate/linear`（M3 贝塞尔控制点）；弹簧 `settle`(damping 200，
+  本仓既有 9/10 调用点的实测手感——**刻意不抄规格散文里的 stiffness 120/damping 18**，
+  视觉连续性优先于纸面参数) / `settleSoft`(170) / `snap`(12，轻过冲)；`SAFE_TOP_Y=920`
+  字幕安全带 SSOT；`EXIT_FACTOR=0.4` 出场快于入场。
+- **窗口（window.ts）**：`progress/win/beatProgress/clamp01` 纯函数——「clamped 0→1
+  手写 interpolate」惯用形的统一替身；父级持有绝对帧、子动画是 beat 进度上的窗口，
+  TTS 实测时长变化 ⇒ 全部窗口自动重定时（写死帧数缺陷类由构造消灭）。
+- **编排（schedule.ts）**：`schedule(n, {dur, stride|lag|fit, minStride, minDur})`——
+  错峰三模式（固定步长 / Manim lag_ratio / 拟合进 beat 窗口），钳制优先级
+  「不外溢窗口 > 最小步长 > 子项时长」。
+- **模型（hooks.ts）**：`useProgress`（缓动数值进度）`useSpring`（弹簧数值进度）
+  `useEnter`（入场 fall/rise/slide/pop/flyIn/fade；rise 自带 `restBottom` 安全带钳制——
+  ISSUE-170 缺陷类构造性消灭）`useStagger`（序列错峰）`useDraw`（描线，红线三构造保证）
+  `useImpulse`（一次性强调）`useBreathe`（持续辉光，period=2π·除数）`useTravel`
+  `useAccelTravel`（加速绕行，吸收两处克隆）`useCount`（计数/水位=meter）`useReveal`
+  （打字机）`usePushIn`（镜头推近）`useDim`（压暗/提亮）`useFlowDash`（flow 行进虚线）
+  `useShake` `useFadeOut`（片尾渐黑，红线四构造保证）。
+- **铁律**：① hooks 只在组件顶层调用（map/条件内用纯函数 `progress`/`spring`+`SPRING`）；
+  ② 弹簧只喂局部帧（`frame - at`）——全局帧会让 spring() 每帧从 0 重模拟 O(frame)；
+  ③ effects（不透明度/颜色）永不吃弹簧（M3 spatial/effects 二分）；④ 时长取最近 token
+  （±3 帧内），不落标尺的 beat 级动作保留显式帧数并注释；⑤ 动画时点一律由句边界
+  推导（`rel(beat,'句id')`）。
+- **逃生舱（反模板化对冲）**：裸 `interpolate`/内联正弦是**合法**的——每集保留 ≥1 个
+  豁免运动层的 bespoke 签名镜头（EP1 的 0-B 命名帧合拢即例）；等速线性运动在「机械感
+  是主题」时优先于缓动（EP1 0-A 搬运弧线即例）。模型是词汇不是牢笼。
+- **评审面**：`./node_modules/.bin/remotion still src/motion/gallery.tsx MotionGallery
+  ../out/motion-gallery.png --frame=30`——全部模型 × 变体一屏秒级出图；纯函数单测
+  `node --test scripts/motion.test.ts`（Node ≥ 23.6 原生跑 TS）。
+
 ## 场景组件模式
 
 ```tsx
@@ -84,7 +122,7 @@ export const P2FiveObjects: React.FC<{scene: SceneRange}> = ({scene}) => {
 
 - 一幕一文件 `P<n><Name>.tsx`；一「镜」一内部子组件；
 - `Sequence name` 与 storyboard 镜号一一对应（QA 时可对照）；
-- beat 内动画只用 `useCurrentFrame()` + `interpolate`/`spring`（帧驱动，禁 `Date.now()`/随机数——渲染必须确定）。
+- beat 内动画优先走 `src/motion/` 运动模型（见上节铁律）；裸 `interpolate`/`spring` 是逃生舱而非默认。一律帧驱动，禁 `Date.now()`/随机数——渲染必须确定。
 
 ## theme.ts 色彩契约设计规则
 
@@ -119,16 +157,25 @@ cd video && ./node_modules/.bin/remotion render Main ../out/final.mp4          #
 
 QA 验收：逐幕抽帧目检色契约遵守、beat 窗口不越界、角标不入字幕区、无文字溢出/遮挡；高风险镜（矩阵图/全景图/金句卡）单独指定句 id 抽帧。
 
+**动效列 @动词 标注**：分镜「动效」列以反引号代码记号声明本镜主力运动模型
+（如 `` `@enter:fall` ``、`` `@stagger` ``、`` `@draw` ``——动词表 = hooks.ts 的 use*
+导出派生，勿凭记忆写）。`check_script.py --check-motion`（WARN-only）核对镜内声明
+的动词在该幕场景代码中确有调用——「分镜写了动效、代码没实现」这一实测缺陷类的机检。
+反向不报：动效列是意图摘要而非全量清单。入场瞬态另走 `qa_frames.py --beat-heads N`
+（每 beat 头部连抽 N 帧，ISSUE-170 补盲）；重制/重构回归用 `--compare A B`同帧号对拍。
+
 ## 系列身份视觉：五层 Harness 栈（2026-08-23 Harness Engineering 改造引入）
 
 「Claude Code Harness Engineering」五集共用一套**首尾统一的系列装置**。实现仍遵守
 「复制适配不共享」：母题代码落各集 `motifs.tsx`（seeded 档），**本节是五集一致性的规格 SSOT**——
 改规格先改这里，再逐集同步。
 
-> **落地状态（2026-08-23 评审）**：规格先行，**未落地**——改造版草渲（draft-review）中
-> 各集 P0/P6 均未实现本节装置（EP1 P0 为五辐条供给图，各集 P6 为文字身份卡 + 下期卡）。
-> 本节是终渲前待办的目标规格而非现状描述；落地时逐集同步并在本块更新状态，
-> 防止「SSOT 与已交付草渲事实漂移」再次发生。
+> **落地状态（2026-09-03 运动层重制）**：**EP1 已落地**——P0 开场落板+缩退常驻
+> （HarnessStackP0）、P1–P5 常驻角标（HarnessBadge）、P6 收尾放大+下期层呼吸预告
+> （HarnessStackP6），实现于 EP1 `components/harness-stack.tsx`（复制源，seeded 档）；
+> 层序/层名/发布态/下集标题自 `video/src/series-layers.json`（build_narration 从
+> series.json 派生，硬编码即漂移）。**EP2–5 待同步**（复制 harness-stack.tsx + 各幕
+> 挂 HarnessBadge + P0/P6 编排）——五集不一致状态显式化于此，终渲前逐集补齐。
 
 ### 五层栈母题（HarnessStack）
 
@@ -143,13 +190,13 @@ QA 验收：逐幕抽帧目检色契约遵守、beat 窗口不越界、角标不
 
 ### 动效语法（五集统一）
 
-| 语法 | 值 | 用途 |
+| 语法 | 模型（src/motion/hooks.ts） | 用途 |
 |---|---|---|
-| `flow` | 连线上的行进光点：2–3 个 6px 圆点沿路径循环，`stroke-dashoffset` 驱动 | 数据流向（循环回灌/消息传递/判定路径） |
-| `pushIn` | beat 切换时图解组 scale 1.0→1.06（easeOut，12 帧） | 镜头语言，替代纯淡入 |
-| `glow` | 主色辉光：`box-shadow: 0 0 24px color/40%, 0 0 64px color/25%` | 高亮语义（仅概念色元素，禁滥用） |
-| `meter` | 帧驱动数值条（水位/预算/计数） | 数据动感；值 = f(frame)，禁随机 |
-| `settle` | 入场落位：spring(stiffness 120, damping 18) 或 10 帧 easeOut | 卡片/节点落位统一手感 |
+| `flow` | `useFlowDash`（行进虚线）+ `useTravel`（巡游点） | 数据流向（循环回灌/消息传递/判定路径） |
+| `pushIn` | `usePushIn(at)`（scale 1.0→1.06 decelerate，DUR.f5） | 镜头语言，替代纯淡入 |
+| `glow` | `useImpulse`（一次性强调）/ `useBreathe`（持续辉光） | 高亮语义（仅概念色元素，禁滥用） |
+| `meter` | `useCount`（帧驱动数值，禁随机） | 数据动感 |
+| `settle` | `useEnter(..., {springPreset: 'settle'})` / `useSpring('settle')` | 卡片/节点落位统一手感 |
 
 深度感：背景网格（60px 网距、8% 透明度）随场景帧缓慢漂移（每帧 0.2px，全片 ≤40px 循环）。
 
