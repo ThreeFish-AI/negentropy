@@ -326,6 +326,7 @@ def check_frames(
     fade_exempt_last: bool,
     msgs: list[str],
     freeze_check: bool = True,
+    subtitle_check: bool = True,
 ) -> None:
     try:
         import numpy as np
@@ -354,7 +355,9 @@ def check_frames(
             )
         band = img[img.shape[0] - band_px :, :] if band_px else img
         bright_px = float((band > TEXT_BRIGHTNESS).mean())
-        if bright_px == 0:
+        # 字幕缺失只在句中点采样下有意义：beat 头帧落在句首淡入与句间空隙，
+        # 无字幕是合法态（--beat-heads 传 subtitle_check=False）
+        if subtitle_check and bright_px == 0:
             msgs.append(f"WARN {sid}: 字幕带内无文字亮度像素（字幕缺失？）")
         elif band_px > box_h_px:
             # 侵入检测按**几何**做（见 SUBTITLE_BOX_H_PX 注释）：只看字幕框上方那条窄带，
@@ -544,7 +547,13 @@ def main() -> None:
             board_fade = tail_row_has_fade(board)
             msgs: list[str] = []
             check_frames(
-                out, extracted, args.scale, board_fade, msgs, freeze_check=False
+                out,
+                extracted,
+                args.scale,
+                board_fade,
+                msgs,
+                freeze_check=False,
+                subtitle_check=False,
             )
             for m in msgs:
                 print(f"  {m}")

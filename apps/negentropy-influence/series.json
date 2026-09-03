@@ -102,7 +102,7 @@
             "accessed": "2026-08-21"
           },
           "status": "draft-review",
-          "statusNote": "Harness Engineering 改造草渲待审：13:58 = 25151 帧 @30fps（167 句）；七幕抽帧 FAIL 0 · WARN 0；高风险帧逐帧目检通过；终渲未启动",
+          "statusNote": "运动层重制版草渲待审（2026-09-03）：13:58.80 = 25164 帧 @30fps（167 句，配音全量重合成——TTS 复跑漂移 -478 帧仍在预算窗）；七幕 + beat 头部 + 尾幕 FAIL 0 · WARN 0；A/B 对拍 167 帧（基线=重制前代码同 manifest 渲染）：仅 2 帧 >5% 均为 HarnessStack 新装置（P0 开场/P6 收尾），其余 ≤1.5% 归因于顶边常驻条/SceneTag 移位/令牌化缓动；终渲 final.mp4 43.6MB 已出、captions.srt/vtt 齐",
           "voice": "sunny-steady + me-bright.wav"
         },
         {

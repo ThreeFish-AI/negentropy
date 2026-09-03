@@ -1,7 +1,7 @@
 # 《执行层：一个循环，就是全部》
 
 > 系列「Claude Code Harness Engineering」首作（发布顺序 SSOT：[../series.json](../../series.json)；口播永不携带集数序号）。
-> **改造状态（2026-08-23）**：Harness Engineering 改造版——口播 v-next 已定稿、场景组件已升级、配音完成（167 句全缓存，`tts --plan` 待合成 0）；草渲交付待审（终渲未启动）。
+> **改造状态（2026-09-03 运动层重制）**：全片动效收敛至 frozen 运动层（`video/src/motion/`，跨集共享「怎么动」）；HarnessStack 系列装置落地（P0 开场落板+顶边常驻条+P6 收尾）；配音全量重合成（音频版本库入库，改稿只重配变更句）。
 > 选题：开源课程 [Learn Claude Code](https://learn.shareai.run/zh/s01/) 的「工具与执行」四章
 > —— s01 Agent Loop / s02 Tool Use / s03 Permission / s04 Hooks。
 > 形态：1080p30 横屏，代码动画图解 + 本人音色克隆旁白，无真人出镜、无 BGM。
@@ -11,17 +11,17 @@
 
 | 项 | 状态 |
 |---|---|
-| 逐字稿 | ✅ 170 句 / 4048 字 / 7 幕 |
+| 逐字稿 | ✅ 167 句 / 3979 字 / 7 幕（原「170 句/4048 字」为勘误——narration.json 实测口径） |
 | 分镜 | ✅ 39 镜，`check_script` 覆盖性 FAIL 0 |
 | 信源取证 | ✅ 12 条双轨信源入清单（8 条仓库 @ 固定提交 + 4 条站点），`source_ledger verify` FAIL 0 |
 | 场景实现 | ✅ 7 幕 / 39 镜，`tsc --noEmit` 通过；39 镜逐镜抽帧复检无黑帧、无重复帧 |
-| 配音 | ✅ 170/170 句，`sunny-steady` + `me-bright.wav`（`.engine` 签名 `indextts\|sunny-steady\|54b699cce97f`）；纯语音 13.20 分钟，**实测语速 307 字/分**；合成墙钟 2.1 h；2026-08-22 缓存随 `--update` 迁移复验 `tts --plan`：**待合成 0 句 / 已缓存 170 句**（画面优化零重合成）|
-| 时长双口径门 | ✅ 估算 14.5 分钟（4048 字 ÷ 280）· **实测含时距 14.2 分钟**，均落预算窗 13.0–14.6；`check` FAIL 0 WARN 0 |
+| 配音 | ✅ 167/167 句，`sunny-steady` + `me-bright.wav`（`.engine` 签名 `indextts\|sunny-steady\|54b699cce97f`）；纯语音 12.95 分钟（2026-09-03 全量重合成，墙钟 1.6 h——旧缓存随 worktree 遗失，本次入库**音频版本库** `~/Library/Application Support/negentropy-influence/tts-store`，跨工作区改稿只重配变更句，回收幂等已 e2e 验证）|
+| 时长双口径门 | ✅ 估算 14.2 分钟（3979 字 ÷ 280）· **实测含时距 13.98 分钟**（25164 帧；TTS 复跑漂移 -478 帧属正常 nondeterminism），均落预算窗 13.0–14.6；`check --check-scenes --check-motion` FAIL 0 WARN 0 |
 | 字幕 | ✅ `out/captions.srt` + `.vtt`，各 170 cue |
 | 主题对比度 | ✅ `--check-theme` FAIL 0（core 6.06 / mech 9.18 / deny 6.00 : 1，全过 4.5:1） |
 | 尾幕渐黑 | ✅ 末 beat 中部 0.085 → 前 24 帧 0.056 → 末帧 0.012，窗口贴合 beat 结尾（无提前收尾的长黑屏） |
-| 草渲 + 抽帧 QA | ✅ 25642 帧 / 6.0 分钟；7 幕 FAIL 0（WARN 1 为刻意设计：p6-06/07 信源卡停留；p0 画面凝住为 0-A 的 `freezeCursorAt` 设计，冻结帧指纹检测豁免） |
-| **终渲交付** | ✅ `out/final.mp4` **14:14.73** · 1920×1080 @30fps · h264 yuvj420p 201kb/s · aac 189kb/s · 42.6 MB（42,621,158 字节；末次重渲 7.9 分钟）<br>时长**可复算**：`total_duration_in_frames(narration.json, timing.json)` = 25642 帧 @30fps = 854.73s。narration / manifest / timing.json 本轮零改动 ⇒ 画面优化不改变时长，此数与首次交付一致<br>终渲全分辨率七幕抽帧 **FAIL 0 · WARN 1**（p0-09/10 帧指纹相同 = 0-D 标题卡跨两句静止，刻意）<br>**2026-08-22 画面优化版**（narration 与配音零改动，纯 tier-i 视觉增强 + `--update` 走查）：P6 三挂件卡物理咬合上环 + 信源卡增站点/双钉/实测口径诚实行；P0 走秒芯片（凝住即停）、轮次钢印 01/02/03、载荷箭头（命令/输出）；P5 环第 6 次出场 + 20–28 行实测基准带；1-D 诚实角注（站点教学版仍按停止标记）；3-C 三判定小抄（allow/ask/deny 各带载荷）；`📣`/`⚠` emoji 全部替换为绘制图形<br>**同日评审四修**（逐帧抽帧实证，见下方「评审修复」）：6-A 挂件卡文字朝向与落位、6-A 挂件卡**入场瞬态**压字幕安全带、5-B 基准带锚点与标注避让、3-C 小抄不再遮挡闸门名。末次重渲 473s，七幕抽帧复检 **FAIL 0 · WARN 1**（仍为 0-D 刻意静止） |
+| 草渲 + 抽帧 QA | ✅ 25164 帧；七幕中点 + **beat 头部连抽**（39 镜 × 4 帧，ISSUE-170 入场瞬态补盲）+ 末 6 句全量 **FAIL 0 · WARN 0**；A/B 对拍（基线=重制前代码、同 manifest）：167 帧中仅 2 帧 >5%（p0-01/p6-08 = HarnessStack 新装置），其余 ≤1.5% 且全部归因（顶边常驻条 / SceneTag 移位右上 / 令牌化缓动 / 硬门改淡入）|
+| **终渲交付** | ✅ `out/final.mp4` **13:58.80**（25164 帧，与草渲同 manifest 同帧数）· 1920×1080 @30fps · 43.6 MB；`cover.png` = 标题卡帧 1031<br>时长**可复算**：`total_duration_in_frames(narration.json, timing.json)` = 25642 帧 @30fps = 854.73s。narration / manifest / timing.json 本轮零改动 ⇒ 画面优化不改变时长，此数与首次交付一致<br>终渲全分辨率七幕抽帧 **FAIL 0 · WARN 1**（p0-09/10 帧指纹相同 = 0-D 标题卡跨两句静止，刻意）<br>**2026-08-22 画面优化版**（narration 与配音零改动，纯 tier-i 视觉增强 + `--update` 走查）：P6 三挂件卡物理咬合上环 + 信源卡增站点/双钉/实测口径诚实行；P0 走秒芯片（凝住即停）、轮次钢印 01/02/03、载荷箭头（命令/输出）；P5 环第 6 次出场 + 20–28 行实测基准带；1-D 诚实角注（站点教学版仍按停止标记）；3-C 三判定小抄（allow/ask/deny 各带载荷）；`📣`/`⚠` emoji 全部替换为绘制图形<br>**同日评审四修**（逐帧抽帧实证，见下方「评审修复」）：6-A 挂件卡文字朝向与落位、6-A 挂件卡**入场瞬态**压字幕安全带、5-B 基准带锚点与标注避让、3-C 小抄不再遮挡闸门名。末次重渲 473s，七幕抽帧复检 **FAIL 0 · WARN 1**（仍为 0-D 刻意静止） |
 | 交付件 | ✅ `final.mp4` + `captions.srt` + `captions.vtt` + `cover.png`（标题卡帧，1920×1080） |
 
 > 音画同步的验证方式：配音期间**分幕**用已合成的真实时长重算 beat 帧位并逐镜抽帧复检
@@ -63,6 +63,8 @@
 | `scripts/*.py` | 薄包装，转发到 [`../../pipeline/scripts/`](../../pipeline/scripts/) |
 | [video/](./video/) | Remotion 独立 pnpm 工程 |
 | `video/src/components/motifs.tsx` | 本集五个视觉母题（终端 / 环形循环 / 分发表 / 闸门 / 插槽） |
+| `video/src/motion/` | ★frozen 运动层（令牌/窗口/编排/12 运动模型 hooks——规格见 [skills/06 运动层](../../pipeline/skills/06-remotion-implementation.md)） |
+| `video/src/components/harness-stack.tsx` | 系列身份装置（P0 开场栈 / 顶边常驻条 / P6 收尾栈；层数据派生自 series.json） |
 | `out/` | 渲染产物（gitignored） |
 
 ## 复现流水线
