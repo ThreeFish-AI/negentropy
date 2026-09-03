@@ -31,10 +31,10 @@
 #                会让新集开箱即 7 个 module-not-found（归一化恰好剥掉它们，所以
 #                留空不影响任何既有集的指纹——留着则纯粹是给新集埋坑）。
 #   structured   结构化比对：package.json 忽略 name/description，但门住
-#                dependencies/devDependencies/scripts/pnpm。有价值的不变量不是
+#                dependencies/devDependencies/scripts。有价值的不变量不是
 #                字节而是「零依赖漂移」——版本漂移会让 A 档 TS 文件行为不同。
-#                这也顺带把 README §六 刻意保留的 pnpm.onlyBuiltDependencies
-#                变成受执法的不变量。
+#                （原 pnpm.onlyBuiltDependencies 字段已被 pnpm 12 弃读，构建许可
+#                迁至 pnpm-workspace.yaml 的 allowBuilds——frozen 档执法。）
 #   seeded       scaffold 复制后完全自由，不设门。
 #
 # ## 分组语义（承重）
@@ -73,6 +73,17 @@ frozen = [
   "scripts/build_narration.py",
   "scripts/tts.py",
   "scripts/qa_frames.py",
+  # 运动层（motion）：跨集共享的是「怎么动」（机制），不是「画什么」（策略）——
+  # theme/motifs 仍 seeded 各集自由。判据见 tests/test_skeleton.py 的 motion 两条
+  # （不读 theme token / 文件面齐全）。gallery 是独立 Remotion 入口（不经 Root.tsx，
+  # 对既有 Composition 零影响）；单测经 node --test 原生跑 TS（Node ≥ 23.6）。
+  "video/src/motion/tokens.ts",
+  "video/src/motion/window.ts",
+  "video/src/motion/schedule.ts",
+  "video/src/motion/hooks.ts",
+  "video/src/motion/index.ts",
+  "video/src/motion/gallery.tsx",
+  "video/scripts/motion.test.ts",
 ]
 # 时序常数 SSOT：timing.ts 经 resolveJsonModule 同步 import，Python 侧
 # timeline.py 直读同一文件。覆写许可存在但四集从未行使过。

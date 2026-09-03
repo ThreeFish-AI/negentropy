@@ -550,3 +550,71 @@ def test_chrome_motifs_only_read_base_theme_tokens():
         f"模板 motifs.tsx 读了 seed 未定义的 theme.{missing} —— 概念色须经 "
         "accent prop 注入，否则 scaffold 出的新集开箱即 TS2339"
     )
+
+
+# ── 运动层（motion）───────────────────────────────────────────────────────
+
+#: frozen 运动层的全部文件（skeleton.toml frozen 清单的 motion 子集）
+MOTION_FILES = (
+    "video/src/motion/tokens.ts",
+    "video/src/motion/window.ts",
+    "video/src/motion/schedule.ts",
+    "video/src/motion/hooks.ts",
+    "video/src/motion/index.ts",
+    "video/src/motion/gallery.tsx",
+    "video/scripts/motion.test.ts",
+)
+
+
+def test_motion_layer_is_frozen_and_complete():
+    """运动层文件面齐全且全部归 frozen 档——「共享的是运动机制」这一边界的机器化。
+
+    反向判据（缺文件不受门）由 test_every_template_file_is_classified 承担；
+    此处钉住「在 frozen 而非 seeded」：错放 seeded 会重蹈 motifs.tsx 裂成 5 份的覆辙。
+    """
+    skel = skeleton()
+    frozen = set(skel["classes"].get("frozen", []))
+    missing = [f for f in MOTION_FILES if f not in frozen]
+    assert not missing, f"运动层文件未归 frozen：{missing}"
+    for rel in MOTION_FILES:
+        assert (TEMPLATE / rel).is_file(), f"模板缺 {rel}"
+
+
+def test_motion_layer_reads_no_theme_tokens():
+    """frozen 运动层不得读 theme——两系列 theme token 名已分叉（core/mech/deny vs
+    danger），读 concept 色会当场破坏跨系列可冻结性。颜色只许经参数注入。
+
+    判据同 test_chrome_motifs_only_read_base_theme_tokens 的口径：先剥注释，
+    再查 `theme.` 引用与 theme import——注释里的散文会假阳/假阴。
+    """
+    import re
+
+    for rel in MOTION_FILES:
+        src = (TEMPLATE / rel).read_text(encoding="utf-8")
+        stripped = re.sub(r"/\*.*?\*/", "", src, flags=re.DOTALL)
+        stripped = re.sub(r"^\s*//.*$", "", stripped, flags=re.MULTILINE)
+        assert not re.search(r"\bfrom\s+'(?:\.\./)+design/theme'", stripped), (
+            f"{rel} import 了 theme——运动层颜色只许经参数注入"
+        )
+        assert "theme." not in stripped, f"{rel} 读 theme.*——concept 色会破坏跨系列冻结"
+
+
+def test_motion_test_imports_only_pure_modules():
+    """motion.test.ts 只许 import 纯模块（tokens/window/schedule）与 node 内建——
+    import hooks（remotion/react）会让 node --test 在无渲染环境里炸。"""
+    src = (TEMPLATE / "video/scripts/motion.test.ts").read_text(encoding="utf-8")
+    for m in re.finditer(r"from\s+'(\.\./src/motion/[a-z]+)\.ts'", src):
+        assert m.group(1).endswith(("tokens", "window", "schedule")), (
+            f"motion.test.ts import 了非纯模块：{m.group(1)}"
+        )
+
+
+def test_motion_test_lives_outside_tsc_include():
+    """单测文件须在 video/ 而非 video/src/：其 import 带 .ts 后缀（Node ESM 解析
+    规则），落进 tsconfig include 会因 allowImportingTsExtensions 未开而报 TS5097。"""
+    tsconfig = json.loads(
+        (TEMPLATE / "video/tsconfig.json").read_text(encoding="utf-8")
+    )
+    include = tsconfig.get("include", [])
+    assert "src" in include and "video/scripts/motion.test.ts" not in include
+    assert not (TEMPLATE / "video/src/motion/motion.test.ts").exists()

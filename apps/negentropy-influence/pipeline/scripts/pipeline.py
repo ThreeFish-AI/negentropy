@@ -287,15 +287,21 @@ def cmd_qa(
     ids: list[str],
     check: bool,
     scale: float | None,
+    beat_heads: int | None = None,
+    compare: list[str] | None = None,
 ) -> int:
     cmd = ["uv", "run", "--no-project"]
-    if check:
+    if check or compare:
         cmd += ["--with", "pillow", "--with", "numpy"]
     cmd += [str(SCRIPTS / "qa_frames.py"), "--project", str(root)]
     for s in scene or []:
         cmd += ["--scene", s]
     if last_n:
         cmd += ["--last-n", str(last_n)]
+    if beat_heads:
+        cmd += ["--beat-heads", str(beat_heads)]
+    if compare:
+        cmd += ["--compare", *compare]
     if check:
         cmd += ["--check"]
         # 字幕带/亮块间隔是全分辨率像素常数：草渲（0.5x）不折算则带高×2、间隔×2，
@@ -513,6 +519,18 @@ def main() -> None:
     # 与 qa_frames 对齐：可重复传多幕（单值 store 会静默只留末幕，见 qa_frames 注释）
     p.add_argument("--scene", action="append", metavar="Pn")
     p.add_argument("--last-n", type=int)
+    p.add_argument(
+        "--beat-heads",
+        type=int,
+        metavar="N",
+        help="每 beat 头部连抽 N 帧（入场瞬态补盲，ISSUE-170）",
+    )
+    p.add_argument(
+        "--compare",
+        nargs=2,
+        metavar=("A.mp4", "B.mp4"),
+        help="A/B 对拍（重制/重构回归归因；advisory）",
+    )
     p.add_argument("--check", action="store_true", help="自动体检")
     p.add_argument(
         "--scale",
@@ -572,6 +590,8 @@ def main() -> None:
             args.ids,
             args.check,
             args.scale,
+            getattr(args, "beat_heads", None),
+            getattr(args, "compare", None),
         ),
         "all": lambda: cmd_all(root, cfg),
         "clean-samples": lambda: cmd_clean_samples(root, cfg),

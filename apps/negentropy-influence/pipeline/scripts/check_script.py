@@ -14,6 +14,13 @@
 可选 --check-scenes：从 video/src/scenes/*.tsx 提取 beatWindow/w('id','id')
 调用，与分镜表互比（WARN-only，TSX 正则本质近似）。
 
+可选 --check-motion：分镜「动效」列的 @动词 标注 ↔ 场景代码运动模型调用互比
+（WARN-only）。动效列可写 `@enter:fall`、`@stagger`、`@draw` 等（动词表从本集
+video/src/motion/hooks.ts 的 use* 导出**派生**，单一事实源不复制）；镜内声明了
+@动词 而该幕场景文件未调用对应 use 模型 → WARN——「FadeUp 写在分镜里却没进代码」
+（本仓实测发生过 3 处）这一缺陷类的机械化。反向（代码用了模型而分镜没写）不报：
+动效列是意图摘要而非全量清单。
+
 可选 --pre-tts（TTS 前置门）：只跑**不需要分镜**的检查——时长预算（估算口径；
 manifest 若在则含实测口径）+ 读法陷阱 + 发音标注合法性（build_narration 已在
 生成期拦非法标注，此处对 narration.json 再收口一遍）。两遍法草稿遍（A 遍）写完
@@ -279,6 +286,63 @@ def check_scenes(
         warn(msgs, f"场景代码区间 {pair[0]}..{pair[1]} 未在分镜表中登记（分镜陈旧）")
 
 
+#: 动效列的结构化标注：`@enter:fall` / `@stagger` / `@accelTravel` …
+MOTION_TAG_RE = re.compile(r"@([A-Za-z][A-Za-z0-9]*)")
+
+
+def parse_motion_tags(board: Path) -> list[tuple[str, str]]:
+    """返回 [(镜号, 动词)]。动效列 = 表格行第 4 单元格（| 镜 | 句区间 | 画面 | 动效 |）。"""
+    tags: list[tuple[str, str]] = []
+    for raw in board.read_text(encoding="utf-8").splitlines():
+        if not raw.startswith("|") or "---" in raw:
+            continue
+        cells = [c.strip() for c in raw.strip().strip("|").split("|")]
+        if len(cells) < 4 or not re.match(r"^\d+-[A-Z]\d*$", cells[0]):
+            continue
+        for m in MOTION_TAG_RE.finditer(cells[3]):
+            tags.append((cells[0], m.group(1)))
+    return tags
+
+
+def check_motion(root: Path, msgs: list[str]) -> None:
+    """@动词 标注 ↔ 场景代码运动模型调用互比（WARN-only）。
+
+    动词表从本集 video/src/motion/hooks.ts 派生（use 词首字母小写化），
+    不在本文件复制第二份——hooks.ts 加模型，这里自动跟随。
+    """
+    board = root / "script" / "storyboard.md"
+    hooks_ts = root / "video" / "src" / "motion" / "hooks.ts"
+    if not hooks_ts.is_file():
+        return  # 运动层未铺设的集（如已冻结的旧集）——此门静默不适用
+    verbs = {
+        m.group(1)[0].lower() + m.group(1)[1:]
+        for m in re.finditer(
+            r"export (?:async )?function use(\w+)", hooks_ts.read_text(encoding="utf-8")
+        )
+    }
+    # 场景文件 → 该文件调用的运动模型（import 来源限定 ../motion，防同名误配）
+    scenes_dir = root / "video" / "src" / "scenes"
+    per_file: dict[str, set[str]] = {}
+    for tsx in sorted(scenes_dir.glob("*.tsx")):
+        src = tsx.read_text(encoding="utf-8")
+        used = set()
+        if re.search(r"from ['\"]\.\./motion['\"]", src):
+            for m in re.finditer(r"\buse([A-Z][A-Za-z0-9]*)\s*\(", src):
+                v = m.group(1)[0].lower() + m.group(1)[1:]
+                if v in verbs:
+                    used.add(v)
+        per_file[tsx.name] = used
+    # beat 镜号数字前缀 → 幕场景文件（0-A → P0*.tsx）
+    for beat, verb in parse_motion_tags(board):
+        if verb not in verbs:
+            warn(msgs, f"镜 {beat}：@{verb} 不在运动模型词表（hooks.ts 派生；拼写？）")
+            continue
+        scene_pref = f"P{beat.split('-')[0]}"
+        owners = [n for n in per_file if n.startswith(scene_pref)]
+        if not owners or not any(verb in per_file[n] for n in owners):
+            warn(msgs, f"镜 {beat}：分镜声明 @{verb}，但 {scene_pref} 场景代码未调用")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="④⑤ 内容门：覆盖性/预算/淡入不变式")
     ap.add_argument("--project", default=".", help="视频工程根目录")
@@ -286,6 +350,11 @@ def main() -> None:
         "--check-scenes",
         action="store_true",
         help="附:分镜↔场景代码 beat 互比（WARN-only）",
+    )
+    ap.add_argument(
+        "--check-motion",
+        action="store_true",
+        help="附:分镜动效列 @动词 标注 ↔ 场景代码运动模型互比（WARN-only）",
     )
     ap.add_argument(
         "--pre-tts",
@@ -354,6 +423,8 @@ def main() -> None:
         check_fade_invariant(root, msgs)
         if args.check_scenes:
             check_scenes(root, beats, msgs)
+        if args.check_motion:
+            check_motion(root, msgs)
 
     fails = [m for m in msgs if m.startswith("FAIL")]
     warns = [m for m in msgs if m.startswith("WARN")]
