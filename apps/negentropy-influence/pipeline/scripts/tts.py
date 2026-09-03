@@ -9,6 +9,10 @@
     通过 --ref 提供参考音色样本、--style 选择风格（sunny 明快阳光为推荐位，
     sunny-steady 为其定稿档＝同参数 + 束宽 3；另有激情/轻快/自信/正能量）。
 - 幂等：参数与文本未变则跳过（SHA1 摘要 sidecar 缓存）。
+- 版本库（indextts）：合成成功的句子按 digest 存入机器级持久库（默认
+  ~/Library/Application Support/negentropy-influence/tts-store，环境变量 NE_TTS_STORE
+  覆盖，--no-store 禁用）；集内缓存未命中时先按 digest 回收——换 worktree / 清盘不再
+  丢整集合成成果，改稿只重配变更句。历史版本按 digest 文件名并存，不互相覆盖。
 
 用法：
   edge：    uv run --no-project --with edge-tts --with mutagen $R/tts.py \
@@ -30,6 +34,8 @@ import asyncio
 import hashlib
 import json
 import math
+import os
+import shutil
 import sys
 import urllib.error
 import urllib.request
@@ -633,6 +639,77 @@ def digest_indextts(
     ).hexdigest()
 
 
+# ---------------- 音频版本库（内容寻址持久库，仅 indextts） ----------------
+#
+# 集内 audio/ 是 gitignored 本地产物 ⇒ 换 worktree / 清盘即丢整集合成成果
+# （Claude Code 系列的 mp3 曾在任何工作区都不剩一份，实测教训）。版本库按
+# 「句 id + digest 前 12 位」命名放在机器级持久目录，与任何 worktree 解耦：
+#   - 合成成功 → store_deposit 入库（同 digest 刷新为最新音频；不同 digest 并存=保留历史版本）；
+#   - 集内缓存未命中 → store_restore 按 digest 回收，命中即等价集内缓存命中；
+#   - 改稿/换风格 ⇒ 新 digest 自然 miss 重配，旧版本文件保留可回退。
+# 路径是机器属性：默认值在此 + NE_TTS_STORE 环境变量覆盖，永不写进受版本控制的
+# toml（与 config.py 对 tts.server 的立场一致；tts.py 不 import paths.py 的边界
+# 也不变——默认值是纯字面量）。仅接 indextts：edge 预置音色免密钥秒级重合成，
+# 无 2 小时级资产可丢。
+
+DEFAULT_STORE = "~/Library/Application Support/negentropy-influence/tts-store"
+
+
+def store_root(disabled: bool) -> Path | None:
+    """版本库根目录；--no-store 或 NE_TTS_STORE='' 时返回 None（全程直通不落盘）。"""
+    if disabled:
+        return None
+    env = os.environ.get("NE_TTS_STORE")
+    return Path(env or DEFAULT_STORE).expanduser()
+
+
+def store_entry(store: Path | None, slug: str, sid: str, digest: str) -> Path | None:
+    """库内条目路径：<root>/<集 slug>/<sid>.<digest12>.mp3（同名 .sha 邻档存全量 digest）。"""
+    if store is None:
+        return None
+    return store / slug / f"{sid}.{digest[:12]}.mp3"
+
+
+def store_has(store: Path | None, slug: str, sid: str, digest: str) -> bool:
+    """--plan 用：库内是否存在该 digest 的句子（校验 .sha 邻档，防 12 位前缀巧合）。"""
+    if store is None:
+        return False
+    mp3 = store_entry(store, slug, sid, digest)
+    sha = mp3.with_suffix(".sha")
+    return (
+        mp3.is_file()
+        and mp3.stat().st_size > 0
+        and sha.is_file()
+        and sha.read_text() == digest
+    )
+
+
+def store_deposit(
+    mp3: Path, sid: str, digest: str, store: Path | None, slug: str
+) -> None:
+    """合成成功后入库。失败只 WARN 不断长跑——库是加速器，不是门。"""
+    if store is None:
+        return
+    dst = store_entry(store, slug, sid, digest)
+    try:
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(mp3, dst)
+        dst.with_suffix(".sha").write_text(digest, encoding="utf-8")
+    except OSError as e:
+        print(f"WARN 版本库入库失败（{sid}）：{e}", file=sys.stderr)
+
+
+def store_restore(
+    sid: str, digest: str, out_dir: Path, store: Path | None, slug: str
+) -> bool:
+    """集内缓存 miss 时先向库回收；命中则 mp3 + .sha 落位，等价集内缓存命中。"""
+    if not store_has(store, slug, sid, digest):
+        return False
+    shutil.copyfile(store_entry(store, slug, sid, digest), out_dir / f"{sid}.mp3")
+    (out_dir / f"{sid}.sha").write_text(digest, encoding="utf-8")
+    return True
+
+
 async def synth_indextts(
     sem: asyncio.Semaphore,
     item: dict,
@@ -652,6 +729,8 @@ async def synth_indextts(
     emo_ref_sha1: str | None = None,
     emo_text: str | None = None,
     sampling: dict | None = None,
+    store: Path | None = None,
+    slug: str = "",
 ) -> dict:
     sid, text = item["id"], synth_source_text(item)
     mp3 = out_dir / f"{sid}.mp3"
@@ -679,6 +758,8 @@ async def synth_indextts(
         and meta.read_text() == digest
     ):
         pass
+    elif not force and store_restore(sid, digest, out_dir, store, slug):
+        pass  # 版本库回收命中：mp3 + .sha 已落位，等价集内缓存命中（--force 不走库）
     else:
         async with sem:
             last_err: Exception | None = None
@@ -709,6 +790,7 @@ async def synth_indextts(
                     if mp3.stat().st_size == 0:
                         raise RuntimeError("空音频文件")
                     meta.write_text(digest)
+                    store_deposit(mp3, sid, digest, store, slug)
                     break
                 except NonRetryableError:
                     raise
@@ -743,6 +825,11 @@ async def main() -> None:
     )
     parser.add_argument("--rate", default=DEFAULT_RATE, help="[edge] 语速（默认 +4%%）")
     parser.add_argument("--force", action="store_true", help="忽略缓存强制重合成")
+    parser.add_argument(
+        "--no-store",
+        action="store_true",
+        help="[indextts] 禁用音频版本库（默认启用；库根目录可用环境变量 NE_TTS_STORE 覆盖）",
+    )
     parser.add_argument(
         "--allow-voice-switch",
         action="store_true",
@@ -1015,6 +1102,8 @@ async def main() -> None:
     out_dir = root / "video" / "public" / "audio"
     items = json.loads(src.read_text(encoding="utf-8"))
     out_dir.mkdir(parents=True, exist_ok=True)
+    store = store_root(args.no_store)
+    slug = root.name
 
     if args.engine == "edge":
         signature = f"edge|{args.voice}|{args.rate}"
@@ -1129,6 +1218,7 @@ async def main() -> None:
             )
             todo = {b: 0 for b in sorted(set(beams_of.values()))}
             cached = dict(todo)
+            store_hits = dict(todo)
             for i in items:
                 b = beams_of[i["id"]]
                 d = digest_indextts(
@@ -1154,20 +1244,35 @@ async def main() -> None:
                     and meta.read_text() == d
                 )
                 (cached if hit else todo)[b] += 1
+                if not hit and not args.force and store_has(store, slug, i["id"], d):
+                    store_hits[b] += 1
             # 估时用**整集长跑折算口径**（含降频、机器争用与逐句开销），不是单句空闲口径：
             # 1 束 RTF≈13（三集 596 句实测 8.5 h 折算）、≥2 束≈45（短句 A/B 实测约 3.2 倍）；
             # 每句音频按 4.2s（三集均值）。单句空闲时可快到 RTF 6–7，故本估算偏保守。
             est = sum(
-                n * AVG_SEC_PER_LINE * (RTF_1BEAM if b == 1 else RTF_MULTIBEAM)
+                (n - store_hits[b])
+                * AVG_SEC_PER_LINE
+                * (RTF_1BEAM if b == 1 else RTF_MULTIBEAM)
                 for b, n in todo.items()
             )
             for b in sorted(todo):
                 print(
                     f"   束宽 {b}：待合成 {todo[b]:>3} 句 · 已缓存 {cached[b]:>3} 句"
+                    + (
+                        f" · 版本库可回收 {store_hits[b]:>3} 句"
+                        if store_hits[b]
+                        else ""
+                    )
                     + ("" if b == 1 else "（高束宽档）")
                 )
             print(
-                f">> 待合成合计 {sum(todo.values())} 句，估算墙钟约 {est / 3600:.1f} 小时"
+                f">> 待合成合计 {sum(todo.values())} 句"
+                + (
+                    f"（其中 {sum(store_hits.values())} 句由版本库直收，不占合成时间）"
+                    if sum(store_hits.values())
+                    else ""
+                )
+                + f"，估算墙钟约 {est / 3600:.1f} 小时"
                 f"（长跑折算口径 RTF 1 束≈{RTF_1BEAM:g} / 高束宽≈{RTF_MULTIBEAM:g}，"
                 f"机器负载会显著影响，仅作排期参考）"
             )
@@ -1238,6 +1343,8 @@ async def main() -> None:
                     emo_ref_sha1=emo_ref_sha1,
                     emo_text=args.emo_text,
                     sampling=sampling,
+                    store=store,
+                    slug=slug,
                 )
                 for i in items
             )
