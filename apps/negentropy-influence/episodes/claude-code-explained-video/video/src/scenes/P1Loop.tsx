@@ -1,7 +1,7 @@
 /** P1 一个循环，就是全部（分镜 1-A…1-F）—— 开源教学素材「Agent While-Loop」可视化的概念重建
  *  ★ 本幕建立全片视觉锚：LoopRing 的色与线宽从此不再改变。 */
 import React from 'react';
-import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig} from 'remotion';
+import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
@@ -15,20 +15,17 @@ import {
   SceneTag,
   useRingDot,
 } from '../components/motifs';
+import {HarnessBadge} from '../components/harness-stack';
+import {DUR, useProgress, useSpring, useStagger} from '../motion';
 
 /** 1-A 环形循环成形 + 两个信号分支 */
 const RingBirth: React.FC<{yesAt: number; noAt: number}> = ({yesAt, noAt}) => {
   const frame = useCurrentFrame();
-  const draw = interpolate(frame, [4, 40], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
+  // 描线成形改 decelerate（原线性）：环的「生长感」需要先快后慢
+  const draw = useProgress(4, 36, 'decelerate');
   const dot = useRingDot(2.5, 40);
   // 讲到「没有」时光点滑出到停机出口并定格
-  const pull = interpolate(frame - noAt, [8, 30], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
+  const pull = useProgress(noAt + 8, 22);
   const active = frame >= yesAt && frame < noAt ? 2 : undefined;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
@@ -52,15 +49,20 @@ const FiveSteps: React.FC<{stepAt: number[]}> = ({stepAt}) => {
     '结果打包成新消息，回到第二步',
   ];
   const lit = stepAt.filter((s) => frame >= s).length;
+  // 五步逐句点亮（12f = DUR.f5；锚点非均匀，显式五行而非 useStagger）
+  const litP = [
+    useProgress(stepAt[0], DUR.f5),
+    useProgress(stepAt[1], DUR.f5),
+    useProgress(stepAt[2], DUR.f5),
+    useProgress(stepAt[3], DUR.f5),
+    useProgress(stepAt[4], DUR.f5),
+  ];
   const blocks: {color: string; label: string}[] = [];
   if (lit >= 1) blocks.push({color: theme.dim, label: 'user'});
   if (lit >= 3) blocks.push({color: theme.core, label: 'assistant'});
   if (lit >= 4) blocks.push({color: theme.mech, label: 'tool_result'});
   if (lit >= 5) blocks.push({color: theme.core, label: 'assistant'});
-  const loopBack = interpolate(frame - stepAt[4], [6, 26], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
+  const loopBack = useProgress(stepAt[4] + 6, DUR.f6);
   return (
     <AbsoluteFill style={{flexDirection: 'row', alignItems: 'center', padding: '0 96px', gap: 60}}>
       <div style={{width: 380, display: 'flex', justifyContent: 'center'}}>
@@ -69,10 +71,7 @@ const FiveSteps: React.FC<{stepAt: number[]}> = ({stepAt}) => {
       <div style={{flex: 1}}>
         {steps.map((s, i) => {
           const on = frame >= stepAt[i];
-          const e = interpolate(frame - stepAt[i], [0, 12], [0, 1], {
-            extrapolateLeft: 'clamp',
-            extrapolateRight: 'clamp',
-          });
+          const e = litP[i];
           return (
             <div
               key={s}
@@ -176,10 +175,7 @@ const TwentyThreeLines: React.FC<{countAt: number; splitAt: number}> = ({countAt
     '            "tool_use_id": block.id, "content": output})',
     '    messages.append({"role": "user", "content": results})',
   ];
-  const split = interpolate(frame - splitAt, [0, 20], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
+  const split = useProgress(splitAt, DUR.f6);
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <div style={{opacity: 1 - split * 0.75, transform: `scale(${1 - split * 0.08})`}}>
@@ -237,10 +233,7 @@ const UnreliableFlag: React.FC<{crossAt: number; quoteAt: number}> = ({crossAt, 
   // 工具调用已流出的帧（每 2 帧 1 字）；标记牌刻意再滞后 25 帧才翻转 —— 这就是「不可靠」
   const toolOutAt = toolIdx * 2;
   const flipped = frame >= toolOutAt + 25;
-  const cross = interpolate(frame - crossAt, [0, 14], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
+  const cross = useProgress(crossAt, DUR.f5);
   if (frame >= quoteAt) {
     return (
       <QuoteCard zh="别听它说「我说完了」，去看它手里还有没有活。" accent={theme.core} />
@@ -328,25 +321,24 @@ const ThreePhaseRing: React.FC<{phaseAt: number; handAt: number; drawersAt: numb
   recedeAt,
 }) => {
   const frame = useCurrentFrame();
-  const {fps} = useVideoConfig();
   const dot = useRingDot(2.5);
   const phases = [
     {label: '收集上下文', zh: '读文件 · 搜代码', ang: -90},
     {label: '采取行动', zh: '改文件 · 跑命令', ang: 30},
     {label: '验证结果', zh: '看输出 · 再补一刀', ang: 150},
   ];
-  const recede = interpolate(frame - recedeAt, [0, 24], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-  const hand = spring({frame: frame - handAt, fps, config: {damping: 170}});
-  const drawerOn = interpolate(frame - drawersAt, [0, 30], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
+  const recede = useProgress(recedeAt, DUR.f6);
+  const hand = useSpring('settleSoft', {at: handAt});
+  // 抽屉墙整体一闪：1s 的 beat 级动作（30f 距两档 token 均 >3，保留显式时长）
+  const drawerOn = useProgress(drawersAt, 30);
   const CX = 560;
   const CY = 500;
   const R = 250;
+  // 三相位标签沿环依次点亮（stride 10、单项 f5）
+  const phaseOn = useStagger(3, {at: phaseAt, stride: 10, dur: DUR.f5});
+  // 十格抽屉墙快闪（快节奏：stride 2、单项 f3）
+  const drawerCells = useStagger(10, {at: drawersAt, stride: 2, dur: DUR.f3});
+  const fuseOp = useProgress(phaseAt + 34, DUR.f4);
   return (
     <AbsoluteFill>
       <div
@@ -363,10 +355,7 @@ const ThreePhaseRing: React.FC<{phaseAt: number; handAt: number; drawersAt: numb
       <svg width={1920} height={1080} style={{position: 'absolute'}}>
         {/* 三个相位标签：沿环依次点亮并保持同时可见（交融感） */}
         {phases.map((ph, i) => {
-          const on = interpolate(frame - phaseAt - i * 10, [0, 12], [0, 1], {
-            extrapolateLeft: 'clamp',
-            extrapolateRight: 'clamp',
-          });
+          const on = phaseOn[i];
           const rad = (ph.ang * Math.PI) / 180;
           const lx = CX + Math.cos(rad) * (R + 96);
           const ly = CY + Math.sin(rad) * (R + 96);
@@ -385,12 +374,18 @@ const ThreePhaseRing: React.FC<{phaseAt: number; handAt: number; drawersAt: numb
             </g>
           );
         })}
-        {/* 「交融」标注：三段弧互相咬合（非硬阶段） */}
-        {frame > phaseAt + 34 ? (
-          <text x={CX} y={CY - R - 148} textAnchor="middle" fontFamily={theme.sans} fontSize={24} fill={theme.dim}>
-            {'三相互相交融——不是硬阶段'}
-          </text>
-        ) : null}
+        {/* 「交融」标注：三段弧互相咬合（非硬阶段）——淡入而非瞬现 */}
+        <text
+          x={CX}
+          y={CY - R - 148}
+          textAnchor="middle"
+          fontFamily={theme.sans}
+          fontSize={24}
+          fill={theme.dim}
+          opacity={fuseOp}
+        >
+          {'三相互相交融——不是硬阶段'}
+        </text>
         {/* 人的手：落向「行动」节点，环上光点被拨偏一档 */}
         {hand > 0 ? (
           <g opacity={hand} transform={`translate(0 ${(1 - hand) * -60})`}>
@@ -441,10 +436,7 @@ const ThreePhaseRing: React.FC<{phaseAt: number; handAt: number; drawersAt: numb
             '轮数计数',
             '上次继续原因',
           ].map((label, i) => {
-            const e = interpolate(frame - drawersAt - i * 2, [0, 8], [0, 1], {
-              extrapolateLeft: 'clamp',
-              extrapolateRight: 'clamp',
-            });
+            const e = drawerCells[i];
             return (
               <div
                 key={label}
@@ -474,10 +466,9 @@ const ThreePhaseRing: React.FC<{phaseAt: number; handAt: number; drawersAt: numb
 const ExitPaths: React.FC<{branchAt: number; dimAt: number}> = ({branchAt, dimAt}) => {
   const frame = useCurrentFrame();
   const names = ['报错', '中断', '钩子叫停', '轮数到顶', '预算烧完'];
-  const dim = interpolate(frame - dimAt, [0, 20], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
+  const dim = useProgress(dimAt, DUR.f6);
+  // 五条支线逐条描线（stride 6；16f 距两档 token 均 >3，保留显式时长）
+  const branchP = useStagger(names.length, {at: branchAt, stride: 6, dur: 16});
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <div style={{position: 'relative', width: 1300, height: 520}}>
@@ -486,10 +477,7 @@ const ExitPaths: React.FC<{branchAt: number; dimAt: number}> = ({branchAt, dimAt
         </div>
         <svg width={1300} height={520} style={{position: 'absolute', left: 0, top: 0}}>
           {names.map((n, i) => {
-            const t = interpolate(frame - branchAt - i * 6, [0, 16], [0, 1], {
-              extrapolateLeft: 'clamp',
-              extrapolateRight: 'clamp',
-            });
+            const t = branchP[i];
             const y0 = 240;
             const y1 = 96 + i * 76;
             const x0 = 618;
@@ -540,6 +528,7 @@ export const P1Loop: React.FC<{scene: SceneRange}> = ({scene}) => {
   const rF = (id: string) => w(id).from - bF.from;
   return (
     <AbsoluteFill>
+      <HarnessBadge />
       <Sequence {...bA} name="1-A 环形循环成形">
         <RingBirth yesAt={rA('p1-04')} noAt={rA('p1-06')} />
       </Sequence>

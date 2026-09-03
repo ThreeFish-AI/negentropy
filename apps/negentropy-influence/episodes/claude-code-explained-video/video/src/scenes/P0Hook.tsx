@@ -1,24 +1,32 @@
 /** P0 钩子与命名帧（分镜 0-A…0-C）
- *  三句内完成：搬运工痛点 → 官方命名「Harness」→ 五辐条供给图。
- *  改造（2026-08 Harness Engineering）：10 句压缩为 7 句，命名帧是全系列的开场锚。 */
+ *  三句内完成：系列身份栈开场 → 搬运工痛点 → 官方命名「Harness」→ 五辐条供给图。
+ *  重制（2026-09 运动层）：动效收敛到 motion 模型（分镜动效列 @动词 可机检）；
+ *  HarnessStackP0 落地 skills/06 系列身份视觉规格（五层栈开场 + 缩退常驻角标）。 */
 import React from 'react';
-import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig} from 'remotion';
+import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Footnote, Panel, Terminal} from '../components/motifs';
+import {Panel, Terminal} from '../components/motifs';
+import {HarnessStackP0, harnessStackCrossAt} from '../components/harness-stack';
+import {DUR, progress, useBreathe, useProgress, useSpring, useStagger} from '../motion';
 
-/** 0-A 终端打字 → 命令凝住 → 复制粘贴弧线加速塞满（两句内完成旧版六句的信息量） */
-const StallAndCarry: React.FC<{carryAt: number}> = ({carryAt}) => {
+/** 0-A 系列栈开场 → 终端打字 → 命令凝住 → 复制粘贴弧线加速塞满 */
+const StallAndCarry: React.FC<{carryAt: number; revealAt: number}> = ({carryAt, revealAt}) => {
   const frame = useCurrentFrame();
   const W = 1560;
   const H = 400;
   const frozen = frame >= carryAt - 6;
-  // 三轮搬运轨迹（加速：每轮 9 帧，旧版是 15 帧——钩子提速）
+  // 终端在系列栈缩退让位后再进场（栈 choreography 见 HarnessStackP0）
+  const reveal = useProgress(revealAt, DUR.f5);
+  // 三轮搬运轨迹（加速：每轮 9 帧，旧版是 15 帧——钩子提速）。线性匀速是刻意：
+  // 搬运的机械感就该是等速的（motion 模型的逃生舱条款）
   const roundGap = [0, 9, 18];
+  // 侧标（竖排警示）：凝住即淡入，不再布尔硬门瞬现
+  const warnOp = useProgress(carryAt - 6, DUR.f5) * 0.9;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <div style={{position: 'relative', width: W, height: H}}>
+      <div style={{position: 'relative', width: W, height: H, opacity: reveal}}>
         <Terminal
           width={1300}
           height={330}
@@ -37,10 +45,7 @@ const StallAndCarry: React.FC<{carryAt: number}> = ({carryAt}) => {
               {a: 300, b: W - 300, y: 240 + i * 22, dir: 1},
             ];
             return legs.map((lg, k) => {
-              const t = interpolate(frame - base - k * 6, [0, 9], [0, 1], {
-                extrapolateLeft: 'clamp',
-                extrapolateRight: 'clamp',
-              });
+              const t = progress(frame - base - k * 6, 0, 9);
               if (t <= 0) return null;
               const x = lg.a + (lg.b - lg.a) * t;
               return (
@@ -63,7 +68,7 @@ const StallAndCarry: React.FC<{carryAt: number}> = ({carryAt}) => {
               color: theme.deny,
               writingMode: 'vertical-rl',
               letterSpacing: 5,
-              opacity: interpolate(frame, [carryAt - 6, carryAt + 6], [0, 0.9], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}),
+              opacity: warnOp,
             }}
           >
             {'每一轮的搬运工，是你'}
@@ -76,25 +81,20 @@ const StallAndCarry: React.FC<{carryAt: number}> = ({carryAt}) => {
 
 /** 0-B 命名帧：搬运残影收束成外框，包住「模型」内核——外框即 Harness + 官方引文条 */
 const NamingFrame: React.FC<{officialAt: number}> = ({officialAt}) => {
-  const frame = useCurrentFrame();
-  const {fps} = useVideoConfig();
-  // 外框四面合拢（spring 收拢感）
-  const close = spring({frame, fps, config: {damping: 180}});
+  // 外框四面合拢（settleSoft 弹簧；局部帧——全局帧会让 spring 每帧重模拟 O(frame)）
+  const close = useSpring('settleSoft');
+  const label = useProgress(22, DUR.f5);
+  const quote = useProgress(officialAt, DUR.f5);
+  // 命名帧的「仪式感」呼吸辉光（sin(frame/26) → period 2π·26 ≈ 163）
+  const breathe = useBreathe({period: 163});
   const CX = 960;
   const CY = 460;
   const full = 420;
   const wHalf = full / 2 + (1 - close) * 620;
   const hHalf = full / 2 + (1 - close) * 380;
-  const label = interpolate(frame - 22, [0, 14], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-  const quote = interpolate(frame - officialAt, [0, 18], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-  // 呼吸辉光（命名帧的「仪式感」）
-  const breathe = 0.5 + 0.5 * Math.sin(frame / 26);
+  // 四角旧搬运残影：35% → 0 淡出（收束感）
+  const residue = 0.35 * (1 - useProgress(0, DUR.f6));
+  const core = progress(close, 0.3, 0.7);
   return (
     <AbsoluteFill>
       {/* 四面合拢的残影 → 外框 */}
@@ -116,21 +116,18 @@ const NamingFrame: React.FC<{officialAt: number}> = ({officialAt}) => {
           [1, -1],
           [-1, 1],
           [1, 1],
-        ].map(([sx, sy], i) => {
-          const o = interpolate(frame, [0, 18], [0.35, 0], {extrapolateRight: 'clamp'});
-          return (
-            <line
-              key={i}
-              x1={CX + sx * (wHalf - 120)}
-              y1={CY + sy * (hHalf - 60)}
-              x2={CX + sx * (wHalf + 40)}
-              y2={CY + sy * (hHalf + 40)}
-              stroke={theme.dim}
-              strokeWidth={4}
-              opacity={o}
-            />
-          );
-        })}
+        ].map(([sx, sy], i) => (
+          <line
+            key={i}
+            x1={CX + sx * (wHalf - 120)}
+            y1={CY + sy * (hHalf - 60)}
+            x2={CX + sx * (wHalf + 40)}
+            y2={CY + sy * (hHalf + 40)}
+            stroke={theme.dim}
+            strokeWidth={4}
+            opacity={residue}
+          />
+        ))}
       </svg>
       {/* 内核：模型 */}
       <div
@@ -140,7 +137,7 @@ const NamingFrame: React.FC<{officialAt: number}> = ({officialAt}) => {
           top: CY,
           transform: 'translate(-50%, -50%)',
           textAlign: 'center',
-          opacity: interpolate(close, [0.3, 1], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}),
+          opacity: core,
         }}
       >
         <div
@@ -192,39 +189,37 @@ const NamingFrame: React.FC<{officialAt: number}> = ({officialAt}) => {
         {'把动力源，套进一个可控的结构里'}
       </div>
       {/* 官方引文条（p0-05 句锚） */}
-      {quote > 0 ? (
-        <div
-          style={{
-            position: 'absolute',
-            left: CX,
-            bottom: 200,
-            transform: `translate(-50%, ${(1 - quote) * 14}px)`,
-            opacity: quote,
-            textAlign: 'center',
-          }}
-        >
-          <Panel style={{padding: '18px 34px', maxWidth: 1200}}>
-            {/* 中英并列（分镜 0-B 承诺）：中文口播句 + 英文原句 */}
-            <div style={{fontFamily: theme.serif, fontSize: 27, color: theme.text}}>
-              {'“Claude Code 是 Harness，Claude 是里面的模型。”'}
-            </div>
-            <div
-              style={{
-                fontFamily: theme.serif,
-                fontSize: 21,
-                color: theme.dim,
-                marginTop: 7,
-                fontStyle: 'italic',
-              }}
-            >
-              {'“Claude Code is the harness, Claude is the model.”'}
-            </div>
-            <div style={{fontFamily: theme.mono, fontSize: 19, color: theme.dim, marginTop: 8}}>
-              {'— 官方文档 how-claude-code-works（code.claude.com，取数2026年8月）'}
-            </div>
-          </Panel>
-        </div>
-      ) : null}
+      <div
+        style={{
+          position: 'absolute',
+          left: CX,
+          bottom: 200,
+          transform: `translate(-50%, ${(1 - quote) * 14}px)`,
+          opacity: quote,
+          textAlign: 'center',
+        }}
+      >
+        <Panel style={{padding: '18px 34px', maxWidth: 1200}}>
+          {/* 中英并列（分镜 0-B 承诺）：中文口播句 + 英文原句 */}
+          <div style={{fontFamily: theme.serif, fontSize: 27, color: theme.text}}>
+            {'“Claude Code 是 Harness，Claude 是里面的模型。”'}
+          </div>
+          <div
+            style={{
+              fontFamily: theme.serif,
+              fontSize: 21,
+              color: theme.dim,
+              marginTop: 7,
+              fontStyle: 'italic',
+            }}
+          >
+            {'“Claude Code is the harness, Claude is the model.”'}
+          </div>
+          <div style={{fontFamily: theme.mono, fontSize: 19, color: theme.dim, marginTop: 8}}>
+            {'— 官方文档 how-claude-code-works（code.claude.com，取数2026年8月）'}
+          </div>
+        </Panel>
+      </div>
     </AbsoluteFill>
   );
 };
@@ -232,10 +227,8 @@ const NamingFrame: React.FC<{officialAt: number}> = ({officialAt}) => {
 /** 0-C 五辐条供给图：外框上长出五根辐条（文件/命令/权限/记忆/护栏）+ 标题卡收尾 */
 const SupplySpokes: React.FC<{titleAt: number}> = ({titleAt}) => {
   const frame = useCurrentFrame();
-  const {fps} = useVideoConfig();
   const CX = 960;
   const CY = 440;
-  const R = 300;
   const spokes = [
     {label: '文件', zh: '读写项目'},
     {label: '命令', zh: '执行与回传'},
@@ -243,15 +236,14 @@ const SupplySpokes: React.FC<{titleAt: number}> = ({titleAt}) => {
     {label: '记忆', zh: '上下文与规则', later: true},
     {label: '护栏', zh: '拦截与兜底'},
   ];
-  const title = spring({frame: frame - titleAt, fps, config: {damping: 200}});
-    const line = interpolate(frame - titleAt, [4, 40], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-  const ring = interpolate(frame, [0, 16], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
+  const title = useSpring('settle', {at: titleAt});
+  // 标题卡细线生长（beat 级慢动作，刻意不走 micro token）
+  const line = useProgress(titleAt + 4, 36);
+  // 外框缩小型持续在场：16f 恰在两档 token 中间（Δ4/Δ5），保留显式时长
+  const ring = useProgress(0, 16);
+  // 五辐条依次点亮：stride 8、单项 12f（=DUR.f5，与原手写一致）
+  const lit = useStagger(5, {at: 6, stride: 8, dur: DUR.f5});
+  const laterOp = useProgress(40, DUR.f4);
   return (
     <AbsoluteFill>
       <svg width={1920} height={1080} style={{position: 'absolute'}}>
@@ -270,12 +262,10 @@ const SupplySpokes: React.FC<{titleAt: number}> = ({titleAt}) => {
         <text x={CX} y={CY + 6} textAnchor="middle" fontFamily={theme.mono} fontSize={34} fill={theme.text}>
           {'模型 Claude'}
         </text>
-        {/* 五辐条：自外框上沿五点连向内核 */}
+        {/* 五辐条：自外框上沿五点连向内核。辉光是逐根错相呼吸（per-index 相位），
+            useBreathe(offset) 的语义此处以内联等式表达（map 内不可调 hook） */}
         {spokes.map((sp, i) => {
-          const t = interpolate(frame - 6 - i * 8, [0, 12], [0, 1], {
-            extrapolateLeft: 'clamp',
-            extrapolateRight: 'clamp',
-          });
+          const t = lit[i];
           if (t <= 0) return null;
           // 五点沿外框上沿分布
           const fx = CX - 300 + i * 150;
@@ -305,55 +295,45 @@ const SupplySpokes: React.FC<{titleAt: number}> = ({titleAt}) => {
           );
         })}
         {/* 「记忆」辐条的「后面拆」小标 */}
-        {(() => {
-          const o = interpolate(frame - 6 - 3 * 8 - 10, [0, 10], [0, 1], {
-            extrapolateLeft: 'clamp',
-            extrapolateRight: 'clamp',
-          });
-          return o > 0 ? (
-            <text
-              x={CX + 0}
-              y={CY - 250 - 132}
-              textAnchor="middle"
-              fontFamily={theme.sans}
-              fontSize={20}
-              fill={theme.dim}
-              opacity={o}
-            >
-              {'后面单独拆'}
-            </text>
-          ) : null;
-        })()}
+        <text
+          x={CX}
+          y={CY - 250 - 132}
+          textAnchor="middle"
+          fontFamily={theme.sans}
+          fontSize={20}
+          fill={theme.dim}
+          opacity={laterOp}
+        >
+          {'后面单独拆'}
+        </text>
       </svg>
-      {/* 标题卡（p0-07 收尾压入） */}
-      {title > 0 ? (
+      {/* 标题卡（p0-07 收尾压入；弹簧负帧返回 0，无须布尔门） */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: 210,
+          textAlign: 'center',
+          opacity: title,
+          transform: `translateY(${(1 - title) * 18}px)`,
+        }}
+      >
+        <div style={{fontFamily: theme.serif, fontSize: 58, fontWeight: 700, color: theme.core}}>
+          {'执行层：一个循环，就是全部'}
+        </div>
         <div
           style={{
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            bottom: 210,
-            textAlign: 'center',
-            opacity: title,
-            transform: `translateY(${(1 - title) * 18}px)`,
+            margin: '22px auto 0',
+            height: 3,
+            width: 560 * line,
+            background: theme.core,
           }}
-        >
-          <div style={{fontFamily: theme.serif, fontSize: 58, fontWeight: 700, color: theme.core}}>
-            {'执行层：一个循环，就是全部'}
-          </div>
-          <div
-            style={{
-              margin: '22px auto 0',
-              height: 3,
-              width: 560 * line,
-              background: theme.core,
-            }}
-          />
-          <div style={{marginTop: 16, fontFamily: theme.sans, fontSize: 23, color: theme.dim}}>
-            {'Claude Code Harness Engineering · 执行层'}
-          </div>
+        />
+        <div style={{marginTop: 16, fontFamily: theme.sans, fontSize: 23, color: theme.dim}}>
+          {'Claude Code Harness Engineering · 执行层'}
         </div>
-      ) : null}
+      </div>
     </AbsoluteFill>
   );
 };
@@ -364,10 +344,17 @@ export const P0Hook: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bA = w('p0-01', 'p0-02');
   const bB = w('p0-03', 'p0-05');
   const bC = w('p0-06', 'p0-07');
+  // 系列栈缩退在搬运高潮前完成（recedeAt 由句边界推导——禁写死帧数）
+  const p2 = at('p0-02') - bA.from;
+  const recedeAt = Math.max(66, p2 - DUR.f6 - 6);
+  const terminalRevealAt = harnessStackCrossAt(recedeAt);
   return (
     <AbsoluteFill>
+      {/* 系列身份栈：scene 级渲染（beat Sequence 之外）——落板 → 本集层高亮 →
+          缩退左上角后**常驻整幕**；P1 起由各幕的 HarnessBadge 接棒 */}
+      <HarnessStackP0 recedeAt={recedeAt} />
       <Sequence {...bA} name="0-A 停住与搬运">
-        <StallAndCarry carryAt={at('p0-02') - bA.from} />
+        <StallAndCarry carryAt={p2} revealAt={terminalRevealAt} />
       </Sequence>
       <Sequence {...bB} name="0-B 命名帧：Harness">
         <NamingFrame officialAt={at('p0-05') - bB.from} />

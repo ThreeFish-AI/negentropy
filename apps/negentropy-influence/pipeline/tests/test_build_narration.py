@@ -68,3 +68,49 @@ def test_sentence_before_any_scene_heading(tmp_path):
     r = run_build(root)
     assert r.returncode != 0
     assert "## Pn" in (r.stderr + r.stdout)  # 报真正原因而非「与所在幕  不一致」
+
+
+def test_series_layer_published_requires_ready_and_online_marker(tmp_path):
+    influence = tmp_path / "influence"
+    root = influence / "episodes" / "episode-one"
+    (root / "script").mkdir(parents=True)
+    (root / "script" / "narration.md").write_text(
+        "## P0\n- [p0-01] 测试。\n", encoding="utf-8"
+    )
+    (influence / "series.json").write_text(
+        json.dumps(
+            {
+                "seriesList": [
+                    {
+                        "id": "series-one",
+                        "episodes": [
+                            {
+                                "path": "episodes/episode-one",
+                                "cardSub": "第一层 · 循环",
+                                "title": "未上线",
+                                "status": "ready",
+                                "voice": "配音已完成",
+                            },
+                            {
+                                "path": "episodes/episode-two",
+                                "cardSub": "第二层 · 循环",
+                                "title": "已上线",
+                                "status": "ready",
+                                "voice": "已上线 · 定稿",
+                            },
+                        ],
+                    }
+                ]
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    r = run_build(root)
+
+    assert r.returncode == 0, r.stderr
+    layers = json.loads(
+        (root / "video" / "src" / "series-layers.json").read_text(encoding="utf-8")
+    )["layers"]
+    assert [layer["published"] for layer in layers] == [False, True]

@@ -306,3 +306,72 @@ def test_pron_candidates_silent_on_clean_text(project):
     rc, out = run_check(project, "--pron-candidates")
     assert rc == 0, out
     assert "候选命中 0 处" in out
+
+
+# ---------------- --check-motion：动效列 @动词 ↔ 场景代码互比 ----------------
+
+
+BOARD_MOTION = """# 分镜
+## P0
+| 镜 | 句区间 | 画面 | 动效 |
+|---|---|---|---|
+| 0-A | p0-01..02 | x | `@enter:fall` 自上落下 `@draw` 描线 |
+## P1
+| 镜 | 句区间 | 画面 | 动效 |
+|---|---|---|---|
+| 1-A | p1-01..02 | x | `@stagger` 依次点亮 |
+"""
+
+
+def write_motion_hooks(root: Path) -> None:
+    m = root / "video" / "src" / "motion"
+    m.mkdir(parents=True, exist_ok=True)
+    (m / "hooks.ts").write_text(
+        "export function useEnter() {}\nexport function useStagger() {}\n",
+        encoding="utf-8",
+    )
+
+
+def write_scene(root: Path, name: str, src: str) -> None:
+    d = root / "video" / "src" / "scenes"
+    d.mkdir(parents=True, exist_ok=True)
+    (d / name).write_text(src, encoding="utf-8")
+
+
+def test_check_motion_warns_on_unimplemented_verb(project):
+    """镜内声明 @动词 而该幕场景未调用 → WARN（FadeUp 散文失约的机械化）。"""
+    write_board(project, BOARD_MOTION)
+    write_config(project, CFG_OK)
+    write_narration(project, [BENIGN, BENIGN, BENIGN, BENIGN])
+    write_motion_hooks(project)
+    write_scene(
+        project,
+        "P0Hook.tsx",
+        "import {useEnter} from '../motion';\nconst e = useEnter('fall');\n",
+    )
+    write_scene(project, "P1Loop.tsx", "export const P1Loop = () => null;\n")
+    rc, out = run_check(project, "--check-motion")
+    assert rc == 0, out  # WARN-only 不改退出码
+    warned = [line for line in out.splitlines() if "未调用" in line]
+    assert any("1-A" in line and "@stagger" in line for line in warned), out
+    assert not any("0-A" in line for line in warned), out  # @enter 已实现不告警
+
+
+def test_check_motion_unknown_verb_and_missing_layer(project):
+    """@teleport 不在词表 → WARN；运动层未铺设（无 hooks.ts）→ 门静默不适用。"""
+    board = BOARD_MOTION.replace("@stagger", "@teleport")
+    write_board(project, board)
+    write_config(project, CFG_OK)
+    write_narration(project, [BENIGN, BENIGN, BENIGN, BENIGN])
+    write_motion_hooks(project)
+    write_scene(project, "P0Hook.tsx", "import {useEnter} from '../motion';\n")
+    write_scene(project, "P1Loop.tsx", "export const P1Loop = () => null;\n")
+    rc, out = run_check(project, "--check-motion")
+    assert "@teleport" in out and "词表" in out
+
+    # 无运动层的集（已冻结旧集形态）：不因缺 hooks.ts 而炸或误报
+    import shutil
+
+    shutil.rmtree(project / "video" / "src" / "motion")
+    rc, out = run_check(project, "--check-motion")
+    assert rc == 0 and "未调用" not in out, out

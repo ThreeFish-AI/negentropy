@@ -1,7 +1,7 @@
 /** P2 加一个工具，只改一行（分镜 2-A…2-H）—— 开源教学素材「Tool Dispatch Map」的概念重建
  *  重点视觉演绎：并发安全 ≠ 只读（真值表对撞）、连续块分批、读文件落盘自循环。 */
 import React from 'react';
-import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig} from 'remotion';
+import {AbsoluteFill, Sequence, spring, useCurrentFrame, useVideoConfig} from 'remotion';
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
@@ -17,12 +17,15 @@ import {
   Terminal,
   useRingDot,
 } from '../components/motifs';
+import {HarnessBadge} from '../components/harness-stack';
+import {DUR, SPRING, useAccelTravel, useBreathe, useImpulse, useProgress, useShake, useStagger} from '../motion';
 
 /** 环留在左上角：缩小但同色同线宽 */
 const CornerRing: React.FC<{pulse?: boolean}> = ({pulse = false}) => {
-  const frame = useCurrentFrame();
+  // pulse 态呼吸：原 0.6+0.4·sin(frame/4)，period = 2π·4 ≈ 25
+  const breathe = useBreathe({period: 25, base: 0.6, amp: 0.4});
   const dot = useRingDot(2.5);
-  const p = pulse ? 0.6 + 0.4 * Math.sin(frame / 4) : 1;
+  const p = pulse ? breathe : 1;
   return (
     <div style={{position: 'absolute', left: 64, top: 56, opacity: p}}>
       <LoopRing size={190} draw={1} dotProgress={dot} showExit={false} />
@@ -32,9 +35,8 @@ const CornerRing: React.FC<{pulse?: boolean}> = ({pulse = false}) => {
 
 /** 2-A 命令行拼接的笨拙 */
 const ClumsyCommands: React.FC<{typoAt: number}> = ({typoAt}) => {
-  const frame = useCurrentFrame();
-  const bad = frame >= typoAt;
-  const shake = bad ? Math.sin((frame - typoAt) / 1.6) * 3 : 0;
+  // typoAt 起持续抖动（负帧归零，与原 bad 布尔门等价）
+  const shake = useShake({at: typoAt, amp: 3, freq: 1.6});
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <SceneTag chapter="Tool Use" tagline="Add a Tool, Add Just One Line" />
@@ -69,11 +71,13 @@ const ClumsyCommands: React.FC<{typoAt: number}> = ({typoAt}) => {
 
 /** 2-B 五张工具卡（反枚举：只有编号染色） */
 const FiveTools: React.FC = () => {
-  const frame = useCurrentFrame();
   const tools = ['跑命令', '读文件', '写文件', '改文件', '按模式找文件'];
   const mono = ['bash', 'read_file', 'write_file', 'edit_file', 'glob'];
   // 官方五类工具地图（how-claude-code-works）：教学五件归位官方分区，两个空槽亮虚线（Harness Engineering 改造）
   const zones = ['文件操作', '文件操作', '文件操作', '文件操作', '搜索'];
+  // 分区小标同刻淡入（12f = DUR.f5）；两个空槽错峰（stride 8、单项 f5，原终值 0.8 保留为系数）
+  const zoneOp = useProgress(20, DUR.f5);
+  const slotOn = useStagger(2, {at: 26, stride: 8, dur: DUR.f5});
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <CornerRing />
@@ -87,10 +91,7 @@ const FiveTools: React.FC = () => {
                 fontSize: 17,
                 color: theme.dim,
                 marginTop: 10,
-                opacity: interpolate(frame - 20, [0, 12], [0, 1], {
-                  extrapolateLeft: 'clamp',
-                  extrapolateRight: 'clamp',
-                }),
+                opacity: zoneOp,
               }}
             >
               {zones[i]}
@@ -111,10 +112,7 @@ const FiveTools: React.FC = () => {
               alignItems: 'center',
               justifyContent: 'center',
               gap: 8,
-              opacity: interpolate(frame - 26 - i * 8, [0, 12], [0, 0.8], {
-                extrapolateLeft: 'clamp',
-                extrapolateRight: 'clamp',
-              }),
+              opacity: slotOn[i] * 0.8,
               alignSelf: 'center',
             }}
           >
@@ -141,10 +139,9 @@ const Dispatch: React.FC<{hitAt: number; slotAt: number}> = ({hitAt, slotAt}) =>
     {key: 'glob', value: 'run_glob'},
   ];
   const hit = frame >= hitAt ? 1 : -1;
-  const flyT = interpolate(frame - hitAt, [-14, 0], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
+  // 飞点在 hitAt 前 14 帧起飞、恰与命中行高亮同刻落位——窗口终点锚定，
+  // 换 token 会推后/提前落位，保留显式时长
+  const flyT = useProgress(hitAt - 14, 14);
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center', flexDirection: 'row', gap: 70}}>
       <CornerRing />
@@ -250,7 +247,7 @@ const QueueVsParallel: React.FC<{splitAt: number}> = ({splitAt}) => {
       {!split ? (
         <div style={{display: 'flex', flexDirection: 'column', gap: 14}}>
           {names.map((n, i) => {
-            const e = spring({frame: frame - i * 5, fps, config: {damping: 200}});
+            const e = spring({frame: frame - i * 5, fps, config: SPRING.settle});
             return (
               <Panel key={n} style={{width: 460, padding: '14px 20px', opacity: e}}>
                 <span style={{fontFamily: theme.mono, fontSize: 27, color: theme.text}}>{n}</span>
@@ -302,6 +299,8 @@ const ConcurrencyTable: React.FC<{
   quoteAt: number;
 }> = ({splitAt, flashAt, taskAt, quoteAt}) => {
   const frame = useCurrentFrame();
+  // 「同名，结论相反」标注的闪烁包络：sin 起于 0 归于 0（须在 quoteAt 早退之前调用，hook 数量恒定）
+  const flashOp = useImpulse({at: flashAt, dur: 10});
   if (frame >= quoteAt) {
     return (
       <QuoteCard
@@ -376,20 +375,20 @@ const ConcurrencyTable: React.FC<{
           );
         })}
       </Panel>
-      {flash ? (
-        <div
-          style={{
-            position: 'absolute',
-            fontFamily: theme.serif,
-            fontSize: 40,
-            color: theme.deny,
-            top: 250,
-            right: 190,
-          }}
-        >
-          {'同名，结论相反'}
-        </div>
-      ) : null}
+      {/* 标注常驻渲染、以包络透明度一闪（原布尔瞬现 → 淡入淡出；窗口与背景 flash 同宽 10f） */}
+      <div
+        style={{
+          position: 'absolute',
+          fontFamily: theme.serif,
+          fontSize: 40,
+          color: theme.deny,
+          top: 250,
+          right: 190,
+          opacity: flashOp,
+        }}
+      >
+        {'同名，结论相反'}
+      </div>
       <Footnote delay={splitAt}>
         {'isConcurrencySafe ≠ isReadOnly —— 第三方的源码分析'}
       </Footnote>
@@ -461,29 +460,19 @@ const Batching: React.FC<{groupAt: number[]; noteAt: number}> = ({groupAt, noteA
 /** 2-H 落盘自循环：读→落盘→读→落盘，四圈后定格 */
 const SpillLoop: React.FC<{markAt: number; loopAt: number}> = ({markAt, loopAt}) => {
   const frame = useCurrentFrame();
-  const t = Math.max(0, frame - loopAt);
-  // 每圈加速一档：圈时长 40 → 30 → 22 → 16 帧
+  // 每圈加速一档：圈时长 40 → 30 → 22 → 16 帧（useAccelTravel：跑完四圈冻结在终点，
+  // heat = lap/3 即原 denyMix 的失控感偏移系数）
   const durs = [40, 30, 22, 16];
-  let acc = 0;
-  let lap = 0;
-  let within = 0;
-  for (let i = 0; i < durs.length; i++) {
-    if (t < acc + durs[i]) {
-      lap = i;
-      within = (t - acc) / durs[i];
-      break;
-    }
-    acc += durs[i];
-    lap = i + 1;
-    within = 1;
-  }
-  const done = lap >= durs.length;
-  const angle = done ? 300 : -90 + within * 360;
   const cx = 300;
   const cy = 210;
   const r = 132;
-  const rad = (angle * Math.PI) / 180;
-  const denyMix = Math.min(1, lap / 3);
+  const travel = useAccelTravel({cx, cy, r, durs, at: loopAt, heatPerLap: 3});
+  const denyMix = travel.heat;
+  // 定格时刻 = 四圈时长累加（与 useAccelTravel 内部推进同口径）
+  const doneAt = loopAt + durs.reduce((a, b) => a + b, 0);
+  const done = frame >= doneAt;
+  // 定格判词：原布尔瞬现 → f4 淡入 + 轻微上移落位
+  const verdictOp = useProgress(doneAt, DUR.f4);
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <CornerRing />
@@ -500,9 +489,7 @@ const SpillLoop: React.FC<{markAt: number; loopAt: number}> = ({markAt, loopAt})
               strokeDasharray="10 8"
               opacity={0.55 + denyMix * 0.45}
             />
-            {!done ? (
-              <circle cx={cx + r * Math.cos(rad)} cy={cy + r * Math.sin(rad)} r={12} fill={theme.deny} />
-            ) : null}
+            {!done ? <circle cx={travel.x} cy={travel.y} r={12} fill={theme.deny} /> : null}
             <text x={cx} y={cy - r - 20} textAnchor="middle" fontFamily={theme.sans} fontSize={24} fill={theme.dim}>
               {'读文件'}
             </text>
@@ -516,23 +503,23 @@ const SpillLoop: React.FC<{markAt: number; loopAt: number}> = ({markAt, loopAt})
               {'再落盘'}
             </text>
           </svg>
-          {done ? (
-            <div
-              style={{
-                position: 'absolute',
-                left: 0,
-                right: 0,
-                top: cy - 18,
-                textAlign: 'center',
-                fontFamily: theme.serif,
-                fontSize: 40,
-                color: theme.deny,
-                fontWeight: 700,
-              }}
-            >
-              {'转不出来'}
-            </div>
-          ) : null}
+          <div
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              top: cy - 18,
+              textAlign: 'center',
+              fontFamily: theme.serif,
+              fontSize: 40,
+              color: theme.deny,
+              fontWeight: 700,
+              opacity: verdictOp,
+              transform: `translateY(${(1 - verdictOp) * 10}px)`,
+            }}
+          >
+            {'转不出来'}
+          </div>
         </div>
         <Panel
           accent={frame >= markAt ? theme.core : theme.panelBorder}
@@ -573,6 +560,7 @@ export const P2Dispatch: React.FC<{scene: SceneRange}> = ({scene}) => {
   const rel = (b: {from: number}, id: string) => w(id).from - b.from;
   return (
     <AbsoluteFill>
+      <HarnessBadge />
       <Sequence {...bA} name="2-A 命令行拼接的笨拙">
         <ClumsyCommands typoAt={rel(bA, 'p2-04')} />
       </Sequence>

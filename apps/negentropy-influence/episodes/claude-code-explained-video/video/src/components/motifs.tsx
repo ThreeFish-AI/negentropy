@@ -74,8 +74,9 @@ export const Footnote: React.FC<{children: React.ReactNode; delay?: number}> = (
 export const SceneTag: React.FC<{chapter: string; tagline: string}> = ({chapter, tagline}) => {
   const frame = useCurrentFrame();
   const o = interpolate(frame, [6, 24], [0, 1], {extrapolateRight: 'clamp'});
+  // 右上：左上角让位给常驻 HarnessBadge（系列身份栈缩退位，harness-stack.tsx）
   return (
-    <div style={{position: 'absolute', left: 72, top: 64, opacity: o}}>
+    <div style={{position: 'absolute', right: 72, top: 64, textAlign: 'right', opacity: o}}>
       <div style={{fontFamily: theme.mono, fontSize: 26, color: theme.core, letterSpacing: 2}}>
         {chapter}
       </div>

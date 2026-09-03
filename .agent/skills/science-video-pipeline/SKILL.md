@@ -18,8 +18,8 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 | ③ 逐字稿 | narration.md ★单一事实源 | [03](../../../apps/negentropy-influence/pipeline/skills/03-narration.md) | `pipeline.py build` | `build_narration.py` 通过 |
 | ④⑤ 双重校验 + 分镜 | 真实性回溯 + 易懂性；beat 覆盖性 | [04](../../../apps/negentropy-influence/pipeline/skills/04-verification.md) / [05](../../../apps/negentropy-influence/pipeline/skills/05-storyboard.md) | `pipeline.py check`（+`--check-scenes`） | RISKY=0；覆盖率无缺句 |
 | ⑥ TTS 配音 | 本人音色克隆（IndexTTS-2.5） | [07](../../../apps/negentropy-influence/pipeline/skills/07-tts-voice.md) | `pipeline.py tts --plan` | refs 指纹门 + 试听 + ETA |
-| ⑦ Remotion 场景 | 代码动画实现 | [06](../../../apps/negentropy-influence/pipeline/skills/06-remotion-implementation.md) | `tsc --noEmit` | 七条渲染红线 |
-| ⑧ 草渲 + 抽帧 QA | 半分辨率快速迭代 | [08](../../../apps/negentropy-influence/pipeline/skills/08-render-qa.md) | `pipeline.py render` + `qa` | 自动体检零 FAIL |
+| ⑦ Remotion 场景 | 代码动画实现（动效走 `src/motion/` 运动模型，分镜动效列 `@动词` 标注） | [06](../../../apps/negentropy-influence/pipeline/skills/06-remotion-implementation.md) | `tsc --noEmit` + `node --test scripts/motion.test.ts` | 七条渲染红线 + 运动层铁律 |
+| ⑧ 草渲 + 抽帧 QA | 半分辨率快速迭代（`--beat-heads` 入场瞬态补盲；重制回归 `--compare`） | [08](../../../apps/negentropy-influence/pipeline/skills/08-render-qa.md) | `pipeline.py render` + `qa` | 自动体检零 FAIL |
 | ⑨ 终渲 + 交付 | 1080p30 + srt/vtt | [09](../../../apps/negentropy-influence/pipeline/skills/09-final-render.md) | `render --final` + `captions` | 实测时长在预算窗 |
 
 ## 关键不变量
@@ -30,6 +30,6 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 - **证据分级**：B 型信源里「他人对闭源产品源码的分析」属三级证据，口播必须带归属句，
   不得表述为产品既成事实；活数据（行数、总量、star 数）不进口播。
 - 每集 `pipeline.toml` 是可执行参数的唯一来源；README 不复制命令行参数。
-- 时序常数只在 `video/src/timing.json`（timing.ts 与 Python 共读）。
+- 时序常数只在 `video/src/timing.json`（timing.ts 与 Python 共读）；运动语汇（时长/缓动/弹簧/错峰）只在 `video/src/motion/`（frozen，改 = 模板 + 8 集同步）。
 - 声音样本是生物特征：不入库（`voices/refs.toml` 只存指纹），试听后即删。
 - 新集脚手架与复用边界（Python 集中 SSOT / Remotion 复制不共享）见 [pipeline/README.md](../../../apps/negentropy-influence/pipeline/README.md)。

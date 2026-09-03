@@ -3829,11 +3829,12 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
      命令行 `--ignore-workspace`、根 workspace glob 不匹配），v12 仍从第四个维度
      （`packageManager` 的目录树向上查找）穿透进来。判断隔离是否成立，要问的是
      "**还有哪些机制会沿目录树向上走**"，而不是"我声明了几次隔离"。
-  5. `package.json#pnpm` 字段自 v11 起失效（[ISSUE-076](#issue-076-pnpm-v11-升级后-pnpm-install-报-err_pnpm_ignored_builds--packagejsonpnpmoverrides-静默失效2026-05-08)）
-     的状况在 v12 **未恶化**，仍是 WARN；[ISSUE-166](#issue-166-err_pnpm_ignored_builds-在-esbuild-上是无害噪声不要为消音改动跨集冻结文件2026-08-21)
-     "不为消音改动跨集冻结文件"的裁决继续有效——本次新增 `pnpm-workspace.yaml` 是出于
-     **数据安全的独立必要性**，故**刻意不**顺手把失效的 `onlyBuiltDependencies` 迁进去：
-     那会让已发布集的 esbuild postinstall 从"被拦"变成"执行"，是与本次无关的行为变更。
+  5. `package.json#pnpm` 字段自 v11 起失效（[ISSUE-076](#issue-076-pnpm-v11-升级后-pnpm-install-报-err_pnpm_ignored_builds--packagejsonpnpmoverrides-静默失效2026-05-08)）。
+     **2026-09-03 后续复验修正了本条的初始裁决**：pnpm 12.2.1 在这些独立 Remotion 工程中会因
+     未许可 `esbuild` 以 `ERR_PNPM_IGNORED_BUILDS` 中断安装并留下半残 `node_modules`，不再只是
+     [ISSUE-166](#issue-166-err_pnpm_ignored_builds-在-esbuild-上是无害噪声不要为消音改动跨集冻结文件2026-08-21)
+     所记录的无害提示。故 8 集与骨架已统一删除失效的 `onlyBuiltDependencies`，并在各自
+     `pnpm-workspace.yaml` 写入 `allowBuilds.esbuild = true`；安装说明必须引用该唯一有效位置。
 - **同类问题影响**：与 [ISSUE-076](#issue-076-pnpm-v11-升级后-pnpm-install-报-err_pnpm_ignored_builds--packagejsonpnpmoverrides-静默失效2026-05-08)
   （v10→v11）构成升级序列。凡"子目录里跑包管理器"的场景都需重新体检。
   [`travel-agent-ui`](../../apps/cognizes/src/cognizes/examples/e2e_travel_agent/frontend/travel-agent-ui)
@@ -3848,3 +3849,14 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
   - 故危险路径是"**发现裸 install 没装到子目录 → 照 8 集的习惯补 `--ignore-workspace`**"。
     修复照搬本次方案（补一份 `packages: []` 的 `pnpm-workspace.yaml`）即可，因不属 pnpm 升级
     的必要变更而未纳入本次改动；触碰该示例前先补文件，勿先跑安装。
+
+## ISSUE-176 组件存在却零调用：FadeUp 三度分镜承诺未进代码，~50 处布尔硬门瞬现无人拦（2026-09-03）
+
+- **表因**：重制《执行层：一个循环，就是全部》前的动效审计发现：frozen `cards.tsx` 的 `FadeUp`/`Pill` 场景调用数为 **0**，而分镜 3 处明写「`FadeUp`」（1-B 五步点亮、4-A 需求浮现、6-A 标签）——工程师每次手写了一个参数不同的内联版本。同幕另有约 50 处 `frame >= X ? <el/> : null` 布尔硬门（元素零过渡瞬现，可感知的质量缺陷），全片 30 处 clamped 进度变量时长取值 12 种任意值、11 处错峰步长任意、10 处 spring damping 不一致。
+- **根因**：三个结构性缺口叠加——① 复用组件是 **div 包装器**，打不进 svg `<g>`/absolute 布局，工程师宁可内联；② 分镜「动效」列是自由散文，`check_script.py` 只解析镜号与句区间，转译环节零机检；③ 无运动令牌标尺，时长/步长/阻尼每次现场发明。
+- **处理方式**：引入 frozen 运动层 `video/src/motion/`（「共享怎么动、不共享画什么」：Carbon 六档时长令牌 + M3 缓动 + 本仓实测弹簧手感 + win() 窗口 + Manim lag_ratio 编排 + 12 个运动模型 **hooks**——返回数值/CSS 片段而非 DOM）；分镜动效列 `@动词` 标注 + `check_script --check-motion`（WARN-only，词表自 hooks.ts 派生）；布尔硬门改 `useProgress` 淡入。以 EP1 全片重制验证（A/B 同帧号对拍归因每一处差异）。
+- **后续防范**：
+  1. 可复用动效原语的形态必须是 **hook/纯函数**，不是包装组件——包装器对 svg 布局的排他性在代码评审里不可见，在「没人用」里可见。
+  2. 分镜承诺的动效动词须可机检：散文「FadeUp」不进任何门；`@动词` 标注让「写了没实现」变成 WARN。
+  3. 时序常数（时长/步长/阻尼/安全带）收敛令牌后，「看起来差不多的手写值」失去了存在的理由——新代码裸 interpolate 属逃生舱，须有注释说明为何豁免。
+- **同类问题影响**：全部 8 集约 356 处 `frame - i*N` 错峰、82 处 dasharray 描线、71 处计数散写同病；EP2–5 的 retrofit 与 HarnessStack 同步是后续独立批次（skills/06 落地状态块显式登记五集不一致）。

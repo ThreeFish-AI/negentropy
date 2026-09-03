@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import re
+import subprocess
 import sys
 import tomllib
 from pathlib import Path
@@ -162,6 +163,54 @@ def test_fanout_slice_skips_global_option_values():
     assert sub_argv("check", argv) == ["--check-scenes"]
     # 顶层带取值的选项全部在册——漏一个就会在「取值恰等于子命令名」时切错
     assert set(GLOBAL_OPTS_WITH_VALUE) == {"--series", "--project"}
+
+
+def test_check_forwards_motion_flag(monkeypatch, tmp_path):
+    import pipeline
+
+    commands: list[list[str]] = []
+    monkeypatch.setattr(
+        pipeline, "run", lambda cmd, cwd=None: commands.append(cmd) or 0
+    )
+
+    assert pipeline.cmd_check(tmp_path, {}, motion=True) == 0
+    assert "--check-motion" in commands[0]
+
+
+def test_tts_forwards_no_store_flag(monkeypatch, tmp_path):
+    import pipeline
+
+    commands: list[list[str]] = []
+    monkeypatch.setattr(
+        pipeline, "run", lambda cmd, cwd=None: commands.append(cmd) or 0
+    )
+
+    assert (
+        pipeline.cmd_tts(
+            tmp_path,
+            {"tts": {"engine": "edge"}},
+            plan=False,
+            force=False,
+            steady=None,
+            style=None,
+            skip_pre_tts=True,
+            no_store=True,
+        )
+        == 0
+    )
+    assert "--no-store" in commands[0]
+
+
+def test_pipeline_cli_registers_forwarded_flags():
+    for subcommand, flag in (("check", "--check-motion"), ("tts", "--no-store")):
+        result = subprocess.run(
+            [sys.executable, str(PIPELINE_PY), subcommand, "--help"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert result.returncode == 0, result.stderr
+        assert flag in result.stdout
 
 
 def test_fanout_complement_is_nonempty_and_keeps_destructive_out():

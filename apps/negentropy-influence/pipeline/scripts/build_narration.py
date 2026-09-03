@@ -119,6 +119,50 @@ def main() -> None:
             f"发音标注: {marked} 句带 ttsText（字数与字幕仍取剥离后的 text）"
             + ("" if vocab else "；未找到 pinyin.vocab，已跳过「音节是否在表内」告警")
         )
+    emit_series_layers(root)
+
+
+def emit_series_layers(root: Path) -> None:
+    """series.json → video/src/series-layers.json（系列身份装置的数据面）。
+
+    skills/06 五层 Harness 栈的层序/层名**必须**从 series.json 派生（硬编码即漂移）；
+    Remotion 的打包根是 video/，读不到工程外文件，故由本脚本每次 build 重派生落盘。
+    仅取本集所属系列；集不在任何系列（脚手架期）则跳过不写。层短名取 cardSub
+    首段（「执行层 · 循环」→「执行层」）。next 为下一集标题（P6 呼吸预告用）。
+    """
+    series_json = root.parent.parent / "series.json"
+    if not series_json.is_file():
+        return
+    series_list = json.loads(series_json.read_text(encoding="utf-8"))["seriesList"]
+    for series in series_list:
+        eps = series["episodes"]
+        for k, ep in enumerate(eps):
+            if ep["path"] != f"episodes/{root.name}":
+                continue
+            layers = [
+                {
+                    "index": i + 1,
+                    "layer": e["cardSub"].split(" · ")[0],
+                    "title": e["title"],
+                    "published": e.get("status") == "ready"
+                    and "已上线" in e.get("voice", ""),
+                }
+                for i, e in enumerate(eps)
+            ]
+            payload = {
+                "seriesId": series["id"],
+                "layers": layers,
+                "activeIndex": k + 1,
+                "next": eps[k + 1]["title"] if k + 1 < len(eps) else None,
+            }
+            out = root / "video" / "src" / "series-layers.json"
+            out.parent.mkdir(parents=True, exist_ok=True)
+            out.write_text(
+                json.dumps(payload, ensure_ascii=False, indent=1) + "\n",
+                encoding="utf-8",
+            )
+            print(f"系列层: {series['id']} 第 {k + 1}/{len(eps)} 集 · layers 已派生")
+            return
 
 
 if __name__ == "__main__":

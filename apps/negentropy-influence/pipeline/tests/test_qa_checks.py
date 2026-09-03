@@ -6,10 +6,19 @@ import sys
 from pathlib import Path
 
 import numpy as np
+import pytest
 from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
-from qa_frames import check_frames, check_theme, tail_row_has_fade, wcag_ratio  # noqa: E402
+import qa_frames  # noqa: E402
+from qa_frames import (  # noqa: E402
+    beat_head_samples,
+    check_frames,
+    check_theme,
+    frame_diff,
+    tail_row_has_fade,
+    wcag_ratio,
+)
 
 
 def make_png(path: Path, mode: str, scale: float = 1.0) -> None:
@@ -218,3 +227,125 @@ def test_multi_scene_sampling_is_per_scene(tmp_path):
     assert [i for i in ids if i.startswith("p0-")], "P0 必须有帧被抽到"
     assert [i for i in ids if i.startswith("p6-")], "P6 必须有帧被抽到"
     assert len(ids) == 5
+
+
+# ── beat 头部采样 + A/B 帧差（纯函数） ────────────────────────────────────
+
+
+def test_beat_head_samples_covers_every_beat_head():
+    """每 beat 首句起点连抽 N 帧，帧号 = start*fps + i（与句中点采样互补的盲区面）。"""
+
+    beats = [
+        ("0-A", "p0-01", "p0-02", "p0-01..02"),
+        ("0-B", "p0-03", "p0-04", "p0-03..04"),
+        ("1-A", "p1-01", "p1-03", "p1-01..03"),
+    ]
+    tl = {
+        "p0-01": (0.6, 3.0),
+        "p0-02": (3.6, 3.0),
+        "p0-03": (6.6, 3.0),
+        "p0-04": (9.6, 3.0),
+        "p1-01": (12.6, 4.0),
+    }
+    got = beat_head_samples(beats, tl, fps=30, n=3)
+    names = [n for n, _ in got]
+    assert names == [
+        "0-A-h0",
+        "0-A-h1",
+        "0-A-h2",
+        "0-B-h0",
+        "0-B-h1",
+        "0-B-h2",
+        "1-A-h0",
+        "1-A-h1",
+        "1-A-h2",
+    ]
+    # 第一帧恰在 beat 起点（0.6s），其后按 1/fps 递增
+    assert got[0][1] == 0.6
+    assert abs(got[1][1] - (0.6 + 1 / 30)) < 1e-9
+    assert abs(got[6][1] - 12.6) < 1e-9
+
+
+def test_beat_head_samples_scene_filter_and_stale_beats():
+    beats = [("0-A", "p0-01", "p0-02", ""), ("4-A", "p4-01", "p4-02", "")]
+    tl = {"p0-01": (0.6, 3.0), "p4-01": (99.0, 3.0)}
+    only4 = beat_head_samples(beats, tl, fps=30, n=1, scene_filter=["P4"])
+    assert [n for n, _ in only4] == ["4-A-h0"]
+    # 区间首句不在 manifest（分镜陈旧）→ 该 beat 整体跳过，不静默错位
+    stale = beat_head_samples([("2-A", "p2-99", "p2-99", "")], tl, fps=30, n=2)
+    assert stale == []
+
+
+def test_frame_diff_quantifies_and_localizes(tmp_path):
+    same = tmp_path / "same.png"
+    make_png(same, "subtitle")  # make_png 返回 None，路径自持
+    d = frame_diff(same, same)
+    assert d["frac"] == 0.0 and d["bbox"] is None
+
+    # 右下角一块 40×40 的差异：frac ≈ 1600/总像素，bbox 指向差异区
+    img = Image.open(same).convert("RGB")
+    arr = np.array(img)
+    arr[-40:, -40:] = [255, 255, 255]
+    other = tmp_path / "other.png"
+    Image.fromarray(arr).save(other)
+    d = frame_diff(same, other)
+    assert 0 < d["frac"] < 0.05
+    x0, y0, x1, y1 = d["bbox"]
+    assert x1 - x0 < 45 and y1 - y0 < 45  # bbox 紧贴差异块而非全图
+
+
+def test_compare_keeps_first_positional_id(project, monkeypatch):
+    extracted: list[str] = []
+
+    def fake_extract(_ffmpeg, _video, _cwd, _ts, dst):
+        extracted.append(dst.name)
+
+    monkeypatch.setattr(qa_frames, "extract_frame", fake_extract)
+    monkeypatch.setattr(
+        qa_frames,
+        "frame_diff",
+        lambda _a, _b: {"mean": 0.0, "frac": 0.0, "bbox": None},
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "qa_frames.py",
+            "--project",
+            str(project),
+            "--compare",
+            "baseline.mp4",
+            "draft.mp4",
+            "p0-01",
+            "p0-02",
+        ],
+    )
+
+    qa_frames.main()
+
+    assert extracted == [
+        "p0-01.a.png",
+        "p0-01.b.png",
+        "p0-02.a.png",
+        "p0-02.b.png",
+    ]
+
+
+@pytest.mark.parametrize(
+    "mode",
+    [
+        ["draft.mp4", "--beat-heads", "1", "--scene", "P99"],
+        ["--compare", "baseline.mp4", "draft.mp4", "--scene", "P99"],
+    ],
+)
+def test_qa_modes_fail_when_selection_is_empty(project, monkeypatch, mode):
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["qa_frames.py", "--project", str(project), *mode],
+    )
+
+    with pytest.raises(SystemExit) as exc:
+        qa_frames.main()
+
+    assert exc.value.code != 0

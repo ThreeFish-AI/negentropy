@@ -21,6 +21,16 @@ uv run --no-project --with pillow --with numpy $R/qa_frames.py \
 
 # 主题对比度（零依赖，不需视频；新配色/改 theme.ts 后必跑）
 uv run --no-project $R/qa_frames.py --project $P --check-theme
+
+# beat 头部连抽（每 beat 首句起点连抽 N 帧）——入场瞬态的机械补盲：
+# ISSUE-170 实证「落位态干净、入场越界」会被句中点采样整段错过（此模式冻帧判定关闭）
+uv run --no-project --with pillow --with numpy $R/qa_frames.py \
+    --project $P $P/out/draft.mp4 --beat-heads 4 --check --scale 0.5
+
+# A/B 对拍（重制/重构回归）：同帧号抽两版逐帧差异，按差异像素占比降序；
+# advisory（有匹配帧时退出码 0；零匹配硬失败）——「意图变更之外的一切差异」都须归因后才能接受
+uv run --no-project --with pillow --with numpy $R/qa_frames.py \
+    --project $P --compare $P/out/baseline-draft.mp4 $P/out/draft.mp4 --scene P4
 ```
 
 ## 自动体检判据与处置
@@ -33,7 +43,7 @@ uv run --no-project $R/qa_frames.py --project $P --check-theme
 | 字幕缺失（字幕带无文字亮度像素） | WARN | 查该句 Subtitle 是否被遮挡或文本为空 |
 | 主题对比度 <4.5:1 | FAIL | 换色或加深；概念色清单见 skills/06 视觉契约 |
 
-**注意**：`--offset` 仅在草渲与终渲时间基准不一致时使用；每次重合成后**所有** beat 时间轴位移，抽帧样点必须从新 manifest 重推（工具自动做，但不要复用旧帧目录的旧结论）。
+**注意**：`--offset` 仅在草渲与终渲时间基准不一致时使用；每次重合成后**所有** beat 时间轴位移，抽帧样点必须从新 manifest 重推（工具自动做，但不要复用旧帧目录的旧结论）。**对拍基线**：重制动手前先渲一版 `baseline-draft.mp4` 存档（后续工作区没有旧产物可回取）；A/B 共用同一份音频与 manifest 时，总帧数恒等、同帧号对拍才有意义。
 
 ## 人工目检清单（自动体检之外的残余）
 

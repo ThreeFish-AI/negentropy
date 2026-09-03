@@ -9,6 +9,16 @@
     <video.mp4> --scene P1         该幕抽样至多 ~8 帧
     <video.mp4> --last-n 6         末 N 句——直指「末句短于 beat → 渐黑提前 → 长黑尾」
                                    上线 bug 的抽样盲区（尾幕必查）
+    <video.mp4> --beat-heads N [--scene P4]
+                                   每 beat 头部连抽 N 帧（0..N-1）——ISSUE-170 的机械
+                                   补盲：句中点采样结构性错过亚秒入场瞬态。可与 --scene
+                                   组合过滤幕。此模式 --check 关闭冻帧判定（静止 beat
+                                   的头帧指纹相同是合法态）
+A/B 对拍（有帧时 advisory；零匹配帧硬失败，供重制/重构回归归因）：
+    --compare A.mp4 B.mp4 --scene P4|<句id>…
+                                   同帧号抽 A/B 两版逐帧差异（meanΔ / 差异像素占比 /
+                                   变化区域 bbox），按占比降序——「不外溢的意图变更」
+                                   之外的一切差异都应被归因后再接受
 
 自动体检（--check，惰性依赖 pillow+numpy）：
     黑帧/早渐黑    帧平均相对亮度 < 0.02 → FAIL（仅末 beat 且分镜末行写「渐黑」时豁免）
@@ -113,6 +123,59 @@ def stills_plan(root: Path, chars_per_sec: float) -> None:
         )
 
 
+def beat_head_samples(
+    beats: list[tuple[str, str, str, str]],
+    tl: dict[str, tuple[float, float]],
+    fps: int,
+    n: int,
+    offset: float = 0.0,
+    scene_filter: list[str] | None = None,
+) -> list[tuple[str, float]]:
+    """每 beat 头部连抽 N 帧的 (帧名, 时间戳)。beat 起点 = 其首句 start。
+
+    纯函数（tests/test_qa_checks 对拍黄金帧号）。scene_filter 形如 ['P4']：按
+    镜号数字前缀过滤（0-A → P0）。区间首句不在 manifest 时跳过该 beat（分镜陈旧）。
+    """
+    samples: list[tuple[str, float]] = []
+    for beat_id, left, _right, _cell in beats:
+        if scene_filter and beat_id.split("-")[0] not in {
+            sf.upper().lstrip("P") for sf in scene_filter
+        }:
+            continue
+        if left not in tl:
+            continue
+        start = tl[left][0]
+        for i in range(max(1, n)):
+            samples.append((f"{beat_id}-h{i}", start + i / fps - offset))
+    return samples
+
+
+def frame_diff(a: Path, b: Path) -> dict:
+    """两帧的差异摘要（纯函数，供 --compare 与单测）。
+
+    mean：RGB 三通道平均绝对差（0-255）；frac：任一通道差 > DIFF_JND 的像素占比；
+    bbox：差异像素的包围盒 (x0, y0, x1, y1)，全同帧为 None。JND 取 12——抗 jpeg
+    压缩噪声的经验下限，非感知模型。
+    """
+    import numpy as np
+    from PIL import Image
+
+    A = np.asarray(Image.open(a).convert("RGB"), dtype=np.float32)
+    B = np.asarray(Image.open(b).convert("RGB"), dtype=np.float32)
+    if A.shape != B.shape:
+        return {"mean": 255.0, "frac": 1.0, "bbox": None, "shape_mismatch": True}
+    d = np.abs(A - B).max(axis=2)
+    mask = d > DIFF_JND
+    if not mask.any():
+        return {"mean": float(np.abs(A - B).mean()), "frac": 0.0, "bbox": None}
+    ys, xs = np.nonzero(mask)
+    return {
+        "mean": float(np.abs(A - B).mean()),
+        "frac": float(mask.mean()),
+        "bbox": (int(xs.min()), int(ys.min()), int(xs.max()), int(ys.max())),
+    }
+
+
 def extract_frame(
     ffmpeg: list[str], video: Path, cwd: Path, ts: float, dst: Path
 ) -> None:
@@ -164,6 +227,8 @@ SUBTITLE_BOX_H_PX = 132
 #: 侵入物最小宽度（全分辨率像素，随 scale 折算）：窄于此的多是抗锯齿碎片
 INTRUSION_MIN_W_PX = 24
 CONTRAST_MIN = 4.5
+#: A/B 对拍的逐像素刚可辨差异（just-noticeable diff 的经验值）
+DIFF_JND = 12
 
 
 def bright_segments(col, threshold: float) -> list[tuple[int, int]]:
@@ -255,7 +320,13 @@ def tail_row_has_fade(board: Path) -> bool:
 
 
 def check_frames(
-    out: Path, ids: list[str], scale: float, fade_exempt_last: bool, msgs: list[str]
+    out: Path,
+    ids: list[str],
+    scale: float,
+    fade_exempt_last: bool,
+    msgs: list[str],
+    freeze_check: bool = True,
+    subtitle_check: bool = True,
 ) -> None:
     try:
         import numpy as np
@@ -284,7 +355,9 @@ def check_frames(
             )
         band = img[img.shape[0] - band_px :, :] if band_px else img
         bright_px = float((band > TEXT_BRIGHTNESS).mean())
-        if bright_px == 0:
+        # 字幕缺失只在句中点采样下有意义：beat 头帧落在句首淡入与句间空隙，
+        # 无字幕是合法态（--beat-heads 传 subtitle_check=False）
+        if subtitle_check and bright_px == 0:
             msgs.append(f"WARN {sid}: 字幕带内无文字亮度像素（字幕缺失？）")
         elif band_px > box_h_px:
             # 侵入检测按**几何**做（见 SUBTITLE_BOX_H_PX 注释）：只看字幕框上方那条窄带，
@@ -300,10 +373,11 @@ def check_frames(
             np.asarray(Image.open(png).convert("L").resize((16, 16)))
         )
 
-    for (a, _), (b, _) in zip(ordered, ordered[1:], strict=False):
-        if a.rsplit("-", 1)[0][:2] == b.rsplit("-", 1)[0][:2]:  # 同幕前缀
-            if hashes[a] == hashes[b]:
-                msgs.append(f"WARN {a} 与 {b} 帧指纹相同（疑似冻帧/beat 窗口错位）")
+    if freeze_check:
+        for (a, _), (b, _) in zip(ordered, ordered[1:], strict=False):
+            if a.rsplit("-", 1)[0][:2] == b.rsplit("-", 1)[0][:2]:  # 同幕前缀
+                if hashes[a] == hashes[b]:
+                    msgs.append(f"WARN {a} 与 {b} 帧指纹相同（疑似冻帧/beat 窗口错位）")
 
 
 # ---------------- main ----------------
@@ -328,6 +402,19 @@ def main() -> None:
     parser.add_argument("--last-n", type=int, help="抽末 N 句（尾幕渐黑必查）")
     parser.add_argument(
         "--check", action="store_true", help="对抽出的帧做自动体检（需 pillow+numpy）"
+    )
+    parser.add_argument(
+        "--beat-heads",
+        type=int,
+        metavar="N",
+        help="每 beat 头部连抽 N 帧（0..N-1，fps 间隔）——入场瞬态的机械补盲"
+        "（ISSUE-170）；只可与 --scene 组合，此模式下 --check 关闭冻帧判定",
+    )
+    parser.add_argument(
+        "--compare",
+        nargs=2,
+        metavar=("A.mp4", "B.mp4"),
+        help="A/B 对拍：同帧号抽两版逐帧差异（advisory；需 --scene/--last-n/ids 之一）",
     )
     parser.add_argument(
         "--check-theme",
@@ -364,6 +451,12 @@ def main() -> None:
 
     root = Path(args.project).resolve()
 
+    # --compare 自带两个视频路径，不消费普通模式的 <video> 位置参数；argparse 仍会
+    # 把 compare 后的首个裸句 id 填进 video，须在选择器计数前归还给 ids。
+    if args.compare and args.video:
+        args.ids.insert(0, args.video)
+        args.video = None
+
     if args.stills_plan:
         stills_plan(root, args.chars_per_sec)
         return
@@ -377,15 +470,112 @@ def main() -> None:
         sys.exit(1 if any(m.startswith("FAIL") for m in msgs) else 0)
 
     selectors = sum(bool(x) for x in (args.scene, args.last_n, args.ids))
-    if not args.video or selectors != 1:
+    if args.beat_heads:
+        if args.last_n or args.ids:
+            parser.error("--beat-heads 只可与 --scene 组合过滤幕")
+        if not args.video:
+            parser.error("--beat-heads 需要 <video>")
+    elif args.compare:
+        if selectors != 1:
+            parser.error("--compare 需要 --scene / --last-n / ids 之一指定对拍帧")
+    elif not args.video or selectors != 1:
         parser.error(
             "需要 <video> 且 --scene / --last-n / ids 三选一（或用 --check-theme）"
         )
 
-    video = Path(args.video).resolve()
-    out = root / "out" / "frames"
     tl = timeline(root)
     offset = args.offset
+
+    if args.compare:
+        # A/B 对拍：同帧号抽两版，差异摘要按占比降序（advisory，退出码恒 0）
+        from check_script import parse_storyboard  # noqa: PLC0415 - 同目录模块
+
+        va, vb = (Path(x).resolve() for x in args.compare)
+        ids = (
+            [k for sc in args.scene for k in tl if k.startswith(sc.lower() + "-")]
+            if args.scene
+            else (list(tl)[-args.last_n :] if args.last_n else args.ids)
+        )
+        if not ids:
+            parser.error("--compare 未选中任何可对拍句")
+        out_ab = root / "out" / "frames-ab"
+        out_ab.mkdir(parents=True, exist_ok=True)
+        ffmpeg = ["pnpm", "exec", "remotion", "ffmpeg"]
+        rows: list[tuple[str, dict]] = []
+        for sid in ids:
+            if sid not in tl:
+                print(f"跳过未知句 id: {sid}")
+                continue
+            ts = tl[sid][0] + tl[sid][1] / 2 - offset
+            fa, fb = out_ab / f"{sid}.a.png", out_ab / f"{sid}.b.png"
+            extract_frame(ffmpeg, va, root / "video", ts, fa)
+            extract_frame(ffmpeg, vb, root / "video", ts, fb)
+            rows.append((sid, frame_diff(fa, fb)))
+            print(f"{sid} @ {ts:.2f}s 已对拍")
+        if not rows:
+            parser.error("--compare 未抽取到任何有效帧")
+        rows.sort(key=lambda r: r[1]["frac"], reverse=True)
+        print()
+        for sid, d in rows:
+            bbox = d["bbox"]
+            print(
+                f"  {sid}: meanΔ {d['mean']:6.2f} · 差异像素 {d['frac'] * 100:5.1f}%"
+                + (f" · bbox {bbox}" if bbox else "")
+            )
+        hot = sum(1 for _, d in rows if d["frac"] > 0.05)
+        print(
+            f">> A/B 对拍 {len(rows)} 帧 · 差异像素 >5% 共 {hot} 帧"
+            "（差异帧须逐一归因后才能接受；工具不替人判定「变好还是变坏」）"
+        )
+        return
+
+    video = Path(args.video).resolve()
+    out = root / "out" / "frames"
+    if args.beat_heads:
+        from check_script import parse_storyboard  # noqa: PLC0415 - 同目录模块
+
+        board = root / "script" / "storyboard.md"
+        if not board.is_file():
+            sys.exit(f"storyboard.md 不存在: {board} —— --beat-heads 需要分镜表")
+        samples = beat_head_samples(
+            parse_storyboard(board),
+            tl,
+            load_constants(root)["fps"],
+            args.beat_heads,
+            offset,
+            args.scene,
+        )
+        if not samples:
+            parser.error("--beat-heads 未选中任何可抽取 beat")
+        out.mkdir(parents=True, exist_ok=True)
+        ffmpeg = ["pnpm", "exec", "remotion", "ffmpeg"]
+        extracted: list[str] = []
+        for name, ts in samples:
+            dst = out / f"{name}.png"
+            extract_frame(ffmpeg, video, root / "video", ts, dst)
+            extracted.append(name)
+            print(f"{name} @ {ts:.2f}s -> {dst.relative_to(root)}")
+        if args.check:
+            board_fade = tail_row_has_fade(board)
+            msgs: list[str] = []
+            check_frames(
+                out,
+                extracted,
+                args.scale,
+                board_fade,
+                msgs,
+                freeze_check=False,
+                subtitle_check=False,
+            )
+            for m in msgs:
+                print(f"  {m}")
+            n_fail = sum(m.startswith("FAIL") for m in msgs)
+            print(
+                f">> beat 头部体检 · FAIL {n_fail} ·"
+                f" WARN {sum(m.startswith('WARN') for m in msgs)}（冻帧判定已关闭）"
+            )
+            sys.exit(1 if n_fail else 0)
+        return
     if args.scene:
         # 每幕**独立**抽样再拼接：抽样步长按各幕自身句数算，否则多幕合并后
         # 步长被总数放大，句少的幕会被整幕跳过（静默漏检，与 --scene 单值那个

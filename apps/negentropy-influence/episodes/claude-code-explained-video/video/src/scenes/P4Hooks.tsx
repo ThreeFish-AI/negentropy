@@ -1,7 +1,8 @@
 /** P4 挂在循环上，不写进循环里（分镜 4-A…4-H）—— 开源教学素材「Hook Workbench」的概念重建
- *  4-E 刻意「无动效」表达「循环是故意保持无聊的」；4-G 是全片安全主题的收口。 */
+ *  4-E 刻意「无动效」表达「循环是故意保持无聊的」；4-G 是全片安全主题的收口。
+ *  重制（2026-09 运动层）：动效收敛到 motion 模型；冲击波/回流描线等 bespoke 项见各处 deferred 注记。 */
 import React from 'react';
-import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig} from 'remotion';
+import {AbsoluteFill, interpolate, Sequence, useCurrentFrame} from 'remotion';
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
@@ -18,6 +19,8 @@ import {
   SlotRing,
   useRingDot,
 } from '../components/motifs';
+import {HarnessBadge} from '../components/harness-stack';
+import {DUR, useAccelTravel, useProgress, useSpring, useStagger} from '../motion';
 
 const SLOTS = [
   {name: '进入模型之前', when: '你的话交出去，还没进模型', callbacks: ['校验输入 / 补背景']},
@@ -28,37 +31,32 @@ const SLOTS = [
 
 /** 4-A 三条需求扎进环内部，环线被撑粗并出现应力点 */
 const NeedsPierce: React.FC<{needAt: number; pierceAt: number}> = ({needAt, pierceAt}) => {
-  const frame = useCurrentFrame();
   const dot = useRingDot(2.5);
   const needs = ['每次跑命令记一笔日志', '某些操作后自动提交代码', '危险动作往群里发通知'];
-  const pierce = interpolate(frame - pierceAt, [0, 20], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
+  // 环线应力撑开：20f → f6（13-21 档）
+  const pierce = useProgress(pierceAt, DUR.f6);
+  // 三张需求卡错峰滑入（stride 8、单项 14f → f6）
+  const needP = useStagger(needs.length, {at: needAt, stride: 8, dur: DUR.f6});
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center', flexDirection: 'row', gap: 80}}>
       <SceneTag chapter="Hooks" tagline="Hang on the Loop, Don't Write into It" />
       <div style={{position: 'relative'}}>
         <LoopRing size={400} draw={1} dotProgress={dot} />
-        {pierce > 0.4 ? (
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              borderRadius: 999,
-              boxShadow: `0 0 ${26 * pierce}px ${theme.deny}`,
-              opacity: pierce - 0.4,
-              pointerEvents: 'none',
-            }}
-          />
-        ) : null}
+        {/* 应力辉光：原布尔门改常渲染，透明度自 0.4 起亮（负值钳 0） */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            borderRadius: 999,
+            boxShadow: `0 0 ${26 * pierce}px ${theme.deny}`,
+            opacity: Math.max(0, pierce - 0.4),
+            pointerEvents: 'none',
+          }}
+        />
       </div>
       <div>
         {needs.map((n, i) => {
-          const t = interpolate(frame - needAt - i * 8, [0, 14], [0, 1], {
-            extrapolateLeft: 'clamp',
-            extrapolateRight: 'clamp',
-          });
+          const t = needP[i];
           return (
             <div
               key={n}
@@ -101,6 +99,7 @@ const DegradedLoop: React.FC<{quoteAt: number}> = ({quoteAt}) => {
     '            auto_git_add(block)       # 再加一行',
     '            # ... 很快循环就认不出来了',
   ];
+  // 逐条插入的量化节拍（14f 一档）：阶梯式挤出视区是刻意的量化舞台，不模型化
   const inserted = Math.min(5, Math.max(0, Math.floor((frame - 6) / 14)));
   const shift = inserted * 26;
   return (
@@ -122,11 +121,18 @@ const DegradedLoop: React.FC<{quoteAt: number}> = ({quoteAt}) => {
 /** 4-C 杂活被拔出循环、变成回调卡，环恢复原线宽 */
 const PullOut: React.FC<{tableAt: number; plugAt: number}> = ({tableAt, plugAt}) => {
   const frame = useCurrentFrame();
-  const {fps} = useVideoConfig();
   const dot = useRingDot(2.5);
-  const out = interpolate(frame, [0, 26], [0, 1], {extrapolateRight: 'clamp'});
-  const plug = spring({frame: frame - plugAt, fps, config: {damping: 12}});
+  // 拔出收束：26f 属 beat 级大位移（≥22，保留显式时长）
+  const out = useProgress(0, 26);
+  // 插头咬合的过冲：damping 12 即 snap 预设的锚定来源
+  const plug = useSpring('snap', {at: plugAt});
+  // 咬合瞬间的 2 帧高亮闪（模式切换，保留硬切）
   const flash = frame >= plugAt + 6 && frame < plugAt + 8;
+  // 表格与插头句：原布尔瞬现门 → 常渲染 + f3 淡入
+  const tableOp = useProgress(tableAt, DUR.f3);
+  const plugOp = useProgress(plugAt, DUR.f3);
+  // 四行时机错峰浮现（stride 5、单项 10f → f5）
+  const rowP = useStagger(4, {at: tableAt, stride: 5, dur: DUR.f5});
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center', flexDirection: 'row', gap: 70}}>
       <div style={{position: 'relative'}}>
@@ -152,46 +158,45 @@ const PullOut: React.FC<{tableAt: number; plugAt: number}> = ({tableAt, plugAt})
           );
         })}
       </div>
+      {/* 两元素均为常规流子节点：布局门保留（常驻会把 Panel 顶高 ~80px），门内淡入 */}
       <div>
         {frame >= tableAt ? (
-          <Panel style={{padding: '18px 22px', width: 560}}>
-            <div style={{display: 'flex', fontFamily: theme.sans, fontSize: 22, color: theme.dim, paddingBottom: 10}}>
-              <div style={{flex: 1}}>{'时机'}</div>
-              <div style={{flex: 1}}>{'要跑的函数'}</div>
+        <Panel style={{padding: '18px 22px', width: 560, opacity: tableOp}}>
+          <div style={{display: 'flex', fontFamily: theme.sans, fontSize: 22, color: theme.dim, paddingBottom: 10}}>
+            <div style={{flex: 1}}>{'时机'}</div>
+            <div style={{flex: 1}}>{'要跑的函数'}</div>
+          </div>
+          {['进模型前', '执行前', '执行后', '停机前'].map((k, i) => (
+            <div
+              key={k}
+              style={{
+                display: 'flex',
+                height: 48,
+                alignItems: 'center',
+                fontFamily: theme.mono,
+                fontSize: 24,
+                opacity: rowP[i],
+              }}
+            >
+              <div style={{flex: 1, color: theme.mech}}>{k}</div>
+              <div style={{flex: 1, color: theme.dim}}>{'[ … ]'}</div>
             </div>
-            {['进模型前', '执行前', '执行后', '停机前'].map((k, i) => (
-              <div
-                key={k}
-                style={{
-                  display: 'flex',
-                  height: 48,
-                  alignItems: 'center',
-                  fontFamily: theme.mono,
-                  fontSize: 24,
-                  opacity: interpolate(frame - tableAt - i * 5, [0, 10], [0, 1], {
-                    extrapolateLeft: 'clamp',
-                    extrapolateRight: 'clamp',
-                  }),
-                }}
-              >
-                <div style={{flex: 1, color: theme.mech}}>{k}</div>
-                <div style={{flex: 1, color: theme.dim}}>{'[ … ]'}</div>
-              </div>
-            ))}
-          </Panel>
+          ))}
+        </Panel>
         ) : null}
         {frame >= plugAt ? (
-          <div
-            style={{
-              marginTop: 20,
-              fontFamily: theme.serif,
-              fontSize: 32,
-              color: theme.mech,
-              transform: `translateX(${(1 - plug) * -40}px)`,
-            }}
-          >
-            {'加功能是插一个插头，不是重新布线'}
-          </div>
+        <div
+          style={{
+            marginTop: 20,
+            fontFamily: theme.serif,
+            fontSize: 32,
+            color: theme.mech,
+            opacity: plugOp,
+            transform: `translateX(${(1 - plug) * -40}px)`,
+          }}
+        >
+          {'加功能是插一个插头，不是重新布线'}
+        </div>
         ) : null}
       </div>
     </AbsoluteFill>
@@ -207,14 +212,12 @@ const SlotsLightUp: React.FC<{slotAt: number[]; gateMoveAt: number; backflowAt: 
   const frame = useCurrentFrame();
   const dot = useRingDot(2.5);
   const lit = slotAt.filter((a) => frame >= a).length - 1;
-  const gm = interpolate(frame - gateMoveAt, [0, 24], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-  const back = interpolate(frame - backflowAt, [0, 22], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
+  // P3 闸门搬入插槽：24f 属 beat 级（≥22，保留显式时长）
+  const gm = useProgress(gateMoveAt, 24);
+  // 回流描线：22f 属 beat 级（≥22，保留显式时长）
+  const back = useProgress(backflowAt, 22);
+  // 闸门组原布尔瞬现门 → 常渲染 + f3 淡入（再叠加 gm 的压暗）
+  const gateOp = useProgress(gateMoveAt, DUR.f3);
   // 容器尺寸由 SlotRing 的定位契约推导（见该组件 docstring），环居中
   const RING = 400;
   const W = RING + 2 * (SLOT_W + SLOT_GAP);
@@ -227,35 +230,33 @@ const SlotsLightUp: React.FC<{slotAt: number[]; gateMoveAt: number; backflowAt: 
         </div>
         <SlotRing slots={SLOTS} lit={lit} size={RING} />
         {/* P3 的三道闸门缩小平移进右上角的「工具执行之前」插槽（跨幕视觉呼应） */}
-        {gm > 0 ? (
-          <svg
-            width={220}
-            height={90}
-            style={{
-              position: 'absolute',
-              /* 终点对准右上角插槽的左缘与垂直中部：起点在环右侧（P3 闸门的位置），
-                 gm=1 时贴到该插槽旁，读作「闸门被搬进这个插口」 */
-              left: W / 2 + 60 + gm * (W - SLOT_W - 100 - (W / 2 + 60)),
-              top: H / 2 - 45 - gm * (H / 2 - 105),
-              opacity: 1 - gm * 0.35,
-            }}
-          >
-            {[0, 1, 2].map((i) => (
-              <rect
-                key={i}
-                x={20 + i * 42}
-                y={18 * gm}
-                width={11 * (1 - gm * 0.4)}
-                height={54 * (1 - gm * 0.45)}
-                rx={4}
-                fill={i === 0 ? theme.deny : 'none'}
-                stroke={i === 0 ? theme.deny : theme.mech}
-                strokeWidth={3}
-                strokeDasharray={i === 2 ? '7 5' : undefined}
-              />
-            ))}
-          </svg>
-        ) : null}
+        <svg
+          width={220}
+          height={90}
+          style={{
+            position: 'absolute',
+            /* 终点对准右上角插槽的左缘与垂直中部：起点在环右侧（P3 闸门的位置），
+               gm=1 时贴到该插槽旁，读作「闸门被搬进这个插口」 */
+            left: W / 2 + 60 + gm * (W - SLOT_W - 100 - (W / 2 + 60)),
+            top: H / 2 - 45 - gm * (H / 2 - 105),
+            opacity: gateOp * (1 - gm * 0.35),
+          }}
+        >
+          {[0, 1, 2].map((i) => (
+            <rect
+              key={i}
+              x={20 + i * 42}
+              y={18 * gm}
+              width={11 * (1 - gm * 0.4)}
+              height={54 * (1 - gm * 0.45)}
+              rx={4}
+              fill={i === 0 ? theme.deny : 'none'}
+              stroke={i === 0 ? theme.deny : theme.mech}
+              strokeWidth={3}
+              strokeDasharray={i === 2 ? '7 5' : undefined}
+            />
+          ))}
+        </svg>
         {/* 「别停，接着干」：从左下角插槽回流到环的入口（问模型节点） */}
         {back > 0 ? (
           <svg
@@ -370,15 +371,18 @@ const HookNesting: React.FC<{outerAt: number; midAt: number; innerAt: number; co
   asyncAt,
 }) => {
   const frame = useCurrentFrame();
-  const {fps} = useVideoConfig();
-  // 三层依次成形的进度
-  const o = interpolate(frame - outerAt, [0, 16], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  const m = interpolate(frame - midAt, [0, 16], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  const i = interpolate(frame - innerAt, [0, 16], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  // 内层光点沿「工具前→执行→工具后→整批落定」跑一圈
+  // 三层依次成形的进度（单项 16f → f6）
+  const o = useProgress(outerAt, DUR.f6);
+  const m = useProgress(midAt, DUR.f6);
+  const i = useProgress(innerAt, DUR.f6);
+  // 内层光点沿「工具前→执行→工具后→整批落定」跑一圈：80f 周期模除驱动 bespoke 位置
+  // 高亮（非环形巡游，useTravel 不适用），保留内联（deferred）
   const lap = ((frame - innerAt) % 80) / 80;
   const lapOn = frame >= innerAt + 16;
   const asyncEvents = ['会话开始', '会话结束', '配置变更', '目录切换', '文件被改', '通知'];
+  // 右栏整体淡入（16f → f6）+ 六格错峰（stride 3、单项 8f → f3）
+  const asyncOp = useProgress(asyncAt, DUR.f6);
+  const asyncCells = useStagger(asyncEvents.length, {at: asyncAt, stride: 3, dur: DUR.f3});
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <div style={{position: 'relative', width: 1500, height: 640}}>
@@ -465,10 +469,7 @@ const HookNesting: React.FC<{outerAt: number; midAt: number; innerAt: number; co
             right: 0,
             top: 10,
             width: 420,
-            opacity: interpolate(frame - asyncAt, [0, 16], [0, 1], {
-              extrapolateLeft: 'clamp',
-              extrapolateRight: 'clamp',
-            }),
+            opacity: asyncOp,
           }}
         >
           <div style={{fontFamily: theme.sans, fontSize: 22, color: theme.dim, marginBottom: 12}}>
@@ -486,10 +487,7 @@ const HookNesting: React.FC<{outerAt: number; midAt: number; innerAt: number; co
                   fontSize: 19,
                   color: theme.dim,
                   background: theme.panel,
-                  opacity: interpolate(frame - asyncAt - k * 3, [0, 8], [0, 1], {
-                    extrapolateLeft: 'clamp',
-                    extrapolateRight: 'clamp',
-                  }),
+                  opacity: asyncCells[k],
                 }}
               >
                 {e}
@@ -528,13 +526,14 @@ const StampClash: React.FC<{
   quoteAt: number;
 }> = ({pushAt, blockAt, arrowAt, gapAt, quoteAt}) => {
   const frame = useCurrentFrame();
+  // 上层印章推进 18f → f6；箭头组 20f → f6；缺口警示条原布尔门 → f3 淡入。
+  // hooks 必须先于金句早退调用（Rules of Hooks：早退后不得再出现 hook）
+  const push = useProgress(pushAt, DUR.f6);
+  const arrow = useProgress(arrowAt, DUR.f6);
+  const gapOp = useProgress(gapAt, DUR.f3);
   if (frame >= quoteAt) {
     return <QuoteCard zh="扩展点能加限制，不能解除限制。" accent={theme.core} />;
   }
-  const push = interpolate(frame - pushAt, [0, 18], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
   const blocked = frame >= blockAt;
   /* 「顶住」不能是一次性瞬间事件：旁白「配置里的禁止和询问仍然要再走一遍」有 4 秒多，
      若冲击波 16 帧就衰减完，画面在这句的大部分时间里是静止的、读不出对撞。
@@ -545,15 +544,11 @@ const StampClash: React.FC<{
         extrapolateRight: 'clamp',
       }) + (frame - blockAt > 24 ? Math.sin((frame - blockAt) / 7) * 3.5 : 0)
     : 0;
-  // 冲击波每 34 帧复发一次（持续施压 → 持续被顶回）
+  // 冲击波每 34 帧复发一次（持续施压 → 持续被顶回）——模除包络 + 条件抖动是刻意的
+  // 周期性冲击模型，motion 层暂无对应原语，保留 bespoke（deferred：需 periodic-impulse 模型）
   const shock = blocked
     ? interpolate((frame - blockAt) % 34, [0, 16], [0, 1], {extrapolateRight: 'clamp'})
     : 0;
-  const arrow = interpolate(frame - arrowAt, [0, 20], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-  const gap = frame >= gapAt;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <div style={{position: 'relative', width: 1560, height: 660}}>
@@ -607,50 +602,47 @@ const StampClash: React.FC<{
             ))}
           </svg>
         ) : null}
-        {arrow > 0 ? (
-          <div style={{position: 'absolute', left: 1010, top: 150, width: 500, opacity: arrow}}>
-            <Panel accent={theme.mech} style={{padding: '20px 26px', marginBottom: 20}}>
-              <div style={{fontFamily: theme.sans, fontSize: 30, color: theme.mech}}>
-                {'加限制　↑　可以'}
-              </div>
-            </Panel>
-            <Panel accent={theme.deny} style={{padding: '20px 26px'}}>
-              <div style={{fontFamily: theme.sans, fontSize: 30, color: theme.deny}}>
-                {'解除限制　↓　不行'}
-              </div>
-            </Panel>
-            <div
-              style={{
-                marginTop: 18,
-                fontFamily: theme.serif,
-                fontSize: 26,
-                color: theme.dim,
-                lineHeight: 1.5,
-              }}
-            >
-              {'方向是单向的'}
+        <div style={{position: 'absolute', left: 1010, top: 150, width: 500, opacity: arrow}}>
+          <Panel accent={theme.mech} style={{padding: '20px 26px', marginBottom: 20}}>
+            <div style={{fontFamily: theme.sans, fontSize: 30, color: theme.mech}}>
+              {'加限制　↑　可以'}
             </div>
-          </div>
-        ) : null}
-        {gap ? (
+          </Panel>
+          <Panel accent={theme.deny} style={{padding: '20px 26px'}}>
+            <div style={{fontFamily: theme.sans, fontSize: 30, color: theme.deny}}>
+              {'解除限制　↓　不行'}
+            </div>
+          </Panel>
           <div
             style={{
-              position: 'absolute',
-              left: 300,
-              top: 552,
-              width: 640,
-              border: `3px dashed ${theme.deny}`,
-              borderRadius: 10,
-              padding: '14px 18px',
-              fontFamily: theme.sans,
+              marginTop: 18,
+              fontFamily: theme.serif,
               fontSize: 26,
-              color: theme.deny,
-              textAlign: 'center',
+              color: theme.dim,
+              lineHeight: 1.5,
             }}
           >
-            {'教学版缺这一层 → 生产环境的安全漏洞'}
+            {'方向是单向的'}
           </div>
-        ) : null}
+        </div>
+        <div
+          style={{
+            position: 'absolute',
+            left: 300,
+            top: 552,
+            width: 640,
+            border: `3px dashed ${theme.deny}`,
+            borderRadius: 10,
+            padding: '14px 18px',
+            fontFamily: theme.sans,
+            fontSize: 26,
+            color: theme.deny,
+            textAlign: 'center',
+            opacity: gapOp,
+          }}
+        >
+          {'教学版缺这一层 → 生产环境的安全漏洞'}
+        </div>
       </div>
       <Footnote delay={arrowAt}>
         {'hook allow 不能绕过 settings 的 deny/ask —— 第三方的源码分析'}
@@ -671,14 +663,12 @@ const SixGatePipeline: React.FC<{railAt: number; runAt: number; yoloAt: number}>
     {t: 'mode', sub: '模式'},
     {t: '默认', sub: '兜底问你'},
   ];
-  const rail = interpolate(frame - railAt, [0, 22], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-  const travel = interpolate(frame - runAt, [0, 50], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
+  // 轨道浮现 22f / 光点过闸 50f：均属 beat 级窗口（≥22，保留显式时长）
+  const rail = useProgress(railAt, 22);
+  const travel = useProgress(runAt, 50);
+  // 六站错峰点亮（stride 4、单项 10f → f5）；yolo 标注 12f = f5
+  const stationP = useStagger(stations.length, {at: railAt + 6, stride: 4, dur: DUR.f5});
+  const yoloOp = useProgress(yoloAt, DUR.f5);
   const yolo = frame >= yoloAt;
   // 两轮演示：第一轮光点在 deny 站被截；第二轮（全放行模式）仍在 deny 站被截
   const cutAt = 1 / 6 + 0.5 / 6;
@@ -719,11 +709,7 @@ const SixGatePipeline: React.FC<{railAt: number; runAt: number; yoloAt: number}>
         </svg>
         {/* 六站 */}
         {stations.map((st, i) => {
-          const at = railAt + 6 + i * 4;
-          const e = interpolate(frame - at, [0, 10], [0, 1], {
-            extrapolateLeft: 'clamp',
-            extrapolateRight: 'clamp',
-          });
+          const e = stationP[i];
           const isDeny = st.t === 'deny';
           const bypassed = yolo && (st.t === 'mode');
           return (
@@ -756,7 +742,7 @@ const SixGatePipeline: React.FC<{railAt: number; runAt: number; yoloAt: number}>
               fontFamily: theme.sans,
               fontSize: 23,
               color: theme.deny,
-              opacity: interpolate(frame - yoloAt, [0, 12], [0, 1], {extrapolateRight: 'clamp'}),
+              opacity: yoloOp,
             }}
           >
             {'全放行模式也一样：拒绝压得住'}
@@ -773,29 +759,13 @@ const SixGatePipeline: React.FC<{railAt: number; runAt: number; yoloAt: number}>
 /** 4-H 自激小闭环，被一枚标记截断 */
 const SelfLoopBreak: React.FC<{spinAt: number; markAt: number}> = ({spinAt, markAt}) => {
   const frame = useCurrentFrame();
-  const t = Math.max(0, frame - spinAt);
-  const durs = [34, 26, 20];
-  let acc = 0;
-  let lap = 0;
-  let within = 0;
-  for (let i = 0; i < durs.length; i++) {
-    if (t < acc + durs[i]) {
-      lap = i;
-      within = (t - acc) / durs[i];
-      break;
-    }
-    acc += durs[i];
-    lap = i + 1;
-    within = 0;
-  }
-  const marked = frame >= markAt;
-  // 第四圈行进到标记处被截断
-  const angle = marked ? -30 : -90 + within * 360;
   const cx = 260;
   const cy = 220;
   const r = 128;
-  const rad = (angle * Math.PI) / 180;
-  const heat = Math.min(1, lap / 2.5);
+  // 加速绕行（34/26/20 逐圈提速，heat 随圈数 /2.5 升温）——手写累加器 → useAccelTravel
+  const travel = useAccelTravel({cx, cy, r, durs: [34, 26, 20], at: spinAt, heatPerLap: 2.5});
+  const marked = frame >= markAt;
+  const heat = travel.heat;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <div style={{display: 'flex', alignItems: 'center', gap: 80}}>
@@ -809,8 +779,9 @@ const SelfLoopBreak: React.FC<{spinAt: number; markAt: number}> = ({spinAt, mark
             strokeWidth={5}
             opacity={0.5 + heat * 0.5}
           />
+          {/* 光点行进至 -30°（标记处）被截断：marked 后由下方标记方块接管该位置 */}
           {!marked ? (
-            <circle cx={cx + r * Math.cos(rad)} cy={cy + r * Math.sin(rad)} r={12} fill={theme.deny} />
+            <circle cx={travel.x} cy={travel.y} r={12} fill={theme.deny} />
           ) : null}
           <text x={cx} y={cy - r - 22} textAnchor="middle" fontFamily={theme.sans} fontSize={23} fill={theme.dim}>
             {'插口说「别停」'}
@@ -858,6 +829,7 @@ export const P4Hooks: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bH = w('p4-35', 'p4-37');
   return (
     <AbsoluteFill>
+      <HarnessBadge />
       <Sequence {...bA} name="4-A 需求扎进循环">
         <NeedsPierce needAt={rel(bA, 'p4-03')} pierceAt={rel(bA, 'p4-04')} />
       </Sequence>
