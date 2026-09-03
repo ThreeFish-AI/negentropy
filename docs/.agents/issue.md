@@ -3829,11 +3829,12 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
      命令行 `--ignore-workspace`、根 workspace glob 不匹配），v12 仍从第四个维度
      （`packageManager` 的目录树向上查找）穿透进来。判断隔离是否成立，要问的是
      "**还有哪些机制会沿目录树向上走**"，而不是"我声明了几次隔离"。
-  5. `package.json#pnpm` 字段自 v11 起失效（[ISSUE-076](#issue-076-pnpm-v11-升级后-pnpm-install-报-err_pnpm_ignored_builds--packagejsonpnpmoverrides-静默失效2026-05-08)）
-     的状况在 v12 **未恶化**，仍是 WARN；[ISSUE-166](#issue-166-err_pnpm_ignored_builds-在-esbuild-上是无害噪声不要为消音改动跨集冻结文件2026-08-21)
-     "不为消音改动跨集冻结文件"的裁决继续有效——本次新增 `pnpm-workspace.yaml` 是出于
-     **数据安全的独立必要性**，故**刻意不**顺手把失效的 `onlyBuiltDependencies` 迁进去：
-     那会让已发布集的 esbuild postinstall 从"被拦"变成"执行"，是与本次无关的行为变更。
+  5. `package.json#pnpm` 字段自 v11 起失效（[ISSUE-076](#issue-076-pnpm-v11-升级后-pnpm-install-报-err_pnpm_ignored_builds--packagejsonpnpmoverrides-静默失效2026-05-08)）。
+     **2026-09-03 后续复验修正了本条的初始裁决**：pnpm 12.2.1 在这些独立 Remotion 工程中会因
+     未许可 `esbuild` 以 `ERR_PNPM_IGNORED_BUILDS` 中断安装并留下半残 `node_modules`，不再只是
+     [ISSUE-166](#issue-166-err_pnpm_ignored_builds-在-esbuild-上是无害噪声不要为消音改动跨集冻结文件2026-08-21)
+     所记录的无害提示。故 8 集与骨架已统一删除失效的 `onlyBuiltDependencies`，并在各自
+     `pnpm-workspace.yaml` 写入 `allowBuilds.esbuild = true`；安装说明必须引用该唯一有效位置。
 - **同类问题影响**：与 [ISSUE-076](#issue-076-pnpm-v11-升级后-pnpm-install-报-err_pnpm_ignored_builds--packagejsonpnpmoverrides-静默失效2026-05-08)
   （v10→v11）构成升级序列。凡"子目录里跑包管理器"的场景都需重新体检。
   [`travel-agent-ui`](../../apps/cognizes/src/cognizes/examples/e2e_travel_agent/frontend/travel-agent-ui)

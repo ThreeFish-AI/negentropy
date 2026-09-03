@@ -145,7 +145,7 @@ def emit_series_layers(root: Path) -> None:
                     "layer": e["cardSub"].split(" · ")[0],
                     "title": e["title"],
                     "published": e.get("status") == "ready"
-                    and bool(e.get("voice", "").find("已上线")),
+                    and "已上线" in e.get("voice", ""),
                 }
                 for i, e in enumerate(eps)
             ]

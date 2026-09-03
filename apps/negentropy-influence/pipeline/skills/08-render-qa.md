@@ -28,9 +28,9 @@ uv run --no-project --with pillow --with numpy $R/qa_frames.py \
     --project $P $P/out/draft.mp4 --beat-heads 4 --check --scale 0.5
 
 # A/B 对拍（重制/重构回归）：同帧号抽两版逐帧差异，按差异像素占比降序；
-# advisory（退出码恒 0）——「意图变更之外的一切差异」都须归因后才能接受
+# advisory（有匹配帧时退出码 0；零匹配硬失败）——「意图变更之外的一切差异」都须归因后才能接受
 uv run --no-project --with pillow --with numpy $R/qa_frames.py \
-    --project $P --compare out/baseline-draft.mp4 out/draft.mp4 --scene P4
+    --project $P --compare $P/out/baseline-draft.mp4 $P/out/draft.mp4 --scene P4
 ```
 
 ## 自动体检判据与处置

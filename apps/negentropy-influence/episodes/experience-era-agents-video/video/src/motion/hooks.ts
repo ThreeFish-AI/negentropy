@@ -19,7 +19,7 @@ import {
   type EasingToken,
   type SpringPreset,
 } from './tokens';
-import {progress} from './window';
+import {progress, revealCharCount} from './window';
 import {schedule, type ScheduleOpts} from './schedule';
 
 /** 帧数解析：token 或直接帧数；缺省用 def。 */
@@ -228,8 +228,9 @@ export function useReveal(
   o: {at?: number; cps?: number; framesPerChar?: number} = {},
 ): string {
   const frame = useCurrentFrame();
-  const per = o.framesPerChar ?? Math.max(1, Math.round(30 / (o.cps ?? 12)));
-  const n = Math.floor(Math.max(0, frame - (o.at ?? 0)) / per);
+  const {fps} = useVideoConfig();
+  const elapsed = Math.max(0, frame - (o.at ?? 0));
+  const n = revealCharCount(elapsed, fps, o.cps ?? 12, o.framesPerChar);
   return text.slice(0, Math.min(text.length, n));
 }
 

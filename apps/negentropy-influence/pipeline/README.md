@@ -158,16 +158,15 @@ schema、默认值与校验的单一事实源是 [scripts/config.py](./scripts/c
    **刻意不生成 scenes/**（样例留在模板里）、不改根 `.gitignore`（已通配到分集级）、不写 series.json。
    跑完立刻 `uv run --no-project $R/verify_skeleton.py` 确认新集与模板零漂移。
 2. `theme.ts` 换本集概念色；`video/src/scenes/*` 与 `Main.tsx` 注册表全部新写。
-3. `cd video && pnpm install --ignore-workspace`（必须显式忽略根 workspace；`onlyBuiltDependencies: [esbuild]` 已在 package.json）；装完检查根 lockfile 零变更。
+3. `cd video && pnpm install --ignore-workspace`（必须显式忽略根 workspace；构建脚本许可已在
+   `video/pnpm-workspace.yaml` 的 `allowBuilds.esbuild` 配置）；装完检查根 lockfile 零变更。
    > pnpm 12 起只声明 `--ignore-workspace` 不够：pnpm 仍会沿 `packageManager` 向上锚定到仓库根，
    > **覆写根 `pnpm-lock.yaml`** 且当场不报错。隔离由 `video/pnpm-workspace.yaml` 真正兜住
    > （[ISSUE-175](../../../docs/.agents/issue.md)）。
-   > pnpm ≥ 11 会提示 `package.json` 的 `pnpm` 字段不再被读取，并报 `ERR_PNPM_IGNORED_BUILDS: esbuild`
-   > （[ISSUE-076](../../../docs/.agents/issue.md)）。**已实测确认对本工程无害**：esbuild 的平台二进制
-   > 是 optionalDependency，落地不依赖 postinstall —— 旧写法下 `remotion bundle` 端到端通过。
-   > 故**刻意不改** `.npmrc`/`package.json` 去消掉这条提示（改了会让 A 档冻结文件产生一处
-   > 只为静音噪声的跨集差异）。真正需要 postinstall 的依赖若将来出现，再按官方新家
-   > `pnpm-workspace.yaml` 的 `allowBuilds` 处理。
+   > pnpm ≥ 11 已不再读取 `package.json` 的 `pnpm.onlyBuiltDependencies`；构建脚本许可统一放在
+   > `pnpm-workspace.yaml` 的 `allowBuilds`（[ISSUE-076](../../../docs/.agents/issue.md)）。骨架已显式允许
+   > `esbuild`，勿改回旧字段；缺失该许可会以 `ERR_PNPM_IGNORED_BUILDS` 中断安装并留下半残
+   > `node_modules`。
 4. **登记到 [../series.json](../series.json)**（阻塞门：`check_series.py` 规则 4 反向执法——
    未登记目录一旦写下 `script/narration.md` 即 FAIL；脚手架期为 WARN 分级）：顶层是 `seriesList[]`，新系列追加一个 series 对象
    （`id` / `title` / `sourceKind` / `rule` / `episodes`），既有系列的新集追加到其 `episodes`。

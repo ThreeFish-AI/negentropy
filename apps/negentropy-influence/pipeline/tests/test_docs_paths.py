@@ -245,3 +245,9 @@ def test_episode_and_template_readmes_carry_no_location_literal():
         "分集/模板 README 不得出现位置字面量（用 $I 派生，见 pipeline/README.md）：\n  "
         + "\n  ".join(offenders)
     )
+
+
+def test_direct_compare_command_anchors_both_videos_to_project():
+    skill = (SKILLS / "08-render-qa.md").read_text(encoding="utf-8")
+    assert "--compare $P/out/baseline-draft.mp4 $P/out/draft.mp4" in skill
+    assert "--compare out/baseline-draft.mp4 out/draft.mp4" not in skill

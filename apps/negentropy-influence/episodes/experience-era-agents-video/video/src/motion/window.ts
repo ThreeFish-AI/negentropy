@@ -26,3 +26,18 @@ export const beatProgress = (
 /** 帧域进度：[at, at+dur] 上的 0..1（dur ≤ 0 视作 1，防除零）。 */
 export const progress = (frame: number, at: number, dur: number): number =>
   clamp01((frame - at) / Math.max(1, dur));
+
+/** 已过帧数 → 可见字符数；cps 随实际 fps 换算，显式帧间隔不受 fps 影响。 */
+export const revealCharCount = (
+  elapsedFrames: number,
+  fps: number,
+  cps: number,
+  framesPerChar?: number,
+): number => {
+  const elapsed = Math.max(0, elapsedFrames);
+  const count =
+    framesPerChar === undefined
+      ? Math.floor((elapsed / fps) * cps)
+      : Math.floor(elapsed / Math.max(1, framesPerChar));
+  return Math.max(0, count);
+};

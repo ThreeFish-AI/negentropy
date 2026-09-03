@@ -187,8 +187,14 @@ def cmd_build(root: Path, _cfg: dict) -> int:
     return run(uv_no_project("build_narration.py", [], project=root))
 
 
-def cmd_check(root: Path, _cfg: dict, scenes: bool = False) -> int:
-    extra = ["--check-scenes"] if scenes else []
+def cmd_check(
+    root: Path, _cfg: dict, scenes: bool = False, motion: bool = False
+) -> int:
+    extra = []
+    if scenes:
+        extra.append("--check-scenes")
+    if motion:
+        extra.append("--check-motion")
     return run(uv_no_project("check_script.py", [], *extra, project=root))
 
 
@@ -201,6 +207,7 @@ def cmd_tts(
     style: str | None,
     allow_voice_switch: bool = False,
     skip_pre_tts: bool = False,
+    no_store: bool = False,
 ) -> int:
     if not skip_pre_tts:
         # TTS 前置门：预算/读法陷阱/标注合法性都是「合成前可判定的文本门」——
@@ -249,6 +256,8 @@ def cmd_tts(
         # 两遍法经单入口的放行阀：.engine 签名护栏会拦「换风格=整集重录」，
         # 草稿遍(A)/定稿遍(B)任一换档都须显式带上（护栏原理见 tts.py §音色签名）
         cmd.append("--allow-voice-switch")
+    if no_store:
+        cmd.append("--no-store")
     return run(cmd, cwd=root)
 
 
@@ -489,11 +498,21 @@ def main() -> None:
         action="store_true",
         help="附:分镜↔场景代码 beat 互比（WARN-only）",
     )
+    p.add_argument(
+        "--check-motion",
+        action="store_true",
+        help="附:分镜动效标注↔场景运动模型互比（WARN-only）",
+    )
     sub.add_parser("captions", help="⑥+ 导出 srt/vtt")
     sub.add_parser("clean-samples", help="清理 .temp/voice-samples（生物特征）")
     p = sub.add_parser("tts", help="⑥ 配音合成（参数来自 pipeline.toml）")
     p.add_argument("--plan", action="store_true", help="只看排期不实跑")
     p.add_argument("--force", action="store_true", help="忽略缓存")
+    p.add_argument(
+        "--no-store",
+        action="store_true",
+        help="禁用 IndexTTS 音频版本库",
+    )
     p.add_argument("--steady", help="混合档选择器")
     p.add_argument("--style", help="覆写风格（两遍法草稿遍用 --style sunny）")
     p.add_argument(
@@ -568,7 +587,7 @@ def main() -> None:
         "status": lambda: cmd_status(root, cfg),
         "doctor": lambda: cmd_doctor(root, cfg, origin),
         "build": lambda: cmd_build(root, cfg),
-        "check": lambda: cmd_check(root, cfg, args.check_scenes),
+        "check": lambda: cmd_check(root, cfg, args.check_scenes, args.check_motion),
         "tts": lambda: cmd_tts(
             root,
             cfg,
@@ -578,6 +597,7 @@ def main() -> None:
             args.style,
             args.allow_voice_switch,
             args.skip_pre_tts,
+            args.no_store,
         ),
         "captions": lambda: cmd_captions(root, cfg),
         "render": lambda: cmd_render(root, cfg, args.final),

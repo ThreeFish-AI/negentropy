@@ -37,6 +37,7 @@ import math
 import os
 import shutil
 import sys
+import tempfile
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -660,7 +661,9 @@ def store_root(disabled: bool) -> Path | None:
     if disabled:
         return None
     env = os.environ.get("NE_TTS_STORE")
-    return Path(env or DEFAULT_STORE).expanduser()
+    if env == "":
+        return None
+    return Path(DEFAULT_STORE if env is None else env).expanduser()
 
 
 def store_entry(store: Path | None, slug: str, sid: str, digest: str) -> Path | None:
@@ -675,13 +678,18 @@ def store_has(store: Path | None, slug: str, sid: str, digest: str) -> bool:
     if store is None:
         return False
     mp3 = store_entry(store, slug, sid, digest)
+    assert mp3 is not None
     sha = mp3.with_suffix(".sha")
-    return (
-        mp3.is_file()
-        and mp3.stat().st_size > 0
-        and sha.is_file()
-        and sha.read_text() == digest
-    )
+    try:
+        return (
+            mp3.is_file()
+            and mp3.stat().st_size > 0
+            and sha.is_file()
+            and sha.read_text(encoding="utf-8") == digest
+        )
+    except (OSError, UnicodeError) as e:
+        print(f"WARN 版本库读取失败（{sid}）：{e}", file=sys.stderr)
+        return False
 
 
 def store_deposit(
@@ -691,12 +699,40 @@ def store_deposit(
     if store is None:
         return
     dst = store_entry(store, slug, sid, digest)
+    assert dst is not None
+    sha = dst.with_suffix(".sha")
+    tmp_mp3: Path | None = None
+    tmp_sha: Path | None = None
     try:
         dst.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(mp3, dst)
-        dst.with_suffix(".sha").write_text(digest, encoding="utf-8")
-    except OSError as e:
+        with tempfile.NamedTemporaryFile(
+            dir=dst.parent, prefix=f".{dst.name}.", suffix=".tmp", delete=False
+        ) as f:
+            tmp_mp3 = Path(f.name)
+        shutil.copyfile(mp3, tmp_mp3)
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=dst.parent,
+            prefix=f".{sha.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as f:
+            tmp_sha = Path(f.name)
+            f.write(digest)
+        os.replace(tmp_mp3, dst)
+        tmp_mp3 = None
+        os.replace(tmp_sha, sha)
+        tmp_sha = None
+    except (OSError, UnicodeError) as e:
         print(f"WARN 版本库入库失败（{sid}）：{e}", file=sys.stderr)
+    finally:
+        for tmp in (tmp_mp3, tmp_sha):
+            if tmp is not None:
+                try:
+                    tmp.unlink(missing_ok=True)
+                except OSError:
+                    pass
 
 
 def store_restore(
@@ -705,9 +741,15 @@ def store_restore(
     """集内缓存 miss 时先向库回收；命中则 mp3 + .sha 落位，等价集内缓存命中。"""
     if not store_has(store, slug, sid, digest):
         return False
-    shutil.copyfile(store_entry(store, slug, sid, digest), out_dir / f"{sid}.mp3")
-    (out_dir / f"{sid}.sha").write_text(digest, encoding="utf-8")
-    return True
+    src = store_entry(store, slug, sid, digest)
+    assert src is not None
+    try:
+        shutil.copyfile(src, out_dir / f"{sid}.mp3")
+        (out_dir / f"{sid}.sha").write_text(digest, encoding="utf-8")
+        return True
+    except (OSError, UnicodeError) as e:
+        print(f"WARN 版本库回收失败（{sid}）：{e}", file=sys.stderr)
+        return False
 
 
 async def synth_indextts(
@@ -750,13 +792,14 @@ async def synth_indextts(
         sampling,
     )
 
-    if (
+    local_hit = (
         not force
         and mp3.exists()
         and mp3.stat().st_size > 0
         and meta.exists()
         and meta.read_text() == digest
-    ):
+    )
+    if local_hit:
         pass
     elif not force and store_restore(sid, digest, out_dir, store, slug):
         pass  # 版本库回收命中：mp3 + .sha 已落位，等价集内缓存命中（--force 不走库）
@@ -801,6 +844,8 @@ async def synth_indextts(
                 raise RuntimeError(f"{sid} 合成失败: {last_err}")
 
     duration = mp3_duration(mp3)
+    if local_hit and not store_has(store, slug, sid, digest):
+        store_deposit(mp3, sid, digest, store, slug)
     return {**item, "durationSec": round(duration, 3)}
 
 

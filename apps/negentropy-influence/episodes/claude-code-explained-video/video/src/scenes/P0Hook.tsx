@@ -8,7 +8,7 @@ import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {Panel, Terminal} from '../components/motifs';
-import {HarnessStackP0} from '../components/harness-stack';
+import {HarnessStackP0, harnessStackCrossAt} from '../components/harness-stack';
 import {DUR, progress, useBreathe, useProgress, useSpring, useStagger} from '../motion';
 
 /** 0-A 系列栈开场 → 终端打字 → 命令凝住 → 复制粘贴弧线加速塞满 */
@@ -347,13 +347,14 @@ export const P0Hook: React.FC<{scene: SceneRange}> = ({scene}) => {
   // 系列栈缩退在搬运高潮前完成（recedeAt 由句边界推导——禁写死帧数）
   const p2 = at('p0-02') - bA.from;
   const recedeAt = Math.max(66, p2 - DUR.f6 - 6);
+  const terminalRevealAt = harnessStackCrossAt(recedeAt);
   return (
     <AbsoluteFill>
       {/* 系列身份栈：scene 级渲染（beat Sequence 之外）——落板 → 本集层高亮 →
           缩退左上角后**常驻整幕**；P1 起由各幕的 HarnessBadge 接棒 */}
       <HarnessStackP0 recedeAt={recedeAt} />
       <Sequence {...bA} name="0-A 停住与搬运">
-        <StallAndCarry carryAt={p2} revealAt={recedeAt - DUR.f5} />
+        <StallAndCarry carryAt={p2} revealAt={terminalRevealAt} />
       </Sequence>
       <Sequence {...bB} name="0-B 命名帧：Harness">
         <NamingFrame officialAt={at('p0-05') - bB.from} />

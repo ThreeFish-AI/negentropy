@@ -8,11 +8,14 @@
 
 from __future__ import annotations
 
+import asyncio
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+import tts  # noqa: E402
 from tts import (
+    digest_indextts,
     store_deposit,
     store_entry,
     store_has,
@@ -82,3 +85,123 @@ def test_disabled_store_is_transparent(tmp_path):
 def test_env_override(monkeypatch, tmp_path):
     monkeypatch.setenv("NE_TTS_STORE", str(tmp_path / "custom"))
     assert store_root(disabled=False) == tmp_path / "custom"
+
+
+def test_empty_env_disables_store(monkeypatch):
+    monkeypatch.setenv("NE_TTS_STORE", "")
+    assert store_root(disabled=False) is None
+
+
+def test_store_read_error_degrades_to_miss(monkeypatch, tmp_path):
+    store = tmp_path / "store"
+    src = _mk(tmp_path, "p2-01.mp3")
+    digest = "f" * 40
+    store_deposit(src, "p2-01", digest, store, "ep")
+    original = Path.read_text
+
+    def broken_read(path, *args, **kwargs):
+        if path.suffix == ".sha" and store in path.parents:
+            raise OSError("store unavailable")
+        return original(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", broken_read)
+    assert not store_has(store, "ep", "p2-01", digest)
+
+
+def test_store_restore_error_degrades_to_miss(monkeypatch, tmp_path):
+    audio, store = tmp_path / "audio", tmp_path / "store"
+    audio.mkdir()
+    src = _mk(tmp_path, "p2-02.mp3")
+    digest = "a" * 40
+    store_deposit(src, "p2-02", digest, store, "ep")
+    monkeypatch.setattr(
+        tts.shutil,
+        "copyfile",
+        lambda _src, _dst: (_ for _ in ()).throw(OSError("read failed")),
+    )
+    assert not store_restore("p2-02", digest, audio, store, "ep")
+
+
+def test_deposit_failure_does_not_replace_published_entry(monkeypatch, tmp_path):
+    store = tmp_path / "store"
+    old = _mk(tmp_path, "old-atomic.mp3", 20)
+    new = _mk(tmp_path, "new-atomic.mp3", 200)
+    digest = "b" * 40
+    store_deposit(old, "p3-02", digest, store, "ep")
+    dst = store_entry(store, "ep", "p3-02", digest)
+    before = dst.read_bytes()
+
+    def broken_copy(_src, target):
+        Path(target).write_bytes(b"partial")
+        raise OSError("disk full")
+
+    monkeypatch.setattr(tts.shutil, "copyfile", broken_copy)
+    store_deposit(new, "p3-02", digest, store, "ep")
+
+    assert dst.read_bytes() == before
+    assert dst.with_suffix(".sha").read_text() == digest
+
+
+def test_deposit_publishes_with_same_directory_replace(monkeypatch, tmp_path):
+    store = tmp_path / "store"
+    src = _mk(tmp_path, "atomic.mp3", 80)
+    real_replace = tts.os.replace
+    replacements: list[tuple[Path, Path]] = []
+
+    def record_replace(source, target):
+        source, target = Path(source), Path(target)
+        replacements.append((source, target))
+        assert source.parent == target.parent
+        real_replace(source, target)
+
+    monkeypatch.setattr(tts.os, "replace", record_replace)
+    store_deposit(src, "p3-03", "c" * 40, store, "ep")
+
+    assert len(replacements) == 2
+
+
+def test_local_cache_hit_backfills_empty_store(monkeypatch, tmp_path):
+    audio, store = tmp_path / "audio", tmp_path / "store"
+    audio.mkdir()
+    item = {"id": "p4-01", "scene": "P4", "text": "本地缓存。"}
+    digest = digest_indextts(
+        "r" * 12,
+        "neutral",
+        None,
+        1.0,
+        1.0,
+        "ZH",
+        "indextts",
+        item["text"],
+    )
+    _mk(audio, "p4-01.mp3")
+    (audio / "p4-01.sha").write_text(digest, encoding="utf-8")
+    monkeypatch.setattr(tts, "mp3_duration", lambda _path: 1.25)
+
+    def unexpected_synthesis(*_args, **_kwargs):
+        raise AssertionError("本地缓存命中时不应调用服务端")
+
+    monkeypatch.setattr(tts, "http_synthesize", unexpected_synthesis)
+
+    result = asyncio.run(
+        tts.synth_indextts(
+            asyncio.Semaphore(1),
+            item,
+            False,
+            "",
+            "r" * 12,
+            "neutral",
+            None,
+            1.0,
+            1.0,
+            "ZH",
+            "indextts",
+            "http://unused",
+            audio,
+            store=store,
+            slug="ep",
+        )
+    )
+
+    assert result["durationSec"] == 1.25
+    assert store_has(store, "ep", "p4-01", digest)

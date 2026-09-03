@@ -6,9 +6,11 @@ import sys
 from pathlib import Path
 
 import numpy as np
+import pytest
 from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+import qa_frames  # noqa: E402
 from qa_frames import (  # noqa: E402
     beat_head_samples,
     check_frames,
@@ -290,3 +292,60 @@ def test_frame_diff_quantifies_and_localizes(tmp_path):
     assert 0 < d["frac"] < 0.05
     x0, y0, x1, y1 = d["bbox"]
     assert x1 - x0 < 45 and y1 - y0 < 45  # bbox 紧贴差异块而非全图
+
+
+def test_compare_keeps_first_positional_id(project, monkeypatch):
+    extracted: list[str] = []
+
+    def fake_extract(_ffmpeg, _video, _cwd, _ts, dst):
+        extracted.append(dst.name)
+
+    monkeypatch.setattr(qa_frames, "extract_frame", fake_extract)
+    monkeypatch.setattr(
+        qa_frames,
+        "frame_diff",
+        lambda _a, _b: {"mean": 0.0, "frac": 0.0, "bbox": None},
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "qa_frames.py",
+            "--project",
+            str(project),
+            "--compare",
+            "baseline.mp4",
+            "draft.mp4",
+            "p0-01",
+            "p0-02",
+        ],
+    )
+
+    qa_frames.main()
+
+    assert extracted == [
+        "p0-01.a.png",
+        "p0-01.b.png",
+        "p0-02.a.png",
+        "p0-02.b.png",
+    ]
+
+
+@pytest.mark.parametrize(
+    "mode",
+    [
+        ["draft.mp4", "--beat-heads", "1", "--scene", "P99"],
+        ["--compare", "baseline.mp4", "draft.mp4", "--scene", "P99"],
+    ],
+)
+def test_qa_modes_fail_when_selection_is_empty(project, monkeypatch, mode):
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["qa_frames.py", "--project", str(project), *mode],
+    )
+
+    with pytest.raises(SystemExit) as exc:
+        qa_frames.main()
+
+    assert exc.value.code != 0

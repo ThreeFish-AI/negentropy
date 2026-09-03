@@ -27,8 +27,8 @@ import {
 } from './hooks';
 
 const COLS = 5;
-const CW = 360;
-const CH = 240;
+const CW = 340;
+const CH = 230;
 const GAP = 18;
 
 /** dev 工具面字面量色板（与各集 theme 底座同值但刻意独立声明——不读 theme）。 */

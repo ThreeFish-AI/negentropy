@@ -13,7 +13,7 @@ import {strict as assert} from 'node:assert';
 import test from 'node:test';
 
 import {DUR, EASING_CP, EXIT_FACTOR, SAFE_TOP_Y, SPRING, clampRiseDist, dampingRatio, overshootPeak} from '../src/motion/tokens.ts';
-import {beatProgress, clamp01, progress, win} from '../src/motion/window.ts';
+import {beatProgress, clamp01, progress, revealCharCount, win} from '../src/motion/window.ts';
 import {schedule} from '../src/motion/schedule.ts';
 
 // ── tokens ────────────────────────────────────────────────────────────
@@ -79,6 +79,13 @@ test('clamp01 / progress / win 的钳制语义', () => {
   assert.equal(beatProgress(0, -30, 90), 1 / 3);
 });
 
+test('逐字揭示：cps 按实际 fps 换算并向下取整，framesPerChar 保持固定帧间隔', () => {
+  assert.equal(revealCharCount(29, 60, 12), 5);
+  assert.equal(revealCharCount(30, 60, 12), 6);
+  assert.equal(revealCharCount(30, 24, 12, 3), 10);
+  assert.equal(revealCharCount(30, 120, 12, 3), 10);
+});
+
 // ── schedule ──────────────────────────────────────────────────────────
 
 test('fit 模式：末项恰在窗口末完成、不外溢', () => {
@@ -92,14 +99,25 @@ test('fit 装不下时缩子项时长，不外溢窗口（优先级：不外溢 
   // total 30 时 (30-12)/7≈2.57 ≥ minStride=2 仍装得下；压到 24 才触发缩时长
   const p = schedule(8, {dur: 12, fit: {total: 24}});
   const last = p.starts[7] + p.dur;
-  assert.ok(last <= 31, `末项 ${last} 外溢`);
+  assert.ok(last <= 24, `末项 ${last} 外溢`);
   assert.ok(p.dur >= 3, '子项时长跌破下限');
   assert.ok(p.dur < 12, '装不下却未缩子项时长');
+});
+
+test('fit 窗口连 1 帧子项也容不下时显式拒绝，不返回外溢计划', () => {
+  assert.throws(() => schedule(8, {dur: 12, fit: {total: 5}}), /fit\.total=5.*8/);
+});
+
+test('fit 可行极限先牺牲子项时长，仍完整落在窗口内', () => {
+  const p = schedule(8, {dur: 12, fit: {total: 8}});
+  assert.equal(p.dur, 1);
+  assert.equal(p.starts[7] + p.dur, 8);
 });
 
 test('lag 模式：Manim 语义 start[i] = i·dur·lag', () => {
   const p = schedule(3, {dur: 10, lag: 0.5});
   assert.deepEqual(p.starts, [0, 5, 10]);
+  assert.deepEqual(schedule(3, {dur: 10, lag: 0}).starts, [0, 0, 0], 'lag=0 须同刻齐动');
 });
 
 test('stride 模式与三选一守卫', () => {

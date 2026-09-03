@@ -14,7 +14,7 @@
                                    补盲：句中点采样结构性错过亚秒入场瞬态。可与 --scene
                                    组合过滤幕。此模式 --check 关闭冻帧判定（静止 beat
                                    的头帧指纹相同是合法态）
-A/B 对拍（advisory，退出码恒 0，供重制/重构回归归因）：
+A/B 对拍（有帧时 advisory；零匹配帧硬失败，供重制/重构回归归因）：
     --compare A.mp4 B.mp4 --scene P4|<句id>…
                                    同帧号抽 A/B 两版逐帧差异（meanΔ / 差异像素占比 /
                                    变化区域 bbox），按占比降序——「不外溢的意图变更」
@@ -451,6 +451,12 @@ def main() -> None:
 
     root = Path(args.project).resolve()
 
+    # --compare 自带两个视频路径，不消费普通模式的 <video> 位置参数；argparse 仍会
+    # 把 compare 后的首个裸句 id 填进 video，须在选择器计数前归还给 ids。
+    if args.compare and args.video:
+        args.ids.insert(0, args.video)
+        args.video = None
+
     if args.stills_plan:
         stills_plan(root, args.chars_per_sec)
         return
@@ -490,6 +496,8 @@ def main() -> None:
             if args.scene
             else (list(tl)[-args.last_n :] if args.last_n else args.ids)
         )
+        if not ids:
+            parser.error("--compare 未选中任何可对拍句")
         out_ab = root / "out" / "frames-ab"
         out_ab.mkdir(parents=True, exist_ok=True)
         ffmpeg = ["pnpm", "exec", "remotion", "ffmpeg"]
@@ -504,6 +512,8 @@ def main() -> None:
             extract_frame(ffmpeg, vb, root / "video", ts, fb)
             rows.append((sid, frame_diff(fa, fb)))
             print(f"{sid} @ {ts:.2f}s 已对拍")
+        if not rows:
+            parser.error("--compare 未抽取到任何有效帧")
         rows.sort(key=lambda r: r[1]["frac"], reverse=True)
         print()
         for sid, d in rows:
@@ -535,6 +545,8 @@ def main() -> None:
             offset,
             args.scene,
         )
+        if not samples:
+            parser.error("--beat-heads 未选中任何可抽取 beat")
         out.mkdir(parents=True, exist_ok=True)
         ffmpeg = ["pnpm", "exec", "remotion", "ffmpeg"]
         extracted: list[str] = []

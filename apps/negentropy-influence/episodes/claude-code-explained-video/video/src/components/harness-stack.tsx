@@ -27,6 +27,12 @@ export const LAYERS = series.layers as Layer[];
 export const ACTIVE_INDEX = series.activeIndex as number;
 export const NEXT_LAYER = LAYERS[ACTIVE_INDEX] ?? null; // P6 呼吸预告的层
 
+const STACK_CROSSFADE_FRAMES = 8;
+
+/** 开场全尺寸栈与常驻顶边条开始交叉淡化的局部帧。 */
+export const harnessStackCrossAt = (recedeAt: number): number =>
+  recedeAt + DUR.f6 - STACK_CROSSFADE_FRAMES;
+
 /** 单块层板。mode: full（开场全尺寸）/ chip（常驻顶边条）/ p6（收尾放大）。 */
 const Plate: React.FC<{
   layer: Layer;
@@ -109,12 +115,12 @@ export const HarnessStackP0: React.FC<{recedeAt: number}> = ({recedeAt}) => {
   const glowBreathe = useBreathe({period: 15, amp: 0.5, base: 0.5});
   // 呼吸两次（30f）后收敛到 0.7 的持续高亮
   const breathePhase = useProgress(hiAt + 30, DUR.f6);
-  const glow = 0.5 + 0.5 * glowBreathe * (1 - breathePhase) + breathePhase * 0.7;
+  const glow = glowBreathe * (1 - breathePhase) + 0.7 * breathePhase;
   const dim = useDim({at: hiAt, to: 0.55, dur: DUR.f5});
   const rec = useProgress(recedeAt, DUR.f6);
   // 缩退：向左上收小 + 尾段淡出；常驻条同步交叉淡入（换形式不跳变）
-  const crossAt = recedeAt + DUR.f6 - 8;
-  const out = useProgress(crossAt, 8);
+  const crossAt = harnessStackCrossAt(recedeAt);
+  const out = useProgress(crossAt, STACK_CROSSFADE_FRAMES);
   const fullX = 730;
   const fullY = 300;
   const tx = fullX + (64 - fullX) * rec;
