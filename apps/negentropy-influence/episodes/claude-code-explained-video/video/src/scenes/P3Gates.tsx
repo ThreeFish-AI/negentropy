@@ -1,11 +1,13 @@
 /** P3 执行之前，先过闸门（分镜 3-A…3-G）—— 开源教学素材「Permission Desk」的概念重建
- *  三种结果不各占一色：allow 回 core（放行=回主干）、ask 用 mech、deny 用 danger。 */
+ *  三种结果不各占一色：allow 回 core（放行=回主干）、ask 用 mech、deny 用 danger。
+ *  重制（2026-09 运动层）：动效收敛到 motion 模型（分镜动效列 @动词 可机检）。 */
 import React from 'react';
-import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig} from 'remotion';
+import {AbsoluteFill, Sequence, spring, useCurrentFrame, useVideoConfig} from 'remotion';
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {QuoteCard} from '../components/cards';
+import {HarnessBadge} from '../components/harness-stack';
 import {
   CodeCard,
   Footnote,
@@ -16,6 +18,7 @@ import {
   SceneTag,
   useRingDot,
 } from '../components/motifs';
+import {DUR, SPRING, useBreathe, useProgress, useShake, useStagger, win} from '../motion';
 
 /** 3-A 五张工具卡，跑命令那张在「工作目录」框外 */
 const UnguardedShell: React.FC<{frameAt: number; cmdAt: number; execAt: number}> = ({
@@ -25,13 +28,17 @@ const UnguardedShell: React.FC<{frameAt: number; cmdAt: number; execAt: number}>
 }) => {
   const frame = useCurrentFrame();
   const dot = useRingDot(2.5);
-  const boxT = interpolate(frame - frameAt, [0, 22], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-  const shake = frame >= frameAt + 22 ? Math.sin(frame / 2.2) * 2.5 : 0;
+  // 合框 22f 是 beat 级动作（≥22 保留显式时长）
+  const boxT = useProgress(frameAt, 22);
+  // 闸门成形后持续微抖（错误语义；局部相位——模型口径）
+  const shake = useShake({at: frameAt + 22, amp: 2.5, freq: 2.2});
   const showCmd = frame >= cmdAt;
   const dim = showCmd ? 0.55 : 1;
+  // rm -rf 大字：瞬现门 → 恒渲染 + f3 淡入；弹入 14f → f6 档
+  const cmdOp = useProgress(cmdAt, DUR.f3);
+  const cmdPop = useProgress(cmdAt, DUR.f6);
+  // 循环角标：同款瞬现门 → 淡入
+  const execOp = useProgress(execAt, DUR.f3);
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <SceneTag chapter="Permission" tagline="Check Permissions Before Execution" />
@@ -70,56 +77,49 @@ const UnguardedShell: React.FC<{frameAt: number; cmdAt: number; execAt: number}>
           <NumberedCard index={1} label="跑命令" sub="没人管它" active width={200} />
         </div>
       </div>
-      {showCmd ? (
+      <div
+        style={{
+          position: 'absolute',
+          fontFamily: theme.mono,
+          fontSize: 56,
+          fontWeight: 700,
+          color: theme.deny,
+          opacity: cmdOp,
+          transform: `scale(${0.8 + 0.2 * cmdPop})`,
+        }}
+      >
+        {'rm -rf /'}
+      </div>
+      <div style={{position: 'absolute', right: 96, bottom: 210, opacity: 0.9 * execOp}}>
+        <LoopRing size={180} draw={1} dotProgress={dot} activeNode={2} showExit={false} />
         <div
           style={{
-            position: 'absolute',
-            fontFamily: theme.mono,
-            fontSize: 56,
-            fontWeight: 700,
-            color: theme.deny,
-            transform: `scale(${interpolate(frame - cmdAt, [0, 14], [0.8, 1], {
-              extrapolateLeft: 'clamp',
-              extrapolateRight: 'clamp',
-            })})`,
+            textAlign: 'center',
+            fontFamily: theme.sans,
+            fontSize: 21,
+            color: theme.dim,
+            marginTop: 4,
           }}
         >
-          {'rm -rf /'}
+          {'循环照常执行'}
         </div>
-      ) : null}
-      {frame >= execAt ? (
-        <div style={{position: 'absolute', right: 96, bottom: 210, opacity: 0.9}}>
-          <LoopRing size={180} draw={1} dotProgress={dot} activeNode={2} showExit={false} />
-          <div
-            style={{
-              textAlign: 'center',
-              fontFamily: theme.sans,
-              fontSize: 21,
-              color: theme.dim,
-              marginTop: 4,
-            }}
-          >
-            {'循环照常执行'}
-          </div>
-        </div>
-      ) : null}
+      </div>
     </AbsoluteFill>
   );
 };
 
 /** 3-B 三道闸门落下，第一道把请求弹回 */
 const GatesFall: React.FC<{gateAt: number[]; bounceAt: number}> = ({gateAt, bounceAt}) => {
-  const frame = useCurrentFrame();
-  const g = gateAt.map((a) =>
-    interpolate(frame - a, [0, 16], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}),
-  );
-  const travel = interpolate(frame - bounceAt, [0, 20], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
+  // 三道闸门：锚点等差（stride 取自 prop 锚距），落下 16f → f6 档
+  const g = useStagger(3, {at: gateAt[0], stride: gateAt[1] - gateAt[0], dur: DUR.f6});
+  const travel = useProgress(bounceAt, DUR.f6);
+  // 危险词 chips：第一道闸近落定（gateAt[0]+12）起 stride 4 错峰，10f → f5
+  const banOp = useStagger(4, {at: gateAt[0] + 12, stride: 4, dur: DUR.f5});
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <GateRouter gates={g} travel={travel} blockedBy={0} />
+      {/* 容器参与 AbsoluteFill 垂直居中——恒渲染会整体上移 GateRouter（几何变化），
+          保留门；子项自身已错峰淡入 */}
       {g[0] > 0.8 ? (
         <div style={{display: 'flex', gap: 14, marginTop: 34}}>
           {['删根目录', '提权', '关机', '格式化'].map((t, i) => (
@@ -128,10 +128,7 @@ const GatesFall: React.FC<{gateAt: number[]; bounceAt: number}> = ({gateAt, boun
               accent={theme.deny}
               style={{
                 padding: '10px 20px',
-                opacity: interpolate(frame - gateAt[0] - 12 - i * 4, [0, 10], [0, 1], {
-                  extrapolateLeft: 'clamp',
-                  extrapolateRight: 'clamp',
-                }),
+                opacity: banOp[i],
               }}
             >
               <span style={{fontFamily: theme.mono, fontSize: 24, color: theme.deny}}>{t}</span>
@@ -146,12 +143,11 @@ const GatesFall: React.FC<{gateAt: number[]; bounceAt: number}> = ({gateAt, boun
 /** 3-C 二三道闸门工作：一个停在审批前，一个畅通直达 */
 const AskAndPass: React.FC<{askAt: number; passAt: number}> = ({askAt, passAt}) => {
   const frame = useCurrentFrame();
-  const t1 = interpolate(frame, [0, 26], [0, 1], {extrapolateRight: 'clamp'});
-  const t2 = interpolate(frame - passAt, [0, 30], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
+  const t1 = useProgress(0, 26);
+  const t2 = useProgress(passAt, 30);
   const asking = frame >= askAt;
+  // 审批卡：瞬现门 → 恒渲染 + f3 淡入
+  const askOp = useProgress(askAt, DUR.f3);
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       {/* 审批卡弹出时闸门整体上移让位——否则卡片会盖住三道闸，
@@ -164,45 +160,44 @@ const AskAndPass: React.FC<{askAt: number; passAt: number}> = ({askAt, passAt}) 
       >
         <GateRouter gates={[1, 1, 1]} travel={t1} blockedBy={2} />
       </div>
-      {asking ? (
-        <Panel
-          accent={theme.mech}
-          style={{
-            position: 'absolute',
-            width: 760,
-            padding: '26px 30px',
-            background: theme.panel,
-            top: '52%',
-          }}
-        >
-          <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
-            {/* 绘制的三角叹号（不用 emoji——全彩字形会击穿三色契约） */}
-            <svg width={30} height={27} style={{flexShrink: 0}}>
-              <path
-                d="M15 2 L28 25 L2 25 Z"
-                fill="none"
-                stroke={theme.deny}
-                strokeWidth={3}
-                strokeLinejoin="round"
-              />
-              <line x1="15" y1="10" x2="15" y2="18" stroke={theme.deny} strokeWidth={3} strokeLinecap="round" />
-              <circle cx="15" cy="22.5" r="1.8" fill={theme.deny} />
-            </svg>
-            <span style={{fontFamily: theme.sans, fontSize: 24, color: theme.mech}}>
-              {'Potentially destructive command'}
-            </span>
-          </div>
-          <div style={{fontFamily: theme.mono, fontSize: 26, color: theme.text, marginTop: 14}}>
-            {'bash("rm -rf ./tmp/build-cache")'}
-          </div>
-          <div style={{fontFamily: theme.mono, fontSize: 28, color: theme.dim, marginTop: 18}}>
-            {'Allow? [y/N] '}
-            <span style={{color: theme.core, opacity: Math.floor(frame / 12) % 2 === 0 ? 1 : 0.2}}>
-              {'▍'}
-            </span>
-          </div>
-        </Panel>
-      ) : null}
+      <Panel
+        accent={theme.mech}
+        style={{
+          position: 'absolute',
+          width: 760,
+          padding: '26px 30px',
+          background: theme.panel,
+          top: '52%',
+          opacity: askOp,
+        }}
+      >
+        <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
+          {/* 绘制的三角叹号（不用 emoji——全彩字形会击穿三色契约） */}
+          <svg width={30} height={27} style={{flexShrink: 0}}>
+            <path
+              d="M15 2 L28 25 L2 25 Z"
+              fill="none"
+              stroke={theme.deny}
+              strokeWidth={3}
+              strokeLinejoin="round"
+            />
+            <line x1={15} y1={10} x2={15} y2={18} stroke={theme.deny} strokeWidth={3} strokeLinecap="round" />
+            <circle cx={15} cy={22.5} r={1.8} fill={theme.deny} />
+          </svg>
+          <span style={{fontFamily: theme.sans, fontSize: 24, color: theme.mech}}>
+            {'Potentially destructive command'}
+          </span>
+        </div>
+        <div style={{fontFamily: theme.mono, fontSize: 26, color: theme.text, marginTop: 14}}>
+          {'bash("rm -rf ./tmp/build-cache")'}
+        </div>
+        <div style={{fontFamily: theme.mono, fontSize: 28, color: theme.dim, marginTop: 18}}>
+          {'Allow? [y/N] '}
+          <span style={{color: theme.core, opacity: Math.floor(frame / 12) % 2 === 0 ? 1 : 0.2}}>
+            {'▍'}
+          </span>
+        </div>
+      </Panel>
       {t2 > 0 ? (
         <div style={{position: 'absolute', bottom: 200, width: 1120}}>
           <div style={{fontFamily: theme.sans, fontSize: 22, color: theme.dim, marginBottom: 6}}>
@@ -238,7 +233,7 @@ const AskAndPass: React.FC<{askAt: number; passAt: number}> = ({askAt, passAt}) 
             top: 56,
             display: 'flex',
             gap: 18,
-            opacity: interpolate(t2, [0.4, 0.8], [0, 1], {extrapolateRight: 'clamp'}),
+            opacity: win(t2, [0.4, 0.8]),
           }}
         >
           {[
@@ -280,6 +275,11 @@ const DenyListHonesty: React.FC<{degradeAt: number; bypassAt: number; quoteAt: n
   quoteAt,
 }) => {
   const frame = useCurrentFrame();
+  // hooks 先于 QuoteCard 早退（Rules of Hooks：调用数须恒定）
+  const degradeOp = useProgress(degradeAt, DUR.f3);
+  const bypassOp = useProgress(bypassAt, DUR.f3);
+  // 绕过变体：stride 8 错峰滑入，22f 描入（≥22 保留显式时长）
+  const variantP = useStagger(3, {at: bypassAt, stride: 8, dur: 22});
   if (frame >= quoteAt) {
     return <QuoteCard zh="它告诉你闸门装在哪儿，不是替你把门守住。" accent={theme.deny} />;
   }
@@ -302,17 +302,18 @@ const DenyListHonesty: React.FC<{degradeAt: number; bypassAt: number; quoteAt: n
           showLineNumbers={false}
           accent={degraded ? undefined : theme.deny}
         />
-        {degraded ? (
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              border: `2px dashed ${theme.dim}`,
-              borderRadius: 14,
-              pointerEvents: 'none',
-            }}
-          />
-        ) : null}
+        {/* 降级虚框：绝对定位无布局影响——瞬现门 → 淡入 */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            border: `2px dashed ${theme.dim}`,
+            borderRadius: 14,
+            pointerEvents: 'none',
+            opacity: degradeOp,
+          }}
+        />
+        {/* 降级说明是常规流子节点：恒渲染会永久改变行内居中（几何变化），保留瞬现门 */}
         {degraded ? (
           <div
             style={{
@@ -329,10 +330,7 @@ const DenyListHonesty: React.FC<{degradeAt: number; bypassAt: number; quoteAt: n
       </div>
       <div style={{width: 430}}>
         {variants.map((v, i) => {
-          const t = interpolate(frame - bypassAt - i * 8, [0, 22], [0, 1], {
-            extrapolateLeft: 'clamp',
-            extrapolateRight: 'clamp',
-          });
+          const t = variantP[i];
           if (t <= 0) return null;
           return (
             <div
@@ -350,11 +348,12 @@ const DenyListHonesty: React.FC<{degradeAt: number; bypassAt: number; quoteAt: n
             </div>
           );
         })}
-        {frame >= bypassAt ? (
-          <div style={{fontFamily: theme.sans, fontSize: 22, color: theme.dim, marginTop: 10}}>
-            {'换个拼法就绕过去了'}
-          </div>
-        ) : null}
+        {/* 末位流子节点且右列恒短于左列——恒渲染无布局影响，瞬现门 → 淡入 */}
+        <div
+          style={{fontFamily: theme.sans, fontSize: 22, color: theme.dim, marginTop: 10, opacity: bypassOp}}
+        >
+          {'换个拼法就绕过去了'}
+        </div>
       </div>
     </AbsoluteFill>
   );
@@ -370,11 +369,12 @@ const FourResults: React.FC<{fourthAt: number; arcAt: number}> = ({fourthAt, arc
     {t: '问你', en: 'ask', c: theme.mech},
     {t: '不表态', en: 'passthrough', c: theme.dim},
   ];
-  const arc = interpolate(frame - arcAt, [0, 24], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-  const breathe = 0.5 + 0.5 * Math.sin(frame / 8);
+  // 回连弧 24f 是 beat 级（≥22 保留显式时长）。弧进度同时驱动 svg 守卫与「兜底」
+  // 字门——draw 三元组保持内联共享同一进度（换 useDraw 会 fork 出 decelerate
+  // 进度，使 0.9 字门与描线失同步）
+  const arc = useProgress(arcAt, 24);
+  // sin(frame/8) → period 2π·8
+  const breathe = useBreathe({period: 2 * Math.PI * 8, amp: 0.5, base: 0.5});
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <div style={{position: 'relative'}}>
@@ -382,7 +382,9 @@ const FourResults: React.FC<{fourthAt: number; arcAt: number}> = ({fourthAt, arc
           {cells.map((c, i) => {
             const fourth = i === 3;
             const on = fourth ? frame >= fourthAt : true;
-            const e = spring({frame: frame - (fourth ? fourthAt : i * 5), fps, config: {damping: 200}});
+            // 弹簧在 map 内保持纯调用（锚点非均匀：三格 i*5、第四格 fourthAt）；
+            // damping 200 → SPRING.settle
+            const e = spring({frame: frame - (fourth ? fourthAt : i * 5), fps, config: SPRING.settle});
             return (
               <Panel
                 key={c.en}
@@ -443,17 +445,14 @@ const EvalOrder: React.FC<{orderAt: number; ballAt: number; denyHitAt: number; n
     {t: '询问 ask', c: 'mech', sub: '命中即出局'},
     {t: '放行 allow', c: 'core', sub: '兜底到它'},
   ];
-  // 光点沿三站行进；在第二幕演示里被第①站截获
-  const travel = interpolate(frame - ballAt, [0, 46], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
+  // 光点沿三站行进；在第二幕演示里被第①站截获（46f beat 级，保留显式时长）
+  const travel = useProgress(ballAt, 46);
   const hit = frame >= denyHitAt;
   const naked = frame >= nakedAt;
-  const orderOn = interpolate(frame - orderAt, [0, 20], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
+  // 顺序点亮 20f → f6 档
+  const orderOn = useProgress(orderAt, DUR.f6);
+  // 裸名 deny 注释：门保留（元素本就以 opacity 淡入），14f → f6 档
+  const nakedOp = useProgress(nakedAt, DUR.f6);
   const PX = 300; // 轨道起点
   const GAP = 380;
   return (
@@ -501,7 +500,8 @@ const EvalOrder: React.FC<{orderAt: number; ballAt: number; denyHitAt: number; n
         {/* 三站闸门 */}
         {stations.map((st, i) => {
           const at = orderAt + 4 + i * 7;
-          const e = spring({frame: frame - at, fps, config: {damping: 200}});
+          // map 内弹簧保持纯调用；damping 200 → SPRING.settle
+          const e = spring({frame: frame - at, fps, config: SPRING.settle});
           const color = st.c === 'deny' ? theme.deny : st.c === 'mech' ? theme.mech : theme.core;
           return (
             <div
@@ -537,7 +537,7 @@ const EvalOrder: React.FC<{orderAt: number; ballAt: number; denyHitAt: number; n
               display: 'flex',
               alignItems: 'center',
               gap: 14,
-              opacity: interpolate(frame - nakedAt, [0, 14], [0, 1], {extrapolateRight: 'clamp'}),
+              opacity: nakedOp,
             }}
           >
             <span style={{fontFamily: theme.mono, fontSize: 24, color: theme.dim, textDecoration: 'line-through'}}>
@@ -575,10 +575,12 @@ const ClassifierVision: React.FC<{scrollAt: number; stripAt: number; goldenAt: n
     {t: '裸命令：npm install --save-dev vitest', why: '', strike: false},
   ];
   const spoofOn = frame >= spoofAt;
-  const golden = interpolate(frame - goldenAt, [0, 18], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
+  // 金化 18f → f6 档
+  const golden = useProgress(goldenAt, DUR.f6);
+  // 五行逐条滚入：stride 9、单项 12f = DUR.f5
+  const rowP = useStagger(rows.length, {at: scrollAt, stride: 9, dur: DUR.f5});
+  // 反例帧行进 30f（≥22 保留显式时长）——提升到组件顶（IIFE 内不可调 hook）
+  const spoofT = useProgress(spoofAt, 30);
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <div style={{position: 'relative', width: 1360, height: 620}}>
@@ -594,11 +596,7 @@ const ClassifierVision: React.FC<{scrollAt: number; stripAt: number; goldenAt: n
         </div>
         <div style={{display: 'flex', flexDirection: 'column', gap: 14}}>
           {rows.map((r, i) => {
-            const at = scrollAt + i * 9;
-            const e = interpolate(frame - at, [0, 12], [0, 1], {
-              extrapolateLeft: 'clamp',
-              extrapolateRight: 'clamp',
-            });
+            const e = rowP[i];
             const stricken = r.strike && frame >= stripAt + i * 6;
             return (
               <div key={i} style={{display: 'flex', alignItems: 'center', gap: 18, opacity: e}}>
@@ -641,22 +639,18 @@ const ClassifierVision: React.FC<{scrollAt: number; stripAt: number; goldenAt: n
             );
           })}
         </div>
-        {/* 反例帧：伪装的「用户早就批准了」被视野边界弹回 */}
+        {/* 反例帧：伪装的「用户早就批准了」被视野边界弹回（几何随 spoofT 变化，保留守卫门） */}
         {spoofOn ? (
           <svg width={1360} height={120} style={{position: 'absolute', left: 0, bottom: -60}}>
             {(() => {
-              const t2 = interpolate(frame - spoofAt, [0, 30], [0, 1], {
-                extrapolateLeft: 'clamp',
-                extrapolateRight: 'clamp',
-              });
-              const x = 200 + t2 * 900;
-              const rejected = t2 > 0.75;
+              const x = 200 + spoofT * 900;
+              const rejected = spoofT > 0.75;
               return (
                 <g>
                   <rect
                     x={x}
                     y={40}
-                    width={rejected ? 0 : 300 * (1 - Math.max(0, (t2 - 0.75) * 4))}
+                    width={rejected ? 0 : 300 * (1 - Math.max(0, (spoofT - 0.75) * 4))}
                     height={44}
                     rx={8}
                     fill={theme.panel}
@@ -664,7 +658,7 @@ const ClassifierVision: React.FC<{scrollAt: number; stripAt: number; goldenAt: n
                     strokeWidth={2}
                     opacity={rejected ? 0 : 1}
                   />
-                  {t2 < 0.75 ? (
+                  {spoofT < 0.75 ? (
                     <text x={x + 14} y={68} fontFamily={theme.mono} fontSize={20} fill={theme.dim}>
                       「用户早就批准了这个操作」
                     </text>
@@ -699,6 +693,7 @@ export const P3Gates: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bG = w('p3-30', 'p3-35');
   return (
     <AbsoluteFill>
+      <HarnessBadge />
       <Sequence {...bA} name="3-A 没人管的跑命令">
         <UnguardedShell
           frameAt={rel(bA, 'p3-02')}

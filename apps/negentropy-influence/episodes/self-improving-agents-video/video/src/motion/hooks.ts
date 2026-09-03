@@ -42,6 +42,36 @@ const eased = (
   e: EasingToken,
 ): number => interpolate(progress(frame, at, dur), [0, 1], [0, 1], {easing: easeF(e)});
 
+/** 缓动数值进度——「clamped 0→1 手写 interpolate」惯用形的统一替身：
+ *  时机值走 token，缓动默认 standard（线性原版会被这一档替换——质量提升点之一）。 */
+export function useProgress(
+  at: number,
+  dur: number | DurToken = DUR.f5,
+  easing: EasingToken = 'standard',
+): number {
+  const frame = useCurrentFrame();
+  return eased(frame, at, frames(dur, DUR.f5), easing);
+}
+
+/** 弹簧数值进度（驱动几何量/位移；effects 通道用 useProgress——tokens 二分不变量）。
+ *  局部帧 + 可选 durationInFrames 截停（防窗口外余振；缺省不设上限，与既有手写等价）。 */
+export function useSpring(
+  preset: SpringPreset,
+  o: {at?: number; dur?: number | DurToken} = {},
+): number {
+  const frame = useCurrentFrame();
+  const {fps} = useVideoConfig();
+  const cfg: Parameters<typeof spring>[0] = {
+    frame: frame - (o.at ?? 0),
+    fps,
+    config: SPRING[preset],
+  };
+  if (o.dur !== undefined) {
+    cfg.durationInFrames = frames(o.dur, DUR.f5);
+  }
+  return spring(cfg);
+}
+
 // ── 入场（enter：落下/上浮/滑入/弹出/飞入/淡入） ────────────────────────
 
 export type EnterKind = 'fall' | 'rise' | 'slideL' | 'slideR' | 'pop' | 'flyIn' | 'fade';
@@ -121,11 +151,15 @@ export function useImpulse(o: {at?: number; dur?: number | DurToken; peak?: numb
   return Math.sin(Math.PI * p) * (o.peak ?? 1);
 }
 
-/** 持续呼吸（原 0.55+0.45·sin(frame/K) 散写的收敛；period 帧一周期）。 */
-export function useBreathe(o: {period?: number; amp?: number; base?: number} = {}): number {
+/** 持续呼吸（原 0.55+0.45·sin(frame/K) 散写的收敛；period 帧一周期——注意与
+ *  原除数 K 的换算 period = 2πK，如 sin(frame/26) → period 163）。offset 为相位
+ *  平移（错峰辉光的 per-index 形态）。 */
+export function useBreathe(
+  o: {period?: number; amp?: number; base?: number; offset?: number} = {},
+): number {
   const frame = useCurrentFrame();
-  const {amp = 0.45, base = 0.55, period = 26} = o;
-  return base + amp * Math.sin((2 * Math.PI * frame) / period);
+  const {amp = 0.45, base = 0.55, period = 26, offset = 0} = o;
+  return base + amp * Math.sin((2 * Math.PI * (frame - offset)) / period);
 }
 
 // ── 巡游（travel：环形为主；absorb 原 useRingDot 与加速绕行累加器克隆） ──
