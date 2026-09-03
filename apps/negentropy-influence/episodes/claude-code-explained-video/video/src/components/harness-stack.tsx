@@ -6,9 +6,14 @@
  * 让那条门失明（两层口径：层短名走数据，标题主段走规则 8 的受检硬编码）。
  *
  * 两个组件：
- *  - HarnessStackP0：开场编排（落板 → 本集层高亮呼吸 → 缩退左上角常驻）；
- *  - HarnessBadge：P1–P5 的常驻静态角标（= P0 末帧形态的延续，宽 ≤300、
- *    不占字幕安全带——常驻元素在顶部左上，与底带无交集）。
+ *  - HarnessStackP0：开场编排（落板 → 本集层高亮呼吸 → 缩退淡出，末段交叉淡入常驻条）；
+ *  - HarnessBadge：P1–P6 的常驻顶边条（横向五 chip，y 12–48）。
+ *
+ * ⚠️ 形式对规格的一处适配（评审实测）：规格写「缩退左上角纵向角标（宽 ≤300）」，
+ * 但纵向角标（300×194）与既有各幕左上内容五处碰撞（P2 CornerRing 同坐标、P3 小抄、
+ * P5 标尺、P1 1-E 环、P6 标签）；全片唯一零碰撞的常驻区是**顶边 y<50 横条**——
+ * 所有幕的左上内容最早从 y=56 起。故常驻形式取顶边横条（紧贴上缘，不占字幕安全带
+ * 也不与 SceneTag 相干）。缩退以交叉淡出衔接，避免纵向→横向的形态跳变。
  */
 import React from 'react';
 import {AbsoluteFill} from 'remotion';
@@ -22,18 +27,18 @@ export const LAYERS = series.layers as Layer[];
 export const ACTIVE_INDEX = series.activeIndex as number;
 export const NEXT_LAYER = LAYERS[ACTIVE_INDEX] ?? null; // P6 呼吸预告的层
 
-/** 单块层板。mode: full（开场全尺寸）/ badge（常驻角标）/ p6（收尾放大）。 */
+/** 单块层板。mode: full（开场全尺寸）/ chip（常驻顶边条）/ p6（收尾放大）。 */
 const Plate: React.FC<{
   layer: Layer;
   active: boolean;
   dim: number;
   glow?: number;
-  scale: 'full' | 'badge' | 'p6';
+  scale: 'full' | 'chip' | 'p6';
 }> = ({layer, active, dim, glow = 0, scale}) => {
-  const badge = scale === 'badge';
-  const h = badge ? 34 : scale === 'p6' ? 56 : 64;
-  const nameSize = badge ? 18 : scale === 'p6' ? 26 : 28;
-  const idSize = badge ? 13 : 17;
+  const chip = scale === 'chip';
+  const h = chip ? 34 : scale === 'p6' ? 56 : 64;
+  const nameSize = chip ? 17 : scale === 'p6' ? 26 : 28;
+  const idSize = chip ? 12 : 17;
   return (
     <div
       style={{
@@ -41,11 +46,11 @@ const Plate: React.FC<{
         width: '100%',
         display: 'flex',
         alignItems: 'center',
-        gap: badge ? 10 : 14,
-        padding: badge ? '0 12px' : '0 18px',
+        gap: chip ? 8 : 14,
+        padding: chip ? '0 12px' : '0 18px',
         background: theme.panel,
         border: `2px solid ${active ? theme.core : theme.panelBorder}`,
-        borderRadius: badge ? 8 : 12,
+        borderRadius: chip ? 8 : 12,
         opacity: dim,
         boxShadow: active
           ? `0 0 ${10 + glow * 22}px ${theme.core}55, inset 0 0 ${glow * 10}px ${theme.core}22`
@@ -77,17 +82,27 @@ const Plate: React.FC<{
   );
 };
 
-/** 常驻角标：P1–P5 顶部左侧（SceneTag 已让位移至右上）。 */
-export const HarnessBadge: React.FC = () => (
-  <div style={{position: 'absolute', left: 64, top: 56, width: 300, display: 'flex', flexDirection: 'column', gap: 6}}>
+/** 常驻顶边条：P1–P6（横向五 chip，y 12–48——见文件头形式适配说明）。 */
+export const HarnessBadge: React.FC<{style?: React.CSSProperties}> = ({style}) => (
+  <div
+    style={{
+      position: 'absolute',
+      left: 64,
+      top: 12,
+      display: 'flex',
+      flexDirection: 'row',
+      gap: 8,
+      ...style,
+    }}
+  >
     {LAYERS.map((l) => (
-      <Plate key={l.index} layer={l} active={l.index === ACTIVE_INDEX} dim={l.index === ACTIVE_INDEX ? 1 : 0.55} scale="badge" />
+      <Plate key={l.index} layer={l} active={l.index === ACTIVE_INDEX} dim={l.index === ACTIVE_INDEX ? 1 : 0.55} scale="chip" />
     ))}
   </div>
 );
 
 /** P0 开场编排：自底向上落板（6 帧一层）→ 本集层高亮呼吸两次 → 其余压暗 55% →
- *  缩退左上角（此后保持 badge 形态直到本幕结束；P1 起由 HarnessBadge 接棒）。 */
+ *  缩退淡出（向左上收小；末 8 帧与常驻顶边条交叉淡入——衔接 P1 起的 HarnessBadge）。 */
 export const HarnessStackP0: React.FC<{recedeAt: number}> = ({recedeAt}) => {
   const drops = useStagger(LAYERS.length, {at: 2, dur: DUR.f4, stride: 6, easing: 'decelerate'});
   const hiAt = 2 + (LAYERS.length - 1) * 6 + DUR.f4 + 2;
@@ -97,14 +112,17 @@ export const HarnessStackP0: React.FC<{recedeAt: number}> = ({recedeAt}) => {
   const glow = 0.5 + 0.5 * glowBreathe * (1 - breathePhase) + breathePhase * 0.7;
   const dim = useDim({at: hiAt, to: 0.55, dur: DUR.f5});
   const rec = useProgress(recedeAt, DUR.f6);
-  // 全尺寸居中 → 角标位（transformOrigin 0 0，宽 460 缩至 ≈300）
+  // 缩退：向左上收小 + 尾段淡出；常驻条同步交叉淡入（换形式不跳变）
+  const crossAt = recedeAt + DUR.f6 - 8;
+  const out = useProgress(crossAt, 8);
   const fullX = 730;
   const fullY = 300;
   const tx = fullX + (64 - fullX) * rec;
-  const ty = fullY + (56 - fullY) * rec;
-  const s = 1 - 0.348 * rec;
+  const ty = fullY + (12 - fullY) * rec;
+  const s = 1 - 0.55 * rec;
   return (
     <AbsoluteFill style={{pointerEvents: 'none'}}>
+      <HarnessBadge style={{opacity: out}} />
       <div
         style={{
           position: 'absolute',
@@ -116,6 +134,7 @@ export const HarnessStackP0: React.FC<{recedeAt: number}> = ({recedeAt}) => {
           gap: 10,
           transform: `translate(${tx}px, ${ty}px) scale(${s})`,
           transformOrigin: '0 0',
+          opacity: 1 - out,
         }}
       >
         {LAYERS.slice()
@@ -137,7 +156,7 @@ export const HarnessStackP0: React.FC<{recedeAt: number}> = ({recedeAt}) => {
                   active={isHi}
                   dim={isHi ? 1 : dim}
                   glow={isHi ? glow : 0}
-                  scale={rec > 0.98 ? 'badge' : 'full'}
+                  scale="full"
                 />
               </div>
             );

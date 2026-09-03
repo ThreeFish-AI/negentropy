@@ -166,7 +166,6 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; seriesAt: number}> 
   seriesAt,
 }) => {
   const {fps} = useVideoConfig();
-  const frame = useCurrentFrame();
   const enter = useSpring('settle', {at: 4});
   // 信源四行 + 诚实行依次浮现（stride 4、单项 f4）
   const rowsOn = useStagger(4, {at: 8, stride: 4, dur: DUR.f4});

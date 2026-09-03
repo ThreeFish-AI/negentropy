@@ -158,7 +158,9 @@ const PullOut: React.FC<{tableAt: number; plugAt: number}> = ({tableAt, plugAt})
           );
         })}
       </div>
+      {/* 两元素均为常规流子节点：布局门保留（常驻会把 Panel 顶高 ~80px），门内淡入 */}
       <div>
+        {frame >= tableAt ? (
         <Panel style={{padding: '18px 22px', width: 560, opacity: tableOp}}>
           <div style={{display: 'flex', fontFamily: theme.sans, fontSize: 22, color: theme.dim, paddingBottom: 10}}>
             <div style={{flex: 1}}>{'时机'}</div>
@@ -181,6 +183,8 @@ const PullOut: React.FC<{tableAt: number; plugAt: number}> = ({tableAt, plugAt})
             </div>
           ))}
         </Panel>
+        ) : null}
+        {frame >= plugAt ? (
         <div
           style={{
             marginTop: 20,
@@ -193,6 +197,7 @@ const PullOut: React.FC<{tableAt: number; plugAt: number}> = ({tableAt, plugAt})
         >
           {'加功能是插一个插头，不是重新布线'}
         </div>
+        ) : null}
       </div>
     </AbsoluteFill>
   );

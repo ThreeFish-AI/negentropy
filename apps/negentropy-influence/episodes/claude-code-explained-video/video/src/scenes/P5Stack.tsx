@@ -169,8 +169,9 @@ const FourLayers: React.FC<{splitAt: number; mapAt: number}> = ({splitAt, mapAt}
                   {l.s}
                 </div>
               </Panel>
-              {/* 骨架小标：split 中点淡入（原 split>0.5 硬门瞬现） */}
-              {l.core ? (
+              {/* 骨架小标：布局门保留（in-flow 子节点，常驻会顶起卡 1 底对齐），
+                  门内淡入替代瞬现——布局归布局、透明度归透明度 */}
+              {l.core && split > 0.5 ? (
                 <div
                   style={{
                     textAlign: 'center',
