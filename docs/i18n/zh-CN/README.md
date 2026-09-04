@@ -227,7 +227,7 @@ graph TB
 | [QA 流水线](../../concepts/design/qa-delivery-pipeline.md) | 质量门禁与发布流程                                                   |
 | [SSO 集成](../../concepts/design/sso.md)                   | Google OAuth 认证配置                                                |
 | [工程变更日志](../../concepts/operations/engineering-changelog.md)    | 里程碑与基线变更记录                                                 |
-| [AI 协作协议](../../../AGENTS.md)                          | Agent 协作行为准则与工程规范                                         |
+| AI 协作协议（`~/.claude/CLAUDE.md`）                     | Agent 协作行为准则与工程规范                                         |
 
 </center>
 

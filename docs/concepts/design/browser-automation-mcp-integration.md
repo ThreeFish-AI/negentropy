@@ -4,9 +4,9 @@ title: "浏览器操作 MCP 集成方案：Playwright MCP 全系统默认配备"
 ---
 # 浏览器操作 MCP 集成方案：Playwright MCP 全系统默认配备
 
-> 本文遵循 [AGENTS.md](../../../AGENTS.md) 的协作协议与循证要求。设计核心锚定：
+> 本文遵循用户级全局配置 `~/.claude/CLAUDE.md` 的协作协议与循证要求。设计核心锚定：
 > - 选型论证与横向盘点：[浏览器操作 MCP 调研](../../research/self-evolution/120-browser-automation-mcp.md)
-> - 浏览器实机验证协议（A 类交互 / B 类自治）：[browser-validation.md](../../.agents/browser-validation.md)
+> - 浏览器实机验证协议（A 类交互 / B 类自治）：`~/.agents/docs/browser-validation.md`
 > - 全系统 MCP 注入的单一事实源：`builtin_tools(claude_code).config.mcp_config`（参见 [claude_code handler](../../../apps/negentropy/src/negentropy/engine/schedulers/handlers/claude_code.py)）
 
 ## 1. 目标与约束
@@ -82,7 +82,7 @@ Claude Code 的相位权限（[phase.py](../../../apps/negentropy/src/negentropy
 ## 4. 鉴权：净室默认 + dev-cookie 旁路（按需）
 
 - **默认净室（`--isolated`）**：每会话全新 profile，适用于公开 URL 与无状态回归——开箱即用，无主机相关路径依赖。
-- **鉴权回归（按需）**：回归 negentropy-ui 等需登录页面时，复用本仓既有的 **dev-cookie storageState** 旁路（[playwright.config.ts](../../../apps/negentropy-ui/playwright.config.ts) + [sign-dev-cookie.mjs](../../../apps/negentropy-ui/scripts/sign-dev-cookie.mjs)）：经 `--storage-state=<path>` 注入自签 `ne_sso` 登录态，**严禁**在自治环境跳转真实 OAuth/SSO 同意屏（详见 [browser-validation.md](../../.agents/browser-validation.md) 的安全红线）。配置方式见 §6。
+- **鉴权回归（按需）**：回归 negentropy-ui 等需登录页面时，复用本仓既有的 **dev-cookie storageState** 旁路（[playwright.config.ts](../../../apps/negentropy-ui/playwright.config.ts) + [sign-dev-cookie.mjs](../../../apps/negentropy-ui/scripts/sign-dev-cookie.mjs)）：经 `--storage-state=<path>` 注入自签 `ne_sso` 登录态，**严禁**在自治环境跳转真实 OAuth/SSO 同意屏（详见 `~/.agents/docs/browser-validation.md` 的安全红线）。配置方式见 §6。
 
 ## 5. 工具面（Playwright MCP 核心工具）
 
@@ -108,7 +108,7 @@ Claude Code 的相位权限（[phase.py](../../../apps/negentropy/src/negentropy
 | `npx @latest` 不确定性 | 版本钉死；预热缓存 |
 | `--no-sandbox` 降低隔离 | 限受控内部 URL；不在自治环境处理不可信外链 |
 | 运行时缺浏览器/Node | 部署预装；连接失败仅告警，不阻断 |
-| 真实 OAuth 被自治流程触发 | 默认净室；鉴权一律走 dev-cookie storageState（[browser-validation.md](../../.agents/browser-validation.md) 红线） |
+| 真实 OAuth 被自治流程触发 | 默认净室；鉴权一律走 dev-cookie storageState（`~/.agents/docs/browser-validation.md` 红线） |
 
 ## 8. Routine 浏览器实机回归验证 · 配方
 
@@ -129,7 +129,7 @@ acceptance_criteria:
 ## 9. 相关文档
 
 - [浏览器操作 MCP 调研（选型论证）](../../research/self-evolution/120-browser-automation-mcp.md)
-- [浏览器实机验证协议](../../.agents/browser-validation.md)
+- 浏览器实机验证协议 — `~/.agents/docs/browser-validation.md`
 - [Claude Code 集成（BuiltinTool）](../subsystems/038-claude-code-integration.md)
 - [Routine 长周期自主任务系统](../subsystems/039-the-routine-system.md)
 - [Interface 用户指南 §6.3 MCP Server 管理](../user-guide/interface.md)

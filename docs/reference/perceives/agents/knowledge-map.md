@@ -9,9 +9,9 @@ title: "Knowledge Map · 知识索引"
 
 ## 协作约定
 
-- [AGENTS.md](../../AGENTS.md) — 工程行为准则、命令规范、Pre-commit 流程。
-- [browser-validation.md](./browser-validation.md) — 浏览器自动化与登录态约束。
-- [reference-specifications.md](./reference-specifications.md) — IEEE 引用规范。
+- `AGENTS.md` — 工程行为准则、命令规范、Pre-commit 流程。
+- `browser-validation.md` — 浏览器自动化与登录态约束。
+- `reference-specifications.md` — IEEE 引用规范。
 
 ## PDF Pipeline
 

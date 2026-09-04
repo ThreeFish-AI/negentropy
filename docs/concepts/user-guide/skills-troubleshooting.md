@@ -106,5 +106,5 @@ skills_injector_unresolved_refs owner_id=... missing=[...]
 - 上手 → [`skills-basics.md`](./skills-basics.md)
 - 进阶 → [`skills-advanced.md`](./skills-advanced.md)
 - 原理与架构 → [`../design/skills.md`](../design/skills.md)
-- 浏览器验证协议 → [`../agents/browser-validation.md`](../agents/browser-validation.md)
+- 浏览器验证协议 → `~/.agents/docs/browser-validation.md`
 - Issue 追踪 → [`../issue.md`](../agents/issue.md)（搜索 Skills / ISSUE-045）

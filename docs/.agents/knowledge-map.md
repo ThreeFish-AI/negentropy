@@ -5,9 +5,7 @@
 
 ## 协同协议与规范
 
-- [Agent 协作协议（CLAUDE.md / AGENTS.md）](../../AGENTS.md) — 项目根工程行为准则
-- [浏览器验证协议](./browser-validation.md) — 浏览器实机验证规范（A 类 claude-in-chrome 交互 / B 类系统默认 Playwright MCP 自治）
-- [引用规范 (IEEE)](./reference-specifications.md) — 决策引用与文献格式
+- Agent 协作协议（AGENTS.md）、浏览器验证协议、引用规范 (IEEE) — 已上移至用户级全局配置（`~/.claude/CLAUDE.md` 与 `~/.agents/docs/`），仓库不再承载 Agent 指令源
 - [Wiki 文档排序元数据规范](./wiki-docs-ordering.md) — `sidebar_position`（文件 frontmatter）+ `_category_.json`（目录）驱动 docs/ → wiki 导航排序
 
 ## 工程经验沉淀
@@ -63,6 +61,7 @@
 ## 研究文献 / Research
 
 - [Research（研究文献索引）](../research/) — 认知增强、上下文工程、Agent runtime、向量检索、知识图谱、Agent Sandbox 等领域基线调研
+- [凯利公式与股市投资的数学基石](../research/quant-finance/150-kelly-criterion-and-investment-math.md) — 七块严格成立的投资数学定理（凯利仓位/统计功效/破产风险/波动拖累/复利年金/Markowitz 分散化/Sharpe 主动管理算术）+ 经多智能体交叉核验的实证数据（SPIVA/巴菲特赌局/Barber & Odean/上交所全账户研究）+ 中国市场 2026 时点可执行操作路径（个人养老金/宽基 ETF 费率/QDII 溢价/A-C 份额临界公式）与避坑清单；全文严格区分 A 类恒等式与 B 类实证统计
 - [Snowflake 数据云平台深度调研](../research/retrieval-storage/034-snowflake-data-cloud.md) — 基于 Snowflake 官方文档的 10 正交维度（架构/存储/计算/数据工程/开发/AI/安全治理/数据共享/业务连续性/成本）全景调研 + 主流方案（BigQuery/Redshift/Databricks/OceanBase）横向对比与选型建议
 - [ADK 2.0 升级调研](../research/agent-runtime/020b-adk-2.0-upgrade.md) — Google ADK 2.0 核心新特性、Breaking Changes、本项目影响评估与渐进式升级路径
 - [Routine Agent 迭代模式调研](../research/self-evolution/110-routine-agent-iteration.md) — ReAct/Reflexion/Self-Refine/LATS/Voyager + LLM-as-Judge + Claude Code/Codex/Gemini/OpenHands 工程实践与停止护栏（长周期自主任务理论基础）

@@ -1623,7 +1623,7 @@ timeline
 
 ### 11.1 设计哲学
 
-遵循 [AGENTS.md](../../../../AGENTS.md) 的**反馈闭环 (Feedback Loops)** 原则：每一项工程行动都应产生可观测的反馈信号。Memory 价值量化体系的目标是：证明 Memory 子系统对 Agent 智能水平的**可测量贡献**。
+遵循 `~/.claude/CLAUDE.md` 的**反馈闭环 (Feedback Loops)** 原则：每一项工程行动都应产生可观测的反馈信号。Memory 价值量化体系的目标是：证明 Memory 子系统对 Agent 智能水平的**可测量贡献**。
 
 ### 11.2 核心指标四层模型
 
