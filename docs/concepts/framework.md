@@ -51,7 +51,7 @@ title: "架构设计方案 · 一核五翼总览"
 
 ### 1.2 架构哲学
 
-系统遵循 [AGENTS.md](../../AGENTS.md) 定义的工程行为准则，核心原则包括：
+系统遵循用户级全局配置 `~/.claude/CLAUDE.md` 定义的工程行为准则，核心原则包括：
 
 - **正交分解 (Orthogonal Decomposition)**：独立变化的维度解耦，确保单一概念主体的变更具备局部性
 - **复用驱动 (Composition over Construction)**：优先通过组合与集成构建系统

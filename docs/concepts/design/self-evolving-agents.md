@@ -4,7 +4,7 @@ title: "自进化 Agents Team 系统技术方案"
 ---
 # 自进化 Agents Team 系统技术方案
 
-> 本文遵循 [AGENTS.md](../../../AGENTS.md) 的协作协议与循证要求。
+> 本文遵循用户级全局配置 `~/.claude/CLAUDE.md` 的协作协议与循证要求。
 >
 > 设计核心锚定：
 > - 调研基础：[自进化 Agents Team 调研](../../research/self-evolution/130-self-evolving-agents-team.md)

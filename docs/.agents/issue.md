@@ -282,7 +282,7 @@
 - **处理方式**（Expand → Backfill → Contract 三段式无破坏迁移）：
   1. **架构沉淀**（本次 PR）：[`035-the-knowledge-base.md` §15 单实例 Catalog 收敛（Phase 4）](../concepts/subsystems/035-the-knowledge-base.md#15-单实例-catalog-收敛phase-4在-nm-之上叠加聚合根不变量) 作为 ADR 等价记录，明确「Phase 4 在 Phase 3 N:M schema 之上叠加聚合根不变量，不是回退」；[`wiki/ops.md` §12](../reference/wiki/ops.md#12-单实例-catalog-与-wiki-发布版本管理运维) 沉淀 Phase B merge runbook（含 `pg_dump` 强制备份、守恒断言、回退 SQL）；
   2. **Phase A Migration 0007**（独立 PR）：纯加法——`CREATE UNIQUE INDEX uq_doc_catalogs_app_singleton ON doc_catalogs(app_name) WHERE is_archived=false`、`CREATE UNIQUE INDEX uq_wiki_pub_catalog_active ON wiki_publications(catalog_id) WHERE status='LIVE'`、`ALTER TABLE doc_catalogs ADD COLUMN merged_into_id UUID NULL REFERENCES doc_catalogs(id) ON DELETE SET NULL`。downgrade 完全可逆；
-  3. **Phase B Migration 0008**（独立 PR + 强制 `pg_dump` 备份）：按「根节点合并为子树」策略——按 `(app_name) ORDER BY created_at ASC LIMIT 1` 选 survivor，其它 catalog 的顶层 entry 嫁接到 survivor 顶层新建的虚拟 `CATEGORY` 节点（slug 加 `legacy-<short_hash>` 后缀避免冲突），整树 `catalog_id` UPDATE 到 survivor，WikiPublication 的 LIVE 降级为 ARCHIVED 并重指向，`navigation_config` JSONB 中的 catalog_id 显式 rewrite，源 catalog 设 `is_archived=true, merged_into_id=survivor.id`（**严禁物理删除**，与 [AGENTS.md 数据库管理规范](../CLAUDE.md) 一致）。声明 `DESTRUCTIVE_DOWNGRADE = true`，回退依赖快照；
+  3. **Phase B Migration 0008**（独立 PR + 强制 `pg_dump` 备份）：按「根节点合并为子树」策略——按 `(app_name) ORDER BY created_at ASC LIMIT 1` 选 survivor，其它 catalog 的顶层 entry 嫁接到 survivor 顶层新建的虚拟 `CATEGORY` 节点（slug 加 `legacy-<short_hash>` 后缀避免冲突），整树 `catalog_id` UPDATE 到 survivor，WikiPublication 的 LIVE 降级为 ARCHIVED 并重指向，`navigation_config` JSONB 中的 catalog_id 显式 rewrite，源 catalog 设 `is_archived=true, merged_into_id=survivor.id`（**严禁物理删除**，与 AGENTS.md 数据库管理规范 一致）。声明 `DESTRUCTIVE_DOWNGRADE = true`，回退依赖快照；
   4. **后端 API**（独立 PR）：新增 `GET /catalogs/resolve?app_name=X`（幂等读，404 表示不存在）、`POST /catalogs/ensure`（upsert-or-get），`POST /catalogs` 加 guard：active 已存在则 409 `catalog_already_exists` 并返回 `existing_catalog_id`；`DELETE /catalogs/{id}` 改为 `is_archived=true` 软删；`CatalogService.create_catalog` 在事务内 `SELECT ... FOR UPDATE` + 捕获 `IntegrityError` 降级为 ensure 语义防御并发 race。`fetchCatalogs` 保留并标 `@deprecated` 给旧客户端 6 周宽限期；
   5. **前端**（独立 PR）：新增 `features/knowledge/hooks/useAppCatalog.ts` 调 `resolveCatalog(APP_NAME)` + SWR 缓存（404 fallback ensure），新增只读 `<CatalogBadge>` 显示 catalog name + tooltip（slug / app_name），`/knowledge/catalog` 与 `/knowledge/wiki` 删除 `<CatalogSelector>` 与 `useState<string|null>` 守卫；树渲染、节点 CRUD、Wiki 详情面板等组件全部不动，只换上游数据源。
 - **后续防范**：
@@ -757,11 +757,11 @@
 - **表因**：AI Agent（Claude / Antigravity）在沙箱形态浏览器（Playwright 默认 `chromium.launch()` 启的空白 profile）中打开 [`localhost:3192`](http://localhost:3192) 触发项目自带的 Google OAuth 流（`/auth/google/login` → `accounts.google.com` → `/auth/google/callback`，参见 [docs/sso.md](../infrastructure/design/sso.md)），跳转到 `accounts.google.com` 后因该浏览器无任何 Google 登录态，被同意屏 / reCAPTCHA / 二步验证拦截，验证链路在此中断；用户被迫多次手动接管或放弃验证。
 - **根因**：双重契约错配：
   1. **会话来源错配**：默认 sandbox 浏览器的 cookie store / device fingerprint / IP 风险评分均与用户日常 Chrome 不同，Google 风控将其视为可疑设备；即便用户在沙箱内输入正确账密，亦极易被强制拉起二次验证或拒绝；
-  2. **工具选型缺位**：项目 [CLAUDE.md（即 AGENTS.md）](../CLAUDE.md) 此前未约定"涉及登录态的浏览器验证应优先使用与用户常用 Chrome 共享会话的工具"，AI Agent 默认走 sandbox 即陷入上述风控；
+  2. **工具选型缺位**：项目 `CLAUDE.md`（即 AGENTS.md）此前未约定"涉及登录态的浏览器验证应优先使用与用户常用 Chrome 共享会话的工具"，AI Agent 默认走 sandbox 即陷入上述风控；
   3. **Playwright E2E 同样缺位**：`apps/negentropy-ui/playwright.config.ts` 之前无 `setup` project / `storageState` / `userDataDir` 复用机制，凡涉及真实 OAuth 的 E2E 都需重复人工登录或退化为 mock，长期削弱端到端覆盖。
 - **处理方式**：
-  1. **协议落地**：[CLAUDE.md › 术 › Browser Validation Protocol](../CLAUDE.md) 新增子节，明确"涉及登录态的浏览器验证必须复用用户常用 Chrome 会话"，首选 `mcp__claude-in-chrome__*`，退化为 `mcp__chrome_devtools__*` + Chrome `--remote-debugging-port`，禁止在 sandbox 浏览器中通过 Google 同意屏；
-  2. **详尽文档**：新建 [docs/agents/browser-validation.md](./agents/browser-validation.md)，含三种 MCP 浏览器工具的能力对照、Mermaid 选型决策图、三步连通性自检脚本、storageState 工作时序、风控应对、IEEE 引用；
+  1. **协议落地**：CLAUDE.md › 术 › Browser Validation Protocol 新增子节，明确"涉及登录态的浏览器验证必须复用用户常用 Chrome 会话"，首选 `mcp__claude-in-chrome__*`，退化为 `mcp__chrome_devtools__*` + Chrome `--remote-debugging-port`，禁止在 sandbox 浏览器中通过 Google 同意屏；
+  2. **详尽文档**：新建 `docs/agents/browser-validation.md`，含三种 MCP 浏览器工具的能力对照、Mermaid 选型决策图、三步连通性自检脚本、storageState 工作时序、风控应对、IEEE 引用；
   3. **Playwright 改造**：
      - `apps/negentropy-ui/playwright.config.ts` 在 `PLAYWRIGHT_AUTH=1` 时启用两个新 project：`setup`（`/.*\.setup\.ts$/`，强制 headless: false）与 `chromium-authenticated`（`dependencies: ['setup']`，注入 `storageState`），可选 `PLAYWRIGHT_USER_DATA_DIR` 走 `--user-data-dir` 复用本地 profile；
      - `STORAGE_STATE` 默认 `apps/negentropy-ui/.auth/user.json`，可被 `PLAYWRIGHT_STORAGE_STATE` 覆盖；
@@ -778,7 +778,7 @@
   1. 所有依赖外部第三方登录的链路（Microsoft / Apple / GitHub OAuth、企业 SSO、内部 SaaS 密钥）在 sandbox 浏览器中均会遭遇同质风控，应统一按本协议复用真实浏览器会话；
   2. 任何"AI Agent 帮我跑一下登录后页面"的请求都应先看协议工具选型矩阵；
   3. 跨 profile 复制 storageState / Cookie 的方案在 Google / 微软等高风控供应商上不可靠，不建议作为退化方案。
-- **2026-05-06 协议演进**：实测 Claude in Chrome 扩展 MCP 在多数 Conductor / Claude Code 会话中未挂载，"首选 → 退化"两档路由长期无法生效；同时 macOS 默认配置下 `mcp__chrome_devtools__list_pages` 已能直接接入用户常用 Chrome 主 profile（含已登录 Google 账号）。因此协议统一收敛为唯一驱动 `mcp__chrome_devtools__*`，并明确"Playwright 仅用于不接触 OAuth 的 B 类隔离场景"。详见 [AGENTS.md › Browser Validation Protocol](../CLAUDE.md) 与 [docs/agents/browser-validation.md](./agents/browser-validation.md)（§1 协议演进段、§3 工具能力对照、§4 决策图、§5 两步自检）。
+- **2026-05-06 协议演进**：实测 Claude in Chrome 扩展 MCP 在多数 Conductor / Claude Code 会话中未挂载，"首选 → 退化"两档路由长期无法生效；同时 macOS 默认配置下 `mcp__chrome_devtools__list_pages` 已能直接接入用户常用 Chrome 主 profile（含已登录 Google 账号）。因此协议统一收敛为唯一驱动 `mcp__chrome_devtools__*`，并明确"Playwright 仅用于不接触 OAuth 的 B 类隔离场景"。详见 AGENTS.md › Browser Validation Protocol 与 `docs/agents/browser-validation.md`（§1 协议演进段、§3 工具能力对照、§4 决策图、§5 两步自检）。
 
 ---
 
@@ -1254,7 +1254,7 @@
 - **后续防范**：
   1. 所有"确认/危险操作"必须复用 `components/ui/ConfirmDialog`，严禁原生 confirm/alert；
   2. ISSUE-045 修复时把 ConfirmDialog 放在 skills 私有目录是熵增信号——通用基础组件必须直接在 `components/ui/` 落地；
-  3. 在 [`docs/AGENTS.md`](../AGENTS.md) 工程规范中已有"严禁原生 dialog"条款，建议下一轮加 ESLint 规则 `no-restricted-globals` 阻断 `window.confirm`/`alert`/`prompt` 直接调用。
+  3. 在 `docs/AGENTS.md` 工程规范中已有"严禁原生 dialog"条款，建议下一轮加 ESLint 规则 `no-restricted-globals` 阻断 `window.confirm`/`alert`/`prompt` 直接调用。
 - **同类问题影响**：MCP Servers / SubAgents 等模块若仍残留原生 dialog 需统一替换；ESLint 规则升级可一次性发现所有遗漏点。
 
 ---
@@ -1868,7 +1868,7 @@
   - 新增 `tests/unit_tests/knowledge/test_kg_build_pipeline_fixes.py` 9 条 UT 锁定 7 项修复契约（PageRank SQL CAST / Leiden via leidenalg / drop_params 透传 / Embedding hint / sync_relation bool 返回）；
   - `tests/unit_tests/knowledge/test_kg_entity_service_unit.py` 与 `test_graph_entity_service.py` 三条既有 UT 升级 — 之前实为"silent assertion of bug"（把跳过当成功），现校正为 `relations_synced=0 + relations_skipped=2`；
   - `uv run pytest tests/unit_tests/knowledge` 678 通过（1 pre-existing 失败 `test_extraction_llm_plan` 与本次无关）；`uv run ruff check` 全绿；
-  - 浏览器实机验证按 [Browser Validation Protocol](agents/browser-validation.md) 在用户主 profile 完成；端到端 KG Build 后 SQL `SELECT importance_score, community_id FROM kg_entities WHERE corpus_id=...` 非 NULL、`SELECT level, community_id FROM kg_community_summaries` 多条非空摘要、`kg_first_class_sync relations_synced` 与 `graph_loaded edge_count` 数值一致（差额由 `relations_skipped` 明示）。
+  - 浏览器实机验证按 Browser Validation Protocol 在用户主 profile 完成；端到端 KG Build 后 SQL `SELECT importance_score, community_id FROM kg_entities WHERE corpus_id=...` 非 NULL、`SELECT level, community_id FROM kg_community_summaries` 多条非空摘要、`kg_first_class_sync relations_synced` 与 `graph_loaded edge_count` 数值一致（差额由 `relations_skipped` 明示）。
 - **后续防范**（跨上下文准则）：
   1. **PostgreSQL UPDATE-FROM-VALUES 范式**：批量 UPSERT/UPDATE 一律采用占位符级 `CAST(:p AS type)`，禁用 `AS v(col type)` 内联类型 — 后者在 asyncpg / psycopg3 / pg-protocol bridge 多驱动行为不一致。
   2. **NetworkX 3.x dispatch wrapper 边界**：调用 `nx.community.*` 前必须确认是否为 dispatch wrapper（隐式 backend 派发会以 `NotImplementedError` 形式出现而非明确 `ImportError`）。Leiden / Modularity 类算法一律走 `igraph + leidenalg` / `cdlib` 直连。
@@ -1961,7 +1961,7 @@
     - `community_summary_failed` 警告：1 次 → 0 次；
     - 终态 `status`：`completed_with_errors` → `completed`；
     - `build_run_updated` 字段一致性：单字段 `run_id=UUID` → 双字段 `run_uuid` + `run_id`；
-    - **未完成项（透明披露）**：端到端浏览器回归遵循 [browser-validation 协议](../docs/agents/browser-validation.md) 需用户在自有 Chrome 主 profile 操作真实语料库 corpus，本次未在 agent 上下文执行——本修复全由单元测试与结构断言保障。
+    - **未完成项（透明披露）**：端到端浏览器回归遵循 browser-validation 协议 需用户在自有 Chrome 主 profile 操作真实语料库 corpus，本次未在 agent 上下文执行——本修复全由单元测试与结构断言保障。
 - **后续防范**：
   1. **事务边界单一来源**：service / repository / domain 模块层级应明确"谁开 begin / 谁负责 commit"的契约；domain service（如 summarizer）只负责写入，事务边界由 application service 持有，杜绝跨层双重事务管理；
   2. **多策略消解的 ID 维度必维护**：任何"按 label 合并"的策略都必须同步暴露 ID 映射（new_id → surviving_id），下游不应被迫从 label 反推 id；新增 stage 时（如未来 LLM 验证）必须遵循此契约；
@@ -1994,7 +1994,7 @@
   - 单元测试：[`test_global_search.py`](../apps/negentropy/tests/unit_tests/knowledge/test_global_search.py) 新增 3 个用例（`llm_config_id` 路由到 `resolve_llm_config_by_id`、无 id 走 `resolve_llm_config` 全局默认、`evidence=0` + `candidates>0` 返回基础设施错误文案）+ 现有 7 个用例零回归；[`test_embedding.py`](../apps/negentropy/tests/unit_tests/knowledge/test_embedding.py) 新增 `TestNonRetryableFailFast` 4 个用例（AuthenticationError 不重试、NotFoundError 不重试、文本模式兜底命中、ConnectionError 仍按指数退避到上限）+ 现有 5 个用例零回归；
   - 范围覆盖：`tests/unit_tests/knowledge/` 全量 816 项断言通过（pre-existing `test_extraction_llm_plan.py::test_build_llm_invocation_plan_returns_none_when_serialization_fails` 失败已 `git stash` 比对验证与本次修复无关）；
   - 契约 smoke：`uv run python` 内联校验 `_is_non_retryable_error(AuthenticationError)` / `NotFoundError` / `BadRequestError` / 文本模式 generic Exception 全部 True，`ConnectionError` False；`GlobalSearchService(llm_config_id=...)` 构造与读字段一致；
-  - **未完成项（透明披露）**：浏览器端到端验证遵循 [browser-validation 协议](./agents/browser-validation.md) 需用户在自有 Chrome 主 profile + 真实语料库 corpus 操作；agent 上下文 chrome_devtools 通道被占用且不应启用 sandbox profile，本次未在 agent 内执行实机验证——本修复全由单元测试与结构断言保障。
+  - **未完成项（透明披露）**：浏览器端到端验证遵循 browser-validation 协议 需用户在自有 Chrome 主 profile + 真实语料库 corpus 操作；agent 上下文 chrome_devtools 通道被占用且不应启用 sandbox profile，本次未在 agent 内执行实机验证——本修复全由单元测试与结构断言保障。
 - **后续防范**：
   1. **「查询侧模型 = ingestion 侧模型」契约**：所有需要在向量空间中比较的查询路径（global_search / hybrid_search / multi_hop / future rerank），必须经 `_resolve_corpus_model_ids` 解出 `embedding_config_id` 后传给 `build_embedding_fn`；新增类似路径时 review 必须显式检查此契约。
   2. **重试白名单契约**：任何外部 API 重试循环必须区分「瞬时故障（5xx 网关 / 429 / timeout）」与「终态故障（4xx 凭证 / 路由 / 参数）」，前者退避重试、后者立即降级；`_is_non_retryable_error` 应作为 KG 子系统跨模块的标准 fail-fast 工具，不要在新调用点重新实现。
@@ -2028,7 +2028,7 @@
   - 单元：新增 17 个用例（`tests/unit_tests/config/test_task_registry.py` 7 项、`tests/unit_tests/config/test_model_resolver_task.py` 5 项、`tests/unit_tests/interface/test_task_models_api.py` 5 项）100% 通过；
   - 回归：`tests/unit_tests/` 1634 通过 / 1 deselected（`test_extraction_llm_plan.py::test_build_llm_invocation_plan_returns_none_when_serialization_fails` 在 master 即失败，与本次修复无关，已 `git stash` 比对验证）；
   - 调试观测：resolver 命中后输出结构化日志 `task_model_resolved {task_key, corpus_id, resolved_model, source ∈ {corpus_task, global_task, default}}`，可用于线上链路核对。
-  - **未完成项（透明披露）**：浏览器实机回归遵循 [browser-validation 协议](./agents/browser-validation.md) 需用户在 Chrome 主 profile + 真实凭证操作；本次未在 agent 内执行实机验证——所有路径由单元测试 + 静态检查覆盖。
+  - **未完成项（透明披露）**：浏览器实机回归遵循 browser-validation 协议 需用户在 Chrome 主 profile + 真实凭证操作；本次未在 agent 内执行实机验证——所有路径由单元测试 + 静态检查覆盖。
 - **后续防范**：
   1. **"调用点新增 LLM 操作 → 同步登记 task_key"契约**：任何新增后台 LLM/Embedding 调用点必须先在 [`task_registry.py`](../apps/negentropy/src/negentropy/config/task_registry.py) 注册槽位，再通过 `resolve_*_for_task` 解析。Code review 时检查"裸调 `resolve_llm_config()` 或 `litellm.acompletion(model="…")`"作为 red flag。
   2. **缓存命名空间隔离**：新增 resolver 时务必使用独立 cache key 前缀（`task:` / `subagent:` / `llm:<id>` 等已建立），写操作匹配的 `invalidate_cache(prefix=...)` 必须同步覆盖；不可与全局 `llm` / `embedding` 缓存共用键。
@@ -2064,7 +2064,7 @@
 - **后续防范**：
   1. **同 pathname + 仅 query 变更的 URL 更新一律走 `window.history.replaceState`**：避免再次踩到 Next.js RSC 判定的 NA no-op。涉及 pathname 跳转（`/`、`/interface`、`/admin` 等）的入口继续使用 `router.replace` / `router.push`，两者职责分明。
   2. **Code review 红线**：评审看到 `router.replace(somePath, { scroll: false })` 且 `somePath` 与当前 pathname 同源（仅 query 不同）时，明确要求改写为 `window.history.replaceState`。
-  3. **实机验证为兜底底线**：本类 bug 的根因在 Next.js 路由层，vitest jsdom 环境覆盖不到——单测仅能保证"写 URL 这个动作发生"，是否"真的更新了 URL 并触发派生"必须在用户主 Chrome 实机验证（参见 [browser-validation 协议](./browser-validation.md)）；任何同型 URL-only 写入改动至少 ≥ 5 个正交场景实机回归。
+  3. **实机验证为兜底底线**：本类 bug 的根因在 Next.js 路由层，vitest jsdom 环境覆盖不到——单测仅能保证"写 URL 这个动作发生"，是否"真的更新了 URL 并触发派生"必须在用户主 Chrome 实机验证（参见 browser-validation 协议）；任何同型 URL-only 写入改动至少 ≥ 5 个正交场景实机回归。
   4. **故障时的错位提示**：`handleSessionChange` 仍是 `setSessionId → clearSessionState` 顺序。若未来再出现"清空但未切换"错位，说明 URL 写入又失败了——先验证 URL 是否真的更新，而不是去调换清理顺序（调换清理顺序无法解决根本问题，只会改变错位的外观）。
 - **同类问题影响**：
   - 本仓库其余 `router.replace` / `router.push` 调用（`app/admin/layout.tsx`、`app/interface/layout.tsx`、`app/interface/task-models/page.tsx`、`app/interface/models/page.tsx`、`app/knowledge/documents/page.tsx`）均为 pathname 级跳转，不在 bug 影响面，保持不变。
@@ -2838,7 +2838,7 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **表因**：以模板 routine（`9e90c3c7`）复刻任务实机长跑时，发现其历史 iter2 失败于 `working directory does not exist: '/tmp/wt/dispatch-auto'`——而 `/tmp/wt/dispatch-auto` 是 `test_routine_orchestrator.py` 的测试夹具值，却写进了**生产** routine 的迭代行。顺藤摸瓜发现整个测试套件直连生产 `negentropy` 库。
 - **根因**：**测试无独立数据库，与生产共享 `negentropy` 库**：
   1. `tests/conftest.py::db_engine` 直接 `create_async_engine(str(settings.database_url))`——生产库；
-  2. `tests/integration_tests/db/test_migrations.py::reset_database`（autouse）执行 `command.downgrade(alembic_config, "base")`——**把生产库降级到 base，DROP 全部表 = 摧毁 routines/knowledge/memory/sessions 全部数据**，违反 [AGENTS.md「严禁删除现有数据」](../../CLAUDE.md)；其 `_sync_database_url()` 亦读 `settings.database_url`（生产）；
+  2. `tests/integration_tests/db/test_migrations.py::reset_database`（autouse）执行 `command.downgrade(alembic_config, "base")`——**把生产库降级到 base，DROP 全部表 = 摧毁 routines/knowledge/memory/sessions 全部数据**，违反 AGENTS.md「严禁删除现有数据」；其 `_sync_database_url()` 亦读 `settings.database_url`（生产）；
   3. `orchestrator._dispatch_due` / `_evaluate_and_decide` 查询条件为 `Routine.status=='running'`（**扫描全部** running routine，不限于测试自建行）；集成测试 patch `ensure_workspace`→`WorkspaceInfo('/tmp/wt/dispatch-auto')` 后调 `_dispatch_due`，会把该假 cwd 派发给当时正在 running 的**真实**模板 routine → CC 报 cwd 不存在 → 该 routine 随后陷入会话死亡螺旋（ISSUE-110 表征的历史 iter2-5 即源于此）。
   - 模板 routine 至今尚存，说明全量 `pytest tests/` 本地近期未跑全——否则 `reset_database` 一次即清空生产库。这是「跑得够全才爆」的潜伏数据灾难。
 - **处理方式**（会话级强制隔离到专用测试库，单一改写点）：

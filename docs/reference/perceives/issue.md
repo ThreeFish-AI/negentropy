@@ -198,7 +198,7 @@ Internal error: directory mismatch for directory ".../anthropics/claude-code-act
 
 ### 根因
 
-1. 仓库根目录的 [CLAUDE.md](../CLAUDE.md) 是指向 [AGENTS.md](../AGENTS.md) 的 symlink，用于避免双份 Agent 指令造成 SSoT 分裂。
+1. 仓库根目录的 `CLAUDE.md` 是指向 `AGENTS.md` 的 symlink，用于避免双份 Agent 指令造成 SSoT 分裂。
 2. `anthropics/claude-code-action@v1` 在 `pull_request` 场景会先快照 PR 侧的敏感启动配置，再删除并从 base 分支恢复可信版本，以防 PR 修改 `.mcp.json` / `.claude/` / `CLAUDE.md` 注入启动行为。
 3. 该 action 当前对 PR 侧 `CLAUDE.md` symlink 的快照路径存在兼容性问题，导致审查 step 提前失败；workflow 用 `continue-on-error: true` 包住该 step，因此 overall check 仍为 success，但 sticky comment 会污染 PR 讨论。
 4. workflow 过去只检查 `ANTHROPIC_API_KEY` 是否非空，无法识别 secret 已过期、被撤销或填错；action 直到调用 SDK 才报 `Invalid API key` 并发布错误评论。

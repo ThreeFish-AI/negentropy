@@ -829,7 +829,7 @@ flowchart LR
 2. **Virtual Root 注入**：为每个被合并 Catalog 在 survivor 顶层创建一个 `node_type='CATEGORY'` 的虚拟节点，slug 加 `legacy-<short_hash>` 后缀避免冲突。
 3. **子树嫁接**：将被合并 Catalog 的所有顶层 entry 的 `parent_entry_id` 重指向 virtual root，整树 `catalog_id` 一次性 UPDATE 到 survivor。
 4. **WikiPublication 重指向**：`catalog_id` 改写到 survivor，状态为 `LIVE` 的降级为 `ARCHIVED`（保留多版本回退），`navigation_config` JSONB 内的 catalog_id 引用同步 rewrite。
-5. **Tombstone**：源 Catalog 设 `is_archived=true, merged_into_id=survivor.id`，**严禁物理删除**（与 [AGENTS.md 数据库管理规范](../../../../AGENTS.md) 一致）。
+5. **Tombstone**：源 Catalog 设 `is_archived=true, merged_into_id=survivor.id`，**严禁物理删除**（与 `~/.claude/CLAUDE.md` 的 Database Management 规范一致）。
 6. **守恒断言**：迁移末尾 SELECT 校验 `count(doc_catalog_entries)` 与 `count(DISTINCT document_id)` 守恒。
 
 **回退性**：Phase A（仅加索引/列）的 downgrade 完全可逆；**Phase B（合并）声明 `DESTRUCTIVE_DOWNGRADE = true`，downgrade 不会反向拆分子树**——回退依赖 Phase B 执行前的强制 `pg_dump` 快照。

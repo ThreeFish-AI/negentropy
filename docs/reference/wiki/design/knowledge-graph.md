@@ -214,7 +214,7 @@ Wiki 场景定位于"**只读浏览 + 点击跳转**"。我们**精简重做**�
 
 ### 浏览器实机回归
 
-按 [浏览器验证协议](../../../agents/browser-validation.md) 接入用户常用 Chrome 主 profile：
+按浏览器验证协议（`~/.agents/docs/browser-validation.md`）接入用户常用 Chrome 主 profile：
 
 1. 现有 `/`、`/[pubSlug]`、`/[pubSlug]/[...entrySlug]` 不受影响
 2. `/[pubSlug]/graph` SSG 首屏可见节点、无客户端等待

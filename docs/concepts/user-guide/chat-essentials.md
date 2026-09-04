@@ -11,7 +11,7 @@ title: "Home 对话 · 主模块特性手册"
 ## 0. 入口
 
 - 浏览器打开 `https://<your-domain>/`（首页即 Home 对话）。
-- 自签 dev cookie 注入流程参见 [agents/browser-validation.md](../agents/browser-validation.md)。
+- 自签 dev cookie 注入流程参见 `~/.agents/docs/browser-validation.md`。
 
 ## 1. 发起对话与模型选择
 

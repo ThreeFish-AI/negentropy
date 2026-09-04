@@ -4,7 +4,7 @@ title: "单点登录（SSO）方案：Google OAuth + 用户权限管理"
 ---
 # 单点登录 (SSO) 方案：Google OAuth + 用户权限管理
 
-> 本文遵循 [AGENTS.md](../../../AGENTS.md) 的协作协议与循证要求。设计核心锚定：
+> 本文遵循用户级全局配置 `~/.claude/CLAUDE.md` 的协作协议与循证要求。设计核心锚定：
 > - 用户状态与权限的权威数据源：`user_states`（参见 [pulse.py](../../../apps/negentropy/src/negentropy/models/pulse.py)）
 > - 会话生命周期与用户 ID 的持久化一致性：`PostgresSessionService`（参见 [session_service.py](../../../apps/negentropy/src/negentropy/engine/adapters/postgres/session_service.py)）
 

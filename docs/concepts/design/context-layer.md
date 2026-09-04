@@ -4,7 +4,7 @@ title: "Context Layer · 上下文治理层技术方案"
 ---
 # Context Layer · 上下文治理层技术方案
 
-> 本文遵循 [AGENTS.md](../../../AGENTS.md) 的协作协议与循证要求。
+> 本文遵循用户级全局配置 `~/.claude/CLAUDE.md` 的协作协议与循证要求。
 >
 > 设计核心锚定：
 > - **行业对标**：[Snowflake Horizon Context](https://www.snowflake.com/en/product/features/horizon-context/) · [Snowflake 数据云调研 §D7 Horizon Catalog](../../research/retrieval-storage/034-snowflake-data-cloud.md)

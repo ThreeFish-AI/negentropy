@@ -4,13 +4,13 @@ title: "浏览器操作 MCP 调研：选型论证与横向盘点"
 ---
 # 浏览器操作 MCP 调研：选型论证与横向盘点
 
-> **摘要 / 导言**：本报告面向一个明确的工程命题——为 Negentropy（一核五翼平台）选择一款浏览器操作 MCP，**内置为全系统默认配备**，并用于**所有 Routine 任务运行时的浏览器实机回归验证**。评估锚定本项目两类真实执行上下文：(1) 6 个 ADK Agent 经 `ActionFaculty.invoke_claude_code` 调用 Claude Code（无直接 ADK→MCP 桥）；(2) Routine 任务 = 自治后台 Claude Code 子进程（**无真人、无桌面浏览器、headless**）。二者经**同一** `builtin_tools(claude_code).config.mcp_config` 注入点喂入 MCP——这意味着默认 MCP 必须能表达为 `McpServer`（stdio/sse/http）、能无人值守 headless 运行，并能复用本仓既有的 dev-cookie 鉴权旁路。结论：采用 **Microsoft 官方 `@playwright/mcp`**；落地方案见 [浏览器操作 MCP 集成方案](../../concepts/design/browser-automation-mcp-integration.md)。本文遵循 [AGENTS.md](../../../AGENTS.md) 的循证要求，引用格式遵 [reference-specifications.md](../../.agents/reference-specifications.md)。
+> **摘要 / 导言**：本报告面向一个明确的工程命题——为 Negentropy（一核五翼平台）选择一款浏览器操作 MCP，**内置为全系统默认配备**，并用于**所有 Routine 任务运行时的浏览器实机回归验证**。评估锚定本项目两类真实执行上下文：(1) 6 个 ADK Agent 经 `ActionFaculty.invoke_claude_code` 调用 Claude Code（无直接 ADK→MCP 桥）；(2) Routine 任务 = 自治后台 Claude Code 子进程（**无真人、无桌面浏览器、headless**）。二者经**同一** `builtin_tools(claude_code).config.mcp_config` 注入点喂入 MCP——这意味着默认 MCP 必须能表达为 `McpServer`（stdio/sse/http）、能无人值守 headless 运行，并能复用本仓既有的 dev-cookie 鉴权旁路。结论：采用 **Microsoft 官方 `@playwright/mcp`**；落地方案见 [浏览器操作 MCP 集成方案](../../concepts/design/browser-automation-mcp-integration.md)。本文遵循 `~/.claude/CLAUDE.md` 的循证要求，引用格式遵 `~/.agents/docs/reference-specifications.md`。
 
 ---
 
 ## 1. 背景与评估目标
 
-Negentropy 的 [浏览器实机验证协议](../../.agents/browser-validation.md) 已确立"Agent 不得自行完成/绕过 OAuth、登录态须来源于真实用户"的核心不变量，并已在 `negentropy-ui` 集成 Playwright E2E（含 dev-cookie 旁路）。但平台**尚未**把任何浏览器操作 MCP 作为系统级默认能力内置——Routine 自治任务在运行时拿不到浏览器工具，无法对其刚刚改动的 Web 产物做"实机回归验证"。
+Negentropy 的浏览器实机验证协议（`~/.agents/docs/browser-validation.md`）已确立"Agent 不得自行完成/绕过 OAuth、登录态须来源于真实用户"的核心不变量，并已在 `negentropy-ui` 集成 Playwright E2E（含 dev-cookie 旁路）。但平台**尚未**把任何浏览器操作 MCP 作为系统级默认能力内置——Routine 自治任务在运行时拿不到浏览器工具，无法对其刚刚改动的 Web 产物做"实机回归验证"。
 
 选型须同时满足三项**硬约束**（源自上述两类执行上下文）：
 
@@ -24,7 +24,7 @@ Negentropy 的 [浏览器实机验证协议](../../.agents/browser-validation.md
 
 **Playwright MCP（`@playwright/mcp`）**<sup>[[1]](#ref1)</sup> 由 Microsoft 官方维护（仓库 `microsoft/playwright-mcp`，作者为 Playwright 核心维护者 yury-s、pavelfeldman），Apache-2.0 许可。它是一个标准 MCP 服务，可经 `npx @playwright/mcp@latest` 以 stdio 启动，或以 `--port` 暴露 HTTP/streamable 端点，二者均可直接表达为本项目的 `McpServer`。其决定性优势在于**完全无人值守的 headless 服务端运行**：`--headless` 启动无 GUI 的 Chromium，官方 `mcr.microsoft.com/playwright/mcp` 容器镜像即为此场景而生，无需 OAuth 同意屏、CAPTCHA、扩展或真实用户登录态——浏览器由 MCP 服务进程自身拉起并驱动。鉴权经 `--isolated --storage-state=<state.json>` 以非交互方式注入预置 cookie/localStorage，与 negentropy-ui 现有 dev-cookie storageState 旁路一一对应。它暴露约 22 个核心工具并以 `--caps` 按需开启扩展能力组，最新版本 v0.0.75（2026-05），由拥有 Playwright 本体的团队首方背书，弃坑风险在所有候选中最低。其主要成本杠杆是每步 a11y 快照（`browser_snapshot`）的 Token 膨胀，以及"非确定性"——MCP 驱动的回归是 AI 探索式的，而非确定性 PASS/FAIL 闸门。
 
-**chrome-devtools-mcp**<sup>[[2]](#ref2)</sup> 由 Google / Chrome DevTools 团队维护，Apache-2.0，原生 stdio（`npx -y chrome-devtools-mcp@latest`），可直接表达为 `McpServer`。它**能**经 `--headless --isolated` 或沙箱推荐的 `--remote-debugging-port` + `--browser-url` 路径无人值守 headless 运行（注意：`--autoConnect` 需真人在 `chrome://inspect` 点击"Allow"，属交互 A 类，不可用于 Routine）。其强项是深度 DevTools 内省（网络、控制台、性能 Trace、堆快照、Lighthouse），且基于 2026 年某结账流程基准，单任务 Token 较 Playwright MCP 低约 78%<sup>[[6]](#ref6)</sup>。但对本项目的**致命短板是无 storageState 机制**：会话/登录态完全绑定 Chrome 的 user-data-dir，现有 dev-cookie storageState 旁路无法迁移，`--isolated` 的 Routine 会话恒为登出态；获取鉴权会话只能预烘焙真实 profile 或脚本注入 cookie，与 [browser-validation.md](../../.agents/browser-validation.md) 红线冲突。它本质是调试/内省工具，而非断言优先的 E2E 驱动器。
+**chrome-devtools-mcp**<sup>[[2]](#ref2)</sup> 由 Google / Chrome DevTools 团队维护，Apache-2.0，原生 stdio（`npx -y chrome-devtools-mcp@latest`），可直接表达为 `McpServer`。它**能**经 `--headless --isolated` 或沙箱推荐的 `--remote-debugging-port` + `--browser-url` 路径无人值守 headless 运行（注意：`--autoConnect` 需真人在 `chrome://inspect` 点击"Allow"，属交互 A 类，不可用于 Routine）。其强项是深度 DevTools 内省（网络、控制台、性能 Trace、堆快照、Lighthouse），且基于 2026 年某结账流程基准，单任务 Token 较 Playwright MCP 低约 78%<sup>[[6]](#ref6)</sup>。但对本项目的**致命短板是无 storageState 机制**：会话/登录态完全绑定 Chrome 的 user-data-dir，现有 dev-cookie storageState 旁路无法迁移，`--isolated` 的 Routine 会话恒为登出态；获取鉴权会话只能预烘焙真实 profile 或脚本注入 cookie，与 `~/.agents/docs/browser-validation.md` 红线冲突。它本质是调试/内省工具，而非断言优先的 E2E 驱动器。
 
 **claude-in-chrome**<sup>[[3]](#ref3)</sup> 为 Anthropic 首方的 Chrome 扩展集成（扩展 ID `fcoeoabgfenejglbffodgkkbkcdhcgfn`），经 `claude --chrome` 或 `/chrome` 启用，工具出现在内部 `claude-in-chrome` 命名空间下。它**并非** pip/pnpm/npx 包，**无法**经 mcp_config 注入——它是 native messaging 桥接，不是 stdio/sse/http server，无法表达为 `command/url` server。它**绝对无法** headless 无人值守运行：需要可见的桌面 Chrome/Edge 窗口，遇登录页/CAPTCHA 会暂停等待真人，MV3 service worker 空闲时会静默断连，且账号级竞争消费路由无设备锁定。其真正强项——零摩擦复用用户真实已认证桌面会话——恰恰是 Routine 所禁止的人在回路。
 
@@ -89,7 +89,7 @@ flowchart TD
 1. **自治契合**：唯一同时满足"可表达为 `McpServer` + 完全 headless 无人值守 + 复用现有 dev-cookie 旁路"三项硬约束的成熟首方选项。Routine 配置基线：`--headless --isolated --browser chromium --no-sandbox`（鉴权回归再加 `--storage-state=<dev-cookie.json>`），并禁用 `browser_run_code_unsafe`。
 2. **回归目的工具**：`--caps=testing` 提供 `browser_verify_element_visible/text_visible/list_visible/value` 等断言动词，可将关键路径钉为半确定性校验，弥补 AI 驱动回归的非确定性。
 3. **复用既有 Playwright + dev-cookie**：`--storage-state` 直接消费 negentropy-ui `playwright.config.ts` 已验证的 storageState，无第二个 LLM、无云端外泄、无真实会话强制要求。
-4. **协议一致**：stdio/http 形态经单一 `mcp_config` 注入点统一喂入两类上下文，符合单一事实源；与 [browser-validation.md](../../.agents/browser-validation.md) 中 claude-in-chrome=交互 A 类、playwright(headless)=自治 B 类的分类一致。
+4. **协议一致**：stdio/http 形态经单一 `mcp_config` 注入点统一喂入两类上下文，符合单一事实源；与 `~/.agents/docs/browser-validation.md` 中 claude-in-chrome=交互 A 类、playwright(headless)=自治 B 类的分类一致。
 
 **须诚实纳入的对抗性 caveat（经对抗校验保留）：**
 
@@ -100,7 +100,7 @@ flowchart TD
 
 **须纳入的事实校正：**
 
-- **dev-cookie 与红线的精确关系**：[browser-validation.md](../../.agents/browser-validation.md) 红线禁止的是**跨上下文复制 OAuth/SSO（IdP 绑定）storageState**，**并不**禁止项目自签的 **dev-cookie storageState**——后者经协议明确**许可**用于非 OAuth B 类场景（`apps/negentropy-ui/tests/e2e/dev-cookie.setup.ts`：以与后端共享的 `NE_AUTH_TOKEN_SECRET` 签发 `ne_sso`，写入 `.auth/dev-admin.json`）。故 Playwright MCP `--storage-state` 复用的是**被许可的 dev-cookie 路径**，绝非模拟 IdP 登录。此区分（dev-cookie 许可 / IdP-storageState-复制禁止）是承重的。
+- **dev-cookie 与红线的精确关系**：`~/.agents/docs/browser-validation.md` 红线禁止的是**跨上下文复制 OAuth/SSO（IdP 绑定）storageState**，**并不**禁止项目自签的 **dev-cookie storageState**——后者经协议明确**许可**用于非 OAuth B 类场景（`apps/negentropy-ui/tests/e2e/dev-cookie.setup.ts`：以与后端共享的 `NE_AUTH_TOKEN_SECRET` 签发 `ne_sso`，写入 `.auth/dev-admin.json`）。故 Playwright MCP `--storage-state` 复用的是**被许可的 dev-cookie 路径**，绝非模拟 IdP 登录。此区分（dev-cookie 许可 / IdP-storageState-复制禁止）是承重的。
 
 **关于 ExecuteAutomation 备选的定位**：它是唯一受认可的跨浏览器/设备 fallback（提供官方容器所缺的 Firefox/WebKit + 设备预置），但 storageState 人机工程较弱且存单维护者供应链风险。仅当确需官方服务所缺的覆盖时按任务范围采用，**不取代** `@playwright/mcp` 默认地位。
 
