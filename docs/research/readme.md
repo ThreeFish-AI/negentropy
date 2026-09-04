@@ -1,6 +1,6 @@
 # 研究文献总览
 
-> Negentropy 技术调研索引。原始调研按「认知 → 框架 → 存储 → 图谱 → 执行 → 进化」六段论归档，逐层递进，另设独立主题分组（量化与投资科学）；本页为各主题分组的阅读入口。
+> Negentropy 技术调研索引。原始调研按「认知 → 框架 → 存储 → 图谱 → 执行 → 进化」六段论归档，逐层递进，另设独立主题分组（量化与投资科学、视频与动效生产）；本页为各主题分组的阅读入口。
 
 ---
 
@@ -84,6 +84,12 @@
 | 文档 | 主旨 |
 |:---|:---|
 | [凯利公式与股市投资的数学基石](./quant-finance/150-kelly-criterion-and-investment-math.md) | 七块严格成立的定理（凯利仓位 / 统计功效 / 破产风险 / 波动拖累 / 复利年金 / Markowitz 分散化 / Sharpe 算术）+ 经核验的实证数据（SPIVA / 上交所账户研究等）+ 中国市场可执行操作路径与避坑清单 |
+
+## 八、视频与动效生产 · `video-production/`
+
+| 文档 | 主旨 |
+|:---|:---|
+| [视频动效建模与 Web 可视化搭建工具全景调研](./video-production/160-video-motion-modeling-web-visual-tooling.md) | 以现役 Remotion 科普视频管线为基线的全网与 GitHub 全景调研（54+9 候选、四路深评、87 条主张双反驳核验）：A 轨 `@remotion` 官方增强簇即刻提升表达力、B 轨 HyperFrames（Apache-2.0、agent 原生）平行试点、C 轨 Cavalry/Jitter→Lottie 设计师资产管线，附四道击穿门评估框架、迁移成本口径与 POC 验收清单 |
 
 ---
 

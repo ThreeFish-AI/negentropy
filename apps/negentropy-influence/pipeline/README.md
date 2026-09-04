@@ -181,7 +181,7 @@ schema、默认值与校验的单一事实源是 [scripts/config.py](./scripts/c
 
 ## 七、工程模式
 
-本仓统一采用 **Remotion 工程模式**（全代码动画 + manifest 自动对轨、可编程复渲）。早期的单文件 Canvas 轻量制作包模式已于 2026-08 废弃移除（见 commit `f7d72814`）。
+本仓统一采用 **Remotion 工程模式**（全代码动画 + manifest 自动对轨、可编程复渲）。早期的单文件 Canvas 轻量制作包模式已于 2026-08 废弃移除（见 commit `f7d72814`）。渲染与动效工具的横向选型证据（Remotion 增强簇 / HyperFrames / Motion Canvas·Revideo / Lottie 设计师资产管线三轨推荐与击穿门评估）见 [动效建模与 Web 可视化搭建工具调研](../../../docs/research/video-production/160-video-motion-modeling-web-visual-tooling.md)。
 
 ## 八、许可注意
 

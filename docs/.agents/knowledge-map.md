@@ -62,6 +62,7 @@
 
 - [Research（研究文献索引）](../research/) — 认知增强、上下文工程、Agent runtime、向量检索、知识图谱、Agent Sandbox 等领域基线调研
 - [凯利公式与股市投资的数学基石](../research/quant-finance/150-kelly-criterion-and-investment-math.md) — 七块严格成立的投资数学定理（凯利仓位/统计功效/破产风险/波动拖累/复利年金/Markowitz 分散化/Sharpe 主动管理算术）+ 经多智能体交叉核验的实证数据（SPIVA/巴菲特赌局/Barber & Odean/上交所全账户研究）+ 中国市场 2026 时点可执行操作路径（个人养老金/宽基 ETF 费率/QDII 溢价/A-C 份额临界公式）与避坑清单；全文严格区分 A 类恒等式与 B 类实证统计
+- [视频动效建模与 Web 可视化搭建工具全景调研](../research/video-production/160-video-motion-modeling-web-visual-tooling.md) — 以现役 Remotion 科普视频管线（audio-first 时序 SSOT + frozen 运动层）为基线的全网与 GitHub 工具调研（54+9 候选、四路深评、87 条主张双反驳核验）：A 轨 `@remotion` 官方增强簇（paths/shapes/three/gsap/fonts + whisper 词级时间戳）即刻增强现役栈；B 轨 HyperFrames（Apache-2.0 无规模门槛、确定性机制与现役铁律同构、audio-first 原生等价物）单集平行试点；C 轨 Cavalry/Jitter→Lottie→`@remotion/lottie` 设计师资产管线（「形状归 Lottie、文字归 Remotion」，A/B 双轨通用）；Theatre.js/Motion Canvas 上游/manim/Spline 桥/remotion-motion-transitions 等附一手证据否决清单，评估框架=四道击穿门+八维加权+迁移成本单列
 - [Snowflake 数据云平台深度调研](../research/retrieval-storage/034-snowflake-data-cloud.md) — 基于 Snowflake 官方文档的 10 正交维度（架构/存储/计算/数据工程/开发/AI/安全治理/数据共享/业务连续性/成本）全景调研 + 主流方案（BigQuery/Redshift/Databricks/OceanBase）横向对比与选型建议
 - [ADK 2.0 升级调研](../research/agent-runtime/020b-adk-2.0-upgrade.md) — Google ADK 2.0 核心新特性、Breaking Changes、本项目影响评估与渐进式升级路径
 - [Routine Agent 迭代模式调研](../research/self-evolution/110-routine-agent-iteration.md) — ReAct/Reflexion/Self-Refine/LATS/Voyager + LLM-as-Judge + Claude Code/Codex/Gemini/OpenHands 工程实践与停止护栏（长周期自主任务理论基础）
