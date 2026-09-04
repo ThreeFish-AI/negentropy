@@ -3,6 +3,7 @@
  *  重制（2026-09 运动层）：动效收敛到 motion 模型（分镜动效列 @动词 可机检）。 */
 import React from 'react';
 import {AbsoluteFill, Sequence, spring, useCurrentFrame, useVideoConfig} from 'remotion';
+import {evolvePath} from '@remotion/paths';
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
@@ -412,9 +413,7 @@ const FourResults: React.FC<{fourthAt: number; arcAt: number}> = ({fourthAt, arc
               stroke={theme.mech}
               strokeWidth={4}
               fill="none"
-              pathLength={1}
-              strokeDasharray={1}
-              strokeDashoffset={1 - arc}
+              {...evolvePath(arc, 'M 400 210 C 520 210, 560 120, 470 96')}
             />
             {arc > 0.9 ? (
               <text x={545} y={165} fontFamily={theme.sans} fontSize={24} fill={theme.mech}>

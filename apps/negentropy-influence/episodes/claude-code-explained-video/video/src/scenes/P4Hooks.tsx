@@ -3,6 +3,7 @@
  *  重制（2026-09 运动层）：动效收敛到 motion 模型；冲击波/回流描线等 bespoke 项见各处 deferred 注记。 */
 import React from 'react';
 import {AbsoluteFill, interpolate, Sequence, useCurrentFrame} from 'remotion';
+import {evolvePath} from '@remotion/paths';
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
@@ -20,6 +21,7 @@ import {
   useRingDot,
 } from '../components/motifs';
 import {HarnessBadge} from '../components/harness-stack';
+import {LottieEmphasis} from '../components/LottieEmphasis';
 import {DUR, useAccelTravel, useProgress, useSpring, useStagger} from '../motion';
 
 const SLOTS = [
@@ -126,8 +128,9 @@ const PullOut: React.FC<{tableAt: number; plugAt: number}> = ({tableAt, plugAt})
   const out = useProgress(0, 26);
   // 插头咬合的过冲：damping 12 即 snap 预设的锚定来源
   const plug = useSpring('snap', {at: plugAt});
-  // 咬合瞬间的 2 帧高亮闪（模式切换，保留硬切）
-  const flash = frame >= plugAt + 6 && frame < plugAt + 8;
+  // 咬合瞬间强调由 LottieEmphasis 承载（2026-09 C 轨改造，替换原 2 帧布尔闪；
+  // 资产为手工占位，见 public/lottie/README.md——#64C4C0 硬编码于 JSON，theme 改色需人工核对）
+  const seatAt = plugAt + 6;
   // 表格与插头句：原布尔瞬现门 → 常渲染 + f3 淡入
   const tableOp = useProgress(tableAt, DUR.f3);
   const plugOp = useProgress(plugAt, DUR.f3);
@@ -151,12 +154,21 @@ const PullOut: React.FC<{tableAt: number; plugAt: number}> = ({tableAt, plugAt})
                 height: 22,
                 borderRadius: 4,
                 border: `3px solid ${theme.mech}`,
-                background: i === 0 && flash ? theme.mech : 'transparent',
+                background: 'transparent',
                 opacity: out,
               }}
             />
           );
         })}
+        {frame >= seatAt ? (
+          // 节点 0（ang=-60°）中心 (220,13)，96×96 画布居中锚定
+          <LottieEmphasis
+            src="lottie/plug-pulse.json"
+            at={seatAt}
+            duration={24}
+            style={{position: 'absolute', left: 172, top: -35, width: 96, height: 96}}
+          />
+        ) : null}
       </div>
       {/* 两元素均为常规流子节点：布局门保留（常驻会把 Panel 顶高 ~80px），门内淡入 */}
       <div>
@@ -222,6 +234,8 @@ const SlotsLightUp: React.FC<{slotAt: number[]; gateMoveAt: number; backflowAt: 
   const RING = 400;
   const W = RING + 2 * (SLOT_W + SLOT_GAP);
   const H = RING + 260;
+  // 回流路径单点声明：描线由 @remotion/paths evolvePath 按真实路径长度插值
+  const BACK_PATH = `M ${SLOT_W - 20} ${H - 90} C ${SLOT_W + 60} ${H - 60}, ${W / 2 - 130} ${H / 2}, ${W / 2 - 8} ${(H - RING) / 2 + 30}`;
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <div style={{position: 'relative', width: W, height: H}}>
@@ -265,13 +279,11 @@ const SlotsLightUp: React.FC<{slotAt: number[]; gateMoveAt: number; backflowAt: 
             style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none'}}
           >
             <path
-              d={`M ${SLOT_W - 20} ${H - 90} C ${SLOT_W + 60} ${H - 60}, ${W / 2 - 130} ${H / 2}, ${W / 2 - 8} ${(H - RING) / 2 + 30}`}
+              d={BACK_PATH}
               stroke={theme.core}
               strokeWidth={4}
               fill="none"
-              pathLength={1}
-              strokeDasharray={1}
-              strokeDashoffset={1 - back}
+              {...evolvePath(back, BACK_PATH)}
             />
             {back > 0.9 ? (
               <text

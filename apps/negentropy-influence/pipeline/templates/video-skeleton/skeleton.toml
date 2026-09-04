@@ -120,6 +120,18 @@ path = "video/src/components/cards.tsx"
 fingerprint = "4bba8c190f21"
 reason = "多一个 ChapterCard（39 行），仅本集 P2Brain.tsx 使用；迁出至 components/chapter.tsx 后可撤销本条"
 
+[[drift]]
+episode = "claude-code-explained-video"
+path = "video/package.json"
+fingerprint = "19f8755b0ee0"
+reason = "A/C 轨改造（2026-09，见 docs/research/video-production/160 号 §5.4/§5.3）：新增 @remotion/paths·shapes·three·lottie（4.0.512 同版钉死，remotion peer 精确匹配零升级）+ three·@react-three/fiber·lottie-web（3D/Lottie 桥的 peer 依赖须显式声明）+ @types/three（three 0.185 起 npm 包已不带类型）。EP2–5 采纳同款依赖（模板收敛）或本集回退改造后撤销本条"
+
+[[drift]]
+episode = "claude-code-explained-video"
+path = "video/remotion.config.ts"
+fingerprint = "a37fa7bc90c3"
+reason = "A 轨 @remotion/three 无头渲染强制要求 Chromium OpenGL 后端 = angle（一行新增 setChromiumOpenGlRenderer）。其余集跟进该行回模板收敛后撤销本条"
+
 # 已撤销（2026-08）：`Main.tsx` 的两条登记。建门时那两集的 SceneFade 块落后于模板
 # 一处注释扩写与换行调整，当时刻意只登记不收敛（收敛要动两个**已发布**集，属独立
 # 决策）。现已对齐到模板并删除登记 —— 逃逸口用完即收，否则登记表会单调增长成

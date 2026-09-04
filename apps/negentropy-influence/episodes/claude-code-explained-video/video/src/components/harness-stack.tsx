@@ -15,8 +15,10 @@
  * 所有幕的左上内容最早从 y=56 起。故常驻形式取顶边横条（紧贴上缘，不占字幕安全带
  * 也不与 SceneTag 相干）。缩退以交叉淡出衔接，避免纵向→横向的形态跳变。
  */
-import React from 'react';
+import React, {useMemo} from 'react';
 import {AbsoluteFill} from 'remotion';
+import {ThreeCanvas} from '@remotion/three';
+import * as THREE from 'three';
 import {theme} from '../design/theme';
 import {DUR, useBreathe, useDim, useProgress, useStagger} from '../motion';
 import series from '../series-layers.json';
@@ -33,7 +35,50 @@ const STACK_CROSSFADE_FRAMES = 8;
 export const harnessStackCrossAt = (recedeAt: number): number =>
   recedeAt + DUR.f6 - STACK_CROSSFADE_FRAMES;
 
-/** 单块层板。mode: full（开场全尺寸）/ chip（常驻顶边条）/ p6（收尾放大）。 */
+/** 层板文字行（编号 + 层名）：平面 Plate 与三维 PlateSlab3D 共用；文字永不进 3D。 */
+const PlateTextRow: React.FC<{
+  layer: Layer;
+  active: boolean;
+  dim: number;
+  chip: boolean;
+  p6: boolean;
+}> = ({layer, active, dim, chip, p6}) => (
+  <div
+    style={{
+      position: 'absolute',
+      inset: 0,
+      display: 'flex',
+      alignItems: 'center',
+      gap: chip ? 8 : 14,
+      padding: chip ? '0 12px' : '0 18px',
+      opacity: dim,
+    }}
+  >
+    <div
+      style={{
+        fontFamily: theme.mono,
+        fontSize: chip ? 12 : 17,
+        color: active ? theme.core : theme.dim,
+        fontVariantNumeric: 'tabular-nums',
+      }}
+    >
+      {String(layer.index).padStart(2, '0')}
+    </div>
+    <div
+      style={{
+        fontFamily: theme.sans,
+        fontSize: chip ? 17 : p6 ? 26 : 28,
+        fontWeight: active ? 600 : 400,
+        color: active ? theme.text : theme.dim,
+        letterSpacing: 2,
+      }}
+    >
+      {layer.layer}
+    </div>
+  </div>
+);
+
+/** 单块层板（平面档，chip=常驻顶边条）。mode: full（开场全尺寸）/ chip（常驻顶边条）/ p6（收尾放大）。 */
 const Plate: React.FC<{
   layer: Layer;
   active: boolean;
@@ -43,17 +88,12 @@ const Plate: React.FC<{
 }> = ({layer, active, dim, glow = 0, scale}) => {
   const chip = scale === 'chip';
   const h = chip ? 34 : scale === 'p6' ? 56 : 64;
-  const nameSize = chip ? 17 : scale === 'p6' ? 26 : 28;
-  const idSize = chip ? 12 : 17;
   return (
     <div
       style={{
+        position: 'relative',
         height: h,
         width: '100%',
-        display: 'flex',
-        alignItems: 'center',
-        gap: chip ? 8 : 14,
-        padding: chip ? '0 12px' : '0 18px',
         background: theme.panel,
         border: `2px solid ${active ? theme.core : theme.panelBorder}`,
         borderRadius: chip ? 8 : 12,
@@ -63,26 +103,66 @@ const Plate: React.FC<{
           : undefined,
       }}
     >
-      <div
-        style={{
-          fontFamily: theme.mono,
-          fontSize: idSize,
-          color: active ? theme.core : theme.dim,
-          fontVariantNumeric: 'tabular-nums',
-        }}
+      <PlateTextRow layer={layer} active={active} dim={1} chip={chip} p6={scale === 'p6'} />
+    </div>
+  );
+};
+
+/** 三维层板：仅 full/p6 档（P0 开场 / P6 收尾）的渲染后端；chip 档仍走平面 Plate。
+ *  动效数值（active/dim/glow/settle）全部复用既有 hooks 输出，只换呈现层；
+ *  文字留在 DOM 层叠放（文字永不进 3D/Lottie）。读色契约：active=core 描边、
+ *  glow→自发光、dim→不透明度，与平面 Plate 逐项对位。 */
+export const PlateSlab3D: React.FC<{
+  layer: Layer;
+  active: boolean;
+  dim: number;
+  glow: number;
+  width: number;
+  height: number;
+  /** 落板进度 0..1（复用既有 stagger 输出）：0=悬空带顶棱、1=落定归位 */
+  settle?: number;
+  /** P6 收尾档文字（26px）；缺省为 full 档（28px） */
+  p6?: boolean;
+}> = ({layer, active, dim, glow, width, height, settle = 1, p6 = false}) => {
+  const depth = 14;
+  const headroom = 16; // 画布加高给顶棱留位（正交 zoom=1，投影不放大）
+  const canvasH = height + headroom;
+  // 静置：-12° 俯角常显顶棱 + 8° 偏航露侧棱（薄板在大倾角下才读得出「板」）
+  const settleTilt = (-12 * Math.PI) / 180;
+  const yaw = (8 * Math.PI) / 180;
+  const rotationX = settleTilt + (1 - settle) * ((-18 * Math.PI) / 180);
+  const boxGeo = useMemo(() => new THREE.BoxGeometry(width, height, depth), [width, height, depth]);
+  return (
+    <div style={{position: 'relative', width: '100%', height: canvasH}}>
+      <ThreeCanvas
+        width={width}
+        height={canvasH}
+        orthographic
+        camera={{position: [0, 0, 100], zoom: 1}}
+        style={{position: 'absolute', inset: 0}}
       >
-        {String(layer.index).padStart(2, '0')}
-      </div>
-      <div
-        style={{
-          fontFamily: theme.sans,
-          fontSize: nameSize,
-          fontWeight: active ? 600 : 400,
-          color: active ? theme.text : theme.dim,
-          letterSpacing: 2,
-        }}
-      >
-        {layer.layer}
+        <ambientLight intensity={0.7} />
+        <directionalLight position={[-200, -300, 400]} intensity={0.6} />
+        <group rotation={[rotationX, yaw, 0]} position={[0, -headroom / 2, 0]}>
+          <mesh>
+            <boxGeometry args={[width, height, depth]} />
+            <meshStandardMaterial
+              color={theme.panel}
+              emissive={theme.core}
+              emissiveIntensity={active ? glow * 0.35 : 0}
+              opacity={dim}
+              transparent
+            />
+          </mesh>
+          <lineSegments>
+            <edgesGeometry args={[boxGeo]} />
+            <lineBasicMaterial color={active ? theme.core : theme.panelBorder} transparent opacity={dim} />
+          </lineSegments>
+        </group>
+      </ThreeCanvas>
+      {/* 文字行下移 headroom/2 与板的视觉中心对位（文字永不进 3D） */}
+      <div style={{position: 'absolute', left: 0, top: headroom / 2, width: '100%', height}}>
+        <PlateTextRow layer={layer} active={active} dim={dim} chip={false} p6={p6} />
       </div>
     </div>
   );
@@ -157,12 +237,14 @@ export const HarnessStackP0: React.FC<{recedeAt: number}> = ({recedeAt}) => {
                   transform: `translateY(${(1 - p) * 26}px)`,
                 }}
               >
-                <Plate
+                <PlateSlab3D
                   layer={l}
                   active={isHi}
                   dim={isHi ? 1 : dim}
                   glow={isHi ? glow : 0}
-                  scale="full"
+                  width={460}
+                  height={64}
+                  settle={p}
                 />
               </div>
             );
@@ -188,12 +270,15 @@ export const HarnessStackP6: React.FC<{at: number; nextBreathAt: number}> = ({at
           const glow = isNext ? nextOn * breath : 0;
           return (
             <div key={l.index} style={{opacity: p, transform: `translateY(${(1 - p) * 18}px)`}}>
-              <Plate
+              <PlateSlab3D
                 layer={l}
                 active={lit || (isNext && nextOn > 0.5)}
                 dim={lit || (isNext && nextOn > 0.5) ? 1 : 0.55}
                 glow={glow}
-                scale="p6"
+                width={420}
+                height={56}
+                settle={p}
+                p6
               />
             </div>
           );
