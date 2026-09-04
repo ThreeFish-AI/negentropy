@@ -161,12 +161,14 @@ const PullOut: React.FC<{tableAt: number; plugAt: number}> = ({tableAt, plugAt})
           );
         })}
         {frame >= seatAt ? (
-          // 节点 0（ang=-60°）中心 (220,13)，96×96 画布居中锚定
+          // 锚定节点 1（ang=-20°，环右上「工具执行之前」插口）：中心 (394.9, 115.4)
+          // = 190+218·cos(-20°) / 190+218·sin(-20°)，96×96 画布减半居中。
+          // 不用节点 0（ang=-60°，中心 y≈1.2）——脉冲圈会溢出容器上沿。
           <LottieEmphasis
             src="lottie/plug-pulse.json"
             at={seatAt}
             duration={24}
-            style={{position: 'absolute', left: 172, top: -35, width: 96, height: 96}}
+            style={{position: 'absolute', left: 347, top: 67, width: 96, height: 96}}
           />
         ) : null}
       </div>

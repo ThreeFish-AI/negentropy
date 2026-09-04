@@ -31,29 +31,40 @@ export const NEXT_LAYER = LAYERS[ACTIVE_INDEX] ?? null; // P6 呼吸预告的层
 
 const STACK_CROSSFADE_FRAMES = 8;
 
+/** 3D 板 active 档的面色：在 theme.panel 基础上掺极少量 core 的暖意（读作「被点亮的深底」），
+ *  刻意**不**用 core 本色——整块变实心暖色会压掉白色层名的对比度（首版实测）。 */
+const PLATE_LIT = '#241C1E';
+
+/** 正面轮廓线顶点（矩形四角闭合）：edges 的单像素棱线在暗底不足以读作 2px 描边，
+ *  故在板正面再叠一圈 lineLoop 加权。 */
+const faceOutline = (w: number, h: number) => {
+  const x = w / 2;
+  const y = h / 2;
+  return {
+    attributes: {
+      position: new THREE.BufferAttribute(
+        new Float32Array([-x, -y, 0, x, -y, 0, x, y, 0, -x, y, 0]),
+        3,
+      ),
+    },
+  };
+};
+
 /** 开场全尺寸栈与常驻顶边条开始交叉淡化的局部帧。 */
 export const harnessStackCrossAt = (recedeAt: number): number =>
   recedeAt + DUR.f6 - STACK_CROSSFADE_FRAMES;
 
-/** 层板文字行（编号 + 层名）：平面 Plate 与三维 PlateSlab3D 共用；文字永不进 3D。 */
-const PlateTextRow: React.FC<{
+/** 层板文字对（编号 + 层名）：平面 Plate 与三维 PlateSlab3D 共用同一组文字节点；
+ *  文字永不进 3D。⚠️ 返回 Fragment 而非带定位的容器——chip 档常驻条靠**内容自然撑宽**
+ *  （无固定宽度），套一层 absolute/inset:0 会让 chip 在 flex 行里塌缩成零宽并全部重叠
+ *  （2026-09-04 A/C 轨改造首版实测回归，P1–P6 六幕的 HarnessBadge 全糊）。 */
+const PlateText: React.FC<{
   layer: Layer;
   active: boolean;
-  dim: number;
   chip: boolean;
   p6: boolean;
-}> = ({layer, active, dim, chip, p6}) => (
-  <div
-    style={{
-      position: 'absolute',
-      inset: 0,
-      display: 'flex',
-      alignItems: 'center',
-      gap: chip ? 8 : 14,
-      padding: chip ? '0 12px' : '0 18px',
-      opacity: dim,
-    }}
-  >
+}> = ({layer, active, chip, p6}) => (
+  <>
     <div
       style={{
         fontFamily: theme.mono,
@@ -75,10 +86,11 @@ const PlateTextRow: React.FC<{
     >
       {layer.layer}
     </div>
-  </div>
+  </>
 );
 
-/** 单块层板（平面档，chip=常驻顶边条）。mode: full（开场全尺寸）/ chip（常驻顶边条）/ p6（收尾放大）。 */
+/** 单块层板（平面档，chip=常驻顶边条）。mode: full（开场全尺寸）/ chip（常驻顶边条）/ p6（收尾放大）。
+ *  布局与改造前逐字等价：flex 行 + 内容撑宽，不引入 position/width 约束。 */
 const Plate: React.FC<{
   layer: Layer;
   active: boolean;
@@ -91,9 +103,12 @@ const Plate: React.FC<{
   return (
     <div
       style={{
-        position: 'relative',
         height: h,
         width: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        gap: chip ? 8 : 14,
+        padding: chip ? '0 12px' : '0 18px',
         background: theme.panel,
         border: `2px solid ${active ? theme.core : theme.panelBorder}`,
         borderRadius: chip ? 8 : 12,
@@ -103,7 +118,7 @@ const Plate: React.FC<{
           : undefined,
       }}
     >
-      <PlateTextRow layer={layer} active={active} dim={1} chip={chip} p6={scale === 'p6'} />
+      <PlateText layer={layer} active={active} chip={chip} p6={scale === 'p6'} />
     </div>
   );
 };
@@ -141,28 +156,46 @@ export const PlateSlab3D: React.FC<{
         camera={{position: [0, 0, 100], zoom: 1}}
         style={{position: 'absolute', inset: 0}}
       >
-        <ambientLight intensity={0.7} />
-        <directionalLight position={[-200, -300, 400]} intensity={0.6} />
+        {/* 灯光只服务侧/顶棱的明暗区分；面色不吃光（basic 材质），保证读色与平面 Plate 一致 */}
+        <ambientLight intensity={1} />
         <group rotation={[rotationX, yaw, 0]} position={[0, -headroom / 2, 0]}>
+          {/* 板体：恒等于 theme.panel 深底（不受光）。active 的暖意只走描边与轻微提亮，
+              绝不让整块变成实心亮块——基线读色是「描边框 + 深底 + 文字浮起」，
+              首版用 meshStandardMaterial+emissive 把点亮层烧成橙色实心块，反而压掉了文字对比。 */}
           <mesh>
             <boxGeometry args={[width, height, depth]} />
-            <meshStandardMaterial
-              color={theme.panel}
-              emissive={theme.core}
-              emissiveIntensity={active ? glow * 0.35 : 0}
-              opacity={dim}
-              transparent
-            />
+            <meshBasicMaterial color={active ? PLATE_LIT : theme.panel} opacity={dim} transparent />
           </mesh>
+          {/* 描边：edges 单像素在暗底几乎不可见 ⇒ 叠一圈正面轮廓线加权，
+              读作平面 Plate 的 2px border（active=core / 常态=panelBorder） */}
           <lineSegments>
             <edgesGeometry args={[boxGeo]} />
             <lineBasicMaterial color={active ? theme.core : theme.panelBorder} transparent opacity={dim} />
           </lineSegments>
+          <lineLoop position={[0, 0, depth / 2 + 0.5]}>
+            <bufferGeometry attach="geometry" {...faceOutline(width, height)} />
+            <lineBasicMaterial color={active ? theme.core : theme.panelBorder} transparent opacity={dim} />
+          </lineLoop>
         </group>
       </ThreeCanvas>
-      {/* 文字行下移 headroom/2 与板的视觉中心对位（文字永不进 3D） */}
-      <div style={{position: 'absolute', left: 0, top: headroom / 2, width: '100%', height}}>
-        <PlateTextRow layer={layer} active={active} dim={dim} chip={false} p6={p6} />
+      {/* 文字层：绝对定位叠在 canvas 上、下移 headroom/2 与板视觉中心对位（文字永不进 3D）。
+          此处 absolute 安全——full/p6 档宽度由 width prop 显式给定，不依赖内容撑宽。 */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 0,
+          top: headroom / 2,
+          width: '100%',
+          height,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 14,
+          padding: '0 18px',
+          boxSizing: 'border-box',
+          opacity: dim,
+        }}
+      >
+        <PlateText layer={layer} active={active} chip={false} p6={p6} />
       </div>
     </div>
   );
