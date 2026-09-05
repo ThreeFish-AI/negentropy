@@ -208,6 +208,13 @@ jobs:
             # transformers 锁定 <5.0.0 亦受 marker-pdf / surya 兼容交集制约
             --ignore-vuln PYSEC-2026-2290
 
+            # transformers CVE-2026-9856（GHSA-xrqw-3rrv-vx5w）：save_pretrained 路径穿越
+            # 任意写文件——需加载/保存恶意 HF 仓库模型触发。与上方 CVE-2026-4372 同威胁模型：
+            # 本项目仅加载第一方模型 artifact、不加载不可信 HF 仓库，攻击向量不可达；
+            # 修复版本 5.10.0，而 transformers 锁定 <5.0.0 受 marker-pdf / surya 兼容交集
+            # 制约（与上方 PYSEC-2025-211..218 同约束），待上游适配后升级
+            --ignore-vuln CVE-2026-9856
+
             # torch 2.10.0 本地内存破坏 / DoS，需攻击者构造恶意 tensor / pt2 文件；
             # 本项目仅加载第一方模型 artifact，无不可信输入路径，upstream 暂无 fix
             --ignore-vuln PYSEC-2025-189
