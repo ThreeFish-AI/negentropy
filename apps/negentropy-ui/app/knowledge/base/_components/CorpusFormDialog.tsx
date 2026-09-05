@@ -9,6 +9,10 @@ import {
   normalizeChunkingConfig,
   SeparatorsTextarea,
 } from "@/features/knowledge";
+import { Field, InlineField } from "@/components/ui/Field";
+import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
+import { Textarea } from "@/components/ui/Textarea";
 import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
 
 interface CorpusFormDialogProps {
@@ -100,31 +104,23 @@ export function CorpusFormDialog({
         </div>
 
         <div className="space-y-4">
-          <div>
-            <label className="mb-1 block text-xs font-medium text-text-secondary">
-              名称 <span className="text-red-500">*</span>
-            </label>
-            <input
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-foreground focus:ring-1 focus:ring-foreground"
+          <Field label="名称" required>
+            <Input
               placeholder="例如：产品文档"
               value={name}
               onChange={(e) => setName(e.target.value)}
               autoFocus
             />
-          </div>
+          </Field>
 
-          <div>
-            <label className="mb-1 block text-xs font-medium text-text-secondary">
-              描述
-            </label>
-            <textarea
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-foreground focus:ring-1 focus:ring-foreground"
+          <Field label="描述">
+            <Textarea
               rows={3}
               placeholder="简要描述该数据源的内容用途..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
-          </div>
+          </Field>
 
           <div className="pt-2">
             <button
@@ -152,12 +148,8 @@ export function CorpusFormDialog({
             {showAdvanced && (
               <div className="mt-3 space-y-3 rounded-lg bg-muted p-3">
                 {/* Strategy Selection */}
-                <div>
-                  <label className="mb-1 block text-micro font-medium text-text-muted">
-                    Strategy
-                  </label>
-                  <select
-                    className="w-full rounded border border-input bg-background px-2 py-1 text-xs"
+                <Field label="Strategy">
+                  <Select
                     value={config.strategy}
                     onChange={(e) =>
                       setConfig(
@@ -175,18 +167,14 @@ export function CorpusFormDialog({
                     <option value="hierarchical">
                       Hierarchical (Parent + Child)
                     </option>
-                  </select>
-                </div>
+                  </Select>
+                </Field>
 
                 {config.strategy === "fixed" && (
                   <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="mb-1 block text-micro font-medium text-text-muted">
-                        Chunk Size (Target)
-                      </label>
-                      <input
+                    <InlineField label="Chunk Size (Target)">
+                      <Input
                         type="number"
-                        className="w-full rounded border border-input bg-background px-2 py-1 text-xs"
                         value={String(config.chunk_size)}
                         onChange={(e) =>
                           setConfig({
@@ -195,14 +183,10 @@ export function CorpusFormDialog({
                           })
                         }
                       />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-micro font-medium text-text-muted">
-                        Overlap (Chars)
-                      </label>
-                      <input
+                    </InlineField>
+                    <InlineField label="Overlap (Chars)">
+                      <Input
                         type="number"
-                        className="w-full rounded border border-input bg-background px-2 py-1 text-xs"
                         value={String(config.overlap)}
                         onChange={(e) =>
                           setConfig({
@@ -211,20 +195,16 @@ export function CorpusFormDialog({
                           })
                         }
                       />
-                    </div>
+                    </InlineField>
                   </div>
                 )}
 
                 {config.strategy === "recursive" && (
                   <div className="space-y-3 border-t border-border pt-3">
                     <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="mb-1 block text-micro font-medium text-text-muted">
-                          Chunk Size (Target)
-                        </label>
-                        <input
+                      <InlineField label="Chunk Size (Target)">
+                        <Input
                           type="number"
-                          className="w-full rounded border border-input bg-background px-2 py-1 text-xs"
                           value={String(config.chunk_size)}
                           onChange={(e) =>
                             setConfig({
@@ -233,14 +213,10 @@ export function CorpusFormDialog({
                             })
                           }
                         />
-                      </div>
-                      <div>
-                        <label className="mb-1 block text-micro font-medium text-text-muted">
-                          Overlap (Chars)
-                        </label>
-                        <input
+                      </InlineField>
+                      <InlineField label="Overlap (Chars)">
+                        <Input
                           type="number"
-                          className="w-full rounded border border-input bg-background px-2 py-1 text-xs"
                           value={String(config.overlap)}
                           onChange={(e) =>
                             setConfig({
@@ -249,13 +225,10 @@ export function CorpusFormDialog({
                             })
                           }
                         />
-                      </div>
+                      </InlineField>
                     </div>
 
-                    <div>
-                      <label className="mb-1 block text-micro font-medium text-text-muted">
-                        Separators (one per line)
-                      </label>
+                    <Field label="Separators (one per line)">
                       <SeparatorsTextarea
                         className="w-full rounded border border-input bg-background px-2 py-1 text-xs"
                         rows={4}
@@ -265,60 +238,46 @@ export function CorpusFormDialog({
                           setConfig({ ...config, separators })
                         }
                       />
-                    </div>
+                    </Field>
                   </div>
                 )}
 
                 {config.strategy === "semantic" && (
-                  <div className="grid grid-cols-2 gap-3 border-t border-border pt-3">
-                    <div className="col-span-2">
-                      <label className="mb-1 block text-micro font-medium text-blue-600 dark:text-blue-400">
-                        Semantic Chunking Options
-                      </label>
+                  <div className="space-y-3 border-t border-border pt-3">
+                    <div className="text-micro font-medium text-blue-600 dark:text-blue-400">
+                      Semantic Chunking Options
                     </div>
-                    <div>
-                      <label className="mb-1 block text-micro font-medium text-text-muted">
-                        Similarity Threshold (0-1)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.05"
-                        max="1.0"
-                        min="0.0"
-                        className="w-full rounded border border-input bg-background px-2 py-1 text-xs"
-                        value={String(config.semantic_threshold)}
-                        onChange={(e) =>
-                          setConfig({
-                            ...config,
-                            semantic_threshold: Number(e.target.value) || 0.85,
-                          })
-                        }
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-micro font-medium text-text-muted">
-                        Buffer Size
-                      </label>
-                      <input
-                        type="number"
-                        className="w-full rounded border border-input bg-background px-2 py-1 text-xs"
-                        value={String(config.semantic_buffer_size)}
-                        onChange={(e) =>
-                          setConfig({
-                            ...config,
-                            semantic_buffer_size: Number(e.target.value) || 1,
-                          })
-                        }
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="mb-1 block text-micro font-medium text-text-muted">
-                          Max Size
-                        </label>
-                        <input
+                    <div className="grid grid-cols-2 gap-3">
+                      <InlineField label="Similarity Threshold (0-1)">
+                        <Input
                           type="number"
-                          className="w-full rounded border border-input bg-background px-2 py-1 text-xs"
+                          step="0.05"
+                          max="1.0"
+                          min="0.0"
+                          value={String(config.semantic_threshold)}
+                          onChange={(e) =>
+                            setConfig({
+                              ...config,
+                              semantic_threshold: Number(e.target.value) || 0.85,
+                            })
+                          }
+                        />
+                      </InlineField>
+                      <InlineField label="Buffer Size">
+                        <Input
+                          type="number"
+                          value={String(config.semantic_buffer_size)}
+                          onChange={(e) =>
+                            setConfig({
+                              ...config,
+                              semantic_buffer_size: Number(e.target.value) || 1,
+                            })
+                          }
+                        />
+                      </InlineField>
+                      <InlineField label="Max Size">
+                        <Input
+                          type="number"
                           value={String(config.max_chunk_size)}
                           onChange={(e) =>
                             setConfig({
@@ -327,14 +286,10 @@ export function CorpusFormDialog({
                             })
                           }
                         />
-                      </div>
-                      <div>
-                        <label className="mb-1 block text-micro font-medium text-text-muted">
-                          Min Size
-                        </label>
-                        <input
+                      </InlineField>
+                      <InlineField label="Min Size">
+                        <Input
                           type="number"
-                          className="w-full rounded border border-input bg-background px-2 py-1 text-xs"
                           value={String(config.min_chunk_size)}
                           onChange={(e) =>
                             setConfig({
@@ -343,7 +298,7 @@ export function CorpusFormDialog({
                             })
                           }
                         />
-                      </div>
+                      </InlineField>
                     </div>
                   </div>
                 )}
@@ -351,13 +306,9 @@ export function CorpusFormDialog({
                 {config.strategy === "hierarchical" && (
                   <div className="space-y-3 border-t border-border pt-3">
                     <div className="grid grid-cols-3 gap-3">
-                      <div>
-                        <label className="mb-1 block text-micro font-medium text-text-muted">
-                          Parent Size
-                        </label>
-                        <input
+                      <InlineField label="Parent Size">
+                        <Input
                           type="number"
-                          className="w-full rounded border border-input bg-background px-2 py-1 text-xs"
                           value={String(config.hierarchical_parent_chunk_size)}
                           onChange={(e) =>
                             setConfig({
@@ -367,14 +318,10 @@ export function CorpusFormDialog({
                             })
                           }
                         />
-                      </div>
-                      <div>
-                        <label className="mb-1 block text-micro font-medium text-text-muted">
-                          Child Size
-                        </label>
-                        <input
+                      </InlineField>
+                      <InlineField label="Child Size">
+                        <Input
                           type="number"
-                          className="w-full rounded border border-input bg-background px-2 py-1 text-xs"
                           value={String(config.hierarchical_child_chunk_size)}
                           onChange={(e) =>
                             setConfig({
@@ -384,14 +331,10 @@ export function CorpusFormDialog({
                             })
                           }
                         />
-                      </div>
-                      <div>
-                        <label className="mb-1 block text-micro font-medium text-text-muted">
-                          Child Overlap
-                        </label>
-                        <input
+                      </InlineField>
+                      <InlineField label="Child Overlap">
+                        <Input
                           type="number"
-                          className="w-full rounded border border-input bg-background px-2 py-1 text-xs"
                           value={String(config.hierarchical_child_overlap)}
                           onChange={(e) =>
                             setConfig({
@@ -401,12 +344,9 @@ export function CorpusFormDialog({
                             })
                           }
                         />
-                      </div>
+                      </InlineField>
                     </div>
-                    <div>
-                      <label className="mb-1 block text-micro font-medium text-text-muted">
-                        Separators (one per line)
-                      </label>
+                    <Field label="Separators (one per line)">
                       <SeparatorsTextarea
                         className="w-full rounded border border-input bg-background px-2 py-1 text-xs"
                         rows={4}
@@ -416,18 +356,16 @@ export function CorpusFormDialog({
                           setConfig({ ...config, separators })
                         }
                       />
-                    </div>
+                    </Field>
                   </div>
                 )}
 
                 {(config.strategy === "fixed" ||
                   config.strategy === "recursive" ||
                   config.strategy === "hierarchical") && (
-                  <div className="flex items-center pt-1">
+                  <Field variant="check" label="Preserve Newlines">
                     <input
                       type="checkbox"
-                      id="preserve-newlines"
-                      className="h-3 w-3 rounded border-input"
                       checked={config.preserve_newlines}
                       onChange={(e) =>
                         setConfig({
@@ -435,14 +373,9 @@ export function CorpusFormDialog({
                           preserve_newlines: e.target.checked,
                         })
                       }
+                      className="h-4 w-4"
                     />
-                    <label
-                      htmlFor="preserve-newlines"
-                      className="ml-2 text-xs text-text-secondary"
-                    >
-                      Preserve Newlines
-                    </label>
-                  </div>
+                  </Field>
                 )}
 
                 <div className="text-micro text-text-muted">

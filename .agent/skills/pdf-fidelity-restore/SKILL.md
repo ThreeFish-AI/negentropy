@@ -35,12 +35,17 @@ Markdown，并通过浏览器逐页对比将差异修复至完全一致。
 4. **等待完成**：轮询文档 `markdown_extract_status` 至 `completed`（失败则查 `markdown_extract_error` 并 `refresh_markdown` 重试）。
 5. **渲染核对**：在 Documents 页 View 渲染结果（react-markdown + remark-gfm/math + rehype-katex/raw/highlight/sanitize）。
 6. **逐页对比**：按上「一比一还原范围」逐页 / 逐模块比对源 PDF 与渲染 Markdown，逐条记录差异（页号 + 类别 + 现象）。
-7. **发现一处修一处（分层修复路由）**：
-   - **渲染层**：`DocumentMarkdownRenderer` / sanitize schema / `DocumentImage`（图片宽高、表格、KaTeX、代码高亮、figure/figcaption、TOC 锚点）。
-   - **摄取层**：图片链接重写、资产存储、元数据（`knowledge/ingestion/extraction.py`、`knowledge/_shared.py`）。
-   - **管线层**：perceives 引擎选型、分批边界、跨片合并（图片去重、边界图注补救）、图片分辨率与显示尺寸提取（`perceives/ops/pdf.py`）。
+7. **发现一处修一处（三杠杆分层修复路由 + 归因）**：每个缺陷先走「双源验证决策树」归因到杠杆/层，再定点改（单轮一个逻辑根因，≤3 文件 ≤2 杠杆）：
+   - **①工程代码·管线层**：perceives 引擎选型、分批边界、跨片合并（图片去重、边界图注补救）、图片分辨率与显示尺寸提取（`pipeline/stages/pdf/*`、`engine_selector.py`、`ops/pdf.py`）。
+   - **①工程代码·摄取层**：图片链接重写、资产存储、元数据（`knowledge/ingestion/extraction.py`、`knowledge/_shared.py`）。
+   - **①工程代码·导出层**：wiki 发布资产 bake / 链接重写（`knowledge/lifecycle/wiki_export_service.py`）。
+   - **①工程代码·渲染层 wiki**：`MarkdownRenderer.tsx` / `ZoomableImage` / `ResponsiveTable` / `CodeBlock` / sanitize schema（图片宽高、表格、KaTeX、代码高亮、TOC 锚点）。
+   - **①工程代码·渲染层 ui**：`DocumentMarkdownRenderer.tsx` / `DocumentImage` figcaption / `parsePixelValue` / `documentSanitizeSchema`（注意 wiki 与 ui 的 sanitize `style` 放行 / figcaption 行为不对称）。
+   - **②Skills 本体**：本 Skill 的规则集——发现的跨 doc 结构性 insight 回写此处（如「图注双源铁律」），升级归因路由表。
+   - **③流程自身**：巡检/还原流程的采样、评分、归因编排（慎改，影响面大）。
+   - **双源验证决策树（归因前必走，防误归到 perceives）**：Step A 缺陷在候选 Markdown 源码里？是→管线/摄取；否→渲染层或流程伪缺陷。Step B 图片链接形式判摄取/导出。Step C wiki 错还是 ui 错→render_wiki/render_ui；皆对仅旧模拟栈错→流程伪缺陷（不计分）。
    - **热更铁律（改 perceives `src/` 后必做，否则改动不生效）**：① 重启 perceives MCP 进程（Python 无热重载）；② 清 checkpoint `rm -rf <output_dir>/output/.batch_state/*`（auto_batch resume 按 PDF 内容 SHA-1 缓存切片，不清则复用旧切片、跳过新代码，且完成异常快）。
-   改后经 `refresh_markdown` 重摄取或重载页面（**已清 checkpoint**），复核该项。
+   改后经 `refresh_markdown(resume=false)` 重摄取（**清 checkpoint 全量重跑**）或重载页面，复核该项。
 8. **循环**：重复 6–7，直到逐页校验清单全绿；保留关键页源 PDF vs 渲染 Markdown 对比截图为证。
 
 ## 逐页校验清单
@@ -54,17 +59,22 @@ Markdown，并通过浏览器逐页对比将差异修复至完全一致。
 - [ ] 代码块语言识别与高亮正确
 - [ ] 脚注 / 注释完整
 
-## 关键洞察（R10 沉淀）
+## 关键洞察（R10 / 三杠杆改造 沉淀）
 
 - **auto_batch 切片间无共享可变状态**：引擎实例在 pool 复用时产物落盘目录须 per-call 唯一（`tempfile.mkdtemp`）；级联/册封类状态（如 `_first_h1_seen`）须显式接收 `slice_index`，否则跨切片泄漏（标题层级错乱 / 公式重现）。
 - **1:1 验收必须走到浏览器渲染态**：figure 过度捕获、KaTeX ParseError、公式双份等缺陷在 DB markdown 层不可见，仅浏览器渲染后暴露。
 - **figure 图注双源风险**：多数图注已烘入 figure region PNG 像素，故 wiki/ui **不得**再从 `alt` 渲染 `figcaption`（会双图注）；caption 语义由 `alt` 承载（无障碍 + 去重指纹），视觉由图内像素承载。
+- **三套渲染栈系统性差异**：旧 `_fidelity_render`（Python-Markdown 近似）/ wiki（react-markdown + remark/rehype）/ ui（另一套 react-markdown + sanitize）三栈不同——公式/Mermaid/figure/figcaption/图片尺寸/代码高亮会假阳性/假阴性。对照须用**真实 wiki 渲染栈**（巡检经 `patrol_wiki_env` 起 `next dev` 真页截图，非模拟渲染）。
+- **全绿率评分口径**：`score = round(pass_pages/total_pages×100)`（逐页校验清单全绿率），替代主观「100-Σ扣分」——CC 自评与 Judge 复核锁同一份程序化预筛 + defects，根治 ±20 振荡（ISSUE-128）。
+- **双源验证防误归因**：渲染层缺陷（候选 MD 正确、渲染器渲染错）会被误归到 perceives；归因前必走「候选 MD 源码层 vs 渲染层」双源决策树（见步骤 7）。
+- **inner-loop staging wiki 不 bake/serve 图片（V1 工具链限制，process 层 carve-out）**：`patrol_wiki_env publish-candidate` 仅写 entry Markdown、不烘焙资产；staging dev server（主仓 `negentropy-wiki`，`public/assets/` 无文档资产）对候选 MD 的 `./images/...` 相对引用返回 500/断图，`patrol_page_check` 报 `dom_broken_images=N`（且 Next SPA 对未匹配路由回退 200 HTML，curl 状态码会骗人，须看 content-type/PNG 头）。此为 **staging 工具链 V1 限制，非文档/渲染缺陷**——图资产本身忠实（全分辨率 PNG 落盘 `/.../images/`），生产经 `WikiExportService.export_single_entry(bake=True)` 烘焙到 `public/assets/{doc}/` 后由 ZoomableImage 正常渲染。**inner loop 见全图断 → 记 process carve-out（不扣分、不逐图排查）；图片保真改由 (a) 直接核对落盘 PNG 资产尺寸/完整性 或 (b) Real-Render Gate bake 后截图二选一坐实。**
 
 ## 反模式（严禁）
 
 - 跳过逐页核对即声明完成；
 - 只比文字而忽略图 / 表 / 公式 / 代码 / 注释；
-- 图片不还原原始显示尺寸（宽高）。
+- 图片不还原原始显示尺寸（宽高）；
+- 在 inner loop 对「全图断」（staging serving V1 限制）逐图排查或误归到 pipeline/render——context 耗尽根因；先认 staging carve-out，图片保真走资产直查或 Gate。
 
 ## 完成判据
 

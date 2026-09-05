@@ -3,6 +3,8 @@
 import { useRef, useState } from "react";
 import { toast } from "@/lib/activity-toast";
 import { AsyncPipelineResult, ChunkingConfig } from "@/features/knowledge";
+import { Field } from "@/components/ui/Field";
+import { Input } from "@/components/ui/Input";
 import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
 
 // 支持的文件扩展名
@@ -249,21 +251,13 @@ export function AddSourceDialog({
 
         {/* Content */}
         {mode === "url" ? (
-          <div>
-            <label
-              htmlFor="add-source-url-input"
-              className="mb-1 block text-xs font-medium text-text-secondary"
-            >
-              URL <span className="text-red-500">*</span>
-            </label>
-            <input
-              id="add-source-url-input"
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-foreground focus:ring-1 focus:ring-foreground"
+          <Field label="URL" required>
+            <Input
               placeholder="https://example.com/article"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
             />
-          </div>
+          </Field>
         ) : (
           <div>
             {/* File Upload Area */}
@@ -332,19 +326,13 @@ export function AddSourceDialog({
             {/* Source URI for file */}
             {selectedFile && (
               <div className="mt-3">
-                <label
-                  htmlFor="add-source-uri-input"
-                  className="mb-1 block text-xs font-medium text-text-secondary"
-                >
-                  Source URI
-                </label>
-                <input
-                  id="add-source-uri-input"
-                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-foreground focus:ring-1 focus:ring-foreground"
-                  placeholder="e.g., document.pdf"
-                  value={sourceUri}
-                  onChange={(e) => setSourceUri(e.target.value)}
-                />
+                <Field label="Source URI">
+                  <Input
+                    placeholder="e.g., document.pdf"
+                    value={sourceUri}
+                    onChange={(e) => setSourceUri(e.target.value)}
+                  />
+                </Field>
               </div>
             )}
           </div>

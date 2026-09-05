@@ -16,6 +16,8 @@ import {
   type ModelConfigItem,
   type CorpusModelsConfig,
 } from "@/features/knowledge";
+import { Field, InlineField } from "@/components/ui/Field";
+import { Select } from "@/components/ui/Select";
 import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
 import { ChunkingStrategyPanel } from "./ChunkingStrategyPanel";
@@ -143,15 +145,11 @@ function CorpusSettingsPanel({
           Embedding Model 影响 Embedding Indexing / Vector Search；LLM Model 影响 URL 与 PDF 文档抽取调用 MCP 时的 Plan LLM。
         </p>
 
-        <div className="mt-3 grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-medium text-text-secondary mb-1">
-              Embedding Model
-            </label>
-            <select
+        <div className="mt-3 space-y-3">
+          <Field label="Embedding Model">
+            <Select
               value={embeddingConfigId}
               onChange={(e) => setEmbeddingConfigId(e.target.value)}
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
             >
               <option value="">(使用全局默认)</option>
               {embeddingModels.map((m) => (
@@ -159,26 +157,22 @@ function CorpusSettingsPanel({
                   {m.display_name?.trim() || `${m.vendor}/${m.model_name}`}
                 </option>
               ))}
-            </select>
+            </Select>
             {embeddingConfigId && (() => {
               const sel = embeddingModels.find((m) => m.id === embeddingConfigId);
               const dims = typeof sel?.config?.dimensions === "number" ? sel.config.dimensions : null;
               return dims != null ? (
-                <span className="mt-1 inline-block rounded bg-blue-100 px-1.5 py-0.5 text-micro font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                <span className="inline-block rounded bg-blue-100 px-1.5 py-0.5 text-micro font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
                   {dims} dims
                 </span>
               ) : null;
             })()}
-          </div>
+          </Field>
 
-          <div>
-            <label className="block text-xs font-medium text-text-secondary mb-1">
-              LLM Model
-            </label>
-            <select
+          <Field label="LLM Model">
+            <Select
               value={llmConfigId}
               onChange={(e) => setLlmConfigId(e.target.value)}
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
             >
               <option value="">(使用全局默认)</option>
               {llmModels.map((m) => (
@@ -186,8 +180,8 @@ function CorpusSettingsPanel({
                   {m.display_name?.trim() || `${m.vendor}/${m.model_name}`}
                 </option>
               ))}
-            </select>
-          </div>
+            </Select>
+          </Field>
         </div>
       </div>
 
@@ -320,17 +314,15 @@ function CorpusSettingsPanel({
 
                   return (
                     <div key={`${routeKey}-${index}`} className="grid gap-3 rounded-lg border border-border bg-card p-3 md:grid-cols-[120px_1fr_1fr_auto]">
-                      <div className="text-xs font-semibold text-text-secondary">
+                      <div className="flex items-center text-xs font-semibold text-text-secondary">
                         {index === 0 ? "主用" : "备用"}
                       </div>
-                      <label className="text-xs">
-                        <div className="mb-1 text-muted-foreground">MCP Server</div>
-                        <select
+                      <InlineField label="MCP Server">
+                        <Select
                           value={selectedServerId}
                           onChange={(e) =>
                             setTarget({ server_id: e.target.value, tool_name: "" })
                           }
-                          className="w-full rounded border border-border bg-background px-2 py-2"
                         >
                           <option value="">未配置</option>
                           {serverOptions.map((server) => (
@@ -338,15 +330,13 @@ function CorpusSettingsPanel({
                               {server.display_name || server.name}
                             </option>
                           ))}
-                        </select>
-                      </label>
-                      <label className="text-xs">
-                        <div className="mb-1 text-muted-foreground">Tool</div>
-                        <select
+                        </Select>
+                      </InlineField>
+                      <InlineField label="Tool">
+                        <Select
                           value={target?.tool_name || ""}
                           onChange={(e) => setTarget({ tool_name: e.target.value })}
                           disabled={!selectedServerId}
-                          className="w-full rounded border border-border bg-background px-2 py-2 disabled:opacity-50"
                         >
                           <option value="">未配置</option>
                           {visibleToolOptions.map((tool) => (
@@ -354,9 +344,9 @@ function CorpusSettingsPanel({
                               {tool.display_name || tool.name}
                             </option>
                           ))}
-                        </select>
-                      </label>
-                      <div className="flex items-end">
+                        </Select>
+                      </InlineField>
+                      <div className="flex items-center">
                         <button
                           type="button"
                           onClick={clearTarget}

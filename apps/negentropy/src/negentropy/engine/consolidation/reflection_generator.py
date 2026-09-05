@@ -21,11 +21,12 @@
 from __future__ import annotations
 
 import asyncio
-import json
 from dataclasses import dataclass
 
 import litellm
 
+from negentropy.engine.routine.faculty_bridge import run_faculty_json
+from negentropy.engine.utils.json_extract import loads_lenient
 from negentropy.engine.utils.model_config import resolve_model_config_async
 from negentropy.logging import get_logger
 
@@ -126,34 +127,49 @@ class ReflectionGenerator:
     ) -> Reflection | None:
         prompt = _REFLECTION_PROMPT.format(query=query, snippets=snippets, outcome=outcome)
 
-        last_error: Exception | None = None
-        for attempt in range(self._max_retries):
-            try:
-                safe_kwargs = {
-                    k: v
-                    for k, v in self._model_kwargs.items()
-                    if k not in ("model", "messages", "temperature", "response_format")
-                }
-                response = await litellm.acompletion(
-                    model=self._model,
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=self._temperature,
-                    response_format={"type": "json_object"},
-                    **safe_kwargs,
-                )
-                content = response.choices[0].message.content
-                return self._parse_response(content)
-            except Exception as exc:
-                last_error = exc
-                logger.warning("reflection_llm_retry", attempt=attempt + 1, error=str(exc))
-                await asyncio.sleep(2**attempt)
-        raise RuntimeError(f"Reflection LLM generation failed after {self._max_retries} retries: {last_error}")
+        from negentropy.config import settings
+
+        enabled = settings.routine.faculty_bridge_enabled and settings.routine.faculty_bridge_consolidation_enabled
+
+        async def fallback() -> Reflection | None:
+            last_error: Exception | None = None
+            for attempt in range(self._max_retries):
+                try:
+                    safe_kwargs = {
+                        k: v
+                        for k, v in self._model_kwargs.items()
+                        if k not in ("model", "messages", "temperature", "response_format")
+                    }
+                    response = await litellm.acompletion(
+                        model=self._model,
+                        messages=[{"role": "user", "content": prompt}],
+                        temperature=self._temperature,
+                        response_format={"type": "json_object"},
+                        **safe_kwargs,
+                    )
+                    content = response.choices[0].message.content
+                    return self._parse_response(content)
+                except Exception as exc:
+                    last_error = exc
+                    logger.warning("reflection_llm_retry", attempt=attempt + 1, error=str(exc))
+                    await asyncio.sleep(2**attempt)
+            raise RuntimeError(f"Reflection LLM generation failed after {self._max_retries} retries: {last_error}")
+
+        ref, _used = await run_faculty_json(
+            "contemplation",
+            prompt,
+            parse=self._parse_response,
+            fallback=fallback,
+            enabled=enabled,
+            timeout_seconds=float(settings.routine.faculty_bridge_batch_timeout_seconds),
+            read_only=True,
+        )
+        return ref
 
     def _parse_response(self, content: str) -> Reflection | None:
-        try:
-            data = json.loads(content)
-        except json.JSONDecodeError:
-            logger.warning("reflection_response_not_json", content_preview=content[:200])
+        data = loads_lenient(content)
+        if not isinstance(data, dict):
+            logger.warning("reflection_response_not_json", content_preview=(content or "")[:200])
             return None
 
         lesson = str(data.get("lesson", "")).strip()[:_MAX_LESSON_LEN]

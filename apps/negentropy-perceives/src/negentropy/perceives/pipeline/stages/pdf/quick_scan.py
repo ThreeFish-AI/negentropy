@@ -123,6 +123,7 @@ class FitzQuickScanner(PDFToolBase):
             math_font_count = 0
             table_indicator_count = 0
             native_table_count = 0
+            table_caption_count = 0
             code_indicator_count = 0
             code_font_count = 0
             algorithm_indicator_count = 0
@@ -209,6 +210,22 @@ class FitzQuickScanner(PDFToolBase):
                     if re.match(r"^    \S", line) or "def " in line or "class " in line:
                         code_indicator_count += 1
 
+                # caption 级表格指示器: ``Table N:`` / ``Table S2.`` 起手的图表标题
+                # 是"该页确有表格"的强信号，尤其覆盖 native find_tables (ruling-line
+                # 策略) 与 pipe-line 启发式双双漏报的 **空白对齐无框线表格**
+                # (典型如附录配置表 Table 8/9: 纯空格对齐、无 ``|`` 字符、无框线,
+                # find_tables 零命中)。该模式误报率极低: 实测正文/标题页 0 命中,
+                # 真实表格页 2-3 命中 (与正文引用 "Table 1 shows..." 不同, 此处要求
+                # 行首起手 + 紧跟 ``:``/``.``, 不匹配句中引用)，故单独计数并以
+                # ``>= 1`` 高精度阈值触发，避免被 pipe-line 的 ``> 2`` 宽阈值淹没。
+                table_caption_count += len(
+                    re.findall(
+                        r"^\s*Table\s+S?\d+\s*[:.]",
+                        page_text,
+                        re.IGNORECASE | re.MULTILINE,
+                    )
+                )
+
                 # inline math (避免漏报无数学字体但用 $...$ / \(...\) 的论文)
                 inline_math_hits += len(re.findall(r"\$[^\$\n]{1,80}\$", page_text))
                 inline_math_hits += len(re.findall(r"\\\([^)]{1,80}\\\)", page_text))
@@ -236,7 +253,11 @@ class FitzQuickScanner(PDFToolBase):
             # - has_code_blocks: indent/def/class ≥ 5 || 等宽字体 ≥ 30 (代码块通常有大量等宽字符)
             chars.has_images = image_count > 0
             chars.has_formulas = math_font_count >= 3 or inline_math_hits >= 3
-            chars.has_tables = native_table_count >= 1 or table_indicator_count > 2
+            chars.has_tables = (
+                native_table_count >= 1
+                or table_indicator_count > 2
+                or table_caption_count >= 1
+            )
             chars.has_code_blocks = (
                 code_indicator_count > 5
                 or code_font_count >= 30
@@ -283,6 +304,7 @@ class FitzQuickScanner(PDFToolBase):
                     "inline_math_hits": inline_math_hits,
                     "native_table_count": native_table_count,
                     "table_indicator_count": table_indicator_count,
+                    "table_caption_count": table_caption_count,
                     "code_indicator_count": code_indicator_count,
                     "code_font_count": code_font_count,
                 },

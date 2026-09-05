@@ -25,6 +25,7 @@ from negentropy.config import settings
 from negentropy.engine.evolution.decision import decide_skill_canary, decide_skill_shadow, is_noop_template
 from negentropy.engine.evolution.handlers._shared import _emit_evolution_event, _enter_canary
 from negentropy.engine.evolution.proposer import _ProposerBase
+from negentropy.engine.routine.faculty_bridge import run_faculty_json
 from negentropy.engine.utils.json_extract import loads_lenient
 from negentropy.logging import get_logger
 from negentropy.models.eval_suite import (
@@ -297,16 +298,39 @@ class PipelinePromptProposer(_ProposerBase):
 
         await self._resolve_model()
         prompt = self._build_prompt(scope_name=scope_name, active_prompt=active_prompt)
-        content = await self._call_llm(prompt)
-        if not content:
-            return None
-        data = loads_lenient(content)
-        if not isinstance(data, dict) or bool(data.get("no_change", False)):
-            return None
-        new_prompt = str(data.get("prompt") or data.get("prompt_template") or "").strip()
-        if not new_prompt or is_noop_template(new_prompt, active_prompt):
-            return None
-        return SkillProposalDraft(prompt_template=new_prompt, rationale=str(data.get("rationale", "")).strip()[:240])
+
+        from negentropy.config import settings
+
+        enabled = settings.routine.faculty_bridge_enabled and settings.routine.faculty_bridge_evolution_enabled
+
+        def parse(text: str) -> SkillProposalDraft | None:
+            data = loads_lenient(text)
+            if not isinstance(data, dict) or bool(data.get("no_change", False)):
+                return None
+            new_prompt = str(data.get("prompt") or data.get("prompt_template") or "").strip()
+            if not new_prompt or is_noop_template(new_prompt, active_prompt):
+                return None
+            return SkillProposalDraft(
+                prompt_template=new_prompt,
+                rationale=str(data.get("rationale", "")).strip()[:240],
+            )
+
+        async def fallback() -> SkillProposalDraft | None:
+            content = await self._call_llm(prompt)
+            if not content:
+                return None
+            return parse(content)
+
+        draft, _used = await run_faculty_json(
+            "contemplation",
+            prompt,
+            parse=parse,
+            fallback=fallback,
+            enabled=enabled,
+            timeout_seconds=float(settings.routine.faculty_bridge_timeout_seconds),
+            read_only=True,
+        )
+        return draft
 
     def _build_prompt(self, *, scope_name: str, active_prompt: str) -> str:
         return _PIPELINE_PROPOSAL_PROMPT.format(scope=scope_name, active=active_prompt[:1200])

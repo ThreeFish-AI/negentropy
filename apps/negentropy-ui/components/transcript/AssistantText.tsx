@@ -7,6 +7,11 @@ import { cn } from "@/lib/utils";
 import { MarkdownContent } from "@/components/ui/MessageBubble";
 
 import { MarkdownText } from "@/components/markdown/MarkdownText";
+import {
+  ASSISTANT_BUBBLE_CLASS,
+  LONG_MESSAGE_COLLAPSED_MAX_HEIGHT,
+  LONG_MESSAGE_THRESHOLD_CHARS,
+} from "./style";
 import type { TranscriptItem } from "./types";
 
 /** CC 自报交互异常的模式（如 AskUserQuestion 在 headless 下被 CLI 报错）——命中则红显，让断链可见。 */
@@ -43,8 +48,8 @@ export function AssistantText({ item }: { item: Extract<TranscriptItem, { kind: 
       />
     );
   }
-  // 正文提亮至 foreground，贴合 paseo 中栏对比度
-  return <MarkdownText content={item.text} className="[&_li]:text-foreground [&_p]:text-foreground" />;
+  // 正文：机侧气泡（左上拉直，对齐 Conductor）+ 长消息折叠降噪
+  return <AssistantBody item={item} />;
 }
 
 /** 可折叠的 thinking 推理片段——默认收起为单行，点击展开全文。 */
@@ -63,6 +68,41 @@ function ThinkingText({ text }: { text: string }) {
         <ChevronRight className={cn("h-3 w-3 transition-transform", open && "rotate-90")} aria-hidden />
       </button>
       {open ? <MarkdownText content={text} className="mt-0.5 italic [&_p]:text-text-secondary" /> : null}
+    </div>
+  );
+}
+
+/**
+ * 机侧 assistant 正文气泡（左上拉直 = 机侧，对齐 Conductor agent 气泡容器）。
+ *
+ * 长消息（超 ``LONG_MESSAGE_THRESHOLD_CHARS``）默认折叠为限高 + 底部渐隐 + 「展开全文」，
+ * 降低长转录视觉噪音（对齐 Conductor "Show full message"）；短消息不折叠。
+ */
+function AssistantBody({ item }: { item: Extract<TranscriptItem, { kind: "assistant" }> }) {
+  const long = item.text.length > LONG_MESSAGE_THRESHOLD_CHARS;
+  const [open, setOpen] = useState(false);
+  return (
+    <div className={cn("relative", ASSISTANT_BUBBLE_CLASS)}>
+      <div className="relative">
+        <div className={cn(long && !open && LONG_MESSAGE_COLLAPSED_MAX_HEIGHT, long && !open && "overflow-hidden")}>
+          <MarkdownText content={item.text} className="[&_li]:text-foreground [&_p]:text-foreground" />
+        </div>
+        {long && !open ? (
+          <div
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-muted/30 to-transparent"
+            aria-hidden
+          />
+        ) : null}
+      </div>
+      {long ? (
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="mt-2 text-caption font-medium text-text-secondary hover:text-foreground"
+        >
+          {open ? "收起" : "展开全文"}
+        </button>
+      ) : null}
     </div>
   );
 }

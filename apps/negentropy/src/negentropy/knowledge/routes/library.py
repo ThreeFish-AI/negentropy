@@ -32,6 +32,7 @@ from negentropy.knowledge.routes.documents import (
     _get_document_asset_impl,
     _get_document_detail_impl,
     _refresh_document_markdown_impl,
+    _reset_document_patrol_impl,
     _update_document_impl,
 )
 from negentropy.knowledge.schemas import (
@@ -243,6 +244,15 @@ async def update_library_document(
 ) -> DocumentResponse:
     """更新文档元信息（display_name + Wiki 文章元数据）。"""
     return await _update_document_impl(document_id=document_id, corpus_id=None, payload=payload)
+
+
+@router.post("/documents/{document_id}/reset-patrol", response_model=DocumentResponse)
+async def reset_library_document_patrol(
+    document_id: UUID,
+    app_name: str | None = Query(default=None),
+) -> DocumentResponse:
+    """重置文档 PDF 巡检态为「未巡检」（库文档二次巡检入口）。"""
+    return await _reset_document_patrol_impl(document_id=document_id, corpus_id=None, app_name=app_name)
 
 
 @router.delete("/documents/{document_id}", status_code=status.HTTP_204_NO_CONTENT)

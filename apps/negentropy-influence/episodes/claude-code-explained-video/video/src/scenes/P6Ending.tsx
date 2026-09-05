@@ -1,0 +1,305 @@
+/** P6 收尾（分镜 6-A…6-B）
+ *  ★ 渐黑窗口从**末 beat 总时长**推导（useFadeOut 模型化——红线四由构造保证）。
+ *  重制（2026-09 运动层）：动效收敛 motion 模型；系列栈收尾（HarnessStackP6）
+ *  落地 skills/06「P6 用法」：栈重新放大居中、已发布层点亮、下期层呼吸预告。 */
+import React from 'react';
+import {AbsoluteFill, Sequence, useCurrentFrame, useVideoConfig} from 'remotion';
+import {theme} from '../design/theme';
+import {beatWindow} from '../timing';
+import type {SceneRange} from '../types';
+import {LoopRing, Panel, useRingDot} from '../components/motifs';
+import {HarnessBadge, HarnessStackP6, NEXT_LAYER} from '../components/harness-stack';
+import {DUR, SAFE_TOP_Y, progress, useFadeOut, useProgress, useSpring, useStagger} from '../motion';
+
+/** 6-A 壳的四层：三张挂件卡沿径向滑入、逐一「咬合」上环（骨架 vs 挂件的物理化收束）。
+ *  循环层不用卡——它就是环本身（p6-03 的口播顺序：循环→分发表→闸门→插口）。
+ *  卡片恒正立（见下方 `rotate(${-a.ang})`），只有挂脚吃挂点角度。 */
+const ShellLayers: React.FC<{layerAt: number[]}> = ({layerAt}) => {
+  const frame = useCurrentFrame();
+  const dot = useRingDot(2.8);
+  const R = 210; // LoopRing 的外框半参（size = 2R + 76）
+  // 环线真实半径：LoopRing 内部取 size/2 - 46，与 R 差 8px。夹爪要咬在**环线**上，
+  // 所以必须由 size 反算，直接用 R 会差出 8px 的悬空。
+  const RING_R = (R * 2 + 76) / 2 - 46;
+  const CX = 560;
+  const CY = 540;
+  const CARD_HALF_H = 36; // 卡片 rect 半高 34 + 描边 2.5 的一半，向上取整
+  // 三张挂件卡沿环 120° 均分，且刻意避开 0/±90/180 —— LoopRing 的四个节点文案
+  // （问模型/看回答/执行工具/填回结果）就画在那四个方位上，挂脚会横穿它们。
+  const attach = [
+    {t: '分发表', s: '给它工具', c: theme.mech, ang: -45},
+    {t: '闸门', s: '守着底线', c: theme.deny, ang: 75},
+    {t: '插口', s: '留给你发挥', c: theme.mech, ang: 195},
+  ];
+  // 三卡径向滑入：时点来自句锚（layerAt[1..3]），单项 12f = DUR.f5。
+  // 显式三个调用而非 map——map 内调 hook 违反 Rules of Hooks（数量须恒定）
+  const lit = [
+    useProgress(layerAt[1], DUR.f5),
+    useProgress(layerAt[2], DUR.f5),
+    useProgress(layerAt[3], DUR.f5),
+  ];
+  const allOn = frame >= layerAt[3];
+  // 咬合后的整组轻呼吸：单向半波（只向内收），与 useBreathe 的正弦不同——保留内联
+  const breathe = allOn ? 1 - 0.02 * Math.max(0, Math.sin((frame - layerAt[3]) / 9)) : 1;
+  const cycleOp = useProgress(layerAt[0], DUR.f5);
+  const hangOp = useProgress(layerAt[3], DUR.f5);
+  return (
+    <AbsoluteFill>
+      <svg width={1920} height={1080} style={{position: 'absolute', inset: 0}}>
+        <g transform={`translate(${CX} ${CY}) scale(${breathe})`}>
+          <g transform={`translate(${-R - 38} ${-R - 38})`}>
+            <LoopRing size={R * 2 + 76} draw={1} dotProgress={dot} showExit={false} />
+          </g>
+          {attach.map((a, i) => {
+            const t = lit[i];
+            if (t <= 0) return null;
+            const rad = (a.ang * Math.PI) / 180;
+            // 卡片中心的落位半径：环外一圈（dist > RING_R，卡片整体在环之外——
+            // 底部那句「挂件 ×3，都挂在外面」是字面意思，卡片不得压在环线上）
+            const dist = R + 96;
+            // 挂脚长度 = 卡心到环线的径向距离；本组已按 ang 旋转，故 -x 指向环心
+            const stem = dist - RING_R;
+            // 入场自环外 startPx 倍半径径向滑入。**向下**的卡（sin > 0）滑到最远处时
+            // 会探进字幕安全带——其起步倍率按「卡片下沿贴住 SAFE_TOP_Y（motion 的
+            // SSOT 常量，与 qa_frames.SUBTITLE_BAND_PX 同口径）」封顶；向上的两张
+            // 不受此限。ISSUE-170 的缺陷类由常量单源化。
+            const sinA = Math.sin(rad);
+            const startPx = Math.min(
+              1.6,
+              sinA > 0 ? (SAFE_TOP_Y - CARD_HALF_H - CY) / (sinA * dist) : Infinity,
+            );
+            const px = startPx - (startPx - 1) * t;
+            const x = Math.cos(rad) * dist * px;
+            const y = Math.sin(rad) * dist * px;
+            return (
+              <g key={a.t} transform={`translate(${x} ${y}) rotate(${a.ang})`} opacity={t}>
+                {/* 挂脚：自环线伸到卡片内缘，末端夹爪咬在环线上 */}
+                <line
+                  x1={-stem}
+                  y1={0}
+                  x2={-40}
+                  y2={0}
+                  stroke={a.c}
+                  strokeWidth={4}
+                  strokeLinecap="round"
+                />
+                <path d={`M${-stem} 0 l12 -9 v18 Z`} fill={a.c} />
+                {/* 卡片反向抵消 ang：挂点角度不该变成文字角度（否则 75° 侧倒、
+                    195° 倒置，文字直接不可读） */}
+                <g transform={`rotate(${-a.ang})`}>
+                  <rect
+                    x={-84}
+                    y={-34}
+                    width={168}
+                    height={68}
+                    rx={10}
+                    fill={theme.panel}
+                    stroke={a.c}
+                    strokeWidth={2.5}
+                  />
+                  <text
+                    x={0}
+                    y={-6}
+                    textAnchor="middle"
+                    fontFamily={theme.serif}
+                    fontSize={30}
+                    fontWeight={700}
+                    fill={a.c}
+                  >
+                    {a.t}
+                  </text>
+                  <text
+                    x={0}
+                    y={22}
+                    textAnchor="middle"
+                    fontFamily={theme.sans}
+                    fontSize={19}
+                    fill={theme.dim}
+                  >
+                    {a.s}
+                  </text>
+                </g>
+              </g>
+            );
+          })}
+        </g>
+      </svg>
+      {/* 循环层 = 环本体：p6-01 点亮时环描线一次 + 左侧短标签（不用卡片，强调「骨架不是挂件」） */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 120,
+          top: 220,
+          opacity: cycleOp,
+        }}
+      >
+        <div style={{fontFamily: theme.serif, fontSize: 44, fontWeight: 700, color: theme.core}}>
+          {'循环'}
+        </div>
+        <div style={{fontFamily: theme.sans, fontSize: 28, color: theme.dim, marginTop: 6}}>
+          {'给它手脚 —— 骨架'}
+        </div>
+      </div>
+      <div
+        style={{
+          position: 'absolute',
+          left: 120,
+          bottom: 220,
+          fontFamily: theme.sans,
+          fontSize: 26,
+          color: theme.mech,
+          opacity: hangOp,
+        }}
+      >
+        {'挂件 ×3，都挂在外面'}
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+/**
+ * 6-B 信源卡 + 系列身份（栈收尾）+ 渐黑。
+ * `beatDurationInFrames` 是**本 beat 的总时长**，渐黑窗口由 useFadeOut 据此反推。
+ */
+const SourceAndFade: React.FC<{beatDurationInFrames: number; seriesAt: number}> = ({
+  beatDurationInFrames,
+  seriesAt,
+}) => {
+  const {fps} = useVideoConfig();
+  const enter = useSpring('settle', {at: 4});
+  // 信源四行 + 诚实行依次浮现（stride 4、单项 f4）
+  const rowsOn = useStagger(4, {at: 8, stride: 4, dur: DUR.f4});
+  const rows = [
+    ['官方文档', 'code.claude.com/docs · 取数2026年8月'],
+    ['工程博客', 'anthropic.com/engineering'],
+    ['源码分析', '第三方逆向分析 · 片中逐处标注'],
+    ['数字口径', '开源仓库钉版实测 · 行数均为非空非注释口径'],
+  ];
+  const seriesT = useProgress(seriesAt, DUR.f6);
+  const honesty = useProgress(8 + rows.length * 4, DUR.f4) * 0.9;
+  // 渐黑：末 1.2s 线性压暗——useFadeOut 从 beat 总时长反推（红线四模型化）
+  const keep = useFadeOut(beatDurationInFrames, {frames: Math.round(1.2 * fps)});
+  const dark = 1 - keep;
+  const stackBreathAt = seriesAt + DUR.f5;
+  return (
+    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
+      <div style={{opacity: enter * (1 - seriesT * 0.85), transform: `translateY(${(1 - enter) * 20}px)`}}>
+        <Panel style={{padding: '30px 40px', width: 900}}>
+          <div style={{fontFamily: theme.sans, fontSize: 24, color: theme.core, marginBottom: 18}}>
+            {'信源'}
+          </div>
+          {rows.map(([k, v], i) => (
+            <div
+              key={k}
+              style={{
+                display: 'flex',
+                marginBottom: 10,
+                opacity: rowsOn[i],
+              }}
+            >
+              <div style={{width: 150, fontFamily: theme.sans, fontSize: 23, color: theme.dim}}>
+                {k}
+              </div>
+              <div style={{fontFamily: theme.mono, fontSize: 23, color: theme.text}}>{v}</div>
+            </div>
+          ))}
+          {/* 诚实行：画面数字均为实测口径（ISSUE-165 的公开落点） */}
+          <div
+            style={{
+              marginTop: 14,
+              paddingTop: 12,
+              borderTop: `1px solid ${theme.panelBorder}`,
+              fontFamily: theme.sans,
+              fontSize: 20,
+              color: theme.dim,
+              opacity: honesty,
+            }}
+          >
+            {'画面中的行数均为本片在固定提交上的实测（非空非注释口径）'}
+          </div>
+        </Panel>
+      </div>
+      <div
+        style={{
+          position: 'absolute',
+          textAlign: 'center',
+          opacity: seriesT,
+          transform: `translateY(${(1 - seriesT) * 18}px)`,
+        }}
+      >
+        {/* 系列栈收尾（skills/06 P6 用法）：已发布层点亮、下期层呼吸预告 */}
+        <div style={{display: 'flex', justifyContent: 'center', marginBottom: 26}}>
+          <HarnessStackP6 at={seriesAt + 4} nextBreathAt={stackBreathAt} />
+        </div>
+        <div style={{fontFamily: theme.serif, fontSize: 34, color: theme.dim, letterSpacing: 3}}>
+          {'Claude Code Harness Engineering'}
+        </div>
+        <div
+          style={{
+            fontFamily: theme.serif,
+            fontSize: 62,
+            fontWeight: 700,
+            color: theme.core,
+            marginTop: 18,
+          }}
+        >
+          {'执行层：一个循环，就是全部'}
+        </div>
+        {/* 下期预告卡：标题只在画面（口播为话题描述——反串线纪律）。
+            标题主段是 series.json 派生数据的硬编码镜像，由 check_series 规则 8
+            与清单对账（改标题先改 series.json，再同步此串——规则会拦漂移）。 */}
+        <div
+          style={{
+            marginTop: 30,
+            padding: '14px 30px',
+            border: `1.5px solid ${theme.panelBorder}`,
+            borderRadius: 12,
+            background: theme.panel,
+          }}
+        >
+          <div style={{fontFamily: theme.sans, fontSize: 21, color: theme.dim, letterSpacing: 2}}>
+            {`下期 · ${NEXT_LAYER?.layer ?? ''}`}
+          </div>
+          <div style={{fontFamily: theme.serif, fontSize: 33, color: theme.text, marginTop: 6}}>
+            {'模型的视野是安排出来的'}
+          </div>
+        </div>
+      </div>
+      {/* 渐黑遮罩 */}
+      <AbsoluteFill style={{background: '#000', opacity: dark, pointerEvents: 'none'}} />
+    </AbsoluteFill>
+  );
+};
+
+export const P6Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
+  const w = (fromId: string, toId?: string) => beatWindow(scene.sentences, scene.from, fromId, toId);
+  const rel = (b: {from: number}, id: string) => w(id).from - b.from;
+  const bA = w('p6-01', 'p6-04');
+  const bB = w('p6-05', 'p6-08');
+  const frame = useCurrentFrame();
+  // 常驻角标在 6-A 全程；6-B（= bB.from 起）信源/收尾卡占满视野，角标淡出避免拥挤。
+  // 非 beat 用途不得写 w('句id') 字面形态——check_script 的 SCENE_CALL_RE 会把它当
+  // beat 区间登记面（用 bB.from 取同一锚点）
+  const badgeFade = progress(frame - bB.from, 0, DUR.f5);
+  return (
+    <AbsoluteFill>
+      <Sequence {...bA} name="6-A 壳的四层">
+        <ShellLayers
+          layerAt={[rel(bA, 'p6-01'), rel(bA, 'p6-02'), rel(bA, 'p6-03'), rel(bA, 'p6-04')]}
+        />
+      </Sequence>
+      <Sequence {...bB} name="6-B 信源卡与渐黑">
+        {/* 渐黑窗口从**本 beat 总时长**推导，不是末句时长（红线四） */}
+        <SourceAndFade
+          beatDurationInFrames={bB.durationInFrames}
+          seriesAt={rel(bB, 'p6-08')}
+        />
+      </Sequence>
+      {frame < bB.from + DUR.f5 ? (
+        <div style={{opacity: 1 - badgeFade}}>
+          <HarnessBadge />
+        </div>
+      ) : null}
+    </AbsoluteFill>
+  );
+};

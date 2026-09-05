@@ -1,6 +1,7 @@
 "use client";
 
 import { ApiEndpoint, getMethodColor } from "@/features/knowledge/utils/api-specs";
+import { TruncatedCell } from "@/components/ui/TruncatedCell";
 import { CodeExample } from "./CodeExample";
 
 interface ApiDocPanelProps {
@@ -38,62 +39,67 @@ export function ApiDocPanel({ endpoint }: ApiDocPanelProps) {
           <h4 className="text-sm font-semibold text-foreground">
             参数
           </h4>
-          <div className="overflow-hidden rounded-lg border border-border">
-            <table className="w-full text-xs">
-              <thead className="bg-muted">
-                <tr>
-                  <th className="px-3 py-2 text-left font-medium text-text-secondary">
-                    名称
-                  </th>
-                  <th className="px-3 py-2 text-left font-medium text-text-secondary">
-                    位置
-                  </th>
-                  <th className="px-3 py-2 text-left font-medium text-text-secondary">
-                    类型
-                  </th>
-                  <th className="px-3 py-2 text-left font-medium text-text-secondary">
-                    必填
-                  </th>
-                  <th className="px-3 py-2 text-left font-medium text-text-secondary">
-                    描述
-                  </th>
+          <div className="overflow-hidden rounded-xl border border-border bg-card">
+            <table className="w-full table-fixed text-sm">
+              {/* 固定列宽（合计 100%）：名称 20 · 位置 10 · 类型 16 · 必填 8 · 描述 46。
+                  5 列须与下方 5 个 <th> 严格对齐；colgroup 内不得夹带空白文本节点。 */}
+              <colgroup>
+                <col className="w-[20%]" />
+                <col className="w-[10%]" />
+                <col className="w-[16%]" />
+                <col className="w-[8%]" />
+                <col className="w-[46%]" />
+              </colgroup>
+              <thead>
+                <tr className="border-b border-border text-left text-xs uppercase tracking-overline text-text-secondary">
+                  <th className="px-4 py-2.5 font-medium">名称</th>
+                  <th className="px-4 py-2.5 font-medium">位置</th>
+                  <th className="px-4 py-2.5 font-medium">类型</th>
+                  <th className="px-4 py-2.5 font-medium">必填</th>
+                  <th className="px-4 py-2.5 font-medium">描述</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
+              <tbody>
                 {endpoint.parameters.map((param) => (
                   <tr
                     key={param.name}
-                    className="bg-card"
+                    className="border-b border-border/60 transition-colors last:border-0 hover:bg-muted/40"
                   >
-                    <td className="px-3 py-2 font-mono text-foreground">
-                      {param.name}
-                    </td>
-                    <td className="px-3 py-2 text-text-secondary">
-                      {param.in}
-                    </td>
-                    <td className="px-3 py-2 text-text-secondary">
-                      {param.type}
-                      {param.enum && (
-                        <span className="ml-1 text-text-muted">
-                          ({param.enum.join(", ")})
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-3 py-2">
+                    <TruncatedCell text={param.name} mono textClassName="text-foreground" />
+                    <TruncatedCell text={param.in} textClassName="text-text-secondary" />
+                    <TruncatedCell
+                      className="text-text-secondary"
+                      text={
+                        <>
+                          {param.type}
+                          {param.enum && (
+                            <span className="text-text-muted">
+                              {" "}({param.enum.join(", ")})
+                            </span>
+                          )}
+                        </>
+                      }
+                    />
+                    <td className="px-4 py-3">
                       {param.required ? (
                         <span className="text-rose-500">是</span>
                       ) : (
                         <span className="text-text-muted">否</span>
                       )}
                     </td>
-                    <td className="px-3 py-2 text-text-secondary">
-                      {param.description}
-                      {param.default !== undefined && (
-                        <span className="ml-1 text-text-muted">
-                          (默认: {String(param.default)})
-                        </span>
-                      )}
-                    </td>
+                    <TruncatedCell
+                      className="text-text-secondary"
+                      text={
+                        <>
+                          {param.description}
+                          {param.default !== undefined && (
+                            <span className="text-text-muted">
+                              {" "}(默认: {String(param.default)})
+                            </span>
+                          )}
+                        </>
+                      }
+                    />
                   </tr>
                 ))}
               </tbody>

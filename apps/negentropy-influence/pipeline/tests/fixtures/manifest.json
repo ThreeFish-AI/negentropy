@@ -1,0 +1,6 @@
+[
+  {"id": "p0-01", "scene": "P0", "text": "第一幕第一句。", "durationSec": 3.10},
+  {"id": "p0-02", "scene": "P0", "text": "第一幕第二句。", "durationSec": 2.05},
+  {"id": "p1-01", "scene": "P1", "text": "第二幕第一句。", "durationSec": 4.77},
+  {"id": "p1-02", "scene": "P1", "text": "第二幕第二句，稍长一些用来测预算。", "durationSec": 1.02}
+]

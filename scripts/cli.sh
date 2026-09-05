@@ -337,6 +337,94 @@ _git_pull_best_effort() {
   git -C "$REPO_ROOT" pull --ff-only || log_warn "git pull 失败，继续使用当前代码"
 }
 
+# ── PostgreSQL 自愈 ──────────────────────────────────────────────────────────────
+# Phase 3 的数据库探测原先仅 pg_isready 一次、未运行即 exit 1，无法应对本地最常见的两类失败：
+#   ① postgresql@N 服务未起；② 非正常退出后数据目录残留 postmaster.pid（其 PID 被 OS 回收
+#   复用为他进程，如 WebKit），brew launchd 反复重试撞 "lock file already exists" → 服务
+#   标记 error。以下函数组实现「探测 → 解析 formula → 清残留锁 → brew 重启 → 轮询就绪」
+#   自愈链，全失败才报错并附诊断。默认 formula postgresql@16 对齐 CI pgvector:pg16。
+
+# 解析应启动的 Homebrew PostgreSQL formula：
+#   1. 显式 NEGENTROPY_PG_FORMULA 覆盖（如 postgresql@17）；
+#   2. 否则一次性 brew list --formula 后按 @16→@17→@18→postgresql 顺序匹配（@16 对齐 CI）；
+#   3. 无 brew / 未装任何 postgresql formula → 输出空串（调用方据此报错）。
+_resolve_pg_formula() {
+  local pref="${NEGENTROPY_PG_FORMULA:-}"
+  [ -n "$pref" ] && { echo "$pref"; return 0; }
+  command -v brew &>/dev/null || return 0
+  local installed f
+  installed="$(brew list --formula 2>/dev/null || true)"
+  for f in postgresql@16 postgresql@17 postgresql@18 postgresql; do
+    grep -qx "$f" <<<"$installed" && { echo "$f"; return 0; }
+  done
+  return 0
+}
+
+# formula → 数据目录：$(brew --prefix)/var/<formula>（Apple Silicon /opt/homebrew/var、
+# Intel /usr/local/var），不硬编码架构前缀。
+_pg_datadir() { echo "$(brew --prefix 2>/dev/null)/var/$1"; }
+
+# 清理残留 postmaster.pid（自愈链核心）。仅当 PID 已死、或虽存活但 ps comm 非 postgres
+# （OS 回收复用为他进程）时判定残留锁并删除；存活且确系 postgres 时不动（避免误伤在途实例）。
+_clean_stale_pg_pid() {
+  local datadir="$1" pidfile pid
+  pidfile="$datadir/postmaster.pid"
+  [ -f "$pidfile" ] || return 0
+  pid="$(head -1 "$pidfile" 2>/dev/null || true)"
+  if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null \
+     && ps -p "$pid" -o comm= 2>/dev/null | grep -qi postgres; then
+    return 0   # 真·在途 postgres，勿动
+  fi
+  log_warn "发现残留 postmaster.pid (PID ${pid:-?})，清理后重试启动"
+  rm -f "$pidfile"
+}
+
+# 轮询 PostgreSQL 就绪：壁钟预算（默认 30s，NEGENTROPY_PG_READY_TIMEOUT 覆盖），按 $SECONDS
+# 截止而非次数——与 wait_for_health 同款，避免单次 pg_isready 探针漂移致预算失准。
+_wait_pg_ready() {
+  local host="$1" port="$2" budget deadline
+  budget="${NEGENTROPY_PG_READY_TIMEOUT:-30}"
+  deadline=$(( SECONDS + budget ))
+  while (( SECONDS < deadline )); do
+    pg_isready -h "$host" -p "$port" &>/dev/null && return 0
+    sleep 1
+  done
+  return 1
+}
+
+# 确保 PostgreSQL 就绪的编排器（Phase 3 入口）。
+_ensure_postgres() {
+  local host="${NEGENTROPY_PG_HOST:-localhost}" port="${NEGENTROPY_PG_PORT:-5432}"
+  # 无 pg 客户端工具：保留原行为（不探测），退由 alembic 校验连接——最小干预。
+  command -v pg_isready &>/dev/null || return 0
+  pg_isready -h "$host" -p "$port" &>/dev/null && return 0
+
+  if ! command -v brew &>/dev/null; then
+    log_error "PostgreSQL 未运行 (${host}:${port}) 且未找到 brew，请手动启动数据库"
+    return 1
+  fi
+  local formula
+  formula="$(_resolve_pg_formula)"
+  if [ -z "$formula" ]; then
+    log_error "PostgreSQL 未运行，且未检测到 Homebrew 安装的 postgresql formula，请手动启动"
+    return 1
+  fi
+  log_warn "PostgreSQL 未运行 (${host}:${port})，尝试自愈启动 ${formula}..."
+  _clean_stale_pg_pid "$(_pg_datadir "$formula")"
+  # 服务已 Loaded（含 error 态）时 start 可能判「已启动」不重拉；restart 优先覆盖该态，
+  # start 兜底未加载场景。失败不致命——_wait_pg_ready 才是最终裁判。
+  brew services restart "$formula" &>/dev/null || brew services start "$formula" &>/dev/null || true
+  if _wait_pg_ready "$host" "$port"; then
+    log_ok "PostgreSQL 已就绪（${formula}，${host}:${port}）"
+    return 0
+  fi
+  log_error "${formula} 自愈启动后仍未就绪，诊断信息："
+  brew services list 2>/dev/null | grep -i postgres >&2 || true
+  log_error "  日志：tail -50 \"$(brew --prefix 2>/dev/null)/var/log/${formula}.log\""
+  log_error "  版本核对：psql -h ${host} -p ${port} -c 'SELECT version();'（本机共存多 PG 版本，5432 易错位）"
+  return 1
+}
+
 # ── 子命令: start ────────────────────────────────────────────────────────────────
 cmd_start() {
   local no_pull=false skip_build=false
@@ -387,12 +475,7 @@ cmd_start() {
 
   # Phase 3 — 数据库迁移
   log_phase "Phase 3/5: 数据库迁移"
-  if command -v pg_isready &>/dev/null; then
-    if ! pg_isready -h localhost -p 5432 &>/dev/null; then
-      log_error "PostgreSQL 未运行 (localhost:5432)，请先启动数据库"
-      exit 1
-    fi
-  fi
+  _ensure_postgres || exit 1
   (cd "$REPO_ROOT/apps/negentropy" && uv run alembic upgrade head)
   log_ok "数据库已迁移至最新版本"
 
@@ -547,6 +630,11 @@ ${BOLD}命令:${RESET}
 ${BOLD}选项:${RESET}
   --no-pull      跳过 git pull
   --skip-build   跳过前端构建
+
+${BOLD}环境变量（Phase 3 PostgreSQL 自愈，均可选）:${RESET}
+  NEGENTROPY_PG_FORMULA         覆盖启动的 formula（默认按 @16→@17→@18→postgresql 探测）
+  NEGENTROPY_PG_HOST/PG_PORT    覆盖探测地址（默认 localhost / 5432）
+  NEGENTROPY_PG_READY_TIMEOUT   就绪轮询预算秒数（默认 30）
 
 ${BOLD}示例:${RESET}
   ./scripts/cli.sh start              # 完整启动

@@ -47,6 +47,14 @@ export interface CursorFetcher<T, F = unknown> {
     filters?: F;
     signal?: AbortSignal;
   }) => Promise<CursorPage<T>>;
+  /**
+   * 跳页顺序补齐时单轮请求的 limit 上限（对齐 [[OffsetFetcher.maxLimit]]）。默认 200。
+   * goToPage(n) 深跳会请求 `min(targetCount - acc.length, maxLimit)` 条/轮，
+   * 使「220 条跳页」由 22 轮（受 maxSequentialFetch=20 截断 → 只 200 条 → 空页）
+   * 收敛为 ⌈220/200⌉=2 轮，20 轮封顶下可达 `20×maxLimit` 条。
+   * 须 ≤ 对应后端端点的 limit 上限（executions le=500 / tasks le=200），否则 422。
+   */
+  maxLimit?: number;
 }
 
 /** 偏移型一段响应（count / total 归一为 total，必填）。 */
@@ -209,9 +217,14 @@ export function useInfiniteList<T, F = unknown>(
             total = r.total;
             hasMore = acc.length < r.total && r.items.length > 0;
           } else if (f.kind === "cursor") {
+            // 分批补齐（mirror offset 分支）：单轮请求 min(缺口, maxLimit) 条，
+            // 使深跳页由 O(缺口/pageSize) 轮收敛为 O(缺口/maxLimit) 轮，规避
+            // maxSequentialFetch 截断导致的「缓冲不足→空页」。loadMore 缺口恒 = pageSize，
+            // min(pageSize, maxLimit)=pageSize，仍恰好追加一页，语义不变。
+            const limit = Math.min(targetCount - acc.length, f.maxLimit ?? 200);
             const r = await f.fetchPage({
               cursor,
-              limit: pageSize,
+              limit,
               filters: filtersRef.current as F,
               signal: ac.signal,
             });
@@ -242,7 +255,9 @@ export function useInfiniteList<T, F = unknown>(
         }
       }
     },
-    [pageSize, maxSequentialFetch],
+    // pageSize 不再进入依赖：cursor 分批改用 f.maxLimit、offset 用 need+maxLimit，
+    // 函数体已不直接引用 pageSize（仅 loadMore/goToPage 的调用点用 pageSize 算 targetCount）。
+    [maxSequentialFetch],
   );
 
   // ── reset：清缓冲、回第 1 页、并触发首页加载 ─────────────────────────────
@@ -330,9 +345,17 @@ export function useInfiniteList<T, F = unknown>(
         ? Math.max(1, Math.ceil(total / pageSize))
         : Math.max(1, loadedPages + (buf.hasMore ? 1 : 0));
     const hasMore = total != null ? buf.items.length < total : buf.hasMore;
+    // safePage 钳制：常态对齐 totalPages；但当游标已耗尽（!buf.hasMore）而缓冲仍不足以填充
+    // currentPage（后端 COUNT 大于游标实际产出——如 COUNT 与取数间发生删除、或极端超 20×maxLimit），
+    // 收敛到实际已加载页数，杜绝落在空页。纯派生、无异步竞态（不 setState），
+    // 加载在途（hasMore 仍 true）时不夹，避免误伤「即将补齐」的深跳。
+    const safePage =
+      !buf.hasMore && buf.items.length < currentPage * pageSize
+        ? Math.min(currentPage, Math.max(1, loadedPages))
+        : Math.min(currentPage, totalPages);
     return {
       items: buf.items,
-      currentPage: Math.min(currentPage, totalPages),
+      currentPage: safePage,
       total,
       totalPages,
       loadedPages,

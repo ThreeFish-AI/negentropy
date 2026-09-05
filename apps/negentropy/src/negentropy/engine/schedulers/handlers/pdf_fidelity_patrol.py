@@ -1,6 +1,6 @@
 """``pdf_fidelity_patrol`` handler — PDF→Markdown 高保真自拟合巡检的**节奏权威**。
 
-由统一调度引擎按 ``interval``（默认 3600s / 1h）tick。每 tick（轻量、仅 DB + 短 IO）：
+由统一调度引擎按 ``interval``（默认 600s / 10min）tick。每 tick（轻量、仅 DB + 短 IO）：
 
 1. **确保巡检 Repository**：幂等 upsert 名为 ``negentropy`` 的 Repository（local_path 从
    ``settings.routine.patrol_repo_local_path`` 或 negentropy 包路径推导；无法确定则返回
@@ -10,8 +10,8 @@
    把文档标 done（合格）/unfixable（尽力）——保证文档必进 ``skip_ids``、被推进，不再死循环；
    cancelled 不沉淀（用户干预，文档保持可被重新选中）。
 3. **跳过并发**：存在 ``status='running'`` 的巡检 Routine → 本 tick SKIP（保证「上一轮结束后
-   再启下一轮」；ScheduledTask 的 ``interval`` 计 ``next_fire_at = 完成时刻 + 3600s``，叠加此
-   互斥即满足「巡检进行中则等待其结束 + 1h」语义）。
+   再启下一轮」；ScheduledTask 的 ``interval`` 计 ``next_fire_at = 完成时刻 + 600s``，叠加此
+   互斥即满足「巡检进行中则等待其结束 + 10min」语义）。
 4. **选下一份待检生产 PDF**：``knowledge_documents`` 中 ``content_type LIKE '%pdf%'`` 且
    ``markdown_extract_status='completed'``，排除记忆中已 done/unfixable 的 doc_id。
 5. **预取源 PDF**：``BlobStorage.download(content_uri)`` → 暂存到 ``patrol_input_dir/<doc_id>/``。
@@ -79,7 +79,7 @@ register_descriptor(
         handler_kind=PATROL_HANDLER_KIND,
         label="PDF Fidelity Patrol",
         description=(
-            "每 1h 轮询一份生产 PDF 文档，启动一个 NegentropyEngine 巡检 Routine："
+            "每 600s 轮询一份生产 PDF 文档，启动一个 NegentropyEngine 巡检 Routine："
             "视觉对比 Markdown↔PDF、改 perceives、重转、评分，拟合至满分；"
             "Perceives 改进经非回归校验后以 PR 合回基线。"
         ),
@@ -135,11 +135,16 @@ async def _run_patrol_tick(*, task_key: str) -> HandlerResult:
         finalized = await _finalize_terminal_patrols(db)
         propagated = await _propagate_patrol_outcomes(db)
         collapsed = await _collapse_superseded_patrols(db)
+        # 校正巡检态列：以「每 doc 最新的非 cancelled 终态 Routine」为权威，修 finalize
+        # last-write-wins + collapse 不回写状态导致的污染（如 succeeded/95 被 failed/2 覆盖）。
+        reconciled = await _reconcile_patrol_status(db)
         await db.commit()
         if propagated:
             logger.info("patrol_outcomes_propagated", count=propagated)
         if collapsed:
             logger.info("patrol_superseded_collapsed", count=collapsed)
+        if reconciled:
+            logger.info("patrol_status_reconciled", count=reconciled)
 
     # 跳过并发（独立短事务，避免长读）
     async with AsyncSessionLocal() as db:
@@ -154,13 +159,9 @@ async def _run_patrol_tick(*, task_key: str) -> HandlerResult:
                 },
             )
 
-    # 选下一份待检 PDF
+    # 选下一份待检 PDF（巡检态 SSOT：knowledge_documents.patrol_status 列）
     async with AsyncSessionLocal() as db:
-        from negentropy.engine.routine.patrol_memory import PatrolMemoryStore
-
-        store = PatrolMemoryStore(db)
-        skip_ids = await store.get_skip_doc_ids()
-        doc = await _select_next_pending_doc(db, skip_ids=skip_ids)
+        doc = await _select_next_pending_doc(db)
     if doc is None:
         return HandlerResult(
             status="ok",
@@ -173,12 +174,8 @@ async def _run_patrol_tick(*, task_key: str) -> HandlerResult:
     try:
         source_pdf_path, source_read_dir = await _stage_source_pdf(doc_id=doc_id, uri=doc["content_uri"])
     except Exception as exc:
-        logger.warning("patrol_stage_source_pdf_failed", doc_id=doc_id, error=str(exc))
-        return HandlerResult(
-            status="failed",
-            error=f"stage source pdf failed: {exc}",
-            metrics={"reason": "stage_source_pdf_failed", "doc_id": doc_id},
-        )
+        # 源 PDF 预取失败分类（活性韧性）——永久丢失标记 source_unavailable 终态，瞬态维持 failed 重试。
+        return await _handle_stage_source_failure(doc_id=doc_id, exc=exc)
 
     # 确保回归基线集 + 创建并启动巡检 Routine
     async with AsyncSessionLocal() as db:
@@ -319,7 +316,19 @@ async def _finalize_terminal_patrols(db) -> int:
         rid = uuid.UUID(str(routine_id))
 
         if routine_status == "cancelled":
-            # 用户干预：不沉淀状态记忆（文档保持可被重新选中），仅标记避免每 tick 重扫。
+            # 用户干预：回退文档巡检态为 NULL（可被 selector 重新选中）。
+            # 双守卫——仅回退「由本 cancelled routine 在 spawn 时写入的 in_progress」，
+            # 绝不覆盖已被同 doc 另一更高分 Routine finalize 写成的 done/unfixable。
+            if doc_id_cfg:
+                await db.execute(
+                    sa.text(
+                        "UPDATE negentropy.knowledge_documents "
+                        "SET patrol_status = NULL, patrol_score = NULL, "
+                        "patrol_routine_id = NULL, patrol_updated_at = NOW() "
+                        "WHERE id = CAST(:doc_id AS uuid) AND patrol_routine_id = :rid "
+                        "AND patrol_status = 'in_progress'"
+                    ).bindparams(doc_id=str(doc_id_cfg), rid=rid)
+                )
             await _mark_memory_persisted(db, rid)
             count += 1
             continue
@@ -564,6 +573,69 @@ async def _collapse_superseded_patrols(db) -> int:
 
 
 # ---------------------------------------------------------------------------
+# 巡检态校正：以「每 doc 最新的非 cancelled 终态 Routine」为权威（修 last-write-wins 污染）
+# ---------------------------------------------------------------------------
+
+
+async def _reconcile_patrol_status(db) -> int:
+    """以每 doc「最新的**非 cancelled** 终态 Routine」为权威，校正 ``knowledge_documents.patrol_status`` 列。
+
+    缺陷背景：``_finalize_terminal_patrols`` 按 finalize 顺序 last-write-wins 写列（不看 Routine
+    新旧），而 ``_collapse_superseded_patrols`` 取消冗余 Routine 时**不回写状态**。实测：一个先以
+    ``failed`` 终态写入 ``unfixable``、随后被 collapse 取消的 Routine，会把更早 ``succeeded`` 的
+    ``done`` 覆盖成 ``unfixable``（如 succeeded/95 被 failed/2 覆盖）。
+
+    语义：``cancelled`` Routine 非真实结论（被取代 / 用户放弃），故 winner 仅取 ``succeeded``/``failed``
+    （非 cancelled）终态 Routine，按 **``updated_at DESC``** 取最新——``updated_at`` 是 Routine 终态
+    达成（最后一次状态变更）时间，代表「最近一次巡检结论」；``created_at`` 仅是 spawn 时间，
+    完成顺序与创建顺序不一致时会误判（先创建后完成的 succeeded 应胜过后创建先完成的 failed）。
+    - ``succeeded`` 或 ``best_score ≥ patrol_qualified_score_threshold`` → ``done``；否则 ``unfixable``。
+    - 跳过「有 running/paused Routine」的 doc（spawn 写的 in_progress 为其当前真实态，不可回退）。
+    - 幂等：仅在 ``patrol_status`` / ``patrol_routine_id`` 变化时写（避免每 tick 刷新 ``patrol_updated_at``）。
+
+    列为 UI / selector 的唯一读源（迁移 0092 SSOT）；Memory ``TAG_STATUS`` 为 Phase 1 过渡，本函数不改。
+    返回实际校正行数。
+    """
+    threshold = settings.routine.patrol_qualified_score_threshold
+    result = await db.execute(
+        sa.text(
+            """
+            WITH winner AS (
+                SELECT DISTINCT ON (r.config->>'doc_id')
+                       r.config->>'doc_id' AS doc_id,
+                       r.id AS rid,
+                       r.status,
+                       r.best_score,
+                       CASE WHEN r.status = 'succeeded' OR r.best_score >= :threshold
+                            THEN 'done' ELSE 'unfixable' END AS new_status
+                FROM negentropy.routines r
+                WHERE r.config->>'patrol' = 'true'
+                  AND r.status IN ('succeeded', 'failed')
+                  AND r.config->>'doc_id' IS NOT NULL
+                ORDER BY r.config->>'doc_id', r.updated_at DESC
+            )
+            UPDATE negentropy.knowledge_documents kd
+            SET patrol_status = w.new_status,
+                patrol_score = w.best_score,
+                patrol_routine_id = w.rid,
+                patrol_updated_at = NOW()
+            FROM winner w
+            WHERE kd.id::text = w.doc_id
+              AND NOT EXISTS (
+                  SELECT 1 FROM negentropy.routines rr
+                  WHERE rr.config->>'patrol' = 'true'
+                    AND rr.config->>'doc_id' = kd.id::text
+                    AND rr.status IN ('running', 'paused')
+              )
+              AND (kd.patrol_status IS DISTINCT FROM w.new_status
+                   OR kd.patrol_routine_id IS DISTINCT FROM w.rid)
+            """
+        ).bindparams(threshold=threshold)
+    )
+    return result.rowcount or 0
+
+
+# ---------------------------------------------------------------------------
 # 并发跳过
 # ---------------------------------------------------------------------------
 
@@ -580,47 +652,49 @@ async def _has_running_patrol(db) -> bool:
 # ---------------------------------------------------------------------------
 
 
-async def _select_next_pending_doc(db, *, skip_ids: set[str]) -> dict[str, Any] | None:
-    """选最早入库、未 done/unfixable 的 PDF 文档（content_type=pdf 且转换已完成）。
+async def _select_next_pending_doc(db, *, skip_ids: set[str] | None = None) -> dict[str, Any] | None:
+    """选最早入库、未巡检（``patrol_status IS NULL``）的 **active** PDF 文档。
 
-    两道守卫（缺一不可）：
-      - **命名门控**：``display_name`` 或 ``metadata->>'title'`` 至少有一个非空，否则跳过。
-        巡检 Routine 名字在创建时刻定格（``_doc_display_title`` 三级解析），无更优名源时会兜底成
-        ``original_filename``（如 ``2603.05344v3.pdf``）——本门控从源头杜绝「原始文件名兜底」巡检。
-        新导入经 Fix B（Perceives 标题透传 + 回填）自动获得 ``metadata.title``；存量无标题文档待
-        用户改名 / 重新抽取后入选（绝不以原始文件名兜底发起巡检）。
+    前置资格（文档级，对齐全仓 ``status == "active"`` 约定，见 ``storage/service.py`` 列查询）：
+    ``app_name`` / ``status = 'active'``（排除软删文档——其源 blob 可能已随删除清除）/ ``content_type``
+    ILIKE pdf / ``markdown_extract_status = 'completed'``。
+
+    巡检资格判定的两道正交守卫：
+      - **巡检态门控**（SSOT）：``patrol_status IS NULL`` = 未巡检入选；``in_progress``/``done``/
+        ``unfixable`` 均跳过（终态文档须用户「重置为未拟合」回 NULL 方可二次巡检）。
       - **一文一活跃巡检**（Fix A）：``NOT EXISTS`` 排除已有**非 cancelled** 巡检 Routine 的文档
         （``config->>'doc_id'`` 为 SSOT 指针）。排除 cancelled 使「取消」成为合法复位——被取消的冗余
-        Routine 不再阻塞同 doc 以当前有效名重建（见 ``_collapse_superseded_patrols``）。
+        Routine 不再阻塞同 doc 重建（见 ``_collapse_superseded_patrols``）；此门亦承担防重试死循环职责。
 
-    与 ``skip_ids``（done/unfixable 终态语义）正交互补。
+    命名关注**正交下沉**至 ``_doc_display_title``（``display_name`` → ``metadata.title`` →
+    ``original_filename`` 三级兜底，复用纯函数 SSOT ``resolve_effective_display_name``）：巡检资格不因
+    缺名而被否决——仅剩原始文件名（含 arxiv-ID 如 ``2603.05344v3.pdf``）时仍发起巡检，Routine 名暂以
+    文件名兜底；待更优名源出现（用户改名 / Fix B 标题回填），``_collapse_superseded_patrols`` 自愈取消
+    旧 Routine、下一 tick 以更优名重建。历史「命名门控」（要求 display_name/metadata.title 非空）曾在此
+    预筛，致未巡检但无标题文档被永久跳过而 Scheduler 误报「无待检 PDF 文档」，已移除。
+
+    ``skip_ids`` 形参已废弃（过渡兼容，忽略），见迁移 0092 与 ``docs/.agents/pdf-fidelity-patrol-status.md``。
     """
-    params: dict[str, Any] = {"app": settings.app_name}
-    exclude_clause = ""
-    if skip_ids:
-        exclude_clause = "AND id::text NOT IN :skip"
-        params["skip"] = tuple(skip_ids)
+    # TODO(phase2): 移除 skip_ids 形参（巡检态已迁至 patrol_status 列，Memory TAG_STATUS deprecate 后删）。
+    del skip_ids  # 过渡期保留签名兼容，不再使用。
 
     sql = (
         "SELECT id, content_uri, original_filename, display_name, metadata->>'title' "
         "FROM negentropy.knowledge_documents "
         "WHERE app_name = :app "
+        "AND status = 'active' "
         "AND COALESCE(content_type,'') ILIKE '%pdf%' "
         "AND markdown_extract_status = 'completed' "
-        "AND COALESCE(NULLIF(display_name, ''), NULLIF(metadata->>'title', '')) IS NOT NULL "
+        "AND patrol_status IS NULL "
         "AND NOT EXISTS ("
         "  SELECT 1 FROM negentropy.routines r "
         "  WHERE r.config->>'patrol' = 'true' "
         "  AND r.config->>'doc_id' = knowledge_documents.id::text "
         "  AND r.status <> 'cancelled'"
         ") "
-        f"{exclude_clause} "
         "ORDER BY created_at ASC LIMIT 1"
     )
-    stmt = sa.text(sql)
-    if skip_ids:
-        stmt = stmt.bindparams(sa.bindparam("skip", expanding=True))
-    row = await db.execute(stmt, params)
+    row = await db.execute(sa.text(sql), {"app": settings.app_name})
     r = row.fetchone()
     if not r:
         return None
@@ -634,11 +708,16 @@ async def _select_next_pending_doc(db, *, skip_ids: set[str]) -> dict[str, Any] 
 
 
 async def _select_regression_sample(db, *, size: int) -> list[str]:
-    """分层抽取近 ``size`` 份已转换 PDF 作为回归基线样本（doc_id 字符串列表）。"""
+    """分层抽取近 ``size`` 份已转换 **active** PDF 作为回归基线样本（doc_id 字符串列表）。
+
+    ``status = 'active'`` 与 ``_select_next_pending_doc`` 对齐——避免把已删除文档（源 blob 可能已
+    清除）当作生产基线样本。
+    """
     rows = await db.execute(
         sa.text(
             "SELECT id::text FROM negentropy.knowledge_documents "
             "WHERE app_name = :app "
+            "AND status = 'active' "
             "AND COALESCE(content_type,'') ILIKE '%pdf%' "
             "AND markdown_extract_status = 'completed' "
             "ORDER BY created_at DESC LIMIT :n"
@@ -680,6 +759,48 @@ async def _stage_source_pdf(*, doc_id: str, uri: str) -> tuple[str, str]:
     return str(source_path), str(doc_dir)
 
 
+async def _handle_stage_source_failure(*, doc_id: str, exc: Exception) -> HandlerResult:
+    """源 PDF 预取失败的分类处理（活性韧性）；``_run_patrol_tick`` except 中直接 ``return await``。
+
+    - **永久丢失**（``StorageError``「Blob not found」，如已删除文档 blob 已清除）→ 标记
+      ``source_unavailable`` 终态：selector ``patrol_status IS NULL`` 即排除，不再每 tick 重选
+      卡死队列 / 累积 consecutive_failures 触发任务禁用；本 tick 优雅 ``ok`` 继续。
+    - **瞬态错误**（其余 ``StorageError``，如 DB 抖动 ``Failed to download``）→ 维持 ``failed``，
+      下一 tick 重试，不永久标记（避免误杀可恢复故障）。
+
+    ``source_unavailable`` 文档可经「重置为未拟合」清回 NULL 在 blob 恢复后重试。
+    """
+    from negentropy.storage import StorageError
+
+    logger.warning("patrol_stage_source_pdf_failed", doc_id=doc_id, error=str(exc))
+    if isinstance(exc, StorageError) and "Blob not found" in str(exc):
+        async with AsyncSessionLocal() as wdb:
+            await wdb.execute(
+                sa.text(
+                    "UPDATE negentropy.knowledge_documents "
+                    "SET patrol_status = 'source_unavailable', patrol_score = NULL, "
+                    "    patrol_routine_id = NULL, patrol_updated_at = NOW() "
+                    "WHERE id = CAST(:doc_id AS uuid)"
+                ).bindparams(doc_id=doc_id)
+            )
+            await wdb.commit()
+        logger.warning("patrol_doc_source_unavailable", doc_id=doc_id, error=str(exc))
+        return HandlerResult(
+            status="ok",
+            output_summary=f"source pdf unavailable, doc marked source_unavailable: doc={doc_id}",
+            metrics={
+                "reason": "stage_source_pdf_unavailable",
+                "doc_id": doc_id,
+                PATROL_LIFECYCLE_KEY: PATROL_LIFECYCLE_IDLE,
+            },
+        )
+    return HandlerResult(
+        status="failed",
+        error=f"stage source pdf failed: {exc}",
+        metrics={"reason": "stage_source_pdf_failed", "doc_id": doc_id},
+    )
+
+
 # ---------------------------------------------------------------------------
 # 创建并启动巡检 Routine（= NegentropyEngine · 单文档拟合至满分）
 # ---------------------------------------------------------------------------
@@ -695,6 +816,8 @@ def _build_patrol_routine(
     regression_sample: list[str],
     source_task_key: str,
     known_unfixable_regions: list[dict[str, Any]] | None = None,
+    wiki_env: dict[str, Any] | None = None,
+    known_defects: list[dict[str, Any]] | None = None,
 ) -> Routine:
     """构造巡检 Routine ORM 对象（纯函数，无 DB —— 可单测验证字段装配无 AttributeError）。
 
@@ -734,6 +857,8 @@ def _build_patrol_routine(
             candidate_md_path=candidate_md_path,
             qualified_threshold=qualified_threshold,
             known_unfixable_regions=known_unfixable_regions,
+            wiki_env=wiki_env,
+            known_defects=known_defects,
         ),
         acceptance_criteria=build_acceptance_criteria(
             baseline_branch=baseline_branch,
@@ -742,12 +867,18 @@ def _build_patrol_routine(
         cwd=None,  # 由 repository_id 派生 worktree cwd（单一事实源指针）
         baseline_branch=baseline_branch,
         repository_id=repo_id,
-        verification_command=None,
+        verification_command=(
+            # 客观门控（RoutineEvaluator._run_gate 在 worktree 内执行，退出码锚定 Judge 评分）：
+            # 退出码 0 = 每页文本 distinctive-token 覆盖≥阈值 + 每个 figure 资产后端可达 200。
+            f"uv run --project apps/negentropy-perceives python -m"
+            f" negentropy.perceives.tools.patrol_verify_fidelity"
+            f" --doc-id {doc_id} --pdf {source_pdf_path}"
+        ),
         status="running",
         max_iterations=settings.routine.patrol_max_iterations_per_doc,
         max_cost_usd=settings.routine.patrol_max_cost_usd_per_doc,
         deadline_at=None,
-        success_score_threshold=qualified_threshold,  # 合格阈值（默认 95）：收敛即 SUCCESS，不再误标 Failed
+        success_score_threshold=qualified_threshold,  # 合格阈值（默认 99）：收敛即 SUCCESS，不再误标 Failed
         no_progress_patience=3,  # per-Routine DB 列默认值（非 RoutineSettings 属性）
         approval_mode="auto",
         config=build_routine_config(
@@ -756,7 +887,10 @@ def _build_patrol_routine(
             candidate_md_path=candidate_md_path,
             source_read_dir=source_read_dir,
             regression_sample=regression_sample,
-            extra={"source_task_key": source_task_key},
+            extra={
+                "source_task_key": source_task_key,
+                **(wiki_env or {}),
+            },
         ),
         current_phase=phase_mod.initial_phase({}),  # 扁平工作流：IMPLEMENT 起；worktree 仍开 FINALIZE
         reflections={},
@@ -764,6 +898,58 @@ def _build_patrol_routine(
         agent_id=None,
         is_template=False,
     )
+
+
+def _setup_patrol_wiki_env(
+    *,
+    doc: dict[str, Any],
+    source_read_dir: str,
+) -> dict[str, Any]:
+    """编排 patrol wiki 渲染环境：写 content scaffold + spawn ``next dev``（非阻塞）。
+
+    返回注入 routine config 的 ``wiki_env`` 字典（CC/prompt 据此截图、publish-candidate）：
+
+    - 成功：``wiki_render_available=True`` + ``wiki_dev_port`` / ``wiki_dev_pid`` /
+      ``wiki_url`` / ``wiki_content_root`` / ``wiki_pub_slug`` / ``wiki_entry_id`` / ``wiki_entry_slug``。
+    - 失败（pnpm/next 缺失、spawn 异常）：降级 ``wiki_render_available=False``——巡检仍可推进，
+      CC 据此回退 legacy ``_fidelity_render`` 近似渲染 + 标本轮降级（不阻塞心跳、不致 Routine 创建失败）。
+
+    **非阻塞**：``start_wiki_dev_server`` 仅 ``Popen`` 立即返回 pid；ready 探测由 CC 截图前
+    调 ``patrol_wiki_env wait-ready``（在 bash 内阻塞），不在本 scheduler tick 内同步等待
+    （单 worker 后端事件循环不可冻结）。
+    """
+    try:
+        from negentropy.engine.routine import patrol_wiki_env
+
+        content_root = Path(source_read_dir) / "wiki-content"
+        doc_id = doc["id"]
+        doc_title = _doc_display_title(doc)
+        doc_filename = str(doc.get("original_filename") or "")
+        patrol_wiki_env.ensure_content_scaffold(
+            content_root,
+            doc_id=doc_id,
+            doc_title=doc_title,
+            doc_filename=doc_filename,
+        )
+        port = patrol_wiki_env.pick_free_port()
+        pid = patrol_wiki_env.start_wiki_dev_server(content_root, port=port)
+        return {
+            "wiki_render_available": True,
+            "wiki_content_root": str(content_root),
+            "wiki_dev_port": port,
+            "wiki_dev_pid": pid,
+            "wiki_url": patrol_wiki_env.wiki_url(port=port),
+            "wiki_pub_slug": patrol_wiki_env.PATROL_PUB_SLUG,
+            "wiki_entry_id": str(patrol_wiki_env.PATROL_ENTRY_ID),
+            "wiki_entry_slug": patrol_wiki_env.PATROL_ENTRY_SLUG,
+        }
+    except Exception as exc:  # noqa: BLE001 - 降级：wiki 真值不可用时巡检仍可走 legacy 渲染
+        logger.warning(
+            "patrol_wiki_env_setup_failed_degraded",
+            doc_id=str(doc.get("id")),
+            error=str(exc),
+        )
+        return {"wiki_render_available": False}
 
 
 async def _create_and_start_patrol_routine(
@@ -784,7 +970,10 @@ async def _create_and_start_patrol_routine(
     """
     from negentropy.engine.routine.patrol_memory import PatrolMemoryStore
 
-    known_unfixable_regions = await PatrolMemoryStore(db).get_unfixable_regions(str(doc["id"]))
+    memory = PatrolMemoryStore(db)
+    known_unfixable_regions = await memory.get_unfixable_regions(str(doc["id"]))
+    known_defects = await memory.get_defects(str(doc["id"]))
+    wiki_env = _setup_patrol_wiki_env(doc=doc, source_read_dir=source_read_dir)
     routine = _build_patrol_routine(
         repo_id=repo_id,
         baseline_branch=baseline_branch,
@@ -794,9 +983,20 @@ async def _create_and_start_patrol_routine(
         regression_sample=regression_sample,
         source_task_key=source_task_key,
         known_unfixable_regions=known_unfixable_regions,
+        wiki_env=wiki_env,
+        known_defects=known_defects,
     )
     db.add(routine)
     await db.flush()
+    # 巡检态落库（SSOT 列）：spawn 即 in_progress；清空历史 score。同事务随 _run_patrol_tick commit。
+    await db.execute(
+        sa.text(
+            "UPDATE negentropy.knowledge_documents "
+            "SET patrol_status = 'in_progress', patrol_score = NULL, "
+            "patrol_routine_id = :rid, patrol_updated_at = NOW() "
+            "WHERE id = CAST(:doc_id AS uuid)"
+        ).bindparams(rid=routine.id, doc_id=str(doc["id"]))
+    )
     return routine.id
 
 

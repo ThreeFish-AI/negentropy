@@ -3,6 +3,8 @@
 import { useRef, useState } from "react";
 import { toast } from "@/lib/activity-toast";
 import { AsyncPipelineResult } from "@/features/knowledge";
+import { Field } from "@/components/ui/Field";
+import { Input } from "@/components/ui/Input";
 import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
 import { FileText, FileType, Link2, UploadCloud, X } from "lucide-react";
 
@@ -348,15 +350,8 @@ export function ImportDocumentDialog({
         </div>
       ) : (
         /* URL Input */
-        <div>
-          <label
-            htmlFor="import-document-url"
-            className="mb-1.5 block text-xs font-medium text-text-secondary"
-          >
-            网页 URL
-          </label>
-          <input
-            id="import-document-url"
+        <Field label="网页 URL">
+          <Input
             type="url"
             value={url}
             onChange={(e) => {
@@ -364,9 +359,8 @@ export function ImportDocumentDialog({
               setError(null);
             }}
             placeholder="https://example.com/article"
-            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-text-muted focus:border-foreground/40 focus:outline-none"
           />
-        </div>
+        </Field>
       )}
 
       {/* Tab Description */}

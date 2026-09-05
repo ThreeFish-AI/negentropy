@@ -7,6 +7,7 @@
 import type {
   DashboardFilters,
   ExecutionListResponse,
+  ExecutionStatus,
   HandlerListResponse,
   HandlerSourceResponse,
   KpiResponse,
@@ -77,6 +78,10 @@ export async function fetchExecutions(
     limit?: number;
     task_id?: string;
     cursor?: string | null;
+    /** 执行状态过滤（后端 query 别名为 `status`）。 */
+    status?: ExecutionStatus | null;
+    /** 时间窗下界（ISO 8601）；后端按 started_at >= since 过滤。 */
+    since?: string | null;
     signal?: AbortSignal;
   } = {},
 ): Promise<ExecutionListResponse> {
@@ -85,6 +90,8 @@ export async function fetchExecutions(
   if (filters.scenario) sp.set("scenario", filters.scenario);
   if (filters.agent) sp.set("agent", filters.agent);
   if (filters.task_id) sp.set("task_id", filters.task_id);
+  if (filters.status) sp.set("status", filters.status);
+  if (filters.since) sp.set("since", filters.since);
   if (filters.limit) sp.set("limit", String(filters.limit));
   if (filters.cursor) sp.set("cursor", filters.cursor);
   const q = sp.toString();

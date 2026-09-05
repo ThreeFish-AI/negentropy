@@ -77,7 +77,7 @@ async def test_create_and_start_patrol_routine_persists_real_row(db_engine):
         assert row.repository_id == repo_id
         assert row.baseline_branch == "origin/feature/1.x.x"
         assert row.no_progress_patience == 3  # per-Routine 默认（非 settings）—— 回归点
-        assert row.success_score_threshold == 95  # 合格阈值（patrol_qualified_score_threshold；原 100→收敛即 SUCCESS）
+        assert row.success_score_threshold == 99  # 合格阈值（patrol_qualified_score_threshold；原 100→收敛即 SUCCESS）
         assert row.max_iterations == 400  # settings.routine.patrol_max_iterations_per_doc（×50：原 8）
         assert row.max_cost_usd == 1500.0  # patrol 专属预算（×50：原 30；非全局 default_max_cost_usd=5）
         assert row.owner_id == "system"
@@ -408,25 +408,25 @@ async def _status_memory(db_engine, doc_id):
 
 
 async def test_finalize_failed_high_score_marks_done_and_advances(db_engine):
-    """failed best_score=97 ≥ 95 → done(score=97)，doc 进 skip_ids（推进生效，不再死循环）。"""
+    """failed best_score=99 ≥ 99 → done(score=99)，doc 进 skip_ids（推进生效，不再死循环）。"""
     from negentropy.engine.routine.patrol_memory import PatrolMemoryStore
 
     factory = _sf(db_engine)
-    _, doc_id = await _seed_terminal_patrol_with_outcome(db_engine, status="failed", best_score=97)
+    _, doc_id = await _seed_terminal_patrol_with_outcome(db_engine, status="failed", best_score=99)
     async with factory() as db:
         n = await patrol._finalize_terminal_patrols(db)
         await db.commit()
     assert n >= 1
 
     row = await _status_memory(db_engine, doc_id)
-    assert row is not None and row.st == "done" and row.sc == "97"
+    assert row is not None and row.st == "done" and row.sc == "99"
 
     async with factory() as db:
         assert doc_id in await PatrolMemoryStore(db).get_skip_doc_ids()
 
 
 async def test_finalize_failed_low_score_marks_unfixable_and_advances(db_engine):
-    """failed best_score=52 < 95 → unfixable(score=52)，doc 仍进 skip_ids（尽力亦推进）。"""
+    """failed best_score=52 < 99 → unfixable(score=52)，doc 仍进 skip_ids（尽力亦推进）。"""
     from negentropy.engine.routine.patrol_memory import PatrolMemoryStore
 
     factory = _sf(db_engine)
@@ -441,14 +441,14 @@ async def test_finalize_failed_low_score_marks_unfixable_and_advances(db_engine)
 
 
 async def test_finalize_progressing_contract_advances(db_engine):
-    """末轮 progressing 契约 + best_score=96 ≥ 95 → done（核心：progressing 不再致死循环）。"""
+    """末轮 progressing 契约 + best_score=99 ≥ 99 → done（核心：progressing 不再致死循环）。"""
     from negentropy.engine.routine.patrol_memory import PatrolMemoryStore
 
     factory = _sf(db_engine)
     _, doc_id = await _seed_terminal_patrol_with_outcome(
         db_engine,
         status="failed",
-        best_score=96,
+        best_score=99,
         contract_summary=_contract_summary(score=80, status="progressing"),
     )
     async with factory() as db:
@@ -461,7 +461,7 @@ async def test_finalize_progressing_contract_advances(db_engine):
 
 
 async def test_finalize_missing_contract_falls_back_to_best_score(db_engine):
-    """末轮无 evaluated summary（契约缺失）+ best_score=88 < 95 → unfixable（best_score 兜底沉淀）。"""
+    """末轮无 evaluated summary（契约缺失）+ best_score=88 < 99 → unfixable（best_score 兜底沉淀）。"""
     _, doc_id = await _seed_terminal_patrol_with_outcome(db_engine, status="failed", best_score=88)
     factory = _sf(db_engine)
     async with factory() as db:
@@ -493,23 +493,23 @@ async def test_finalize_cancelled_does_not_persist_status(db_engine):
 
 
 async def test_finalize_multiple_routines_same_doc_best_wins(db_engine):
-    """同 doc 两条终态 Routine（best_score 52 与 97）→ 最终 done(score=97)（ORDER BY best_score 最佳拟合胜出）。"""
+    """同 doc 两条终态 Routine（best_score 52 与 99）→ 最终 done(score=99)（ORDER BY best_score 最佳拟合胜出）。"""
     doc_id = str(uuid.uuid4())
     await _seed_terminal_patrol_with_outcome(db_engine, status="failed", best_score=52, doc_id=doc_id)
-    await _seed_terminal_patrol_with_outcome(db_engine, status="failed", best_score=97, doc_id=doc_id)
+    await _seed_terminal_patrol_with_outcome(db_engine, status="failed", best_score=99, doc_id=doc_id)
     factory = _sf(db_engine)
     async with factory() as db:
         await patrol._finalize_terminal_patrols(db)
         await db.commit()
     row = await _status_memory(db_engine, doc_id)
-    assert row is not None and row.st == "done" and row.sc == "97"
+    assert row is not None and row.st == "done" and row.sc == "99"
 
 
 async def _seed_knowledge_pdf(db_engine, *, filename):
     """落库一条 knowledge_documents（pdf + completed）；返回其 id。
 
-    带 ``display_name``：命名门控（``_select_next_pending_doc``）要求文档至少有 display_name
-    或 metadata.title 之一，否则被跳过——测试文档须具名才可被选中（测试的是推进逻辑，非命名）。
+    带 ``display_name``：历史命名门控已移除（巡检资格不再预筛 display_name/metadata.title，命名
+    下沉至 ``_doc_display_title``），此处仍具名仅为测试可读性 / 与存量 fixture 一致。
     """
     from negentropy.config import settings
     from negentropy.models.perception import KnowledgeDocument
@@ -545,7 +545,7 @@ async def test_select_advances_after_done(db_engine):
     await _seed_knowledge_pdf(db_engine, filename="patrol-advance-b.pdf")  # 保证至少一份 pending
 
     # A 经一次终态 Routine 标 done
-    await _seed_terminal_patrol_with_outcome(db_engine, status="failed", best_score=97, doc_id=str(doc_a))
+    await _seed_terminal_patrol_with_outcome(db_engine, status="failed", best_score=99, doc_id=str(doc_a))
     async with factory() as db:
         await patrol._finalize_terminal_patrols(db)
         await db.commit()
@@ -556,6 +556,430 @@ async def test_select_advances_after_done(db_engine):
     assert str(doc_a) in skip  # A 已 done → 进 skip_ids（推进核心信号）
     assert next_doc is not None  # 仍有待检文档（B 或其它 pending）
     assert str(next_doc["id"]) != str(doc_a)  # 推进：不再选中已合格的 A（修「始终卡 A」根因）
+
+
+async def test_select_next_pending_doc_includes_untitled_pdf(db_engine):
+    """回归：未巡检但 ``display_name``/``metadata.title`` 均空的 PDF 也应入选（命名门控已移除）。
+
+    复现并锁死「Scheduler 误报无待检 PDF 文档」根因——历史命名门控（display_name/metadata.title
+    非空预筛）把这类文档永久跳过。测试库累积且 selector 全局取最早一份（``skip_ids`` 已废弃不可
+    drain），故不直接断言 ``selector()==该 doc``，而是断言「该 no-title doc 满足 selector 的资格
+    谓词」（等价于 selector 在无更早 pending 时会选中它）。
+    """
+    # 无 display_name / 无 metadata.title（命名门控移除前的「被误排」形态）
+    doc_id = await _seed_pdf_document(db_engine, original_filename="patrol-untitled.pdf")
+
+    factory = _sf(db_engine)
+    async with factory() as db:
+        eligible = await db.execute(
+            text(
+                "SELECT 1 FROM negentropy.knowledge_documents "
+                "WHERE id = :d "
+                "  AND app_name = :app "
+                "  AND COALESCE(content_type,'') ILIKE '%pdf%' "
+                "  AND markdown_extract_status = 'completed' "
+                "  AND patrol_status IS NULL "
+                "  AND NOT EXISTS ("
+                "    SELECT 1 FROM negentropy.routines r "
+                "    WHERE r.config->>'patrol' = 'true' "
+                "      AND r.config->>'doc_id' = knowledge_documents.id::text "
+                "      AND r.status <> 'cancelled')"
+            ),
+            {"d": doc_id, "app": settings.app_name},
+        )
+        assert eligible.fetchone() is not None  # no-title 未巡检 PDF 资格通过（命名门控不再拦截）
+
+
+async def test_select_next_pending_doc_excludes_deleted_doc(db_engine):
+    """回归：``status='deleted'`` 的 PDF 即便 patrol_status NULL 也不入选（源 blob 可能已随删除清除）。
+
+    复现并锁死「选中已删除文档 → Blob not found → 整 tick failed 卡死队列」根因——selector 须
+    ``status = 'active'`` 门控（对齐全仓文档查询约定）。测试库累积，故断言「该 deleted doc 不满足
+    selector 资格谓词」。
+    """
+    doc_id = await _seed_pdf_document(db_engine, original_filename="patrol-deleted.pdf")
+    factory = _sf(db_engine)
+    async with factory() as db:
+        await db.execute(
+            text("UPDATE negentropy.knowledge_documents SET status='deleted' WHERE id=:d"),
+            {"d": doc_id},
+        )
+        await db.commit()
+    async with factory() as db:
+        eligible = await db.execute(
+            text(
+                "SELECT 1 FROM negentropy.knowledge_documents "
+                "WHERE id = :d AND status = 'active' "
+                "  AND app_name = :app AND COALESCE(content_type,'') ILIKE '%pdf%' "
+                "  AND markdown_extract_status = 'completed' AND patrol_status IS NULL "
+                "  AND NOT EXISTS (SELECT 1 FROM negentropy.routines r "
+                "    WHERE r.config->>'patrol'='true' "
+                "      AND r.config->>'doc_id'=knowledge_documents.id::text "
+                "      AND r.status<>'cancelled')"
+            ),
+            {"d": doc_id, "app": settings.app_name},
+        )
+        assert eligible.fetchone() is None  # deleted → status='active' 门控排除
+
+
+# ---------------------------------------------------------------------------
+# Fix 3 活性韧性：源 blob 永久丢失 → source_unavailable 终态 + ok；瞬态 → failed 重试
+# ---------------------------------------------------------------------------
+
+
+async def test_handle_stage_source_failure_marks_unavailable_on_blob_not_found(db_engine, monkeypatch):
+    """Fix 3 行为：源 blob 永久丢失（StorageError「Blob not found」）→ 标记 source_unavailable + ok。
+
+    文档由此被 selector（patrol_status IS NULL）排除，不再每 tick 重选卡死队列；本 tick 优雅 ok
+    （不累加 consecutive_failures、不触发任务禁用）。
+
+    注：``_handle_stage_source_failure`` 内部用模块级 ``AsyncSessionLocal``（import 时绑定生产
+    factory，``patch_db_globals`` autouse 仅改 ``db_session``/``db_deps`` 不及 ``patrol``），故此处显式
+    patch 到测试引擎工厂（参见 memory ``service-asyncsessionlocal-ci-cross-loop``）。
+    """
+    from negentropy.storage import StorageError
+
+    monkeypatch.setattr(patrol, "AsyncSessionLocal", _sf(db_engine))
+    doc_id = await _seed_pdf_document(db_engine, original_filename="patrol-blob-missing.pdf")
+    result = await patrol._handle_stage_source_failure(
+        doc_id=str(doc_id),
+        exc=StorageError("Blob not found: pgblob://knowledge/negentropy/library/x.pdf"),
+    )
+    assert result.status == "ok"
+    assert result.metrics["reason"] == "stage_source_pdf_unavailable"
+    assert result.metrics["doc_id"] == str(doc_id)
+    factory = _sf(db_engine)
+    async with factory() as db:
+        row = await db.execute(
+            text("SELECT patrol_status FROM negentropy.knowledge_documents WHERE id=:d"),
+            {"d": doc_id},
+        )
+        assert row.fetchone()[0] == "source_unavailable"  # 终态标记 → selector 即排除
+
+
+async def test_handle_stage_source_failure_fails_on_transient_error(db_engine):
+    """Fix 3 行为：瞬态 StorageError（如 DB 抖动 ``Failed to download``）→ 维持 failed，不永久标记。
+
+    doc 的 patrol_status 保持原状（未巡检 NULL），下一 tick 可重试——避免误杀可恢复故障。
+    """
+    from negentropy.storage import StorageError
+
+    doc_id = await _seed_pdf_document(db_engine, original_filename="patrol-transient.pdf")
+    result = await patrol._handle_stage_source_failure(
+        doc_id=str(doc_id),
+        exc=StorageError("Failed to download blob pgblob://x: connection reset"),
+    )
+    assert result.status == "failed"
+    assert result.metrics["reason"] == "stage_source_pdf_failed"
+    factory = _sf(db_engine)
+    async with factory() as db:
+        row = await db.execute(
+            text("SELECT patrol_status FROM negentropy.knowledge_documents WHERE id=:d"),
+            {"d": doc_id},
+        )
+        assert row.fetchone()[0] is None  # 未永久标记，保持未巡检可重试
+
+
+# ---------------------------------------------------------------------------
+# 巡检态 SSOT 列（knowledge_documents.patrol_status）+ 「重置为未拟合」API
+# ---------------------------------------------------------------------------
+
+
+async def _patrol_column(db_engine, doc_id):
+    """读取某 doc 的巡检态列 (patrol_status, patrol_score, patrol_routine_id::text)。"""
+    factory = _sf(db_engine)
+    async with factory() as db:
+        return (
+            await db.execute(
+                text(
+                    "SELECT patrol_status, patrol_score, patrol_routine_id::text "
+                    "FROM negentropy.knowledge_documents WHERE id = :d"
+                ),
+                {"d": str(doc_id)},
+            )
+        ).fetchone()
+
+
+async def test_spawn_writes_in_progress_patrol_column(db_engine):
+    """spawn 巡检 Routine 时同步写 patrol_status='in_progress' + patrol_routine_id（SSOT 列）。"""
+    doc_id = await _seed_knowledge_pdf(db_engine, filename="patrol-spawn-col.pdf")
+    routine_id, _ = await _seed_terminal_patrol_with_outcome(
+        db_engine, status="succeeded", best_score=97, doc_id=str(doc_id)
+    )
+    # finalize 未跑 → 列保持 spawn 时写入的 in_progress
+    row = await _patrol_column(db_engine, doc_id)
+    assert row is not None
+    assert row[0] == "in_progress"
+    assert row[2] == str(routine_id)
+
+
+async def test_finalize_writes_patrol_status_column(db_engine):
+    """终态 finalize dual-write：patrol_status 列随 Memory 一致翻为 done/unfixable + score。"""
+    factory = _sf(db_engine)
+    doc_done = await _seed_knowledge_pdf(db_engine, filename="patrol-col-done.pdf")
+    doc_unfix = await _seed_knowledge_pdf(db_engine, filename="patrol-col-unfix.pdf")
+    await _seed_terminal_patrol_with_outcome(db_engine, status="failed", best_score=99, doc_id=str(doc_done))
+    await _seed_terminal_patrol_with_outcome(db_engine, status="failed", best_score=52, doc_id=str(doc_unfix))
+    async with factory() as db:
+        await patrol._finalize_terminal_patrols(db)
+        await db.commit()
+    done_row = await _patrol_column(db_engine, doc_done)
+    unfix_row = await _patrol_column(db_engine, doc_unfix)
+    assert done_row[0] == "done" and done_row[1] == 99
+    assert unfix_row[0] == "unfixable" and unfix_row[1] == 52
+
+
+async def test_reset_patrol_status_clears_column_and_cancels_routines(db_engine, monkeypatch):
+    """reset_patrol_status：清 patrol_status 列 + 取消终态 Routine（解除 selector 门）→ 可二次巡检。
+
+    DocumentStorageService.reset_patrol_status 内部用全局 ``AsyncSessionLocal`` 开会话（import 时
+    绑定到非测试库），CI 中指向无 schema 的库 → UndefinedTableError + 跨事件循环。故 monkeypatch
+    把 ``AsyncSessionLocal`` 指到测试 factory（同 registry.AsyncSessionLocal 既有 patch 范式）。
+    """
+    from negentropy.storage.service import DocumentStorageService
+
+    factory = _sf(db_engine)
+    # 把 service 内部的全局会话工厂指到测试 db_engine（同 monkeypatch registry.AsyncSessionLocal 范式）
+    monkeypatch.setattr("negentropy.storage.service.AsyncSessionLocal", factory)
+    doc_id = await _seed_knowledge_pdf(db_engine, filename="patrol-reset.pdf")
+    routine_id, _ = await _seed_terminal_patrol_with_outcome(
+        db_engine, status="failed", best_score=99, doc_id=str(doc_id)
+    )
+    async with factory() as db:
+        await patrol._finalize_terminal_patrols(db)
+        await db.commit()
+    assert (await _patrol_column(db_engine, doc_id))[0] == "done"  # 重置前为 done
+
+    await DocumentStorageService().reset_patrol_status(document_id=doc_id, app_name=settings.app_name)
+
+    # 1) 巡检态列清空（patrol_status/score → NULL）
+    row = await _patrol_column(db_engine, doc_id)
+    assert row[0] is None and row[1] is None
+    # 2) 终态 Routine 已取消（解除 selector NOT EXISTS 门），无阻塞 Routine → 可二次巡检
+    async with factory() as db:
+        routine = await db.get(Routine, routine_id)
+        assert routine.status == "cancelled"
+        blocking = (
+            await db.execute(
+                text(
+                    "SELECT 1 FROM negentropy.routines "
+                    "WHERE config->>'patrol' = 'true' AND config->>'doc_id' = :d "
+                    "AND status <> 'cancelled' LIMIT 1"
+                ),
+                {"d": str(doc_id)},
+            )
+        ).fetchone()
+        assert blocking is None
+
+
+async def test_reset_patrol_status_refuses_when_running(db_engine, monkeypatch):
+    """reset 在跑（running）巡检 Routine 时拒绝（ValueError），不杀在跑任务。"""
+    import pytest
+
+    from negentropy.storage.service import DocumentStorageService
+
+    factory = _sf(db_engine)
+    monkeypatch.setattr("negentropy.storage.service.AsyncSessionLocal", factory)
+    doc_id = await _seed_knowledge_pdf(db_engine, filename="patrol-reset-running.pdf")
+    routine_id, _ = await _seed_terminal_patrol_with_outcome(
+        db_engine, status="failed", best_score=97, doc_id=str(doc_id)
+    )
+    # 置 routine 为 running（模拟在跑巡检）
+    async with factory() as db:
+        routine = await db.get(Routine, routine_id)
+        routine.status = "running"
+        await db.commit()
+
+    with pytest.raises(ValueError):
+        await DocumentStorageService().reset_patrol_status(document_id=doc_id, app_name=settings.app_name)
+
+
+async def test_migration_0092_backfills_patrol_status_from_memories(db_engine):
+    """迁移 0092 回填：存量 memories(TAG_STATUS=done, score=97) → knowledge_documents 巡检态列。
+
+    按文件路径加载迁移模块（模块名 ``0092_...`` 非合法 Python 标识符，不能直接 import），
+    seed 一条 memories TAG_STATUS 后跑 ``_BACKFILL_SQL``，断言列被回填为 done/97。
+    幂等守卫 ``patrol_status IS NULL`` 使重跑安全。
+    """
+    import importlib.util
+    import json
+    from pathlib import Path
+
+    factory = _sf(db_engine)
+    doc_id = await _seed_knowledge_pdf(db_engine, filename="patrol-backfill.pdf")
+    # 插一条存量 memories TAG_STATUS(done, score=97)
+    async with factory() as db:
+        await db.execute(
+            text(
+                "INSERT INTO negentropy.memories (user_id, app_name, memory_type, content, metadata) "
+                "VALUES ('system', :app, 'semantic', :c, CAST(:m AS jsonb))"
+            ).bindparams(
+                app=settings.app_name,
+                c="backfill test",
+                m=json.dumps(
+                    {
+                        "tag": "pdf-fidelity-status",
+                        "doc_id": str(doc_id),
+                        "status": "done",
+                        "score": 97,
+                        "routine_id": None,
+                    }
+                ),
+            )
+        )
+        await db.commit()
+
+    # 按路径加载迁移模块并执行其回填 SQL
+    mig_path = (
+        Path(patrol.__file__).resolve().parents[3]
+        / "db"
+        / "migrations"
+        / "versions"
+        / "0092_pdf_fidelity_patrol_status_column.py"
+    )
+    spec = importlib.util.spec_from_file_location("mig_0092_patrol_status", mig_path)
+    assert spec is not None and spec.loader is not None
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    async with factory() as db:
+        await db.execute(text(mod._BACKFILL_SQL))
+        await db.commit()
+
+    row = await _patrol_column(db_engine, doc_id)
+    assert row is not None
+    assert row[0] == "done"  # status 回填
+    assert row[1] == 97  # score 回填（NULLIF(metadata->>'score','')::int）
+
+
+async def _set_patrol_routine_best_score(db_engine, routine_id, score) -> None:
+    """测试辅助：置一条 Routine 的 best_score（_seed_patrol_routine 不带 score）。"""
+    factory = _sf(db_engine)
+    async with factory() as db:
+        await db.execute(
+            text("UPDATE negentropy.routines SET best_score = :s WHERE id = CAST(:r AS uuid)").bindparams(
+                s=score, r=str(routine_id)
+            )
+        )
+        await db.commit()
+
+
+async def test_reconcile_picks_non_cancelled_winner_over_stale_cancelled(db_engine):
+    """reconcile：succeeded/95（非 cancelled）覆盖被污染的 stale unfixable/2（来自已 cancelled Routine）。
+
+    复现实测缺陷：一个先以 failed 写入 unfixable/2、随后被 collapse 取消的 Routine，把更早 succeeded/95
+    的 done 覆盖成 unfixable/2。reconcile 以「最新非 cancelled 终态 Routine」为权威校正回 done/95。
+    """
+    factory = _sf(db_engine)
+    doc_id = await _seed_pdf_document(db_engine, original_filename="reconcile.pdf", display_name="Reconcile Doc")
+    # routine A：succeeded/95（非 cancelled → 权威 winner）
+    rid_a = await _seed_patrol_routine(db_engine, doc_id=doc_id, title="t-a", display_name="d-a", status="succeeded")
+    await _set_patrol_routine_best_score(db_engine, rid_a, 95)
+    # routine B：cancelled/2（曾以 failed 写入 unfixable/2，后被 collapse 取消）
+    rid_b = await _seed_patrol_routine(db_engine, doc_id=doc_id, title="t-b", display_name="d-b", status="cancelled")
+    # 列被污染为 stale unfixable/2（指向已 cancelled 的 routine B）
+    async with factory() as db:
+        await db.execute(
+            text(
+                "UPDATE negentropy.knowledge_documents "
+                "SET patrol_status='unfixable', patrol_score=2, patrol_routine_id=CAST(:r AS uuid) "
+                "WHERE id=CAST(:d AS uuid)"
+            ).bindparams(r=str(rid_b), d=str(doc_id))
+        )
+        await db.commit()
+
+    async with factory() as db:
+        n = await patrol._reconcile_patrol_status(db)
+        await db.commit()
+    assert n >= 1
+
+    row = await _patrol_column(db_engine, doc_id)
+    assert row[0] == "done" and row[1] == 95  # winner A（succeeded/95）
+    assert str(row[2]) == str(rid_a)
+
+
+async def test_reconcile_skips_doc_with_running_routine(db_engine):
+    """reconcile 跳过有 running Routine 的 doc——保留 spawn 写的 in_progress，不回退到旧终态。"""
+    factory = _sf(db_engine)
+    doc_id = await _seed_pdf_document(
+        db_engine, original_filename="reconcile-running.pdf", display_name="Reconcile Running"
+    )
+    # 旧 failed 终态 Routine（若 reconcile 误选它会写 unfixable，覆盖 in_progress）
+    rid_old = await _seed_patrol_routine(db_engine, doc_id=doc_id, title="t-old", display_name="d-old", status="failed")
+    await _set_patrol_routine_best_score(db_engine, rid_old, 52)
+    # 当前 running Routine（spawn 写的 in_progress）
+    rid_run = await _seed_patrol_routine(
+        db_engine, doc_id=doc_id, title="t-run", display_name="d-run", status="running"
+    )
+    async with factory() as db:
+        await db.execute(
+            text(
+                "UPDATE negentropy.knowledge_documents "
+                "SET patrol_status='in_progress', patrol_routine_id=CAST(:r AS uuid) "
+                "WHERE id=CAST(:d AS uuid)"
+            ).bindparams(r=str(rid_run), d=str(doc_id))
+        )
+        await db.commit()
+
+    async with factory() as db:
+        await patrol._reconcile_patrol_status(db)
+        await db.commit()
+
+    row = await _patrol_column(db_engine, doc_id)
+    assert row[0] == "in_progress"  # 未被旧 failed/52 覆盖
+    assert str(row[2]) == str(rid_run)
+
+
+async def _set_routine_timestamps(db_engine, routine_id, *, created_at, updated_at) -> None:
+    """测试辅助：置一条 Routine 的 created_at / updated_at（控完成顺序 vs 创建顺序）。"""
+    factory = _sf(db_engine)
+    async with factory() as db:
+        await db.execute(
+            text(
+                "UPDATE negentropy.routines SET created_at = :c, updated_at = :u WHERE id = CAST(:r AS uuid)"
+            ).bindparams(c=created_at, u=updated_at, r=str(routine_id))
+        )
+        await db.commit()
+
+
+async def test_reconcile_picks_latest_by_updated_not_created(db_engine):
+    """reconcile 按 ``updated_at``（终态达成时间）而非 ``created_at`` 判定最新 Routine。
+
+    场景（完成顺序与创建顺序相反）：routine P「先创建(succeeded/95)后完成」、routine Q「后创建
+    (failed/52)先完成」。``created_at DESC`` 会误选 Q（创建更晚）→ unfixable/52（错）；
+    ``updated_at DESC`` 选 P（最近完成）→ done/95（对，代表最近一次巡检结论）。
+    """
+    factory = _sf(db_engine)
+    doc_id = await _seed_pdf_document(
+        db_engine, original_filename="reconcile-order.pdf", display_name="Reconcile Order"
+    )
+    # P：succeeded/95，created 早（07-01）但 updated 晚（07-08，最后完成）
+    rid_p = await _seed_patrol_routine(db_engine, doc_id=doc_id, title="t-p", display_name="d-p", status="succeeded")
+    await _set_patrol_routine_best_score(db_engine, rid_p, 95)
+    await _set_routine_timestamps(
+        db_engine,
+        rid_p,
+        created_at=datetime(2026, 7, 1, 0, 0, 0, tzinfo=UTC),
+        updated_at=datetime(2026, 7, 8, 10, 0, 0, tzinfo=UTC),
+    )
+    # Q：failed/52，created 晚（07-05）但 updated 早（07-06，先完成）
+    rid_q = await _seed_patrol_routine(db_engine, doc_id=doc_id, title="t-q", display_name="d-q", status="failed")
+    await _set_patrol_routine_best_score(db_engine, rid_q, 52)
+    await _set_routine_timestamps(
+        db_engine,
+        rid_q,
+        created_at=datetime(2026, 7, 5, 0, 0, 0, tzinfo=UTC),
+        updated_at=datetime(2026, 7, 6, 10, 0, 0, tzinfo=UTC),
+    )
+
+    async with factory() as db:
+        n = await patrol._reconcile_patrol_status(db)
+        await db.commit()
+    assert n >= 1
+
+    row = await _patrol_column(db_engine, doc_id)
+    # updated_at DESC → P（07-08 最近完成）胜出 → done/95（非 created_at 误判的 unfixable/52）
+    assert row[0] == "done" and row[1] == 95
+    assert str(row[2]) == str(rid_p)
 
 
 # ---------------------------------------------------------------------------
@@ -731,18 +1155,47 @@ async def _completed_pdf_doc_ids(db_engine) -> set[str]:
         return {r[0] for r in rows.fetchall()}
 
 
+async def _doc_is_pending_candidate(db_engine, doc_id) -> bool:
+    """该 doc 是否满足 ``_select_next_pending_doc`` 的全部门控（单 doc 视角，确定性）。
+
+    鲁棒于共享测试库 ``negentropy_test`` 的累积数据——不依赖 ``ORDER BY`` 选中顺序
+    （多次运行会残留多份 created_at 相近的 pending 文档，致 ``LIMIT 1`` 选中不确定）。
+    """
+    factory = _sf(db_engine)
+    async with factory() as db:
+        row = (
+            await db.execute(
+                text(
+                    "SELECT 1 FROM negentropy.knowledge_documents kd "
+                    "WHERE kd.id = CAST(:d AS uuid) "
+                    "AND kd.app_name = :app "
+                    "AND COALESCE(kd.content_type, '') ILIKE '%pdf%' "
+                    "AND kd.markdown_extract_status = 'completed' "
+                    "AND kd.patrol_status IS NULL "
+                    "AND COALESCE(NULLIF(kd.display_name, ''), NULLIF(kd.metadata->>'title', '')) IS NOT NULL "
+                    "AND NOT EXISTS ("
+                    "  SELECT 1 FROM negentropy.routines r "
+                    "  WHERE r.config->>'patrol' = 'true' AND r.config->>'doc_id' = kd.id::text "
+                    "  AND r.status <> 'cancelled')"
+                ).bindparams(d=str(doc_id), app=settings.app_name)
+            )
+        ).fetchone()
+        return row is not None
+
+
 async def test_select_next_pending_doc_one_active_patrol_per_doc_and_cancel_relets(db_engine):
-    """Fix A：已有非 cancelled 巡检 Routine 的文档不被重选；该 Routine cancelled 后重新入选（自愈复位）。"""
+    """Fix A：已有非 cancelled 巡检 Routine 的文档不被重选；该 Routine cancelled 后重新入选（自愈复位）。
+
+    用单 doc 视角的门控判定（``_doc_is_pending_candidate``）断言，鲁棒于共享测试库的累积数据
+    （selector 已迁至读 ``patrol_status`` 列；不再依赖 ``ORDER BY`` 选中顺序或废弃的 ``skip_ids``）。
+    """
     factory = _sf(db_engine)
     doc_id = await _seed_pdf_document(db_engine, original_filename="guard.pdf", display_name="Guard Doc")
-    others = (await _completed_pdf_doc_ids(db_engine)) - {str(doc_id)}  # 隔离：仅被测 doc 为候选
 
-    # 1) 无巡检 → 被测 doc 可选
-    async with factory() as db:
-        doc = await patrol._select_next_pending_doc(db, skip_ids=others)
-    assert doc is not None and str(doc["id"]) == str(doc_id)
+    # 1) 无巡检 → 被测 doc 是合法候选
+    assert await _doc_is_pending_candidate(db_engine, doc_id) is True
 
-    # 2) 建活跃巡检 → NOT EXISTS 阻塞被测 doc
+    # 2) 建活跃巡检 → NOT EXISTS 阻塞 → 不再是候选
     await _seed_patrol_routine(
         db_engine,
         doc_id=doc_id,
@@ -750,11 +1203,9 @@ async def test_select_next_pending_doc_one_active_patrol_per_doc_and_cancel_rele
         display_name="PDF Fidelity Patrol · guard.pdf",
         status="running",
     )
-    async with factory() as db:
-        doc = await patrol._select_next_pending_doc(db, skip_ids=others)
-    assert doc is None or str(doc["id"]) != str(doc_id)
+    assert await _doc_is_pending_candidate(db_engine, doc_id) is False
 
-    # 3) 取消该巡检 → cancelled 排除 → 被测 doc 重新入选（自愈）
+    # 3) 取消该巡检 → cancelled 排除 → 重新成为候选（自愈复位）
     async with factory() as db:
         await db.execute(
             text(
@@ -763,9 +1214,7 @@ async def test_select_next_pending_doc_one_active_patrol_per_doc_and_cancel_rele
             ).bindparams(did=str(doc_id))
         )
         await db.commit()
-    async with factory() as db:
-        doc = await patrol._select_next_pending_doc(db, skip_ids=others)
-    assert doc is not None and str(doc["id"]) == str(doc_id)
+    assert await _doc_is_pending_candidate(db_engine, doc_id) is True
 
 
 async def test_collapse_superseded_patrols_cancels_raw_keeps_corrected(db_engine):

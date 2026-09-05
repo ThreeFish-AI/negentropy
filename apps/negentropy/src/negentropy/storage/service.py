@@ -14,10 +14,12 @@ from uuid import UUID
 from sqlalchemy import func, or_, select, text
 from sqlalchemy.exc import IntegrityError
 
+from negentropy.config import settings
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
 from negentropy.models.base import NEGENTROPY_SCHEMA
 from negentropy.models.perception import KnowledgeDocument
+from negentropy.models.state import UserState
 from negentropy.serialization import strip_nul_chars
 
 from .exceptions import StorageError
@@ -355,6 +357,7 @@ class DocumentStorageService:
         offset: int = 0,
         order_by: str = "created_at",
         markdown_status: str | None = None,
+        search: str | None = None,
     ) -> tuple[list[KnowledgeDocument], int]:
         """List documents with optional filtering.
 
@@ -369,6 +372,12 @@ class DocumentStorageService:
                 pagination when timestamps tie.
             markdown_status: Optional ``markdown_extract_status`` 过滤（如
                 ``"completed"``）。None 表示不过滤，保留既有调用方语义。
+            search: 可选模糊搜索词，对 文件名(``original_filename``)/
+                显示名(``display_name``)/作者姓名 做大小写不敏感 ILIKE。
+                作者维度：``created_by`` 存的是用户 ID 而非姓名，故经
+                ``user_states.state.profile.name`` 参数化子查询反解为匹配的
+                user_id 集合再过滤（对齐 ``_resolve_user_display_names``）。
+                None/空串表示不过滤。
 
         Returns:
             Tuple of (list of documents, total count)
@@ -382,6 +391,20 @@ class DocumentStorageService:
                 conditions.append(KnowledgeDocument.app_name == app_name)
             if markdown_status:
                 conditions.append(KnowledgeDocument.markdown_extract_status == markdown_status)
+            if search and search.strip():
+                like = f"%{search.strip()}%"
+                # 名称：文件名 / 用户显示名直接 ILIKE。
+                name_cond = KnowledgeDocument.original_filename.ilike(like) | (
+                    KnowledgeDocument.display_name.ilike(like)
+                )
+                # 作者：created_by 存的是 user_id，须经 user_states.state.profile.name
+                # 反解为匹配的 user_id 集合（子查询参数化，注入安全；app_name 作用域
+                # 对齐 _resolve_user_display_names → settings.app_name 兜底）。
+                author_subq = select(UserState.user_id).where(
+                    UserState.app_name == (app_name or settings.app_name),
+                    UserState.state["profile"]["name"].astext.ilike(like),
+                )
+                conditions.append(name_cond | KnowledgeDocument.created_by.in_(author_subq))
 
             # Count query
             count_stmt = select(func.count()).select_from(KnowledgeDocument).where(*conditions)
@@ -725,6 +748,84 @@ class DocumentStorageService:
                 cleared=normalized is None,
                 chunks_updated=chunks_updated,
             )
+            return doc
+
+    async def reset_patrol_status(
+        self,
+        *,
+        document_id: UUID,
+        corpus_id: UUID | None = None,
+        app_name: str | None = None,
+    ) -> KnowledgeDocument | None:
+        """重置文档巡检态为「未巡检」（``patrol_status=NULL``），使其可被 Scheduler 二次巡检。
+
+        - 与 :meth:`get_document` 一致的 ``corpus_id`` / ``app_name`` 权限校验。
+        - 若该 doc 存在 ``running``/``paused`` 巡检 Routine → 抛 ``ValueError``（路由映射 409，
+          不杀在跑任务；调用方应先取消在跑巡检）。
+        - 取消该 doc 的非 cancelled 终态 Routine（``succeeded``/``failed``），解除 selector
+          ``NOT EXISTS`` 门——否则重置后仍被挡、无法被重新选中（关键约束）。取消范式镜像
+          ``_collapse_superseded_patrols``：置 ``outcome_propagated=true`` 防聚合态回写污染。
+        - 清 ``patrol_status``/``patrol_score``/``patrol_routine_id`` 列 + 清 Memory
+          ``TAG_STATUS``/``TAG_UNFIXABLE``（区域级避让一并解除，二次巡检重试这些区域）。
+
+        Returns:
+            更新后的 ``KnowledgeDocument``；若文档不存在或权限不匹配返回 ``None``
+        """
+        from negentropy.engine.routine.patrol_memory import PatrolMemoryStore
+
+        doc_id_str = str(document_id)
+        async with AsyncSessionLocal() as db:
+            conditions = [KnowledgeDocument.id == document_id]
+            if corpus_id:
+                conditions.append(KnowledgeDocument.corpus_id == corpus_id)
+            if app_name:
+                conditions.append(KnowledgeDocument.app_name == app_name)
+
+            stmt = select(KnowledgeDocument).where(*conditions)
+            result = await db.execute(stmt)
+            doc = result.scalar_one_or_none()
+            if not doc:
+                return None
+
+            # 1) running/paused 在跑 → 拒绝（不杀在跑任务）
+            running = await db.execute(
+                text(
+                    "SELECT 1 FROM negentropy.routines "
+                    "WHERE config->>'patrol' = 'true' AND config->>'doc_id' = :doc "
+                    "AND status IN ('running', 'paused') LIMIT 1"
+                ).bindparams(doc=doc_id_str)
+            )
+            if running.fetchone():
+                raise ValueError("patrol routine in progress; cancel it before reset")
+
+            # 2) 取消非 cancelled 终态 Routine（解除 selector NOT EXISTS 门），幂等
+            await db.execute(
+                text(
+                    "UPDATE negentropy.routines "
+                    "SET status = 'cancelled', termination_reason = 'patrol_reset', "
+                    "    config = COALESCE(config, '{}'::jsonb) "
+                    "      || jsonb_build_object('outcome_propagated', true) "
+                    "WHERE config->>'patrol' = 'true' AND config->>'doc_id' = :doc "
+                    "AND status IN ('succeeded', 'failed')"
+                ).bindparams(doc=doc_id_str)
+            )
+
+            # 3) 清巡检态列（SSOT）
+            await db.execute(
+                text(
+                    f"UPDATE {NEGENTROPY_SCHEMA}.knowledge_documents "
+                    "SET patrol_status = NULL, patrol_score = NULL, "
+                    "    patrol_routine_id = NULL, patrol_updated_at = NOW() "
+                    "WHERE id = :did"
+                ).bindparams(did=document_id)
+            )
+
+            # 4) 清 Memory TAG_STATUS + TAG_UNFIXABLE（区域级避让）
+            await PatrolMemoryStore(db).clear_doc_legacy_memories(doc_id_str)
+
+            await db.commit()
+            await db.refresh(doc)
+            logger.info("document_patrol_reset", doc_id=doc_id_str)
             return doc
 
     async def delete_blob(self, *, content_uri: str) -> bool:

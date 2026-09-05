@@ -17,7 +17,14 @@ interface FilterBarProps {
   connected: boolean;
 }
 
-const WINDOWS: StatsWindow[] = ["1h", "24h", "7d"];
+const WINDOWS: StatsWindow[] = ["1h", "24h", "7d", "all"];
+/** pill 展示文案（"all" → "All"，其余原样）。 */
+const WINDOW_LABELS: Record<StatsWindow, string> = {
+  "1h": "1h",
+  "24h": "24h",
+  "7d": "7d",
+  all: "All",
+};
 
 function uniqueValues(items: Array<string | null | undefined>): string[] {
   return Array.from(new Set(items.filter((v): v is string => Boolean(v))));
@@ -97,7 +104,7 @@ export function FilterBar({
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            {w}
+            {WINDOW_LABELS[w]}
           </button>
         ))}
       </div>

@@ -24,6 +24,9 @@ repos:
         args: [--markdown-linebreak-ext=md]
       - id: end-of-file-fixer
       - id: check-yaml
+        # pnpm 12 起根 pnpm-lock.yaml 是多文档 YAML（packageManagerDependencies 独占首个
+        # 文档，见 ISSUE-175）；只豁免这份机器产物，手写 YAML 仍受单文档校验约束。
+        exclude: ^pnpm-lock\.yaml$
       - id: check-toml
       - id: check-merge-conflict
       - id: check-added-large-files
@@ -44,6 +47,18 @@ repos:
       - id: ruff-format
         name: ruff format (negentropy)
         files: ^apps/negentropy/
+        types_or: [python, pyi]
+
+      # ── Python: negentropy-influence/pipeline（科普视频公共管线） ──────────
+      # 与 negentropy 同一 ruff 修订版；此前仅覆盖 apps/negentropy/，管线脚本无 lint 门
+      - id: ruff
+        name: ruff lint (influence-pipeline)
+        args: [--fix, --exit-non-zero-on-fix]
+        files: ^apps/negentropy-influence/pipeline/
+        types_or: [python, pyi]
+      - id: ruff-format
+        name: ruff format (influence-pipeline)
+        files: ^apps/negentropy-influence/pipeline/
         types_or: [python, pyi]
 
   # ── Node.js: apps/negentropy-ui ──────────────────────────────────────────
@@ -105,4 +120,38 @@ repos:
         language: system
         entry: uv run scripts/sync_versions.py check
         files: ^(VERSION|scripts/sync_versions\.py|package\.json|apps/negentropy/(pyproject\.toml|uv\.lock)|apps/negentropy-ui/package\.json|apps/negentropy-wiki/package\.json|apps/negentropy-perceives/(pyproject\.toml|uv\.lock)|packages/agents-chat-core/package\.json)$
+        pass_filenames: false
+
+  # ── 孪生文件（逐字节副本）一致性执法 ─────────────────────────────────────
+  # 某些模块因构建边界无法提为共享包，只能以逐字节副本形式多处持有（登记表见脚本）。
+  # 本钩子把「改一处必须同步另一处」从人工纪律升格为机器保证，漂移时打印统一 diff。
+  # ⚠️ files: 覆盖登记表内全部路径 + 脚本自身；新增副本组时须同步扩充此正则，
+  #    否则钩子对新组**静默失效**（pre-commit 跳过不报错）。改动后须验证：
+  #    暂存一处副本改动，确认钩子 Passed 而非 Skipped。
+  # 注：pre-commit 会 stash 未暂存改动、仅对暂存内容执行，故同组副本**必须整组
+  #    一同 git add**；只暂存一侧会因另一侧仍是 HEAD 版本而判定漂移 —— 这正是
+  #    期望语义：它连「部分同步的提交」也一并拦住。
+  - repo: local
+    hooks:
+      - id: twin-files-consistency
+        name: Twin files consistency
+        language: system
+        entry: uv run --no-project scripts/check_twin_files.py
+        files: ^(scripts/check_twin_files\.py|apps/negentropy-wiki/src/components/markdown/remark-math-sanitize\.ts|apps/negentropy-ui/utils/remark-math-sanitize\.ts)$
+        pass_filenames: false
+
+  # ── 科普视频系列一致性（series.json 执法） ───────────────────────────────
+  # 规则：口播反串线（自身标题排除）/多标题顺序/序号绑定/清单完整性/相对链接死链。
+  # 注意：挂在内容修复之后落地；顺序调整类变更须先改 series.json 再动散文。
+  # ⚠️ files: 写错是**静默**失效（钩子直接跳过、不报错），entry 写错才会响。
+  #    改动本条后须验证：暂存一处子项目内改动，确认钩子 Passed 而非 Skipped。
+  #    `.agent/skills/science-video-pipeline/` 亦须在列 —— 该路由壳有 13 条入树
+  #    链接受规则 5 执法，只改它的提交必须能触发本钩子。
+  - repo: local
+    hooks:
+      - id: series-consistency-check
+        name: Series consistency (series.json)
+        language: system
+        entry: uv run --no-project apps/negentropy-influence/pipeline/scripts/check_series.py
+        files: ^(apps/negentropy-influence/|\.agent/skills/science-video-pipeline/|docs/\.agents/knowledge-map\.md|CHANGELOG\.md)
         pass_filenames: false

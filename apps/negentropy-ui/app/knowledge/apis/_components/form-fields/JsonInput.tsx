@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { Field } from "@/components/ui/Field";
+import { Textarea } from "@/components/ui/Textarea";
+import { cn } from "@/lib/utils";
 import { FormFieldConfig } from "@/features/knowledge/utils/api-specs";
 
 interface JsonInputProps {
@@ -40,30 +43,22 @@ export function JsonInput({ field, value, onChange }: JsonInputProps) {
   };
 
   return (
-    <div>
-      <label className="block text-xs font-medium text-text-secondary">
-        {field.label}{" "}
-        {field.required && <span className="text-rose-500">*</span>}
-      </label>
-      <textarea
+    <Field
+      label={field.label}
+      required={field.required}
+      description={field.description}
+      error={error ?? undefined}
+    >
+      <Textarea
         value={text}
         onChange={handleChange}
         placeholder={field.placeholder || '{"key": "value"}'}
         rows={3}
-        className={`mt-1 w-full rounded-lg border bg-background px-3 py-2 text-xs font-mono text-foreground focus:outline-none focus:ring-1 ${
-          error
-            ? "border-rose-300 focus:border-rose-500 focus:ring-rose-500 dark:border-rose-700"
-            : "border-input focus:border-blue-500 focus:ring-blue-500"
-        }`}
+        className={cn(
+          "font-mono",
+          error ? "border-error focus:ring-error/60" : undefined,
+        )}
       />
-      {error && (
-        <p className="mt-1 text-micro text-rose-500">{error}</p>
-      )}
-      {field.description && !error && (
-        <p className="mt-1 text-micro text-text-muted">
-          {field.description}
-        </p>
-      )}
-    </div>
+    </Field>
   );
 }

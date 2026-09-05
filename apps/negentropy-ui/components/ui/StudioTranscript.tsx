@@ -8,9 +8,11 @@ import { CHAT_CONTENT_RAIL_CLASS } from "./chat-layout";
 import { buildStudioTranscript } from "./studio-transcript/build-studio-transcript";
 import { STUDIO_POLICY, TranscriptItemsView, type TranscriptItem } from "@/components/transcript";
 import { buildChatDisplayBlocks } from "@/utils/chat-display";
+import { useAuth } from "@/features/auth";
 import { cn } from "@/lib/utils";
 import type { ConversationNode } from "@/types/a2ui";
 import type { ToolProgressMap } from "@/types/common";
+import { UserAvatar } from "./UserAvatar";
 
 type StudioTranscriptProps = {
   nodes: ConversationNode[];
@@ -30,6 +32,8 @@ type StudioTranscriptProps = {
   suggestions?: ChatSuggestion[];
   onSuggestionPick?: (prompt: string) => void;
   welcomeUserName?: string | null;
+  /** 在途态计时起点（epoch ms）——run 开始时刻，透传给 WorkingIndicator（对齐 Conductor 耗时）。 */
+  workingElapsedStartMs?: number;
 };
 
 /**
@@ -53,7 +57,20 @@ export function StudioTranscript({
   suggestions,
   onSuggestionPick,
   welcomeUserName,
+  workingElapsedStartMs,
 }: StudioTranscriptProps) {
+  // 「人」的一方（真实用户）头像：OAuth 照片优先，回退首字母——锚定用户身份（对齐 Conductor）。
+  const { user } = useAuth();
+  const userAvatar = user ? (
+    <UserAvatar
+      picture={user.picture}
+      name={user.name}
+      email={user.email}
+      className="h-7 w-7"
+      fallbackClassName="bg-muted text-foreground text-xs"
+    />
+  ) : undefined;
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const isUserAtBottomRef = useRef(true);
   const [showJumpToBottom, setShowJumpToBottom] = useState(false);
@@ -187,6 +204,8 @@ export function StudioTranscript({
               policy={STUDIO_POLICY}
               live={live}
               itemWrapper={itemWrapper}
+              userAvatar={userAvatar}
+              workingElapsedStartMs={live ? workingElapsedStartMs : undefined}
             />
           )}
         </div>

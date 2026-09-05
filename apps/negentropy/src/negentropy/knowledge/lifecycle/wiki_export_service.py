@@ -25,6 +25,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 from datetime import datetime
 from pathlib import Path
@@ -94,6 +95,7 @@ class WikiExportService:
         result.generated_at = datetime.utcnow().isoformat() + "Z"
 
         pubs, _total = await WikiDao.list_publications(db, status="published", offset=0, limit=200)
+        logger.info("wiki_export_started", publications=len(pubs), out_dir=str(out_dir))
 
         self._reset(out_dir)
         entries_dir = out_dir / "entries"
@@ -117,6 +119,7 @@ class WikiExportService:
             entries = await WikiDao.get_entries(db, pub.id)
             doc_entries = [e for e in entries if e.document_id is not None]
             entries_count = sum(1 for e in entries if getattr(e, "entry_kind", None) == "DOCUMENT") or len(doc_entries)
+            logger.info("wiki_export_publication", slug=slug, entries=len(entries))
 
             # publication.json
             pub_payload = self._serialize_publication(pub, entries_count)
@@ -133,7 +136,10 @@ class WikiExportService:
             # entries-index.json + entries/{id}.json
             entry_items: list[dict[str, Any]] = []
             slug_to_id: dict[str, str] = {}
-            for e in entries:
+            entries_total = len(entries)
+            # 进度节流：每 publication 恒定约 10 行，输出量与语料规模解耦（逐条明细见 debug）。
+            progress_step = max(1, entries_total // 10)
+            for idx, e in enumerate(entries, start=1):
                 entry_items.append(
                     {
                         "id": str(e.id),
@@ -149,14 +155,23 @@ class WikiExportService:
                     content_data = await WikiDao.get_entry_content(db, e.id)
                     if content_data is None:
                         logger.warning("wiki_export_entry_no_content", entry_id=str(e.id))
-                        continue
-                    resp = build_entry_content_response(e.id, content_data, entry_slug=e.entry_slug)
-                    payload = resp.model_dump(mode="json")
-                    payload["markdown_content"] = await self._rewrite_asset_links(
-                        payload.get("markdown_content") or "", assets_dir=assets_dir
+                    else:
+                        resp = build_entry_content_response(e.id, content_data, entry_slug=e.entry_slug)
+                        payload = resp.model_dump(mode="json")
+                        payload["markdown_content"] = await self._rewrite_asset_links(
+                            payload.get("markdown_content") or "", assets_dir=assets_dir
+                        )
+                        self._write_json(entries_dir / f"{e.id}.json", payload, result)
+                        result.entries += 1
+
+                if idx % progress_step == 0 or idx == entries_total:
+                    logger.info(
+                        "wiki_export_progress",
+                        slug=slug,
+                        entries_done=idx,
+                        entries_total=entries_total,
+                        assets=len(self._asset_files),
                     )
-                    self._write_json(entries_dir / f"{e.id}.json", payload, result)
-                    result.entries += 1
 
             self._write_json(
                 pub_dir / "entries-index.json",
@@ -229,11 +244,113 @@ class WikiExportService:
 
         logger.info(
             "wiki_export_done",
-            publications=len(pubs),
+            # 用 result.publications：含注入的 docs pack，与 to_dict()/CLI 汇总口径一致。
+            publications=len(result.publications),
             entries=result.entries,
             graphs=result.graphs,
             assets=len(self._asset_files),
             files=len(result.files),
+        )
+        return result
+
+    async def export_single_entry(
+        self,
+        db: AsyncSession,
+        *,
+        pub_id: UUID,
+        entry_id: UUID | None = None,
+        doc_id: UUID | None = None,
+        out_dir: Path,
+        bake_assets: bool | None = None,
+    ) -> WikiExportResult:
+        """单条导出：仅刷新一个 entry 的 ``entries/{id}.json`` + 局部 ``entries-index.json``。
+
+        与 ``export_all_published``（覆盖式全量）正交：不清空目录（不 ``_reset``）、
+        不触碰其他 entry / publication 文件，专供 PDF Fidelity Patrol Real-Render Gate
+        在 ``refresh_markdown(resume=false)`` 写入生产 markdown_content 后，把该 entry
+        的最新内容单条同步到 wiki 内容根（原子写 ``.tmp→os.replace``，避免与 wiki dev
+        server 请求期 ``fs.readFile`` 读取竞争）。
+
+        前置：publication 级 scaffold（``publication.json`` / ``nav-tree.json`` /
+        ``entries-index.json`` / 顶层 ``index.json`` / ``publications.json``）须已由
+        ``export_all_published`` 或等价方式建立（patrol 启动期 ``ensure_staging_publication``
+        负责）。本方法仅刷新 entry 内容 + 幂等 upsert entries-index 该条目。
+        """
+        result = WikiExportResult()
+        result.generated_at = datetime.utcnow().isoformat() + "Z"
+
+        pub = await WikiDao.get_publication(db, pub_id)
+        if pub is None:
+            raise ValueError(f"publication not found: {pub_id}")
+        slug = pub.slug
+        result.publications.append(slug)
+
+        entries = await WikiDao.get_entries(db, pub.id)
+        target = None
+        for e in entries:
+            if entry_id is not None and e.id == entry_id:
+                target = e
+                break
+            if doc_id is not None and e.document_id == doc_id:
+                target = e
+                break
+        if target is None:
+            raise ValueError(f"entry not found in publication {slug}: entry_id={entry_id} doc_id={doc_id}")
+        if target.document_id is None:
+            raise ValueError(f"entry {target.id} is CONTAINER (no document_id), cannot export content")
+
+        cfg = settings.knowledge.wiki_export
+        if bake_assets is None:
+            bake_assets = cfg.bake_assets
+        assets_dir = out_dir / "assets"
+
+        content_data = await WikiDao.get_entry_content(db, target.id)
+        if content_data is None:
+            raise ValueError(f"entry has no content: {target.id}")
+        resp = build_entry_content_response(target.id, content_data, entry_slug=target.entry_slug)
+        payload = resp.model_dump(mode="json")
+        payload["markdown_content"] = await self._rewrite_asset_links(
+            payload.get("markdown_content") or "", assets_dir=assets_dir
+        )
+        entries_dir = out_dir / "entries"
+        self._write_json_atomic(entries_dir / f"{target.id}.json", payload, result)
+        result.entries += 1
+
+        # 幂等 upsert entries-index 该条目（scaffold 缺失/损坏则建最小骨架）
+        pub_dir = out_dir / "publications" / slug
+        index_path = pub_dir / "entries-index.json"
+        entry_item = {
+            "id": str(target.id),
+            "document_id": str(target.document_id),
+            "entry_slug": target.entry_slug,
+            "entry_title": target.entry_title,
+            "is_index_page": bool(target.is_index_page),
+        }
+        items: list[dict[str, Any]] = []
+        slug_to_id: dict[str, str] = {}
+        if index_path.exists():
+            try:
+                existing = json.loads(index_path.read_text(encoding="utf-8"))
+                items = list(existing.get("items") or [])
+                slug_to_id = dict(existing.get("slug_to_id") or {})
+            except Exception:  # noqa: BLE001 - 损坏则重建
+                items = []
+                slug_to_id = {}
+        items = [it for it in items if it.get("id") != entry_item["id"]]
+        items.append(entry_item)
+        slug_to_id[target.entry_slug] = str(target.id)
+        self._write_json_atomic(
+            index_path,
+            {"items": items, "total": len(items), "slug_to_id": slug_to_id},
+            result,
+        )
+
+        logger.info(
+            "wiki_export_single_entry",
+            pub_slug=slug,
+            entry_id=str(target.id),
+            doc_id=str(target.document_id),
+            markdown_size=len(payload.get("markdown_content") or ""),
         )
         return result
 
@@ -358,6 +475,23 @@ class WikiExportService:
             json.dumps(payload, default=_json_default, ensure_ascii=False),
             encoding="utf-8",
         )
+        result.files.append(str(path))
+
+    @staticmethod
+    def _write_json_atomic(path: Path, payload: Any, result: WikiExportResult) -> None:
+        """原子写（``.tmp`` → ``os.replace``）：避免 wiki dev server 请求期读到半写 JSON。
+
+        供 ``export_single_entry`` / patrol 候选内容写入：巡检每轮覆盖写候选 Markdown
+        到 ``entries/{id}.json``，而 wiki dev server（``next dev``）按请求 ``fs.readFile``
+        并有进程级 ``fileCache``（见 ``content-source.ts``）——非原子写会产生半写窗口。
+        """
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_suffix(path.suffix + ".tmp")
+        tmp.write_text(
+            json.dumps(payload, default=_json_default, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        os.replace(tmp, path)
         result.files.append(str(path))
 
 

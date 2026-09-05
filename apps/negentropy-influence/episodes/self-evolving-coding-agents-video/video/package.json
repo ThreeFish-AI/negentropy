@@ -1,0 +1,23 @@
+{
+  "name": "self-evolving-coding-agents-video",
+  "private": true,
+  "description": "《会写代码的 AI，开始给自己写代码》科普视频 Remotion 工程",
+  "scripts": {
+    "dev": "remotion studio",
+    "typecheck": "tsc --noEmit",
+    "render": "remotion render Main ../out/final.mp4",
+    "render:draft": "remotion render Main ../out/draft.mp4 --scale=0.5 --jpeg-quality=60"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.0",
+    "@remotion/layout-utils": "4.0.512",
+    "@remotion/media": "4.0.512",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "remotion": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "typescript": "^5.6.0"
+  }
+}

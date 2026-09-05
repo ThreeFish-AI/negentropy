@@ -1,0 +1,23 @@
+{
+  "name": "experience-era-agents-video",
+  "private": true,
+  "description": "《经验时代》科普视频 Remotion 工程",
+  "scripts": {
+    "dev": "remotion studio",
+    "typecheck": "tsc --noEmit",
+    "render": "remotion render Main ../out/final.mp4",
+    "render:draft": "remotion render Main ../out/draft.mp4 --scale=0.5 --jpeg-quality=60"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.0",
+    "@remotion/layout-utils": "4.0.512",
+    "@remotion/media": "4.0.512",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "remotion": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "typescript": "^5.6.0"
+  }
+}

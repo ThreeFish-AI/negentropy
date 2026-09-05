@@ -16,6 +16,10 @@ import {
 } from "react";
 import { BaseDrawer } from "@/components/ui/BaseDrawer";
 import { Button } from "@/components/ui/Button";
+import { Field } from "@/components/ui/Field";
+import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
+import { Textarea } from "@/components/ui/Textarea";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 
 interface McpServer {
@@ -211,182 +215,136 @@ export function McpServerFormDrawer({
             </div>
           )}
 
-          <section className="space-y-4">
+          <section className="space-y-3">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
               Basic Information
             </h3>
-            <div className="grid gap-4 lg:grid-cols-2">
-              <div>
-                <label className="mb-1 block text-sm font-medium text-text-secondary">
-                  Name *
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
-                  placeholder="my-mcp-server"
-                  required
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-text-secondary">
-                  Display Name
-                </label>
-                <input
-                  type="text"
-                  value={formData.display_name}
-                  onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
-                  className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
-                  placeholder="My MCP Server"
-                />
-              </div>
-              <div className="lg:col-span-2">
-                <label className="mb-1 block text-sm font-medium text-text-secondary">
-                  Description
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
-                  rows={2}
-                  placeholder="Description of this MCP server"
-                />
-              </div>
-            </div>
+            <Field label="Name" required>
+              <Input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="my-mcp-server"
+                required
+              />
+            </Field>
+            <Field label="Display Name">
+              <Input
+                type="text"
+                value={formData.display_name}
+                onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
+                placeholder="My MCP Server"
+              />
+            </Field>
+            <Field label="Description">
+              <Textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                rows={2}
+                placeholder="Description of this MCP server"
+              />
+            </Field>
           </section>
 
-          <section className="space-y-4">
+          <section className="space-y-3">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
               Runtime Setup
             </h3>
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              <div>
-                <label className="mb-1 block text-sm font-medium text-text-secondary">
-                  Transport Type *
-                </label>
-                <select
-                  value={formData.transport_type}
-                  onChange={(e) => setFormData({ ...formData, transport_type: e.target.value })}
-                  className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
-                >
-                  <option value="stdio">STDIO</option>
-                  <option value="http">HTTP (Streamable)</option>
-                  <option value="sse">SSE</option>
-                </select>
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-text-secondary">
-                  Visibility
-                </label>
-                <select
-                  value={formData.visibility}
-                  onChange={(e) => setFormData({ ...formData, visibility: e.target.value })}
-                  className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
-                >
-                  <option value="private">Private</option>
-                  <option value="shared">Shared</option>
-                  <option value="public">Public</option>
-                </select>
-              </div>
-              <div className="flex items-end">
-                <label className="flex w-full items-center gap-2 rounded-md border border-border px-3 py-2 text-sm text-text-secondary">
-                  <input
-                    type="checkbox"
-                    checked={formData.is_enabled}
-                    onChange={(e) => setFormData({ ...formData, is_enabled: e.target.checked })}
-                    className="rounded border-border"
-                  />
-                  Enabled
-                </label>
-              </div>
-              <div className="flex items-end">
-                <label className="flex w-full items-center gap-2 rounded-md border border-border px-3 py-2 text-sm text-text-secondary">
-                  <input
-                    type="checkbox"
-                    checked={formData.auto_start}
-                    onChange={(e) => setFormData({ ...formData, auto_start: e.target.checked })}
-                    className="rounded border-border"
-                  />
-                  Auto-start
-                </label>
-              </div>
-            </div>
+            <Field label="Transport Type" required>
+              <Select
+                value={formData.transport_type}
+                onChange={(e) => setFormData({ ...formData, transport_type: e.target.value })}
+              >
+                <option value="stdio">STDIO</option>
+                <option value="http">HTTP (Streamable)</option>
+                <option value="sse">SSE</option>
+              </Select>
+            </Field>
+            <Field label="Visibility">
+              <Select
+                value={formData.visibility}
+                onChange={(e) => setFormData({ ...formData, visibility: e.target.value })}
+              >
+                <option value="private">Private</option>
+                <option value="shared">Shared</option>
+                <option value="public">Public</option>
+              </Select>
+            </Field>
+            <Field variant="check" label="Enabled">
+              <input
+                type="checkbox"
+                checked={formData.is_enabled}
+                onChange={(e) => setFormData({ ...formData, is_enabled: e.target.checked })}
+                className="h-4 w-4"
+              />
+            </Field>
+            <Field variant="check" label="Auto-start">
+              <input
+                type="checkbox"
+                checked={formData.auto_start}
+                onChange={(e) => setFormData({ ...formData, auto_start: e.target.checked })}
+                className="h-4 w-4"
+              />
+            </Field>
           </section>
 
-          <section className="space-y-4">
+          <section className="space-y-3">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
               Connection Details
             </h3>
 
             {formData.transport_type === "stdio" ? (
-              <div className="grid gap-4 lg:grid-cols-2">
-                <div className="lg:col-span-2">
-                  <label className="mb-1 block text-sm font-medium text-text-secondary">
-                    Command *
-                  </label>
-                  <input
+              <>
+                <Field label="Command" required>
+                  <Input
                     type="text"
                     value={formData.command}
                     onChange={(e) => setFormData({ ...formData, command: e.target.value })}
-                    className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm font-mono text-foreground"
+                    className="font-mono"
                     placeholder="npx"
                   />
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-text-secondary">
-                    Arguments (one per line)
-                  </label>
-                  <textarea
+                </Field>
+                <Field label="Arguments (one per line)">
+                  <Textarea
                     value={formData.args}
                     onChange={(e) => setFormData({ ...formData, args: e.target.value })}
-                    className="min-h-[200px] w-full rounded-md border border-border bg-input px-3 py-2 text-sm font-mono text-foreground"
+                    className="min-h-[200px] font-mono"
                     rows={7}
                     placeholder="-y&#10;@modelcontextprotocol/server-filesystem&#10;/path/to/allowed/dir"
                   />
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-text-secondary">
-                    Environment Variables (JSON)
-                  </label>
-                  <textarea
+                </Field>
+                <Field label="Environment Variables (JSON)">
+                  <Textarea
                     value={formData.env}
                     onChange={(e) => setFormData({ ...formData, env: e.target.value })}
-                    className="min-h-[200px] w-full rounded-md border border-border bg-input px-3 py-2 text-sm font-mono text-foreground"
+                    className="min-h-[200px] font-mono"
                     rows={7}
                     placeholder='{"API_KEY": "xxx"}'
                   />
-                </div>
-              </div>
+                </Field>
+              </>
             ) : (
-              <div className="grid gap-4 lg:grid-cols-2">
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-text-secondary">
-                    URL *
-                  </label>
-                  <input
+              <>
+                <Field label="URL" required>
+                  <Input
                     type="url"
                     value={formData.url}
                     onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                    className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
                     placeholder={formData.transport_type === "http"
                       ? "http://localhost:8080/mcp"
                       : "http://localhost:8080/sse"}
                   />
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-text-secondary">
-                    Headers (JSON)
-                  </label>
-                  <textarea
+                </Field>
+                <Field label="Headers (JSON)">
+                  <Textarea
                     value={formData.headers}
                     onChange={(e) => setFormData({ ...formData, headers: e.target.value })}
-                    className="min-h-[200px] w-full rounded-md border border-border bg-input px-3 py-2 text-sm font-mono text-foreground"
+                    className="min-h-[200px] font-mono"
                     rows={7}
                     placeholder='{"Authorization": "Bearer xxx"}'
                   />
-                </div>
-              </div>
+                </Field>
+              </>
             )}
           </section>
         </form>

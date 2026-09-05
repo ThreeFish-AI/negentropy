@@ -128,4 +128,4 @@ pg_dump -h localhost -U postgres negentropy_db \
   -t negentropy.memory_core_blocks --data-only > core_blocks_$(date +%Y%m%d).sql
 ```
 
-> 数据迁移操作严禁直接删除现有数据，参考 [`AGENTS.md`](../../../AGENTS.md) "Database Management" 章节。
+> 数据迁移操作严禁直接删除现有数据，参考 `~/.claude/CLAUDE.md` 的 "Database Management" 章节。

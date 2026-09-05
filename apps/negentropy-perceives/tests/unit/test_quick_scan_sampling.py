@@ -52,3 +52,45 @@ class TestQuickScanSampling:
         """空范围返回空列表。"""
         indices = _compute_scan_page_indices(start=5, end=5, max_scan=15)
         assert indices == []
+
+
+class TestTableCaptionIndicator:
+    """``Table N:`` caption 级表格指示器的判别精度测试。
+
+    quick_scan 用该模式补齐 native find_tables (ruling-line 策略) 与 pipe-line
+    启发式双双漏报的 **空白对齐无框线表格** (如附录配置表)。要求: 行首起手 +
+    紧跟 ``:``/``.``, 命中真实 caption 而不误伤句中引用 ("Table 1 shows...")。
+    """
+
+    import re as _re
+
+    _CAP_RE = _re.compile(r"^\s*Table\s+S?\d+\s*[:.]", _re.IGNORECASE | _re.MULTILINE)
+
+    def _count(self, text: str) -> int:
+        return len(self._CAP_RE.findall(text))
+
+    def test_matches_appendix_table_captions(self) -> None:
+        """附录表格页的多个 caption 应被命中。"""
+        text = (
+            "Table 8: Key configuration fields in OPENDEV.\n"
+            "model str LLM model identifier\n"
+            "Table 9: Implementation constants in OPENDEV.\n"
+        )
+        assert self._count(text) == 2
+
+    def test_matches_supplementary_table(self) -> None:
+        """``Table S2.`` 补充材料编号亦命中。"""
+        assert self._count("Table S2. Supplementary results\n") == 1
+
+    def test_ignores_inline_reference(self) -> None:
+        """句中引用 (非行首起手 / 无紧跟标点) 不误命中。"""
+        text = (
+            "As shown in Table 1 the results are consistent, and Table 2 confirms.\n"
+            "We refer to Table 3 for details.\n"
+        )
+        assert self._count(text) == 0
+
+    def test_ignores_prose_without_tables(self) -> None:
+        """普通正文无 caption → 0 命中。"""
+        text = "The rapid advancement of large language models has catalyzed change.\n"
+        assert self._count(text) == 0

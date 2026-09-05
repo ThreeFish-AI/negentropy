@@ -18,7 +18,6 @@ MemorySummarizer: 用户记忆画像摘要生成器
 from __future__ import annotations
 
 import asyncio
-import json
 from datetime import UTC, datetime, timedelta
 
 import litellm
@@ -27,6 +26,8 @@ import sqlalchemy as sa
 import negentropy.db.session as db_session
 from negentropy.engine.adapters.postgres.summary_service import SummaryService
 from negentropy.engine.factories.memory import get_fact_service
+from negentropy.engine.routine.faculty_bridge import run_faculty_json
+from negentropy.engine.utils.json_extract import loads_lenient
 from negentropy.engine.utils.model_config import resolve_model_config_async
 from negentropy.engine.utils.token_counter import TokenCounter
 from negentropy.logging import get_logger
@@ -114,7 +115,7 @@ class MemorySummarizer:
         facts_text = "\n".join(f"- [{f_type}] {key}: {str(val)[:100]}" for f_type, key, val in facts)
 
         prompt = _SUMMARY_PROMPT.format(memories=memories_text, facts=facts_text)
-        summary_text = await self._call_llm(prompt)
+        summary_text = await self._summarize(prompt)
 
         if not summary_text:
             return None
@@ -164,8 +165,8 @@ class MemorySummarizer:
                     **safe_kwargs,
                 )
                 content = response.choices[0].message.content
-                data = json.loads(content)
-                return data.get("summary", "")
+                data = loads_lenient(content)
+                return data.get("summary", "") if isinstance(data, dict) else ""
             except Exception as exc:
                 last_error = exc
                 logger.warning("summary_llm_retry", attempt=attempt + 1, error=str(exc))
@@ -173,3 +174,36 @@ class MemorySummarizer:
 
         logger.error("summary_llm_failed", error=str(last_error))
         return None
+
+    async def _summarize(self, prompt: str) -> str | None:
+        """生成摘要：FacultyBridge(internalization, read_only) 优先 + litellm 兜底（WS2 收编）。
+
+        开关关（默认）→ 直接 litellm，行为与改造前逐字节等价。``read_only=True`` 剥离副作用工具
+        （save_to_memory 等），防自治 Faculty 在 approval=never 下静默写记忆。
+        """
+        from negentropy.config import settings
+
+        enabled = settings.routine.faculty_bridge_enabled and settings.routine.faculty_bridge_consolidation_enabled
+
+        def parse(text: str) -> str | None:
+            # 空 / 缺 summary → None 触发降级；非空 summary → 接受。
+            # 注：loads_lenient 解析失败恒返回 {}（见 json_extract），仅 isinstance(dict) 无法辨别
+            # 脏输出；空摘要亦视作失败，交由 litellm 兜底重试，契合「批任务不因 Faculty 破损而空转」。
+            data = loads_lenient(text)
+            if not isinstance(data, dict):
+                return None
+            return data.get("summary") or None
+
+        async def fallback() -> str | None:
+            return await self._call_llm(prompt)
+
+        summary, _used = await run_faculty_json(
+            "internalization",
+            prompt,
+            parse=parse,
+            fallback=fallback,
+            enabled=enabled,
+            timeout_seconds=float(settings.routine.faculty_bridge_batch_timeout_seconds),
+            read_only=True,
+        )
+        return summary

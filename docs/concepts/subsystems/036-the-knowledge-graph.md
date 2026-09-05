@@ -1440,4 +1440,4 @@ timeline
 
 ---
 
-> **文档维护**：本文档与代码同步演进。架构变更时需同步更新对应章节，保持代码事实与文档描述的一致性。变更遵循 [AGENTS.md](../../../../AGENTS.md) 中的 Verification Before Done 定式。
+> **文档维护**：本文档与代码同步演进。架构变更时需同步更新对应章节，保持代码事实与文档描述的一致性。变更遵循 `~/.claude/CLAUDE.md` 中的 Verification Before Done 定式。

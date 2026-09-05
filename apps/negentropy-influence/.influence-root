@@ -1,0 +1,8 @@
+# negentropy-influence 子项目根哨兵（勿删、勿移）
+#
+# pipeline/scripts/paths.py 靠向上搜索本文件定位子项目根，从而让全部脚本对
+# 「子项目在仓库里的位置与深度」免疫。删除或移动本文件会让 pipeline.py /
+# check_series.py / tts_sample.py 三者立即大声退出（这是刻意的：静默用错的根
+# 比直接失败危险得多）。
+#
+# 相关：pipeline/scripts/paths.py 文件头详述了为什么用专用哨兵而不是 .git。

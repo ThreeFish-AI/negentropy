@@ -105,7 +105,9 @@ class PostgresBlobStorage:
             raise StorageError(f"Blob not found: {uri}")
 
         content = row[0]
-        logger.info("blob_download_completed", uri=uri, size=len(content))
+        # 逐次读取属 per-IO trace（批量导出/Range 预览下可达数百行），降为 debug；
+        # 写入与删除仍保留 info 审计线索。
+        logger.debug("blob_download_completed", uri=uri, size=len(content))
         return content
 
     async def get_size(self, uri: str) -> int | None:
@@ -142,7 +144,8 @@ class PostgresBlobStorage:
 
         # asyncpg 对 bytea 可能回 memoryview，统一归一为 bytes。
         chunk = bytes(row[0])
-        logger.info("blob_download_range_completed", uri=uri, start=start, length=len(chunk))
+        # 同 download：PDF 阅读器单次预览即触发大量 Range 请求，降为 debug。
+        logger.debug("blob_download_range_completed", uri=uri, start=start, length=len(chunk))
         return chunk
 
     async def delete(self, uri: str) -> None:

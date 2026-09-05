@@ -17,8 +17,10 @@ Routine 的「人机交互」中「人」侧动作（审 Plan / 答问 / 门控 
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Awaitable, Callable
-from typing import TYPE_CHECKING
+import contextlib
+import contextvars
+from collections.abc import AsyncIterator, Awaitable, Callable
+from typing import TYPE_CHECKING, Any, TypeVar
 from uuid import uuid4
 
 from negentropy.logging import get_logger
@@ -38,9 +40,49 @@ _ROLE_TO_FACULTY_FACTORY: dict[str, str] = {
     "influence": "create_influence_agent",  # 喉舌
 }
 
+# read_only 模式下 Faculty 可保留的工具名白名单。经 ``_apply_readonly`` 过滤后，Faculty 仅能调
+# 这些工具，**任何副作用工具（save_to_memory / update_knowledge_graph / ingest_paper /
+# ingest_to_corpus / write_file / invoke_claude_code / publish_content / send_notification /
+# execute_code）一律剥离**。这是收编后台 LLM 到六翼的关键安全增量：桥接层注入
+# ``approval_policy=never``（见 ``_drive``），若不剥离副作用工具，Internalization 等翼会在
+# 无人在环下静默真写记忆 / KG → 记忆重复 / KG 污染（ADR 040「副作用工具陷阱」）。
+# 注：read_only 同时整体剔除 ``BaseToolset``（六翼的可摘工具集经 WS1 以 toolset 承载，副作用工具
+# 藏于其内逐请求解析），故 read_only 调用不会触发任何可摘工具——契合「要确定性 JSON、不要工具漫游」。
+# 因 toolset 被整体剔除，唯有「常量位」裸 callable（log_activity / load_memory）才会走到本白名单
+# 比对；search_* / analyze_context / create_plan 等只读工具均在 toolset 内、已随 toolset 一并剥离，
+# 故不列于此（若未来把某只读工具移回常量位并希望 read_only 保留，再在此显式补名）。
+_READONLY_TOOL_ALLOWLIST: set[str] = {
+    "log_activity",
+    "load_memory",
+}
 
-def _build_faculty_agent(role: str) -> BaseAgent | None:
-    """按 agent_role 工厂新建 Faculty 实例（不传 mode——Runner root 仅允许 chat）。"""
+# 单任务 Faculty 调用预算（contextvar）：consolidation 等多条目循环收编时，防止「条目越多、ADK
+# Runner 同步驱动次数线性膨胀」的成本 / 延迟失控。``None`` = 不限。调用方用
+# ``faculty_bridge_budget(budget)`` 在任务作用域内设置；``run_faculty_json`` 每次调用前自减。
+_faculty_budget: contextvars.ContextVar[int | None] = contextvars.ContextVar("negentropy_faculty_budget", default=None)
+
+T = TypeVar("T")
+
+
+@contextlib.asynccontextmanager
+async def faculty_bridge_budget(budget: int) -> AsyncIterator[None]:
+    """为一个高层任务（一次 consolidate / extract_on_termination 等）设定 Faculty 调用预算。
+
+    在此作用域内，``run_faculty_json`` 每次 Faculty 调用消耗 1；耗尽后剩余调用直接降级 litellm
+    （``used_faculty=False``），防多条目循环下 Runner 开销线性膨胀。未进入本上下文 → 不限。
+    """
+    token = _faculty_budget.set(budget)
+    try:
+        yield
+    finally:
+        _faculty_budget.reset(token)
+
+
+def _build_faculty_agent(role: str, *, read_only: bool = False) -> BaseAgent | None:
+    """按 agent_role 工厂新建 Faculty 实例（不传 mode——Runner root 仅允许 chat）。
+
+    ``read_only=True`` 时剥离副作用工具（仅留白名单），用于后台 LLM 收编（WS2）。
+    """
     factory_name = _ROLE_TO_FACULTY_FACTORY.get(role)
     if factory_name is None:
         logger.warning("faculty_bridge_unknown_role", role=role)
@@ -49,10 +91,35 @@ def _build_faculty_agent(role: str) -> BaseAgent | None:
         from negentropy.agents import faculties
 
         factory: Callable[..., BaseAgent] = getattr(faculties, factory_name)
-        return factory()
+        agent = factory()
+        if read_only:
+            _apply_readonly(agent)
+        return agent
     except Exception:  # pragma: no cover - 防御：faculties 导入/构造异常
         logger.warning("faculty_bridge_build_failed", role=role, exc_info=True)
         return None
+
+
+def _apply_readonly(agent: BaseAgent) -> None:
+    """read_only 过滤：整体剔除 ``BaseToolset``（副作用工具藏于其内）+ 只保留白名单工具名。
+
+    在原地改 ``agent.tools``。保留 ``log_activity``（审计）与 ``load_memory``（只读记忆回溯）。
+    """
+    from google.adk.tools.base_toolset import BaseToolset
+
+    from negentropy.agents.tools.registry import tool_name
+
+    kept: list[Any] = []
+    for tool in getattr(agent, "tools", None) or []:
+        # BaseToolset 整体剔除：read_only 调用要确定性 JSON，不该触发任何可摘工具（含副作用工具）。
+        if isinstance(tool, BaseToolset):
+            continue
+        if tool_name(tool) in _READONLY_TOOL_ALLOWLIST:
+            kept.append(tool)
+    try:
+        agent.tools = kept  # type: ignore[misc]
+    except (AttributeError, TypeError):  # pragma: no cover - frozen / 无 setter
+        logger.warning("faculty_bridge_readonly_apply_failed", role=getattr(agent, "name", "?"))
 
 
 async def run_faculty(
@@ -61,6 +128,7 @@ async def run_faculty(
     *,
     timeout_seconds: float = 90.0,
     user_id: str = "system:routine-faculty",
+    read_only: bool = False,
 ) -> str | None:
     """同步驱动一个 Faculty Agent 处理 ``task_prompt``，返回其最终响应文本。
 
@@ -69,11 +137,12 @@ async def run_faculty(
         task_prompt: 投喂给 Faculty 的任务消息（含目标 / 验收 / 待审方案等上下文）。
         timeout_seconds: 单次调用超时；超时即返回 None（调用方降级）。
         user_id: 审计用 user 标识。
+        read_only: 剥离副作用工具（用于后台 LLM 收编，WS2）。
 
     Returns:
         Faculty 的最终响应文本；失败 / 超时 / 空响应 → ``None``（调用方应降级）。
     """
-    agent = _build_faculty_agent(role)
+    agent = _build_faculty_agent(role, read_only=read_only)
     if agent is None:
         return None
 
@@ -88,6 +157,70 @@ async def run_faculty(
     except Exception:
         logger.warning("faculty_bridge_run_failed", role=role, exc_info=True)
         return None
+
+
+async def run_faculty_json(
+    role: str,
+    task_prompt: str,
+    *,
+    parse: Callable[[str], T | None],
+    fallback: Callable[[], Awaitable[T]],
+    enabled: bool,
+    timeout_seconds: float = 90.0,
+    read_only: bool = True,
+    user_id: str = "system:routine-faculty",
+) -> tuple[T, bool]:
+    """Faculty 优先 + litellm 兜底，产出结构化结果（WS2 统一收编 helper）。
+
+    Args:
+        role: Faculty agent_role。
+        task_prompt: 投喂给 Faculty 的任务消息（含 JSON 契约）。
+        parse: 把 Faculty 文本解析为目标结构；``None`` 表示解析失败 / 非预期 → 触发降级。
+            复用调用点既有解析（多已含 ``loads_lenient`` 剥围栏 + 截平衡子串）。
+        fallback: 降级路径（现有 litellm 直调整体包成 async thunk）；返回与 Faculty 命中
+            同型结果。``run_faculty_json`` 保证：Faculty 文本为空 / 超时 / 解析返回 None →
+            走 ``fallback``，**批任务绝不因 Faculty JSON 破损而失败**（硬闸）。
+        enabled: ``settings.routine.faculty_bridge_enabled and settings.routine.<group>_enabled``
+            由调用方算好（总开关 AND 组开关）。``False`` → 直接走 ``fallback``。
+        timeout_seconds: 单次超时；批处理类建议传 ``faculty_bridge_batch_timeout_seconds``。
+        read_only: 默认 True——剥离副作用工具（见 ``_READONLY_TOOL_ALLOWLIST``）。评审 / 判定
+            类若确需 Faculty 调用只读工具，可显式传 False（须论证副作用已隔离）。
+        user_id: 审计用 user 标识。
+
+    Returns:
+        ``(result, used_faculty)``——``used_faculty`` 标识结果是否来自真实 Faculty（供归因 / 可观测）。
+    """
+    budget = _faculty_budget.get()
+    if enabled and (budget is None or budget > 0):
+        # 预算按「Runner 调用」计费：run_faculty 一旦驱动 ADK Runner，开销即已产生，与解析成败无关。
+        # 故进入本分支即自减一次（而非仅解析成功后），确保 Faculty 持续吐脏文本 / 空响应时预算仍如实
+        # 耗尽、多条目循环不会无上限重驱 Runner（与 contextvar / docstring「每次调用消耗 1」一致）。
+        if budget is not None:
+            _faculty_budget.set(budget - 1)
+        try:
+            text = await run_faculty(
+                role,
+                task_prompt,
+                timeout_seconds=timeout_seconds,
+                user_id=user_id,
+                read_only=read_only,
+            )
+        except Exception:  # pragma: no cover - run_faculty 内部已吞，双保险
+            text = None
+        if text:
+            try:
+                parsed = parse(text)
+            except Exception:
+                logger.info("faculty_bridge_json_parse_failed_fallback", role=role)
+                parsed = None
+            if parsed is not None:
+                return parsed, True
+            logger.info("faculty_bridge_empty_or_unparsed_fallback", role=role)
+        else:
+            logger.info("faculty_bridge_no_text_fallback", role=role)
+
+    result = await fallback()
+    return result, False
 
 
 async def _drive(agent: BaseAgent, task_prompt: str, *, user_id: str) -> str | None:
@@ -143,4 +276,9 @@ async def run_with_fallback(
     return await fallback(), False
 
 
-__all__ = ["run_faculty", "run_with_fallback"]
+__all__ = [
+    "run_faculty",
+    "run_faculty_json",
+    "run_with_fallback",
+    "faculty_bridge_budget",
+]

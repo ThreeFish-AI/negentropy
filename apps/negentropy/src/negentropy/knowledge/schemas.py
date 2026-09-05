@@ -623,6 +623,12 @@ class DocumentResponse(BaseModel):
     markdown_extract_error: str | None = None
     archived: bool = False
     metadata: dict[str, Any] = Field(default_factory=dict)
+    # PDF Fidelity Patrol 巡检态（SSOT：knowledge_documents.patrol_status 列）
+    # NULL=未巡检 / in_progress=巡检中 / unfixable=失败 / done=拟合成功
+    patrol_status: str | None = None
+    patrol_score: int | None = None
+    patrol_routine_id: UUID | None = None
+    patrol_updated_at: str | None = None
 
     class Config:
         from_attributes = True
@@ -662,9 +668,23 @@ class DocumentMarkdownRefreshResponse(BaseModel):
 
 
 class DocumentMarkdownRefreshRequest(BaseModel):
-    """文档 Markdown 重解析请求。"""
+    """文档 Markdown 重解析请求。
+
+    ``resume`` 控制 perceives auto_batch checkpoint 复用语义（双入口重试，与
+    ``POST /pipelines/{run_id}/retry`` 的 ``PipelineRetryRequest.resume`` 对称）：
+
+    - ``False``（默认）= 重新开始：丢弃 ``.batch_state/{sha1[:12]}`` checkpoint，
+      全量重跑 PDF→Markdown pipeline。契合「Rebuild / 彻底重走」直觉，亦是
+      PDF Fidelity Patrol Real-Render Gate 的默认入口。
+    - ``True`` = 断点续传：复用 checkpoint，从最后完成切片继续（失败/partial 态
+      的「Continue (resume)」语义）。
+
+    经 ``_maybe_inject_resume`` 咽喉注入声明了 ``resume`` 参数的 MCP 工具
+    （perceives ``parse_pdf_to_markdown`` 的 ``resume`` 默认 True）。
+    """
 
     app_name: str | None = None
+    resume: bool = False
 
 
 class DocumentTranslateRequest(BaseModel):

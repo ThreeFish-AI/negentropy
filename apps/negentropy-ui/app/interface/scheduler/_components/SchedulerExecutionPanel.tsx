@@ -1,34 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 
-import {
-  navPillClassName,
-  navRailContainerClassName,
-} from "@/components/ui/nav-styles";
-import { Pagination } from "@/components/ui/Pagination";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { useInfiniteList, type ClientFetcher } from "@/hooks/useInfiniteList";
-import { useInfiniteScrollSentinel, useScrollPageSync } from "@/hooks/useInfiniteScrollSentinel";
+import { TextTooltip } from "@/components/ui/TextTooltip";
+import { TruncatedCell } from "@/components/ui/TruncatedCell";
 import type { ExecutionStatus, TaskExecutionDTO } from "@/features/scheduler";
 import { patrolReasonLabel, patrolReasonStyle } from "@/features/scheduler/patrol-reason";
 
 interface SchedulerExecutionPanelProps {
+  /** 当前页执行记录（由页面 execList 服务端游标分页切片；状态/时间窗过滤已在筛选栏 + 后端完成）。 */
   executions: TaskExecutionDTO[];
   loading: boolean;
 }
-
-type StatusFilter = "all" | ExecutionStatus;
-
-const PAGE_SIZE = 10;
-
-const STATUS_FILTERS: { key: StatusFilter; label: string }[] = [
-  { key: "all", label: "All" },
-  { key: "ok", label: "OK" },
-  { key: "failed", label: "Failed" },
-  { key: "running", label: "Running" },
-];
 
 const STATUS_STYLES: Record<ExecutionStatus, string> = {
   ok: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
@@ -76,9 +60,9 @@ function formatTime(iso: string | null): string {
 
 function SkeletonRow() {
   return (
-    <tr className="border-b border-border last:border-b-0">
+    <tr className="border-b border-border/60 last:border-0">
       {Array.from({ length: 6 }).map((_, i) => (
-        <td key={i} className="px-3 py-2">
+        <td key={i} className="px-4 py-3">
           <Skeleton
             className="h-4"
             style={{ width: `${50 + (i * 17) % 40}%` }}
@@ -93,196 +77,95 @@ export function SchedulerExecutionPanel({
   executions,
   loading,
 }: SchedulerExecutionPanelProps) {
-  // 面板内滚动容器 ref（哨兵 / 滚动联动 observer 的 root，须为该面板 overflow 容器，非 viewport）。
-  const scrollRootRef = useRef<HTMLDivElement | null>(null);
-  const programmaticScrollRef = useRef(false);
-  const pendingPageRef = useRef<number | null>(null);
-
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-
-  // 按状态过滤【全量】+ 防御性时间倒序（后端已倒序，此处确保契约稳健；null 视为最旧排末位）。
-  const filtered = useMemo(() => {
-    const base =
-      statusFilter === "all"
-        ? executions
-        : executions.filter((e) => e.status === statusFilter);
-    return [...base].sort((a, b) => {
-      const ta = a.started_at ? Date.parse(a.started_at) : -Infinity;
-      const tb = b.started_at ? Date.parse(b.started_at) : -Infinity;
-      return tb - ta;
-    });
-  }, [executions, statusFilter]);
-
-  // 客户端模式：fetcher.items = 筛选后全量数组（SSE 实时数据由父组件持有，本层仅渐进切片）；
-  // statusFilter 作为 filters → 变化即 reset 回第 1 页。
-  const fetcher = useMemo<ClientFetcher<TaskExecutionDTO>>(
-    () => ({ kind: "client", items: filtered }),
-    [filtered],
-  );
-  const list = useInfiniteList<TaskExecutionDTO, { status: StatusFilter }>({
-    fetcher,
-    pageSize: PAGE_SIZE,
-    filters: { status: statusFilter },
-  });
-
-  // 无限滚动哨兵：滚到底（提前 200px）→ 揭示下一页。root = 该面板 overflow 容器。
-  const { sentinelRef } = useInfiniteScrollSentinel({
-    onReach: list.loadMore,
-    enabled: list.hasMore && !list.loadingMore && !list.loading,
-    root: scrollRootRef,
-  });
-
-  // 滚动联动当前页高亮：观测每页首行的 data-infinite-page 锚点。
-  useScrollPageSync({
-    enabled: true,
-    onPageChange: list.goToPage,
-    root: scrollRootRef,
-    rescanKey: list.items.length,
-    programmaticRef: programmaticScrollRef,
-  });
-
-  const handleGoToPage = useCallback(
-    (target: number) => {
-      pendingPageRef.current = target;
-      programmaticScrollRef.current = true;
-      list.goToPage(target);
-    },
-    [list],
-  );
-
-  // 待跳页锚点出现即平滑滚动（该面板 root 限定查询范围）。
-  const { currentPage } = list;
-  const itemsLen = list.items.length;
-  useEffect(() => {
-    const target = pendingPageRef.current;
-    if (target == null) return;
-    const anchor = scrollRootRef.current?.querySelector<HTMLElement>(`[data-infinite-page="${target}"]`);
-    if (!anchor) return;
-    anchor.scrollIntoView({ behavior: "smooth", block: "start" });
-    pendingPageRef.current = null;
-    const t = window.setTimeout(() => {
-      programmaticScrollRef.current = false;
-    }, 600);
-    return () => window.clearTimeout(t);
-  }, [currentPage, itemsLen]);
-
-  const view = list.items;
-  const totalCount = list.total ?? filtered.length;
-
   return (
-    <div className="rounded-xl border border-border bg-card shadow-sm">
-      {/* Status filter pills */}
-      <div className="flex items-center justify-between border-b border-border px-3 py-2">
-        <span className="text-caption uppercase tracking-overline text-muted-foreground">
-          Executions ({totalCount})
-        </span>
-        <div className={`${navRailContainerClassName} gap-0.5 p-0.5`}>
-          {STATUS_FILTERS.map((sf) => (
-            <button
-              key={sf.key}
-              onClick={() => setStatusFilter(sf.key)}
-              className={navPillClassName(
-                statusFilter === sf.key,
-                "px-3 py-0.5 text-micro font-medium",
-              )}
-            >
-              {sf.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* 滚动容器（哨兵 / 滚动联动 root） */}
-      <div ref={scrollRootRef} className="max-h-[540px] overflow-auto">
-        <table className="w-full text-xs">
-          <thead className="sticky top-0 bg-card text-muted-foreground z-10">
-            <tr className="border-b border-border">
-              <th className="px-3 py-2 text-left font-medium">Started</th>
-              <th className="px-3 py-2 text-left font-medium">Status</th>
-              <th className="px-3 py-2 text-left font-medium">Task</th>
-              <th className="px-3 py-2 text-left font-medium">Duration</th>
-              <th className="px-3 py-2 text-left font-medium">Reason</th>
-              <th className="px-3 py-2 text-left font-medium">Output</th>
+    <div className="overflow-hidden rounded-xl border border-border bg-card">
+      <table className="w-full table-fixed text-sm">
+        {/* 固定列宽（合计 100%）：Started 16 · Status 10 · Task 16 · Duration 8 · Reason 14 · Output 36。
+            6 列须与下方 6 个 <th> 严格对齐。注意：colgroup 内不得夹带空白文本节点（含 <col/> 后行内注释），
+            否则触发 "whitespace text nodes cannot be a child of colgroup" hydration 报错。 */}
+        <colgroup>
+          <col className="w-[16%]" />
+          <col className="w-[10%]" />
+          <col className="w-[16%]" />
+          <col className="w-[8%]" />
+          <col className="w-[14%]" />
+          <col className="w-[36%]" />
+        </colgroup>
+        <thead>
+          <tr className="border-b border-border text-left text-xs uppercase tracking-overline text-text-secondary">
+            <th className="px-4 py-2.5 font-medium">Started</th>
+            <th className="px-4 py-2.5 font-medium">Status</th>
+            <th className="px-4 py-2.5 font-medium">Task</th>
+            <th className="px-4 py-2.5 font-medium">Duration</th>
+            <th className="px-4 py-2.5 font-medium">Reason</th>
+            <th className="px-4 py-2.5 font-medium">Output</th>
+          </tr>
+        </thead>
+        <tbody>
+          {loading && executions.length === 0 ? (
+            Array.from({ length: 10 }).map((_, i) => <SkeletonRow key={i} />)
+          ) : executions.length === 0 ? (
+            <tr>
+              <td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">
+                No executions match the current filter.
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {loading && executions.length === 0 ? (
-              Array.from({ length: 10 }).map((_, i) => <SkeletonRow key={i} />)
-            ) : view.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">
-                  No executions match the current filter.
+          ) : (
+            executions.map((e) => (
+              <tr
+                key={e.id}
+                className="border-b border-border/60 transition-colors last:border-0 hover:bg-muted/40"
+              >
+                <TruncatedCell
+                  text={formatTime(e.started_at)}
+                  textClassName="text-muted-foreground"
+                />
+                <td className="px-4 py-3">
+                  <span
+                    className={`inline-flex items-center rounded-full px-2 py-0.5 text-micro font-semibold ${STATUS_STYLES[e.status]}`}
+                  >
+                    {e.status}
+                  </span>
                 </td>
-              </tr>
-            ) : (
-              view.map((e, i) => (
-                <tr
-                  key={e.id}
-                  data-infinite-page={i % PAGE_SIZE === 0 ? Math.floor(i / PAGE_SIZE) + 1 : undefined}
-                  className="border-b border-border last:border-b-0 hover:bg-muted/30 transition-colors"
-                >
-                  <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
-                    {formatTime(e.started_at)}
-                  </td>
-                  <td className="px-3 py-2">
-                    <span
-                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-micro font-semibold ${STATUS_STYLES[e.status]}`}
-                    >
-                      {e.status}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2 text-foreground font-medium">
-                    {e.task_key ?? "—"}
-                  </td>
-                  <td className="px-3 py-2 text-muted-foreground">
-                    {formatDuration(e.duration_ms)}
-                  </td>
-                  <td className="px-3 py-2 text-muted-foreground">{e.fire_reason}</td>
-                  <td className="px-3 py-2 text-muted-foreground max-w-[260px]">
-                    {e.error ? (
-                      <span className="text-red-600 dark:text-red-400 truncate block">{e.error}</span>
-                    ) : (
-                      <div className="flex flex-col gap-0.5 min-w-0">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          {patrolReasonLabel(e.metrics?.reason) && (
-                            <span
-                              className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-micro font-semibold shrink-0 ${patrolReasonStyle(
-                                e.metrics?.reason,
-                              )}`}
-                            >
-                              {patrolReasonLabel(e.metrics?.reason)}
-                            </span>
-                          )}
-                          <span className="truncate block">{e.output_summary ?? "—"}</span>
-                        </div>
-                        <SpawnedRoutineLink metrics={e.metrics} />
+                <TruncatedCell
+                  text={e.task_key ?? "—"}
+                  textClassName="text-foreground font-medium"
+                />
+                <td className="px-4 py-3 text-muted-foreground">
+                  <span className="block truncate">{formatDuration(e.duration_ms)}</span>
+                </td>
+                <TruncatedCell
+                  text={e.fire_reason}
+                  textClassName="text-muted-foreground"
+                />
+                {e.error ? (
+                  <TruncatedCell text={e.error} textClassName="text-red-600 dark:text-red-400" />
+                ) : (
+                  <td className="px-4 py-3 text-muted-foreground">
+                    <div className="flex min-w-0 flex-col gap-0.5">
+                      <div className="flex min-w-0 items-center gap-1.5">
+                        {patrolReasonLabel(e.metrics?.reason) && (
+                          <span
+                            className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-micro font-semibold shrink-0 ${patrolReasonStyle(
+                              e.metrics?.reason,
+                            )}`}
+                          >
+                            {patrolReasonLabel(e.metrics?.reason)}
+                          </span>
+                        )}
+                        <TextTooltip content={e.output_summary ?? "—"}>
+                          <span className="block min-w-0 flex-1 truncate">{e.output_summary ?? "—"}</span>
+                        </TextTooltip>
                       </div>
-                    )}
+                      <SpawnedRoutineLink metrics={e.metrics} />
+                    </div>
                   </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-
-        {/* 无限滚动哨兵：进入视口即揭示下一页。 */}
-        <div ref={sentinelRef} aria-hidden className="h-px w-full" />
-      </div>
-
-      {/* Pagination — 居中统一控件 */}
-      {filtered.length > 0 && (
-        <div className="border-t border-border px-3 py-1.5">
-          <Pagination
-            page={list.currentPage}
-            totalPages={list.totalPages}
-            onPageChange={handleGoToPage}
-            total={list.total ?? undefined}
-            itemLabel="execution"
-            disabled={loading}
-            loadingMore={list.loadingMore}
-          />
-        </div>
-      )}
+                )}
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
     </div>
   );
 }

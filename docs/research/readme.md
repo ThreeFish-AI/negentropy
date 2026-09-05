@@ -1,6 +1,6 @@
 # 研究文献总览
 
-> Negentropy 技术调研索引。34 篇原始调研按「认知 → 框架 → 存储 → 图谱 → 执行 → 进化」六段论归档，逐层递进；本页为各主题分组的阅读入口。
+> Negentropy 技术调研索引。原始调研按「认知 → 框架 → 存储 → 图谱 → 执行 → 进化」六段论归档，逐层递进，另设独立主题分组（量化与投资科学、视频与动效生产）；本页为各主题分组的阅读入口。
 
 ---
 
@@ -10,6 +10,8 @@
 |:---|:---|
 | [智能认知增强](./cognitive-context/000-cognitive-enhancement.md) | Agentic 认知增强总览与理论基线 |
 | [Context Engineering 通俗全解](./cognitive-context/010-context-engineering.md) | 上下文工程主流框架与论文精解 |
+
+> 上下文治理的工程落地方案见 [Context Layer · 上下文治理层技术方案](../concepts/design/context-layer.md)（对标 Snowflake Horizon Context，统领 Memory / KB / KG / Tools / Skills 的上下文契约）。
 
 ## 二、Agent 框架与引擎 · `agent-runtime/`
 
@@ -38,6 +40,12 @@
 | [Agentic AI Memory 基座选型对比](./retrieval-storage/033b-technology-comparison.md) | OceanBase / Cloud Native / Disaggregated / Generic SQL 四路线对比 |
 | [OceanBase Phase 2：Memory Management 实施指引](./retrieval-storage/033c-oceanbase-memory-management.md) | 仿生 Google Memory Bank 的工程落地（含 Phase 3/4 Roadmap） |
 | [OceanBase 执行阶段一：基座部署与 Unified Schema](./retrieval-storage/033d-oceanbase-schema-design.md) | 部署与统一 Schema 设计 |
+
+**Snowflake**
+
+| 文档 | 主旨 |
+|:---|:---|
+| [Snowflake 数据云平台深度调研](./retrieval-storage/034-snowflake-data-cloud.md) | 基于官方文档的 10 正交维度全景（架构/存储/计算/数据工程/开发/AI/安全治理/共享/容灾/成本）+ 主流方案横向对比与选型建议 |
 
 ## 四、知识与图谱 · `knowledge-graph/`
 
@@ -70,6 +78,18 @@
 | [自进化 Agents Team 调研](./self-evolution/130-self-evolving-agents-team.md) | DGM / ADAS / AlphaEvolve + GEPA / ACE 进化算子 |
 | [经验时代的自驱迭代进化智能体](./self-evolution/140-experience-era-self-improvement.md) | 88 页综述精读 + Routine 闭环诊断 |
 | [Skill 进化闭环 × 自我改进评测](./self-evolution/141-skills-evolution-and-si-measurement.md) | Skills 三阶段进化 + SI 六目标度量 |
+
+## 七、量化与投资科学 · `quant-finance/`
+
+| 文档 | 主旨 |
+|:---|:---|
+| [凯利公式与股市投资的数学基石](./quant-finance/150-kelly-criterion-and-investment-math.md) | 七块严格成立的定理（凯利仓位 / 统计功效 / 破产风险 / 波动拖累 / 复利年金 / Markowitz 分散化 / Sharpe 算术）+ 经核验的实证数据（SPIVA / 上交所账户研究等）+ 中国市场可执行操作路径与避坑清单 |
+
+## 八、视频与动效生产 · `video-production/`
+
+| 文档 | 主旨 |
+|:---|:---|
+| [视频动效建模与 Web 可视化搭建工具全景调研](./video-production/160-video-motion-modeling-web-visual-tooling.md) | 以现役 Remotion 科普视频管线为基线的全网与 GitHub 全景调研（54+9 候选、四路深评、87 条主张双反驳核验）：A 轨 `@remotion` 官方增强簇即刻提升表达力、B 轨 HyperFrames（Apache-2.0、agent 原生）平行试点、C 轨 Cavalry/Jitter→Lottie 设计师资产管线，附四道击穿门评估框架、迁移成本口径与 POC 验收清单 |
 
 ---
 

@@ -1,0 +1,199 @@
+{
+  "seriesList": [
+    {
+      "id": "self-evolution",
+      "title": "自进化系列科普视频",
+      "sourceKind": "paper",
+      "rule": "各集独立成片。口播文本严禁出现其他集标题、集数序号或「上一集/上期/第 N 集」等顺序词；序号只存在于视觉层与本文件，据此保证发布顺序变更的 TTS 代价为零（「下期再见」一类顺序无关的收尾语不受此限）。校验器：pipeline/scripts/check_series.py（路径均为本子项目相对）。",
+      "episodes": [
+        {
+          "episode": 1,
+          "slug": "experience-era-agents-video",
+          "path": "episodes/experience-era-agents-video",
+          "title": "上线之后，AI 才开始上学",
+          "topic": "部署之后经验怎么攒",
+          "cardSub": "经验 · 怎么攒",
+          "accents": [
+            "#F5C542",
+            "#2DD4BF",
+            "#B78CFF"
+          ],
+          "paper": {
+            "title": "Self-Improving Agents in the Era of Experience: A Survey of Self- to Meta-Evolution",
+            "id": null,
+            "idNote": "无公开 arXiv 号（引用卡写机构+日期，不编造编号）",
+            "venue": "清华大学 × Horizon Research (Frontis.AI)",
+            "date": "2026-06"
+          },
+          "status": "ready",
+          "statusNote": "v3 已完成：内容校准（187 句，25 改写 + 8 新增）+ sunny-steady 全片重配 + 终渲 14:01；源码含未重渲改动（P3 Figure 8 格阵落格校准，见 PR 说明），发布前须重渲",
+          "voice": "sunny-steady + me-bright.wav（2026-08 重录决策）"
+        },
+        {
+          "episode": 2,
+          "slug": "self-improving-agents-video",
+          "path": "episodes/self-improving-agents-video",
+          "title": "AI 如何自己变强？",
+          "topic": "自我进化改什么",
+          "cardSub": "自我进化 · 改什么",
+          "accents": [
+            "#4A9EFF",
+            "#FF9F45"
+          ],
+          "paper": {
+            "title": "Self-Improvements in Modern Agentic Systems: A Survey",
+            "id": "arXiv:2607.13104",
+            "idNote": "",
+            "venue": "吉林大学 × KAUST × Alberta × IDSIA（Schmidhuber 团队）",
+            "date": "2026-07"
+          },
+          "status": "ready",
+          "statusNote": "待升级项：换 sunny-steady 重配（机器空闲口径约 2–3h，未排期；旧 10h 为忙时实测，见 VOICE-CLONING §4.3b 复测）",
+          "voice": "passionate + me-1.wav（已上线成片所用）"
+        },
+        {
+          "episode": 3,
+          "slug": "self-evolving-coding-agents-video",
+          "path": "episodes/self-evolving-coding-agents-video",
+          "title": "会写代码的 AI，开始给自己写代码",
+          "topic": "代码领域全图",
+          "cardSub": "代码田野 · 全图",
+          "accents": [
+            "#4ADE80",
+            "#FF6EC7"
+          ],
+          "paper": {
+            "title": "Self-Evolving Coding Agents: A Survey",
+            "id": "arXiv:2608.03392",
+            "idNote": "",
+            "venue": "南京理工大学 × 南京大学",
+            "date": "2026-08"
+          },
+          "status": "ready",
+          "statusNote": "源码含未重渲改动（系列三卡重排，见 PR 说明）；待升级项：换 sunny-steady 重配",
+          "voice": "passionate + me-1.wav（已上线成片所用）"
+        }
+      ]
+    },
+    {
+      "id": "claude-code-explained",
+      "title": "Claude Code Harness Engineering",
+      "sourceKind": "course",
+      "rule": "与自进化系列完全独立：两个系列的口播互不引用（校验器规则 1 跨系列全局生效），发布顺序与视觉契约各自独立（规则 2/3/4 按系列内判定）。信源为官方文档 + Anthropic 工程博客 + 开源课程仓库（站点 20 章/5 阶段只作组织骨架，观众层匿名化——规则 7），故 episode 用 source 字段（含 pinnedRef 与访问日期）而非 paper 字段——证据等级分层见各集 research/source-notes.md。",
+      "episodes": [
+        {
+          "episode": 1,
+          "slug": "claude-code-explained-video",
+          "path": "episodes/claude-code-explained-video",
+          "title": "执行层：一个循环，就是全部",
+          "topic": "工具与执行：把模型装进Harness",
+          "cardSub": "执行层 · 循环",
+          "accents": [
+            "#D97757",
+            "#64C4C0",
+            "#EF6461"
+          ],
+          "source": {
+            "title": "Learn Claude Code · 工具与执行（s01 Agent Loop / s02 Tool Use / s03 Permission / s04 Hooks）",
+            "site": "https://learn.shareai.run/zh/s01/",
+            "repo": "https://github.com/shareAI-lab/learn-claude-code",
+            "pinnedRef": "f9e8b280f715f9ba107d4517fd39bc5f8ddda618",
+            "license": "MIT",
+            "accessed": "2026-08-21"
+          },
+          "status": "draft-review",
+          "statusNote": "运动层重制版草渲待审（2026-09-03）：13:58.80 = 25164 帧 @30fps（167 句，配音全量重合成——TTS 复跑漂移 -478 帧仍在预算窗）；七幕 + beat 头部 + 尾幕 FAIL 0 · WARN 0；A/B 对拍 167 帧（基线=重制前代码同 manifest 渲染）：仅 2 帧 >5% 均为 HarnessStack 新装置（P0 开场/P6 收尾），其余 ≤1.5% 归因于顶边常驻条/SceneTag 移位/令牌化缓动；终渲 final.mp4 43.6MB 已出、captions.srt/vtt 齐",
+          "voice": "sunny-steady + me-bright.wav"
+        },
+        {
+          "episode": 2,
+          "slug": "claude-code-planning-video",
+          "path": "episodes/claude-code-planning-video",
+          "title": "规划层：模型的视野是安排出来的",
+          "topic": "规划与协调：谁替它安排视野",
+          "cardSub": "规划层 · 视野",
+          "accents": [
+            "#9C90EE"
+          ],
+          "source": {
+            "title": "Learn Claude Code · 规划与协调（s05 / s06 / s07 / s10 / s11）",
+            "site": "https://learn.shareai.run/zh/s05/",
+            "repo": "https://github.com/shareAI-lab/learn-claude-code",
+            "pinnedRef": "67a9126c6435a8654ba7a6f68c0fd2130f00a462",
+            "license": "MIT",
+            "accessed": "2026-08-22"
+          },
+          "status": "draft-review",
+          "statusNote": "Harness Engineering 改造草渲待审：13:10 = 23706 帧 @30fps（135 句）；七幕抽帧 FAIL 0 · WARN 0；终渲未启动",
+          "voice": "sunny-steady + me-bright.wav"
+        },
+        {
+          "episode": 3,
+          "slug": "claude-code-memory-video",
+          "path": "episodes/claude-code-memory-video",
+          "title": "记忆层：会丢的和不能丢的",
+          "topic": "记忆管理：窗口内外的两本账",
+          "cardSub": "记忆层 · 两本账",
+          "accents": [
+            "#A9C46C"
+          ],
+          "source": {
+            "title": "Learn Claude Code · 记忆管理（s08 Context Compact / s09 Memory）",
+            "site": "https://learn.shareai.run/zh/s08/",
+            "repo": "https://github.com/shareAI-lab/learn-claude-code",
+            "pinnedRef": "67a9126c6435a8654ba7a6f68c0fd2130f00a462",
+            "license": "MIT",
+            "accessed": "2026-08-22"
+          },
+          "status": "draft-review",
+          "statusNote": "Harness Engineering 改造草渲待审：13:07 = 23622 帧 @30fps（139 句）；七幕 FAIL 0（WARN 3 均金句卡刻意静止）；终渲未启动",
+          "voice": "sunny-steady + me-bright.wav"
+        },
+        {
+          "episode": 4,
+          "slug": "claude-code-concurrency-video",
+          "path": "episodes/claude-code-concurrency-video",
+          "title": "时机层：谁来按下开始",
+          "topic": "并发与调度：谁替它看表",
+          "cardSub": "时机层 · 看表",
+          "accents": [
+            "#7FB2E0"
+          ],
+          "source": {
+            "title": "Learn Claude Code · 并发（s13 Background Tasks / s14 Cron Scheduler）",
+            "site": "https://learn.shareai.run/zh/s13/",
+            "repo": "https://github.com/shareAI-lab/learn-claude-code",
+            "pinnedRef": "67a9126c6435a8654ba7a6f68c0fd2130f00a462",
+            "license": "MIT",
+            "accessed": "2026-08-22"
+          },
+          "status": "draft-review",
+          "statusNote": "Harness Engineering 改造草渲待审：13:07 = 23621 帧 @30fps（139 句）；七幕抽帧 FAIL 0 · WARN 0；终渲未启动",
+          "voice": "sunny-steady + me-bright.wav"
+        },
+        {
+          "episode": 5,
+          "slug": "claude-code-multiagent-video",
+          "path": "episodes/claude-code-multiagent-video",
+          "title": "协作层：从一个到一群",
+          "topic": "多 Agent 协作：谁持有计划",
+          "cardSub": "协作层 · 计划",
+          "accents": [
+            "#D9B36B"
+          ],
+          "source": {
+            "title": "Learn Claude Code · 多 Agent 平台（s12 / s15 / s16 / s17 / s18 / s19 / s20）",
+            "site": "https://learn.shareai.run/zh/s12/",
+            "repo": "https://github.com/shareAI-lab/learn-claude-code",
+            "pinnedRef": "67a9126c6435a8654ba7a6f68c0fd2130f00a462",
+            "license": "MIT",
+            "accessed": "2026-08-22"
+          },
+          "status": "draft-review",
+          "statusNote": "Harness Engineering 改造草渲待审：13:08 = 23666 帧 @30fps（134 句）；七幕 FAIL 0 · WARN 0（尾帧 WARN 1 为收束卡刻意停留；口径为 08-23 草渲版）——08-24 评审修复 6-D resume 死门+分水岭压卡、2-E 补名册/对比卡两页，remotion still 逐帧复检通过；终渲未启动",
+          "voice": "sunny-steady + me-bright.wav"
+        }
+      ]
+    }
+  ]
+}

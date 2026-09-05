@@ -1,0 +1,172 @@
+# 系列信源地图（机器可读 SSOT）——《Claude Code 通俗全解》的 章→集 归属唯一登记处。
+# 人读版：claude-code-explained.md；与 series.json（机器）/ series.md（人读）同一配对纪律。
+#
+# ── 站点↔仓库修订分叉（全系列唯一登记处，各集 notes 只链接不重述） ─────────────
+# 课程信源在 2026-07/08 出现**双轨修订**，两轨的章号不共用：
+#   · 站点（siteBase）= **20 章版**：内容与仓库分支 fix/s08-s20-sync-frontmatter-parser
+#     @ 67a9126c（2026-07-28）逐字一致，中文文件名是 README.md；
+#   · 仓库 main @ f9e8b28（2026-08-18）已**整合为 17 章**：中文章名 README.zh.md，
+#     s10_system_prompt/s11_error_recovery 并入 s15_integrated_harness，
+#     s16_team_protocols/s17_autonomous_agents/s18_worktree_isolation 并入 s13_agent_teams，
+#     s20_comprehensive 对应（扩写为）s15_integrated_harness，另新增
+#     s16_workflow_runtime/s17_goal_loop（本系列不覆盖）。
+# 这是 ISSUE-165「站点 LOC 复算不出」的真正根因：站点整站是课程的旧修订。
+# 故双钉（[[pin]]）：ep1 钉 main（其记忆点「看内容块别信停止标记」正依赖 main 比站点新），
+# ep2–ep5 钉站点同源修订（用户 5 分组只在该修订下成立）。
+#
+# ── 本文件是 chapter→episode 映射的唯一住所 ─────────────────────────────────
+# 各集 research/source-notes.md 只链接 ../source-map/claude-code-explained.md，
+# **永不重述**章号归属与钉选——重述即第二事实源，两轨章号错位时必然漂移。
+#
+# 用法：
+#   uv run --no-project $R/source_ledger.py --project $P sync --map <本文件> --episode 2
+#   uv run --no-project $R/source_ledger.py --project $P audit --map <本文件> --episode 1
+
+seriesId = "claude-code-explained"
+repo = "https://github.com/shareAI-lab/learn-claude-code"
+rawBase = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code"
+license = "MIT"
+siteBase = "https://learn.shareai.run/zh"
+
+# 双钉：两轨修订不同，逐集选择（此处显式登记，是全系列唯一一处）。
+[[pin]]
+ref = "f9e8b280f715f9ba107d4517fd39bc5f8ddda618"
+date = "2026-08-18"
+label = "仓库 main（17 章整合版）"
+readmeFile = "README.zh.md"
+codeFile = "code.py"
+episodes = [1]
+
+[[pin]]
+ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+date = "2026-07-28"
+label = "站点同源修订（20 章版，分支 fix/s08-s20-sync-frontmatter-parser）"
+readmeFile = "README.md"
+episodes = [2, 3, 4, 5]
+codeFile = "code.py"
+
+# 章节表：id=仓库目录名（判据轨身份）· slug=台账条目名前缀 · episode=归属集 ·
+# sitePaths=站点路径段。ep1 的 s01–s04 在 17 章修订里目录名与 20 章修订相同，但
+# readmeFile 随 pin 走（README.zh.md），故章节行**不**再写文件名。
+
+[[chapter]]
+id = "s01_agent_loop"
+slug = "s01"
+episode = 1
+sitePaths = ["s01"]
+
+[[chapter]]
+id = "s02_tool_use"
+slug = "s02"
+episode = 1
+sitePaths = ["s02"]
+
+[[chapter]]
+id = "s03_permission"
+slug = "s03"
+episode = 1
+sitePaths = ["s03"]
+
+[[chapter]]
+id = "s04_hooks"
+slug = "s04"
+episode = 1
+sitePaths = ["s04"]
+
+[[chapter]]
+id = "s05_todo_write"
+slug = "s05"
+episode = 2
+sitePaths = ["s05"]
+
+[[chapter]]
+id = "s06_subagent"
+slug = "s06"
+episode = 2
+sitePaths = ["s06"]
+
+[[chapter]]
+id = "s07_skill_loading"
+slug = "s07"
+episode = 2
+sitePaths = ["s07"]
+
+[[chapter]]
+id = "s08_context_compact"
+slug = "s08"
+episode = 3
+sitePaths = ["s08"]
+
+[[chapter]]
+id = "s09_memory"
+slug = "s09"
+episode = 3
+sitePaths = ["s09"]
+
+[[chapter]]
+id = "s10_system_prompt"
+slug = "s10"
+episode = 2
+sitePaths = ["s10"]
+
+[[chapter]]
+id = "s11_error_recovery"
+slug = "s11"
+episode = 2
+sitePaths = ["s11"]
+
+[[chapter]]
+id = "s12_task_system"
+slug = "s12"
+episode = 5
+sitePaths = ["s12"]
+
+[[chapter]]
+id = "s13_background_tasks"
+slug = "s13"
+episode = 4
+sitePaths = ["s13"]
+
+[[chapter]]
+id = "s14_cron_scheduler"
+slug = "s14"
+episode = 4
+sitePaths = ["s14"]
+
+[[chapter]]
+id = "s15_agent_teams"
+slug = "s15"
+episode = 5
+sitePaths = ["s15"]
+
+[[chapter]]
+id = "s16_team_protocols"
+slug = "s16"
+episode = 5
+sitePaths = ["s16"]
+note = "并入视角：17 章版已把 Team Protocols 并入 s13_agent_teams；ep5 仍按 20 章修订单章取证（钉 67a9126c），讲法归属 ep5。"
+
+[[chapter]]
+id = "s17_autonomous_agents"
+slug = "s17"
+episode = 5
+sitePaths = ["s17"]
+
+[[chapter]]
+id = "s18_worktree_isolation"
+slug = "s18"
+episode = 5
+sitePaths = ["s18"]
+
+[[chapter]]
+id = "s19_mcp_plugin"
+slug = "s19"
+episode = 5
+sitePaths = ["s19"]
+
+[[chapter]]
+id = "s20_comprehensive"
+slug = "s20"
+episode = 5
+sitePaths = ["s20"]
+note = "ep5 的 s20 不作章节、作 P6 收束装置（一整轮七步传送带，标语「机制很多，循环一个」直接回答系列主线）。"

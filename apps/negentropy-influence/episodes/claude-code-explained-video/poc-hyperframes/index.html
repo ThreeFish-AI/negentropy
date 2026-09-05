@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<!-- HyperFrames PoC · B 轨（2026-09-04）· 本集 P0 开场「层栈落板」的 GSAP 复刻垂直切片
+     口播 p0-01…p0-04（真实文案取自 script/narration.json）；色板照抄三色契约字面量。
+     契约依据：hyperframes.heygen.com/concepts/compositions（clip/data-* 属性面）
+     + /guides/gsap-animation（paused timeline 持播放头）。渲染试跑结论见 FINDINGS.md。 -->
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <style>
+    html, body { margin: 0; padding: 0; background: #0E1116; }
+    /* macOS 系统字体：local() 声明即满足渲染器字体确定性检查（与现役管线同一字体栈） */
+    @font-face { font-family: 'PingFang SC'; src: local('PingFang SC'); }
+    @font-face { font-family: 'Songti SC'; src: local('Songti SC'); }
+    @font-face { font-family: 'SF Mono'; src: local('SF Mono'); }
+    #root { position: relative; width: 1920px; height: 1080px; background: #0E1116;
+            font-family: "PingFang SC", "Songti SC", sans-serif; overflow: hidden; }
+    .plate { position: absolute; width: 460px; height: 64px; background: #171C26;
+             border: 2px solid #2A3242; border-radius: 12px; display: flex;
+             align-items: center; gap: 14px; padding: 0 18px; box-sizing: border-box; }
+    .plate .idx { font-family: "SF Mono", monospace; font-size: 17px; color: #9AA7B8; }
+    .plate .name { font-size: 28px; color: #9AA7B8; letter-spacing: 2px; }
+    .plate.active { border-color: #D97757; }
+    .plate.active .idx { color: #D97757; }
+    .plate.active .name { color: #F2F5FA; font-weight: 600; }
+    .term { position: absolute; left: 820px; top: 300px; width: 760px; height: 380px;
+            background: #171C26; border: 2px solid #2A3242; border-radius: 14px; padding: 26px 30px;
+            box-sizing: border-box; opacity: 0; }
+    .term .line { font-family: "SF Mono", monospace; font-size: 26px; color: #F2F5FA;
+                  margin-bottom: 18px; white-space: nowrap; }
+    .term .line .p { color: #64C4C0; }
+    .caption { position: absolute; left: 820px; top: 730px; font-size: 24px; color: #9AA7B8; opacity: 0; }
+  </style>
+</head>
+<body>
+  <div id="root" data-composition-id="poc-p0" data-start="0" data-width="1920" data-height="1080">
+    <!-- 层板（clip）：5 块，0-18s 常驻，track 0 -->
+    <div class="plate clip" id="plate-1" data-start="0" data-duration="18" data-track-index="0"
+         style="left: 730px; top: 300px;">
+      <span class="idx">01</span><span class="name">执行层</span>
+    </div>
+    <div class="plate clip" id="plate-2" data-start="0" data-duration="18" data-track-index="0"
+         style="left: 730px; top: 374px;">
+      <span class="idx">02</span><span class="name">规划层</span>
+    </div>
+    <div class="plate clip" id="plate-3" data-start="0" data-duration="18" data-track-index="0"
+         style="left: 730px; top: 448px;">
+      <span class="idx">03</span><span class="name">记忆层</span>
+    </div>
+    <div class="plate clip" id="plate-4" data-start="0" data-duration="18" data-track-index="0"
+         style="left: 730px; top: 522px;">
+      <span class="idx">04</span><span class="name">时机层</span>
+    </div>
+    <div class="plate clip" id="plate-5" data-start="0" data-duration="18" data-track-index="0"
+         style="left: 730px; top: 596px;">
+      <span class="idx">05</span><span class="name">协作层</span>
+    </div>
+    <!-- 终端面板（clip）：p0-01 起出现，track 1 -->
+    <div class="term clip" id="term-panel" data-start="4.5" data-duration="13.5" data-track-index="1">
+      <div class="line"><span class="p">$</span> 跑个脚本</div>
+      <div class="line">命令写好了…然后就停在那儿了</div>
+    </div>
+    <div class="caption clip" id="caption-line" data-start="4.5" data-duration="13.5" data-track-index="1">
+      复制、粘贴、回车、再把输出贴回去——每一轮的搬运工，是你。
+    </div>
+
+    <script>
+      // paused timeline：HyperFrames 持播放头逐帧 seek（渲染从不 play）
+      const tl = gsap.timeline({paused: true});
+      // ① 自底向上落板（每块 0.4s，错峰 0.2s）——对位 Remotion 版 useStagger(stride 6f)
+      tl.fromTo('#plate-1', {y: 26, opacity: 0}, {y: 0, opacity: 1, duration: 0.4, ease: 'power3.out'}, 0)
+        .fromTo('#plate-2', {y: 26, opacity: 0}, {y: 0, opacity: 1, duration: 0.4, ease: 'power3.out'}, 0.2)
+        .fromTo('#plate-3', {y: 26, opacity: 0}, {y: 0, opacity: 1, duration: 0.4, ease: 'power3.out'}, 0.4)
+        .fromTo('#plate-4', {y: 26, opacity: 0}, {y: 0, opacity: 1, duration: 0.4, ease: 'power3.out'}, 0.6)
+        .fromTo('#plate-5', {y: 26, opacity: 0}, {y: 0, opacity: 1, duration: 0.4, ease: 'power3.out'}, 0.8);
+      // ② 执行层高亮：描边转 core + 两次辉光脉冲；其余压暗
+      tl.add(() => {
+          document.querySelectorAll('.plate').forEach((el) => {
+            if (el.id !== 'plate-1') { el.style.opacity = '0.55'; }
+          });
+          document.getElementById('plate-1').classList.add('active');
+        }, 1.4)
+        .to('#plate-1', {boxShadow: '0 0 32px #D9775755', duration: 0.5, yoyo: true, repeat: 3, ease: 'sine.inOut'}, 1.4);
+      // ③ 终端面板淡入（p0-01 句起点）
+      tl.to('.term', {opacity: 1, duration: 0.4}, 4.5)
+        .to('.caption', {opacity: 1, duration: 0.4}, 4.9);
+      // ④ 缩退：栈向左上收小（对位 Remotion 版 recede）
+      tl.to('#plate-1', {x: -666, y: -288 - 300 + 300, scale: 0.45, transformOrigin: '0 0', duration: 0.7}, 14)
+        .to('#plate-2', {x: -666, y: -578, scale: 0.45, transformOrigin: '0 0', duration: 0.7}, 14)
+        .to('#plate-3', {x: -666, y: -652, scale: 0.45, transformOrigin: '0 0', duration: 0.7}, 14)
+        .to('#plate-4', {x: -666, y: -726, scale: 0.45, transformOrigin: '0 0', duration: 0.7}, 14)
+        .to('#plate-5', {x: -666, y: -800, scale: 0.45, transformOrigin: '0 0', duration: 0.7}, 14);
+
+      // 播放头注册：键名与 composition id 对应（官方 runtime 契约）
+      window.__timelines = window.__timelines || {};
+      window.__timelines['poc-p0'] = tl;
+    </script>
+  </div>
+</body>
+</html>

@@ -752,6 +752,10 @@ def _build_document_response(
         markdown_extract_error=doc.markdown_extract_error,
         archived=archived,
         metadata=doc.metadata_ or {},
+        patrol_status=getattr(doc, "patrol_status", None),
+        patrol_score=getattr(doc, "patrol_score", None),
+        patrol_routine_id=getattr(doc, "patrol_routine_id", None),
+        patrol_updated_at=(doc.patrol_updated_at.isoformat() if getattr(doc, "patrol_updated_at", None) else None),
     )
 
 
@@ -817,11 +821,16 @@ def _resolve_chunking_config_from_doc_request(
 async def _reparse_document_markdown(
     *,
     document_id: UUID,
+    resume: bool = False,
 ) -> None:
     """从 PostgreSQL 已存储的源字节重新加载文档，经 MCP Tool 重新解析 Markdown 并刷新存储。
 
     与 ingest pipeline 共用同一条 MCP Tool 提取路径（extract_source），
     确保 Document View 的 Markdown 内容与 Chunk 内容质量一致。
+
+    ``resume`` 控制 perceives auto_batch checkpoint 复用（双入口重试，与
+    ``POST /pipelines/{run_id}/retry`` 对称）：``False``（默认）丢弃 checkpoint
+    全量重跑；``True`` 断点续传。经 ``_maybe_inject_resume`` 注入 perceives 工具。
 
     作为 starlette BackgroundTask 执行（HTTP 已返回 200），故所有失败路径必须
     自洽兜底：写 ``markdown_extract_status='failed'`` + 可读 error，绝不让异常逃逸
@@ -895,6 +904,7 @@ async def _reparse_document_markdown(
             content=content,
             filename=doc.original_filename,
             content_type=doc.content_type,
+            resume=resume,
         )
 
         markdown_content = (result.markdown_content or "").strip()

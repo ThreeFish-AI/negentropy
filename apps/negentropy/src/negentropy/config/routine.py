@@ -321,15 +321,51 @@ class RoutineSettings(BaseSettings):
     # 沿用现有 litellm 直调（PlanReviewer / RoutineEvaluator），事件仍带语义 agent_role。
     faculty_bridge_enabled: bool = Field(
         default=False,
-        description="启用 FacultyBridge：在 Plan 审 / 评估等注入点经 ADK Runner 同步调用真实 Faculty "
-        "Agent（元神 / 本心 / 妙手），失败/超时降级 litellm 直调。默认关闭——开启前需确保 ADK "
-        "Runner 在 Routine 编排上下文中可用且不阻塞单 worker 事件循环。",
+        description="启用 FacultyBridge（总 kill-switch）：在 Plan 审 / 评估等注入点经 ADK Runner "
+        "同步调用真实 Faculty Agent，失败/超时降级 litellm 直调。默认关闭——开启前需确保 ADK "
+        "Runner 在 Routine 编排上下文中可用且不阻塞单 worker 事件循环。其下细分组开关"
+        "（faculty_bridge_review_enabled 等）须与本开关同时为 True 才生效（总 AND 组）。",
     )
     faculty_bridge_timeout_seconds: int = Field(
         default=90,
         ge=10,
         le=600,
         description="FacultyBridge 单次同步调用 Faculty Agent 的超时（秒），超时即降级。",
+    )
+    # --- FacultyBridge 分组开关（WS2 后台 LLM 收编）---
+    # 每组独立可回滚：任一组异常只需翻其组开关 False，不影响其它组。生效条件 = 总开关 AND 组开关。
+    # 详见 ADR docs/concepts/040-routine-multi-agent-faculty.md 与 plan「WS2」节。
+    faculty_bridge_review_enabled: bool = Field(
+        default=True,
+        description="评审 / 裁决组（evaluate / plan_review / auto_answer）——已在生产验证降级安全，"
+        "总开关开启时默认参与。",
+    )
+    faculty_bridge_memory_extract_enabled: bool = Field(
+        default=False,
+        description="routine 记忆提取组（memory_extractor → internalization）——高频逐条，默认关，灰度。",
+    )
+    faculty_bridge_consolidation_enabled: bool = Field(
+        default=False,
+        description="consolidation 组（fact_extract / summarize / reflection / entity_normalization → "
+        "internalization | contemplation）——多条目循环，默认关，须配成本护栏灰度。",
+    )
+    faculty_bridge_evolution_enabled: bool = Field(
+        default=False,
+        description="evolution 提案组（proposer → contemplation）——决策敏感（bounded mutation），默认关。",
+    )
+    faculty_bridge_batch_timeout_seconds: int = Field(
+        default=30,
+        ge=10,
+        le=300,
+        description="批处理类（memory_extract / consolidation）单次 Faculty 调用超时（秒）；"
+        "低于评审类以约束多条目循环延迟。",
+    )
+    faculty_bridge_max_calls_per_task: int = Field(
+        default=3,
+        ge=1,
+        le=50,
+        description="单个高层任务（一次 consolidate / extract_on_termination）内 Faculty 调用上限；"
+        "超限即降级 litellm，防 Runner 开销线性膨胀。经 faculty_bridge_budget 上下文生效。",
     )
 
     # --- pdf-fidelity-patrol（PDF→Markdown 高保真自拟合巡检 · Scheduler Task）---
@@ -379,7 +415,7 @@ class RoutineSettings(BaseSettings):
         description="非回归基线样本数（首次巡检时分层抽取的生产 PDF 文档数）。",
     )
     patrol_qualified_score_threshold: int = Field(
-        default=95,
+        default=99,
         ge=0,
         le=100,
         description="巡检文档「合格」分阈值（0-100）。巡检 Routine 的 success_score_threshold 取此值——"

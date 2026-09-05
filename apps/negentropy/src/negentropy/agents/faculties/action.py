@@ -2,10 +2,14 @@ from google.adk.agents import LlmAgent
 
 from .._citation_protocol import CITATION_PROTOCOL
 from .._dynamic_instruction import make_instruction_provider
+from .._dynamic_tools import NegentropyToolset
 from .._model import create_subagent_model
-from ..tools.action import execute_code, read_file, write_file
-from ..tools.claude_code import invoke_claude_code
 from ..tools.common import log_activity
+
+# WS1：可摘工具集经 ``NegentropyToolset`` 按 ``agents.tools`` 运行时解析（单源来自
+# Interface/Agents 页）；恒常工具（log_activity）仍以裸 callable 挂常量位。
+_DEFAULT_TOOL_NAMES = ["execute_code", "read_file", "write_file", "invoke_claude_code"]
+_MANDATORY_TOOL_NAMES = ["log_activity"]
 
 _DESCRIPTION = (
     "Handles: code execution, file operations, implementation, system changes, tool invocation. "
@@ -71,7 +75,14 @@ def create_action_agent(*, output_key: str | None = None, mode: str | None = Non
         model=create_subagent_model(agent_name="ActionFaculty"),
         description=_DESCRIPTION,
         instruction=make_instruction_provider("ActionFaculty", _INSTRUCTION),
-        tools=[log_activity, execute_code, read_file, write_file, invoke_claude_code],
+        tools=[
+            log_activity,
+            NegentropyToolset(
+                agent_name="ActionFaculty",
+                default_names=_DEFAULT_TOOL_NAMES,
+                mandatory_names=_MANDATORY_TOOL_NAMES,
+            ),
+        ],
         output_key=output_key,
         mode=mode,
         # Pipeline 边界管控：在流水线内使用时，禁止 LLM 路由逃逸

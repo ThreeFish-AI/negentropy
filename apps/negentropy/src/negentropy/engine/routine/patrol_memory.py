@@ -43,6 +43,14 @@ TAG_STATUS = "pdf-fidelity-status"
 TAG_UNFIXABLE = "pdf-fidelity-unfixable"
 TAG_PATTERN = "pdf-fidelity-pattern"
 TAG_BASELINE = "pdf-fidelity-baseline"
+TAG_DEFECT = "pdf-fidelity-defect"
+
+# 三杠杆归因校验枚举（与 patrol_prompt.py CONTRACT_SCHEMA 的 attribution.lever/layer 对齐）。
+# 非法值仅 WARN 不阻断（巡检不因归因拼写错误而丢缺陷记忆）。
+_VALID_LEVERS = frozenset({"code", "skill", "process"})
+_VALID_LAYERS = frozenset(
+    {"render_wiki", "render_ui", "render_sim", "ingest", "pipeline", "export", "skill", "process"}
+)
 
 # 长期保留的衰减率覆盖（写入 metadata_）。MemoryGovernanceService 计分时优先读取。
 _DECAY_LONG = 0.003  # status / baseline（事实型，长期不变）
@@ -143,7 +151,11 @@ class PatrolMemoryStore:
         )
 
     async def _upsert_status(self, *, doc_id: str, status: str, score: int | None, routine_id: str) -> None:
-        """文档级状态 upsert：先删旧 status 记忆再写新（同事务，幂等）。"""
+        """文档级状态 upsert：先删旧 status 记忆再写新（同事务，幂等）。
+
+        dual-write：同时落 ``knowledge_documents`` 巡检态列（SSOT 读源）与 Memory TAG_STATUS
+        （过渡期保留，Phase 2 deprecate）。两写同会话同事务，一致 commit / 一致回滚。
+        """
         await self._db.execute(
             sa.text(
                 "DELETE FROM negentropy.memories "
@@ -163,6 +175,15 @@ class PatrolMemoryStore:
                 "routine_id": routine_id,
                 "decay_override": _DECAY_LONG,
             },
+        )
+        # TODO(phase2): deprecate 上述 Memory TAG_STATUS 写（读侧已迁至 patrol_status 列），仅保留列写。
+        await self._db.execute(
+            sa.text(
+                "UPDATE negentropy.knowledge_documents "
+                "SET patrol_status = :st, patrol_score = :sc, "
+                "patrol_routine_id = CAST(:rid AS uuid), patrol_updated_at = NOW() "
+                "WHERE id = CAST(:doc_id AS uuid)"
+            ).bindparams(st=status, sc=score, rid=routine_id, doc_id=doc_id)
         )
 
     async def record_done(self, *, doc_id: str, score: int | None, routine_id: str) -> None:
@@ -213,12 +234,66 @@ class PatrolMemoryStore:
             },
         )
 
+    async def record_defects(
+        self,
+        *,
+        doc_id: str,
+        defects: list[dict[str, Any]],
+        routine_id: str = "",
+    ) -> int:
+        """记录逐页缺陷证据（``TAG_DEFECT``）——文档内纵向非回归用（下轮优先复核是否复现）。
+
+        与 ``TAG_UNFIXABLE``（仅 ≥5 次失败的不可修复区）正交：``TAG_DEFECT`` 记**全部发现过的
+        缺陷**（含已修复），供非回归对照与用户审计。归因轻校验：``attribution.lever/layer``
+        非法仅 WARN 不阻断。返回实际写入条数。
+        """
+        written = 0
+        for d in defects:
+            if not isinstance(d, dict):
+                continue
+            category = str(d.get("category") or "").strip()
+            defect_text = str(d.get("defect") or "").strip()
+            if not category or not defect_text:
+                continue
+            attribution = d.get("attribution") if isinstance(d.get("attribution"), dict) else {}
+            lever = str(attribution.get("lever") or "").strip()
+            layer = str(attribution.get("layer") or "").strip()
+            if lever and lever not in _VALID_LEVERS:
+                logger.warning("patrol_defect_invalid_lever", doc_id=doc_id, lever=lever)
+            if layer and layer not in _VALID_LAYERS:
+                logger.warning("patrol_defect_invalid_layer", doc_id=doc_id, layer=layer)
+            await self._add(
+                tag=TAG_DEFECT,
+                memory_type="procedural",
+                content=(f"PDF 高保真巡检缺陷（doc={doc_id}, page={d.get('page')}, {category}）：{defect_text}。"),
+                metadata={
+                    "doc_id": doc_id,
+                    "routine_id": routine_id,
+                    "page": d.get("page"),
+                    "category": category,
+                    "severity": str(d.get("severity") or ""),
+                    "check_method": str(d.get("check_method") or ""),
+                    "lever": lever,
+                    "layer": layer,
+                    "target_file": str(attribution.get("target_file") or ""),
+                    "root_cause_hypothesis": str(attribution.get("root_cause_hypothesis") or ""),
+                    "confidence": str(attribution.get("confidence") or ""),
+                    "dual_source_check": str(attribution.get("dual_source_check") or ""),
+                    "status": str(d.get("status") or "open"),
+                    "decay_override": _DECAY_MID,
+                },
+            )
+            written += 1
+        return written
+
     # ------------------------------------------------------------------
     # 读取（selector 用）
     # ------------------------------------------------------------------
 
     async def get_skip_doc_ids(self) -> set[str]:
         """已 done / unfixable 的文档 id 集合（selector 跳过）。"""
+        # NOTE: selector 已迁至读 ``knowledge_documents.patrol_status`` 列（迁移 0092）；
+        # 本方法仅过渡期/测试用，Phase 2 随 Memory TAG_STATUS deprecate 一并移除。
         rows = await self._db.execute(
             sa.text(
                 "SELECT DISTINCT metadata->>'doc_id' AS doc_id FROM negentropy.memories "
@@ -228,6 +303,21 @@ class PatrolMemoryStore:
         )
         return {r[0] for r in rows.fetchall() if r[0]}
 
+    async def clear_doc_legacy_memories(self, doc_id: str) -> None:
+        """清除某 doc 的 TAG_STATUS + TAG_UNFIXABLE 记忆（「重置为未拟合」用）。
+
+        解除该 doc 的终态沉淀与区域级避让，使其可被 selector 重新选中做二次巡检。
+        不清 TAG_PATTERN / TAG_BASELINE——它们是跨 doc 的方法 / 基线知识，非该 doc 状态。
+        """
+        for tag in (TAG_STATUS, TAG_UNFIXABLE, TAG_DEFECT):
+            await self._db.execute(
+                sa.text(
+                    "DELETE FROM negentropy.memories "
+                    "WHERE app_name = :app AND user_id = :u "
+                    "AND metadata->>'tag' = :tag AND metadata->>'doc_id' = :doc"
+                ).bindparams(app=self._app, u=_SYSTEM_USER, tag=tag, doc=doc_id)
+            )
+
     async def get_unfixable_regions(self, doc_id: str) -> list[dict[str, Any]]:
         """某文档已标记 unfixable 的区域（注入巡检会话避让）。"""
         rows = await self._db.execute(
@@ -236,6 +326,28 @@ class PatrolMemoryStore:
                 "WHERE app_name = :app AND user_id = :u "
                 "AND metadata->>'tag' = :tag AND metadata->>'doc_id' = :doc"
             ).bindparams(app=self._app, u=_SYSTEM_USER, tag=TAG_UNFIXABLE, doc=doc_id)
+        )
+        return [r[0] for r in rows.fetchall() if isinstance(r[0], dict)]
+
+    async def get_defects(self, doc_id: str) -> list[dict[str, Any]]:
+        """某文档历史缺陷证据（``TAG_DEFECT``）——下轮注入优先复核是否复现（纵向非回归）。"""
+        rows = await self._db.execute(
+            sa.text(
+                "SELECT metadata FROM negentropy.memories "
+                "WHERE app_name = :app AND user_id = :u "
+                "AND metadata->>'tag' = :tag AND metadata->>'doc_id' = :doc"
+            ).bindparams(app=self._app, u=_SYSTEM_USER, tag=TAG_DEFECT, doc=doc_id)
+        )
+        return [r[0] for r in rows.fetchall() if isinstance(r[0], dict)]
+
+    async def get_defects_by_category(self, category: str) -> list[dict[str, Any]]:
+        """跨文档某类缺陷（归因偏移检测 / 全局 pattern 提炼用）。"""
+        rows = await self._db.execute(
+            sa.text(
+                "SELECT metadata FROM negentropy.memories "
+                "WHERE app_name = :app AND user_id = :u "
+                "AND metadata->>'tag' = :tag AND metadata->>'category' = :cat"
+            ).bindparams(app=self._app, u=_SYSTEM_USER, tag=TAG_DEFECT, cat=category)
         )
         return [r[0] for r in rows.fetchall() if isinstance(r[0], dict)]
 
@@ -330,6 +442,11 @@ class PatrolMemoryStore:
                 module=str(pat.get("module") or ""),
             )
 
+        # 逐页缺陷证据（三杠杆归因）落 TAG_DEFECT ——文档内纵向非回归（下轮优先复核是否复现）。
+        defects = [d for d in contract.get("defects") or [] if isinstance(d, dict)]
+        if defects:
+            await self.record_defects(doc_id=doc_id, defects=defects)
+
     async def persist_terminal_outcome(
         self,
         *,
@@ -388,4 +505,5 @@ __all__ = [
     "TAG_UNFIXABLE",
     "TAG_PATTERN",
     "TAG_BASELINE",
+    "TAG_DEFECT",
 ]

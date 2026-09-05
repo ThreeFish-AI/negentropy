@@ -29,6 +29,77 @@ _HTML_IMG_SRC_RE = re.compile(
 )
 
 
+def _build_img_html(
+    img: "ImageMeta", image_dir: str, alt_override: Optional[str] = None
+) -> str:
+    """把图片元数据构造为 ``<img>`` 标签（与 assembly._image_to_markdown 形态一致）。
+
+    占位符替换 / 孤儿图追加原本输出裸 ``![alt](./images/filename)``，与正文
+    ``<img src width height>`` 形态不一致。此处统一为 ``<img>``：尽力从原图
+    （``local_path`` 或 ``base64_data``）读像素尺寸，宽 >800 等比缩放（引擎常以
+    2x/3x 渲染 figure，原生像素直接做显示宽度会放大数倍）；读不到则输出无显式
+    尺寸的响应式 ``<img>``。保证所有图片同为 ``<img>`` 形态、带尺寸（尽最大努力）。
+
+    ``alt_override`` 非空时优先用作 alt（如 ref 规范化路径保留原 markdown ``![alt]``
+    的 alt 文本），否则回退到 image.caption / filename。
+    """
+    import html as _html
+    import os as _os
+
+    filename = img.filename or "image"
+    alt = alt_override or img.caption or filename
+    src = f"{image_dir}/{filename}"
+    w: Optional[int] = None
+    h: Optional[int] = None
+    # 优先用图片对象自带的栅格尺寸（引擎报告的 width/height 字段）
+    _iw = getattr(img, "width", None)
+    _ih = getattr(img, "height", None)
+    if _iw:
+        w = int(_iw)
+    if _ih:
+        h = int(_ih)
+    try:
+        import base64 as _b64
+        import io as _io
+
+        from PIL import Image as _PILImage
+
+        _src = None
+        _lp = getattr(img, "local_path", None)
+        if _lp and _os.path.exists(_lp):
+            _src = _PILImage.open(_lp)
+        else:
+            _b64d = getattr(img, "base64_data", None)
+            if _b64d:
+                _src = _PILImage.open(_io.BytesIO(_b64.b64decode(_b64d)))
+        if _src is not None:
+            nw, nh = _src.size
+            _src.close()
+            if nw > 0 and nh > 0:
+                _maxw = 800
+                if nw > _maxw:
+                    w = _maxw
+                    h = int(round(nh * _maxw / nw))
+                else:
+                    w, h = nw, nh
+    except Exception:  # nosec B110 - PIL 尺寸解析失败回退默认尺寸（best-effort，无安全影响）
+        pass
+    # 统一封顶：无论尺寸来源（字段 / PIL），宽 >800 等比缩放，避免 2x/3x 渲染图过大
+    if w and w > 800 and h and h > 0:
+        h = int(round(h * 800 / w))
+        w = 800
+    parts = [
+        f'<img src="{_html.escape(src, quote=True)}"',
+        f'alt="{_html.escape(alt, quote=True)}"',
+    ]
+    if w:
+        parts.append(f'width="{w}"')
+    if h:
+        parts.append(f'height="{h}"')
+    parts.append('style="max-width:100%;height:auto;" />')
+    return " ".join(parts)
+
+
 @runtime_checkable
 class ImageMeta(Protocol):
     """图片元数据协议，``DoclingImage`` 与 ``ExtractedImage`` 均满足。"""
@@ -117,22 +188,75 @@ def _append_orphan_images(
         if basename:
             referenced_basenames.add(basename)
 
+    redundant_basenames = _redundant_orphan_basenames(
+        markdown, images, referenced_basenames
+    ) | _adjacent_fragment_orphans(images, referenced_basenames)
+
     orphans = [
         img
         for img in images
         if img.filename
         and img.filename not in referenced_basenames
-        and img.filename
-        not in _redundant_orphan_basenames(markdown, images, referenced_basenames)
+        and img.filename not in redundant_basenames
     ]
     if not orphans:
         return markdown
 
+    # 优先内联放置：orphan 若与唯一张已引用图同页（如多面板 figure 的右面板
+    # 被左面板引用而自身 orphan），插入到该兄弟 <img> 之后，避免被甩到文末
+    # 破坏阅读流。要求"唯一同页兄弟"以消除多图页的归属歧义（非回归安全）。
+    ref_page: dict[str, int] = {}
+    _basename_to_caption: dict[str, Optional[str]] = {}
+    for _img in images:
+        _fn = getattr(_img, "filename", None)
+        _pg = getattr(_img, "page_number", None)
+        if _fn and _fn in referenced_basenames and _pg is not None:
+            ref_page[_fn] = _pg
+        if _fn:
+            _basename_to_caption[_fn] = getattr(_img, "caption", None)
+
+    placed_inline: set[str] = set()
+    for orphan in orphans:
+        _ofn = orphan.filename
+        if not _ofn:
+            continue
+        _opg = getattr(orphan, "page_number", None)
+        if _opg is None:
+            continue
+        _sib_bns = [fn for fn, pg in ref_page.items() if pg == _opg]
+        if len(_sib_bns) != 1:
+            continue  # 无兄弟或多兄弟（歧义）→ 回退文末追加
+        _sib_bn = _sib_bns[0]
+        # 仅当兄弟图无 caption（多面板 figure 的 panel，其 caption 由单独文本块
+        # 承载）时内联；兄弟有 caption（完整独立 figure）时 orphan 是另一独立
+        # figure → 回退文末追加，避免把独立图错并入兄弟图后。
+        _sib_caption = _basename_to_caption.get(_sib_bn)
+        if _sib_caption:
+            continue
+        _orphan_html = _build_img_html(orphan, image_dir)
+
+        def _repl(m: "re.Match[str]", oh: str = _orphan_html) -> str:
+            return m.group(0) + "\n" + oh
+
+        _sib_pat = re.compile(
+            r"(<img\b[^>]*\bsrc\s*=\s*[\"'][^\"']*"
+            + re.escape(_sib_bn)
+            + r"[^\"']*[\"'][^>]*>)",
+            re.IGNORECASE,
+        )
+        _new_md, _n = _sib_pat.subn(_repl, markdown, count=1)
+        if _n > 0:
+            markdown = _new_md
+            placed_inline.add(_ofn)
+
+    remaining = [img for img in orphans if img.filename not in placed_inline]
+    if not remaining:
+        return markdown
+
     appended_lines = ["", "<!-- orphan images appended by image_ref_normalizer -->"]
-    for img in orphans:
-        alt = img.caption or img.filename or "image"
+    for img in remaining:
         appended_lines.append("")
-        appended_lines.append(f"![{alt}]({image_dir}/{img.filename})")
+        appended_lines.append(_build_img_html(img, image_dir))
     return markdown.rstrip() + "\n".join(appended_lines) + "\n"
 
 
@@ -212,6 +336,60 @@ def _redundant_orphan_basenames(
     return redundant
 
 
+# 跨页 figure 过度分割碎片抑制：当某张图（完整 figure）已被正文 <img> 引用，
+# 其同页或相邻页(±1)的未引用 orphan 若像素面积 ≤ 该已放置图的 1/_FRAGMENT_RATIO，
+# 判为 docling 对同一 figure 的冗余局部裁切，抑制不追加到文末。
+# 取 0.5（即已放置图面积 ≥ orphan 2×）以仅捕获真正的子区域碎片，避免误伤
+# 同/邻页独立的小 figure（独立 figure 通常自带 caption 被正文引用，不会是 orphan）。
+_FRAGMENT_RATIO = 0.5
+
+
+def _adjacent_fragment_orphans(
+    images: Sequence[ImageMeta],
+    referenced_basenames: set[str],
+) -> set[str]:
+    """识别跨页/同页 figure 过度分割产出的 orphan 碎片。
+
+    场景：docling 将一张（常为跨页或结构复杂的）figure 同时输出为一张完整图
+    （被正文 ``<img>`` 引用）与若干局部裁切（无法匹配文本引用 → orphan）。
+    这些 orphan 追加到文末会与已内联的完整图视觉重复。
+
+    判定：orphan 与某张已引用图在同页或相邻页（|Δpage| ≤ 1），且已引用图像素
+    面积 ≥ orphan × ``1/_FRAGMENT_RATIO`` → orphan 判为冗余碎片，抑制。
+
+    安全性：需 width/height（像素）/page_number 均可用，否则 no-op（保留既有
+    loss-averse orphan 行为）；仅在确有同/邻页大图已放置且面积达碎片 N 倍时抑制，
+    不误伤多图正文页的合法孤立小图。
+    """
+    meta: dict[str, tuple[int, int, int]] = {}
+    for img in images:
+        fn = getattr(img, "filename", None)
+        if not fn:
+            continue
+        w = getattr(img, "width", None)
+        h = getattr(img, "height", None)
+        pg = getattr(img, "page_number", None)
+        if w and h and pg is not None:
+            meta[fn] = (int(w), int(h), int(pg))
+    if not meta:
+        return set()
+
+    placed = [(fn, m) for fn, m in meta.items() if fn in referenced_basenames]
+    if not placed:
+        return set()
+
+    redundant: set[str] = set()
+    for fn, (ow, oh, opg) in meta.items():
+        if fn in referenced_basenames or fn in redundant:
+            continue
+        orphan_area = ow * oh
+        for _pfn, (pw, ph, ppg) in placed:
+            if abs(ppg - opg) <= 1 and pw * ph >= orphan_area / _FRAGMENT_RATIO:
+                redundant.add(fn)
+                break
+    return redundant
+
+
 def _replace_image_placeholders(
     markdown: str,
     images: Sequence[ImageMeta],
@@ -233,8 +411,7 @@ def _replace_image_placeholders(
 
         if idx < len(available):
             img = available[idx]
-            alt = img.caption or img.filename or "image"
-            parts.append(f"![{alt}]({image_dir}/{img.filename})")
+            parts.append(_build_img_html(img, image_dir))
         else:
             logger.warning(
                 "<!-- image --> 占位符数量 (%d) 超出可用图片 (%d)，保留第 %d 个占位符",
@@ -256,8 +433,8 @@ def _normalize_existing_refs(
     image_dir: str,
 ) -> str:
     """规范化已有的 ``![alt](path)`` 引用路径。"""
-    filename_set = {img.filename for img in images if img.filename}
-    if not filename_set:
+    basename_to_img = {img.filename: img for img in images if img.filename}
+    if not basename_to_img:
         return markdown
 
     def _replacer(match: re.Match) -> str:
@@ -274,8 +451,10 @@ def _normalize_existing_refs(
 
         # 提取 basename 并校验是否为已知图片
         basename = PurePosixPath(path).name
-        if basename in filename_set:
-            return f"![{alt}]({image_dir}/{basename})"
+        if basename in basename_to_img:
+            return _build_img_html(
+                basename_to_img[basename], image_dir, alt_override=alt or None
+            )
 
         return match.group(0)
 

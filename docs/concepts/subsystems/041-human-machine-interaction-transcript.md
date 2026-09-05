@@ -84,7 +84,7 @@ interface TranscriptPolicy {
 }
 ```
 
-- **`ROUTINE_POLICY`**：`human_reply`/`task_dispatch`/`engine` 居右、其余居左；`turnGroup` 三分（cc / human / engine）；`roleHeaderFor` 恒 `null`（徽章内嵌在 Engine/Human/TaskDispatch 块中）。
+- **`ROUTINE_POLICY`**：`human_reply`/`task_dispatch`/`engine` 居右、其余居左；`turnGroup` 三分（cc / human / engine）；`roleHeaderFor` 在机侧（cc）回合切换处显 `claude_code` 徽章（连续机侧不重复刷；人侧 engine/human_reply/task_dispatch 自带内嵌徽章不重复），让 Routine 人↔CC 对话结构显化（对齐 Conductor 机侧身份标注）。
 - **`STUDIO_POLICY`**：仅 `user` 居右、其余全居左；`roleHeaderFor` 在机侧 `role` 相邻变化时渲染徽章（分组降噪）；不设 `turnGroup`（回落 align）。
 
 薄壳 `TranscriptView`（Routine）与 `StudioTranscript`（Studio）各自归一化后委派给同一渲染器，**外部签名稳定、行为各表**。
@@ -107,7 +107,7 @@ interface TranscriptPolicy {
 | `system_note` | Studio 纯文本系统/状态/摘要行 | — | ✓ | 左 |
 | `truncated` | 动作数超限截断哨兵 | ✓ | — | 左 |
 
-可选字段（全 additive）：`role: AgentRole`（机侧 + human_reply）、`nodeId: string`（Studio 选中/搜索）、`citations: Citation[]`（assistant，Studio 引用尾注）、`progress: ToolProgressSnapshot`（tool，Studio 流式进度）、`streaming` / `thinking`（assistant）。所有可选字段对 Routine 归一化输出恒空 → Routine 渲染逐像素等价。
+可选字段（全 additive）：`role: AgentRole`（机侧 + human_reply）、`nodeId: string`（Studio 选中/搜索）、`citations: Citation[]`（assistant，Studio 引用尾注）、`progress: ToolProgressSnapshot`（tool，Studio 流式进度）、`streaming` / `thinking`（assistant）。Routine 归一化不填这些可选字段——机侧 identity 不依赖 `role`，而由 `ROUTINE_POLICY.roleHeaderFor` 按 `kind` 在回合切换处统一投射为 `claude_code`（故 Routine 不再逐像素等价于历史裸文观感，属主动语义升级）。
 
 ## 6. Agent 身份映射
 
@@ -145,6 +145,10 @@ interface TranscriptPolicy {
 | 节点选中 / 搜索 | `itemWrapper` 挂 `data-node-id` + 点击 ring + 搜索高亮 ring + `scrollIntoView` | `StudioTranscript` |
 | 在途指示器 | `pending && !lastIsStreamingAssistant` 时尾随 `WorkingIndicator`；label 由 `policy.workingLabel` 解析（cc_request+pending → Planning…，否则 Working…） | `TranscriptItemsView` |
 | CC 交互错误红显 | `AssistantText` 用 `CC_ERROR_RE` 检测「returned an error」等模式，红框 + ⚠ | `AssistantText.tsx` |
+| 机侧回合徽章 | `ROUTINE_POLICY.roleHeaderFor` 按 `kind` 在机侧回合切换处显 `claude_code`；连续机侧不重复刷；人侧块不挂外层徽章（自带内嵌） | `policy.ts`（`isMachineItem` 类型守卫）+ `IterationEventTimeline.test.tsx` 3 条回归守卫 |
+| Studio 用户头像 | `StudioTranscript` 经 `useAuth` + `UserAvatar` 注入 `userAvatar` 到 `UserBubble` 右侧（OAuth 图/首字母） | `StudioTranscript.tsx` / `UserBubble.tsx` |
+| 在途态耗时计时 | `WorkingIndicator` 接 `workingElapsedStartMs`（Routine=`iteration.started_at`，Studio=`runStartedAtMs` state），复用 `ClockProvider` 同范式 tick；格式 `1m 23s` | `WorkingIndicator.tsx`（`formatElapsed`）/ `home-body.tsx` / `IterationAuditDrawer.tsx` |
+| 长消息折叠 | `AssistantText` 正文超 `LONG_MESSAGE_THRESHOLD_CHARS`(1500) 折叠为限高 + 渐隐 + 「展开全文」（对齐 Conductor Show full message） | `AssistantText.tsx`（`AssistantBody`）/ `style.ts` |
 | thinking 折叠 | 默认收起为「思考…」单行 + Brain 图标，点击展开 | `AssistantText` |
 | 空 assistant 丢弃 | 仅 `{raw}` 无 text 的 assistant 事件归一化时丢弃，防空气泡 | `normalize-transcript.ts` |
 | 持久化 + live 合并 | `mergeEvents` 按 `seq` 去重（持久化优先）+ 升序重排 | `IterationAuditDrawer.tsx` |
@@ -174,7 +178,7 @@ interface TranscriptPolicy {
 
 | 编号 | 风险 | 影响 | 概率 | 对策 |
 |---|---|---|---|---|
-| R1 | Routine 渲染回归（迁移共享模块） | 高 | 低 | 44 项转录契约测试零改动全绿；`ROUTINE_POLICY.roleHeaderFor` 恒 null 保逐像素等价 |
+| R1 | Routine 渲染回归（迁移共享模块 / 机侧徽章化 / 气泡化） | 高 | 低 | 转录契约测试全绿（机侧徽章新增 3 条回归守卫）；`ROUTINE_POLICY.roleHeaderFor` 改为机侧回合显 `claude_code`、`AssistantText` 正文套机侧气泡，「逐像素等价」承诺已主动解除（任务明确的语义升级，注释/文档同步） |
 | R2 | 流式 key 抖动致重挂载 | 中 | 中 | item key `${kind}-${seq}-${id}`，`id` 源自稳定 nodeId；fingerprint memo 含子内容长度 |
 | R3 | per-agent 归因失真（author 字段不规范） | 中 | 低 | 子串匹配 + 中文学名兜底 + 未知回退 engine；Phase 2 切后端字段后消除 |
 | R4 | Studio 选择器破坏旧 E2E | 中 | 中 | `itemWrapper` 挂 `data-testid="message-bubble"` + `data-message-role`，双气泡守卫零改动保留 |

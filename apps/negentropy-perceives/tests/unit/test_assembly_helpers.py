@@ -20,6 +20,7 @@ from negentropy.perceives.pipeline.models import ExtractedImage
 from negentropy.perceives.pipeline.stages.pdf.assembly import (
     _formula_text_signature,
     _image_to_markdown,
+    _strip_leading_caption_paragraph,
     _text_block_matches_formula,
 )
 
@@ -108,8 +109,9 @@ class TestImageToMarkdown:
         assert 'height="287"' in out
         assert 'width="100%"' not in out
 
-    def test_degrades_to_markdown_syntax_when_no_dims(self) -> None:
-        """既无 bbox 又无 width/height 时降级为标准 Markdown ``![alt](src)``。"""
+    def test_degrades_to_responsive_img_when_no_dims(self) -> None:
+        """既无 bbox 又无 width/height、且读不到原图尺寸时，降级为响应式 ``<img>``
+        （无显式 width/height），保证形态与其他 ``<img>`` 图片一致，不裸 ``![]()``。"""
         img = ExtractedImage(
             image_id="img_y",
             filename="bare.png",
@@ -118,7 +120,10 @@ class TestImageToMarkdown:
             bbox=None,
         )
         out = _image_to_markdown(img)
-        assert out == "![bare.png](./images/bare.png)"
+        assert out == (
+            '<img src="./images/bare.png" alt="bare.png" '
+            'style="max-width:100%;height:auto;" />'
+        )
 
     def test_html_escapes_alt_and_src(self) -> None:
         """caption 含 HTML 元字符时必须被实体化，防止破坏后续 Markdown 渲染。"""
@@ -288,3 +293,37 @@ class TestTextBlockMatchesFormula:
             page=4,
         )
         assert _text_block_matches_formula(block, signatures) is False
+
+
+class TestStripLeadingCaptionParagraph:
+    """``_strip_leading_caption_paragraph`` 去重契约。
+
+    docling 常把 ``Table N:`` caption 作为独立首行置于网格之上；当同编号 caption
+    已由独立文本块渲染为 ``**Table N:**`` 粗体时，表格内嵌明文 caption 是冗余裸
+    文本副本，应剥离但保留网格；无网格兜底表格则不动以防数据丢失。
+    """
+
+    def test_strips_caption_line_keeps_grid(self) -> None:
+        md = (
+            "Table 8: Key configuration fields in OPENDEV.\n\n"
+            "| Field | Type |\n| --- | --- |\n| model | str |"
+        )
+        out = _strip_leading_caption_paragraph(md)
+        assert out.startswith("| Field | Type |")
+        assert "Table 8:" not in out
+
+    def test_supplementary_number_stripped(self) -> None:
+        md = "Table S2. Supplementary results\n\n| A | B |\n| --- | --- |"
+        assert _strip_leading_caption_paragraph(md).startswith("| A | B |")
+
+    def test_no_grid_after_caption_unchanged(self) -> None:
+        """caption 后无网格(纯文本兜底表)→ 原样保留,不删内容。"""
+        md = "Table 8: Key configuration.\n\nmodel str LLM identifier provider str"
+        assert _strip_leading_caption_paragraph(md) == md
+
+    def test_pure_grid_no_caption_unchanged(self) -> None:
+        md = "| Field | Type |\n| --- | --- |\n| model | str |"
+        assert _strip_leading_caption_paragraph(md) == md
+
+    def test_empty_unchanged(self) -> None:
+        assert _strip_leading_caption_paragraph("") == ""

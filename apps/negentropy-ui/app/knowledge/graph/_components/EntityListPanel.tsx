@@ -7,6 +7,8 @@ import {
 } from "@/features/knowledge";
 
 import { Pagination } from "@/components/ui/Pagination";
+import { TextTooltip } from "@/components/ui/TextTooltip";
+import { TruncatedCell } from "@/components/ui/TruncatedCell";
 import { useInfiniteList, type OffsetFetcher } from "@/hooks/useInfiniteList";
 import { useInfiniteScrollSentinel, useScrollPageSync } from "@/hooks/useInfiniteScrollSentinel";
 
@@ -167,25 +169,24 @@ export function EntityListPanel({
             暂无实体数据
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
+          <div className="overflow-hidden rounded-xl border border-border bg-card">
+            <table className="w-full table-fixed text-sm">
+              {/* 固定列宽（合计 100%）：名称 32 · 类型 22 · 社区 18 · 置信度 14 · 提及 14。
+                  5 列须与下方 5 个 <th> 严格对齐；colgroup 内不得夹带空白文本节点。 */}
+              <colgroup>
+                <col className="w-[32%]" />
+                <col className="w-[22%]" />
+                <col className="w-[18%]" />
+                <col className="w-[14%]" />
+                <col className="w-[14%]" />
+              </colgroup>
               <thead>
-                <tr className="border-b border-border">
-                  <th className="py-2 px-2 text-left font-medium text-text-muted">
-                    名称
-                  </th>
-                  <th className="py-2 px-2 text-left font-medium text-text-muted">
-                    类型
-                  </th>
-                  <th className="py-2 px-2 text-left font-medium text-text-muted">
-                    社区
-                  </th>
-                  <th className="py-2 px-2 text-right font-medium text-text-muted">
-                    置信度
-                  </th>
-                  <th className="py-2 px-2 text-right font-medium text-text-muted">
-                    提及
-                  </th>
+                <tr className="border-b border-border text-left text-xs uppercase tracking-overline text-text-secondary">
+                  <th className="px-4 py-2.5 font-medium">名称</th>
+                  <th className="px-4 py-2.5 font-medium">类型</th>
+                  <th className="px-4 py-2.5 font-medium">社区</th>
+                  <th className="px-4 py-2.5 text-right font-medium">置信度</th>
+                  <th className="px-4 py-2.5 text-right font-medium">提及</th>
                 </tr>
               </thead>
               <tbody>
@@ -196,48 +197,54 @@ export function EntityListPanel({
                       i % ENTITY_PAGE_SIZE === 0 ? Math.floor(i / ENTITY_PAGE_SIZE) + 1 : undefined
                     }
                     onClick={() => onSelectEntity(entity.id)}
-                    className={`cursor-pointer border-b border-border hover:bg-muted ${
+                    className={`cursor-pointer border-b border-border/60 transition-colors last:border-0 hover:bg-muted/40 ${
                       selectedEntityId === entity.id
                         ? "bg-blue-50 dark:bg-blue-900/20"
                         : ""
                     }`}
                   >
-                    <td className="py-2 px-2 text-foreground font-medium">
-                      {entity.name}
-                    </td>
-                    <td className="py-2 px-2">
-                      <span className="inline-flex items-center gap-1">
+                    <TruncatedCell
+                      text={entity.name}
+                      textClassName="font-medium text-foreground"
+                    />
+                    <td className="px-4 py-3">
+                      {/* 类型：色点 + label，单行截断，全文悬浮。 */}
+                      <div className="flex min-w-0 items-center gap-1">
                         <span
-                          className="inline-block h-2 w-2 rounded-full"
+                          className="inline-block h-2 w-2 shrink-0 rounded-full"
                           style={{
                             backgroundColor:
                               ENTITY_TYPE_COLORS[entity.entity_type] ?? ENTITY_TYPE_COLORS.other,
                           }}
                         />
-                        <span className="text-text-secondary">
-                          {entity.entity_type}
-                        </span>
-                      </span>
+                        <TextTooltip content={entity.entity_type}>
+                          <span className="min-w-0 flex-1 truncate text-text-secondary">
+                            {entity.entity_type}
+                          </span>
+                        </TextTooltip>
+                      </div>
                     </td>
-                    <td className="py-2 px-2">
+                    <td className="px-4 py-3">
                       {entity.community_id != null ? (
-                        <span className="inline-flex items-center gap-1">
+                        <div className="flex min-w-0 items-center gap-1">
                           <span
-                            className="inline-block h-2 w-2 rounded-full"
+                            className="inline-block h-2 w-2 shrink-0 rounded-full"
                             style={{ backgroundColor: communityColor(entity.community_id) }}
                           />
-                          <span className="text-text-secondary">
-                            C-{entity.community_id}
-                          </span>
-                        </span>
+                          <TextTooltip content={`C-${entity.community_id}`}>
+                            <span className="min-w-0 flex-1 truncate text-text-secondary">
+                              C-{entity.community_id}
+                            </span>
+                          </TextTooltip>
+                        </div>
                       ) : (
-                        <span className="text-text-muted">-</span>
+                        <span className="text-text-muted">—</span>
                       )}
                     </td>
-                    <td className="py-2 px-2 text-right text-text-secondary">
+                    <td className="px-4 py-3 text-right tabular-nums text-text-secondary">
                       {entity.confidence.toFixed(2)}
                     </td>
-                    <td className="py-2 px-2 text-right text-text-secondary">
+                    <td className="px-4 py-3 text-right tabular-nums text-text-secondary">
                       {entity.mention_count}
                     </td>
                   </tr>

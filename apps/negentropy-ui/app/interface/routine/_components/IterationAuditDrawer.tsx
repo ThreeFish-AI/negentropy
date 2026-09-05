@@ -125,7 +125,14 @@ export function IterationAuditDrawer({
         {loading && merged.length === 0 ? (
           <TimelineSkeleton />
         ) : merged.length > 0 ? (
-          <IterationEventTimeline events={merged} live={isInFlight} openingPrompt={iteration?.prompt ?? null} />
+          <IterationEventTimeline
+            events={merged}
+            live={isInFlight}
+            openingPrompt={iteration?.prompt ?? null}
+            workingElapsedStartMs={
+              isInFlight && iteration?.started_at ? Date.parse(iteration.started_at) : undefined
+            }
+          />
         ) : (
           !error && <EmptyState iteration={iteration} />
         )}

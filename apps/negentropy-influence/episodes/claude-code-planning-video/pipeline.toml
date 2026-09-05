@@ -1,0 +1,23 @@
+# 本集可执行参数的**唯一来源**（ISSUE-161：可执行参数不落散文文档，README 只引用配置）。
+# 编排入口：uv run --no-project $R/pipeline.py --project $P <cmd>（$R/$P 见 ../../pipeline/README.md）
+#
+# 只写**本集偏离**：机制常数（chars_per_min / lang / draft_scale / draft_jpeg_quality）
+# 的默认值在 pipeline/scripts/config.py，不要抄回这里。字段表见 pipeline/README.md，
+# 跑 `pipeline.py doctor` 可打印带来源标注的生效配置全表。
+
+[episode]
+slug = "claude-code-planning-video"
+
+[narration]
+# TODO：按本集选题与语速预算填写。口径提示——280 字/分是**含停顿的等效**口径，
+# 裸按字数算会高估约 12% 的句容量，双口径门以 manifest 实测为准。
+target_minutes = [13.0, 14.6]
+
+[tts]
+engine = "indextts"
+# TODO：选定样本与风格。样本路径**子项目根相对**；ref_sha1 取 12 位（同 tts.py 口径），
+# 用 `uv run --no-project $R/refs.py list` 查当前清单。
+# ⚠️ 风格预设的 alpha 是在**特定选段**上标定的，换选段即失效（见 pipeline/voices/refs.toml）。
+ref = "pipeline/voices/me-bright.wav"
+ref_sha1 = "54b699cce97f"
+style = "sunny-steady"

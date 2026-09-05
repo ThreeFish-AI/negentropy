@@ -11,6 +11,8 @@ import uuid
 from enum import Enum, auto
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
+from .fence_normalizer import balance_code_fences
+
 if TYPE_CHECKING:
     from .html_preprocessor import ImgDimensionRegistry, VideoRegistry
 
@@ -83,6 +85,132 @@ _NON_CODE_FENCE_CODE_SIGNALS = (
 )
 
 
+# ---------------------------------------------------------------------------
+# 散文误围栏降级（Layer 2）
+# ---------------------------------------------------------------------------
+# docling 代码增强对「API 请求/响应」等区域偶把大段中文正文（含章节标题、图表
+# 题注、目录点导引线）误包进代码围栏，并猜测 go/elixir/visualbasic 等语言标签，
+# 渲染为整段等宽字面文本，且其中的 `#` 标题不再是真标题（Wiki 目录随之截断）。
+# ``_demote_prose_fences`` 按内容判定，把散文块拆栏还原、并抹掉误标语言。
+
+# 强「文档章节标题」信号：多级章节号（1.2.5）或「第 N 章/节」。代码注释
+# ``# 1. 用户提问`` 不含多级点分号，不误命中；真代码块绝不含此类标题行。
+_FENCE_SECTION_HEADING_RE = re.compile(
+    r"^#{1,6}[ \t]+(?:\d+(?:\.\d+)+|第\s*\d+\s*[章节])", re.MULTILINE
+)
+# 印刷版目录点导引线：``全书结构............ 2``（正文/代码均无此形态）。
+_FENCE_TOC_LEADER_RE = re.compile(r"\.{5,}\s*\d+\s*$", re.MULTILINE)
+# 图/表题注起手（中文）：``图 1-1 ...`` / ``表 2：...``。
+_FENCE_FIG_CAPTION_RE = re.compile(
+    r"^[ \t]*[图表]\s*\d+(?:[-.]\d+)*[\s：:、]", re.MULTILINE
+)
+# CJK 字形（含日韩），用于散文占比估计（真代码正文 CJK 占比极低）。
+_FENCE_CJK_CHAR_RE = re.compile(r"[一-鿿㐀-䶿぀-ヿ가-힯]")
+# 强代码信号（逐行判定）。
+_FENCE_STRONG_ASSIGN_RE = re.compile(r"(?:^|\s)[A-Za-z_]\w*\s*=\s*\S")
+_FENCE_JSON_PAIR_RE = re.compile(r'"[^"\n]+"\s*:')
+_FENCE_STRONG_KW_RE = re.compile(
+    r"\b(?:def|function|class|import|return|const|let|var|public|private|"
+    r"void|func|package|SELECT|INSERT|UPDATE|DELETE)\b"
+)
+# 明显不属本语料、docling 高频误标的语言标签：保留围栏但抹掉标签，避免错误
+# 语法高亮。刻意排除 go/python/js/yaml 等常见合法语言，避免误伤真代码标注。
+_IMPLAUSIBLE_CODE_LANGS = frozenset(
+    {"elixir", "visualbasic", "vb", "cobol", "pascal", "erlang", "unknown"}
+)
+
+
+# ---------------------------------------------------------------------------
+# 标题质量归一（Layer 4）
+# ---------------------------------------------------------------------------
+# docling 字号启发式偶把「有序列表项 / 图表题注 / 散文句/lead-in / 页眉 running
+# header」误升为 Markdown 标题，污染正文层级与 Wiki 目录。以下常量供
+# ``_normalize_heading_quality`` 做定点、保守的降级/去重。
+
+_HEADING_LINE_RE = re.compile(r"^(#{1,6}) (.+?)[ \t]*$")
+# 有序列表项签名：单个整数 + ``.``/``、`` + 空格（排除多级章节号 ``1.2``）。
+_LIST_ITEM_HEADING_RE = re.compile(r"^(\d+)[\.、](?!\d)[ \t]+(.+)$")
+# 真实章节号/编号型标题：多级号 / 第 N 章节 / 实验 N / 附录 / 参考文献。
+_SEC_STRONG_HEADING_RE = re.compile(
+    r"^(?:\d+\.\d+|第\s*\d+\s*[章节]|实验\s*[\d\-]|附录|参考文献)"
+)
+# 图/表题注起手（应为题注段落而非标题）。
+_FIG_HEADING_RE = re.compile(r"^[图表]\s*\d")
+
+
+def _heading_is_prose(text: str) -> bool:
+    """判定标题文本是否实为散文句 / lead-in（应降级为段落）。
+
+    高置信信号（避免误伤真标题）：
+      - 含句号「。」（真标题几乎不含完整句号）；
+      - 长度 ≥ 12 且以 lead-in 标点「，：、」收尾（如「初始状态（…）：」）。
+    编号型标题（``_SEC_STRONG_HEADING_RE``）一律不判为散文。
+    """
+    if _SEC_STRONG_HEADING_RE.match(text):
+        return False
+    body = text.rstrip()
+    if "。" in body:
+        return True
+    return len(body) >= 12 and body[-1] in "，：、"
+
+
+def _fence_han_ratio(text: str) -> float:
+    """去空白后 CJK 字形占比（0~1）。空文本返回 0。"""
+    compact = "".join(text.split())
+    if not compact:
+        return 0.0
+    return len(_FENCE_CJK_CHAR_RE.findall(compact)) / len(compact)
+
+
+def _is_code_leadin_line(line: str) -> bool:
+    """判定行是否为「代码前的中文导语」（应移出代码块）。
+
+    典型：``…四步流程在 API 层面的简化表示如下：`` / ``以下是…消息列表:``。docling
+    代码增强偶把这类紧邻代码的导语句纳入代码围栏，渲染为等宽字面。
+
+    严格判定（避免误伤代码注释/带参标签，如 ``# 例 2: …`` / ``1 次调用后(…):``）：
+      - 以 ``：`` / ``:`` / ``。`` 收尾；
+      - 不以注释/列表/引用符起手（``#`` ``*`` ``-`` ``>`` ``|`` ``//`` ``/*``）；
+      - 不含代码标点 ``{}=;<>"()``；
+      - CJK 字形 ≥ 3 且去空白 CJK 占比 ≥ 0.30。
+    """
+    s = line.strip()
+    if not s or not s.endswith(("：", ":", "。")):
+        return False
+    if s[0] in "#*->|" or s.startswith(("//", "/*")):
+        return False
+    if any(c in s for c in '{}=;<>"()'):
+        return False
+    return len(_FENCE_CJK_CHAR_RE.findall(s)) >= 3 and _fence_han_ratio(s) >= 0.30
+
+
+def _fence_looks_like_prose(body: str) -> bool:
+    """判定围栏体是否实为自然语言正文（应拆栏还原为段落）。
+
+    判定分层（任一命中即判散文）：
+      - D1 结构信号：含真实章节标题 / 目录点导引线 —— 二者绝不出现在代码中；
+      - CJK 主导：去空白 CJK 占比 ≥ 0.55；
+      - 图表题注密集：≥ 2 处图/表题注且 CJK 占比 ≥ 0.30；
+      - D2 中等 CJK 且无强代码信号：0.30 ≤ CJK < 0.55 且无「≥2 赋值 / ≥2 JSON
+        键值 / ≥3 花括号分号 / ≥1 代码关键字」——含中文注释的真 Python
+        （多处赋值/关键字）不命中，零误伤。
+    """
+    if _FENCE_SECTION_HEADING_RE.search(body) or _FENCE_TOC_LEADER_RE.search(body):
+        return True
+    han = _fence_han_ratio(body)
+    if han >= 0.55:
+        return True
+    if len(_FENCE_FIG_CAPTION_RE.findall(body)) >= 2 and han >= 0.30:
+        return True
+    lines = body.split("\n")
+    assigns = sum(1 for ln in lines if _FENCE_STRONG_ASSIGN_RE.search(ln))
+    jsons = sum(1 for ln in lines if _FENCE_JSON_PAIR_RE.search(ln))
+    braces = sum(ln.count("{") + ln.count("}") + ln.count(";") for ln in lines)
+    kw = sum(1 for ln in lines if _FENCE_STRONG_KW_RE.search(ln))
+    strong = assigns >= 2 or jsons >= 2 or braces >= 3 or kw >= 1
+    return 0.30 <= han < 0.55 and not strong
+
+
 # 跨行断字复合词守护：``([a-z]+)- ([a-z]+)`` 合并规则（行 910 附近）默认把所有
 # ``word- word`` 当软断字合并为 ``wordword``，对 ``sur- vey→survey`` 正确，但对
 # 语义复合词跨行（``high- level`` 源 ``high-level``）误并为 ``highlevel``。当连字符
@@ -153,6 +281,8 @@ _COMPOUND_HYPHEN_PREFIXES = frozenset(
         "dry",
         "wet",
         "raw",
+        # 合成词前缀（保护 Human-in-the-Loop 等 ``human-X`` 短语的 left）
+        "human",
     }
 )
 
@@ -349,6 +479,230 @@ def _rejoin_split_diacritics(text: str) -> str:
     while prev != text:
         prev = text
         text = _SPLIT_DIACRITIC_RE.sub(_replace, text)
+    return text
+
+
+# 常见学术章节标题词——用于安全地重组 ``#### R eferences`` 这类「单 drop-cap
+# 词标题」（并回后落在该白名单才重组，避免误并正文 ``A brief`` / ``I think``）。
+_SECTION_TITLE_WORDS = frozenset(
+    {
+        "references",
+        "introduction",
+        "abstract",
+        "conclusion",
+        "conclusions",
+        "acknowledgment",
+        "acknowledgments",
+        "acknowledgement",
+        "acknowledgements",
+        "appendix",
+        "appendices",
+        "background",
+        "methodology",
+        "methodologies",
+        "results",
+        "discussion",
+        "bibliography",
+        "preface",
+        "foreword",
+        "synthesis",
+        "evaluation",
+    }
+)
+
+# drop-cap 碎片：``I ntroduction`` / ``W hat``（大号首字母与正文被分作两个 span，
+# ``" ".join`` 后插入空格）。rest 允许单字母（``I s`` → ``Is``）。
+_DROPCAP_TOKEN_RE = re.compile(r"([A-Z])[ \t]([a-z]+)")
+
+
+def _rejoin_heading_dropcap(line: str) -> str:
+    """重组标题/章节标签行内的 drop-cap 首字母碎片。
+
+    docling 等引擎把大号首字母（drop-cap）与剩余小写正文抽成独立 span，
+    拼接成 ``I ntroduction`` / ``W hat L oop E ngineering``（应为
+    ``Introduction`` / ``What Loop Engineering``）。仅作用于标题（``#`` 开头）
+    或章节标签（``I.`` / ``II.`` / ``A.`` 行首）行，避免误并正文里 ``I think``
+    / ``A few`` 这类合法独立大写词。
+
+    安全闸（逐级放宽、层层防误并）：
+    - ≥3 个 ``X yyy`` 碎片 → 整行重组（合法标题鲜少有 3+ 个 ``Capital 小写词``
+      密集形态；系统的 drop-cap 拆字才如此密集）。
+    - 恰好 2 个 → 仅当两个首字母都**不是**独立代词/冠词 ``I``/``A`` 时重组
+      （误并高危形态 ``I think…`` / ``A brief…`` 恰以 I/A 起头）。
+    - 恰好 1 个 → 仅当并回结果落在常见章节标题白名单（如 ``References``）才重组。
+    """
+    stripped = line.lstrip()
+    is_heading = stripped.startswith("#")
+    is_label = bool(
+        re.match(r"^[IVX]+\.\s", stripped) or re.match(r"^[A-Z]\.\s", stripped)
+    )
+    if not (is_heading or is_label):
+        return line
+    # 仅处理「标题区」前缀（前 80 字符）。真实章节标题远短于此；当标题与正文被
+    # assembly 粘成超长一行时，前缀之外是正文，不能对其中的 ``A loop`` / ``I am``
+    # 等合法独立大写词施 drop-cap 重组（否则 ``Aloop`` / ``Iam`` 误并）。
+    HEAD_PREFIX = 80
+    if len(line) <= HEAD_PREFIX:
+        target, tail = line, ""
+    else:
+        target, tail = line[:HEAD_PREFIX], line[HEAD_PREFIX:]
+    matches = _DROPCAP_TOKEN_RE.findall(target)
+    n = len(matches)
+    if n >= 3:
+        return _DROPCAP_TOKEN_RE.sub(r"\1\2", target) + tail
+    if n == 2 and not {c for c, _ in matches} & {"I", "A"}:
+        return _DROPCAP_TOKEN_RE.sub(r"\1\2", target) + tail
+    if n == 1:
+        cap, rest = matches[0]
+        if (cap + rest).lower() in _SECTION_TITLE_WORDS:
+            return _DROPCAP_TOKEN_RE.sub(r"\1\2", target, count=1) + tail
+    return line
+
+
+def _rejoin_attested_inline_hyphens(text: str) -> str:
+    """同文佐证回并行内硬连字符：``Ra-jasekaran`` → ``Rajasekaran``。
+
+    docling 偶把跨行专有名词的软换行连字符保留为行内硬连字符。仅当去连字符后
+    的形式在**同一文档别处**作为完整词（``\\b[A-Za-z]{4,}\\b``）出现过才回并——
+    这是安全闸：``Sub-agents`` / ``state-of-the-art`` 这类「从未以无连字符形式
+    出现」的合法复合词不会被误并。模式进一步收窄到「大写短前缀 + 长小写尾」
+    （专有名词断行形态），把爆炸半径压到最小。
+    """
+    if not text:
+        return text
+    attested = {w.lower() for w in re.findall(r"\b[A-Za-z]{4,}\b", text)}
+
+    def _maybe(m: re.Match) -> str:
+        joined = (m.group(1) + m.group(2)).lower()
+        if joined in attested:
+            return m.group(1) + m.group(2)
+        return m.group(0)
+
+    return re.sub(r"\b([A-Z][a-z]{1,2})-([a-z]{3,})\b", _maybe, text)
+
+
+def _rejoin_dropcap_and_ligatures(text: str) -> str:
+    """重组 PDF 提取拆解的 drop-cap 首字母与缩写撇号碎片（局部安全规则）。
+
+    覆盖两类**局部即可判定、无需同文佐证**的 docling 拆字：
+
+    1. drop-cap 首字母：``I ntroduction`` → ``Introduction``（仅标题/标签行的
+       前 80 字符标题区，详见 :func:`_rejoin_heading_dropcap`）。
+    2. 缩写撇号：``don ' t`` → ``don't``，仅限常见后缀（t/s/re/ve/ll/m/d），
+       不动 ``'no'`` / ``'runs'`` 这类独立引号。
+
+    ﬀ/ﬃ/ﬄ 连字拆字（``di ff erent`` / ``hando ff skipped``）须区分词内/词尾，
+    需同文佐证判定，由 :func:`_rejoin_attested_ligatures` 在 assembly 全文落定
+    后处理，不在此函数。
+    """
+    if not text:
+        return text
+
+    # 1) drop-cap：逐行只改标题/章节标签行
+    text = "\n".join(_rejoin_heading_dropcap(ln) for ln in text.split("\n"))
+
+    # 2) 缩写撇号：don ' t → don't（curly 与 straight 引号皆收；不动独立引号）
+    text = re.sub(
+        r"(?<=[a-z])[ \t][’'][ \t](?=(?:t|s|re|ve|ll|m|d)\b)",
+        "’",
+        text,
+    )
+    return text
+
+
+# 常见含 ﬀ/ﬃ/ﬄ 的英文词：拆字后若该词在文档别处无干净形式可佐证，以此白名单兜底。
+_FF_LIGATURE_WORDS = frozenset(
+    (
+        "off",
+        "handoff",
+        "handoffs",
+        "different",
+        "difference",
+        "differences",
+        "differently",
+        "differ",
+        "differs",
+        "official",
+        "officially",
+        "office",
+        "offices",
+        "officer",
+        "officers",
+        "offer",
+        "offers",
+        "offered",
+        "offering",
+        "offerings",
+        "effort",
+        "efforts",
+        "afford",
+        "affordable",
+        "affordability",
+        "scaffold",
+        "scaffolding",
+        "difficulty",
+        "difficulties",
+        "staff",
+        "stiff",
+        "stuff",
+        "stuffs",
+        "scoff",
+        "skiff",
+        "sniff",
+        "snuff",
+        "fluff",
+        "bluff",
+        "raffle",
+        "shuffle",
+        "baffle",
+        "scuffle",
+        "snaffle",
+        "quaff",
+        "gaffe",
+    )
+)
+
+# 词内连字拆分：prefix + space + (ff|ffi|ffl) + space + post（如 di ff erent）
+_LIGATURE_SPLIT_RE = re.compile(r"\b([a-z]+)[ \t](ff|ffi|ffl)[ \t]([a-z]{2,})\b")
+# 词尾连字拆分：prefix + space + (ff|ffi|ffl) + 标点/行尾（如 hando ff,）
+_LIGATURE_FINAL_RE = re.compile(r"\b([a-z]+)[ \t](ff|ffi|ffl)(?=[ \t.,;:!?)\]”’\"]|$)")
+
+
+def _rejoin_attested_ligatures(text: str) -> str:
+    """同文佐证 + 白名单重组 ﬀ/ﬃ/ﬄ 连字拆字（须在全文落定后执行）。
+
+    docling 把 ``different`` 拆成 ``di ff erent``（词内，``ff`` 属两侧）、把
+    ``handoff`` 拆成 ``hando ff``（词尾，``ff`` 属前词），二者须区别对待：
+
+    - 词内（``di ff erent``）：去两侧空格 → ``different``。
+    - 词尾（``hando ff skipped``）：仅去前侧空格 → ``handoff skipped``，
+      **保留**与后词的空格——否则误并 ``handoffskipped``。
+
+    安全闸：仅当「全并」(different) 或「前词并」(handoff/off) 的结果落在同文
+    佐证集或 ``_FF_LIGATURE_WORDS`` 白名单时才动手；未知形态原样保留，绝不
+    误并。须在 assembly 全文落定后调用以取得同文佐证。
+    """
+    if not text:
+        return text
+    attested = {w.lower() for w in re.findall(r"\b[A-Za-z]{3,}\b", text)}
+    known = attested | _FF_LIGATURE_WORDS
+
+    def _internal(m: re.Match) -> str:
+        pre, lig, post = m.group(1), m.group(2), m.group(3)
+        if (pre + lig + post) in known:
+            return pre + lig + post  # 词内：different / official / effort
+        if (pre + lig) in known:
+            return pre + lig + " " + post  # 词尾：handoff skipped / off was
+        return m.group(0)
+
+    def _final(m: re.Match) -> str:
+        pre, lig = m.group(1), m.group(2)
+        if (pre + lig) in known:
+            return pre + lig  # handoff, / off.
+        return m.group(0)
+
+    text = _LIGATURE_SPLIT_RE.sub(_internal, text)
+    text = _LIGATURE_FINAL_RE.sub(_final, text)
     return text
 
 
@@ -588,6 +942,12 @@ class MarkdownFormatter:
             # 已有 inline ``$..$`` 由 pass 内 split-and-skip 保护。
             markdown_content = self._normalize_unicode_math(markdown_content)
 
+            # 撤销「散文误包成 inline $...$」失真：_normalize_unicode_math 会把含数学
+            # 字形且与散文粘连的 token（作者上标 'Name¹·²·³'、关键词列表）整段包成
+            # $...$，连同 prose 一起吞入数学体渲染。此处仅对内容含 ≥2 个多字母 ASCII
+            # 散文词的 inline 块解包（真实数学极少含多个散文词），还原为 prose+<sup>。
+            markdown_content = self._unwrap_prose_math(markdown_content)
+
             # 还原块级数学公式占位符（须在 _cleanup_math_blocks 之后，
             # 这样数学块整体仍由本管线统一治理，但 LaTeX 主体内容不被修改）
             markdown_content = self._restore_math_blocks(
@@ -619,6 +979,10 @@ class MarkdownFormatter:
         用于 :mod:`ops.pdf` 各返回路径对最终 markdown 的轻量后处理。
         """
         try:
+            # 全局围栏平衡安全网：合并路径已逐切片平衡，但单次（非 auto_batch）路径
+            # 及任何残余奇偶失衡在此兜底闭合，确保下游 _format_code_blocks 的语言
+            # 标注/降级建立在配对围栏之上，绝不把正文误困入代码块。
+            markdown_content = balance_code_fences(markdown_content)
             markdown_content = self._format_code_blocks(markdown_content)
             markdown_content = self._strip_running_headers(markdown_content)
             markdown_content = self._strip_orphan_lang_labels(markdown_content)
@@ -662,10 +1026,32 @@ class MarkdownFormatter:
                 }
             )
 
+            # 合成词后缀保护集：right 为常见学术合成词后缀时保留连字符，避免
+            # _title_soft_hyphen_mh 误并 Structure-grounded / Search-based /
+            # Orchestration-based 等合成词（其 left 不在 _COMPOUND_HYPHEN_PREFIXES，
+            # 但 right grounded/based/oriented/... 是稳定合成词后缀）。
+            _compound_hyphen_suffixes = frozenset(
+                {
+                    "grounded",
+                    "based",
+                    "oriented",
+                    "driven",
+                    "centric",
+                    "aware",
+                    "enabled",
+                    "guided",
+                    "informed",
+                    "centred",
+                    "level",
+                }
+            )
+
             def _title_soft_hyphen_mh(mm: "re.Match[str]") -> str:
                 left, right = mm.group(1), mm.group(2)
                 low = left.lower()
                 if low in _COMPOUND_HYPHEN_PREFIXES or low in _title_compound_extra:
+                    return f"{left}-{right}"
+                if right.lower() in _compound_hyphen_suffixes:
                     return f"{left}-{right}"
                 return f"{left}{right}"
 
@@ -704,6 +1090,19 @@ class MarkdownFormatter:
             while prev_math != markdown_content:
                 prev_math = markdown_content
                 markdown_content = _merge_math_once(markdown_content)
+            # 标题末尾多余中文句号「。」剥离：docling 提取大事记/年表条目
+            # （如「## 1875 贝尔和沃森发明电话。」）时把陈述句末句号带入标题
+            # 文本，与源 PDF（标题无句号，如 AT&T 大事记框）失真。中文出版规范
+            # 标题末尾不加标点；仅剥离末尾中文句号「。」，保留「？」「！」等可能
+            # 表语气的标点，英文「.」不处理（章节编号/缩写可能合法结尾）。
+            markdown_content = re.sub(r"(?m)^(#{1,6} .*?)。+$", r"\1", markdown_content)
+            # 标题质量归一：有序列表项/图表题注/散文句被误升为标题的降级，及页眉
+            # running-header 重复标题去重。置于末尾（尾随句号剥离之后），避免把仅
+            # 带尾随句号的合法标题误判为散文句。
+            markdown_content = self._normalize_heading_quality(markdown_content)
+            # 末尾剥离代码块开头误纳入的中文导语行（echo-aware），再补围栏平衡兜底。
+            markdown_content = self._extract_code_block_leadins(markdown_content)
+            markdown_content = balance_code_fences(markdown_content)
             return markdown_content
         except Exception as e:
             logger.warning(f"Error in fidelity-safe formatting: {str(e)}")
@@ -878,6 +1277,70 @@ class MarkdownFormatter:
             self._normalize_unicode_math_line(line)
             for line in markdown_content.split("\n")
         )
+
+    # 散文误包判定：inline ``$...$`` 内容含 ≥此数量个「长度≥3 的 ASCII 字母词」
+    # 即判为散文被误吞入数学体。取 3：作者-单位行（多个人名）/ 关键词列表天然含
+    # ≥3 个散文词，而真实数学公式几乎不可能含 3 个以上多字母 ASCII 散文词
+    # （通常为单字母变量 / ``\name`` 命令 / 至多 1-2 个 ``\text{word}``），
+    # 保守阈值最大程度规避对数学密集文档的回归风险。
+    _PROSE_MATH_MIN_WORDS = 3
+    _PROSE_MATH_WORD_RE = re.compile(r"[A-Za-z]{3,}")
+    # CJK 散文伪公式判定：中文文档里外国人名译名（如「约翰·诺伊曼」「冯·诺伊曼」）
+    # 的间隔号「·」被公式引擎 LaTeX 化为 ``\cdot`` 并整名包进 inline ``$...$``。
+    # 此类 body 无 ASCII 字母词，``_PROSE_MATH_WORD_RE`` 阈值恒不命中，故补 CJK 判定。
+    # 含 CJK 字形（含日韩）即强信号——真实数学公式不含 CJK。
+    _CJK_CHAR_RE = re.compile(r"[一-鿿㐀-䶿぀-ヿ가-힯]")
+    # 真实数学结构护栏：body 含这些结构命令时即便夹杂 CJK 也保留（防误伤真公式）。
+    # 覆盖分式/求和/积分/根号/极限/上下标 _{}^{}/Greek 字母/关系符/集合运算等。
+    _REAL_MATH_CMD_RE = re.compile(
+        r"\\(?:frac|dfrac|tfrac|binom|sum|int|oint|sqrt|lim|log|sin|cos|tan|cot|"
+        r"partial|nabla|dot|ddot|vec|hat|bar|tilde|overline|underline|"
+        r"stackrel|overset|underset|mathbb|mathcal|mathrm|mathbf|operatorname|"
+        r"begin|alpha|beta|gamma|delta|theta|lambda|mu|sigma|omega|phi|psi|"
+        r"epsilon|eta|zeta|nu|tau|rho|kappa|chi|le|ge|ne|approx|equiv|propto|"
+        r"rightarrow|leftarrow|subset|supset|subseteq|cup|cap|notin|forall|exists)\b"
+        r"|_\{|\^\{"
+    )
+
+    def _unwrap_prose_math(self, markdown_content: str) -> str:
+        """撤销把散文（作者-单位行 / 关键词等）误包成 inline ``$...$`` 数学的失真。
+
+        背景：``_normalize_unicode_math`` 按空白切 token，当某 token 同时含数学字形
+        与散文（如 PDF 抽取的作者上标 ``Name¹·²·³``，上标为数学字母块字形、与名字
+        粘连成单 token）时，整 token 判为 MATH，run 跨多个此类 token 合并，把
+        ``Fadi Dornaika`` 等 prose 连同 ``\\cdot`` / ``^{1,2,3}`` 一起包进单个
+        ``$...$``，渲染为 LaTeX 数学体而非 prose+上标。
+
+        本 pass 在归一化之后扫描 inline ``$...$``：内容含 ≥ ``_PROSE_MATH_MIN_WORDS``
+        个长度≥3 的 ASCII 词即判为误包，撤销 ``$`` 并把 ``^{...}`` → ``<sup>...</sup>``、
+        ``\\cdot`` → ``·``。
+
+        安全性：仅解包满足散文判定的 inline 块；块公式 / 代码块此时为占位符（无 ``$``），
+        正常 inline 数学（无 ≥2 散文词）原样保留。
+        """
+        if "$" not in markdown_content:
+            return markdown_content
+
+        def _maybe_unwrap(m: "re.Match[str]") -> str:
+            body = m.group(1)
+            # CJK 散文伪公式：body 含 CJK 字形 + ``\cdot`` 且无真实数学结构 → 解包。
+            # 兜底中文人名译名（「约翰·诺伊曼」等）被引擎整名包成 inline $...$ 的失真：
+            # 此类 body 无 ASCII 字母词，下方 ASCII 散文阈值对 CJK 恒不命中。
+            if (
+                self._CJK_CHAR_RE.search(body)
+                and "\\cdot" in body
+                and not self._REAL_MATH_CMD_RE.search(body)
+            ):
+                return body.replace("\\cdot", "·")
+            if len(self._PROSE_MATH_WORD_RE.findall(body)) < self._PROSE_MATH_MIN_WORDS:
+                return m.group(0)
+            # ^{...} → <sup>...</sup>；裸 ^x → <sup>x</sup>；\cdot → ·
+            unwrapped = re.sub(r"\^\{([^{}]*)\}", r"<sup>\1</sup>", body)
+            unwrapped = re.sub(r"\^(\w)", r"<sup>\1</sup>", unwrapped)
+            unwrapped = unwrapped.replace(r"\cdot", "·")
+            return unwrapped
+
+        return re.sub(r"\$([^$\n]+)\$", _maybe_unwrap, markdown_content)
 
     def _normalize_unicode_math_line(self, line: str) -> str:
         stripped = line.lstrip()
@@ -1175,6 +1638,150 @@ class MarkdownFormatter:
             flags=re.MULTILINE | re.DOTALL,
         )
 
+    def _normalize_heading_quality(self, markdown_content: str) -> str:
+        """把 docling 误升为标题的非标题内容降级/去重（fence 外逐行处理）。
+
+        四条定点规则（仅作用于代码围栏外的标题行）：
+          1. **有序列表项**：``## 1. 核实用户身份`` → ``1. 核实用户身份``（订机票
+             四步、思考题编号等），还原为 Markdown 有序列表；
+          2. **图/表题注**：``#### 图 2-4 …`` → 题注段落（移出目录）；
+          3. **散文句/lead-in**：见 :func:`_heading_is_prose`，降级为普通段落；
+          4. **页眉 running-header 去重**：同级、文本相同、其间无更浅层标题（同一
+             父节点作用域内）的重复标题判为页眉回声，删除后者。作用域随更浅层
+             标题重置，故各章共有的「思考题」等同名标题（分处不同章）不被误删。
+
+        保守优先：编号型标题（``\\d+.\\d+`` / 第 N 章节 / 实验 N）绝不降级；去重仅在
+        同一父作用域内、逐字相同才触发。
+        """
+        lines = markdown_content.split("\n")
+        out: List[str] = []
+        in_fence = False
+        prev_at_level: Dict[int, str] = {}
+        for ln in lines:
+            if re.match(r"^\s*(```|~~~)", ln):
+                in_fence = not in_fence
+                out.append(ln)
+                continue
+            if in_fence:
+                out.append(ln)
+                continue
+            hm = _HEADING_LINE_RE.match(ln)
+            if not hm:
+                out.append(ln)
+                continue
+            level = len(hm.group(1))
+            text = hm.group(2)
+            # 规则 1：有序列表项还原
+            lm = _LIST_ITEM_HEADING_RE.match(text)
+            if lm:
+                out.append(f"{lm.group(1)}. {lm.group(2)}")
+                continue
+            # 规则 2：图/表题注 → 段落
+            if _FIG_HEADING_RE.match(text):
+                out.append(text)
+                continue
+            # 规则 3：散文句/lead-in → 段落
+            if _heading_is_prose(text):
+                out.append(text)
+                continue
+            # 规则 4：同作用域同级同文标题去重（页眉回声）
+            norm = re.sub(r"\s+", "", text)
+            if prev_at_level.get(level) == norm:
+                continue
+            prev_at_level[level] = norm
+            for deeper in [lv for lv in prev_at_level if lv > level]:
+                del prev_at_level[deeper]
+            out.append(ln)
+        return "\n".join(out)
+
+    def _demote_prose_fences(self, markdown_content: str) -> str:
+        """把实为自然语言正文的代码围栏还原为普通段落，并抹掉误标语言。
+
+        docling 代码增强对「API 示例」等区域偶把大段中文正文（含章节标题、图表
+        题注、目录点导引线）误包进围栏并猜测 go/elixir/visualbasic 等语言，渲染为
+        整段等宽字面文本，且其中的 `#` 标题不再是真标题（Wiki 目录随之截断）。
+
+        逐围栏块判定（见 :func:`_fence_looks_like_prose`）：
+          - 判为散文 → 拆栏还原为普通段落；
+          - 判为代码但语言标签明显不属本语料（``_IMPLAUSIBLE_CODE_LANGS``）→ 保留
+            围栏、抹掉误标语言（降为裸围栏），避免错误语法高亮。
+
+        对含中文注释的真 Python（多处赋值/关键字）零误伤。假定围栏已由
+        :func:`fence_normalizer.balance_code_fences` 平衡（闭合皆为裸 ``` ）。
+        """
+
+        def _handle(m: re.Match) -> str:
+            info = (m.group(1) or "").strip()
+            body = m.group(2)
+            if _fence_looks_like_prose(body):
+                return body.strip("\n")
+            lang = info.split()[0].lower() if info else ""
+            if lang in _IMPLAUSIBLE_CODE_LANGS:
+                return "```\n" + body.rstrip("\n") + "\n```"
+            return m.group(0)
+
+        return re.sub(
+            r"^```([^\n]*)\n(.*?)^```[ \t]*$",
+            _handle,
+            markdown_content,
+            flags=re.MULTILINE | re.DOTALL,
+        )
+
+    def _extract_code_block_leadins(self, markdown_content: str) -> str:
+        """把代码块开头被误纳入的中文导语行移出（echo-aware，不制造重复）。
+
+        docling 偶把紧邻代码的中文导语句（``…如下：``）连同代码一并纳入围栏。本 pass
+        对每个围栏块剥离**开头连续**的导语行（见 :func:`_is_code_leadin_line`）：
+          - 若该导语在块前邻近正文中已有**逐字相同的回声**（docling text/code 双出），
+            则**丢弃**块内副本（保留块前正文即可），避免重复行；
+          - 否则把导语**移出**到围栏前作为普通段落。
+        仅当剥离后仍有代码本体时才处理（纯导语块由 _demote_prose_fences 兜底）。
+        置于 ``format_fidelity_safe`` 末尾运行，避开代码围栏正则对新析出段落边界的
+        干扰；调用方随后补一次围栏平衡兜底。
+        """
+        result: List[str] = []
+        last = 0
+        for m in re.finditer(
+            r"^```([^\n]*)\n(.*?)^```[ \t]*$",
+            markdown_content,
+            flags=re.MULTILINE | re.DOTALL,
+        ):
+            result.append(markdown_content[last : m.start()])
+            last = m.end()
+            info = m.group(1) or ""
+            body = m.group(2)
+            lines = body.split("\n")
+            lead: List[str] = []
+            idx = 0
+            while idx < len(lines):
+                s = lines[idx].strip()
+                if not s:
+                    idx += 1
+                    if lead:
+                        break
+                    continue
+                if _is_code_leadin_line(s):
+                    lead.append(s)
+                    idx += 1
+                else:
+                    break
+            rest = "\n".join(lines[idx:]).strip("\n") if lead else body
+            if not lead or not rest:
+                result.append(m.group(0))
+                continue
+            # echo 检测：块前邻近正文（含被 docling 双出的乱码回声段）内是否已有逐字
+            # 相同导语行；导语句高度可辨识，宽窗口不致误判。
+            preceding = "".join(result)[-4000:]
+            pre_norm = {re.sub(r"\s+", "", x) for x in preceding.split("\n")}
+            kept = [ln for ln in lead if re.sub(r"\s+", "", ln) not in pre_norm]
+            block = f"```{info}\n{rest}\n```"
+            if kept:
+                result.append("\n\n".join(kept) + "\n\n" + block)
+            else:
+                result.append(block)
+        result.append(markdown_content[last:])
+        return "".join(result)
+
     def _format_code_blocks(self, markdown_content: str) -> str:
         """Enhance code block formatting with language detection.
 
@@ -1188,6 +1795,10 @@ class MarkdownFormatter:
         try:
             # 先把实为自然语言横幅（含 ©/®/™ 且无代码特征）的伪代码块降级为普通段落
             markdown_content = self._demote_non_code_fences(markdown_content)
+
+            # 再把 docling 误包进围栏的中文正文（含章节标题/图表题注/目录点导引线）
+            # 拆栏还原为段落，并抹掉 elixir/visualbasic 等误标语言。
+            markdown_content = self._demote_prose_fences(markdown_content)
 
             # 修复连续的代码围栏标记：```LANG\n``` filename → ```\n filename
             markdown_content = re.sub(
@@ -1491,6 +2102,10 @@ class MarkdownFormatter:
                 # \u7528\u5bf9\u5e94\u7684\u7ec4\u5408\u53d8\u97f3\u7b26\u53f7\uff08U+0300 \u7cfb\u5217\uff09\u62fc\u5408\uff0c\u5e76\u901a\u8fc7
                 # ``unicodedata.normalize("NFC", ...)`` \u6536\u655b\u4e3a\u9884\u7ec4\u5408 codepoint\u3002
                 text = _rejoin_split_diacritics(text)
+
+                # 重组 drop-cap 首字母与连字碎片（docling 拆字）：
+                # ``I ntroduction`` → ``Introduction``、``di ff erent`` → ``different``。
+                text = _rejoin_dropcap_and_ligatures(text)
 
                 # \u8de8\u884c\u65ad\u5b57\u5408\u5e76\uff1aPyMuPDF \u6587\u672c\u63d0\u53d6\u5e38\u6b8b\u7559 `word-\nword`\uff0cassembly \u9636\u6bb5
                 # \u628a `\n` \u6298\u53e0\u4e3a\u7a7a\u683c\u540e\u53d8\u6210 `word- word`\u3002\u4ec5\u5339\u914d\u4e24\u4fa7\u5747\u4e3a ASCII \u5c0f\u5199

@@ -1,15 +1,13 @@
 "use client";
 
+import { CopyButton } from "@/components/ui/CopyButton";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { TruncatedCell } from "@/components/ui/TruncatedCell";
 import type { ScheduledTaskDTO } from "@/features/scheduler";
 
 interface SchedulerTaskTableProps {
-  /** 要渲染的任务（由调用方以连续前缀形式提供，后端 updated_at 倒序）。 */
+  /** 要渲染的任务（由调用方提供当前页的 TASK_PAGE_SIZE 条，后端 updated_at 倒序）。 */
   tasks: ScheduledTaskDTO[];
-  /** 任务总数，用于表头计数；缺省回退到 tasks.length。 */
-  total?: number;
-  /** 无限滚动每页条数：每页首行挂 data-infinite-page 锚点，供翻页定位与滚动联动当前页。 */
-  pageSize?: number;
   loading: boolean;
   onToggle: (id: string, enabled: boolean) => void;
   onRun: (id: string) => void;
@@ -32,6 +30,13 @@ function relativeFromNow(iso: string | null): string {
   } catch {
     return iso;
   }
+}
+
+/** 触发器展示串（cron 表达式 / 间隔秒 / oneshot）。 */
+function triggerText(t: ScheduledTaskDTO): string {
+  if (t.trigger_type === "cron") return t.cron_expr ?? "cron";
+  if (t.trigger_type === "interval") return `${t.interval_seconds}s`;
+  return "oneshot";
 }
 
 function StatusDots({ statuses }: { statuses: string[] }) {
@@ -59,9 +64,9 @@ function StatusDots({ statuses }: { statuses: string[] }) {
 
 function SkeletonRow() {
   return (
-    <tr className="border-b border-border last:border-b-0">
-      {Array.from({ length: 9 }).map((_, i) => (
-        <td key={i} className="px-3 py-2">
+    <tr className="border-b border-border/60 last:border-0">
+      {Array.from({ length: 10 }).map((_, i) => (
+        <td key={i} className="px-4 py-3">
           <Skeleton className="h-4" style={{ width: `${50 + (i * 13) % 40}%` }} />
         </td>
       ))}
@@ -71,122 +76,126 @@ function SkeletonRow() {
 
 export function SchedulerTaskTable({
   tasks,
-  total,
-  pageSize,
   loading,
   onToggle,
   onRun,
   onSelect,
 }: SchedulerTaskTableProps) {
   return (
-    <div className="rounded-xl border border-border bg-card shadow-sm">
-      <div className="border-b border-border px-3 py-2 text-caption uppercase tracking-overline text-muted-foreground">
-        Tasks ({total ?? tasks.length})
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-xs">
-          <thead className="bg-card text-muted-foreground">
-            <tr className="border-b border-border">
-              <th className="px-3 py-2 text-left font-medium">Task</th>
-              <th className="px-3 py-2 text-left font-medium">Description</th>
-              <th className="px-3 py-2 text-left font-medium">Handler</th>
-              <th className="px-3 py-2 text-left font-medium">Trigger</th>
-              <th className="px-3 py-2 text-left font-medium">Last</th>
-              <th className="px-3 py-2 text-left font-medium">Next</th>
-              <th className="px-3 py-2 text-left font-medium">Recent</th>
-              <th className="px-3 py-2 text-left font-medium">Enabled</th>
-              <th className="px-3 py-2 text-left font-medium">Actions</th>
+    <div className="overflow-hidden rounded-xl border border-border bg-card">
+      <table className="w-full table-fixed text-sm">
+        {/* 固定列宽（合计 100%，随容器等比缩放；超长内容由 TextTooltip + truncate 恢复全文，所有列单行不折）：
+            Task 14 · ID 12 · Description 18 · Handler 10 · Trigger 10 · Last 7 · Next 7 · Recent 5 · Enabled 7 · Actions 10。
+            10 列须与下方 10 个 <th> 严格对齐。注意：colgroup 内不得夹带空白文本节点（含 <col/> 后行内注释），
+            否则触发 "whitespace text nodes cannot be a child of colgroup" hydration 报错。 */}
+        <colgroup>
+          <col className="w-[14%]" />
+          <col className="w-[12%]" />
+          <col className="w-[18%]" />
+          <col className="w-[10%]" />
+          <col className="w-[10%]" />
+          <col className="w-[7%]" />
+          <col className="w-[7%]" />
+          <col className="w-[5%]" />
+          <col className="w-[7%]" />
+          <col className="w-[10%]" />
+        </colgroup>
+        <thead>
+          <tr className="border-b border-border text-left text-xs uppercase tracking-overline text-text-secondary">
+            <th className="px-4 py-2.5 font-medium">Task</th>
+            <th className="px-4 py-2.5 font-medium">ID</th>
+            <th className="px-4 py-2.5 font-medium">Description</th>
+            <th className="px-4 py-2.5 font-medium">Handler</th>
+            <th className="px-4 py-2.5 font-medium">Trigger</th>
+            <th className="px-4 py-2.5 font-medium">Last</th>
+            <th className="px-4 py-2.5 font-medium">Next</th>
+            <th className="px-4 py-2.5 font-medium">Recent</th>
+            <th className="px-4 py-2.5 font-medium">Enabled</th>
+            <th className="px-4 py-2.5 font-medium">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {loading && tasks.length === 0 ? (
+            Array.from({ length: 8 }).map((_, i) => <SkeletonRow key={i} />)
+          ) : tasks.length === 0 ? (
+            <tr>
+              <td colSpan={10} className="px-4 py-6 text-center text-muted-foreground">
+                No tasks match current filters.
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {loading && tasks.length === 0 ? (
-              Array.from({ length: 8 }).map((_, i) => <SkeletonRow key={i} />)
-            ) : tasks.length === 0 ? (
-              <tr>
-                <td colSpan={9} className="px-3 py-6 text-center text-muted-foreground">
-                  No tasks match current filters.
+          ) : (
+            tasks.map((t) => (
+              <tr
+                key={t.id}
+                onClick={() => onSelect(t)}
+                className="cursor-pointer border-b border-border/60 transition-colors last:border-0 hover:bg-muted/40"
+              >
+                <TruncatedCell
+                  text={t.display_name || t.key}
+                  textClassName="font-medium text-foreground"
+                />
+                {/* 任务 ID（独立列）：约半宽截断展示，全文经悬浮单行恢复 + 一键复制（对齐 RoutineTable ID 列）。 */}
+                <TruncatedCell
+                  text={t.key}
+                  mono
+                  textClassName="text-text-secondary"
+                  trailing={<CopyButton value={t.key} ariaLabel="复制 ID" className="shrink-0" />}
+                />
+                {t.description ? (
+                  <TruncatedCell text={t.description} textClassName="text-muted-foreground" />
+                ) : (
+                  <td className="px-4 py-3 text-muted-foreground">—</td>
+                )}
+                <TruncatedCell text={t.handler_kind} textClassName="text-muted-foreground" />
+                <TruncatedCell text={triggerText(t)} mono textClassName="text-muted-foreground" />
+                <td className="px-4 py-3 text-muted-foreground">
+                  <span className="block truncate">{relativeFromNow(t.last_fire_at)}</span>
                 </td>
-              </tr>
-            ) : (
-              tasks.map((t, i) => (
-                <tr
-                  key={t.id}
-                  data-infinite-page={pageSize && i % pageSize === 0 ? Math.floor(i / pageSize) + 1 : undefined}
-                  onClick={() => onSelect(t)}
-                  className="cursor-pointer border-b border-border last:border-b-0 hover:bg-muted/30 transition-colors"
-                >
-                  <td className="px-3 py-2">
-                    <div className="font-medium text-foreground">
-                      {t.display_name || t.key}
-                    </div>
-                    <div className="text-micro text-muted-foreground">{t.key}</div>
-                  </td>
-                  <td className="px-3 py-2 text-muted-foreground">
-                    {t.description ? (
-                      <div className="max-w-[240px] truncate" title={t.description}>
-                        {t.description}
-                      </div>
-                    ) : (
-                      "—"
-                    )}
-                  </td>
-                  <td className="px-3 py-2 text-muted-foreground">{t.handler_kind}</td>
-                  <td className="px-3 py-2 text-muted-foreground">
-                    {t.trigger_type === "cron"
-                      ? t.cron_expr
-                      : t.trigger_type === "interval"
-                        ? `${t.interval_seconds}s`
-                        : "oneshot"}
-                  </td>
-                  <td className="px-3 py-2 text-muted-foreground">
-                    {relativeFromNow(t.last_fire_at)}
-                  </td>
-                  <td className="px-3 py-2 text-muted-foreground">
-                    {relativeFromNow(t.next_fire_at)}
-                  </td>
-                  <td className="px-3 py-2">
-                    <StatusDots statuses={t.recent} />
-                  </td>
-                  <td className="px-3 py-2">
-                    <span
-                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-micro font-semibold ${
+                <td className="px-4 py-3 text-muted-foreground">
+                  <span className="block truncate">{relativeFromNow(t.next_fire_at)}</span>
+                </td>
+                <td className="px-4 py-3">
+                  <StatusDots statuses={t.recent} />
+                </td>
+                <td className="px-4 py-3">
+                  <span
+                    className={`inline-flex items-center rounded-full px-2 py-0.5 text-micro font-semibold ${
+                      t.enabled
+                        ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                        : "bg-muted text-text-secondary"
+                    }`}
+                  >
+                    {t.enabled ? "Enabled" : "Disabled"}
+                  </span>
+                </td>
+                <td className="px-4 py-3">
+                  <div
+                    className="flex items-center gap-1 overflow-hidden"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      onClick={() => onToggle(t.id, !t.enabled)}
+                      className={`shrink-0 whitespace-nowrap rounded-md border border-border px-2 py-1 text-micro transition-colors ${
                         t.enabled
-                          ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                          : "bg-muted text-text-secondary"
+                          ? "text-foreground hover:bg-muted/50"
+                          : "text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
                       }`}
                     >
-                      {t.enabled ? "Enabled" : "Disabled"}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2">
-                    <div
-                      className="flex items-center gap-1"
-                      onClick={(e) => e.stopPropagation()}
+                      {t.enabled ? "Disable" : "Enable"}
+                    </button>
+                    <button
+                      onClick={() => onRun(t.id)}
+                      className="shrink-0 whitespace-nowrap rounded-md bg-foreground px-2 py-1 text-micro text-background transition-opacity hover:opacity-80"
                     >
-                      <button
-                        onClick={() => onToggle(t.id, !t.enabled)}
-                        className={`rounded-md px-2 py-1 text-micro border border-border transition-colors ${
-                          t.enabled
-                            ? "text-foreground hover:bg-muted/50"
-                            : "text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
-                        }`}
-                      >
-                        {t.enabled ? "Disable" : "Enable"}
-                      </button>
-                      <button
-                        onClick={() => onRun(t.id)}
-                        className="rounded-md px-2 py-1 text-micro bg-foreground text-background hover:opacity-80 transition-opacity"
-                      >
-                        Run Now
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+                      Run Now
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
     </div>
   );
 }

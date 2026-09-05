@@ -13,6 +13,7 @@ from typing import Any
 
 from google.adk.agents import BaseAgent, LlmAgent, LoopAgent, ParallelAgent, SequentialAgent
 
+from negentropy.agents._dynamic_tools import NegentropyToolset
 from negentropy.agents.agent import root_agent
 from negentropy.agents.faculties import (
     action_agent,
@@ -21,6 +22,10 @@ from negentropy.agents.faculties import (
     internalization_agent,
     perception_agent,
 )
+
+# 命名单源：``_tool_name`` 委派到 registry.tool_name，保证 sync 落库的 ``agents.tools`` 与
+# ``NegentropyToolset`` 的注册表键逐字一致（消除正 / 反向命名漂移）。
+from negentropy.agents.tools.registry import tool_name as _tool_name
 from negentropy.model_names import canonicalize_model_name
 from negentropy.serialization import to_json_compatible
 
@@ -68,14 +73,27 @@ def _callable_name(callback: Any) -> str | None:
     return callback.__class__.__name__
 
 
-def _tool_name(tool: Any) -> str:
-    name = getattr(tool, "name", None)
-    if isinstance(name, str) and name:
-        return name
-    func_name = getattr(tool, "__name__", None)
-    if isinstance(func_name, str) and func_name:
-        return func_name
-    return tool.__class__.__name__
+def _expand_tool_names(agent: BaseAgent) -> list[str]:
+    """展开 ``agent.tools`` 为稳定的工具名数组（保序去重）。
+
+    WS1：faculty 的可摘工具集以 ``NegentropyToolset`` 承载，直接 ``_tool_name`` 会得到类名
+    ``NegentropyToolset``，污染 sync 落库的 ``agents.tools``。此处对 toolset 展开为其
+    ``configured_tool_names()``（恒常 + 默认），使 sync 出的 tools 仍是稳定工具名数组、
+    与改造前逐字节一致（mandatory 既在常量位又在 configured 里，去重消除重复）。
+    """
+    names: list[str] = []
+    for tool in getattr(agent, "tools", None) or []:
+        if isinstance(tool, NegentropyToolset):
+            names.extend(tool.configured_tool_names())
+        else:
+            names.append(_tool_name(tool))
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for name in names:
+        if name not in seen:
+            seen.add(name)
+            ordered.append(name)
+    return ordered
 
 
 def _model_name(model: Any) -> str | None:
@@ -117,7 +135,7 @@ def serialize_adk_config(agent: BaseAgent) -> dict[str, Any]:
             {
                 "instruction": agent.instruction,
                 "model": _model_name(agent.model),
-                "tools": [_tool_name(tool) for tool in (agent.tools or [])],
+                "tools": _expand_tool_names(agent),
                 "output_key": agent.output_key,
                 "include_contents": to_json_compatible(agent.include_contents),
                 "disallow_transfer_to_parent": agent.disallow_transfer_to_parent,

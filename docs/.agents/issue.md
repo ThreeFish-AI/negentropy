@@ -282,7 +282,7 @@
 - **处理方式**（Expand → Backfill → Contract 三段式无破坏迁移）：
   1. **架构沉淀**（本次 PR）：[`035-the-knowledge-base.md` §15 单实例 Catalog 收敛（Phase 4）](../concepts/subsystems/035-the-knowledge-base.md#15-单实例-catalog-收敛phase-4在-nm-之上叠加聚合根不变量) 作为 ADR 等价记录，明确「Phase 4 在 Phase 3 N:M schema 之上叠加聚合根不变量，不是回退」；[`wiki/ops.md` §12](../reference/wiki/ops.md#12-单实例-catalog-与-wiki-发布版本管理运维) 沉淀 Phase B merge runbook（含 `pg_dump` 强制备份、守恒断言、回退 SQL）；
   2. **Phase A Migration 0007**（独立 PR）：纯加法——`CREATE UNIQUE INDEX uq_doc_catalogs_app_singleton ON doc_catalogs(app_name) WHERE is_archived=false`、`CREATE UNIQUE INDEX uq_wiki_pub_catalog_active ON wiki_publications(catalog_id) WHERE status='LIVE'`、`ALTER TABLE doc_catalogs ADD COLUMN merged_into_id UUID NULL REFERENCES doc_catalogs(id) ON DELETE SET NULL`。downgrade 完全可逆；
-  3. **Phase B Migration 0008**（独立 PR + 强制 `pg_dump` 备份）：按「根节点合并为子树」策略——按 `(app_name) ORDER BY created_at ASC LIMIT 1` 选 survivor，其它 catalog 的顶层 entry 嫁接到 survivor 顶层新建的虚拟 `CATEGORY` 节点（slug 加 `legacy-<short_hash>` 后缀避免冲突），整树 `catalog_id` UPDATE 到 survivor，WikiPublication 的 LIVE 降级为 ARCHIVED 并重指向，`navigation_config` JSONB 中的 catalog_id 显式 rewrite，源 catalog 设 `is_archived=true, merged_into_id=survivor.id`（**严禁物理删除**，与 [AGENTS.md 数据库管理规范](../CLAUDE.md) 一致）。声明 `DESTRUCTIVE_DOWNGRADE = true`，回退依赖快照；
+  3. **Phase B Migration 0008**（独立 PR + 强制 `pg_dump` 备份）：按「根节点合并为子树」策略——按 `(app_name) ORDER BY created_at ASC LIMIT 1` 选 survivor，其它 catalog 的顶层 entry 嫁接到 survivor 顶层新建的虚拟 `CATEGORY` 节点（slug 加 `legacy-<short_hash>` 后缀避免冲突），整树 `catalog_id` UPDATE 到 survivor，WikiPublication 的 LIVE 降级为 ARCHIVED 并重指向，`navigation_config` JSONB 中的 catalog_id 显式 rewrite，源 catalog 设 `is_archived=true, merged_into_id=survivor.id`（**严禁物理删除**，与 AGENTS.md 数据库管理规范 一致）。声明 `DESTRUCTIVE_DOWNGRADE = true`，回退依赖快照；
   4. **后端 API**（独立 PR）：新增 `GET /catalogs/resolve?app_name=X`（幂等读，404 表示不存在）、`POST /catalogs/ensure`（upsert-or-get），`POST /catalogs` 加 guard：active 已存在则 409 `catalog_already_exists` 并返回 `existing_catalog_id`；`DELETE /catalogs/{id}` 改为 `is_archived=true` 软删；`CatalogService.create_catalog` 在事务内 `SELECT ... FOR UPDATE` + 捕获 `IntegrityError` 降级为 ensure 语义防御并发 race。`fetchCatalogs` 保留并标 `@deprecated` 给旧客户端 6 周宽限期；
   5. **前端**（独立 PR）：新增 `features/knowledge/hooks/useAppCatalog.ts` 调 `resolveCatalog(APP_NAME)` + SWR 缓存（404 fallback ensure），新增只读 `<CatalogBadge>` 显示 catalog name + tooltip（slug / app_name），`/knowledge/catalog` 与 `/knowledge/wiki` 删除 `<CatalogSelector>` 与 `useState<string|null>` 守卫；树渲染、节点 CRUD、Wiki 详情面板等组件全部不动，只换上游数据源。
 - **后续防范**：
@@ -757,11 +757,11 @@
 - **表因**：AI Agent（Claude / Antigravity）在沙箱形态浏览器（Playwright 默认 `chromium.launch()` 启的空白 profile）中打开 [`localhost:3192`](http://localhost:3192) 触发项目自带的 Google OAuth 流（`/auth/google/login` → `accounts.google.com` → `/auth/google/callback`，参见 [docs/sso.md](../infrastructure/design/sso.md)），跳转到 `accounts.google.com` 后因该浏览器无任何 Google 登录态，被同意屏 / reCAPTCHA / 二步验证拦截，验证链路在此中断；用户被迫多次手动接管或放弃验证。
 - **根因**：双重契约错配：
   1. **会话来源错配**：默认 sandbox 浏览器的 cookie store / device fingerprint / IP 风险评分均与用户日常 Chrome 不同，Google 风控将其视为可疑设备；即便用户在沙箱内输入正确账密，亦极易被强制拉起二次验证或拒绝；
-  2. **工具选型缺位**：项目 [CLAUDE.md（即 AGENTS.md）](../CLAUDE.md) 此前未约定"涉及登录态的浏览器验证应优先使用与用户常用 Chrome 共享会话的工具"，AI Agent 默认走 sandbox 即陷入上述风控；
+  2. **工具选型缺位**：项目 `CLAUDE.md`（即 AGENTS.md）此前未约定"涉及登录态的浏览器验证应优先使用与用户常用 Chrome 共享会话的工具"，AI Agent 默认走 sandbox 即陷入上述风控；
   3. **Playwright E2E 同样缺位**：`apps/negentropy-ui/playwright.config.ts` 之前无 `setup` project / `storageState` / `userDataDir` 复用机制，凡涉及真实 OAuth 的 E2E 都需重复人工登录或退化为 mock，长期削弱端到端覆盖。
 - **处理方式**：
-  1. **协议落地**：[CLAUDE.md › 术 › Browser Validation Protocol](../CLAUDE.md) 新增子节，明确"涉及登录态的浏览器验证必须复用用户常用 Chrome 会话"，首选 `mcp__claude-in-chrome__*`，退化为 `mcp__chrome_devtools__*` + Chrome `--remote-debugging-port`，禁止在 sandbox 浏览器中通过 Google 同意屏；
-  2. **详尽文档**：新建 [docs/agents/browser-validation.md](./agents/browser-validation.md)，含三种 MCP 浏览器工具的能力对照、Mermaid 选型决策图、三步连通性自检脚本、storageState 工作时序、风控应对、IEEE 引用；
+  1. **协议落地**：CLAUDE.md › 术 › Browser Validation Protocol 新增子节，明确"涉及登录态的浏览器验证必须复用用户常用 Chrome 会话"，首选 `mcp__claude-in-chrome__*`，退化为 `mcp__chrome_devtools__*` + Chrome `--remote-debugging-port`，禁止在 sandbox 浏览器中通过 Google 同意屏；
+  2. **详尽文档**：新建 `docs/agents/browser-validation.md`，含三种 MCP 浏览器工具的能力对照、Mermaid 选型决策图、三步连通性自检脚本、storageState 工作时序、风控应对、IEEE 引用；
   3. **Playwright 改造**：
      - `apps/negentropy-ui/playwright.config.ts` 在 `PLAYWRIGHT_AUTH=1` 时启用两个新 project：`setup`（`/.*\.setup\.ts$/`，强制 headless: false）与 `chromium-authenticated`（`dependencies: ['setup']`，注入 `storageState`），可选 `PLAYWRIGHT_USER_DATA_DIR` 走 `--user-data-dir` 复用本地 profile；
      - `STORAGE_STATE` 默认 `apps/negentropy-ui/.auth/user.json`，可被 `PLAYWRIGHT_STORAGE_STATE` 覆盖；
@@ -778,7 +778,7 @@
   1. 所有依赖外部第三方登录的链路（Microsoft / Apple / GitHub OAuth、企业 SSO、内部 SaaS 密钥）在 sandbox 浏览器中均会遭遇同质风控，应统一按本协议复用真实浏览器会话；
   2. 任何"AI Agent 帮我跑一下登录后页面"的请求都应先看协议工具选型矩阵；
   3. 跨 profile 复制 storageState / Cookie 的方案在 Google / 微软等高风控供应商上不可靠，不建议作为退化方案。
-- **2026-05-06 协议演进**：实测 Claude in Chrome 扩展 MCP 在多数 Conductor / Claude Code 会话中未挂载，"首选 → 退化"两档路由长期无法生效；同时 macOS 默认配置下 `mcp__chrome_devtools__list_pages` 已能直接接入用户常用 Chrome 主 profile（含已登录 Google 账号）。因此协议统一收敛为唯一驱动 `mcp__chrome_devtools__*`，并明确"Playwright 仅用于不接触 OAuth 的 B 类隔离场景"。详见 [AGENTS.md › Browser Validation Protocol](../CLAUDE.md) 与 [docs/agents/browser-validation.md](./agents/browser-validation.md)（§1 协议演进段、§3 工具能力对照、§4 决策图、§5 两步自检）。
+- **2026-05-06 协议演进**：实测 Claude in Chrome 扩展 MCP 在多数 Conductor / Claude Code 会话中未挂载，"首选 → 退化"两档路由长期无法生效；同时 macOS 默认配置下 `mcp__chrome_devtools__list_pages` 已能直接接入用户常用 Chrome 主 profile（含已登录 Google 账号）。因此协议统一收敛为唯一驱动 `mcp__chrome_devtools__*`，并明确"Playwright 仅用于不接触 OAuth 的 B 类隔离场景"。详见 AGENTS.md › Browser Validation Protocol 与 `docs/agents/browser-validation.md`（§1 协议演进段、§3 工具能力对照、§4 决策图、§5 两步自检）。
 
 ---
 
@@ -1254,7 +1254,7 @@
 - **后续防范**：
   1. 所有"确认/危险操作"必须复用 `components/ui/ConfirmDialog`，严禁原生 confirm/alert；
   2. ISSUE-045 修复时把 ConfirmDialog 放在 skills 私有目录是熵增信号——通用基础组件必须直接在 `components/ui/` 落地；
-  3. 在 [`docs/AGENTS.md`](../AGENTS.md) 工程规范中已有"严禁原生 dialog"条款，建议下一轮加 ESLint 规则 `no-restricted-globals` 阻断 `window.confirm`/`alert`/`prompt` 直接调用。
+  3. 在 `docs/AGENTS.md` 工程规范中已有"严禁原生 dialog"条款，建议下一轮加 ESLint 规则 `no-restricted-globals` 阻断 `window.confirm`/`alert`/`prompt` 直接调用。
 - **同类问题影响**：MCP Servers / SubAgents 等模块若仍残留原生 dialog 需统一替换；ESLint 规则升级可一次性发现所有遗漏点。
 
 ---
@@ -1868,7 +1868,7 @@
   - 新增 `tests/unit_tests/knowledge/test_kg_build_pipeline_fixes.py` 9 条 UT 锁定 7 项修复契约（PageRank SQL CAST / Leiden via leidenalg / drop_params 透传 / Embedding hint / sync_relation bool 返回）；
   - `tests/unit_tests/knowledge/test_kg_entity_service_unit.py` 与 `test_graph_entity_service.py` 三条既有 UT 升级 — 之前实为"silent assertion of bug"（把跳过当成功），现校正为 `relations_synced=0 + relations_skipped=2`；
   - `uv run pytest tests/unit_tests/knowledge` 678 通过（1 pre-existing 失败 `test_extraction_llm_plan` 与本次无关）；`uv run ruff check` 全绿；
-  - 浏览器实机验证按 [Browser Validation Protocol](agents/browser-validation.md) 在用户主 profile 完成；端到端 KG Build 后 SQL `SELECT importance_score, community_id FROM kg_entities WHERE corpus_id=...` 非 NULL、`SELECT level, community_id FROM kg_community_summaries` 多条非空摘要、`kg_first_class_sync relations_synced` 与 `graph_loaded edge_count` 数值一致（差额由 `relations_skipped` 明示）。
+  - 浏览器实机验证按 Browser Validation Protocol 在用户主 profile 完成；端到端 KG Build 后 SQL `SELECT importance_score, community_id FROM kg_entities WHERE corpus_id=...` 非 NULL、`SELECT level, community_id FROM kg_community_summaries` 多条非空摘要、`kg_first_class_sync relations_synced` 与 `graph_loaded edge_count` 数值一致（差额由 `relations_skipped` 明示）。
 - **后续防范**（跨上下文准则）：
   1. **PostgreSQL UPDATE-FROM-VALUES 范式**：批量 UPSERT/UPDATE 一律采用占位符级 `CAST(:p AS type)`，禁用 `AS v(col type)` 内联类型 — 后者在 asyncpg / psycopg3 / pg-protocol bridge 多驱动行为不一致。
   2. **NetworkX 3.x dispatch wrapper 边界**：调用 `nx.community.*` 前必须确认是否为 dispatch wrapper（隐式 backend 派发会以 `NotImplementedError` 形式出现而非明确 `ImportError`）。Leiden / Modularity 类算法一律走 `igraph + leidenalg` / `cdlib` 直连。
@@ -1961,7 +1961,7 @@
     - `community_summary_failed` 警告：1 次 → 0 次；
     - 终态 `status`：`completed_with_errors` → `completed`；
     - `build_run_updated` 字段一致性：单字段 `run_id=UUID` → 双字段 `run_uuid` + `run_id`；
-    - **未完成项（透明披露）**：端到端浏览器回归遵循 [browser-validation 协议](../docs/agents/browser-validation.md) 需用户在自有 Chrome 主 profile 操作真实语料库 corpus，本次未在 agent 上下文执行——本修复全由单元测试与结构断言保障。
+    - **未完成项（透明披露）**：端到端浏览器回归遵循 browser-validation 协议 需用户在自有 Chrome 主 profile 操作真实语料库 corpus，本次未在 agent 上下文执行——本修复全由单元测试与结构断言保障。
 - **后续防范**：
   1. **事务边界单一来源**：service / repository / domain 模块层级应明确"谁开 begin / 谁负责 commit"的契约；domain service（如 summarizer）只负责写入，事务边界由 application service 持有，杜绝跨层双重事务管理；
   2. **多策略消解的 ID 维度必维护**：任何"按 label 合并"的策略都必须同步暴露 ID 映射（new_id → surviving_id），下游不应被迫从 label 反推 id；新增 stage 时（如未来 LLM 验证）必须遵循此契约；
@@ -1994,7 +1994,7 @@
   - 单元测试：[`test_global_search.py`](../apps/negentropy/tests/unit_tests/knowledge/test_global_search.py) 新增 3 个用例（`llm_config_id` 路由到 `resolve_llm_config_by_id`、无 id 走 `resolve_llm_config` 全局默认、`evidence=0` + `candidates>0` 返回基础设施错误文案）+ 现有 7 个用例零回归；[`test_embedding.py`](../apps/negentropy/tests/unit_tests/knowledge/test_embedding.py) 新增 `TestNonRetryableFailFast` 4 个用例（AuthenticationError 不重试、NotFoundError 不重试、文本模式兜底命中、ConnectionError 仍按指数退避到上限）+ 现有 5 个用例零回归；
   - 范围覆盖：`tests/unit_tests/knowledge/` 全量 816 项断言通过（pre-existing `test_extraction_llm_plan.py::test_build_llm_invocation_plan_returns_none_when_serialization_fails` 失败已 `git stash` 比对验证与本次修复无关）；
   - 契约 smoke：`uv run python` 内联校验 `_is_non_retryable_error(AuthenticationError)` / `NotFoundError` / `BadRequestError` / 文本模式 generic Exception 全部 True，`ConnectionError` False；`GlobalSearchService(llm_config_id=...)` 构造与读字段一致；
-  - **未完成项（透明披露）**：浏览器端到端验证遵循 [browser-validation 协议](./agents/browser-validation.md) 需用户在自有 Chrome 主 profile + 真实语料库 corpus 操作；agent 上下文 chrome_devtools 通道被占用且不应启用 sandbox profile，本次未在 agent 内执行实机验证——本修复全由单元测试与结构断言保障。
+  - **未完成项（透明披露）**：浏览器端到端验证遵循 browser-validation 协议 需用户在自有 Chrome 主 profile + 真实语料库 corpus 操作；agent 上下文 chrome_devtools 通道被占用且不应启用 sandbox profile，本次未在 agent 内执行实机验证——本修复全由单元测试与结构断言保障。
 - **后续防范**：
   1. **「查询侧模型 = ingestion 侧模型」契约**：所有需要在向量空间中比较的查询路径（global_search / hybrid_search / multi_hop / future rerank），必须经 `_resolve_corpus_model_ids` 解出 `embedding_config_id` 后传给 `build_embedding_fn`；新增类似路径时 review 必须显式检查此契约。
   2. **重试白名单契约**：任何外部 API 重试循环必须区分「瞬时故障（5xx 网关 / 429 / timeout）」与「终态故障（4xx 凭证 / 路由 / 参数）」，前者退避重试、后者立即降级；`_is_non_retryable_error` 应作为 KG 子系统跨模块的标准 fail-fast 工具，不要在新调用点重新实现。
@@ -2028,7 +2028,7 @@
   - 单元：新增 17 个用例（`tests/unit_tests/config/test_task_registry.py` 7 项、`tests/unit_tests/config/test_model_resolver_task.py` 5 项、`tests/unit_tests/interface/test_task_models_api.py` 5 项）100% 通过；
   - 回归：`tests/unit_tests/` 1634 通过 / 1 deselected（`test_extraction_llm_plan.py::test_build_llm_invocation_plan_returns_none_when_serialization_fails` 在 master 即失败，与本次修复无关，已 `git stash` 比对验证）；
   - 调试观测：resolver 命中后输出结构化日志 `task_model_resolved {task_key, corpus_id, resolved_model, source ∈ {corpus_task, global_task, default}}`，可用于线上链路核对。
-  - **未完成项（透明披露）**：浏览器实机回归遵循 [browser-validation 协议](./agents/browser-validation.md) 需用户在 Chrome 主 profile + 真实凭证操作；本次未在 agent 内执行实机验证——所有路径由单元测试 + 静态检查覆盖。
+  - **未完成项（透明披露）**：浏览器实机回归遵循 browser-validation 协议 需用户在 Chrome 主 profile + 真实凭证操作；本次未在 agent 内执行实机验证——所有路径由单元测试 + 静态检查覆盖。
 - **后续防范**：
   1. **"调用点新增 LLM 操作 → 同步登记 task_key"契约**：任何新增后台 LLM/Embedding 调用点必须先在 [`task_registry.py`](../apps/negentropy/src/negentropy/config/task_registry.py) 注册槽位，再通过 `resolve_*_for_task` 解析。Code review 时检查"裸调 `resolve_llm_config()` 或 `litellm.acompletion(model="…")`"作为 red flag。
   2. **缓存命名空间隔离**：新增 resolver 时务必使用独立 cache key 前缀（`task:` / `subagent:` / `llm:<id>` 等已建立），写操作匹配的 `invalidate_cache(prefix=...)` 必须同步覆盖；不可与全局 `llm` / `embedding` 缓存共用键。
@@ -2064,7 +2064,7 @@
 - **后续防范**：
   1. **同 pathname + 仅 query 变更的 URL 更新一律走 `window.history.replaceState`**：避免再次踩到 Next.js RSC 判定的 NA no-op。涉及 pathname 跳转（`/`、`/interface`、`/admin` 等）的入口继续使用 `router.replace` / `router.push`，两者职责分明。
   2. **Code review 红线**：评审看到 `router.replace(somePath, { scroll: false })` 且 `somePath` 与当前 pathname 同源（仅 query 不同）时，明确要求改写为 `window.history.replaceState`。
-  3. **实机验证为兜底底线**：本类 bug 的根因在 Next.js 路由层，vitest jsdom 环境覆盖不到——单测仅能保证"写 URL 这个动作发生"，是否"真的更新了 URL 并触发派生"必须在用户主 Chrome 实机验证（参见 [browser-validation 协议](./browser-validation.md)）；任何同型 URL-only 写入改动至少 ≥ 5 个正交场景实机回归。
+  3. **实机验证为兜底底线**：本类 bug 的根因在 Next.js 路由层，vitest jsdom 环境覆盖不到——单测仅能保证"写 URL 这个动作发生"，是否"真的更新了 URL 并触发派生"必须在用户主 Chrome 实机验证（参见 browser-validation 协议）；任何同型 URL-only 写入改动至少 ≥ 5 个正交场景实机回归。
   4. **故障时的错位提示**：`handleSessionChange` 仍是 `setSessionId → clearSessionState` 顺序。若未来再出现"清空但未切换"错位，说明 URL 写入又失败了——先验证 URL 是否真的更新，而不是去调换清理顺序（调换清理顺序无法解决根本问题，只会改变错位的外观）。
 - **同类问题影响**：
   - 本仓库其余 `router.replace` / `router.push` 调用（`app/admin/layout.tsx`、`app/interface/layout.tsx`、`app/interface/task-models/page.tsx`、`app/interface/models/page.tsx`、`app/knowledge/documents/page.tsx`）均为 pathname 级跳转，不在 bug 影响面，保持不变。
@@ -2184,6 +2184,11 @@
   - **决策**：marker-pdf 是 perceives PDF→MD 三引擎之一（高精度 OCR），不能为修 CVE 牺牲该能力；上游 marker-pdf/surya-ocr 尚未适配 transformers 5.x。故**保留 `transformers>=4.56.1,<5.0.0` 钉子**，Dependabot #492 以 `tolerable_risk` dismiss。
   - **威胁模型复核（覆盖 CVE-2026-4372）**：perceives 零直接 import transformers，仅经 docling/marker/surya 加载其官方第一方模型 artifact（Docling Layout / TableFormer / surya 系列），无任何加载用户/第三方不可信模型 repo 或 `.pt2`/`.joblib` 缓存的代码路径；CVE-2026-4372 的 `config.json` 注入需攻击者控制被加载模型的 config，第一方官方模型不满足该前提，故风险降至「官方模型 repo 被攻陷」二阶场景，可容忍。
   - **解锁条件**：跟踪 marker-pdf/surya-ocr 适配 transformers 5.x 的上游 release（docling 跟踪 #3090）；一旦 marker 解锁，立即抬 `transformers>=5.3.0` 重启该 CVE 修复。
+- **2026-07-20 复发增补（bandit 放行后暴露；与 [ISSUE-160](#issue-160-perceives-cisecurity-audit-因新增-urlopen-触发-bandit-b310-未豁免致-job-红灯2026-07-20) 同 PR）**：
+  - **触发**：ISSUE-160 修复 bandit B310 使 `Run bandit security scan` 转绿后，**同 job 的 `pip-audit` 步骤首次得以执行**（此前恒被 bandit 提前 exit 1 跳过），暴露 15 条不在 ignore 列表中的 advisory（PYSEC 数据库增补 + 依赖版本推进的双重结果，非本 PR 引入，base 分支同样红）。
+  - **处理（升级可修复 + 仅锁定项 ignore，见本仓 [PR #1093](https://github.com/ThreeFish-AI/negentropy/pull/1093)）**：① **升级 4 包消除 14 条**——经 `[tool.uv] override-dependencies` 抬下限 `pillow>=12.3.0`（解 PYSEC-2026-2253..2257/3451..3453 共 8 条图像解析）/ `click>=8.3.3`（PYSEC-2026-2132）/ `json-repair>=0.60.1`（GHSA-xf7x-x43h-rpqh）/ `mcp>=1.28.1`（CVE-2026-52869/52870/59950）后 `uv lock`（实解 8.4.2 / 0.61.6 / 1.28.1 / 12.3.0，`fastmcp` 3.2.4 不变即兼容 mcp 1.28.1，marker/docling/surya/transformers 零位移）。② **2 条新 ignore**——`transformers PYSEC-2026-2290`（CVE-2026-5241，LightGlue 加载路径 `config.json` 覆盖 `trust_remote_code` 的 RCE，**同 CVE-2026-4372 威胁模型**：仅加载第一方 artifact 不可达；且 last-affected 5.2.0、无 released fix，锁 `<5.0.0` 亦制约升级）；`setuptools PYSEC-2026-3447`（CVE-2026-59890，CVSS 6.1，MANIFEST.in 排除规则在 macOS APFS/HFS+ 构建 sdist 时被 Unicode 归一化绕过——Linux CI 构建不可达；修复仅 83.0.0，保持既有 82.0.1 运行时 pin 不升级）。
+  - **关键排查教训（setuptools pkg_resources 误判纠偏）**：初判「setuptools 83.0.0 移除 pkg_resources 破坏 undetected-chromedriver 运行时」，遂拟锁 `<83.0.0`；后用 `uv run --no-project --with 'setuptools==82.0.1'/'==83.0.0' python -c 'import pkg_resources'` **隔离验证**，发现 **82 与 83 皆无 pkg_resources**（上游早于 82 已移除）——即 pyproject 该 pin 的注释理由已陈旧、且 82↔83 对本项目无功能差异（base 用 82.0.1、pkg_resources 缺失下 CI 仍全绿，说明该 import 路径未被测试触达）。故最终**保持 base 的 `setuptools>=82.0.1` 原样不动**（最小干预），仅 ignore 不可达的低危 build-time flaw，而非无谓变更 build 后端版本或写入基于误判的 `<83` 上限。**教训**：涉及「版本 X 是否移除某模块」的判断，须用隔离环境按版本对照验证（勿凭「升级后报错」直接归因于新版本，可能是既存条件）。
+  - **验证**：本地 `pip-audit`（沿用完整 ignore_args + 上述 2 新条目）→ `No known vulnerabilities found, 7 ignored`，exit 0；4 升级包 import smoke（PIL 12.3.0 / click 8.4.2 / json_repair / mcp / fastmcp）全过；`pytest -m "not slow"` 快测无回归；最终以 PR #1093 线上 `Security Audit`（bandit + pip-audit）转绿为准。
 
 ---
 
@@ -2833,7 +2838,7 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **表因**：以模板 routine（`9e90c3c7`）复刻任务实机长跑时，发现其历史 iter2 失败于 `working directory does not exist: '/tmp/wt/dispatch-auto'`——而 `/tmp/wt/dispatch-auto` 是 `test_routine_orchestrator.py` 的测试夹具值，却写进了**生产** routine 的迭代行。顺藤摸瓜发现整个测试套件直连生产 `negentropy` 库。
 - **根因**：**测试无独立数据库，与生产共享 `negentropy` 库**：
   1. `tests/conftest.py::db_engine` 直接 `create_async_engine(str(settings.database_url))`——生产库；
-  2. `tests/integration_tests/db/test_migrations.py::reset_database`（autouse）执行 `command.downgrade(alembic_config, "base")`——**把生产库降级到 base，DROP 全部表 = 摧毁 routines/knowledge/memory/sessions 全部数据**，违反 [AGENTS.md「严禁删除现有数据」](../../CLAUDE.md)；其 `_sync_database_url()` 亦读 `settings.database_url`（生产）；
+  2. `tests/integration_tests/db/test_migrations.py::reset_database`（autouse）执行 `command.downgrade(alembic_config, "base")`——**把生产库降级到 base，DROP 全部表 = 摧毁 routines/knowledge/memory/sessions 全部数据**，违反 AGENTS.md「严禁删除现有数据」；其 `_sync_database_url()` 亦读 `settings.database_url`（生产）；
   3. `orchestrator._dispatch_due` / `_evaluate_and_decide` 查询条件为 `Routine.status=='running'`（**扫描全部** running routine，不限于测试自建行）；集成测试 patch `ensure_workspace`→`WorkspaceInfo('/tmp/wt/dispatch-auto')` 后调 `_dispatch_due`，会把该假 cwd 派发给当时正在 running 的**真实**模板 routine → CC 报 cwd 不存在 → 该 routine 随后陷入会话死亡螺旋（ISSUE-110 表征的历史 iter2-5 即源于此）。
   - 模板 routine 至今尚存，说明全量 `pytest tests/` 本地近期未跑全——否则 `reset_database` 一次即清空生产库。这是「跑得够全才爆」的潜伏数据灾难。
 - **处理方式**（会话级强制隔离到专用测试库，单一改写点）：
@@ -3471,3 +3476,399 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **处理方式**（三层治本，分别实施）：**Fix 1 断掉重试循环（denial 缓存 + 终结性 `blocked`）**——`approval.py` 新增 `APPROVAL_DENIAL_TTL_SECONDS=300` + `_stable_hash`（sha1 前 8 位，跨进程稳定）+ `record_approval_denial`/`was_recently_denied`（写/查 `state["approval_denials"][f"{tool}:{args_key}"]`，沿用整字典重赋值契约）；ingest.py（denial_key=`{corpus_id}:{text[:256] 哈希}`）/ paper.py（denial_key=`arxiv_id`）在 `should_request_approval` **前**先查缓存，命中直接返回 `{"status":"blocked",...}`、**不再调 `request_approval`**；超时/拒绝分支调用 `record_approval_denial` 并把返回从 `failed` 改为终结性 `blocked`；InternalizationFaculty 指令补 `blocked → 严禁重试，告知用户重新发起`。结构性把循环压到至多 1 次弹窗，**不依赖 LLM 自觉**。**Fix 2 Stop 按钮常驻 + 一键破局**——`Composer.tsx` 新增 `forceShowStop` prop，`showStop = Boolean((isGenerating || forceShowStop) && onCancel)`；`home-body.tsx` 传 `forceShowStop={blocked || 有待决审批}`；`handleCancelRun` 增强——除 `abortRun` 外，把所有 `pendingApprovals` 的 action_id 一并加入 `resolvedApprovalIds`（清空所有弹窗），即便 run 已结束的孤儿态也能即时逃生。**Fix 3 审批策略真正生效 + 自治 faculty 免门控**——3a：`state-delta.ts` 追加 `approval_policy` handler（合法 `{mode:"always"|"per_tool"|"never"}` 透传，非法 fail-soft），修复「选择器死代码」；3b：`faculty_bridge._drive` 在 `runner.run_async` 前用 `service.create_session(state={"approval_policy":{"mode":"never"}}, session_id=...)` 预创建 session，使自治 faculty 调用免审批门，失败降级不阻断主流程。
 - **后续防范**：① **HITL 重试必须有结构性兜底**——不能只靠 LLM「看到不要重试」的自觉；任何「外部信号门控 + LLM 驱动」的工具，被拒/超时后应记 negative 决议，工具入口前置查缓存，命中即返终结结果。② **「失败」状态语义需区分可重试与不可重试**——`failed` 是 LLM 的「再试一次」信号；用户拒绝/超时这类**不可重试**的失败须用独立 status（`blocked`）+ 显式反重试文案。③ **前端 forwardedProps 与后端 state_delta 是契约**——新增前端控制项必须确认 BFF `buildStateDeltaFromForwardedProps` 有对应 handler，否则就是「选择器死代码」（UI 有反应、后端无效果）。④ **「自救按钮」的显示条件不能只看 streaming**——模态/阻塞陷阱下连接态常为 idle/blocked，Stop 须基于「有待决异步态」常驻，否则用户被禁用 UI 困死。⑤ **实机排查优先于源码推演**——本 issue 的「循环」结论来自实时 DOM/fiber 读 `pending_approvals` 多 action_id + innerText 计数 `ingest_paper` 126 次，源码侧无任何线索；复杂运行时态必须用浏览器实测验证假设。
 - **同类问题影响**：所有「LLM + 外部门控」工具（approval / long-running / 外部 IO 等待）都应补「negative 决议缓存」掐断重试；所有前端 forwardedProps 字段都应核对 BFF state_delta 是否真透传；所有「禁用主按钮 + 异步态」的 UI 都应有常驻 Stop/逃生。改动文件：`agents/approval.py`、`agents/tools/ingest.py`、`agents/tools/paper.py`、`agents/faculties/internalization.py`、`engine/routine/faculty_bridge.py`、`packages/agents-chat-core/src/server/state-delta.ts`、`apps/negentropy-ui/components/ui/Composer.tsx`、`apps/negentropy-ui/app/home-body.tsx` + 对应单测（denial 缓存 / forceShowStop / state-delta 透传 / faculty_bridge 注入）。
+
+---
+
+## ISSUE-158 PDF 巡检状态仅在 Memory 标记，不精准 / 不可见 / 不可重试（2026-07-08）
+
+- **表因**：「PDF Fidelity Patrol」对 PDF 文档做高保真自拟合巡检，但**巡检结果完全不存在于文档行**——文档级状态（`done|unfixable`）只以 `negentropy.memories` 表 `tag=pdf-fidelity-status` 标签行存在（无 `in_progress`），且 Memory 受衰减治理可被清理。由此：① Documents 列表无法展示「巡检状态 / 拟合分数」；② 已拟合（done）文档被永久跳过，无入口触发「二次深度巡检」；③ selector 依赖 Memory 标签跳过已完成文档，衰减后语义漂移、状态非与文档生命周期绑定的持久事实。
+- **根因**：文档级聚合状态（巡检态）被错放在 Memory 标签（设计上承载可衰减的语义记忆），而非 `KnowledgeDocument` 主表的持久列——违反「单一事实源」：状态的可观测性（UI 展示）、可重试性（重置入口）、持久性（抗衰减）三个诉求都无法从 Memory 满足。
+- **处理方式**（SSOT 迁移 + UI + 重置 API，详见 [PDF 巡检状态落库方案](pdf-fidelity-patrol-status.md)）：① **落库**——`KnowledgeDocument` 新增 `patrol_status`(NULL/in_progress/unfixable/done 四态)/`patrol_score`/`patrol_routine_id`/`patrol_updated_at` 列 + 索引（迁移 0092，含从 memories 回填存量状态）。② **写入路径 dual-write**——spawn 写 `in_progress`、终态 `_upsert_status` 写 done/unfixable、cancelled 双守卫回退 NULL；DB 列为权威读源，Memory TAG_STATUS 暂保留写入（Phase 2 deprecate），不破坏既有集成测试断言。③ **selector 迁移**——`_select_next_pending_doc` 把 `id NOT IN :skip` 换成 `patrol_status IS NULL`，`_has_running_patrol` 保持读 routines 表（防 in_progress 残留卡死全系统）。④ **「重置为未拟合」API**——`DocumentStorageService.reset_patrol_status`（保守策略：在跑 409 拒绝；取消终态 Routine 解除 selector NOT EXISTS 门；清列 + 清 Memory TAG_STATUS/TAG_UNFIXABLE）+ 双路由（corpus + 库文档）。⑤ **前端**——Documents 列表顺势由旧 `div+grid-cols-13`（全仓无定义、列宽靠隐式网格自适应的隐患表）重构为 `<table table-fixed> + <colgroup>` 黄金标准（修复隐患 + 合规 CLAUDE.md 表格规范），新增「巡检状态」列（`PatrolStatusBadge` 四态 + 分数，非 PDF 显示「—」）+ 「重置为未拟合」按钮（`useConfirmDialog` 确认 → `resetDocumentPatrol` → `listRefresh`，409 toast 提示）。
+- **后续防范**：① **文档级聚合状态必须落主表持久列，不能放可衰减的 Memory 标签**——Memory 适合承载可衰减的语义/方法记忆（pattern/baseline/区域避让），不适合承载「文档是否已拟合」这类与文档生命周期绑定、需可观测可重试的事实状态。② **状态迁移须配 dual-write 过渡**——读侧先收敛到新 SSOT（降低风险），写侧暂保留旧路径，灰度观察后再 deprecate，避免一刀切破坏既有测试/调用方。③ **`:param::uuid` cast 会破坏 SQLAlchemy text() 的 bindparam 自动检测**（`::` 触发负向预查失败）——一律用 `CAST(:param AS uuid)`（同 0040 迁移既定范式）。④ **重置类操作要解除 selector 门**——仅清状态列不够，若 selector 有「NOT EXISTS 非 cancelled Routine」并发门，重置须同步把旧终态 Routine 标 cancelled，否则重置后仍被挡。⑤ **共享测试库（negentropy_test 不跨 session 清空）下 selector 测试须用「单 doc 视角门控判定」断言**——`ORDER BY ... LIMIT 1` 在累积数据下选中不确定（多次运行残留多份 created_at 相近的 pending 文档），flaky。
+- **同类问题影响**：任何「把聚合状态错放 Memory / JSONB 标签」的设计都应审视是否需迁主表列（可观测 / 可重试 / 抗衰减诉求）；selector 的「ORDER BY LIMIT 1」类测试在共享库下统一改单 doc 判定。改动文件：`models/perception.py`、迁移 `0092`、`engine/routine/patrol_memory.py`、`engine/schedulers/handlers/pdf_fidelity_patrol.py`、`storage/service.py`、`knowledge/routes/documents.py`+`library.py`、`knowledge/schemas.py`+`_shared.py`；前端 `app/knowledge/documents/page.tsx`、`_components/PatrolStatusBadge.tsx`、`features/knowledge/utils/knowledge-api.ts`、BFF 两条 `reset-patrol/route.ts` + 46 个单测/集成测试。
+
+---
+
+## ISSUE-159 巡检态被「先 failed 后 cancelled」的 Routine 污染：succeeded/95 显示成 巡检失败·2（2026-07-08，ISSUE-158 续）
+
+- **表因**：文档「Code as Agent Harness」（`2605.18747v1.pdf`）多次巡检、最近一次 `succeeded`/95，但 Documents 列「巡检状态」显示「巡检失败 · 2」。用户预期：以最后一次巡检结论为准 → 应显示「拟合成功 · 95」。
+- **根因**（实机查 PG 定位，非推演）：该 doc 有 3 个巡检 Routine——① `cancelled`/95（`redrive_reset`）、② `succeeded`/95（success，真实拟合成功）、③ `cancelled`/2（`superseded_patrol`）。缺陷链：`_finalize_terminal_patrols` 按 **finalize 顺序 last-write-wins** 写列（不看 Routine 新旧/是否会被取消）；routine ③ 先以 `failed` 终态 finalize（best_score=2 → `unfixable/2`），**覆盖**了更早 routine ② 的 `done/95`；随后 `_collapse_superseded_patrols` 把 routine ③ 标 `cancelled`（`superseded_patrol`），但**取消时不回写巡检态**。于是列停留在 routine ③ 的 `unfixable/2`，迁移 0092 又从这条陈旧 Memory 回填了列。**核心：finalize 的写入顺序 ≠ Routine 的时间序，且 cancelled Routine 的污染写入不会被纠正。**
+- **处理方式**（权威源切到 routines 表 + 每 tick 校正，详见 [方案 §3.1](pdf-fidelity-patrol-status.md)）：新增 `_reconcile_patrol_status(db)`，每 tick 在 `_collapse_superseded_patrols` 之后运行，以**每 doc 最新的非 cancelled 终态 Routine**（`succeeded`/`failed`，按 **`updated_at DESC`**）为权威重算列——`updated_at` 是终态达成时间、代表「最近一次巡检结论」（`created_at` 仅 spawn 时间，完成顺序与创建顺序相反时会误判）；`cancelled` = 被取代/放弃、非真实结论，故排除；`succeeded` 或 `best_score ≥ patrol_qualified_score_threshold` → `done`，否则 `unfixable`；**跳过有 `running`/`paused` Routine 的 doc**（spawn 写的 `in_progress` 是当前真实态，不可回退到旧终态）；幂等（仅变化时写）。迁移 `0093` 用同 SQL 在部署时一次性修复存量受污染数据。dry-run 验证：该 bug doc 的 winner = routine ②（`succeeded`/95）→ 校正为 `done/95`。
+- **后续防范**：① **last-write-wins 的状态机须有「权威源校正」兜底**——当写入顺序（finalize 时序）与语义顺序（Routine 时间序/优先级）不一致、且有「事后作废」（collapse 取消）动作时，仅靠写入方维护状态必然漂移；须有一个以**权威事实表**（此处 routines）为源、按**语义优先级**（非 cancelled > cancelled、最新 > 旧）重算的 idempotent 校正步骤，定期或事件触发运行。② **「取消/作废」类操作必须回写其曾经污染的派生态**——collapse 取消一个已 finalize 写过状态的 Routine 时，若不纠正状态，该 Routine 的陈旧写入会永久残留；reconcile 兜底比「在取消点逐一回写」更鲁棒（取消路径多、易漏）。③ **状态语义须明确「cancelled 不算结论」**——巡检态以非 cancelled 终态为准；cancelled 是过程态（被取代/用户放弃），不应作为文档拟合结论。④ **排查须读真实数据**——本 issue 的「routine ③ 先 failed 后 cancelled」结论来自直接查 PG 的 routines（status/best_score/termination_reason/created_at）+ 列值 + Memory，源码推演无线索。
+- **同类问题影响**：任何「派生态由多源写入 + 事后作废」的状态机（如多 Routine 聚合态、多 attempt 任务态）都应审视是否需 reconcile 兜底；selector 已读列（`patrol_status IS NULL`），校正后 done/95 仍被正确排除（done ≠ NULL），二次巡检须用户「重置为未拟合」。改动文件：`engine/schedulers/handlers/pdf_fidelity_patrol.py`（`_reconcile_patrol_status` + tick 调用）、迁移 `0093`、方案文档 §3.1/§7 + 2 个集成测试。
+
+---
+
+## ISSUE-160 Perceives CI「Security Audit」因新增 `urlopen` 触发 bandit B310 未豁免致 job 红灯（2026-07-20）
+
+- **表因**：[GitHub Actions Run 29731468489](https://github.com/ThreeFish-AI/negentropy/actions/runs/29731468489)（`Perceives CI`，PR #1092）**`Security Audit` job 失败**——`Run bandit security scan` 步骤 exit 1（`Process completed with exit code 1.`），并连带跳过后续 `pip-audit` 步骤；其余 6 个 job（Test×3 / Lint & Type Check / Build Package）全绿。注意与 [ISSUE-092](#issue-092-perceives-security-audit-因-pysec-数据库增补-21-条新告警致-pip-audit-退出-12026-05-20) 区分：ISSUE-092 是 `pip-audit` 的依赖漏洞（PYSEC/CVE），本条是 `bandit` 的源码 SAST（B310），二者独立。
+- **根因**：PR #1092 新增巡检验证器 `apps/negentropy-perceives/src/negentropy/perceives/tools/patrol_verify_fidelity.py` 有两处 `urllib.request.urlopen(...)`（第 38、55 行），被 bandit 标记为 **B310**（`Audit url open for permitted schemes`，Severity=Medium / Confidence=High，CWE-22）。CI bandit 步骤第二次调用 `uv run bandit -r src/negentropy/perceives/`（无 `|| true`），bandit 对任何 Medium+ **未豁免**发现返回退出码 1。全仓无 `[tool.bandit]` 配置，安全闸门完全依赖**逐行 `# nosec BXXX` + 理由注释**这一既有约定（perceives 包内彼时已有 54 处 `# nosec`），新文件遗漏了对这两处的豁免。
+- **处理方式**：在两处 `urlopen` 调用行（bandit 报告的确切行号）追加 `# nosec B310` + 中文理由——URL 均由内部代码基于**受信 CLI 参数 `--backend`**（默认 `http://127.0.0.1:3292`，由 Routine 配置注入、非终端用户输入）拼接，B310 所虑的 `file:/`／自定义 scheme 攻击面在此不可达。B310 是纯 AST 黑名单检测，**运行时加 scheme 守卫无法消除静态发现**，故只能以 `# nosec` 豁免（否决了「全局 skip B310 / `|| true`」等弱化闸门的方案）。零运行时行为变更。本地 `uv run bandit -r src/negentropy/perceives/` 退出码 0、`Medium: 0`、`#nosec` 豁免数 58→60；最终以 CI `Security Audit` 转绿为准。
+- **后续防范**：① **新增 `urlopen`/`urlretrieve` 等 B310 家族调用必须同步附 `# nosec B310` + 理由**——在无 `[tool.bandit]` 配置、闸门依赖逐行豁免的仓库里，任何未豁免的 Medium+ 发现都会红灯；`# nosec` 注释须落在 bandit 报告的**确切行号**（多行调用取起始行）。② URL 拼接优先约束受信来源（内部常量 / 配置注入），把「豁免理由真实可辩护」作为提交前自检项。③ **routine 自动生成的 PR 若引入新第三方/标准库调用，须过一遍 SAST 闸门**——本文件由 pdf-fidelity-patrol routine 产出，生成侧无 bandit 意识，人工兜底不可省。
+- **同类问题影响**：所有 perceives 内经 `urllib`/`subprocess`/`random` 等 bandit 黑名单 API 的新代码，均须遵循逐行 `# nosec` + 理由约定；其它子应用若同样无 `[tool.bandit]` 配置，须比照办理。改动文件：`apps/negentropy-perceives/src/negentropy/perceives/tools/patrol_verify_fidelity.py`（+2 行注释）。
+- **连带效应（bandit 放行后暴露 pip-audit）**：本次 bandit 转绿后，同 `Security Audit` job 的 `pip-audit` 步骤首次得以执行，暴露 15 条既存依赖 advisory（advisory DB 增补，非本 PR 引入）。该 pip-audit 复发按其归属统一记于 [ISSUE-092 的 2026-07-20 复发增补](#issue-092-perceives-security-audit-因-pysec-数据库增补-21-条新告警致-pip-audit-退出-12026-05-20)（升级 4 包 + ignore transformers/setuptools 各 1 条），同 PR #1093 一并处理，避免同 Issue 多处维护。
+
+## ISSUE-161 科普视频管线配置漂移：分集 README 复现命令与推荐位分叉，照跑即作废整集声纹缓存（2026-08-19）
+
+- **表因**：三集 README 的复现命令写 `--style passionate --ref …/me-1.wav`，而 [VOICE-CLONING.md](../../apps/negentropy-influence/pipeline/VOICE-CLONING.md) §5 推荐位已迁至 `sunny`/`sunny-steady` + `me-bright.wav`（PR #1107）——文档间口径分叉且无任何机制提示。
+- **根因**：**无分集声明式配置**。可执行参数以复制粘贴形式散落三份 README，推荐位一迁移，旧命令全部变成「合法但错误」——`{id}.mp3` 单槽位 + 摘要含 style/ref_sha1（tts.py `digest_indextts`），照旧命令跑会把整集克隆音频静默改写成 deprecated 风格（179–228 句、数小时级返工）。
+- **处理方式**：① 每集新增 `pipeline.toml`（episode/narration/tts/render 四节）作为可执行参数唯一来源，README 只留 `pipeline.py tts` 一行；② `pipeline.py` 编排入口从配置装配参数并自动带 `--expect-ref-sha1` 指纹硬校验；③ 新增 `.engine` 音色签名标记 + `--allow-voice-switch` 显式放行（含 `--plan` 路径前置，排期阶段即拦截误重录）；④ `refs.py` + `voices/refs.toml` 指纹清单（只存哈希与生成参数，.gitignore 白名单例外放行）。见 [pipeline README](../../apps/negentropy-influence/pipeline/README.md)。
+- **后续防范**：**可执行参数不落散文文档，文档只引用配置**。任何「文档里手写命令行参数」的流水线都有同款漂移面；评审时见到 README/文档内联长命令行（含风格/样本/版本等会变参数）应要求收敛到声明式配置。
+- **同类影响与注意**：本类漂移在「推荐位会迁移」的领域（模型档位、样本、API 版本）必然复发；修复时务必同时上「拦截层」（签名/指纹硬失败）而不只改文档——文档改对了，下一次迁移照样分叉。
+
+## ISSUE-162 站点数字取自未水合 HTML 源码，把占位符写进口播（111 vs 331）（2026-08-19）
+
+- **表因**：第一集口播 p6-13a 说配套仓库「收录了**一百一十一篇**论文」、p6-13b 九章含「工具」「定义」两章——与真实数据（331 篇/330 唯一 id；九章为 引言/Harness/技能/记忆/环境/RL 与持续学习/元进化/评测/安全）不符。
+- **根因**：官方站点 `index.html:57` 的 `<dt id="stat-papers">111</dt>` 是**未水合占位符**，`app.js:333` 实际执行 `els.statPapers.textContent = String(papers.length)`（真实访客看到 331）；上一轮信源补充把 **HTML 源码当渲染结果读**，占位数字进入口播；九章清单则是基于占位数字的**推断**而非站点原文（`data/manuscript.json` 的 chapterOrder 才是权威）。旁证：`DEV_LOG.md` 明写 "331-paper data set unchanged"、`index.html` 加载 `papers.js?v=links-331`。取证链见 [paper-notes.md](../../apps/negentropy-influence/episodes/experience-era-agents-video/research/paper-notes.md)「2026-08 v3 重读校准」节。
+- **处理方式**：口播改「三百多篇」约数 + 画面标精确值 331 与取数日期（活数据说死数字到发布必陈旧）；paper-notes 记全取证链；九章按章序用片中已教过的词重写。
+- **后续防范**：**站点数字只能取自数据文件（JSON/CSV 端点）或水合后 DOM，绝不取 HTML 源码**；静态抓取（curl/gh api/wget）拿到的一切统计数字都应视为占位符直至与数据文件互证。同批连带教训：正文引用年份 ≠ 事件纪年（ClawHavoc [Jiang et al., 2026b] 是引用年）；统计单位口径以原文为准（>90% 的单位是 trials 不是场景）。
+- **同类影响与注意**：凡「官方工程站点信源补充」（skills/01 规范）都适用；提取数字时优先找 `/data/*.json` 类端点或页面脚本里的赋值语句。
+
+## ISSUE-163 tts.py 漏写 --engine indextts 会静默用预置音色覆写整集克隆音频（2026-08-19）
+
+- **表因**：`tts.py` 对克隆专属参数（--ref/--style 等）在 edge 引擎下只打 stderr「提示后忽略」并照常合成。
+- **根因**：`{id}.mp3` 单槽位 + 摘要不含引擎标识——换引擎=每句摘要都「合法地」变了，逐句 sidecar 察觉不到「整集正在被换音色」；且硬化不对称：`--plan` 路径已按同一危害论证改为硬失败（tts.py:605-612 注释写明），**合成路径漏了同样的处理**。
+- **处理方式**：带值克隆参数（--ref/--style/--lang/--emo-*/--duration-factor/--num-beams/--steady）在 edge 下 `parser.error` 硬失败（典型手型=「照抄文档打了 --ref/--style 却丢了 --engine」）；`.engine` 音色签名标记作第二层（覆盖「一个参数都没打」的场景），不一致须 `--allow-voice-switch`。测试 `test_engine_guard.py` 六个用例锁定行为。
+- **后续防范**：**破坏性默认值必须硬失败而非提示**——静默降级的输出会覆盖唯一产物槽位时尤甚；修一处同类风险要横向扫全部入口（plan/合成/编排三层当时只硬化了一层）。
+
+## ISSUE-164 逐字稿「数字与汉字间加空格」的排版约定击穿中文归一化的年份规则，8 句成片读成「两千零二十六年」（2026-08-20）
+
+- **表因**：已上线三集共 **8 句**年份读错——`2025 年` 被念成「两千零二十五年」而非「二零二五年」，`1966 年` 念成「一千九百六十六年」而非「一九六六年」。命中句：EP1 `p0-01`/`p0-11`、EP2 `p0-01`/`p0-12`/`p5-15`/`p5-22`、EP3 `p0-16`/`p2-06`。
+- **根因**：**「排版约定 × TN 规则」的隐式耦合**，而非任何一方单独的缺陷。逐字稿有「数字与汉字之间加空格」的排版习惯（`88 页`/`15 分钟`/`16.2 个百分点`），这一约定对绝大多数场景无害；但 macOS 上实际的中文归一化引擎是 **wetext**（`~/tools/index-tts/indextts/utils/front.py:116-142` 按 platform 分叉，Linux 才走 `tn.chinese.normalizer`），其 date/year 规则要求**数字与「年」字面相邻**，插入空格后该规则失配、回落到 cardinal（基数）读法。实测空格敏感性矩阵里**只有 4 位年份这一条被击穿**：`6 月`/`20 日`/`88 页`/`47.6%`/`第 3 章`/`1.2 节`/`0.5~1.0 秒`/`9:30` 加不加空格结果一致且全部正确。另注：中文**不走** NeMo（`infer_v2_5.py:703-707` 是 if/elif，只有 ja/es 走 `nemo_tn`），此前若按 NeMo 排查等于查一条死路径。
+- **处理方式**：① 三集 `narration.md`（唯一维护处）共 8 句去掉数字与「年」之间的空格，重跑 `build_narration.py`；② `check_script.py` 新增 `READING_TRAPS` 成门，把**实测确认会读错**的 7 类写法固化为 FAIL/WARN（4 位年份带空格、三段版本号 `2.5.1`→「二.五点一」、连字符区间 `3-5 倍`→「三减五倍」、`±3%`→「百分之正负三」、`10x`→「十x」、整句无汉字→路由到英文归一化、`1080P`→「一千零八十P」WARN）；③ 每条规则都在 `test_check_script.py` 里配正反例，**反例组同等重要**——本轮调研初稿把 `0.5~1.0 秒` 与 `9:30` 也列为错误，实测证明它们其实正确（`零点五到一点零秒`/`九点三十分`），凭直觉扩大清单会造成误伤。
+- **后续防范**：**给外部引擎的文本，任何排版约定都要过一遍该引擎的真实行为探针，不能凭直觉列禁写清单**。归一化是**幂等**的（预写成汉字读法后再过一遍结果不变），故此类修复可逐句增量做、无需一次性全量改写、也不需要关 `text_normalization` 开关（关掉反而会丢失 `%`/小数/量词这些**已经正确**的能力）。加规则前先跑探针拿到「错读证据」，再把证据写进规则消息里——`READING_TRAPS` 的每条 message 都带实测输出。
+- **同类问题影响与注意**：① 生产若迁 Linux，归一化引擎换成 `tn.chinese.normalizer`，**必须在 Linux 上重跑同一组空格矩阵**确认行为一致；② 修复会改写这 8 句音频（每处少 2–3 个音节、约 −0.4~0.7 s），**牵动 beat 时长与片尾渐黑窗口**（同族踩坑：渐黑窗口须用 beat 时长而非末句时长），故重合成须按集排期、`pipeline.py tts --plan` 确认只有这几句 miss、重渲后 `qa_frames.py --last-n 6 --check` 复检尾幕；③ 本轮同时发现上游有一整套发音标注能力（`<行|HANG2>`）可治多音字，已接通并成门，见 [INDEXTTS-2.5-ADVANCED.md](../../apps/negentropy-influence/pipeline/INDEXTTS-2.5-ADVANCED.md) 与 [PRON-GLOSSARY.md](../../apps/negentropy-influence/pipeline/PRON-GLOSSARY.md)。
+
+## ISSUE-165 站点标注的规模数字与固定提交实测复算不一致（102/135/180/232 vs 141/191/241/255）（2026-08-21）
+
+- **表因**：制作《拆开 Claude Code》时，课程站点四章各自标注 `102 / 135 / 180 / 232 LOC`。按 [ISSUE-162](#issue-162-站点数字取自未水合-html-源码把占位符写进口播111-vs-3312026-08-19) 的教训先验证「是否未水合」——结论是**站点为 SSG 预渲染，数字同时出现在可见文本与框架载荷中，不存在占位符问题**。但把同一批文件按固定提交拉下来实测，四章 `code.py` 是 `141 / 191 / 241 / 255` 行（`wc -l`），「非空非注释」口径是 `106 / 145 / 181 / 203`——**没有任何一种口径能同时对上那四个数**（s04 尤其致命：站点声称 232，而实测非空行只有 213，比声称值还少）。
+- **根因**：**这是与 ISSUE-162 不同的失效模式**。162 是「取数姿势错」（读了未水合的 DOM），本例是「**信源自身的数字已相对其代码陈旧**」——站点数字应为某个早期提交上的统计，而课程仓库持续演进（本次固定的 `f9e8b28` 与站点文案不同步）。一个「取数姿势完全正确」的流程照样会把陈旧数字搬进口播，因为**页面上的数字与页面旁边的代码本来就不是同一时刻的产物**。
+- **处理方式**：
+  1. 口播**只说趋势不说绝对值**（「从一百四十行出头长到两百五十多行」），画面角标给**我方实测值 + 口径名 + 固定提交号 + 取数日期**；
+  2. 事实源 `research/source-notes.md` 增「站点与仓库分歧清单」大节，逐条记录分歧点/两轨说法/处置，本条列为第 3 项；
+  3. 新增 `source_ledger.py`：`repo` 类信源强制 URL 含 commit sha 且 raw 指纹漂移即 FAIL，`site` 类只比归一正文、漂移报 WARN，把「信源陈旧可发现」变成机器门。
+- **后续防范**：
+  1. **凡引用他方标注的规模数字（行数/条目数/参数量），必须在固定版本上自己复算一遍，并写明口径**；复算不上就降级为趋势表述——「复算不出」本身就是「该数字已陈旧」的证据，不是自己算错了。
+  2. **散文与代码的新鲜度要分别评估**：同一个信源的不同部分（文案 / 代码 / 图）改版节奏不同，不能因为「取自同一个站点」就认为同龄。
+  3. 双轨取证（站点叙事 + 仓库固定提交）应作为**文档/代码型选题的默认姿势**，规格见 [skills/01-source-extraction.md](../../apps/negentropy-influence/pipeline/skills/01-source-extraction.md) B 型大节。
+
+## ISSUE-166 `ERR_PNPM_IGNORED_BUILDS` 在 esbuild 上是无害噪声——不要为消音改动跨集冻结文件（2026-08-21）
+
+- **表因**：新建 `apps/negentropy-influence/episodes/claude-code-explained-video/video` 后首次 `pnpm install --ignore-workspace`（pnpm 11.17.0）报 `[WARN] The "pnpm" field in package.json is no longer read` + `[ERR_PNPM_IGNORED_BUILDS] Ignored build scripts: esbuild@0.28.1`，与 [ISSUE-076](#issue-076-pnpm-v11-升级后-pnpm-install-报-err_pnpm_ignored_builds--packagejsonpnpmoverrides-静默失效2026-05-08) 同源（四集视频工程的 `package.json#pnpm.onlyBuiltDependencies` 都是 v10 写法）。
+- **误判与纠正**：起初判定为「首个卡点」，依次尝试 `.npmrc` 的 `only-built-dependencies[]=esbuild`（v11 不读）、`--allow-build` 旗标（11.17 无此旗标）、本地 `pnpm-workspace.yaml` + `allowBuilds`（能消掉报错，但需去掉 `ignore-workspace=true`，否则连本目录的 workspace 文件一起被忽略）。**随后做端到端验证才发现方向错了**：旧写法下 `@esbuild/darwin-arm64` 平台包与二进制**本来就落地**（它是 optionalDependency，不依赖 postinstall），`esbuild.transform()` 正常、既有集 `remotion bundle` 跑到 100% 并产出 `build/`。
+- **根因**：`ERR_PNPM_IGNORED_BUILDS` 只表示「postinstall 被跳过」，**不等于「依赖不可用」**。是否有害取决于该包的 postinstall 是否**承载功能**：esbuild 的 postinstall 只做校验/链接，平台二进制走 optionalDependencies 分发，故跳过无实际后果；而 ISSUE-076 里的 `sharp` / `unrs-resolver` 才是真正依赖 postinstall 的。
+- **处理方式**：**撤销全部修改**，把 `.npmrc` 恢复到与另外三集逐字节一致（md5 四集相同），只在 [pipeline/README.md](../../apps/negentropy-influence/pipeline/README.md) 新集脚手架清单里留一条说明：这条提示已实测无害、刻意不消音。
+- **后续防范**：
+  1. **报错不等于故障——先做端到端验证再动手修**。为消掉一条无害提示而改动「A 档跨集冻结文件」，代价是给隔离基线引入一处纯噪声差异，比那条提示本身更贵。
+  2. 判据可复用：遇 `ERR_PNPM_IGNORED_BUILDS`，先查该包的平台二进制是否走 optionalDependencies（走 = 大概率无害），再查功能是否真的可用（`require` + 实际调用 + 端到端构建）。
+  3. 与 ISSUE-076 的边界：**应用工程**（negentropy-ui/wiki，含 sharp 等真需 postinstall 的依赖）必须按 v11 迁移；**视频工程**（只有 esbuild）无需迁移。
+
+## ISSUE-167 半透明字幕底使「亮列连通段」侵入判据整片假报（500+ 条 WARN，画面实际干净）（2026-08-21）
+
+- **表因**：《拆开 Claude Code》草渲后首跑 `qa_frames.py --check`，七幕共刷出 500+ 条 `WARN … 角标/图形侵入 bottom≥160px 安全区`；逐帧目检（含标题卡帧、真值表帧、信源卡帧）画面**完全干净**，字幕带内除字幕本身别无他物。
+- **根因**：判据与被测对象的**渲染实现不匹配**。旧判据的模型是「字幕框是一块实心亮矩形，取字幕带内最宽亮列连通段即为字幕框，其余亮段即侵入物」；而 `Subtitle.tsx` 的框底是**半透明** `rgba(6, 8, 12, 0.68)` 压在 `#0E1116` 上，实测灰度仅 **≈0.10–0.14**，远低于文字笔画阈值 `TEXT_BRIGHTNESS = 0.45`。于是用 0.45 找框时，框底根本不达阈值，**每个汉字各成一段**（实测：一条 14 字字幕切出 14 段，"最宽段" 仅 20px），字幕于是把自己的每个字都举报成「侵入物」。
+- **误修一轮（值得记下）**：先试「两级阈值」——低阈值找框、高阈值找侵入物。仍不稳：阈值放到 0.09 时抗锯齿把框切成 8 段；放宽到能连成一片时又与页面底色（0.045）区分不开。**症状是「参数怎么调都不对」，这类症状通常说明判据的模型错了，不是参数错了。**
+- **处理方式**：改用**几何法**——字幕框高度是已知量（`Subtitle.tsx` 的 `marginBottom 54` + 上下 `padding` 各 12 共 24 + 行高 `fontSize(≤44)×1.35 = 59.4`，即框顶距画底 137.4；墨水顶实测 ≈118，故检查线取 `SUBTITLE_BOX_H_PX = 132`——落在框顶之下、墨水顶之上，窄带下缘只探进框顶那段无墨水的 padding），故只检查框**上方**那条窄带（`y ∈ [H-160, H-132)`）内有无宽度 ≥24px 的亮块。这正是「角标是否压进字幕安全区」的原始问题，与 skills/06「角标 `bottom ≥ 150`」是同一口径，且**没有任何亮度阈值自由度**，不受字幕底透明度影响。复跑：FAIL 0、WARN 由 500+ 降到 2 条，两条均为刻意设计（画面凝住 / 信源卡停留）。
+- **后续防范**：
+  1. **视觉判据必须与渲染实现对账**，不能凭「看起来应该是这样」写。写判据前先把目标元素的 CSS/几何拉出来（本例只要看一眼 `background: rgba(...,0.68)` 就能避开整轮弯路）。
+  2. **优先用几何量而非亮度阈值**：几何量（尺寸、边距、行高）来自代码常量、可推导、零自由度；亮度阈值是经验值，会随配色/透明度/抗锯齿漂移。
+  3. **假报的成本不低于漏报**：500+ 条 WARN 会让「FAIL 0 · WARN N」这行输出彻底失去信噪比，实际等于关掉了这项检查。判据上线前应在**一帧已知干净**的画面上验证「零报警」。
+  4. 测试要锁死真实形态：本次同时修了 `test_intrusion_warns` 的合成帧几何（旧 fixture 把侵入物画在框占位区内，本身就不符合真实形态、因此从未真正测到这条判据），并新增半透明字幕底的回归用例。
+
+## ISSUE-168 `qa_frames --scene` 单值 store 使「多幕体检」静默只查末幕，`FAIL 0` 与全幕通过不可区分（2026-08-22）
+
+- **表因**：《Claude Code 通俗全解》EP2 交付前跑「七幕抽帧体检」，命令写成
+  `--scene P0 --scene P1 … --scene P6 --check`，输出 `FAIL 0 · WARN 1`，据此判定七幕全过并写入交付表。
+  复核时发现抽出的帧全部是 `p6-*`：argparse 的 `--scene` 是**单值 store**，重复传参**静默只留最后一个**。
+- **根因**：`FAIL 0` 这行输出**不携带检查面信息**——查一幕和查七幕的成功输出逐字相同。
+  于是「检查面被静默缩小」在验收环节完全不可观测，而人对「命令里写了七个 flag」有天然的完成错觉。
+  这与 [ISSUE-163](#issue-163) 同族（破坏性默认必须硬失败）的镜像面：**静默缩小检查面**比静默破坏产物更隐蔽，
+  因为前者的失败形态就是「一切正常」。
+- **处置**：① `--scene` 改 `action="append"`；② 多幕抽样按**各幕自身**句数定步长再拼接
+  （若用合并后的总数算 `[::N]`，句少的幕会被整幕跨过——同族的第二个静默漏检面）；
+  ③ `pipeline.py qa --scene` 同步改 append 并按幕逐个转发；④ 补两条回归用例（声明面必须是
+  `_AppendAction`、短幕必须有帧被抽到）；⑤ 用修复后的命令重跑 EP2 七幕，实测 **P0 与 P6 各 1 WARN、其余五幕 0**
+  ——原结论（FAIL 0）成立但**当时的证据不足以支撑它**。
+- **后续防范**：
+  1. **凡「可重复传的选择器」一律 `action="append"`**，不要依赖调用方只传一次；单值 store 的重复传是
+     语言层的静默丢弃，评审时看不出来。
+  2. **成功输出必须自带检查面**：`FAIL 0` 之类的判定行应同时打印「查了什么」（本次已由 `--scene` 累积后
+     的帧清单隐式满足；更强的做法是把幕列表打进那一行）。判定行不带范围，等于把「是否真的查过」交给记忆。
+  3. **交付表里的 QA 结论要能被命令原样复现**：本轮结论正确纯属幸运（末幕恰好含唯一的设计性 WARN），
+     若漏检的是中间幕的真实缺陷，就会带着「FAIL 0」发布。
+- **同类问题影响**：任何「多目标 flag + 汇总判定」的工具都有这个面（`--check-theme` 系列、
+  未来的批量取证 `--episode`）。识别方法：把 flag 传两遍，看输出是否变化——不变就是静默丢弃。
+
+## ISSUE-169 TTS 长跑的 s/char 漂移到 1.5× 却无热告警——负载竞争与热节流是两种因，判据不可混用（2026-08-22）
+
+- **表因**：《Claude Code 通俗全解》EP3 配音长跑中，`tts_progress.py` 报 `1.40×→1.49× > 1.2×`
+  并给出「机器疑似被并行任务压热，暂停闲置负载 20 分钟」的处置建议。按建议停掉同机的 Remotion 渲染后，
+  比值**没有回落**（1.40 → 1.47），若照原文案继续走就会升级为「中止长跑、验证环境」。
+- **根因**：两件事被同一句话概括了——
+  ① **CPU 竞争**：`sysctl -n vm.loadavg` 实测 10+（编辑器 + 会话 + 浏览器 + TTS），
+  `pmset -g therm` **零告警**。慢是排队慢，**产物无损**，正确处置是「重排期或停掉别的活」；
+  ② **热节流**：负载不高却仍慢、或有热告警。那才需要中止并按
+  [INDEXTTS-2.5-ADVANCED §6.5](../../apps/negentropy-influence/pipeline/INDEXTTS-2.5-ADVANCED.md) 验证环境。
+  更根本的一点：**基线 1.868 s/char 取自机器空闲时的长跑**——分母的前置条件没写在判据旁边，
+  于是「日常有人用这台机器」这种常态被读成了异常。
+- **处置**：`tts_progress.py` 的越阈文案改为**先分因后处置**（打印 loadavg / therm 两条自检指令与两条分支结论）；
+  基线常量旁补注「分母是空闲态」与本次实测（1.4–1.5× / loadavg 10+ / 无热告警 = 竞争）。
+  同时修一处纪律违反：渲染队列曾与 TTS 同机并跑（把比值从 ~1.0× 推到 1.40×），队列改为
+  **每集渲染前等 TTS 进程消失 + 冷却 3 分钟**。
+- **后续防范**：
+  1. **性能判据必须带上分母的前置条件**。「1.868 s/char」这类基线在文档里是死数字，
+     在判据旁边必须写清它是在什么条件下测的，否则常态会被误判为故障。
+  2. **越阈提示要给分因动作，不要直接给结论**。同一个「慢」至少有竞争/节流/参数变更三种因，
+     文案直接断言其中一种，会把排查引向错误方向（本轮就照着错方向停了渲染，虽然那一步本身该做）。
+  3. **不可逆动作（中止长跑）的门槛要更高**：逐句缓存让「中止」代价很低，但重排期的人力代价不低；
+     判据应先穷尽零代价的自检（两条 shell 命令）再谈中止。
+- **同类问题影响**：任何「拿历史实测当基线」的监视器都有这个面（渲染耗时、测试套件时长、
+  巡检轮次时长）。识别方法：问一句「这个基线是在什么负载下测的」——答不出来就说明判据缺前置条件。
+
+## ISSUE-170 抽帧体检对「入场瞬态」结构性失明——落位态干净的越界能整段逃过 `--check`（2026-08-22）
+
+- **表因**：EP1 P6 的 6-A「挂件卡咬合上环」交付后复审，抽 `out/final.mp4` 第 24666 帧发现
+  「闸门」卡下半连同副标题「守着底线」被字幕条切掉。而该幕的终渲抽帧结论是 **FAIL 0 · WARN 1**，
+  WARN 1 还是别处刻意的静止帧——这条侵入完全没被报出来。
+- **根因**：卡片沿径向自 `px = 1.6` 倍半径滑入，起点中心 y ≈ 1013、下沿 ≈ 1047，直到
+  `t ≈ 0.66`（约 10 帧 / 0.33 秒）才升出 y=930 红线；**落位态 y ≈ 836 是干净的**。
+  `qa_frames --scene Pn` 每幕按句均匀抽 ~8 帧，一句一帧的粒度下，句首这 10 帧几乎不可能被抽中。
+  与 [ISSUE-168](#issue-168) 是同一族的第三个面：168 是**检查面**被静默缩小（查了一幕当七幕），
+  这里是**采样密度**天然覆盖不到亚秒瞬态——判据本身正确，但它只对被抽到的那几帧成立。
+- **处置**：① 入场起步倍率不再写死，改为按「卡片下沿贴住字幕安全带上沿」逐卡反算封顶
+  （`SAFE_TOP_Y = 1080 - 160`，与 `qa_frames.py` 的 `SUBTITLE_BAND_PX` 同口径；向上入场的两张
+  卡 `sin < 0` 不受限、仍走完整行程）；② 重渲 EP1 终片并抽同一帧对照。
+- **后续防范**：
+  1. **运动的边界应当由代码约束，而不是由抽帧发现**。凡是「元素从画外/远处滑入」的动效，
+     入场极值位置要和落位一样受安全区约束——把安全带常数写进场景代码里反算，比事后抽帧便宜得多。
+  2. **`FAIL 0` 的适用范围是「被抽到的帧」**，不是整幕。交付表引用抽帧结论时，说清抽了多少帧；
+     对含滑入/飞入动效的幕，额外抽「动效起始后 3–8 帧」这一档。
+  3. 与 [ISSUE-168](#issue-168) 防范 2 合看：判定行不带范围（检查面 + 采样密度），
+     就等于把「是否真的查过」交给记忆。
+- **同类问题影响**：所有含入场/退场位移的场景组件。识别方法：把动效进度 `t` 代 0 而不是 1，
+  手算元素包围盒——极值位置越界与否是纯几何题，不必等渲染。
+
+## ISSUE-171 四集交付时长统一短 2.19 秒——数字取自非复算口径，且被抄到四个地方（2026-08-22）
+
+- **表因**：《Claude Code 通俗全解》EP2–EP5 的交付时长登记为 13:11.81 / 13:12.26 / 13:06.71 /
+  13:01.08，实测 `ffprobe` 分别是 13:14.00 / 13:14.47 / 13:08.90 / 13:03.27，**四集恒差 2.19 秒**。
+- **根因**：这四个数不是用 `total_duration_in_frames(narration.json, timing.json)` 复算的
+  （复算值与 `ffprobe` 逐帧吻合），恒定偏差指向「取了音轨末点而非含 `tailSec` 的片尾」。
+  EP1 的 14:14.73 因为在 README 里显式写了复算式而正确——**有复算式的那一集对了，靠抄的四集全错**。
+  第二个面是登记面：同一个数字散在 `series.json` / `series.md` / 各集 README / CHANGELOG 四处，
+  一次抄错就四处皆错，而没有任何门校对它们。
+- **处置**：四集四处全部按复算值回填，并在 `series.json` 的 statusNote 与各集 README 里
+  **把复算式与帧数一起写下**（`= 23820 帧 @30fps = 794.00s`），让后来者能一眼复现而不是重新测量。
+  顺带统一了容量单位口径：planning/memory 原按 MiB 写、其余按 MB，现统一为 MB（10⁶）。
+- **后续防范**：
+  1. **交付数字必须带复算式，且复算式要用仓内已有的纯函数**。写「13:11.81」是断言，
+     写「23820 帧 @30fps = 794.00s」是可执行的证据——后者错不了，因为它能被一行命令验证。
+  2. **同一事实不要在四个地方各写一遍**。`series.json` 是机读 SSOT，其余三处应引用它；
+     在没有机器执法之前，至少让复算式跟着数字走，使不一致可被就地发现。
+  3. 可加门：`check_series.py` 增一条规则，把 `statusNote` 中的时长与
+     `total_duration_in_frames` 复算值互校（数据都在仓内，纯离线、零网络）。
+- **同类问题影响**：所有「从工具输出里眼读一个数、再抄进交付表」的环节（文件大小、句数、cue 数、
+  字数）。识别方法：问「这个数能用一条命令重算出来吗」——不能，就说明它是记忆而不是证据。
+
+## ISSUE-172 `pipeline.py --series` 扇出丢弃子命令 flag——检查面被静默缩小的第四个面（2026-08-22）
+
+- **表因**：`pipeline.py --series claude-code-explained check --check-scenes` 里 argparse 正常解析了
+  `--check-scenes`，但 `fanout()` 拼子进程命令时只写了 `--project <root>` 与 `cmd`，五集全部按**不带**
+  该 flag 的窄检查跑完；扇出汇总照样逐集打 `✅`，输出与「全集全项通过」逐字不可区分。
+- **根因**：转发面是**第二个声明面**。子命令的 flag 由 argparse 声明一次，扇出又要把它重建一次；
+  只要重建面漏一项，失败形态就是「一切正常」。这与 [ISSUE-168](#issue-168) 的 `--scene` 单值 store
+  同一族（静默缩小检查面），只是这次搬到了编排器：168 修的是**工具本体**的选择器，本条是**扇出层**
+  的转发；同族第三面是 [ISSUE-170](#issue-170)（采样密度覆盖不到入场瞬态）。
+  三者的共同结构：判定行不携带检查面，于是「查了多少」在验收环节不可观测。
+- **处置**：① 新增纯函数 `sub_argv(cmd, argv)`——从命令行里切出子命令之后的原样 token，逐字转发给
+  每集，**不按 Namespace 重建**（重建就要维护 dest→flag 抄件，抄件漏登记正是本 bug 的成因，
+  而切片对新增 flag 零维护、声明面仍只有 argparse 一处）；② 常量 `GLOBAL_OPTS_WITH_VALUE`
+  显式登记「带取值的顶层选项」，切片时连值一起跳——否则 `--series check check` 这种「系列 id 恰与
+  子命令同名」会命中取值、从错误位置开始切；③ 扇出头部行打出 `· 转发 <flags>`，把检查面写进判定行
+  （168 防范 2 的落实）；④ 补两条回归（转发语义 + 同名取值不切错）。
+- **后续防范**：
+  1. **凡「把一条命令行重播到 N 个目标」的编排器，转发必须是切片而不是重建**。重建面等于抄件，
+     抄件必漂；切片对被转发工具的演进免疫。
+  2. **带取值的选项必须显式登记**才能安全地做 argv 切片。识别方法：让取值恰好等于位置参数的值，
+     看切片是否错位。
+  3. 白名单（`FANOUT_OK`）管的是「哪些命令可以扇出」，管不了「扇出时带什么」——两个维度正交，
+     各自要有自己的判据。
+- **同类问题影响**：任何 `subprocess` 重播命令行的地方（`cmd_tts` / `cmd_qa` / `cmd_check` 对
+  `uv run` 的拼装同族）。识别方法：给外层命令加一个只有内层认识的 flag，看内层是否真的收到。
+
+## ISSUE-173 归档了上游 MIT 源码却没带许可声明——「取证归档」同时也是「再分发」（2026-08-22）
+
+- **表因**：为对抗「raw URL 钉在未合并分支、分支强推即取不回原文」，四集 `research/source-archive/`
+  下归档了上游课程的原样字节共 32 文件 / 15946 行（单文件最大 2130 行），但归档目录树内**没有任何**
+  LICENSE / NOTICE / 版权声明文件。上游是 MIT（`source-map` 与台账都登记了 `license = "MIT"`，
+  片尾信源卡也打了「许可 MIT」），而 MIT 明文要求「所有副本或实质性部分」附带版权与许可声明。
+- **根因**：归档这一步是**为了取证**设计的，心智模型是「留个证据副本」，于是判据全落在可复现性上
+  （双指纹、固定提交、取数日期）——没人问「这批字节进了仓库之后，仓库在做什么」。答案是：
+  在再分发。取证与再分发是同一个动作的两个面，而合规判据只挂在后一个面上。
+  第二个面是 SSOT 惯性：仓内一切出处信息都被刻意收敛到系列地图一处，于是「按集重复放 LICENSE」
+  直觉上像是违规，反而挡住了正确做法。
+- **处置**：① 四集 `source-archive/` 各放上游**同一固定提交**下的 `LICENSE` 字节副本
+  （sha256 `204ff5ee…`，随文记录以便日后复核取的是哪一版）+ `README.md` 出处表
+  （上游项目/仓库/许可/固定提交/取数日期/指纹台账位置，章节归属只链接地图不重述）；
+  ② [skills/01](../../apps/negentropy-influence/pipeline/skills/01-source-extraction.md) §多章批量取证
+  增第 4 步「归档即分发，许可声明必须随副本落地」，并写明**这是单一事实源纪律的唯一显式例外**——
+  各集工程目录是可被单独取出、单独交付的单位，声明收敛到系列级一处，取出单集时就会丢；
+  ③ 上游无许可文件或不允许再分发时**不建归档**，只留台账指纹并在 source-notes 记明理由；
+  ④ `test_source_map.py` 加两条门（有归档必有 `LICENSE`+`README.md`；LICENSE 非空且含 `Copyright`
+  行，防空文件占位），并实测删掉一份 LICENSE 确认门会红——不是空转的门。
+- **后续防范**：
+  1. **凡把第三方字节写进本仓的动作，先问「许可允许再分发吗、声明放哪了」**，而不只问「取证够不够」。
+  2. **合规声明是 DRY 的显式例外**：它必须与被声明的内容同处一个可独立取出的单位内。
+     判断边界的方法是问「这个目录被单独打包发出去时，声明还在吗」。
+  3. 已有 `license` 字段的地方（`source-map`/台账/片尾卡）只是**记录**了许可，不等于**履行**了许可——
+     记录与履行是两件事，需要各自的落点。
+- **同类问题影响**：`research/` 下一切第三方原文归档（A 型论文的 PDF/图片摘录同理，且论文多为
+  更严格的出版商版权而非 MIT——那类内容应只留指纹与页码，不留字节）。
+
+## ISSUE-174 tts.py 显式 `--seed` 会改缓存摘要——单句补配变成整集重录，且旧缓存被新签名覆盖（2026-08-23）
+
+- **问题描述**：给 `tts.py` 传 `--seed` 只想复现一条新句，结果脚本把 seed 记进**缓存摘要后缀**
+  （`sampling_suffix`），与全部存量句的摘要失配 → 触发整集 170 句重新排队；已合成的句子 mp3 与
+  `.sha` 被新签名覆盖，若就此停手，之后**不带 seed 的正常管线会再次全量重录**（双层浪费）。
+- **表因**：「--seed 让结果可复现」的直觉与「seed 入摘要保证缓存键含合成参数」的设计相撞。
+- **根因**：**A/B 实验参数与成片参数共用同一缓存命名空间**。seed 是实验工具（记忆条目也写明
+  「A/B 必须固定 --seed」），而成片缓存摘要的契约是「与合成结果相关的参数全入键」——两者都对，
+  但实验态写进了成片态的缓存槽。缺一个「实验句不落缓存 / 落隔离槽」的逃生口。
+- **处理方式**：发现后立即 pkill 合成进程（已覆盖 26 句），随后**用与基线完全一致的参数
+  （无 seed）重跑一次**：26 句恢复 + 1 句新句（p5-06）一并落回基线签名，`tts --plan` 归零验证。
+  代价约 15 分钟合成时间，无数据损失。
+- **后续防范**：
+  1. **补配已有集的单句时，永远不传 `--seed`**——基线缓存签名不含它，传了就是整集改写。
+  2. tts.py 若要根治：显式 `--seed` 时打印「此参数将使 N 句缓存失配」的预告并要求
+     `--force`/`--allow-voice-switch` 级别的显式确认，或把带 seed 的结果写进隔离后缀槽。
+  3. 判断自己是否踩坑的最快信号：`--plan` 显示的「待合成」数量远大于预期改动句数。
+- **同类问题影响**：所有会改 `sampling_suffix` 的参数（temperature/top-p/top-k/length-penalty/
+  repetition-penalty/max-mel-tokens）都有同一形态——对成片集做**实验性**参数调整时，
+  先 `--plan` 看失配面，再决定。
+
+## ISSUE-175 pnpm 12 升级：嵌套工程 `install --ignore-workspace` 会**静默覆写根 lockfile**，故障延后到 Docker 才以「overrides 不符」现形（2026-09-01）
+
+- **问题描述**：把 pnpm 从 11.25.0 升到 12.2.1（`latest` dist-tag 当时仍指向 11.25.0）时踩到四个坑，
+  其中第 ④ 个会**破坏数据**：① `packageManager` 的 integrity 编码抄错；② 旧 lockfile 上
+  `--frozen-lockfile` 直接硬失败；③ 嵌套工程加 `--frozen-lockfile` 报
+  `ERR_PNPM_PACKAGE_MANAGER_NO_IMPORTER`；④ **嵌套工程 `pnpm install --ignore-workspace`
+  把仓库根 `pnpm-lock.yaml` 覆写成"只含该嵌套工程"的 lockfile，全部 overrides 丢失**。
+- **表因与根因**：
+  1. **integrity 编码不同源**。npm registry 的 `dist.integrity` 是 SRI 标准的 **base64**
+     （`sha512-9Vymiqy…==`），`packageManager` 字段要的是 corepack 的 **hex**
+     （`sha512.f55ca68a…`）。二者只差一个分隔符（`-` vs `.`），肉眼极易误判为同一编码。
+     换算：`Buffer.from(b64,'base64').toString('hex')`；**换算方法必须先用在用版本反向复算验证**
+     （本次用 11.25.0 复算命中仓库原值后才敢写 12.2.1）。corepack 这次报错友好，别的工具未必。
+  2. **v12 新增 `packageManagerDependencies`**：把 pnpm 自身与 8 个平台的 `@pnpm/exe.*` 原生二进制
+     （v12 起 CLI 是 Rust 实现）记进 lockfile，落盘为**多文档 YAML**——第 1–100 行是新增的
+     packageManager 文档，第 101 行 `---` 之后才是原项目文档（原文档逐字节未变）。
+     关键后果：**旧 lockfile 上 `pnpm install --frozen-lockfile` 会硬失败**
+     （`Cannot update packageManagerDependencies with "frozen-lockfile"`），即 CI / Docker 的执行路径
+     会当场红。**这一段 lockfile 变更是升级的必要组成，不是可选副产品。**
+  3. 同一机制在嵌套工程上翻车两次。嵌套 Remotion 工程不 pin `packageManager`，corepack 沿目录树
+     向上找到仓库根的 pin，于是 pnpm 把**仓库根**当作 lockfile 锚点——`--frozen-lockfile` 下
+     禁止写入且找不到对应 importer，报 ③；**不带 frozen 时它就直接写**，用嵌套工程的解析结果
+     覆盖根 lockfile，这就是 ④。全过程零报错，唯一线索是进度条上一个不起眼的 `../..` 前缀。
+  4. **④ 的症状与病灶相距极远**：根 lockfile 被毁后本地一切照常（node_modules 已就绪），
+     直到 `docker build` 才以 `ERR_PNPM_LOCKFILE_CONFIG_MISMATCH`（"当前 overrides 配置与 lockfile
+     中的值不符"）现形——报错指向 overrides，而真正被动过的是 lockfile 的**整体身份**。
+- **实测取证（隔离夹具，非推断）**：
+  - v12 复现：根 lockfile 128 行 / `overrides=1` / importers=`.`+`pkgs/a`
+    → 在嵌套目录跑一次 `pnpm install --ignore-workspace`
+    → 123 行 / **`overrides=0`** / importers=`.`+`episodes/vid`，且嵌套工程自己的 lockfile **未生成**。
+  - **v11 对照组：根 lockfile 逐字节不变，嵌套 lockfile 正常生成** ⇒ 确证为 v12 独有回归。
+  - **失败的缓解**：给嵌套工程自身补 `packageManager` pin **无效**，根 lockfile 照样被覆写。
+- **处理方式**：
+  1. 根 `package.json#packageManager` → `pnpm@12.2.1+sha512.f55ca68a…`（hex）。CI 的
+     [`setup-pnpm-ui`](../../.github/actions/setup-pnpm-ui/action.yml) /
+     [`setup-pnpm-wiki`](../../.github/actions/setup-pnpm-wiki/action.yml) 用不带 version 的
+     `pnpm/action-setup@v4` 自动继承，无需改动——**单一事实源在这里兑现了收益**。
+  2. **给 8 集 + 骨架模板的 `video/` 各加一份 `pnpm-workspace.yaml`（`packages: []`）**，把每个嵌套
+     工程钉成它自己的 workspace 根。实测：带不带 `--ignore-workspace`，根 lockfile 均零变更，
+     嵌套工程正常生成 22 行单文档 lockfile（不含 packageManagerDependencies，故 8 份既有
+     lockfile 无需改动）。该文件已登记进
+     [`skeleton.toml`](../../apps/negentropy-influence/pipeline/templates/video-skeleton/skeleton.toml)
+     的 `frozen` 清单受漂移门执法（受门 17→18 文件）；`scaffold.py` 用 `rglob` 全量复制，新集自动继承。
+  3. 顺带消除两处**第二事实源**：[`docker/frontend/Dockerfile`](../../docker/frontend/Dockerfile) 与
+     [`docker/wiki/Dockerfile`](../../docker/wiki/Dockerfile) 原为 `corepack prepare pnpm@latest
+     --activate`。npm 的 `latest` 与 `packageManager` 是两条独立漂移的轨道，升级后立即分叉
+     （该层预热 11.25.0，`pnpm install` 却按 pin 另取 12.2.1）。改为 `corepack enable`
+     + COPY 清单后 `corepack install`（不带参数＝读本地 `packageManager`），层缓存不变。
+  4. lockfile 用非 frozen install 重建（+101 行），并**逐字节校验 doc2 与升级前一致**，
+     确保没有夹带依赖重解析。
+  5. 多文档格式撞上 pre-commit 的 `check-yaml`（默认只许单文档），加
+     `exclude: ^pnpm-lock\.yaml$` **只豁免这份机器产物**——而非全局开
+     `--allow-multiple-documents` 把手写 YAML 的约束一起放掉。已做反向正控：
+     给 `pnpm-workspace.yaml` 临时插入第二个文档，门确实报红。
+- **验证结论**：workspace 键校验（v12 把未识别键从静默忽略改为硬报错
+  `ERR_PNPM_UNRECOGNIZED_WORKSPACE_SETTINGS`）**通过**，`packages`/`allowBuilds`/`catalog`/`overrides`
+  均在册；最担心的 peer 解析 canonical cycle breaking **未触发 re-key**（`Lockfile is up to date`）；
+  `pnpm -r typecheck` 0 error、`pnpm test` 1152 passed、`pnpm build` 三个 Next 应用全绿；
+  **两个 Docker 镜像本地构建成功**（frontend 493MB / wiki 24.6MB，`corepack install` 正确解析到
+  12.2.1）；`pipeline/tests` 261 项全绿、`verify_skeleton --strict` 未登记漂移 0 处；
+  `globalShims` 新默认（`{node,deno,bun:true}`）**零副作用**——未生成任何全局 shim，`node` 仍首位
+  命中 nvm。另注意 v12 每次 install 会跑一遍 supply-chain policy 校验（根 workspace 1264 entries ≈ 43s），
+  是新增的固定开销。
+- **回滚可行性（已实测，勿凭直觉推断）**：先验假设是"多文档 lockfile 会让 v11 读不懂，回滚不对称"，
+  **实测推翻**——隔离工程里用 v12 生成多文档 lockfile 后把 `packageManager` 回退到 11.25.0，
+  pnpm 11.25.0 `install --frozen-lockfile` 正常通过（`Lockfile is up to date`），且**原样保留**
+  v12 写入的 packageManager 文档（frozen 与非 frozen 两种写法皆不剥离）。即 v11 对该文档是前向兼容的
+  惰性忽略，回滚只需改回 `package.json` 一处。
+- **后续防范**：
+  1. **升级包管理器后，第一个要验的不是"能不能装"，而是"lockfile 还是不是原来那个 lockfile"**。
+     本次 `git status` 只显示"pnpm-lock.yaml modified"——与预期中的变更同名，于是被一眼放过；
+     真正该做的是 `git diff --stat` 看量级、并核对 `overrides` / `importers` 等结构性锚点仍在。
+     [`pipeline/README.md`](../../apps/negentropy-influence/pipeline/README.md) 早有"装完检查根
+     lockfile 零变更"的纪律，说明这个危险区**此前已被识别**，只是 v12 把"偶尔"变成了"必然"。
+  2. **`latest` dist-tag 未切换＝上游自己说"还不建议默认"**。本次是在 `latest` 仍指向 11.25.0 时
+     抢升（12.0.0 发布 6 天内已迭代到 12.2.1），属知情决策；后续同类升级须显式核对
+     `npm view pnpm dist-tags`，把"`latest` 指向哪"作为独立于版本号的判据记录下来。
+  3. **`@latest` 与显式 pin 并存即分叉**——可跨文件复用的类模式。仓库内任何
+     `install/prepare <tool>@latest` 都应先问"这个工具是否已有单一事实源 pin"。
+  4. **"隔离"不是一个布尔量**。嵌套工程此前有三重隔离声明（`.npmrc` 的 `ignore-workspace=true`、
+     命令行 `--ignore-workspace`、根 workspace glob 不匹配），v12 仍从第四个维度
+     （`packageManager` 的目录树向上查找）穿透进来。判断隔离是否成立，要问的是
+     "**还有哪些机制会沿目录树向上走**"，而不是"我声明了几次隔离"。
+  5. `package.json#pnpm` 字段自 v11 起失效（[ISSUE-076](#issue-076-pnpm-v11-升级后-pnpm-install-报-err_pnpm_ignored_builds--packagejsonpnpmoverrides-静默失效2026-05-08)）。
+     **2026-09-03 后续复验修正了本条的初始裁决**：pnpm 12.2.1 在这些独立 Remotion 工程中会因
+     未许可 `esbuild` 以 `ERR_PNPM_IGNORED_BUILDS` 中断安装并留下半残 `node_modules`，不再只是
+     [ISSUE-166](#issue-166-err_pnpm_ignored_builds-在-esbuild-上是无害噪声不要为消音改动跨集冻结文件2026-08-21)
+     所记录的无害提示。故 8 集与骨架已统一删除失效的 `onlyBuiltDependencies`，并在各自
+     `pnpm-workspace.yaml` 写入 `allowBuilds.esbuild = true`；安装说明必须引用该唯一有效位置。
+- **同类问题影响**：与 [ISSUE-076](#issue-076-pnpm-v11-升级后-pnpm-install-报-err_pnpm_ignored_builds--packagejsonpnpmoverrides-静默失效2026-05-08)
+  （v10→v11）构成升级序列。凡"子目录里跑包管理器"的场景都需重新体检。
+  [`travel-agent-ui`](../../apps/cognizes/src/cognizes/examples/e2e_travel_agent/frontend/travel-agent-ui)
+  （同为解耦独立安装，见 `pnpm-workspace.yaml` 内注）**已用完整 5 member 夹具实测**，是本仓
+  当前唯一还敞着的同款入口——它连 `.npmrc` 都没有，三重隔离声明一条不具备（8 集 `video/` 至少还有）：
+  - 根 `pnpm-workspace.yaml` 内注教的**裸 `pnpm install` 不覆写**根 lockfile，只是
+    `Scope: all 5 workspace projects` 装到仓库根、子目录不生成 `node_modules/`
+    ——**该示例按文档跑不起来，但无数据损失**。
+  - 覆写根 lockfile 的是 **`pnpm install --ignore-workspace`**：实测 12991 行 → 12705 行、
+    `overrides` 归零、子目录不生成 lockfile，与 8 集 `video/` 同一形态，线索同样只有
+    进度条上的 `../../../../../../../..`。
+  - 故危险路径是"**发现裸 install 没装到子目录 → 照 8 集的习惯补 `--ignore-workspace`**"。
+    修复照搬本次方案（补一份 `packages: []` 的 `pnpm-workspace.yaml`）即可，因不属 pnpm 升级
+    的必要变更而未纳入本次改动；触碰该示例前先补文件，勿先跑安装。
+
+## ISSUE-176 组件存在却零调用：FadeUp 三度分镜承诺未进代码，~50 处布尔硬门瞬现无人拦（2026-09-03）
+
+- **表因**：重制《执行层：一个循环，就是全部》前的动效审计发现：frozen `cards.tsx` 的 `FadeUp`/`Pill` 场景调用数为 **0**，而分镜 3 处明写「`FadeUp`」（1-B 五步点亮、4-A 需求浮现、6-A 标签）——工程师每次手写了一个参数不同的内联版本。同幕另有约 50 处 `frame >= X ? <el/> : null` 布尔硬门（元素零过渡瞬现，可感知的质量缺陷），全片 30 处 clamped 进度变量时长取值 12 种任意值、11 处错峰步长任意、10 处 spring damping 不一致。
+- **根因**：三个结构性缺口叠加——① 复用组件是 **div 包装器**，打不进 svg `<g>`/absolute 布局，工程师宁可内联；② 分镜「动效」列是自由散文，`check_script.py` 只解析镜号与句区间，转译环节零机检；③ 无运动令牌标尺，时长/步长/阻尼每次现场发明。
+- **处理方式**：引入 frozen 运动层 `video/src/motion/`（「共享怎么动、不共享画什么」：Carbon 六档时长令牌 + M3 缓动 + 本仓实测弹簧手感 + win() 窗口 + Manim lag_ratio 编排 + 12 个运动模型 **hooks**——返回数值/CSS 片段而非 DOM）；分镜动效列 `@动词` 标注 + `check_script --check-motion`（WARN-only，词表自 hooks.ts 派生）；布尔硬门改 `useProgress` 淡入。以 EP1 全片重制验证（A/B 同帧号对拍归因每一处差异）。
+- **后续防范**：
+  1. 可复用动效原语的形态必须是 **hook/纯函数**，不是包装组件——包装器对 svg 布局的排他性在代码评审里不可见，在「没人用」里可见。
+  2. 分镜承诺的动效动词须可机检：散文「FadeUp」不进任何门；`@动词` 标注让「写了没实现」变成 WARN。
+  3. 时序常数（时长/步长/阻尼/安全带）收敛令牌后，「看起来差不多的手写值」失去了存在的理由——新代码裸 interpolate 属逃生舱，须有注释说明为何豁免。
+- **同类问题影响**：全部 8 集约 356 处 `frame - i*N` 错峰、82 处 dasharray 描线、71 处计数散写同病；EP2–5 的 retrofit 与 HarnessStack 同步是后续独立批次（skills/06 落地状态块显式登记五集不一致）。
+
+## ISSUE-177 3D 化重构把 flex 行改成 absolute 叠层，常驻条五 chip 塌陷重叠——A/B 对拍的「低差异」反而掩盖了它（2026-09-04）
+
+- **表因**：EP1 A 轨改造（`@remotion/three` 层板 3D 化）首版全片草渲后，P1–P6 六幕左上角常驻 `HarnessBadge` 的五个 chip **全部塌缩重叠在同一位置**、字形糊成一团。基线（改造前 `2722929e`）同帧完全正常。
+- **根因**：把 `Plate` 的文字部分抽成共用 `PlateTextRow` 时，为了让 3D 档的文字能叠在 canvas 之上，给文字容器加了 `position:absolute; inset:0`——而 **chip 档常驻条靠内容自然撑宽**（`HarnessBadge` 是 flex 行、chip 无固定宽度）。绝对定位使文字脱离常规流，chip 失去撑宽内容后宽度塌为 padding 之和，五块于是重叠。full/p6 档因宽度由 `width` prop 显式给定（460/420）而不受影响——**同一改动只在「宽度依赖内容」的那一档致命**。
+- **处理方式**：`PlateText` 改为返回 **Fragment**（只给文字节点，不带任何定位/尺寸容器）；平面 `Plate` 恢复为与改造前逐字等价的 flex 行；绝对定位只保留在 `PlateSlab3D` 内部的文字叠层（该处宽度显式给定，absolute 安全）。修复后实景抽帧（第 6989 帧）目检 badge 五 chip 排列与基线一致。
+- **后续防范**：
+  1. **抽取共用子组件时，容器的 `position`/`width` 属于调用点契约，不属于被抽取内容**——把定位写进共用件，等于让所有调用点继承一个只对其中一档成立的假设。共用件只出内容（Fragment），定位留给各档自己。
+  2. **`--compare` 的低 meanΔ 不等于无回归**：本例 A/B 对拍四帧差异仅 0.8–1.0%（远低于 JND=12 阈值、`>5%` 零命中），因为坏掉的 badge 只占画面左上角约 2% 面积——**A/B 数值门对「小面积但严重」的缺陷天然不敏感**，必须配合逐帧目视。同理 `qa_frames --check` 的 FAIL 0 也未拦住它（它不是黑帧/冻帧/安全带侵入/对比度问题）。
+  3. 改动若触及**跨幕常驻元素**（badge/角标/水印一类），验证抽帧必须至少覆盖一个「非改动幕」——本例改的是 P0/P6 的层板，坏的却是 P1–P6 的常驻条，只看 P0/P6 会全过。
+- **同类问题影响**：EP2–5 尚无 `harness-stack.tsx`（该组件目前仅 EP1 有），暂无同款风险；但「共用件带定位」的形态在 `motifs.tsx` 的 `Panel`/`Footnote` 一类容器组件里同样可能出现，后续抽取时按防范 1 执行。
+- **同批次第二处（材质读色）**：同一次 3D 化里，板体用 `meshStandardMaterial` + `emissive={theme.core}` 表达 active，实景 P6 收尾帧目检发现**点亮层被烧成实心橙块**、压掉白色层名对比度，未点亮层则因棱线只有单像素而在暗底近乎不可见——3D 材质的默认读色与平面 Plate 的「描边框 + 深底 + 文字浮起」契约完全脱节。修法：面色改 `meshBasicMaterial`（不吃光、恒等于 `theme.panel`，active 仅掺极少量暖意 `#241C1E`），描边在 `edgesGeometry` 之外再叠一圈正面 `lineLoop` 加权。**教训**：把 2D 组件换成 3D 渲染后端时，「读色契约」不会自动继承——受光材质 + 自发光是 3D 的惯用法，但它表达的是「发光体」，而原设计表达的是「深底描边框」，两者视觉语义不同；换后端必须逐档目检点亮/常态两态，不能只验几何。

@@ -638,6 +638,13 @@ async def _run_batched_pipeline(
     # 全部完成 → 更新 manifest 状态
     _finalize_manifest(checkpoint_dir, manifest, partial_failures)
 
+    # 矢量图内文字回补：docling 把含文字标签的矢量图/图表烘成图片，致 PDF 文字层标签
+    # 未进 markdown 文本（distinctive-token 覆盖 <0.85 的页）。用 PyMuPDF 文字层补回缺失标签。
+    if output_format == "markdown" and merged.markdown:
+        supplemented = _supplement_low_coverage_figure_text(merged.markdown, pdf_source)
+        if supplemented != merged.markdown:
+            merged.markdown = supplemented
+
     image_assets_out = [
         ImageAssetModel(
             filename=a.filename,
@@ -833,6 +840,81 @@ async def _fallback_slice_lightweight(
         engines_used=["pymupdf-fallback"],
         metadata={"fallback_engine": "pymupdf"},
     )
+
+
+def _supplement_low_coverage_figure_text(
+    markdown: str, pdf_source: str, threshold: float = 0.85
+) -> str:
+    """补回矢量图/图表内被 docling 烘成图片、未进 markdown 文本的文字标签。
+
+    docling 把含文字标签的矢量图（流程框图、延迟瀑布图、多 Agent 协作图、范式对比图等）
+    识别为 figure 烘成位图，致 PDF 文字层里原有的标签（框内文字、坐标轴数值、英文术语、
+    节点名）未并入 markdown 文本——这些页的 distinctive-token 覆盖率因此 < 阈值。
+
+    本函数对**覆盖率低于阈值**的页，用 PyMuPDF 抽取该页文字层中、其 distinctive token
+    **未已存在于 markdown** 的行，按页追加为 ``<details>`` 折叠补充段（带页码 label，
+    避免视觉噪音、不与已有正文重复），使图内文字可搜索、覆盖达标。与 ``_ensure_first_page_header``
+    同属「PyMuPDF 文字层回补」家族（前者补首页标题，本函数补图内标签）。
+
+    幂等：覆盖率达标的页跳过；无缺失行跳过；PyMuPDF 失败原样返回（安全降级）。
+    """
+    import re
+
+    if not markdown or not pdf_source:
+        return markdown
+    try:
+        from ..pdf._imports import import_fitz
+
+        fitz = import_fitz()
+        doc = fitz.open(pdf_source)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(
+            "图内文字回补：pymupdf 打开失败 source=%s err=%s", pdf_source, exc
+        )
+        return markdown
+
+    md_nospace = re.sub(r"<img[^>]*>", " ", markdown)
+    md_nospace = re.sub(r"[^a-z0-9一-鿿]+", "", md_nospace.lower())
+
+    blocks: list[str] = []
+    try:
+        for i, pg in enumerate(doc, start=1):
+            page_text = pg.get_text("text") or ""
+            norm = re.sub(r"[^a-z0-9一-鿿]+", " ", page_text.lower())
+            toks = {t for t in norm.split() if len(t) > 4}
+            if not toks:
+                continue
+            missing = [t for t in toks if t not in md_nospace]
+            # 覆盖率达阈值（缺失占比 ≤ 1-threshold）→ 跳过
+            if len(missing) / len(toks) <= (1 - threshold):
+                continue
+            mset = set(missing)
+            lines = [ln.strip() for ln in page_text.splitlines() if ln.strip()]
+            keep = [
+                ln
+                for ln in lines
+                if any(t in re.sub(r"[^a-z0-9一-鿿]+", " ", ln.lower()) for t in mset)
+            ]
+            # 去重保序
+            keep = list(dict.fromkeys(keep))
+            if keep:
+                body = "\n".join(keep)
+                blocks.append(
+                    f"<details>\n<summary>第 {i} 页 · 图内文字（源 PDF 文字层回补）</summary>\n\n{body}\n\n</details>"
+                )
+    finally:
+        doc.close()
+
+    if not blocks:
+        return markdown
+    supplement = (
+        "\n\n<!-- patrol: 矢量图内文字回补——docling 将含标签的矢量图烘成图片，"
+        "此处按源 PDF 文字层补回缺失标签，使内容可搜索/覆盖达标；仅补覆盖率 <0.85 的页。 -->\n\n"
+        + "\n\n".join(blocks)
+        + "\n"
+    )
+    logger.info("图内文字回补：补 %d 页 source=%s", len(blocks), pdf_source)
+    return markdown + supplement
 
 
 def _ensure_first_page_header(markdown: str, pdf_source: str) -> str:

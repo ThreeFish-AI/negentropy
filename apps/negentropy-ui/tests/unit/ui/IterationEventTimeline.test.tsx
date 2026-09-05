@@ -172,6 +172,19 @@ describe("IterationEventTimeline assistant 文本", () => {
     const flow = container.querySelector(".flex.flex-col");
     expect(flow?.children.length ?? 0).toBe(0);
   });
+
+  it("长 assistant 文本（超阈值）默认折叠显「展开全文」，点击后「收起」", () => {
+    // > LONG_MESSAGE_THRESHOLD_CHARS(1500)
+    const longText = "这是一段用于测试折叠阈值的长内容。".repeat(100);
+    render(
+      <IterationEventTimeline
+        events={[makeEvent({ event_type: "assistant", tool_name: null, payload: { text: longText } })]}
+      />,
+    );
+    expect(screen.getByText("展开全文")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("展开全文"));
+    expect(screen.getByText("收起")).toBeInTheDocument();
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -498,6 +511,45 @@ describe("IterationEventTimeline 人机回合（human_reply）", () => {
     expect(screen.queryByText(/次工具调用/)).not.toBeInTheDocument();
     expect(screen.getByText("Read")).toBeInTheDocument();
     expect(screen.getByText("Edit")).toBeInTheDocument();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 机侧（Claude Code）回合徽章：对齐 Conductor 机侧身份标注
+// ---------------------------------------------------------------------------
+
+describe("IterationEventTimeline 机侧回合徽章", () => {
+  it("机侧首项（assistant）在回合切换处显 Claude Code 徽章", () => {
+    render(
+      <IterationEventTimeline
+        events={[makeEvent({ event_type: "assistant", tool_name: null, payload: { text: "我开始执行。" } })]}
+      />,
+    );
+    // 机侧（Claude Code）身份徽章显化，让人↔CC 对话结构一眼可辨
+    expect(screen.getByText("Claude Code")).toBeInTheDocument();
+    expect(screen.getByText("我开始执行。")).toBeInTheDocument();
+  });
+
+  it("连续机侧（多个 tool）不重复刷徽章——仅回合首项 1 个 Claude Code", () => {
+    const events: RoutineIterationEventDTO[] = [
+      makeEvent({ seq: 0, tool_name: "Read", payload: { tool_id: "t1", input: { file_path: "a.ts" } } }),
+      makeEvent({ seq: 1, id: "e2", tool_name: "Bash", payload: { tool_id: "t2", input: { command: "ls" } } }),
+    ];
+    render(<IterationEventTimeline events={events} />);
+    // 两个连续机侧 tool，仅在回合切换处（首项）渲染 1 个徽章
+    expect(screen.getAllByText("Claude Code")).toHaveLength(1);
+  });
+
+  it("人侧 human_reply 不挂机侧徽章；其后机侧 assistant 触发回合切换徽章", () => {
+    const events: RoutineIterationEventDTO[] = [
+      makeEvent({ seq: 0, event_type: "plan_review", title: "Plan Review", tool_name: null, payload: { verdict: "approve", score: 85, module_reviews: [], feedback: "", reflection: "" } }),
+      makeEvent({ seq: 1, id: "e2", event_type: "assistant", tool_name: null, payload: { text: "按审阅意见继续。" } }),
+    ];
+    render(<IterationEventTimeline events={events} />);
+    // 人侧 human_reply 自带内嵌「元神」徽章，不挂外层机侧徽章
+    expect(screen.getByText("元神")).toBeInTheDocument();
+    // 其后机侧 assistant 在回合切换处显 Claude Code
+    expect(screen.getAllByText("Claude Code")).toHaveLength(1);
   });
 });
 

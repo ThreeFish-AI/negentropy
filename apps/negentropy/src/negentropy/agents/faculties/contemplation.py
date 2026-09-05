@@ -3,9 +3,14 @@ from google.adk.tools import load_memory
 
 from .._citation_protocol import CITATION_PROTOCOL
 from .._dynamic_instruction import make_instruction_provider
+from .._dynamic_tools import NegentropyToolset
 from .._model import create_subagent_model
 from ..tools.common import log_activity
-from ..tools.contemplation import analyze_context, create_plan
+
+# WS1：可摘工具集经 ``NegentropyToolset`` 按 ``agents.tools`` 运行时解析（单源来自
+# Interface/Agents 页）；恒常工具（log_activity / load_memory）仍以裸 callable 挂常量位。
+_DEFAULT_TOOL_NAMES = ["analyze_context", "create_plan"]
+_MANDATORY_TOOL_NAMES = ["log_activity", "load_memory"]
 
 _DESCRIPTION = (
     "Handles: deep analysis, strategic planning, root cause analysis, second-order thinking, risk assessment. "
@@ -77,7 +82,15 @@ def create_contemplation_agent(*, output_key: str | None = None, mode: str | Non
         model=create_subagent_model(agent_name="ContemplationFaculty"),
         description=_DESCRIPTION,
         instruction=make_instruction_provider("ContemplationFaculty", _INSTRUCTION),
-        tools=[log_activity, analyze_context, create_plan, load_memory],
+        tools=[
+            log_activity,
+            load_memory,
+            NegentropyToolset(
+                agent_name="ContemplationFaculty",
+                default_names=_DEFAULT_TOOL_NAMES,
+                mandatory_names=_MANDATORY_TOOL_NAMES,
+            ),
+        ],
         output_key=output_key,
         mode=mode,
         # Pipeline 边界管控：在流水线内使用时，禁止 LLM 路由逃逸

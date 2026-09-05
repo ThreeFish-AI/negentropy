@@ -146,7 +146,7 @@ Wiki 使用 ISR 机制，最长 5 分钟自动更新。如需立即更新，可�
 | [QA 流水线](../design/qa-delivery-pipeline.md) | `docs/concepts/design/qa-delivery-pipeline.md` | 质量门禁与发布流程                 |
 | [Wiki 运维](../../reference/wiki/ops.md)       | `docs/reference/wiki/ops.md`                   | Wiki 站点的部署与运维              |
 | [工程变更日志](../operations/engineering-changelog.md)    | `docs/concepts/engineering-changelog.md`       | 里程碑与基线变更记录               |
-| [AI 协作协议](../../../AGENTS.md)              | `AGENTS.md`                                    | Agent 协作准则与工程规范           |
+| AI 协作协议                                    | `~/.claude/CLAUDE.md`                          | Agent 协作准则与工程规范           |
 
 ---
 

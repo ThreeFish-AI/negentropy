@@ -119,31 +119,38 @@ def test_select_next_pending_doc_none_when_empty():
     assert asyncio.run(patrol._select_next_pending_doc(db, skip_ids={"a", "b"})) is None
 
 
-def test_select_next_pending_doc_skip_set_passes_expanding_param():
-    """skip 非空时走 expanding bindparam；FakeDB 不解析 SQL，仅断言不抛且参数透传。"""
+def test_select_next_pending_doc_reads_patrol_status_column():
+    """selector 读 patrol_status 列（SSOT）：emitted SQL 含 ``patrol_status IS NULL``，
+    不再使用 Memory skip_ids（迁移 0092 后废弃，形参过渡兼容）。"""
     import asyncio
 
     db = _FakeDB(fetchone=None)
     asyncio.run(patrol._select_next_pending_doc(db, skip_ids={"x1", "x2"}))
     assert db.executed  # 发出了一次 execute
-    _stmt, params = db.executed[0]
+    stmt, params = db.executed[0]
     assert params["app"]  # 含 app_name 绑定
-    assert "skip" in params
+    assert "patrol_status IS NULL" in stmt  # 4 态语义：仅未巡检入选
+    assert "skip" not in params  # skip_ids 已废弃
+    assert "NOT IN" not in stmt  # 不再走 Memory skip 路径
 
 
 def test_select_next_pending_doc_sql_contains_per_doc_uniqueness_guard():
-    """Fix A + 命名门控：emitted SQL 必含「命名门控」+「一文一活跃巡检」NOT EXISTS 守卫（排除 cancelled）。
+    """Fix A：selector SQL 守卫不变量（NOT EXISTS / status='active' / patrol_status IS NULL）。
 
-    FakeDB 不解析 SQL，仅以串存在性守护不变量防回归——后续重构若误删命名门控 / NOT EXISTS /
-    把 cancelled 纳入阻塞，本断言即失败。真实 SQL 语义由集成测试覆盖。
+    FakeDB 不解析 SQL，仅以串存在性守护不变量防回归——后续重构若误删 NOT EXISTS / 把 cancelled 纳入
+    阻塞，或误加回「命名门控」（display_name/metadata.title 非空预筛，会误排未巡检但无标题文档致
+    Scheduler 误报「无待检」），或漏掉 status='active'（会选中软删文档→源 blob 丢失），本断言即失败。
+    真实 SQL 语义由集成测试覆盖。
     """
     import asyncio
 
     db = _FakeDB(fetchone=None)
     asyncio.run(patrol._select_next_pending_doc(db, skip_ids=set()))
     stmt = db.executed[0][0]
-    # 命名门控：display_name 或 metadata->>'title' 至少一个非空（杜绝原始文件名兜底）
-    assert "COALESCE(NULLIF(display_name, ''), NULLIF(metadata->>'title', '')) IS NOT NULL" in stmt
+    # 命名门控已移除：巡检资格不再预筛 display_name/metadata.title（命名下沉至 _doc_display_title）
+    assert "COALESCE(NULLIF(display_name, ''), NULLIF(metadata->>'title', '')) IS NOT NULL" not in stmt
+    assert "patrol_status IS NULL" in stmt  # 巡检态 SSOT 列（仅未巡检入选）
+    assert "AND status = 'active'" in stmt  # 仅 active 文档入选（排除软删，其源 blob 可能已清除）
     assert "NOT EXISTS" in stmt
     assert "config->>'patrol'" in stmt
     assert "config->>'doc_id'" in stmt
@@ -252,10 +259,29 @@ def test_run_patrol_tick_carries_lifecycle_markers():
     body = inspect.getsource(patrol._run_patrol_tick)
     # 源码中以标识符形式出现（非常量值）：spawn + in_progress = 2 处 in_flight
     assert body.count("PATROL_LIFECYCLE_IN_FLIGHT") >= 2
-    # no_pending_docs + repo_not_configured = 2 处 idle
+    # no_pending_docs + repo_not_configured = 2 处 idle（stage 失败的 idle 在 _handle_stage_source_failure）
     assert body.count("PATROL_LIFECYCLE_IDLE") >= 2
-    # stage_failed 是真失败（不打标记，走既有 failed 分支）
-    assert "stage_source_pdf_failed" in body
+    # stage 失败委托给 _handle_stage_source_failure（分类 + source_unavailable 标记见其专项白盒测试）
+    assert "_handle_stage_source_failure" in body
+
+
+def test_handle_stage_source_failure_branches_present():
+    """白盒：_handle_stage_source_failure 含两分支（活性韧性）。
+
+    - 永久 ``StorageError``「Blob not found」→ 标记 ``source_unavailable`` 终态 + ``ok`` + idle。
+    - 瞬态 ``StorageError``（如 ``Failed to download``）→ 维持 ``failed`` 重试，不永久标记。
+
+    防后续重构误删分类 / 把永久错误退回 failed（致队列卡死）/ 把瞬态错误误标终态（误杀可恢复文档）。
+    """
+    import inspect
+
+    body = inspect.getsource(patrol._handle_stage_source_failure)
+    assert "StorageError" in body
+    assert "Blob not found" in body  # 永久错误判定串（postgres_client.py:105 稳定文案）
+    assert "patrol_status = 'source_unavailable'" in body  # 永久分支标记终态 UPDATE
+    assert "stage_source_pdf_unavailable" in body  # 永久分支 reason（ok）
+    assert "stage_source_pdf_failed" in body  # 瞬态分支 reason（failed）
+    assert "PATROL_LIFECYCLE_IDLE" in body  # 永久分支 ok+idle（不累加 consecutive_failures）
 
 
 def test_finalize_terminal_patrols_branches_present():
@@ -275,6 +301,41 @@ def test_finalize_terminal_patrols_branches_present():
     assert "patrol_qualified_score_threshold" in body  # 合格阈值注入
     # _mark_memory_persisted 抽出（消除重复 UPDATE）
     assert hasattr(patrol, "_mark_memory_persisted")
+
+
+def test_create_and_start_patrol_routine_writes_in_progress_column():
+    """白盒：spawn 巡检 Routine 时同步写 ``patrol_status='in_progress'`` 列（SSOT）。"""
+    import inspect
+
+    body = inspect.getsource(patrol._create_and_start_patrol_routine)
+    assert "patrol_status = 'in_progress'" in body
+    assert "patrol_routine_id = :rid" in body
+    assert "knowledge_documents" in body
+
+
+def test_finalize_cancelled_resets_in_progress_with_double_guard():
+    """白盒：cancelled 分支回退文档巡检态为 NULL，带 routine_id + in_progress 双守卫（防误覆盖 done/unfixable）。"""
+    import inspect
+
+    body = inspect.getsource(patrol._finalize_terminal_patrols)
+    # cancelled 分支回退列
+    assert "patrol_status = NULL" in body
+    # 双守卫：仅回退本 routine 在 spawn 时写的 in_progress
+    assert "patrol_routine_id = :rid" in body
+    assert "patrol_status = 'in_progress'" in body
+
+
+def test_has_running_patrol_still_reads_routines_table():
+    """白盒：_has_running_patrol 仍读 routines 表（SSOT：真实执行态），不读 patrol_status 列。
+
+    防回归——若误改成读列，routine 崩溃卡死会致 in_progress 残留而永久 SKIP 全系统巡检。
+    """
+    import inspect
+
+    body = inspect.getsource(patrol._has_running_patrol)
+    assert "negentropy.routines" in body
+    assert "status = 'running'" in body
+    assert "patrol_status" not in body
 
 
 # ---------------------------------------------------------------------------
@@ -303,7 +364,7 @@ def test_build_patrol_routine_constructs_without_attribute_error():
     )
     # 关键字段装配正确（与 routine_api.create_routine 口径对齐）
     assert routine.no_progress_patience == 3  # per-Routine 默认，非 settings
-    assert routine.success_score_threshold == 95  # 合格阈值（patrol_qualified_score_threshold；原 100→收敛即 SUCCESS）
+    assert routine.success_score_threshold == 99  # 合格阈值（patrol_qualified_score_threshold；原 100→收敛即 SUCCESS）
     assert routine.status == "running"
     assert routine.repository_id == repo_id
     assert routine.baseline_branch == "origin/feature/1.x.x"

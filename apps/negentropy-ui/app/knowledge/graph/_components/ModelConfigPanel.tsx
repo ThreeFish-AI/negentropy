@@ -9,6 +9,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { TaskModelSelect } from "@/components/interface/TaskModelSelect";
+import { Field } from "@/components/ui/Field";
+import { Select } from "@/components/ui/Select";
 import {
   type CorpusModelsConfig,
   type ModelConfigItem,
@@ -215,14 +217,10 @@ export function ModelConfigPanel({
       </p>
 
       <div className="mt-3 space-y-3">
-        <div>
-          <label className="block text-xs font-medium text-text-secondary mb-1">
-            LLM Model
-          </label>
-          <select
+        <Field label="LLM Model">
+          <Select
             value={llmConfigId}
             onChange={(e) => setLlmConfigId(e.target.value)}
-            className="w-full rounded-lg border border-input bg-background px-3 py-1.5 text-xs"
           >
             <option value="">(使用全局默认)</option>
             {llmModels.map((m) => (
@@ -230,17 +228,13 @@ export function ModelConfigPanel({
                 {m.display_name?.trim() || `${m.vendor}/${m.model_name}`}
               </option>
             ))}
-          </select>
-        </div>
+          </Select>
+        </Field>
 
-        <div>
-          <label className="block text-xs font-medium text-text-secondary mb-1">
-            Embedding Model
-          </label>
-          <select
+        <Field label="Embedding Model">
+          <Select
             value={embeddingConfigId}
             onChange={(e) => setEmbeddingConfigId(e.target.value)}
-            className="w-full rounded-lg border border-input bg-background px-3 py-1.5 text-xs"
           >
             <option value="">(使用全局默认)</option>
             {embeddingModels.map((m) => (
@@ -248,13 +242,13 @@ export function ModelConfigPanel({
                 {m.display_name?.trim() || `${m.vendor}/${m.model_name}`}
               </option>
             ))}
-          </select>
+          </Select>
           {dims != null && (
             <span className="mt-1 inline-block rounded bg-blue-100 px-1.5 py-0.5 text-micro font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
               {dims} dims
             </span>
           )}
-        </div>
+        </Field>
       </div>
 
       <button

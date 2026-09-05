@@ -10,6 +10,11 @@
 关键不变量（综述 §9.4 防 Goodhart）：proposer 读证据必须经 ``visible_results_query``——
 它显式排除 ``partition = 'holdout'`` 的 run，使冻结 holdout 结果不回流 proposer。
 
+**Faculty 边界（WS2）**：本模块是评测「元层」——用系统自身当 Judge/执行器去评测被测 target。
+刻意**不接 FacultyBridge**：若 Judge 走 ContemplationFaculty，等于「元神评判修改元神自己的提案」，
+形成循环偏置 + 破坏 holdout 独立性 + 多轮 tool-loop 结构与单发 Faculty 范式不兼容。保持裸
+litellm，并由 ``tests/unit_tests/engine/eval/test_faculty_boundary.py`` 反向断言固化。
+
 参考文献：
 [1] C. Jiang et al., "Self-Improving Agents in the Era of Experience," 2026. §8 held-out gain /
     backward retention；§9.4 冻结 holdout 不回流。

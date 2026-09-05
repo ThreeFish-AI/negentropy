@@ -27,6 +27,7 @@ from functools import cached_property
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from .agents import AgentsSettings
 from .app import AppSettings
 from .auth import AuthSettings
 from .database import DatabaseSettings
@@ -148,6 +149,11 @@ class Settings(BaseSettings):
         """自进化子系统配置（GEPA 提案器 + 记忆检索参数自进化）。"""
         return EvolutionSettings()
 
+    @cached_property
+    def agents(self) -> AgentsSettings:
+        """一核五翼 Agent 运行时配置解析开关（如 tools 从 DB 回源）。"""
+        return AgentsSettings()
+
     # =========================================================================
     # Legacy Compatibility Layer
     # =========================================================================
@@ -265,6 +271,7 @@ __all__ = [
     "MemorySettings",
     "RoutineSettings",
     "EvolutionSettings",
+    "AgentsSettings",
     "ObservabilitySettings",
     "DatabaseSettings",
     "ServicesSettings",

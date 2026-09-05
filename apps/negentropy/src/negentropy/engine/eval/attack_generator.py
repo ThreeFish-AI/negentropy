@@ -9,6 +9,10 @@
 针对当前 skill prompt 弱点定制**的攻击（综述 §9.3 AutoRedTeamer 20% higher attack success rate
 while reducing cost by 46%）。
 
+**Faculty 边界（WS2）**：本模块是红队「元层」，刻意**不接 FacultyBridge**——攻击生成需高温发散
+（``temperature=0.7``），且与被测系统同源会致循环偏置。保持裸 litellm，由
+``tests/unit_tests/engine/eval/test_faculty_boundary.py`` 反向断言固化。
+
 参考文献：
 [1] C. Jiang et al., "Self-Improving Agents in the Era of Experience," 2026. §9.3 + AutoRedTeamer。
 [2] Y. Zhou et al., "AutoRedTeamer," 2025. 多 agent 架构 + 记忆引导攻击选择。

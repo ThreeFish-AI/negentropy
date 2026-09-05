@@ -2,6 +2,9 @@
 
 import { useMemo } from "react";
 
+import { TextTooltip } from "@/components/ui/TextTooltip";
+import { TruncatedCell } from "@/components/ui/TruncatedCell";
+
 import type { DashboardFilters, ScheduledTaskDTO } from "../_lib/types";
 
 interface TaskTableProps {
@@ -35,6 +38,13 @@ function relativeFromNow(iso: string | null): string {
   }
 }
 
+/** 触发器展示串（cron 表达式 / 间隔秒 / oneshot），对齐 SchedulerTaskTable.triggerText。 */
+function triggerText(t: ScheduledTaskDTO): string {
+  if (t.trigger_type === "cron") return t.cron_expr ?? "cron";
+  if (t.trigger_type === "interval") return `${t.interval_seconds}s`;
+  return "oneshot";
+}
+
 function StatusDots({ statuses }: { statuses: string[] }) {
   const slots = [0, 1, 2].map((i) => statuses[i] ?? null);
   return (
@@ -62,27 +72,39 @@ export function TaskTable({ tasks, filters, onSelect }: TaskTableProps) {
   const filtered = useMemo(() => applyClientFilters(tasks, filters), [tasks, filters]);
 
   return (
-    <div className="rounded-lg border border-border bg-card shadow-sm">
-      <div className="border-b border-border px-3 py-2 text-caption uppercase tracking-overline text-muted-foreground">
+    <div className="overflow-hidden rounded-xl border border-border bg-card">
+      <div className="border-b border-border px-4 py-2.5 text-xs uppercase tracking-overline text-text-secondary">
         Tasks ({filtered.length})
       </div>
       <div className="max-h-[480px] overflow-auto">
-        <table className="w-full text-xs">
-          <thead className="sticky top-0 bg-card text-muted-foreground">
-            <tr className="border-b border-border">
-              <th className="px-3 py-2 text-left font-medium">Task</th>
-              <th className="px-3 py-2 text-left font-medium">Handler</th>
-              <th className="px-3 py-2 text-left font-medium">Trigger</th>
-              <th className="px-3 py-2 text-left font-medium">Last</th>
-              <th className="px-3 py-2 text-left font-medium">Next</th>
-              <th className="px-3 py-2 text-left font-medium">Recent</th>
-              <th className="px-3 py-2 text-left font-medium">Enabled</th>
+        <table className="w-full table-fixed text-sm">
+          {/* 固定列宽（合计 100%，随容器等比缩放；超长内容由 TextTooltip + truncate 恢复全文）：
+              Task 28 · Handler 16 · Trigger 16 · Last 11 · Next 11 · Recent 8 · Enabled 10。
+              7 列须与下方 7 个 <th> 严格对齐。colgroup 内不得夹带空白文本节点（hydration 报错）。 */}
+          <colgroup>
+            <col className="w-[28%]" />
+            <col className="w-[16%]" />
+            <col className="w-[16%]" />
+            <col className="w-[11%]" />
+            <col className="w-[11%]" />
+            <col className="w-[8%]" />
+            <col className="w-[10%]" />
+          </colgroup>
+          <thead className="sticky top-0 bg-card">
+            <tr className="border-b border-border text-left text-xs uppercase tracking-overline text-text-secondary">
+              <th className="px-4 py-2.5 font-medium">Task</th>
+              <th className="px-4 py-2.5 font-medium">Handler</th>
+              <th className="px-4 py-2.5 font-medium">Trigger</th>
+              <th className="px-4 py-2.5 font-medium">Last</th>
+              <th className="px-4 py-2.5 font-medium">Next</th>
+              <th className="px-4 py-2.5 font-medium">Recent</th>
+              <th className="px-4 py-2.5 font-medium">Enabled</th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">
+                <td colSpan={7} className="px-4 py-6 text-center text-muted-foreground">
                   No tasks match current filters.
                 </td>
               </tr>
@@ -91,27 +113,38 @@ export function TaskTable({ tasks, filters, onSelect }: TaskTableProps) {
                 <tr
                   key={t.id}
                   onClick={() => onSelect(t)}
-                  className="cursor-pointer border-b border-border last:border-b-0 hover:bg-muted/30"
+                  className="cursor-pointer border-b border-border/60 transition-colors last:border-0 hover:bg-muted/40"
                 >
-                  <td className="px-3 py-2">
-                    <div className="font-medium text-foreground">{t.display_name || t.key}</div>
-                    <div className="text-micro text-muted-foreground">{t.key}</div>
+                  <td className="px-4 py-3">
+                    {/* Task 双行：display_name（主）+ key（次），各行独立截断 + 悬浮全文。 */}
+                    <div className="font-medium text-foreground">
+                      <TextTooltip content={t.display_name || t.key}>
+                        <span className="block truncate">{t.display_name || t.key}</span>
+                      </TextTooltip>
+                    </div>
+                    <div className="font-mono text-xs text-text-secondary">
+                      <TextTooltip content={t.key}>
+                        <span className="block truncate">{t.key}</span>
+                      </TextTooltip>
+                    </div>
                   </td>
-                  <td className="px-3 py-2 text-muted-foreground">{t.handler_kind}</td>
-                  <td className="px-3 py-2 text-muted-foreground">
-                    {t.trigger_type === "cron" ? t.cron_expr : t.trigger_type === "interval" ? `${t.interval_seconds}s` : "oneshot"}
+                  <TruncatedCell text={t.handler_kind} textClassName="text-text-secondary" />
+                  <TruncatedCell text={triggerText(t)} mono textClassName="text-text-secondary" />
+                  <td className="px-4 py-3 text-text-secondary">
+                    <span className="block truncate">{relativeFromNow(t.last_fire_at)}</span>
                   </td>
-                  <td className="px-3 py-2 text-muted-foreground">{relativeFromNow(t.last_fire_at)}</td>
-                  <td className="px-3 py-2 text-muted-foreground">{relativeFromNow(t.next_fire_at)}</td>
-                  <td className="px-3 py-2">
+                  <td className="px-4 py-3 text-text-secondary">
+                    <span className="block truncate">{relativeFromNow(t.next_fire_at)}</span>
+                  </td>
+                  <td className="px-4 py-3">
                     <StatusDots statuses={t.recent} />
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-4 py-3">
                     <span
                       className={`inline-flex items-center rounded-full px-2 py-0.5 text-micro font-semibold ${
                         t.enabled
                           ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                          : "bg-border/50 text-text-muted"
+                          : "bg-muted text-text-secondary"
                       }`}
                     >
                       {t.enabled ? "Enabled" : "Disabled"}
