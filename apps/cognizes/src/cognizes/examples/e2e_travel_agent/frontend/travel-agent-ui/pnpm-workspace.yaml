@@ -1,0 +1,7 @@
+# 把本工程钉成它自己的 pnpm workspace 根——这是本文件存在的首要理由。
+# pnpm 12 起仅靠 `--ignore-workspace` 不够：pnpm 仍会沿 packageManager 向上锚定到仓库根，
+# 用本工程的解析结果覆写根 pnpm-lock.yaml（overrides 全丢）且当场不报错。见 ISSUE-175。
+#
+# 本工程是 E2E Travel Agent 示例前端，已从根 workspace 解耦（见根 pnpm-workspace.yaml 内注），
+# 但此前缺失本声明——是全仓最后一个敞着的同款入口。示例的运行方式见同目录 README.md。
+packages: []
