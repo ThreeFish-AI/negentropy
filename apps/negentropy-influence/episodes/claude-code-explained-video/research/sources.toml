@@ -132,3 +132,63 @@ text_sha256 = "213cc53568f96038"
 bytes = 71867
 lines = 351
 via = "SSG 预渲染页面，数字同现于可见文本与 Flight 载荷"
+
+[cc-glossary]
+url = "https://code.claude.com/docs/en/glossary"
+kind = "site"
+accessed = "2026-09-06"
+raw_sha256 = "b3ae1cff6879cf03"
+text_sha256 = "39bca61153269e1c"
+bytes = 508870
+lines = 1638
+via = "官方术语表：Agentic harness 条目（p0-04..06 的事实源）"
+
+[cc-how-it-works]
+url = "https://code.claude.com/docs/en/how-claude-code-works"
+kind = "site"
+accessed = "2026-09-06"
+raw_sha256 = "f4b63e44fbe11870"
+text_sha256 = "b54834d7df19dc35"
+bytes = 470041
+lines = 1588
+via = "官方：harness 定位与三相循环（p0-05 / p1-25..27）"
+
+[cc-hooks]
+url = "https://code.claude.com/docs/en/hooks"
+kind = "site"
+accessed = "2026-09-06"
+raw_sha256 = "6f322570dbd2969d"
+text_sha256 = "47dda5eb49c0ddaf"
+bytes = 2825738
+lines = 3765
+via = "官方 hooks reference：事件表与三节奏（p4-23..24）"
+
+[cc-permissions]
+url = "https://code.claude.com/docs/en/permissions"
+kind = "site"
+accessed = "2026-09-06"
+raw_sha256 = "2fb2620abe12af7b"
+text_sha256 = "3baad949cefcd0c1"
+bytes = 696014
+lines = 1857
+via = "官方权限文档：由代码执行 / deny-ask-allow 顺序 / 裸名移除（p3-06, p3-25..29, p4-29..31）"
+
+[cc-auto-mode]
+url = "https://www.anthropic.com/engineering/claude-code-auto-mode"
+kind = "site"
+accessed = "2026-09-06"
+raw_sha256 = "fc213c54fe9b041e"
+text_sha256 = "5d496b6dde71cb5c"
+bytes = 212315
+lines = 1
+via = "工程博客：分类器视野与 93% 遥测（p3-31..34）"
+
+[cc-harness-blog]
+url = "https://claude.com/blog/harnessing-claudes-intelligence"
+kind = "site"
+accessed = "2026-09-06"
+raw_sha256 = "24c81f91d442494b"
+text_sha256 = "90bd98f8e376428a"
+bytes = 511488
+lines = 3496
+via = "工程博客：harness 四件套定义（p5-05）"
