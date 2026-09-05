@@ -145,13 +145,6 @@ gpu = [
     "transformers>=5.10.0",             # Hugging Face Transformers: 预训练模型 (>=5.10.0 修复 CVE-2026-9856 save_pretrained 路径穿越任意写文件)
 ]
 
-# === 文档依赖组：文档生成 ===
-docs = [
-    "mkdocs>=1.5.0",                    # 文档生成器: Markdown 转静态站点
-    "mkdocs-material>=9.1.0",           # MkDocs Material 主题: 现代化文档界面
-    "mkdocstrings[python]>=0.22.0",     # API 文档生成: 自动从 docstring 生成
-]
-
 # ==============================================================================
 # [project.scripts] - 命令行入口点
 # 定义 `pip install` 后可用的命令行命令
