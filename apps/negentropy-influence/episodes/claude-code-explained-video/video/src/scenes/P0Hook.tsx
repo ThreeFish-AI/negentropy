@@ -216,7 +216,7 @@ const NamingFrame: React.FC<{officialAt: number}> = ({officialAt}) => {
             {'“Claude Code is the harness, Claude is the model.”'}
           </div>
           <div style={{fontFamily: theme.mono, fontSize: 19, color: theme.dim, marginTop: 8}}>
-            {'— 官方文档 how-claude-code-works（code.claude.com，取数2026年8月）'}
+            {'— 官方文档 how-claude-code-works（code.claude.com，取数2026年9月）'}
           </div>
         </Panel>
       </div>
@@ -234,7 +234,9 @@ const SupplySpokes: React.FC<{titleAt: number}> = ({titleAt}) => {
     {label: '命令', zh: '执行与回传'},
     {label: '权限', zh: '闸门与审批'},
     {label: '记忆', zh: '上下文与规则', later: true},
-    {label: '护栏', zh: '拦截与兜底'},
+    // 官方 glossary 的第五样是「把这些串起来的循环」（不是护栏）——它就是本集主题，
+    // 故独用 core 色：P0-C 由此成为 P1 环诞生的视觉引信
+    {label: '循环', zh: '把这些串起来', core: true},
   ];
   const title = useSpring('settle', {at: titleAt});
   // 标题卡细线生长（beat 级慢动作，刻意不走 micro token）
@@ -273,6 +275,8 @@ const SupplySpokes: React.FC<{titleAt: number}> = ({titleAt}) => {
           const ix = CX + (fx - CX) * 0.24;
           const iy = CY - 40;
           const glow = sp.later ? 0 : 0.5 + 0.5 * Math.sin((frame - i * 8) / 9);
+          // 第五辐条（循环）是本集内核 ⇒ core；其余机制辐条 mech；「记忆」留灰
+          const hue = sp.later ? theme.dim : sp.core ? theme.core : theme.mech;
           return (
             <g key={sp.label} opacity={t * (sp.later ? 0.35 : 1)}>
               <line
@@ -280,11 +284,11 @@ const SupplySpokes: React.FC<{titleAt: number}> = ({titleAt}) => {
                 y1={fy}
                 x2={fx + (ix - fx) * t}
                 y2={fy + (iy - fy) * t}
-                stroke={sp.later ? theme.dim : theme.mech}
+                stroke={hue}
                 strokeWidth={5}
-                style={sp.later ? undefined : {filter: `drop-shadow(0 0 ${4 + glow * 8}px ${theme.mech}88)`}}
+                style={sp.later ? undefined : {filter: `drop-shadow(0 0 ${4 + glow * 8}px ${hue}88)`}}
               />
-              <circle cx={fx} cy={fy - 46} r={34 * t} fill={theme.panel} stroke={sp.later ? theme.dim : theme.mech} strokeWidth={3} />
+              <circle cx={fx} cy={fy - 46} r={34 * t} fill={theme.panel} stroke={hue} strokeWidth={3} />
               <text x={fx} y={fy - 92} textAnchor="middle" fontFamily={theme.sans} fontSize={26} fill={sp.later ? theme.dim : theme.text}>
                 {sp.label}
               </text>

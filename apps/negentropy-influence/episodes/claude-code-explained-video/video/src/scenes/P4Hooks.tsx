@@ -22,6 +22,7 @@ import {
 } from '../components/motifs';
 import {HarnessBadge} from '../components/harness-stack';
 import {LottieEmphasis} from '../components/LottieEmphasis';
+import {Plug3D, Socket3D, Stage3D, axoRotation} from '../components/solids-3d';
 import {DUR, useAccelTravel, useProgress, useSpring, useStagger} from '../motion';
 
 const SLOTS = [
@@ -120,6 +121,10 @@ const DegradedLoop: React.FC<{quoteAt: number}> = ({quoteAt}) => {
   );
 };
 
+/** 插座画布：紧贴插座外沿裁切（含插头拔出时的行程余量） */
+const SOCKET_SIZE = 92;
+const SOCKET_CANVAS = 190;
+
 /** 4-C 杂活被拔出循环、变成回调卡，环恢复原线宽 */
 const PullOut: React.FC<{tableAt: number; plugAt: number}> = ({tableAt, plugAt}) => {
   const frame = useCurrentFrame();
@@ -143,6 +148,10 @@ const PullOut: React.FC<{tableAt: number; plugAt: number}> = ({tableAt, plugAt})
         {[0, 1, 2, 3].map((i) => {
           const ang = -60 + i * 40;
           const rad = (ang * Math.PI) / 180;
+          // 节点 1（ang=-20°）改用**真插座 + 插头**（3D）：见下方 SocketPlug 说明。
+          // 其余三个保持平面方框——口播说的是「一张卡片『啪』地插入」，一个就够；
+          // 四个全做会把另外三个读成「三个空洞」。
+          if (i === 0) return null;
           return (
             <div
               key={i}
@@ -160,15 +169,47 @@ const PullOut: React.FC<{tableAt: number; plugAt: number}> = ({tableAt, plugAt})
             />
           );
         })}
+        {/* ★ 插座与插头（3D）——p4-11/12「循环是插座，功能是插头；加功能是插一个插头，
+            不是重新布线」的物理读出。此前这里只有一个 22×22 的 border 方框：那是**画在
+            墙上的插座符号**，而「插入」这个动作在画面上根本不存在（只有一行文字滑进来）。
+            3D 独有的读出是**咬合瞬间的遮挡**：插头侧棱被口沿逐渐吃掉——「它真的进去了」
+            的唯一无歧义信号，2D 的任何 translate 都做不到。
+            时序零新增：seat 直接吃既有的 `plug = useSpring('snap', {at: plugAt})`。
+            画布紧贴插座裁切（填充成本 ∝ 面积）；定位是调用点契约（ISSUE-177 教训一）。 */}
+        <div
+          style={{
+            position: 'absolute',
+            // 锚定节点 0（ang=-60°，环右上）：−20° 会与「看回答」节点标签及右侧注册表
+            // 相撞（实景抽帧修复）；−60° 是本幕唯一无文字的空区
+            left: 190 + 218 * Math.cos((-60 * Math.PI) / 180) - SOCKET_CANVAS / 2,
+            top: 190 + 218 * Math.sin((-60 * Math.PI) / 180) - SOCKET_CANVAS / 2,
+            width: SOCKET_CANVAS,
+            height: SOCKET_CANVAS,
+            opacity: out,
+            pointerEvents: 'none',
+          }}
+        >
+          <Stage3D width={SOCKET_CANVAS} height={SOCKET_CANVAS}>
+            <group rotation={axoRotation({pitch: -18, yaw: 16})}>
+              <Socket3D size={SOCKET_SIZE} wellDepth={34} skin={{face: theme.panel, edge: theme.mech}} />
+              <Plug3D
+                size={SOCKET_SIZE * 0.5}
+                seat={plug}
+                travel={104}
+                skin={{face: theme.panel, edge: theme.mech}}
+              />
+            </group>
+          </Stage3D>
+        </div>
         {frame >= seatAt ? (
-          // 锚定节点 1（ang=-20°，环右上「工具执行之前」插口）：中心 (394.9, 115.4)
-          // = 190+218·cos(-20°) / 190+218·sin(-20°)，96×96 画布减半居中。
-          // 不用节点 0（ang=-60°，中心 y≈1.2）——脉冲圈会溢出容器上沿。
+          // 咬合脉冲跟随 3D 插座（现锚定节点 0，ang=-60°）：中心
+          // (190+218·cos(-60°), 190+218·sin(-60°)) = (299, 1.2)，96×96 减半居中。
+          // 脉冲圈会略微溢出容器上沿——插座本身已表达咬合，脉冲只作轻强调，可接受。
           <LottieEmphasis
             src="lottie/plug-pulse.json"
             at={seatAt}
             duration={24}
-            style={{position: 'absolute', left: 347, top: 67, width: 96, height: 96}}
+            style={{position: 'absolute', left: 251, top: -46, width: 96, height: 96}}
           />
         ) : null}
       </div>
@@ -374,9 +415,9 @@ const BoringOnPurpose: React.FC<{quoteAt: number}> = ({quoteAt}) => {
   );
 };
 
-/** 4-F 31 事件 × 三节奏三层嵌套（Harness Engineering 改造版，官方文档口径）
+/** 4-F 33 事件 × 三节奏三层嵌套（Harness Engineering 改造版，官方文档口径）
  *  三层嵌套：外层 = 会话（一次）、中层 = 回合（每轮一次）、内层 = 工具调用（每次前后）。
- *  计数徽章滚到 31；右栏异步事件（不入嵌套的独立时机）。 */
+ *  计数徽章滚到 33；右栏异步事件（不入嵌套的独立时机）。 */
 const HookNesting: React.FC<{outerAt: number; midAt: number; innerAt: number; countAt: number; asyncAt: number}> = ({
   outerAt,
   midAt,
@@ -520,12 +561,12 @@ const HookNesting: React.FC<{outerAt: number; midAt: number; innerAt: number; co
             gap: 12,
           }}
         >
-          <Counter from={0} to={31} start={countAt} frames={50} style={{fontSize: 70, color: theme.mech, fontWeight: 700}} />
+          <Counter from={0} to={33} start={countAt} frames={50} style={{fontSize: 70, color: theme.mech, fontWeight: 700}} />
           <span style={{fontFamily: theme.sans, fontSize: 24, color: theme.dim}}>{'个时机'}</span>
         </div>
       </div>
       <Footnote delay={asyncAt}>
-        {'31 个 hook 事件 × 三种节奏 —— 官方文档 hooks reference（事件表逐行计数，取数2026年8月）'}
+        {'33 个 hook 事件 × 三种节奏 —— 官方文档 hooks reference（事件表逐行计数，取数2026年9月）'}
       </Footnote>
     </AbsoluteFill>
   );
@@ -863,7 +904,7 @@ export const P4Hooks: React.FC<{scene: SceneRange}> = ({scene}) => {
       <Sequence {...bE} name="4-E 故意保持无聊">
         <BoringOnPurpose quoteAt={rel(bE, 'p4-22')} />
       </Sequence>
-      <Sequence {...bF} name="4-F 31 事件三层嵌套">
+      <Sequence {...bF} name="4-F 33 事件三层嵌套">
         <HookNesting outerAt={rel(bF, 'p4-23')} midAt={rel(bF, 'p4-24')} innerAt={rel(bF, 'p4-24') + 30} countAt={rel(bF, 'p4-24') + 10} asyncAt={rel(bF, 'p4-25')} />
       </Sequence>
       <Sequence {...bG1} name="4-G1 六闸流水线">

@@ -11,6 +11,7 @@ import type {SceneRange} from '../types';
 import {QuoteCard} from '../components/cards';
 import {Footnote, LoopRing, Panel, Terminal, useRingDot} from '../components/motifs';
 import {HarnessBadge} from '../components/harness-stack';
+import {SHELL_FACES, Slab3D, Stage3D, axoRotation} from '../components/solids-3d';
 import {DUR, SPRING, useProgress, win} from '../motion';
 
 const CHAPTERS = [
@@ -230,7 +231,16 @@ const FourLayers: React.FC<{splitAt: number; mapAt: number}> = ({splitAt, mapAt}
   );
 };
 
-/** 5-B 四级台阶：柱高递增，柱内 core 段几乎不变；coreAt 后横贯 20–28 行的「实测带」 */
+/** 5-B 四级台阶：柱高递增，柱内 core 段几乎不变；coreAt 后横贯 20–28 行的「实测带」。
+ *
+ *  **本幕评估后不做 3D（2026-09）**，两条理由都成立且不可绕过：
+ *  ① 试做过「柱右缘加侧向厚度板」，实景抽帧发现侧板必然压住柱下方的章名标签（柱与标签
+ *     在同一 flex 列，3D 画布是覆盖式绝对定位），且遮挡了 20–28 实测带——**带是仪器，
+ *     柱是被测物**，仪器被遮等于把这幕的判据本身弄丢了；
+ *  ② 更根本的是「一根芯贯穿四柱」的想法本身要否决：四根柱是四个不同版本的**独立实测**
+ *     （23/20/24/28 的不相等恰是「四次独立测量」的证据），连续芯等于视觉上断言「同一段
+ *     代码的四次采样」——那是数据造假。这个信息已有正确载体：20–28 实测带横贯四柱但
+ *     **不属于**任何一柱。带与柱的区分不该被合并。 */
 const GrowthBars: React.FC<{barAt: number; coreAt: number}> = ({barAt, coreAt}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
@@ -241,6 +251,8 @@ const GrowthBars: React.FC<{barAt: number; coreAt: number}> = ({barAt, coreAt}) 
   // 实测带 16f：距 f5/f6 均 >3（Δ4/Δ5），保留显式时长；原线性 → standard
   const bandT = useProgress(coreAt + 6, 16);
   const yFor = (lines: number) => (lines / maxLines) * H;
+  // 四柱弹簧进度先算后用（裸 spring 纯函数，非 hook——铁律①：hook 禁入 map）
+  const grows = CHAPTERS.map((_, i) => spring({frame: frame - (barAt + i * 9), fps, config: SPRING.settle}));
   //: 柱底距容器底的实测像素：幕名标签（22px 字，行盒 ~33）+ `marginTop: 12`。
   //: 基准带必须减掉它才能落在柱子自己的行数刻度上——此前写 90，带体整体上浮 45px。
   const BAR_BASE = 45;
@@ -248,9 +260,8 @@ const GrowthBars: React.FC<{barAt: number; coreAt: number}> = ({barAt, coreAt}) 
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <div style={{position: 'relative', display: 'flex', gap: 56, alignItems: 'flex-end', height: H + 90}}>
         {CHAPTERS.map((c, i) => {
-          const at = barAt + i * 9;
-          // 四柱错峰生长：map 内只跑纯 spring()（hook 禁入 map），settle = 既有 damping 200
-          const e = spring({frame: frame - at, fps, config: SPRING.settle});
+          // 四柱错峰生长：预计算数组，settle = 既有 damping 200
+          const e = grows[i];
           const h = (c.total / maxLines) * H * e;
           const ch = (c.loop / maxLines) * H * e;
           return (
@@ -430,7 +441,50 @@ const SameRingFourLabels: React.FC<{flipAt: number; quoteAt: number}> = ({flipAt
   );
 };
 
-/** 5-D 回到 P0 的终端，这次它自己跑起来 */
+/** 5-D 回到 P0 的终端，这次它自己跑起来；四层结构合拢成一个**真的壳**。
+ *
+ *  ★ 本集最大的形式-内容同构（3D 化的第一优先落点）：
+ *  p5-17 是全片唯一把整套结构命名为**三维实体名词**的句子——「一个愿意反复跑、
+ *  能查表、会拦门、留了插口的**壳**」。此前这里是一个 3px 边框 div，读作「一个框」。
+ *  框与壳的差别恰是维度差：**框是一条闭合曲线，壳是一个有内外之分的体**。观众要
+ *  读出「终端在壳**里面**」，需要看见壳壁的**内表面**——2D 只能画外轮廓、内外靠约定。
+ *
+ *  四圈井壁自内向外 = 循环 / 分发表 / 闸门 / 插口：**层序即 z 序**，于是口播反复说的
+ *  「挂在外面」在几何上成立（z 更靠前）。这层语义在单层边框里彻底丢失。
+ *
+ *  它同时兑现 0-B：命名帧给的是**平面轮廓线**（那时观众只知道缺了一层），此处四层
+ *  拆完，同一轮廓**长出实体**。轮廓→实体是刻意的戏剧弧，故 0-B 保持平面不动。 */
+
+/** 四层井壁（自内向外）。色即语义，与 P6-A 三张挂件卡逐项相同——是回收不是新造：
+ *  循环 = core（唯一用 core 的一层，它是骨架）· 分发表/插口 = mech · 闸门 = deny。 */
+const SHELL_RIMS = [
+  {name: '循环', edge: 'core', grow: 0},
+  {name: '分发表', edge: 'mech', grow: 1},
+  {name: '闸门', edge: 'deny', grow: 2},
+  {name: '插口', edge: 'mech', grow: 3},
+] as const;
+
+/** 四圈的合拢窗口：开在**既有那一条** 26 帧 shell 进度上（win 是 frozen 纯函数，
+ *  可安全用于 map）——不新增任何时点，故总帧数与 beat 边界一字未动。 */
+const RIM_WIN: readonly (readonly [number, number])[] = [
+  [0, 0.4],
+  [0.15, 0.55],
+  [0.3, 0.7],
+  [0.45, 0.9],
+];
+
+/** 壳的几何：终端 1120×400，四圈逐层外扩 SHELL_STEP。
+ *  ⚠️ 字幕安全带预算（qa_frames SUBTITLE_BAND_PX=160 ⇒ SAFE_TOP_Y=920）：
+ *  终端在 1080 高画面里居中 ⇒ 底沿 y=740；壳最外沿 = 740 + 17 + 3×26 + 22 ≈ 857 < 920。 */
+const TERM_W = 1120;
+const TERM_H = 400;
+/** 逐层外扩量：外层比内层每边大 SHELL_STEP，露出的那一圈就是这一层的「壁」 */
+const SHELL_STEP = 30;
+/** 层厚 = 层间 z 距：相邻层首尾相接，读作连续井壁而非悬浮的四块板 */
+const SHELL_DEPTH = 26;
+const SHELL_CANVAS_W = TERM_W + 34 + 3 * 2 * SHELL_STEP + 60;
+const SHELL_CANVAS_H = TERM_H + 34 + 3 * 2 * SHELL_STEP + 60;
+
 const SelfRunning: React.FC<{shellAt: number; quoteAt: number}> = ({shellAt, quoteAt}) => {
   const frame = useCurrentFrame();
   // 壳合拢是幕级动作：26f ≥22 不入 micro token；原线性 → standard。
@@ -448,6 +502,8 @@ const SelfRunning: React.FC<{shellAt: number; quoteAt: number}> = ({shellAt, quo
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <div style={{position: 'relative'}}>
+        {/* 终端浮在壳之上（壳是它的「外围」）——z 层级是调用点契约，不写进原语 */}
+        <div style={{position: 'relative', zIndex: 1}}>
         <Terminal
           width={1120}
           height={400}
@@ -459,20 +515,58 @@ const SelfRunning: React.FC<{shellAt: number; quoteAt: number}> = ({shellAt, quo
             {text: 'python ./tools/fmt.py  →  完成', color: theme.mech, delay: 80},
           ]}
         />
-        {/* 四层结构在终端外围合拢成一个壳。常驻渲染：透明度随 shell 自 0 起（替代原布尔门） */}
+        </div>
+        {/* 四层结构在终端外围合拢成一个**壳**（3D）。
+            构造：每层是**一整块实心板**（不是四条边框），自外向内逐层缩小并前移；
+            内层遮住外层的中央区，井口由此自然形成——「洞」是遮挡的产物，不是画出来的框。
+            ⚠️ 首版用四条 Rim 边框拼井壁：4 层 × 4 条 × 轮廓线 = 16 个矩形边，线条密度
+            压倒了面，整组读成「一堆细线框」而非「体」（实景抽帧两轮修复的结论）。
+            定位是**调用点契约**（Stage3D 类型上已 Omit 定位属性，ISSUE-177 教训一）。 */}
         <div
           style={{
             position: 'absolute',
-            left: -34 + shell * 12,
-            top: -34 + shell * 12,
-            right: -34 + shell * 12,
-            bottom: -34 + shell * 12,
-            border: `3px solid ${theme.core}`,
-            borderRadius: 22,
-            opacity: shell * 0.9,
+            left: (1120 - SHELL_CANVAS_W) / 2,
+            top: (400 - SHELL_CANVAS_H) / 2,
+            width: SHELL_CANVAS_W,
+            height: SHELL_CANVAS_H,
             pointerEvents: 'none',
           }}
-        />
+        >
+          <Stage3D width={SHELL_CANVAS_W} height={SHELL_CANVAS_H}>
+            <group rotation={axoRotation()}>
+              {SHELL_RIMS.map((r, i) => {
+                // 自外向内：i=0(循环) 最内最小最靠前？——不。层序即 z 序，
+                // 循环是骨架故在**最里**（z 最深、尺寸最小），插口在最外（z 最浅、最大）。
+                const depth = SHELL_RIMS.length - 1 - i; // 3..0，越大越靠外
+                const close = win(shell, RIM_WIN[i]);
+                const w = TERM_W + 34 + depth * 2 * SHELL_STEP;
+                const h = TERM_H + 34 + depth * 2 * SHELL_STEP;
+                return (
+                  <Slab3D
+                    key={r.name}
+                    width={w}
+                    height={h}
+                    depth={SHELL_DEPTH}
+                    skin={{
+                      // 面色：外层更暗（越靠外越背光）——手绘梯度，非光照计算（宪法三）
+                      face: SHELL_FACES[depth],
+                      edge:
+                        r.edge === 'core' ? theme.core : r.edge === 'deny' ? theme.deny : theme.mech,
+                      opacity: 0.35 + 0.65 * close,
+                      // 层身份轮廓：越靠外越淡（0.34→0.85），把视觉焦点留给井底的终端；
+                      // 四条同亮会让最外圈那道彩边抢过主体（实景抽帧调校）
+                      edgeOpacity: close * (0.85 - depth * 0.17),
+                      noEdges: true, // 只留正面一圈轮廓（层身份），不要 12 条棱
+                    }}
+                    // 合拢：自后方推入到位；层序即 z 序（内层更深）
+                    position={[0, 0, -depth * SHELL_DEPTH - (1 - close) * 180]}
+                    renderOrder={i}
+                  />
+                );
+              })}
+            </group>
+          </Stage3D>
+        </div>
       </div>
       <Footnote delay={shellAt}>{'一个愿意反复跑、能查表、会拦门、留了插口的壳'}</Footnote>
     </AbsoluteFill>

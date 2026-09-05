@@ -15,6 +15,7 @@ import {AbsoluteFill, Composition, registerRoot, useCurrentFrame} from 'remotion
 import {evolvePath} from '@remotion/paths';
 import {theme} from '../design/theme';
 import {PlateSlab3D, HarnessStackP0, LAYERS, ACTIVE_INDEX} from '../components/harness-stack';
+import {Plug3D, SHELL_FACES, Slab3D, Socket3D, Stage3D, axoRotation} from '../components/solids-3d';
 import {LottieEmphasis} from '../components/LottieEmphasis';
 import {SLOT_GAP, SLOT_W} from '../components/motifs';
 import {useProgress} from '../motion';
@@ -23,8 +24,10 @@ const CELLS: Array<{name: string; left: number; top: number; w: number; h: numbe
   {name: 'p3 arc', left: 60, top: 60, w: 800, h: 300},
   {name: 'p4 backflow', left: 900, top: 60, w: 560, h: 420},
   {name: 'slab3d active/dim', left: 1500, top: 60, w: 380, h: 260},
-  {name: 'stack p0', left: 60, top: 400, w: 700, h: 640},
+  {name: 'stack p0', left: 60, top: 400, w: 700, h: 360},
   {name: 'lottie plug-pulse', left: 900, top: 520, w: 560, h: 420},
+  {name: 'housing close (5-D)', left: 1500, top: 340, w: 380, h: 320},
+  {name: 'socket seat 0/.5/1/1.095 (4-C)', left: 60, top: 780, w: 800, h: 260},
 ];
 
 const Cell: React.FC<{c: (typeof CELLS)[number]; children: React.ReactNode}> = ({c, children}) => (
@@ -132,6 +135,66 @@ const LottieCell: React.FC = () => {
   );
 };
 
+/** ⑥ 5-D 壳：close 三态并排（0 / 0.5 / 1）——层序是否可读、面是否读作「体」 */
+const HousingCell: React.FC = () => {
+  const frame = useCurrentFrame();
+  const closes = [0, 0.5, Math.min(1, Math.max(0, (frame - 10) / 21))];
+  return (
+    <div style={{position: 'absolute', inset: '30px 10px 10px', display: 'flex', gap: 6}}>
+      {closes.map((c, k) => (
+        <div key={k} style={{position: 'relative', width: 118, height: 250}}>
+          <Stage3D width={118} height={250}>
+            <group rotation={axoRotation()}>
+              {[0, 1, 2, 3].map((i) => {
+                const d = 3 - i;
+                return (
+                  <Slab3D
+                    key={i}
+                    width={54 + d * 16}
+                    height={30 + d * 16}
+                    depth={16}
+                    skin={{
+                      face: SHELL_FACES[d],
+                      edge: i === 0 ? theme.core : i === 2 ? theme.deny : theme.mech,
+                      opacity: 0.35 + 0.65 * c,
+                      edgeOpacity: c * (0.85 - d * 0.17),
+                      noEdges: true,
+                    }}
+                    position={[0, 0, -d * 16 - (1 - c) * 90]}
+                    renderOrder={i}
+                  />
+                );
+              })}
+            </group>
+          </Stage3D>
+          <div style={{position: 'absolute', left: 0, bottom: 2, width: '100%', textAlign: 'center', fontFamily: theme.mono, fontSize: 13, color: theme.dim}}>
+            {`close ${c.toFixed(2)}`}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+/** ⑦ 4-C 插座：seat 四态含 **1.095**（SPRING.snap 的 ζ=0.6 过冲峰）——插头是否穿透井底 */
+const SocketCell: React.FC = () => (
+  <div style={{position: 'absolute', inset: '16px 8px 22px', display: 'flex', gap: 6}}>
+    {[0, 0.5, 1, 1.095].map((s) => (
+      <div key={s} style={{position: 'relative', width: 192, height: 200}}>
+        <Stage3D width={192} height={200}>
+          <group rotation={axoRotation({pitch: -18, yaw: 16})}>
+            <Socket3D size={80} wellDepth={34} skin={{face: theme.panel, edge: theme.mech}} />
+            <Plug3D size={40} seat={s} travel={104} skin={{face: theme.panel, edge: theme.mech}} />
+          </group>
+        </Stage3D>
+        <div style={{position: 'absolute', left: 0, bottom: 0, width: '100%', textAlign: 'center', fontFamily: theme.mono, fontSize: 13, color: s > 1 ? theme.deny : theme.dim}}>
+          {`seat ${s}`}
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
 const RetrofitGallery: React.FC = () => (
   <AbsoluteFill style={{background: theme.bg}}>
     <div style={{position: 'absolute', left: 60, top: 20, fontFamily: theme.mono, fontSize: 24, color: theme.text}}>
@@ -151,6 +214,8 @@ const RetrofitGallery: React.FC = () => (
           </div>
         ) : null}
         {c.name === 'lottie plug-pulse' ? <LottieCell /> : null}
+        {c.name === 'housing close (5-D)' ? <HousingCell /> : null}
+        {c.name === 'socket seat 0/.5/1/1.095 (4-C)' ? <SocketCell /> : null}
       </Cell>
     ))}
   </AbsoluteFill>
