@@ -170,7 +170,7 @@ const SourceAndFade: React.FC<{beatDurationInFrames: number; seriesAt: number}> 
   // 信源四行 + 诚实行依次浮现（stride 4、单项 f4）
   const rowsOn = useStagger(4, {at: 8, stride: 4, dur: DUR.f4});
   const rows = [
-    ['官方文档', 'code.claude.com/docs · 取数2026年8月'],
+    ['官方文档', 'code.claude.com/docs · 取数2026年9月'],
     ['工程博客', 'anthropic.com/engineering'],
     ['源码分析', '第三方逆向分析 · 片中逐处标注'],
     ['数字口径', '开源仓库钉版实测 · 行数均为非空非注释口径'],
