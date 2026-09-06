@@ -15,11 +15,11 @@
  * 所有幕的左上内容最早从 y=56 起。故常驻形式取顶边横条（紧贴上缘，不占字幕安全带
  * 也不与 SceneTag 相干）。缩退以交叉淡出衔接，避免纵向→横向的形态跳变。
  */
-import React, {useMemo} from 'react';
+import React from 'react';
 import {AbsoluteFill} from 'remotion';
 import {ThreeCanvas} from '@remotion/three';
-import * as THREE from 'three';
 import {theme} from '../design/theme';
+import {Slab3D} from './solids-3d';
 import {DUR, useBreathe, useDim, useProgress, useStagger} from '../motion';
 import series from '../series-layers.json';
 
@@ -34,21 +34,6 @@ const STACK_CROSSFADE_FRAMES = 8;
 /** 3D 板 active 档的面色：在 theme.panel 基础上掺极少量 core 的暖意（读作「被点亮的深底」），
  *  刻意**不**用 core 本色——整块变实心暖色会压掉白色层名的对比度（首版实测）。 */
 const PLATE_LIT = '#241C1E';
-
-/** 正面轮廓线顶点（矩形四角闭合）：edges 的单像素棱线在暗底不足以读作 2px 描边，
- *  故在板正面再叠一圈 lineLoop 加权。 */
-const faceOutline = (w: number, h: number) => {
-  const x = w / 2;
-  const y = h / 2;
-  return {
-    attributes: {
-      position: new THREE.BufferAttribute(
-        new Float32Array([-x, -y, 0, x, -y, 0, x, y, 0, -x, y, 0]),
-        3,
-      ),
-    },
-  };
-};
 
 /** 开场全尺寸栈与常驻顶边条开始交叉淡化的局部帧。 */
 export const harnessStackCrossAt = (recedeAt: number): number =>
@@ -146,7 +131,6 @@ export const PlateSlab3D: React.FC<{
   const settleTilt = (-12 * Math.PI) / 180;
   const yaw = (8 * Math.PI) / 180;
   const rotationX = settleTilt + (1 - settle) * ((-18 * Math.PI) / 180);
-  const boxGeo = useMemo(() => new THREE.BoxGeometry(width, height, depth), [width, height, depth]);
   return (
     <div style={{position: 'relative', width: '100%', height: canvasH}}>
       <ThreeCanvas
@@ -156,26 +140,20 @@ export const PlateSlab3D: React.FC<{
         camera={{position: [0, 0, 100], zoom: 1}}
         style={{position: 'absolute', inset: 0}}
       >
-        {/* 灯光只服务侧/顶棱的明暗区分；面色不吃光（basic 材质），保证读色与平面 Plate 一致 */}
-        <ambientLight intensity={1} />
+        {/* 零光源（solids-3d 宪法三）：basic 材质本就不吃光，此前的 ambientLight 是空操作。
+            板体恒等于 theme.panel 深底，active 的暖意只走描边与 PLATE_LIT 的轻微提亮——
+            绝不让整块变成实心亮块（ISSUE-177 教训二：emissive 把点亮层烧成橙块、压掉文字对比）。 */}
         <group rotation={[rotationX, yaw, 0]} position={[0, -headroom / 2, 0]}>
-          {/* 板体：恒等于 theme.panel 深底（不受光）。active 的暖意只走描边与轻微提亮，
-              绝不让整块变成实心亮块——基线读色是「描边框 + 深底 + 文字浮起」，
-              首版用 meshStandardMaterial+emissive 把点亮层烧成橙色实心块，反而压掉了文字对比。 */}
-          <mesh>
-            <boxGeometry args={[width, height, depth]} />
-            <meshBasicMaterial color={active ? PLATE_LIT : theme.panel} opacity={dim} transparent />
-          </mesh>
-          {/* 描边：edges 单像素在暗底几乎不可见 ⇒ 叠一圈正面轮廓线加权，
-              读作平面 Plate 的 2px border（active=core / 常态=panelBorder） */}
-          <lineSegments>
-            <edgesGeometry args={[boxGeo]} />
-            <lineBasicMaterial color={active ? theme.core : theme.panelBorder} transparent opacity={dim} />
-          </lineSegments>
-          <lineLoop position={[0, 0, depth / 2 + 0.5]}>
-            <bufferGeometry attach="geometry" {...faceOutline(width, height)} />
-            <lineBasicMaterial color={active ? theme.core : theme.panelBorder} transparent opacity={dim} />
-          </lineLoop>
+          <Slab3D
+            width={width}
+            height={height}
+            depth={depth}
+            skin={{
+              face: active ? PLATE_LIT : theme.panel,
+              edge: active ? theme.core : theme.panelBorder,
+              opacity: dim,
+            }}
+          />
         </group>
       </ThreeCanvas>
       {/* 文字层：绝对定位叠在 canvas 上、下移 headroom/2 与板视觉中心对位（文字永不进 3D）。
