@@ -174,7 +174,8 @@ jobs:
             --ignore-vuln CVE-2026-1839
 
             # transformers 4.57.6 convert/checkpoint 路径 RCE；本项目仅加载已转换的第一方模型，
-            # 不调用转换工具链；transformers 锁定 <5.0.0 受 marker-pdf / docling 兼容交集制约
+            # 不调用转换工具链；transformers 锁定 <5.0.0 的根因见下方 CVE-2026-9856 条
+            # （marker-pdf / surya 要求 pillow<11，与 pillow>=12.3.0 冲突）
             --ignore-vuln PYSEC-2025-211
             --ignore-vuln PYSEC-2025-212
             --ignore-vuln PYSEC-2025-213
@@ -187,15 +188,15 @@ jobs:
             # transformers <5.3.0 模型加载路径 RCE（CVE-2026-4372：恶意 config.json 绕过
             # trust_remote_code）；本项目不直接调用 transformers（经 docling / marker-pdf /
             # surya 间接依赖），且仅加载第一方模型 artifact、不加载不可信 HF 仓库，攻击向量
-            # 不可达；transformers 锁定 <5.0.0 受 marker-pdf / docling 兼容交集制约（与上方
-            # PYSEC-2025-211..218 同约束），待交集支持 5.3.0+ 后升级
+            # 不可达；transformers 锁定 <5.0.0 的根因见下方 CVE-2026-9856 条（marker-pdf 2.0.0 /
+            # surya 0.22.1 要求 pillow<11，与 pillow>=12.3.0 冲突），待二者放开该上界后升级
             --ignore-vuln CVE-2026-4372
 
             # transformers PYSEC-2026-2290（CVE-2026-5241）：LightGlue 模型加载路径 RCE——
             # 恶意 config.json 覆盖 trust_remote_code=False 触发远程代码执行。与上方 CVE-2026-4372
             # 同威胁模型：本项目仅加载第一方模型 artifact、不加载不可信 HF 仓库/config，攻击向量
             # 不可达；且 upstream 无已发布修复版本（Last affected 5.2.0，fix 仅在未发布 commit），
-            # transformers 锁定 <5.0.0 亦受 marker-pdf / surya 兼容交集制约
+            # transformers 锁定 <5.0.0 的根因同见下方 CVE-2026-9856 条（pillow<11 冲突）
             --ignore-vuln PYSEC-2026-2290
 
             # transformers CVE-2026-9856（GHSA-xrqw-3rrv-vx5w）：save_pretrained 路径穿越
@@ -230,7 +231,7 @@ jobs:
             # macOS APFS/HFS+ 上因缺 Unicode（NFD/NFC）归一化被绕过，构建 sdist 时可能误打包应
             # 排除文件（本地向量、需在受影响 macOS 文件系统上构建 sdist）。本项目 CI 在 Linux
             # 构建（非 APFS/HFS+）、产物不含敏感文件，攻击向量不可达；修复仅在 setuptools 83.0.0，
-            # 为保持既有 82.0.1 运行时 pin（见 pyproject，undetected-chromedriver 相关）不变、
+            # 为保持既有 82.0.1 运行时 pin（见 pyproject setuptools 注释与 ISSUE-092 2026-09-06 增补）不变、
             # 不为不可达低危 flaw 变更 build 后端版本，故此处 ignore 而不升级
             --ignore-vuln PYSEC-2026-3447
           )
