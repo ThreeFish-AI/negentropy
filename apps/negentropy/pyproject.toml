@@ -27,7 +27,7 @@ dependencies = [
     "opentelemetry-instrumentation-google-genai>=0.6b0,<1.0.0",  # ADK GenAI SDK OTel 自动埋点 (消除 adk_web_server 启动期 WARNING)
     "opentelemetry-exporter-otlp-proto-http>=1.37.0,<2.0.0",  # OTLP HTTP/protobuf span exporter — TracingManager / LiteLLM otel callback / ADK _get_otel_span_exporter 均依赖此包
     "microsandbox>=0.1.8",          # Isolated execution environment for tool usage
-    "mcp>=1.6.0",                   # Model Context Protocol SDK for MCP Server integration
+    "mcp>=1.28.1,<2.0.0",           # Model Context Protocol SDK for MCP Server integration (>=1.28.1 修复 CVE-2026-52869/52870/59950 http-transport 漏洞; <2.0.0: 2.x 拆出 mcp-types/truststore 属未验证 major 迁移，perceives 实跑 1.28.1)
     "pydantic-settings[yaml]>=2.14.2",  # Configuration management with YAML support; >=2.14.2 修复 GHSA-4xgf-cpjx-pc3j (NestedSecretsSettingsSource 跟随 secrets_dir 外符号链接致本地文件读)
     "pyyaml>=6.0.2",                # YAML parser for configuration files
     # LLM & AI Services
@@ -147,15 +147,16 @@ exclude_lines = [
 
 [tool.uv]
 override-dependencies = [
-    "aiohttp>=3.14.1",      # CVE-2026-34993/47265 等 (22 个): microsandbox==0.1.8 锁死 <3.11.0, 强制覆盖升级至 3.14.1
+    "aiohttp>=3.14.3",      # CVE-2026-34993/47265 等 (25 个): microsandbox==0.1.8 锁死 <3.11.0, 强制覆盖升级至 3.14.3 (新增 C 解析器堆越界读 + WebSocket 请求走私)
 ]
 constraint-dependencies = [
     # ── 既有约束 ──
     "authlib>=1.7.1",       # GHSA-jj8c-mmj3-mmgv: OIDC Open Redirect + OAuth client cache CSRF (+ 保留历史 CVE-2026-27962 等防御)
     "joserfc>=1.6.7",       # CVE-2026-48990: b64=false RFC7797 JWS payload 绕过 JWSRegistry 大小限制 (authlib → joserfc 间接)
-    "pyasn1>=0.6.3",        # CVE-2026-30922: unbounded recursion DoS
+    "pyasn1>=0.6.4",        # CVE-2026-30922 + GHSA-m4p7-r5rc-7g4j 等 (3 个): BER/CER/DER 解码器 DoS (google-auth → pyasn1-modules 传递)
     "pyjwt>=2.13.0",        # PYSEC-2026-175/177/178/179 + CVE-2026-32597: unknown crit header extensions
-    "cryptography>=48.0.1", # GHSA-537c-gmf6-5ccf: wheel 内 OpenSSL 漏洞 (high); 兼容 46.0.7 的 buffer overflow/subgroup/DNS constraint 防御
+    "cryptography>=50.0.0", # GHSA-g6cj-pr64-35w5: PKCS#7 EnvelopedData 解密暴露 Bleichenbacher oracle (high); 兼容 wheel 内 OpenSSL 与 46.0.7 的 buffer overflow/subgroup/DNS constraint 防御
+    "setuptools>=83.0.0",   # CVE-2026-59890: MANIFEST.in 排除规则在 macOS APFS/HFS+ 被 Unicode 归一化绕过 (spacy/thinc 传递)
     "pygments>=2.20.0",     # CVE-2026-4539: ReDoS via GUID regex
     "requests>=2.33.0",     # CVE-2026-25645: insecure temp file reuse
     # ── 新增约束 (上游传递依赖防御性声明) ──
