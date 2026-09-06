@@ -146,7 +146,8 @@ const HousingCell: React.FC = () => {
           <Stage3D width={118} height={250}>
             <group rotation={axoRotation()}>
               {[0, 1, 2, 3].map((i) => {
-                const d = 3 - i;
+                // 与 P5Stack 同口径：i=0(循环) 最内 ⇒ 最小最靠前；i=3(插口) 最外 ⇒ 最大最靠后
+                const d = i;
                 return (
                   <Slab3D
                     key={i}
@@ -183,7 +184,7 @@ const SocketCell: React.FC = () => (
       <div key={s} style={{position: 'relative', width: 192, height: 200}}>
         <Stage3D width={192} height={200}>
           <group rotation={axoRotation({pitch: -18, yaw: 16})}>
-            <Socket3D size={80} wellDepth={34} skin={{face: theme.panel, edge: theme.mech}} />
+            <Socket3D size={80} wellDepth={34} skin={{edge: theme.mech}} />
             <Plug3D size={40} seat={s} travel={104} skin={{face: theme.panel, edge: theme.mech}} />
           </group>
         </Stage3D>

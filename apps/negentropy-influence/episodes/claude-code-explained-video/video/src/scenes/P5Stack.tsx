@@ -450,7 +450,8 @@ const SameRingFourLabels: React.FC<{flipAt: number; quoteAt: number}> = ({flipAt
  *  读出「终端在壳**里面**」，需要看见壳壁的**内表面**——2D 只能画外轮廓、内外靠约定。
  *
  *  四圈井壁自内向外 = 循环 / 分发表 / 闸门 / 插口：**层序即 z 序**，于是口播反复说的
- *  「挂在外面」在几何上成立（z 更靠前）。这层语义在单层边框里彻底丢失。
+ *  「挂在外面」在几何上成立——外层尺寸更大、z 更靠后，在画面上从四周包住内层。
+ *  这层语义在单层边框里彻底丢失。
  *
  *  它同时兑现 0-B：命名帧给的是**平面轮廓线**（那时观众只知道缺了一层），此处四层
  *  拆完，同一轮廓**长出实体**。轮廓→实体是刻意的戏剧弧，故 0-B 保持平面不动。 */
@@ -473,17 +474,31 @@ const RIM_WIN: readonly (readonly [number, number])[] = [
   [0.45, 0.9],
 ];
 
-/** 壳的几何：终端 1120×400，四圈逐层外扩 SHELL_STEP。
- *  ⚠️ 字幕安全带预算（qa_frames SUBTITLE_BAND_PX=160 ⇒ SAFE_TOP_Y=920）：
- *  终端在 1080 高画面里居中 ⇒ 底沿 y=740；壳最外沿 = 740 + 17 + 3×26 + 22 ≈ 857 < 920。 */
+/** 壳的几何：终端 1120×400，四圈逐层外扩 SHELL_STEP。 */
 const TERM_W = 1120;
 const TERM_H = 400;
 /** 逐层外扩量：外层比内层每边大 SHELL_STEP，露出的那一圈就是这一层的「壁」 */
 const SHELL_STEP = 30;
 /** 层厚 = 层间 z 距：相邻层首尾相接，读作连续井壁而非悬浮的四块板 */
 const SHELL_DEPTH = 26;
-const SHELL_CANVAS_W = TERM_W + 34 + 3 * 2 * SHELL_STEP + 60;
-const SHELL_CANVAS_H = TERM_H + 34 + 3 * 2 * SHELL_STEP + 60;
+/** 合拢起点的额外后推量：四层自后方沿 −z 推入到位 */
+const SHELL_PUSH_IN = 180;
+/** 最外层（depth = 层数−1）的半展宽，含 close=0 时 SHELL_PUSH_IN 被 AXO 投影出的外扩。
+ *  ⚠️ 余量**不对称**：俯角 −12° 把后推量几乎整份折算进 y，x 只吃到偏航 8° 的一小截。
+ *  以 THREE.Euler('XYZ', −12°, 8°) 投影最外层八角实测（close=0 / close=1）：
+ *    |x|max 698.3 / 673.2 ⇒ W ≥ 1397；|y|max 375.5 / 338.4 ⇒ H ≥ 751。
+ *  首版只加了对称的 +60（且算式误用 SHELL_DEPTH 26 当外扩量、又漏了后推量），
+ *  H 差 77px ⇒ 合拢初期最外层底缘被画布下沿直切出一条硬直边（frame 23502 实证 635px）。
+ *  下方两个常量按实测取整并留 2px 抗锯齿余量。 */
+const SHELL_PAD_X = 66;
+const SHELL_PAD_Y = 142;
+const SHELL_SPAN = (SHELL_RIMS.length - 1) * 2 * SHELL_STEP;
+const SHELL_CANVAS_W = TERM_W + 34 + SHELL_SPAN + SHELL_PAD_X; // 1400
+const SHELL_CANVAS_H = TERM_H + 34 + SHELL_SPAN + SHELL_PAD_Y; // 756
+// ⚠️ 字幕安全带预算（qa_frames SUBTITLE_BAND_PX=160 ⇒ SAFE_TOP_Y=920）：终端居中 ⇒ 视觉
+// 中心 y=540；最外层底缘 close=0 时落在 540+375.5=915.5、close=1 收到 878.4，均 < 920
+// （抽帧实测最低非背景像素：frame 23502 = 914、frame 23525 = 878，与算式一致）。
+// ★ 画布加高不改变几何，只是不再裁掉它——安全带余量由上面那两个实测值直接背书。
 
 const SelfRunning: React.FC<{shellAt: number; quoteAt: number}> = ({shellAt, quoteAt}) => {
   const frame = useCurrentFrame();
@@ -535,9 +550,10 @@ const SelfRunning: React.FC<{shellAt: number; quoteAt: number}> = ({shellAt, quo
           <Stage3D width={SHELL_CANVAS_W} height={SHELL_CANVAS_H}>
             <group rotation={axoRotation()}>
               {SHELL_RIMS.map((r, i) => {
-                // 自外向内：i=0(循环) 最内最小最靠前？——不。层序即 z 序，
-                // 循环是骨架故在**最里**（z 最深、尺寸最小），插口在最外（z 最浅、最大）。
-                const depth = SHELL_RIMS.length - 1 - i; // 3..0，越大越靠外
+                // 层序即 z 序，且**尺寸序与之同向**：循环是骨架故在最里（最小、最靠前），
+                // 插口挂在最外（最大、最靠后，于是它从四周包住内层）。
+                // ⚠️ 决定「谁看起来在里面」的是尺寸与色阶，不只是 z——三者必须同向。
+                const depth = i; // 0..3，越大越靠外
                 const close = win(shell, RIM_WIN[i]);
                 const w = TERM_W + 34 + depth * 2 * SHELL_STEP;
                 const h = TERM_H + 34 + depth * 2 * SHELL_STEP;
@@ -558,8 +574,8 @@ const SelfRunning: React.FC<{shellAt: number; quoteAt: number}> = ({shellAt, quo
                       edgeOpacity: close * (0.85 - depth * 0.17),
                       noEdges: true, // 只留正面一圈轮廓（层身份），不要 12 条棱
                     }}
-                    // 合拢：自后方推入到位；层序即 z 序（内层更深）
-                    position={[0, 0, -depth * SHELL_DEPTH - (1 - close) * 180]}
+                    // 合拢：自后方推入到位；层序即 z 序（外层更深）
+                    position={[0, 0, -depth * SHELL_DEPTH - (1 - close) * SHELL_PUSH_IN]}
                     renderOrder={i}
                   />
                 );

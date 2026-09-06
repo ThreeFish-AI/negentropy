@@ -148,7 +148,7 @@ const PullOut: React.FC<{tableAt: number; plugAt: number}> = ({tableAt, plugAt})
         {[0, 1, 2, 3].map((i) => {
           const ang = -60 + i * 40;
           const rad = (ang * Math.PI) / 180;
-          // 节点 1（ang=-20°）改用**真插座 + 插头**（3D）：见下方 SocketPlug 说明。
+          // 节点 0（ang=-60°）改用**真插座 + 插头**（3D）：见下方 3D 插座说明。
           // 其余三个保持平面方框——口播说的是「一张卡片『啪』地插入」，一个就够；
           // 四个全做会把另外三个读成「三个空洞」。
           if (i === 0) return null;
@@ -191,7 +191,7 @@ const PullOut: React.FC<{tableAt: number; plugAt: number}> = ({tableAt, plugAt})
         >
           <Stage3D width={SOCKET_CANVAS} height={SOCKET_CANVAS}>
             <group rotation={axoRotation({pitch: -18, yaw: 16})}>
-              <Socket3D size={SOCKET_SIZE} wellDepth={34} skin={{face: theme.panel, edge: theme.mech}} />
+              <Socket3D size={SOCKET_SIZE} wellDepth={34} skin={{edge: theme.mech}} />
               <Plug3D
                 size={SOCKET_SIZE * 0.5}
                 seat={plug}

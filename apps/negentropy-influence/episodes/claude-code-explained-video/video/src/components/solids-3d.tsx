@@ -14,8 +14,8 @@
  *     box/edges/lineLoop/basic 材质 —— 恰好等于 PlateSlab3D 已跑通并过
  *     tsc 的那一组，新增 3D **不引入任何新类型面**。
  *  ② **读感来自转物体，不来自动相机**。正交 + zoom:1 下 1 世界单位 = 1 CSS
- *     像素，这是 domToWorld 能存在、叠层能手算的唯一前提。相机一动，所有
- *     DOM 叠层坐标都要走投影反算（P5Stack 的 BAR_BASE 45 就是这类手算偏移
+ *     像素，这是 3D 与 DOM 叠层能手算对位的唯一前提。相机一动，所有 DOM
+ *     叠层坐标都要走投影反算（P5Stack 的 BAR_BASE 45 就是这类手算偏移
  *     留下的疤）。故**相机全片零动画**；深度感靠物体静置俯角/偏航。
  *     副产品：没有相机插值就没有浮点累积 ⇒ 无头渲染确定性。
  *  ③ **每个颜色必须是 theme token 字面值或有注释的确定性派生，永不是
@@ -36,16 +36,12 @@ import {theme} from '../design/theme';
 
 // ── 面色梯度（宪法三：字面量，可 grep、可算 WCAG） ─────────────────────
 //
-// 深 → 浅：bg < SOCKET_WALL < panel < SHELL_INNER < PLATE_LIT
+// 深 → 浅：bg < SOCKET_WALL < panel < PLATE_LIT
 // 对 theme.text #F2F5FA 的对比度（与 qa_frames --check-theme 同算法）：
-//   panel #171C26 15.62:1 · PLATE_LIT #241C1E 15.26:1 · SHELL_INNER #1E242F 14.19:1
-//   SOCKET_WALL #141922 16.31:1 —— 全部 ≥ 12:1 的预算线。
+//   panel #171C26 15.62:1 · PLATE_LIT #241C1E 15.26:1 · SOCKET_WALL #141922 16.31:1
+//   —— 全部 ≥ 12:1 的预算线。
 // ⚠️ 这些常量**刻意不进 theme.ts**：--check-theme 会遍历 theme 的所有色 token
 //    并按「概念色 on bg」判 4.5:1，深色面板色会被当概念色查而直接 FAIL。
-
-/** 井壁内表面：panel 提亮一档，读作「被井口光照到的内壁」——**作者手绘的暗部关系**，
- *  不是光照计算的结果（宪法三）。 */
-export const SHELL_INNER = '#1E242F';
 
 /** 壳壁的四层面色梯度（自内向外**逐层变暗**）。
  *
@@ -59,12 +55,6 @@ export const SHELL_INNER = '#1E242F';
  *  面根本读不出来 ⇒ 只剩棱线可见、整组读成线框堆。**面要被看见，必须与 bg 拉开**。 */
 export const SHELL_FACES = ['#39435A', '#2E374B', '#242C3C', '#1B212D'] as const;
 
-/** 5-B 柱的侧向厚度板面色：比 theme.panel 深一档的「厚度暗部」（手绘梯度，宪法三）。 */
-export const BAR_SIDE = '#10141C';
-
-/** 5-B 侧板偏航角（yaw-only 硬约束：加俯角会污染数据轴，见 Bar3D/P5Stack 注释）。 */
-export const BAR_YAW = 26;
-
 /** 插座井壁：比 panel 更暗一档 = 手绘的「凹进去」暗部。 */
 export const SOCKET_WALL = '#141922';
 
@@ -76,17 +66,6 @@ export const axoRotation = (o: {pitch?: number; yaw?: number} = {}): [number, nu
   ((o.yaw ?? AXO.yaw) * Math.PI) / 180,
   0,
 ];
-
-/** DOM 局部坐标（容器左上原点、y 向下）→ 世界坐标。
- *  正交 zoom=1 下为**精确等距映射**，故这是一次减法而非投影反算。
- *  ★ 3D 物件与 DOM 叠层对位的唯一口径——禁止在调用点手调偏移量
- *    （BAR_BASE 45 那类手算常数正是本函数要消灭的缺陷类）。 */
-export const domToWorld = (
-  x: number,
-  y: number,
-  canvasW: number,
-  canvasH: number,
-): [number, number, number] => [x - canvasW / 2, canvasH / 2 - y, 0];
 
 /** 读色皮肤——「平面语义 → 3D 属性」的唯一载体。
  *  face 大面积**永不**用概念色（core/mech/deny）；概念色只走 edge。 */
@@ -191,9 +170,10 @@ export const Slab3D: React.FC<{
 
 /** 矩形井壁的一圈（中空框 = 上下左右四条 Slab3D，无前盖）。
  *
- *  5-D 的「壳」由内向外四圈叠成：层序即 z 序 —— 循环在最内最深、插口在最外最前，
- *  于是口播的「挂在外面」在几何上成立。井壁内表面朝向观者，这是「里面」不再靠
- *  约定、而成为几何事实的原因（2D 边框只能画外轮廓）。
+ *  5-D 的「壳」由内向外四圈叠成：层序即 z 序 —— 循环在最内（最小、最靠前），
+ *  插口在最外（最大、最靠后，从四周包住内层），于是口播的「挂在外面」在几何上成立。
+ *  井壁内表面朝向观者，这是「里面」不再靠约定、而成为几何事实的原因
+ *  （2D 边框只能画外轮廓）。
  *
  *  合拢由调用方注入：close 0 = 四条各自在框外 openDist 处，1 = 合拢到位。 */
 export const Rim3D: React.FC<{
@@ -232,53 +212,15 @@ export const Rim3D: React.FC<{
   );
 };
 
-/** 体积柱（5-B）。
- *
- *  ★ 刻意**不用** AXO —— 只偏航、**零俯角**。加俯角 θ 后屏幕上的表观高度是
- *  `h·cosθ + d·sinθ`，顶面会给每根柱子加一个常数高度：141/191/241/255 的比例
- *  被污染，且 yFor(20) 算出的「20–28 行实测带」会与柱子真实刻度错位（BAR_BASE 45
- *  同类疤）。纯偏航下表观高度**精确等于 height**，垂直轴仍是可直接读数的数据轴。
- *
- *  ⚠️ height 与数据线性同构 —— 本组件内**不做任何缩放**。 */
-export const Bar3D: React.FC<{
-  width: number;
-  height: number;
-  depth?: number;
-  /** 缺省 AXO.yaw；pitch 恒 0（见上方说明，勿加） */
-  yaw?: number;
-  shell: SolidSkin;
-  /** 柱底 core 段（同一高度口径）。壳转半透明时本段保持实心。 */
-  base?: {height: number; skin: SolidSkin};
-  position?: [number, number, number];
-}> = ({width, height, depth = 46, yaw = AXO.yaw, shell, base, position}) => {
-  const rot: [number, number, number] = [0, (yaw * Math.PI) / 180, 0];
-  return (
-    <group position={position} rotation={rot}>
-      {/* 柱体以底边为锚（y=0 是柱底）——数据轴由调用方在 DOM 侧决定 */}
-      {base ? (
-        // 实心 core 段先画（renderOrder 0），半透明壳后画（1）：顺序 + depthWrite
-        // 双保险，否则半透明壳的深度写入会把里面的实心段剔掉
-        <Slab3D
-          width={width - 2}
-          height={base.height}
-          depth={depth - 2}
-          skin={base.skin}
-          position={[0, base.height / 2, 0]}
-          renderOrder={0}
-        />
-      ) : null}
-      <Slab3D width={width} height={height} depth={depth} skin={shell} position={[0, height / 2, 0]} renderOrder={1} />
-    </group>
-  );
-};
-
 /** 插座（4-C）：内凹方口 —— 口沿四条 + 井底。
- *  井底用 theme.bg（全片最深）⇒ 读作「洞」；井壁 SOCKET_WALL 比 panel 更暗一档。 */
+ *  井底用 theme.bg（全片最深）⇒ 读作「洞」；井壁 SOCKET_WALL 比 panel 更暗一档。
+ *  ★ skin **不吃 face**：两处面色都是「凹陷」这一读法的组成部分（宪法三要求它们是
+ *    字面量，不能由调用方运行时决定），故类型上就 Omit 掉，避免调用点传了个空操作。 */
 export const Socket3D: React.FC<{
   size: number;
   /** 井深；也是插头行程的下限锚 */
   wellDepth?: number;
-  skin: SolidSkin;
+  skin: Omit<SolidSkin, 'face'>;
   position?: [number, number, number];
   rotation?: [number, number, number];
 }> = ({size, wellDepth = 26, skin, position, rotation}) => {
