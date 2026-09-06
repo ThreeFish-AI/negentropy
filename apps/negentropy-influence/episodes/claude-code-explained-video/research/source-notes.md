@@ -11,6 +11,13 @@
 >   站点为 Next.js **SSG 预渲染**（关键数字同时出现在可见文本与 Flight 载荷 `"children":[102," LOC"]` 中），
 >   故 HTML 文本即渲染结果，不存在 [ISSUE-162](../../../../../docs/.agents/issue.md) 的「未水合占位符」风险。
 >
+> - **轨 C · 官方文档（Anthropic 一手）**：`code.claude.com/docs` 的 glossary / how-claude-code-works /
+>   hooks / permissions 四页 + `anthropic.com/engineering/claude-code-auto-mode` +
+>   `claude.com/blog/harnessing-claudes-intelligence`，取数 **2026-09-06**，已入 [sources.toml](./sources.toml)
+>   （`kind=site`，正文指纹漂移报 WARN）。**本轨断言等同【二】级**（可断言，属官方的讲法）。
+>   ⚠️ 补录背景（2026-09）：Harness Engineering 改造引入的这批官方锚点此前**一条都不在台账里**，
+>   导致「写错了没有事实源能拦、写对了也会随官方更新悄悄陈旧」——本集 §十 记录的两处缺陷正是其后果。
+>
 > **证据三级（本集最重要的真实性纪律）**
 > | 级 | 含义 | 口播允许的表述 |
 > |---|---|---|
@@ -435,3 +442,42 @@ def agent_loop(messages):
 6. **不说**「循环一行都没改」—— 用 §五 校准后的口径。
 7. **不出现**任何其他系列的片名、集数序号、「上一集/本系列」等顺序词（`check_series.py` 规则 1 会拦）。
 8. **英文标识符不进口播**（`stop_reason` / `tool_use` / `TOOL_HANDLERS` / `PreToolUse` 等一律说中文白话，英文只进画面角标）；唯一例外是不可回避的产品名 **Claude Code**。
+
+---
+
+## 十、轨 C 官方文档断言表（2026-09-06 逐条对原文核验）
+
+> 取数日期 2026-09-06；指纹见 [sources.toml](./sources.toml) 的 `cc-*` 条目。
+> 复核方式：逐页取原文、与口播句逐条对照。**下表是 P0/P3/P4/P5/P6 全部官方断言的唯一回溯点。**
+
+| 口播句 | 断言 | 官方原文（节录） | 出处 | 判定 |
+|---|---|---|---|---|
+| p0-04/05 | Claude Code 是 harness、Claude 是里面的模型 | "Claude Code is the harness; Claude is the model inside it." | cc-glossary | ✅ |
+| **p0-06** | **Harness 供给五样：文件、命令、权限、记忆，和把这些串起来的循环** | "The harness supplies file access, shell execution, permission gating, memory loading, **and the loop that chains actions together**." | cc-glossary | ✅（**2026-09 勘误**，见下） |
+| p1-25..27 | 三相交融、可随时打断 | "These phases blend together."／"You can interrupt at any point…" | cc-how-it-works | ✅ |
+| p3-06 | 权限由这层代码执行，不由模型执行 | "Permission rules are enforced by Claude Code, not by the model." | cc-permissions | ✅ |
+| p3-25..27 | 拒绝→询问→放行顺序求值、首中即出局、具体度不改顺序 | "Rules are evaluated in order: deny, then ask, then allow. The first match in that order determines the outcome, and rule specificity doesn't change the order." | cc-permissions | ✅ |
+| p3-28 | 裸名拒绝令整件工具从模型身上消失 | "A bare tool name like `Bash` removes the tool from Claude's context entirely, so Claude never sees it." | cc-permissions | ✅ |
+| p3-31 | 官方遥测：权限提示九成三被批准 | "Claude Code users approve 93% of permission prompts." | cc-auto-mode | ✅ |
+| p3-32..34 | 审判者只看用户消息与裸命令；辩解与工具输出被剥离 | "The classifier sees only user messages and the agent's tool calls; we strip out Claude's own messages and tool outputs, making it reasoning-blind by design." | cc-auto-mode | ✅ |
+| **p4-23** | **这样的时机有三十多个，官方文档还在往上加** | 事件表 2026-09-06 实测 **33 个**（2026-08 为 31） | cc-hooks | ✅（**2026-09 改口径**，见下） |
+| p4-24 | 分三种节奏：会话一次、回合一次、每次调用前后 | "Events fall into three cadences: once per session… once per turn… on every tool call inside the agentic loop…" | cc-hooks | ✅ |
+| p4-29..31 | hook 的放行仍要穿过后面的拒绝与询问；单向只能加限制 | "Hook decisions don't bypass permission rules. Claude Code evaluates deny and ask rules regardless of what a PreToolUse hook returns…" | cc-permissions | ✅ |
+| p5-05 | 官方给 Harness 的定义正好四件：循环、工具、上下文管理、护栏 | "An agent harness is the software scaffolding around a model: the loop, tools, context management, and guardrails." | cc-harness-blog | ✅ |
+
+### 2026-09-06 复核发现的两处缺陷（已修）
+
+1. **p0-06 第五样说错了**：原稿写「文件、命令、权限、记忆、**护栏**」，而 glossary 的第五样是
+   **「把这些动作串起来的循环」**。这不只是口径偏差——本集整整 14 分钟讲的就是那个循环，
+   P0 命名帧却把它从官方定义里漏掉。改对后叙事反而收紧：P0 埋下「循环」，P1 第一句直接接上。
+   与 p5-05 的四件套不冲突（两个官方来源，交集恰好是「循环」，是呼应不是矛盾）。
+   **它能溜进成片的根因**：这条断言在本文件里**没有任何对应条目**——违反了开篇第一纪律
+   「回溯不到的断言不得进入口播」。轨 C 的建立就是为了让这类断言从此有处可回溯。
+2. **p4-23「三十一个」已漂移**：2026-08 计数 31，2026-09-06 实测 **33**（新增
+   `UserPromptExpansion`/`PostToolBatch`/`MessageDisplay`/`PreModelSwitch`/`PostModelSwitch`/`DirectoryAdded` 等）。
+   该数同时踩了 §九禁用清单第 1、2 条（**活数据不进口播**）——它被当成静态口径写死，注定周期性陈旧。
+   现口播改为抗漂移表述「三十多个，官方文档还在往上加」，绝对数降到画面角标并带取数日期。
+
+> **机制性收口**：这两条现在都由 `source_ledger.py verify` 守着——`kind=site` 条目正文漂移会报
+> WARN（「去复核引自该页的断言是否仍成立」）。台账建立前，`verify` 报的是「受检 12 · FAIL 0」全绿，
+> 而出问题的六个页面根本不在受检集里：**门是绿的，只因为它没在看**。
