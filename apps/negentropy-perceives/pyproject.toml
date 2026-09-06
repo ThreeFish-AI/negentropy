@@ -71,7 +71,7 @@ dependencies = [
     "pydantic-settings>=2.14.2",  # 修复 GHSA-4xgf-cpjx-pc3j（2.14.1 及以下）
     "pyyaml>=6.0.3",              # YAML 配置文件解析
     # --- 运行时基础设施 ---
-    "setuptools>=82.0.1",  # 历史运行时地板；原注释「undetected-chromedriver 依赖 pkg_resources」已证伪——上游早于 82 即移除 pkg_resources（82/83 实测皆无，ISSUE-092）。保持 82.0.1：不为不可达的 build-time 低危（CVE-2026-59890 需 macOS APFS+sdist+敏感产物三前提）变更 build 后端版本
+    "setuptools>=83.0.0",  # 历史运行时地板；原注释「undetected-chromedriver 依赖 pkg_resources」已证伪——上游早于 82 即移除（82/83 实测皆无，ISSUE-092）。抬至 83.0.0 修 CVE-2026-59890（Dependabot #555）：82↔83 对本项目零功能差异已隔离验证，直接消因优于 ignore
     "opendataloader-pdf>=2.4.3",
 ]
 

@@ -222,18 +222,11 @@ jobs:
             --ignore-vuln PYSEC-2026-139
 
             # torch 2.10.0 CVE-2025-3000：本地内存破坏 / DoS（需构造恶意 tensor；本项目仅
-            # 加载第一方模型 artifact，向量不可达）。upstream fix 2.13.0 已发布（原记录
-            # 「暂无 fix」已过时），但 torch 升级受 marker-pdf/surya/docling-ibm-models/
-            # torchvision 四方联动约束，随 transformers 同批评估——见 ISSUE-092 2026-09-06 增补
+            # 加载第一方模型 artifact，向量不可达）。upstream fix 2.13.0 已发布，但升级实测回归：
+            # torch>=2.13 强制 torchvision 0.25.0→0.29.0（其 0.25.0 硬钉 torch==2.10.0），而
+            # transformers 受 pillow 冲突钉死 4.57.6，二者在 docling engine worker 导入链上不兼容
+            #（实测 parse-pdf 由 Success 变 Failed: cannot import name AutoProcessor）——见 ISSUE-092
             --ignore-vuln CVE-2025-3000
-
-            # setuptools PYSEC-2026-3447（CVE-2026-59890，CVSS 6.1）：MANIFEST.in 排除规则在
-            # macOS APFS/HFS+ 上因缺 Unicode（NFD/NFC）归一化被绕过，构建 sdist 时可能误打包应
-            # 排除文件（本地向量、需在受影响 macOS 文件系统上构建 sdist）。本项目 CI 在 Linux
-            # 构建（非 APFS/HFS+）、产物不含敏感文件，攻击向量不可达；修复仅在 setuptools 83.0.0，
-            # 为保持既有 82.0.1 运行时 pin（见 pyproject setuptools 注释与 ISSUE-092 2026-09-06 增补）不变、
-            # 不为不可达低危 flaw 变更 build 后端版本，故此处 ignore 而不升级
-            --ignore-vuln PYSEC-2026-3447
           )
           uv run pip-audit "${ignore_args[@]}"
 
