@@ -3,5 +3,14 @@
 # 用本工程的解析结果覆写根 pnpm-lock.yaml（overrides 全丢）且当场不报错。见 ISSUE-175。
 #
 # 本工程是 E2E Travel Agent 示例前端，已从根 workspace 解耦（见根 pnpm-workspace.yaml 内注），
-# 但此前缺失本声明——是全仓最后一个敞着的同款入口。示例的运行方式见同目录 README.md。
+# 但此前缺失本声明——是全仓最后一个敞着的同款入口。
+# 示例在本目录独立安装运行：pnpm install && pnpm dev。
 packages: []
+
+# 原生构建许可：与根 workspace 对齐。钉成独立根后不再继承根声明，
+# 缺此段则 pnpm install 以 ERR_PNPM_IGNORED_BUILDS 退出 1（esbuild / sharp 等被拦）。
+allowBuilds:
+  '@scarf/scarf': false   # 匿名使用统计上报，同根配置一并禁用
+  esbuild: true
+  sharp: true
+  unrs-resolver: true
