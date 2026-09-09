@@ -22,7 +22,6 @@ Skill Registry Faculty Tools — Layer 2 按需展开触发器
 
 from __future__ import annotations
 
-import os
 from typing import Any
 
 from google.adk.tools import ToolContext
@@ -34,6 +33,7 @@ from negentropy.agents.skills_injector import (
     resolve_skills,
     validate_required_tools,
 )
+from negentropy.config import parse_env_bool
 from negentropy.logging import get_logger
 
 _logger = get_logger("negentropy.tools.skill_registry")
@@ -72,7 +72,7 @@ def _resolve_bucket_key(tool_context: ToolContext | None) -> str | None:
 
 
 def _layer2_disabled() -> bool:
-    return os.environ.get("NEGENTROPY_SKILLS_LAYER2_ENABLED", "true").lower() in ("0", "false", "no")
+    return not parse_env_bool("NEGENTROPY_SKILLS_LAYER2_ENABLED", True)
 
 
 async def list_available_skills(tool_context: ToolContext) -> dict[str, Any]:

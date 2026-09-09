@@ -21,7 +21,8 @@ from sqlalchemy import func, select
 
 from negentropy.agents.definitions import DefinitionParseError, compute_checksum, parse_definition
 from negentropy.agents.definitions.harness_materializer import maybe_materialize_now
-from negentropy.auth.deps import get_current_user, resolve_user_with_db_roles
+from negentropy.auth.deps import get_current_user
+from negentropy.auth.deps import require_admin as _require_admin
 from negentropy.auth.service import AuthUser
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
@@ -34,14 +35,6 @@ router = APIRouter(prefix="/interface/definitions", tags=["interface-definitions
 # =============================================================================
 # Shared Utilities
 # =============================================================================
-
-
-async def _require_admin(user: AuthUser) -> AuthUser:
-    """以 DB ``user_states`` 持久化 roles 为权威校验 admin（与 models_api 对齐）。"""
-    resolved = await resolve_user_with_db_roles(user)
-    if "admin" not in resolved.roles:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="admin role required")
-    return resolved
 
 
 def _definition_to_dict(d: Definition) -> dict[str, Any]:

@@ -31,18 +31,14 @@ import asyncio
 import re
 import time
 from datetime import UTC
-from typing import TYPE_CHECKING, Any
+from typing import Any
 from uuid import UUID
 
 from google.adk.tools import ToolContext
 
 from negentropy.config import settings
-from negentropy.knowledge.ingestion.embedding import build_batch_embedding_fn, build_embedding_fn
 from negentropy.knowledge.types import CorpusSpec
 from negentropy.logging import get_logger
-
-if TYPE_CHECKING:
-    from negentropy.knowledge.service import KnowledgeService
 
 logger = get_logger("negentropy.tools.paper")
 
@@ -55,27 +51,11 @@ _MAX_TOP_K = 25
 _DEFAULT_TOP_K = 5
 _MAX_SINCE_DAYS = 365 * 5
 
-# 论文采集工具单例 KnowledgeService，避免重复初始化
-_knowledge_service: KnowledgeService | None = None
-
-
-def _get_knowledge_service() -> KnowledgeService:
-    """复用 KnowledgeService 单例（与 perception.py 同模式）"""
-    global _knowledge_service
-    if _knowledge_service is None:
-        from negentropy.knowledge.service import KnowledgeService
-
-        _knowledge_service = KnowledgeService(
-            embedding_fn=build_embedding_fn(),
-            batch_embedding_fn=build_batch_embedding_fn(),
-        )
-    return _knowledge_service
-
-
 # Tool Progress 助手已抽出到 ``agents/tools/common.py`` 作为 SSOT；
 # 此处保留 module-level alias 以维持既有调用方 / 测试导入路径稳定（最小爆炸半径）。
 from .common import clear_tool_progress as _clear_tool_progress  # noqa: E402
 from .common import emit_tool_progress as _emit_tool_progress  # noqa: E402
+from .common import get_knowledge_service as _get_knowledge_service  # noqa: E402
 
 
 async def _ensure_paper_corpus() -> UUID:

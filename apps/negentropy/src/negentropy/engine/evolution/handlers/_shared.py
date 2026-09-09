@@ -7,12 +7,13 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from typing import Any
 from uuid import uuid4
 
 from negentropy.config import settings
 from negentropy.logging import get_logger
+from negentropy.timeutil import utcnow
 
 logger = get_logger("negentropy.engine.evolution")
 
@@ -20,10 +21,6 @@ try:
     from negentropy.engine.routine.bus import get_bus as _get_routine_bus
 except Exception:  # noqa: BLE001  # 防御性：bus 不可用时降级为 no-op
     _get_routine_bus = None
-
-
-def _utcnow() -> datetime:
-    return datetime.now(UTC)
 
 
 def _td(**kwargs: int) -> timedelta:
@@ -111,7 +108,7 @@ def _emit_evolution_event(
                 "proposed_version": proposal.proposed_version,
                 "base_version": proposal.base_version,
                 "metrics": _summarize_metrics(metrics),
-                "ts": _utcnow().isoformat(),
+                "ts": utcnow().isoformat(),
             }
         )
     except Exception as exc:  # noqa: BLE001

@@ -16,13 +16,13 @@
 
 from __future__ import annotations
 
-import logging
 from typing import Any
 from uuid import UUID
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from negentropy.logging import get_logger
 from negentropy.models.perception import DocCatalog
 
 from .catalog_assignment_dao import CatalogAssignmentDao
@@ -34,7 +34,7 @@ from .catalog_node_dao import (
     _compute_slug,
 )
 
-logger = logging.getLogger("negentropy.knowledge")
+logger = get_logger(__name__)
 
 __all__ = [
     "CatalogDao",

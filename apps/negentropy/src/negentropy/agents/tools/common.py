@@ -1,12 +1,40 @@
 import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from zoneinfo import ZoneInfo
 
 from google.adk.tools import ToolContext
 
 from negentropy.logging import get_logger
 
+if TYPE_CHECKING:
+    from negentropy.knowledge.service import KnowledgeService
+
 logger = get_logger("negentropy.tools.common")
+
+# Agent 工具共享的 KnowledgeService 惰性单例（零 import 时副作用，重初始化防御）
+_knowledge_service: "KnowledgeService | None" = None
+
+
+def get_knowledge_service() -> "KnowledgeService":
+    """Lazily construct the shared ``KnowledgeService`` singleton for agent tools.
+
+    ingest / paper / perception 历史上各自内联同款惰性单例，收敛至此单一事实源；
+    ``knowledge/_shared.py`` 的 ``_get_service`` 额外注入 ``pipeline_dao``（语义
+    不同），故不复用该实现。
+    """
+    global _knowledge_service
+    if _knowledge_service is None:
+        from negentropy.knowledge.ingestion.embedding import (
+            build_batch_embedding_fn,
+            build_embedding_fn,
+        )
+        from negentropy.knowledge.service import KnowledgeService
+
+        _knowledge_service = KnowledgeService(
+            embedding_fn=build_embedding_fn(),
+            batch_embedding_fn=build_batch_embedding_fn(),
+        )
+    return _knowledge_service
 
 
 def get_current_timestamp() -> str:

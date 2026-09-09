@@ -14,7 +14,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
-from negentropy.auth.deps import get_current_user, resolve_user_with_db_roles
+from negentropy.auth.deps import get_current_user
+from negentropy.auth.deps import require_admin as _require_admin
 from negentropy.auth.service import AuthUser
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
@@ -102,19 +103,6 @@ def _validate_model_type(value: str):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Unsupported model_type: {value}. Allowed: llm / embedding / rerank",
         ) from exc
-
-
-async def _require_admin(user: AuthUser) -> AuthUser:
-    """以 DB ``user_states`` 中持久化的 roles 为权威，校验 admin 身份。
-
-    JWT 中的 roles 是登录瞬间的快照，DB UserState.state.roles 为运行时权威。当
-    管理员后置提升用户角色时，旧 JWT 仍是 user，但 DB 已是 admin —— 必须以
-    ``resolve_user_with_db_roles`` 拉齐两者，避免 ISSUE-049 描述的视图割裂。
-    """
-    resolved = await resolve_user_with_db_roles(user)
-    if "admin" not in resolved.roles:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="admin role required")
-    return resolved
 
 
 # =============================================================================

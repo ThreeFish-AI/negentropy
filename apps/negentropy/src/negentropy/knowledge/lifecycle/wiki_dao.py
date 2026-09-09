@@ -7,7 +7,6 @@ Wiki 发布 — 数据访问层 (DAO)
 
 from __future__ import annotations
 
-import logging
 from datetime import UTC
 from typing import Any
 from uuid import UUID
@@ -17,6 +16,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from negentropy.logging import get_logger
 from negentropy.models.perception import (
     DocSource,
     KnowledgeDocument,
@@ -27,7 +27,7 @@ from negentropy.models.perception import (
     WikiPublicationSnapshot,
 )
 
-logger = logging.getLogger(__name__.rsplit(".", 1)[0])
+logger = get_logger(__name__)
 
 
 class WikiDao:

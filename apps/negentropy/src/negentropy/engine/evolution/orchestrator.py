@@ -38,6 +38,7 @@ from negentropy.models.evolution import (
     STATUS_SHADOW_EVAL,
     EvolutionProposal,
 )
+from negentropy.timeutil import utcnow
 
 from .decision import REASON_STALE_CANARY, is_canary_stale
 from .handlers import (
@@ -57,7 +58,6 @@ from .handlers._shared import (  # noqa: F401  (re-export：既有 orchestrator.
     _parse_dt,
     _summarize_metrics,
     _td,
-    _utcnow,
 )
 
 logger = get_logger("negentropy.engine.evolution.orchestrator")
@@ -105,7 +105,7 @@ class EvolutionOrchestrator:
         canary 窗口到期但候选样本不足时 handler ``advance_canary`` 会 hold 续等，无此 REAP 则永久挂起。
         超 ``max_canary_seconds`` → 强制 rollback（复用对应 handler 的 rollback，零新路径）。
         """
-        now = _utcnow()
+        now = utcnow()
         max_sec = settings.evolution.max_canary_seconds
         async with _session() as db:
             rows = (
@@ -160,7 +160,7 @@ class EvolutionOrchestrator:
         """
         if not settings.evolution.enabled:
             return {"rechecked": 0, "reverted": 0}
-        now = _utcnow()
+        now = utcnow()
         interval = settings.evolution.longitudinal_recheck_interval_seconds
         rechecked = 0
         reverted = 0
@@ -222,7 +222,7 @@ class EvolutionOrchestrator:
 
     async def _advance_due_proposals(self) -> int:
         """推进 shadow_eval / canary 状态的 due 提案（按 target_kind 分派到 handler）。"""
-        now = _utcnow()
+        now = utcnow()
         advanced = 0
         async with _session() as db:
             rows = (

@@ -17,6 +17,7 @@ from datetime import UTC, datetime
 from typing import Protocol
 
 from negentropy.engine.routine.trajectory import score_trajectory
+from negentropy.timeutil import utcnow
 
 
 class _RoutineLike(Protocol):
@@ -69,16 +70,12 @@ class Decision:
         return self.action == "terminate"
 
 
-def _utcnow() -> datetime:
-    return datetime.now(UTC)
-
-
 def pre_dispatch_check(routine: _RoutineLike, *, now: datetime | None = None) -> Decision:
     """派发新迭代前的预算守卫。
 
     在创建下一个迭代之前调用：若任一硬上限已触达，返回 terminate 阻止继续派发。
     """
-    now = now or _utcnow()
+    now = now or utcnow()
 
     if routine.max_iterations is not None and routine.iteration_count >= routine.max_iterations:
         return Decision("terminate", REASON_MAX_ITERATIONS)
@@ -142,7 +139,7 @@ def decide(
         Decision。优先级：成功 > 不可恢复 > 预算/截止 > 停滞 > 振荡 > 继续。
         成功由「score 达阈值」OR「accept_verdict_pass 且 verdict=pass」触发（均需门控通过）。
     """
-    now = now or _utcnow()
+    now = now or utcnow()
 
     # 1) 成功：评分达标 OR（accept_verdict_pass 时）Judge 显式判 pass；均需门控通过（或无门控）。
     # pass 是 Judge 的权威完成裁决（"达到验收标准，可终止"）。门控检查置外层（gate∉{None,0} 时整块

@@ -17,6 +17,7 @@ from sqlalchemy import and_, select
 
 from negentropy.auth.deps import get_current_user
 from negentropy.auth.service import AuthUser
+from negentropy.config import parse_env_bool
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
 from negentropy.models.plugin import (
@@ -656,7 +657,7 @@ async def create_skill_schedule(
     if not cron_expr:
         raise HTTPException(status_code=400, detail="cron_expr is required")
     try:
-        # 与 ``skill_scheduler._utcnow`` 保持一致：tz-aware UTC，避免 naive
+        # 与 ``skill_scheduler`` 保持一致：tz-aware UTC，避免 naive
         # datetime 写入 ``next_run_at`` (TIMESTAMP WITH TIME ZONE) 时被驱动按本地
         # 时区错误解释。
         cron = croniter(cron_expr, datetime.now(UTC))
@@ -833,8 +834,6 @@ async def invoke_skill(
     （UI Preview 按钮 / ``expand_skill`` ADK tool / 外部系统）拿到渲染结果后自行
     决定如何使用。``required_tools`` 与 ``vars`` 校验在此一次完成。
     """
-    import os
-
     from negentropy.agents.skills_injector import (
         ResolvedSkill,
         format_skill_invocation,
@@ -842,7 +841,7 @@ async def invoke_skill(
         validate_required_tools,
     )
 
-    if os.environ.get("NEGENTROPY_SKILLS_LAYER2_ENABLED", "true").lower() in ("0", "false", "no"):
+    if not parse_env_bool("NEGENTROPY_SKILLS_LAYER2_ENABLED", True):
         raise HTTPException(status_code=503, detail="Skills Layer 2 is disabled by feature flag")
 
     async with AsyncSessionLocal() as db:

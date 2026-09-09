@@ -10,11 +10,12 @@ into the API response.
 from __future__ import annotations
 
 import json
-import logging
 from pathlib import Path
 from typing import Any
 
-logger = logging.getLogger(__name__)
+from negentropy.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 def read_mcp_json(project_path: str | None) -> dict[str, dict[str, Any]]:
