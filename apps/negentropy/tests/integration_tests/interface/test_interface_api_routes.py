@@ -35,9 +35,22 @@ def _patch_interface_api_session(patch_db_globals, monkeypatch):
     """api.py 以 `from negentropy.db.session import AsyncSessionLocal` 直绑名字，
     conftest 对 db.session 模块属性的 patch 影响不到它；这里把直绑名字同样指到
     函数级测试会话工厂，避免全局引擎连接池跨事件循环复用。"""
-    import negentropy.interface.api as interface_api
+    import negentropy.interface.agents_api
+    import negentropy.interface.builtin_tools_api
+    import negentropy.interface.mcp_api
+    import negentropy.interface.permissions_api
+    import negentropy.interface.skills_api
+    import negentropy.interface.stats_api
 
-    monkeypatch.setattr(interface_api, "AsyncSessionLocal", db_session.AsyncSessionLocal)
+    for domain_mod in (
+        negentropy.interface.stats_api,
+        negentropy.interface.mcp_api,
+        negentropy.interface.builtin_tools_api,
+        negentropy.interface.skills_api,
+        negentropy.interface.agents_api,
+        negentropy.interface.permissions_api,
+    ):
+        monkeypatch.setattr(domain_mod, "AsyncSessionLocal", db_session.AsyncSessionLocal)
 
 
 _DUMMY_UUID = "00000000-0000-0000-0000-000000000000"
