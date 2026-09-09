@@ -634,7 +634,7 @@ async def test_handle_stage_source_failure_marks_unavailable_on_blob_not_found(d
     （不累加 consecutive_failures、不触发任务禁用）。
 
     注：``_handle_stage_source_failure`` 内部用模块级 ``AsyncSessionLocal``（import 时绑定生产
-    factory，``patch_db_globals`` autouse 仅改 ``db_session``/``db_deps`` 不及 ``patrol``），故此处显式
+    factory，``patch_db_globals`` autouse 仅改 ``db_session`` 不及 ``patrol``），故此处显式
     patch 到测试引擎工厂（参见 memory ``service-asyncsessionlocal-ci-cross-loop``）。
     """
     from negentropy.storage import StorageError

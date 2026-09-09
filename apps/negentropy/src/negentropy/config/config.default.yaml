@@ -179,8 +179,6 @@ memory:
     enabled: true                            # 读侧应用预计算 relevance_weight；写侧由 cron 重加权（默认开箱）
     rocchio_beta: 0.75                       # 正反馈系数 β
     rocchio_gamma: 0.15                      # 负反馈系数 γ
-    prf_top_k: 3
-    prf_alpha: 0.7
     feedback_min_count: 3                    # 最低反馈条数门槛
     reweight_interval_seconds: 3600
   retrieval:                                 # 主链路记忆检索（交互式对话 Preload 自动注入）
