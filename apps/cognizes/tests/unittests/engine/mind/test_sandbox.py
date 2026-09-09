@@ -53,7 +53,7 @@ class TestBaseSandboxRunner:
     @pytest.fixture
     def mock_sandbox_runner(self):
         """创建模拟沙箱执行器"""
-        from cognizes.adapters.postgres.sandbox.base import (
+        from cognizes.sandbox.base import (
             BaseSandboxRunner,
             SandboxBackend,
             SandboxConfig,
@@ -266,7 +266,7 @@ class TestMicrosandboxRunner:
     @pytest.fixture
     def sandbox_config(self):
         """创建测试沙箱配置"""
-        from cognizes.adapters.postgres.sandbox.microsandbox_runner import SandboxConfig
+        from cognizes.sandbox.microsandbox_runner import SandboxConfig
 
         return SandboxConfig(
             name="test-sandbox", timeout_seconds=5, network_enabled=False, api_key=os.getenv("MSB_API_KEY")
@@ -275,7 +275,7 @@ class TestMicrosandboxRunner:
     @pytest.mark.skipif(not MICROSANDBOX_AVAILABLE, reason=MICROSANDBOX_SKIP_REASON)
     async def test_microsandbox_execute(self, sandbox_config):
         """集成测试: 真实 microsandbox 执行"""
-        from cognizes.adapters.postgres.sandbox.microsandbox_runner import MicrosandboxRunner
+        from cognizes.sandbox.microsandbox_runner import MicrosandboxRunner
 
         runner = MicrosandboxRunner(config=sandbox_config)
         result = await runner.execute("print('Hello from sandbox!')")
@@ -286,7 +286,7 @@ class TestMicrosandboxRunner:
     @pytest.mark.skipif(not MICROSANDBOX_AVAILABLE, reason=MICROSANDBOX_SKIP_REASON)
     async def test_microsandbox_timeout(self, sandbox_config):
         """集成测试: 真实超时测试"""
-        from cognizes.adapters.postgres.sandbox.microsandbox_runner import MicrosandboxRunner
+        from cognizes.sandbox.microsandbox_runner import MicrosandboxRunner
 
         sandbox_config.timeout_seconds = 1
         runner = MicrosandboxRunner(config=sandbox_config)
@@ -301,7 +301,7 @@ class TestSandboxConfig:
 
     def test_default_config(self):
         """测试默认配置"""
-        from cognizes.adapters.postgres.sandbox.base import SandboxConfig
+        from cognizes.sandbox.base import SandboxConfig
 
         config = SandboxConfig()
 
@@ -314,7 +314,7 @@ class TestSandboxConfig:
 
     def test_custom_config(self):
         """测试自定义配置"""
-        from cognizes.adapters.postgres.sandbox.base import SandboxConfig
+        from cognizes.sandbox.base import SandboxConfig
 
         config = SandboxConfig(name="custom-sandbox", memory_mb=512, timeout_seconds=60, network_enabled=True)
 
@@ -329,7 +329,7 @@ class TestSandboxResult:
 
     def test_success_result(self):
         """测试成功结果"""
-        from cognizes.adapters.postgres.sandbox.base import SandboxResult
+        from cognizes.sandbox.base import SandboxResult
 
         result = SandboxResult(success=True, stdout="output", stderr="", exit_code=0, execution_time_ms=100.0)
 
@@ -338,7 +338,7 @@ class TestSandboxResult:
 
     def test_failure_result(self):
         """测试失败结果"""
-        from cognizes.adapters.postgres.sandbox.base import SandboxResult
+        from cognizes.sandbox.base import SandboxResult
 
         result = SandboxResult(success=False, stdout="", stderr="Error occurred", exit_code=1, execution_time_ms=50.0)
 

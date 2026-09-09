@@ -7,7 +7,7 @@ from services import create_services
 
 # Fix imports
 
-# from cognizes.adapters.postgres.sandbox.microsandbox_runner import MicrosandboxRunner, SandboxConfig
+# from cognizes.sandbox.microsandbox_runner import MicrosandboxRunner, SandboxConfig
 
 pytestmark = pytest.mark.asyncio
 
@@ -87,7 +87,7 @@ class TestMindValidation:
     async def test_sandbox_isolation(self):
         """测试代码在沙箱中被安全隔离执行"""
         try:
-            from cognizes.adapters.postgres.sandbox.microsandbox_runner import MicrosandboxRunner, SandboxConfig
+            from cognizes.sandbox.microsandbox_runner import MicrosandboxRunner, SandboxConfig
 
             config = SandboxConfig(timeout_seconds=5, memory_mb=128, network_enabled=False)
             sandbox = MicrosandboxRunner(config=config)
@@ -132,7 +132,7 @@ class TestMindValidation:
     async def test_sandbox_resource_limits(self):
         """测试沙箱资源限制生效"""
         try:
-            from cognizes.adapters.postgres.sandbox.microsandbox_runner import MicrosandboxRunner, SandboxConfig
+            from cognizes.sandbox.microsandbox_runner import MicrosandboxRunner, SandboxConfig
 
             config = SandboxConfig(timeout_seconds=2, memory_mb=64, network_enabled=False)
             sandbox = MicrosandboxRunner(config=config)

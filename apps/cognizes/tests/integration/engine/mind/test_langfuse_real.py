@@ -6,7 +6,7 @@ Langfuse 真实集成测试脚本 (SDK 3.x)
 
 运行:
     set -a && source .env && set +a
-    uv run python tests/integration/mind/test_langfuse_real.py
+    uv run python tests/integration/engine/mind/test_langfuse_real.py
 """
 
 import os
