@@ -5,7 +5,7 @@ import uuid
 from collections.abc import Awaitable, Callable, Iterable
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeVar
 from urllib.parse import unquote, urlparse
 from uuid import UUID
 
@@ -54,6 +54,8 @@ CHUNK_ROLE_LEAF = "leaf"
 
 EmbeddingFn = Callable[[str], Awaitable[list[float]]]
 BatchEmbeddingFn = Callable[[list[str]], Awaitable[list[list[float]]]]
+
+T = TypeVar("T")
 
 # ---------------------------------------------------------------------------
 # Run ID 语义化：从 input_data 提取人类可读的源标签
@@ -838,6 +840,59 @@ class KnowledgeService:
 
         return tracker.run_id
 
+    async def _run_async_pipeline(
+        self,
+        *,
+        run_id: str,
+        app_name: str,
+        operation: str,
+        started_log: dict[str, Any],
+        body: Callable[[PipelineTracker], Awaitable[T]],
+        failure_result: T,
+        on_error: Callable[[Exception], Awaitable[None]] | None = None,
+    ) -> T:
+        """execute_*_pipeline 共享执行骨架：resume → started 日志 → body → 终态与收尾。
+
+        业务差异以参数注入：``started_log`` 为 started 日志附加字段；
+        ``body`` 接收已 resume 的 tracker，内部自行完成业务阶段、
+        ``tracker.complete`` 与 ``pipeline_execution_completed`` 日志并返回结果；
+        ``failure_result`` 为取消/失败时的统一返回值（``[]`` 或 ``None``）；
+        ``on_error`` 在 fail 落库前执行方法级副作用（如 import_file 回写
+        markdown_extract_status=failed），须自吞异常。
+        """
+        if not self._pipeline_dao:
+            raise ValueError("pipeline_dao is required for async pipeline operations")
+
+        tracker = PipelineTracker(
+            dao=self._pipeline_dao,
+            app_name=app_name,
+            operation=operation,
+            run_id=run_id,
+        )
+        await self._resume_async_pipeline_tracker(tracker)
+
+        logger.info("pipeline_execution_started", run_id=run_id, **started_log)
+
+        try:
+            return await body(tracker)
+        except PipelineCancelled as cancel_exc:
+            # 协作式取消：写入 cancelled 终态，区别于 fail；幂等（cancel() 内部保护）。
+            await tracker.cancel(last_stage=cancel_exc.last_stage)
+            return failure_result
+        except Exception as exc:
+            if on_error is not None:
+                await on_error(exc)
+            await self._fail_pipeline_execution(tracker, exc)
+            # Pipeline 失败已由 tracker 持久化，不再重新抛出。
+            # 后台任务中的 re-raise 会导致 uvicorn 打印完整异常堆栈。
+            return failure_result
+        finally:
+            try:
+                await tracker.ensure_finalized()
+            except Exception:
+                pass
+            unregister_cancellable_run(run_id)
+
     async def execute_ingest_text_pipeline(
         self,
         *,
@@ -865,25 +920,8 @@ class KnowledgeService:
         Returns:
             list[KnowledgeRecord]: 创建的知识记录
         """
-        if not self._pipeline_dao:
-            raise ValueError("pipeline_dao is required for async pipeline operations")
 
-        tracker = PipelineTracker(
-            dao=self._pipeline_dao,
-            app_name=app_name,
-            operation="ingest_text",
-            run_id=run_id,
-        )
-        await self._resume_async_pipeline_tracker(tracker)
-
-        logger.info(
-            "pipeline_execution_started",
-            run_id=run_id,
-            corpus_id=str(corpus_id),
-            operation="ingest_text",
-        )
-
-        try:
+        async def _body(tracker: PipelineTracker) -> list[KnowledgeRecord]:
             normalized_metadata = normalize_source_metadata(source_uri=source_uri, metadata=metadata)
             records = await self._ingest_text_with_tracker(
                 corpus_id=corpus_id,
@@ -905,19 +943,17 @@ class KnowledgeService:
 
             return records
 
-        except PipelineCancelled as cancel_exc:
-            # 协作式取消：写入 cancelled 终态，区别于 fail；幂等（cancel() 内部保护）。
-            await tracker.cancel(last_stage=cancel_exc.last_stage)
-            return []
-        except Exception as exc:
-            await self._fail_pipeline_execution(tracker, exc)
-            return []
-        finally:
-            try:
-                await tracker.ensure_finalized()
-            except Exception:
-                pass
-            unregister_cancellable_run(run_id)
+        return await self._run_async_pipeline(
+            run_id=run_id,
+            app_name=app_name,
+            operation="ingest_text",
+            started_log={
+                "corpus_id": str(corpus_id),
+                "operation": "ingest_text",
+            },
+            body=_body,
+            failure_result=[],
+        )
 
     async def execute_ingest_url_pipeline(
         self,
@@ -930,26 +966,8 @@ class KnowledgeService:
         chunking_config: ChunkingConfig | None = None,
     ) -> list[KnowledgeRecord]:
         """执行 ingest_url Pipeline（后台任务）"""
-        if not self._pipeline_dao:
-            raise ValueError("pipeline_dao is required for async pipeline operations")
 
-        tracker = PipelineTracker(
-            dao=self._pipeline_dao,
-            app_name=app_name,
-            operation="ingest_url",
-            run_id=run_id,
-        )
-        await self._resume_async_pipeline_tracker(tracker)
-
-        logger.info(
-            "pipeline_execution_started",
-            run_id=run_id,
-            corpus_id=str(corpus_id),
-            operation="ingest_url",
-            url=url,
-        )
-
-        try:
+        async def _body(tracker: PipelineTracker) -> list[KnowledgeRecord]:
             try:
                 text = await self._extract_url_content(
                     corpus_id=corpus_id,
@@ -1001,21 +1019,18 @@ class KnowledgeService:
 
             return records
 
-        except PipelineCancelled as cancel_exc:
-            # 协作式取消：写入 cancelled 终态，区别于 fail；幂等（cancel() 内部保护）。
-            await tracker.cancel(last_stage=cancel_exc.last_stage)
-            return []
-        except Exception as exc:
-            await self._fail_pipeline_execution(tracker, exc)
-            # Pipeline 失败已由 tracker 持久化，不再重新抛出。
-            # 后台任务中的 re-raise 会导致 uvicorn 打印完整异常堆栈。
-            return []
-        finally:
-            try:
-                await tracker.ensure_finalized()
-            except Exception:
-                pass
-            unregister_cancellable_run(run_id)
+        return await self._run_async_pipeline(
+            run_id=run_id,
+            app_name=app_name,
+            operation="ingest_url",
+            started_log={
+                "corpus_id": str(corpus_id),
+                "operation": "ingest_url",
+                "url": url,
+            },
+            body=_body,
+            failure_result=[],
+        )
 
     async def execute_ingest_url_document_pipeline(
         self,
@@ -1032,27 +1047,8 @@ class KnowledgeService:
         将 URL 提取、文档存储、分块和向量化全部在后台完成。
         Pipeline 记录在 API 层已提前创建，此处 resume 后继续执行。
         """
-        if not self._pipeline_dao:
-            raise ValueError("pipeline_dao is required for async pipeline operations")
 
-        tracker = PipelineTracker(
-            dao=self._pipeline_dao,
-            app_name=app_name,
-            operation="ingest_url",
-            run_id=run_id,
-        )
-        await self._resume_async_pipeline_tracker(tracker)
-
-        logger.info(
-            "pipeline_execution_started",
-            run_id=run_id,
-            corpus_id=str(corpus_id),
-            operation="ingest_url",
-            url=url,
-            as_document=True,
-        )
-
-        try:
+        async def _body(tracker: PipelineTracker) -> list[KnowledgeRecord]:
             # Stage 1: 提取 URL 内容
             try:
                 text, extraction_result = await self._extract_url_content(
@@ -1155,19 +1151,19 @@ class KnowledgeService:
             )
             return records
 
-        except PipelineCancelled as cancel_exc:
-            # 协作式取消：写入 cancelled 终态，区别于 fail；幂等（cancel() 内部保护）。
-            await tracker.cancel(last_stage=cancel_exc.last_stage)
-            return []
-        except Exception as exc:
-            await self._fail_pipeline_execution(tracker, exc)
-            return []
-        finally:
-            try:
-                await tracker.ensure_finalized()
-            except Exception:
-                pass
-            unregister_cancellable_run(run_id)
+        return await self._run_async_pipeline(
+            run_id=run_id,
+            app_name=app_name,
+            operation="ingest_url",
+            started_log={
+                "corpus_id": str(corpus_id),
+                "operation": "ingest_url",
+                "url": url,
+                "as_document": True,
+            },
+            body=_body,
+            failure_result=[],
+        )
 
     async def execute_ingest_file_pipeline(
         self,
@@ -1189,29 +1185,9 @@ class KnowledgeService:
         resume: 仅重试场景透传至 perceives——True 断点续传 / False 重新开始 /
         None 普通 ingest（沿用 perceives 默认）。
         """
-        if not self._pipeline_dao:
-            raise ValueError("pipeline_dao is required for async pipeline operations")
 
-        tracker = PipelineTracker(
-            dao=self._pipeline_dao,
-            app_name=app_name,
-            operation="ingest_file",
-            run_id=run_id,
-        )
-        await self._resume_async_pipeline_tracker(tracker)
-        config = chunking_config or self._chunking_config
-
-        logger.info(
-            "pipeline_execution_started",
-            run_id=run_id,
-            corpus_id=str(corpus_id),
-            operation="ingest_file",
-            source_uri=source_uri,
-            filename=filename,
-            document_id=str(document_id) if document_id else None,
-        )
-
-        try:
+        async def _body(tracker: PipelineTracker) -> list[KnowledgeRecord]:
+            config = chunking_config or self._chunking_config
             try:
                 extracted = await self._extract_file_document(
                     corpus_id=corpus_id,
@@ -1317,21 +1293,21 @@ class KnowledgeService:
             )
 
             return records
-        except PipelineCancelled as cancel_exc:
-            # 协作式取消：写入 cancelled 终态，区别于 fail；幂等（cancel() 内部保护）。
-            await tracker.cancel(last_stage=cancel_exc.last_stage)
-            return []
-        except Exception as exc:
-            await self._fail_pipeline_execution(tracker, exc)
-            # Pipeline 失败已由 tracker 持久化，不再重新抛出。
-            # 后台任务中的 re-raise 会导致 uvicorn 打印完整异常堆栈。
-            return []
-        finally:
-            try:
-                await tracker.ensure_finalized()
-            except Exception:
-                pass
-            unregister_cancellable_run(run_id)
+
+        return await self._run_async_pipeline(
+            run_id=run_id,
+            app_name=app_name,
+            operation="ingest_file",
+            started_log={
+                "corpus_id": str(corpus_id),
+                "operation": "ingest_file",
+                "source_uri": source_uri,
+                "filename": filename,
+                "document_id": str(document_id) if document_id else None,
+            },
+            body=_body,
+            failure_result=[],
+        )
 
     async def execute_import_url_document_pipeline(
         self,
@@ -1348,26 +1324,8 @@ class KnowledgeService:
         URL 提取 → 文档库存储（corpus_id=None）→ 来源追踪，**不做** chunk/embed/persist。
         提取路由取库文档默认配置（``_resolve_library_extractor_config``）。
         """
-        if not self._pipeline_dao:
-            raise ValueError("pipeline_dao is required for async pipeline operations")
 
-        tracker = PipelineTracker(
-            dao=self._pipeline_dao,
-            app_name=app_name,
-            operation="import_document",
-            run_id=run_id,
-        )
-        await self._resume_async_pipeline_tracker(tracker)
-
-        logger.info(
-            "pipeline_execution_started",
-            run_id=run_id,
-            operation="import_document",
-            source_type="url",
-            url=url,
-        )
-
-        try:
+        async def _body(tracker: PipelineTracker) -> UUID:
             from ._shared import _resolve_library_extractor_config
 
             extractor_config = await _resolve_library_extractor_config()
@@ -1475,19 +1433,18 @@ class KnowledgeService:
             )
             return doc_record.id
 
-        except PipelineCancelled as cancel_exc:
-            # 协作式取消：写入 cancelled 终态，区别于 fail；幂等（cancel() 内部保护）。
-            await tracker.cancel(last_stage=cancel_exc.last_stage)
-            return None
-        except Exception as exc:
-            await self._fail_pipeline_execution(tracker, exc)
-            return None
-        finally:
-            try:
-                await tracker.ensure_finalized()
-            except Exception:
-                pass
-            unregister_cancellable_run(run_id)
+        return await self._run_async_pipeline(
+            run_id=run_id,
+            app_name=app_name,
+            operation="import_document",
+            started_log={
+                "operation": "import_document",
+                "source_type": "url",
+                "url": url,
+            },
+            body=_body,
+            failure_result=None,
+        )
 
     async def execute_import_file_pipeline(
         self,
@@ -1506,31 +1463,11 @@ class KnowledgeService:
         GCS（corpus_id=None），此处仅完成 Markdown 提取与衍生物存储。
         Markdown 文件走 passthrough（无 MCP），PDF/通用文件经 Perceives MCP 提取。
         """
-        if not self._pipeline_dao:
-            raise ValueError("pipeline_dao is required for async pipeline operations")
-
-        tracker = PipelineTracker(
-            dao=self._pipeline_dao,
-            app_name=app_name,
-            operation="import_document",
-            run_id=run_id,
-        )
-        await self._resume_async_pipeline_tracker(tracker)
-
-        logger.info(
-            "pipeline_execution_started",
-            run_id=run_id,
-            operation="import_document",
-            source_type="file",
-            filename=filename,
-            document_id=str(document_id),
-        )
-
         from negentropy.storage.service import DocumentStorageService
 
         storage_service = DocumentStorageService()
 
-        try:
+        async def _body(tracker: PipelineTracker) -> UUID:
             # 重复导入且 Markdown 已就绪 → 短路完成（run 仍保留在 Pipelines 页）
             doc = await storage_service.get_document(document_id=document_id, app_name=app_name)
             if doc is None:
@@ -1647,11 +1584,7 @@ class KnowledgeService:
             )
             return document_id
 
-        except PipelineCancelled as cancel_exc:
-            # 协作式取消：写入 cancelled 终态，区别于 fail；幂等（cancel() 内部保护）。
-            await tracker.cancel(last_stage=cancel_exc.last_stage)
-            return None
-        except Exception as exc:
+        async def _on_error(exc: Exception) -> None:
             # 文档不应停留在 processing 状态（fail-loud 且状态自洽）
             try:
                 await storage_service.update_markdown_extraction_status(
@@ -1661,14 +1594,21 @@ class KnowledgeService:
                 )
             except Exception:
                 logger.warning("import_file_status_update_failed", document_id=str(document_id), exc_info=True)
-            await self._fail_pipeline_execution(tracker, exc)
-            return None
-        finally:
-            try:
-                await tracker.ensure_finalized()
-            except Exception:
-                pass
-            unregister_cancellable_run(run_id)
+
+        return await self._run_async_pipeline(
+            run_id=run_id,
+            app_name=app_name,
+            operation="import_document",
+            started_log={
+                "operation": "import_document",
+                "source_type": "file",
+                "filename": filename,
+                "document_id": str(document_id),
+            },
+            body=_body,
+            failure_result=None,
+            on_error=_on_error,
+        )
 
     async def execute_ingest_document_pipeline(
         self,
@@ -1686,26 +1626,8 @@ class KnowledgeService:
         ``persist_mode="replace"`` 以 (corpus, source_uri) 为键幂等替换，
         不影响同文档在其他 Corpus 的 chunks；文档本体不动。
         """
-        if not self._pipeline_dao:
-            raise ValueError("pipeline_dao is required for async pipeline operations")
 
-        tracker = PipelineTracker(
-            dao=self._pipeline_dao,
-            app_name=app_name,
-            operation="ingest_document",
-            run_id=run_id,
-        )
-        await self._resume_async_pipeline_tracker(tracker)
-
-        logger.info(
-            "pipeline_execution_started",
-            run_id=run_id,
-            corpus_id=str(corpus_id),
-            operation="ingest_document",
-            document_id=str(document_id),
-        )
-
-        try:
+        async def _body(tracker: PipelineTracker) -> list[KnowledgeRecord]:
             from .exceptions import KnowledgeError
 
             # Stage 1: 读取文档已存 Markdown（fail-loud）
@@ -1793,19 +1715,18 @@ class KnowledgeService:
             )
             return records
 
-        except PipelineCancelled as cancel_exc:
-            # 协作式取消：写入 cancelled 终态，区别于 fail；幂等（cancel() 内部保护）。
-            await tracker.cancel(last_stage=cancel_exc.last_stage)
-            return []
-        except Exception as exc:
-            await self._fail_pipeline_execution(tracker, exc)
-            return []
-        finally:
-            try:
-                await tracker.ensure_finalized()
-            except Exception:
-                pass
-            unregister_cancellable_run(run_id)
+        return await self._run_async_pipeline(
+            run_id=run_id,
+            app_name=app_name,
+            operation="ingest_document",
+            started_log={
+                "corpus_id": str(corpus_id),
+                "operation": "ingest_document",
+                "document_id": str(document_id),
+            },
+            body=_body,
+            failure_result=[],
+        )
 
     async def execute_replace_source_pipeline(
         self,
@@ -1819,27 +1740,9 @@ class KnowledgeService:
         chunking_config: ChunkingConfig | None = None,
     ) -> list[KnowledgeRecord]:
         """执行 replace_source Pipeline（后台任务）"""
-        if not self._pipeline_dao:
-            raise ValueError("pipeline_dao is required for async pipeline operations")
 
-        tracker = PipelineTracker(
-            dao=self._pipeline_dao,
-            app_name=app_name,
-            operation="replace_source",
-            run_id=run_id,
-        )
-        await self._resume_async_pipeline_tracker(tracker)
-        config = chunking_config or self._chunking_config
-
-        logger.info(
-            "pipeline_execution_started",
-            run_id=run_id,
-            corpus_id=str(corpus_id),
-            operation="replace_source",
-            source_uri=source_uri,
-        )
-
-        try:
+        async def _body(tracker: PipelineTracker) -> list[KnowledgeRecord]:
+            config = chunking_config or self._chunking_config
             # 原子 DELETE+INSERT：由 _ingest_text_with_tracker(persist_mode="replace") 内部完成
             # 同事务保护，并合成 "delete" stage 事件供前端 Pipeline 时间轴展示
             records = await self._ingest_text_with_tracker(
@@ -1864,19 +1767,18 @@ class KnowledgeService:
 
             return records
 
-        except PipelineCancelled as cancel_exc:
-            # 协作式取消：写入 cancelled 终态，区别于 fail；幂等（cancel() 内部保护）。
-            await tracker.cancel(last_stage=cancel_exc.last_stage)
-            return []
-        except Exception as exc:
-            await self._fail_pipeline_execution(tracker, exc)
-            return []
-        finally:
-            try:
-                await tracker.ensure_finalized()
-            except Exception:
-                pass
-            unregister_cancellable_run(run_id)
+        return await self._run_async_pipeline(
+            run_id=run_id,
+            app_name=app_name,
+            operation="replace_source",
+            started_log={
+                "corpus_id": str(corpus_id),
+                "operation": "replace_source",
+                "source_uri": source_uri,
+            },
+            body=_body,
+            failure_result=[],
+        )
 
     async def execute_sync_source_pipeline(
         self,
@@ -1888,27 +1790,9 @@ class KnowledgeService:
         chunking_config: ChunkingConfig | None = None,
     ) -> list[KnowledgeRecord]:
         """执行 sync_source Pipeline（后台任务）"""
-        if not self._pipeline_dao:
-            raise ValueError("pipeline_dao is required for async pipeline operations")
 
-        tracker = PipelineTracker(
-            dao=self._pipeline_dao,
-            app_name=app_name,
-            operation="sync_source",
-            run_id=run_id,
-        )
-        await self._resume_async_pipeline_tracker(tracker)
-        config = chunking_config or self._chunking_config
-
-        logger.info(
-            "pipeline_execution_started",
-            run_id=run_id,
-            corpus_id=str(corpus_id),
-            operation="sync_source",
-            source_uri=source_uri,
-        )
-
-        try:
+        async def _body(tracker: PipelineTracker) -> list[KnowledgeRecord]:
+            config = chunking_config or self._chunking_config
             try:
                 text = await self._extract_url_content(
                     corpus_id=corpus_id,
@@ -1954,19 +1838,18 @@ class KnowledgeService:
 
             return records
 
-        except PipelineCancelled as cancel_exc:
-            # 协作式取消：写入 cancelled 终态，区别于 fail；幂等（cancel() 内部保护）。
-            await tracker.cancel(last_stage=cancel_exc.last_stage)
-            return []
-        except Exception as exc:
-            await self._fail_pipeline_execution(tracker, exc)
-            return []
-        finally:
-            try:
-                await tracker.ensure_finalized()
-            except Exception:
-                pass
-            unregister_cancellable_run(run_id)
+        return await self._run_async_pipeline(
+            run_id=run_id,
+            app_name=app_name,
+            operation="sync_source",
+            started_log={
+                "corpus_id": str(corpus_id),
+                "operation": "sync_source",
+                "source_uri": source_uri,
+            },
+            body=_body,
+            failure_result=[],
+        )
 
     async def execute_sync_document_pipeline(
         self,
@@ -1983,27 +1866,8 @@ class KnowledgeService:
         在后台完成 URL 重新提取、Markdown 存储和索引替换。
         Pipeline 记录在 API 层已提前创建，此处 resume 后继续执行。
         """
-        if not self._pipeline_dao:
-            raise ValueError("pipeline_dao is required for async pipeline operations")
 
-        tracker = PipelineTracker(
-            dao=self._pipeline_dao,
-            app_name=app_name,
-            operation="replace_source",
-            run_id=run_id,
-        )
-        await self._resume_async_pipeline_tracker(tracker)
-
-        logger.info(
-            "pipeline_execution_started",
-            run_id=run_id,
-            corpus_id=str(corpus_id),
-            operation="sync_document",
-            source_uri=source_uri,
-            document_id=str(document_id),
-        )
-
-        try:
+        async def _body(tracker: PipelineTracker) -> list[KnowledgeRecord]:
             # Stage 1: 从 URL 重新提取内容
             try:
                 text, extraction_result = await self._extract_url_content(
@@ -2094,19 +1958,19 @@ class KnowledgeService:
             )
             return records
 
-        except PipelineCancelled as cancel_exc:
-            # 协作式取消：写入 cancelled 终态，区别于 fail；幂等（cancel() 内部保护）。
-            await tracker.cancel(last_stage=cancel_exc.last_stage)
-            return []
-        except Exception as exc:
-            await self._fail_pipeline_execution(tracker, exc)
-            return []
-        finally:
-            try:
-                await tracker.ensure_finalized()
-            except Exception:
-                pass
-            unregister_cancellable_run(run_id)
+        return await self._run_async_pipeline(
+            run_id=run_id,
+            app_name=app_name,
+            operation="replace_source",
+            started_log={
+                "corpus_id": str(corpus_id),
+                "operation": "sync_document",
+                "source_uri": source_uri,
+                "document_id": str(document_id),
+            },
+            body=_body,
+            failure_result=[],
+        )
 
     async def execute_rebuild_source_pipeline(
         self,
@@ -2119,27 +1983,9 @@ class KnowledgeService:
         document_id: UUID | None = None,
     ) -> list[KnowledgeRecord]:
         """执行 rebuild_source Pipeline（后台任务）"""
-        if not self._pipeline_dao:
-            raise ValueError("pipeline_dao is required for async pipeline operations")
 
-        tracker = PipelineTracker(
-            dao=self._pipeline_dao,
-            app_name=app_name,
-            operation="rebuild_source",
-            run_id=run_id,
-        )
-        await self._resume_async_pipeline_tracker(tracker)
-        config = chunking_config or self._chunking_config
-
-        logger.info(
-            "pipeline_execution_started",
-            run_id=run_id,
-            corpus_id=str(corpus_id),
-            operation="rebuild_source",
-            source_uri=source_uri,
-        )
-
-        try:
+        async def _body(tracker: PipelineTracker) -> list[KnowledgeRecord]:
+            config = chunking_config or self._chunking_config
             # 阶段 1: Download
             await tracker.start_stage("download")
             try:
@@ -2246,19 +2092,18 @@ class KnowledgeService:
 
             return records
 
-        except PipelineCancelled as cancel_exc:
-            # 协作式取消：写入 cancelled 终态，区别于 fail；幂等（cancel() 内部保护）。
-            await tracker.cancel(last_stage=cancel_exc.last_stage)
-            return []
-        except Exception as exc:
-            await self._fail_pipeline_execution(tracker, exc)
-            return []
-        finally:
-            try:
-                await tracker.ensure_finalized()
-            except Exception:
-                pass
-            unregister_cancellable_run(run_id)
+        return await self._run_async_pipeline(
+            run_id=run_id,
+            app_name=app_name,
+            operation="rebuild_source",
+            started_log={
+                "corpus_id": str(corpus_id),
+                "operation": "rebuild_source",
+                "source_uri": source_uri,
+            },
+            body=_body,
+            failure_result=[],
+        )
 
     async def execute_translate_pipeline(
         self,
@@ -2275,25 +2120,8 @@ class KnowledgeService:
         服务内部，在 chunking / agent_execution / validation / storing 四个
         阶段边界记录状态。
         """
-        if not self._pipeline_dao:
-            raise ValueError("pipeline_dao is required for async pipeline operations")
 
-        tracker = PipelineTracker(
-            dao=self._pipeline_dao,
-            app_name=app_name,
-            operation="translate",
-            run_id=run_id,
-        )
-        await self._resume_async_pipeline_tracker(tracker)
-
-        logger.info(
-            "pipeline_execution_started",
-            run_id=run_id,
-            document_id=str(document_id),
-            operation="translate",
-        )
-
-        try:
+        async def _body(tracker: PipelineTracker) -> None:
             from negentropy.knowledge.translation import DocumentTranslationService
 
             translation_service = DocumentTranslationService()
@@ -2311,16 +2139,17 @@ class KnowledgeService:
                 operation="translate",
             )
 
-        except PipelineCancelled as cancel_exc:
-            await tracker.cancel(last_stage=cancel_exc.last_stage)
-        except Exception as exc:
-            await self._fail_pipeline_execution(tracker, exc)
-        finally:
-            try:
-                await tracker.ensure_finalized()
-            except Exception:
-                pass
-            unregister_cancellable_run(run_id)
+        return await self._run_async_pipeline(
+            run_id=run_id,
+            app_name=app_name,
+            operation="translate",
+            started_log={
+                "document_id": str(document_id),
+                "operation": "translate",
+            },
+            body=_body,
+            failure_result=None,
+        )
 
     async def ensure_corpus(self, spec: CorpusSpec) -> CorpusRecord:
         return await self._repository.get_or_create_corpus(spec)
