@@ -11,6 +11,7 @@
 ## 工程经验沉淀
 
 - [Issues 摘要](issue.md) — 历次问题表因 / 根因 / 处理 / 防范的跨上下文留存
+- [全仓熵减审计 2026-09](../concepts/operations/codebase-entropy-reduction-2026-09.md) — 「清减 + 重点分解」级结构性熵减留痕：批次清单与验证、执行期勘误、reorder 路由遮蔽缺陷修复声明、后端共享测试库基线方法论、跨模块重复决策记录与 backlog 全登记
 - [PDF 一比一还原质量迭代](pdf-harness-engineering-parity.md) — 学术 PDF → Markdown 端到端保真度提升记录（断字 / 公式 / 标题 / TOC / 图片孤儿）
 - [PDF 巡检状态落库方案](pdf-fidelity-patrol-status.md) — 巡检文档级状态从 Memory 标签迁为 `knowledge_documents` 持久列（SSOT）+ Documents 列表「巡检状态」列 + 「重置为未拟合」二次巡检 API
 - [Development（开发指南）](../concepts/operations/development.md) — 环境搭建、开发工作流、数据库迁移、前后端对接

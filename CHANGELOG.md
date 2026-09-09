@@ -3,7 +3,28 @@
 本文件遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 约定，版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
 ## [Unreleased]
-- **五集草渲交付（Harness Engineering 改造版，待用户审核后终渲）**：13:58 / 13:10 / 13:07 / 13:07 / 13:08（合计 66.5 分钟草渲口径，帧数均按 `total_duration_in_frames` 复算）。全部新断言锚定官方文档与 Anthropic 工程博客（[code.claude.com/docs](https://code.claude.com/docs) 取数2026年8月）；去站点化完成（`check_series.py` 规则 7 全绿）；五集内容门（含分镜覆盖/读法陷阱/时长双口径）FAIL 0 · WARN 0；七幕抽帧自动体检 FAIL 0（08-23 草渲口径）；16 个高风险新图解帧（命名帧/六闸流水线/谁持有计划四象/三禁止章/worktree 四道闸/管家进程/存活矩阵/两条腿/前缀缓存条/三相环/31 事件嵌套/auto 视野分屏/裸名 deny/五辐条/三症状卡/下期卡）逐帧目检通过——无重叠、无字幕带侵入、无文字侧倒（目检基线为 08-23 草渲版；08-24 评审补的六处图解经 `remotion still` 逐帧复检，EP5 两处评审 bug【6-D resume 卡永不渲染的时序死门、分水岭竖线压卡】已修并复渲验证）。配音：716 句基线缓存迁移命中 + 改写句全部重配（sunny-steady + me-bright 不变，两次补配共 ~180 句）。
+- **全仓熵减批次（B1–B12，生产代码净减 2,605 行 + 口径外脚本/锁文件 -1,206 行）**：三路并行取证 + 主线程高危断言独立复核 + 逐批验证的结构性熵减，完整留痕见[全仓熵减审计 2026-09](docs/concepts/operations/codebase-entropy-reduction-2026-09.md)。
+
+### Fixed
+
+- **修复 /interface 三域 reorder 路由被 {id} 参数路由遮蔽的历史缺陷（自注册即静默损坏）**：`PATCH /interface/{mcp/servers,tools,skills}/reorder` 注册序落后于各自 `{id: UUID}` 路由，字面量 `reorder` 被 Starlette 首序匹配当作 UUID 解析 → 422，handler 不可达——三域拖拽排序持久化从未生效（agents 域序正确幸免）。修复为路由块上移 + 常驻静态遮蔽 lint（[ISSUE-183](docs/.agents/issue.md)）。同轮修复：本地共享测试库被 `test_migrations` 全量降级砸坏的 117 failed 破窗（根因链与基线方法论见 [ISSUE-184](docs/.agents/issue.md)）、perceives `setup.sh` 坏 cp（`set -e` 必炸）、cognizes Dockerfile/compose/README 三处指向不存在模块的死路径、性能套件 `get_subtree` 测试的既有 kwarg 签名漂移。
+
+### Changed
+
+- **`interface/api.py` 3,197 行单体正交分解为六域路由模块**：stats/mcp/builtin_tools/skills/agents/permissions 各自持路由，`api.py` 收敛为 25 行按原注册序聚合的聚合器（permissions 通配路由置末位）；bootstrap 聚合点与 `__init__` 零改动。前置「测试先行」批次为 49 路由建立四元组快照契约 + 静态遮蔽 lint + 48 路由鉴权 sweep + 四域 CRUD 真库冒烟（该文件此前 MCP/Skills/Agents/Permissions CRUD 零路由测试）。
+- **`knowledge-api.ts` 3,429 行 / 211 export 拆分为 11 模块目录**：index.ts 门面显式逐名 re-export 全部符号（编译期锁外部可见集），全仓 24 处导入说明符零改动；churn 第一热文件的合并冲突面就此消解。
+- **三份同构 BFF 代理收敛为参数化单实现**（1,178 → 756 行）：`app/api/_lib/proxy.ts` 能力并集核心 + 三个薄绑定层，130+ 消费方零改动，8 项行为增强点逐数论证并以新增契约测试锁定。
+- **后端重复收敛六项 + 管线骨架抽取**：`_utcnow`×8（另发现 2 个隐藏消费者）、`_require_admin`×3、`_resolve_app_name`×2、`_get_knowledge_service`×3、env-falsy×5（消 `SKILLS_LAYER2_ENABLED` 双读）、日志三惯用法×8 文件 → 各自单一事实源；`knowledge/service.py` 12 个 `execute_*_pipeline` 的 8 步执行样板收敛为 `_run_async_pipeline`（日志键序脚本比对与 HEAD 12/12 全等，样板 12→1）。
+
+### Removed
+
+- **全仓死代码清减 ~4,600 行**：backend（prf_expander+PRF 旋钮 / lifecycle_types / db-deps get_db / numpy、scipy 直接依赖）；perceives（skills/ 孤儿包 230 行 + benchmark 一次性脚本 1,049 行）；cognizes（pyproject 死入口 / 陈旧分叉测试树 298 行——其同名 basename 冲突曾致全量 pytest 无法收集）；ui 死簇 15 文件 1,620 行（hooks×3、monitoring、adk guards、组件×4、conversation 目录、5 空壳 barrel）；cognizes-ui 模板残骸 8 文件 361 行 + 死依赖。所有删除标的均经执行日重 grep 硬门复核，6 项探索期「死代码」结论被证伪保留（rocchio 活路径 / rxjs AGUI 运行时 / cognizes-ui 跨包测试宿主 / dashboard api 活消费方 / adk.ts 系 SSOT 本体等，全表见审计文档 §4）。
+- **语义规范化**：cognizes sandbox 自 `adapters/postgres/` 归位顶层（对齐 backend 布局）、`ChunkingStrategy`(ABC) 改名 `Chunker`（消与 backend Enum 同名异物）、perceives 包 tagline 校正、cognizes 测试树 importlib 模式（全树收集 3 ERROR→0）、`pnpm-workspace.yaml` 个人绝对路径清理。
+
+### Added
+
+- **[全仓熵减审计 2026-09](docs/concepts/operations/codebase-entropy-reduction-2026-09.md)**：批次清单与验证证据、执行期勘误表、行为变更声明、后端共享测试库基线方法论、跨模块重复决策记录（图引擎/markdown/cn 有意分叉边界、agents-chat-core 单消费者定位）与 backlog 全登记；[ISSUE-183/184](docs/.agents/issue.md) 沉淀路由遮蔽与测试库破窗两类跨上下文教训。新增测试资产 529 行（路由契约/集成冒烟/BFF 契约）。
+
 
 - **《Claude Code 通俗全解》更名《Claude Code Harness Engineering》+ 去站点化改造启动**：系列定位从「介绍开源课程」升级为「拆解 harness 工程」（官方术语表已正式定义 Agentic harness，how-it-works 页明确「Claude Code 是 harness、Claude 是里面的模型」）。五集标题统一收进五层命名体系——[《执行层：一个循环，就是全部》](apps/negentropy-influence/episodes/claude-code-explained-video/README.md) → [《规划层：模型的视野是安排出来的》](apps/negentropy-influence/episodes/claude-code-planning-video/README.md) → [《记忆层：会丢的和不能丢的》](apps/negentropy-influence/episodes/claude-code-memory-video/README.md) → [《时机层：谁来按下开始》](apps/negentropy-influence/episodes/claude-code-concurrency-video/README.md) → [《协作层：从一个到一群》](apps/negentropy-influence/episodes/claude-code-multiagent-video/README.md)（标题只进画面与元数据不进口播，配音成本零）。配套基建：`check_series.py` 新增**规则 7 去站点化门**（观众可见层禁课程站点标识，按系列豁免论文系「站点」一词，8 个新测试用例）；skills/06 沉淀五层 HarnessStack 母题规格 + 五集统一动效语法 + 信源卡新四行；5 集 716 句配音缓存自 istanbul-v6 迁移并验证 100% 命中（`tts --plan` 全零待合成）。
 
