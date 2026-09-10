@@ -172,40 +172,46 @@ The **NegentropyEngine** refrains from executing atomic tasks directly; it exist
 graph TB
     subgraph Presentation["🖥️ Presentation Layer"]
         UI["negentropy-ui<br/><i>Next.js 16 · React 19 · Tailwind</i>"]
-        Wiki["negentropy-wiki<br/><i>Next.js</i>"]
+        Wiki["negentropy-wiki<br/><i>Next.js · pure static export</i>"]
     end
 
     subgraph Engine["⚙️ Engine Layer"]
+        API["Backend API<br/><i>ADK Web · FastAPI</i>"]
         Root["🔮 NegentropyEngine<br/>Root Agent (The Self)"]
         Faculties["Five Faculties<br/>👁️ Perception <br> 💎 Internalization <br> 🧠 Contemplation <br> ✋ Action <br> 🗣️ Influence"]
         Pipelines["Three Pipelines<br/>Knowledge Acquisition <br> Problem Solving <br> Value Delivery"]
     end
 
     subgraph Infra["🏗️ Infrastructure Layer"]
-        DB[("PostgreSQL 16+<br/>pgvector")]
+        Perceives["negentropy-perceives<br/><i>MCP Server · :2992</i>"]
+        DB[("PostgreSQL 17<br/>pgvector")]
         LLM["LiteLLM<br/>100+ LLMs Unified API"]
         OTel["OpenTelemetry · Langfuse"]
-        Sandbox["MCP · MicroSandbox"]
+        Sandbox["MicroSandbox"]
     end
 
-    UI -->|"AG-UI Protocol"| Root
-    Wiki -->|"HTTP/JSON"| Root
+    UI -->|"AG-UI Protocol (BFF)"| API
+    API -.->|"static content · baked at build time"| Wiki
+    API --> Root
     Root --> Faculties
     Root --> Pipelines
     Pipelines --> Faculties
     Faculties --> DB
+    Faculties -->|"MCP"| Perceives
     Faculties --> Sandbox
     Root --> LLM
-    Root -.-> OTel
+    API -.-> OTel
 
     classDef pres fill:#60A5FA,stroke:#1E3A8A,color:#000
     classDef eng fill:#F59E0B,stroke:#92400E,color:#000
     classDef infra fill:#10B981,stroke:#065F46,color:#FFF
 
     class UI,Wiki pres
-    class Root,Faculties,Pipelines eng
-    class DB,LLM,OTel,Sandbox infra
+    class API,Root,Faculties,Pipelines eng
+    class Perceives,DB,LLM,OTel,Sandbox infra
 ```
+
+> 🖱️ Explore the interactive version (pan / zoom / search / source links): [architecture-diagram.html](./docs/concepts/architecture-diagram.html)
 
 ---
 

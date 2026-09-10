@@ -68,7 +68,7 @@ title: "架构设计方案 · 一核五翼总览"
 graph TB
     subgraph Presentation["展示层 (Presentation)"]
         UI["negentropy-ui<br><i>Next.js 16 · React 19</i>"]
-        Wiki["negentropy-wiki<br><i>Next.js</i>"]
+        Wiki["negentropy-wiki<br><i>Next.js · 纯静态导出</i>"]
     end
 
     subgraph Engine["引擎层 (Engine)"]
@@ -79,21 +79,23 @@ graph TB
     end
 
     subgraph Infrastructure["基础设施层 (Infrastructure)"]
-        DB["PostgreSQL 16+<br>pgvector"]
+        Perceives["negentropy-perceives<br>MCP Server · :2992"]
+        DB["PostgreSQL 17<br>pgvector"]
         LLM["LLM 提供商<br>LiteLLM 路由"]
         OTel["可观测性<br>OpenTelemetry · Langfuse"]
-        Sandbox["沙箱执行<br>MCP · MicroSandbox"]
+        Sandbox["沙箱执行<br>MicroSandbox"]
     end
 
     UI -->|AG-UI Protocol| API
-    Wiki -->|HTTP/JSON| API
+    API -.->|静态内容 · 构建期烘焙| Wiki
     API --> Root
     Root -->|transfer_to_agent| Faculties
     Root -->|transfer_to_agent| Pipelines
     Pipelines -->|SequentialAgent| Faculties
     Faculties -->|Tools| DB
+    Faculties -->|MCP| Perceives
     Faculties -->|Tools| Sandbox
-    API --> OTel
+    API -.-> OTel
     Root --> LLM
 
     classDef presentation fill:#60A5FA,stroke:#1E3A8A,color:#000
@@ -102,18 +104,21 @@ graph TB
 
     class UI,Wiki presentation
     class Root,Faculties,Pipelines,API engine
-    class DB,LLM,OTel,Sandbox infra
+    class Perceives,DB,LLM,OTel,Sandbox infra
 ```
+
+> 🖱️ 交互式版本（平移 / 缩放 / 搜索 / 源码锚点）：[architecture-diagram.html](./architecture-diagram.html)
 
 ### 2.2 应用边界与技术栈
 
 | 应用                       | 技术栈                                                                                        | 包管理                      | 入口                                                                      |
 | :------------------------- | :-------------------------------------------------------------------------------------------- | :-------------------------- | :------------------------------------------------------------------------ |
 | **negentropy** (后端引擎)  | Python 3.13+, Google ADK<sup>[[3]](#ref3)</sup>, SQLAlchemy, LiteLLM<sup>[[10]](#ref10)</sup> | `uv`<sup>[[9]](#ref9)</sup> | [`agents/agent.py`](../../apps/negentropy/src/negentropy/agents/agent.py) |
+| **negentropy-perceives** (感知服务) | Python 3.13+, FastMCP                                                  | `uv`                        | [`src/`](../../apps/negentropy-perceives/src/)                            |
 | **negentropy-ui** (前端)   | Next.js 16<sup>[[8]](#ref8)</sup>, React 19, TypeScript, Tailwind CSS                         | `pnpm`                      | [`app/layout.tsx`](../../apps/negentropy-ui/app/layout.tsx)               |
-| **negentropy-wiki** (Wiki) | Next.js, TypeScript                                                                           | `pnpm`                      | [`src/`](../../apps/negentropy-wiki/src/)                                 |
+| **negentropy-wiki** (Wiki) | Next.js, TypeScript · 纯静态导出                                                              | `pnpm`                      | [`src/`](../../apps/negentropy-wiki/src/)                                 |
 
-应用间仅通过 **HTTP/JSON 契约**通信，严禁源码互引。详见 [development.md](operations/development.md) §项目结构。
+应用间仅通过网络契约（AG-UI / HTTP / MCP）或构建期静态产物协作，严禁源码互引。详见 [development.md](operations/development.md) §项目结构。
 
 
 ---
@@ -517,7 +522,7 @@ Admin UI → model_configs 表 → model_resolver.py → create_model() → Lite
 
 ### 8.1 技术选型
 
-- **PostgreSQL 16+**：关系型数据主存储
+- **PostgreSQL 17+**：关系型数据主存储
 - **pgvector**：向量嵌入存储与相似度检索
 - **Alembic**：Schema 迁移管理
 - **SQLAlchemy**：ORM 与异步数据访问 (asyncpg)

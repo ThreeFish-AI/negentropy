@@ -19,6 +19,7 @@
 ## 系统概念与设计
 
 - [Framework（系统框架）](../concepts/framework.md)
+- [Architecture Diagram（交互式架构图）](../concepts/architecture-diagram.html) — 三层拓扑交互 HTML（archify 生成，英文，含 11 处仓库源码锚点）：wiki 纯静态导出、perceives MCP 服务、PG17 等校准事实的 SSOT 可视化，与 README ×2 / framework.md §2.1 对齐
 - [Conversation Foundation（对话基础）](../concepts/conversation-foundation.md)
 - [A2UI（Agent-to-UI 协议）](../concepts/a2ui.md)
 - [SSO（单点登录设计）](../concepts/design/sso.md)

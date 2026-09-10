@@ -175,40 +175,46 @@ pre-commit install
 graph TB
     subgraph Presentation["🖥️ 展示层"]
         UI["negentropy-ui<br/><i>Next.js 16 · React 19 · Tailwind</i>"]
-        Wiki["negentropy-wiki<br/><i>Next.js</i>"]
+        Wiki["negentropy-wiki<br/><i>Next.js · 纯静态导出</i>"]
     end
 
     subgraph Engine["⚙️ 引擎层"]
+        API["后端 API<br/><i>ADK Web · FastAPI</i>"]
         Root["🔮 NegentropyEngine<br/>本我"]
         Faculties["五大系部<br/>👁️ 感知 · 💎 内化 · 🧠 坐照 · ✋ 知行 · 🗣️ 影响"]
         Pipelines["三条流水线<br/>知识获取 · 问题解决 · 价值交付"]
     end
 
     subgraph Infra["🏗️ 基础设施层"]
-        DB[("PostgreSQL 16+<br/>pgvector")]
+        Perceives["negentropy-perceives<br/><i>MCP Server · :2992</i>"]
+        DB[("PostgreSQL 17<br/>pgvector")]
         LLM["LiteLLM<br/>100+ LLM 统一接口"]
         OTel["OpenTelemetry · Langfuse"]
-        Sandbox["MCP · MicroSandbox"]
+        Sandbox["MicroSandbox"]
     end
 
-    UI -->|"AG-UI Protocol"| Root
-    Wiki -->|"HTTP/JSON"| Root
+    UI -->|"AG-UI 协议（BFF 代理）"| API
+    API -.->|"静态内容 · 构建期烘焙"| Wiki
+    API --> Root
     Root --> Faculties
     Root --> Pipelines
     Pipelines --> Faculties
     Faculties --> DB
+    Faculties -->|"MCP"| Perceives
     Faculties --> Sandbox
     Root --> LLM
-    Root -.-> OTel
+    API -.-> OTel
 
     classDef pres fill:#60A5FA,stroke:#1E3A8A,color:#000
     classDef eng fill:#F59E0B,stroke:#92400E,color:#000
     classDef infra fill:#10B981,stroke:#065F46,color:#FFF
 
     class UI,Wiki pres
-    class Root,Faculties,Pipelines eng
-    class DB,LLM,OTel,Sandbox infra
+    class API,Root,Faculties,Pipelines eng
+    class Perceives,DB,LLM,OTel,Sandbox infra
 ```
+
+> 🖱️ 探索交互式版本（平移 / 缩放 / 搜索 / 源码锚点）：[architecture-diagram.html](../../concepts/architecture-diagram.html)
 
 ---
 
