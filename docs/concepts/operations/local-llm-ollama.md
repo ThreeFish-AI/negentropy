@@ -94,7 +94,7 @@ WHERE NOT EXISTS (
 ## 4. 验证
 
 ```bash
-./dev doctor          # 容器内；ollama 项应 PASS（探活 :11434）
+./scripts/dev doctor          # 容器内；ollama 项应 PASS（探活 :11434）
 # 或裸机：uv run negentropy doctor
 ```
 

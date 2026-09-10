@@ -6,25 +6,29 @@
 #
 # 设计（Reuse-Driven）：
 #   - Docker 路径复用 docker-compose.yml，仅叠加 docker-compose.local.yml（本地安全 env）。
-#   - 裸机路径复用 scripts/cli.sh（./dev native）。
+#   - 裸机路径复用 scripts/cli.sh（./scripts/dev native）。
 #   - 不重造编排逻辑。
 #
 # 用法：
-#   ./dev                  默认：setup + start（Docker，推荐）
-#   ./dev setup            仅准备 .env.docker.local / config.local.yaml 并检测 LLM Key
-#   ./dev start            拉起 Docker 全栈并健康自检
-#   ./dev stop | restart | status | logs [backend|ui|wiki|perceives]
-#   ./dev update           git pull + setup
-#   ./dev native           裸机路径（热重载，需外部 pgvector Postgres；委托 scripts/cli.sh）
-#   ./dev doctor           容器内运行 negentropy doctor（首启自检）
-#   ./dev seed-demo        容器内写入演示数据
+#   ./scripts/dev                  默认：setup + start（Docker，推荐）
+#   ./scripts/dev setup            仅准备 .env.docker.local / config.local.yaml 并检测 LLM Key
+#   ./scripts/dev start            拉起 Docker 全栈并健康自检
+#   ./scripts/dev stop | restart | status | logs [backend|ui|wiki|perceives]
+#   ./scripts/dev update           git pull + setup
+#   ./scripts/dev native           裸机路径（热重载，需外部 pgvector Postgres；委托 scripts/cli.sh）
+#   ./scripts/dev doctor           容器内运行 negentropy doctor（首启自检）
+#   ./scripts/dev seed-demo        容器内写入演示数据
 #
 # 前置：Docker Engine + Docker Compose v2（>= 2.24，env_file required 语法）。
 # =============================================================================
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
-COMPOSE=(docker compose -f "$REPO_ROOT/docker-compose.yml" -f "$REPO_ROOT/docker-compose.local.yml")
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")/.." && pwd)"
+COMPOSE=(docker compose -f "$REPO_ROOT/docker/docker-compose.yml" -f "$REPO_ROOT/docker/docker-compose.local.yml")
+# 根 .env 提供 Compose 插值变量（NE_POSTGRES_HOST_PORT 等）；--env-file 路径中立，不影响相对路径解析
+if [[ -f "$REPO_ROOT/.env" ]]; then
+  COMPOSE+=(--env-file "$REPO_ROOT/.env")
+fi
 ENV_LOCAL="$REPO_ROOT/.env.docker.local"
 ENV_TPL="$REPO_ROOT/.env.docker"
 CFG_TPL="$REPO_ROOT/apps/negentropy/src/negentropy/config/config.local.example.yaml"
@@ -65,7 +69,7 @@ cmd_setup() {
     _ok "检测到 LLM Key（.env.docker.local）"
   else
     _warn "未检测到 LLM Key —— 对话能力需至少一个 Key 激活。"
-    _warn "  请在 .env.docker.local 填入 OPENAI_API_KEY / ANTHROPIC_API_KEY / GEMINI_API_KEY 任一，再重跑 ./dev。"
+    _warn "  请在 .env.docker.local 填入 OPENAI_API_KEY / ANTHROPIC_API_KEY / GEMINI_API_KEY 任一，再重跑 ./scripts/dev。"
     _warn "  若希望零 Key 本地运行，参见 docs/concepts/local-llm-ollama.md 配置 Ollama。"
   fi
 }
@@ -96,7 +100,7 @@ print_urls() {
 
 cmd_start() {
   cmd_setup
-  _phase "start（docker compose -f docker-compose.yml -f docker-compose.local.yml）"
+  _phase "start（docker compose -f docker/docker-compose.yml -f docker/docker-compose.local.yml）"
   "${COMPOSE[@]}" up -d --build
   if ! wait_backend; then
     _error "backend 健康检查超时；最近日志："
@@ -124,7 +128,7 @@ cmd_help() {
   cat <<EOF
 ${C_BOLD}Negentropy 一键入口${C_RST}（Docker 主路径）
 
-${C_BOLD}用法:${C_RST}  ./dev [command]
+${C_BOLD}用法:${C_RST}  ./scripts/dev [command]
 
 ${C_BOLD}命令:${C_RST}
   (默认) / start      setup + 拉起 Docker 全栈 + 健康自检
@@ -138,9 +142,9 @@ ${C_BOLD}命令:${C_RST}
   seed-demo           容器内写入演示数据
 
 ${C_BOLD}示例:${C_RST}
-  ./dev                 # 一键启动
-  ./dev native          # 裸机（无需 Docker）
-  ./dev logs backend    # 看后端日志
+  ./scripts/dev                 # 一键启动
+  ./scripts/dev native          # 裸机（无需 Docker）
+  ./scripts/dev logs backend    # 看后端日志
 EOF
 }
 

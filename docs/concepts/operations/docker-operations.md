@@ -8,7 +8,7 @@ title: "Docker Compose 运维指引"
 >
 > - 镜像构建与 CI/CD 流水线设计：[Docker Release Pipeline](../design/docker-release-pipeline.md)
 > - 原生开发环境搭建：[Development Guide](./development.md)
-> - 相关配置文件：[docker-compose.yml](../../docker-compose.yml)、[.env.docker](../../.env.docker)
+> - 相关配置文件：[docker/docker-compose.yml](../../docker/docker-compose.yml)、[.env.docker](../../.env.docker)
 
 ---
 
@@ -76,7 +76,7 @@ flowchart TB
 | `ui`        | `negentropy-ui`        | `threefishai/negentropy-ui`        | 3192     | `curl -sf http://localhost:3192/`          | `backend: healthy`              |
 | `wiki`      | `negentropy-wiki`      | `threefishai/negentropy-wiki`      | 3092     | `curl -sf http://localhost:3092/`          | `backend + ui: healthy`         |
 
-> 镜像命名的单一事实源是 [docker-compose.yml](../../docker-compose.yml) 中各服务的 `image:` 字段。
+> 镜像命名的单一事实源是 [docker/docker-compose.yml](../../docker/docker-compose.yml) 中各服务的 `image:` 字段。
 
 ### 1.3 启动顺序
 
@@ -97,19 +97,19 @@ Compose 通过 `depends_on: condition: service_healthy` 建立级联启动链：
 
 ### 2.1 本地零配置快速启动（推荐入门）
 
-本地开发**无需任何云凭证**即可启动全栈。一键入口 [`./dev`](../../dev) 会自动叠加本地安全配置层
-[`docker-compose.local.yml`](../../docker-compose.local.yml)（inmemory 制品 / 关闭 Langfuse 外发 / 标记 development）：
+本地开发**无需任何云凭证**即可启动全栈。一键入口 [`./scripts/dev`](../../scripts/dev) 会自动叠加本地安全配置层
+[`docker/docker-compose.local.yml`](../../docker/docker-compose.local.yml)（inmemory 制品 / 关闭 Langfuse 外发 / 标记 development）：
 
 ```bash
-./dev            # = setup（创建 .env.docker.local）+ 构建并启动全栈 + 健康自检 + doctor
+./scripts/dev            # = setup（创建 .env.docker.local）+ 构建并启动全栈 + 健康自检 + doctor
 ```
 
 对话能力默认由一个 LLM Key 激活（在 `.env.docker.local` 填入 `OPENAI`/`ANTHROPIC`/`GEMINI` 任一）；
 零 Key 本地方案见 [本地 Ollama 集成](./local-llm-ollama.md)。
 
-> **本地 vs 生产的关键隔离**：`docker-compose.local.yml` **不会**被 `docker compose up` 自动合并
-> （其文件名非 `docker-compose.override.yml`）。本地经 `./dev`（或显式
-> `-f docker-compose.yml -f docker-compose.local.yml`）叠加；**生产部署走 `docker-compose.yml` 单文件**，
+> **本地 vs 生产的关键隔离**：`docker/docker-compose.local.yml` **不会**被任何 compose 命令自动合并
+> （其文件名非 `docker-compose.override.yml`）。本地经 `./scripts/dev`（或显式
+> `-f docker/docker-compose.yml -f docker/docker-compose.local.yml`）叠加；**生产部署走 `docker/docker-compose.yml` 单文件**，
 > 叠加逻辑、默认行为均不变。参见 Docker「Merge Compose files」规范 [5]。
 
 ### 2.2 前置依赖
@@ -125,7 +125,7 @@ Compose 通过 `depends_on: condition: service_healthy` 建立级联启动链：
 
 ### 2.3 环境变量设置
 
-[docker-compose.yml](../../docker-compose.yml) 采用双层 `env_file` 叠加机制：
+[docker/docker-compose.yml](../../docker/docker-compose.yml) 采用双层 `env_file` 叠加机制：
 
 | 层级   | 文件                | 必须存在                | 用途                             |
 | :----- | :------------------ | :---------------------- | :------------------------------- |
@@ -168,8 +168,8 @@ cp .env.docker .env.docker.local
 
 ```bash
 # 指定版本拉取并启动（跳过本地构建）
-NEGENTROPY_IMAGE_TAG=1.2.0 docker compose pull
-NEGENTROPY_IMAGE_TAG=1.2.0 docker compose up -d --no-build
+NEGENTROPY_IMAGE_TAG=1.2.0 docker compose -f docker/docker-compose.yml pull
+NEGENTROPY_IMAGE_TAG=1.2.0 docker compose -f docker/docker-compose.yml up -d --no-build
 ```
 
 **版本固定策略**：
@@ -184,10 +184,10 @@ NEGENTROPY_IMAGE_TAG=1.2.0 docker compose up -d --no-build
 
 ```bash
 # 1. 拉取新版本镜像
-NEGENTROPY_IMAGE_TAG=1.3.0 docker compose pull
+NEGENTROPY_IMAGE_TAG=1.3.0 docker compose -f docker/docker-compose.yml pull
 
 # 2. 重建并启动（仅重建镜像变更的容器）
-NEGENTROPY_IMAGE_TAG=1.3.0 docker compose up -d --no-build
+NEGENTROPY_IMAGE_TAG=1.3.0 docker compose -f docker/docker-compose.yml up -d --no-build
 ```
 
 > 升级时 backend 容器的 [entrypoint.sh](../../docker/backend/entrypoint.sh) 会自动执行 `alembic upgrade head`，无需手动迁移。
@@ -198,25 +198,25 @@ NEGENTROPY_IMAGE_TAG=1.3.0 docker compose up -d --no-build
 
 ```bash
 # 构建所有镜像并启动
-docker compose up -d
+docker compose -f docker/docker-compose.yml up -d
 
 # 仅构建不启动
-docker compose build
+docker compose -f docker/docker-compose.yml build
 
 # 无缓存全量重建
-docker compose build --no-cache
+docker compose -f docker/docker-compose.yml build --no-cache
 ```
 
 **重建单个服务**：
 
 ```bash
 # 修改源码后重建 backend
-docker compose build backend && docker compose up -d backend
+docker compose -f docker/docker-compose.yml build backend && docker compose -f docker/docker-compose.yml up -d backend
 ```
 
 ### 3.3 Compose 覆盖的环境变量
 
-以下环境变量由 [docker-compose.yml](../../docker-compose.yml) 在 `environment:` 中显式设置，覆盖 `.env.docker.local` 中的同名项。它们使用 Docker 内部网络服务名替代 `localhost`：
+以下环境变量由 [docker/docker-compose.yml](../../docker/docker-compose.yml) 在 `environment:` 中显式设置，覆盖 `.env.docker.local` 中的同名项。它们使用 Docker 内部网络服务名替代 `localhost`：
 
 | 变量                                | 值                                                    | 说明                                                                                  |
 | :---------------------------------- | :---------------------------------------------------- | :------------------------------------------------------------------------------------ |
@@ -247,21 +247,21 @@ docker compose build backend && docker compose up -d backend
 ### 4.1 启停命令
 
 ```bash
-docker compose up -d                    # 后台启动所有服务
-docker compose down                     # 停止并移除容器（保留数据卷）
-docker compose down -v                  # 停止并移除容器和数据卷（⚠ 数据不可恢复）
-docker compose restart <service>        # 重启单个服务
-docker compose stop                     # 暂停所有服务（不移除容器）
-docker compose start                    # 恢复已暂停的服务
+docker compose -f docker/docker-compose.yml up -d                    # 后台启动所有服务
+docker compose -f docker/docker-compose.yml down                     # 停止并移除容器（保留数据卷）
+docker compose -f docker/docker-compose.yml down -v                  # 停止并移除容器和数据卷（⚠ 数据不可恢复）
+docker compose -f docker/docker-compose.yml restart <service>        # 重启单个服务
+docker compose -f docker/docker-compose.yml stop                     # 暂停所有服务（不移除容器）
+docker compose -f docker/docker-compose.yml start                    # 恢复已暂停的服务
 ```
 
-> `docker compose down` 不会删除 `postgres_data` 卷，数据持久保留。`down -v` 会**不可逆地删除所有数据**，仅在确认无需保留数据时使用。
+> `docker compose -f docker/docker-compose.yml down` 不会删除 `postgres_data` 卷，数据持久保留。`down -v` 会**不可逆地删除所有数据**，仅在确认无需保留数据时使用。
 
 ### 4.2 健康状态检查
 
 ```bash
 # 查看所有服务状态（含健康检查结果）
-docker compose ps
+docker compose -f docker/docker-compose.yml ps
 
 # 预期输出示例：
 # NAME                    STATUS
@@ -290,10 +290,10 @@ docker inspect --format='{{range .State.Health.Log}}{{.Output}}{{end}}' negentro
 ### 4.3 日志查看
 
 ```bash
-docker compose logs -f                  # 跟踪所有服务日志
-docker compose logs -f backend          # 跟踪 backend 日志
-docker compose logs --since 30m perceives  # 最近 30 分钟 perceives 日志
-docker compose logs --tail 100 ui       # ui 最近 100 行日志
+docker compose -f docker/docker-compose.yml logs -f                  # 跟踪所有服务日志
+docker compose -f docker/docker-compose.yml logs -f backend          # 跟踪 backend 日志
+docker compose -f docker/docker-compose.yml logs --since 30m perceives  # 最近 30 分钟 perceives 日志
+docker compose -f docker/docker-compose.yml logs --tail 100 ui       # ui 最近 100 行日志
 ```
 
 **各服务启动日志特征**：
@@ -312,16 +312,16 @@ docker compose logs --tail 100 ui       # ui 最近 100 行日志
 ```bash
 # 查看卷信息
 docker volume ls | grep postgres_data
-docker volume inspect damascus-v3_postgres_data
+docker volume inspect negentropy_postgres_data
 
 # 备份数据库
-docker compose exec postgres pg_dump -U aigc negentropy > backup_$(date +%Y%m%d).sql
+docker compose -f docker/docker-compose.yml exec postgres pg_dump -U aigc negentropy > backup_$(date +%Y%m%d).sql
 
 # 恢复数据库
-cat backup_20260612.sql | docker compose exec -T postgres psql -U aigc negentropy
+cat backup_20260612.sql | docker compose -f docker/docker-compose.yml exec -T postgres psql -U aigc negentropy
 
 # 直连 PostgreSQL
-docker compose exec postgres psql -U aigc -d negentropy
+docker compose -f docker/docker-compose.yml exec postgres psql -U aigc -d negentropy
 ```
 
 > `pg_dump` 备份可在服务运行时安全执行（PostgreSQL 一致性快照）。
@@ -338,7 +338,7 @@ docker compose exec postgres psql -U aigc -d negentropy
 | **启动速度**   | 快（秒级）                                 | 慢（首次构建需分钟级）                                    |
 | **热重载**     | ✅ 后端 `--reload_agents`，前端 Next.js HMR | ❌ 需重建镜像才能生效                                      |
 | **依赖管理**   | `uv sync` / `pnpm install`                 | 构建时自动安装                                            |
-| **调试便利性** | 原生 IDE 断点                              | 需 `docker compose exec` 进入容器                         |
+| **调试便利性** | 原生 IDE 断点                              | 需 `docker compose -f docker/docker-compose.yml exec` 进入容器                         |
 
 > 日常开发推荐使用原生工具链（参见 [Development Guide](./development.md)）。Docker 用于验证生产构建或测试 CI/CD 变更。
 
@@ -346,16 +346,16 @@ docker compose exec postgres psql -U aigc -d negentropy
 
 ```bash
 # 构建全部 4 个自建镜像
-docker compose build
+docker compose -f docker/docker-compose.yml build
 
 # 仅构建单个服务
-docker compose build backend
+docker compose -f docker/docker-compose.yml build backend
 
 # 无缓存全量重建（Dockerfile 或依赖变更后）
-docker compose build --no-cache perceives
+docker compose -f docker/docker-compose.yml build --no-cache perceives
 
 # 构建并启动（镜像变更时自动重建）
-docker compose up -d --build
+docker compose -f docker/docker-compose.yml up -d --build
 ```
 
 **多阶段构建说明**：所有 Dockerfile 均采用多阶段构建（builder → runtime）。builder 阶段安装依赖并编译，runtime 阶段仅包含运行时产物，最终镜像体积更小、攻击面更窄。
@@ -412,10 +412,10 @@ flowchart TD
 
 | 问题                      | 症状                                                                                               | 根因                                                                                                                                                                         | 解决方案                                                                                                                                                                                                     |
 | :------------------------ | :------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **端口冲突**              | `port is already allocated`（被其他容器占用）或 `bind: address already in use`（被宿主机进程占用） | 本机 PostgreSQL 或其他容器/进程占用了 :5432 / :3292 等主机端口                                                                                                               | `docker ps`（查容器）/ `lsof -i :<port>`（查进程）定位占用者；postgres 主机端口可经 `NE_POSTGRES_HOST_PORT`（设于根目录 `.env` 或 shell）改映射，无需停用既有服务；其余服务端口同理编辑 `docker-compose.yml` |
-| **数据卷损坏**            | postgres 启动失败，日志显示数据目录错误                                                            | 主机异常重启后 `postgres_data` 卷状态不一致                                                                                                                                  | `docker compose down && docker volume rm <project>_postgres_data && docker compose up -d`（⚠ 数据不可恢复）                                                                                                  |
+| **端口冲突**              | `port is already allocated`（被其他容器占用）或 `bind: address already in use`（被宿主机进程占用） | 本机 PostgreSQL 或其他容器/进程占用了 :5432 / :3292 等主机端口                                                                                                               | `docker ps`（查容器）/ `lsof -i :<port>`（查进程）定位占用者；postgres 主机端口可经 `NE_POSTGRES_HOST_PORT`（设于根目录 `.env`——经 `./scripts/dev` 自动读取——或 shell）改映射，无需停用既有服务；其余服务端口同理编辑 `docker/docker-compose.yml` |
+| **数据卷损坏**            | postgres 启动失败，日志显示数据目录错误                                                            | 主机异常重启后 `postgres_data` 卷状态不一致                                                                                                                                  | `docker compose -f docker/docker-compose.yml down && docker volume rm negentropy_postgres_data && docker compose -f docker/docker-compose.yml up -d`（⚠ 数据不可恢复）                                                                                                  |
 | **镜像拉取失败**          | `manifest not found`                                                                               | `NEGENTROPY_IMAGE_TAG` 指定了不存在的标签                                                                                                                                    | 确认标签存在：`docker manifest inspect threefishai/negentropy-backend:<tag>`                                                                                                                                 |
-| **健康检查超时**          | 容器持续 `(unhealthy)`                                                                             | 服务启动慢或探针目标不可达                                                                                                                                                   | 查看日志 `docker compose logs <service>`；首次构建镜像时 backend 的 `start_period` 可能不够，等待后重试                                                                                                      |
+| **健康检查超时**          | 容器持续 `(unhealthy)`                                                                             | 服务启动慢或探针目标不可达                                                                                                                                                   | 查看日志 `docker compose -f docker/docker-compose.yml logs <service>`；首次构建镜像时 backend 的 `start_period` 可能不够，等待后重试                                                                                                      |
 | **依赖链阻塞**            | 服务一直等待，未启动                                                                               | 上游服务未达到 healthy 状态                                                                                                                                                  | postgres 与 perceives 无级联关系、应分别独立排查；级联链为 postgres/perceives → backend → ui → wiki，按此顺序逐级确认上游 healthy                                                                         |
 | **环境变量未加载**        | 认证失败或 API Key 缺失                                                                            | `.env.docker.local` 未创建或密钥为空                                                                                                                                         | 确认文件存在且值已填写：`cat .env.docker.local \| grep -v '^#' \| grep -v '^$'`                                                                                                                              |
 | **架构不匹配**            | `exec format error`                                                                                | 在 amd64 主机运行 arm64 单架构镜像（或反之）                                                                                                                                 | 使用多架构清单（默认行为），不要指定特定架构 digest                                                                                                                                                          |
@@ -425,16 +425,16 @@ flowchart TD
 
 ```bash
 # 查看合并后的 Compose 配置（验证环境变量是否正确注入）
-docker compose config
+docker compose -f docker/docker-compose.yml config
 
 # 进入运行中的容器
-docker compose exec backend bash
+docker compose -f docker/docker-compose.yml exec backend bash
 
 # 直连 PostgreSQL（执行 SQL 查询）
-docker compose exec postgres psql -U aigc -d negentropy
+docker compose -f docker/docker-compose.yml exec postgres psql -U aigc -d negentropy
 
 # 查看容器内进程
-docker compose top
+docker compose -f docker/docker-compose.yml top
 
 # 查看容器资源占用
 docker stats --no-stream
@@ -481,15 +481,15 @@ Docker 镜像 tag 由 git tag 派生（`negentropy-v<x.y.z>` → `<x.y.z>`），
 | fork 防御                      | `docker-release` 含 `if: github.repository_owner == 'ThreeFish-AI'`；非 ThreeFish-AI 仓库推 tag 不会发布。                                                                                        |
 | PG 来自上游命名空间            | 消费者 `pull` 会从 `pgvector` 官方拉 `pgvector/pgvector:pg17` + 从 `threefishai` 拉 4 个应用镜像——属「复用上游 PG」方案的预期外观，非异常。                                                       |
 | 消费者必填 LLM key             | PG 无密钥（trust 认证），但应用不填至少一个 LLM key 与 `NE_AUTH_TOKEN_SECRET` 无法正常服务。密钥准备见 [§2.3 环境变量设置](#23-环境变量设置)。                                                    |
-| 勿混入 `.local.yml`            | 消费者使用裸 `docker-compose.yml`，勿叠加 `docker-compose.local.yml`（开发期 inmemory / 关 langfuse 覆盖）或 `./dev` 脚本。                                                                       |
+| 勿混入 `.local.yml`            | 消费者使用裸 `docker/docker-compose.yml`，勿叠加 `docker/docker-compose.local.yml`（开发期 inmemory / 关 langfuse 覆盖）或 `./scripts/dev` 脚本。                                                                       |
 
 **④ 首发端到端验证**（在 [7.3 发布后验证](#73-发布后验证) 基础上补应用层自检）：
 
 ```bash
 export NEGENTROPY_IMAGE_TAG=0.0.1
-docker compose -f docker-compose.yml up -d --no-build
+docker compose -f docker/docker-compose.yml up -d --no-build
 curl -fsS http://localhost:3292/health                               # backend 健康（HTTP 200）
-docker compose -f docker-compose.yml exec backend negentropy doctor  # 应用自检（含 DB / pgvector 扩展）
+docker compose -f docker/docker-compose.yml exec backend negentropy doctor  # 应用自检（含 DB / pgvector 扩展）
 ```
 
 > **判定**：5 服务（postgres / perceives / backend / ui / wiki）均 `healthy` + `/health` 返回 200 + `negentropy doctor` 通过 = 首次发布成功。
@@ -543,11 +543,11 @@ git push origin negentropy-v1.2.0
 docker buildx imagetools inspect threefishai/negentropy-backend:1.2.0
 
 # 2. 在全新主机上验证部署
-NEGENTROPY_IMAGE_TAG=0.0.1-rc.1 docker compose pull
-NEGENTROPY_IMAGE_TAG=0.0.1-rc.1 docker compose up -d --no-build
+NEGENTROPY_IMAGE_TAG=0.0.1-rc.1 docker compose -f docker/docker-compose.yml pull
+NEGENTROPY_IMAGE_TAG=0.0.1-rc.1 docker compose -f docker/docker-compose.yml up -d --no-build
 
 # 3. 等待所有服务 healthy
-docker compose ps
+docker compose -f docker/docker-compose.yml ps
 
 # 4. 功能验证：访问 http://localhost:3192 (UI) 和 http://localhost:3092 (Wiki)
 ```
@@ -556,11 +556,11 @@ docker compose ps
 
 ```bash
 # 1. 指定历史版本拉取并启动
-NEGENTROPY_IMAGE_TAG=<previous-version> docker compose pull
-NEGENTROPY_IMAGE_TAG=<previous-version> docker compose up -d --no-build
+NEGENTROPY_IMAGE_TAG=<previous-version> docker compose -f docker/docker-compose.yml pull
+NEGENTROPY_IMAGE_TAG=<previous-version> docker compose -f docker/docker-compose.yml up -d --no-build
 
 # 2. 确认回滚成功
-docker compose ps
+docker compose -f docker/docker-compose.yml ps
 ```
 
 > 回滚仅替换镜像版本，不回退数据库。Alembic 迁移为向前兼容设计。如需回退数据库 Schema，需手动执行 `alembic downgrade`。

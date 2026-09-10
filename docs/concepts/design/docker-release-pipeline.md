@@ -13,7 +13,7 @@ flowchart TB
     subgraph Triggers["触发入口（策略层）"]
         direction LR
         TAG["tag: negentropy-v*<br/>或 workflow_dispatch"]:::trigger
-        PR["PR 触碰 docker/** /<br/>docker-compose.yml / .dockerignore"]:::trigger
+        PR["PR 触碰 docker/** / .dockerignore"]:::trigger
         CRON["每周一 cron<br/>（基底镜像漂移巡检）"]:::trigger
     end
 
@@ -73,7 +73,7 @@ flowchart TB
 | prerelease（`negentropy-v1.2.0-rc.1` 或 dispatch `channel=candidate`） | `1.2.0-rc.1` | 仅 `1.2.0-rc.1`（不触碰 `latest`） |
 | dispatch `publish_release=false` | — | 全链路干跑：构建但零推送 |
 
-镜像命名的单一事实源是 [docker-compose.yml](../../../docker-compose.yml) 中各服务的 `image:` 字段（`${NEGENTROPY_IMAGE_TAG:-latest}` 可覆写）。
+镜像命名的单一事实源是 [docker-compose.yml](../../../docker/docker-compose.yml) 中各服务的 `image:` 字段（`${NEGENTROPY_IMAGE_TAG:-latest}` 可覆写）。
 
 ## 多架构构建机制
 
@@ -99,11 +99,11 @@ flowchart TB
 
 ```bash
 # 拉取发布版镜像并启动（跳过本地构建）
-NEGENTROPY_IMAGE_TAG=1.2.0 docker compose pull
-NEGENTROPY_IMAGE_TAG=1.2.0 docker compose up -d --no-build
+NEGENTROPY_IMAGE_TAG=1.2.0 docker compose -f docker/docker-compose.yml pull
+NEGENTROPY_IMAGE_TAG=1.2.0 docker compose -f docker/docker-compose.yml up -d --no-build
 
 # 本地开发照旧：镜像本地缺失时 compose 默认仍走本地 build
-docker compose up -d
+docker compose -f docker/docker-compose.yml up -d
 ```
 
 ## 发布操作手册
@@ -119,7 +119,7 @@ docker compose up -d
 - [reusable-negentropy-docker.yml](../../../.github/workflows/reusable-negentropy-docker.yml) — 机制层：构建 + digest 合并
 - [negentropy-release.yml](../../../.github/workflows/negentropy-release.yml) — 策略层：tag 发布（`release-meta` + `docker-release`）
 - [negentropy-docker-validate.yml](../../../.github/workflows/negentropy-docker-validate.yml) — 策略层：PR 校验 + 周巡检
-- [docker-compose.yml](../../../docker-compose.yml) — 镜像命名单一事实源 + 本地编排
+- [docker-compose.yml](../../../docker/docker-compose.yml) — 镜像命名单一事实源 + 本地编排
 
 ## 运维操作指引
 

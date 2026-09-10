@@ -95,11 +95,11 @@ docker run -d --name negentropy-wiki \
 **③ 独立 compose（验证独立性，无 backend/ui/postgres）**
 
 ```bash
-docker compose -f docker-compose.wiki.yml up -d --build
-# 见 docker-compose.wiki.yml：仅 wiki 服务，端口 3092:80
+docker compose -f docker/docker-compose.wiki.yml up -d --build
+# 见 docker/docker-compose.wiki.yml：仅 wiki 服务，端口 3092:80
 ```
 
-**④ 完整栈**：根 [`docker-compose.yml`](../../../docker-compose.yml) 中 `wiki` 服务已**无 `depends_on`**，可与 backend/ui 同栈部署，也可独立拉起。
+**④ 完整栈**：根 [`docker-compose.yml`](../../../docker/docker-compose.yml) 中 `wiki` 服务已**无 `depends_on`**，可与 backend/ui 同栈部署，也可独立拉起。
 
 **配置要点**：
 
@@ -239,7 +239,7 @@ docker push threefishai/negentropy-wiki:<tag>
 docker pull threefishai/negentropy-wiki:<tag>
 docker run -d --name negentropy-wiki -p 80:80 --restart unless-stopped \
   threefishai/negentropy-wiki:<tag>
-# 或：docker compose -f docker-compose.wiki.yml up -d   （需把 NEGENTROPY_IMAGE_TAG 设为 <tag>）
+# 或：docker compose -f docker/docker-compose.wiki.yml up -d   （需把 NEGENTROPY_IMAGE_TAG 设为 <tag>）
 ```
 
 **Step 6 — 验证**：
