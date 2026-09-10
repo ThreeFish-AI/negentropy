@@ -26,9 +26,7 @@ apps/negentropy-influence/
 
 ## 路径变量约定（`$R` / `$P`）
 
-公共脚本与技能文档中的命令统一用 `$I`/`$R`/`$P`/`$V` 四个变量书写，使命令与子项目位置
-解耦。**定义只有一处**（本文件刻意不复制，否则搬迁时又要改两份）：
-[pipeline/README.md 路径变量约定](./pipeline/README.md#路径变量约定)。
+公共脚本与技能文档中的命令统一用 `$I`/`$R`/`$P`/`$V` 四个变量书写，使命令与子项目位置解耦。**定义只有一处**（本文件刻意不复制，否则搬迁时又要改两份）：[pipeline/README.md 路径变量约定](./pipeline/README.md#路径变量约定)。
 
 单入口编排（参数读各集 `pipeline.toml`）：
 
@@ -36,9 +34,7 @@ apps/negentropy-influence/
 uv run --no-project $R/pipeline.py --project $P {status|doctor|build|check|tts|captions|render|qa|all|clean-samples|stages}
 ```
 
-各阶段的完整契约、脚本表与复用边界见 [pipeline/README.md](./pipeline/README.md)；
-作为子代理提示词的九阶段规格见 [pipeline/skills/](./pipeline/skills/)，
-Claude Code 侧的路由壳是 [.agent/skills/science-video-pipeline](../../.agent/skills/science-video-pipeline/SKILL.md)。
+各阶段的完整契约、脚本表与复用边界见 [pipeline/README.md](./pipeline/README.md)；作为子代理提示词的九阶段规格见 [pipeline/skills/](./pipeline/skills/)，Claude Code 侧的路由壳是 [.agent/skills/science-video-pipeline](../../.agent/skills/science-video-pipeline/SKILL.md)。
 
 ## 运行测试
 
@@ -52,10 +48,6 @@ uv run --no-project --with pytest --with numpy --with pillow --with mutagen --wi
 ## 两条不变量
 
 - **Python 脚本集中共享（SSOT）**：纯文本变换工具跨集零差异，中心化防 split-brain。
-- **Remotion 工程原语复制适配、不做共享包**：每集须保持 `pnpm install --ignore-workspace`
-  独立可渲染（嵌套 workspace 隔离 + Remotion 版本自由），共享 TS 包会把「一集的视觉改动」
-  泄漏进**已发布**的其他集。复制源头是
-  [pipeline/templates/video-skeleton/](./pipeline/templates/video-skeleton/)，
-  冻结档位与漂移判据同见 pipeline/README.md 第四节。
+- **Remotion 工程原语复制适配、不做共享包**：每集须保持 `pnpm install --ignore-workspace` 独立可渲染（嵌套 workspace 隔离 + Remotion 版本自由），共享 TS 包会把「一集的视觉改动」泄漏进**已发布**的其他集。复制源头是 [pipeline/templates/video-skeleton/](./pipeline/templates/video-skeleton/)，冻结档位与漂移判据同见 pipeline/README.md 第四节。
 
 声音样本属生物特征信息，永不入库；`.gitignore` 已按分集通配覆盖音频与渲染产物。
