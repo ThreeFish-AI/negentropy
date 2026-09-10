@@ -9,7 +9,7 @@ workspace」的声明直接矛盾（实测触发过一次）。
 
 判据必须是**双向**的：拦住本子项目的锁文件，同时不误伤兄弟子项目——它们的
 `uv.lock` 是受版本控制的依赖 SSOT（negentropy 那份还挂着 Version SSOT 钩子），
-裸 `uv.lock` 规则会把三份一起吞掉。只测第一半的门会把这次修复变成下一个事故。
+裸 `uv.lock` 规则会把两份一起吞掉。只测第一半的门会把这次修复变成下一个事故。
 """
 
 from __future__ import annotations
@@ -29,7 +29,6 @@ STRAY_LOCK = f"{INFLUENCE.relative_to(REPO).as_posix()}/uv.lock"
 SIBLING_LOCKS = (
     "apps/negentropy/uv.lock",
     "apps/negentropy-perceives/uv.lock",
-    "apps/cognizes/uv.lock",
 )
 
 
