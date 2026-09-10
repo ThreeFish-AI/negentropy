@@ -1,0 +1,12 @@
+%% source: docs/concepts/user-guide/memory-automation.md#0
+%% slug: user-guide/memory-automation--tasks-tab
+%% type: workflow
+%% derived: docs/assets/architecture/user-guide/memory-automation--tasks-tab.html
+%% fix: Executions/Stats Tab 原挂在 Tasks Tab 下游，实为页面级平级 Tab（SchedulerHeader.TABS）已改挂入口；「手动 Run Once」按钮真实文案为 Run Now；「查看状态 / 执行历史」拆分落点——状态在任务表行，执行历史在详情抽屉 recent_executions
+flowchart TB
+    A["/interface/scheduler"] --> B{Tasks Tab}
+    B --> C[查看状态 / 执行历史]
+    B --> D[Enable / Disable]
+    B --> E[手动 Run Once]
+    B --> F[Executions Tab — 执行日志]
+    B --> G[Stats Tab — 统计面板]

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="generator" content="archify 2.17.0-dev.1">
-  <title>知识图谱混合检索时序（Vector + Graph + RRF）</title>
+  <title>Catalog 维护 UI 组件架构 · 宿主迁移后的真实装配</title>
   <script>
     // Resolve the theme before first paint so light-preference users don't
     // see a dark flash. The toolbar script below re-applies with UI state.
@@ -5081,7 +5081,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
            data-preset-badge-blueprint="蓝图 / 修订 01"
            data-preset-badge-editorial="编辑风格 / 现场笔记">
         <div class="pulse-dot"></div>
-        <h1>知识图谱混合检索时序（Vector + Graph + RRF）</h1>
+        <h1>Catalog 维护 UI 组件架构 · 宿主迁移后的真实装配</h1>
       </div>
     </div>
 
@@ -5130,9 +5130,9 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     <!-- Main Diagram -->
     <div class="diagram-container" data-detail-level="read"
          data-preset-badge-editorial-plate="ARCHIFY / 图版 04">
-      <svg viewBox="0 0 1480 660" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-preset="classic" data-quality-profile="showcase">
-        <title id="archify-diagram-title">知识图谱混合检索时序（Vector + Graph + RRF）</title>
-        <desc id="archify-diagram-description">由 Archify 生成的时序图。</desc>
+      <svg viewBox="0 0 1120 660" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-preset="classic" data-quality-profile="showcase">
+        <title id="archify-diagram-title">Catalog 维护 UI 组件架构 · 宿主迁移后的真实装配</title>
+        <desc id="archify-diagram-description">由 Archify 生成的架构图。</desc>
         <!-- Definitions -->
         <defs>
           <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
@@ -5155,215 +5155,218 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <!-- Background Grid -->
         <rect width="100%" height="100%" fill="url(#grid)" />
 
-        <!-- Time Segments -->
+        <!-- Boundaries (behind everything) -->
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="0" data-composition-frame-label="CatalogTreePane · aside 300px" x="828" y="32" width="220" height="284" rx="12" class="c-region" stroke-width="1"/>
 
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="1" data-composition-frame-label="Hooks · 状态与副作用" x="428" y="252" width="228" height="376" rx="12" class="c-region" stroke-width="1"/>
 
-        <!-- Lifelines -->
-        <path d="M 147 142 L 147 595" class="a-default" stroke-width="0.8" stroke-dasharray="3,7"/>
-        <path d="M 348.33333333333337 142 L 348.33333333333337 595" class="a-default" stroke-width="0.8" stroke-dasharray="3,7"/>
-        <path d="M 549.6666666666667 142 L 549.6666666666667 595" class="a-default" stroke-width="0.8" stroke-dasharray="3,7"/>
-        <path d="M 751 142 L 751 595" class="a-default" stroke-width="0.8" stroke-dasharray="3,7"/>
-        <path d="M 952.3333333333334 142 L 952.3333333333334 595" class="a-default" stroke-width="0.8" stroke-dasharray="3,7"/>
-        <path d="M 1153.6666666666667 142 L 1153.6666666666667 595" class="a-default" stroke-width="0.8" stroke-dasharray="3,7"/>
-        <path d="M 1355 142 L 1355 595" class="a-default" stroke-width="0.8" stroke-dasharray="3,7"/>
+        <!-- Connection paths (before components for correct z-order) -->
+        <path data-edge-from="catalog_route" data-edge-to="library_shell" data-edge-label="redirect" data-edge-key="0" data-edge-id="route-redirect" data-composition-points="244,126;342,126;342,148;440,148" d="M 244 126 L 334 126 Q 342 126 342 134 L 342 140 Q 342 148 350 148 L 440 148" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
+        <path data-edge-from="catalog_selector" data-edge-to="use_singleton" data-edge-label="职责下沉" data-edge-key="1" data-edge-id="selector-superseded" data-composition-points="244,306;440,306" d="M 244 306 L 440 306" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
+        <path data-edge-from="library_shell" data-edge-to="toolbar" data-edge-key="2" data-edge-id="shell-toolbar" data-composition-points="644,127;742,127;742,84;840,84" d="M 644 127 L 734 127 Q 742 127 742 119 L 742 92 Q 742 84 750 84 L 840 84" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="library_shell" data-edge-to="tree" data-edge-key="3" data-edge-id="shell-tree" data-composition-points="644,141;742,141;742,176;840,176" d="M 644 141 L 734 141 Q 742 141 742 149 L 742 168 Q 742 176 750 176 L 840 176" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="library_shell" data-edge-to="ctx_menu" data-edge-key="4" data-edge-id="shell-ctxmenu" data-composition-points="644,155;742,155;742,268;840,268" d="M 644 155 L 734 155 Q 742 155 742 163 L 742 260 Q 742 268 750 268 L 840 268" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="library_shell" data-edge-to="editors" data-edge-key="5" data-edge-id="shell-editors" data-composition-points="644,169;742,169;742,362;840,362" d="M 644 169 L 734 169 Q 742 169 742 177 L 742 354 Q 742 362 750 362 L 840 362" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="library_shell" data-edge-to="use_singleton" data-edge-key="6" data-edge-id="shell-singleton" data-composition-points="542,204;542,276" d="M 542 204 L 542 276" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="use_singleton" data-edge-to="use_tree" data-edge-key="7" data-edge-id="singleton-tree" data-composition-points="542,336;542,412" d="M 542 336 L 542 412" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="use_tree" data-edge-to="use_dnd" data-edge-key="8" data-edge-id="tree-dnd" data-composition-points="542,472;542,548" d="M 542 472 L 542 548" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="use_tree" data-edge-to="catalog_api" data-edge-label="GET tree · PATCH" data-edge-key="9" data-edge-id="tree-api" data-composition-points="644,442;742,442;742,499;840,499" d="M 644 442 L 734 442 Q 742 442 742 450 L 742 491 Q 742 499 750 499 L 840 499" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="use_dnd" data-edge-to="catalog_api" data-edge-label="PATCH sort_order" data-edge-key="10" data-edge-id="dnd-api" data-composition-points="644,578;742,578;742,513;840,513" d="M 644 578 L 734 578 Q 742 578 742 570 L 742 521 Q 742 513 750 513 L 840 513" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
 
-        <!-- Activations -->
-        <rect x="343.33333333333337" y="154" width="10" height="404" rx="3" class="c-mask"/>
-        <rect x="343.33333333333337" y="154" width="10" height="404" rx="3" class="c-backend" stroke-width="1"/>
-        <rect x="544.6666666666667" y="190" width="10" height="48" rx="3" class="c-mask"/>
-        <rect x="544.6666666666667" y="190" width="10" height="48" rx="3" class="c-database" stroke-width="1"/>
-        <rect x="746" y="262" width="10" height="48" rx="3" class="c-mask"/>
-        <rect x="746" y="262" width="10" height="48" rx="3" class="c-database" stroke-width="1"/>
-        <rect x="947.3333333333334" y="346" width="10" height="68" rx="3" class="c-mask"/>
-        <rect x="947.3333333333334" y="346" width="10" height="68" rx="3" class="c-backend" stroke-width="1"/>
-        <rect x="1148.6666666666667" y="438" width="10" height="48" rx="3" class="c-mask"/>
-        <rect x="1148.6666666666667" y="438" width="10" height="48" rx="3" class="c-backend" stroke-width="1"/>
-        <rect x="1350" y="510" width="10" height="48" rx="3" class="c-mask"/>
-        <rect x="1350" y="510" width="10" height="48" rx="3" class="c-cloud" stroke-width="1"/>
-
-        <!-- Messages -->
-        <g data-edge-from="user" data-edge-to="search_api" data-edge-label="query + corpus_id" data-edge-key="0" data-edge-id="m01">
-          <path data-composition-edge-from="user" data-composition-edge-to="search_api" data-composition-edge-id="m01" data-composition-points="154,160;341.33333333333337,160" d="M 154 160 L 341.33333333333337 160" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <g data-detail="context">
-          <rect x="197.4666666666667" y="140" width="100.4" height="16" rx="3" class="c-mask"/>
-          <text x="247.66666666666669" y="150" class="t-backend" font-size="9" text-anchor="middle">query + corpus_id</text>
-        </g>
-        </g>
-
-        <g data-edge-from="search_api" data-edge-to="vector" data-edge-label="embedding &lt;=&gt; query (Top-K)" data-edge-key="1" data-edge-id="m02">
-          <path data-composition-edge-from="search_api" data-composition-edge-to="vector" data-composition-edge-id="m02" data-composition-points="355.33333333333337,196;542.6666666666667,196" d="M 355.33333333333337 196 L 542.6666666666667 196" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <g data-detail="context">
-          <rect x="372.80000000000007" y="176" width="152.4" height="16" rx="3" class="c-mask"/>
-          <text x="449.00000000000006" y="186" class="t-backend" font-size="9" text-anchor="middle">embedding &lt;=&gt; query (Top-K)</text>
-        </g>
-        </g>
-
-        <g data-edge-from="vector" data-edge-to="search_api" data-edge-label="semantic_candidates[]" data-edge-key="2" data-edge-id="m03">
-          <path data-composition-edge-from="vector" data-composition-edge-to="search_api" data-composition-edge-id="m03" data-composition-points="542.6666666666667,232;355.33333333333337,232" d="M 542.6666666666667 232 L 355.33333333333337 232" class="a-default" stroke-width="1.4" stroke-dasharray="3,5" marker-end="url(#arrowhead)"/>
-        <g data-detail="context">
-          <rect x="388.40000000000003" y="212" width="121.2" height="16" rx="3" class="c-mask"/>
-          <text x="449.00000000000006" y="222" class="t-muted" font-size="9" text-anchor="middle">semantic_candidates[]</text>
-        </g>
-        </g>
-
-        <g data-edge-from="search_api" data-edge-to="graph" data-edge-label="Top-K 实体 1-2 跳扩展" data-edge-key="3" data-edge-id="m04">
-          <path data-composition-edge-from="search_api" data-composition-edge-to="graph" data-composition-edge-id="m04" data-composition-points="355.33333333333337,268;744,268" d="M 355.33333333333337 268 L 744 268" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <g data-detail="context">
-          <rect x="489.0666666666667" y="248" width="121.2" height="16" rx="3" class="c-mask"/>
-          <text x="549.6666666666667" y="258" class="t-backend" font-size="9" text-anchor="middle">Top-K 实体 1-2 跳扩展</text>
-        </g>
-        </g>
-
-        <g data-edge-from="graph" data-edge-to="search_api" data-edge-label="neighbor_entities[] + relations[]" data-edge-key="4" data-edge-id="m05">
-          <path data-composition-edge-from="graph" data-composition-edge-to="search_api" data-composition-edge-id="m05" data-composition-points="744,304;355.33333333333337,304" d="M 744 304 L 355.33333333333337 304" class="a-default" stroke-width="1.4" stroke-dasharray="3,5" marker-end="url(#arrowhead)"/>
-        <g data-detail="context">
-          <rect x="457.86666666666673" y="284" width="183.6" height="16" rx="3" class="c-mask"/>
-          <text x="549.6666666666667" y="294" class="t-muted" font-size="9" text-anchor="middle">neighbor_entities[] + relations[]</text>
-        </g>
-        </g>
-
-        <g data-edge-from="search_api" data-edge-to="rrf" data-edge-label="融合信号" data-edge-key="5" data-edge-id="m06">
-          <path data-composition-edge-from="search_api" data-composition-edge-to="rrf" data-composition-edge-id="m06" data-composition-points="355.33333333333337,352;945.3333333333334,352" d="M 355.33333333333337 352 L 945.3333333333334 352" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <g data-detail="context">
-          <rect x="623.5333333333334" y="332" width="53.6" height="16" rx="3" class="c-mask"/>
-          <text x="650.3333333333334" y="342" class="t-backend" font-size="9" text-anchor="middle">融合信号</text>
-        </g>
-        <text data-detail="fine" x="367.33333333333337" y="370" class="t-dim" font-size="7">semantic_rank + graph_degree_rank 两路并列</text>
-        </g>
-
-        <g data-edge-from="rrf" data-edge-to="search_api" data-edge-label="fused_ranking[]" data-edge-key="6" data-edge-id="m07">
-          <path data-composition-edge-from="rrf" data-composition-edge-to="search_api" data-composition-edge-id="m07" data-composition-points="945.3333333333334,408;355.33333333333337,408" d="M 945.3333333333334 408 L 355.33333333333337 408" class="a-default" stroke-width="1.4" stroke-dasharray="3,5" marker-end="url(#arrowhead)"/>
-        <g data-detail="context">
-          <rect x="605.3333333333334" y="388" width="90" height="16" rx="3" class="c-mask"/>
-          <text x="650.3333333333334" y="398" class="t-muted" font-size="9" text-anchor="middle">fused_ranking[]</text>
-        </g>
-        </g>
-
-        <g data-edge-from="search_api" data-edge-to="rerank" data-edge-label="Cross-Encoder 精排 (L1)" data-edge-key="7" data-edge-id="m08">
-          <path data-composition-edge-from="search_api" data-composition-edge-to="rerank" data-composition-edge-id="m08" data-composition-points="355.33333333333337,444;1146.6666666666667,444" d="M 355.33333333333337 444 L 1146.6666666666667 444" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <g data-detail="context">
-          <rect x="685.2" y="424" width="131.60000000000002" height="16" rx="3" class="c-mask"/>
-          <text x="751" y="434" class="t-backend" font-size="9" text-anchor="middle">Cross-Encoder 精排 (L1)</text>
-        </g>
-        </g>
-
-        <g data-edge-from="rerank" data-edge-to="search_api" data-edge-label="final_results[]" data-edge-key="8" data-edge-id="m09">
-          <path data-composition-edge-from="rerank" data-composition-edge-to="search_api" data-composition-edge-id="m09" data-composition-points="1146.6666666666667,480;355.33333333333337,480" d="M 1146.6666666666667 480 L 355.33333333333337 480" class="a-default" stroke-width="1.4" stroke-dasharray="3,5" marker-end="url(#arrowhead)"/>
-        <g data-detail="context">
-          <rect x="706" y="460" width="90" height="16" rx="3" class="c-mask"/>
-          <text x="751" y="470" class="t-muted" font-size="9" text-anchor="middle">final_results[]</text>
-        </g>
-        </g>
-
-        <g data-edge-from="search_api" data-edge-to="llm" data-edge-label="组装上下文 (实体 + 邻居 + 关系)" data-edge-key="9" data-edge-id="m10">
-          <path data-composition-edge-from="search_api" data-composition-edge-to="llm" data-composition-edge-id="m10" data-composition-points="355.33333333333337,516;1348,516" d="M 355.33333333333337 516 L 1348 516" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <g data-detail="context">
-          <rect x="765.0666666666667" y="496" width="173.20000000000002" height="16" rx="3" class="c-mask"/>
-          <text x="851.6666666666667" y="506" class="t-backend" font-size="9" text-anchor="middle">组装上下文 (实体 + 邻居 + 关系)</text>
-        </g>
-        </g>
-
-        <g data-edge-from="llm" data-edge-to="user" data-edge-label="GraphRAG 增强回答" data-edge-key="10" data-edge-id="m11">
-          <path data-composition-edge-from="llm" data-composition-edge-to="user" data-composition-edge-id="m11" data-composition-points="1348,552;154,552" d="M 1348 552 L 154 552" class="a-default" stroke-width="1.4" stroke-dasharray="3,5" marker-end="url(#arrowhead)"/>
-        <g data-detail="context">
-          <rect x="700.8" y="532" width="100.4" height="16" rx="3" class="c-mask"/>
-          <text x="751" y="542" class="t-muted" font-size="9" text-anchor="middle">GraphRAG 增强回答</text>
-        </g>
-        </g>
-
-        <!-- Segment Labels -->
-
-
-        <!-- Participants -->
-        <g id="node-user" data-node-id="user" data-node-label="用户" tabindex="0" role="button" aria-label="聚焦用户，时序参与者" aria-pressed="false" data-node-kind="external" data-node-context="时序参与者">
-          <title>用户 · 时序参与者</title>
-          <rect x="62" y="72" width="170" height="54" rx="6" class="c-mask"/>
-          <rect x="62" y="72" width="170" height="54" rx="6" class="c-external" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(68 78) scale(0.6875)">
-            <rect x="2.5" y="5" width="8.5" height="8" rx="1.5"/>
-            <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
+        <!-- Components -->
+        <g id="node-catalog_route" data-node-id="catalog_route" data-node-label="/knowledge/catalog" tabindex="0" role="button" aria-label="聚焦/knowledge/catalog，page.tsx · 仅重定向, 架构组件" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="page.tsx · 仅重定向" data-node-tag="已退役入口" data-node-context="架构组件">
+          <title>/knowledge/catalog · page.tsx · 仅重定向 · 架构组件 · 已退役入口</title>
+          <rect x="56" y="96" width="188" height="60" rx="6" class="c-mask"/>
+          <rect x="56" y="96" width="188" height="60" rx="6" class="c-frontend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="frontend" class="semantic-sigil s-frontend" transform="translate(62 102) scale(0.6875)">
+            <rect x="2" y="3" width="12" height="10" rx="2"/>
+            <path d="M2 6.5h12"/>
+            <circle cx="4.1" cy="4.8" r=".7" class="sigil-fill"/>
+            <circle cx="6.3" cy="4.8" r=".7" class="sigil-fill"/>
           </g>
-          <text data-node-label="" x="147" y="94" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">用户</text>
+          <text data-node-label="" data-detail-anchor="" x="150" y="124" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">/knowledge/catalog</text>
+        <text data-detail="context" x="150" y="140" class="t-muted" font-size="9" text-anchor="middle">page.tsx · 仅重定向</text>
+        <text data-detail="fine" x="150" y="148" class="t-frontend" font-size="7" text-anchor="middle">已退役入口</text>
         </g>
 
-        <g id="node-search_api" data-node-id="search_api" data-node-label="图谱检索 API" tabindex="0" role="button" aria-label="聚焦图谱检索 API，时序参与者" aria-pressed="false" data-node-kind="backend" data-node-context="时序参与者">
-          <title>图谱检索 API · 时序参与者</title>
-          <rect x="263.33333333333337" y="72" width="170" height="54" rx="6" class="c-mask"/>
-          <rect x="263.33333333333337" y="72" width="170" height="54" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(269.33333333333337 78) scale(0.6875)">
+        <g id="node-catalog_selector" data-node-id="catalog_selector" data-node-label="CatalogSelector" tabindex="0" role="button" aria-label="聚焦CatalogSelector，&lt;select&gt; · 全仓零引用, 架构组件" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="&lt;select&gt; · 全仓零引用" data-node-tag="死代码" data-node-context="架构组件">
+          <title>CatalogSelector · &lt;select&gt; · 全仓零引用 · 架构组件 · 死代码</title>
+          <rect x="56" y="276" width="188" height="60" rx="6" class="c-mask"/>
+          <rect x="56" y="276" width="188" height="60" rx="6" class="c-frontend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="frontend" class="semantic-sigil s-frontend" transform="translate(62 282) scale(0.6875)">
+            <rect x="2" y="3" width="12" height="10" rx="2"/>
+            <path d="M2 6.5h12"/>
+            <circle cx="4.1" cy="4.8" r=".7" class="sigil-fill"/>
+            <circle cx="6.3" cy="4.8" r=".7" class="sigil-fill"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="150" y="304" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">CatalogSelector</text>
+        <text data-detail="context" x="150" y="320" class="t-muted" font-size="9" text-anchor="middle">&lt;select&gt; · 全仓零引用</text>
+        <text data-detail="fine" x="150" y="328" class="t-frontend" font-size="7" text-anchor="middle">死代码</text>
+        </g>
+
+        <g id="node-library_shell" data-node-id="library_shell" data-node-label="LibraryShell" tabindex="0" role="button" aria-label="聚焦LibraryShell，wiki/page.tsx · 状态中枢, 架构组件" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="wiki/page.tsx · 状态中枢" data-node-tag="真实宿主" data-node-context="架构组件">
+          <title>LibraryShell · wiki/page.tsx · 状态中枢 · 架构组件 · 真实宿主</title>
+          <rect x="440" y="92" width="204" height="112" rx="6" class="c-mask"/>
+          <rect x="440" y="92" width="204" height="112" rx="6" class="c-frontend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="frontend" class="semantic-sigil s-frontend" transform="translate(446 98) scale(0.6875)">
+            <rect x="2" y="3" width="12" height="10" rx="2"/>
+            <path d="M2 6.5h12"/>
+            <circle cx="4.1" cy="4.8" r=".7" class="sigil-fill"/>
+            <circle cx="6.3" cy="4.8" r=".7" class="sigil-fill"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="542" y="146" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">LibraryShell</text>
+        <text data-detail="context" x="542" y="162" class="t-muted" font-size="9" text-anchor="middle">wiki/page.tsx · 状态中枢</text>
+        <text data-detail="fine" x="542" y="196" class="t-frontend" font-size="7" text-anchor="middle">真实宿主</text>
+        </g>
+
+        <g id="node-toolbar" data-node-id="toolbar" data-node-label="CatalogTreeToolbar" tabindex="0" role="button" aria-label="聚焦CatalogTreeToolbar，搜索 / 折叠 / 加根, CatalogTreePane · aside 300px" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="搜索 / 折叠 / 加根" data-node-context="CatalogTreePane · aside 300px">
+          <title>CatalogTreeToolbar · 搜索 / 折叠 / 加根 · CatalogTreePane · aside 300px</title>
+          <rect x="840" y="56" width="196" height="56" rx="6" class="c-mask"/>
+          <rect x="840" y="56" width="196" height="56" rx="6" class="c-frontend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="frontend" class="semantic-sigil s-frontend" transform="translate(846 62) scale(0.6875)">
+            <rect x="2" y="3" width="12" height="10" rx="2"/>
+            <path d="M2 6.5h12"/>
+            <circle cx="4.1" cy="4.8" r=".7" class="sigil-fill"/>
+            <circle cx="6.3" cy="4.8" r=".7" class="sigil-fill"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="938" y="82" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">CatalogTreeToolbar</text>
+        <text data-detail="context" x="938" y="98" class="t-muted" font-size="9" text-anchor="middle">搜索 / 折叠 / 加根</text>
+        </g>
+
+        <g id="node-tree" data-node-id="tree" data-node-label="CatalogTree" tabindex="0" role="button" aria-label="聚焦CatalogTree，TreeNode · 内联重命名, CatalogTreePane · aside 300px" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="TreeNode · 内联重命名" data-node-context="CatalogTreePane · aside 300px">
+          <title>CatalogTree · TreeNode · 内联重命名 · CatalogTreePane · aside 300px</title>
+          <rect x="840" y="148" width="196" height="56" rx="6" class="c-mask"/>
+          <rect x="840" y="148" width="196" height="56" rx="6" class="c-frontend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="frontend" class="semantic-sigil s-frontend" transform="translate(846 154) scale(0.6875)">
+            <rect x="2" y="3" width="12" height="10" rx="2"/>
+            <path d="M2 6.5h12"/>
+            <circle cx="4.1" cy="4.8" r=".7" class="sigil-fill"/>
+            <circle cx="6.3" cy="4.8" r=".7" class="sigil-fill"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="938" y="174" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">CatalogTree</text>
+        <text data-detail="context" x="938" y="190" class="t-muted" font-size="9" text-anchor="middle">TreeNode · 内联重命名</text>
+        </g>
+
+        <g id="node-ctx_menu" data-node-id="ctx_menu" data-node-label="CatalogContextMenu" tabindex="0" role="button" aria-label="聚焦CatalogContextMenu，节点 / 空白 双态, CatalogTreePane · aside 300px" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="节点 / 空白 双态" data-node-context="CatalogTreePane · aside 300px">
+          <title>CatalogContextMenu · 节点 / 空白 双态 · CatalogTreePane · aside 300px</title>
+          <rect x="840" y="240" width="196" height="56" rx="6" class="c-mask"/>
+          <rect x="840" y="240" width="196" height="56" rx="6" class="c-frontend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="frontend" class="semantic-sigil s-frontend" transform="translate(846 246) scale(0.6875)">
+            <rect x="2" y="3" width="12" height="10" rx="2"/>
+            <path d="M2 6.5h12"/>
+            <circle cx="4.1" cy="4.8" r=".7" class="sigil-fill"/>
+            <circle cx="6.3" cy="4.8" r=".7" class="sigil-fill"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="938" y="266" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">CatalogContextMenu</text>
+        <text data-detail="context" x="938" y="282" class="t-muted" font-size="9" text-anchor="middle">节点 / 空白 双态</text>
+        </g>
+
+        <g id="node-editors" data-node-id="editors" data-node-label="详情面板 / 新建弹窗" tabindex="0" role="button" aria-label="聚焦详情面板 / 新建弹窗，NodeDetailPanel · Dialog, 架构组件" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="NodeDetailPanel · Dialog" data-node-context="架构组件">
+          <title>详情面板 / 新建弹窗 · NodeDetailPanel · Dialog · 架构组件</title>
+          <rect x="840" y="332" width="196" height="60" rx="6" class="c-mask"/>
+          <rect x="840" y="332" width="196" height="60" rx="6" class="c-frontend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="frontend" class="semantic-sigil s-frontend" transform="translate(846 338) scale(0.6875)">
+            <rect x="2" y="3" width="12" height="10" rx="2"/>
+            <path d="M2 6.5h12"/>
+            <circle cx="4.1" cy="4.8" r=".7" class="sigil-fill"/>
+            <circle cx="6.3" cy="4.8" r=".7" class="sigil-fill"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="938" y="360" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">详情面板 / 新建弹窗</text>
+        <text data-detail="context" x="938" y="376" class="t-muted" font-size="9" text-anchor="middle">NodeDetailPanel · Dialog</text>
+        </g>
+
+        <g id="node-use_singleton" data-node-id="use_singleton" data-node-label="useSingletonCatalog" tabindex="0" role="button" aria-label="聚焦useSingletonCatalog，解析或自建唯一 Catalog, Hooks · 状态与副作用" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="解析或自建唯一 Catalog" data-node-context="Hooks · 状态与副作用">
+          <title>useSingletonCatalog · 解析或自建唯一 Catalog · Hooks · 状态与副作用</title>
+          <rect x="440" y="276" width="204" height="60" rx="6" class="c-mask"/>
+          <rect x="440" y="276" width="204" height="60" rx="6" class="c-frontend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="frontend" class="semantic-sigil s-frontend" transform="translate(446 282) scale(0.6875)">
+            <rect x="2" y="3" width="12" height="10" rx="2"/>
+            <path d="M2 6.5h12"/>
+            <circle cx="4.1" cy="4.8" r=".7" class="sigil-fill"/>
+            <circle cx="6.3" cy="4.8" r=".7" class="sigil-fill"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="542" y="304" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">useSingletonCatalog</text>
+        <text data-detail="context" x="542" y="320" class="t-muted" font-size="9" text-anchor="middle">解析或自建唯一 Catalog</text>
+        </g>
+
+        <g id="node-use_tree" data-node-id="use_tree" data-node-label="useCatalogTree" tabindex="0" role="button" aria-label="聚焦useCatalogTree，树状态 · 乐观更新, Hooks · 状态与副作用" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="树状态 · 乐观更新" data-node-context="Hooks · 状态与副作用">
+          <title>useCatalogTree · 树状态 · 乐观更新 · Hooks · 状态与副作用</title>
+          <rect x="440" y="412" width="204" height="60" rx="6" class="c-mask"/>
+          <rect x="440" y="412" width="204" height="60" rx="6" class="c-frontend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="frontend" class="semantic-sigil s-frontend" transform="translate(446 418) scale(0.6875)">
+            <rect x="2" y="3" width="12" height="10" rx="2"/>
+            <path d="M2 6.5h12"/>
+            <circle cx="4.1" cy="4.8" r=".7" class="sigil-fill"/>
+            <circle cx="6.3" cy="4.8" r=".7" class="sigil-fill"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="542" y="440" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">useCatalogTree</text>
+        <text data-detail="context" x="542" y="456" class="t-muted" font-size="9" text-anchor="middle">树状态 · 乐观更新</text>
+        </g>
+
+        <g id="node-use_dnd" data-node-id="use_dnd" data-node-label="useCatalogTreeDnd" tabindex="0" role="button" aria-label="聚焦useCatalogTreeDnd，@dnd-kit · 三区放置, Hooks · 状态与副作用" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="@dnd-kit · 三区放置" data-node-context="Hooks · 状态与副作用">
+          <title>useCatalogTreeDnd · @dnd-kit · 三区放置 · Hooks · 状态与副作用</title>
+          <rect x="440" y="548" width="204" height="60" rx="6" class="c-mask"/>
+          <rect x="440" y="548" width="204" height="60" rx="6" class="c-frontend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="frontend" class="semantic-sigil s-frontend" transform="translate(446 554) scale(0.6875)">
+            <rect x="2" y="3" width="12" height="10" rx="2"/>
+            <path d="M2 6.5h12"/>
+            <circle cx="4.1" cy="4.8" r=".7" class="sigil-fill"/>
+            <circle cx="6.3" cy="4.8" r=".7" class="sigil-fill"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="542" y="576" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">useCatalogTreeDnd</text>
+        <text data-detail="context" x="542" y="592" class="t-muted" font-size="9" text-anchor="middle">@dnd-kit · 三区放置</text>
+        </g>
+
+        <g id="node-catalog_api" data-node-id="catalog_api" data-node-label="Catalog REST 数据面" tabindex="0" role="button" aria-label="聚焦Catalog REST 数据面，BFF → routes/catalog.py, 架构组件" aria-pressed="false" data-node-kind="backend" data-node-sublabel="BFF → routes/catalog.py" data-node-tag="/catalogs/{id}/tree" data-node-context="架构组件">
+          <title>Catalog REST 数据面 · BFF → routes/catalog.py · 架构组件 · /catalogs/{id}/tree</title>
+          <rect x="840" y="460" width="196" height="92" rx="6" class="c-mask"/>
+          <rect x="840" y="460" width="196" height="92" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(846 466) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text data-node-label="" x="348.33333333333337" y="94" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">图谱检索 API</text>
+          <text data-node-label="" data-detail-anchor="" x="938" y="504" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Catalog REST 数据面</text>
+        <text data-detail="context" x="938" y="520" class="t-muted" font-size="9" text-anchor="middle">BFF → routes/catalog.py</text>
+        <text data-detail="fine" x="938" y="544" class="t-backend" font-size="7" text-anchor="middle">/catalogs/{id}/tree</text>
         </g>
 
-        <g id="node-vector" data-node-id="vector" data-node-label="pgvector 语义召回" tabindex="0" role="button" aria-label="聚焦pgvector 语义召回，时序参与者" aria-pressed="false" data-node-kind="database" data-node-context="时序参与者">
-          <title>pgvector 语义召回 · 时序参与者</title>
-          <rect x="464.66666666666674" y="72" width="170" height="54" rx="6" class="c-mask"/>
-          <rect x="464.66666666666674" y="72" width="170" height="54" rx="6" class="c-database" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(470.66666666666674 78) scale(0.6875)">
-            <ellipse cx="8" cy="4" rx="5" ry="2"/>
-            <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
-          </g>
-          <text data-node-label="" x="549.6666666666667" y="94" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">pgvector 语义召回</text>
+        <!-- Connection labels -->
+        <g data-detail="context" data-edge-from="catalog_route" data-edge-to="library_shell" data-edge-label="redirect" data-edge-key="0" data-edge-id="route-redirect">
+          <rect x="317.8" y="117" width="48.4" height="14" rx="3" class="c-mask"/>
+          <text x="342" y="127" class="t-messagebus" font-size="8" text-anchor="middle">redirect</text>
+        </g>
+        <g data-detail="context" data-edge-from="catalog_selector" data-edge-to="use_singleton" data-edge-label="职责下沉" data-edge-key="1" data-edge-id="selector-superseded">
+          <rect x="317.8" y="286" width="48.4" height="14" rx="3" class="c-mask"/>
+          <text x="342" y="296" class="t-messagebus" font-size="8" text-anchor="middle">职责下沉</text>
         </g>
 
-        <g id="node-graph" data-node-id="graph" data-node-label="AGE 图扩展" tabindex="0" role="button" aria-label="聚焦AGE 图扩展，时序参与者" aria-pressed="false" data-node-kind="database" data-node-context="时序参与者">
-          <title>AGE 图扩展 · 时序参与者</title>
-          <rect x="666" y="72" width="170" height="54" rx="6" class="c-mask"/>
-          <rect x="666" y="72" width="170" height="54" rx="6" class="c-database" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(672 78) scale(0.6875)">
-            <ellipse cx="8" cy="4" rx="5" ry="2"/>
-            <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
-          </g>
-          <text data-node-label="" x="751" y="94" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">AGE 图扩展</text>
+
+
+
+
+
+
+        <g data-detail="context" data-edge-from="use_tree" data-edge-to="catalog_api" data-edge-label="GET tree · PATCH" data-edge-key="9" data-edge-id="tree-api">
+          <rect x="698.6" y="450.5" width="86.8" height="14" rx="3" class="c-mask"/>
+          <text x="742" y="460.5" class="t-muted" font-size="8" text-anchor="middle">GET tree · PATCH</text>
+        </g>
+        <g data-detail="context" data-edge-from="use_dnd" data-edge-to="catalog_api" data-edge-label="PATCH sort_order" data-edge-key="10" data-edge-id="dnd-api">
+          <rect x="698.6" y="525.5" width="86.8" height="14" rx="3" class="c-mask"/>
+          <text x="742" y="535.5" class="t-muted" font-size="8" text-anchor="middle">PATCH sort_order</text>
         </g>
 
-        <g id="node-rrf" data-node-id="rrf" data-node-label="RRF 融合" tabindex="0" role="button" aria-label="聚焦RRF 融合，时序参与者" aria-pressed="false" data-node-kind="backend" data-node-context="时序参与者">
-          <title>RRF 融合 · 时序参与者</title>
-          <rect x="867.3333333333334" y="72" width="170" height="54" rx="6" class="c-mask"/>
-          <rect x="867.3333333333334" y="72" width="170" height="54" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(873.3333333333334 78) scale(0.6875)">
-            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
-          </g>
-          <text data-node-label="" x="952.3333333333334" y="94" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">RRF 融合</text>
+        <!-- Boundary labels (foreground masks keep routes out of titles) -->
+        <g data-graph-role="structural-frame-label" data-composition-frame-id="0" data-composition-frame-kind="region" data-composition-frame-label="CatalogTreePane · aside 300px">
+          <rect data-graph-role="structural-frame-label-mask" x="832" y="36" width="166.6" height="16" rx="3" class="c-mask"/>
+          <text data-boundary-label="" x="836" y="49" class="t-cloud" font-size="9" font-weight="600">CatalogTreePane · aside 300px</text>
         </g>
 
-        <g id="node-rerank" data-node-id="rerank" data-node-label="L1 精排" tabindex="0" role="button" aria-label="聚焦L1 精排，时序参与者" aria-pressed="false" data-node-kind="backend" data-node-context="时序参与者">
-          <title>L1 精排 · 时序参与者</title>
-          <rect x="1068.6666666666667" y="72" width="170" height="54" rx="6" class="c-mask"/>
-          <rect x="1068.6666666666667" y="72" width="170" height="54" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(1074.6666666666667 78) scale(0.6875)">
-            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
-          </g>
-          <text data-node-label="" x="1153.6666666666667" y="94" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">L1 精排</text>
-        </g>
-
-        <g id="node-llm" data-node-id="llm" data-node-label="LLM" tabindex="0" role="button" aria-label="聚焦LLM，时序参与者" aria-pressed="false" data-node-kind="cloud" data-node-context="时序参与者">
-          <title>LLM · 时序参与者</title>
-          <rect x="1270" y="72" width="170" height="54" rx="6" class="c-mask"/>
-          <rect x="1270" y="72" width="170" height="54" rx="6" class="c-cloud" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="cloud" class="semantic-sigil s-cloud" transform="translate(1276 78) scale(0.6875)">
-            <path d="M4.3 12.5h7.3a2.4 2.4 0 0 0 .2-4.8 4 4 0 0 0-7.5-1.3A3.1 3.1 0 0 0 4.3 12.5Z"/>
-          </g>
-          <text data-node-label="" x="1355" y="94" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">LLM</text>
+        <g data-graph-role="structural-frame-label" data-composition-frame-id="1" data-composition-frame-kind="region" data-composition-frame-label="Hooks · 状态与副作用">
+          <rect data-graph-role="structural-frame-label-mask" x="432" y="256" width="118" height="16" rx="3" class="c-mask"/>
+          <text data-boundary-label="" x="436" y="269" class="t-cloud" font-size="9" font-weight="600">Hooks · 状态与副作用</text>
         </g>
 
         <!-- Legend -->
-        <g data-legend="">
-          <text x="40" y="586" class="t-primary" font-size="12" font-weight="650">图例</text>
-          <g data-legend-semantic-kind="emphasis" data-legend-x="40" data-legend-baseline="606" data-legend-width="63">
-            <path d="M 40 603 L 74 603" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-            <text x="83" y="606" class="t-muted" font-size="10" font-weight="500">请求</text>
-          </g>
-          <g data-legend-semantic-kind="return" data-legend-x="125" data-legend-baseline="606" data-legend-width="63">
-            <path d="M 125 603 L 159 603" class="a-default" stroke-width="1.4" stroke-dasharray="3,5" marker-end="url(#arrowhead)"/>
-            <text x="168" y="606" class="t-muted" font-size="10" font-weight="500">返回</text>
-          </g>
-          <g data-legend-semantic-kind="default" data-legend-x="210" data-legend-baseline="606" data-legend-width="83">
-            <path d="M 210 603 L 244 603" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-            <text x="253" y="606" class="t-muted" font-size="10" font-weight="500">默认消息</text>
-          </g>
-        </g>
+
       </svg>
       <p class="intent-trace-status no-print" id="intent-trace-status" role="status" aria-live="polite" aria-atomic="true"></p>
       <div class="share-chapter-cue no-print" id="share-chapter-cue" hidden role="status" aria-live="polite">
@@ -5552,37 +5555,25 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     <div class="cards">
       <div class="card">
         <div class="card-header">
-          <div class="card-dot cyan"></div>
-          <h3>两路信号 RRF 融合</h3>
-        </div>
-        <ul>
-          <li>&bull; 语义召回（pgvector 余弦）与图度中心性两路排名并列融合</li>
-          <li>&bull; rrf_k=60 平滑常数，对分数尺度不敏感</li>
-          <li>&bull; 时态 as_of 查询自动由线性加权升级为 RRF</li>
-        </ul>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
           <div class="card-dot amber"></div>
-          <h3>图扩展现实口径</h3>
+          <h3>与文档原图的三处纠偏</h3>
         </div>
         <ul>
-          <li>&bull; 1-2 跳扩展当前由递归 CTE 实现（find_neighbors / find_neighbor_edges）</li>
-          <li>&bull; AGE Cypher 原生遍历（kg_cypher_neighbors）已定义待接入</li>
-          <li>&bull; community_rank 社区信号属 Phase 3 规划，未参与当前融合</li>
+          <li>&bull; CatalogPage 已退化为 redirect(&quot;/knowledge/wiki&quot;)，真实宿主是 LibraryShell</li>
+          <li>&bull; CatalogSelector 全仓零引用；单例 Catalog 由 useSingletonCatalog 解析或自动创建</li>
+          <li>&bull; 拖拽实现为 @dnd-kit（before / inside / after 三区 + 分数 sort_order），非 HTML5 DnD</li>
         </ul>
       </div>
 
       <div class="card">
         <div class="card-header">
-          <div class="card-dot emerald"></div>
-          <h3>L1 精排与上下文注入</h3>
+          <div class="card-dot cyan"></div>
+          <h3>关键交互</h3>
         </div>
         <ul>
-          <li>&bull; Cross-Encoder 精排组件位于知识检索管线（retrieval/reranking.py）</li>
-          <li>&bull; 图谱检索 API 路径未串精排，本图 L1 段为目标管线设计</li>
-          <li>&bull; Agent 上下文由 ContextAssembler 按 importance Top-N 实体 + 1-hop 关系注入</li>
+          <li>&bull; 重命名双路径：文档节点改 display_name，结构节点改 entry.name + slug</li>
+          <li>&bull; 移动先本地乐观更新 path / depth，失败回滚快照并 refresh</li>
+          <li>&bull; 搜索按名称过滤并保留祖先链，全部折叠 / 展开只操作 expandedIds</li>
         </ul>
       </div>
     </div>

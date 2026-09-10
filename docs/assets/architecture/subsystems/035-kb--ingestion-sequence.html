@@ -5189,7 +5189,6 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <rect x="150.60000000000002" y="140" width="126.4" height="16" rx="3" class="c-mask"/>
           <text x="213.8" y="150" class="t-backend" font-size="9" text-anchor="middle">POST /base/{id}/ingest</text>
         </g>
-        <text data-detail="fine" x="148.5" y="178" class="t-dim" font-size="7">IngestRequest：text + source_uri + chunking_config（兼容旧扁平字段），corpus config 为兜底 SSOT</text>
         </g>
 
         <g data-edge-from="api" data-edge-to="client" data-edge-label="202 + run_id" data-edge-key="1" data-edge-id="m2">
@@ -5198,7 +5197,6 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <rect x="176.60000000000002" y="168" width="74.4" height="16" rx="3" class="c-mask"/>
           <text x="213.8" y="178" class="t-muted" font-size="9" text-anchor="middle">202 + run_id</text>
         </g>
-        <text data-detail="fine" x="148.5" y="206" class="t-dim" font-size="7">AsyncPipelineResponse：创建 Pipeline run 后立即返回，处理转 BackgroundTasks，Pipeline 页可查进度</text>
         </g>
 
         <g data-edge-from="api" data-edge-to="svc" data-edge-label="后台执行 ingest" data-edge-key="2" data-edge-id="m3">
@@ -5207,7 +5205,6 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <rect x="337.4" y="196" width="90" height="16" rx="3" class="c-mask"/>
           <text x="382.4" y="206" class="t-messagebus" font-size="9" text-anchor="middle">后台执行 ingest</text>
         </g>
-        <text data-detail="fine" x="317.1" y="234" class="t-dim" font-size="7">execute_ingest_text_pipeline(run_id…)：阶段事件 chunk → embed → persist 逐段上报</text>
         </g>
 
         <g data-edge-from="svc" data-edge-to="emb" data-edge-label="aembedding(texts)" data-edge-key="3" data-edge-id="m4">
@@ -5216,7 +5213,6 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <rect x="500.8" y="224" width="100.4" height="16" rx="3" class="c-mask"/>
           <text x="551" y="234" class="t-backend" font-size="9" text-anchor="middle">aembedding(texts)</text>
         </g>
-        <text data-detail="fine" x="485.7" y="262" class="t-dim" font-size="7">先分块（fixed/recursive/semantic/hierarchical 四策略）再批量向量化；默认 vertex_ai/text-embedding-005，指数退避重试 3 次 + 30s 超时</text>
         </g>
 
         <g data-edge-from="emb" data-edge-to="svc" data-edge-label="embeddings" data-edge-key="4" data-edge-id="m5">
@@ -5225,7 +5221,6 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <rect x="519" y="252" width="64" height="16" rx="3" class="c-mask"/>
           <text x="551" y="262" class="t-muted" font-size="9" text-anchor="middle">embeddings</text>
         </g>
-        <text data-detail="fine" x="485.7" y="290" class="t-dim" font-size="7">向量附加到各 KnowledgeChunk；未配置 embedding_fn 时整段跳过（skip_stage）</text>
         </g>
 
         <g data-edge-from="svc" data-edge-to="repo" data-edge-label="add_knowledge(chunks)" data-edge-key="5" data-edge-id="m6">
@@ -5234,7 +5229,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <rect x="574.6999999999999" y="280" width="121.2" height="16" rx="3" class="c-mask"/>
           <text x="635.3" y="290" class="t-backend" font-size="9" text-anchor="middle">add_knowledge(chunks)</text>
         </g>
-        <text data-detail="fine" x="485.7" y="318" class="t-dim" font-size="7">source_uri 非空 → replace_knowledge_by_source（同事务原子 DELETE→INSERT）；空 → add_knowledge 纯追加</text>
+        <text data-detail="fine" x="485.7" y="318" class="t-dim" font-size="7">按 source_uri 决定 replace / append</text>
         </g>
 
         <g data-edge-from="repo" data-edge-to="db" data-edge-label="INSERT knowledge" data-edge-key="6" data-edge-id="m7">
@@ -5243,7 +5238,6 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <rect x="840.6" y="308" width="95.2" height="16" rx="3" class="c-mask"/>
           <text x="888.2" y="318" class="t-backend" font-size="9" text-anchor="middle">INSERT knowledge</text>
         </g>
-        <text data-detail="fine" x="822.9" y="346" class="t-dim" font-size="7">pg_insert 批量 INSERT ... RETURNING；BEFORE INSERT 触发器 tsvector_update_trigger 自动从 content 维护 search_vector</text>
         </g>
 
         <g data-edge-from="db" data-edge-to="repo" data-edge-label="rows committed" data-edge-key="7" data-edge-id="m8">
@@ -5252,7 +5246,6 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <rect x="845.8000000000001" y="336" width="84.8" height="16" rx="3" class="c-mask"/>
           <text x="888.2" y="346" class="t-muted" font-size="9" text-anchor="middle">rows committed</text>
         </g>
-        <text data-detail="fine" x="822.9" y="374" class="t-dim" font-size="7">单次 commit；IntegrityError 映射为 DatabaseError 并回滚</text>
         </g>
 
         <g data-edge-from="repo" data-edge-to="svc" data-edge-label="KnowledgeRecord[]" data-edge-key="8" data-edge-id="m9">
@@ -5261,7 +5254,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <rect x="585.0999999999999" y="364" width="100.4" height="16" rx="3" class="c-mask"/>
           <text x="635.3" y="374" class="t-muted" font-size="9" text-anchor="middle">KnowledgeRecord[]</text>
         </g>
-        <text data-detail="fine" x="485.7" y="402" class="t-dim" font-size="7">含生成 id / chunk_index / metadata 的完整记录列表</text>
+        <text data-detail="fine" x="485.7" y="402" class="t-dim" font-size="7">含 id / chunk_index / metadata</text>
         </g>
 
         <!-- Segment Labels -->
@@ -5559,8 +5552,9 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <h3>异步接入</h3>
         </div>
         <ul>
-          <li>&bull; API 创建 Pipeline run 后立即返回 run_id，摄取在 BackgroundTasks 执行</li>
-          <li>&bull; 阶段事件 chunk → embed → persist 逐段上报，收尾写 run 终态与 record_count</li>
+          <li>&bull; API 解析 corpus config 后创建 Pipeline run，立即返回 run_id 不阻塞调用方</li>
+          <li>&bull; 摄取在 BackgroundTasks 执行，阶段事件 chunk → embed → persist 逐段上报</li>
+          <li>&bull; 收尾写 run 终态与 record_count，Pipeline 页可观测进度与失败原因</li>
         </ul>
       </div>
 
@@ -5571,7 +5565,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         </div>
         <ul>
           <li>&bull; 分块支持 fixed / recursive / semantic / hierarchical 四策略</li>
-          <li>&bull; 向量化经 LiteLLM 调外部 API，指数退避重试 3 次 + 30s 超时</li>
+          <li>&bull; 向量化默认 vertex_ai/text-embedding-005，指数退避重试 3 次 + 30s 超时</li>
+          <li>&bull; 未配置 embedding_fn 时整段跳过（skip_stage），失败抛 EmbeddingFailed</li>
         </ul>
       </div>
 
@@ -5581,8 +5576,9 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <h3>双模持久化</h3>
         </div>
         <ul>
-          <li>&bull; source_uri 非空走原子 DELETE→INSERT 幂等替换，空则纯追加</li>
-          <li>&bull; INSERT 触发器自动维护 search_vector，全文检索零额外写入</li>
+          <li>&bull; source_uri 非空走 replace_knowledge_by_source：同事务原子 DELETE→INSERT</li>
+          <li>&bull; source_uri 为空走 add_knowledge 纯追加，不做去重</li>
+          <li>&bull; BEFORE INSERT 触发器自动从 content 维护 search_vector，全文检索零额外写入</li>
         </ul>
       </div>
     </div>
