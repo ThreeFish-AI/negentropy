@@ -1,0 +1,28 @@
+%% source: docs/concepts/framework.md §6.5 引擎内景（新增小节，无原块）（新增）
+%% slug: core/framework--engine-interior
+%% type: architecture
+%% derived: docs/assets/architecture/core/framework--engine-interior.html (+ -dark/-light PNG)
+%% fix: D-1/D-2 三层架构图缺失引擎内部子系统——本图全新补齐统一调度/Routine 编排/ClaudeCodeService/MCP 端点/定义源/保真巡检/自演化七个子系统；D-14 Definitions Registry 如实标 11/12（.agent/skills 盘上 12 个 SKILL.md，migration 0098 仅 seed 11，science-video-pipeline 未入 DB）
+flowchart LR
+  subgraph engine["Backend API 引擎进程 · :3292（engine/bootstrap.py 装配）"]
+    sched["统一调度<br/>AsyncScheduler · 5s 心跳<br/>FOR UPDATE SKIP LOCKED · SSE"]
+    rtne["Routine 编排<br/>REAP · EVAL · DISPATCH"]
+    ccs["ClaudeCodeService<br/>routine 迭代实际执行体"]
+    mcpd["/mcp/knowledge<br/>streamable-HTTP · kb_search"]
+    defr["Definitions Registry<br/>4 kind · 物化 .agent/skills 11/12"]
+    evol["Evolution / Eval<br/>canary · proposer · eval_runner"]
+    patl["PDF 保真巡检<br/>600s · wiki next dev + Playwright 对照"]
+  end
+  ccli["Claude Code CLI<br/>harness 进程"]
+  pg[("PostgreSQL<br/>:5432 · 全部落库")]
+
+  sched -->|"routine_inspector 每 tick"| rtne
+  rtne -->|"runner 派发迭代"| ccs
+  ccs -->|"spawn 子进程"| ccli
+  ccli -->|"kb_search · bearer"| mcpd
+  defr -.->|"物化 .agent/skills（11/12）"| ccli
+  sched -->|"evolution_inspector"| evol
+  sched -->|"interval 600s"| patl
+  sched -->|"FOR UPDATE SKIP LOCKED 认领"| pg
+  rtne -->|"routines / iterations"| pg
+  defr --> pg

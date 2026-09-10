@@ -1,0 +1,48 @@
+%% source: docs/concepts/framework.md L870-L906
+%% slug: core/framework--ci-cd-pipeline
+%% type: workflow
+%% derived: docs/assets/architecture/core/framework--ci-cd-pipeline.html (+ -dark/-light PNG)
+%% fix: 按代码补齐 QA 门禁 perceives CI(negentropy-perceives-ci.yml)与 wiki 质量(reusable-negentropy-wiki-quality.yml，发布亦调用)；补多架构镜像子图(amd64+arm64 原生构建、provenance/SBOM)
+graph LR
+    subgraph Triggers["触发条件"]
+        PR["PR / Push"]
+        Tag["Tag: negentropy-vX.Y.Z"]
+        Cron["Cron: 每周一 3:00"]
+    end
+
+    subgraph QA["QA 门禁 (Reusable Workflows)"]
+        BQ["后端质量检查<br>Unit · Integration · Performance"]
+        UQ["前端质量检查<br>Lint · TypeCheck · Test · Build · E2E"]
+        WQ["Wiki 质量检查<br>Lint · Unit · Build 冒烟"]
+        PQ["Perceives CI<br>Lint · TypeCheck · Test · 安全审计"]
+    end
+
+    subgraph Release["发布流水线"]
+        Artifacts["构建工件<br>wheel · sdist · standalone"]
+        Manifest["release-manifest.json<br>SHA256SUMS.txt"]
+    end
+
+    subgraph Docker["多架构镜像"]
+        DockerBuild["amd64 + arm64 原生构建<br>provenance · SBOM"]
+    end
+
+    subgraph Guard["供应链安全"]
+        DepReview["依赖审查<br>lockfile/manifest 门禁"]
+    end
+
+    PR --> QA
+    PR --> Guard
+    Cron --> QA
+    Tag --> QA --> Release --> Docker
+
+    classDef trigger fill:#60A5FA,stroke:#1E3A8A,color:#000
+    classDef qa fill:#F59E0B,stroke:#92400E,color:#000
+    classDef release fill:#10B981,stroke:#065F46,color:#FFF
+    classDef docker fill:#14B8A6,stroke:#134E4A,color:#FFF
+    classDef guard fill:#EF4444,stroke:#991B1B,color:#FFF
+
+    class PR,Tag,Cron trigger
+    class BQ,UQ,WQ,PQ qa
+    class Artifacts,Manifest release
+    class DockerBuild docker
+    class DepReview guard

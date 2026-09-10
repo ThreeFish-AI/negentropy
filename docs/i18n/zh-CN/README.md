@@ -41,23 +41,12 @@
 
 **Negentropy 的回答**：逐一对抗这些熵增形态。不在于造一个 Agent，而是构建一个**持续自我进化的认知系统**。
 
-```mermaid
-graph TB
-    Root["🔮 NegentropyEngine<br/>（本我 · 调度核心）"]
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../../assets/architecture/core/readme-zh--faculties-dark.png">
+  <img src="../../assets/architecture/core/readme-zh--faculties-light.png" width="720" alt="Negentropy 一核五翼总览：根智能体 NegentropyEngine（本我 · 调度核心，正交分解）以 transfer_to_agent 将意图委派给五大系部——慧眼·感知、本心·内化、元神·坐照、妙手·知行、喉舌·影响——五系部分别对抗信息过载、遗忘、肤浅、虚谈、晦涩五种熵增形态。">
+</picture>
 
-    Root -->|"transfer_to_agent"| P["👁️ 慧眼 · 感知<br/>Perception"]
-    Root -->|"transfer_to_agent"| I["💎 本心 · 内化<br/>Internalization"]
-    Root -->|"transfer_to_agent"| C["🧠 元神 · 坐照<br/>Contemplation"]
-    Root -->|"transfer_to_agent"| A["✋ 妙手 · 知行<br/>Action"]
-    Root -->|"transfer_to_agent"| Inf["🗣️ 喉舌 · 影响<br/>Influence"]
-
-    P -->|对抗| O["信息过载<br/>噪音淹没信号"]
-    I -->|对抗| F["遗忘<br/>知识碎片化"]
-    C -->|对抗| S["肤浅<br/>表层响应"]
-    A -->|对抗| E["虚谈<br/>认知-行动断裂"]
-    Inf -->|对抗| Obs["晦涩<br/>价值传递失真"]
-```
-
+<sub>图源（可 diff 文本）：[readme-zh--faculties.mmd](../../assets/mermaid/core/readme-zh--faculties.mmd) · 交互版（下载到本地打开）：[readme-zh--faculties.html](../../assets/architecture/core/readme-zh--faculties.html)</sub>
 ---
 
 ## ✨ 核心特性

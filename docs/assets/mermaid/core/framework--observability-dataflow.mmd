@@ -1,0 +1,16 @@
+%% source: docs/concepts/framework.md L398-L411 (§6.4 可观测性集成)
+%% slug: core/framework--observability-dataflow
+%% type: dataflow
+%% derived: docs/assets/architecture/core/framework--observability-dataflow.html (+ -dark/-light PNG)
+graph LR
+    LLM["LLM 调用"] -->|"LiteLLMLoggingCallback"| SL["structlog<br>结构化日志"]
+    LLM -->|"otel callback"| OTel["OpenTelemetry"]
+    OTel -->|"OTLP/HTTP"| LF["Langfuse<br>Trace 分析"]
+    HTTP["HTTP 请求"] -->|"TracingInitMiddleware"| OTel
+
+    classDef source fill:#60A5FA,stroke:#1E3A8A,color:#000
+    classDef sink fill:#10B981,stroke:#065F46,color:#FFF
+
+    class LLM,HTTP source
+    class SL,LF sink
+    class OTel sink

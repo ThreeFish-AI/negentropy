@@ -39,14 +39,19 @@ function parseArgs(argv) {
     themes: "dark,light",
     maxBytes: 1024 * 1024,
   };
-  for (const raw of argv) {
+  const alias = { out: "outDir", "out-dir": "outDir" };
+  for (let i = 0; i < argv.length; i++) {
+    const raw = argv[i];
     const m = /^--([^=]+)(?:=(.*))?$/.exec(raw);
     if (!m) continue;
-    const [, k, v] = m;
-    if (k === "themes" || k === "theme") opts.themes = v;
+    const [, kRaw, veq] = m;
+    const k = alias[kRaw] ?? kRaw;
+    // 支持 --k=v 与 --k v 两种形式
+    const v = veq !== undefined ? veq : (argv[i + 1] && !argv[i + 1].startsWith("--") ? argv[++i] : true);
+    if (k === "themes" || k === "theme") opts.themes = String(v);
     else if (k === "max-bytes") opts.maxBytes = Number(v);
     else if (k in opts) opts[k] = v;
-    else throw new Error(`unknown flag: --${k}`);
+    else throw new Error(`unknown flag: --${kRaw}`);
   }
   opts.themeList = String(opts.themes).split(",").map((s) => s.trim()).filter(Boolean);
   if (!opts.html || !opts.outDir || !opts.slug) {

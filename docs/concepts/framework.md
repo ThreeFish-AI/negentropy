@@ -98,10 +98,12 @@ title: "架构设计方案 · 一核五翼总览"
 
 | 应用                       | 技术栈                                                                                        | 包管理                      | 入口                                                                      |
 | :------------------------- | :-------------------------------------------------------------------------------------------- | :-------------------------- | :------------------------------------------------------------------------ |
-| **negentropy** (后端引擎)  | Python 3.13+, Google ADK<sup>[[3]](#ref3)</sup>, SQLAlchemy, LiteLLM<sup>[[10]](#ref10)</sup> | `uv`<sup>[[9]](#ref9)</sup> | [`agents/agent.py`](../../apps/negentropy/src/negentropy/agents/agent.py) |
+| **negentropy** (后端引擎)  | Python 3.13+, Google ADK<sup>[[3]](#ref3)</sup>, SQLAlchemy, LiteLLM<sup>[[10]](#ref10)</sup> | `uv`<sup>[[9]](#ref9)</sup> | [`cli.py::_cmd_serve`](../../apps/negentropy/src/negentropy/cli.py) → ADK Web → [`services.py`](../../apps/negentropy/src/services.py) → [`engine/bootstrap.py`](../../apps/negentropy/src/negentropy/engine/bootstrap.py)；根智能体定义见 [`agents/agent.py`](../../apps/negentropy/src/negentropy/agents/agent.py) |
 | **negentropy-perceives** (感知服务) | Python 3.13+, FastMCP                                                  | `uv`                        | [`src/`](../../apps/negentropy-perceives/src/)                            |
 | **negentropy-ui** (前端)   | Next.js 16<sup>[[8]](#ref8)</sup>, React 19, TypeScript, Tailwind CSS                         | `pnpm`                      | [`app/layout.tsx`](../../apps/negentropy-ui/app/layout.tsx)               |
 | **negentropy-wiki** (Wiki) | Next.js, TypeScript · 纯静态导出                                                              | `pnpm`                      | [`src/`](../../apps/negentropy-wiki/src/)                                 |
+| **negentropy-influence** (视频流水线) | Python · Remotion · IndexTTS 声音克隆（外部服务 `:8766`）                       | `uv`（管线脚本）            | [`pipeline/scripts/pipeline.py`](../../apps/negentropy-influence/pipeline/scripts/pipeline.py)（无常驻服务端口，9 阶段离线管线） |
+| **agents-chat-core** (共享包) | TypeScript · AG-UI 协议层 + Mention 解析                                                      | `pnpm`（workspace:*）       | [`packages/agents-chat-core/`](../../packages/agents-chat-core/)（仅 negentropy-ui 消费；层边界契约对共享源码包的唯一豁免） |
 
 应用间仅通过网络契约（AG-UI / HTTP / MCP）或构建期静态产物协作，严禁源码互引。详见 [development.md](operations/development.md) §项目结构。
 
@@ -135,7 +137,7 @@ root_agent = LlmAgent(
 ```
 
 **关键约束**：
-- 根智能体仅显式注册 `log_activity` 一个工具；`transfer_to_agent` 由 ADK 框架在注册 `sub_agents` 时自动提供<sup>[[3]](#ref3)</sup>
+- 根智能体仅显式注册 `log_activity` 与 `preload_memory_tool` 两个工具；`transfer_to_agent` 由 ADK 框架在注册 `sub_agents` 时自动提供<sup>[[3]](#ref3)</sup>
 - 所有实际能力由子智能体（系部 + 流水线）承载
 - 调度遵循反馈闭环：上下文锚定 → 模式择优 → 循证执行 → 主动导航
 
@@ -143,28 +145,9 @@ root_agent = LlmAgent(
 
 每个系部是一个独立的 `LlmAgent`，拥有正交的职责边界、专属工具集和运行协议。
 
-```mermaid
-graph LR
-    Root["🔮 NegentropyEngine<br>(本我)"]
+![一核五翼编排架构：根智能体 NegentropyEngine（本我，仅编排）经 ADK 自动提供的 transfer_to_agent 向五大系部 sub_agents 派发——慧眼 PerceptionFaculty 信息获取、本心 InternalizationFaculty 知识沉淀、元神 ContemplationFaculty 反思规划、妙手 ActionFaculty 执行操作、喉舌 InfluenceFaculty 价值输出，五系部职责正交并共享 log_activity 审计。](../assets/architecture/core/framework--faculties-orchestration-dark.png)
 
-    P["👁️ PerceptionFaculty<br>(慧眼)"]
-    I["💎 InternalizationFaculty<br>(本心)"]
-    C["🧠 ContemplationFaculty<br>(元神)"]
-    A["✋ ActionFaculty<br>(妙手)"]
-    Inf["🗣️ InfluenceFaculty<br>(喉舌)"]
-
-    Root -->|"transfer_to_agent"| P
-    Root -->|"transfer_to_agent"| I
-    Root -->|"transfer_to_agent"| C
-    Root -->|"transfer_to_agent"| A
-    Root -->|"transfer_to_agent"| Inf
-
-    classDef root fill:#8B5CF6,stroke:#4C1D95,color:#FFF
-    classDef faculty fill:#F59E0B,stroke:#92400E,color:#000
-
-    class Root root
-    class P,I,C,A,Inf faculty
-```
+> 图源（可 diff 文本）：[`framework--faculties-orchestration.mmd`](../assets/mermaid/core/framework--faculties-orchestration.mmd) · 交互版（下载到本地打开）：[`framework--faculties-orchestration.html`](../assets/architecture/core/framework--faculties-orchestration.html)
 
 | 系部      | 图腾  | Agent 名称               | 对抗目标 | 核心职责                             | 专属工具                                   |
 | :-------- | :---: | :----------------------- | :------- | :----------------------------------- | :----------------------------------------- |
@@ -204,32 +187,9 @@ perception_agent = create_perception_agent(mode="single_turn")
 
 ### 3.4 智能体协作序列
 
-```mermaid
-sequenceDiagram
-    participant U as 用户
-    participant R as NegentropyEngine
-    participant P as PerceptionFaculty
-    participant C as ContemplationFaculty
-    participant A as ActionFaculty
-    participant I as InternalizationFaculty
+![智能体协作序列：用户请求经 NegentropyEngine（根智能体先上下文锚定与模式择优）按任务形态二路派发——单一系部任务直接 transfer_to_agent("PerceptionFaculty") 并取回结构化情报；流水线任务派发 ProblemSolvingPipeline 后由 SequentialAgent 自动编排，慧眼→元神→妙手→本心依次以 output_key 传递上下文，最终结果携下一步建议返回用户](../assets/architecture/core/framework--agent-collaboration-sequence-dark.png)
 
-    U->>R: 用户请求
-    R->>R: 上下文锚定 + 模式择优
-
-    alt 单一系部任务
-        R->>P: transfer_to_agent("PerceptionFaculty")
-        P-->>R: 结构化情报
-    else 流水线任务
-        R->>R: transfer_to_agent("ProblemSolvingPipeline")
-        Note over P,I: SequentialAgent 自动编排
-        P->>C: perception_output →
-        C->>A: contemplation_output →
-        A->>I: action_output →
-        I-->>R: internalization_output
-    end
-
-    R-->>U: 结果 + 下一步建议
-```
+> 图源（可 diff 文本）：[`framework--agent-collaboration-sequence.mmd`](../assets/mermaid/core/framework--agent-collaboration-sequence.mmd) · 交互版（下载到本地打开）：[`framework--agent-collaboration-sequence.html`](../assets/architecture/core/framework--agent-collaboration-sequence.html)
 
 ---
 
@@ -241,26 +201,9 @@ sequenceDiagram
 
 ### 4.1 三条标准流水线
 
-```mermaid
-graph LR
-    subgraph KA["知识获取流水线 (Knowledge Acquisition)"]
-        KA_P["👁️ 感知"] --> KA_I["💎 内化"]
-    end
+![三条标准流水线：三条 SequentialAgent 泳道并行——知识获取（感知→内化）、问题解决（感知→坐照→知行→内化）、价值交付（感知→坐照→影响），列按系部对齐，步骤间以 output_key 状态键（{perception_output?}→{contemplation_output?}→{action_output?}）传递上下文，终点写回 internalization_output / influence_output。](../assets/architecture/core/framework--standard-pipelines-dark.png)
 
-    subgraph PS["问题解决流水线 (Problem Solving)"]
-        PS_P["👁️ 感知"] --> PS_C["🧠 坐照"] --> PS_A["✋ 知行"] --> PS_I["💎 内化"]
-    end
-
-    subgraph VD["价值交付流水线 (Value Delivery)"]
-        VD_P["👁️ 感知"] --> VD_C["🧠 坐照"] --> VD_Inf["🗣️ 影响"]
-    end
-
-    classDef pipeline fill:#1E293B,stroke:#475569,color:#E2E8F0
-    classDef step fill:#F59E0B,stroke:#92400E,color:#000
-
-    class KA,PS,VD pipeline
-    class KA_P,KA_I,PS_P,PS_C,PS_A,PS_I,VD_P,VD_C,VD_Inf step
-```
+> 图源（可 diff 文本）：[`framework--standard-pipelines.mmd`](../assets/mermaid/core/framework--standard-pipelines.mmd) · 交互版（下载到本地打开）：[`framework--standard-pipelines.html`](../assets/architecture/core/framework--standard-pipelines.html)
 
 | 流水线                           | 执行路径                  | 适用场景                         |
 | :------------------------------- | :------------------------ | :------------------------------- |
@@ -367,27 +310,9 @@ SequentialAgent(
 
 ### 6.1 启动引导流程
 
-```mermaid
-flowchart TD
-    A["bootstrap.py 模块加载<br>(import-time)"] --> B["日志系统初始化<br>configure_logging()"]
-    B --> C["OpenTelemetry 环境配置<br>Langfuse OTLP Endpoint"]
-    C --> D["LiteLLM 回调注册<br>success/failure callbacks"]
-    D --> E["apply_adk_patches()"]
-    E --> F["Monkey-Patch ADK 工厂<br>Session · Memory · Artifact · Credential"]
-    F --> G["Patch AdkWebServer.get_fast_api_app"]
+![引擎启动引导流程：bootstrap.py 模块加载后 import-time 依次完成日志初始化、OTel/Langfuse 环境配置与 LiteLLM 回调注册，apply_adk_patches() 补丁 Session/Memory/Artifact/Credential 四工厂并对 ApiServer/AdkWebServer 的 get_fast_api_app 双重 Patch；服务启动时延迟执行——注入 TracingInit/Auth 中间件、挂载含 /knowledge（16 子路由）与 /interface 等共 8 组路由，最终由 _negentropy_lifespan 启动统一心跳调度器（cache_warm 等 ScheduledTask）。](../assets/architecture/core/framework--bootstrap-sequence-dark.png)
 
-    G -.->|"延迟执行：服务启动时"| H["注入 Negentropy 中间件<br>TracingInitMiddleware · AuthMiddleware"]
-    H --> I["挂载 API 路由<br>/knowledge · /memory · /interface · /auth"]
-    I --> J["注册 startup 事件<br>预热模型配置缓存"]
-
-    classDef boot fill:#3B82F6,stroke:#1E40AF,color:#FFF
-    classDef patch fill:#F59E0B,stroke:#92400E,color:#000
-    classDef serve fill:#10B981,stroke:#065F46,color:#FFF
-
-    class A,B,C,D boot
-    class E,F,G patch
-    class H,I,J serve
-```
+> 图源（可 diff 文本）：[`framework--bootstrap-sequence.mmd`](../assets/mermaid/core/framework--bootstrap-sequence.mmd) · 交互版（下载到本地打开）：[`framework--bootstrap-sequence.html`](../assets/architecture/core/framework--bootstrap-sequence.html)
 
 ### 6.2 服务工厂体系
 
@@ -416,20 +341,9 @@ flowchart TD
 
 ### 6.4 可观测性集成
 
-```mermaid
-graph LR
-    LLM["LLM 调用"] -->|"LiteLLMLoggingCallback"| SL["structlog<br>结构化日志"]
-    LLM -->|"otel callback"| OTel["OpenTelemetry"]
-    OTel -->|"OTLP/HTTP"| LF["Langfuse<br>Trace 分析"]
-    HTTP["HTTP 请求"] -->|"TracingInitMiddleware"| OTel
+![可观测性遥测数据流：LLM 调用与 HTTP 请求两类遥测源分双通道汇流——日志流经 LiteLLMLoggingCallback 写入 structlog 并输出 console/JSON/GCP Logging 三 sink；追踪流由 otel 回调生成 GenAI span、TracingInitMiddleware 提取 session_id/user_id 注入 OTel baggage，汇入 OpenTelemetry 后经 OTLP/HTTP 上报 Langfuse。](../assets/architecture/core/framework--observability-dataflow-dark.png)
 
-    classDef source fill:#60A5FA,stroke:#1E3A8A,color:#000
-    classDef sink fill:#10B981,stroke:#065F46,color:#FFF
-
-    class LLM,HTTP source
-    class SL,LF sink
-    class OTel sink
-```
+> 图源（可 diff 文本）：[`framework--observability-dataflow.mmd`](../assets/mermaid/core/framework--observability-dataflow.mmd) · 交互版（下载到本地打开）：[`framework--observability-dataflow.html`](../assets/architecture/core/framework--observability-dataflow.html)
 
 关键集成点：
 - **structlog**：结构化日志输出，支持 console / JSON / Google Cloud Logging 三种 sink
@@ -437,6 +351,24 @@ graph LR
 - **TracingInitMiddleware**：从 HTTP 请求中提取/生成 `session_id`、`user_id`，注入 OTel baggage
 
 > 源码位置：[`instrumentation.py`](../../apps/negentropy/src/negentropy/instrumentation.py)、[`engine/bootstrap.py`](../../apps/negentropy/src/negentropy/engine/bootstrap.py) (中间件定义)
+
+---
+
+
+### 6.5 引擎内景：调度与自治子系统
+
+三层视图（§2.1）沿对话主路径呈现进程间拓扑；引擎进程内部另有一组**不落在请求路径上的常驻子系统**，承载系统的自治运营：
+
+![引擎内景：Backend API :3292 引擎进程内，统一调度（AsyncScheduler 5s 心跳 · 13 handlers · SKIP LOCKED）每 tick 驱动 Routine 编排（REAP/EVAL/DISPATCH），经 runner 派发 ClaudeCodeService spawn Claude Code CLI 执行迭代；CLI 经 /mcp/knowledge 端点检索、读取 Definitions Registry（4 kind · 物化 .agent/skills 11/12）物化的技能文件；调度另驱动 PDF 保真巡检（600s · Playwright 对照）与 Evolution/Eval 自进化，全部状态落 PostgreSQL :5432。](../assets/architecture/core/framework--engine-interior-dark.png)
+
+> 图源（可 diff 文本）：[`framework--engine-interior.mmd`](../assets/mermaid/core/framework--engine-interior.mmd) · 交互版（下载到本地打开）：[`framework--engine-interior.html`](../assets/architecture/core/framework--engine-interior.html)
+
+- **统一调度**（[`engine/schedulers/`](../../apps/negentropy/src/negentropy/engine/schedulers/)）：`AsyncScheduler` 以 5s 全局心跳驱动 13 个 handler（缓存预热、各类 inspector、工具统计等）；任务表以 `FOR UPDATE SKIP LOCKED` 抢占，`ExecutionBus` 向 UI 扇出 SSE 事件
+- **Routine 编排**（[`engine/routine/`](../../apps/negentropy/src/negentropy/engine/routine/)，20 模块）：`routine_inspector` 每 tick 驱动 orchestrator 的 REAP → EVAL → DISPATCH 三阶段；runner 以进程内 asyncio.Task + 信号量执行——这也是引擎坚持单进程单 worker 的架构原因
+- **Claude Code 执行体**（[`engine/claude_code/service.py`](../../apps/negentropy/src/negentropy/engine/claude_code/service.py)）：Routine 迭代的实际执行器是 Claude Code CLI；引擎另挂 [`/mcp/knowledge`](../../apps/negentropy/src/negentropy/knowledge/mcp_server.py) MCP 端点（streamable-HTTP）为其供给知识工具
+- **Definitions Registry**（migrations 0095–0099）：[`definitions`](../../apps/negentropy/src/negentropy/agents/definitions/registry.py) 表是 `skill_template` / `routine_preset` / `harness_skill` / `agent` 四类定义的 SSOT；`harness_materializer` 将 DB 渲染回 `.agent/skills/`，`agent_factory` 从 DB 构造 agent 图（`NE_AGENTS_FROM_DB` 默认开启）。盘上 12 个 SKILL.md 中 `science-video-pipeline` 尚未入库（11/12）
+- **PDF 保真巡检**（`pdf_fidelity_patrol`，默认 600s interval）：起真实 wiki dev 环境 + Playwright 逐页对照源 PDF，经 perceives `:2992` 重转验证
+- **Evolution / Eval**：提案—金丝雀—裁决的自演化回路与攻击面评估
 
 ---
 
@@ -514,62 +446,30 @@ Admin UI → model_configs 表 → model_resolver.py → create_model() → Lite
 
 ### 8.2 Schema 分域设计
 
-数据库 Schema 按认知域划分，每个域对应独立的 DDL 文件：
+数据库 Schema 的单一事实源是 [`negentropy/models/`](../../apps/negentropy/src/negentropy/models/)（27 个 ORM 模块、合计 76 表）与 [Alembic 迁移链](../../apps/negentropy/src/negentropy/db/migrations/versions/)（99 版，head `0099_seed_agent_definitions`），按认知域划分为九域：
 
-```mermaid
-graph TB
-    subgraph Agent["代理核心 (agent_schema.sql)"]
-        threads["threads<br>会话容器"]
-        events["events<br>不可变事件流"]
-        runs["runs<br>执行链路"]
-        messages["messages<br>带 Embedding 消息"]
-        snapshots["snapshots<br>状态检查点"]
-        user_states["user_states<br>用户级状态"]
-        app_states["app_states<br>应用级状态"]
-    end
+![Schema 分域架构图：negentropy/models/ 的 27 个 ORM 模块按九域分组（会话与状态、知识运行时、例行与调度、定义注册、演进与评估、能力接入、遥测、模型配置、平台基座，共 76 表），平台基座以 Base.metadata 驱动 Alembic 99 版迁移链（head 0099）落库 PostgreSQL 17 + pgvector（schema: negentropy），跨域外键 patrol_routine_id / repository_id / scope_corpus_id 连接各域。](../assets/architecture/core/framework--schema-domains-dark.png)
 
-    subgraph Hippocampus["海马体 (hippocampus_schema.sql)"]
-        memories["memories<br>情景记忆"]
-        facts["facts<br>语义记忆"]
-        consolidation["consolidation_jobs<br>巩固任务"]
-        instructions["instructions<br>程序性记忆"]
-    end
+> 图源（可 diff 文本）：[`framework--schema-domains.mmd`](../assets/mermaid/core/framework--schema-domains.mmd) · 交互版（下载到本地打开）：[`framework--schema-domains.html`](../assets/architecture/core/framework--schema-domains.html)
 
-    subgraph KG["知识图谱 (kg_schema_extension.sql)"]
-        kg_nodes["知识节点"]
-        kg_edges["知识边"]
-    end
-
-    threads --> events
-    threads --> runs
-    events --> messages
-    threads --> snapshots
-    threads --> memories
-
-    classDef core fill:#3B82F6,stroke:#1E40AF,color:#FFF
-    classDef memory fill:#8B5CF6,stroke:#4C1D95,color:#FFF
-    classDef knowledge fill:#10B981,stroke:#065F46,color:#FFF
-
-    class threads,events,runs,messages,snapshots,user_states,app_states core
-    class memories,facts,consolidation,instructions memory
-    class kg_nodes,kg_edges knowledge
-```
-
-| Schema 文件                                                                                                  | 认知域   | 核心表                                     | 说明                             |
-| :----------------------------------------------------------------------------------------------------------- | :------- | :----------------------------------------- | :------------------------------- |
-| [`agent_schema.sql`](../reference/cognizes/schema/agent_schema.sql)                                           | 代理核心 | threads, events, runs, messages, snapshots | 会话管理、事件溯源、乐观锁 (OCC) |
-| [`hippocampus_schema.sql`](../reference/cognizes/engine/schema/hippocampus_schema.sql)                       | 记忆系统 | memories, facts, consolidation_jobs        | 情景/语义记忆、艾宾浩斯衰减      |
-| [`kg_schema_extension.sql`](../reference/cognizes/engine/schema/kg_schema_extension.sql)                     | 知识图谱 | 知识节点/边                                | 结构化知识表示                   |
-| [`mind_schema.sql`](../reference/cognizes/schema/mind_schema.sql)                                             | 思维模式 | —                                          | 思维模式与策略                   |
-| [`perception_schema.sql`](../reference/cognizes/engine/schema/perception_schema.sql)                         | 感知系统 | —                                          | 感知数据与来源管理               |
+| Schema 域 | ORM 模块（`negentropy/models/`） | 代表对象 |
+| :--- | :--- | :--- |
+| 会话与状态 | `pulse.py` · `state.py` | `Thread` · `Event` / `UserState` · `AppState` |
+| 知识运行时（35 表） | `perception.py` · `internalization.py` · `knowledge_runtime.py` | `Corpus` · `Knowledge` · `KgEntity` · `WikiPublication` / `Memory` · `Fact` / Pipeline 运行 |
+| 例行与调度 | `routine.py` · `scheduled_task.py` | `Routine` · `RoutineIteration` / `ScheduledTask` · `TaskExecution` |
+| 定义注册 | `definition.py` · `skill.py` · `agent.py` · `builtin_tool.py` | `Definition`（4 kind）/ `Skill` · `Agent` / `BuiltinTool` |
+| 演进与评估 | `evolution.py` · `eval_suite.py` | `EvolutionProposal` / `EvalSuite` · `EvalRun` |
+| 能力接入 | `mcp.py` · `mcp_runtime.py` · `repository.py` · `vendor_config.py` | `McpServer` · `McpToolRun` / `Repository` / `VendorConfig` |
+| 遥测 | `observability.py` · `tool_telemetry.py` | `Trace` / `ToolInvocation` · `ToolStatsDaily` |
+| 模型配置 | `model_config.py` · `task_model_setting.py` | `ModelConfig` / `TaskModelSetting`（按 corpus 作用域） |
+| 平台基座 | `base.py` · `security.py` · `storage.py` · `action.py` | `Base` · pgvector 类型 / `Credential` / `BlobObject` / `ToolExecution` |
 
 ### 8.3 关键设计决策
 
-- **事件溯源 (Event Sourcing)**：`events` 表为不可变事件流，通过 `pg_notify` 触发器支持实时事件推送
-- **向量索引**：`memories` 表使用 HNSW 索引 (`vector_cosine_ops`) 支持语义检索
-- **艾宾浩斯衰减**：`calculate_retention_score()` SQL 函数实现基于访问频率和时间衰减的记忆保持评分
-- **乐观并发控制**：`threads.version` 字段支持 OCC，防止并发写入冲突
-- **JSONB 灵活存储**：`state`、`metadata` 等字段使用 JSONB + GIN 索引，兼顾灵活性与查询性能
+- **向量索引**：`kg_entities.embedding` 等向量列建 HNSW 索引（`vector_cosine_ops`）支撑语义检索（`models/perception.py` 与迁移 0034）
+- **艾宾浩斯衰减**：静态 SQL 函数 `calculate_retention_score()`（迁移 0043）配合 `memories.retention_score` 列，实现基于访问与时间的记忆保持评分
+- **跨域外键锚点**：`task_model_setting.scope_corpus_id → corpus`、`routine.repository_id → repositories`、`perception.patrol_routine_id → routines` 等三条跨域 FK 显式声明域间依赖
+- **JSONB 灵活存储**：`config`、`skills` 等字段使用 JSONB + GIN 索引，兼顾灵活性与查询性能
 
 ---
 
@@ -637,6 +537,7 @@ apps/negentropy-ui/app/
 - **事件流为唯一真值**：所有 UI 状态由事件流驱动，前端不自写状态真值<sup>[[11]](#ref11)</sup>
 - **传输无绑定**：协议支持 SSE/WebSockets/Webhooks，当前采用 SSE over POST
 - **BFF 代理模式**：前端通过 Route Handler（`/api/agui`）代理后端，解决 CORS/鉴权问题
+- **协议层共享包**：AG-UI 协议类型与 Mention 解析沉淀于 [`packages/agents-chat-core`](../../packages/agents-chat-core/)（`workspace:*` 依赖，仅 negentropy-ui 消费——wiki 纯静态导出不依赖它）
 
 #### CopilotKit 连接层
 
@@ -659,17 +560,9 @@ CopilotKitProvider → useAgent (HttpAgent) → BFF /api/agui → ADK Web → SS
 
 #### 连接状态
 
-```mermaid
-stateDiagram-v2
-    [*] --> idle
-    idle --> connecting: 创建 Session / 发送消息
-    connecting --> streaming: SSE 连接建立
-    streaming --> idle: 事件流结束
-    streaming --> retrying: SSE 断连
-    retrying --> streaming: 重连成功
-    retrying --> error: 超过重试阈值
-    error --> connecting: 手动重连
-```
+![连接状态机：idle 经「创建 Session/发送消息」进入 connecting，SSE 建立后进入 streaming，事件流结束回 idle；streaming 断连降入 retrying 指数退避重连，重连成功回升 streaming、超过重试阈值转 error，error 仅可经用户手动重连回到 connecting。](../assets/architecture/core/framework--connection-lifecycle-dark.png)
+
+> 图源（可 diff 文本）：[`framework--connection-lifecycle.mmd`](../assets/mermaid/core/framework--connection-lifecycle.mmd) · 交互版（下载到本地打开）：[`framework--connection-lifecycle.html`](../assets/architecture/core/framework--connection-lifecycle.html)
 
 - `idle`：未连接（进入页面未创建 session）
 - `connecting`：发起 SSE 连接
@@ -688,6 +581,8 @@ stateDiagram-v2
 - 断连 → `retrying`（指数退避，系数 `1.8`，最大延迟 `8s`，抖动 `±20%`）
 - 最大重试次数：`8`
 - 超过阈值 → `error`，需用户手动触发重连
+
+> **设计与实现的口径差**：上图与上述参数为设计层状态机；代码实测（[`types/common.ts`](../../apps/negentropy-ui/types/common.ts)）连接枚举为 `idle / connecting / streaming / blocked / error`（无 `retrying`，另含 HITL 阻塞态），断线恢复由 [`ndjson-agent.ts`](../../packages/agents-chat-core/src/client/ndjson-agent.ts) 以 cursor + resumeToken 续读实现。
 
 ### 9.6 API 契约与错误处理规范
 
@@ -838,30 +733,15 @@ agent.forwardedProps = {
 
 ### 10.1 测试金字塔
 
-```mermaid
-graph TB
-    E2E["🔺 E2E 测试<br>Playwright 冒烟"]
-    Integration["🟧 集成测试<br>DB · API · 组件交互"]
-    Unit["🟩 单元测试<br>pytest · Vitest"]
-    Performance["⚡ 性能测试<br>知识搜索基准"]
+![测试金字塔架构图：E2E 测试（Playwright 冒烟）沿核心路径汇入集成测试（DB · API · 组件交互），再分层承接单元基座——单元 · 后端（pytest，行 ≥50%）与单元 · 前端（Vitest，行 ≥50% 分支 ≥48%）；性能测试（知识搜索基准）以虚线独立挂靠后端单元层。](../assets/architecture/core/framework--testing-pyramid-dark.png)
 
-    E2E --> Integration --> Unit
-    Performance -.-> Unit
-
-    classDef e2e fill:#EF4444,stroke:#991B1B,color:#FFF
-    classDef integration fill:#F59E0B,stroke:#92400E,color:#000
-    classDef unit fill:#10B981,stroke:#065F46,color:#FFF
-
-    class E2E e2e
-    class Integration integration
-    class Unit,Performance unit
-```
+> 图源（可 diff 文本）：[`framework--testing-pyramid.mmd`](../assets/mermaid/core/framework--testing-pyramid.mmd) · 交互版（下载到本地打开）：[`framework--testing-pyramid.html`](../assets/architecture/core/framework--testing-pyramid.html)
 
 ### 10.2 覆盖率门禁
 
 | 端   | 框架                | 行覆盖率 | 分支覆盖率 | 配置位置                                 |
 | :--- | :------------------ | :------- | :--------- | :--------------------------------------- |
-| 后端 | pytest + pytest-cov | ≥ 50%    | —          | `pyproject.toml` `[tool.coverage.run]`   |
+| 后端 | pytest + pytest-cov | ≥ 50%    | —          | `pyproject.toml` `[tool.coverage.report] fail_under=50` |
 | 前端 | Vitest Coverage v8  | ≥ 50%    | ≥ 48%      | `vitest.config.ts` `coverage.thresholds` |
 
 ### 10.3 测试目录结构
@@ -887,47 +767,14 @@ tests/
 
 ### 10.4 CI/CD 流水线架构
 
-```mermaid
-graph LR
-    subgraph Triggers["触发条件"]
-        PR["PR / Push"]
-        Tag["Tag: negentropy-vX.Y.Z"]
-        Cron["Cron: 每周一 3:00"]
-    end
+![CI/CD 流水线架构：三类触发（PR/Push 路径过滤、每周一 03:00 定时巡检、negentropy-vX.Y.Z Tag 推送）汇入全栈质量门（backend · ui · perceives · wiki 四端 reusable workflow），Tag 路径过门后构建 wheel/sdist/standalone 工件（附 SHA256SUMS），再产 amd64+arm64 多架构镜像（provenance/SBOM）；PR 路径另设依赖审查供应链门。](../assets/architecture/core/framework--ci-cd-pipeline-dark.png)
 
-    subgraph QA["QA 门禁 (Reusable Workflows)"]
-        BQ["后端质量检查<br>Unit · Integration · Performance"]
-        UQ["前端质量检查<br>Lint · TypeCheck · Test · Build · E2E"]
-    end
-
-    subgraph Release["发布流水线"]
-        Artifacts["构建工件<br>wheel · sdist · standalone"]
-        Manifest["release-manifest.json<br>SHA256SUMS.txt"]
-    end
-
-    subgraph Guard["供应链安全"]
-        DepReview["依赖审查<br>lockfile/manifest 门禁"]
-    end
-
-    PR --> QA
-    PR --> Guard
-    Cron --> QA
-    Tag --> QA --> Release
-
-    classDef trigger fill:#60A5FA,stroke:#1E3A8A,color:#000
-    classDef qa fill:#F59E0B,stroke:#92400E,color:#000
-    classDef release fill:#10B981,stroke:#065F46,color:#FFF
-    classDef guard fill:#EF4444,stroke:#991B1B,color:#FFF
-
-    class PR,Tag,Cron trigger
-    class BQ,UQ qa
-    class Artifacts,Manifest release
-    class DepReview guard
-```
+> 图源（可 diff 文本）：[`framework--ci-cd-pipeline.mmd`](../assets/mermaid/core/framework--ci-cd-pipeline.mmd) · 交互版（下载到本地打开）：[`framework--ci-cd-pipeline.html`](../assets/architecture/core/framework--ci-cd-pipeline.html)
 
 关键设计：**PR 门禁与 Release 门禁共享同一套 QA 定义**（单一事实源），通过可复用工作流实现：
 - [`reusable-negentropy-backend-quality.yml`](../../.github/workflows/reusable-negentropy-backend-quality.yml)
 - [`reusable-negentropy-ui-quality.yml`](../../.github/workflows/reusable-negentropy-ui-quality.yml)
+- perceives 走独立的 [`negentropy-perceives-ci.yml`](../../.github/workflows/negentropy-perceives-ci.yml)（`workflow_call` 可复用）；wiki 走 [`reusable-negentropy-wiki-quality.yml`](../../.github/workflows/reusable-negentropy-wiki-quality.yml)
 
 详见 [QA 与发布流水线文档](./design/qa-delivery-pipeline.md)。
 

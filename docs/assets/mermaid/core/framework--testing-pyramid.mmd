@@ -1,0 +1,20 @@
+%% source: docs/concepts/framework.md §10.1 测试金字塔 (原 L818-L835)
+%% slug: core/framework--testing-pyramid
+%% type: architecture
+%% derived: docs/assets/architecture/core/framework--testing-pyramid.html (+ -dark/-light PNG)
+graph TB
+    E2E["🔺 E2E 测试<br>Playwright 冒烟"]
+    Integration["🟧 集成测试<br>DB · API · 组件交互"]
+    Unit["🟩 单元测试<br>pytest · Vitest"]
+    Performance["⚡ 性能测试<br>知识搜索基准"]
+
+    E2E --> Integration --> Unit
+    Performance -.-> Unit
+
+    classDef e2e fill:#EF4444,stroke:#991B1B,color:#FFF
+    classDef integration fill:#F59E0B,stroke:#92400E,color:#000
+    classDef unit fill:#10B981,stroke:#065F46,color:#FFF
+
+    class E2E e2e
+    class Integration integration
+    class Unit,Performance unit

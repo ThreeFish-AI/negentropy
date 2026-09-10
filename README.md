@@ -41,23 +41,12 @@ You've probably test-driven your fair share of agentic systems by now, and inevi
 
 **Negentropy's Answer**: We engage these entropic forms head-on. The goal isn't just to build another Agent, but to forge a **continuously self-evolving cognitive system**.
 
-```mermaid
-graph TB
-    Root["🔮 NegentropyEngine<br/>(The Self · Scheduling Core)"]
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./docs/assets/architecture/core/readme--faculties-en-dark.png">
+  <img src="./docs/assets/architecture/core/readme--faculties-en-light.png" width="720" alt="One Root, Five Wings: the NegentropyEngine root agent (The Self · Scheduling Core, orchestration only) dispatches intents via transfer_to_agent to five orthogonal faculties — The Eye Perception, The Soul Internalization, The Mind Contemplation, The Hand Action, The Voice Influence — each of which combats one entropic failure mode: information overload, amnesia, superficiality, all talk, and obscurity.">
+</picture>
 
-    Root -->|"transfer_to_agent"| P["👁️ The Eye · Perception Faculty"]
-    Root -->|"transfer_to_agent"| I["💎 The Soul · Internalization Faculty"]
-    Root -->|"transfer_to_agent"| C["🧠 The Mind · Contemplation Faculty"]
-    Root -->|"transfer_to_agent"| A["✋ The Hand · Action Faculty"]
-    Root -->|"transfer_to_agent"| Inf["🗣️ The Voice · Influence Faculty"]
-
-    P -->|Combats| O["Information Overload<br/>Noise Drowning Signal"]
-    I -->|Combats| F["Amnesia<br/>Knowledge Fragmentation"]
-    C -->|Combats| S["Superficiality<br/>Surface-Level Responses"]
-    A -->|Combats| E["All Talk<br/>Cognitive-Action Disconnect"]
-    Inf -->|Combats| Obs["Obscurity<br/>Value Degradation"]
-```
-
+<sub>Diagram source (diff-able text): [readme--faculties-en.mmd](./docs/assets/mermaid/core/readme--faculties-en.mmd) · Interactive version (open locally): [readme--faculties-en.html](./docs/assets/architecture/core/readme--faculties-en.html)</sub>
 ---
 
 ## ✨ Core Features
