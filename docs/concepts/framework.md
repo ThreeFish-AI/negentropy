@@ -64,6 +64,36 @@ title: "架构设计方案 · 一核五翼总览"
 
 ### 2.1 三层架构视图
 
+系统按「谁面向用户 / 谁做决策 / 谁提供能力」正交切分为三层，11 个组件与 11 条关系全部落在层内职责或跨层契约上。**层边界即契约**：应用间只经网络协议（AG-UI / HTTP / MCP）或构建期静态产物协作，严禁源码互引。
+
+![Negentropy 三层架构总览：展示层（negentropy-ui、negentropy-wiki）、引擎层（后端 API、根智能体 NegentropyEngine、三条流水线、五大系部）、基础设施层（OpenTelemetry 与 Langfuse、MicroSandbox、LiteLLM、negentropy-perceives、PostgreSQL 17）；完整组件清单与全部 11 条关系见下方表格与列表](../assets/architecture/negentropy-architecture-dark.png)
+
+| 层 | 组件（服务端口） | 层内定位 |
+| :--- | :--- | :--- |
+| 🖥️ 展示层 | `negentropy-ui`（`:3192`）· `negentropy-wiki`（纯静态导出，零运行时依赖） | 唯一的人机交互面。ui 只经 AG-UI 触达引擎；wiki 不持任何运行时链接，故可独立部署与离线阅读 |
+| ⚙️ 引擎层 | `Backend API`（ADK Web Server · `:3292`）· `NegentropyEngine`（根智能体「本我」，仅编排）· 三条流水线（知识获取 / 问题解决 / 价值交付，均为 `SequentialAgent`）· 五大系部（慧眼 · 本心 · 元神 · 妙手 · 喉舌） | 决策与编排的唯一归属层。根智能体不执行原子任务，只经 `transfer_to_agent` 派发；流水线是常见多系部协作模式的固化封装 |
+| 🏗️ 基础设施层 | `negentropy-perceives`（MCP Server，Web/PDF → Markdown · `:2992`）· `PostgreSQL 17`（pgvector · `:5432`）· `LiteLLM`（100+ 提供商）· `MicroSandbox` · `OpenTelemetry · Langfuse` | 能力供给层，仅由系部工具或引擎埋点触达，上层不持驱动级依赖，故可整体替换 |
+
+各应用的技术栈、包管理与入口文件见 [§2.2 应用边界与技术栈](#22-应用边界与技术栈)。
+
+11 条关系正交归并为**四条主链路 + 一条横切**，与交互图和动效短片的 4 章 13 停一一对应：
+
+1. **对话请求**（5 停）：`ui` --*AG-UI Protocol · agent session*--> `api` --> `root` --*`transfer_to_agent`*--> `pipelines` / `faculties`；流水线按 `SequentialAgent` 顺序移交系部，终点是 `PostgreSQL`（*SQL · asyncpg*）。
+2. **知识摄取**（3 停）：`faculties` --*MCP*--> `negentropy-perceives` 把 Web / PDF 源转为 Markdown，携向量落库 `PostgreSQL`。
+3. **静态交付**（2 停）：`api` -.-*publish · 构建期烘焙*-.-> `wiki`。虚线是刻意的语义——内容在构建期烘入产物，已发布 wiki 在引擎离线时仍完整可读。
+4. **模型与沙箱**（3 停）：`root` --*LLM I/O*--> `LiteLLM`；`faculties` --*`execute_code`*--> `MicroSandbox`。模型路由与不可信执行均不落在请求主路径上。
+5. **横切**：`api` -.-*OTLP traces*-.-> `OpenTelemetry · Langfuse`，为上述四条链路统一埋点，自身不属于任何一条。
+
+同一拓扑提供四种消费形态，按用途取用：
+
+- 🖱️ [architecture-diagram.html](./architecture-diagram.html) —— **交互 HTML**：平移 / 缩放 / 节点搜索、关系聚焦、明暗切换、可回放的 4 章 13 停引导叙事（每停可复制定位链接），以及 **11 处直达源码文件的深链**，逐一佐证图中每个组件的技术事实。*在 wiki 内该链接指向 GitHub 源码页，需下载到本地打开方有交互。*
+- 🎬 [negentropy-architecture-story.mp4](../assets/architecture/negentropy-architecture-story.mp4) —— **动效短片**（1280×720，29 秒）：按上述四条链路逐停点亮一跳、压暗其余，建立「一次请求究竟触达了谁、又始终不触达谁」的直观。*两条渲染链路（GitHub Markdown 与 wiki）均会剥离 `<video>`，故此处只提供跳转，不内嵌播放；README 内的 GIF 动图是唯一能就地播放的形态。*
+- 📐 [negentropy-architecture.svg](../assets/architecture/negentropy-architecture.svg) —— **双主题矢量图**：单文件自适应明暗，供演示与打印。*注意 wiki 的暗色态由 `data-color-scheme` 属性驱动，而 `<img>` 内嵌 SVG 的 `prefers-color-scheme` 只读系统偏好，手动拨反主题时配色会反向——故本节正文内嵌的是暗色 PNG 而非该 SVG。*
+- 🖼️ [暗色 PNG](../assets/architecture/negentropy-architecture-dark.png) · [亮色 PNG](../assets/architecture/negentropy-architecture-light.png) —— **5120×2880 高清静图**，由产物内置导出原生矢量栅格化而来（非位图放大），同时是 [README](../../README.md) 与 [中文 README](../i18n/zh-CN/README.md) 的静图来源。
+
+<details>
+<summary><b>图示文本源</b> —— 上述全部产物的可编辑源与可 diff 维护基线（经 archify 与采集脚本再生）</summary>
+
 ```mermaid
 graph TB
     subgraph Presentation["展示层 (Presentation)"]
@@ -107,7 +137,9 @@ graph TB
     class Perceives,DB,LLM,OTel,Sandbox infra
 ```
 
-> 🖱️ 交互式版本（平移 / 缩放 / 搜索 / 源码锚点）：[architecture-diagram.html](./architecture-diagram.html)
+**修改流程**：先改本段 Mermaid → 用 archify（`/archify` 技能）从新文本重新生成 [architecture-diagram.html](./architecture-diagram.html)（整体替换，采集脚本的唯一输入）→ 跑 [`scripts/capture-arch-media.mjs`](../../scripts/capture-arch-media.mjs) 采集 PNG / SVG / MP4 / GIF 四类产物 → 全部与本段同一次提交。**严禁手改 15,005 行的生成物 [architecture-diagram.html](./architecture-diagram.html)**：它没有独立的源规格，手改即造成文本源与呈现物分叉。生成链路、体积门与两条渲染链路的完整约束见 [文档媒体资产规范](../.agents/doc-media-assets.md)。
+
+</details>
 
 ### 2.2 应用边界与技术栈
 

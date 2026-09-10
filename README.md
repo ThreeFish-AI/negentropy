@@ -168,6 +168,40 @@ The **NegentropyEngine** refrains from executing atomic tasks directly; it exist
 
 ### Three-Tier Architecture
 
+<p align="center">
+  <img src="./docs/assets/architecture/negentropy-architecture-story.gif" width="720" alt="Animated walkthrough of the Negentropy three-tier architecture. Four flows are traced in turn - chat request, knowledge ingestion, static wiki delivery, models and sandbox - across a Presentation tier (negentropy-ui, negentropy-wiki), an Engine tier (Backend API, the NegentropyEngine root agent, three pipelines, five faculties) and an Infrastructure tier (OpenTelemetry with Langfuse, MicroSandbox, LiteLLM, negentropy-perceives, PostgreSQL 17). Each beat lights one hop and dims the rest. The full component inventory and all eleven relationships are tabulated below." />
+</p>
+
+<p align="center">
+  <sub><b>4 flows · 13 beats.</b> Each beat lights one hop and dims the rest - so you see what a request actually touches, and what it never does.<br/>
+  Prefer no motion? The same diagram, still at 5120×2880: <a href="./docs/assets/architecture/negentropy-architecture-dark.png">dark</a> · <a href="./docs/assets/architecture/negentropy-architecture-light.png">light</a> · <a href="./docs/assets/architecture/negentropy-architecture.svg">vector</a></sub>
+</p>
+
+**Three tiers, 11 components, 11 relationships.** Tier boundaries are contracts, not conventions: applications collaborate only over network protocols (AG-UI / HTTP / MCP) or build-time static artifacts - never by importing one another's source.
+
+| Tier | Components | Boundary rule |
+| :--- | :--- | :--- |
+| 🖥️ **Presentation** | `negentropy-ui` · Next.js 16 · React 19 · Tailwind · `:3192`<br/>`negentropy-wiki` · Next.js · pure static export | The UI reaches the engine over AG-UI only; the wiki holds no runtime link at all |
+| ⚙️ **Engine** | `Backend API` · ADK Web Server · FastAPI · `:3292`<br/>`NegentropyEngine` · root agent (The Self), orchestration only<br/>`Three Pipelines` · each a `SequentialAgent`<br/>`Five Faculties` · Eye · Soul · Mind · Hand · Voice | The root executes no atomic work; it dispatches solely via `transfer_to_agent` |
+| 🏗️ **Infrastructure** | `negentropy-perceives` · MCP server, Web/PDF → Markdown · `:2992`<br/>`PostgreSQL 17` · pgvector · `:5432`<br/>`LiteLLM` · 100+ providers<br/>`MicroSandbox` · `OpenTelemetry · Langfuse` | Reached only through faculty tools; no upper tier carries a driver-level dependency |
+
+Those 11 relationships resolve into **four flows plus one cross-cut** - the same decomposition the motion story walks:
+
+1. **Chat request** (5 beats) - `ui` →*AG-UI Protocol*→ `api` → `root` →*`transfer_to_agent`*→ `pipelines` / `faculties`, terminating in `PostgreSQL` over *SQL · asyncpg*.
+2. **Knowledge ingestion** (3 beats) - `faculties` →*MCP*→ `negentropy-perceives` turns Web and PDF sources into Markdown, persisted with vectors.
+3. **Static delivery** (2 beats) - `api` ⇢*publish · build-time bake*⇢ `wiki`. Dashed on purpose: a published wiki stays readable with the engine offline.
+4. **Models and sandbox** (3 beats) - `root` →*LLM I/O*→ `LiteLLM`; `faculties` →*`execute_code`*→ `MicroSandbox`. Neither sits on the request path.
+5. **Cross-cut** - `api` ⇢*OTLP traces*⇢ `OpenTelemetry · Langfuse`, instrumenting all four flows while belonging to none.
+
+**Explore further**
+
+- 🖱️ **Interactive diagram** - [architecture-diagram.html](./docs/concepts/architecture-diagram.html): pan / zoom / node search, relationship focus, light-dark toggle, a replayable guided story of 4 chapters and 13 beats, and **11 deep links jumping straight to the source file that substantiates each component**. Download and open locally for the full interaction.
+- 🎬 **Motion story** - [negentropy-architecture-story.mp4](./docs/assets/architecture/negentropy-architecture-story.mp4): the same 29-second walkthrough at 1280×720 - sharper than the GIF above, which is capped at 720 px to stay under the repository's 1 MiB per-file limit.
+- 📝 **Diagram source** - the Mermaid block kept below is the single editable source: archify rebuilds the interactive HTML from it, and the capture script derives every artifact above. It doubles as the diffable baseline.
+
+<details>
+<summary><b>Diagram text source</b> - the Mermaid baseline every artifact above is regenerated from (via archify + the capture script)</summary>
+
 ```mermaid
 graph TB
     subgraph Presentation["🖥️ Presentation Layer"]
@@ -211,7 +245,9 @@ graph TB
     class Perceives,DB,LLM,OTel,Sandbox infra
 ```
 
-> 🖱️ Explore the interactive version (pan / zoom / search / source links): [architecture-diagram.html](./docs/concepts/architecture-diagram.html)
+Edit this block first, regenerate [`architecture-diagram.html`](./docs/concepts/architecture-diagram.html) from it with the `archify` skill (wholesale replacement - the capture script reads only this HTML), then run [`scripts/capture-arch-media.mjs`](./scripts/capture-arch-media.mjs) to re-derive the artifacts. Never hand-edit the generated HTML - see [doc-media-assets.md](./docs/.agents/doc-media-assets.md).
+
+</details>
 
 ---
 

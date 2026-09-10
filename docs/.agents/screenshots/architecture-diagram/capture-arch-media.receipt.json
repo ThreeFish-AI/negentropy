@@ -1,0 +1,77 @@
+{
+  "clip": {
+    "x": 100,
+    "y": 0,
+    "width": 1401,
+    "height": 788
+  },
+  "scale": 0.9136,
+  "fps": 20,
+  "frames": 566,
+  "board": [
+    {
+      "action": "showAll",
+      "hold": 2.5
+    },
+    {
+      "action": "chapter",
+      "index": 0,
+      "hold": 2
+    },
+    {
+      "action": "next",
+      "hold": 1.7
+    },
+    {
+      "action": "next",
+      "hold": 1.7
+    },
+    {
+      "action": "next",
+      "hold": 1.7
+    },
+    {
+      "action": "next",
+      "hold": 1.7
+    },
+    {
+      "action": "chapter",
+      "index": 1,
+      "hold": 2
+    },
+    {
+      "action": "next",
+      "hold": 1.7
+    },
+    {
+      "action": "next",
+      "hold": 1.7
+    },
+    {
+      "action": "chapter",
+      "index": 2,
+      "hold": 2
+    },
+    {
+      "action": "next",
+      "hold": 1.7
+    },
+    {
+      "action": "chapter",
+      "index": 3,
+      "hold": 2
+    },
+    {
+      "action": "next",
+      "hold": 1.7
+    },
+    {
+      "action": "next",
+      "hold": 1.7
+    },
+    {
+      "action": "showAll",
+      "hold": 2.5
+    }
+  ]
+}

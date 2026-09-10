@@ -7,6 +7,7 @@
 
 - Agent 协作协议（AGENTS.md）、浏览器验证协议、引用规范 (IEEE) — 已上移至用户级全局配置（`~/.claude/CLAUDE.md` 与 `~/.agents/docs/`），仓库不再承载 Agent 指令源
 - [Wiki 文档排序元数据规范](./wiki-docs-ordering.md) — `sidebar_position`（文件 frontmatter）+ `_category_.json`（目录）驱动 docs/ → wiki 导航排序
+- [文档媒体资产规范](./doc-media-assets.md) — `docs/**` 与 README 内图片 / 动效 / 视频的写法选型与两条渲染链路约束：进 wiki 的文档只能用纯 markdown 图片语法（HTML 属性不被重写）、`<video>` 双链路皆被 sanitize 剥离（就地动效只有 GIF）、单文件 ≤ 1 MiB、折叠用 `<details>`、架构图的派生链路与再生成命令
 
 ## 工程经验沉淀
 
@@ -18,8 +19,9 @@
 
 ## 系统概念与设计
 
-- [Framework（系统框架）](../concepts/framework.md)
-- [Architecture Diagram（交互式架构图）](../concepts/architecture-diagram.html) — 三层拓扑交互 HTML（archify 生成，英文，含 11 处仓库源码锚点）：wiki 纯静态导出、perceives MCP 服务、PG17 等校准事实的 SSOT 可视化，与 README ×2 / framework.md §2.1 对齐
+- [Framework（系统框架）](../concepts/framework.md) — 架构设计的权威参考：三层架构视图（§2.1，正文为高清静图 + 折叠的 Mermaid 文本源）、应用边界与技术栈（§2.2）、一核五翼编排、三条标准流水线、启动引导、可观测性、DB schema 分域、测试金字塔与 CI/CD，10 张图正交覆盖各维度
+- [Architecture Diagram（交互式架构图）](../concepts/architecture-diagram.html) — 三层拓扑交互 HTML（archify 生成，英文；11 处仓库源码锚点、4 章 13 停引导叙事、明暗双主题）：wiki 纯静态导出、perceives MCP 服务、PG17 等校准事实的 SSOT 可视化。**唯一可编辑源是 [framework.md](../concepts/framework.md) §2.1 折叠块内的 Mermaid 文本**，本 HTML 与 [架构图媒体资产](../assets/architecture/) 均为其派生产物；消费点三处——[README](../../README.md) §Three-Tier Architecture / [中文 README](../i18n/zh-CN/README.md) §三层架构（均以 GIF 动图为主视觉）/ framework.md §2.1（暗色高清静图内嵌 + 文本源）。改图须「先改 Mermaid → 用 archify 重新生成交互 HTML（整体替换）→ 跑采集脚本派生媒体产物 → 三处消费点同步核对」，严禁手改生成物 HTML
+- [架构图媒体资产](../assets/architecture/) — 同一张三层拓扑的四类派生产物：[暗色](../assets/architecture/negentropy-architecture-dark.png) / [亮色](../assets/architecture/negentropy-architecture-light.png) 5120×2880 高清 PNG · [双主题矢量 SVG](../assets/architecture/negentropy-architecture.svg) · [29 秒动效 MP4](../assets/architecture/negentropy-architecture-story.mp4)（1280×720）· [同源 GIF](../assets/architecture/negentropy-architecture-story.gif)（720×406，README 内唯一能就地播放的形态）。由 [`scripts/capture-arch-media.mjs`](../../scripts/capture-arch-media.mjs) 可复现生成；落盘位置、体积门与两条渲染链路约束见 [文档媒体资产规范](./doc-media-assets.md)
 - [Conversation Foundation（对话基础）](../concepts/conversation-foundation.md)
 - [A2UI（Agent-to-UI 协议）](../concepts/a2ui.md)
 - [SSO（单点登录设计）](../concepts/design/sso.md)
