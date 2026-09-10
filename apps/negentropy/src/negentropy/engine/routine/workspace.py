@@ -20,7 +20,8 @@
 
 参考文献：
 [1] Git Docs, *git-worktree(1)*. 同仓库多工作树隔离机制。
-[2] .github/workflows/cognizes-ruff.yml — 分支命名 / `gh pr create` 约定。
+[2] 分支命名与 ``gh pr create`` 回基线约定沿自 CI auto-fix 流水线的
+    ``fix/<job>-<slug>`` 前缀惯例（原始先例 cognizes-ruff 流水线已随 cognizes 项目退役）。
 """
 
 from __future__ import annotations
