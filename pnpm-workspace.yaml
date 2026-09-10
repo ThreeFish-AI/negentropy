@@ -5,8 +5,6 @@
 #
 # 协议契约（@ag-ui/* / rxjs / zod）通过 catalog 统一锁版本，避免 ui 与 wiki 各自漂移
 # 导致协议层运行时双实例化（rxjs Observable instanceof 失效是经典坑）。
-#
-# 详见：/Users/cm.huang/.claude/plans/system-instruction-you-are-working-hidden-knuth.md
 
 packages:
   - apps/*

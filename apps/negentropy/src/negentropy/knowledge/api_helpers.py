@@ -8,7 +8,8 @@ from uuid import UUID
 from fastapi import HTTPException, status
 from sqlalchemy import text as sa_text
 
-from negentropy.config import settings
+# noqa 注记：显式 re-export —— knowledge/routes/* 均以 ``_resolve_app_name`` 名义导入
+from negentropy.config import resolve_app_name as _resolve_app_name  # noqa: F401
 from negentropy.logging import get_logger
 from negentropy.models.base import NEGENTROPY_SCHEMA
 
@@ -27,10 +28,6 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = get_logger("negentropy.knowledge.api_helpers")
-
-
-def _resolve_app_name(app_name: str | None) -> str:
-    return app_name or settings.app_name
 
 
 async def _resolve_corpus_model_ids(

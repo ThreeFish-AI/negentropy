@@ -511,7 +511,7 @@ class TestWikiPublicationEntriesEagerLoading:
 def patch_knowledge_api_session(db_engine, monkeypatch):
     """将 routes 子模块中 `from db.session import AsyncSessionLocal` 重定向到测试引擎。
 
-    conftest.patch_db_globals 仅覆盖 db.session/db.deps 命名空间，不影响已通过
+    conftest.patch_db_globals 仅覆盖 db.session 命名空间，不影响已通过
     `from X import Y` 形式静态绑定到其他模块的引用——本 fixture 形成互补，
     与 test_catalog_cross_corpus.patch_handler_sessions 同源。
     """

@@ -28,7 +28,7 @@ import os
 import sys
 import tempfile
 from contextlib import suppress
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 from typing import Any
 from uuid import UUID
 
@@ -44,6 +44,7 @@ from negentropy.models.base import NEGENTROPY_SCHEMA
 from negentropy.models.mcp import McpServer, McpTool
 from negentropy.models.repository import Repository
 from negentropy.models.routine import Routine, RoutineIteration, RoutineIterationEvent
+from negentropy.timeutil import utcnow
 
 from . import decision as decision_mod
 from . import phase as phase_mod
@@ -93,10 +94,6 @@ _NON_TERMINAL_ITER = ("pending_approval", "dispatched", "in_flight", "executed",
 _BATCH_LIMIT = 10
 # 「全过程」审计事件单字段截断上限（与 claude_code.service 一致），防 DB 膨胀。
 _EVENT_FIELD_CAP = 16 * 1024
-
-
-def _utcnow() -> datetime:
-    return datetime.now(UTC)
 
 
 def _kb_retrieval_available() -> bool:
@@ -381,7 +378,7 @@ class RoutineOrchestrator:
     async def _reap_orphans(self) -> int:
         """回收孤儿在途迭代：lease 过期且本进程 Runner 不再持有 → 标记 reaped。"""
         runner = get_runner()
-        now = _utcnow()
+        now = utcnow()
         reaped = 0
         async with db_session.AsyncSessionLocal() as db:
             rows = (
@@ -556,7 +553,7 @@ class RoutineOrchestrator:
             return 0
         from . import pr_status  # 延迟导入：避免 import 期 which('gh') 探测进入与 PR 无关的测试路径
 
-        cutoff = _utcnow() - timedelta(seconds=settings.routine.pr_merge_check_interval_seconds)
+        cutoff = utcnow() - timedelta(seconds=settings.routine.pr_merge_check_interval_seconds)
         batch = settings.routine.pr_merge_check_batch
         timeout = float(settings.routine.pr_merge_check_timeout_seconds)
 
@@ -603,7 +600,7 @@ class RoutineOrchestrator:
         # 仅状态实际翻转时才置为 now（列表只在 PR 真正合并/关闭时才重排，不随节流推进乱跳）。
         # WHERE 含 status/pr_url 守卫：restart/cancel/pr_url 清理等使其脱离 due → UPDATE 匹配 0 行（no-op）。
         merged_ids: list[UUID] = []
-        now = _utcnow()
+        now = utcnow()
         async with db_session.AsyncSessionLocal() as db:
             for rid, before_state, st in checks:
                 new_state, changed = pr_status.compute_pr_write(before_state, st)
@@ -686,7 +683,7 @@ class RoutineOrchestrator:
 
         返回被认领迭代 id；若 routine 非 running 或最新迭代已非 executed（竞态）则返回 None。
         """
-        lease = _utcnow() + self._eval_lease()
+        lease = utcnow() + self._eval_lease()
         async with db_session.AsyncSessionLocal() as db:
             routine = await db.get(Routine, routine_id, with_for_update=True)
             if routine is None or routine.status != "running":
@@ -1192,7 +1189,7 @@ class RoutineOrchestrator:
                 # 闭合该迭代为 aborted，跳过 launch。
                 if not await self._ensure_workspace(routine):
                     it.status = "aborted"
-                    it.finished_at = _utcnow()
+                    it.finished_at = utcnow()
                     dirty = True
                     await self._publish_routine(routine)
                     continue

@@ -423,7 +423,7 @@ def patch_handler_sessions(db_engine, monkeypatch):
     """将 routes 子模块与 _shared 中 `from db.session import AsyncSessionLocal`
     造成的名称绑定重定向到测试引擎，使 handler 直调可命中测试 DB。
 
-    conftest.patch_db_globals 仅覆盖 db.session / db.deps 命名空间，
+    conftest.patch_db_globals 仅覆盖 db.session 命名空间，
     无法影响已以 `from X import Y` 形式绑定在其他模块的引用——此 fixture
     形成互补。
     """

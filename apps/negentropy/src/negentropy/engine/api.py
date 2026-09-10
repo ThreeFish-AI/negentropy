@@ -35,8 +35,16 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy import case, func, select, text, union
 
-from negentropy.auth.deps import get_current_user, get_optional_user, resolve_user_with_db_roles
+from negentropy.auth.deps import (
+    get_current_user,
+    get_optional_user,
+    resolve_user_with_db_roles,
+)
+from negentropy.auth.deps import (
+    require_admin as _require_admin,
+)
 from negentropy.auth.service import AuthUser
+from negentropy.config import resolve_app_name as _resolve_app_name
 from negentropy.config import settings
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
@@ -165,24 +173,8 @@ class MemoryDashboardResponse(BaseModel):
 # ============================================================================
 
 
-def _resolve_app_name(app_name: str | None) -> str:
-    return app_name or settings.app_name
-
-
 def _iso(dt: datetime | None) -> str | None:
     return dt.isoformat() if dt else None
-
-
-async def _require_admin(user: AuthUser) -> AuthUser:
-    """以 DB user_states 为权威校验 admin role（参见 auth/deps.py 的同名 helper）。
-
-    用户在 PATCH /auth/users/{id}/roles 后 JWT 不会自动刷新，必须以 DB 为准。
-    所有 memory / engine 管理端点均须经过本检查。
-    """
-    resolved = await resolve_user_with_db_roles(user)
-    if "admin" not in resolved.roles:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="admin role required")
-    return resolved
 
 
 async def _require_self_or_admin(user: AuthUser, target_user_id: str) -> None:

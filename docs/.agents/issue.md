@@ -3956,3 +3956,25 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
   3. **相邻注释与代码不一致时，先信抽帧**。本例注释、storyboard、README 三处一致而代码孤立——多数派是对的，但确认它的方式仍然是出图，不是投票。
   4. **3D 画布余量必须按投影算，不能按几何尺寸算**：任何沿 z 的位移都会被俯角折算进 y。余量算式里出现「层厚」而不是「投影后的外扩量」就是错的信号（本例还误用了 `SHELL_DEPTH` 26 代替 `SHELL_STEP` 30）。
 - **同类问题影响**：`Socket3D` 的井壁同为「多量共同表达一个读法」的形态，但它的层序由 `wellDepth` 单量决定，无此风险；EP2–5 若采纳 5-D 这类多层嵌套，按防范 1、2 执行。修复后 `out/final.mp4` 的 5-D 段已过期，需重渲。
+
+## ISSUE-183 reorder 字面量路由注册在 {id} 参数路由之后被吞——无路由测试的单体里，这类缺陷永远静默（2026-09-10）
+
+- **表因**：`/interface` 的 MCP Servers / Builtin Tools / Skills 三个管理页拖拽排序后松手，请求返回 422，排序从不持久化；控制台里 422 detail 是 `path.server_id: Input should be a valid UUID ... found 'r' at 1`——把字面量 `reorder` 当 UUID 解析了。
+- **根因**：`interface/api.py` 单体里 `PATCH /{mcp/servers,tools,skills}/reorder` 三个端点注册在各自 `{id: UUID}` 路由**之后**。Starlette 按注册序首次全匹配：`/mcp/servers/reorder` 命中 `/mcp/servers/{server_id}`，`server_id="reorder"` 过 UUID 校验失败 → 422，reorder handler 从注册起就不可达。`agents/reorder` 恰好注册在 `{agent_id}` 之前故幸免。三个域的 UI（拖拽持久化，#910 交付）与 BFF 一直在调一个 422 端点，无人察觉——因为没有路由级测试。
+- **处理方式**：三组「路由+schema」区块上移至各自 `{id}` 路由之前并加防遮蔽注释（PR 三批序列：测试先行→修 bug→机械拆分，见 `codebase-entropy-reduction-2026-09.md` §3）。拆分前先写了**静态遮蔽 lint**：对每对同方法同段数路由，若前路由各段均可兼容匹配后路由（前参数段 vs 后字面量段）则后路由存在不可达请求——该 lint 精确红在三个被遮蔽路由、不误报 agents。
+- **后续防范**：
+  1. **字面量路径段路由必须注册在同形态参数段路由之前**——FastAPI/Starlette 无「具体优先」启发式，只有注册序。
+  2. 路由表契约测试（`(注册序, method, path, handler)` 四元组快照 + 遮蔽 lint）已固化为常驻测试（`tests/unit_tests/interface/test_route_table_contract.py`），新增路由若触发遮蔽会立刻红。
+  3. 「无路由测试的单体」是这类缺陷的温床——先立行为基线再动结构，否则拆分会把 bug 固化进基线。
+- **同类问题影响**：全仓其余 27 个 APIRouter 均值得过一遍同款遮蔽 lint（尤其 `knowledge/routes/` 的 16 个子路由与 `engine/sessions_api.py`）；凡有 `/{id}` + 字面量子路径并存（versions/schedules/templates/reorder）的域都该自查注册序。
+
+## ISSUE-184 test_migrations 在共享测试库上做全量降级循环，砸坏同会话全部后续集成测试——本地「大面积红」先查库再查码（2026-09-10）
+
+- **表因**：本地全量 `pytest` 稳定出现 117 failed + 90 errors，失败集中在 routine orchestrator（51）/ knowledge 集成（79 errors）；重跑签名逐次一致，且 `routines.repository_id does not exist`、`eval_suites 不存在`、`corpus_app_name_unique 重复键` 三类报错并存。CI 全绿。
+- **根因**：`tests/integration_tests/db/test_migrations.py::reset_database` 在**共享** `negentropy_test` 库上执行 `downgrade(base)`：0067 迁移的破坏性降级护栏检测到 347 条遗留 library documents 拒绝降级（护栏本身按设计工作）→ 降级半途停在 0073 → 同一 pytest 会话内其后运行的全部集成测试对着残缺 schema 崩坏。叠加历史会话的固定名测试残留（`test-catalog-corpus` 等三行）触发 UniqueViolation。CI 每次起新空容器故不复现——**本地红 ≠ 分支坏**。
+- **处理方式**：非破坏修复三步——① `NE_DB_URL=postgresql+asyncpg://…/negentropy_test uv run alembic upgrade head`（additive 升至 0099；注意 env.py 是 async 引擎，`postgresql://` 会被解析为 psycopg2 直接炸）；② 固定名残留 corpus 改名保全（`-legacy-20260910` 后缀，不删数据）；③ 本地全量门固定 `--deselect tests/integration_tests/db/test_migrations.py`，以「失败名清单 ⊆ 已知基线集」判绿。
+- **后续防范**：
+  1. **本地大面积红先查库再查码**：`SELECT * FROM negentropy.alembic_version`（测试库无此表说明 schema 是 create_all 历史产物）+ 对失败做异常类型聚类，三条以上异构 DB 异常（缺列/缺表/唯一冲突）同时出现即 schema 破窗而非代码回归。
+  2. `test_migrations` 应改用独立临时库（`negentropy_mig_test` 闲置库的存在暗示了此意图）——它在共享库上的降级循环注定与「测试库累积数据」冲突（护栏拒绝 → 半途残缺）。
+  3. 集成测试写固定名实体必须自带 setup 期清理或相对化断言（全表扫描断言 `assert 358 == 3` 这类在累积库上永远红）。
+- **同类问题影响**：所有依赖共享 `negentropy_test` 的本地开发流；`negentropy_amsterdam_test`（0094）等历史工作区库同理存在漂移可能。

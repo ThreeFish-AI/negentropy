@@ -47,7 +47,7 @@ class Chunk:
     children_ids: list[str] = field(default_factory=list)
 
 
-class ChunkingStrategy(ABC):
+class Chunker(ABC):
     """Abstract base class for chunking strategies."""
 
     # Average characters per token for estimation (English ~4, Chinese ~2)
@@ -113,7 +113,7 @@ class ChunkingStrategy(ABC):
         ...
 
 
-class FixedLengthChunker(ChunkingStrategy):
+class FixedLengthChunker(Chunker):
     """
     固定长度分块策略。
 
@@ -222,7 +222,7 @@ class FixedLengthChunker(ChunkingStrategy):
         return chunks
 
 
-class RecursiveChunker(ChunkingStrategy):
+class RecursiveChunker(Chunker):
     """
     递归分块策略。
 
@@ -341,7 +341,7 @@ class RecursiveChunker(ChunkingStrategy):
         return self._decode_tokens(overlap_tokens)
 
 
-class SemanticChunker(ChunkingStrategy):
+class SemanticChunker(Chunker):
     """
     语义分块策略。
 
@@ -450,7 +450,7 @@ class SemanticChunker(ChunkingStrategy):
         return [s.strip() for s in sentences if s.strip()]
 
 
-class HierarchicalChunker(ChunkingStrategy):
+class HierarchicalChunker(Chunker):
     """
     层次分块策略。
 
@@ -525,7 +525,7 @@ def get_chunker(
     chunk_size: int = 512,
     chunk_overlap: int = 50,
     **kwargs,
-) -> ChunkingStrategy:
+) -> Chunker:
     """
     Factory function to create a chunking strategy.
 
@@ -536,7 +536,7 @@ def get_chunker(
         **kwargs: Strategy-specific parameters
 
     Returns:
-        ChunkingStrategy instance
+        Chunker instance
     """
     strategies = {
         "fixed": FixedLengthChunker,

@@ -12,19 +12,19 @@ N:M 软引用）正交解耦；外部代码经 ``CatalogDao`` Façade 类调用�
 
 from __future__ import annotations
 
-import logging
 from typing import Any
 from uuid import UUID
 
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from negentropy.logging import get_logger
 from negentropy.models.base import NEGENTROPY_SCHEMA
 from negentropy.models.perception import DocCatalogEntry
 
 from .slug import compute_slug as _compute_slug
 
-logger = logging.getLogger("negentropy.knowledge")
+logger = get_logger(__name__)
 
 # 目录树最大递归深度（防止无限循环或超深树导致性能问题）
 MAX_TREE_DEPTH = 6

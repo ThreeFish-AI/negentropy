@@ -25,10 +25,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
-import structlog
 import yaml
 
-logger = structlog.get_logger(__name__)
+from negentropy.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 # ────────────────────────── 模块常量 ──────────────────────────

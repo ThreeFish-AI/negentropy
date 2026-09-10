@@ -26,7 +26,7 @@ from __future__ import annotations
 
 import asyncio
 import time
-from typing import TYPE_CHECKING, Any
+from typing import Any
 from uuid import UUID
 
 from google.adk.tools import ToolContext
@@ -51,33 +51,12 @@ from ..approval import (
     was_recently_denied,
 )
 from .common import clear_tool_progress, emit_tool_progress
-
-if TYPE_CHECKING:
-    from negentropy.knowledge.service import KnowledgeService
+from .common import get_knowledge_service as _get_knowledge_service
 
 logger = get_logger("negentropy.tools.ingest")
 
-_knowledge_service: KnowledgeService | None = None
-
 # 审批等待窗口统一收敛到 ``approval.py``（单一事实源）；此处以别名保留模块属性名,
 # 兼容既有测试对 ``_APPROVAL_TIMEOUT_SECONDS`` 的 monkeypatch。
-
-
-def _get_knowledge_service() -> KnowledgeService:
-    """获取 KnowledgeService 单例（与 paper.py 同模式）。"""
-    global _knowledge_service
-    if _knowledge_service is None:
-        from negentropy.knowledge.ingestion.embedding import (
-            build_batch_embedding_fn,
-            build_embedding_fn,
-        )
-        from negentropy.knowledge.service import KnowledgeService
-
-        _knowledge_service = KnowledgeService(
-            embedding_fn=build_embedding_fn(),
-            batch_embedding_fn=build_batch_embedding_fn(),
-        )
-    return _knowledge_service
 
 
 async def ingest_to_corpus(

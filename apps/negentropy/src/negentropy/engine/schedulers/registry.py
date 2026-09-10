@@ -33,9 +33,11 @@ from uuid import UUID
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from negentropy.config import parse_env_bool
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
 from negentropy.models.scheduled_task import ScheduledTask, TaskExecution
+from negentropy.timeutil import utcnow
 
 from .async_scheduler import AsyncScheduler, _resolved_default_poll_interval
 from .handlers import (
@@ -66,7 +68,7 @@ def _registry_disabled() -> bool:
 
     Plan 第 4 节确认作为灰度回退开关。
     """
-    return os.environ.get(_REGISTRY_ENABLED_KEY, "true").lower() in ("0", "false", "no")
+    return not parse_env_bool(_REGISTRY_ENABLED_KEY, True)
 
 
 def _resolve_handler_timeout(task: ScheduledTask) -> float | None:
@@ -90,11 +92,7 @@ def _resolve_handler_timeout(task: ScheduledTask) -> float | None:
 
 def _concurrent_dispatch_enabled() -> bool:
     """读取 ``NEGENTROPY_SCHEDULER_CONCURRENT_DISPATCH``。默认 true。"""
-    return os.environ.get(_CONCURRENT_DISPATCH_ENV_KEY, "true").lower() not in ("0", "false", "no")
-
-
-def _utcnow() -> datetime:
-    return datetime.now(UTC)
+    return parse_env_bool(_CONCURRENT_DISPATCH_ENV_KEY, True)
 
 
 # ---------------------------------------------------------------------------
@@ -317,7 +315,7 @@ class ScheduledTaskRegistry:
             return None
         handler = None
         execution_id: UUID | None = None
-        started_at = _utcnow()
+        started_at = utcnow()
         started_monotonic = time.monotonic()
 
         async with AsyncSessionLocal() as db:
@@ -438,7 +436,7 @@ class ScheduledTaskRegistry:
         进入既有 backoff 路径。
         """
         duration_ms = int((time.monotonic() - started_monotonic) * 1000)
-        finished_at = _utcnow()
+        finished_at = utcnow()
         async with AsyncSessionLocal() as db:
             exec_row = await db.get(TaskExecution, execution_id)
             if exec_row is not None:
@@ -533,7 +531,7 @@ async def _claim_due_tasks(db: AsyncSession, *, lease_seconds: float) -> list[Sc
     handler 完成后 ``dispatch`` 内部按 ``_compute_next_fire`` 重算正式的
     ``next_fire_at`` 并覆盖本次 lease 占位。
     """
-    now = _utcnow()
+    now = utcnow()
     stmt = (
         select(ScheduledTask)
         .where(ScheduledTask.enabled.is_(True))
@@ -586,7 +584,7 @@ async def _upsert_default_task(db: AsyncSession, spec: dict[str, Any], *, lease_
 
     # interval / cron / oneshot 默认首次都立即 due（oneshot 由 _claim_due_tasks 兜底
     # 选中；interval / cron 首 tick 即跑一次，后续触发由 _compute_next_fire 推进）。
-    next_fire = _utcnow()
+    next_fire = utcnow()
     new = ScheduledTask(
         key=key,
         handler_kind=spec["handler_kind"],
@@ -609,7 +607,7 @@ async def _upsert_default_task(db: AsyncSession, spec: dict[str, Any], *, lease_
 
 def _compute_next_fire(task: ScheduledTask) -> datetime | None:
     """根据 trigger_type 计算下次触发时刻。"""
-    now = _utcnow()
+    now = utcnow()
     if task.trigger_type == "interval" and task.interval_seconds:
         return now + timedelta(seconds=float(task.interval_seconds))
     if task.trigger_type == "cron" and task.cron_expr:

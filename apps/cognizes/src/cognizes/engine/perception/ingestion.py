@@ -181,7 +181,7 @@ class DocumentIngester:
         Initialize DocumentIngester.
 
         Args:
-            chunker: ChunkingStrategy instance (optional, uses RecursiveChunker)
+            chunker: Chunker instance (optional, uses RecursiveChunker)
             embedder: Embedder instance (optional, uses MockEmbedder)
             parsers: List of DocumentParser instances (optional, uses defaults)
         """

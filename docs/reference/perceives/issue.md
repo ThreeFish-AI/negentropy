@@ -38,8 +38,8 @@ title: "Issue 处理档案"
   `chunk_size = max(1, min(8, cpu//2))` 分片，每 chunk 独立 `fitz.open()`
   在 `asyncio.to_thread + asyncio.gather` 上并发；reading_order 在聚合后
   全局重排保证与串行版本一致。
-- **PR4** 基准测试矩阵 + 文档化：[scripts/benchmark/parse_pdf_bench.py](../scripts/benchmark/parse_pdf_bench.py)
-  端到端基准、[docs/agents/pdf-engine-selection.md](agents/pdf-engine-selection.md)
+- **PR4** 基准测试矩阵 + 文档化：`scripts/benchmark/parse_pdf_bench.py` 端到端基准
+  （该一次性脚本已随 2026-09 熵减清减移除，历史版本见 git）、[docs/agents/pdf-engine-selection.md](agents/pdf-engine-selection.md)
   决策图、[docs/agents/apple-silicon-tuning.md](agents/apple-silicon-tuning.md)
   调优指南、knowledge-map 同步。
 

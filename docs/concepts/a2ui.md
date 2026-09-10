@@ -121,7 +121,6 @@ flowchart TD
 - Session Projection Hook：[useSessionProjection.ts](../../apps/negentropy-ui/features/session/hooks/useSessionProjection.ts)
 - 事件到树构建：[conversation-tree.ts](../../apps/negentropy-ui/utils/conversation-tree.ts)
 - Chat 主区渲染：[ChatStream.tsx](../../apps/negentropy-ui/components/ui/ChatStream.tsx)
-- 递归节点渲染：[ConversationNodeRenderer.tsx](../../apps/negentropy-ui/components/ui/conversation/ConversationNodeRenderer.tsx)
 
 ### 3.2 Session Projection 约定
 
@@ -143,11 +142,7 @@ flowchart TD
 - `useSessionProjection`：负责 confirmed projection、optimistic overlay 与 render projection 派生。
 - 页面组件：只负责 UI 容器、输入交互和面板编排，不再直接持有 session hydration 定时器、list fetch 逻辑或请求版本控制。
 
-遗留兼容入口：
-
-- `useSessionManager` 仅为兼容旧调用面暂时保留，已不代表当前 session feature 的推荐架构边界。
-- 新增代码已通过全量 ESLint 门禁中的 `no-restricted-imports` 明确禁止导入 `useSessionManager`，避免 legacy 入口重新漂移回主路径。
-- 新增能力、回归测试与文档描述一律以 `useSessionListService + useSessionService + useSessionProjection` 为准。
+新增能力、回归测试与文档描述一律以 `useSessionListService + useSessionService + useSessionProjection` 为准；legacy 入口 `useSessionManager` 已移除。
 
 ### 3.3 Canonical Role 约定
 

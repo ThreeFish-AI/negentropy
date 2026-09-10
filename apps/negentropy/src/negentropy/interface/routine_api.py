@@ -52,6 +52,7 @@ from negentropy.engine.routine import workspace
 from negentropy.logging import get_logger
 from negentropy.models.repository import Repository
 from negentropy.models.routine import Routine, RoutineIteration, RoutineIterationEvent
+from negentropy.timeutil import utcnow
 
 logger = get_logger("negentropy.interface.routine_api")
 
@@ -78,10 +79,6 @@ _RUNTIME_SAFE_FIELDS: frozenset[str] = frozenset(
 )
 _NON_TERMINAL_ITER = ("pending_approval", "dispatched", "in_flight", "executed")
 _DEFAULT_RECENT_ITERATIONS = 20
-
-
-def _utcnow() -> datetime:
-    return datetime.now(UTC)
 
 
 # ---------------------------------------------------------------------------
@@ -983,7 +980,7 @@ async def restart_routine(routine_id: UUID, body: RestartBody | None = None) -> 
             )
         if r.deadline_at is not None:
             deadline = r.deadline_at if r.deadline_at.tzinfo else r.deadline_at.replace(tzinfo=UTC)
-            if _utcnow() >= deadline:
+            if utcnow() >= deadline:
                 raise HTTPException(
                     status_code=409,
                     detail="deadline has passed; update or clear the deadline before restarting",
@@ -1121,7 +1118,7 @@ async def sync_pr_status(routine_id: UUID) -> dict[str, Any]:
     # ③ 短会话：回写 + 提交 + 推 SSE（expire_on_commit=False → r 提交后仍可读）。
     async with db_session.AsyncSessionLocal() as db:
         r = await db.get(Routine, routine_id)
-        apply_pr_merge_result(r, st, _utcnow())
+        apply_pr_merge_result(r, st, utcnow())
         await db.commit()
         await db.refresh(r)
         await _publish_routine(r)
@@ -1153,7 +1150,7 @@ async def reject_iteration(routine_id: UUID, iteration_id: UUID) -> dict[str, An
         if it.status != "pending_approval":
             raise HTTPException(status_code=409, detail=f"iteration not pending_approval: '{it.status}'")
         it.status = "aborted"
-        it.finished_at = _utcnow()
+        it.finished_at = utcnow()
         await db.commit()
         await db.refresh(it)
     return _serialize_iteration(it)
@@ -1187,7 +1184,7 @@ async def _abort_active_iterations(db, routine_id: UUID, *, include_executed: bo
         .all()
     )
     abortable = _NON_TERMINAL_ITER if include_executed else ("pending_approval", "dispatched", "in_flight")
-    now = _utcnow()
+    now = utcnow()
     for it in rows:
         runner.request_abort(it.id)
         # executed 等待评估的默认不强行中止（结果已产出）；其余（含 restart 的 executed）标记 aborted

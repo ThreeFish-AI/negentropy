@@ -110,8 +110,8 @@ flowchart TD
 | `marker_inference_ram_gb` | `0`     | 透传 `INFERENCE_RAM`，建议设为统一内存的 ~50%                              |
 | `marker_num_workers`      | `0`     | 透传 `NUM_WORKERS`，受 `INFERENCE_RAM / VRAM_PER_TASK` 约束                |
 
-启用前建议在样本扫描 PDF 上跑 `scripts/benchmark/parse_pdf_bench.py`
-对比 CPU vs MPS+FP16 的输出质量与耗时。
+启用前建议在样本扫描 PDF 上对比 CPU vs MPS+FP16 的输出质量与耗时
+（原基准脚本 `scripts/benchmark/parse_pdf_bench.py` 已于 2026-09 清减移除，历史版本见 git）。
 
 ## 6. PyMuPDF：多页并行
 
@@ -152,10 +152,6 @@ NEGENTROPY_PERCEIVES_MARKER_TORCH_DEVICE=mps \
 NEGENTROPY_PERCEIVES_MARKER_HALF_PRECISION=true \
 NEGENTROPY_PERCEIVES_MARKER_INFERENCE_RAM_GB=18 \
   uv run perceives parse-pdf path/to.pdf
-
-# 4. 跑基准测试，记录设备 + 各 stage 耗时：
-uv run python scripts/benchmark/parse_pdf_bench.py path/to.pdf \
-  --output benchmarks/results/m3max_pr1to3.json
 ```
 
 ## 关联代码
@@ -166,7 +162,6 @@ uv run python scripts/benchmark/parse_pdf_bench.py path/to.pdf \
 - MinerU 引擎：[`pdf/engines/mineru.py`](../../src/negentropy/perceives/pdf/engines/mineru.py)
 - Marker 引擎：[`pdf/engines/marker.py`](../../src/negentropy/perceives/pdf/engines/marker.py)
 - PyMuPDF 并行：[`pipeline/stages/pdf/text_extraction.py`](../../src/negentropy/perceives/pipeline/stages/pdf/text_extraction.py)
-- 基准脚本：[`scripts/benchmark/parse_pdf_bench.py`](../../scripts/benchmark/parse_pdf_bench.py)
 
 ## 参考文献 (IEEE)
 

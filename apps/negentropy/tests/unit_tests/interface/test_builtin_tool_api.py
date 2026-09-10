@@ -31,7 +31,7 @@ import pytest
 from fastapi import HTTPException
 
 from negentropy.auth.service import AuthUser
-from negentropy.interface import api as interface_api
+from negentropy.interface import builtin_tools_api as interface_api
 from negentropy.interface.permissions import check_plugin_access
 from negentropy.models.plugin import BuiltinTool, PluginVisibility
 

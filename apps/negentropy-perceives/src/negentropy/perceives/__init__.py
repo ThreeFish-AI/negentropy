@@ -1,4 +1,4 @@
-"""Negentropy Perceives MCP Server - A robust web scraping MCP server."""
+"""Document perception service — PDF/网页提取与 Markdown 还原管线，附 MCP 工具层。"""
 
 import importlib.metadata
 import re
