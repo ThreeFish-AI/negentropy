@@ -66,7 +66,7 @@ title: "架构设计方案 · 一核五翼总览"
 
 系统按「谁面向用户 / 谁做决策 / 谁提供能力」正交切分为三层，11 个组件与 11 条关系全部落在层内职责或跨层契约上。**层边界即契约**：应用间只经网络协议（AG-UI / HTTP / MCP）或构建期静态产物协作，严禁源码互引。
 
-![Negentropy 三层架构总览：展示层（negentropy-ui、negentropy-wiki）、引擎层（后端 API、根智能体 NegentropyEngine、三条流水线、五大系部）、基础设施层（OpenTelemetry 与 Langfuse、MicroSandbox、LiteLLM、negentropy-perceives、PostgreSQL 17）；完整组件清单与全部 11 条关系见下方表格与列表](../assets/architecture/negentropy-architecture-dark.png)
+![Negentropy 三层架构总览：展示层（negentropy-ui、negentropy-wiki）、引擎层（后端 API、根智能体 NegentropyEngine、三条流水线、五大系部）、基础设施层（OpenTelemetry 与 Langfuse、MicroSandbox、LiteLLM、negentropy-perceives、PostgreSQL 17）；完整组件清单与全部 11 条关系见下方表格与列表](../assets/architecture/core/negentropy-architecture-dark.png)
 
 | 层 | 组件（服务端口） | 层内定位 |
 | :--- | :--- | :--- |
@@ -86,60 +86,13 @@ title: "架构设计方案 · 一核五翼总览"
 
 同一拓扑提供四种消费形态，按用途取用：
 
-- 🖱️ [architecture-diagram.html](./architecture-diagram.html) —— **交互 HTML**：平移 / 缩放 / 节点搜索、关系聚焦、明暗切换、可回放的 4 章 13 停引导叙事（每停可复制定位链接），以及 **11 处直达源码文件的深链**，逐一佐证图中每个组件的技术事实。*在 wiki 内该链接指向 GitHub 源码页，需下载到本地打开方有交互。*
-- 🎬 [negentropy-architecture-story.mp4](../assets/architecture/negentropy-architecture-story.mp4) —— **动效短片**（1280×720，29 秒）：按上述四条链路逐停点亮一跳、压暗其余，建立「一次请求究竟触达了谁、又始终不触达谁」的直观。*两条渲染链路（GitHub Markdown 与 wiki）均会剥离 `<video>`，故此处只提供跳转，不内嵌播放；README 内的 GIF 动图是唯一能就地播放的形态。*
-- 📐 [negentropy-architecture.svg](../assets/architecture/negentropy-architecture.svg) —— **双主题矢量图**：单文件自适应明暗，供演示与打印。*注意 wiki 的暗色态由 `data-color-scheme` 属性驱动，而 `<img>` 内嵌 SVG 的 `prefers-color-scheme` 只读系统偏好，手动拨反主题时配色会反向——故本节正文内嵌的是暗色 PNG 而非该 SVG。*
-- 🖼️ [暗色 PNG](../assets/architecture/negentropy-architecture-dark.png) · [亮色 PNG](../assets/architecture/negentropy-architecture-light.png) —— **5120×2880 高清静图**，由产物内置导出原生矢量栅格化而来（非位图放大），同时是 [README](../../README.md) 与 [中文 README](../i18n/zh-CN/README.md) 的静图来源。
+- 🖱️ [architecture-diagram.html](../assets/architecture/core/architecture-diagram.html) —— **交互 HTML**：平移 / 缩放 / 节点搜索、关系聚焦、明暗切换、可回放的 4 章 13 停引导叙事（每停可复制定位链接），以及 **11 处直达源码文件的深链**，逐一佐证图中每个组件的技术事实。*在 wiki 内该链接指向 GitHub 源码页，需下载到本地打开方有交互。*
+- 🎬 [negentropy-architecture-story.mp4](../assets/architecture/core/negentropy-architecture-story.mp4) —— **动效短片**（1280×720，29 秒）：按上述四条链路逐停点亮一跳、压暗其余，建立「一次请求究竟触达了谁、又始终不触达谁」的直观。*两条渲染链路（GitHub Markdown 与 wiki）均会剥离 `<video>`，故此处只提供跳转，不内嵌播放；README 内的 GIF 动图是唯一能就地播放的形态。*
+- 📐 [negentropy-architecture.svg](../assets/architecture/core/negentropy-architecture.svg) —— **双主题矢量图**：单文件自适应明暗，供演示与打印。*注意 wiki 的暗色态由 `data-color-scheme` 属性驱动，而 `<img>` 内嵌 SVG 的 `prefers-color-scheme` 只读系统偏好，手动拨反主题时配色会反向——故本节正文内嵌的是暗色 PNG 而非该 SVG。*
+- 🖼️ [暗色 PNG](../assets/architecture/core/negentropy-architecture-dark.png) · [亮色 PNG](../assets/architecture/core/negentropy-architecture-light.png) —— **5120×2880 高清静图**，由产物内置导出原生矢量栅格化而来（非位图放大），同时是 [README](../../README.md) 与 [中文 README](../i18n/zh-CN/README.md) 的静图来源。
 
-<details>
-<summary><b>图示文本源</b> —— 上述全部产物的可编辑源与可 diff 维护基线（经 archify 与采集脚本再生）</summary>
-
-```mermaid
-graph TB
-    subgraph Presentation["展示层 (Presentation)"]
-        UI["negentropy-ui<br><i>Next.js 16 · React 19</i>"]
-        Wiki["negentropy-wiki<br><i>Next.js · 纯静态导出</i>"]
-    end
-
-    subgraph Engine["引擎层 (Engine)"]
-        Root["NegentropyEngine<br>(根智能体)"]
-        Faculties["五大系部<br>Perception · Internalization<br>Contemplation · Action · Influence"]
-        Pipelines["标准流水线<br>Knowledge · Problem · Value"]
-        API["REST API<br>FastAPI · ADK Web"]
-    end
-
-    subgraph Infrastructure["基础设施层 (Infrastructure)"]
-        Perceives["negentropy-perceives<br>MCP Server · :2992"]
-        DB["PostgreSQL 17<br>pgvector"]
-        LLM["LLM 提供商<br>LiteLLM 路由"]
-        OTel["可观测性<br>OpenTelemetry · Langfuse"]
-        Sandbox["沙箱执行<br>MicroSandbox"]
-    end
-
-    UI -->|AG-UI Protocol| API
-    API -.->|静态内容 · 构建期烘焙| Wiki
-    API --> Root
-    Root -->|transfer_to_agent| Faculties
-    Root -->|transfer_to_agent| Pipelines
-    Pipelines -->|SequentialAgent| Faculties
-    Faculties -->|Tools| DB
-    Faculties -->|MCP| Perceives
-    Faculties -->|Tools| Sandbox
-    API -.-> OTel
-    Root --> LLM
-
-    classDef presentation fill:#60A5FA,stroke:#1E3A8A,color:#000
-    classDef engine fill:#F59E0B,stroke:#92400E,color:#000
-    classDef infra fill:#10B981,stroke:#065F46,color:#000
-
-    class UI,Wiki presentation
-    class Root,Faculties,Pipelines,API engine
-    class Perceives,DB,LLM,OTel,Sandbox infra
-```
-
-**修改流程**：先改本段 Mermaid → 用 archify（`/archify` 技能）从新文本重新生成 [architecture-diagram.html](./architecture-diagram.html)（整体替换，采集脚本的唯一输入）→ 跑 [`scripts/capture-arch-media.mjs`](../../scripts/capture-arch-media.mjs) 采集 PNG / SVG / MP4 / GIF 四类产物 → 全部与本段同一次提交。**严禁手改 15,005 行的生成物 [architecture-diagram.html](./architecture-diagram.html)**：它没有独立的源规格，手改即造成文本源与呈现物分叉。生成链路、体积门与两条渲染链路的完整约束见 [文档媒体资产规范](../.agents/doc-media-assets.md)。
-
-</details>
+> **图示文本源（可 diff 维护基线）**：[`core/negentropy-architecture.mmd`](../assets/mermaid/core/negentropy-architecture.mmd)。
+> **修改流程**：先改该 `.mmd` → 用 archify（`/archify` 技能）从新文本重新生成 [architecture-diagram.html](../assets/architecture/core/architecture-diagram.html)（整体替换，采集脚本的唯一输入）→ 跑 [`scripts/capture-arch-media.mjs`](../../scripts/capture-arch-media.mjs) 采集 PNG / SVG / MP4 / GIF → 产物与 `.mmd` 同一次提交。**严禁手改生成物 HTML**：它没有独立的源规格，手改即造成文本源与呈现物分叉。生成链路、体积门与两条渲染链路的完整约束见 [文档媒体资产规范](../.agents/doc-media-assets.md)。
 
 ### 2.2 应用边界与技术栈
 

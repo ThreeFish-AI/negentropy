@@ -2,7 +2,7 @@
 /**
  * capture-arch-media.mjs — 把 archify 交互式架构图产物采集为可投放的静态图与动效视频。
  *
- * 输入：docs/concepts/architecture-diagram.html（自包含单文件，file:// 直开）
+ * 输入：docs/assets/architecture/core/architecture-diagram.html（自包含单文件，file:// 直开）
  * 输出：5120×2880 双主题 PNG、双主题矢量 SVG、引导叙事 MP4/GIF
  *
  * 设计要点（均为实测结论，改动前请先读 docs/.agents/doc-media-assets.md）：
@@ -33,8 +33,8 @@ const CHROME =
 // ── CLI ────────────────────────────────────────────────────────────────────
 function parseArgs(argv) {
   const opts = {
-    html: "docs/concepts/architecture-diagram.html",
-    out: "docs/assets/architecture",
+    html: "docs/assets/architecture/core/architecture-diagram.html",
+    out: "docs/assets/architecture/core",
     tmp: ".temp/arch-media",
     only: "png,svg,frames,mp4,gif",
     themes: "dark,light",

@@ -50,22 +50,41 @@
   显式加白了 `video`/`audio`/`source`，wiki 侧没有，且 `check_twin_files.py` 未登记该对。
   新增媒体标签需求时须同时核两侧。
 
-## 5. 架构图的派生链路（唯一在册案例）
+## 5. 架构图的派生链路（通用）
 
-单向链路，顺序不可逆：
+现役系统文档的全部架构图走同一条单向链路，顺序不可逆（完整图目与溯源清单见
+[`docs/assets/mermaid/README.md`](../assets/mermaid/README.md)）：
 
-1. 改 [`framework.md` §2.1](../concepts/framework.md) `<details>` 内的 Mermaid——**唯一可编辑源**；
-2. 用 archify（Claude Code 的 `/archify` 技能）从新 Mermaid 重新生成
-   [`architecture-diagram.html`](../concepts/architecture-diagram.html)——整体替换。**这是采集脚本唯一的输入**，
-   跳过此步会从旧 HTML 采集、造成文本源与产物分叉；
-3. 跑 [`scripts/capture-arch-media.mjs`](../../scripts/capture-arch-media.mjs) 重新生成
-   [`docs/assets/architecture/`](../assets/architecture/) 下的 PNG / SVG / MP4 / GIF；
-4. 核三处消费点：[README](../../README.md) · [中文 README](../i18n/zh-CN/README.md) · framework.md §2.1。
+1. 改 [`docs/assets/mermaid/<分类>/<slug>.mmd`](../assets/mermaid/README.md)——**唯一可编辑源**。
+   `.mmd` 头部有 `%% source / %% slug / %% type / %% derived` 溯源注释，注释之后是图体；
+2. 用 archify（Claude Code 的 `/archify` 技能）从该 Mermaid 重新生成
+   `docs/assets/architecture/<分类>/<slug>.html`——整体替换，**严禁手改**（生成物无独立源规格，
+   手改即造成文本源与呈现物分叉）；
+3. 跑 [`scripts/capture-arch-diagram.mjs`](../../scripts/capture-arch-diagram.mjs) 采集
+   `<slug>-dark.png` / `<slug>-light.png`（文档内嵌一律用暗色 PNG）；
+4. 核对消费文档中的引用（图片 + `.mmd` / `.html` 溯源链接）。
 
-**严禁手改** [`architecture-diagram.html`](../concepts/architecture-diagram.html)（15,005 行生成物，
-无独立源规格，手改即造成文本源与呈现物分叉）。
+**范围与例外**：`erDiagram / timeline / mindmap / quadrantChart / gantt` 等无 archify 对应类型的块
+**原地保留**在原文档（不建 `.mmd`，避免文本源双份）；`docs/research/`、`docs/reference/cognizes/`、
+分集分镜与测试 fixture 不进本管线。**字节一致断言**：不带 `%% fix:` 行的 `.mmd`，其图体必须与
+原文档被替换掉的 mermaid 块逐字节一致（`git show <波前 commit>:<doc>` 抽块比对）；带 `fix:` 的图
+体为修正后文本，PR 描述记录 delta。
 
-采集脚本的关键事实（改脚本前必读）：
+**旗舰特例**（`core/negentropy-architecture`）：HTML 为
+[`core/architecture-diagram.html`](../assets/architecture/core/architecture-diagram.html)（保名），
+额外派生 SVG / MP4 / GIF，由 [`scripts/capture-arch-media.mjs`](../../scripts/capture-arch-media.mjs)
+采集（引导叙事逐帧方案）；消费点三处：[README](../../README.md) · [中文 README](../i18n/zh-CN/README.md) ·
+[framework.md §2.1](../concepts/framework.md)。
+
+通用采集脚本的关键事实（改脚本前必读）：
+
+- 静态图走产物内置的 `Archify.exportMenu.run()`（`RASTER_SCALE=4` 原生矢量栅格化），
+  **不用整页截图**——页面内的图受 reader 宽度上限约束，整页截图有效像素远低于内置导出。
+- 拦截导出 blob 必须「记录但**透传**」`URL.createObjectURL`：`rasterize()` 会先为中间态 SVG 建一次
+  objectURL，吞掉它会让中间态 `Image` 永远 load 不了、导出**静默失败**。取 `seen[seen.length-1]`。
+- PNG 实际尺寸必须等于 svg `viewBox × 4`（尺寸断言按每图 viewBox 动态计算，防半幅/空图）。
+
+旗舰采集脚本（`capture-arch-media.mjs`）的关键事实（改脚本前必读）：
 
 - 静态图走产物内置的 `Archify.exportMenu.run()`（`RASTER_SCALE=4` 原生矢量栅格化 → 5120×2880），
   **不用整页截图**——页面内的图受 reader 宽度上限约束，整页截图有效像素远低于内置导出。
