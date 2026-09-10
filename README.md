@@ -100,10 +100,10 @@ graph TB
 ```bash
 git clone https://github.com/ThreeFish-AI/negentropy.git
 cd negentropy
-./dev            # = setup + build & start the full stack + health self-check
+./scripts/dev            # = setup + build & start the full stack + health self-check
 ```
 
-`./dev` automatically: creates `.env.docker.local`, layers local-safe config, builds & starts 5 containers, polls `backend /health`, and runs `negentropy doctor`.
+`./scripts/dev` automatically: creates `.env.docker.local`, layers local-safe config, builds & starts 5 containers, polls `backend /health`, and runs `negentropy doctor`.
 
 **Drop in one LLM key** in `.env.docker.local` (gitignored) to enable chat:
 
@@ -125,16 +125,16 @@ Then open **http://localhost:3192**.
 ```bash
 git clone https://github.com/ThreeFish-AI/negentropy.git
 cd negentropy
-./dev native     # delegates to scripts/cli.sh: deps + migrations + frontend build + all services
+./scripts/dev native     # delegates to scripts/cli.sh: deps + migrations + frontend build + all services
 ```
 
 > Requires a local pgvector Postgres. `pg_cron` is **no longer needed** — since migration `0042`, scheduling runs in-process.
 
 ### C. More
 
-- First-run demo content: `./dev seed-demo`
-- Preflight self-check: `./dev doctor`
-- All subcommands: `./dev help`
+- First-run demo content: `./scripts/dev seed-demo`
+- Preflight self-check: `./scripts/dev doctor`
+- All subcommands: `./scripts/dev help`
 - Contributors: `uv tool install pre-commit && pre-commit install`
 - Env setup, migrations, integrations, troubleshooting: [Development Guide](./docs/concepts/development.md)
 - Zero-key local LLM: [Local LLM (Ollama)](./docs/concepts/local-llm-ollama.md)

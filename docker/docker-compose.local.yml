@@ -7,8 +7,8 @@
 #
 # 与生产隔离（核心安全约束）：
 #   - 本文件**不会**被 `docker compose up` 自动合并（其文件名非 docker-compose.override.yml）。
-#   - 仅当显式 `-f docker-compose.yml -f docker-compose.local.yml` 时叠加（由 ./dev 自动拼接）。
-#   - 生产部署走 `docker-compose.yml` 单文件 + `.env.docker.local` 注入真实密钥 → 默认行为不变。
+#   - 仅当显式 `-f docker/docker-compose.yml -f docker/docker-compose.local.yml` 时叠加（由 ./scripts/dev 自动拼接）。
+#   - 生产部署走 `docker/docker-compose.yml` 单文件 + `.env.docker.local` 注入真实密钥 → 默认行为不变。
 #
 # 机制：
 #   Negentropy 配置优先级中「环境变量（NE_*）」高于 config.default.yaml。
@@ -16,8 +16,8 @@
 #   无需改动 config.default.yaml（生产单一事实源保持零变更）。
 #
 # 用法：
-#   ./dev                                  # 推荐：自动拼接本文件
-#   docker compose -f docker-compose.yml -f docker-compose.local.yml up -d
+#   ./scripts/dev                          # 推荐：自动拼接本文件
+#   docker compose -f docker/docker-compose.yml -f docker/docker-compose.local.yml up -d
 #
 # 参考：
 # [1] Docker, "Merge Compose files," Docker Docs. [Online].

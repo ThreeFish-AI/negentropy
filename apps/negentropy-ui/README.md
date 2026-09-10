@@ -9,7 +9,7 @@ Negentropy 的主聊天前端（Next.js 16 / React 19 / Tailwind），经 [AG-UI
 最简方式（仓库根目录，Docker 一键拉起全套）：
 
 ```bash
-./dev            # 含 backend / wiki / perceives / postgres
+./scripts/dev            # 含 backend / wiki / perceives / postgres
 ```
 
 仅前端开发（热重载，需后端已运行于 :3292）：

@@ -67,7 +67,7 @@ title: "开发指南 · Development Guide"
 
 ### 1.2 PostgreSQL 初始化
 
-> 首次运行后端之前，必须确保 PostgreSQL 服务运行正常且所需扩展已安装。`./dev`（Docker 路径）已内置 pgvector Postgres，可跳过本节。
+> 首次运行后端之前，必须确保 PostgreSQL 服务运行正常且所需扩展已安装。`./scripts/dev`（Docker 路径）已内置 pgvector Postgres，可跳过本节。
 
 **安装与启动**（以 Homebrew macOS 为例；推荐 PG17，与 Docker 栈一致）：
 
@@ -85,7 +85,7 @@ pg_isready -h localhost -p 5432        # 验证：accepting connections
 > **更省事**：若仅本地开发，可只起 Docker 内的 Postgres 供裸机后端连接 ——
 > ```bash
 > docker compose up -d postgres        # 仅起数据库容器
-> ./dev native                         # 裸机后端连接容器 DB（默认 NE_DB_URL 即 localhost:5432）
+> ./scripts/dev native                         # 裸机后端连接容器 DB（默认 NE_DB_URL 即 localhost:5432）
 > ```
 
 **创建用户与数据库**：
