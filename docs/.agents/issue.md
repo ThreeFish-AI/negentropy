@@ -3989,3 +3989,21 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
   2. 「注册表类资产」（workspace importer、CI paths、SIBLING_LOCKS、allowBuilds、.gitignore 白名单）新增时写明归属主体，退役时与代码**同 commit** 收回；残留的注册表项（如 form-data 死 override）是静默漂移的起点。
   3. 产物目录（playwright-report 等）依赖 .gitignore 预防性覆盖，不得先入库再事后删除——本次顺带回收了 cognizes-ui 已入库的 600K 报告。
 - **同类问题影响**：travel-agent-ui「示例驻留仓库」模式已随 cognizes 一并移除；perceives 经查无同类被取代滞留；negentropy-wiki/content.fixture 中的 cognizes 字样为自包含 fixture 字符串非引用，不动。既有死链（config.default.yaml:131 等指向 025/026/035/036 的注释）为历史遗留非本次所致，按「不改史」未处理。
+
+## ISSUE-186 架构图从 Mermaid 升级为「生成图 + 动效」：两条渲染链路互斥约束 + 无头采集产物的四个静默陷阱（2026-09-10）
+
+- **表因**：把三处同源的三层架构 Mermaid 升级为高清静图 / MP4 / GIF 主视觉时，六类问题逐一浮现且**全部静默**：① README 里 `<video>` 与 `![](x.mp4)` 都不播放；② `docs/**.md` 里 `<img src="相对路径">` 在 GitHub 正常、在已发布 wiki 上 404；③ 新资产在合并进 master 前于已发布 wiki 上必然 404；④ archify 内置 WebM 导出按钮整个不可用且无提示；⑤ 按官方 smoke test 范式拦截导出 blob 后 PNG 导出静默失败；⑥ `Archify.guidedViews.activate(0)` 返回 `false`，引导叙事驱动看似被门控。
+- **根因**：分四层。
+  1. **渲染链路互斥**：`docs/**` 有两条正交链路（GitHub Markdown 直看 / `wiki_docs_ingest` → wiki 静态站）。ingest 只重写 **markdown 图片语法** 的相对路径为 raw@`github_ref`（默认 `master`，`wiki_docs_ingest.py` `is_image` 分支），**HTML 属性不在射程内**——`<img src>` 原样输出按站内路径解析即 404。`<video>` 则被两侧 sanitize 剥离（wiki 的 `MarkdownRenderer.tsx` 只加白 `figure`/`figcaption`；GitHub 渲染器同样不放行）⇒ **就地动效只有 GIF 一条路**。
+  2. **无源规格生成物 = SSOT 倒退**：`architecture-diagram.html`（15,005 行）由 PR #1133 直接引入，仓内无 archify JSON spec。若删掉 Mermaid，架构图唯一可编辑源就变成生成物 HTML——与「升级」目标反向。
+  3. **产物内导出机制的两个暗坑**：`canRecordMotion()` 要求 `svg[data-animation="trace"]`，本产物 SVG 无该属性 ⇒ WebM 菜单被禁用且 `recordWebm()` 直接 reject（且其内部 `Math.min(1, 1280/vb.width)` 硬封顶 720p、画的是合成流光而非真实动效）；`rasterize()` 先为**中间态 SVG** 调一次 `URL.createObjectURL`——smoke test 的「吞掉 blob 返回假 URL」范式会饿死中间态 `Image` 的加载，导出**静默失败无异常**。
+  4. **API 签名误读**：`guidedViews.activate === activateById(id)`，**收章节 ID 字符串**（`chat-request` / `knowledge-ingestion` / `static-delivery` / `model-and-sandbox`），传下标必然 `findIndex → -1 → return false`——不是门控，是签名错用；DOM 点击 `.guided-view-chapter` 一直有效。
+- **处理方式**：按「每种写法只用在它成立的那条链路上」分派，不找通吃写法。① 根 README 与 zh-CN README 不进 wiki（`exclude_dirs=["i18n"]` + 根 README 不在 `docs/`）⇒ GIF 主视觉（`<img width=720>`，720×406@6fps 全程 29s = 875 KiB）+ 链接旁挂 MP4/静图；② framework.md 进 wiki ⇒ **纯 markdown `![]()`** 引 5120×2880 暗色 PNG（双主题 SVG 有「wiki 手动主题覆盖 vs SVG 只读系统偏好」的失配，降级为链接旁挂）；③ MP4/SVG/交互 HTML 一律只跳转不内嵌；④ Mermaid **不删**，三处各自折叠进 `<details>`（实读 pnpm store 内 `hast-util-sanitize@5.0.2/lib/schema.js` 确认 `details`/`summary` 在 defaultSchema 白名单内，wiki 零改动放行）；⑤ 采集管线落地 `scripts/capture-arch-media.mjs`（零依赖 CDP + Remotion compositor 自带 ffmpeg 的 libx264，系统无 ffmpeg 也不装），blob 拦截改「记录但**透传**、取末个」；⑥ 派生方向与约束沉淀 [doc-media-assets.md](./doc-media-assets.md)，knowledge-map `:22` 同源登记同步改写。
+- **后续防范**：
+  1. `docs/**` 新增媒体先判「进不进 wiki」（判据 SSOT：`config/knowledge.py` 的 `WikiDocsSyncSettings`）：进 ⇒ 只用 markdown 图片语法；不进 ⇒ 才可用 `<picture>`/`<img>` 富标签。
+  2. 「某一条链路上不显示」**不会报错**，只能靠双链路各出实机截图发现；合并前验 wiki 用 `github_ref` 覆盖为已推送 SHA 本地重建。
+  3. 拦截页面内 blob 类导出时，先读源码数清 `createObjectURL` 的调用次数——**中间态 blob 的存在决定拦截范式必须是透传式**。
+  4. 调 archify 产物 API 前先读导出表：`activate` 是 `activateById` 的别名，参数是 ID 字符串；对「返回 false」先查签名再怀疑门控。
+  5. GIF 体积由**分辨率**主导而非帧率（同素材实测 800px@6fps 全程=1031 KiB OVER、720px@6fps 全程=875 KiB OK、960px@8fps 截短=1540 KiB）：**降帧率保全程叙事，优于降分辨率截短**；动效估算一律按「帧间差分失效」保守估。
+  6. 无源规格的生成物入库必须同时登记「源在哪、怎么再生成」，宁可保留弱表达力的可 diff 文本源，不留只能整体替换的黑盒。
+- **同类问题影响**：framework.md 成为全仓**首个**进 wiki 且带图片的文档，`is_image` 重写分支此前只有单测覆盖、无端到端实证；wiki 与 ui 两个 MarkdownRenderer 的 sanitize 白名单不对称（ui 加白 `video/audio/source`、wiki 没有）且无孪生执法，后续媒体标签需求须两侧同核。README 既有 9 处死链与中英结构漂移为独立既有债，本次未动。

@@ -171,6 +171,40 @@ pre-commit install
 
 ### 三层架构
 
+<p align="center">
+  <img src="../../assets/architecture/negentropy-architecture-story.gif" width="720" alt="Negentropy 三层架构动效走查：依次追踪对话请求、知识摄取、静态 wiki 交付、模型与沙箱四条链路，穿过展示层（negentropy-ui、negentropy-wiki）、引擎层（后端 API、根智能体 NegentropyEngine、三条流水线、五大系部）与基础设施层（OpenTelemetry 与 Langfuse、MicroSandbox、LiteLLM、negentropy-perceives、PostgreSQL 17）。每一停点亮一跳、压暗其余。完整组件清单与全部 11 条关系见下方表格与列表。" />
+</p>
+
+<p align="center">
+  <sub><b>4 条链路 · 13 停。</b>每一停点亮一跳、压暗其余——一次请求究竟触达了谁，又始终不触达谁，一目了然。<br/>
+  不需要动效？同一张图的 5120×2880 静图：<a href="../../assets/architecture/negentropy-architecture-dark.png">暗色</a> · <a href="../../assets/architecture/negentropy-architecture-light.png">亮色</a> · <a href="../../assets/architecture/negentropy-architecture.svg">矢量</a></sub>
+</p>
+
+**三层、11 个组件、11 条关系。层边界即契约**，而非约定俗成：应用间只经网络协议（AG-UI / HTTP / MCP）或构建期静态产物协作，严禁源码互引。
+
+| 层 | 组件 | 边界规则 |
+| :--- | :--- | :--- |
+| 🖥️ **展示层** | `negentropy-ui` · Next.js 16 · React 19 · Tailwind · `:3192`<br/>`negentropy-wiki` · Next.js · 纯静态导出 | ui 仅经 AG-UI 触达引擎；wiki 不持任何运行时链接 |
+| ⚙️ **引擎层** | `后端 API` · ADK Web Server · FastAPI · `:3292`<br/>`NegentropyEngine` · 根智能体（本我），仅编排<br/>`三条流水线` · 均为 `SequentialAgent`<br/>`五大系部` · 慧眼 · 本心 · 元神 · 妙手 · 喉舌 | 根智能体不执行任何原子任务，只经 `transfer_to_agent` 派发 |
+| 🏗️ **基础设施层** | `negentropy-perceives` · MCP Server，Web/PDF → Markdown · `:2992`<br/>`PostgreSQL 17` · pgvector · `:5432`<br/>`LiteLLM` · 100+ 提供商<br/>`MicroSandbox` · `OpenTelemetry · Langfuse` | 仅由系部工具触达；上层不持驱动级依赖 |
+
+11 条关系正交归并为**四条主链路 + 一条横切**，与动效短片的分章一一对应：
+
+1. **对话请求**（5 停）：`ui` →*AG-UI 协议*→ `api` → `root` →*`transfer_to_agent`*→ `pipelines` / `faculties`，终点是 `PostgreSQL`（*SQL · asyncpg*）。
+2. **知识摄取**（3 停）：`faculties` →*MCP*→ `negentropy-perceives` 把 Web / PDF 源转为 Markdown，携向量落库。
+3. **静态交付**（2 停）：`api` ⇢*publish · 构建期烘焙*⇢ `wiki`。虚线是刻意的语义——已发布 wiki 在引擎离线时仍完整可读。
+4. **模型与沙箱**（3 停）：`root` →*LLM I/O*→ `LiteLLM`；`faculties` →*`execute_code`*→ `MicroSandbox`。二者均不落在请求主路径上。
+5. **横切**：`api` ⇢*OTLP traces*⇢ `OpenTelemetry · Langfuse`，为上述四条链路统一埋点，自身不属于任何一条。
+
+**深入探索**
+
+- 🖱️ **交互式架构图** — [architecture-diagram.html](../../concepts/architecture-diagram.html)：平移 / 缩放 / 节点搜索、关系聚焦、明暗切换、可回放的 4 章 13 停引导叙事，以及 **11 处直达源码文件的深链**，逐一佐证图中每个组件。下载到本地打开方有完整交互。
+- 🎬 **动效短片** — [negentropy-architecture-story.mp4](../../assets/architecture/negentropy-architecture-story.mp4)：与上方动图同一段 29 秒走查，1280×720，比动图更清晰——动图为压进仓库 1 MiB 单文件门被限制在 720 px。
+- 📝 **图示文本源** — 唯一可编辑源，保留在下方折叠块中：archify 由它重建交互 HTML，采集脚本再派生上方全部产物；同时是可 diff 的维护基线。
+
+<details>
+<summary><b>图示文本源</b> —— 上方全部产物的可编辑源与可 diff 维护基线（经 archify 与采集脚本再生）</summary>
+
 ```mermaid
 graph TB
     subgraph Presentation["🖥️ 展示层"]
@@ -214,7 +248,9 @@ graph TB
     class Perceives,DB,LLM,OTel,Sandbox infra
 ```
 
-> 🖱️ 探索交互式版本（平移 / 缩放 / 搜索 / 源码锚点）：[architecture-diagram.html](../../concepts/architecture-diagram.html)
+改图请先改本段文本 → 用 archify（`/archify` 技能）从新文本重新生成 [architecture-diagram.html](../../concepts/architecture-diagram.html)（整体替换，采集脚本的唯一输入）→ 再跑 [`scripts/capture-arch-media.mjs`](../../../scripts/capture-arch-media.mjs) 采集产物。**严禁手改生成物 HTML** —— 详见 [文档媒体资产规范](../../.agents/doc-media-assets.md)。
+
+</details>
 
 ---
 
