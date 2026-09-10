@@ -197,10 +197,10 @@ Those 11 relationships resolve into **four flows plus one cross-cut** - the same
 
 - 🖱️ **Interactive diagram** - [architecture-diagram.html](./docs/concepts/architecture-diagram.html): pan / zoom / node search, relationship focus, light-dark toggle, a replayable guided story of 4 chapters and 13 beats, and **11 deep links jumping straight to the source file that substantiates each component**. Download and open locally for the full interaction.
 - 🎬 **Motion story** - [negentropy-architecture-story.mp4](./docs/assets/architecture/negentropy-architecture-story.mp4): the same 29-second walkthrough at 1280×720 - sharper than the GIF above, which is capped at 720 px to stay under the repository's 1 MiB per-file limit.
-- 📝 **Diagram source** - every artifact above is generated from one Mermaid block, kept below as the diffable baseline.
+- 📝 **Diagram source** - the Mermaid block kept below is the single editable source: archify rebuilds the interactive HTML from it, and the capture script derives every artifact above. It doubles as the diffable baseline.
 
 <details>
-<summary><b>Diagram text source</b> - the Mermaid baseline all artifacts above are generated from</summary>
+<summary><b>Diagram text source</b> - the Mermaid baseline every artifact above is regenerated from (via archify + the capture script)</summary>
 
 ```mermaid
 graph TB
@@ -245,7 +245,7 @@ graph TB
     class Perceives,DB,LLM,OTel,Sandbox infra
 ```
 
-Edit this block first, then regenerate the artifacts with [`scripts/capture-arch-media.mjs`](./scripts/capture-arch-media.mjs). Never hand-edit the generated HTML - see [doc-media-assets.md](./docs/.agents/doc-media-assets.md).
+Edit this block first, regenerate [`architecture-diagram.html`](./docs/concepts/architecture-diagram.html) from it with the `archify` skill (wholesale replacement - the capture script reads only this HTML), then run [`scripts/capture-arch-media.mjs`](./scripts/capture-arch-media.mjs) to re-derive the artifacts. Never hand-edit the generated HTML - see [doc-media-assets.md](./docs/.agents/doc-media-assets.md).
 
 </details>
 

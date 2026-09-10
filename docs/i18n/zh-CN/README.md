@@ -200,10 +200,10 @@ pre-commit install
 
 - 🖱️ **交互式架构图** — [architecture-diagram.html](../../concepts/architecture-diagram.html)：平移 / 缩放 / 节点搜索、关系聚焦、明暗切换、可回放的 4 章 13 停引导叙事，以及 **11 处直达源码文件的深链**，逐一佐证图中每个组件。下载到本地打开方有完整交互。
 - 🎬 **动效短片** — [negentropy-architecture-story.mp4](../../assets/architecture/negentropy-architecture-story.mp4)：与上方动图同一段 29 秒走查，1280×720，比动图更清晰——动图为压进仓库 1 MiB 单文件门被限制在 720 px。
-- 📝 **图示文本源** — 上述全部产物由同一段 Mermaid 生成，作为可 diff 的维护基线保留在下方折叠块中。
+- 📝 **图示文本源** — 唯一可编辑源，保留在下方折叠块中：archify 由它重建交互 HTML，采集脚本再派生上方全部产物；同时是可 diff 的维护基线。
 
 <details>
-<summary><b>图示文本源</b> —— 上述全部产物由这段 Mermaid 生成（可 diff 的维护基线）</summary>
+<summary><b>图示文本源</b> —— 上方全部产物的可编辑源与可 diff 维护基线（经 archify 与采集脚本再生）</summary>
 
 ```mermaid
 graph TB
@@ -248,7 +248,7 @@ graph TB
     class Perceives,DB,LLM,OTel,Sandbox infra
 ```
 
-改图请先改本段文本，再用 [`scripts/capture-arch-media.mjs`](../../../scripts/capture-arch-media.mjs) 重新生成产物。**严禁手改生成物 HTML** —— 详见 [文档媒体资产规范](../../.agents/doc-media-assets.md)。
+改图请先改本段文本 → 用 archify（`/archify` 技能）从新文本重新生成 [architecture-diagram.html](../../concepts/architecture-diagram.html)（整体替换，采集脚本的唯一输入）→ 再跑 [`scripts/capture-arch-media.mjs`](../../../scripts/capture-arch-media.mjs) 采集产物。**严禁手改生成物 HTML** —— 详见 [文档媒体资产规范](../../.agents/doc-media-assets.md)。
 
 </details>
 

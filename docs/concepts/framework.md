@@ -92,7 +92,7 @@ title: "架构设计方案 · 一核五翼总览"
 - 🖼️ [暗色 PNG](../assets/architecture/negentropy-architecture-dark.png) · [亮色 PNG](../assets/architecture/negentropy-architecture-light.png) —— **5120×2880 高清静图**，由产物内置导出原生矢量栅格化而来（非位图放大），同时是 [README](../../README.md) 与 [中文 README](../i18n/zh-CN/README.md) 的静图来源。
 
 <details>
-<summary><b>图示文本源</b> —— 上述全部产物由这一段 Mermaid 生成（可 diff 的维护基线）</summary>
+<summary><b>图示文本源</b> —— 上述全部产物的可编辑源与可 diff 维护基线（经 archify 与采集脚本再生）</summary>
 
 ```mermaid
 graph TB
@@ -137,7 +137,7 @@ graph TB
     class Perceives,DB,LLM,OTel,Sandbox infra
 ```
 
-**修改流程**：先改本段 Mermaid → 用 [`scripts/capture-arch-media.mjs`](../../scripts/capture-arch-media.mjs) 重新生成 PNG / SVG / MP4 / GIF 四类产物 → 与本段同一次提交。**严禁手改 15,005 行的生成物 [architecture-diagram.html](./architecture-diagram.html)**：它没有独立的源规格，手改即造成文本源与呈现物分叉。生成链路、体积门与两条渲染链路的完整约束见 [文档媒体资产规范](../.agents/doc-media-assets.md)。
+**修改流程**：先改本段 Mermaid → 用 archify（`/archify` 技能）从新文本重新生成 [architecture-diagram.html](./architecture-diagram.html)（整体替换，采集脚本的唯一输入）→ 跑 [`scripts/capture-arch-media.mjs`](../../scripts/capture-arch-media.mjs) 采集 PNG / SVG / MP4 / GIF 四类产物 → 全部与本段同一次提交。**严禁手改 15,005 行的生成物 [architecture-diagram.html](./architecture-diagram.html)**：它没有独立的源规格，手改即造成文本源与呈现物分叉。生成链路、体积门与两条渲染链路的完整约束见 [文档媒体资产规范](../.agents/doc-media-assets.md)。
 
 </details>
 

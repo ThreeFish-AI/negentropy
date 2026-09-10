@@ -55,9 +55,12 @@
 单向链路，顺序不可逆：
 
 1. 改 [`framework.md` §2.1](../concepts/framework.md) `<details>` 内的 Mermaid——**唯一可编辑源**；
-2. 跑 [`scripts/capture-arch-media.mjs`](../../scripts/capture-arch-media.mjs) 重新生成
+2. 用 archify（Claude Code 的 `/archify` 技能）从新 Mermaid 重新生成
+   [`architecture-diagram.html`](../concepts/architecture-diagram.html)——整体替换。**这是采集脚本唯一的输入**，
+   跳过此步会从旧 HTML 采集、造成文本源与产物分叉；
+3. 跑 [`scripts/capture-arch-media.mjs`](../../scripts/capture-arch-media.mjs) 重新生成
    [`docs/assets/architecture/`](../assets/architecture/) 下的 PNG / SVG / MP4 / GIF；
-3. 核三处消费点：[README](../../README.md) · [中文 README](../i18n/zh-CN/README.md) · framework.md §2.1。
+4. 核三处消费点：[README](../../README.md) · [中文 README](../i18n/zh-CN/README.md) · framework.md §2.1。
 
 **严禁手改** [`architecture-diagram.html`](../concepts/architecture-diagram.html)（15,005 行生成物，
 无独立源规格，手改即造成文本源与呈现物分叉）。
