@@ -548,14 +548,15 @@ async function main() {
     let ok = false;
     for (const cfg of ladder) {
       const palette = path.join(tmpDir, "palette.png");
-      const common = ["-framerate", String(opts.fps), "-i", framePattern, "-t", String(cfg.secs)];
+      const common = ["-framerate", String(opts.fps), "-i", framePattern];
       await runFfmpegTool(ff.ffmpeg, ff.dir, [
         "-y", "-hide_banner", "-loglevel", "error", ...common,
         "-vf", `scale=${cfg.w}:-2:flags=lanczos,palettegen=stats_mode=diff:max_colors=128`,
         palette,
       ]);
       await runFfmpegTool(ff.ffmpeg, ff.dir, [
-        "-y", "-hide_banner", "-loglevel", "error", ...common, "-i", palette,
+        // -t 必须留在输出侧：夹在两个 -i 之间会被解析为 palette 输入的选项（单帧，空操作），GIF 永不截短
+        "-y", "-hide_banner", "-loglevel", "error", ...common, "-i", palette, "-t", String(cfg.secs),
         "-lavfi", `scale=${cfg.w}:-2:flags=lanczos[s];[s][1:v]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle`,
         "-r", String(cfg.fps), "-loop", "0", gif,
       ]);
