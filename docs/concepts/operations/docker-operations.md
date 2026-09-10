@@ -581,7 +581,7 @@ docker compose -f docker/docker-compose.yml ps
 
 [2] Docker Inc., "Multi-platform builds," _Docker Documentation_, 2025. [Online]. Available: https://docs.docker.com/build/ci/github-actions/multi-platform/
 
-[3] Docker Inc., "docker compose -f docker/docker-compose.yml CLI reference," _Docker Documentation_, 2025. [Online]. Available: https://docs.docker.com/compose/reference/
+[3] Docker Inc., "docker compose CLI reference," _Docker Documentation_, 2025. [Online]. Available: https://docs.docker.com/compose/reference/
 
 [4] Docker Inc., "Dockerfile multi-stage builds," _Docker Documentation_, 2025. [Online]. Available: https://docs.docker.com/build/building/multi-stage/
 

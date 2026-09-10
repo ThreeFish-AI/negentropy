@@ -99,11 +99,11 @@ flowchart TB
 
 ```bash
 # 拉取发布版镜像并启动（跳过本地构建）
-NEGENTROPY_IMAGE_TAG=1.2.0 docker compose pull
-NEGENTROPY_IMAGE_TAG=1.2.0 docker compose up -d --no-build
+NEGENTROPY_IMAGE_TAG=1.2.0 docker compose -f docker/docker-compose.yml pull
+NEGENTROPY_IMAGE_TAG=1.2.0 docker compose -f docker/docker-compose.yml up -d --no-build
 
 # 本地开发照旧：镜像本地缺失时 compose 默认仍走本地 build
-docker compose up -d
+docker compose -f docker/docker-compose.yml up -d
 ```
 
 ## 发布操作手册

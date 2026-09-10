@@ -84,7 +84,7 @@ pg_isready -h localhost -p 5432        # 验证：accepting connections
 
 > **更省事**：若仅本地开发，可只起 Docker 内的 Postgres 供裸机后端连接 ——
 > ```bash
-> docker compose up -d postgres        # 仅起数据库容器
+> docker compose -f docker/docker-compose.yml up -d postgres        # 仅起数据库容器
 > ./scripts/dev native                         # 裸机后端连接容器 DB（默认 NE_DB_URL 即 localhost:5432）
 > ```
 
