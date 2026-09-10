@@ -48,12 +48,16 @@
 
 ## Cognizes 引擎与子系统设计
 
+*apps/cognizes 代码项目已于 2026-09 退役删除（功能由 Negentropy 主栈承接），本节链接为保留的设计参考资产。*
+
 - [Cognizes Engine 总览](../reference/cognizes/engine/README.md) — Agentic AI Engine 一核五翼架构入口
 - [P1 The Pulse](../reference/cognizes/engine/010-the-pulse.md) · [P2 The Hippocampus](../reference/cognizes/engine/020-the-hippocampus.md) · [P3 The Perception](../reference/cognizes/engine/030-the-perception.md) · [P4 The Realm of Mind](../reference/cognizes/engine/040-the-realm-of-mind.md) · [P5 Integrated Demo](../reference/cognizes/engine/050-integrated-demo.md)
 - 子系统专项：[025 Memory System](../concepts/subsystems/025-the-memory-system.md) · [026 Memory Whitepaper](../concepts/subsystems/026-memory-whitepaper.md) · [035 Knowledge Base](../concepts/subsystems/035-the-knowledge-base.md) · [036 Knowledge Graph](../concepts/subsystems/036-the-knowledge-graph.md) · [037 Federated KG](../concepts/subsystems/037-federated-kg.md)
 - 参考 DDL：[`reference/cognizes/engine/schema/`](../reference/cognizes/engine/schema/)（hippocampus / perception / kg_schema_extension）
 
 ## 项目级 PRD / Plan / Checklist
+
+*apps/cognizes 代码项目已于 2026-09 退役删除（功能由 Negentropy 主栈承接），本节链接为保留的设计参考资产。*
 
 - [PRD & Architecture](../reference/cognizes/prd/000-prd-architecture.md) — Agentic AI 学术研究与工程应用平台 产品需求与架构
 - [Implementation Plan](../reference/cognizes/prd/001-implementation-plan.md) — 实施计划

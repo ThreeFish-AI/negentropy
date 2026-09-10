@@ -3978,3 +3978,14 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
   2. `test_migrations` 应改用独立临时库（`negentropy_mig_test` 闲置库的存在暗示了此意图）——它在共享库上的降级循环注定与「测试库累积数据」冲突（护栏拒绝 → 半途残缺）。
   3. 集成测试写固定名实体必须自带 setup 期清理或相对化断言（全表扫描断言 `assert 358 == 3` 这类在累积库上永远红）。
 - **同类问题影响**：所有依赖共享 `negentropy_test` 的本地开发流；`negentropy_amsterdam_test`（0094）等历史工作区库同理存在漂移可能。
+
+## ISSUE-185 「已取代的并行实现」滞留仓库持续产生维护税——cognizes/cognizes-ui 退役（2026-09-10）
+
+- **表因**：apps/cognizes（16,283 行 Python）与 apps/cognizes-ui（8,882 行 TS，含被跟踪的 600K playwright-report）功能与主栈各域全面重叠却长期并存，持续产生维护税：5 条 paths 触发的 CI workflow、pnpm workspace 成员膨胀（jsdom 双版本、axios→form-data 传递链带来安全告警）、兄弟锁测试枚举、根配置注释漂移，以及 Dependabot 104 条告警中的约 52 条。
+- **判定依据**（三路并行取证）：① 逐子系统功能映射——7 个 skill 1:1 迁入 `.agent/skills/` 且已入 DB（迁移 0098）、PDF→perceives 多引擎、翻译→`knowledge/translation`（harness + 确定性校验）、论文→paper/arxiv 工具、RAG/记忆/沙箱均有等价物、UI 业务页在 knowledge/scheduler 域有成熟实现——**无未落地能力，故删除而非合并**（合并还需引入 torch 级重依赖并对抗「全走 LiteLLM」范式）；② 引用爆炸半径全量 git grep——功能性必改仅 1 处测试枚举（SIBLING_LOCKS）+ 1 份 lockfile 重生成，其余全为注释/文档级；③ 保留资产判定——`docs/reference/cognizes/` 被主栈源码（config.default.yaml、retrieval/repository.py）、alembic 迁移注释（0007/0008/0044/0047）与 wiki ingest 测试活跃引用，整树保留。
+- **处理方式**：workflow 与代码**同 commit** 删除（规避 push 事件按推送区间匹配 paths、在已删 working-directory 上触发 cognizes CI 必挂）；`pnpm install --lockfile-only` 先行审 diff（包全集与版本集零变化，72 行新增均为 optional/deprecated 元数据注记）再应用；SIBLING_LOCKS 摘条与 .gitignore/pnpm-workspace/README「独立项目」注记同步；9 个视频工程 .npmrc 先例注释泛化；4 处研究文档加「已退役」历史快照注记（加注不改史）。
+- **后续防范**：
+  1. 并行实现立项时须登记「取代关系 + 退役条件」，取代完成即退役，不允许双实现长期共存——「备用」「实验」名目下的滞留就是下一个维护税源。
+  2. 「注册表类资产」（workspace importer、CI paths、SIBLING_LOCKS、allowBuilds、.gitignore 白名单）新增时写明归属主体，退役时与代码**同 commit** 收回；残留的注册表项（如 form-data 死 override）是静默漂移的起点。
+  3. 产物目录（playwright-report 等）依赖 .gitignore 预防性覆盖，不得先入库再事后删除——本次顺带回收了 cognizes-ui 已入库的 600K 报告。
+- **同类问题影响**：travel-agent-ui「示例驻留仓库」模式已随 cognizes 一并移除；perceives 经查无同类被取代滞留；negentropy-wiki/content.fixture 中的 cognizes 字样为自包含 fixture 字符串非引用，不动。既有死链（config.default.yaml:131 等指向 025/026/035/036 的注释）为历史遗留非本次所致，按「不改史」未处理。
