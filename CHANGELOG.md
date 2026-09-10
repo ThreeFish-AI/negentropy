@@ -18,6 +18,7 @@
 
 ### Removed
 
+- **退役删除 apps/cognizes 与 apps/cognizes-ui（16,283 行 Python + 8,882 行 TS + 5 条 CI workflow，净 -60,814 行）**：三路取证确认功能已被主栈全面取代——7 个 skill 1:1 迁入 `.agent/skills/` 且已入 DB（迁移 0098）、PDF→perceives 多引擎竞技、翻译→`knowledge/translation`（Claude Code harness + 确定性校验）、论文→paper/arxiv/semantic_scholar 工具、RAG/记忆/沙箱均有等价物、cognizes-ui 业务页在 knowledge/scheduler 域已有成熟实现且自身 API 三向漂移——故按「删除而非合并」处理。设计资产整树保留于 [docs/reference/cognizes/](docs/reference/cognizes/readme.md)（主栈源码注释、alembic 迁移与 wiki ingest 测试仍活跃引用）；workflow 与代码同 commit 删除以规避 push 事件在已删 working-directory 上触发 CI；pnpm workspace 收缩至 4 项目（lockfile 包全集与版本集零变化、移除 form-data 死 override）。退役决策与判定依据见 [ISSUE-185](docs/.agents/issue.md)。
 - **全仓死代码清减 ~4,600 行**：backend（prf_expander+PRF 旋钮 / lifecycle_types / db-deps get_db / numpy、scipy 直接依赖）；perceives（skills/ 孤儿包 230 行 + benchmark 一次性脚本 1,049 行）；cognizes（pyproject 死入口 / 陈旧分叉测试树 298 行——其同名 basename 冲突曾致全量 pytest 无法收集）；ui 死簇 15 文件 1,620 行（hooks×3、monitoring、adk guards、组件×4、conversation 目录、5 空壳 barrel）；cognizes-ui 模板残骸 8 文件 361 行 + 死依赖。所有删除标的均经执行日重 grep 硬门复核，6 项探索期「死代码」结论被证伪保留（rocchio 活路径 / rxjs AGUI 运行时 / cognizes-ui 跨包测试宿主 / dashboard api 活消费方 / adk.ts 系 SSOT 本体等，全表见审计文档 §4）。
 - **语义规范化**：cognizes sandbox 自 `adapters/postgres/` 归位顶层（对齐 backend 布局）、`ChunkingStrategy`(ABC) 改名 `Chunker`（消与 backend Enum 同名异物）、perceives 包 tagline 校正、cognizes 测试树 importlib 模式（全树收集 3 ERROR→0）、`pnpm-workspace.yaml` 个人绝对路径清理。
 

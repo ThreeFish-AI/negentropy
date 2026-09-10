@@ -140,8 +140,6 @@ cd negentropy
 - Zero-key local LLM: [Local LLM (Ollama)](./docs/concepts/local-llm-ollama.md)
 - Docker operations (production deploy): [Docker Operations](./docs/concepts/docker-operations.md)
 
-> **Note:** `apps/cognizes` is a **separate** project; `./dev` and `docker compose` do **not** start it.
-
 ---
 
 ## 🏛️ Architecture Overview
