@@ -522,7 +522,7 @@ Admin UI → model_configs 表 → model_resolver.py → create_model() → Lite
 
 ### 8.1 技术选型
 
-- **PostgreSQL 17+**：关系型数据主存储
+- **PostgreSQL 17**（部署基准，CI 兼容层为 PG16）：关系型数据主存储
 - **pgvector**：向量嵌入存储与相似度检索
 - **Alembic**：Schema 迁移管理
 - **SQLAlchemy**：ORM 与异步数据访问 (asyncpg)
