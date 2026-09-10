@@ -1,0 +1,32 @@
+%%source: docs/concepts/design/context-layer.md#block5 (L397-L423, §7.1)
+%%slug: design/context-layer--evolution-levers
+%%type: architecture
+%%derived: archify architecture, byte-extract of source mermaid
+%% fix: (1) 状态机补终态 rejected（代码 STATUS_REJECTED，shadow_eval 劣化即拒绝；models/evolution.py L83）；(2) 单在途护栏精确到 target_ref（uq_evolution_proposals_one_inflight 部分唯一索引按 target_ref，同 kind 不同 ref 可并行各 1，"每面"为宽泛说法）；(3) context_strategy 标注"提案"——apps 全仓 grep 零命中，代码未落地；(4) runtime_canary 注明仅 skill 面（base.py advance_runtime_canary 默认 no-op）
+graph LR
+    subgraph LEVERS["Context Layer 进化杠杆（6 既有 + 1 提案）"]
+        L1["retrieval_config<br/>→ 记忆检索权重"]
+        L2["knowledge_strategy<br/>→ KB/KG 检索策略"]
+        L3["skill_template<br/>→ 注入技能"]
+        L4["builtin_tool_config<br/>→ 工具参数"]
+        L5["memory_pipeline_prompt<br/>→ 巩固质量"]
+        L6["agent_prompt<br/>→ 身份/角色"]
+        L7["✨ context_strategy（提案）<br/>→ 预算比/接地数/信任权重"]
+    end
+    subgraph SM["状态机（统一，evolution_proposals.status）"]
+        S1["draft"] --> S2["shadow_eval"]
+        S2 --> S3["canary / runtime_canary*"]
+        S2 --> S4["pending_approval"]
+        S2 --> S7["rejected"]
+        S3 --> S5["promoted"]
+        S3 --> S6["rolled_back"]
+        S4 --> S5
+    end
+    LEVERS -->|"每 target_ref 至多 1 个非终态提案<br/>FOR UPDATE SKIP LOCKED"| SM
+
+    classDef lever fill:#2a1f3d,stroke:#7c5ca5,stroke-width:2px,color:#e8dff5
+    classDef new fill:#1f3a5f,stroke:#5b9bd5,stroke-width:2px,color:#e8f0fe
+    classDef sm fill:#1f4d2e,stroke:#5bbd7c,stroke-width:2px,color:#e8fbef
+    class L1,L2,L3,L4,L5,L6 lever
+    class L7 new
+    class S1,S2,S3,S4,S5,S6,S7 sm

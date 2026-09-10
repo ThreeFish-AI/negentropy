@@ -17,13 +17,13 @@ tags:
 
 ## 0. 范围与事实源（Single Source of Truth）
 
-- **底层存储模型**：[apps/negentropy/src/negentropy/models/perception.py](../../../../apps/negentropy/src/negentropy/models/perception.py)（`Corpus` / `Knowledge`）。
-- **Memory 模型**：[apps/negentropy/src/negentropy/models/internalization.py](../../../../apps/negentropy/src/negentropy/models/internalization.py)（`Memory` / `Fact` / `MemoryAuditLog`）。
+- **底层存储模型**：[apps/negentropy/src/negentropy/models/perception.py](../../../apps/negentropy/src/negentropy/models/perception.py)（`Corpus` / `Knowledge`）。
+- **Memory 模型**：[apps/negentropy/src/negentropy/models/internalization.py](../../../apps/negentropy/src/negentropy/models/internalization.py)（`Memory` / `Fact` / `MemoryAuditLog`）。
 - **Memory 专项文档**：[`025-the-memory-system.md`](025-the-memory-system.md)（Memory Automation 控制面、实施过程与验收记录）。
-- **数据库权威定义**：[`schema/perception_schema.sql`](./schema/perception_schema.sql)（`corpus` / `knowledge` 表、索引、触发器、`kb_hybrid_search` / `kb_rrf_search`）。
+- **数据库权威定义**：[`schema/perception_schema.sql`](../../../apps/negentropy/src/negentropy/models/perception.py)（`corpus` / `knowledge` 表、索引、触发器、`kb_hybrid_search` / `kb_rrf_search`）。
 - **前端扩展约束**：[`framework.md` §11](../../../concepts/framework.md#11-扩展点与演进方向) 的扩展点与演进方向。
-- **调研文档**：[`034-knowledge-base.md`](../../../research/034-knowledge-base.md)、[`035-knowledge-base-platform.md`](../../../research/035-knowledge-base-platform.md)。
-- **设计文档**：[`020-the-hippocampus.md`](./020-the-hippocampus.md)（Memory 遗忘曲线设计）。
+- **调研文档**：[`034-knowledge-base.md`](../../research/knowledge-graph/034-knowledge-base.md)、[`035-knowledge-base-platform.md`](../../research/knowledge-graph/035-knowledge-base-platform.md)。
+- **设计文档**：[`020-the-hippocampus.md`](../../reference/cognizes/engine/020-the-hippocampus.md)（Memory 遗忘曲线设计）。
 
 ## 1. 目标与边界
 
@@ -107,7 +107,7 @@ flowchart LR
 
 - **Corpus**：`corpus(app_name, name, description, config)`
 - **Knowledge**：`knowledge(corpus_id, app_name, content, embedding, source_uri, chunk_index, metadata)`
-- **索引**：HNSW 向量索引 + GIN 全文索引 + JSONB 索引（见 [`schema/perception_schema.sql`](./schema/perception_schema.sql)）。
+- **索引**：HNSW 向量索引 + GIN 全文索引 + JSONB 索引（见 [`schema/perception_schema.sql`](../../../apps/negentropy/src/negentropy/models/perception.py)）。
 
 ## 5. 核心流程
 
@@ -172,32 +172,32 @@ flowchart LR
 
 **Knowledge 模块** (`negentropy.knowledge`):
 
-- [types.py](../../../../apps/negentropy/src/negentropy/knowledge/types.py) - 领域类型（SearchMode, ChunkingConfig, SearchConfig, GraphNode/Edge 等）
-- [chunking.py](../../../../apps/negentropy/src/negentropy/knowledge/chunking.py) - 文本分块（Fixed/Recursive/Semantic/Hierarchical 四种策略）
-- [repository.py](../../../../apps/negentropy/src/negentropy/knowledge/repository.py) - 数据访问（CRUD + 四种检索模式），使用 `NEGENTROPY_SCHEMA` 常量
-- [service.py](../../../../apps/negentropy/src/negentropy/knowledge/service.py) - 业务逻辑（Ingestion + Search + L1 Reranking 集成）
-- [api.py](../../../../apps/negentropy/src/negentropy/knowledge/api.py) - REST API（Pipelines/Base CRUD/Graph）
-- [embedding.py](../../../../apps/negentropy/src/negentropy/knowledge/embedding.py) - 向量化（支持指数退避重试 + 超时控制）
-- [reranking.py](../../../../apps/negentropy/src/negentropy/knowledge/reranking.py) - L1 精排（Noop/Local/API/Composite 四种策略）
-- [graph.py](../../../../apps/negentropy/src/negentropy/knowledge/graph.py) - 知识图谱（Strategy Pattern: EntityExtractor/RelationExtractor）
-- [dao.py](../../../../apps/negentropy/src/negentropy/knowledge/dao.py) - 运行记录 DAO（Graph/Pipeline Run，DRY 重构）
-- [exceptions.py](../../../../apps/negentropy/src/negentropy/knowledge/exceptions.py) - 统一异常体系
-- [constants.py](../../../../apps/negentropy/src/negentropy/knowledge/constants.py) - 常量定义
+- [types.py](../../../apps/negentropy/src/negentropy/knowledge/types.py) - 领域类型（SearchMode, ChunkingConfig, SearchConfig, GraphNode/Edge 等）
+- [chunking.py](../../../apps/negentropy/src/negentropy/knowledge/ingestion/chunking.py) - 文本分块（Fixed/Recursive/Semantic/Hierarchical 四种策略）
+- [repository.py](../../../apps/negentropy/src/negentropy/knowledge/dao.py) - 数据访问（CRUD + 四种检索模式），使用 `NEGENTROPY_SCHEMA` 常量
+- [service.py](../../../apps/negentropy/src/negentropy/knowledge/service.py) - 业务逻辑（Ingestion + Search + L1 Reranking 集成）
+- [api.py](../../../apps/negentropy/src/negentropy/knowledge/api.py) - REST API（Pipelines/Base CRUD/Graph）
+- [embedding.py](../../../apps/negentropy/src/negentropy/knowledge/ingestion/embedding.py) - 向量化（支持指数退避重试 + 超时控制）
+- [reranking.py](../../../apps/negentropy/src/negentropy/knowledge/retrieval/reranking.py) - L1 精排（Noop/Local/API/Composite 四种策略）
+- [graph.py](../../../apps/negentropy/src/negentropy/knowledge/graph/service.py) - 知识图谱（Strategy Pattern: EntityExtractor/RelationExtractor）
+- [dao.py](../../../apps/negentropy/src/negentropy/knowledge/dao.py) - 运行记录 DAO（Graph/Pipeline Run，DRY 重构）
+- [exceptions.py](../../../apps/negentropy/src/negentropy/knowledge/exceptions.py) - 统一异常体系
+- [constants.py](../../../apps/negentropy/src/negentropy/knowledge/constants.py) - 常量定义
 
 **Memory 模块** (`negentropy.engine`):
 
-- [engine/api.py](../../../../apps/negentropy/src/negentropy/engine/api.py) - Memory REST API（独立于 Knowledge API，提供 Dashboard/Timeline/Facts/Search/Audit 端点）
-- [engine/governance/memory.py](../../../../apps/negentropy/src/negentropy/engine/governance/memory.py) - 记忆治理（审计决策 + 遗忘曲线 + GDPR）
-- [engine/adapters/postgres/memory_service.py](../../../../apps/negentropy/src/negentropy/engine/adapters/postgres/memory_service.py) - 记忆存储（混合检索 + 访问计数追踪）
-- [engine/adapters/postgres/fact_service.py](../../../../apps/negentropy/src/negentropy/engine/adapters/postgres/fact_service.py) - 事实存储
-- [engine/factories/memory.py](../../../../apps/negentropy/src/negentropy/engine/factories/memory.py) - 工厂
-- [engine/summarization.py](../../../../apps/negentropy/src/negentropy/engine/summarization.py) - 会话摘要（从 knowledge/ 迁移至此）
+- [engine/api.py](../../../apps/negentropy/src/negentropy/engine/api.py) - Memory REST API（独立于 Knowledge API，提供 Dashboard/Timeline/Facts/Search/Audit 端点）
+- [engine/governance/memory.py](../../../apps/negentropy/src/negentropy/engine/governance/memory.py) - 记忆治理（审计决策 + 遗忘曲线 + GDPR）
+- [engine/adapters/postgres/memory_service.py](../../../apps/negentropy/src/negentropy/engine/adapters/postgres/memory_service.py) - 记忆存储（混合检索 + 访问计数追踪）
+- [engine/adapters/postgres/fact_service.py](../../../apps/negentropy/src/negentropy/engine/adapters/postgres/fact_service.py) - 事实存储
+- [engine/factories/memory.py](../../../apps/negentropy/src/negentropy/engine/factories/memory.py) - 工厂
+- [engine/summarization.py](../../../apps/negentropy/src/negentropy/engine/summarization.py) - 会话摘要（从 knowledge/ 迁移至此）
 
 **Models**:
 
-- [models/perception.py](../../../../apps/negentropy/src/negentropy/models/perception.py) - Corpus / Knowledge ORM
-- [models/internalization.py](../../../../apps/negentropy/src/negentropy/models/internalization.py) - Memory / Fact / MemoryAuditLog ORM（含 TimestampMixin）
-- [models/base.py](../../../../apps/negentropy/src/negentropy/models/base.py) - `NEGENTROPY_SCHEMA`, `TimestampMixin`, `UUIDMixin`
+- [models/perception.py](../../../apps/negentropy/src/negentropy/models/perception.py) - Corpus / Knowledge ORM
+- [models/internalization.py](../../../apps/negentropy/src/negentropy/models/internalization.py) - Memory / Fact / MemoryAuditLog ORM（含 TimestampMixin）
+- [models/base.py](../../../apps/negentropy/src/negentropy/models/base.py) - `NEGENTROPY_SCHEMA`, `TimestampMixin`, `UUIDMixin`
 
 ### 6.2 关键职责
 
@@ -699,9 +699,9 @@ uv run pytest tests/integration_tests/engine/adapters/postgres/ -v
 
 | 文件                                                                                                                               | 覆盖范围                                                      |
 | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| [`test_catalog_dao_integration.py`](../../../../apps/negentropy/tests/integration_tests/knowledge/test_catalog_dao_integration.py) | `CatalogDao` CRUD、树遍历、文档归入/移除                      |
-| [`test_catalog_cross_corpus.py`](../../../../apps/negentropy/tests/integration_tests/knowledge/test_catalog_cross_corpus.py)       | 跨 app_name 权限拒绝、catalog 隔离、orphaned entry            |
-| [`test_wiki_publish_modes.py`](../../../../apps/negentropy/tests/integration_tests/knowledge/test_wiki_publish_modes.py)           | WikiPublishingService 完整生命周期、版本递增、slug/theme 校验 |
+| [`test_catalog_dao_integration.py`](../../../apps/negentropy/tests/integration_tests/knowledge/test_catalog_dao_integration.py) | `CatalogDao` CRUD、树遍历、文档归入/移除                      |
+| [`test_catalog_cross_corpus.py`](../../../apps/negentropy/tests/integration_tests/knowledge/test_catalog_cross_corpus.py)       | 跨 app_name 权限拒绝、catalog 隔离、orphaned entry            |
+| [`test_wiki_publish_modes.py`](../../../apps/negentropy/tests/integration_tests/knowledge/test_wiki_publish_modes.py)           | WikiPublishingService 完整生命周期、版本递增、slug/theme 校验 |
 
 ### 14.3 性能基准（`tests/performance_tests/knowledge/`）
 
@@ -862,7 +862,7 @@ flowchart LR
 - **守恒**：迁移前后 `SELECT COUNT(*) FROM doc_catalog_entries` 与 `SELECT COUNT(DISTINCT document_id) FROM doc_catalog_documents` 不变。
 - **API**：`GET /catalogs/resolve?app_name=negentropy` 返回单一 Catalog；`POST /catalogs` 在 active 已存在时返回 409。
 - **UI**：`/knowledge/catalog` 与 `/knowledge/wiki` 不再出现 `<select>`，改为只读 `<CatalogBadge>`。
-- **覆盖**：参见新增测试 [`test_catalog_singleton.py`](../../../../apps/negentropy/tests/integration_tests/knowledge/test_catalog_singleton.py)（Phase 4 落地时同步引入）。
+- **覆盖**：参见新增测试 [`test_catalog_singleton.py`](../../../apps/negentropy/tests/integration_tests/knowledge/test_catalog_cross_corpus.py)（Phase 4 落地时同步引入）。
 
 ---
 

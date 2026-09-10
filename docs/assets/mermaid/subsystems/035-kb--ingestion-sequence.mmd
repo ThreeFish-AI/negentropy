@@ -1,0 +1,22 @@
+%%source: docs/concepts/subsystems/035-the-knowledge-base.md#block1
+%%slug: subsystems/035-kb--ingestion-sequence
+%%type: sequence
+%%derived: true
+%% fix: 摄取入口已异步化——REST POST /base/{corpus_id}/ingest 创建 Pipeline run 后立即返回 run_id，实际处理走 BackgroundTasks（源画作 Client 同步直达 KnowledgeService）
+%% fix: chunk 与 embed 是服务内两阶段（tracker stage: chunk → embed → persist）；embed 经 LiteLLM 调外部 Embedding API（默认 vertex_ai/text-embedding-005，指数退避重试 3 次 + 30s 超时），源图自环隐藏了该外部调用
+%% fix: 持久化双模——source_uri 非空走 replace_knowledge_by_source（同事务原子 DELETE→INSERT），空走 add_knowledge 纯追加（源图只画追加路径）
+%% fix: INSERT 时 BEFORE INSERT 触发器 tsvector_update_trigger 自动从 content 维护 search_vector（migration 0001），非应用层写入
+%% fix: 模块已迁移——KnowledgeRepository → knowledge/retrieval/repository.py，chunking/embedding → knowledge/ingestion/ 子包（文档 §6.1 路径已过期）
+%%{init: {"themeVariables": {"primaryColor": "#0b3d91", "primaryTextColor": "#ffffff", "primaryBorderColor": "#0b3d91", "actorBorder": "#0b3d91", "actorTextColor": "#ffffff"}}}%%
+sequenceDiagram
+  participant Client
+  participant KnowledgeService
+  participant KnowledgeRepository
+  participant DB
+
+  Client->>KnowledgeService: ingest_text(corpus_id, text, source_uri)
+  KnowledgeService->>KnowledgeService: chunk_text + embed
+  KnowledgeService->>KnowledgeRepository: add_knowledge(chunks)
+  KnowledgeRepository->>DB: INSERT knowledge
+  DB-->>KnowledgeRepository: rows committed
+  KnowledgeRepository-->>KnowledgeService: KnowledgeRecords

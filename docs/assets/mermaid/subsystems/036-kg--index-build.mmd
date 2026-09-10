@@ -1,0 +1,48 @@
+%%source: docs/concepts/subsystems/036-the-knowledge-graph.md#block5 §6.1 GraphRAG 实现
+%%slug: subsystems/036-kg--index-build
+%%type: dataflow
+%%derived: byte-exact extraction of mermaid block #5
+%% fix: 构建管线缺三个已落地阶段——resolving（graph/entity_resolver.py::EntityResolver.resolve）、syncing（KgEntityService.batch_sync_from_graph_build 写 kg_entities/kg_relations）、pagerank（graph_algorithms.py::compute_pagerank）；service.py L202-208 权威阶段常量为 extracting→resolving→syncing→pagerank→communities→summaries
+%% fix: 社区层级是三层不是两层——graph_algorithms.py::compute_communities 默认 resolutions=[0.5,1.0,2.0] 降序映射 level 0/1/2（level 0 最细）；Leiden 经 igraph+leidenalg.find_partition，失败一次性降级 Louvain（NetworkX leiden_communities 是 dispatch wrapper 不派发，ISSUE-028）
+%% fix: 「知识图谱 (AGE)」与现实现不符——knowledge/** 零 cypher() 调用，AgeGraphRepository 为遗留命名，实际落点是 kg_entities/kg_relations 一等公民表（models/perception.py L501/L569）
+%% fix: 「Local Search（实体邻域）」在代码中无同名服务——实为 GraphService.search → repository.hybrid_search（L986）向量+图结构融合，rrf_k 非空走 RRF（Cormack SIGIR 2009）否则线性加权
+%% fix: 「图遍历 1-2 跳」是配置上界——GraphContextBuilder 默认 max_hops=2，但 unified_search.py 热路径实际以 max_hops=1 调用
+%% fix: 「上下文融合 → LLM 生成 → GraphRAG 回答」的合流节点不存在——Global 路由 GlobalSearchService._reduce 自行调 LLM 出 answer；图混合路仅把 GraphContextBuilder 的 formatted_text 挂到 result_dict["graph_context"] 返回调用方、本模块不做生成。archify 图如实分叉不画合流
+%% fix: 「文本分块」是上游 ingestion 产物（knowledge/ingestion/chunking.py::chunk_text，chunk_size+overlap），非本管线内一步；hierarchical 语料库仅 chunk_role=parent 的 chunk 进入抽取
+%%{init: {"themeVariables": {"primaryColor": "#0b3d91", "primaryTextColor": "#ffffff", "primaryBorderColor": "#0b3d91", "secondaryColor": "#0f5132", "secondaryTextColor": "#ffffff", "tertiaryColor": "#842029", "tertiaryTextColor": "#ffffff"}}}%%
+flowchart TB
+    subgraph Build["索引构建"]
+        Chunks["文本分块"] --> Extract["实体/关系提取<br/>(LLM)"]
+        Extract --> Graph["知识图谱<br/>(AGE)"]
+        Graph --> Leiden["Leiden 社区检测"]
+        Leiden --> L1_Comm["Level-1 社区"]
+        Leiden --> L2_Comm["Level-2 社区"]
+        L1_Comm --> Summary1["L1 社区摘要<br/>(LLM)"]
+        L2_Comm --> Summary2["L2 社区摘要<br/>(LLM)"]
+    end
+
+    subgraph Retrieve["双层检索"]
+        Query["用户查询"]
+        Query --> Local["Local Search<br/>(实体邻域)"]
+        Query --> Global["Global Search<br/>(社区摘要)"]
+        Local --> EntityMatch["实体匹配<br/>(向量)"]
+        EntityMatch --> GraphTraverse["图遍历<br/>(1-2 跳)"]
+        GraphTraverse --> LocalContext["局部上下文"]
+        Global --> CommunityMap["社区摘要<br/>Map-Reduce"]
+        CommunityMap --> GlobalContext["全局上下文"]
+    end
+
+    subgraph Generate["增强生成"]
+        LocalContext --> Merge["上下文融合"]
+        GlobalContext --> Merge
+        Merge --> LLM["LLM 生成"]
+        LLM --> Answer["GraphRAG 回答"]
+    end
+
+    classDef build fill:#0b3d91,stroke:#0b3d91,color:#ffffff
+    classDef retrieve fill:#0f5132,stroke:#0f5132,color:#ffffff
+    classDef gen fill:#842029,stroke:#842029,color:#ffffff
+
+    class Chunks,Extract,Graph,Leiden,L1_Comm,L2_Comm,Summary1,Summary2 build
+    class Query,Local,Global,EntityMatch,GraphTraverse,LocalContext,CommunityMap,GlobalContext retrieve
+    class Merge,LLM,Answer gen

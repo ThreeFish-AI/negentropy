@@ -15,17 +15,17 @@ tags:
 
 > 本文档是 Negentropy 知识图谱模块的**架构设计单一权威参考 (Single Source of Truth)**，涵盖学术理论基础、行业框架分析、两阶段工程方案（PostgreSQL 阶段 → 终极阶段）以及价值量化体系。
 >
-> - 系统全景架构：[`framework.md`](../../../concepts/framework.md)
+> - 系统全景架构：[`framework.md`](../framework.md)
 > - Knowledge 模块全景：[`035-the-knowledge-base.md`](035-the-knowledge-base.md)
 > - Memory 模块设计：[`025-the-memory-system.md`](025-the-memory-system.md)
-> - 数据库 Schema：[`schema/kg_schema_extension.sql`](./schema/kg_schema_extension.sql)
+> - 数据库 Schema：[`models/perception.py`](../../../apps/negentropy/src/negentropy/models/perception.py)
 > - 源码入口：
->   - 策略基类：[knowledge/graph/strategy.py](../../../../apps/negentropy/src/negentropy/knowledge/graph/strategy.py)
->   - LLM 提取器：[knowledge/graph/extractors.py](../../../../apps/negentropy/src/negentropy/knowledge/graph/extractors.py)
->   - 图谱存储：[knowledge/graph/repository.py](../../../../apps/negentropy/src/negentropy/knowledge/graph/repository.py)
->   - 图谱服务：[knowledge/graph/service.py](../../../../apps/negentropy/src/negentropy/knowledge/graph/service.py)
->   - 类型定义：[knowledge/types.py](../../../../apps/negentropy/src/negentropy/knowledge/types.py)
->   - REST API（图谱子路由）：[knowledge/api.py](../../../../apps/negentropy/src/negentropy/knowledge/api.py)
+>   - 策略基类：[knowledge/graph/strategy.py](../../../apps/negentropy/src/negentropy/knowledge/graph/strategy.py)
+>   - LLM 提取器：[knowledge/graph/extractors.py](../../../apps/negentropy/src/negentropy/knowledge/graph/extraction_schema.py)
+>   - 图谱存储：[knowledge/graph/repository.py](../../../apps/negentropy/src/negentropy/knowledge/graph/repository.py)
+>   - 图谱服务：[knowledge/graph/service.py](../../../apps/negentropy/src/negentropy/knowledge/graph/service.py)
+>   - 类型定义：[knowledge/types.py](../../../apps/negentropy/src/negentropy/knowledge/types.py)
+>   - REST API（图谱子路由）：[knowledge/api.py](../../../apps/negentropy/src/negentropy/knowledge/api.py)
 
 ---
 
@@ -312,21 +312,21 @@ Phase 1 基础能力增强已于 2026-02 完成，主要交付物：
 
 | 组件             | 文件路径                                                                                            | 状态 | 说明                                                               |
 | :--------------- | :-------------------------------------------------------------------------------------------------- | :--- | :----------------------------------------------------------------- |
-| LLM 实体提取器   | [`llm_extractors.py`](../../../../apps/negentropy/src/negentropy/knowledge/llm_extractors.py)       | ✅    | `LLMEntityExtractor` 多语言实体提取                                |
-| LLM 关系提取器   | [`llm_extractors.py`](../../../../apps/negentropy/src/negentropy/knowledge/llm_extractors.py)       | ✅    | `LLMRelationExtractor` 语义关系提取 + 证据                         |
-| 组合提取器       | [`llm_extractors.py`](../../../../apps/negentropy/src/negentropy/knowledge/llm_extractors.py)       | ✅    | `CompositeEntityExtractor` / `CompositeRelationExtractor` 回退策略 |
-| 策略基类         | [`graph.py`](../../../../apps/negentropy/src/negentropy/knowledge/graph.py)                         | ✅    | `EntityExtractor` / `RelationExtractor` ABC                        |
-| 图谱存储         | [`graph_repository.py`](../../../../apps/negentropy/src/negentropy/knowledge/graph_repository.py)   | ✅    | `AgeGraphRepository` CRUD + 查询                                   |
-| 图谱服务         | [`graph_service.py`](../../../../apps/negentropy/src/negentropy/knowledge/graph_service.py)         | ✅    | `GraphService` 构建编排 + 检索封装                                 |
-| 类型定义         | [`types.py`](../../../../apps/negentropy/src/negentropy/knowledge/types.py)                         | ✅    | `KgEntityType` / `KgRelationType` / `GraphSearchMode`              |
-| API 端点         | [`api.py`](../../../../apps/negentropy/src/negentropy/knowledge/api.py)                             | ✅    | 图谱构建/查询/检索/邻居/路径 API                                   |
-| DB Schema        | [`kg_schema_extension.sql`](./schema/kg_schema_extension.sql)                                       | ✅    | AGE 扩展 + 枚举 + 函数 + 视图                                      |
-| 实体一等公民服务 | [`kg_entity_service.py`](../../../../apps/negentropy/src/negentropy/knowledge/kg_entity_service.py) | ✅    | `KgEntityService` 双写 + 实体列表/详情                             |
-| 实体浏览 API     | [`api.py`](../../../../apps/negentropy/src/negentropy/knowledge/api.py)                             | ✅    | `GET /graph/entities` + `GET /graph/entities/{id}`                 |
-| 图谱统计 API     | [`api.py`](../../../../apps/negentropy/src/negentropy/knowledge/api.py)                             | ✅    | `GET /graph/stats` 聚合统计                                        |
-| 递归 CTE 遍历    | [`graph_repository.py`](../../../../apps/negentropy/src/negentropy/knowledge/graph_repository.py)   | ✅    | `find_neighbors` / `find_path` 多跳 BFS                            |
-| 前端图谱页面     | [`graph/page.tsx`](../../../../apps/negentropy-ui/app/knowledge/graph/page.tsx)                     | ✅    | 语料库选择 + 可视化 + 实体列表 + 搜索                              |
-| 前端实体面板     | [`_components/`](../../../../apps/negentropy-ui/app/knowledge/graph/_components/)                   | ✅    | EntityList + EntityDetail + SearchBar + PathExplorer               |
+| LLM 实体提取器   | [`llm_extractors.py`](../../../apps/negentropy/src/negentropy/knowledge/graph/extraction_schema.py)       | ✅    | `LLMEntityExtractor` 多语言实体提取                                |
+| LLM 关系提取器   | [`llm_extractors.py`](../../../apps/negentropy/src/negentropy/knowledge/graph/extraction_schema.py)       | ✅    | `LLMRelationExtractor` 语义关系提取 + 证据                         |
+| 组合提取器       | [`llm_extractors.py`](../../../apps/negentropy/src/negentropy/knowledge/graph/extraction_schema.py)       | ✅    | `CompositeEntityExtractor` / `CompositeRelationExtractor` 回退策略 |
+| 策略基类         | [`graph.py`](../../../apps/negentropy/src/negentropy/knowledge/graph/service.py)                         | ✅    | `EntityExtractor` / `RelationExtractor` ABC                        |
+| 图谱存储         | [`graph_repository.py`](../../../apps/negentropy/src/negentropy/knowledge/graph/repository.py)   | ✅    | `AgeGraphRepository` CRUD + 查询                                   |
+| 图谱服务         | [`graph_service.py`](../../../apps/negentropy/src/negentropy/knowledge/graph/service.py)         | ✅    | `GraphService` 构建编排 + 检索封装                                 |
+| 类型定义         | [`types.py`](../../../apps/negentropy/src/negentropy/knowledge/types.py)                         | ✅    | `KgEntityType` / `KgRelationType` / `GraphSearchMode`              |
+| API 端点         | [`api.py`](../../../apps/negentropy/src/negentropy/knowledge/api.py)                             | ✅    | 图谱构建/查询/检索/邻居/路径 API                                   |
+| DB Schema        | [`models/perception.py`](../../../apps/negentropy/src/negentropy/models/perception.py)                                       | ✅    | AGE 扩展 + 枚举 + 函数 + 视图                                      |
+| 实体一等公民服务 | [`kg_entity_service.py`](../../../apps/negentropy/src/negentropy/knowledge/graph/entity_service.py) | ✅    | `KgEntityService` 双写 + 实体列表/详情                             |
+| 实体浏览 API     | [`api.py`](../../../apps/negentropy/src/negentropy/knowledge/api.py)                             | ✅    | `GET /graph/entities` + `GET /graph/entities/{id}`                 |
+| 图谱统计 API     | [`api.py`](../../../apps/negentropy/src/negentropy/knowledge/api.py)                             | ✅    | `GET /graph/stats` 聚合统计                                        |
+| 递归 CTE 遍历    | [`graph_repository.py`](../../../apps/negentropy/src/negentropy/knowledge/graph/repository.py)   | ✅    | `find_neighbors` / `find_path` 多跳 BFS                            |
+| 前端图谱页面     | [`graph/page.tsx`](../../../apps/negentropy-ui/app/knowledge/graph/page.tsx)                     | ✅    | 语料库选择 + 可视化 + 实体列表 + 搜索                              |
+| 前端实体面板     | [`_components/`](../../../apps/negentropy-ui/app/knowledge/graph/_components/)                   | ✅    | EntityList + EntityDetail + SearchBar + PathExplorer               |
 
 ### 4.2 当前架构
 
@@ -532,7 +532,7 @@ flowchart LR
 
 **关键实现细节**：
 
-1. **`AgeGraphRepository.create_relations()`** 改为调用 [`kg_create_relation()`](./schema/kg_schema_extension.sql) SQL 函数（已在 Schema 的 Cypher 辅助函数部分定义）
+1. **`AgeGraphRepository.create_relations()`** 改为调用 [`kg_create_relation()`](../../../apps/negentropy/src/negentropy/models/perception.py) SQL 函数（已在 Schema 的 Cypher 辅助函数部分定义）
 2. **Session 预热**：每个数据库连接需执行 `LOAD 'age'; SET search_path = ag_catalog, "$user", public;`
 3. **实体 ID 映射**：维护 `knowledge.id ↔ AGE vertex id` 的双向映射
 
@@ -1001,7 +1001,7 @@ Apache AGE 的边界在于：
 
 ### 6.6 Cognee 适配器策略
 
-遵循现有 Strategy Pattern（[graph.py](../../../../apps/negentropy/src/negentropy/knowledge/graph.py) 中的 `EntityExtractor` / `RelationExtractor` ABC）：
+遵循现有 Strategy Pattern（[graph.py](../../../apps/negentropy/src/negentropy/knowledge/graph/service.py) 中的 `EntityExtractor` / `RelationExtractor` ABC）：
 
 ```python
 class CogneeAdapter:

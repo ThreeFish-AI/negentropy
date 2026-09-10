@@ -14,9 +14,9 @@ Memory Automation 的 3 个定时作业已从 pg_cron 迁移至 **Unified Schedu
 
 | 任务 Key | Scheduler Key | 频率（默认） | 作用 | 实现入口 |
 |---|---|---|---|---|
-| `cleanup_memories` | `memory_cleanup` | 每天 02:00 | 基于 Ebbinghaus 遗忘曲线清理低价值记忆 | [`handlers/memory_automation.py`](../../negentropy/src/negentropy/engine/schedulers/handlers/memory_automation.py) |
-| `trigger_consolidation` | `memory_consolidation` | 每小时 | 按时间窗口批量触发会话巩固任务 | [`handlers/memory_automation.py`](../../negentropy/src/negentropy/engine/schedulers/handlers/memory_automation.py) |
-| `reweight_relevance` | `memory_reweight` | 每 6 小时 | Rocchio 相关性重加权 | [`handlers/memory_automation.py`](../../negentropy/src/negentropy/engine/schedulers/handlers/memory_automation.py) |
+| `cleanup_memories` | `memory_cleanup` | 每天 02:00 | 基于 Ebbinghaus 遗忘曲线清理低价值记忆 | [`handlers/memory_automation.py`](../../../apps/negentropy/src/negentropy/engine/schedulers/handlers/memory_automation.py) |
+| `trigger_consolidation` | `memory_consolidation` | 每小时 | 按时间窗口批量触发会话巩固任务 | [`handlers/memory_automation.py`](../../../apps/negentropy/src/negentropy/engine/schedulers/handlers/memory_automation.py) |
+| `reweight_relevance` | `memory_reweight` | 每 6 小时 | Rocchio 相关性重加权 | [`handlers/memory_automation.py`](../../../apps/negentropy/src/negentropy/engine/schedulers/handlers/memory_automation.py) |
 
 > 三个任务共享 `handler_kind = 'memory_automation'`，由 `task.payload.job_type` 路由到具体子处理函数。参数全部从 `task.payload` 读取（带默认值），不依赖外部配置表。
 

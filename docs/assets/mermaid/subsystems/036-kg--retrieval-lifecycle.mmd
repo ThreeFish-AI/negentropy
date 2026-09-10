@@ -1,0 +1,18 @@
+%%source: docs/concepts/subsystems/036-the-knowledge-graph.md §6.2 时态知识图谱（块#7，L875-L890）
+%%slug: subsystems/036-kg--retrieval-lifecycle
+%%type: lifecycle
+%%derived: byte-exact extraction of mermaid block #7
+%%{init: {"themeVariables": {"primaryColor": "#0b3d91", "primaryTextColor": "#ffffff"}}}%%
+stateDiagram-v2
+    [*] --> Created: 实体/关系创建
+    Created --> Active: valid_from ≤ now
+    Active --> Superseded: 新信息覆盖<br/>设置 valid_to
+    Active --> Expired: 时间过期<br/>valid_to ≤ now
+    Superseded --> [*]
+    Expired --> [*]
+
+    state Active {
+        [*] --> Current
+        Current --> Reinforced: 多次被引用
+        Reinforced --> Current: 无新引用
+    }

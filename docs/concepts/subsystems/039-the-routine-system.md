@@ -155,7 +155,7 @@ erDiagram
 
 - **隔离 worktree 字段**：`current_phase` / `pr_url`（相位机与 PR 产出，迁移 0049）与 `baseline_branch` / `work_branch` / `worktree_path`（迁移 0054）共同支撑「基于基线分支的隔离工作区 + PR 回基线」——详见 [§6](#6-隔离-worktree-与-pr-回基线基于基线分支)。
 
-模型定义：[`models/routine.py`](../../apps/negentropy/src/negentropy/models/routine.py)；建表与种子迁移：[`0048_routine_tables.py`](../../apps/negentropy/src/negentropy/db/migrations/versions/0048_routine_tables.py)；隔离 worktree 三列迁移：[`0054_routine_worktree.py`](../../apps/negentropy/src/negentropy/db/migrations/versions/0054_routine_worktree.py)。
+模型定义：[`models/routine.py`](../../../apps/negentropy/src/negentropy/models/routine.py)；建表与种子迁移：[`0048_routine_tables.py`](../../../apps/negentropy/src/negentropy/db/migrations/versions/0048_routine_tables.py)；隔离 worktree 三列迁移：[`0054_routine_worktree.py`](../../../apps/negentropy/src/negentropy/db/migrations/versions/0054_routine_worktree.py)。
 
 ## 4. 生命周期状态机
 
@@ -239,7 +239,7 @@ sequenceDiagram
     Run->>DB: 写回结果 + 更新 routine 累计
 ```
 
-模块布局（[`engine/routine/`](../../apps/negentropy/src/negentropy/engine/routine/)）：
+模块布局（[`engine/routine/`](../../../apps/negentropy/src/negentropy/engine/routine/)）：
 
 | 模块 | 职责 |
 |------|------|
@@ -319,7 +319,7 @@ flowchart TD
 
 既然每个 worktree routine 都须把成果以 PR 落到基线，「FINALIZE（push + 建 PR）终止步」由原 `config.workflow=phased` 的 opt-in，**提升为 worktree routine 通用**——IMPLEMENT 命中成功不再直接 `succeeded`，而是推进到 FINALIZE；FINALIZE 捕获 `PR_URL` 后方 `succeeded`（`phase.extract_pr_url` sentinel 优先、裸链兜底）。**PLAN 前置相位仍是 opt-in**（`config.workflow=phased`）。`prompt_builder` 为 worktree routine 注入隔离工作区上下文行（各相位）与 FINALIZE 的具体命令（`git push -u origin <work_branch>`、`gh pr create --base <归一基线> --head <work_branch>`，基线经 `workspace.normalize_base_branch` 剥离 `origin/` 前缀）。
 
-核心模块：[`engine/routine/workspace.py`](../../apps/negentropy/src/negentropy/engine/routine/workspace.py)（git 编排）；判定式 `phase.is_worktree_routine`；集成点见 `orchestrator._ensure_workspace` / `_build_config` / `_reap_workspaces`。
+核心模块：[`engine/routine/workspace.py`](../../../apps/negentropy/src/negentropy/engine/routine/workspace.py)（git 编排）；判定式 `phase.is_worktree_routine`；集成点见 `orchestrator._ensure_workspace` / `_build_config` / `_reap_workspaces`。
 
 > **凭证前置条件**：引擎宿主需具备 git push 与 `gh` 鉴权（CC 子进程继承宿主环境）；本特性不在代码内处理鉴权。
 
@@ -350,7 +350,7 @@ flowchart TD
 
 ## 9. 配置
 
-配置源：[`config/routine.py`](../../apps/negentropy/src/negentropy/config/routine.py)（`RoutineSettings`，env 前缀 `NE_ROUTINE_`，YAML 节点 `routine:`，默认值见 `config.default.yaml`）。
+配置源：[`config/routine.py`](../../../apps/negentropy/src/negentropy/config/routine.py)（`RoutineSettings`，env 前缀 `NE_ROUTINE_`，YAML 节点 `routine:`，默认值见 `config.default.yaml`）。
 
 | 配置项 | 默认 | 说明 |
 |--------|------|------|
@@ -374,7 +374,7 @@ flowchart TD
 
 ## 10. API 与前端
 
-REST 端点（[`interface/routine_api.py`](../../apps/negentropy/src/negentropy/interface/routine_api.py)，prefix `/routines`）：
+REST 端点（[`interface/routine_api.py`](../../../apps/negentropy/src/negentropy/interface/routine_api.py)，prefix `/routines`）：
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
@@ -384,7 +384,7 @@ REST 端点（[`interface/routine_api.py`](../../apps/negentropy/src/negentropy/
 | POST | `/routines/{id}/iterations/{iid}/{approve\|reject}` | 审批门控 |
 | GET | `/routines/stream` | SSE 实时事件（routine + iteration） |
 
-前端位于 [`app/interface/routine/`](../../apps/negentropy-ui/app/interface/routine/)：列表 + KPI + 过滤 + 创建/编辑表单 + 详情抽屉（迭代时间线 + 评分趋势 + 控制按钮 + 审批操作）。导航在 `InterfaceNav.tsx` 的 Scheduler 之后新增 Routine 二级菜单。SSE 实时更新经 `useRoutineStream` 订阅 `/api/routine/stream`。
+前端位于 [`app/interface/routine/`](../../../apps/negentropy-ui/app/interface/routine/)：列表 + KPI + 过滤 + 创建/编辑表单 + 详情抽屉（迭代时间线 + 评分趋势 + 控制按钮 + 审批操作）。导航在 `InterfaceNav.tsx` 的 Scheduler 之后新增 Routine 二级菜单。SSE 实时更新经 `useRoutineStream` 订阅 `/api/routine/stream`。
 
 ## 11. 涟漪效应与边界
 

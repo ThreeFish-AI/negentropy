@@ -1,0 +1,15 @@
+%%source: docs/concepts/subsystems/025-the-memory-system.md#block2
+%%slug: subsystems/025-memory--automation-gates
+%%type: workflow
+%%derived: archify
+flowchart TD
+    G1["Gate 1: 全局开关<br/>isAutoMemoryEnabled()"] --> G2["Gate 2: 时间门控<br/>hoursSince ≥ 24h"]
+    G2 --> G3["Gate 3: 会话门控<br/>sessionsTouched ≥ 5"]
+    G3 --> Lock["Lock: PID 锁 + mtime<br/>防并发 / 1h 过期"]
+    Lock --> Fork["Forked Agent<br/>受限工具权限"]
+
+    style G1 fill:#FEF3C7,stroke:#92400E,color:#000
+    style G2 fill:#FEF3C7,stroke:#92400E,color:#000
+    style G3 fill:#FEF3C7,stroke:#92400E,color:#000
+    style Lock fill:#FEE2E2,stroke:#991B1B,color:#000
+    style Fork fill:#D1FAE5,stroke:#065F46,color:#000

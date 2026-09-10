@@ -1,0 +1,64 @@
+%%source: docs/concepts/subsystems/039-the-routine-system.md#block0 (字节抽取)
+%%slug: subsystems/039-routine--architecture-overview
+%%type: architecture
+%%derived: 2026-09-11 · archify 四件套源
+%% fix: SCHED 子图标注的 schedulers/registry.py 实际路径为 engine/schedulers/registry.py（内容一致，仅路径前缀）
+    subgraph UI["前端 negentropy-ui · Interface / Routine"]
+        PAGE["RoutinePage<br/>列表 / 详情抽屉 / 创建表单"]
+        SSE_C["useRoutineStream<br/>SSE 订阅"]
+    end
+
+    subgraph API["接口层 interface/routine_api.py"]
+        REST["REST: CRUD + start/pause/resume/cancel<br/>+ approve/reject"]
+        STREAM["GET /routines/stream (SSE)"]
+    end
+
+    subgraph SCHED["调度引擎 schedulers/registry.py"]
+        TICK["routine_inspector ScheduledTask<br/>interval=25s 心跳"]
+    end
+
+    subgraph ENGINE["编排引擎 engine/routine/"]
+        ORCH["RoutineOrchestrator.inspect_once()<br/>reap → evaluate → dispatch"]
+        EVAL["RoutineEvaluator<br/>命令门控 + LLM-as-Judge"]
+        DEC["decision.py<br/>纯函数守卫"]
+        RUN["RoutineRunner<br/>后台 asyncio.Task + 信号量"]
+        BUS["RoutineBus<br/>SSE 事件 fan-out"]
+    end
+
+    subgraph EXEC["执行层"]
+        CC["ClaudeCodeService.invoke()<br/>SDK / CLI + resume_session_id"]
+    end
+
+    subgraph DB["PostgreSQL"]
+        T1[("routines")]
+        T2[("routine_iterations")]
+    end
+
+    PAGE -->|fetch| REST
+    SSE_C -.->|EventSource| STREAM
+    REST --> T1
+    REST --> T2
+    TICK --> ORCH
+    ORCH --> DEC
+    ORCH --> EVAL
+    ORCH --> RUN
+    RUN --> CC
+    ORCH --> BUS
+    RUN --> BUS
+    BUS -.-> STREAM
+    ORCH --> T1
+    ORCH --> T2
+    RUN --> T2
+
+    classDef ui fill:#1e3a5f,stroke:#4a9eff,color:#e0f0ff
+    classDef api fill:#3d2f5c,stroke:#a87fff,color:#f0e8ff
+    classDef sched fill:#5c4a1e,stroke:#ffc857,color:#fff5e0
+    classDef engine fill:#1e4d3a,stroke:#4ade80,color:#e0ffe8
+    classDef exec fill:#5c1e2e,stroke:#ff6b81,color:#ffe0e8
+    classDef db fill:#2d2d3d,stroke:#8888aa,color:#e0e0f0
+    class PAGE,SSE_C ui
+    class REST,STREAM api
+    class TICK sched
+    class ORCH,EVAL,DEC,RUN,BUS engine
+    class CC exec
+    class T1,T2 db

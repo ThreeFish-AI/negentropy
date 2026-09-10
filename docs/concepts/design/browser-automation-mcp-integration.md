@@ -23,42 +23,9 @@ title: "浏览器操作 MCP 集成方案：Playwright MCP 全系统默认配备"
 
 全系统**所有** Claude Code 调用共享同一个 MCP 注入点——`builtin_tools` 表中 `name='claude_code'` 行的 `config.mcp_config`。三条执行入口（Routine、Scheduler、6 Agents）都经由它获得默认 MCP，再经 [`ClaudeCodeService`](../../../apps/negentropy/src/negentropy/engine/claude_code/service.py) 透传给 Claude Code CLI/SDK。本方案因此只需在这**一个**注入点种入 Playwright，即可全系统生效。
 
-```mermaid
-flowchart TD
-    subgraph SEED["种子层 · 迁移 0062（单一事实源）"]
-        MIG["0062_seed_playwright_browser_mcp.py<br/>PLAYWRIGHT_ARGS（钉死版本）"]
-        MIG -->|"B1 幂等 upsert"| CARD["mcp_servers(playwright)<br/>is_system=TRUE · auto_start"]
-        MIG -->|"B2 幂等合并"| BT["builtin_tools(claude_code).config<br/>mcp_config.playwright + allowed_tools+=mcp__playwright"]
-    end
+![Playwright MCP 单一注入点迁移工作流：迁移 0062 种子层经 B1 幂等 upsert 写入 mcp_servers 目录卡片、经 B2 幂等合并注入 builtin_tools(claude_code) 配置，Routine/Scheduler/6 Agents 三入口同源读取后经 CLI/SDK 双通道传给 Claude Code 子进程，以 stdio 拉起 headless chromium 对目标站点实机回归验证。](../../assets/architecture/design/browser-mcp--seed-migration-dark.png)
 
-    subgraph ENTRY["执行入口（三者同源）"]
-        R["Routine<br/>orchestrator._build_config"]
-        S["Scheduler<br/>claude_code handler"]
-        A["6 Agents<br/>ActionFaculty.invoke_claude_code"]
-    end
-
-    BT -->|"_load_claude_code_defaults()"| R
-    BT -->|"_load_claude_code_defaults()"| S
-    BT -->|"state 缺省回退 _load_claude_code_defaults()"| A
-
-    R --> CFG["ClaudeCodeConfig.mcp_config<br/>+ allowed_tools(含 mcp__playwright)"]
-    S --> CFG
-    A --> CFG
-
-    CFG -->|"CLI: --mcp-config {mcpServers}"| CC["Claude Code 子进程"]
-    CFG -->|"SDK: options.mcp_servers"| CC
-    CC -->|"stdio · npx @playwright/mcp"| PW["Playwright MCP Server<br/>headless chromium"]
-    PW --> WEB(["目标站点 · 实机回归验证"])
-
-    CARD -.->|"实时拉取展示"| UI["Interface/MCP 卡片<br/>+ Routine 迭代 McpServersPanel"]
-
-    classDef seed fill:#1e3a5f,stroke:#4a90d9,color:#e8f0fe
-    classDef entry fill:#2d4a22,stroke:#5cb85c,color:#eaf7ea
-    classDef run fill:#5c2d2d,stroke:#d9534f,color:#fdeaea
-    class MIG,CARD,BT seed
-    class R,S,A entry
-    class CFG,CC,PW,WEB run
-```
+> 图源（可 diff 文本）：[`browser-mcp--seed-migration.mmd`](../../assets/mermaid/design/browser-mcp--seed-migration.mmd) · 交互版（下载到本地打开）：[`browser-mcp--seed-migration.html`](../../assets/architecture/design/browser-mcp--seed-migration.html)
 
 ### 2.1 Provisioning 链路（源码锚点）
 

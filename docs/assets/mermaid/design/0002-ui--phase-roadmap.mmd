@@ -1,0 +1,12 @@
+%%source: docs/concepts/design/0002-ui-interaction-enhancements.md#block0 (L202-L215, §5 实施依赖)
+%%slug: design/0002-ui--phase-roadmap
+%%type: workflow
+%%derived: archify workflow v2, corrected from source mermaid
+%% fix: (1) 原图把 4.1-4.6 六项全部画成 RFC 0001 的下游待办、三条后端协议扩展画成未通虚线；代码核验 4.1 折叠式 ReasoningPanel（P2-4 G3）、4.3 STATE_DELTA tool_progress（agents/tools/common.py emit_tool_progress 走 ADK state_delta + 前端 ToolExecutionGroup 进度条）、4.4 审批闭环（agents/approval.py + ApprovalDialog + BFF approval_response + forwardedProps.approval_policy）均已先行落地，未依赖 Turn 模型；(2) RFC 0001 仍 Draft：现行 types/a2ui.ts 的 ConversationNode 树（RFC 计划的 types/conversation.ts 未建）；(3) 4.2 文中「Phase A 已落地」注记过时：SubAgentTransferCard / SubAgentTransferDisplaySegment 全仓 0 命中，仅 chat-display.ts 存在 transfer_to_agent 检测与「委派至子 Agent」标签；(4) 4.1 右侧 surface 面板确属 RFC 0001 下游（ReasoningPanel.tsx 头注释自证「后者依赖 RFC 0001 的 Turn/Item 数据模型」）；4.5/4.6 未实现（branches / Timeline 筛选 0 命中）；(5) 三条后端扩展中 tool_progress 与 approval 闭环已通、forwardedProps 已透传，ne.approval.* CUSTOM 类型化仍留白（全仓 0 命中，现走 snapshot pending_approvals），故后端节点并入已交付侧、不再单列
+graph TD
+    Phase1["Phase 1: 双气泡修复 (PR #435 已完成)"] --> Phase2["Phase 2: 后端 runId 透传 (已完成)"]
+    Phase2 --> RFC1["RFC 0001: Turn/Item 模型 (Draft 未落地)"]
+    Phase2 -->|"先行交付"| SHIPPED["4.1 折叠面板 · 4.3 工具进度 · 4.4 审批门 (已落地)"]
+    RFC1 --> R41S["4.1 右侧推理面板 (待办 · 依赖 Turn.items)"]
+    RFC1 --> R42["4.2 Sub-Agent 嵌套卡片 (待办 · childTurnId)"]
+    RFC1 -->|"Turn.branches"| R456["4.5 Branching · 4.6 Timeline 增强 (待办)"]

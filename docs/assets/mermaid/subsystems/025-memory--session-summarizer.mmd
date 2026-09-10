@@ -1,0 +1,26 @@
+%%source: docs/concepts/subsystems/025-the-memory-system.md#block6
+%%slug: subsystems/025-memory--session-summarizer
+%%type: workflow
+%%derived: archify
+%% fix: 「Session Summarizer」节点锚定真实代码路径——代码中 SessionSummarizer(engine/summarization.py) 仅做标题生成(task=session.title)，会话→情景记忆的真实写入是 PostgresMemoryService.add_session_to_memory() → _simple_consolidate()（生产可注入 consolidation worker 入队 consolidation_jobs）；「Full Consolidation」标注生产调度事实——trigger_maintenance_consolidation() 仅批量入队 full_consolidation，fast_replay/deep_reflection 是 job_type 文档级档位（无生产入队方）
+flowchart LR
+    SE["Session Events<br/>(原始对话)"] --> SUM["Session<br/>Summarizer"]
+    SUM --> EP["Episodic<br/>Storage"]
+    EP --> CW["Consolidation<br/>Worker"]
+
+    CW --> FR["Fast Replay<br/>即时提取"]
+    CW --> DR["Deep Reflection<br/>跨会话分析"]
+    CW --> FC["Full Consolidation<br/>全量重建"]
+
+    FR --> UM["Updated<br/>Memories"]
+    DR --> UF["Updated<br/>Facts"]
+    FC --> UM
+    FC --> UF
+
+    classDef source fill:#60A5FA,stroke:#1E3A8A,color:#000
+    classDef process fill:#F59E0B,stroke:#92400E,color:#000
+    classDef output fill:#10B981,stroke:#065F46,color:#FFF
+
+    class SE source
+    class SUM,CW,FR,DR,FC process
+    class EP,UM,UF output

@@ -47,41 +47,13 @@ LLM Agent 的可控性与可扩展性，从根本上是**上下文工程**问题
 
 ## 3. Negentropy 实现边界
 
-```mermaid
-flowchart LR
-  subgraph UI["/interface/skills - UI"]
-    A1[SkillsPage] -->|CRUD| A2[SkillFormDialog]
-    A2 -->|JSON 校验<br/>字段级锚定| A3[ConfirmDialog]
-    A1 -->|Inline toggle| A4[PATCH is_enabled]
-  end
+![Skills 管理 UI 链路：/interface/skills 页面经 Next.js BFF 代理（cookie ne_sso 透传）调用 FastAPI /interface/skills CRUDL 落 skills 表，From Template 经模板端点查 definitions SSOT 并物化 .agent/skills（seed 11/12），运行时经 skills_injector 以 <available_skills> 注入 SubAgent 系统提示词。](../../assets/architecture/design/skills--management-ui-dark.png)
 
-  subgraph BFF[Next.js BFF]
-    B1["/api/interface/skills*"]
-  end
-
-  subgraph Backend[FastAPI / negentropy]
-    C1["/interface/skills CRUDL"]
-    C2[Skill ORM + permissions]
-    C3[skills_injector]
-    C4[_load_subagent_row]
-  end
-
-  subgraph Runtime[ADK Agent Runtime]
-    D1[InstructionProvider]
-    D2[LLM Call]
-  end
-
-  UI -->|cookie ne_sso| BFF
-  BFF -->|Authorization 透传| Backend
-  C1 --> C2
-  C4 -->|fetch SubAgent.skills| C3
-  C3 -->|Progressive Disclosure| D1
-  D1 -->|system_prompt + <available_skills>| D2
-```
+> 图源（可 diff 文本）：[`skills--management-ui.mmd`](../../assets/mermaid/design/skills--management-ui.mmd) · 交互版（下载到本地打开）：[`skills--management-ui.html`](../../assets/architecture/design/skills--management-ui.html)
 
 ### 3.1 Phase 1 已落地
 
-- **CRUDL**：完整增删改查 + 分类过滤（`apps/negentropy/src/negentropy/interface/api.py`）；
+- **CRUDL**：完整增删改查 + 分类过滤（`apps/negentropy/src/negentropy/interface/skills_api.py`）；
 - **权限模型**：admin > owner > visibility（PRIVATE/SHARED/PUBLIC）+ `PluginPermission` 表；
 - **UI**：在线编辑 + Inline 启停 + ConfirmDialog + JSON 字段级错误锚定 + sonner toast；
 - **Layer 1 描述常驻**：`agents/skills_injector.py` 在 `_load_subagent_row` 注入 `<available_skills>` 块到 SubAgent 系统 prompt；

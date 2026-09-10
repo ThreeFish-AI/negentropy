@@ -1,0 +1,17 @@
+%% source: docs/concepts/subsystems/039-the-routine-system.md §4.1 Routine 状态机（原 L165-L177，块#2）
+%% slug: subsystems/039-routine--iteration-lifecycle
+%% type: lifecycle
+%% derived: docs/assets/architecture/subsystems/039-routine--iteration-lifecycle.html (+ -dark/-light PNG)
+stateDiagram-v2
+    [*] --> pending: 创建
+    pending --> running: start()
+    pending --> cancelled: cancel()
+    running --> paused: pause() + 中止在途迭代
+    paused --> running: resume()
+    paused --> cancelled: cancel()
+    running --> succeeded: 评分≥阈值且门控通过
+    running --> failed: 守卫触发(预算/停滞/振荡/不可恢复)
+    running --> cancelled: cancel()
+    succeeded --> [*]
+    failed --> [*]
+    cancelled --> [*]

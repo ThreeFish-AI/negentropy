@@ -8,7 +8,7 @@ title: "Docker Compose 运维指引"
 >
 > - 镜像构建与 CI/CD 流水线设计：[Docker Release Pipeline](../design/docker-release-pipeline.md)
 > - 原生开发环境搭建：[Development Guide](./development.md)
-> - 相关配置文件：[docker/docker-compose.yml](../../docker/docker-compose.yml)、[.env.docker](../../.env.docker)
+> - 相关配置文件：[docker/docker-compose.yml](../../../docker/docker-compose.yml)、[.env.docker](../../../.env.docker)
 
 ---
 
@@ -76,7 +76,7 @@ flowchart TB
 | `ui`        | `negentropy-ui`        | `threefishai/negentropy-ui`        | 3192     | `curl -sf http://localhost:3192/`          | `backend: healthy`              |
 | `wiki`      | `negentropy-wiki`      | `threefishai/negentropy-wiki`      | 3092     | `curl -sf http://localhost:3092/`          | `backend + ui: healthy`         |
 
-> 镜像命名的单一事实源是 [docker/docker-compose.yml](../../docker/docker-compose.yml) 中各服务的 `image:` 字段。
+> 镜像命名的单一事实源是 [docker/docker-compose.yml](../../../docker/docker-compose.yml) 中各服务的 `image:` 字段。
 
 ### 1.3 启动顺序
 
@@ -97,8 +97,8 @@ Compose 通过 `depends_on: condition: service_healthy` 建立级联启动链：
 
 ### 2.1 本地零配置快速启动（推荐入门）
 
-本地开发**无需任何云凭证**即可启动全栈。一键入口 [`./scripts/dev`](../../scripts/dev) 会自动叠加本地安全配置层
-[`docker/docker-compose.local.yml`](../../docker/docker-compose.local.yml)（inmemory 制品 / 关闭 Langfuse 外发 / 标记 development）：
+本地开发**无需任何云凭证**即可启动全栈。一键入口 [`./scripts/dev`](../../../scripts/dev) 会自动叠加本地安全配置层
+[`docker/docker-compose.local.yml`](../../../docker/docker-compose.local.yml)（inmemory 制品 / 关闭 Langfuse 外发 / 标记 development）：
 
 ```bash
 ./scripts/dev            # = setup（创建 .env.docker.local）+ 构建并启动全栈 + 健康自检 + doctor
@@ -125,7 +125,7 @@ Compose 通过 `depends_on: condition: service_healthy` 建立级联启动链：
 
 ### 2.3 环境变量设置
 
-[docker/docker-compose.yml](../../docker/docker-compose.yml) 采用双层 `env_file` 叠加机制：
+[docker/docker-compose.yml](../../../docker/docker-compose.yml) 采用双层 `env_file` 叠加机制：
 
 | 层级   | 文件                | 必须存在                | 用途                             |
 | :----- | :------------------ | :---------------------- | :------------------------------- |
@@ -156,7 +156,7 @@ cp .env.docker .env.docker.local
 | `NEGENTROPY_PERCEIVES_LLM__API_KEY`      | 否       | perceives          | Perceives Smart 模式 LLM 密钥              |
 | `NEGENTROPY_PERCEIVES_LLM__API_BASE_URL` | 否       | perceives          | Perceives Smart 模式 LLM 基地址            |
 
-> 完整变量列表与注释参见 [.env.docker](../../.env.docker)。密钥**严禁**写入 `.env.docker`（已提交到版本库），应统一填写在 `.env.docker.local` 中。
+> 完整变量列表与注释参见 [.env.docker](../../../.env.docker)。密钥**严禁**写入 `.env.docker`（已提交到版本库），应统一填写在 `.env.docker.local` 中。
 
 ---
 
@@ -190,7 +190,7 @@ NEGENTROPY_IMAGE_TAG=1.3.0 docker compose -f docker/docker-compose.yml pull
 NEGENTROPY_IMAGE_TAG=1.3.0 docker compose -f docker/docker-compose.yml up -d --no-build
 ```
 
-> 升级时 backend 容器的 [entrypoint.sh](../../docker/backend/entrypoint.sh) 会自动执行 `alembic upgrade head`，无需手动迁移。
+> 升级时 backend 容器的 [entrypoint.sh](../../../docker/backend/entrypoint.sh) 会自动执行 `alembic upgrade head`，无需手动迁移。
 
 ### 3.2 使用本地构建（开发/测试）
 
@@ -216,7 +216,7 @@ docker compose -f docker/docker-compose.yml build backend && docker compose -f d
 
 ### 3.3 Compose 覆盖的环境变量
 
-以下环境变量由 [docker/docker-compose.yml](../../docker/docker-compose.yml) 在 `environment:` 中显式设置，覆盖 `.env.docker.local` 中的同名项。它们使用 Docker 内部网络服务名替代 `localhost`：
+以下环境变量由 [docker/docker-compose.yml](../../../docker/docker-compose.yml) 在 `environment:` 中显式设置，覆盖 `.env.docker.local` 中的同名项。它们使用 Docker 内部网络服务名替代 `localhost`：
 
 | 变量                                | 值                                                    | 说明                                                                                  |
 | :---------------------------------- | :---------------------------------------------------- | :------------------------------------------------------------------------------------ |
@@ -419,7 +419,7 @@ flowchart TD
 | **依赖链阻塞**            | 服务一直等待，未启动                                                                               | 上游服务未达到 healthy 状态                                                                                                                                                  | postgres 与 perceives 无级联关系、应分别独立排查；级联链为 postgres/perceives → backend → ui → wiki，按此顺序逐级确认上游 healthy                                                                         |
 | **环境变量未加载**        | 认证失败或 API Key 缺失                                                                            | `.env.docker.local` 未创建或密钥为空                                                                                                                                         | 确认文件存在且值已填写：`cat .env.docker.local \| grep -v '^#' \| grep -v '^$'`                                                                                                                              |
 | **架构不匹配**            | `exec format error`                                                                                | 在 amd64 主机运行 arm64 单架构镜像（或反之）                                                                                                                                 | 使用多架构清单（默认行为），不要指定特定架构 digest                                                                                                                                                          |
-| **Python 服务 exec 失败** | `exec /app/.venv/bin/<script>: no such file or directory`，容器退出码 255                          | 多阶段 Dockerfile 中 builder 与 runtime `WORKDIR` 不一致，`uv sync` 生成的 console_script shebang 被固化为 builder 绝对路径（如 `/build/.venv/bin/python3`），runtime 不存在 | builder 与 runtime 须保持相同 `WORKDIR`（本项目统一 `/app`），参见 [`docker/perceives/Dockerfile`](../../docker/perceives/Dockerfile)、[`docker/backend/Dockerfile`](../../docker/backend/Dockerfile)        |
+| **Python 服务 exec 失败** | `exec /app/.venv/bin/<script>: no such file or directory`，容器退出码 255                          | 多阶段 Dockerfile 中 builder 与 runtime `WORKDIR` 不一致，`uv sync` 生成的 console_script shebang 被固化为 builder 绝对路径（如 `/build/.venv/bin/python3`），runtime 不存在 | builder 与 runtime 须保持相同 `WORKDIR`（本项目统一 `/app`），参见 [`docker/perceives/Dockerfile`](../../../docker/perceives/Dockerfile)、[`docker/backend/Dockerfile`](../../../docker/backend/Dockerfile)        |
 
 ### 6.3 调试命令参考
 
@@ -465,7 +465,7 @@ curl -s -o /dev/null -w '%{http_code}\n' https://hub.docker.com/v2/repositories/
 
 **② 版本号决策**（⚠️ 非显而易见的耦合）：
 
-Docker 镜像 tag 由 git tag 派生（`negentropy-v<x.y.z>` → `<x.y.z>`），但 `package-release` 用 `uv build` 打的 wheel 取自 [`apps/negentropy/pyproject.toml`](../../apps/negentropy/pyproject.toml) 的 `version`。**首发 tag 务必与 pyproject `version` 对齐**，否则 GitHub Release 标题、wheel 命名、Docker 镜像 tag 三者错位。
+Docker 镜像 tag 由 git tag 派生（`negentropy-v<x.y.z>` → `<x.y.z>`），但 `package-release` 用 `uv build` 打的 wheel 取自 [`apps/negentropy/pyproject.toml`](../../../apps/negentropy/pyproject.toml) 的 `version`。**首发 tag 务必与 pyproject `version` 对齐**，否则 GitHub Release 标题、wheel 命名、Docker 镜像 tag 三者错位。
 
 | 当前 pyproject `version` | 推荐首发 tag        |
 | :----------------------- | :------------------ |

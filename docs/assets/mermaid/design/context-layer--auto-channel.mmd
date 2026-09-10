@@ -1,0 +1,27 @@
+%%source: docs/concepts/design/context-layer.md#block3 (L249-L271, §5.1)
+%%slug: design/context-layer--auto-channel
+%%type: workflow
+%%derived: archify workflow v2, byte-extract of source mermaid
+%% fix: 原图把 _collect_kg_context() 画在 assemble() → get_context_window() 的线性链上；代码中该方法由同类的并列公开方法 get_memory_summary()（轻量摘要接口，context_assembler.py L337）调用，assemble() 主链仅 Core Block → Reflections → get_context_window()。本图将 KG 摘要改为 get_memory_summary() 并列入口，其余节点语义逐字节保留
+graph LR
+    subgraph AUTO["自动通道（每轮注入）"]
+        A1["ContextAssembler.assemble()"] --> A2["Core Block + Reflections"]
+        A2 --> A3["记忆 get_context_window()<br/>30% memory / 50% history / 20% system"]
+        A3 --> A5["❌ 无 KB chunk 接地"]
+        A0["get_memory_summary()<br/>轻量摘要接口"] --> A4["_collect_kg_context()<br/>KG 高重要性实体 top-5"]
+        A4 --> A5
+    end
+    subgraph ONDEMAND["按需通道（Agent 调工具）"]
+        O1["HybridPlanner.plan()"] --> O2["Intent 分类"]
+        O2 --> O3["asyncio.gather 多 Corpus<br/>KB hybrid_search"]
+        O3 --> O4["canonical 图扩展"]
+        O4 --> O5["RRF + Rerank"]
+        O5 --> O6["❌ 不含 Memory"]
+    end
+
+    classDef auto fill:#1f3a5f,stroke:#5b9bd5,stroke-width:2px,color:#e8f0fe
+    classDef ond fill:#5a3d1f,stroke:#d59b5b,stroke-width:2px,color:#fdf3e8
+    classDef gap fill:#4d1f1f,stroke:#d55b5b,stroke-width:2px,color:#fde8e8
+    class A1,A2,A3,A0,A4 auto
+    class O1,O2,O3,O4,O5 ond
+    class A5,O6 gap

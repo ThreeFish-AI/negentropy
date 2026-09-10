@@ -52,6 +52,20 @@
 
 | slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
+| [context-layer--runtime-layering](./design/context-layer--runtime-layering.mmd) | design/context-layer.md §3 | architecture | ✓ | done | fix: ① 补全 Tools/Skills→PostgreSQL 两条边（builtin |
+| [context-layer--evolution-levers](./design/context-layer--evolution-levers.mmd) | design/context-layer.md §7 | architecture | ✓ | done | fix: (1) 状态机补终态 rejected（代码 STATUS_REJECTED 存 |
+| [self-evolving--consolidation-loop](./design/self-evolving--consolidation-loop.mmd) | design/self-evolving-agents.md §7 |  | ✓ | done | fix: 1) 补码证负反馈闭环边：memory_retrieval_logs 的 irr |
+| [self-evolving--four-layer-loop](./design/self-evolving--four-layer-loop.mmd) | design/self-evolving-agents.md §2 |  | ✓ | done | fix: 对照仓库代码修正三处：(1) 评测引擎删「Agent-as-a-Judge」（文 |
+| [context-layer--auto-channel](./design/context-layer--auto-channel.mmd) | design/context-layer.md §5 | workflow | ✓ | done | fix: 1) 事实修正（以代码为准）：原图把 _collect_kg_context() |
+| [context-layer--assembler-planner](./design/context-layer--assembler-planner.mmd) | design/context-layer.md §6 | workflow | ✓ | done | fix: 源 mermaid 块#4 本身与代码事实自洽（「既有」节点全部核对通过、「新增 |
+| [context-layer--request-injection](./design/context-layer--request-injection.mmd) | design/context-layer.md §2 | workflow | ✓ | done | fix: 4 处以代码为准的修正（.mmd 携 %% fix 行、facts 笔记逐条锚点 |
+| [0002-ui--phase-roadmap](./design/0002-ui--phase-roadmap.mmd) | design/0002-ui-interaction-enhancements.md | workflow | ✓ | done | fix: 以代码为准修正五处：(1) 原图把 4.1-4.6 六项全部画成 RFC 000 |
+| [context-layer--collect-phase](./design/context-layer--collect-phase.mmd) | design/context-layer.md §1 | dataflow | ✓ | done | fix: ① 拓扑修正（%% fix 已记录于 .mmd）：原块把 Collect 三机制 |
+| [qa-delivery--push-gate](./design/qa-delivery--push-gate.mmd) | design/qa-delivery-pipeline.md | workflow | ✓ | done | fix: 三处按代码修正：1) 原图 PRGate 子图只画「入口→reusable」两层 |
+| [docker-release--pipeline](./design/docker-release--pipeline.mmd) | design/docker-release-pipeline.md | workflow | ✓ | done | fix: D-7 修正已核验并落入产物：workflow matrix 实际为 wiki← |
+| [sso--auth-flow](./design/sso--auth-flow.mmd) | design/sso.md | sequence | ✓ | done | fix: validate 三轮收敛（18 err → 1 err → 0/0）：R1 修 |
+| [browser-mcp--seed-migration](./design/browser-mcp--seed-migration.mmd) | design/browser-automation-mcp-integration.md | workflow | ✓ | done | fix: 源图 11 节点精简为 8（workflow v2 ≤8 预算）：三执行入口（R |
+| [skills--management-ui](./design/skills--management-ui.mmd) | design/skills.md | workflow | ✓ | done | fix: (1) SkillFormDialog → SkillFormDrawer：实际 |
 
 ### operations/（docs/concepts/operations/）
 
@@ -62,6 +76,20 @@
 
 | slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
+| [025-memory--automation-gates](./subsystems/025-memory--automation-gates.mmd) | subsystems/025 §5 | workflow | ✓ | done | fix: 无需 %% fix: 修正（文档块与引用源码逐项核验一致：24h/5 会话阈值、 |
+| [025-memory--session-summarizer](./subsystems/025-memory--session-summarizer.mmd) | subsystems/025 §5.4 | workflow | ✓ | done | fix: 两处 %% fix：(1) 源图「Session Summarizer」节点在代 |
+| [025-memory--runner-sequence](./subsystems/025-memory--runner-sequence.mmd) | subsystems/025 §4 | sequence | ✓ | done | fix: 1) 事实修正（mmd 头部 %% fix: 三行 + notes）：简化路径由 |
+| [025-memory--dedup-stages](./subsystems/025-memory--dedup-stages.mmd) | subsystems/025 §5.6 | workflow | ✓ | done | fix: mmd 头 %% fix 两项：(1) 补 Stage 3「判定无矛盾 → 通过 |
+| [025-memory--hybrid-search-levels](./subsystems/025-memory--hybrid-search-levels.mmd) | subsystems/025 §6.1 | workflow | ✓ | done | fix: ①决策门「有 embedding_fn？」校正为「query 向量可用？」：代码 |
+| [025-memory--forms-dimensions](./subsystems/025-memory--forms-dimensions.mmd) | subsystems/025 §1 | architecture | ✓ | done | fix: EX→FL 边标签由「instructions 表」改为「memories /  |
+| [025-memory--dashboard-ui](./subsystems/025-memory--dashboard-ui.mmd) | subsystems/025 §3 | architecture | ✓ | done | fix: 五处文档-代码偏差校正（详见 .mmd %% fix 行与 .temp/arch |
+| [025-memory--audit-api-sequence](./subsystems/025-memory--audit-api-sequence.mmd) | subsystems/025 §7.3 | sequence | ✓ | done | fix: 1) 幂等性检查从源图 MGS 自环改为 MGS→PostgreSQL 的 SE |
+| [037-federated--cross-corpus-search](./subsystems/037-federated--cross-corpus-search.mmd) | subsystems/037 §4 | workflow | ✓ | done | fix: ① Stage 3 触发集合补 global_summary（hybrid_pl |
+| [025-memory--lifecycle](./subsystems/025-memory--lifecycle.mmd) | subsystems/025 §2 | lifecycle | ✓ | done | fix: 无 %% fix: 行——代码核验未发现需改拓扑的文档-代码不一致（全部转换与  |
+| [037-federated--kg-topology](./subsystems/037-federated--kg-topology.mmd) | subsystems/037 §3 | architecture | ✓ | done | fix: 1) KgRelation 原图是 Corpus-A 内孤立节点，实为 corp |
+| [025-memory--retrieval-logging](./subsystems/025-memory--retrieval-logging.mmd) | subsystems/025 §6.5 | dataflow | ✓ | done | fix: 终点节点「调整 retention_score 权重」校正为「自进化调权」：代码 |
+| [025-memory--control-plane](./subsystems/025-memory--control-plane.mmd) | subsystems/025 §8 | architecture | ✓ | done | fix: 4 处文档-代码不一致按当前实现修正（mmd 头 %% fix: 行）：1) p |
+| [025-memory--telemetry-collection](./subsystems/025-memory--telemetry-collection.mmd) | subsystems/025 §11.4 | dataflow | ✓ | done | fix: 无内容级修正（faithful redraw，未加 %% fix 行）。结构性调 |
 
 ### user-guide/（docs/concepts/user-guide/）
 

@@ -199,20 +199,9 @@ type SubAgentTransferCardProps = {
 
 ## 5. 实施依赖
 
-```mermaid
-graph TD
-    Phase1["Phase 1 (PR #435 已完成)"] --> Phase2[Phase 2: 后端 runId 透传]
-    Phase2 --> RFC1[RFC 0001: 架构重塑]
-    RFC1 --> P4_1[4.1 Reasoning Panel]
-    RFC1 --> P4_2[4.2 Sub-Agent 嵌套]
-    RFC1 --> P4_3[4.3 工具进度]
-    RFC1 --> P4_4[4.4 中断审批]
-    RFC1 --> P4_5[4.5 Branching]
-    RFC1 --> P4_6[4.6 Timeline]
-    P4_3 -.依赖后端协议扩展.-> Backend1[STATE_DELTA tool_progress]
-    P4_4 -.依赖后端协议扩展.-> Backend2[ne.approval.* CUSTOM]
-    P4_5 -.依赖后端协议扩展.-> Backend3[runAgent forwardedProps 扩展]
-```
+![RFC 0002 UI 交互增强阶段路线：Phase 1（PR #435）与 Phase 2 runId 透传已完成，4.1 折叠推理面板与 4.3 工具进度、4.4 审批门已先行交付；4.1 右侧面板、4.2 Sub-Agent 嵌套卡片与 4.5/4.6 增强等待 RFC 0001 Turn/Item 模型落地。](../../assets/architecture/design/0002-ui--phase-roadmap-dark.png)
+
+> 图源（可 diff 文本）：[`0002-ui--phase-roadmap.mmd`](../../assets/mermaid/design/0002-ui--phase-roadmap.mmd) · 交互版（下载到本地打开）：[`0002-ui--phase-roadmap.html`](../../assets/architecture/design/0002-ui--phase-roadmap.html)
 
 ---
 

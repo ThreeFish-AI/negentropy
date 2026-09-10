@@ -1,0 +1,27 @@
+%%source: docs/concepts/subsystems/036-the-knowledge-graph.md §5.2 迁移策略（双读兼容）
+%%slug: subsystems/036-kg--dual-write
+%%type: workflow
+%%derived: byte-exact extraction of mermaid block #3
+%% fix: 「写 AGE Edge / 读 AGE」与现实现不符——apps/negentropy/src/negentropy/knowledge/graph/repository.py 无任何 cypher() 调用，实际落点是 kg_relations/kg_entities 一等公民表（AgeGraphRepository 为遗留命名）；archify 图按实际表名绘制
+%%{init: {"themeVariables": {"primaryColor": "#0b3d91", "primaryTextColor": "#ffffff"}}}%%
+flowchart LR
+    subgraph Phase_A["阶段 A: 双写"]
+        Write_JSONB["写 JSONB"]
+        Write_AGE["写 AGE Edge"]
+        Write_JSONB & Write_AGE
+    end
+
+    subgraph Phase_B["阶段 B: 双读"]
+        Read_JSONB["读 JSONB (回退)"]
+        Read_AGE["读 AGE (优先)"]
+    end
+
+    subgraph Phase_C["阶段 C: 清理"]
+        Drop_JSONB["移除 JSONB 关系字段"]
+        AGE_Only["AGE 唯一源"]
+    end
+
+    Phase_A --> Phase_B --> Phase_C
+
+    classDef step fill:#0f5132,stroke:#0f5132,color:#ffffff
+    class Write_JSONB,Write_AGE,Read_JSONB,Read_AGE,Drop_JSONB,AGE_Only step

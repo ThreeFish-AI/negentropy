@@ -1,0 +1,25 @@
+%%source: docs/concepts/design/context-layer.md#block1 (L95-115, §2.1)
+%%slug: design/context-layer--request-injection
+%%type: workflow
+%%derived: archify workflow v2, byte-extract of source mermaid
+%% fix: (1) 删 MR-.读.→DEF（definitions 表）边——model_resolver.py 与 skills_injector.py 全文零 Definition 引用；definitions(kind=agent) 由 bootstrap 期 agent_factory.build_root_agent_from_db() 消费（NE_AGENTS_FROM_DB 默认开，engine/bootstrap.py:256），不在请求期解析链上
+%% fix: (2) CA 节点（ContextAssembler.assemble() 自动注入·每轮）替换为 preload_memory_tool——assemble() 全仓无生产调用方（仅单测 test_context_assembler_reflection.py），每轮自动注入的真实机制是 root tools 的 NegentropyPreloadMemoryTool（agents/tools/memory.py:188，每轮 LLM 请求前以用户消息检索长期记忆注入 <RELEVANT_MEMORIES>，agent.py:248 注册）；ContextAssembler 运行期仅在 KB 检索回退用 get_memory_summary()（tools/perception.py:283，读 memories/facts/kg_entities）
+%% fix: (3) HP 读面「kg_relations / canonical」修正为「KG canonical 图扩展」——HybridPlanner Stage 3 走 kg_entities→canonical→alias 桥接（hybrid_planner.py:384-433），不读 kg_relations（kg_relations 由 internalization 写入、CA _collect_kg_context 1-hop 读取）
+%% fix: (4) AGT 补 agent_versions 快照——active_version 非 NULL 时 _load_subagent_row 读快照 system_prompt 覆盖 agents 基线（model_resolver.py:374-391，ADR-3 R8-b）；MEM 收敛为 memories（facts 仅经 KB 回退的 get_memory_summary 读取）
+graph TD
+    Q["用户请求 / Faculty 调用"] --> DI["_dynamic_instruction.py<br/>make_instruction_provider()"]
+    DI --> MR["model_resolver.py<br/>_load_subagent_row()"]
+    MR --> SI["skills_injector.py<br/>build_progressive_disclosure_prompt()"]
+    MR -.读.-> AGT[("agents 表<br/>+ agent_versions 快照")]
+    SI -.读.-> SK[("skills / skill_versions")]
+    DI -.回退.-> CODE["硬编码 _INSTRUCTION"]
+    PM["preload_memory_tool<br/>每轮注入 RELEVANT_MEMORIES"] -.读.-> MEM[("memories")]
+    HP["HybridPlanner.plan()<br/>按需（Agent 调工具）"] -.读.-> KB[("knowledge chunks")]
+    HP -.读.-> KG2[("KG canonical 图扩展")]
+
+    classDef chain fill:#3d2c52,stroke:#a07cc5,stroke-width:2px,color:#f3e9fb
+    classDef store fill:#2a1f3d,stroke:#7c5ca5,stroke-width:2px,color:#e8dff5
+    classDef fallback fill:#4d1f1f,stroke:#d55b5b,stroke-width:2px,color:#fde8e8
+    class DI,MR,SI,PM,HP chain
+    class AGT,SK,MEM,KB,KG2 store
+    class CODE fallback

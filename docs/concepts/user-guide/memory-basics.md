@@ -114,7 +114,7 @@ memory:
 | Scheduler  | `/interface/scheduler` | 自动化任务调度管理（需 admin 角色）                                                  |
 
 > 所有页面源自 `apps/negentropy-ui/app/memory/`。
-> Activity（平台 Toast 通知历史）已迁移至 Home / Dashboard 底部，作为 localStorage 日志面板与后端 Execution Timeline 正交并列；详见 [`/dashboard`](../../../apps/negentropy-ui/app/(home)/dashboard/page.tsx)。
+> Activity（平台 Toast 通知历史）已迁移至 Home / Dashboard 底部，作为 localStorage 日志面板与后端 Execution Timeline 正交并列；详见 [`/dashboard`](../../../apps/negentropy-ui/app)/dashboard/page.tsx)。
 
 ### Retention 红绿灯
 - 🟢 ≥ 50%：健康

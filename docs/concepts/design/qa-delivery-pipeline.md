@@ -9,38 +9,15 @@ title: "QA 与发布流水线"
 ## 1. 设计边界
 
 - **测试单源化**：`PR`/`Push` 门禁与 `Release` 复用同一套 GitHub Actions reusable workflows，避免 QA 逻辑分叉<sup>[[1]](#ref1)</sup>。
-- **发布收口**：仅在通过后端与 UI 全量 QA 后才生成版本工件，并通过 `release` environment 承接人工审批与发布保护位<sup>[[2]](#ref2)</sup>。
+- **发布收口**：仅在通过后端、UI 与 Wiki 全量 QA 后才生成版本工件，并通过 `release` environment 承接人工审批与发布保护位<sup>[[2]](#ref2)</sup>。
 - **供应链防护**：对依赖清单变更启用 dependency review，在 PR 阶段提前暴露高危漏洞引入风险<sup>[[3]](#ref3)</sup>。
 - **工件可核验**：发布阶段生成 `release-manifest.json` 与 `SHA256SUMS.txt`，为后续部署、回滚与归档提供完整的追溯指针。
 
 ## 2. 流程拓扑
 
-```mermaid
-flowchart TD
-    classDef qa fill:#2563eb,stroke:#93c5fd,color:#f8fafc;
-    classDef release fill:#7c3aed,stroke:#c4b5fd,color:#f8fafc;
-    classDef security fill:#15803d,stroke:#86efac,color:#f8fafc;
-    classDef artifact fill:#b45309,stroke:#fdba74,color:#f8fafc;
+![Push / PR QA 门禁流水线：push 与 PR 事件按路径过滤触发后端、前端、供应链三条并行门禁，复用工作流内按真实 job 顺序执行（后端单测→集成串行、UI 四层并行→E2E 冒烟汇聚），依赖增量审查仅 PR 触发，全绿后经 branch protection 放行。](../../assets/architecture/design/qa-delivery--push-gate-dark.png)
 
-    subgraph PRGate[PR / Push QA Gate]
-        B1[negentropy-backend-tests.yml]:::qa --> B2[reusable-negentropy-backend-quality.yml]:::qa
-        U1[negentropy-ui-tests.yml]:::qa --> U2[reusable-negentropy-ui-quality.yml]:::qa
-    end
-
-    subgraph Security[Supply Chain Guard]
-        S1[negentropy-dependency-review.yml]:::security
-    end
-
-    subgraph Release[Release Gate]
-        R1[negentropy-release.yml]:::release --> R2[Backend QA]:::qa
-        R1 --> R3[UI QA]:::qa
-        R2 --> R4[Package Artifacts]:::artifact
-        R3 --> R4
-        R4 --> R5[release-manifest.json]:::artifact
-        R4 --> R6[SHA256SUMS.txt]:::artifact
-        R4 --> R7[GitHub Release / Actions Artifact]:::release
-    end
-```
+> 图源（可 diff 文本）：[`qa-delivery--push-gate.mmd`](../../assets/mermaid/design/qa-delivery--push-gate.mmd) · 交互版（下载到本地打开）：[`qa-delivery--push-gate.html`](../../assets/architecture/design/qa-delivery--push-gate.html)
 
 ## 3. 当前落地
 

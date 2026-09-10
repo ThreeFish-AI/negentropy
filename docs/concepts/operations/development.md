@@ -299,12 +299,12 @@ pnpm run typecheck                     # TypeScript 类型检查
 
 前端开发中需关注的核心文件参考点：
 
-- **应用入口**：[`app/page.tsx`](../../apps/negentropy-ui/app/page.tsx)
-- **BFF 代理层**：[`app/api/agui/route.ts`](../../apps/negentropy-ui/app/api/agui/route.ts)
-- **ADK 事件转换**：[`lib/adk.ts`](../../apps/negentropy-ui/lib/adk.ts)
-- **AG-UI 类型定义**：[`types/agui.ts`](../../apps/negentropy-ui/types/agui.ts)
-- **全局布局**：[`app/layout.tsx`](../../apps/negentropy-ui/app/layout.tsx)
-- **服务后端配置**：[`config/services.py`](../../apps/negentropy/src/negentropy/config/services.py)（后端侧，通过环境变量切换 Session/Memory/Artifact 后端）
+- **应用入口**：[`app/page.tsx`](../../../apps/negentropy-ui/app/page.tsx)
+- **BFF 代理层**：[`app/api/agui/route.ts`](../../../apps/negentropy-ui/app/api/agui/route.ts)
+- **ADK 事件转换**：[`lib/adk.ts`](../../../apps/negentropy-ui/lib/adk.ts)
+- **AG-UI 类型定义**：[`types/agui.ts`](../../../apps/negentropy-ui/types/a2ui.ts)
+- **全局布局**：[`app/layout.tsx`](../../../apps/negentropy-ui/app/layout.tsx)
+- **服务后端配置**：[`config/services.py`](../../../apps/negentropy/src/negentropy/config/services.py)（后端侧，通过环境变量切换 Session/Memory/Artifact 后端）
 
 ### 5.6 验证路径（流式交互）
 
@@ -333,15 +333,15 @@ pnpm run typecheck                     # TypeScript 类型检查
 
 **数据库迁移**是系统数据架构演进的版本控制机制。本项目采用 [Alembic](https://alembic.sqlalchemy.org/en/latest/) 确保数据库 Schema 能够随同领域模型有序迭代。
 
-- **唯一信源 (Source of Truth)**：[`src/negentropy/models/`](../../apps/negentropy/src/negentropy/models/) 中的领域模型定义
-- **脚本位置**：[`apps/negentropy/src/negentropy/db/migrations/`](../../apps/negentropy/src/negentropy/db/migrations/)
+- **唯一信源 (Source of Truth)**：[`src/negentropy/models/`](../../../apps/negentropy/src/negentropy/models/) 中的领域模型定义
+- **脚本位置**：[`apps/negentropy/src/negentropy/db/migrations/`](../../../apps/negentropy/src/negentropy/db/migrations/)
 - **Schema 分域设计**：详见 [Framework §8](../framework.md#8-数据持久化架构)
 
 ### 6.1 首次初始化
 
 > 完整的 PostgreSQL 安装与配置请参见 [§1.2 PostgreSQL 初始化](#12-postgresql-初始化)。本节聚焦数据库层面（Schema / Extension）的初始化逻辑。
 
-`alembic upgrade head` 首次执行时，[`env.py`](../../apps/negentropy/src/negentropy/db/migrations/env.py) 会自动完成以下操作：
+`alembic upgrade head` 首次执行时，[`env.py`](../../../apps/negentropy/src/negentropy/db/migrations/env.py) 会自动完成以下操作：
 
 1. **创建 Schema**：`CREATE SCHEMA IF NOT EXISTS negentropy`（所有业务表归属此 schema）
 2. **启用 pgvector**：`CREATE EXTENSION IF NOT EXISTS vector`（向量检索 / embedding 列依赖）
@@ -379,13 +379,13 @@ uv sync --dev                          # 确保本地环境与 pyproject.toml �
 
 | 组件         | 文件                                                                                  | 作用                                                     |
 | :----------- | :------------------------------------------------------------------------------------ | :------------------------------------------------------- |
-| 演进模板     | [`script.py.mako`](../../apps/negentropy/src/negentropy/db/migrations/script.py.mako) | 生成新迁移脚本的蓝图，定义标准代码结构                   |
-| 全局配置     | [`alembic.ini`](../../apps/negentropy/alembic.ini)                                    | Alembic CLI 入口配置（脚本路径、连接字符串、时区、日志） |
-| 运行时上下文 | [`env.py`](../../apps/negentropy/src/negentropy/db/migrations/env.py)                 | 加载模型元数据、读取数据库连接配置、驱动异步迁移         |
+| 演进模板     | [`script.py.mako`](../../../apps/negentropy/src/negentropy/db/migrations/script.py.mako) | 生成新迁移脚本的蓝图，定义标准代码结构                   |
+| 全局配置     | [`alembic.ini`](../../../apps/negentropy/alembic.ini)                                    | Alembic CLI 入口配置（脚本路径、连接字符串、时区、日志） |
+| 运行时上下文 | [`env.py`](../../../apps/negentropy/src/negentropy/db/migrations/env.py)                 | 加载模型元数据、读取数据库连接配置、驱动异步迁移         |
 
 ### 6.4 pgvector 类型识别
 
-当数据库启用 `pgvector` 且模型使用 `Vector` 类型时，[`env.py`](../../apps/negentropy/src/negentropy/db/migrations/env.py) 中已注册 `vector` 的反射映射，并在 `compare_type` 中做等价比较，从源头消除不必要的类型告警。
+当数据库启用 `pgvector` 且模型使用 `Vector` 类型时，[`env.py`](../../../apps/negentropy/src/negentropy/db/migrations/env.py) 中已注册 `vector` 的反射映射，并在 `compare_type` 中做等价比较，从源头消除不必要的类型告警。
 
 关键约束：
 
@@ -488,11 +488,11 @@ thread_id: Mapped[UUID] = mapped_column(
 
 | 路径                      | 方法 | 目的                                     | 实现位置                                                                                                                |
 | :------------------------ | :--- | :--------------------------------------- | :---------------------------------------------------------------------------------------------------------------------- |
-| `/api/agui`               | POST | 发送用户输入并返回 SSE 流                | [`app/api/agui/route.ts`](../../apps/negentropy-ui/app/api/agui/route.ts)                                               |
-| `/api/agui/sessions`      | POST | 创建 Session                             | [`app/api/agui/sessions/route.ts`](../../apps/negentropy-ui/app/api/agui/sessions/route.ts)                             |
-| `/api/agui/sessions/list` | GET  | 拉取 Session 列表                        | [`app/api/agui/sessions/list/route.ts`](../../apps/negentropy-ui/app/api/agui/sessions/list/route.ts)                   |
-| `/api/agui/sessions/:id`  | GET  | 获取 Session 详情（含 events，用于回放） | [`app/api/agui/sessions/[sessionId]/route.ts`](../../apps/negentropy-ui/app/api/agui/sessions/%5BsessionId%5D/route.ts) |
-| `/api/health`             | GET  | UI 运行自检                              | [`app/api/health/route.ts`](../../apps/negentropy-ui/app/api/health/route.ts)                                           |
+| `/api/agui`               | POST | 发送用户输入并返回 SSE 流                | [`app/api/agui/route.ts`](../../../apps/negentropy-ui/app/api/agui/route.ts)                                               |
+| `/api/agui/sessions`      | POST | 创建 Session                             | [`app/api/agui/sessions/route.ts`](../../../apps/negentropy-ui/app/api/agui/sessions/route.ts)                             |
+| `/api/agui/sessions/list` | GET  | 拉取 Session 列表                        | [`app/api/agui/sessions/list/route.ts`](../../../apps/negentropy-ui/app/api/agui/sessions/list/route.ts)                   |
+| `/api/agui/sessions/:id`  | GET  | 获取 Session 详情（含 events，用于回放） | [`app/api/agui/sessions/[sessionId]/route.ts`](../../../apps/negentropy-ui/app/api/agui/sessions/[sessionId]/route.ts) |
+| `/api/health`             | GET  | UI 运行自检                              | [`app/api/health/route.ts`](../../../apps/negentropy-ui/app/api/health/route.ts)                                           |
 
 > BFF 代理层仅做连接与头部注入，不做协议语义改写，避免"二次真值源"。
 

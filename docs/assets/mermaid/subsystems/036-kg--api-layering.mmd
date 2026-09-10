@@ -1,0 +1,57 @@
+%%source: docs/concepts/subsystems/036-the-knowledge-graph.md §4.2 当前架构
+%%slug: subsystems/036-kg--api-layering
+%%type: architecture
+%%derived: byte-exact extraction of mermaid block #1
+%%{init: {"themeVariables": {"primaryColor": "#0b3d91", "primaryTextColor": "#ffffff", "primaryBorderColor": "#0b3d91", "secondaryColor": "#0f5132", "secondaryTextColor": "#ffffff", "secondaryBorderColor": "#0f5132", "tertiaryColor": "#842029", "tertiaryTextColor": "#ffffff", "tertiaryBorderColor": "#842029"}}}%%
+flowchart TB
+    subgraph API["API Layer"]
+        KAPI["Knowledge API<br/>(现有)"]
+        GAPI["Graph API<br/>(Phase 1 ✅)"]
+        GRAG["GraphRAG API<br/>(Phase 3 🔲)"]
+    end
+
+    subgraph Service["Service Layer"]
+        KSvc["KnowledgeService<br/>(现有)"]
+        GSvc["GraphService<br/>(Phase 1 ✅)"]
+        E2E["LLMEntityExtractor<br/>(Phase 1 ✅)"]
+        R2R["LLMRelationExtractor<br/>(Phase 1 ✅)"]
+    end
+
+    subgraph Repo["Repository Layer"]
+        KRepo["KnowledgeRepository<br/>(现有)"]
+        GRepo["AgeGraphRepository<br/>(Phase 1 ✅)"]
+    end
+
+    subgraph Storage["Storage Layer (PostgreSQL 16+)"]
+        direction TB
+        Corpus[("corpus<br/>(现有)")]
+        Knowledge[("knowledge<br/>(现有+扩展)")]
+        AGE[("Apache AGE<br/>(Phase 1 ✅)")]
+        HNSW["HNSW Index<br/>(pgvector)"]
+    end
+
+    KAPI --> KSvc --> KRepo
+    GAPI --> GSvc --> GRepo
+    GSvc --> E2E
+    GSvc --> R2R
+
+    KRepo --> Corpus
+    KRepo --> Knowledge
+    KRepo --> HNSW
+    GRepo --> AGE
+    GRepo --> Knowledge
+
+    classDef api fill:#0b3d91,stroke:#0b3d91,color:#ffffff
+    classDef svc fill:#0f5132,stroke:#0f5132,color:#ffffff
+    classDef repo fill:#0f5132,stroke:#0f5132,color:#ffffff
+    classDef store fill:#842029,stroke:#842029,color:#ffffff
+    classDef pending fill:#6c757d,stroke:#6c757d,color:#ffffff
+
+    class KAPI,GAPI api
+    class GRAG pending
+    class KSvc,GSvc,E2E,R2R svc
+    class KRepo,GRepo repo
+    class Corpus,Knowledge,AGE,HNSW store
+%% fix: GRAG 状态过时（Phase 3 🔲）——GraphRAG 端点已落地：POST /base/{cid}/graph/global_search（routes/graph.py:1000，走 GlobalSearchService）与 multi_hop_reason（routes/graph.py:795，PPR + 证据链，变更日志 v2.5/v2.6）
+%% fix: GRAG 原图无边——已落地路径不经 GraphService 主链：global_search 直连 graph/global_search.py；multi_hop_reason 仅混合检索回退时调 GraphService.search；archify 图补 grag→gsvc 边并标注"混合检索回退"
+%% fix: AGE 存储标注失实——AgeGraphRepository 现 SSOT 为 kg_entities/kg_relations 一等公民表 + 递归 CTE（graph/repository.py:628、761），AGE 原生 Cypher 图边未在主路径使用；archify 图存储节点改为 kg 实体/关系表

@@ -1,0 +1,28 @@
+%%source: docs/concepts/subsystems/035-the-knowledge-base.md block#5 (Catalog UI 维护组件架构)
+%%slug: subsystems/035-kb--catalog-page-ui
+%%type: architecture
+%%derived: true
+%% fix: 宿主已迁移——app/knowledge/catalog/page.tsx 现仅为 redirect("/knowledge/wiki")，实际宿主为 wiki/page.tsx → LibraryShell（状态编排中枢）
+%% fix: CatalogSelector 已成死代码（全仓零引用），Phase 4 单例化后由 useSingletonCatalog 自动解析/创建唯一 Catalog 取代 <select>
+%% fix: 拖拽已从 HTML5 DnD 迁移至 @dnd-kit（useCatalogTreeDnd，before/inside/after 三区 + 分数 sort_order）
+%% fix: TB/Tree --> Page 自指子图边改绘为「子组件回调 props → LibraryShell」语义；新增 Hooks(3) 与 BFF API 层
+graph TD
+    subgraph Page["CatalogPage (page.tsx)"]
+        Sel["CatalogSelector"]
+        TB["CatalogTreeToolbar"]
+        Tree["CatalogTree"]
+        Detail["NodeDetailPanel"]
+        Dialog["CreateNodeDialog"]
+        CtxMenu["CatalogContextMenu"]
+    end
+
+    subgraph Hooks["Hooks"]
+        UCT["useCatalogTree"]
+    end
+
+    TB -->|search / collapse / add root| Page
+    Tree -->|onSelect / onToggle / onAddChild| Page
+    Tree -->|onContextMenu| CtxMenu
+    CtxMenu -->|rename / delete / copy ID| Page
+    Tree -->|drag events| Page
+    Page --> UCT

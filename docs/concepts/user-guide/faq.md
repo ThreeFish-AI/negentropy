@@ -136,7 +136,7 @@ Wiki 使用 ISR 机制，最长 5 分钟自动更新。如需立即更新，可�
 
 | 文档                                           | 路径                                           | 说明                               |
 | :--------------------------------------------- | :--------------------------------------------- | :--------------------------------- |
-| **用户手册**（本文档）                         | [docs/user-guide.md](../../user-guide.md)      | 面向最终用户的使用指南             |
+| **用户手册**（本文档）                         | [docs/user-guide.md](../../README.md)      | 面向最终用户的使用指南             |
 | [开发指南](../operations/development.md)                  | `docs/concepts/development.md`                 | 环境搭建、开发工作流、数据库迁移   |
 | [架构设计](../framework.md)                    | `docs/concepts/framework.md`                   | 一核五翼架构、流水线编排、设计模式 |
 | [知识系统](../subsystems/035-the-knowledge-base.md)       | `docs/concepts/035-the-knowledge-base.md`      | 知识管理模块的详细设计             |
