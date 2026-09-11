@@ -3,6 +3,7 @@
 本文件遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 约定，版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
 ## [Unreleased]
+- **全仓架构图 Mermaid 抽源集中管理 + archify 全量重绘（114 图）**：现役系统文档全部 Mermaid 图抽取至 `docs/assets/mermaid/`（九分类文本源 SSOT，114 个 `.mmd` 带溯源头注释）→ archify 重绘为交互 HTML + 双主题 PNG（`docs/assets/architecture/<分类>/`，均过 validate 0/0 + visual-check 四视口门）→ 原文档就地替换为暗色 PNG 内嵌 + `.mmd`/HTML 溯源链接；索引与派生链约定见 [Mermaid 文本源索引](docs/assets/mermaid/README.md) 与 [doc-media-assets §5](docs/.agents/doc-media-assets.md)。research（第三方调研）/ cognizes（退役遗产）/ 视频分镜按决策不在此管线；er×3/timeline×2/quadrant×1 无对应类型原地保留。重绘过程顺带修正 16 项文档-代码不一致（D-1~D-16：三层图缺引擎内景七子系统→新增 §6.5、§8.2 cognizes 遗产 schema→models/ 九域 76 表、docker-operations 拓扑 wiki 依赖/幽灵 env/健康检查、perceives 幽灵引用与引擎集、025 §8 pg_cron 控制面退役口径等），并清零 concepts 全域死链（60+ 处层级/迁移路径）。
 - **全仓熵减批次（B1–B12，生产代码净减 2,605 行 + 口径外脚本/锁文件 -1,206 行）**：三路并行取证 + 主线程高危断言独立复核 + 逐批验证的结构性熵减，完整留痕见[全仓熵减审计 2026-09](docs/concepts/operations/codebase-entropy-reduction-2026-09.md)。
 
 ### Fixed
