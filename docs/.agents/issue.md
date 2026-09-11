@@ -1698,25 +1698,10 @@
 
 - **表因**：用户在 Home Chat 已有 Session A 时点 sidebar `+ New` 创建 Session B，随即在 B 输入框 Send，消息却出现在旧 Session A。evaluate_script 同步模拟复现：Round 2 从 +New 点击到 Send 仅 8ms，三方（querySessionId、bodyThreadId、locationSearch）全部 stale 为旧 A。后端交叉验证确认：RCA-PROBE-2 应在 session `3ba0c550` 但被持久化到了 `30846c12`。详见 [baseline trace](../.context/issue-rca-home-session-routing/01-baseline-trace.json) 与 [RCA 文档](../.context/issue-rca-home-session-routing/02-rca.md)。
 - **根因**：Next.js 16 App Router 的 `useSearchParams()` + `router.replace()` 构成的 sessionId 更新链路存在不可消除的异步延迟。`sendInput`（`home-body.tsx:672`）是普通 async 函数表达式，每次 render 重建闭包。当 +New 后极短时间内（实测 3-11ms）触发 Send，闭包中的 `sessionId` 和 `agent` 均为 stale 值——因为 `router.replace` 尚未 flush，React 尚未 re-render，`useMemo` 依赖 `[sessionId, user]` 的 agent 未重建。
-  ```mermaid
-  sequenceDiagram
-      participant U as 用户
-      participant SL as SessionList (+New)
-      participant SUS as useSessionListService
-      participant P as page.tsx (sessionId / agent)
-      participant HB as home-body.tsx (sendInput)
-      participant BFF as /api/agui/route.ts
-      Note over U,BFF: 8ms race window
-      U->>SL: 点击 +New
-      SL->>SUS: onNewSession()
-      SUS->>SUS: POST /api/agui/sessions → B
-      SUS->>P: setSessionId(B) → router.replace("?sessionId=B")
-      Note over P: router.replace 异步！React 未 flush
-      U->>HB: 立即 Send（8ms 内）
-      Note over HB: 闭包中 sessionId=旧A, agent.threadId=旧A
-      HB->>BFF: POST /api/agui?session_id=A（错误路由）
-  ```
-- **处理方式**：在 `sendInput` 入口添加三重同步守卫（[home-body.tsx:720](../apps/negentropy-ui/app/home-body.tsx)），不撒网、不改 sessionId 路由架构：
+  ![ISSUE-066 时序图：用户在 Home Chat 点击 +New 创建 Session B 后 8ms 内点击 Send，因 router.replace 异步未 flush，home-body.tsx 的 sendInput 闭包仍持有旧 sessionId=A，消息被错误路由并持久化到旧 Session A。](../assets/architecture/agents/issue--session-stale-sequence-dark.png)
+
+  > 图源（可 diff 文本）：[`issue--session-stale-sequence.mmd`](../assets/mermaid/agents/issue--session-stale-sequence.mmd) · 交互版（下载到本地打开）：[`issue--session-stale-sequence.html`](../assets/architecture/agents/issue--session-stale-sequence.html)
+  - **处理方式**：在 `sendInput` 入口添加三重同步守卫（[home-body.tsx:720](../apps/negentropy-ui/app/home-body.tsx)），不撒网、不改 sessionId 路由架构：
   1. `!agent` — agent 未就绪（原有逻辑）
   2. `switchingSessionRef.current` — +New 后同步置 true 的 ref 信号，在 agent 重建后由 auto-send useEffect 清除
   3. `agent.threadId != null && agent.threadId !== sessionId` — agent 实例与当前 sessionId 不一致（兜底检测）

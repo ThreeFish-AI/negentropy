@@ -1,0 +1,10 @@
+%% source: docs/reference/perceives/development.md (block #0)
+%% slug: perceives/development--test-pyramid
+%% type: architecture
+%% derived: archify architecture spec .temp/archify/perceives/development--test-pyramid.json
+%% fix: 单元测试文件数 40+ → 100（tests/unit/ 实测 test_*.py 计数，2026-09-11）
+%% fix: 集成测试文件数 12 → 18（tests/integration/ 实测 test_*.py 计数，另有 tooling.py 共享 helper）
+graph BT
+    U["<b>单元测试</b> (100 files)<br/>独立模块 · Mock 隔离 · 快速执行<br/>120s 超时保护"]
+    I["<b>集成测试</b> (18 files)<br/>组件协作 · 端到端验证 · 真实交互"]
+    U --> I

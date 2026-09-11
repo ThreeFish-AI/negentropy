@@ -1,0 +1,35 @@
+%% source: docs/reference/perceives/framework.md §PDF Pipeline（S0 - S9）(块#4, L191-L217)
+%% slug: perceives/framework--pdf-stages
+%% type: dataflow
+%% derived: byte-exact extraction of mermaid block #4
+%% fix: S2/S3/S4 引擎清单缺 opendataloader（config.default.yaml rank=2，layout/text/table 三处均 enabled），S3 另缺 marker（rank=5，扫描版 PDF 由 EngineSelector 重排为 OCR 路径 rank=1）
+%% fix: S2→S3/S4/S5/S7 是执行顺序边非数据依赖——四者 input_from 均为 preprocessing（直接消费 S0 产物）；S2 的真实下游只有 S6（input_builder 汇聚 preprocessing+layout）与 S8
+%% fix: S1 产出 DocumentCharacteristics 不进任何 Stage 输入，而是被 EngineSelector 读取做引擎路由重排（orchestrator.py:363 / engine_selector.py:68），属控制信号非管线载荷
+%% fix: S8 是七路 fan-in（preprocessing+layout+text+tables+formulas+images+code），S9 汇聚 assembly+image_extraction+preprocessing，均经 _PDF_INPUT_BUILDERS（convenience.py:206）
+graph TD
+    S0["S0 预处理<br/>pymupdf"] --> S1["S1 文档扫描<br/>pymupdf"]
+    S1 --> S2["S2 版面分析<br/>docling/mineru/marker/pymupdf<br/>⚡ 可竞争"]
+    S2 --> S3["S3 文本提取<br/>pymupdf/docling/pypdf"]
+
+    S2 --> S4["S4 表格提取<br/>docling/camelot/pdfplumber/pymupdf<br/>⚡ 可竞争"]
+    S2 --> S5["S5 公式提取<br/>mineru/docling/pymupdf_heuristic<br/>⚡ 可竞争"]
+    S2 --> S6["S6 图片提取<br/>pymupdf"]
+    S2 --> S7["S7 代码检测<br/>docling/algorithm_detector<br/>⚡ 可竞争"]
+
+    S3 --> S8["S8 组装<br/>builtin_assembler"]
+    S4 --> S8
+    S5 --> S8
+    S6 --> S8
+    S7 --> S8
+    S8 --> S9["S9 资源打包<br/>builtin_bundler"]
+
+    style S0 fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
+    style S1 fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
+    style S2 fill:#b45309,stroke:#f59e0b,color:#ffffff
+    style S3 fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
+    style S4 fill:#b45309,stroke:#f59e0b,color:#ffffff
+    style S5 fill:#b45309,stroke:#f59e0b,color:#ffffff
+    style S6 fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
+    style S7 fill:#b45309,stroke:#f59e0b,color:#ffffff
+    style S8 fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
+    style S9 fill:#1e3a8a,stroke:#3b82f6,color:#ffffff

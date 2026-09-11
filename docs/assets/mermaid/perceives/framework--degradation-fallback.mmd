@@ -1,0 +1,28 @@
+%% source: docs/reference/perceives/framework.md §Pipeline 编排层 › 两种执行模式 (块#3, L163-L183)
+%% slug: perceives/framework--degradation-fallback
+%% type: workflow
+%% derived: byte-exact extraction of mermaid block #3
+%% fix: 引擎注册表实为 5 级（docling → opendataloader → mineru → marker + 轻量 pymupdf→pypdf，pdf/processor.py::_ENGINE_FALLBACK_CHAIN），源图泛化 Tool 1/2/3 未落真实引擎集，重绘按代码真实引擎集绘制
+%% fix: MCP PDFMethod 枚举仅暴露 7 值（auto/pymupdf/pypdf/docling/smart/mineru/marker，core/types.py:21），opendataloader 未在 method 参数暴露、只能经 auto 链内部调度（重绘以 tag 注记）
+%% fix: 重绘聚焦降级链（slug 主题）；竞争模式不另画子图，以卡片注记其能力保留（competition_mode: true 启用，2026-05 起相关 Stage 默认降级、仅跑 rank=1）
+graph LR
+    subgraph "降级模式"
+        F1["Tool 1 (rank=1)"] -->|"失败"| F2["Tool 2 (rank=2)"]
+        F2 -->|"失败"| F3["Tool 3 (rank=3)"]
+        F3 -->|"成功"| FR["返回"]
+    end
+
+    subgraph "竞争模式"
+        C1["Tool 1"] -->|"并行"| J["择优选择"]
+        C2["Tool 2"] -->|"并行"| J
+        J --> CR["返回最优"]
+    end
+
+    style F1 fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
+    style F2 fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
+    style F3 fill:#166534,stroke:#22c55e,color:#ffffff
+    style FR fill:#166534,stroke:#22c55e,color:#ffffff
+    style C1 fill:#b45309,stroke:#f59e0b,color:#ffffff
+    style C2 fill:#b45309,stroke:#f59e0b,color:#ffffff
+    style J fill:#7c2d12,stroke:#ea580c,color:#ffffff
+    style CR fill:#166534,stroke:#22c55e,color:#ffffff

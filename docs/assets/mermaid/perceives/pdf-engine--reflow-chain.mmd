@@ -1,0 +1,15 @@
+%% source: docs/reference/perceives/agents/pdf-engine-selection.md
+%% slug: perceives/pdf-engine--reflow-chain
+%% type: workflow
+%% derived: true
+%% fix: reason 前缀按代码补全为 profile:scanned / profile:small_doc_{N}p / profile:default（写入 StageResult.metadata.selector_decision）
+%% fix: 小文档快路径含双守卫——page_count 须非零且 YAML tool_configs 配置了 pymupdf，否则回落默认顺序（engine_selector.py L254-261）
+flowchart TD
+    A([text_extraction]) --> B{is_scanned?}
+    B -- 是 --> C["重排: marker → docling → opendataloader<br/>→ pymupdf → pypdf"]
+    B -- 否 --> D{page_count < 5?}
+    D -- 是 --> E["快路径: 仅 pymupdf<br/>跳过 docling 10s 冷启动"]
+    D -- 否 --> F[保持 YAML 顺序]
+    C --> G[reason=scanned]
+    E --> H["reason=small_doc_{N}p"]
+    F --> I[reason=default]

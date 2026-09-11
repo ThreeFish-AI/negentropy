@@ -5,25 +5,9 @@
 
 ## 一、Pipeline 总览（9 Stages）
 
-```mermaid
-flowchart LR
-    subgraph S["内容层（文档驱动）"]
-        A[① 论文精读提取<br/>并行子代理<br/>含官方站点信源补充] --> B[② 策划案<br/>受众/结构/视觉契约]
-        B --> C[③ 逐字稿 narration.md<br/>★单一事实源]
-        C --> D[④ 双重校验<br/>真实性回溯+易懂性]
-        D --> E[⑤ 分镜表 storyboard.md]
-    end
-    subgraph P["生产层（工具驱动）"]
-        C --> F[⑥ TTS 合成<br/>逐句 mp3+manifest]
-        E --> G[⑦ Remotion 场景实现]
-        F --> G
-        G --> H[⑧ 草渲+抽帧 QA<br/>迭代修正]
-        H --> I[⑨ 终渲 1080p30]
-    end
-    style C fill:#1a3a5c,stroke:#4A9EFF,color:#fff
-    style F fill:#5c3a1a,stroke:#FF9F45,color:#fff
-    style I fill:#2d5c1a,stroke:#7ED321,color:#fff
-```
+![科普视频 Pipeline 九阶段双层流水线总览：内容层（文档驱动）① 信源精读取证 → ② 策划案 → ③ 逐字稿 narration.md（单一事实源）→ ④ 双重校验 → ⑤ 分镜表；生产层（工具驱动）由 ③ 下行 ⑥ TTS 合成、⑤ 下行 ⑦ Remotion 场景实现，二者汇合后经 ⑧ 草渲+抽帧 QA 迭代修正，最终 ⑨ 终渲交付 1080p30。](../../../docs/assets/architecture/apps/influence--pipeline-layers-dark.png)
+
+> 图源（可 diff 文本）：[`influence--pipeline-layers.mmd`](../../../docs/assets/mermaid/apps/influence--pipeline-layers.mmd) · 交互版（下载到本地打开）：[`influence--pipeline-layers.html`](../../../docs/assets/architecture/apps/influence--pipeline-layers.html)
 
 每个 Stage 的代理提示词规格见 [skills/](./skills/)，可直接作为子代理 prompt 或未来挂载为 `.claude/skills/` 的底稿。
 

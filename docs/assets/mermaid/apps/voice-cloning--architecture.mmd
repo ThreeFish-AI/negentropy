@@ -1,0 +1,22 @@
+%% source: apps/negentropy-influence/pipeline/VOICE-CLONING.md — §一 总览与架构（块#0）
+%% slug: apps/voice-cloning--architecture
+%% type: architecture
+%% derived: byte-exact extraction of mermaid block #0
+%% fix: 节点/边全量对照 pipeline/scripts 核验一致、零语义修正——8766/POST /synthesize/X-Audio-Format 逐字命中（tts.py:899,598-607；tts_server.py:513,537）；「常驻+串行」= lifespan 加载 + STATE.infer_lock=asyncio.Lock（tts_server.py:393-418,476）；22.05kHz=sr=22050（:115）
+%% fix: 补一条源图缺的边「MP3 编码 → 响应体」——encode_mp3 后在 synthesize 端点内直接构造 Response 返回（tts_server.py:507-517），源图 B→A 的「MP3 bytes」实际经此路径回传
+%% fix: D「22.05kHz WAV」为服务内临时产物（TemporaryDirectory，tts_server.py:507-511）；双编码器皆缺时回退返回 WAV（:158-164），客户端见 X-Audio-Format≠mp3 即硬失败（tts.py:821-824）
+%% fix: 产物契约复核：{id}.mp3 单槽位 + manifest.json durationSec=实测时长（mutagen）（tts.py:5,514,1398-1403）；「Remotion 时间轴自动重算」= timeline.py 与 timing.ts computeTimeline 同构（timeline.py:1-15）
+%% fix: 小样侧复核：tts_sample.py 复用 tts.py 的风格预设/文本预处理/HTTP 契约（单一事实源，tts_sample.py:25-43），产物 .temp/voice-samples/{风格}.mp3（:53）经 afplay 试听（:218-222）
+flowchart LR
+    subgraph 管线侧["本仓 pipeline（轻依赖）"]
+        A["tts.py<br/>--engine indextts"] -->|"HTTP 127.0.0.1:8766<br/>逐句 POST /synthesize"| B
+        S["tts_sample.py<br/>单句小样试听"] -.->|"单次 POST /synthesize"| B
+    end
+    subgraph 推理侧["~/tools/index-tts（重依赖：torch/indextts）"]
+        B["tts_server.py<br/>FastAPI + IndexTTS-2.5"] --> C["模型常驻内存<br/>MPS 串行推理"]
+        C --> D["22.05kHz WAV"]
+        D --> E["MP3 编码<br/>soundfile / lameenc"]
+    end
+    B -->|"MP3 bytes<br/>X-Audio-Format 头"| A
+    A --> F["{id}.mp3 + manifest.json<br/>Remotion 时间轴自动重算"]
+    S -.-> G[".temp/voice-samples/{风格}.mp3<br/>afplay 试听择优"]

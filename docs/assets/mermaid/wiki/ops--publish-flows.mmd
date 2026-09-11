@@ -1,0 +1,33 @@
+%% source: docs/reference/wiki/ops.md §2.1 系统架构（块#0，L52-L76）
+%% slug: wiki/ops--publish-flows
+%% type: workflow
+%% derived: byte-exact extraction of mermaid block #0
+%% fix: 运行时回源链已死——纯静态化（apps/negentropy-wiki/next.config.ts output:"export"）后原图「WikiAPI →|HTTP/JSON| APIClient」「Node →|ISR触发| APIClient」两条运行时边不复存在：wiki-api.ts 已切换为 LocalContentClient 直接读 content/ 静态内容包（src/lib/content-source.ts），构建期/运行期零 HTTP 调用主站；Node.js Server / ISR / CDN 缓存节点整体退役，运行时无 Node 服务端、无后端、无数据库依赖
+%% fix: 「SSG 生成器 generate.ts」不存在——静态生成由 next build（output:export）+ postbuild pagefind --site out 承担（package.json L10），搜索为浏览器端 Pagefind
+%% fix: 发布链路补全为实际形态——主站 UI「同步并发布」→ POST /knowledge/wiki/publications/{pub_id}/publish（knowledge/routes/wiki.py L292）→ WikiService.publish（wiki_service.py L302）：落库 published/版本+1 后恒触发 trigger_wiki_redeploy webhook（云端 CI 旁路，未配置即 no-op），并按 target fire-and-forget spawn 双通道脚本（PRODUCTION=publish-wiki-pages.sh 推 GitHub Pages；LOCAL=build-wiki-local.sh 重建 :3092）
+%% fix: KnowledgeDB（PostgreSQL）仍在但仅在主站侧——导出器 WikiExportService 只读已发布内容序列化为 content/ 静态内容包（wiki_export_service.py），wiki 站点不接触数据库
+flowchart LR
+    subgraph Backend["后端服务"]
+        KnowledgeDB[(PostgreSQL<br/>知识库)]
+        WikiAPI[Wiki API<br/>/knowledge/wiki]
+    end
+
+    subgraph WikiApp["negentropy-wiki"]
+        APIClient[API Client<br/>wiki-api.ts]
+        SSG[SSG 生成器<br/>generate.ts]
+        Pages[页面组件<br/>page.tsx]
+        Theme[主题系统<br/>globals.css]
+    end
+
+    subgraph Deploy["部署"]
+        CDN[CDN 缓存]
+        Node[Node.js Server]
+    end
+
+    KnowledgeDB -->|数据| WikiAPI
+    WikiAPI -->|HTTP/JSON| APIClient
+    APIClient -->|SSG| Pages
+    SSG -->|HTML| CDN
+    CDN -->|静态资源| User
+    User -->|访问| Node
+    Node -->|ISR触发| APIClient

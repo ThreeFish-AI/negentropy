@@ -1,0 +1,18 @@
+%% source: apps/negentropy-perceives/README.md §Architectural Landscape (mermaid L144)
+%% slug: apps/perceives-readme--five-layers
+%% type: architecture
+%% derived: docs/assets/architecture/apps/perceives-readme--five-layers.html (+ -dark/-light PNG)
+graph TD
+    A["SDK Layer<br/>NegentropyPerceivesClient"] -.->|"HTTP Transport"| T["MCP Tool Layer<br/>6 Tools · @app.tool()"]
+    T --> P["Pipeline Layer<br/>Stage Orchestration · Competition/Fallback"]
+    T --> B["Processing Engine Layer<br/>Scraping · PDF · Markdown"]
+    P --> B
+    B --> C["Infrastructure Layer<br/>RateLimiter · Cache · Metrics · ErrorHandler · Retry"]
+    C --> D["Configuration Layer<br/>pydantic-settings · Env Vars"]
+
+    style A fill:#4c1d95,stroke:#a78bfa,color:#ffffff
+    style T fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
+    style P fill:#b45309,stroke:#f59e0b,color:#ffffff
+    style B fill:#166534,stroke:#22c55e,color:#ffffff
+    style C fill:#134e4a,stroke:#14b8a6,color:#ffffff
+    style D fill:#581c87,stroke:#9333ea,color:#ffffff

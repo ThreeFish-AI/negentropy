@@ -1,0 +1,52 @@
+%% source: docs/reference/perceives/development.md 块#1（Pipeline 编排框架 · 架构流程）
+%% slug: perceives/development--tool-anatomy
+%% type: architecture
+%% fix: W 链实际顺序为 compliance_check → page_fetching → main_content_extraction → html_sanitization（config.default.yaml：robots 合规先于抓取、主内容提取先于清洗）；重绘已按代码修正 W1/W2 与 W3/W4 的顺序
+%% fix: 两条管线均为子集省略——PDF 另有 quick_scan / asset_bundling，WebPage 另有 anti_detection / 数学公式·代码块·表格·图片并行组 / asset_bundling
+%% derived: graph TD @app.tool() 工具函数 → Pipeline 编排框架分层调度
+graph TD
+    subgraph "MCP 工具层"
+        T["@app.tool() 工具函数"]
+    end
+
+    subgraph "Pipeline 层"
+        C["convenience.py<br/>run_pdf_pipeline / run_webpage_pipeline"]
+        O["PipelineOrchestrator<br/>Stage 串联编排"]
+        S["StageScheduler<br/>降级 / 竞争调度"]
+        R["registry.py<br/>工具注册与发现"]
+    end
+
+    subgraph "PDF Pipeline Stages"
+        P1["preprocessing"]
+        P2["layout_analysis"]
+        P3["text_extraction"]
+        P4["table_extraction"]
+        P5["formula_extraction"]
+        P6["image_extraction"]
+        P7["code_detection"]
+        P8["assembly"]
+    end
+
+    subgraph "WebPage Pipeline Stages"
+        W1["page_fetching"]
+        W2["compliance_check"]
+        W3["html_sanitization"]
+        W4["main_content_extraction"]
+        W5["markdown_conversion"]
+        W6["markdown_formatting"]
+    end
+
+    T -->|"method=auto"| C
+    C --> O
+    O --> S
+    S --> R
+    R --> P1
+    P1 --> P2 --> P3 & P4 & P5 & P6 & P7
+    P3 & P4 & P5 & P6 & P7 --> P8
+
+    R --> W1 --> W2 --> W3 --> W4 --> W5 --> W6
+
+    style T fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
+    style C fill:#b45309,stroke:#f59e0b,color:#ffffff
+    style O fill:#166534,stroke:#22c55e,color:#ffffff
+    style S fill:#7c3aed,stroke:#a78bfa,color:#ffffff

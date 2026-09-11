@@ -22,21 +22,9 @@
 
 **架构**（管线脚本轻依赖 与 重型推理环境 完全解耦）：
 
-```mermaid
-flowchart LR
-    subgraph 管线侧["本仓 pipeline（轻依赖）"]
-        A["tts.py<br/>--engine indextts"] -->|"HTTP 127.0.0.1:8766<br/>逐句 POST /synthesize"| B
-        S["tts_sample.py<br/>单句小样试听"] -.->|"单次 POST /synthesize"| B
-    end
-    subgraph 推理侧["~/tools/index-tts（重依赖：torch/indextts）"]
-        B["tts_server.py<br/>FastAPI + IndexTTS-2.5"] --> C["模型常驻内存<br/>MPS 串行推理"]
-        C --> D["22.05kHz WAV"]
-        D --> E["MP3 编码<br/>soundfile / lameenc"]
-    end
-    B -->|"MP3 bytes<br/>X-Audio-Format 头"| A
-    A --> F["{id}.mp3 + manifest.json<br/>Remotion 时间轴自动重算"]
-    S -.-> G[".temp/voice-samples/{风格}.mp3<br/>afplay 试听择优"]
-```
+![声音克隆双侧架构：本仓 pipeline 轻依赖脚本（tts.py 整集逐句 / tts_sample.py 单句小样）经 HTTP 127.0.0.1:8766 调用 ~/tools/index-tts 重依赖推理侧（FastAPI 服务 → IndexTTS-2.5 常驻模型 MPS 串行推理 → 22.05kHz WAV → MP3 编码回传），产出 {id}.mp3 + manifest.json 与 .temp/voice-samples 试听小样。](../../../docs/assets/architecture/apps/voice-cloning--architecture-dark.png)
+
+> 图源（可 diff 文本）：[`voice-cloning--architecture.mmd`](../../../docs/assets/mermaid/apps/voice-cloning--architecture.mmd) · 交互版（下载到本地打开）：[`voice-cloning--architecture.html`](../../../docs/assets/architecture/apps/voice-cloning--architecture.html)
 
 **契约不变**：无论哪个引擎，输出仍是 `<工程>/video/public/audio/{id}.mp3` 与 `manifest.json`（`durationSec` 为实测时长），下游（Remotion 场景、字幕、抽帧 QA）零改动。
 

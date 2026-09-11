@@ -48,33 +48,9 @@ Negentropy Wiki 是 Negentropy 平台的知识库文档发布站点，负责将�
 
 ### 2.1 系统架构
 
-```mermaid
-flowchart LR
-    subgraph Backend["后端服务"]
-        KnowledgeDB[(PostgreSQL<br/>知识库)]
-        WikiAPI[Wiki API<br/>/knowledge/wiki]
-    end
+![主站 UI「同步并发布」经 wiki_service.publish 落库后，fire-and-forget 驱动「导出静态内容包 → next build 纯静态重建 → GitHub Pages 等静态托管」主链交付访客（零后端零数据库），webhook 旁路同时通知 GitHub Actions 导出 CI。](../../assets/architecture/wiki/ops--publish-flows-dark.png)
 
-    subgraph WikiApp["negentropy-wiki"]
-        APIClient[API Client<br/>wiki-api.ts]
-        SSG[SSG 生成器<br/>generate.ts]
-        Pages[页面组件<br/>page.tsx]
-        Theme[主题系统<br/>globals.css]
-    end
-
-    subgraph Deploy["部署"]
-        CDN[CDN 缓存]
-        Node[Node.js Server]
-    end
-
-    KnowledgeDB -->|数据| WikiAPI
-    WikiAPI -->|HTTP/JSON| APIClient
-    APIClient -->|SSG| Pages
-    SSG -->|HTML| CDN
-    CDN -->|静态资源| User
-    User -->|访问| Node
-    Node -->|ISR触发| APIClient
-```
+> 图源（可 diff 文本）：[`ops--publish-flows.mmd`](../../assets/mermaid/wiki/ops--publish-flows.mmd) · 交互版（下载到本地打开）：[`ops--publish-flows.html`](../../assets/architecture/wiki/ops--publish-flows.html)
 
 ### 2.2 路由结构
 
@@ -85,7 +61,7 @@ flowchart LR
 | `/:pubSlug/:entrySlug` | `src/app/[pubSlug]/[entrySlug]/page.tsx` | 文档详情页：Markdown 渲染                                       |
 | `/:pubSlug/graph`      | `src/app/[pubSlug]/graph/page.tsx`       | 知识图谱页：按 Publication 切片的实体/关系可视化（Sigma WebGL） |
 
-> 知识图谱页设计详见 [Wiki 知识图谱（按 Publication 切片发布）](./knowledge-graph.md)；数据流与 Markdown 页面同构，仅构建期 `fetch` + 重建（运行时 ISR 已退役，见 [§5](#5-构建部署与内容刷新)），无新增持久化或部署形态。
+> 知识图谱页设计详见 [Wiki 知识图谱（按 Publication 切片发布）](./design/knowledge-graph.md)；数据流与 Markdown 页面同构，仅构建期 `fetch` + 重建（运行时 ISR 已退役，见 [§5](#5-构建部署与内容刷新)），无新增持久化或部署形态。
 
 ### 2.3 数据流
 

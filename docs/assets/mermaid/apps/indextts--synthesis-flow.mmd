@@ -1,0 +1,29 @@
+%% source: apps/negentropy-influence/pipeline/INDEXTTS-2.5-ADVANCED.md — §2.1 中文归一化链路（wetext，不是 NeMo）（块#0）
+%% slug: apps/indextts--synthesis-flow
+%% type: workflow
+%% derived: byte-exact extraction of mermaid block #0
+%% fix: 节点/边全量对照本仓 pipeline/scripts 与上游 clone 4f8792f 核验一致，零修正——上游七步行号 :699/:701/:703-707/:711/:714/:719/:723 逐行比对全中；「预算 118 token」= min(120, capacity−2) − len(lang_prefix)（split_text_by_tokens :426-429）且 <|zh|> 确为注册特殊 token（tokenizer.py:203）故前缀恰 2 token
+%% fix: 本仓侧实证：build_narration.py:91-94 text=strip_marks(text)、has_marks 才写 ttsText；tts.py:249 tts_text()=「——」→「，」「……」→「。」；tts.py:598 POST {server}/synthesize
+flowchart TD
+    A["narration.md 逐字稿<br/>（含可选 &lt;原文｜读音&gt; 标注）"] --> B["build_narration.py<br/>剥离标注 → text ／ 保留 → ttsText"]
+    B --> C["tts.py tts_text()<br/>—— 逗号 · 省略号 → 句号"]
+    C --> D["POST /synthesize"]
+
+    subgraph UP["上游 infer_v2_5.py 文本管线（顺序即坑位）"]
+        direction TB
+        E["`:699` 构造 lang_prefix<br/>'&lt;|zh|&gt; ' = 2 个 token"]
+        F["`:701` clean_pattern<br/>标点半角化"]
+        G["`:703-707` **归一化分支**<br/>zh/en → front.py TextNormalizer<br/>ja/es → nemo_tn（zh 走不到）"]
+        H["`:711` 全局 text.lower()"]
+        I["`:714` 发音标注展开<br/>→ &lt;|SPECIAL_TOKEN_1/2|&gt;"]
+        J["`:719` split_text_by_tokens<br/>预算 118 token"]
+        K["`:723` tiktoken encode"]
+        E --> F --> G --> H --> I --> J --> K
+    end
+
+    D --> E
+    K --> L["T2S 自回归 → 语义码"]
+
+    style G fill:#7a2d2d,stroke:#f0a0a0,stroke-width:2px,color:#fff
+    style I fill:#1a3a5c,stroke:#8ab8e0,stroke-width:2px,color:#fff
+    style B fill:#1a4d3a,stroke:#7fd1a8,stroke-width:2px,color:#fff

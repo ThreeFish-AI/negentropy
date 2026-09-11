@@ -1,0 +1,21 @@
+%% source: docs/reference/perceives/agents/pdf-engine-selection.md §决策入口 (块#0, L19-L32)
+%% slug: perceives/pdf-engine--selection-matrix
+%% type: architecture
+%% derived: byte-exact extraction of mermaid block #0
+%% fix: reason 串实际带 profile: 前缀——identity / profile:missing_characteristics / profile:no_has_*（engine_selector.py:124,171,197），orchestrator.py:261,293 写入 StageResult.metadata.selector_decision 供审计
+%% fix: 短路跳过对 table_extraction / code_detection 有保护兜底——特征 False 但 has_complex_layout=True 时不跳过、回退 YAML 默认（reason=profile:no_*_but_complex_layout，engine_selector.py:178-193），源图未画该分支
+%% fix: 「其他 → YAML 静态顺序」为简化——formula/table/code 未跳过时另有 device=mps 子规则（mineru 前置 / 过滤 docling，:209-217,269-361），真正未识别 Stage 才落 profile:default 保持 YAML 顺序（:219-224）
+flowchart TD
+    A([Stage 开始]) --> B{selector 策略}
+    B -- identity --> Y[YAML 静态顺序<br/>不重排不跳过]
+    B -- profile_aware --> C{characteristics<br/>是否就绪?}
+    C -- 否 --> D[回退 YAML 默认<br/>reason=missing_characteristics]
+    C -- 是 --> E{Stage 是否<br/>「特征驱动型」?}
+    E -- 是 --> F{对应特征<br/>= False?}
+    F -- 是 --> G[短路跳过<br/>返回空 output<br/>reason=no_has_*]
+    F -- 否 --> H[继续路由]
+    E -- 否 --> H
+    H --> I{Stage 名称}
+    I -- text_extraction --> J[扫描/小文档/默认 子规则]
+    I -- layout_analysis --> K[简单布局快路径]
+    I -- 其他 --> Y

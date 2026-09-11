@@ -1,0 +1,61 @@
+%% source: docs/reference/perceives/development.md 块#2（L689-L744，CI/CD 架构概览）
+%% slug: perceives/development--ci-flow
+%% type: workflow
+%% derived: docs/assets/architecture/perceives/development--ci-flow.html (+ -dark/-light PNG)
+%% fix: 标签模式 v*.*.* → perceives-v*.*.*（negentropy-perceives-release.yml on.push.tags，monorepo 命名空间；该文件亦无 release-published fallback 触发器）
+%% fix: B6 独立「覆盖率报告 + Codecov」job 已并入 test（ci.yml 注释「合并原独立 coverage job」：--cov 内嵌，仅 ubuntu 腿上传 artifact + Codecov v5）→ 删 B6 节点
+%% fix: 删 D7「更新 Changelog」——当前 release.yml 共 7 job、止于 pypi，无 changelog-update（pre-release-github 仅从 CHANGELOG.md 提取该版本段落作 release notes）
+%% fix: 四流水线文件名补 monorepo 前缀 negentropy-perceives-{ci,release,dependencies,review}.yml（doc 中 ci.yml 等短名指向不存在的路径）
+%% fix: push/PR 触发均带 apps/negentropy-perceives/** 路径过滤；CI 无 schedule 触发（schedule 仅 dependencies.yml）；跨平台全矩阵（Ubuntu/Windows/macOS）仅合并闸口事件，feature/** 推送仅 Ubuntu（matrix-prep 动态矩阵，图未单列）
+graph TD
+    subgraph "触发源"
+        A["推送 master/main/develop/feature/**"]
+        B0["PR → master/main/develop/feature/**"]
+        C["标签 perceives-v*.*.*"]
+        G["计划 / 手动"]
+    end
+
+    subgraph "CI 流水线"
+        B[negentropy-perceives-ci.yml]
+        B1["跨平台测试<br/>(Ubuntu / Windows / macOS)<br/>动态矩阵 · 覆盖率→Codecov"]
+        B2["Ruff Lint + Format"]
+        B3["MyPy 类型检查"]
+        B4["安全审计<br/>(bandit + pip-audit)"]
+        B5["构建验证"]
+        B --> B1 & B2 & B3 & B4 & B5
+    end
+
+    subgraph "发布流水线（两阶段）"
+        D[negentropy-perceives-release.yml]
+        D0["CI 验证"]
+        D1["构建分发包"]
+        D2["Pre-Release GitHub<br/>(prerelease: true)"]
+        D3["TestPyPI 发布"]
+        D4["人工审批门禁<br/>(Environment: production)"]
+        D5["Promote 正式 Release<br/>(prerelease: false)"]
+        D6["PyPI 发布 OIDC"]
+        D --> D0 --> D1
+        D1 --> D2
+        D1 --> D3
+        D2 --> D4
+        D3 --> D4
+        D4 --> D5
+        D5 --> D6
+    end
+
+    subgraph "辅助流水线"
+        H["negentropy-perceives-dependencies.yml<br/>每周一 9:00 UTC"]
+        K["negentropy-perceives-review.yml<br/>PR + 主分支推送"]
+    end
+
+    A --> B
+    B0 --> B
+    C --> D
+    G -->|"每周依赖更新"| H
+    B0 -->|"代码审查"| K
+
+    style B fill:#2196F3,color:#fff
+    style D fill:#4CAF50,color:#fff
+    style D4 fill:#f44336,color:#fff,stroke-dasharray: 5 5
+    style H fill:#FF9800,color:#000
+    style K fill:#9C27B0,color:#fff
