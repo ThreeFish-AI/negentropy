@@ -126,18 +126,21 @@ pnpm run dev                           # 启动开发服务器 (localhost:3192)
 
 ## 2. 项目结构
 
-> 架构设计原理（三层架构视图、设计模式等）详见 [Framework §2](../framework.md#2-系统全景架构)。本节聚焦目录布局与开发操作视角。
+> 架构设计原理（三层架构视图、设计模式等）详见 [Framework §2](../framework.md#2-系统全景架构)。本节聚焦目录布局与开发操作视角（树为节选，以后端与前端为主线）。
 
 ```sh
 negentropy/
 ├── .gitignore                         # Git 忽略规则
-├── .mcp.json                          # MCP 服务配置
-├── AGENTS.md                          # AI 协作协议
 ├── LICENSE                            # 许可协议
 ├── README.md                          # 项目自述
+├── pnpm-workspace.yaml                # pnpm monorepo 工作区（apps/* + packages/*）
+├── scripts/                           # 仓级编排（dev 一键入口 / cli.sh / wiki 发布与构建）
+├── docker/                            # Compose 编排与 4 服务 Dockerfile
+├── packages/                          # 共享包（agents-chat-core：AG-UI 协议层 SSOT）
 ├── docs/                              # 项目文档
-│   ├── development.md                 # 本文档
-│   ├── framework.md                   # 架构设计方案
+│   ├── concepts/                      # 架构与子系统（framework.md / operations/ 本文档 / subsystems/ / user-guide/）
+│   ├── reference/                     # perceives / wiki / cognizes 设计遗产
+│   ├── research/                      # 技术调研
 │   └── ...
 ├── apps/                              # 应用根目录
 │   ├── negentropy/                    # Python 后端 (uv 管理)
@@ -162,8 +165,7 @@ negentropy/
 │   │   │   └── performance_tests/
 │   │   └── scripts/                   # 后端专用脚本
 │   ├── negentropy-ui/                 # 前端 (pnpm 管理)
-│   │   ├── package.json               # pnpm 项目配置
-│   │   ├── pnpm-lock.yaml             # pnpm 锁文件（提交至版本库）
+│   │   ├── package.json               # pnpm 项目配置（锁文件统一在仓库根 pnpm-lock.yaml）
 │   │   ├── .env.example               # 环境变量模板（前端）
 │   │   ├── app/                       # Next.js App Router 页面与 API 路由
 │   │   ├── components/                # 通用可复用 UI 组件
@@ -179,7 +181,9 @@ negentropy/
 │   │   │   ├── integration/
 │   │   │   └── unit/
 │   │   └── scripts/                   # 前端专用脚本
-│   └── negentropy-wiki/               # Wiki 应用 (pnpm 管理)
+│   ├── negentropy-wiki/               # Wiki 应用 (pnpm 管理，纯静态导出)
+│   ├── negentropy-perceives/          # PDF/Web → Markdown 感知服务 (uv 管理，FastMCP :2992)
+│   └── negentropy-influence/          # 科普视频流水线 (uv 管理脚本，无常驻端口)
 └── .temp/                             # 临时文件（自动清理）
 ```
 
@@ -190,7 +194,7 @@ negentropy/
 | **包管理器**   | `uv`<sup>[[1]](#ref1)</sup>             | `pnpm`                                |
 | **锁文件**     | `uv.lock`                               | `pnpm-lock.yaml`                      |
 | **依赖安装**   | `uv sync`                               | `pnpm install`                        |
-| **开发命令**   | `uv run adk web`<sup>[[5]](#ref5)</sup> | `pnpm run dev`<sup>[[6]](#ref6)</sup> |
+| **开发命令**   | `uv run negentropy serve`<sup>[[5]](#ref5)</sup>（封装 adk web，默认 :3292） | `pnpm run dev`<sup>[[6]](#ref6)</sup> |
 | **测试命令**   | `uv run pytest`                         | `pnpm run test`                       |
 | **代码格式化** | `ruff`                                  | `eslint` / `prettier`                 |
 
@@ -200,23 +204,9 @@ negentropy/
 
 ## 3. 开发工作流
 
-```mermaid
-flowchart LR
-    Start[克隆项目] --> SetupBE[后端: uv sync --dev]
-    Start --> SetupFE[前端: pnpm install]
+![克隆项目后，后端经 uv sync --dev 与 uv run negentropy serve（ADK Web :3292）、前端经 pnpm install 与 pnpm run dev（Next.js :3192）并行启动双服务，两侧热重载并经 AG-UI Protocol（SSE/HTTP）联调。](../../assets/architecture/operations/development--workflow-dark.png)
 
-    SetupBE --> DevBE[后端: uv run negentropy serve]
-    SetupFE --> DevFE[前端: pnpm run dev<br>localhost:3192]
-
-    DevBE --> |热重载| DevBE
-    DevFE --> |热重载| DevFE
-
-    DevBE --> |AG-UI Protocol| DevFE
-
-    classDef dev fill:#FEF3C7,stroke:#92400E,color:#000
-
-    class SetupBE,SetupFE,DevBE,DevFE dev
-```
+> 图源（可 diff 文本）：[`development--workflow.mmd`](../../assets/mermaid/operations/development--workflow.mmd) · 交互版（下载到本地打开）：[`development--workflow.html`](../../assets/architecture/operations/development--workflow.html)
 
 **日常开发循环**：
 

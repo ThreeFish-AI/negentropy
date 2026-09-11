@@ -248,16 +248,21 @@ async function main() {
     await cdp.send("Page.navigate", { url: `file://${htmlPath}` });
     await new Promise((r) => setTimeout(r, 1500));
     const prep = await cdp.evalFn(PAGE_FNS.prepare);
-    // exportMenu 的 RASTER_SCALE=4：PNG 尺寸必须等于 viewBox × 4
-    const want = { width: Math.round(prep.viewBox.width * 4), height: Math.round(prep.viewBox.height * 4) };
-    console.log(`[page] theme=${prep.theme} viewBox=${prep.viewBox.width}×${prep.viewBox.height} fonts=${prep.fontsStatus}`);
+    // exportMenu 的 RASTER_SCALE=4（导出器对宽 viewBox 有 4800px 上限，实际缩放可为 3×）：
+    // 断言「整数倍缩放 + 纵横比一致」防半幅/空图
+    const vb = prep.viewBox;
+    console.log(`[page] theme=${prep.theme} viewBox=${vb.width}×${vb.height} fonts=${prep.fontsStatus}`);
 
     for (const theme of opts.themeList) {
       const now = await cdp.evalFn(PAGE_FNS.setTheme, theme);
       if (now !== theme) throw new Error(`主题切换失败: 期望 ${theme} 实得 ${now}`);
       const r = await cdp.evalFn(PAGE_FNS.exportBlob, "png");
-      if (!r.dims || Math.abs(r.dims.width - want.width) > 4 || Math.abs(r.dims.height - want.height) > 4) {
-        throw new Error(`PNG 尺寸异常: ${JSON.stringify(r.dims)}（期望 ${want.width}×${want.height} = viewBox×4）`);
+      const okDims = r.dims
+        && r.dims.width % Math.round(vb.width) === 0 && r.dims.height % Math.round(vb.height) === 0
+        && r.dims.width / vb.width === r.dims.height / vb.height
+        && r.dims.width / vb.width >= 3;
+      if (!okDims) {
+        throw new Error(`PNG 尺寸异常: ${JSON.stringify(r.dims)}（期望 viewBox ${vb.width}×${vb.height} 的 ≥3 整数倍等比）`);
       }
       const file = path.join(outDir, `${opts.slug}-${theme}.png`);
       writeAtomic(file, Buffer.from(r.base64, "base64"));

@@ -55,53 +55,9 @@ tags:
 
 ## 3. 系统架构（后端落地）
 
-```mermaid
-%%{init: {"themeVariables": {"primaryColor": "#0b3d91", "primaryTextColor": "#ffffff", "primaryBorderColor": "#0b3d91", "secondaryColor": "#0f5132", "secondaryTextColor": "#ffffff", "secondaryBorderColor": "#0f5132", "tertiaryColor": "#842029", "tertiaryTextColor": "#ffffff", "tertiaryBorderColor": "#842029"}}}%%
-flowchart LR
-  subgraph API[API Layer]
-    KAPI[Knowledge API]
-    MAPI[Memory API]
-  end
+![Knowledge 后端四层分层架构：Knowledge API 经 KnowledgeService 四模式检索与 L1 精排下发到 KnowledgeRepository，再落到 kb_hybrid_search / kb_rrf_search 函数族与 corpus/knowledge 表；下方泳道并列展示 Memory API 经治理与 MemoryService 写入 memory/fact 表。](../../assets/architecture/subsystems/035-kb--search-functions-dark.png)
 
-  subgraph Service[Service Layer]
-    KSvc[KnowledgeService]
-    Rerank[Reranker L1]
-    MGov[MemoryGovernance]
-    FSvc[FactService]
-  end
-
-  subgraph Repo[Repository Layer]
-    KRepo[KnowledgeRepository]
-    MemSvc[MemoryService]
-  end
-
-  subgraph Storage[Storage Layer]
-    Corpus[(corpus)]
-    Knowledge[(knowledge)]
-    Memory[(memory / fact)]
-    HybridFn["kb_hybrid_search()"]
-    RRFFn["kb_rrf_search()"]
-  end
-
-  KAPI --> KSvc --> KRepo --> Corpus
-  KSvc --> Rerank
-  KRepo --> Knowledge
-  KRepo --> HybridFn
-  KRepo --> RRFFn
-  MAPI --> MGov --> MemSvc --> Memory
-  MAPI --> FSvc --> Memory
-  MAPI --> MemSvc
-
-  classDef api fill:#0b3d91,stroke:#0b3d91,color:#ffffff;
-  classDef svc fill:#0f5132,stroke:#0f5132,color:#ffffff;
-  classDef repo fill:#0f5132,stroke:#0f5132,color:#ffffff;
-  classDef store fill:#842029,stroke:#842029,color:#ffffff;
-
-  class KAPI,MAPI api
-  class KSvc,Rerank,MGov,FSvc svc
-  class KRepo,MemSvc repo
-  class Corpus,Knowledge,Memory,HybridFn,RRFFn store
-```
+> 图源（可 diff 文本）：[`035-kb--search-functions.mmd`](../../assets/mermaid/subsystems/035-kb--search-functions.mmd) · 交互版（下载到本地打开）：[`035-kb--search-functions.html`](../../assets/architecture/subsystems/035-kb--search-functions.html)
 
 ## 4. 存储模型映射
 
@@ -119,21 +75,9 @@ flowchart LR
 4. 批量写入 `knowledge`
 5. 触发器更新 `search_vector`
 
-```mermaid
-%%{init: {"themeVariables": {"primaryColor": "#0b3d91", "primaryTextColor": "#ffffff", "primaryBorderColor": "#0b3d91", "actorBorder": "#0b3d91", "actorTextColor": "#ffffff"}}}%%
-sequenceDiagram
-  participant Client
-  participant KnowledgeService
-  participant KnowledgeRepository
-  participant DB
+![知识摄取时序图：客户端调 POST /base/{id}/ingest 后 API 立即返回 run_id，知识服务在后台完成分块与向量化，再经知识仓储按 source_uri 以替换或追加模式批量写入 PostgreSQL 并回传 KnowledgeRecord。](../../assets/architecture/subsystems/035-kb--ingestion-sequence-dark.png)
 
-  Client->>KnowledgeService: ingest_text(corpus_id, text, source_uri)
-  KnowledgeService->>KnowledgeService: chunk_text + embed
-  KnowledgeService->>KnowledgeRepository: add_knowledge(chunks)
-  KnowledgeRepository->>DB: INSERT knowledge
-  DB-->>KnowledgeRepository: rows committed
-  KnowledgeRepository-->>KnowledgeService: KnowledgeRecords
-```
+> 图源（可 diff 文本）：[`035-kb--ingestion-sequence.mmd`](../../assets/mermaid/subsystems/035-kb--ingestion-sequence.mmd) · 交互版（下载到本地打开）：[`035-kb--ingestion-sequence.html`](../../assets/architecture/subsystems/035-kb--ingestion-sequence.html)
 
 ### 5.2 Retrieval（两阶段检索）
 
@@ -152,19 +96,9 @@ sequenceDiagram
 - 支持 `LocalReranker`（BGE-Reranker）、`APIReranker`（Cohere）、`CompositeReranker`（多级回退）
 - 默认使用 `NoopReranker` 确保向后兼容
 
-```mermaid
-%%{init: {"themeVariables": {"primaryColor": "#0b3d91"}}}%%
-flowchart LR
-  Query["Query"] --> L0["L0: 混合召回"]
-  L0 --> Semantic["Semantic<br/>(pgvector)"]
-  L0 --> Keyword["Keyword<br/>(BM25)"]
-  L0 --> RRF["RRF<br/>(Rank Fusion)"]
-  Semantic --> Merge["Score Merge"]
-  Keyword --> Merge
-  RRF --> Merge
-  Merge --> L1["L1: Cross-Encoder<br/>Reranking"]
-  L1 --> Results["Top-K Results"]
-```
+![Knowledge Base 分层检索工作流：Query 经模式分派后按 SearchConfig.mode 走双路 L0 召回（pgvector HNSW 语义 / BM25 关键词），再由加权求和或 RRF k=60 融合排序，交 L1 Cross-Encoder 精排（默认恒等）输出 limit 默认 20 的 Top-K 结果。](../../assets/architecture/subsystems/035-kb--retrieval-levels-dark.png)
+
+> 图源（可 diff 文本）：[`035-kb--retrieval-levels.mmd`](../../assets/mermaid/subsystems/035-kb--retrieval-levels.mmd) · 交互版（下载到本地打开）：[`035-kb--retrieval-levels.html`](../../assets/architecture/subsystems/035-kb--retrieval-levels.html)
 
 ## 6. 工程落地（本次实现）
 
@@ -780,48 +714,9 @@ CREATE UNIQUE INDEX uq_wiki_pub_catalog_active
 
 Migration 0004 在 Phase 2 backfill 时按「1 corpus → 1 catalog」1:1 映射，运行环境通常存在 ≥3 个 Catalog（对应 negentropy-perceives / negentropy-wiki / negentropy-aurelius-clade）。Phase 4 采用**根节点合并为子树（Root-as-Subtree Merge）**策略实现无损迁移：
 
-```mermaid
-flowchart LR
-    subgraph BEFORE["Phase 3 现状（多 Catalog 并列）"]
-        direction TB
-        C1["Catalog A<br/>negentropy-perceives"]
-        C2["Catalog B<br/>negentropy-wiki"]
-        C3["Catalog C<br/>negentropy-aurelius-clade"]
-        C1 --> N1["Node 1.1"]
-        C1 --> N2["Node 1.2"]
-        C2 --> N3["Node 2.1"]
-        C3 --> N4["Node 3.1"]
-    end
+![知识库 Catalog 单例化合并设计（ADR）：Phase 3 三个并列 Catalog（negentropy-perceives / negentropy-wiki / aurelius-clade，单例不变量按 app_name 分域）收敛为 Phase 4 单聚合根——Catalog A 幸存为唯一 active 目录，B/C 转为携带 merged_into_id 的墓碑，其顶层子树经 Virtual Root（FOLDER）嫁接至 Survivor 之下](../../assets/architecture/subsystems/035-kb--multi-catalog-dark.png)
 
-    subgraph AFTER["Phase 4 收敛后（单聚合根）"]
-        direction TB
-        S["Catalog Survivor<br/>app_name=negentropy<br/>(active)"]
-        S --> V0["原 Survivor 顶层"]
-        S --> V1["Virtual Root<br/>(legacy-B)"]
-        S --> V2["Virtual Root<br/>(legacy-C)"]
-        V0 --> M1["Node 1.1"]
-        V0 --> M2["Node 1.2"]
-        V1 --> M3["Node 2.1"]
-        V2 --> M4["Node 3.1"]
-
-        T1["Catalog B<br/>(tombstone)<br/>merged_into_id→Survivor"]
-        T2["Catalog C<br/>(tombstone)<br/>merged_into_id→Survivor"]
-    end
-
-    BEFORE -.合并迁移.-> AFTER
-
-    classDef survivor fill:#1f6feb,stroke:#388bfd,color:#ffffff,font-weight:bold;
-    classDef virtual fill:#8957e5,stroke:#a371f7,color:#ffffff;
-    classDef tombstone fill:#6e7681,stroke:#8b949e,color:#f0f6fc,stroke-dasharray: 5 5;
-    classDef original fill:#238636,stroke:#3fb950,color:#ffffff;
-    classDef foreign fill:#bf8700,stroke:#d29922,color:#ffffff;
-
-    class S,V0 survivor;
-    class V1,V2 virtual;
-    class T1,T2 tombstone;
-    class C1,N1,N2,M1,M2 original;
-    class C2,C3,N3,N4,M3,M4 foreign;
-```
+> 图源（可 diff 文本）：[`035-kb--multi-catalog.mmd`](../../assets/mermaid/subsystems/035-kb--multi-catalog.mmd) · 交互版（下载到本地打开）：[`035-kb--multi-catalog.html`](../../assets/architecture/subsystems/035-kb--multi-catalog.html)
 
 合并算法关键步骤（详见 [`wiki/ops.md` §12.2 Phase B runbook](../../wiki/ops.md#122-phase-b-merge-runbook)）：
 
@@ -884,28 +779,9 @@ flowchart LR
 
 ### 16.2 组件架构
 
-```mermaid
-graph TD
-    subgraph Page["CatalogPage (page.tsx)"]
-        Sel["CatalogSelector"]
-        TB["CatalogTreeToolbar"]
-        Tree["CatalogTree"]
-        Detail["NodeDetailPanel"]
-        Dialog["CreateNodeDialog"]
-        CtxMenu["CatalogContextMenu"]
-    end
+![Catalog 维护 UI 的真实装配：已退役的 /knowledge/catalog 与零引用的 CatalogSelector 在左侧标注为死代码，中列 LibraryShell 作为状态中枢向右扇出驱动 CatalogTreePane 三件套与详情面板，并向下经 useSingletonCatalog / useCatalogTree / useCatalogTreeDnd 三层 Hooks 汇入 Catalog REST 数据面。](../../assets/architecture/subsystems/035-kb--catalog-page-ui-dark.png)
 
-    subgraph Hooks["Hooks"]
-        UCT["useCatalogTree"]
-    end
-
-    TB -->|search / collapse / add root| Page
-    Tree -->|onSelect / onToggle / onAddChild| Page
-    Tree -->|onContextMenu| CtxMenu
-    CtxMenu -->|rename / delete / copy ID| Page
-    Tree -->|drag events| Page
-    Page --> UCT
-```
+> 图源（可 diff 文本）：[`035-kb--catalog-page-ui.mmd`](../../assets/mermaid/subsystems/035-kb--catalog-page-ui.mmd) · 交互版（下载到本地打开）：[`035-kb--catalog-page-ui.html`](../../assets/architecture/subsystems/035-kb--catalog-page-ui.html)
 
 ### 16.3 新增组件
 

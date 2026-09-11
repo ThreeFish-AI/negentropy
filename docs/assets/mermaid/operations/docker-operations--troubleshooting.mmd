@@ -1,0 +1,30 @@
+%% source: docs/concepts/operations/docker-operations.md §6.1 诊断决策树（块#1，L386-L408）
+%% slug: operations/docker-operations--troubleshooting
+%% type: workflow
+%% derived: byte-exact extraction of mermaid block #1
+%% fix: 「按启动顺序」的顺序由 compose depends_on 拓扑决定：postgres/perceives → backend → ui；wiki 纯静态、无 healthcheck/depends_on，不参与级联（docker/docker-compose.yml L92-96/L122-124/L134-143）
+%% fix: unhealthy 仅可能出现在 4 个定义 healthcheck 的服务上（postgres pg_isready、perceives :2992/mcp、backend :3292、ui :3192）
+%% fix: 「docker compose up -d 重建未启动服务」纯启动场景 up -d 即可，镜像/代码变更须 up -d --build（文档 §5.2）
+flowchart TD
+    START["服务异常"]:::problem
+    PS["docker compose ps<br/>查看服务状态"]:::step
+
+    START --> PS
+    PS --> UNHEALTHY{"存在<br/>unhealthy？"}:::decision
+    PS --> NOTRUNNING{"存在<br/>未启动？"}:::decision
+
+    UNHEALTHY -->|"是"| LOGS["docker compose logs -f<br/>查看异常服务日志"]:::step
+    NOTRUNNING -->|"是"| DEP{"上游依赖<br/>是否 healthy？"}:::decision
+
+    LOGS --> ROOT["根据日志定位根因"]:::step
+    DEP -->|"否"| UPSTREAM["按启动顺序<br/>逐级排查上游"]:::step
+    DEP -->|"是"| REBUILD["docker compose up -d<br/>重建未启动服务"]:::step
+
+    ROOT --> FIX["对症修复"]:::fix
+    UPSTREAM --> LOGS
+    REBUILD --> PS
+
+    classDef problem fill:#5f1e2e,stroke:#ff6b88,stroke-width:2px,color:#ffe8ee
+    classDef decision fill:#4a3a10,stroke:#ffc53d,stroke-width:2px,color:#fff7e0
+    classDef step fill:#1e3a5f,stroke:#4da3ff,stroke-width:2px,color:#e8f1fb
+    classDef fix fill:#16432a,stroke:#3ddc84,stroke-width:2px,color:#e6fbef

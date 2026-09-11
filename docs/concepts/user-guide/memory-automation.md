@@ -24,15 +24,9 @@ Memory Automation 的 3 个定时作业已从 pg_cron 迁移至 **Unified Schedu
 
 ## 2. 任务管理入口
 
-```mermaid
-flowchart TB
-    A["/interface/scheduler"] --> B{Tasks Tab}
-    B --> C[查看状态 / 执行历史]
-    B --> D[Enable / Disable]
-    B --> E[手动 Run Once]
-    B --> F[Executions Tab — 执行日志]
-    B --> G[Stats Tab — 统计面板]
-```
+![Scheduler 页面三 Tab 平级切换图：/interface/scheduler 分流到 Executions Tab、Stats Tab 与 Tasks Tab 任务表，任务表行内的 Enable/Disable 与 Run Now 两个动作汇入 registry 派发，其中 manual 触发无视 enabled 位。](../../assets/architecture/user-guide/memory-automation--tasks-tab-dark.png)
+
+> 图源（可 diff 文本）：[`memory-automation--tasks-tab.mmd`](../../assets/mermaid/user-guide/memory-automation--tasks-tab.mmd) · 交互版（下载到本地打开）：[`memory-automation--tasks-tab.html`](../../assets/architecture/user-guide/memory-automation--tasks-tab.html)
 
 所有操作均需 Admin 权限，支持 SSE 实时推送执行事件。
 

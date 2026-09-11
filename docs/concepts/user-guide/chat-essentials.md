@@ -26,17 +26,9 @@ title: "Home 对话 · 主模块特性手册"
 - 不同模型的工具/推理表现差异较大；论文采集场景推荐 `claude-opus-4-7`。
 - 模型按线程持久化，新会话沿用最近选择。
 
-```mermaid
-sequenceDiagram
-  participant U as User
-  participant H as HomeBody
-  participant E as Engine
-  U->>H: 选模型 → 写 localStorage
-  U->>H: 输入 → Enter
-  H->>H: 无 sessionId？new session
-  H->>E: POST /api/agui (NDJSON)
-  E-->>H: RUN_STARTED → TEXT_MESSAGE_* → RUN_FINISHED
-```
+![Home 对话一次请求的四方时序图：用户在 HomeBody 选模型并输入后，经 BFF 路由建立会话，再以 NDJSON 请求转 SSE 调用 ADK 引擎，事件流回灌为 RUN_STARTED、TEXT_MESSAGE_* 与 RUN_FINISHED。](../../assets/architecture/user-guide/chat-essentials--request-sequence-dark.png)
+
+> 图源（可 diff 文本）：[`chat-essentials--request-sequence.mmd`](../../assets/mermaid/user-guide/chat-essentials--request-sequence.mmd) · 交互版（下载到本地打开）：[`chat-essentials--request-sequence.html`](../../assets/architecture/user-guide/chat-essentials--request-sequence.html)
 
 ## 2. 输入框（Markdown / 附件 / 提示词模板）
 
@@ -143,26 +135,9 @@ sequenceDiagram
 - KG 构建是异步 fail-open；`kg_status: "kg_skipped"` 表示构建失败但**主路径成功**，已入库的知识仍可检索。
 - 详细模板与 cron 调度参见 [skills-paper-hunter.md](./skills-paper-hunter.md) 与 [papers-curation.md](./papers-curation.md)。
 
-```mermaid
-sequenceDiagram
-  participant U as User
-  participant A as Agent
-  participant P as paper.py
-  participant K as KnowledgeService
-  participant G as GraphService
-  U->>A: "采集 AI Agent 论文 top 5"
-  A->>P: search_papers(query, top_k)
-  P-->>A: 5 papers
-  loop 每篇
-    A->>P: ingest_paper(arxiv_id, pdf_url)
-    P->>P: _check_existing_arxiv → 命中跳过
-    P->>K: ingest_url(pdf_url)
-    K-->>P: records
-    P->>G: enqueue_kg_build (async)
-    P-->>A: status + kg_status
-  end
-  A-->>U: 总结 + [N] 引用 + ## 参考文献
-```
+![论文采集的 Agent 调度时序图：用户请求经熵减引擎两次 transfer_to_agent 分别委派感知系部检索论文与内化系部逐篇入库，入库前经审批门阻塞确认，随后调知识服务写入 agent-papers 语料库并异步排队 ai_paper 图谱构建，最后由根 Agent 汇总逐篇状态与 kg_status 回执。](../../assets/architecture/user-guide/chat-essentials--agent-dispatch-sequence-dark.png)
+
+> 图源（可 diff 文本）：[`chat-essentials--agent-dispatch-sequence.mmd`](../../assets/mermaid/user-guide/chat-essentials--agent-dispatch-sequence.mmd) · 交互版（下载到本地打开）：[`chat-essentials--agent-dispatch-sequence.html`](../../assets/architecture/user-guide/chat-essentials--agent-dispatch-sequence.html)
 
 ## 9. KG 反向推荐（P2-3 · search_knowledge_graph_with_papers）
 

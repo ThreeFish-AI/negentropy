@@ -49,29 +49,9 @@ title: "人机交互转录 UI：Routine 与 Studio 的统一架构"
 
 **单一渲染器 `TranscriptItemsView`**（纯展示，policy 化）+ **`TranscriptPolicy` 契约**（承载左右对齐 / 徽章 / 在途文案差异）+ **两个适配器**（各自把域数据归一化为 `TranscriptItem[]` IR）。
 
-```mermaid
-flowchart LR
-  subgraph ROUTINE["Routine 路径（Iterations Full View）"]
-    direction LR
-    R1["RoutineIterationEventDTO[]<br/>持久化 + live SSE"] --> R2["normalizeTranscript<br/>工具配对 / cc·human 提升"]
-    R2 --> R3["前置 task_dispatch<br/>（iteration.prompt 合成）"]
-    R3 --> R4["TranscriptItemsView<br/>ROUTINE_POLICY"]
-  end
-  subgraph STUDIO["Studio 路径（Home 中栏）"]
-    direction LR
-    S1["ConversationNode[]<br/>AG-UI 树"] --> S2["buildChatDisplayBlocks<br/>turn 分组 / 6 层去重 / 漂移修正"]
-    S2 --> S3["buildStudioTranscript<br/>ChatDisplayBlock → TranscriptItem"]
-    S3 --> S4["TranscriptItemsView<br/>STUDIO_POLICY + itemWrapper"]
-  end
-  R4 --> VIEW["共享渲染原语<br/>components/transcript/*"]
-  S4 --> VIEW
-  classDef routine fill:#3f3a1e,stroke:#fbbf24,color:#fef9c3;
-  classDef studio fill:#1e3a5f,stroke:#60a5fa,color:#e0f2fe;
-  classDef shared fill:#3b1e3f,stroke:#c084fc,color:#f3e8ff;
-  class R1,R2,R3,R4 routine;
-  class S1,S2,S3,S4 studio;
-  class VIEW shared;
-```
+![Routine 与 Studio 两条路径分别把 RoutineIterationEventDTO[] 审计事件流与 ConversationNode[] AG-UI 对话树归一化为 TranscriptItem[]，经 ROUTINE_POLICY / STUDIO_POLICY 策略汇入共享渲染器 TranscriptItemsView（components/transcript/* 单一事实源）。](../../assets/architecture/subsystems/041-transcript--full-view-dark.png)
+
+> 图源（可 diff 文本）：[`041-transcript--full-view.mmd`](../../assets/mermaid/subsystems/041-transcript--full-view.mmd) · 交互版（下载到本地打开）：[`041-transcript--full-view.html`](../../assets/architecture/subsystems/041-transcript--full-view.html)
 
 `TranscriptPolicy` 契约（`components/transcript/policy.ts`）：
 

@@ -22,15 +22,9 @@ Ollama 是 Negentropy 的一等公民 vendor（`config/llm.py` 中 `OLLAMA` 枚�
 
 > **嵌入维度约束**：向量列固定 `vector(1536)`（`models/base.py` `DEFAULT_EMBEDDING_DIM = 1536`）。Ollama 主流嵌入模型（如 `nomic-embed-text` 768 维、`bge-m3` 1024 维）**无法**直接作为落库嵌入。因此本地 Ollama 下，语义检索/记忆**降级为关键词匹配**（对话不受影响）。若需完整 RAG，请额外配置一个 1536 维云嵌入模型（如 `text-embedding-005`）。
 
-```mermaid
-flowchart LR
-  K["填入云 API Key<br/>（默认推荐）"]:::ok --> Chat1["对话 ✅"]:::ok
-  O["本地安装 Ollama<br/>+ 登记配置"]:::opt --> Chat2["对话 ✅"]:::ok
-  Chat2 --> RAG["语义检索/RAG<br/>降级为关键词"]:::warn
-  classDef ok fill:#1f5c3a,stroke:#3ecf8e,color:#e6f9f0
-  classDef opt fill:#1e3a5f,stroke:#4da3ff,color:#e8f1fb
-  classDef warn fill:#7a4a06,stroke:#f0a830,color:#fff6e6
-```
+![云 API Key 默认路径与本地 Ollama 零 Key 路径对比：两条路径对话均可用，云路径经 1536 维云嵌入保持语义检索全量，Ollama 路径因本地嵌入维度不足而降级为关键词检索。](../../assets/architecture/operations/local-llm-ollama--setup-path-dark.png)
+
+> 图源（可 diff 文本）：[`local-llm-ollama--setup-path.mmd`](../../assets/mermaid/operations/local-llm-ollama--setup-path.mmd) · 交互版（下载到本地打开）：[`local-llm-ollama--setup-path.html`](../../assets/architecture/operations/local-llm-ollama--setup-path.html)
 
 ---
 

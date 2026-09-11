@@ -26,68 +26,9 @@ title: "The Routine System：长周期自主任务架构设计"
 
 ## 2. 架构总览
 
-```mermaid
-flowchart TB
-    subgraph UI["前端 negentropy-ui · Interface / Routine"]
-        PAGE["RoutinePage<br/>列表 / 详情抽屉 / 创建表单"]
-        SSE_C["useRoutineStream<br/>SSE 订阅"]
-    end
+![Routine 系统架构总览：RoutinePage 与 useRoutineStream（SSE）接入 Routine API，routine_inspector 心跳驱动 Orchestrator 的 reap→evaluate→dispatch 循环，RoutineRunner 以进程内 asyncio.Task 调 ClaudeCodeService 执行，事件经 RoutineBus 扇出，routines 与 routine_iterations 落 PostgreSQL](../../assets/architecture/subsystems/039-routine--architecture-overview-dark.png)
 
-    subgraph API["接口层 interface/routine_api.py"]
-        REST["REST: CRUD + start/pause/resume/cancel<br/>+ approve/reject"]
-        STREAM["GET /routines/stream (SSE)"]
-    end
-
-    subgraph SCHED["调度引擎 schedulers/registry.py"]
-        TICK["routine_inspector ScheduledTask<br/>interval=25s 心跳"]
-    end
-
-    subgraph ENGINE["编排引擎 engine/routine/"]
-        ORCH["RoutineOrchestrator.inspect_once()<br/>reap → evaluate → dispatch"]
-        EVAL["RoutineEvaluator<br/>命令门控 + LLM-as-Judge"]
-        DEC["decision.py<br/>纯函数守卫"]
-        RUN["RoutineRunner<br/>后台 asyncio.Task + 信号量"]
-        BUS["RoutineBus<br/>SSE 事件 fan-out"]
-    end
-
-    subgraph EXEC["执行层"]
-        CC["ClaudeCodeService.invoke()<br/>SDK / CLI + resume_session_id"]
-    end
-
-    subgraph DB["PostgreSQL"]
-        T1[("routines")]
-        T2[("routine_iterations")]
-    end
-
-    PAGE -->|fetch| REST
-    SSE_C -.->|EventSource| STREAM
-    REST --> T1
-    REST --> T2
-    TICK --> ORCH
-    ORCH --> DEC
-    ORCH --> EVAL
-    ORCH --> RUN
-    RUN --> CC
-    ORCH --> BUS
-    RUN --> BUS
-    BUS -.-> STREAM
-    ORCH --> T1
-    ORCH --> T2
-    RUN --> T2
-
-    classDef ui fill:#1e3a5f,stroke:#4a9eff,color:#e0f0ff
-    classDef api fill:#3d2f5c,stroke:#a87fff,color:#f0e8ff
-    classDef sched fill:#5c4a1e,stroke:#ffc857,color:#fff5e0
-    classDef engine fill:#1e4d3a,stroke:#4ade80,color:#e0ffe8
-    classDef exec fill:#5c1e2e,stroke:#ff6b81,color:#ffe0e8
-    classDef db fill:#2d2d3d,stroke:#8888aa,color:#e0e0f0
-    class PAGE,SSE_C ui
-    class REST,STREAM api
-    class TICK sched
-    class ORCH,EVAL,DEC,RUN,BUS engine
-    class CC exec
-    class T1,T2 db
-```
+> 图源（可 diff 文本）：[`039-routine--architecture-overview.mmd`](../../assets/mermaid/subsystems/039-routine--architecture-overview.mmd) · 交互版（下载到本地打开）：[`039-routine--architecture-overview.html`](../../assets/architecture/subsystems/039-routine--architecture-overview.html)
 
 **关键架构决策：心跳 Inspector + 后台 Runner**。Routine 不为每个任务起一个独立调度任务，而是用**单个** `routine_inspector` 心跳任务（复用统一调度引擎）周期性调用 `inspect_once()`；`inspect_once()` 只做轻量决策（DB 读写 + 后台任务调度），真正长耗时的 Claude Code 执行交由进程内 `asyncio.Task` 后台 Runner 异步完成。这样心跳 tick 始终远低于其超时阈值，且评估—决策—执行三阶段得以解耦。
 
@@ -161,39 +102,15 @@ erDiagram
 
 ### 4.1 Routine 状态机
 
-```mermaid
-stateDiagram-v2
-    [*] --> pending: 创建
-    pending --> running: start()
-    pending --> cancelled: cancel()
-    running --> paused: pause() + 中止在途迭代
-    paused --> running: resume()
-    paused --> cancelled: cancel()
-    running --> succeeded: 评分≥阈值且门控通过
-    running --> failed: 守卫触发(预算/停滞/振荡/不可恢复)
-    running --> cancelled: cancel()
-    succeeded --> [*]
-    failed --> [*]
-    cancelled --> [*]
-```
+![Routine 生命周期状态机：routine 从 pending 经 inspector 心跳进入 active，迭代依次流转 evaluating / dispatching / running，终态归于 succeeded / failed / cancelled；暂停与恢复沿 active 侧环回](../../assets/architecture/subsystems/039-routine--iteration-lifecycle-dark.png)
+
+> 图源（可 diff 文本）：[`039-routine--iteration-lifecycle.mmd`](../../assets/mermaid/subsystems/039-routine--iteration-lifecycle.mmd) · 交互版（下载到本地打开）：[`039-routine--iteration-lifecycle.html`](../../assets/architecture/subsystems/039-routine--iteration-lifecycle.html)
 
 ### 4.2 迭代状态机（含审批门控）
 
-```mermaid
-stateDiagram-v2
-    [*] --> pending_approval: approval_mode≠auto
-    [*] --> dispatched: approval_mode=auto
-    pending_approval --> dispatched: 用户 approve
-    pending_approval --> aborted: 用户 reject
-    dispatched --> in_flight: Runner 拾取
-    in_flight --> executed: Claude Code 返回
-    in_flight --> reaped: lease 过期(崩溃)
-    in_flight --> aborted: 用户 cancel
-    executed --> evaluated: 评估器评分
-    evaluated --> [*]
-    reaped --> [*]
-    aborted --> [*]
-```
+![Routine 迭代决策生命周期：Pending→Dispatched→In Flight→Executed→Evaluating→Evaluated 五态主轨单调推进，reject/cancel 闭合为 Aborted、lease 过期回收为 Reaped 并虚线回入口重派 seq+1，评估异常经顶部通道回退 Executed 幂等重评。](../../assets/architecture/subsystems/039-routine--decision-lifecycle-dark.png)
+
+> 图源（可 diff 文本）：[`039-routine--decision-lifecycle.mmd`](../../assets/mermaid/subsystems/039-routine--decision-lifecycle.mmd) · 交互版（下载到本地打开）：[`039-routine--decision-lifecycle.html`](../../assets/architecture/subsystems/039-routine--decision-lifecycle.html)
 
 **Human-in-the-Loop**：`approval_mode` 决定迭代初始状态——`auto` 全自动（直接 `dispatched`）；`first` 仅首迭代需审批；`every` 每迭代需审批。`pending_approval` 的迭代不会被 Runner 拾取，等待 API `approve` 转 `dispatched` 后才执行。
 
@@ -201,43 +118,9 @@ stateDiagram-v2
 
 每次心跳 tick 执行三阶段（顺序：先回收、再评估、后派发）：
 
-```mermaid
-sequenceDiagram
-    participant Tick as routine_inspector 心跳
-    participant Orch as RoutineOrchestrator
-    participant Eval as RoutineEvaluator
-    participant Dec as decision.py
-    participant Run as RoutineRunner
-    participant CC as ClaudeCodeService
-    participant DB as PostgreSQL
+![Routine 编排循环心跳时序：routine_inspector 每 25s 调 inspect_once()，先 reap 收割僵尸迭代、再 evaluate 评分决策、后 dispatch 派发新迭代，全程经 ExecutionBus 向 SSE 流扇出任务事件](../../assets/architecture/subsystems/039-routine--inspector-heartbeat-dark.png)
 
-    Tick->>Orch: inspect_once()
-
-    Note over Orch,DB: (a) REAP 回收孤儿
-    Orch->>DB: 查 in_flight 且 lease 过期
-    Orch->>DB: 本进程不持有 → 标记 reaped
-
-    Note over Orch,Dec: (b) EVALUATE + DECIDE
-    Orch->>DB: 查最新迭代=executed 的 routine
-    Orch->>Eval: evaluate(routine, iteration)
-    Eval->>Eval: 命令门控(可选) + LLM-as-Judge
-    Eval-->>Orch: score / verdict / reflection
-    Orch->>DB: 写评估结果 + 追加反思
-    Orch->>Dec: decide(routine, latest, history)
-    Dec-->>Orch: continue | terminate(reason)
-    alt terminate
-        Orch->>DB: 置终态 + termination_reason
-    end
-
-    Note over Orch,CC: (c) DISPATCH 派发下一迭代
-    Orch->>DB: 查 running 且无在途迭代(FOR UPDATE SKIP LOCKED)
-    Orch->>Dec: pre_dispatch_check(预算/截止)
-    Orch->>DB: 创建迭代(dispatched 或 pending_approval)
-    Orch->>Run: launch(非阻塞)
-    Run->>CC: invoke(prompt, config, abort_event)
-    CC-->>Run: ClaudeCodeResult
-    Run->>DB: 写回结果 + 更新 routine 累计
-```
+> 图源（可 diff 文本）：[`039-routine--inspector-heartbeat.mmd`](../../assets/mermaid/subsystems/039-routine--inspector-heartbeat.mmd) · 交互版（下载到本地打开）：[`039-routine--inspector-heartbeat.html`](../../assets/architecture/subsystems/039-routine--inspector-heartbeat.html)
 
 模块布局（[`engine/routine/`](../../../apps/negentropy/src/negentropy/engine/routine/)）：
 
@@ -265,49 +148,9 @@ Routine 此前直接在 `cwd` 的**当前 checkout** 上工作——既可能污
 
 机制（worktree + 工作分支的创建/复用/销毁）由**引擎独占**，绝不交给 LLM；Claude Code 仅在隔离 worktree 内执行改代码/提交/push/建 PR。引擎做决策、协调、调度、**校验与重试**，并计算精确的 base/head 分支名注入 prompt。
 
-```mermaid
-flowchart TD
-    subgraph DEF["① 任务定义（用户）"]
-        PP["Project Path<br/>cwd = git 仓库根"]
-        BB["Baseline Branch<br/>如 origin/feature/1.x.x"]
-    end
+![Routine worktree 编排循环：用户以 cwd 与 baseline_branch 定义任务，引擎 ensure_worktree 建隔离工作区并注入 config.cwd，Claude Code 在其中 IMPLEMENT/FINALIZE 迭代执行，引擎评估未达标注入反思续迭代、达标推进 FINALIZE，捕获 PR_URL 判 succeeded 交付 PR 回基线等待人工合并，终态按 worktree_cleanup 策略回收。](../../assets/architecture/subsystems/039-routine--orchestration-loop-dark.png)
 
-    subgraph ENG["② 引擎：确定性编排（机制）"]
-        EW["ensure_worktree<br/>git worktree add -b routine/&lt;key&gt;-&lt;ts&gt; &lt;基线&gt;"]
-        EV["evaluate + decide<br/>LLM-as-Judge + 命令门控"]
-        CAP["捕获 PR_URL + 校验/重试"]
-        REAP["终态回收 worktree<br/>worktree_cleanup 策略"]
-    end
-
-    subgraph EXE["③ Claude Code：在隔离 worktree 内执行（策略）"]
-        IMPL["IMPLEMENT：改代码 + 提交"]
-        FIN["FINALIZE：ruff/pytest → push 工作分支<br/>gh pr create --base 基线 --head 工作分支"]
-    end
-
-    subgraph OUT["④ 交付"]
-        PR["PR → 基线分支<br/>等待人工 Merge（绝不自动合并）"]
-    end
-
-    PP --> EW
-    BB --> EW
-    EW -->|"config.cwd = worktree"| IMPL
-    IMPL --> EV
-    EV -->|"未达标：注入反思续迭代"| IMPL
-    EV -->|"达标 → 进入 FINALIZE 相位"| FIN
-    FIN --> CAP
-    CAP -->|"捕获 PR_URL → succeeded"| PR
-    CAP -->|"未捕获：留 FINALIZE 下一 tick 重试"| FIN
-    PR --> REAP
-
-    classDef def fill:#1e3a5f,stroke:#4a90d9,color:#e8f0fe;
-    classDef eng fill:#3d2b56,stroke:#a07cc5,color:#f3e8ff;
-    classDef exe fill:#1f4d3a,stroke:#4caf80,color:#e6fff0;
-    classDef out fill:#5c3a1e,stroke:#d99e4a,color:#fff4e6;
-    class PP,BB def;
-    class EW,EV,CAP,REAP eng;
-    class IMPL,FIN exe;
-    class PR out;
-```
+> 图源（可 diff 文本）：[`039-routine--orchestration-loop.mmd`](../../assets/mermaid/subsystems/039-routine--orchestration-loop.mmd) · 交互版（下载到本地打开）：[`039-routine--orchestration-loop.html`](../../assets/architecture/subsystems/039-routine--orchestration-loop.html)
 
 ### 6.3 worktree 生命周期
 

@@ -10,27 +10,9 @@ title: "Memory 入门 · 5 分钟上手"
 
 ## 1. 一图认识 Memory 模块
 
-```mermaid
-flowchart LR
-    subgraph "写入 (Write)"
-        S[ADK Session] --> C[巩固管线<br>Segment→Dedup→Store→Extract]
-        C --> M[(memories)]
-        C --> F[(facts)]
-        SE[Self-edit Tools<br>memory_write/update] --> M
-    end
-    subgraph "检索 (Read)"
-        Q[Query] --> R[Hybrid Search<br>BM25 + pgvector]
-        R --> A[ContextAssembler<br>Token 预算]
-        CB[(core_blocks)] --> A
-        A --> O[LLM Context]
-    end
-    subgraph "治理 (Govern)"
-        M -.遗忘曲线.-> M
-        M -.冲突消解.-> M
-        M -.审计.-> AL[(audit_log)]
-    end
-    style CB fill:#ff9,stroke:#cc3
-```
+![Memory 模块总览：ADK 会话经巩固管线（分段→去重→存储 + Memify 6 步）写入 memories 与 facts，Self-edit 工具直接落库；检索侧 Hybrid Search（BM25+pgvector）召回后由 ContextAssembler 按 Token 预算组装注入 LLM 上下文（core_blocks 常驻注入）；后台治理任务执行遗忘曲线与冲突消解并落 memory_audit_logs 审计。](../../assets/architecture/user-guide/memory-basics--write-read-dark.png)
+
+> 图源（可 diff 文本）：[`memory-basics--write-read.mmd`](../../assets/mermaid/user-guide/memory-basics--write-read.mmd) · 交互版（下载到本地打开）：[`memory-basics--write-read.html`](../../assets/architecture/user-guide/memory-basics--write-read.html)
 
 ---
 

@@ -772,7 +772,7 @@ FROM {NEGENTROPY_SCHEMA}.hybrid_search(
 
 ## 8. Memory Automation 控制面
 
-本章完整保留原有 Memory Automation 设计与实施文档，是该控制面的权威参考。
+> **口径更新（2026-09）**：本章叙述的 pg_cron 调度控制面（cron.job / 受管任务同步 / `/memory/automation/*` 七端点）**已于 migration 0042/0043 退役**。现行调度入口是 Unified Scheduler：`scheduled_tasks`（migration 0046 幂等种子）+ `ScheduledTaskRegistry` 心跳 + `/scheduler/*` API 与 `app/interface/scheduler` 统一调度页；自动化参数的事实源是 `scheduled_tasks.task.payload`，「Memory / Automation」二级导航页已删除，Memory 页仅经 `/memory` 只读 managed_jobs。本章保留为设计沿革参考，**现状以上方 §8 图（按当前实现重绘）与 [`engine/schedulers/handlers/memory_automation.py`](../../../apps/negentropy/src/negentropy/engine/schedulers/handlers/memory_automation.py) 为准**。
 
 ### 8.1 定位
 

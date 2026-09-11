@@ -91,38 +91,9 @@ Agent 是可独立调度的智能体；NegentropyEngine 主 Agent 可在需要�
 | Skills / Tools | 配置的技能和工具     |
 | 是否内置       | 系统预设或用户自定义 |
 
-```mermaid
-flowchart TB
-    Engine["🔮 NegentropyEngine"]
+![Interface 能力接入架构图：Interface 面板经 /interface/* 六域聚合 API 读写 PostgreSQL 中 mcp_servers、builtin_tools、skills、agents 四张正交插件目录表，四表再分别供给 McpClientService、Claude Code CLI 与 NegentropyEngine 根 Agent 两条消费路径。](../../assets/architecture/user-guide/interface--plugin-system-dark.png)
 
-    subgraph Plugins["🔧 插件系统"]
-        MCP["📡 MCP Servers<br/>外部工具协议"]
-        Skill["🎯 Skills<br/>Prompt 模板"]
-        Agent["🤖 Agents<br/>智能体"]
-    end
-
-    subgraph External["🌐 外部能力"]
-        WebSearch["Web 搜索"]
-        API["第三方 API"]
-        DB["数据库"]
-    end
-
-    Engine -->|"工具调用"| MCP
-    Engine -->|"技能匹配"| Skill
-    Engine -->|"任务委派"| Agent
-
-    MCP --> WebSearch
-    MCP --> API
-    MCP --> DB
-
-    classDef core fill:#F59E0B,stroke:#92400E,color:#000
-    classDef plug fill:#3B82F6,stroke:#1E3A8A,color:#FFF
-    classDef ext fill:#10B981,stroke:#065F46,color:#FFF
-
-    class Engine core
-    class MCP,Skill,Agent plug
-    class WebSearch,API,DB ext
-```
+> 图源（可 diff 文本）：[`interface--plugin-system.mmd`](../../assets/mermaid/user-guide/interface--plugin-system.mmd) · 交互版（下载到本地打开）：[`interface--plugin-system.html`](../../assets/architecture/user-guide/interface--plugin-system.html)
 
 ### 6.6 Models 管理（仅 admin）
 
@@ -152,24 +123,9 @@ Models 页允许管理员在 Interface 模块下配置系统使用的 LLM、Embe
 
 #### 模型操作
 
-```mermaid
-flowchart TD
-    Start["➕ 添加模型"] --> Type["选择模型类型<br/>LLM / Embedding / Rerank"]
-    Type --> Config["配置参数<br/>名称、Vendor、模型名"]
-    Config --> Params["类型专属配置<br/>Temperature / Dimensions 等"]
-    Params --> Cred["API 凭证<br/>Base URL + API Key"]
-    Cred --> Ping["📡 Ping 连通性测试"]
-    Ping -->|"成功 (显示延迟)"| Save["💾 保存模型"]
-    Ping -->|"失败"| Config
-    Save --> Default["⭐ 设为默认模型"]
+![Interface 模型接入流程图：admin 守卫准入后先在供应商级配置 API Key 与 Base URL 并做 Ping / Test Embedding 自检，凭证保存后再逐个登记模型的类型、名称与维度。](../../assets/architecture/user-guide/interface--model-onboarding-dark.png)
 
-    classDef proc fill:#FEF3C7,stroke:#92400E,color:#000
-    classDef ok fill:#D1FAE5,stroke:#065F46,color:#000
-    classDef err fill:#FEE2E2,stroke:#991B1B,color:#000
-
-    class Start,Type,Config,Params,Cred,Save,Default proc
-    class Ping ok
-```
+> 图源（可 diff 文本）：[`interface--model-onboarding.mmd`](../../assets/mermaid/user-guide/interface--model-onboarding.mmd) · 交互版（下载到本地打开）：[`interface--model-onboarding.html`](../../assets/architecture/user-guide/interface--model-onboarding.html)
 
 | 操作          | 说明                                |
 | :------------ | :---------------------------------- |
