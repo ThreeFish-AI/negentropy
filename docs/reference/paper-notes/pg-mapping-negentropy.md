@@ -11,7 +11,7 @@
 | # | PG 机制（论文出处） | 本仓对应 | 锚点 | 判定 |
 | --- | --- | --- | --- | --- |
 | M1 | 验证门：候选 ≥ 缓存分才接受，**平局也接受**（§3.3 式 5） | 金丝雀双窗判定；routine 成功/停滞判定 | [`evolution/decision.py:228`](../../../apps/negentropy/src/negentropy/engine/evolution/decision.py) · [`routine/decision.py:96`](../../../apps/negentropy/src/negentropy/engine/routine/decision.py) | ✅ 已对齐 |
-| M2 | 拒绝记忆：被拒编辑连同轨迹作负证据注入下一轮提案（§3.3 式 6） | 巡检记忆的正/负证据标签体系；进化提案回路缺编辑级负证据 | [`routine/patrol_memory.py:43-45`](../../../apps/negentropy/src/negentropy/engine/routine/patrol_memory.py) | 🔶 部分对齐，**值得落地** |
+| M2 | 拒绝记忆：被拒编辑连同轨迹作负证据注入下一轮提案（§3.3 式 6） | 巡检记忆的正/负证据标签体系；进化提案回路缺编辑级负证据 | [`routine/patrol_memory.py:42-45`](../../../apps/negentropy/src/negentropy/engine/routine/patrol_memory.py) | 🔶 部分对齐，**值得落地** |
 | M3 | 报告纪律：报「返回图 85%」而非「搜索最优 95%」，杜绝测试集选优（§5.4） | `decide()` 以最新迭代判成功、`best_score` 仅作停滞参照 | [`routine/decision.py:34`](../../../apps/negentropy/src/negentropy/engine/routine/decision.py) | ✅ 天然对齐，宜显式成文 |
 | M4 | 边属性 `condition`/`guidance`/`pitfalls`：转移级操作知识（§3.1） | definitions SSOT → harness_materializer 渲染 skill/routine 定义 | [`agents/definitions/harness_materializer.py`](../../../apps/negentropy/src/negentropy/agents/definitions/harness_materializer.py) | ⏸ 暂缓（YAGNI） |
 | M5 | 结构校验先于验证 rollout：非法候选不花预算、直接沉淀负证据（Algorithm 1 L11-13） | 决策纯函数边界（不读 settings、参数显式注入）+ 门控语义（门控超时/失败 ≠ 门控通过，ISSUE-115） | [`routine/decision.py:96-170`](../../../apps/negentropy/src/negentropy/engine/routine/decision.py) | ✅ 已对齐 |
