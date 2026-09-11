@@ -47,6 +47,7 @@ You've probably test-driven your fair share of agentic systems by now, and inevi
 </picture>
 
 <sub>Diagram source (diff-able text): [readme--faculties-en.mmd](./docs/assets/mermaid/core/readme--faculties-en.mmd) · Interactive version (open locally): [readme--faculties-en.html](./docs/assets/architecture/core/readme--faculties-en.html)</sub>
+
 ---
 
 ## ✨ Core Features

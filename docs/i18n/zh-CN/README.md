@@ -47,6 +47,7 @@
 </picture>
 
 <sub>图源（可 diff 文本）：[readme-zh--faculties.mmd](../../assets/mermaid/core/readme-zh--faculties.mmd) · 交互版（下载到本地打开）：[readme-zh--faculties.html](../../assets/architecture/core/readme-zh--faculties.html)</sub>
+
 ---
 
 ## ✨ 核心特性
