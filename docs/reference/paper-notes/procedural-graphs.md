@@ -6,7 +6,7 @@
 
 **总类比**：新员工与老员工的差距不在智商，而在老员工脑中那张「什么情况走什么流程」的地图。PG 做三件事：① 把地图画出来挂墙上（外置显式化）；② 干活时只看当前路口附近两步（定位 + 邻域）；③ 每次干完按成败复盘更新地图，新版本须先通过考核才许上墙（验证门）。
 
-**怎么读这篇笔记**：每个机制都按「类比 → 机制 → 原型实景」三拍走。实景全部取自配套最小原型 `.temp/pg-lab/pg_lab.py`（fetch → validate → fix → submit / abort 玩具域，纯标准库约 500 行，位于 gitignore 的 `.temp/`，可用 [§6 实验室](#6-动手实验室把机制亲手拆坏三次) 复刻）；所有代码与日志均为实际运行输出。
+**怎么读这篇笔记**：每个机制都按「类比 → 机制 → 原型实景」三拍走。实景全部取自配套最小原型 [`assets/pg_lab.py`](./assets/pg_lab.py)（fetch → validate → fix → submit / abort 玩具域，纯标准库约 500 行，已随笔记入库；破坏性实验复现见 [§6 实验室](#6-动手实验室把机制亲手拆坏三次)）；所有代码与日志均为实际运行输出。
 
 配套产物：[PG ↔ negentropy 机制映射报告](./pg-mapping-negentropy.md)。
 
@@ -171,7 +171,7 @@ Round 5 REJECT(结构性) [cycle-recheck]：存在环；验证 rollout 跳过
 
 ## 6. 动手实验室：把机制亲手拆坏三次
 
-运行方式（约 1 秒）：`cd .temp/pg-lab && uv run --no-project python pg_lab.py --selftest`
+运行方式（约 1 秒，在仓库根目录执行）：`uv run --no-project python docs/reference/paper-notes/assets/pg_lab.py --selftest`
 
 机制 → 代码位置速查：
 
