@@ -20,7 +20,7 @@ tags:
 > - 知识图谱技术方案：[`036-the-knowledge-graph.md`](./036-the-knowledge-graph.md)
 > - **理论基础白皮书（Phase 4）**：[`026-memory-whitepaper.md`](./026-memory-whitepaper.md)
 > - **轻量上手手册（Phase 4）**：[`memory-basics`](../user-guide/memory-basics.md) · [`memory-integration`](../user-guide/memory-integration.md) · [`memory-automation`](../user-guide/memory-automation.md) · [`memory-troubleshooting`](../user-guide/memory-troubleshooting.md)
-> - DDL 原型（历史参考）：[`schema/hippocampus_schema.sql`](./schema/hippocampus_schema.sql)
+> - DDL 原型（历史参考）：[`schema/hippocampus_schema.sql`](../../../apps/negentropy/src/negentropy/models/internalization.py)
 >
 > **Phase 4 已完成增强**（2026-05）：①Memory 类型分层差异化 + Core Memory Block；②Self-editing Memory Tools（5 个 Agent 主动管理工具）；③LoCoMo / LongMemEval 评测基线；④User-Guide 拆分 + 理论白皮书；⑤KG 双向同步接通；⑥PII regex 占位。详见 [`026-memory-whitepaper.md`](026-memory-whitepaper.md) §2 与 §3。
 
@@ -58,24 +58,24 @@ tags:
 
 | 职责域       | 文件路径                                                                                                                                                    | 说明                                                            |
 | :----------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------- |
-| ORM 模型     | [`models/internalization.py`](../../../../apps/negentropy/src/negentropy/models/internalization.py)                                                         | Memory, Fact, MemoryAutomationConfig, MemoryAuditLog            |
-| 记忆存储     | [`engine/adapters/postgres/memory_service.py`](../../../../apps/negentropy/src/negentropy/engine/adapters/postgres/memory_service.py)                       | PostgresMemoryService — 混合检索 + 访问记录                     |
-| 事实存储     | [`engine/adapters/postgres/fact_service.py`](../../../../apps/negentropy/src/negentropy/engine/adapters/postgres/fact_service.py)                           | FactService — Fact CRUD + upsert                                |
-| 记忆治理     | [`engine/governance/memory.py`](../../../../apps/negentropy/src/negentropy/engine/governance/memory.py)                                                     | MemoryGovernanceService — 遗忘曲线 + 审计决策                   |
-| 自动化服务   | [`engine/schedulers/handlers/memory_automation.py`](../../../../apps/negentropy/src/negentropy/engine/schedulers/handlers/memory_automation.py) | Scheduler Handler — memory_automation handler (cleanup/consolidation/reweight) |
-| 服务工厂     | [`engine/factories/memory.py`](../../../../apps/negentropy/src/negentropy/engine/factories/memory.py)                                                       | Strategy + Factory — inmemory / postgres / vertexai             |
-| API 路由     | [`engine/api.py`](../../../../apps/negentropy/src/negentropy/engine/api.py)                                                                                 | Memory REST API + Retrieval Feedback API                        |
-| 摘要服务     | [`engine/adapters/postgres/summary_service.py`](../../../../apps/negentropy/src/negentropy/engine/adapters/postgres/summary_service.py)                     | SummaryService — 摘要 CRUD + upsert                             |
-| 检索追踪     | [`engine/adapters/postgres/retrieval_tracker.py`](../../../../apps/negentropy/src/negentropy/engine/adapters/postgres/retrieval_tracker.py)                 | RetrievalTracker — 检索效果反馈闭环                             |
-| 上下文组装   | [`engine/adapters/postgres/context_assembler.py`](../../../../apps/negentropy/src/negentropy/engine/adapters/postgres/context_assembler.py)                 | ContextAssembler — Query-Aware 上下文注入 + Token 预算          |
-| LLM 事实提取 | [`engine/consolidation/llm_fact_extractor.py`](../../../../apps/negentropy/src/negentropy/engine/consolidation/llm_fact_extractor.py)                       | LLMFactExtractor — LLM 结构化提取 + Pattern 降级                |
-| 记忆摘要     | [`engine/consolidation/memory_summarizer.py`](../../../../apps/negentropy/src/negentropy/engine/consolidation/memory_summarizer.py)                         | MemorySummarizer — 用户画像摘要生成 + TTL 缓存                  |
-| 共享工具     | [`engine/utils/model_config.py`](../../../../apps/negentropy/src/negentropy/engine/utils/model_config.py)                                                   | resolve_model_config — 统一模型配置解析                         |
-| Token 计数   | [`engine/utils/token_counter.py`](../../../../apps/negentropy/src/negentropy/engine/utils/token_counter.py)                                                 | TokenCounter — tiktoken BPE 精确计数                            |
-| 冲突解决     | [`engine/governance/conflict_resolver.py`](../../../../apps/negentropy/src/negentropy/engine/governance/conflict_resolver.py)                               | ConflictResolver — AGM 信念修正 + 三阶段检测                    |
-| 主动召回     | [`engine/adapters/postgres/proactive_recall_service.py`](../../../../apps/negentropy/src/negentropy/engine/adapters/postgres/proactive_recall_service.py)   | ProactiveRecallService — 复合评分预加载 + TTL 缓存              |
-| 记忆关联     | [`engine/adapters/postgres/association_service.py`](../../../../apps/negentropy/src/negentropy/engine/adapters/postgres/association_service.py)             | AssociationService — 自动链接 + 多跳扩展                        |
-| DDL 原型     | [`docs/reference/cognizes/engine/schema/hippocampus_schema.sql`](./schema/hippocampus_schema.sql)                                                           | 仿生记忆 DDL 草案（历史参考）                                   |
+| ORM 模型     | [`models/internalization.py`](../../../apps/negentropy/src/negentropy/models/internalization.py)                                                         | Memory, Fact, MemoryAutomationConfig, MemoryAuditLog            |
+| 记忆存储     | [`engine/adapters/postgres/memory_service.py`](../../../apps/negentropy/src/negentropy/engine/adapters/postgres/memory_service.py)                       | PostgresMemoryService — 混合检索 + 访问记录                     |
+| 事实存储     | [`engine/adapters/postgres/fact_service.py`](../../../apps/negentropy/src/negentropy/engine/adapters/postgres/fact_service.py)                           | FactService — Fact CRUD + upsert                                |
+| 记忆治理     | [`engine/governance/memory.py`](../../../apps/negentropy/src/negentropy/engine/governance/memory.py)                                                     | MemoryGovernanceService — 遗忘曲线 + 审计决策                   |
+| 自动化服务   | [`engine/schedulers/handlers/memory_automation.py`](../../../apps/negentropy/src/negentropy/engine/schedulers/handlers/memory_automation.py) | Scheduler Handler — memory_automation handler (cleanup/consolidation/reweight) |
+| 服务工厂     | [`engine/factories/memory.py`](../../../apps/negentropy/src/negentropy/engine/factories/memory.py)                                                       | Strategy + Factory — inmemory / postgres / vertexai             |
+| API 路由     | [`engine/api.py`](../../../apps/negentropy/src/negentropy/engine/api.py)                                                                                 | Memory REST API + Retrieval Feedback API                        |
+| 摘要服务     | [`engine/adapters/postgres/summary_service.py`](../../../apps/negentropy/src/negentropy/engine/adapters/postgres/summary_service.py)                     | SummaryService — 摘要 CRUD + upsert                             |
+| 检索追踪     | [`engine/adapters/postgres/retrieval_tracker.py`](../../../apps/negentropy/src/negentropy/engine/adapters/postgres/retrieval_tracker.py)                 | RetrievalTracker — 检索效果反馈闭环                             |
+| 上下文组装   | [`engine/adapters/postgres/context_assembler.py`](../../../apps/negentropy/src/negentropy/engine/adapters/postgres/context_assembler.py)                 | ContextAssembler — Query-Aware 上下文注入 + Token 预算          |
+| LLM 事实提取 | [`engine/consolidation/llm_fact_extractor.py`](../../../apps/negentropy/src/negentropy/engine/consolidation/llm_fact_extractor.py)                       | LLMFactExtractor — LLM 结构化提取 + Pattern 降级                |
+| 记忆摘要     | [`engine/consolidation/memory_summarizer.py`](../../../apps/negentropy/src/negentropy/engine/consolidation/memory_summarizer.py)                         | MemorySummarizer — 用户画像摘要生成 + TTL 缓存                  |
+| 共享工具     | [`engine/utils/model_config.py`](../../../apps/negentropy/src/negentropy/engine/utils/model_config.py)                                                   | resolve_model_config — 统一模型配置解析                         |
+| Token 计数   | [`engine/utils/token_counter.py`](../../../apps/negentropy/src/negentropy/engine/utils/token_counter.py)                                                 | TokenCounter — tiktoken BPE 精确计数                            |
+| 冲突解决     | [`engine/governance/conflict_resolver.py`](../../../apps/negentropy/src/negentropy/engine/governance/conflict_resolver.py)                               | ConflictResolver — AGM 信念修正 + 三阶段检测                    |
+| 主动召回     | [`engine/adapters/postgres/proactive_recall_service.py`](../../../apps/negentropy/src/negentropy/engine/adapters/postgres/proactive_recall_service.py)   | ProactiveRecallService — 复合评分预加载 + TTL 缓存              |
+| 记忆关联     | [`engine/adapters/postgres/association_service.py`](../../../apps/negentropy/src/negentropy/engine/adapters/postgres/association_service.py)             | AssociationService — 自动链接 + 多跳扩展                        |
+| DDL 原型     | [`docs/reference/cognizes/engine/schema/hippocampus_schema.sql`](../../../apps/negentropy/src/negentropy/models/internalization.py)                                                           | 仿生记忆 DDL 草案（历史参考）                                   |
 
 ---
 
@@ -121,43 +121,9 @@ Memory 和 Knowledge 是 Negentropy 中两个正交的认知子系统，各有�
 
 基于 Maharana 等人的综合综述<sup>[[3]](#ref3)</sup>，Agent Memory 可从**形态 (Forms)**、**功能 (Functions)**、**拓扑 (Topologies)** 三个正交维度进行分类。下图高亮了 Negentropy 当前实现所覆盖的区域（实线）与未来计划区域（虚线）：
 
-```mermaid
-flowchart LR
-    subgraph Forms["形态维度 (Forms)"]
-        TK["Token-level<br/>显式上下文"]
-        PM["Parametric<br/>嵌入式向量"]
-        LT["Latent<br/>隐式参数化"]
-    end
+![Agent Memory 三维分类法：形态、功能、拓扑三组正交维度中，Negentropy 已实现 Token 级/参数化形态与事实/经验/工作记忆并会师于 Flat 线性列表拓扑，Planar 由 Apache AGE 知识图谱部分覆盖，Latent 与 Hierarchical 为规划中。](../../assets/architecture/subsystems/025-memory--forms-dimensions-dark.png)
 
-    subgraph Functions["功能维度 (Functions)"]
-        FA["Factual<br/>事实性记忆"]
-        EX["Experiential<br/>经验性记忆"]
-        WK["Working<br/>工作记忆"]
-    end
-
-    subgraph Topologies["拓扑维度 (Topologies)"]
-        FL["Flat (1D)<br/>线性列表"]
-        PL["Planar (2D)<br/>图/树结构"]
-        HI["Hierarchical (3D)<br/>多层级"]
-    end
-
-    TK -.->|memories.content| FA
-    PM -.->|memories.embedding| EX
-    FA -.->|facts 表| FL
-    EX -.->|instructions 表| FL
-    WK -.->|context_window| FL
-    PL -.->|"Knowledge Graph<br/>(Apache AGE)"| EX
-
-    style TK fill:#10B981,stroke:#065F46,color:#FFF
-    style PM fill:#10B981,stroke:#065F46,color:#FFF
-    style LT fill:#475569,stroke:#1E293B,color:#94A3B8,stroke-dasharray: 5 5
-    style FA fill:#10B981,stroke:#065F46,color:#FFF
-    style EX fill:#10B981,stroke:#065F46,color:#FFF
-    style WK fill:#10B981,stroke:#065F46,color:#FFF
-    style FL fill:#10B981,stroke:#065F46,color:#FFF
-    style PL fill:#F59E0B,stroke:#92400E,color:#000
-    style HI fill:#475569,stroke:#1E293B,color:#94A3B8,stroke-dasharray: 5 5
-```
+> 图源（可 diff 文本）：[`025-memory--forms-dimensions.mmd`](../../assets/mermaid/subsystems/025-memory--forms-dimensions.mmd) · 交互版（下载到本地打开）：[`025-memory--forms-dimensions.html`](../../assets/architecture/subsystems/025-memory--forms-dimensions.html)
 
 **图例**：🟩 已实现 · 🟨 部分实现 · ⬜ 未来规划
 
@@ -176,30 +142,9 @@ flowchart LR
 
 Agent Memory 的生命周期遵循**形成 (Formation) → 演化 (Evolution) → 检索 (Retrieval)** 三阶段模型<sup>[[3]](#ref3)</sup><sup>[[4]](#ref4)</sup>：
 
-```mermaid
-stateDiagram-v2
-    [*] --> Formation: 会话交互
-    Formation --> Active: add_session_to_memory
-    Active --> Decaying: 时间流逝
-    Decaying --> Active: 检索访问<br/>(access_count++)
-    Decaying --> Consolidated: consolidation_job
-    Consolidated --> Active: 巩固后重新激活
-    Decaying --> Forgotten: retention < threshold
-    Active --> Anonymized: GDPR 审计
-    Decaying --> Anonymized: GDPR 审计
-    Forgotten --> [*]: cleanup_low_value_memories
-    Anonymized --> [*]: content=[ANONYMIZED]
+![Agent Memory 记忆生命周期状态机：Formation→Active→Decaying→Forgotten→Purged 五态单调主轨，检索访问与巩固提炼两条回流对抗遗忘，GDPR 审计匿名化为不可逆治理终态。](../../assets/architecture/subsystems/025-memory--lifecycle-dark.png)
 
-    note right of Active
-        retention_score ≈ 1.0
-        频繁被检索召回
-    end note
-
-    note right of Decaying
-        retention_score 指数衰减
-        Ebbinghaus 遗忘曲线
-    end note
-```
+> 图源（可 diff 文本）：[`025-memory--lifecycle.mmd`](../../assets/mermaid/subsystems/025-memory--lifecycle.mmd) · 交互版（下载到本地打开）：[`025-memory--lifecycle.html`](../../assets/architecture/subsystems/025-memory--lifecycle.html)
 
 对应的代码路径：
 
@@ -241,19 +186,9 @@ Claude Code 的 AutoDream 是一个后台记忆整合机制，在会话间自动
 
 **三重门控调度**（`src/services/autoDream/autoDream.ts`）：
 
-```mermaid
-flowchart TD
-    G1["Gate 1: 全局开关<br/>isAutoMemoryEnabled()"] --> G2["Gate 2: 时间门控<br/>hoursSince ≥ 24h"]
-    G2 --> G3["Gate 3: 会话门控<br/>sessionsTouched ≥ 5"]
-    G3 --> Lock["Lock: PID 锁 + mtime<br/>防并发 / 1h 过期"]
-    Lock --> Fork["Forked Agent<br/>受限工具权限"]
+![Claude Code AutoDream 记忆整理的三重门控调度工作流：全局开关、24 小时时间门、5 会话数门自廉到贵依次短路判定，全部通过后经 PID+mtime 锁（1 小时过期回收）防并发，再由仅含只读 Bash 白名单的 Forked Agent 执行记忆整合；任一门未过即静默跳过本轮。](../../assets/architecture/subsystems/025-memory--automation-gates-dark.png)
 
-    style G1 fill:#FEF3C7,stroke:#92400E,color:#000
-    style G2 fill:#FEF3C7,stroke:#92400E,color:#000
-    style G3 fill:#FEF3C7,stroke:#92400E,color:#000
-    style Lock fill:#FEE2E2,stroke:#991B1B,color:#000
-    style Fork fill:#D1FAE5,stroke:#065F46,color:#000
-```
+> 图源（可 diff 文本）：[`025-memory--automation-gates.mmd`](../../assets/mermaid/subsystems/025-memory--automation-gates.mmd) · 交互版（下载到本地打开）：[`025-memory--automation-gates.html`](../../assets/architecture/subsystems/025-memory--automation-gates.html)
 
 **Negentropy 适配**：PostgreSQL 方案中，Orient 阶段映射为 `_is_duplicate()` 的 cosine similarity 检测；Consolidate 映射为 `_simple_consolidate` 的分段提取+去重；Prune 映射为 `retention_score` 驱动的 `cleanup_low_value_memories()`。门控策略映射到 `AsyncScheduler` 的应用层调度器回退。
 
@@ -315,75 +250,9 @@ Claude Code 记忆系统使用封闭的四类型系统（`src/memdir/memoryTypes
 
 ### 3.1 Memory 子系统全景图
 
-```mermaid
-flowchart TB
-    subgraph UI["展示层 (negentropy-ui)"]
-        DASH["Memory Dashboard"]
-        TL["Timeline"]
-        FACTS["Facts"]
-        AUDIT["Audit"]
-        AUTO["Automation"]
-    end
+![Memory 子系统全景图：negentropy-ui 展示层（Memory Dashboard 七页 + BFF 代理）调用 FastAPI /memory/* REST API，服务层 PostgresMemoryService/FactService/MemoryGovernanceService/CoreBlockService 与 Unified Scheduler 三作业分别访问 PostgreSQL 16+ 的 memories、facts、治理画像表组及巩固任务与静态 SQL 函数。](../../assets/architecture/subsystems/025-memory--dashboard-ui-dark.png)
 
-    subgraph API["API 层 (/memory/*)"]
-        MAPI["Memory REST API<br/>(engine/api.py)"]
-        AAPI["Automation API<br/>(engine/api.py)"]
-    end
-
-    subgraph Service["服务层"]
-        PMS["PostgresMemoryService<br/>混合检索 + 访问记录"]
-        FS["FactService<br/>语义记忆 CRUD"]
-        MGS["MemoryGovernanceService<br/>审计 + 遗忘曲线"]
-        MAS["MemoryAutomationService<br/>配置 + reconcile + pg_cron"]
-        SS["SessionSummarizer<br/>LLM 会话摘要"]
-    end
-
-    subgraph Storage["持久化层 (PostgreSQL 16+)"]
-        MEM[("memories<br/>情景记忆")]
-        FACT[("facts<br/>语义记忆")]
-        INST[("instructions<br/>程序性记忆")]
-        CJOB[("consolidation_jobs<br/>巩固任务")]
-        MCFG[("memory_automation_configs<br/>自动化配置")]
-        MALOG[("memory_audit_logs<br/>审计日志")]
-        FN["受管 SQL 函数<br/>calculate_retention_score<br/>cleanup_low_value_memories<br/>get_context_window<br/>trigger_maintenance_consolidation"]
-        CRON["pg_cron 调度"]
-    end
-
-    DASH --> MAPI
-    TL --> MAPI
-    FACTS --> MAPI
-    AUDIT --> MAPI
-    AUTO --> AAPI
-
-    MAPI --> PMS
-    MAPI --> FS
-    MAPI --> MGS
-    AAPI --> MAS
-
-    PMS --> MEM
-    FS --> FACT
-    MGS --> MEM
-    MGS --> FACT
-    MGS --> MALOG
-    MAS --> MCFG
-    MAS --> FN
-    MAS --> CRON
-    SS --> MEM
-
-    FN --> MEM
-    FN --> CJOB
-    CRON --> FN
-
-    classDef ui fill:#60A5FA,stroke:#1E3A8A,color:#000
-    classDef api fill:#A78BFA,stroke:#4C1D95,color:#FFF
-    classDef svc fill:#F59E0B,stroke:#92400E,color:#000
-    classDef store fill:#10B981,stroke:#065F46,color:#FFF
-
-    class DASH,TL,FACTS,AUDIT,AUTO ui
-    class MAPI,AAPI api
-    class PMS,FS,MGS,MAS,SS svc
-    class MEM,FACT,INST,CJOB,MCFG,MALOG,FN,CRON store
-```
+> 图源（可 diff 文本）：[`025-memory--dashboard-ui.mmd`](../../assets/mermaid/subsystems/025-memory--dashboard-ui.mmd) · 交互版（下载到本地打开）：[`025-memory--dashboard-ui.html`](../../assets/architecture/subsystems/025-memory--dashboard-ui.html)
 
 ### 3.2 数据模型
 
@@ -499,30 +368,9 @@ Agent Memory 的形成是将实时对话的短期上下文转化为可持久检�
 
 `PostgresMemoryService.add_session_to_memory()` 提供两条路径：
 
-```mermaid
-sequenceDiagram
-    participant Runner as ADK Runner
-    participant PMS as PostgresMemoryService
-    participant CW as ConsolidationWorker
-    participant SC as _simple_consolidate
-    participant EMB as EmbeddingFn
-    participant DB as PostgreSQL
+![ADK Runner 会话结束后调用 PostgresMemoryService.add_session_to_memory 双路径分发：注入巩固 Worker 时入队 consolidation_jobs 异步巩固，默认走 _simple_consolidate 四阶段管线（分段→向量化→查重落库→事实提取）写入 PostgreSQL memories。](../../assets/architecture/subsystems/025-memory--runner-sequence-dark.png)
 
-    Runner->>PMS: add_session_to_memory(session)
-
-    alt 有 ConsolidationWorker（生产路径）
-        PMS->>CW: consolidate(thread_id, user_id, app_name)
-        CW->>DB: INSERT consolidation_job(status='pending')
-        CW->>DB: 异步处理 → INSERT memories
-    else 无 Worker（开发/测试路径）
-        PMS->>SC: _simple_consolidate(session)
-        SC->>SC: 提取 user/model/assistant 消息
-        SC->>SC: 合并为单条内容
-        SC->>EMB: embed(combined_content)
-        EMB-->>SC: vector(1536)
-        SC->>DB: INSERT memories(content, embedding, metadata)
-    end
-```
+> 图源（可 diff 文本）：[`025-memory--runner-sequence.mmd`](../../assets/mermaid/subsystems/025-memory--runner-sequence.mmd) · 交互版（下载到本地打开）：[`025-memory--runner-sequence.html`](../../assets/architecture/subsystems/025-memory--runner-sequence.html)
 
 **ADK Event 解析逻辑**：`_simple_consolidate` 支持三种 Content 格式的适配：
 
@@ -541,7 +389,7 @@ Phase 1 采用 `PatternFactExtractor`（基于正则的模式匹配），Phase 2
 | L1 (默认) | `LLMFactExtractor`     | LLM 可用        | ~200-500ms | 0.5-1.0 (动态) |
 | L2 (降级) | `PatternFactExtractor` | LLM 不可用/失败 | <1ms       | 0.7 (固定)     |
 
-`LLMFactExtractor` 遵循 [`knowledge/llm_extractors.py`](../../../../apps/negentropy/src/negentropy/knowledge/llm_extractors.py) 的成熟模式：
+`LLMFactExtractor` 遵循 [`knowledge/llm_extractors.py`](../../../apps/negentropy/src/negentropy/knowledge/graph/extractors.py) 的成熟模式：
 
 - 批处理（≤10 turns/批）减少 API 开销
 - JSON structured output 保证解析可靠性
@@ -630,9 +478,9 @@ retention = min(1.0, time_decay × frequency_boost × type_multiplier × semanti
 
 **代码实现**：
 
-- Python：`MemoryGovernanceService.calculate_retention_score()` — [`engine/governance/memory.py`](../../../../apps/negentropy/src/negentropy/engine/governance/memory.py)
-- Python：`PostgresMemoryService._calculate_initial_retention()` — [`engine/adapters/postgres/memory_service.py`](../../../../apps/negentropy/src/negentropy/engine/adapters/postgres/memory_service.py)
-- SQL：`calculate_retention_score()` plpgsql 函数 — [`schema/hippocampus_schema.sql`](./schema/hippocampus_schema.sql) §5
+- Python：`MemoryGovernanceService.calculate_retention_score()` — [`engine/governance/memory.py`](../../../apps/negentropy/src/negentropy/engine/governance/memory.py)
+- Python：`PostgresMemoryService._calculate_initial_retention()` — [`engine/adapters/postgres/memory_service.py`](../../../apps/negentropy/src/negentropy/engine/adapters/postgres/memory_service.py)
+- SQL：`calculate_retention_score()` plpgsql 函数 — [`schema/hippocampus_schema.sql`](../../../apps/negentropy/src/negentropy/models/internalization.py) §5
 
 ### 5.2 访问计数强化 (Retrieval-Enhanced Retention)
 
@@ -666,29 +514,9 @@ WHERE id IN (recalled_memory_ids);
 
 ### 5.4 Memory Consolidation 策略
 
-```mermaid
-flowchart LR
-    SE["Session Events<br/>(原始对话)"] --> SUM["Session<br/>Summarizer"]
-    SUM --> EP["Episodic<br/>Storage"]
-    EP --> CW["Consolidation<br/>Worker"]
+![会话事件经摘要固化写入情景存储，巩固执行器按「会话结束／跨会话／维护窗口」三种节奏分发 fast_replay、deep_reflection、full_consolidation 三档巩固，分别产出更新记忆与更新事实。](../../assets/architecture/subsystems/025-memory--session-summarizer-dark.png)
 
-    CW --> FR["Fast Replay<br/>即时提取"]
-    CW --> DR["Deep Reflection<br/>跨会话分析"]
-    CW --> FC["Full Consolidation<br/>全量重建"]
-
-    FR --> UM["Updated<br/>Memories"]
-    DR --> UF["Updated<br/>Facts"]
-    FC --> UM
-    FC --> UF
-
-    classDef source fill:#60A5FA,stroke:#1E3A8A,color:#000
-    classDef process fill:#F59E0B,stroke:#92400E,color:#000
-    classDef output fill:#10B981,stroke:#065F46,color:#FFF
-
-    class SE source
-    class SUM,CW,FR,DR,FC process
-    class EP,UM,UF output
-```
+> 图源（可 diff 文本）：[`025-memory--session-summarizer.mmd`](../../assets/mermaid/subsystems/025-memory--session-summarizer.mmd) · 交互版（下载到本地打开）：[`025-memory--session-summarizer.html`](../../assets/architecture/subsystems/025-memory--session-summarizer.html)
 
 **与学术前沿的对标**：
 
@@ -747,7 +575,7 @@ importance = min(1.0,
 - Fact upsert 时：`FactService.upsert_fact()` 计算初始评分
 - 访问后：`_record_access()` 增量提升 +0.02
 
-**代码实现**：`MemoryGovernanceService.calculate_importance_score()` — [`engine/governance/memory.py`](../../../../apps/negentropy/src/negentropy/engine/governance/memory.py)
+**代码实现**：`MemoryGovernanceService.calculate_importance_score()` — [`engine/governance/memory.py`](../../../apps/negentropy/src/negentropy/engine/governance/memory.py)
 
 ### 5.6 记忆冲突与信念修正 (Conflict Resolution)
 
@@ -755,23 +583,9 @@ importance = min(1.0,
 
 **检测阶段**：
 
-```mermaid
-flowchart LR
-    NEW["新事实插入"] --> K["Stage 1: Key-based<br/>(快速路径)"]
-    K --> |"同 key 不同 value"| EMB["Stage 2: Embedding-based<br/>(中速路径)"]
-    EMB --> |"高相似度 ≥ 0.85"| LLM["Stage 3: LLM-based<br/>(深度路径)"]
-    K --> |"无冲突"| PASS["通过"]
-    EMB --> |"低相似度"| PASS
-    LLM --> |"确认矛盾"| RES["执行解决策略"]
+![新事实插入后经 Stage 1 Key-based、Stage 2 Embedding、Stage 3 LLM 三级递进检测：任一级无冲突即放行，确认矛盾后按类型与置信度执行 supersede/keep_both/merge 解决策略。](../../assets/architecture/subsystems/025-memory--dedup-stages-dark.png)
 
-    classDef detect fill:#F59E0B,stroke:#92400E,color:#000
-    classDef pass fill:#10B981,stroke:#065F46,color:#FFF
-    classDef resolve fill:#EF4444,stroke:#991B1B,color:#FFF
-
-    class K,EMB,LLM detect
-    class PASS pass
-    class RES resolve
-```
+> 图源（可 diff 文本）：[`025-memory--dedup-stages.mmd`](../../assets/mermaid/subsystems/025-memory--dedup-stages.mmd) · 交互版（下载到本地打开）：[`025-memory--dedup-stages.html`](../../assets/architecture/subsystems/025-memory--dedup-stages.html)
 
 **冲突分类**：
 
@@ -791,7 +605,7 @@ flowchart LR
 
 **数据模型**：Fact 新增 `superseded_by`、`status`（active/superseded）、`superseded_at` 字段；新建 `memory_conflicts` 表记录冲突历史。
 
-**代码实现**：`ConflictResolver` — [`engine/governance/conflict_resolver.py`](../../../../apps/negentropy/src/negentropy/engine/governance/conflict_resolver.py)
+**代码实现**：`ConflictResolver` — [`engine/governance/conflict_resolver.py`](../../../apps/negentropy/src/negentropy/engine/governance/conflict_resolver.py)
 
 **Phase 7 增强**：DedupMergeStep 在 soft-delete 之前会检测关联 facts 的 key 碰撞。
 当发现偏好反转等矛盾时，委托 `ConflictResolver`（基于 AGM 信念修正理论）执行显式解决：
@@ -826,7 +640,7 @@ proactive_rank = importance_score * 0.40
 - 失效触发：巩固完成、事实插入、冲突解决时自动 `invalidate_cache()`
 - 缓存命中直接返回，未命中则计算并写入
 
-**代码实现**：`ProactiveRecallService` — [`engine/adapters/postgres/proactive_recall_service.py`](../../../../apps/negentropy/src/negentropy/engine/adapters/postgres/proactive_recall_service.py)
+**代码实现**：`ProactiveRecallService` — [`engine/adapters/postgres/proactive_recall_service.py`](../../../apps/negentropy/src/negentropy/engine/adapters/postgres/proactive_recall_service.py)
 
 ### 5.8 记忆关联 (Memory Associations)
 
@@ -851,7 +665,7 @@ BFS 遍历关联图，每跳只追加权重大于 0.6 的强关联，最终在 T
 
 **数据模型**：`memory_associations` 表，UNIQUE(source_id, target_id, association_type)。
 
-**代码实现**：`AssociationService` — [`engine/adapters/postgres/association_service.py`](../../../../apps/negentropy/src/negentropy/engine/adapters/postgres/association_service.py)
+**代码实现**：`AssociationService` — [`engine/adapters/postgres/association_service.py`](../../../apps/negentropy/src/negentropy/engine/adapters/postgres/association_service.py)
 
 ---
 
@@ -861,39 +675,9 @@ BFS 遍历关联图，每跳只追加权重大于 0.6 的强关联，最终在 T
 
 `PostgresMemoryService.search_memory()` 实现 4 级回退检索策略，确保在不同基础设施条件下都能返回结果：
 
-```mermaid
-flowchart TD
-    Q["search_memory(query)"] --> EMB{有 embedding_fn？}
+![search_memory 四级回退检索流程：query 向量可用时先走混合检索、失败降级纯向量，无向量时走全文检索、失败或空结果回退 ILIKE 模糊匹配，四级结果各自标记 search_level 后统一记录访问并返回。](../../assets/architecture/subsystems/025-memory--hybrid-search-levels-dark.png)
 
-    EMB -->|是| HYB["Level 1: Hybrid Search<br/>DB 原生 hybrid_search() 函数<br/>semantic_weight=0.7 + keyword_weight=0.3"]
-    HYB -->|成功| TAG["标记 search_level=hybrid<br/>score_type=combined"]
-    HYB -->|失败/降级| VEC["Level 2: Vector Search<br/>embedding <=> query_embedding<br/>pgvector cosine distance"]
-    VEC --> TAG2["标记 search_level=vector<br/>score_type=cosine_distance"]
-
-    EMB -->|否| BM25["Level 3: BM25 Keyword Search<br/>search_vector @@ plainto_tsquery<br/>ts_rank_cd 排序"]
-    BM25 -->|成功| TAG3["标记 search_level=keyword<br/>score_type=ts_rank"]
-    BM25 -->|失败/无 search_vector| ILK["Level 4: ilike Fallback<br/>content ILIKE '%escaped_query%'<br/>通配符转义防注入"]
-    ILK --> TAG4["标记 search_level=ilike<br/>score_type=retention_proxy"]
-
-    TAG --> REC["记录访问 → 返回结果"]
-    TAG2 --> REC
-    TAG3 --> REC
-    TAG4 --> REC
-
-    classDef query fill:#8B5CF6,stroke:#4C1D95,color:#FFF
-    classDef level1 fill:#10B981,stroke:#065F46,color:#FFF
-    classDef level2 fill:#3B82F6,stroke:#1E40AF,color:#FFF
-    classDef level3 fill:#F59E0B,stroke:#92400E,color:#000
-    classDef level4 fill:#EF4444,stroke:#991B1B,color:#FFF
-    classDef result fill:#10B981,stroke:#065F46,color:#FFF
-
-    class Q query
-    class HYB level1
-    class VEC level2
-    class BM25 level3
-    class ILK level4
-    class REC result
-```
+> 图源（可 diff 文本）：[`025-memory--hybrid-search-levels.mmd`](../../assets/mermaid/subsystems/025-memory--hybrid-search-levels.mmd) · 交互版（下载到本地打开）：[`025-memory--hybrid-search-levels.html`](../../assets/architecture/subsystems/025-memory--hybrid-search-levels.html)
 
 ### 6.2 Hybrid Search 实现细节
 
@@ -923,7 +707,7 @@ FROM {NEGENTROPY_SCHEMA}.hybrid_search(
 | History | 50% (`history_ratio`) | events 表   | `created_at DESC`（时间倒序）             |
 | System  | 20% (保留)            | —           | 系统指令保留空间                          |
 
-**Token 估算**：采用 tiktoken BPE 编码器精确计数（Phase 1 曾使用 `LENGTH(content) / 4` 粗略估算）。Python 侧通过 [`TokenCounter`](../../../../apps/negentropy/src/negentropy/engine/utils/token_counter.py) 工具类调用，SQL 函数 `get_context_window()` 保留 `LENGTH/4` 作为 DB 侧快速估算，Python 端后校正。参考文献 <sup>[[25]](#ref25)</sup>。
+**Token 估算**：采用 tiktoken BPE 编码器精确计数（Phase 1 曾使用 `LENGTH(content) / 4` 粗略估算）。Python 侧通过 [`TokenCounter`](../../../apps/negentropy/src/negentropy/engine/utils/token_counter.py) 工具类调用，SQL 函数 `get_context_window()` 保留 `LENGTH/4` 作为 DB 侧快速估算，Python 端后校正。参考文献 <sup>[[25]](#ref25)</sup>。
 
 **Token Budget 硬性校验**（Phase 2++ 增强）：组装完成后校验 `token_count <= budget_total`（memory_ratio + history_ratio）。超标时按行截断（优先保留先召回的高相关性内容），并输出 `context_budget_overflow` 结构化日志。参考 MemGPT<sup>[[7]](#ref7)</sup> Virtual Context Management 的分页截断策略。
 
@@ -944,23 +728,9 @@ FROM {NEGENTROPY_SCHEMA}.hybrid_search(
 
 `RetrievalTracker` 在 `search_memory()` 返回结果后自动记录检索事件，并支持显式反馈 API：
 
-```mermaid
-flowchart TD
-    Q["search_memory(query)"] --> LOG["log_retrieval<br/>(记忆 ID 列表)"]
-    LOG --> AGENT["Agent 响应"]
-    AGENT --> REF["mark_referenced<br/>(被引用的记忆)"]
-    REF --> FB["record_feedback<br/>('helpful'/'irrelevant'/'harmful')"]
-    FB --> METRICS["get_effectiveness_metrics()"]
-    METRICS --> ADJ["调整 retention_score 权重"]
+![记忆检索效果反馈闭环：search_memory 检索事件经 log_retrieval 落入 memory_retrieval_logs 事实表，Agent 响应引用经 mark_referenced 与 record_feedback 回写，再由 get_effectiveness_metrics 聚合驱动自进化调权，闭环反哺下一轮检索。](../../assets/architecture/subsystems/025-memory--retrieval-logging-dark.png)
 
-    classDef query fill:#8B5CF6,stroke:#4C1D95,color:#FFF
-    classDef process fill:#F59E0B,stroke:#92400E,color:#000
-    classDef result fill:#10B981,stroke:#065F46,color:#FFF
-
-    class Q query
-    class LOG,AGENT,REF,FB process
-    class METRICS,ADJ result
-```
+> 图源（可 diff 文本）：[`025-memory--retrieval-logging.mmd`](../../assets/mermaid/subsystems/025-memory--retrieval-logging.mmd) · 交互版（下载到本地打开）：[`025-memory--retrieval-logging.html`](../../assets/architecture/subsystems/025-memory--retrieval-logging.html)
 
 评估维度对齐 LongMemEval<sup>[[9]](#ref9)</sup>：
 
@@ -994,43 +764,15 @@ flowchart TD
 
 ### 7.3 审计工作流
 
-```mermaid
-sequenceDiagram
-    participant Admin
-    participant API as Memory Audit API
-    participant MGS as MemoryGovernanceService
-    participant DB as PostgreSQL
+![管理员调用 POST /memory/audit，治理服务经幂等键查重与乐观锁版本校验后在单事务中逐条执行 retain/delete/anonymize 决策、写入审计日志并整批原子提交，版本冲突由 API 返回 409 Conflict。](../../assets/architecture/subsystems/025-memory--audit-api-sequence-dark.png)
 
-    Admin->>API: POST /memory/audit
-    API->>MGS: audit_memory(decisions, expected_versions, idempotency_key)
-
-    MGS->>MGS: 幂等性检查 (idempotency_key)
-    alt 已存在相同幂等键
-        MGS-->>API: 返回已有 AuditRecord
-    end
-
-    MGS->>MGS: _validate_decisions (retain/delete/anonymize)
-
-    loop 逐个决策处理
-        MGS->>DB: 获取当前版本号
-        MGS->>MGS: 检测版本冲突
-        alt 版本冲突
-            MGS-->>API: 抛出 ValueError
-        end
-        MGS->>DB: _execute_decision (delete/anonymize/retain)
-        MGS->>DB: INSERT memory_audit_logs (version++)
-    end
-
-    MGS->>DB: COMMIT
-    MGS-->>API: AuditRecord[]
-    API-->>Admin: 200 OK
-```
+> 图源（可 diff 文本）：[`025-memory--audit-api-sequence.mmd`](../../assets/mermaid/subsystems/025-memory--audit-api-sequence.mmd) · 交互版（下载到本地打开）：[`025-memory--audit-api-sequence.html`](../../assets/architecture/subsystems/025-memory--audit-api-sequence.html)
 
 ---
 
 ## 8. Memory Automation 控制面
 
-本章完整保留原有 Memory Automation 设计与实施文档，是该控制面的权威参考。
+> **口径更新（2026-09）**：本章叙述的 pg_cron 调度控制面（cron.job / 受管任务同步 / `/memory/automation/*` 七端点）**已于 migration 0042/0043 退役**。现行调度入口是 Unified Scheduler：`scheduled_tasks`（migration 0046 幂等种子）+ `ScheduledTaskRegistry` 心跳 + `/scheduler/*` API 与 `app/interface/scheduler` 统一调度页；自动化参数的事实源是 `scheduled_tasks.task.payload`，「Memory / Automation」二级导航页已删除，Memory 页仅经 `/memory` 只读 managed_jobs。本章保留为设计沿革参考，**现状以上方 §8 图（按当前实现重绘）与 [`engine/schedulers/handlers/memory_automation.py`](../../../apps/negentropy/src/negentropy/engine/schedulers/handlers/memory_automation.py) 为准**。
 
 ### 8.1 定位
 
@@ -1054,37 +796,9 @@ Memory Automation 模块负责用户长期记忆的形成、保留、检索与�
 
 ### 8.3 核心对象
 
-```mermaid
-flowchart TD
-    subgraph ControlPlane[Memory Automation Control Plane]
-        UI[Memory / Automation]
-        API[/memory/automation/*]
-        CFG[(memory_automation_configs)]
-    end
+![Memory Automation 控制面架构图：统一调度页经 Scheduler API 读写 scheduled_tasks 配置事实源，ScheduledTaskRegistry 心跳扫表认领 due 行后派发 memory_automation handler 三作业——清理与 Rocchio 重加权直写 memories、巩固经受管 SQL 函数投递 consolidation_jobs，执行历史写入 task_executions。](../../assets/architecture/subsystems/025-memory--control-plane-dark.png)
 
-    subgraph ManagedProcess[Managed Processes]
-        RET[Retention Cleanup]
-        ASM[Context Assembler]
-        CON[Maintenance Consolidation]
-    end
-
-    subgraph Postgres[PostgreSQL Runtime]
-        FN[Managed SQL Functions]
-        CRON[cron.job]
-        LOG[cron.job_run_details]
-    end
-
-    UI --> API --> CFG
-    API --> RET
-    API --> ASM
-    API --> CON
-    RET --> FN
-    ASM --> FN
-    CON --> FN
-    RET --> CRON
-    CON --> CRON
-    CRON --> LOG
-```
+> 图源（可 diff 文本）：[`025-memory--control-plane.mmd`](../../assets/mermaid/subsystems/025-memory--control-plane.mmd) · 交互版（下载到本地打开）：[`025-memory--control-plane.html`](../../assets/architecture/subsystems/025-memory--control-plane.html)
 
 ### 8.4 受管过程
 
@@ -1442,7 +1156,7 @@ SELECT negentropy.trigger_maintenance_consolidation('1 hour'::interval);
 | **pg_cron**  | 1.6+ | 定时任务调度（可选增强）        |
 | **tsvector** | 内置 | BM25 全文检索                   |
 
-DDL 原型参见 [`schema/hippocampus_schema.sql`](./schema/hippocampus_schema.sql)（历史参考，当前运行时以 Alembic migration 和 Automation 控制面为准）。
+DDL 原型参见 [`schema/hippocampus_schema.sql`](../../../apps/negentropy/src/negentropy/models/internalization.py)（历史参考，当前运行时以 Alembic migration 和 Automation 控制面为准）。
 
 ### 9.2 Service 实现分析
 
@@ -1656,47 +1370,9 @@ timeline
 
 ### 11.4 可观测性仪表盘设计
 
-```mermaid
-flowchart LR
-    subgraph Collect["数据采集层"]
-        LF["Langfuse Traces<br/>检索延迟 · LLM 调用"]
-        SL["结构化日志<br/>embedding 成功/失败"]
-        SQL["SQL 查询<br/>retention_score 分布"]
-        API["API Metrics<br/>automation 健康度"]
-    end
+![Memory 可观测性数据流：Langfuse Traces、结构化日志、SQL 查询与 API 指标四路采集，经聚合引擎（P95·AVG·COUNT）与 7d/30d 窗口函数计算，汇入 Memory Dashboard 的 L0-L3 四层面板。](../../assets/architecture/subsystems/025-memory--telemetry-collection-dark.png)
 
-    subgraph Compute["指标计算层"]
-        AGG["聚合引擎<br/>P95 · AVG · COUNT"]
-        WIN["窗口函数<br/>7d/30d 趋势"]
-    end
-
-    subgraph Display["展示层 (Memory Dashboard)"]
-        H["健康度面板<br/>L0 指标"]
-        Q["记忆质量面板<br/>L1 指标"]
-        R["检索效果面板<br/>L2 指标"]
-        B["业务影响面板<br/>L3 指标"]
-    end
-
-    LF --> AGG
-    SL --> AGG
-    SQL --> AGG
-    API --> AGG
-
-    AGG --> WIN
-
-    WIN --> H
-    WIN --> Q
-    WIN --> R
-    WIN --> B
-
-    classDef collect fill:#60A5FA,stroke:#1E3A8A,color:#000
-    classDef compute fill:#F59E0B,stroke:#92400E,color:#000
-    classDef display fill:#10B981,stroke:#065F46,color:#FFF
-
-    class LF,SL,SQL,API collect
-    class AGG,WIN compute
-    class H,Q,R,B display
-```
+> 图源（可 diff 文本）：[`025-memory--telemetry-collection.mmd`](../../assets/mermaid/subsystems/025-memory--telemetry-collection.mmd) · 交互版（下载到本地打开）：[`025-memory--telemetry-collection.html`](../../assets/architecture/subsystems/025-memory--telemetry-collection.html)
 
 ### 11.5 反馈闭环：指标驱动的自动调参
 
@@ -1782,8 +1458,8 @@ uv run pytest tests/unit_tests/engine/test_memory_automation_service.py -v
 - Memory 与 Knowledge 职责边界：[`035-the-knowledge-base.md`](035-the-knowledge-base.md)
 - 知识图谱技术方案：[`036-the-knowledge-graph.md`](036-the-knowledge-graph.md)
 - 理论基础白皮书：[`026-memory-whitepaper.md`](026-memory-whitepaper.md)
-- 系统架构总览：[`framework.md`](../../../concepts/framework.md)
-- DDL 原型（历史参考）：[`schema/hippocampus_schema.sql`](./schema/hippocampus_schema.sql)
+- 系统架构总览：[`framework.md`](../framework.md)
+- DDL 原型（历史参考）：[`schema/hippocampus_schema.sql`](../../../apps/negentropy/src/negentropy/models/internalization.py)
 - 外部设计文档：[020-the-hippocampus.md](https://github.com/ThreeFish-AI/agentic-ai-cognizes/blob/master/docs/concepts/020-the-hippocampus.md)
 
 ---

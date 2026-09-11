@@ -1,0 +1,38 @@
+%% source: docs/concepts/a2ui.md §3.1 总体结构 (原 L77-L112)
+%% slug: core/a2ui--fact-source
+%% type: workflow
+%% derived: docs/assets/architecture/core/a2ui--fact-source.html (+ -dark/-light PNG)
+flowchart TD
+  subgraph Transport["Transport / Fact Source"]
+    A[ADK Payload]
+    B["/api/agui"]
+    C[AGUI Events]
+  end
+
+  subgraph Application["Session Application Service"]
+    D[normalizeAguiEvent]
+    E[useSessionService]
+    M[useSessionListService]
+  end
+
+  subgraph ReadModel["A2UI Read Model"]
+    F[Message Ledger]
+    J[ConversationTree Projection]
+    K[ConversationNode Tree]
+    L[useSessionProjection]
+  end
+
+  subgraph Presentation["Chat-first Presentation"]
+    G[Chat Main Rail]
+    H[Technical Attachments]
+    I[Timeline / State / Logs]
+  end
+
+  A --> B --> C --> D --> E
+  B --> M
+  E --> L
+  L --> F
+  L --> J
+  F --> G
+  J --> K --> H
+  L --> I

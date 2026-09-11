@@ -15,17 +15,17 @@ tags:
 
 > 本文档是 Negentropy 知识图谱模块的**架构设计单一权威参考 (Single Source of Truth)**，涵盖学术理论基础、行业框架分析、两阶段工程方案（PostgreSQL 阶段 → 终极阶段）以及价值量化体系。
 >
-> - 系统全景架构：[`framework.md`](../../../concepts/framework.md)
+> - 系统全景架构：[`framework.md`](../framework.md)
 > - Knowledge 模块全景：[`035-the-knowledge-base.md`](035-the-knowledge-base.md)
 > - Memory 模块设计：[`025-the-memory-system.md`](025-the-memory-system.md)
-> - 数据库 Schema：[`schema/kg_schema_extension.sql`](./schema/kg_schema_extension.sql)
+> - 数据库 Schema：[`models/perception.py`](../../../apps/negentropy/src/negentropy/models/perception.py)
 > - 源码入口：
->   - 策略基类：[knowledge/graph/strategy.py](../../../../apps/negentropy/src/negentropy/knowledge/graph/strategy.py)
->   - LLM 提取器：[knowledge/graph/extractors.py](../../../../apps/negentropy/src/negentropy/knowledge/graph/extractors.py)
->   - 图谱存储：[knowledge/graph/repository.py](../../../../apps/negentropy/src/negentropy/knowledge/graph/repository.py)
->   - 图谱服务：[knowledge/graph/service.py](../../../../apps/negentropy/src/negentropy/knowledge/graph/service.py)
->   - 类型定义：[knowledge/types.py](../../../../apps/negentropy/src/negentropy/knowledge/types.py)
->   - REST API（图谱子路由）：[knowledge/api.py](../../../../apps/negentropy/src/negentropy/knowledge/api.py)
+>   - 策略基类：[knowledge/graph/strategy.py](../../../apps/negentropy/src/negentropy/knowledge/graph/strategy.py)
+>   - LLM 提取器：[knowledge/graph/extractors.py](../../../apps/negentropy/src/negentropy/knowledge/graph/extraction_schema.py)
+>   - 图谱存储：[knowledge/graph/repository.py](../../../apps/negentropy/src/negentropy/knowledge/graph/repository.py)
+>   - 图谱服务：[knowledge/graph/service.py](../../../apps/negentropy/src/negentropy/knowledge/graph/service.py)
+>   - 类型定义：[knowledge/types.py](../../../apps/negentropy/src/negentropy/knowledge/types.py)
+>   - REST API（图谱子路由）：[knowledge/api.py](../../../apps/negentropy/src/negentropy/knowledge/api.py)
 
 ---
 
@@ -70,57 +70,9 @@ Negentropy（熵减引擎）的命名源自薛定谔在《生命是什么》中�
 
 ### 1.3 知识图谱在五翼架构中的定位
 
-```mermaid
-%%{init: {"themeVariables": {"primaryColor": "#0b3d91", "primaryTextColor": "#ffffff", "primaryBorderColor": "#0b3d91", "secondaryColor": "#0f5132", "secondaryTextColor": "#ffffff", "tertiaryColor": "#842029", "tertiaryTextColor": "#ffffff"}}}%%
-flowchart TB
-    subgraph Perception["👁️ 感知系部"]
-        P_In["原始文本/文档"]
-        P_Out["知识块 (Chunks)"]
-        P_In --> P_Out
-    end
+![知识图谱在五翼架构中的定位：感知系部（慧眼）经 ingest 工具将原始文本/文档送入摄取管线，抽取实体关系构建 KG，检索侧经三系部专属搜索工具（局部/全局/论文增强）消费图谱](../../assets/architecture/subsystems/036-kg--perception-pipeline-dark.png)
 
-    subgraph KG["💎 知识图谱引擎"]
-        direction TB
-        Extract["实体/关系提取<br/>(LLM + Regex)"]
-        Store["图存储<br/>(Apache AGE)"]
-        Algo["图算法<br/>(PageRank · 社区检测)"]
-        Retrieve["混合检索<br/>(Vector + Graph)"]
-        Extract --> Store --> Algo
-        Store --> Retrieve
-    end
-
-    subgraph Internalization["💎 内化系部"]
-        Memory["长期记忆"]
-        Facts["结构化事实"]
-    end
-
-    subgraph Contemplation["🧠 坐照系部"]
-        Reason["二阶思维"]
-        Plan["策略规划"]
-    end
-
-    subgraph Action["✋ 知行系部"]
-        Execute["精准执行"]
-    end
-
-    P_Out -->|"异步触发"| Extract
-    Retrieve -->|"GraphRAG 上下文"| Reason
-    Retrieve -->|"结构化知识"| Execute
-    Algo -->|"社区摘要"| Reason
-    Store -->|"实体-关系网络"| Memory
-    Store -->|"三元组"| Facts
-
-    classDef perception fill:#60A5FA,stroke:#1E3A8A,color:#000
-    classDef kg fill:#F59E0B,stroke:#92400E,color:#000
-    classDef wing fill:#10B981,stroke:#065F46,color:#FFF
-    classDef thinking fill:#8B5CF6,stroke:#4C1D95,color:#FFF
-
-    class P_In,P_Out perception
-    class Extract,Store,Algo,Retrieve kg
-    class Memory,Facts wing
-    class Reason,Plan thinking
-    class Execute wing
-```
+> 图源（可 diff 文本）：[`036-kg--perception-pipeline.mmd`](../../assets/mermaid/subsystems/036-kg--perception-pipeline.mmd) · 交互版（下载到本地打开）：[`036-kg--perception-pipeline.html`](../../assets/architecture/subsystems/036-kg--perception-pipeline.html)
 
 ---
 
@@ -312,76 +264,27 @@ Phase 1 基础能力增强已于 2026-02 完成，主要交付物：
 
 | 组件             | 文件路径                                                                                            | 状态 | 说明                                                               |
 | :--------------- | :-------------------------------------------------------------------------------------------------- | :--- | :----------------------------------------------------------------- |
-| LLM 实体提取器   | [`llm_extractors.py`](../../../../apps/negentropy/src/negentropy/knowledge/llm_extractors.py)       | ✅    | `LLMEntityExtractor` 多语言实体提取                                |
-| LLM 关系提取器   | [`llm_extractors.py`](../../../../apps/negentropy/src/negentropy/knowledge/llm_extractors.py)       | ✅    | `LLMRelationExtractor` 语义关系提取 + 证据                         |
-| 组合提取器       | [`llm_extractors.py`](../../../../apps/negentropy/src/negentropy/knowledge/llm_extractors.py)       | ✅    | `CompositeEntityExtractor` / `CompositeRelationExtractor` 回退策略 |
-| 策略基类         | [`graph.py`](../../../../apps/negentropy/src/negentropy/knowledge/graph.py)                         | ✅    | `EntityExtractor` / `RelationExtractor` ABC                        |
-| 图谱存储         | [`graph_repository.py`](../../../../apps/negentropy/src/negentropy/knowledge/graph_repository.py)   | ✅    | `AgeGraphRepository` CRUD + 查询                                   |
-| 图谱服务         | [`graph_service.py`](../../../../apps/negentropy/src/negentropy/knowledge/graph_service.py)         | ✅    | `GraphService` 构建编排 + 检索封装                                 |
-| 类型定义         | [`types.py`](../../../../apps/negentropy/src/negentropy/knowledge/types.py)                         | ✅    | `KgEntityType` / `KgRelationType` / `GraphSearchMode`              |
-| API 端点         | [`api.py`](../../../../apps/negentropy/src/negentropy/knowledge/api.py)                             | ✅    | 图谱构建/查询/检索/邻居/路径 API                                   |
-| DB Schema        | [`kg_schema_extension.sql`](./schema/kg_schema_extension.sql)                                       | ✅    | AGE 扩展 + 枚举 + 函数 + 视图                                      |
-| 实体一等公民服务 | [`kg_entity_service.py`](../../../../apps/negentropy/src/negentropy/knowledge/kg_entity_service.py) | ✅    | `KgEntityService` 双写 + 实体列表/详情                             |
-| 实体浏览 API     | [`api.py`](../../../../apps/negentropy/src/negentropy/knowledge/api.py)                             | ✅    | `GET /graph/entities` + `GET /graph/entities/{id}`                 |
-| 图谱统计 API     | [`api.py`](../../../../apps/negentropy/src/negentropy/knowledge/api.py)                             | ✅    | `GET /graph/stats` 聚合统计                                        |
-| 递归 CTE 遍历    | [`graph_repository.py`](../../../../apps/negentropy/src/negentropy/knowledge/graph_repository.py)   | ✅    | `find_neighbors` / `find_path` 多跳 BFS                            |
-| 前端图谱页面     | [`graph/page.tsx`](../../../../apps/negentropy-ui/app/knowledge/graph/page.tsx)                     | ✅    | 语料库选择 + 可视化 + 实体列表 + 搜索                              |
-| 前端实体面板     | [`_components/`](../../../../apps/negentropy-ui/app/knowledge/graph/_components/)                   | ✅    | EntityList + EntityDetail + SearchBar + PathExplorer               |
+| LLM 实体提取器   | [`llm_extractors.py`](../../../apps/negentropy/src/negentropy/knowledge/graph/extraction_schema.py)       | ✅    | `LLMEntityExtractor` 多语言实体提取                                |
+| LLM 关系提取器   | [`llm_extractors.py`](../../../apps/negentropy/src/negentropy/knowledge/graph/extraction_schema.py)       | ✅    | `LLMRelationExtractor` 语义关系提取 + 证据                         |
+| 组合提取器       | [`llm_extractors.py`](../../../apps/negentropy/src/negentropy/knowledge/graph/extraction_schema.py)       | ✅    | `CompositeEntityExtractor` / `CompositeRelationExtractor` 回退策略 |
+| 策略基类         | [`graph.py`](../../../apps/negentropy/src/negentropy/knowledge/graph/service.py)                         | ✅    | `EntityExtractor` / `RelationExtractor` ABC                        |
+| 图谱存储         | [`graph_repository.py`](../../../apps/negentropy/src/negentropy/knowledge/graph/repository.py)   | ✅    | `AgeGraphRepository` CRUD + 查询                                   |
+| 图谱服务         | [`graph_service.py`](../../../apps/negentropy/src/negentropy/knowledge/graph/service.py)         | ✅    | `GraphService` 构建编排 + 检索封装                                 |
+| 类型定义         | [`types.py`](../../../apps/negentropy/src/negentropy/knowledge/types.py)                         | ✅    | `KgEntityType` / `KgRelationType` / `GraphSearchMode`              |
+| API 端点         | [`api.py`](../../../apps/negentropy/src/negentropy/knowledge/api.py)                             | ✅    | 图谱构建/查询/检索/邻居/路径 API                                   |
+| DB Schema        | [`models/perception.py`](../../../apps/negentropy/src/negentropy/models/perception.py)                                       | ✅    | AGE 扩展 + 枚举 + 函数 + 视图                                      |
+| 实体一等公民服务 | [`kg_entity_service.py`](../../../apps/negentropy/src/negentropy/knowledge/graph/entity_service.py) | ✅    | `KgEntityService` 双写 + 实体列表/详情                             |
+| 实体浏览 API     | [`api.py`](../../../apps/negentropy/src/negentropy/knowledge/api.py)                             | ✅    | `GET /graph/entities` + `GET /graph/entities/{id}`                 |
+| 图谱统计 API     | [`api.py`](../../../apps/negentropy/src/negentropy/knowledge/api.py)                             | ✅    | `GET /graph/stats` 聚合统计                                        |
+| 递归 CTE 遍历    | [`graph_repository.py`](../../../apps/negentropy/src/negentropy/knowledge/graph/repository.py)   | ✅    | `find_neighbors` / `find_path` 多跳 BFS                            |
+| 前端图谱页面     | [`graph/page.tsx`](../../../apps/negentropy-ui/app/knowledge/graph/page.tsx)                     | ✅    | 语料库选择 + 可视化 + 实体列表 + 搜索                              |
+| 前端实体面板     | [`_components/`](../../../apps/negentropy-ui/app/knowledge/graph/_components/)                   | ✅    | EntityList + EntityDetail + SearchBar + PathExplorer               |
 
 ### 4.2 当前架构
 
-```mermaid
-%%{init: {"themeVariables": {"primaryColor": "#0b3d91", "primaryTextColor": "#ffffff", "primaryBorderColor": "#0b3d91", "secondaryColor": "#0f5132", "secondaryTextColor": "#ffffff", "secondaryBorderColor": "#0f5132", "tertiaryColor": "#842029", "tertiaryTextColor": "#ffffff", "tertiaryBorderColor": "#842029"}}}%%
-flowchart TB
-    subgraph API["API Layer"]
-        KAPI["Knowledge API<br/>(现有)"]
-        GAPI["Graph API<br/>(Phase 1 ✅)"]
-        GRAG["GraphRAG API<br/>(Phase 3 🔲)"]
-    end
+![知识图谱模块四层架构：API 层聚合路由与服务编排，GraphService 主链承接检索与构建，AgeGraphRepository 以 kg_entities/kg_relations 一等公民表 + 递归 CTE 落 PostgreSQL，GlobalSearchService 与 multi_hop_reason 提供已落地的 GraphRAG 端点](../../assets/architecture/subsystems/036-kg--api-layering-dark.png)
 
-    subgraph Service["Service Layer"]
-        KSvc["KnowledgeService<br/>(现有)"]
-        GSvc["GraphService<br/>(Phase 1 ✅)"]
-        E2E["LLMEntityExtractor<br/>(Phase 1 ✅)"]
-        R2R["LLMRelationExtractor<br/>(Phase 1 ✅)"]
-    end
-
-    subgraph Repo["Repository Layer"]
-        KRepo["KnowledgeRepository<br/>(现有)"]
-        GRepo["AgeGraphRepository<br/>(Phase 1 ✅)"]
-    end
-
-    subgraph Storage["Storage Layer (PostgreSQL 16+)"]
-        direction TB
-        Corpus[("corpus<br/>(现有)")]
-        Knowledge[("knowledge<br/>(现有+扩展)")]
-        AGE[("Apache AGE<br/>(Phase 1 ✅)")]
-        HNSW["HNSW Index<br/>(pgvector)"]
-    end
-
-    KAPI --> KSvc --> KRepo
-    GAPI --> GSvc --> GRepo
-    GSvc --> E2E
-    GSvc --> R2R
-
-    KRepo --> Corpus
-    KRepo --> Knowledge
-    KRepo --> HNSW
-    GRepo --> AGE
-    GRepo --> Knowledge
-
-    classDef api fill:#0b3d91,stroke:#0b3d91,color:#ffffff
-    classDef svc fill:#0f5132,stroke:#0f5132,color:#ffffff
-    classDef repo fill:#0f5132,stroke:#0f5132,color:#ffffff
-    classDef store fill:#842029,stroke:#842029,color:#ffffff
-    classDef pending fill:#6c757d,stroke:#6c757d,color:#ffffff
-
-    class KAPI,GAPI api
-    class GRAG pending
-    class KSvc,GSvc,E2E,R2R svc
-    class KRepo,GRepo repo
-    class Corpus,Knowledge,AGE,HNSW store
-```
+> 图源（可 diff 文本）：[`036-kg--api-layering.mmd`](../../assets/mermaid/subsystems/036-kg--api-layering.mmd) · 交互版（下载到本地打开）：[`036-kg--api-layering.html`](../../assets/architecture/subsystems/036-kg--api-layering.html)
 
 ### 4.3 实体与关系类型
 
@@ -426,37 +329,9 @@ class KgRelationType(Enum):
 
 ### 4.4 数据流
 
-```mermaid
-%%{init: {"themeVariables": {"primaryColor": "#0b3d91", "primaryTextColor": "#ffffff", "actorBorder": "#0b3d91", "actorTextColor": "#ffffff"}}}%%
-sequenceDiagram
-    participant Client
-    participant KnowledgeService
-    participant GraphService
-    participant LLM as LLM Extractor
-    participant Knowledge as knowledge 表
-    participant AGE as Apache AGE
+![知识图谱构建时序：文本分块后逐批送 LLM 抽取实体与关系，经 entity_resolver 消歧与 canonical_linker 规范化链接，最终连同置信度落 kg_entities/kg_relations 表](../../assets/architecture/subsystems/036-kg--llm-extraction-sequence-dark.png)
 
-    Client->>KnowledgeService: ingest_text(corpus_id, text)
-    KnowledgeService->>Knowledge: INSERT knowledge chunks
-
-    Note over KnowledgeService: 异步触发图谱构建
-
-    KnowledgeService->>GraphService: build_graph(corpus_id)
-    GraphService->>Knowledge: SELECT chunks WHERE corpus_id
-    Knowledge->>GraphService: chunks
-
-    GraphService->>LLM: extract_entities(text)
-    LLM-->>GraphService: entities[]
-
-    GraphService->>LLM: extract_relations(entities, text)
-    LLM-->>GraphService: relations[]
-
-    GraphService->>AGE: MERGE entities (Cypher)
-    GraphService->>AGE: MERGE relations (Cypher)
-
-    Note over GraphService: 更新 knowledge.entity_type
-    GraphService->>Knowledge: UPDATE entity_type, confidence
-```
+> 图源（可 diff 文本）：[`036-kg--llm-extraction-sequence.mmd`](../../assets/mermaid/subsystems/036-kg--llm-extraction-sequence.mmd) · 交互版（下载到本地打开）：[`036-kg--llm-extraction-sequence.html`](../../assets/architecture/subsystems/036-kg--llm-extraction-sequence.html)
 
 ### 4.5 API 端点
 
@@ -505,34 +380,13 @@ sequenceDiagram
 
 **迁移策略**（双读兼容）：
 
-```mermaid
-%%{init: {"themeVariables": {"primaryColor": "#0b3d91", "primaryTextColor": "#ffffff"}}}%%
-flowchart LR
-    subgraph Phase_A["阶段 A: 双写"]
-        Write_JSONB["写 JSONB"]
-        Write_AGE["写 AGE Edge"]
-        Write_JSONB & Write_AGE
-    end
+![知识图谱关系存储从 JSONB 迁移到 kg_relations 一等公民表的三阶段工作流：阶段 A 双写（应用层同事务主写一等公民表、旁写 JSONB 兼容字段）、阶段 B 双读（优先读一等公民表，表空时回退 JSONB）、阶段 C 清理（JSONB 关系字段退役，kg_relations 收敛为唯一权威源）。](../../assets/architecture/subsystems/036-kg--dual-write-dark.png)
 
-    subgraph Phase_B["阶段 B: 双读"]
-        Read_JSONB["读 JSONB (回退)"]
-        Read_AGE["读 AGE (优先)"]
-    end
-
-    subgraph Phase_C["阶段 C: 清理"]
-        Drop_JSONB["移除 JSONB 关系字段"]
-        AGE_Only["AGE 唯一源"]
-    end
-
-    Phase_A --> Phase_B --> Phase_C
-
-    classDef step fill:#0f5132,stroke:#0f5132,color:#ffffff
-    class Write_JSONB,Write_AGE,Read_JSONB,Read_AGE,Drop_JSONB,AGE_Only step
-```
+> 图源（可 diff 文本）：[`036-kg--dual-write.mmd`](../../assets/mermaid/subsystems/036-kg--dual-write.mmd) · 交互版（下载到本地打开）：[`036-kg--dual-write.html`](../../assets/architecture/subsystems/036-kg--dual-write.html)
 
 **关键实现细节**：
 
-1. **`AgeGraphRepository.create_relations()`** 改为调用 [`kg_create_relation()`](./schema/kg_schema_extension.sql) SQL 函数（已在 Schema 的 Cypher 辅助函数部分定义）
+1. **`AgeGraphRepository.create_relations()`** 改为调用 [`kg_create_relation()`](../../../apps/negentropy/src/negentropy/models/perception.py) SQL 函数（已在 Schema 的 Cypher 辅助函数部分定义）
 2. **Session 预热**：每个数据库连接需执行 `LOAD 'age'; SET search_path = ag_catalog, "$user", public;`
 3. **实体 ID 映射**：维护 `knowledge.id ↔ AGE vertex id` 的双向映射
 
@@ -654,35 +508,9 @@ $$, params => '...');
 
 **目标**：构建 **Vector + Graph + RRF** 三层融合检索管道。
 
-```mermaid
-%%{init: {"themeVariables": {"primaryColor": "#0b3d91", "primaryTextColor": "#ffffff", "actorBorder": "#0b3d91", "actorTextColor": "#ffffff"}}}%%
-sequenceDiagram
-    participant User
-    participant SearchAPI
-    participant VectorSearch as pgvector<br/>(L0 Semantic)
-    participant GraphExpand as AGE Cypher<br/>(Graph Expand)
-    participant RRF as RRF Fusion
-    participant Reranker as L1 Reranker
-    participant LLM
+![知识图谱混合检索时序图：用户查询经图谱检索 API 分别触发 pgvector 语义召回与 AGE 图扩展，两路排名经 RRF 融合后交 L1 Cross-Encoder 精排，最终组装实体-邻居-关系上下文由 LLM 生成 GraphRAG 增强回答。](../../assets/architecture/subsystems/036-kg--extraction-sequence-dark.png)
 
-    User->>SearchAPI: query + corpus_id
-    SearchAPI->>VectorSearch: embedding <=> query_embedding (Top-K)
-    VectorSearch-->>SearchAPI: semantic_candidates[]
-
-    SearchAPI->>GraphExpand: 对 Top-K 实体做 1-2 跳扩展
-    GraphExpand-->>SearchAPI: neighbor_entities[] + relations[]
-
-    SearchAPI->>RRF: 融合信号
-    Note over RRF: semantic_rank<br/>graph_degree_rank<br/>community_rank (Phase 3)
-
-    RRF-->>SearchAPI: fused_ranking[]
-
-    SearchAPI->>Reranker: Cross-Encoder 精排 (L1)
-    Reranker-->>SearchAPI: final_results[]
-
-    SearchAPI->>LLM: 组装上下文 (实体 + 邻居 + 关系)
-    LLM-->>User: GraphRAG 增强回答
-```
+> 图源（可 diff 文本）：[`036-kg--extraction-sequence.mmd`](../../assets/mermaid/subsystems/036-kg--extraction-sequence.mmd) · 交互版（下载到本地打开）：[`036-kg--extraction-sequence.html`](../../assets/architecture/subsystems/036-kg--extraction-sequence.html)
 
 **RRF 多信号融合**：
 
@@ -788,45 +616,9 @@ GraphSearchMode = Literal["semantic", "graph", "hybrid", "global"]
 
 以 Microsoft GraphRAG<sup>[[4]](#ref4)</sup> 为蓝本，结合 LightRAG<sup>[[5]](#ref5)</sup> 的效率优化：
 
-```mermaid
-%%{init: {"themeVariables": {"primaryColor": "#0b3d91", "primaryTextColor": "#ffffff", "primaryBorderColor": "#0b3d91", "secondaryColor": "#0f5132", "secondaryTextColor": "#ffffff", "tertiaryColor": "#842029", "tertiaryTextColor": "#ffffff"}}}%%
-flowchart TB
-    subgraph Build["索引构建"]
-        Chunks["文本分块"] --> Extract["实体/关系提取<br/>(LLM)"]
-        Extract --> Graph["知识图谱<br/>(AGE)"]
-        Graph --> Leiden["Leiden 社区检测"]
-        Leiden --> L1_Comm["Level-1 社区"]
-        Leiden --> L2_Comm["Level-2 社区"]
-        L1_Comm --> Summary1["L1 社区摘要<br/>(LLM)"]
-        L2_Comm --> Summary2["L2 社区摘要<br/>(LLM)"]
-    end
+![知识图谱索引构建与双层检索：构建侧文本分块 → 向量化（embedding）→ 实体解析 → 社区摘要逐级产出；检索侧局部检索命中实体邻域、全局检索走社区摘要，结果经重排汇出](../../assets/architecture/subsystems/036-kg--index-build-dark.png)
 
-    subgraph Retrieve["双层检索"]
-        Query["用户查询"]
-        Query --> Local["Local Search<br/>(实体邻域)"]
-        Query --> Global["Global Search<br/>(社区摘要)"]
-        Local --> EntityMatch["实体匹配<br/>(向量)"]
-        EntityMatch --> GraphTraverse["图遍历<br/>(1-2 跳)"]
-        GraphTraverse --> LocalContext["局部上下文"]
-        Global --> CommunityMap["社区摘要<br/>Map-Reduce"]
-        CommunityMap --> GlobalContext["全局上下文"]
-    end
-
-    subgraph Generate["增强生成"]
-        LocalContext --> Merge["上下文融合"]
-        GlobalContext --> Merge
-        Merge --> LLM["LLM 生成"]
-        LLM --> Answer["GraphRAG 回答"]
-    end
-
-    classDef build fill:#0b3d91,stroke:#0b3d91,color:#ffffff
-    classDef retrieve fill:#0f5132,stroke:#0f5132,color:#ffffff
-    classDef gen fill:#842029,stroke:#842029,color:#ffffff
-
-    class Chunks,Extract,Graph,Leiden,L1_Comm,L2_Comm,Summary1,Summary2 build
-    class Query,Local,Global,EntityMatch,GraphTraverse,LocalContext,CommunityMap,GlobalContext retrieve
-    class Merge,LLM,Answer gen
-```
+> 图源（可 diff 文本）：[`036-kg--index-build.mmd`](../../assets/mermaid/subsystems/036-kg--index-build.mmd) · 交互版（下载到本地打开）：[`036-kg--index-build.html`](../../assets/architecture/subsystems/036-kg--index-build.html)
 
 **关键设计决策**：
 
@@ -840,26 +632,9 @@ flowchart TB
 
 **流水线**：
 
-```mermaid
-sequenceDiagram
-    participant U as 用户
-    participant API as POST /global_search
-    participant SVC as GlobalSearchService
-    participant DB as kg_community_summaries
-    participant LLM as LLM
-    U->>API: query (+ max_communities)
-    API->>SVC: search(corpus_id, query, query_embedding)
-    SVC->>DB: SELECT top_k by 1-(emb<=>query)::vector
-    DB-->>SVC: candidates
-    par Map (concurrency=5)
-        SVC->>LLM: MAP_PROMPT(query, summary_i)
-        LLM-->>SVC: partial_answer_i
-    end
-    SVC->>LLM: REDUCE_PROMPT(query, partials)
-    LLM-->>SVC: final_answer
-    SVC-->>API: answer + evidence + summaries_dirty
-    API-->>U: GlobalSearchResponse
-```
+![GraphRAG 全局检索时序图：用户请求经全局检索 API 转交 GlobalSearchService，先在 kg_community_summaries 上按余弦相似度筛出 top_k 候选社区，再以 Semaphore(5) 限流并发 Map 调用 LLM 产出部分答案，最后 Reduce 聚合为最终答案并携 evidence 与 summaries_dirty 标志返回。](../../assets/architecture/subsystems/036-kg--retrieval-sequence-dark.png)
+
+> 图源（可 diff 文本）：[`036-kg--retrieval-sequence.mmd`](../../assets/mermaid/subsystems/036-kg--retrieval-sequence.mmd) · 交互版（下载到本地打开）：[`036-kg--retrieval-sequence.html`](../../assets/architecture/subsystems/036-kg--retrieval-sequence.html)
 
 **关键设计**：
 - **Selection（候选筛选）**：用 query embedding 在 `kg_community_summaries.embedding` 上做 cosine 排序，避免对全部摘要做 LLM 调用；若 embedding 列尚未填充（旧数据），降级为按 `entity_count DESC` 排序，相似度兜底为 0。
@@ -872,22 +647,9 @@ sequenceDiagram
 
 以 Graphiti<sup>[[6]](#ref6)</sup> 为蓝本的双时态模型设计：
 
-```mermaid
-%%{init: {"themeVariables": {"primaryColor": "#0b3d91", "primaryTextColor": "#ffffff"}}}%%
-stateDiagram-v2
-    [*] --> Created: 实体/关系创建
-    Created --> Active: valid_from ≤ now
-    Active --> Superseded: 新信息覆盖<br/>设置 valid_to
-    Active --> Expired: 时间过期<br/>valid_to ≤ now
-    Superseded --> [*]
-    Expired --> [*]
+![知识图谱时态断言生命周期：断言自主张建立经校验流转，随知识更新进入 superseded / invalidated 终态，冲突版本经 resolver 裁决归并](../../assets/architecture/subsystems/036-kg--retrieval-lifecycle-dark.png)
 
-    state Active {
-        [*] --> Current
-        Current --> Reinforced: 多次被引用
-        Reinforced --> Current: 无新引用
-    }
-```
+> 图源（可 diff 文本）：[`036-kg--retrieval-lifecycle.mmd`](../../assets/mermaid/subsystems/036-kg--retrieval-lifecycle.mmd) · 交互版（下载到本地打开）：[`036-kg--retrieval-lifecycle.html`](../../assets/architecture/subsystems/036-kg--retrieval-lifecycle.html)
 
 **双时态字段设计**：
 
@@ -1001,7 +763,7 @@ Apache AGE 的边界在于：
 
 ### 6.6 Cognee 适配器策略
 
-遵循现有 Strategy Pattern（[graph.py](../../../../apps/negentropy/src/negentropy/knowledge/graph.py) 中的 `EntityExtractor` / `RelationExtractor` ABC）：
+遵循现有 Strategy Pattern（[graph.py](../../../apps/negentropy/src/negentropy/knowledge/graph/service.py) 中的 `EntityExtractor` / `RelationExtractor` ABC）：
 
 ```python
 class CogneeAdapter:
@@ -1045,41 +807,9 @@ class CogneeAdapter:
 
 **自动化评估管道**：
 
-```mermaid
-%%{init: {"themeVariables": {"primaryColor": "#0b3d91", "primaryTextColor": "#ffffff"}}}%%
-flowchart LR
-    subgraph Ingest["数据采集"]
-        Log["检索日志<br/>(Langfuse)"]
-        Query["评测查询集"]
-    end
+![评测查询集经向量检索与图增强检索双臂对拍后由 LLM-as-Judge 统一评分，产出落 EvalRun 并分出 Langfuse 观测与站内反馈两条互不回流的留痕出口。](../../assets/architecture/subsystems/036-kg--feedback-loop-dark.png)
 
-    subgraph Evaluate["评估"]
-        VectorRAG["向量 RAG<br/>(对照组)"]
-        GraphRAG["Graph RAG<br/>(实验组)"]
-        Judge["LLM-as-Judge<br/>评分"]
-    end
-
-    subgraph Report["报告"]
-        Metrics["指标仪表盘"]
-        Trend["趋势分析"]
-        Alert["质量告警"]
-    end
-
-    Log --> Evaluate
-    Query --> VectorRAG
-    Query --> GraphRAG
-    VectorRAG --> Judge
-    GraphRAG --> Judge
-    Judge --> Metrics --> Trend --> Alert
-
-    classDef ingest fill:#0b3d91,stroke:#0b3d91,color:#ffffff
-    classDef eval fill:#0f5132,stroke:#0f5132,color:#ffffff
-    classDef report fill:#842029,stroke:#842029,color:#ffffff
-
-    class Log,Query ingest
-    class VectorRAG,GraphRAG,Judge eval
-    class Metrics,Trend,Alert report
-```
+> 图源（可 diff 文本）：[`036-kg--feedback-loop.mmd`](../../assets/mermaid/subsystems/036-kg--feedback-loop.mmd) · 交互版（下载到本地打开）：[`036-kg--feedback-loop.html`](../../assets/architecture/subsystems/036-kg--feedback-loop.html)
 
 **A/B 测试框架**：
 
@@ -1145,86 +875,9 @@ flowchart LR
 
 ### 8.1 知识图谱与五翼的交互
 
-```mermaid
-%%{init: {"themeVariables": {"primaryColor": "#0b3d91", "primaryTextColor": "#ffffff", "primaryBorderColor": "#0b3d91", "secondaryColor": "#0f5132", "secondaryTextColor": "#ffffff", "tertiaryColor": "#842029", "tertiaryTextColor": "#ffffff"}}}%%
-flowchart TB
-    subgraph Root["🔮 NegentropyEngine"]
-        Engine["本我<br/>调度与协调"]
-    end
+![NegentropyEngine 本我以 transfer_to_agent 虚线调度感知、内化、坐照、知行、影响五系部，Knowledge Graph 核心经图谱构建、Apache AGE 图存储、PageRank 社区图算法与 Vector+Graph 混合检索向各翼供给上下文的一核五翼集成视图。](../../assets/architecture/subsystems/036-kg--engine-integration-dark.png)
 
-    subgraph Perception["👁️ 感知系部"]
-        ScanWeb["广域扫描"]
-        SearchKB["知识库检索"]
-    end
-
-    subgraph KnowledgeGraph["💎 Knowledge Graph"]
-        direction TB
-        KG_Build["图谱构建<br/>实体/关系提取"]
-        KG_Store["图存储<br/>Apache AGE"]
-        KG_Algo["图算法<br/>PageRank · 社区"]
-        KG_Search["混合检索<br/>Vector + Graph"]
-    end
-
-    subgraph Internalization["💎 内化系部"]
-        Memory_Ep["情景记忆<br/>(Memory)"]
-        Memory_Sem["语义记忆<br/>(Fact)"]
-    end
-
-    subgraph Contemplation["🧠 坐照系部"]
-        SecondOrder["二阶思维"]
-        Strategy["策略规划"]
-    end
-
-    subgraph Action["✋ 知行系部"]
-        CodeExec["代码执行"]
-        FileOps["文件操作"]
-    end
-
-    subgraph Influence["🗣️ 影响系部"]
-        Publish["内容发布"]
-        Convince["循证说服"]
-    end
-
-    %% 感知 → 知识图谱
-    SearchKB -->|"知识块"| KG_Build
-    ScanWeb -->|"外部文档"| KG_Build
-
-    %% 知识图谱 → 内化
-    KG_Store -->|"实体网络"| Memory_Sem
-    KG_Build -->|"结构化事实"| Memory_Sem
-
-    %% 知识图谱 → 坐照
-    KG_Algo -->|"社区摘要"| SecondOrder
-    KG_Algo -->|"实体重要性"| Strategy
-
-    %% 知识图谱 → 知行
-    KG_Search -->|"GraphRAG 上下文"| CodeExec
-
-    %% 知识图谱 → 影响
-    KG_Search -->|"实体关系网络"| Convince
-
-    %% 引擎协调
-    Engine -.->|transfer_to_agent| Perception
-    Engine -.->|transfer_to_agent| Internalization
-    Engine -.->|transfer_to_agent| Contemplation
-    Engine -.->|transfer_to_agent| Action
-    Engine -.->|transfer_to_agent| Influence
-
-    classDef root fill:#8B5CF6,stroke:#4C1D95,color:#FFF
-    classDef perception fill:#60A5FA,stroke:#1E3A8A,color:#000
-    classDef kg fill:#F59E0B,stroke:#92400E,color:#000
-    classDef wing fill:#10B981,stroke:#065F46,color:#FFF
-    classDef thinking fill:#8B5CF6,stroke:#4C1D95,color:#FFF
-    classDef influence fill:#EC4899,stroke:#831843,color:#FFF
-
-    class Engine root
-    class ScanWeb,SearchKB perception
-    class KG_Build,KG_Store,KG_Algo,KG_Search kg
-    class Memory_Ep,Memory_Sem wing
-    class SecondOrder,Strategy thinking
-    class CodeExec,FileOps wing
-    class Publish,Convince influence
-```
+> 图源（可 diff 文本）：[`036-kg--engine-integration.mmd`](../../assets/mermaid/subsystems/036-kg--engine-integration.mmd) · 交互版（下载到本地打开）：[`036-kg--engine-integration.html`](../../assets/architecture/subsystems/036-kg--engine-integration.html)
 
 ### 8.2 跨模块协同
 

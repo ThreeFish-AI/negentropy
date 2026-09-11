@@ -6,7 +6,7 @@ title: "Negentropy Wiki 独立部署与内容同步指引"
 
 > **适用对象**：负责把 `negentropy-wiki` 部署到远程环境、并把主站 Catalog 内容发布上去的工程师 / 运营。
 >
-> **一句话**：wiki 是**纯静态站点**（`output: export`），运行时无 Node/后端/数据库；内容来自仓库内 [`content/`](../../../apps/negentropy-wiki/content/) 静态内容包，**任何已发布内容都必须先「导出」到 `content/`、再「重建」才能上线**。
+> **一句话**：wiki 是**纯静态站点**（`output: export`），运行时无 Node/后端/数据库；内容来自仓库内 [`content/`](https://github.com/ThreeFish-AI/negentropy/tree/master/apps/negentropy-wiki) 静态内容包，**任何已发布内容都必须先「导出」到 `content/`、再「重建」才能上线**。
 >
 > **相关文档**：[Wiki 运维指引](./ops.md) · [Wiki 知识发布（UI 操作）](./user-guide/publishing.md) · [Docker 发布流水线](../../concepts/design/docker-release-pipeline.md) · [Wiki README](../../../apps/negentropy-wiki/README.md)
 
@@ -24,27 +24,9 @@ title: "Negentropy Wiki 独立部署与内容同步指引"
 
 ### 1.1 数据流（发布 → 上线）
 
-```mermaid
-flowchart LR
-  subgraph Main["主站（negentropy）"]
-    UI["/UI 同步并发布/"] --> DB[("PostgreSQL<br/>wiki_publications<br/>+ Catalog 树")]
-  end
-  subgraph Export["导出（主站职责，持 DB 访问）"]
-    CLI["export_wiki_content.py<br/>或 sync-wiki-content.sh"]
-  end
-  subgraph Build["构建（纯静态）"]
-    SRC["content/<br/>静态内容包"] --> NEXT["next build<br/>output:export"]
-    NEXT --> OUT["out/<br/>HTML + pagefind"]
-  end
-  subgraph Remote["远程部署"]
-    HOST["Docker / nginx / CDN"]
-  end
-  USER(["👤 访客"])
+![Wiki 生产拓扑：主站「同步并发布」经 wiki_service.publish(target) 入库 PostgreSQL，导出 export_wiki_content.py 烘焙图片写入 content/ 内容包，next build（output:export）产出纯静态 out/，再由 publish-wiki-pages.sh rsync+push 到 GitHub Pages 仓库 threefish-ai.github.io 服务公网访客，本地则经 build-wiki-local.sh 以 serve out :3092 提供测试出口——运行时零后端依赖。](../../assets/architecture/wiki/deployment--production-topology-dark.png)
 
-  DB --> CLI --> SRC
-  OUT -->|"烘焙进镜像 / 上传"| HOST
-  HOST --> USER
-```
+> 图源（可 diff 文本）：[`deployment--production-topology.mmd`](../../assets/mermaid/wiki/deployment--production-topology.mmd) · 交互版（下载到本地打开）：[`deployment--production-topology.html`](../../assets/architecture/wiki/deployment--production-topology.html)
 
 > **边界**：导出动作由主站职责承担（合法持有 DB 访问），产出静态文件；wiki 端构建/运行时**不直接或间接依赖主站数据库**。内容包即「发布边界」。
 
@@ -298,20 +280,9 @@ curl -s -o /dev/null -w "%{http_code}\n" https://<remote>/<pubSlug>/   # 期望 
 
 **图片自包含**：本路径用 `bake_assets=true` 把图片字节烘焙进 `content/assets/`，经 wiki `prebuild` 钩子（[`sync-assets.mjs`](../../../apps/negentropy-wiki/scripts/sync-assets.mjs)）同步到 `public/assets/`、`next build` 复制进 `out/assets/`（见 [§4.4](#44-图片烘焙-bake_assets)），站点**零主站运行时依赖**——即使主站不公网可达，公网 Pages 上图片照常显示。
 
-```mermaid
-flowchart LR
-  subgraph Local["本地主站"]
-    PUB["/UI 发布 · 选「生产环境」/"] --> SVC["wiki_service.publish(target=production)"]
-    SVC -->|"spawn（fire-and-forget）"| SH["publish-wiki-pages.sh"]
-    SH --> EXP["export（烘焙图片）→ content/"]
-    EXP --> BUILD["next build → out/"]
-  end
-  subgraph Remote["GitHub"]
-    REPO[("threefish-ai.github.io<br/>master 分支")] --> PAGES["GitHub Pages（legacy）"]
-  end
-  BUILD -->|"rsync --delete + push（HTTPS token）"| REPO
-  PAGES --> USER(["https://threefish-ai.github.io/"])
-```
+![本地主站在 UI 选「生产环境」发布后，wiki_service.publish 以 fire-and-forget spawn publish-wiki-pages.sh，本地完成导出（烘焙图片）与 next build，再 rsync --delete + push 推到 threefish-ai.github.io master 分支，由 GitHub Pages 上线供访客访问。](../../assets/architecture/wiki/deployment--local-build-dark.png)
+
+> 图源（可 diff 文本）：[`deployment--local-build.mmd`](../../assets/mermaid/wiki/deployment--local-build.mmd) · 交互版（下载到本地打开）：[`deployment--local-build.html`](../../assets/architecture/wiki/deployment--local-build.html)
 
 **一次性配置**：
 

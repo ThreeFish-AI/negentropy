@@ -55,31 +55,9 @@
 
 ### 2.1 中文归一化链路（wetext，不是 NeMo）
 
-```mermaid
-flowchart TD
-    A["narration.md 逐字稿<br/>（含可选 &lt;原文｜读音&gt; 标注）"] --> B["build_narration.py<br/>剥离标注 → text ／ 保留 → ttsText"]
-    B --> C["tts.py tts_text()<br/>—— 逗号 · 省略号 → 句号"]
-    C --> D["POST /synthesize"]
+![IndexTTS 逐句合成流程：narration.md 逐字稿经 build_narration.py 派生 text／ttsText、tts.py tts_text() 标点规整后 POST /synthesize 送入上游，在 infer_v2_5.py 内按 :699 lang_prefix、:701 clean_pattern、:703-707 归一化分支（zh 走 wetext TextNormalizer）、:711 全局小写、:714 发音标注展开为 SPECIAL_TOKEN、:719 按 118 token 预算分段、:723 tiktoken 编码的固定顺序流转，最终进入 T2S 自回归产出语义码。](../../../docs/assets/architecture/apps/indextts--synthesis-flow-dark.png)
 
-    subgraph UP["上游 infer_v2_5.py 文本管线（顺序即坑位）"]
-        direction TB
-        E["`:699` 构造 lang_prefix<br/>'&lt;|zh|&gt; ' = 2 个 token"]
-        F["`:701` clean_pattern<br/>标点半角化"]
-        G["`:703-707` **归一化分支**<br/>zh/en → front.py TextNormalizer<br/>ja/es → nemo_tn（zh 走不到）"]
-        H["`:711` 全局 text.lower()"]
-        I["`:714` 发音标注展开<br/>→ &lt;|SPECIAL_TOKEN_1/2|&gt;"]
-        J["`:719` split_text_by_tokens<br/>预算 118 token"]
-        K["`:723` tiktoken encode"]
-        E --> F --> G --> H --> I --> J --> K
-    end
-
-    D --> E
-    K --> L["T2S 自回归 → 语义码"]
-
-    style G fill:#7a2d2d,stroke:#f0a0a0,stroke-width:2px,color:#fff
-    style I fill:#1a3a5c,stroke:#8ab8e0,stroke-width:2px,color:#fff
-    style B fill:#1a4d3a,stroke:#7fd1a8,stroke-width:2px,color:#fff
-```
+> 图源（可 diff 文本）：[`indextts--synthesis-flow.mmd`](../../../docs/assets/mermaid/apps/indextts--synthesis-flow.mmd) · 交互版（下载到本地打开）：[`indextts--synthesis-flow.html`](../../../docs/assets/architecture/apps/indextts--synthesis-flow.html)
 
 三条容易踩空的事实：
 
@@ -164,38 +142,9 @@ flowchart TD
 
 ### 3.1 融合公式与 alpha 的物理含义
 
-```mermaid
-flowchart LR
-    subgraph REF["参考音频（12 s）"]
-        R1["CAMPPlus<br/>192 维 style"]
-        R2["w2v-BERT L17<br/>语义条件"]
-        R3["log-mel<br/>CFM 前缀"]
-    end
-    subgraph PROTO["情感原型库（写死在权重里）"]
-        P1["spk_matrix feat1.pt<br/>73 × 192"]
-        P2["emo_matrix feat2.pt<br/>73 × 1280"]
-    end
-    subgraph MIX["情感融合（infer_v2_5.py:669-767）"]
-        M1["余弦最近邻<br/>每类情感挑「最像你」的原型行"]
-        M2["emovec = Σ wᵢ·Bᵢ<br/>+ (1 − Σwᵢ)·E_self"]
-    end
-    subgraph GPT["GPT 全局条件（model_v2_5.py:731）"]
-        G1["conds_latent<br/>= spk_emb_proj(spk) **+** emovec<br/>（同一 1280 维槽位相加）"]
-    end
-    R1 --> M1
-    P1 --> M1
-    M1 --> M2
-    P2 --> M2
-    R1 --> G1
-    M2 --> G1
-    R2 --> G1
-    R3 --> CFM["S2M / CFM 25 步扩散"]
-    G1 --> T2S["T2S 自回归"]
+![IndexTTS-2.5 中一条 12 秒参考音频分出 CAMPPlus 风格、w2v-BERT L17 语义、log-mel 前缀三路信号：风格向量既作余弦最近邻查询从 73 行情感原型库挑出「最像你」的原型行、又经 spk_emb_proj 投影成为 conds_latent 基底；语义嵌入作为 E_self 基底参与 emovec 加权融合，融合结果与音色投影在同一 1280 维槽位相加后驱动 T2S 自回归与 25 步 CFM 扩散。](../../../docs/assets/architecture/apps/indextts--reference-audio-dark.png)
 
-    style M2 fill:#5c2d7a,stroke:#c99ae0,stroke-width:2px,color:#fff
-    style G1 fill:#7a2d2d,stroke:#f0a0a0,stroke-width:2px,color:#fff
-    style M1 fill:#1a3a5c,stroke:#8ab8e0,stroke-width:2px,color:#fff
-```
+> 图源（可 diff 文本）：[`indextts--reference-audio.mmd`](../../../docs/assets/mermaid/apps/indextts--reference-audio.mmd) · 交互版（下载到本地打开）：[`indextts--reference-audio.html`](../../../docs/assets/architecture/apps/indextts--reference-audio.html)
 
 `emovec = Σ(wᵢ·Bᵢ) + (1 − Σwᵢ)·E_self`（`:766-767`），其中 `wᵢ` 是 alpha 缩放后的分量。
 把它写成 `Σ(wᵢ°·α)·Bᵢ + (1 − α·Σwᵢ°)·E_self` 就能看清：

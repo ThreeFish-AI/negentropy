@@ -1,0 +1,51 @@
+%%source: docs/concepts/subsystems/035-the-knowledge-base.md#block4（§15.4 数据合并语义 · 字节抽取）
+%%slug: subsystems/035-kb--multi-catalog
+%%type: architecture
+%%derived: 2026-09-11 · archify 四件套源
+%% fix: Phase B 合并迁移在 HEAD(cc2f9539) 仍未落地——0008 是 drop wiki dormant 字段、0009 是 entry_order→entry_path 重命名，全仓无 survivor / 子树嫁接 / Virtual Root 实现；本图是设计态（ADR）而非已实现态
+%% fix: Virtual Root 的 node_type 应为 FOLDER——0010 已把 CATEGORY/COLLECTION 归一为 FOLDER（二者成枚举死值），§15.4 步骤 2 的 node_type='CATEGORY' 已过期
+%% fix: LIVE 单例索引实际建在 publish_mode 维度（0007: uq_wiki_pub_catalog_active ... WHERE publish_mode='LIVE'），而非 §15.2 SQL 写的 status='LIVE'；status 是 draft/published/archived 生命周期，与 publish_mode 正交
+%% fix: merged_into_id 只在 0007 DDL 存在，ORM models/perception.py 未映射该列（tombstone 溯源目前无 Python 读写路径）
+%% fix: §15.4 步骤 4 的 navigation_config JSONB rewrite 已废止——该列已由 0008 物理 DROP，Phase B 不再需要该处理路径
+%% fix: UI 单例化落点是 knowledge/wiki/_hooks/useSingletonCatalog.ts（fetchCatalogs 取首个，缺失则 createCatalog「默认目录」slug=default），并非 §15.7 所述 GET /catalogs/resolve —— 该端点不存在
+%% fix: 单例不变量的维度是 app_name（uq_doc_catalogs_app_singleton WHERE is_archived=false）；源图三个 Catalog 的 negentropy-perceives / -wiki / -aurelius-clade 若为互异 app_name 则本不冲突，本图按 §15 叙述绘为同 app 域内收敛
+flowchart LR
+    subgraph BEFORE["Phase 3 现状（多 Catalog 并列）"]
+        direction TB
+        C1["Catalog A<br/>negentropy-perceives"]
+        C2["Catalog B<br/>negentropy-wiki"]
+        C3["Catalog C<br/>negentropy-aurelius-clade"]
+        C1 --> N1["Node 1.1"]
+        C1 --> N2["Node 1.2"]
+        C2 --> N3["Node 2.1"]
+        C3 --> N4["Node 3.1"]
+    end
+
+    subgraph AFTER["Phase 4 收敛后（单聚合根）"]
+        direction TB
+        S["Catalog Survivor<br/>app_name=negentropy<br/>(active)"]
+        S --> V0["原 Survivor 顶层"]
+        S --> V1["Virtual Root<br/>(legacy-B)"]
+        S --> V2["Virtual Root<br/>(legacy-C)"]
+        V0 --> M1["Node 1.1"]
+        V0 --> M2["Node 1.2"]
+        V1 --> M3["Node 2.1"]
+        V2 --> M4["Node 3.1"]
+
+        T1["Catalog B<br/>(tombstone)<br/>merged_into_id→Survivor"]
+        T2["Catalog C<br/>(tombstone)<br/>merged_into_id→Survivor"]
+    end
+
+    BEFORE -.合并迁移.-> AFTER
+
+    classDef survivor fill:#1f6feb,stroke:#388bfd,color:#ffffff,font-weight:bold;
+    classDef virtual fill:#8957e5,stroke:#a371f7,color:#ffffff;
+    classDef tombstone fill:#6e7681,stroke:#8b949e,color:#f0f6fc,stroke-dasharray: 5 5;
+    classDef original fill:#238636,stroke:#3fb950,color:#ffffff;
+    classDef foreign fill:#bf8700,stroke:#d29922,color:#ffffff;
+
+    class S,V0 survivor;
+    class V1,V2 virtual;
+    class T1,T2 tombstone;
+    class C1,N1,N2,M1,M2 original;
+    class C2,C3,N3,N4,M3,M4 foreign;

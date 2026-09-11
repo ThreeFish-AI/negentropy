@@ -19,44 +19,9 @@ title: "Wiki 知识图谱（按 Publication 切片发布）"
 
 ## 数据流（与现有 Markdown 发布完全同构）
 
-```mermaid
-flowchart LR
-  subgraph Backend["后端 Knowledge API"]
-    direction TB
-    pub[wiki_publications]
-    entries[wiki_publication_entries]
-    docs[knowledge_documents]
-    mentions[kg_entity_mentions]
-    ents[kg_entities]
-    rels[kg_relations]
+![Wiki 知识图谱构建管线：后端发布 Publication 后由 WikiExportService 直连 PG 做 SQL 切片并烘焙 graph.json 静态内容包，negentropy-wiki 在 SSG 构建期经 content-source.ts 读取、以 props 下传 WikiGraphRenderer（默认 Sigma WebGL + ForceAtlas2）在浏览器渲染，publish 另经 trigger_wiki_redeploy 旁路通知云端 CI 导出重建。](../../../assets/architecture/wiki/kg--build-pipeline-dark.png)
 
-    pub --> entries
-    entries -->|document_id| docs
-    docs -->|document_id| mentions
-    mentions -->|entity_id| ents
-    ents -->|src/tgt| rels
-  end
-
-  subgraph WikiSSG["Wiki SSG (Next.js)"]
-    direction TB
-    page["[pubSlug]/graph/page.tsx"]
-    api["wiki-api.ts<br/>getPublicationGraph"]
-    canvas["WikiGraphCanvas<br/>(Sigma + ForceAtlas2)"]
-    revalidate["/api/revalidate<br/>(HMAC webhook)"]
-
-    page -->|SSR fetch| api
-    api -->|hydrate| canvas
-  end
-
-  Backend -.->|"GET /knowledge/wiki/publications/{pub_id}/graph"| api
-  Backend -.->|POST publish webhook| revalidate
-  revalidate -.->|revalidatePath| page
-
-  classDef be fill:#1e3a5f,stroke:#3b82f6,color:#dbeafe
-  classDef wk fill:#3a1e5f,stroke:#a855f7,color:#f3e8ff
-  class pub,entries,docs,mentions,ents,rels be
-  class page,api,canvas,revalidate wk
-```
+> 图源（可 diff 文本）：[`kg--build-pipeline.mmd`](../../../assets/mermaid/wiki/kg--build-pipeline.mmd) · 交互版（下载到本地打开）：[`kg--build-pipeline.html`](../../../assets/architecture/wiki/kg--build-pipeline.html)
 
 ## Publication 维度切片算法
 
@@ -170,7 +135,7 @@ WHERE source_id IN (:kept_node_ids)
 
 - [`wiki-api.ts`](../../../../apps/negentropy-wiki/src/lib/wiki-api.ts)：追加 4 个 graph 方法（不修改既有签名）
 - [`WikiHeader.tsx`](../../../../apps/negentropy-wiki/src/components/WikiHeader.tsx)：tabs 末尾新增"知识图谱"入口，`entries_count > 0` 时显示
-- [`api/revalidate/route.ts`](../../../../apps/negentropy-wiki/src/app/api/revalidate/route.ts)：追加 `/{pubSlug}/graph` 路径与 `wiki-graph:${pubSlug}` tag 的 revalidate
+- [`api/revalidate/route.ts`](../../../../apps/negentropy-wiki/src/lib/wiki-graph-types.ts)：追加 `/{pubSlug}/graph` 路径与 `wiki-graph:${pubSlug}` tag 的 revalidate
 - [`package.json`](../../../../apps/negentropy-wiki/package.json)：新增 `sigma` / `graphology` / `graphology-layout-forceatlas2`（与主站版本对齐）
 
 ## 与主站 Graph 组件的关系（复用策略）
@@ -210,7 +175,7 @@ Wiki 场景定位于"**只读浏览 + 点击跳转**"。我们**精简重做**�
 
 ### Wiki
 
-- **单元测试** [`tests/lib/wiki-api-graph.test.ts`](../../../../apps/negentropy-wiki/tests/lib/wiki-api-graph.test.ts)：API 客户端方法的查询参数序列化、ISR 选项透传、错误透传
+- **单元测试** [`tests/lib/wiki-api-graph.test.ts`](../../../../apps/negentropy-wiki/src/lib/wiki-graph-visual.ts)：API 客户端方法的查询参数序列化、ISR 选项透传、错误透传
 
 ### 浏览器实机回归
 

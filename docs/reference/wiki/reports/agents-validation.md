@@ -4,6 +4,8 @@ title: "Agents at Wiki · 浏览器回归验证报告"
 ---
 # Agents at Wiki —— 浏览器回归验证报告
 
+> ⚠️ **历史报告（组件已退役）**：本文描述的「Agents at Wiki」FAB/Drawer 组件与 AG-UI 嵌入已在 wiki 瘦身中移除——当前 [`apps/negentropy-wiki`](../../../../apps/negentropy-wiki/) 为纯静态导出（`output: export`，零运行时依赖、无 AG-UI / agents-chat-core 依赖，`package.json` 可证）。本文保留作架构决策的历史记录，**不得作为 wiki 现状参考**；现状见 [deployment](../deployment.md) 与 [doc-media-assets](../../../.agents/doc-media-assets.md)。
+
 > Plan: `~/.claude/plans/system-instruction-you-are-working-hidden-knuth.md`
 > 验证日期：2026-05-17
 > 验证分支：`ThreeFish-AI/wiki-agents-widget` @ `bd02de11`

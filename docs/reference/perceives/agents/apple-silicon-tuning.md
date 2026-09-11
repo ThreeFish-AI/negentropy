@@ -13,18 +13,9 @@ title: "Apple Silicon PDF Pipeline 调优指南"
 
 ## 整体架构
 
-```mermaid
-flowchart LR
-    A[hardware/detection<br/>探测 MPS + 代次] --> B[device_config<br/>按内存/代次缩放 batch]
-    B --> C{Stage 入口}
-    C -- text_extraction --> D[PyMuPDF<br/>多页并行]
-    C -- layout_analysis --> E[Docling<br/>MPS + MLX VLM]
-    C -- table_extraction --> E
-    C -- formula_extraction --> F[MinerU<br/>vlm-auto-engine<br/>命中 mlx-engine]
-    C -- code_detection --> E
-    C -- 扫描版 --> G[Marker<br/>device=mps + FP16<br/>+ INFERENCE_RAM]
-    E -.缓存复用.-> E
-```
+![Apple Silicon PDF 管线引擎路由：硬件探测（MPS+代次）与 device_config batch 缩放经 Stage 入口按五类 Stage 路由——text 走 PyMuPDF 多页并行、layout/table/code 走 Docling（MPS+MLX VLM、_ConvertCache 跨 Stage 复用）、formula 走 MinerU vlm-auto-engine 命中 mlx-engine，扫描版画像重排至显式 opt-in 的 Marker（MPS+FP16+INFERENCE_RAM）。](../../../assets/architecture/perceives/apple-silicon--engine-pipeline-dark.png)
+
+> 图源（可 diff 文本）：[`apple-silicon--engine-pipeline.mmd`](../../../assets/mermaid/perceives/apple-silicon--engine-pipeline.mmd) · 交互版（下载到本地打开）：[`apple-silicon--engine-pipeline.html`](../../../assets/architecture/perceives/apple-silicon--engine-pipeline.html)
 
 ## 1. 设备探测
 
@@ -80,16 +71,9 @@ flowchart LR
 
 `MinerUEngine._resolve_device` 决策树：
 
-```mermaid
-flowchart TD
-    A[mineru_mps_backend] --> B{= auto?}
-    B -- 否 --> Z[直接采用 pref]
-    B -- 是 --> C{is_apple_silicon?}
-    C -- 否 --> P[pipeline]
-    C -- 是 --> D{mlx_vlm + macOS 13.5+?}
-    D -- 是 --> V["vlm-auto-engine<br/>(MinerU 内部命中 mlx-engine,<br/>较 transformers 加速 100-200%)"]
-    D -- 否 --> P
-```
+![MinerU _resolve_device 后端决策树：is_apple_silicon 与 mlx_vlm + macOS 13.5+ 资格双门通过时命中 vlm-auto-engine（内部 mlx-engine，较 transformers 加速 100-200%），否则按 mineru_mps_backend 强制值直采或降级 pipeline。](../../../assets/architecture/perceives/apple-silicon--vlm-auto-engine-dark.png)
+
+> 图源（可 diff 文本）：[`apple-silicon--vlm-auto-engine.mmd`](../../../assets/mermaid/perceives/apple-silicon--vlm-auto-engine.mmd) · 交互版（下载到本地打开）：[`apple-silicon--vlm-auto-engine.html`](../../../assets/architecture/perceives/apple-silicon--vlm-auto-engine.html)
 
 ### 调优旋钮
 

@@ -1,0 +1,55 @@
+%% source: docs/concepts/subsystems/040-routine-multi-agent-faculty.md 块#0（§2 目标架构）
+%% slug: subsystems/040-faculty--routine-bridge
+%% type: architecture
+%% derived: byte-exact extraction of mermaid block #0
+%% fix: 落地状态——FacultyBridge 真实调用已接 INJECT-2 元神审 Plan（plan_reviewer._judge）、INJECT-5 元神评估（evaluator._judge，仅元神、慧眼事实核查未接）、INJECT-4 本心答问（claude_code/service._auto_answer_question L1211，read_only 白名单；doc §8 称「本轮未接」已滞后）；INJECT-3 妙手门控仅 agent_role="action" 归因（orchestrator._persist_eval_events L2242）、无真实 Faculty 调用；INJECT-1 慧眼感知为 stretch 未接
+%% fix: ANS 节点 _auto_answer_question 实际位于 engine/claude_code/service.py L1148，不在 engine/routine/ 目录（源图置于 ROUTINE 子图内）
+%% fix: ENG -.编排.- DISP 为语义归因虚线——代码上 NegentropyEngine（ADK root_agent）与 routine orchestrator 零调用关系
+%% fix: FB 不直写事件表——agent_role 由调用方（runner/streaming_persister/orchestrator）写入 routine_iteration_events（migration 0078），FB 仅回文本
+%% fix: 另有第 6 个 Faculty 调用点未画出：memory_extractor 迭代后记忆提取 → 本心（read_only）
+flowchart LR
+  subgraph ADK["一核五翼 Agent 层（已存在，真实 ADK LlmAgent）"]
+    direction TB
+    ENG["一核 NegentropyEngine<br/>编排 / 归档"]
+    EYE["慧眼 PerceptionFaculty<br/>search_kb / web / memory"]
+    HAND["妙手 ActionFaculty<br/>execute_code / read / write"]
+    CORE["本心 InternalizationFaculty<br/>save_memory / kg / corpus"]
+    MIND["元神 ContemplationFaculty<br/>analyze_context / create_plan"]
+    MOUTH["喉舌 InfluenceFaculty<br/>publish / notify（预留）"]
+  end
+
+  subgraph ROUTINE["Routine 编排器 engine/routine/"]
+    direction TB
+    DISP["_dispatch_due 派发"]
+    PLAN["_inject_plan_review Plan 审"]
+    GATE["_run_gate 命令门控"]
+    ANS["_auto_answer_question 答问"]
+    EVAL["_do_evaluate 评估"]
+  end
+
+  FB["FacultyBridge<br/>同步调用 ADK Faculty + litellm 降级"]
+
+  CC["Claude Code CLI<br/>（机器）"]
+  EVT[("routine_iteration_events<br/>+ agent_role")]
+  API["routine_api SSE / REST"]
+  UI["negentropy-ui<br/>TranscriptView"]
+
+  ENG -.编排.- DISP
+  DISP -->|INJECT-1 慧眼感知| FB
+  PLAN -->|INJECT-2 元神审 Plan| FB
+  GATE -->|INJECT-3 妙手门控| FB
+  ANS -->|INJECT-4 本心答问| FB
+  EVAL -->|INJECT-5 元神 + 慧眼| FB
+  FB --> EYE & HAND & CORE & MIND
+  DISP --> CC
+  CC --> EVT
+  FB -->|带 agent_role| EVT
+  EVAL -->|带 agent_role| EVT
+  EVT --> API --> UI
+
+  classDef adk fill:#1e3a5f,stroke:#60a5fa,color:#e0f2fe;
+  classDef routine fill:#3f3a1e,stroke:#fbbf24,color:#fef9c3;
+  classDef bridge fill:#3b1e3f,stroke:#c084fc,color:#f3e8ff;
+  class ENG,EYE,HAND,CORE,MIND,MOUTH adk;
+  class DISP,PLAN,GATE,ANS,EVAL routine;
+  class FB bridge;

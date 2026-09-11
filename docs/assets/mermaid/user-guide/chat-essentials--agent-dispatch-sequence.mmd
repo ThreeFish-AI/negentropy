@@ -1,0 +1,28 @@
+%% source: docs/concepts/user-guide/chat-essentials.md
+%% slug: user-guide/chat-essentials--agent-dispatch-sequence
+%% type: sequence
+%% derived: archify
+%% fix: 补齐系部一跳——根 Agent NegentropyEngine 只有 log_activity/preload_memory 两个工具（agent.py:248），search_papers 属 PerceptionFaculty（perception.py:12-19）、ingest_paper 属 InternalizationFaculty（internalization.py:12-17），两跳均经 transfer_to_agent
+%% fix: 补齐签名缺参——search_papers(query, top_k, since_days)、ingest_paper(arxiv_id, pdf_url, title)（paper.py:130/267）
+%% fix: 消除 P->>P 自环——_check_existing_arxiv 是对 Postgres 的真实查询（paper.py:79-127，走迁移 0029 表达式索引），非参与者内部动作
+%% fix: 补齐审批门——ingest_paper ∈ HIGH_RISK_TOOLS 且 DEFAULT_POLICY=per_tool（approval.py:46-51/75），逐篇阻塞弹窗，拒绝/超时返回 blocked 并写 denial 缓存
+%% fix: ingest_url 实参为 corpus_id/app_name/url/metadata（paper.py:443），Corpus 固定 agent-papers（paper.py:46）
+%% fix: 订正引用归因——本链路不产生 citations：前端白名单只认 search_knowledge_base / search_knowledge_graph_with_papers（citation-parser.ts:87-90），[N] 与「## 参考文献」由检索侧工具 + CITATION_PROTOCOL 驱动
+sequenceDiagram
+  participant U as User
+  participant A as Agent
+  participant P as paper.py
+  participant K as KnowledgeService
+  participant G as GraphService
+  U->>A: "采集 AI Agent 论文 top 5"
+  A->>P: search_papers(query, top_k)
+  P-->>A: 5 papers
+  loop 每篇
+    A->>P: ingest_paper(arxiv_id, pdf_url)
+    P->>P: _check_existing_arxiv → 命中跳过
+    P->>K: ingest_url(pdf_url)
+    K-->>P: records
+    P->>G: enqueue_kg_build (async)
+    P-->>A: status + kg_status
+  end
+  A-->>U: 总结 + [N] 引用 + ## 参考文献

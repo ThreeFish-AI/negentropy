@@ -1,0 +1,28 @@
+%% source: docs/concepts/framework.md §3.4 智能体协作序列（原 L208-231）
+%% slug: core/framework--agent-collaboration-sequence
+%% type: sequence
+%% derived: docs/assets/architecture/core/framework--agent-collaboration-sequence.html (+ -dark/-light PNG)
+sequenceDiagram
+    participant U as 用户
+    participant R as NegentropyEngine
+    participant P as PerceptionFaculty
+    participant C as ContemplationFaculty
+    participant A as ActionFaculty
+    participant I as InternalizationFaculty
+
+    U->>R: 用户请求
+    R->>R: 上下文锚定 + 模式择优
+
+    alt 单一系部任务
+        R->>P: transfer_to_agent("PerceptionFaculty")
+        P-->>R: 结构化情报
+    else 流水线任务
+        R->>R: transfer_to_agent("ProblemSolvingPipeline")
+        Note over P,I: SequentialAgent 自动编排
+        P->>C: perception_output →
+        C->>A: contemplation_output →
+        A->>I: action_output →
+        I-->>R: internalization_output
+    end
+
+    R-->>U: 结果 + 下一步建议

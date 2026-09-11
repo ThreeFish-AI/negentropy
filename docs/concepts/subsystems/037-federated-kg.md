@@ -56,32 +56,9 @@ Negentropy 知识库的现状（Phase 5/6 后）：
 
 ## 3. 数据层
 
-```mermaid
-graph LR
-  subgraph "Corpus-A"
-    EA1[KgEntity: Anthropic]
-    EA2[KgEntity: Claude]
-    RA[KgRelation]
-  end
-  subgraph "Corpus-B"
-    EB1[KgEntity: Anthropic]
-    EB2[KgEntity: Computer Use]
-  end
-  subgraph "全局规范层 (app_scope='negentropy')"
-    C1[KgEntityCanonical: anthropic / ORG]
-    C2[KgEntityCanonical: claude / PRODUCT]
-  end
+![联邦 KG 数据层拓扑：Corpus-A 与 Corpus-B 各自物理隔离的 KgEntity 经 kg_entity_alias 多对一虚线汇入居中的全局规范层 KgEntityCanonical（app_scope 隔离、HNSW 质心向量），canonical 之间由可选物化的 kg_cross_corpus_bridge 实线桥接，Corpus 内实体间由 KgRelation 关联。](../../assets/architecture/subsystems/037-federated--kg-topology-dark.png)
 
-  EA1 -.alias.-> C1
-  EB1 -.alias.-> C1
-  EA2 -.alias.-> C2
-  EB2 -.alias.-> C2
-
-  C1 ===bridge===> C2
-
-  style C1 fill:#1f6feb,stroke:#000,color:#fff
-  style C2 fill:#1f6feb,stroke:#000,color:#fff
-```
+> 图源（可 diff 文本）：[`037-federated--kg-topology.mmd`](../../assets/mermaid/subsystems/037-federated--kg-topology.mmd) · 交互版（下载到本地打开）：[`037-federated--kg-topology.html`](../../assets/architecture/subsystems/037-federated--kg-topology.html)
 
 ### 表结构（Migration 0034）
 
@@ -99,22 +76,9 @@ graph LR
 
 ## 4. 检索编排层：HybridPlanner
 
-```mermaid
-graph TD
-  Q[用户 @ N 个 Corpus（单一 corpus mention）]
-  Q --> S1[Stage 1: Intent Classification]
-  S1 --> |fact / explore / multi_hop / relation / global_summary| S2[Stage 2: Seed Retrieval]
-  S2 --> |asyncio.gather 多 Corpus 并行 hybrid search| POOL[Candidates Pool]
-  S1 -.relation/multi_hop/explore.-> S3[Stage 3: Graph Expansion]
-  S3 --> |canonical → 其他 Corpus 邻居 BFS max-depth=2| POOL
-  POOL --> S4[Stage 4: Fusion + Rerank]
-  S4 --> |RRF k=60 → LocalReranker bge-reranker-v2-m3| OUT[Top-K + bridges]
+![HybridPlanner 跨 Corpus 检索四阶段编排工作流：用户 @ 多个语料库后，经 Stage 1 意图分类与 Stage 2 并行种子检索汇入候选池，意图门控触发的 Stage 3 canonical 图扩展经虚线分支补充跨 Corpus 邻居证据，Stage 4 以 RRF 融合加本地重排输出带语料来源标注的 Top-K 结果与桥接证据链。](../../assets/architecture/subsystems/037-federated--cross-corpus-search-dark.png)
 
-  style S1 fill:#4ade80,stroke:#000
-  style S2 fill:#60a5fa,stroke:#000
-  style S3 fill:#f97316,stroke:#000
-  style S4 fill:#a855f7,stroke:#000,color:#fff
-```
+> 图源（可 diff 文本）：[`037-federated--cross-corpus-search.mmd`](../../assets/mermaid/subsystems/037-federated--cross-corpus-search.mmd) · 交互版（下载到本地打开）：[`037-federated--cross-corpus-search.html`](../../assets/architecture/subsystems/037-federated--cross-corpus-search.html)
 
 ### 关键参数
 

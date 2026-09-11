@@ -1,0 +1,15 @@
+%% source: docs/concepts/operations/local-llm-ollama.md §能力边界（先读）（块#0，L26-L32）
+%% slug: operations/local-llm-ollama--setup-path
+%% type: workflow
+%% derived: byte-exact extraction of mermaid block #0
+%% fix: 原图云 Key 路径止于「对话 ✅」无对照终点；能力边界表明确云 Key 下语义检索全量可用，archify 版补齐对照列（云嵌入向量召回 vs 关键词降级）
+%% fix: 「+ 登记配置」具体化为 vendor_configs + model_configs 设默认 llm（model_resolver 的 is_default 行优先于 openai/gpt-5-nano 硬编码兜底）
+%% fix: Chat2→RAG 补降级根因标签：向量列固定 vector(1536)（models/base.py DEFAULT_EMBEDDING_DIM），主流本地嵌入 768/1024 维不可落库，回退 keyword_fallback
+%% fix: 记忆关键词检索同样降级（cli_doctor「语义记忆降级为关键词匹配」），源图未示，archify 版入卡片注记
+flowchart LR
+  K["填入云 API Key<br/>（默认推荐）"]:::ok --> Chat1["对话 ✅"]:::ok
+  O["本地安装 Ollama<br/>+ 登记配置"]:::opt --> Chat2["对话 ✅"]:::ok
+  Chat2 --> RAG["语义检索/RAG<br/>降级为关键词"]:::warn
+  classDef ok fill:#1f5c3a,stroke:#3ecf8e,color:#e6f9f0
+  classDef opt fill:#1e3a5f,stroke:#4da3ff,color:#e8f1fb
+  classDef warn fill:#7a4a06,stroke:#f0a830,color:#fff6e6

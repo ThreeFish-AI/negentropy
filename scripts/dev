@@ -70,7 +70,7 @@ cmd_setup() {
   else
     _warn "未检测到 LLM Key —— 对话能力需至少一个 Key 激活。"
     _warn "  请在 .env.docker.local 填入 OPENAI_API_KEY / ANTHROPIC_API_KEY / GEMINI_API_KEY 任一，再重跑 ./scripts/dev。"
-    _warn "  若希望零 Key 本地运行，参见 docs/concepts/local-llm-ollama.md 配置 Ollama。"
+    _warn "  若希望零 Key 本地运行，参见 docs/concepts/operations/local-llm-ollama.md 配置 Ollama。"
   fi
 }
 

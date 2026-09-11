@@ -28,49 +28,17 @@
 
 合格阈值常量 [`patrol_qualified_score_threshold=95`](../../apps/negentropy/src/negentropy/config/routine.py)（env `NE_ROUTINE_PATROL_QUALIFIED_SCORE_THRESHOLD`）。非 PDF 文档巡检状态列显示「—」（巡检仅针对 PDF，判据 `content_type ILIKE '%pdf%'`）。
 
-```mermaid
-stateDiagram-v2
-    [*] --> 未巡检: NULL（迁移回填无 status 的文档）
-    未巡检 --> 正在巡检: spawn Routine（写 in_progress）
-    正在巡检 --> 拟合成功: finalize · best_score≥95 或 契约 done
-    正在巡检 --> 巡检失败: finalize · 否则（含首轮崩 best_score=NULL）
-    正在巡检 --> 未巡检: Routine cancelled（双守卫回退 NULL）
-    拟合成功 --> 未巡检: 用户「重置为未拟合」
-    巡检失败 --> 未巡检: 用户「重置为未拟合」
-    未巡检 --> 源文件缺失: stage 源 blob 永久丢失（Blob not found，未 spawn）
-    源文件缺失 --> 未巡检: 用户「重置为未拟合」（blob 恢复后重试）
-```
+![知识文档巡检状态机：patrol_status 五态（NULL 未巡检 → in_progress 正在巡检 → finalize 沉淀 done 拟合成功 / unfixable 巡检失败；源 blob 永久丢失未 spawn 即标 source_unavailable；cancelled 双守卫回退与三态「重置为未拟合」均回到未巡检）。](../assets/architecture/agents/patrol--doc-status-lifecycle-dark.png)
+
+> 图源（可 diff 文本）：[`patrol--doc-status-lifecycle.mmd`](../assets/mermaid/agents/patrol--doc-status-lifecycle.mmd) · 交互版（下载到本地打开）：[`patrol--doc-status-lifecycle.html`](../assets/architecture/agents/patrol--doc-status-lifecycle.html)
 
 ## 3. 写入路径（dual-write 过渡 → Phase 2 SSOT）
 
 > **策略**：DB 列为权威**读**源（selector / UI 均读列）；Memory `TAG_STATUS` 暂保留**写**入（过渡安全网，不破坏既有集成测试断言），Phase 2 再 deprecate。两写同会话同事务，一致 commit / 一致回滚。Memory 的 `TAG_UNFIXABLE`（区域级）/`TAG_PATTERN`/`TAG_BASELINE` 保留不动（非文档级状态，有独立读者）。
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant S as Scheduler tick
-    participant H as pdf_fidelity_patrol handler
-    participant DB as knowledge_documents
-    participant R as routine_inspector
-    participant M as PatrolMemoryStore
-    participant Mem as memories
+![PDF 保真巡检状态落库时序：tick 选取未巡检 PDF 文档、spawn 即写 in_progress，Routine Claude Code 闭环终态后沉淀 done/unfixable（dual-write Memory 过渡）或 cancelled 双守卫回退 NULL。](../assets/architecture/agents/patrol--patrol-sequence-dark.png)
 
-    S->>H: _run_patrol_tick
-    H->>DB: _select_next_pending_doc（WHERE patrol_status IS NULL）
-    DB-->>H: doc
-    H->>H: _create_and_start_patrol_routine（flush Routine）
-    H->>DB: UPDATE patrol_status='in_progress', patrol_routine_id=:rid
-    Note over H,DB: spawn 即 in_progress（SSOT 列）
-    R->>R: 跑 Claude Code 迭代闭环（worktree + PR + Judge）
-    R-->>H: Routine 终态（succeeded/failed/cancelled）
-    H->>M: _finalize_terminal_patrols → persist_terminal_outcome
-    alt done / unfixable
-        M->>Mem: upsert TAG_STATUS（dual-write 过渡）
-        M->>DB: UPDATE patrol_status=done|unfixable, patrol_score=:sc
-    else cancelled（用户干预）
-        H->>DB: UPDATE patrol_status=NULL（双守卫：patrol_routine_id=:rid AND in_progress）
-    end
-```
+> 图源（可 diff 文本）：[`patrol--patrol-sequence.mmd`](../assets/mermaid/agents/patrol--patrol-sequence.mmd) · 交互版（下载到本地打开）：[`patrol--patrol-sequence.html`](../assets/architecture/agents/patrol--patrol-sequence.html)
 
 三处写入点（均同事务随 tick commit）：
 
@@ -113,17 +81,9 @@ sequenceDiagram
 
 ## 5. 「重置为未拟合」API
 
-```mermaid
-flowchart LR
-    U[用户点<br/>重置为未拟合] --> Q{该 doc 有<br/>running/paused<br/>巡检 Routine?}
-    Q -- 是 --> R[409 PATROL_IN_PROGRESS<br/>提示先取消在跑巡检]
-    Q -- 否 --> C[取消 succeeded/failed<br/>终态 Routine<br/>outcome_propagated=true]
-    C --> D[清 patrol_status/score/<br/>routine_id 列]
-    D --> M[清 Memory<br/>TAG_STATUS + TAG_UNFIXABLE]
-    M --> OK[200 · 列回未巡检<br/>Scheduler 下轮重选]
-    style R fill:#fecaca,stroke:#b91c11,color:#7f1d1d
-    style OK fill:#bbf7d0,stroke:#15803d,color:#14532d
-```
+![「重置为未拟合」API 流程：用户确认发起后先由在跑巡检守卫检查（running/paused 巡检则 409 PATROL_IN_PROGRESS 拒绝且不杀在跑任务），否则同事务内取消 succeeded/failed 终态 Routine（解除 selector NOT EXISTS 门）、清 patrol 三列与 Memory 遗留三标签，200 返回后列回未巡检、Scheduler 下轮重新选中做二次巡检。](../assets/architecture/agents/patrol--escalation-flow-dark.png)
+
+> 图源（可 diff 文本）：[`patrol--escalation-flow.mmd`](../assets/mermaid/agents/patrol--escalation-flow.mmd) · 交互版（下载到本地打开）：[`patrol--escalation-flow.html`](../assets/architecture/agents/patrol--escalation-flow.html)
 
 - **保守策略**：在跑（running/paused）巡检 → 409 拒绝（不杀在跑任务）；done/unfixable 文档正常重置。
 - **关键约束**：重置必须取消该 doc 的非 cancelled 终态 Routine（解除 selector `NOT EXISTS` 门），否则重置后仍被挡、无法被重新选中。取消范式镜像 [`_collapse_superseded_patrols`](../../apps/negentropy/src/negentropy/engine/schedulers/handlers/pdf_fidelity_patrol.py)（置 `outcome_propagated=true` 防聚合态回写污染）。

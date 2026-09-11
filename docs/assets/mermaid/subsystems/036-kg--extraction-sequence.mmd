@@ -1,0 +1,36 @@
+%%source: docs/concepts/subsystems/036-the-knowledge-graph.md#block4 (§5.4 混合检索增强)
+%%slug: subsystems/036-kg--extraction-sequence
+%%type: sequence
+%%derived: byte-exact extraction of mermaid block #4
+%% fix: slug「extraction」系编排参数沿用——本块实为混合检索管线（§5.4），实体抽取数据流是 block#2（§4.4）
+%% fix: 「AGE Cypher」1-2 跳扩展当前实现为递归 CTE（find_neighbors/find_neighbor_edges），Cypher 原生遍历 kg_cypher_neighbors 已定义待接入（§4.6）
+%% fix: RRF 实际融合信号为 semantic+graph_degree 两路（repository._rrf_search），community_rank 为 Phase 3 规划未实现
+%% fix: L1 Cross-Encoder 精排挂载于 KnowledgeService 检索管线（L0→L1），graph/search 路径本身未串精排——图中 L1 为目标管线设计
+%% fix: 「组装上下文」实际由 ContextAssembler._collect_kg_context（importance Top-N + 1-hop 关系）注入 Agent 上下文，非检索 API 直连 LLM
+%%{init: {"themeVariables": {"primaryColor": "#0b3d91", "primaryTextColor": "#ffffff", "actorBorder": "#0b3d91", "actorTextColor": "#ffffff"}}}%%
+sequenceDiagram
+    participant User
+    participant SearchAPI
+    participant VectorSearch as pgvector<br/>(L0 Semantic)
+    participant GraphExpand as AGE Cypher<br/>(Graph Expand)
+    participant RRF as RRF Fusion
+    participant Reranker as L1 Reranker
+    participant LLM
+
+    User->>SearchAPI: query + corpus_id
+    SearchAPI->>VectorSearch: embedding <=> query_embedding (Top-K)
+    VectorSearch-->>SearchAPI: semantic_candidates[]
+
+    SearchAPI->>GraphExpand: 对 Top-K 实体做 1-2 跳扩展
+    GraphExpand-->>SearchAPI: neighbor_entities[] + relations[]
+
+    SearchAPI->>RRF: 融合信号
+    Note over RRF: semantic_rank<br/>graph_degree_rank<br/>community_rank (Phase 3)
+
+    RRF-->>SearchAPI: fused_ranking[]
+
+    SearchAPI->>Reranker: Cross-Encoder 精排 (L1)
+    Reranker-->>SearchAPI: final_results[]
+
+    SearchAPI->>LLM: 组装上下文 (实体 + 邻居 + 关系)
+    LLM-->>User: GraphRAG 增强回答

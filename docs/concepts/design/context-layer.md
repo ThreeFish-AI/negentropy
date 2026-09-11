@@ -43,29 +43,9 @@ Negentropy 的「一核五翼」智能体效能**完全取决于上下文质量*
 
 Snowflake Horizon Context 是内建于 Horizon Catalog 的**统一治理语义上下文引擎**，其核心主张是：**治理策略在查询引擎层执行，而非应用层**——无论访问者是分析师、BI 工具还是 AI Agent，策略都自动生效，**不可绕过**<sup>[[1]](#ref1)</sup>。它用一条三阶段流水线把分散的元数据转化为可信、可被 Agent 直接消费的上下文：
 
-```mermaid
-graph LR
-    subgraph COLLECT["① Collect 汇聚"]
-        C1["跨系统元数据连接器"] --> C2["OpenLineage 血缘"]
-        C2 --> C3["OSI 开放语义互换"]
-    end
-    subgraph ENRICH["② Enrich 富化"]
-        E1["语义视图 Semantic Views"] --> E2["自动文档生成"]
-        E2 --> E3["列级血缘 / 质量信号"]
-    end
-    subgraph ACTIVATE["③ Activate 激活"]
-        A1["Universal Search 混合排序"] --> A2["MCP 对外暴露"]
-        A2 --> A3["CoCo 自动发现与查询"]
-    end
-    COLLECT --> ENRICH --> ACTIVATE
+![Horizon Context 三阶段流水线：元数据连接器、OpenLineage 血缘、OSI 开放语义互换三路并列汇入统一目录，经语义视图与自动文档·质量信号富化为受治理上下文，再经 Universal Search 混合排序、MCP 对外暴露、CoCo 自动发现三路激活。](../../assets/architecture/design/context-layer--collect-phase-dark.png)
 
-    classDef collect fill:#1f3a5f,stroke:#5b9bd5,stroke-width:2px,color:#e8f0fe
-    classDef enrich fill:#5a3d1f,stroke:#d59b5b,stroke-width:2px,color:#fdf3e8
-    classDef activate fill:#1f4d2e,stroke:#5bbd7c,stroke-width:2px,color:#e8fbef
-    class C1,C2,C3 collect
-    class E1,E2,E3 enrich
-    class A1,A2,A3 activate
-```
+> 图源（可 diff 文本）：[`context-layer--collect-phase.mmd`](../../assets/mermaid/design/context-layer--collect-phase.mmd) · 交互版（下载到本地打开）：[`context-layer--collect-phase.html`](../../assets/architecture/design/context-layer--collect-phase.html)
 
 Horizon Context 进一步把上下文信号归纳为**四层**<sup>[[1]](#ref1)</sup>：
 
@@ -92,27 +72,9 @@ Context Engineering 学术框架将上下文生命周期归纳为 **Context Coll
 
 系统**没有统一的上下文层**，上下文在运行期由一条解析链路分散组装（60s TTL 缓存 + 代码回退）：
 
-```mermaid
-graph TD
-    Q["用户请求 / Faculty 调用"] --> DI["_dynamic_instruction.py<br/>make_instruction_provider()"]
-    DI --> MR["model_resolver.py<br/>_load_subagent_row()"]
-    MR --> SI["skills_injector.py<br/>build_progressive_disclosure_prompt()"]
-    MR -.读.-> AGT[("agents 表<br/>system_prompt / tools / model")]
-    SI -.读.-> SK[("skills / skill_versions")]
-    MR -.读.-> DEF[("definitions 表<br/>SSOT 4 类定义")]
-    DI -.回退.-> CODE["硬编码 _INSTRUCTION"]
-    CA["ContextAssembler.assemble()<br/>自动注入（每轮）"] -.读.-> MEM[("memories / facts")]
-    CA -.读.-> KG[("kg_entities<br/>_collect_kg_context")]
-    HP["HybridPlanner.plan()<br/>按需（Agent 调工具）"] -.读.-> KB[("knowledge chunks")]
-    HP -.读.-> KG2[("kg_relations / canonical")]
+![请求期上下文注入链（现状）：用户请求经动态指令解析、Agent 行加载、技能渐进注入汇入 LLM 请求；旁路每轮记忆预载与按需混合检索各自读取 PostgreSQL 数据源。](../../assets/architecture/design/context-layer--request-injection-dark.png)
 
-    classDef chain fill:#3d2c52,stroke:#a07cc5,stroke-width:2px,color:#f3e9fb
-    classDef store fill:#2a1f3d,stroke:#7c5ca5,stroke-width:2px,color:#e8dff5
-    classDef fallback fill:#4d1f1f,stroke:#d55b5b,stroke-width:2px,color:#fde8e8
-    class DI,MR,SI,CA,HP chain
-    class AGT,SK,DEF,MEM,KG,KB,KG2 store
-    class CODE fallback
-```
+> 图源（可 diff 文本）：[`context-layer--request-injection.mmd`](../../assets/mermaid/design/context-layer--request-injection.mmd) · 交互版（下载到本地打开）：[`context-layer--request-injection.html`](../../assets/architecture/design/context-layer--request-injection.html)
 
 链路汇聚的 **9 路上下文来源**：① 身份/角色（`_INSTRUCTION` ↔ `agents.system_prompt`）② Skills（三层 Progressive Disclosure）③ Tools（`NegentropyToolset` 解析 `agents.tools`）④ Model（`model_resolver`）⑤ 记忆（`preload_memory_tool` + `ContextAssembler`）⑥ 会话状态（ADK `SessionService` 前缀路由 `user:`/`app:`/`temp:`）⑦ 定义 SSOT（`definitions` 表）⑧ 用户偏好（`state.preferred_agent`）⑨ 引用协议（共享常量）。
 
@@ -134,49 +96,9 @@ graph TD
 
 ### 3.1 总览：治理织物横亘五子系统
 
-```mermaid
-graph TB
-    subgraph RUNTIME["Agent Runtime"]
-        F["五翼 Faculties + 流水线 Pipelines + Toolset"]
-    end
-    subgraph CONTEXT["Context Layer（上下文治理层）"]
-        direction LR
-        CL1["① Collect<br/>Context Catalog"]
-        CL2["② Enrich<br/>信任归一 / 语义富化"]
-        CL3["③ Activate<br/>Context Router + Guard"]
-        CL1 --> CL2 --> CL3
-    end
-    subgraph SYS["子系统"]
-        M["Memory<br/>海马体"]
-        KB["Knowledge Base"]
-        KG["Knowledge Graph"]
-        T["Tools"]
-        S["Skills"]
-    end
-    subgraph INFRA["PostgreSQL"]
-        PG["pgvector + Apache AGE + tsvector + pg_cron"]
-    end
+![Context Layer 运行时分层：Agent Runtime（五翼 Faculties·Pipelines·Toolset）经统一入口进入上下文治理层，Collect→Enrich→Activate 三相以逻辑视图指针横亘 Memory/KB/KG/Tools/Skills 五子系统，全部持久化于 PostgreSQL（pgvector·AGE·tsvector·pg_cron）。](../../assets/architecture/design/context-layer--runtime-layering-dark.png)
 
-    F -->|"统一入口"| CL3
-    CL3 --> CL1
-    CL1 -.指针.-> M
-    CL1 -.指针.-> KB
-    CL1 -.指针.-> KG
-    CL1 -.指针.-> T
-    CL1 -.指针.-> S
-    M --> PG
-    KB --> PG
-    KG --> PG
-
-    classDef runtime fill:#1f3a5f,stroke:#5b9bd5,stroke-width:2px,color:#e8f0fe
-    classDef context fill:#1f4d2e,stroke:#5bbd7c,stroke-width:2px,color:#e8fbef
-    classDef sys fill:#2a1f3d,stroke:#7c5ca5,stroke-width:2px,color:#e8dff5
-    classDef infra fill:#5a3d1f,stroke:#d59b5b,stroke-width:2px,color:#fdf3e8
-    class F runtime
-    class CL1,CL2,CL3 context
-    class M,KB,KG,T,S sys
-    class PG infra
-```
+> 图源（可 diff 文本）：[`context-layer--runtime-layering.mmd`](../../assets/mermaid/design/context-layer--runtime-layering.mmd) · 交互版（下载到本地打开）：[`context-layer--runtime-layering.html`](../../assets/architecture/design/context-layer--runtime-layering.html)
 
 Context Layer 是**逻辑层**而非单体模块：它复用既有子系统作为存储与检索后端，自身只承担「汇聚元数据 → 归一化信任 → 统一路由 + 治理」三件事（Collect / Enrich / Activate），遵循**正交分解**——机制（治理/路由）与策略（各子系统检索算法）分离。
 
@@ -246,29 +168,9 @@ Context Layer 是**逻辑层**而非单体模块：它复用既有子系统作�
 
 ### 5.1 现状：双通道割裂
 
-```mermaid
-graph LR
-    subgraph AUTO["自动通道（每轮注入）"]
-        A1["ContextAssembler.assemble()"] --> A2["Core Block + Reflections"]
-        A2 --> A3["记忆 get_context_window()<br/>30% memory / 50% history / 20% system"]
-        A3 --> A4["_collect_kg_context()<br/>KG 高重要性实体"]
-        A4 --> A5["❌ 无 KB chunk 接地"]
-    end
-    subgraph ONDEMAND["按需通道（Agent 调工具）"]
-        O1["HybridPlanner.plan()"] --> O2["Intent 分类"]
-        O2 --> O3["asyncio.gather 多 Corpus<br/>KB hybrid_search"]
-        O3 --> O4["canonical 图扩展"]
-        O4 --> O5["RRF + Rerank"]
-        O5 --> O6["❌ 不含 Memory"]
-    end
+![上下文双通道现状：自动通道由 ContextAssembler.assemble() 每轮注入 Core Block、Reflections 与 30/50/20 预算记忆窗口，KG 摘要经 get_memory_summary() 并列接入但整通道无 KB chunk 接地；按需通道 HybridPlanner 经 Intent 分类、并行种子检索、canonical 图扩展与 RRF 重排四阶段但不含 Memory——两通道割裂。](../../assets/architecture/design/context-layer--auto-channel-dark.png)
 
-    classDef auto fill:#1f3a5f,stroke:#5b9bd5,stroke-width:2px,color:#e8f0fe
-    classDef ond fill:#5a3d1f,stroke:#d59b5b,stroke-width:2px,color:#fdf3e8
-    classDef gap fill:#4d1f1f,stroke:#d55b5b,stroke-width:2px,color:#fde8e8
-    class A1,A2,A3,A4 auto
-    class O1,O2,O3,O4,O5 ond
-    class A5,O6 gap
-```
+> 图源（可 diff 文本）：[`context-layer--auto-channel.mmd`](../../assets/mermaid/design/context-layer--auto-channel.mmd) · 交互版（下载到本地打开）：[`context-layer--auto-channel.html`](../../assets/architecture/design/context-layer--auto-channel.html)
 
 两条通道完全分离：自动通道不接地 KB，按需通道不含记忆，二者信任信号互不参照。
 
@@ -277,38 +179,9 @@ graph LR
 > **ADR-2：升级 HybridPlanner 为统一检索骨架，而非新建独立 Router 类。**
 > **理由**：HybridPlanner 已具备正确架构（Intent 分类 → 并行种子检索 → 图扩展 → RRF 融合 → 重排）。把 Memory 作为第 4 路种子检索源是增量扩展，不是重设计（Reuse-Driven + Minimal Intervention）。
 
-```mermaid
-graph TD
-    Q["用户请求"] --> ROUTER{"Context Router<br/>route_context()"}
-    ROUTER -->|"auto 自动注入"| CA["ContextAssembler（扩展）"]
-    ROUTER -->|"on_demand 深度检索"| HP["HybridPlanner（扩展）"]
+![统一上下文激活工作流：用户请求经 Context Router 分发为自动注入与按需检索双通道，ContextAssembler 扩展 KB 接地片段、HybridPlanner 扩展 Memory 种子源，两路经统一融合排名与 ContextGuard 治理后注入 LLM Prompt。](../../assets/architecture/design/context-layer--assembler-planner-dark.png)
 
-    CA --> CA1["记忆 + KG 摘要<br/>（既有）"]
-    CA --> CA2["✨ KB chunk 接地片段<br/>top-3 chunks（新增，~200 token）"]
-    CA1 --> MERGE["归一信任排名"]
-    CA2 --> MERGE
-
-    HP --> HP1["Memory hybrid_search<br/>（✨ 新增种子源）"]
-    HP --> HP2["KB per-corpus hybrid_search<br/>（既有）"]
-    HP --> HP3["KG 图扩展<br/>（既有）"]
-    HP1 --> RRF["RRF 跨源融合 + Rerank"]
-    HP2 --> RRF
-    HP3 --> RRF
-
-    MERGE --> GUARD{"ContextGuard<br/>PII 扫描 + corpus 访问校验"}
-    RRF --> GUARD
-    GUARD -->|"所有路径含回退"| LLM["LLM Prompt"]
-
-    classDef router fill:#1f4d2e,stroke:#5bbd7c,stroke-width:2px,color:#e8fbef
-    classDef ext fill:#3d2c52,stroke:#a07cc5,stroke-width:2px,color:#f3e9fb
-    classDef new fill:#1f3a5f,stroke:#5b9bd5,stroke-width:2px,color:#e8f0fe
-    classDef guard fill:#4d1f1f,stroke:#d55b5b,stroke-width:2px,color:#fde8e8
-    class ROUTER router
-    class CA,HP ext
-    class CA2,HP1 new
-    class GUARD guard
-    class MERGE,RRF,LLM ext
-```
+> 图源（可 diff 文本）：[`context-layer--assembler-planner.mmd`](../../assets/mermaid/design/context-layer--assembler-planner.mmd) · 交互版（下载到本地打开）：[`context-layer--assembler-planner.html`](../../assets/architecture/design/context-layer--assembler-planner.html)
 
 **两处扩展（均为 additive + 特性开关 + fail-soft）**：
 
@@ -394,34 +267,9 @@ Guard 是薄守卫函数，非新子系统；空上下文（回退场景）平�
 
 自进化系统的 6 个 [`TargetHandler`](../../../apps/negentropy/src/negentropy/engine/evolution/handlers/base.py) 天然映射为 Context Layer 的进化杠杆；本方案**新增第 7 面** `context_strategy`，沿用完全相同的状态机与护栏：
 
-```mermaid
-graph LR
-    subgraph LEVERS["Context Layer 进化杠杆"]
-        L1["retrieval_config<br/>→ 记忆检索权重"]
-        L2["knowledge_strategy<br/>→ KB/KG 检索策略"]
-        L3["skill_template<br/>→ 注入技能"]
-        L4["builtin_tool_config<br/>→ 工具参数"]
-        L5["memory_pipeline_prompt<br/>→ 巩固质量"]
-        L6["agent_prompt<br/>→ 身份/角色"]
-        L7["✨ context_strategy<br/>→ 预算比/接地数/信任权重"]
-    end
-    subgraph SM["状态机（统一）"]
-        S1["draft"] --> S2["shadow_eval"]
-        S2 --> S3["canary / runtime_canary"]
-        S2 --> S4["pending_approval"]
-        S3 --> S5["promoted"]
-        S3 --> S6["rolled_back"]
-        S4 --> S5
-    end
-    LEVERS -->|"每面至多 1 个非终态提案<br/>FOR UPDATE SKIP LOCKED"| SM
+![Context Layer 进化杠杆总览：六个已落地的 target_kind 进化面与新增 context_strategy 提案，统一汇入 evolution_proposals 状态机，由 EvolutionOrchestrator 与 decision.py 纯函数护栏治理。](../../assets/architecture/design/context-layer--evolution-levers-dark.png)
 
-    classDef lever fill:#2a1f3d,stroke:#7c5ca5,stroke-width:2px,color:#e8dff5
-    classDef new fill:#1f3a5f,stroke:#5b9bd5,stroke-width:2px,color:#e8f0fe
-    classDef sm fill:#1f4d2e,stroke:#5bbd7c,stroke-width:2px,color:#e8fbef
-    class L1,L2,L3,L4,L5,L6 lever
-    class L7 new
-    class S1,S2,S3,S4,S5,S6 sm
-```
+> 图源（可 diff 文本）：[`context-layer--evolution-levers.mmd`](../../assets/mermaid/design/context-layer--evolution-levers.mmd) · 交互版（下载到本地打开）：[`context-layer--evolution-levers.html`](../../assets/architecture/design/context-layer--evolution-levers.html)
 
 `context_strategy` 可进化的参数：ContextAssembler 预算比（memory_ratio/history_ratio/system_ratio）· KB 接地片段数 · 信任分权重（§4.2）· Router 模式选择阈值。因其影响所有激活路径，采用更保守的门控（每步→人工审批），复用 [`evolution/decision.py`](../../../apps/negentropy/src/negentropy/engine/evolution/decision.py) 纯函数护栏。
 

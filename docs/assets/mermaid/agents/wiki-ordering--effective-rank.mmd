@@ -1,0 +1,15 @@
+%% source: docs/.agents/wiki-docs-ordering.md §3 排序规则（块#0，L58-L68）
+%% slug: agents/wiki-ordering--effective-rank
+%% type: workflow
+%% derived: byte-exact extraction of mermaid block #0
+flowchart LR
+  A[同级节点] --> B{有显式位次?<br/>sidebar_position / position}
+  B -- 是 --> C[按位次升序]
+  B -- 否 --> D{是索引页?<br/>README / index}
+  D -- 是 --> E["有效位次 = -∞<br/>浮动至最前"]
+  D -- 否 --> F["有效位次 = +∞<br/>沉至末尾"]
+  C --> G[同位次并列<br/>→ 文件名自然序 tiebreak]
+  E --> G
+  F --> G
+  G --> H[确定、非随机顺序]
+  style H fill:#2d6a4f,color:#fff

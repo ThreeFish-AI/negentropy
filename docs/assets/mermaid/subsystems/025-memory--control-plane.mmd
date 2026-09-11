@@ -1,0 +1,37 @@
+%%source: docs/concepts/subsystems/025-the-memory-system.md#block11
+%%slug: subsystems/025-memory--control-plane
+%%type: architecture
+%%derived: manual redraw against apps/negentropy @758aa3f5 (Unified Scheduler)
+%% fix: pg_cron 链路已退役——cron.job/cron.job_run_details -> scheduled_tasks/task_executions（Unified Scheduler，migration 0042，PR #691/#700）
+%% fix: /memory/automation/* 与 MemoryAutomationService 已删除——控制面现为 /scheduler/*；Memory 页经 engine /memory 只读 managed_jobs
+%% fix: SQL 函数改由 migration 0043 静态定义（无运行时 reconcile）；清理作业走 handler 内联 SQL，仅巩固作业仍 SELECT 受管函数；Rocchio 由 Python 直写 memories
+%% fix: Context Assembler 属检索热路径（非受管定时过程）——移出本控制面图
+flowchart TD
+    subgraph ControlPlane[Memory Automation Control Plane]
+        UI[Memory / Automation]
+        API[/memory/automation/*]
+        CFG[(memory_automation_configs)]
+    end
+
+    subgraph ManagedProcess[Managed Processes]
+        RET[Retention Cleanup]
+        ASM[Context Assembler]
+        CON[Maintenance Consolidation]
+    end
+
+    subgraph Postgres[PostgreSQL Runtime]
+        FN[Managed SQL Functions]
+        CRON[cron.job]
+        LOG[cron.job_run_details]
+    end
+
+    UI --> API --> CFG
+    API --> RET
+    API --> ASM
+    API --> CON
+    RET --> FN
+    ASM --> FN
+    CON --> FN
+    RET --> CRON
+    CON --> CRON
+    CRON --> LOG

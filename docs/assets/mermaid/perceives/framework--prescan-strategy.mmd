@@ -1,0 +1,27 @@
+%% source: docs/reference/perceives/framework.md §处理引擎层 › PDF 处理引擎 › Smart 模式编排流程 (块#7, L359-L378)
+%% slug: perceives/framework--prescan-strategy
+%% type: workflow
+%% derived: byte-exact extraction of mermaid block #7
+%% fix: 引擎全集为 docling/pymupdf/pypdf/mineru/marker（llm/orchestrator.py::_llm_plan L450 白名单），图示为默认计划双引擎 Docling(priority 8)+PyMuPDF(priority 5)；Phase 1 LLM 失败回退 _DEFAULT_PLAN（merge 策略）
+%% fix: Phase 2 为 asyncio.gather 并行执行（源图未标注并行语义）；仅一个引擎成功时短路跳过 Phase 3 直接返回
+%% fix: Phase 3 LLM 失败回退启发式评分 _heuristic_synthesize（L967 多维加权）；质量信号实为 7 行计数（字数/标题/表格行/块级+行内公式/代码块/图片/列表）；补充合并限 tables/formulas/code_blocks 三类且保守去重
+graph LR
+    subgraph "Phase 1: 分析"
+        A["PyMuPDF 预扫描"] --> B["LLM 生成调度计划"]
+    end
+    subgraph "Phase 2: 执行"
+        B --> C["Docling 引擎"]
+        B --> D["PyMuPDF 引擎"]
+    end
+    subgraph "Phase 3: 融合"
+        C --> E["LLM 评估质量信号"]
+        D --> E
+        E --> F["择优 + 补充合并"]
+    end
+
+    style A fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
+    style B fill:#581c87,stroke:#9333ea,color:#ffffff
+    style C fill:#166534,stroke:#22c55e,color:#ffffff
+    style D fill:#166534,stroke:#22c55e,color:#ffffff
+    style E fill:#581c87,stroke:#9333ea,color:#ffffff
+    style F fill:#134e4a,stroke:#14b8a6,color:#ffffff

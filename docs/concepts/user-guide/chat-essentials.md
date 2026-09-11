@@ -4,7 +4,7 @@ title: "Home 对话 · 主模块特性手册"
 ---
 # Home / 人与 Agent 对话 · 主模块特性手册
 
-> 本手册覆盖「Home 对话」**所有主模块特性**的最小操作指引。理论与对标参考 [conversation-foundation.md](../conversation-foundation.md)，协议事实参考 [framework.md](../framework.md) §9 与 [a2ui.md](../a2ui.md)，主用户手册参见 [user-guide.md](../../user-guide.md) §3。
+> 本手册覆盖「Home 对话」**所有主模块特性**的最小操作指引。理论与对标参考 [conversation-foundation.md](../conversation-foundation.md)，协议事实参考 [framework.md](../framework.md) §9 与 [a2ui.md](../a2ui.md)，主用户手册参见 [user-guide.md](../../README.md) §3。
 >
 > 中栏对话的**回合制转录渲染**（左右分栏 / per-agent 徽章 / 类型化工具卡 / 思考引用折叠）见 [transcript-view 实操手册](./transcript-view.md)，设计架构见 [人机交互转录 UI ADR](../subsystems/041-human-machine-interaction-transcript.md)。
 
@@ -26,17 +26,9 @@ title: "Home 对话 · 主模块特性手册"
 - 不同模型的工具/推理表现差异较大；论文采集场景推荐 `claude-opus-4-7`。
 - 模型按线程持久化，新会话沿用最近选择。
 
-```mermaid
-sequenceDiagram
-  participant U as User
-  participant H as HomeBody
-  participant E as Engine
-  U->>H: 选模型 → 写 localStorage
-  U->>H: 输入 → Enter
-  H->>H: 无 sessionId？new session
-  H->>E: POST /api/agui (NDJSON)
-  E-->>H: RUN_STARTED → TEXT_MESSAGE_* → RUN_FINISHED
-```
+![Home 对话一次请求的四方时序图：用户在 HomeBody 选模型并输入后，经 BFF 路由建立会话，再以 NDJSON 请求转 SSE 调用 ADK 引擎，事件流回灌为 RUN_STARTED、TEXT_MESSAGE_* 与 RUN_FINISHED。](../../assets/architecture/user-guide/chat-essentials--request-sequence-dark.png)
+
+> 图源（可 diff 文本）：[`chat-essentials--request-sequence.mmd`](../../assets/mermaid/user-guide/chat-essentials--request-sequence.mmd) · 交互版（下载到本地打开）：[`chat-essentials--request-sequence.html`](../../assets/architecture/user-guide/chat-essentials--request-sequence.html)
 
 ## 2. 输入框（Markdown / 附件 / 提示词模板）
 
@@ -47,7 +39,7 @@ sequenceDiagram
 - 附件（C5 多模态）：拖拽文件到输入框 / 点 paperclip 图标；上限 20MB（`DEFAULT_ATTACHMENT_MAX_BYTES`，参见 `apps/negentropy-ui/components/ui/Composer.tsx`）。
 - 提示词模板：通过 [Skills](./skills-basics.md) 体系发起；论文场景见 [skills-paper-hunter.md](./skills-paper-hunter.md)。
 
-**注意事项**：附件以轻量 metadata（id/name/mime/size）透传，不在 message ledger 中存原文，避免双气泡风险（[issue.md ISSUE-031](../agents/issue.md)）。
+**注意事项**：附件以轻量 metadata（id/name/mime/size）透传，不在 message ledger 中存原文，避免双气泡风险（[issue.md ISSUE-031](../../.agents/issue.md)）。
 
 ## 3. 流式渲染与双气泡守卫
 
@@ -57,7 +49,7 @@ sequenceDiagram
 
 **注意事项**：
 - 即使刷新页面，每条消息仍只显示 **一个** 气泡（`expect(messageBubbles).toHaveCount(1)` 是 E2E 守卫硬约束）。
-- 若发现重复气泡，立刻按 [issue.md](../agents/issue.md) 模板提交 RCA。
+- 若发现重复气泡，立刻按 [issue.md](../../.agents/issue.md) 模板提交 RCA。
 
 ## 4. 工具调用进度卡片（C3 Tool Progress）
 
@@ -143,32 +135,15 @@ sequenceDiagram
 - KG 构建是异步 fail-open；`kg_status: "kg_skipped"` 表示构建失败但**主路径成功**，已入库的知识仍可检索。
 - 详细模板与 cron 调度参见 [skills-paper-hunter.md](./skills-paper-hunter.md) 与 [papers-curation.md](./papers-curation.md)。
 
-```mermaid
-sequenceDiagram
-  participant U as User
-  participant A as Agent
-  participant P as paper.py
-  participant K as KnowledgeService
-  participant G as GraphService
-  U->>A: "采集 AI Agent 论文 top 5"
-  A->>P: search_papers(query, top_k)
-  P-->>A: 5 papers
-  loop 每篇
-    A->>P: ingest_paper(arxiv_id, pdf_url)
-    P->>P: _check_existing_arxiv → 命中跳过
-    P->>K: ingest_url(pdf_url)
-    K-->>P: records
-    P->>G: enqueue_kg_build (async)
-    P-->>A: status + kg_status
-  end
-  A-->>U: 总结 + [N] 引用 + ## 参考文献
-```
+![论文采集的 Agent 调度时序图：用户请求经熵减引擎两次 transfer_to_agent 分别委派感知系部检索论文与内化系部逐篇入库，入库前经审批门阻塞确认，随后调知识服务写入 agent-papers 语料库并异步排队 ai_paper 图谱构建，最后由根 Agent 汇总逐篇状态与 kg_status 回执。](../../assets/architecture/user-guide/chat-essentials--agent-dispatch-sequence-dark.png)
+
+> 图源（可 diff 文本）：[`chat-essentials--agent-dispatch-sequence.mmd`](../../assets/mermaid/user-guide/chat-essentials--agent-dispatch-sequence.mmd) · 交互版（下载到本地打开）：[`chat-essentials--agent-dispatch-sequence.html`](../../assets/architecture/user-guide/chat-essentials--agent-dispatch-sequence.html)
 
 ## 9. KG 反向推荐（P2-3 · search_knowledge_graph_with_papers）
 
 **能做什么**：基于知识图谱实体反查相关论文，对概念性问题（"哪些论文讨论 Transformer 架构"）召回率高于纯向量检索。
 
-**怎么做**：自然语言提问触发；agent 按 [perception.py instruction](../../apps/negentropy/src/negentropy/agents/faculties/perception.py) 自动决定优先调 `search_knowledge_graph_with_papers` 还是 `search_knowledge_base`。
+**怎么做**：自然语言提问触发；agent 按 [perception.py instruction](../../../apps/negentropy/src/negentropy/agents/faculties/perception.py) 自动决定优先调 `search_knowledge_graph_with_papers` 还是 `search_knowledge_base`。
 
 **注意事项**：KG 未构建时返回 `kg_status: "graph_empty"`，agent 自动 fallback 到向量检索。
 
@@ -238,4 +213,4 @@ sequenceDiagram
 5. 展开 Reasoning Panel → 折叠展开不破坏双气泡守卫。
 6. 流式中点 Stop → 100ms 内中断，error 不误报。
 
-每个场景重复 5 次刷新（参考 [feedback_repeated_bug_quality_bar.md](../../.claude/projects/-Users-cm-huang-Documents-projects-aurelius-negentropy/memory/feedback_repeated_bug_quality_bar.md)）。
+每个场景重复 5 次刷新（参考 feedback_repeated_bug_quality_bar.md）。

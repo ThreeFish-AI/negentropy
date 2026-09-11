@@ -1,0 +1,39 @@
+%% source: apps/negentropy-influence/pipeline/INDEXTTS-2.5-ADVANCED.md — §3.1 融合公式与 alpha 的物理含义（块#1）
+%% slug: apps/indextts--reference-audio
+%% type: workflow
+%% derived: byte-exact extraction of mermaid block #1
+%% fix: 全部节点对照上游 clone 4f8792f 核验属实——feat1.pt=(73,192)/feat2.pt=(73,1280) 实测 shape、融合公式在 infer_v2_5.py:766、同槽相加确在 model_v2_5.py:731、diffusion_steps=25 在 infer_v2_5.py:829、余弦最近邻 def 在 :901；边有两处需修正，见下
+%% fix: 「12 s」为本仓 prepare_ref.py 裁样口径（--duration 12，见 VOICE-CLONING.md §2）；上游 infer_v2_5.py:625 对参考音频硬截断 15 s
+%% fix: R1(CAMPPlus style)→G1 的准确路径是 campplus_embedding 经 spk_emb_proj 投影后作为 conds_latent 基底、再与 emovec 同槽相加（model_v2_5.py:704-731），源图拓扑正确
+%% fix: 源图 R2→G1 有误——w2v-BERT L17 嵌入并不直接进入 conds_latent，它经 merge_emovec(model_v2_5.py:792-797) 算出 base_vec 即 E_self，是 emovec 的基底；inference_speech 内 speech_condition 仅用于取长度与 emo_vec=None 的回退。交付图已改为 ref_semantic→mix_fuse
+%% fix: 源图缺 T2S→CFM 边——语义码经 semantic_codec.decode 与 length_regulator 后与 log-mel 前缀拼成 cat_condition 送入 cfm.inference（infer_v2_5.py:829-843）。交付图已补该依赖并将 T2S/CFM 合并为一个生成节点
+flowchart LR
+    subgraph REF["参考音频（12 s）"]
+        R1["CAMPPlus<br/>192 维 style"]
+        R2["w2v-BERT L17<br/>语义条件"]
+        R3["log-mel<br/>CFM 前缀"]
+    end
+    subgraph PROTO["情感原型库（写死在权重里）"]
+        P1["spk_matrix feat1.pt<br/>73 × 192"]
+        P2["emo_matrix feat2.pt<br/>73 × 1280"]
+    end
+    subgraph MIX["情感融合（infer_v2_5.py:669-767）"]
+        M1["余弦最近邻<br/>每类情感挑「最像你」的原型行"]
+        M2["emovec = Σ wᵢ·Bᵢ<br/>+ (1 − Σwᵢ)·E_self"]
+    end
+    subgraph GPT["GPT 全局条件（model_v2_5.py:731）"]
+        G1["conds_latent<br/>= spk_emb_proj(spk) **+** emovec<br/>（同一 1280 维槽位相加）"]
+    end
+    R1 --> M1
+    P1 --> M1
+    M1 --> M2
+    P2 --> M2
+    R1 --> G1
+    M2 --> G1
+    R2 --> G1
+    R3 --> CFM["S2M / CFM 25 步扩散"]
+    G1 --> T2S["T2S 自回归"]
+
+    style M2 fill:#5c2d7a,stroke:#c99ae0,stroke-width:2px,color:#fff
+    style G1 fill:#7a2d2d,stroke:#f0a0a0,stroke-width:2px,color:#fff
+    style M1 fill:#1a3a5c,stroke:#8ab8e0,stroke-width:2px,color:#fff

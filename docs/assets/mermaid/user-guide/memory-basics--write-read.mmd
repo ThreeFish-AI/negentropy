@@ -1,0 +1,24 @@
+%% source: docs/concepts/user-guide/memory-basics.md §1 一图认识 Memory 模块 (块#0, 围栏 L13-L33)
+%% slug: user-guide/memory-basics--write-read
+%% type: workflow
+%% derived: docs/assets/architecture/user-guide/memory-basics--write-read.html (+ -dark/-light PNG)
+%% fix: 巩固管线实际为 Memify 6 步 fact_extract→entity_normalization→topic_cluster→dedup_merge→summarize→auto_link（config/memory.py ConsolidationSettings），原图 Segment→Dedup→Store→Extract 为近似；审计表实名 memory_audit_logs（原图 audit_log）；core_blocks 实名 memory_core_blocks；Query 为输入事件非组件，并入检索节点语义
+flowchart LR
+    subgraph "写入 (Write)"
+        S[ADK Session] --> C[巩固管线<br>Segment→Dedup→Store→Extract]
+        C --> M[(memories)]
+        C --> F[(facts)]
+        SE[Self-edit Tools<br>memory_write/update] --> M
+    end
+    subgraph "检索 (Read)"
+        Q[Query] --> R[Hybrid Search<br>BM25 + pgvector]
+        R --> A[ContextAssembler<br>Token 预算]
+        CB[(core_blocks)] --> A
+        A --> O[LLM Context]
+    end
+    subgraph "治理 (Govern)"
+        M -.遗忘曲线.-> M
+        M -.冲突消解.-> M
+        M -.审计.-> AL[(audit_log)]
+    end
+    style CB fill:#ff9,stroke:#cc3

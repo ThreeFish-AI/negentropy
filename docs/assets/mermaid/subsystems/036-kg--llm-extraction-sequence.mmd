@@ -1,0 +1,37 @@
+%%source: docs/concepts/subsystems/036-the-knowledge-graph.md#block2 (§4.4 数据流)
+%%slug: subsystems/036-kg--llm-extraction-sequence
+%%type: sequence
+%%derived: archify spec .temp/archify/subsystems/036-kg--llm-extraction-sequence.json
+%% fix: 构建不由 ingest_text 自动触发；实际入口是 POST /knowledge/base/{corpus_id}/graph/build（routes/graph.py build_knowledge_graph），API 同步 _init_build_run 建 kg_build_runs 记录后立即返回 run_id，_execute_build 在后台 asyncio.Task 中执行（fire-and-forget）
+%% fix: chunks 由 API 层 service.list_knowledge(limit=10000) 取出后作为参数传入 GraphService（hierarchical 语料库仅取 chunk_role=parent）；GraphService 自身对 knowledge 的读取只有增量构建的 get_processed_chunk_ids 过滤
+%% fix: 无 Cypher MERGE；AgeGraphRepository.create_entities 实为 UPDATE knowledge SET entity_type/entity_confidence，create_relations 实为 INSERT INTO kg_relations ... ON CONFLICT (source_id,target_id,relation_type) DO UPDATE + JSONB related_entities 过渡兼容写
+%% fix: 源图缺失阶段：Semaphore 并发 + 断路器(3 连败)/超时 fallback 降级、EntityResolver 多策略消解(Exact→Alias→ANN cos≥0.85→LLM 验证)、TemporalResolver 时态冲突 expire、KgEntityService.batch_sync_from_graph_build 一等公民表双写、pagerank/communities/summaries 后处理
+%%{init: {"themeVariables": {"primaryColor": "#0b3d91", "primaryTextColor": "#ffffff", "actorBorder": "#0b3d91", "actorTextColor": "#ffffff"}}}%%
+sequenceDiagram
+    participant Client
+    participant KnowledgeService
+    participant GraphService
+    participant LLM as LLM Extractor
+    participant Knowledge as knowledge 表
+    participant AGE as Apache AGE
+
+    Client->>KnowledgeService: ingest_text(corpus_id, text)
+    KnowledgeService->>Knowledge: INSERT knowledge chunks
+
+    Note over KnowledgeService: 异步触发图谱构建
+
+    KnowledgeService->>GraphService: build_graph(corpus_id)
+    GraphService->>Knowledge: SELECT chunks WHERE corpus_id
+    Knowledge->>GraphService: chunks
+
+    GraphService->>LLM: extract_entities(text)
+    LLM-->>GraphService: entities[]
+
+    GraphService->>LLM: extract_relations(entities, text)
+    LLM-->>GraphService: relations[]
+
+    GraphService->>AGE: MERGE entities (Cypher)
+    GraphService->>AGE: MERGE relations (Cypher)
+
+    Note over GraphService: 更新 knowledge.entity_type
+    GraphService->>Knowledge: UPDATE entity_type, confidence

@@ -28,22 +28,9 @@ Negentropy Perceives 是基于 [FastMCP](https://github.com/jlowin/fastmcp) 框�
 
 ### 核心架构
 
-```mermaid
-graph TD
-    A["SDK 层<br/>NegentropyPerceivesClient"] -.->|"HTTP Transport"| T["MCP 工具层<br/>6 Tools · @app.tool()"]
-    T --> P["Pipeline 层<br/>Stage 编排 · 竞争/降级"]
-    T --> B["处理引擎层<br/>Scraping · PDF · Markdown"]
-    P --> B
-    B --> C["基础设施层<br/>RateLimiter · Cache · Metrics · ErrorHandler · Retry"]
-    C --> D["配置层<br/>pydantic-settings · 环境变量"]
+![Negentropy Perceives 五层架构：SDK 层经 HTTP Transport 调用 MCP 工具层（6 Tools），method=auto 优先走 Pipeline 编排（竞争/降级）、传统路径直调处理引擎层回退，向下依赖限速/退避重试/计时的基础设施层与 pydantic-settings 配置层。](../../assets/architecture/perceives/framework--five-layers-dark.png)
 
-    style A fill:#4c1d95,stroke:#a78bfa,color:#ffffff
-    style T fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
-    style P fill:#b45309,stroke:#f59e0b,color:#ffffff
-    style B fill:#166534,stroke:#22c55e,color:#ffffff
-    style C fill:#134e4a,stroke:#14b8a6,color:#ffffff
-    style D fill:#581c87,stroke:#9333ea,color:#ffffff
-```
+> 图源（可 diff 文本）：[`framework--five-layers.mmd`](../../assets/mermaid/perceives/framework--five-layers.mmd) · 交互版（下载到本地打开）：[`framework--five-layers.html`](../../assets/architecture/perceives/framework--five-layers.html)
 
 ## MCP 工具层
 
@@ -52,27 +39,13 @@ graph TD
 工具层采用领域拆分的模块化设计，所有工具注册于 [`src/negentropy/perceives/tools/`](../src/negentropy/perceives/tools/) 子包：
 
 - **[`_registry.py`](../src/negentropy/perceives/tools/_registry.py)**：中心枢纽，持有 FastMCP `app` 实例、共享服务单例（`web_scraper`、`markdown_converter`）、`create_pdf_processor()` 延迟加载工厂和公共辅助函数
-- **[`_support.py`](../src/negentropy/perceives/tools/_support.py)**：共享类型枚举定义（`ScrapeMethod`、`PDFMethod`、`PDFOutputFormat`）与参数校验辅助函数
+- **[`core/types.py`（经 `_registry.py` re-export）](../src/negentropy/perceives/tools/_support.py)**：共享类型枚举定义（`ScrapeMethod`、`PDFMethod`、`PDFOutputFormat`）与参数校验辅助函数
 - **[`_observability.py`](../src/negentropy/perceives/tools/_observability.py)**：请求计量与执行计时工具（`elapsed_ms()`）
 - **领域模块**：各模块导入 `app` 并通过 `@app.tool()` 装饰器注册工具
 
-```mermaid
-graph LR
-    subgraph "src/negentropy/perceives/tools/"
-        R["_registry.py<br/>app · singletons · helpers"]
-        E["extraction.py · 2"]
-        M["markdown.py · 2"]
-        P["pdf.py · 2"]
-    end
-    R --- E
-    R --- M
-    R --- P
+![Perceives 工具层模块化注册架构：extraction、markdown、pdf 三个领域模块经 @app.tool() 装饰器向持有 FastMCP app 单实例的中心枢纽 _registry.py 注册 6 个 MCP 工具，registry 同时以 add_middleware() 挂载 _middleware.py 的 TaskContextMiddleware 调用级上下文切面。](../../assets/architecture/perceives/framework--engine-registry-dark.png)
 
-    style R fill:#7c2d12,stroke:#ea580c,color:#ffffff
-    style E fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
-    style M fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
-    style P fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
-```
+> 图源（可 diff 文本）：[`framework--engine-registry.mmd`](../../assets/mermaid/perceives/framework--engine-registry.mmd) · 交互版（下载到本地打开）：[`framework--engine-registry.html`](../../assets/architecture/perceives/framework--engine-registry.html)
 
 ### 工具清单（6 个）
 
@@ -111,45 +84,9 @@ graph LR
 
 ### 架构总览
 
-```mermaid
-graph TD
-    subgraph "MCP 工具层"
-        MT["parse_webpage_to_markdown<br/>parse_pdf_to_markdown"]
-    end
+![Perceives MCP 服务器的 6 个 @app.tool() 工具按 extraction.py / markdown.py / pdf.py 三模块组成工具层，其中 parse_webpage_to_markdown 与 parse_pdf_to_markdown 经 method=auto 派发进入 convenience.py 便捷 API，再沿 PipelineOrchestrator → StageScheduler → registry.py @register_tool 注册表逐层编排，最终按名调用 pymupdf / docling / mineru / marker / beautifulsoup / markitdown 六族 Stage 引擎。](../../assets/architecture/perceives/framework--mcp-tools-dark.png)
 
-    subgraph "Pipeline 层"
-        CV["convenience.py<br/>run_pdf_pipeline()<br/>run_webpage_pipeline()"]
-        OC["PipelineOrchestrator<br/>编排 + 并行组"]
-        SC["StageScheduler<br/>降级 / 竞争模式"]
-        RG["registry.py<br/>@register_tool"]
-    end
-
-    subgraph "Stage 工具层"
-        T1["pymupdf"] --> RG
-        T2["docling"] --> RG
-        T3["mineru"] --> RG
-        T4["marker"] --> RG
-        T5["beautifulsoup"] --> RG
-        T6["markitdown"] --> RG
-    end
-
-    MT -->|"method=auto"| CV
-    CV --> OC
-    OC --> SC
-    SC --> RG
-
-    style MT fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
-    style CV fill:#b45309,stroke:#f59e0b,color:#ffffff
-    style OC fill:#b45309,stroke:#f59e0b,color:#ffffff
-    style SC fill:#b45309,stroke:#f59e0b,color:#ffffff
-    style RG fill:#166534,stroke:#22c55e,color:#ffffff
-    style T1 fill:#7c2d12,stroke:#ea580c,color:#ffffff
-    style T2 fill:#7c2d12,stroke:#ea580c,color:#ffffff
-    style T3 fill:#7c2d12,stroke:#ea580c,color:#ffffff
-    style T4 fill:#7c2d12,stroke:#ea580c,color:#ffffff
-    style T5 fill:#7c2d12,stroke:#ea580c,color:#ffffff
-    style T6 fill:#7c2d12,stroke:#ea580c,color:#ffffff
-```
+> 图源（可 diff 文本）：[`framework--mcp-tools.mmd`](../../assets/mermaid/perceives/framework--mcp-tools.mmd) · 交互版（下载到本地打开）：[`framework--mcp-tools.html`](../../assets/architecture/perceives/framework--mcp-tools.html)
 
 ### 两种执行模式
 
@@ -159,63 +96,17 @@ graph TD
 
 > **默认行为说明（自 2026-05）**：原本启用竞争模式的 6 个 Stage（PDF S2/S4/S5/S7、WebPage S4/S10）已默认切换为降级模式，仅运行各 Stage 的 rank=1 最佳引擎以减少资源开销。跨 stage docling `_ConvertCache` 在单引擎下仍生效（layout 跑过 docling 后 table/code 命中）。竞争完整能力（`competition:` 子配置、早胜取消、LLM 评审）原样保留，可在 YAML 中将对应 Stage 的 `competition_mode` 改回 `true` 启用。详见 [`docs/issue.md`](issue.md) [2026-05-07] 决策条目。
 
-```mermaid
-graph LR
-    subgraph "降级模式"
-        F1["Tool 1 (rank=1)"] -->|"失败"| F2["Tool 2 (rank=2)"]
-        F2 -->|"失败"| F3["Tool 3 (rank=3)"]
-        F3 -->|"成功"| FR["返回"]
-    end
+![Perceives PDF 引擎降级链：method=auto 请求沿 Docling、OpenDataLoader、MinerU、Marker 逐级失败降级，任一引擎成功即返回 Markdown，链尾由始终可用的 PyMuPDF/PyPDF 轻量兜底。](../../assets/architecture/perceives/framework--degradation-fallback-dark.png)
 
-    subgraph "竞争模式"
-        C1["Tool 1"] -->|"并行"| J["择优选择"]
-        C2["Tool 2"] -->|"并行"| J
-        J --> CR["返回最优"]
-    end
-
-    style F1 fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
-    style F2 fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
-    style F3 fill:#166534,stroke:#22c55e,color:#ffffff
-    style FR fill:#166534,stroke:#22c55e,color:#ffffff
-    style C1 fill:#b45309,stroke:#f59e0b,color:#ffffff
-    style C2 fill:#b45309,stroke:#f59e0b,color:#ffffff
-    style J fill:#7c2d12,stroke:#ea580c,color:#ffffff
-    style CR fill:#166534,stroke:#22c55e,color:#ffffff
-```
+> 图源（可 diff 文本）：[`framework--degradation-fallback.mmd`](../../assets/mermaid/perceives/framework--degradation-fallback.mmd) · 交互版（下载到本地打开）：[`framework--degradation-fallback.html`](../../assets/architecture/perceives/framework--degradation-fallback.html)
 
 ### PDF Pipeline（S0 - S9）
 
 PDF 转 Markdown 管线包含 10 个 Stage，其中 S3 - S7 为并行组（通过 `asyncio.gather` 并发执行）。`⚡` 标记表示该 Stage 支持竞争模式（默认走降级，仅 rank=1 单跑；用户可改 YAML `competition_mode: true` 启用 `⚡` 多引擎竞争）：
 
-```mermaid
-graph TD
-    S0["S0 预处理<br/>pymupdf"] --> S1["S1 文档扫描<br/>pymupdf"]
-    S1 --> S2["S2 版面分析<br/>docling/mineru/marker/pymupdf<br/>⚡ 可竞争"]
-    S2 --> S3["S3 文本提取<br/>pymupdf/docling/pypdf"]
+![Perceives PDF 转 Markdown 管线 S0-S9 数据流图：S0 预处理产出直供 S1 路由信号与 S3-S7 五路 asyncio.gather 并行提取（S2 版面 bbox 仅汇入 S6 图片），各提取产物七路 fan-in 汇入 S8 组装、S9 资源打包交付。](../../assets/architecture/perceives/framework--pdf-stages-dark.png)
 
-    S2 --> S4["S4 表格提取<br/>docling/camelot/pdfplumber/pymupdf<br/>⚡ 可竞争"]
-    S2 --> S5["S5 公式提取<br/>mineru/docling/pymupdf_heuristic<br/>⚡ 可竞争"]
-    S2 --> S6["S6 图片提取<br/>pymupdf"]
-    S2 --> S7["S7 代码检测<br/>docling/algorithm_detector<br/>⚡ 可竞争"]
-
-    S3 --> S8["S8 组装<br/>builtin_assembler"]
-    S4 --> S8
-    S5 --> S8
-    S6 --> S8
-    S7 --> S8
-    S8 --> S9["S9 资源打包<br/>builtin_bundler"]
-
-    style S0 fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
-    style S1 fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
-    style S2 fill:#b45309,stroke:#f59e0b,color:#ffffff
-    style S3 fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
-    style S4 fill:#b45309,stroke:#f59e0b,color:#ffffff
-    style S5 fill:#b45309,stroke:#f59e0b,color:#ffffff
-    style S6 fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
-    style S7 fill:#b45309,stroke:#f59e0b,color:#ffffff
-    style S8 fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
-    style S9 fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
-```
+> 图源（可 diff 文本）：[`framework--pdf-stages.mmd`](../../assets/mermaid/perceives/framework--pdf-stages.mmd) · 交互版（下载到本地打开）：[`framework--pdf-stages.html`](../../assets/architecture/perceives/framework--pdf-stages.html)
 
 | Stage | 名称     | 描述                                                     | 模式                         |
 | ----- | -------- | -------------------------------------------------------- | ---------------------------- |
@@ -234,38 +125,9 @@ graph TD
 
 WebPage 转 Markdown 管线包含 12 个 Stage，其中 S6 - S9 为并行组：
 
-```mermaid
-graph TD
-    WS1["S1 合规检查<br/>robotparser"] --> WS2["S2 网页获取<br/>aiohttp/playwright/selenium"]
-    WS2 --> WS3["S3 反检测降级<br/>playwright_stealth/undetected_chromedriver"]
-    WS3 --> WS4["S4 主内容提取<br/>trafilatura/readability/bs4<br/>⚡ 可竞争"]
-    WS4 --> WS5["S5 HTML 清洗<br/>beautifulsoup"]
+![Perceives WebPage 转 Markdown 十二阶段管线：S1 合规检查经 S2+S3 获取降级链与 S4+S5 提取清洗后，S6–S9 四路并行提取公式、代码、表格、图片富元素，汇入 S10–S11 转换排版，最终 S12 资源打包输出。](../../assets/architecture/perceives/framework--webpage-stages-dark.png)
 
-    WS5 --> WS6["S6 公式提取<br/>beautifulsoup_math"]
-    WS5 --> WS7["S7 代码识别<br/>beautifulsoup_code"]
-    WS5 --> WS8["S8 表格提取<br/>beautifulsoup_table"]
-    WS5 --> WS9["S9 图片提取<br/>beautifulsoup_image"]
-
-    WS6 --> WS10["S10 Markdown 转换<br/>markitdown/html2text<br/>⚡ 可竞争"]
-    WS7 --> WS10
-    WS8 --> WS10
-    WS9 --> WS10
-    WS10 --> WS11["S11 排版格式化<br/>builtin_formatter"]
-    WS11 --> WS12["S12 资源打包<br/>builtin_bundler"]
-
-    style WS1 fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
-    style WS2 fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
-    style WS3 fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
-    style WS4 fill:#b45309,stroke:#f59e0b,color:#ffffff
-    style WS5 fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
-    style WS6 fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
-    style WS7 fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
-    style WS8 fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
-    style WS9 fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
-    style WS10 fill:#b45309,stroke:#f59e0b,color:#ffffff
-    style WS11 fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
-    style WS12 fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
-```
+> 图源（可 diff 文本）：[`framework--webpage-stages.mmd`](../../assets/mermaid/perceives/framework--webpage-stages.mmd) · 交互版（下载到本地打开）：[`framework--webpage-stages.html`](../../assets/architecture/perceives/framework--webpage-stages.html)
 
 | Stage | 名称          | 描述                                             | 模式                         |
 | ----- | ------------- | ------------------------------------------------ | ---------------------------- |
@@ -333,21 +195,9 @@ Pipeline 的 Stage 配置完全由 [`config.default.yaml`](../src/negentropy/per
 
 `method="auto"` 时，`PDFProcessor` 按以下优先级动态选择首个可用引擎：
 
-```mermaid
-graph LR
-    A["Docling<br/>MIT · 最佳整体质量"] --> B["OpenDataLoader<br/>Apache 2.0 · CPU-only · 全元素 bbox"]
-    B --> C["MinerU<br/>Apache 2.0 · 最佳 LaTeX"]
-    C --> D["Marker<br/>GPL-3.0 · 最佳准确率"]
-    D --> E["PyMuPDF<br/>快速文本提取"]
-    E --> F["PyPDF<br/>基础降级"]
+![PDFProcessor 在 method=auto 下沿 P1 Docling → P2 OpenDataLoader → P3 MinerU → P4 Marker → P5 PyMuPDF → P6 PyPDF 六级降级链逐级探测，前四级为 AI 结构化引擎、后两级为轻量兜底。](../../assets/architecture/perceives/framework--engine-matrix-dark.png)
 
-    style A fill:#166534,stroke:#22c55e,color:#ffffff
-    style B fill:#0f766e,stroke:#14b8a6,color:#ffffff
-    style C fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
-    style D fill:#dc2626,stroke:#ef4444,color:#ffffff
-    style E fill:#134e4a,stroke:#14b8a6,color:#ffffff
-    style F fill:#581c87,stroke:#9333ea,color:#ffffff
-```
+> 图源（可 diff 文本）：[`framework--engine-matrix.mmd`](../../assets/mermaid/perceives/framework--engine-matrix.mmd) · 交互版（下载到本地打开）：[`framework--engine-matrix.html`](../../assets/architecture/perceives/framework--engine-matrix.html)
 
 > 各引擎均为可选依赖——未安装时自动跳过，确保系统在最小依赖集下仍可运行。
 
@@ -355,28 +205,9 @@ graph LR
 
 `method="smart"` 启用 LLM 编排的三阶段流水线：
 
-```mermaid
-graph LR
-    subgraph "Phase 1: 分析"
-        A["PyMuPDF 预扫描"] --> B["LLM 生成调度计划"]
-    end
-    subgraph "Phase 2: 执行"
-        B --> C["Docling 引擎"]
-        B --> D["PyMuPDF 引擎"]
-    end
-    subgraph "Phase 3: 融合"
-        C --> E["LLM 评估质量信号"]
-        D --> E
-        E --> F["择优 + 补充合并"]
-    end
+![Perceives Smart 模式 LLM 编排三阶段流水线：PyMuPDF 预扫描提取文档特征，LLM 生成引擎调度计划，asyncio.gather 并行执行 Docling 与 PyMuPDF 双引擎，再由 LLM 评估各引擎质量信号后择优主体并保守合并补充内容。](../../assets/architecture/perceives/framework--prescan-strategy-dark.png)
 
-    style A fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
-    style B fill:#581c87,stroke:#9333ea,color:#ffffff
-    style C fill:#166534,stroke:#22c55e,color:#ffffff
-    style D fill:#166534,stroke:#22c55e,color:#ffffff
-    style E fill:#581c87,stroke:#9333ea,color:#ffffff
-    style F fill:#134e4a,stroke:#14b8a6,color:#ffffff
-```
+> 图源（可 diff 文本）：[`framework--prescan-strategy.mmd`](../../assets/mermaid/perceives/framework--prescan-strategy.mmd) · 交互版（下载到本地打开）：[`framework--prescan-strategy.html`](../../assets/architecture/perceives/framework--prescan-strategy.html)
 
 **降级保障**：LiteLLM 未安装或 LLM API 失败时，自动降级至 `method="auto"` 原有路径，确保功能可用性。
 
@@ -394,21 +225,9 @@ graph LR
 
 ### 请求处理流程
 
-```mermaid
-sequenceDiagram
-    participant C as MCP Client
-    participant T as MCP Tool
-    participant E as Processing Engine
-    participant I as Infrastructure
+![Perceives MCP 工具请求生命周期时序：MCP Client 调用 FastMCP 工具层（Pydantic 参数校验），经全局 2 rps 限速放行后由 run_operation 守卫调用 Pipeline 引擎执行，各 Stage 计时经 contextvars 记入 TaskTiming，最终以 Pydantic 类型化响应返回客户端。](../../assets/architecture/perceives/framework--lifecycle-sequence-dark.png)
 
-    C->>T: Tool Request
-    T->>T: 参数校验 (schemas)
-    T->>I: 频率限速 (部分工具)
-    T->>E: 引擎调用
-    E->>E: 执行处理
-    E-->>I: 指标记录 (_observability)
-    T->>C: 类型化响应 (Pydantic)
-```
+> 图源（可 diff 文本）：[`framework--lifecycle-sequence.mmd`](../../assets/mermaid/perceives/framework--lifecycle-sequence.mmd) · 交互版（下载到本地打开）：[`framework--lifecycle-sequence.html`](../../assets/architecture/perceives/framework--lifecycle-sequence.html)
 
 ## 基础设施层
 
@@ -422,20 +241,9 @@ sequenceDiagram
 
 ### 缓存流程
 
-```mermaid
-graph TD
-    A["Request"] --> B{"Memory Cache<br/>TTL 检查"}
-    B -->|"Hit 且未过期"| C["Return Cached"]
-    B -->|"Miss 或已过期"| D["Process Request"]
-    D --> E["写入缓存"]
-    E --> C
+![Pipeline 四个 Stage 发起 convert 请求后，Worker 子进程先查 _ConvertCache（TTL 300s 懒判）：命中且未过期直接返回缓存跳过推理，miss 或过期则走引擎推理并将非 None 结果回填缓存后返回。](../../assets/architecture/perceives/framework--request-flow-dark.png)
 
-    style A fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
-    style B fill:#7c2d12,stroke:#ea580c,color:#ffffff
-    style C fill:#166534,stroke:#22c55e,color:#ffffff
-    style D fill:#134e4a,stroke:#14b8a6,color:#ffffff
-    style E fill:#581c87,stroke:#9333ea,color:#ffffff
-```
+> 图源（可 diff 文本）：[`framework--request-flow.mmd`](../../assets/mermaid/perceives/framework--request-flow.mmd) · 交互版（下载到本地打开）：[`framework--request-flow.html`](../../assets/architecture/perceives/framework--request-flow.html)
 
 ### 错误处理
 

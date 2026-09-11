@@ -1,0 +1,25 @@
+%% source: docs/concepts/user-guide/chat-essentials.md
+%% slug: user-guide/chat-essentials--request-sequence
+%% type: sequence
+%% derived: archify
+%% fix: localStorage 键名订正为 negentropy:home:llm-model:<sessionId>（home-body.tsx:109），源文档所写 home.llm_model 无代码命中
+%% fix: 拆出 BFF（app/api/agui/route.ts）一跳——原图 H->>E 直连失真：NDJSON 仅存于浏览器↔BFF，BFF 对上游 ADK 用 SSE /run_sse（route.ts:132/136）
+%% fix: 消除 H->>H 自环——新建会话是 POST /api/agui/sessions 的真实网络往返（useSessionListService.ts:385），前端侧仅 pendingSendRef 暂存
+%% fix: RUN_STARTED / RUN_FINISHED 由 BFF 自造与兜底补发，TEXT_MESSAGE_* 由 AdkMessageStreamNormalizer 归一，发出方非 Engine
+sequenceDiagram
+  participant U as 用户
+  participant H as HomeBody
+  participant B as BFF Route
+  participant E as ADK Engine
+
+  U->>H: 选模型 → 写 localStorage
+  U->>H: 输入 → Enter
+  H->>B: POST /api/agui/sessions（无 sessionId 时）
+  B->>E: 创建 session
+  B-->>H: sessionId（pendingSendRef 接力发送）
+  H->>B: POST /api/agui（Accept: x-ndjson）
+  B->>E: POST /run_sse（SSE + state_delta）
+  E-->>B: ADK 事件流
+  B-->>H: RUN_STARTED
+  B-->>H: TEXT_MESSAGE_START/CONTENT/END
+  B-->>H: RUN_FINISHED（result: ok）

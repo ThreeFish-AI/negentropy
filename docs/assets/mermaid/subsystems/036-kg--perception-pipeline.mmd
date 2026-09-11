@@ -1,0 +1,53 @@
+%%source: docs/concepts/subsystems/036-the-knowledge-graph.md (block#0, §1.3 知识图谱在五翼架构中的定位)
+%%slug: subsystems/036-kg--perception-pipeline
+%%type: architecture
+%%derived: true
+%%{init: {"themeVariables": {"primaryColor": "#0b3d91", "primaryTextColor": "#ffffff", "primaryBorderColor": "#0b3d91", "secondaryColor": "#0f5132", "secondaryTextColor": "#ffffff", "tertiaryColor": "#842029", "tertiaryTextColor": "#ffffff"}}}%%
+flowchart TB
+    subgraph Perception["👁️ 感知系部"]
+        P_In["原始文本/文档"]
+        P_Out["知识块 (Chunks)"]
+        P_In --> P_Out
+    end
+
+    subgraph KG["💎 知识图谱引擎"]
+        direction TB
+        Extract["实体/关系提取<br/>(LLM + Regex)"]
+        Store["图存储<br/>(Apache AGE)"]
+        Algo["图算法<br/>(PageRank · 社区检测)"]
+        Retrieve["混合检索<br/>(Vector + Graph)"]
+        Extract --> Store --> Algo
+        Store --> Retrieve
+    end
+
+    subgraph Internalization["💎 内化系部"]
+        Memory["长期记忆"]
+        Facts["结构化事实"]
+    end
+
+    subgraph Contemplation["🧠 坐照系部"]
+        Reason["二阶思维"]
+        Plan["策略规划"]
+    end
+
+    subgraph Action["✋ 知行系部"]
+        Execute["精准执行"]
+    end
+
+    P_Out -->|"异步触发"| Extract
+    Retrieve -->|"GraphRAG 上下文"| Reason
+    Retrieve -->|"结构化知识"| Execute
+    Algo -->|"社区摘要"| Reason
+    Store -->|"实体-关系网络"| Memory
+    Store -->|"三元组"| Facts
+
+    classDef perception fill:#60A5FA,stroke:#1E3A8A,color:#000
+    classDef kg fill:#F59E0B,stroke:#92400E,color:#000
+    classDef wing fill:#10B981,stroke:#065F46,color:#FFF
+    classDef thinking fill:#8B5CF6,stroke:#4C1D95,color:#FFF
+
+    class P_In,P_Out perception
+    class Extract,Store,Algo,Retrieve kg
+    class Memory,Facts wing
+    class Reason,Plan thinking
+    class Execute wing

@@ -1,0 +1,17 @@
+%% source: docs/.agents/pdf-fidelity-patrol-status.md §2 五态机（块#0，L31-L42）
+%% slug: agents/patrol--doc-status-lifecycle
+%% type: lifecycle
+%% derived: byte-exact extraction of mermaid block #0
+%% fix: 合格阈值默认已由 95 收紧至 99（PR #1080；config/routine.patrol_qualified_score_threshold，env NE_ROUTINE_PATROL_QUALIFIED_SCORE_THRESHOLD 可调），源图「best_score≥95」为旧默认；迁移 0093 按部署时确定性快照仍硬编码 95
+%% fix: done 判定有优先级——契约自报 done 为最强信号优先，其次 best_score ≥ 阈值（persist_terminal_outcome），源图二条件并列
+%% fix: 「重置为未拟合」入口对 source_unavailable 亦开放（UI 门 = done/unfixable/source_unavailable 三态，documents/page.tsx；后端 reset_patrol_status 仅拦 running/paused 巡检）
+stateDiagram-v2
+    [*] --> 未巡检: NULL（迁移回填无 status 的文档）
+    未巡检 --> 正在巡检: spawn Routine（写 in_progress）
+    正在巡检 --> 拟合成功: finalize · best_score≥95 或 契约 done
+    正在巡检 --> 巡检失败: finalize · 否则（含首轮崩 best_score=NULL）
+    正在巡检 --> 未巡检: Routine cancelled（双守卫回退 NULL）
+    拟合成功 --> 未巡检: 用户「重置为未拟合」
+    巡检失败 --> 未巡检: 用户「重置为未拟合」
+    未巡检 --> 源文件缺失: stage 源 blob 永久丢失（Blob not found，未 spawn）
+    源文件缺失 --> 未巡检: 用户「重置为未拟合」（blob 恢复后重试）

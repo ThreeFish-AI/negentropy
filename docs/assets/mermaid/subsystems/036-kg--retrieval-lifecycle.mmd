@@ -1,0 +1,22 @@
+%%source: docs/concepts/subsystems/036-the-knowledge-graph.md §6.2 时态知识图谱（块#7，L875-L890）
+%%slug: subsystems/036-kg--retrieval-lifecycle
+%%type: lifecycle
+%%derived: byte-exact extraction of mermaid block #7
+%% fix: 双时态有效期仅存在于 kg_relations（valid_from/valid_to）；KgEntity 无此二列，源图「实体/关系创建」中的实体不受本状态机管辖
+%% fix: Superseded/Expired 的 [*] 非删除——expire_relations 只 UPDATE valid_to，历史行留存并可由 as_of 查询回放（GET /graph/timeline）
+%% fix: Superseded 的触发者是 TemporalResolver 的 UPDATE / CONTRADICTION 判定（证据变更或互斥类型目标冲突），非泛化的「新信息覆盖」
+%% fix: Current⇄Reinforced 的强化侧有实现（observation_count++ / mention_count++），但「无新引用」回落无任何代码路径，属概念态
+%%{init: {"themeVariables": {"primaryColor": "#0b3d91", "primaryTextColor": "#ffffff"}}}%%
+stateDiagram-v2
+    [*] --> Created: 实体/关系创建
+    Created --> Active: valid_from ≤ now
+    Active --> Superseded: 新信息覆盖<br/>设置 valid_to
+    Active --> Expired: 时间过期<br/>valid_to ≤ now
+    Superseded --> [*]
+    Expired --> [*]
+
+    state Active {
+        [*] --> Current
+        Current --> Reinforced: 多次被引用
+        Reinforced --> Current: 无新引用
+    }

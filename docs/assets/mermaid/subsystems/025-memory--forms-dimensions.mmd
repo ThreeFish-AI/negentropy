@@ -1,0 +1,40 @@
+%%source: docs/concepts/subsystems/025-the-memory-system.md#block0
+%%slug: subsystems/025-memory--forms-dimensions
+%%type: architecture
+%%derived: archify
+%% fix: EX→FL 边标签 "instructions 表" → "memories / skills 表"（仓库无 instructions 表；skills 表已实现）
+flowchart LR
+    subgraph Forms["形态维度 (Forms)"]
+        TK["Token-level<br/>显式上下文"]
+        PM["Parametric<br/>嵌入式向量"]
+        LT["Latent<br/>隐式参数化"]
+    end
+
+    subgraph Functions["功能维度 (Functions)"]
+        FA["Factual<br/>事实性记忆"]
+        EX["Experiential<br/>经验性记忆"]
+        WK["Working<br/>工作记忆"]
+    end
+
+    subgraph Topologies["拓扑维度 (Topologies)"]
+        FL["Flat (1D)<br/>线性列表"]
+        PL["Planar (2D)<br/>图/树结构"]
+        HI["Hierarchical (3D)<br/>多层级"]
+    end
+
+    TK -.->|memories.content| FA
+    PM -.->|memories.embedding| EX
+    FA -.->|facts 表| FL
+    EX -.->|instructions 表| FL
+    WK -.->|context_window| FL
+    PL -.->|"Knowledge Graph<br/>(Apache AGE)"| EX
+
+    style TK fill:#10B981,stroke:#065F46,color:#FFF
+    style PM fill:#10B981,stroke:#065F46,color:#FFF
+    style LT fill:#475569,stroke:#1E293B,color:#94A3B8,stroke-dasharray: 5 5
+    style FA fill:#10B981,stroke:#065F46,color:#FFF
+    style EX fill:#10B981,stroke:#065F46,color:#FFF
+    style WK fill:#10B981,stroke:#065F46,color:#FFF
+    style FL fill:#10B981,stroke:#065F46,color:#FFF
+    style PL fill:#F59E0B,stroke:#92400E,color:#000
+    style HI fill:#475569,stroke:#1E293B,color:#94A3B8,stroke-dasharray: 5 5

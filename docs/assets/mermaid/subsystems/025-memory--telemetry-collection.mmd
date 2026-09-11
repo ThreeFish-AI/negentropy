@@ -1,0 +1,43 @@
+%%source: docs/concepts/subsystems/025-the-memory-system.md#block13
+%%slug: subsystems/025-memory--telemetry-collection
+%%type: dataflow
+%%derived: true
+flowchart LR
+    subgraph Collect["数据采集层"]
+        LF["Langfuse Traces<br/>检索延迟 · LLM 调用"]
+        SL["结构化日志<br/>embedding 成功/失败"]
+        SQL["SQL 查询<br/>retention_score 分布"]
+        API["API Metrics<br/>automation 健康度"]
+    end
+
+    subgraph Compute["指标计算层"]
+        AGG["聚合引擎<br/>P95 · AVG · COUNT"]
+        WIN["窗口函数<br/>7d/30d 趋势"]
+    end
+
+    subgraph Display["展示层 (Memory Dashboard)"]
+        H["健康度面板<br/>L0 指标"]
+        Q["记忆质量面板<br/>L1 指标"]
+        R["检索效果面板<br/>L2 指标"]
+        B["业务影响面板<br/>L3 指标"]
+    end
+
+    LF --> AGG
+    SL --> AGG
+    SQL --> AGG
+    API --> AGG
+
+    AGG --> WIN
+
+    WIN --> H
+    WIN --> Q
+    WIN --> R
+    WIN --> B
+
+    classDef collect fill:#60A5FA,stroke:#1E3A8A,color:#000
+    classDef compute fill:#F59E0B,stroke:#92400E,color:#000
+    classDef display fill:#10B981,stroke:#065F46,color:#FFF
+
+    class LF,SL,SQL,API collect
+    class AGG,WIN compute
+    class H,Q,R,B display

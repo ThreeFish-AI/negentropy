@@ -1,0 +1,22 @@
+%% source: docs/.agents/issue.md ISSUE-066 根因（块#0，L1701-L1718，列表项内缩进 2 空格）
+%% slug: agents/issue--session-stale-sequence
+%% type: sequence
+%% derived: byte-exact extraction of mermaid block #0（保留每行行首缩进）
+%% fix: 源图 SUS->>SUS 自环实为 HTTP 调用——POST /api/agui/sessions 打到 /api/agui 路由（BFF），重绘改为 SUS→BFF 并补 201·session B 返回
+%% fix: 「8ms race window」为复现轮实测值，issue 正文口径为实测 3-11ms 竞速窗口
+  sequenceDiagram
+      participant U as 用户
+      participant SL as SessionList (+New)
+      participant SUS as useSessionListService
+      participant P as page.tsx (sessionId / agent)
+      participant HB as home-body.tsx (sendInput)
+      participant BFF as /api/agui/route.ts
+      Note over U,BFF: 8ms race window
+      U->>SL: 点击 +New
+      SL->>SUS: onNewSession()
+      SUS->>SUS: POST /api/agui/sessions → B
+      SUS->>P: setSessionId(B) → router.replace("?sessionId=B")
+      Note over P: router.replace 异步！React 未 flush
+      U->>HB: 立即 Send（8ms 内）
+      Note over HB: 闭包中 sessionId=旧A, agent.threadId=旧A
+      HB->>BFF: POST /api/agui?session_id=A（错误路由）

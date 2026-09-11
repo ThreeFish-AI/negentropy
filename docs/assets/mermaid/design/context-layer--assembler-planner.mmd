@@ -1,0 +1,34 @@
+%%source: docs/concepts/design/context-layer.md#block4 (L280-L311, §5.2)
+%%slug: design/context-layer--assembler-planner
+%%type: workflow
+%%derived: archify workflow v2, byte-extract of source mermaid
+graph TD
+    Q["用户请求"] --> ROUTER{"Context Router<br/>route_context()"}
+    ROUTER -->|"auto 自动注入"| CA["ContextAssembler（扩展）"]
+    ROUTER -->|"on_demand 深度检索"| HP["HybridPlanner（扩展）"]
+
+    CA --> CA1["记忆 + KG 摘要<br/>（既有）"]
+    CA --> CA2["✨ KB chunk 接地片段<br/>top-3 chunks（新增，~200 token）"]
+    CA1 --> MERGE["归一信任排名"]
+    CA2 --> MERGE
+
+    HP --> HP1["Memory hybrid_search<br/>（✨ 新增种子源）"]
+    HP --> HP2["KB per-corpus hybrid_search<br/>（既有）"]
+    HP --> HP3["KG 图扩展<br/>（既有）"]
+    HP1 --> RRF["RRF 跨源融合 + Rerank"]
+    HP2 --> RRF
+    HP3 --> RRF
+
+    MERGE --> GUARD{"ContextGuard<br/>PII 扫描 + corpus 访问校验"}
+    RRF --> GUARD
+    GUARD -->|"所有路径含回退"| LLM["LLM Prompt"]
+
+    classDef router fill:#1f4d2e,stroke:#5bbd7c,stroke-width:2px,color:#e8fbef
+    classDef ext fill:#3d2c52,stroke:#a07cc5,stroke-width:2px,color:#f3e9fb
+    classDef new fill:#1f3a5f,stroke:#5b9bd5,stroke-width:2px,color:#e8f0fe
+    classDef guard fill:#4d1f1f,stroke:#d55b5b,stroke-width:2px,color:#fde8e8
+    class ROUTER router
+    class CA,HP ext
+    class CA2,HP1 new
+    class GUARD guard
+    class MERGE,RRF,LLM ext

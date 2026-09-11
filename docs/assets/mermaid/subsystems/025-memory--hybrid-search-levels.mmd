@@ -1,0 +1,36 @@
+%%source: docs/concepts/subsystems/025-the-memory-system.md#block8
+%%slug: subsystems/025-memory--hybrid-search-levels
+%%type: workflow
+%%derived: archify
+%% fix: 决策门由「有 embedding_fn？」校正为「query 向量可用？」（代码门为 query_embedding is not None：embedding_fn 存在但向量化失败同样落入文本通道）；BM25→ILIKE 边由「失败/无 search_vector」校正为「失败/空结果」（代码空结果同样回退）
+flowchart TD
+    Q["search_memory(query)"] --> EMB{有 embedding_fn？}
+
+    EMB -->|是| HYB["Level 1: Hybrid Search<br/>DB 原生 hybrid_search() 函数<br/>semantic_weight=0.7 + keyword_weight=0.3"]
+    HYB -->|成功| TAG["标记 search_level=hybrid<br/>score_type=combined"]
+    HYB -->|失败/降级| VEC["Level 2: Vector Search<br/>embedding <=> query_embedding<br/>pgvector cosine distance"]
+    VEC --> TAG2["标记 search_level=vector<br/>score_type=cosine_distance"]
+
+    EMB -->|否| BM25["Level 3: BM25 Keyword Search<br/>search_vector @@ plainto_tsquery<br/>ts_rank_cd 排序"]
+    BM25 -->|成功| TAG3["标记 search_level=keyword<br/>score_type=ts_rank"]
+    BM25 -->|失败/无 search_vector| ILK["Level 4: ilike Fallback<br/>content ILIKE '%escaped_query%'<br/>通配符转义防注入"]
+    ILK --> TAG4["标记 search_level=ilike<br/>score_type=retention_proxy"]
+
+    TAG --> REC["记录访问 → 返回结果"]
+    TAG2 --> REC
+    TAG3 --> REC
+    TAG4 --> REC
+
+    classDef query fill:#8B5CF6,stroke:#4C1D95,color:#FFF
+    classDef level1 fill:#10B981,stroke:#065F46,color:#FFF
+    classDef level2 fill:#3B82F6,stroke:#1E40AF,color:#FFF
+    classDef level3 fill:#F59E0B,stroke:#92400E,color:#000
+    classDef level4 fill:#EF4444,stroke:#991B1B,color:#FFF
+    classDef result fill:#10B981,stroke:#065F46,color:#FFF
+
+    class Q query
+    class HYB level1
+    class VEC level2
+    class BM25 level3
+    class ILK level4
+    class REC result

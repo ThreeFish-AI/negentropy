@@ -41,22 +41,12 @@ You've probably test-driven your fair share of agentic systems by now, and inevi
 
 **Negentropy's Answer**: We engage these entropic forms head-on. The goal isn't just to build another Agent, but to forge a **continuously self-evolving cognitive system**.
 
-```mermaid
-graph TB
-    Root["🔮 NegentropyEngine<br/>(The Self · Scheduling Core)"]
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./docs/assets/architecture/core/readme--faculties-en-dark.png">
+  <img src="./docs/assets/architecture/core/readme--faculties-en-light.png" width="720" alt="One Root, Five Wings: the NegentropyEngine root agent (The Self · Scheduling Core, orchestration only) dispatches intents via transfer_to_agent to five orthogonal faculties — The Eye Perception, The Soul Internalization, The Mind Contemplation, The Hand Action, The Voice Influence — each of which combats one entropic failure mode: information overload, amnesia, superficiality, all talk, and obscurity.">
+</picture>
 
-    Root -->|"transfer_to_agent"| P["👁️ The Eye · Perception Faculty"]
-    Root -->|"transfer_to_agent"| I["💎 The Soul · Internalization Faculty"]
-    Root -->|"transfer_to_agent"| C["🧠 The Mind · Contemplation Faculty"]
-    Root -->|"transfer_to_agent"| A["✋ The Hand · Action Faculty"]
-    Root -->|"transfer_to_agent"| Inf["🗣️ The Voice · Influence Faculty"]
-
-    P -->|Combats| O["Information Overload<br/>Noise Drowning Signal"]
-    I -->|Combats| F["Amnesia<br/>Knowledge Fragmentation"]
-    C -->|Combats| S["Superficiality<br/>Surface-Level Responses"]
-    A -->|Combats| E["All Talk<br/>Cognitive-Action Disconnect"]
-    Inf -->|Combats| Obs["Obscurity<br/>Value Degradation"]
-```
+<sub>Diagram source (diff-able text): [readme--faculties-en.mmd](./docs/assets/mermaid/core/readme--faculties-en.mmd) · Interactive version (open locally): [readme--faculties-en.html](./docs/assets/architecture/core/readme--faculties-en.html)</sub>
 
 ---
 
@@ -80,7 +70,7 @@ graph TB
 
 ## ✨ Quick Start
 
-> **One command brings up the full stack** (postgres + perceives + backend + ui + wiki) with **zero cloud credentials** required to boot. LLM chat is activated by **one of OpenAI / Anthropic / Gemini API keys**; for a fully local, zero-key setup, see [Local LLM (Ollama)](./docs/concepts/local-llm-ollama.md).
+> **One command brings up the full stack** (postgres + perceives + backend + ui + wiki) with **zero cloud credentials** required to boot. LLM chat is activated by **one of OpenAI / Anthropic / Gemini API keys**; for a fully local, zero-key setup, see [Local LLM (Ollama)](./docs/concepts/operations/local-llm-ollama.md).
 
 ### Prerequisites
 
@@ -93,7 +83,7 @@ graph TB
 
 </center>
 
-> The Docker path needs **no** local PostgreSQL. The native path needs a pgvector-enabled Postgres (see [Development Guide](./docs/concepts/development.md)). `mise` / `asdf` users get the right Python & Node automatically via the root `.tool-versions`.
+> The Docker path needs **no** local PostgreSQL. The native path needs a pgvector-enabled Postgres (see [Development Guide](./docs/concepts/operations/development.md)). `mise` / `asdf` users get the right Python & Node automatically via the root `.tool-versions`.
 
 ### A. One-click (Docker, recommended)
 
@@ -136,9 +126,9 @@ cd negentropy
 - Preflight self-check: `./scripts/dev doctor`
 - All subcommands: `./scripts/dev help`
 - Contributors: `uv tool install pre-commit && pre-commit install`
-- Env setup, migrations, integrations, troubleshooting: [Development Guide](./docs/concepts/development.md)
-- Zero-key local LLM: [Local LLM (Ollama)](./docs/concepts/local-llm-ollama.md)
-- Docker operations (production deploy): [Docker Operations](./docs/concepts/docker-operations.md)
+- Env setup, migrations, integrations, troubleshooting: [Development Guide](./docs/concepts/operations/development.md)
+- Zero-key local LLM: [Local LLM (Ollama)](./docs/concepts/operations/local-llm-ollama.md)
+- Docker operations (production deploy): [Docker Operations](./docs/concepts/operations/docker-operations.md)
 
 ---
 
@@ -169,12 +159,12 @@ The **NegentropyEngine** refrains from executing atomic tasks directly; it exist
 ### Three-Tier Architecture
 
 <p align="center">
-  <img src="./docs/assets/architecture/negentropy-architecture-story.gif" width="720" alt="Animated walkthrough of the Negentropy three-tier architecture. Four flows are traced in turn - chat request, knowledge ingestion, static wiki delivery, models and sandbox - across a Presentation tier (negentropy-ui, negentropy-wiki), an Engine tier (Backend API, the NegentropyEngine root agent, three pipelines, five faculties) and an Infrastructure tier (OpenTelemetry with Langfuse, MicroSandbox, LiteLLM, negentropy-perceives, PostgreSQL 17). Each beat lights one hop and dims the rest. The full component inventory and all eleven relationships are tabulated below." />
+  <img src="./docs/assets/architecture/core/negentropy-architecture-story.gif" width="720" alt="Animated walkthrough of the Negentropy three-tier architecture. Four flows are traced in turn - chat request, knowledge ingestion, static wiki delivery, models and sandbox - across a Presentation tier (negentropy-ui, negentropy-wiki), an Engine tier (Backend API, the NegentropyEngine root agent, three pipelines, five faculties) and an Infrastructure tier (OpenTelemetry with Langfuse, MicroSandbox, LiteLLM, negentropy-perceives, PostgreSQL 17). Each beat lights one hop and dims the rest. The full component inventory and all eleven relationships are tabulated below." />
 </p>
 
 <p align="center">
   <sub><b>4 flows · 13 beats.</b> Each beat lights one hop and dims the rest - so you see what a request actually touches, and what it never does.<br/>
-  Prefer no motion? The same diagram, still at 5120×2880: <a href="./docs/assets/architecture/negentropy-architecture-dark.png">dark</a> · <a href="./docs/assets/architecture/negentropy-architecture-light.png">light</a> · <a href="./docs/assets/architecture/negentropy-architecture.svg">vector</a></sub>
+  Prefer no motion? The same diagram, still at 5120×2880: <a href="./docs/assets/architecture/core/negentropy-architecture-dark.png">dark</a> · <a href="./docs/assets/architecture/core/negentropy-architecture-light.png">light</a> · <a href="./docs/assets/architecture/core/negentropy-architecture.svg">vector</a></sub>
 </p>
 
 **Three tiers, 11 components, 11 relationships.** Tier boundaries are contracts, not conventions: applications collaborate only over network protocols (AG-UI / HTTP / MCP) or build-time static artifacts - never by importing one another's source.
@@ -195,59 +185,11 @@ Those 11 relationships resolve into **four flows plus one cross-cut** - the same
 
 **Explore further**
 
-- 🖱️ **Interactive diagram** - [architecture-diagram.html](./docs/concepts/architecture-diagram.html): pan / zoom / node search, relationship focus, light-dark toggle, a replayable guided story of 4 chapters and 13 beats, and **11 deep links jumping straight to the source file that substantiates each component**. Download and open locally for the full interaction.
-- 🎬 **Motion story** - [negentropy-architecture-story.mp4](./docs/assets/architecture/negentropy-architecture-story.mp4): the same 29-second walkthrough at 1280×720 - sharper than the GIF above, which is capped at 720 px to stay under the repository's 1 MiB per-file limit.
-- 📝 **Diagram source** - the Mermaid block kept below is the single editable source: archify rebuilds the interactive HTML from it, and the capture script derives every artifact above. It doubles as the diffable baseline.
+- 🖱️ **Interactive diagram** - [architecture-diagram.html](./docs/assets/architecture/core/architecture-diagram.html): pan / zoom / node search, relationship focus, light-dark toggle, a replayable guided story of 4 chapters and 13 beats, and **11 deep links jumping straight to the source file that substantiates each component**. Download and open locally for the full interaction.
+- 🎬 **Motion story** - [negentropy-architecture-story.mp4](./docs/assets/architecture/core/negentropy-architecture-story.mp4): the same 29-second walkthrough at 1280×720 - sharper than the GIF above, which is capped at 720 px to stay under the repository's 1 MiB per-file limit.
+- 📝 **Diagram source** - [`negentropy-architecture.mmd`](./docs/assets/mermaid/core/negentropy-architecture.mmd) is the single editable source: archify rebuilds the interactive HTML from it, and the capture script derives every artifact above. It doubles as the diffable baseline.
 
-<details>
-<summary><b>Diagram text source</b> - the Mermaid baseline every artifact above is regenerated from (via archify + the capture script)</summary>
-
-```mermaid
-graph TB
-    subgraph Presentation["🖥️ Presentation Layer"]
-        UI["negentropy-ui<br/><i>Next.js 16 · React 19 · Tailwind</i>"]
-        Wiki["negentropy-wiki<br/><i>Next.js · pure static export</i>"]
-    end
-
-    subgraph Engine["⚙️ Engine Layer"]
-        API["Backend API<br/><i>ADK Web · FastAPI</i>"]
-        Root["🔮 NegentropyEngine<br/>Root Agent (The Self)"]
-        Faculties["Five Faculties<br/>👁️ Perception <br> 💎 Internalization <br> 🧠 Contemplation <br> ✋ Action <br> 🗣️ Influence"]
-        Pipelines["Three Pipelines<br/>Knowledge Acquisition <br> Problem Solving <br> Value Delivery"]
-    end
-
-    subgraph Infra["🏗️ Infrastructure Layer"]
-        Perceives["negentropy-perceives<br/><i>MCP Server · :2992</i>"]
-        DB[("PostgreSQL 17<br/>pgvector")]
-        LLM["LiteLLM<br/>100+ LLMs Unified API"]
-        OTel["OpenTelemetry · Langfuse"]
-        Sandbox["MicroSandbox"]
-    end
-
-    UI -->|"AG-UI Protocol (BFF)"| API
-    API -.->|"static content · baked at build time"| Wiki
-    API --> Root
-    Root --> Faculties
-    Root --> Pipelines
-    Pipelines --> Faculties
-    Faculties --> DB
-    Faculties -->|"MCP"| Perceives
-    Faculties --> Sandbox
-    Root --> LLM
-    API -.-> OTel
-
-    classDef pres fill:#60A5FA,stroke:#1E3A8A,color:#000
-    classDef eng fill:#F59E0B,stroke:#92400E,color:#000
-    classDef infra fill:#10B981,stroke:#065F46,color:#FFF
-
-    class UI,Wiki pres
-    class API,Root,Faculties,Pipelines eng
-    class Perceives,DB,LLM,OTel,Sandbox infra
-```
-
-Edit this block first, regenerate [`architecture-diagram.html`](./docs/concepts/architecture-diagram.html) from it with the `archify` skill (wholesale replacement - the capture script reads only this HTML), then run [`scripts/capture-arch-media.mjs`](./scripts/capture-arch-media.mjs) to re-derive the artifacts. Never hand-edit the generated HTML - see [doc-media-assets.md](./docs/.agents/doc-media-assets.md).
-
-</details>
+> **Diagram text source** - [`docs/assets/mermaid/core/negentropy-architecture.mmd`](./docs/assets/mermaid/core/negentropy-architecture.mmd): the single editable, diff-friendly baseline every artifact above is regenerated from. Edit it first, rebuild [`architecture-diagram.html`](./docs/assets/architecture/core/architecture-diagram.html) with the `archify` skill (wholesale replacement - the capture script reads only this HTML), then run [`scripts/capture-arch-media.mjs`](./scripts/capture-arch-media.mjs) to re-derive the artifacts. Never hand-edit the generated HTML - see [doc-media-assets.md](./docs/.agents/doc-media-assets.md).
 
 ---
 
@@ -257,18 +199,18 @@ Edit this block first, regenerate [`architecture-diagram.html`](./docs/concepts/
 
 | Document                                                          | Description                                                                                     |
 | :---------------------------------------------------------------- | :---------------------------------------------------------------------------------------------- |
-| [User Guide](./docs/user-guide.md)                                | End-user guide covering all features: chat, knowledge, memory, plugins, admin, and wiki         |
-| [Development Guide](./docs/concepts/development.md)               | Environment setup, daily workflows, db migrations, integrations, troubleshooting                |
-| [Docker Operations](./docs/concepts/docker-operations.md)         | Compose service topology, local one-click path, production deploy, ops runbook                  |
-| [Local LLM (Ollama)](./docs/concepts/local-llm-ollama.md)         | Optional zero-key local LLM via Ollama (install, register, caveats)                             |
+| [User Guide](./docs/README.md)                                | End-user guide covering all features: chat, knowledge, memory, plugins, admin, and wiki         |
+| [Development Guide](./docs/concepts/operations/development.md)               | Environment setup, daily workflows, db migrations, integrations, troubleshooting                |
+| [Docker Operations](./docs/concepts/operations/docker-operations.md)         | Compose service topology, local one-click path, production deploy, ops runbook                  |
+| [Local LLM (Ollama)](./docs/concepts/operations/local-llm-ollama.md)         | Optional zero-key local LLM via Ollama (install, register, caveats)                             |
 | [Architecture Design](./docs/concepts/framework.md)               | Deep dive into the One Root/Five Wings, pipeline choreography, design patterns, engine workings |
-| [Knowledge System](docs/concepts/035-the-knowledge-base.md)       | Detailed design and usage of the knowledge management module                                    |
-| [Memory System](docs/concepts/025-the-memory-system.md)           | Memory lifecycle, forgetting curves, and governance mechanics                                   |
-| [Knowledge Graph](docs/concepts/036-the-knowledge-graph.md)       | Graph modeling and query implementation                                                         |
+| [Knowledge System](./docs/concepts/subsystems/035-the-knowledge-base.md)       | Detailed design and usage of the knowledge management module                                    |
+| [Memory System](./docs/concepts/subsystems/025-the-memory-system.md)           | Memory lifecycle, forgetting curves, and governance mechanics                                   |
+| [Knowledge Graph](./docs/concepts/subsystems/036-the-knowledge-graph.md)       | Graph modeling and query implementation                                                         |
 | [QA Pipeline](./docs/concepts/design/qa-delivery-pipeline.md)     | Quality gates and release workflows                                                             |
 | [SSO Integration](./docs/concepts/design/sso.md)                  | Google OAuth authentication config                                                              |
-| [Engineering Changelog](./docs/concepts/engineering-changelog.md) | Milestones and baseline mutation records                                                        |
-| [AI Collaboration Protocol](./AGENTS.md)                          | Agent cooperation guidelines and engineering codebase                                           |
+| [Engineering Changelog](./docs/concepts/operations/engineering-changelog.md) | Milestones and baseline mutation records                                                        |
+| [Agent-side Docs](./docs/.agents/knowledge-map.md)                | Knowledge index: agent-side conventions, issue log, and media-asset governance                 |
 
 </center>
 
@@ -278,7 +220,7 @@ Edit this block first, regenerate [`architecture-diagram.html`](./docs/concepts/
 
 If you're holding onto an inspiration that pulls chaos back into order, or if you bump into any snags while navigating the system, please don't hesitate to share your wisdom:
 
-1. Before hitting the keyboard, kindly take a detour through the [Development Guide](./docs/concepts/development.md).
+1. Before hitting the keyboard, kindly take a detour through the [Development Guide](./docs/concepts/operations/development.md).
 2. Sling your game-changing ideas into our [Issues](https://github.com/ThreeFish-AI/negentropy/issues) or directly submit a [Pull Request](https://github.com/ThreeFish-AI/negentropy/pulls) packing some serious paradigm-shifting power.
 
 Please hold "Entropy Reduction," "Context-Driven," and "Evidence-Based Engineering" as your **core principles**, ensuring every mutation aligns perfectly with Systemic Integrity.
