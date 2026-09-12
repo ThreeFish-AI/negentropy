@@ -119,7 +119,7 @@ customers.plan is not PRIMARY KEY/UNIQUE—— 无门则垃圾定义静默入库
 
 ## 7. 开放互操作：定义的「通用插头」
 
-**机制**：两条开放路径——①**OSI → Apache Ossie（Incubating）**：YAML/JSON 语义模型规范（metrics/dimensions/relationships），2025-09 由 Snowflake + Salesforce + dbt Labs 等 17 家发起，进 Apache 孵化器后 50+ 组织参与、3 个工作组（Metric Language / Catalog / Ontology），已交付 dbt MetricFlow、Apache Polaris、Snowflake Semantic Model 三个转换器；语义视图可经 `SYSTEM$CREATE_SEMANTIC_VIEW_FROM_YAML` 导入。②**MCP**：Snowflake 官方管理的 MCP server 把语义视图（经 Cortex Analyst）与 Cortex Search 暴露给外部 agent——Claude Desktop / Claude Code / Cursor 添加 custom connector 即可「受治理地」问数。
+**机制**：两条开放路径——①**OSI → Apache Ossie（Incubating）**：YAML/JSON 语义模型规范（metrics/dimensions/relationships），2025-11 由 Snowflake + Salesforce + dbt Labs 等 17 家发起，进 Apache 孵化器后 50+ 组织参与、3 个工作组（Metric Language / Catalog / Ontology），已交付 dbt MetricFlow、Apache Polaris、Snowflake Semantic Model 三个转换器；语义视图可经 `SYSTEM$CREATE_SEMANTIC_VIEW_FROM_YAML` 导入。②**MCP**：Snowflake 官方管理的 MCP server 把语义视图（经 Cortex Analyst）与 Cortex Search 暴露给外部 agent——Claude Desktop / Claude Code / Cursor 添加 custom connector 即可「受治理地」问数。
 
 **原型实景**——MCP 服务原型（[`assets/horizon_context_mcp.py`](./assets/horizon_context_mcp.py)，纯标准库 stdio JSON-RPC，实际运行输出）：
 
@@ -143,7 +143,7 @@ customers.plan is not PRIMARY KEY/UNIQUE—— 无门则垃圾定义静默入库
 | OSI → Apache Ossie | 17 创始伙伴 → 50+ 组织；100+ commits / 35 PRs | 语义可携带已成行业共识，非单一厂商私产 |
 | 本原型 | 200 vs 440；7 vs 24；[3,1,2] vs [6,1,2]；108.33 vs 122.22 | 六机制在玩具域的逐点复现（§9） |
 
-## 9. 动手实验室：把机制亲手拆坏八次
+## 9. 动手实验室：把机制亲手拆坏七次
 
 运行方式（秒级，仓库根目录执行）：
 
@@ -174,9 +174,9 @@ uv run --no-project python docs/reference/paper-notes/assets/horizon_context_mcp
 | D4 | 冲突策略改 `auto_popularity` | 推断层 count(events) 胜出 [6,1,2]（对照 [3,1,2]） | 「不自动选」保住的正是多数派错误不碾压正确口径 |
 | D5 | `enforce_rbac=False` | intern 按 plan 拿到 [90,560]（泄露发生） | 检索层过滤是体验，执行层拒绝才是治理 |
 | D6 | 跳过 validate 注册坏视图 | relationship 指向非键列被拦下；无门则垃圾定义静默入库 | 结构校验是行数失控的注册期前置防线 |
-| D8 | `derived_post_agg=False` | aov 122.22（对照 108.33） | 平均的平均不是平均——derived 必须先聚后除 |
+| D7 | `derived_post_agg=False` | aov 122.22（对照 108.33） | 平均的平均不是平均——derived 必须先聚后除 |
 
-八次实验合起来的实践心得与 PG 一致：每个组件单拎出来都不神奇，**拆掉任何一个都有具体的、可复现的坏法**——这是判别「工程组合创新」成色的试金石。
+七次实验合起来的实践心得与 PG 一致：每个组件单拎出来都不神奇，**拆掉任何一个都有具体的、可复现的坏法**——这是判别「工程组合创新」成色的试金石。
 
 ## 10. 批判性边界（材料没有证明的事）
 

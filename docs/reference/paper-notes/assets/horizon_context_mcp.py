@@ -26,9 +26,10 @@ import json
 import subprocess
 import sys
 
-from horizon_context_lab import (CATALOG, POP_CAP, VIEWS, AccessDenied,
-                                  AmbiguousJoinPath, ConflictingDefinitionError,
-                                  compile_query, freshness, resolve)
+from horizon_context_lab import (CATALOG, POP_CAP, PRIVATE_ALLOWED, VIEWS,
+                                  AccessDenied, AmbiguousJoinPath,
+                                  ConflictingDefinitionError, compile_query,
+                                  freshness, resolve)
 
 PROTOCOL = "2025-06-18"
 SERVER_INFO = {"name": "horizon-context-lab", "version": "0.1.0"}
@@ -66,7 +67,8 @@ TOOLS = [
      "inputSchema": {"type": "object", "required": ["name", "verdict"],
                      "properties": {"name": {"type": "string"},
                                     "verdict": {"type": "string",
-                                                "enum": ["up", "down"]}}}},
+                                                "enum": ["up", "down"]},
+                                    "source": {"type": "string"}}}},
 ]
 
 _FEEDBACK_STEP = 50
@@ -79,11 +81,21 @@ def _find_metric_view(metric: str):
     return None
 
 
+def _entry_private(e) -> bool:
+    """governed 条目的可见性取自其 backing 指标声明（inferred 无此语义，恒可见）。"""
+    if e.source != "governed" or not e.view:
+        return False
+    metric = next((x for x in e.view.metrics if x.name == e.metric_name), None)
+    return metric is not None and metric.visibility == "PRIVATE"
+
+
 def _t_list_objects(args):
     role = args.get("role", "analyst")
     items = []
     for e in CATALOG.entries:
         if e.status == "rejected":
+            continue
+        if role not in PRIVATE_ALLOWED and _entry_private(e):  # 检索层 RBAC 过滤
             continue
         items.append({"name": e.name, "source": e.source, "authority": e.authority,
                       "popularity": e.popularity,
@@ -157,8 +169,8 @@ def handle_request(msg: dict):
         return out
 
     if method == "initialize":
-        return reply({"protocolVersion": msg.get("params", {}).get(
-            "protocolVersion", PROTOCOL), "capabilities": {"tools": {}},
+        # 仅回应自身支持版（MCP 版本协商：客户端请求的版本不支持时不回显）
+        return reply({"protocolVersion": PROTOCOL, "capabilities": {"tools": {}},
             "serverInfo": SERVER_INFO,
             "instructions": "Governed context layer toy server (Horizon Context lab)."})
     if method in ("notifications/initialized", "notifications/cancelled"):
@@ -232,10 +244,31 @@ def selftest():
            and handle_request({"jsonrpc": "2.0", "method": "notifications/initialized"})
            is None,
            "initialize 握手回显 + notification 无响应")
+    old_ver = handle_request({"jsonrpc": "2.0", "id": 10, "method": "initialize",
+                              "params": {"protocolVersion": "2024-11-05"}})
+    expect("T1b", old_ver["result"]["protocolVersion"] == PROTOCOL,
+           f"不支持版本 → 回应自身支持版 {PROTOCOL}（不回显）")
     lst = handle_request({"jsonrpc": "2.0", "id": 2, "method": "tools/list"})
     expect("T2", [t["name"] for t in lst["result"]["tools"]] ==
            ["list_context_objects", "resolve_context", "compile_metric",
             "report_feedback"], "tools/list 四工具齐全")
+    rev = next(m for m in VIEWS[0].metrics if m.name == "revenue")
+    rev.visibility = "PRIVATE"                    # 临时翻转验证下发过滤，finally 还原
+    try:
+        objs = {role: json.loads(_call("list_context_objects", {"role": role})
+                                 ["content"][0]["text"])["objects"]
+                for role in ("intern", "analyst")}
+    finally:
+        rev.visibility = "PUBLIC"
+    expect("T2b", "revenue" not in {o["name"] for o in objs["intern"]
+                                    if o["source"] == "governed"}
+           and any(o["name"] == "revenue" and o["source"] == "governed"
+                   for o in objs["analyst"])
+           and any(o["name"] == "revenue" and o["source"] == "legacy"
+                   for o in objs["intern"]),
+           f"list RBAC 过滤: PRIVATE 指标对 intern 不下发（governed revenue 隐藏、"
+           f"legacy 同名仍可见）；analyst 全量（intern {len(objs['intern'])} 条 / "
+           f"analyst {len(objs['analyst'])} 条）")
     r = _call("resolve_context", {"question": "marketing spend by channel"})
     payload = json.loads(r["content"][0]["text"])
     expect("T3", payload["entries"][0]["name"] == "spend"

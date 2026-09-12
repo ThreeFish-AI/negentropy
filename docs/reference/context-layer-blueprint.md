@@ -130,7 +130,7 @@ Typedef 批判的核心（详见笔记 §10-4）：governed 定义在**上游已
 
 | 阶段 | 内容 | 验收 |
 | --- | --- | --- |
-| **P0 机制验证（已完成）** | 六机制玩具域 + MCP stdio 原型 + 8 次破坏性实验 | selftest 全绿；引擎层 RBAC 经 MCP 仍生效 |
+| **P0 机制验证（已完成）** | 六机制玩具域 + MCP stdio 原型 + 7 次破坏性实验 | selftest 全绿；引擎层 RBAC 经 MCP 仍生效 |
 | **P1 最小服务** | 对象 CRUD + resolve + MCP 四工具 + 双层 RBAC + 审计日志，接一个真实 agent 客户端 | 真实客户端经 MCP 命中 verified query 短路；越权被拒且有审计 |
 | **P2 信任与自纠** | 四因子归一（有界变换 + 单一 staleness）+ 冲突浮出 + 反馈闭环 + verified QA 沉淀 | 排序可解释；CONFLICT 卡片全程无数字；反馈改变排序可复现 |
 | **P3 互操作** | Ossie YAML 导入导出 + per-role context + 表达式级 derived 校验 | 第三方语义模型可导入即用；跨角色上下文隔离 |
