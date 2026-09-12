@@ -1,0 +1,14 @@
+%%source: docs/reference/context-layer-blueprint.md#block1 (L95-L104, §2 上下文对象生命周期)
+%%slug: paper-notes/context-layer-blueprint--object-lifecycle
+%%type: lifecycle
+%%derived: archify lifecycle v1, authored from source mermaid
+stateDiagram-v2
+    [*] --> draft: 作者创建 / Autopilot 生成
+    draft --> governed: 结构校验门 + 评审
+    draft --> rejected: 校验失败
+    governed --> conflict: 同名异义被目录检出
+    conflict --> governed: 人工裁决（胜者）
+    conflict --> rejected: 人工裁决（败者）
+    governed --> superseded: 新版本取代（保留参与排序，freshness 衰减）
+    rejected --> [*]
+    superseded --> [*]

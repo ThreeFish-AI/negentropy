@@ -40,27 +40,9 @@
 
 四层上下文分类法（官方 FAQ）：**Structural**（有什么、怎么连）/ **Operational**（查询、新鲜度、性能）/ **Semantic**（定义、指标、本体）/ **Behavioral**（热度、用法模式）——这四层就是 Collect→Enrich→Activate 流水线上流转的原料。
 
-```mermaid
-flowchart LR
-    subgraph "Collect 汇聚"
-        S1["🗄️ 元数据连接器<br/>Tableau / Power BI / dbt / PG / MSSQL"] --> C
-        S2["📜 查询日志 / 流行度"] --> C
-        S3["🕸️ OpenLineage 血缘"] --> C
-        C["📚 Horizon Catalog<br/>Structural · Operational · Semantic · Behavioral"]
-    end
-    subgraph "Enrich 富化"
-        C --> G["🏛️ 显式轨道：Semantic Views<br/>金标准 authority=1.0<br/>（Autopilot / Semantic Studio）"]
-        C --> I["🔍 隐式轨道：Cortex Sense<br/>authority=0.3<br/>从查询日志 / BI 信号挖掘"]
-        G <-->|"同名冲突 → 浮出人工裁决"| I
-    end
-    subgraph "Activate 激活"
-        G --> R["🧭 四因子混合排序<br/>relevance / authority / popularity / freshness"]
-        I --> R
-        R --> A1["🤖 CoCo / CoWork"]
-        R --> A2["📊 BI（Tableau / PowerBI / Excel / …）"]
-        R --> A3["🔌 MCP → 外部 Agent（Claude / Cursor）"]
-    end
-```
+![Horizon Context 三段流水线：三路元数据并列汇入统一目录，显式/隐式双轨富化（同名冲突浮出人工裁决），经四因子混合排序后供给 CoCo、BI 工具与 MCP 外部 Agent。](../../assets/architecture/paper-notes/horizon-context--collect-enrich-activate-dark.png)
+
+> 图源（可 diff 文本）：[`horizon-context--collect-enrich-activate.mmd`](../../assets/mermaid/paper-notes/horizon-context--collect-enrich-activate.mmd) · 交互版（下载到本地打开）：[`horizon-context--collect-enrich-activate.html`](../../assets/architecture/paper-notes/horizon-context--collect-enrich-activate.html)
 
 **原型实景**——结构校验门拦下「指向非键列的 relationship」（D6 实验，实际运行输出）：
 
@@ -75,23 +57,9 @@ customers.plan is not PRIMARY KEY/UNIQUE—— 无门则垃圾定义静默入库
 
 **机制**：四个聚合保障 + 一个消歧——①**agg-before-join**：每个指标先各自聚合到目标粒度再合并（防 fan trap：join 复制行把 $100 算成 $300）；②**distinct 聚合跨 join 安全**：`COUNT(DISTINCT)` 在复制行上数的是集合不是行；③**derived 先聚后除**：`DIV0(total_revenue, total_cost)` 分子分母各自聚合，防 average of averages；④**NON ADDITIVE BY**：按声明维度排序取**末快照**而非求和（余额可以跨账户相加、不能跨天相加）；⑤**USING (relationship)**：多 join 路径时显式消歧。官方工程博客用三个经典陷阱背书：fan trap（Sam Waters 案 $100→$300）、chasm trap（共享维度的笛卡尔爆炸）、average of averages（16.0 vs 真实 4.8）——并给出关键判断：「*valid SQL, but not valid analytics*」，LLM 在 TPC-DS 上同样踩坑。
 
-```mermaid
-flowchart TB
-    subgraph "声明相（CREATE SEMANTIC VIEW）"
-        D1["TABLES + PK/UNIQUE"] --> D5["五段式声明"]
-        D2["RELATIONSHIPS（FK→键列）"] --> D5
-        D3["FACTS / DIMENSIONS（可 PRIVATE）"] --> D5
-        D4["METRICS（SYNONYMS / derived / NON ADDITIVE BY / verified queries）"] --> D5
-        D5 --> VG{"🏗️ 结构校验门<br/>validate_view"}
-        VG -->|"非键列引用 / 缺 dim+metric / 重名"| RX["🚫 拒绝注册"]
-    end
-    subgraph "执行相（compile_query）"
-        VG -->|"通过"| RB{"👔 执行层 RBAC<br/>（人 / BI / agent 同一套）"}
-        RB -->|"PRIVATE 资产"| AX["🚫 AccessDenied"]
-        RB --> AG["策略 A：basis 行直接聚合<br/>agg-before-join · 零行复制"]
-        AG --> OUT["✅ 按查询 grain 重算<br/>distinct 安全 / 先聚后除 / 末快照"]
-    end
-```
+![语义视图声明相与执行相：五段式声明经结构校验门（非法定义注册期被拒），通过后进入执行相——执行层 RBAC 拒绝 PRIVATE 资产，策略 A 零复制聚合后按查询 grain 重算。](../../assets/architecture/paper-notes/horizon-context--declaration-execution-dark.png)
+
+> 图源（可 diff 文本）：[`horizon-context--declaration-execution.mmd`](../../assets/mermaid/paper-notes/horizon-context--declaration-execution.mmd) · 交互版（下载到本地打开）：[`horizon-context--declaration-execution.html`](../../assets/architecture/paper-notes/horizon-context--declaration-execution.html)
 
 **原型实景**（B 场景实际运行输出，对照值均为引擎正确路径）：
 

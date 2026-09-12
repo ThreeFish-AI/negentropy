@@ -26,36 +26,9 @@
 
 五个正交层——对象存储（放什么）、目录（怎么找）、富化（怎么养）、治理（怎么信）、激活（怎么用）。机制（治理/路由）与策略（各源算法）分离，各层可独立演进。
 
-```mermaid
-flowchart TB
-    subgraph "Activation 激活层"
-        MC["🔌 MCP Server<br/>list / resolve / execute / feedback"]
-        RA["🧭 resolve：四因子排序<br/>relevance·authority·popularity·freshness"]
-        GD["🛡️ Governance Gate<br/>双层 RBAC + 出口 guardrails"]
-    end
-    subgraph "Catalog 目录层"
-        CT["📚 统一目录（逻辑视图）<br/>血缘 · 四层信号（结构/运行/语义/行为）"]
-    end
-    subgraph "Enrichment 富化层"
-        EX["🏛️ 显式轨道<br/>governed 定义（authority=1.0）"]
-        IN["🔍 隐式轨道<br/>从使用信号推断（authority↓）"]
-        EV["♻️ eval 自纠环 + 冲突浮出人工裁决"]
-    end
-    subgraph "Object Store 对象层"
-        OS["📦 上下文对象<br/>定义/指标/文档/技能/验证问答<br/>（Ossie YAML 可交换）"]
-    end
-    AU["🧑‍💼 人：作者 / 裁决者 / 审计者"]
-    AG["🤖 消费者：agent / BI / 应用<br/>（同一套 RBAC）"]
-    OS --> CT --> EX
-    EX --> CT
-    IN --> CT
-    EV --> EX
-    EV --> IN
-    CT --> RA --> GD --> MC
-    AG <--> MC
-    AU --> EX
-    AU -.->|"裁决 CONFLICT 卡片"| EV
-```
+![Context Layer 基础设施五正交层：对象存储经逻辑视图指针汇入统一目录，显式/隐式双轨富化并由 eval 自纠环修正，目录经四因子排序、Governance Gate 与 MCP Server 供给 agent/BI/应用，治理角色负责作者与评审。](../assets/architecture/paper-notes/context-layer-blueprint--architecture-dark.png)
+
+> 图源（可 diff 文本）：[`context-layer-blueprint--architecture.mmd`](../assets/mermaid/paper-notes/context-layer-blueprint--architecture.mmd) · 交互版（下载到本地打开）：[`context-layer-blueprint--architecture.html`](../assets/architecture/paper-notes/context-layer-blueprint--architecture.html)
 
 ## 2. 上下文对象模型（核心）
 
@@ -91,18 +64,9 @@ version: 12
 
 **生命周期状态机**：
 
-```mermaid
-stateDiagram-v2
-    [*] --> draft: 作者创建 / Autopilot 生成
-    draft --> governed: 结构校验门 + 评审
-    draft --> rejected: 校验失败
-    governed --> conflict: 同名异义被目录检出
-    conflict --> governed: 人工裁决（胜者）
-    conflict --> rejected: 人工裁决（败者）
-    governed --> superseded: 新版本取代（保留参与排序，freshness 衰减）
-    rejected --> [*]
-    superseded --> [*]
-```
+![上下文对象生命周期状态机：draft 经校验门+评审晋升 governed；同名异义进 conflict 态浮出人工裁决（胜者回 governed、败者进 rejected）；新版本取代转 superseded。](../assets/architecture/paper-notes/context-layer-blueprint--object-lifecycle-dark.png)
+
+> 图源（可 diff 文本）：[`context-layer-blueprint--object-lifecycle.mmd`](../assets/mermaid/paper-notes/context-layer-blueprint--object-lifecycle.mmd) · 交互版（下载到本地打开）：[`context-layer-blueprint--object-lifecycle.html`](../assets/architecture/paper-notes/context-layer-blueprint--object-lifecycle.html)
 
 结构校验门（对标 validation-rules）：引用必须命中键约束、至少一个可用面（维度/指标/正文）、名字唯一、`non_additive_by` 引用的维度存在——**非法结构在注册期被拒，不进运行时**。
 
