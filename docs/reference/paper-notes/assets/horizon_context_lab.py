@@ -415,7 +415,7 @@ def compile_query(view: SemanticView, metric_name: str, dims=None, role="analyst
         if derived_post_agg:             # M2：分子分母各自聚合后再相除
             return {k if k else (): round(num[k] / den[k], 2)
                     for k in sorted(num, key=none_safe)}
-        # D8：先在子粒度出比值再无加权平均（average of averages）
+        # D7：先在子粒度出比值再无加权平均（average of averages）
         sub = [d.name for d in view.dimensions if d.table == metric.table]
         if not sub:
             return {(): round(num[()] / den[()], 2)}
@@ -887,8 +887,8 @@ def destructive():
     expect("D6", bool(errs) and any("not PRIMARY KEY/UNIQUE" in e for e in errs),
            f"拆结构校验（relationship 指向非键列）→ {'; '.join(errs)}"
            f"—— 无门则垃圾定义静默入库（行数失控的注册期引信）")
-    d8 = compile_query(SALES, "aov", dims=[], derived_post_agg=False)
-    expect("D8", d8 == {(): 122.22}, "拆 derived 先聚后除 → 122.22（对照 108.33）")
+    d7 = compile_query(SALES, "aov", dims=[], derived_post_agg=False)
+    expect("D7", d7 == {(): 122.22}, "拆 derived 先聚后除 → 122.22（对照 108.33）")
 
 
 def main():
