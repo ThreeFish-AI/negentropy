@@ -194,6 +194,60 @@
           "voice": "sunny-steady + me-bright.wav"
         }
       ]
+    },
+    {
+      "id": "context-layer",
+      "title": "Context Layer · 上下文层系列",
+      "sourceKind": "doc",
+      "rule": "各集独立成片。口播文本严禁出现其他集标题、集数序号或「上一集/上期/第 N 集」等顺序词；序号只存在于视觉层与本文件，据此保证发布顺序变更的 TTS 代价为零（「下期再见」一类顺序无关的收尾语不受此限）。校验器：pipeline/scripts/check_series.py（路径均为本子项目相对）。信源为本仓 Horizon Context 精读笔记 + Context Layer 蓝图 + 最小原型（B 型 · 仓内固定提交，上游 Snowflake 官方页不直接取证、只经精读笔记的 IEEE 引用链间接可溯）。",
+      "episodes": [
+        {
+          "episode": 1,
+          "slug": "horizon-context-video",
+          "path": "episodes/horizon-context-video",
+          "title": "AI 为什么答不对你公司的数据",
+          "topic": "Horizon Context：含义怎么治理",
+          "cardSub": "上下文层 · 治理",
+          "accents": [
+            "#E8C06A",
+            "#5CBFB0",
+            "#C9A0FF"
+          ],
+          "source": {
+            "title": "Snowflake Horizon Context 精读笔记 + 最小原型实验室（docs/reference/paper-notes/）",
+            "repo": "https://github.com/ThreeFish-AI/negentropy",
+            "pinnedRef": "cf6724d688d6",
+            "license": "本仓内部文档",
+            "accessed": "2026-09-12"
+          },
+          "status": "scripting",
+          "statusNote": "内容层①–⑤ + 场景实现完成（188 句/42 镜，tsc 绿，抽帧冒烟通过）；sunny-steady TTS 合成中；待 render+qa+终渲",
+          "voice": "sunny-steady + me-bright.wav"
+        },
+        {
+          "episode": 2,
+          "slug": "context-layer-video",
+          "path": "episodes/context-layer-video",
+          "title": "自己动手，给 AI 搭一个上下文层",
+          "topic": "Context Layer：蓝图怎么复刻",
+          "cardSub": "上下文层 · 蓝图",
+          "accents": [
+            "#6FB1E8",
+            "#A3D977",
+            "#FF9F6B"
+          ],
+          "source": {
+            "title": "Context Layer 基础设施设计蓝图（docs/reference/context-layer-blueprint.md）",
+            "repo": "https://github.com/ThreeFish-AI/negentropy",
+            "pinnedRef": "cf6724d688d6",
+            "license": "本仓内部文档",
+            "accessed": "2026-09-12"
+          },
+          "status": "scripting",
+          "statusNote": "内容层①–⑤ + 场景实现完成（176 句/36 镜，tsc 绿，抽帧冒烟通过）；TTS 排队（ep1 后自动续）；待 render+qa+终渲",
+          "voice": "sunny-steady + me-bright.wav"
+        }
+      ]
     }
   ]
 }
