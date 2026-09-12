@@ -1,6 +1,6 @@
 # 《AI 为什么答不对你公司的数据》科普视频工程
 
-> 交付状态：**内容层①–⑤完成 + 场景实现 tsc 绿（7 幕 42 镜）；TTS 合成中（sunny-steady 全量长跑）；场景冒烟抽帧 5 处通过（估算 manifest），待真实 manifest 后 render+qa**。发布顺序见 [../../series.json](../../series.json)。
+> 交付状态：**终渲完成待审：14:17 · FAIL 0 · 渐黑 PASS · captions 齐**。发布顺序见 [../../series.json](../../series.json)。
 
 ## 目录结构
 

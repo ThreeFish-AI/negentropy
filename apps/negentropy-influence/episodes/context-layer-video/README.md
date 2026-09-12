@@ -1,6 +1,6 @@
 # 《自己动手，给 AI 搭一个上下文层》科普视频工程
 
-> 交付状态：**内容层①–⑤完成 + 场景实现 tsc 绿（7 幕 36 镜）；TTS 排队中（ep1 完成后自动续）；场景冒烟抽帧通过，待真实 manifest 后 render+qa**。发布顺序见 [../../series.json](../../series.json)。
+> 交付状态：**终渲完成待审：13:23 · FAIL 0 · 渐黑 PASS · captions 齐**。发布顺序见 [../../series.json](../../series.json)。
 
 ## 目录结构
 

@@ -220,8 +220,8 @@
             "license": "本仓内部文档",
             "accessed": "2026-09-12"
           },
-          "status": "scripting",
-          "statusNote": "内容层①–⑤ + 场景实现完成（188 句/42 镜，tsc 绿，抽帧冒烟通过）；sunny-steady TTS 合成中；待 render+qa+终渲",
+          "status": "draft-review",
+          "statusNote": "终渲完成待审（2026-09-13）：14:17 = 857.4s @30fps（188 句，sunny-steady 全量 7063s 合成）；七幕 × 四项自动体检 FAIL 0 · 尾 6 句渐黑 PASS · 主题对比度全过（最低 dig 8.97:1）；WARN 4 均容许型（静态画布句间指纹 ×3 + 便利贴墙底行入字幕带 ×1）；final.mp4 38.4MB + captions.srt/vtt 齐",
           "voice": "sunny-steady + me-bright.wav"
         },
         {
@@ -243,8 +243,8 @@
             "license": "本仓内部文档",
             "accessed": "2026-09-12"
           },
-          "status": "scripting",
-          "statusNote": "内容层①–⑤ + 场景实现完成（176 句/36 镜，tsc 绿，抽帧冒烟通过）；TTS 排队（ep1 后自动续）；待 render+qa+终渲",
+          "status": "draft-review",
+          "statusNote": "终渲完成待审（2026-09-13）：13:23 = 803.5s @30fps（176 句，sunny-steady 5195s 合成）；七幕 × 四项自动体检 FAIL 0 · 尾 6 句渐黑 PASS · 主题对比度全过（最低 activate 9.39:1）；WARN 1 容许型（P0 卡墙静态）；final.mp4 34.1MB + captions.srt/vtt 齐",
           "voice": "sunny-steady + me-bright.wav"
         }
       ]
