@@ -1,0 +1,23 @@
+%%source: docs/reference/paper-notes/horizon-context.md#block0 (L44-L62, §2 M1 · 上下文对象模型)
+%%slug: paper-notes/horizon-context--collect-enrich-activate
+%%type: dataflow
+%%derived: archify dataflow v1, authored from source mermaid
+flowchart LR
+    subgraph "Collect 汇聚"
+        S1["🗄️ 元数据连接器<br/>Tableau / Power BI / dbt / PG / MSSQL"] --> C
+        S2["📜 查询日志 / 流行度"] --> C
+        S3["🕸️ OpenLineage 血缘"] --> C
+        C["📚 Horizon Catalog<br/>Structural · Operational · Semantic · Behavioral"]
+    end
+    subgraph "Enrich 富化"
+        C --> G["🏛️ 显式轨道：Semantic Views<br/>金标准 authority=1.0<br/>（Autopilot / Semantic Studio）"]
+        C --> I["🔍 隐式轨道：Cortex Sense<br/>authority=0.3<br/>从查询日志 / BI 信号挖掘"]
+        G <-->|"同名冲突 → 浮出人工裁决"| I
+    end
+    subgraph "Activate 激活"
+        G --> R["🧭 四因子混合排序<br/>relevance / authority / popularity / freshness"]
+        I --> R
+        R --> A1["🤖 CoCo / CoWork"]
+        R --> A2["📊 BI（Tableau / PowerBI / Excel / …）"]
+        R --> A3["🔌 MCP → 外部 Agent（Claude / Cursor）"]
+    end

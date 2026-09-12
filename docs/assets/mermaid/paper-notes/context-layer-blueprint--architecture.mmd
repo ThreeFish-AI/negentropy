@@ -1,0 +1,32 @@
+%%source: docs/reference/context-layer-blueprint.md#block0 (L30-L57, §1 总体架构)
+%%slug: paper-notes/context-layer-blueprint--architecture
+%%type: architecture
+%%derived: archify architecture v1, authored from source mermaid
+flowchart TB
+    subgraph "Activation 激活层"
+        MC["🔌 MCP Server<br/>list / resolve / execute / feedback"]
+        RA["🧭 resolve：四因子排序<br/>relevance·authority·popularity·freshness"]
+        GD["🛡️ Governance Gate<br/>双层 RBAC + 出口 guardrails"]
+    end
+    subgraph "Catalog 目录层"
+        CT["📚 统一目录（逻辑视图）<br/>血缘 · 四层信号（结构/运行/语义/行为）"]
+    end
+    subgraph "Enrichment 富化层"
+        EX["🏛️ 显式轨道<br/>governed 定义（authority=1.0）"]
+        IN["🔍 隐式轨道<br/>从使用信号推断（authority↓）"]
+        EV["♻️ eval 自纠环 + 冲突浮出人工裁决"]
+    end
+    subgraph "Object Store 对象层"
+        OS["📦 上下文对象<br/>定义/指标/文档/技能/验证问答<br/>（Ossie YAML 可交换）"]
+    end
+    AU["🧑‍💼 人：作者 / 裁决者 / 审计者"]
+    AG["🤖 消费者：agent / BI / 应用<br/>（同一套 RBAC）"]
+    OS --> CT --> EX
+    EX --> CT
+    IN --> CT
+    EV --> EX
+    EV --> IN
+    CT --> RA --> GD --> MC
+    AG <--> MC
+    AU --> EX
+    AU -.->|"裁决 CONFLICT 卡片"| EV

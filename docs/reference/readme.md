@@ -32,6 +32,15 @@ Agentic AI 引擎内核的验证资产：项目级 PRD/计划、五阶段（Puls
 |:---|:---|
 | [Wiki 运维索引](./wiki/readme.md) | Wiki 部署/发布/设计/验证阅读入口 |
 
+## 四、通用参考 · 根目录与 `paper-notes/`
+
+跨栈的精读笔记、机制映射与通用基础设施设计。
+
+| 文档 | 主旨 |
+|:---|:---|
+| [论文/产品精读](./paper-notes/)（`_category_.json` 分部） | 领域核心材料精读：机制解构、实证数字、批判性边界与对本仓的映射 |
+| [Context Layer 基础设施设计蓝图](./context-layer-blueprint.md) | 对标 Snowflake Horizon Context 的通用可复刻治理上下文层：对象模型 / 目录 / 富化自纠 / MCP 激活 / 双层治理 / 治理≠验证对策与演进路线 |
+
 ---
 
-> 阅读建议：引擎内核设计与 PRD 查「Cognizes 引擎」；数据提取与 PDF 工程化查「Perceives MCP」；Wiki 站点本身的部署与发布查「Wiki 运维」。
+> 阅读建议：引擎内核设计与 PRD 查「Cognizes 引擎」；数据提取与 PDF 工程化查「Perceives MCP」；Wiki 站点本身的部署与发布查「Wiki 运维」；领域材料精读与 Context Layer 复刻查「通用参考」。
