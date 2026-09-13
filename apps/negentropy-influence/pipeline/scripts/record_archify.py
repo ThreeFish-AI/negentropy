@@ -12,6 +12,7 @@
 """
 
 import json
+import shutil
 import sys
 import time
 
@@ -70,8 +71,6 @@ with sync_playwright() as p:
     path = video.path()
     ctx.close()
     browser.close()
-
-import shutil
 
 shutil.copyfile(path, out_webm)
 sidecar = {
