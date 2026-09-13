@@ -221,7 +221,7 @@
             "accessed": "2026-09-12"
           },
           "status": "draft-review",
-          "statusNote": "终渲完成待审（2026-09-13）：14:17 = 857.4s @30fps（188 句，sunny-steady 全量 7063s 合成）；七幕 × 四项自动体检 FAIL 0 · 尾 6 句渐黑 PASS · 主题对比度全过（最低 dig 8.97:1）；WARN 4 均容许型（静态画布句间指纹 ×3 + 便利贴墙底行入字幕带 ×1）；final.mp4 38.4MB + captions.srt/vtt 齐",
+          "statusNote": "终渲完成待审（2026-09-13 复渲）：14:17 = 857.4s @30fps（188 句）；七幕 × 四项体检 FAIL 0 · P2 安全区 WARN 已修复（便利贴墙上移，复渲验证清零）· 尾 6 句渐黑 PASS · WCAG 全过；剩余 WARN 3 均静态画布句间指纹（容许型）；78 镜代表帧全量目检通过；final.mp4 38MB + captions 齐",
           "voice": "sunny-steady + me-bright.wav"
         },
         {

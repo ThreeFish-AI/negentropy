@@ -23,7 +23,8 @@ const StickyWall: React.FC<{fallAt: number}> = ({fallAt}) => {
   const dropping = [4, 8].map(fall);
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <div style={{display: 'grid', gridTemplateColumns: 'repeat(6, 220px)', gap: 22}}>
+      {/* 底行让出字幕安全带（bottom ≥ 160px）：整墙上移 + 单元略缩 */}
+      <div style={{display: 'grid', gridTemplateColumns: 'repeat(6, 212px)', gap: 20, transform: 'translateY(-56px)'}}>
         {notes.map((n, i) => {
           const d = i === 4 ? dropping[0] : i === 8 ? dropping[1] : null;
           return (
