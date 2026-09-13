@@ -360,7 +360,7 @@ export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
         <SignedFaq hitAt={at('p2-22') - bF.from} />
       </Sequence>
       <Sequence {...bG} name="2-G 私有与金句">
-        <PrivateLock quoteAt={at('p2-25') - bG.from} />
+        <PrivateLock quoteAt={at('p2-24') - bG.from} />
       </Sequence>
     </AbsoluteFill>
   );

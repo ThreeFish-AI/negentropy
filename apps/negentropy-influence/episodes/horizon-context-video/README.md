@@ -1,6 +1,6 @@
 # 《AI 为什么答不对你公司的数据》科普视频工程
 
-> 交付状态：**终渲完成待审：14:17 · FAIL 0 · 渐黑 PASS · captions 齐**。发布顺序见 [../../series.json](../../series.json)。
+> 交付状态：**v2 终渲待审：14:14 · archify 回放×2 + lab 代码走廊×4 · FAIL 0**。发布顺序见 [../../series.json](../../series.json)。
 
 ## 目录结构
 

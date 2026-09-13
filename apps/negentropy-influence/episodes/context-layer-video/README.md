@@ -1,6 +1,6 @@
 # 《自己动手，给 AI 搭一个上下文层》科普视频工程
 
-> 交付状态：**终渲完成待审：13:23 · FAIL 0 · 渐黑 PASS · captions 齐**。发布顺序见 [../../series.json](../../series.json)。
+> 交付状态：**v2 终渲待审：14:18 · archify 回放×2 + MCP 实录 + 代码走廊×3 · FAIL 0**。发布顺序见 [../../series.json](../../series.json)。
 
 ## 目录结构
 

@@ -221,7 +221,7 @@
             "accessed": "2026-09-12"
           },
           "status": "draft-review",
-          "statusNote": "终渲完成待审（2026-09-13 复渲）：14:17 = 857.4s @30fps（188 句）；七幕 × 四项体检 FAIL 0 · P2 安全区 WARN 已修复（便利贴墙上移，复渲验证清零）· 尾 6 句渐黑 PASS · WCAG 全过；剩余 WARN 3 均静态画布句间指纹（容许型）；78 镜代表帧全量目检通过；final.mp4 38MB + captions 齐",
+          "statusNote": "v2 终渲待审（2026-09-14 改版）：14:14 = 854.8s @30fps（183 句）；改版要点=archify 工程图回放×2（declaration-execution/collect-enrich-activate）+ lab 代码走廊×4（五段式/分岔/RBAC/log1p）+ B1/D6/C2 实测原文上屏；七幕×四项体检 FAIL 0 · 渐黑 PASS · WCAG 过；71 断言对账全修复（口径 4 处/白名单 3 处/目录层实景拍）；final 46.5MB + captions 齐",
           "voice": "sunny-steady + me-bright.wav"
         },
         {
@@ -244,7 +244,7 @@
             "accessed": "2026-09-12"
           },
           "status": "draft-review",
-          "statusNote": "终渲完成待审（2026-09-13）：13:23 = 803.5s @30fps（176 句，sunny-steady 5195s 合成）；七幕 × 四项自动体检 FAIL 0 · 尾 6 句渐黑 PASS · 主题对比度全过（最低 activate 9.39:1）；WARN 1 容许型（P0 卡墙静态）；final.mp4 34.1MB + captions.srt/vtt 齐",
+          "statusNote": "v2 终渲待审（2026-09-14 改版）：14:18 = 858.9s @30fps（177 句）；改版要点=archify 工程图回放×2（blueprint-architecture/object-lifecycle）+ 代码走廊×3（同义词/eval 三处/log1p）+ MCP 实录终端（握手/四工具/目录账/三数）+ T5T6T8 原文；七幕×四项体检 FAIL 0 · 渐黑 PASS · WCAG 过；final 43.5MB + captions 齐",
           "voice": "sunny-steady + me-bright.wav"
         }
       ]
