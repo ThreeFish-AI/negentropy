@@ -195,30 +195,42 @@ const GenericTradeoff: React.FC<{quoteAt: number}> = ({quoteAt}) => {
   );
 };
 
+
+/** 5-B 三级台阶 + 脱敏审计（合并镜：先台阶，后半审计交叉） */
+const StairsAndAudit: React.FC<{maskAt: number}> = ({maskAt}) => {
+  const phase = useProgress(maskAt - 8, DUR.f5);
+  return (
+    <AbsoluteFill>
+      <div style={{opacity: 1 - phase * 0.92}}>
+        <ThreeStairs />
+      </div>
+      <div style={{opacity: phase, position: 'absolute', inset: 0}}>
+        <MaskAndAudit />
+      </div>
+    </AbsoluteFill>
+  );
+};
+
 export const P5Edge: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (a: string, b?: string) => beatWindow(scene.sentences, scene.from, a, b);
   const at = (id: string) => w(id).from;
-  const bA = w('p5-01', 'p5-05');
-  const bB = w('p5-06', 'p5-12');
-  const bC = w('p5-13', 'p5-14');
-  const bD = w('p5-15', 'p5-17');
-  const bE = w('p5-18', 'p5-21');
+  const bA = w('p5-01', 'p5-08');
+  const bB = w('p5-09', 'p5-14');
+  const bC = w('p5-15', 'p5-19');
+  const bD = w('p5-20', 'p5-23');
   return (
     <AbsoluteFill>
       <Sequence {...bA} name="5-A 477对48">
-        <Accident477 clashAt={at('p5-05') - bA.from} />
+        <Accident477 clashAt={at('p5-06') - bA.from} />
       </Sequence>
-      <Sequence {...bB} name="5-B 三级对策">
-        <ThreeStairs />
+      <Sequence {...bB} name="5-B 三级对策与审计">
+        <StairsAndAudit maskAt={at('p5-15') - bB.from} />
       </Sequence>
-      <Sequence {...bC} name="5-C 脱敏审计">
-        <MaskAndAudit />
-      </Sequence>
-      <Sequence {...bD} name="5-D 价值复引">
+      <Sequence {...bC} name="5-C 价值复引">
         <ValueRecap />
       </Sequence>
-      <Sequence {...bE} name="5-E 通用化折损">
-        <GenericTradeoff quoteAt={at('p5-21') - bE.from} />
+      <Sequence {...bD} name="5-D 通用化折损">
+        <GenericTradeoff quoteAt={at('p5-23') - bD.from} />
       </Sequence>
     </AbsoluteFill>
   );

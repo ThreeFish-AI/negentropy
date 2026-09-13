@@ -6,6 +6,7 @@ import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {Panel} from '../components/motifs';
+import {CodeWalk, TerminalLog} from '../components/CodeWalk';
 import {DUR, progress, useCount, useDraw, useImpulse, useProgress, useSpring, useStagger, useTravel} from '../motion';
 
 /** 4-A 唯一窗口：三 AI 排队 */
@@ -139,8 +140,9 @@ const FourFactor: React.FC = () => {
 };
 
 /** 4-D 对数封顶 + tie-break */
-const LogCeiling: React.FC<{flipAt: number; tieAt: number}> = ({flipAt, tieAt}) => {
+const LogCeiling: React.FC<{flipAt: number; tieAt: number; codeAt: number}> = ({flipAt, tieAt, codeAt}) => {
   const grow = useStagger(2, {at: 6, stride: 12});
+  const code = useProgress(codeAt, DUR.f5);
   const flip = useImpulse({at: flipAt, dur: DUR.f4});
   const logMode = useProgress(flipAt, DUR.f5);
   const tie = useStagger(3, {at: tieAt, stride: 9});
@@ -184,6 +186,14 @@ const LogCeiling: React.FC<{flipAt: number; tieAt: number}> = ({flipAt, tieAt}) 
       </div>
       <div style={{position: 'absolute', bottom: 210, right: 240, fontFamily: theme.sans, fontSize: 20, color: theme.dim, opacity: tie[2]}}>
         {'确定性：同样的提问，永远同样的答案'}
+      </div>
+      <div style={{position: 'absolute', left: 420, top: 90, opacity: code}}>
+        <CodeWalk
+          width={1000}
+          caption="本仓 lab · rank() 内的一行"
+          lines={['pop = math.log1p(popularity) / math.log1p(POP_CAP)']}
+          hi={[{line: 0, at: 8, color: theme.activate}]}
+        />
       </div>
     </AbsoluteFill>
   );
@@ -327,41 +337,110 @@ const CollectFrame: React.FC = () => {
   );
 };
 
+
+/** 4-E MCP 实录终端：左右分栏 JSON-RPC 报文对 */
+const McpTranscript: React.FC = () => {
+  const pairs = [
+    {req: '→ {"method": "initialize",', resp: '← protocolVersion: "2025-06-18" · 四能力就绪', note: '握手：报名字，回版本'},
+    {req: '→ {"method": "tools/list"}', resp: '← list_context_objects / resolve_context', note: '四工具：列目录 · 问询 · 执行 · 反馈'},
+    {req: '→ tools/call list_context_objects', resp: '← revenue · governed · 权威 1.0', note: '目录层那本账：条目 · 来源 · 信任分'},
+    {req: '→ tools/call compile_metric', resp: '← {"2026-01": 200, "02": 150, "03": 300}', note: '按月现场重算 · 递回三个数'},
+  ];
+  return (
+    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
+      <TerminalLog
+        prompt="真实 JSON-RPC 对话（stdio）"
+        caption="本仓 MCP 原型 · 328 行零依赖"
+        width={1180}
+        lineEvery={20}
+        lines={pairs.flatMap((p, i) => [
+          {text: p.req, color: theme.text, at: 8 + i * 40},
+          {text: '    ' + p.resp, color: theme.activate, at: 18 + i * 40, bold: true},
+          {text: '    # ' + p.note, color: theme.dim, at: 26 + i * 40},
+        ] as {text: string; color?: string; bold?: boolean; at?: number}[])}
+      />
+    </AbsoluteFill>
+  );
+};
+
+/** 4-F 三行测试日志（T5/T6/T8 原文） */
+const ThreePass: React.FC = () => {
+  return (
+    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
+      <TerminalLog
+        prompt="python horizon_context_mcp.py --selftest"
+        caption="本仓原型实测输出 · T5 / T6 / T8"
+        width={1140}
+        lineEvery={22}
+        lines={[
+          {text: '[PASS] T5: 引擎层 RBAC 经 MCP 仍生效:', color: theme.grown, at: 8, bold: true},
+          {text: '  plan is a PRIVATE fact   ← 没权限，执行那步照样拒', color: theme.danger, at: 16},
+          {text: "[PASS] T6: feedback down 后 'sales' 解析", color: theme.grown, at: 34, bold: true},
+          {text: '  governed → legacy   ← 点了踩，排序真的变了', color: theme.dim, at: 42},
+          {text: '[PASS] T8: 子进程 stdio 往返: 2 响应行,', color: theme.grown, at: 60, bold: true},
+          {text: '  active_customers=[3, 1, 2]   ← 换进程真跑，原样回来', color: theme.dim, at: 68},
+        ]}
+      />
+    </AbsoluteFill>
+  );
+};
+
+
+/** 4-A 唯一窗口 + 无覆盖警告（合并镜） */
+const WindowAndWarn: React.FC<{warnAt: number}> = ({warnAt}) => {
+  const warn = useProgress(warnAt, DUR.f4);
+  const flash = useImpulse({at: warnAt + 4, dur: DUR.f4});
+  return (
+    <AbsoluteFill>
+      <SingleWindow />
+      <div
+        style={{
+          position: 'absolute',
+          left: 660,
+          top: 250,
+          opacity: warn,
+          transform: `translateY(${(1 - warn) * 18}px) scale(${1 + flash * 0.04})`,
+        }}
+      >
+        <Panel accent={theme.grown} style={{padding: '18px 34px'}}>
+          <div style={{fontFamily: theme.sans, fontSize: 26, color: theme.grown}}>{'⚠ 此域无权威定义——明说，不装懂'}</div>
+        </Panel>
+      </div>
+    </AbsoluteFill>
+  );
+};
+
 export const P4Window: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (a: string, b?: string) => beatWindow(scene.sentences, scene.from, a, b);
   const at = (id: string) => w(id).from;
   const bA = w('p4-01', 'p4-08');
-  const bB = w('p4-09', 'p4-10');
-  const bC = w('p4-11', 'p4-15');
-  const bD = w('p4-16', 'p4-20');
-  const bE = w('p4-21', 'p4-24');
-  const bF = w('p4-25', 'p4-28');
-  const bG = w('p4-29', 'p4-34');
-  const bH = w('p4-35', 'p4-38');
+  const bB = w('p4-09', 'p4-13');
+  const bC = w('p4-14', 'p4-20');
+  const bD = w('p4-21', 'p4-25');
+  const bE = w('p4-26', 'p4-32');
+  const bF = w('p4-33', 'p4-36');
+  const bG = w('p4-37', 'p4-39');
   return (
     <AbsoluteFill>
       <Sequence {...bA} name="4-A 唯一窗口">
-        <SingleWindow />
+        <WindowAndWarn warnAt={at('p4-08') - bA.from} />
       </Sequence>
-      <Sequence {...bB} name="4-B 不装懂">
-        <NoCoverage warnAt={at('p4-10') - bB.from} />
-      </Sequence>
-      <Sequence {...bC} name="4-C 四因子">
+      <Sequence {...bB} name="4-B 四因子">
         <FourFactor />
       </Sequence>
-      <Sequence {...bD} name="4-D 对数封顶">
-        <LogCeiling flipAt={at('p4-18') - bD.from} tieAt={at('p4-19') - bD.from} />
+      <Sequence {...bC} name="4-C 对数封顶">
+        <LogCeiling flipAt={at('p4-17') - bC.from} tieAt={at('p4-19') - bC.from} codeAt={at('p4-18') - bC.from} />
       </Sequence>
-      <Sequence {...bE} name="4-E USB-C插头">
+      <Sequence {...bD} name="4-D USB-C插头">
         <UsbcPlug />
       </Sequence>
-      <Sequence {...bF} name="4-F 四工具">
-        <FourTools />
+      <Sequence {...bE} name="4-E MCP实录终端">
+        <McpTranscript />
       </Sequence>
-      <Sequence {...bG} name="4-G 原型实测">
-        <LabOutput />
+      <Sequence {...bF} name="4-F 三行测试日志">
+        <ThreePass />
       </Sequence>
-      <Sequence {...bH} name="4-H 收束">
+      <Sequence {...bG} name="4-G 收束">
         <CollectFrame />
       </Sequence>
     </AbsoluteFill>

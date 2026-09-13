@@ -6,6 +6,7 @@ import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {Panel} from '../components/motifs';
+import {CodeWalk} from '../components/CodeWalk';
 import {DUR, progress, useBreathe, useCount, useDim, useImpulse, useProgress, useSpring, useStagger} from '../motion';
 
 /** 2-A 便利贴墙：风吹掉两张 */
@@ -57,66 +58,31 @@ const StickyWall: React.FC<{fallAt: number}> = ({fallAt}) => {
   );
 };
 
-/** 2-B 手册五段式 + FK→键列 */
-const ManualFive: React.FC<{fkAt: number}> = ({fkAt}) => {
-  const book = useSpring('settle', {at: 3});
-  const tabs = useStagger(5, {at: 22, stride: 5});
-  const frame = useCurrentFrame();
-  const fk = useProgress(fkAt, DUR.f5);
-  const bad = useProgress(fkAt + 10, DUR.f4);
-  const labels = ['TABLES', 'RELATIONSHIPS', 'FACTS', 'DIMENSIONS', 'METRICS'];
+/** 2-B 代码走廊 ①：五段式声明（lab 原文节选） */
+const DeclCode: React.FC = () => {
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <div
-        style={{
-          width: 900 * book,
-          opacity: book,
-          border: `4px solid ${theme.manual}`,
-          borderRadius: 16,
-          background: theme.panel,
-          padding: '40px 56px',
-        }}
-      >
-        <div style={{fontFamily: theme.serif, fontSize: 40, color: theme.manual, textAlign: 'center'}}>
-          {'语义视图 · 公司手册'}
-        </div>
-        <div style={{display: 'flex', gap: 14, marginTop: 34, justifyContent: 'center'}}>
-          {labels.map((l, i) => (
-            <div
-              key={i}
-              style={{
-                opacity: tabs[i],
-                fontFamily: theme.mono,
-                fontSize: 19,
-                color: i === 1 ? theme.manual : theme.dim,
-                border: `2px solid ${i === 1 ? theme.manual : theme.panelBorder}`,
-                borderRadius: 8,
-                padding: '10px 12px',
-              }}
-            >
-              {l}
-            </div>
-          ))}
-        </div>
-        {/* FK 连线：orders.customer_id → customers.id(钥匙) vs → customers.plan(红叉) */}
-        <svg width={790} height={190} style={{marginTop: 30}}>
-          <text x={20} y={40} fontSize={20} fill={theme.text} fontFamily={theme.mono}>
-            {'orders.customer_id'}
-          </text>
-          <line x1={270} y1={34} x2={270 + 300 * fk} y2={34} stroke={theme.engine} strokeWidth={3} />
-          <text x={300 * fk + 290} y={40} fontSize={20} fill={theme.engine} fontFamily={theme.mono} opacity={fk}>
-            {'customers.id 🔑 ✓'}
-          </text>
-          <line x1={270} y1={120} x2={270 + 300 * bad} y2={120} stroke={theme.danger} strokeWidth={3} opacity={bad} />
-          <text x={300 * bad + 290} y={126} fontSize={20} fill={theme.danger} fontFamily={theme.mono} opacity={bad}>
-            {'customers.plan ✗'}
-          </text>
-          <text x={20} y={126} fontSize={20} fill={theme.dim} fontFamily={theme.mono} opacity={bad}>
-            {'orders.referrer_id'}
-          </text>
-        </svg>
-      </div>
-      {frame > fkAt + 30 ? null : null}
+      <CodeWalk
+        title="lab 复现 · 一本手册就是一个对象（节选）"
+        caption="本仓 lab · 五段式声明"
+        width={1120}
+        lines={[
+          'SemanticView(',
+          '  name="sales_sv",',
+          '  tables=("customers", "orders", "events"),',
+          '  relationships=(Relationship("buyer", "orders",',
+          '      ("customer_id",), "customers", ("id",)), ...),',
+          '  metrics=(Metric("revenue", "sum", "orders", "total",',
+          '      synonyms=("sales", "毛收入", "营收")), ...),',
+          ')',
+        ]}
+        hi={[
+          {line: 2, at: 14, color: theme.manual},
+          {line: 3, at: 34, color: theme.manual},
+          {line: 6, at: 56, color: theme.engine},
+          {line: 7, at: 74, color: theme.engine},
+        ]}
+      />
     </AbsoluteFill>
   );
 };
@@ -367,19 +333,19 @@ export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (a: string, b?: string) => beatWindow(scene.sentences, scene.from, a, b);
   const at = (id: string) => w(id).from;
   const bA = w('p2-01', 'p2-04');
-  const bB = w('p2-05', 'p2-09');
-  const bC = w('p2-10', 'p2-12');
-  const bD = w('p2-13', 'p2-16');
-  const bE = w('p2-17', 'p2-19');
-  const bF = w('p2-20', 'p2-22');
-  const bG = w('p2-23', 'p2-25');
+  const bB = w('p2-05', 'p2-08');
+  const bC = w('p2-09', 'p2-11');
+  const bD = w('p2-12', 'p2-15');
+  const bE = w('p2-16', 'p2-18');
+  const bF = w('p2-19', 'p2-21');
+  const bG = w('p2-22', 'p2-24');
   return (
     <AbsoluteFill>
       <Sequence {...bA} name="2-A 便利贴墙">
         <StickyWall fallAt={at('p2-04') - bA.from} />
       </Sequence>
-      <Sequence {...bB} name="2-B 手册五段式">
-        <ManualFive fkAt={at('p2-08') - bB.from} />
+      <Sequence {...bB} name="2-B 五段式代码">
+        <DeclCode />
       </Sequence>
       <Sequence {...bC} name="2-C 校验门">
         <ValidationGate hitAt={Math.max(30, at('p2-11') - bC.from - 10)} />

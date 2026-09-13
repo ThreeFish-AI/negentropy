@@ -6,6 +6,7 @@ import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {Panel} from '../components/motifs';
+import {CodeWalk} from '../components/CodeWalk';
 import {DUR, progress, useCount, useDraw, useFlowDash, useImpulse, useProgress, useSpring, useStagger} from '../motion';
 
 /** 3-A 写不动：金漆刷墙 + 新表涌入 */
@@ -99,12 +100,13 @@ const DualTrack: React.FC = () => {
 };
 
 /** 3-C 纠错环 */
-const SelfCorrect: React.FC<{fixAt: number; passAt: number}> = ({fixAt, passAt}) => {
+const SelfCorrect: React.FC<{fixAt: number; passAt: number; codeAt: number}> = ({fixAt, passAt, codeAt}) => {
   const exam = useSpring('settle', {at: 4});
   const wrong = useImpulse({at: 22, dur: DUR.f4});
   const fixes = useStagger(2, {at: fixAt, stride: 10});
   const pass = useSpring('snap', {at: passAt, dur: DUR.f4});
   const ring = useDraw(passAt + 6, DUR.f6);
+  const code = useProgress(codeAt, DUR.f5);
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <div style={{opacity: exam}}>
@@ -134,6 +136,18 @@ const SelfCorrect: React.FC<{fixAt: number; passAt: number}> = ({fixAt, passAt})
             </text>
           </svg>
         </Panel>
+      </div>
+      <div style={{position: 'absolute', left: 0, right: 0, top: 620, opacity: code}}>
+        <CodeWalk
+          width={900}
+          caption="本仓 lab · eval 环的两行"
+          lines={[
+            'e.synonyms = tuple(sorted(e.synonyms + (q,)))   # 定义级：补词',
+            'e.popularity = 50                               # 对的条目：升热度',
+            'e.popularity = 120                              # 错的条目：降热度',
+          ]}
+          hi={[{line: 0, at: 6, color: theme.grown}, {line: 1, at: 20, color: theme.grown}, {line: 2, at: 34, color: theme.grown}]}
+        />
       </div>
       <div style={{position: 'absolute', bottom: 215, right: 220, fontFamily: theme.sans, fontSize: 20, color: theme.dim, opacity: pass}}>
         {'本仓原型实测输出 · C4'}
@@ -220,11 +234,11 @@ const ConflictHonesty: React.FC<{judgeAt: number; quoteAt: number}> = ({judgeAt,
 export const P3Nurture: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (a: string, b?: string) => beatWindow(scene.sentences, scene.from, a, b);
   const at = (id: string) => w(id).from;
-  const bA = w('p3-01', 'p3-05');
-  const bB = w('p3-06', 'p3-09');
-  const bC = w('p3-10', 'p3-14');
-  const bD = w('p3-15', 'p3-21');
-  const bE = w('p3-22', 'p3-29');
+  const bA = w('p3-01', 'p3-04');
+  const bB = w('p3-05', 'p3-10');
+  const bC = w('p3-11', 'p3-17');
+  const bD = w('p3-18', 'p3-27');
+  const bE = w('p3-28', 'p3-34');
   return (
     <AbsoluteFill>
       <Sequence {...bA} name="3-A 写不动">
@@ -233,14 +247,14 @@ export const P3Nurture: React.FC<{scene: SceneRange}> = ({scene}) => {
       <Sequence {...bB} name="3-B 双轨">
         <DualTrack />
       </Sequence>
-      <Sequence {...bC} name="3-C 纠错环">
-        <SelfCorrect fixAt={at('p3-13') - bC.from - 20} passAt={at('p3-13') - bC.from} />
+      <Sequence {...bC} name="3-C 纠错环与代码">
+        <SelfCorrect fixAt={at('p3-15') - bC.from - 16} passAt={at('p3-16') - bC.from} codeAt={at('p3-15') - bC.from} />
       </Sequence>
       <Sequence {...bD} name="3-D 自动选反事实">
-        <AutoWrong throneAt={at('p3-21') - bD.from} />
+        <AutoWrong throneAt={at('p3-24') - bD.from} />
       </Sequence>
       <Sequence {...bE} name="3-E 冲突见人">
-        <ConflictHonesty judgeAt={at('p3-25') - bE.from} quoteAt={at('p3-27') - bE.from} />
+        <ConflictHonesty judgeAt={at('p3-30') - bE.from} quoteAt={at('p3-34') - bE.from} />
       </Sequence>
     </AbsoluteFill>
   );

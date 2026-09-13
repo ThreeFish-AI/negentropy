@@ -226,13 +226,40 @@ const OnboardPack: React.FC = () => {
   );
 };
 
+
+/** 1-D 尾帧小终端角标：lab 预告 */
+const LabBadge: React.FC<{at: number}> = ({at}) => {
+  const o = useProgress(at, DUR.f4);
+  const flash = useImpulse({at: at + 6, dur: DUR.f4});
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        right: 300,
+        top: 300,
+        fontFamily: theme.mono,
+        fontSize: 20,
+        color: theme.engine,
+        background: '#0B0E13',
+        border: `2px solid ${theme.engine}66`,
+        borderRadius: 10,
+        padding: '12px 22px',
+        opacity: o,
+        transform: `scale(${1 + flash * 0.06})`,
+      }}
+    >
+      {'$ horizon_context_lab.py --selftest ✔'}
+    </div>
+  );
+};
+
 export const P1Intern: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (a: string, b?: string) => beatWindow(scene.sentences, scene.from, a, b);
   const at = (id: string) => w(id).from;
   const bA = w('p1-01', 'p1-07');
-  const bB = w('p1-08', 'p1-16');
-  const bC = w('p1-17', 'p1-22');
-  const bD = w('p1-23', 'p1-27');
+  const bB = w('p1-08', 'p1-15');
+  const bC = w('p1-16', 'p1-23');
+  const bD = w('p1-24', 'p1-27');
   return (
     <AbsoluteFill>
       <Sequence {...bA} name="1-A 记忆清零">
@@ -246,6 +273,7 @@ export const P1Intern: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
       <Sequence {...bD} name="1-D 入职包命名帧">
         <OnboardPack />
+        <LabBadge at={bD.durationInFrames - 30} />
       </Sequence>
     </AbsoluteFill>
   );

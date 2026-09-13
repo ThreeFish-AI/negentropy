@@ -104,6 +104,7 @@ const NextAndCredits: React.FC<{durationInFrames: number}> = ({durationInFrames}
             <div>{'信源：Snowflake Horizon Context 产品页 / 官方博客 / docs（经本仓精读笔记 IEEE 引用链）'}</div>
             <div>{'精读笔记：docs/reference/paper-notes/horizon-context.md @ cf6724d6 · 2026-09-12'}</div>
             <div>{'复现代码：horizon_context_lab.py（916 行）+ horizon_context_mcp.py（328 行）· selftest 全绿'}</div>
+            <div>{'工程图回放：docs/assets/architecture/paper-notes/（archify · 交互版可下载回放）'}</div>
           </div>
         </Panel>
       </div>

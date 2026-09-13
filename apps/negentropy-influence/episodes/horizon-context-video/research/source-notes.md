@@ -106,3 +106,17 @@
 - 【二】**OSI → Apache Ossie（Incubating）**：YAML/JSON 语义模型规范，2025-11 由 Snowflake + Salesforce + dbt Labs 等 17 家发起，进 Apache 孵化器后 50+ 组织、3 工作组（Metric Language / Catalog / Ontology）；语义视图可 `SYSTEM$CREATE_SEMANTIC_VIEW_FROM_YAML` 导入。
 - 【二】**MCP**：官方管理的 MCP server 把语义视图（经 Cortex Analyst）与 Cortex Search 暴露给外部 agent——Claude Desktop / Claude Code / Cursor 添加 custom connector 即可「受治理地」问数。
 - 【一】**本仓 MCP 原型**（T1–T8 全绿）：纯标准库 stdio JSON-RPC 四工具（list_context_objects / resolve_context / compile_metric / report_feedback）；引擎层 RBAC 经 MCP 仍生效（T5）；行为反馈改变排序可复现（T6/T6b）；子进程 stdio 往返冒烟（T8）。
+
+## 十一、v2 代码实景引用清单（2026-09-13 改版增补）
+
+> v2 口播中「屏幕上的代码/实测输出」逐处锚定（全部【一】仓内可复跑）：
+
+| 口播位置 | 画面代码/输出 | lab 锚点 |
+|---|---|---|
+| p2-06..08 五段式声明 | `SemanticView("sales_sv", tables=(...), relationships=(Relationship("buyer", ...)), metrics=(Metric("revenue", "sum", ...)))` | `build_sales_view()` :170 |
+| p2-11 注册被拒 | `✗ relationship bad: referenced column customers.plan is not PRIMARY KEY/UNIQUE` | D6 实测输出 |
+| p3-11 一行分岔 | `spec_rows = [...] if agg_before_join else _naive_joined_rows(...)` | `compile_query` 内 :383-385 |
+| p3-21 实测输出 | `[PASS] B1: fan trap: 引擎 Jan=200 vs 朴素 Jan=440` | selftest B1 |
+| p4-10..12 三行 RBAC | `if metric.visibility == "PRIVATE" and role not in PRIVATE_ALLOWED: raise AccessDenied` | `compile_query` M3 防线 :394-396；C2 输出同屏 |
+| p5-27 热度一行 | `pop = math.log1p(popularity) / math.log1p(POP_CAP)` | `rank()` :463 |
+| archify 回放 | declaration-execution / collect-enrich-activate 两段 Play 录制 | `docs/assets/architecture/paper-notes/` + `pipeline/scripts/record_archify.py` |

@@ -6,6 +6,7 @@ import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {Panel} from '../components/motifs';
+import {ArchifyClip} from '../components/ArchifyClip';
 import {DUR, progress, useDraw, useImpulse, useProgress, useSpring, useStagger} from '../motion';
 
 /** 积木定义（1-B/1-C 复用） */
@@ -196,30 +197,42 @@ const LifeOfDatum: React.FC = () => {
   );
 };
 
+
+/** 1-C 积木③④⑤ + 正交演示（合并镜：先落位拼机，再抽层演示正交） */
+const BlocksAndOrtho: React.FC<{linkAt: number; swapAt: number}> = ({linkAt, swapAt}) => {
+  const phase = useProgress(swapAt - 10, DUR.f5);
+  return (
+    <AbsoluteFill>
+      <div style={{opacity: 1 - phase}}>
+        <BlocksRest linkAt={linkAt - 40} />
+      </div>
+      <div style={{opacity: phase, position: 'absolute', inset: 0}}>
+        <OrthogonalDemo swapAt={10} />
+      </div>
+    </AbsoluteFill>
+  );
+};
+
 export const P1Blocks: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (a: string, b?: string) => beatWindow(scene.sentences, scene.from, a, b);
   const at = (id: string) => w(id).from;
-  const bA = w('p1-01', 'p1-02');
-  const bB = w('p1-03', 'p1-11');
-  const bC = w('p1-12', 'p1-17');
-  const bD = w('p1-18', 'p1-21');
-  const bE = w('p1-22', 'p1-26');
+  const bA = w('p1-01', 'p1-05');
+  const bB = w('p1-06', 'p1-10');
+  const bC = w('p1-11', 'p1-18');
+  const bD = w('p1-19', 'p1-22');
   return (
     <AbsoluteFill>
-      <Sequence {...bA} name="1-A 两问">
+      <Sequence {...bA} name="1-A 两问与对象">
         <TwoQuestions />
       </Sequence>
       <Sequence {...bB} name="1-B 对象与目录">
         <BlocksOneTwo copyAt={at('p1-09') - bB.from} />
       </Sequence>
-      <Sequence {...bC} name="1-C 三四五积木">
-        <BlocksRest linkAt={at('p1-17') - bC.from} />
+      <Sequence {...bC} name="1-C 三四五与正交">
+        <BlocksAndOrtho linkAt={at('p1-16') - bC.from} swapAt={at('p1-17') - bC.from} />
       </Sequence>
-      <Sequence {...bD} name="1-D 正交演示">
-        <OrthogonalDemo swapAt={at('p1-19') - bD.from} />
-      </Sequence>
-      <Sequence {...bE} name="1-E 数据的一生">
-        <LifeOfDatum />
+      <Sequence {...bD} name="1-D archify五层架构">
+        <ArchifyClip file="blueprint-architecture.webm" leadSec={3.55} caption="context-layer-blueprint" />
       </Sequence>
     </AbsoluteFill>
   );

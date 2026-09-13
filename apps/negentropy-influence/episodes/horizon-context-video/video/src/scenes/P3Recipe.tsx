@@ -6,6 +6,8 @@ import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {Panel} from '../components/motifs';
+import {ArchifyClip} from '../components/ArchifyClip';
+import {CodeWalk, TerminalLog} from '../components/CodeWalk';
 import {DUR, progress, useCount, useDim, useDraw, useFlowDash, useImpulse, useProgress, useShake, useSpring, useStagger} from '../motion';
 
 const W = 1920;
@@ -56,24 +58,33 @@ const RecipeCard: React.FC<{ruinAt: number}> = ({ruinAt}) => {
   );
 };
 
-/** 3-B 存好的数 vs 现场算式 */
-const StoredVsLive: React.FC = () => {
+/** 3-C 存好的数 vs 现场算式 + 一行分岔代码 */
+const StoredVsLive: React.FC<{forkAt: number}> = ({forkAt}) => {
   const ice = useProgress(6, DUR.f5);
-  const gear = useProgress(30, DUR.f5);
-  const freeze = useProgress(60, DUR.f4);
+  const gear = useProgress(16, DUR.f5);
+  const fork = useProgress(forkAt, DUR.f5);
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <div style={{display: 'flex', gap: 120}}>
+      <div style={{display: 'flex', gap: 120, opacity: 1 - fork * 0.85}}>
         <div style={{textAlign: 'center', opacity: ice}}>
           <div style={{fontSize: 90}}>{'🧊'}</div>
           <div style={{fontFamily: theme.sans, fontSize: 26, color: theme.dim, marginTop: 10}}>{'存好的数：粒度被冻死'}</div>
-          <div style={{fontFamily: theme.mono, fontSize: 20, color: theme.dim, marginTop: 8, opacity: freeze}}>{'❄ 2024-01 起冻结'}</div>
         </div>
         <div style={{textAlign: 'center', opacity: gear}}>
           <div style={{fontSize: 90}}>{'⚙️'}</div>
-          <div style={{fontFamily: theme.sans, fontSize: 26, color: theme.engine, marginTop: 10}}>{'指标 = 一段算式'}</div>
-          <div style={{fontFamily: theme.mono, fontSize: 20, color: theme.dim, marginTop: 8}}>{'每次查询 · 现场重算'}</div>
+          <div style={{fontFamily: theme.sans, fontSize: 26, color: theme.engine, marginTop: 10}}>{'指标 = 一段算式 · 现场重算'}</div>
         </div>
+      </div>
+      <div style={{position: 'absolute', top: 560, opacity: fork}}>
+        <CodeWalk
+          width={1120}
+          caption="本仓 lab · compile_query 内的一行分岔"
+          lines={[
+            'spec_rows = ([dict(r) for r in basis.rows]   if agg_before_join',
+            '             else _naive_joined_rows(...))      # 先关联 → 行复制',
+          ]}
+          hi={[{line: 0, at: 8, color: theme.engine}, {line: 1, at: 26, color: theme.danger}]}
+        />
       </div>
     </AbsoluteFill>
   );
@@ -453,57 +464,127 @@ const VerdictQuote: React.FC = () => {
   );
 };
 
+
+/** 3-D 复印机 + 官方案例卡（交叉淡出合一镜） */
+const CopierWithCase: React.FC<{sumAt: number; caseAt: number}> = ({sumAt, caseAt}) => {
+  const toCase = useProgress(caseAt - 6, DUR.f5);
+  return (
+    <AbsoluteFill>
+      <div style={{opacity: 1 - toCase}}>
+        <CopierTrap sumAt={sumAt} />
+      </div>
+      <div style={{opacity: toCase, position: 'absolute', inset: 0}}>
+        <OfficialCase />
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+/** 3-E 复现证据：代码分岔点亮 + 真实 B1 终端输出 + 解法小图 */
+const LabEvidence: React.FC<{leftAt: number; rightAt: number; fixAt: number}> = ({leftAt, rightAt, fixAt}) => {
+  const fuse = useProgress(leftAt, DUR.f5);
+  const fix = useProgress(fixAt, DUR.f5);
+  return (
+    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
+      <div style={{display: 'flex', gap: 40, alignItems: 'stretch', opacity: 1 - fix * 0.9}}>
+        <div style={{opacity: fuse}}>
+          <CodeWalk
+            width={560}
+            caption=""
+            lines={['# 同一份玩具数据，两种算法', 'agg_before_join=True   → 200  ✓', 'agg_before_join=False  → 440  ✗']}
+            hi={[{line: 1, at: 6, color: theme.engine}, {line: 2, at: 18, color: theme.danger}]}
+          />
+        </div>
+        <TerminalLog
+          width={560}
+          prompt="uv run python horizon_context_lab.py --selftest"
+          caption="本仓原型实测输出 · B1"
+          lines={[
+            {text: '[PASS] B1: fan trap: 引擎 Jan=200 vs 朴素 Jan=440', color: theme.engine, at: 12, bold: true},
+            {text: '  （o1 的 3 条事件把 $100 变 $300）', color: theme.dim, at: 26},
+          ]}
+        />
+      </div>
+      <div style={{position: 'absolute', bottom: 200, opacity: fix, fontFamily: theme.sans, fontSize: 26, color: theme.engine}}>
+        {'解法：先各自算，再合并——复印机没东西可印'}
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+/** 3-G 平均的平均 + 客单价（教室天平 → 公式条交叉） */
+const AvgSuite: React.FC<{tiltAt: number; ghostAt: number}> = ({tiltAt, ghostAt}) => {
+  const phase = useProgress(ghostAt - 10, DUR.f5);
+  return (
+    <AbsoluteFill>
+      <div style={{opacity: 1 - phase}}>
+        <ClassroomScale tiltAt={tiltAt} />
+      </div>
+      <div style={{opacity: phase, position: 'absolute', inset: 0}}>
+        <AovFormula ghostAt={10} />
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+/** 3-H 余额可加性 → 末快照时间轴（交叉） */
+const SemiAdditive: React.FC<{weirdAt: number; snapAt: number}> = ({weirdAt, snapAt}) => {
+  const phase = useProgress(snapAt - 8, DUR.f5);
+  return (
+    <AbsoluteFill>
+      <div style={{opacity: 1 - phase}}>
+        <BalanceCards weirdAt={weirdAt} />
+      </div>
+      <div style={{opacity: phase, position: 'absolute', inset: 0}}>
+        <LastSnapshot sumShowAt={14} />
+      </div>
+    </AbsoluteFill>
+  );
+};
+
 export const P3Recipe: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (a: string, b?: string) => beatWindow(scene.sentences, scene.from, a, b);
   const at = (id: string) => w(id).from;
-  const bA = w('p3-01', 'p3-06');
-  const bB = w('p3-07', 'p3-10');
-  const bC = w('p3-11', 'p3-15');
-  const bD = w('p3-16', 'p3-18');
-  const bE = w('p3-19', 'p3-23');
-  const bF = w('p3-24', 'p3-26');
-  const bG = w('p3-27', 'p3-31');
-  const bH = w('p3-32', 'p3-35');
-  const bI = w('p3-36', 'p3-40');
-  const bJ = w('p3-41', 'p3-44');
-  const bK = w('p3-45', 'p3-50');
-  const bL = w('p3-51', 'p3-54');
+  const bA = w('p3-01', 'p3-03');
+  const bB = w('p3-04', 'p3-08');
+  const bC = w('p3-09', 'p3-12');
+  const bD = w('p3-13', 'p3-19');
+  const bE = w('p3-20', 'p3-25');
+  const bF = w('p3-26', 'p3-27');
+  const bG = w('p3-28', 'p3-34');
+  const bH = w('p3-35', 'p3-41');
+  const bI = w('p3-42', 'p3-47');
+  const bJ = w('p3-48', 'p3-51');
   return (
     <AbsoluteFill>
-      <Sequence {...bA} name="3-A 菜谱与芡水">
-        <RecipeCard ruinAt={at('p3-05') - bA.from} />
+      <Sequence {...bA} name="3-A archify声明执行">
+        <ArchifyClip file="declaration-execution.webm" leadSec={3.53} caption="declaration-execution" />
       </Sequence>
-      <Sequence {...bB} name="3-B 存好vs现场">
-        <StoredVsLive />
+      <Sequence {...bB} name="3-B 菜谱与芡水">
+        <RecipeCard ruinAt={at('p3-07') - bB.from} />
       </Sequence>
-      <Sequence {...bC} name="3-C 复印机陷阱">
-        <CopierTrap sumAt={at('p3-14') - bC.from} />
+      <Sequence {...bC} name="3-C 算式与分岔代码">
+        <StoredVsLive forkAt={at('p3-11') - bC.from} />
       </Sequence>
-      <Sequence {...bD} name="3-D 官方案例">
-        <OfficialCase />
+      <Sequence {...bD} name="3-D 复印机与案例">
+        <CopierWithCase sumAt={at('p3-16') - bD.from} caseAt={at('p3-18') - bD.from} />
       </Sequence>
-      <Sequence {...bE} name="3-E 复现双栏">
-        <LabCompare mode="sum" leftAt={at('p3-20') - bE.from} rightAt={at('p3-20') - bE.from + 12} />
+      <Sequence {...bE} name="3-E 复现双卡">
+        <LabEvidence leftAt={at('p3-20') - bE.from} rightAt={at('p3-20') - bE.from + 14} fixAt={at('p3-23') - bE.from} />
       </Sequence>
       <Sequence {...bF} name="3-F 去重安全">
-        <LabCompare mode="distinct" leftAt={at('p3-26') - bF.from} rightAt={at('p3-26') - bF.from + 12} />
+        <LabCompare mode="distinct" leftAt={at('p3-26') - bF.from} rightAt={at('p3-26') - bF.from + 10} />
       </Sequence>
       <Sequence {...bG} name="3-G 平均的平均">
-        <ClassroomScale tiltAt={at('p3-30') - bG.from} />
+        <AvgSuite tiltAt={at('p3-31') - bG.from} ghostAt={at('p3-34') - bG.from} />
       </Sequence>
-      <Sequence {...bH} name="3-H 客单价公式">
-        <AovFormula ghostAt={at('p3-35') - bH.from} />
+      <Sequence {...bH} name="3-H 半可加">
+        <SemiAdditive weirdAt={at('p3-37') - bH.from} snapAt={at('p3-40') - bH.from} />
       </Sequence>
-      <Sequence {...bI} name="3-I 银行卡余额">
-        <BalanceCards weirdAt={at('p3-39') - bI.from} />
+      <Sequence {...bI} name="3-I 477对48">
+        <PipelineAccident clashAt={at('p3-43') - bI.from} />
       </Sequence>
-      <Sequence {...bJ} name="3-J 末快照">
-        <LastSnapshot sumShowAt={at('p3-43') - bJ.from} />
-      </Sequence>
-      <Sequence {...bK} name="3-K 477对48">
-        <PipelineAccident clashAt={at('p3-46') - bK.from} />
-      </Sequence>
-      <Sequence {...bL} name="3-L 题眼金句">
+      <Sequence {...bJ} name="3-J 题眼金句">
         <VerdictQuote />
       </Sequence>
     </AbsoluteFill>

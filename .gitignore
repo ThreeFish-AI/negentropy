@@ -317,3 +317,7 @@ apps/negentropy-influence/pipeline/voices/*
 # 执法（双向：本条命中 + 兄弟两份不被误伤）见
 # apps/negentropy-influence/pipeline/tests/test_subproject_hygiene.py。
 apps/negentropy-influence/uv.lock
+
+# archify 工程图 Play 回放录制（派生产物；HTML 为 SSOT，重录用
+# apps/negentropy-influence/pipeline/scripts/record_archify.py，sidecar json 入库）
+apps/negentropy-influence/episodes/*/video/public/archify/*.webm

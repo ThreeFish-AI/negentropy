@@ -173,6 +173,7 @@ const FinalQuote: React.FC<{durationInFrames: number}> = ({durationInFrames}) =>
             <div>{'设计蓝图：docs/reference/context-layer-blueprint.md @ cf6724d6 · 2026-09-12'}</div>
             <div>{'机制范本：docs/reference/paper-notes/horizon-context.md（六机制精读 + IEEE 引用链）'}</div>
             <div>{'原型代码：horizon_context_lab.py + horizon_context_mcp.py · selftest 全绿（30 项）'}</div>
+            <div>{'工程图回放：docs/assets/architecture/paper-notes/（archify · 交互版可下载回放）'}</div>
           </div>
         </Panel>
       </div>
@@ -187,9 +188,9 @@ export const P6Road: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (a: string, b?: string) => beatWindow(scene.sentences, scene.from, a, b);
   const at = (id: string) => w(id).from;
   const bA = w('p6-01', 'p6-05');
-  const bB = w('p6-06', 'p6-10');
-  const bC = w('p6-11', 'p6-15');
-  const bD = w('p6-16', 'p6-21');
+  const bB = w('p6-06', 'p6-11');
+  const bC = w('p6-12', 'p6-16');
+  const bD = w('p6-17', 'p6-22');
   return (
     <AbsoluteFill>
       <Sequence {...bA} name="6-A P0已完成">

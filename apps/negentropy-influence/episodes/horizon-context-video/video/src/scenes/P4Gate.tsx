@@ -6,6 +6,7 @@ import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {Panel} from '../components/motifs';
+import {CodeWalk, TerminalLog} from '../components/CodeWalk';
 import {DUR, progress, useBreathe, useDraw, useImpulse, useProgress, useSpring, useStagger} from '../motion';
 
 /** 4-A 墙上的告示：三个应用各拦一道，小人翻墙 */
@@ -129,6 +130,41 @@ const TwoGates: React.FC<{denyAt: number; leakAt: number}> = ({denyAt, leakAt}) 
   );
 };
 
+
+/** 4-C 代码走廊 ③：RBAC 三行 + C2 实测 */
+const RbacCode: React.FC<{outAt: number}> = ({outAt}) => {
+  return (
+    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
+      <div style={{display: 'flex', gap: 40, alignItems: 'stretch'}}>
+        <CodeWalk
+          width={640}
+          caption="本仓 lab · 执行层防线"
+          lines={[
+            'if metric.visibility == "PRIVATE"',
+            '    and role not in PRIVATE_ALLOWED:',
+            '    raise AccessDenied(...)',
+          ]}
+          hi={[
+            {line: 0, at: 6, color: theme.engine},
+            {line: 1, at: 18, color: theme.engine},
+            {line: 2, at: 32, color: theme.danger},
+          ]}
+        />
+        <TerminalLog
+          width={520}
+          prompt="selftest · 场景 C2"
+          caption="本仓原型实测输出 · C2"
+          lines={[
+            {text: 'intern 直闯执行层', color: theme.dim, at: outAt},
+            {text: '→ AccessDenied', color: theme.danger, at: outAt + 10, bold: true},
+            {text: '[PASS] C2: 引擎是最后防线', color: theme.ok, at: outAt + 22},
+          ]}
+        />
+      </div>
+    </AbsoluteFill>
+  );
+};
+
 /** 4-D 出口保险：PII 扫描打码 */
 const ExitGuard: React.FC<{quoteAt: number}> = ({quoteAt}) => {
   const rise = useProgress(4, DUR.f6);
@@ -209,9 +245,10 @@ export const P4Gate: React.FC<{scene: SceneRange}> = ({scene}) => {
   const at = (id: string) => w(id).from;
   const bA = w('p4-01', 'p4-05');
   const bB = w('p4-06', 'p4-09');
-  const bC = w('p4-10', 'p4-14');
-  const bD = w('p4-15', 'p4-17');
-  const bE = w('p4-18', 'p4-20');
+  const bC = w('p4-10', 'p4-12');
+  const bD = w('p4-13', 'p4-16');
+  const bE = w('p4-17', 'p4-18');
+  const bF = w('p4-19', 'p4-20');
   return (
     <AbsoluteFill>
       <Sequence {...bA} name="4-A 墙上告示">
@@ -220,13 +257,16 @@ export const P4Gate: React.FC<{scene: SceneRange}> = ({scene}) => {
       <Sequence {...bB} name="4-B 引擎剖面">
         <BuildingGate />
       </Sequence>
-      <Sequence {...bC} name="4-C 双层防线">
-        <TwoGates denyAt={at('p4-13') - bC.from} leakAt={at('p4-14') - bC.from} />
+      <Sequence {...bC} name="4-C RBAC三行代码">
+        <RbacCode outAt={at('p4-11') - bC.from} />
       </Sequence>
-      <Sequence {...bD} name="4-D 出口保险">
-        <ExitGuard quoteAt={at('p4-17') - bD.from} />
+      <Sequence {...bD} name="4-D 双层防线">
+        <TwoGates denyAt={at('p4-15') - bD.from} leakAt={at('p4-16') - bD.from} />
       </Sequence>
-      <Sequence {...bE} name="4-E 楼界伏笔">
+      <Sequence {...bE} name="4-E 出口保险">
+        <ExitGuard quoteAt={at('p4-18') - bE.from - 8} />
+      </Sequence>
+      <Sequence {...bF} name="4-F 楼界伏笔">
         <BoundaryFog />
       </Sequence>
     </AbsoluteFill>

@@ -100,3 +100,18 @@
 3. 治理 ≠ 验证：注册期校验的是结构合法性，不是计算正确性；上游 grain 塌缩照样错（477 vs 48）。
 4. 四因子排序可能放大多数派错误——所以冲突必须浮出人工，不许排序代替裁决。
 5. 通用化折损：Horizon 的引擎内嵌优势依赖「引擎+上下文同厂」；自建层用「执行层守卫」逼近，但跨系统场景（OSI 解决携带、不解决执行）仍是无解区，只能显式声明边界。
+
+## 十一、v2 代码实景引用清单（2026-09-13 改版增补）
+
+> v2 口播中「屏幕上的代码/实测输出/对话记录」逐处锚定（全部【一】仓内可复跑）：
+
+| 口播位置 | 画面代码/输出 | 锚点 |
+|---|---|---|
+| p2-11..13 同义词参数 | `Metric("revenue", "sum", "orders", "total", synonyms=("sales", "毛收入", "营收"))` | lab `build_sales_view()` |
+| p2-25..26 校验拦截 | `✗ relationship bad: … not PRIMARY KEY/UNIQUE` | lab D6 输出 |
+| p3-14..16 自纠三处 | `e.synonyms = tuple(sorted(...))` / `e.popularity = 50`（对的条目 5→50）/ `e.popularity = 120`（错条目 200→120） | lab `eval_loop` 双循环三赋值；C4 输出 |
+| p3-26..27 自动选反事实 | D4 实测行 | lab D4 |
+| p4-18 log1p 一行 | `pop = math.log1p(popularity) / math.log1p(POP_CAP)` | lab `rank()` |
+| p4-26..32 MCP 实录 | initialize 握手 / tools/list 四工具 / list_context_objects（revenue · governed · 权威 1.0）/ compile_metric → {200,150,300} | mcp TOOLS + T1/T2/T4 实测 |
+| p4-33..36 三行日志 | `[PASS] T5 … plan is a PRIVATE fact` / `T6 … governed → legacy` / `T8 … [3,1,2]` | mcp selftest T5/T6/T8 原文 |
+| archify 回放 | blueprint-architecture / object-lifecycle 两段 Play 录制 | `docs/assets/architecture/paper-notes/` + `pipeline/scripts/record_archify.py` |

@@ -6,6 +6,8 @@ import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {Panel} from '../components/motifs';
+import {ArchifyClip} from '../components/ArchifyClip';
+import {CodeWalk, TerminalLog} from '../components/CodeWalk';
 import {DUR, progress, useDim, useDraw, useImpulse, useProgress, useSpring, useStagger} from '../motion';
 
 /** 2-A 维基条目标准身材 */
@@ -270,38 +272,79 @@ const Lifecycle: React.FC<{phase: 1 | 2 | 3; quoteAt: number}> = ({phase, quoteA
   );
 };
 
+
+/** 2-C 代码走廊 ①：同义词参数 */
+const SynCode: React.FC = () => {
+  return (
+    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
+      <CodeWalk
+        title="lab 复现 · 定义上的一个参数（节选）"
+        caption="本仓 lab · synonyms"
+        width={1080}
+        lines={[
+          'Metric("revenue", "sum", "orders", "total",',
+          '      synonyms=("sales", "毛收入", "营收"))',
+        ]}
+        hi={[{line: 1, at: 10, color: theme.grown}]}
+      />
+    </AbsoluteFill>
+  );
+};
+
+/** 2-G 校验终端 + 金句 */
+const GateLog: React.FC = () => {
+  const quote = useProgress(52, DUR.f5);
+  return (
+    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
+      <TerminalLog
+        prompt="selftest · 场景 D6"
+        caption="本仓原型实测输出 · D6"
+        lines={[
+          {text: '提交：relationship → customers.plan（普通列）', color: theme.dim, at: 8},
+          {text: '✗ relationship bad: referenced column', color: theme.danger, at: 22, bold: true},
+          {text: '  customers.plan is not PRIMARY KEY/UNIQUE', color: theme.danger, at: 34},
+          {text: '[PASS] D6: 注册期拦截 · 坏定义进不了库', color: theme.ok, at: 46},
+        ]}
+      />
+      <div style={{position: 'absolute', bottom: 230, fontFamily: theme.serif, fontSize: 44, color: theme.grown, opacity: quote}}>
+        {'「谁说了算」从人情问题，变成流程问题。'}
+      </div>
+    </AbsoluteFill>
+  );
+};
+
 export const P2Objects: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (a: string, b?: string) => beatWindow(scene.sentences, scene.from, a, b);
   const at = (id: string) => w(id).from;
-  const bA = w('p2-01', 'p2-05');
-  const bB = w('p2-06', 'p2-10');
-  const bC = w('p2-11', 'p2-14');
-  const bD = w('p2-15', 'p2-17');
-  const bE = w('p2-18', 'p2-22');
-  const bF = w('p2-23', 'p2-28');
-  const bG = w('p2-29', 'p2-32');
+  const bA = w('p2-01', 'p2-06');
+  const bB = w('p2-07', 'p2-10');
+  const bC = w('p2-11', 'p2-13');
+  const bD = w('p2-14', 'p2-17');
+  const bE = w('p2-18', 'p2-21');
+  const bF = w('p2-22', 'p2-24');
+  const bG = w('p2-25', 'p2-27');
   return (
     <AbsoluteFill>
       <Sequence {...bA} name="2-A 条目身材">
-        <WikiEntry focusAt={at('p2-05') - bA.from} />
+        <WikiEntry focusAt={at('p2-06') - bA.from} />
       </Sequence>
       <Sequence {...bB} name="2-B 同义词隐形">
         <SynonymInvisible missAt={at('p2-10') - bB.from} />
       </Sequence>
-      <Sequence {...bC} name="2-C 说明书">
+      <Sequence {...bC} name="2-C 同义词代码">
+        <SynCode />
+      </Sequence>
+      <Sequence {...bD} name="2-D 说明书">
         <InstructionsTravel />
       </Sequence>
-      <Sequence {...bD} name="2-D 签名问答">
-        <SignedQA hitAt={at('p2-17') - bD.from} />
+      <Sequence {...bE} name="2-E 签名问答">
+        <SignedQA hitAt={at('p2-20') - bE.from} />
       </Sequence>
-      <Sequence {...bE} name="2-E 出生与转正">
-        <Lifecycle phase={1} quoteAt={9999} />
+      <Sequence {...bF} name="2-F archify生命周期">
+        <ArchifyClip file="object-lifecycle.webm" leadSec={3.55} caption="object-lifecycle" />
       </Sequence>
-      <Sequence {...bF} name="2-F 岔道与取代">
-        <Lifecycle phase={2} quoteAt={9999} />
-      </Sequence>
-      <Sequence {...bG} name="2-G 全景金句">
-        <Lifecycle phase={3} quoteAt={at('p2-32') - bG.from} />
+      <Sequence {...bG} name="2-G 校验与金句">
+        <GateLog />
       </Sequence>
     </AbsoluteFill>
   );

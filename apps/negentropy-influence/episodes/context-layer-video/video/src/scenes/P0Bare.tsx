@@ -129,7 +129,7 @@ export const P0Bare: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (a: string, b?: string) => beatWindow(scene.sentences, scene.from, a, b);
   const at = (id: string) => w(id).from;
   const bA = w('p0-01', 'p0-05');
-  const bB = w('p0-06', 'p0-09');
+  const bB = w('p0-06', 'p0-10');
   return (
     <AbsoluteFill>
       <Sequence {...bA} name="0-A 裸奔助手">

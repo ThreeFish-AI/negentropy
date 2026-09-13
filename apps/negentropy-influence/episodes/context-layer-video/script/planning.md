@@ -72,6 +72,8 @@
 **反枚举原则**：五层**不给五色**。色彩映射「**结构（蓝）/ 生长（绿）/ 接线（橙）**」三轴：画架构用蓝、画状态机与自纠用绿、画对外接口用橙。并列项统一 `panel` 底 + 编号。
 
 **本集独有的视觉母题**
+
+> **v2 新增（2026-09-13 改版）**：① **archify 回放窗**（`components/ArchifyClip`）——工程图 Play 录制（`pipeline/scripts/record_archify.py`，webm 为派生产物 gitignored、sidecar 入库）内嵌为全屏 88% 窗；② **代码走廊**（`components/CodeWalk` + `TerminalLog`）——lab/MCP 真实代码行帧级高亮 + selftest 原文逐行上滚；guided-learn 三拍的「实景」由它们承担。术语白名单更新：域名缩写 AI / SQL / MCP 可口播，代码标识符一律只进画面。
 1. **五块积木**：P1 命名帧——五块积木从蓝图纸上立起、拼成一台机器，后续每幕抽一块放大讲。
 2. **词条的一生**：状态机轨道——draft 起点站 → governed 站台 → conflict 岔道（人工裁决灯）→ superseded 缓行线 → rejected 终点站。
 3. **唯一窗口**：所有 AI（圆形头像）排队到同一个窗口；窗口后面是四因子天平 + 两页手册。

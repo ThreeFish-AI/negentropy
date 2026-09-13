@@ -6,6 +6,8 @@ import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {Panel} from '../components/motifs';
+import {ArchifyClip} from '../components/ArchifyClip';
+import {CodeWalk} from '../components/CodeWalk';
 import {DUR, progress, useBreathe, useCount, useDraw, useFlowDash, useImpulse, useProgress, useSpring, useStagger} from '../motion';
 
 /** 5-A 覆盖率墙：100 格亮 4 格 */
@@ -378,37 +380,113 @@ const ValueNumbers: React.FC = () => {
   );
 };
 
+
+/** 5-E 冲突对峙引入：两派定义卡 + 大问号 */
+const ClashIntro: React.FC = () => {
+  const st = useStagger(2, {at: 6, stride: 12});
+  const q = useBreathe({period: 90});
+  const sides = [
+    {who: '市场部', def: '登录过 = 活跃', c: theme.dig},
+    {who: '增长部', def: '下过单 = 活跃', c: theme.danger},
+  ];
+  return (
+    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
+      <div style={{display: 'flex', gap: 110, alignItems: 'center'}}>
+        {sides.map((s, i) => (
+          <div key={i} style={{opacity: st[i], transform: `translateX(${(i === 0 ? -1 : 1) * (1 - st[i]) * 60}px)`}}>
+            <Panel accent={s.c} style={{width: 400, padding: '30px 26px', textAlign: 'center'}}>
+              <div style={{fontFamily: theme.sans, fontSize: 26, color: s.c}}>{s.who}</div>
+              <div style={{fontFamily: theme.mono, fontSize: 24, color: theme.text, marginTop: 14}}>{s.def}</div>
+            </Panel>
+          </div>
+        ))}
+      </div>
+      <svg width={300} height={300} style={{position: 'absolute'}}>
+        <text x={150} y={170} textAnchor="middle" fontSize={110} fill={theme.danger} opacity={0.75 + q * 0.25}>{'?'}</text>
+      </svg>
+    </AbsoluteFill>
+  );
+};
+
+/** 5-H 四因子 + log1p 代码走廊 ④ + 签名 FAQ 短路 */
+const RankWithCode: React.FC<{faqAt: number}> = ({faqAt}) => {
+  const factors = useStagger(4, {at: 4, stride: 8});
+  const code = useProgress(46, DUR.f5);
+  const faqShow = useProgress(faqAt, DUR.f4);
+  const faq = useImpulse({at: faqAt, dur: DUR.f4});
+  return (
+    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
+      <div style={{display: 'flex', gap: 26}}>
+        {[
+          {l: '相关', w: '0.4'},
+          {l: '权威', w: '0.3'},
+          {l: '常用', w: '0.2'},
+          {l: '新鲜', w: '0.1'},
+        ].map((f, i) => (
+          <div key={i} style={{opacity: factors[i]}}>
+            <Panel accent={i === 1 ? theme.manual : theme.panelBorder} style={{padding: '14px 24px', textAlign: 'center'}}>
+              <div style={{fontFamily: theme.sans, fontSize: 24, color: theme.text}}>{f.l}</div>
+              <div style={{fontFamily: theme.mono, fontSize: 19, color: theme.dim, marginTop: 4}}>{f.w}</div>
+            </Panel>
+          </div>
+        ))}
+      </div>
+      <div style={{marginTop: 46, opacity: code}}>
+        <CodeWalk
+          width={880}
+          caption="本仓 lab · rank() 内的一行"
+          lines={['pop = math.log1p(popularity) / math.log1p(POP_CAP)']}
+          hi={[{line: 0, at: 8, color: theme.dig}]}
+        />
+      </div>
+      <div style={{marginTop: 40, opacity: faqShow, transform: `scale(${1 + faq * 0.06})`}}>
+        <Panel accent={theme.ok} style={{padding: '16px 34px'}}>
+          <div style={{fontFamily: theme.mono, fontSize: 24, color: theme.ok}}>{'⚡ 命中签名 FAQ → 念答案（带署名）'}</div>
+        </Panel>
+      </div>
+    </AbsoluteFill>
+  );
+};
+
 export const P5Grow: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (a: string, b?: string) => beatWindow(scene.sentences, scene.from, a, b);
   const at = (id: string) => w(id).from;
-  const bA = w('p5-01', 'p5-05');
-  const bB = w('p5-06', 'p5-10');
-  const bC = w('p5-11', 'p5-15');
-  const bD = w('p5-16', 'p5-22');
-  const bE = w('p5-23', 'p5-25');
-  const bF = w('p5-26', 'p5-30');
-  const bG = w('p5-31', 'p5-36');
+  const bA = w('p5-01', 'p5-03');
+  const bB = w('p5-04', 'p5-07');
+  const bC = w('p5-08', 'p5-11');
+  const bD = w('p5-12', 'p5-15');
+  const bE = w('p5-16', 'p5-19');
+  const bF = w('p5-20', 'p5-22');
+  const bG = w('p5-23', 'p5-24');
+  const bH = w('p5-25', 'p5-29');
+  const bI = w('p5-30', 'p5-35');
   return (
     <AbsoluteFill>
-      <Sequence {...bA} name="5-A 覆盖率墙">
+      <Sequence {...bA} name="5-A archify汇聚富化激活">
+        <ArchifyClip file="collect-enrich-activate.webm" leadSec={3.65} caption="collect-enrich-activate" />
+      </Sequence>
+      <Sequence {...bB} name="5-B 覆盖率墙">
         <CoverageWall />
       </Sequence>
-      <Sequence {...bB} name="5-B 双轨">
+      <Sequence {...bC} name="5-C 双轨">
         <TwoTracks />
       </Sequence>
-      <Sequence {...bC} name="5-C 纠错环">
-        <EvalLoop fixAt={at('p5-15') - bC.from - 24} passAt={at('p5-15') - bC.from} />
+      <Sequence {...bD} name="5-D 纠错环">
+        <EvalLoop fixAt={at('p5-15') - bD.from - 24} passAt={at('p5-15') - bD.from} />
       </Sequence>
-      <Sequence {...bD} name="5-D 自动选反事实">
-        <AutoPicksWrong throneAt={at('p5-22') - bD.from} />
+      <Sequence {...bE} name="5-E 冲突对峙">
+        <ClashIntro />
       </Sequence>
-      <Sequence {...bE} name="5-E CONFLICT卡片">
-        <ConflictCard judgeAt={at('p5-25') - bE.from} />
+      <Sequence {...bF} name="5-F 自动选反事实">
+        <AutoPicksWrong throneAt={at('p5-22') - bF.from} />
       </Sequence>
-      <Sequence {...bF} name="5-F 前台四因子">
-        <FrontDesk faqAt={at('p5-30') - bF.from} />
+      <Sequence {...bG} name="5-G CONFLICT卡片">
+        <ConflictCard judgeAt={at('p5-24') - bG.from} />
       </Sequence>
-      <Sequence {...bG} name="5-G 价值数字">
+      <Sequence {...bH} name="5-H 四因子与代码">
+        <RankWithCode faqAt={at('p5-29') - bH.from} />
+      </Sequence>
+      <Sequence {...bI} name="5-I 价值数字">
         <ValueNumbers />
       </Sequence>
     </AbsoluteFill>

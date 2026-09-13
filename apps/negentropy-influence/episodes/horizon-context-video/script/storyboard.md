@@ -1,4 +1,4 @@
-# 分镜：《AI 为什么答不对你公司的数据》
+# 分镜：《AI 为什么答不对你公司的数据》v2
 
 > 逐字稿 SSOT：[narration.md](./narration.md)（句 id 即本表的定位锚）；视觉契约见 [planning.md](./planning.md) §三。
 > 一镜（beat）= 2–8 句连续句子共享同一主画面；句区间必须**覆盖本幕每一句**（`check_script.py` 强制）。
@@ -6,80 +6,83 @@
 > `engine` 青碧（引擎/计算纪律/门禁）· `dig` 淡紫（隐式挖掘/自纠）· `danger` 警示红（错误数字/泄露）。
 > **镜号必须与 `scenes/*.tsx` 里内嵌 `<Sequence name="N-X">` 逐字一致**（抽帧 QA 对照用）。
 > 动效列 `@动词` 对应 motion 模型（hooks.ts），`--check-motion` 机检。
+> v2 新增母题：**archify 回放窗**（components/ArchifyClip：OffthreadVideo + 暗框 + 角标）与
+> **代码走廊**（CodeCard 逐段高亮 + 终端卡滚真实 selftest 输出）。
 
 ## P0 钥匙给了，还是答错（p0-01..10）
 
 | 镜 | 句区间 | 画面 | 动效 |
 |---|---|---|---|
-| 0-A | p0-01..03 | 终端窗口（panel 底），用户打出「上个季度毛收入多少？」，AI 流畅吐数字并自动打勾；p0-03 勾翻转成红叉，右侧压基线角标「21%（Anthropic 复测）/ ~25%（Snowflake 内测）」 | 打字机逐字（每字 2 帧）；数字卡 spring 弹入 + 绿勾；p0-03 勾爆闪变 `danger` 红叉（impulse）＋角标淡入 ；`@enter:rise` `@impulse` |
-| 0-B | p0-04..06 | 镜头推近：底部滚出整墙乱码列名（mono 密排灰字），其中一列高亮成 `manual` 金——角标 `amt_ttl_pre_dsc`；AI 图标读取这列后头顶冒出问号 | 乱码墙自下而上刷入（progress 等速）；金列高亮 + 角标弹出（spring）；问号 breathe 浮动 ；`@progress` `@spring` |
-| 0-C | p0-07..08 | 一份「净收入」文档分裂成三张卡片各带不同算式（`CASE WHEN` 片段），互相拉扯 | 文档卡分裂三路（stagger 弹开）；三卡之间画对撞折线，中点炸出「？」；p0-08 三卡同步降为 40% 亮度，金句小卡淡入「缺的不是智能，是含义」（serif） ；`@stagger` `@spring` |
-| 0-D | p0-09..10 | 片名卡：暗场中一条 `engine` 青碧细线自中心向两侧生长，片名《AI 为什么答不对你公司的数据》落线，右下角「Snowflake · Horizon Context」小字 | 细线描线生长（draw）；片名 serif 落位（spring）；p0-10 全卡整体 pushIn 一次 ；`@draw` `@pushIn` |
+| 0-A | p0-01..03 | 终端问答：AI 自信吐数打勾 → 勾翻红叉 + 基线角标 | 打字机（每字 2 帧）；勾 impulse 爆红；角标淡入 ；`@enter:rise` `@impulse` |
+| 0-B | p0-04..06 | 乱码列名墙滚出，一列染 `manual` 金 + 角标 `amt_ttl_pre_dsc` | 墙 progress 刷入；金列高亮 + 角标 spring ；`@progress` `@spring` |
+| 0-C | p0-07..08 | 净收入文档分裂三张算法卡对撞 → 金句「缺的不是智能，是含义」 | 三卡 stagger 分裂；对撞 impulse；金句 serif 淡入 ；`@stagger` `@impulse` |
+| 0-D | p0-09..10 | 片名卡：青碧细线生长 + 标题 | 细线 draw；标题 spring ；`@draw` `@spring` |
 
 ## P1 每天重新入职的天才（p1-01..27）
 
 | 镜 | 句区间 | 画面 | 动效 |
 |---|---|---|---|
-| 1-A | p1-01..07 | 办公楼门口年轻人（名牌「实习生」）进门；头顶记忆图标每日清空（日历哗翻）；右半 AI 助手图标同样挂着「记忆清零」标签 | 日历页高速翻落（accelTravel）；记忆图标清零时白闪一次（impulse）；p1-05 AI 图标镜像复制门口场景 ；`@accelTravel` `@impulse` |
-| 1-B | p1-08..16 | 三张病灶卡依次压入：①便利贴散落（二十张小贴纸抖开）②外挂词典与系统分家（两块面板间的连线断开冒火花）③墙上「闲人免进」告示被小人翻越 | 三卡 stagger 压入（每张 8 帧）；②连线断裂弹跳（shake）＋火花粒子；③告示被风掀角、小人弧线翻墙（travel） ；`@stagger` `@shake` `@travel` |
-| 1-C | p1-17..22 | 命名帧：三病灶卡收拢融成一栋发光大楼轮廓，楼名「Horizon Context」（manual 金）；三句话递进卡逐级升起（猜→干活→可信），第三级点亮金 | 三卡收拢合流（spring）；三句递进卡阶梯式上升，每级落位时楼体亮一层（stagger）；p1-22「可信」级整体染 `manual` 辉光 ；`@spring` `@stagger` |
-| 1-D | p1-23..27 | **入职包命名帧**：一只 manual 金公文包居中展开，五格依次弹出：手册 / 算法页 / 门禁卡 / 观察笔记 / 前台铃（每格小图标） | 公文包合页展开（draw + spring）；五格 stagger 弹出（间隔 6 帧）；p1-27 五格同时脉冲一次后定格为全片视觉锚（breathe 收尾） ；`@draw` `@stagger` `@breathe` |
+| 1-A | p1-01..07 | 实习生每日记忆清零（日历翻落）→ AI 助手同款标签 | 日历页 accelTravel 翻落；记忆条白闪；AI 卡 spring 镜像入场 ；`@accelTravel` `@spring` |
+| 1-B | p1-08..15 | 三病灶卡：便利贴散落 / 双面板断链冒火 / 翻墙小人 | 三卡 stagger；断链 shake + 火花；小人弧线 travel 越墙 ；`@stagger` `@shake` `@travel` |
+| 1-C | p1-16..23 | 命名帧：三卡收拢成发光楼体「Horizon Context」+ 三句递进卡 | 收拢 spring 合流；三卡阶梯 stagger 上升；「可信」级染 `manual` 辉光 breathe ；`@spring` `@stagger` `@breathe` |
+| 1-D | p1-24..27 | **入职包命名帧**：金公文包展开五格（手册/算法页/门禁卡/观察笔记/前台铃）；末句右侧浮小终端角标「lab · selftest ✔」预告代码实景 | 合页 draw 展开；五格 stagger 弹出；终端角标 impulse 一闪 ；`@draw` `@stagger` `@impulse` |
 
-## P2 一本装订成册的公司手册（p2-01..25）
-
-| 镜 | 句区间 | 画面 | 动效 |
-|---|---|---|---|
-| 2-A | p2-01..04 | 左半墙钉满黄色便利贴（写满口径/缩写/聊天片段），风一吹掉落两张；右半空桌 | 便利贴墙 stagger 显现（20ms/张）；p2-04 两张贴纸旋转飘落（travel + 弧线） ；`@stagger` `@travel` |
-| 2-B | p2-05..09 | manual 金手册「啪」落桌占满画面，封面翻开露出五页标签（表/关系/度量/维度/指标）；p2-08 聚焦「关系」页：一条 FK 连线指向对方表的钥匙图标，另一条指向普通列被红叉 | 手册 spring 落位（带一次 squash）；书页翻动（draw 描页缝）；FK 连线描线到钥匙=打勾（engine），指向普通列=红叉断裂（shake） ；`@spring` `@draw` `@shake` |
-| 2-C | p2-10..12 | 校验门：坏定义卡（relationship 指向非键列）撞上一道 engine 青闸门被弹出，门上屏显真实报错文本；右下角角标「本仓原型实测输出 · D6」 | 坏卡冲向闸门（accelTravel）；撞击瞬间闸门红光 impulse + 卡片弹回坠落（spring 反向）；报错行逐行显（打字机） ；`@accelTravel` `@impulse` |
-| 2-D | p2-13..16 | 手册翻到「同义词」页：中央一条 `revenue` 定义，三条别名线（毛收入/营收/销售额）汇入同一节点 | 定义卡先落位；三条别名线依次描线汇入（stagger draw），每条接入时节点亮一分（count 0→3） ；`@draw` `@count` |
-| 2-E | p2-17..19 | 对照分屏：左「定义卡内嵌说明书」（随定义版本号 v3→v4 一起更新）；右「散落的提示词」（三张便利贴各自过期，蒙灰） | 左卡版本号翻动同步点亮说明行；右三张贴纸蒙灰层加深（dim）；中缝画 vs 对撞线 ；`@dim` `@stagger` |
-| 2-F | p2-20..22 | 「签名 FAQ」卡：问答对 + 右下角签名行（verified_by / verified_at）；AI 图标撞到同类问题时卡片弹出、答案行高亮 | 问答卡 spring 落位；签名行钢笔划线（draw）；AI 图标弧线撞入 → 答案行 engine 辉光 + 署名角标弹出 ；`@spring` `@draw` |
-| 2-G | p2-23..25 | 手册条目右上角出现「PRIVATE」锁标（仅特定角色钥匙可开）；收束金句卡「定义写一遍，全公司引用」（serif 居中） | 锁标落下扣住条目（spring）；一把金钥匙插入旋转 90°（travel）；金句卡淡入压轴 ；`@spring` `@travel` |
-
-## P3 菜谱：临出锅再勾芡（p3-01..54）
+## P2 一本装订成册的公司手册（p2-01..24）
 
 | 镜 | 句区间 | 画面 | 动效 |
 |---|---|---|---|
-| 3-A | p3-01..06 | 厨房卡片场景：一张菜谱卡「临出锅再勾芡」逐步完成；p3-05 一只上游锅倒下预制芡水，菜谱卡上盖「救不了」红章 | 菜谱步骤逐行打勾（stagger）；芡水倾倒弧线（travel）＋液体色块流动（flowDash）；红章拍下（spring + impulse） ；`@stagger` `@travel` `@flowDash` |
-| 3-B | p3-07..10 | 左「存好的数字」冰块（冻结颗粒）；右「算式」齿轮组现场转动出数——每次查询粒子重新排列成结果 | 冰块冻结闪烁（breathe 冷光）；齿轮组转动（travel 循环）；粒子重排成数字（stagger + spring） ；`@breathe` `@travel` |
-| 3-C | p3-11..15 | **复印机陷阱**：一张「$100 订单」卡进复印机 → 三张副本输出 → 会计求和器跳数 $100→$300 爆红 | 订单卡滑入复印机（progress）；三张副本间隔弹出（stagger）；求和器数字滚动（count）到 300 时整体爆红 shake ；`@progress` `@stagger` `@count` `@shake` |
-| 3-D | p3-16..18 | 官方案例卡（角标「Snowflake 工程博客 · Sam Waters 案例」）+ 一行小字「LLM 在 TPC-DS 基准同样踩坑」 | 案例卡 rise 落位；$100→$300 对比数字 flip；小字行 typewriter ；`@enter:rise` `@count` |
-| 3-E | p3-19..23 | **玩具复现双栏**：左「引擎·先聚合」engine 青得 200；右「朴素·先关联」danger 红得 440；底部角标「本仓原型实测输出 · B1」；p3-22 解法图：两条数据各自聚合成小方块，再轻碰合并 | 双栏同时起算（count 滚动异步）；右栏滚到 440 爆红；解法图两方块先各自压缩聚拢（spring）再轻碰合体（impulse） ；`@count` `@spring` `@impulse` |
-| 3-F | p3-24..26 | 去重计数：左侧行被复印成 6 行（含重复小人），右侧集合圈只收 3 个不同小人；「数集合，不数行」 | 左侧行复制 stagger 展开；右侧集合圈逐一收人（count 0→3）；重复小人撞圈弹出（travel 弹飞） ；`@stagger` `@count` `@travel` |
-| 3-G | p3-27..31 | **平均的平均**：两间教室宽窄悬殊（2 人 / 200 人），各自平均分被等权放上同一根天平——小教室压出 disproportionate 权重；角标「16.0 vs 4.8（官方工程博客）」 | 教室 stagger 显现；两条平均分柱等宽落上天平（spring）；天平失衡倾斜（rotate 缓动）＋角标弹出 ；`@stagger` `@spring` |
-| 3-H | p3-32..35 | 客单价公式卡：Σ收入 ÷ Σ单数（分子分母各自聚合条先填满再相除）；底部实测角标「108.33 vs 122.22 · 本仓原型实测输出」 | 分子分母两条聚合条并行填充（progress 等速）；除号落位（spring）；错值 122.22 以 danger 幽灵数字飘过又消散（dim） ；`@progress` `@spring` `@dim` |
-| 3-I | p3-36..40 | **银行卡余额**：两张卡余额相加=总资产（对勾）；「今天+昨天」两格日历叠加冒出问号——服务器图标同款演示 | 两卡滑入相加（travel）；日历叠加时错位抖动（shake）＋问号弹出；服务器图标复制自身被红叉划掉 ；`@travel` `@shake` |
-| 3-J | p3-41..44 | 末快照规则：时间轴上五个日活点，规则激活时只点亮最后一个（7），求和版本点亮全部并加出 24（红）；角标「本仓原型实测输出 · B4」 | 时间轴描线（draw）；末点 engine 高亮 pulse；错误版五点全亮后总数十进制翻滚到 24 变红（count） ；`@draw` `@count` |
-| 3-K | p3-45..50 | **477 vs 48 事故复盘**：生产线四道工序全绿（定义✓公式✓权限✓），最上游一道「预聚合」冒紫烟；产出数字 477 缓缓压向真实值 48，两者间裂开鸿沟；角标「第三方（Typedef）复现」 | 四道工序绿灯 stagger 亮起；上游紫烟粒子升腾（flowDash）；477/48 两个数字对撞（travel），碰撞点裂缝描线（draw） ；`@stagger` `@flowDash` `@draw` |
-| 3-L | p3-51..54 | 芡水回收：菜谱卡回归居中，「芡水早就兑好了」印在卡角；金句卡「SQL 完全合法，分析完全错误」（serif，本集题眼） | 菜谱卡从左侧缩放回归（pushIn 反向）；金句卡全屏淡入 + 单帧 impulse 强调；「合法/错误」两词分色（engine/danger） ；`@pushIn` `@impulse` |
+| 2-A | p2-01..04 | 左便利贴墙（两张飘落）→ 右手册「啪」落桌 | 贴纸墙 stagger；飘落 travel 弧线；手册 spring 落位 ；`@stagger` `@travel` `@spring` |
+| 2-B | p2-05..08 | **代码走廊 ①**：CodeCard 展示 `SemanticView("sales_sv", tables=(…), relationships=(Relationship("buyer", …)), metrics=(Metric("revenue", "sum", …, synonyms=(…))))`，五个参数段依次高亮（表/关联/度量/维度/指标），右缘角标「本仓 lab · 五段式声明」 | 代码逐行显（每行 3 帧）；五参数段按句逐段染色高亮（`manual`）；同义词段到句时 impulse ；`@progress` `@stagger` `@impulse` |
+| 2-C | p2-09..11 | FK→键列连线（键=✓ / 普通列=✗ 断裂）+ 终端卡滚出 D6 报错原文 `✗ relationship bad: … not PRIMARY KEY/UNIQUE` | 连线 draw；坏线 shake；报错行打字机 + 红光 impulse；角标「本仓原型实测输出 · D6」 ；`@draw` `@shake` `@progress` |
+| 2-D | p2-12..15 | 同义词漏斗：三别名卡 → 汇入一条 `revenue` 定义（命中计数 0→3） | 气泡 travel 汇入；连线 draw；命中数 count ；`@travel` `@draw` `@count` |
+| 2-E | p2-16..18 | 分屏：定义卡内嵌说明书随版本翻新（绿流）vs 三张过期提示词蒙灰 | 版本号 flip；说明行 draw 重描；右贴纸 dim 蒙灰 ；`@draw` `@dim` |
+| 2-F | p2-19..21 | 签名 FAQ 卡：问答对 + 钢笔签名划线（verified_by/at）；AI 命中时答案行高亮 | 签名曲线 draw；命中 impulse + 署名角标 spring ；`@draw` `@spring` |
+| 2-G | p2-22..24 | 条目挂 PRIVATE 锁标（金钥匙旋入）→ 收束金句「定义写一遍，全公司引用」 | 锁标 spring 扣住；钥匙 travel 旋转 90°；金句 serif 淡入 ；`@spring` `@travel` |
+
+## P3 菜谱：临出锅再勾芡（p3-01..51）
+
+| 镜 | 句区间 | 画面 | 动效 |
+|---|---|---|---|
+| 3-A | p3-01..03 | **archify 回放窗 ①**（declaration-execution.webm，故事段 ~13s）：声明相五段式→校验门→执行相权限闸→按粒度重算；窗外框 `engine` 描边 + 右下角标「archify 工程图 · declaration-execution」 | 回放窗 spring 落位（全屏 88% 宽）；视频播放（OffthreadVideo，裁掉片头空白）；末句窗体 dim 收束过渡 ；`@spring` `@dim` |
+| 3-B | p3-04..08 | 菜谱卡三步打勾 → 上游倾倒芡水 → 红章「菜谱救不了」 | 步骤 stagger 打勾；芡水弧线 travel + flowDash 流动；红章 snap 拍下 ；`@stagger` `@travel` `@flowDash` |
+| 3-C | p3-09..12 | 存好的数（冰块）vs 现场算式（齿轮）；**代码走廊 ②**：CodeCard 高亮 `spec_rows = … if agg_before_join else _naive_joined_rows(…)` 一行分岔 | 冰块 breathe 冷光；齿轮 travel 转动；分岔代码行高亮 + 两个分支标签（先聚合=`engine` / 先关联=`danger`）impulse ；`@breathe` `@impulse` |
+| 3-D | p3-13..19 | **复印机陷阱**：$100 订单进复印机 → 三张副本 → 求和器滚 $300 爆红；官方案例角标卡 | 订单滑入 progress；副本 stagger 弹出；计数 count 至 300 + shake 爆红；案例卡 rise + $100→$300 flip ；`@progress` `@stagger` `@count` `@shake` |
+| 3-E | p3-20..25 | **复现双卡**：左 CodeCard（分岔行「先聚合」侧点亮）+ 右终端卡逐行滚出 `[PASS] B1: fan trap: 引擎 Jan=200 vs 朴素 Jan=440`；解法小图：两方块聚合后合体 | 代码行高亮 progress；终端行逐条上滚（每行 ~14 帧）+ 命中行 impulse；合体 spring ；`@progress` `@impulse` `@spring` |
+| 3-F | p3-26..27 | 去重安全：行复制 6 行 vs 集合圈收 3 人 | 行复制 stagger；集合圈 count；重复小人 travel 弹飞 ；`@stagger` `@count` `@travel` |
+| 3-G | p3-28..34 | **平均的平均**：不等宽教室天平失衡（16.0 vs 4.8 角标）+ 客单价公式条 + 幽灵错值 122.22 | 教室 stagger；天平 rotate 缓动失衡；公式条 progress 填充；幽灵数字 dim 飘散 ；`@stagger` `@progress` `@dim` |
+| 3-H | p3-35..41 | 银行卡余额（可加/不可加对撞）→ 末快照时间轴（7 vs 24 实测角标） | 两卡 travel 相加 ✓ / 叠加 shake ✗；时间轴 draw；末点 engine 高亮 pulse、错误版 count 到 24 变红 ；`@travel` `@shake` `@draw` `@count` |
+| 3-I | p3-42..47 | **477 vs 48 复盘**：四道绿灯工序 + 上游预聚合紫烟 + 数字对撞裂缝（第三方归属角标）；芡水回收小卡 | 绿灯 stagger；紫烟 flowDash；对撞 travel + 裂缝 draw；回收卡 pushIn 回归 ；`@stagger` `@flowDash` `@draw` `@pushIn` |
+| 3-J | p3-48..51 | 题眼金句卡「SQL 完全合法，分析完全错误」（合法=engine / 错误=danger 分色） | 金句 progress 淡入 + impulse 强调一帧；分色字落位 ；`@progress` `@impulse` |
 
 ## P4 门禁装在楼里（p4-01..20）
 
 | 镜 | 句区间 | 画面 | 动效 |
 |---|---|---|---|
-| 4-A | p4-01..05 | 左「墙上的告示」：三个应用各自立牌（报表/导出/AI 应用各一道闸），小人直接绕到后面翻墙查库 | 三块告示牌 stagger 立起；小人绕行弧线（travel）+ 翻墙抛物线；墙后数据库桶亮起 danger 红 ；`@stagger` `@travel` |
-| 4-B | p4-06..09 | 剖面命名帧：一栋大楼，门禁不是门口挂牌而是**电梯里的闸机**（engine 青闸门嵌在承重墙里）；三类访客（人/BI 图标/AI 图标）同走一道闸；官方引文条压底部 | 大楼剖面描线成形（draw）；闸机从墙体里推出（spring）；三类访客 stagger 通过，闸机对每类同样闪绿（count 0→3） ；`@draw` `@spring` `@count` |
-| 4-C | p4-10..14 | **双层防线**：前台柜台（第一道，滤卡片动作）+ 电梯闸机（第二道）；复现实测：小人绕过前台直冲电梯，闸机红灯拒绝，角标「本仓原型实测输出 · C2」；p4-14 反事实：闸机拆掉（虚线框），越权数字 [90,560] 滑出，标 danger「泄露」 | 前台滤卡（卡片被抽走 dim）；小人绕行路线描线（draw）；闸机红灯爆闪（impulse）；反事实段闸机虚化（dim）+ 数字卡滑出染红 ；`@dim` `@draw` `@impulse` |
-| 4-D | p4-15..17 | 出口保险：AI 回答气泡升向出口，出口处扫描线扫过，其中一段 PII 色块被打码；判词条「引擎级治理，绕不过去」 | 气泡上升（travel）；扫描线横扫（progress）；PII 块打码格翻黑（stagger）；判词条 rise ；`@travel` `@progress` `@stagger` |
-| 4-E | p4-18..20 | 大楼轮廓收小，楼外一片雾区——一份数据拷贝走出楼界后门禁光圈失效（角标「伏笔」）；转场句压幕底 | 楼体缩小退场（pushIn 反向）；数据卡走出光圈边界时光圈熄灭（dim）；雾区 breathe 流动 ；`@pushIn` `@dim` `@breathe` |
+| 4-A | p4-01..05 | 墙上告示三块 + 小人翻墙直查库 | 告示 stagger 立起；小人抛物线 travel；库桶 danger 亮 ；`@stagger` `@travel` |
+| 4-B | p4-06..09 | 引擎剖面命名帧：闸机嵌承重墙，三类访客同闸（官方引文条） | 剖面 draw；闸机自墙体 spring 推出；访客 stagger 过闸各闪绿 ；`@draw` `@spring` `@count` |
+| 4-C | p4-10..12 | **代码走廊 ③**：CodeCard 三行 RBAC（`if metric.visibility == "PRIVATE" and role not in PRIVATE_ALLOWED: raise AccessDenied`）逐行点亮 + 终端卡滚出 `[PASS] C2 … 直闯执行层 → AccessDenied` | 代码三行 stagger 高亮（`engine`）；raise 行 impulse；终端行上滚 + 红字定格 ；`@stagger` `@impulse` `@progress` |
+| 4-D | p4-13..16 | 双层防线剖面：前台滤卡（体验）/ 闸机拒绝（底线）；反事实拆闸 → `[90,560]` 泄露卡 | 前台滤卡 dim 抽走；绕行弧线 draw；闸机红灯 impulse；泄露卡 danger 滑出（角标 C2/D5） ；`@dim` `@draw` `@impulse` |
+| 4-E | p4-17..18 | 出口保险：回答气泡过扫描线，PII 块打码 | 气泡 travel 上升；扫描线 progress 横扫；打码格 stagger 翻黑 ；`@travel` `@progress` `@stagger` |
+| 4-F | p4-19..20 | 楼体缩小退场，CSV 拷贝走出光圈 → 门禁光圈熄灭（伏笔角标） | 楼体 pushIn 反向缩小；光圈 dim 熄灭；雾区 breathe ；`@pushIn` `@dim` `@breathe` |
 
-## P5 手册写不完，怎么办（p5-01..36）
+## P5 手册写不完，怎么办（p5-01..35）
 
 | 镜 | 句区间 | 画面 | 动效 |
 |---|---|---|---|
-| 5-A | p5-01..05 | **覆盖率墙**：100 格网格只亮 4 格 manual 金（<5%），旁边不断有新表格图标从右侧涌入而金格增长停滞；角标「9,685 表 / <5%（Snowflake 内部实测）」 | 网格 stagger 快速显出（4ms/格）；4 格金亮脉冲；新表图标持续右入左移（flowDash 流动）；角标弹出 ；`@stagger` `@flowDash` |
-| 5-B | p5-06..10 | **双轨**：左一本厚重百科全书（manual 金，权威=1.0 满格）缓慢出新版；右侧紫色（dig）维基页面自己生长条目、链接蔓延（权威条半格）；两轨汇入同一目录卡 | 书页缓慢翻动（progress 慢档）；维基节点网络自动蔓延生长（stagger + 连线 draw）；汇流线双描（draw） ；`@progress` `@stagger` `@draw` |
-| 5-C | p5-11..15 | **纠错环**：一张考卷卡（金标准问答），挖出的口径作答 → 红叉 → 系统自动补同义词卡 + 热度条下调 → 重排后再答 → 绿勾；角标「本仓原型实测输出 · C4」 | 考卷 rise；作答笔迹快速描出（draw）；红叉 impulse；修复动作两卡依次弹入（stagger）；重考绿勾 spring ；`@draw` `@impulse` `@stagger` `@spring` |
-| 5-D | p5-16..22 | **冲突反事实**：两个部门图标（市场/增长）各推一张「活跃用户」定义卡对峙；「自动选」路径演示：热度柱长的错卡胜出登上王座（danger 红光），对卡跌落；角标「本仓原型实测输出 · D4」 | 两定义卡对推（travel 相向）；热度柱对比生长（count）；错卡登座（spring）+ 红光 breathe；对卡坠落淡出（dim） ；`@travel` `@count` `@spring` `@dim` |
-| 5-E | p5-23..25 | **CONFLICT 卡片**：两张定义卡并列、中间大问号、**数字区刻意空白**（虚线框）；一只人手图标落下裁决灯，胜卡回 governed（金）、败卡盖「rejected」章 | 双卡并列落位（stagger）；问号 pulse；数字区空白框描线（draw）；人手灯落下（travel）+ 胜负章同帧拍下（impulse） ；`@stagger` `@draw` `@travel` `@impulse` |
-| 5-F | p5-26..30 | **前台问询处**：问题气泡进入窗口；**四因子天平**（相关/权威/常用/新鲜 四个砝码）称重一叠手册页，抽出 top-2 递出；签名 FAQ 命中时答案卡直接滑出带署名角标 | 气泡 travel 入窗；四砝码依次落盘（stagger，天平随之微倾）；手册页被抽出的两张高亮（spring）；FAQ 命中时署名角标 flip 弹出 ；`@travel` `@stagger` `@spring` |
-| 5-G | p5-31..36 | **价值数字卡组**：24.1%→86.3% 大数字翻牌、$1.76→$0.59 次卡、反超 10 点/数月→一天三卡横排；右上角红星号「厂商自家基准 · 增益端无第三方复现」常驻 | 大数字滚动翻牌（count 快速）；三卡 stagger 压入；星号角标 impulse 闪烁两下后常驻低亮（breathe） ；`@count` `@stagger` `@impulse` `@breathe` |
+| 5-A | p5-01..03 | **archify 回放窗 ②**（collect-enrich-activate.webm，故事段 ~13s）：三路信源汇入目录 → 双轨富化 → 四因子排序 → 三路激活；角标「archify 工程图 · collect-enrich-activate」 | 回放窗 spring 落位；视频播放；末句 dim 收束 ；`@spring` `@dim` |
+| 5-B | p5-04..07 | 覆盖率墙：100 格亮 4 金（<5%），新表持续涌入（角标 9,685 表） | 网格 stagger（4ms/格）；金格脉冲；新表 flowDash 涌入；百分比 count 爬到 5 停 ；`@stagger` `@flowDash` `@count` |
+| 5-C | p5-08..11 | 双轨：百科全书（权威满格）vs 维基节点网自生长（半格），汇入目录 | 书页 progress 慢翻；节点网络 stagger 蔓延 + 连线 draw；权威条双速 count ；`@progress` `@stagger` `@draw` |
+| 5-D | p5-12..15 | 纠错环考卷：错答红叉 → 补同义词 + 调热度两动作卡 → 重排绿勾（角标 C4） | 笔迹 draw 快描；红叉 impulse；修复卡 stagger；绿勾 snap；环线 draw 闭合 ；`@draw` `@impulse` `@stagger` `@spring` |
+| 5-E | p5-16..19 | 冲突引入：两派对峙卡（市场部 vs 增长部） | 对峙卡 travel 相向 + 问号 pulse ；`@travel` `@breathe` |
+| 5-F | p5-20..22 | D4 反事实：错卡登座 danger 红光、对卡坠落（角标 D4） | 热度柱 count 对比；错卡 spring 登座 + breathe；对卡 dim 坠落 ；`@count` `@spring` `@dim` |
+| 5-G | p5-23..24 | CONFLICT 卡片并列（数字区空白虚线框）+ 裁决灯落下 | 空白框 draw；裁决灯 travel ；`@draw` `@travel` |
+| 5-H | p5-25..29 | 前台四因子天平 + **代码走廊 ④**：CodeCard 一行 `pop = math.log1p(p) / math.log1p(POP_CAP)` 高亮；签名 FAQ 短路⚡ | 四砝码 stagger 落盘；代码行高亮 impulse；短路卡 flip 弹出带署名 ；`@stagger` `@impulse` `@spring` |
+| 5-I | p5-30..35 | 价值数字卡组：24.1%→86.3% 翻牌 + 三小卡 + 红星号常驻（厂商自家基准） | 大数 count 翻牌；小卡 stagger；星号 impulse 两闪后 breathe 低亮常驻 ；`@count` `@stagger` `@impulse` `@breathe` |
 
 ## P6 它没证明什么（p6-01..16）
 
 | 镜 | 句区间 | 画面 | 动效 |
 |---|---|---|---|
-| 6-A | p6-01..08 | 五条边界清单卡自上而下逐条压暗入场（自家基准/preview/楼界/治理≠验证/多数派错误），每条左侧一枚 dim 灰点编号 | 清单行 stagger 压入（间隔 10 帧）；「治理≠验证」行到时整行 danger 微光一次（impulse） ；`@stagger` `@impulse` |
-| 6-B | p6-09..12 | 金句卡收束：「含义第一次被当成资产管理——有定义、有版本、有权限、有裁决」（serif 居中）；四个小徽章围绕金句排开 | 金句卡淡入（progress）；四徽章 stagger 从四角归位（spring）；落定后整体 breathe 一次 ；`@progress` `@stagger` `@breathe` |
-| 6-C | p6-13..16 | 下期钩子：入职包五格缩略重现，其中「手册」格放大淡出；信源卡（pinned commit + 精读笔记/复现代码路径 + 访问日期）；渐黑收尾（末 beat 全程） | 五格缩略图再现（stagger）；信源卡 rise 落位；末句起画面亮度均匀降 0（渐黑窗口=beat 时长）＋片尾静默 ；`@stagger` `@enter:rise` `@dim` |
+| 6-A | p6-01..08 | 五条边界清单逐条压暗（「治理≠验证」行 danger 微光） | 清单行 stagger 压入；第 4 行 impulse；`@stagger` `@impulse` |
+| 6-B | p6-09..12 | 金句「含义第一次被当成资产」+ 四徽章（定义/版本/权限/裁决） | 金句 progress；四徽章 stagger 归位 + breathe 一次 ；`@progress` `@stagger` `@breathe` |
+| 6-C | p6-13..16 | 下期钩子（入职包五格重现）+ 信源卡（pinned commit + 笔记/复现代码/**archify 工程图**路径）+ 渐黑 | 五格 stagger 缩略；信源卡 rise；末句起亮度均匀降 0（渐黑窗口=beat 时长）；`@stagger` `@enter:rise` `@dim` |
