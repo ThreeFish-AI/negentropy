@@ -1,0 +1,9 @@
+# 把本工程钉成它自己的 pnpm workspace 根——这是本文件存在的首要理由。
+# pnpm 12 起仅靠 `--ignore-workspace` 不够：pnpm 仍会沿 packageManager 向上锚定到仓库根，
+# 用本工程的解析结果覆写根 pnpm-lock.yaml（overrides 全丢）且当场不报错。见 ISSUE-175。
+packages: []
+# pnpm 12 的构建脚本许可（package.json 的 pnpm.onlyBuiltDependencies 已不被读取，
+# 静默忽略会使安装以 ERR_PNPM_IGNORED_BUILDS 中断、node_modules 半残）。键名与取值
+# 与 `pnpm approve-builds esbuild --yes` 实际写入的形态逐字一致——勿改回旧键名。
+allowBuilds:
+  esbuild: true

@@ -1,0 +1,19 @@
+{
+ "seriesId": "context-layer",
+ "layers": [
+  {
+   "index": 1,
+   "layer": "上下文层",
+   "title": "AI 为什么答不对你公司的数据",
+   "published": false
+  },
+  {
+   "index": 2,
+   "layer": "上下文层",
+   "title": "自己动手，给 AI 搭一个上下文层",
+   "published": false
+  }
+ ],
+ "activeIndex": 1,
+ "next": "自己动手，给 AI 搭一个上下文层"
+}
