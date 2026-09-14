@@ -2,11 +2,11 @@
 
 > [Snowflake, "Horizon Context — Governed Semantic Layer & Data Catalog," 产品页, 2026](https://www.snowflake.com/en/product/features/horizon-context/) · [公告博客 "The Governed Context Layer for AI, BI and Apps," 2026-06](https://www.snowflake.com/en/blog/horizon-context-governed-context/) · [Summit 26 新闻稿, 2026-06-02](https://www.snowflake.com/en/news/press-releases/snowflake-advances-trusted-ai-with-snowflake-horizon-catalog-centralizing-governance-context-and-security-across-the-enterprise/) · [docs: 语义视图](https://docs.snowflake.com/en/user-guide/views-semantic/overview) / [CREATE SEMANTIC VIEW](https://docs.snowflake.com/en/sql-reference/sql/create-semantic-view) / [validation-rules](https://docs.snowflake.com/en/user-guide/views-semantic/validation-rules) · [Cortex Sense 博客, 2026-06-30](https://www.snowflake.com/en/blog/enterprise-ai-agents-grounded-context/) · [工程博客 "Why Do We Need Semantic Views?", 2026-03](https://www.snowflake.com/en/blog/engineering/why-we-need-semantic-views/) · [OSI→Apache Ossie](https://www.snowflake.com/en/blog/apache-ossie-open-semantic-interchange-incubator/)（产品深度研读，非论文；引用格式从惯例）
 
-**一句话定位**：Horizon Context 是「**住进治理引擎、在查询时强制执行**」的上下文层——把业务定义、指标、关系、血缘、用法沉淀为受治理的元数据对象，让人、BI 工具、AI Agent 从同一份定义推理，而不是各自猜。官方三句话递进：*Without context, an agent guesses. With context built natively into the platform, an agent acts. With context that is also governed natively, an agent can be trusted.*
+**一句话定位**：Horizon Context 是「**住进 Data 治理引擎、在查询时强制执行**」的上 Context Layer —— 把业务定义、指标、关系、血缘、用法沉淀为受治理的元数据对象，让人、BI 工具、AI Agent 从同一份定义推理，而不是各自猜。官方三句话递进：*Without context, an agent guesses. With context built natively into the platform, an agent acts. With context that is also governed natively, an agent can be trusted.*
 
-**总类比**：AI Agent 是一个**每天都在重新入职、毫无记忆的新员工**；Horizon Context 是那份**永远最新的入职包**——公司术语表（semantic views 显式定义）+「大家实际都在用什么」的行为统计（Cortex Sense 隐式挖掘）+ 门禁卡与权限（引擎级 RBAC）+ 前台问询处（CoCo 混合检索）+ 前辈验证过的 FAQ（AI_VERIFIED_QUERIES 带署名与日期）。
+**总类比**：初级 Data Agent 是一个**每天都在重新入职、毫无记忆的新员工**；Horizon Context 是那份**永远最新的入职包** —— 公司术语表（Semantic Views 显式定义）+「大家实际都在用什么」的行为统计（Cortex Sense 隐式挖掘）+ 门禁卡与权限（引擎级 RBAC）+ 前台问询处（CoCo 混合检索）+ 前辈验证过的 FAQ（AI_VERIFIED_QUERIES 带署名与日期）。
 
-**怎么读这篇笔记**：每个机制按「类比 → 机制 → 原型实景」三拍走。实景全部取自配套最小原型 [`assets/horizon_context_lab.py`](./assets/horizon_context_lab.py)（约 916 行纯标准库，M1–M6 六机制 + 场景矩阵 + 破坏性实验，已随笔记入库；另有 MCP 服务原型 [`assets/horizon_context_mcp.py`](./assets/horizon_context_mcp.py) 验证平台集成路径）；所有日志均为实际运行输出。开发沙盒位于 `.temp/horizon-context-lab/`（gitignore，随时可清理，可用笔记中的日志与入库副本复刻）。⚠ 行数超出 skill 软上限（500）：以双语场景日志与更全断言换来的明确取舍。
+**怎么读这篇笔记**：每个机制按「类比 → 机制 → 原型实景」三拍走。实景全部取自配套最小原型 [`assets/horizon_context_lab.py`](./assets/horizon_context_lab.py)（约 916 行纯标准库代码，M1–M6 六机制 + 场景矩阵 + 破坏性实验；另有 MCP 服务原型 [`assets/horizon_context_mcp.py`](./assets/horizon_context_mcp.py) 验证平台集成路径）；所有日志均为实际运行输出。
 
 配套产物：[Horizon Context ↔ negentropy 机制映射报告](./horizon-context-mapping-negentropy.md) · [Context Layer 基础设施设计蓝图](../context-layer-blueprint.md)。
 
@@ -18,13 +18,13 @@
 
 归因出三个具体病灶：①含义散落（同一问题两个分析师两个答案）；②外挂语义层必然漂移（「层不在引擎里，每次查询要对账两套系统，agent 跟着错的定义走」——官方博客原话）；③治理外挂可被绕过（第三方层拦不住直查物理表）。由此提出五条设计规格，全文每个机制都能映射回其中一条：
 
-| 设计规格 | 通俗版 | 对应机制 |
-| --- | --- | --- |
-| 定义一次、处处生效 | 术语表只写一遍，BI/agent/人都引用不抄写 | §2 上下文对象模型 |
-| 算得对 | 菜谱按查询粒度现场做，不吃隔夜冷饭 | §3 查询时语义正确性 |
-| 治理不可绕过 | 门禁装在楼里，不是贴在墙上的告示 | §4 治理内嵌引擎 |
-| 覆盖得了 95% 的长尾 | 手册写不完的部分靠观察补 | §5 富化与自纠 |
-| 处处可用 | 术语表带着走（开放格式 + 通用插头） | §7 开放互操作 |
+| 设计规格            | 通俗版                                  | 对应机制            |
+| ------------------- | --------------------------------------- | ------------------- |
+| 定义一次、处处生效  | 术语表只写一遍，BI/agent/人都引用不抄写 | §2 上下文对象模型   |
+| 算得对              | 菜谱按查询粒度现场做，不吃隔夜冷饭      | §3 查询时语义正确性 |
+| 治理不可绕过        | 门禁装在楼里，不是贴在墙上的告示        | §4 治理内嵌引擎     |
+| 覆盖得了 95% 的长尾 | 手册写不完的部分靠观察补                | §5 富化与自纠       |
+| 处处可用            | 术语表带着走（开放格式 + 通用插头）     | §7 开放互操作       |
 
 ## 2. M1 · 上下文对象模型：把便利贴装订成带版本号的手册
 
@@ -132,16 +132,16 @@ customers.plan is not PRIMARY KEY/UNIQUE—— 无门则垃圾定义静默入库
 
 ## 8. 关键实证数字
 
-| 实验 | 关键数字 | 一句话读法 |
-| --- | --- | --- |
-| 无上下文基线（Cortex Sense 博客） | ~25%（Snowflake 内测）；21%（Anthropic 独立复测） | 两家独立测出同一结论：缺业务含义时 agent 就是瞎猜 |
-| CoCo + Cortex Sense（同上） | 准确率 24.1% → 86.3%；成本 $1.76 → $0.59/query | 上下文层把准确率抬 3.6 倍、成本砍 2/3（自家基准，见 §10-1） |
-| 覆盖率现实（同上） | 9,685 表 semantic view 覆盖 <5% | 纯手工金标准覆盖不动——隐式轨道的存在理由 |
-| fan trap（工程博客） | $100 → $300（join 复制后） | valid SQL ≠ valid analytics |
-| average of averages（同上） | 16.0 vs 4.8 | 无加权平均把大小团队同权 |
-| distinct 跨时间相加（Typedef 复现） | 玩具 4 vs 3；生产 477 vs 48 | governed 定义在塌缩 grain 上照样错——治理 ≠ 验证 |
-| OSI → Apache Ossie | 17 创始伙伴 → 50+ 组织；100+ commits / 35 PRs | 语义可携带已成行业共识，非单一厂商私产 |
-| 本原型 | 200 vs 440；7 vs 24；[3,1,2] vs [6,1,2]；108.33 vs 122.22 | 六机制在玩具域的逐点复现（§9） |
+| 实验                                | 关键数字                                                  | 一句话读法                                                  |
+| ----------------------------------- | --------------------------------------------------------- | ----------------------------------------------------------- |
+| 无上下文基线（Cortex Sense 博客）   | ~25%（Snowflake 内测）；21%（Anthropic 独立复测）         | 两家独立测出同一结论：缺业务含义时 agent 就是瞎猜           |
+| CoCo + Cortex Sense（同上）         | 准确率 24.1% → 86.3%；成本 $1.76 → $0.59/query            | 上下文层把准确率抬 3.6 倍、成本砍 2/3（自家基准，见 §10-1） |
+| 覆盖率现实（同上）                  | 9,685 表 semantic view 覆盖 <5%                           | 纯手工金标准覆盖不动——隐式轨道的存在理由                    |
+| fan trap（工程博客）                | $100 → $300（join 复制后）                                | valid SQL ≠ valid analytics                                 |
+| average of averages（同上）         | 16.0 vs 4.8                                               | 无加权平均把大小团队同权                                    |
+| distinct 跨时间相加（Typedef 复现） | 玩具 4 vs 3；生产 477 vs 48                               | governed 定义在塌缩 grain 上照样错——治理 ≠ 验证             |
+| OSI → Apache Ossie                  | 17 创始伙伴 → 50+ 组织；100+ commits / 35 PRs             | 语义可携带已成行业共识，非单一厂商私产                      |
+| 本原型                              | 200 vs 440；7 vs 24；[3,1,2] vs [6,1,2]；108.33 vs 122.22 | 六机制在玩具域的逐点复现（§9）                              |
 
 ## 9. 动手实验室：把机制亲手拆坏七次
 
@@ -154,27 +154,27 @@ uv run --no-project python docs/reference/paper-notes/assets/horizon_context_mcp
 
 机制 → 代码位置速查（`horizon_context_lab.py`）：
 
-| 机制 | 位置 |
-| --- | --- |
-| M1 五段式对象 + 验证问答 | `SemanticView` :157 · `VerifiedQuery` :148 · `build_sales_view` :170 |
-| M1 结构校验门 | `validate_view` :232（FK→键列 / ≥1 dim+metric / 重名 / NON ADDITIVE 维度存在） |
-| M2 查询引擎 + 破坏开关 | `compile_query` :375 · `_naive_joined_rows` :316（策略 B 反事实）· `_aggregate` :342 · USING 消歧 `_dim_value` :288 |
-| M3 双层 RBAC | 执行层 `compile_query` :375 内 `enforce_rbac` 分支；检索层 `resolve` :532 的 `dim_filtered` |
-| M4 冲突隔离 + 自纠环 | `Catalog.detect_conflicts` :493 · `adjudicate` :509 · `eval_loop` :629 |
-| M5 检索 + mock agent | `resolve` :532 · `mock_agent` :596（verified 短路 / compile / cannot_answer） |
-| M6 四因子排序 | `rank` :463 · `freshness` :452（REF_DATE 固定字面量） |
+| 机制                     | 位置                                                                                                                |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| M1 五段式对象 + 验证问答 | `SemanticView` :157 · `VerifiedQuery` :148 · `build_sales_view` :170                                                |
+| M1 结构校验门            | `validate_view` :232（FK→键列 / ≥1 dim+metric / 重名 / NON ADDITIVE 维度存在）                                      |
+| M2 查询引擎 + 破坏开关   | `compile_query` :375 · `_naive_joined_rows` :316（策略 B 反事实）· `_aggregate` :342 · USING 消歧 `_dim_value` :288 |
+| M3 双层 RBAC             | 执行层 `compile_query` :375 内 `enforce_rbac` 分支；检索层 `resolve` :532 的 `dim_filtered`                         |
+| M4 冲突隔离 + 自纠环     | `Catalog.detect_conflicts` :493 · `adjudicate` :509 · `eval_loop` :629                                              |
+| M5 检索 + mock agent     | `resolve` :532 · `mock_agent` :596（verified 短路 / compile / cannot_answer）                                       |
+| M6 四因子排序            | `rank` :463 · `freshness` :452（REF_DATE 固定字面量）                                                               |
 
 **破坏性实验**（均为实测，每个只改一个 flag / 一行）：
 
-| # | 拆什么 | 实测退化 | 教训 |
-| --- | --- | --- | --- |
-| D1 | `agg_before_join=False` | Jan 收入 440（对照 200） | join-then-aggregate 是 fan trap 的标准死法，LLM 也会踩 |
-| D2 | `distinct_safe=False` | [6,1,2]（对照 [3,1,2]） | distinct 的安全性来自「数集合不数行」，退化即双计 |
-| D3 | `last_snapshot=False` | DAU [11,6,7]（对照 [5,6,7]） | 半可加指标求和 = 同一台服务器按天重复计数（477 vs 48 的机制） |
-| D4 | 冲突策略改 `auto_popularity` | 推断层 count(events) 胜出 [6,1,2]（对照 [3,1,2]） | 「不自动选」保住的正是多数派错误不碾压正确口径 |
-| D5 | `enforce_rbac=False` | intern 按 plan 拿到 [90,560]（泄露发生） | 检索层过滤是体验，执行层拒绝才是治理 |
-| D6 | 跳过 validate 注册坏视图 | relationship 指向非键列被拦下；无门则垃圾定义静默入库 | 结构校验是行数失控的注册期前置防线 |
-| D7 | `derived_post_agg=False` | aov 122.22（对照 108.33） | 平均的平均不是平均——derived 必须先聚后除 |
+| #   | 拆什么                       | 实测退化                                              | 教训                                                          |
+| --- | ---------------------------- | ----------------------------------------------------- | ------------------------------------------------------------- |
+| D1  | `agg_before_join=False`      | Jan 收入 440（对照 200）                              | join-then-aggregate 是 fan trap 的标准死法，LLM 也会踩        |
+| D2  | `distinct_safe=False`        | [6,1,2]（对照 [3,1,2]）                               | distinct 的安全性来自「数集合不数行」，退化即双计             |
+| D3  | `last_snapshot=False`        | DAU [11,6,7]（对照 [5,6,7]）                          | 半可加指标求和 = 同一台服务器按天重复计数（477 vs 48 的机制） |
+| D4  | 冲突策略改 `auto_popularity` | 推断层 count(events) 胜出 [6,1,2]（对照 [3,1,2]）     | 「不自动选」保住的正是多数派错误不碾压正确口径                |
+| D5  | `enforce_rbac=False`         | intern 按 plan 拿到 [90,560]（泄露发生）              | 检索层过滤是体验，执行层拒绝才是治理                          |
+| D6  | 跳过 validate 注册坏视图     | relationship 指向非键列被拦下；无门则垃圾定义静默入库 | 结构校验是行数失控的注册期前置防线                            |
+| D7  | `derived_post_agg=False`     | aov 122.22（对照 108.33）                             | 平均的平均不是平均——derived 必须先聚后除                      |
 
 七次实验合起来的实践心得与 PG 一致：每个组件单拎出来都不神奇，**拆掉任何一个都有具体的、可复现的坏法**——这是判别「工程组合创新」成色的试金石。
 

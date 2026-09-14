@@ -4,16 +4,16 @@
 
 ## 目录结构
 
-| 路径 | 说明 |
-|---|---|
-| `research/` | Stage ① 取证产物：全部口播断言须可回溯至此 |
-| `script/planning.md` | Stage ② 策划案（六节齐，含本集视觉契约） |
-| `script/narration.md` | Stage ③ 逐字稿 **★单一事实源**（勿改 narration.json） |
-| `script/storyboard.md` | Stage ⑤ 分镜表（镜号 ↔ 句 id 区间 ↔ 画面 ↔ 动效） |
-| `scripts/*.py` | 薄包装 → [../../pipeline/scripts/](../../pipeline/scripts/)（保 CLI 契约） |
-| `video/` | Remotion 独立 pnpm 工程（`--ignore-workspace` 隔离） |
-| `out/` | 渲染产物（gitignored） |
-| `pipeline.toml` | 本集可执行参数的唯一来源（字段表见 [../../pipeline/README.md](../../pipeline/README.md)） |
+| 路径                   | 说明                                                                                      |
+| ---------------------- | ----------------------------------------------------------------------------------------- |
+| `research/`            | Stage ① 取证产物：全部口播断言须可回溯至此                                                |
+| `script/planning.md`   | Stage ② 策划案（六节齐，含本集视觉契约）                                                  |
+| `script/narration.md`  | Stage ③ 逐字稿 **★单一事实源**（勿改 narration.json）                                     |
+| `script/storyboard.md` | Stage ⑤ 分镜表（镜号 ↔ 句 id 区间 ↔ 画面 ↔ 动效）                                         |
+| `scripts/*.py`         | 薄包装 → [../../pipeline/scripts/](../../pipeline/scripts/)（保 CLI 契约）                |
+| `video/`               | Remotion 独立 pnpm 工程（`--ignore-workspace` 隔离）                                      |
+| `out/`                 | 渲染产物（gitignored）                                                                    |
+| `pipeline.toml`        | 本集可执行参数的唯一来源（字段表见 [../../pipeline/README.md](../../pipeline/README.md)） |
 
 ## 复现流水线
 

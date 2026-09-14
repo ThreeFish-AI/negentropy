@@ -12,13 +12,13 @@
 
 **要解决的问题**（Horizon 的归因，已被两家独立实测背书）：Agent 缺业务含义时准确率 ~21–25% 且自信地错；含义散落在 SQL/看板/prompt 里必然漂移；外挂治理层可被绕过。
 
-| 设计规格 | 通俗版 | 蓝图对应 |
-| --- | --- | --- |
-| 定义一次、处处生效 | 术语表只写一遍，处处引用不抄写 | §2 对象模型 + §3 目录 |
-| 治理内嵌、不可绕过 | 门禁装在楼里，不是墙上的告示 | §6 双层防线 |
-| 双轨养上下文 | 手册（显式）+ 观察（隐式），冲突必见人 | §4 富化与自纠 |
-| 通用接入 | 任何 agent/BI/应用用标准插头消费 | §5 Activation（MCP） |
-| 对冲「治理≠验证」 | 治理正确 ≠ 计算正确，出口要有检查 | §7 边界对策 |
+| 设计规格           | 通俗版                                 | 蓝图对应              |
+| ------------------ | -------------------------------------- | --------------------- |
+| 定义一次、处处生效 | 术语表只写一遍，处处引用不抄写         | §2 对象模型 + §3 目录 |
+| 治理内嵌、不可绕过 | 门禁装在楼里，不是墙上的告示           | §6 双层防线           |
+| 双轨养上下文       | 手册（显式）+ 观察（隐式），冲突必见人 | §4 富化与自纠         |
+| 通用接入           | 任何 agent/BI/应用用标准插头消费       | §5 Activation（MCP）  |
+| 对冲「治理≠验证」  | 治理正确 ≠ 计算正确，出口要有检查      | §7 边界对策           |
 
 **范围外**：替代各子系统的检索算法；数据平面本身（仓库/向量库）；模型训练。
 
@@ -91,12 +91,12 @@ version: 12
 
 **MCP 供给面**（平台集成的标准插头，原型已验证纯标准库可行）：
 
-| 工具 | 职责 | 治理要点 |
-| --- | --- | --- |
-| `list_context_objects(role)` | 目录 + 信任信号 | RBAC 过滤后下发 |
-| `resolve_context(question, role)` | top-k 上下文包 | 含 CONFLICT 卡片路径 |
-| `execute/compile(metric, dims, via, role)` | 受治理执行 | **引擎层 RBAC 兜底**（检索层泄露也拦得住） |
-| `report_feedback(name, verdict)` | 行为反馈写回 popularity | Behavioral 闭环；同名需带 source 消歧 |
+| 工具                                       | 职责                    | 治理要点                                   |
+| ------------------------------------------ | ----------------------- | ------------------------------------------ |
+| `list_context_objects(role)`               | 目录 + 信任信号         | RBAC 过滤后下发                            |
+| `resolve_context(question, role)`          | top-k 上下文包          | 含 CONFLICT 卡片路径                       |
+| `execute/compile(metric, dims, via, role)` | 受治理执行              | **引擎层 RBAC 兜底**（检索层泄露也拦得住） |
+| `report_feedback(name, verdict)`           | 行为反馈写回 popularity | Behavioral 闭环；同名需带 source 消歧      |
 
 ## 6. 治理层：双层防线
 
@@ -115,25 +115,25 @@ Typedef 批判的核心（详见笔记 §10-4）：governed 定义在**上游已
 
 ## 8. 与 negentropy 的集成路径（实例化）
 
-| 蓝图组件 | negentropy 承载 | 状态 |
-| --- | --- | --- |
-| 对象层 | `definitions` registry（4 类定义 SSOT + checksum/版本） | ✅ 已有，补三字段纪律即可（映射 #1） |
-| 目录层 | `context_catalog_unified` 等三视图（context-layer.md §4） | 🔷 方案已设计 |
-| 富化层 | patrol/Judge 巡检闭环 = eval 环同构物 | ✅ 已有（映射 #6）；冲突浮出面待补（#7） |
-| 激活层 | 三层渐进披露（skills_injector）+ 计划中的 HybridPlanner 扩展 | ✅/🔷 |
-| MCP 供给面 | 复用 McpClientService 的协议工程经验，方向从消费转供给 | 🔶 新增（映射 #12） |
-| 治理层 | `accessible_corpus_ids` + 计划中的 ContextGuard | 🔷 第一层已有，第二层随 Phase 2 |
+| 蓝图组件   | negentropy 承载                                              | 状态                                    |
+| ---------- | ------------------------------------------------------------ | --------------------------------------- |
+| 对象层     | `definitions` registry（4 类定义 SSOT + checksum/版本）      | ✅ 已有，补三字段纪律即可（映射 #1）     |
+| 目录层     | `context_catalog_unified` 等三视图（context-layer.md §4）    | 🔷 方案已设计                            |
+| 富化层     | patrol/Judge 巡检闭环 = eval 环同构物                        | ✅ 已有（映射 #6）；冲突浮出面待补（#7） |
+| 激活层     | 三层渐进披露（skills_injector）+ 计划中的 HybridPlanner 扩展 | ✅/🔷                                     |
+| MCP 供给面 | 复用 McpClientService 的协议工程经验，方向从消费转供给       | 🔶 新增（映射 #12）                      |
+| 治理层     | `accessible_corpus_ids` + 计划中的 ContextGuard              | 🔷 第一层已有，第二层随 Phase 2          |
 
 **独立部署路径**：对象层落 PostgreSQL（或任意带版本化的存储）、激活层以单进程 stdio/HTTP MCP server 起步——原型 [`paper-notes/assets/horizon_context_mcp.py`](./paper-notes/assets/horizon_context_mcp.py) 即其零依赖种子。
 
 ## 9. 演进路线
 
-| 阶段 | 内容 | 验收 |
-| --- | --- | --- |
-| **P0 机制验证（已完成）** | 六机制玩具域 + MCP stdio 原型 + 7 次破坏性实验 | selftest 全绿；引擎层 RBAC 经 MCP 仍生效 |
-| **P1 最小服务** | 对象 CRUD + resolve + MCP 四工具 + 双层 RBAC + 审计日志，接一个真实 agent 客户端 | 真实客户端经 MCP 命中 verified query 短路；越权被拒且有审计 |
-| **P2 信任与自纠** | 四因子归一（有界变换 + 单一 staleness）+ 冲突浮出 + 反馈闭环 + verified QA 沉淀 | 排序可解释；CONFLICT 卡片全程无数字；反馈改变排序可复现 |
-| **P3 互操作** | Ossie YAML 导入导出 + per-role context + 表达式级 derived 校验 | 第三方语义模型可导入即用；跨角色上下文隔离 |
+| 阶段                      | 内容                                                                             | 验收                                                        |
+| ------------------------- | -------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| **P0 机制验证（已完成）** | 六机制玩具域 + MCP stdio 原型 + 7 次破坏性实验                                   | selftest 全绿；引擎层 RBAC 经 MCP 仍生效                    |
+| **P1 最小服务**           | 对象 CRUD + resolve + MCP 四工具 + 双层 RBAC + 审计日志，接一个真实 agent 客户端 | 真实客户端经 MCP 命中 verified query 短路；越权被拒且有审计 |
+| **P2 信任与自纠**         | 四因子归一（有界变换 + 单一 staleness）+ 冲突浮出 + 反馈闭环 + verified QA 沉淀  | 排序可解释；CONFLICT 卡片全程无数字；反馈改变排序可复现     |
+| **P3 互操作**             | Ossie YAML 导入导出 + per-role context + 表达式级 derived 校验                   | 第三方语义模型可导入即用；跨角色上下文隔离                  |
 
 ## 10. 参考
 
