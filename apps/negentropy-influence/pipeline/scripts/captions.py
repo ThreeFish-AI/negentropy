@@ -35,9 +35,12 @@ def fmt_ts_vtt(sec: float) -> str:
 
 
 def build_cues(items: list[dict], c: dict) -> list[tuple[float, float, str]]:
-    """[(startSec, endSec, text)]；end = start + durationSec（不含停顿，见模块注释）。"""
+    """[(startSec, endSec, text)]；end = start + durationSec（不含停顿，见模块注释）。
+
+    字幕风格（2026-09-14 起，与 Subtitle.tsx 的 displayText 同口径）：句尾「。」剥除——
+    仅导出层变换，manifest 保留原句号以维持 TTS digest 与韵律不变。"""
     return [
-        (r["startSec"], r["startSec"] + r["durationSec"], r["text"])
+        (r["startSec"], r["startSec"] + r["durationSec"], r["text"].rstrip("。"))
         for r in compute(items, c)
     ]
 

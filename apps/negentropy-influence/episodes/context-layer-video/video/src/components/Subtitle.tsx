@@ -11,6 +11,10 @@ const CONTENT_WIDTH = MAX_WIDTH - PADDING_X * 2;
 const MAX_FONT_SIZE = 44;
 const MIN_FONT_SIZE = 30;
 
+/** 字幕显示文本：剥除句尾句号（2026-09-14 起系列字幕风格——句末不带「。」；
+ *  仅渲染层变换，narration/manifest 保留原句号以维持 TTS digest 与韵律不变）。 */
+const displayText = (t: string) => t.replace(/。+$/, '');
+
 /** 全片底部字幕条：一句一条，与配音逐句同步（storyboard.md 字幕规范）。
  *  字号用 @remotion/layout-utils 的 fitText 真实测量（替代此前手写的全角 1.0/半角
  *  0.55 宽度估算与魔法阈值）。validateFontIsLoaded 保持 4.x 默认 false——系统字体
@@ -26,8 +30,9 @@ export const Subtitle: React.FC<{timed: TimedSentence[]}> = ({timed}) => {
   const opacity = interpolate(local, [0, 4], [0, 1], {
     extrapolateRight: 'clamp',
   });
+  const text = displayText(current.text);
   const fitted = fitText({
-    text: current.text,
+    text,
     withinWidth: CONTENT_WIDTH,
     fontFamily: theme.sans,
     fontWeight: 500, // 须与下方 div 的 fontWeight 一致，否则测量偏小
@@ -51,7 +56,7 @@ export const Subtitle: React.FC<{timed: TimedSentence[]}> = ({timed}) => {
           opacity,
         }}
       >
-        {current.text}
+        {text}
       </div>
     </AbsoluteFill>
   );
