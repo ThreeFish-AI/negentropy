@@ -1,6 +1,6 @@
 # 研究文献总览
 
-> Negentropy 技术调研索引。原始调研按「认知 → 框架 → 存储 → 图谱 → 执行 → 进化」六段论归档，逐层递进，另设独立主题分组（量化与投资科学、视频与动效生产）；本页为各主题分组的阅读入口。
+> Negentropy 技术调研索引。调研按「认知 → 框架 → 存储 → 图谱 → 执行 → 进化」六段论归档，逐层递进（其中「认知与上下文」与「自进化与工具」两段兼收领域材料精读、对本仓的机制映射与由此派生的可复刻蓝图），另设独立主题分组（量化与投资科学、视频与动效生产）；本页为各主题分组的阅读入口。
 
 ---
 
@@ -10,8 +10,11 @@
 |:---|:---|
 | [智能认知增强](./cognitive-context/000-cognitive-enhancement.md) | Agentic 认知增强总览与理论基线 |
 | [Context Engineering 通俗全解](./cognitive-context/010-context-engineering.md) | 上下文工程主流框架与论文精解 |
+| [Snowflake Horizon Context 精读笔记](./cognitive-context/011-horizon-context.md) | 产业范本精读：六机制（五段式对象模型 / 查询时聚合安全 / 引擎级双层 RBAC / 显式隐式双轨富化与冲突裁决 / 四因子排序 / OSI+MCP 互操作）+ 实证数字与批判性边界，含随笔记入库的 M1–M6 最小原型 |
+| [Horizon Context ↔ negentropy 机制映射](./cognitive-context/012-horizon-context-mapping-negentropy.md) | 12 条机制逐条对照本仓 definitions registry / patrol-Judge / skills_injector / Catalog（✅ 已对齐 4 · 🔶 值得落地 5 · ⏸ 暂缓 3），锚点均经代码核验 |
+| [Context Layer 基础设施设计蓝图](./cognitive-context/013-context-layer-blueprint.md) | 由上述精读派生的通用可复刻治理上下文层：对象存储 / 目录 / 富化自纠 / 治理 / 激活五正交层，含「治理≠验证」边界对策与独立部署演进路线 |
 
-> 上下文治理的工程落地方案见 [Context Layer · 上下文治理层技术方案](../concepts/design/context-layer.md)（对标 Snowflake Horizon Context，统领 Memory / KB / KG / Tools / Skills 的上下文契约）。
+> 本仓**内部**的上下文治理织物方案见 [Context Layer · 上下文治理层技术方案](../concepts/design/context-layer.md)（统领 Memory / KB / KG / Tools / Skills 的上下文契约）——它是上方[基础设施设计蓝图](./cognitive-context/013-context-layer-blueprint.md)在 negentropy 的一次实例化，两者互补互链。
 
 ## 二、Agent 框架与引擎 · `agent-runtime/`
 
@@ -78,6 +81,8 @@
 | [自进化 Agents Team 调研](./self-evolution/130-self-evolving-agents-team.md) | DGM / ADAS / AlphaEvolve + GEPA / ACE 进化算子 |
 | [经验时代的自驱迭代进化智能体](./self-evolution/140-experience-era-self-improvement.md) | 88 页综述精读 + Routine 闭环诊断 |
 | [Skill 进化闭环 × 自我改进评测](./self-evolution/141-skills-evolution-and-si-measurement.md) | Skills 三阶段进化 + SI 六目标度量 |
+| [Procedural Graph 论文精读](./self-evolution/142-procedural-graphs.md) | arXiv:2609.09153：程序性知识外置为带 condition/guidance/pitfalls 属性的有向图 + 邻域定位软指导 + 过验证门的自进化，含最小原型与破坏性实验 |
+| [PG ↔ negentropy 机制映射](./self-evolution/143-pg-mapping-negentropy.md) | 五条机制对照本仓 Routine / 巡检 / evolution 门控：验证门平局接受与报告纪律已对齐，编辑级拒绝记忆值得落地，边属性按 YAGNI 暂缓 |
 
 ## 七、量化与投资科学 · `quant-finance/`
 

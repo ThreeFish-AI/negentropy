@@ -3,10 +3,11 @@
 > **本集口播的单一事实源**。逐字稿（[../script/narration.md](../script/narration.md)）中每一条断言都必须能回溯到本文件的某一节；回溯不到的断言不得进入口播。
 >
 > **信源轨（B 型 · 仓内固定提交 @ `cf6724d688d6`，2026-09-12）**
-> - **A 轨 · 复刻蓝图**：[docs/reference/context-layer-blueprint.md](../../../../../docs/reference/context-layer-blueprint.md)（150 行）——通用可复刻基础设施的设计 SSOT。
-> - **B 轨 · 精读笔记**：[docs/reference/paper-notes/horizon-context.md](../../../../../docs/reference/paper-notes/horizon-context.md)——机制详解与实证数字（经它间接可溯 Snowflake 上游）。
-> - **C 轨 · 原型实测**：[assets/horizon_context_mcp.py](../../../../../docs/reference/paper-notes/assets/horizon_context_mcp.py)（328 行）+ lab，`--selftest` 全绿（2026-09-12 复跑）。
+> - **A 轨 · 复刻蓝图**：[docs/research/cognitive-context/013-context-layer-blueprint.md](../../../../../docs/research/cognitive-context/013-context-layer-blueprint.md)（150 行）——通用可复刻基础设施的设计 SSOT。
+> - **B 轨 · 精读笔记**：[docs/research/cognitive-context/011-horizon-context.md](../../../../../docs/research/cognitive-context/011-horizon-context.md)——机制详解与实证数字（经它间接可溯 Snowflake 上游）。
+> - **C 轨 · 原型实测**：[assets/horizon_context_mcp.py](../../../../../docs/research/cognitive-context/assets/horizon_context_mcp.py)（328 行）+ lab，`--selftest` 全绿（2026-09-12 复跑）。
 > - **D 轨 · 内部织物方案**：[docs/concepts/design/context-layer.md](../../../../../docs/concepts/design/context-layer.md)（352 行）——蓝图在 negentropy 的实例化，工程纪律（ADR/三纪律）引用源。
+> - ⚠ **文档已迁址（2026-09-14）**：上述仓内链接指向迁移后的现址（`docs/research/cognitive-context/`）；取证仍锚定 `cf6724d688d6`，该提交上的原路径为 `docs/reference/paper-notes/` 与 `docs/reference/context-layer-blueprint.md`——[sources.toml](./sources.toml) 的 pinned raw URL 与成片尾幕署名保持原样，均仍可解析。
 >
 > **证据四级**：同上篇（【一】原型实测可复跑 / 【二】仓内文档的讲法 / 【三】厂商自家基准须归属 / 【四】第三方分析须归属）。
 >
@@ -114,4 +115,4 @@
 | p4-18 log1p 一行 | `pop = math.log1p(popularity) / math.log1p(POP_CAP)` | lab `rank()` |
 | p4-26..32 MCP 实录 | initialize 握手 / tools/list 四工具 / list_context_objects（revenue · governed · 权威 1.0）/ compile_metric → {200,150,300} | mcp TOOLS + T1/T2/T4 实测 |
 | p4-33..36 三行日志 | `[PASS] T5 … plan is a PRIVATE fact` / `T6 … governed → legacy` / `T8 … [3,1,2]` | mcp selftest T5/T6/T8 原文 |
-| archify 回放 | blueprint-architecture / object-lifecycle 两段 Play 录制 | `docs/assets/architecture/paper-notes/` + `pipeline/scripts/record_archify.py` |
+| archify 回放 | blueprint-architecture / object-lifecycle 两段 Play 录制 | `docs/assets/architecture/cognitive-context/` + `pipeline/scripts/record_archify.py` |

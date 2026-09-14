@@ -1,6 +1,12 @@
+---
+sidebar_position: 4
+title: "Horizon Context ↔ negentropy 机制映射报告"
+description: "把 Horizon Context 六机制逐条对照本仓 definitions registry / patrol-Judge / skills_injector / Catalog：12 条映射判定为已对齐 4、值得落地 5、YAGNI 暂缓 3，锚点均经代码核验"
+---
+
 # Horizon Context ↔ negentropy 机制映射报告
 
-> 声明：只分析不改码；锚点均经 `grep -n` 实际核验（分支 `ThreeFish-AI/snowflake-horizon-context-layer-research`，2026-09-12）。材料机制出处见 [Horizon Context 精读笔记](./horizon-context.md)。
+> 声明：只分析不改码；锚点均经 `grep -n` 实际核验（分支 `ThreeFish-AI/snowflake-horizon-context-layer-research`，2026-09-12）。材料机制出处见 [Horizon Context 精读笔记](./011-horizon-context.md)。
 
 ## 结论先行
 
@@ -43,7 +49,7 @@
 
 **#11 Ossie（⏸）**：触发条件——上下文对象需要跨系统携带（导入/导出第三方语义模型）时，对齐 Apache Ossie YAML 而非自造格式。
 
-**#12 MCP 供给面（🔶）**：本仓 McpClientService 已有 MCP 协议工程经验（perceives FileResource 生命周期不变量等），但角色是消费者。Context Layer 若要「广泛应用于 Agents 研发与平台集成」，需要**供给面**：把目录/检索/编译/反馈经 MCP 暴露给任意外部 agent——原型 [`assets/horizon_context_mcp.py`](./assets/horizon_context_mcp.py) 已验证纯标准库 stdio 可行（四工具 + 引擎层 RBAC 经 MCP 仍生效）。详见[蓝图](../context-layer-blueprint.md) §5。
+**#12 MCP 供给面（🔶）**：本仓 McpClientService 已有 MCP 协议工程经验（perceives FileResource 生命周期不变量等），但角色是消费者。Context Layer 若要「广泛应用于 Agents 研发与平台集成」，需要**供给面**：把目录/检索/编译/反馈经 MCP 暴露给任意外部 agent——原型 [`assets/horizon_context_mcp.py`](./assets/horizon_context_mcp.py) 已验证纯标准库 stdio 可行（四工具 + 引擎层 RBAC 经 MCP 仍生效）。详见[蓝图](./013-context-layer-blueprint.md) §5。
 
 ## 落地建议汇总
 
@@ -53,7 +59,7 @@
 3. 信任归一实现——采纳 authority 分层 + log1p 有界 + 单一 staleness 三纪律（#10）。
 
 **写**（一句话成本）：
-4. 在 context-layer.md 的对象模型讨论处交叉引用本笔记的 synonyms/instructions/verified-QA 字段设计（#1，由[蓝图](../context-layer-blueprint.md) §2 承载详细设计）。
+4. 在 context-layer.md 的对象模型讨论处交叉引用本笔记的 synonyms/instructions/verified-QA 字段设计（#1，由[蓝图](./013-context-layer-blueprint.md) §2 承载详细设计）。
 
 **暂缓**（写明触发条件）：
 5. 声明式聚合纪律——出现派生口径资产时（#4）。
@@ -62,7 +68,7 @@
 
 ## 交叉引用
 
-- [Horizon Context 精读笔记](./horizon-context.md)（机制详解 + 实验室 + 批判性边界）
+- [Horizon Context 精读笔记](./011-horizon-context.md)（机制详解 + 实验室 + 批判性边界）
 - [Context Layer · 上下文治理层技术方案](../../concepts/design/context-layer.md)（本仓内部织物设计 SSOT）
-- [Context Layer 基础设施设计蓝图](../context-layer-blueprint.md)（通用可复刻基础设施，本报告 #12/#1 的展开）
-- [Snowflake 数据云调研 §D7 Horizon Catalog](../../research/retrieval-storage/034-snowflake-data-cloud.md)
+- [Context Layer 基础设施设计蓝图](./013-context-layer-blueprint.md)（通用可复刻基础设施，本报告 #12/#1 的展开）
+- [Snowflake 数据云调研 §D7 Horizon Catalog](../retrieval-storage/034-snowflake-data-cloud.md)

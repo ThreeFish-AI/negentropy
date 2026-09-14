@@ -1,3 +1,9 @@
+---
+sidebar_position: 3
+title: "Snowflake Horizon Context 精读笔记"
+description: "「住进治理引擎、查询时强制执行」的上下文层六机制精读：五段式对象模型 / 查询时聚合安全 / 引擎级双层 RBAC / 显式隐式双轨富化与冲突裁决 / 四因子信号排序 / OSI+MCP 互操作，含实证数字、批判性边界与随笔记入库的 M1–M6 最小原型"
+---
+
 # Snowflake Horizon Context 精读笔记
 
 > [Snowflake, "Horizon Context — Governed Semantic Layer & Data Catalog," 产品页, 2026](https://www.snowflake.com/en/product/features/horizon-context/) · [公告博客 "The Governed Context Layer for AI, BI and Apps," 2026-06](https://www.snowflake.com/en/blog/horizon-context-governed-context/) · [Summit 26 新闻稿, 2026-06-02](https://www.snowflake.com/en/news/press-releases/snowflake-advances-trusted-ai-with-snowflake-horizon-catalog-centralizing-governance-context-and-security-across-the-enterprise/) · [docs: 语义视图](https://docs.snowflake.com/en/user-guide/views-semantic/overview) / [CREATE SEMANTIC VIEW](https://docs.snowflake.com/en/sql-reference/sql/create-semantic-view) / [validation-rules](https://docs.snowflake.com/en/user-guide/views-semantic/validation-rules) · [Cortex Sense 博客, 2026-06-30](https://www.snowflake.com/en/blog/enterprise-ai-agents-grounded-context/) · [工程博客 "Why Do We Need Semantic Views?", 2026-03](https://www.snowflake.com/en/blog/engineering/why-we-need-semantic-views/) · [OSI→Apache Ossie](https://www.snowflake.com/en/blog/apache-ossie-open-semantic-interchange-incubator/)（产品深度研读，非论文；引用格式从惯例）
@@ -8,7 +14,7 @@
 
 **怎么读这篇笔记**：每个机制按「类比 → 机制 → 原型实景」三拍走。实景全部取自配套最小原型 [`assets/horizon_context_lab.py`](./assets/horizon_context_lab.py)（约 916 行纯标准库，M1–M6 六机制 + 场景矩阵 + 破坏性实验，已随笔记入库；另有 MCP 服务原型 [`assets/horizon_context_mcp.py`](./assets/horizon_context_mcp.py) 验证平台集成路径）；所有日志均为实际运行输出。开发沙盒位于 `.temp/horizon-context-lab/`（gitignore，随时可清理，可用笔记中的日志与入库副本复刻）。⚠ 行数超出 skill 软上限（500）：以双语场景日志与更全断言换来的明确取舍。
 
-配套产物：[Horizon Context ↔ negentropy 机制映射报告](./horizon-context-mapping-negentropy.md) · [Context Layer 基础设施设计蓝图](../context-layer-blueprint.md)。
+配套产物：[Horizon Context ↔ negentropy 机制映射报告](./012-horizon-context-mapping-negentropy.md) · [Context Layer 基础设施设计蓝图](./013-context-layer-blueprint.md)。
 
 ---
 
@@ -40,9 +46,9 @@
 
 四层上下文分类法（官方 FAQ）：**Structural**（有什么、怎么连）/ **Operational**（查询、新鲜度、性能）/ **Semantic**（定义、指标、本体）/ **Behavioral**（热度、用法模式）——这四层就是 Collect→Enrich→Activate 流水线上流转的原料。
 
-![Horizon Context 三段流水线：三路元数据并列汇入统一目录，显式/隐式双轨富化（同名冲突浮出人工裁决），经四因子混合排序后供给 CoCo、BI 工具与 MCP 外部 Agent。](../../assets/architecture/paper-notes/horizon-context--collect-enrich-activate-dark.png)
+![Horizon Context 三段流水线：三路元数据并列汇入统一目录，显式/隐式双轨富化（同名冲突浮出人工裁决），经四因子混合排序后供给 CoCo、BI 工具与 MCP 外部 Agent。](../../assets/architecture/cognitive-context/horizon-context--collect-enrich-activate-dark.png)
 
-> 图源（可 diff 文本）：[`horizon-context--collect-enrich-activate.mmd`](../../assets/mermaid/paper-notes/horizon-context--collect-enrich-activate.mmd) · 交互版（下载到本地打开）：[`horizon-context--collect-enrich-activate.html`](../../assets/architecture/paper-notes/horizon-context--collect-enrich-activate.html)
+> 图源（可 diff 文本）：[`horizon-context--collect-enrich-activate.mmd`](../../assets/mermaid/cognitive-context/horizon-context--collect-enrich-activate.mmd) · 交互版（下载到本地打开）：[`horizon-context--collect-enrich-activate.html`](../../assets/architecture/cognitive-context/horizon-context--collect-enrich-activate.html)
 
 **原型实景**——结构校验门拦下「指向非键列的 relationship」（D6 实验，实际运行输出）：
 
@@ -57,9 +63,9 @@ customers.plan is not PRIMARY KEY/UNIQUE—— 无门则垃圾定义静默入库
 
 **机制**：四个聚合保障 + 一个消歧——①**agg-before-join**：每个指标先各自聚合到目标粒度再合并（防 fan trap：join 复制行把 $100 算成 $300）；②**distinct 聚合跨 join 安全**：`COUNT(DISTINCT)` 在复制行上数的是集合不是行；③**derived 先聚后除**：`DIV0(total_revenue, total_cost)` 分子分母各自聚合，防 average of averages；④**NON ADDITIVE BY**：按声明维度排序取**末快照**而非求和（余额可以跨账户相加、不能跨天相加）；⑤**USING (relationship)**：多 join 路径时显式消歧。官方工程博客用三个经典陷阱背书：fan trap（Sam Waters 案 $100→$300）、chasm trap（共享维度的笛卡尔爆炸）、average of averages（16.0 vs 真实 4.8）——并给出关键判断：「*valid SQL, but not valid analytics*」，LLM 在 TPC-DS 上同样踩坑。
 
-![语义视图声明相与执行相：五段式声明经结构校验门（非法定义注册期被拒），通过后进入执行相——执行层 RBAC 拒绝 PRIVATE 资产，策略 A 零复制聚合后按查询 grain 重算。](../../assets/architecture/paper-notes/horizon-context--declaration-execution-dark.png)
+![语义视图声明相与执行相：五段式声明经结构校验门（非法定义注册期被拒），通过后进入执行相——执行层 RBAC 拒绝 PRIVATE 资产，策略 A 零复制聚合后按查询 grain 重算。](../../assets/architecture/cognitive-context/horizon-context--declaration-execution-dark.png)
 
-> 图源（可 diff 文本）：[`horizon-context--declaration-execution.mmd`](../../assets/mermaid/paper-notes/horizon-context--declaration-execution.mmd) · 交互版（下载到本地打开）：[`horizon-context--declaration-execution.html`](../../assets/architecture/paper-notes/horizon-context--declaration-execution.html)
+> 图源（可 diff 文本）：[`horizon-context--declaration-execution.mmd`](../../assets/mermaid/cognitive-context/horizon-context--declaration-execution.mmd) · 交互版（下载到本地打开）：[`horizon-context--declaration-execution.html`](../../assets/architecture/cognitive-context/horizon-context--declaration-execution.html)
 
 **原型实景**（B 场景实际运行输出，对照值均为引擎正确路径）：
 
@@ -148,8 +154,8 @@ customers.plan is not PRIMARY KEY/UNIQUE—— 无门则垃圾定义静默入库
 运行方式（秒级，仓库根目录执行）：
 
 ```bash
-uv run --no-project python docs/reference/paper-notes/assets/horizon_context_lab.py --selftest
-uv run --no-project python docs/reference/paper-notes/assets/horizon_context_mcp.py --selftest
+uv run --no-project python docs/research/cognitive-context/assets/horizon_context_lab.py --selftest
+uv run --no-project python docs/research/cognitive-context/assets/horizon_context_mcp.py --selftest
 ```
 
 机制 → 代码位置速查（`horizon_context_lab.py`）：
@@ -196,9 +202,9 @@ uv run --no-project python docs/reference/paper-notes/assets/horizon_context_mcp
 
 ## 12. 与本仓的关联
 
-- 机制级对照（definitions registry ↔ context objects、patrol/Judge ↔ eval 自纠环、三层渐进披露 ↔ verified query 分发等 10 条）见 [Horizon Context ↔ negentropy 机制映射报告](./horizon-context-mapping-negentropy.md)。
-- 本仓的上下文治理织物方案（Collect/Enrich/Activate 三相 × 四信号层 × Context Catalog/Router/Guard）见 [Context Layer 技术方案](../../concepts/design/context-layer.md)；通用可复刻基础设施的架构设计见 [Context Layer 基础设施设计蓝图](../context-layer-blueprint.md)。
-- Snowflake 数据云调研中的 Horizon Catalog 章节见 [研究文档 §D7](../../research/retrieval-storage/034-snowflake-data-cloud.md)。
+- 机制级对照（definitions registry ↔ context objects、patrol/Judge ↔ eval 自纠环、三层渐进披露 ↔ verified query 分发等 10 条）见 [Horizon Context ↔ negentropy 机制映射报告](./012-horizon-context-mapping-negentropy.md)。
+- 本仓的上下文治理织物方案（Collect/Enrich/Activate 三相 × 四信号层 × Context Catalog/Router/Guard）见 [Context Layer 技术方案](../../concepts/design/context-layer.md)；通用可复刻基础设施的架构设计见 [Context Layer 基础设施设计蓝图](./013-context-layer-blueprint.md)。
+- Snowflake 数据云调研中的 Horizon Catalog 章节见 [研究文档 §D7](../retrieval-storage/034-snowflake-data-cloud.md)。
 
 ## 参考
 

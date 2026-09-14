@@ -3,8 +3,9 @@
 > **本集口播的单一事实源**。逐字稿（[../script/narration.md](../script/narration.md)）中每一条断言都必须能回溯到本文件的某一节；回溯不到的断言不得进入口播。
 >
 > **信源轨（本集为 B 型 · 仓内固定提交）**
-> - **A 轨 · 精读笔记**：本仓 [docs/reference/paper-notes/horizon-context.md](../../../../../docs/reference/paper-notes/horizon-context.md) @ `cf6724d688d6`（2026-09-12，见 [sources.toml](./sources.toml) `paper-note`）——对 Snowflake Horizon Context 产品页/博客/docs 的系统精读，上游 IEEE 引用链完整落在笔记「参考」节。
-> - **B 轨 · 最小原型实测**：[assets/horizon_context_lab.py](../../../../../docs/reference/paper-notes/assets/horizon_context_lab.py)（916 行）与 [assets/horizon_context_mcp.py](../../../../../docs/reference/paper-notes/assets/horizon_context_mcp.py)（328 行）@ 同一提交，`--selftest` 全绿（2026-09-12 本机复跑，30 项断言）。
+> - **A 轨 · 精读笔记**：本仓 [docs/research/cognitive-context/011-horizon-context.md](../../../../../docs/research/cognitive-context/011-horizon-context.md) @ `cf6724d688d6`（2026-09-12，见 [sources.toml](./sources.toml) `paper-note`）——对 Snowflake Horizon Context 产品页/博客/docs 的系统精读，上游 IEEE 引用链完整落在笔记「参考」节。
+> - **B 轨 · 最小原型实测**：[assets/horizon_context_lab.py](../../../../../docs/research/cognitive-context/assets/horizon_context_lab.py)（916 行）与 [assets/horizon_context_mcp.py](../../../../../docs/research/cognitive-context/assets/horizon_context_mcp.py)（328 行）@ 同一提交，`--selftest` 全绿（2026-09-12 本机复跑，30 项断言）。
+> - ⚠ **文档已迁址（2026-09-14）**：上述仓内链接指向迁移后的现址（`docs/research/cognitive-context/`）；取证仍锚定 `cf6724d688d6`，该提交上的原路径为 `docs/reference/paper-notes/` 与 `docs/reference/context-layer-blueprint.md`——[sources.toml](./sources.toml) 的 pinned raw URL 与成片尾幕署名保持原样，均仍可解析。
 > - 上游 Snowflake 官方页**不直接取证**：所有官方口径经 A 轨笔记转述，笔记 §10 已对每条官方数字标批判性边界。
 >
 > **证据四级（本集最重要的真实性纪律）**
@@ -119,4 +120,4 @@
 | p3-21 实测输出 | `[PASS] B1: fan trap: 引擎 Jan=200 vs 朴素 Jan=440` | selftest B1 |
 | p4-10..12 三行 RBAC | `if metric.visibility == "PRIVATE" and role not in PRIVATE_ALLOWED: raise AccessDenied` | `compile_query` M3 防线 :394-396；C2 输出同屏 |
 | p5-27 热度一行 | `pop = math.log1p(popularity) / math.log1p(POP_CAP)` | `rank()` :463 |
-| archify 回放 | declaration-execution / collect-enrich-activate 两段 Play 录制 | `docs/assets/architecture/paper-notes/` + `pipeline/scripts/record_archify.py` |
+| archify 回放 | declaration-execution / collect-enrich-activate 两段 Play 录制 | `docs/assets/architecture/cognitive-context/` + `pipeline/scripts/record_archify.py` |
