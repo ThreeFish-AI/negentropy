@@ -1,0 +1,32 @@
+%%source: docs/research/cognitive-context/013-context-layer-blueprint.md#block2 (L78-L105, §2 业界格局：四条路线与一个异类)
+%%slug: cognitive-context/context-layer-blueprint--industry-landscape
+%%type: architecture
+%%derived: archify architecture v1, authored from source mermaid
+flowchart TB
+    subgraph "平台内嵌路线：治理在引擎内"
+        SF["Snowflake Horizon Context<br/>语义视图 + 治理引擎一体"]
+        DBX["Databricks UC<br/>metric views + Genie Ontology"]
+        MF["Microsoft Fabric IQ<br/>语义模型 + Ontology 动作写回"]
+        LKR["Google Looker<br/>LookML headless 化"]
+    end
+    subgraph "定义即代码：治理在转换层"
+        DBT["dbt MetricFlow<br/>Git/PR 治理 · Ossie 参考实现"]
+    end
+    subgraph "独立可执行层：治理在 SQL 生成前"
+        CUBE["Cube<br/>编译期治理 · 开源"]
+        ATS["AtScale<br/>消费端 XMLA 桥"]
+        BP["📍 本蓝图<br/>可独立部署 · MCP 供给"]
+    end
+    subgraph "跨系统元数据平面：治理在目录平面"
+        ATL["Atlan / Alation / DataHub<br/>100+ 连接器的 context 平面"]
+    end
+    PLTR["🏛️ Palantir Ontology<br/>语义 + 受治理动作（kinetic）"]
+    AG["🤖 Agent / BI / 应用<br/>同一份定义消费"]
+    SF -->|"引擎内强制执行"| AG
+    DBT -->|"Semantic Layer API"| AG
+    BP -->|"MCP 供给面（本方案）"| AG
+    ATL -->|"context 供给"| AG
+    PLTR -->|"本体 + 动作消费"| AG
+    ATS -.->|"读语义定义 → 服务 BI"| SF
+    BP -.->|"Ossie YAML 互导"| DBT
+    ATL -.->|"联邦互读"| SF

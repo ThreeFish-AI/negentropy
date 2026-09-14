@@ -1,0 +1,21 @@
+%%source: docs/research/cognitive-context/011-horizon-context.md#blockM4 (L271-L324, §6 M4 · 双轨富化与自纠)
+%%slug: cognitive-context/horizon-context--autopilot-loop
+%%type: workflow
+%%derived: archify workflow v2, authored from source mermaid
+flowchart LR
+    subgraph "六路输入面"
+        IN0["从零起步 / CoCo 对话<br/>对话生成 YAML · inline diff 评审"]
+        IN1["BI 模型文件<br/>Tableau / Power BI"]
+        IN2["问答对 CSV / YAML 上传<br/>问题+SQL · 既有语义模型"]
+    end
+    IN0 --> VG
+    IN1 --> VG
+    IN2 --> VG
+    VG{"🏗️ Autopilot 验证门<br/>提取表·列·关系 · 人审在环"}
+    VG -->|"无效查询"| RX["🗑️ 丢弃"]
+    VG -->|"五段式声明 · 推断主键"| SV["📦 SEMANTIC VIEW"]
+    VG -->|"有效问答自动入库"| VQR["✅ AI_VERIFIED_QUERIES<br/>VERIFIED_BY / AT 溯源"]
+    SV --> CS["🤖 激活消费<br/>agent / BI / Cortex"]
+    VQR -->|"相似命中作生成依据"| CS
+    CS -.->|"使用反馈"| SIG["📶 行为信号<br/>popularity / eval"]
+    SIG -.->|"高频且新颖 → Suggestions 候选"| VQR
