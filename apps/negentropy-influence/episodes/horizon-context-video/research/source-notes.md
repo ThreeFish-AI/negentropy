@@ -82,17 +82,17 @@
 
 ## 八、实证数字总表（口播引用前查级）
 
-| 数字 | 证据级 | 一句话读法 |
-|---|---|---|
-| ~25% / 21% 无上下文基线 | 【三】/第三方基线端 | 两家独立测出同一结论：缺业务含义时 agent 就是瞎猜 |
-| 24.1% → 86.3% | 【三】（Snowflake 自家基准） | 上下文层把准确率抬 3.6 倍（增益端无第三方复现） |
-| $1.76 → $0.59/query | 【三】（同上） | 每次查询成本砍 2/3 |
-| 9,685 表 / 覆盖 <5% | 【三】（Snowflake 内部实测） | 纯手工金标准覆盖不动——隐式轨道的存在理由 |
-| $100 → $300 fan trap | 【三】（工程博客案例） | join 复制行，valid SQL ≠ valid analytics |
-| 16.0 vs 4.8 | 【三】（工程博客案例） | 平均的平均不是平均 |
-| 反超人工 10 pct / 数月→一天 | 【三】（官方口径） | 隐式轨道的战绩（无第三方复现） |
-| 17 创始 → 50+ 组织（OSI→Ossie） | 【二】 | 语义可携带已成行业共识 |
-| 玩具 200/440 · 7/24 · [3,1,2]/[6,1,2] · 108.33/122.22 | 【一】 | 六机制在玩具域的逐点复现 |
+| 数字                                                  | 证据级                       | 一句话读法                                        |
+| ----------------------------------------------------- | ---------------------------- | ------------------------------------------------- |
+| ~25% / 21% 无上下文基线                               | 【三】/第三方基线端          | 两家独立测出同一结论：缺业务含义时 agent 就是瞎猜 |
+| 24.1% → 86.3%                                         | 【三】（Snowflake 自家基准） | 上下文层把准确率抬 3.6 倍（增益端无第三方复现）   |
+| $1.76 → $0.59/query                                   | 【三】（同上）               | 每次查询成本砍 2/3                                |
+| 9,685 表 / 覆盖 <5%                                   | 【三】（Snowflake 内部实测） | 纯手工金标准覆盖不动——隐式轨道的存在理由          |
+| $100 → $300 fan trap                                  | 【三】（工程博客案例）       | join 复制行，valid SQL ≠ valid analytics          |
+| 16.0 vs 4.8                                           | 【三】（工程博客案例）       | 平均的平均不是平均                                |
+| 反超人工 10 pct / 数月→一天                           | 【三】（官方口径）           | 隐式轨道的战绩（无第三方复现）                    |
+| 17 创始 → 50+ 组织（OSI→Ossie）                       | 【二】                       | 语义可携带已成行业共识                            |
+| 玩具 200/440 · 7/24 · [3,1,2]/[6,1,2] · 108.33/122.22 | 【一】                       | 六机制在玩具域的逐点复现                          |
 
 ## 九、批判性边界（口播收尾的「它没证明什么」，笔记 §10 全五条）
 
@@ -112,12 +112,12 @@
 
 > v2 口播中「屏幕上的代码/实测输出」逐处锚定（全部【一】仓内可复跑）：
 
-| 口播位置 | 画面代码/输出 | lab 锚点 |
-|---|---|---|
-| p2-06..08 五段式声明 | `SemanticView("sales_sv", tables=(...), relationships=(Relationship("buyer", ...)), metrics=(Metric("revenue", "sum", ...)))` | `build_sales_view()` :170 |
-| p2-11 注册被拒 | `✗ relationship bad: referenced column customers.plan is not PRIMARY KEY/UNIQUE` | D6 实测输出 |
-| p3-11 一行分岔 | `spec_rows = [...] if agg_before_join else _naive_joined_rows(...)` | `compile_query` 内 :383-385 |
-| p3-21 实测输出 | `[PASS] B1: fan trap: 引擎 Jan=200 vs 朴素 Jan=440` | selftest B1 |
-| p4-10..12 三行 RBAC | `if metric.visibility == "PRIVATE" and role not in PRIVATE_ALLOWED: raise AccessDenied` | `compile_query` M3 防线 :394-396；C2 输出同屏 |
-| p5-27 热度一行 | `pop = math.log1p(popularity) / math.log1p(POP_CAP)` | `rank()` :463 |
-| archify 回放 | declaration-execution / collect-enrich-activate 两段 Play 录制 | `docs/assets/architecture/cognitive-context/` + `pipeline/scripts/record_archify.py` |
+| 口播位置             | 画面代码/输出                                                                                                                 | lab 锚点                                                                             |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| p2-06..08 五段式声明 | `SemanticView("sales_sv", tables=(...), relationships=(Relationship("buyer", ...)), metrics=(Metric("revenue", "sum", ...)))` | `build_sales_view()` :170                                                            |
+| p2-11 注册被拒       | `✗ relationship bad: referenced column customers.plan is not PRIMARY KEY/UNIQUE`                                              | D6 实测输出                                                                          |
+| p3-11 一行分岔       | `spec_rows = [...] if agg_before_join else _naive_joined_rows(...)`                                                           | `compile_query` 内 :383-385                                                          |
+| p3-21 实测输出       | `[PASS] B1: fan trap: 引擎 Jan=200 vs 朴素 Jan=440`                                                                           | selftest B1                                                                          |
+| p4-10..12 三行 RBAC  | `if metric.visibility == "PRIVATE" and role not in PRIVATE_ALLOWED: raise AccessDenied`                                       | `compile_query` M3 防线 :394-396；C2 输出同屏                                        |
+| p5-27 热度一行       | `pop = math.log1p(popularity) / math.log1p(POP_CAP)`                                                                          | `rank()` :463                                                                        |
+| archify 回放         | declaration-execution / collect-enrich-activate 两段 Play 录制                                                                | `docs/assets/architecture/cognitive-context/` + `pipeline/scripts/record_archify.py` |
