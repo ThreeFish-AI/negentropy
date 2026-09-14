@@ -6,9 +6,10 @@
 > [`scripts/capture-arch-diagram.mjs`](../../../scripts/capture-arch-diagram.mjs) 采集
 > `<slug>-dark.png` / `<slug>-light.png`（文档内嵌一律用暗色 PNG）。
 >
-> **范围**：仅现役系统文档（`docs/concepts/`、`docs/reference/{perceives,wiki,paper-notes}/` 与 `docs/reference/` 根级设计文档、根与 i18n README、
-> `apps/` README、`docs/.agents/` 巡检文档）。`docs/research/`（第三方调研）与
-> `docs/reference/cognizes/`（已退役遗产）**不在此管线**，原地保留渲染。
+> **范围**：按**文档**而非目录界定。已纳入：现役系统文档（`docs/concepts/`、`docs/reference/{perceives,wiki}/`、根与 i18n README、
+> `apps/` README、`docs/.agents/` 巡检文档），以及已走完本管线的研究文献——`docs/research/cognitive-context/` 的
+> Horizon Context 精读与 Context Layer 蓝图（下表 `cognitive-context/` 分节）。未纳入：其余 `docs/research/`（第三方调研）与
+> `docs/reference/cognizes/`（已退役遗产），**不在此管线**，原地保留渲染。
 
 ## 约定
 
@@ -187,14 +188,14 @@
 | [issue--session-stale-sequence](./agents/issue--session-stale-sequence.mmd) | .agents/issue.md（ISSUE-066 缩进块） | sequence | ✓ | done | fix: 1) 源图 SUS->>SUS 自环（POST /api/agui/se |
 | [wiki-ordering--effective-rank](./agents/wiki-ordering--effective-rank.mmd) | .agents/wiki-docs-ordering.md | workflow | ✓ | done | fix: 源图与代码零偏差，无 %% fix: 行。重绘适配：① 5 泳道语义分组 |
 
-### paper-notes/（docs/reference/paper-notes/ 与 reference 根级设计文档）
+### cognitive-context/（docs/research/cognitive-context/ 的精读笔记与设计蓝图）
 
 | slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| [horizon-context--collect-enrich-activate](./paper-notes/horizon-context--collect-enrich-activate.mmd) | paper-notes/horizon-context.md §2 | dataflow | ✓ | done | 三段流水线：三源并列汇入目录 → 显式/隐式双轨（冲突浮出人工裁决）→ 四因子排序 → 三类消费者 |
-| [horizon-context--declaration-execution](./paper-notes/horizon-context--declaration-execution.mmd) | paper-notes/horizon-context.md §3 | workflow | ✓ | done | 声明相（五段式+结构校验门）→ 执行相（双层 RBAC + 策略 A 聚合）；workflow v2 重排为单行主链 |
-| [context-layer-blueprint--architecture](./paper-notes/context-layer-blueprint--architecture.mmd) | context-layer-blueprint.md §1 | architecture | ✓ | done | 五正交层总体架构；重绘砍 2 条低值边（裁决/反馈环路由姊妹图与卡片承载） |
-| [context-layer-blueprint--object-lifecycle](./paper-notes/context-layer-blueprint--object-lifecycle.mmd) | context-layer-blueprint.md §2 | lifecycle | ✓ | done | 对象生命周期状态机；3 泳道并为 2（冲突与终态合流）保垂直容纳 |
+| [horizon-context--collect-enrich-activate](./cognitive-context/horizon-context--collect-enrich-activate.mmd) | cognitive-context/011-horizon-context.md §2 | dataflow | ✓ | done | 三段流水线：三源并列汇入目录 → 显式/隐式双轨（冲突浮出人工裁决）→ 四因子排序 → 三类消费者 |
+| [horizon-context--declaration-execution](./cognitive-context/horizon-context--declaration-execution.mmd) | cognitive-context/011-horizon-context.md §3 | workflow | ✓ | done | 声明相（五段式+结构校验门）→ 执行相（双层 RBAC + 策略 A 聚合）；workflow v2 重排为单行主链 |
+| [context-layer-blueprint--architecture](./cognitive-context/context-layer-blueprint--architecture.mmd) | cognitive-context/013-context-layer-blueprint.md §1 | architecture | ✓ | done | 五正交层总体架构；重绘砍 2 条低值边（裁决/反馈环路由姊妹图与卡片承载） |
+| [context-layer-blueprint--object-lifecycle](./cognitive-context/context-layer-blueprint--object-lifecycle.mmd) | cognitive-context/013-context-layer-blueprint.md §2 | lifecycle | ✓ | done | 对象生命周期状态机；3 泳道并为 2（冲突与终态合流）保垂直容纳 |
 
 ### 原地保留（无 archify 对应类型 / 不在本管线）
 
@@ -205,7 +206,7 @@
 | 036-the-knowledge-graph.md（timeline） | timeline | 无对应类型 |
 | 039-the-routine-system.md（ER） | erDiagram | 无对应类型 |
 | conversation-foundation.md（象限图） | quadrantChart | 无对应类型 |
-| docs/research/**（247 块） | 各类 | 第三方系统调研，不进本管线 |
+| docs/research/**（247 块，cognitive-context/ 的 archify 图除外） | 各类 | 第三方系统调研，不进本管线 |
 | docs/reference/cognizes/**（96 块） | 各类 | 已退役项目遗产，不进本管线 |
 | apps/negentropy-influence/episodes/**/planning.md（8 块） | flowchart | 分集内容分镜，非架构图 |
 | apps/negentropy-wiki/content.fixture/**（1 块） | flowchart | 测试 fixture |

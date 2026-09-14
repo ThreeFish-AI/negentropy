@@ -1,10 +1,16 @@
+---
+sidebar_position: 6
+title: "Context Layer 基础设施设计蓝图"
+description: "以 Horizon Context 为范本的通用可复刻治理上下文层：对象模型 / 目录 / 富化自纠 / MCP 激活 / 双层治理五正交层，含「治理≠验证」边界对策与独立部署演进路线"
+---
+
 # Context Layer 基础设施设计蓝图
 
 > 以 [Snowflake Horizon Context](https://www.snowflake.com/en/product/features/horizon-context/) 为范本的**通用可复刻架构**：一个可独立部署、面向 Agents 研发与平台集成的治理上下文层。
 >
-> 定位辨析：本仓已有两份亲缘文档——[Context Layer · 上下文治理层技术方案](../concepts/design/context-layer.md)（negentropy **内部**治理织物，收敛 Memory/KB/KG/Tools/Skills 五子系统）；本蓝图则是**通用基础设施**设计（不绑定 negentropy 内部栈，可独立服务化、经标准协议供任意 agent 平台消费）。两者互补互链：内部织物是蓝图在 negentropy 的一次实例化。
+> 定位辨析：本仓已有两份亲缘文档——[Context Layer · 上下文治理层技术方案](../../concepts/design/context-layer.md)（negentropy **内部**治理织物，收敛 Memory/KB/KG/Tools/Skills 五子系统）；本蓝图则是**通用基础设施**设计（不绑定 negentropy 内部栈，可独立服务化、经标准协议供任意 agent 平台消费）。两者互补互链：内部织物是蓝图在 negentropy 的一次实例化。
 >
-> 循证基础：机制详解、实证数字与批判性边界见 [Horizon Context 精读笔记](./paper-notes/horizon-context.md)；与本仓代码的逐条对照见[机制映射报告](./paper-notes/horizon-context-mapping-negentropy.md)；最小原型（M1–M6 六机制 + MCP 服务）已随笔记入库验证。
+> 循证基础：机制详解、实证数字与批判性边界见 [Horizon Context 精读笔记](./011-horizon-context.md)；与本仓代码的逐条对照见[机制映射报告](./012-horizon-context-mapping-negentropy.md)；最小原型（M1–M6 六机制 + MCP 服务）已随笔记入库验证。
 
 ---
 
@@ -26,9 +32,9 @@
 
 五个正交层——对象存储（放什么）、目录（怎么找）、富化（怎么养）、治理（怎么信）、激活（怎么用）。机制（治理/路由）与策略（各源算法）分离，各层可独立演进。
 
-![Context Layer 基础设施五正交层：对象存储经逻辑视图指针汇入统一目录，显式/隐式双轨富化并由 eval 自纠环修正，目录经四因子排序、Governance Gate 与 MCP Server 供给 agent/BI/应用，治理角色负责作者与评审。](../assets/architecture/paper-notes/context-layer-blueprint--architecture-dark.png)
+![Context Layer 基础设施五正交层：对象存储经逻辑视图指针汇入统一目录，显式/隐式双轨富化并由 eval 自纠环修正，目录经四因子排序、Governance Gate 与 MCP Server 供给 agent/BI/应用，治理角色负责作者与评审。](../../assets/architecture/cognitive-context/context-layer-blueprint--architecture-dark.png)
 
-> 图源（可 diff 文本）：[`context-layer-blueprint--architecture.mmd`](../assets/mermaid/paper-notes/context-layer-blueprint--architecture.mmd) · 交互版（下载到本地打开）：[`context-layer-blueprint--architecture.html`](../assets/architecture/paper-notes/context-layer-blueprint--architecture.html)
+> 图源（可 diff 文本）：[`context-layer-blueprint--architecture.mmd`](../../assets/mermaid/cognitive-context/context-layer-blueprint--architecture.mmd) · 交互版（下载到本地打开）：[`context-layer-blueprint--architecture.html`](../../assets/architecture/cognitive-context/context-layer-blueprint--architecture.html)
 
 ## 2. 上下文对象模型（核心）
 
@@ -64,15 +70,15 @@ version: 12
 
 **生命周期状态机**：
 
-![上下文对象生命周期状态机：draft 经校验门+评审晋升 governed；同名异义进 conflict 态浮出人工裁决（胜者回 governed、败者进 rejected）；新版本取代转 superseded。](../assets/architecture/paper-notes/context-layer-blueprint--object-lifecycle-dark.png)
+![上下文对象生命周期状态机：draft 经校验门+评审晋升 governed；同名异义进 conflict 态浮出人工裁决（胜者回 governed、败者进 rejected）；新版本取代转 superseded。](../../assets/architecture/cognitive-context/context-layer-blueprint--object-lifecycle-dark.png)
 
-> 图源（可 diff 文本）：[`context-layer-blueprint--object-lifecycle.mmd`](../assets/mermaid/paper-notes/context-layer-blueprint--object-lifecycle.mmd) · 交互版（下载到本地打开）：[`context-layer-blueprint--object-lifecycle.html`](../assets/architecture/paper-notes/context-layer-blueprint--object-lifecycle.html)
+> 图源（可 diff 文本）：[`context-layer-blueprint--object-lifecycle.mmd`](../../assets/mermaid/cognitive-context/context-layer-blueprint--object-lifecycle.mmd) · 交互版（下载到本地打开）：[`context-layer-blueprint--object-lifecycle.html`](../../assets/architecture/cognitive-context/context-layer-blueprint--object-lifecycle.html)
 
 结构校验门（对标 validation-rules）：引用必须命中键约束、至少一个可用面（维度/指标/正文）、名字唯一、`non_additive_by` 引用的维度存在——**非法结构在注册期被拒，不进运行时**。
 
 ## 3. 目录层
 
-- **逻辑视图而非新物理表**（[context-layer.md ADR-1](../concepts/design/context-layer.md) 同款决策）：UNION 各来源的元数据 + 轻量指针，杜绝 Split-Brain。
+- **逻辑视图而非新物理表**（[context-layer.md ADR-1](../../concepts/design/context-layer.md) 同款决策）：UNION 各来源的元数据 + 轻量指针，杜绝 Split-Brain。
 - **四层信号**入库：Structural（有什么/怎么连，含血缘）、Operational（新鲜度/运行状态）、Semantic（定义/口径/本体）、Behavioral（热度/使用模式）。
 - **血缘**记录「谁喂谁」（观察型）；其边界见 §7。
 
@@ -124,7 +130,7 @@ Typedef 批判的核心（详见笔记 §10-4）：governed 定义在**上游已
 | MCP 供给面 | 复用 McpClientService 的协议工程经验，方向从消费转供给       | 🔶 新增（映射 #12）                      |
 | 治理层     | `accessible_corpus_ids` + 计划中的 ContextGuard              | 🔷 第一层已有，第二层随 Phase 2          |
 
-**独立部署路径**：对象层落 PostgreSQL（或任意带版本化的存储）、激活层以单进程 stdio/HTTP MCP server 起步——原型 [`paper-notes/assets/horizon_context_mcp.py`](./paper-notes/assets/horizon_context_mcp.py) 即其零依赖种子。
+**独立部署路径**：对象层落 PostgreSQL（或任意带版本化的存储）、激活层以单进程 stdio/HTTP MCP server 起步——原型 [`assets/horizon_context_mcp.py`](./assets/horizon_context_mcp.py) 即其零依赖种子。
 
 ## 9. 演进路线
 

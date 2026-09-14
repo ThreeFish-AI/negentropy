@@ -1,6 +1,12 @@
+---
+sidebar_position: 7
+title: "PG ↔ negentropy 机制映射报告"
+description: "把 Procedural Graph 五条机制对照本仓 Routine / 巡检 / evolution 门控：验证门平局接受与报告纪律已对齐，编辑级拒绝记忆进进化回路值得落地，边属性按 YAGNI 暂缓"
+---
+
 # PG ↔ negentropy 机制映射报告
 
-> 把 [Procedural Graph 论文精读笔记](./procedural-graphs.md)（arXiv:2609.09153）的机制对照到本仓 Routine / 巡检 / 自进化体系，回答「论文的哪些设计本仓已有、哪些是真增量、哪些值得落地」。**只分析不改码**；锚点均经实际代码核验（分支 `ThreeFish-AI/agent-graph-paper-guided-study`）。
+> 把 [Procedural Graph 论文精读笔记](./142-procedural-graphs.md)（arXiv:2609.09153）的机制对照到本仓 Routine / 巡检 / 自进化体系，回答「论文的哪些设计本仓已有、哪些是真增量、哪些值得落地」。**只分析不改码**；锚点均经实际代码核验（分支 `ThreeFish-AI/agent-graph-paper-guided-study`）。
 
 ## 结论先行
 
@@ -52,4 +58,4 @@
 
 ## 交叉引用
 
-- [Procedural Graph 论文精读笔记](./procedural-graphs.md) · [自进化 Agents Team 方案](../../concepts/design/self-evolving-agents.md) · [Routine 子系统](../../concepts/subsystems/039-the-routine-system.md) · [PDF 巡检状态落库方案](../../.agents/pdf-fidelity-patrol-status.md)
+- [Procedural Graph 论文精读笔记](./142-procedural-graphs.md) · [自进化 Agents Team 方案](../../concepts/design/self-evolving-agents.md) · [Routine 子系统](../../concepts/subsystems/039-the-routine-system.md) · [PDF 巡检状态落库方案](../../.agents/pdf-fidelity-patrol-status.md)

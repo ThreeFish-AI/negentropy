@@ -1,5 +1,5 @@
 ---
-sidebar_position: 10.1
+sidebar_position: 3
 title: "Context Engineering · 播客自动转录（未校对）"
 description: "原播客 raw 自动转录，未经人工校对；要点已沉淀于 010-context-engineering.md"
 ---
