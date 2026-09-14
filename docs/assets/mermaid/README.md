@@ -206,7 +206,7 @@
 | 036-the-knowledge-graph.md（timeline） | timeline | 无对应类型 |
 | 039-the-routine-system.md（ER） | erDiagram | 无对应类型 |
 | conversation-foundation.md（象限图） | quadrantChart | 无对应类型 |
-| docs/research/**（247 块） | 各类 | 第三方系统调研，不进本管线 |
+| docs/research/**（247 块，cognitive-context/ 的 archify 图除外） | 各类 | 第三方系统调研，不进本管线 |
 | docs/reference/cognizes/**（96 块） | 各类 | 已退役项目遗产，不进本管线 |
 | apps/negentropy-influence/episodes/**/planning.md（8 块） | flowchart | 分集内容分镜，非架构图 |
 | apps/negentropy-wiki/content.fixture/**（1 块） | flowchart | 测试 fixture |

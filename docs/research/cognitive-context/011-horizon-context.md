@@ -1,5 +1,5 @@
 ---
-sidebar_position: 3
+sidebar_position: 4
 title: "Snowflake Horizon Context 精读笔记"
 description: "「住进治理引擎、查询时强制执行」的上下文层六机制精读：五段式对象模型 / 查询时聚合安全 / 引擎级双层 RBAC / 显式隐式双轨富化与冲突裁决 / 四因子信号排序 / OSI+MCP 互操作，含实证数字、批判性边界与随笔记入库的 M1–M6 最小原型"
 ---

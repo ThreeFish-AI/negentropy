@@ -1,5 +1,5 @@
 ---
-sidebar_position: 5
+sidebar_position: 6
 title: "Context Layer 基础设施设计蓝图"
 description: "以 Horizon Context 为范本的通用可复刻治理上下文层：对象模型 / 目录 / 富化自纠 / MCP 激活 / 双层治理五正交层，含「治理≠验证」边界对策与独立部署演进路线"
 ---

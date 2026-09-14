@@ -1,5 +1,5 @@
 ---
-sidebar_position: 4
+sidebar_position: 5
 title: "Horizon Context ↔ negentropy 机制映射报告"
 description: "把 Horizon Context 六机制逐条对照本仓 definitions registry / patrol-Judge / skills_injector / Catalog：12 条映射判定为已对齐 4、值得落地 5、YAGNI 暂缓 3，锚点均经代码核验"
 ---
