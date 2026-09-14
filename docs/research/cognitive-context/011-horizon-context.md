@@ -1,38 +1,70 @@
 ---
 sidebar_position: 4
 title: "Snowflake Horizon Context 精读笔记"
-description: "「住进治理引擎、查询时强制执行」的上下文层六机制精读：五段式对象模型 / 查询时聚合安全 / 引擎级双层 RBAC / 显式隐式双轨富化与冲突裁决 / 四因子信号排序 / OSI+MCP 互操作，含实证数字、批判性边界与随笔记入库的 M1–M6 最小原型"
+description: "「嵌入治理引擎、查询时强制执行」的 Context Layer 六机制精读：五段式对象模型 / 查询时聚合安全 / 引擎级双层 RBAC / 显式隐式双轨富化与冲突裁决 / 四因子信号排序 / OSI+MCP 互操作，含实证数字、批判性边界与随笔记入库的 M1–M6 最小原型"
 ---
 
 # Snowflake Horizon Context 精读笔记
 
-> [Snowflake, "Horizon Context — Governed Semantic Layer & Data Catalog," 产品页, 2026](https://www.snowflake.com/en/product/features/horizon-context/) · [公告博客 "The Governed Context Layer for AI, BI and Apps," 2026-06](https://www.snowflake.com/en/blog/horizon-context-governed-context/) · [Summit 26 新闻稿, 2026-06-02](https://www.snowflake.com/en/news/press-releases/snowflake-advances-trusted-ai-with-snowflake-horizon-catalog-centralizing-governance-context-and-security-across-the-enterprise/) · [docs: 语义视图](https://docs.snowflake.com/en/user-guide/views-semantic/overview) / [CREATE SEMANTIC VIEW](https://docs.snowflake.com/en/sql-reference/sql/create-semantic-view) / [validation-rules](https://docs.snowflake.com/en/user-guide/views-semantic/validation-rules) · [Cortex Sense 博客, 2026-06-30](https://www.snowflake.com/en/blog/enterprise-ai-agents-grounded-context/) · [工程博客 "Why Do We Need Semantic Views?", 2026-03](https://www.snowflake.com/en/blog/engineering/why-we-need-semantic-views/) · [OSI→Apache Ossie](https://www.snowflake.com/en/blog/apache-ossie-open-semantic-interchange-incubator/)（产品深度研读，非论文；引用格式从惯例）
 
-**一句话定位**：Horizon Context 是「**住进 Data 治理引擎、在查询时强制执行**」的上 Context Layer —— 把业务定义、指标、关系、血缘、用法沉淀为受治理的元数据对象，让人、BI 工具、AI Agent 从同一份定义推理，而不是各自猜。官方三句话递进：*Without context, an agent guesses. With context built natively into the platform, an agent acts. With context that is also governed natively, an agent can be trusted.*
+> [!NOTE]
+>
+> **核心精读范围**：
+>
+> - [Snowflake, "Horizon Context — Governed Semantic Layer & Data Catalog," 产品页, 2026](https://www.snowflake.com/en/product/features/horizon-context/)
+> - [公告博客 "The Governed Context Layer for AI, BI and Apps," 2026-06](https://www.snowflake.com/en/blog/horizon-context-governed-context/)
+> - [Summit 26 新闻稿, 2026-06-02](https://www.snowflake.com/en/news/press-releases/snowflake-advances-trusted-ai-with-snowflake-horizon-catalog-centralizing-governance-context-and-security-across-the-enterprise/)
+> - [docs: 语义视图](https://docs.snowflake.com/en/user-guide/views-semantic/overview) / [CREATE SEMANTIC VIEW](https://docs.snowflake.com/en/sql-reference/sql/create-semantic-view) / [validation-rules](https://docs.snowflake.com/en/user-guide/views-semantic/validation-rules)
+> - [Cortex Sense 博客, 2026-06-30](https://www.snowflake.com/en/blog/enterprise-ai-agents-grounded-context/)
+> - [工程博客 "Why Do We Need Semantic Views?", 2026-03](https://www.snowflake.com/en/blog/engineering/why-we-need-semantic-views/)
+> - [OSI→Apache Ossie](https://www.snowflake.com/en/blog/apache-ossie-open-semantic-interchange-incubator/)
 
-**总类比**：初级 Data Agent 是一个**每天都在重新入职、毫无记忆的新员工**；Horizon Context 是那份**永远最新的入职包** —— 公司术语表（Semantic Views 显式定义）+「大家实际都在用什么」的行为统计（Cortex Sense 隐式挖掘）+ 门禁卡与权限（引擎级 RBAC）+ 前台问询处（CoCo 混合检索）+ 前辈验证过的 FAQ（AI_VERIFIED_QUERIES 带署名与日期）。
+**一句话定位**：Snowflack Horizon Context 是 **嵌在 Data 治理引擎层、在查询时强制执行** 的 Context Layer —— 把业务定义、指标、关系、血缘、用法沉淀为受治理的元数据对象，让人、BI 工具、AI Agent 从同一份定义推理，而不是各自猜测。
 
-**怎么读这篇笔记**：每个机制按「类比 → 机制 → 原型实景」三拍走。实景全部取自配套最小原型 [`assets/horizon_context_lab.py`](./assets/horizon_context_lab.py)（约 916 行纯标准库代码，M1–M6 六机制 + 场景矩阵 + 破坏性实验；另有 MCP 服务原型 [`assets/horizon_context_mcp.py`](./assets/horizon_context_mcp.py) 验证平台集成路径）；所有日志均为实际运行输出。
+> [!TIP]
+>
+> **怎么读笔记**：每个子主题是按「类比 → 机制 → 原型」三拍进行记录和实践。其中实践取自配套的最小原型 [`assets/horizon_context_lab.py`](./assets/horizon_context_lab.py)（约 916 行纯标准库代码，M1–M6 六机制 + 场景矩阵 + 破坏性实验；另有 MCP 服务原型 [`assets/horizon_context_mcp.py`](./assets/horizon_context_mcp.py) 验证平台集成路径）。
 
-配套产物：[Horizon Context ↔ negentropy 机制映射报告](./012-horizon-context-mapping-negentropy.md) · [Context Layer 基础设施设计蓝图](./013-context-layer-blueprint.md)。
+配套产物：[Context Layer 基础设施设计蓝图](./013-context-layer-blueprint.md) · [Horizon Context ↔ negentropy 机制映射报告](./012-horizon-context-mapping-negentropy.md)。
 
 ---
 
-## 1. 它要解决什么问题：每天都在重新入职的天才实习生
+## 1. 解决什么问题：为天才实习生配发「终极入职包」，让他秒变业务老司机
 
-想象一位简历光鲜的实习生（LLM 能力很强），每天入职一次、毫无记忆。公司数据里没有业务含义——毛收入在库里叫 `amt_ttl_pre_dsc`，「净收入」的口径散落在 20 个看板的 `CASE WHEN` 里。两家独立实测给出了同一个基线：**没有上下文层时，agent 回答企业数据问题的准确率只有 ~25%（Snowflake 内测）/ 21%（Anthropic 独立复测）**——不是模型笨，是含义不在数据里。
+企业底层数据库躺着的，往往是密码般的物理列名（如毛收入叫 `amt_ttl_pre_dsc`）；真实业务指标（如净利润）的计算口径也散落在不同报表各自的 `CASE WHEN` 逻辑里。各业务域子系统自说自话，谁也不懂谁。
 
-归因出三个具体病灶：①含义散落（同一问题两个分析师两个答案）；②外挂语义层必然漂移（「层不在引擎里，每次查询要对账两套系统，agent 跟着错的定义走」——官方博客原话）；③治理外挂可被绕过（第三方层拦不住直查物理表）。由此提出五条设计规格，全文每个机制都能映射回其中一条：
+据 Snowflake 实测，**让缺乏 Context Layer 治理的初级 Data Agent 直接回答企业数据问题，准确率仅有 ~25%（Snowflake 内测）/ 21%（Anthropic 独立复测）**。这并非初级 Data Agent 所使用的模型笨，而是缺了 Context Layer 对数据含义的有效治理。具体体现为这三个不可自愈的系统性病灶：
 
-| 设计规格            | 通俗版                                  | 对应机制            |
-| ------------------- | --------------------------------------- | ------------------- |
-| 定义一次、处处生效  | 术语表只写一遍，BI/agent/人都引用不抄写 | §2 上下文对象模型   |
-| 算得对              | 菜谱按查询粒度现场做，不吃隔夜冷饭      | §3 查询时语义正确性 |
-| 治理不可绕过        | 门禁装在楼里，不是贴在墙上的告示        | §4 治理内嵌引擎     |
-| 覆盖得了 95% 的长尾 | 手册写不完的部分靠观察补                | §5 富化与自纠       |
-| 处处可用            | 术语表带着走（开放格式 + 通用插头）     | §7 开放互操作       |
+1. **口径打架（含义散落）**：指标口径写在各自的散落业务里，同一个业务指标问两个子系统，能得出两套不同数字；
+2. **定义漂移（脱节失效）**：外挂语义层独立于 Context Layer，底层数据表的变更会令语义立即脱节，Agent 会按过期的语义手册瞎猜；
+3. **门禁穿透（治理虚设）**：权限规则只浮在外部系统，拦不住绕过中间层直查物理底表，安全防线形同虚设。
 
-## 2. M1 · 上下文对象模型：把便利贴装订成带版本号的手册
+初级 Data Agent 就像一位智商超群的天才实习生，他满腹经纶、理解力极强，但完全不懂贵司的标准流程与方言黑话。
+
+要把这位天才实习生真正培养成懂业务、守规矩的“业务老司机”，Horizon Context 的解法是，**把业务 Context 与安全守则铸入底层引擎，使其无法被篡改与绕过**。Horizon Context 为此确立了五条硬核设计：
+
+| 设计规格                 | 底层机制                   | 大白话                                                                |
+| :----------------------- | :------------------------- | :-------------------------------------------------------------------- |
+| **定义一次、处处生效**   | §2 五段式 Context 对象模型 | 权威术语手册只印一份，人、报表与 Agent 全部照章引用，不再各自抄写抄错 |
+| **动态现算、保真不走样** | §3 查询时语义正确性        | 按每次查询的具体维度现场精准烹饪，绝不拿预先拼凑的静态报表将就应付    |
+| **原生治理、杜绝穿透**   | §4 治理内嵌引擎            | 门禁直接装在机房承重墙上，无论谁走哪条路查数据，安全锁底层强制生效    |
+| **行为挖掘、覆盖长尾**   | §5 富化与自纠              | 手册没写全的暗规则，系统通过日常观察老分析师的用数习惯自动补全自愈    |
+| **标准开放、随处插拔**   | §7 开放互操作              | 入职包采用通用插头与开放格式，任何外部智能体和工具拿来就能立刻用      |
+
+> [!TIP]
+>
+> 初级 Data Agent 就像一个 **每天都在重新入职、毫无经验沉淀的天才实习生**；Horizon Context 要做的，是给这位天才员工配备一份 **永远最新的入职包**：
+>
+> - 公司术语表：Semantic Views 显式定义；
+> - 前台问询处：CoCo 混合检索；
+> - 门禁卡与权限：引擎级 RBAC；
+> - 「大家实际都在用什么」的行为统计：Cortex Sense 隐式挖掘；
+> - 前辈验证过的 FAQ：AI_VERIFIED_QUERIES 带署名与日期。
+>
+> 用官方的话讲：*Without context, an agent guesses. With context built natively into the platform, an agent acts. With context that is also governed natively, an agent can be trusted.*
+
+
+## 2. M1 · Context 对象模型：把便利贴装订成带版本号的手册
 
 **类比**：墙上钉满便利贴（散落的 SQL/prompt 硬编码）vs 装订成册、有 owner、有版本、有权限的规章制度手册。手册里甚至夹着「agent 使用说明」（AI_SQL_GENERATION）和「前辈验证过的 FAQ」（AI_VERIFIED_QUERIES）。
 
@@ -79,7 +111,7 @@ customers.plan is not PRIMARY KEY/UNIQUE—— 无门则垃圾定义静默入库
 
 ## 4. M3 · 治理内嵌引擎：门禁装在楼里，不是贴在墙上的告示
 
-**类比**：独立监理公司（第三方上下文层）到处巡查提醒，但施工队可以半夜翻墙进场（直查物理表）；Horizon 把门禁装进大楼本身——**任何调用方（人、BI、agent）进门都刷卡**。
+**类比**：独立监理公司（第三方 Context Layer）到处巡查提醒，但施工队可以半夜翻墙进场（直查物理表）；Horizon 把门禁装进大楼本身——**任何调用方（人、BI、agent）进门都刷卡**。
 
 **机制**：官方文档原话——"*Governance policies execute at the query engine layer, not the application layer. They apply automatically to every caller: human analyst, BI tool, or AI agent. There is no separate governance configuration for AI workloads.*" agent 与人同一套 RBAC；PRIVATE 指标不可查询；AI Guardrails 在**出口**检测/脱敏/拦截 PII 与 PHI；标签与权限随数据产品携带（分享到 Marketplace 的数据集自带策略）；跨引擎（Iceberg REST 兼容引擎）策略一致执行。官方 FAQ 对第三方层的判词：「*Governance can be bypassed by querying tables directly. Horizon Context enforces security and business logic at the engine level — it cannot be circumvented.*」（注意边界：见 §10 第 3 条。）
 
@@ -110,7 +142,7 @@ customers.plan is not PRIMARY KEY/UNIQUE—— 无门则垃圾定义静默入库
 
 **类比**：前台不把整本手册塞给你，按「跟问题多相关、多权威、多常被问、多新」抽两页；抽到的是**带署名的 FAQ**就直接念答案。
 
-**机制**：agent 问自然语言问题 → 上下文层混合匹配（关键词 + 语义，Universal Search 的 "hybrid keyword and semantic ranking"）选 top-k 上下文包（定义 + 指令 + 验证问答）→ agent 据此生成查询。**四因子排序**（Cortex Sense 官方自比 web search 排网页）：*relevance / authority / popularity / freshness*——「受治理 semantic view 的定义 authority 高于从少量查询推断的；出现在 500 条生产 SQL 的 join 模式重于出现 3 次的；上月更新的定义压过两年前的」。无 SV 覆盖的新表（两周前上线的定价方案）是经典边缘：纯 semantic view 路径的 agent 拒答，通用 agent 可能自信错，Sense 给推断口径答案。
+**机制**：agent 问自然语言问题 → Context Layer 混合匹配（关键词 + 语义，Universal Search 的 "hybrid keyword and semantic ranking"）选 top-k 上下文包（定义 + 指令 + 验证问答）→ agent 据此生成查询。**四因子排序**（Cortex Sense 官方自比 web search 排网页）：*relevance / authority / popularity / freshness*——「受治理 semantic view 的定义 authority 高于从少量查询推断的；出现在 500 条生产 SQL 的 join 模式重于出现 3 次的；上月更新的定义压过两年前的」。无 SV 覆盖的新表（两周前上线的定价方案）是经典边缘：纯 semantic view 路径的 agent 拒答，通用 agent 可能自信错，Sense 给推断口径答案。
 
 **原型实景**（A1 verified 短路 + C1 无覆盖 + C5 freshness，实际运行输出）：
 
@@ -138,16 +170,16 @@ customers.plan is not PRIMARY KEY/UNIQUE—— 无门则垃圾定义静默入库
 
 ## 8. 关键实证数字
 
-| 实验                                | 关键数字                                                  | 一句话读法                                                  |
-| ----------------------------------- | --------------------------------------------------------- | ----------------------------------------------------------- |
-| 无上下文基线（Cortex Sense 博客）   | ~25%（Snowflake 内测）；21%（Anthropic 独立复测）         | 两家独立测出同一结论：缺业务含义时 agent 就是瞎猜           |
-| CoCo + Cortex Sense（同上）         | 准确率 24.1% → 86.3%；成本 $1.76 → $0.59/query            | 上下文层把准确率抬 3.6 倍、成本砍 2/3（自家基准，见 §10-1） |
-| 覆盖率现实（同上）                  | 9,685 表 semantic view 覆盖 <5%                           | 纯手工金标准覆盖不动——隐式轨道的存在理由                    |
-| fan trap（工程博客）                | $100 → $300（join 复制后）                                | valid SQL ≠ valid analytics                                 |
-| average of averages（同上）         | 16.0 vs 4.8                                               | 无加权平均把大小团队同权                                    |
-| distinct 跨时间相加（Typedef 复现） | 玩具 4 vs 3；生产 477 vs 48                               | governed 定义在塌缩 grain 上照样错——治理 ≠ 验证             |
-| OSI → Apache Ossie                  | 17 创始伙伴 → 50+ 组织；100+ commits / 35 PRs             | 语义可携带已成行业共识，非单一厂商私产                      |
-| 本原型                              | 200 vs 440；7 vs 24；[3,1,2] vs [6,1,2]；108.33 vs 122.22 | 六机制在玩具域的逐点复现（§9）                              |
+| 实验                                 | 关键数字                                                  | 一句话读法                                                        |
+| ------------------------------------ | --------------------------------------------------------- | ----------------------------------------------------------------- |
+| 无 Context 基线（Cortex Sense 博客） | ~25%（Snowflake 内测）；21%（Anthropic 独立复测）         | 两家独立测出同一结论：缺业务含义时 agent 就是瞎猜                 |
+| CoCo + Cortex Sense（同上）          | 准确率 24.1% → 86.3%；成本 $1.76 → $0.59/query            | Context Layer 把准确率抬 3.6 倍、成本砍 2/3（自家基准，见 §10-1） |
+| 覆盖率现实（同上）                   | 9,685 表 semantic view 覆盖 <5%                           | 纯手工金标准覆盖不动——隐式轨道的存在理由                          |
+| fan trap（工程博客）                 | $100 → $300（join 复制后）                                | valid SQL ≠ valid analytics                                       |
+| average of averages（同上）          | 16.0 vs 4.8                                               | 无加权平均把大小团队同权                                          |
+| distinct 跨时间相加（Typedef 复现）  | 玩具 4 vs 3；生产 477 vs 48                               | governed 定义在塌缩 grain 上照样错——治理 ≠ 验证                   |
+| OSI → Apache Ossie                   | 17 创始伙伴 → 50+ 组织；100+ commits / 35 PRs             | 语义可携带已成行业共识，非单一厂商私产                            |
+| 本原型                               | 200 vs 440；7 vs 24；[3,1,2] vs [6,1,2]；108.33 vs 122.22 | 六机制在玩具域的逐点复现（§9）                                    |
 
 ## 9. 动手实验室：把机制亲手拆坏七次
 
