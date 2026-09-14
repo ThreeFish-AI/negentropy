@@ -7,3 +7,9 @@ packages: []
 # 与 `pnpm approve-builds esbuild --yes` 实际写入的形态逐字一致——勿改回旧键名。
 allowBuilds:
   esbuild: true
+# 传递依赖的安全补丁地板（本工程无直接依赖漂移，故只落在 override 层）。
+# GHSA-2883-xcg3-v3hh (high)：js-yaml < 4.3.2 的 maxTotalMergeKeys 对空 merge 源不限流
+# 致 CPU 耗尽。本工程经 cosmiconfig@8.3.6 传递引入，父包声明 ^4.1.0；限 <5 避免 major
+# 跳跃——无上界时 pnpm 会解到 5.x。与仓库根 pnpm-workspace.yaml 同口径。
+overrides:
+  js-yaml: '>=4.3.2 <5.0.0'
