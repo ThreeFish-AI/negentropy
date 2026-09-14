@@ -63,35 +63,53 @@ description: "「嵌入治理引擎、查询时强制执行」的 Context Layer 
 >
 > 用官方的话讲：*Without context, an agent guesses. With context built natively into the platform, an agent acts. With context that is also governed natively, an agent can be trusted.*
 
+## 2. M1 · 五段式 Context 对象模型：把“含义“便利贴装订成册
 
-## 2. M1 · Context 对象模型：把便利贴装订成带版本号的手册
+> [!TIP] **类比**
+>  
+> 初级 Data Agent 系统所面对的 Context 就像钉满墙面的便利贴，上面记录了散落的 SQL/prompt 硬编码等；而 Context Layer 负责为这些便利贴标记 Owner、版本、权限属性等，装订成一本规章制度手册。手册里甚至夹着「agent 使用说明」（AI_SQL_GENERATION）和「前辈验证过的 FAQ」（AI_VERIFIED_QUERIES）等。
 
-**类比**：墙上钉满便利贴（散落的 SQL/prompt 硬编码）vs 装订成册、有 owner、有版本、有权限的规章制度手册。手册里甚至夹着「agent 使用说明」（AI_SQL_GENERATION）和「前辈验证过的 FAQ」（AI_VERIFIED_QUERIES）。
-
-**机制**：`CREATE SEMANTIC VIEW` 五段式声明——TABLES（带 PRIMARY KEY/UNIQUE 约束）→ RELATIONSHIPS（声明式 join，FK 必须指向键列）→ FACTS（行级量，可 `PRIVATE`）→ DIMENSIONS（切片维度，可挂 Cortex Search）→ METRICS（命名聚合）。语义视图**被官方明确定义为元数据**（"Semantic views are considered metadata"），与数据同库同治理。对象字段里藏着五个易被低估的设计：
-
-1. **`WITH SYNONYMS`**——agent 召回所需的别名本身就是受治理上下文（「毛收入/营收/sales」写进定义）；
-2. **`AI_VERIFIED_QUERIES`**——人验证过的问答对成为一等资产：`QUESTION + SQL + VERIFIED_AT + VERIFIED_BY (purpose=contact)`，**答案样例带审计溯源**；
-3. **`AI_SQL_GENERATION / AI_QUESTION_CATEGORIZATION`**——给 agent 的提示词内嵌在定义里，随定义分发、随定义治理；
-4. **`PRIVATE | PUBLIC`**——事实与指标级可见性；
-5. **`NON ADDITIVE BY (dims)`**——半可加性声明（§3）。
-
-四层上下文分类法（官方 FAQ）：**Structural**（有什么、怎么连）/ **Operational**（查询、新鲜度、性能）/ **Semantic**（定义、指标、本体）/ **Behavioral**（热度、用法模式）——这四层就是 Collect→Enrich→Activate 流水线上流转的原料。
+> [!NOTE] **机制**
+>
+> 五段式声明：TABLES（带 PRIMARY KEY/UNIQUE 约束）、RELATIONSHIPS（声明式 join，FK 必须指向键列）、FACTS（行级量，可 `PRIVATE`）、DIMENSIONS（切片维度，可挂 Cortex Search）、METRICS（命名聚合）。
+>
+> 语义视图（`SEMANTIC VIEW`）：**官方明确定义为元数据**（"Semantic views are considered metadata"），与数据同库同治理。
+>
+> 对象字段里藏着的五个设计：
+>
+> 1. **`WITH SYNONYMS`**：Agent 召回所需的别名本身就是受治理上下文（「毛收入/营收/sales」写进定义）；
+> 2. **`AI_VERIFIED_QUERIES`**：人验证过的问答对成为一等资产：`QUESTION + SQL + VERIFIED_AT + VERIFIED_BY (purpose=contact)`，**答案样例带审计溯源**；
+> 3. **`AI_SQL_GENERATION / AI_QUESTION_CATEGORIZATION`**：给 Agent 的提示词内嵌在定义里，随定义分发、随定义治理；
+> 4. **`PRIVATE | PUBLIC`**：事实与指标级可见性；
+> 5. **`NON ADDITIVE BY (dims)`**：半可加性声明（§3）。
+>
+> 四层 Context（官方 FAQ）：
+>
+> - **Structural**：有什么、怎么连
+> - **Operational**：查询、新鲜度、性能
+> - **Semantic**：定义、指标、本体
+> - **Behavioral**：热度、用法模式
+>
+> 这四层 Context 是在 Collect → Enrich → Activate 三段式流水线上流转的原料。
 
 ![Horizon Context 三段流水线：三路元数据并列汇入统一目录，显式/隐式双轨富化（同名冲突浮出人工裁决），经四因子混合排序后供给 CoCo、BI 工具与 MCP 外部 Agent。](../../assets/architecture/cognitive-context/horizon-context--collect-enrich-activate-dark.png)
 
 > 图源（可 diff 文本）：[`horizon-context--collect-enrich-activate.mmd`](../../assets/mermaid/cognitive-context/horizon-context--collect-enrich-activate.mmd) · 交互版（下载到本地打开）：[`horizon-context--collect-enrich-activate.html`](../../assets/architecture/cognitive-context/horizon-context--collect-enrich-activate.html)
 
-**原型实景**——结构校验门拦下「指向非键列的 relationship」（D6 实验，实际运行输出）：
-
-```text
-[PASS] D6: 拆结构校验（relationship 指向非键列）→ relationship bad: referenced column
-customers.plan is not PRIMARY KEY/UNIQUE—— 无门则垃圾定义静默入库（行数失控的注册期引信）
-```
+> [!IMPORTANT] **原型实践**
+>
+> 结构校验门拦下「指向非键列的 relationship」（D6 实验，实际运行输出）：
+>
+> ```text
+> [PASS] D6: 拆结构校验（relationship 指向非键列）→ relationship bad: referenced column
+> customers.plan is not PRIMARY KEY/UNIQUE—— 无门则垃圾定义静默入库（行数失控的注册期引信）
+> ```
 
 ## 3. M2 · 查询时语义正确性：菜谱写「临出锅再勾芡」
 
-**类比**：指标是**命名聚合**（一段算式）不是存储值——每次查询按你要的粒度现场重算。菜谱写「临出锅再勾芡」，按菜谱做不会错；但淀粉若已被上游兑成芡水倒进来（dbt 已把日活预聚合成日汇总），菜谱救不了——**这条规律只保「按你给的 grain 算对」，不保「grain 本身对」**。
+> [!TIP] **类比**
+>
+> 指标是**命名聚合**（一段算式）不是存储值——每次查询按你要的粒度现场重算。菜谱写「临出锅再勾芡」，按菜谱做不会错；但淀粉若已被上游兑成芡水倒进来（dbt 已把日活预聚合成日汇总），菜谱救不了——**这条规律只保「按你给的 grain 算对」，不保「grain 本身对」**。
 
 **机制**：四个聚合保障 + 一个消歧——①**agg-before-join**：每个指标先各自聚合到目标粒度再合并（防 fan trap：join 复制行把 $100 算成 $300）；②**distinct 聚合跨 join 安全**：`COUNT(DISTINCT)` 在复制行上数的是集合不是行；③**derived 先聚后除**：`DIV0(total_revenue, total_cost)` 分子分母各自聚合，防 average of averages；④**NON ADDITIVE BY**：按声明维度排序取**末快照**而非求和（余额可以跨账户相加、不能跨天相加）；⑤**USING (relationship)**：多 join 路径时显式消歧。官方工程博客用三个经典陷阱背书：fan trap（Sam Waters 案 $100→$300）、chasm trap（共享维度的笛卡尔爆炸）、average of averages（16.0 vs 真实 4.8）——并给出关键判断：「*valid SQL, but not valid analytics*」，LLM 在 TPC-DS 上同样踩坑。
 
