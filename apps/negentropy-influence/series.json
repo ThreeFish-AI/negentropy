@@ -221,7 +221,7 @@
             "accessed": "2026-09-12"
           },
           "status": "draft-review",
-          "statusNote": "v2 终渲待审（2026-09-14 改版）：14:14 = 854.8s @30fps（183 句）；改版要点=archify 工程图回放×2（declaration-execution/collect-enrich-activate）+ lab 代码走廊×4（五段式/分岔/RBAC/log1p）+ B1/D6/C2 实测原文上屏；七幕×四项体检 FAIL 0 · 渐黑 PASS · WCAG 过；71 断言对账全修复（口径 4 处/白名单 3 处/目录层实景拍）；final 46.5MB + captions 齐",
+          "statusNote": "v2 终渲待审（2026-09-14 改版）：14:14 = 854.8s @30fps（183 句）；2026-09-14 终版微调：结尾句换「专注 Agent 技术演进」+ 全片字幕句尾「。」剥除（渲染层/导出层，音频零重配——仅尾句 24s 增量）；重渲 14:15 = 855.1s，七幕 FAIL 0 · 渐黑 PASS · WCAG 过 · 尾帧目检（新句上屏无尾句号）",
           "voice": "sunny-steady + me-bright.wav"
         },
         {
@@ -244,7 +244,7 @@
             "accessed": "2026-09-12"
           },
           "status": "draft-review",
-          "statusNote": "v2 终渲待审（2026-09-14 改版）：14:18 = 858.9s @30fps（177 句）；改版要点=archify 工程图回放×2（blueprint-architecture/object-lifecycle）+ 代码走廊×3（同义词/eval 三处/log1p）+ MCP 实录终端（握手/四工具/目录账/三数）+ T5T6T8 原文；七幕×四项体检 FAIL 0 · 渐黑 PASS · WCAG 过；final 43.5MB + captions 齐",
+          "statusNote": "v2 终渲待审（2026-09-14 改版）：14:18 = 858.9s @30fps（177 句）；2026-09-14 终版微调：同款结尾句与字幕剥句号（仅尾句 19s 增量）；重渲 14:19 = 859.0s，七幕 FAIL 0 · 渐黑 PASS · WCAG 过",
           "voice": "sunny-steady + me-bright.wav"
         }
       ]

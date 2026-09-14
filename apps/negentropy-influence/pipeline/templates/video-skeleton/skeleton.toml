@@ -132,6 +132,55 @@ path = "video/remotion.config.ts"
 fingerprint = "a37fa7bc90c3"
 reason = "A 轨 @remotion/three 无头渲染强制要求 Chromium OpenGL 后端 = angle（一行新增 setChromiumOpenGlRenderer）。其余集跟进该行回模板收敛后撤销本条"
 
+
+[[drift]]
+episode = "experience-era-agents-video"
+path = "video/src/components/Subtitle.tsx"
+fingerprint = "61df1a5e08e2"
+reason = "字幕风格分代（2026-09-14）：模板已升级为渲染层剥除句尾「。」；本集为已发布成片，源码保持发布态。撤销条件=本集下次重渲时同步模板新 Subtitle"
+
+[[drift]]
+episode = "self-improving-agents-video"
+path = "video/src/components/Subtitle.tsx"
+fingerprint = "61df1a5e08e2"
+reason = "字幕风格分代（2026-09-14）：模板已升级为渲染层剥除句尾「。」；本集为已发布成片，源码保持发布态。撤销条件=本集下次重渲时同步模板新 Subtitle"
+
+[[drift]]
+episode = "self-evolving-coding-agents-video"
+path = "video/src/components/Subtitle.tsx"
+fingerprint = "61df1a5e08e2"
+reason = "字幕风格分代（2026-09-14）：模板已升级为渲染层剥除句尾「。」；本集为已发布成片，源码保持发布态。撤销条件=本集下次重渲时同步模板新 Subtitle"
+
+[[drift]]
+episode = "claude-code-explained-video"
+path = "video/src/components/Subtitle.tsx"
+fingerprint = "61df1a5e08e2"
+reason = "字幕风格分代（2026-09-14）：模板已升级为渲染层剥除句尾「。」；本集为已发布成片，源码保持发布态。撤销条件=本集下次重渲时同步模板新 Subtitle"
+
+[[drift]]
+episode = "claude-code-planning-video"
+path = "video/src/components/Subtitle.tsx"
+fingerprint = "61df1a5e08e2"
+reason = "字幕风格分代（2026-09-14）：模板已升级为渲染层剥除句尾「。」；本集为已发布成片，源码保持发布态。撤销条件=本集下次重渲时同步模板新 Subtitle"
+
+[[drift]]
+episode = "claude-code-memory-video"
+path = "video/src/components/Subtitle.tsx"
+fingerprint = "61df1a5e08e2"
+reason = "字幕风格分代（2026-09-14）：模板已升级为渲染层剥除句尾「。」；本集为已发布成片，源码保持发布态。撤销条件=本集下次重渲时同步模板新 Subtitle"
+
+[[drift]]
+episode = "claude-code-concurrency-video"
+path = "video/src/components/Subtitle.tsx"
+fingerprint = "61df1a5e08e2"
+reason = "字幕风格分代（2026-09-14）：模板已升级为渲染层剥除句尾「。」；本集为已发布成片，源码保持发布态。撤销条件=本集下次重渲时同步模板新 Subtitle"
+
+[[drift]]
+episode = "claude-code-multiagent-video"
+path = "video/src/components/Subtitle.tsx"
+fingerprint = "61df1a5e08e2"
+reason = "字幕风格分代（2026-09-14）：模板已升级为渲染层剥除句尾「。」；本集为已发布成片，源码保持发布态。撤销条件=本集下次重渲时同步模板新 Subtitle"
+
 # 已撤销（2026-08）：`Main.tsx` 的两条登记。建门时那两集的 SceneFade 块落后于模板
 # 一处注释扩写与换行调整，当时刻意只登记不收敛（收敛要动两个**已发布**集，属独立
 # 决策）。现已对齐到模板并删除登记 —— 逃逸口用完即收，否则登记表会单调增长成
