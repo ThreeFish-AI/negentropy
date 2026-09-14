@@ -4,9 +4,6 @@ title: "Snowflake Horizon Context 精读笔记"
 description: "「嵌入治理引擎、查询时强制执行」的 Context Layer 六机制精读：五段式对象模型 / 查询时聚合安全 / 引擎级双层 RBAC / 显式隐式双轨富化与冲突裁决 / 四因子信号排序 / OSI+MCP 互操作，含实证数字、批判性边界与随笔记入库的 M1–M6 最小原型"
 ---
 
-# Snowflake Horizon Context 精读笔记
-
-
 > [!NOTE]
 >
 > **核心精读范围**：
@@ -33,7 +30,7 @@ description: "「嵌入治理引擎、查询时强制执行」的 Context Layer 
 
 企业底层数据库躺着的，往往是密码般的物理列名（如毛收入叫 `amt_ttl_pre_dsc`）；真实业务指标（如净利润）的计算口径也散落在不同报表各自的 `CASE WHEN` 逻辑里。各业务域子系统自说自话，谁也不懂谁。
 
-据 Snowflake 实测，**让缺乏 Context Layer 治理的初级 Data Agent 直接回答企业数据问题，准确率仅有 ~25%（Snowflake 内测）/ 21%（Anthropic 独立复测）**。这并非初级 Data Agent 所使用的模型笨，而是缺了 Context Layer 对数据含义的有效治理。具体体现为这三个不可自愈的系统性病灶：
+据 Snowflake 实测，**让缺乏 Context Layer 治理的初级 Data Agent 直接回答企业数据问题，准确率仅有 ~25%（Snowflake 内测）/ 21%（Anthropic 独立复测）**。这并非初级 Data Agent 所使用的模型笨，而是缺了 Context Layer 对语义的有效治理。具体体现为这三个不可自愈的系统性病灶：
 
 1. **口径打架（含义散落）**：指标口径写在各自的散落业务里，同一个业务指标问两个子系统，能得出两套不同数字；
 2. **定义漂移（脱节失效）**：外挂语义层独立于 Context Layer，底层数据表的变更会令语义立即脱节，Agent 会按过期的语义手册瞎猜；
@@ -45,10 +42,10 @@ description: "「嵌入治理引擎、查询时强制执行」的 Context Layer 
 
 | 设计规格                 | 底层机制                   | 大白话                                                                |
 | :----------------------- | :------------------------- | :-------------------------------------------------------------------- |
-| **定义一次、处处生效**   | §2 五段式 Context 对象模型 | 权威术语手册只印一份，人、报表与 Agent 全部照章引用，不再各自抄写抄错 |
-| **动态现算、保真不走样** | §3 查询时语义正确性        | 按每次查询的具体维度现场精准烹饪，绝不拿预先拼凑的静态报表将就应付    |
-| **原生治理、杜绝穿透**   | §4 治理内嵌引擎            | 门禁直接装在机房承重墙上，无论谁走哪条路查数据，安全锁底层强制生效    |
-| **行为挖掘、覆盖长尾**   | §5 富化与自纠              | 手册没写全的暗规则，系统通过日常观察老分析师的用数习惯自动补全自愈    |
+| **定义一次、处处生效**   | M1 五段式 Context 对象模型 | 权威术语手册只印一份，人、报表与 Agent 全部照章引用，不再各自抄写抄错 |
+| **动态现算、保真不走样** | M2 查询时语义正确性        | 发智能公式按需现算，绝不拿预先拼凑的二手死报表将就应付                |
+| **原生治理、杜绝穿透**   | M3 引擎原生治理            | 门禁直接装在机房承重墙上，无论谁走哪条路查数据，安全锁底层强制生效    |
+| **行为挖掘、覆盖长尾**   | M4 富化与自纠              | 手册没写全的暗规则，系统通过日常观察老分析师的用数习惯自动补全自愈    |
 | **标准开放、随处插拔**   | §7 开放互操作              | 入职包采用通用插头与开放格式，任何外部智能体和工具拿来就能立刻用      |
 
 > [!TIP]
@@ -63,7 +60,7 @@ description: "「嵌入治理引擎、查询时强制执行」的 Context Layer 
 >
 > 用官方的话讲：*Without context, an agent guesses. With context built natively into the platform, an agent acts. With context that is also governed natively, an agent can be trusted.*
 
-## 2. M1 · 五段式 Context 对象模型：把“含义“便利贴装订成册
+## 2. M1 · 五段式 Context 对象模型：把语义便利贴装订成册
 
 > [!TIP] **类比**
 >  
@@ -105,90 +102,172 @@ description: "「嵌入治理引擎、查询时强制执行」的 Context Layer 
 > customers.plan is not PRIMARY KEY/UNIQUE—— 无门则垃圾定义静默入库（行数失控的注册期引信）
 > ```
 
-## 3. M2 · 查询时语义正确性：菜谱写「临出锅再勾芡」
+## 3. M2 · 查询时语义正确性：发「防错公式」不发「死报表」，保现场推导不保原料残缺
 
 > [!TIP] **类比**
 >
-> 指标是**命名聚合**（一段算式）不是存储值——每次查询按你要的粒度现场重算。菜谱写「临出锅再勾芡」，按菜谱做不会错；但淀粉若已被上游兑成芡水倒进来（dbt 已把日活预聚合成日汇总），菜谱救不了——**这条规律只保「按你给的 grain 算对」，不保「grain 本身对」**。
+> 指标在系统里不是预先算好的存储值（死报表），而是一套**现场按需推导的智能算式（命名聚合）**。无论分析师或 Agent 想要哪个维度的切片，系统都拿着底层原始明细、按当下的统计需求现场套用公式重算。
+>
+> 就像入职包里给实习生配发了一台**「内置财务防错逻辑的智能计算器」**：无论老板要查哪条业务线，实习生只要套用标准公式现场算，绝不会算错；但若上游交接工作时早已把原始凭证碎掉、只扔来一张粗暴汇总好的二手旧账（如 dbt 已把日活预聚合成日汇总），计算器再聪明也逆向推导不出明细流水。
+>
+> **这套机制确保「只要给出的原始单据与查询粒度合理，系统底层自动算对」，但无法拯救「上游预处理过早丢失明细的残缺数据」**。
 
-**机制**：四个聚合保障 + 一个消歧——①**agg-before-join**：每个指标先各自聚合到目标粒度再合并（防 fan trap：join 复制行把 $100 算成 $300）；②**distinct 聚合跨 join 安全**：`COUNT(DISTINCT)` 在复制行上数的是集合不是行；③**derived 先聚后除**：`DIV0(total_revenue, total_cost)` 分子分母各自聚合，防 average of averages；④**NON ADDITIVE BY**：按声明维度排序取**末快照**而非求和（余额可以跨账户相加、不能跨天相加）；⑤**USING (relationship)**：多 join 路径时显式消歧。官方工程博客用三个经典陷阱背书：fan trap（Sam Waters 案 $100→$300）、chasm trap（共享维度的笛卡尔爆炸）、average of averages（16.0 vs 真实 4.8）——并给出关键判断：「*valid SQL, but not valid analytics*」，LLM 在 TPC-DS 上同样踩坑。
+> [!NOTE] **机制**
+>
+> 为什么让初学者或 LLM 自己写关联查询（JOIN）极易翻车？因为数据分析领域存在一个隐蔽杀手：**“语法完全合法，但业务答案全错”（*valid SQL, but not valid analytics*）**。大模型在工业级基准测试（如 TPC-DS）中也频频踩坑。为此，Horizon Context 在底层内嵌了“四大聚合保障 + 一个消歧路径”，彻底封堵常见算错陷阱：
+>
+> 1. **先聚后连（agg-before-join）**：防“金额被动翻倍”。两表关联时，各自指标先在本地汇总再做拼接；防止一笔 $100 的订单因关联了 3 条送货记录而被机械复制放大成 $300（行业经典的 **fan trap / 扇形陷阱**，如 Sam Waters 案）；
+> 2. **按集合去重（distinct 聚合跨 join 安全）**：防“重复虚增人数”。`COUNT(DISTINCT)` 跨表关联时，严格按去重集合而非物理行数统计，即使底层因连接膨胀出多行，活跃客户等去重指标依然准确；
+> 3. **先合总数再相除（derived 先聚后除）**：防“平均数的平均数”。计算客单价或利润率等派生指标时，强制先汇总总分子与总分母再做除法 `DIV0(total_revenue, total_cost)`，防止各部门平均值直接相加求二次平均产生荒谬失真（如真实平均为 4.8，朴素均值却算成 16.0 的 **average of averages 陷阱**）；
+> 4. **半可加性末快照（NON ADDITIVE BY）**：防“账户余额跨天累加”。银行账户余额可以跨部门相加，但绝不能把 30 天的余额当流水相加；系统识别半可加指标，按时间序列自动取**最新期末快照**而非机械求和；
+> 5. **显式指定关联路径（USING relationship）**：防“笛卡尔积爆炸”。当两张表之间存在多条连接通道（如订单表同时包含“发货地址”与“收货地址”）时，显式指定唯一关系路径，消除歧义，避开两眼一抹黑的 **chasm trap（深渊陷阱）**。
 
 ![语义视图声明相与执行相：五段式声明经结构校验门（非法定义注册期被拒），通过后进入执行相——执行层 RBAC 拒绝 PRIVATE 资产，策略 A 零复制聚合后按查询 grain 重算。](../../assets/architecture/cognitive-context/horizon-context--declaration-execution-dark.png)
 
 > 图源（可 diff 文本）：[`horizon-context--declaration-execution.mmd`](../../assets/mermaid/cognitive-context/horizon-context--declaration-execution.mmd) · 交互版（下载到本地打开）：[`horizon-context--declaration-execution.html`](../../assets/architecture/cognitive-context/horizon-context--declaration-execution.html)
 
-**原型实景**（B 场景实际运行输出，对照值均为引擎正确路径）：
+> [!IMPORTANT] **原型实践**
+>
+> B 场景 5 组陷阱破坏性实验实际运行输出（对照值均为引擎正确路径）：
+>
+> ```text
+> [PASS] B1: fan trap: 引擎 Jan=200 vs 朴素 Jan=440（o1 的 3 条事件把 $100 变 $300）
+> [PASS] B2: average of averages: 先聚后除 108.33 vs 月均值的均值 122.22
+> [PASS] B3: 拆 distinct: 退化为数事件行 [6,1,2]（对照 [3,1,2]）
+> [PASS] B4: NON ADDITIVE: 末快照 [5,6,7] vs 求和 [11,6,7]；全期 7 vs 24
+> [PASS] A3: distinct 跨 join 安全: 正常 [3,1,2]；fan-join 下 SUM=440 而 distinct 仍 [3,1,2]；月格相加 6 ≠ 总体重算 5
+> ```
 
-```text
-[PASS] B1: fan trap: 引擎 Jan=200 vs 朴素 Jan=440（o1 的 3 条事件把 $100 变 $300）
-[PASS] B2: average of averages: 先聚后除 108.33 vs 月均值的均值 122.22
-[PASS] B3: 拆 distinct: 退化为数事件行 [6,1,2]（对照 [3,1,2]）
-[PASS] B4: NON ADDITIVE: 末快照 [5,6,7] vs 求和 [11,6,7]；全期 7 vs 24
-[PASS] A3: distinct 跨 join 安全: 正常 [3,1,2]；fan-join 下 SUM=440 而 distinct 仍 [3,1,2]；月格相加 6 ≠ 总体重算 5
-```
+## 4. M3 · 引擎原生治理：门禁焊在大楼承重墙，杜绝任何绕道直查
 
-## 4. M3 · 治理内嵌引擎：门禁装在楼里，不是贴在墙上的告示
+> [!TIP] **类比**
+>
+> 传统的第三方外挂治理，就像在公司大堂摆了一块“闲人免进”的塑料告示牌，或者雇了个外包保安在门口登记。表面看似合规，但只要有人从后门直接溜进地下机房与档案室（直查物理底表），里面的商业机密就能被看个精光。
+>
+> Horizon Context 则是直接把**生物识别门禁焊进了机房承重墙**——不管是老员工、BI 分析软件，还是 AI 实习生，任何人只要调取数据，都必须在数据库引擎底层刷卡验身，没有任何“后门”可抄。
 
-**类比**：独立监理公司（第三方 Context Layer）到处巡查提醒，但施工队可以半夜翻墙进场（直查物理表）；Horizon 把门禁装进大楼本身——**任何调用方（人、BI、agent）进门都刷卡**。
+> [!NOTE] **机制**
+>
+> 官方给出的核心准则是：**治理策略直接在查询引擎层执行，而不是在应用层做样子**（*Governance policies execute at the query engine layer, not the application layer. They apply automatically to every caller: human analyst, BI tool, or AI agent. There is no separate governance configuration for AI workloads.*）。系统对人与 AI 一视同仁，不设立孤立脆弱的“AI 专用防线”，并在底层铸造了三重刚性约束：
+>
+> 1. **权限同源（统一 RBAC 与私密隔离）**：AI Agent 与真实员工共享同一套权限体系；被标记为 `PRIVATE` 的敏感指标在底层对无权者直接不可见、不可查；
+> 2. **出口安检（AI Guardrails 实时脱敏）**：在数据离开引擎的最终出口处，自动检测并屏蔽个人身份证、手机号等隐私信息（PII / PHI）；权限与安全标签随数据产品一路携带（即使分享到外部 Marketplace 也不会丢失策略）；
+> 3. **底层兜底不可绕过（跨引擎一致执行）**：无论是本地查询还是通过开放格式（如 Iceberg REST 兼容引擎）调用，所有安全策略均在引擎深处刚性生效。官方一针见血指出：第三方外挂层根本拦不住直接查物理表，而内嵌于引擎的治理谁也绕不过去（*cannot be circumvented*，具体性能边界见 §10 第 3 条）。
 
-**机制**：官方文档原话——"*Governance policies execute at the query engine layer, not the application layer. They apply automatically to every caller: human analyst, BI tool, or AI agent. There is no separate governance configuration for AI workloads.*" agent 与人同一套 RBAC；PRIVATE 指标不可查询；AI Guardrails 在**出口**检测/脱敏/拦截 PII 与 PHI；标签与权限随数据产品携带（分享到 Marketplace 的数据集自带策略）；跨引擎（Iceberg REST 兼容引擎）策略一致执行。官方 FAQ 对第三方层的判词：「*Governance can be bypassed by querying tables directly. Horizon Context enforces security and business logic at the engine level — it cannot be circumvented.*」（注意边界：见 §10 第 3 条。）
+> [!IMPORTANT] **原型实践**
+>
+> 实际运行输出的双层防御自证（C2 破坏性实验）：
+>
+> ```text
+> [PASS] C2: RBAC 双层: 检索层对 intern 过滤 plan 建议（["dim_filtered (PRIVATE): ['plan']"]，
+> 降级总量 {(): 650}）；直闯执行层 → AccessDenied（引擎是最后防线）
+> ```
 
-**原型实景**——双层防线（C2，实际运行输出）：检索层把 PRIVATE 维度建议过滤掉只是第一层；**绕过检索直接闯执行层，照样被拒**：
+## 5. M4 · 富化与自纠：手册写不全看习惯补，两轨冲突绝不盲猜
 
-```text
-[PASS] C2: RBAC 双层: 检索层对 intern 过滤 plan 建议（["dim_filtered (PRIVATE): ['plan']"]，
-降级总量 {(): 650}）；直闯执行层 → AccessDenied（引擎是最后防线）
-```
+> [!TIP] **类比**
+>
+> 入职包里的官方手册（手工 Semantic Views）就像专家定期编撰的《百科全书》：权威严谨，但耗时耗力，在庞大企业里往往只能覆盖不到 5% 的核心业务，绝大多数长尾提问都在手册外。
+>
+> 真正的老司机必须像持续演化的 Wikipedia 一样走向群智进化。系统不仅读死手册，更会从老分析师们每天提的查询历史、常用报表里“观察习惯、偷师学艺”（行为挖掘），自动补齐剩下的 95%。
+>
+> 但这套偷师机制有一条**绝不可破的纪律底线**：当发现专家手册与民间习惯口径打架时，系统**绝对不准自作主张瞎蒙一个**，必须老老实实把冲突摆上台面交由人工裁定。
 
-## 5. M4 · 富化与自纠：encyclopedia 到 Wikipedia 的那一跳
+> [!NOTE] **机制**
+>
+> Snowflake 内部实测揭示了一个残酷现实：全司 9,685 张数据表中，人工构建的语义视图覆盖率**不足 5%**——“手册内的问题答得极好，但大多数日常提问都落在手册外的荒原”。为此，Cortex Sense（2026-07 私有预览）从日常查询历史、转换工具模型和 BI 指标中自动拼装隐式理解。
+>
+> 为了彻底防范“自动挖掘会导致系统自信满满地胡说八道（confidently wrong）”，系统构筑了三层防线：
+>
+> 1. **反馈自纠环（Eval Loop）**：接入金标准问答集、用户点赞/点踩反馈与系统自检薄弱区三路输入，一旦识别出理解错配即自动修正；
+> 2. **冲突强制浮出（Conflict Escalation）**：当挖掘出互相矛盾的指标口径（如不同团队对活跃用户的定义冲突）时，系统主动拒答，并向数据团队弹出冲突卡片，由人工自然语言指认归属。官方强调：*这种敢于承认不知道的诚实底线，彻底拉开了它与那些“搜到什么就硬答什么”的普通 RAG 之间的本质差距*；
+> 3. **信号分层排序**：赋予受治理金标准更高的权威权重（详见 §6）。
+>
+> **实证成效**：在“口径过时”与“未人工覆盖”两个长尾地带，自动化富化的准确率反超纯人工标注 10 个百分点；整套上下文底座的搭建耗时从数月缩短至单日内。
 
-**类比**：专家定期出版的百科全书（手工 semantic view，永远滞后、覆盖 <5%）→ 持续演化的 Wikipedia（从使用痕迹里长出理解）。Snowflake 官方总类比。关键在于**两轨冲突时系统不许自己挑**——必须端给人裁决。
+> [!IMPORTANT] **原型实践**
+>
+> C3 冲突隔离拦截与 C4 自纠环实际运行输出：
+>
+> ```text
+> [PASS] C3: 冲突浮出: CONFLICT 卡片 [('governed', 'count_distinct(orders.customer_id)'),
+> ('inferred', 'count(events.id) by total')]（无数值）；agent 拒答；compile → ConflictingDefinitionError
+> [PASS] C3b: 人工裁决（governed 胜）后恢复: [3, 1, 2]
+> [PASS] C4: 自纠环: 错配前 top1=active_users（sum(dau)=[11,6,7] 错）→ 补 synonym + 调信号
+> → top1=active_customers（count_distinct=[3,1,2] 对）
+> ```
 
-**机制**：Snowflake 内部实测，9,685 张表 semantic view 覆盖**不到 5%**——「手册内的问题答得好，但大多数问题落在手册外」。Cortex Sense（2026-07 私预）从查询历史、转换工具模型、BI 指标里自动拼装「与 semantic view 同类的理解」，并用三层机制对抗「自动挖掘会 confidently wrong」的合理担忧：①**eval 自纠环**（金标准问答集 / 用户反馈 / 系统自检薄弱区三路输入，错配即修正理解）；②**冲突浮出**（挖到几十个互相矛盾的 DAU 定义时，不自动选，浮出给数据团队用自然语言指认「哪个口径归哪个团队」——官方自评「*forcing this level of honesty separates it from RAG that simply retrieve whatever is found*」）；③**信号排序**（§6）。战绩：在定义过时与未覆盖两个区域反超人工 10 个百分点；整站搭建从数月缩到一天。
+## 6. M5 · 检索激活与信号排序：懂分寸的智能前台，按需精选绝不填鸭
 
-**原型实景**（C3 冲突隔离 + C4 自纠环，实际运行输出）：
+> [!TIP] **类比**
+>
+> 面对浩瀚的公司规章手册与海量的历史用数记录，前台向导绝不会把整栋档案库一股脑全塞给实习生——那不仅会把新人撑爆（上下文窗口超载、产生严重的混淆幻觉），还会浪费极高的算力成本。
+>
+> 这位经验老到的前台极有分寸：当你提问时，他会飞速综合「跟问题多贴近、谁盖章更权威、平时多少人用、最近有没有更新」四个维度，只撕下最精准的两页递给你；更聪明的是，如果发现这道题前辈早已核准过标准答案（带署名的权威 FAQ），前台直接“抄作业”原样报出，连推导计算都免了。
 
-```text
-[PASS] C3: 冲突浮出: CONFLICT 卡片 [('governed', 'count_distinct(orders.customer_id)'),
-('inferred', 'count(events.id) by total')]（无数值）；agent 拒答；compile → ConflictingDefinitionError
-[PASS] C3b: 人工裁决（governed 胜）后恢复: [3, 1, 2]
-[PASS] C4: 自纠环: 错配前 top1=active_users（sum(dau)=[11,6,7] 错）→ 补 synonym + 调信号
-→ top1=active_customers（count_distinct=[3,1,2] 对）
-```
+> [!NOTE] **机制**
+>
+> 当 Agent 提出自然语言数据问题时，系统采用 **“关键词 + 语义向量”混合匹配**（Universal Search 混合排名），在海量元数据中精选出 top-k 的上下文知识包（包含字段定义、分析指令与验证问答），据此激活 Agent 生成精准 SQL。
+>
+> 为了在显式手册与隐式行为的汪洋大海中挑出真金，Cortex Sense 引入了类似顶级网页检索的 **四因子信号排序体系**：
+>
+> 1. **相关性（Relevance）**：字面关键词与深层业务意图双重高契合；
+> 2. **权威度（Authority）**：数据团队人工治理的正式语义视图，权重压倒性高于从零星查询推断出的民间口径；
+> 3. **流行度（Popularity）**：在 500 条生产 SQL 中千锤百炼的高频关联模式，权重远重于只出现过 3 次的偶发写法；
+> 4. **新鲜度（Freshness）**：本月新修订的最新指标定义，果断压制两年前早已失效的历史旧逻辑（Legacy）。
+>
+> **关键边缘与抄作业机制**：
+> - **盖戳短路（Verified Query）**：凡命中带审计署名与日期的人工验证问答对，系统直接短路返回已知答案，实现 100% 审计可信与毫秒级响应；
+> - **新表冷启动兜底**：面对两周前刚上线、尚无人工语义视图覆盖的新表，纯 Semantic View 路径的 Agent 会直接“拒答”，通用 Agent 会“自信答错”，而本机制能以推断口径结合风险告警（`no_governed_coverage`）平稳破局。
 
-## 6. M5 + M6 · 检索激活与信号排序：前台问询处的排序哲学
+> [!IMPORTANT] **原型实践**
+>
+> A1 验证问答短路重放、C1 无手工覆盖推断胜出与 C5 新鲜度隔离实际运行输出：
+>
+> ```text
+> [PASS] A1: verified 短路重放 + 溯源: verified_query {'2026-01': 200, '2026-02': 150,
+> '2026-03': 300} by ( data_governance = data-team@acme.com )
+> [PASS] A1b: 引擎重算 == 验证答案（对账一致）: [200, 150, 300]
+> [PASS] C1: 新表无 SV: inferred 条目胜出 + 警告 ['no_governed_coverage']；覆盖 4/5 表
+> [PASS] C5: freshness 隔离: 'sales' → governed revenue(fresh=0.96) 压过 legacy(0.00):
+> [('revenue', 'governed', 0.854), ('revenue', 'legacy', 0.826)]
+> ```
 
-**类比**：前台不把整本手册塞给你，按「跟问题多相关、多权威、多常被问、多新」抽两页；抽到的是**带署名的 FAQ**就直接念答案。
+## 7. 开放互操作：配发「通用转换插头」，打破厂商私有围墙
 
-**机制**：agent 问自然语言问题 → Context Layer 混合匹配（关键词 + 语义，Universal Search 的 "hybrid keyword and semantic ranking"）选 top-k 上下文包（定义 + 指令 + 验证问答）→ agent 据此生成查询。**四因子排序**（Cortex Sense 官方自比 web search 排网页）：*relevance / authority / popularity / freshness*——「受治理 semantic view 的定义 authority 高于从少量查询推断的；出现在 500 条生产 SQL 的 join 模式重于出现 3 次的；上月更新的定义压过两年前的」。无 SV 覆盖的新表（两周前上线的定价方案）是经典边缘：纯 semantic view 路径的 agent 拒答，通用 agent 可能自信错，Sense 给推断口径答案。
+> [!TIP] **类比**
+>
+> 如果这套权威的入职包（受治理语义层）被锁死在特定品牌的专用办公电脑里，外部优秀的专家智囊或现代智能工具（如 Claude、Cursor 等外部 Agent）就根本无法接入，沦为封闭的“数据孤岛”。
+>
+> 真正的老司机必须配发**「通用的国际护照与万能转换插头」**：
+> - **护照通用（标准文件规范）**：业务术语手册不写成厂商加密的私房暗号，而是采用全球通行的开源开放格式，无论走到哪个系统都能直接翻阅；
+> - **插座通用（标准连接协议）**：在数据中心安装标准的万能通信插座，任何外部先进工具只要插上插头，就能在戴着安全锁链的前提下与企业数据自由对话。
 
-**原型实景**（A1 verified 短路 + C1 无覆盖 + C5 freshness，实际运行输出）：
+> [!NOTE] **机制**
+>
+> 语义可携带性已成为跨厂商的行业共识。Horizon Context 通过两条开放路径，彻底打破了厂商锁定（Vendor Lock-in）：
+>
+> 1. **静态定义互通：OSI → Apache Ossie（开源通用语义规范）**：
+>    由 Snowflake、Salesforce、dbt Labs 等 17 家联合发起、现已汇聚 50+ 组织的 Apache 孵化器项目（Ossie）。它通过开放的 YAML/JSON 规范统一了指标、维度与关联关系的定义，并下设 Metric Language、Catalog、Ontology 3 个工作组，已交付 dbt MetricFlow、Apache Polaris 和 Snowflake Semantic Model 三个转换器；语义视图可直接通过 `SYSTEM$CREATE_SEMANTIC_VIEW_FROM_YAML` 跨平台自由迁徙、导入即用；
+> 2. **运行时动态互通：模型上下文协议（MCP）标准连接器**：
+>    官方部署的标准 MCP Server，将受治理的语义视图（经 Cortex Analyst）与 Cortex Search 直接向外部智能体生态开放。无论是桌面端的 Claude Desktop，还是开发环境中的 Claude Code、Cursor，添加自定义连接器即可在受控前提下直接问数。
+>
+> **闭环安全保障**：外部工具调用绝不等于“安全裸奔”。即使通过外部 MCP 跨协议调用，底层引擎的 RBAC 与私密过滤（PRIVATE）依然刚性生效；同时外部交互产生的使用反馈，会实时回流反哺内部热度排序。
 
-```text
-[PASS] A1: verified 短路重放 + 溯源: verified_query {'2026-01': 200, '2026-02': 150,
-'2026-03': 300} by ( data_governance = data-team@acme.com )
-[PASS] A1b: 引擎重算 == 验证答案（对账一致）: [200, 150, 300]
-[PASS] C1: 新表无 SV: inferred 条目胜出 + 警告 ['no_governed_coverage']；覆盖 4/5 表
-[PASS] C5: freshness 隔离: 'sales' → governed revenue(fresh=0.96) 压过 legacy(0.00):
-[('revenue', 'governed', 0.854), ('revenue', 'legacy', 0.826)]
-```
+> [!IMPORTANT] **原型实践**
+>
+> MCP 服务原型跨进程通信与安全内控实际运行输出（assets/horizon_context_mcp.py）：
+>
+> ```text
+> [PASS] T3: resolve_context: {'name': 'spend', 'score': 0.73, 'source': 'inferred'} + ['no_governed_coverage']
+> [PASS] T5: 引擎层 RBAC 经 MCP 仍生效: plan is a PRIVATE fact
+> [PASS] T6: 行为反馈闭环: feedback down 后 'sales' 解析 governed → legacy（popularity 参与排序）
+> [PASS] T8: 子进程 stdio 往返: 2 响应行, active_customers=[3, 1, 2]
+> ```
 
-## 7. 开放互操作：定义的「通用插头」
+## 8. 关键实证数据
 
-**机制**：两条开放路径——①**OSI → Apache Ossie（Incubating）**：YAML/JSON 语义模型规范（metrics/dimensions/relationships），2025-11 由 Snowflake + Salesforce + dbt Labs 等 17 家发起，进 Apache 孵化器后 50+ 组织参与、3 个工作组（Metric Language / Catalog / Ontology），已交付 dbt MetricFlow、Apache Polaris、Snowflake Semantic Model 三个转换器；语义视图可经 `SYSTEM$CREATE_SEMANTIC_VIEW_FROM_YAML` 导入。②**MCP**：Snowflake 官方管理的 MCP server 把语义视图（经 Cortex Analyst）与 Cortex Search 暴露给外部 agent——Claude Desktop / Claude Code / Cursor 添加 custom connector 即可「受治理地」问数。
-
-**原型实景**——MCP 服务原型（[`assets/horizon_context_mcp.py`](./assets/horizon_context_mcp.py)，纯标准库 stdio JSON-RPC，实际运行输出）：
-
-```text
-[PASS] T3: resolve_context: {'name': 'spend', 'score': 0.73, 'source': 'inferred'} + ['no_governed_coverage']
-[PASS] T5: 引擎层 RBAC 经 MCP 仍生效: plan is a PRIVATE fact
-[PASS] T6: 行为反馈闭环: feedback down 后 'sales' 解析 governed → legacy（popularity 参与排序）
-[PASS] T8: 子进程 stdio 往返: 2 响应行, active_customers=[3, 1, 2]
-```
-
-## 8. 关键实证数字
-
-| 实验                                 | 关键数字                                                  | 一句话读法                                                        |
+| 实验                                 | 关键数据                                                  | 一句话读法                                                        |
 | ------------------------------------ | --------------------------------------------------------- | ----------------------------------------------------------------- |
 | 无 Context 基线（Cortex Sense 博客） | ~25%（Snowflake 内测）；21%（Anthropic 独立复测）         | 两家独立测出同一结论：缺业务含义时 agent 就是瞎猜                 |
 | CoCo + Cortex Sense（同上）          | 准确率 24.1% → 86.3%；成本 $1.76 → $0.59/query            | Context Layer 把准确率抬 3.6 倍、成本砍 2/3（自家基准，见 §10-1） |
@@ -199,9 +278,9 @@ description: "「嵌入治理引擎、查询时强制执行」的 Context Layer 
 | OSI → Apache Ossie                   | 17 创始伙伴 → 50+ 组织；100+ commits / 35 PRs             | 语义可携带已成行业共识，非单一厂商私产                            |
 | 本原型                               | 200 vs 440；7 vs 24；[3,1,2] vs [6,1,2]；108.33 vs 122.22 | 六机制在玩具域的逐点复现（§9）                                    |
 
-## 9. 动手实验室：把机制亲手拆坏七次
+## 9. 动手实践
 
-运行方式（秒级，仓库根目录执行）：
+把机制亲手拆坏七次，运行方式（秒级，仓库根目录执行）：
 
 ```bash
 uv run --no-project python docs/research/cognitive-context/assets/horizon_context_lab.py --selftest
