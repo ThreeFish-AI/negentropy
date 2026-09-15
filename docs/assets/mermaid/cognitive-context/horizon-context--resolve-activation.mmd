@@ -1,0 +1,20 @@
+%%source: docs/research/cognitive-context/011-horizon-context.md#blockM5 (L329-L359, §7 M5 · 检索激活)
+%%slug: cognitive-context/horizon-context--resolve-activation
+%%type: sequence
+%%derived: archify sequence v1, authored from source mermaid
+sequenceDiagram
+    participant AG as Agent（CoCo / 外部客户端）
+    participant US as Universal Search（关键词+向量混合）
+    participant CT as 目录与四层信号
+    participant VQ as VQR 已验证问答
+    participant EN as 执行引擎（按 grain 重算）
+    AG->>US: resolve(question, role)
+    US->>CT: 混合检索 top-k 候选
+    CT-->>US: 条目 + 信任信号
+    US->>VQ: 相似问答匹配
+    VQ-->>US: 命中：已验证 SQL + 溯源
+    US-->>AG: 以已验证查询为生成依据（confidence 可查）
+    AG->>EN: 生成 SQL / compile(metric, dims)
+    EN-->>AG: 按查询 grain 重算结果
+    AG->>US: 新表提问（无 governed 覆盖）
+    US-->>AG: no_governed_coverage 警告 + 低权威推断口径

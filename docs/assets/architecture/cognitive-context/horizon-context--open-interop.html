@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="generator" content="archify 2.17.0-dev.1">
-  <title>语义视图：声明相与执行相</title>
+  <title>开放互操作：静态定义互通与运行时受控供给</title>
   <script>
     // Resolve the theme before first paint so light-preference users don't
     // see a dark flash. The toolbar script below re-applies with UI state.
@@ -5081,7 +5081,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
            data-preset-badge-blueprint="蓝图 / 修订 01"
            data-preset-badge-editorial="编辑风格 / 现场笔记">
         <div class="pulse-dot"></div>
-        <h1>语义视图：声明相与执行相</h1>
+        <h1>开放互操作：静态定义互通与运行时受控供给</h1>
       </div>
     </div>
 
@@ -5130,9 +5130,9 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     <!-- Main Diagram -->
     <div class="diagram-container" data-detail-level="read"
          data-preset-badge-editorial-plate="ARCHIFY / 图版 04">
-      <svg viewBox="0 0 1226 750" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-animation="trace" data-preset="classic" data-quality-profile="showcase">
-        <title id="archify-diagram-title">语义视图：声明相与执行相</title>
-        <desc id="archify-diagram-description">由 Archify 生成的工作流图。</desc>
+      <svg viewBox="0 0 1280 620" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-animation="trace" data-preset="classic" data-quality-profile="showcase">
+        <title id="archify-diagram-title">开放互操作：静态定义互通与运行时受控供给</title>
+        <desc id="archify-diagram-description">由 Archify 生成的架构图。</desc>
         <!-- Definitions -->
         <defs>
           <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
@@ -5155,211 +5155,206 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <!-- Background Grid -->
         <rect width="100%" height="100%" fill="url(#grid)" />
 
-        <!-- Swimlanes -->
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-0" x="40" y="52" width="1170" height="178" rx="10" class="c-lane" stroke-width="1"/>
-        <text x="54" y="74" class="t-dim" font-size="10" font-weight="600">01 / 声明相 · CREATE SEMANTIC VIEW</text>
+        <!-- Boundaries (behind everything) -->
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="0" data-composition-frame-label="Snowflake 引擎内（治理随行）" x="270" y="66" width="630" height="474" rx="12" class="c-region" stroke-width="1"/>
 
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-1" x="40" y="250" width="1170" height="178" rx="10" class="c-lane" stroke-width="1"/>
-        <text x="54" y="272" class="t-dim" font-size="10" font-weight="600">02 / 执行相 · compile_query</text>
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="1" data-composition-frame-label="开放生态" x="30" y="66" width="1160" height="474" rx="12" class="c-region" stroke-width="1"/>
 
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-2" x="40" y="448" width="1170" height="178" rx="10" class="c-lane" stroke-width="1"/>
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="exception-lane" data-composition-frame-id="lane-2-exception" x="46" y="454" width="1158" height="166" rx="8" class="c-security-group" stroke-width="1"/>
-        <text x="54" y="470" class="t-security" font-size="10" font-weight="600">EX / 拒绝路径</text>
+        <!-- Connection paths (before components for correct z-order) -->
+        <path data-edge-from="sv" data-edge-to="sysf" data-edge-label="READ_YAML 导出" data-edge-key="0" data-edge-id="c1" data-composition-points="435,268;435,244;451,244;451,182;425,182;425,158" d="M 435 268 L 435 252 Q 435 244 443 244 L 443 244 Q 451 244 451 236 L 451 190 Q 451 182 443 182 L 433 182 Q 425 182 425 174 L 425 158" class="a-default" data-animate="edge" style="--step:0" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="sysf" data-edge-to="git" data-edge-label="YAML 入库 · PR 评审" data-edge-key="1" data-edge-id="c2" data-composition-points="300,127;240,127" d="M 300 127 L 240 127" class="a-default" data-animate="edge" style="--step:1" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="sysf" data-edge-to="ossie" data-edge-label="对齐 Ossie 规范" data-edge-key="2" data-edge-id="c3" data-composition-points="550,127;630,127" d="M 550 127 L 630 127" class="a-dashed" data-animate="edge" style="--step:2" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
+        <path data-edge-from="ossie" data-edge-to="dbt" data-edge-label="同一规范 · 转换器仅 CLI" data-edge-key="3" data-edge-id="c4" data-composition-points="860,127;920,127" d="M 860 127 L 920 127" class="a-dashed" data-animate="edge" style="--step:3" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
+        <path data-edge-from="sv" data-edge-to="mcp" data-edge-label="受控工具面开放" data-edge-key="4" data-edge-id="c5" data-composition-points="435,338;435,452" d="M 435 338 L 435 452" class="a-emphasis" data-animate="edge" style="--step:4" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="mcp" data-edge-to="ext" data-edge-label="tools/call · SSE" data-edge-key="5" data-edge-id="c6" data-composition-points="330,486;270,486" d="M 330 486 L 270 486" class="a-default" data-animate="edge" style="--step:5" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="rbx" data-edge-to="mcp" data-edge-label="越权即拒" data-edge-key="6" data-edge-id="c7" data-composition-points="640,485;616,485;616,502;564,502;564,486;540,486" d="M 640 485 L 624 485 Q 616 485 616 493 L 616 494 Q 616 502 608 502 L 572 502 Q 564 502 564 494 L 564 494 Q 564 486 556 486 L 540 486" class="a-security" data-animate="edge" style="--step:6" stroke-width="1.5" marker-end="url(#arrowhead-security)"/>
+        <path data-edge-from="ext" data-edge-to="fb" data-edge-label="点赞 / 点踩 / 命中" data-edge-key="7" data-edge-id="c8" data-composition-points="165,520;165,575;1060,575;1060,514" d="M 165 520 L 165 567 Q 165 575 173 575 L 1052 575 Q 1060 575 1060 567 L 1060 514" class="a-dashed" data-animate="edge" style="--step:7" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
+        <path data-edge-from="fb" data-edge-to="sv" data-edge-label="反哺 popularity 排序" data-edge-key="8" data-edge-id="c9" data-composition-points="1060,452;1060,390;590,390;590,303;540,303" d="M 1060 452 L 1060 398 Q 1060 390 1052 390 L 598 390 Q 590 390 590 382 L 590 311 Q 590 303 582 303 L 540 303" class="a-dashed" data-animate="edge" style="--step:8" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
 
-        <!-- Phase headers -->
-        <line x1="90" y1="35" x2="721" y2="35" class="a-default" stroke-width="1.1"/>
-        <rect x="90" y="27" width="631" height="16" rx="4" class="c-mask"/>
-        <text x="405.5" y="39" class="t-muted" font-size="8" font-weight="600" text-anchor="middle">五段式声明与校验</text>
-        <line x1="835" y1="35" x2="1148" y2="35" class="a-emphasis" stroke-width="1.1"/>
-        <rect x="835" y="27" width="313" height="16" rx="4" class="c-mask"/>
-        <text x="991.5" y="39" class="t-backend" font-size="8" font-weight="600" text-anchor="middle">治理与聚合执行</text>
-
-        <!-- Workflow groups -->
-
-
-        <!-- Edge paths -->
-        <path data-edge-from="d1" data-edge-to="d5" data-edge-key="0" data-edge-id="e1" data-composition-points="136,138;136,149;432,149" d="M 136 138 L 136 149 L 432 149" class="a-default" data-animate="edge" style="--step:5" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="ag" data-edge-to="out" data-edge-key="1" data-edge-id="e10" data-composition-points="974,354;1002,354" d="M 974 354 L 1002 354" class="a-emphasis" data-animate="edge" style="--step:3" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="d2" data-edge-to="d5" data-edge-key="2" data-edge-id="e2" data-composition-points="136,174;136,163;432,163" d="M 136 174 L 136 163 L 432 163" class="a-default" data-animate="edge" style="--step:7" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="d3" data-edge-to="d5" data-edge-key="3" data-edge-id="e3" data-composition-points="412,112;502,112;502,130" d="M 412 112 L 502 112 L 502 130" class="a-default" data-animate="edge" style="--step:8" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="d4" data-edge-to="d5" data-edge-key="4" data-edge-id="e4" data-composition-points="424,200;502,200;502,182" d="M 424 200 L 502 200 L 502 182" class="a-default" data-animate="edge" style="--step:9" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="d5" data-edge-to="vg" data-edge-key="5" data-edge-id="e5" data-composition-points="502,182;502,246;675,246;675,190" d="M 502 182 L 502 246 L 675 246 L 675 190" class="a-emphasis" data-animate="edge" style="--step:0" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="vg" data-edge-to="rx" data-edge-label="非法结构" data-edge-key="6" data-edge-id="e6" data-composition-points="600,163;584,163;584,642;881,642;881,578" d="M 600 163 L 584 163 L 584 642 L 881 642 L 881 578" class="a-security" data-animate="edge" style="--step:11" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
-        <path data-edge-from="vg" data-edge-to="rbac" data-edge-label="通过" data-edge-key="7" data-edge-id="e7" data-composition-points="675,190;675,240;776,240;776,354;760,354" d="M 675 190 L 675 240 L 776 240 L 776 354 L 760 354" class="a-emphasis" data-animate="edge" style="--step:1" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="rbac" data-edge-to="ax" data-edge-label="PRIVATE" data-edge-key="8" data-edge-id="e8" data-composition-points="675,380;675,438;1102,438;1102,526" d="M 675 380 L 675 438 L 1102 438 L 1102 526" class="a-security" data-animate="edge" style="--step:12" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
-        <path data-edge-from="rbac" data-edge-to="ag" data-edge-key="9" data-edge-id="e9" data-composition-points="675,380;675,396;881,396;881,380" d="M 675 380 L 675 396 L 881 396 L 881 380" class="a-emphasis" data-animate="edge" style="--step:2" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-
-        <!-- Nodes -->
-        <g id="node-d1" data-node-id="d1" data-node-label="TABLES + PK/UNIQUE" tabindex="0" role="button" aria-label="聚焦TABLES + PK/UNIQUE，声明相 · CREATE SEMANTIC VIEW › 五段式声明与校验" aria-pressed="false" data-node-kind="database" data-node-context="声明相 · CREATE SEMANTIC VIEW › 五段式声明与校验">
-          <title>TABLES + PK/UNIQUE · 声明相 · CREATE SEMANTIC VIEW › 五段式声明与校验</title>
-          <rect x="48" y="86" width="176" height="52" rx="6" class="c-mask"/>
-          <rect x="48" y="86" width="176" height="52" rx="6" class="c-database" data-animate="node" style="--step:5" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(54 92) scale(0.6875)">
+        <!-- Components -->
+        <g id="node-git" data-node-id="git" data-node-label="Git 版本库" tabindex="0" role="button" aria-label="聚焦Git 版本库，定义即代码 · PR 评审, 开放生态" aria-pressed="false" data-node-kind="database" data-node-sublabel="定义即代码 · PR 评审" data-node-context="开放生态">
+          <title>Git 版本库 · 定义即代码 · PR 评审 · 开放生态</title>
+          <rect x="60" y="96" width="180" height="62" rx="6" class="c-mask"/>
+          <rect x="60" y="96" width="180" height="62" rx="6" class="c-database" data-animate="node" style="--step:2" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(66 102) scale(0.6875)">
             <ellipse cx="8" cy="4" rx="5" ry="2"/>
             <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
           </g>
-          <text data-node-label="" x="136" y="107" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">TABLES + PK/UNIQUE</text>
+          <text data-node-label="" data-detail-anchor="" x="150" y="125" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Git 版本库</text>
+        <text data-detail="context" x="150" y="141" class="t-muted" font-size="9" text-anchor="middle">定义即代码 · PR 评审</text>
         </g>
 
-        <g id="node-d2" data-node-id="d2" data-node-label="RELATIONSHIPS" tabindex="0" role="button" aria-label="聚焦RELATIONSHIPS，FK → 键列, 声明相 · CREATE SEMANTIC VIEW › 五段式声明与校验" aria-pressed="false" data-node-kind="database" data-node-sublabel="FK → 键列" data-node-context="声明相 · CREATE SEMANTIC VIEW › 五段式声明与校验">
-          <title>RELATIONSHIPS · FK → 键列 · 声明相 · CREATE SEMANTIC VIEW › 五段式声明与校验</title>
-          <rect x="56" y="174" width="160" height="52" rx="6" class="c-mask"/>
-          <rect x="56" y="174" width="160" height="52" rx="6" class="c-database" data-animate="node" style="--step:6" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(62 180) scale(0.6875)">
-            <ellipse cx="8" cy="4" rx="5" ry="2"/>
-            <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="136" y="195" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">RELATIONSHIPS</text>
-          <text data-detail="context" x="136" y="212" class="t-muted" font-size="8" text-anchor="middle">FK → 键列</text>
-        </g>
-
-        <g id="node-d3" data-node-id="d3" data-node-label="FACTS / DIMENSIONS" tabindex="0" role="button" aria-label="聚焦FACTS / DIMENSIONS，可 PRIVATE, 声明相 · CREATE SEMANTIC VIEW › 五段式声明与校验" aria-pressed="false" data-node-kind="database" data-node-sublabel="可 PRIVATE" data-node-context="声明相 · CREATE SEMANTIC VIEW › 五段式声明与校验">
-          <title>FACTS / DIMENSIONS · 可 PRIVATE · 声明相 · CREATE SEMANTIC VIEW › 五段式声明与校验</title>
-          <rect x="236" y="86" width="176" height="52" rx="6" class="c-mask"/>
-          <rect x="236" y="86" width="176" height="52" rx="6" class="c-database" data-animate="node" style="--step:7" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(242 92) scale(0.6875)">
-            <ellipse cx="8" cy="4" rx="5" ry="2"/>
-            <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="324" y="107" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">FACTS / DIMENSIONS</text>
-          <text data-detail="context" x="324" y="124" class="t-muted" font-size="8" text-anchor="middle">可 PRIVATE</text>
-        </g>
-
-        <g id="node-d4" data-node-id="d4" data-node-label="METRICS" tabindex="0" role="button" aria-label="聚焦METRICS，SYNONYMS · derived · NON ADDITIVE · VQR, 声明相 · CREATE SEMANTIC VIEW › 五段式声明与校验" aria-pressed="false" data-node-kind="database" data-node-sublabel="SYNONYMS · derived · NON ADDITIVE · VQR" data-node-context="声明相 · CREATE SEMANTIC VIEW › 五段式声明与校验">
-          <title>METRICS · SYNONYMS · derived · NON ADDITIVE · VQR · 声明相 · CREATE SEMANTIC VIEW › 五段式声明与校验</title>
-          <rect x="224" y="174" width="200" height="52" rx="6" class="c-mask"/>
-          <rect x="224" y="174" width="200" height="52" rx="6" class="c-database" data-animate="node" style="--step:8" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(230 180) scale(0.6875)">
-            <ellipse cx="8" cy="4" rx="5" ry="2"/>
-            <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="324" y="195" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">METRICS</text>
-          <text data-detail="context" x="324" y="212" class="t-muted" font-size="8" text-anchor="middle">SYNONYMS · derived · NON ADDITIVE · VQR</text>
-        </g>
-
-        <g id="node-d5" data-node-id="d5" data-node-label="五段式声明" tabindex="0" role="button" aria-label="聚焦五段式声明，声明相 · CREATE SEMANTIC VIEW › 五段式声明与校验" aria-pressed="false" data-node-kind="backend" data-node-context="声明相 · CREATE SEMANTIC VIEW › 五段式声明与校验">
-          <title>五段式声明 · 声明相 · CREATE SEMANTIC VIEW › 五段式声明与校验</title>
-          <rect x="432" y="130" width="140" height="52" rx="6" class="c-mask"/>
-          <rect x="432" y="130" width="140" height="52" rx="6" class="c-backend" data-animate="node" style="--step:0" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(438 136) scale(0.6875)">
+        <g id="node-sysf" data-node-id="sysf" data-node-label="SYSTEM$ 转换函数" tabindex="0" role="button" aria-label="聚焦SYSTEM$ 转换函数，FROM_YAML / FROM_OSI_YAML / READ_YAML, Snowflake 引擎内（治理随行）" aria-pressed="false" data-node-kind="backend" data-node-sublabel="FROM_YAML / FROM_OSI_YAML / READ_YAML" data-node-context="Snowflake 引擎内（治理随行）">
+          <title>SYSTEM$ 转换函数 · FROM_YAML / FROM_OSI_YAML / READ_YAML · Snowflake 引擎内（治理随行）</title>
+          <rect x="300" y="96" width="250" height="62" rx="6" class="c-mask"/>
+          <rect x="300" y="96" width="250" height="62" rx="6" class="c-backend" data-animate="node" style="--step:1" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(306 102) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text data-node-label="" x="502" y="151" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">五段式声明</text>
+          <text data-node-label="" data-detail-anchor="" x="425" y="125" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">SYSTEM$ 转换函数</text>
+        <text data-detail="context" x="425" y="141" class="t-muted" font-size="9" text-anchor="middle">FROM_YAML / FROM_OSI_YAML / READ_YAML</text>
         </g>
 
-        <g id="node-vg" data-node-id="vg" data-node-label="结构校验门" tabindex="0" role="button" aria-label="聚焦结构校验门，validate_view, 声明相 · CREATE SEMANTIC VIEW › 五段式声明与校验" aria-pressed="false" data-node-kind="security" data-node-sublabel="validate_view" data-node-tag="注册期" data-node-context="声明相 · CREATE SEMANTIC VIEW › 五段式声明与校验">
-          <title>结构校验门 · validate_view · 声明相 · CREATE SEMANTIC VIEW › 五段式声明与校验 · 注册期</title>
-          <rect x="600" y="122" width="150" height="68" rx="6" class="c-mask"/>
-          <rect x="600" y="122" width="150" height="68" rx="6" class="c-security" data-animate="node" style="--step:1" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(606 128) scale(0.6875)">
-            <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
-            <path d="m5.8 8 1.5 1.5 3-3"/>
+        <g id="node-ossie" data-node-id="ossie" data-node-label="Apache Ossie（原 OSI）" tabindex="0" role="button" aria-label="聚焦Apache Ossie（原 OSI），开放规范 · 50+ 组织, 开放生态" aria-pressed="false" data-node-kind="cloud" data-node-sublabel="开放规范 · 50+ 组织" data-node-tag="2026-07 入孵化" data-node-context="开放生态">
+          <title>Apache Ossie（原 OSI） · 开放规范 · 50+ 组织 · 开放生态 · 2026-07 入孵化</title>
+          <rect x="630" y="96" width="230" height="62" rx="6" class="c-mask"/>
+          <rect x="630" y="96" width="230" height="62" rx="6" class="c-cloud" data-animate="node" style="--step:3" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="cloud" class="semantic-sigil s-cloud" transform="translate(636 102) scale(0.6875)">
+            <path d="M4.3 12.5h7.3a2.4 2.4 0 0 0 .2-4.8 4 4 0 0 0-7.5-1.3A3.1 3.1 0 0 0 4.3 12.5Z"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="675" y="143" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">结构校验门</text>
-          <text data-detail="context" x="675" y="160" class="t-muted" font-size="8" text-anchor="middle">validate_view</text>
-        <text data-detail="fine" x="675" y="178" class="t-security" font-size="7" text-anchor="middle">注册期</text>
+          <text data-node-label="" data-detail-anchor="" x="745" y="125" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Apache Ossie（原 OSI）</text>
+        <text data-detail="context" x="745" y="141" class="t-muted" font-size="9" text-anchor="middle">开放规范 · 50+ 组织</text>
+        <text data-detail="fine" x="745" y="150" class="t-cloud" font-size="7" text-anchor="middle">2026-07 入孵化</text>
         </g>
 
-        <g id="node-rbac" data-node-id="rbac" data-node-label="执行层 RBAC" tabindex="0" role="button" aria-label="聚焦执行层 RBAC，人 / BI / agent 同一套, 执行相 · compile_query › 五段式声明与校验" aria-pressed="false" data-node-kind="security" data-node-sublabel="人 / BI / agent 同一套" data-node-context="执行相 · compile_query › 五段式声明与校验">
-          <title>执行层 RBAC · 人 / BI / agent 同一套 · 执行相 · compile_query › 五段式声明与校验</title>
-          <rect x="590" y="328" width="170" height="52" rx="6" class="c-mask"/>
-          <rect x="590" y="328" width="170" height="52" rx="6" class="c-security" data-animate="node" style="--step:2" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(596 334) scale(0.6875)">
-            <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
-            <path d="m5.8 8 1.5 1.5 3-3"/>
+        <g id="node-dbt" data-node-id="dbt" data-node-label="dbt MetricFlow" tabindex="0" role="button" aria-label="聚焦dbt MetricFlow，Apache 2.0 · 初始参考实现, 开放生态" aria-pressed="false" data-node-kind="external" data-node-sublabel="Apache 2.0 · 初始参考实现" data-node-context="开放生态">
+          <title>dbt MetricFlow · Apache 2.0 · 初始参考实现 · 开放生态</title>
+          <rect x="920" y="96" width="220" height="62" rx="6" class="c-mask"/>
+          <rect x="920" y="96" width="220" height="62" rx="6" class="c-external" data-animate="node" style="--step:4" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(926 102) scale(0.6875)">
+            <rect x="2.5" y="5" width="8.5" height="8" rx="1.5"/>
+            <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="675" y="349" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">执行层 RBAC</text>
-          <text data-detail="context" x="675" y="366" class="t-muted" font-size="8" text-anchor="middle">人 / BI / agent 同一套</text>
+          <text data-node-label="" data-detail-anchor="" x="1030" y="125" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">dbt MetricFlow</text>
+        <text data-detail="context" x="1030" y="141" class="t-muted" font-size="9" text-anchor="middle">Apache 2.0 · 初始参考实现</text>
         </g>
 
-        <g id="node-ag" data-node-id="ag" data-node-label="策略 A 聚合" tabindex="0" role="button" aria-label="聚焦策略 A 聚合，agg-before-join · 零行复制, 执行相 · compile_query › 治理与聚合执行" aria-pressed="false" data-node-kind="backend" data-node-sublabel="agg-before-join · 零行复制" data-node-context="执行相 · compile_query › 治理与聚合执行">
-          <title>策略 A 聚合 · agg-before-join · 零行复制 · 执行相 · compile_query › 治理与聚合执行</title>
-          <rect x="788" y="328" width="186" height="52" rx="6" class="c-mask"/>
-          <rect x="788" y="328" width="186" height="52" rx="6" class="c-backend" data-animate="node" style="--step:3" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(794 334) scale(0.6875)">
+        <g id="node-sv" data-node-id="sv" data-node-label="语义视图" tabindex="0" role="button" aria-label="聚焦语义视图，受治理定义（元数据对象）, Snowflake 引擎内（治理随行）" aria-pressed="false" data-node-kind="backend" data-node-sublabel="受治理定义（元数据对象）" data-node-context="Snowflake 引擎内（治理随行）">
+          <title>语义视图 · 受治理定义（元数据对象） · Snowflake 引擎内（治理随行）</title>
+          <rect x="330" y="268" width="210" height="70" rx="6" class="c-mask"/>
+          <rect x="330" y="268" width="210" height="70" rx="6" class="c-backend" data-animate="node" style="--step:0" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(336 274) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="881" y="349" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">策略 A 聚合</text>
-          <text data-detail="context" x="881" y="366" class="t-muted" font-size="8" text-anchor="middle">agg-before-join · 零行复制</text>
+          <text data-node-label="" data-detail-anchor="" x="435" y="301" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">语义视图</text>
+        <text data-detail="context" x="435" y="317" class="t-muted" font-size="9" text-anchor="middle">受治理定义（元数据对象）</text>
         </g>
 
-        <g id="node-out" data-node-id="out" data-node-label="按 grain 重算" tabindex="0" role="button" aria-label="聚焦按 grain 重算，distinct 安全 · 先聚后除 · 末快照, 执行相 · compile_query › 治理与聚合执行" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="distinct 安全 · 先聚后除 · 末快照" data-node-context="执行相 · compile_query › 治理与聚合执行">
-          <title>按 grain 重算 · distinct 安全 · 先聚后除 · 末快照 · 执行相 · compile_query › 治理与聚合执行</title>
-          <rect x="1002" y="328" width="200" height="52" rx="6" class="c-mask"/>
-          <rect x="1002" y="328" width="200" height="52" rx="6" class="c-frontend" data-animate="node" style="--step:4" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="frontend" class="semantic-sigil s-frontend" transform="translate(1008 334) scale(0.6875)">
-            <rect x="2" y="3" width="12" height="10" rx="2"/>
-            <path d="M2 6.5h12"/>
-            <circle cx="4.1" cy="4.8" r=".7" class="sigil-fill"/>
-            <circle cx="6.3" cy="4.8" r=".7" class="sigil-fill"/>
+        <g id="node-mcp" data-node-id="mcp" data-node-label="官方 MCP Server" tabindex="0" role="button" aria-label="聚焦官方 MCP Server，5 类工具 · SSE 流, Snowflake 引擎内（治理随行）" aria-pressed="false" data-node-kind="backend" data-node-sublabel="5 类工具 · SSE 流" data-node-tag="≤50 工具/server" data-node-context="Snowflake 引擎内（治理随行）">
+          <title>官方 MCP Server · 5 类工具 · SSE 流 · Snowflake 引擎内（治理随行） · ≤50 工具/server</title>
+          <rect x="330" y="452" width="210" height="68" rx="6" class="c-mask"/>
+          <rect x="330" y="452" width="210" height="68" rx="6" class="c-backend" data-animate="node" style="--step:5" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(336 458) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="1102" y="349" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">按 grain 重算</text>
-          <text data-detail="context" x="1102" y="366" class="t-muted" font-size="8" text-anchor="middle">distinct 安全 · 先聚后除 · 末快照</text>
+          <text data-node-label="" data-detail-anchor="" x="435" y="484" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">官方 MCP Server</text>
+        <text data-detail="context" x="435" y="500" class="t-muted" font-size="9" text-anchor="middle">5 类工具 · SSE 流</text>
+        <text data-detail="fine" x="435" y="512" class="t-backend" font-size="7" text-anchor="middle">≤50 工具/server</text>
         </g>
 
-        <g id="node-rx" data-node-id="rx" data-node-label="拒绝注册" tabindex="0" role="button" aria-label="聚焦拒绝注册，非键列 / 缺 dim+metric / 重名, 拒绝路径 › 治理与聚合执行" aria-pressed="false" data-node-kind="security" data-node-sublabel="非键列 / 缺 dim+metric / 重名" data-node-context="拒绝路径 › 治理与聚合执行">
-          <title>拒绝注册 · 非键列 / 缺 dim+metric / 重名 · 拒绝路径 › 治理与聚合执行</title>
-          <rect x="786" y="526" width="190" height="52" rx="6" class="c-mask"/>
-          <rect x="786" y="526" width="190" height="52" rx="6" class="c-security" data-animate="node" style="--step:12" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(792 532) scale(0.6875)">
+        <g id="node-rbx" data-node-id="rbx" data-node-label="RBAC / PRIVATE 随调用生效" tabindex="0" role="button" aria-label="聚焦RBAC / PRIVATE 随调用生效，开放不等于裸奔, Snowflake 引擎内（治理随行）" aria-pressed="false" data-node-kind="security" data-node-sublabel="开放不等于裸奔" data-node-context="Snowflake 引擎内（治理随行）">
+          <title>RBAC / PRIVATE 随调用生效 · 开放不等于裸奔 · Snowflake 引擎内（治理随行）</title>
+          <rect x="640" y="452" width="230" height="66" rx="6" class="c-mask"/>
+          <rect x="640" y="452" width="230" height="66" rx="6" class="c-security" data-animate="node" style="--step:6" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(646 458) scale(0.6875)">
             <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
             <path d="m5.8 8 1.5 1.5 3-3"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="881" y="547" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">拒绝注册</text>
-          <text data-detail="context" x="881" y="564" class="t-muted" font-size="8" text-anchor="middle">非键列 / 缺 dim+metric / 重名</text>
+          <text data-node-label="" data-detail-anchor="" x="755" y="483" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">RBAC / PRIVATE 随调用生效</text>
+        <text data-detail="context" x="755" y="499" class="t-muted" font-size="9" text-anchor="middle">开放不等于裸奔</text>
         </g>
 
-        <g id="node-ax" data-node-id="ax" data-node-label="AccessDenied" tabindex="0" role="button" aria-label="聚焦AccessDenied，PRIVATE 资产, 拒绝路径 › 治理与聚合执行" aria-pressed="false" data-node-kind="security" data-node-sublabel="PRIVATE 资产" data-node-context="拒绝路径 › 治理与聚合执行">
-          <title>AccessDenied · PRIVATE 资产 · 拒绝路径 › 治理与聚合执行</title>
-          <rect x="1032" y="526" width="140" height="52" rx="6" class="c-mask"/>
-          <rect x="1032" y="526" width="140" height="52" rx="6" class="c-security" data-animate="node" style="--step:12" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(1038 532) scale(0.6875)">
-            <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
-            <path d="m5.8 8 1.5 1.5 3-3"/>
+        <g id="node-ext" data-node-id="ext" data-node-label="外部 Agent" tabindex="0" role="button" aria-label="聚焦外部 Agent，Claude Desktop / Claude Code / Cursor, 开放生态" aria-pressed="false" data-node-kind="external" data-node-sublabel="Claude Desktop / Claude Code / Cursor" data-node-context="开放生态">
+          <title>外部 Agent · Claude Desktop / Claude Code / Cursor · 开放生态</title>
+          <rect x="60" y="452" width="210" height="68" rx="6" class="c-mask"/>
+          <rect x="60" y="452" width="210" height="68" rx="6" class="c-external" data-animate="node" style="--step:6" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(66 458) scale(0.6875)">
+            <rect x="2.5" y="5" width="8.5" height="8" rx="1.5"/>
+            <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="1102" y="547" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">AccessDenied</text>
-          <text data-detail="context" x="1102" y="564" class="t-muted" font-size="8" text-anchor="middle">PRIVATE 资产</text>
+          <text data-node-label="" data-detail-anchor="" x="165" y="484" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">外部 Agent</text>
+        <text data-detail="context" x="165" y="500" class="t-muted" font-size="9" text-anchor="middle">Claude Desktop / Claude Code / Cursor</text>
         </g>
 
-        <!-- Edge labels -->
-
-
-
-
-
-
-        <g data-detail="context" data-edge-from="vg" data-edge-to="rx" data-edge-label="非法结构" data-edge-key="6" data-edge-id="e6">
-          <rect x="708.3" y="622" width="48.4" height="14" rx="3" class="c-mask"/>
-          <text x="732.5" y="632" class="t-security" font-size="8" text-anchor="middle">非法结构</text>
-        </g>
-        <g data-detail="context" data-edge-from="vg" data-edge-to="rbac" data-edge-label="通过" data-edge-key="7" data-edge-id="e7">
-          <rect x="710.5" y="220" width="30" height="14" rx="3" class="c-mask"/>
-          <text x="725.5" y="230" class="t-backend" font-size="8" text-anchor="middle">通过</text>
-        </g>
-        <g data-detail="context" data-edge-from="rbac" data-edge-to="ax" data-edge-label="PRIVATE" data-edge-key="8" data-edge-id="e8">
-          <rect x="866.7" y="418" width="43.6" height="14" rx="3" class="c-mask"/>
-          <text x="888.5" y="428" class="t-security" font-size="8" text-anchor="middle">PRIVATE</text>
+        <g id="node-fb" data-node-id="fb" data-node-label="使用反馈回流" tabindex="0" role="button" aria-label="聚焦使用反馈回流，popularity 继续积累, 开放生态" aria-pressed="false" data-node-kind="messagebus" data-node-sublabel="popularity 继续积累" data-node-context="开放生态">
+          <title>使用反馈回流 · popularity 继续积累 · 开放生态</title>
+          <rect x="960" y="452" width="200" height="62" rx="6" class="c-mask"/>
+          <rect x="960" y="452" width="200" height="62" rx="6" class="c-messagebus" data-animate="node" style="--step:8" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="messagebus" class="semantic-sigil s-messagebus" transform="translate(966 458) scale(0.6875)">
+            <path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"/>
+            <circle cx="5" cy="4.5" r="1" class="sigil-fill"/>
+            <circle cx="10.5" cy="8" r="1" class="sigil-fill"/>
+            <circle cx="7" cy="11.5" r="1" class="sigil-fill"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="1060" y="481" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">使用反馈回流</text>
+        <text data-detail="context" x="1060" y="497" class="t-muted" font-size="9" text-anchor="middle">popularity 继续积累</text>
         </g>
 
+        <!-- Connection labels -->
+        <g data-detail="context" data-edge-from="sv" data-edge-to="sysf" data-edge-label="READ_YAML 导出" data-edge-key="0" data-edge-id="c1">
+          <rect x="404.4" y="224" width="77.2" height="14" rx="3" class="c-mask"/>
+          <text x="443" y="234" class="t-muted" font-size="8" text-anchor="middle">READ_YAML 导出</text>
+        </g>
+        <g data-detail="context" data-edge-from="sysf" data-edge-to="git" data-edge-label="YAML 入库 · PR 评审" data-edge-key="1" data-edge-id="c2">
+          <rect x="219.4" y="162" width="101.2" height="14" rx="3" class="c-mask"/>
+          <text x="270" y="172" class="t-muted" font-size="8" text-anchor="middle">YAML 入库 · PR 评审</text>
+        </g>
+        <g data-detail="context" data-edge-from="sysf" data-edge-to="ossie" data-edge-label="对齐 Ossie 规范" data-edge-key="2" data-edge-id="c3">
+          <rect x="539" y="166" width="82" height="14" rx="3" class="c-mask"/>
+          <text x="580" y="176" class="t-messagebus" font-size="8" text-anchor="middle">对齐 Ossie 规范</text>
+        </g>
+        <g data-detail="context" data-edge-from="ossie" data-edge-to="dbt" data-edge-label="同一规范 · 转换器仅 CLI" data-edge-key="3" data-edge-id="c4">
+          <rect x="809.8" y="166" width="120.39999999999999" height="14" rx="3" class="c-mask"/>
+          <text x="870" y="176" class="t-messagebus" font-size="8" text-anchor="middle">同一规范 · 转换器仅 CLI</text>
+        </g>
+        <g data-detail="context" data-edge-from="sv" data-edge-to="mcp" data-edge-label="受控工具面开放" data-edge-key="4" data-edge-id="c5">
+          <rect x="311.4" y="385" width="77.2" height="14" rx="3" class="c-mask"/>
+          <text x="350" y="395" class="t-backend" font-size="8" text-anchor="middle">受控工具面开放</text>
+        </g>
+        <g data-detail="context" data-edge-from="mcp" data-edge-to="ext" data-edge-label="tools/call · SSE" data-edge-key="5" data-edge-id="c6">
+          <rect x="256.6" y="524" width="86.8" height="14" rx="3" class="c-mask"/>
+          <text x="300" y="534" class="t-muted" font-size="8" text-anchor="middle">tools/call · SSE</text>
+        </g>
+        <g data-detail="context" data-edge-from="rbx" data-edge-to="mcp" data-edge-label="越权即拒" data-edge-key="6" data-edge-id="c7">
+          <rect x="591.8" y="473.5" width="48.4" height="14" rx="3" class="c-mask"/>
+          <text x="616" y="483.5" class="t-security" font-size="8" text-anchor="middle">越权即拒</text>
+        </g>
+        <g data-detail="context" data-edge-from="ext" data-edge-to="fb" data-edge-label="点赞 / 点踩 / 命中" data-edge-key="7" data-edge-id="c8">
+          <rect x="563.8" y="580" width="96.39999999999999" height="14" rx="3" class="c-mask"/>
+          <text x="612" y="590" class="t-messagebus" font-size="8" text-anchor="middle">点赞 / 点踩 / 命中</text>
+        </g>
+        <g data-detail="context" data-edge-from="fb" data-edge-to="sv" data-edge-label="反哺 popularity 排序" data-edge-key="8" data-edge-id="c9">
+          <rect x="772" y="370" width="106" height="14" rx="3" class="c-mask"/>
+          <text x="825" y="380" class="t-messagebus" font-size="8" text-anchor="middle">反哺 popularity 排序</text>
+        </g>
+
+        <!-- Boundary labels (foreground masks keep routes out of titles) -->
+        <g data-graph-role="structural-frame-label" data-composition-frame-id="0" data-composition-frame-kind="region" data-composition-frame-label="Snowflake 引擎内（治理随行）">
+          <rect data-graph-role="structural-frame-label-mask" x="274" y="76" width="161.2" height="16" rx="3" class="c-mask"/>
+          <text data-boundary-label="" x="278" y="89" class="t-cloud" font-size="9" font-weight="600">Snowflake 引擎内（治理随行）</text>
+        </g>
+
+        <g data-graph-role="structural-frame-label" data-composition-frame-id="1" data-composition-frame-kind="region" data-composition-frame-label="开放生态">
+          <rect data-graph-role="structural-frame-label-mask" x="34" y="76" width="53.199999999999996" height="16" rx="3" class="c-mask"/>
+          <text data-boundary-label="" x="38" y="89" class="t-cloud" font-size="9" font-weight="600">开放生态</text>
+        </g>
 
         <!-- Legend -->
         <g data-legend="" data-legend-bridge="">
-          <text x="20" y="650" class="t-primary" font-size="12" font-weight="650">图例</text>
-          <g data-legend-semantic-kind="frontend" data-legend-kind="frontend" data-legend-label="用户界面" data-legend-x="20" data-legend-baseline="670" data-legend-width="78">
-            <rect x="20" y="662" width="14" height="9" rx="2" class="c-frontend" stroke-width="1"/>
-            <text x="42" y="670" class="t-muted" font-size="7.5" font-weight="500">用户界面</text>
+          <text x="40" y="584" class="t-primary" font-size="12" font-weight="650">图例</text>
+          <g data-legend-semantic-kind="backend" data-legend-kind="backend" data-legend-label="后端" data-legend-x="40" data-legend-baseline="604" data-legend-width="63">
+            <rect x="40" y="595" width="16" height="10" rx="2.5" class="c-backend" stroke-width="1"/>
+            <text x="62" y="604" class="t-muted" font-size="10" font-weight="500">后端</text>
           </g>
-          <g data-legend-semantic-kind="backend" data-legend-kind="backend" data-legend-label="Agent 逻辑" data-legend-x="105" data-legend-baseline="670" data-legend-width="87">
-            <rect x="105" y="662" width="14" height="9" rx="2" class="c-backend" stroke-width="1"/>
-            <text x="127" y="670" class="t-muted" font-size="7.5" font-weight="500">Agent 逻辑</text>
+          <g data-legend-semantic-kind="database" data-legend-kind="database" data-legend-label="数据库" data-legend-x="125" data-legend-baseline="604" data-legend-width="73">
+            <rect x="125" y="595" width="16" height="10" rx="2.5" class="c-database" stroke-width="1"/>
+            <text x="147" y="604" class="t-muted" font-size="10" font-weight="500">数据库</text>
           </g>
-          <g data-legend-semantic-kind="security" data-legend-kind="security" data-legend-label="策略" data-legend-x="199" data-legend-baseline="670" data-legend-width="61">
-            <rect x="199" y="662" width="14" height="9" rx="2" class="c-security" stroke-width="1"/>
-            <text x="221" y="670" class="t-muted" font-size="7.5" font-weight="500">策略</text>
+          <g data-legend-semantic-kind="cloud" data-legend-kind="cloud" data-legend-label="云服务" data-legend-x="220" data-legend-baseline="604" data-legend-width="73">
+            <rect x="220" y="595" width="16" height="10" rx="2.5" class="c-cloud" stroke-width="1"/>
+            <text x="242" y="604" class="t-muted" font-size="10" font-weight="500">云服务</text>
           </g>
-          <g data-legend-semantic-kind="database" data-legend-kind="database" data-legend-label="上下文 / 追踪" data-legend-x="267" data-legend-baseline="670" data-legend-width="100">
-            <rect x="267" y="662" width="14" height="9" rx="2" class="c-database" stroke-width="1"/>
-            <text x="289" y="670" class="t-muted" font-size="7.5" font-weight="500">上下文 / 追踪</text>
+          <g data-legend-semantic-kind="security" data-legend-kind="security" data-legend-label="安全" data-legend-x="315" data-legend-baseline="604" data-legend-width="63">
+            <rect x="315" y="595" width="16" height="10" rx="2.5" class="c-security" stroke-width="1"/>
+            <text x="337" y="604" class="t-muted" font-size="10" font-weight="500">安全</text>
+          </g>
+          <g data-legend-semantic-kind="messagebus" data-legend-kind="messagebus" data-legend-label="消息总线" data-legend-x="400" data-legend-baseline="604" data-legend-width="83">
+            <rect x="400" y="595" width="16" height="10" rx="2.5" class="c-messagebus" stroke-width="1"/>
+            <text x="422" y="604" class="t-muted" font-size="10" font-weight="500">消息总线</text>
+          </g>
+          <g data-legend-semantic-kind="external" data-legend-kind="external" data-legend-label="外部系统" data-legend-x="505" data-legend-baseline="604" data-legend-width="83">
+            <rect x="505" y="595" width="16" height="10" rx="2.5" class="c-external" stroke-width="1"/>
+            <text x="527" y="604" class="t-muted" font-size="10" font-weight="500">外部系统</text>
           </g>
         </g>
       </svg>
@@ -5551,24 +5546,36 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       <div class="card">
         <div class="card-header">
           <div class="card-dot cyan"></div>
-          <h3>声明相</h3>
+          <h3>两条开放路径</h3>
         </div>
         <ul>
-          <li>&bull; 五段式：TABLES / RELATIONSHIPS / FACTS / DIMENSIONS / METRICS</li>
-          <li>&bull; 结构校验门在注册期拦截非法定义——垃圾不进运行时</li>
-          <li>&bull; 语义视图是元数据，与数据同库同治理</li>
+          <li>&bull; 静态互通：Ossie 开放规范（17→28→33→54→50+ 组织）+ SYSTEM$ 函数 + Git 版本化</li>
+          <li>&bull; 运行时互通：官方 MCP Server——5 类工具、OAuth scopes、每 server ≤50 工具、250KB 截断</li>
+          <li>&bull; 只支持 semantic views，不支持 semantic models（官方原话）</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-dot emerald"></div>
+          <h3>开放不等于裸奔</h3>
+        </div>
+        <ul>
+          <li>&bull; RBAC 与 PRIVATE 过滤经 MCP 照样刚性生效</li>
+          <li>&bull; 官方建议：只暴露单个 Cortex Agent 作为面向客户端的唯一工具</li>
+          <li>&bull; 使用反馈实时回流——popularity 在开放生态继续积累</li>
         </ul>
       </div>
 
       <div class="card">
         <div class="card-header">
           <div class="card-dot rose"></div>
-          <h3>执行相</h3>
+          <h3>三重边界</h3>
         </div>
         <ul>
-          <li>&bull; 执行层 RBAC 对人 / BI / agent 同一套生效</li>
-          <li>&bull; 策略 A 零复制聚合：agg-before-join 防扇形复制</li>
-          <li>&bull; 按查询 grain 重算：distinct 安全 · 先聚后除 · 半可加末快照</li>
+          <li>&bull; 可携带 ≠ 可执行——Ossie 不解决别家引擎替你执行治理</li>
+          <li>&bull; 可携带 ≠ 已验证——validator 只查 schema，不查计算合法性</li>
+          <li>&bull; 可携带 ≠ 已普及——2026-07 现状：零产品原生支持，转换器仅 CLI</li>
         </ul>
       </div>
     </div>

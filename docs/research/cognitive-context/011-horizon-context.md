@@ -23,7 +23,7 @@ description: "「嵌入治理引擎、查询时强制执行」的 Context Layer 
 
 > [!TIP] **怎么读笔记**
 >
-> 每个机制节按「类比 → 机制 → 原型」三拍进行记录和实践。其中实践取自配套的最小原型 [`assets/horizon_context_lab.py`](./assets/horizon_context_lab.py)（约 916 行纯标准库代码，M1–M6 六机制 + 场景矩阵 + 破坏性实验；另有 MCP 服务原型 [`assets/horizon_context_mcp.py`](./assets/horizon_context_mcp.py) 验证平台集成路径）。
+> 每个机制节按「类比 → 机制 → 原型」三拍进行记录和实践，M1–M7 七个机制节各配一张 archify 动效工程图（交互版下载到本地打开，默认经典视图可切主题/缩放/聚焦，trace 动画按主路径逐边点亮）。其中实践取自配套的最小原型 [`assets/horizon_context_lab.py`](./assets/horizon_context_lab.py)（约 916 行纯标准库代码，M1–M6 六机制 + 场景矩阵 + 破坏性实验；另有 MCP 服务原型 [`assets/horizon_context_mcp.py`](./assets/horizon_context_mcp.py) 验证平台集成路径）。
 
 配套产物：[Context Layer 基础设施设计蓝图](./013-context-layer-blueprint.md) · [Horizon Context ↔ negentropy 机制映射报告](./012-horizon-context-mapping-negentropy.md)。
 
@@ -258,6 +258,10 @@ Horizon Context 不是一款孤立产品，而是 **Horizon Catalog**（官方�
 >
 > 一条例外要盯住：**sample values 是元数据、不脱敏**——它经 `GET_DDL WITH EXTENSION` 暴露，官方仅「建议」放代表性非敏感值而无强制（见批判性边界第 6 条）。
 
+![引擎原生治理双层防线：人/BI/AI Agent 以同一套 RBAC 进入，检索层过滤 PRIVATE 维度（体验），引擎内底表 masking/row-access 策略自动传播、执行层 RBAC 拒绝 PRIVATE 资产（底线），直查物理底表的绕行同样被引擎拦截；出口经 Cortex AI Guardrails 安检与 AI_REDACT 脱敏后交付受治理结果。](../../assets/architecture/cognitive-context/horizon-context--engine-governance-dark.png)
+
+> 图源（可 diff 文本）：[`horizon-context--engine-governance.mmd`](../../assets/mermaid/cognitive-context/horizon-context--engine-governance.mmd) · 交互版（下载到本地打开）：[`horizon-context--engine-governance.html`](../../assets/architecture/cognitive-context/horizon-context--engine-governance.html)
+
 > [!IMPORTANT] **原型实践**
 >
 > 实际运行输出的双层防御自证（C2 破坏性实验）：
@@ -344,6 +348,10 @@ Horizon Context 不是一款孤立产品，而是 **Horizon Catalog**（官方�
 >
 > **第二组官方基准（注意口径）**：CoWork 博客（2026-06-02）给出 "83% accuracy rate when using Cortex Sense compared to 47% for CoCo and CoWork alone, and 23% for Frontier Coding Agents"（using Snowflake MCP；internal testing、complex enterprise queries）——它与 Cortex Sense 博客的 24.1% → 86.3% 是**两组不同口径的自报基准**，读法见关键实证数据与批判性边界第 1 条。
 
+![检索激活时序：Agent 提问经 Universal Search 关键词+向量混合检索目录，命中已验证问答（VQR）即以已验证查询为生成依据（confidence 可查），未命中则取 top-k 上下文包生成 SQL 交引擎按查询 grain 重算；新表冷启动显式 no_governed_coverage 警告而非静默推断。](../../assets/architecture/cognitive-context/horizon-context--resolve-activation-dark.png)
+
+> 图源（可 diff 文本）：[`horizon-context--resolve-activation.mmd`](../../assets/mermaid/cognitive-context/horizon-context--resolve-activation.mmd) · 交互版（下载到本地打开）：[`horizon-context--resolve-activation.html`](../../assets/architecture/cognitive-context/horizon-context--resolve-activation.html)
+
 > [!IMPORTANT] **原型实践**
 >
 > A1 验证问答命中、A1b 引擎重算对账与 C1 无手工覆盖推断胜出实际运行输出（原型实现为直接复用验证答案，故 lab 输出沿用「短路重放」字样；官方产品口径是「以已验证查询为生成依据」）：
@@ -379,6 +387,10 @@ Horizon Context 不是一款孤立产品，而是 **Horizon Catalog**（官方�
 > 每加一层信号就涨一截——这就是把排序独立成机制的实证理由。
 >
 > 权威度权重与 M4 的冲突纪律互为双保险：即便某条民间口径流行度更高，governed 定义仍排其前；真到了口径打架的地步，则交 M4 的冲突浮出机制人工裁决，排序绝不代裁。
+
+![四因子信号排序数据流：问题信号、governed/inferred 条目权威度、查询日志热度与更新时钟分别流入 relevance(0.4)/authority(0.3)/popularity(0.2)/freshness(0.1) 四个评估因子，加权合成后经显式 tie-break 输出有序 top-k 上下文包。](../../assets/architecture/cognitive-context/horizon-context--four-factor-ranking-dark.png)
+
+> 图源（可 diff 文本）：[`horizon-context--four-factor-ranking.mmd`](../../assets/mermaid/cognitive-context/horizon-context--four-factor-ranking.mmd) · 交互版（下载到本地打开）：[`horizon-context--four-factor-ranking.html`](../../assets/architecture/cognitive-context/horizon-context--four-factor-ranking.html)
 
 > [!IMPORTANT] **原型实践**
 >
@@ -423,6 +435,10 @@ Horizon Context 不是一款孤立产品，而是 **Horizon Catalog**（官方�
 > **闭环安全保障**：外部工具调用绝不等于“安全裸奔”。即使通过外部 MCP 跨协议调用，底层引擎的 RBAC 与私密过滤（PRIVATE）依然刚性生效。
 >
 > 同时外部交互产生的使用反馈，会实时回流反哺内部热度排序——M6 的 popularity 因子在开放生态里继续积累训练样本。
+
+![开放互操作双路径：引擎内语义视图经 SYSTEM$ 函数与 Ossie 开放规范（dbt MetricFlow 参考实现）实现静态定义互通，经官方 MCP Server（OAuth scopes、每 server ≤50 工具、SSE 流）向外部 Agent 受控供给；RBAC/PRIVATE 随调用刚性生效，使用反馈回流 popularity 排序。](../../assets/architecture/cognitive-context/horizon-context--open-interop-dark.png)
+
+> 图源（可 diff 文本）：[`horizon-context--open-interop.mmd`](../../assets/mermaid/cognitive-context/horizon-context--open-interop.mmd) · 交互版（下载到本地打开）：[`horizon-context--open-interop.html`](../../assets/architecture/cognitive-context/horizon-context--open-interop.html)
 
 > [!IMPORTANT] **原型实践**
 >

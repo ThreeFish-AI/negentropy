@@ -5130,7 +5130,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     <!-- Main Diagram -->
     <div class="diagram-container" data-detail-level="read"
          data-preset-badge-editorial-plate="ARCHIFY / 图版 04">
-      <svg viewBox="0 0 1064 786" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-preset="classic" data-quality-profile="showcase">
+      <svg viewBox="0 0 1064 786" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-animation="trace" data-preset="classic" data-quality-profile="showcase">
         <title id="archify-diagram-title">Autopilot 创作闭环：行为历史铸成受治理语义</title>
         <desc id="archify-diagram-description">由 Archify 生成的工作流图。</desc>
         <!-- Definitions -->
@@ -5187,21 +5187,21 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 
 
         <!-- Edge paths -->
-        <path data-edge-from="in_bi" data-edge-to="validate" data-edge-key="0" data-edge-id="e-bi" data-composition-points="299,146;299,232;506,232" d="M 299 146 L 299 232 L 506 232" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="sv" data-edge-to="consume" data-edge-key="1" data-edge-id="e-consume" data-composition-points="706,398;706,498;813,498" d="M 706 398 L 706 498 L 813 498" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="validate" data-edge-to="discard" data-edge-label="无效查询" data-edge-key="2" data-edge-id="e-discard" data-composition-points="579,280;579,624;632,624" d="M 579 280 L 579 624 L 632 624" class="a-security" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
-        <path data-edge-from="in_pairs" data-edge-to="validate" data-edge-key="3" data-edge-id="e-pairs" data-composition-points="466,146;466,246;506,246" d="M 466 146 L 466 246 L 506 246" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="consume" data-edge-to="vqr" data-edge-label="使用反馈 · 高频且新颖 → Suggestions 候选" data-edge-key="4" data-edge-id="e-suggest" data-composition-points="883,472;883,420;988,420;988,372;972,372" d="M 883 472 L 883 420 L 988 420 L 988 372 L 972 372" class="a-dashed" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
-        <path data-edge-from="validate" data-edge-to="sv" data-edge-label="结构入库 · 推断主键" data-edge-key="5" data-edge-id="e-sv" data-composition-points="586,280;586,426;706,426;706,398" d="M 586 280 L 586 426 L 706 426 L 706 398" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="validate" data-edge-to="vqr" data-edge-label="有效问答自动入库" data-edge-key="6" data-edge-id="e-vqr" data-composition-points="666,246;883,246;883,346" d="M 666 246 L 883 246 L 883 346" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="vqr" data-edge-to="consume" data-edge-label="相似命中作生成依据" data-edge-key="7" data-edge-id="e-vqr-hit" data-composition-points="972,372;1045.401,372;1045.401,498;953,498" d="M 972 372 L 1045.401 372 L 1045.401 498 L 953 498" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="in_zero" data-edge-to="validate" data-edge-key="8" data-edge-id="e-zero" data-composition-points="132,146;132,168;586,168;586,212" d="M 132 146 L 132 168 L 586 168 L 586 212" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="in_bi" data-edge-to="validate" data-edge-key="0" data-edge-id="e-bi" data-composition-points="299,146;299,232;506,232" d="M 299 146 L 299 232 L 506 232" class="a-default" data-animate="edge" style="--step:4" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="sv" data-edge-to="consume" data-edge-key="1" data-edge-id="e-consume" data-composition-points="706,398;706,498;813,498" d="M 706 398 L 706 498 L 813 498" class="a-emphasis" data-animate="edge" style="--step:2" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="validate" data-edge-to="discard" data-edge-label="无效查询" data-edge-key="2" data-edge-id="e-discard" data-composition-points="579,280;579,624;632,624" d="M 579 280 L 579 624 L 632 624" class="a-security" data-animate="edge" style="--step:6" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
+        <path data-edge-from="in_pairs" data-edge-to="validate" data-edge-key="3" data-edge-id="e-pairs" data-composition-points="466,146;466,246;506,246" d="M 466 146 L 466 246 L 506 246" class="a-default" data-animate="edge" style="--step:7" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="consume" data-edge-to="vqr" data-edge-label="使用反馈 · 高频且新颖 → Suggestions 候选" data-edge-key="4" data-edge-id="e-suggest" data-composition-points="883,472;883,420;988,420;988,372;972,372" d="M 883 472 L 883 420 L 988 420 L 988 372 L 972 372" class="a-dashed" data-animate="edge" style="--step:8" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
+        <path data-edge-from="validate" data-edge-to="sv" data-edge-label="结构入库 · 推断主键" data-edge-key="5" data-edge-id="e-sv" data-composition-points="586,280;586,426;706,426;706,398" d="M 586 280 L 586 426 L 706 426 L 706 398" class="a-emphasis" data-animate="edge" style="--step:1" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="validate" data-edge-to="vqr" data-edge-label="有效问答自动入库" data-edge-key="6" data-edge-id="e-vqr" data-composition-points="666,246;883,246;883,346" d="M 666 246 L 883 246 L 883 346" class="a-default" data-animate="edge" style="--step:10" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="vqr" data-edge-to="consume" data-edge-label="相似命中作生成依据" data-edge-key="7" data-edge-id="e-vqr-hit" data-composition-points="972,372;1045.401,372;1045.401,498;953,498" d="M 972 372 L 1045.401 372 L 1045.401 498 L 953 498" class="a-default" data-animate="edge" style="--step:11" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="in_zero" data-edge-to="validate" data-edge-key="8" data-edge-id="e-zero" data-composition-points="132,146;132,168;586,168;586,212" d="M 132 146 L 132 168 L 586 168 L 586 212" class="a-default" data-animate="edge" style="--step:0" stroke-width="1.4" marker-end="url(#arrowhead)"/>
 
         <!-- Nodes -->
         <g id="node-in_zero" data-node-id="in_zero" data-node-label="从零 / CoCo 对话" tabindex="0" role="button" aria-label="聚焦从零 / CoCo 对话，对话生成 YAML · inline diff 评审, 六路输入面 › 六路输入" aria-pressed="false" data-node-kind="backend" data-node-sublabel="对话生成 YAML · inline diff 评审" data-node-context="六路输入面 › 六路输入">
           <title>从零 / CoCo 对话 · 对话生成 YAML · inline diff 评审 · 六路输入面 › 六路输入</title>
           <rect x="48" y="94" width="168" height="52" rx="6" class="c-mask"/>
-          <rect x="48" y="94" width="168" height="52" rx="6" class="c-backend" stroke-width="1.5"/>
+          <rect x="48" y="94" width="168" height="52" rx="6" class="c-backend" data-animate="node" style="--step:0" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(54 100) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
@@ -5212,7 +5212,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <g id="node-in_bi" data-node-id="in_bi" data-node-label="BI 模型文件" tabindex="0" role="button" aria-label="聚焦BI 模型文件，Tableau / Power BI, 六路输入面 › 六路输入" aria-pressed="false" data-node-kind="cloud" data-node-sublabel="Tableau / Power BI" data-node-context="六路输入面 › 六路输入">
           <title>BI 模型文件 · Tableau / Power BI · 六路输入面 › 六路输入</title>
           <rect x="224" y="94" width="150" height="52" rx="6" class="c-mask"/>
-          <rect x="224" y="94" width="150" height="52" rx="6" class="c-cloud" stroke-width="1.5"/>
+          <rect x="224" y="94" width="150" height="52" rx="6" class="c-cloud" data-animate="node" style="--step:5" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="cloud" class="semantic-sigil s-cloud" transform="translate(230 100) scale(0.6875)">
             <path d="M4.3 12.5h7.3a2.4 2.4 0 0 0 .2-4.8 4 4 0 0 0-7.5-1.3A3.1 3.1 0 0 0 4.3 12.5Z"/>
           </g>
@@ -5223,7 +5223,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <g id="node-in_pairs" data-node-id="in_pairs" data-node-label="问答对 / YAML" tabindex="0" role="button" aria-label="聚焦问答对 / YAML，问题+SQL CSV · 既有语义模型, 六路输入面 › 六路输入" aria-pressed="false" data-node-kind="database" data-node-sublabel="问题+SQL CSV · 既有语义模型" data-node-context="六路输入面 › 六路输入">
           <title>问答对 / YAML · 问题+SQL CSV · 既有语义模型 · 六路输入面 › 六路输入</title>
           <rect x="382" y="94" width="168" height="52" rx="6" class="c-mask"/>
-          <rect x="382" y="94" width="168" height="52" rx="6" class="c-database" stroke-width="1.5"/>
+          <rect x="382" y="94" width="168" height="52" rx="6" class="c-database" data-animate="node" style="--step:6" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(388 100) scale(0.6875)">
             <ellipse cx="8" cy="4" rx="5" ry="2"/>
             <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
@@ -5235,7 +5235,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <g id="node-validate" data-node-id="validate" data-node-label="Autopilot 验证门" tabindex="0" role="button" aria-label="聚焦Autopilot 验证门，提取表·列·关系, AI 辅助创作 › 验证与铸造" aria-pressed="false" data-node-kind="security" data-node-sublabel="提取表·列·关系" data-node-tag="人审在环" data-node-context="AI 辅助创作 › 验证与铸造">
           <title>Autopilot 验证门 · 提取表·列·关系 · AI 辅助创作 › 验证与铸造 · 人审在环</title>
           <rect x="506" y="212" width="160" height="68" rx="6" class="c-mask"/>
-          <rect x="506" y="212" width="160" height="68" rx="6" class="c-security" stroke-width="1.5"/>
+          <rect x="506" y="212" width="160" height="68" rx="6" class="c-security" data-animate="node" style="--step:1" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(512 218) scale(0.6875)">
             <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
             <path d="m5.8 8 1.5 1.5 3-3"/>
@@ -5248,7 +5248,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <g id="node-sv" data-node-id="sv" data-node-label="SEMANTIC VIEW" tabindex="0" role="button" aria-label="聚焦SEMANTIC VIEW，五段式声明 · 推断主键, 受治理资产 › 受治理入库与激活" aria-pressed="false" data-node-kind="backend" data-node-sublabel="五段式声明 · 推断主键" data-node-context="受治理资产 › 受治理入库与激活">
           <title>SEMANTIC VIEW · 五段式声明 · 推断主键 · 受治理资产 › 受治理入库与激活</title>
           <rect x="626" y="346" width="160" height="52" rx="6" class="c-mask"/>
-          <rect x="626" y="346" width="160" height="52" rx="6" class="c-backend" stroke-width="1.5"/>
+          <rect x="626" y="346" width="160" height="52" rx="6" class="c-backend" data-animate="node" style="--step:2" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(632 352) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
@@ -5259,7 +5259,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <g id="node-vqr" data-node-id="vqr" data-node-label="AI_VERIFIED_QUERIES" tabindex="0" role="button" aria-label="聚焦AI_VERIFIED_QUERIES，VERIFIED_BY · VERIFIED_AT, 受治理资产 › 受治理入库与激活" aria-pressed="false" data-node-kind="database" data-node-sublabel="VERIFIED_BY · VERIFIED_AT" data-node-context="受治理资产 › 受治理入库与激活">
           <title>AI_VERIFIED_QUERIES · VERIFIED_BY · VERIFIED_AT · 受治理资产 › 受治理入库与激活</title>
           <rect x="794" y="346" width="178" height="52" rx="6" class="c-mask"/>
-          <rect x="794" y="346" width="178" height="52" rx="6" class="c-database" stroke-width="1.5"/>
+          <rect x="794" y="346" width="178" height="52" rx="6" class="c-database" data-animate="node" style="--step:9" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(800 352) scale(0.6875)">
             <ellipse cx="8" cy="4" rx="5" ry="2"/>
             <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
@@ -5271,7 +5271,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <g id="node-consume" data-node-id="consume" data-node-label="激活消费" tabindex="0" role="button" aria-label="聚焦激活消费，agent · BI · Cortex, 激活与反馈 › 受治理入库与激活" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="agent · BI · Cortex" data-node-context="激活与反馈 › 受治理入库与激活">
           <title>激活消费 · agent · BI · Cortex · 激活与反馈 › 受治理入库与激活</title>
           <rect x="813" y="472" width="140" height="52" rx="6" class="c-mask"/>
-          <rect x="813" y="472" width="140" height="52" rx="6" class="c-frontend" stroke-width="1.5"/>
+          <rect x="813" y="472" width="140" height="52" rx="6" class="c-frontend" data-animate="node" style="--step:3" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="frontend" class="semantic-sigil s-frontend" transform="translate(819 478) scale(0.6875)">
             <rect x="2" y="3" width="12" height="10" rx="2"/>
             <path d="M2 6.5h12"/>
@@ -5285,7 +5285,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <g id="node-discard" data-node-id="discard" data-node-label="丢弃无效查询" tabindex="0" role="button" aria-label="聚焦丢弃无效查询，验证失败即弃, 验证丢弃 › 受治理入库与激活" aria-pressed="false" data-node-kind="security" data-node-sublabel="验证失败即弃" data-node-context="验证丢弃 › 受治理入库与激活">
           <title>丢弃无效查询 · 验证失败即弃 · 验证丢弃 › 受治理入库与激活</title>
           <rect x="632" y="598" width="148" height="52" rx="6" class="c-mask"/>
-          <rect x="632" y="598" width="148" height="52" rx="6" class="c-security" stroke-width="1.5"/>
+          <rect x="632" y="598" width="148" height="52" rx="6" class="c-security" data-animate="node" style="--step:11" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(638 604) scale(0.6875)">
             <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
             <path d="m5.8 8 1.5 1.5 3-3"/>

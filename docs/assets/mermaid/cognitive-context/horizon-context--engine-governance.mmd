@@ -1,0 +1,14 @@
+%%source: docs/research/cognitive-context/011-horizon-context.md#blockM3 (L242-L269, §5 M3 · 引擎原生治理)
+%%slug: cognitive-context/horizon-context--engine-governance
+%%type: workflow
+%%derived: archify workflow v2, authored from source mermaid
+flowchart LR
+    CAL["🧑‍💼 人 / BI / AI Agent<br/>同一套 RBAC · 无 AI 专用配置"] --> FLT["检索层过滤（体验）<br/>PRIVATE 维度不下发"]
+    CAL -.->|"绕过语义层"| BYP["🚪 直查物理底表"]
+    FLT --> POL["策略随含义传播<br/>底表 masking / row-access 自动生效"]
+    POL --> RB{"执行层 RBAC（底线）<br/>owner's rights 校验"}
+    RB -->|"PRIVATE 资产"| AX["🚫 AccessDenied"]
+    BYP -->|"引擎策略仍拦截"| AX
+    RB -->|"通过"| GRD["Cortex AI Guardrails<br/>拦 prompt injection / jailbreak"]
+    GRD --> RED["AI_REDACT 出口脱敏<br/>PII / PHI · 4096 token 上限"]
+    RED --> OUT["✅ 受治理结果<br/>策略与标签随行携带"]

@@ -1,0 +1,27 @@
+%%source: docs/research/cognitive-context/011-horizon-context.md#blockM7 (L404-L459, §9 M7 · 开放互操作)
+%%slug: cognitive-context/horizon-context--open-interop
+%%type: architecture
+%%derived: archify architecture v1, authored from source mermaid
+flowchart TB
+    subgraph "Snowflake 引擎内（治理随行）"
+        SV["📦 语义视图<br/>受治理定义（元数据对象）"]
+        SYS["SYSTEM$ 转换函数<br/>FROM_YAML / FROM_OSI_YAML / READ_YAML"]
+        MCP["🔌 官方 MCP Server<br/>GA 2025-11-04 · 5 类工具 · SSE 流"]
+        RBX["🛡️ RBAC / PRIVATE 随调用生效"]
+    end
+    subgraph "开放生态"
+        GIT["Git 版本库<br/>定义即代码 · PR 评审"]
+        OSS["Apache Ossie（原 OSI）<br/>开放规范 · 50+ 组织"]
+        DBT["dbt MetricFlow<br/>Apache 2.0 · 初始参考实现"]
+        EXT["🤖 外部 Agent<br/>Claude Desktop / Claude Code / Cursor"]
+        FB["📶 使用反馈回流<br/>popularity 继续积累"]
+    end
+    SV -->|"SYSTEM$READ_YAML 导出"| SYS
+    SYS -->|"YAML 入库 · PR 评审"| GIT
+    SYS -.->|"对齐 Ossie 规范"| OSS
+    OSS -.->|"同一规范"| DBT
+    SV -->|"受控工具面开放"| MCP
+    MCP -->|"tools/call · SSE"| EXT
+    RBX -->|"越权即拒"| MCP
+    EXT -.->|"点赞 / 点踩 / 命中"| FB
+    FB -.->|"反哺 popularity 排序"| SV
