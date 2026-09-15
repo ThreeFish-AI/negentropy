@@ -1,0 +1,30 @@
+%%source: docs/research/cognitive-context/013-context-layer-blueprint.md#block8-3 (L289-L329, §8.3 MCP 供给面威胁模型)
+%%slug: cognitive-context/context-layer-blueprint--mcp-threat-model
+%%type: architecture
+%%derived: archify architecture v1, authored from source mermaid
+flowchart LR
+    subgraph "外部客户端环境"
+        AG["外部 Agent 客户端<br/>Claude / Cursor / 自研"]
+        CON["🔐 per-client consent<br/>OAuth 最小 scopes"]
+        TT["☠️ token 透传窃取"]
+    end
+    subgraph "Context Layer 供给边界（安全边界）"
+        MCP["🔌 MCP 供给面<br/>list / resolve / compile / feedback"]
+        CG{"🛡️ 编译期治理门<br/>RBAC 于 SQL 生成前评估"}
+        TP["☠️ 工具描述投毒<br/>tool poisoning / rug pull"]
+        TI["☠️ 响应内指令注入"]
+        TD["☠️ confused deputy<br/>server 以自身权限执行"]
+    end
+    subgraph "数据与执行平面"
+        EX["⚙️ 受治理执行<br/>egress 白名单"]
+        DA[("🗄️ 数据平面<br/>仓库 / 向量库")]
+    end
+    CON --> AG
+    TT -.-> AG
+    AG -->|"tools/call（SSE）"| MCP
+    TP -.-> MCP
+    TI -.-> MCP
+    TD -.-> CG
+    MCP --> CG
+    CG -->|"破坏性动作 · 强确认"| EX
+    EX --> DA

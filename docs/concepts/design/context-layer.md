@@ -7,7 +7,7 @@ title: "Context Layer · 上下文治理层技术方案"
 > 本文遵循用户级全局配置 `~/.claude/CLAUDE.md` 的协作协议与循证要求。
 >
 > 设计核心锚定：
-> - **行业对标**：[Snowflake Horizon Context](https://www.snowflake.com/en/product/features/horizon-context/) · [Snowflake 数据云调研 §D7 Horizon Catalog](../../research/retrieval-storage/034-snowflake-data-cloud.md)
+> - **行业对标**：[Snowflake Horizon Context](https://www.snowflake.com/en/product/features/horizon-context/) · [Horizon Context 精读笔记](../../research/cognitive-context/011-horizon-context.md) · [Context Layer 基础设施设计蓝图](../../research/cognitive-context/013-context-layer-blueprint.md)（本方案是其在 negentropy 的一次实例化）· [Snowflake 数据云调研 §D7 Horizon Catalog](../../research/retrieval-storage/034-snowflake-data-cloud.md)
 > - **理论基线**：[Context Engineering 通俗全解](../../research/cognitive-context/010-context-engineering.md)（Collect / Management / Usage 三段论）
 > - **子系统参考**：[记忆系统](../subsystems/025-the-memory-system.md) · [记忆白皮书](../subsystems/026-memory-whitepaper.md) · [知识库](../subsystems/035-the-knowledge-base.md) · [知识图谱](../subsystems/036-the-knowledge-graph.md) · [联邦 KG](../subsystems/037-federated-kg.md) · [Skills 设计](./skills.md)
 > - **架构上下文**：[系统框架 · 一核五翼](../framework.md) · [自进化 Agents Team 方案](./self-evolving-agents.md)

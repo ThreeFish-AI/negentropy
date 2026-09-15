@@ -192,10 +192,17 @@
 
 | slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| [horizon-context--collect-enrich-activate](./cognitive-context/horizon-context--collect-enrich-activate.mmd) | cognitive-context/011-horizon-context.md §2 | dataflow | ✓ | done | 三段流水线：三源并列汇入目录 → 显式/隐式双轨（冲突浮出人工裁决）→ 四因子排序 → 三类消费者 |
-| [horizon-context--declaration-execution](./cognitive-context/horizon-context--declaration-execution.mmd) | cognitive-context/011-horizon-context.md §3 | workflow | ✓ | done | 声明相（五段式+结构校验门）→ 执行相（双层 RBAC + 策略 A 聚合）；workflow v2 重排为单行主链 |
-| [context-layer-blueprint--architecture](./cognitive-context/context-layer-blueprint--architecture.mmd) | cognitive-context/013-context-layer-blueprint.md §1 | architecture | ✓ | done | 五正交层总体架构；重绘砍 2 条低值边（裁决/反馈环路由姊妹图与卡片承载） |
-| [context-layer-blueprint--object-lifecycle](./cognitive-context/context-layer-blueprint--object-lifecycle.mmd) | cognitive-context/013-context-layer-blueprint.md §2 | lifecycle | ✓ | done | 对象生命周期状态机；3 泳道并为 2（冲突与终态合流）保垂直容纳 |
+| [horizon-context--collect-enrich-activate](./cognitive-context/horizon-context--collect-enrich-activate.mmd) | cognitive-context/011-horizon-context.md §3 M1 | dataflow | ✓ | done | 三段流水线：三源并列汇入目录 → 显式/隐式双轨（冲突浮出人工裁决）→ 四因子排序 → 三类消费者；2026-09-15 重制为 trace 动效版 |
+| [horizon-context--declaration-execution](./cognitive-context/horizon-context--declaration-execution.mmd) | cognitive-context/011-horizon-context.md §4 M2 | workflow | ✓ | done | 声明相（五段式+结构校验门）→ 执行相（双层 RBAC + 策略 A 聚合）；workflow v2 重排为单行主链；2026-09-15 重制为 trace 动效版 |
+| [horizon-context--autopilot-loop](./cognitive-context/horizon-context--autopilot-loop.mmd) | cognitive-context/011-horizon-context.md §6 M4 | workflow | ✓ | done | Autopilot 创作闭环：六路输入面 → 验证门（无效即弃）→ SV+VQR 受治理入库 → 激活 → 反馈回流 Suggestions；trace 动效版 |
+| [horizon-context--engine-governance](./cognitive-context/horizon-context--engine-governance.mmd) | cognitive-context/011-horizon-context.md §5 M3 | workflow | ✓ | done | 引擎原生治理双层防线：检索过滤（体验）→ 策略传播 + 执行层 RBAC（底线）→ Guardrails/AI_REDACT 出口安检；trace 动效版 |
+| [horizon-context--resolve-activation](./cognitive-context/horizon-context--resolve-activation.mmd) | cognitive-context/011-horizon-context.md §7 M5 | sequence | ✓ | done | 检索激活时序：resolve → 混合检索 → VQR 命中以已验证查询为生成依据 / 冷启动 no_governed_coverage 警告；trace 动效版 |
+| [horizon-context--four-factor-ranking](./cognitive-context/horizon-context--four-factor-ranking.mmd) | cognitive-context/011-horizon-context.md §8 M6 | dataflow | ✓ | done | 四因子排序数据流：五路信号 → R/A/P/F 四因子 → 加权合成 + 显式 tie-break → top-k；trace 动效版 |
+| [horizon-context--open-interop](./cognitive-context/horizon-context--open-interop.mmd) | cognitive-context/011-horizon-context.md §9 M7 | architecture | ✓ | done | 开放互操作双路径：Ossie/SYSTEM$/Git 静态互通 + MCP/OAuth 运行时受控供给，反馈回流 popularity；trace 动效版 |
+| [context-layer-blueprint--industry-landscape](./cognitive-context/context-layer-blueprint--industry-landscape.mmd) | cognitive-context/013-context-layer-blueprint.md §2 业界格局 | architecture | ✓ | done | 四路线格局（联邦低值边由卡片承载）；消费者居中辐射，蓝图落位独立可执行层 |
+| [context-layer-blueprint--mcp-threat-model](./cognitive-context/context-layer-blueprint--mcp-threat-model.mmd) | cognitive-context/013-context-layer-blueprint.md §8.3 供给面威胁模型 | architecture | ✓ | done | 客户端→供给面→治理门→执行→数据主链 + 四类威胁注入点与拦截位；三边界分区 |
+| [context-layer-blueprint--architecture](./cognitive-context/context-layer-blueprint--architecture.mmd) | cognitive-context/013-context-layer-blueprint.md §3 总体架构 | architecture | ✓ | done | 五正交层总体架构；重绘砍 2 条低值边（裁决/反馈环路由姊妹图与卡片承载） |
+| [context-layer-blueprint--object-lifecycle](./cognitive-context/context-layer-blueprint--object-lifecycle.mmd) | cognitive-context/013-context-layer-blueprint.md §4 对象层 | lifecycle | ✓ | done | 对象生命周期状态机；3 泳道并为 2（冲突与终态合流）保垂直容纳 |
 
 ### 原地保留（无 archify 对应类型 / 不在本管线）
 
