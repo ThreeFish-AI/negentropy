@@ -2,47 +2,43 @@
 %%slug: cognitive-context/horizon-context--component-panorama
 %%type: dataflow
 %%derived: archify dataflow v1, authored from source mermaid
+%% fix: (2026-09-15 同步) 重写为出货图逐字镜像（恢复 mmd↔HTML↔PNG 逐字同步口径）：① subgraph 按图内五段序（进料富化 01 → 定义执法 02 → 检索分发 03 → 互联出口 04 → 消费端·生态与基座 05），原「消费端」「全景与基座」两簇在图中合并，ADA（Automatic Data Agents）随图归入 05 簇；② 节点/边标签对齐图内精简文案（连接器清单→「Select Star · Wave 1 五连接器」、四因子全称→「R · A · P · F 四因子」等）；③ 图省略三条边（RK→AGENTS top-k / OSS↔SV YAML 互导 / ADA→SV 一键生成）——语义已由节点 sublabel 与 open-interop 姊妹图承载，SYSTEM$CREATE_SEMANTIC_VIEW_FROM_YAML 详见 horizon-context--open-interop.mmd
 flowchart LR
-    subgraph "定义与执法（M1–M3）· 承重骨架"
-        SV["📦 Semantic Views<br/>五段式对象 · 带校验门（M1）"]
-        QE["⚙️ 查询时执行<br/>standard SQL · 按 grain 现算（M2）"]
-        EG["🛡️ 引擎原生治理<br/>RBAC / Masking / Row Access / AI Guardrails / AI_REDACT（M3）"]
-    end
     subgraph "进料与富化（M4）· 自愈血液"
-        AP["🏗️ Autopilot / Semantic Studio<br/>自动起草 + 验证 · days → minutes（M4）"]
-        MC["🗄️ Metadata Connectors<br/>源自 Select Star · Tableau / Power BI / dbt / PostgreSQL / SQL Server（M4）"]
+        MC["🗄️ Metadata Connectors<br/>Select Star · Wave 1 五连接器（M4）"]
+        AP["🏗️ Autopilot<br/>Semantic Studio · days → minutes（M4）"]
         CS["🔍 Cortex Sense<br/>查询历史隐式挖掘 · 自动纠偏（M4）"]
     end
+    subgraph "定义与执法（M1–M3）· 承重骨架"
+        EG["🛡️ 引擎原生治理<br/>RBAC/Masking/RowAccess · 出口脱敏（M3）"]
+        SV["📦 Semantic Views<br/>五段式对象 · 带校验门（M1）"]
+        QE["⚙️ 查询时执行<br/>standard SQL · 按 grain 现算（M2）"]
+    end
     subgraph "检索与分发（M5–M6）· 触达神经"
-        VQR["✅ AI_VERIFIED_QUERIES（VQR）<br/>专家问答对 · 带署名溯源（M5）"]
-        US["🧭 Universal Search / Cortex Search<br/>关键词 + 向量混合检索（M5）"]
-        RK["⚖️ 四因子信号排序<br/>relevance / authority / popularity / freshness（M6）"]
+        VQR["✅ AI_VERIFIED_QUERIES<br/>专家问答对 · 带署名溯源（M5）"]
+        US["🧭 Universal / Cortex Search<br/>关键词 + 向量混合检索（M5）"]
+        RK["⚖️ 四因子信号排序<br/>R · A · P · F 四因子（M6）"]
     end
     subgraph "互联与出口（M7）· 开放抓手"
-        MCP["🔌 Snowflake 官方 MCP Server<br/>标准受控工具面（M7）"]
-        OSS["📜 Ossie（原 OSI）<br/>开放 YAML/JSON 语义规范（M7）"]
-        ADA["🏭 Automatic Data Agents<br/>Marketplace 共享数据一键出厂（M7）"]
+        OSS["📜 Ossie（原 OSI）<br/>跨平台语义互导 · 50+ 组织（M7）"]
+        MCP["🔌 Snowflake 官方 MCP Server<br/>标准受控工具面 · 5 类工具（M7）"]
     end
-    subgraph "消费端（M5 / M7）"
-        AGENTS["🤖 CoCo / CoWork / Cortex Agents<br/>官方原生 Agent 矩阵（M5 / M7）"]
+    subgraph "消费端 · 生态与基座"
+        AGENTS["🤖 官方 Agent 矩阵<br/>CoCo / CoWork / Cortex Agents（M5 / M7）"]
+        ADA["🏭 Automatic Data Agents<br/>Marketplace 一键生成 SV + Agent（M7）"]
+        EL["🕸️ External Lineage<br/>端到端「谁产出、谁消费」血缘（Structural 全景）"]
+        BASE["🔑 基座角色<br/>Agent Identity · OpenLineage 摄取"]
     end
-    subgraph "全景与基座"
-        EL["🕸️ External Lineage<br/>端到端「谁产出、谁消费」血缘 · Structural 全景"]
-        BASE["🔑 基座角色<br/>Agent Identity（纳入统一 RBAC）· OpenLineage 摄取"]
-    end
-    MC -->|"外部存量语义资产入库<br/>Wave 1 五连接器"| SV
-    AP -->|"聚合多路信号起草并验证"| SV
-    CS -.->|"隐式候选 Suggestions · 冲突浮出人工"| SV
-    SV -->|"按查询 grain 动态现算"| QE
-    SV -->|"受治理定义进入召回"| US
-    VQR -->|"相似命中优先激活复用"| US
-    US -->|"关键词 + 向量混合"| RK
-    RK -->|"语义视图 + 检索能力打包"| MCP
-    RK -->|"精准 top-k 上下文包"| AGENTS
-    MCP -->|"CORTEX_AGENT_RUN · 推荐单 Agent 工具面"| AGENTS
-    OSS <-.->|"规范 YAML ↔ 语义视图互导<br/>SYSTEM$CREATE_SEMANTIC_VIEW_FROM_YAML"| SV
-    ADA -.->|"一键生成 SV + 配套 Agent · 约 10 分钟"| SV
+    MC -->|"存量入库 · Wave 1"| SV
+    AP -->|"起草验证"| SV
+    CS -.->|"冲突浮出人工"| SV
+    SV -->|"按 grain 现算"| QE
+    SV -->|"定义进入召回"| US
+    VQR -->|"相似命中优先激活"| US
+    US -->|"混合检索"| RK
+    RK -->|"打包为受控工具面"| MCP
+    MCP -->|"单 Agent 工具面"| AGENTS
     EL -.->|"全链路血缘运营"| ADA
-    BASE -->|"OpenLineage 摄取承载输入侧"| EL
-    BASE -.->|"Agent Identity 纳入统一 RBAC"| EG
-    EG -.->|"对所有调用方强制 · 无 AI 专用配置"| AGENTS
+    BASE -->|"OpenLineage 输入侧"| EL
+    BASE -.->|"Agent Identity 纳入 RBAC"| EG
+    EG -.->|"对所有调用方强制"| AGENTS
