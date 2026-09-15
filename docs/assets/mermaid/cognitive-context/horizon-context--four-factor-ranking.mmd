@@ -1,12 +1,13 @@
-%%source: docs/research/cognitive-context/011-horizon-context.md#blockM6 (L366-L399, §8 M6 · 信号排序)
+%%source: docs/research/cognitive-context/011-horizon-context.md#blockM6 (L405-L422, §8 M6 · 信号排序)
 %%slug: cognitive-context/horizon-context--four-factor-ranking
 %%type: dataflow
 %%derived: archify dataflow v1, authored from source mermaid
+%% fix: (2026-09-15 校准) ① INF 节点「authority < 1」对 legacy 是事实错误——lab 实测 inferred authority=0.3、legacy authority=1.0 靠 freshness→0 隔离（horizon_context_lab.py L675，selftest C5）；② TOPK 补唯一官方量化证据 NDCG@10 / hit rate@1 分层增益（Cortex Search 工程博客，正文 M6）；③ %%source 行号更新为 L405-L422
 flowchart LR
     subgraph "信号来源"
         Q["❓ 问题信号<br/>关键词 × 业务意图"]
         GOV["🏛️ governed 定义<br/>authority = 1.0"]
-        INF["🔍 inferred / legacy<br/>authority < 1 · 停更旧口径"]
+        INF["🔍 inferred / legacy<br/>inferred authority=0.3 · legacy 停更（freshness→0）"]
         USE["📈 使用信号<br/>查询日志 · 高频 join 模式"]
         TM["🕒 时间信号<br/>更新时钟 · 单一 staleness"]
     end
@@ -20,7 +21,7 @@ flowchart LR
         SC["加权合成<br/>0.4R + 0.3A + 0.2P + 0.1F"]
         TB["显式 tie-break<br/>( -score, -authority, -updated, name )"]
     end
-    TOPK["📤 top-k 上下文包<br/>先给谁由排序决定"]
+    TOPK["📤 top-k 上下文包<br/>NDCG@10 0.22→0.59 · hit rate@1 0.79→0.86<br/>先给谁由排序决定"]
     Q --> REL
     GOV --> AUT
     INF -.-> AUT

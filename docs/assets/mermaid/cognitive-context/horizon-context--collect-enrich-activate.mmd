@@ -1,7 +1,8 @@
-%%source: docs/research/cognitive-context/011-horizon-context.md#blockM1 (L143-L202, §3 M1 · 五段式 Context 对象模型)
+%%source: docs/research/cognitive-context/011-horizon-context.md#blockM1 (L181-L221, §3 M1 · 五段式 Context 对象模型)
 %%slug: cognitive-context/horizon-context--collect-enrich-activate
 %%type: dataflow
 %%derived: archify dataflow v1, authored from source mermaid
+%% fix: (2026-09-15 校准) ① A2 节点去无出处词「Excel」（正文与 git 历史零命中）并规范「Power BI」写法；② 显式轨道 authority=1.0 / 隐式轨道 authority=0.3 数值出处为 horizon_context_lab.py L43/L437（正文无数值字面）；③ %%source 行号更新为 L181-L221
 flowchart LR
     subgraph "Collect 汇聚"
         S1["🗄️ 元数据连接器<br/>Tableau / Power BI / dbt / PG / MSSQL"] --> C
@@ -18,6 +19,6 @@ flowchart LR
         G --> R["🧭 四因子混合排序<br/>relevance / authority / popularity / freshness"]
         I --> R
         R --> A1["🤖 CoCo / CoWork"]
-        R --> A2["📊 BI（Tableau / PowerBI / Excel / …）"]
+        R --> A2["📊 BI 工具（Tableau / Power BI / …）"]
         R --> A3["🔌 MCP → 外部 Agent（Claude / Cursor）"]
     end

@@ -1,0 +1,29 @@
+%%source: docs/research/cognitive-context/011-horizon-context.md#block2-23 (L111-L173, §2.2–§2.3 三阶段叙事与时间线速览)
+%%slug: cognitive-context/horizon-context--evolution-timeline
+%%type: dataflow
+%%derived: archify dataflow v1, authored from source mermaid
+flowchart TD
+    subgraph "阶段一 · 语义对象化（2024-02 → 2025-08）：从「找得到」到「算得准」"
+        MS1["🔎 2024-02-20 → 08-08 · Universal Search 预览；Cortex Search 预览 + 检索基准发布（M5 / M6）"]
+        MS2["📦 2025-04 → 08 · Semantic Views 预览 → Summit GA → 查询 GA（M1 / M2）"]
+    end
+    subgraph "阶段二 · 治理内嵌与双轨富化（2025-09 → 2026-06-02）：守得住、填得满、送得出"
+        MS3["📜 2025-09-23 · 联合 17 家厂商发起 OSI 倡议（M7）"]
+        MS4["🔌 2025-10-02 → 11-04 · Snowsight 管理面 GA + MCP Server 预览；Snowflake 官方 MCP GA + Snowflake Intelligence（后 CoWork）GA（M7）"]
+        MS5["🗄️ 2025-11-24 · 宣布收购 Select Star（M4）"]
+        MS6["🛡️ 2025-12 · VQR 调优预览（12-02）；AI_REDACT GA（12-08）（M5 / M3）"]
+        MS7["📝 2026-01 · AI 提示词内嵌语法落地 + External Lineage 预览（M1）；OSI v1 规范定稿 · 33 家联盟 · Databricks 入局（01-27）（M7）"]
+        MS8["🏗️ 2026-02-03 · BUILD London：Autopilot GA + Cortex Code 发布（M4）"]
+        MS9["⚙️ 2026-03 · standard SQL 查询 GA；半可加性支持；USING 语法（M2）"]
+        MS10["✅ 2026-04 · AI_VERIFIED_QUERIES 进 DDL；Cortex AI Guardrails GA（M1 / M3）"]
+        MS11["🏛️ 2026-06-02 · Summit：Horizon Context 整体发布 · Agent Identity GA（全景）"]
+    end
+    subgraph "阶段三 · 生态开放与运营化（2026-06-30 → 至今）：走向跨生态"
+        MS12["🔍 2026-06-30 → 07 · Cortex Sense 发布与私测；OSI 捐赠为 Apache Ossie（M4 / M7）"]
+        MS13["🕸️ 2026-08 → 09 · Power BI 摄取 GA；External Lineage GA；Agent 血缘上线（M4 / M7）"]
+    end
+    MS1 -->|"检索仅是起点 · 含义须成对象"| MS2
+    MS2 -->|"算得准 → 守得住"| MS3
+    MS3 --> MS4 --> MS5 --> MS6 --> MS7 --> MS8 --> MS9 --> MS10 --> MS11
+    MS11 -->|"送得出 → 随处用 · 生态开放"| MS12
+    MS12 -->|"全域血缘 · 信得过、带得走"| MS13

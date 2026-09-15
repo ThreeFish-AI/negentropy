@@ -5190,11 +5190,11 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         </g>
         </g>
 
-        <g data-edge-from="us" data-edge-to="cat" data-edge-label="混合检索 top-k 候选" data-edge-key="1" data-edge-id="m2">
+        <g data-edge-from="us" data-edge-to="cat" data-edge-label="混合检索 top-k 候选（整视图 ~100,000 token 上限 · 超限即剪枝）" data-edge-key="1" data-edge-id="m2">
           <path data-composition-edge-from="us" data-composition-edge-to="cat" data-composition-edge-id="m2" data-composition-points="349.25,192;534,192" d="M 349.25 192 L 534 192" class="a-default" data-animate="edge" style="--step:1" stroke-width="1.4" marker-end="url(#arrowhead)"/>
         <g data-detail="context">
-          <rect x="386.225" y="172" width="110.8" height="16" rx="3" class="c-mask"/>
-          <text x="441.625" y="182" class="t-backend" font-size="9" text-anchor="middle">混合检索 top-k 候选</text>
+          <rect x="274.42499999999995" y="172" width="334.40000000000003" height="16" rx="3" class="c-mask"/>
+          <text x="441.625" y="182" class="t-backend" font-size="9" text-anchor="middle">混合检索 top-k 候选（整视图 ~100,000 token 上限 · 超限即剪枝）</text>
         </g>
         </g>
 
@@ -5549,40 +5549,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 
     <!-- Info Cards -->
     <div class="cards">
-      <div class="card">
-        <div class="card-header">
-          <div class="card-dot cyan"></div>
-          <h3>精选不填鸭</h3>
-        </div>
-        <ul>
-          <li>&bull; top-k 上下文包而非全量元数据——整视图 ~100k token 上限，超限被剪枝即降质</li>
-          <li>&bull; 混合检索：关键词 + 语义向量双通道（Universal Search 混合排名）</li>
-        </ul>
-      </div>
 
-      <div class="card">
-        <div class="card-header">
-          <div class="card-dot emerald"></div>
-          <h3>验证问答的官方口径</h3>
-        </div>
-        <ul>
-          <li>&bull; 相似命中时以已验证查询为生成依据——不是照抄重放</li>
-          <li>&bull; VERIFIED_BY / VERIFIED_AT + ONBOARDING_QUESTION 字段，REST confidence 可查命中</li>
-          <li>&bull; Suggestions 三入选标准：高频 · 有语义信息量 · 新颖</li>
-        </ul>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          <div class="card-dot rose"></div>
-          <h3>冷启动诚实底线</h3>
-        </div>
-        <ul>
-          <li>&bull; 新表无 governed 覆盖 → 显式 no_governed_coverage 警告</li>
-          <li>&bull; 推断口径可用但低权威——绝不静默冒充金标准</li>
-          <li>&bull; 这是与「搜到什么答什么」的普通 RAG 的分界线</li>
-        </ul>
-      </div>
     </div>
 
   </div>

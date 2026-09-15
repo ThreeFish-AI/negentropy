@@ -1,0 +1,48 @@
+%%source: docs/research/cognitive-context/011-horizon-context.md#block2-1 (L80-L109, §2.1 定位：从「登记簿」到「业务的 Working Model」)
+%%slug: cognitive-context/horizon-context--component-panorama
+%%type: dataflow
+%%derived: archify dataflow v1, authored from source mermaid
+flowchart LR
+    subgraph "定义与执法（M1–M3）· 承重骨架"
+        SV["📦 Semantic Views<br/>五段式对象 · 带校验门（M1）"]
+        QE["⚙️ 查询时执行<br/>standard SQL · 按 grain 现算（M2）"]
+        EG["🛡️ 引擎原生治理<br/>RBAC / Masking / Row Access / AI Guardrails / AI_REDACT（M3）"]
+    end
+    subgraph "进料与富化（M4）· 自愈血液"
+        AP["🏗️ Autopilot / Semantic Studio<br/>自动起草 + 验证 · days → minutes（M4）"]
+        MC["🗄️ Metadata Connectors<br/>源自 Select Star · Tableau / Power BI / dbt / PostgreSQL / SQL Server（M4）"]
+        CS["🔍 Cortex Sense<br/>查询历史隐式挖掘 · 自动纠偏（M4）"]
+    end
+    subgraph "检索与分发（M5–M6）· 触达神经"
+        VQR["✅ AI_VERIFIED_QUERIES（VQR）<br/>专家问答对 · 带署名溯源（M5）"]
+        US["🧭 Universal Search / Cortex Search<br/>关键词 + 向量混合检索（M5）"]
+        RK["⚖️ 四因子信号排序<br/>relevance / authority / popularity / freshness（M6）"]
+    end
+    subgraph "互联与出口（M7）· 开放抓手"
+        MCP["🔌 Snowflake 官方 MCP Server<br/>标准受控工具面（M7）"]
+        OSS["📜 Ossie（原 OSI）<br/>开放 YAML/JSON 语义规范（M7）"]
+        ADA["🏭 Automatic Data Agents<br/>Marketplace 共享数据一键出厂（M7）"]
+    end
+    subgraph "消费端（M5 / M7）"
+        AGENTS["🤖 CoCo / CoWork / Cortex Agents<br/>官方原生 Agent 矩阵（M5 / M7）"]
+    end
+    subgraph "全景与基座"
+        EL["🕸️ External Lineage<br/>端到端「谁产出、谁消费」血缘 · Structural 全景"]
+        BASE["🔑 基座角色<br/>Agent Identity（纳入统一 RBAC）· OpenLineage 摄取"]
+    end
+    MC -->|"外部存量语义资产入库<br/>Wave 1 五连接器"| SV
+    AP -->|"聚合多路信号起草并验证"| SV
+    CS -.->|"隐式候选 Suggestions · 冲突浮出人工"| SV
+    SV -->|"按查询 grain 动态现算"| QE
+    SV -->|"受治理定义进入召回"| US
+    VQR -->|"相似命中优先激活复用"| US
+    US -->|"关键词 + 向量混合"| RK
+    RK -->|"语义视图 + 检索能力打包"| MCP
+    RK -->|"精准 top-k 上下文包"| AGENTS
+    MCP -->|"CORTEX_AGENT_RUN · 推荐单 Agent 工具面"| AGENTS
+    OSS <-.->|"规范 YAML ↔ 语义视图互导<br/>SYSTEM$CREATE_SEMANTIC_VIEW_FROM_YAML"| SV
+    ADA -.->|"一键生成 SV + 配套 Agent · 约 10 分钟"| SV
+    EL -.->|"全链路血缘运营"| ADA
+    BASE -->|"OpenLineage 摄取承载输入侧"| EL
+    BASE -.->|"Agent Identity 纳入统一 RBAC"| EG
+    EG -.->|"对所有调用方强制 · 无 AI 专用配置"| AGENTS

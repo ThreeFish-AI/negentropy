@@ -1,7 +1,8 @@
-%%source: docs/research/cognitive-context/011-horizon-context.md#blockM2 (L204-L241, §4 M2 · 查询时语义正确性)
+%%source: docs/research/cognitive-context/011-horizon-context.md#blockM2 (L246-L257, §4 M2 · 查询时语义正确性)
 %%slug: cognitive-context/horizon-context--declaration-execution
 %%type: workflow
 %%derived: archify workflow v2, authored from source mermaid
+%% fix: (2026-09-15 校准) ① OUT label 补第 5 保障 USING 消歧（正文 M2 保障 5：显式指定关联路径防 chasm trap）；② %%source 行号更新为 L246-L257（声明相校验规则另涉 M1 NOTE 内 L200-L209）
 flowchart TB
     subgraph "声明相（CREATE SEMANTIC VIEW）"
         D1["TABLES + PK/UNIQUE"] --> D5["五段式声明"]
@@ -15,5 +16,5 @@ flowchart TB
         VG -->|"通过"| RB{"👔 执行层 RBAC<br/>（人 / BI / agent 同一套）"}
         RB -->|"PRIVATE 资产"| AX["🚫 AccessDenied"]
         RB --> AG["策略 A：basis 行直接聚合<br/>agg-before-join · 零行复制"]
-        AG --> OUT["✅ 按查询 grain 重算<br/>distinct 安全 / 先聚后除 / 末快照"]
+        AG --> OUT["✅ 按查询 grain 重算<br/>distinct 安全 / 先聚后除 / 末快照 / USING 消歧"]
     end
