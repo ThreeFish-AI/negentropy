@@ -6,7 +6,7 @@ description: "通用可复刻 Context Layer 蓝图：五正交层中枢（对象
 
 > 以 [Snowflake Horizon Context](https://www.snowflake.com/en/product/features/horizon-context/) 为范本的**通用可复刻架构**：一个可独立部署、面向 Agents 研发与平台集成的治理上下文层——不只复刻 Snowflake，而是吸收全行业实践，可服务任意引擎与 agent 平台。
 >
-> 循证基础：Horizon 自身机制的详解、官方基准数字与批判性边界见 [Horizon Context 精读笔记](./011-horizon-context.md)；与本仓代码的逐条对照见[机制映射报告](./012-horizon-context-mapping-negentropy.md)；negentropy 内部实例化见 [Context Layer 技术方案](../../concepts/design/context-layer.md)；行业格局、第三方实证与失败史的出处见文末参考 [7]–[17]。最小原型（M1–M6 六机制 + MCP 服务）已随笔记入库验证。
+> 循证基础：Horizon 自身机制的详解、Snowflake 官方基准数字与批判性边界见 [Horizon Context 精读笔记](./011-horizon-context.md)；与本仓代码的逐条对照见[机制映射报告](./012-horizon-context-mapping-negentropy.md)；negentropy 内部实例化见 [Context Layer 技术方案](../../concepts/design/context-layer.md)；行业格局、第三方实证与失败史的出处见文末参考 [7]–[17]。最小原型（M1–M6 六机制 + MCP 服务）已随笔记入库验证。
 
 > [!TIP] **怎么读本蓝图**
 >
@@ -14,13 +14,13 @@ description: "通用可复刻 Context Layer 蓝图：五正交层中枢（对象
 >
 > 每个机制章按四拍展开：**类比** → **设计** → **行业实践** → **边界声明**（仅在有实质边界时出现；格局章第二拍为「格局」、评测章为「方法」）。
 >
-> 四方文档分工：[精读笔记](./011-horizon-context.md)管 Horizon 自身机制与官方数字；[机制映射报告](./012-horizon-context-mapping-negentropy.md)管本仓代码锚点；[Context Layer 技术方案](../../concepts/design/context-layer.md)管 negentropy 内部织物；本蓝图管**通用设计 + 行业全景**。
+> 四方文档分工：[精读笔记](./011-horizon-context.md)管 Horizon 自身机制与 Snowflake 官方数字；[机制映射报告](./012-horizon-context-mapping-negentropy.md)管本仓代码锚点；[Context Layer 技术方案](../../concepts/design/context-layer.md)管 negentropy 内部织物；本蓝图管**通用设计 + 行业全景**。
 
 ---
 
 ## 0. 为什么需要：Agent 在自信地猜数
 
-**要解决的问题**（Horizon 的归因，官方内测与第三方复测同向印证）：Agent 缺业务含义时准确率 ~21–25%（25% 为 Snowflake 内测自报、21% 为 Anthropic 复测）且自信地错；含义散落在 SQL/看板/prompt 里必然漂移；外挂治理层可被绕过。
+**要解决的问题**（Horizon 的归因，Snowflake 官方内测与第三方复测同向印证）：Agent 缺业务含义时准确率 ~21–25%（25% 为 Snowflake 内测自报、21% 为 Anthropic 复测）且自信地错；含义散落在 SQL/看板/prompt 里必然漂移；外挂治理层可被绕过。
 
 | 设计规格           | 通俗版                                 | 蓝图对应            |
 | ------------------ | -------------------------------------- | ------------------- |
@@ -335,7 +335,7 @@ Ossie 让定义**可携带**，但可携带只是三重边界的第一重：
 
 > [!NOTE] **设计**
 >
-> Typedef 批判的核心（详见[精读笔记](./011-horizon-context.md)的批判性边界）[6]：governed 定义在**上游已塌缩的 grain** 上照样产出错误数字（477 vs 48）；`NON ADDITIVE BY` 是人填的声明非推导。官方原话点破本质："that was valid SQL, but it was not valid analytics"——语法合法与答案正确是两回事。蓝图的三级对策：
+> Typedef 批判的核心（详见[精读笔记](./011-horizon-context.md)的批判性边界）[6]：governed 定义在**上游已塌缩的 grain** 上照样产出错误数字（477 vs 48）；`NON ADDITIVE BY` 是人填的声明非推导。Snowflake 官方原话点破本质："that was valid SQL, but it was not valid analytics"——语法合法与答案正确是两回事。蓝图的三级对策：
 >
 > 1. **表达式级 derived 校验**（便宜，先做）：口径表达式里可见的非可加性（如 `SUM(x)/COUNT(DISTINCT y)`）注册期自动标记，提示消费方；
 > 2. **verified Q&A 作为出口对账资产**：验证答案与重算结果不一致时告警（原型 A1b 的对账断言即此机制的雏形）；
@@ -360,7 +360,7 @@ Ossie 让定义**可携带**，但可携带只是三重边界的第一重：
 > 3. **golden queries 是一等评测资产**（Looker 已把 verified/golden queries 做成 GA 机制）：命中即短路重放的验证问答，同时是生产资产与评测考题；
 > 4. **覆盖内/覆盖外分开判卷**：一张卷子两栏——覆盖内追求确定性命中，覆盖外只考察是否诚实告警 `no_governed_coverage`。
 >
-> KPI 口径只有一条：**报错优于错数**。企业内基准 ~10 题即可起步（官方建模最佳实践，见[精读笔记](./011-horizon-context.md)），先让考卷活起来再求全。
+> KPI 口径只有一条：**报错优于错数**。企业内基准 ~10 题即可起步（Snowflake 官方建模最佳实践，见[精读笔记](./011-horizon-context.md)），先让考卷活起来再求全。
 >
 > **P2 验收标尺**（对应演进路线的 P2）：覆盖内题目命中 verified query 且引擎重算一致；覆盖外题目全部显式告警；越权用例全部被拒且留有审计；CONFLICT 卡片全程不出现数值。
 
