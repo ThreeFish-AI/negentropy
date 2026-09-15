@@ -1,7 +1,8 @@
-%%source: docs/research/cognitive-context/011-horizon-context.md#blockM3 (L242-L269, §5 M3 · 引擎原生治理)
+%%source: docs/research/cognitive-context/011-horizon-context.md#blockM3 (L283-L292, §5 M3 · 引擎原生治理)
 %%slug: cognitive-context/horizon-context--engine-governance
 %%type: workflow
 %%derived: archify workflow v2, authored from source mermaid
+%% fix: (2026-09-15 校准) ① RED 节点补「Cortex Guard」指称（正文 M3：PII/PHI 实时脱敏是 AI_REDACT 与 Cortex Guard 的职责，两指称须分开）；② GRD/RED 补 GA 日期（正文阶段二）；③ %%source 行号更新为 L283-L292
 flowchart LR
     CAL["🧑‍💼 人 / BI / AI Agent<br/>同一套 RBAC · 无 AI 专用配置"] --> FLT["检索层过滤（体验）<br/>PRIVATE 维度不下发"]
     CAL -.->|"绕过语义层"| BYP["🚪 直查物理底表"]
@@ -9,6 +10,6 @@ flowchart LR
     POL --> RB{"执行层 RBAC（底线）<br/>owner's rights 校验"}
     RB -->|"PRIVATE 资产"| AX["🚫 AccessDenied"]
     BYP -->|"引擎策略仍拦截"| AX
-    RB -->|"通过"| GRD["Cortex AI Guardrails<br/>拦 prompt injection / jailbreak"]
-    GRD --> RED["AI_REDACT 出口脱敏<br/>PII / PHI · 4096 token 上限"]
+    RB -->|"通过"| GRD["Cortex AI Guardrails（GA 2026-04-20）<br/>拦 prompt injection / jailbreak"]
+    GRD --> RED["AI_REDACT + Cortex Guard 出口脱敏<br/>PII / PHI · 4096 token 上限 · GA 2025-12-08"]
     RED --> OUT["✅ 受治理结果<br/>策略与标签随行携带"]

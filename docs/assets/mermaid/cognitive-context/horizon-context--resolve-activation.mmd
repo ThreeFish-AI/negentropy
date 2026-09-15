@@ -1,7 +1,8 @@
-%%source: docs/research/cognitive-context/011-horizon-context.md#blockM5 (L329-L359, §7 M5 · 检索激活)
+%%source: docs/research/cognitive-context/011-horizon-context.md#blockM5 (L370-L382, §7 M5 · 检索激活)
 %%slug: cognitive-context/horizon-context--resolve-activation
 %%type: sequence
 %%derived: archify sequence v1, authored from source mermaid
+%% fix: (2026-09-15 校准) ① 检索消息补硬约束「整视图 ~100,000 token 上限 · 超限即剪枝」（正文 M5：精选是硬约束而非优化项）；② %%source 行号更新为 L370-L382
 sequenceDiagram
     participant AG as Agent（CoCo / 外部客户端）
     participant US as Universal Search（关键词+向量混合）
@@ -9,7 +10,7 @@ sequenceDiagram
     participant VQ as VQR 已验证问答
     participant EN as 执行引擎（按 grain 重算）
     AG->>US: resolve(question, role)
-    US->>CT: 混合检索 top-k 候选
+    US->>CT: 混合检索 top-k 候选（整视图 ~100,000 token 上限 · 超限即剪枝）
     CT-->>US: 条目 + 信任信号
     US->>VQ: 相似问答匹配
     VQ-->>US: 命中：已验证 SQL + 溯源

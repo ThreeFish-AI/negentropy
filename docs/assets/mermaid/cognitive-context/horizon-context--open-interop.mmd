@@ -1,26 +1,30 @@
-%%source: docs/research/cognitive-context/011-horizon-context.md#blockM7 (L404-L459, §9 M7 · 开放互操作)
+%%source: docs/research/cognitive-context/011-horizon-context.md#blockM7 (L448-L470, §9 M7 · 开放互操作)
 %%slug: cognitive-context/horizon-context--open-interop
 %%type: architecture
 %%derived: archify architecture v1, authored from source mermaid
 %% fix: MCP 节点标签「官方 MCP Server」→「Snowflake 官方 MCP Server」，与 011 正文图注消歧同步（e6c23530）；其余节点逐字节保留
+%% fix: (2026-09-15 校准) ① SYS 三函数名（FROM_OSI_YAML / READ_YAML 等）正文与 git 历史零出处，收敛为正文唯一函数 SYSTEM$CREATE_SEMANTIC_VIEW_FROM_YAML，「导出」边改向为「Ossie YAML → 引擎内创建」（正文 L459 仅记载创建方向）；② 删「Git 版本库/定义即代码/PR 评审」节点（零出处），开放生态侧改列正文有据的已交付转换器（dbt MetricFlow · Apache Polaris · Snowflake Semantic Model）；③ MCP 节点补 OAuth scopes 与每 server ≤50 工具（正文图注明列）；④ 新增 Automatic Data Agents 生态分发面（正文 §9，Preview Open，约 10 分钟，重建覆盖手工）；⑤ %%source 行号随 0a6dd291 重构与本次 §2 插图更新为 L448-L470
 flowchart TB
     subgraph "Snowflake 引擎内（治理随行）"
         SV["📦 语义视图<br/>受治理定义（元数据对象）"]
-        SYS["SYSTEM$ 转换函数<br/>FROM_YAML / FROM_OSI_YAML / READ_YAML"]
-        MCP["🔌 Snowflake 官方 MCP Server<br/>GA 2025-11-04 · 5 类工具 · SSE 流"]
+        SYS["⚙️ SYSTEM$ 转换函数<br/>CREATE_SEMANTIC_VIEW_FROM_YAML"]
+        MCP["🔌 Snowflake 官方 MCP Server<br/>GA 2025-11-04 · 5 类工具 · OAuth scopes<br/>每 server ≤50 工具 · SSE 流"]
         RBX["🛡️ RBAC / PRIVATE 随调用生效"]
     end
     subgraph "开放生态"
-        GIT["Git 版本库<br/>定义即代码 · PR 评审"]
-        OSS["Apache Ossie（原 OSI）<br/>开放规范 · 50+ 组织"]
+        CONV["🔄 已交付转换器<br/>Apache Polaris · Snowflake Semantic Model"]
+        OSS["📜 Apache Ossie（原 OSI）<br/>开放规范 · 50+ 组织"]
+        ADA["🏭 Automatic Data Agents<br/>Marketplace 一键出厂（Preview Open）"]
         DBT["dbt MetricFlow<br/>Apache 2.0 · 初始参考实现"]
         EXT["🤖 外部 Agent<br/>Claude Desktop / Claude Code / Cursor"]
         FB["📶 使用反馈回流<br/>popularity 继续积累"]
     end
-    SV -->|"SYSTEM$READ_YAML 导出"| SYS
-    SYS -->|"YAML 入库 · PR 评审"| GIT
-    SYS -.->|"对齐 Ossie 规范"| OSS
+    OSS -->|"规范 YAML（Ossie 格式）"| SYS
+    SYS -->|"创建语义视图<br/>工具级转换 · 非导入即用"| SV
+    SV -.->|"定义携带（规范级互导）"| OSS
     OSS -.->|"同一规范"| DBT
+    OSS -.->|"同一规范"| CONV
+    ADA -.->|"一键生成 SV + Cortex Agent<br/>约 10 分钟 · 重建覆盖手工"| SV
     SV -->|"受控工具面开放"| MCP
     MCP -->|"tools/call · SSE"| EXT
     RBX -->|"越权即拒"| MCP

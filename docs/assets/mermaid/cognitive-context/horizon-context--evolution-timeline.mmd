@@ -1,0 +1,43 @@
+%%source: docs/research/cognitive-context/011-horizon-context.md#block2-23 (L111-L173, §2.2–§2.3 三阶段叙事与时间线速览)
+%%slug: cognitive-context/horizon-context--evolution-timeline
+%%type: dataflow
+%%derived: archify dataflow v1, authored from source mermaid
+%% fix: (2026-09-15 同步) 重写为出货图逐字镜像并随图修复：① 原 MS7 拆分为 MS7A（提示词内嵌 + Lineage 预览 M1）/ MS7B（OSI v1 定稿 · 33 家联盟 · Databricks M7）——补回正文时间线表「33 家联盟、Databricks 入局」事实，HTML 旧版漏拆漏载已重渲，且 2026-01 两卡归位「富化加速（2025-12 → 2026-02）」泳道；② 三 subgraph 展开为图内五段泳道（通道成形/富化加速/治理成熟子段）；③ 边标签补齐图内转移词（共识/摄取/资产化/扩展/定稿/提速/成熟/护栏/定名）
+flowchart TD
+    subgraph "阶段一 · 语义对象化 2024-02 → 2025-08"
+        MS1["🔎 Universal / Cortex Search<br/>2024-02-20 → 08-08 · 检索基准（M5 / M6）"]
+        MS2["📦 Semantic Views GA<br/>2025-04 → 08 · 预览 → 查询 GA（M1 / M2）"]
+    end
+    subgraph "阶段二 · 通道成形 2025-09 → 11"
+        MS3["📜 OSI 倡议创立<br/>2025-09-23 · 17 家厂商（M7）"]
+        MS4["🔌 MCP GA + 管理面就绪<br/>2025-10 → 11 · Snowsight/MCP GA（M7）"]
+        MS5["🗄️ 收购 Select Star<br/>2025-11-24 · 元数据摄取入囊（M4）"]
+    end
+    subgraph "阶段二 · 富化加速 2025-12 → 2026-02"
+        MS6["🛡️ VQR 预览 + AI_REDACT GA<br/>2025-12-02 / 12-08（M5 / M3）"]
+        MS7A["📝 提示词内嵌 + Lineage 预览<br/>2026-01 · AI 语法 · External Lineage（M1）"]
+        MS7B["📜 OSI v1 定稿<br/>2026-01 · 33 家联盟 · Databricks（M7）"]
+        MS8["🏗️ Autopilot GA + Cortex Code<br/>2026-02-03 · days → minutes（M4）"]
+    end
+    subgraph "阶段二 · 治理成熟 2026-03 → 06"
+        MS9["⚙️ standard SQL 查询 GA<br/>2026-03 · 半可加性 · USING 语法（M2）"]
+        MS10["✅ VQR 进 DDL + Guardrails GA<br/>2026-04 · 验证问答一等资产（M1 / M3）"]
+        MS11["🏛️ Summit 整体发布<br/>2026-06-02 · 定名 · Agent Identity（全景）"]
+    end
+    subgraph "阶段三 · 生态开放 2026-06-30 → 至今"
+        MS12["🔍 Sense + Apache Ossie<br/>2026-06-30 → 07 · Sense · 入 Apache（M4 / M7）"]
+        MS13["🕸️ 全域血缘 GA<br/>2026-08 → 09 · Power BI · Lineage GA（M4 / M7）"]
+    end
+    MS1 -->|"检索仅是起点 · 含义须成对象"| MS2
+    MS2 -->|"算得准 → 守得住"| MS3
+    MS3 -->|"共识"| MS4
+    MS4 -->|"摄取"| MS5
+    MS5 -->|"资产化"| MS6
+    MS6 -->|"扩展"| MS7A
+    MS7A -->|"定稿"| MS7B
+    MS7B -->|"提速"| MS8
+    MS8 -->|"成熟"| MS9
+    MS9 -->|"护栏"| MS10
+    MS10 -->|"定名"| MS11
+    MS11 -->|"送得出 → 随处用 · 生态开放"| MS12
+    MS12 -->|"全域血缘 · 信得过、带得走"| MS13

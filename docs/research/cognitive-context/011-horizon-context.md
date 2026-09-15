@@ -23,7 +23,7 @@ description: "「嵌入治理引擎、查询时强制执行」的 Context Layer 
 
 > [!TIP] **怎么读笔记**
 >
-> 每个机制节按「类比 → 机制 → 原型」三拍进行记录和实践，M1–M7 七个机制节各配一张动效工程图（交互版下载到本地打开，默认经典视图可切主题/缩放/聚焦，trace 动画按主路径逐边点亮）。其中实践取自配套的最小原型 [`assets/horizon_context_lab.py`](./assets/horizon_context_lab.py)（约 916 行纯标准库代码，M1–M6 六机制 + 场景矩阵 + 破坏性实验；另有 MCP 服务原型 [`assets/horizon_context_mcp.py`](./assets/horizon_context_mcp.py) 验证平台集成路径）。
+> 每个机制节按「类比 → 机制 → 原型」三拍进行记录和实践，M1–M7 七个机制节各配一张动效工程图，§2 另配组件全景与演进时间线两张总览图（交互版下载到本地打开，默认经典视图可切主题/缩放/聚焦，trace 动画按主路径逐边点亮）。其中实践取自配套的最小原型 [`assets/horizon_context_lab.py`](./assets/horizon_context_lab.py)（约 916 行纯标准库代码，M1–M6 六机制 + 场景矩阵 + 破坏性实验；另有 MCP 服务原型 [`assets/horizon_context_mcp.py`](./assets/horizon_context_mcp.py) 验证平台集成路径）。
 
 配套产物：[Context Layer 基础设施设计蓝图](./013-context-layer-blueprint.md) · [Horizon Context ↔ negentropy 机制映射报告](./012-horizon-context-mapping-negentropy.md)。
 
@@ -104,6 +104,10 @@ Horizon Context 伞下组件与七大机制（M1–M7）的对应关系如下：
 
 此外，体系外围还配有两个关键基座角色：**Agent Identity**（为智能体签发独立审计身份，纳进统一 RBAC）与 **OpenLineage 摄取**（承载 External lineage 输入侧的标准协议）。
 
+![Horizon Context 组件全景：14 组件按「定义与执法 M1–M3 / 进料与富化 M4 / 检索与分发 M5–M6 / 互联与出口 M7」四簇分组，基座角色（Agent Identity · OpenLineage 摄取）与 External Lineage（Structural 全景）托底，消费端为 CoCo / CoWork / Cortex Agents 官方 Agent 矩阵。](../../assets/architecture/cognitive-context/horizon-context--component-panorama-dark.png)
+
+> 图源（可 diff 文本）：[`horizon-context--component-panorama.mmd`](../../assets/mermaid/cognitive-context/horizon-context--component-panorama.mmd) · 交互版（下载到本地打开）：[`horizon-context--component-panorama.html`](../../assets/architecture/cognitive-context/horizon-context--component-panorama.html)
+
 ### 2.2 三阶段叙事：先造对象，再装治理与富化，最后开生态
 
 整个演进历程并非一蹴而就，而是沿着「**找得到 → 算得准 → 守得住 → 随处用**」的逻辑闭环层层推进：
@@ -163,6 +167,10 @@ Snowflake 官方的运营哲学是：上下文只有在真实业务流中高频�
 | **2026-08 → 2026-09**    | Power BI 摄取 GA；External Lineage GA；Agent 血缘上线         | 跨系统血缘与多端消费全面落地，生态运营常态化       | M4 / M7  |
 
 **纵观全景**：两年半的演进轨迹呈现出清晰的重心迁移——前期重在**寻址召回（找得到）**，中期深耕**语义对象与引擎治理（算得准、守得住）**，后期聚焦**跨端互通与全域血缘（信得过、带得走）**。
+
+![三阶段演进时间线：阶段一「找得到 → 算得准」（检索先行 → Semantic Views GA）、阶段二「守得住、填得满、送得出」（OSI/MCP 通道 → Select Star/Autopilot 富化 → AI_REDACT/Guardrails 治理 → Summit 整体发布）、阶段三「随处用」（Cortex Sense/Ossie/全域血缘运营），16 项里程碑零丢失、机制锚点逐一标注。](../../assets/architecture/cognitive-context/horizon-context--evolution-timeline-dark.png)
+
+> 图源（可 diff 文本）：[`horizon-context--evolution-timeline.mmd`](../../assets/mermaid/cognitive-context/horizon-context--evolution-timeline.mmd) · 交互版（下载到本地打开）：[`horizon-context--evolution-timeline.html`](../../assets/architecture/cognitive-context/horizon-context--evolution-timeline.html)
 
 ## 3. M1 · 五段式 Context 对象模型：把语义便利贴装订成册
 
