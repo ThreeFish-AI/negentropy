@@ -2,11 +2,12 @@
 %%slug: cognitive-context/horizon-context--open-interop
 %%type: architecture
 %%derived: archify architecture v1, authored from source mermaid
+%% fix: MCP 节点标签「官方 MCP Server」→「Snowflake 官方 MCP Server」，与 011 正文图注消歧同步（e6c23530）；其余节点逐字节保留
 flowchart TB
     subgraph "Snowflake 引擎内（治理随行）"
         SV["📦 语义视图<br/>受治理定义（元数据对象）"]
         SYS["SYSTEM$ 转换函数<br/>FROM_YAML / FROM_OSI_YAML / READ_YAML"]
-        MCP["🔌 官方 MCP Server<br/>GA 2025-11-04 · 5 类工具 · SSE 流"]
+        MCP["🔌 Snowflake 官方 MCP Server<br/>GA 2025-11-04 · 5 类工具 · SSE 流"]
         RBX["🛡️ RBAC / PRIVATE 随调用生效"]
     end
     subgraph "开放生态"
