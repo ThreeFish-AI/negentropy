@@ -17,23 +17,25 @@ description: "「嵌入治理引擎、查询时强制执行」的 Context Layer 
 > - [工程博客 "Why Do We Need Semantic Views?", 2026-03](https://www.snowflake.com/en/blog/engineering/why-we-need-semantic-views/)
 > - [Cortex Search 检索工程博客（混合排序基准）](https://www.snowflake.com/en/engineering-blog/cortex-search-and-retrieval-enterprise-ai/)
 > - [OSI 创立新闻稿, 2025-09-23](https://www.snowflake.com/en/news/press-releases/snowflake-salesforce-dbt-labs-and-more-revolutionize-data-readiness-for-ai-with-open-semantic-interchange-initiative/)
-> - [OSI→Apache Ossie](https://www.snowflake.com/en/blog/apache-ossie-open-semantic-interchange-incubator/)
+> - [OSI → Apache Ossie](https://www.snowflake.com/en/blog/apache-ossie-open-semantic-interchange-incubator/)
 
 **一句话定位**：Snowflake Horizon Context 是 **嵌在 Data 治理引擎层、在查询时强制执行** 的 Context Layer —— 把业务定义、指标、关系、血缘、用法沉淀为受治理的元数据对象，让人、BI 工具、AI Agent 从同一份定义推理，而不是各自猜测。
 
 > [!TIP] **怎么读笔记**
 >
-> 每个机制节按「类比 → 机制 → 原型」三拍进行记录和实践，M1–M7 七个机制节各配一张 archify 动效工程图（交互版下载到本地打开，默认经典视图可切主题/缩放/聚焦，trace 动画按主路径逐边点亮）。其中实践取自配套的最小原型 [`assets/horizon_context_lab.py`](./assets/horizon_context_lab.py)（约 916 行纯标准库代码，M1–M6 六机制 + 场景矩阵 + 破坏性实验；另有 MCP 服务原型 [`assets/horizon_context_mcp.py`](./assets/horizon_context_mcp.py) 验证平台集成路径）。
+> 每个机制节按「类比 → 机制 → 原型」三拍进行记录和实践，M1–M7 七个机制节各配一张动效工程图（交互版下载到本地打开，默认经典视图可切主题/缩放/聚焦，trace 动画按主路径逐边点亮）。其中实践取自配套的最小原型 [`assets/horizon_context_lab.py`](./assets/horizon_context_lab.py)（约 916 行纯标准库代码，M1–M6 六机制 + 场景矩阵 + 破坏性实验；另有 MCP 服务原型 [`assets/horizon_context_mcp.py`](./assets/horizon_context_mcp.py) 验证平台集成路径）。
 
 配套产物：[Context Layer 基础设施设计蓝图](./013-context-layer-blueprint.md) · [Horizon Context ↔ negentropy 机制映射报告](./012-horizon-context-mapping-negentropy.md)。
 
 ---
 
-## 1. 解决什么问题：为天才实习生配发「终极入职包」，让他秒变业务老司机
+## 1. Horizon Context 解决了什么问题？
 
-销售负责人说 Q3 收入 **$14.2M**，CFO 报的却是 **$12.8M**——Snowflake 官方拿这组对账数字开场：同一份数据，两个答案。没有人算错数，错的是**含义无人治理**：企业底层数据库躺着的，往往是密码般的物理列名（如毛收入叫 `amt_ttl_pre_dsc`）；真实业务指标（如净利润）的计算口径也散落在不同报表各自的 `CASE WHEN` 逻辑里。各业务域子系统自说自话，谁也不懂谁。
+销售负责人说 Q3 收入 **$14.2M**，CFO 报的却是 **$12.8M** —— Snowflake 官方拿这组对账数字开场：同一份数据，两个答案。没有人算错数，错的是**语义无人治理**。
 
-据 Snowflake 实测，**让缺乏 Context Layer 治理的初级 Data Agent 直接回答企业数据问题，准确率仅有 ~25%（Snowflake 内测）/ 21%（Anthropic 独立复测）**。这并非初级 Data Agent 所使用的模型笨，而是缺了 Context Layer 对语义的有效治理。具体体现为这三个不可自愈的系统性病灶：
+企业底层数据库躺着的，往往是密码般的物理列名（如毛收入叫 `amt_ttl_pre_dsc`）；真实业务指标（如净利润）的计算口径也散落在不同报表各自的 `CASE WHEN` 逻辑里。各业务域子系统自说自话，谁也不懂谁。
+
+据 Snowflake 实测，**让缺乏语义治理的初级 Data Agent 直接回答企业数据问题，准确率仅有 ~25%（Snowflake 内测）/ 21%（Anthropic 独立复测）**。这并非初级 Data Agent 所使用的模型笨，而是语义没有对齐。具体体现为这三个不可自愈的系统性病灶：
 
 1. **口径打架（含义散落）**：指标口径写在各自的散落业务里，同一个业务指标问两个子系统，能得出两套不同数字；
 2. **定义漂移（脱节失效）**：外挂语义层独立于 Context Layer，底层数据表的变更会令语义立即脱节，Agent 会按过期的语义手册瞎猜；
@@ -41,19 +43,19 @@ description: "「嵌入治理引擎、查询时强制执行」的 Context Layer 
 
 初级 Data Agent 就像一位智商超群的天才实习生，他满腹经纶、理解力极强，但完全不懂贵司的标准流程与方言黑话。
 
-要把这位天才实习生真正培养成懂业务、守规矩的“业务老司机”，Horizon Context 的解法是，**把业务 Context 与安全守则铸入底层引擎，使其无法被篡改与绕过**。Horizon Context 为此确立了五条硬核设计：
+要把这位天才实习生真正培养成懂业务、守规矩的“业务老司机”，Snowflake Horizon Context 的解法是，**把业务 Context 与安全守则铸入底层引擎，使其无法被篡改与绕过**。Horizon Context 为此确立了五条硬核的 Context Layer 设计：
 
-| 设计规格                 | 底层机制                   | 大白话                                                                |
-| :----------------------- | :------------------------- | :-------------------------------------------------------------------- |
-| **定义一次、处处生效**   | M1 五段式 Context 对象模型 | 权威术语手册只印一份，人、报表与 Agent 全部照章引用，不再各自抄写抄错 |
-| **动态现算、保真不走样** | M2 查询时语义正确性        | 发智能公式按需现算，绝不拿预先拼凑的二手死报表将就应付                |
-| **原生治理、杜绝穿透**   | M3 引擎原生治理            | 门禁直接装在机房承重墙上，无论谁走哪条路查数据，安全锁底层强制生效    |
-| **行为挖掘、覆盖长尾**   | M4 双轨富化与自纠          | 手册没写全的暗规则，系统通过日常观察老分析师的用数习惯自动补全自愈    |
-| **标准开放、随处插拔**   | M7 开放互操作              | 入职包采用通用插头与开放格式，任何外部智能体和工具拿来就能立刻用      |
+| 设计规格                 | 底层机制                   | 大白话                                                                         |
+| :----------------------- | :------------------------- | :----------------------------------------------------------------------------- |
+| **定义一次、处处生效**   | M1 五段式 Context 对象模型 | 权威术语手册只印一份，人、报表与 Agent 全部照章引用，不再各自抄写抄错          |
+| **动态现算、保真不走样** | M2 查询时语义正确性        | 发智能公式按需现算，绝不拿预先拼凑的二手死报表将就应付                         |
+| **原生治理、杜绝穿透**   | M3 引擎原生治理            | 门禁直接焊在调取底层数据的唯一必经闸口上，物理封死所有旁路，安全锁底层强制生效 |
+| **行为挖掘、覆盖长尾**   | M4 双轨富化与自纠          | 手册没写全的暗规则，系统通过日常观察老分析师的用数习惯自动补全自愈             |
+| **标准开放、随处插拔**   | M7 开放互操作              | 入职包采用通用插头与开放格式，任何外部智能体和工具拿来就能立刻用               |
 
-> [!TIP] **入职包里都有什么**
+> [!TIP] **Horizon Context 解决了什么问题？**
 >
-> 初级 Data Agent 就像一个 **每天都在重新入职、毫无经验沉淀的天才实习生**；Horizon Context 要做的，是给这位天才员工配备一份 **永远最新的入职包**：
+> 初级 Data Agent 就像一个 **每天都在重新入职、毫无经验沉淀的天才实习生**；Horizon Context 要做的，是给这位天才员工配备一份「终极入职包」，让他秒变业务老司机：
 >
 > - 公司术语表：Semantic Views 显式定义；
 > - 前台问询处：CoCo（数据原生 AI 编程代理，前身 Cortex Code）混合检索；
@@ -63,81 +65,104 @@ description: "「嵌入治理引擎、查询时强制执行」的 Context Layer 
 >
 > 用 Snowflake 官方的话讲：*Without context, an agent guesses. With context built natively into the platform, an agent acts. With context that is also governed natively, an agent can be trusted.*
 
-## 2. 全景与三阶段演进：Horizon Context 是怎么长出来的
+## 2. Horizon Context 全景与三阶段演进
 
-> [!TIP] **类比**
+> [!TIP] **Horizon Context 的演进**
 >
-> 这套系统的演进史，像一座图书馆的进化史：起初只有一本登记簿（记录馆里有哪些书）；后来馆里编了权威的分类法与索引卡（把含义做成对象）；再后来装了门禁、请了馆长，还派学徒照着读者的真实习惯补卡（治理内嵌与双轨富化）；最后图书馆加入城市联盟，一张通借通还卡谁都能用（生态开放）。
+> 这套系统的演进，像一座图书馆的进化：起初只有一本登记簿（记录馆里有哪些书）；后来馆里编了权威的分类法与索引卡（把含义做成对象）；再后来装了门禁、请了馆长，还派学徒照着读者的真实习惯补卡（治理内嵌与双轨富化）；最后图书馆加入城市联盟，一张通借通还卡谁都能用（生态开放）。
 
-### 2.1 伞下定位：从「表的登记簿」到「业务的 working model」
+### 2.1 定位：从「登记簿」到「业务的 Working Model」
 
-Horizon Context 不是一款孤立产品，而是 **Horizon Catalog**（Snowflake 官方称 "the agentic catalog"）长出的能力伞。Snowflake 给这条演进线的定调只有一句：把目录 **"from a system of record into a system of understanding"**——从「记录有哪些表的登记簿」变成「理解业务含义的知识体」。
+Horizon Context 并非一款孤立的单点产品，而是围绕 **Horizon Catalog**（Snowflake 官方定位为 "the agentic catalog"）长出的一整套能力底座。Snowflake 给这条演进线确立的核心目标只有一个：把 Catalog 从「记录有哪些表的登记簿」升维为「真正理解业务含义的认知中枢」（**"from a system of record into a system of understanding"**）。
 
-再补半句就是它的野心边界："building a working model of your entire business, not just a catalog of your tables"（给整个业务建一个可运转的模型，而不只是给表建目录）。伞下组件与七机制的对应关系：
+其背后的野心边界更为直白：为整套业务运转构建可计算、自解释的活模型，而不仅是给冷冰冰的数据表建索引（*"building a working model of your entire business, not just a catalog of your tables"*）。
 
-| 组件 | 一句话职责 | 机制锚点 |
-| --- | --- | --- |
-| Semantic Views（五段式对象） | 把表/关系/事实/维度/指标铸成带校验门的受治理元数据 | M1 |
-| 查询时执行（standard SQL） | 按查询 grain 现算聚合，四大保障拦「合法 SQL 错误答案」 | M2 |
-| 引擎原生治理（RBAC/masking/row access/AI Guardrails/AI_REDACT） | 策略在引擎层对每个调用方强制执行 | M3 |
-| Autopilot / Semantic Studio | 六路输入自动起草并验证语义视图，from days to minutes | M4 |
-| Metadata Connectors（源自 Select Star 收购） | 把 Tableau/Power BI/dbt 等外部语义资产摄取进目录 | M4 |
-| Cortex Sense | 从查询历史与 BI 指标自动拼装隐式理解并自纠 | M4 |
-| AI_VERIFIED_QUERIES（VQR） | 人验问答对成为一等资产，供检索激活复用 | M5 |
-| Universal Search / Cortex Search | 关键词+向量混合检索元数据与高基数文本列 | M5 |
-| 四因子信号排序 | 相关性/权威度/流行度/新鲜度压出 top-k | M6 |
-| Snowflake 官方 MCP Server | 把语义视图与检索以受控工具面开放给外部 agent | M7 |
-| Ossie（原 OSI） | 开放 YAML/JSON 语义规范，跨平台互导 | M7 |
-| CoCo / CoWork / Cortex Agents | 消费这份 context 的 Snowflake 官方 agent 家族 | M5/M7 |
-| Automatic Data Agents | 对 Marketplace/共享数据一键生成语义视图 + Cortex Agent | M7 |
-| External lineage | 跨系统记录「谁喂谁」的血缘（2026-09-03 GA） | 全景（Structural） |
+Horizon Context 伞下组件与七大机制（M1–M7）的对应关系如下：
 
-读表方法：M1–M3 是「定义与执法」的骨干（伞的骨架），M4 是「进料与富化」（伞不断变厚的原因），M5–M6 是「分发」（伞面），M7 是「出口」（把伞借给别人的把手）。表外还有两个角色：Agent Identity（2026-06-02 GA，给 agent 发可治理的独立身份、进同一套 RBAC）与 OpenLineage 摄取（External lineage 的输入侧，公开预览）。
+| 组件                                                                        | 一句话职责                                                     | 机制锚点           |
+| :-------------------------------------------------------------------------- | :------------------------------------------------------------- | :----------------- |
+| **Semantic Views**（五段式对象）                                            | 把表、关系、事实、维度、指标固化为带校验门的受治理元数据       | M1                 |
+| **查询时执行**（standard SQL）                                              | 按查询 grain 动态现算聚合，以四大机制拦截「合法 SQL 错误答案」 | M2                 |
+| **引擎原生治理**（RBAC / Masking / Row Access / AI Guardrails / AI_REDACT） | 策略下沉至存储计算引擎层，对所有调用方强制执行                 | M3                 |
+| **Autopilot / Semantic Studio**                                             | 聚合多路信号自动起草并验证语义视图，将建模周期从数天压至数分钟 | M4                 |
+| **Metadata Connectors**（源自 Select Star）                                 | 将 Tableau、Power BI、dbt 等外部存量语义资产统一摄取进目录     | M4                 |
+| **Cortex Sense**                                                            | 从真实查询历史与 BI 行为中无感提炼隐式上下文并自动纠偏         | M4                 |
+| **AI_VERIFIED_QUERIES**（VQR）                                              | 将专家审核通过的基准问答对沉淀为一等资产，供检索优先激活复用   | M5                 |
+| **Universal Search / Cortex Search**                                        | 关键词与向量混合检索，精准定位元数据及高基数文本列             | M5                 |
+| **四因子信号排序**                                                          | 融合相关性、权威度、流行度与新鲜度综合评分，压出精准 top-k     | M6                 |
+| **Snowflake 官方 MCP Server**                                               | 将语义视图与检索能力打包为标准受控工具面，无缝对接外部 Agent   | M7                 |
+| **Ossie**（原 OSI）                                                         | 开放统一的 YAML/JSON 语义规范，支持跨平台自由互导              | M7                 |
+| **CoCo / CoWork / Cortex Agents**                                           | 消费这份 Context 的 Snowflake 官方原生 Agent 矩阵              | M5 / M7            |
+| **Automatic Data Agents**                                                   | 针对 Marketplace 共享数据一键自动生成语义视图与配套 Agent      | M7                 |
+| **External Lineage**                                                        | 跨异构系统完整记录「谁产出、谁消费」的端到端数据血缘           | 全景（Structural） |
+
+**系统解构与阅读心法**：
+- **定义与执法（M1–M3）**：体系的承重骨架。定义业务语义，守住数学正确与数据安全底线；
+- **进料与富化（M4）**：体系的自愈血液。显式导入与隐式挖掘双轨并行，让 Context 持续自我进化；
+- **检索与分发（M5–M6）**：体系的触达神经。多路召回与四因子精准排序，确保高质量输出；
+- **互联与出口（M7）**：体系的开放抓手。以开放协议与标准接口，使受控 Context 随处即插即用。
+
+此外，体系外围还配有两个关键基座角色：**Agent Identity**（为智能体签发独立审计身份，纳进统一 RBAC）与 **OpenLineage 摄取**（承载 External lineage 输入侧的标准协议）。
 
 ### 2.2 三阶段叙事：先造对象，再装治理与富化，最后开生态
 
-**阶段一 · 语义对象化（2024-02 → 2025-08）**。这条弧从检索开始：Universal Search（2024-02-20 预览）先暴露了真问题——agent 连「有哪些表、列叫什么」都找不到；Cortex Search（2024-08-08 公开预览并发布检索基准）把文本列检索做成服务。两者的共同结论是：光有检索不够，**含义本身必须成为带校验门的元数据对象**。
+整个演进历程并非一蹴而就，而是沿着「**找得到 → 算得准 → 守得住 → 随处用**」的逻辑闭环层层推进：
 
-于是 semantic views 走完预览（2025-04-17）→ Summit GA（2025-06）→ 查询 GA（2025-08）（GA = General Availability，正式发布），本笔记 M1/M2 的对象模型与查询保障在此成形。客户侧的拉力同样直白："We don't need more dashboards — we need a unified language that ensures the math is right"。
+**阶段一 · 语义对象化（2024-02 → 2025-08）：从「找得到」到「算得准」**
 
-**阶段二 · 治理内嵌与双轨富化（2025-09 → 2026-06-02）**。对象有了，接下来是三个问题：谁守护它、谁来填满它、怎么送出去。**守护**——治理策略迁进引擎并在含义层强制执行（AI_REDACT GA 2025-12-08、Cortex AI Guardrails GA 2026-04-20），Snowflake 官方口径 "enforced at the meaning level, not just the table level"。
+Snowflake 早期的 Universal Search（2024-02-20 预览）与 Cortex Search（2024-08-08 预览）共同暴露了一个痛点：Agent 面对物理裸表就像盲人摸象，哪怕找得到表名与列名，依然会编造出漏洞百出的 SQL。这促成了它们一个关键认知升级：**检索仅是起点，业务含义本身必须变成带严格校验门的受治理元数据对象**。
 
-**填满**——显式轨道配加速器：收购 Select Star（2025-11-24，创始人 Shinji Kim 的团队与技术整体入仓；同一年 Snowflake 还收了 6 月的 Crunchy Data 与 11 月的 Datometry）拿到外部语义资产摄取，Autopilot GA（2026-02-03）把建视图周期从数天压到数分钟（"from days to minutes"）；隐式轨道交给 Cortex Sense 从行为里挖。**送出**——OSI 创立（2025-09-23）与 Snowflake 官方 MCP GA（2025-11-04）两条管道同期打通。2026-06-02 Summit 把这一切收拢成伞并命名 Horizon Context；外部世界的注脚是 InfoWorld 转述 HFS 的判断——「AI 工作负载之战将赢在 metadata、lineage 与 trust」。
+随着 Semantic Views 完成 GA（2025-08），M1（对象建模）与 M2（查询时执行保障）正式成形，彻底封堵了指标口径打架与跨粒度扇形陷阱。这精准契合了企业客户的刚性诉求：“我们不需要更多看花眼的仪表盘，我们需要一套能确保数学绝对正确的统一语言”（*don't need more dashboards — we need a unified language that ensures the math is right*）。
 
-**阶段三 · 生态开放与运营化（2026-06-30 → 今）**。单仓治理做完，context 开始变成**随数据产品分发的生态通货**：Cortex Sense 亮相（2026-06-30 博客、2026-07 私有预览）；OSI 捐入 Apache 孵化器更名 Ossie（2026-07-08，50+ 组织）；消费端 CoWork（知识工作者个人代理，前身 Snowflake Intelligence）就位、Semantic Studio 公开预览（2026-08-26）、Snowflake 官方建议 Cortex Analyst 用户迁往 Cortex Agents（2026-08-28，语义视图与 VQR 沿用）。
+**阶段二 · 治理内嵌与双轨富化（2025-09 → 2026-06-02）：守得住、填得满、送得出**
 
-运营侧 Power BI 摄取 GA（2026-08-18）、agent 数据血缘（2026-09-02）与 External lineage GA（2026-09-03）把「谁在用、谁喂谁」变成可运营的资产；Automatic Data Agents 对 Marketplace 清单一键生成语义视图加 Cortex Agent，context 随数据产品自带。客户侧 BlackRock、Indeed、Simon AI、Wix 是早期采用证言；伙伴侧 Tableau、Looker、Alation、Collibra 等十家表态接入，Looker 称将 "support analytical models hosted in-database"。Snowflake 官方的运营哲学一句话："Context only works if it gets used."
+有了语义对象后，系统必须正面回答工程落地的三个核心挑战：
 
-> [!NOTE] **两个 Snowflake 官方 agent 的名字**
+- **守得住（引擎原生合规）**：治理规则从表级下沉至语义层（AI_REDACT GA 2025-12-08、Cortex AI Guardrails GA 2026-04-20），做到 Snowflake 官方强调的 *“enforced at the meaning level, not just the table level”*，无论何种查询通道均无法穿透；
+- **填得满（双轨加速供给）**：人工建模成本高昂，显式轨道借力 Select Star（2025-11-24）技术整合与 Autopilot GA（2026-02-03），将建模周期从数天压缩至数分钟（*“from days to minutes”*）；隐式轨道则交由 Cortex Sense，直接从企业全量真实查询行为中逆向萃取沉睡的暗知识；
+- **送得出（通道标准成形）**：OSI（2025-09-23）跨厂商语义联盟创立，Snowflake 官方 MCP Server 正式 GA（2025-11-04），双向打通外部 Agent 交互通道。在 2026-06-02 Summit 上，这一切被正式整合收拢并定名为 **Horizon Context**。如分析机构 HFS 所断言：*“AI 工作负载之战，最终将赢在元数据、血缘与信任（metadata、lineage and trust）。”*
+
+**阶段三 · 生态开放与运营化（2026-06-30 → 至今）：走向跨生态**
+
+完成单仓闭环后，Context 进一步升维为**随数据流动且可审计的生态通货**：
+
+- **标准开源沉淀**：Cortex Sense 亮相（2026-07 预览）；OSI 捐赠至 Apache 基金会孵化为 Ossie（2026-07-08），联合 50+ 顶级组织共建开放语义格式；
+- **原生终端就位**：面向开发者的 CoCo 与面向业务分析的 CoWork 全面就位，Cortex Analyst 顺利平滑演进为 Cortex Agents（2026-08-28）；
+- **全链路血缘运营**：Power BI（2026-08-18）资产摄取与 External Lineage（2026-09-03）全面 GA，不仅把「谁在用、谁喂谁」沉淀为清晰的运营资产，更依托 Automatic Data Agents 实现“数据产品出厂即自带 Context 与 Agent”。
+
+Snowflake 官方的运营哲学是：上下文只有在真实业务流中高频流转，才能真正释放价值（*“Context only works if it gets used.”*）。
+
+> [!TIP] **两个 Snowflake 官方 Agent 的分工与定位**
 >
-> - **CoCo**：数据原生 AI 编程代理（前身 Cortex Code，2026-02-03 发布；Snowflake 官方从不展开这个缩写；Snowsight / Desktop / CLI 三形态）；
-> - **CoWork**：面向知识工作者的个人代理（前身 Snowflake Intelligence，2025-11-04 GA）；
-> - 二者是 Cortex Sense 的典型受试方与消费方——Sense 挖出的隐式 context，最终经这类 agent 在真实工作流里被用掉。
+> - **CoCo**：数据原生 AI 编程代理（前身 Cortex Code，2026-02-03 发布；提供 Snowsight / Desktop / CLI 三种交互形态）；
+> - **CoWork**：面向知识工作者的日常业务分析助手（前身 Snowflake Intelligence，2025-11-04 GA）；
+>
+> - **协同定位**：二者是 Cortex Sense 隐式上下文的核心验证者与直接消费者。Sense 从历史轨迹中提炼出的隐式规则，正是在这类 Agent 的实际交互闭环中被验证与消耗。
 
 ### 2.3 时间线速览
 
-同弧合一行；各里程碑的机制详解见 M1–M7 各节。
+下表归纳了两年半间 Horizon Context 演进的关键里程碑（机制详解参见 M1–M7 各节）：
 
-| 时点 | 里程碑 | 一句话意义 | 笔记落点 |
-| --- | --- | --- | --- |
-| 2024-02-20 | Universal Search 预览 | 检索先行：先解决「agent 找不到数据」 | M5 |
-| 2024-08-08 | Cortex Search 公开预览 + 检索基准 | 文本列检索底座与排序基准的起点 | M5/M6 |
-| 2025-04 → 2025-08 | SV 预览（04-17）→ Summit GA → 查询 GA | 含义铸成带校验门的元数据对象 | M1/M2 |
-| 2025-09-23 | OSI 创立（17 家） | 语义可携带成为跨厂商共识 | M7 |
-| 2025-10-02 | Snowsight 管理 GA + MCP server 预览 | 管理面就绪，开放通道起跑 | M7 |
-| 2025-11-04 | Snowflake 官方 MCP GA + Snowflake Intelligence（后 CoWork）GA | 受控工具面开放给外部 agent | M7 |
-| 2025-11-24 | 宣布收购 Select Star | 外部语义资产摄取能力入仓 | M4 |
-| 2025-12 | VQR 优化预览（12-02）；AI_REDACT GA（12-08） | 验证问答与出口脱敏上线 | M5/M3 |
-| 2026-01 | AI_SQL_GENERATION/QUESTION_CATEGORIZATION（01-12）；External lineage 预览（01-16） | 提示词入定义、血缘外扩 | M1 |
-| 2026-01-27 | OSI v1 定稿（33 家，Databricks 加入） | 规范定稿、竞对入局 | M7 |
-| 2026-02-03 | BUILD London：Autopilot GA + Cortex Code 发布 | 显式轨道 "from days to minutes" | M4 |
-| 2026-03 | standard SQL 查询 GA（03-02）；NON ADDITIVE BY + Tableau TDS 导出（03-05）；工程博客（03-09）；USING relationship path（03-13） | 查询面与聚合保障齐装满员 | M2 |
-| 2026-04 | AI_VERIFIED_QUERIES 进 DDL（04-05）；Cortex AI Guardrails GA（04-20） | 验证问答一等资产化；prompt 安检上线 | M1/M3 |
-| 2026-06-02 | Summit：Horizon Context 发布（Studio/Connectors/Advanced Semantics 私预；Agent Identity GA；54 OSI） | 收拢成伞：登记簿变理解系统 | 全景 |
-| 2026-06-30 → 2026-07 | Cortex Sense 博客与私预；OSI→Apache Ossie（50+） | 隐式轨道亮相；规范捐入基金会 | M4/M7 |
-| 2026-08 → 2026-09 | Power BI 摄取 GA（08-18）；Studio 公预（08-26）；Analyst→Agents 建议（08-28）；agent 血缘（09-02）；External lineage GA（09-03） | 生态开放与运营化 | M4/M7 |
+| 时点                     | 里程碑                                                        | 一句话意义                                         | 笔记落点 |
+| :----------------------- | :------------------------------------------------------------ | :------------------------------------------------- | :------- |
+| **2024-02-20**           | Universal Search 预览                                         | 检索先行：解决「Agent 找不到表和列」的基础寻址问题 | M5       |
+| **2024-08-08**           | Cortex Search 公开预览 + 检索基准发布                         | 确立文本列检索与混合排序基准                       | M5 / M6  |
+| **2025-04 → 2025-08**    | Semantic Views 预览 → Summit GA → 查询 GA                     | 语义正式铸造为带校验门的受治理元数据对象           | M1 / M2  |
+| **2025-09-23**           | 联合 17 家厂商发起 OSI 倡议                                   | 「语义可携带」成为跨厂商开放共识                   | M7       |
+| **2025-10-02**           | Snowsight 管理面 GA + MCP Server 预览                         | 统一管理控制台就绪，开放接口起跑                   | M7       |
+| **2025-11-04**           | Snowflake 官方 MCP GA + Snowflake Intelligence (后 CoWork) GA | 以标准工具面安全开放给外部 Agent                   | M7       |
+| **2025-11-24**           | 宣布收购 Select Star                                          | 将外部存量语义资产摄取能力收入囊中                 | M4       |
+| **2025-12**              | VQR 调优预览（12-02）；AI_REDACT GA（12-08）                  | 专家问答对资产化；出口端敏感数据脱敏上线           | M5 / M3  |
+| **2026-01**              | AI 提示词内嵌语法落地；External Lineage 预览                  | Prompt 纳入受治理定义；数据血缘向仓外延伸          | M1       |
+| **2026-01-27**           | OSI v1 规范定稿（33 家联盟，Databricks 入局）                 | 跨厂商语义格式定稿，核心竞对加入共建               | M7       |
+| **2026-02-03**           | BUILD London：Autopilot GA + Cortex Code 发布                 | 显式建模周期实现 "from days to minutes" 跨越       | M4       |
+| **2026-03**              | standard SQL 查询 GA；半可加性支持；USING 语法                | 语义执行面成熟，聚合安全保障全面齐备               | M2       |
+| **2026-04**              | AI_VERIFIED_QUERIES 进 DDL；Cortex AI Guardrails GA           | 人工验证问答成为一等资产；Prompt 安全护栏就绪      | M1 / M3  |
+| **2026-06-02**           | Summit：**Horizon Context 整体发布** (Agent Identity GA)      | 整合收拢为能力伞：从「登记簿」蜕变为「理解系统」   | 全景     |
+| **2026-06-30 → 2026-07** | Cortex Sense 发布与私测；OSI 捐赠为 Apache Ossie              | 隐式行为挖掘亮相；开放规范迈入顶级开源基金会       | M4 / M7  |
+| **2026-08 → 2026-09**    | Power BI 摄取 GA；External Lineage GA；Agent 血缘上线         | 跨系统血缘与多端消费全面落地，生态运营常态化       | M4 / M7  |
 
-换个读法：两年半里检索类事件 4 个、对象类 6 个、治理类 5 个、生态类 8 个——重心肉眼可见地从「找得到」移向「信得过、带得走」。
+**纵观全景**：两年半的演进轨迹呈现出清晰的重心迁移——前期重在**寻址召回（找得到）**，中期深耕**语义对象与引擎治理（算得准、守得住）**，后期聚焦**跨端互通与全域血缘（信得过、带得走）**。
 
 ## 3. M1 · 五段式 Context 对象模型：把语义便利贴装订成册
 
@@ -455,19 +480,19 @@ Horizon Context 不是一款孤立产品，而是 **Horizon Catalog**（Snowflak
 
 读表先记一条：除 21%（Anthropic 复测）与 477 vs 48（Typedef 复现）外，其余数字均为 Snowflake 官方或原厂自报——两组第三方数字恰好都打在「基线与陷阱」上，增益端始终没有独立复现（见批判性边界第 1 条）。
 
-| 实验 | 关键数据 | 一句话读法 |
-| --- | --- | --- |
-| 无 Context 基线（Cortex Sense 博客） | ~25%（Snowflake 内测）；21%（Anthropic 独立复测） | 两家独立测出同一结论：缺业务含义时 agent 就是瞎猜 |
-| CoCo + Cortex Sense（同上） | 准确率 24.1% → 86.3%；成本 $1.76 → $0.59/query | Context Layer 把准确率抬 3.6 倍、成本砍 2/3（自家基准，见批判性边界第 1 条） |
-| Sense 第二组基准（CoWork 博客，2026-06-02） | 83%（Sense 加持）vs 47%（CoCo/CoWork 裸用）vs 23%（Frontier Coding Agents） | internal testing、complex enterprise queries 口径——与上一行不是同一组实验 |
-| 覆盖率现实（Cortex Sense 博客） | 9,685 表 semantic view 覆盖 <5% | 纯手工金标准覆盖不动——隐式轨道的存在理由 |
-| 检索分层增益（Cortex Search 工程博客） | NDCG@10 0.22→0.49→0.53→0.59；hit rate@1 0.79→0.83→0.86 | 词法→向量→混合→重排，每加一层涨一截（M6 四因子的量化底座） |
-| fan trap（工程博客） | $100 → $300（join 复制后） | valid SQL ≠ valid analytics |
-| average of averages（同上） | 16.0 vs 4.8 | 无加权平均把大小团队同权 |
-| distinct 跨时间相加（Typedef 复现） | 玩具 4 vs 3；生产 477 vs 48 | governed 定义在塌缩 grain 上照样错——治理 ≠ 验证 |
-| OSI → Apache Ossie | 17（2025-09-23 创立）→ 28 → 33（v1 定稿）→ 54 → 50+；100+ commits / 35 PRs | 语义可携带已成行业共识，非单一厂商私产 |
-| Automatic Data Agents（Snowflake docs） | 一键生成语义视图 + Cortex Agent；生成约 10 分钟；重建会覆盖手工修改 | context 随 Marketplace 数据产品分发的生态通货 |
-| 本原型 | 200 vs 440；7 vs 24；[3,1,2] vs [6,1,2]；108.33 vs 122.22 | M1–M6 机制在玩具域的逐点复现（见动手实践） |
+| 实验                                         | 关键数据                                                                    | 一句话读法                                                                   |
+| -------------------------------------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| 无 Context 基线（Cortex Sense 博客）         | ~25%（Snowflake 内测）；21%（Anthropic 独立复测）                           | 两家独立测出同一结论：缺业务含义时 agent 就是瞎猜                            |
+| CoCo + Cortex Sense（同上）                  | 准确率 24.1% → 86.3%；成本 $1.76 → $0.59/query                              | Context Layer 把准确率抬 3.6 倍、成本砍 2/3（自家基准，见批判性边界第 1 条） |
+| Sense 第二组基准（CoWork 博客，2026-06-02）  | 83%（Sense 加持）vs 47%（CoCo/CoWork 裸用）vs 23%（Frontier Coding Agents） | internal testing、complex enterprise queries 口径——与上一行不是同一组实验    |
+| 覆盖率现实（Cortex Sense 博客）              | 9,685 表 semantic view 覆盖 <5%                                             | 纯手工金标准覆盖不动——隐式轨道的存在理由                                     |
+| 检索分层增益（Cortex Search 工程博客）       | NDCG@10 0.22→0.49→0.53→0.59；hit rate@1 0.79→0.83→0.86                      | 词法→向量→混合→重排，每加一层涨一截（M6 四因子的量化底座）                   |
+| fan trap（工程博客）                         | $100 → $300（join 复制后）                                                  | valid SQL ≠ valid analytics                                                  |
+| average of averages（同上）                  | 16.0 vs 4.8                                                                 | 无加权平均把大小团队同权                                                     |
+| distinct 跨时间相加（Typedef 复现）          | 玩具 4 vs 3；生产 477 vs 48                                                 | governed 定义在塌缩 grain 上照样错——治理 ≠ 验证                              |
+| OSI → Apache Ossie                           | 17（2025-09-23 创立）→ 28 → 33（v1 定稿）→ 54 → 50+；100+ commits / 35 PRs  | 语义可携带已成行业共识，非单一厂商私产                                       |
+| Automatic Data Agents（Snowflake 官方 docs） | 一键生成语义视图 + Cortex Agent；生成约 10 分钟；重建会覆盖手工修改         | context 随 Marketplace 数据产品分发的生态通货                                |
+| 本原型                                       | 200 vs 440；7 vs 24；[3,1,2] vs [6,1,2]；108.33 vs 122.22                   | M1–M6 机制在玩具域的逐点复现（见动手实践）                                   |
 
 ## 11. 动手实践
 
@@ -509,23 +534,23 @@ uv run --no-project python docs/research/cognitive-context/assets/horizon_contex
 
 玩具域之外，Snowflake 官方「建模最佳实践」给了真上生产的七条护栏：
 
-| Snowflake 官方建议 | 一句话理由 |
-| --- | --- |
-| 首个语义视图 5–10 表、≤50 列起步 | 小闭环先跑通，巨无霸视图是反模式 |
-| 整视图控制在 ~100,000 token 内 | 超限会被 Cortex Agents 剪枝——延迟与质量双伤 |
-| 生产规模按 50+ 视图规划 | 分域拆视图，不是一个视图装天下 |
-| eval 集准备 ~10 题 | 先建小而准的验收闭环 |
-| VQR 不是越多越好：>20 条会拖慢优化 | 验证问答参与匹配与生成，过量反噬 |
-| Cortex Search 只挂高基数文本列（>~10 distinct） | 低基数列挂检索是浪费 |
-| 首个用例避开 Finance/Legal | 高敏域试点等于自找最严审查 |
+| Snowflake 官方建议                              | 一句话理由                                  |
+| ----------------------------------------------- | ------------------------------------------- |
+| 首个语义视图 5–10 表、≤50 列起步                | 小闭环先跑通，巨无霸视图是反模式            |
+| 整视图控制在 ~100,000 token 内                  | 超限会被 Cortex Agents 剪枝——延迟与质量双伤 |
+| 生产规模按 50+ 视图规划                         | 分域拆视图，不是一个视图装天下              |
+| eval 集准备 ~10 题                              | 先建小而准的验收闭环                        |
+| VQR 不是越多越好：>20 条会拖慢优化              | 验证问答参与匹配与生成，过量反噬            |
+| Cortex Search 只挂高基数文本列（>~10 distinct） | 低基数列挂检索是浪费                        |
+| 首个用例避开 Finance/Legal                      | 高敏域试点等于自找最严审查                  |
 
 上线后的可观测性也有 Snowflake 官方面板：
 
-| 面板 | 入口 |
-| --- | --- |
+| 面板         | 入口                                                                                                                  |
+| ------------ | --------------------------------------------------------------------------------------------------------------------- |
 | 语义对象清单 | INFORMATION_SCHEMA / ACCOUNT_USAGE 各 6 张 `SEMANTIC_*` 系统表（VIEWS/TABLES/RELATIONSHIPS/FACTS/DIMENSIONS/METRICS） |
-| 指标维度展开 | `SHOW SEMANTIC DIMENSIONS FOR METRIC` |
-| 治理随行 | 随 schema 克隆、随账号复制、可经 Marketplace 共享 |
+| 指标维度展开 | `SHOW SEMANTIC DIMENSIONS FOR METRIC`                                                                                 |
+| 治理随行     | 随 schema 克隆、随账号复制、可经 Marketplace 共享                                                                     |
 
 ## 12. 批判性边界（材料没有证明的事）
 
