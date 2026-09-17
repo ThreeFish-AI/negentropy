@@ -6,7 +6,6 @@ description: "「嵌入治理引擎、查询时强制执行」的 Context Layer 
 
 > [!NOTE] **核心精读范围**
 >
->
 > - [Snowflake, "Horizon Context — Governed Semantic Layer & Data Catalog," 产品页, 2026](https://www.snowflake.com/en/product/features/horizon-context/)
 > - [公告博客 "The Governed Context Layer for AI, BI and Apps," 2026-06](https://www.snowflake.com/en/blog/horizon-context-governed-context/)
 > - [Summit 26 新闻稿, 2026-06-02](https://www.snowflake.com/en/news/press-releases/snowflake-advances-trusted-ai-with-snowflake-horizon-catalog-centralizing-governance-context-and-security-across-the-enterprise/)
@@ -31,9 +30,23 @@ description: "「嵌入治理引擎、查询时强制执行」的 Context Layer 
 
 ## 1. Horizon Context 解决了什么问题？
 
-销售负责人说 Q3 收入 **$14.2M**，CFO 报的却是 **$12.8M** —— Snowflake 官方拿这组对账数字开场：同一份数据，两个答案。没有人算错数，错的是**语义无人治理**。
+> [!TIP] **Horizon Context 解决了什么问题？**
+>
+> 初级 Data Agent 就像一个 **每天都在重新入职、毫无经验沉淀的天才实习生**；Horizon Context 要做的，是给这位天才员工配备一份「终极入职包」，让他秒变业务老司机：
+>
+> - 公司术语表：Semantic Views 显式定义；
+> - 前台问询处：CoCo（数据原生 AI 编程代理，前身 Cortex Code）混合检索；
+> - 门禁卡与权限：引擎级 RBAC；
+> - 「大家实际都在用什么」的行为统计：Cortex Sense 隐式挖掘；
+> - 前辈验证过的 FAQ：AI_VERIFIED_QUERIES 带署名与日期。
+>
+> 用 Snowflake 官方的话讲：*Without context, an agent guesses. With context built natively into the platform, an agent acts. With context that is also governed natively, an agent can be trusted.*
 
-企业底层数据库躺着的，往往是密码般的物理列名（如毛收入叫 `amt_ttl_pre_dsc`）；真实业务指标（如净利润）的计算口径也散落在不同报表各自的 `CASE WHEN` 逻辑里。各业务域子系统自说自话，谁也不懂谁。
+销售负责人说 Q3 收入 **\$14.2M**，CFO 报的却是 **\$12.8M** —— Snowflake 官方拿这组对账数字开场：同一份数据，两个答案。
+
+没有人算错数，错的是 **语义无人治理**。
+
+企业底层数据库躺着的，往往是密码般的物理列名（如毛收入叫 `amt_ttl_pre_dsc`）；真实业务指标（如净利润）的计算口径也散落在不同报表各自的 `CASE WHEN` 逻辑里。不同业务域子系统各有一套方言黑话，谁也不懂谁。
 
 据 Snowflake 实测，**让缺乏语义治理的初级 Data Agent 直接回答企业数据问题，准确率仅有 ~25%（Snowflake 内测）/ 21%（Anthropic 独立复测）**。这并非初级 Data Agent 所使用的模型笨，而是语义没有对齐。具体体现为这三个不可自愈的系统性病灶：
 
@@ -53,18 +66,6 @@ description: "「嵌入治理引擎、查询时强制执行」的 Context Layer 
 | **行为挖掘、覆盖长尾**   | M4 双轨富化与自纠          | 手册没写全的暗规则，系统通过日常观察老分析师的用数习惯自动补全自愈             |
 | **标准开放、随处插拔**   | M7 开放互操作              | 入职包采用通用插头与开放格式，任何外部智能体和工具拿来就能立刻用               |
 
-> [!TIP] **Horizon Context 解决了什么问题？**
->
-> 初级 Data Agent 就像一个 **每天都在重新入职、毫无经验沉淀的天才实习生**；Horizon Context 要做的，是给这位天才员工配备一份「终极入职包」，让他秒变业务老司机：
->
-> - 公司术语表：Semantic Views 显式定义；
-> - 前台问询处：CoCo（数据原生 AI 编程代理，前身 Cortex Code）混合检索；
-> - 门禁卡与权限：引擎级 RBAC；
-> - 「大家实际都在用什么」的行为统计：Cortex Sense 隐式挖掘；
-> - 前辈验证过的 FAQ：AI_VERIFIED_QUERIES 带署名与日期。
->
-> 用 Snowflake 官方的话讲：*Without context, an agent guesses. With context built natively into the platform, an agent acts. With context that is also governed natively, an agent can be trusted.*
-
 ## 2. Horizon Context 全景与三阶段演进
 
 > [!TIP] **Horizon Context 的演进**
@@ -77,7 +78,11 @@ Horizon Context 并非一款孤立的单点产品，而是围绕 **Horizon Catal
 
 其背后的野心边界更为直白：为整套业务运转构建可计算、自解释的活模型，而不仅是给冷冰冰的数据表建索引（*"building a working model of your entire business, not just a catalog of your tables"*）。
 
-Horizon Context 伞下组件与七大机制（M1–M7）的对应关系如下：
+![Horizon Context 组件全景：14 组件按「定义与执法 M1–M3 / 进料与富化 M4 / 检索与分发 M5–M6 / 互联与出口 M7」四簇分组，基座角色（Agent Identity · OpenLineage 摄取）与 External Lineage（Structural 全景）托底，消费端为 CoCo / CoWork / Cortex Agents 官方 Agent 矩阵。](../../assets/architecture/cognitive-context/horizon-context--component-panorama-dark.png)
+
+> 图源（可 diff 文本）：[`horizon-context--component-panorama.mmd`](../../assets/mermaid/cognitive-context/horizon-context--component-panorama.mmd) · 交互版（下载到本地打开）：[`horizon-context--component-panorama.html`](../../assets/architecture/cognitive-context/horizon-context--component-panorama.html)
+
+Horizon Context 所含组件与七大机制（M1–M7）的对应关系如下：
 
 | 组件                                                                        | 一句话职责                                                     | 机制锚点           |
 | :-------------------------------------------------------------------------- | :------------------------------------------------------------- | :----------------- |
@@ -104,13 +109,13 @@ Horizon Context 伞下组件与七大机制（M1–M7）的对应关系如下：
 
 此外，体系外围还配有两个关键基座角色：**Agent Identity**（为智能体签发独立审计身份，纳进统一 RBAC）与 **OpenLineage 摄取**（承载 External lineage 输入侧的标准协议）。
 
-![Horizon Context 组件全景：14 组件按「定义与执法 M1–M3 / 进料与富化 M4 / 检索与分发 M5–M6 / 互联与出口 M7」四簇分组，基座角色（Agent Identity · OpenLineage 摄取）与 External Lineage（Structural 全景）托底，消费端为 CoCo / CoWork / Cortex Agents 官方 Agent 矩阵。](../../assets/architecture/cognitive-context/horizon-context--component-panorama-dark.png)
+### 2.2 演进 Timeline：先造对象，再装治理与富化，最后开生态
 
-> 图源（可 diff 文本）：[`horizon-context--component-panorama.mmd`](../../assets/mermaid/cognitive-context/horizon-context--component-panorama.mmd) · 交互版（下载到本地打开）：[`horizon-context--component-panorama.html`](../../assets/architecture/cognitive-context/horizon-context--component-panorama.html)
+**纵观全景**：两年半的演进轨迹呈现出清晰的重心迁移——前期重在**寻址召回（找得到）**，中期深耕**语义对象与引擎治理（算得准、守得住）**，后期聚焦**跨端互通与全域血缘（信得过、带得走）**。
 
-### 2.2 三阶段叙事：先造对象，再装治理与富化，最后开生态
+![三阶段演进时间线：阶段一「找得到 → 算得准」（检索先行 → Semantic Views GA）、阶段二「守得住、填得满、送得出」（OSI/MCP 通道 → Select Star/Autopilot 富化 → AI_REDACT/Guardrails 治理 → Summit 整体发布）、阶段三「随处用」（Cortex Sense/Ossie/全域血缘运营），16 项里程碑零丢失、机制锚点逐一标注。](../../assets/architecture/cognitive-context/horizon-context--evolution-timeline-dark.png)
 
-整个演进历程并非一蹴而就，而是沿着「**找得到 → 算得准 → 守得住 → 随处用**」的逻辑闭环层层推进：
+> 图源（可 diff 文本）：[`horizon-context--evolution-timeline.mmd`](../../assets/mermaid/cognitive-context/horizon-context--evolution-timeline.mmd) · 交互版（下载到本地打开）：[`horizon-context--evolution-timeline.html`](../../assets/architecture/cognitive-context/horizon-context--evolution-timeline.html)
 
 **阶段一 · 语义对象化（2024-02 → 2025-08）：从「找得到」到「算得准」**
 
@@ -143,8 +148,6 @@ Snowflake 官方的运营哲学是：上下文只有在真实业务流中高频�
 >
 > - **协同定位**：二者是 Cortex Sense 隐式上下文的核心验证者与直接消费者。Sense 从历史轨迹中提炼出的隐式规则，正是在这类 Agent 的实际交互闭环中被验证与消耗。
 
-### 2.3 时间线速览
-
 下表归纳了两年半间 Horizon Context 演进的关键里程碑（机制详解参见 M1–M7 各节）：
 
 | 时点                     | 里程碑                                                        | 一句话意义                                         | 笔记落点 |
@@ -165,12 +168,6 @@ Snowflake 官方的运营哲学是：上下文只有在真实业务流中高频�
 | **2026-06-02**           | Summit：**Horizon Context 整体发布** (Agent Identity GA)      | 整合收拢为能力伞：从「登记簿」蜕变为「理解系统」   | 全景     |
 | **2026-06-30 → 2026-07** | Cortex Sense 发布与私测；OSI 捐赠为 Apache Ossie              | 隐式行为挖掘亮相；开放规范迈入顶级开源基金会       | M4 / M7  |
 | **2026-08 → 2026-09**    | Power BI 摄取 GA；External Lineage GA；Agent 血缘上线         | 跨系统血缘与多端消费全面落地，生态运营常态化       | M4 / M7  |
-
-**纵观全景**：两年半的演进轨迹呈现出清晰的重心迁移——前期重在**寻址召回（找得到）**，中期深耕**语义对象与引擎治理（算得准、守得住）**，后期聚焦**跨端互通与全域血缘（信得过、带得走）**。
-
-![三阶段演进时间线：阶段一「找得到 → 算得准」（检索先行 → Semantic Views GA）、阶段二「守得住、填得满、送得出」（OSI/MCP 通道 → Select Star/Autopilot 富化 → AI_REDACT/Guardrails 治理 → Summit 整体发布）、阶段三「随处用」（Cortex Sense/Ossie/全域血缘运营），16 项里程碑零丢失、机制锚点逐一标注。](../../assets/architecture/cognitive-context/horizon-context--evolution-timeline-dark.png)
-
-> 图源（可 diff 文本）：[`horizon-context--evolution-timeline.mmd`](../../assets/mermaid/cognitive-context/horizon-context--evolution-timeline.mmd) · 交互版（下载到本地打开）：[`horizon-context--evolution-timeline.html`](../../assets/architecture/cognitive-context/horizon-context--evolution-timeline.html)
 
 ## 3. M1 · 五段式 Context 对象模型：把语义便利贴装订成册
 
