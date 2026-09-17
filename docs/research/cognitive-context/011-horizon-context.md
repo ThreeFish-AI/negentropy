@@ -22,7 +22,7 @@ description: "「嵌入治理引擎、查询时强制执行」的 Context Layer 
 
 > [!TIP] **怎么读笔记**
 >
-> 每个机制节按「类比 → 机制 → 原型」三拍进行记录和实践，M1–M7 七个机制节各配一张动效工程图，§2 另配组件全景与演进时间线两张总览图（交互版下载到本地打开，默认经典视图可切主题/缩放/聚焦，trace 动画按主路径逐边点亮）。其中实践取自配套的最小原型 [`assets/horizon_context_lab.py`](./assets/horizon_context_lab.py)（约 916 行纯标准库代码，M1–M6 六机制 + 场景矩阵 + 破坏性实验；另有 MCP 服务原型 [`assets/horizon_context_mcp.py`](./assets/horizon_context_mcp.py) 验证平台集成路径）。
+> 每个机制节按「类比 → 机制 → 原型」三拍进行记录和实践，M1–M7 七个机制节各配一张动效工程图，§1 开篇另配病因链与机制对位总览图，§2 另配组件全景与演进时间线两张总览图（交互版下载到本地打开，默认经典视图可切主题/缩放/聚焦，trace 动画按主路径逐边点亮）。其中实践取自配套的最小原型 [`assets/horizon_context_lab.py`](./assets/horizon_context_lab.py)（约 916 行纯标准库代码，M1–M6 六机制 + 场景矩阵 + 破坏性实验；另有 MCP 服务原型 [`assets/horizon_context_mcp.py`](./assets/horizon_context_mcp.py) 验证平台集成路径）。
 
 配套产物：[Context Layer 基础设施设计蓝图](./013-context-layer-blueprint.md) · [Horizon Context ↔ negentropy 机制映射报告](./012-horizon-context-mapping-negentropy.md)。
 
@@ -71,6 +71,10 @@ description: "「嵌入治理引擎、查询时强制执行」的 Context Layer 
 | **按需分发、精准激活**   | M5 检索激活                | 智能前台懂分寸精准发卷，绝不撑爆大脑；若遇资深前辈考证 FAQ 直接调出核准底稿  |
 | **权威优先、压制噪声**   | M6 信号排序                | 前台四维评估尺四秤齐压，权威压过声量，越稳妥权威排越前，绝不让流行偏方误导   |
 | **标准开放、随处插拔**   | M7 开放互操作              | 配发通用工作护照与标准安全插座，任何外部特聘专家工具插上就能立刻用           |
+
+![Horizon Context 病因链与机制对位：对账崩塌（销售 $14.2M vs CFO $12.8M）、裸问准确率 ~25%/21% 与密码般物理列名 amt_ttl_pre_dsc 三处症状收于「语义无人治理」一句判词，裂为口径打架 / 定义漂移 / 门禁穿透三个不可自愈病灶；铸入引擎后由 M1（只印一本 · 住进引擎，与数据同库同治理）与 M3（焊进闸口）对位封堵、M4 回补长尾，M1 再经 M2 按 grain 现算、经 M5–M7 检索排序与开放互操作送达消费端；机制节点三合一承载机制名 / 设计规格 / 类比装备，§12 残留边界由结论卡承载。](../../assets/architecture/cognitive-context/horizon-context--problem-to-mechanisms-dark.png)
+
+> 图源（可 diff 文本）：[`horizon-context--problem-to-mechanisms.mmd`](../../assets/mermaid/cognitive-context/horizon-context--problem-to-mechanisms.mmd) · 交互版（下载到本地打开）：[`horizon-context--problem-to-mechanisms.html`](../../assets/architecture/cognitive-context/horizon-context--problem-to-mechanisms.html)
 
 ## 2. Horizon Context 全景与三阶段演进
 
