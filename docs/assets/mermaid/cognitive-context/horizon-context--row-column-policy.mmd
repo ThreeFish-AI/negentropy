@@ -1,0 +1,15 @@
+%%source: docs/research/cognitive-context/011-horizon-context.md#blockM2 (L263-L296, §4 M2 · 查询期行列级访问策略)
+%%slug: cognitive-context/horizon-context--row-column-policy
+%%type: workflow
+%%derived: archify workflow v2, authored from source mermaid
+%% fix: (2026-09-17 重评选新图) 原 M3 一拆为三后的客体可见性轴：masking/row access/aggregation/projection 四策略对象 + 策略所有者角色求值 + IS_AGENT_ACTIVATED 代理严拒面 + tag-based 绑定（与 M7 供给链衔接）
+flowchart LR
+    CAL["🧑‍💼 人 / BI / Agent<br/>任意通道发起查询"] --> PO{"schema 级策略对象<br/>查询期 · 策略所有者角色求值<br/>ACCOUNTADMIN 亦不可绕过"}
+    PO --> MSK["🎭 Dynamic Masking<br/>列级：无权者见打码值"]
+    PO --> RAP["🚧 Row Access Policy<br/>行级：entitlement 映射过滤"]
+    PO --> AGP["📐 Aggregation / Projection Policy<br/>同族：限定聚合粒度 / 投影列"}
+    MSK --> OUT["✅ 同一 SQL · 按角色差异化投影"]
+    RAP --> OUT
+    AGP --> OUT
+    CLS["🏷️ tag-based 绑定<br/>策略附着语义标签而非物理列（M7 供给）"] -.-> PO
+    AID["🪪 代理会话<br/>IS_AGENT_ACTIVATED 谓词（M6 身份）"] -.->|"可叠加更严拒绝面"| PO

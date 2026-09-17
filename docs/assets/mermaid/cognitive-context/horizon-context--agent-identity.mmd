@@ -1,0 +1,12 @@
+%%source: docs/research/cognitive-context/011-horizon-context.md#blockM6 (L399-L439, §8 M6 · Agent Identity)
+%%slug: cognitive-context/horizon-context--agent-identity
+%%type: workflow
+%%derived: archify workflow v2, authored from source mermaid
+%% fix: (2026-09-17 重评选新图) 全景级角色转正：RSS 权限天花板只减不增 + 用户回收实时生效 + agent_type 归因审计 + IS_AGENT_ACTIVATED 谓词衔接 M2；GA 四级时间线与置信度分轴入 sublabel
+flowchart LR
+    USER["👤 用户权限<br/>RBAC 现状"] --> CEIL{"🪧 Restricted Session Scope<br/>权限天花板 = 用户权限 ∩ 代理允许面<br/>只减不增 · 不授新权"}
+    AGENT["🤖 代理会话<br/>IS_AGENT OAuth / 托管 MCP / SERVICE_AGENT"] --> CEIL
+    CEIL --> SESS["🪪 会话身份<br/>agent_type = assistant<br/>代理性不可伪装为人类性"]
+    USER -.->|"用户回收权限 → 新会话实时失去<br/>（快照式=越权窗口 · D9 实测）"| CEIL
+    SESS --> QH["📋 归因审计<br/>QUERY_HISTORY.agent_type<br/>ACCESS_HISTORY.agents_info"]
+    SESS --> POL["⚖️ IS_AGENT_ACTIVATED 谓词<br/>供 M2 策略体叠加代理严拒面<br/>（GA 06-02 → 09-03 RSS · 独立生产案例仍零）"]

@@ -1,15 +1,13 @@
-%%source: docs/research/cognitive-context/011-horizon-context.md#blockM3 (L283-L292, §5 M3 · 引擎原生治理)
+%%source: docs/research/cognitive-context/011-horizon-context.md#blockM3 (L297-L325, §5 M3 · 语义级治理执行)
 %%slug: cognitive-context/horizon-context--engine-governance
 %%type: workflow
 %%derived: archify workflow v2, authored from source mermaid
-%% fix: (2026-09-15 校准) ① RED 节点补「Cortex Guard」指称（正文 M3：PII/PHI 实时脱敏是 AI_REDACT 与 Cortex Guard 的职责，两指称须分开）；② GRD/RED 补 GA 日期（正文阶段二）；③ %%source 行号更新为 L283-L292
+%% fix: (2026-09-17 重评选) 原 M3 一拆为三后的拓扑面：① 出口安检（Guardrails/AI_REDACT）节点移出（降为 §12 小节，另见姊妹图 open-interop）；② 中心节点改为「语义定义与策略同体」拓扑（defined-once-enforced-everywhere · 不复制缓存）；③ 行列级策略执行细节归 M2 姊妹图 row-column-policy；④ %%source 重锚 L297-L325
 flowchart LR
-    CAL["🧑‍💼 人 / BI / AI Agent<br/>同一套 RBAC · 无 AI 专用配置"] --> FLT["检索层过滤（体验）<br/>PRIVATE 维度不下发"]
+    CAL["🧑‍💼 人 / BI / AI Agent<br/>同一套 RBAC · 无 AI 专用配置"] --> FLT["检索层过滤（体验）<br/>PRIVATE 资产不下发"]
     CAL -.->|"绕过语义层"| BYP["🚪 直查物理底表"]
-    FLT --> POL["策略随含义传播<br/>底表 masking / row-access 自动生效"]
-    POL --> RB{"执行层 RBAC（底线）<br/>owner's rights 校验"}
+    FLT --> DEF["🛡️ 语义定义与策略同体<br/>defined-once · enforced-everywhere<br/>不复制缓存 · 无第二事实源"]
+    DEF --> RB{"执行层校验（底线）<br/>PRIVATE 拒绝"}
     RB -->|"PRIVATE 资产"| AX["🚫 AccessDenied"]
     BYP -->|"引擎策略仍拦截"| AX
-    RB -->|"通过"| GRD["Cortex AI Guardrails（GA 2026-04-20）<br/>拦 prompt injection / jailbreak"]
-    GRD --> RED["AI_REDACT + Cortex Guard 出口脱敏<br/>PII / PHI · 4096 token 上限 · GA 2025-12-08"]
-    RED --> OUT["✅ 受治理结果<br/>策略与标签随行携带"]
+    RB -->|"通过"| OUT["✅ 受治理结果<br/>出口约束不弱于数据本体<br/>权限与标签随 Marketplace 共享随行"]

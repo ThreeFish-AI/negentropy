@@ -1,44 +1,44 @@
-%%source: docs/research/cognitive-context/011-horizon-context.md#block2-1 (L80-L109, §2.1 定位：从「登记簿」到「业务的 Working Model」)
+%%source: docs/research/cognitive-context/011-horizon-context.md#block2-1 (L88-L127, §2.1 定位：从「登记簿」到「业务的 Working Model」)
 %%slug: cognitive-context/horizon-context--component-panorama
 %%type: dataflow
 %%derived: archify dataflow v1, authored from source mermaid
-%% fix: (2026-09-15 同步) 重写为出货图逐字镜像（恢复 mmd↔HTML↔PNG 逐字同步口径）：① subgraph 按图内五段序（进料富化 01 → 定义执法 02 → 检索分发 03 → 互联出口 04 → 消费端·生态与基座 05），原「消费端」「全景与基座」两簇在图中合并，ADA（Automatic Data Agents）随图归入 05 簇；② 节点/边标签对齐图内精简文案（连接器清单→「Select Star · Wave 1 五连接器」、四因子全称→「R · A · P · F 四因子」等）；③ 图省略三条边（RK→AGENTS top-k / OSS↔SV YAML 互导 / ADA→SV 一键生成）——语义已由节点 sublabel 与 open-interop 姊妹图承载，SYSTEM$CREATE_SEMANTIC_VIEW_FROM_YAML 详见 horizon-context--open-interop.mmd
+%% fix: (2026-09-17 重评选) 五簇重划为重评选后口径：① 口径与应答（M1/M4）/ 治理执法（M2/M3/M6/M7）/ 账本（M5）为承重三簇，供给与出口（§10–§12 降级区）一簇；② Agent Identity 与 External Lineage 从「基座角色」升正式成员（M6/M5）；③ 新增行列级策略（M2）与分类标签（M7）节点；④ 出口安检随 §12 归降级簇；⑤ 检索排序（原 M5/M6）归 §11 降级簇；⑥ %%source 重锚 L88-L127
 flowchart LR
-    subgraph "进料与富化（M4）· 自愈血液"
-        MC["🗄️ Metadata Connectors<br/>Select Star · Wave 1 五连接器（M4）"]
-        AP["🏗️ Autopilot<br/>Semantic Studio · days → minutes（M4）"]
-        CS["🔍 Cortex Sense<br/>查询历史隐式挖掘 · 自动纠偏（M4）"]
+    subgraph "口径与应答（M1 / M4）· 答对的根"
+        SV["📦 Semantic Views<br/>五段式 · 校验门 · 按 grain 现算（M1）"]
+        VQR["✅ AI_VERIFIED_QUERIES<br/>核准问答 · 带署名溯源（M4）"]
     end
-    subgraph "定义与执法（M1–M3）· 承重骨架"
-        EG["🛡️ 引擎原生治理<br/>RBAC/Masking/RowAccess · 出口脱敏（M3）"]
-        SV["📦 Semantic Views<br/>五段式对象 · 带校验门（M1）"]
-        QE["⚙️ 查询时执行<br/>standard SQL · 按 grain 现算（M2）"]
+    subgraph "治理执法（M2 / M3 / M6 / M7）· 守得住的骨架"
+        POL["🛡️ 行列级访问策略<br/>Masking / RowAccess / Agg·Proj（M2）"]
+        GOV["🏛️ 语义级治理执行<br/>定义与策略同体 · 查询期强制（M3）"]
+        AID["🔑 Agent Identity<br/>RSS 权限天花板 · agent_type 审计（M6）"]
+        CLS["🏷️ 分类与标签<br/>自动分类 → 标签驱动策略（M7）"]
     end
-    subgraph "检索与分发（M5–M6）· 触达神经"
-        VQR["✅ AI_VERIFIED_QUERIES<br/>专家问答对 · 带署名溯源（M5）"]
-        US["🧭 Universal / Cortex Search<br/>关键词 + 向量混合检索（M5）"]
-        RK["⚖️ 四因子信号排序<br/>R · A · P · F 四因子（M6）"]
+    subgraph "账本（M5）· 事后可对账"
+        EL["🕸️ 端到端列级血缘<br/>引擎沉淀 + OpenLineage 摄取（M5）"]
     end
-    subgraph "互联与出口（M7）· 开放抓手"
-        OSS["📜 Ossie（原 OSI）<br/>跨平台语义互导 · 50+ 组织（M7）"]
-        MCP["🔌 Snowflake 官方 MCP Server<br/>标准受控工具面 · 5 类工具（M7）"]
+    subgraph "供给与出口（§10–§12）· 降级保留区"
+        AP["🏗️ Autopilot / Metadata Connectors<br/>days → minutes · Wave 1 五连接器（§10）"]
+        CS["🔍 Cortex Sense<br/>隐式挖掘 · 私预（§10）"]
+        US["🧭 Universal / Cortex Search<br/>混合检索 + R·A·P·F 四因子（§11）"]
+        OSS["📜 Ossie（原 OSI）<br/>跨平台语义互导 · 50+ 组织（§12）"]
+        MCP["🔌 Snowflake 官方 MCP Server<br/>标准受控工具面（§12 · 第一顺位晋级候选）"]
+        ADA["🏭 Automatic Data Agents<br/>Marketplace 一键生成 SV + Agent（§12）"]
+        GRD["🛂 出口安检<br/>Guardrails / AI_REDACT（§12）"]
     end
-    subgraph "消费端 · 生态与基座"
-        AGENTS["🤖 官方 Agent 矩阵<br/>CoCo / CoWork / Cortex Agents（M5 / M7）"]
-        ADA["🏭 Automatic Data Agents<br/>Marketplace 一键生成 SV + Agent（M7）"]
-        EL["🕸️ External Lineage<br/>端到端「谁产出、谁消费」血缘（Structural 全景）"]
-        BASE["🔑 基座角色<br/>Agent Identity · OpenLineage 摄取"]
+    subgraph "消费端"
+        AGENTS["🤖 官方 Agent 矩阵<br/>CoCo / CoWork / Cortex Agents"]
     end
-    MC -->|"存量入库 · Wave 1"| SV
-    AP -->|"起草验证"| SV
-    CS -.->|"冲突浮出人工"| SV
-    SV -->|"按 grain 现算"| QE
-    SV -->|"定义进入召回"| US
-    VQR -->|"相似命中优先激活"| US
-    US -->|"混合检索"| RK
-    RK -->|"打包为受控工具面"| MCP
+    AP -->|"起草验证 · 冲突浮出人工"| SV
+    CS -.->|"隐式候选 · Suggestions"| VQR
+    SV -->|"口径进入治理引擎"| GOV
+    GOV -->|"策略随含义传播"| POL
+    CLS -->|"标签驱动策略"| POL
+    AID -->|"代理会话 · 严拒面"| POL
+    VQR -->|"命中优先 · confidence"| AGENTS
+    US -->|"top-k 上下文包"| AGENTS
     MCP -->|"单 Agent 工具面"| AGENTS
-    EL -.->|"全链路血缘运营"| ADA
-    BASE -->|"OpenLineage 输入侧"| EL
-    BASE -.->|"Agent Identity 纳入 RBAC"| EG
-    EG -.->|"对所有调用方强制"| AGENTS
+    EL -.->|"答案可溯源 · 影响面定位"| AGENTS
+    GRD -.->|"出口安检"| AGENTS
+    OSS -.->|"YAML 互导"| SV
+    ADA -.->|"一键生成"| SV

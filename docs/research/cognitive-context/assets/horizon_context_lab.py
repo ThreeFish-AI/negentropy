@@ -2,13 +2,16 @@
 # -*- coding: utf-8 -*-
 """Horizon Context 最小原型实验室（guided-learn Phase 4）。
 
-对标 Snowflake Horizon Context 的六个核心机制，全部用确定性玩具域模拟：
-  M1 上下文对象模型   —— SemanticView 五段式声明 + 同义词 + 验证问答 + 可见性 + 结构校验门
-  M2 查询时语义正确性 —— agg-before-join / distinct 聚合 / derived 先聚后除 / 半可加末快照 / USING 消歧
-  M3 治理内嵌引擎     —— resolve（检索层过滤）与 compile（执行层拒绝）双层 RBAC
-  M4 富化与自纠       —— 显式定义 vs 隐式推断双轨 + 冲突浮出人工裁决 + eval 自纠环
-  M5 检索激活         —— 同义词+流行度混合匹配 top-k 上下文包 + verified query 短路
-  M6 信号排序         —— relevance/authority/popularity/freshness 四因子
+对标 Snowflake Horizon Context 的机制（2026-09-17 全局重评选校准后的 M 集 + 降级保留）：
+  M1 语义视图：口径单点 × 查询期重算 —— 五段式声明 + 同义词 + 验证问答 + 可见性 + 结构校验门
+                                + agg-before-join / distinct / derived 先聚后除 / 半可加末快照 / USING 消歧
+  M2 查询期行列级访问策略 —— 执行层 RBAC/PRIVATE 拒绝（玩具形态）+ IS_AGENT_ACTIVATED 严拒面
+  M3 语义级治理执行       —— resolve（检索层过滤=体验）与 compile（执行层拒绝=底线）双层防线
+  M4 应答层验证锚定       —— verified query 短路重放 + 引擎重算对账 + 溯源元数据
+  M5 端到端列级血缘       —— 引擎执行自动沉淀列级边 + OpenLineage 外部摄取完整事件门
+  M6 Agent Identity       —— 会话权限天花板（只减不增）+ agent_type 审计 + 代理严拒面
+  M7 分类与标签驱动策略传播 —— 自动分类 + 一次性映射（系统标签→用户标签）+ 新列自动纳入
+  降级保留（教学价值不随降级消失）：富化双轨/冲突浮出人工/eval 自纠环（原 M4）、四因子排序（原 M6）
 
 本原型只回答「机制是否自洽」，不回答「模型是否聪明」——材料里的 LLM 角色
 （CoCo/Cortex Analyst 生成 SQL）全部用确定性 mock 替代，agent 产出 QueryPlan
@@ -422,6 +425,7 @@ def compile_query(view: SemanticView, metric_name: str, dims=None, role="analyst
         snum, sden = _one(num_m, sub), _one(den_m, sub)
         ratios = [snum[k] / sden[k] for k in sorted(snum, key=none_safe)]
         return {(): round(sum(ratios) / len(ratios), 2)}
+    record_lineage(view, metric, dim_objs)   # 新 M5：引擎执行副产品自动沉淀血缘
     result = _one(metric, dims)
     return {k if k else (): result[k] for k in sorted(result, key=none_safe)}
 
@@ -658,6 +662,156 @@ def eval_loop(catalog: Catalog, views, gold):
 
 
 # ---------------------------------------------------------------------------
+# 新 M5/M6/M7 · 血缘账本 / 代理身份 / 分类标签（2026-09-17 重评审晋级机制）
+# ---------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class LineageEdge:
+    src_table: str
+    src_col: str
+    dst_table: str
+    dst_col: str
+    origin: str                     # engine（执行自动沉淀）| external（OpenLineage 摄取）
+
+
+LINEAGE_LEDGER: list = []           # 内外合流的单一账本（插入幂等去重）
+
+
+def record_lineage(view: SemanticView, metric: Metric, dim_objs):
+    """引擎执行副产品：编译查询时自动沉淀列级依赖边（原生列级血缘）。"""
+    edges = [LineageEdge(metric.table, metric.column, view.name,
+                         f"metric:{metric.name}", "engine")]
+    for d in dim_objs:
+        edges.append(LineageEdge(d.table, d.column, view.name, f"dim:{d.name}",
+                                 "engine"))
+    for e in edges:
+        if e not in LINEAGE_LEDGER:
+            LINEAGE_LEDGER.append(e)
+
+
+def get_lineage(table=None, column=None):
+    """对标 GET_LINEAGE：程序化查询列级上下游（一年保留的投影面）。"""
+    return sorted((e for e in LINEAGE_LEDGER
+                   if (table is None or e.src_table == table or e.dst_table == table)
+                   and (column is None or e.src_col == column or e.dst_col == column)),
+                  key=lambda e: (e.src_table, e.src_col, e.dst_table, e.dst_col))
+
+
+class LineageIngestError(Exception):
+    pass
+
+
+def ingest_external_lineage(event, *, has_ingest_privilege=True, tables=TABLES,
+                            strict_resolve=True):
+    """对标 External Lineage REST 端点：OpenLineage 事件进门三道闸。
+
+    ①调用方须持账户级 INGEST LINEAGE 权限；②只接受 COMPLETE 事件；
+    ③snowflake:// 命名空间引用的对象必须全部可解析——任一不满足，整事件拒绝。
+    columnLineage facet 的列级映射并入同一账本（内外单一账本，不分家）。
+    """
+    if not has_ingest_privilege:
+        raise LineageIngestError("caller lacks INGEST LINEAGE privilege")
+    if event.get("eventType") != "COMPLETE":
+        raise LineageIngestError("only COMPLETE events are accepted")
+    for side in ("inputs", "outputs"):
+        for ds in event.get(side, []):
+            if str(ds.get("namespace", "")).startswith("snowflake://"):
+                if strict_resolve and ds["name"].split(".")[-1] not in tables:
+                    raise LineageIngestError(
+                        f"unresolvable Snowflake object: {ds['name']}")
+    n = 0
+    for out in event.get("outputs", []):
+        dst = out["name"].split(".")[-1]
+        fields = (out.get("facets", {}).get("columnLineage", {})
+                  .get("fields", {}))
+        for dst_col, spec in sorted(fields.items()):
+            for inf in spec.get("inputFields", []):
+                src_parts = inf["name"].split(".")
+                edge = LineageEdge(src_parts[0], src_parts[-1], dst, dst_col,
+                                   "external")
+                if edge not in LINEAGE_LEDGER:
+                    LINEAGE_LEDGER.append(edge)
+                n += 1
+    return n
+
+
+# ---- 新 M6 · Agent Identity：代理身份与会话权限天花板 ----
+
+USER_PERMS = {                          # 用户直接权限（统一 RBAC 现状）
+    "data_governance": {"use:sales_sv", "select:orders", "select:customers"},
+    "intern": {"use:sales_sv"},
+}
+AGENT_SERVICE_ALLOWED = {"use:sales_sv", "select:orders"}   # 代理服务允许面
+AGENT_STRICT_DENY = {"select:customers"}  # IS_AGENT_ACTIVATED：代理会话叠加更严拒绝面
+
+
+@dataclass
+class AgentSession:
+    user: str
+    agent: str
+    perms: frozenset
+    agent_type: str = "assistant"       # 对标 QUERY_HISTORY.agent_type 审计列
+
+
+QUERY_LOG: list = []                    # 对标 QUERY_HISTORY / ACCESS_HISTORY.agents_info
+
+
+def agent_session(user, agent="cortex-agent", *, ceiling=True):
+    """Restricted Session Scope：会话实际权限 = 用户权限 ∩ 代理允许面（只减不增）。
+
+    ceiling=False 模拟退化实现：创建时拿用户全量并冻结快照——用户后续回收
+    权限不影响既有会话（D9 的越权窗口）。
+    """
+    base = USER_PERMS[user]
+    perms = (base & AGENT_SERVICE_ALLOWED) if ceiling else base
+    return AgentSession(user, agent, frozenset(perms))
+
+
+def audit_log(session: AgentSession, action: str):
+    QUERY_LOG.append({"action": action, "user": session.user,
+                      "agent": session.agent, "agent_type": session.agent_type})
+    return QUERY_LOG[-1]
+
+
+def session_allows(session: AgentSession, perm: str) -> bool:
+    """代理会话权限判定：天花板 ∩ 代理严拒面（身份语义归 M6，谓词消费面见 M2）。"""
+    if session.agent_type and perm in AGENT_STRICT_DENY:
+        return False
+    return perm in session.perms
+
+
+# ---- 新 M7 · 分类与标签驱动策略传播 ----
+
+CLASSIFY_HINTS = {                      # 自动分类扫描：列名 → 系统分类标签
+    "phone": "CONTACT_INFO", "email": "CONTACT_INFO", "ssn": "CONTACT_INFO",
+    "plan": "BUSINESS_INFO",
+}
+TAG_MAPPING = {"CONTACT_INFO": "pii"}   # 一次性映射：系统标签 → 用户治理标签
+                                         #（官方限制：掩码策略不能直接绑定系统标签）
+TAG_POLICY = {"pii": "MASK_FULL"}       # 用户标签 → 策略
+
+
+def classify(table: Table) -> dict:
+    """分类扫描：为每列打系统标签（发现 → 标记）。"""
+    return {(table.name, c): CLASSIFY_HINTS[c] for c in table.columns
+            if c in CLASSIFY_HINTS}
+
+
+def policy_for(system_tags, table_name, col, mapping=TAG_MAPPING):
+    """标记 → 执行：系统标签经一次性映射到用户标签后驱动策略；未映射 = 保护缺口。"""
+    tag = system_tags.get((table_name, col))
+    user_tag = mapping.get(tag) if tag else None
+    policy = TAG_POLICY.get(user_tag) if user_tag else None
+    return policy, tag, user_tag
+
+
+def project_cell(value, table_name, col, system_tags, mapping=TAG_MAPPING):
+    """列值出口投影：命中标签绑定策略即脱敏（发现→标记→执行 链条的执行端）。"""
+    policy, _, _ = policy_for(system_tags, table_name, col, mapping)
+    return "██" if policy == "MASK_FULL" and value is not None else value
+
+
+# ---------------------------------------------------------------------------
 # 装配（governed 视图 + 推断层条目）
 # ---------------------------------------------------------------------------
 
@@ -838,6 +992,78 @@ def scenario_C():
            f"{[(e['name'], e['source'], e['score']) for e in pkg5.entries]}")
 
 
+def scenario_E():
+    print("— E 重评审晋级机制（血缘账本 / 代理身份 / 分类标签）—")
+    # E1 端到端列级血缘：引擎执行自动沉淀 + OpenLineage 外部摄取 + 单一账本
+    compile_query(SALES, "revenue", dims=["month"])
+    compile_query(SALES, "revenue", dims=["plan"], via="buyer")
+    engine_edges = get_lineage("orders", "total")
+    ingest_external_lineage({
+        "eventType": "COMPLETE",
+        "inputs":  [{"namespace": "postgres://etl", "name": "app_db.users"}],
+        "outputs": [{"namespace": "snowflake://acme", "name": "analytics.customers",
+                     "facets": {"columnLineage": {"fields": {
+                         "plan": {"inputFields": [{"name": "app_db.users.tier"}]}}}}}],
+    })
+    ext_edges = get_lineage("customers", "plan")
+    expect("E1", any(e.dst_col == "metric:revenue" and e.origin == "engine"
+                     for e in engine_edges)
+           and any(e.src_col == "tier" and e.dst_col == "plan"
+                   and e.origin == "external" for e in ext_edges),
+           f"列级血缘同账本: 引擎沉淀 orders.total→{engine_edges[0].dst_table}."
+           f"metric:revenue；OpenLineage 摄取 app_db.users.tier→customers.plan"
+           f"（origin 各异、账本唯一）")
+    rejected = []
+    n_before = len(LINEAGE_LEDGER)
+    for bad, kw in (
+        ({"eventType": "START", "outputs": []}, {}),                       # 非 COMPLETE
+        ({"eventType": "COMPLETE", "outputs": [
+            {"namespace": "snowflake://acme", "name": "analytics.no_such"}]}, {}),  # 不可解析
+        ({"eventType": "COMPLETE", "outputs": []},
+         {"has_ingest_privilege": False}),                                 # 无 INGEST 权限
+    ):
+        try:
+            ingest_external_lineage(bad, **kw)
+            rejected.append("accepted")
+        except LineageIngestError:
+            rejected.append("rejected")
+    expect("E1b", rejected == ["rejected"] * 3 and len(LINEAGE_LEDGER) == n_before,
+           f"摄取三道闸: 非 COMPLETE / 对象不可解析 / 无 INGEST 权限 → 整事件拒绝"
+           f" {rejected}（账本零污染）")
+    # E2 Agent Identity：天花板只减不增 + agent_type 审计 + 代理严拒面
+    sess = agent_session("data_governance")
+    agent_entry = audit_log(sess, "compile: revenue by month")
+    expect("E2", sess.perms == frozenset({"use:sales_sv", "select:orders"})
+           and sess.perms <= frozenset(USER_PERMS["data_governance"])
+           and agent_entry["agent_type"] == "assistant"
+           and not session_allows(sess, "select:customers"),
+           f"代理身份: 会话权限=用户∩代理面 {sorted(sess.perms)}（只减不增）；"
+           f"审计 agent_type=assistant；IS_AGENT_ACTIVATED 下 select:customers"
+           f" 被拒（用户本人可查）")
+    USER_PERMS["data_governance"].discard("select:orders")
+    sess2 = agent_session("data_governance")
+    USER_PERMS["data_governance"].add("select:orders")            # 还原
+    expect("E2b", "select:orders" not in sess2.perms,
+           "天花板实时性: 用户回收 select:orders → 新会话立即失去（权限无缓存过期窗口）")
+    # E3 分类与标签驱动策略传播：自动分类 + 一次性映射 + 新列自动纳入 + 缺口如实
+    base_tags = classify(CUSTOMERS)                 # 漂移前：无敏感列
+    drifted = Table("customers", ("id", "name", "plan", "phone", "ssn"), ("id",),
+                    [dict(r, phone="13800000000", ssn="X-111")
+                     for r in CUSTOMERS.rows])      # schema 漂移：新增 phone/ssn
+    drift_tags = classify(drifted)
+    phone = project_cell("13800000000", "customers", "phone", drift_tags)
+    ssn = project_cell("X-111", "customers", "ssn", drift_tags)
+    plan_out = project_cell("pro", "customers", "plan", drift_tags)
+    gap_policy, gap_tag, gap_user = policy_for(drift_tags, "customers", "plan")
+    expect("E3", ("customers", "phone") not in base_tags
+           and phone == "██" and ssn == "██" and plan_out == "pro"
+           and gap_policy is None and gap_tag == "BUSINESS_INFO"
+           and gap_user is None,
+           f"分类标签: 漂移新列 phone/ssn 自动分类→pii→MASK_FULL（无需人工登记）；"
+           f"plan→BUSINESS_INFO 未映射=显式缺口（掩码不可直绑系统标签，"
+           f"须先配一次性映射）")
+
+
 def destructive():
     print("— D 破坏性实验（每次只拆一个机制，改动=一个 flag/一行）—")
     naive = compile_query(SALES, "revenue", dims=["month"], agg_before_join=False)
@@ -889,6 +1115,34 @@ def destructive():
            f"—— 无门则垃圾定义静默入库（行数失控的注册期引信）")
     d7 = compile_query(SALES, "aov", dims=[], derived_post_agg=False)
     expect("D7", d7 == {(): 122.22}, "拆 derived 先聚后除 → 122.22（对照 108.33）")
+    # D8：拆血缘摄取的「对象可解析」闸 → 虚构对象边静默入账本
+    n0 = len(LINEAGE_LEDGER)
+    ingest_external_lineage(
+        {"eventType": "COMPLETE",
+         "outputs": [{"namespace": "snowflake://acme", "name": "analytics.ghost",
+                      "facets": {"columnLineage": {"fields": {
+                          "x": {"inputFields": [{"name": "raw.y"}]}}}}}]},
+        strict_resolve=False)
+    ghost = [e for e in LINEAGE_LEDGER if e.dst_table == "ghost"]
+    expect("D8", len(ghost) == 1 and len(LINEAGE_LEDGER) == n0 + 1,
+           f"拆血缘解析闸 → 虚构对象入账（raw.y→ghost.x）——账本与真实数据流"
+           f"脱钩，事后对账从此不可信")
+    LINEAGE_LEDGER.remove(ghost[0])      # 还原账本，不污染后续
+    # D9：拆会话权限天花板 → 用户已回收权限，旧代理会话仍持权
+    stale = agent_session("data_governance", ceiling=False)     # 全量快照（回收前）
+    USER_PERMS["data_governance"].discard("select:orders")
+    fresh = agent_session("data_governance")
+    leaky = session_allows(stale, "select:orders")
+    USER_PERMS["data_governance"].add("select:orders")          # 还原
+    expect("D9", leaky and "select:orders" not in fresh.perms,
+           "拆权限天花板 → 用户已回收 select:orders，旧代理会话仍持权（越权窗口）；"
+           "对照：天花板会话实时失去")
+    # D10：拆「系统标签→用户标签」一次性映射 → 已分类敏感列明文出楼
+    tags = classify(CUSTOMERS)
+    leaked = project_cell("13800000000", "customers", "phone", tags, mapping={})
+    expect("D10", leaked == "13800000000",
+           "拆标签映射（只分类不绑策略）→ phone 已贴系统标签仍明文出楼"
+           "——发现→标记→执行 链条断在最后一环")
 
 
 def main():
@@ -902,6 +1156,7 @@ def main():
     scenario_A()
     scenario_B()
     scenario_C()
+    scenario_E()
     destructive()
     print("=" * 72)
     covered = sorted({t for v in VIEWS for t in v.tables})
