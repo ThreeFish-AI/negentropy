@@ -122,7 +122,7 @@ description: "四步压缩管线的顺序不变式与落盘—占位符的文本
 > 磁盘原文仍在但已无指针 = True
 > ```
 >
-> 2×2 实验见[配套原型](./assets/cc_harness_lab.py) `--break D2 / D6` 实际运行输出（D2 无可观测差异；D6 原文永久丢失与指针丢失各 1）。
+> 2×2 实验见[配套原型](./assets/cc_harness_lab.py) `--break D2 / D6` 实际运行输出（D2 无可观测差异；D6 原文永久丢失与指针丢失各 1）。「只拆守卫」一格未设独立 `--break` 条目，可一行复现（在本目录下）：`python -c "import cc_harness_lab as L; L.SW.unseen_guard=False; print(L.probe(L.LAB))"`——本仓深路径下实测 `pointer_lost=1`、`lost_forever=0`，结果随落盘路径长度而变（见上表＊注）。
 
 **口播落点**：两道保险各自单拆都不出事，一起拆才丢东西。
 

@@ -410,7 +410,7 @@ def run_break(name: str) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--selftest", action="store_true")
-    parser.add_argument("--break", dest="brk", help="D1..D5 或 all")
+    parser.add_argument("--break", dest="brk", help="D1..D6 或 all")
     args = parser.parse_args()
     if args.brk:
         names = list(EXPERIMENTS) if args.brk == "all" else [args.brk]
