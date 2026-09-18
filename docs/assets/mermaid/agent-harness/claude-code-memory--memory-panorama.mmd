@@ -1,0 +1,21 @@
+% source: docs/research/agent-harness/173-claude-code-memory-management.md §2
+% slug: claude-code-memory--memory-panorama
+% type: workflow
+% derived: docs/assets/architecture/agent-harness/claude-code-memory--memory-panorama.html
+flowchart TD
+    subgraph A["会丢的 · 收台四步（每次调用模型前）"]
+        direction TB
+        A1["① 按预算落盘<br/>超预算才落、一够就停"] --> A2["② 掐中段<br/>配对不拆、归档留指针"]
+        A2 --> A3["③ 占位符化<br/>已读旧结果压成一行"]
+        A3 --> A4{"估算仍超限？"}
+        A4 -- "是" --> A5["④ 记录员整体摘要<br/>历史收成一条消息"]
+    end
+    A4 -- "否" --> M["调用模型"]
+    R["API 拒绝 → 应急补救（仅一次，保留尾巴）"] -.-> A5
+    subgraph B["不能丢的 · 登记簿（会话之外）"]
+        direction TB
+        B1["目录员挑选<br/>旁路一问、不用向量"] --> B2["索引＋召回正文 → 垫纸"]
+        B3["回合收尾抽取候选"] --> B4["闸门：临时即拒＋三路查重"]
+        B4 --> B5["夜班整理工<br/>先删后写＋快照回滚"]
+    end
+    M -. "两份实现互不包含<br/>（咬合点未实现）" .-> B1

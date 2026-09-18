@@ -321,3 +321,6 @@ apps/negentropy-influence/uv.lock
 # archify 工程图 Play 回放录制（派生产物；HTML 为 SSOT，重录用
 # apps/negentropy-influence/pipeline/scripts/record_archify.py，sidecar json 入库）
 apps/negentropy-influence/episodes/*/video/public/archify/*.webm
+
+# guided-learn 最小原型的运行产物（docs/research/*/assets/*_lab.py 落盘目录）
+.lab_out/

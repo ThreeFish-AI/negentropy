@@ -1,6 +1,6 @@
 # 研究文献总览
 
-> Negentropy 技术调研索引。调研按「认知 → 框架 → 存储 → 图谱 → 执行 → 进化」六段论归档，逐层递进（其中「认知与上下文」与「自进化与工具」两段兼收领域材料精读、对本仓的机制映射与由此派生的可复刻蓝图），另设独立主题分组（量化与投资科学、视频与动效生产）；本页为各主题分组的阅读入口。
+> Negentropy 技术调研索引。调研按「认知 → 框架 → 存储 → 图谱 → 执行 → 进化」六段论归档，逐层递进（其中「认知与上下文」与「自进化与工具」两段兼收领域材料精读、对本仓的机制映射与由此派生的可复刻蓝图），另设独立主题分组（量化与投资科学、视频与动效生产、Agent Harness 工程）；本页为各主题分组的阅读入口。
 
 ---
 
@@ -95,6 +95,23 @@
 | 文档 | 主旨 |
 |:---|:---|
 | [视频动效建模与 Web 可视化搭建工具全景调研](./video-production/160-video-motion-modeling-web-visual-tooling.md) | 以现役 Remotion 科普视频管线为基线的全网与 GitHub 全景调研（54+9 候选、四路深评、87 条主张双反驳核验）：A 轨 `@remotion` 官方增强簇即刻提升表达力、B 轨 HyperFrames（Apache-2.0、agent 原生）平行试点、C 轨 Cavalry/Jitter→Lottie 设计师资产管线，附四道击穿门评估框架、迁移成本口径与 POC 验收清单 |
+
+---
+
+## 九、Agent Harness 工程 · `agent-harness/`
+
+> 一手材料：Learn Claude Code 课程站点修订与 [shareAI-lab/learn-claude-code](https://github.com/shareAI-lab/learn-claude-code) 仓库 main 整合版（MIT，固定提交取证）。
+>
+> **SSOT 边界**：逐章原文引语、可调参数、生产版行号与口播判据在科普视频工程各集 `research/source-notes.md`；章→集归属与固定提交选择只登记在[系列信源地图](../../apps/negentropy-influence/source-map/claude-code-explained.md)。本分部只做**跨层综观、main 轨净增量与本仓机制对位**，冲突一律以上述两处为准。
+
+| 文档 | 主旨 |
+|:---|:---|
+| [五层 Harness 精读总览](./agent-harness/170-claude-code-harness-overview.md) | 执行→规划→记忆→时机→协作五层的依赖链与层间缺口、角色台账（单射贯穿）、证据三级纪律、SSOT 边界与不得重述清单、main 轨视频未取材两章的落位、跨章级文档—实现不一致清单、与本仓 025/038/039/040/skills 的机制对位；含随笔记入库的最小原型与**六次破坏性实验** |
+| [① 工具与执行](./agent-harness/171-claude-code-tooling-execution.md) | 循环不变式与续轮判据（看内容块不看停止标记）、工具分发与批次、执行前校验链、权限三闸门顺序的正确性论证、钩子作为权限与审计的共用扩展点 |
+| [② 规划与协调](./agent-harness/172-claude-code-planning-coordination.md) | 待办只增规划不增执行、子 agent 的上下文隔离与结果回注、技能渐进披露、系统提示按运行时状态装配、错误恢复三类分治；附 main 轨 `s17_goal_loop` 目标闸门（无工具评估器 + 停止钩子决策机 + 显式防注入） |
+| [③ 记忆管理](./agent-harness/173-claude-code-memory-management.md) | 收台四步的顺序不变式（大结果先落盘才允许旧结果变占位符）、裁剪的配对硬约束、持久记忆两条加载路径（索引常驻 / 正文按需以免击穿缓存）、旁路挑选与压缩前快照；**原型实测补上材料只有论证没有实验的缺口，并发现顺序与「未读不动」是两道独立保险** |
+| [④ 并发与时机](./agent-harness/174-claude-code-concurrency.md) | 后台任务的显式路由与独立通知块（不复用回执编号）、调度与执行的解耦、诚实边界（调度器随进程死）；附 main 轨 `s16_workflow_runtime`——全仓唯一真并发，`parallel` 有屏障 vs `pipeline` 无屏障、journal 幂等续跑、双重熔断 |
+| [⑤ 多 Agent 平台](./agent-harness/175-claude-code-multi-agent-platform.md) | 任务图与认领、消费式收件格、带类型校验与幂等的协议握手、自治三阶段与压缩后身份重注入、工作树隔离的拆除纪律、MCP 接入对工具池缓存的连锁反应，以及「机制很多、循环一个」的收束 |
 
 ---
 

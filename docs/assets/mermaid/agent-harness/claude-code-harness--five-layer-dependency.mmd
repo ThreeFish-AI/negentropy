@@ -1,0 +1,25 @@
+%% source: docs/research/agent-harness/170-claude-code-harness-overview.md §1
+%% slug: claude-code-harness--five-layer-dependency
+%% type: workflow
+%% derived: docs/assets/architecture/agent-harness/claude-code-harness--five-layer-dependency.html
+flowchart TD
+    subgraph L1["① 执行层 · 让模型能动手"]
+        A1["传送带<br/>一个循环"] --> A2["三道门禁<br/>+ 一排插线口"]
+    end
+    subgraph L2["② 规划层 · 安排它的视野"]
+        B1["工序卡 · 副台"] --> B2["按需取用的手册<br/>+ 每轮重铺的垫纸"]
+    end
+    subgraph L3["③ 记忆层 · 腾地方与留底"]
+        C1["收台四步<br/>（会丢的）"] --> C2["登记簿<br/>（不能丢的）"]
+    end
+    subgraph L4["④ 时机层 · 把时间还回来"]
+        D1["自动清洗槽 · 叫号器"] --> D2["墙上的定时钟"]
+    end
+    subgraph L5["⑤ 协作层 · 从一个到一群"]
+        E1["排工板 · 收件格"] --> E2["派工单 · 各自的隔间"]
+    end
+    A2 -- "活一多就忘了要干什么" --> L2
+    B2 -- "台面一定会满" --> L3
+    C2 -- "有些活很慢，有些没人按开始" --> L4
+    D2 -- "一个人只有一双手" --> L5
+    L5 --> F["机制很多，循环一个"]

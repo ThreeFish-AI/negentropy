@@ -1,0 +1,32 @@
+%% source: docs/research/agent-harness/175-claude-code-multi-agent-platform.md §2
+%% slug: claude-code-multiagent--collab-panorama
+%% type: workflow
+%% derived: docs/assets/architecture/agent-harness/claude-code-multiagent--collab-panorama.html
+flowchart TD
+    subgraph S1["排工板 · 一文件一活"]
+        A1["任务落盘<br/>三态两动作"]
+        A2["认领：双锁内<br/>读—判—写"]
+    end
+    subgraph S2["收件格与派工单"]
+        B1["消息总线<br/>消费式读取"]
+        B2["协议匹配<br/>验号·验人·验版本"]
+    end
+    subgraph S3["队友 · 班次与门禁"]
+        C1["先收件格<br/>后排工板"]
+        C2["计划闸门<br/>未批不改盘"]
+        C3["人走<br/>活退回板上"]
+    end
+    subgraph S4["隔间与外接"]
+        D1["worktree 绑定<br/>只改默认目录"]
+        D2["工具池每轮重装<br/>撞名即中止"]
+    end
+    A1 --> A2
+    A2 --> C1
+    B1 --> B2
+    C1 --> C2
+    C3 --> A1
+    D1 --> A2
+    B2 --> Z
+    C2 --> Z
+    D2 --> Z
+    Z["传送带的下一轮"]
