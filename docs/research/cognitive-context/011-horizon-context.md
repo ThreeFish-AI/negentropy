@@ -23,7 +23,7 @@ description: "「嵌入治理引擎、查询时强制执行」的 Context Layer 
 
 > [!TIP] **怎么读笔记**
 >
-> 每个机制节按「类比 → 机制 → 原型」三拍进行记录和实践。本篇机制集经过 2026-09-17 的**全局重评选校准**（方法与判据见 §16 重评审记录）：M1–M7 七个机制是重评选后的「全局最重要承重组件」——口径与应答两席（M1/M4），治理执法四席（M2/M3/M6/M7），账本一席（M5）；富化、检索排序、开放互操作三族因证据成熟度不足**降级为专章保留**（§10–§12，内容不删、降级理由与重评触发器随文写明）。M1–M7 各配一张动效工程图，§1 开篇另配病因链与机制对位总览图，§2 另配组件全景与演进时间线两张总览图（交互版下载到本地打开，默认经典视图可切主题/缩放/聚焦，trace 动画按主路径逐边点亮）。实践取自配套的最小原型 [`assets/horizon_context_lab.py`](./assets/horizon_context_lab.py)（约 1170 行纯标准库代码，M1–M7 七机制 + 场景矩阵 + 十次破坏性实验；另有 MCP 服务原型 [`assets/horizon_context_mcp.py`](./assets/horizon_context_mcp.py) 验证平台集成路径）。
+> 每个机制节按「类比 → 机制 → 原型」三拍进行记录和实践。本篇机制集经过 2026-09-17 的**全局重评选校准**（方法与判据见 §16 重评审记录）：M1–M7 七个机制是重评选后的「全局最重要承重组件」——口径与应答两席（M1/M4），治理执法四席（M2/M3/M6/M7），账本一席（M5）；富化、检索排序、开放互操作三族因证据成熟度不足**降级为专章保留**（§10–§12，内容不删、降级理由与重评触发器随文写明）。M1–M7 各配一张动效工程图，§1 开篇另配病因链与机制对位总览图，§2 另配组件全景与演进时间线两张总览图（交互版下载到本地打开，默认经典视图可切主题/缩放/聚焦，trace 动画按主路径逐边点亮）。实践取自配套的最小原型 [`assets/horizon_context_lab.py`](./assets/horizon_context_lab.py)（约 1195 行纯标准库代码，M1–M7 七机制 + 场景矩阵 + 十次破坏性实验；另有 MCP 服务原型 [`assets/horizon_context_mcp.py`](./assets/horizon_context_mcp.py) 验证平台集成路径）。
 
 配套产物：[Context Layer 基础设施设计蓝图](./013-context-layer-blueprint.md) · [Horizon Context ↔ negentropy 机制映射报告](./012-horizon-context-mapping-negentropy.md)。
 
@@ -63,7 +63,7 @@ description: "「嵌入治理引擎、查询时强制执行」的 Context Layer 
 
 初级 Data Agent 就像一位智商超群的天才实习生，他满腹经纶、理解力极强，但完全不懂贵司的标准流程与方言黑话。
 
-要把这位天才实习生真正培养成懂业务、守规矩的“业务老司机”，Snowflake Horizon Context 的解法是，**把业务 Context 与安全守则铸入底层引擎，使其无法被篡改与绕过****。2026-09-17 重评选校准后，Horizon Context 的七条承重机制（评选判据与过程见 §16）：
+要把这位天才实习生真正培养成懂业务、守规矩的“业务老司机”，Snowflake Horizon Context 的解法是，**把业务 Context 与安全守则铸入底层引擎，使其无法被篡改与绕过**。2026-09-17 重评选校准后，Horizon Context 的七条承重机制（评选判据与过程见 §16）：
 
 | 设计规格                 | 底层机制                        | 大白话                                                                       |
 | :----------------------- | :------------------------------ | :--------------------------------------------------------------------------- |
@@ -252,7 +252,7 @@ Snowflake 官方的运营哲学是：上下文只有在真实业务流中高频�
 
 > [!IMPORTANT] **原型实践**
 >
-> 结构校验门与聚合保障的实际运行输出（B 场景 5 组陷阱 + D6/D7 破坏实验）：
+> 结构校验门与聚合保障的实际运行输出（B 场景 4 组陷阱 + D6/D7 破坏实验）：
 >
 > ```text
 > [PASS] D6: 拆结构校验（relationship 指向非键列）→ relationship bad: referenced column
@@ -355,7 +355,7 @@ Snowflake 官方的运营哲学是：上下文只有在真实业务流中高频�
 
 > [!IMPORTANT] **原型实践**
 >
-> A1 验证问答命中、A1b 引擎重算对账与 C1 无覆盖告警实际运行输出：
+> A1 验证问答命中、A1b 引擎重算对账与 C1 无覆盖告警实际运行输出（原型实现为直接复用验证答案，故 lab 输出沿用「短路重放」字样；Snowflake 官方产品口径是「以已验证查询为生成依据」）：
 >
 > ```text
 > [PASS] A1: verified 短路重放 + 溯源: verified_query {'2026-01': 200, '2026-02': 150,
@@ -392,8 +392,9 @@ Snowflake 官方的运营哲学是：上下文只有在真实业务流中高频�
 > E1/E1b 同账本与三道闸、D8 破坏实验实际运行输出：
 >
 > ```text
-> [PASS] E1: 列级血缘同账本: 引擎沉淀 orders.total→sales_sv.metric:revenue；OpenLineage
-> 摄取 app_db.users.tier→customers.plan（origin 各异、账本唯一）
+> [PASS] E1: 列级血缘同账本: 引擎沉淀 orders.total→sales_sv.metric:revenue（derived aov
+> 展开记底层 order_count 边）；OpenLineage 摄取 app_db.users.tier→customers.plan
+> （origin 各异、账本唯一）
 > [PASS] E1b: 摄取三道闸: 非 COMPLETE / 对象不可解析 / 无 INGEST 权限 → 整事件拒绝
 > ['rejected', 'rejected', 'rejected']（账本零污染）
 > [PASS] D8: 拆血缘解析闸 → 虚构对象入账（raw.y→ghost.x）——账本与真实数据流脱钩，
@@ -627,12 +628,12 @@ uv run --no-project python docs/research/cognitive-context/assets/horizon_contex
 | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | M1 口径单点：五段式对象 + 校验门       | `SemanticView` :160 · `VerifiedQuery` :151 · `validate_view` :235（FK→键列 / 循环关系 / ≥1 dim+metric / NON ADDITIVE 维度存在） |
 | M1 查询期重算：查询引擎 + 破坏开关     | `compile_query` :378 · `_naive_joined_rows` :319（反事实）· `_aggregate` :345 · USING 消歧 `_dim_value` :291              |
-| M2 行列级策略（执行面拒绝）            | `compile_query` :378 内 `enforce_rbac` 分支（PRIVATE 拒绝）；代理严拒面 `session_allows` :779                             |
+| M2 行列级策略（执行面拒绝）            | `compile_query` :378 内 `enforce_rbac` 分支（PRIVATE 拒绝）；代理严拒面 `session_allows` :785                             |
 | M3 语义级治理（双层防线）              | 检索层过滤 `resolve` :536 的 `dim_filtered`（体验）+ 执行层拒绝（底线，同上）                                             |
 | M4 应答层验证锚定                      | `VerifiedQuery` :151 · `resolve` :536 命中路由 · `mock_agent` :600（verified 短路 / compile / cannot_answer）             |
-| M5 端到端列级血缘                      | `record_lineage` :680（执行自动沉淀）· `ingest_external_lineage` :704（三道闸）· `get_lineage` :692                       |
-| M6 Agent Identity                      | `agent_session` :760（天花板只减不增）· `audit_log`（agent_type 归因）· `session_allows` :779（严拒面+实时求值）          |
-| M7 分类与标签驱动                      | `classify` :794 · `policy_for` :800（一次性映射）· `project_cell` :808                                                    |
+| M5 端到端列级血缘                      | `record_lineage` :680（执行自动沉淀·derived 展开）· `ingest_external_lineage` :710（三道闸）· `get_lineage` :698           |
+| M6 Agent Identity                      | `agent_session` :766（天花板只减不增）· `audit_log`（agent_type 归因）· `session_allows` :785（严拒面+实时求值）          |
+| M7 分类与标签驱动                      | `classify` :810 · `policy_for` :816（一次性映射）· `project_cell` :824                                                    |
 | §10 富化（冲突浮出 + 自纠环）          | `detect_conflicts` :497 · `adjudicate` :513 · `eval_loop` :633                                                            |
 | §11 检索（四因子排序）                 | `rank` :467 · `freshness` :456（REF_DATE 固定字面量）                                                                     |
 | §12 生态（MCP 开放互操作）             | `horizon_context_mcp.py`（stdio 服务 + T1–T8 场景自测）                                                                  |

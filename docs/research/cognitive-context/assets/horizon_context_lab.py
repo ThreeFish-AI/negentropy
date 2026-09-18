@@ -411,6 +411,7 @@ def compile_query(view: SemanticView, metric_name: str, dims=None, role="analyst
         return _aggregate(spec_rows, m, objs, view, tables,
                           via, distinct_safe, last_snapshot)
 
+    record_lineage(view, metric, dim_objs)   # 新 M5：引擎执行副产品自动沉淀血缘（derived 展开记底层指标）
     if metric.agg == "derived":
         num_m = _metric(view, metric.derived_from[0])
         den_m = _metric(view, metric.derived_from[1])
@@ -425,7 +426,6 @@ def compile_query(view: SemanticView, metric_name: str, dims=None, role="analyst
         snum, sden = _one(num_m, sub), _one(den_m, sub)
         ratios = [snum[k] / sden[k] for k in sorted(snum, key=none_safe)]
         return {(): round(sum(ratios) / len(ratios), 2)}
-    record_lineage(view, metric, dim_objs)   # 新 M5：引擎执行副产品自动沉淀血缘
     result = _one(metric, dims)
     return {k if k else (): result[k] for k in sorted(result, key=none_safe)}
 
@@ -678,9 +678,15 @@ LINEAGE_LEDGER: list = []           # 内外合流的单一账本（插入幂等
 
 
 def record_lineage(view: SemanticView, metric: Metric, dim_objs):
-    """引擎执行副产品：编译查询时自动沉淀列级依赖边（原生列级血缘）。"""
-    edges = [LineageEdge(metric.table, metric.column, view.name,
-                         f"metric:{metric.name}", "engine")]
+    """引擎执行副产品：编译查询时自动沉淀列级依赖边（原生列级血缘，无盲区）。
+
+    derived 指标自身无物理列，展开为分子/分母底层指标各记一条边——
+    引擎执行过的任何查询（含派生口径）都可事后溯源。
+    """
+    base = ([_metric(view, n) for n in metric.derived_from]
+            if metric.agg == "derived" else [metric])
+    edges = [LineageEdge(m.table, m.column, view.name,
+                         f"metric:{m.name}", "engine") for m in base]
     for d in dim_objs:
         edges.append(LineageEdge(d.table, d.column, view.name, f"dim:{d.name}",
                                  "engine"))
@@ -1007,7 +1013,9 @@ def scenario_E():
     # E1 端到端列级血缘：引擎执行自动沉淀 + OpenLineage 外部摄取 + 单一账本
     compile_query(SALES, "revenue", dims=["month"])
     compile_query(SALES, "revenue", dims=["plan"], via="buyer")
+    compile_query(SALES, "aov", dims=[])        # derived 同样沉淀：展开为底层指标记边
     engine_edges = get_lineage("orders", "total")
+    derived_edges = get_lineage("orders", "id")   # order_count 仅经 aov 展开触达
     ingest_external_lineage({
         "eventType": "COMPLETE",
         "inputs":  [{"namespace": "postgres://etl", "name": "app_db.users"}],
@@ -1018,11 +1026,13 @@ def scenario_E():
     ext_edges = get_lineage("customers", "plan")
     expect("E1", any(e.dst_col == "metric:revenue" and e.origin == "engine"
                      for e in engine_edges)
+           and any(e.dst_col == "metric:order_count" and e.origin == "engine"
+                   for e in derived_edges)
            and any(e.src_col == "tier" and e.dst_col == "plan"
                    and e.origin == "external" for e in ext_edges),
            f"列级血缘同账本: 引擎沉淀 orders.total→{engine_edges[0].dst_table}."
-           f"metric:revenue；OpenLineage 摄取 app_db.users.tier→customers.plan"
-           f"（origin 各异、账本唯一）")
+           f"metric:revenue（derived aov 展开记底层 order_count 边）；OpenLineage 摄取 "
+           f"app_db.users.tier→customers.plan（origin 各异、账本唯一）")
     rejected = []
     n_before = len(LINEAGE_LEDGER)
     for bad, kw in (
