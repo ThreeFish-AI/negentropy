@@ -188,8 +188,8 @@ Snowflake 官方的运营哲学是：上下文只有在真实业务流中高频�
 | **2026-04**              | AI_VERIFIED_QUERIES 进 DDL（04-05）；Cortex AI Guardrails GA（04-20） | 人工验证问答成为一等资产；Prompt 安全护栏就绪 | M4 / §12 |
 | **2026-06-02**           | Summit：**Horizon Context 整体发布**（Agent Identity GA）     | 整合收拢为能力伞：从「登记簿」蜕变为「理解系统」   | 全景/M6  |
 | **2026-06-22**           | Ossie 进入 Apache 孵化器（07-08 为 Snowflake 更名公告日）     | 开放规范迈入顶级开源基金会                         | §12      |
-| **2026-06-30 → 2026-07** | Cortex Sense 发布与私测；RSS（权限天花板）能力补齐（07-27 agent_type，09-03 RSS GA） | 隐式行为挖掘亮相；代理身份闭环成形           | §10 / M6 |
-| **2026-08 → 2026-09**    | Power BI 摄取 GA（08-18）；Semantic Studio 预览（08-26）；Cortex Analyst→Agents（08-28）；External Lineage GA（09-03） | 跨系统血缘与多端消费全面落地，生态运营常态化 | M5 / §10 / §11 |
+| **2026-06-30 → 2026-07** | Cortex Sense 发布与私测；RSS（权限天花板）能力补齐启动（07-27 agent_type 审计列） | 隐式行为挖掘亮相；代理身份审计面成形           | §10 / M6 |
+| **2026-08 → 2026-09**    | Power BI 摄取 GA（08-18）；Semantic Studio 预览（08-26）；Cortex Analyst→Agents（08-28）；External Lineage GA 与 RSS 权限天花板 GA（09-03） | 跨系统血缘与多端消费全面落地，代理身份闭环成形，生态运营常态化 | M5 / M6 / §10 / §11 |
 | **2026-09-11 → 09-16**   | CoWork Automations GA（09-11）；Cortex AI Gateway 预览（09-15）；Ossie Power BI 转换器合入（09-16，apache/ossie #329） | 消费端自动化、推理网关与转换器矩阵持续加码 | §10 / §12 |
 
 ## 3. M1 · 语义视图：口径单点 × 查询期重算
@@ -377,7 +377,7 @@ Snowflake 官方的运营哲学是：上下文只有在真实业务流中高频�
 > 本机制守护的是**事后问责链**：预防类机制（M2/M3/M6/M7）拦事前，台账管事后——agent 答案数字对不上时能溯源、上游变更时爆炸半径能定位。没有它，治理只剩事前拦、没有事后账。
 >
 > 1. **原生列级血缘（引擎执行副产品）**：查询引擎在执行 COPY INTO、CTAS、CREATE VIEW / SEMANTIC VIEW、MERGE 等语句时**自动沉淀对象级与列级依赖边**（非人工登记、非 SQL 解析推断——对 ad-hoc 查询无盲区），Snowsight 图谱可视化 + `GET_LINEAGE(SNOWFLAKE.CORE)` 表函数程序化取数；对象与列级血缘保留一年，2024-11 之前的历史数据流不可见，访问需 VIEW LINEAGE 权限（Enterprise Edition）；
-> 2. **外部血缘摄取（OpenLineage REST 端点，GA 2026-09-03）**：以 OpenLineage 开放标准为契约把 Snowflake 之外的 ETL/dbt/Airflow/BI 血缘（含 columnLineage facet 列级映射）汇入**同一张血缘图**；三道门：调用方须持账户级 INGEST LINEAGE 权限、只接受 COMPLETE 事件、事件中每个 Snowflake 对象必须可解析——任一不满足整事件拒绝；限额如实：外部边事件保留一年、dataset 全限定名 ≤1000 字符、单事件 ≤15,000 边、账户 ≤20,000 条外部边、不支持 OpenLineage v2；
+> 2. **外部血缘摄取（OpenLineage REST 端点，公开预览；External lineage 特性整体 2026-09-03 GA）**：以 OpenLineage 开放标准为契约把 Snowflake 之外的 ETL/dbt/Airflow/BI 血缘（含 columnLineage facet 列级映射）汇入**同一张血缘图**；三道门：调用方须持账户级 INGEST LINEAGE 权限、只接受 COMPLETE 事件、事件中每个 Snowflake 对象必须可解析——任一不满足整事件拒绝；限额如实：外部边事件保留一年、dataset 全限定名 ≤1000 字符、单事件 ≤15,000 边、账户 ≤20,000 条外部边、不支持 OpenLineage v2；
 > 3. **内外单一账本是差异化所在**（跨厂商对照的准确口径）：Databricks UC 内部列级血缘同位但**外部血缘弱一档**（手工声明、不入 system tables、有上限）；Microsoft Fabric 原生列级血缘仍缺位（社区补位）；Snowflake 的「外部 OpenLineage 事件并入 GET_LINEAGE 同一账本」当前是领先点；
 > 4. **盲区如实**：ML notebook 不进血缘（社区实测）、上游数据质量问题定位仍止步仓库边界。
 >
@@ -626,7 +626,7 @@ uv run --no-project python docs/research/cognitive-context/assets/horizon_contex
 
 | 机制                                   | 位置                                                                                                                     |
 | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| M1 口径单点：五段式对象 + 校验门       | `SemanticView` :160 · `VerifiedQuery` :151 · `validate_view` :235（FK→键列 / 循环关系 / ≥1 dim+metric / NON ADDITIVE 维度存在） |
+| M1 口径单点：五段式对象 + 校验门       | `SemanticView` :160 · `VerifiedQuery` :151 · `validate_view` :235（FK→键列 / 重名 / ≥1 dim+metric / NON ADDITIVE 维度存在） |
 | M1 查询期重算：查询引擎 + 破坏开关     | `compile_query` :378 · `_naive_joined_rows` :319（反事实）· `_aggregate` :345 · USING 消歧 `_dim_value` :291              |
 | M2 行列级策略（执行面拒绝）            | `compile_query` :378 内 `enforce_rbac` 分支（PRIVATE 拒绝）；代理严拒面 `session_allows` :785                             |
 | M3 语义级治理（双层防线）              | 检索层过滤 `resolve` :536 的 `dim_filtered`（体验）+ 执行层拒绝（底线，同上）                                             |
