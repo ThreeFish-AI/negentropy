@@ -23,7 +23,7 @@ description: "「嵌入治理引擎、查询时强制执行」的 Context Layer 
 
 > [!TIP] **怎么读笔记**
 >
-> 每个机制节按「类比 → 机制 → 原型」三拍进行记录和实践。本篇机制集经过 2026-09-17 的**全局重评选校准**（方法与判据见 §16 重评审记录）：M1–M7 七个机制是重评选后的「全局最重要承重组件」——口径与应答两席（M1/M4），治理执法四席（M2/M3/M6/M7），账本一席（M5）；富化、检索排序、开放互操作三族因证据成熟度不足**降级为专章保留**（§10–§12，内容不删、降级理由与重评触发器随文写明）。M1–M7 各配一张动效工程图，§2 另配组件全景与演进时间线两张总览图（交互版下载到本地打开，默认经典视图可切主题/缩放/聚焦，trace 动画按主路径逐边点亮）。实践取自配套的最小原型 [`assets/horizon_context_lab.py`](./assets/horizon_context_lab.py)（约 1170 行纯标准库代码，M1–M7 七机制 + 场景矩阵 + 十次破坏性实验；另有 MCP 服务原型 [`assets/horizon_context_mcp.py`](./assets/horizon_context_mcp.py) 验证平台集成路径）。
+> 每个机制节按「类比 → 机制 → 原型」三拍进行记录和实践。本篇机制集经过 2026-09-17 的**全局重评选校准**（方法与判据见 §16 重评审记录）：M1–M7 七个机制是重评选后的「全局最重要承重组件」——口径与应答两席（M1/M4），治理执法四席（M2/M3/M6/M7），账本一席（M5）；富化、检索排序、开放互操作三族因证据成熟度不足**降级为专章保留**（§10–§12，内容不删、降级理由与重评触发器随文写明）。M1–M7 各配一张动效工程图，§1 开篇另配病因链与机制对位总览图，§2 另配组件全景与演进时间线两张总览图（交互版下载到本地打开，默认经典视图可切主题/缩放/聚焦，trace 动画按主路径逐边点亮）。实践取自配套的最小原型 [`assets/horizon_context_lab.py`](./assets/horizon_context_lab.py)（约 1170 行纯标准库代码，M1–M7 七机制 + 场景矩阵 + 十次破坏性实验；另有 MCP 服务原型 [`assets/horizon_context_mcp.py`](./assets/horizon_context_mcp.py) 验证平台集成路径）。
 
 配套产物：[Context Layer 基础设施设计蓝图](./013-context-layer-blueprint.md) · [Horizon Context ↔ negentropy 机制映射报告](./012-horizon-context-mapping-negentropy.md)。
 
@@ -74,6 +74,10 @@ description: "「嵌入治理引擎、查询时强制执行」的 Context Layer 
 | **事后可对账**           | M5 端到端列级血缘               | 全楼出入库台账：谁产出、谁消费、经谁转手，引擎自动记录、程序可查             |
 | **代理可归因**           | M6 Agent Identity               | 实习生专用工牌：权限是带教人的子集（只减不增），每次刷卡记录在案             |
 | **新敏感数据自动纳管**   | M7 分类与标签驱动策略传播       | 自动贴标系统：文件进楼自动识别密级，贴标即联动验放规则，盘点间隙不裸奔       |
+
+![Horizon Context 病因链与机制对位（2026-09-17 重评选口径）：对账崩塌（销售 $14.2M vs CFO $12.8M）、裸问准确率 ~25%/21% 与密码般物理列名 amt_ttl_pre_dsc 三处症状收于「语义无人治理」一句判词，裂为口径打架 / 定义漂移 / 门禁穿透三个不可自愈病灶；铸入引擎后，口径打架与定义漂移由 M1（只印一本 · 校验门与查询期重算双不变量）封堵，门禁穿透由 M2（逐页验放）+ M3（承重墙拓扑）+ M6（工牌归因）三面合围；M4 核准题库锚定口径、M5 台账事后对账（对账崩塌的事后答案）、M7 贴标自动纳管；§10–§12 富化 / 检索 / 生态降级专章作供给侧与外达载体（各带重评触发器）。机制节点三合一承载机制名 / 设计规格 / 类比装备，§15 残留边界由结论卡承载。](../../assets/architecture/cognitive-context/horizon-context--problem-to-mechanisms-dark.png)
+
+> 图源（可 diff 文本）：[`horizon-context--problem-to-mechanisms.mmd`](../../assets/mermaid/cognitive-context/horizon-context--problem-to-mechanisms.mmd) · 交互版（下载到本地打开）：[`horizon-context--problem-to-mechanisms.html`](../../assets/architecture/cognitive-context/horizon-context--problem-to-mechanisms.html)
 
 ## 2. Horizon Context 全景与三阶段演进
 
