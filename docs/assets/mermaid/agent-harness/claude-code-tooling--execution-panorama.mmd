@@ -1,0 +1,20 @@
+%% source: docs/research/agent-harness/171-claude-code-tooling-execution.md §2
+%% slug: claude-code-tooling--execution-panorama
+%% type: workflow
+%% derived: docs/assets/architecture/agent-harness/claude-code-tooling--execution-panorama.html
+flowchart TD
+    subgraph S1["核心 · 传送带（永不长大）"]
+        M["师傅（模型）"] -->|"产出内容块"| L["传送带主循环"]
+        L --> V{"验活动作：<br/>内容块里还有工具调用吗"}
+        V -->|"没有：先问退出事件"| ST["退出插线口<br/>（可否决收工）"]
+        ST -->|"非空：拽回续跑"| L
+        R["工具结果回带<br/>（拒绝也要留回执）"] --> M
+    end
+    subgraph S2["上件前的装置 · 三层可拆卸"]
+        D["多道扫码<br/>外形 → 语义"] --> H["前置插线口<br/>（权限回调排第一）"]
+        H --> G["门口三道门禁<br/>硬拒 → 询问 → 放行"]
+        G --> E["真正执行"]
+        E --> R
+    end
+    V -->|"有：一托盘活"| D
+    D2["转接号码簿<br/>名字 → 处理函数"] -.查表.-> E

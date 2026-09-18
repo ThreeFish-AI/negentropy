@@ -1,0 +1,29 @@
+%% source: docs/research/agent-harness/172-claude-code-planning-coordination.md §2
+%% slug: claude-code-planning--planning-panorama
+%% type: workflow
+%% derived: docs/assets/architecture/agent-harness/claude-code-planning--planning-panorama.html
+flowchart TD
+    subgraph S1["每轮开工前 · 重铺"]
+        A1["按运行时状态<br/>重建垫纸"] --> A2["工具池同频重算<br/>内置＋外接"]
+    end
+    subgraph S2["台面上常驻的两张纸"]
+        B1["工序卡<br/>整表替换·至多一件在做"]
+        B2["抽屉标签<br/>名称＋描述"]
+    end
+    subgraph S3["要用时才展开"]
+        C1["抽屉里的手册<br/>按名字取·进消息流"]
+        C2["支起副台<br/>干净历史·照过门禁"]
+        C3["一张回执<br/>过程全部作废"]
+    end
+    subgraph S4["摔了以后的补救梯"]
+        D1["被腰斩<br/>抬上限·原样重发"]
+        D2["台面撑爆<br/>收台一次·带一次性闸"]
+        D3["外部抖动<br/>退避·必要时换模型"]
+    end
+    A2 --> B1
+    A2 --> B2
+    B2 --> C1
+    B1 --> C2
+    C2 --> C3
+    C3 --> S4
+    C1 --> S4

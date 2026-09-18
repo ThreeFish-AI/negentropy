@@ -1,0 +1,32 @@
+%% source: docs/research/agent-harness/174-claude-code-concurrency.md §2
+%% slug: claude-code-concurrency--timing-panorama
+%% type: workflow
+%% derived: docs/assets/architecture/agent-harness/claude-code-concurrency--timing-panorama.html
+flowchart TD
+    subgraph S1["按下即走 · 后台任务"]
+        A1{"是不是那条<br/>写明要后台的命令"}
+        A1 -- "否" --> A2["当场做完<br/>结果随这一托盘回"]
+        A1 -- "是" --> A3["先过门口三道门禁"]
+        A3 --> A4["甩进自动清洗槽<br/>独立进程组"]
+        A4 --> A5["占位回执立刻返回"]
+    end
+    subgraph S2["下一轮浮现 · 完成通知"]
+        B1["洗完进待取队列<br/>不主动叫醒任何人"]
+        B2["每轮开工前先看叫号器"]
+        B3["另起一条通知块<br/>不复用原回执编号"]
+    end
+    subgraph S3["没人按开始 · 周期调度"]
+        C1["墙上的定时钟<br/>只看表不看师傅"]
+        C2["到点先落盘再入队<br/>落盘失败即回滚"]
+        C3["非阻塞试锁探空闲<br/>拿不到锁就跳过"]
+    end
+    A4 --> B1
+    B1 --> B2
+    B2 --> B3
+    B3 --> Z
+    A5 --> Z
+    A2 --> Z
+    C1 --> C2
+    C2 --> C3
+    C3 --> Z
+    Z["传送带的下一轮"]
