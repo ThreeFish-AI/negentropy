@@ -436,9 +436,11 @@ Snowflake 官方的运营哲学是：上下文只有在真实业务流中高频�
 > ```text
 > [PASS] E2: 代理身份: 会话权限=用户∩代理面 ['select:orders', 'use:sales_sv']（只减不增）；
 > 审计 agent_type=assistant；IS_AGENT_ACTIVATED 下 select:customers 被拒（用户本人可查）
-> [PASS] E2b: 天花板实时性: 用户回收 select:orders → 新会话立即失去（权限无缓存过期窗口）
-> [PASS] D9: 拆权限天花板 → 用户已回收 select:orders，旧代理会话仍持权（越权窗口）；
-> 对照：天花板会话实时失去
+> [PASS] E2b: 天花板实时性: 回收 select:orders 后，既有会话判定即刻失去、其余权限
+> 不受牵连（查询期实时求值，无快照过期窗口）
+> [PASS] D9: 拆权限天花板（快照冻结）→ 回收后旧会话仍持 select:orders（越权窗口）；
+> 对照：同时创建的天花板会话判定时实时求值，同一时刻立即失去——不存在
+> 「上次办的工牌还能用」的窗口
 > ```
 
 ## 9. M7 · 分类与标签驱动策略传播：机密自动贴标系统
@@ -625,11 +627,11 @@ uv run --no-project python docs/research/cognitive-context/assets/horizon_contex
 | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | M1 口径单点：五段式对象 + 校验门       | `SemanticView` :160 · `VerifiedQuery` :151 · `validate_view` :235（FK→键列 / 循环关系 / ≥1 dim+metric / NON ADDITIVE 维度存在） |
 | M1 查询期重算：查询引擎 + 破坏开关     | `compile_query` :378 · `_naive_joined_rows` :319（反事实）· `_aggregate` :345 · USING 消歧 `_dim_value` :291              |
-| M2 行列级策略（执行面拒绝）            | `compile_query` :378 内 `enforce_rbac` 分支（PRIVATE 拒绝）；代理严拒面 `session_allows` :776                             |
+| M2 行列级策略（执行面拒绝）            | `compile_query` :378 内 `enforce_rbac` 分支（PRIVATE 拒绝）；代理严拒面 `session_allows` :779                             |
 | M3 语义级治理（双层防线）              | 检索层过滤 `resolve` :536 的 `dim_filtered`（体验）+ 执行层拒绝（底线，同上）                                             |
 | M4 应答层验证锚定                      | `VerifiedQuery` :151 · `resolve` :536 命中路由 · `mock_agent` :600（verified 短路 / compile / cannot_answer）             |
 | M5 端到端列级血缘                      | `record_lineage` :680（执行自动沉淀）· `ingest_external_lineage` :704（三道闸）· `get_lineage` :692                       |
-| M6 Agent Identity                      | `agent_session` :759（天花板只减不增）· `audit_log`（agent_type 归因）· `session_allows` :776（严拒面）                   |
+| M6 Agent Identity                      | `agent_session` :760（天花板只减不增）· `audit_log`（agent_type 归因）· `session_allows` :779（严拒面+实时求值）          |
 | M7 分类与标签驱动                      | `classify` :794 · `policy_for` :800（一次性映射）· `project_cell` :808                                                    |
 | §10 富化（冲突浮出 + 自纠环）          | `detect_conflicts` :497 · `adjudicate` :513 · `eval_loop` :633                                                            |
 | §11 检索（四因子排序）                 | `rank` :467 · `freshness` :456（REF_DATE 固定字面量）                                                                     |
@@ -647,7 +649,7 @@ uv run --no-project python docs/research/cognitive-context/assets/horizon_contex
 | D6  | 跳过 validate 注册坏视图     | relationship 指向非键列被拦下；无门则垃圾定义静默入库 | 结构校验是行数失控的注册期前置防线                            |
 | D7  | `derived_post_agg=False`     | aov 122.22（对照 108.33）                             | 平均的平均不是平均——derived 必须先聚后除                      |
 | D8  | 血缘摄取 `strict_resolve=False` | 虚构对象 ghost 入账（raw.y→ghost.x）               | 账本与真实数据流脱钩，事后对账从此不可信                      |
-| D9  | 会话 `ceiling=False`         | 用户已回收权限，旧代理会话仍持权                      | 天花板必须实时求值，快照式权限是越权窗口                      |
+| D9  | 会话 `ceiling=False`（与实时会话同时创建，仅差快照/实时一变量） | 回收后快照式旧会话仍持权，实时天花板会话同刻失去 | 天花板必须查询期实时求值，快照式权限是越权窗口                |
 | D10 | 标签映射置空                 | phone 已贴系统标签仍明文出楼                          | 发现→标记→执行 链条断在最后一环，分类不等于保护               |
 
 十次实验合起来的实践心得与 PG 一致：每个组件单拎出来都不神奇，**拆掉任何一个都有具体的、可复现的坏法**——这是判别「工程组合创新」成色的试金石。

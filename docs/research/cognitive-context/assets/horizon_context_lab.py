@@ -751,6 +751,7 @@ class AgentSession:
     agent: str
     perms: frozenset
     agent_type: str = "assistant"       # 对标 QUERY_HISTORY.agent_type 审计列
+    ceiling: bool = True                # 天花板会话：判定时实时求值，非冻结快照
 
 
 QUERY_LOG: list = []                    # 对标 QUERY_HISTORY / ACCESS_HISTORY.agents_info
@@ -759,12 +760,14 @@ QUERY_LOG: list = []                    # 对标 QUERY_HISTORY / ACCESS_HISTORY.
 def agent_session(user, agent="cortex-agent", *, ceiling=True):
     """Restricted Session Scope：会话实际权限 = 用户权限 ∩ 代理允许面（只减不增）。
 
+    天花板会话（ceiling=True）不冻结权限快照——session_allows 每次判定时实时
+    重求交，用户权限被回收即刻生效（E2b/D9 的实时性断言即测试此语义）。
     ceiling=False 模拟退化实现：创建时拿用户全量并冻结快照——用户后续回收
     权限不影响既有会话（D9 的越权窗口）。
     """
     base = USER_PERMS[user]
     perms = (base & AGENT_SERVICE_ALLOWED) if ceiling else base
-    return AgentSession(user, agent, frozenset(perms))
+    return AgentSession(user, agent, frozenset(perms), ceiling=ceiling)
 
 
 def audit_log(session: AgentSession, action: str):
@@ -774,9 +777,16 @@ def audit_log(session: AgentSession, action: str):
 
 
 def session_allows(session: AgentSession, perm: str) -> bool:
-    """代理会话权限判定：天花板 ∩ 代理严拒面（身份语义归 M6，谓词消费面见 M2）。"""
+    """代理会话权限判定：天花板 ∩ 代理严拒面（身份语义归 M6，谓词消费面见 M2）。
+
+    天花板会话在判定时实时求值 USER_PERMS[user] ∩ AGENT_SERVICE_ALLOWED——
+    权限天花板是查询期语义而非登录期快照（对标 RSS "privileges that are
+    revoked ... take effect immediately"，无缓存过期窗口）。
+    """
     if session.agent_type and perm in AGENT_STRICT_DENY:
         return False
+    if session.ceiling:
+        return perm in (USER_PERMS[session.user] & AGENT_SERVICE_ALLOWED)
     return perm in session.perms
 
 
@@ -1041,10 +1051,11 @@ def scenario_E():
            f"审计 agent_type=assistant；IS_AGENT_ACTIVATED 下 select:customers"
            f" 被拒（用户本人可查）")
     USER_PERMS["data_governance"].discard("select:orders")
-    sess2 = agent_session("data_governance")
+    expect("E2b", not session_allows(sess, "select:orders")
+           and session_allows(sess, "use:sales_sv"),
+           "天花板实时性: 回收 select:orders 后，既有会话判定即刻失去、其余权限"
+           "不受牵连（查询期实时求值，无快照过期窗口）")
     USER_PERMS["data_governance"].add("select:orders")            # 还原
-    expect("E2b", "select:orders" not in sess2.perms,
-           "天花板实时性: 用户回收 select:orders → 新会话立即失去（权限无缓存过期窗口）")
     # E3 分类与标签驱动策略传播：自动分类 + 一次性映射 + 新列自动纳入 + 缺口如实
     base_tags = classify(CUSTOMERS)                 # 漂移前：无敏感列
     drifted = Table("customers", ("id", "name", "plan", "phone", "ssn"), ("id",),
@@ -1128,15 +1139,18 @@ def destructive():
            f"拆血缘解析闸 → 虚构对象入账（raw.y→ghost.x）——账本与真实数据流"
            f"脱钩，事后对账从此不可信")
     LINEAGE_LEDGER.remove(ghost[0])      # 还原账本，不污染后续
-    # D9：拆会话权限天花板 → 用户已回收权限，旧代理会话仍持权
+    # D9：拆会话权限天花板 → 用户回收后，快照式旧会话仍持权（两会话均在回收前创建，
+    # 唯一差异 = ceiling 快照/实时——对照 D 系列单变量纪律）
     stale = agent_session("data_governance", ceiling=False)     # 全量快照（回收前）
-    USER_PERMS["data_governance"].discard("select:orders")
-    fresh = agent_session("data_governance")
+    live = agent_session("data_governance")                     # 天花板会话（回收前）
+    USER_PERMS["data_governance"].discard("select:orders")      # 回收时刻
     leaky = session_allows(stale, "select:orders")
+    live_ok = session_allows(live, "select:orders")
     USER_PERMS["data_governance"].add("select:orders")          # 还原
-    expect("D9", leaky and "select:orders" not in fresh.perms,
-           "拆权限天花板 → 用户已回收 select:orders，旧代理会话仍持权（越权窗口）；"
-           "对照：天花板会话实时失去")
+    expect("D9", leaky and not live_ok,
+           "拆权限天花板（快照冻结）→ 回收后旧会话仍持 select:orders（越权窗口）；"
+           "对照：同时创建的天花板会话判定时实时求值，同一时刻立即失去——不存在"
+           "「上次办的工牌还能用」的窗口")
     # D10：拆「系统标签→用户标签」一次性映射 → 已分类敏感列明文出楼
     tags = classify(CUSTOMERS)
     leaked = project_cell("13800000000", "customers", "phone", tags, mapping={})
@@ -1147,7 +1161,7 @@ def destructive():
 
 def main():
     print("=" * 72)
-    print("Horizon Context 最小原型实验室 · M1-M6 机制自洽验证")
+    print("Horizon Context 最小原型实验室 · M1-M7 机制自洽验证")
     print(f"确定性基准: REF_DATE={REF_DATE}  POP_CAP={POP_CAP}  "
           f"排序权重 R/A/P/F = {W_RELEVANCE}/{W_AUTHORITY}/{W_POPULARITY}/{W_FRESHNESS}")
     print("=" * 72)

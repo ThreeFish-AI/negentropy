@@ -4,7 +4,7 @@ title: "Horizon Context ↔ negentropy 机制映射报告"
 description: "把 Horizon Context 重评选后的 M1–M7 与三个专章机制逐条对照本仓 definitions registry / patrol-Judge / skills_injector / Catalog：16 条映射判定为已对齐 4、值得落地 8（含部分对齐 1）、YAGNI 暂缓 4，锚点均经代码核验（2026-09-17 随 M 集重评选重审）"
 ---
 
-> 声明：只分析不改码；锚点均经 `grep -n` 实际核验（分支 `ThreeFish-AI/pyongyang`，2026-09-17）。材料机制出处见 [Horizon Context 精读笔记](./011-horizon-context.md)（其 M 集已于同日经全局重评选校准，本报告按新口径重审——旧 12 条逐条重锚、新晋四机制补映射）。
+> 声明：只分析不改码；锚点均经 `grep -n` 实际核验（分支 `ThreeFish-AI/horizon-context-recalibrate`，2026-09-17）。材料机制出处见 [Horizon Context 精读笔记](./011-horizon-context.md)（其 M 集已于同日经全局重评选校准，本报告按新口径重审——旧 12 条逐条重锚、新晋四机制补映射）。
 
 ## 结论先行
 
