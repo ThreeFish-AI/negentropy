@@ -1,0 +1,13 @@
+%%source: docs/research/cognitive-context/011-horizon-context.md#blockM7 (L447-L479, §9 M7 · 分类与标签驱动策略传播)
+%%slug: cognitive-context/horizon-context--classification-tagging
+%%type: workflow
+%%derived: archify workflow v2, authored from source mermaid
+%% fix: (2026-09-17 重评选新图) M3 域析出机制：持续分类扫描 → 系统标签 → 一次性映射（掩码不可直绑系统标签）→ 用户标签驱动 tag-based 策略 → 新增敏感列自动纳管；未映射=显式缺口；多账号 ABAC 天花板如实标注
+flowchart LR
+    NEW["📥 新增 / 变更数据列<br/>classification profile 持续分类"] --> CLS{"🔍 自动分类扫描<br/>SEMANTIC_CATEGORY<br/>PRIVACY_CATEGORY（三级）"}
+    CLS -->|"系统分类标签"| MAP{"🔀 一次性映射<br/>系统标签 → 用户治理标签<br/>（掩码策略不可直绑系统标签）"}
+    MAP -->|"已映射"| TAG["🏷️ 用户标签（如 pii）"]
+    MAP -->|"未映射"| GAP["⚠️ 显式保护缺口<br/>发现→标记→执行 断链 · D10 实测"]
+    TAG --> POL["🛡️ tag-based 策略<br/>masking / row access / aggregation<br/>一处 ALTER TAG 全库生效"]
+    POL --> OUT["✅ 新增敏感列自动纳管<br/>no manual step between<br/>discovery and protection"]
+    POL -.->|"边界如实"| LIMIT["🌫️ 多账号 ABAC 天花板<br/>一 tag 每 data type 仅一掩码策略"]

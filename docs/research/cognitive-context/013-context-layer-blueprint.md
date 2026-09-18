@@ -6,7 +6,7 @@ description: "通用可复刻 Context Layer 蓝图：五正交层中枢（对象
 
 > 以 [Snowflake Horizon Context](https://www.snowflake.com/en/product/features/horizon-context/) 为范本的**通用可复刻架构**：一个可独立部署、面向 Agents 研发与平台集成的治理上下文层——不只复刻 Snowflake，而是吸收全行业实践，可服务任意引擎与 agent 平台。
 >
-> 循证基础：Horizon 自身机制的详解、Snowflake 官方基准数字与批判性边界见 [Horizon Context 精读笔记](./011-horizon-context.md)；与本仓代码的逐条对照见[机制映射报告](./012-horizon-context-mapping-negentropy.md)；negentropy 内部实例化见 [Context Layer 技术方案](../../concepts/design/context-layer.md)；行业格局、第三方实证与失败史的出处见文末参考 [7]–[17]。最小原型（M1–M6 六机制 + MCP 服务）已随笔记入库验证。
+> 循证基础：Horizon 自身机制的详解、Snowflake 官方基准数字与批判性边界见 [Horizon Context 精读笔记](./011-horizon-context.md)（其 M 集已于 2026-09-17 经全局重评选校准：语义视图/行列级策略/语义级治理/验证锚定/血缘/Agent Identity/分类标签七席，富化、检索、互操作降为专章）；与本仓代码的逐条对照见[机制映射报告](./012-horizon-context-mapping-negentropy.md)；negentropy 内部实例化见 [Context Layer 技术方案](../../concepts/design/context-layer.md)；行业格局、第三方实证与失败史的出处见文末参考 [7]–[17]。最小原型（M1–M7 七机制 + MCP 服务，十次破坏性实验）已随笔记入库验证。
 
 > [!TIP] **怎么读本蓝图**
 >
@@ -34,7 +34,7 @@ description: "通用可复刻 Context Layer 蓝图：五正交层中枢（对象
 
 | 证据                                                                                                 | 出处                  | 一句话读法                                                       |
 | ---------------------------------------------------------------------------------------------------- | --------------------- | ---------------------------------------------------------------- |
-| dbt 2026 复跑（ACME 11 问 × 20 次）：text-to-SQL 全集 32.7%（2023 模型）→ 64.5%（2026 模型）；**语义层覆盖内 100%**；补 3 个 dbt 模型后覆盖全部考题 | dbt Labs [10]         | 模型两年大踏步，裸奔仍在「看起来对」区间；进覆盖内则是确定性的   |
+| dbt 2026 复跑（ACME 11 问 × 20 次）：text-to-SQL 全集 32.7%（2023 模型）→ 64.5%（2026 模型）；**语义层覆盖内 100%**；补 3 个 dbt 模型后覆盖全部考题 | dbt Labs [10]（品类卖方基准，COI 标注） | 模型两年大踏步，裸奔仍在「看起来对」区间；进覆盖内则是确定性的   |
 | 「语义层失败表现为报错，text-to-SQL 失败表现为看起来对的错数」                                       | dbt Labs [10]         | 本蓝图「报错优于错数」KPI 的出处                                 |
 | raw 直查 21% → 先查语义层 ~95%                                                                       | AtScale × Anthropic [9] | 两家独立复测同向：语义层是台阶不是装饰                         |
 | context layer 相比仅语义视图 5x                                                                      | Atlan AI Labs         | 光有定义不够——四层信号与治理齐备才有乘数                         |
@@ -86,7 +86,7 @@ description: "通用可复刻 Context Layer 蓝图：五正交层中枢（对象
 
 | 路线             | 治理发生处   | 代表与一句定位                                                                                                                                                                                                                                                                                                                                              |
 | ---------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 平台内嵌         | 引擎内       | Databricks：UC Business Semantics metric views（2026-04 GA）+ Genie Ontology（实现捐入开源；Typedef 批判其同样「governed 但未验证」）。Microsoft：Fabric IQ（Build 2026 GA）——Power BI semantic model + Ontology 实体/关系/规则/**动作写回**，MCP 端点开放。Google：Looker LookML → headless；Conversational Analytics（2026-08）把 verified/golden queries 做 GA |
+| 平台内嵌         | 引擎内       | Databricks：UC Business Semantics metric views（2026-04 GA）+ Genie Ontology（实现捐入开源；Typedef 批判其同样「governed 但未验证」）。Microsoft：Fabric IQ（Build 2026 GA）——Power BI semantic model + Ontology 实体/关系/规则/**动作写回**，MCP 端点开放。Google：Looker LookML → headless；Conversational Analytics（2026-08）把 verified/golden queries 做成一等机制（核心已 GA——2026-07 官方口径，子功能部分 Preview） |
 | 定义即代码       | 转换层       | dbt MetricFlow：2025-10-28 以 Apache 2.0 开源（OSI 初始参考实现），v1.12+ 支持 Ossie；YAML 与转换代码同仓版本化、PR 评审                                                                                                                                                                                                                                    |
 | 独立可执行层     | SQL 生成前   | Cube：「治理在 SQL 产生之前发生；post-hoc 扫描被子查询/CTE 绕过」[8]。AtScale：「composite context layer」——Horizon 是 system of record，它是 system of consumption [9]；其名言 "A glossary describes things. A semantic layer executes." [17]                                                                                                                  |
 | 跨系统元数据平面 | 元数据平面   | Atlan：自称「runtime enrichment 架构，而非持久 knowledge graph」。Alation：Semantic Model Mastering——「语义层版 MDM」。DataHub：开源双向 context graph                                                                                                                                                                                                       |
@@ -258,7 +258,7 @@ Ossie 让定义**可携带**，但可携带只是三重边界的第一重：
 
 1. **可携带 ≠ 可执行**——Ossie 解决定义带着走，不解决别家引擎替你执行治理；
 2. **可携带 ≠ 已验证**——validator 只查 schema 合法性，不查计算合法性（grain 塌缩照样过门，见边界对策章）；
-3. **可携带 ≠ 已普及**——截至 2026-07，零产品原生支持 Ossie 导入导出，转换器只有 CLI；Datus 的形容是 "running a CLI command, not clicking a button"。
+3. **可携带 ≠ 已普及**——产品化刚刚起步（2026-09 核验）：Strategy One 自 2026-06 起可导入 Ossie YAML（预览）、Strategy 2026-07 起导入/导出开箱即用（GUI），其余产品仍只有 CLI 转换器（Datus："running a CLI command, not clicking a button"）；Datus 实测桥接保真度损失——ASOF/RANGE 等非等值 join 被静默丢弃。
 
 **供给方义务**：因此本蓝图把互操作当**转换器级**能力而非产品级承诺——导出必带 provenance 与 authority 标注；导入一律降 authority、显式标 provenance，过结构校验门后才可注册（对应演进路线 P3）。
 
@@ -357,7 +357,7 @@ Ossie 让定义**可携带**，但可携带只是三重边界的第一重：
 >
 > 1. **考题 = 业务问题 × 数据团队人工验证的期望值**——期望值必须有人签字，这是与公开基准的本质区别；
 > 2. **用例四类齐全**：歧义措辞、隐晦 join、空结果，以及**越权用例**（Cube 的实践 [8]：无权角色试图取私有指标——期望结果是「拒绝 + 审计记录」，不是任何数值）；
-> 3. **golden queries 是一等评测资产**（Looker 已把 verified/golden queries 做成 GA 机制）：命中即短路重放的验证问答，同时是生产资产与评测考题；
+> 3. **golden queries 是一等评测资产**（Google Conversational Analytics 已把 verified/golden queries 做成一等机制，核心功能已 GA——2026-07 官方口径，子功能部分 Preview）：命中即短路重放的验证问答，同时是生产资产与评测考题；
 > 4. **覆盖内/覆盖外分开判卷**：一张卷子两栏——覆盖内追求确定性命中，覆盖外只考察是否诚实告警 `no_governed_coverage`。
 >
 > KPI 口径只有一条：**报错优于错数**。企业内基准 ~10 题即可起步（Snowflake 官方建模最佳实践，见[精读笔记](./011-horizon-context.md)），先让考卷活起来再求全。
@@ -414,9 +414,9 @@ Ossie 让定义**可携带**，但可携带只是三重边界的第一重：
 | ---------- | ------------------------------------------------------------ | --------------------------------------- |
 | 对象层     | `definitions` registry（4 类定义 SSOT + checksum/版本）      | ✅ 已有，补三字段纪律即可（映射 #1）     |
 | 目录层     | `context_catalog_unified` 等三视图（context-layer.md §4）    | 🔷 方案已设计                            |
-| 富化层     | patrol/Judge 巡检闭环 = eval 环同构物                        | ✅ 已有（映射 #6）；冲突浮出面待补（#7） |
+| 富化层     | patrol/Judge 巡检闭环 = eval 环同构物                        | ✅ 已有（映射 #7）；冲突浮出面待补（#8） |
 | 激活层     | 三层渐进披露（skills_injector）+ 计划中的 HybridPlanner 扩展 | ✅/🔷                                     |
-| MCP 供给面 | 复用 McpClientService 的协议工程经验，方向从消费转供给       | 🔶 新增（映射 #12）                      |
+| MCP 供给面 | 复用 McpClientService 的协议工程经验，方向从消费转供给       | 🔶 新增（映射 #13）                      |
 | 治理层     | `accessible_corpus_ids` + 计划中的 ContextGuard              | 🔷 第一层已有，第二层随 Phase 2          |
 
 **独立部署路径**：对象层落 PostgreSQL（或任意带版本化的存储）、激活层以单进程 stdio/HTTP MCP server 起步——原型 [`assets/horizon_context_mcp.py`](./assets/horizon_context_mcp.py) 即其零依赖种子。
@@ -425,7 +425,7 @@ Ossie 让定义**可携带**，但可携带只是三重边界的第一重：
 
 | 阶段                      | 内容                                                                             | 验收                                                                                     |
 | ------------------------- | -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| **P0 机制验证（已完成）** | 六机制玩具域 + MCP stdio 原型 + 7 次破坏性实验                                   | selftest 全绿；引擎层 RBAC 经 MCP 仍生效                                                 |
+| **P0 机制验证（已完成）** | 七机制玩具域 + MCP stdio 原型 + 10 次破坏性实验                                 | selftest 全绿；引擎层 RBAC 经 MCP 仍生效                                                 |
 | **P1 最小服务**           | 对象 CRUD + resolve + MCP 四工具 + 双层 RBAC + 审计日志，接一个真实 agent 客户端 | 真实客户端经 MCP 命中 verified query 短路；越权被拒且有审计                             |
 | **P2 信任与自纠**         | 四因子归一（有界变换 + 单一 staleness）+ 冲突浮出 + 反馈闭环 + verified QA 沉淀  | 排序可解释；CONFLICT 卡片全程无数字；反馈改变排序可复现（完整标尺定义见评测章）          |
 | **P3 互操作（转换器级）** | Ossie 转换器级导入导出 + per-role context + 表达式级 derived 校验                | 第三方语义模型经结构校验导入、显式标 provenance 且降 authority；跨角色上下文隔离         |

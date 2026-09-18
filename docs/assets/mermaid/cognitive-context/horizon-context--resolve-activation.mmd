@@ -1,21 +1,19 @@
-%%source: docs/research/cognitive-context/011-horizon-context.md#blockM5 (L370-L382, §7 M5 · 检索激活)
+%%source: docs/research/cognitive-context/011-horizon-context.md#blockM4 (L330-L366, §6 M4 · 应答层验证锚定)
 %%slug: cognitive-context/horizon-context--resolve-activation
 %%type: sequence
 %%derived: archify sequence v1, authored from source mermaid
-%% fix: (2026-09-15 校准) ① 检索消息补硬约束「整视图 ~100,000 token 上限 · 超限即剪枝」（正文 M5：精选是硬约束而非优化项）；② %%source 行号更新为 L370-L382
+%% fix: (2026-09-17 重评选) 原 M5 检索激活拆分后的验证锚定面：① Universal Search 混合检索前沿移出（归 §11 检索章）；② 主线改为 VQR 命中→生成依据→对账重算；③ 新增评测闭环 Note（Cortex Agent Evaluations 独立 opt-in、不在 Horizon Context 内——typedef 验证缺口「已交付的一半」）；④ %%source 重锚 L326-L362
 sequenceDiagram
-    participant AG as Agent（CoCo / 外部客户端）
-    participant US as Universal Search（关键词+向量混合）
-    participant CT as 目录与四层信号
-    participant VQ as VQR 已验证问答
-    participant EN as 执行引擎（按 grain 重算）
-    AG->>US: resolve(question, role)
-    US->>CT: 混合检索 top-k 候选（整视图 ~100,000 token 上限 · 超限即剪枝）
-    CT-->>US: 条目 + 信任信号
-    US->>VQ: 相似问答匹配
-    VQ-->>US: 命中：已验证 SQL + 溯源
-    US-->>AG: 以已验证查询为生成依据（confidence 可查）
-    AG->>EN: 生成 SQL / compile(metric, dims)
-    EN-->>AG: 按查询 grain 重算结果
-    AG->>US: 新表提问（无 governed 覆盖）
-    US-->>AG: no_governed_coverage 警告 + 低权威推断口径
+    participant AG as Agent
+    participant VQ as 核准题库（AI_VERIFIED_QUERIES）
+    participant EN as 执行引擎（M1 现算）
+    participant EV as 评测闭环（墙外）
+    AG->>VQ: 相似问答路由（question 匹配）
+    VQ-->>AG: 命中：以已验证 SQL 为生成依据<br/>verified_by / verified_at 溯源 · confidence 可查
+    AG->>EN: 引擎重算对账（引擎值 == 验证值）
+    EN-->>AG: 一致 → 出示盖章底稿
+    AG->>VQ: 未命中核准题
+    VQ-->>AG: 走 M1 现算路径 · 答案显式标注「未经核准」
+    AG->>VQ: 无 governed 覆盖（新表）
+    VQ-->>AG: no_governed_coverage 警告 + 低权威推断口径
+    Note over EV: 验证缺口的另一半：Cortex Agent Evaluations<br/>独立 opt-in 事后评分 · 不在 Horizon Context 内

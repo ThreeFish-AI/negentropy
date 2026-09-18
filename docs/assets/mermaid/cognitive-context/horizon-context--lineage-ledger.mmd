@@ -1,0 +1,17 @@
+%%source: docs/research/cognitive-context/011-horizon-context.md#blockM5 (L367-L403, §7 M5 · 端到端列级血缘)
+%%slug: cognitive-context/horizon-context--lineage-ledger
+%%type: dataflow
+%%derived: archify dataflow v1, authored from source mermaid
+%% fix: (2026-09-17 重评选新图) 全景级角色转正：引擎执行自动沉淀列级边 + OpenLineage REST 三道闸摄取 + 内外单一账本 + GET_LINEAGE 取数 + 盲区如实标注
+flowchart LR
+    subgraph "引擎执行（自动沉淀 · 执行事实投影）"
+        SQL["⚙️ COPY INTO / CTAS / CREATE VIEW<br/>CREATE SEMANTIC VIEW / MERGE"] --> EDG["📏 列级依赖边<br/>对象级 + 列级 · 对 ad-hoc 无盲区"]
+    end
+    subgraph "外部摄取（OpenLineage REST · 公开预览）"
+        EVT["📨 COMPLETE 事件<br/>+ columnLineage facet"] --> GATE{"三道闸<br/>INGEST LINEAGE 权限<br/>仅 COMPLETE · 对象可解析"}
+        GATE -->|"任一不满足"| REJ["🚫 整事件拒绝"]
+    end
+    EDG --> LEDGER["📖 单一血缘账本<br/>内外合流 · 保留一年"]
+    GATE -->|"通过"| LEDGER
+    LEDGER --> Q["🔎 GET_LINEAGE(SNOWFLAKE.CORE)<br/>程序化查询列级上下游 · VIEW LINEAGE 权限"]
+    LEDGER -.->|"盲区如实"| BLIND["🌫️ ML notebook 不进血缘<br/>2024-11 前历史不可见"]
