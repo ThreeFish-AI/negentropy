@@ -283,7 +283,7 @@ description: "第四层把时间还给主循环：后台任务以显式契约把
 
 ---
 
-## 附录 · main 轨 `s16_workflow_runtime`：全仓唯一的真并发
+## 附录 · main 轨 `s16_workflow_runtime`：全仓唯一的事件循环扇出并发
 
 > **站点修订未覆盖；不进口播。**
 

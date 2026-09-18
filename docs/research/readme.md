@@ -110,7 +110,7 @@
 | [① 工具与执行](./agent-harness/171-claude-code-tooling-execution.md) | 循环不变式与续轮判据（看内容块不看停止标记）、工具分发与批次、执行前校验链、权限三闸门顺序的正确性论证、钩子作为权限与审计的共用扩展点 |
 | [② 规划与协调](./agent-harness/172-claude-code-planning-coordination.md) | 待办只增规划不增执行、子 agent 的上下文隔离与结果回注、技能渐进披露、系统提示按运行时状态装配、错误恢复三类分治；附 main 轨 `s17_goal_loop` 目标闸门（无工具评估器 + 停止钩子决策机 + 显式防注入） |
 | [③ 记忆管理](./agent-harness/173-claude-code-memory-management.md) | 收台四步的顺序不变式（大结果先落盘才允许旧结果变占位符）、裁剪的配对硬约束、持久记忆两条加载路径（索引常驻 / 正文按需以免击穿缓存）、旁路挑选与压缩前快照；**原型实测补上材料只有论证没有实验的缺口，并发现顺序与「未读不动」是两道独立保险** |
-| [④ 并发与时机](./agent-harness/174-claude-code-concurrency.md) | 后台任务的显式路由与独立通知块（不复用回执编号）、调度与执行的解耦、诚实边界（调度器随进程死）；附 main 轨 `s16_workflow_runtime`——全仓唯一真并发，`parallel` 有屏障 vs `pipeline` 无屏障、journal 幂等续跑、双重熔断 |
+| [④ 并发与时机](./agent-harness/174-claude-code-concurrency.md) | 后台任务的显式路由与独立通知块（不复用回执编号）、调度与执行的解耦、诚实边界（调度器随进程死）；附 main 轨 `s16_workflow_runtime`——全仓唯一的事件循环扇出并发，`parallel` 有屏障 vs `pipeline` 无屏障、journal 幂等续跑、双重熔断 |
 | [⑤ 多 Agent 平台](./agent-harness/175-claude-code-multi-agent-platform.md) | 任务图与认领、消费式收件格、带类型校验与幂等的协议握手、自治三阶段与压缩后身份重注入、工作树隔离的拆除纪律、MCP 接入对工具池缓存的连锁反应，以及「机制很多、循环一个」的收束 |
 
 ---
