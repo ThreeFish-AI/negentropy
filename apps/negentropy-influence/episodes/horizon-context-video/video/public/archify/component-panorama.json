@@ -6,7 +6,7 @@
  "total_wall_sec": 62.14,
  "started_playback": true,
  "clapper_found": false,
- "measured_fps": null,
+ "measured_fps": 25.0,
  "chapters": [
   {
    "id": "caliber-spine",
@@ -30,7 +30,7 @@
     "gov",
     "pol"
    ],
-   "measured_fps": null
+   "measured_fps": 25.0
   },
   {
    "id": "consumer-feed",
@@ -58,7 +58,7 @@
     "grd",
     "agents"
    ],
-   "measured_fps": null
+   "measured_fps": 25.0
   },
   {
    "id": "reserved-supply",
@@ -88,7 +88,7 @@
     "ada",
     "grd"
    ],
-   "measured_fps": null
+   "measured_fps": 25.0
   }
  ],
  "source": "/Users/cm.huang/conductor/workspaces/negentropy/osaka-v2/docs/assets/architecture/cognitive-context/horizon-context--component-panorama.html",

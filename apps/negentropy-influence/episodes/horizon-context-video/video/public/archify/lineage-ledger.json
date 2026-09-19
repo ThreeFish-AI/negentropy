@@ -6,7 +6,7 @@
  "total_wall_sec": 50.46,
  "started_playback": true,
  "clapper_found": false,
- "measured_fps": null,
+ "measured_fps": 25.0,
  "chapters": [
   {
    "id": "engine-lane",
@@ -28,7 +28,7 @@
     "edg",
     "ledger"
    ],
-   "measured_fps": null
+   "measured_fps": 25.0
   },
   {
    "id": "ingest-lane",
@@ -52,7 +52,7 @@
     "rej",
     "ledger"
    ],
-   "measured_fps": null
+   "measured_fps": 25.0
   },
   {
    "id": "ledger-and-blind",
@@ -74,7 +74,7 @@
     "q",
     "blind"
    ],
-   "measured_fps": null
+   "measured_fps": 25.0
   }
  ],
  "source": "/Users/cm.huang/conductor/workspaces/negentropy/osaka-v2/docs/assets/architecture/cognitive-context/horizon-context--lineage-ledger.html",

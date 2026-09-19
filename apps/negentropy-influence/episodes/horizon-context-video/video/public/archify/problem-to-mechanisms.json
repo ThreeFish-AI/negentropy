@@ -6,7 +6,7 @@
  "total_wall_sec": 103.09,
  "started_playback": true,
  "clapper_found": false,
- "measured_fps": null,
+ "measured_fps": 25.0,
  "chapters": [
   {
    "id": "cause-chain",
@@ -30,7 +30,7 @@
     "sym-col",
     "verdict"
    ],
-   "measured_fps": null
+   "measured_fps": 25.0
   },
   {
    "id": "encircle-pierce",
@@ -54,7 +54,7 @@
     "m3",
     "m6"
    ],
-   "measured_fps": null
+   "measured_fps": 25.0
   },
   {
    "id": "engine-cast",
@@ -78,7 +78,7 @@
     "m3",
     "m6"
    ],
-   "measured_fps": null
+   "measured_fps": 25.0
   },
   {
    "id": "answer-ledger",
@@ -100,7 +100,7 @@
     "m5",
     "m7"
    ],
-   "measured_fps": null
+   "measured_fps": 25.0
   },
   {
    "id": "downgraded-lane",
@@ -122,7 +122,7 @@
     "f11",
     "f12"
    ],
-   "measured_fps": null
+   "measured_fps": 25.0
   }
  ],
  "source": "/Users/cm.huang/conductor/workspaces/negentropy/osaka-v2/docs/assets/architecture/cognitive-context/horizon-context--problem-to-mechanisms.html",

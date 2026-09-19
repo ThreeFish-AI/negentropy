@@ -6,7 +6,7 @@
  "total_wall_sec": 61.69,
  "started_playback": true,
  "clapper_found": false,
- "measured_fps": null,
+ "measured_fps": 25.0,
  "chapters": [
   {
    "id": "hit-reconcile",
@@ -28,7 +28,7 @@
     "vq",
     "en"
    ],
-   "measured_fps": null
+   "measured_fps": 25.0
   },
   {
    "id": "miss-fallback",
@@ -48,7 +48,7 @@
     "ag",
     "vq"
    ],
-   "measured_fps": null
+   "measured_fps": 25.0
   },
   {
    "id": "outside-eval",
@@ -66,7 +66,7 @@
    "beat_nodes": [
     "ev"
    ],
-   "measured_fps": null
+   "measured_fps": 25.0
   }
  ],
  "source": "/Users/cm.huang/conductor/workspaces/negentropy/osaka-v2/docs/assets/architecture/cognitive-context/horizon-context--resolve-activation.html",

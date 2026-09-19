@@ -6,7 +6,7 @@
  "total_wall_sec": 55.34,
  "started_playback": true,
  "clapper_found": false,
- "measured_fps": null,
+ "measured_fps": 25.0,
  "chapters": [
   {
    "id": "perpage",
@@ -30,7 +30,7 @@
     "msk",
     "rap"
    ],
-   "measured_fps": null
+   "measured_fps": 25.0
   },
   {
    "id": "family",
@@ -52,7 +52,7 @@
     "agp",
     "out"
    ],
-   "measured_fps": null
+   "measured_fps": 25.0
   },
   {
    "id": "agentface",
@@ -74,7 +74,7 @@
     "po",
     "cls"
    ],
-   "measured_fps": null
+   "measured_fps": 25.0
   }
  ],
  "source": "/Users/cm.huang/conductor/workspaces/negentropy/osaka-v2/docs/assets/architecture/cognitive-context/horizon-context--row-column-policy.html",

@@ -111,45 +111,50 @@ def materialize(src: Path, views_file: Path | None, tmpdir: Path) -> tuple[Path,
 
 
 def measure_fps(webm: Path) -> float | None:
-    """用 remotion 内置 ffprobe 实测均帧率（Playwright screencast 是 VFR）。"""
+    """用 remotion 内置 ffprobe 实测均帧率（Playwright screencast 是 VFR）。
+
+    注意取 **format=duration** 而非 stream=duration：webm 的流级 duration 恒为
+    N/A，早先按流级取会让本函数永远返回 None、--min-fps 门形同虚设
+    （2026-09-19 实测发现）。
+    """
     video_root = Path(__file__).resolve().parents[2] / "episodes"
     for proj in video_root.glob("*/video"):
-        if (proj / "node_modules" / ".bin" / "remotion").is_file():
-            try:
+        exe = proj / "node_modules" / ".bin" / "remotion"
+        if not exe.is_file():
+            continue
+        try:
+
+            def probe(args: list[str], exe: Path = exe, proj: Path = proj) -> str:
                 r = subprocess.run(
-                    [
-                        str(proj / "node_modules/.bin/remotion"),
-                        "ffprobe",
-                        "-v",
-                        "error",
-                        "-select_streams",
-                        "v:0",
-                        "-count_frames",
-                        "-show_entries",
-                        "stream=nb_read_frames,duration",
-                        "-of",
-                        "json",
-                        str(webm.resolve()),
-                    ],
+                    [str(exe), "ffprobe", "-v", "error", *args, str(webm.resolve())],
                     capture_output=True,
                     text=True,
                     timeout=120,
                     cwd=str(proj),
                     check=False,
                 )
-                d = json.loads(r.stdout)["streams"][0]
-                n, dur = float(d["nb_read_frames"]), float(d["duration"])
-                return round(n / dur, 2) if dur > 0 else None
-            except (
-                OSError,
-                ValueError,
-                KeyError,
-                IndexError,
-                json.JSONDecodeError,
-                subprocess.SubprocessError,
-            ):
-                # fps 只作体检参考，探测失败不该让整场录制失败
-                return None
+                return r.stdout.strip().split("=")[-1]
+
+            dur = float(
+                probe(["-show_entries", "format=duration", "-of", "default=nw=1"])
+            )
+            n = float(
+                probe(
+                    [
+                        "-select_streams",
+                        "v:0",
+                        "-count_frames",
+                        "-show_entries",
+                        "stream=nb_read_frames",
+                        "-of",
+                        "default=nw=1",
+                    ]
+                )
+            )
+            return round(n / dur, 2) if dur > 0 else None
+        except (OSError, ValueError, subprocess.SubprocessError):
+            # fps 只作体检参考，探测失败不该让整场录制失败
+            return None
     return None
 
 
@@ -236,7 +241,7 @@ def main() -> None:
     sidecar["source"] = str(src)
     sidecar["slug"] = slug
     Path(a.out_sidecar).write_text(
-        json.dumps(sidecar, ensure_ascii=False, indent=1), encoding="utf-8"
+        json.dumps(sidecar, ensure_ascii=False, indent=1) + "\n", encoding="utf-8"
     )
     print(json.dumps(sidecar, ensure_ascii=False))
 

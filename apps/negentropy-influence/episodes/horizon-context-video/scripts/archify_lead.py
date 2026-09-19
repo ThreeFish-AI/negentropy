@@ -99,7 +99,9 @@ def main() -> None:
             print(f"  {ch['id']:<22} lead_sec = {lead:.3f}s")
         d["clapper_found"] = missing == 0
         d["lead_sec"] = d["chapters"][0]["lead_sec"]
-        sc.write_text(json.dumps(d, ensure_ascii=False, indent=1), encoding="utf-8")
+        sc.write_text(
+            json.dumps(d, ensure_ascii=False, indent=1) + "\n", encoding="utf-8"
+        )
     print(
         f"\n>> 场记板测定：{fixed}/{total} 章已回写真实 lead_sec"
         f"{f'（{missing} 章未找到，沿用原值）' if missing else ''}"

@@ -6,7 +6,7 @@
  "total_wall_sec": 51.87,
  "started_playback": true,
  "clapper_found": true,
- "measured_fps": null,
+ "measured_fps": 25.0,
  "chapters": [
   {
    "id": "tag-driven",
@@ -34,7 +34,7 @@
     "pol",
     "out"
    ],
-   "measured_fps": null
+   "measured_fps": 25.0
   },
   {
    "id": "explicit-gap",
@@ -54,7 +54,7 @@
     "map",
     "gap"
    ],
-   "measured_fps": null
+   "measured_fps": 25.0
   },
   {
    "id": "honest-limit",
@@ -74,7 +74,7 @@
     "pol",
     "limit"
    ],
-   "measured_fps": null
+   "measured_fps": 25.0
   }
  ],
  "source": "/Users/cm.huang/conductor/workspaces/negentropy/osaka-v2/docs/assets/architecture/cognitive-context/horizon-context--classification-tagging.html",

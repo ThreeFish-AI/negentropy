@@ -6,7 +6,7 @@
  "total_wall_sec": 54.43,
  "started_playback": true,
  "clapper_found": true,
- "measured_fps": null,
+ "measured_fps": 25.0,
  "chapters": [
   {
    "id": "ceiling",
@@ -30,7 +30,7 @@
     "ceil",
     "sess"
    ],
-   "measured_fps": null
+   "measured_fps": 25.0
   },
   {
    "id": "audit",
@@ -50,7 +50,7 @@
     "sess",
     "qh"
    ],
-   "measured_fps": null
+   "measured_fps": 25.0
   },
   {
    "id": "strict",
@@ -70,7 +70,7 @@
     "sess",
     "pol"
    ],
-   "measured_fps": null
+   "measured_fps": 25.0
   }
  ],
  "source": "/Users/cm.huang/conductor/workspaces/negentropy/osaka-v2/docs/assets/architecture/cognitive-context/horizon-context--agent-identity.html",

@@ -6,7 +6,7 @@
  "total_wall_sec": 56.86,
  "started_playback": true,
  "clapper_found": true,
- "measured_fps": null,
+ "measured_fps": 25.0,
  "chapters": [
   {
    "id": "inputs",
@@ -28,7 +28,7 @@
     "in_bi",
     "in_pairs"
    ],
-   "measured_fps": null
+   "measured_fps": 25.0
   },
   {
    "id": "valgate",
@@ -52,7 +52,7 @@
     "sv",
     "vqr"
    ],
-   "measured_fps": null
+   "measured_fps": 25.0
   },
   {
    "id": "loop",
@@ -72,7 +72,7 @@
     "consume",
     "vqr"
    ],
-   "measured_fps": null
+   "measured_fps": 25.0
   }
  ],
  "source": "/Users/cm.huang/conductor/workspaces/negentropy/osaka-v2/docs/assets/architecture/cognitive-context/horizon-context--autopilot-loop.html",

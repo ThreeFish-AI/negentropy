@@ -6,7 +6,7 @@
  "total_wall_sec": 69.62,
  "started_playback": true,
  "clapper_found": false,
- "measured_fps": null,
+ "measured_fps": 25.0,
  "chapters": [
   {
    "id": "signals",
@@ -32,7 +32,7 @@
     "use",
     "tm"
    ],
-   "measured_fps": null
+   "measured_fps": 25.0
   },
   {
    "id": "factors",
@@ -56,7 +56,7 @@
     "pop",
     "fre"
    ],
-   "measured_fps": null
+   "measured_fps": 25.0
   },
   {
    "id": "topk",
@@ -78,7 +78,7 @@
     "tie",
     "topk"
    ],
-   "measured_fps": null
+   "measured_fps": 25.0
   }
  ],
  "source": "/Users/cm.huang/conductor/workspaces/negentropy/osaka-v2/docs/assets/architecture/cognitive-context/horizon-context--four-factor-ranking.html",

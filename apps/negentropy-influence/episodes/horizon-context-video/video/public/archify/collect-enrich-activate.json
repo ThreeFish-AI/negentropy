@@ -6,7 +6,7 @@
  "total_wall_sec": 47.28,
  "started_playback": true,
  "clapper_found": false,
- "measured_fps": null,
+ "measured_fps": 25.0,
  "chapters": [
   {
    "id": "collect",
@@ -30,7 +30,7 @@
     "s3",
     "c"
    ],
-   "measured_fps": null
+   "measured_fps": 25.0
   },
   {
    "id": "enrich",
@@ -52,7 +52,7 @@
     "g",
     "i"
    ],
-   "measured_fps": null
+   "measured_fps": 25.0
   },
   {
    "id": "activate",
@@ -76,7 +76,7 @@
     "a2",
     "a3"
    ],
-   "measured_fps": null
+   "measured_fps": 25.0
   }
  ],
  "source": "/Users/cm.huang/conductor/workspaces/negentropy/osaka-v2/docs/assets/architecture/cognitive-context/horizon-context--collect-enrich-activate.html",

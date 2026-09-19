@@ -6,7 +6,7 @@
  "total_wall_sec": 60.56,
  "started_playback": true,
  "clapper_found": false,
- "measured_fps": null,
+ "measured_fps": 25.0,
  "chapters": [
   {
    "id": "portable",
@@ -30,7 +30,7 @@
     "sv",
     "dbt"
    ],
-   "measured_fps": null
+   "measured_fps": 25.0
   },
   {
    "id": "socket",
@@ -54,7 +54,7 @@
     "ext",
     "rbx"
    ],
-   "measured_fps": null
+   "measured_fps": 25.0
   },
   {
    "id": "feedback",
@@ -76,7 +76,7 @@
     "sv",
     "ada"
    ],
-   "measured_fps": null
+   "measured_fps": 25.0
   }
  ],
  "source": "/Users/cm.huang/conductor/workspaces/negentropy/osaka-v2/docs/assets/architecture/cognitive-context/horizon-context--open-interop.html",

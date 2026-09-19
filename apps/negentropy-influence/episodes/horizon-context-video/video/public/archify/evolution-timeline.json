@@ -6,7 +6,7 @@
  "total_wall_sec": 65.05,
  "started_playback": true,
  "clapper_found": false,
- "measured_fps": null,
+ "measured_fps": 25.0,
  "chapters": [
   {
    "id": "stage-objects",
@@ -26,7 +26,7 @@
     "ms1",
     "ms2"
    ],
-   "measured_fps": null
+   "measured_fps": 25.0
   },
   {
    "id": "stage-governed-enrich",
@@ -62,7 +62,7 @@
     "ms10",
     "ms11"
    ],
-   "measured_fps": null
+   "measured_fps": 25.0
   },
   {
    "id": "stage-ecosystem",
@@ -84,7 +84,7 @@
     "ms13",
     "ms14"
    ],
-   "measured_fps": null
+   "measured_fps": 25.0
   }
  ],
  "source": "/Users/cm.huang/conductor/workspaces/negentropy/osaka-v2/docs/assets/architecture/cognitive-context/horizon-context--evolution-timeline.html",

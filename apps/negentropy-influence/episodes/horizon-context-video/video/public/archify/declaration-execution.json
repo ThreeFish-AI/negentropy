@@ -6,7 +6,7 @@
  "total_wall_sec": 27.51,
  "started_playback": true,
  "clapper_found": false,
- "measured_fps": null,
+ "measured_fps": 25.0,
  "chapters": [
   {
    "id": "declare",
@@ -32,7 +32,7 @@
     "metrics",
     "fivePart"
    ],
-   "measured_fps": null
+   "measured_fps": 25.0
   },
   {
    "id": "gate",
@@ -54,7 +54,7 @@
     "gate",
     "reject"
    ],
-   "measured_fps": null
+   "measured_fps": 25.0
   },
   {
    "id": "recompute",
@@ -78,7 +78,7 @@
     "result",
     "denied"
    ],
-   "measured_fps": null
+   "measured_fps": 25.0
   }
  ],
  "source": "/Users/cm.huang/conductor/workspaces/negentropy/osaka-v2/docs/assets/architecture/cognitive-context/horizon-context--declaration-execution.html",
