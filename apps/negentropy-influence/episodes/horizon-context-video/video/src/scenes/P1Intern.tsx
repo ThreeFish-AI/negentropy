@@ -133,6 +133,8 @@ const OfficialLadder: React.FC<{at?: number}> = ({at = 0}) => {
 export const P1Intern: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (a: string, b?: string) => beatWindow(scene.sentences, scene.from, a, b);
   const at = (id: string) => w(id).from;
+  // 非 beat 用途一律走 dur，不写 w('句id') 字面形态（见 P3Gate 同处注释）
+  const dur = (a: string, b?: string) => w(a, b).durationInFrames;
   const bA = w('p1-01', 'p1-07');
   const bB = w('p1-08', 'p1-15');
   const bC = w('p1-16', 'p1-21');
@@ -166,8 +168,8 @@ export const P1Intern: React.FC<{scene: SceneRange}> = ({scene}) => {
           caption="病因链与机制对位"
           variant="inset"
           cues={[
-            {chapterId: 'cause-chain', at: at('p1-08') - bB.from, durationInFrames: w('p1-08').durationInFrames},
-            {chapterId: 'encircle-pierce', at: at('p1-14') - bB.from, durationInFrames: w('p1-14').durationInFrames},
+            {chapterId: 'cause-chain', at: at('p1-08') - bB.from, durationInFrames: dur('p1-08')},
+            {chapterId: 'encircle-pierce', at: at('p1-14') - bB.from, durationInFrames: dur('p1-14')},
           ]}
         />
       </Sequence>
@@ -177,14 +179,14 @@ export const P1Intern: React.FC<{scene: SceneRange}> = ({scene}) => {
           slug="problem-to-mechanisms"
           caption="铸入引擎 · 机制对位"
           cues={[
-            {chapterId: 'engine-cast', at: at('p1-16') - bC.from, durationInFrames: w('p1-16').durationInFrames},
-            {chapterId: 'answer-ledger', at: at('p1-17') - bC.from, durationInFrames: w('p1-17').durationInFrames},
-            {chapterId: 'downgraded-lane', at: at('p1-21') - bC.from, durationInFrames: w('p1-21').durationInFrames},
+            {chapterId: 'engine-cast', at: at('p1-16') - bC.from, durationInFrames: dur('p1-16')},
+            {chapterId: 'answer-ledger', at: at('p1-17') - bC.from, durationInFrames: dur('p1-17')},
+            {chapterId: 'downgraded-lane', at: at('p1-21') - bC.from, durationInFrames: dur('p1-21')},
           ]}
         />
         <Sequence
           from={at('p1-18') - bC.from}
-          durationInFrames={w('p1-18', 'p1-20').durationInFrames}
+          durationInFrames={dur('p1-18', 'p1-20')}
           name="1-C 官方三句阶梯"
         >
           <Stage top={250}>
@@ -202,8 +204,8 @@ export const P1Intern: React.FC<{scene: SceneRange}> = ({scene}) => {
           caption="组件全景 · 四簇"
           variant="inset"
           cues={[
-            {chapterId: 'caliber-spine', at: at('p1-22') - bD.from, durationInFrames: w('p1-22').durationInFrames},
-            {chapterId: 'consumer-feed', at: at('p1-24') - bD.from, durationInFrames: w('p1-24').durationInFrames},
+            {chapterId: 'caliber-spine', at: at('p1-22') - bD.from, durationInFrames: dur('p1-22')},
+            {chapterId: 'consumer-feed', at: at('p1-24') - bD.from, durationInFrames: dur('p1-24')},
           ]}
         />
       </Sequence>

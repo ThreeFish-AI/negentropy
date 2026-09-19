@@ -203,6 +203,8 @@ const LastSnapshot: React.FC<{at: number; clashAt: number}> = ({at, clashAt}) =>
 export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (a: string, b?: string) => beatWindow(scene.sentences, scene.from, a, b);
   const at = (id: string) => w(id).from;
+  // 非 beat 用途一律走 dur，不写 w('句id') 字面形态（见 P3Gate 同处注释）
+  const dur = (a: string, b?: string) => w(a, b).durationInFrames;
   const bA = w('p2-01', 'p2-04');
   const bB = w('p2-05', 'p2-08');
   const bC = w('p2-09', 'p2-09b');
@@ -251,7 +253,7 @@ export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
           caption="声明相 / 执行相"
           variant="inset"
           cues={[
-            {chapterId: 'gate', at: at('p2-07') - bB.from, durationInFrames: w('p2-07').durationInFrames},
+            {chapterId: 'gate', at: at('p2-07') - bB.from, durationInFrames: dur('p2-07')},
           ]}
         />
       </Sequence>
@@ -265,8 +267,8 @@ export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
           caption="口径单点 × 查询期重算"
           variant="inset"
           cues={[
-            {chapterId: 'declare', at: at('p2-09') - bC.from, durationInFrames: w('p2-09').durationInFrames},
-            {chapterId: 'recompute', at: at('p2-09a') - bC.from, durationInFrames: w('p2-09a').durationInFrames},
+            {chapterId: 'declare', at: at('p2-09') - bC.from, durationInFrames: dur('p2-09')},
+            {chapterId: 'recompute', at: at('p2-09a') - bC.from, durationInFrames: dur('p2-09a')},
           ]}
         />
       </Sequence>

@@ -5,11 +5,11 @@ import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
 import type {SceneRange} from '../types';
 import {beatWindow} from '../timing';
 import {theme} from '../design/theme';
-import {DUR, progress, useImpulse, useProgress, useShake, useSpring} from '../motion';
-import {Panel, SceneTag} from '../components/motifs';
+import {clamp01, DUR, progress, useImpulse, useProgress, useShake, useSpring} from '../motion';
+import {NumberedCard, Panel, SceneTag} from '../components/motifs';
 import {CodeWalk, TerminalLog} from '../components/CodeWalk';
 import {ArchifyRecap} from '../components/ArchifyRecap';
-import {EvidenceBadge, PillarHUD, SplitCompare, Stage} from '../components/devices';
+import {EvidenceBadge, MechZoom, PillarHUD, SplitCompare, Stage} from '../components/devices';
 
 const ROWS = [
   {name: '张明', plan: 'ENTERPRISE', phone: '138****2041', amt: '¥ 90'},
@@ -17,10 +17,25 @@ const ROWS = [
   {name: '王磊', plan: 'FREE', phone: '137****3120', amt: '¥ 24'},
 ];
 
-/** 3-A/3-B 逐页验放扫描仪：机密列打码、越权行整条扣留 */
-const PageScanner: React.FC<{maskAt: number; holdAt: number}> = ({maskAt, holdAt}) => {
+/** 行距（几何量，非时点）——`verdict` 的逐行时机由扫描条 y 与它换算，不另立时间源 */
+const ROW_PITCH = 86;
+
+/** 3-A/3-B 逐页验放扫描仪：同一装置演两遍。
+ *
+ *  省略 `maskAt`/`holdAt` = 3-A 的「正演一次」：扫描线横扫、逐行亮放行章，不打码不扣留；
+ *  两者都给 = 3-B 的「拆一次 / 坏给你看」。两镜用同一个 `Stage top`，让跨镜的装置落在
+ *  同一像素位置（planning §三 硬纪律「每个装置演三遍」）。
+ *  `verdict` 刻意**不带独立时点**：逐行放行完全由扫描条自身位置派生，避免同一事件出现
+ *  第二个可失配的真值源。 */
+const PageScanner: React.FC<{
+  scanAt: number;
+  scanSpan: number;
+  maskAt?: number;
+  holdAt?: number;
+  verdict?: boolean;
+}> = ({scanAt, scanSpan, maskAt, holdAt, verdict = false}) => {
   const frame = useCurrentFrame();
-  const scan = useProgress(2, DUR.f6);
+  const scan = useProgress(scanAt, scanSpan, 'linear');
   return (
     <div style={{position: 'relative', width: 1180}}>
       <div
@@ -36,8 +51,11 @@ const PageScanner: React.FC<{maskAt: number; holdAt: number}> = ({maskAt, holdAt
         }}
       />
       {ROWS.map((r, i) => {
-        const masked = progress(frame, maskAt + i * 3, DUR.f4);
-        const held = i === 0 ? progress(frame, holdAt, DUR.f4) : 0;
+        const masked = maskAt === undefined ? 0 : progress(frame, maskAt + i * 3, DUR.f4);
+        const held = holdAt !== undefined && i === 0 ? progress(frame, holdAt, DUR.f4) : 0;
+        const pass = verdict
+          ? clamp01((scan * 300 - (i * ROW_PITCH + ROW_PITCH / 2)) / 18)
+          : 0;
         return (
           <div
             key={r.name}
@@ -48,8 +66,11 @@ const PageScanner: React.FC<{maskAt: number; holdAt: number}> = ({maskAt, holdAt
               padding: '18px 26px',
               marginBottom: 12,
               borderRadius: 10,
-              border: `2px solid ${held > 0.4 ? theme.danger : theme.panelBorder}`,
-              background: held > 0.4 ? `${theme.danger}14` : theme.panel,
+              border: `2px solid ${
+                held > 0.4 ? theme.danger : pass > 0.5 ? theme.engine : theme.panelBorder
+              }`,
+              background:
+                held > 0.4 ? `${theme.danger}14` : pass > 0.5 ? `${theme.engine}12` : theme.panel,
               fontFamily: theme.mono,
               fontSize: 28,
               color: theme.text,
@@ -65,6 +86,13 @@ const PageScanner: React.FC<{maskAt: number; holdAt: number}> = ({maskAt, holdAt
             <span style={{width: 140}}>{r.amt}</span>
             {held > 0.4 ? (
               <span style={{fontFamily: theme.sans, fontSize: 22, color: theme.danger}}>越权行已扣留</span>
+            ) : null}
+            {pass > 0 && held <= 0.4 ? (
+              <span
+                style={{fontFamily: theme.sans, fontSize: 22, color: theme.engine, opacity: pass}}
+              >
+                实时核验 · 放行
+              </span>
             ) : null}
           </div>
         );
@@ -178,6 +206,10 @@ const TwoLayers: React.FC<{at: number; bumpAt: number}> = ({at, bumpAt}) => {
 export const P3Gate: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (a: string, b?: string) => beatWindow(scene.sentences, scene.from, a, b);
   const at = (id: string) => w(id).from;
+  // 与 at 对称的取长辅助：非 beat 用途一律走它，不写 w('句id') 字面形态——
+  // check_script 的 SCENE_CALL_RE 只认字面量，写字面量会把镜内叠加层登记成镜区间
+  // （本仓既有约定，见 claude-code-explained-video/P6Ending.tsx）
+  const dur = (a: string, b?: string) => w(a, b).durationInFrames;
   const bA = w('p3-01', 'p3-04');
   const bB = w('p3-05', 'p3-08');
   const bC = w('p3-09', 'p3-13');
@@ -189,24 +221,67 @@ export const P3Gate: React.FC<{scene: SceneRange}> = ({scene}) => {
     <AbsoluteFill>
       <Sequence {...bA} name="3-A 逐页验放闸机">
         <SceneTag chapter="M2" tagline="闸机的逐页验放规则" accent={theme.engine} />
+        <Sequence
+          from={at('p3-01') - bA.from}
+          durationInFrames={at('p3-03') - at('p3-01')}
+          name="3-A① 母图推近 · 各层电梯厅验放闸"
+        >
+          <Stage top={320}>
+            <MechZoom focus="gate" spanInFrames={at('p3-03') - at('p3-01')}>
+              <NumberedCard
+                index={2}
+                label="行列级策略"
+                sub="客体轴 · 逐页验放"
+                active
+                accent={theme.engine}
+                width={430}
+                delay={at('p3-02') - at('p3-01')}
+              />
+              <NumberedCard
+                index={3}
+                label="语义级治理"
+                sub="拓扑轴 · 焊死执法点"
+                active
+                accent={theme.engine}
+                width={430}
+                delay={at('p3-02') - at('p3-01') + 10}
+              />
+            </MechZoom>
+          </Stage>
+        </Sequence>
         <ArchifyRecap
           slug="row-column-policy"
           caption="查询期行列级策略"
-          cues={[{chapterId: 'perpage', at: at('p3-03') - bA.from, durationInFrames: w('p3-03').durationInFrames}]}
+          cues={[{chapterId: 'perpage', at: at('p3-03') - bA.from, durationInFrames: dur('p3-03')}]}
         />
+        {/* top 与 3-B 同值：正演一次与拆一次落在同一像素位置，读成同一个装置 */}
+        <Sequence
+          from={at('p3-04') - bA.from}
+          durationInFrames={dur('p3-04')}
+          name="3-A② 逐页验放扫描仪 · 正演一次"
+        >
+          <Stage top={360}>
+            <PageScanner scanAt={0} scanSpan={dur('p3-04')} verdict />
+          </Stage>
+        </Sequence>
       </Sequence>
 
       <Sequence {...bB} name="3-B 打码扣留与代理识别">
         <Stage top={360}>
-          <PageScanner maskAt={at('p3-05') - bB.from} holdAt={at('p3-05') - bB.from + 14} />
+          <PageScanner
+            scanAt={at('p3-05') - bB.from}
+            scanSpan={DUR.f6}
+            maskAt={at('p3-05') - bB.from}
+            holdAt={at('p3-05') - bB.from + 14}
+          />
         </Stage>
         <ArchifyRecap
           slug="row-column-policy"
           caption="策略对象族 · 代理严拒面"
           variant="inset"
           cues={[
-            {chapterId: 'family', at: at('p3-05') - bB.from, durationInFrames: w('p3-05').durationInFrames},
-            {chapterId: 'agentface', at: at('p3-07') - bB.from, durationInFrames: w('p3-07').durationInFrames},
+            {chapterId: 'family', at: at('p3-05') - bB.from, durationInFrames: dur('p3-05')},
+            {chapterId: 'agentface', at: at('p3-07') - bB.from, durationInFrames: dur('p3-07')},
           ]}
         />
       </Sequence>
@@ -225,7 +300,7 @@ export const P3Gate: React.FC<{scene: SceneRange}> = ({scene}) => {
           slug="engine-governance"
           caption="语义级治理执行"
           variant="inset"
-          cues={[{chapterId: 'governed-path', at: at('p3-12') - bC.from, durationInFrames: w('p3-12').durationInFrames}]}
+          cues={[{chapterId: 'governed-path', at: at('p3-12') - bC.from, durationInFrames: dur('p3-12')}]}
         />
       </Sequence>
 
@@ -311,7 +386,7 @@ export const P3Gate: React.FC<{scene: SceneRange}> = ({scene}) => {
           caption="绕行仍被引擎拦截"
           variant="inset"
           cues={[
-            {chapterId: 'bypass-intercepted', at: at('p3-25') - bG.from, durationInFrames: w('p3-25').durationInFrames},
+            {chapterId: 'bypass-intercepted', at: at('p3-25') - bG.from, durationInFrames: dur('p3-25')},
           ]}
         />
         <PillarHUD lit={3} at={at('p3-26') - bG.from} />

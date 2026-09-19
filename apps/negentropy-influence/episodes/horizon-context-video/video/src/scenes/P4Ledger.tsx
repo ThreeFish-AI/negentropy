@@ -5,11 +5,11 @@ import {AbsoluteFill, Sequence} from 'remotion';
 import type {SceneRange} from '../types';
 import {beatWindow} from '../timing';
 import {theme} from '../design/theme';
-import {DUR, useProgress, useShake, useSpring, useStagger} from '../motion';
-import {SceneTag} from '../components/motifs';
+import {DUR, useFlowDash, useProgress, useShake, useSpring, useStagger} from '../motion';
+import {NumberedCard, Panel, SceneTag} from '../components/motifs';
 import {CodeWalk, TerminalLog} from '../components/CodeWalk';
 import {ArchifyRecap} from '../components/ArchifyRecap';
-import {EvidenceBadge, PillarHUD, Stage} from '../components/devices';
+import {AskCard, EvidenceBadge, MechZoom, PillarHUD, Stage} from '../components/devices';
 
 /** 4-A 引用错手册：手册对的，翻错了页 */
 const WrongPage: React.FC<{at: number}> = ({at}) => {
@@ -165,6 +165,156 @@ const HalfWall: React.FC = () => {
   );
 };
 
+/** 4-D 全息管道台账：列级管网 + 落桌翻开的台账 + 对象解析门。
+ *
+ *  两个时点都由句边界给出（铁律⑤）：管网通流与台账翻开落在 p4-12（「每滴水从哪个水池
+ *  流向哪个龙头」），解析门落下与虚构对象被弹回落在 p4-14（「绝不是废纸都收」）。
+ *  `useFlowDash` 常驻流动，保证本子镜 469 帧全程有运动（ISSUE-187 ①）；`useShake`
+ *  必须同时给 `decay: true` 与 `dur`，否则忽略 dur 会抖满整个子镜。
+ *  弹回的行程取**本句时长的比例**而非写死帧数——TTS 重测后自动重定时。 */
+const LANES = [
+  {src: 'raw.orders', dst: 'bi.board.gmv'},
+  {src: 'raw.customers', dst: 'ai.agent.seg'},
+  {src: 'raw.events', dst: 'bi.board.dau'},
+];
+const TRACE = [
+  'raw.orders.amt    →  dwh.f_order.amt    →  bi.board.gmv',
+  'raw.customers.id  →  dwh.d_cust.id      →  ai.agent.seg',
+  'raw.events.ts     →  dwh.f_event.ts     →  bi.board.dau',
+  'dwh.f_order.amt   →  ai.agent.metric    →  （引擎原生记录）',
+];
+
+const PipeLedger: React.FC<{
+  openAt: number;
+  labelSpan: number;
+  gateAt: number;
+  rejectSpan: number;
+}> = ({openAt, labelSpan, gateAt, rejectSpan}) => {
+  const flow = useFlowDash({dash: 10, gap: 14, period: 40});
+  const open = useSpring('snap', {at: openAt, dur: DUR.f6});
+  const rows = useStagger(4, {at: openAt, fit: {total: labelSpan}, dur: DUR.f5});
+  const gate = useSpring('snap', {at: gateAt, dur: DUR.f6});
+  const half = Math.max(1, Math.round(rejectSpan * 0.5));
+  const travel = useProgress(gateAt, half, 'decelerate');
+  const bounce = useShake({at: gateAt + half, active: true, amp: 7, decay: true, dur: DUR.f6});
+  const rejected = useProgress(gateAt + half, DUR.f5);
+  return (
+    <div style={{width: 1240}}>
+      <div style={{position: 'relative', height: 194}}>
+        <svg width={1240} height={194}>
+          {LANES.map((l, i) => (
+            <g key={l.src}>
+              <rect
+                x={0}
+                y={12 + i * 50}
+                width={170}
+                height={36}
+                rx={8}
+                fill={theme.panel}
+                stroke={theme.engine}
+                strokeWidth={2}
+              />
+              <rect
+                x={1070}
+                y={12 + i * 50}
+                width={170}
+                height={36}
+                rx={8}
+                fill={theme.panel}
+                stroke={theme.engine}
+                strokeWidth={2}
+              />
+              <text x={12} y={35 + i * 50} fill={theme.dim} fontSize={17} fontFamily={theme.mono}>
+                {l.src}
+              </text>
+              <text x={1082} y={35 + i * 50} fill={theme.dim} fontSize={17} fontFamily={theme.mono}>
+                {l.dst}
+              </text>
+              <path
+                d={`M 170 ${30 + i * 50} C 480 ${30 + i * 50}, 760 ${30 + i * 50}, 1070 ${30 + i * 50}`}
+                stroke={theme.engine}
+                strokeWidth={3}
+                fill="none"
+                opacity={0.8}
+                {...flow}
+              />
+            </g>
+          ))}
+          {/* 交叉的那一条：同一列被另一条链路消费，正是「列级」而非「表级」的意思 */}
+          <path
+            d="M 170 80 C 520 80, 720 30, 1070 30"
+            stroke={theme.dig}
+            strokeWidth={3}
+            fill="none"
+            opacity={0.75}
+            {...flow}
+          />
+        </svg>
+        <div
+          style={{
+            position: 'absolute',
+            left: 210 + travel * 460,
+            top: 156,
+            padding: '8px 14px',
+            borderRadius: 8,
+            border: `2px dashed ${rejected > 0.4 ? theme.danger : theme.dim}`,
+            background: rejected > 0.4 ? `${theme.danger}14` : 'transparent',
+            fontFamily: theme.mono,
+            fontSize: 18,
+            color: rejected > 0.4 ? theme.danger : theme.dim,
+            opacity: travel > 0 ? 1 : 0,
+            transform: `translateX(${bounce}px)`,
+          }}
+        >
+          raw.y → ghost.x
+          {rejected > 0.4 ? '  · 对象不可解析 · 拒收' : ''}
+        </div>
+      </div>
+      <div style={{position: 'relative', marginTop: 22}}>
+        <div
+          style={{
+            height: 5,
+            borderRadius: 3,
+            background: theme.engine,
+            boxShadow: `0 0 ${18 * gate}px ${theme.engine}`,
+            transform: `translateY(${(1 - gate) * -40}px)`,
+            opacity: gate,
+            marginBottom: 12,
+          }}
+        />
+        <Panel
+          accent={theme.engine}
+          style={{
+            padding: '18px 26px',
+            transform: `scaleY(${0.06 + 0.94 * open})`,
+            transformOrigin: 'top center',
+            opacity: open,
+          }}
+        >
+          <div style={{fontFamily: theme.sans, fontSize: 22, color: theme.dim, marginBottom: 10}}>
+            全楼出入库台账 · 谁生产 / 谁转手 / 谁消费（列级）
+          </div>
+          {TRACE.map((t, i) => (
+            <div
+              key={t}
+              style={{
+                fontFamily: theme.mono,
+                fontSize: 21,
+                color: theme.text,
+                padding: '7px 0',
+                opacity: rows[i],
+                transform: `translateX(${(1 - rows[i]) * -18}px)`,
+              }}
+            >
+              {t}
+            </div>
+          ))}
+        </Panel>
+      </div>
+    </div>
+  );
+};
+
 /** 4-E 入账三道闸。
  *  `rejectAt` 单独传（铁律⑤）：第三道闸弹回要落在说出「当场拒收」的那句上。
  *  `useShake` 必须带 `decay: true`，否则忽略 `dur` 会抖满整镜 24.8s。 */
@@ -212,6 +362,8 @@ const ThreeGates: React.FC<{at: number; rejectAt: number}> = ({at, rejectAt}) =>
 export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (a: string, b?: string) => beatWindow(scene.sentences, scene.from, a, b);
   const at = (id: string) => w(id).from;
+  // 非 beat 用途一律走 dur，不写 w('句id') 字面形态（见 P3Gate 同处注释）
+  const dur = (a: string, b?: string) => w(a, b).durationInFrames;
   const bA = w('p4-01', 'p4-04');
   const bB = w('p4-05', 'p4-09');
   const bC = w('p4-09a');
@@ -237,8 +389,8 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
           caption="应答层验证锚定"
           variant="inset"
           cues={[
-            {chapterId: 'hit-reconcile', at: at('p4-07') - bB.from, durationInFrames: w('p4-07').durationInFrames},
-            {chapterId: 'miss-fallback', at: at('p4-09') - bB.from, durationInFrames: w('p4-09').durationInFrames},
+            {chapterId: 'hit-reconcile', at: at('p4-07') - bB.from, durationInFrames: dur('p4-07')},
+            {chapterId: 'miss-fallback', at: at('p4-09') - bB.from, durationInFrames: dur('p4-09')},
           ]}
         />
       </Sequence>
@@ -252,17 +404,57 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
           caption="墙外的评测闭环"
           variant="inset"
           cues={[
-            {chapterId: 'outside-eval', at: at('p4-09a') - bC.from, durationInFrames: w('p4-09a').durationInFrames},
+            {chapterId: 'outside-eval', at: at('p4-09a') - bC.from, durationInFrames: dur('p4-09a')},
           ]}
         />
       </Sequence>
 
       <Sequence {...bD} name="4-D 全楼出入库台账">
         <SceneTag chapter="M5" tagline="端到端列级血缘：全楼出入库台账" accent={theme.engine} />
+        <Sequence
+          from={at('p4-10') - bD.from}
+          durationInFrames={at('p4-12') - at('p4-10')}
+          name="4-D① 母图推近 · 地下机房台账层"
+        >
+          <Stage top={320}>
+            <MechZoom focus="ledger" spanInFrames={at('p4-12') - at('p4-10')}>
+              <AskCard
+                at={0}
+                kicker="第二个挑战"
+                body="数据在全公司流转 —— 如何确保合理、合法、合规？"
+              />
+              <NumberedCard
+                index={5}
+                label="端到端列级血缘"
+                sub="引擎原生 · 列级生产消费"
+                active
+                accent={theme.engine}
+                width={430}
+                delay={at('p4-11') - at('p4-10')}
+              />
+            </MechZoom>
+          </Stage>
+        </Sequence>
+        {/* 装置跨过 archify 锚句连续存在（flowDash 相位不断），靠画框不透明底色遮住；
+            故宽度 ≤1240、Stage top + 高度 ≤ 880，且 ArchifyRecap 必须写在其后 */}
+        <Sequence
+          from={at('p4-12') - bD.from}
+          durationInFrames={bD.durationInFrames - (at('p4-12') - bD.from)}
+          name="4-D② 全息管道台账与对象解析门"
+        >
+          <Stage top={300}>
+            <PipeLedger
+              openAt={0}
+              labelSpan={dur('p4-12')}
+              gateAt={at('p4-14') - at('p4-12')}
+              rejectSpan={dur('p4-14')}
+            />
+          </Stage>
+        </Sequence>
         <ArchifyRecap
           slug="lineage-ledger"
           caption="引擎执行自动沉淀"
-          cues={[{chapterId: 'engine-lane', at: at('p4-13') - bD.from, durationInFrames: w('p4-13').durationInFrames}]}
+          cues={[{chapterId: 'engine-lane', at: at('p4-13') - bD.from, durationInFrames: dur('p4-13')}]}
         />
       </Sequence>
 
@@ -299,7 +491,7 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
           slug="lineage-ledger"
           caption="OpenLineage 摄取三道闸"
           variant="inset"
-          cues={[{chapterId: 'ingest-lane', at: at('p4-15') - bE.from, durationInFrames: w('p4-15').durationInFrames}]}
+          cues={[{chapterId: 'ingest-lane', at: at('p4-15') - bE.from, durationInFrames: dur('p4-15')}]}
         />
       </Sequence>
 
@@ -320,7 +512,7 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
           caption="单一账本与盲区"
           variant="inset"
           cues={[
-            {chapterId: 'ledger-and-blind', at: at('p4-20') - bF.from, durationInFrames: w('p4-20').durationInFrames},
+            {chapterId: 'ledger-and-blind', at: at('p4-20') - bF.from, durationInFrames: dur('p4-20')},
           ]}
         />
       </Sequence>

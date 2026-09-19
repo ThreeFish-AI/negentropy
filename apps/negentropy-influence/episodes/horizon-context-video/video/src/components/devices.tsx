@@ -10,7 +10,7 @@
 import React from 'react';
 import {AbsoluteFill, useCurrentFrame} from 'remotion';
 import {theme} from '../design/theme';
-import {DUR, progress, useProgress, useSpring, useStagger} from '../motion';
+import {DUR, progress, useBreathe, useProgress, useSpring, useStagger} from '../motion';
 
 /** 证据分级角标——口播义务的画面执法点（planning §二） */
 export type EvidenceGrade = 'lab' | 'official' | 'vendor' | 'thirdparty';
@@ -101,13 +101,18 @@ export const PillarHUD: React.FC<{lit: number; at?: number}> = ({lit, at = 0}) =
   );
 };
 
+/** 母图部位名：七机制严格单射，全片不换位 */
+export type BuildingFocus = 'manual' | 'gate' | 'wall' | 'stamp' | 'ledger' | 'badge' | 'tag';
+
 /** 大厦纵剖面母图：七个部位固定落位，`focus` 指定本幕高亮哪一层 */
 export const BuildingSection: React.FC<{
-  focus?: 'manual' | 'gate' | 'wall' | 'stamp' | 'ledger' | 'badge' | 'tag' | null;
+  focus?: BuildingFocus | null;
   at?: number;
   scale?: number;
   collapsed?: boolean;
-}> = ({focus = null, at = 0, scale = 1, collapsed = false}) => {
+  /** 高亮层辉光强度 0..1（时点由调用侧给）；默认 0 = 与旧版逐像素一致 */
+  halo?: number;
+}> = ({focus = null, at = 0, scale = 1, collapsed = false, halo = 0}) => {
   const grow = useSpring('settle', {at, dur: DUR.f6});
   const frame = useCurrentFrame();
   const floors: {k: NonNullable<typeof focus>; label: string; c: string}[] = [
@@ -144,7 +149,7 @@ export const BuildingSection: React.FC<{
               borderRadius: 8,
               border: `2px solid ${on ? f.c : theme.panelBorder}`,
               background: on ? `${f.c}1C` : `${theme.panel}`,
-              boxShadow: on ? `0 0 26px ${f.c}55` : 'none',
+              boxShadow: on ? `0 0 ${26 + 26 * halo}px ${f.c}55` : 'none',
               display: 'flex',
               alignItems: 'center',
               paddingLeft: 22,
@@ -184,6 +189,70 @@ export const BuildingSection: React.FC<{
           地基：上游已按天打包塌缩
         </div>
       ) : null}
+    </div>
+  );
+};
+
+/** 机制推近：母图定位该机制所在部位 + 右栏逐句落位的卡片。
+ *
+ *  planning.md §三 的母图出场契约是「P1 展开 1 + **每机制推近 7** + P5 合拢 1 + P6 塌方 1」，
+ *  本组件就是那 7 次推近的载体：讲到哪个机制，先把摄影机推到它在大厦里的固定部位。 */
+export const MechZoom: React.FC<{
+  focus: BuildingFocus;
+  /** 本子镜帧长（调用侧由句边界作差）——推镜匀速铺满全程 */
+  spanInFrames: number;
+  scale?: number;
+  zoom?: number;
+  gap?: number;
+  children?: React.ReactNode;
+}> = ({focus, spanInFrames, scale = 0.78, zoom = 0.07, gap = 56, children}) => {
+  // 刻意用线性而非 usePushIn：后者硬编码 decelerate，九成行程压在前三分之一、
+  // 留下准静止尾巴 —— 正是 ISSUE-187 ① 要消除的那类缺陷。线性让「无静止段」由构造保证。
+  const push = useProgress(0, spanInFrames, 'linear');
+  const halo = useBreathe({period: 96, base: 0.5, amp: 0.5});
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap,
+        transform: `scale(${1 + zoom * push})`,
+        transformOrigin: 'center center',
+      }}
+    >
+      <BuildingSection focus={focus} scale={scale} halo={halo} />
+      <div style={{display: 'flex', flexDirection: 'column', gap: 18}}>{children}</div>
+    </div>
+  );
+};
+
+/** 推近右栏的提问卡：把本机制要答的那个问题先摆上桌。
+ *  用 dim 不用 danger —— 提问不是错误数字也不是越权泄露（planning §三 色彩语义唯一）。 */
+export const AskCard: React.FC<{
+  at: number;
+  kicker: string;
+  body: string;
+  width?: number;
+}> = ({at, kicker, body, width = 430}) => {
+  const p = useProgress(at, DUR.f5);
+  return (
+    <div
+      style={{
+        width,
+        padding: '22px 26px',
+        borderRadius: 12,
+        border: `2px solid ${theme.panelBorder}`,
+        background: theme.panel,
+        opacity: p,
+        transform: `translateY(${(1 - p) * 16}px)`,
+      }}
+    >
+      <div style={{fontFamily: theme.sans, fontSize: 22, color: theme.dim, marginBottom: 8}}>
+        {kicker}
+      </div>
+      <div style={{fontFamily: theme.sans, fontSize: 28, color: theme.text, lineHeight: 1.5}}>
+        {body}
+      </div>
     </div>
   );
 };
