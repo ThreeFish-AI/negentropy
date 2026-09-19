@@ -1,331 +1,199 @@
-/** P2 一本装订成册的公司手册（分镜 2-A…2-G）
- *  便利贴墙 → 手册五段式 → FK 校验门 → 同义词/说明书/签名FAQ → 私有标记。 */
+/** P2 规章手册＝M1（p2-01..36）——唯一的**双不变量**机制：
+ *  口径单点（声明锁）与查询期重算（计算锁）可各自独立失效，故必须并列演两遍。 */
 import React from 'react';
 import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
-import {theme} from '../design/theme';
-import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Panel} from '../components/motifs';
-import {CodeWalk} from '../components/CodeWalk';
-import {DUR, progress, useBreathe, useCount, useDim, useImpulse, useProgress, useSpring, useStagger} from '../motion';
+import {beatWindow} from '../timing';
+import {theme} from '../design/theme';
+import {DUR, progress, useCount, useImpulse, useProgress, useSpring, useStagger} from '../motion';
+import {Panel, SceneTag} from '../components/motifs';
+import {CodeWalk, TerminalLog} from '../components/CodeWalk';
+import {ArchifyRecap} from '../components/ArchifyRecap';
+import {EvidenceBadge, NumberClash, PillarHUD, Stage} from '../components/devices';
 
-/** 2-A 便利贴墙：风吹掉两张 */
-const StickyWall: React.FC<{fallAt: number}> = ({fallAt}) => {
-  const frame = useCurrentFrame();
-  const st = useStagger(12, {at: 2, stride: 2});
-  const notes = [
-    '净收入=？', '口径见群聊', '营收-退款', '老王说的', 'CASE WHEN…', '折扣规则',
-    '按含税', '按不含税', '问财务', 'v3 最终版', 'v3_真最终', '以这版为准',
-  ];
-  const fall = (i: number) => {
-    const t = progress(frame - fallAt - i * 6, 0, 22);
-    return {t, x: Math.sin(t * Math.PI * 2) * 60, y: t * t * 420, rot: t * 160};
-  };
-  const dropping = [4, 8].map(fall);
+/** 2-A 五段式抽屉柜 */
+const FiveDrawers: React.FC = () => {
+  const ps = useStagger(5, {at: 10, stride: 8, dur: DUR.f5});
+  const rows = ['TABLES 核准账本', 'RELATIONSHIPS 勾稽路径', 'FACTS 原始凭证量', 'DIMENSIONS 切片维度', 'METRICS 官方指标'];
   return (
-    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      {/* 底行让出字幕安全带（bottom ≥ 160px）：整墙上移 + 单元略缩 */}
-      <div style={{display: 'grid', gridTemplateColumns: 'repeat(6, 212px)', gap: 20, transform: 'translateY(-56px)'}}>
-        {notes.map((n, i) => {
-          const d = i === 4 ? dropping[0] : i === 8 ? dropping[1] : null;
+    <div style={{width: 1000}}>
+      {rows.map((r, i) => (
+        <div
+          key={r}
+          style={{
+            marginBottom: 12,
+            padding: '20px 26px',
+            borderRadius: 10,
+            border: `2px solid ${theme.manual}`,
+            background: `${theme.manual}12`,
+            fontFamily: theme.sans,
+            fontSize: 30,
+            color: theme.text,
+            opacity: ps[i],
+            transform: `translateX(${(1 - ps[i]) * 40}px)`,
+          }}
+        >
+          {r}
+        </div>
+      ))}
+    </div>
+  );
+};
+
+/** 2-C 双保险锁：声明锁常绿，计算锁被拧开 → 数字翻倍 */
+const DoubleLock: React.FC<{breakAt: number}> = ({breakAt}) => {
+  const open = useSpring('snap', {at: breakAt, dur: DUR.f6});
+  const n = useCount({from: 200, to: 440, at: breakAt + 4, dur: DUR.f6});
+  const broken = useProgress(breakAt, DUR.f3);
+  const lock = (name: string, sub: string, ok: boolean, rot: number) => (
+    <div style={{textAlign: 'center'}}>
+      <div
+        style={{
+          width: 190,
+          height: 190,
+          borderRadius: 18,
+          border: `3px solid ${ok ? theme.ok : theme.danger}`,
+          background: `${ok ? theme.ok : theme.danger}14`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: 76,
+          transform: `rotate(${rot}deg)`,
+        }}
+      >
+        {ok ? '🔒' : '🔓'}
+      </div>
+      <div style={{marginTop: 14, fontFamily: theme.sans, fontSize: 28, color: theme.text}}>{name}</div>
+      <div style={{fontFamily: theme.sans, fontSize: 20, color: theme.dim}}>{sub}</div>
+    </div>
+  );
+  return (
+    <div style={{display: 'flex', alignItems: 'center', gap: 70}}>
+      {lock('声明锁', '五段式 + 注册校验门', true, 0)}
+      {lock('计算锁', '查询期按 grain 重算', broken < 0.5, -18 * open)}
+      <div style={{textAlign: 'center'}}>
+        <div style={{fontFamily: theme.sans, fontSize: 22, color: theme.dim}}>手册一字未改，算出来的钱</div>
+        <div
+          style={{
+            fontFamily: theme.mono,
+            fontSize: 86,
+            color: broken > 0.5 ? theme.danger : theme.ok,
+          }}
+        >
+          {Math.round(n)}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/** 2-E 复印机陷阱：一张 100 进去、三张副本出来 */
+const CopierTrap: React.FC<{at: number}> = ({at}) => {
+  const ps = useStagger(3, {at: at + 8, stride: 7, dur: DUR.f5});
+  const total = useCount({from: 100, to: 300, at: at + 26, dur: DUR.f6});
+  const boom = useImpulse({at: at + 30, dur: DUR.f6});
+  return (
+    <div style={{display: 'flex', alignItems: 'center', gap: 46}}>
+      <div
+        style={{
+          width: 230,
+          padding: '26px 0',
+          textAlign: 'center',
+          borderRadius: 12,
+          border: `2px solid ${theme.manual}`,
+          background: `${theme.manual}14`,
+          fontFamily: theme.mono,
+          fontSize: 40,
+          color: theme.manual,
+        }}
+      >
+        $100 订单
+      </div>
+      <div style={{fontSize: 56}}>🖨️</div>
+      <div style={{display: 'flex', flexDirection: 'column', gap: 10}}>
+        {[0, 1, 2].map((i) => (
+          <div
+            key={i}
+            style={{
+              width: 210,
+              padding: '12px 0',
+              textAlign: 'center',
+              borderRadius: 8,
+              border: `2px dashed ${theme.danger}`,
+              fontFamily: theme.mono,
+              fontSize: 26,
+              color: theme.danger,
+              opacity: ps[i],
+              transform: `translateX(${(1 - ps[i]) * -20}px)`,
+            }}
+          >
+            副本 {i + 1} · $100
+          </div>
+        ))}
+      </div>
+      <div
+        style={{
+          fontFamily: theme.mono,
+          fontSize: 82,
+          color: theme.danger,
+          transform: `scale(${1 + 0.16 * boom})`,
+        }}
+      >
+        ${Math.round(total)}
+      </div>
+    </div>
+  );
+};
+
+/** 2-F 班级平均分天平：先除后加 vs 先聚后除 */
+const AvgScale: React.FC<{at: number}> = ({at}) => {
+  const tilt = useSpring('settle', {at, dur: DUR.f6});
+  const ghost = useProgress(at + 14, DUR.f6);
+  return (
+    <div style={{display: 'flex', alignItems: 'center', gap: 60}}>
+      <div style={{textAlign: 'center', transform: `translateY(${-14 * tilt}px)`}}>
+        <div style={{fontFamily: theme.sans, fontSize: 24, color: theme.dim}}>先除后加（平均的平均）</div>
+        <div style={{fontFamily: theme.mono, fontSize: 72, color: theme.danger, opacity: 1 - 0.45 * ghost}}>
+          122
+        </div>
+      </div>
+      <div style={{fontSize: 52, opacity: 0.7}}>⚖️</div>
+      <div style={{textAlign: 'center', transform: `translateY(${14 * tilt}px)`}}>
+        <div style={{fontFamily: theme.sans, fontSize: 24, color: theme.dim}}>先聚后除（真实客单价）</div>
+        <div style={{fontFamily: theme.mono, fontSize: 72, color: theme.ok}}>108</div>
+      </div>
+    </div>
+  );
+};
+
+/** 2-G 末快照时间闸 */
+const LastSnapshot: React.FC<{at: number}> = ({at}) => {
+  const frame = useCurrentFrame();
+  const days = [5, 6, 7, 4, 6, 5, 7];
+  return (
+    <div>
+      <div style={{display: 'flex', gap: 12, alignItems: 'flex-end', marginBottom: 22}}>
+        {days.map((d, i) => {
+          const p = progress(frame, at + i * 3, DUR.f4);
+          const isLast = i === days.length - 1;
           return (
-            <div
-              key={i}
-              style={{
-                opacity: st[i],
-                transform: d
-                  ? `translate(${d.x}px, ${d.y}px) rotate(${d.rot}deg)`
-                  : `scale(${0.8 + 0.2 * st[i]})`,
-                background: '#3A3320',
-                border: `2px solid ${theme.manualDeep}`,
-                borderRadius: 6,
-                padding: '16px 12px',
-                fontFamily: theme.mono,
-                fontSize: 19,
-                color: theme.dim,
-                textAlign: 'center',
-              }}
-            >
-              {n}
+            <div key={i} style={{textAlign: 'center'}}>
+              <div
+                style={{
+                  width: 84,
+                  height: 26 * d * p,
+                  borderRadius: 5,
+                  background: isLast ? theme.ok : `${theme.engine}77`,
+                  boxShadow: isLast ? `0 0 18px ${theme.ok}88` : 'none',
+                }}
+              />
+              <div style={{fontFamily: theme.mono, fontSize: 20, color: theme.dim, marginTop: 6}}>{d}</div>
             </div>
           );
         })}
       </div>
-      <div style={{position: 'absolute', bottom: 210, fontFamily: theme.sans, fontSize: 24, color: theme.dim, opacity: useProgress(fallAt + 20)}}>
-        {'改一条规矩，要追着满墙改'}
-      </div>
-    </AbsoluteFill>
-  );
-};
-
-/** 2-B 代码走廊 ①：五段式声明（lab 原文节选） */
-const DeclCode: React.FC = () => {
-  return (
-    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <CodeWalk
-        title="lab 复现 · 一本手册就是一个对象（节选）"
-        caption="本仓 lab · 五段式声明"
-        width={1120}
-        lines={[
-          'SemanticView(',
-          '  name="sales_sv",',
-          '  tables=("customers", "orders", "events"),',
-          '  relationships=(Relationship("buyer", "orders",',
-          '      ("customer_id",), "customers", ("id",)), ...),',
-          '  metrics=(Metric("revenue", "sum", "orders", "total",',
-          '      synonyms=("sales", "毛收入", "营收")), ...),',
-          ')',
-        ]}
-        hi={[
-          {line: 2, at: 14, color: theme.manual},
-          {line: 3, at: 34, color: theme.manual},
-          {line: 6, at: 56, color: theme.engine},
-          {line: 7, at: 74, color: theme.engine},
-        ]}
-      />
-    </AbsoluteFill>
-  );
-};
-
-/** 2-C 校验门：坏定义被弹回（原型 D6 实测） */
-const ValidationGate: React.FC<{hitAt: number}> = ({hitAt}) => {
-  const frame = useCurrentFrame();
-  const flyP = progress(frame, 6, Math.max(6, hitAt - 12), );
-  const hit = useImpulse({at: hitAt, dur: DUR.f4});
-  const back = useSpring('settleSoft', {at: hitAt + 4});
-  const errLine = useProgress(hitAt + 10, DUR.f5);
-  const x = 200 + flyP * 640 - hit * 0 + back * 0;
-  const bounced = frame >= hitAt;
-  const cardX = bounced ? 200 + 640 - 260 * back : x;
-  return (
-    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <svg width={1920} height={1080} style={{position: 'absolute'}}>
-        {/* 闸门 */}
-        <rect x={1080} y={330} width={26} height={380} fill={theme.engine} opacity={0.9}
-          style={{filter: `drop-shadow(0 0 ${(8 + hit * 26) * 1}px ${theme.engine})`}} />
-        <text x={1093} y={310} textAnchor="middle" fontSize={26} fill={theme.engine} fontFamily={theme.sans}>
-          {'结构校验门'}
-        </text>
-        {/* 坏定义卡 */}
-        <g transform={`translate(${cardX}, 470)`}>
-          <rect x={0} y={-60} width={330} height={130} rx={12} fill={theme.panel} stroke={theme.danger} strokeWidth={2} />
-          <text x={18} y={-18} fontSize={20} fill={theme.text} fontFamily={theme.mono}>
-            {'RELATIONSHIP "bad"'}
-          </text>
-          <text x={18} y={14} fontSize={18} fill={theme.dim} fontFamily={theme.mono}>
-            {'orders → customers.plan'}
-          </text>
-          <text x={18} y={44} fontSize={18} fill={theme.danger} fontFamily={theme.mono}>
-            {'非键列！'}
-          </text>
-        </g>
-      </svg>
-      <div
-        style={{
-          position: 'absolute',
-          bottom: 320,
-          fontFamily: theme.mono,
-          fontSize: 24,
-          color: theme.danger,
-          opacity: errLine,
-        }}
-      >
-        {'✗ relationship bad: referenced column customers.plan is not PRIMARY KEY/UNIQUE'}
-      </div>
-      <div style={{position: 'absolute', bottom: 220, right: 200, fontFamily: theme.sans, fontSize: 20, color: theme.dim, opacity: errLine}}>
-        {'本仓原型实测输出 · D6'}
-      </div>
-    </AbsoluteFill>
-  );
-};
-
-/** 2-D 同义词：三别名汇入一定义 */
-const SynonymFunnel: React.FC = () => {
-  const def = useSpring('settle', {at: 4});
-  const st = useStagger(3, {at: 20, stride: 9});
-  const hits = useCount({from: 0, to: 3, at: 20, dur: 30});
-  const aliases = ['毛收入', '营收', '销售额'];
-  return (
-    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <div style={{display: 'flex', gap: 70, alignItems: 'center'}}>
-        {aliases.map((a, i) => (
-          <div key={i} style={{opacity: st[i]}}>
-            <Panel style={{width: 200, padding: '18px 12px', textAlign: 'center'}}>
-              <div style={{fontFamily: theme.sans, fontSize: 28, color: theme.text}}>{a}</div>
-            </Panel>
-          </div>
-        ))}
-        <div style={{opacity: def}}>
-          <Panel accent={theme.manual} style={{width: 340, padding: '26px 20px', textAlign: 'center'}}>
-            <div style={{fontFamily: theme.mono, fontSize: 20, color: theme.dim}}>{'revenue'}</div>
-            <div style={{fontFamily: theme.sans, fontSize: 26, color: theme.manual, marginTop: 8}}>
-              {'命中 ' + Math.round(hits) + ' 个别名'}
-            </div>
-          </Panel>
-        </div>
-      </div>
-      <svg width={1920} height={1080} style={{position: 'absolute'}}>
-        {[330, 550, 770].map((x, i) => (
-          <path
-            key={i}
-            d={`M ${x} 480 C ${x} 560, 1180 480, 1300 520`}
-            stroke={theme.manual}
-            strokeWidth={2.5}
-            fill="none"
-            opacity={st[i] * 0.7}
-            strokeDasharray="8 6"
-          />
-        ))}
-      </svg>
-      <div style={{position: 'absolute', bottom: 210, fontFamily: theme.sans, fontSize: 24, color: theme.dim, opacity: st[2]}}>
-        {'别名本身，也是被治理的内容'}
-      </div>
-    </AbsoluteFill>
-  );
-};
-
-/** 2-E 说明书：随定义版本化 vs 散落提示词蒙灰 */
-const InstructionsDuel: React.FC = () => {
-  const left = useSpring('settle', {at: 4});
-  const right = useStagger(3, {at: 26, stride: 8});
-  const grey = useDim({at: 50, to: 0.35});
-  return (
-    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <div style={{display: 'flex', gap: 80}}>
-        <div style={{opacity: left, width: 560}}>
-          <Panel accent={theme.manual} style={{padding: '28px 30px'}}>
-            <div style={{fontFamily: theme.sans, fontSize: 24, color: theme.manual}}>{'定义卡 · v3 → v4'}</div>
-            <div style={{fontFamily: theme.mono, fontSize: 20, color: theme.text, marginTop: 16}}>
-              {'⚠ 先聚合再相除（随定义更新）'}
-            </div>
-          </Panel>
-        </div>
-        <div style={{width: 560}}>
-          {['提示词A', '提示词B', '提示词C'].map((p, i) => (
-            <div key={i} style={{opacity: right[i] * (i === 2 ? grey + 0.65 : 1), marginBottom: 18}}>
-              <Panel style={{padding: '20px 24px', opacity: 0.55}}>
-                <div style={{fontFamily: theme.sans, fontSize: 22, color: theme.dim}}>{p + ' · 无人维护'}</div>
-              </Panel>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div style={{position: 'absolute', bottom: 210, fontFamily: theme.sans, fontSize: 24, color: theme.dim, opacity: right[2]}}>
-        {'改一次追不到人——错就留在那'}
-      </div>
-    </AbsoluteFill>
-  );
-};
-
-/** 2-F 签名 FAQ */
-const SignedFaq: React.FC<{hitAt: number}> = ({hitAt}) => {
-  const card = useSpring('settle', {at: 4});
-  const sig = useProgress(24, DUR.f6);
-  const hit = useImpulse({at: hitAt, dur: DUR.f4});
-  const glow = useProgress(hitAt, DUR.f5);
-  const badge = useSpring('settle', {at: hitAt + 6});
-  return (
-    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <div style={{opacity: card}}>
-        <Panel accent={glow > 0.5 ? theme.engine : theme.panelBorder} style={{width: 900, padding: '34px 44px'}}>
-          <div style={{fontFamily: theme.mono, fontSize: 20, color: theme.dim}}>{'VERIFIED QUERY'}</div>
-          <div style={{fontFamily: theme.sans, fontSize: 32, color: theme.text, marginTop: 12}}>
-            {'Q：revenue by month'}
-          </div>
-          <div
-            style={{
-              fontFamily: theme.mono,
-              fontSize: 24,
-              marginTop: 14,
-              color: glow > 0.5 ? theme.engine : theme.dim,
-              textShadow: glow > 0.5 ? `0 0 ${12 * glow}px ${theme.engine}` : undefined,
-            }}
-          >
-            {'A: {01: 200, 02: 150, 03: 300}'}
-          </div>
-          <svg width={780} height={70} style={{marginTop: 16}}>
-            <path
-              d={`M 20 40 C ${60 + 600 * sig} 10, ${120 + 620 * sig} 66, ${80 + 640 * sig} 38`}
-              stroke={theme.manual}
-              strokeWidth={3}
-              fill="none"
-            />
-          </svg>
-          <div style={{fontFamily: theme.sans, fontSize: 18, color: theme.manual, marginTop: 6, opacity: sig}}>
-            {'verified_by: data-team · verified_at: 2026-08-20'}
-          </div>
-        </Panel>
-      </div>
-      <div
-        style={{
-          position: 'absolute',
-          right: 260,
-          top: 300,
-          fontFamily: theme.sans,
-          fontSize: 22,
-          color: theme.engine,
-          border: `2px solid ${theme.engine}`,
-          borderRadius: 10,
-          padding: '10px 20px',
-          opacity: badge,
-          transform: `scale(${0.85 + 0.15 * badge})`,
-        }}
-      >
-        {'AI 命中 → 直接念答案' + (hit > 0.2 ? ' ⚡' : '')}
-      </div>
-    </AbsoluteFill>
-  );
-};
-/** 2-G 私有锁标 + 收束金句 */
-const PrivateLock: React.FC<{quoteAt: number}> = ({quoteAt}) => {
-  const lock = useSpring('settle', {at: 6});
-  const keyP = useProgress(24, DUR.f5);
-  const quote = useProgress(quoteAt, DUR.f5);
-  return (
-    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <div style={{opacity: lock}}>
-        <Panel accent={theme.manual} style={{width: 620, padding: '30px 36px', position: 'relative'}}>
-          <div style={{fontFamily: theme.mono, fontSize: 22, color: theme.dim}}>{'METRIC "revenue"'}</div>
-          <div
-            style={{
-              position: 'absolute',
-              right: -30,
-              top: -26,
-              fontSize: 40,
-              transform: `rotate(${keyP * 90}deg)`,
-            }}
-          >
-            {'🔓'}
-          </div>
-          <div
-            style={{
-              marginTop: 16,
-              fontFamily: theme.mono,
-              fontSize: 18,
-              color: theme.danger,
-              border: `2px dashed ${theme.danger}88`,
-              borderRadius: 8,
-              padding: '8px 14px',
-              display: 'inline-block',
-            }}
-          >
-            {'PRIVATE · 仅特定角色可见'}
-          </div>
-        </Panel>
-      </div>
-      <div
-        style={{
-          position: 'absolute',
-          bottom: 260,
-          fontFamily: theme.serif,
-          fontSize: 44,
-          color: theme.manual,
-          opacity: quote,
-        }}
-      >
-        {'定义写一遍，全公司引用，没人再抄第二份。'}
-      </div>
-    </AbsoluteFill>
+      <NumberClash badLabel="七天求和" bad="24" goodLabel="末快照" good="7" at={at + 26} />
+    </div>
   );
 };
 
@@ -334,33 +202,147 @@ export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
   const at = (id: string) => w(id).from;
   const bA = w('p2-01', 'p2-04');
   const bB = w('p2-05', 'p2-08');
-  const bC = w('p2-09', 'p2-11');
-  const bD = w('p2-12', 'p2-15');
-  const bE = w('p2-16', 'p2-18');
-  const bF = w('p2-19', 'p2-21');
-  const bG = w('p2-22', 'p2-24');
+  const bC = w('p2-09', 'p2-09b');
+  const bD = w('p2-10', 'p2-13');
+  const bE = w('p2-14', 'p2-20');
+  const bF = w('p2-21', 'p2-26');
+  const bG = w('p2-27', 'p2-31');
+  const bH = w('p2-32', 'p2-36');
   return (
     <AbsoluteFill>
-      <Sequence {...bA} name="2-A 便利贴墙">
-        <StickyWall fallAt={at('p2-04') - bA.from} />
+      <Sequence {...bA} name="2-A 便利贴到五段式抽屉柜">
+        <SceneTag chapter="M1" tagline="规章手册：只印一本且当场套算" accent={theme.manual} />
+        <Stage top={200}>
+          <FiveDrawers />
+        </Stage>
       </Sequence>
-      <Sequence {...bB} name="2-B 五段式代码">
-        <DeclCode />
+
+      <Sequence {...bB} name="2-B 代码走廊① 注册校验门">
+        <Stage top={150}>
+          <CodeWalk
+            title="M1 声明相 · 注册期结构校验门"
+            lines={[
+              'def validate_view(view, tables):',
+              '    for r in view.relationships:',
+              '        col = tables[r.to_table].columns[r.to_col]',
+              '        if not col.is_key:            # FK 必须指向 PK/UNIQUE',
+              '            errors.append(f"relationship bad: {r.to_col}")',
+            ]}
+            hi={[{line: 3, at: 18, color: theme.manual}, {line: 4, at: 26, color: theme.danger}]}
+            caption="horizon_context_lab.py :235"
+            width={1120}
+          />
+          <TerminalLog
+            lines={[
+              {text: '$ python horizon_context_lab.py --selftest', color: theme.dim},
+              {text: '✗ relationship bad: customers.plan is not PRIMARY KEY/UNIQUE', color: theme.danger, bold: true},
+              {text: '[PASS] 坏定义在注册期被拒 —— 不留运行时隐患', color: theme.ok},
+            ]}
+            width={1120}
+          />
+          <EvidenceBadge grade="lab" />
+        </Stage>
+        <ArchifyRecap
+          slug="declaration-execution"
+          caption="声明相 / 执行相"
+          variant="inset"
+          cues={[
+            {chapterId: 'gate', at: at('p2-07') - bB.from, durationInFrames: w('p2-07').durationInFrames},
+          ]}
+        />
       </Sequence>
-      <Sequence {...bC} name="2-C 校验门">
-        <ValidationGate hitAt={Math.max(30, at('p2-11') - bC.from - 10)} />
+
+      <Sequence {...bC} name="2-C 双保险锁">
+        <Stage top={300}>
+          <DoubleLock breakAt={at('p2-09b') - bC.from} />
+        </Stage>
+        <ArchifyRecap
+          slug="declaration-execution"
+          caption="口径单点 × 查询期重算"
+          variant="inset"
+          cues={[
+            {chapterId: 'declare', at: at('p2-09') - bC.from, durationInFrames: w('p2-09').durationInFrames},
+            {chapterId: 'recompute', at: at('p2-09a') - bC.from, durationInFrames: w('p2-09a').durationInFrames},
+          ]}
+        />
       </Sequence>
-      <Sequence {...bD} name="2-D 同义词">
-        <SynonymFunnel />
+
+      <Sequence {...bD} name="2-D 死数字 vs 临机现算">
+        <Stage top={280}>
+          <div style={{display: 'flex', gap: 90, alignItems: 'center'}}>
+            <div style={{textAlign: 'center'}}>
+              <div style={{fontSize: 96}}>🧊</div>
+              <div style={{fontFamily: theme.sans, fontSize: 30, color: theme.dim, marginTop: 14}}>
+                宽表里冻住的死数字
+              </div>
+            </div>
+            <div style={{fontFamily: theme.sans, fontSize: 40, color: theme.dim}}>vs</div>
+            <div style={{textAlign: 'center'}}>
+              <div style={{fontSize: 96}}>⚙️</div>
+              <div style={{fontFamily: theme.sans, fontSize: 30, color: theme.engine, marginTop: 14}}>
+                只存算式，临机现算
+              </div>
+            </div>
+          </div>
+        </Stage>
       </Sequence>
-      <Sequence {...bE} name="2-E 说明书">
-        <InstructionsDuel />
+
+      <Sequence {...bE} name="2-E 复印机陷阱">
+        <Stage top={230}>
+          <CopierTrap at={at('p2-15') - bE.from} />
+          <div style={{marginTop: 20}}>
+            <NumberClash
+              badLabel="直接关联求和"
+              bad="440"
+              goodLabel="先聚后联"
+              good="200"
+              at={at('p2-20') - bE.from}
+            />
+          </div>
+          <EvidenceBadge grade="lab" at={at('p2-20') - bE.from} />
+        </Stage>
       </Sequence>
-      <Sequence {...bF} name="2-F 签名FAQ">
-        <SignedFaq hitAt={at('p2-22') - bF.from} />
+
+      <Sequence {...bF} name="2-F 去重安全与派生先聚后除">
+        <Stage top={230}>
+          <NumberClash badLabel="不做去重安全" bad="6" goodLabel="按集合去重" good="3" at={at('p2-22') - bF.from} />
+          <div style={{marginTop: 46}}>
+            <AvgScale at={at('p2-24') - bF.from} />
+          </div>
+        </Stage>
       </Sequence>
-      <Sequence {...bG} name="2-G 私有与金句">
-        <PrivateLock quoteAt={at('p2-24') - bG.from} />
+
+      <Sequence {...bG} name="2-G 半可加末快照与关系消歧">
+        <Stage top={220}>
+          <LastSnapshot at={at('p2-28') - bG.from} />
+          <Panel
+            accent={theme.engine}
+            style={{marginTop: 26, padding: '18px 26px', width: 1020}}
+          >
+            <span style={{fontFamily: theme.sans, fontSize: 26, color: theme.text}}>
+              买家 / 推荐人双路径 → 必须显式声明走哪一条（USING 消歧）
+            </span>
+          </Panel>
+        </Stage>
+      </Sequence>
+
+      <Sequence {...bH} name="2-H 题眼金句与手册徽章">
+        <Stage top={330}>
+          <div
+            style={{
+              fontFamily: theme.serif,
+              fontSize: 62,
+              color: theme.text,
+              textAlign: 'center',
+              lineHeight: 1.45,
+            }}
+          >
+            查询在语法上完全正确，
+            <br />
+            <span style={{color: theme.danger}}>业务分析上可能彻底错误</span>
+          </div>
+        </Stage>
+        <PillarHUD lit={1} at={at('p2-36') - bH.from} />
       </Sequence>
     </AbsoluteFill>
   );

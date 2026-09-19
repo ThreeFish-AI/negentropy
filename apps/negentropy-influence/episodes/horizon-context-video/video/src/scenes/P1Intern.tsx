@@ -1,254 +1,125 @@
-/** P1 每天重新入职的天才（分镜 1-A…1-D）
- *  实习生记忆清零 → 三病灶 → Horizon Context 命名 + 三句递进 → 入职包命名帧。 */
+/** P1 每天重新入职的天才（p1-01..25）——guided-learn Phase 1「全貌解剖」：
+ *  先给总类比与因果链，再给七机制全景；**任何单个机制都还没开始讲**。 */
 import React from 'react';
 import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
-import {theme} from '../design/theme';
-import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Panel} from '../components/motifs';
-import {DUR, progress, useImpulse, useProgress, useSpring, useStagger} from '../motion';
+import {beatWindow} from '../timing';
+import {theme} from '../design/theme';
+import {DUR, progress, useStagger} from '../motion';
+import {Panel, SceneTag} from '../components/motifs';
+import {ArchifyRecap} from '../components/ArchifyRecap';
+import {BuildingSection, PillarHUD, Stage} from '../components/devices';
 
-/** 1-A 实习生每日记忆清零 → AI 助手同款 */
-const Amnesia: React.FC = () => {
+/** 1-A 记忆条逐日清零 */
+const MemoryReset: React.FC = () => {
   const frame = useCurrentFrame();
-  const days = Math.floor(frame / 16);
-  const wipe = progress(frame % 16, 0, 6);
-  const aiAt = 66;
-  const ai = useSpring('settle', {at: aiAt});
+  const days = ['周一', '周二', '周三', '周四', '周五'];
   return (
-    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <div style={{display: 'flex', gap: 160, alignItems: 'center'}}>
-        <div style={{textAlign: 'center'}}>
-          <div style={{fontSize: 120}}>{'🧑‍💼'}</div>
-          <div style={{fontFamily: theme.sans, fontSize: 26, color: theme.text, marginTop: 8}}>{'实习生'}</div>
-          <div
-            style={{
-              marginTop: 14,
-              fontFamily: theme.mono,
-              fontSize: 24,
-              color: wipe > 0.5 ? theme.danger : theme.dim,
-              border: `2px solid ${theme.panelBorder}`,
-              borderRadius: 10,
-              padding: '8px 18px',
-            }}
-          >
-            {'记忆: '}
-            <span style={{opacity: 1 - wipe}}>{'████'}</span>
-            <span style={{opacity: wipe}}>{'····'}</span>
-          </div>
-          <div style={{marginTop: 10, fontFamily: theme.sans, fontSize: 22, color: theme.dim}}>
-            {`第 ${days + 1} 天 · 从零开始`}
-          </div>
-        </div>
-        <div style={{textAlign: 'center', opacity: ai, transform: `translateY(${(1 - ai) * 20}px)`}}>
-          <div style={{fontSize: 120}}>{'🤖'}</div>
-          <div style={{fontFamily: theme.sans, fontSize: 26, color: theme.text, marginTop: 8}}>{'AI 助手'}</div>
-          <div
-            style={{
-              marginTop: 14,
-              fontFamily: theme.mono,
-              fontSize: 24,
-              color: theme.danger,
-              border: `2px solid ${theme.danger}66`,
-              borderRadius: 10,
-              padding: '8px 18px',
-            }}
-          >
-            {'记忆: ····'}
-          </div>
-          <div style={{marginTop: 10, fontFamily: theme.sans, fontSize: 22, color: theme.dim}}>
-            {'进公司时，就是这个状态'}
-          </div>
-        </div>
-      </div>
-    </AbsoluteFill>
-  );
-};
-
-/** 1-B 三病灶：散落 / 漂移 / 翻墙 */
-const ThreeSores: React.FC<{jumpAt: number}> = ({jumpAt}) => {
-  const st = useStagger(3, {at: 8, stride: 10});
-  const frame = useCurrentFrame();
-  const jumpP = progress(frame - jumpAt, 0, 16);
-  const titles = ['含义散落', '外挂词典漂移', '外挂治理拦不住'];
-  const subs = ['二十个看板二十种算法', '两层系统来回对账', '翻墙直查，告示管不着'];
-  return (
-    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <div style={{display: 'flex', gap: 44}}>
-        {titles.map((t, i) => (
-          <div key={i} style={{opacity: st[i], transform: `translateY(${(1 - st[i]) * 30}px)`}}>
-            <Panel accent={theme.panelBorder} style={{width: 380, padding: '30px 24px'}}>
-              <div style={{fontFamily: theme.mono, fontSize: 22, color: theme.dim}}>{`0${i + 1}`}</div>
-              <div style={{fontFamily: theme.sans, fontSize: 32, fontWeight: 700, color: theme.text, marginTop: 10}}>
-                {t}
-              </div>
-              <div style={{fontFamily: theme.sans, fontSize: 22, color: theme.dim, marginTop: 12}}>{subs[i]}</div>
-            </Panel>
-          </div>
-        ))}
-      </div>
-      {/* 第三卡上的翻墙小人（弧线越过告示） */}
-      {jumpP > 0 && jumpP < 1 ? (
-        <svg width={1920} height={1080} style={{position: 'absolute'}}>
-          <path
-            d={`M ${1180 + 240 * jumpP} ${730 - Math.sin(jumpP * Math.PI) * 120} L ${1182 + 240 * jumpP} ${732 - Math.sin(jumpP * Math.PI) * 120}`}
-            stroke={theme.danger}
-            strokeWidth={8}
-            strokeLinecap="round"
-          />
-        </svg>
-      ) : null}
-    </AbsoluteFill>
-  );
-};
-
-/** 1-C 命名帧：三卡收拢成楼 + 三句递进 */
-const NamingAndLadder: React.FC<{ladderAt: number}> = ({ladderAt}) => {
-  const frame = useCurrentFrame();
-  const merge = useSpring('settleSoft', {at: 2});
-  const nameAt = 30;
-  const nameO = useProgress(nameAt, DUR.f5);
-  const st = useStagger(3, {at: ladderAt, stride: 12});
-  const thirdGlow = useProgress(ladderAt + 30, DUR.f5);
-  const steps = ['没有上下文，AI 在猜', '上下文进了平台，AI 能干活', '上下文被治理，AI 才值得信'];
-  return (
-    <AbsoluteFill>
-      <svg width={1920} height={1080} style={{position: 'absolute'}}>
-        <rect
-          x={760}
-          y={300}
-          width={400}
-          height={300 * merge}
-          rx={10}
-          fill="none"
-          stroke={theme.manual}
-          strokeWidth={4}
-          opacity={merge}
-        />
-      </svg>
-      <div
-        style={{
-          position: 'absolute',
-          top: 240,
-          width: '100%',
-          textAlign: 'center',
-          fontFamily: theme.serif,
-          fontSize: 54,
-          color: theme.manual,
-          opacity: nameO,
-          textShadow: `0 0 ${18 * thirdGlow}px ${theme.manual}55`,
-        }}
-      >
-        {'Horizon Context'}
-      </div>
-      <div
-        style={{
-          position: 'absolute',
-          top: 660,
-          width: '100%',
-          display: 'flex',
-          justifyContent: 'center',
-          gap: 60,
-        }}
-      >
-        {steps.map((s, i) => (
-          <div key={i} style={{opacity: st[i], transform: `translateY(${(1 - st[i]) * 24}px)`}}>
-            <Panel
-              accent={i === 2 && thirdGlow > 0 ? theme.manual : theme.panelBorder}
-              style={{width: 420, padding: '24px 20px', textAlign: 'center'}}
+    <div style={{display: 'flex', gap: 30, alignItems: 'flex-end'}}>
+      {days.map((d, i) => {
+        const at = 6 + i * 16;
+        const fill = progress(frame, at, DUR.f6);
+        const wipe = progress(frame, at + 10, DUR.f2);
+        const level = Math.max(0, fill - wipe);
+        return (
+          <div key={d} style={{textAlign: 'center'}}>
+            <div
+              style={{
+                width: 110,
+                height: 180,
+                borderRadius: 8,
+                border: `2px solid ${theme.panelBorder}`,
+                background: theme.panel,
+                display: 'flex',
+                alignItems: 'flex-end',
+                overflow: 'hidden',
+              }}
             >
-              <div style={{fontFamily: theme.mono, fontSize: 20, color: theme.dim}}>{`第${i + 1}句`}</div>
               <div
                 style={{
-                  fontFamily: theme.sans,
-                  fontSize: 26,
-                  marginTop: 8,
-                  color: i === 2 && thirdGlow > 0 ? theme.manual : theme.text,
+                  width: '100%',
+                  height: `${level * 100}%`,
+                  background: `${theme.engine}99`,
                 }}
-              >
-                {s}
-              </div>
-            </Panel>
+              />
+            </div>
+            <div style={{marginTop: 10, fontFamily: theme.sans, fontSize: 22, color: theme.dim}}>
+              {d}
+            </div>
           </div>
-        ))}
+        );
+      })}
+      <div style={{marginLeft: 28, maxWidth: 460}}>
+        <div style={{fontFamily: theme.sans, fontSize: 32, color: theme.text, lineHeight: 1.5}}>
+          每天推门上班，
+          <span style={{color: theme.danger}}>记忆全部清零</span>
+        </div>
       </div>
-      <div style={{position: 'absolute', bottom: 220, width: '100%', textAlign: 'center', fontFamily: theme.sans, fontSize: 24, color: theme.dim, opacity: st[2]}}>
-        {'含义不是文件，是装进系统里的一套制度'}
-      </div>
-      {frame < 2 ? null : null}
-    </AbsoluteFill>
+    </div>
   );
 };
 
-/** 1-D 入职包命名帧（全片视觉锚） */
-const OnboardPack: React.FC = () => {
-  const open = useSpring('settleSoft', {at: 4});
-  const st = useStagger(5, {at: 26, stride: 7});
-  const pulse = useImpulse({at: 62, dur: DUR.f6});
+/** 1-B 三病灶裂纹 */
+const ThreeLesions: React.FC<{at?: number}> = ({at = 0}) => {
+  const ps = useStagger(3, {at, stride: 26, dur: DUR.f6});
   const items = [
-    {icon: '📕', label: '手册', sub: '语义视图'},
-    {icon: '🧮', label: '算法纪律', sub: '查询时重算'},
-    {icon: '🎫', label: '门禁卡', sub: '引擎级权限'},
-    {icon: '📓', label: '观察笔记', sub: '使用痕迹'},
-    {icon: '🔔', label: '问询处', sub: '检索排序'},
+    {t: '口径打架', s: '同一指标，二十个看板二十种算法', c: theme.danger},
+    {t: '定义漂移', s: '外挂词典与底层分家，表一改就失效', c: theme.manual},
+    {t: '门禁穿透', s: '规则贴在看板上，拦不住直查底表', c: theme.dig},
   ];
-  const wHalf = 300 + 220 * open;
   return (
-    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <svg width={1920} height={1080} style={{position: 'absolute'}}>
-        <rect
-          x={960 - wHalf}
-          y={430}
-          width={wHalf * 2}
-          height={240}
-          rx={18}
-          fill={theme.panel}
-          stroke={theme.manual}
-          strokeWidth={4}
-        />
-        <line x1={960} y1={434} x2={960} y2={670} stroke={theme.manual} strokeWidth={3} opacity={open} />
-      </svg>
-      <div style={{position: 'absolute', top: 330, fontFamily: theme.serif, fontSize: 40, color: theme.manual, opacity: open}}>
-        {'永远最新的入职包'}
-      </div>
-      <div style={{display: 'flex', gap: 30, marginTop: 180}}>
-        {items.map((it, i) => (
-          <div key={i} style={{opacity: st[i], transform: `translateY(${(1 - st[i]) * 18}px) scale(${1 + pulse * 0.05})`}}>
-            <Panel style={{width: 190, padding: '20px 10px', textAlign: 'center'}}>
-              <div style={{fontSize: 44}}>{it.icon}</div>
-              <div style={{fontFamily: theme.sans, fontSize: 22, color: theme.text, marginTop: 6}}>{it.label}</div>
-              <div style={{fontFamily: theme.sans, fontSize: 16, color: theme.dim, marginTop: 4}}>{it.sub}</div>
-            </Panel>
+    <div style={{display: 'flex', flexDirection: 'column', gap: 18, width: 900}}>
+      {items.map((it, i) => (
+        <Panel
+          key={it.t}
+          accent={it.c}
+          style={{
+            padding: '22px 28px',
+            opacity: ps[i],
+            transform: `translateX(${(1 - ps[i]) * -26}px)`,
+          }}
+        >
+          <div style={{fontFamily: theme.sans, fontSize: 32, color: it.c, fontWeight: 600}}>
+            {`病灶 ${'①②③'[i]} · ${it.t}`}
           </div>
-        ))}
-      </div>
-    </AbsoluteFill>
+          <div style={{marginTop: 8, fontFamily: theme.sans, fontSize: 24, color: theme.dim}}>
+            {it.s}
+          </div>
+        </Panel>
+      ))}
+    </div>
   );
 };
 
-
-/** 1-D 尾帧小终端角标：lab 预告 */
-const LabBadge: React.FC<{at: number}> = ({at}) => {
-  const o = useProgress(at, DUR.f4);
-  const flash = useImpulse({at: at + 6, dur: DUR.f4});
+/** 1-C 官方三句递进阶梯（英文原句只进角标） */
+const OfficialLadder: React.FC<{at?: number}> = ({at = 0}) => {
+  const ps = useStagger(3, {at, stride: 14, dur: DUR.f6});
+  const rows = [
+    {zh: '没有上下文，智能体只能瞎猜', en: 'Without context, an agent guesses.', c: theme.dim},
+    {zh: '上下文原生植入平台，智能体才能真正行动', en: '…an agent acts.', c: theme.engine},
+    {zh: '上下文也被严格治理，智能体才值得信任', en: '…an agent can be trusted.', c: theme.manual},
+  ];
   return (
-    <div
-      style={{
-        position: 'absolute',
-        right: 300,
-        top: 300,
-        fontFamily: theme.mono,
-        fontSize: 20,
-        color: theme.engine,
-        background: '#0B0E13',
-        border: `2px solid ${theme.engine}66`,
-        borderRadius: 10,
-        padding: '12px 22px',
-        opacity: o,
-        transform: `scale(${1 + flash * 0.06})`,
-      }}
-    >
-      {'$ horizon_context_lab.py --selftest ✔'}
+    <div style={{display: 'flex', flexDirection: 'column', gap: 16, width: 1180}}>
+      {rows.map((r, i) => (
+        <div
+          key={r.zh}
+          style={{
+            marginLeft: i * 64,
+            padding: '20px 28px',
+            borderRadius: 10,
+            border: `2px solid ${r.c}`,
+            background: `${r.c}12`,
+            opacity: ps[i],
+            transform: `translateY(${(1 - ps[i]) * 16}px)`,
+          }}
+        >
+          <div style={{fontFamily: theme.sans, fontSize: 32, color: theme.text}}>{r.zh}</div>
+          <div style={{marginTop: 6, fontFamily: theme.mono, fontSize: 19, color: r.c, opacity: 0.85}}>
+            {r.en}
+          </div>
+        </div>
+      ))}
     </div>
   );
 };
@@ -258,22 +129,86 @@ export const P1Intern: React.FC<{scene: SceneRange}> = ({scene}) => {
   const at = (id: string) => w(id).from;
   const bA = w('p1-01', 'p1-07');
   const bB = w('p1-08', 'p1-15');
-  const bC = w('p1-16', 'p1-23');
-  const bD = w('p1-24', 'p1-27');
+  const bC = w('p1-16', 'p1-21');
+  const bD = w('p1-22', 'p1-24');
+  const bE = w('p1-25');
   return (
     <AbsoluteFill>
-      <Sequence {...bA} name="1-A 记忆清零">
-        <Amnesia />
+      <Sequence {...bA} name="1-A 失忆实习生记忆条">
+        <SceneTag chapter="P1" tagline="每天重新入职的天才" accent={theme.engine} />
+        <Stage top={280}>
+          <MemoryReset />
+        </Stage>
       </Sequence>
-      <Sequence {...bB} name="1-B 三病灶">
-        <ThreeSores jumpAt={at('p1-16') - bB.from} />
+
+      <Sequence {...bB} name="1-B 三病灶 + 病因链回放">
+        <Stage top={190}>
+          <ThreeLesions at={at('p1-08') - bB.from} />
+        </Stage>
+        <ArchifyRecap
+          slug="problem-to-mechanisms"
+          caption="病因链与机制对位"
+          variant="inset"
+          cues={[
+            {chapterId: 'cause-chain', at: at('p1-08') - bB.from, durationInFrames: w('p1-08').durationInFrames},
+            {chapterId: 'encircle-pierce', at: at('p1-14') - bB.from, durationInFrames: w('p1-14').durationInFrames},
+          ]}
+        />
       </Sequence>
-      <Sequence {...bC} name="1-C 命名与三句">
-        <NamingAndLadder ladderAt={at('p1-19') - bC.from} />
+
+      <Sequence {...bC} name="1-C 命名帧与官方三句">
+        <ArchifyRecap
+          slug="problem-to-mechanisms"
+          caption="铸入引擎 · 机制对位"
+          cues={[
+            {chapterId: 'engine-cast', at: at('p1-16') - bC.from, durationInFrames: w('p1-16').durationInFrames},
+            {chapterId: 'answer-ledger', at: at('p1-17') - bC.from, durationInFrames: w('p1-17').durationInFrames},
+            {chapterId: 'downgraded-lane', at: at('p1-21') - bC.from, durationInFrames: w('p1-21').durationInFrames},
+          ]}
+        />
+        <Sequence
+          from={at('p1-18') - bC.from}
+          durationInFrames={w('p1-18', 'p1-20').durationInFrames}
+          name="1-C 官方三句阶梯"
+        >
+          <Stage top={250}>
+            <OfficialLadder />
+          </Stage>
+        </Sequence>
       </Sequence>
-      <Sequence {...bD} name="1-D 入职包命名帧">
-        <OnboardPack />
-        <LabBadge at={bD.durationInFrames - 30} />
+
+      <Sequence {...bD} name="1-D 带教大厦剖面 + 组件全景">
+        <Stage top={110}>
+          <BuildingSection at={0} scale={0.82} />
+        </Stage>
+        <ArchifyRecap
+          slug="component-panorama"
+          caption="组件全景 · 四簇"
+          variant="inset"
+          cues={[
+            {chapterId: 'caliber-spine', at: at('p1-22') - bD.from, durationInFrames: w('p1-22').durationInFrames},
+            {chapterId: 'consumer-feed', at: at('p1-24') - bD.from, durationInFrames: w('p1-24').durationInFrames},
+          ]}
+        />
+      </Sequence>
+
+      <Sequence {...bE} name="1-E 七格承重列 HUD 首亮">
+        <Stage top={300}>
+          <div
+            style={{
+              fontFamily: theme.serif,
+              fontSize: 56,
+              color: theme.text,
+              textAlign: 'center',
+            }}
+          >
+            七大承重机制
+          </div>
+          <div style={{fontFamily: theme.sans, fontSize: 28, color: theme.dim}}>
+            接下来一层层拆解，每一条都当场拆坏给你看
+          </div>
+        </Stage>
+        <PillarHUD lit={0} />
       </Sequence>
     </AbsoluteFill>
   );

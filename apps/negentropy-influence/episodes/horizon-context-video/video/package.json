@@ -1,7 +1,7 @@
 {
   "name": "horizon-context-video",
   "private": true,
-  "description": "《AI 为什么答不对你公司的数据》科普视频 Remotion 工程",
+  "description": "《拆解 Horizon Context：功能、治理、安全与开放性》科普视频 Remotion 工程",
   "scripts": {
     "dev": "remotion studio",
     "typecheck": "tsc --noEmit",
