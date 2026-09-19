@@ -57,7 +57,8 @@ export const ArchifyClip: React.FC<{
   chapterLabel?: string;
   /** 画框档位，默认 'full' */
   variant?: ArchifyVariant;
-  /** 是否在第一段做入场弹簧与角标淡入（一镜多章时只在首章做，避免每章都弹像卡顿） */
+  /** 是否做入场弹簧与角标淡入。连续换章（背靠背）应传 false 避免每章都弹像卡顿；
+   *  首段与空窗后重现的段应传 true，否则整框以全不透明一帧瞬现 */
   lead?: boolean;
   /** rate 越界时抛错（默认 true）——暴露编排失衡，而不是静默变形 */
   strictRate?: boolean;

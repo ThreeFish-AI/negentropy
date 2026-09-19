@@ -47,7 +47,9 @@ export const ArchifyRecap: React.FC<{
   cues: ArchifyCue[];
   variant?: ArchifyVariant;
   /** 本实例首章是否做入场（默认 true）。同一位置背靠背的第二个实例须传 false：
-   *  lead 只在单实例内抑制换章弹入，跨实例不传会让新画框重放约 12 帧入场弹簧。 */
+   *  lead 只在单实例内抑制换章弹入，跨实例不传会让新画框重放约 12 帧入场弹簧。
+   *  实例内亦只抑制「与前 cue 背靠背」的换章弹入——空窗后重现的章恢复入场，
+   *  否则画框在完全卸载数秒后以全不透明一帧瞬现。 */
   lead?: boolean;
 }> = ({slug, caption, cues, variant = 'full', lead = true}) => {
   const chapters = ARCHIFY[slug].chapters as readonly {
@@ -68,6 +70,11 @@ export const ArchifyRecap: React.FC<{
               `可用：${chapters.map((c) => c.id).join(' / ')}`,
           );
         }
+        // 与前 cue 背靠背（连续换章）不重放入场；首章与空窗后重现的章做入场。
+        // 空窗判定容 2 帧取整；实测空窗最小 151 帧，阈值不会误伤连续章。
+        const prevEnd =
+          i > 0 ? cues[i - 1].at + cues[i - 1].durationInFrames : -Infinity;
+        const enters = i === 0 || cue.at > prevEnd + 2;
         return (
           <Sequence
             key={`${cue.chapterId}-${i}`}
@@ -85,7 +92,7 @@ export const ArchifyRecap: React.FC<{
               caption={caption}
               chapterLabel={ch.label}
               variant={variant}
-              lead={lead && i === 0}
+              lead={lead && enters}
             />
           </Sequence>
         );

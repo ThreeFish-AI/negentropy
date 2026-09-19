@@ -5,8 +5,9 @@
 
 三项判据：
   1. manifest × views 一致：manifest 里每个章节都能在对应 HTML 的 views 里找到；
-  2. **rate 预演**：按 TTS 实测 manifest 算每个 cue 的真实 playbackRate，越界
-     [0.7, 1.35] 即 FAIL 并给出建议 —— 把编排失衡提前到渲染前最便宜的时刻；
+  2. **rate 预演**：按 TTS 实测 manifest 算每个 cue 的真实 playbackRate，显式写死
+     fit='stretch' 且越界 [0.7, 1.35] 即 FAIL 并给出建议，自动挡越界降档 hold/trim
+     并列清单 —— 把编排失衡提前到渲染前最便宜的时刻；
   3. 素材完整：webm / 末帧 PNG 存在且非空、measured_fps ≥ 18。
 
 用法（工程根）：uv run --no-project scripts/check_archify.py
@@ -40,13 +41,15 @@ def load_manifest() -> dict:
     return json.loads(m.group(1))
 
 
-def scene_cues() -> list[tuple[str, str, str]]:
-    """从场景代码抽 (slug, chapterId, 锚句 id)。
+def scene_cues() -> list[tuple[str, str, str, str | None]]:
+    """从场景代码抽 (slug, chapterId, 锚句 id, 显式 fit)。
 
-    末尾的计数断言是必要的：本函数只认 `at: at('句id')` 形态，写成
-    `at: 0, durationInFrames: bX.durationInFrames` 的 cue 会被静默漏掉 —— 2026-09-19
+    两道硬失败都是必要的：计数断言防整块 ArchifyRecap 被漏读；at 形态断言防
+    写成 `at: 0, durationInFrames: bX.durationInFrames` 的 cue 静默漏掉 —— 2026-09-19
     实测正因此让 29 个 cue 只报了 27 个，漏掉的那个 rate 0.62 越界却没进 hold 清单，
     `--stills` 也没给它排抽帧。少算不报错等于门形同虚设，故漏识别一律硬失败。
+    fit 一并抽取：显式写死 `fit: 'stretch'` 的 cue 要进 explicit_stretch 受越界门
+    约束（硬编码空集会让该分支永不可达，同属「少算不报错」）。
     """
     out = []
     declared = 0
@@ -58,10 +61,18 @@ def scene_cues() -> list[tuple[str, str, str]]:
             sm = re.search(r'slug="([^"]+)"', body)
             if not sm:
                 continue
-            for c in re.finditer(
-                r"chapterId:\s*'([^']+)',\s*at:[^,]*?at\('([a-z0-9-]+)'\)", body
-            ):
-                out.append((sm.group(1), c.group(1), c.group(2)))
+            for c in re.finditer(r"\{chapterId:\s*'([^']+)'[^{}]*\}", body):
+                obj = c.group(0)
+                am = re.search(r"at:[^,]*?at\('([a-z0-9-]+)'\)", obj)
+                if am is None:
+                    raise SystemExit(
+                        f"FAIL: {sm.group(1)}/{c.group(1)} 未识别出 `at('句id')` 锚，"
+                        "请改成 `at: at('句id') - bX.from` + `dur('句id')`。"
+                    )
+                fm = re.search(r"fit:\s*'(stretch|hold|trim)'", obj)
+                out.append(
+                    (sm.group(1), c.group(1), am.group(1), fm.group(1) if fm else None)
+                )
     if len(out) != declared:
         raise SystemExit(
             f"FAIL: 场景里声明了 {declared} 个 cue，只识别出 {len(out)} 个。\n"
@@ -73,7 +84,7 @@ def scene_cues() -> list[tuple[str, str, str]]:
     return out
 
 
-def emit_stills(man: dict, cues: list[tuple[str, str, str]]) -> None:
+def emit_stills(man: dict, cues: list[tuple[str, str, str, str | None]]) -> None:
     """打印每个 archify cue 的**边界帧**抽帧命令（K1 入场 / K4 退场）。
 
     刻意不用 qa_frames --stills-plan：它打的是每镜**中点**，而 archify 对位要看的
@@ -83,7 +94,7 @@ def emit_stills(man: dict, cues: list[tuple[str, str, str]]) -> None:
     c = timeline.load_constants(ROOT)
     rows = {r["id"]: r for r in timeline.compute(items, c)}
     print("# archify 对位抽帧（工程根 video/ 下执行）")
-    for slug, cid, sid in cues:
+    for slug, cid, sid, _fit in cues:
         r = rows.get(sid)
         ch = next((x for x in man[slug]["chapters"] if x["id"] == cid), None)
         if r is None or ch is None:
@@ -138,7 +149,7 @@ def main() -> None:
 
     # ④ 录了但没落镜：manifest 里有图、却没有任何 cue 引用它 —— 2026-09-19 实测
     #    evolution-timeline / autopilot-loop 各 3 章白录，而文档仍写着 14 张进片。
-    unused = sorted(set(man) - {slug for slug, _, _ in cues})
+    unused = sorted(set(man) - {slug for slug, _, _, _ in cues})
     for slug in unused:
         warns.append(
             f"{slug}: manifest 有此图但无任何 cue 引用（{len(man[slug]['chapters'])} 章白录）"
@@ -150,7 +161,8 @@ def main() -> None:
             raise SystemExit("需要 audio/manifest.json（先跑 tts）")
         emit_stills(man, cues)
         return
-    explicit_stretch: set[tuple[str, str, str]] = set()  # 目前无 cue 写死 stretch
+    # 显式写死 stretch 的 cue 由 scene_cues() 抽取——受越界门约束（ISSUE-187 防范 2）
+    explicit_stretch = {(s, c, sid) for s, c, sid, fit in cues if fit == "stretch"}
     fitted = {"stretch": 0, "hold": 0, "trim": 0}
     holds: list[str] = []
     if not AUDIO.is_file():
@@ -160,7 +172,7 @@ def main() -> None:
         c = timeline.load_constants(ROOT)
         dur = {r["id"]: r["durationInFrames"] for r in timeline.compute(items, c)}
         fps = c["fps"]
-        for slug, cid, sid in cues:
+        for slug, cid, sid, _fit in cues:
             ch = next((x for x in man[slug]["chapters"] if x["id"] == cid), None)
             if ch is None:
                 fails.append(f"{slug}/{cid}: 场景引用了 manifest 里不存在的章节")
