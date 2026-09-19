@@ -18,7 +18,8 @@ import {FPS} from '../timing';
 import {ArchifyClip, type ArchifyFit, type ArchifyVariant} from './ArchifyClip';
 
 export type ArchifyCue = {
-  /** archify.manifest.ts 里的章节 id（拼错在 tsc 就红） */
+  /** archify.manifest.ts 里的章节 id —— 类型是 string，拼错由渲染期 throw +
+   *  check_archify 门拦截（tsc 级保护只在 slug：ArchifySlug = keyof typeof ARCHIFY） */
   chapterId: string;
   /** 相对本镜起点的起始帧 —— 必须写 `at('pN-xx') - beat.from` */
   at: number;
@@ -39,6 +40,7 @@ function pickFit(storySec: number, frames: number): ArchifyFit {
 }
 
 export const ArchifyRecap: React.FC<{
+  /** 工程图 slug（keyof typeof ARCHIFY，拼错在 tsc 就红） */
   slug: ArchifySlug;
   /** 右下角标 */
   caption: string;
