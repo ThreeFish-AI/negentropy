@@ -735,7 +735,6 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
           variant="inset"
           cues={[{chapterId: 'enrich', at: at('p5-28') - bG.from, durationInFrames: dur('p5-28')}]}
         />
-        <PillarHUD lit={7} at={at('p5-26') - bG.from} />
       </Sequence>
 
       <Sequence {...bH} name="5-H 四因子称重与标准插座">
@@ -765,10 +764,14 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
           slug="open-interop"
           caption="受控工具面开放"
           variant="inset"
+          // 与前一实例背靠背占同一位置：跳过入场弹簧，否则 p5-31→32 边界换图弹入
+          lead={false}
           cues={[{chapterId: 'socket', at: at('p5-32') - bH.from, durationInFrames: dur('p5-32')}]}
         />
-        <PillarHUD lit={7} />
       </Sequence>
+
+      {/* 跨 5-G/5-H 常驻：提到两镜之外单实例化，避免切镜处 HUD 消失再从 0 淡入闪一次 */}
+      <PillarHUD lit={7} at={at('p5-26')} />
     </AbsoluteFill>
   );
 };

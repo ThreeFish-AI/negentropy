@@ -44,7 +44,10 @@ export const ArchifyRecap: React.FC<{
   caption: string;
   cues: ArchifyCue[];
   variant?: ArchifyVariant;
-}> = ({slug, caption, cues, variant = 'full'}) => {
+  /** 本实例首章是否做入场（默认 true）。同一位置背靠背的第二个实例须传 false：
+   *  lead 只在单实例内抑制换章弹入，跨实例不传会让新画框重放约 12 帧入场弹簧。 */
+  lead?: boolean;
+}> = ({slug, caption, cues, variant = 'full', lead = true}) => {
   const chapters = ARCHIFY[slug].chapters as readonly {
     id: string;
     label: string;
@@ -80,7 +83,7 @@ export const ArchifyRecap: React.FC<{
               caption={caption}
               chapterLabel={ch.label}
               variant={variant}
-              lead={i === 0}
+              lead={lead && i === 0}
             />
           </Sequence>
         );
