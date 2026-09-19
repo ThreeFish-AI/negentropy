@@ -144,13 +144,13 @@ uv run --no-project python docs/research/cognitive-context/assets/horizon_contex
 | 工程图 slug             | 笔记章节 | 章数 | 故事秒 | 落镜                     |
 | ----------------------- | -------- | ---- | ------ | ------------------------ |
 | problem-to-mechanisms   | §1       | 5    | 19.8   | 1-B（inset）· 1-C（full）|
-| component-panorama      | §2.1     | 3    | 18.7   | 1-D（full）              |
+| component-panorama      | §2.1     | 3    | 18.7   | 1-D（inset）             |
 | evolution-timeline      | §2.2     | 3    | 17.5   | —（录制留档，未落镜）    |
-| declaration-execution   | M1       | 3    | 13.2   | 2-B（inset）· 2-C（full）|
+| declaration-execution   | M1       | 3    | 13.2   | 2-B（inset）· 2-C（inset）|
 | row-column-policy       | M2       | 3    | 11.0   | 3-A（full）· 3-B（inset）|
-| engine-governance       | M3       | 2    | 8.8    | 3-C（full）· 3-G（full） |
+| engine-governance       | M3       | 2    | 8.8    | 3-C（inset）· 3-G（inset）|
 | resolve-activation      | M4       | 3    | 9.7    | 4-B（inset）· 4-C        |
-| lineage-ledger          | M5       | 3    | 11.0   | 4-D（full）· 4-E（inset）· 4-F（full）|
+| lineage-ledger          | M5       | 3    | 11.0   | 4-D（full）· 4-E（inset）· 4-F（inset）|
 | agent-identity          | M6       | 3    | 10.8   | 5-A（full）· 5-B/5-C（inset）|
 | classification-tagging  | M7       | 3    | 13.0   | 5-E（full）· 5-F（inset）|
 | collect-enrich-activate | §10      | 3    | 12.1   | 5-G（inset）             |
