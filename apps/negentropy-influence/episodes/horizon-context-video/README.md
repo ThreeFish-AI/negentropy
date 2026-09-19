@@ -1,56 +1,59 @@
-# 《AI 为什么答不对你公司的数据》科普视频工程
+# 《拆解 Horizon Context：功能、治理、安全与开放性》
 
-> 交付状态：**v2 终渲待审：14:14 · archify 回放×2 + lab 代码走廊×4 · FAIL 0**。发布顺序见 [../../series.json](../../series.json)。
+Context Layer 系列首集。信源为本仓 [Snowflake Horizon Context 精读笔记](../../../../docs/research/cognitive-context/011-horizon-context.md)
+与配套最小原型（B 型 · 仓内固定提交 `097076eb`），逐条断言回溯 [research/source-notes.md](./research/source-notes.md)。
 
-## 目录结构
+**交付状态**：v3 全面重制（2026-09-19）。脚本层对齐 2026-09-17 重评选后的 M1–M7；
+187 句 / 4256 字 / 45 镜；14 张 archify 工程图逐章回放（43 章 / 182s）与台词「一章锚一句」对齐。
 
-| 路径                   | 说明                                                                                      |
-| ---------------------- | ----------------------------------------------------------------------------------------- |
-| `research/`            | Stage ① 取证产物：全部口播断言须可回溯至此                                                |
-| `script/planning.md`   | Stage ② 策划案（六节齐，含本集视觉契约）                                                  |
-| `script/narration.md`  | Stage ③ 逐字稿 **★单一事实源**（勿改 narration.json）                                     |
-| `script/storyboard.md` | Stage ⑤ 分镜表（镜号 ↔ 句 id 区间 ↔ 画面 ↔ 动效）                                         |
-| `scripts/*.py`         | 薄包装 → [../../pipeline/scripts/](../../pipeline/scripts/)（保 CLI 契约）                |
-| `video/`               | Remotion 独立 pnpm 工程（`--ignore-workspace` 隔离）                                      |
-| `out/`                 | 渲染产物（gitignored）                                                                    |
-| `pipeline.toml`        | 本集可执行参数的唯一来源（字段表见 [../../pipeline/README.md](../../pipeline/README.md)） |
+## 目录
 
-## 复现流水线
+| 路径 | 作用 |
+| --- | --- |
+| `pipeline.toml` | 本集可执行参数**唯一来源**（预算窗 / TTS 样本与风格） |
+| `script/planning.md` | 策划案六节（定位 / 叙事 / 视觉语言 / 幕结构 / 管线 / 边界） |
+| `script/narration.md` | **逐字稿 SSOT**——只改这里，`narration.json` 由 build 派生 |
+| `script/storyboard.md` | 45 镜分镜表，镜号与 `scenes/*.tsx` 的 `<Sequence name>` 一一对应 |
+| `research/sources.toml` | 信源台账（pinned commit，`source_ledger.py verify` 执法） |
+| `video/src/scenes/` | 七幕场景（P0Cold / P1Intern / P2Manual / P3Gate / P4Ledger / P5Badge / P6Ending） |
+| `video/src/components/devices.tsx` | 本集视觉装置库（大厦剖面母图 / 七格 HUD / 对照台 / 数字对撞 / 证据角标） |
+| `video/public/archify/views/` | 14 张工程图的引导故事定义（**入库**；webm 为派生产物） |
+| `scripts/` | 薄包装 + 本集专用：`archify_lead.py`（场记板测定）/ `archify_manifest.py` |
+
+## 复现
 
 ```bash
-# 在仓库根执行。$I/$R/$V 的定义见 ../../pipeline/README.md 路径变量约定（唯一定义处）
-P=$I/episodes/horizon-context-video
+I=apps/negentropy-influence; R=$I/pipeline/scripts; P=$I/episodes/horizon-context-video; V=$I/pipeline/voices
 
-# ① 信源核验（B 型信源；A 型论文集跳过）
+# ① 信源核验
 uv run --no-project $R/source_ledger.py --project $P verify
 
-# ② 逐字稿派生 + 内容门（分镜覆盖性 / 时长预算双口径 / 淡入不变式）
+# ② 逐字稿派生 + 内容门
 uv run --no-project $R/pipeline.py --project $P build
-uv run --no-project $R/pipeline.py --project $P check --check-scenes
+uv run --no-project $R/pipeline.py --project $P check --check-scenes --check-motion
 
-# ③ 配音（参数全部取自 pipeline.toml，勿在命令行另写 --style/--ref）
-uv run --no-project $R/pipeline.py --project $P tts --plan   # 排期对账
-uv run --no-project $R/pipeline.py --project $P tts          # 长跑，建议 nohup
+# ③ archify 动效：补 views → 逐章录制 → 测定 lead → 生成 manifest
+uv run --with playwright python $R/record_archify.py \
+  "$PWD/docs/assets/architecture/cognitive-context/horizon-context--<slug>.html" /dev/null \
+  "$P/video/public/archify/<slug>.json" --mode chapter --all-chapters \
+  --out-dir "$PWD/$P/video/public/archify" --views "$PWD/$P/video/public/archify/views/<slug>.json"
+cd $P && uv run --no-project --with pillow python scripts/archify_lead.py && uv run --no-project python scripts/archify_manifest.py
 
-# ④ 渲染与体检（工具一律 ./node_modules/.bin/ 直调，防污染根 workspace）
-cd $P/video && pnpm install --ignore-workspace && ./node_modules/.bin/tsc --noEmit
-cd - && uv run --no-project $R/pipeline.py --project $P render
-uv run --no-project $R/pipeline.py --project $P qa --video out/draft.mp4 --check
-uv run --no-project $R/pipeline.py --project $P qa --video out/draft.mp4 --last-n 6 --check   # 尾幕渐黑必查（--video 按工程目录解析）
+# ④ 配音（先 refs.py rebuild --name me-bright 重建样本）
+uv run --no-project $R/pipeline.py --project $P tts --plan
+uv run --no-project $R/pipeline.py --project $P tts
 
-# ⑤ 交付
-uv run --no-project $R/pipeline.py --project $P captions
+# ⑤ 草渲 + 体检 + 终渲
+uv run --no-project $R/pipeline.py --project $P render
+uv run --no-project $R/pipeline.py --project $P qa --video out/draft.mp4 --last-n 6 --check
 uv run --no-project $R/pipeline.py --project $P render --final
+uv run --no-project $R/pipeline.py --project $P captions
 ```
 
 ## 内容修改守则
 
-- 逐字稿只改 `script/narration.md`；`narration.json` / `manifest.json` 是派生物。
-- 时序常数只在 `video/src/timing.json`（timing.ts 与 Python 侧 timeline.py 共读）。
-- **口播永不出现他集标题与集数序号**——顺序只在视觉层与 series.json（`check_series.py` 执法）。
-- 骨架冻结档位见 [../../pipeline/templates/video-skeleton/skeleton.toml](../../pipeline/templates/video-skeleton/skeleton.toml)；
-  改动前先跑 `uv run --no-project $R/verify_skeleton.py`。
-
-## 许可
-
-源论文/文档版权归原作者；本工程仅为解读与再创作，画面与口播为原创。
+1. **逐字稿只改 `script/narration.md`**；`narration.json` 是派生物，手改必被 build 覆盖。
+2. 时序常数只在 `video/src/timing.json`；口播永不出现他集标题与集数序号（`check_series.py` 规则 1）。
+3. **破坏性实验编号（D1–D10）与裸 `Context`/`Agent` 不进口播**——只进角标与终端输出。
+4. 每个承重机制必须走满四拍：类比 → 机制不变量 → 破坏性实验反证 → 一句话收口。
+5. 改骨架前先跑 `verify_skeleton.py`；archify 回放改动后必须重跑 `archify_manifest.py`。

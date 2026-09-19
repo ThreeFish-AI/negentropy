@@ -205,7 +205,7 @@
           "episode": 1,
           "slug": "horizon-context-video",
           "path": "episodes/horizon-context-video",
-          "title": "AI 为什么答不对你公司的数据",
+          "title": "拆解 Horizon Context：功能、治理、安全与开放性",
           "topic": "Horizon Context：含义怎么治理",
           "cardSub": "上下文层 · 治理",
           "accents": [
@@ -214,14 +214,14 @@
             "#C9A0FF"
           ],
           "source": {
-            "title": "Snowflake Horizon Context 精读笔记 + 最小原型实验室（docs/reference/paper-notes/）",
+            "title": "Snowflake Horizon Context 精读笔记 + 最小原型实验室（docs/research/cognitive-context/）",
             "repo": "https://github.com/ThreeFish-AI/negentropy",
-            "pinnedRef": "cf6724d688d6",
+            "pinnedRef": "097076ebedd3",
             "license": "本仓内部文档",
-            "accessed": "2026-09-12"
+            "accessed": "2026-09-19"
           },
           "status": "draft-review",
-          "statusNote": "v2 终渲待审（2026-09-14 改版）：14:14 = 854.8s @30fps（183 句）；2026-09-14 终版微调：结尾句换「专注 Agent 技术演进」+ 全片字幕句尾「。」剥除（渲染层/导出层，音频零重配——仅尾句 24s 增量）；重渲 14:15 = 855.1s，七幕 FAIL 0 · 渐黑 PASS · WCAG 过 · 尾帧目检（新句上屏无尾句号）",
+          "statusNote": "v3 全面重制（2026-09-19）：脚本层对齐 2026-09-17 重评选后的 M1–M7；逐字稿 187 句 / 4256 字（补齐七处缺失不变量；破坏性实验编号与裸 Context 降为角标）；分镜 45 镜；14 张 archify 工程图全部补 guided views 并逐章录制（43 章 / 182s），回放按「一章锚一句」与台词对齐；信源重新 pin 到 097076eb（旧 pin cf6724d6 指向重评选前的旧路径旧内容）。",
           "voice": "sunny-steady + me-bright.wav"
         },
         {

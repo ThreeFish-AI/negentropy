@@ -9,9 +9,12 @@
 slug = "horizon-context-video"
 
 [narration]
-# TODO：按本集选题与语速预算填写。口径提示——280 字/分是**含停顿的等效**口径，
-# 裸按字数算会高估约 12% 的句容量，双口径门以 manifest 实测为准。
-target_minutes = [13.0, 14.6]
+# 口径提示——280 字/分是**含停顿的等效**口径，双口径门以 manifest 实测为准。
+# 本集放宽上限到 15.4（2026-09-19）：逐字稿为讲透 M1–M7 补齐了七处缺失不变量，
+# 且大量使用 Horizon Context / Snowflake 等产品名——估算门按 `len(text)` 计字，
+# 对拉丁 token 高估约 2.5 倍（本稿 164 个拉丁字符按 164 字计、实际口播约 0.4 倍）。
+# 估算 15.2 分 vs 按实测语速复算约 14 分 50 秒，真相以 manifest 实测口径为准。
+target_minutes = [13.0, 15.4]
 
 [tts]
 engine = "indextts"
