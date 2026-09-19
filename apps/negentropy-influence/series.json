@@ -221,7 +221,7 @@
             "accessed": "2026-09-19"
           },
           "status": "final-review",
-          "statusNote": "v3 终渲待审（2026-09-19）：15:11.63 = 27349 帧 @30fps / 1920×1080 / 50.3MB；187 句 4256 字 45 镜；14 张 archify 工程图逐章回放（43 章 182s），27 个 cue 按「一章锚一句」对齐，逐 cue K1/K4 像素差自检全部确认句内有动效；七幕 + 尾幕体检 FAIL 0 · WARN 0，尾幕渐黑 PASS，WCAG 七色全过；信源 pin 097076eb。",
+          "statusNote": "v3 终渲待审（2026-09-19，评审意见修复后重渲）：15:11.63 = 27349 帧 @30fps / 1920×1080 / 48.1MB；187 句 4256 字 45 镜；archify 工程图逐章录制 14 张 43 章（182s），进片 12 张 29 章，29 个 cue 按「一章锚一句」对齐，逐 cue K1/K4 像素差自检 29/29 确认句内有动效；七幕 + 尾幕体检 FAIL 0 · WARN 0，尾幕渐黑 PASS，WCAG 七色全过；evolution-timeline 与 autopilot-loop 录制留档未落镜（check_archify 以 WARN 常驻提示）；信源 pin 097076eb。",
           "voice": "sunny-steady + me-bright.wav"
         },
         {

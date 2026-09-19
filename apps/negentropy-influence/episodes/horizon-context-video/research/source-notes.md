@@ -1,4 +1,4 @@
-# 事实源：《AI 为什么答不对你公司的数据》（Horizon Context 篇）
+# 事实源：《拆解 Horizon Context：功能、治理、安全与开放性》
 
 > **本集口播的单一事实源**。逐字稿（[../script/narration.md](../script/narration.md)）中每一条断言都必须能回溯到本文件的某一节；回溯不到的断言不得进入口播。
 >
@@ -135,7 +135,8 @@ uv run --no-project python docs/research/cognitive-context/assets/horizon_contex
 
 ## 十二、archify 工程图回放清单（2026-09-19 新增）
 
-> 14 张工程图全部补齐 guided views 并**逐章录制**（43 章 / 182 秒素材）。
+> 14 张工程图全部补齐 guided views 并**逐章录制**（43 章 / 182 秒素材），其中 **12 张 / 29 章进片**；
+> `evolution-timeline` 与 `autopilot-loop` 录制留档但本集未落镜（`check_archify` 会以 WARN 常驻提示）。
 > views 源：[../video/public/archify/views/](../video/public/archify/views/)（入库、可评审）；
 > webm 为派生产物（根 `.gitignore` 忽略），重录见 `pipeline/scripts/record_archify.py --mode chapter --all-chapters`。
 > **对齐口径「一章锚一句」**：每章时长 = 拍数 × max(1100ms, 3200ms/拍数)，与该句配音时长做 `playbackRate` 贴合（限 [0.7, 1.35]）。
@@ -144,7 +145,7 @@ uv run --no-project python docs/research/cognitive-context/assets/horizon_contex
 | ----------------------- | -------- | ---- | ------ | ------------------------ |
 | problem-to-mechanisms   | §1       | 5    | 19.8   | 1-B（inset）· 1-C（full）|
 | component-panorama      | §2.1     | 3    | 18.7   | 1-D（full）              |
-| evolution-timeline      | §2.2     | 3    | 17.5   | 1-C 背景（无口播锚点）   |
+| evolution-timeline      | §2.2     | 3    | 17.5   | —（录制留档，未落镜）    |
 | declaration-execution   | M1       | 3    | 13.2   | 2-B（inset）· 2-C（full）|
 | row-column-policy       | M2       | 3    | 11.0   | 3-A（full）· 3-B（inset）|
 | engine-governance       | M3       | 2    | 8.8    | 3-C（full）· 3-G（full） |
@@ -153,6 +154,6 @@ uv run --no-project python docs/research/cognitive-context/assets/horizon_contex
 | agent-identity          | M6       | 3    | 10.8   | 5-A（full）· 5-B/5-C（inset）|
 | classification-tagging  | M7       | 3    | 13.0   | 5-E（full）· 5-F（inset）|
 | collect-enrich-activate | §10      | 3    | 12.1   | 5-G（inset）             |
-| autopilot-loop          | §10      | 3    | 10.9   | 5-G（inset）             |
+| autopilot-loop          | §10      | 3    | 10.9   | —（录制留档，未落镜）    |
 | four-factor-ranking     | §11      | 3    | 13.2   | 5-H（inset）             |
 | open-interop            | §12      | 3    | 12.1   | 5-H（inset）             |
