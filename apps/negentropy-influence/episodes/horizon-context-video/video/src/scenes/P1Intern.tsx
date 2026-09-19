@@ -154,7 +154,7 @@ export const P1Intern: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bB} name="1-B 三病灶 + 病因链回放">
-        <Stage top={370}>
+        <Stage top={430}>
           <ThreeLesions
             ats={[
               at('p1-08') - bB.from,
@@ -196,8 +196,9 @@ export const P1Intern: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bD} name="1-D 带教大厦剖面 + 组件全景">
-        <Stage top={360}>
-          <BuildingSection at={0} scale={0.82} />
+        <Stage top={430}>
+          {/* scale 0.75：inset 底边 416 后 Stage 430 的纵向预算收窄，7 层 58.5px 收进 ≤875 */}
+          <BuildingSection at={0} scale={0.75} />
         </Stage>
         <ArchifyRecap
           slug="component-panorama"

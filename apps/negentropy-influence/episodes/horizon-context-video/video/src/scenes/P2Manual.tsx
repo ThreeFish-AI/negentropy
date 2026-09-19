@@ -223,7 +223,7 @@ export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bB} name="2-B 代码走廊① 注册校验门">
-        <Stage top={350}>
+        <Stage top={430}>
           <CodeWalk
             title="M1 声明相 · 注册期结构校验门"
             lines={[
@@ -242,9 +242,9 @@ export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
             caption="horizon_context_lab.py :235"
             width={1120}
           />
-          {/* 终端行 = selftest 原文逐字摘录（含前导两空格）；改措辞须同步 narration/source-notes */}
+          {/* 终端行 = selftest 原文逐字摘录（含前导两空格）；改措辞须同步 narration/source-notes。
+              inset 底边 416 后纵向预算紧，不留 prompt 行（同 5-D 手法） */}
           <TerminalLog
-            prompt="uv run --no-project python horizon_context_lab.py --selftest"
             lines={[
               {
                 text: '  [PASS] D6: 拆结构校验（relationship 指向非键列）→ relationship bad: referenced column customers.plan is not PRIMARY KEY/UNIQUE—— 无门则垃圾定义静默入库（行数失控的注册期引信）',
@@ -255,8 +255,8 @@ export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
             ]}
             width={1120}
           />
-          {/* top=335：本镜有 inset 画框（y∈[56,315]），默认 44 会被整块压住 */}
-          <EvidenceBadge grade="lab" top={335} />
+          {/* top=430：本镜有 inset 画框（y∈[56,416]），默认 44 会被整块压住 */}
+          <EvidenceBadge grade="lab" top={430} />
         </Stage>
         <ArchifyRecap
           slug="declaration-execution"
@@ -269,7 +269,7 @@ export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bC} name="2-C 双保险锁">
-        <Stage top={400}>
+        <Stage top={430}>
           <DoubleLock breakAt={at('p2-09b') - bC.from} />
         </Stage>
         <ArchifyRecap

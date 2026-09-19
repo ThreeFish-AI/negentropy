@@ -53,6 +53,8 @@ uv run --with playwright python $R/record_archify.py \
   "$PWD/docs/assets/architecture/cognitive-context/horizon-context--<slug>.html" /dev/null \
   "$P/video/public/archify/<slug>.json" --mode chapter --all-chapters \
   --out-dir "$PWD/$P/video/public/archify" --views "$PWD/$P/video/public/archify/views/<slug>.json"
+  # ↑ chapter 模式默认 cdp 高清采集（CDP JPEG q100 @DSF2 → h264 CRF16 @2560×1440）；
+  #   需要旧 screencast 行为时加 --capture playwright。
 cd $P && uv run --no-project --with pillow python scripts/archify_lead.py && uv run --no-project python scripts/archify_manifest.py
 
 # ④ 配音（先 refs.py rebuild --name me-bright 重建样本）

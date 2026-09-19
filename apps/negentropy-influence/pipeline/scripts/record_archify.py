@@ -27,9 +27,31 @@ fit='hold' 时冻结补足用的素材，一旦改截 .diagram-container 元素�
 
 另：playCurrent() 会置 data-share-playback="true"，CSS 据此关掉 ambient trace 入场描流
 （5 张图开了 trace），避免描流与引导故事叠放。
+
+## 清晰度：cdp 采集模式（chapter 默认）
+
+Playwright 自带录像的 ffmpeg 参数是硬编码的（driver `videoRecorder.js:46`）：
+`-b:v 1M -deadline realtime -speed 8`——1Mbps 封顶 + 最低质量档，API 无任何质量
+旋钮；实测 1080p webm 仅 0.84–1.14Mbps，进片后图内文字糊成一团。对已损 webm
+重编码无法挽回信息，只能绕开它的编码器：
+
+  - `--capture cdp`（chapter 默认）：自管 CDP `Page.startScreencast`
+    （JPEG quality=100、maxWidth/Height=物理 4K）逐帧落盘，采集面
+    `device_scale_factor=2`（viewport 仍 1920×1080 CSS，布局不变）；
+  - 合成恒定 CFR 25fps（复刻 Playwright 的 `floor((ts-t0)×25)` 量化 + 缺号补
+    上一帧），`measured_fps`/`trimBefore`/rate 数学与旧 webm 完全同构；
+  - 编码用 remotion 内置 ffmpeg：h264 CRF16@2560×1440（full 档 1298 画框≈1:1
+    像素映射），VP9 为回退档；末帧 PNG 经同一缩放链路与视频同分辨率（hold
+    接缝约束，见上）。
+
+CDP 事件 handler 里**绝不调用 Playwright API**（sync API 回调内嵌套 send 会死锁
+dispatcher fiber）——只写文件 + 入队 sessionId，ack 由主 greenlet 在泵循环里批量做。
+`--capture playwright` 保留旧行为作二分回归出口；story 模式恒为 playwright
+（context-layer 旧消费形态的字节级兼容承诺）。
 """
 
 import argparse
+import base64
 import json
 import re
 import shutil
@@ -74,6 +96,238 @@ window.__archify = {beats: []};
   attach();
 })();
 """
+
+
+FPS_OUT = 25  # 合成恒定帧率：与 Playwright 录像的名义 CFR 一致，下游数学零改动
+
+
+def find_remotion() -> tuple[Path, Path] | None:
+    """→ (remotion CLI, 工程 video 根)。任一集 video/node_modules 装好即可用。"""
+    video_root = Path(__file__).resolve().parents[2] / "episodes"
+    for proj in video_root.glob("*/video"):
+        exe = proj / "node_modules" / ".bin" / "remotion"
+        if exe.is_file():
+            return exe, proj
+    return None
+
+
+def probe_dims(path: Path) -> tuple[int, int] | None:
+    """ffprobe 实测视频宽高（cdp 末帧 PNG 与视频同分辨率的断言用）。"""
+    hit = find_remotion()
+    if hit is None:
+        return None
+    exe, proj = hit
+    r = subprocess.run(
+        [
+            str(exe),
+            "ffprobe",
+            "-v",
+            "error",
+            "-select_streams",
+            "v:0",
+            "-show_entries",
+            "stream=width,height",
+            "-of",
+            "csv=p=0",
+            str(path.resolve()),
+        ],
+        capture_output=True,
+        text=True,
+        timeout=120,
+        cwd=str(proj),
+        check=False,
+    )
+    try:
+        w, h = r.stdout.strip().split(",")
+        return int(w), int(h)
+    except ValueError:
+        return None
+
+
+class CdpRecorder:
+    """自管 CDP screencast 采集：JPEG q100 帧序列落盘 + 主循环泵 ack。
+
+    handler 只写文件 + 入队 sessionId（sync API 回调内嵌套 Playwright 调用会死锁
+    dispatcher fiber）；Chromium 的 screencast 有在途帧上限（默认 3，我们放宽到
+    64），不连续 ack 就停发——故播放等待全部走 50ms 泵循环而非 wait_for_function。
+    """
+
+    def __init__(self, out_dir: Path, scale: int):
+        self.dir = out_dir
+        self.dir.mkdir(parents=True, exist_ok=True)
+        self.max_w, self.max_h = 1920 * scale, 1080 * scale
+        self.session = None
+        self.frames: list[tuple[str, float]] = []  # (jpg 文件名, 单调秒)
+        self.pending: list[str] = []
+        self.t0: float | None = None
+
+    def _on_frame(self, params: dict) -> None:
+        data = base64.b64decode(params["data"])
+        ts = params.get("metadata", {}).get("timestamp") or 0.0
+        name = f"f{len(self.frames) + 1:06d}.jpg"
+        (self.dir / name).write_bytes(data)
+        if self.t0 is None:
+            self.t0 = ts
+        self.frames.append((name, ts))
+        self.pending.append(params["sessionId"])
+
+    def start(self, ctx, page) -> None:
+        self.session = ctx.new_cdp_session(page)
+        self.session.on("Page.screencastFrame", self._on_frame)
+        self.session.send(
+            "Page.startScreencast",
+            {
+                "format": "jpeg",
+                "quality": 100,
+                "maxWidth": self.max_w,
+                "maxHeight": self.max_h,
+                "everyNthFrame": 1,
+                "maxFramesInFlight": 64,
+            },
+        )
+
+    def ack_pending(self) -> None:
+        while self.pending:
+            sid = self.pending.pop(0)
+            try:
+                self.session.send("Page.screencastFrameAck", {"sessionId": sid})
+            except Exception:  # noqa: BLE001 - ack 失败只损失帧率，不该炸整场录制
+                break
+
+    def stop(self) -> None:
+        try:
+            self.session.send("Page.stopScreencast")
+            self.ack_pending()
+            self.session.detach()
+        finally:
+            self.session = None
+
+    def quantize(self) -> dict[int, str]:
+        """墙钟时间戳 → CFR25 槽位（同槽后到者胜，与 Playwright 量化同构）。"""
+        slots: dict[int, str] = {}
+        for name, ts in self.frames:
+            slots[max(0, int((ts - self.t0) * FPS_OUT))] = name
+        return slots
+
+
+def encode_frames(
+    rec: CdpRecorder, dst: Path, encode: str, crf: int
+) -> tuple[float, int]:
+    """槽位补帧 → remotion ffmpeg 编码 → (有效采集帧率, 交付高度)。"""
+    hit = find_remotion()
+    if hit is None:
+        sys.exit(
+            "FAIL: 未找到任何集的 video/node_modules/.bin/remotion——先 pnpm install"
+        )
+    exe, proj = hit
+    slots = rec.quantize()
+    if not slots:
+        sys.exit("FAIL: CDP 采集到 0 帧（screencast 未启动或页面未渲染）")
+    seq = rec.dir / "seq"
+    seq.mkdir(exist_ok=True)
+    last = None
+    for i in range(max(slots) + 1):
+        if i in slots:
+            last = slots[i]
+        if last is not None:
+            shutil.copyfile(rec.dir / last, seq / f"f{i:06d}.jpg")
+    out_h = 1440 if rec.max_h >= 2160 else 1080
+    tail = (
+        [
+            "-c:v",
+            "libx264",
+            "-preset",
+            "medium",
+            "-crf",
+            str(crf),
+            "-pix_fmt",
+            "yuv420p",
+            "-g",
+            "25",
+            "-movflags",
+            "+faststart",
+        ]
+        if encode == "h264"
+        else [
+            "-c:v",
+            "libvpx-vp9",
+            "-crf",
+            str(crf),
+            "-b:v",
+            "0",
+            "-row-mt",
+            "1",
+            "-cpu-used",
+            "4",
+        ]
+    )
+    r = subprocess.run(
+        [
+            str(exe),
+            "ffmpeg",
+            "-v",
+            "error",
+            "-y",
+            "-framerate",
+            str(FPS_OUT),
+            "-i",
+            str(seq / "f%06d.jpg"),
+            "-vf",
+            f"scale=-2:{out_h}:flags=lanczos",
+            *tail,
+            str(dst.resolve()),
+        ],
+        capture_output=True,
+        text=True,
+        timeout=600,
+        cwd=str(proj),
+        check=False,
+    )
+    if r.returncode:
+        sys.exit(f"FAIL: ffmpeg 编码失败：{r.stderr[-400:]}")
+    # 采集健康度口径：**峰值 1s 窗口接收帧数**，不是均值——screencast 是
+    # damage-driven，静态停留期不产帧（CFR 靠补帧），均值恒低且与画质无关；
+    # 动画期 compositor 按 vsync 产帧，峰值掉下去才是真采集卡顿。
+    ts_list = sorted(t for _n, t in rec.frames)
+    best, j = 0, 0
+    for i, t in enumerate(ts_list):
+        while ts_list[j] < t - 1.0:
+            j += 1
+        best = max(best, i - j + 1)
+    shutil.rmtree(seq)
+    return float(best), out_h
+
+
+def downscale_still(src: Path, out_h: int) -> None:
+    """末帧 PNG 压到与视频同分辨率（同一 lanczos 链路，维持 hold 接缝同构同帧）。"""
+    hit = find_remotion()
+    if hit is None:
+        return
+    exe, proj = hit
+    tmp = src.with_suffix(".tmp.png")
+    r = subprocess.run(
+        [
+            str(exe),
+            "ffmpeg",
+            "-v",
+            "error",
+            "-y",
+            "-i",
+            str(src.resolve()),
+            "-vf",
+            f"scale=-2:{out_h}:flags=lanczos",
+            str(tmp.resolve()),
+        ],
+        capture_output=True,
+        text=True,
+        timeout=120,
+        cwd=str(proj),
+        check=False,
+    )
+    if r.returncode == 0 and tmp.is_file():
+        tmp.replace(src)
+    elif tmp.is_file():
+        tmp.unlink()
 
 
 def dwell_ms(n: int) -> float:
@@ -123,11 +377,8 @@ def measure_fps(webm: Path) -> float | None:
     N/A，早先按流级取会让本函数永远返回 None、--min-fps 门形同虚设
     （2026-09-19 实测发现）。
     """
-    video_root = Path(__file__).resolve().parents[2] / "episodes"
-    for proj in video_root.glob("*/video"):
-        exe = proj / "node_modules" / ".bin" / "remotion"
-        if not exe.is_file():
-            continue
+    hit = find_remotion()
+    for exe, proj in [hit] if hit else []:
         try:
 
             def probe(args: list[str], exe: Path = exe, proj: Path = proj) -> str:
@@ -164,14 +415,19 @@ def measure_fps(webm: Path) -> float | None:
     return None
 
 
-def new_ctx(browser, tmpvid: Path):
-    ctx = browser.new_context(
-        viewport={"width": 1920, "height": 1080},
-        color_scheme="dark",
-        reduced_motion="no-preference",
-        record_video_dir=str(tmpvid),
-        record_video_size={"width": 1920, "height": 1080},
-    )
+def new_ctx(browser, tmpvid: Path, scale: int = 1, playwright_video: bool = True):
+    kwargs = {
+        "viewport": {"width": 1920, "height": 1080},
+        "color_scheme": "dark",
+        "reduced_motion": "no-preference",
+        # DSF=2：viewport 仍 1920×1080 CSS（rem 布局不变），合成面 3840×2160——
+        # 采集超采样，文字笔画再经 lanczos 降到 1440 交付，是清晰度的一半来源。
+        "device_scale_factor": scale,
+    }
+    if playwright_video:
+        kwargs["record_video_dir"] = str(tmpvid)
+        kwargs["record_video_size"] = {"width": 1920, "height": 1080}
+    ctx = browser.new_context(**kwargs)
     ctx.add_init_script(
         "try { localStorage.setItem('archify-theme', 'dark'); } catch (e) {}"
     )
@@ -210,7 +466,21 @@ def main() -> None:
     ap.add_argument("--views", help="views JSON；注入临时副本，canonical HTML 不动")
     ap.add_argument("--min-fps", type=float, default=18.0)
     ap.add_argument("--settle-ms", type=int, default=1200)
+    ap.add_argument(
+        "--capture",
+        choices=["playwright", "cdp"],
+        default=None,
+        help="采集方式：chapter 默认 cdp（高清）；story 恒 playwright（旧行为）",
+    )
+    ap.add_argument(
+        "--scale", type=int, choices=[1, 2], default=2, help="device_scale_factor"
+    )
+    ap.add_argument("--encode", choices=["h264", "vp9"], default="h264")
+    ap.add_argument("--crf", type=int, default=16)
     a = ap.parse_args()
+    a.capture = a.capture or ("cdp" if a.mode == "chapter" else "playwright")
+    if a.mode == "story" and a.capture == "cdp":
+        sys.exit("FAIL: story 模式不接 cdp 采集（字节级兼容承诺，见模块 docstring）")
 
     src = Path(a.src).resolve()
     slug = src.stem.split("--")[-1]
@@ -288,15 +558,28 @@ def record_story(browser, page_src, tmp, out_dir, a) -> dict:
     }
 
 
+def pump_until(page, recorder: CdpRecorder | None, js: str, timeout_s: float) -> None:
+    """50ms 泵循环替代 wait_for_function：CDP 在途帧须连续 ack，否则 Chromium 停发。"""
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        if page.evaluate(f"() => ({js})"):
+            return
+        if recorder:
+            recorder.ack_pending()
+        page.wait_for_timeout(50)
+    sys.exit(f"FAIL: 等待 {js} 超时 {timeout_s}s（录制中断）")
+
+
 def record_chapters(browser, page_src, tmp, out_dir, slug, views, a) -> dict:
     """逐章独立录制：activate(id) → 场记板 → playCurrent() → 等自停 → 尾帧截图。"""
     targets = views if a.all_chapters else views[:1]
+    use_cdp = a.capture == "cdp"
     chapters, t_all = [], time.time()
     for idx, view in enumerate(targets):
         cid = view["id"]
         tmpvid = tmp / f"ch{idx}"
         tmpvid.mkdir()
-        ctx = new_ctx(browser, tmpvid)
+        ctx = new_ctx(browser, tmpvid, scale=a.scale, playwright_video=not use_cdp)
         page = open_page(ctx, page_src)
         page.wait_for_function(
             "() => window.Archify && Archify.guidedViews && Archify.guidedViews.count > 0",
@@ -313,24 +596,49 @@ def record_chapters(browser, page_src, tmp, out_dir, slug, views, a) -> dict:
             sys.exit(
                 f"FAIL: {slug}/{cid} 激活失败（active={active!r}）——检查 views 的节点 id"
             )
+        recorder = None
+        if use_cdp:
+            recorder = CdpRecorder(tmpvid / "frames", a.scale)
+            recorder.start(ctx, page)
         clapper(page)
         t_play = time.time()
         page.evaluate("() => Archify.guidedViews.playCurrent()")
         # 先等「真的播起来」再等「停」——否则 playCurrent() 尚未置位时
         # `!isPlaying()` 立刻为真，会录出零长片段（本轮自查发现的竞态）。
-        page.wait_for_function("() => Archify.guidedViews.isPlaying()", timeout=15000)
-        page.wait_for_function("() => !Archify.guidedViews.isPlaying()", timeout=120000)
+        if use_cdp:
+            pump_until(page, recorder, "Archify.guidedViews.isPlaying()", 15)
+            pump_until(page, recorder, "!Archify.guidedViews.isPlaying()", 120)
+        else:
+            page.wait_for_function(
+                "() => Archify.guidedViews.isPlaying()", timeout=15000
+            )
+            page.wait_for_function(
+                "() => !Archify.guidedViews.isPlaying()", timeout=120000
+            )
         t_done = time.time()
         page.wait_for_timeout(350)
         still = out_dir / f"{slug}--{cid}-end.png"
-        # 整视口截图：必须与 webm 同构同框，否则 fit='hold' 切换处突跳（见模块 docstring）
+        # 整视口截图：必须与成片同构同框，否则 fit='hold' 切换处突跳（见模块 docstring）
         page.screenshot(path=str(still))
         beats = page.evaluate("() => window.__archify.beats")
-        vpath = page.video.path()
-        ctx.close()
-        webm = out_dir / f"{slug}--{cid}.webm"
-        shutil.copyfile(vpath, webm)
-        fps = measure_fps(webm)
+        capture_fps = None
+        if use_cdp:
+            recorder.stop()
+            ext = "mp4" if a.encode == "h264" else "webm"
+            video = out_dir / f"{slug}--{cid}.{ext}"
+            capture_fps, out_h = encode_frames(recorder, video, a.encode, a.crf)
+            downscale_still(still, out_h)
+            vd, pd = probe_dims(video), probe_dims(still)
+            if vd and pd and vd != pd:
+                sys.exit(
+                    f"FAIL: {slug}/{cid} 末帧 PNG {pd} ≠ 视频 {vd}——hold 接缝会突跳"
+                )
+        else:
+            vpath = page.video.path()
+            ctx.close()
+            video = out_dir / f"{slug}--{cid}.webm"
+            shutil.copyfile(vpath, video)
+        fps = measure_fps(video)
         n = len(view["focus"])
         rel = (
             [round((b["t"] - beats[0]["t"]) / 1000, 3) for b in beats] if beats else []
@@ -340,7 +648,7 @@ def record_chapters(browser, page_src, tmp, out_dir, slug, views, a) -> dict:
                 "id": cid,
                 "label": view.get("label", cid),
                 "index": idx,
-                "file": webm.name,
+                "file": video.name,
                 "end_still": still.name,
                 "beats": n,
                 "dwell_ms": round(dwell_ms(n)),
@@ -349,16 +657,18 @@ def record_chapters(browser, page_src, tmp, out_dir, slug, views, a) -> dict:
                 "beat_offsets_sec": rel,
                 "beat_nodes": view["focus"],
                 "measured_fps": fps,
+                "capture_fps": capture_fps,
             }
         )
-        flag = "⚠️ 低帧率" if (fps is not None and fps < a.min_fps) else "ok"
+        eff = capture_fps if capture_fps is not None else fps
+        flag = "⚠️ 低帧率" if (eff is not None and eff < a.min_fps) else "ok"
         print(
             f"  [{idx + 1}/{len(targets)}] {slug}/{cid} "
-            f"{chapters[-1]['story_sec']}s · {n} 拍 · fps={fps} {flag}",
+            f"{chapters[-1]['story_sec']}s · {n} 拍 · fps={eff} {flag}",
             file=sys.stderr,
         )
     fpss = [c["measured_fps"] for c in chapters if c["measured_fps"]]
-    return {
+    out = {
         "schema": 2,
         "mode": "chapter",
         "lead_sec": 0.0,
@@ -369,6 +679,16 @@ def record_chapters(browser, page_src, tmp, out_dir, slug, views, a) -> dict:
         "measured_fps": min(fpss) if fpss else None,
         "chapters": chapters,
     }
+    if use_cdp:
+        out["capture"] = {
+            "mode": "cdp",
+            "scale": a.scale,
+            "encoder": a.encode,
+            "crf": a.crf,
+            "fps": FPS_OUT,
+            "out_h": 1440 if a.scale == 2 else 1080,
+        }
+    return out
 
 
 if __name__ == "__main__":

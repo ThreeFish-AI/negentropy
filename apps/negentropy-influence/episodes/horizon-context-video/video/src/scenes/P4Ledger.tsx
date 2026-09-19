@@ -381,7 +381,7 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bB} name="4-B 盖章底稿与重算对账">
-        <Stage top={380}>
+        <Stage top={430}>
           <StampedAnswer at={at('p4-06') - bB.from} />
         </Stage>
         <ArchifyRecap
@@ -396,7 +396,7 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bC} name="4-C 半堵墙">
-        <Stage top={370}>
+        <Stage top={430}>
           <HalfWall />
         </Stage>
         <ArchifyRecap
@@ -459,7 +459,8 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bE} name="4-E 三道闸与代码走廊③">
-        <Stage top={350}>
+        {/* gap 20：inset 底边 416 后 Stage 430，收窄间隙保栈底 ≤906 */}
+        <Stage top={430} gap={20}>
           <ThreeGates
             at={at('p4-14a') - bE.from}
             rejectAt={at('p4-16') - bE.from}
@@ -493,8 +494,8 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
             ]}
             width={1220}
           />
-          {/* top=335：本镜有 inset 画框（y∈[56,315]），默认 44 会被整块压住 */}
-          <EvidenceBadge grade="lab" top={335} />
+          {/* top=430：本镜有 inset 画框（y∈[56,416]），默认 44 会被整块压住 */}
+          <EvidenceBadge grade="lab" top={430} />
         </Stage>
         <ArchifyRecap
           slug="lineage-ledger"
@@ -505,7 +506,7 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bF} name="4-F 逆流溯源与双柱">
-        <Stage top={380}>
+        <Stage top={430}>
           <div style={{textAlign: 'center'}}>
             <div style={{fontSize: 84}}>🔦</div>
             <div style={{marginTop: 18, fontFamily: theme.sans, fontSize: 34, color: theme.text}}>

@@ -627,7 +627,7 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bB} name="5-B 权限交集环与刷卡审计">
-        <Stage top={380}>
+        <Stage top={430}>
           <PermIntersect
             at={at('p5-05') - bB.from}
             narrowAt={at('p5-06') - bB.from}
@@ -644,7 +644,7 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bC} name="5-C 回指 P3 的代理识别灯">
-        <Stage top={400}>
+        <Stage top={430}>
           <Panel accent={theme.engine} style={{padding: '30px 40px', width: 1080}}>
             <div style={{fontFamily: theme.sans, fontSize: 34, color: theme.text, textAlign: 'center'}}>
               前面闸机能认出代理 —— 认的就是这张工牌
@@ -742,8 +742,9 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bF} name="5-F 断链最后一环与代码走廊⑤">
-        {/* top=320：代码走廊 5 行 + D10 长行折 2 行的纵向预算；且须低于 inset 画框底边 315 */}
-        <Stage top={320}>
+        {/* 代码走廊 5 行 + D10 长行的纵向预算；Stage 430 让位 inset 底边 416，
+            gap 18 + 终端行加宽 1420（一行放下）把栈底压回 ≤920 */}
+        <Stage top={430} gap={18}>
           <BrokenChain at={at('p5-21') - bF.from} leakAt={at('p5-23') - bF.from} />
           <CodeWalk
             title="M7 供给链 · 一次性映射（掩码策略不能直绑系统标签）"
@@ -768,7 +769,7 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
                 at: at('p5-23') - bF.from,
               },
             ]}
-            width={1220}
+            width={1420}
           />
         </Stage>
         <ArchifyRecap
@@ -780,7 +781,7 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bG} name="5-G 七柱合拢与听证会空白卡">
-        <Stage top={360}>
+        <Stage top={430}>
           <ConflictHearing at={at('p5-29') - bG.from} />
           <div style={{marginTop: 26}}>
             <NumberClash
@@ -801,7 +802,7 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bH} name="5-H 四因子称重与标准插座">
-        <Stage top={400}>
+        <Stage top={430}>
           <div style={{display: 'flex', gap: 70, alignItems: 'center'}}>
             <div style={{textAlign: 'center'}}>
               <div style={{fontSize: 76}}>⚖️</div>
