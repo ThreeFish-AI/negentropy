@@ -25,16 +25,20 @@ import {AskCard, EvidenceBadge, MechZoom, NumberClash, PillarHUD, Stage} from '.
 const PermIntersect: React.FC<{at: number}> = ({at}) => {
   const shrink = useSpring('settle', {at, dur: DUR.f6});
   const r = 150;
-  const dx = 116 - 40 * shrink;
+  // 从近乎并集的宽重叠**单调收窄**到定格的工牌透镜——对齐 p5-05「权限只减不增」与
+  // storyboard 5-B「收窄成工牌形」；终态间距 76 与 v4 定格一致，只翻转过程方向。
+  const rest = 76;
+  const dx = rest - 40 * (1 - shrink);
   return (
     <div style={{display: 'flex', alignItems: 'center', gap: 58}}>
       <svg width={560} height={340}>
         <circle cx={280 - dx} cy={170} r={r} fill={`${theme.engine}22`} stroke={theme.engine} strokeWidth={3} />
         <circle cx={280 + dx} cy={170} r={r} fill={`${theme.dig}22`} stroke={theme.dig} strokeWidth={3} />
-        <text x={280 - dx - 56} y={72} fill={theme.engine} fontSize={22} fontFamily={theme.sans}>
+        {/* 两行环标题锚定**终态**位置：随 dx 移动会在开场宽重叠时互相叠字 */}
+        <text x={280 - rest - 56} y={72} fill={theme.engine} fontSize={22} fontFamily={theme.sans}>
           带教人权限
         </text>
-        <text x={280 + dx - 40} y={72} fill={theme.dig} fontSize={22} fontFamily={theme.sans}>
+        <text x={280 + rest - 40} y={72} fill={theme.dig} fontSize={22} fontFamily={theme.sans}>
           代理允许面
         </text>
         <text x={280 - 34} y={178} fill={theme.text} fontSize={26} fontFamily={theme.sans} opacity={shrink}>
