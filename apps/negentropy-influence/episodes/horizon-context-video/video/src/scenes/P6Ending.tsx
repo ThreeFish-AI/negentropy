@@ -19,13 +19,17 @@ const BOUNDS = [
 ];
 
 /** 五道警示栅栏：讲完一条压暗一条（围住大厦，不是推倒它） */
-const Fences: React.FC<{dimmed: number; at?: number; dimAts?: readonly number[]}> = ({
-  dimmed,
-  at = 0,
-  dimAts,
-}) => {
+const Fences: React.FC<{
+  dimmed: number;
+  at?: number;
+  dimAts?: readonly number[];
+  /** 跨镜常驻实例用：跳过入场 stagger，直接承接上一镜已入场的栅栏。
+   *  6-B 承接 6-A；6-D 的重新「整队立起」有 storyboard 背书，不传。 */
+  entered?: boolean;
+}> = ({dimmed, at = 0, dimAts, entered = false}) => {
   const frame = useCurrentFrame();
-  const ps = useStagger(5, {at, stride: 6, dur: DUR.f5});
+  const st = useStagger(5, {at, stride: 6, dur: DUR.f5});
+  const ps = entered ? [1, 1, 1, 1, 1] : st;
   // dimAts 给出每道栅栏各自压暗的帧（与口播逐句同步）；缺省则退回 dimmed 计数
   const lit = dimAts ? dimAts.filter((a) => frame >= a).length : dimmed;
   return (
@@ -179,9 +183,13 @@ export const P6Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bB} name="6-B 第二三条边界">
-        <Stage top={280}>
+        {/* top=230 与 6-A 同值：栅栏承接 6-A 的像素位置（6-A 的 NumberClash 只占其下方），
+            6-B 单子项时 Stage 从 paddingTop 起排，故同 top 即同位置 */}
+        <Stage top={230}>
+          {/* entered：承接 6-A 已入场的栅栏，避免 p6-06→07 边界清零重入（压暗走 dimAts） */}
           <Fences
             dimmed={1}
+            entered
             dimAts={[
               0,
               at('p6-07') - bB.from,

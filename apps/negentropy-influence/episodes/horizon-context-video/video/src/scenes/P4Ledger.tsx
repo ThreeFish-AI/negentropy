@@ -467,20 +467,29 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
           <CodeWalk
             title="M5 摄取门 · 外部血缘三道闸"
             lines={[
-              'def ingest_external_lineage(event, *, has_ingest_privilege=True,',
-              '                            strict_resolve=True):',
+              'def ingest_external_lineage(event, *, has_ingest_privilege=True, strict_resolve=True):',
               '    if not has_ingest_privilege:  raise LineageIngestError("no INGEST")',
               '    if event["eventType"] != "COMPLETE": raise LineageIngestError("not COMPLETE")',
               '    if strict_resolve and not resolvable(obj): raise LineageIngestError("unresolved")',
             ]}
-            hi={[{line: 4, at: at('p4-17') - bE.from, color: theme.engine}]}
+            hi={[{line: 3, at: at('p4-17') - bE.from, color: theme.engine}]}
             caption="horizon_context_lab.py :710"
             width={1220}
           />
+          {/* 终端行 = selftest 原文逐字摘录（含前导两空格）；本镜纵向预算紧，不留 prompt 行 */}
           <TerminalLog
             lines={[
-              {text: '[PASS] 三道闸：非 COMPLETE / 对象不可解析 / 无权限 → 整事件拒绝', color: theme.ok, at: at('p4-16') - bE.from},
-              {text: '[LEAK] 拆掉解析闸 → 虚构对象 raw.y->ghost.x 混入正式账本', color: theme.danger, bold: true, at: at('p4-17') - bE.from},
+              {
+                text: "  [PASS] E1b: 摄取三道闸: 非 COMPLETE / 对象不可解析 / 无 INGEST 权限 → 整事件拒绝 ['rejected', 'rejected', 'rejected']（账本零污染）",
+                color: theme.ok,
+                at: at('p4-16') - bE.from,
+              },
+              {
+                text: '  [PASS] D8: 拆血缘解析闸 → 虚构对象入账（raw.y→ghost.x）——账本与真实数据流脱钩，事后对账从此不可信',
+                color: theme.danger,
+                bold: true,
+                at: at('p4-17') - bE.from,
+              },
             ]}
             width={1220}
           />

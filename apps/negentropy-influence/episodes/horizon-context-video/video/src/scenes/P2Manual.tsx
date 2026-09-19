@@ -237,11 +237,16 @@ export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
             caption="horizon_context_lab.py :235"
             width={1120}
           />
+          {/* 终端行 = selftest 原文逐字摘录（含前导两空格）；改措辞须同步 narration/source-notes */}
           <TerminalLog
+            prompt="uv run --no-project python horizon_context_lab.py --selftest"
             lines={[
-              {text: '$ python horizon_context_lab.py --selftest', color: theme.dim},
-              {text: '✗ relationship bad: customers.plan is not PRIMARY KEY/UNIQUE', color: theme.danger, bold: true},
-              {text: '[PASS] 坏定义在注册期被拒 —— 不留运行时隐患', color: theme.ok},
+              {
+                text: '  [PASS] D6: 拆结构校验（relationship 指向非键列）→ relationship bad: referenced column customers.plan is not PRIMARY KEY/UNIQUE—— 无门则垃圾定义静默入库（行数失控的注册期引信）',
+                color: theme.ok,
+                bold: true,
+                at: at('p2-07') - bB.from,
+              },
             ]}
             width={1120}
           />

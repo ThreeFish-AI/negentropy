@@ -637,6 +637,19 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
             caption="horizon_context_lab.py :785"
             width={1180}
           />
+          {/* 终端行 = selftest 原文逐字摘录（含前导两空格）；改措辞须同步 narration/source-notes */}
+          <TerminalLog
+            prompt="uv run --no-project python horizon_context_lab.py --selftest"
+            lines={[
+              {
+                text: '  [PASS] D9: 拆权限天花板（快照冻结）→ 回收后旧会话仍持 select:orders（越权窗口）；对照：同时创建的天花板会话判定时实时求值，同一时刻立即失去——不存在「上次办的工牌还能用」的窗口',
+                color: theme.danger,
+                bold: true,
+                at: at('p5-13') - bD.from,
+              },
+            ]}
+            width={1180}
+          />
           <EvidenceBadge grade="lab" />
         </Stage>
       </Sequence>
@@ -690,24 +703,31 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bF} name="5-F 断链最后一环与代码走廊⑤">
-        <Stage top={350}>
+        {/* top=320：代码走廊 5 行 + D10 长行折 2 行的纵向预算；且须低于 inset 画框底边 315 */}
+        <Stage top={320}>
           <BrokenChain at={at('p5-21') - bF.from} leakAt={at('p5-23') - bF.from} />
           <CodeWalk
             title="M7 供给链 · 一次性映射（掩码策略不能直绑系统标签）"
             lines={[
-              'TAG_MAPPING = {"pii": ["PRIVACY_CATEGORY.IDENTIFIER"]}   # 系统标签 → 用户标签',
-              'def policy_for(system_tags, table, col, mapping=TAG_MAPPING):',
-              '    for user_tag, sys_tags in mapping.items():',
-              '        if set(system_tags.get(col, [])) & set(sys_tags): return MASK_FULL',
+              'TAG_MAPPING = {"CONTACT_INFO": "pii"}   # 一次性映射：系统标签 → 用户治理标签',
+              'TAG_POLICY = {"pii": "MASK_FULL"}       # 用户标签 → 策略',
+              'def policy_for(system_tags, table_name, col, mapping=TAG_MAPPING):',
+              '    user_tag = mapping.get(system_tags.get((table_name, col)))',
+              '    return TAG_POLICY.get(user_tag) if user_tag else None',
             ]}
             hi={[{line: 0, at: 16, color: theme.dig}, {line: 3, at: 26, color: theme.ok}]}
-            caption="horizon_context_lab.py :816"
+            caption="horizon_context_lab.py :805 内 :821"
             width={1220}
           />
+          {/* 终端行 = selftest 原文逐字摘录（含前导两空格）；本镜纵向预算紧，不留 prompt 与 E3 行 */}
           <TerminalLog
             lines={[
-              {text: '[LEAK] 拆掉标签映射 → phone 已贴系统标签仍明文出楼', color: theme.danger, bold: true},
-              {text: '[PASS] 补齐映射 → phone 自动纳管 MASK_FULL（无需人工登记）', color: theme.ok},
+              {
+                text: '  [PASS] D10: 拆标签映射（只分类不绑策略）→ phone 已贴系统标签仍明文出楼——发现→标记→执行 链条断在最后一环',
+                color: theme.danger,
+                bold: true,
+                at: at('p5-23') - bF.from,
+              },
             ]}
             width={1220}
           />

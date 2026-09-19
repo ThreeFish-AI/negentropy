@@ -340,23 +340,20 @@ export const P3Gate: React.FC<{scene: SceneRange}> = ({scene}) => {
             caption="horizon_context_lab.py :378 内 :397"
             width={1180}
           />
+          {/* 终端行 = selftest 原文逐字摘录（含前导两空格）；改措辞须同步 narration/source-notes */}
           <TerminalLog
+            prompt="uv run --no-project python horizon_context_lab.py --selftest"
             lines={[
               {
-                text: '[PASS] 装回执行层 → intern 请求 blocked',
+                text: '  [PASS] C2: RBAC 双层: 检索层对 intern 过滤 plan 建议（["dim_filtered (PRIVATE): [\'plan\']"]，降级总量 {(): 650}）；直闯执行层 → AccessDenied（引擎是最后防线）',
                 color: theme.ok,
                 at: at('p3-20') - bF.from,
               },
               {
-                text: '[LEAK] 拆掉 enforce_rbac → intern 按 plan 拿到 [90, 560]',
+                text: '  [PASS] D5: 拆 RBAC → intern 按 plan 拿到 [90,560]（泄露发生）；装回 → blocked',
                 color: theme.danger,
                 bold: true,
                 at: at('p3-21') - bF.from,
-              },
-              {
-                text: '泄露对照：藏起来 ≠ 拦得住',
-                color: theme.dim,
-                at: at('p3-22') - bF.from,
               },
             ]}
             width={1180}
