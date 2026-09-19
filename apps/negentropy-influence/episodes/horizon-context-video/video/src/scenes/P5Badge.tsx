@@ -11,6 +11,7 @@ import {
   useBreathe,
   useDraw,
   useFlowDash,
+  useImpulse,
   useProgress,
   useShake,
   useSpring,
@@ -21,17 +22,36 @@ import {CodeWalk, TerminalLog} from '../components/CodeWalk';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 import {AskCard, EvidenceBadge, MechZoom, NumberClash, PillarHUD, Stage} from '../components/devices';
 
-/** 5-B 权限交集环：只减不增 */
-const PermIntersect: React.FC<{at: number}> = ({at}) => {
-  const shrink = useSpring('settle', {at, dur: DUR.f6});
+/** 5-B 权限交集环：只减不增。
+ *
+ *  三句三拍（铁律⑤）：环入场停在宽重叠（p5-05）→ 收窄成工牌透镜**铺满 p5-06
+ *  整句**（「最小子集」）→ 机密文案点亮 + 透镜弹一下锚在 p5-07（「带教人自己都
+ *  看不了」）。收窄刻意用 fitted progress 而非 21 帧 spring：旧版 0.7s 收完、
+ *  p5-06/07 两句 ≈9.3s 裁掉字幕带逐像素差分为 0（ISSUE-187 ① 同类，v4 评审
+ *  实测），铺满整句让「无静止段」由构造保证（同 5-A 七道锁的 fit 范式）。 */
+const PermIntersect: React.FC<{
+  at: number;
+  narrowAt: number;
+  narrowSpan: number;
+  secretAt: number;
+}> = ({at, narrowAt, narrowSpan, secretAt}) => {
+  const rise = useSpring('settle', {at, dur: DUR.f6});
+  const narrow = useProgress(narrowAt, narrowSpan, 'decelerate');
+  const secret = useProgress(secretAt, DUR.f5);
+  const pop = useImpulse({at: secretAt, dur: DUR.f6});
+  // 点亮后的常驻呼吸（乘 secret 门控）：p5-07 后半句到 p5-08 inset 前不留静止尾
+  const glow = useBreathe({period: 76, base: 0.5, amp: 0.5});
   const r = 150;
-  // 从近乎并集的宽重叠**单调收窄**到定格的工牌透镜——对齐 p5-05「权限只减不增」与
-  // storyboard 5-B「收窄成工牌形」；终态间距 76 与 v4 定格一致，只翻转过程方向。
+  // 从近乎并集的宽重叠**单调收窄**到定格的工牌透镜；终态间距 76 与 v4 定格一致。
   const rest = 76;
-  const dx = rest - 40 * (1 - shrink);
+  const dx = rest - 40 * (1 - narrow);
   return (
     <div style={{display: 'flex', alignItems: 'center', gap: 58}}>
-      <svg width={560} height={340}>
+      <svg
+        width={560}
+        height={340}
+        style={{opacity: rise, transform: `scale(${0.95 + 0.05 * rise})`}}
+      >
         <circle cx={280 - dx} cy={170} r={r} fill={`${theme.engine}22`} stroke={theme.engine} strokeWidth={3} />
         <circle cx={280 + dx} cy={170} r={r} fill={`${theme.dig}22`} stroke={theme.dig} strokeWidth={3} />
         {/* 两行环标题锚定**终态**位置：随 dx 移动会在开场宽重叠时互相叠字 */}
@@ -41,13 +61,27 @@ const PermIntersect: React.FC<{at: number}> = ({at}) => {
         <text x={280 + rest - 40} y={72} fill={theme.dig} fontSize={22} fontFamily={theme.sans}>
           代理允许面
         </text>
-        <text x={280 - 34} y={178} fill={theme.text} fontSize={26} fontFamily={theme.sans} opacity={shrink}>
-          工牌
-        </text>
+        <g transform={`translate(280 178) scale(${1 + 0.12 * pop})`} opacity={narrow}>
+          <text x={-34} y={0} fill={theme.text} fontSize={26} fontFamily={theme.sans}>
+            工牌
+          </text>
+        </g>
       </svg>
       <div>
         <div style={{fontFamily: theme.sans, fontSize: 32, color: theme.text}}>权限只减不增</div>
-        <div style={{marginTop: 10, fontFamily: theme.sans, fontSize: 25, color: theme.dim, lineHeight: 1.6}}>
+        <div
+          style={{
+            marginTop: 10,
+            fontFamily: theme.sans,
+            fontSize: 25,
+            lineHeight: 1.6,
+            color: theme.text,
+            opacity: 0.55 + 0.45 * secret,
+            textShadow: `0 0 ${(10 + 10 * glow) * secret}px ${theme.engine}55`,
+            transform: `scale(${1 + 0.03 * pop})`,
+            transformOrigin: 'left center',
+          }}
+        >
           带教人自己都看不了的机密
           <br />
           智能体绝对无权触碰
@@ -594,7 +628,12 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       <Sequence {...bB} name="5-B 权限交集环与刷卡审计">
         <Stage top={380}>
-          <PermIntersect at={at('p5-05') - bB.from} />
+          <PermIntersect
+            at={at('p5-05') - bB.from}
+            narrowAt={at('p5-06') - bB.from}
+            narrowSpan={dur('p5-06')}
+            secretAt={at('p5-07') - bB.from}
+          />
         </Stage>
         <ArchifyRecap
           slug="agent-identity"

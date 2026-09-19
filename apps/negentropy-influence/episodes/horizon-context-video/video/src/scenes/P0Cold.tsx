@@ -5,10 +5,9 @@ import {AbsoluteFill, Sequence} from 'remotion';
 import type {SceneRange} from '../types';
 import {beatWindow} from '../timing';
 import {theme} from '../design/theme';
-import {DUR, progress, useDraw, useImpulse, useProgress, useReveal, useSpring, useStagger} from '../motion';
+import {DUR, useBreathe, useDraw, useImpulse, useProgress, useReveal, useSpring, useStagger} from '../motion';
 import {Panel} from '../components/motifs';
 import {EvidenceBadge, Stage} from '../components/devices';
-import {useCurrentFrame} from 'remotion';
 
 const COLS = [
   'amt_ttl_pre_dsc', 'cust_seg_cd', 'ord_dt_key', 'rev_net_adj', 'qty_shp_uom',
@@ -62,15 +61,21 @@ const TerminalAsk: React.FC<{flipAt: number}> = ({flipAt}) => {
   );
 };
 
-/** 0-B 乱码列名墙：一列染金 */
-const ColumnWall: React.FC<{goldAt: number}> = ({goldAt}) => {
-  const frame = useCurrentFrame();
+/** 0-B 乱码列名墙：一列染金。
+ *
+ *  15 格 stagger 用 fit 模式铺满 p0-04..p0-05 两句（revealSpan，末格恰在染金前
+ *  落定），染金 payoff 锚 p0-06——旧版固定 stride 开场 1.3s 就全部到位、其后
+ *  ≈9.4s 裁掉字幕带逐像素差分为 0（ISSUE-187 ① 同类，v4 评审实测）；金列辉光
+ *  再叠 breathe，让 p0-06 染金后到本幕结束也无静止尾。 */
+const ColumnWall: React.FC<{goldAt: number; revealSpan: number}> = ({goldAt, revealSpan}) => {
   const gold = useSpring('snap', {at: goldAt, dur: DUR.f5});
+  const breathe = useBreathe({period: 90, base: 0.5, amp: 0.5});
+  const ps = useStagger(COLS.length, {at: 4, fit: {total: revealSpan}, dur: DUR.f4});
   return (
     <div style={{display: 'flex', flexWrap: 'wrap', gap: 14, width: 1440, justifyContent: 'center'}}>
       {COLS.map((c, i) => {
         const on = i === 0;
-        const p = progress(frame, 4 + i * 2, DUR.f4);
+        const p = ps[i];
         return (
           <div
             key={c}
@@ -84,7 +89,7 @@ const ColumnWall: React.FC<{goldAt: number}> = ({goldAt}) => {
               color: on ? theme.manual : theme.dim,
               opacity: p * (on ? 1 : 0.62),
               transform: on ? `scale(${1 + 0.08 * gold})` : 'none',
-              boxShadow: on ? `0 0 ${22 * gold}px ${theme.manual}66` : 'none',
+              boxShadow: on ? `0 0 ${(14 + 12 * breathe) * gold}px ${theme.manual}66` : 'none',
             }}
           >
             {c}
@@ -183,7 +188,7 @@ export const P0Cold: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
       <Sequence {...bB} name="0-B 乱码列名墙">
         <Stage>
-          <ColumnWall goldAt={at('p0-06') - bB.from} />
+          <ColumnWall goldAt={at('p0-06') - bB.from} revealSpan={at('p0-06') - bB.from - 12} />
         </Stage>
       </Sequence>
       <Sequence {...bC} name="0-C 净收入三算法对撞">
