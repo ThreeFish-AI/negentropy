@@ -36,7 +36,9 @@ def test_cue_end_excludes_gap():
 def test_srt_golden():
     items = [{"id": "p0-01", "scene": "P0", "text": "你好。", "durationSec": 3.0}]
     srt = render_srt(build_cues(items, C))
-    assert srt == "1\n00:00:00,600 --> 00:00:03,600\n你好\n"  # 句尾「。」剥除（2026-09-14 字幕风格）
+    assert (
+        srt == "1\n00:00:00,600 --> 00:00:03,600\n你好\n"
+    )  # 句尾「。」剥除（2026-09-14 字幕风格）
 
 
 def test_vtt_header():

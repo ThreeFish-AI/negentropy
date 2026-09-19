@@ -1,9 +1,9 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 2.04,
+ "lead_sec": 1.68,
  "story_sec": 11.09,
- "total_wall_sec": 50.46,
+ "total_wall_sec": 32.98,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -16,12 +16,12 @@
    "end_still": "lineage-ledger--engine-lane-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 2.04,
-   "story_sec": 3.32,
+   "lead_sec": 1.68,
+   "story_sec": 3.33,
    "beat_offsets_sec": [
     0.0,
-    1.105,
-    2.207
+    1.103,
+    2.205
    ],
    "beat_nodes": [
     "sql",
@@ -38,13 +38,13 @@
    "end_still": "lineage-ledger--ingest-lane-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 2.08,
+   "lead_sec": 1.76,
    "story_sec": 4.43,
    "beat_offsets_sec": [
     0.0,
     1.104,
     2.207,
-    3.311
+    3.309
    ],
    "beat_nodes": [
     "evt",
@@ -62,12 +62,12 @@
    "end_still": "lineage-ledger--ledger-and-blind-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 2.4,
-   "story_sec": 3.34,
+   "lead_sec": 1.92,
+   "story_sec": 3.33,
    "beat_offsets_sec": [
     0.0,
-    1.103,
-    2.206
+    1.104,
+    2.205
    ],
    "beat_nodes": [
     "ledger",

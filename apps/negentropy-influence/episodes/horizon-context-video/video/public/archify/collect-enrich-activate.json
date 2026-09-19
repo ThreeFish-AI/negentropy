@@ -1,9 +1,9 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 2.04,
- "story_sec": 12.22,
- "total_wall_sec": 47.28,
+ "lead_sec": 1.76,
+ "story_sec": 12.19,
+ "total_wall_sec": 26.81,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -16,13 +16,13 @@
    "end_still": "collect-enrich-activate--collect-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 2.04,
-   "story_sec": 4.44,
+   "lead_sec": 1.76,
+   "story_sec": 4.43,
    "beat_offsets_sec": [
     0.0,
     1.103,
-    2.207,
-    3.316
+    2.21,
+    3.313
    ],
    "beat_nodes": [
     "s1",
@@ -40,12 +40,12 @@
    "end_still": "collect-enrich-activate--enrich-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 2.48,
-   "story_sec": 3.34,
+   "lead_sec": 1.76,
+   "story_sec": 3.33,
    "beat_offsets_sec": [
     0.0,
-    1.109,
-    2.217
+    1.107,
+    2.213
    ],
    "beat_nodes": [
     "c",
@@ -62,13 +62,13 @@
    "end_still": "collect-enrich-activate--activate-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 2.92,
-   "story_sec": 4.44,
+   "lead_sec": 1.8,
+   "story_sec": 4.43,
    "beat_offsets_sec": [
     0.0,
-    1.109,
-    2.215,
-    3.318
+    1.106,
+    2.21,
+    3.312
    ],
    "beat_nodes": [
     "r",

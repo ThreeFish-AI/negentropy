@@ -1,9 +1,9 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 3.64,
- "story_sec": 10.89,
- "total_wall_sec": 54.43,
+ "lead_sec": 1.88,
+ "story_sec": 10.87,
+ "total_wall_sec": 27.39,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -16,13 +16,13 @@
    "end_still": "agent-identity--ceiling-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 3.64,
+   "lead_sec": 1.88,
    "story_sec": 4.43,
    "beat_offsets_sec": [
     0.0,
     1.104,
-    2.208,
-    3.311
+    2.207,
+    3.31
    ],
    "beat_nodes": [
     "user",
@@ -40,11 +40,11 @@
    "end_still": "agent-identity--audit-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 1.88,
-   "story_sec": 3.23,
+   "lead_sec": 1.76,
+   "story_sec": 3.22,
    "beat_offsets_sec": [
     0.0,
-    1.602
+    1.603
    ],
    "beat_nodes": [
     "sess",
@@ -60,11 +60,11 @@
    "end_still": "agent-identity--strict-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 2.72,
-   "story_sec": 3.23,
+   "lead_sec": 1.76,
+   "story_sec": 3.22,
    "beat_offsets_sec": [
     0.0,
-    1.604
+    1.603
    ],
    "beat_nodes": [
     "sess",

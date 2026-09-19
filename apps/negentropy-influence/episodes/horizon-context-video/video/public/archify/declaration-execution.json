@@ -1,9 +1,9 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 2.64,
- "story_sec": 13.28,
- "total_wall_sec": 27.51,
+ "lead_sec": 1.8,
+ "story_sec": 13.25,
+ "total_wall_sec": 31.17,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -16,14 +16,14 @@
    "end_still": "declaration-execution--declare-end.png",
    "beats": 5,
    "dwell_ms": 1100,
-   "lead_sec": 2.64,
+   "lead_sec": 1.8,
    "story_sec": 5.53,
    "beat_offsets_sec": [
     0.0,
     1.102,
-    2.203,
-    3.304,
-    4.406
+    2.205,
+    3.309,
+    4.414
    ],
    "beat_nodes": [
     "tables",
@@ -42,12 +42,12 @@
    "end_still": "declaration-execution--gate-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 1.68,
-   "story_sec": 3.33,
+   "lead_sec": 1.76,
+   "story_sec": 3.31,
    "beat_offsets_sec": [
     0.0,
-    1.103,
-    2.206
+    1.102,
+    2.205
    ],
    "beat_nodes": [
     "fivePart",
@@ -64,13 +64,13 @@
    "end_still": "declaration-execution--recompute-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 1.68,
-   "story_sec": 4.42,
+   "lead_sec": 1.76,
+   "story_sec": 4.41,
    "beat_offsets_sec": [
     0.0,
-    1.103,
-    2.205,
-    3.306
+    1.102,
+    2.204,
+    3.308
    ],
    "beat_nodes": [
     "rbac",

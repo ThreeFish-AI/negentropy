@@ -33,7 +33,7 @@ export const ARCHIFY = {
         "file": "agent-identity--ceiling.webm",
         "endStill": "agent-identity--ceiling-end.png",
         "beats": 4,
-        "leadSec": 3.64,
+        "leadSec": 1.88,
         "storySec": 4.43,
         "beatNodes": [
           "user",
@@ -48,8 +48,8 @@ export const ARCHIFY = {
         "file": "agent-identity--audit.webm",
         "endStill": "agent-identity--audit-end.png",
         "beats": 2,
-        "leadSec": 1.88,
-        "storySec": 3.23,
+        "leadSec": 1.76,
+        "storySec": 3.22,
         "beatNodes": [
           "sess",
           "qh"
@@ -61,8 +61,8 @@ export const ARCHIFY = {
         "file": "agent-identity--strict.webm",
         "endStill": "agent-identity--strict-end.png",
         "beats": 2,
-        "leadSec": 2.72,
-        "storySec": 3.23,
+        "leadSec": 1.76,
+        "storySec": 3.22,
         "beatNodes": [
           "sess",
           "pol"
@@ -79,7 +79,7 @@ export const ARCHIFY = {
         "file": "autopilot-loop--inputs.webm",
         "endStill": "autopilot-loop--inputs-end.png",
         "beats": 3,
-        "leadSec": 1.92,
+        "leadSec": 1.8,
         "storySec": 3.33,
         "beatNodes": [
           "in_zero",
@@ -93,8 +93,8 @@ export const ARCHIFY = {
         "file": "autopilot-loop--valgate.webm",
         "endStill": "autopilot-loop--valgate-end.png",
         "beats": 4,
-        "leadSec": 1.96,
-        "storySec": 4.45,
+        "leadSec": 1.8,
+        "storySec": 4.43,
         "beatNodes": [
           "validate",
           "discard",
@@ -108,8 +108,8 @@ export const ARCHIFY = {
         "file": "autopilot-loop--loop.webm",
         "endStill": "autopilot-loop--loop-end.png",
         "beats": 2,
-        "leadSec": 1.88,
-        "storySec": 3.22,
+        "leadSec": 1.76,
+        "storySec": 3.21,
         "beatNodes": [
           "consume",
           "vqr"
@@ -126,8 +126,8 @@ export const ARCHIFY = {
         "file": "classification-tagging--tag-driven.webm",
         "endStill": "classification-tagging--tag-driven-end.png",
         "beats": 6,
-        "leadSec": 2.2,
-        "storySec": 6.64,
+        "leadSec": 1.88,
+        "storySec": 6.63,
         "beatNodes": [
           "new",
           "cls",
@@ -143,8 +143,8 @@ export const ARCHIFY = {
         "file": "classification-tagging--explicit-gap.webm",
         "endStill": "classification-tagging--explicit-gap-end.png",
         "beats": 2,
-        "leadSec": 2.44,
-        "storySec": 3.22,
+        "leadSec": 1.8,
+        "storySec": 3.21,
         "beatNodes": [
           "map",
           "gap"
@@ -156,8 +156,8 @@ export const ARCHIFY = {
         "file": "classification-tagging--honest-limit.webm",
         "endStill": "classification-tagging--honest-limit-end.png",
         "beats": 2,
-        "leadSec": 2.04,
-        "storySec": 3.22,
+        "leadSec": 1.8,
+        "storySec": 3.21,
         "beatNodes": [
           "pol",
           "limit"
@@ -174,8 +174,8 @@ export const ARCHIFY = {
         "file": "collect-enrich-activate--collect.webm",
         "endStill": "collect-enrich-activate--collect-end.png",
         "beats": 4,
-        "leadSec": 2.04,
-        "storySec": 4.44,
+        "leadSec": 1.76,
+        "storySec": 4.43,
         "beatNodes": [
           "s1",
           "s2",
@@ -189,8 +189,8 @@ export const ARCHIFY = {
         "file": "collect-enrich-activate--enrich.webm",
         "endStill": "collect-enrich-activate--enrich-end.png",
         "beats": 3,
-        "leadSec": 2.48,
-        "storySec": 3.34,
+        "leadSec": 1.76,
+        "storySec": 3.33,
         "beatNodes": [
           "c",
           "g",
@@ -203,8 +203,8 @@ export const ARCHIFY = {
         "file": "collect-enrich-activate--activate.webm",
         "endStill": "collect-enrich-activate--activate-end.png",
         "beats": 4,
-        "leadSec": 2.92,
-        "storySec": 4.44,
+        "leadSec": 1.8,
+        "storySec": 4.43,
         "beatNodes": [
           "r",
           "a1",
@@ -223,8 +223,8 @@ export const ARCHIFY = {
         "file": "component-panorama--caliber-spine.webm",
         "endStill": "component-panorama--caliber-spine-end.png",
         "beats": 4,
-        "leadSec": 2.2,
-        "storySec": 4.42,
+        "leadSec": 1.76,
+        "storySec": 4.41,
         "beatNodes": [
           "ap",
           "sv",
@@ -238,8 +238,8 @@ export const ARCHIFY = {
         "file": "component-panorama--consumer-feed.webm",
         "endStill": "component-panorama--consumer-feed-end.png",
         "beats": 6,
-        "leadSec": 2.56,
-        "storySec": 6.65,
+        "leadSec": 1.76,
+        "storySec": 6.63,
         "beatNodes": [
           "vqr",
           "us",
@@ -255,8 +255,8 @@ export const ARCHIFY = {
         "file": "component-panorama--reserved-supply.webm",
         "endStill": "component-panorama--reserved-supply-end.png",
         "beats": 7,
-        "leadSec": 2.0,
-        "storySec": 7.74,
+        "leadSec": 1.76,
+        "storySec": 7.75,
         "beatNodes": [
           "ap",
           "cs",
@@ -278,7 +278,7 @@ export const ARCHIFY = {
         "file": "declaration-execution--declare.webm",
         "endStill": "declaration-execution--declare-end.png",
         "beats": 5,
-        "leadSec": 2.64,
+        "leadSec": 1.8,
         "storySec": 5.53,
         "beatNodes": [
           "tables",
@@ -294,8 +294,8 @@ export const ARCHIFY = {
         "file": "declaration-execution--gate.webm",
         "endStill": "declaration-execution--gate-end.png",
         "beats": 3,
-        "leadSec": 1.68,
-        "storySec": 3.33,
+        "leadSec": 1.76,
+        "storySec": 3.31,
         "beatNodes": [
           "fivePart",
           "gate",
@@ -308,8 +308,8 @@ export const ARCHIFY = {
         "file": "declaration-execution--recompute.webm",
         "endStill": "declaration-execution--recompute-end.png",
         "beats": 4,
-        "leadSec": 1.68,
-        "storySec": 4.42,
+        "leadSec": 1.76,
+        "storySec": 4.41,
         "beatNodes": [
           "rbac",
           "agg",
@@ -328,8 +328,8 @@ export const ARCHIFY = {
         "file": "engine-governance--governed-path.webm",
         "endStill": "engine-governance--governed-path-end.png",
         "beats": 5,
-        "leadSec": 2.68,
-        "storySec": 5.61,
+        "leadSec": 1.92,
+        "storySec": 5.53,
         "beatNodes": [
           "cal",
           "flt",
@@ -344,7 +344,7 @@ export const ARCHIFY = {
         "file": "engine-governance--bypass-intercepted.webm",
         "endStill": "engine-governance--bypass-intercepted-end.png",
         "beats": 3,
-        "leadSec": 1.96,
+        "leadSec": 1.76,
         "storySec": 3.32,
         "beatNodes": [
           "cal",
@@ -363,8 +363,8 @@ export const ARCHIFY = {
         "file": "evolution-timeline--stage-objects.webm",
         "endStill": "evolution-timeline--stage-objects-end.png",
         "beats": 2,
-        "leadSec": 2.16,
-        "storySec": 3.23,
+        "leadSec": 1.68,
+        "storySec": 3.21,
         "beatNodes": [
           "ms1",
           "ms2"
@@ -377,7 +377,7 @@ export const ARCHIFY = {
         "endStill": "evolution-timeline--stage-governed-enrich-end.png",
         "beats": 10,
         "leadSec": 1.88,
-        "storySec": 11.07,
+        "storySec": 11.05,
         "beatNodes": [
           "ms3",
           "ms4",
@@ -397,8 +397,8 @@ export const ARCHIFY = {
         "file": "evolution-timeline--stage-ecosystem.webm",
         "endStill": "evolution-timeline--stage-ecosystem-end.png",
         "beats": 3,
-        "leadSec": 2.2,
-        "storySec": 3.32,
+        "leadSec": 1.96,
+        "storySec": 3.33,
         "beatNodes": [
           "ms12",
           "ms13",
@@ -416,8 +416,8 @@ export const ARCHIFY = {
         "file": "four-factor-ranking--signals.webm",
         "endStill": "four-factor-ranking--signals-end.png",
         "beats": 5,
-        "leadSec": 2.6,
-        "storySec": 5.54,
+        "leadSec": 1.72,
+        "storySec": 5.53,
         "beatNodes": [
           "q",
           "gov",
@@ -432,7 +432,7 @@ export const ARCHIFY = {
         "file": "four-factor-ranking--factors.webm",
         "endStill": "four-factor-ranking--factors-end.png",
         "beats": 4,
-        "leadSec": 2.04,
+        "leadSec": 1.76,
         "storySec": 4.43,
         "beatNodes": [
           "rel",
@@ -447,8 +447,8 @@ export const ARCHIFY = {
         "file": "four-factor-ranking--topk.webm",
         "endStill": "four-factor-ranking--topk-end.png",
         "beats": 3,
-        "leadSec": 2.04,
-        "storySec": 3.34,
+        "leadSec": 1.92,
+        "storySec": 3.33,
         "beatNodes": [
           "score",
           "tie",
@@ -466,8 +466,8 @@ export const ARCHIFY = {
         "file": "lineage-ledger--engine-lane.webm",
         "endStill": "lineage-ledger--engine-lane-end.png",
         "beats": 3,
-        "leadSec": 2.04,
-        "storySec": 3.32,
+        "leadSec": 1.68,
+        "storySec": 3.33,
         "beatNodes": [
           "sql",
           "edg",
@@ -480,7 +480,7 @@ export const ARCHIFY = {
         "file": "lineage-ledger--ingest-lane.webm",
         "endStill": "lineage-ledger--ingest-lane-end.png",
         "beats": 4,
-        "leadSec": 2.08,
+        "leadSec": 1.76,
         "storySec": 4.43,
         "beatNodes": [
           "evt",
@@ -495,8 +495,8 @@ export const ARCHIFY = {
         "file": "lineage-ledger--ledger-and-blind.webm",
         "endStill": "lineage-ledger--ledger-and-blind-end.png",
         "beats": 3,
-        "leadSec": 2.4,
-        "storySec": 3.34,
+        "leadSec": 1.92,
+        "storySec": 3.33,
         "beatNodes": [
           "ledger",
           "q",
@@ -514,8 +514,8 @@ export const ARCHIFY = {
         "file": "open-interop--portable.webm",
         "endStill": "open-interop--portable-end.png",
         "beats": 4,
-        "leadSec": 2.2,
-        "storySec": 4.42,
+        "leadSec": 1.96,
+        "storySec": 4.43,
         "beatNodes": [
           "oss",
           "sys",
@@ -529,8 +529,8 @@ export const ARCHIFY = {
         "file": "open-interop--socket.webm",
         "endStill": "open-interop--socket-end.png",
         "beats": 4,
-        "leadSec": 3.2,
-        "storySec": 4.47,
+        "leadSec": 1.76,
+        "storySec": 4.43,
         "beatNodes": [
           "sv",
           "mcp",
@@ -544,8 +544,8 @@ export const ARCHIFY = {
         "file": "open-interop--feedback.webm",
         "endStill": "open-interop--feedback-end.png",
         "beats": 3,
-        "leadSec": 2.2,
-        "storySec": 3.34,
+        "leadSec": 1.72,
+        "storySec": 3.32,
         "beatNodes": [
           "fb",
           "sv",
@@ -563,8 +563,8 @@ export const ARCHIFY = {
         "file": "problem-to-mechanisms--cause-chain.webm",
         "endStill": "problem-to-mechanisms--cause-chain-end.png",
         "beats": 4,
-        "leadSec": 2.12,
-        "storySec": 4.42,
+        "leadSec": 1.92,
+        "storySec": 4.43,
         "beatNodes": [
           "sym-gap",
           "sym-acc",
@@ -578,8 +578,8 @@ export const ARCHIFY = {
         "file": "problem-to-mechanisms--encircle-pierce.webm",
         "endStill": "problem-to-mechanisms--encircle-pierce-end.png",
         "beats": 4,
-        "leadSec": 4.6,
-        "storySec": 4.46,
+        "leadSec": 1.72,
+        "storySec": 4.43,
         "beatNodes": [
           "pierce",
           "m2",
@@ -593,8 +593,8 @@ export const ARCHIFY = {
         "file": "problem-to-mechanisms--engine-cast.webm",
         "endStill": "problem-to-mechanisms--engine-cast-end.png",
         "beats": 4,
-        "leadSec": 2.12,
-        "storySec": 4.44,
+        "leadSec": 1.76,
+        "storySec": 4.43,
         "beatNodes": [
           "m1",
           "m2",
@@ -608,8 +608,8 @@ export const ARCHIFY = {
         "file": "problem-to-mechanisms--answer-ledger.webm",
         "endStill": "problem-to-mechanisms--answer-ledger-end.png",
         "beats": 3,
-        "leadSec": 3.56,
-        "storySec": 3.52,
+        "leadSec": 1.76,
+        "storySec": 3.31,
         "beatNodes": [
           "m4",
           "m5",
@@ -622,7 +622,7 @@ export const ARCHIFY = {
         "file": "problem-to-mechanisms--downgraded-lane.webm",
         "endStill": "problem-to-mechanisms--downgraded-lane-end.png",
         "beats": 3,
-        "leadSec": 2.0,
+        "leadSec": 1.76,
         "storySec": 3.32,
         "beatNodes": [
           "f10",
@@ -641,8 +641,8 @@ export const ARCHIFY = {
         "file": "resolve-activation--hit-reconcile.webm",
         "endStill": "resolve-activation--hit-reconcile-end.png",
         "beats": 3,
-        "leadSec": 2.16,
-        "storySec": 3.33,
+        "leadSec": 1.88,
+        "storySec": 3.31,
         "beatNodes": [
           "ag",
           "vq",
@@ -655,8 +655,8 @@ export const ARCHIFY = {
         "file": "resolve-activation--miss-fallback.webm",
         "endStill": "resolve-activation--miss-fallback-end.png",
         "beats": 2,
-        "leadSec": 2.0,
-        "storySec": 3.23,
+        "leadSec": 1.72,
+        "storySec": 3.22,
         "beatNodes": [
           "ag",
           "vq"
@@ -668,8 +668,8 @@ export const ARCHIFY = {
         "file": "resolve-activation--outside-eval.webm",
         "endStill": "resolve-activation--outside-eval-end.png",
         "beats": 1,
-        "leadSec": 2.0,
-        "storySec": 3.22,
+        "leadSec": 1.8,
+        "storySec": 3.21,
         "beatNodes": [
           "ev"
         ]
@@ -685,8 +685,8 @@ export const ARCHIFY = {
         "file": "row-column-policy--perpage.webm",
         "endStill": "row-column-policy--perpage-end.png",
         "beats": 4,
-        "leadSec": 2.12,
-        "storySec": 4.45,
+        "leadSec": 1.8,
+        "storySec": 4.43,
         "beatNodes": [
           "cal",
           "po",
@@ -700,8 +700,8 @@ export const ARCHIFY = {
         "file": "row-column-policy--family.webm",
         "endStill": "row-column-policy--family-end.png",
         "beats": 3,
-        "leadSec": 2.04,
-        "storySec": 3.35,
+        "leadSec": 1.76,
+        "storySec": 3.32,
         "beatNodes": [
           "po",
           "agp",
@@ -714,7 +714,7 @@ export const ARCHIFY = {
         "file": "row-column-policy--agentface.webm",
         "endStill": "row-column-policy--agentface-end.png",
         "beats": 3,
-        "leadSec": 1.88,
+        "leadSec": 1.8,
         "storySec": 3.32,
         "beatNodes": [
           "aid",

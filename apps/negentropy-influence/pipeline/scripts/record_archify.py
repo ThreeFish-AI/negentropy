@@ -4,7 +4,7 @@
   # 旧行为（整故事一段，逐字节兼容）
   uv run --with playwright python $R/record_archify.py <工程图.html 绝对路径> <输出.webm> <sidecar.json>
 
-  # 逐章录制（推荐）：每章一段 webm，片内 lead ≈ 0.2s
+  # 逐章录制（推荐）：每章一段 webm，片内 lead 约 2s（实测 1.96–4.60s，须测定不可估算）
   uv run --with playwright python $R/record_archify.py <html> <忽略> <sidecar.json> \
       --mode chapter --all-chapters --out-dir <目录> [--views <views.json>]
 
@@ -15,9 +15,15 @@
   - sidecar 记录 lead/story 秒数，供 Remotion OffthreadVideo trimBefore 裁掉片头空白
 
 为什么逐章而不是「整段录完再按时间戳切片」：
-  单段切片要求 trimBefore 能达 15s 量级，而 `trimBefore × playbackRate` 的换算次序一旦
-  理解偏差就被整段长度放大。逐章录制把片内 lead 压到 0.2s 量级 —— 同样的理解偏差只
-  造成 ≤2 帧误差。**难的对齐问题被消去，而不是被更精确地解决。**
+  单段切片的 trimBefore 要达 15s 量级，任何换算次序上的理解偏差都被整段长度放大；逐章
+  录制把它压到单章片头一次，**且这个 lead 是测出来的不是估出来的**——录完必须接着跑
+  scripts/archify_lead.py 用场记板白闪定位真实起点（14 图实测 1.96–4.60s，量级 ~2s）。
+  跳过测定就等于给每章片头留 2–4s 的页面加载与入场落定。
+
+末帧 PNG 必须与 webm **同构同框**（都截 1920x1080 整视口）：它是 ArchifyClip 在
+fit='hold' 时冻结补足用的素材，一旦改截 .diagram-container 元素，长宽比随图而异，
+进同一个 16:9 画框做 contain 就会在切换瞬间突跳（放大约 25% 且丢掉标题行与注释卡，
+2026-09-19 抽帧对拍发现）。
 
 另：playCurrent() 会置 data-share-playback="true"，CSS 据此关掉 ambient trace 入场描流
 （5 张图开了 trace），避免描流与引导故事叠放。
@@ -317,7 +323,8 @@ def record_chapters(browser, page_src, tmp, out_dir, slug, views, a) -> dict:
         t_done = time.time()
         page.wait_for_timeout(350)
         still = out_dir / f"{slug}--{cid}-end.png"
-        page.locator(".diagram-container").screenshot(path=str(still))
+        # 整视口截图：必须与 webm 同构同框，否则 fit='hold' 切换处突跳（见模块 docstring）
+        page.screenshot(path=str(still))
         beats = page.evaluate("() => window.__archify.beats")
         vpath = page.video.path()
         ctx.close()

@@ -1,9 +1,9 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 2.6,
- "story_sec": 13.31,
- "total_wall_sec": 69.62,
+ "lead_sec": 1.72,
+ "story_sec": 13.29,
+ "total_wall_sec": 34.21,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -16,14 +16,14 @@
    "end_still": "four-factor-ranking--signals-end.png",
    "beats": 5,
    "dwell_ms": 1100,
-   "lead_sec": 2.6,
-   "story_sec": 5.54,
+   "lead_sec": 1.72,
+   "story_sec": 5.53,
    "beat_offsets_sec": [
     0.0,
-    1.104,
-    2.211,
-    3.317,
-    4.421
+    1.102,
+    2.206,
+    3.308,
+    4.411
    ],
    "beat_nodes": [
     "q",
@@ -42,13 +42,13 @@
    "end_still": "four-factor-ranking--factors-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 2.04,
+   "lead_sec": 1.76,
    "story_sec": 4.43,
    "beat_offsets_sec": [
     0.0,
-    1.105,
-    2.208,
-    3.316
+    1.104,
+    2.207,
+    3.311
    ],
    "beat_nodes": [
     "rel",
@@ -66,12 +66,12 @@
    "end_still": "four-factor-ranking--topk-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 2.04,
-   "story_sec": 3.34,
+   "lead_sec": 1.92,
+   "story_sec": 3.33,
    "beat_offsets_sec": [
     0.0,
-    1.109,
-    2.214
+    1.105,
+    2.209
    ],
    "beat_nodes": [
     "score",

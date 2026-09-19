@@ -1,9 +1,9 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 2.2,
- "story_sec": 18.81,
- "total_wall_sec": 62.14,
+ "lead_sec": 1.76,
+ "story_sec": 18.79,
+ "total_wall_sec": 34.42,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -16,13 +16,13 @@
    "end_still": "component-panorama--caliber-spine-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 2.2,
-   "story_sec": 4.42,
+   "lead_sec": 1.76,
+   "story_sec": 4.41,
    "beat_offsets_sec": [
     0.0,
-    1.104,
-    2.207,
-    3.311
+    1.102,
+    2.204,
+    3.308
    ],
    "beat_nodes": [
     "ap",
@@ -40,15 +40,15 @@
    "end_still": "component-panorama--consumer-feed-end.png",
    "beats": 6,
    "dwell_ms": 1100,
-   "lead_sec": 2.56,
-   "story_sec": 6.65,
+   "lead_sec": 1.76,
+   "story_sec": 6.63,
    "beat_offsets_sec": [
     0.0,
-    1.105,
-    2.209,
-    3.312,
-    4.418,
-    5.524
+    1.102,
+    2.206,
+    3.309,
+    4.414,
+    5.516
    ],
    "beat_nodes": [
     "vqr",
@@ -68,14 +68,14 @@
    "end_still": "component-panorama--reserved-supply-end.png",
    "beats": 7,
    "dwell_ms": 1100,
-   "lead_sec": 2.0,
-   "story_sec": 7.74,
+   "lead_sec": 1.76,
+   "story_sec": 7.75,
    "beat_offsets_sec": [
     0.0,
     1.104,
-    2.206,
+    2.207,
     3.308,
-    4.412,
+    4.41,
     5.514,
     6.618
    ],

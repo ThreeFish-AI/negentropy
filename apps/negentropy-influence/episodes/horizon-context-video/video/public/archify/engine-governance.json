@@ -1,9 +1,9 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 2.68,
- "story_sec": 8.93,
- "total_wall_sec": 46.58,
+ "lead_sec": 1.92,
+ "story_sec": 8.85,
+ "total_wall_sec": 22.78,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -16,14 +16,14 @@
    "end_still": "engine-governance--governed-path-end.png",
    "beats": 5,
    "dwell_ms": 1100,
-   "lead_sec": 2.68,
-   "story_sec": 5.61,
+   "lead_sec": 1.92,
+   "story_sec": 5.53,
    "beat_offsets_sec": [
     0.0,
-    1.104,
-    2.209,
-    3.312,
-    4.415
+    1.102,
+    2.205,
+    3.308,
+    4.411
    ],
    "beat_nodes": [
     "cal",
@@ -42,12 +42,12 @@
    "end_still": "engine-governance--bypass-intercepted-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 1.96,
+   "lead_sec": 1.76,
    "story_sec": 3.32,
    "beat_offsets_sec": [
     0.0,
     1.103,
-    2.207
+    2.206
    ],
    "beat_nodes": [
     "cal",

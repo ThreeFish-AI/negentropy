@@ -1,9 +1,9 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 2.12,
- "story_sec": 20.16,
- "total_wall_sec": 103.09,
+ "lead_sec": 1.92,
+ "story_sec": 19.92,
+ "total_wall_sec": 50.4,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -16,13 +16,13 @@
    "end_still": "problem-to-mechanisms--cause-chain-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 2.12,
-   "story_sec": 4.42,
+   "lead_sec": 1.92,
+   "story_sec": 4.43,
    "beat_offsets_sec": [
     0.0,
     1.103,
-    2.207,
-    3.311
+    2.208,
+    3.312
    ],
    "beat_nodes": [
     "sym-gap",
@@ -40,13 +40,13 @@
    "end_still": "problem-to-mechanisms--encircle-pierce-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 4.6,
-   "story_sec": 4.46,
+   "lead_sec": 1.72,
+   "story_sec": 4.43,
    "beat_offsets_sec": [
     0.0,
-    1.111,
-    2.219,
-    3.326
+    1.105,
+    2.209,
+    3.312
    ],
    "beat_nodes": [
     "pierce",
@@ -64,13 +64,13 @@
    "end_still": "problem-to-mechanisms--engine-cast-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 2.12,
-   "story_sec": 4.44,
+   "lead_sec": 1.76,
+   "story_sec": 4.43,
    "beat_offsets_sec": [
     0.0,
-    1.105,
-    2.209,
-    3.315
+    1.103,
+    2.208,
+    3.311
    ],
    "beat_nodes": [
     "m1",
@@ -88,12 +88,12 @@
    "end_still": "problem-to-mechanisms--answer-ledger-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 3.56,
-   "story_sec": 3.52,
+   "lead_sec": 1.76,
+   "story_sec": 3.31,
    "beat_offsets_sec": [
     0.0,
-    1.109,
-    2.217
+    1.103,
+    2.206
    ],
    "beat_nodes": [
     "m4",
@@ -110,12 +110,12 @@
    "end_still": "problem-to-mechanisms--downgraded-lane-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 2.0,
+   "lead_sec": 1.76,
    "story_sec": 3.32,
    "beat_offsets_sec": [
     0.0,
-    1.104,
-    2.209
+    1.103,
+    2.206
    ],
    "beat_nodes": [
     "f10",

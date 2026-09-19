@@ -1,9 +1,9 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 2.2,
- "story_sec": 12.23,
- "total_wall_sec": 60.56,
+ "lead_sec": 1.96,
+ "story_sec": 12.18,
+ "total_wall_sec": 32.77,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -16,13 +16,13 @@
    "end_still": "open-interop--portable-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 2.2,
-   "story_sec": 4.42,
+   "lead_sec": 1.96,
+   "story_sec": 4.43,
    "beat_offsets_sec": [
     0.0,
-    1.105,
-    2.209,
-    3.312
+    1.103,
+    2.206,
+    3.309
    ],
    "beat_nodes": [
     "oss",
@@ -40,13 +40,13 @@
    "end_still": "open-interop--socket-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 3.2,
-   "story_sec": 4.47,
+   "lead_sec": 1.76,
+   "story_sec": 4.43,
    "beat_offsets_sec": [
     0.0,
-    1.115,
-    2.221,
-    3.325
+    1.104,
+    2.207,
+    3.31
    ],
    "beat_nodes": [
     "sv",
@@ -64,12 +64,12 @@
    "end_still": "open-interop--feedback-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 2.2,
-   "story_sec": 3.34,
+   "lead_sec": 1.72,
+   "story_sec": 3.32,
    "beat_offsets_sec": [
     0.0,
-    1.106,
-    2.21
+    1.104,
+    2.208
    ],
    "beat_nodes": [
     "fb",

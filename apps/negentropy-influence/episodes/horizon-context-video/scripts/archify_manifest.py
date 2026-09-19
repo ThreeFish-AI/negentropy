@@ -3,6 +3,7 @@
 静态导入的好处：章节 id 拼错在 `tsc --noEmit` 就红，不用等渲染才发现。
 录制或重测 lead 之后重跑本脚本即可。
 """
+
 import json
 from pathlib import Path
 
@@ -18,10 +19,16 @@ for f in sorted(SIDE.glob("*.json")):
     diagrams[d["slug"]] = {
         "slug": d["slug"],
         "chapters": [
-            {"id": c["id"], "label": c["label"], "file": c["file"],
-             "endStill": c["end_still"], "beats": c["beats"],
-             "leadSec": c["lead_sec"], "storySec": c["story_sec"],
-             "beatNodes": c["beat_nodes"]}
+            {
+                "id": c["id"],
+                "label": c["label"],
+                "file": c["file"],
+                "endStill": c["end_still"],
+                "beats": c["beats"],
+                "leadSec": c["lead_sec"],
+                "storySec": c["story_sec"],
+                "beatNodes": c["beat_nodes"],
+            }
             for c in d["chapters"]
         ],
     }
@@ -45,6 +52,7 @@ OUT.write_text(
     "export type ArchifyDiagram = {slug: string; chapters: ArchifyChapter[]};\n\n"
     f"export const ARCHIFY = {body} as const satisfies Record<string, ArchifyDiagram>;\n\n"
     "export type ArchifySlug = keyof typeof ARCHIFY;\n",
-    encoding="utf-8")
+    encoding="utf-8",
+)
 n = sum(len(v["chapters"]) for v in diagrams.values())
 print(f"✅ archify.manifest.ts：{len(diagrams)} 图 / {n} 章")

@@ -1,9 +1,9 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 1.92,
- "story_sec": 11.0,
- "total_wall_sec": 56.86,
+ "lead_sec": 1.8,
+ "story_sec": 10.97,
+ "total_wall_sec": 25.8,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -16,12 +16,12 @@
    "end_still": "autopilot-loop--inputs-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 1.92,
+   "lead_sec": 1.8,
    "story_sec": 3.33,
    "beat_offsets_sec": [
     0.0,
-    1.102,
-    2.204
+    1.104,
+    2.207
    ],
    "beat_nodes": [
     "in_zero",
@@ -38,13 +38,13 @@
    "end_still": "autopilot-loop--valgate-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 1.96,
-   "story_sec": 4.45,
+   "lead_sec": 1.8,
+   "story_sec": 4.43,
    "beat_offsets_sec": [
     0.0,
-    1.107,
-    2.213,
-    3.319
+    1.105,
+    2.209,
+    3.315
    ],
    "beat_nodes": [
     "validate",
@@ -62,11 +62,11 @@
    "end_still": "autopilot-loop--loop-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 1.88,
-   "story_sec": 3.22,
+   "lead_sec": 1.76,
+   "story_sec": 3.21,
    "beat_offsets_sec": [
     0.0,
-    1.604
+    1.605
    ],
    "beat_nodes": [
     "consume",

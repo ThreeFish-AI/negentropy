@@ -26,7 +26,7 @@ AUDIO = ROOT / "video" / "public" / "audio" / "manifest.json"
 RATE_MIN, RATE_MAX, MIN_FPS = 0.7, 1.35, 18.0
 
 sys.path.insert(0, str(ROOT.parent.parent / "pipeline" / "scripts"))
-import timeline
+import timeline  # noqa: E402  —— 必须在 sys.path 注入之后导入
 
 
 def load_manifest() -> dict:
@@ -66,7 +66,9 @@ def scene_cues() -> list[tuple[str, str, str]]:
         raise SystemExit(
             f"FAIL: 场景里声明了 {declared} 个 cue，只识别出 {len(out)} 个。\n"
             "      漏掉的写法请改成 `at: at('句id') - bX.from` + "
-            "`w('句id').durationInFrames`（单句 beat 与 `at: 0` 完全等价）。"
+            "`dur('句id')`（单句 beat 与 `at: 0` 完全等价；dur 是各 scene 里与 at "
+            "对称的取长辅助，不写 w('句id') 字面形态是为了不让 check_scenes 把镜内"
+            "叠加层登记成镜区间）。"
         )
     return out
 

@@ -1,9 +1,9 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 2.16,
- "story_sec": 17.62,
- "total_wall_sec": 65.05,
+ "lead_sec": 1.68,
+ "story_sec": 17.59,
+ "total_wall_sec": 40.53,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -16,8 +16,8 @@
    "end_still": "evolution-timeline--stage-objects-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 2.16,
-   "story_sec": 3.23,
+   "lead_sec": 1.68,
+   "story_sec": 3.21,
    "beat_offsets_sec": [
     0.0,
     1.603
@@ -37,18 +37,18 @@
    "beats": 10,
    "dwell_ms": 1100,
    "lead_sec": 1.88,
-   "story_sec": 11.07,
+   "story_sec": 11.05,
    "beat_offsets_sec": [
     0.0,
-    1.106,
-    2.21,
-    3.313,
-    4.418,
-    5.523,
-    6.627,
-    7.732,
-    8.836,
-    9.942
+    1.103,
+    2.207,
+    3.31,
+    4.412,
+    5.514,
+    6.617,
+    7.721,
+    8.824,
+    9.927
    ],
    "beat_nodes": [
     "ms3",
@@ -72,12 +72,12 @@
    "end_still": "evolution-timeline--stage-ecosystem-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 2.2,
-   "story_sec": 3.32,
+   "lead_sec": 1.96,
+   "story_sec": 3.33,
    "beat_offsets_sec": [
     0.0,
     1.103,
-    2.204
+    2.207
    ],
    "beat_nodes": [
     "ms12",
