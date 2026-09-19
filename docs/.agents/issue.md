@@ -4030,3 +4030,21 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
   5. 差值型进度（`max(0, a - b)`）的两个时长必须同源或显式错开，减项起点 ≥ 被减项终点。
   6. **「FAIL 0 · WARN 0」只是「没踩到已编码的判据」，不是画面正确性的证据**。承既有结论并补充本轮判据：新增视觉机制时，先问「如果它错了，现有哪条判据会响」——答案是「没有」就必须同时补判据或补目视清单。
 - **同类问题影响**：`useShake` 的 `decay` 陷阱对全仓所有视频工程成立（`motion/` 是 frozen 七文件，只能在调用点修）；`EvidenceBadge` × `inset` 的遮挡判据对后续新增任何画中画档位成立；`scene_cues()` 的计数断言范式适用于 `check_script.py` 的 `SCENE_CALL_RE` 等同类提取式门。`evolution-timeline` / `autopilot-loop` 未落镜按「文档改为 12 张进片 / 14 张录制 + 门常驻 WARN」处理，接进成片属编排决策未做。内容门的 28 条「分镜陈旧」WARN 为既有债（冻结集同样有 30 条），本轮未动。
+
+## ISSUE-188 ISSUE-187 复盘之后仍漏的两类画面缺陷：空镜与冻结素材异框（2026-09-19）
+
+- **表因**：horizon-context-video v3 交付材料再次全绿（`qa_frames --check` 七幕 + 尾幕 FAIL 0 · WARN 0、`check_archify` FAIL 0、`tsc` 绿、逐 cue K1/K4 像素差 29/29、信源双指纹吻合），代码评审逐帧复核又抓到两类：① **四个镜近乎空屏**——3-A / 4-D / 5-A / 5-E 只渲染 `SceneTag` + 一个 archify cue，cue 只覆盖其中一句，其余 2042 帧（≈68s，占全片 7.5%）画面上只有幕标题与字幕；② **`fit='hold'` 切到末帧的瞬间画面突跳**——末帧 PNG 截的是 `.diagram-container` 元素（1516×788 / 1440×998 / 1856×716 各异），webm 是 1920×1080 整视口，同进 `ArchifyClip` 的 16:9 画框做 `objectFit: contain` ⇒ 图表标题行与底部注释卡消失、图形放大约 25% 并被裁边，13/29 个 cue 走 hold、合计约 26s 冻结段逐个中招。
+- **根因**：
+  1. **「镜里有 archify cue」被当成了「镜有画面」**。这四镜恰好是全片仅有的「没有 `Stage`、只有 full 档 `ArchifyRecap`」的镜；storyboard 给它们都写了自制装置（逐页验放扫描仪 / 管网台账 / 工牌与万能钥匙 / 贴标流水线），重写时只落了 archify 那一拍。**覆盖率的统计单位错了**：镜级看「有内容」，句级才看得出 14 句空屏。
+  2. **冻结素材与运动素材不同构**。`page.locator(...).screenshot()` 与 `record_video_size` 是两套取景，长宽比随图而异；只要两者进同一个定比画框，`contain` 就必然在切换处跳一次。缺陷**只存在于两段素材的接缝上**，抽单帧永远看不到——K1/K4 自检把接缝两侧的差异读成了「句内有动效」的证据。
+  3. **数值门的判据与缺陷正交**（承 ISSUE-187 结论并补两条）：空屏帧不黑（底色 `#0E1116` + 幕标题 + 字幕）所以黑帧判据不响；字幕逐句变化所以冻帧哈希必然不同；K1/K4 只在 **cue 区间内**采样，从不落在无 cue 的句子上。
+  4. **提取式门的噪声被写成了文档基线而不是被消除**。`check_scenes` 把 cue 里的 `w('句id')` 字面量当成镜区间，恒定 28 条 WARN，storyboard 前言据此把验收基线写成「WARN ≤ 30 且全部属该类」——等于每次人工肉眼核对 28 行。而本仓早有现成约定（`claude-code-explained-video/P6Ending.tsx`：非 beat 用途不得写 `w('句id')` 字面形态）。
+  5. **新目录出现第一批真实逻辑时没有同步扩 lint 覆盖面**。`episodes/*/scripts/` 原先只有三个薄包装，`archify_lead` / `archify_manifest` / `check_archify` 落地后仍在所有 lint 门之外（钩子锚定 `^apps/negentropy-influence/pipeline/`），`archify_manifest.py` 已漂移。
+- **处理方式**：① 录制器末帧改截整视口（`page.screenshot()`），重录 14 图 / 43 章并重跑 `archify_lead` → `archify_manifest` → `check_archify`，43/43 末帧现为 1920×1080，hold 接缝前后帧对拍已同框；② 四镜按「母图推近 → archify full 锚句 → 机制装置」补齐，新增共享 `MechZoom` / `AskCard` 与本集 `PipeLedger` / `KeyVsBadge` / `IntakeBacklog` / `TagLine`，并把 `PageScanner` 改成可省略打码参数的「正演一次」形态与 3-B 共用同一 `Stage top`；③ 各 scene 加与 `at` 对称的 `dur('句id')` 取长辅助，29 处 cue 与新嵌套 Sequence 全部改用它，`check_scenes` WARN 28 → **0**，storyboard 基线同步收紧为「FAIL 0 + WARN 0」；④ pre-commit 的两个 influence ruff 钩子 `files:` 扩到 `^apps/negentropy-influence/(pipeline|episodes/[^/]+/scripts)/`。
+- **后续防范**：
+  1. **冻结/补位素材必须与它接续的运动素材同构同框**（同分辨率、同取景、同来源）。判据：两段素材进同一容器时，接缝两侧任取一帧，主体的位置与尺度必须逐像素可对齐。
+  2. **画面覆盖率按句统计，不按镜统计**。新增「本镜每一句是否都有至少一个非字幕、非幕标题的可见元素」这一问，作为镜级自检的第一问；「镜里挂了 archify」不构成回答。
+  3. **接缝类缺陷要抽成对的帧**。凡是「A 素材播完接 B 素材」的结构（hold 补足、跨镜同装置、archify 换章），抽帧计划必须是 `videoFrames-1` 与 `videoFrames` 成对，单点抽帧对它结构性失明。
+  4. **提取式门的噪声优先用命名约定消除，不要写成验收基线**。把「人工确认 N 行 WARN 都属某类」变成「WARN 必须为 0」，噪声才不会掩盖真漂移——本轮 `@breathe` 那条真 WARN 正是在 WARN 归零后才浮出来的（storyboard 声明了 P3 未调用的动词）。
+  5. **扩 lint 覆盖面前先排除证据快照类目录**：`episodes/*/research/source-archive/` 是按固定提交归档的第三方源码，实测有 116 处报错、12 个文件会被重排，进门即毁保真度；故用 `(pipeline|episodes/[^/]+/scripts)` 精确模式而非整棵子树。
+- **同类问题影响**：`ArchifyClip` 的 `endStill` 机制对后续任何集成立，改录制取景必须连带重录全部末帧；`dur('句id')` 约定应推广到所有用 `ArchifyRecap` 的集；`planning.md` §三 承诺的「母图全片出现 10 次（展开 1 + 每机制推近 7 + 合拢 1 + 塌方 1）」本轮补到 6 次（展开 1 + M2/M5/M6/M7 推近 4 + 塌方 1），**M1@2-A、M3@3-C、M4@4-A 三处推近与 P5 合拢仍缺**——那三镜本身有装置不空屏，属母题完整性欠账而非缺陷，另轮处理。3-B（p3-05..08，≈19.9s）扫描条 21 帧走完、p3-06/07/08 无专属动效且 storyboard 承诺的「代理识别灯 breathe」在代码里不存在，与本轮四镜同类，同样另轮处理。

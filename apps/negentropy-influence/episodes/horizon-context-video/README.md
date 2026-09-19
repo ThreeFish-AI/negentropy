@@ -3,14 +3,22 @@
 Context Layer 系列首集。信源为本仓 [Snowflake Horizon Context 精读笔记](../../../../docs/research/cognitive-context/011-horizon-context.md)
 与配套最小原型（B 型 · 仓内固定提交 `097076eb`），逐条断言回溯 [research/source-notes.md](./research/source-notes.md)。
 
-**交付状态**：v3 终渲待审（2026-09-19，评审意见修复后重渲）。
-**15:11.63 = 27349 帧 @30fps · 1920×1080 · 48.1 MB**。
+**交付状态**：v4 终渲待审（2026-09-19，代码评审两类画面缺陷修复后重录重渲，见 issue.md ISSUE-188）。
+**15:11.63 = 27349 帧 @30fps · 1920×1080 · 55.5 MB**（口播与音频 manifest 未动，时长与 v3 一致）。
 脚本层对齐 2026-09-17 重评选后的 M1–M7；187 句 / 4256 字 / 45 镜；
-archify 工程图逐章录制 14 张 / 43 章（182s），**进片 12 张 / 29 章**，29 个 cue 按「一章锚一句」与台词对齐。
+archify 工程图逐章录制 14 张 / 43 章，**进片 12 张 / 29 章**，29 个 cue 按「一章锚一句」与台词对齐。
 
-**验收**：七幕 + 尾幕抽帧体检 **FAIL 0 · WARN 0**（尾幕渐黑 PASS）· WCAG 七色全过 ·
+**v4 修了什么**：① 3-A / 4-D / 5-A / 5-E 四镜原先只渲染幕标题 + 一个 archify cue，其余 14 句
+共 2042 帧（≈68s）近乎空屏——现按「母图推近 → archify full 锚句 → 机制装置」补齐，
+`BuildingSection` 的「每机制推近」母题从 2 次补到 6 次；② 末帧 PNG 原先截 `.diagram-container`
+元素、与 1920×1080 的 webm 不同框，13 处 `fit='hold'` 冻结补足在接缝上突跳（图表标题行消失 +
+放大约 25%）——录制器改截整视口并重录全部 43 章；③ cue 改用 `dur('句id')` 取长，内容门
+WARN 28 → 0。
+
+**验收**：`check_script --check-scenes --check-motion` **FAIL 0 · WARN 0** ·
 `check_archify` FAIL 0（2 条 WARN = 两张录制留档未落镜，见 source-notes §十二）·
-逐 cue K1/K4 像素差自检 **29/29** 确认句内有动效（最小 1.23%）·
+`tsc --noEmit` 绿 · 七幕 + 尾幕抽帧体检 **FAIL 0 · WARN 0**（尾幕渐黑 PASS）· WCAG 七色全过 ·
+逐帧目视：原空屏 14 句 + 三处遮挡验证帧 + hold 接缝成对帧 + 两处存量母图镜零回归 ·
 估算与实测双口径均落在 `[13.0, 15.4]`（实测语速 303 字/分，与基线 301 吻合）。
 
 ## 目录
@@ -30,7 +38,8 @@ archify 工程图逐章录制 14 张 / 43 章（182s），**进片 12 张 / 29 �
 ## 复现
 
 ```bash
-I=apps/negentropy-influence; R=$I/pipeline/scripts; P=$I/episodes/horizon-context-video; V=$I/pipeline/voices
+# 仓库根执行。$I/$R/$V 的定义见 ../../pipeline/README.md 路径变量约定（唯一定义处）
+P=$I/episodes/horizon-context-video
 
 # ① 信源核验
 uv run --no-project $R/source_ledger.py --project $P verify
