@@ -1,0 +1,84 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 2.2,
+ "story_sec": 12.23,
+ "total_wall_sec": 60.56,
+ "started_playback": true,
+ "clapper_found": false,
+ "measured_fps": null,
+ "chapters": [
+  {
+   "id": "portable",
+   "label": "定义可携带",
+   "index": 0,
+   "file": "open-interop--portable.webm",
+   "end_still": "open-interop--portable-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 2.2,
+   "story_sec": 4.42,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.209,
+    3.312
+   ],
+   "beat_nodes": [
+    "oss",
+    "sys",
+    "sv",
+    "dbt"
+   ],
+   "measured_fps": null
+  },
+  {
+   "id": "socket",
+   "label": "受控工具面开放",
+   "index": 1,
+   "file": "open-interop--socket.webm",
+   "end_still": "open-interop--socket-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 3.2,
+   "story_sec": 4.47,
+   "beat_offsets_sec": [
+    0.0,
+    1.115,
+    2.221,
+    3.325
+   ],
+   "beat_nodes": [
+    "sv",
+    "mcp",
+    "ext",
+    "rbx"
+   ],
+   "measured_fps": null
+  },
+  {
+   "id": "feedback",
+   "label": "反馈回流",
+   "index": 2,
+   "file": "open-interop--feedback.webm",
+   "end_still": "open-interop--feedback-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 2.2,
+   "story_sec": 3.34,
+   "beat_offsets_sec": [
+    0.0,
+    1.106,
+    2.21
+   ],
+   "beat_nodes": [
+    "fb",
+    "sv",
+    "ada"
+   ],
+   "measured_fps": null
+  }
+ ],
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/osaka-v2/docs/assets/architecture/cognitive-context/horizon-context--open-interop.html",
+ "slug": "open-interop"
+}

@@ -1,0 +1,62 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 2.68,
+ "story_sec": 8.93,
+ "total_wall_sec": 46.58,
+ "started_playback": true,
+ "clapper_found": false,
+ "measured_fps": null,
+ "chapters": [
+  {
+   "id": "governed-path",
+   "label": "治理主路径",
+   "index": 0,
+   "file": "engine-governance--governed-path.webm",
+   "end_still": "engine-governance--governed-path-end.png",
+   "beats": 5,
+   "dwell_ms": 1100,
+   "lead_sec": 2.68,
+   "story_sec": 5.61,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.209,
+    3.312,
+    4.415
+   ],
+   "beat_nodes": [
+    "cal",
+    "flt",
+    "def",
+    "rb",
+    "out"
+   ],
+   "measured_fps": null
+  },
+  {
+   "id": "bypass-intercepted",
+   "label": "绕行仍被拦截",
+   "index": 1,
+   "file": "engine-governance--bypass-intercepted.webm",
+   "end_still": "engine-governance--bypass-intercepted-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 1.96,
+   "story_sec": 3.32,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.207
+   ],
+   "beat_nodes": [
+    "cal",
+    "byp",
+    "ax"
+   ],
+   "measured_fps": null
+  }
+ ],
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/osaka-v2/docs/assets/architecture/cognitive-context/horizon-context--engine-governance.html",
+ "slug": "engine-governance"
+}

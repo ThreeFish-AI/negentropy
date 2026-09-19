@@ -1,0 +1,32 @@
+[
+ {
+  "id": "inputs",
+  "label": "六路输入面",
+  "focus": [
+   "in_zero",
+   "in_bi",
+   "in_pairs"
+  ],
+  "note": "从零起步、BI 模型文件、问答对与既有语义模型。"
+ },
+ {
+  "id": "valgate",
+  "label": "验证门与入库",
+  "focus": [
+   "validate",
+   "discard",
+   "sv",
+   "vqr"
+  ],
+  "note": "无效查询丢弃，有效者铸成语义视图与验证问答。"
+ },
+ {
+  "id": "loop",
+  "label": "激活与反馈回流",
+  "focus": [
+   "consume",
+   "vqr"
+  ],
+  "note": "使用反馈回流为 Suggestions 候选。"
+ }
+]

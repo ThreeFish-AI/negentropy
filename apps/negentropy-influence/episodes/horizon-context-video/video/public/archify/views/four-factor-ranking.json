@@ -1,0 +1,35 @@
+[
+ {
+  "id": "signals",
+  "label": "四路信号来源",
+  "focus": [
+   "q",
+   "gov",
+   "inf",
+   "use",
+   "tm"
+  ],
+  "note": "问题、权威度、热度与更新时钟分别入场。"
+ },
+ {
+  "id": "factors",
+  "label": "四因子称重",
+  "focus": [
+   "rel",
+   "aut",
+   "pop",
+   "fre"
+  ],
+  "note": "相关性 0.4 / 权威 0.3 / 流行 0.2 / 新鲜 0.1。"
+ },
+ {
+  "id": "topk",
+  "label": "合成与显式裁决",
+  "focus": [
+   "score",
+   "tie",
+   "topk"
+  ],
+  "note": "加权合成后经 tie-break 输出有序上下文包。"
+ }
+]

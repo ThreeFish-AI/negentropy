@@ -1,7 +1,84 @@
 {
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/podgorica-v1/docs/assets/architecture/paper-notes/horizon-context--collect-enrich-activate.html",
- "lead_sec": 3.65,
- "story_sec": 13.42,
- "total_wall_sec": 17.65,
- "started_playback": true
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 2.04,
+ "story_sec": 12.22,
+ "total_wall_sec": 47.28,
+ "started_playback": true,
+ "clapper_found": false,
+ "measured_fps": null,
+ "chapters": [
+  {
+   "id": "collect",
+   "label": "三路元数据汇聚",
+   "index": 0,
+   "file": "collect-enrich-activate--collect.webm",
+   "end_still": "collect-enrich-activate--collect-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 2.04,
+   "story_sec": 4.44,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.207,
+    3.316
+   ],
+   "beat_nodes": [
+    "s1",
+    "s2",
+    "s3",
+    "c"
+   ],
+   "measured_fps": null
+  },
+  {
+   "id": "enrich",
+   "label": "双轨富化与冲突浮出",
+   "index": 1,
+   "file": "collect-enrich-activate--enrich.webm",
+   "end_still": "collect-enrich-activate--enrich-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 2.48,
+   "story_sec": 3.34,
+   "beat_offsets_sec": [
+    0.0,
+    1.109,
+    2.217
+   ],
+   "beat_nodes": [
+    "c",
+    "g",
+    "i"
+   ],
+   "measured_fps": null
+  },
+  {
+   "id": "activate",
+   "label": "排序后激活",
+   "index": 2,
+   "file": "collect-enrich-activate--activate.webm",
+   "end_still": "collect-enrich-activate--activate-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 2.92,
+   "story_sec": 4.44,
+   "beat_offsets_sec": [
+    0.0,
+    1.109,
+    2.215,
+    3.318
+   ],
+   "beat_nodes": [
+    "r",
+    "a1",
+    "a2",
+    "a3"
+   ],
+   "measured_fps": null
+  }
+ ],
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/osaka-v2/docs/assets/architecture/cognitive-context/horizon-context--collect-enrich-activate.html",
+ "slug": "collect-enrich-activate"
 }

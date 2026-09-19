@@ -1,0 +1,130 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 2.12,
+ "story_sec": 20.16,
+ "total_wall_sec": 103.09,
+ "started_playback": true,
+ "clapper_found": false,
+ "measured_fps": null,
+ "chapters": [
+  {
+   "id": "cause-chain",
+   "label": "病因链",
+   "index": 0,
+   "file": "problem-to-mechanisms--cause-chain.webm",
+   "end_still": "problem-to-mechanisms--cause-chain-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 2.12,
+   "story_sec": 4.42,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.207,
+    3.311
+   ],
+   "beat_nodes": [
+    "sym-gap",
+    "sym-acc",
+    "sym-col",
+    "verdict"
+   ],
+   "measured_fps": null
+  },
+  {
+   "id": "encircle-pierce",
+   "label": "病灶③合围",
+   "index": 1,
+   "file": "problem-to-mechanisms--encircle-pierce.webm",
+   "end_still": "problem-to-mechanisms--encircle-pierce-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 4.6,
+   "story_sec": 4.46,
+   "beat_offsets_sec": [
+    0.0,
+    1.111,
+    2.219,
+    3.326
+   ],
+   "beat_nodes": [
+    "pierce",
+    "m2",
+    "m3",
+    "m6"
+   ],
+   "measured_fps": null
+  },
+  {
+   "id": "engine-cast",
+   "label": "铸入引擎",
+   "index": 2,
+   "file": "problem-to-mechanisms--engine-cast.webm",
+   "end_still": "problem-to-mechanisms--engine-cast-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 2.12,
+   "story_sec": 4.44,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.209,
+    3.315
+   ],
+   "beat_nodes": [
+    "m1",
+    "m2",
+    "m3",
+    "m6"
+   ],
+   "measured_fps": null
+  },
+  {
+   "id": "answer-ledger",
+   "label": "应答与纳管",
+   "index": 3,
+   "file": "problem-to-mechanisms--answer-ledger.webm",
+   "end_still": "problem-to-mechanisms--answer-ledger-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 3.56,
+   "story_sec": 3.52,
+   "beat_offsets_sec": [
+    0.0,
+    1.109,
+    2.217
+   ],
+   "beat_nodes": [
+    "m4",
+    "m5",
+    "m7"
+   ],
+   "measured_fps": null
+  },
+  {
+   "id": "downgraded-lane",
+   "label": "降级专章",
+   "index": 4,
+   "file": "problem-to-mechanisms--downgraded-lane.webm",
+   "end_still": "problem-to-mechanisms--downgraded-lane-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 2.0,
+   "story_sec": 3.32,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.209
+   ],
+   "beat_nodes": [
+    "f10",
+    "f11",
+    "f12"
+   ],
+   "measured_fps": null
+  }
+ ],
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/osaka-v2/docs/assets/architecture/cognitive-context/horizon-context--problem-to-mechanisms.html",
+ "slug": "problem-to-mechanisms"
+}

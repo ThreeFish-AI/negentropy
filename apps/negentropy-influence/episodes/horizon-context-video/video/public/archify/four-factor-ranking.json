@@ -1,0 +1,86 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 2.6,
+ "story_sec": 13.31,
+ "total_wall_sec": 69.62,
+ "started_playback": true,
+ "clapper_found": false,
+ "measured_fps": null,
+ "chapters": [
+  {
+   "id": "signals",
+   "label": "四路信号来源",
+   "index": 0,
+   "file": "four-factor-ranking--signals.webm",
+   "end_still": "four-factor-ranking--signals-end.png",
+   "beats": 5,
+   "dwell_ms": 1100,
+   "lead_sec": 2.6,
+   "story_sec": 5.54,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.211,
+    3.317,
+    4.421
+   ],
+   "beat_nodes": [
+    "q",
+    "gov",
+    "inf",
+    "use",
+    "tm"
+   ],
+   "measured_fps": null
+  },
+  {
+   "id": "factors",
+   "label": "四因子称重",
+   "index": 1,
+   "file": "four-factor-ranking--factors.webm",
+   "end_still": "four-factor-ranking--factors-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 2.04,
+   "story_sec": 4.43,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.208,
+    3.316
+   ],
+   "beat_nodes": [
+    "rel",
+    "aut",
+    "pop",
+    "fre"
+   ],
+   "measured_fps": null
+  },
+  {
+   "id": "topk",
+   "label": "合成与显式裁决",
+   "index": 2,
+   "file": "four-factor-ranking--topk.webm",
+   "end_still": "four-factor-ranking--topk-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 2.04,
+   "story_sec": 3.34,
+   "beat_offsets_sec": [
+    0.0,
+    1.109,
+    2.214
+   ],
+   "beat_nodes": [
+    "score",
+    "tie",
+    "topk"
+   ],
+   "measured_fps": null
+  }
+ ],
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/osaka-v2/docs/assets/architecture/cognitive-context/horizon-context--four-factor-ranking.html",
+ "slug": "four-factor-ranking"
+}

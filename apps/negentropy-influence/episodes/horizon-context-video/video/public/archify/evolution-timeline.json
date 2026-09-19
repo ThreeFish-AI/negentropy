@@ -1,0 +1,92 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 2.16,
+ "story_sec": 17.62,
+ "total_wall_sec": 65.05,
+ "started_playback": true,
+ "clapper_found": false,
+ "measured_fps": null,
+ "chapters": [
+  {
+   "id": "stage-objects",
+   "label": "阶段一 · 对象化",
+   "index": 0,
+   "file": "evolution-timeline--stage-objects.webm",
+   "end_still": "evolution-timeline--stage-objects-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 2.16,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "ms1",
+    "ms2"
+   ],
+   "measured_fps": null
+  },
+  {
+   "id": "stage-governed-enrich",
+   "label": "阶段二 · 通道与富化",
+   "index": 1,
+   "file": "evolution-timeline--stage-governed-enrich.webm",
+   "end_still": "evolution-timeline--stage-governed-enrich-end.png",
+   "beats": 10,
+   "dwell_ms": 1100,
+   "lead_sec": 1.88,
+   "story_sec": 11.07,
+   "beat_offsets_sec": [
+    0.0,
+    1.106,
+    2.21,
+    3.313,
+    4.418,
+    5.523,
+    6.627,
+    7.732,
+    8.836,
+    9.942
+   ],
+   "beat_nodes": [
+    "ms3",
+    "ms4",
+    "ms5",
+    "ms6",
+    "ms7a",
+    "ms7b",
+    "ms8",
+    "ms9",
+    "ms10",
+    "ms11"
+   ],
+   "measured_fps": null
+  },
+  {
+   "id": "stage-ecosystem",
+   "label": "阶段三 · 生态开放",
+   "index": 2,
+   "file": "evolution-timeline--stage-ecosystem.webm",
+   "end_still": "evolution-timeline--stage-ecosystem-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 2.2,
+   "story_sec": 3.32,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.204
+   ],
+   "beat_nodes": [
+    "ms12",
+    "ms13",
+    "ms14"
+   ],
+   "measured_fps": null
+  }
+ ],
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/osaka-v2/docs/assets/architecture/cognitive-context/horizon-context--evolution-timeline.html",
+ "slug": "evolution-timeline"
+}

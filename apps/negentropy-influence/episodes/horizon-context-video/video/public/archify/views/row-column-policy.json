@@ -1,0 +1,33 @@
+[
+ {
+  "id": "perpage",
+  "label": "逐页验放",
+  "focus": [
+   "cal",
+   "po",
+   "msk",
+   "rap"
+  ],
+  "note": "机密列打码、越权行扣留，任何窗口同一套规则。"
+ },
+ {
+  "id": "family",
+  "label": "同族策略对象",
+  "focus": [
+   "po",
+   "agp",
+   "out"
+  ],
+  "note": "聚合与投影策略限定可输出粒度与列集合。"
+ },
+ {
+  "id": "agentface",
+  "label": "代理叠加更严拒绝面",
+  "focus": [
+   "aid",
+   "po",
+   "cls"
+  ],
+  "note": "IS_AGENT_ACTIVATED 谓词 + 标签绑定供给。"
+ }
+]
