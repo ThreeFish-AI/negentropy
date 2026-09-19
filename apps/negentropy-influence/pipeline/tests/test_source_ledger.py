@@ -23,7 +23,7 @@ EP1_PROJECT = INFLUENCE / "episodes" / "claude-code-explained-video"
 REAL_MAP = INFLUENCE / "source-map" / "claude-code-explained.toml"
 
 #: 最小系列地图夹具：2 pin × 3 章（ep1 1 章 + ep2 2 章），sitePaths 含多路径章。
-FIXTURE_MAP = """
+FIXTURE_MAP = f"""
 seriesId = "fixture-series"
 repo = "https://github.com/o/r"
 rawBase = "https://raw.githubusercontent.com/o/r"
@@ -63,7 +63,7 @@ id = "s06_subagent"
 slug = "s06"
 episode = 2
 sitePaths = ["s06"]
-""".format(SHA=SHA, SHA2=SHA2)
+"""
 
 
 def fake_http(monkeypatch, payload: bytes):
@@ -377,13 +377,17 @@ def test_real_map_and_ep1_ledger_are_mutually_auditable():
 
 
 def test_real_map_derives_ep1_urls_byte_identical():
-    """派生 URL 与已交付 12 条逐字节一致（audit 只查名与钉，URL 兼容须另证）。"""
+    """派生 URL 与已交付台账逐字节一致（audit 只查名与钉，URL 兼容须另证）。
+
+    台账 = 12 条派生 + 6 条手工信源（PR #1127 官方口径勘误补录），故断言取
+    ≥ 而非 ==——手工补录是合法增长，硬编码总数会在下一次补录时再红一次。
+    """
     smap = sl.load_source_map(REAL_MAP)
     want = sl.derived_entries(smap, 1)
     ledger = tomllib.loads(
         (EP1_PROJECT / "research" / "sources.toml").read_text(encoding="utf-8")
     )
-    assert len(ledger) == 12 and len(want) == 12
+    assert len(want) == 12 and len(ledger) >= len(want)
     for name, spec in want.items():
         assert ledger[name]["url"] == spec["url"], name
 

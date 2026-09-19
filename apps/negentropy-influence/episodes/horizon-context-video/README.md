@@ -72,4 +72,4 @@ uv run --no-project $R/pipeline.py --project $P captions
 2. 时序常数只在 `video/src/timing.json`；口播永不出现他集标题与集数序号（`check_series.py` 规则 1）。
 3. **破坏性实验编号（D1–D10）与裸 `Context`/`Agent` 不进口播**——只进角标与终端输出。
 4. 每个承重机制必须走满四拍：类比 → 机制不变量 → 破坏性实验反证 → 一句话收口。
-5. 改骨架前先跑 `verify_skeleton.py`；archify 回放改动后必须重跑 `archify_manifest.py`。
+5. 改骨架前先跑 `verify_skeleton.py`；archify 回放改动后必须重跑 `archify_manifest.py`；图例对逐字稿的覆盖/丰富/匹配（含分镜 archify 标注对账）已由 `pipeline.py check` 自动串联（check_archify_coverage.py，阈值见 pipeline.toml `[archify]`）。

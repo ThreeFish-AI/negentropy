@@ -48,11 +48,10 @@ import config  # noqa: E402 - 同目录模块，须在 sys.path 注入之后
 from pron_marks import scan_candidates, validate  # noqa: E402
 from timeline import load_constants, total_duration_in_frames  # noqa: E402
 
-#: 分镜表行：| 镜号 | 句区间 | 画面 | 动效 |。镜号形如 `0-A`/`2-B2`，句区间形如
-#: `p0-01..03`（右端可为裸编号，须补幕前缀）、`p6-06a..06d`、单句 `p6-07`。
-BEAT_ROW_RE = re.compile(
-    r"^\|\s*(\d+-[A-Z]\d*)[^|]*\|\s*(p\d+-[0-9a-z-]+(?:\.\.[0-9a-z-]+)?)\s*([^|]*)\|"
-)
+#: 分镜表行：| 镜号 | 句区间 | 画面 | 动效 |。镜号形如 `0-A`/`2-B2`。
+ROW_RE = re.compile(r"^\|\s*(\d+-[A-Z]\d*)[^|]*\|([^|]*)\|([^|]*)\|")
+#: 句区间单元格：`p0-01..03`（右端可为裸编号，须补幕前缀）、`p6-06a..06d`、单句 `p6-07`。
+SPAN_RE = re.compile(r"^\s*(p\d+-[0-9a-z-]+(?:\.\.[0-9a-z-]+)?)\s*([^|]*)$")
 #: 场景组件里的 beat 调用。实际形如 `w('p0-01', 'p0-04')`（各场景统一先定义
 #: `const w = (fromId, toId?) => beatWindow(scene.sentences, scene.from, …)` 再使用），
 #: 故匹配任意 `\w(...)` 调用并要求参数为 1–2 个单引号句 id。
@@ -69,22 +68,46 @@ def warn(msgs: list[str], text: str) -> None:
     msgs.append(f"WARN {text}")
 
 
+def _rows(path: Path) -> list[tuple[str, str, str]]:
+    """→ [(镜号, 句区间单元格, 画面单元格)]。行集 = 镜号/句区间/画面三列齐全的行。
+
+    画面列在此一并取出：覆盖门（check_archify_coverage）的分镜声明对账要读它，
+    单独再写一个行正则就是第二解析器——分叉即 split-brain。"""
+    out: list[tuple[str, str, str]] = []
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        if m := ROW_RE.match(raw):
+            out.append((m.group(1), m.group(2), m.group(3)))
+    return out
+
+
 def parse_storyboard(path: Path) -> list[tuple[str, str, str, str]]:
     """返回 [(镜号, 起句id, 止句id, 区间单元格原文)]。单元格原文含「尾」= 刻意压尾标注。"""
     beats: list[tuple[str, str, str, str]] = []
-    for raw in path.read_text(encoding="utf-8").splitlines():
-        if m := BEAT_ROW_RE.match(raw):
-            beat_id, span, cell = m.group(1), m.group(2), (m.group(2) + m.group(3))
-            if ".." in span:
-                left, _, right = span.partition("..")
-                # 右端可为裸编号（p0-01..03）——须补幕前缀，否则永远匹配不到句子
-                if not right.startswith("p"):
-                    scene = SCENE_OF_RE.match(left).group(1)  # type: ignore[union-attr]
-                    right = f"{scene}-{right}"
-            else:
-                left = right = span
-            beats.append((beat_id, left, right, cell))
+    for beat_id, span_cell, _visual in _rows(path):
+        sm = SPAN_RE.match(span_cell)
+        if not sm:
+            continue
+        span, cell = sm.group(1), (sm.group(1) + sm.group(2))
+        if ".." in span:
+            left, _, right = span.partition("..")
+            # 右端可为裸编号（p0-01..03）——须补幕前缀，否则永远匹配不到句子
+            if not right.startswith("p"):
+                scene = SCENE_OF_RE.match(left).group(1)  # type: ignore[union-attr]
+                right = f"{scene}-{right}"
+        else:
+            left = right = span
+        beats.append((beat_id, left, right, cell))
     return beats
+
+
+def parse_storyboard_visual(path: Path) -> list[tuple[str, str]]:
+    """→ [(镜号, 画面列原文)]。行集与 parse_storyboard 完全一致（同一 _rows + SPAN_RE
+    过滤，索引按序对齐）——覆盖门从画面列抽 `·**archify …**` 声明。"""
+    out: list[tuple[str, str]] = []
+    for beat_id, span_cell, visual in _rows(path):
+        if SPAN_RE.match(span_cell):
+            out.append((beat_id, visual))
+    return out
 
 
 def check_coverage(

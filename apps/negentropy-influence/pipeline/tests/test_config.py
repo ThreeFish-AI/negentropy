@@ -302,7 +302,7 @@ def test_missing_config_announces_skipped_gate(project):
 #: `config.default()`。节名（tts/render/…）的 `.get(sec, {})` 不在此列——那是取节。
 _LEAF_KEYS = {k.split(".", 1)[1] for k, *_ in config.SCHEMA}
 _GET_WITH_DEFAULT = re.compile(r'\.get\(\s*"(?P<key>[a-z_]+)"\s*,\s*(?P<dflt>[^)]+)')
-CONSUMERS = ("pipeline.py", "check_script.py")
+CONSUMERS = ("pipeline.py", "check_script.py", "check_archify_coverage.py")
 
 
 def test_consumers_do_not_inline_schema_defaults():
@@ -336,3 +336,34 @@ def test_default_accessor_matches_schema_and_rejects_unknown():
         assert config.default(dotted) == dflt
     with pytest.raises(KeyError):
         config.default("tts.styl")
+
+
+# ---------------- [archify] 取值域（覆盖门的阈值键） ----------------
+
+
+def test_archify_ratio_domain_validated():
+    """比率键越 [0,1] / 豁免幕名不是 P<n> → validate 直接红（覆盖门前置）。"""
+    from pathlib import Path as _P
+
+    import tomllib as _t
+
+    raw = _t.loads(
+        '[archify]\nmin_anchor_ratio = 1.5\nexempt_scenes = ["P6", "第六幕"]\n'
+    )
+    cfg, _origin = config.resolve(raw)
+    fails, _warns = config.validate(cfg, raw, _P("."), scope={"archify"})
+    assert any("min_anchor_ratio" in f and "[0, 1]" in f for f in fails), fails
+    assert any("exempt_scenes" in f for f in fails), fails
+
+
+def test_archify_defaults_are_loose_floors():
+    """默认值是宽松地板（1 图/2 cue/10%/30%）：任何用 archify 的小体量集不误伤。"""
+    for dotted, want in {
+        "archify.min_diagrams": 1,
+        "archify.min_cues": 2,
+        "archify.min_anchor_ratio": 0.10,
+        "archify.min_chapter_ratio": 0.30,
+        "archify.per_scene_min_anchors": 1,
+        "archify.exempt_scenes": [],
+    }.items():
+        assert config.default(dotted) == want, dotted

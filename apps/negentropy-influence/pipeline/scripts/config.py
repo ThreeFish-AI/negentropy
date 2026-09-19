@@ -33,8 +33,10 @@ schema 是「pipeline.py 与 check_script.py 里 `.get()` 调用的并集」：�
 from __future__ import annotations
 
 import os
-import tomllib
+import re
 from pathlib import Path
+
+import tomllib
 
 #: (点分键路径, 类型, 默认值, 必填条件, 说明)
 #: 必填条件：True = 恒必填；str = 条件表达式（当前只支持 "engine==indextts"）；False = 可选
@@ -62,6 +64,42 @@ SCHEMA: tuple[tuple[str, type, object, object, str], ...] = (
     ),
     ("render.draft_scale", float, 0.5, False, "机制常数；qa --scale 推断依赖它"),
     ("render.draft_jpeg_quality", int, 60, False, "机制常数"),
+    (
+        "archify.min_diagrams",
+        int,
+        1,
+        False,
+        "丰富度地板：views 图数下限；目标值由本集 toml 覆写（策略声明）",
+    ),
+    ("archify.min_cues", int, 2, False, "cue 总数下限；同上"),
+    (
+        "archify.min_anchor_ratio",
+        float,
+        0.10,
+        False,
+        "句级锚定率下限 ∈ [0,1]（ISSUE-188：覆盖率按句统计，不按镜统计）",
+    ),
+    (
+        "archify.min_chapter_ratio",
+        float,
+        0.30,
+        False,
+        "被 cue 引用章 / 总章 下限 ∈ [0,1]",
+    ),
+    (
+        "archify.per_scene_min_anchors",
+        int,
+        1,
+        False,
+        "每幕最少锚句数；整幕零锚即 FAIL（豁免须 exempt_scenes 显式声明）",
+    ),
+    (
+        "archify.exempt_scenes",
+        list,
+        [],
+        False,
+        '豁免零锚判定的幕名（如 ["P6"]）；豁免会在覆盖门输出里点名',
+    ),
 )
 
 #: 环境变量覆盖：仅限「机器属性」类键，不进受版本控制的 toml
@@ -209,6 +247,15 @@ def validate(
     sha = _get(cfg, "tts.ref_sha1") if in_scope("tts.x") else None
     if isinstance(sha, str) and len(sha) != 12:
         fails.append(f"tts.ref_sha1 应为 12 位（同 tts.py 口径），实际 {len(sha)} 位")
+    for rk in ("archify.min_anchor_ratio", "archify.min_chapter_ratio"):
+        rv = _get(cfg, rk) if in_scope("archify.x") else None
+        if isinstance(rv, (int, float)) and not (0 <= rv <= 1):
+            fails.append(f"{rk} 应落在 [0, 1]，实际 {rv}")
+    ex = _get(cfg, "archify.exempt_scenes") if in_scope("archify.x") else None
+    if isinstance(ex, list) and not all(
+        isinstance(x, str) and re.fullmatch(r"P\d+", x) for x in ex
+    ):
+        fails.append(f"archify.exempt_scenes 元素应为幕名 P<n>，实际 {ex}")
 
     # 身份校验：把一份「无人读取的死数据」变成 toml 与工程目录之间的连接件。
     # 它防的不是运行期 bug（没人读 slug），而是**手抄来的陈旧 toml 看起来很权威**

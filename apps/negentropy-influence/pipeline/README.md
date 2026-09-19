@@ -85,6 +85,7 @@ uv run --no-project $R/pipeline.py --project $P     {status|doctor|build|check|t
 | [scripts/pipeline.py](./scripts/pipeline.py)             | **单入口编排**（上表）                                                                                                  | `uv run --no-project $R/pipeline.py --project $P tts --plan`                                                      |
 | [scripts/timeline.py](./scripts/timeline.py)             | 时间轴 Python 侧实现（与 timing.ts 同构，直读 timing.json）                                                            | 被 qa_frames/captions/check_script 复用                                                                                                          |
 | [scripts/check_script.py](./scripts/check_script.py)     | ④⑤ 内容门：beat 覆盖性 / 时长预算双口径 / SceneFade 不变式 / `--check-scenes` 分镜↔代码互比                            | `uv run --no-project scripts/check_script.py --check-scenes`                                                                                   |
+| [scripts/check_archify_coverage.py](./scripts/check_archify_coverage.py) | archify 覆盖门（`check` 子命令在内容门后**自动串联**，无 flag）：图例对逐字稿的句级锚定率（整幕零锚 FAIL）/ 图与 cue 丰富度地板 / 分镜声明↔cue 双向对账 + 章节播放单调性；无资产集干净跳过，旧形态（仅 sidecar）点名 WARN 跳过 | `uv run --no-project $R/check_archify_coverage.py --project $P` |
 | [scripts/check_series.py](./scripts/check_series.py)     | 系列一致性六规则（口播反串线 / 多标题顺序 / 序号绑定 / 清单完整性 / 死链 / 可渲染性），执法 [../series.json](../series.json)         | 仓库根：`uv run --no-project $R/check_series.py`（已挂 pre-commit）                                                          |
 | [scripts/captions.py](./scripts/captions.py)             | 导出 srt/vtt（cue 终点不含句间停顿——外挂字幕静默期不留字）                                                             | `uv run --no-project scripts/captions.py`                                                                                                        |
 | [scripts/qa_frames.py](./scripts/qa_frames.py)           | 抽帧 QA（幕/句/`--last-n` 末 N 句）+ `--check` 四项自动体检 + `--check-theme` WCAG 对比度                               | `uv run --no-project --with pillow --with numpy scripts/qa_frames.py out/draft.mp4 --last-n 6 --check`（工程根；视频路径按 CWD 解析，仓库根调用写全 `$P/out/draft.mp4`）                                          |
@@ -113,6 +114,12 @@ schema、默认值与校验的单一事实源是 [scripts/config.py](./scripts/c
 | `tts.server` | | `http://127.0.0.1:8766` | **机器属性**：可用 `INDEXTTS_SERVER` 覆盖，永不写进 toml |
 | `render.draft_scale` | | `0.5` | 机制常数（`qa --scale` 推断依赖它） |
 | `render.draft_jpeg_quality` | | `60` | 机制常数 |
+| `archify.min_diagrams` | | `1` | 丰富度地板：views 图数下限；目标值由本集 toml 覆写（策略声明） |
+| `archify.min_cues` | | `2` | cue 总数下限；同上 |
+| `archify.min_anchor_ratio` | | `0.10` | 句级锚定率下限 ∈ [0,1]（ISSUE-188：按句统计） |
+| `archify.min_chapter_ratio` | | `0.30` | 被 cue 引用章 / 总章 下限 |
+| `archify.per_scene_min_anchors` | | `1` | 每幕最少锚句数（整幕零锚 FAIL） |
+| `archify.exempt_scenes` | | `[]` | 豁免零锚判定的幕名（如 `["P6"]`）；豁免在覆盖门输出里点名 |
 
 未知键报 WARN 并给最近邻建议（保留前向兼容）；类型/取值域/必填/slug 不符报 FAIL。`status` 与 `doctor` 只报不退——诊断工具因被诊断对象有病而拒绝运行是荒谬的；其余子命令 FAIL 即退出。
 
