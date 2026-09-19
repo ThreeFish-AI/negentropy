@@ -1,204 +1,173 @@
-/** P0 冷开场：钥匙给了，还是答错（分镜 0-A…0-D）
- *  三十秒内完成：终端问答 → 自信错答红叉 → 列名乱码墙 → 口径分叉 → 片名。
- *  视觉锚：`manual` 金只在「含义」出现时使用——全片色彩语义的第一次亮相。 */
+/** P0 钥匙给了，还是答错（p0-01..10）——guided-learn Phase 0「准入体检」的视频形态：
+ *  不讲机制，先让观众亲身失语一次（看不懂的物理列名墙）。 */
 import React from 'react';
-import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
-import {theme} from '../design/theme';
-import {beatWindow} from '../timing';
+import {AbsoluteFill, Sequence} from 'remotion';
 import type {SceneRange} from '../types';
+import {beatWindow} from '../timing';
+import {theme} from '../design/theme';
+import {DUR, useBreathe, useDraw, useImpulse, useProgress, useReveal, useSpring, useStagger} from '../motion';
 import {Panel} from '../components/motifs';
-import {DUR, progress, useImpulse, useProgress, useSpring, useStagger, useTravel} from '../motion';
+import {EvidenceBadge, Stage} from '../components/devices';
 
-/** 0-A 终端问答：自信错答打勾 → 基线角标 → 勾爆红叉 */
-const AskAndMiss: React.FC<{missAt: number}> = ({missAt}) => {
-  const frame = useCurrentFrame();
-  const q = progress(frame, 4, 26);
-  const qText = '上个季度毛收入多少？'.slice(0, Math.floor(q * 10));
-  const answerAt = 40;
-  const answer = useSpring('settle', {at: answerAt});
-  const miss = useImpulse({at: missAt, dur: DUR.f4});
-  const wrong = frame >= missAt;
-  const footnote = useProgress(missAt + 4, DUR.f5);
+const COLS = [
+  'amt_ttl_pre_dsc', 'cust_seg_cd', 'ord_dt_key', 'rev_net_adj', 'qty_shp_uom',
+  'disc_pct_ln', 'tax_juris_cd', 'mrgn_gp_calc', 'chn_src_id', 'sku_var_hash',
+  'pay_term_cd', 'ret_flg_ind', 'fx_rate_spot', 'gl_acct_seg', 'wh_loc_bin',
+];
+
+/** 0-A 终端问答：自信吐数 → 打勾翻红叉 */
+const TerminalAsk: React.FC<{flipAt: number}> = ({flipAt}) => {
+  const q = useReveal('上个季度毛收入是多少？', {at: 4, cps: 14});
+  const ans = useProgress(38, DUR.f5);
+  const bad = useImpulse({at: flipAt, dur: DUR.f6, peak: 1});
+  const flipped = useProgress(flipAt, DUR.f3);
   return (
-    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <Panel style={{width: 1150, padding: '38px 46px'}}>
-        <div style={{fontFamily: theme.mono, fontSize: 26, color: theme.dim}}>{'› '}{qText}</div>
-        <div
-          style={{
-            marginTop: 26,
-            fontFamily: theme.sans,
-            fontSize: 44,
-            fontWeight: 700,
-            color: theme.text,
-            opacity: answer,
-            transform: `translateY(${(1 - answer) * 14}px)`,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 22,
-          }}
-        >
-          <span style={{color: theme.ok, fontSize: 40, transform: wrong ? 'none' : 'scale(1)' }}>
-            {wrong ? '✗' : '✓'}
-          </span>
-          <span style={{color: wrong ? theme.danger : theme.text}}>{'毛收入 320 万'}</span>
-        </div>
-      </Panel>
+    <Panel style={{width: 1180, padding: '38px 46px'}} accent={theme.engine}>
+      <div style={{fontFamily: theme.mono, fontSize: 30, color: theme.dim}}>
+        <span style={{color: theme.engine}}>&gt; </span>
+        {q}
+      </div>
       <div
         style={{
-          position: 'absolute',
-          bottom: 210,
-          fontFamily: theme.sans,
-          fontSize: 24,
-          color: theme.dim,
-          opacity: footnote,
+          marginTop: 30,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 22,
+          opacity: ans,
         }}
       >
-        {'两家独立实测：无上下文时准确率约 21%（Anthropic 复测）— 25%（Snowflake 内测）'}
+        <span style={{fontFamily: theme.mono, fontSize: 64, color: theme.text}}>$14.2M</span>
+        <span
+          style={{
+            fontSize: 54,
+            color: flipped > 0.5 ? theme.danger : theme.ok,
+            transform: `scale(${1 + 0.35 * bad})`,
+          }}
+        >
+          {flipped > 0.5 ? '✗' : '✓'}
+        </span>
+        <span
+          style={{
+            fontFamily: theme.sans,
+            fontSize: 26,
+            color: theme.danger,
+            opacity: flipped,
+          }}
+        >
+          财务口径同期为 $12.8M
+        </span>
       </div>
-    </AbsoluteFill>
+    </Panel>
   );
 };
 
-/** 0-B 乱码墙：一列高亮成金——含义第一次以色彩出现 */
-const CodeWall: React.FC = () => {
-  const frame = useCurrentFrame();
-  const scroll = progress(frame, 2, 40);
-  const cols = [
-    'usr_id', 'amt_ttl_pre_dsc', 'ord_ts', 'cust_ref_src', 'net_amt_aft_tax',
-    'qty_ship', 'sku_cd', 'rpc_typ', 'ord_id', 'acc_num',
-    'amt_ttl_pre_dsc', 'bil_cyc', 'usr_id', 'disc_rt', 'txn_cd',
-  ];
-  const hi = 1; // amt_ttl_pre_dsc
-  const goldAt = 46;
-  const gold = useProgress(goldAt, DUR.f5);
-  const badge = useSpring('settle', {at: goldAt + 6});
-  const shown = Math.floor(scroll * cols.length);
+/** 0-B 乱码列名墙：一列染金。
+ *
+ *  15 格 stagger 用 fit 模式铺满 p0-04..p0-05 两句（revealSpan，末格恰在染金前
+ *  落定），染金 payoff 锚 p0-06——旧版固定 stride 开场 1.3s 就全部到位、其后
+ *  ≈9.4s 裁掉字幕带逐像素差分为 0（ISSUE-187 ① 同类，v4 评审实测）；金列辉光
+ *  再叠 breathe，让 p0-06 染金后到本幕结束也无静止尾。 */
+const ColumnWall: React.FC<{goldAt: number; revealSpan: number}> = ({goldAt, revealSpan}) => {
+  const gold = useSpring('snap', {at: goldAt, dur: DUR.f5});
+  const breathe = useBreathe({period: 90, base: 0.5, amp: 0.5});
+  const ps = useStagger(COLS.length, {at: 4, fit: {total: revealSpan}, dur: DUR.f4});
   return (
-    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <div
-        style={{
-          width: 1300,
-          fontFamily: theme.mono,
-          fontSize: 34,
-          lineHeight: 2.0,
-          color: theme.dim,
-          opacity: 0.9,
-        }}
-      >
-        {cols.slice(0, Math.max(1, shown)).map((c, i) => (
+    <div style={{display: 'flex', flexWrap: 'wrap', gap: 14, width: 1440, justifyContent: 'center'}}>
+      {COLS.map((c, i) => {
+        const on = i === 0;
+        const p = ps[i];
+        return (
           <div
-            key={i}
+            key={c}
             style={{
-              color: i === hi && gold > 0 ? theme.manual : undefined,
-              fontWeight: i === hi ? 700 : undefined,
-              textShadow: i === hi ? `0 0 ${12 * gold}px ${theme.manual}` : undefined,
+              padding: '14px 22px',
+              borderRadius: 8,
+              border: `2px solid ${on ? theme.manual : theme.panelBorder}`,
+              background: on ? `${theme.manual}1A` : theme.panel,
+              fontFamily: theme.mono,
+              fontSize: 28,
+              color: on ? theme.manual : theme.dim,
+              opacity: p * (on ? 1 : 0.62),
+              transform: on ? `scale(${1 + 0.08 * gold})` : 'none',
+              boxShadow: on ? `0 0 ${(14 + 12 * breathe) * gold}px ${theme.manual}66` : 'none',
             }}
           >
             {c}
           </div>
-        ))}
-      </div>
-      <div
-        style={{
-          position: 'absolute',
-          right: 250,
-          top: 220,
-          fontFamily: theme.mono,
-          fontSize: 26,
-          color: theme.manual,
-          border: `2px solid ${theme.manual}`,
-          borderRadius: 10,
-          padding: '10px 22px',
-          opacity: badge,
-          transform: `scale(${0.85 + 0.15 * badge})`,
-        }}
-      >
-        {'amt_ttl_pre_dsc = 毛收入'}
-      </div>
-      <div style={{position: 'absolute', bottom: 210, fontFamily: theme.sans, fontSize: 24, color: theme.dim, opacity: gold}}>
-        {'AI 读得出每个字母——不知道这是毛收入'}
-      </div>
-    </AbsoluteFill>
+        );
+      })}
+    </div>
   );
 };
 
-/** 0-C 一词三口径：同一份数据分裂成三张算法卡 */
-const ForkCards: React.FC<{punchAt: number}> = ({punchAt}) => {
-  const st = useStagger(3, {at: 6, stride: 8});
-  const punch = useImpulse({at: punchAt, dur: DUR.f4});
-  const dimAll = useProgress(punchAt + 14, DUR.f5);
-  const quote = useProgress(punchAt + 18, DUR.f5);
-  const defs = ['减完折扣', '含税总额', '发货口径'];
+/** 0-C 三张 CASE WHEN 卡对撞 */
+const ThreeDefs: React.FC<{hitAt: number}> = ({hitAt}) => {
+  const ps = useStagger(3, {at: 4, stride: 7, dur: DUR.f5});
+  // hitAt：三卡对撞要落在说出「谁也不服谁」的那句上，写死 34 会提前 3.5s
+  const hit = useImpulse({at: hitAt, dur: DUR.f6});
+  const defs = [
+    {who: '销售看板', sql: "SUM(amt) - SUM(disc)"},
+    {who: '财务报表', sql: "SUM(amt) - SUM(disc) - SUM(tax)"},
+    {who: '运营周报', sql: "SUM(amt_net_adj)"},
+  ];
   return (
-    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <div style={{fontFamily: theme.sans, fontSize: 30, color: theme.text, marginBottom: 46}}>
-        {'同一份数据 · 同一个词「净收入」'}
-      </div>
-      <div style={{display: 'flex', gap: 46}}>
-        {defs.map((d, i) => (
-          <div key={i} style={{opacity: st[i] * (1 - dimAll * 0.6), transform: `translateY(${(1 - st[i]) * 26}px)`}}>
-            <Panel style={{width: 300, padding: '26px 20px', textAlign: 'center'}}>
-              <div style={{fontFamily: theme.mono, fontSize: 22, color: theme.dim}}>{'CASE WHEN'}</div>
-              <div style={{fontFamily: theme.sans, fontSize: 30, color: theme.text, marginTop: 12}}>{d}</div>
-            </Panel>
+    <div style={{display: 'flex', gap: 26}}>
+      {defs.map((d, i) => (
+        <div
+          key={d.who}
+          style={{
+            width: 430,
+            padding: '26px 28px',
+            borderRadius: 12,
+            border: `2px solid ${theme.panelBorder}`,
+            background: theme.panel,
+            opacity: ps[i],
+            transform: `translateY(${(1 - ps[i]) * 22}px) translateX(${(i - 1) * hit * 14}px)`,
+          }}
+        >
+          <div style={{fontFamily: theme.sans, fontSize: 24, color: theme.dim, marginBottom: 12}}>
+            {d.who}的「净收入」
           </div>
-        ))}
-      </div>
-      <svg width={1920} height={1080} style={{position: 'absolute'}}>
-        <text x={960} y={520} textAnchor="middle" fontSize={90} fill={theme.danger} opacity={punch}>
-          {'？'}
-        </text>
+          <div style={{fontFamily: theme.mono, fontSize: 24, color: theme.text}}>{d.sql}</div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+/** 0-D 片名卡 */
+const TitleCard: React.FC = () => {
+  const line = useDraw(2, DUR.f6);
+  const t = useSpring('settle', {at: 12, dur: DUR.f6});
+  return (
+    <div style={{textAlign: 'center'}}>
+      <svg width={900} height={4} style={{display: 'block', margin: '0 auto 34px'}}>
+        <line x1={0} y1={2} x2={900} y2={2} stroke={theme.engine} strokeWidth={3} {...line} />
       </svg>
       <div
         style={{
-          position: 'absolute',
-          bottom: 240,
           fontFamily: theme.serif,
-          fontSize: 46,
-          color: theme.manual,
-          opacity: quote,
-        }}
-      >
-        {'缺的不是智能，是含义。'}
-      </div>
-    </AbsoluteFill>
-  );
-};
-
-/** 0-D 片名卡：一条青碧细线 + 标题 */
-const TitleCard: React.FC = () => {
-  const frame = useCurrentFrame();
-  const line = progress(frame, 6, DUR.f5);
-  const title = useSpring('settle', {at: 14});
-  return (
-    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <div style={{height: 3, width: 720 * line, background: theme.engine}} />
-      <div
-        style={{
-          marginTop: 44,
-          fontFamily: theme.serif,
-          fontSize: 64,
-          fontWeight: 700,
+          fontSize: 78,
           color: theme.text,
-          opacity: title,
-          transform: `translateY(${(1 - title) * 16}px)`,
-          textAlign: 'center',
+          opacity: t,
+          transform: `translateY(${(1 - t) * 18}px)`,
+          letterSpacing: 2,
         }}
       >
-        {'AI 为什么答不对你公司的数据'}
+        拆解 Horizon Context
       </div>
       <div
         style={{
-          marginTop: 26,
+          marginTop: 20,
           fontFamily: theme.sans,
-          fontSize: 24,
-          color: theme.dim,
-          opacity: title,
+          fontSize: 32,
+          color: theme.manual,
+          opacity: t,
         }}
       >
-        {'Snowflake · Horizon Context · 上下文层系列'}
+        功能、治理、安全与开放性
       </div>
-    </AbsoluteFill>
+    </div>
   );
 };
 
@@ -211,17 +180,26 @@ export const P0Cold: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bD = w('p0-09', 'p0-10');
   return (
     <AbsoluteFill>
-      <Sequence {...bA} name="0-A 自信错答">
-        <AskAndMiss missAt={at('p0-03') - bA.from} />
+      <Sequence {...bA} name="0-A 终端问答翻红叉">
+        <Stage>
+          <TerminalAsk flipAt={at('p0-03') - bA.from} />
+          <EvidenceBadge grade="vendor" at={at('p0-03') - bA.from} />
+        </Stage>
       </Sequence>
-      <Sequence {...bB} name="0-B 乱码墙">
-        <CodeWall />
+      <Sequence {...bB} name="0-B 乱码列名墙">
+        <Stage>
+          <ColumnWall goldAt={at('p0-06') - bB.from} revealSpan={at('p0-06') - bB.from - 12} />
+        </Stage>
       </Sequence>
-      <Sequence {...bC} name="0-C 一词三口径">
-        <ForkCards punchAt={at('p0-08') - bC.from} />
+      <Sequence {...bC} name="0-C 净收入三算法对撞">
+        <Stage>
+          <ThreeDefs hitAt={at('p0-08') - bC.from} />
+        </Stage>
       </Sequence>
-      <Sequence {...bD} name="0-D 片名">
-        <TitleCard />
+      <Sequence {...bD} name="0-D 片名卡">
+        <Stage top={340}>
+          <TitleCard />
+        </Stage>
       </Sequence>
     </AbsoluteFill>
   );

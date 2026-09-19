@@ -6,32 +6,32 @@
 
 
 [paper-note]
-url = "https://raw.githubusercontent.com/ThreeFish-AI/negentropy/cf6724d688d663a3508294cb1a44f3758b633998/docs/reference/paper-notes/horizon-context.md"
+url = "https://raw.githubusercontent.com/ThreeFish-AI/negentropy/097076ebedd35a5dcba9076eaab0df57a48206f6/docs/research/cognitive-context/011-horizon-context.md"
 kind = "repo"
-pinned_ref = "cf6724d688d663a3508294cb1a44f3758b633998"
-accessed = "2026-09-12"
-raw_sha256 = "2cac829ddfa9d5dc"
-text_sha256 = "10b2f8eb2c917969"
-bytes = 25667
-lines = 223
-via = "pinned commit, 本仓内部文档"
+pinned_ref = "097076ebedd35a5dcba9076eaab0df57a48206f6"
+accessed = "2026-09-19"
+raw_sha256 = "3146c2ce3dc27cc6"
+text_sha256 = "3576d129856cecaf"
+bytes = 108702
+lines = 797
+via = "pinned commit, 本仓内部文档（2026-09-17 重评选后版本）"
 
 [lab-prototype]
-url = "https://raw.githubusercontent.com/ThreeFish-AI/negentropy/cf6724d688d663a3508294cb1a44f3758b633998/docs/reference/paper-notes/assets/horizon_context_lab.py"
+url = "https://raw.githubusercontent.com/ThreeFish-AI/negentropy/097076ebedd35a5dcba9076eaab0df57a48206f6/docs/research/cognitive-context/assets/horizon_context_lab.py"
 kind = "repo"
-pinned_ref = "cf6724d688d663a3508294cb1a44f3758b633998"
-accessed = "2026-09-12"
-raw_sha256 = "58a1395353f96949"
-text_sha256 = "dbaa42f8aa09325b"
-bytes = 44117
-lines = 916
+pinned_ref = "097076ebedd35a5dcba9076eaab0df57a48206f6"
+accessed = "2026-09-19"
+raw_sha256 = "cd83e85d0cd338a6"
+text_sha256 = "c5509cc4f851cf6d"
+bytes = 59251
+lines = 1195
 via = "pinned commit, 最小原型实验室"
 
 [mcp-prototype]
-url = "https://raw.githubusercontent.com/ThreeFish-AI/negentropy/cf6724d688d663a3508294cb1a44f3758b633998/docs/reference/paper-notes/assets/horizon_context_mcp.py"
+url = "https://raw.githubusercontent.com/ThreeFish-AI/negentropy/097076ebedd35a5dcba9076eaab0df57a48206f6/docs/research/cognitive-context/assets/horizon_context_mcp.py"
 kind = "repo"
-pinned_ref = "cf6724d688d663a3508294cb1a44f3758b633998"
-accessed = "2026-09-12"
+pinned_ref = "097076ebedd35a5dcba9076eaab0df57a48206f6"
+accessed = "2026-09-19"
 raw_sha256 = "e4769832a2734829"
 text_sha256 = "580f1e0b604d196e"
 bytes = 15827

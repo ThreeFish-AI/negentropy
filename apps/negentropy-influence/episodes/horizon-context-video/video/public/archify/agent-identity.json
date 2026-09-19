@@ -1,0 +1,78 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 1.88,
+ "story_sec": 10.87,
+ "total_wall_sec": 27.39,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "ceiling",
+   "label": "权限天花板只减不增",
+   "index": 0,
+   "file": "agent-identity--ceiling.webm",
+   "end_still": "agent-identity--ceiling-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 1.88,
+   "story_sec": 4.43,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.207,
+    3.31
+   ],
+   "beat_nodes": [
+    "user",
+    "agent",
+    "ceil",
+    "sess"
+   ],
+   "measured_fps": 25.0
+  },
+  {
+   "id": "audit",
+   "label": "刷卡可归因",
+   "index": 1,
+   "file": "agent-identity--audit.webm",
+   "end_still": "agent-identity--audit-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 1.76,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "sess",
+    "qh"
+   ],
+   "measured_fps": 25.0
+  },
+  {
+   "id": "strict",
+   "label": "供策略叠加严拒面",
+   "index": 2,
+   "file": "agent-identity--strict.webm",
+   "end_still": "agent-identity--strict-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 1.76,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "sess",
+    "pol"
+   ],
+   "measured_fps": 25.0
+  }
+ ],
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/osaka-v2/docs/assets/architecture/cognitive-context/horizon-context--agent-identity.html",
+ "slug": "agent-identity"
+}

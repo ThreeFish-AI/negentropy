@@ -1,0 +1,29 @@
+[
+ {
+  "id": "hit-reconcile",
+  "label": "命中与对账",
+  "focus": [
+   "ag",
+   "vq",
+   "en"
+  ],
+  "note": "命中核准题后以已验证 SQL 为生成依据，再经执行引擎重算对账。"
+ },
+ {
+  "id": "miss-fallback",
+  "label": "未命中回退",
+  "focus": [
+   "ag",
+   "vq"
+  ],
+  "note": "未命中与无 governed 覆盖两条降级路径，答案口径显式标注。"
+ },
+ {
+  "id": "outside-eval",
+  "label": "墙外评测闭环",
+  "focus": [
+   "ev"
+  ],
+  "note": "Cortex Agent Evaluations 独立 opt-in 事后评分，不在 Horizon Context 内。"
+ }
+]

@@ -1,4 +1,4 @@
-# 事实源：《AI 为什么答不对你公司的数据》（Horizon Context 篇）
+# 事实源：《拆解 Horizon Context：功能、治理、安全与开放性》
 
 > **本集口播的单一事实源**。逐字稿（[../script/narration.md](../script/narration.md)）中每一条断言都必须能回溯到本文件的某一节；回溯不到的断言不得进入口播。
 >
@@ -108,16 +108,54 @@
 - 【二】**MCP**：官方管理的 MCP server 把语义视图（经 Cortex Analyst）与 Cortex Search 暴露给外部 agent——Claude Desktop / Claude Code / Cursor 添加 custom connector 即可「受治理地」问数。
 - 【一】**本仓 MCP 原型**（T1–T8 全绿）：纯标准库 stdio JSON-RPC 四工具（list_context_objects / resolve_context / compile_metric / report_feedback）；引擎层 RBAC 经 MCP 仍生效（T5）；行为反馈改变排序可复现（T6/T6b）；子进程 stdio 往返冒烟（T8）。
 
-## 十一、v2 代码实景引用清单（2026-09-13 改版增补）
+## 十一、v3 代码实景引用清单（2026-09-19 重制校订）
 
-> v2 口播中「屏幕上的代码/实测输出」逐处锚定（全部【一】仓内可复跑）：
+> 五条代码走廊与终端实测输出逐处锚定，**句 id 已对齐 v3 逐字稿的 187 句体系**（旧 v2 编号已作废）。
+> lab 行号在 pinned commit `097076eb` 上实测核验（`grep -n` 复核，非记忆值）；全部属证据级【一】仓内可复跑。
+> ⚠️ **lab 的行内注释仍用 2026-09-17 重评选前的旧机制编号**（如「M3 执行层防线」）——
+> 代码走廊上屏**只取代码行、不取带旧编号的注释**，机制标签由 `CodeWalk` 的 `title` / `caption` 自行标注。
+> 📌 **终端行 = selftest 输出原文逐字摘录**（含前导两空格与全角标点，长行由 `TerminalLog` 的 `pre-wrap` 自然折行）；
+> 选取哪几行可以裁剪，但**任何一行不得改写**——改写须同步本表、narration.md 画面备注与三处场景 TerminalLog。
 
-| 口播位置             | 画面代码/输出                                                                                                                 | lab 锚点                                                                             |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| p2-06..08 五段式声明 | `SemanticView("sales_sv", tables=(...), relationships=(Relationship("buyer", ...)), metrics=(Metric("revenue", "sum", ...)))` | `build_sales_view()` :170                                                            |
-| p2-11 注册被拒       | `✗ relationship bad: referenced column customers.plan is not PRIMARY KEY/UNIQUE`                                              | D6 实测输出                                                                          |
-| p3-11 一行分岔       | `spec_rows = [...] if agg_before_join else _naive_joined_rows(...)`                                                           | `compile_query` 内 :383-385                                                          |
-| p3-21 实测输出       | `[PASS] B1: fan trap: 引擎 Jan=200 vs 朴素 Jan=440`                                                                           | selftest B1                                                                          |
-| p4-10..12 三行 RBAC  | `if metric.visibility == "PRIVATE" and role not in PRIVATE_ALLOWED: raise AccessDenied`                                       | `compile_query` M3 防线 :394-396；C2 输出同屏                                        |
-| p5-27 热度一行       | `pop = math.log1p(popularity) / math.log1p(POP_CAP)`                                                                          | `rank()` :463                                                                        |
-| archify 回放         | declaration-execution / collect-enrich-activate 两段 Play 录制                                                                | `docs/assets/architecture/cognitive-context/` + `pipeline/scripts/record_archify.py` |
+| 走廊 | 镜   | 口播句     | 画面代码 / 终端输出                                                         | lab 锚点（`horizon_context_lab.py`）                    |
+| ---- | ---- | ---------- | --------------------------------------------------------------------------- | -------------------------------------------------------- |
+| ①    | 2-B  | p2-05..08  | 五段式声明 + 结构校验门；终端 D6 原文（含 `relationship bad: referenced column customers.plan is not PRIMARY KEY/UNIQUE`） | `build_sales_view()` :173 · `validate_view()` :235        |
+| —    | 2-C  | p2-09..09b | 双保险锁：声明合法而计算开关被拧开 → 200 跳 440                              | `compile_query()` :378 内 `agg_before_join` 分岔 :409     |
+| ②    | 3-F  | p3-19..22  | 执行层 RBAC 拒绝分支；终端 C2 原文（`AccessDenied（引擎是最后防线）`）+ D5 原文（`拆 RBAC → … [90,560]（泄露发生）；装回 → blocked`） | `compile_query()` :378 内 `enforce_rbac` 块 :397          |
+| —    | 3-E  | p3-14..18  | 检索层过滤 PRIVATE 维度（体验层）vs 执行层拒绝（底线）                       | `resolve()` :536（`dim_filtered`）+ 执行层同上            |
+| ③    | 4-E  | p4-14a..18 | 外部血缘摄取三道闸；终端 E1b 原文（三道闸 `整事件拒绝（账本零污染）`）+ D8 原文（虚构对象 `raw.y→ghost.x` 入账） | `ingest_external_lineage()` :710                          |
+| ④    | 5-D  | p5-09..15  | 权限天花板查询期实时求值；终端 D9 原文（快照仍持权 + 天花板实时求值对照）      | `agent_session()` :766 · `session_allows()` :785          |
+| ⑤    | 5-F  | p5-21..25  | 系统标签→用户标签一次性映射（`TAG_MAPPING` :805 → `policy_for()` :816）；终端 D10 原文（明文出楼；正向对照 E3 未入画，纵向预算） | `TAG_MAPPING` :805 · `policy_for()` :816 · `project_cell()` :824 |
+| —    | 5-G  | p5-26..30  | 冲突不许按热度自动选；D4 反事实以 NumberClash 数字卡呈现（`[6,1,2]` vs `[3,1,2]`，非终端行） | `rank()` :467 · 破坏实验总入口 `destructive()` :1088      |
+
+**复跑方式**（仓库根，秒级）：
+
+```bash
+uv run --no-project python docs/research/cognitive-context/assets/horizon_context_lab.py --selftest
+uv run --no-project python docs/research/cognitive-context/assets/horizon_context_mcp.py --selftest
+```
+
+## 十二、archify 工程图回放清单（2026-09-19 新增）
+
+> 14 张工程图全部补齐 guided views 并**逐章录制**（43 章 / 182 秒素材），其中 **12 张 / 29 章进片**；
+> `evolution-timeline` 与 `autopilot-loop` 录制留档但本集未落镜（`check_archify` 会以 WARN 常驻提示）。
+> views 源：[../video/public/archify/views/](../video/public/archify/views/)（入库、可评审）；
+> webm 为派生产物（根 `.gitignore` 忽略），重录见 `pipeline/scripts/record_archify.py --mode chapter --all-chapters`。
+> **对齐口径「一章锚一句」**：每章时长 = 拍数 × max(1100ms, 3200ms/拍数)，与该句配音时长做 `playbackRate` 贴合（限 [0.7, 1.35]）。
+
+| 工程图 slug             | 笔记章节 | 章数 | 故事秒 | 落镜                     |
+| ----------------------- | -------- | ---- | ------ | ------------------------ |
+| problem-to-mechanisms   | §1       | 5    | 19.8   | 1-B（inset）· 1-C（full）|
+| component-panorama      | §2.1     | 3    | 18.7   | 1-D（inset）             |
+| evolution-timeline      | §2.2     | 3    | 17.5   | —（录制留档，未落镜）    |
+| declaration-execution   | M1       | 3    | 13.2   | 2-B（inset）· 2-C（inset）|
+| row-column-policy       | M2       | 3    | 11.0   | 3-A（full）· 3-B（inset）|
+| engine-governance       | M3       | 2    | 8.8    | 3-C（inset）· 3-G（inset）|
+| resolve-activation      | M4       | 3    | 9.7    | 4-B（inset）· 4-C        |
+| lineage-ledger          | M5       | 3    | 11.0   | 4-D（full）· 4-E（inset）· 4-F（inset）|
+| agent-identity          | M6       | 3    | 10.8   | 5-A（full）· 5-B/5-C（inset）|
+| classification-tagging  | M7       | 3    | 13.0   | 5-E（full）· 5-F（inset）|
+| collect-enrich-activate | §10      | 3    | 12.1   | 5-G（inset）             |
+| autopilot-loop          | §10      | 3    | 10.9   | —（录制留档，未落镜）    |
+| four-factor-ranking     | §11      | 3    | 13.2   | 5-H（inset）             |
+| open-interop            | §12      | 3    | 12.1   | 5-H（inset）             |

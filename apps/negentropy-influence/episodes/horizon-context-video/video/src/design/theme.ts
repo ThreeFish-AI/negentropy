@@ -1,5 +1,5 @@
 /**
- * 本集视觉契约：《AI 为什么答不对你公司的数据》（Horizon Context 上篇）。
+ * 本集视觉契约：《拆解 Horizon Context：功能、治理、安全与开放性》。
  *
  * 底座常量四集通用、不要改；概念色映射本集三条主轴（见 script/planning.md §三）：
  *   - manual 琥珀金：受治理的「公司手册」——semantic view 定义、金标准、验证问答

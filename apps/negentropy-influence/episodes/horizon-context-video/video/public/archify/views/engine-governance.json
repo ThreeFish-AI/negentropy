@@ -1,0 +1,24 @@
+[
+ {
+  "id": "governed-path",
+  "label": "治理主路径",
+  "focus": [
+   "cal",
+   "flt",
+   "def",
+   "rb",
+   "out"
+  ],
+  "note": "检索层过滤到执行层校验：PRIVATE 资产不下发、拒绝，通过后输出受治理结果。"
+ },
+ {
+  "id": "bypass-intercepted",
+  "label": "绕行仍被拦截",
+  "focus": [
+   "cal",
+   "byp",
+   "ax"
+  ],
+  "note": "绕过语义层直查物理底表，引擎策略仍拦截为 AccessDenied。"
+ }
+]

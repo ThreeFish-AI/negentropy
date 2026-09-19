@@ -1,0 +1,96 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 1.76,
+ "story_sec": 18.79,
+ "total_wall_sec": 34.42,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "caliber-spine",
+   "label": "口径主线",
+   "index": 0,
+   "file": "component-panorama--caliber-spine.webm",
+   "end_still": "component-panorama--caliber-spine-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 1.76,
+   "story_sec": 4.41,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.204,
+    3.308
+   ],
+   "beat_nodes": [
+    "ap",
+    "sv",
+    "gov",
+    "pol"
+   ],
+   "measured_fps": 25.0
+  },
+  {
+   "id": "consumer-feed",
+   "label": "消费端五路汇入",
+   "index": 1,
+   "file": "component-panorama--consumer-feed.webm",
+   "end_still": "component-panorama--consumer-feed-end.png",
+   "beats": 6,
+   "dwell_ms": 1100,
+   "lead_sec": 1.76,
+   "story_sec": 6.63,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.206,
+    3.309,
+    4.414,
+    5.516
+   ],
+   "beat_nodes": [
+    "vqr",
+    "us",
+    "mcp",
+    "el",
+    "grd",
+    "agents"
+   ],
+   "measured_fps": 25.0
+  },
+  {
+   "id": "reserved-supply",
+   "label": "降级保留区",
+   "index": 2,
+   "file": "component-panorama--reserved-supply.webm",
+   "end_still": "component-panorama--reserved-supply-end.png",
+   "beats": 7,
+   "dwell_ms": 1100,
+   "lead_sec": 1.76,
+   "story_sec": 7.75,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.207,
+    3.308,
+    4.41,
+    5.514,
+    6.618
+   ],
+   "beat_nodes": [
+    "ap",
+    "cs",
+    "us",
+    "oss",
+    "mcp",
+    "ada",
+    "grd"
+   ],
+   "measured_fps": 25.0
+  }
+ ],
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/osaka-v2/docs/assets/architecture/cognitive-context/horizon-context--component-panorama.html",
+ "slug": "component-panorama"
+}

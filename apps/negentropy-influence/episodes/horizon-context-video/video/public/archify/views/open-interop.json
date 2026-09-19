@@ -1,0 +1,34 @@
+[
+ {
+  "id": "portable",
+  "label": "定义可携带",
+  "focus": [
+   "oss",
+   "sys",
+   "sv",
+   "dbt"
+  ],
+  "note": "开放规范 YAML 经转换函数在引擎内创建语义视图。"
+ },
+ {
+  "id": "socket",
+  "label": "受控工具面开放",
+  "focus": [
+   "sv",
+   "mcp",
+   "ext",
+   "rbx"
+  ],
+  "note": "官方 MCP 向外部 Agent 供给，越权即拒。"
+ },
+ {
+  "id": "feedback",
+  "label": "反馈回流",
+  "focus": [
+   "fb",
+   "sv",
+   "ada"
+  ],
+  "note": "点赞点踩反哺排序；数据产品出厂自带 Context。"
+ }
+]

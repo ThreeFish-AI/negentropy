@@ -1,0 +1,82 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 1.88,
+ "story_sec": 13.05,
+ "total_wall_sec": 28.64,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "tag-driven",
+   "label": "分类到自动纳管",
+   "index": 0,
+   "file": "classification-tagging--tag-driven.webm",
+   "end_still": "classification-tagging--tag-driven-end.png",
+   "beats": 6,
+   "dwell_ms": 1100,
+   "lead_sec": 1.88,
+   "story_sec": 6.63,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.204,
+    3.309,
+    4.411,
+    5.514
+   ],
+   "beat_nodes": [
+    "new",
+    "cls",
+    "map",
+    "tag",
+    "pol",
+    "out"
+   ],
+   "measured_fps": 25.0
+  },
+  {
+   "id": "explicit-gap",
+   "label": "未映射显式缺口",
+   "index": 1,
+   "file": "classification-tagging--explicit-gap.webm",
+   "end_still": "classification-tagging--explicit-gap-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 1.8,
+   "story_sec": 3.21,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "map",
+    "gap"
+   ],
+   "measured_fps": 25.0
+  },
+  {
+   "id": "honest-limit",
+   "label": "能力边界如实",
+   "index": 2,
+   "file": "classification-tagging--honest-limit.webm",
+   "end_still": "classification-tagging--honest-limit-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 1.8,
+   "story_sec": 3.21,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "pol",
+    "limit"
+   ],
+   "measured_fps": 25.0
+  }
+ ],
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/osaka-v2/docs/assets/architecture/cognitive-context/horizon-context--classification-tagging.html",
+ "slug": "classification-tagging"
+}

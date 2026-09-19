@@ -1,0 +1,80 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 1.8,
+ "story_sec": 10.97,
+ "total_wall_sec": 25.8,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "inputs",
+   "label": "六路输入面",
+   "index": 0,
+   "file": "autopilot-loop--inputs.webm",
+   "end_still": "autopilot-loop--inputs-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 1.8,
+   "story_sec": 3.33,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.207
+   ],
+   "beat_nodes": [
+    "in_zero",
+    "in_bi",
+    "in_pairs"
+   ],
+   "measured_fps": 25.0
+  },
+  {
+   "id": "valgate",
+   "label": "验证门与入库",
+   "index": 1,
+   "file": "autopilot-loop--valgate.webm",
+   "end_still": "autopilot-loop--valgate-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 1.8,
+   "story_sec": 4.43,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.209,
+    3.315
+   ],
+   "beat_nodes": [
+    "validate",
+    "discard",
+    "sv",
+    "vqr"
+   ],
+   "measured_fps": 25.0
+  },
+  {
+   "id": "loop",
+   "label": "激活与反馈回流",
+   "index": 2,
+   "file": "autopilot-loop--loop.webm",
+   "end_still": "autopilot-loop--loop-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 1.76,
+   "story_sec": 3.21,
+   "beat_offsets_sec": [
+    0.0,
+    1.605
+   ],
+   "beat_nodes": [
+    "consume",
+    "vqr"
+   ],
+   "measured_fps": 25.0
+  }
+ ],
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/osaka-v2/docs/assets/architecture/cognitive-context/horizon-context--autopilot-loop.html",
+ "slug": "autopilot-loop"
+}

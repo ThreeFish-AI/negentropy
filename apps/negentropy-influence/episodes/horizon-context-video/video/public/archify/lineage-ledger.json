@@ -1,0 +1,82 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 1.68,
+ "story_sec": 11.09,
+ "total_wall_sec": 32.98,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "engine-lane",
+   "label": "引擎执行",
+   "index": 0,
+   "file": "lineage-ledger--engine-lane.webm",
+   "end_still": "lineage-ledger--engine-lane-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 1.68,
+   "story_sec": 3.33,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.205
+   ],
+   "beat_nodes": [
+    "sql",
+    "edg",
+    "ledger"
+   ],
+   "measured_fps": 25.0
+  },
+  {
+   "id": "ingest-lane",
+   "label": "外部摄取",
+   "index": 1,
+   "file": "lineage-ledger--ingest-lane.webm",
+   "end_still": "lineage-ledger--ingest-lane-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 1.76,
+   "story_sec": 4.43,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.207,
+    3.309
+   ],
+   "beat_nodes": [
+    "evt",
+    "gate",
+    "rej",
+    "ledger"
+   ],
+   "measured_fps": 25.0
+  },
+  {
+   "id": "ledger-and-blind",
+   "label": "账本与盲区",
+   "index": 2,
+   "file": "lineage-ledger--ledger-and-blind.webm",
+   "end_still": "lineage-ledger--ledger-and-blind-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 1.92,
+   "story_sec": 3.33,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.205
+   ],
+   "beat_nodes": [
+    "ledger",
+    "q",
+    "blind"
+   ],
+   "measured_fps": 25.0
+  }
+ ],
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/osaka-v2/docs/assets/architecture/cognitive-context/horizon-context--lineage-ledger.html",
+ "slug": "lineage-ledger"
+}

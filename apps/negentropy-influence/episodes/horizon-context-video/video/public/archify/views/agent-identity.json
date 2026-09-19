@@ -1,0 +1,31 @@
+[
+ {
+  "id": "ceiling",
+  "label": "权限天花板只减不增",
+  "focus": [
+   "user",
+   "agent",
+   "ceil",
+   "sess"
+  ],
+  "note": "会话权限 = 用户权限 ∩ 代理允许面，不授新权。"
+ },
+ {
+  "id": "audit",
+  "label": "刷卡可归因",
+  "focus": [
+   "sess",
+   "qh"
+  ],
+  "note": "agent_type 与 agents_info 审计列分清人与代理。"
+ },
+ {
+  "id": "strict",
+  "label": "供策略叠加严拒面",
+  "focus": [
+   "sess",
+   "pol"
+  ],
+  "note": "身份语义归本机制，消费面在行列级策略。"
+ }
+]

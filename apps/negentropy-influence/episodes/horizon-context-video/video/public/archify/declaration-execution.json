@@ -1,7 +1,86 @@
 {
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/podgorica-v1/docs/assets/architecture/paper-notes/horizon-context--declaration-execution.html",
- "lead_sec": 3.53,
- "story_sec": 13.37,
- "total_wall_sec": 17.55,
- "started_playback": true
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 1.8,
+ "story_sec": 13.25,
+ "total_wall_sec": 31.17,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "declare",
+   "label": "五段式声明",
+   "index": 0,
+   "file": "declaration-execution--declare.webm",
+   "end_still": "declaration-execution--declare-end.png",
+   "beats": 5,
+   "dwell_ms": 1100,
+   "lead_sec": 1.8,
+   "story_sec": 5.53,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.205,
+    3.309,
+    4.414
+   ],
+   "beat_nodes": [
+    "tables",
+    "rels",
+    "facts",
+    "metrics",
+    "fivePart"
+   ],
+   "measured_fps": 25.0
+  },
+  {
+   "id": "gate",
+   "label": "注册期结构校验门",
+   "index": 1,
+   "file": "declaration-execution--gate.webm",
+   "end_still": "declaration-execution--gate-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 1.76,
+   "story_sec": 3.31,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.205
+   ],
+   "beat_nodes": [
+    "fivePart",
+    "gate",
+    "reject"
+   ],
+   "measured_fps": 25.0
+  },
+  {
+   "id": "recompute",
+   "label": "查询期按 grain 重算",
+   "index": 2,
+   "file": "declaration-execution--recompute.webm",
+   "end_still": "declaration-execution--recompute-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 1.76,
+   "story_sec": 4.41,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.204,
+    3.308
+   ],
+   "beat_nodes": [
+    "rbac",
+    "agg",
+    "result",
+    "denied"
+   ],
+   "measured_fps": 25.0
+  }
+ ],
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/osaka-v2/docs/assets/architecture/cognitive-context/horizon-context--declaration-execution.html",
+ "slug": "declaration-execution"
 }

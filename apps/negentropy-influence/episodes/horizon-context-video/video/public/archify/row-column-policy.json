@@ -1,0 +1,82 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 1.8,
+ "story_sec": 11.07,
+ "total_wall_sec": 27.71,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "perpage",
+   "label": "逐页验放",
+   "index": 0,
+   "file": "row-column-policy--perpage.webm",
+   "end_still": "row-column-policy--perpage-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 1.8,
+   "story_sec": 4.43,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.207,
+    3.311
+   ],
+   "beat_nodes": [
+    "cal",
+    "po",
+    "msk",
+    "rap"
+   ],
+   "measured_fps": 25.0
+  },
+  {
+   "id": "family",
+   "label": "同族策略对象",
+   "index": 1,
+   "file": "row-column-policy--family.webm",
+   "end_still": "row-column-policy--family-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 1.76,
+   "story_sec": 3.32,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.205
+   ],
+   "beat_nodes": [
+    "po",
+    "agp",
+    "out"
+   ],
+   "measured_fps": 25.0
+  },
+  {
+   "id": "agentface",
+   "label": "代理叠加更严拒绝面",
+   "index": 2,
+   "file": "row-column-policy--agentface.webm",
+   "end_still": "row-column-policy--agentface-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 1.8,
+   "story_sec": 3.32,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.208
+   ],
+   "beat_nodes": [
+    "aid",
+    "po",
+    "cls"
+   ],
+   "measured_fps": 25.0
+  }
+ ],
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/osaka-v2/docs/assets/architecture/cognitive-context/horizon-context--row-column-policy.html",
+ "slug": "row-column-policy"
+}

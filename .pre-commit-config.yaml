@@ -49,16 +49,20 @@ repos:
         files: ^apps/negentropy/
         types_or: [python, pyi]
 
-      # ── Python: negentropy-influence/pipeline（科普视频公共管线） ──────────
-      # 与 negentropy 同一 ruff 修订版；此前仅覆盖 apps/negentropy/，管线脚本无 lint 门
+      # ── Python: negentropy-influence 的管线与每集脚本（科普视频） ──────────
+      # 与 negentropy 同一 ruff 修订版；此前仅覆盖 apps/negentropy/，管线脚本无 lint 门。
+      # episodes/*/scripts/ 在 2026-09-19 纳入：该目录原先只有三个薄包装，自
+      # archify_lead / archify_manifest / check_archify 起有了真实逻辑，必须同门。
+      # **不要放宽成 ^apps/negentropy-influence/** —— episodes/*/research/source-archive/
+      # 是按固定提交归档的第三方源码证据快照，进 lint/format 门即毁其保真度。
       - id: ruff
-        name: ruff lint (influence-pipeline)
+        name: ruff lint (influence)
         args: [--fix, --exit-non-zero-on-fix]
-        files: ^apps/negentropy-influence/pipeline/
+        files: ^apps/negentropy-influence/(pipeline|episodes/[^/]+/scripts)/
         types_or: [python, pyi]
       - id: ruff-format
-        name: ruff format (influence-pipeline)
-        files: ^apps/negentropy-influence/pipeline/
+        name: ruff format (influence)
+        files: ^apps/negentropy-influence/(pipeline|episodes/[^/]+/scripts)/
         types_or: [python, pyi]
 
   # ── Node.js: apps/negentropy-ui ──────────────────────────────────────────

@@ -1,0 +1,33 @@
+[
+ {
+  "id": "tag-driven",
+  "label": "分类到自动纳管",
+  "focus": [
+   "new",
+   "cls",
+   "map",
+   "tag",
+   "pol",
+   "out"
+  ],
+  "note": "持续分类扫描 → 一次性映射 → 用户标签 → tag-based 策略，新增敏感列自动纳管。"
+ },
+ {
+  "id": "explicit-gap",
+  "label": "未映射显式缺口",
+  "focus": [
+   "map",
+   "gap"
+  ],
+  "note": "系统标签未映射用户治理标签时，发现→标记→执行 断链，缺口显式可见。"
+ },
+ {
+  "id": "honest-limit",
+  "label": "能力边界如实",
+  "focus": [
+   "pol",
+   "limit"
+  ],
+  "note": "tag-based 传播的多账号 ABAC 天花板：一 tag 每 data type 仅一掩码策略。"
+ }
+]

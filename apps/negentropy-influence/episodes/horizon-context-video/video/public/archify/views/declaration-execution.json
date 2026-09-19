@@ -1,0 +1,35 @@
+[
+ {
+  "id": "declare",
+  "label": "五段式声明",
+  "focus": [
+   "tables",
+   "rels",
+   "facts",
+   "metrics",
+   "fivePart"
+  ],
+  "note": "表、关系、事实、维度、指标固化为受治理元数据对象。"
+ },
+ {
+  "id": "gate",
+  "label": "注册期结构校验门",
+  "focus": [
+   "fivePart",
+   "gate",
+   "reject"
+  ],
+  "note": "关系未命中键约束即拒绝注册，坏定义进不了库。"
+ },
+ {
+  "id": "recompute",
+  "label": "查询期按 grain 重算",
+  "focus": [
+   "rbac",
+   "agg",
+   "result",
+   "denied"
+  ],
+  "note": "同一套 RBAC；先聚后联、按查询粒度现算。"
+ }
+]
