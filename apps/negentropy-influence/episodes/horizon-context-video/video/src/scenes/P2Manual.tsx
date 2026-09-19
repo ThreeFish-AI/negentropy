@@ -229,11 +229,16 @@ export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
             lines={[
               'def validate_view(view, tables):',
               '    for r in view.relationships:',
-              '        col = tables[r.to_table].columns[r.to_col]',
-              '        if not col.is_key:            # FK 必须指向 PK/UNIQUE',
-              '            errors.append(f"relationship bad: {r.to_col}")',
+              '        for c in r.to_cols:',
+              '            if c not in pks.get(r.to_table, set()):   # FK 必须指向 PK/UNIQUE',
+              '                errors.append(f"relationship {r.name}: referenced column "',
+              '                              f"{r.to_table}.{c} is not PRIMARY KEY/UNIQUE")',
             ]}
-            hi={[{line: 3, at: 18, color: theme.manual}, {line: 4, at: 26, color: theme.danger}]}
+            hi={[
+              {line: 3, at: 18, color: theme.manual},
+              {line: 4, at: 26, color: theme.danger},
+              {line: 5, at: 26, color: theme.danger},
+            ]}
             caption="horizon_context_lab.py :235"
             width={1120}
           />
