@@ -12,6 +12,7 @@
 用法（工程根）：uv run --no-project scripts/check_archify.py
 """
 
+import argparse
 import json
 import re
 import sys
@@ -56,7 +57,36 @@ def scene_cues() -> list[tuple[str, str, str]]:
     return out
 
 
+def emit_stills(man: dict, cues: list[tuple[str, str, str]]) -> None:
+    """打印每个 archify cue 的**边界帧**抽帧命令（K1 入场 / K4 退场）。
+
+    刻意不用 qa_frames --stills-plan：它打的是每镜**中点**，而 archify 对位要看的
+    恰恰是边界——「章节换了没有」「字幕跟着换了没有」只在边界帧上可判。
+    """
+    items = json.loads(AUDIO.read_text("utf-8"))
+    c = timeline.load_constants(ROOT)
+    rows = {r["id"]: r for r in timeline.compute(items, c)}
+    print("# archify 对位抽帧（工程根 video/ 下执行）")
+    for slug, cid, sid in cues:
+        r = rows.get(sid)
+        ch = next((x for x in man[slug]["chapters"] if x["id"] == cid), None)
+        if r is None or ch is None:
+            continue
+        k1 = r["fromFrame"] + 3
+        k4 = r["fromFrame"] + r["durationInFrames"] - 4
+        for tag, fr in (("K1入场", k1), ("K4退场", k4)):
+            print(
+                f"./node_modules/.bin/remotion still src/index.ts Main "
+                f"out/k/{slug}--{cid}-{tag}-{fr}.png --frame={fr} --scale=0.5 "
+                f"--log=error   # 期望：{ch['label']} · 首拍 {ch['beatNodes'][0]} / "
+                f"末拍 {ch['beatNodes'][-1]} · 字幕={sid}"
+            )
+
+
 def main() -> None:
+    ap = argparse.ArgumentParser(description="archify 回放结构门")
+    ap.add_argument("--stills", action="store_true", help="只打印边界帧抽帧命令")
+    args = ap.parse_args()
     fails: list[str] = []
     warns: list[str] = []
     man = load_manifest()
@@ -89,6 +119,11 @@ def main() -> None:
 
     # ② rate 预演（需 TTS manifest）
     cues = scene_cues()
+    if args.stills:
+        if not AUDIO.is_file():
+            raise SystemExit("需要 audio/manifest.json（先跑 tts）")
+        emit_stills(man, cues)
+        return
     explicit_stretch: set[tuple[str, str, str]] = set()  # 目前无 cue 写死 stretch
     fitted = {"stretch": 0, "hold": 0, "trim": 0}
     holds: list[str] = []
