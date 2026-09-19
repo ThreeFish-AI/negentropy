@@ -10,16 +10,21 @@ import {Panel, SceneTag} from '../components/motifs';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 import {BuildingSection, PillarHUD, Stage} from '../components/devices';
 
-/** 1-A 记忆条逐日清零 */
-const MemoryReset: React.FC = () => {
+/** 1-A 记忆条逐日清零。
+ *
+ *  每根柱子「整句攒满 → 句边界清零」：第 i 根在 [clearAts[i-1], clearAts[i]] 窗口内
+ *  匀速涨满，到 clearAts[i] 被 3 帧抹平。清零点由 p1-03..p1-07 的句边界给出（铁律⑤），
+ *  同一时刻恒有一根在涨 —— 既让「填满」真的读得出来，也不留整段静止。 */
+const MemoryReset: React.FC<{clearAts: readonly number[]}> = ({clearAts}) => {
   const frame = useCurrentFrame();
   const days = ['周一', '周二', '周三', '周四', '周五'];
   return (
     <div style={{display: 'flex', gap: 30, alignItems: 'flex-end'}}>
       {days.map((d, i) => {
-        const at = 6 + i * 16;
-        const fill = progress(frame, at, DUR.f6);
-        const wipe = progress(frame, at + 10, DUR.f2);
+        const from = i === 0 ? 0 : clearAts[i - 1];
+        const at = clearAts[i];
+        const fill = progress(frame, from, at - from);
+        const wipe = progress(frame, at, DUR.f2);
         const level = Math.max(0, fill - wipe);
         return (
           <div key={d} style={{textAlign: 'center'}}>
@@ -138,7 +143,11 @@ export const P1Intern: React.FC<{scene: SceneRange}> = ({scene}) => {
       <Sequence {...bA} name="1-A 失忆实习生记忆条">
         <SceneTag chapter="P1" tagline="每天重新入职的天才" accent={theme.engine} />
         <Stage top={280}>
-          <MemoryReset />
+          <MemoryReset
+            clearAts={['p1-03', 'p1-04', 'p1-05', 'p1-06', 'p1-07'].map(
+              (id) => at(id) - bA.from,
+            )}
+          />
         </Stage>
       </Sequence>
 

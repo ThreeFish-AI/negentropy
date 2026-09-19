@@ -1,12 +1,12 @@
 /** P4 盖章底稿＝M4（应答层验证锚定）+ 全楼台账＝M5（端到端列级血缘）。
  *  M4 与 M1 正交：**手册完全正确，模型仍可能按错的那一页算**。 */
 import React from 'react';
-import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
+import {AbsoluteFill, Sequence} from 'remotion';
 import type {SceneRange} from '../types';
 import {beatWindow} from '../timing';
 import {theme} from '../design/theme';
 import {DUR, useProgress, useShake, useSpring, useStagger} from '../motion';
-import {Panel, SceneTag} from '../components/motifs';
+import {SceneTag} from '../components/motifs';
 import {CodeWalk, TerminalLog} from '../components/CodeWalk';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 import {EvidenceBadge, PillarHUD, Stage} from '../components/devices';
@@ -165,10 +165,12 @@ const HalfWall: React.FC = () => {
   );
 };
 
-/** 4-E 入账三道闸 */
-const ThreeGates: React.FC<{at: number}> = ({at}) => {
+/** 4-E 入账三道闸。
+ *  `rejectAt` 单独传（铁律⑤）：第三道闸弹回要落在说出「当场拒收」的那句上。
+ *  `useShake` 必须带 `decay: true`，否则忽略 `dur` 会抖满整镜 24.8s。 */
+const ThreeGates: React.FC<{at: number; rejectAt: number}> = ({at, rejectAt}) => {
   const ps = useStagger(3, {at, stride: 10, dur: DUR.f5});
-  const reject = useShake({at: at + 34, active: true, amp: 7, dur: DUR.f6});
+  const reject = useShake({at: rejectAt, active: true, amp: 7, decay: true, dur: DUR.f6});
   const gates = ['有 INGEST 权限？', '是 COMPLETE 事件？', '对象在楼里可解析？'];
   return (
     <div style={{display: 'flex', gap: 22, alignItems: 'center'}}>
@@ -249,7 +251,9 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
           slug="resolve-activation"
           caption="墙外的评测闭环"
           variant="inset"
-          cues={[{chapterId: 'outside-eval', at: 0, durationInFrames: bC.durationInFrames}]}
+          cues={[
+            {chapterId: 'outside-eval', at: at('p4-09a') - bC.from, durationInFrames: w('p4-09a').durationInFrames},
+          ]}
         />
       </Sequence>
 
@@ -264,7 +268,10 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       <Sequence {...bE} name="4-E 三道闸与代码走廊③">
         <Stage top={350}>
-          <ThreeGates at={at('p4-14a') - bE.from} />
+          <ThreeGates
+            at={at('p4-14a') - bE.from}
+            rejectAt={at('p4-16') - bE.from}
+          />
           <CodeWalk
             title="M5 摄取门 · 外部血缘三道闸"
             lines={[
@@ -274,18 +281,19 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
               '    if event["eventType"] != "COMPLETE": raise LineageIngestError("not COMPLETE")',
               '    if strict_resolve and not resolvable(obj): raise LineageIngestError("unresolved")',
             ]}
-            hi={[{line: 4, at: 20, color: theme.engine}]}
+            hi={[{line: 4, at: at('p4-17') - bE.from, color: theme.engine}]}
             caption="horizon_context_lab.py :710"
             width={1220}
           />
           <TerminalLog
             lines={[
-              {text: '[PASS] 三道闸：非 COMPLETE / 对象不可解析 / 无权限 → 整事件拒绝', color: theme.ok},
-              {text: '[LEAK] 拆掉解析闸 → 虚构对象 raw.y->ghost.x 混入正式账本', color: theme.danger, bold: true},
+              {text: '[PASS] 三道闸：非 COMPLETE / 对象不可解析 / 无权限 → 整事件拒绝', color: theme.ok, at: at('p4-16') - bE.from},
+              {text: '[LEAK] 拆掉解析闸 → 虚构对象 raw.y->ghost.x 混入正式账本', color: theme.danger, bold: true, at: at('p4-17') - bE.from},
             ]}
             width={1220}
           />
-          <EvidenceBadge grade="lab" />
+          {/* top=335：本镜有 inset 画框（y∈[56,315]），默认 44 会被整块压住 */}
+          <EvidenceBadge grade="lab" top={335} />
         </Stage>
         <ArchifyRecap
           slug="lineage-ledger"

@@ -14,6 +14,7 @@
 import React from 'react';
 import {Sequence} from 'remotion';
 import {ARCHIFY, type ArchifySlug} from '../archify.manifest';
+import {FPS} from '../timing';
 import {ArchifyClip, type ArchifyFit, type ArchifyVariant} from './ArchifyClip';
 
 export type ArchifyCue = {
@@ -27,9 +28,9 @@ export type ArchifyCue = {
   fit?: ArchifyFit;
 };
 
-const FPS = 30;
-
-/** 自动挡：先算 rate，越界就换到不变速的档位，避免把画面拉成糖浆或快放。 */
+/** 自动挡：先算 rate，越界就换到不变速的档位，避免把画面拉成糖浆或快放。
+ *  fps 取自 timing.ts（← timing.json 单一事实源），与 ArchifyClip 的
+ *  useVideoConfig().fps 同源——两处手抄会让 pickFit 选错档、渲染期才抛 strictRate。 */
 function pickFit(storySec: number, frames: number): ArchifyFit {
   const rate = storySec / (frames / FPS);
   if (rate < 0.7) return 'hold';

@@ -87,11 +87,13 @@ const DoubleLock: React.FC<{breakAt: number}> = ({breakAt}) => {
   );
 };
 
-/** 2-E 复印机陷阱：一张 100 进去、三张副本出来 */
-const CopierTrap: React.FC<{at: number}> = ({at}) => {
+/** 2-E 复印机陷阱：一张 100 进去、三张副本出来。
+ *  `sumAt` 必须单独传（铁律⑤）：300 的爆红要落在说出「虚增成了三百块」的那句上，
+ *  写死 `at + 26` 会提前 8.3s 压到前两句。 */
+const CopierTrap: React.FC<{at: number; sumAt: number}> = ({at, sumAt}) => {
   const ps = useStagger(3, {at: at + 8, stride: 7, dur: DUR.f5});
-  const total = useCount({from: 100, to: 300, at: at + 26, dur: DUR.f6});
-  const boom = useImpulse({at: at + 30, dur: DUR.f6});
+  const total = useCount({from: 100, to: 300, at: sumAt, dur: DUR.f6});
+  const boom = useImpulse({at: sumAt + 4, dur: DUR.f6});
   return (
     <div style={{display: 'flex', alignItems: 'center', gap: 46}}>
       <div
@@ -167,7 +169,7 @@ const AvgScale: React.FC<{at: number}> = ({at}) => {
 };
 
 /** 2-G 末快照时间闸 */
-const LastSnapshot: React.FC<{at: number}> = ({at}) => {
+const LastSnapshot: React.FC<{at: number; clashAt: number}> = ({at, clashAt}) => {
   const frame = useCurrentFrame();
   const days = [5, 6, 7, 4, 6, 5, 7];
   return (
@@ -192,7 +194,8 @@ const LastSnapshot: React.FC<{at: number}> = ({at}) => {
           );
         })}
       </div>
-      <NumberClash badLabel="七天求和" bad="24" goodLabel="末快照" good="7" at={at + 26} />
+      {/* clashAt：24 vs 7 要落在 p2-30（说出「虚增到二十四」）上，写死 at+26 会提前 9.3s */}
+      <NumberClash badLabel="七天求和" bad="24" goodLabel="末快照" good="7" at={clashAt} />
     </div>
   );
 };
@@ -240,7 +243,8 @@ export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
             ]}
             width={1120}
           />
-          <EvidenceBadge grade="lab" />
+          {/* top=335：本镜有 inset 画框（y∈[56,315]），默认 44 会被整块压住 */}
+          <EvidenceBadge grade="lab" top={335} />
         </Stage>
         <ArchifyRecap
           slug="declaration-execution"
@@ -289,7 +293,7 @@ export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       <Sequence {...bE} name="2-E 复印机陷阱">
         <Stage top={230}>
-          <CopierTrap at={at('p2-15') - bE.from} />
+          <CopierTrap at={at('p2-15') - bE.from} sumAt={at('p2-17') - bE.from} />
           <div style={{marginTop: 20}}>
             <NumberClash
               badLabel="直接关联求和"
@@ -314,7 +318,7 @@ export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       <Sequence {...bG} name="2-G 半可加末快照与关系消歧">
         <Stage top={220}>
-          <LastSnapshot at={at('p2-28') - bG.from} />
+          <LastSnapshot at={at('p2-28') - bG.from} clashAt={at('p2-30') - bG.from} />
           <Panel
             accent={theme.engine}
             style={{marginTop: 26, padding: '18px 26px', width: 1020}}

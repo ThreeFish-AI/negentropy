@@ -98,6 +98,9 @@ export const ArchifyClip: React.FC<{
   const box = BOX[variant];
   const w = Math.round((box.h * 16) / 9);
   const enter = lead ? win : 1;
+  // 右下角标在整个 ArchifyRecap 内恒定：非首章不能再从 0 淡入，否则每次换章
+  // 闪断约 17 帧（label 起点 10 帧 + f4 7 帧）。左下章节小标题逐章换文案，保留淡入。
+  const captionO = lead ? label : 1;
   const frame: React.CSSProperties =
     variant === 'full'
       ? {
@@ -170,7 +173,7 @@ export const ArchifyClip: React.FC<{
             fontFamily: theme.mono,
             fontSize: variant === 'full' ? 18 : 12,
             color: theme.dim,
-            opacity: label,
+            opacity: captionO,
             whiteSpace: 'nowrap',
           }}
         >

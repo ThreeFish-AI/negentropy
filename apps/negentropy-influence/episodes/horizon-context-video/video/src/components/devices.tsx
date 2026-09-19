@@ -21,10 +21,13 @@ const GRADE: Record<EvidenceGrade, {t: string; c: string}> = {
   thirdparty: {t: '【四】第三方独立复现', c: theme.dig},
 };
 
-export const EvidenceBadge: React.FC<{grade: EvidenceGrade; at?: number}> = ({
-  grade,
-  at = 4,
-}) => {
+export const EvidenceBadge: React.FC<{
+  grade: EvidenceGrade;
+  at?: number;
+  /** 顶边 y。默认 44；同镜有 ArchifyClip 的 inset 画框（y∈[56,315]，底色不透明）时
+   *  必须下移到 335 以下，否则角标会被画框整块压住（2026-09-19 抽帧实测）。 */
+  top?: number;
+}> = ({grade, at = 4, top = 44}) => {
   const o = useProgress(at, DUR.f4);
   const g = GRADE[grade];
   return (
@@ -32,7 +35,7 @@ export const EvidenceBadge: React.FC<{grade: EvidenceGrade; at?: number}> = ({
       style={{
         position: 'absolute',
         right: 44,
-        top: 44,
+        top,
         padding: '6px 14px',
         borderRadius: 999,
         border: `1px solid ${g.c}66`,

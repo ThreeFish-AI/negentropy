@@ -73,13 +73,32 @@ const PageScanner: React.FC<{maskAt: number; holdAt: number}> = ({maskAt, holdAt
   );
 };
 
-/** 3-C 木牌 vs 焊死承重墙 */
-const SignVsWall: React.FC<{at: number}> = ({at}) => {
-  const shake = useShake({at, active: true, amp: 8, dur: DUR.f6});
-  const wall = useSpring('settle', {at: at + 12, dur: DUR.f6});
+/** 3-C 木牌 vs 焊死承重墙。
+ *
+ *  四拍全部由句边界给出（铁律⑤）：木牌立起（p3-09）→ 被绕过、抖一下并压暗（p3-10）
+ *  → 闸机焊入承重墙（p3-12）→ 三方共用执法点（p3-13）。
+ *  `useShake` 必须带 `decay: true`，否则忽略 `dur` 会抖满整镜 22.9s；但只加 decay
+ *  又会让本镜露出 11.8s 静止窗 —— 所以抖动改成「在被绕过的那一句上打一次」。 */
+const SignVsWall: React.FC<{
+  at: number;
+  bypassAt: number;
+  weldAt: number;
+  shareAt: number;
+}> = ({at, bypassAt, weldAt, shareAt}) => {
+  const rise = useSpring('settle', {at, dur: DUR.f6});
+  const shake = useShake({at: bypassAt, active: true, amp: 8, decay: true, dur: DUR.f6});
+  const failed = useProgress(bypassAt + 6, DUR.f5);
+  const wall = useSpring('settle', {at: weldAt, dur: DUR.f6});
+  const share = useProgress(shareAt, DUR.f5);
   return (
     <div style={{display: 'flex', gap: 80, alignItems: 'flex-end'}}>
-      <div style={{textAlign: 'center', transform: `translateX(${shake}px) rotate(${shake * 0.6}deg)`}}>
+      <div
+        style={{
+          textAlign: 'center',
+          opacity: rise * (1 - 0.45 * failed),
+          transform: `translateX(${shake}px) rotate(${shake * 0.6 - 16 * failed}deg)`,
+        }}
+      >
         <div style={{fontSize: 92}}>🪧</div>
         <div style={{fontFamily: theme.sans, fontSize: 28, color: theme.danger, marginTop: 12}}>
           外挂木牌「请勿踩踏」
@@ -98,23 +117,35 @@ const SignVsWall: React.FC<{at: number}> = ({at}) => {
             alignItems: 'center',
             justifyContent: 'center',
             fontSize: 64,
+            opacity: wall,
           }}
         >
           🛂
         </div>
-        <div style={{fontFamily: theme.sans, fontSize: 28, color: theme.engine, marginTop: 12}}>
+        <div
+          style={{
+            fontFamily: theme.sans,
+            fontSize: 28,
+            color: theme.engine,
+            marginTop: 12,
+            opacity: wall,
+          }}
+        >
           焊死在承重墙里的闸机
         </div>
-        <div style={{fontFamily: theme.sans, fontSize: 22, color: theme.dim}}>人 / BI / AI 共用同一执法点</div>
+        <div style={{fontFamily: theme.sans, fontSize: 22, color: theme.dim, opacity: share}}>
+          人 / BI / AI 共用同一执法点
+        </div>
       </div>
     </div>
   );
 };
 
 /** 3-E 双层防线：检索层藏起来 ≠ 执行层拦得住 */
-const TwoLayers: React.FC<{at: number}> = ({at}) => {
+const TwoLayers: React.FC<{at: number; bumpAt: number}> = ({at, bumpAt}) => {
   const hide = useProgress(at, DUR.f6);
-  const bump = useImpulse({at: at + 26, dur: DUR.f6});
+  // bumpAt：第二层的强调要落在讲第二层的那句上，写死 at+26 会提前 13.5s 压在第一层句上
+  const bump = useImpulse({at: bumpAt, dur: DUR.f6});
   return (
     <div style={{display: 'flex', flexDirection: 'column', gap: 22, width: 1180}}>
       <Panel accent={theme.dim} style={{padding: '22px 28px', opacity: 1 - 0.3 * hide}}>
@@ -183,7 +214,12 @@ export const P3Gate: React.FC<{scene: SceneRange}> = ({scene}) => {
       <Sequence {...bC} name="3-C 木牌与承重墙">
         <SceneTag chapter="M3" tagline="语义级治理：闸机焊死承重墙" accent={theme.engine} />
         <Stage top={380}>
-          <SignVsWall at={at('p3-09') - bC.from} />
+          <SignVsWall
+            at={at('p3-09') - bC.from}
+            bypassAt={at('p3-10') - bC.from}
+            weldAt={at('p3-12') - bC.from}
+            shareAt={at('p3-13') - bC.from}
+          />
         </Stage>
         <ArchifyRecap
           slug="engine-governance"
@@ -210,7 +246,7 @@ export const P3Gate: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       <Sequence {...bE} name="3-E 双层防线剖面">
         <Stage top={280}>
-          <TwoLayers at={at('p3-15') - bE.from} />
+          <TwoLayers at={at('p3-15') - bE.from} bumpAt={at('p3-18') - bE.from} />
         </Stage>
         <EvidenceBadge grade="lab" at={at('p3-17') - bE.from} />
       </Sequence>

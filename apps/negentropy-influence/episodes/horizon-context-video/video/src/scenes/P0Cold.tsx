@@ -96,9 +96,10 @@ const ColumnWall: React.FC<{goldAt: number}> = ({goldAt}) => {
 };
 
 /** 0-C 三张 CASE WHEN 卡对撞 */
-const ThreeDefs: React.FC = () => {
+const ThreeDefs: React.FC<{hitAt: number}> = ({hitAt}) => {
   const ps = useStagger(3, {at: 4, stride: 7, dur: DUR.f5});
-  const hit = useImpulse({at: 34, dur: DUR.f6});
+  // hitAt：三卡对撞要落在说出「谁也不服谁」的那句上，写死 34 会提前 3.5s
+  const hit = useImpulse({at: hitAt, dur: DUR.f6});
   const defs = [
     {who: '销售看板', sql: "SUM(amt) - SUM(disc)"},
     {who: '财务报表', sql: "SUM(amt) - SUM(disc) - SUM(tax)"},
@@ -187,7 +188,7 @@ export const P0Cold: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
       <Sequence {...bC} name="0-C 净收入三算法对撞">
         <Stage>
-          <ThreeDefs />
+          <ThreeDefs hitAt={at('p0-08') - bC.from} />
         </Stage>
       </Sequence>
       <Sequence {...bD} name="0-D 片名卡">

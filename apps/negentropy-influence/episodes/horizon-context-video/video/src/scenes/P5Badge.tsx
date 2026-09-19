@@ -109,9 +109,10 @@ const TwoClocks: React.FC<{revokeAt: number}> = ({revokeAt}) => {
 };
 
 /** 5-F 断链最后一环 */
-const BrokenChain: React.FC<{at: number}> = ({at}) => {
+const BrokenChain: React.FC<{at: number; leakAt: number}> = ({at, leakAt}) => {
   const ps = useStagger(3, {at, stride: 8, dur: DUR.f5});
-  const leak = useProgress(at + 26, DUR.f6);
+  // leakAt：明文出楼要落在说出它的那句上，写死 at+26 会提前 12.5s
+  const leak = useProgress(leakAt, DUR.f6);
   const links = ['发现（自动分类）', '标记（系统标签）', '执行（tag-based 策略）'];
   return (
     <div>
@@ -248,7 +249,9 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
           slug="agent-identity"
           caption="IS_AGENT_ACTIVATED 谓词"
           variant="inset"
-          cues={[{chapterId: 'strict', at: 0, durationInFrames: bC.durationInFrames}]}
+          cues={[
+            {chapterId: 'strict', at: at('p5-08a') - bC.from, durationInFrames: w('p5-08a').durationInFrames},
+          ]}
         />
       </Sequence>
 
@@ -282,7 +285,7 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       <Sequence {...bF} name="5-F 断链最后一环与代码走廊⑤">
         <Stage top={350}>
-          <BrokenChain at={at('p5-21') - bF.from} />
+          <BrokenChain at={at('p5-21') - bF.from} leakAt={at('p5-23') - bF.from} />
           <CodeWalk
             title="M7 供给链 · 一次性映射（掩码策略不能直绑系统标签）"
             lines={[
