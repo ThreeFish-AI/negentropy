@@ -87,7 +87,9 @@ def main() -> None:
                 print(f"  {ch['id']:<22} ✗ 缺 webm")
                 missing += 1
                 continue
-            lead = probe_lead(webm, a.window)
+            # fps 取该章实测值：screencast 是 VFR，抽帧按源片实际帧率逐帧展开，
+            # 写死 25 一旦录制掉帧就会把所有 lead_sec 整体缩放（--min-fps 18 拦不住）
+            lead = probe_lead(webm, a.window, int(round(ch.get("measured_fps") or 25)))
             if lead is None:
                 print(
                     f"  {ch['id']:<22} ⚠️ 未找到场记板白闪（保留 lead_sec={ch['lead_sec']}）"
@@ -97,7 +99,9 @@ def main() -> None:
             ch["lead_sec"] = lead
             fixed += 1
             print(f"  {ch['id']:<22} lead_sec = {lead:.3f}s")
-        d["clapper_found"] = missing == 0
+        # 按本文件自身的结果判定：missing 是跨文件累加的全局计数，直接拿来写
+        # 每个 sidecar 会让前一张图的失败污染其后所有图（实测 11/14 被误写 false）
+        d["clapper_found"] = all(c["lead_sec"] for c in d["chapters"])
         d["lead_sec"] = d["chapters"][0]["lead_sec"]
         sc.write_text(
             json.dumps(d, ensure_ascii=False, indent=1) + "\n", encoding="utf-8"

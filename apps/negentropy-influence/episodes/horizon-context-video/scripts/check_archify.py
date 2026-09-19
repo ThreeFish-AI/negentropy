@@ -41,10 +41,18 @@ def load_manifest() -> dict:
 
 
 def scene_cues() -> list[tuple[str, str, str]]:
-    """从场景代码抽 (slug, chapterId, 锚句 id)。"""
+    """从场景代码抽 (slug, chapterId, 锚句 id)。
+
+    末尾的计数断言是必要的：本函数只认 `at: at('句id')` 形态，写成
+    `at: 0, durationInFrames: bX.durationInFrames` 的 cue 会被静默漏掉 —— 2026-09-19
+    实测正因此让 29 个 cue 只报了 27 个，漏掉的那个 rate 0.62 越界却没进 hold 清单，
+    `--stills` 也没给它排抽帧。少算不报错等于门形同虚设，故漏识别一律硬失败。
+    """
     out = []
+    declared = 0
     for f in sorted(SCENES.glob("P*.tsx")):
         src = f.read_text("utf-8")
+        declared += len(re.findall(r"chapterId:", src))
         for blk in re.finditer(r"<ArchifyRecap\b([\s\S]{0,2200}?)/>", src):
             body = blk.group(1)
             sm = re.search(r'slug="([^"]+)"', body)
@@ -54,6 +62,12 @@ def scene_cues() -> list[tuple[str, str, str]]:
                 r"chapterId:\s*'([^']+)',\s*at:[^,]*?at\('([a-z0-9-]+)'\)", body
             ):
                 out.append((sm.group(1), c.group(1), c.group(2)))
+    if len(out) != declared:
+        raise SystemExit(
+            f"FAIL: 场景里声明了 {declared} 个 cue，只识别出 {len(out)} 个。\n"
+            "      漏掉的写法请改成 `at: at('句id') - bX.from` + "
+            "`w('句id').durationInFrames`（单句 beat 与 `at: 0` 完全等价）。"
+        )
     return out
 
 
@@ -119,6 +133,16 @@ def main() -> None:
 
     # ② rate 预演（需 TTS manifest）
     cues = scene_cues()
+
+    # ④ 录了但没落镜：manifest 里有图、却没有任何 cue 引用它 —— 2026-09-19 实测
+    #    evolution-timeline / autopilot-loop 各 3 章白录，而文档仍写着 14 张进片。
+    unused = sorted(set(man) - {slug for slug, _, _ in cues})
+    for slug in unused:
+        warns.append(
+            f"{slug}: manifest 有此图但无任何 cue 引用（{len(man[slug]['chapters'])} 章白录）"
+            "——接进场景或从 manifest 摘掉"
+        )
+
     if args.stills:
         if not AUDIO.is_file():
             raise SystemExit("需要 audio/manifest.json（先跑 tts）")

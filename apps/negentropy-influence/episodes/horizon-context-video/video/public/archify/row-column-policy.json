@@ -5,7 +5,7 @@
  "story_sec": 11.12,
  "total_wall_sec": 55.34,
  "started_playback": true,
- "clapper_found": false,
+ "clapper_found": true,
  "measured_fps": 25.0,
  "chapters": [
   {
