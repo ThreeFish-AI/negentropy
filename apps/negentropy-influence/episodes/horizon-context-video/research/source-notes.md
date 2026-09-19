@@ -114,17 +114,19 @@
 > lab 行号在 pinned commit `097076eb` 上实测核验（`grep -n` 复核，非记忆值）；全部属证据级【一】仓内可复跑。
 > ⚠️ **lab 的行内注释仍用 2026-09-17 重评选前的旧机制编号**（如「M3 执行层防线」）——
 > 代码走廊上屏**只取代码行、不取带旧编号的注释**，机制标签由 `CodeWalk` 的 `title` / `caption` 自行标注。
+> 📌 **终端行 = selftest 输出原文逐字摘录**（含前导两空格与全角标点，长行由 `TerminalLog` 的 `pre-wrap` 自然折行）；
+> 选取哪几行可以裁剪，但**任何一行不得改写**——改写须同步本表、narration.md 画面备注与三处场景 TerminalLog。
 
 | 走廊 | 镜   | 口播句     | 画面代码 / 终端输出                                                         | lab 锚点（`horizon_context_lab.py`）                    |
 | ---- | ---- | ---------- | --------------------------------------------------------------------------- | -------------------------------------------------------- |
-| ①    | 2-B  | p2-05..08  | 五段式声明 + 结构校验门；终端 `✗ relationship bad: … not PRIMARY KEY/UNIQUE` | `build_sales_view()` :173 · `validate_view()` :235        |
+| ①    | 2-B  | p2-05..08  | 五段式声明 + 结构校验门；终端 D6 原文（含 `relationship bad: referenced column customers.plan is not PRIMARY KEY/UNIQUE`） | `build_sales_view()` :173 · `validate_view()` :235        |
 | —    | 2-C  | p2-09..09b | 双保险锁：声明合法而计算开关被拧开 → 200 跳 440                              | `compile_query()` :378 内 `agg_before_join` 分岔 :409     |
-| ②    | 3-F  | p3-19..22  | 执行层 RBAC 拒绝分支；终端 `leak == blocked`；拆闸反事实 `[90, 560]`         | `compile_query()` :378 内 `enforce_rbac` 块 :397          |
+| ②    | 3-F  | p3-19..22  | 执行层 RBAC 拒绝分支；终端 C2 原文（`AccessDenied（引擎是最后防线）`）+ D5 原文（`拆 RBAC → … [90,560]（泄露发生）；装回 → blocked`） | `compile_query()` :378 内 `enforce_rbac` 块 :397          |
 | —    | 3-E  | p3-14..18  | 检索层过滤 PRIVATE 维度（体验层）vs 执行层拒绝（底线）                       | `resolve()` :536（`dim_filtered`）+ 执行层同上            |
-| ③    | 4-E  | p4-14a..18 | 外部血缘摄取三道闸；终端 D8 虚构对象 `raw.y->ghost.x` 入账                    | `ingest_external_lineage()` :710                          |
-| ④    | 5-D  | p5-09..15  | 权限天花板查询期实时求值；终端 D9 快照式旧会话仍持权                          | `agent_session()` :766 · `session_allows()` :785          |
-| ⑤    | 5-F  | p5-21..25  | 系统标签→用户标签一次性映射；终端 D10 `phone` 明文出楼                        | `policy_for()` :816 · `project_cell()` :824               |
-| —    | 5-G  | p5-26..30  | 冲突不许按热度自动选；终端 D4 推断层胜出 `[6,1,2]`（对照 `[3,1,2]`）          | `rank()` :467 · 破坏实验总入口 `destructive()` :1088      |
+| ③    | 4-E  | p4-14a..18 | 外部血缘摄取三道闸；终端 E1b 原文（三道闸 `整事件拒绝（账本零污染）`）+ D8 原文（虚构对象 `raw.y→ghost.x` 入账） | `ingest_external_lineage()` :710                          |
+| ④    | 5-D  | p5-09..15  | 权限天花板查询期实时求值；终端 D9 原文（快照仍持权 + 天花板实时求值对照）      | `agent_session()` :766 · `session_allows()` :785          |
+| ⑤    | 5-F  | p5-21..25  | 系统标签→用户标签一次性映射（`TAG_MAPPING` :805 → `policy_for()` :816）；终端 D10 原文（明文出楼；正向对照 E3 未入画，纵向预算） | `TAG_MAPPING` :805 · `policy_for()` :816 · `project_cell()` :824 |
+| —    | 5-G  | p5-26..30  | 冲突不许按热度自动选；D4 反事实以 NumberClash 数字卡呈现（`[6,1,2]` vs `[3,1,2]`，非终端行） | `rank()` :467 · 破坏实验总入口 `destructive()` :1088      |
 
 **复跑方式**（仓库根，秒级）：
 
