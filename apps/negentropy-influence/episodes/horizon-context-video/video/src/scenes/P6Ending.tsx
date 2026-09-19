@@ -19,12 +19,19 @@ const BOUNDS = [
 ];
 
 /** 五道警示栅栏：讲完一条压暗一条（围住大厦，不是推倒它） */
-const Fences: React.FC<{dimmed: number; at?: number}> = ({dimmed, at = 0}) => {
+const Fences: React.FC<{dimmed: number; at?: number; dimAts?: readonly number[]}> = ({
+  dimmed,
+  at = 0,
+  dimAts,
+}) => {
+  const frame = useCurrentFrame();
   const ps = useStagger(5, {at, stride: 6, dur: DUR.f5});
+  // dimAts 给出每道栅栏各自压暗的帧（与口播逐句同步）；缺省则退回 dimmed 计数
+  const lit = dimAts ? dimAts.filter((a) => frame >= a).length : dimmed;
   return (
     <div style={{display: 'flex', flexDirection: 'column', gap: 14, width: 1280}}>
       {BOUNDS.map((b, i) => {
-        const done = i < dimmed;
+        const done = i < lit;
         return (
           <div
             key={b}
@@ -60,8 +67,14 @@ const Fences: React.FC<{dimmed: number; at?: number}> = ({dimmed, at = 0}) => {
 };
 
 /** 6-E 租来的聪明：拔掉电源线，光环熄灭 */
-const RentedSmart: React.FC<{pullAt: number}> = ({pullAt}) => {
-  const line = useDraw(4, DUR.f6);
+const RentedSmart: React.FC<{lineAt: number; quoteAt: number; pullAt: number}> = ({
+  lineAt,
+  quoteAt,
+  pullAt,
+}) => {
+  // 四句四拍：机器人在场 → 金句上屏 → 电源线描出 → 拔线熄灭
+  const line = useDraw(lineAt, DUR.f6);
+  const quote = useProgress(quoteAt, DUR.f6);
   const off = useProgress(pullAt, DUR.f6);
   return (
     <div style={{textAlign: 'center'}}>
@@ -99,6 +112,8 @@ const RentedSmart: React.FC<{pullAt: number}> = ({pullAt}) => {
           fontSize: 56,
           color: theme.text,
           lineHeight: 1.45,
+          opacity: quote,
+          transform: `translateY(${(1 - quote) * 14}px)`,
         }}
       >
         上下文被治理好之前，
@@ -165,7 +180,16 @@ export const P6Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       <Sequence {...bB} name="6-B 第二三条边界">
         <Stage top={280}>
-          <Fences dimmed={3} />
+          <Fences
+            dimmed={1}
+            dimAts={[
+              0,
+              at('p6-07') - bB.from,
+              at('p6-08') - bB.from,
+              Number.MAX_SAFE_INTEGER,
+              Number.MAX_SAFE_INTEGER,
+            ]}
+          />
         </Stage>
       </Sequence>
 
@@ -209,7 +233,11 @@ export const P6Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       <Sequence {...bE} name="6-E 租来的聪明">
         <Stage top={200}>
-          <RentedSmart pullAt={at('p6-22') - bE.from} />
+          <RentedSmart
+            quoteAt={at('p6-20') - bE.from}
+            lineAt={at('p6-21') - bE.from}
+            pullAt={at('p6-22') - bE.from}
+          />
         </Stage>
       </Sequence>
 

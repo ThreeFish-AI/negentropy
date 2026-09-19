@@ -60,8 +60,9 @@ const MemoryReset: React.FC = () => {
 };
 
 /** 1-B 三病灶裂纹 */
-const ThreeLesions: React.FC<{at?: number}> = ({at = 0}) => {
-  const ps = useStagger(3, {at, stride: 26, dur: DUR.f6});
+const ThreeLesions: React.FC<{ats: readonly number[]}> = ({ats}) => {
+  const frame = useCurrentFrame();
+  const ps = ats.map((a) => progress(frame, a, DUR.f6));
   const items = [
     {t: '口径打架', s: '同一指标，二十个看板二十种算法', c: theme.danger},
     {t: '定义漂移', s: '外挂词典与底层分家，表一改就失效', c: theme.manual},
@@ -143,7 +144,13 @@ export const P1Intern: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       <Sequence {...bB} name="1-B 三病灶 + 病因链回放">
         <Stage top={370}>
-          <ThreeLesions at={at('p1-08') - bB.from} />
+          <ThreeLesions
+            ats={[
+              at('p1-08') - bB.from,
+              at('p1-11') - bB.from,
+              at('p1-14') - bB.from,
+            ]}
+          />
         </Stage>
         <ArchifyRecap
           slug="problem-to-mechanisms"

@@ -231,9 +231,22 @@ export const P3Gate: React.FC<{scene: SceneRange}> = ({scene}) => {
           />
           <TerminalLog
             lines={[
-              {text: '[PASS] 装回执行层 → intern 请求 blocked', color: theme.ok},
-              {text: '[LEAK] 拆掉 enforce_rbac → intern 按 plan 拿到 [90, 560]', color: theme.danger, bold: true},
-              {text: '泄露对照：藏起来 ≠ 拦得住', color: theme.dim},
+              {
+                text: '[PASS] 装回执行层 → intern 请求 blocked',
+                color: theme.ok,
+                at: at('p3-20') - bF.from,
+              },
+              {
+                text: '[LEAK] 拆掉 enforce_rbac → intern 按 plan 拿到 [90, 560]',
+                color: theme.danger,
+                bold: true,
+                at: at('p3-21') - bF.from,
+              },
+              {
+                text: '泄露对照：藏起来 ≠ 拦得住',
+                color: theme.dim,
+                at: at('p3-22') - bF.from,
+              },
             ]}
             width={1180}
           />
