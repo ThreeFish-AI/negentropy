@@ -29,8 +29,13 @@ const RATE_MAX = 1.35;
 /** 画框几何：按**高**定尺，保证底边 ≤ 900 < SAFE_TOP_Y(920)，不压字幕带。
  *  旧版用 width:'88%' + aspectRatio 16/9 ⇒ 高 950、底边 1015，越界 95px。 */
 const BOX = {
-  full: {h: 820, top: 60},
-  inset: {h: 392, top: 96},
+  /** 整屏主控：顶 150 让出幕标题条（SceneTag 占 y 40–110），底边 880 < SAFE_TOP_Y(920)。
+   *  2026-09-19 抽帧目视：top=60 时画框左缘会切掉 SceneTag 的副题。 */
+  full: {h: 730, top: 150},
+  /** 画中画：**右上角定位**，底边 315 —— 与主画面分带占位。
+   *  同镜的自制模型把 Stage top 设 ≥350 即可保证零遮挡
+   *  （2026-09-19 抽帧实测：inset 居中会整块盖住装置）。 */
+  inset: {h: 259, top: 56},
 } as const;
 
 export const ArchifyClip: React.FC<{
@@ -93,18 +98,20 @@ export const ArchifyClip: React.FC<{
   const box = BOX[variant];
   const w = Math.round((box.h * 16) / 9);
   const enter = lead ? win : 1;
+  const frame: React.CSSProperties =
+    variant === 'full'
+      ? {
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'center',
+          paddingTop: box.top,
+        }
+      : {position: 'absolute', top: box.top, right: 48};
 
   return (
-    <div
-      style={{
-        position: 'absolute',
-        inset: 0,
-        display: 'flex',
-        alignItems: 'flex-start',
-        justifyContent: 'center',
-        paddingTop: box.top,
-      }}
-    >
+    <div style={frame}>
       <div
         style={{
           position: 'relative',
@@ -139,10 +146,14 @@ export const ArchifyClip: React.FC<{
           <div
             style={{
               position: 'absolute',
-              left: 16,
-              bottom: 12,
+              left: 14,
+              bottom: 10,
+              maxWidth: variant === 'full' ? 900 : 360,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
               fontFamily: theme.sans,
-              fontSize: variant === 'full' ? 22 : 16,
+              fontSize: variant === 'full' ? 22 : 15,
               color: theme.text,
               opacity: 0.86 * label,
               letterSpacing: 0.4,
@@ -154,15 +165,16 @@ export const ArchifyClip: React.FC<{
         <div
           style={{
             position: 'absolute',
-            right: 16,
-            bottom: 12,
+            right: 14,
+            bottom: 10,
             fontFamily: theme.mono,
-            fontSize: variant === 'full' ? 18 : 14,
+            fontSize: variant === 'full' ? 18 : 12,
             color: theme.dim,
             opacity: label,
+            whiteSpace: 'nowrap',
           }}
         >
-          {`archify 工程图 · ${caption}`}
+          {variant === 'full' ? `archify 工程图 · ${caption}` : 'archify'}
         </div>
       </div>
     </div>

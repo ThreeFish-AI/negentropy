@@ -142,7 +142,7 @@ export const P1Intern: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bB} name="1-B 三病灶 + 病因链回放">
-        <Stage top={190}>
+        <Stage top={370}>
           <ThreeLesions at={at('p1-08') - bB.from} />
         </Stage>
         <ArchifyRecap
@@ -178,7 +178,7 @@ export const P1Intern: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bD} name="1-D 带教大厦剖面 + 组件全景">
-        <Stage top={110}>
+        <Stage top={360}>
           <BuildingSection at={0} scale={0.82} />
         </Stage>
         <ArchifyRecap

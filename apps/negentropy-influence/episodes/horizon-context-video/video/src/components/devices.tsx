@@ -129,7 +129,8 @@ export const BuildingSection: React.FC<{
       {floors.map((f, i) => {
         const on = focus === f.k;
         const p = progress(frame, at + 6 + i * 3, DUR.f5);
-        const sag = collapsed && i === floors.length - 1 ? 16 : 0;
+        const isLast = i === floors.length - 1;
+        const sag = collapsed && isLast ? 30 : 0;   // 只给间距，不再叠 translateY
         return (
           <div
             key={f.k}
@@ -145,7 +146,7 @@ export const BuildingSection: React.FC<{
               alignItems: 'center',
               paddingLeft: 22,
               opacity: 0.35 + 0.65 * p,
-              transform: sag ? `translateY(${sag}px) rotate(-1.2deg)` : 'none',
+              transform: sag ? 'rotate(-1.2deg)' : 'none',
             }}
           >
             <span
@@ -165,7 +166,7 @@ export const BuildingSection: React.FC<{
         <div
           style={{
             marginTop: 10,
-            height: 26 * scale,
+            height: 56 * scale,
             borderRadius: 6,
             background: `${theme.danger}22`,
             border: `2px dashed ${theme.danger}`,
@@ -173,7 +174,7 @@ export const BuildingSection: React.FC<{
             alignItems: 'center',
             justifyContent: 'center',
             fontFamily: theme.sans,
-            fontSize: 18 * scale,
+            fontSize: 30 * scale,
             color: theme.danger,
           }}
         >

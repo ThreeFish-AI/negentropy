@@ -225,7 +225,7 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bB} name="5-B 权限交集环与刷卡审计">
-        <Stage top={270}>
+        <Stage top={380}>
           <PermIntersect at={at('p5-05') - bB.from} />
         </Stage>
         <ArchifyRecap
@@ -237,7 +237,7 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bC} name="5-C 回指 P3 的代理识别灯">
-        <Stage top={300}>
+        <Stage top={400}>
           <Panel accent={theme.engine} style={{padding: '30px 40px', width: 1080}}>
             <div style={{fontFamily: theme.sans, fontSize: 34, color: theme.text, textAlign: 'center'}}>
               前面闸机能认出代理 —— 认的就是这张工牌
@@ -281,7 +281,7 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bF} name="5-F 断链最后一环与代码走廊⑤">
-        <Stage top={170}>
+        <Stage top={350}>
           <BrokenChain at={at('p5-21') - bF.from} />
           <CodeWalk
             title="M7 供给链 · 一次性映射（掩码策略不能直绑系统标签）"
@@ -312,7 +312,7 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bG} name="5-G 七柱合拢与听证会空白卡">
-        <Stage top={200}>
+        <Stage top={360}>
           <ConflictHearing at={at('p5-29') - bG.from} />
           <div style={{marginTop: 26}}>
             <NumberClash
@@ -334,7 +334,7 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bH} name="5-H 四因子称重与标准插座">
-        <Stage top={300}>
+        <Stage top={400}>
           <div style={{display: 'flex', gap: 70, alignItems: 'center'}}>
             <div style={{textAlign: 'center'}}>
               <div style={{fontSize: 76}}>⚖️</div>

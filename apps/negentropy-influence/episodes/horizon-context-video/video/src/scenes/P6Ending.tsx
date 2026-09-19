@@ -172,7 +172,7 @@ export const P6Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
       <Sequence {...bC} name="6-C 地基塌方与 477 vs 48">
         <Stage top={120}>
           <div style={{display: 'flex', gap: 60, alignItems: 'center'}}>
-            <BuildingSection focus={null} scale={0.62} collapsed />
+            <BuildingSection focus={null} scale={0.8} collapsed />
             <div>
               <div
                 style={{

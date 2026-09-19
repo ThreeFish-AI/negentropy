@@ -218,7 +218,7 @@ export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bB} name="2-B 代码走廊① 注册校验门">
-        <Stage top={150}>
+        <Stage top={350}>
           <CodeWalk
             title="M1 声明相 · 注册期结构校验门"
             lines={[
@@ -253,7 +253,7 @@ export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bC} name="2-C 双保险锁">
-        <Stage top={300}>
+        <Stage top={400}>
           <DoubleLock breakAt={at('p2-09b') - bC.from} />
         </Stage>
         <ArchifyRecap

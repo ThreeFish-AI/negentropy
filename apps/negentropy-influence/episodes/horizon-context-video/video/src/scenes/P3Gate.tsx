@@ -166,7 +166,7 @@ export const P3Gate: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bB} name="3-B 打码扣留与代理识别">
-        <Stage top={230}>
+        <Stage top={360}>
           <PageScanner maskAt={at('p3-05') - bB.from} holdAt={at('p3-05') - bB.from + 14} />
         </Stage>
         <ArchifyRecap
@@ -182,7 +182,7 @@ export const P3Gate: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       <Sequence {...bC} name="3-C 木牌与承重墙">
         <SceneTag chapter="M3" tagline="语义级治理：闸机焊死承重墙" accent={theme.engine} />
-        <Stage top={260}>
+        <Stage top={380}>
           <SignVsWall at={at('p3-09') - bC.from} />
         </Stage>
         <ArchifyRecap

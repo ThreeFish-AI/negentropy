@@ -227,7 +227,7 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bB} name="4-B 盖章底稿与重算对账">
-        <Stage top={250}>
+        <Stage top={380}>
           <StampedAnswer at={at('p4-06') - bB.from} />
         </Stage>
         <ArchifyRecap
@@ -242,7 +242,7 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bC} name="4-C 半堵墙">
-        <Stage top={250}>
+        <Stage top={370}>
           <HalfWall />
         </Stage>
         <ArchifyRecap
@@ -263,7 +263,7 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bE} name="4-E 三道闸与代码走廊③">
-        <Stage top={170}>
+        <Stage top={350}>
           <ThreeGates at={at('p4-14a') - bE.from} />
           <CodeWalk
             title="M5 摄取门 · 外部血缘三道闸"
@@ -296,7 +296,7 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bF} name="4-F 逆流溯源与双柱">
-        <Stage top={230}>
+        <Stage top={380}>
           <div style={{textAlign: 'center'}}>
             <div style={{fontSize: 84}}>🔦</div>
             <div style={{marginTop: 18, fontFamily: theme.sans, fontSize: 34, color: theme.text}}>
