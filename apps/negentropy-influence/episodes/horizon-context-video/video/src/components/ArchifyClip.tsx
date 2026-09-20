@@ -1,7 +1,7 @@
 /** archify 工程图**逐章回放窗**（v3 母题）。
  *
  *  素材链：`pipeline/scripts/record_archify.py --mode chapter --all-chapters`
- *  逐章录制 webm（每章一段）→ `scripts/archify_lead.py` 用场记板白闪测定真实
+ *  逐章录制视频（每章一段，playwright=webm / cdp=mp4）→ `scripts/archify_lead.py` 用场记板白闪测定真实
  *  `leadSec` → `scripts/archify_manifest.py` 生成 `archify.manifest.ts`。
  *
  *  **为什么逐章而不是整段切片**：整段切片要求 `trimBefore` 达 15s 量级，而
@@ -44,7 +44,7 @@ const BOX = {
 } as const;
 
 export const ArchifyClip: React.FC<{
-  /** public/archify/ 下的 webm 文件名 */
+  /** public/archify/ 下的视频文件名（webm / mp4，随采集方式而定） */
   file: string;
   /** 本段必须占满的帧数 = 所锚句区间的 durationInFrames */
   spanInFrames: number;

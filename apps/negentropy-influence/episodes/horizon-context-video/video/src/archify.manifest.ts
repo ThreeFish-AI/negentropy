@@ -7,7 +7,7 @@ export type ArchifyChapter = {
   id: string;
   /** 章节小标题（画面左下） */
   label: string;
-  /** public/archify/ 下的 webm 文件名 */
+  /** public/archify/ 下的视频文件名（webm / mp4，随采集方式而定） */
   file: string;
   /** 该章末帧 PNG（fit='hold' 时用于冻结补足） */
   endStill: string;

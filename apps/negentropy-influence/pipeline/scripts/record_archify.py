@@ -473,7 +473,11 @@ def main() -> None:
         help="采集方式：chapter 默认 cdp（高清）；story 恒 playwright（旧行为）",
     )
     ap.add_argument(
-        "--scale", type=int, choices=[1, 2], default=2, help="device_scale_factor"
+        "--scale",
+        type=int,
+        choices=[1, 2],
+        default=2,
+        help="device_scale_factor（仅 cdp 采集生效；playwright 恒 1，保旧 webm 二分基线）",
     )
     ap.add_argument("--encode", choices=["h264", "vp9"], default="h264")
     ap.add_argument("--crf", type=int, default=16)
@@ -579,7 +583,14 @@ def record_chapters(browser, page_src, tmp, out_dir, slug, views, a) -> dict:
         cid = view["id"]
         tmpvid = tmp / f"ch{idx}"
         tmpvid.mkdir()
-        ctx = new_ctx(browser, tmpvid, scale=a.scale, playwright_video=not use_cdp)
+        # playwright 采集恒 DSF=1：旧 webm 是 1× 渲染面录的，注入 2× 会与 v3/v4
+        # 基线产生系统性像素差，--capture playwright 作为二分回归出口即失真。
+        ctx = new_ctx(
+            browser,
+            tmpvid,
+            scale=a.scale if use_cdp else 1,
+            playwright_video=not use_cdp,
+        )
         page = open_page(ctx, page_src)
         page.wait_for_function(
             "() => window.Archify && Archify.guidedViews && Archify.guidedViews.count > 0",
@@ -629,6 +640,7 @@ def record_chapters(browser, page_src, tmp, out_dir, slug, views, a) -> dict:
         capture_fps = None
         if use_cdp:
             recorder.stop()
+            ctx.close()  # 编码/探宽高只剩文件与 CPU 侧工作——不关则每章泄漏一个 4K 渲染 context
             ext = "mp4" if a.encode == "h264" else "webm"
             video = out_dir / f"{slug}--{cid}.{ext}"
             capture_fps, out_h = encode_frames(recorder, video, a.encode, a.crf)
