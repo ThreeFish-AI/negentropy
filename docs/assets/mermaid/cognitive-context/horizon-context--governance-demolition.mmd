@@ -1,0 +1,18 @@
+%%source: docs/research/cognitive-context/011-horizon-context.md (§4 M2 L267-L300 · §5 M3 L301-L329 · 破坏实验表 D5/D10 L641-L657 · M2/M3 分野 L724)
+%%slug: cognitive-context/horizon-context--governance-demolition
+%%type: workflow
+%%derived: archify workflow v2, authored from source mermaid
+%% fix: (2026-09-20 视频多章一图) M2/M3 破坏性实验反事实对照台：坏法①拆验放规则→phone 明文出楼【一】(D10)；坏法②闸机装错位（应用层旁路）→口径静默溜出；坏法③D5 泄露对照（拿到公式仍 AccessDenied【一】 vs 拆 RBAC 明细 [90,560] 直出【一】）；内容边界=逐字稿 p3-13a/13b/19-22 原句 + 精读文档事实，不外引下一集市政比喻
+flowchart LR
+    subgraph "坏法① 拆验放规则 → 明文直出（D10 实测）"
+        removeMask["🔧 拆掉 Masking 验放<br/>标签映射置空 · 策略不再执行"] --> plainLeak["👀 明文直出<br/>已贴标签的 phone 仍出楼【一】"]
+    end
+    subgraph "坏法② 闸机装错位 → 口径静默溜出"
+        wrongGate["🚪 闸机挪到楼外<br/>治理放应用层做样子"] --> silentLeak["💨 受限口径静默溜出<br/>agent 直连另一条 SQL 不过检"]
+    end
+    subgraph "坏法③ D5 泄露对照 → 藏起来 ≠ 拦得住"
+        internProbe["🧑‍💻 实习生调取<br/>带客户等级 plan 的营收指标"] --> accessDenied["🛑 有治理：公式到手<br/>执行层仍 AccessDenied【一】"]
+        internProbe --> sensitiveLeak["🔥 拆除 RBAC<br/>敏感明细 [90,560] 直出【一】"]
+        accessDenied --> verdict["⚖️ 藏起来 ≠ 拦得住<br/>执行层拒绝才是底线"]
+        sensitiveLeak --> verdict
+    end

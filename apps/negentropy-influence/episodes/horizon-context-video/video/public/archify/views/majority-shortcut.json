@@ -1,0 +1,23 @@
+[
+ {
+  "id": "popularity-wins",
+  "label": "热度裁决错误多数胜出",
+  "focus": [
+   "inferredDef",
+   "autoPick",
+   "wrongWins",
+   "rightAnswer"
+  ],
+  "note": "按热度自动选，错误口径 [6,1,2] 借多数人赢【一】，正确的 [3,1,2] 反而落选。"
+ },
+ {
+  "id": "habit-not-truth",
+  "label": "习惯不等于真理",
+  "focus": [
+   "autoPick",
+   "wrongWins",
+   "warningNote"
+  ],
+  "note": "多数人踩出来的近道依然可能是错的——习惯不等于真理。"
+ }
+]

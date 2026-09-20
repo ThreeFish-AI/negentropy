@@ -1,0 +1,21 @@
+%%source: docs/research/cognitive-context/011-horizon-context.md (§13 实证表 L608 · §17 结论 L687 + script/narration.json p6-10~p6-16)
+%%slug: cognitive-context/horizon-context--grain-collapse
+%%type: workflow
+%%derived: archify workflow v2, authored from source mermaid
+%% fix: (2026-09-20 批判边界新图) 批判④最重实证：上游送数前按天打包→grain 塌缩（多粒→日粒）→ 大厦七柱全亮/图纸合法 → 总数仍错；右缘三连垂降塔「总数错→477 vs 48【四】（Typedef 复现，distinct 跨时间相加）→治理≠验证」；内容边界=逐字稿 p6-10~p6-16 原句 + 精读文档事实，不外引下一集市政比喻
+flowchart LR
+    subgraph "上游 · 送数前（地基）"
+        rawGrain["🧾 单笔记录<br/>事件级 · 每笔一行"] --> dayPack["📦 按天打包<br/>送数前提前汇总"] --> grainCollapse["🕳️ grain 塌缩<br/>多粒 → 日粒 · 信息已丢"]
+    end
+    subgraph "大厦 · 治理层（图纸）"
+        pillarLights["🏛️ 七柱全亮<br/>M1–M7 照常运转"] --> blueprintLegal["📐 图纸合法<br/>手册标准 · 门禁严"] -->|"照样算错"| wrongTotal["❌ 总数依然彻底错误<br/>正确算式 × 塌缩地基"]
+    end
+    subgraph "第三方复现实测"
+        crash477["💥 477 vs 48【四】<br/>生产 · distinct 跨时间相加"]
+    end
+    subgraph "判读 · 批判④定音"
+        verdictGovernVerify["⚖️ 治理 ≠ 验证<br/>图纸合法 · 救不了塌方地基"]
+    end
+    grainCollapse -->|"塌方地基垫在楼下"| pillarLights
+    wrongTotal -->|"生产实测"| crash477
+    crash477 -->|"典型例证"| verdictGovernVerify

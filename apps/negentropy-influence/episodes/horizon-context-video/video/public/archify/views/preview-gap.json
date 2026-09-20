@@ -1,0 +1,12 @@
+[
+ {
+  "id": "preview-band",
+  "label": "预览带：先进组件聚集",
+  "focus": [
+   "advancedComponents",
+   "gaStage",
+   "wideAdoption"
+  ],
+  "note": "很多先进组件仍挂 Preview 徽标停在预览带，距普遍落地尚有距离。"
+ }
+]

@@ -1,0 +1,15 @@
+%%source: apps/negentropy-influence/episodes/horizon-context-video/script/narration.json#p5-01..02 · docs/research/cognitive-context/011-horizon-context.md#blockM6 (L404-L446, §8 M6 · 无工牌威胁面：借人类全权裸奔/事后无法归因；D5 拆锁越权实测 L649)
+%%slug: cognitive-context/horizon-context--injection-threat
+%%type: workflow
+%%derived: archify workflow v1, authored from source mermaid
+%% fix: (2026-09-20 视频动效扩产) M6 威胁模型开场单链图，只承载 p5-01..02 两锚句：
+%% 万能钥匙→指令被注入（红色危险箭头）→七道锁齐开→大厦失守；只画威胁侧，解法侧（专用工牌最小子集）
+%% 留给 agent-identity 图成对偶。失守后果挂 D5 原型实测「拆 RBAC → intern 越权到手 [90,560]（泄露发生）」【一】；
+%% 「七道锁」= M1–M7 七大承重机制（storyboard 5-A 既有比喻），计数出自重评选结构而非实测故不挂角标；
+%% 节点压到 6 个、扁平 LR 链不设 subgraph，保 640×360 画中画字号与宽幅。
+flowchart LR
+    bizAgent["🤖 智能体进入业务流<br/>真正上岗 · 开工"] --> keyDesk{"🎫 工牌怎么发？<br/>最棘手的第一问"}
+    keyDesk -->|"发全权"| masterKey["🔑 万能钥匙<br/>借人类全权 · 不可归因"]
+    inject["☣️ 指令被注入<br/>prompt injection · 越狱"] -.->|"劫持"| masterKey
+    masterKey ==>|"一钥全通"| sevenLocks["🔓 七道锁齐开<br/>M1–M7 治理全旁路"]
+    sevenLocks ==>|"泄露实测发生"| collapse["💥 大厦失守<br/>越权到手 [90,560]【一】"]

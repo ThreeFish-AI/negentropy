@@ -1,0 +1,23 @@
+[
+ {
+  "id": "wrong-avg-of-avg",
+  "label": "班级平均分类比",
+  "focus": [
+   "divideFirst",
+   "avgOfAvg",
+   "classAnalogy"
+  ],
+  "note": "各单求比再平均，就像各班平均分直接相加，人数不等算出来全错。"
+ },
+ {
+  "id": "measured-122-108",
+  "label": "实测 122 vs 108",
+  "focus": [
+   "avgOfAvg",
+   "wrong122",
+   "divideOnce",
+   "right108"
+  ],
+  "note": "实测「先除后加」算出 122，「先聚后除」才是 108。"
+ }
+]

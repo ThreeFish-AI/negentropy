@@ -1,0 +1,19 @@
+%%source: apps/negentropy-influence/episodes/horizon-context-video/script/narration.md#p5-16 #p5-17 + docs/research/cognitive-context/011-horizon-context.md#blockM7 (L447-L463, §9 M7 类比与机制面：人工盘点永远盘不完 · 盘点间隙裸奔 · 保护规模随数据量线性增加人工)
+%%slug: cognitive-context/horizon-context--supply-overwhelm
+%%type: workflow
+%%derived: archify workflow v2, authored from source mermaid
+%% fix: (2026-09-20 视频动效扩产 · 科普视频《拆解 Horizon Context》P5 幕画中画) M7 动机面（工牌闭环后的进楼考验）：
+%% 双 subgraph 双速率传送带对照——涌入侧（新表/新列持续进楼，快 · 长队列）vs 人工侧（逐表写规则 · 逐个盖章，慢），
+%% 二者速率差收敛为「未纳管裸奔窗口」（盘点间隙差额灰色堆积）→ 压垮节点收 p5-17 判词「迟早被海量新文件压垮」。
+%% 只承 p5-16/p5-17 两句锚句；贴标系统解法与映射断链（E3/D10）属姊妹图 classification-tagging 不入画；
+%% 本图不含任何数字故无证据角标；不外引市政比喻（属下一集）；节点压到 6 个适配 640×360 画中画字号。
+flowchart LR
+    subgraph "涌入侧 · 进楼考验（快）"
+        badgeDone["🪪 工牌（M6）已解决<br/>『谁进楼』管住了"] -.->|"下一个考验"| dataFlood["📥 海量新数据持续进楼<br/>新表 · 新列 · 每天涌入<br/>队列越排越长"]
+    end
+    subgraph "人工侧 · 逐表纳管（慢）"
+        manualStamp["🖊️ 全靠人工逐表写规则<br/>一表一规则 · 逐个盖章"] -->|"速度恒定 · 越落越后"| governedSlow["🛡️ 已纳管的表<br/>盖到章的才有验放规则"]
+    end
+    dataFlood -->|"涌入速率 · 快"| ungovernedGap["🌫️ 未纳管裸奔窗口<br/>= 涌入速率 − 纳管速率<br/>盘点间隙 · 差额文件灰色堆积"]
+    manualStamp -.->|"纳管速率 · 慢"| ungovernedGap
+    ungovernedGap -->|"窗口只增不减"| overwhelm["🌋 大厦迟早被压垮<br/>人工随数据量线性增加<br/>永远追不上新数据"]

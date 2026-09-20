@@ -1,0 +1,18 @@
+%%source: docs/research/cognitive-context/011-horizon-context.md#D4 (L519-L521 原型实测 冲突改 auto_popularity → 推断层 count(events) 胜出 [6,1,2] 对照 [3,1,2]；L648 破坏实验表 D4 教训「多数派错误不碾压正确口径」；L517-L518 C3/C3b 冲突浮出拒答 + 人工裁决恢复 [3,1,2]；§10 冲突纪律「禁止按 popularity 自动选」；script/narration.json p5-30 / p6-17)
+%%slug: cognitive-context/horizon-context--majority-shortcut
+%%type: workflow
+%%derived: archify workflow v2, authored from source mermaid
+%% fix: (2026-09-20 视频配图) D4 反事实 + 多数派近道：同名定义对峙投票——inferred count(events) 热度 200【一】借多数在 auto_popularity 下胜出 [6,1,2]【一】 vs CONFLICT 卡片人工裁决后 [3,1,2] 正确【一】；配「习惯不等于真理」警示条；锚句 p5-30 / p6-17；不外引市政比喻（属下一集）
+%% 拓扑与 archify JSON 同构（.temp/archify-majority-shortcut/）：并列上卡边因走廊并线删除，「两定义并列」由 CONFLICT 卡片副标签承载
+flowchart LR
+    nameClash["⚖️ 同名定义对峙<br/>「活跃客户」两种口径"]
+    subgraph wrongPath["❌ 按热度自动选 · auto_popularity（D4 反事实）"]
+        inferredDef["🔥 inferred 口径<br/>count(events) · 热度 200【一】<br/>权威 0.3"] --> autoPick["⚡ 谁用得多谁赢<br/>auto_popularity · 多数票裁决"] --> wrongWins["📵 [6,1,2]【一】<br/>错误口径借多数胜出<br/>多数人用 ≠ 对"]
+    end
+    subgraph rightPath["✅ 冲突浮出人工裁决"]
+        governedDef["📜 governed 口径<br/>count_distinct(customer) · 热度低<br/>权威 1.0"] --> conflictCard["📋 CONFLICT 卡片<br/>两定义并列 · 无数值 · 拒答待裁【一】"] --> humanJudge["👥 人工裁决<br/>governed 胜出"] --> rightAnswer["✅ [3,1,2]【一】<br/>正确口径恢复"]
+    end
+    nameClash --> inferredDef
+    nameClash --> governedDef
+    governedDef -.->|"被压过"| autoPick
+    warningNote["⚠️ 多数人踩出的近道<br/>依然可能是错的<br/>习惯 ≠ 真理"] -.-> wrongWins

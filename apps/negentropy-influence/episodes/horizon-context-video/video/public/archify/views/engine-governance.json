@@ -1,5 +1,14 @@
 [
  {
+  "id": "sign-vs-wall",
+  "label": "木牌 vs 承重墙",
+  "focus": [
+   "byp",
+   "rb"
+  ],
+  "note": "外挂权限像草坪木牌可被绕开；焊进引擎必经之路才拦得住直查底表。"
+ },
+ {
   "id": "governed-path",
   "label": "治理主路径",
   "focus": [
@@ -10,6 +19,17 @@
    "out"
   ],
   "note": "检索层过滤到执行层校验：PRIVATE 资产不下发、拒绝，通过后输出受治理结果。"
+ },
+ {
+  "id": "two-layer-defense",
+  "label": "双层防线剖面",
+  "focus": [
+   "cal",
+   "flt",
+   "rb",
+   "out"
+  ],
+  "note": "检索层藏机密词条护体验，执行层焊死承重墙兜底——猜名强查也在第二层被拦。"
  },
  {
   "id": "bypass-intercepted",

@@ -1,0 +1,14 @@
+%%source: docs/research/cognitive-context/011-horizon-context.md#blockM1 (L241 聚合保障②按集合去重 distinct 聚合跨 join 安全 + L262 原型 B3 / L646 破坏实验 D2: 拆 distinct 退化为数事件行 [6,1,2]，对照 [3,1,2])
+%%slug: cognitive-context/horizon-context--dedup-safety
+%%type: workflow
+%%derived: archify workflow v2, authored from source mermaid
+%% note: (2026-09-20 视频配图补产) 单一对照：同一批活跃客户 3 人，事件行展开成 6 条物理行——数物理行 = 6 虚增 vs 数去重集合 = 3 正确【一】；锚句 p2-21 / p2-22；不外引市政比喻（属下一集）
+flowchart LR
+    cust["👥 活跃客户 3 人【一】"] -->|"产生事件"| eventRows["📄 事件行展开 6 条【一】<br/>同一客户占多行"]
+    subgraph wrongCount["❌ 错数 · 数物理行"]
+        eventRows -->|"COUNT(*)"| countRows["📵 客户数 = 6<br/>重复双计 · 虚增【一】"]
+    end
+    subgraph rightCount["✅ 对数 · 数去重集合"]
+        eventRows -->|"查询期重算"| dedupSafety["🛡️ 去重计数安全<br/>数集合不数物理行"]
+        dedupSafety -->|"COUNT(DISTINCT)"| countSet["✅ 客户数 = 3<br/>正确【一】"]
+    end

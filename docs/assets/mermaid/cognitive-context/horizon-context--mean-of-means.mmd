@@ -1,0 +1,15 @@
+%%source: docs/research/cognitive-context/011-horizon-context.md#不变量B (L242 聚合保障3 先聚后除 · L261/L264 B2+D7 原型实测 108.33 vs 122.22 · L651 D7 破坏实验)
+%%slug: cognitive-context/horizon-context--mean-of-means
+%%type: workflow
+%%derived: archify workflow v2, authored from source mermaid
+%% fix: (2026-09-20 视频配图) 派生指标双算法路径对照：先除后加（各单求比再平均）=122【一】错误 vs 先聚后除（总金额÷总单量）=108【一】正确；班级平均分人数不等类比小注；锚句 p2-23~p2-26
+flowchart LR
+    aovMetric["🧾 客单价 AOV<br/>派生指标"] --> divideFirst["每单先算比值"]
+    aovMetric --> sumFirst["先聚总数<br/>Σ金额 · Σ单量"]
+    subgraph wrongPath["❌ 先除后加 · 平均的平均"]
+        divideFirst --> avgOfAvg["比值直接平均"] --> wrong122["❌ 122【一】<br/>平均的平均不是平均"]
+    end
+    subgraph rightPath["✅ 先聚后除 · 正确"]
+        sumFirst --> divideOnce["总金额 ÷ 总单量"] --> right108["✅ 108【一】<br/>真实客单价"]
+    end
+    classAnalogy["🏫 各班平均分直接相加<br/>人数不等 → 全错"] -.-> avgOfAvg

@@ -1,0 +1,22 @@
+[
+ {
+  "id": "badge-question",
+  "label": "工牌怎么发",
+  "focus": [
+   "bizAgent",
+   "keyDesk"
+  ],
+  "note": "智能体真正进入业务流，最棘手的第一问是工牌怎么发。"
+ },
+ {
+  "id": "master-key",
+  "label": "注入即失守",
+  "focus": [
+   "masterKey",
+   "inject",
+   "sevenLocks",
+   "collapse"
+  ],
+  "note": "万能钥匙借人类全权，指令一被注入，M1–M7 七道锁一次全旁路，大厦瞬间失守——D5 实测越权到手 [90,560]【一】。"
+ }
+]

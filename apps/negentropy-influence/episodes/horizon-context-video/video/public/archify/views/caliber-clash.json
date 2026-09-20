@@ -1,0 +1,33 @@
+[
+ {
+  "id": "three-dashboards",
+  "label": "三看板三种数",
+  "focus": [
+   "netRevenue",
+   "salesBoard",
+   "finBoard",
+   "opsBoard",
+   "clash"
+  ],
+  "note": "同一次提问进三个看板，三套算式各出一个数，谁也不服谁。"
+ },
+ {
+  "id": "twenty-algorithms",
+  "label": "二十看板二十算法",
+  "focus": [
+   "spread",
+   "netRevenue"
+  ],
+  "note": "口径散在各自 CASE WHEN 里，含义无人治理，20 个看板能写 20 种算法。"
+ },
+ {
+  "id": "owners-clash",
+  "label": "主管对账对不上",
+  "focus": [
+   "clash",
+   "salesLead",
+   "cfoLead"
+  ],
+  "note": "销售主管与财务总监各报一个数，同一份数据谁也对不上。"
+ }
+]

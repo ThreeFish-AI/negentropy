@@ -1,0 +1,22 @@
+[
+ {
+  "id": "semi-additive",
+  "label": "半可加：跨账户 vs 跨时间",
+  "focus": [
+   "weekGrid",
+   "semiNote"
+  ],
+  "note": "存款余额能跨账户相加，但绝不能把周一到周日加在一起。"
+ },
+ {
+  "id": "snapshot-vs-sum",
+  "label": "末快照 7 vs 求和 24",
+  "focus": [
+   "daySum",
+   "inflated24",
+   "lastSnap",
+   "exact7"
+  ],
+  "note": "不遵「末快照」，活跃数从 7 虚增到 24【一】。"
+ }
+]

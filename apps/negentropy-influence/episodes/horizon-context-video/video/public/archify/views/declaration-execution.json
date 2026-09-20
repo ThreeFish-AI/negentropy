@@ -31,5 +31,16 @@
    "denied"
   ],
   "note": "同一套 RBAC；先聚后联、按查询粒度现算。"
+ },
+ {
+  "id": "switch-divergence",
+  "label": "执行开关分化",
+  "focus": [
+   "fivePart",
+   "rbac",
+   "agg",
+   "result"
+  ],
+  "note": "同行语义层允许关掉重算开关：手册一字未改，数字当场翻倍——M1 把声明与重算锁死为双不变量。"
  }
 ]

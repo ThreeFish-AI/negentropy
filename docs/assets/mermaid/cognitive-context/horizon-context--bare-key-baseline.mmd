@@ -1,0 +1,21 @@
+%%source: docs/research/cognitive-context/011-horizon-context.md#block1 (L36-L84, §1 Horizon Context 解决了什么问题？·裸问准确率基线 L58)
+%%slug: cognitive-context/horizon-context--bare-key-baseline
+%%type: workflow
+%%derived: archify workflow v2, authored from source mermaid
+%% fix: (2026-09-20 新增·视频 P0 冷开场配图) 裸库基线单点图：把整库钥匙全交给 AI 的因果链（钥匙全交→直连裸物理表→认得字母不知含义→自信答错），收束到两个独立测出同一量级的基线数字（25% 官方内测【三】/ 21% 第三方复测【四】）。只承载 p0-01..04 四句锚句的事实面；机制侧解法（M1–M7）一律不入图。判据节点不单列：「认得字母 · 不知含义」作边标注挂在裸表→答错一跳上，节点数压到 7 以保画中画 640×360 的字号。
+flowchart LR
+    subgraph "钥匙全交 · 直连裸库"
+        keyHandover["🔑 整库钥匙全交<br/>不设口径 · 不设约束"] -->|"全权直连"| bareAgent["🤖 初级 Data Agent<br/>直接问业务数据"]
+        bareAgent -->|"直查物理表"| rawTable["🗄️ 裸物理表<br/>毛收入写作 amt_ttl_pre_dsc"]
+        rawTable -.->|"认得字母 · 不知含义"| wrongAnswer["❌ 自信地答错<br/>只能瞎猜"]
+    end
+    subgraph "厂商自报基线【三】"
+        vendorBench["📊 官方内测 25%【三】<br/>Snowflake 自报口径"]
+    end
+    subgraph "第三方独立复测【四】"
+        thirdPartyBench["🔬 独立复测 21%【四】<br/>Anthropic 第三方复测"]
+    end
+    wrongAnswer -->|"官方实测"| vendorBench
+    wrongAnswer -.->|"第三方复跑"| thirdPartyBench
+    vendorBench -->|"两成多"| sameOrder["⚖️ 同为两成多 · 同一量级<br/>缺的不是智能 · 是含义"]
+    thirdPartyBench -.->|"同向印证"| sameOrder

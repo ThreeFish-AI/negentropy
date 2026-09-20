@@ -1,0 +1,18 @@
+%%source: docs/research/cognitive-context/011-horizon-context.md#blockM1 (L243 保障④半可加性末快照 NON ADDITIVE BY + L263 原型 B4；破坏实验 D3 L647；script/narration.json p2-27~p2-30)
+%%slug: cognitive-context/horizon-context--last-snapshot-gate
+%%type: workflow
+%%derived: archify workflow v2, authored from source mermaid
+%% fix: (2026-09-20 视频动效扩产) 半可加与末快照：时间维度的闸门——M1 聚合保障④ NON ADDITIVE BY 时间维。
+%% 双 subgraph 对照：错路=周一..周日 7 格求和 → 活跃虚增 24【一】；对路=时间切片取末快照 → 7【一】。
+%% 旁注半可加口径：余额跨账户可相加、跨时间不可相加（求和路径「违反」）。证据角标随节点标签；不外引市政比喻（属下一集）。
+flowchart LR
+    weekGrid["📅 周一 … 周日<br/>7 格余额时间切片"]
+    subgraph wrongPath["❌ 错路 · 跨时间相加"]
+        daySum["➕ 七天余额求和<br/>跨时间相加"] -->|"逐日重复计数"| inflated24["📵 活跃数虚增到 24【一】<br/>不遵「末快照」的代价"]
+    end
+    subgraph rightPath["✅ 对路 · 取时间切片末快照"]
+        lastSnap["📸 取时间切片末快照<br/>NON ADDITIVE BY 时间维"] --> exact7["✅ 活跃数 = 7【一】<br/>期末一格定格"]
+    end
+    weekGrid --> daySum
+    weekGrid --> lastSnap
+    daySum -.->|"违反"| semiNote["⚖️ 半可加 semi-additive<br/>余额跨账户可相加 · 跨时间不可相加"]

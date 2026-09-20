@@ -1,0 +1,23 @@
+%%source: docs/research/cognitive-context/011-horizon-context.md#blockM4+blockM5 (L330-L402, §6–§7 M4 应答层验证锚定 × M5 端到端列级血缘；视频锚句 narration p4-22–p4-26)
+%%slug: cognitive-context/horizon-context--trust-assets
+%%type: workflow
+%%derived: archify workflow v2, authored from source mermaid
+%% note: (2026-09-20 视频新图) M4+M5 合拢成可审计信任资产的承重结构图：三泳道（事前事中/事后/三印鉴与落地）× 三相位（两根承重柱/柱基三道印鉴/信任落地）；数字仅取本仓原型实测（A1/A1b 重算对账 [200·150·300]、E1b 三道闸拒收 ×3）
+flowchart LR
+    subgraph M4["事前事中 · 验证锚定 M4"]
+        VA["📘 核准题库<br/>预核存证 · 谁核何时核"] -->|"命中核准题"| VC["🧮 重算对账<br/>出示底稿 · [200·150·300]【一】"]
+        VC -->|"对账一致"| SR["✅ 答对有底稿"]
+        VC -->|"未核准·不冒充"| SW["🚫 答错有拦截"]
+    end
+    subgraph M5["事后 · 列级血缘 M5"]
+        LG["🛂 摄取三道闸<br/>拒虚构流水 ×3【一】"] -->|"整事件通过"| LL["📖 列级台账<br/>引擎自动沉淀 · 列级粒度"]
+        LL -->|"溯源对质"| SL["🔎 有疑问翻账本"]
+    end
+    subgraph LAND["三印鉴与信任落地"]
+        DF["🏛️ 决策流<br/>两柱立起 · 才敢托付"]
+        AS["🧾 可审计工程资产<br/>信任 = 一行行可查的记录"]
+    end
+    SR --> DF
+    SL --> DF
+    SW --> DF
+    DF --> AS

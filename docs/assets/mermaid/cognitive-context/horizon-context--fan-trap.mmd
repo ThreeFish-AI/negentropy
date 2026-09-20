@@ -1,0 +1,18 @@
+%%source: docs/research/cognitive-context/011-horizon-context.md#blockM1 (L240 保障①先聚后连 fan trap + L260 原型 B1；破坏实验 D1 L645)
+%%slug: cognitive-context/horizon-context--fan-trap
+%%type: workflow
+%%derived: archify workflow v2, authored from source mermaid
+%% fix: (2026-09-20 视频动效扩产) 复印机陷阱：先联后聚的收入虚增——M1 计算纪律最著名反例（fan trap）。
+%% 双 subgraph 对照：错路=订单 100 元×3 事件直接关联求和 → 复印成 300【一】；对路=铁律先聚后联 → 收入仍 100。
+%% 末屏实测锚 B1/D1：拆掉 agg_before_join 一月收入 200 → 440【一】。证据角标随节点标签；不外引市政比喻（属下一集）。
+flowchart LR
+    order100["🧾 一笔订单 100 元<br/>触发 3 次事件"]
+    subgraph wrongPath["❌ 错路 · 先联后聚"]
+        rawJoin["📋 订单表 × 事件表<br/>直接关联求和"] --> inflated300["📵 订单被复印成 3 份<br/>收入虚增 300 元【一】"]
+    end
+    subgraph rightPath["✅ 对路 · 铁律：先聚合，后关联"]
+        aggFirst["📐 订单内部先聚合<br/>100 元先算定"] --> safeJoin["🔗 再拼接事件表<br/>收入仍是 100 元"]
+    end
+    order100 --> rawJoin
+    order100 --> aggFirst
+    inflated300 -.->|"原型实测"| measured["📏 拆掉「先聚后联」<br/>一月收入 200 → 440【一】"]
