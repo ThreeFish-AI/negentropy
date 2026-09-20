@@ -1,15 +1,13 @@
 [
  {
-  "id": "signals",
-  "label": "四路信号来源",
+  "id": "topk",
+  "label": "合成与显式裁决",
   "focus": [
-   "q",
-   "gov",
-   "inf",
-   "use",
-   "tm"
+   "score",
+   "tie",
+   "topk"
   ],
-  "note": "问题、权威度、热度与更新时钟分别入场。"
+  "note": "加权合成后经 tie-break 输出有序上下文包。"
  },
  {
   "id": "factors",
@@ -23,13 +21,15 @@
   "note": "相关性 0.4 / 权威 0.3 / 流行 0.2 / 新鲜 0.1。"
  },
  {
-  "id": "topk",
-  "label": "合成与显式裁决",
+  "id": "signals",
+  "label": "四路信号来源",
   "focus": [
-   "score",
-   "tie",
-   "topk"
+   "q",
+   "gov",
+   "inf",
+   "use",
+   "tm"
   ],
-  "note": "加权合成后经 tie-break 输出有序上下文包。"
+  "note": "问题、权威度、热度与更新时钟分别入场。"
  }
 ]

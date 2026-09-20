@@ -100,6 +100,52 @@ SCHEMA: tuple[tuple[str, type, object, object, str], ...] = (
         False,
         '豁免零锚判定的幕名（如 ["P6"]）；豁免会在覆盖门输出里点名',
     ),
+    (
+        "archify.max_unanchored_run",
+        int,
+        12,
+        False,
+        "覆盖度：最长连续无锚句数上限；幕边界不重置（观众体验不分幕），"
+        "豁免幕的句子视为已锚直接断 run",
+    ),
+    (
+        "archify.min_scene_anchor_ratio",
+        float,
+        0.05,
+        False,
+        "覆盖度：分幕锚定率下限 ∈ [0,1]；与 per_scene_min_anchors 并存——"
+        "count 门拦整幕零锚，ratio 门拦比例塌陷",
+    ),
+    (
+        "archify.min_cues_per_minute",
+        float,
+        2.0,
+        False,
+        "丰富度：cue 密度下限（cue/分钟）；时长 = audio manifest × timing（缺任一 WARN 跳过，"
+        "不造第二时长真相源）",
+    ),
+    (
+        "archify.min_diagram_types",
+        int,
+        1,
+        False,
+        "丰富度：sidecar 顶层 type 去重图型数下限（缺 type 归 untyped 计 1 种，旧集恒过）",
+    ),
+    (
+        "archify.forbid_inset",
+        bool,
+        False,
+        False,
+        '布局：禁止 inset 画中画（场景 variant="inset" 残留或分镜 inset 标注即 FAIL）——'
+        "全屏切换集的策略声明，非普适不变量",
+    ),
+    (
+        "archify.cue_sentence_exclusive",
+        bool,
+        True,
+        False,
+        "匹配度：同锚句双 cue FAIL（全屏独占下一句一图；异句窗含 gap 按构造铺满不重叠）",
+    ),
 )
 
 #: 环境变量覆盖：仅限「机器属性」类键，不进受版本控制的 toml
@@ -247,10 +293,23 @@ def validate(
     sha = _get(cfg, "tts.ref_sha1") if in_scope("tts.x") else None
     if isinstance(sha, str) and len(sha) != 12:
         fails.append(f"tts.ref_sha1 应为 12 位（同 tts.py 口径），实际 {len(sha)} 位")
-    for rk in ("archify.min_anchor_ratio", "archify.min_chapter_ratio"):
+    for rk in (
+        "archify.min_anchor_ratio",
+        "archify.min_chapter_ratio",
+        "archify.min_scene_anchor_ratio",
+    ):
         rv = _get(cfg, rk) if in_scope("archify.x") else None
         if isinstance(rv, (int, float)) and not (0 <= rv <= 1):
             fails.append(f"{rk} 应落在 [0, 1]，实际 {rv}")
+    mr = _get(cfg, "archify.max_unanchored_run") if in_scope("archify.x") else None
+    if isinstance(mr, int) and mr < 1:
+        fails.append(f"archify.max_unanchored_run 应 ≥ 1，实际 {mr}")
+    cpm = _get(cfg, "archify.min_cues_per_minute") if in_scope("archify.x") else None
+    if isinstance(cpm, (int, float)) and cpm < 0:
+        fails.append(f"archify.min_cues_per_minute 应 ≥ 0，实际 {cpm}")
+    mdt = _get(cfg, "archify.min_diagram_types") if in_scope("archify.x") else None
+    if isinstance(mdt, int) and mdt < 1:
+        fails.append(f"archify.min_diagram_types 应 ≥ 1，实际 {mdt}")
     ex = _get(cfg, "archify.exempt_scenes") if in_scope("archify.x") else None
     if isinstance(ex, list) and not all(
         isinstance(x, str) and re.fullmatch(r"P\d+", x) for x in ex

@@ -455,6 +455,33 @@ def clapper(page) -> None:
     })""")
 
 
+_FRAME_KIND_TO_TYPE = {
+    "lane": "workflow",
+    "stage": "dataflow",
+    "region": "architecture",
+    "segment": "sequence",
+}
+
+
+def _sniff_diagram_type(src: Path) -> str:
+    """从交付 HTML 的渲染器指纹嗅图型（best-effort，嗅不出返回 ""）。
+
+    lifecycle 与无框平铺的 architecture 没有 frame-kind 指纹——由 --type 显式给。
+    指纹与图型的对应实证于 horizon 33 图（fan-trap=lane / collect-enrich-activate=
+    stage / component-panorama=region / resolve-activation=segment+data-segment-id）。
+    """
+    try:
+        html = src.read_text(encoding="utf-8")
+    except OSError:
+        return ""
+    if "data-segment-id" in html:
+        return "sequence"
+    for kind, t in _FRAME_KIND_TO_TYPE.items():
+        if f'data-composition-frame-kind="{kind}"' in html:
+            return t
+    return ""
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="archify 引导故事录制器")
     ap.add_argument("src")
@@ -481,6 +508,12 @@ def main() -> None:
     )
     ap.add_argument("--encode", choices=["h264", "vp9"], default="h264")
     ap.add_argument("--crf", type=int, default=16)
+    ap.add_argument(
+        "--type",
+        choices=["architecture", "workflow", "sequence", "dataflow", "lifecycle"],
+        help="图型（落 sidecar 顶层 type，覆盖门图型多样性门的数据源）；"
+        "省略则从交付 HTML 的渲染器指纹嗅探，嗅不出（lifecycle/无框平铺）留空",
+    )
     a = ap.parse_args()
     a.capture = a.capture or ("cdp" if a.mode == "chapter" else "playwright")
     if a.mode == "story" and a.capture == "cdp":
@@ -520,6 +553,7 @@ def main() -> None:
 
     sidecar["source"] = str(src)
     sidecar["slug"] = slug
+    sidecar["type"] = a.type or _sniff_diagram_type(src)
     Path(a.out_sidecar).write_text(
         json.dumps(sidecar, ensure_ascii=False, indent=1) + "\n", encoding="utf-8"
     )

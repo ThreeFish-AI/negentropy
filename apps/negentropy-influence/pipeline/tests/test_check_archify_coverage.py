@@ -82,6 +82,7 @@ def build(
     views_files: dict[str, list] | str | None = "default",
     manifest: str | None = MANIFEST_OK,
     sidecar: bool = False,
+    audio: bool = False,
     name: str = "fixture-archify",
 ) -> Path:
     root = tmp_path / name
@@ -107,6 +108,29 @@ def build(
         )
     src = root / "video" / "src"
     src.mkdir(parents=True)
+    if audio:
+        # 5 句 × 6s 纯语音 + 常数 → 总时长 ~0.55min（cue 密度门的可复现基数）
+        aud = root / "video" / "public" / "audio"
+        aud.mkdir(parents=True)
+        (aud / "manifest.json").write_text(
+            json.dumps(
+                [{**it, "durationSec": 6.0} for it in NARRATION], ensure_ascii=False
+            ),
+            encoding="utf-8",
+        )
+        (src / "timing.json").write_text(
+            json.dumps(
+                {
+                    "fps": 30,
+                    "sentenceGapSec": 0.32,
+                    "sceneGapSec": 0.9,
+                    "leadInSec": 0.6,
+                    "tailSec": 2.0,
+                    "sceneCrossFadeSec": 0.4,
+                }
+            ),
+            encoding="utf-8",
+        )
     if manifest is not None:
         (src / "archify.manifest.ts").write_text(manifest, encoding="utf-8")
     sc = src / "scenes"
@@ -357,3 +381,155 @@ def test_min_diagrams_floor(tmp_path):
     assert rc == 1
     assert "图数 2 < 下限 3" in out
     assert "白录" in out  # other 图未引用 → WARN
+
+
+# ---------------- v4 新维度：run / 分幕比率 / 密度 / 图型 / inset / 排他 ----------------
+
+
+def test_max_unanchored_run_fails(tmp_path):
+    """最长连续无锚 run 超限 → FAIL 并给出起点句（幕边界不重置）。"""
+    # 只锚 p0-01：p0-02 → p1-01 连续 2 句无锚（跨幕），上限 1 → FAIL
+    scene = SCENE_P0.replace(
+        "{chapterId: 'ch2', at: at('p0-02') - bA.from, durationInFrames: dur('p0-02')},\n",
+        "",
+    )
+    board = BOARD_OK.replace(" 章 `ch1`+`ch2`", " 章 `ch1`")
+    root = build(
+        tmp_path,
+        board=board,
+        scenes={"P0X.tsx": scene, "P1X.tsx": SCENE_P1},
+        toml=TOML_OK + "\n[archify]\nmax_unanchored_run = 1\n",
+    )
+    rc, out = run_gate(root)
+    assert rc == 1
+    assert "最长连续无锚 2 句（p0-02 起）> 上限 1" in out
+
+
+def test_scene_anchor_ratio_floor_fails_then_exempted(tmp_path):
+    """分幕锚定率下限：P1 1/3 < 0.9 → FAIL；豁免后 ℹ️ 放行。"""
+    toml = TOML_OK + "\n[archify]\nmin_scene_anchor_ratio = 0.9\n"
+    root = build(tmp_path, toml=toml)
+    rc, out = run_gate(root)
+    assert rc == 1
+    assert "分幕锚定率" in out and "P1" in out
+
+    root2 = build(
+        tmp_path,
+        name="fixture-archify-ratio-exempt",
+        toml=toml + '\nexempt_scenes = ["P1"]\n',
+    )
+    rc2, out2 = run_gate(root2)
+    assert rc2 == 0, out2
+    assert "P1 豁免分幕锚定率判定" in out2
+
+
+def test_cues_per_minute_skips_without_audio(tmp_path):
+    """audio/timing 缺失 → WARN 点名跳过（不造第二时长真相源），rc 0。"""
+    root = build(tmp_path, toml=TOML_OK + "\n[archify]\nmin_cues_per_minute = 99.0\n")
+    rc, out = run_gate(root)
+    assert rc == 0, out
+    assert "跳过 cue 密度门" in out
+
+
+def test_cues_per_minute_floor_fails_with_audio(tmp_path):
+    """带 audio：3 cue / ~0.55min ≈ 5.5/分钟 < 99 → FAIL。"""
+    root = build(
+        tmp_path,
+        audio=True,
+        toml=TOML_OK + "\n[archify]\nmin_cues_per_minute = 99.0\n",
+    )
+    rc, out = run_gate(root)
+    assert rc == 1
+    assert "cue 密度" in out and "99.0/分钟" in out
+
+
+def test_min_diagram_types_with_backfill(tmp_path):
+    """sidecar 带 type 才计多样性；untyped 归 1 种过默认地板。"""
+    root = build(
+        tmp_path,
+        sidecar=True,
+        toml=TOML_OK + "\n[archify]\nmin_diagram_types = 2\n",
+    )
+    rc, out = run_gate(root)
+    # demo.json sidecar 无 type → untyped 1 种 < 2 → FAIL + 回填 WARN
+    assert rc == 1
+    assert "图型多样性 1 种" in out and "缺 type 字段" in out
+
+    import json as _json
+
+    sidecar = root / "video" / "public" / "archify" / "demo.json"
+    d = _json.loads(sidecar.read_text(encoding="utf-8"))
+    d["type"] = "workflow"
+    sidecar.write_text(_json.dumps(d), encoding="utf-8")
+    rc2, out2 = run_gate(root)
+    assert rc2 == 1  # 单一 workflow 种 < 2，仍 FAIL（但回填 WARN 消失）
+    assert "图型多样性 1 种" in out2 and "缺 type 字段" not in out2
+
+    (root / "video" / "public" / "archify" / "other.json").write_text(
+        '{"slug": "other", "type": "sequence", "chapters": []}', encoding="utf-8"
+    )
+    rc3, out3 = run_gate(root)
+    assert rc3 == 0, out3
+    assert "图型 2 种" in out3
+
+
+def test_forbid_inset_scene_and_board_fails(tmp_path):
+    """forbid_inset=true：场景 variant 残留与分镜 inset 标注双向 FAIL。"""
+    root = build(tmp_path, toml=TOML_OK + "\n[archify]\nforbid_inset = true\n")
+    rc, out = run_gate(root)
+    assert rc == 1
+    assert 'variant="inset"' in out and "P0X.tsx" in out
+    assert "分镜标注 archify inset" in out and "镜 0-A" in out
+
+
+def test_forbid_inset_clean_passes(tmp_path):
+    board = BOARD_OK.replace("**archify inset**", "**archify full**")
+    scenes = {"P0X.tsx": SCENE_P0.replace('variant="inset"\n', ""), "P1X.tsx": SCENE_P1}
+    root = build(
+        tmp_path,
+        board=board,
+        scenes={
+            "P0X.tsx": scenes["P0X.tsx"],
+            "P1X.tsx": scenes["P1X.tsx"].replace('variant="inset"\n', ""),
+        },
+        toml=TOML_OK + "\n[archify]\nforbid_inset = true\n",
+    )
+    rc, out = run_gate(root)
+    assert rc == 0, out
+
+
+def test_duplicate_anchor_sentence_fails(tmp_path):
+    """同句双 cue → FAIL（全屏独占下一句一图）。"""
+    scene = SCENE_P1.replace(
+        "{chapterId: 'ch3', at: at('p1-01a') - bA.from, durationInFrames: dur('p1-01a')},",
+        "{chapterId: 'ch3', at: at('p1-01a') - bA.from, durationInFrames: dur('p1-01a')},\n"
+        "      {chapterId: 'ch1', at: at('p1-01a') - bA.from, durationInFrames: dur('p1-01a')},",
+    )
+    root = build(tmp_path, scenes={"P0X.tsx": SCENE_P0, "P1X.tsx": scene})
+    rc, out = run_gate(root)
+    assert rc == 1
+    assert "同锚句双 cue" in out and "p1-01a" in out
+
+
+def test_multi_sentence_duration_form_fails(tmp_path):
+    """dur('a','b') 多句窗形态 → SystemExit 形态断言（会与邻句 cue 真重叠）。"""
+    scene = SCENE_P1.replace(
+        "at: at('p1-01a') - bA.from, durationInFrames: dur('p1-01a')",
+        "at: at('p1-01a') - bA.from, durationInFrames: dur('p1-01a', 'p1-03')",
+    )
+    root = build(tmp_path, scenes={"P0X.tsx": SCENE_P0, "P1X.tsx": scene})
+    rc, out = run_gate(root)
+    assert rc != 0
+    assert "单参时长" in out
+
+
+def test_mismatched_at_dur_sentence_fails(tmp_path):
+    """锚句与时长句分家 → SystemExit（静默错窗）。"""
+    scene = SCENE_P1.replace(
+        "at: at('p1-01a') - bA.from, durationInFrames: dur('p1-01a')",
+        "at: at('p1-01a') - bA.from, durationInFrames: dur('p1-03')",
+    )
+    root = build(tmp_path, scenes={"P0X.tsx": SCENE_P0, "P1X.tsx": scene})
+    rc, out = run_gate(root)
+    assert rc != 0
+    assert "不一致" in out

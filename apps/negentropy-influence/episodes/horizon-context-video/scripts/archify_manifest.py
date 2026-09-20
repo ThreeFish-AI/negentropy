@@ -18,6 +18,9 @@ for f in sorted(SIDE.glob("*.json")):
         continue
     diagrams[d["slug"]] = {
         "slug": d["slug"],
+        # 图型（architecture/workflow/sequence/dataflow/lifecycle）——覆盖门
+        # 图型多样性门的数据源；旧 sidecar 缺此字段由 scripts/archify_types.py 回填
+        **({"type": d["type"]} if d.get("type") else {}),
         "chapters": [
             {
                 "id": c["id"],
@@ -49,7 +52,7 @@ OUT.write_text(
     "  /** 本章正片时长（秒） */\n  storySec: number;\n"
     "  /** 逐拍点亮的节点 id，供抽帧目视核对 */\n  beatNodes: string[];\n"
     "};\n\n"
-    "export type ArchifyDiagram = {slug: string; chapters: ArchifyChapter[]};\n\n"
+    "export type ArchifyDiagram = {slug: string; type?: string; chapters: ArchifyChapter[]};\n\n"
     f"export const ARCHIFY = {body} as const satisfies Record<string, ArchifyDiagram>;\n\n"
     "export type ArchifySlug = keyof typeof ARCHIFY;\n",
     encoding="utf-8",

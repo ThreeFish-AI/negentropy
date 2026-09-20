@@ -21,11 +21,12 @@ export type ArchifyChapter = {
   beatNodes: string[];
 };
 
-export type ArchifyDiagram = {slug: string; chapters: ArchifyChapter[]};
+export type ArchifyDiagram = {slug: string; type?: string; chapters: ArchifyChapter[]};
 
 export const ARCHIFY = {
   "agent-identity": {
     "slug": "agent-identity",
+    "type": "workflow",
     "chapters": [
       {
         "id": "ceiling",
@@ -86,6 +87,7 @@ export const ARCHIFY = {
   },
   "amnesia-intern": {
     "slug": "amnesia-intern",
+    "type": "workflow",
     "chapters": [
       {
         "id": "daily-reset",
@@ -121,6 +123,7 @@ export const ARCHIFY = {
   },
   "autopilot-loop": {
     "slug": "autopilot-loop",
+    "type": "workflow",
     "chapters": [
       {
         "id": "inputs",
@@ -168,6 +171,7 @@ export const ARCHIFY = {
   },
   "bare-key-baseline": {
     "slug": "bare-key-baseline",
+    "type": "workflow",
     "chapters": [
       {
         "id": "whole-key",
@@ -215,6 +219,7 @@ export const ARCHIFY = {
   },
   "caliber-clash": {
     "slug": "caliber-clash",
+    "type": "architecture",
     "chapters": [
       {
         "id": "three-dashboards",
@@ -263,6 +268,7 @@ export const ARCHIFY = {
   },
   "classification-tagging": {
     "slug": "classification-tagging",
+    "type": "workflow",
     "chapters": [
       {
         "id": "tag-driven",
@@ -311,6 +317,7 @@ export const ARCHIFY = {
   },
   "collect-enrich-activate": {
     "slug": "collect-enrich-activate",
+    "type": "dataflow",
     "chapters": [
       {
         "id": "collect",
@@ -360,6 +367,7 @@ export const ARCHIFY = {
   },
   "component-panorama": {
     "slug": "component-panorama",
+    "type": "architecture",
     "chapters": [
       {
         "id": "caliber-spine",
@@ -415,6 +423,7 @@ export const ARCHIFY = {
   },
   "declaration-execution": {
     "slug": "declaration-execution",
+    "type": "workflow",
     "chapters": [
       {
         "id": "declare",
@@ -480,6 +489,7 @@ export const ARCHIFY = {
   },
   "dedup-safety": {
     "slug": "dedup-safety",
+    "type": "workflow",
     "chapters": [
       {
         "id": "set-vs-rows",
@@ -501,6 +511,7 @@ export const ARCHIFY = {
   },
   "dual-path-disambiguation": {
     "slug": "dual-path-disambiguation",
+    "type": "workflow",
     "chapters": [
       {
         "id": "two-paths",
@@ -523,6 +534,7 @@ export const ARCHIFY = {
   },
   "engine-governance": {
     "slug": "engine-governance",
+    "type": "workflow",
     "chapters": [
       {
         "id": "sign-vs-wall",
@@ -586,6 +598,7 @@ export const ARCHIFY = {
   },
   "evidence-grading": {
     "slug": "evidence-grading",
+    "type": "workflow",
     "chapters": [
       {
         "id": "vendor-claim",
@@ -621,6 +634,7 @@ export const ARCHIFY = {
   },
   "evolution-timeline": {
     "slug": "evolution-timeline",
+    "type": "dataflow",
     "chapters": [
       {
         "id": "stage-objects",
@@ -674,6 +688,7 @@ export const ARCHIFY = {
   },
   "fan-trap": {
     "slug": "fan-trap",
+    "type": "workflow",
     "chapters": [
       {
         "id": "copy-inflate",
@@ -720,6 +735,7 @@ export const ARCHIFY = {
   },
   "four-factor-ranking": {
     "slug": "four-factor-ranking",
+    "type": "dataflow",
     "chapters": [
       {
         "id": "signals",
@@ -770,6 +786,7 @@ export const ARCHIFY = {
   },
   "governance-demolition": {
     "slug": "governance-demolition",
+    "type": "workflow",
     "chapters": [
       {
         "id": "remove-mask",
@@ -816,6 +833,7 @@ export const ARCHIFY = {
   },
   "grain-collapse": {
     "slug": "grain-collapse",
+    "type": "workflow",
     "chapters": [
       {
         "id": "day-pack-collapse",
@@ -863,6 +881,7 @@ export const ARCHIFY = {
   },
   "injection-threat": {
     "slug": "injection-threat",
+    "type": "workflow",
     "chapters": [
       {
         "id": "badge-question",
@@ -896,6 +915,7 @@ export const ARCHIFY = {
   },
   "last-snapshot-gate": {
     "slug": "last-snapshot-gate",
+    "type": "workflow",
     "chapters": [
       {
         "id": "semi-additive",
@@ -929,6 +949,7 @@ export const ARCHIFY = {
   },
   "lineage-ledger": {
     "slug": "lineage-ledger",
+    "type": "dataflow",
     "chapters": [
       {
         "id": "engine-lane",
@@ -977,6 +998,7 @@ export const ARCHIFY = {
   },
   "majority-shortcut": {
     "slug": "majority-shortcut",
+    "type": "workflow",
     "chapters": [
       {
         "id": "popularity-wins",
@@ -1011,6 +1033,7 @@ export const ARCHIFY = {
   },
   "mean-of-means": {
     "slug": "mean-of-means",
+    "type": "workflow",
     "chapters": [
       {
         "id": "wrong-avg-of-avg",
@@ -1045,6 +1068,7 @@ export const ARCHIFY = {
   },
   "open-interop": {
     "slug": "open-interop",
+    "type": "architecture",
     "chapters": [
       {
         "id": "portable",
@@ -1094,6 +1118,7 @@ export const ARCHIFY = {
   },
   "perimeter-loss": {
     "slug": "perimeter-loss",
+    "type": "workflow",
     "chapters": [
       {
         "id": "inside-effective",
@@ -1130,6 +1155,7 @@ export const ARCHIFY = {
   },
   "preview-gap": {
     "slug": "preview-gap",
+    "type": "workflow",
     "chapters": [
       {
         "id": "preview-band",
@@ -1149,6 +1175,7 @@ export const ARCHIFY = {
   },
   "problem-to-mechanisms": {
     "slug": "problem-to-mechanisms",
+    "type": "dataflow",
     "chapters": [
       {
         "id": "cause-chain",
@@ -1227,6 +1254,7 @@ export const ARCHIFY = {
   },
   "resolve-activation": {
     "slug": "resolve-activation",
+    "type": "sequence",
     "chapters": [
       {
         "id": "hit-reconcile",
@@ -1271,6 +1299,7 @@ export const ARCHIFY = {
   },
   "row-column-policy": {
     "slug": "row-column-policy",
+    "type": "workflow",
     "chapters": [
       {
         "id": "perpage",
@@ -1319,6 +1348,7 @@ export const ARCHIFY = {
   },
   "supply-overwhelm": {
     "slug": "supply-overwhelm",
+    "type": "workflow",
     "chapters": [
       {
         "id": "flood-vs-manual",
@@ -1341,6 +1371,7 @@ export const ARCHIFY = {
   },
   "trust-assets": {
     "slug": "trust-assets",
+    "type": "workflow",
     "chapters": [
       {
         "id": "two-pillars",
@@ -1378,6 +1409,7 @@ export const ARCHIFY = {
   },
   "valid-sql-wrong-answer": {
     "slug": "valid-sql-wrong-answer",
+    "type": "workflow",
     "chapters": [
       {
         "id": "syntax-pass",
@@ -1410,6 +1442,7 @@ export const ARCHIFY = {
   },
   "wrong-page-failure": {
     "slug": "wrong-page-failure",
+    "type": "workflow",
     "chapters": [
       {
         "id": "right-book-wrong-page",
