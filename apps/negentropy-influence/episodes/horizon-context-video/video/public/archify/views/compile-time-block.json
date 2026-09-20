@@ -1,0 +1,20 @@
+[
+  {
+    "id": "ux-vs-lifeline",
+    "label": "体验vs命门",
+    "focus": ["caller", "retrieval", "engine", "gov"],
+    "note": "检索过滤是交互体验，编译期执行才是安全命门。"
+  },
+  {
+    "id": "no-backdoor",
+    "label": "不成后门",
+    "focus": ["semantic", "caller", "engine"],
+    "note": "语义层再灵活，绝不可能成为绕开安全底线的后门。"
+  },
+  {
+    "id": "compile-second",
+    "label": "编译那一秒",
+    "focus": ["engine", "gov", "caller"],
+    "note": "越权企图在编译那一秒就被拦下。"
+  }
+]

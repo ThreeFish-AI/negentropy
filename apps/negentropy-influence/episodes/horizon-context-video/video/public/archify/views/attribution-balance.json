@@ -1,0 +1,14 @@
+[
+  {
+    "id": "not-the-brain",
+    "label": "不取决于大脑",
+    "focus": ["when-correct", "balance", "model-brain"],
+    "note": "它从来不取决于底层模型的大脑有多聪明。"
+  },
+  {
+    "id": "cast-into-infra",
+    "label": "取决于铸基",
+    "focus": ["cast-into-infra", "mech-semantics", "mech-governance", "mech-trust"],
+    "note": "而是取决于你有没有把业务上下文铸成基础设施。"
+  }
+]

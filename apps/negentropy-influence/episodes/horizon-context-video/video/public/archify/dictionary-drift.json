@@ -1,0 +1,92 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 9.94,
+ "total_wall_sec": 41.47,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "dict-outside",
+   "label": "词典在库外",
+   "index": 0,
+   "file": "dictionary-drift--dict-outside.mp4",
+   "end_still": "dictionary-drift--dict-outside-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.31,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.205
+   ],
+   "beat_nodes": [
+    "dict-mounted",
+    "table-v1",
+    "loose-sync"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 24.0
+  },
+  {
+   "id": "schema-changed",
+   "label": "底层一改",
+   "index": 1,
+   "file": "dictionary-drift--schema-changed.mp4",
+   "end_still": "dictionary-drift--schema-changed-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.31,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.205
+   ],
+   "beat_nodes": [
+    "table-v1",
+    "schema-change",
+    "stale-dict"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 24.0
+  },
+  {
+   "id": "stale-manual",
+   "label": "按旧手册猜",
+   "index": 2,
+   "file": "dictionary-drift--stale-manual.mp4",
+   "end_still": "dictionary-drift--stale-manual-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.32,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.205
+   ],
+   "beat_nodes": [
+    "stale-dict",
+    "ai-stale-manual",
+    "wrong-answers"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 23.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/barcelona-v6/docs/assets/architecture/cognitive-context/horizon-context--dictionary-drift.html",
+ "slug": "dictionary-drift",
+ "type": "lifecycle"
+}

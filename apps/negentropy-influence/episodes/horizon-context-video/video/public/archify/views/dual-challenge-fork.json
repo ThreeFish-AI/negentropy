@@ -1,0 +1,14 @@
+[
+  {
+    "id": "challenge-one",
+    "label": "第一个挑战",
+    "focus": ["foundation", "challengeOne", "vqr", "sealedAnswer"],
+    "note": "手册印好了，闸机焊牢了，落地依然面临两个挑战。"
+  },
+  {
+    "id": "challenge-two",
+    "label": "第二个挑战",
+    "focus": ["challengeTwo", "ledger", "intakeGate", "auditClose"],
+    "note": "第二个挑战：数据在全公司流转，如何确保合理合法合规？"
+  }
+]

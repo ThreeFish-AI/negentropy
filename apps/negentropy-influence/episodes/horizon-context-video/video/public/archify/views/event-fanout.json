@@ -1,0 +1,23 @@
+[
+ {
+  "id": "hundred-three",
+  "label": "一百块三次事件",
+  "focus": [
+   "order100",
+   "evt-1",
+   "evt-2",
+   "evt-3"
+  ],
+  "note": "客户下一笔一百块订单，触发了三次事件。"
+ },
+ {
+  "id": "join-disaster",
+  "label": "直接关联的灾难",
+  "focus": [
+   "naive-join",
+   "dup-rows",
+   "sum-300"
+  ],
+  "note": "直接把订单表与事件表关联求和，灾难就来了。"
+ }
+]

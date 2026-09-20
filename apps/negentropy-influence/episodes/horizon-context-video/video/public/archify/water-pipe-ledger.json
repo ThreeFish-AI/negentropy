@@ -1,0 +1,96 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 12.22,
+ "total_wall_sec": 46.26,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "fifth-mechanism",
+   "label": "第五大机制",
+   "index": 0,
+   "file": "water-pipe-ledger--fifth-mechanism.mp4",
+   "end_still": "water-pipe-ledger--fifth-mechanism-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.43,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.208,
+    3.312
+   ],
+   "beat_nodes": [
+    "m5-badge",
+    "ledger",
+    "engine-pipe",
+    "ext-pipe"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 23.0
+  },
+  {
+   "id": "drop-to-drop",
+   "label": "每滴水从哪到哪",
+   "index": 1,
+   "file": "water-pipe-ledger--drop-to-drop.mp4",
+   "end_still": "water-pipe-ledger--drop-to-drop-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.33,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.208
+   ],
+   "beat_nodes": [
+    "orders-pool",
+    "engine-pipe",
+    "sales-tap"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 23.0
+  },
+  {
+   "id": "not-wastepaper",
+   "label": "不是废纸都收",
+   "index": 2,
+   "file": "water-pipe-ledger--not-wastepaper.mp4",
+   "end_still": "water-pipe-ledger--not-wastepaper-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.46,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.209,
+    3.312
+   ],
+   "beat_nodes": [
+    "ext-pipe",
+    "resolve-gate",
+    "rejected",
+    "ledger"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 23.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/barcelona-v6/docs/assets/architecture/cognitive-context/horizon-context--water-pipe-ledger.html",
+ "slug": "water-pipe-ledger",
+ "type": "dataflow"
+}

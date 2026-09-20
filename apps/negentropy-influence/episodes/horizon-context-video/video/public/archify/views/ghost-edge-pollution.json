@@ -1,0 +1,26 @@
+[
+  {
+    "id": "fake-event",
+    "label": "故意推虚构流水",
+    "focus": ["ghost-push", "ingest-endpoint", "resolve-gate"],
+    "note": "破坏性实验里，我们故意推送一条虚构的外部流水。"
+  },
+  {
+    "id": "rejected",
+    "label": "当场拒收",
+    "focus": ["resolve-gate", "gate-reject", "ledger-clean"],
+    "note": "正常门禁会识别出下游对象在大厦不存在，当场拒收。"
+  },
+  {
+    "id": "gate-removed",
+    "label": "拆掉解析闸",
+    "focus": ["resolve-gate", "gate-stripped", "ghost-in-ledger"],
+    "note": "一旦拆掉解析闸，虚构对象边就会悄悄混进正式账本。"
+  },
+  {
+    "id": "ledger-detached",
+    "label": "对账成空话",
+    "focus": ["ghost-in-ledger", "detached", "audit-hollow"],
+    "note": "账本与数据脱钩，事后审计对账就成了空话。"
+  }
+]

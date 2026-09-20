@@ -1,0 +1,20 @@
+[
+  {
+    "id": "realtime-ceiling",
+    "label": "天花板实时求值",
+    "focus": ["badge-live", "realtime-eval", "instant-loss", "no-stale-window"],
+    "note": "更致命的细节：工牌的权限天花板必须实时求值。"
+  },
+  {
+    "id": "static-snapshot",
+    "label": "启动拍静态快照",
+    "focus": ["badge-live", "snap-frozen", "copy-static"],
+    "note": "很多系统习惯在启动时给 AI 拍一张权限静态快照。"
+  },
+  {
+    "id": "ten-minutes",
+    "label": "十分钟后回收",
+    "focus": ["admin-revoke", "copy-static", "stale-holds"],
+    "note": "十分钟后管理员在后台回收了人类某个权限呢？"
+  }
+]

@@ -1,0 +1,23 @@
+[
+ {
+  "id": "teardown-leak",
+  "label": "拆除即泄露",
+  "focus": [
+   "internQuery",
+   "teardownFlag",
+   "leakOutcome"
+  ],
+  "note": "实验拆除权限控制后，实习生立刻拿到敏感明细。"
+ },
+ {
+  "id": "hide-not-block",
+  "label": "藏≠拦",
+  "focus": [
+   "hideSeal",
+   "directBypass",
+   "blockSeal",
+   "blockedOutcome"
+  ],
+  "note": "泄露对照告诉我们：藏起来，绝对不等于拦得住。"
+ }
+]

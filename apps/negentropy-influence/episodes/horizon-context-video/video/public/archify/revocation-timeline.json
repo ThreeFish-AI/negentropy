@@ -1,0 +1,94 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 11.15,
+ "total_wall_sec": 39.91,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "realtime-ceiling",
+   "label": "天花板实时求值",
+   "index": 0,
+   "file": "revocation-timeline--realtime-ceiling.mp4",
+   "end_still": "revocation-timeline--realtime-ceiling-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.45,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.206,
+    3.31
+   ],
+   "beat_nodes": [
+    "badge-live",
+    "realtime-eval",
+    "instant-loss",
+    "no-stale-window"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 23.0
+  },
+  {
+   "id": "static-snapshot",
+   "label": "启动拍静态快照",
+   "index": 1,
+   "file": "revocation-timeline--static-snapshot.mp4",
+   "end_still": "revocation-timeline--static-snapshot-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [
+    0.0,
+    1.101,
+    2.205
+   ],
+   "beat_nodes": [
+    "badge-live",
+    "snap-frozen",
+    "copy-static"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 23.0
+  },
+  {
+   "id": "ten-minutes",
+   "label": "十分钟后回收",
+   "index": 2,
+   "file": "revocation-timeline--ten-minutes.mp4",
+   "end_still": "revocation-timeline--ten-minutes-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.205
+   ],
+   "beat_nodes": [
+    "admin-revoke",
+    "copy-static",
+    "stale-holds"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 23.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/barcelona-v6/docs/assets/architecture/cognitive-context/horizon-context--revocation-timeline.html",
+ "slug": "revocation-timeline",
+ "type": "lifecycle"
+}

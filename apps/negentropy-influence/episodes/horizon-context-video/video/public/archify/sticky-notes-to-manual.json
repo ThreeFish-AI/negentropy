@@ -1,0 +1,71 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 7.8,
+ "total_wall_sec": 27.04,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "first-mechanism",
+   "label": "第一大机制",
+   "index": 0,
+   "file": "sticky-notes-to-manual--first-mechanism.mp4",
+   "end_still": "sticky-notes-to-manual--first-mechanism-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.45,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.205,
+    3.307
+   ],
+   "beat_nodes": [
+    "manual",
+    "singleVoice",
+    "liveCompute",
+    "defineAsCompute"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 23.0
+  },
+  {
+   "id": "scattered-notes",
+   "label": "口径散落便利贴",
+   "index": 1,
+   "file": "sticky-notes-to-manual--scattered-notes.mp4",
+   "end_still": "sticky-notes-to-manual--scattered-notes-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.207
+   ],
+   "beat_nodes": [
+    "noteSticky",
+    "noteDraft",
+    "gather"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 24.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/barcelona-v6/docs/assets/architecture/cognitive-context/horizon-context--sticky-notes-to-manual.html",
+ "slug": "sticky-notes-to-manual",
+ "type": "workflow"
+}

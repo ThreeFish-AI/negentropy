@@ -1,0 +1,14 @@
+[
+  {
+    "id": "instant-inspection",
+    "label": "查询瞬间审查",
+    "focus": ["asker", "gate", "policy"],
+    "note": "数据输出时，闸机在查询瞬间实时审查客体。"
+  },
+  {
+    "id": "agent-recognized",
+    "label": "认得出代理",
+    "focus": ["agent", "gate", "policy"],
+    "note": "规则不仅识别人类角色，还能识别发起者是不是代理。"
+  }
+]

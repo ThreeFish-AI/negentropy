@@ -1,0 +1,8 @@
+[
+  {
+    "id": "declare-execute-split",
+    "label": "声明半边×执行半边",
+    "focus": ["manual", "fiveDecl", "calc", "moneyDouble"],
+    "note": "重算开关关掉后，手册一个字没改，算出来的钱翻了倍。"
+  }
+]

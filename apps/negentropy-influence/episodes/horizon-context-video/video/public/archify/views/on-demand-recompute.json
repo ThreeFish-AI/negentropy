@@ -1,0 +1,20 @@
+[
+  {
+    "id": "frozen-widetable",
+    "label": "宽表死数字",
+    "focus": ["ledger", "widetable", "asker"],
+    "note": "传统做法把死数字预存成宽表，应付不了随时变化的问题。"
+  },
+  {
+    "id": "formula-only",
+    "label": "只存算式",
+    "focus": ["widetable", "asker", "manual"],
+    "note": "手册只存算式，什么时候需要，临机现算。"
+  },
+  {
+    "id": "grain-recompute",
+    "label": "按粒度翻凭证",
+    "focus": ["asker", "manual", "ledger"],
+    "note": "查询粒度改变，也能按算式当场翻底层原始凭证重新套算。"
+  }
+]

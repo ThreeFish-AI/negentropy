@@ -1,0 +1,32 @@
+[
+ {
+  "id": "guess-only",
+  "label": "没有上下文只能瞎猜",
+  "focus": [
+   "threeClaims",
+   "noCtx",
+   "agentGuess"
+  ],
+  "note": "官方第一句：没有上下文，智能体只能瞎猜。"
+ },
+ {
+  "id": "native-act",
+  "label": "原生植入才能行动",
+  "focus": [
+   "agentGuess",
+   "nativeCtx",
+   "agentAct"
+  ],
+  "note": "官方第二句：上下文原生植入平台，智能体才能真正行动起来。"
+ },
+ {
+  "id": "governed-trust",
+  "label": "严格治理才值得信任",
+  "focus": [
+   "agentAct",
+   "governedCtx",
+   "agentTrusted"
+  ],
+  "note": "官方第三句：上下文被严格治理，智能体才值得信任。"
+ }
+]

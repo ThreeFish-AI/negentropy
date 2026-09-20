@@ -1,0 +1,23 @@
+[
+ {
+  "id": "first-mechanism",
+  "label": "第一大机制",
+  "focus": [
+   "manual",
+   "singleVoice",
+   "liveCompute",
+   "defineAsCompute"
+  ],
+  "note": "第一大机制「规章手册」，即语义视图。"
+ },
+ {
+  "id": "scattered-notes",
+  "label": "口径散落便利贴",
+  "focus": [
+   "noteSticky",
+   "noteDraft",
+   "gather"
+  ],
+  "note": "过去，口径散落在便利贴上，写满杂乱的 SQL。"
+ }
+]

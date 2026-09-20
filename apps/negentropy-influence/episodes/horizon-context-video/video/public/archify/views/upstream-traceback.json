@@ -1,0 +1,24 @@
+[
+  {
+    "id": "living-ledger",
+    "label": "台账活的可信",
+    "focus": [
+      "ol-evt",
+      "ingest-gate",
+      "rejected",
+      "ledger"
+    ],
+    "note": "守住解析门禁，血缘台账才是活的、可信的。"
+  },
+  {
+    "id": "three-seconds",
+    "label": "三秒定位源头",
+    "focus": [
+      "question",
+      "get-lineage",
+      "ledger",
+      "src-col"
+    ],
+    "note": "顺着台账三秒钟定位到源头。"
+  }
+]

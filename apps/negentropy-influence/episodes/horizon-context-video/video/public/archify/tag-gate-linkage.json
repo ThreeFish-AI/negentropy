@@ -1,0 +1,94 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 11.15,
+ "total_wall_sec": 41.21,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "intake-test",
+   "label": "进楼考验",
+   "index": 0,
+   "file": "tag-gate-linkage--intake-test.mp4",
+   "end_still": "tag-gate-linkage--intake-test-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.33,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.209
+   ],
+   "beat_nodes": [
+    "newBatch",
+    "manualCount",
+    "unmapped"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 24.0
+  },
+  {
+   "id": "seventh-mechanism",
+   "label": "第七大机制",
+   "index": 1,
+   "file": "tag-gate-linkage--seventh-mechanism.mp4",
+   "end_still": "tag-gate-linkage--seventh-mechanism-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.36,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.206
+   ],
+   "beat_nodes": [
+    "newBatch",
+    "classifier",
+    "sysTag"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 23.0
+  },
+  {
+   "id": "auto-linkage",
+   "label": "免重复配置",
+   "index": 2,
+   "file": "tag-gate-linkage--auto-linkage.mp4",
+   "end_still": "tag-gate-linkage--auto-linkage-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.46,
+   "beat_offsets_sec": [
+    0.0,
+    1.101,
+    2.204,
+    3.307
+   ],
+   "beat_nodes": [
+    "sysTag",
+    "userTag",
+    "policy",
+    "gate"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 23.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/barcelona-v6/docs/assets/architecture/cognitive-context/horizon-context--tag-gate-linkage.html",
+ "slug": "tag-gate-linkage",
+ "type": "dataflow"
+}
