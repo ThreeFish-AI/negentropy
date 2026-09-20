@@ -1,0 +1,39 @@
+%%source: docs/research/cognitive-context/013-context-layer-blueprint.md §3.1 spine：层 × 机制 × 实例的总映射 (L184-L198, 五列横向生命周期)
+%%slug: cognitive-context/context-layer-blueprint--layer-mechanism-map
+%%type: architecture
+%%derived: archify architecture v1, authored fresh (五列×上下两排+生命周期链+映射边)
+flowchart LR
+    subgraph OBJ["§4 对象层 · 规章手册"]
+        direction TB
+        OM["M1 口径单点×查询期重算<br/>五段式 + 校验门 · 聚合四保障<br/>🏷️ M4 字段在此"]
+        OI["definitions registry ✅<br/>4 类 SSOT · 422 校验门 · 三字段纪律 🔶"]
+        OM -->|机制↔实例| OI
+    end
+    subgraph CAT["§5 目录层 · 索引总账"]
+        direction TB
+        CM["M5 血缘 + 四层信号<br/>External Lineage · S/O/S/B<br/>🏷️ M5 归位非降格"]
+        CI["三视图 + 信任归一 🔶<br/>三视图 ADR-1（未落地）"]
+        CM -->|机制↔实例| CI
+    end
+    subgraph ENR["§6 富化层 · 双轨编纂"]
+        direction TB
+        EM["§10 双轨富化（专章）<br/>Autopilot · Sense · eval 自纠环"]
+        EI["patrol/Judge ✅ · 冲突 🔶<br/>evaluator.py:188 · CONFLICT 卡片（方案）"]
+        EM -->|机制↔实例| EI
+    end
+    subgraph GOV["§7 治理层 · 承重墙风控"]
+        direction TB
+        GM["M2/M3/M7/M6 四机构<br/>闸机·承重墙·贴标·工牌 + 威胁模型"]
+        GI["过滤 ✅ · Guard/身份 🔶<br/>unified_search:100 · Guard（方案）"]
+        GM -->|机制↔实例| GI
+    end
+    subgraph ACT["§8 激活层 · 前台与插座"]
+        direction TB
+        AM["M4 验证锚定 · §11/§12<br/>VQR 出示 · 四因子排序 · MCP/Ossie<br/>🏷️ M4 出示在此"]
+        AI["渐进披露 ✅ · Router 🔶<br/>skills_injector · Planner 扩展（方案）"]
+        AM -->|机制↔实例| AI
+    end
+    OM -->|登记入账| CM
+    CM -->|富化养护| EM
+    EM -->|治理管控| GM
+    GM -->|受控供给| AM

@@ -12,9 +12,9 @@
 | [Context Engineering 通俗全解](./cognitive-context/010-context-engineering.md) | 上下文工程主流框架与论文精解 |
 | [Snowflake Horizon Context 精读笔记](./cognitive-context/011-horizon-context.md) | 产业范本精读：三阶段演进全景（语义对象化→治理内嵌→生态开放）+ 重评选校准后七机制 M1–M7（语义视图口径单点×查询期重算 / 查询期行列级访问策略 / 语义级治理执行 / 应答层验证锚定 / 端到端列级血缘 / Agent Identity / 分类与标签驱动策略传播）+ 富化/检索/互操作三专章保留（降级理由与重评触发器随文）+ 实证数字与批判性边界 + 2026-09-17 重评审记录，含随笔记入库的 M1–M7 最小原型（十次破坏性实验）与 MCP 服务原型，M1–M7 各配一张 archify 动效工程图，§1 另配病因链与机制对位总览图、§2 另配组件全景与演进时间线两张总览图，§10–§12 降级章四张沿用（共十四张，trace 动画） |
 | [Horizon Context ↔ negentropy 机制映射](./cognitive-context/012-horizon-context-mapping-negentropy.md) | 16 条机制逐条对照本仓 definitions registry / patrol-Judge / skills_injector / Catalog（✅ 已对齐 4 · 🔶 值得落地 8 含部分对齐 1 · ⏸ 暂缓 4；2026-09-17 随 M 集重评选重审，新晋四机制补映射），锚点均经代码核验 |
-| [Context Layer 基础设施设计蓝图](./cognitive-context/013-context-layer-blueprint.md) | 由上述精读派生的通用可复刻治理上下文层：对象存储 / 目录 / 富化自纠 / 治理 / 激活五正交层 + 业界四路线格局对照 + MCP 供给面威胁模型 + 评测标尺与组织运营对策，含「治理≠验证」边界对策与独立部署演进路线 |
+| [Context Layer 技术蓝图与方案](./cognitive-context/013-context-layer-blueprint.md) | **全量版设计 SSOT（2026-09-20 重设计）**：融合 Horizon 精读全量机制载荷（M1–M7+三专章+D1–D10 破坏实验）+ negentropy 治理织物实例化总装（16 条映射状态表）+ 通用五正交层蓝图 + 业界四路线格局（含 AWS 新席）+ MCP 供给面威胁模型 + 评测标尺与组织运营 + 「治理≠验证」边界对策 + 双轨演进路线（独立部署 P0–P3 × 本仓 Phase 1–3），经六路并行重调研复核，新增脊柱图与双轨图 |
 
-> 本仓**内部**的上下文治理织物方案见 [Context Layer · 上下文治理层技术方案](../concepts/design/context-layer.md)（统领 Memory / KB / KG / Tools / Skills 的上下文契约）——它是上方[基础设施设计蓝图](./cognitive-context/013-context-layer-blueprint.md)在 negentropy 的一次实例化，两者互补互链。
+> 本仓**内部**的实施入口见 [Context Layer · 上下文治理层技术方案（实施入口页）](../concepts/design/context-layer.md)（定位声明 + 章节指针 + 实施状态）——其设计正文已于 2026-09-20 全量并入上方蓝图，013 为单一事实源。
 
 ## 二、Agent 框架与引擎 · `agent-runtime/`
 
