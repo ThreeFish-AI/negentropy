@@ -1,106 +1,18 @@
 /** P3 承重墙上的闸机＝M2（逐页验放·客体轴）+ M3（承重墙拓扑·定义出口轴）。
- *  两者正交：M2 失效 = 人当场看到明文；M3 失效 = 受限口径从别的门静默溜出。 */
+ *  两者正交：M2 失效 = 人当场看到明文；M3 失效 = 受限口径从别的门静默溜出。
+ *  W6 起本幕 26 句全由 archify 图主控（PageScanner/3-D 对照台/代码走廊②/金句卡
+ *  退役），自制件仅存 3-A① 母图推近、SignVsWall（岛 p3-10）、TwoLayers（岛
+ *  p3-14/15）。 */
 import React from 'react';
-import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
+import {AbsoluteFill, Sequence} from 'remotion';
 import type {SceneRange} from '../types';
 import {beatWindow} from '../timing';
 import {theme} from '../design/theme';
-import {clamp01, DUR, progress, useImpulse, useProgress, useShake, useSpring} from '../motion';
+import {DUR, useImpulse, useProgress, useShake, useSpring} from '../motion';
 import {NumberedCard, Panel, SceneTag} from '../components/motifs';
-import {CodeWalk, TerminalLog} from '../components/CodeWalk';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 import {ArchifyYield} from '../components/ArchifyYield';
-import {EvidenceBadge, MechZoom, PillarHUD, SplitCompare, Stage} from '../components/devices';
-
-const ROWS = [
-  {name: '张明', plan: 'ENTERPRISE', phone: '138****2041', amt: '¥ 90'},
-  {name: '李静', plan: 'PRO', phone: '139****7788', amt: '¥ 560'},
-  {name: '王磊', plan: 'FREE', phone: '137****3120', amt: '¥ 24'},
-];
-
-/** 行距（几何量，非时点）——`verdict` 的逐行时机由扫描条 y 与它换算，不另立时间源 */
-const ROW_PITCH = 86;
-
-/** 3-A/3-B 逐页验放扫描仪：同一装置演两遍。
- *
- *  省略 `maskAt`/`holdAt` = 3-A 的「正演一次」：扫描线横扫、逐行亮放行章，不打码不扣留；
- *  两者都给 = 3-B 的「拆一次 / 坏给你看」。两镜用同一个 `Stage top`，让跨镜的装置落在
- *  同一像素位置（planning §三 硬纪律「每个装置演三遍」）。
- *  `verdict` 刻意**不带独立时点**：逐行放行完全由扫描条自身位置派生，避免同一事件出现
- *  第二个可失配的真值源。 */
-const PageScanner: React.FC<{
-  scanAt: number;
-  scanSpan: number;
-  maskAt?: number;
-  holdAt?: number;
-  verdict?: boolean;
-}> = ({scanAt, scanSpan, maskAt, holdAt, verdict = false}) => {
-  const frame = useCurrentFrame();
-  const scan = useProgress(scanAt, scanSpan, 'linear');
-  return (
-    <div style={{position: 'relative', width: 1180}}>
-      <div
-        style={{
-          position: 'absolute',
-          left: 0,
-          top: 0,
-          width: '100%',
-          height: 3,
-          background: theme.engine,
-          boxShadow: `0 0 18px ${theme.engine}`,
-          transform: `translateY(${scan * 300}px)`,
-        }}
-      />
-      {ROWS.map((r, i) => {
-        const masked = maskAt === undefined ? 0 : progress(frame, maskAt + i * 3, DUR.f4);
-        const held = holdAt !== undefined && i === 0 ? progress(frame, holdAt, DUR.f4) : 0;
-        const pass = verdict
-          ? clamp01((scan * 300 - (i * ROW_PITCH + ROW_PITCH / 2)) / 18)
-          : 0;
-        return (
-          <div
-            key={r.name}
-            style={{
-              display: 'flex',
-              gap: 26,
-              alignItems: 'center',
-              padding: '18px 26px',
-              marginBottom: 12,
-              borderRadius: 10,
-              border: `2px solid ${
-                held > 0.4 ? theme.danger : pass > 0.5 ? theme.engine : theme.panelBorder
-              }`,
-              background:
-                held > 0.4 ? `${theme.danger}14` : pass > 0.5 ? `${theme.engine}12` : theme.panel,
-              fontFamily: theme.mono,
-              fontSize: 28,
-              color: theme.text,
-              opacity: 1 - 0.55 * held,
-              transform: `translateX(${held * 60}px)`,
-            }}
-          >
-            <span style={{width: 100}}>{r.name}</span>
-            <span style={{width: 220, color: theme.dim}}>{r.plan}</span>
-            <span style={{width: 260, color: masked > 0.5 ? theme.dim : theme.text}}>
-              {masked > 0.5 ? '███████████' : r.phone}
-            </span>
-            <span style={{width: 140}}>{r.amt}</span>
-            {held > 0.4 ? (
-              <span style={{fontFamily: theme.sans, fontSize: 22, color: theme.danger}}>越权行已扣留</span>
-            ) : null}
-            {pass > 0 && held <= 0.4 ? (
-              <span
-                style={{fontFamily: theme.sans, fontSize: 22, color: theme.engine, opacity: pass}}
-              >
-                实时核验 · 放行
-              </span>
-            ) : null}
-          </div>
-        );
-      })}
-    </div>
-  );
-};
+import {EvidenceBadge, MechZoom, PillarHUD, Stage} from '../components/devices';
 
 /** 3-C 木牌 vs 焊死承重墙。
  *
@@ -264,41 +176,37 @@ export const P3Gate: React.FC<{scene: SceneRange}> = ({scene}) => {
           caption="查询期行列级策略"
           cues={[{chapterId: 'perpage', at: at('p3-03') - bA.from, durationInFrames: dur('p3-03')}]}
         />
-        {/* top 与 3-B 同值：正演一次与拆一次落在同一像素位置，读成同一个装置 */}
-        <Sequence
-          from={at('p3-04') - bA.from}
-          durationInFrames={dur('p3-04')}
-          name="3-A② 逐页验放扫描仪 · 正演一次"
-        >
-          <Stage>
-            <PageScanner scanAt={0} scanSpan={dur('p3-04')} verdict />
-          </Stage>
-        </Sequence>
+        {/* 3-A② 扫描仪已退役（p3-04 正演句由图接管）；p3-03(perpage 末 cue)→p3-04
+            背靠背跨实例 → lead={false} */}
+        <ArchifyRecap
+          slug="query-time-policy"
+          caption="查询瞬间的逐页验放"
+          lead={false}
+          cues={[
+            {chapterId: 'instant-inspection', at: at('p3-04') - bA.from, durationInFrames: dur('p3-04')},
+          ]}
+        />
       </Sequence>
 
       <Sequence {...bB} name="3-B 打码扣留与代理识别">
-        {/* 模式 b：扫描线相位与打码/扣留状态跨句连续（p3-05 起贯穿整镜），拆子窗会断相 */}
-        <ArchifyYield
-          cues={[
-            {at: at('p3-05') - bB.from, durationInFrames: dur('p3-05')},
-            {at: at('p3-07') - bB.from, durationInFrames: dur('p3-07')},
-          ]}
-        >
-          <Stage>
-            <PageScanner
-              scanAt={at('p3-05') - bB.from}
-              scanSpan={DUR.f6}
-              maskAt={at('p3-05') - bB.from}
-              holdAt={at('p3-05') - bB.from + 14}
-            />
-          </Stage>
-        </ArchifyYield>
+        {/* PageScanner 已退役（05/07 打码扣留与代理句由图接管）。p3-04(上镜
+            query-time-policy 末 cue)→p3-05 跨镜背靠背 → 本实例补 lead={false}
+            （p3-07 空窗重现章的弹入随之一并抑制——窗外全程有他图覆盖，切口无瞬现）；
+            p3-05→06 属他实例**非末** cue 的交错，query-time-policy 首章照常入场 */}
         <ArchifyRecap
           slug="row-column-policy"
           caption="策略对象族 · 代理严拒面"
+          lead={false}
           cues={[
             {chapterId: 'family', at: at('p3-05') - bB.from, durationInFrames: dur('p3-05')},
             {chapterId: 'agentface', at: at('p3-07') - bB.from, durationInFrames: dur('p3-07')},
+          ]}
+        />
+        <ArchifyRecap
+          slug="query-time-policy"
+          caption="查询瞬间的逐页验放"
+          cues={[
+            {chapterId: 'agent-recognized', at: at('p3-06') - bB.from, durationInFrames: dur('p3-06')},
           ]}
         />
       </Sequence>
@@ -306,11 +214,14 @@ export const P3Gate: React.FC<{scene: SceneRange}> = ({scene}) => {
       <Sequence {...bC} name="3-C 木牌与承重墙">
         <SceneTag chapter="M3" tagline="语义级治理：闸机焊死承重墙" accent={theme.engine} />
         {/* 模式 b：木牌立起→压暗、焊墙、三方共用是贯穿 p3-09..p3-13 的连续演出，
-            嵌套子窗会把「同一个闸机」拆成两次 mount */}
+            嵌套子窗会把「同一个闸机」拆成两次 mount；窗=本镜双实例全部 4 条 cue 窗，
+            可见岛仅 p3-10（木牌被绕过的 shake payoff） */}
         <ArchifyYield
           cues={[
             {at: at('p3-09') - bC.from, durationInFrames: dur('p3-09')},
+            {at: at('p3-11') - bC.from, durationInFrames: dur('p3-11')},
             {at: at('p3-12') - bC.from, durationInFrames: dur('p3-12')},
+            {at: at('p3-13') - bC.from, durationInFrames: dur('p3-13')},
           ]}
         >
           <Stage>
@@ -327,33 +238,25 @@ export const P3Gate: React.FC<{scene: SceneRange}> = ({scene}) => {
           caption="语义级治理执行"
           cues={[{chapterId: 'sign-vs-wall', at: at('p3-09') - bC.from, durationInFrames: dur('p3-09')}, {chapterId: 'governed-path', at: at('p3-12') - bC.from, durationInFrames: dur('p3-12')}]}
         />
+        {/* p3-10 是 SignVsWall 岛句（无 cue）→ 本实例首章照常入场；p3-13 属本实例
+            空窗后重现章（enters 自动恢复入场），p3-12→13 背靠背无需处理 */}
+        <ArchifyRecap
+          slug="one-checkpoint"
+          caption="三流合一执法点"
+          cues={[
+            {chapterId: 'sign-vs-wall', at: at('p3-11') - bC.from, durationInFrames: dur('p3-11')},
+            {chapterId: 'shared-checkpoint', at: at('p3-13') - bC.from, durationInFrames: dur('p3-13')},
+          ]}
+        />
       </Sequence>
 
       <Sequence {...bD} name="3-D 两种坏法对照台与出门行李标签">
-        {/* 模式 b：对照台 + 行李标签整镜常驻（标签句 p3-13c 即第三条 cue 窗） */}
-        <ArchifyYield
-          cues={[
-            {at: at('p3-13a') - bD.from, durationInFrames: dur('p3-13a')},
-            {at: at('p3-13b') - bD.from, durationInFrames: dur('p3-13b')},
-            {at: at('p3-13c') - bD.from, durationInFrames: dur('p3-13c')},
-          ]}
-        >
-          <Stage>
-            <SplitCompare
-              at={at('p3-13a') - bD.from}
-              left={{title: '拆掉验放规则（M2 失效）', body: '人当场看到不该看的明文', tone: theme.danger}}
-              right={{title: '闸机装错地方（M3 失效）', body: '受限口径从别的门静悄悄溜出去', tone: theme.manual}}
-            />
-            <Panel accent={theme.engine} style={{marginTop: 34, padding: '22px 30px', width: 1180}}>
-              <span style={{fontFamily: theme.sans, fontSize: 30, color: theme.text}}>
-                🧳 出门行李标签：数据被共享出楼，策略标签也一路跟着走
-              </span>
-            </Panel>
-          </Stage>
-        </ArchifyYield>
+        {/* 对照台+行李标签已退役（13a/13b/13c 全句由图接管）。p3-13(one-checkpoint
+            末 cue)→p3-13a 跨镜背靠背 → 本实例补 lead={false} */}
         <ArchifyRecap
           slug="governance-demolition"
           caption="治理破坏台"
+          lead={false}
           cues={[
             {chapterId: 'remove-mask', at: at('p3-13a') - bD.from, durationInFrames: dur('p3-13a')},
             {chapterId: 'wrong-placement', at: at('p3-13b') - bD.from, durationInFrames: dur('p3-13b')},
@@ -371,9 +274,15 @@ export const P3Gate: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bE} name="3-E 双层防线剖面">
-        {/* 模式 b：第一层 hide 状态从 p3-15 贯穿到镜尾，双层剖面是同一面墙 */}
+        {/* 模式 b：第一层 hide 状态从 p3-15 贯穿到镜尾，双层剖面是同一面墙；窗=本镜
+            双实例全部 3 条 cue 窗，可见岛 p3-14/15（p3-18 的 bump 落在窗内随让位
+            淡出——第二层的强调已由 impenetrable 图接管） */}
         <ArchifyYield
-          cues={[{at: at('p3-16') - bE.from, durationInFrames: dur('p3-16')}]}
+          cues={[
+            {at: at('p3-16') - bE.from, durationInFrames: dur('p3-16')},
+            {at: at('p3-17') - bE.from, durationInFrames: dur('p3-17')},
+            {at: at('p3-18') - bE.from, durationInFrames: dur('p3-18')},
+          ]}
         >
           <Stage>
             <TwoLayers at={at('p3-15') - bE.from} bumpAt={at('p3-18') - bE.from} />
@@ -387,77 +296,66 @@ export const P3Gate: React.FC<{scene: SceneRange}> = ({scene}) => {
             {chapterId: 'two-layer-defense', at: at('p3-16') - bE.from, durationInFrames: dur('p3-16')},
           ]}
         />
-      </Sequence>
-
-      <Sequence {...bF} name="3-F 代码走廊② 执行层拒绝">
-        {/* 模式 b：代码走廊阅读面（高亮推进 + 终端逐行）跨句连续，p3-21 仍有 payoff */}
-        <ArchifyYield
-          cues={[{at: at('p3-20') - bF.from, durationInFrames: dur('p3-20')}]}
-        >
-          <Stage>
-            <CodeWalk
-              title="M2 执行面 · 查询编译期的 RBAC 拒绝"
-              lines={[
-                'def compile_query(view, metric_name, ..., enforce_rbac=True):',
-                '    if enforce_rbac:',
-                '        if metric.visibility == "PRIVATE" and role not in ALLOWED:',
-                '            raise AccessDenied(f"metric {metric_name} is PRIVATE")',
-              ]}
-              hi={[{line: 1, at: 16, color: theme.engine}, {line: 3, at: 26, color: theme.danger}]}
-              caption="horizon_context_lab.py :378 内 :397"
-              width={1180}
-            />
-            {/* 终端行 = selftest 原文逐字摘录（含前导两空格）；改措辞须同步 narration/source-notes */}
-            <TerminalLog
-              prompt="uv run --no-project python horizon_context_lab.py --selftest"
-              lines={[
-                {
-                  text: '  [PASS] C2: RBAC 双层: 检索层对 intern 过滤 plan 建议（["dim_filtered (PRIVATE): [\'plan\']"]，降级总量 {(): 650}）；直闯执行层 → AccessDenied（引擎是最后防线）',
-                  color: theme.ok,
-                  at: at('p3-20') - bF.from,
-                },
-                {
-                  text: '  [PASS] D5: 拆 RBAC → intern 按 plan 拿到 [90,560]（泄露发生）；装回 → blocked',
-                  color: theme.danger,
-                  bold: true,
-                  at: at('p3-21') - bF.from,
-                },
-              ]}
-              width={1180}
-            />
-          </Stage>
-        </ArchifyYield>
-        <EvidenceBadge grade="lab" />
+        {/* p3-15 是 TwoLayers 岛句（无 cue）；p3-16(two-layer-defense 末 cue)→p3-17
+            背靠背跨实例 → lead={false} */}
         <ArchifyRecap
-          slug="governance-demolition"
-          caption="治理破坏台"
+          slug="forced-query-intercept"
+          caption="猜名强查执行层拦截"
+          lead={false}
           cues={[
-            {chapterId: 'rbac-ablation', at: at('p3-20') - bF.from, durationInFrames: dur('p3-20')},
+            {chapterId: 'guessed-name', at: at('p3-17') - bE.from, durationInFrames: dur('p3-17')},
+            {chapterId: 'impenetrable', at: at('p3-18') - bE.from, durationInFrames: dur('p3-18')},
           ]}
         />
       </Sequence>
 
+      <Sequence {...bF} name="3-F 代码走廊② 执行层拒绝">
+        {/* 代码走廊②已退役（19..22 全句由图接管）。p3-18(上镜 impenetrable 末 cue)→
+            p3-19 跨镜背靠背 → intercepted 续章实例 lead={false}；p3-19→20、20→21 亦
+            跨实例背靠背 → 后两实例同；p3-21→22 同实例连续换章由 enters 抑制 */}
+        <ArchifyRecap
+          slug="forced-query-intercept"
+          caption="猜名强查执行层拦截"
+          lead={false}
+          cues={[
+            {chapterId: 'intercepted', at: at('p3-19') - bF.from, durationInFrames: dur('p3-19')},
+          ]}
+        />
+        <ArchifyRecap
+          slug="governance-demolition"
+          caption="治理破坏台"
+          lead={false}
+          cues={[
+            {chapterId: 'rbac-ablation', at: at('p3-20') - bF.from, durationInFrames: dur('p3-20')},
+          ]}
+        />
+        <ArchifyRecap
+          slug="hidden-vs-blocked"
+          caption="藏起来不等于拦得住"
+          lead={false}
+          cues={[
+            {chapterId: 'teardown-leak', at: at('p3-21') - bF.from, durationInFrames: dur('p3-21')},
+            {chapterId: 'hide-not-block', at: at('p3-22') - bF.from, durationInFrames: dur('p3-22')},
+          ]}
+        />
+        <EvidenceBadge grade="lab" />
+      </Sequence>
+
       <Sequence {...bG} name="3-G 编译期安全锁与收束金句">
-        {/* 模式 b：金句整镜常驻（p3-23 起进入视线），cue 窗淡出、窗尾收回口播收束 */}
-        <ArchifyYield
-          cues={[{at: at('p3-25') - bG.from, durationInFrames: dur('p3-25')}]}
-        >
-          <Stage>
-            <div
-              style={{
-                fontFamily: theme.serif,
-                fontSize: 58,
-                color: theme.text,
-                textAlign: 'center',
-                lineHeight: 1.45,
-              }}
-            >
-              语义层再灵活，
-              <br />
-              <span style={{color: theme.engine}}>也绝不会成为绕开安全底线的后门</span>
-            </div>
-          </Stage>
-        </ArchifyYield>
+        {/* 金句卡已退役（23..26 全句由图接管）。p3-22(上镜 hide-not-block 末 cue)→
+            p3-23 跨镜背靠背 → lead={false}；p3-25 是 engine-governance 首章、前句
+            p3-24 属本实例非末 cue（双图交错），照常入场；p3-26 空窗重现章的弹入随
+            lead={false} 一并抑制——窗外有他图覆盖，切口无瞬现 */}
+        <ArchifyRecap
+          slug="compile-time-block"
+          caption="编译那一秒的拦截"
+          lead={false}
+          cues={[
+            {chapterId: 'ux-vs-lifeline', at: at('p3-23') - bG.from, durationInFrames: dur('p3-23')},
+            {chapterId: 'no-backdoor', at: at('p3-24') - bG.from, durationInFrames: dur('p3-24')},
+            {chapterId: 'compile-second', at: at('p3-26') - bG.from, durationInFrames: dur('p3-26')},
+          ]}
+        />
         <ArchifyRecap
           slug="engine-governance"
           caption="绕行仍被引擎拦截"

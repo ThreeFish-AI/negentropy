@@ -1,94 +1,15 @@
 /** P0 钥匙给了，还是答错（p0-01..10）——guided-learn Phase 0「准入体检」的视频形态：
- *  不讲机制，先让观众亲身失语一次（看不懂的物理列名墙）。 */
+ *  不讲机制，先让观众亲身失语一次（看不懂的物理列名墙）。
+ *  W6 起 0-B/0-C 全句由 archify 图主控（ColumnWall/ThreeDefs 退役），自制件仅存
+ *  0-D TitleCard 与 0-A EvidenceBadge。 */
 import React from 'react';
 import {AbsoluteFill, Sequence} from 'remotion';
 import type {SceneRange} from '../types';
 import {beatWindow} from '../timing';
 import {theme} from '../design/theme';
-import {DUR, useBreathe, useDraw, useImpulse, useSpring, useStagger} from '../motion';
+import {DUR, useDraw, useSpring} from '../motion';
 import {EvidenceBadge, Stage} from '../components/devices';
 import {ArchifyRecap} from '../components/ArchifyRecap';
-import {ArchifyYield} from '../components/ArchifyYield';
-
-const COLS = [
-  'amt_ttl_pre_dsc', 'cust_seg_cd', 'ord_dt_key', 'rev_net_adj', 'qty_shp_uom',
-  'disc_pct_ln', 'tax_juris_cd', 'mrgn_gp_calc', 'chn_src_id', 'sku_var_hash',
-  'pay_term_cd', 'ret_flg_ind', 'fx_rate_spot', 'gl_acct_seg', 'wh_loc_bin',
-];
-
-/** 0-B 乱码列名墙：一列染金。
- *
- *  15 格 stagger 用 fit 模式铺满 p0-04..p0-05 两句（revealSpan，末格恰在染金前
- *  落定），染金 payoff 锚 p0-06——旧版固定 stride 开场 1.3s 就全部到位、其后
- *  ≈9.4s 裁掉字幕带逐像素差分为 0（ISSUE-187 ① 同类，v4 评审实测）；金列辉光
- *  再叠 breathe，让 p0-06 染金后到本幕结束也无静止尾。 */
-const ColumnWall: React.FC<{goldAt: number; revealSpan: number}> = ({goldAt, revealSpan}) => {
-  const gold = useSpring('snap', {at: goldAt, dur: DUR.f5});
-  const breathe = useBreathe({period: 90, base: 0.5, amp: 0.5});
-  const ps = useStagger(COLS.length, {at: 4, fit: {total: revealSpan}, dur: DUR.f4});
-  return (
-    <div style={{display: 'flex', flexWrap: 'wrap', gap: 14, width: 1440, justifyContent: 'center'}}>
-      {COLS.map((c, i) => {
-        const on = i === 0;
-        const p = ps[i];
-        return (
-          <div
-            key={c}
-            style={{
-              padding: '14px 22px',
-              borderRadius: 8,
-              border: `2px solid ${on ? theme.manual : theme.panelBorder}`,
-              background: on ? `${theme.manual}1A` : theme.panel,
-              fontFamily: theme.mono,
-              fontSize: 28,
-              color: on ? theme.manual : theme.dim,
-              opacity: p * (on ? 1 : 0.62),
-              transform: on ? `scale(${1 + 0.08 * gold})` : 'none',
-              boxShadow: on ? `0 0 ${(14 + 12 * breathe) * gold}px ${theme.manual}66` : 'none',
-            }}
-          >
-            {c}
-          </div>
-        );
-      })}
-    </div>
-  );
-};
-
-/** 0-C 三张 CASE WHEN 卡对撞 */
-const ThreeDefs: React.FC<{hitAt: number}> = ({hitAt}) => {
-  const ps = useStagger(3, {at: 4, stride: 7, dur: DUR.f5});
-  // hitAt：三卡对撞要落在说出「谁也不服谁」的那句上，写死 34 会提前 3.5s
-  const hit = useImpulse({at: hitAt, dur: DUR.f6});
-  const defs = [
-    {who: '销售看板', sql: "SUM(amt) - SUM(disc)"},
-    {who: '财务报表', sql: "SUM(amt) - SUM(disc) - SUM(tax)"},
-    {who: '运营周报', sql: "SUM(amt_net_adj)"},
-  ];
-  return (
-    <div style={{display: 'flex', gap: 26}}>
-      {defs.map((d, i) => (
-        <div
-          key={d.who}
-          style={{
-            width: 430,
-            padding: '26px 28px',
-            borderRadius: 12,
-            border: `2px solid ${theme.panelBorder}`,
-            background: theme.panel,
-            opacity: ps[i],
-            transform: `translateY(${(1 - ps[i]) * 22}px) translateX(${(i - 1) * hit * 14}px)`,
-          }}
-        >
-          <div style={{fontFamily: theme.sans, fontSize: 24, color: theme.dim, marginBottom: 12}}>
-            {d.who}的「净收入」
-          </div>
-          <div style={{fontFamily: theme.mono, fontSize: 24, color: theme.text}}>{d.sql}</div>
-        </div>
-      ))}
-    </div>
-  );
-};
 
 /** 0-D 片名卡 */
 const TitleCard: React.FC = () => {
@@ -151,19 +72,41 @@ export const P0Cold: React.FC<{scene: SceneRange}> = ({scene}) => {
         />
       </Sequence>
       <Sequence {...bB} name="0-B 乱码列名墙">
-        <Stage>
-          <ColumnWall goldAt={at('p0-06') - bB.from} revealSpan={at('p0-06') - bB.from - 12} />
-        </Stage>
+        {/* p0-03→04（bare-key-baseline 末 cue）、04→05（本镜双实例交界）均跨实例背靠背
+            → 两实例都 lead={false}；05→06 同实例连续换章由 enters 抑制 */}
+        <ArchifyRecap
+          slug="dual-baseline-evidence"
+          caption="双基线证据链"
+          lead={false}
+          cues={[
+            {chapterId: 'two-benchmarks', at: at('p0-04') - bB.from, durationInFrames: dur('p0-04')},
+          ]}
+        />
+        <ArchifyRecap
+          slug="cipher-translate"
+          caption="密文对译"
+          lead={false}
+          cues={[
+            {chapterId: 'not-model-dumb', at: at('p0-05') - bB.from, durationInFrames: dur('p0-05')},
+            {chapterId: 'cipher-wall', at: at('p0-06') - bB.from, durationInFrames: dur('p0-06')},
+          ]}
+        />
       </Sequence>
       <Sequence {...bC} name="0-C 净收入三算法对撞">
-        <ArchifyYield cues={[{at: at('p0-08') - bC.from, durationInFrames: dur('p0-08')}]}>
-          <Stage>
-            <ThreeDefs hitAt={at('p0-08') - bC.from} />
-          </Stage>
-        </ArchifyYield>
+        {/* cipher-translate 跨镜续章（同图独立实例）：p0-06→07 跨实例背靠背，enters 只在
+            单实例内生效，续章实例仍须 lead={false}；p0-07→08 换图背靠背 → caliber-clash 同 */}
+        <ArchifyRecap
+          slug="cipher-translate"
+          caption="密文对译"
+          lead={false}
+          cues={[
+            {chapterId: 'letters-not-meaning', at: at('p0-07') - bC.from, durationInFrames: dur('p0-07')},
+          ]}
+        />
         <ArchifyRecap
           slug="caliber-clash"
           caption="口径打架"
+          lead={false}
           cues={[
             {chapterId: 'three-dashboards', at: at('p0-08') - bC.from, durationInFrames: dur('p0-08')},
           ]}
