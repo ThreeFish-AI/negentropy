@@ -16,7 +16,7 @@ description: "Context Layer 全量蓝图：以 Snowflake Horizon Context M1–M7
 >
 > 每个层章按**五拍**展开：**类比** → **机制**（Horizon 范本 + 实证 + 破坏实验）→ **设计**（通用蓝图规格）→ **行业实践** → **negentropy 实例化**（✅ 已落地 / 🔶 方案未落地 / ⏸ 暂缓，均带核验日期）；按需追加**边界声明**。
 >
-> **编号稳定键**（全文唯一，与源文档零转译）：M1–M7 机制 · D1–D10 破坏实验 · #1–#16 机制↔本仓映射 · ADR-1/2/3 架构决策 · P0–P3 独立部署阶段 · Phase 1–3 本仓实施阶段。**章号约定**：无前缀的 §10/§11/§12 一律指 011 精读笔记的三个专章（富化/检索/生态），其本文落点为 §6 / §8.2 / §8.3。
+> **编号稳定键**（全文唯一，与源文档零转译）：M1–M7 机制 · D1–D10 破坏实验 · #1–#16 机制↔本仓映射 · ADR-1/2/3 架构决策 · P0–P3 独立部署阶段 · Phase 1–3 本仓实施阶段。**章号约定**：无前缀章节号一律指本文；引 011 精读笔记的三个专章（富化/检索/生态）时带「011」前缀（011 §10/§11/§12），其本文落点为 §6 / §8.2 / §8.3。
 >
 > **三级阅读航路**：
 >
@@ -189,9 +189,9 @@ description: "Context Layer 全量蓝图：以 Snowflake Horizon Context M1–M7
 | ---------- | ------------------------------ | ----------------------------- | ----------------------------------------------- | ---------------------------------------------------------------------- |
 | §4 对象层  | 规章手册（含盖章底稿页）       | M1 口径单点×查询期重算        | Semantic Views 五段式 + 校验门 + VQR 字段       | definitions registry ✅；三字段纪律 / verified QA 🔶                    |
 | §5 目录层  | 统一索引总账 + 出入库台账      | M5 血缘 + 四层信号            | External Lineage + GET_LINEAGE + 混合检索索引   | 三视图 + 信任归一 🔶（未落地）                                          |
-| §6 富化层  | 双轨编纂 + 冲突红灯            | §10 专章（Autopilot/Sense）   | 六路输入面 + eval 自纠环 + CONFLICT 卡片        | patrol/Judge 巡检闭环 ✅；冲突浮出面 🔶                                 |
+| §6 富化层  | 双轨编纂 + 冲突红灯            | 011 §10 专章（Autopilot/Sense）   | 六路输入面 + eval 自纠环 + CONFLICT 卡片        | patrol/Judge 巡检闭环 ✅；冲突浮出面 🔶                                 |
 | §7 治理层  | 承重墙风控体系                 | M2/M3/M6/M7 + 供给面威胁模型  | 行列级策略 + RSS + 分类标签 + 安检口            | scoped & accessible 过滤 ✅；ContextGuard / 策略对象化 / 身份天花板 🔶  |
-| §8 激活层  | 金牌前台 + 核准题库 + 插座护照 + 海关 | M4 + §11 检索 + §12 生态      | resolve 契约 + 四因子排序 + MCP/Ossie           | 三层渐进披露 ✅；Router / KB 接地 / MCP 供给面 🔶                        |
+| §8 激活层  | 金牌前台 + 核准题库 + 插座护照 + 海关 | M4 + 011 §11 检索 + 011 §12 生态      | resolve 契约 + 四因子排序 + MCP/Ossie           | 三层渐进披露 ✅；Router / KB 接地 / MCP 供给面 🔶                        |
 
 ![五层×机制×实例脊柱图：对象/目录/富化/治理/激活五正交层沿上下文生命周期横向排布（登记入账→富化养护→治理管控→受控供给），每列上排锚定 Horizon 机制（M1–M7 与专章）、下排锚定 negentropy 实例承载与落地状态（✅/🔶），M4 双落点与 M5 归位以节点标签标注。](../../assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map-dark.png)
 
@@ -214,16 +214,16 @@ Horizon 组件与七机制的对应全景：
 | **External Lineage + OpenLineage 摄取**（含原生列级血缘）                   | 跨异构系统完整记录「谁产出、谁消费」的端到端列级数据血缘       | M5（§5）           |
 | **Agent Identity**（Restricted Session Scope / agent_type 审计）            | 为智能体签发独立可归因身份，会话权限只减不增                  | M6（§7.4）         |
 | **Classification + Tag-based Policies**                                     | 自动分类打标，标签驱动策略一处生效、新数据自动纳管            | M7（§7.3）         |
-| **Autopilot / Semantic Studio**                                             | 聚合多路信号自动起草并验证语义视图，将建模周期从数天压至数分钟 | §10（§6 富化）     |
-| **Metadata Connectors**（源自 Select Star）                                 | 将 Tableau、Power BI、dbt 等外部存量语义资产统一摄取进目录     | §10（§6 富化）     |
-| **Cortex Sense**                                                            | 从真实查询历史与 BI 行为中无感提炼隐式上下文并自动纠偏         | §10（§6 富化）     |
-| **Universal Search / Cortex Search**                                        | 关键词与向量混合检索，精准定位元数据及高基数文本列             | §11（§8.2）        |
-| **四因子信号排序**                                                          | 融合相关性、权威度、流行度与新鲜度综合评分，压出精准 top-k     | §11（§8.2）        |
-| **Snowflake 官方 MCP Server**                                               | 将语义视图与检索能力打包为标准受控工具面，无缝对接外部 Agent   | §12（§8.3）        |
-| **Ossie**（原 OSI）                                                         | 开放统一的 YAML/JSON 语义规范，支持跨平台自由互导              | §12（§8.3）        |
-| **CoCo / CoWork / Cortex Agents**                                           | 消费这份 Context 的 Snowflake 官方原生 Agent 矩阵              | §11 / §12          |
-| **Automatic Data Agents**                                                   | 针对 Marketplace 共享数据一键自动生成语义视图与配套 Agent      | §12（§8.3）        |
-| **出口安检**（Cortex AI Guardrails / AI_REDACT）                            | 拦 prompt injection / 越狱；PII / PHI 出口脱敏                 | §12（§8.3）        |
+| **Autopilot / Semantic Studio**                                             | 聚合多路信号自动起草并验证语义视图，将建模周期从数天压至数分钟 | 011 §10（§6 富化）     |
+| **Metadata Connectors**（源自 Select Star）                                 | 将 Tableau、Power BI、dbt 等外部存量语义资产统一摄取进目录     | 011 §10（§6 富化）     |
+| **Cortex Sense**                                                            | 从真实查询历史与 BI 行为中无感提炼隐式上下文并自动纠偏         | 011 §10（§6 富化）     |
+| **Universal Search / Cortex Search**                                        | 关键词与向量混合检索，精准定位元数据及高基数文本列             | 011 §11（§8.2）        |
+| **四因子信号排序**                                                          | 融合相关性、权威度、流行度与新鲜度综合评分，压出精准 top-k     | 011 §11（§8.2）        |
+| **Snowflake 官方 MCP Server**                                               | 将语义视图与检索能力打包为标准受控工具面，无缝对接外部 Agent   | 011 §12（§8.3）        |
+| **Ossie**（原 OSI）                                                         | 开放统一的 YAML/JSON 语义规范，支持跨平台自由互导              | 011 §12（§8.3）        |
+| **CoCo / CoWork / Cortex Agents**                                           | 消费这份 Context 的 Snowflake 官方原生 Agent 矩阵              | 011 §11 / §12          |
+| **Automatic Data Agents**                                                   | 针对 Marketplace 共享数据一键自动生成语义视图与配套 Agent      | 011 §12（§8.3）        |
+| **出口安检**（Cortex AI Guardrails / AI_REDACT）                            | 拦 prompt injection / 越狱；PII / PHI 出口脱敏                 | 011 §12（§8.3）        |
 
 ![Horizon Context 组件全景：组件按「口径与应答 M1/M4 / 治理执法 M2/M3/M6/M7 / 账本 M5 / 供给与出口（011 §10–§12 降级区，本文落点 §6/§8.2/§8.3）」分组，消费端为 CoCo / CoWork / Cortex Agents 官方 Agent 矩阵（MCP 工具面另达 Claude Code/Cursor 等外部 Agent）。](../../assets/architecture/cognitive-context/horizon-context--component-panorama-dark.png)
 
@@ -478,7 +478,7 @@ version: 12
 > **ADR-1：Context Catalog 用 PostgreSQL VIEW 实现，不新建物理表。**
 > **理由**：单一事实源——引用时必须使用轻量级指针（Link/ID）而非数据副本（Copy-Paste），从根源消除断裂（Split-Brain）风险。所有元数据已存于 PostgreSQL，新表将制造副本与不一致；Horizon Catalog 本身也是元信息层而非数据副本。
 
-三个只读视图（纯 SQL，无数据迁移；对应 §12 Phase 1 ①，🔶 未落地——迁移目录 `apps/negentropy/src/negentropy/db/migrations/versions/`（0001–0099）中无任何对应 CREATE VIEW）：
+三个只读视图（纯 SQL，无数据迁移；对应 §16 Phase 1 ①，🔶 未落地——迁移目录 `apps/negentropy/src/negentropy/db/migrations/versions/`（0001–0099）中无任何对应 CREATE VIEW）：
 
 | 视图                    | 职责                             | 构成                                                                                                                            |
 | ----------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
@@ -1113,13 +1113,13 @@ Typedef 批判的核心：governed 定义在**上游已塌缩的 grain** 上照�
 | 4   | M1 查询期重算（§4）                               | 无对应（本仓非数据指标栈）                                                     | ⏸ 暂缓     |
 | 5   | M2 行列级访问策略（§7.1/7.7）                     | accessible corpus 过滤（调用约定参数，非独立策略对象）                         | 🔶 值得落地 |
 | 6   | M3 语义级治理双层防线（§7.2/7.7）                 | 检索过滤已有；出口守卫 ContextGuard 仅在方案                                   | 🔶 值得落地 |
-| 7   | §10 富化 eval 自纠环（§6）                        | patrol/Judge 巡检闭环：评分→终态沉淀→失败记忆→reconcile                        | ✅ 同构    |
-| 8   | §10 冲突浮出人工裁决（§6）                        | 无显式对应（patrol_memory 有 unfixable 记忆，无裁决面）                       | 🔶 值得落地 |
-| 9   | §11 检索激活 top-k 上下文包（§8）                 | 三层渐进披露：L1 描述常驻 / L2 模板按需 / L3 资源挂载                          | ✅ 已对齐  |
+| 7   | 011 §10 富化 eval 自纠环（§6）                        | patrol/Judge 巡检闭环：评分→终态沉淀→失败记忆→reconcile                        | ✅ 同构    |
+| 8   | 011 §10 冲突浮出人工裁决（§6）                        | 无显式对应（patrol_memory 有 unfixable 记忆，无裁决面）                       | 🔶 值得落地 |
+| 9   | 011 §11 检索激活 top-k 上下文包（§8）                 | 三层渐进披露：L1 描述常驻 / L2 模板按需 / L3 资源挂载                          | ✅ 已对齐  |
 | 10  | M4 验证问答资产（§4 载体半 / §6 供给侧 / §8.1 行为半） | 无对应（巡检 done 文档未沉淀为问答对资产）                                | 🔶 值得落地 |
-| 11  | §11 四因子信号排序（§8.2）                        | 信任归一公式已设计未实现；缺 freshness 单一 staleness                          | 🔶 值得落地 |
-| 12  | §12 Ossie YAML 互操作（§8.4）                     | 无对应                                                                         | ⏸ 暂缓     |
-| 13  | §12 MCP 激活面（§8.5）                            | 方向相反：本仓是 MCP 客户端（perceives 经 McpClientService 接入）              | 🔶 值得落地（供给面） |
+| 11  | 011 §11 四因子信号排序（§8.2）                        | 信任归一公式已设计未实现；缺 freshness 单一 staleness                          | 🔶 值得落地 |
+| 12  | 011 §12 Ossie YAML 互操作（§8.4）                     | 无对应                                                                         | ⏸ 暂缓     |
+| 13  | 011 §12 MCP 激活面（§8.5）                            | 方向相反：本仓是 MCP 客户端（perceives 经 McpClientService 接入）              | 🔶 值得落地（供给面） |
 | 14  | M5 端到端列级血缘（§5）                           | 无对应（routine 执行史是运行日志，非资产依赖图）                               | ⏸ 暂缓     |
 | 15  | M6 Agent Identity（§7.4/7.7）                     | 部分对应：agent_type 元数据有（preset 描述用），权限天花板无                   | 🔶 值得落地 |
 | 16  | M7 分类与标签驱动（§7.3/7.7）                     | 无对应（meta JSONB 可承载标签，无分类扫描与策略链）                            | ⏸ 暂缓     |
