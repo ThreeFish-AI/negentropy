@@ -68,9 +68,8 @@ TYPES = {
 sys.path.insert(0, str(R))
 from record_archify import _sniff_diagram_type  # noqa: E402  —— 必须在 sys.path 注入之后导入
 
-DOCS_ASSETS = (
-    R.parent.parent.parent / "docs" / "assets" / "architecture" / "cognitive-context"
-)
+# R = apps/negentropy-influence/pipeline/scripts → 仓库根在 R.parents[3]
+DOCS_ASSETS = R.parents[3] / "docs" / "assets" / "architecture" / "cognitive-context"
 
 
 def _local_html(sidecar: dict, slug: str) -> Path:
@@ -108,7 +107,7 @@ def main() -> None:
             if a.check:
                 print(f"⏳ {slug}: 待回填 {typ}（--check 模式未写）")
                 continue
-            # type 排在 schema/mode 之后、slug 语义字段之前，保持字段序可读
+            # type 排最前（其后原字段序不动），图型元数据一眼可见
             items = {"type": typ}
             for k, v in d.items():
                 items.setdefault(k, v)
