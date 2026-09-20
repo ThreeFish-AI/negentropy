@@ -29,6 +29,8 @@ skip 语义（点名，绝不静默）：
   - 仅 sidecar 无 views/manifest（旧形态 ArchifyClip 直接消费，如 context-layer）
     → 点名 WARN 跳过（WARN 不影响退出码，同 rate 预演先例）；
   - views 在而 manifest.ts 缺（录制了未生成）→ WARN 跳过章口径，锚定率/对账照跑；
+  - scenes 未写（video/src/scenes 缺）→ 点名 WARN，锚定率/分幕/对账/单调性随跳过
+    （章 token 可解析性与丰富度图数地板不依赖场景，照跑）；
   - storyboard 零 archify 标注 → 双向对账降为单条 WARN，不逐 cue 刷屏。
 
 防少算三道计数断言（ISSUE-187：提取式门一律自带计数断言）：
@@ -420,7 +422,9 @@ def main() -> None:
                         None,
                     )
                     pretty = "/".join(sorted(slugs))
-                    if hit is None:
+                    # scenes 未写时 cues 为空、hit 恒 None——判「未实现」无意义，
+                    # 随 skip 语义放行（上方 WARN 已点名跳过对账）
+                    if hit is None and have_cues:
                         fails.append(
                             f"镜 {bid}: 分镜声明 {pretty}#{tok} 未在任何 cue 实现"
                         )
@@ -440,8 +444,9 @@ def main() -> None:
                             f"镜 {bid}: 图名「{nm}」解析为 {'/'.join(sorted(nslugs))}"
                             f"，与章 token 的 {'/'.join(sorted(tok_slugs_all))} 不符"
                         )
-        # 声明镜句区间零锚（ISSUE-188：按句统计，镜里挂了 archify 不构成回答）
-        if have_narr:
+        # 声明镜句区间零锚（ISSUE-188：按句统计，镜里挂了 archify 不构成回答）。
+        # anchored 由 cue 侧收集——scenes 未写时恒空，随对账一并跳过
+        if have_narr and have_cues:
             for bid, anns in declared:
                 _l, _r = beat_range.get(bid, (-1, -1))
                 if _l < 0:

@@ -98,4 +98,4 @@
 | 6-C | p6-10..16   | **地基塌方剖面**（与母图同一张）：楼上图纸金色合法、七柱全亮，地基已塌陷；**477 vs 48** 对撞裂开；第四道高亮 ·**archify full**：上游塌方 章 `day-pack-collapse`+`legal-but-wrong`+`measured-477-48`| 地基 shake 塌陷；数字 travel 对撞；第四道 impulse ；`@progress` `@stagger`|
 | 6-D | p6-17       | 第五道压暗：五道警示栅栏整队立起（均已压暗态），第五道「多数人踩出来的近道依然可能是错的——习惯不等于真理」 ·**archify inset**：多数派近道 章 `habit-not-truth`| 栅栏 stagger 立起 ；`@stagger`|
 | 6-E | p6-19..22   | **租来的聪明**：机器人（🤖）头顶光环，一根电源线 draw 出悬空连出（p6-21）；拔线（p6-22）→ 光环/电源线熄灭，题眼金句上屏（p6-20） | 电源线 draw；光环 dim 熄灭 ；`@draw` `@progress`|
-| 6-F | p6-23..24   | 下期钩子（上下文层蓝图展开）+ 信源卡（pinned commit / 笔记 / 原型代码 / **14 张 archify 工程图拼版背景**）+ 全屏平缓**渐黑** | 蓝图 draw 铺开；信源卡 enter 升起；全屏 fadeOut ；`@draw` `@fadeOut`|
+| 6-F | p6-23..24   | 下期钩子（上下文层蓝图展开）+ 信源卡（pinned commit / 笔记 / 原型代码 / **33 张 archify 工程图拼版背景**）+ 全屏平缓**渐黑** | 蓝图 draw 铺开；信源卡 enter 升起；全屏 fadeOut ；`@draw` `@fadeOut`|

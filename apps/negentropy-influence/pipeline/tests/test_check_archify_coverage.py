@@ -315,6 +315,19 @@ def test_storyboard_without_annotations_degrades(tmp_path):
     assert "未在分镜声明" not in out  # 降级为单条 WARN，不逐 cue 刷屏
 
 
+def test_scenes_missing_skips_reconciliation(tmp_path):
+    """scenes 未写时对账/零锚随 WARN 一并跳过——说了跳过就不能照样判死（评审反例）。"""
+    import shutil
+
+    root = build(tmp_path)
+    shutil.rmtree(root / "video" / "src" / "scenes")
+    rc, out = run_gate(root)
+    assert rc == 0, out  # 默认宽松地板不红；「白录」是点名 WARN 不是 FAIL
+    assert "跳过锚定率/对账/单调性" in out
+    assert "未在任何 cue 实现" not in out
+    assert "句区间零锚" not in out
+
+
 def test_scenes_dir_missing_warns_richness_still_fails(tmp_path):
     import shutil
 

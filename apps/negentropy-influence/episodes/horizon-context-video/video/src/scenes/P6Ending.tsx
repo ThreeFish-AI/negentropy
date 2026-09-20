@@ -9,6 +9,7 @@ import {theme} from '../design/theme';
 import {DUR, useDraw, useFadeOut, useProgress, useStagger} from '../motion';
 import {Panel} from '../components/motifs';
 import {BuildingSection, EvidenceBadge, NumberClash, Stage} from '../components/devices';
+import {ARCHIFY} from '../archify.manifest';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 
 const BOUNDS = [
@@ -129,13 +130,13 @@ const RentedSmart: React.FC<{lineAt: number; quoteAt: number; pullAt: number}> =
   );
 };
 
-/** 6-F 信源卡（14 张工程图拼版背景） */
+/** 6-F 信源卡；图数取 manifest 实时计数——手写总数会随扩产再过期（v5 已犯一次） */
 const SourceCard: React.FC = () => {
   const rows = useStagger(4, {at: 8, stride: 6, dur: DUR.f5});
   const items = [
     '精读笔记：docs/research/cognitive-context/011-horizon-context.md',
     '最小原型：assets/horizon_context_lab.py（十次破坏性实验实测）',
-    'archify 工程图：docs/assets/architecture/cognitive-context/（14 张）',
+    `archify 工程图：docs/assets/architecture/cognitive-context/（${Object.keys(ARCHIFY).length} 张）`,
     'pinned commit：097076eb · 全部断言可回溯',
   ];
   return (
