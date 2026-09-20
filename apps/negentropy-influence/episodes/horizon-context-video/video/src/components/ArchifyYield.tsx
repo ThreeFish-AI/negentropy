@@ -26,12 +26,20 @@ export const ArchifyYield: React.FC<{
   children: React.ReactNode;
 }> = ({cues, fade = DUR.f3, children}) => {
   const frame = useCurrentFrame();
-  // 背靠背窗相乘自动保持隐身；窗内 cover=1（全让位）、窗外 cover=0（装置满可见）
+  // 相邻窗先合并再取脉冲：句窗含句间 gap 严格相接，逐窗 max 在交界中点只有
+  // 0.5（装置半透明闪现 ~5 帧）。窗内 cover=1（全让位）、窗外 cover=0（装置满可见）
+  const wins = [...cues]
+    .sort((a, b) => a.at - b.at)
+    .reduce<{at: number; end: number}[]>((acc, c) => {
+      const last = acc[acc.length - 1];
+      const end = c.at + c.durationInFrames;
+      if (last && last.end >= c.at) last.end = Math.max(last.end, end);
+      else acc.push({at: c.at, end});
+      return acc;
+    }, []);
   const cover = Math.max(
     0,
-    ...cues.map(({at, durationInFrames}) =>
-      progress(frame, at, fade) * (1 - progress(frame, at + durationInFrames, fade)),
-    ),
+    ...wins.map(({at, end}) => progress(frame, at, fade) * (1 - progress(frame, end, fade))),
   );
   return <AbsoluteFill style={{opacity: 1 - cover}}>{children}</AbsoluteFill>;
 };
