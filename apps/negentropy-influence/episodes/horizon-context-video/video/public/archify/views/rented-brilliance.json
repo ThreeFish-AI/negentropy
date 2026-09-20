@@ -1,0 +1,13 @@
+[
+ {
+  "id": "rented-to-owned",
+  "label": "租用→自有",
+  "focus": [
+   "haloRented",
+   "powerLine",
+   "governanceCastIn",
+   "ownedBrilliance"
+  ],
+  "note": "上下文被治理好之前，AI 的聪明本质上都是租来的。"
+ }
+]

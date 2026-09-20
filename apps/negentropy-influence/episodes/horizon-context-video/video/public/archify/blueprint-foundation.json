@@ -1,0 +1,48 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 4.45,
+ "total_wall_sec": 17.93,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "blueprint-vs-foundation",
+   "label": "图纸vs地基",
+   "index": 0,
+   "file": "blueprint-foundation--blueprint-vs-foundation.mp4",
+   "end_still": "blueprint-foundation--blueprint-vs-foundation-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.45,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.207,
+    3.311
+   ],
+   "beat_nodes": [
+    "validateGate",
+    "semanticView",
+    "dbtDaily",
+    "answerWrong"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 42.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/barcelona-v6/docs/assets/architecture/cognitive-context/horizon-context--blueprint-foundation.html",
+ "slug": "blueprint-foundation",
+ "type": "architecture"
+}

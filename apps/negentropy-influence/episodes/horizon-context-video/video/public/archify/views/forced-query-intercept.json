@@ -1,0 +1,20 @@
+[
+  {
+    "id": "guessed-name",
+    "label": "猜出指标名",
+    "focus": ["retrieval", "intern", "exec"],
+    "note": "如果实习生猜出机密指标名，强行发起查询呢？"
+  },
+  {
+    "id": "impenetrable",
+    "label": "不可穿透底线",
+    "focus": ["exec", "semantic", "policy", "intern"],
+    "note": "焊在承重墙里的第二层执行防线，是不可穿透的底线。"
+  },
+  {
+    "id": "intercepted",
+    "label": "调取即拦截",
+    "focus": ["intern", "exec", "policy"],
+    "note": "实习生试图调取带客户等级的营收指标——当场拦截。"
+  }
+]

@@ -1,0 +1,20 @@
+[
+  {
+    "id": "intake-test",
+    "label": "进楼考验",
+    "focus": ["newBatch", "manualCount", "unmapped"],
+    "note": "大厦还要面对海量新数据的进楼考验。"
+  },
+  {
+    "id": "seventh-mechanism",
+    "label": "第七大机制",
+    "focus": ["newBatch", "classifier", "sysTag"],
+    "note": "这就需要第七大机制：机密自动贴标系统。"
+  },
+  {
+    "id": "auto-linkage",
+    "label": "免重复配置",
+    "focus": ["sysTag", "userTag", "policy", "gate"],
+    "note": "贴上对应标签，承重墙闸机自动联动，免重复配置。"
+  }
+]

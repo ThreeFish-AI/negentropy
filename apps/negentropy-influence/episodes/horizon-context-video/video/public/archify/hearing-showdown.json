@@ -1,0 +1,48 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 4.43,
+ "total_wall_sec": 16.08,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "open-hearing",
+   "label": "必须开听证会",
+   "index": 0,
+   "file": "hearing-showdown--open-hearing.mp4",
+   "end_still": "hearing-showdown--open-hearing-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.43,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.208,
+    3.311
+   ],
+   "beat_nodes": [
+    "cardGoverned",
+    "cardInferred",
+    "conflictCard",
+    "hearingSeat"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 23.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/barcelona-v6/docs/assets/architecture/cognitive-context/horizon-context--hearing-showdown.html",
+ "slug": "hearing-showdown",
+ "type": "workflow"
+}

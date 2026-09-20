@@ -1,0 +1,13 @@
+[
+ {
+  "id": "open-hearing",
+  "label": "必须开听证会",
+  "focus": [
+   "cardGoverned",
+   "cardInferred",
+   "conflictCard",
+   "hearingSeat"
+  ],
+  "note": "语义打架时坚决不许按热度自动选，必须开听证会见人。"
+ }
+]

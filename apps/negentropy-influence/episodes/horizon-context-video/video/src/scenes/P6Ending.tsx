@@ -1,16 +1,19 @@
 /** P6 它没证明什么（p6-01..24）——批判性边界独立成节；
  *  收口用 guided-learn 的「同构变式复考」：不复读七点，而是换一个材料之外的
- *  新场景（上游把 grain 塌缩）反问「这时哪个机制先顶不住」。 */
+ *  新场景（上游把 grain 塌缩）反问「这时哪个机制先顶不住」。
+ *  W6 起 6-B/6-C/6-E 全句由 archify 图主控（Fences 承接实例/塌方剖面+NumberClash/
+ *  RentedSmart 退役），自制件仅存 6-A 栅栏岛+对撞数字、6-D 整队立起与 6-F 信源卡渐黑。 */
 import React from 'react';
-import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
+import {AbsoluteFill, Sequence} from 'remotion';
 import type {SceneRange} from '../types';
 import {beatWindow} from '../timing';
 import {theme} from '../design/theme';
-import {DUR, useDraw, useFadeOut, useProgress, useStagger} from '../motion';
+import {DUR, useFadeOut, useStagger} from '../motion';
 import {Panel} from '../components/motifs';
-import {BuildingSection, EvidenceBadge, NumberClash, Stage} from '../components/devices';
+import {EvidenceBadge, Stage} from '../components/devices';
 import {ARCHIFY} from '../archify.manifest';
 import {ArchifyRecap} from '../components/ArchifyRecap';
+import {ArchifyYield} from '../components/ArchifyYield';
 
 const BOUNDS = [
   '提效数字多来自厂商自家基准，增益端无第三方复现',
@@ -21,23 +24,12 @@ const BOUNDS = [
 ];
 
 /** 五道警示栅栏：讲完一条压暗一条（围住大厦，不是推倒它） */
-const Fences: React.FC<{
-  dimmed: number;
-  at?: number;
-  dimAts?: readonly number[];
-  /** 跨镜常驻实例用：跳过入场 stagger，直接承接上一镜已入场的栅栏。
-   *  6-B 承接 6-A；6-D 的重新「整队立起」有 storyboard 背书，不传。 */
-  entered?: boolean;
-}> = ({dimmed, at = 0, dimAts, entered = false}) => {
-  const frame = useCurrentFrame();
+const Fences: React.FC<{dimmed: number; at?: number}> = ({dimmed, at = 0}) => {
   const st = useStagger(5, {at, stride: 6, dur: DUR.f5});
-  const ps = entered ? [1, 1, 1, 1, 1] : st;
-  // dimAts 给出每道栅栏各自压暗的帧（与口播逐句同步）；缺省则退回 dimmed 计数
-  const lit = dimAts ? dimAts.filter((a) => frame >= a).length : dimmed;
   return (
     <div style={{display: 'flex', flexDirection: 'column', gap: 14, width: 1280}}>
       {BOUNDS.map((b, i) => {
-        const done = i < lit;
+        const done = i < dimmed;
         return (
           <div
             key={b}
@@ -49,7 +41,7 @@ const Fences: React.FC<{
               borderRadius: 10,
               border: `2px ${done ? 'solid' : 'dashed'} ${done ? theme.danger : theme.dim}`,
               background: done ? `${theme.danger}12` : 'transparent',
-              opacity: (done ? 1 : 0.42) * ps[i],
+              opacity: (done ? 1 : 0.42) * st[i],
             }}
           >
             <span
@@ -68,64 +60,6 @@ const Fences: React.FC<{
           </div>
         );
       })}
-    </div>
-  );
-};
-
-/** 6-E 租来的聪明：拔掉电源线，光环熄灭 */
-const RentedSmart: React.FC<{lineAt: number; quoteAt: number; pullAt: number}> = ({
-  lineAt,
-  quoteAt,
-  pullAt,
-}) => {
-  // 四句四拍：机器人在场 → 金句上屏 → 电源线描出 → 拔线熄灭
-  const line = useDraw(lineAt, DUR.f6);
-  const quote = useProgress(quoteAt, DUR.f6);
-  const off = useProgress(pullAt, DUR.f6);
-  return (
-    <div style={{textAlign: 'center'}}>
-      <div style={{position: 'relative', display: 'inline-block'}}>
-        <div style={{fontSize: 108, opacity: 1 - 0.55 * off}}>🤖</div>
-        <div
-          style={{
-            position: 'absolute',
-            left: '50%',
-            top: -22,
-            transform: 'translateX(-50%)',
-            width: 120,
-            height: 22,
-            borderRadius: '50%',
-            border: `4px solid ${theme.manual}`,
-            opacity: 1 - off,
-            boxShadow: `0 0 ${26 * (1 - off)}px ${theme.manual}`,
-          }}
-        />
-      </div>
-      <svg width={520} height={90} style={{display: 'block', margin: '0 auto'}}>
-        <path
-          d="M 260 0 C 260 50, 430 40, 470 84"
-          stroke={theme.engine}
-          strokeWidth={4}
-          fill="none"
-          opacity={1 - off}
-          {...line}
-        />
-      </svg>
-      <div
-        style={{
-          marginTop: 10,
-          fontFamily: theme.serif,
-          fontSize: 56,
-          color: theme.text,
-          lineHeight: 1.45,
-          opacity: quote,
-          transform: `translateY(${(1 - quote) * 14}px)`,
-        }}
-      >
-        上下文被治理好之前，
-        <br />
-        <span style={{color: theme.manual}}>AI 的聪明本质上都是租来的</span>
-      </div>
     </div>
   );
 };
@@ -172,22 +106,21 @@ export const P6Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
   return (
     <AbsoluteFill>
       <Sequence {...bA} name="6-A 五道警示栅栏与第一条">
-        <Stage top={430}>
-          <Fences dimmed={1} at={at('p6-03') - bA.from} />
-          <NumberClash
-            badLabel="官方称准确率"
-            bad="86%"
-            goodLabel="独立复测基线"
-            good="21%"
-            at={at('p6-05') - bA.from}
-          />
-        </Stage>
-        {/* top=430：本镜有 inset 画框（y∈[56,416]），默认 44 会被整块压住 */}
-        <EvidenceBadge grade="vendor" at={at('p6-04') - bA.from} top={430} />
+        {/* b：栅栏可见岛 p6-01..04，p6-05/06 cue 窗让位（86% vs 21% 对撞已由 vendor-claim 图承接） */}
+        <ArchifyYield
+          cues={[
+            {at: at('p6-05') - bA.from, durationInFrames: dur('p6-05')},
+            {at: at('p6-06') - bA.from, durationInFrames: dur('p6-06')},
+          ]}
+        >
+          <Stage>
+            <Fences dimmed={1} at={at('p6-03') - bA.from} />
+          </Stage>
+        </ArchifyYield>
+        <EvidenceBadge grade="vendor" at={at('p6-04') - bA.from} />
         <ArchifyRecap
           slug="evidence-grading"
           caption="证据分级"
-          variant="inset"
           cues={[
             {chapterId: 'vendor-claim', at: at('p6-05') - bA.from, durationInFrames: dur('p6-05')},
             {chapterId: 'not-industry-norm', at: at('p6-06') - bA.from, durationInFrames: dur('p6-06')},
@@ -196,26 +129,11 @@ export const P6Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bB} name="6-B 第二三条边界">
-        {/* top=430 与 6-A 同值：栅栏承接 6-A 的像素位置（6-A 的 NumberClash 只占其下方），
-            6-B 单子项时 Stage 从 paddingTop 起排，故同 top 即同位置 */}
-        <Stage top={430}>
-          {/* entered：承接 6-A 已入场的栅栏，避免 p6-06→07 边界清零重入（压暗走 dimAts） */}
-          <Fences
-            dimmed={1}
-            entered
-            dimAts={[
-              0,
-              at('p6-07') - bB.from,
-              at('p6-08') - bB.from,
-              Number.MAX_SAFE_INTEGER,
-              Number.MAX_SAFE_INTEGER,
-            ]}
-          />
-        </Stage>
+        {/* 07..09 全句 cue（W6）：Fences 承接实例退役，本镜转纯图主控 */}
         <ArchifyRecap
           slug="preview-gap"
           caption="落地鸿沟"
-          variant="inset"
+          lead={false}
           cues={[
             {chapterId: 'preview-band', at: at('p6-07') - bB.from, durationInFrames: dur('p6-07')},
           ]}
@@ -223,7 +141,6 @@ export const P6Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap
           slug="perimeter-loss"
           caption="安全周界"
-          variant="inset"
           lead={false}
           cues={[
             {chapterId: 'inside-effective', at: at('p6-08') - bB.from, durationInFrames: dur('p6-08')},
@@ -233,70 +150,74 @@ export const P6Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bC} name="6-C 地基塌方与 477 vs 48">
-        <Stage top={120}>
-          <div style={{display: 'flex', gap: 60, alignItems: 'center'}}>
-            <BuildingSection focus={null} scale={0.8} collapsed />
-            <div>
-              <div
-                style={{
-                  fontFamily: theme.sans,
-                  fontSize: 30,
-                  color: theme.text,
-                  marginBottom: 24,
-                  lineHeight: 1.55,
-                  width: 560,
-                }}
-              >
-                图纸金色合法、七柱全亮 ——
-                <br />
-                但<span style={{color: theme.danger}}>地基已被上游按天打包塌缩</span>
-              </div>
-              {/* p6-16 入场：full 画框（p6-13..15）盖住本镜装置，入场须排在 full 窗外（同 5-A badgeAt 范式） */}
-              <NumberClash
-                badLabel="治理后仍算出"
-                bad="477"
-                goodLabel="真实值"
-                good="48"
-                at={at('p6-16') - bC.from}
-              />
-            </div>
-          </div>
-        </Stage>
+        {/* 10..16 全句 cue（W6）：塌方剖面+NumberClash 嵌套退役，本镜转纯图主控。
+            p6-09(outside-void)→10、12→13、15→16 三处跨实例背靠背 → 后一实例均 lead={false} */}
         <EvidenceBadge grade="thirdparty" at={at('p6-11') - bC.from} />
+        <ArchifyRecap
+          slug="govern-vs-verify"
+          caption="治理合法不等于计算正确"
+          lead={false}
+          cues={[
+            {chapterId: 'fourth-boundary', at: at('p6-10') - bC.from, durationInFrames: dur('p6-10')},
+            {chapterId: 'third-party-critique', at: at('p6-11') - bC.from, durationInFrames: dur('p6-11')},
+            {chapterId: 'upstream-collapse', at: at('p6-12') - bC.from, durationInFrames: dur('p6-12')},
+          ]}
+        />
         <ArchifyRecap
           slug="grain-collapse"
           caption="上游塌方"
-          variant="full"
+          lead={false}
           cues={[
             {chapterId: 'day-pack-collapse', at: at('p6-13') - bC.from, durationInFrames: dur('p6-13')},
             {chapterId: 'legal-but-wrong', at: at('p6-14') - bC.from, durationInFrames: dur('p6-14')},
             {chapterId: 'measured-477-48', at: at('p6-15') - bC.from, durationInFrames: dur('p6-15')},
           ]}
         />
-      </Sequence>
-
-      <Sequence {...bD} name="6-D 第五条边界">
-        <Stage top={430}>
-          <Fences dimmed={5} />
-        </Stage>
         <ArchifyRecap
-          slug="majority-shortcut"
-          caption="多数派近道"
-          variant="inset"
+          slug="blueprint-foundation"
+          caption="图纸合法救不了塌方地基"
+          lead={false}
           cues={[
-            {chapterId: 'habit-not-truth', at: at('p6-17') - bD.from, durationInFrames: dur('p6-17')},
+            {chapterId: 'blueprint-vs-foundation', at: at('p6-16') - bC.from, durationInFrames: dur('p6-16')},
           ]}
         />
       </Sequence>
 
-      <Sequence {...bE} name="6-E 租来的聪明">
-        <Stage top={200}>
-          <RentedSmart
-            quoteAt={at('p6-20') - bE.from}
-            lineAt={at('p6-21') - bE.from}
-            pullAt={at('p6-22') - bE.from}
-          />
+      <Sequence {...bD} name="6-D 第五条边界">
+        {/* habit-not-truth cue 已删、实例随之移除（majority-shortcut 图仍被 P5 引用）：
+            栅栏「整队立起」payoff 在 p6-17 恢复装置可见 */}
+        <Stage>
+          <Fences dimmed={5} />
         </Stage>
+      </Sequence>
+
+      <Sequence {...bE} name="6-E 租来的聪明">
+        {/* 19..22 全句 cue（W6）：RentedSmart 退役（租用→自有的状态迁移由 lifecycle 图接管），
+            本镜转纯图主控；p6-19(signals)→20、21→22 跨实例背靠背 → 后两实例 lead={false} */}
+        <ArchifyRecap
+          slug="four-factor-ranking"
+          caption="四因子称重"
+          cues={[
+            {chapterId: 'signals', at: at('p6-19') - bE.from, durationInFrames: dur('p6-19')},
+          ]}
+        />
+        <ArchifyRecap
+          slug="attribution-balance"
+          caption="归因天平"
+          lead={false}
+          cues={[
+            {chapterId: 'not-the-brain', at: at('p6-20') - bE.from, durationInFrames: dur('p6-20')},
+            {chapterId: 'cast-into-infra', at: at('p6-21') - bE.from, durationInFrames: dur('p6-21')},
+          ]}
+        />
+        <ArchifyRecap
+          slug="rented-brilliance"
+          caption="租来的聪明"
+          lead={false}
+          cues={[
+            {chapterId: 'rented-to-owned', at: at('p6-22') - bE.from, durationInFrames: dur('p6-22')},
+          ]}
+        />
       </Sequence>
 
       <Sequence {...bF} name="6-F 下期钩子与信源卡（渐黑）">
@@ -318,6 +239,16 @@ export const P6Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
             <SourceCard />
           </Stage>
         </Fade>
+        {/* p6-22(rented-to-owned)→23 跨镜背靠背 → lead={false}；blueprint-blocks 章不接——
+            p6-24 留给信源卡+渐黑（渐黑/信源卡逻辑不动，Recap 写 Fade 之后保 z 序盖住 p6-23 钩子文案） */}
+        <ArchifyRecap
+          slug="next-episode-blueprint"
+          caption="下期蓝图"
+          lead={false}
+          cues={[
+            {chapterId: 'self-build', at: at('p6-23') - bF.from, durationInFrames: dur('p6-23')},
+          ]}
+        />
       </Sequence>
     </AbsoluteFill>
   );

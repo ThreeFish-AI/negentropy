@@ -1,0 +1,71 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 7.8,
+ "total_wall_sec": 33.59,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "hundred-three",
+   "label": "一百块三次事件",
+   "index": 0,
+   "file": "event-fanout--hundred-three.mp4",
+   "end_still": "event-fanout--hundred-three-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.46,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.207,
+    3.309
+   ],
+   "beat_nodes": [
+    "order100",
+    "evt-1",
+    "evt-2",
+    "evt-3"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 23.0
+  },
+  {
+   "id": "join-disaster",
+   "label": "直接关联的灾难",
+   "index": 1,
+   "file": "event-fanout--join-disaster.mp4",
+   "end_still": "event-fanout--join-disaster-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.34,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.204
+   ],
+   "beat_nodes": [
+    "naive-join",
+    "dup-rows",
+    "sum-300"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 23.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/barcelona-v6/docs/assets/architecture/cognitive-context/horizon-context--event-fanout.html",
+ "slug": "event-fanout",
+ "type": "dataflow"
+}

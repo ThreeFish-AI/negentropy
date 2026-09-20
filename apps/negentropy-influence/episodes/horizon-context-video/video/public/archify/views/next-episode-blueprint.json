@@ -1,0 +1,23 @@
+[
+ {
+  "id": "self-build",
+  "label": "撇开云厂商自建",
+  "focus": [
+   "consumers",
+   "explicit",
+   "store"
+  ],
+  "note": "撇开云厂商，我们自己能不能搭一个 Horizon Context？"
+ },
+ {
+  "id": "blueprint-blocks",
+  "label": "五块通用积木",
+  "focus": [
+   "gate",
+   "rank",
+   "eval",
+   "mcp"
+  ],
+  "note": "把上下文层的蓝图抽出来，亲手搭一搭这方积木。"
+ }
+]

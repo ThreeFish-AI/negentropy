@@ -3,27 +3,29 @@
 Context Layer 系列首集。信源为本仓 [Snowflake Horizon Context 精读笔记](../../../../docs/research/cognitive-context/011-horizon-context.md)
 与配套最小原型（B 型 · 仓内固定提交 `097076eb`），逐条断言回溯 [research/source-notes.md](./research/source-notes.md)。
 
-**交付状态**：v5 终渲待审（2026-09-20，动效图例扩产 + 高清重制，口播零改动）。
+**交付状态**：v6 终渲待审（2026-09-20，图例 2× 扩产 + 全屏独占切换 + 阈门六维加固，口播零改动）。
 **15:11.63 = 27349 帧 @30fps · 1920×1080**（音频复用 v4，时长不变）。
-187 句 / 4256 字 / 45 镜；archify 工程图 **33 张 / 86 章逐章高清录制，73 个 cue 进片**
-（v4 为 14 图 43 章 29 cue）：覆盖率 15.5% → **39.0%**，P0/P6 结束整幕零锚，D1–D10 实证全部有图。
+187 句 / 4256 字 / 45 镜；archify 工程图 **67 张 / 162 章逐章高清录制，156 个 cue 进片**
+（v5 为 33 图 86 章 73 cue）：句级锚定率 39.0% → **83.4%**、cue 密度 5.4 → **10.3/分**、
+图型 4 → **5 种**（lifecycle 0→7 补空白）、最长无锚 7 → **4 句**，D1–D10 实证全部有图。
 
-**v5 改了什么**：① 图例扩产 2.36×——新增 19 张严格锚定逐字稿的工程图（复印机陷阱 D1 / 去重 D2 /
-先聚后除 D7 / 末快照 D3 / 关系消歧 / 语法×业务 / 治理破坏台 D5 / 选错页 / 双柱信任 / 万能钥匙 /
-纳管缺口 / 多数派近道 D4 / 证据分级 / 落地鸿沟 / 安全周界 / 上游塌方 477 vs 48 / 裸库基线 /
-口径打架 / 失忆实习生）+ 既有图增补 4 章（执行开关分化 / 木牌vs承重墙 / 双层防线 / 工牌双钟 D9）；
-② 录制清晰度重制——绕开 Playwright 硬编码 VP8@1Mbps 编码器（driver 源码实证无质量旋钮），改
-CDP JPEG q100 @DSF2（物理 4K）采集 + ffmpeg h264 CRF16 交付 2560×1440、恒定 CFR25（lead/rate
-数学零改动），白闪零点加 300ms 预滚防竞态（86/86 全命中）；inset 画框 460×259 → 640×360（+39%
-显示面积），全 16 个 inset 镜逐帧像素审计零侵入；③ 覆盖度自动阈门上线——
-`check_archify_coverage.py` 三维度执法（句级锚定率 / 图·cue·章比地板 / 分镜声明↔cue 双向对账 +
-单调性），由 `pipeline.py check` 自动串联，本集阈值定稿 28 图 / 58 cue / 30% / 70%（先红后绿留证
-`.temp/coverage-gate-red-before.txt`）。
+**v6 改了什么**：① 图例 2.03× 扩产——新增 34 张严格锚定逐字稿的工程图（密文对译 / 双基线证据链 /
+外挂词典漂移 / 官方三句递进 / 七机制×十次拆坏 / 便利贴收拢成册 / 坏定义注册生死簿 D6 / 手册两半剖面 /
+临机现算 / 事件扇出 / 多入口一个答案 / 计算纪律四条总纲 / 第一道防线 / 查询期逐页验放 / 三流合一 /
+猜名强查拦截 D5 / 编译那一秒 / 藏≠拦 D5 / 核准条目的一生 / 落地两挑战 / 全楼水管台账 / 虚构流水入账 D8 /
+逆流溯源 / 信任三段 / 权限交集 / 权限回收两种命运 D9 / 零越权窗口 D9 / 听证会 / 贴标即联动 /
+治理≠计算 / 图纸vs地基 / 归因天平 / 租来的聪明 / 下期蓝图）+ 13 个闲置章接线（autopilot-loop /
+evolution-timeline 两整图启用）+ 2 处挪锚（declare→p2-04 修复章序逆序、ingest-lane→p4-14a）；
+② **inset 画中画退役**——archify 播放期不与自制装置同屏：三分法切换（嵌套子窗 / ArchifyYield 淡出
+让位 / 画框直遮），42 处 inset 全部转全屏独占（640×360 → 1298×730 整屏），被图整镜接管的装置按
+「视觉主权一句一主」原则退役，独有隐喻装置（半堵墙 / 栅栏立起 / 记忆柱等）保留可见岛；
+③ 覆盖门六维加固——新增最长无锚 run / 分幕锚定率 / cue 密度 / 图型多样性 / forbid_inset / 同句排他
+（+第 4 道 dur 形态断言），sidecar 落 `type` 字段（record_archify --type + 33 张存量回填），本集阈值
+定稿 66 图 / 146 cue / 60% / 9/分 / 5 种（先红后绿留证 `.temp/coverage-gate-red-before-v4.txt`）。
 
-**验收**：`check_script --check-scenes --check-motion` FAIL 0 · `check_archify` FAIL 0（WARN 2 =
-两张录制留档未落镜 + 1 条合法叙事重组逆序）· 覆盖门 FAIL 0 · WARN 3（同前，均为有意保留）·
-`tsc --noEmit` 绿 · rate 预演 73 cue = 变速铺满 40 · 冻结补足 31 · 裁切 2 ·
-估算与实测双口径均落在 `[13.0, 15.4]`（口播未动，实测与 v4 一致）。
+**验收**：`check_script --check-scenes --check-motion` FAIL 0 · `check_archify` FAIL 0 · WARN 0 ·
+覆盖门 FAIL 0 · WARN 0（v5 存量 3 WARN 清零：逆序经挪锚修复、两整图接线）· `tsc --noEmit` 绿 ·
+rate 预演 156 cue 零越界 · 估算与实测双口径均落在 `[13.0, 15.4]`（口播未动，实测与 v4 一致）。
 
 ## 目录
 
@@ -36,7 +38,7 @@ CDP JPEG q100 @DSF2（物理 4K）采集 + ffmpeg h264 CRF16 交付 2560×1440�
 | `research/sources.toml` | 信源台账（pinned commit，`source_ledger.py verify` 执法） |
 | `video/src/scenes/` | 七幕场景（P0Cold / P1Intern / P2Manual / P3Gate / P4Ledger / P5Badge / P6Ending） |
 | `video/src/components/devices.tsx` | 本集视觉装置库（大厦剖面母图 / 七格 HUD / 对照台 / 数字对撞 / 证据角标） |
-| `video/public/archify/views/` | 14 张工程图的引导故事定义（**入库**；webm 为派生产物） |
+| `video/public/archify/views/` | 67 张工程图的引导故事定义（**入库**；mp4/end PNG 为派生产物） |
 | `scripts/` | 薄包装 + 本集专用：`archify_lead.py`（场记板测定）/ `archify_manifest.py` |
 
 ## 复现

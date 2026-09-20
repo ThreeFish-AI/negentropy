@@ -1,0 +1,23 @@
+[
+ {
+  "id": "before-during",
+  "label": "事前事中答对",
+  "focus": [
+   "question-in",
+   "vqr-check",
+   "verified-answer",
+   "adhoc-answer"
+  ],
+  "note": "验证锚定负责在事前事中保证答对。"
+ },
+ {
+  "id": "after-audit",
+  "label": "事后审计闭环",
+  "focus": [
+   "lineage-ledger",
+   "ol-ingest",
+   "audit-close"
+  ],
+  "note": "列级血缘负责在事后提供确定性的审计闭环。"
+ }
+]

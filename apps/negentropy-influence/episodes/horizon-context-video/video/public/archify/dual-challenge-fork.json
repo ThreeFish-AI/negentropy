@@ -1,0 +1,73 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 8.87,
+ "total_wall_sec": 32.05,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "challenge-one",
+   "label": "第一个挑战",
+   "index": 0,
+   "file": "dual-challenge-fork--challenge-one.mp4",
+   "end_still": "dual-challenge-fork--challenge-one-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.43,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.206,
+    3.308
+   ],
+   "beat_nodes": [
+    "foundation",
+    "challengeOne",
+    "vqr",
+    "sealedAnswer"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 44.0
+  },
+  {
+   "id": "challenge-two",
+   "label": "第二个挑战",
+   "index": 1,
+   "file": "dual-challenge-fork--challenge-two.mp4",
+   "end_still": "dual-challenge-fork--challenge-two-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.44,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.208,
+    3.311
+   ],
+   "beat_nodes": [
+    "challengeTwo",
+    "ledger",
+    "intakeGate",
+    "auditClose"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 45.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/barcelona-v6/docs/assets/architecture/cognitive-context/horizon-context--dual-challenge-fork.html",
+ "slug": "dual-challenge-fork",
+ "type": "architecture"
+}

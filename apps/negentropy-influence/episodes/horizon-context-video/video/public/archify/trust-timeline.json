@@ -1,0 +1,71 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 7.8,
+ "total_wall_sec": 31.56,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "before-during",
+   "label": "事前事中答对",
+   "index": 0,
+   "file": "trust-timeline--before-during.mp4",
+   "end_still": "trust-timeline--before-during-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.46,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.204,
+    3.307
+   ],
+   "beat_nodes": [
+    "question-in",
+    "vqr-check",
+    "verified-answer",
+    "adhoc-answer"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 23.0
+  },
+  {
+   "id": "after-audit",
+   "label": "事后审计闭环",
+   "index": 1,
+   "file": "trust-timeline--after-audit.mp4",
+   "end_still": "trust-timeline--after-audit-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.34,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.205
+   ],
+   "beat_nodes": [
+    "lineage-ledger",
+    "ol-ingest",
+    "audit-close"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 23.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/barcelona-v6/docs/assets/architecture/cognitive-context/horizon-context--trust-timeline.html",
+ "slug": "trust-timeline",
+ "type": "lifecycle"
+}

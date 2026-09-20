@@ -1,0 +1,14 @@
+[
+  {
+    "id": "sign-vs-wall",
+    "label": "木牌vs承重墙",
+    "focus": ["woodSign", "sideDoor", "engineGate"],
+    "note": "治理规则必须像物理闸机，直接焊死在引擎必经之路上。"
+  },
+  {
+    "id": "shared-checkpoint",
+    "label": "共用执法点",
+    "focus": ["humanReport", "appQuery", "aiReasoning", "engineGate"],
+    "note": "人写报表、业务调用、AI 推理，共用同一执法点。"
+  }
+]

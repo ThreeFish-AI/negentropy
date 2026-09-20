@@ -1,0 +1,33 @@
+[
+ {
+  "id": "not-model-dumb",
+  "label": "不是模型笨",
+  "focus": [
+   "q-card",
+   "ai-brain",
+   "cipher-wall"
+  ],
+  "note": "问题不笨、模型也不笨——缺的是库里没写这句话的意思。"
+ },
+ {
+  "id": "cipher-wall",
+  "label": "物理列名乱码",
+  "focus": [
+   "cipher-wall",
+   "dict-missing",
+   "plain-card"
+  ],
+  "note": "毛收入的物理列名是一串像乱码的缩写。"
+ },
+ {
+  "id": "letters-not-meaning",
+  "label": "认得出字母",
+  "focus": [
+   "cipher-wall",
+   "letters-ok",
+   "dict-missing",
+   "outcome"
+  ],
+  "note": "AI 认得出每个字母，但不知道这就是毛收入。"
+ }
+]

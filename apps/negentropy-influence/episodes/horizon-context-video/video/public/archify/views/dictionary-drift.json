@@ -1,0 +1,20 @@
+[
+  {
+    "id": "dict-outside",
+    "label": "词典在库外",
+    "focus": ["dict-mounted", "table-v1", "loose-sync"],
+    "note": "有些团队在库外挂了字典，词典与底层分家。"
+  },
+  {
+    "id": "schema-changed",
+    "label": "底层一改",
+    "focus": ["table-v1", "schema-change", "stale-dict"],
+    "note": "底层表一改，外挂字典立刻失效。"
+  },
+  {
+    "id": "stale-manual",
+    "label": "按旧手册猜",
+    "focus": ["stale-dict", "ai-stale-manual", "wrong-answers"],
+    "note": "AI 跟着旧手册猜——定义漂移的病灶成型。"
+  }
+]

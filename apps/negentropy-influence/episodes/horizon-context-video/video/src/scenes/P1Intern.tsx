@@ -5,10 +5,11 @@ import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
 import type {SceneRange} from '../types';
 import {beatWindow} from '../timing';
 import {theme} from '../design/theme';
-import {DUR, progress, useStagger} from '../motion';
-import {Panel, SceneTag} from '../components/motifs';
+import {DUR, progress} from '../motion';
+import {SceneTag} from '../components/motifs';
 import {ArchifyRecap} from '../components/ArchifyRecap';
-import {BuildingSection, PillarHUD, Stage} from '../components/devices';
+import {ArchifyYield} from '../components/ArchifyYield';
+import {PillarHUD, Stage} from '../components/devices';
 
 /** 1-A 记忆条逐日清零。
  *
@@ -64,72 +65,6 @@ const MemoryReset: React.FC<{clearAts: readonly number[]}> = ({clearAts}) => {
   );
 };
 
-/** 1-B 三病灶裂纹 */
-const ThreeLesions: React.FC<{ats: readonly number[]}> = ({ats}) => {
-  const frame = useCurrentFrame();
-  const ps = ats.map((a) => progress(frame, a, DUR.f6));
-  const items = [
-    {t: '口径打架', s: '同一指标，二十个看板二十种算法', c: theme.danger},
-    {t: '定义漂移', s: '外挂词典与底层分家，表一改就失效', c: theme.manual},
-    {t: '门禁穿透', s: '规则贴在看板上，拦不住直查底表', c: theme.dig},
-  ];
-  return (
-    <div style={{display: 'flex', flexDirection: 'column', gap: 18, width: 900}}>
-      {items.map((it, i) => (
-        <Panel
-          key={it.t}
-          accent={it.c}
-          style={{
-            padding: '22px 28px',
-            opacity: ps[i],
-            transform: `translateX(${(1 - ps[i]) * -26}px)`,
-          }}
-        >
-          <div style={{fontFamily: theme.sans, fontSize: 32, color: it.c, fontWeight: 600}}>
-            {`病灶 ${'①②③'[i]} · ${it.t}`}
-          </div>
-          <div style={{marginTop: 8, fontFamily: theme.sans, fontSize: 24, color: theme.dim}}>
-            {it.s}
-          </div>
-        </Panel>
-      ))}
-    </div>
-  );
-};
-
-/** 1-C 官方三句递进阶梯（英文原句只进角标） */
-const OfficialLadder: React.FC<{at?: number}> = ({at = 0}) => {
-  const ps = useStagger(3, {at, stride: 14, dur: DUR.f6});
-  const rows = [
-    {zh: '没有上下文，智能体只能瞎猜', en: 'Without context, an agent guesses.', c: theme.dim},
-    {zh: '上下文原生植入平台，智能体才能真正行动', en: '…an agent acts.', c: theme.engine},
-    {zh: '上下文也被严格治理，智能体才值得信任', en: '…an agent can be trusted.', c: theme.manual},
-  ];
-  return (
-    <div style={{display: 'flex', flexDirection: 'column', gap: 16, width: 1180}}>
-      {rows.map((r, i) => (
-        <div
-          key={r.zh}
-          style={{
-            marginLeft: i * 64,
-            padding: '20px 28px',
-            borderRadius: 10,
-            border: `2px solid ${r.c}`,
-            background: `${r.c}12`,
-            opacity: ps[i],
-            transform: `translateY(${(1 - ps[i]) * 16}px)`,
-          }}
-        >
-          <div style={{fontFamily: theme.sans, fontSize: 32, color: theme.text}}>{r.zh}</div>
-          <div style={{marginTop: 6, fontFamily: theme.mono, fontSize: 19, color: r.c, opacity: 0.85}}>
-            {r.en}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-};
-
 export const P1Intern: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (a: string, b?: string) => beatWindow(scene.sentences, scene.from, a, b);
   const at = (id: string) => w(id).from;
@@ -144,38 +79,47 @@ export const P1Intern: React.FC<{scene: SceneRange}> = ({scene}) => {
     <AbsoluteFill>
       <Sequence {...bA} name="1-A 失忆实习生记忆条">
         <SceneTag chapter="P1" tagline="每天重新入职的天才" accent={theme.engine} />
-        <Stage top={430}>
-          <MemoryReset
-            clearAts={['p1-03', 'p1-04', 'p1-05', 'p1-06', 'p1-07'].map(
-              (id) => at(id) - bA.from,
-            )}
-          />
-        </Stage>
+        {/* 模式 b：记忆柱攒满/清零是跨句连续状态（clearAts 贯穿 p1-03..07），拆子窗会断相；
+            可见岛 p1-01/03/04/05，窗=amnesia-intern 两窗 + three-lesions 窗 */}
+        <ArchifyYield
+          cues={[
+            {at: at('p1-02') - bA.from, durationInFrames: dur('p1-02')},
+            {at: at('p1-06') - bA.from, durationInFrames: dur('p1-06')},
+            {at: at('p1-07') - bA.from, durationInFrames: dur('p1-07')},
+          ]}
+        >
+          <Stage>
+            <MemoryReset
+              clearAts={['p1-03', 'p1-04', 'p1-05', 'p1-06', 'p1-07'].map(
+                (id) => at(id) - bA.from,
+              )}
+            />
+          </Stage>
+        </ArchifyYield>
         <ArchifyRecap
           slug="amnesia-intern"
           caption="失忆实习生"
-          variant="inset"
           cues={[
             {chapterId: 'daily-reset', at: at('p1-02') - bA.from, durationInFrames: dur('p1-02')},
             {chapterId: 'dark-guess', at: at('p1-06') - bA.from, durationInFrames: dur('p1-06')},
           ]}
         />
+        {/* p1-06(dark-guess)→p1-07 背靠背跨实例 → lead={false} */}
+        <ArchifyRecap
+          slug="mechanism-experiment-matrix"
+          caption="七机制×十次拆坏"
+          lead={false}
+          cues={[
+            {chapterId: 'three-lesions', at: at('p1-07') - bA.from, durationInFrames: dur('p1-07')},
+          ]}
+        />
       </Sequence>
 
       <Sequence {...bB} name="1-B 三病灶 + 病因链回放">
-        <Stage top={430}>
-          <ThreeLesions
-            ats={[
-              at('p1-08') - bB.from,
-              at('p1-11') - bB.from,
-              at('p1-14') - bB.from,
-            ]}
-          />
-        </Stage>
+        {/* ThreeLesions 已退役（p1-08..14 全部入 cue，仅 p1-15 空档无装置） */}
         <ArchifyRecap
           slug="problem-to-mechanisms"
           caption="病因链与机制对位"
-          variant="inset"
           cues={[
             {chapterId: 'cause-chain', at: at('p1-08') - bB.from, durationInFrames: dur('p1-08')},
             {chapterId: 'encircle-pierce', at: at('p1-14') - bB.from, durationInFrames: dur('p1-14')},
@@ -184,16 +128,28 @@ export const P1Intern: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap
           slug="caliber-clash"
           caption="口径打架"
-          variant="inset"
           lead={false}
           cues={[
             {chapterId: 'twenty-algorithms', at: at('p1-09') - bB.from, durationInFrames: dur('p1-09')},
             {chapterId: 'owners-clash', at: at('p1-10') - bB.from, durationInFrames: dur('p1-10')},
           ]}
         />
+        {/* p1-10(owners-clash)→p1-11 背靠背跨实例 → lead={false} */}
+        <ArchifyRecap
+          slug="dictionary-drift"
+          caption="外挂词典的漂移一生"
+          lead={false}
+          cues={[
+            {chapterId: 'dict-outside', at: at('p1-11') - bB.from, durationInFrames: dur('p1-11')},
+            {chapterId: 'schema-changed', at: at('p1-12') - bB.from, durationInFrames: dur('p1-12')},
+            {chapterId: 'stale-manual', at: at('p1-13') - bB.from, durationInFrames: dur('p1-13')},
+          ]}
+        />
       </Sequence>
 
       <Sequence {...bC} name="1-C 命名帧与官方三句">
+        {/* OfficialLadder 已退役（p1-18..20 由 three-claims-stack 图接管）。
+            p1-21(downgraded-lane) 是本实例空窗后重现，enters 自动恢复入场。 */}
         <ArchifyRecap
           slug="problem-to-mechanisms"
           caption="铸入引擎 · 机制对位"
@@ -203,26 +159,27 @@ export const P1Intern: React.FC<{scene: SceneRange}> = ({scene}) => {
             {chapterId: 'downgraded-lane', at: at('p1-21') - bC.from, durationInFrames: dur('p1-21')},
           ]}
         />
-        <Sequence
-          from={at('p1-18') - bC.from}
-          durationInFrames={dur('p1-18', 'p1-20')}
-          name="1-C 官方三句阶梯"
-        >
-          <Stage top={250}>
-            <OfficialLadder />
-          </Stage>
-        </Sequence>
+        {/* p1-17(answer-ledger)→p1-18 背靠背跨实例 → lead={false}；后接 p1-20→21
+            背靠背，但 p1-21 属先挂载实例的空窗重现（enters 自动入场），无需再处理 */}
+        <ArchifyRecap
+          slug="three-claims-stack"
+          caption="官方三句递进"
+          lead={false}
+          cues={[
+            {chapterId: 'guess-only', at: at('p1-18') - bC.from, durationInFrames: dur('p1-18')},
+            {chapterId: 'native-act', at: at('p1-19') - bC.from, durationInFrames: dur('p1-19')},
+            {chapterId: 'governed-trust', at: at('p1-20') - bC.from, durationInFrames: dur('p1-20')},
+          ]}
+        />
       </Sequence>
 
       <Sequence {...bD} name="1-D 带教大厦剖面 + 组件全景">
-        <Stage top={430}>
-          {/* scale 0.75：inset 底边 416 后 Stage 430 的纵向预算收窄，7 层 58.5px 收进 ≤875 */}
-          <BuildingSection at={0} scale={0.75} />
-        </Stage>
+        {/* p1-22/24 背靠背全句入 cue（p1-23 是跳号句，无空档）——剖面装置退役，
+            大厦剖面母图由 P3 3-A① 的 MechZoom 推近与 PillarHUD 承担
+            （P4/P5 同款嵌套已随全屏化一并退役） */}
         <ArchifyRecap
           slug="component-panorama"
           caption="组件全景 · 四簇"
-          variant="inset"
           cues={[
             {chapterId: 'caliber-spine', at: at('p1-22') - bD.from, durationInFrames: dur('p1-22')},
             {chapterId: 'consumer-feed', at: at('p1-24') - bD.from, durationInFrames: dur('p1-24')},
@@ -231,22 +188,36 @@ export const P1Intern: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bE} name="1-E 七格承重列 HUD 首亮">
-        <Stage top={300}>
-          <div
-            style={{
-              fontFamily: theme.serif,
-              fontSize: 56,
-              color: theme.text,
-              textAlign: 'center',
-            }}
-          >
-            七大承重机制
-          </div>
-          <div style={{fontFamily: theme.sans, fontSize: 28, color: theme.dim}}>
-            接下来一层层拆解，每一条都当场拆坏给你看
-          </div>
-        </Stage>
+        {/* 装置 yield p1-25（本镜单句=全镜让位）；PillarHUD 按纪律保持在 wrapper 外 */}
+        <ArchifyYield
+          cues={[{at: at('p1-25') - bE.from, durationInFrames: dur('p1-25')}]}
+        >
+          <Stage top={300}>
+            <div
+              style={{
+                fontFamily: theme.serif,
+                fontSize: 56,
+                color: theme.text,
+                textAlign: 'center',
+              }}
+            >
+              七大承重机制
+            </div>
+            <div style={{fontFamily: theme.sans, fontSize: 28, color: theme.dim}}>
+              接下来一层层拆解，每一条都当场拆坏给你看
+            </div>
+          </Stage>
+        </ArchifyYield>
         <PillarHUD lit={0} />
+        {/* p1-24(consumer-feed, 1-D)→p1-25 跨镜背靠背跨实例 → lead={false} */}
+        <ArchifyRecap
+          slug="mechanism-experiment-matrix"
+          caption="七机制×十次拆坏"
+          lead={false}
+          cues={[
+            {chapterId: 'ten-teardowns', at: at('p1-25') - bE.from, durationInFrames: dur('p1-25')},
+          ]}
+        />
       </Sequence>
     </AbsoluteFill>
   );

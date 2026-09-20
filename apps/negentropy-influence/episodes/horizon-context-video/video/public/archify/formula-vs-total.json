@@ -1,0 +1,48 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 4.46,
+ "total_wall_sec": 14.54,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "declare-execute-split",
+   "label": "声明半边×执行半边",
+   "index": 0,
+   "file": "formula-vs-total--declare-execute-split.mp4",
+   "end_still": "formula-vs-total--declare-execute-split-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.46,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.207,
+    3.31
+   ],
+   "beat_nodes": [
+    "manual",
+    "fiveDecl",
+    "calc",
+    "moneyDouble"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 44.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/barcelona-v6/docs/assets/architecture/cognitive-context/horizon-context--formula-vs-total.html",
+ "slug": "formula-vs-total",
+ "type": "architecture"
+}

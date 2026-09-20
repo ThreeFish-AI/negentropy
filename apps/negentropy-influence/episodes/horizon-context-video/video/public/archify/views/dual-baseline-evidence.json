@@ -1,0 +1,13 @@
+[
+ {
+  "id": "two-benchmarks",
+  "label": "两成多双口径",
+  "focus": [
+   "snowflakeInternal",
+   "internal25",
+   "anthropicRetest",
+   "retest21"
+  ],
+  "note": "Snowflake 官方内测 25%，Anthropic 复测 21%——同一量级。"
+ }
+]

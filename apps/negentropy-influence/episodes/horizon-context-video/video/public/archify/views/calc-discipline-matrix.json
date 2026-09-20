@@ -1,0 +1,44 @@
+[
+  {
+    "id": "agg-before-join",
+    "label": "先聚后联铁律",
+    "focus": [
+      "handbook",
+      "rule-agg-before-join",
+      "trap-fanout",
+      "recompute"
+    ],
+    "note": "现场重算最怕复印机陷阱——先聚合，后关联。"
+  },
+  {
+    "id": "dedup-count",
+    "label": "去重计数安全",
+    "focus": [
+      "rule-dedup-count",
+      "trap-double-count",
+      "recompute"
+    ],
+    "note": "同样的防线还包括去重计数安全。"
+  },
+  {
+    "id": "divide-after-agg",
+    "label": "先聚后除",
+    "focus": [
+      "rule-divide-after-agg",
+      "trap-avg-of-avg",
+      "recompute"
+    ],
+    "note": "派生指标的先聚后除——客单价不能平均的平均。"
+  },
+  {
+    "id": "semi-additive",
+    "label": "半可加规则",
+    "focus": [
+      "rule-semi-additive",
+      "trap-sum-over-time",
+      "recompute",
+      "answer"
+    ],
+    "note": "半可加规则：存款余额能跨账户相加，不能跨时间相加。"
+  }
+]

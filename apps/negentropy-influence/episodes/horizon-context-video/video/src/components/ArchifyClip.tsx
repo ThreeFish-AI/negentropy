@@ -1,4 +1,4 @@
-/** archify 工程图**逐章回放窗**（v3 母题）。
+/** archify 工程图**整屏回放窗**（v4 母题：全屏独占、与自制装置来回切换）。
  *
  *  素材链：`pipeline/scripts/record_archify.py --mode chapter --all-chapters`
  *  逐章录制视频（每章一段，playwright=webm / cdp=mp4）→ `scripts/archify_lead.py` 用场记板白闪测定真实
@@ -8,6 +8,11 @@
  *  `trimBefore × playbackRate` 的换算次序一旦理解偏差就被整段长度放大；逐章录制
  *  把片内 lead 压到 ~2s 量级、且每段只播一章，同样的偏差只造成 ≤2 帧误差。
  *  ——难的对齐问题被消去，而不是被更精确地解决。
+ *
+ *  **全屏独占契约（v4）**：archify 播放期间不与自制装置同屏——装置由 ArchifyYield
+ *  按 cue 窗淡出让位、或挪到窗外句窗（1-C 嵌套范式）/被画框直接遮盖（4-D② 范式）。
+ *  历史 inset 画中画档（640×360 右上角）已删除：「看不清」欠在显示面积，
+ *  覆盖门 forbid_inset 锁死防回退。
  */
 import React from 'react';
 import {Img, OffthreadVideo, Sequence, staticFile, useVideoConfig} from 'remotion';
@@ -20,28 +25,18 @@ export type ArchifyFit =
   | 'hold' //    原速播完 + 末帧冻结补足（源比窗短时用）
   | 'trim'; //   原速播，超出部分由父 Sequence 裁掉（源比窗长时用）
 
-/** 画中画档位：full = 整屏主控；inset = 小窗（主画面仍是自制模型） */
-export type ArchifyVariant = 'full' | 'inset';
-
 const RATE_MIN = 0.7;
 const RATE_MAX = 1.35;
 
-/** 画框几何：按**高**定尺，保证底边 ≤ 900 < SAFE_TOP_Y(920)，不压字幕带。
- *  旧版用 width:'88%' + aspectRatio 16/9 ⇒ 高 950、底边 1015，越界 95px。 */
-const BOX = {
-  /** 整屏主控：顶 150 让出幕标题条（SceneTag 占 y 40–110），底边 880 < SAFE_TOP_Y(920)。
-   *  2026-09-19 抽帧目视：top=60 时画框左缘会切掉 SceneTag 的副题。 */
-  full: {h: 730, top: 150},
-  /** 画中画：**右上角定位**（right 48），底边 416 —— 与主画面分带占位。
-   *  同镜的自制模型把 Stage top 设 ≥430 即可保证零遮挡（2026-09-19 抽帧实测：
-   *  inset 居中会整块盖住装置）。460×259→640×360：VP8@1M 时代 24% 缩放的
-   *  「看不清」一半欠在编码（已换 cdp 高清采集），另一半欠在显示面积——
-   *  放大 39% 后 720×405 会把三分镜的纵向预算顶穿（2-B/4-E/1-D 栈底 ≥1010），
-   *  640 是三分镜重预算后仍有 ≥14px 余量的上限。
-   *  image-rendering 刻意不设置：1440 源在 16:9 框内高质量降采样走 Skia
-   *  mipmap 路径；pixelated/crisp-edges 是最近邻，会把降采样变锯齿。 */
-  inset: {h: 360, top: 56},
-} as const;
+/** 画框几何：按**高**定尺，三条不变量护栏（改前先在此对账，勿凭感觉放大）：
+ *  ① 顶 150 ≥ 135：SceneTag（y 40–110，副题最长 13 字右缘 ~358 与框左缘横向重叠）
+ *     只能靠纵向避让——top < 135 会切副题（2026-09-19 实测 top=60 切角标副题）；
+ *  ② 底边 880 < SAFE_TOP_Y(920)：字幕带安全带（SUBTITLE_BAND_PX=160 同源）；
+ *  ③ 框宽 1298 左缘 311 > PillarHUD 右缘 ~274：HUD 在全屏窗内**仍可见**（左下角
+ *     常驻件不是图例，是母图层叙事锚），放大 h 会先吃掉这 37px 余量（h=770 即触线）。
+ *  image-rendering 刻意不设置：1440 源在 16:9 框内高质量降采样走 Skia
+ *  mipmap 路径；pixelated/crisp-edges 是最近邻，会把降采样变锯齿。 */
+const BOX = {h: 730, top: 150} as const;
 
 export const ArchifyClip: React.FC<{
   /** public/archify/ 下的视频文件名（webm / mp4，随采集方式而定） */
@@ -60,8 +55,6 @@ export const ArchifyClip: React.FC<{
   caption: string;
   /** 左下章节小标题 */
   chapterLabel?: string;
-  /** 画框档位，默认 'full' */
-  variant?: ArchifyVariant;
   /** 是否做入场弹簧与角标淡入。连续换章（背靠背）应传 false 避免每章都弹像卡顿；
    *  首段与空窗后重现的段应传 true，否则整框以全不透明一帧瞬现 */
   lead?: boolean;
@@ -76,7 +69,6 @@ export const ArchifyClip: React.FC<{
   endStill,
   caption,
   chapterLabel,
-  variant = 'full',
   lead = true,
   strictRate = true,
 }) => {
@@ -101,31 +93,28 @@ export const ArchifyClip: React.FC<{
   const videoFrames = Math.min(srcFrames, spanInFrames);
   const holdFrames = spanInFrames - videoFrames;
 
-  const box = BOX[variant];
-  const w = Math.round((box.h * 16) / 9);
+  const w = Math.round((BOX.h * 16) / 9);
   const enter = lead ? win : 1;
   // 右下角标在整个 ArchifyRecap 内恒定：非首章不能再从 0 淡入，否则每次换章
   // 闪断约 17 帧（label 起点 10 帧 + f4 7 帧）。左下章节小标题逐章换文案，保留淡入。
   const captionO = lead ? label : 1;
-  const frame: React.CSSProperties =
-    variant === 'full'
-      ? {
-          position: 'absolute',
-          inset: 0,
-          display: 'flex',
-          alignItems: 'flex-start',
-          justifyContent: 'center',
-          paddingTop: box.top,
-        }
-      : {position: 'absolute', top: box.top, right: 48};
 
   return (
-    <div style={frame}>
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        display: 'flex',
+        alignItems: 'flex-start',
+        justifyContent: 'center',
+        paddingTop: BOX.top,
+      }}
+    >
       <div
         style={{
           position: 'relative',
           width: w,
-          height: box.h,
+          height: BOX.h,
           borderRadius: 14,
           border: `3px solid ${theme.panelBorder}`,
           background: '#0B0E13',
@@ -157,12 +146,12 @@ export const ArchifyClip: React.FC<{
               position: 'absolute',
               left: 14,
               bottom: 10,
-              maxWidth: variant === 'full' ? 900 : 360,
+              maxWidth: 900,
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               fontFamily: theme.sans,
-              fontSize: variant === 'full' ? 22 : 15,
+              fontSize: 22,
               color: theme.text,
               opacity: 0.86 * label,
               letterSpacing: 0.4,
@@ -177,13 +166,13 @@ export const ArchifyClip: React.FC<{
             right: 14,
             bottom: 10,
             fontFamily: theme.mono,
-            fontSize: variant === 'full' ? 18 : 12,
+            fontSize: 18,
             color: theme.dim,
             opacity: captionO,
             whiteSpace: 'nowrap',
           }}
         >
-          {variant === 'full' ? `archify 工程图 · ${caption}` : 'archify'}
+          {`archify 工程图 · ${caption}`}
         </div>
       </div>
     </div>

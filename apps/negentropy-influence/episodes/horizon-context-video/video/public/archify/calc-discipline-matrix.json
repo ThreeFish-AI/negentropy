@@ -1,0 +1,119 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 15.55,
+ "total_wall_sec": 59.51,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "agg-before-join",
+   "label": "先聚后联铁律",
+   "index": 0,
+   "file": "calc-discipline-matrix--agg-before-join.mp4",
+   "end_still": "calc-discipline-matrix--agg-before-join-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.44,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.206,
+    3.309
+   ],
+   "beat_nodes": [
+    "handbook",
+    "rule-agg-before-join",
+    "trap-fanout",
+    "recompute"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 43.0
+  },
+  {
+   "id": "dedup-count",
+   "label": "去重计数安全",
+   "index": 1,
+   "file": "calc-discipline-matrix--dedup-count.mp4",
+   "end_still": "calc-discipline-matrix--dedup-count-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.36,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.208
+   ],
+   "beat_nodes": [
+    "rule-dedup-count",
+    "trap-double-count",
+    "recompute"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 43.0
+  },
+  {
+   "id": "divide-after-agg",
+   "label": "先聚后除",
+   "index": 2,
+   "file": "calc-discipline-matrix--divide-after-agg.mp4",
+   "end_still": "calc-discipline-matrix--divide-after-agg-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.32,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.209
+   ],
+   "beat_nodes": [
+    "rule-divide-after-agg",
+    "trap-avg-of-avg",
+    "recompute"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 42.0
+  },
+  {
+   "id": "semi-additive",
+   "label": "半可加规则",
+   "index": 3,
+   "file": "calc-discipline-matrix--semi-additive.mp4",
+   "end_still": "calc-discipline-matrix--semi-additive-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.43,
+   "beat_offsets_sec": [
+    0.0,
+    1.106,
+    2.209,
+    3.313
+   ],
+   "beat_nodes": [
+    "rule-semi-additive",
+    "trap-sum-over-time",
+    "recompute",
+    "answer"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 44.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/barcelona-v6/docs/assets/architecture/cognitive-context/horizon-context--calc-discipline-matrix.html",
+ "slug": "calc-discipline-matrix",
+ "type": "architecture"
+}

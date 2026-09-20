@@ -1,0 +1,20 @@
+[
+  {
+    "id": "experiment-risk",
+    "label": "实验展示风险",
+    "focus": ["experimenter", "snap", "orders"],
+    "note": "破坏性实验清晰展示了这种越权风险。"
+  },
+  {
+    "id": "dynamic-intersect",
+    "label": "动态交集求值",
+    "focus": ["live", "mentor", "orders"],
+    "note": "权限天花板在每次查询时动态交集求值。"
+  },
+  {
+    "id": "zero-window",
+    "label": "零越权窗口",
+    "focus": ["mentor", "snap", "live"],
+    "note": "上一秒回收，下一秒刷卡立刻失效，零越权窗口。"
+  }
+]

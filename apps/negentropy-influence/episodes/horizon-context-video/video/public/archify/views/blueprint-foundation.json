@@ -1,0 +1,13 @@
+[
+ {
+  "id": "blueprint-vs-foundation",
+  "label": "图纸vs地基",
+  "focus": [
+   "validateGate",
+   "semanticView",
+   "dbtDaily",
+   "answerWrong"
+  ],
+  "note": "治理保证的是图纸合法，救不了上游已经塌方的地基。"
+ }
+]

@@ -1,0 +1,34 @@
+[
+ {
+  "id": "fifth-mechanism",
+  "label": "第五大机制",
+  "focus": [
+   "m5-badge",
+   "ledger",
+   "engine-pipe",
+   "ext-pipe"
+  ],
+  "note": "这就必须依靠第五大机制：端到端列级血缘。"
+ },
+ {
+  "id": "drop-to-drop",
+  "label": "每滴水从哪到哪",
+  "focus": [
+   "orders-pool",
+   "engine-pipe",
+   "sales-tap"
+  ],
+  "note": "像全楼台账，记录每滴水从哪个水池流向哪个龙头。"
+ },
+ {
+  "id": "not-wastepaper",
+  "label": "不是废纸都收",
+  "focus": [
+   "ext-pipe",
+   "resolve-gate",
+   "rejected",
+   "ledger"
+  ],
+  "note": "这本台账绝不是废纸都收，必须有严格的对象解析门。"
+ }
+]

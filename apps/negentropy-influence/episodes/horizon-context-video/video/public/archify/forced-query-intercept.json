@@ -1,0 +1,94 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 11.08,
+ "total_wall_sec": 45.21,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "guessed-name",
+   "label": "猜出指标名",
+   "index": 0,
+   "file": "forced-query-intercept--guessed-name.mp4",
+   "end_still": "forced-query-intercept--guessed-name-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.34,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.206
+   ],
+   "beat_nodes": [
+    "retrieval",
+    "intern",
+    "exec"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 21.0
+  },
+  {
+   "id": "impenetrable",
+   "label": "不可穿透底线",
+   "index": 1,
+   "file": "forced-query-intercept--impenetrable.mp4",
+   "end_still": "forced-query-intercept--impenetrable-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.42,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.204,
+    3.305
+   ],
+   "beat_nodes": [
+    "exec",
+    "semantic",
+    "policy",
+    "intern"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 23.0
+  },
+  {
+   "id": "intercepted",
+   "label": "调取即拦截",
+   "index": 2,
+   "file": "forced-query-intercept--intercepted.mp4",
+   "end_still": "forced-query-intercept--intercepted-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.32,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.208
+   ],
+   "beat_nodes": [
+    "intern",
+    "exec",
+    "policy"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 23.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/barcelona-v6/docs/assets/architecture/cognitive-context/horizon-context--forced-query-intercept.html",
+ "slug": "forced-query-intercept",
+ "type": "sequence"
+}

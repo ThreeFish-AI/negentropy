@@ -1,0 +1,69 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 6.68,
+ "total_wall_sec": 29.47,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "instant-inspection",
+   "label": "查询瞬间审查",
+   "index": 0,
+   "file": "query-time-policy--instant-inspection.mp4",
+   "end_still": "query-time-policy--instant-inspection-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.32,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.207
+   ],
+   "beat_nodes": [
+    "asker",
+    "gate",
+    "policy"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 23.0
+  },
+  {
+   "id": "agent-recognized",
+   "label": "认得出代理",
+   "index": 1,
+   "file": "query-time-policy--agent-recognized.mp4",
+   "end_still": "query-time-policy--agent-recognized-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.36,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.207
+   ],
+   "beat_nodes": [
+    "agent",
+    "gate",
+    "policy"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 23.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/barcelona-v6/docs/assets/architecture/cognitive-context/horizon-context--query-time-policy.html",
+ "slug": "query-time-policy",
+ "type": "sequence"
+}

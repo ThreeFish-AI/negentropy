@@ -24,8 +24,8 @@ const GRADE: Record<EvidenceGrade, {t: string; c: string}> = {
 export const EvidenceBadge: React.FC<{
   grade: EvidenceGrade;
   at?: number;
-  /** 顶边 y。默认 44；同镜有 ArchifyClip 的 inset 画框（y∈[56,416]，底色不透明）时
-   *  必须下移到 430 以下，否则角标会被画框整块压住（2026-09-19 抽帧实测）。 */
+  /** 顶边 y。默认 44——v4 全屏化后 archify 画框 y∈[150,880]，角标常驻 SceneTag 带
+   *  （y 40–110）恒不被压，无需让位（旧 inset 时代的 top=430 已废弃）。 */
   top?: number;
 }> = ({grade, at = 4, top = 44}) => {
   const o = useProgress(at, DUR.f4);

@@ -7,85 +7,9 @@ import {beatWindow} from '../timing';
 import {theme} from '../design/theme';
 import {DUR, progress, useCount, useImpulse, useProgress, useSpring, useStagger} from '../motion';
 import {Panel, SceneTag} from '../components/motifs';
-import {CodeWalk, TerminalLog} from '../components/CodeWalk';
 import {ArchifyRecap} from '../components/ArchifyRecap';
+import {ArchifyYield} from '../components/ArchifyYield';
 import {EvidenceBadge, NumberClash, PillarHUD, Stage} from '../components/devices';
-
-/** 2-A 五段式抽屉柜 */
-const FiveDrawers: React.FC = () => {
-  const ps = useStagger(5, {at: 10, stride: 8, dur: DUR.f5});
-  const rows = ['TABLES 核准账本', 'RELATIONSHIPS 勾稽路径', 'FACTS 原始凭证量', 'DIMENSIONS 切片维度', 'METRICS 官方指标'];
-  return (
-    <div style={{width: 1000}}>
-      {rows.map((r, i) => (
-        <div
-          key={r}
-          style={{
-            marginBottom: 12,
-            padding: '20px 26px',
-            borderRadius: 10,
-            border: `2px solid ${theme.manual}`,
-            background: `${theme.manual}12`,
-            fontFamily: theme.sans,
-            fontSize: 30,
-            color: theme.text,
-            opacity: ps[i],
-            transform: `translateX(${(1 - ps[i]) * 40}px)`,
-          }}
-        >
-          {r}
-        </div>
-      ))}
-    </div>
-  );
-};
-
-/** 2-C 双保险锁：声明锁常绿，计算锁被拧开 → 数字翻倍 */
-const DoubleLock: React.FC<{breakAt: number}> = ({breakAt}) => {
-  const open = useSpring('snap', {at: breakAt, dur: DUR.f6});
-  const n = useCount({from: 200, to: 440, at: breakAt + 4, dur: DUR.f6});
-  const broken = useProgress(breakAt, DUR.f3);
-  const lock = (name: string, sub: string, ok: boolean, rot: number) => (
-    <div style={{textAlign: 'center'}}>
-      <div
-        style={{
-          width: 190,
-          height: 190,
-          borderRadius: 18,
-          border: `3px solid ${ok ? theme.ok : theme.danger}`,
-          background: `${ok ? theme.ok : theme.danger}14`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: 76,
-          transform: `rotate(${rot}deg)`,
-        }}
-      >
-        {ok ? '🔒' : '🔓'}
-      </div>
-      <div style={{marginTop: 14, fontFamily: theme.sans, fontSize: 28, color: theme.text}}>{name}</div>
-      <div style={{fontFamily: theme.sans, fontSize: 20, color: theme.dim}}>{sub}</div>
-    </div>
-  );
-  return (
-    <div style={{display: 'flex', alignItems: 'center', gap: 70}}>
-      {lock('声明锁', '五段式 + 注册校验门', true, 0)}
-      {lock('计算锁', '查询期按 grain 重算', broken < 0.5, -18 * open)}
-      <div style={{textAlign: 'center'}}>
-        <div style={{fontFamily: theme.sans, fontSize: 22, color: theme.dim}}>手册一字未改，算出来的钱</div>
-        <div
-          style={{
-            fontFamily: theme.mono,
-            fontSize: 86,
-            color: broken > 0.5 ? theme.danger : theme.ok,
-          }}
-        >
-          {Math.round(n)}
-        </div>
-      </div>
-    </div>
-  );
-};
 
 /** 2-E 复印机陷阱：一张 100 进去、三张副本出来。
  *  `sumAt` 必须单独传（铁律⑤）：300 的爆红要落在说出「虚增成了三百块」的那句上，
@@ -217,51 +141,55 @@ export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
     <AbsoluteFill>
       <Sequence {...bA} name="2-A 便利贴到五段式抽屉柜">
         <SceneTag chapter="M1" tagline="规章手册：只印一本且当场套算" accent={theme.manual} />
-        <Stage top={200}>
-          <FiveDrawers />
-        </Stage>
-      </Sequence>
-
-      <Sequence {...bB} name="2-B 代码走廊① 注册校验门">
-        <Stage top={430}>
-          <CodeWalk
-            title="M1 声明相 · 注册期结构校验门"
-            lines={[
-              'def validate_view(view, tables):',
-              '    for r in view.relationships:',
-              '        for c in r.to_cols:',
-              '            if c not in pks.get(r.to_table, set()):   # FK 必须指向 PK/UNIQUE',
-              '                errors.append(f"relationship {r.name}: referenced column "',
-              '                              f"{r.to_table}.{c} is not PRIMARY KEY/UNIQUE")',
-            ]}
-            hi={[
-              {line: 3, at: 18, color: theme.manual},
-              {line: 4, at: 26, color: theme.danger},
-              {line: 5, at: 26, color: theme.danger},
-            ]}
-            caption="horizon_context_lab.py :235"
-            width={1120}
-          />
-          {/* 终端行 = selftest 原文逐字摘录（含前导两空格）；改措辞须同步 narration/source-notes。
-              inset 底边 416 后纵向预算紧，不留 prompt 行（同 5-D 手法） */}
-          <TerminalLog
-            lines={[
-              {
-                text: '  [PASS] D6: 拆结构校验（relationship 指向非键列）→ relationship bad: referenced column customers.plan is not PRIMARY KEY/UNIQUE—— 无门则垃圾定义静默入库（行数失控的注册期引信）',
-                color: theme.ok,
-                bold: true,
-                at: at('p2-07') - bB.from,
-              },
-            ]}
-            width={1120}
-          />
-          {/* top=430：本镜有 inset 画框（y∈[56,416]），默认 44 会被整块压住 */}
-          <EvidenceBadge grade="lab" top={430} />
-        </Stage>
+        {/* FiveDrawers 已退役（p2-01..04 全部入 cue，无可见岛） */}
+        <ArchifyRecap
+          slug="sticky-notes-to-manual"
+          caption="便利贴收拢成手册"
+          cues={[
+            {chapterId: 'first-mechanism', at: at('p2-01') - bA.from, durationInFrames: dur('p2-01')},
+            {chapterId: 'scattered-notes', at: at('p2-02') - bA.from, durationInFrames: dur('p2-02')},
+          ]}
+        />
+        {/* p2-02(scattered-notes)→p2-03 背靠背跨实例 → 补 lead={false} */}
+        <ArchifyRecap
+          slug="evolution-timeline"
+          caption="三阶段演进"
+          lead={false}
+          cues={[
+            {chapterId: 'stage-objects', at: at('p2-03') - bA.from, durationInFrames: dur('p2-03')},
+          ]}
+        />
+        {/* declare 章锚「五段式分工」句（p2-04）；与上图 p2-03 背靠背 → lead={false} */}
         <ArchifyRecap
           slug="declaration-execution"
           caption="声明相 / 执行相"
-          variant="inset"
+          lead={false}
+          cues={[
+            {chapterId: 'declare', at: at('p2-04') - bA.from, durationInFrames: dur('p2-04')},
+          ]}
+        />
+      </Sequence>
+
+      <Sequence {...bB} name="2-B 代码走廊① 注册校验门">
+        {/* 代码走廊①+校验门装置已退役（p2-05..08 全部入 cue） */}
+        <EvidenceBadge grade="lab" />
+        {/* p2-04(declare)→p2-05 背靠背跨镜跨实例 → lead={false} */}
+        <ArchifyRecap
+          slug="definition-registration"
+          caption="坏定义的注册生死簿"
+          lead={false}
+          cues={[
+            {chapterId: 'strict-gate', at: at('p2-05') - bB.from, durationInFrames: dur('p2-05')},
+            {chapterId: 'nonkey-rejected', at: at('p2-06') - bB.from, durationInFrames: dur('p2-06')},
+            {chapterId: 'no-runtime-risk', at: at('p2-08') - bB.from, durationInFrames: dur('p2-08')},
+          ]}
+        />
+        {/* p2-06(nonkey-rejected)→p2-07 背靠背跨实例 → 补 lead={false}；
+            p2-08 是 definition-registration 空窗后重现，lead={false} 下直接切像 */}
+        <ArchifyRecap
+          slug="declaration-execution"
+          caption="声明相 / 执行相"
+          lead={false}
           cues={[
             {chapterId: 'gate', at: at('p2-07') - bB.from, durationInFrames: dur('p2-07')},
           ]}
@@ -269,86 +197,135 @@ export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bC} name="2-C 双保险锁">
-        <Stage top={430}>
-          <DoubleLock breakAt={at('p2-09b') - bC.from} />
-        </Stage>
+        {/* DoubleLock 已退役（可见岛仅 p2-09 铺陈，断锁翻数 payoff 已由图接管）。
+            p2-09 无 cue，recompute 首章无背靠背前驱 → 不传 lead */}
         <ArchifyRecap
           slug="declaration-execution"
           caption="口径单点 × 查询期重算"
-          variant="inset"
           cues={[
-            {chapterId: 'declare', at: at('p2-09') - bC.from, durationInFrames: dur('p2-09')},
             {chapterId: 'recompute', at: at('p2-09a') - bC.from, durationInFrames: dur('p2-09a')},
-            {chapterId: 'switch-divergence', at: at('p2-09b') - bC.from, durationInFrames: dur('p2-09b')},
+          ]}
+        />
+        {/* p2-09a(recompute)→p2-09b 背靠背跨实例 → lead={false} */}
+        <ArchifyRecap
+          slug="formula-vs-total"
+          caption="手册是算式不是结论"
+          lead={false}
+          cues={[
+            {chapterId: 'declare-execute-split', at: at('p2-09b') - bC.from, durationInFrames: dur('p2-09b')},
           ]}
         />
       </Sequence>
 
       <Sequence {...bD} name="2-D 死数字 vs 临机现算">
-        <Stage top={280}>
-          <div style={{display: 'flex', gap: 90, alignItems: 'center'}}>
-            <div style={{textAlign: 'center'}}>
-              <div style={{fontSize: 96}}>🧊</div>
-              <div style={{fontFamily: theme.sans, fontSize: 30, color: theme.dim, marginTop: 14}}>
-                宽表里冻住的死数字
-              </div>
-            </div>
-            <div style={{fontFamily: theme.sans, fontSize: 40, color: theme.dim}}>vs</div>
-            <div style={{textAlign: 'center'}}>
-              <div style={{fontSize: 96}}>⚙️</div>
-              <div style={{fontFamily: theme.sans, fontSize: 30, color: theme.engine, marginTop: 14}}>
-                只存算式，临机现算
-              </div>
-            </div>
-          </div>
-        </Stage>
+        {/* 宽表对照卡已退役（p2-10/12/13 全 cue），本镜转图主控。
+            p2-09b(declare-execute-split)→p2-10 背靠背跨镜跨实例（narration 无 p2-11）
+            → lead={false}；p2-10→p2-12 实例内连续换章由 enters 自动抑制 */}
+        <ArchifyRecap
+          slug="on-demand-recompute"
+          caption="临机现算按粒度翻凭证"
+          lead={false}
+          cues={[
+            {chapterId: 'frozen-widetable', at: at('p2-10') - bD.from, durationInFrames: dur('p2-10')},
+            {chapterId: 'formula-only', at: at('p2-12') - bD.from, durationInFrames: dur('p2-12')},
+            {chapterId: 'grain-recompute', at: at('p2-13') - bD.from, durationInFrames: dur('p2-13')},
+          ]}
+        />
       </Sequence>
 
       <Sequence {...bE} name="2-E 复印机陷阱">
-        <Stage top={430}>
-          <CopierTrap at={at('p2-15') - bE.from} sumAt={at('p2-17') - bE.from} />
-          <div style={{marginTop: 20}}>
-            <NumberClash
-              badLabel="直接关联求和"
-              bad="440"
-              goodLabel="先聚后联"
-              good="200"
-              at={at('p2-20') - bE.from}
-            />
-          </div>
-          <EvidenceBadge grade="lab" at={at('p2-20') - bE.from} top={430} />
-        </Stage>
+        {/* 模式 b：副本逐张累积 + 爆红计数是跨句连续状态；可见岛仅 p2-14，
+            窗=本镜全部 6 条 cue 窗。440/200 对撞卡已退役（p2-20 由 measured-440 图接管） */}
+        <ArchifyYield
+          cues={[
+            {at: at('p2-15') - bE.from, durationInFrames: dur('p2-15')},
+            {at: at('p2-16') - bE.from, durationInFrames: dur('p2-16')},
+            {at: at('p2-17') - bE.from, durationInFrames: dur('p2-17')},
+            {at: at('p2-18') - bE.from, durationInFrames: dur('p2-18')},
+            {at: at('p2-19') - bE.from, durationInFrames: dur('p2-19')},
+            {at: at('p2-20') - bE.from, durationInFrames: dur('p2-20')},
+          ]}
+        >
+          <Stage>
+            <CopierTrap at={at('p2-15') - bE.from} sumAt={at('p2-17') - bE.from} />
+          </Stage>
+        </ArchifyYield>
+        <EvidenceBadge grade="lab" at={at('p2-20') - bE.from} />
+        {/* p2-13(grain-recompute)→p2-14 空档 → event-fanout 首章 p2-15 无背靠背前驱，不传 lead */}
+        <ArchifyRecap
+          slug="event-fanout"
+          caption="一笔订单的三次事件扇出"
+          cues={[
+            {chapterId: 'hundred-three', at: at('p2-15') - bE.from, durationInFrames: dur('p2-15')},
+            {chapterId: 'join-disaster', at: at('p2-16') - bE.from, durationInFrames: dur('p2-16')},
+          ]}
+        />
+        {/* p2-16(join-disaster)→p2-17 背靠背跨实例 → 补 lead={false}；
+            p2-19 是本实例空窗后重现，lead={false} 下直接切像 */}
         <ArchifyRecap
           slug="fan-trap"
           caption="复印机陷阱"
-          variant="inset"
+          lead={false}
           cues={[
             {chapterId: 'copy-inflate', at: at('p2-17') - bE.from, durationInFrames: dur('p2-17')},
             {chapterId: 'aggregate-first', at: at('p2-19') - bE.from, durationInFrames: dur('p2-19')},
             {chapterId: 'measured-440', at: at('p2-20') - bE.from, durationInFrames: dur('p2-20')},
           ]}
         />
+        {/* p2-17(copy-inflate)→p2-18 背靠背跨实例 → lead={false} */}
+        <ArchifyRecap
+          slug="calc-discipline-matrix"
+          caption="计算纪律四条总纲"
+          lead={false}
+          cues={[
+            {chapterId: 'agg-before-join', at: at('p2-18') - bE.from, durationInFrames: dur('p2-18')},
+          ]}
+        />
       </Sequence>
 
       <Sequence {...bF} name="2-F 去重安全与派生先聚后除">
-        <Stage top={430}>
-          <NumberClash badLabel="不做去重安全" bad="6" goodLabel="按集合去重" good="3" at={at('p2-22') - bF.from} />
-          <div style={{marginTop: 46}}>
-            <AvgScale at={at('p2-24') - bF.from} />
-          </div>
-        </Stage>
+        {/* 模式 b：集合圈对撞 + 天平倾斜是跨句连续状态；可见岛仅 p2-24，
+            窗=本镜全部 5 条 cue 窗 */}
+        <ArchifyYield
+          cues={[
+            {at: at('p2-21') - bF.from, durationInFrames: dur('p2-21')},
+            {at: at('p2-22') - bF.from, durationInFrames: dur('p2-22')},
+            {at: at('p2-23') - bF.from, durationInFrames: dur('p2-23')},
+            {at: at('p2-25') - bF.from, durationInFrames: dur('p2-25')},
+            {at: at('p2-26') - bF.from, durationInFrames: dur('p2-26')},
+          ]}
+        >
+          <Stage>
+            <NumberClash badLabel="不做去重安全" bad="6" goodLabel="按集合去重" good="3" at={at('p2-22') - bF.from} />
+            <div style={{marginTop: 46}}>
+              <AvgScale at={at('p2-24') - bF.from} />
+            </div>
+          </Stage>
+        </ArchifyYield>
+        {/* p2-20(measured-440)→p2-21 背靠背跨镜跨实例 → lead={false}；
+            p2-23 是本实例空窗后重现，lead={false} 下直接切像 */}
+        <ArchifyRecap
+          slug="calc-discipline-matrix"
+          caption="计算纪律四条总纲"
+          lead={false}
+          cues={[
+            {chapterId: 'dedup-count', at: at('p2-21') - bF.from, durationInFrames: dur('p2-21')},
+            {chapterId: 'divide-after-agg', at: at('p2-23') - bF.from, durationInFrames: dur('p2-23')},
+          ]}
+        />
+        {/* p2-21(dedup-count)→p2-22 背靠背跨实例 → 补 lead={false} */}
         <ArchifyRecap
           slug="dedup-safety"
           caption="去重安全"
-          variant="inset"
+          lead={false}
           cues={[
             {chapterId: 'set-vs-rows', at: at('p2-22') - bF.from, durationInFrames: dur('p2-22')},
           ]}
         />
+        {/* p2-23 后隔 p2-24 可见岛 → mean-of-means 首章 p2-25 无背靠背前驱，不传 lead */}
         <ArchifyRecap
           slug="mean-of-means"
           caption="平均的平均"
-          variant="inset"
           cues={[
             {chapterId: 'wrong-avg-of-avg', at: at('p2-25') - bF.from, durationInFrames: dur('p2-25')},
             {chapterId: 'measured-122-108', at: at('p2-26') - bF.from, durationInFrames: dur('p2-26')},
@@ -357,30 +334,52 @@ export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bG} name="2-G 半可加末快照与关系消歧">
-        <Stage top={430}>
-          <LastSnapshot at={at('p2-28') - bG.from} clashAt={at('p2-30') - bG.from} />
-          <Panel
-            accent={theme.engine}
-            style={{marginTop: 26, padding: '18px 26px', width: 1020}}
-          >
-            <span style={{fontFamily: theme.sans, fontSize: 26, color: theme.text}}>
-              买家 / 推荐人双路径 → 必须显式声明走哪一条（USING 消歧）
-            </span>
-          </Panel>
-        </Stage>
+        {/* 模式 b：天数条逐根点亮/对撞常驻是跨句连续状态；可见岛仅 p2-29，
+            窗=本镜全部 4 条 cue 窗 */}
+        <ArchifyYield
+          cues={[
+            {at: at('p2-27') - bG.from, durationInFrames: dur('p2-27')},
+            {at: at('p2-28') - bG.from, durationInFrames: dur('p2-28')},
+            {at: at('p2-30') - bG.from, durationInFrames: dur('p2-30')},
+            {at: at('p2-31') - bG.from, durationInFrames: dur('p2-31')},
+          ]}
+        >
+          <Stage>
+            <LastSnapshot at={at('p2-28') - bG.from} clashAt={at('p2-30') - bG.from} />
+            <Panel
+              accent={theme.engine}
+              style={{marginTop: 26, padding: '18px 26px', width: 1020}}
+            >
+              <span style={{fontFamily: theme.sans, fontSize: 26, color: theme.text}}>
+                买家 / 推荐人双路径 → 必须显式声明走哪一条（USING 消歧）
+              </span>
+            </Panel>
+          </Stage>
+        </ArchifyYield>
+        {/* p2-26(measured-122-108)→p2-27 背靠背跨镜跨实例 → lead={false} */}
+        <ArchifyRecap
+          slug="calc-discipline-matrix"
+          caption="计算纪律四条总纲"
+          lead={false}
+          cues={[
+            {chapterId: 'semi-additive', at: at('p2-27') - bG.from, durationInFrames: dur('p2-27')},
+          ]}
+        />
+        {/* p2-27(calc-discipline)→p2-28 背靠背跨实例 → 补 lead={false}；
+            p2-30 是本实例空窗后重现，lead={false} 下直接切像 */}
         <ArchifyRecap
           slug="last-snapshot-gate"
           caption="末快照"
-          variant="inset"
+          lead={false}
           cues={[
             {chapterId: 'semi-additive', at: at('p2-28') - bG.from, durationInFrames: dur('p2-28')},
             {chapterId: 'snapshot-vs-sum', at: at('p2-30') - bG.from, durationInFrames: dur('p2-30')},
           ]}
         />
+        {/* p2-30→p2-31 背靠背（既有 lead={false} 保持） */}
         <ArchifyRecap
           slug="dual-path-disambiguation"
           caption="关系消歧"
-          variant="inset"
           lead={false}
           cues={[
             {chapterId: 'two-paths', at: at('p2-31') - bG.from, durationInFrames: dur('p2-31')},
@@ -389,29 +388,35 @@ export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bH} name="2-H 题眼金句与手册徽章">
-        <Stage top={430}>
-          <div
-            style={{
-              fontFamily: theme.serif,
-              fontSize: 62,
-              color: theme.text,
-              textAlign: 'center',
-              lineHeight: 1.45,
-            }}
-          >
-            查询在语法上完全正确，
-            <br />
-            <span style={{color: theme.danger}}>业务分析上可能彻底错误</span>
-          </div>
-        </Stage>
+        {/* QuoteCard 已退役（p2-32..36 全 cue，无可见岛），本镜转图主控 */}
         <PillarHUD lit={1} at={at('p2-36') - bH.from} />
+        {/* p2-31(two-paths)→p2-32 背靠背跨镜跨实例 → 补 lead={false}（既有 adjacency，本次补齐） */}
         <ArchifyRecap
           slug="valid-sql-wrong-answer"
           caption="语法 × 业务"
-          variant="inset"
+          lead={false}
           cues={[
             {chapterId: 'syntax-pass', at: at('p2-32') - bH.from, durationInFrames: dur('p2-32')},
             {chapterId: 'business-fail', at: at('p2-33') - bH.from, durationInFrames: dur('p2-33')},
+          ]}
+        />
+        {/* p2-33(business-fail)→p2-34 背靠背跨实例 → lead={false} */}
+        <ArchifyRecap
+          slug="multi-entry-single-truth"
+          caption="多入口一个正确答案"
+          lead={false}
+          cues={[
+            {chapterId: 'single-point-bind', at: at('p2-34') - bH.from, durationInFrames: dur('p2-34')},
+            {chapterId: 'whoever-asks', at: at('p2-35') - bH.from, durationInFrames: dur('p2-35')},
+          ]}
+        />
+        {/* p2-35(whoever-asks)→p2-36 背靠背跨实例 → lead={false} */}
+        <ArchifyRecap
+          slug="seal-off-caliber"
+          caption="第一道防线按死两病灶"
+          lead={false}
+          cues={[
+            {chapterId: 'sealed-off', at: at('p2-36') - bH.from, durationInFrames: dur('p2-36')},
           ]}
         />
       </Sequence>

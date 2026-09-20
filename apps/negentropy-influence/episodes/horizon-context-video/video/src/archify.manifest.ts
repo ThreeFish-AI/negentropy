@@ -21,11 +21,12 @@ export type ArchifyChapter = {
   beatNodes: string[];
 };
 
-export type ArchifyDiagram = {slug: string; chapters: ArchifyChapter[]};
+export type ArchifyDiagram = {slug: string; type?: string; chapters: ArchifyChapter[]};
 
 export const ARCHIFY = {
   "agent-identity": {
     "slug": "agent-identity",
+    "type": "workflow",
     "chapters": [
       {
         "id": "ceiling",
@@ -86,6 +87,7 @@ export const ARCHIFY = {
   },
   "amnesia-intern": {
     "slug": "amnesia-intern",
+    "type": "workflow",
     "chapters": [
       {
         "id": "daily-reset",
@@ -119,8 +121,44 @@ export const ARCHIFY = {
       }
     ]
   },
+  "attribution-balance": {
+    "slug": "attribution-balance",
+    "type": "architecture",
+    "chapters": [
+      {
+        "id": "not-the-brain",
+        "label": "不取决于大脑",
+        "file": "attribution-balance--not-the-brain.mp4",
+        "endStill": "attribution-balance--not-the-brain-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.33,
+        "beatNodes": [
+          "when-correct",
+          "balance",
+          "model-brain"
+        ]
+      },
+      {
+        "id": "cast-into-infra",
+        "label": "取决于铸基",
+        "file": "attribution-balance--cast-into-infra.mp4",
+        "endStill": "attribution-balance--cast-into-infra-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.44,
+        "beatNodes": [
+          "cast-into-infra",
+          "mech-semantics",
+          "mech-governance",
+          "mech-trust"
+        ]
+      }
+    ]
+  },
   "autopilot-loop": {
     "slug": "autopilot-loop",
+    "type": "workflow",
     "chapters": [
       {
         "id": "inputs",
@@ -168,6 +206,7 @@ export const ARCHIFY = {
   },
   "bare-key-baseline": {
     "slug": "bare-key-baseline",
+    "type": "workflow",
     "chapters": [
       {
         "id": "whole-key",
@@ -213,8 +252,94 @@ export const ARCHIFY = {
       }
     ]
   },
+  "blueprint-foundation": {
+    "slug": "blueprint-foundation",
+    "type": "architecture",
+    "chapters": [
+      {
+        "id": "blueprint-vs-foundation",
+        "label": "图纸vs地基",
+        "file": "blueprint-foundation--blueprint-vs-foundation.mp4",
+        "endStill": "blueprint-foundation--blueprint-vs-foundation-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.45,
+        "beatNodes": [
+          "validateGate",
+          "semanticView",
+          "dbtDaily",
+          "answerWrong"
+        ]
+      }
+    ]
+  },
+  "calc-discipline-matrix": {
+    "slug": "calc-discipline-matrix",
+    "type": "architecture",
+    "chapters": [
+      {
+        "id": "agg-before-join",
+        "label": "先聚后联铁律",
+        "file": "calc-discipline-matrix--agg-before-join.mp4",
+        "endStill": "calc-discipline-matrix--agg-before-join-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.44,
+        "beatNodes": [
+          "handbook",
+          "rule-agg-before-join",
+          "trap-fanout",
+          "recompute"
+        ]
+      },
+      {
+        "id": "dedup-count",
+        "label": "去重计数安全",
+        "file": "calc-discipline-matrix--dedup-count.mp4",
+        "endStill": "calc-discipline-matrix--dedup-count-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.36,
+        "beatNodes": [
+          "rule-dedup-count",
+          "trap-double-count",
+          "recompute"
+        ]
+      },
+      {
+        "id": "divide-after-agg",
+        "label": "先聚后除",
+        "file": "calc-discipline-matrix--divide-after-agg.mp4",
+        "endStill": "calc-discipline-matrix--divide-after-agg-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.32,
+        "beatNodes": [
+          "rule-divide-after-agg",
+          "trap-avg-of-avg",
+          "recompute"
+        ]
+      },
+      {
+        "id": "semi-additive",
+        "label": "半可加规则",
+        "file": "calc-discipline-matrix--semi-additive.mp4",
+        "endStill": "calc-discipline-matrix--semi-additive-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.43,
+        "beatNodes": [
+          "rule-semi-additive",
+          "trap-sum-over-time",
+          "recompute",
+          "answer"
+        ]
+      }
+    ]
+  },
   "caliber-clash": {
     "slug": "caliber-clash",
+    "type": "architecture",
     "chapters": [
       {
         "id": "three-dashboards",
@@ -261,8 +386,58 @@ export const ARCHIFY = {
       }
     ]
   },
+  "cipher-translate": {
+    "slug": "cipher-translate",
+    "type": "dataflow",
+    "chapters": [
+      {
+        "id": "not-model-dumb",
+        "label": "不是模型笨",
+        "file": "cipher-translate--not-model-dumb.mp4",
+        "endStill": "cipher-translate--not-model-dumb-end.png",
+        "beats": 3,
+        "leadSec": 0.48,
+        "storySec": 3.34,
+        "beatNodes": [
+          "q-card",
+          "ai-brain",
+          "cipher-wall"
+        ]
+      },
+      {
+        "id": "cipher-wall",
+        "label": "物理列名乱码",
+        "file": "cipher-translate--cipher-wall.mp4",
+        "endStill": "cipher-translate--cipher-wall-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.35,
+        "beatNodes": [
+          "cipher-wall",
+          "dict-missing",
+          "plain-card"
+        ]
+      },
+      {
+        "id": "letters-not-meaning",
+        "label": "认得出字母",
+        "file": "cipher-translate--letters-not-meaning.mp4",
+        "endStill": "cipher-translate--letters-not-meaning-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.45,
+        "beatNodes": [
+          "cipher-wall",
+          "letters-ok",
+          "dict-missing",
+          "outcome"
+        ]
+      }
+    ]
+  },
   "classification-tagging": {
     "slug": "classification-tagging",
+    "type": "workflow",
     "chapters": [
       {
         "id": "tag-driven",
@@ -311,6 +486,7 @@ export const ARCHIFY = {
   },
   "collect-enrich-activate": {
     "slug": "collect-enrich-activate",
+    "type": "dataflow",
     "chapters": [
       {
         "id": "collect",
@@ -358,8 +534,58 @@ export const ARCHIFY = {
       }
     ]
   },
+  "compile-time-block": {
+    "slug": "compile-time-block",
+    "type": "sequence",
+    "chapters": [
+      {
+        "id": "ux-vs-lifeline",
+        "label": "体验vs命门",
+        "file": "compile-time-block--ux-vs-lifeline.mp4",
+        "endStill": "compile-time-block--ux-vs-lifeline-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.44,
+        "beatNodes": [
+          "caller",
+          "retrieval",
+          "engine",
+          "gov"
+        ]
+      },
+      {
+        "id": "no-backdoor",
+        "label": "不成后门",
+        "file": "compile-time-block--no-backdoor.mp4",
+        "endStill": "compile-time-block--no-backdoor-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.36,
+        "beatNodes": [
+          "semantic",
+          "caller",
+          "engine"
+        ]
+      },
+      {
+        "id": "compile-second",
+        "label": "编译那一秒",
+        "file": "compile-time-block--compile-second.mp4",
+        "endStill": "compile-time-block--compile-second-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.35,
+        "beatNodes": [
+          "engine",
+          "gov",
+          "caller"
+        ]
+      }
+    ]
+  },
   "component-panorama": {
     "slug": "component-panorama",
+    "type": "architecture",
     "chapters": [
       {
         "id": "caliber-spine",
@@ -415,6 +641,7 @@ export const ARCHIFY = {
   },
   "declaration-execution": {
     "slug": "declaration-execution",
+    "type": "workflow",
     "chapters": [
       {
         "id": "declare",
@@ -480,6 +707,7 @@ export const ARCHIFY = {
   },
   "dedup-safety": {
     "slug": "dedup-safety",
+    "type": "workflow",
     "chapters": [
       {
         "id": "set-vs-rows",
@@ -499,8 +727,163 @@ export const ARCHIFY = {
       }
     ]
   },
+  "definition-registration": {
+    "slug": "definition-registration",
+    "type": "lifecycle",
+    "chapters": [
+      {
+        "id": "strict-gate",
+        "label": "极严校验门",
+        "file": "definition-registration--strict-gate.mp4",
+        "endStill": "definition-registration--strict-gate-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.42,
+        "beatNodes": [
+          "validating",
+          "rule_fk",
+          "rule_cycle",
+          "rule_grain"
+        ]
+      },
+      {
+        "id": "nonkey-rejected",
+        "label": "指向非键列被拒",
+        "file": "definition-registration--nonkey-rejected.mp4",
+        "endStill": "definition-registration--nonkey-rejected-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.34,
+        "beatNodes": [
+          "bad_fk",
+          "validating",
+          "rejected"
+        ]
+      },
+      {
+        "id": "no-runtime-risk",
+        "label": "注册期进不去",
+        "file": "definition-registration--no-runtime-risk.mp4",
+        "endStill": "definition-registration--no-runtime-risk-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.32,
+        "beatNodes": [
+          "rejected",
+          "registered",
+          "runtime"
+        ]
+      }
+    ]
+  },
+  "dictionary-drift": {
+    "slug": "dictionary-drift",
+    "type": "lifecycle",
+    "chapters": [
+      {
+        "id": "dict-outside",
+        "label": "词典在库外",
+        "file": "dictionary-drift--dict-outside.mp4",
+        "endStill": "dictionary-drift--dict-outside-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.31,
+        "beatNodes": [
+          "dict-mounted",
+          "table-v1",
+          "loose-sync"
+        ]
+      },
+      {
+        "id": "schema-changed",
+        "label": "底层一改",
+        "file": "dictionary-drift--schema-changed.mp4",
+        "endStill": "dictionary-drift--schema-changed-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.31,
+        "beatNodes": [
+          "table-v1",
+          "schema-change",
+          "stale-dict"
+        ]
+      },
+      {
+        "id": "stale-manual",
+        "label": "按旧手册猜",
+        "file": "dictionary-drift--stale-manual.mp4",
+        "endStill": "dictionary-drift--stale-manual-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.32,
+        "beatNodes": [
+          "stale-dict",
+          "ai-stale-manual",
+          "wrong-answers"
+        ]
+      }
+    ]
+  },
+  "dual-baseline-evidence": {
+    "slug": "dual-baseline-evidence",
+    "type": "dataflow",
+    "chapters": [
+      {
+        "id": "two-benchmarks",
+        "label": "两成多双口径",
+        "file": "dual-baseline-evidence--two-benchmarks.mp4",
+        "endStill": "dual-baseline-evidence--two-benchmarks-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.42,
+        "beatNodes": [
+          "snowflakeInternal",
+          "internal25",
+          "anthropicRetest",
+          "retest21"
+        ]
+      }
+    ]
+  },
+  "dual-challenge-fork": {
+    "slug": "dual-challenge-fork",
+    "type": "architecture",
+    "chapters": [
+      {
+        "id": "challenge-one",
+        "label": "第一个挑战",
+        "file": "dual-challenge-fork--challenge-one.mp4",
+        "endStill": "dual-challenge-fork--challenge-one-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.43,
+        "beatNodes": [
+          "foundation",
+          "challengeOne",
+          "vqr",
+          "sealedAnswer"
+        ]
+      },
+      {
+        "id": "challenge-two",
+        "label": "第二个挑战",
+        "file": "dual-challenge-fork--challenge-two.mp4",
+        "endStill": "dual-challenge-fork--challenge-two-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.44,
+        "beatNodes": [
+          "challengeTwo",
+          "ledger",
+          "intakeGate",
+          "auditClose"
+        ]
+      }
+    ]
+  },
   "dual-path-disambiguation": {
     "slug": "dual-path-disambiguation",
+    "type": "workflow",
     "chapters": [
       {
         "id": "two-paths",
@@ -523,6 +906,7 @@ export const ARCHIFY = {
   },
   "engine-governance": {
     "slug": "engine-governance",
+    "type": "workflow",
     "chapters": [
       {
         "id": "sign-vs-wall",
@@ -584,8 +968,44 @@ export const ARCHIFY = {
       }
     ]
   },
+  "event-fanout": {
+    "slug": "event-fanout",
+    "type": "dataflow",
+    "chapters": [
+      {
+        "id": "hundred-three",
+        "label": "一百块三次事件",
+        "file": "event-fanout--hundred-three.mp4",
+        "endStill": "event-fanout--hundred-three-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.46,
+        "beatNodes": [
+          "order100",
+          "evt-1",
+          "evt-2",
+          "evt-3"
+        ]
+      },
+      {
+        "id": "join-disaster",
+        "label": "直接关联的灾难",
+        "file": "event-fanout--join-disaster.mp4",
+        "endStill": "event-fanout--join-disaster-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.34,
+        "beatNodes": [
+          "naive-join",
+          "dup-rows",
+          "sum-300"
+        ]
+      }
+    ]
+  },
   "evidence-grading": {
     "slug": "evidence-grading",
+    "type": "workflow",
     "chapters": [
       {
         "id": "vendor-claim",
@@ -621,6 +1041,7 @@ export const ARCHIFY = {
   },
   "evolution-timeline": {
     "slug": "evolution-timeline",
+    "type": "dataflow",
     "chapters": [
       {
         "id": "stage-objects",
@@ -674,6 +1095,7 @@ export const ARCHIFY = {
   },
   "fan-trap": {
     "slug": "fan-trap",
+    "type": "workflow",
     "chapters": [
       {
         "id": "copy-inflate",
@@ -718,8 +1140,79 @@ export const ARCHIFY = {
       }
     ]
   },
+  "forced-query-intercept": {
+    "slug": "forced-query-intercept",
+    "type": "sequence",
+    "chapters": [
+      {
+        "id": "guessed-name",
+        "label": "猜出指标名",
+        "file": "forced-query-intercept--guessed-name.mp4",
+        "endStill": "forced-query-intercept--guessed-name-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.34,
+        "beatNodes": [
+          "retrieval",
+          "intern",
+          "exec"
+        ]
+      },
+      {
+        "id": "impenetrable",
+        "label": "不可穿透底线",
+        "file": "forced-query-intercept--impenetrable.mp4",
+        "endStill": "forced-query-intercept--impenetrable-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.42,
+        "beatNodes": [
+          "exec",
+          "semantic",
+          "policy",
+          "intern"
+        ]
+      },
+      {
+        "id": "intercepted",
+        "label": "调取即拦截",
+        "file": "forced-query-intercept--intercepted.mp4",
+        "endStill": "forced-query-intercept--intercepted-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.32,
+        "beatNodes": [
+          "intern",
+          "exec",
+          "policy"
+        ]
+      }
+    ]
+  },
+  "formula-vs-total": {
+    "slug": "formula-vs-total",
+    "type": "architecture",
+    "chapters": [
+      {
+        "id": "declare-execute-split",
+        "label": "声明半边×执行半边",
+        "file": "formula-vs-total--declare-execute-split.mp4",
+        "endStill": "formula-vs-total--declare-execute-split-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.46,
+        "beatNodes": [
+          "manual",
+          "fiveDecl",
+          "calc",
+          "moneyDouble"
+        ]
+      }
+    ]
+  },
   "four-factor-ranking": {
     "slug": "four-factor-ranking",
+    "type": "dataflow",
     "chapters": [
       {
         "id": "signals",
@@ -768,8 +1261,120 @@ export const ARCHIFY = {
       }
     ]
   },
+  "ghost-edge-pollution": {
+    "slug": "ghost-edge-pollution",
+    "type": "lifecycle",
+    "chapters": [
+      {
+        "id": "fake-event",
+        "label": "故意推虚构流水",
+        "file": "ghost-edge-pollution--fake-event.mp4",
+        "endStill": "ghost-edge-pollution--fake-event-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.38,
+        "beatNodes": [
+          "ghost-push",
+          "ingest-endpoint",
+          "resolve-gate"
+        ]
+      },
+      {
+        "id": "rejected",
+        "label": "当场拒收",
+        "file": "ghost-edge-pollution--rejected.mp4",
+        "endStill": "ghost-edge-pollution--rejected-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.33,
+        "beatNodes": [
+          "resolve-gate",
+          "gate-reject",
+          "ledger-clean"
+        ]
+      },
+      {
+        "id": "gate-removed",
+        "label": "拆掉解析闸",
+        "file": "ghost-edge-pollution--gate-removed.mp4",
+        "endStill": "ghost-edge-pollution--gate-removed-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.34,
+        "beatNodes": [
+          "resolve-gate",
+          "gate-stripped",
+          "ghost-in-ledger"
+        ]
+      },
+      {
+        "id": "ledger-detached",
+        "label": "对账成空话",
+        "file": "ghost-edge-pollution--ledger-detached.mp4",
+        "endStill": "ghost-edge-pollution--ledger-detached-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.34,
+        "beatNodes": [
+          "ghost-in-ledger",
+          "detached",
+          "audit-hollow"
+        ]
+      }
+    ]
+  },
+  "govern-vs-verify": {
+    "slug": "govern-vs-verify",
+    "type": "architecture",
+    "chapters": [
+      {
+        "id": "fourth-boundary",
+        "label": "第四条最重要",
+        "file": "govern-vs-verify--fourth-boundary.mp4",
+        "endStill": "govern-vs-verify--fourth-boundary-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.44,
+        "beatNodes": [
+          "nonAdditiveBy",
+          "lineageLog",
+          "govStamp",
+          "wrongResult"
+        ]
+      },
+      {
+        "id": "third-party-critique",
+        "label": "第三方批判",
+        "file": "govern-vs-verify--third-party-critique.mp4",
+        "endStill": "govern-vs-verify--third-party-critique-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.31,
+        "beatNodes": [
+          "thirdPartyCritique",
+          "agentCalc",
+          "wrongResult"
+        ]
+      },
+      {
+        "id": "upstream-collapse",
+        "label": "上游提前汇总塌陷",
+        "file": "govern-vs-verify--upstream-collapse.mp4",
+        "endStill": "govern-vs-verify--upstream-collapse-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.35,
+        "beatNodes": [
+          "rawDetail",
+          "upstreamRollup",
+          "semanticView"
+        ]
+      }
+    ]
+  },
   "governance-demolition": {
     "slug": "governance-demolition",
+    "type": "workflow",
     "chapters": [
       {
         "id": "remove-mask",
@@ -816,6 +1421,7 @@ export const ARCHIFY = {
   },
   "grain-collapse": {
     "slug": "grain-collapse",
+    "type": "workflow",
     "chapters": [
       {
         "id": "day-pack-collapse",
@@ -861,8 +1467,65 @@ export const ARCHIFY = {
       }
     ]
   },
+  "hearing-showdown": {
+    "slug": "hearing-showdown",
+    "type": "workflow",
+    "chapters": [
+      {
+        "id": "open-hearing",
+        "label": "必须开听证会",
+        "file": "hearing-showdown--open-hearing.mp4",
+        "endStill": "hearing-showdown--open-hearing-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.43,
+        "beatNodes": [
+          "cardGoverned",
+          "cardInferred",
+          "conflictCard",
+          "hearingSeat"
+        ]
+      }
+    ]
+  },
+  "hidden-vs-blocked": {
+    "slug": "hidden-vs-blocked",
+    "type": "workflow",
+    "chapters": [
+      {
+        "id": "teardown-leak",
+        "label": "拆除即泄露",
+        "file": "hidden-vs-blocked--teardown-leak.mp4",
+        "endStill": "hidden-vs-blocked--teardown-leak-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.34,
+        "beatNodes": [
+          "internQuery",
+          "teardownFlag",
+          "leakOutcome"
+        ]
+      },
+      {
+        "id": "hide-not-block",
+        "label": "藏≠拦",
+        "file": "hidden-vs-blocked--hide-not-block.mp4",
+        "endStill": "hidden-vs-blocked--hide-not-block-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.42,
+        "beatNodes": [
+          "hideSeal",
+          "directBypass",
+          "blockSeal",
+          "blockedOutcome"
+        ]
+      }
+    ]
+  },
   "injection-threat": {
     "slug": "injection-threat",
+    "type": "workflow",
     "chapters": [
       {
         "id": "badge-question",
@@ -896,6 +1559,7 @@ export const ARCHIFY = {
   },
   "last-snapshot-gate": {
     "slug": "last-snapshot-gate",
+    "type": "workflow",
     "chapters": [
       {
         "id": "semi-additive",
@@ -929,6 +1593,7 @@ export const ARCHIFY = {
   },
   "lineage-ledger": {
     "slug": "lineage-ledger",
+    "type": "dataflow",
     "chapters": [
       {
         "id": "engine-lane",
@@ -977,6 +1642,7 @@ export const ARCHIFY = {
   },
   "majority-shortcut": {
     "slug": "majority-shortcut",
+    "type": "workflow",
     "chapters": [
       {
         "id": "popularity-wins",
@@ -1011,6 +1677,7 @@ export const ARCHIFY = {
   },
   "mean-of-means": {
     "slug": "mean-of-means",
+    "type": "workflow",
     "chapters": [
       {
         "id": "wrong-avg-of-avg",
@@ -1043,8 +1710,198 @@ export const ARCHIFY = {
       }
     ]
   },
+  "mechanism-experiment-matrix": {
+    "slug": "mechanism-experiment-matrix",
+    "type": "dataflow",
+    "chapters": [
+      {
+        "id": "three-lesions",
+        "label": "三病灶爆发",
+        "file": "mechanism-experiment-matrix--three-lesions.mp4",
+        "endStill": "mechanism-experiment-matrix--three-lesions-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.46,
+        "beatNodes": [
+          "naive-guess",
+          "lesion-caliber",
+          "lesion-drift",
+          "lesion-pierce"
+        ]
+      },
+      {
+        "id": "ten-teardowns",
+        "label": "十次拆坏预告",
+        "file": "mechanism-experiment-matrix--ten-teardowns.mp4",
+        "endStill": "mechanism-experiment-matrix--ten-teardowns-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.43,
+        "beatNodes": [
+          "lab-code",
+          "mech-rows",
+          "exp-cols",
+          "verdict"
+        ]
+      }
+    ]
+  },
+  "multi-entry-single-truth": {
+    "slug": "multi-entry-single-truth",
+    "type": "architecture",
+    "chapters": [
+      {
+        "id": "single-point-bind",
+        "label": "单点×重算绑定",
+        "file": "multi-entry-single-truth--single-point-bind.mp4",
+        "endStill": "multi-entry-single-truth--single-point-bind-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.46,
+        "beatNodes": [
+          "salesLead",
+          "finAnalyst",
+          "agentIntern",
+          "manual"
+        ]
+      },
+      {
+        "id": "whoever-asks",
+        "label": "谁来问都唯一",
+        "file": "multi-entry-single-truth--whoever-asks.mp4",
+        "endStill": "multi-entry-single-truth--whoever-asks-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.35,
+        "beatNodes": [
+          "manual",
+          "recompute",
+          "singleAnswer"
+        ]
+      }
+    ]
+  },
+  "next-episode-blueprint": {
+    "slug": "next-episode-blueprint",
+    "type": "architecture",
+    "chapters": [
+      {
+        "id": "self-build",
+        "label": "撇开云厂商自建",
+        "file": "next-episode-blueprint--self-build.mp4",
+        "endStill": "next-episode-blueprint--self-build-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.33,
+        "beatNodes": [
+          "consumers",
+          "explicit",
+          "store"
+        ]
+      },
+      {
+        "id": "blueprint-blocks",
+        "label": "五块通用积木",
+        "file": "next-episode-blueprint--blueprint-blocks.mp4",
+        "endStill": "next-episode-blueprint--blueprint-blocks-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.45,
+        "beatNodes": [
+          "gate",
+          "rank",
+          "eval",
+          "mcp"
+        ]
+      }
+    ]
+  },
+  "on-demand-recompute": {
+    "slug": "on-demand-recompute",
+    "type": "sequence",
+    "chapters": [
+      {
+        "id": "frozen-widetable",
+        "label": "宽表死数字",
+        "file": "on-demand-recompute--frozen-widetable.mp4",
+        "endStill": "on-demand-recompute--frozen-widetable-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.32,
+        "beatNodes": [
+          "ledger",
+          "widetable",
+          "asker"
+        ]
+      },
+      {
+        "id": "formula-only",
+        "label": "只存算式",
+        "file": "on-demand-recompute--formula-only.mp4",
+        "endStill": "on-demand-recompute--formula-only-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.33,
+        "beatNodes": [
+          "widetable",
+          "asker",
+          "manual"
+        ]
+      },
+      {
+        "id": "grain-recompute",
+        "label": "按粒度翻凭证",
+        "file": "on-demand-recompute--grain-recompute.mp4",
+        "endStill": "on-demand-recompute--grain-recompute-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.36,
+        "beatNodes": [
+          "asker",
+          "manual",
+          "ledger"
+        ]
+      }
+    ]
+  },
+  "one-checkpoint": {
+    "slug": "one-checkpoint",
+    "type": "architecture",
+    "chapters": [
+      {
+        "id": "sign-vs-wall",
+        "label": "木牌vs承重墙",
+        "file": "one-checkpoint--sign-vs-wall.mp4",
+        "endStill": "one-checkpoint--sign-vs-wall-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.32,
+        "beatNodes": [
+          "woodSign",
+          "sideDoor",
+          "engineGate"
+        ]
+      },
+      {
+        "id": "shared-checkpoint",
+        "label": "共用执法点",
+        "file": "one-checkpoint--shared-checkpoint.mp4",
+        "endStill": "one-checkpoint--shared-checkpoint-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.43,
+        "beatNodes": [
+          "humanReport",
+          "appQuery",
+          "aiReasoning",
+          "engineGate"
+        ]
+      }
+    ]
+  },
   "open-interop": {
     "slug": "open-interop",
+    "type": "architecture",
     "chapters": [
       {
         "id": "portable",
@@ -1094,6 +1951,7 @@ export const ARCHIFY = {
   },
   "perimeter-loss": {
     "slug": "perimeter-loss",
+    "type": "workflow",
     "chapters": [
       {
         "id": "inside-effective",
@@ -1130,6 +1988,7 @@ export const ARCHIFY = {
   },
   "preview-gap": {
     "slug": "preview-gap",
+    "type": "workflow",
     "chapters": [
       {
         "id": "preview-band",
@@ -1149,6 +2008,7 @@ export const ARCHIFY = {
   },
   "problem-to-mechanisms": {
     "slug": "problem-to-mechanisms",
+    "type": "dataflow",
     "chapters": [
       {
         "id": "cause-chain",
@@ -1225,8 +2085,64 @@ export const ARCHIFY = {
       }
     ]
   },
+  "query-time-policy": {
+    "slug": "query-time-policy",
+    "type": "sequence",
+    "chapters": [
+      {
+        "id": "instant-inspection",
+        "label": "查询瞬间审查",
+        "file": "query-time-policy--instant-inspection.mp4",
+        "endStill": "query-time-policy--instant-inspection-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.32,
+        "beatNodes": [
+          "asker",
+          "gate",
+          "policy"
+        ]
+      },
+      {
+        "id": "agent-recognized",
+        "label": "认得出代理",
+        "file": "query-time-policy--agent-recognized.mp4",
+        "endStill": "query-time-policy--agent-recognized-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.36,
+        "beatNodes": [
+          "agent",
+          "gate",
+          "policy"
+        ]
+      }
+    ]
+  },
+  "rented-brilliance": {
+    "slug": "rented-brilliance",
+    "type": "lifecycle",
+    "chapters": [
+      {
+        "id": "rented-to-owned",
+        "label": "租用→自有",
+        "file": "rented-brilliance--rented-to-owned.mp4",
+        "endStill": "rented-brilliance--rented-to-owned-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.46,
+        "beatNodes": [
+          "haloRented",
+          "powerLine",
+          "governanceCastIn",
+          "ownedBrilliance"
+        ]
+      }
+    ]
+  },
   "resolve-activation": {
     "slug": "resolve-activation",
+    "type": "sequence",
     "chapters": [
       {
         "id": "hit-reconcile",
@@ -1269,8 +2185,58 @@ export const ARCHIFY = {
       }
     ]
   },
+  "revocation-timeline": {
+    "slug": "revocation-timeline",
+    "type": "lifecycle",
+    "chapters": [
+      {
+        "id": "realtime-ceiling",
+        "label": "天花板实时求值",
+        "file": "revocation-timeline--realtime-ceiling.mp4",
+        "endStill": "revocation-timeline--realtime-ceiling-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.45,
+        "beatNodes": [
+          "badge-live",
+          "realtime-eval",
+          "instant-loss",
+          "no-stale-window"
+        ]
+      },
+      {
+        "id": "static-snapshot",
+        "label": "启动拍静态快照",
+        "file": "revocation-timeline--static-snapshot.mp4",
+        "endStill": "revocation-timeline--static-snapshot-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.35,
+        "beatNodes": [
+          "badge-live",
+          "snap-frozen",
+          "copy-static"
+        ]
+      },
+      {
+        "id": "ten-minutes",
+        "label": "十分钟后回收",
+        "file": "revocation-timeline--ten-minutes.mp4",
+        "endStill": "revocation-timeline--ten-minutes-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.35,
+        "beatNodes": [
+          "admin-revoke",
+          "copy-static",
+          "stale-holds"
+        ]
+      }
+    ]
+  },
   "row-column-policy": {
     "slug": "row-column-policy",
+    "type": "workflow",
     "chapters": [
       {
         "id": "perpage",
@@ -1317,8 +2283,65 @@ export const ARCHIFY = {
       }
     ]
   },
+  "seal-off-caliber": {
+    "slug": "seal-off-caliber",
+    "type": "workflow",
+    "chapters": [
+      {
+        "id": "sealed-off",
+        "label": "两病灶按死",
+        "file": "seal-off-caliber--sealed-off.mp4",
+        "endStill": "seal-off-caliber--sealed-off-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.46,
+        "beatNodes": [
+          "caliberClash",
+          "definitionDrift",
+          "semanticView",
+          "sealedOff"
+        ]
+      }
+    ]
+  },
+  "sticky-notes-to-manual": {
+    "slug": "sticky-notes-to-manual",
+    "type": "workflow",
+    "chapters": [
+      {
+        "id": "first-mechanism",
+        "label": "第一大机制",
+        "file": "sticky-notes-to-manual--first-mechanism.mp4",
+        "endStill": "sticky-notes-to-manual--first-mechanism-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.45,
+        "beatNodes": [
+          "manual",
+          "singleVoice",
+          "liveCompute",
+          "defineAsCompute"
+        ]
+      },
+      {
+        "id": "scattered-notes",
+        "label": "口径散落便利贴",
+        "file": "sticky-notes-to-manual--scattered-notes.mp4",
+        "endStill": "sticky-notes-to-manual--scattered-notes-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.35,
+        "beatNodes": [
+          "noteSticky",
+          "noteDraft",
+          "gather"
+        ]
+      }
+    ]
+  },
   "supply-overwhelm": {
     "slug": "supply-overwhelm",
+    "type": "workflow",
     "chapters": [
       {
         "id": "flood-vs-manual",
@@ -1339,8 +2362,106 @@ export const ARCHIFY = {
       }
     ]
   },
+  "tag-gate-linkage": {
+    "slug": "tag-gate-linkage",
+    "type": "dataflow",
+    "chapters": [
+      {
+        "id": "intake-test",
+        "label": "进楼考验",
+        "file": "tag-gate-linkage--intake-test.mp4",
+        "endStill": "tag-gate-linkage--intake-test-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.33,
+        "beatNodes": [
+          "newBatch",
+          "manualCount",
+          "unmapped"
+        ]
+      },
+      {
+        "id": "seventh-mechanism",
+        "label": "第七大机制",
+        "file": "tag-gate-linkage--seventh-mechanism.mp4",
+        "endStill": "tag-gate-linkage--seventh-mechanism-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.36,
+        "beatNodes": [
+          "newBatch",
+          "classifier",
+          "sysTag"
+        ]
+      },
+      {
+        "id": "auto-linkage",
+        "label": "免重复配置",
+        "file": "tag-gate-linkage--auto-linkage.mp4",
+        "endStill": "tag-gate-linkage--auto-linkage-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.46,
+        "beatNodes": [
+          "sysTag",
+          "userTag",
+          "policy",
+          "gate"
+        ]
+      }
+    ]
+  },
+  "three-claims-stack": {
+    "slug": "three-claims-stack",
+    "type": "architecture",
+    "chapters": [
+      {
+        "id": "guess-only",
+        "label": "没有上下文只能瞎猜",
+        "file": "three-claims-stack--guess-only.mp4",
+        "endStill": "three-claims-stack--guess-only-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.35,
+        "beatNodes": [
+          "threeClaims",
+          "noCtx",
+          "agentGuess"
+        ]
+      },
+      {
+        "id": "native-act",
+        "label": "原生植入才能行动",
+        "file": "three-claims-stack--native-act.mp4",
+        "endStill": "three-claims-stack--native-act-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.34,
+        "beatNodes": [
+          "agentGuess",
+          "nativeCtx",
+          "agentAct"
+        ]
+      },
+      {
+        "id": "governed-trust",
+        "label": "严格治理才值得信任",
+        "file": "three-claims-stack--governed-trust.mp4",
+        "endStill": "three-claims-stack--governed-trust-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.32,
+        "beatNodes": [
+          "agentAct",
+          "governedCtx",
+          "agentTrusted"
+        ]
+      }
+    ]
+  },
   "trust-assets": {
     "slug": "trust-assets",
+    "type": "workflow",
     "chapters": [
       {
         "id": "two-pillars",
@@ -1376,8 +2497,80 @@ export const ARCHIFY = {
       }
     ]
   },
+  "trust-timeline": {
+    "slug": "trust-timeline",
+    "type": "lifecycle",
+    "chapters": [
+      {
+        "id": "before-during",
+        "label": "事前事中答对",
+        "file": "trust-timeline--before-during.mp4",
+        "endStill": "trust-timeline--before-during-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.46,
+        "beatNodes": [
+          "question-in",
+          "vqr-check",
+          "verified-answer",
+          "adhoc-answer"
+        ]
+      },
+      {
+        "id": "after-audit",
+        "label": "事后审计闭环",
+        "file": "trust-timeline--after-audit.mp4",
+        "endStill": "trust-timeline--after-audit-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.34,
+        "beatNodes": [
+          "lineage-ledger",
+          "ol-ingest",
+          "audit-close"
+        ]
+      }
+    ]
+  },
+  "upstream-traceback": {
+    "slug": "upstream-traceback",
+    "type": "dataflow",
+    "chapters": [
+      {
+        "id": "living-ledger",
+        "label": "台账活的可信",
+        "file": "upstream-traceback--living-ledger.mp4",
+        "endStill": "upstream-traceback--living-ledger-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.46,
+        "beatNodes": [
+          "ol-evt",
+          "ingest-gate",
+          "rejected",
+          "ledger"
+        ]
+      },
+      {
+        "id": "three-seconds",
+        "label": "三秒定位源头",
+        "file": "upstream-traceback--three-seconds.mp4",
+        "endStill": "upstream-traceback--three-seconds-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.43,
+        "beatNodes": [
+          "question",
+          "get-lineage",
+          "ledger",
+          "src-col"
+        ]
+      }
+    ]
+  },
   "valid-sql-wrong-answer": {
     "slug": "valid-sql-wrong-answer",
+    "type": "workflow",
     "chapters": [
       {
         "id": "syntax-pass",
@@ -1408,8 +2601,100 @@ export const ARCHIFY = {
       }
     ]
   },
+  "venn-intersection": {
+    "slug": "venn-intersection",
+    "type": "architecture",
+    "chapters": [
+      {
+        "id": "two-iron-rules",
+        "label": "两大核心铁律",
+        "file": "venn-intersection--two-iron-rules.mp4",
+        "endStill": "venn-intersection--two-iron-rules-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.46,
+        "beatNodes": [
+          "badge",
+          "intersect",
+          "swipe",
+          "audit"
+        ]
+      }
+    ]
+  },
+  "vqr-lifecycle": {
+    "slug": "vqr-lifecycle",
+    "type": "lifecycle",
+    "chapters": [
+      {
+        "id": "signed-stamped",
+        "label": "签字盖章",
+        "file": "vqr-lifecycle--signed-stamped.mp4",
+        "endStill": "vqr-lifecycle--signed-stamped-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.36,
+        "beatNodes": [
+          "draft",
+          "stamped",
+          "asset"
+        ]
+      }
+    ]
+  },
+  "water-pipe-ledger": {
+    "slug": "water-pipe-ledger",
+    "type": "dataflow",
+    "chapters": [
+      {
+        "id": "fifth-mechanism",
+        "label": "第五大机制",
+        "file": "water-pipe-ledger--fifth-mechanism.mp4",
+        "endStill": "water-pipe-ledger--fifth-mechanism-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.43,
+        "beatNodes": [
+          "m5-badge",
+          "ledger",
+          "engine-pipe",
+          "ext-pipe"
+        ]
+      },
+      {
+        "id": "drop-to-drop",
+        "label": "每滴水从哪到哪",
+        "file": "water-pipe-ledger--drop-to-drop.mp4",
+        "endStill": "water-pipe-ledger--drop-to-drop-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.33,
+        "beatNodes": [
+          "orders-pool",
+          "engine-pipe",
+          "sales-tap"
+        ]
+      },
+      {
+        "id": "not-wastepaper",
+        "label": "不是废纸都收",
+        "file": "water-pipe-ledger--not-wastepaper.mp4",
+        "endStill": "water-pipe-ledger--not-wastepaper-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.46,
+        "beatNodes": [
+          "ext-pipe",
+          "resolve-gate",
+          "rejected",
+          "ledger"
+        ]
+      }
+    ]
+  },
   "wrong-page-failure": {
     "slug": "wrong-page-failure",
+    "type": "workflow",
     "chapters": [
       {
         "id": "right-book-wrong-page",
@@ -1438,6 +2723,54 @@ export const ARCHIFY = {
           "wrongJoin",
           "wrongIntent",
           "redAnswer"
+        ]
+      }
+    ]
+  },
+  "zero-window-sequence": {
+    "slug": "zero-window-sequence",
+    "type": "sequence",
+    "chapters": [
+      {
+        "id": "experiment-risk",
+        "label": "实验展示风险",
+        "file": "zero-window-sequence--experiment-risk.mp4",
+        "endStill": "zero-window-sequence--experiment-risk-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.34,
+        "beatNodes": [
+          "experimenter",
+          "snap",
+          "orders"
+        ]
+      },
+      {
+        "id": "dynamic-intersect",
+        "label": "动态交集求值",
+        "file": "zero-window-sequence--dynamic-intersect.mp4",
+        "endStill": "zero-window-sequence--dynamic-intersect-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.32,
+        "beatNodes": [
+          "live",
+          "mentor",
+          "orders"
+        ]
+      },
+      {
+        "id": "zero-window",
+        "label": "零越权窗口",
+        "file": "zero-window-sequence--zero-window.mp4",
+        "endStill": "zero-window-sequence--zero-window-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.36,
+        "beatNodes": [
+          "mentor",
+          "snap",
+          "live"
         ]
       }
     ]
