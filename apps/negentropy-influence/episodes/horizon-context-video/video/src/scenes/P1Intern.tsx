@@ -175,7 +175,8 @@ export const P1Intern: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       <Sequence {...bD} name="1-D 带教大厦剖面 + 组件全景">
         {/* p1-22/24 背靠背全句入 cue（p1-23 是跳号句，无空档）——剖面装置退役，
-            大厦剖面母图由 P3/P4/P5 各机制镜的 MechZoom 推近与 PillarHUD 承担 */}
+            大厦剖面母图由 P3 3-A① 的 MechZoom 推近与 PillarHUD 承担
+            （P4/P5 同款嵌套已随全屏化一并退役） */}
         <ArchifyRecap
           slug="component-panorama"
           caption="组件全景 · 四簇"

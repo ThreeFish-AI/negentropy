@@ -1,8 +1,8 @@
 /** P5 专用工牌＝M6（主体轴 who）+ 自动贴标＝M7（发现→标记→执行供给链），
  *  末尾带出 §10–§12 三组降级配角（承重列之外的供给与出口）。
- *  W6 起 5-A②/5-C/5-D/5-E/5-G/5-H 全句由 archify 图主控（KeyVsBadge/回指 Panel/
- *  TwoClocks+代码走廊④/IntakeBacklog+TagLine/ConflictHearing+NumberClash/⚖️🔌 图标
- *  退役）；自制件仅存 5-A① MechZoom 提问卡、5-B PermIntersect（岛 05..07）、
+ *  W6 起 5-A/5-C/5-D/5-E/5-G/5-H 全句由 archify 图主控（母图推近提问卡/KeyVsBadge/
+ *  回指 Panel/TwoClocks+代码走廊④/IntakeBacklog+TagLine/ConflictHearing+NumberClash/
+ *  ⚖️🔌 图标退役）；自制件仅存 5-B PermIntersect（岛 05..07）、
  *  5-F BrokenChain+代码走廊⑤（岛 21/22/24）与 wrapper 外 PillarHUD/EvidenceBadge。 */
 import React from 'react';
 import {AbsoluteFill, Sequence} from 'remotion';
@@ -164,7 +164,8 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
     <AbsoluteFill>
       <Sequence {...bA} name="5-A 专用工牌">
         <SceneTag chapter="M6" tagline="Agent Identity：实习生专用工牌" accent={theme.engine} />
-        {/* ① 嵌套保持原样：badge-question@p5-01 整窗盖住母图推近已接受，不套 wrapper */}
+        {/* 5-A① 母图推近嵌套已一并退役：badge-question@p5-01 全屏窗整窗盖住它，
+            装置全程不可见、保留即死代码——本镜转纯图主控 */}
         {/* KeyVsBadge 已退役（p5-02..04 全句入 cue）；p5-02(master-key)→03(ceiling)
             背靠背跨实例 → lead={false}，p5-03→04(two-iron-rules) 同 */}
         <ArchifyRecap
