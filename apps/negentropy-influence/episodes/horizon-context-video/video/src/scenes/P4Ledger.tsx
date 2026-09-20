@@ -9,6 +9,7 @@ import {DUR, useFlowDash, useProgress, useShake, useSpring, useStagger} from '..
 import {NumberedCard, Panel, SceneTag} from '../components/motifs';
 import {CodeWalk, TerminalLog} from '../components/CodeWalk';
 import {ArchifyRecap} from '../components/ArchifyRecap';
+import {ArchifyYield} from '../components/ArchifyYield';
 import {AskCard, EvidenceBadge, MechZoom, PillarHUD, Stage} from '../components/devices';
 
 /** 4-A 引用错手册：手册对的，翻错了页 */
@@ -375,28 +376,63 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
     <AbsoluteFill>
       <Sequence {...bA} name="4-A 引用错手册">
         <SceneTag chapter="M4" tagline="应答层验证锚定：核准题库与盖章底稿" accent={theme.manual} />
-        <Stage top={430}>
-          <WrongPage at={at('p4-02') - bA.from} />
-        </Stage>
+        {/* 模式 b：cue 窗 p4-02..04 连续占满镜尾，唯一空档 p4-01 承载不了错页演出 */}
+        <ArchifyYield
+          cues={[
+            {at: at('p4-02') - bA.from, durationInFrames: dur('p4-02')},
+            {at: at('p4-03') - bA.from, durationInFrames: dur('p4-03')},
+            {at: at('p4-04') - bA.from, durationInFrames: dur('p4-04')},
+          ]}
+        >
+          <Stage>
+            <WrongPage at={at('p4-02') - bA.from} />
+          </Stage>
+        </ArchifyYield>
         <ArchifyRecap
           slug="wrong-page-failure"
           caption="选错页失效"
-          variant="inset"
           cues={[
             {chapterId: 'right-book-wrong-page', at: at('p4-02') - bA.from, durationInFrames: dur('p4-02')},
             {chapterId: 'two-branches', at: at('p4-03') - bA.from, durationInFrames: dur('p4-03')},
           ]}
         />
+        {/* p4-03→p4-04 背靠背：跨实例必须 lead={false}，否则换图重放入场弹簧 */}
+        <ArchifyRecap
+          slug="autopilot-loop"
+          caption="自动巡航闭环"
+          lead={false}
+          cues={[{chapterId: 'inputs', at: at('p4-04') - bA.from, durationInFrames: dur('p4-04')}]}
+        />
       </Sequence>
 
       <Sequence {...bB} name="4-B 盖章底稿与重算对账">
-        <Stage top={430}>
-          <StampedAnswer at={at('p4-06') - bB.from} />
-        </Stage>
+        {/* 模式 b：公章盖印与对账行攒满从 p4-06 常驻到镜尾；窗=双实例全部 4 条 cue 窗 */}
+        <ArchifyYield
+          cues={[
+            {at: at('p4-05') - bB.from, durationInFrames: dur('p4-05')},
+            {at: at('p4-07') - bB.from, durationInFrames: dur('p4-07')},
+            {at: at('p4-08') - bB.from, durationInFrames: dur('p4-08')},
+            {at: at('p4-09') - bB.from, durationInFrames: dur('p4-09')},
+          ]}
+        >
+          <Stage>
+            <StampedAnswer at={at('p4-06') - bB.from} />
+          </Stage>
+        </ArchifyYield>
+        {/* valgate@p4-05 紧贴 4-A 尾窗 inputs@p4-04、loop@p4-08 紧贴 hit-reconcile@p4-07：
+            两处跨实例背靠背，lead={false} 抑制换图弹簧 */}
+        <ArchifyRecap
+          slug="autopilot-loop"
+          caption="自动巡航闭环"
+          lead={false}
+          cues={[
+            {chapterId: 'valgate', at: at('p4-05') - bB.from, durationInFrames: dur('p4-05')},
+            {chapterId: 'loop', at: at('p4-08') - bB.from, durationInFrames: dur('p4-08')},
+          ]}
+        />
         <ArchifyRecap
           slug="resolve-activation"
           caption="应答层验证锚定"
-          variant="inset"
           cues={[
             {chapterId: 'hit-reconcile', at: at('p4-07') - bB.from, durationInFrames: dur('p4-07')},
             {chapterId: 'miss-fallback', at: at('p4-09') - bB.from, durationInFrames: dur('p4-09')},
@@ -405,17 +441,10 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bC} name="4-C 半堵墙">
-        <Stage top={430}>
+        {/* outside-eval cue 已删（W3 cue 手术）：半堵墙装置独占本镜，payoff 句即 p4-09a */}
+        <Stage>
           <HalfWall />
         </Stage>
-        <ArchifyRecap
-          slug="resolve-activation"
-          caption="墙外的评测闭环"
-          variant="inset"
-          cues={[
-            {chapterId: 'outside-eval', at: at('p4-09a') - bC.from, durationInFrames: dur('p4-09a')},
-          ]}
-        />
       </Sequence>
 
       <Sequence {...bD} name="4-D 全楼出入库台账">
@@ -468,76 +497,92 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bE} name="4-E 三道闸与代码走廊③">
-        {/* gap 20：inset 底边 416 后 Stage 430，收窄间隙保栈底 ≤906 */}
-        <Stage top={430} gap={20}>
-          <ThreeGates
-            at={at('p4-14a') - bE.from}
-            rejectAt={at('p4-16') - bE.from}
-          />
-          <CodeWalk
-            title="M5 摄取门 · 外部血缘三道闸"
-            lines={[
-              'def ingest_external_lineage(event, *, has_ingest_privilege=True, strict_resolve=True):',
-              '    if not has_ingest_privilege:  raise LineageIngestError("no INGEST")',
-              '    if event["eventType"] != "COMPLETE": raise LineageIngestError("not COMPLETE")',
-              '    if strict_resolve and not resolvable(obj): raise LineageIngestError("unresolved")',
-            ]}
-            hi={[{line: 3, at: at('p4-17') - bE.from, color: theme.engine}]}
-            caption="horizon_context_lab.py :710"
-            width={1220}
-          />
-          {/* 终端行 = selftest 原文逐字摘录（含前导两空格）；本镜纵向预算紧，不留 prompt 行 */}
-          <TerminalLog
-            lines={[
-              {
-                text: "  [PASS] E1b: 摄取三道闸: 非 COMPLETE / 对象不可解析 / 无 INGEST 权限 → 整事件拒绝 ['rejected', 'rejected', 'rejected']（账本零污染）",
-                color: theme.ok,
-                at: at('p4-16') - bE.from,
-              },
-              {
-                text: '  [PASS] D8: 拆血缘解析闸 → 虚构对象入账（raw.y→ghost.x）——账本与真实数据流脱钩，事后对账从此不可信',
-                color: theme.danger,
-                bold: true,
-                at: at('p4-17') - bE.from,
-              },
-            ]}
-            width={1220}
-          />
-          {/* top=430：本镜有 inset 画框（y∈[56,416]），默认 44 会被整块压住 */}
-          <EvidenceBadge grade="lab" top={430} />
-        </Stage>
+        {/* 模式 b：三闸亮灯/代码高亮/终端逐行跨句连续，p4-15..18 的 payoff 在 cue 窗外 */}
+        <ArchifyYield cues={[{at: at('p4-14a') - bE.from, durationInFrames: dur('p4-14a')}]}>
+          <Stage>
+            <ThreeGates
+              at={at('p4-14a') - bE.from}
+              rejectAt={at('p4-16') - bE.from}
+            />
+            <CodeWalk
+              title="M5 摄取门 · 外部血缘三道闸"
+              lines={[
+                'def ingest_external_lineage(event, *, has_ingest_privilege=True, strict_resolve=True):',
+                '    if not has_ingest_privilege:  raise LineageIngestError("no INGEST")',
+                '    if event["eventType"] != "COMPLETE": raise LineageIngestError("not COMPLETE")',
+                '    if strict_resolve and not resolvable(obj): raise LineageIngestError("unresolved")',
+              ]}
+              hi={[{line: 3, at: at('p4-17') - bE.from, color: theme.engine}]}
+              caption="horizon_context_lab.py :710"
+              width={1220}
+            />
+            {/* 终端行 = selftest 原文逐字摘录（含前导两空格）；本镜纵向预算紧，不留 prompt 行 */}
+            <TerminalLog
+              lines={[
+                {
+                  text: "  [PASS] E1b: 摄取三道闸: 非 COMPLETE / 对象不可解析 / 无 INGEST 权限 → 整事件拒绝 ['rejected', 'rejected', 'rejected']（账本零污染）",
+                  color: theme.ok,
+                  at: at('p4-16') - bE.from,
+                },
+                {
+                  text: '  [PASS] D8: 拆血缘解析闸 → 虚构对象入账（raw.y→ghost.x）——账本与真实数据流脱钩，事后对账从此不可信',
+                  color: theme.danger,
+                  bold: true,
+                  at: at('p4-17') - bE.from,
+                },
+              ]}
+              width={1220}
+            />
+          </Stage>
+        </ArchifyYield>
+        <EvidenceBadge grade="lab" />
         <ArchifyRecap
           slug="lineage-ledger"
           caption="OpenLineage 摄取三道闸"
-          variant="inset"
-          cues={[{chapterId: 'ingest-lane', at: at('p4-15') - bE.from, durationInFrames: dur('p4-15')}]}
+          cues={[{chapterId: 'ingest-lane', at: at('p4-14a') - bE.from, durationInFrames: dur('p4-14a')}]}
         />
       </Sequence>
 
       <Sequence {...bF} name="4-F 逆流溯源与双柱">
-        <Stage top={430}>
-          <div style={{textAlign: 'center'}}>
-            <div style={{fontSize: 84}}>🔦</div>
-            <div style={{marginTop: 18, fontFamily: theme.sans, fontSize: 34, color: theme.text}}>
-              顺着台账，三秒定位到源头
+        {/* 模式 b：静态意象卡无跨句状态，纯 opacity 让位；窗=三实例全部 cue 窗 */}
+        <ArchifyYield
+          cues={[
+            {at: at('p4-20') - bF.from, durationInFrames: dur('p4-20')},
+            {at: at('p4-21') - bF.from, durationInFrames: dur('p4-21')},
+            {at: at('p4-24') - bF.from, durationInFrames: dur('p4-24')},
+          ]}
+        >
+          <Stage>
+            <div style={{textAlign: 'center'}}>
+              <div style={{fontSize: 84}}>🔦</div>
+              <div style={{marginTop: 18, fontFamily: theme.sans, fontSize: 34, color: theme.text}}>
+                顺着台账，三秒定位到源头
+              </div>
+              <div style={{marginTop: 10, fontFamily: theme.sans, fontSize: 26, color: theme.dim}}>
+                谁生产、谁清洗、AI 何时引用哪一列 —— 清清楚楚
+              </div>
             </div>
-            <div style={{marginTop: 10, fontFamily: theme.sans, fontSize: 26, color: theme.dim}}>
-              谁生产、谁清洗、AI 何时引用哪一列 —— 清清楚楚
-            </div>
-          </div>
-        </Stage>
+          </Stage>
+        </ArchifyYield>
         <ArchifyRecap
           slug="lineage-ledger"
           caption="单一账本与盲区"
-          variant="inset"
           cues={[
             {chapterId: 'ledger-and-blind', at: at('p4-20') - bF.from, durationInFrames: dur('p4-20')},
+          ]}
+        />
+        {/* p4-20→p4-21 背靠背：跨实例必须 lead={false}，否则换图重放入场弹簧 */}
+        <ArchifyRecap
+          slug="evolution-timeline"
+          caption="三阶段演进"
+          lead={false}
+          cues={[
+            {chapterId: 'stage-ecosystem', at: at('p4-21') - bF.from, durationInFrames: dur('p4-21')},
           ]}
         />
         <ArchifyRecap
           slug="trust-assets"
           caption="双柱信任"
-          variant="inset"
           cues={[
             {chapterId: 'two-pillars', at: at('p4-24') - bF.from, durationInFrames: dur('p4-24')},
           ]}
@@ -545,28 +590,43 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bG} name="4-G 信任资产四方印鉴">
-        <Stage top={430}>
-          <div
-            style={{
-              fontFamily: theme.serif,
-              fontSize: 56,
-              color: theme.text,
-              textAlign: 'center',
-              lineHeight: 1.5,
-            }}
-          >
-            答错有拦截，答对有底稿，
-            <br />
-            <span style={{color: theme.manual}}>出了疑问随时翻账本对质</span>
-          </div>
-        </Stage>
+        {/* 模式 b：金句印鉴卡静态，纯 opacity 让位；HUD 在 wrapper 外常驻 */}
+        <ArchifyYield
+          cues={[
+            {at: at('p4-26') - bG.from, durationInFrames: dur('p4-26')},
+            {at: at('p4-28') - bG.from, durationInFrames: dur('p4-28')},
+          ]}
+        >
+          <Stage>
+            <div
+              style={{
+                fontFamily: theme.serif,
+                fontSize: 56,
+                color: theme.text,
+                textAlign: 'center',
+                lineHeight: 1.5,
+              }}
+            >
+              答错有拦截，答对有底稿，
+              <br />
+              <span style={{color: theme.manual}}>出了疑问随时翻账本对质</span>
+            </div>
+          </Stage>
+        </ArchifyYield>
         <PillarHUD lit={5} at={at('p4-28') - bG.from} />
         <ArchifyRecap
           slug="trust-assets"
           caption="双柱信任"
-          variant="inset"
           cues={[
             {chapterId: 'three-seals', at: at('p4-26') - bG.from, durationInFrames: dur('p4-26')},
+          ]}
+        />
+        {/* three-seals@p4-26 与 topk@p4-28 隔 p4-27 空档，非背靠背，无需 lead={false} */}
+        <ArchifyRecap
+          slug="four-factor-ranking"
+          caption="四因子称重"
+          cues={[
+            {chapterId: 'topk', at: at('p4-28') - bG.from, durationInFrames: dur('p4-28')},
           ]}
         />
       </Sequence>

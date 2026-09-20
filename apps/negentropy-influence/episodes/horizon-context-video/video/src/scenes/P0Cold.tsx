@@ -5,62 +5,16 @@ import {AbsoluteFill, Sequence} from 'remotion';
 import type {SceneRange} from '../types';
 import {beatWindow} from '../timing';
 import {theme} from '../design/theme';
-import {DUR, useBreathe, useDraw, useImpulse, useProgress, useReveal, useSpring, useStagger} from '../motion';
-import {Panel} from '../components/motifs';
+import {DUR, useBreathe, useDraw, useImpulse, useSpring, useStagger} from '../motion';
 import {EvidenceBadge, Stage} from '../components/devices';
 import {ArchifyRecap} from '../components/ArchifyRecap';
+import {ArchifyYield} from '../components/ArchifyYield';
 
 const COLS = [
   'amt_ttl_pre_dsc', 'cust_seg_cd', 'ord_dt_key', 'rev_net_adj', 'qty_shp_uom',
   'disc_pct_ln', 'tax_juris_cd', 'mrgn_gp_calc', 'chn_src_id', 'sku_var_hash',
   'pay_term_cd', 'ret_flg_ind', 'fx_rate_spot', 'gl_acct_seg', 'wh_loc_bin',
 ];
-
-/** 0-A 终端问答：自信吐数 → 打勾翻红叉 */
-const TerminalAsk: React.FC<{flipAt: number}> = ({flipAt}) => {
-  const q = useReveal('上个季度毛收入是多少？', {at: 4, cps: 14});
-  const ans = useProgress(38, DUR.f5);
-  const bad = useImpulse({at: flipAt, dur: DUR.f6, peak: 1});
-  const flipped = useProgress(flipAt, DUR.f3);
-  return (
-    <Panel style={{width: 1180, padding: '38px 46px'}} accent={theme.engine}>
-      <div style={{fontFamily: theme.mono, fontSize: 30, color: theme.dim}}>
-        <span style={{color: theme.engine}}>&gt; </span>
-        {q}
-      </div>
-      <div
-        style={{
-          marginTop: 30,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 22,
-          opacity: ans,
-        }}
-      >
-        <span style={{fontFamily: theme.mono, fontSize: 64, color: theme.text}}>$14.2M</span>
-        <span
-          style={{
-            fontSize: 54,
-            color: flipped > 0.5 ? theme.danger : theme.ok,
-            transform: `scale(${1 + 0.35 * bad})`,
-          }}
-        >
-          {flipped > 0.5 ? '✗' : '✓'}
-        </span>
-        <span
-          style={{
-            fontFamily: theme.sans,
-            fontSize: 26,
-            color: theme.danger,
-            opacity: flipped,
-          }}
-        >
-          财务口径同期为 $12.8M
-        </span>
-      </div>
-    </Panel>
-  );
-};
 
 /** 0-B 乱码列名墙：一列染金。
  *
@@ -183,14 +137,12 @@ export const P0Cold: React.FC<{scene: SceneRange}> = ({scene}) => {
   return (
     <AbsoluteFill>
       <Sequence {...bA} name="0-A 终端问答翻红叉">
-        <Stage top={430}>
-          <TerminalAsk flipAt={at('p0-03') - bA.from} />
-          <EvidenceBadge grade="vendor" at={at('p0-03') - bA.from} top={430} />
+        <Stage>
+          <EvidenceBadge grade="vendor" at={at('p0-03') - bA.from} />
         </Stage>
         <ArchifyRecap
           slug="bare-key-baseline"
           caption="裸库基线"
-          variant="inset"
           cues={[
             {chapterId: 'whole-key', at: at('p0-01') - bA.from, durationInFrames: dur('p0-01')},
             {chapterId: 'blind-wrong', at: at('p0-02') - bA.from, durationInFrames: dur('p0-02')},
@@ -204,13 +156,14 @@ export const P0Cold: React.FC<{scene: SceneRange}> = ({scene}) => {
         </Stage>
       </Sequence>
       <Sequence {...bC} name="0-C 净收入三算法对撞">
-        <Stage top={430}>
-          <ThreeDefs hitAt={at('p0-08') - bC.from} />
-        </Stage>
+        <ArchifyYield cues={[{at: at('p0-08') - bC.from, durationInFrames: dur('p0-08')}]}>
+          <Stage>
+            <ThreeDefs hitAt={at('p0-08') - bC.from} />
+          </Stage>
+        </ArchifyYield>
         <ArchifyRecap
           slug="caliber-clash"
           caption="口径打架"
-          variant="inset"
           cues={[
             {chapterId: 'three-dashboards', at: at('p0-08') - bC.from, durationInFrames: dur('p0-08')},
           ]}

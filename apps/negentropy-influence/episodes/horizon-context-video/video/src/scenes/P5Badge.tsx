@@ -20,6 +20,7 @@ import {
 import {NumberedCard, Panel, SceneTag} from '../components/motifs';
 import {CodeWalk, TerminalLog} from '../components/CodeWalk';
 import {ArchifyRecap} from '../components/ArchifyRecap';
+import {ArchifyYield} from '../components/ArchifyYield';
 import {AskCard, EvidenceBadge, MechZoom, NumberClash, PillarHUD, Stage} from '../components/devices';
 
 /** 5-B 权限交集环：只减不增。
@@ -39,7 +40,7 @@ const PermIntersect: React.FC<{
   const narrow = useProgress(narrowAt, narrowSpan, 'decelerate');
   const secret = useProgress(secretAt, DUR.f5);
   const pop = useImpulse({at: secretAt, dur: DUR.f6});
-  // 点亮后的常驻呼吸（乘 secret 门控）：p5-07 后半句到 p5-08 inset 前不留静止尾
+  // 点亮后的常驻呼吸（乘 secret 门控）：p5-07 后半句到 p5-08 让位前不留静止尾
   const glow = useBreathe({period: 76, base: 0.5, amp: 0.5});
   const r = 150;
   // 从近乎并集的宽重叠**单调收窄**到定格的工牌透镜；终态间距 76 与 v4 定格一致。
@@ -590,6 +591,7 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
     <AbsoluteFill>
       <Sequence {...bA} name="5-A 专用工牌">
         <SceneTag chapter="M6" tagline="Agent Identity：实习生专用工牌" accent={theme.engine} />
+        {/* ① 嵌套保持原样：badge-question@p5-01 整窗盖住母图推近已接受，不套 wrapper */}
         <Sequence
           from={at('p5-01') - bA.from}
           durationInFrames={at('p5-02') - at('p5-01')}
@@ -605,20 +607,29 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
             </MechZoom>
           </Stage>
         </Sequence>
-        <Sequence
-          from={at('p5-02') - bA.from}
-          durationInFrames={bA.durationInFrames - (at('p5-02') - bA.from)}
-          name="5-A② 万能钥匙碎裂与专用工牌挂落"
+        {/* b：七锁碎裂在 p5-02 被 master-key 图覆盖是已接受决策，p5-04 badgeAt 在
+            窗外恢复装置可见；wrapper 套在子 Sequence 外层，cue 仍按 bA 基准写 */}
+        <ArchifyYield
+          cues={[
+            {at: at('p5-02') - bA.from, durationInFrames: dur('p5-02')},
+            {at: at('p5-03') - bA.from, durationInFrames: dur('p5-03')},
+          ]}
         >
-          <Stage top={320}>
-            <KeyVsBadge
-              breakAt={0}
-              breachSpan={dur('p5-02')}
-              badgeAt={at('p5-04') - at('p5-02')}
-              badgeSpan={dur('p5-04')}
-            />
-          </Stage>
-        </Sequence>
+          <Sequence
+            from={at('p5-02') - bA.from}
+            durationInFrames={bA.durationInFrames - (at('p5-02') - bA.from)}
+            name="5-A② 万能钥匙碎裂与专用工牌挂落"
+          >
+            <Stage top={320}>
+              <KeyVsBadge
+                breakAt={0}
+                breachSpan={dur('p5-02')}
+                badgeAt={at('p5-04') - at('p5-02')}
+                badgeSpan={dur('p5-04')}
+              />
+            </Stage>
+          </Sequence>
+        </ArchifyYield>
         <ArchifyRecap
           slug="agent-identity"
           caption="权限天花板只减不增"
@@ -627,7 +638,6 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap
           slug="injection-threat"
           caption="万能钥匙威胁"
-          variant="inset"
           cues={[
             {chapterId: 'badge-question', at: at('p5-01') - bA.from, durationInFrames: dur('p5-01')},
             {chapterId: 'master-key', at: at('p5-02') - bA.from, durationInFrames: dur('p5-02')},
@@ -636,24 +646,27 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bB} name="5-B 权限交集环与刷卡审计">
-        <Stage top={430}>
-          <PermIntersect
-            at={at('p5-05') - bB.from}
-            narrowAt={at('p5-06') - bB.from}
-            narrowSpan={dur('p5-06')}
-            secretAt={at('p5-07') - bB.from}
-          />
-        </Stage>
+        {/* b：环收窄（p5-06）与机密点亮（p5-07）是跨句连续状态，仅让位 p5-08 审计窗 */}
+        <ArchifyYield cues={[{at: at('p5-08') - bB.from, durationInFrames: dur('p5-08')}]}>
+          <Stage>
+            <PermIntersect
+              at={at('p5-05') - bB.from}
+              narrowAt={at('p5-06') - bB.from}
+              narrowSpan={dur('p5-06')}
+              secretAt={at('p5-07') - bB.from}
+            />
+          </Stage>
+        </ArchifyYield>
         <ArchifyRecap
           slug="agent-identity"
           caption="agent_type 归因审计"
-          variant="inset"
           cues={[{chapterId: 'audit', at: at('p5-08') - bB.from, durationInFrames: dur('p5-08')}]}
         />
       </Sequence>
 
       <Sequence {...bC} name="5-C 回指 P3 的代理识别灯">
-        <Stage top={430}>
+        {/* strict@p5-08a 独占本镜唯一句：Panel 一行字直接让位（不套 wrapper） */}
+        <Stage>
           <Panel accent={theme.engine} style={{padding: '30px 40px', width: 1080}}>
             <div style={{fontFamily: theme.sans, fontSize: 34, color: theme.text, textAlign: 'center'}}>
               前面闸机能认出代理 —— 认的就是这张工牌
@@ -663,7 +676,6 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap
           slug="agent-identity"
           caption="IS_AGENT_ACTIVATED 谓词"
-          variant="inset"
           cues={[
             {chapterId: 'strict', at: at('p5-08a') - bC.from, durationInFrames: dur('p5-08a')},
           ]}
@@ -671,39 +683,41 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bD} name="5-D 双钟对照与代码走廊④">
-        <Stage top={430}>
-          <TwoClocks revokeAt={at('p5-13') - bD.from} />
-          <CodeWalk
-            title="M6 天花板 · 查询期实时求值（非登录期快照）"
-            lines={[
-              'def session_allows(session, perm):',
-              '    if session.ceiling:',
-              '        return perm in (USER_PERMS[session.user] & AGENT_SERVICE_ALLOWED)',
-              '    return perm in session.perms          # 快照式：回收后仍持权',
-            ]}
-            hi={[{line: 2, at: 18, color: theme.ok}, {line: 3, at: 28, color: theme.danger}]}
-            caption="horizon_context_lab.py :785"
-            width={1180}
-          />
-          {/* 终端行 = selftest 原文逐字摘录（含前导两空格）；改措辞须同步 narration/source-notes */}
-          <TerminalLog
-            prompt="uv run --no-project python horizon_context_lab.py --selftest"
-            lines={[
-              {
-                text: '  [PASS] D9: 拆权限天花板（快照冻结）→ 回收后旧会话仍持 select:orders（越权窗口）；对照：同时创建的天花板会话判定时实时求值，同一时刻立即失去——不存在「上次办的工牌还能用」的窗口',
-                color: theme.danger,
-                bold: true,
-                at: at('p5-13') - bD.from,
-              },
-            ]}
-            width={1180}
-          />
-          <EvidenceBadge grade="lab" top={430} />
-        </Stage>
+        {/* b：双钟 gap（revokeAt 起连续求值）与 CodeWalk 阅读面跨句，仅让位 p5-13 双钟窗 */}
+        <ArchifyYield cues={[{at: at('p5-13') - bD.from, durationInFrames: dur('p5-13')}]}>
+          <Stage>
+            <TwoClocks revokeAt={at('p5-13') - bD.from} />
+            <CodeWalk
+              title="M6 天花板 · 查询期实时求值（非登录期快照）"
+              lines={[
+                'def session_allows(session, perm):',
+                '    if session.ceiling:',
+                '        return perm in (USER_PERMS[session.user] & AGENT_SERVICE_ALLOWED)',
+                '    return perm in session.perms          # 快照式：回收后仍持权',
+              ]}
+              hi={[{line: 2, at: 18, color: theme.ok}, {line: 3, at: 28, color: theme.danger}]}
+              caption="horizon_context_lab.py :785"
+              width={1180}
+            />
+            {/* 终端行 = selftest 原文逐字摘录（含前导两空格）；改措辞须同步 narration/source-notes */}
+            <TerminalLog
+              prompt="uv run --no-project python horizon_context_lab.py --selftest"
+              lines={[
+                {
+                  text: '  [PASS] D9: 拆权限天花板（快照冻结）→ 回收后旧会话仍持 select:orders（越权窗口）；对照：同时创建的天花板会话判定时实时求值，同一时刻立即失去——不存在「上次办的工牌还能用」的窗口',
+                  color: theme.danger,
+                  bold: true,
+                  at: at('p5-13') - bD.from,
+                },
+              ]}
+              width={1180}
+            />
+            <EvidenceBadge grade="lab" />
+          </Stage>
+        </ArchifyYield>
         <ArchifyRecap
           slug="agent-identity"
           caption="工牌双钟"
-          variant="inset"
           cues={[
             {chapterId: 'snapshot-vs-live', at: at('p5-13') - bD.from, durationInFrames: dur('p5-13')},
           ]}
@@ -712,6 +726,8 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       <Sequence {...bE} name="5-E 自动贴标流水线">
         <SceneTag chapter="M7" tagline="分类与标签驱动策略传播" accent={theme.dig} />
+        {/* ① 嵌套保持：flood-vs-manual@p5-17 整窗盖住 IntakeBacklog 已接受（差额
+            缺口由图同义承接），不套 wrapper */}
         <Sequence
           from={at('p5-16') - bE.from}
           durationInFrames={at('p5-18') - at('p5-16')}
@@ -729,28 +745,32 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
             </MechZoom>
           </Stage>
         </Sequence>
-        <Sequence
-          from={at('p5-18') - bE.from}
-          durationInFrames={bE.durationInFrames - (at('p5-18') - bE.from)}
-          name="5-E② 机密自动贴标流水线"
-        >
-          <Stage top={280}>
-            <NumberedCard
-              index={7}
-              label="机密自动贴标系统"
-              sub="发现 → 标记 → 执行"
-              active
-              accent={theme.dig}
-              width={430}
-            />
-            <TagLine
-              startAt={0}
-              slideSpan={dur('p5-18')}
-              linkAt={at('p5-20') - at('p5-18')}
-              linkSpan={dur('p5-20')}
-            />
-          </Stage>
-        </Sequence>
+        {/* b：传送带/探针/闸机联动是跨句连续演出，仅让位 p5-19 章窗；wrapper 套在
+            子 Sequence 外层，cue 仍按 bE 基准写 */}
+        <ArchifyYield cues={[{at: at('p5-19') - bE.from, durationInFrames: dur('p5-19')}]}>
+          <Sequence
+            from={at('p5-18') - bE.from}
+            durationInFrames={bE.durationInFrames - (at('p5-18') - bE.from)}
+            name="5-E② 机密自动贴标流水线"
+          >
+            <Stage top={280}>
+              <NumberedCard
+                index={7}
+                label="机密自动贴标系统"
+                sub="发现 → 标记 → 执行"
+                active
+                accent={theme.dig}
+                width={430}
+              />
+              <TagLine
+                startAt={0}
+                slideSpan={dur('p5-18')}
+                linkAt={at('p5-20') - at('p5-18')}
+                linkSpan={dur('p5-20')}
+              />
+            </Stage>
+          </Sequence>
+        </ArchifyYield>
         <ArchifyRecap
           slug="classification-tagging"
           caption="发现 → 标记 → 执行"
@@ -759,7 +779,6 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap
           slug="supply-overwhelm"
           caption="纳管缺口"
-          variant="inset"
           cues={[
             {chapterId: 'flood-vs-manual', at: at('p5-17') - bE.from, durationInFrames: dur('p5-17')},
           ]}
@@ -767,67 +786,98 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bF} name="5-F 断链最后一环与代码走廊⑤">
-        {/* 代码走廊 5 行 + D10 长行的纵向预算；Stage 430 让位 inset 底边 416，
-            gap 18 + 终端行加宽 1420（一行放下）把栈底压回 ≤920 */}
-        <Stage top={430} gap={18}>
-          <BrokenChain at={at('p5-21') - bF.from} leakAt={at('p5-23') - bF.from} />
-          <CodeWalk
-            title="M7 供给链 · 一次性映射（掩码策略不能直绑系统标签）"
-            lines={[
-              'TAG_MAPPING = {"CONTACT_INFO": "pii"}   # 一次性映射：系统标签 → 用户治理标签',
-              'TAG_POLICY = {"pii": "MASK_FULL"}       # 用户标签 → 策略',
-              'def policy_for(system_tags, table_name, col, mapping=TAG_MAPPING):',
-              '    user_tag = mapping.get(system_tags.get((table_name, col)))',
-              '    return TAG_POLICY.get(user_tag) if user_tag else None',
-            ]}
-            hi={[{line: 0, at: 16, color: theme.dig}, {line: 3, at: 26, color: theme.ok}]}
-            caption="horizon_context_lab.py :805 内 :821"
-            width={1220}
-          />
-          {/* 终端行 = selftest 原文逐字摘录（含前导两空格）；本镜纵向预算紧，不留 prompt 与 E3 行 */}
-          <TerminalLog
-            lines={[
-              {
-                text: '  [PASS] D10: 拆标签映射（只分类不绑策略）→ phone 已贴系统标签仍明文出楼——发现→标记→执行 链条断在最后一环',
-                color: theme.danger,
-                bold: true,
-                at: at('p5-23') - bF.from,
-              },
-            ]}
-            width={1420}
-          />
-        </Stage>
+        {/* b：断链三卡 + 代码走廊阅读面跨句连续，让位 p5-21a/23/25 三窗；代码走廊
+            5 行 + D10 长行的纵向预算靠终端行加宽 1420（一行放下） */}
+        <ArchifyYield
+          cues={[
+            {at: at('p5-21a') - bF.from, durationInFrames: dur('p5-21a')},
+            {at: at('p5-23') - bF.from, durationInFrames: dur('p5-23')},
+            {at: at('p5-25') - bF.from, durationInFrames: dur('p5-25')},
+          ]}
+        >
+          <Stage>
+            <BrokenChain at={at('p5-21') - bF.from} leakAt={at('p5-23') - bF.from} />
+            <CodeWalk
+              title="M7 供给链 · 一次性映射（掩码策略不能直绑系统标签）"
+              lines={[
+                'TAG_MAPPING = {"CONTACT_INFO": "pii"}   # 一次性映射：系统标签 → 用户治理标签',
+                'TAG_POLICY = {"pii": "MASK_FULL"}       # 用户标签 → 策略',
+                'def policy_for(system_tags, table_name, col, mapping=TAG_MAPPING):',
+                '    user_tag = mapping.get(system_tags.get((table_name, col)))',
+                '    return TAG_POLICY.get(user_tag) if user_tag else None',
+              ]}
+              hi={[{line: 0, at: 16, color: theme.dig}, {line: 3, at: 26, color: theme.ok}]}
+              caption="horizon_context_lab.py :805 内 :821"
+              width={1220}
+            />
+            {/* 终端行 = selftest 原文逐字摘录（含前导两空格）；本镜纵向预算紧，不留 prompt 与 E3 行 */}
+            <TerminalLog
+              lines={[
+                {
+                  text: '  [PASS] D10: 拆标签映射（只分类不绑策略）→ phone 已贴系统标签仍明文出楼——发现→标记→执行 链条断在最后一环',
+                  color: theme.danger,
+                  bold: true,
+                  at: at('p5-23') - bF.from,
+                },
+              ]}
+              width={1420}
+            />
+          </Stage>
+        </ArchifyYield>
         <ArchifyRecap
           slug="classification-tagging"
           caption="未映射 = 显式保护缺口"
-          variant="inset"
-          cues={[{chapterId: 'explicit-gap', at: at('p5-23') - bF.from, durationInFrames: dur('p5-23')}]}
+          cues={[
+            {chapterId: 'honest-limit', at: at('p5-21a') - bF.from, durationInFrames: dur('p5-21a')},
+            {chapterId: 'explicit-gap', at: at('p5-23') - bF.from, durationInFrames: dur('p5-23')},
+          ]}
+        />
+        {/* feedback 章锚「开放互操作」句（p5-25）：与 explicit-gap@p5-23 隔 p5-24
+            不相邻 → 保留入场；镜界后 reserved-supply@p5-26 隔 0.9s 场隙亦不背靠背 */}
+        <ArchifyRecap
+          slug="open-interop"
+          caption="开放互操作"
+          cues={[{chapterId: 'feedback', at: at('p5-25') - bF.from, durationInFrames: dur('p5-25')}]}
         />
       </Sequence>
 
       <Sequence {...bG} name="5-G 七柱合拢与听证会空白卡">
-        <Stage top={430}>
-          <ConflictHearing at={at('p5-29') - bG.from} />
-          <div style={{marginTop: 26}}>
-            <NumberClash
-              badLabel="按热度自动选"
-              bad="[6,1,2]"
-              goodLabel="人工裁决后"
-              good="[3,1,2]"
-              at={at('p5-30') - bG.from}
-            />
-          </div>
-        </Stage>
+        {/* b：听证卡/数字对撞是连续演出，让位 p5-26..28 + p5-30 四窗 */}
+        <ArchifyYield
+          cues={[
+            {at: at('p5-26') - bG.from, durationInFrames: dur('p5-26')},
+            {at: at('p5-27') - bG.from, durationInFrames: dur('p5-27')},
+            {at: at('p5-28') - bG.from, durationInFrames: dur('p5-28')},
+            {at: at('p5-30') - bG.from, durationInFrames: dur('p5-30')},
+          ]}
+        >
+          <Stage>
+            <ConflictHearing at={at('p5-29') - bG.from} />
+            <div style={{marginTop: 26}}>
+              <NumberClash
+                badLabel="按热度自动选"
+                bad="[6,1,2]"
+                goodLabel="人工裁决后"
+                good="[3,1,2]"
+                at={at('p5-30') - bG.from}
+              />
+            </div>
+          </Stage>
+        </ArchifyYield>
+        {/* p5-26→27 跨实例背靠背（同镜）：必须 lead={false}，否则 activate 换图重放
+            入场弹簧；p5-27→28 同实例相邻由 enters 逻辑自动抑制 */}
         <ArchifyRecap
           slug="collect-enrich-activate"
           caption="双轨富化与冲突浮出"
-          variant="inset"
-          cues={[{chapterId: 'enrich', at: at('p5-28') - bG.from, durationInFrames: dur('p5-28')}]}
+          lead={false}
+          cues={[
+            {chapterId: 'activate', at: at('p5-27') - bG.from, durationInFrames: dur('p5-27')},
+            {chapterId: 'enrich', at: at('p5-28') - bG.from, durationInFrames: dur('p5-28')},
+          ]}
         />
         <ArchifyRecap
           slug="component-panorama"
           caption="组件全景 · 供给与出口"
-          variant="inset"
           cues={[
             {chapterId: 'reserved-supply', at: at('p5-26') - bG.from, durationInFrames: dur('p5-26')},
           ]}
@@ -835,7 +885,6 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap
           slug="majority-shortcut"
           caption="多数派近道"
-          variant="inset"
           cues={[
             {chapterId: 'popularity-wins', at: at('p5-30') - bG.from, durationInFrames: dur('p5-30')},
           ]}
@@ -843,32 +892,38 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bH} name="5-H 四因子称重与标准插座">
-        <Stage top={430}>
-          <div style={{display: 'flex', gap: 70, alignItems: 'center'}}>
-            <div style={{textAlign: 'center'}}>
-              <div style={{fontSize: 76}}>⚖️</div>
-              <div style={{fontFamily: theme.sans, fontSize: 26, color: theme.dim, marginTop: 12}}>
-                问询处四因子称重
+        {/* b：p5-31/32 两窗铺满整镜，称重/插座图标让位全程（按既定决策 b 处理） */}
+        <ArchifyYield
+          cues={[
+            {at: at('p5-31') - bH.from, durationInFrames: dur('p5-31')},
+            {at: at('p5-32') - bH.from, durationInFrames: dur('p5-32')},
+          ]}
+        >
+          <Stage>
+            <div style={{display: 'flex', gap: 70, alignItems: 'center'}}>
+              <div style={{textAlign: 'center'}}>
+                <div style={{fontSize: 76}}>⚖️</div>
+                <div style={{fontFamily: theme.sans, fontSize: 26, color: theme.dim, marginTop: 12}}>
+                  问询处四因子称重
+                </div>
+              </div>
+              <div style={{textAlign: 'center'}}>
+                <div style={{fontSize: 76}}>🔌</div>
+                <div style={{fontFamily: theme.sans, fontSize: 26, color: theme.dim, marginTop: 12}}>
+                  标准 MCP 开放接口
+                </div>
               </div>
             </div>
-            <div style={{textAlign: 'center'}}>
-              <div style={{fontSize: 76}}>🔌</div>
-              <div style={{fontFamily: theme.sans, fontSize: 26, color: theme.dim, marginTop: 12}}>
-                标准 MCP 开放接口
-              </div>
-            </div>
-          </div>
-        </Stage>
+          </Stage>
+        </ArchifyYield>
         <ArchifyRecap
           slug="four-factor-ranking"
           caption="四因子信号排序"
-          variant="inset"
           cues={[{chapterId: 'factors', at: at('p5-31') - bH.from, durationInFrames: dur('p5-31')}]}
         />
         <ArchifyRecap
           slug="open-interop"
           caption="受控工具面开放"
-          variant="inset"
           // 与前一实例背靠背占同一位置：跳过入场弹簧，否则 p5-31→32 边界换图弹入
           lead={false}
           cues={[{chapterId: 'socket', at: at('p5-32') - bH.from, durationInFrames: dur('p5-32')}]}

@@ -8,6 +8,7 @@ import {theme} from '../design/theme';
 import {DUR, progress, useStagger} from '../motion';
 import {Panel, SceneTag} from '../components/motifs';
 import {ArchifyRecap} from '../components/ArchifyRecap';
+import {ArchifyYield} from '../components/ArchifyYield';
 import {BuildingSection, PillarHUD, Stage} from '../components/devices';
 
 /** 1-A 记忆条逐日清零。
@@ -144,17 +145,24 @@ export const P1Intern: React.FC<{scene: SceneRange}> = ({scene}) => {
     <AbsoluteFill>
       <Sequence {...bA} name="1-A 失忆实习生记忆条">
         <SceneTag chapter="P1" tagline="每天重新入职的天才" accent={theme.engine} />
-        <Stage top={430}>
-          <MemoryReset
-            clearAts={['p1-03', 'p1-04', 'p1-05', 'p1-06', 'p1-07'].map(
-              (id) => at(id) - bA.from,
-            )}
-          />
-        </Stage>
+        {/* 模式 b：记忆柱攒满/清零是跨句连续状态（clearAts 贯穿 p1-03..07），拆子窗会断相 */}
+        <ArchifyYield
+          cues={[
+            {at: at('p1-02') - bA.from, durationInFrames: dur('p1-02')},
+            {at: at('p1-06') - bA.from, durationInFrames: dur('p1-06')},
+          ]}
+        >
+          <Stage>
+            <MemoryReset
+              clearAts={['p1-03', 'p1-04', 'p1-05', 'p1-06', 'p1-07'].map(
+                (id) => at(id) - bA.from,
+              )}
+            />
+          </Stage>
+        </ArchifyYield>
         <ArchifyRecap
           slug="amnesia-intern"
           caption="失忆实习生"
-          variant="inset"
           cues={[
             {chapterId: 'daily-reset', at: at('p1-02') - bA.from, durationInFrames: dur('p1-02')},
             {chapterId: 'dark-guess', at: at('p1-06') - bA.from, durationInFrames: dur('p1-06')},
@@ -163,19 +171,28 @@ export const P1Intern: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bB} name="1-B 三病灶 + 病因链回放">
-        <Stage top={430}>
-          <ThreeLesions
-            ats={[
-              at('p1-08') - bB.from,
-              at('p1-11') - bB.from,
-              at('p1-14') - bB.from,
-            ]}
-          />
-        </Stage>
+        {/* 模式 b：三病灶面板逐句累积常驻（①p1-08→③p1-14），窗=双实例全部 4 条 cue 窗 */}
+        <ArchifyYield
+          cues={[
+            {at: at('p1-08') - bB.from, durationInFrames: dur('p1-08')},
+            {at: at('p1-09') - bB.from, durationInFrames: dur('p1-09')},
+            {at: at('p1-10') - bB.from, durationInFrames: dur('p1-10')},
+            {at: at('p1-14') - bB.from, durationInFrames: dur('p1-14')},
+          ]}
+        >
+          <Stage>
+            <ThreeLesions
+              ats={[
+                at('p1-08') - bB.from,
+                at('p1-11') - bB.from,
+                at('p1-14') - bB.from,
+              ]}
+            />
+          </Stage>
+        </ArchifyYield>
         <ArchifyRecap
           slug="problem-to-mechanisms"
           caption="病因链与机制对位"
-          variant="inset"
           cues={[
             {chapterId: 'cause-chain', at: at('p1-08') - bB.from, durationInFrames: dur('p1-08')},
             {chapterId: 'encircle-pierce', at: at('p1-14') - bB.from, durationInFrames: dur('p1-14')},
@@ -184,7 +201,6 @@ export const P1Intern: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap
           slug="caliber-clash"
           caption="口径打架"
-          variant="inset"
           lead={false}
           cues={[
             {chapterId: 'twenty-algorithms', at: at('p1-09') - bB.from, durationInFrames: dur('p1-09')},
@@ -215,19 +231,25 @@ export const P1Intern: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bD} name="1-D 带教大厦剖面 + 组件全景">
-        <Stage top={430}>
-          {/* scale 0.75：inset 底边 416 后 Stage 430 的纵向预算收窄，7 层 58.5px 收进 ≤875 */}
-          <BuildingSection at={0} scale={0.75} />
-        </Stage>
         <ArchifyRecap
           slug="component-panorama"
           caption="组件全景 · 四簇"
-          variant="inset"
           cues={[
             {chapterId: 'caliber-spine', at: at('p1-22') - bD.from, durationInFrames: dur('p1-22')},
             {chapterId: 'consumer-feed', at: at('p1-24') - bD.from, durationInFrames: dur('p1-24')},
           ]}
         />
+        {/* 模式 a：cue 锚 p1-22/24，空档句 p1-23 独占——剖面在空档首句重新 mount「登场」 */}
+        <Sequence
+          from={at('p1-23') - bD.from}
+          durationInFrames={dur('p1-23')}
+          name="1-D 大厦剖面（空档句登场）"
+        >
+          {/* scale 1.2：7 层×(78×1.2+4)+36≈719px，自 Stage 顶 150 落至 ~869，不越字幕带 920 */}
+          <Stage>
+            <BuildingSection at={0} scale={1.2} />
+          </Stage>
+        </Sequence>
       </Sequence>
 
       <Sequence {...bE} name="1-E 七格承重列 HUD 首亮">

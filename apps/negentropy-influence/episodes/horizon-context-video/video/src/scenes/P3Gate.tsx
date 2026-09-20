@@ -9,6 +9,7 @@ import {clamp01, DUR, progress, useImpulse, useProgress, useShake, useSpring} fr
 import {NumberedCard, Panel, SceneTag} from '../components/motifs';
 import {CodeWalk, TerminalLog} from '../components/CodeWalk';
 import {ArchifyRecap} from '../components/ArchifyRecap';
+import {ArchifyYield} from '../components/ArchifyYield';
 import {EvidenceBadge, MechZoom, PillarHUD, SplitCompare, Stage} from '../components/devices';
 
 const ROWS = [
@@ -249,6 +250,15 @@ export const P3Gate: React.FC<{scene: SceneRange}> = ({scene}) => {
             </MechZoom>
           </Stage>
         </Sequence>
+        {/* 3-A① 嵌套子窗 p3-01..02 与本 cue(p3-01) 的关系已核对：卡片入场锚在 p3-02，
+            排在 cue 窗外——cue 窗内母图被画框遮、窗尾卸载即「装置登场」 */}
+        <ArchifyRecap
+          slug="evolution-timeline"
+          caption="三阶段演进"
+          cues={[
+            {chapterId: 'stage-governed-enrich', at: at('p3-01') - bA.from, durationInFrames: dur('p3-01')},
+          ]}
+        />
         <ArchifyRecap
           slug="row-column-policy"
           caption="查询期行列级策略"
@@ -260,25 +270,32 @@ export const P3Gate: React.FC<{scene: SceneRange}> = ({scene}) => {
           durationInFrames={dur('p3-04')}
           name="3-A② 逐页验放扫描仪 · 正演一次"
         >
-          <Stage top={360}>
+          <Stage>
             <PageScanner scanAt={0} scanSpan={dur('p3-04')} verdict />
           </Stage>
         </Sequence>
       </Sequence>
 
       <Sequence {...bB} name="3-B 打码扣留与代理识别">
-        <Stage top={430}>
-          <PageScanner
-            scanAt={at('p3-05') - bB.from}
-            scanSpan={DUR.f6}
-            maskAt={at('p3-05') - bB.from}
-            holdAt={at('p3-05') - bB.from + 14}
-          />
-        </Stage>
+        {/* 模式 b：扫描线相位与打码/扣留状态跨句连续（p3-05 起贯穿整镜），拆子窗会断相 */}
+        <ArchifyYield
+          cues={[
+            {at: at('p3-05') - bB.from, durationInFrames: dur('p3-05')},
+            {at: at('p3-07') - bB.from, durationInFrames: dur('p3-07')},
+          ]}
+        >
+          <Stage>
+            <PageScanner
+              scanAt={at('p3-05') - bB.from}
+              scanSpan={DUR.f6}
+              maskAt={at('p3-05') - bB.from}
+              holdAt={at('p3-05') - bB.from + 14}
+            />
+          </Stage>
+        </ArchifyYield>
         <ArchifyRecap
           slug="row-column-policy"
           caption="策略对象族 · 代理严拒面"
-          variant="inset"
           cues={[
             {chapterId: 'family', at: at('p3-05') - bB.from, durationInFrames: dur('p3-05')},
             {chapterId: 'agentface', at: at('p3-07') - bB.from, durationInFrames: dur('p3-07')},
@@ -288,55 +305,84 @@ export const P3Gate: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       <Sequence {...bC} name="3-C 木牌与承重墙">
         <SceneTag chapter="M3" tagline="语义级治理：闸机焊死承重墙" accent={theme.engine} />
-        <Stage top={430}>
-          <SignVsWall
-            at={at('p3-09') - bC.from}
-            bypassAt={at('p3-10') - bC.from}
-            weldAt={at('p3-12') - bC.from}
-            shareAt={at('p3-13') - bC.from}
-          />
-        </Stage>
+        {/* 模式 b：木牌立起→压暗、焊墙、三方共用是贯穿 p3-09..p3-13 的连续演出，
+            嵌套子窗会把「同一个闸机」拆成两次 mount */}
+        <ArchifyYield
+          cues={[
+            {at: at('p3-09') - bC.from, durationInFrames: dur('p3-09')},
+            {at: at('p3-12') - bC.from, durationInFrames: dur('p3-12')},
+          ]}
+        >
+          <Stage>
+            <SignVsWall
+              at={at('p3-09') - bC.from}
+              bypassAt={at('p3-10') - bC.from}
+              weldAt={at('p3-12') - bC.from}
+              shareAt={at('p3-13') - bC.from}
+            />
+          </Stage>
+        </ArchifyYield>
         <ArchifyRecap
           slug="engine-governance"
           caption="语义级治理执行"
-          variant="inset"
           cues={[{chapterId: 'sign-vs-wall', at: at('p3-09') - bC.from, durationInFrames: dur('p3-09')}, {chapterId: 'governed-path', at: at('p3-12') - bC.from, durationInFrames: dur('p3-12')}]}
         />
       </Sequence>
 
       <Sequence {...bD} name="3-D 两种坏法对照台与出门行李标签">
-        <Stage top={430}>
-          <SplitCompare
-            at={at('p3-13a') - bD.from}
-            left={{title: '拆掉验放规则（M2 失效）', body: '人当场看到不该看的明文', tone: theme.danger}}
-            right={{title: '闸机装错地方（M3 失效）', body: '受限口径从别的门静悄悄溜出去', tone: theme.manual}}
-          />
-          <Panel accent={theme.engine} style={{marginTop: 34, padding: '22px 30px', width: 1180}}>
-            <span style={{fontFamily: theme.sans, fontSize: 30, color: theme.text}}>
-              🧳 出门行李标签：数据被共享出楼，策略标签也一路跟着走
-            </span>
-          </Panel>
-        </Stage>
+        {/* 模式 b：对照台 + 行李标签整镜常驻（标签句 p3-13c 即第三条 cue 窗） */}
+        <ArchifyYield
+          cues={[
+            {at: at('p3-13a') - bD.from, durationInFrames: dur('p3-13a')},
+            {at: at('p3-13b') - bD.from, durationInFrames: dur('p3-13b')},
+            {at: at('p3-13c') - bD.from, durationInFrames: dur('p3-13c')},
+          ]}
+        >
+          <Stage>
+            <SplitCompare
+              at={at('p3-13a') - bD.from}
+              left={{title: '拆掉验放规则（M2 失效）', body: '人当场看到不该看的明文', tone: theme.danger}}
+              right={{title: '闸机装错地方（M3 失效）', body: '受限口径从别的门静悄悄溜出去', tone: theme.manual}}
+            />
+            <Panel accent={theme.engine} style={{marginTop: 34, padding: '22px 30px', width: 1180}}>
+              <span style={{fontFamily: theme.sans, fontSize: 30, color: theme.text}}>
+                🧳 出门行李标签：数据被共享出楼，策略标签也一路跟着走
+              </span>
+            </Panel>
+          </Stage>
+        </ArchifyYield>
         <ArchifyRecap
           slug="governance-demolition"
           caption="治理破坏台"
-          variant="inset"
           cues={[
             {chapterId: 'remove-mask', at: at('p3-13a') - bD.from, durationInFrames: dur('p3-13a')},
             {chapterId: 'wrong-placement', at: at('p3-13b') - bD.from, durationInFrames: dur('p3-13b')},
           ]}
         />
+        {/* p3-13b→p3-13c 背靠背：跨实例必须 lead={false}，否则换图重放入场弹簧 */}
+        <ArchifyRecap
+          slug="open-interop"
+          caption="开放互操作"
+          lead={false}
+          cues={[
+            {chapterId: 'portable', at: at('p3-13c') - bD.from, durationInFrames: dur('p3-13c')},
+          ]}
+        />
       </Sequence>
 
       <Sequence {...bE} name="3-E 双层防线剖面">
-        <Stage top={430}>
-          <TwoLayers at={at('p3-15') - bE.from} bumpAt={at('p3-18') - bE.from} />
-        </Stage>
+        {/* 模式 b：第一层 hide 状态从 p3-15 贯穿到镜尾，双层剖面是同一面墙 */}
+        <ArchifyYield
+          cues={[{at: at('p3-16') - bE.from, durationInFrames: dur('p3-16')}]}
+        >
+          <Stage>
+            <TwoLayers at={at('p3-15') - bE.from} bumpAt={at('p3-18') - bE.from} />
+          </Stage>
+        </ArchifyYield>
         <EvidenceBadge grade="lab" at={at('p3-17') - bE.from} />
         <ArchifyRecap
           slug="engine-governance"
           caption="语义级治理"
-          variant="inset"
           cues={[
             {chapterId: 'two-layer-defense', at: at('p3-16') - bE.from, durationInFrames: dur('p3-16')},
           ]}
@@ -344,43 +390,47 @@ export const P3Gate: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bF} name="3-F 代码走廊② 执行层拒绝">
-        <Stage top={430}>
-          <CodeWalk
-            title="M2 执行面 · 查询编译期的 RBAC 拒绝"
-            lines={[
-              'def compile_query(view, metric_name, ..., enforce_rbac=True):',
-              '    if enforce_rbac:',
-              '        if metric.visibility == "PRIVATE" and role not in ALLOWED:',
-              '            raise AccessDenied(f"metric {metric_name} is PRIVATE")',
-            ]}
-            hi={[{line: 1, at: 16, color: theme.engine}, {line: 3, at: 26, color: theme.danger}]}
-            caption="horizon_context_lab.py :378 内 :397"
-            width={1180}
-          />
-          {/* 终端行 = selftest 原文逐字摘录（含前导两空格）；改措辞须同步 narration/source-notes */}
-          <TerminalLog
-            prompt="uv run --no-project python horizon_context_lab.py --selftest"
-            lines={[
-              {
-                text: '  [PASS] C2: RBAC 双层: 检索层对 intern 过滤 plan 建议（["dim_filtered (PRIVATE): [\'plan\']"]，降级总量 {(): 650}）；直闯执行层 → AccessDenied（引擎是最后防线）',
-                color: theme.ok,
-                at: at('p3-20') - bF.from,
-              },
-              {
-                text: '  [PASS] D5: 拆 RBAC → intern 按 plan 拿到 [90,560]（泄露发生）；装回 → blocked',
-                color: theme.danger,
-                bold: true,
-                at: at('p3-21') - bF.from,
-              },
-            ]}
-            width={1180}
-          />
-          <EvidenceBadge grade="lab" top={430} />
-        </Stage>
+        {/* 模式 b：代码走廊阅读面（高亮推进 + 终端逐行）跨句连续，p3-21 仍有 payoff */}
+        <ArchifyYield
+          cues={[{at: at('p3-20') - bF.from, durationInFrames: dur('p3-20')}]}
+        >
+          <Stage>
+            <CodeWalk
+              title="M2 执行面 · 查询编译期的 RBAC 拒绝"
+              lines={[
+                'def compile_query(view, metric_name, ..., enforce_rbac=True):',
+                '    if enforce_rbac:',
+                '        if metric.visibility == "PRIVATE" and role not in ALLOWED:',
+                '            raise AccessDenied(f"metric {metric_name} is PRIVATE")',
+              ]}
+              hi={[{line: 1, at: 16, color: theme.engine}, {line: 3, at: 26, color: theme.danger}]}
+              caption="horizon_context_lab.py :378 内 :397"
+              width={1180}
+            />
+            {/* 终端行 = selftest 原文逐字摘录（含前导两空格）；改措辞须同步 narration/source-notes */}
+            <TerminalLog
+              prompt="uv run --no-project python horizon_context_lab.py --selftest"
+              lines={[
+                {
+                  text: '  [PASS] C2: RBAC 双层: 检索层对 intern 过滤 plan 建议（["dim_filtered (PRIVATE): [\'plan\']"]，降级总量 {(): 650}）；直闯执行层 → AccessDenied（引擎是最后防线）',
+                  color: theme.ok,
+                  at: at('p3-20') - bF.from,
+                },
+                {
+                  text: '  [PASS] D5: 拆 RBAC → intern 按 plan 拿到 [90,560]（泄露发生）；装回 → blocked',
+                  color: theme.danger,
+                  bold: true,
+                  at: at('p3-21') - bF.from,
+                },
+              ]}
+              width={1180}
+            />
+          </Stage>
+        </ArchifyYield>
+        <EvidenceBadge grade="lab" />
         <ArchifyRecap
           slug="governance-demolition"
           caption="治理破坏台"
-          variant="inset"
           cues={[
             {chapterId: 'rbac-ablation', at: at('p3-20') - bF.from, durationInFrames: dur('p3-20')},
           ]}
@@ -388,25 +438,29 @@ export const P3Gate: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bG} name="3-G 编译期安全锁与收束金句">
-        <Stage top={430}>
-          <div
-            style={{
-              fontFamily: theme.serif,
-              fontSize: 58,
-              color: theme.text,
-              textAlign: 'center',
-              lineHeight: 1.45,
-            }}
-          >
-            语义层再灵活，
-            <br />
-            <span style={{color: theme.engine}}>也绝不会成为绕开安全底线的后门</span>
-          </div>
-        </Stage>
+        {/* 模式 b：金句整镜常驻（p3-23 起进入视线），cue 窗淡出、窗尾收回口播收束 */}
+        <ArchifyYield
+          cues={[{at: at('p3-25') - bG.from, durationInFrames: dur('p3-25')}]}
+        >
+          <Stage>
+            <div
+              style={{
+                fontFamily: theme.serif,
+                fontSize: 58,
+                color: theme.text,
+                textAlign: 'center',
+                lineHeight: 1.45,
+              }}
+            >
+              语义层再灵活，
+              <br />
+              <span style={{color: theme.engine}}>也绝不会成为绕开安全底线的后门</span>
+            </div>
+          </Stage>
+        </ArchifyYield>
         <ArchifyRecap
           slug="engine-governance"
           caption="绕行仍被引擎拦截"
-          variant="inset"
           cues={[
             {chapterId: 'bypass-intercepted', at: at('p3-25') - bG.from, durationInFrames: dur('p3-25')},
           ]}

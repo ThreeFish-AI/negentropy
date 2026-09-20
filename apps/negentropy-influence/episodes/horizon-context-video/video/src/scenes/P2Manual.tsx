@@ -9,6 +9,7 @@ import {DUR, progress, useCount, useImpulse, useProgress, useSpring, useStagger}
 import {Panel, SceneTag} from '../components/motifs';
 import {CodeWalk, TerminalLog} from '../components/CodeWalk';
 import {ArchifyRecap} from '../components/ArchifyRecap';
+import {ArchifyYield} from '../components/ArchifyYield';
 import {EvidenceBadge, NumberClash, PillarHUD, Stage} from '../components/devices';
 
 /** 2-A 五段式抽屉柜 */
@@ -217,51 +218,79 @@ export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
     <AbsoluteFill>
       <Sequence {...bA} name="2-A 便利贴到五段式抽屉柜">
         <SceneTag chapter="M1" tagline="规章手册：只印一本且当场套算" accent={theme.manual} />
-        <Stage top={200}>
-          <FiveDrawers />
-        </Stage>
-      </Sequence>
-
-      <Sequence {...bB} name="2-B 代码走廊① 注册校验门">
-        <Stage top={430}>
-          <CodeWalk
-            title="M1 声明相 · 注册期结构校验门"
-            lines={[
-              'def validate_view(view, tables):',
-              '    for r in view.relationships:',
-              '        for c in r.to_cols:',
-              '            if c not in pks.get(r.to_table, set()):   # FK 必须指向 PK/UNIQUE',
-              '                errors.append(f"relationship {r.name}: referenced column "',
-              '                              f"{r.to_table}.{c} is not PRIMARY KEY/UNIQUE")',
-            ]}
-            hi={[
-              {line: 3, at: 18, color: theme.manual},
-              {line: 4, at: 26, color: theme.danger},
-              {line: 5, at: 26, color: theme.danger},
-            ]}
-            caption="horizon_context_lab.py :235"
-            width={1120}
-          />
-          {/* 终端行 = selftest 原文逐字摘录（含前导两空格）；改措辞须同步 narration/source-notes。
-              inset 底边 416 后纵向预算紧，不留 prompt 行（同 5-D 手法） */}
-          <TerminalLog
-            lines={[
-              {
-                text: '  [PASS] D6: 拆结构校验（relationship 指向非键列）→ relationship bad: referenced column customers.plan is not PRIMARY KEY/UNIQUE—— 无门则垃圾定义静默入库（行数失控的注册期引信）',
-                color: theme.ok,
-                bold: true,
-                at: at('p2-07') - bB.from,
-              },
-            ]}
-            width={1120}
-          />
-          {/* top=430：本镜有 inset 画框（y∈[56,416]），默认 44 会被整块压住 */}
-          <EvidenceBadge grade="lab" top={430} />
-        </Stage>
+        {/* 模式 b：五层抽屉入场后常驻（跨句连续状态），cue 窗淡出让位 */}
+        <ArchifyYield
+          cues={[
+            {at: at('p2-03') - bA.from, durationInFrames: dur('p2-03')},
+            {at: at('p2-04') - bA.from, durationInFrames: dur('p2-04')},
+          ]}
+        >
+          <Stage top={200}>
+            <FiveDrawers />
+          </Stage>
+        </ArchifyYield>
+        <ArchifyRecap
+          slug="evolution-timeline"
+          caption="三阶段演进"
+          cues={[
+            {chapterId: 'stage-objects', at: at('p2-03') - bA.from, durationInFrames: dur('p2-03')},
+          ]}
+        />
+        {/* declare 章锚「五段式分工」句（p2-04）；与上图 p2-03 背靠背 → lead={false} */}
         <ArchifyRecap
           slug="declaration-execution"
           caption="声明相 / 执行相"
-          variant="inset"
+          lead={false}
+          cues={[
+            {chapterId: 'declare', at: at('p2-04') - bA.from, durationInFrames: dur('p2-04')},
+          ]}
+        />
+      </Sequence>
+
+      <Sequence {...bB} name="2-B 代码走廊① 注册校验门">
+        {/* 模式 b：CodeWalk 高亮行跨句累积（代码走廊阅读面），cue 窗淡出让位 */}
+        <ArchifyYield
+          cues={[
+            {at: at('p2-07') - bB.from, durationInFrames: dur('p2-07')},
+          ]}
+        >
+          <Stage>
+            <CodeWalk
+              title="M1 声明相 · 注册期结构校验门"
+              lines={[
+                'def validate_view(view, tables):',
+                '    for r in view.relationships:',
+                '        for c in r.to_cols:',
+                '            if c not in pks.get(r.to_table, set()):   # FK 必须指向 PK/UNIQUE',
+                '                errors.append(f"relationship {r.name}: referenced column "',
+                '                              f"{r.to_table}.{c} is not PRIMARY KEY/UNIQUE")',
+              ]}
+              hi={[
+                {line: 3, at: 18, color: theme.manual},
+                {line: 4, at: 26, color: theme.danger},
+                {line: 5, at: 26, color: theme.danger},
+              ]}
+              caption="horizon_context_lab.py :235"
+              width={1120}
+            />
+            {/* 终端行 = selftest 原文逐字摘录（含前导两空格）；改措辞须同步 narration/source-notes */}
+            <TerminalLog
+              lines={[
+                {
+                  text: '  [PASS] D6: 拆结构校验（relationship 指向非键列）→ relationship bad: referenced column customers.plan is not PRIMARY KEY/UNIQUE—— 无门则垃圾定义静默入库（行数失控的注册期引信）',
+                  color: theme.ok,
+                  bold: true,
+                  at: at('p2-07') - bB.from,
+                },
+              ]}
+              width={1120}
+            />
+          </Stage>
+        </ArchifyYield>
+        <EvidenceBadge grade="lab" />
+        <ArchifyRecap
+          slug="declaration-execution"
+          caption="声明相 / 执行相"
           cues={[
             {chapterId: 'gate', at: at('p2-07') - bB.from, durationInFrames: dur('p2-07')},
           ]}
@@ -269,17 +298,21 @@ export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bC} name="2-C 双保险锁">
-        <Stage top={430}>
-          <DoubleLock breakAt={at('p2-09b') - bC.from} />
-        </Stage>
+        {/* 模式 b：断锁翻数是跨句连续状态；p2-09/p2-09b payoff 窗装置可见，仅 p2-09a 让位 */}
+        <ArchifyYield
+          cues={[
+            {at: at('p2-09a') - bC.from, durationInFrames: dur('p2-09a')},
+          ]}
+        >
+          <Stage>
+            <DoubleLock breakAt={at('p2-09b') - bC.from} />
+          </Stage>
+        </ArchifyYield>
         <ArchifyRecap
           slug="declaration-execution"
           caption="口径单点 × 查询期重算"
-          variant="inset"
           cues={[
-            {chapterId: 'declare', at: at('p2-09') - bC.from, durationInFrames: dur('p2-09')},
             {chapterId: 'recompute', at: at('p2-09a') - bC.from, durationInFrames: dur('p2-09a')},
-            {chapterId: 'switch-divergence', at: at('p2-09b') - bC.from, durationInFrames: dur('p2-09b')},
           ]}
         />
       </Sequence>
@@ -305,23 +338,31 @@ export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bE} name="2-E 复印机陷阱">
-        <Stage top={430}>
-          <CopierTrap at={at('p2-15') - bE.from} sumAt={at('p2-17') - bE.from} />
-          <div style={{marginTop: 20}}>
-            <NumberClash
-              badLabel="直接关联求和"
-              bad="440"
-              goodLabel="先聚后联"
-              good="200"
-              at={at('p2-20') - bE.from}
-            />
-          </div>
-          <EvidenceBadge grade="lab" at={at('p2-20') - bE.from} top={430} />
-        </Stage>
+        {/* 模式 b：副本逐张累积 + 爆红计数是跨句连续状态，cue 窗淡出让位 */}
+        <ArchifyYield
+          cues={[
+            {at: at('p2-17') - bE.from, durationInFrames: dur('p2-17')},
+            {at: at('p2-19') - bE.from, durationInFrames: dur('p2-19')},
+            {at: at('p2-20') - bE.from, durationInFrames: dur('p2-20')},
+          ]}
+        >
+          <Stage>
+            <CopierTrap at={at('p2-15') - bE.from} sumAt={at('p2-17') - bE.from} />
+            <div style={{marginTop: 20}}>
+              <NumberClash
+                badLabel="直接关联求和"
+                bad="440"
+                goodLabel="先聚后联"
+                good="200"
+                at={at('p2-20') - bE.from}
+              />
+            </div>
+          </Stage>
+        </ArchifyYield>
+        <EvidenceBadge grade="lab" at={at('p2-20') - bE.from} />
         <ArchifyRecap
           slug="fan-trap"
           caption="复印机陷阱"
-          variant="inset"
           cues={[
             {chapterId: 'copy-inflate', at: at('p2-17') - bE.from, durationInFrames: dur('p2-17')},
             {chapterId: 'aggregate-first', at: at('p2-19') - bE.from, durationInFrames: dur('p2-19')},
@@ -331,16 +372,24 @@ export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bF} name="2-F 去重安全与派生先聚后除">
-        <Stage top={430}>
-          <NumberClash badLabel="不做去重安全" bad="6" goodLabel="按集合去重" good="3" at={at('p2-22') - bF.from} />
-          <div style={{marginTop: 46}}>
-            <AvgScale at={at('p2-24') - bF.from} />
-          </div>
-        </Stage>
+        {/* 模式 b：天平倾斜/幽灵淡化是跨句连续状态，窗=双实例全部 3 条 cue 窗 */}
+        <ArchifyYield
+          cues={[
+            {at: at('p2-22') - bF.from, durationInFrames: dur('p2-22')},
+            {at: at('p2-25') - bF.from, durationInFrames: dur('p2-25')},
+            {at: at('p2-26') - bF.from, durationInFrames: dur('p2-26')},
+          ]}
+        >
+          <Stage>
+            <NumberClash badLabel="不做去重安全" bad="6" goodLabel="按集合去重" good="3" at={at('p2-22') - bF.from} />
+            <div style={{marginTop: 46}}>
+              <AvgScale at={at('p2-24') - bF.from} />
+            </div>
+          </Stage>
+        </ArchifyYield>
         <ArchifyRecap
           slug="dedup-safety"
           caption="去重安全"
-          variant="inset"
           cues={[
             {chapterId: 'set-vs-rows', at: at('p2-22') - bF.from, durationInFrames: dur('p2-22')},
           ]}
@@ -348,7 +397,6 @@ export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap
           slug="mean-of-means"
           caption="平均的平均"
-          variant="inset"
           cues={[
             {chapterId: 'wrong-avg-of-avg', at: at('p2-25') - bF.from, durationInFrames: dur('p2-25')},
             {chapterId: 'measured-122-108', at: at('p2-26') - bF.from, durationInFrames: dur('p2-26')},
@@ -357,21 +405,29 @@ export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bG} name="2-G 半可加末快照与关系消歧">
-        <Stage top={430}>
-          <LastSnapshot at={at('p2-28') - bG.from} clashAt={at('p2-30') - bG.from} />
-          <Panel
-            accent={theme.engine}
-            style={{marginTop: 26, padding: '18px 26px', width: 1020}}
-          >
-            <span style={{fontFamily: theme.sans, fontSize: 26, color: theme.text}}>
-              买家 / 推荐人双路径 → 必须显式声明走哪一条（USING 消歧）
-            </span>
-          </Panel>
-        </Stage>
+        {/* 模式 b：天数条逐根点亮/对撞常驻是跨句连续状态，窗=双实例全部 3 条 cue 窗 */}
+        <ArchifyYield
+          cues={[
+            {at: at('p2-28') - bG.from, durationInFrames: dur('p2-28')},
+            {at: at('p2-30') - bG.from, durationInFrames: dur('p2-30')},
+            {at: at('p2-31') - bG.from, durationInFrames: dur('p2-31')},
+          ]}
+        >
+          <Stage>
+            <LastSnapshot at={at('p2-28') - bG.from} clashAt={at('p2-30') - bG.from} />
+            <Panel
+              accent={theme.engine}
+              style={{marginTop: 26, padding: '18px 26px', width: 1020}}
+            >
+              <span style={{fontFamily: theme.sans, fontSize: 26, color: theme.text}}>
+                买家 / 推荐人双路径 → 必须显式声明走哪一条（USING 消歧）
+              </span>
+            </Panel>
+          </Stage>
+        </ArchifyYield>
         <ArchifyRecap
           slug="last-snapshot-gate"
           caption="末快照"
-          variant="inset"
           cues={[
             {chapterId: 'semi-additive', at: at('p2-28') - bG.from, durationInFrames: dur('p2-28')},
             {chapterId: 'snapshot-vs-sum', at: at('p2-30') - bG.from, durationInFrames: dur('p2-30')},
@@ -380,7 +436,6 @@ export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap
           slug="dual-path-disambiguation"
           caption="关系消歧"
-          variant="inset"
           lead={false}
           cues={[
             {chapterId: 'two-paths', at: at('p2-31') - bG.from, durationInFrames: dur('p2-31')},
@@ -389,26 +444,33 @@ export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bH} name="2-H 题眼金句与手册徽章">
-        <Stage top={430}>
-          <div
-            style={{
-              fontFamily: theme.serif,
-              fontSize: 62,
-              color: theme.text,
-              textAlign: 'center',
-              lineHeight: 1.45,
-            }}
-          >
-            查询在语法上完全正确，
-            <br />
-            <span style={{color: theme.danger}}>业务分析上可能彻底错误</span>
-          </div>
-        </Stage>
+        {/* 模式 b：金句静态常驻，cue 窗淡出让位 */}
+        <ArchifyYield
+          cues={[
+            {at: at('p2-32') - bH.from, durationInFrames: dur('p2-32')},
+            {at: at('p2-33') - bH.from, durationInFrames: dur('p2-33')},
+          ]}
+        >
+          <Stage>
+            <div
+              style={{
+                fontFamily: theme.serif,
+                fontSize: 62,
+                color: theme.text,
+                textAlign: 'center',
+                lineHeight: 1.45,
+              }}
+            >
+              查询在语法上完全正确，
+              <br />
+              <span style={{color: theme.danger}}>业务分析上可能彻底错误</span>
+            </div>
+          </Stage>
+        </ArchifyYield>
         <PillarHUD lit={1} at={at('p2-36') - bH.from} />
         <ArchifyRecap
           slug="valid-sql-wrong-answer"
           caption="语法 × 业务"
-          variant="inset"
           cues={[
             {chapterId: 'syntax-pass', at: at('p2-32') - bH.from, durationInFrames: dur('p2-32')},
             {chapterId: 'business-fail', at: at('p2-33') - bH.from, durationInFrames: dur('p2-33')},

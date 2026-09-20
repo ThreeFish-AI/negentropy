@@ -11,6 +11,7 @@ import {Panel} from '../components/motifs';
 import {BuildingSection, EvidenceBadge, NumberClash, Stage} from '../components/devices';
 import {ARCHIFY} from '../archify.manifest';
 import {ArchifyRecap} from '../components/ArchifyRecap';
+import {ArchifyYield} from '../components/ArchifyYield';
 
 const BOUNDS = [
   '提效数字多来自厂商自家基准，增益端无第三方复现',
@@ -172,22 +173,28 @@ export const P6Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
   return (
     <AbsoluteFill>
       <Sequence {...bA} name="6-A 五道警示栅栏与第一条">
-        <Stage top={430}>
-          <Fences dimmed={1} at={at('p6-03') - bA.from} />
-          <NumberClash
-            badLabel="官方称准确率"
-            bad="86%"
-            goodLabel="独立复测基线"
-            good="21%"
-            at={at('p6-05') - bA.from}
-          />
-        </Stage>
-        {/* top=430：本镜有 inset 画框（y∈[56,416]），默认 44 会被整块压住 */}
-        <EvidenceBadge grade="vendor" at={at('p6-04') - bA.from} top={430} />
+        {/* b：栅栏跨镜常驻（6-B entered 承接），与 6-B 同批回收 top、同批套 wrapper 保像素同位 */}
+        <ArchifyYield
+          cues={[
+            {at: at('p6-05') - bA.from, durationInFrames: dur('p6-05')},
+            {at: at('p6-06') - bA.from, durationInFrames: dur('p6-06')},
+          ]}
+        >
+          <Stage>
+            <Fences dimmed={1} at={at('p6-03') - bA.from} />
+            <NumberClash
+              badLabel="官方称准确率"
+              bad="86%"
+              goodLabel="独立复测基线"
+              good="21%"
+              at={at('p6-05') - bA.from}
+            />
+          </Stage>
+        </ArchifyYield>
+        <EvidenceBadge grade="vendor" at={at('p6-04') - bA.from} />
         <ArchifyRecap
           slug="evidence-grading"
           caption="证据分级"
-          variant="inset"
           cues={[
             {chapterId: 'vendor-claim', at: at('p6-05') - bA.from, durationInFrames: dur('p6-05')},
             {chapterId: 'not-industry-norm', at: at('p6-06') - bA.from, durationInFrames: dur('p6-06')},
@@ -196,26 +203,33 @@ export const P6Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bB} name="6-B 第二三条边界">
-        {/* top=430 与 6-A 同值：栅栏承接 6-A 的像素位置（6-A 的 NumberClash 只占其下方），
+        {/* 默认 top 与 6-A 一致：栅栏承接 6-A 的像素位置（6-A 的 NumberClash 只占其下方），
             6-B 单子项时 Stage 从 paddingTop 起排，故同 top 即同位置 */}
-        <Stage top={430}>
-          {/* entered：承接 6-A 已入场的栅栏，避免 p6-06→07 边界清零重入（压暗走 dimAts） */}
-          <Fences
-            dimmed={1}
-            entered
-            dimAts={[
-              0,
-              at('p6-07') - bB.from,
-              at('p6-08') - bB.from,
-              Number.MAX_SAFE_INTEGER,
-              Number.MAX_SAFE_INTEGER,
-            ]}
-          />
-        </Stage>
+        <ArchifyYield
+          cues={[
+            {at: at('p6-07') - bB.from, durationInFrames: dur('p6-07')},
+            {at: at('p6-08') - bB.from, durationInFrames: dur('p6-08')},
+            {at: at('p6-09') - bB.from, durationInFrames: dur('p6-09')},
+          ]}
+        >
+          <Stage>
+            {/* entered：承接 6-A 已入场的栅栏，避免 p6-06→07 边界清零重入（压暗走 dimAts） */}
+            <Fences
+              dimmed={1}
+              entered
+              dimAts={[
+                0,
+                at('p6-07') - bB.from,
+                at('p6-08') - bB.from,
+                Number.MAX_SAFE_INTEGER,
+                Number.MAX_SAFE_INTEGER,
+              ]}
+            />
+          </Stage>
+        </ArchifyYield>
         <ArchifyRecap
           slug="preview-gap"
           caption="落地鸿沟"
-          variant="inset"
           cues={[
             {chapterId: 'preview-band', at: at('p6-07') - bB.from, durationInFrames: dur('p6-07')},
           ]}
@@ -223,7 +237,6 @@ export const P6Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap
           slug="perimeter-loss"
           caption="安全周界"
-          variant="inset"
           lead={false}
           cues={[
             {chapterId: 'inside-effective', at: at('p6-08') - bB.from, durationInFrames: dur('p6-08')},
@@ -266,7 +279,6 @@ export const P6Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap
           slug="grain-collapse"
           caption="上游塌方"
-          variant="full"
           cues={[
             {chapterId: 'day-pack-collapse', at: at('p6-13') - bC.from, durationInFrames: dur('p6-13')},
             {chapterId: 'legal-but-wrong', at: at('p6-14') - bC.from, durationInFrames: dur('p6-14')},
@@ -276,27 +288,31 @@ export const P6Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bD} name="6-D 第五条边界">
-        <Stage top={430}>
+        {/* habit-not-truth cue 已删、实例随之移除（majority-shortcut 图仍被 P5 引用）：
+            栅栏「整队立起」payoff 在 p6-17 恢复装置可见 */}
+        <Stage>
           <Fences dimmed={5} />
         </Stage>
-        <ArchifyRecap
-          slug="majority-shortcut"
-          caption="多数派近道"
-          variant="inset"
-          cues={[
-            {chapterId: 'habit-not-truth', at: at('p6-17') - bD.from, durationInFrames: dur('p6-17')},
-          ]}
-        />
       </Sequence>
 
       <Sequence {...bE} name="6-E 租来的聪明">
-        <Stage top={200}>
-          <RentedSmart
-            quoteAt={at('p6-20') - bE.from}
-            lineAt={at('p6-21') - bE.from}
-            pullAt={at('p6-22') - bE.from}
-          />
-        </Stage>
+        {/* b：机器人光环/金句/拔线是跨句连续演出，只让位 p6-19 归结窗，payoff 全在窗外 */}
+        <ArchifyYield cues={[{at: at('p6-19') - bE.from, durationInFrames: dur('p6-19')}]}>
+          <Stage top={200}>
+            <RentedSmart
+              quoteAt={at('p6-20') - bE.from}
+              lineAt={at('p6-21') - bE.from}
+              pullAt={at('p6-22') - bE.from}
+            />
+          </Stage>
+        </ArchifyYield>
+        <ArchifyRecap
+          slug="four-factor-ranking"
+          caption="四因子称重"
+          cues={[
+            {chapterId: 'signals', at: at('p6-19') - bE.from, durationInFrames: dur('p6-19')},
+          ]}
+        />
       </Sequence>
 
       <Sequence {...bF} name="6-F 下期钩子与信源卡（渐黑）">
