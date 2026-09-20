@@ -114,11 +114,20 @@ seeded = [
 # 每条 reason 里的「撤销条件」从散文变成机器判据。同类做法：`# type: ignore[code]`
 # 只豁免指定错误码、`eslint-disable-next-line <rule>` 只豁免指定规则。
 # 指纹取法：`uv run --no-project $R/verify_skeleton.py` 会在报告里打印当前值。
+# 合法**退役**（整文件删除、模板仍保留给其他集）钉字面哨兵 `fingerprint = "缺失"`
+# ——与报告里缺失文件的显示值同源；文件以任何内容重现即指纹失配（DRIFT-CHANGED），
+# 是比内容哈希更严的钉法。
 [[drift]]
 episode = "self-improving-agents-video"
 path = "video/src/components/cards.tsx"
 fingerprint = "4bba8c190f21"
 reason = "多一个 ChapterCard（39 行），仅本集 P2Brain.tsx 使用；迁出至 components/chapter.tsx 后可撤销本条"
+
+[[drift]]
+episode = "horizon-context-video"
+path = "video/src/components/cards.tsx"
+fingerprint = "缺失"
+reason = "v6 全屏独占改造（2026-09-20，ISSUE-190）：QuoteCard 系金句卡由 archify 图整镜接管，卡片层整文件退役；同系列与其余集仍在用，模板保留。撤销条件=本集重新需要卡片层时从模板复制回来（届时指纹即失配，须更新本条）"
 
 [[drift]]
 episode = "claude-code-explained-video"

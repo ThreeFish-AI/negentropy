@@ -153,8 +153,14 @@ def test_drift_entries_reference_real_episodes_and_paths():
     slugs = {p.name for p in (INFLUENCE / "episodes").iterdir() if p.is_dir()}
     for d in skel.get("drift", []):
         assert d["episode"] in slugs, f"drift 指向不存在的集：{d['episode']}"
-        assert (INFLUENCE / "episodes" / d["episode"] / d["path"]).is_file(), (
+        # 「缺失」哨兵 = 登记一次合法退役（整文件删除、模板保留给其他集）；
+        # 哈希指纹的条目仍必须指向实存文件，否则就是陈旧豁免
+        is_absent = d.get("fingerprint") == "缺失"
+        assert (
+            is_absent or (INFLUENCE / "episodes" / d["episode"] / d["path"]).is_file()
+        ), (
             f"drift 指向不存在的文件：{d['episode']}/{d['path']}"
+            '（若为合法退役，fingerprint 须钉 "缺失" 哨兵）'
         )
         assert d.get("reason", "").strip(), (
             f"{d['episode']}/{d['path']} 缺 reason —— 逃逸口必须被记录，"
@@ -162,7 +168,7 @@ def test_drift_entries_reference_real_episodes_and_paths():
         )
         # 机制上允许缺 fingerprint（向前兼容），但策略上不允许：不钉指纹的豁免
         # 等于「该文件从此永久免检」，包括与 reason 无关的后续改动。
-        assert len(d.get("fingerprint", "")) == 12, (
+        assert len(d.get("fingerprint", "")) == 12 or is_absent, (
             f"{d['episode']}/{d['path']} 缺 12 位 fingerprint —— 未钉指纹的豁免"
             "会把该文件此后的任何漂移一并放行；当前值可从 verify_skeleton.py 报告里取"
         )
