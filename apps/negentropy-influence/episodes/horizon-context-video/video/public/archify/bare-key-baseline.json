@@ -1,0 +1,91 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.12,
+ "story_sec": 11.04,
+ "total_wall_sec": 46.95,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "whole-key",
+   "label": "整库钥匙直连",
+   "index": 0,
+   "file": "bare-key-baseline--whole-key.mp4",
+   "end_still": "bare-key-baseline--whole-key-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.12,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.205
+   ],
+   "beat_nodes": [
+    "keyHandover",
+    "bareAgent",
+    "rawTable"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 22.0
+  },
+  {
+   "id": "blind-wrong",
+   "label": "认得出答不对",
+   "index": 1,
+   "file": "bare-key-baseline--blind-wrong.mp4",
+   "end_still": "bare-key-baseline--blind-wrong-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.16,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "rawTable",
+    "wrongAnswer"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 23.0
+  },
+  {
+   "id": "baseline-two",
+   "label": "两成多双口径对撞",
+   "index": 2,
+   "file": "bare-key-baseline--baseline-two.mp4",
+   "end_still": "bare-key-baseline--baseline-two-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.16,
+   "story_sec": 4.45,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.207,
+    3.311
+   ],
+   "beat_nodes": [
+    "wrongAnswer",
+    "vendorBench",
+    "thirdPartyBench",
+    "sameOrder"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 23.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/bangalore-v3/docs/assets/architecture/cognitive-context/horizon-context--bare-key-baseline.html",
+ "slug": "bare-key-baseline"
+}

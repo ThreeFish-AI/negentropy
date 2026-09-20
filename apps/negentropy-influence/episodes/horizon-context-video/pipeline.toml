@@ -27,7 +27,10 @@ ref_sha1 = "54b699cce97f"
 style = "sunny-steady"
 
 [archify]
-# 过渡豁免（2026-09-19 覆盖门上线时 P0/P6 整幕零锚——扩产工程进行中）：
-# 扩产完成后删除本节并写入定稿阈值（min_diagrams = 28 / min_cues = 58 /
-# min_anchor_ratio = 0.30 / min_chapter_ratio = 0.70），豁免必须可见、必须可追溯。
-exempt_scenes = ["P0", "P6"]
+# 扩产定稿（2026-09-20，数字来自覆盖门输出回填）：14 图 → 33 图（2.36×）、
+# 29 cue → 73 cue（2.52×）、锚定率 15.5% → 39.0%、被引用章比 84.9%。
+# 阈值即验收声明：低于此线说明图例覆盖回退，覆盖门直接红。
+min_diagrams = 28
+min_cues = 58
+min_anchor_ratio = 0.30
+min_chapter_ratio = 0.70

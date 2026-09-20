@@ -600,6 +600,11 @@ def record_chapters(browser, page_src, tmp, out_dir, slug, views, a) -> dict:
         if use_cdp:
             recorder = CdpRecorder(tmpvid / "frames", a.scale)
             recorder.start(ctx, page)
+            # 先泵 300ms 再打场记板：startScreencast 的激活与白闪渲染存在竞态，
+            # 首帧若晚于白闪到达，整段视频就没有零点标记（实测 19/86 章白闪丢失）。
+            # 预滚保证白闪落在已确认在流的中段，lead 测定不再依赖运气。
+            page.wait_for_timeout(300)
+            recorder.ack_pending()
         clapper(page)
         t_play = time.time()
         page.evaluate("() => Archify.guidedViews.playCurrent()")

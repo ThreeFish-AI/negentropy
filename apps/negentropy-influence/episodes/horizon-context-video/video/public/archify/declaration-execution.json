@@ -1,9 +1,9 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 1.8,
- "story_sec": 13.25,
- "total_wall_sec": 31.17,
+ "lead_sec": 0.12,
+ "story_sec": 17.82,
+ "total_wall_sec": 72.59,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -12,18 +12,18 @@
    "id": "declare",
    "label": "五段式声明",
    "index": 0,
-   "file": "declaration-execution--declare.webm",
+   "file": "declaration-execution--declare.mp4",
    "end_still": "declaration-execution--declare-end.png",
    "beats": 5,
    "dwell_ms": 1100,
-   "lead_sec": 1.8,
-   "story_sec": 5.53,
+   "lead_sec": 0.12,
+   "story_sec": 5.55,
    "beat_offsets_sec": [
     0.0,
-    1.102,
+    1.103,
     2.205,
-    3.309,
-    4.414
+    3.308,
+    4.411
    ],
    "beat_nodes": [
     "tables",
@@ -32,45 +32,47 @@
     "metrics",
     "fivePart"
    ],
-   "measured_fps": 25.0
+   "measured_fps": 25.0,
+   "capture_fps": 23.0
   },
   {
    "id": "gate",
    "label": "注册期结构校验门",
    "index": 1,
-   "file": "declaration-execution--gate.webm",
+   "file": "declaration-execution--gate.mp4",
    "end_still": "declaration-execution--gate-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 1.76,
-   "story_sec": 3.31,
+   "lead_sec": 0.12,
+   "story_sec": 3.35,
    "beat_offsets_sec": [
     0.0,
-    1.102,
-    2.205
+    1.104,
+    2.207
    ],
    "beat_nodes": [
     "fivePart",
     "gate",
     "reject"
    ],
-   "measured_fps": 25.0
+   "measured_fps": 25.0,
+   "capture_fps": 23.0
   },
   {
    "id": "recompute",
    "label": "查询期按 grain 重算",
    "index": 2,
-   "file": "declaration-execution--recompute.webm",
+   "file": "declaration-execution--recompute.mp4",
    "end_still": "declaration-execution--recompute-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 1.76,
-   "story_sec": 4.41,
+   "lead_sec": 0.16,
+   "story_sec": 4.46,
    "beat_offsets_sec": [
     0.0,
-    1.102,
-    2.204,
-    3.308
+    1.103,
+    2.207,
+    3.311
    ],
    "beat_nodes": [
     "rbac",
@@ -78,9 +80,43 @@
     "result",
     "denied"
    ],
-   "measured_fps": 25.0
+   "measured_fps": 25.0,
+   "capture_fps": 23.0
+  },
+  {
+   "id": "switch-divergence",
+   "label": "执行开关分化",
+   "index": 3,
+   "file": "declaration-execution--switch-divergence.mp4",
+   "end_still": "declaration-execution--switch-divergence-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.12,
+   "story_sec": 4.46,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.206,
+    3.311
+   ],
+   "beat_nodes": [
+    "fivePart",
+    "rbac",
+    "agg",
+    "result"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 23.0
   }
  ],
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/osaka-v2/docs/assets/architecture/cognitive-context/horizon-context--declaration-execution.html",
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/bangalore-v3/docs/assets/architecture/cognitive-context/horizon-context--declaration-execution.html",
  "slug": "declaration-execution"
 }

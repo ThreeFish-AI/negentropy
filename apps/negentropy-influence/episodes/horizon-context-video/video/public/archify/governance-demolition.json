@@ -1,0 +1,89 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 10.87,
+ "total_wall_sec": 51.59,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "remove-mask",
+   "label": "坏法① 拆验放规则",
+   "index": 0,
+   "file": "governance-demolition--remove-mask.mp4",
+   "end_still": "governance-demolition--remove-mask-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "removeMask",
+    "plainLeak"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 22.0
+  },
+  {
+   "id": "wrong-placement",
+   "label": "坏法② 闸机装错位",
+   "index": 1,
+   "file": "governance-demolition--wrong-placement.mp4",
+   "end_still": "governance-demolition--wrong-placement-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.21,
+   "beat_offsets_sec": [
+    0.0,
+    1.605
+   ],
+   "beat_nodes": [
+    "wrongGate",
+    "silentLeak"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 22.0
+  },
+  {
+   "id": "rbac-ablation",
+   "label": "坏法③ D5 泄露对照",
+   "index": 2,
+   "file": "governance-demolition--rbac-ablation.mp4",
+   "end_still": "governance-demolition--rbac-ablation-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.44,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.206,
+    3.31
+   ],
+   "beat_nodes": [
+    "internProbe",
+    "accessDenied",
+    "sensitiveLeak",
+    "verdict"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 22.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/bangalore-v3/docs/assets/architecture/cognitive-context/horizon-context--governance-demolition.html",
+ "slug": "governance-demolition"
+}

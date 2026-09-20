@@ -1,0 +1,93 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.16,
+ "story_sec": 12.14,
+ "total_wall_sec": 50.76,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "three-dashboards",
+   "label": "三看板三种数",
+   "index": 0,
+   "file": "caliber-clash--three-dashboards.mp4",
+   "end_still": "caliber-clash--three-dashboards-end.png",
+   "beats": 5,
+   "dwell_ms": 1100,
+   "lead_sec": 0.16,
+   "story_sec": 5.55,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.207,
+    3.31,
+    4.415
+   ],
+   "beat_nodes": [
+    "netRevenue",
+    "salesBoard",
+    "finBoard",
+    "opsBoard",
+    "clash"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 43.0
+  },
+  {
+   "id": "twenty-algorithms",
+   "label": "二十看板二十算法",
+   "index": 1,
+   "file": "caliber-clash--twenty-algorithms.mp4",
+   "end_still": "caliber-clash--twenty-algorithms-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.12,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "spread",
+    "netRevenue"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 43.0
+  },
+  {
+   "id": "owners-clash",
+   "label": "主管对账对不上",
+   "index": 2,
+   "file": "caliber-clash--owners-clash.mp4",
+   "end_still": "caliber-clash--owners-clash-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.16,
+   "story_sec": 3.33,
+   "beat_offsets_sec": [
+    0.0,
+    1.107,
+    2.213
+   ],
+   "beat_nodes": [
+    "clash",
+    "salesLead",
+    "cfoLead"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 44.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/bangalore-v3/docs/assets/architecture/cognitive-context/horizon-context--caliber-clash.html",
+ "slug": "caliber-clash"
+}

@@ -144,13 +144,22 @@ export const P1Intern: React.FC<{scene: SceneRange}> = ({scene}) => {
     <AbsoluteFill>
       <Sequence {...bA} name="1-A 失忆实习生记忆条">
         <SceneTag chapter="P1" tagline="每天重新入职的天才" accent={theme.engine} />
-        <Stage top={280}>
+        <Stage top={430}>
           <MemoryReset
             clearAts={['p1-03', 'p1-04', 'p1-05', 'p1-06', 'p1-07'].map(
               (id) => at(id) - bA.from,
             )}
           />
         </Stage>
+        <ArchifyRecap
+          slug="amnesia-intern"
+          caption="失忆实习生"
+          variant="inset"
+          cues={[
+            {chapterId: 'daily-reset', at: at('p1-02') - bA.from, durationInFrames: dur('p1-02')},
+            {chapterId: 'dark-guess', at: at('p1-06') - bA.from, durationInFrames: dur('p1-06')},
+          ]}
+        />
       </Sequence>
 
       <Sequence {...bB} name="1-B 三病灶 + 病因链回放">
@@ -170,6 +179,16 @@ export const P1Intern: React.FC<{scene: SceneRange}> = ({scene}) => {
           cues={[
             {chapterId: 'cause-chain', at: at('p1-08') - bB.from, durationInFrames: dur('p1-08')},
             {chapterId: 'encircle-pierce', at: at('p1-14') - bB.from, durationInFrames: dur('p1-14')},
+          ]}
+        />
+        <ArchifyRecap
+          slug="caliber-clash"
+          caption="口径打架"
+          variant="inset"
+          lead={false}
+          cues={[
+            {chapterId: 'twenty-algorithms', at: at('p1-09') - bB.from, durationInFrames: dur('p1-09')},
+            {chapterId: 'owners-clash', at: at('p1-10') - bB.from, durationInFrames: dur('p1-10')},
           ]}
         />
       </Sequence>

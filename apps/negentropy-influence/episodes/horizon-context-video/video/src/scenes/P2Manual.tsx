@@ -279,6 +279,7 @@ export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
           cues={[
             {chapterId: 'declare', at: at('p2-09') - bC.from, durationInFrames: dur('p2-09')},
             {chapterId: 'recompute', at: at('p2-09a') - bC.from, durationInFrames: dur('p2-09a')},
+            {chapterId: 'switch-divergence', at: at('p2-09b') - bC.from, durationInFrames: dur('p2-09b')},
           ]}
         />
       </Sequence>
@@ -304,7 +305,7 @@ export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bE} name="2-E 复印机陷阱">
-        <Stage top={230}>
+        <Stage top={430}>
           <CopierTrap at={at('p2-15') - bE.from} sumAt={at('p2-17') - bE.from} />
           <div style={{marginTop: 20}}>
             <NumberClash
@@ -317,19 +318,46 @@ export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
           </div>
           <EvidenceBadge grade="lab" at={at('p2-20') - bE.from} />
         </Stage>
+        <ArchifyRecap
+          slug="fan-trap"
+          caption="复印机陷阱"
+          variant="inset"
+          cues={[
+            {chapterId: 'copy-inflate', at: at('p2-17') - bE.from, durationInFrames: dur('p2-17')},
+            {chapterId: 'aggregate-first', at: at('p2-19') - bE.from, durationInFrames: dur('p2-19')},
+            {chapterId: 'measured-440', at: at('p2-20') - bE.from, durationInFrames: dur('p2-20')},
+          ]}
+        />
       </Sequence>
 
       <Sequence {...bF} name="2-F 去重安全与派生先聚后除">
-        <Stage top={230}>
+        <Stage top={430}>
           <NumberClash badLabel="不做去重安全" bad="6" goodLabel="按集合去重" good="3" at={at('p2-22') - bF.from} />
           <div style={{marginTop: 46}}>
             <AvgScale at={at('p2-24') - bF.from} />
           </div>
         </Stage>
+        <ArchifyRecap
+          slug="dedup-safety"
+          caption="去重安全"
+          variant="inset"
+          cues={[
+            {chapterId: 'set-vs-rows', at: at('p2-22') - bF.from, durationInFrames: dur('p2-22')},
+          ]}
+        />
+        <ArchifyRecap
+          slug="mean-of-means"
+          caption="平均的平均"
+          variant="inset"
+          cues={[
+            {chapterId: 'wrong-avg-of-avg', at: at('p2-25') - bF.from, durationInFrames: dur('p2-25')},
+            {chapterId: 'measured-122-108', at: at('p2-26') - bF.from, durationInFrames: dur('p2-26')},
+          ]}
+        />
       </Sequence>
 
       <Sequence {...bG} name="2-G 半可加末快照与关系消歧">
-        <Stage top={220}>
+        <Stage top={430}>
           <LastSnapshot at={at('p2-28') - bG.from} clashAt={at('p2-30') - bG.from} />
           <Panel
             accent={theme.engine}
@@ -340,10 +368,28 @@ export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
             </span>
           </Panel>
         </Stage>
+        <ArchifyRecap
+          slug="last-snapshot-gate"
+          caption="末快照"
+          variant="inset"
+          cues={[
+            {chapterId: 'semi-additive', at: at('p2-28') - bG.from, durationInFrames: dur('p2-28')},
+            {chapterId: 'snapshot-vs-sum', at: at('p2-30') - bG.from, durationInFrames: dur('p2-30')},
+          ]}
+        />
+        <ArchifyRecap
+          slug="dual-path-disambiguation"
+          caption="关系消歧"
+          variant="inset"
+          lead={false}
+          cues={[
+            {chapterId: 'two-paths', at: at('p2-31') - bG.from, durationInFrames: dur('p2-31')},
+          ]}
+        />
       </Sequence>
 
       <Sequence {...bH} name="2-H 题眼金句与手册徽章">
-        <Stage top={330}>
+        <Stage top={430}>
           <div
             style={{
               fontFamily: theme.serif,
@@ -359,6 +405,15 @@ export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
           </div>
         </Stage>
         <PillarHUD lit={1} at={at('p2-36') - bH.from} />
+        <ArchifyRecap
+          slug="valid-sql-wrong-answer"
+          caption="语法 × 业务"
+          variant="inset"
+          cues={[
+            {chapterId: 'syntax-pass', at: at('p2-32') - bH.from, durationInFrames: dur('p2-32')},
+            {chapterId: 'business-fail', at: at('p2-33') - bH.from, durationInFrames: dur('p2-33')},
+          ]}
+        />
       </Sequence>
     </AbsoluteFill>
   );

@@ -624,6 +624,15 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
           caption="权限天花板只减不增"
           cues={[{chapterId: 'ceiling', at: at('p5-03') - bA.from, durationInFrames: dur('p5-03')}]}
         />
+        <ArchifyRecap
+          slug="injection-threat"
+          caption="万能钥匙威胁"
+          variant="inset"
+          cues={[
+            {chapterId: 'badge-question', at: at('p5-01') - bA.from, durationInFrames: dur('p5-01')},
+            {chapterId: 'master-key', at: at('p5-02') - bA.from, durationInFrames: dur('p5-02')},
+          ]}
+        />
       </Sequence>
 
       <Sequence {...bB} name="5-B 权限交集环与刷卡审计">
@@ -662,7 +671,7 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bD} name="5-D 双钟对照与代码走廊④">
-        <Stage top={180}>
+        <Stage top={430}>
           <TwoClocks revokeAt={at('p5-13') - bD.from} />
           <CodeWalk
             title="M6 天花板 · 查询期实时求值（非登录期快照）"
@@ -691,6 +700,14 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
           />
           <EvidenceBadge grade="lab" />
         </Stage>
+        <ArchifyRecap
+          slug="agent-identity"
+          caption="工牌双钟"
+          variant="inset"
+          cues={[
+            {chapterId: 'snapshot-vs-live', at: at('p5-13') - bD.from, durationInFrames: dur('p5-13')},
+          ]}
+        />
       </Sequence>
 
       <Sequence {...bE} name="5-E 自动贴标流水线">
@@ -738,6 +755,14 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
           slug="classification-tagging"
           caption="发现 → 标记 → 执行"
           cues={[{chapterId: 'tag-driven', at: at('p5-19') - bE.from, durationInFrames: dur('p5-19')}]}
+        />
+        <ArchifyRecap
+          slug="supply-overwhelm"
+          caption="纳管缺口"
+          variant="inset"
+          cues={[
+            {chapterId: 'flood-vs-manual', at: at('p5-17') - bE.from, durationInFrames: dur('p5-17')},
+          ]}
         />
       </Sequence>
 
@@ -798,6 +823,22 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
           caption="双轨富化与冲突浮出"
           variant="inset"
           cues={[{chapterId: 'enrich', at: at('p5-28') - bG.from, durationInFrames: dur('p5-28')}]}
+        />
+        <ArchifyRecap
+          slug="component-panorama"
+          caption="组件全景 · 供给与出口"
+          variant="inset"
+          cues={[
+            {chapterId: 'reserved-supply', at: at('p5-26') - bG.from, durationInFrames: dur('p5-26')},
+          ]}
+        />
+        <ArchifyRecap
+          slug="majority-shortcut"
+          caption="多数派近道"
+          variant="inset"
+          cues={[
+            {chapterId: 'popularity-wins', at: at('p5-30') - bG.from, durationInFrames: dur('p5-30')},
+          ]}
         />
       </Sequence>
 

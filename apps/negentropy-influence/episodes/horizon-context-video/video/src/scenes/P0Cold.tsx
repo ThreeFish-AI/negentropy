@@ -8,6 +8,7 @@ import {theme} from '../design/theme';
 import {DUR, useBreathe, useDraw, useImpulse, useProgress, useReveal, useSpring, useStagger} from '../motion';
 import {Panel} from '../components/motifs';
 import {EvidenceBadge, Stage} from '../components/devices';
+import {ArchifyRecap} from '../components/ArchifyRecap';
 
 const COLS = [
   'amt_ttl_pre_dsc', 'cust_seg_cd', 'ord_dt_key', 'rev_net_adj', 'qty_shp_uom',
@@ -174,6 +175,7 @@ const TitleCard: React.FC = () => {
 export const P0Cold: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (a: string, b?: string) => beatWindow(scene.sentences, scene.from, a, b);
   const at = (id: string) => w(id).from;
+  const dur = (a: string, b?: string) => w(a, b).durationInFrames;
   const bA = w('p0-01', 'p0-03');
   const bB = w('p0-04', 'p0-06');
   const bC = w('p0-07', 'p0-08');
@@ -181,10 +183,20 @@ export const P0Cold: React.FC<{scene: SceneRange}> = ({scene}) => {
   return (
     <AbsoluteFill>
       <Sequence {...bA} name="0-A 终端问答翻红叉">
-        <Stage>
+        <Stage top={430}>
           <TerminalAsk flipAt={at('p0-03') - bA.from} />
-          <EvidenceBadge grade="vendor" at={at('p0-03') - bA.from} />
+          <EvidenceBadge grade="vendor" at={at('p0-03') - bA.from} top={430} />
         </Stage>
+        <ArchifyRecap
+          slug="bare-key-baseline"
+          caption="裸库基线"
+          variant="inset"
+          cues={[
+            {chapterId: 'whole-key', at: at('p0-01') - bA.from, durationInFrames: dur('p0-01')},
+            {chapterId: 'blind-wrong', at: at('p0-02') - bA.from, durationInFrames: dur('p0-02')},
+            {chapterId: 'baseline-two', at: at('p0-03') - bA.from, durationInFrames: dur('p0-03')},
+          ]}
+        />
       </Sequence>
       <Sequence {...bB} name="0-B 乱码列名墙">
         <Stage>
@@ -192,9 +204,17 @@ export const P0Cold: React.FC<{scene: SceneRange}> = ({scene}) => {
         </Stage>
       </Sequence>
       <Sequence {...bC} name="0-C 净收入三算法对撞">
-        <Stage>
+        <Stage top={430}>
           <ThreeDefs hitAt={at('p0-08') - bC.from} />
         </Stage>
+        <ArchifyRecap
+          slug="caliber-clash"
+          caption="口径打架"
+          variant="inset"
+          cues={[
+            {chapterId: 'three-dashboards', at: at('p0-08') - bC.from, durationInFrames: dur('p0-08')},
+          ]}
+        />
       </Sequence>
       <Sequence {...bD} name="0-D 片名卡">
         <Stage top={340}>

@@ -1,9 +1,9 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 1.76,
- "story_sec": 12.19,
- "total_wall_sec": 26.81,
+ "lead_sec": 0.44,
+ "story_sec": 12.23,
+ "total_wall_sec": 43.91,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -12,17 +12,17 @@
    "id": "collect",
    "label": "三路元数据汇聚",
    "index": 0,
-   "file": "collect-enrich-activate--collect.webm",
+   "file": "collect-enrich-activate--collect.mp4",
    "end_still": "collect-enrich-activate--collect-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 1.76,
+   "lead_sec": 0.44,
    "story_sec": 4.43,
    "beat_offsets_sec": [
     0.0,
-    1.103,
-    2.21,
-    3.313
+    1.105,
+    2.211,
+    3.318
    ],
    "beat_nodes": [
     "s1",
@@ -30,18 +30,19 @@
     "s3",
     "c"
    ],
-   "measured_fps": 25.0
+   "measured_fps": 25.0,
+   "capture_fps": 40.0
   },
   {
    "id": "enrich",
    "label": "双轨富化与冲突浮出",
    "index": 1,
-   "file": "collect-enrich-activate--enrich.webm",
+   "file": "collect-enrich-activate--enrich.mp4",
    "end_still": "collect-enrich-activate--enrich-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 1.76,
-   "story_sec": 3.33,
+   "lead_sec": 0.44,
+   "story_sec": 3.38,
    "beat_offsets_sec": [
     0.0,
     1.107,
@@ -52,23 +53,24 @@
     "g",
     "i"
    ],
-   "measured_fps": 25.0
+   "measured_fps": 25.0,
+   "capture_fps": 42.0
   },
   {
    "id": "activate",
    "label": "排序后激活",
    "index": 2,
-   "file": "collect-enrich-activate--activate.webm",
+   "file": "collect-enrich-activate--activate.mp4",
    "end_still": "collect-enrich-activate--activate-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 1.8,
-   "story_sec": 4.43,
+   "lead_sec": 0.44,
+   "story_sec": 4.42,
    "beat_offsets_sec": [
     0.0,
-    1.106,
-    2.21,
-    3.312
+    1.103,
+    2.209,
+    3.316
    ],
    "beat_nodes": [
     "r",
@@ -76,9 +78,18 @@
     "a2",
     "a3"
    ],
-   "measured_fps": 25.0
+   "measured_fps": 25.0,
+   "capture_fps": 41.0
   }
  ],
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/osaka-v2/docs/assets/architecture/cognitive-context/horizon-context--collect-enrich-activate.html",
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/bangalore-v3/docs/assets/architecture/cognitive-context/horizon-context--collect-enrich-activate.html",
  "slug": "collect-enrich-activate"
 }

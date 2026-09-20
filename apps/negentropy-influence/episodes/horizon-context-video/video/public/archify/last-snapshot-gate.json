@@ -1,0 +1,68 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 7.68,
+ "total_wall_sec": 35.4,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "semi-additive",
+   "label": "半可加：跨账户 vs 跨时间",
+   "index": 0,
+   "file": "last-snapshot-gate--semi-additive.mp4",
+   "end_still": "last-snapshot-gate--semi-additive-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "weekGrid",
+    "semiNote"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 21.0
+  },
+  {
+   "id": "snapshot-vs-sum",
+   "label": "末快照 7 vs 求和 24",
+   "index": 1,
+   "file": "last-snapshot-gate--snapshot-vs-sum.mp4",
+   "end_still": "last-snapshot-gate--snapshot-vs-sum-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.46,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.207,
+    3.31
+   ],
+   "beat_nodes": [
+    "daySum",
+    "inflated24",
+    "lastSnap",
+    "exact7"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 22.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/bangalore-v3/docs/assets/architecture/cognitive-context/horizon-context--last-snapshot-gate.html",
+ "slug": "last-snapshot-gate"
+}

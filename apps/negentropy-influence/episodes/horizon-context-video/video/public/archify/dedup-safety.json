@@ -1,0 +1,49 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.12,
+ "story_sec": 5.57,
+ "total_wall_sec": 19.71,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "set-vs-rows",
+   "label": "数集合 vs 数物理行",
+   "index": 0,
+   "file": "dedup-safety--set-vs-rows.mp4",
+   "end_still": "dedup-safety--set-vs-rows-end.png",
+   "beats": 5,
+   "dwell_ms": 1100,
+   "lead_sec": 0.12,
+   "story_sec": 5.57,
+   "beat_offsets_sec": [
+    0.0,
+    1.101,
+    2.205,
+    3.306,
+    4.41
+   ],
+   "beat_nodes": [
+    "eventRows",
+    "naiveCount",
+    "wrong6",
+    "dedupSafety",
+    "right3"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 22.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/bangalore-v3/docs/assets/architecture/cognitive-context/horizon-context--dedup-safety.html",
+ "slug": "dedup-safety"
+}
