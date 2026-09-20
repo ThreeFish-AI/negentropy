@@ -1,9 +1,9 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 1.76,
- "story_sec": 18.79,
- "total_wall_sec": 34.42,
+ "lead_sec": 0.16,
+ "story_sec": 18.83,
+ "total_wall_sec": 53.23,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -12,17 +12,17 @@
    "id": "caliber-spine",
    "label": "口径主线",
    "index": 0,
-   "file": "component-panorama--caliber-spine.webm",
+   "file": "component-panorama--caliber-spine.mp4",
    "end_still": "component-panorama--caliber-spine-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 1.76,
+   "lead_sec": 0.16,
    "story_sec": 4.41,
    "beat_offsets_sec": [
     0.0,
     1.102,
-    2.204,
-    3.308
+    2.205,
+    3.307
    ],
    "beat_nodes": [
     "ap",
@@ -30,25 +30,26 @@
     "gov",
     "pol"
    ],
-   "measured_fps": 25.0
+   "measured_fps": 25.0,
+   "capture_fps": 22.0
   },
   {
    "id": "consumer-feed",
    "label": "消费端五路汇入",
    "index": 1,
-   "file": "component-panorama--consumer-feed.webm",
+   "file": "component-panorama--consumer-feed.mp4",
    "end_still": "component-panorama--consumer-feed-end.png",
    "beats": 6,
    "dwell_ms": 1100,
-   "lead_sec": 1.76,
-   "story_sec": 6.63,
+   "lead_sec": 0.12,
+   "story_sec": 6.66,
    "beat_offsets_sec": [
     0.0,
-    1.102,
-    2.206,
-    3.309,
+    1.103,
+    2.207,
+    3.31,
     4.414,
-    5.516
+    5.518
    ],
    "beat_nodes": [
     "vqr",
@@ -58,26 +59,27 @@
     "grd",
     "agents"
    ],
-   "measured_fps": 25.0
+   "measured_fps": 25.0,
+   "capture_fps": 23.0
   },
   {
    "id": "reserved-supply",
    "label": "降级保留区",
    "index": 2,
-   "file": "component-panorama--reserved-supply.webm",
+   "file": "component-panorama--reserved-supply.mp4",
    "end_still": "component-panorama--reserved-supply-end.png",
    "beats": 7,
    "dwell_ms": 1100,
-   "lead_sec": 1.76,
-   "story_sec": 7.75,
+   "lead_sec": 0.12,
+   "story_sec": 7.76,
    "beat_offsets_sec": [
     0.0,
-    1.104,
-    2.207,
+    1.101,
+    2.205,
     3.308,
-    4.41,
-    5.514,
-    6.618
+    4.411,
+    5.513,
+    6.616
    ],
    "beat_nodes": [
     "ap",
@@ -88,9 +90,18 @@
     "ada",
     "grd"
    ],
-   "measured_fps": 25.0
+   "measured_fps": 25.0,
+   "capture_fps": 23.0
   }
  ],
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/osaka-v2/docs/assets/architecture/cognitive-context/horizon-context--component-panorama.html",
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/bangalore-v3/docs/assets/architecture/cognitive-context/horizon-context--component-panorama.html",
  "slug": "component-panorama"
 }

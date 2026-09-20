@@ -624,10 +624,19 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
           caption="权限天花板只减不增"
           cues={[{chapterId: 'ceiling', at: at('p5-03') - bA.from, durationInFrames: dur('p5-03')}]}
         />
+        <ArchifyRecap
+          slug="injection-threat"
+          caption="万能钥匙威胁"
+          variant="inset"
+          cues={[
+            {chapterId: 'badge-question', at: at('p5-01') - bA.from, durationInFrames: dur('p5-01')},
+            {chapterId: 'master-key', at: at('p5-02') - bA.from, durationInFrames: dur('p5-02')},
+          ]}
+        />
       </Sequence>
 
       <Sequence {...bB} name="5-B 权限交集环与刷卡审计">
-        <Stage top={380}>
+        <Stage top={430}>
           <PermIntersect
             at={at('p5-05') - bB.from}
             narrowAt={at('p5-06') - bB.from}
@@ -644,7 +653,7 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bC} name="5-C 回指 P3 的代理识别灯">
-        <Stage top={400}>
+        <Stage top={430}>
           <Panel accent={theme.engine} style={{padding: '30px 40px', width: 1080}}>
             <div style={{fontFamily: theme.sans, fontSize: 34, color: theme.text, textAlign: 'center'}}>
               前面闸机能认出代理 —— 认的就是这张工牌
@@ -662,7 +671,7 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bD} name="5-D 双钟对照与代码走廊④">
-        <Stage top={180}>
+        <Stage top={430}>
           <TwoClocks revokeAt={at('p5-13') - bD.from} />
           <CodeWalk
             title="M6 天花板 · 查询期实时求值（非登录期快照）"
@@ -689,8 +698,16 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
             ]}
             width={1180}
           />
-          <EvidenceBadge grade="lab" />
+          <EvidenceBadge grade="lab" top={430} />
         </Stage>
+        <ArchifyRecap
+          slug="agent-identity"
+          caption="工牌双钟"
+          variant="inset"
+          cues={[
+            {chapterId: 'snapshot-vs-live', at: at('p5-13') - bD.from, durationInFrames: dur('p5-13')},
+          ]}
+        />
       </Sequence>
 
       <Sequence {...bE} name="5-E 自动贴标流水线">
@@ -739,11 +756,20 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
           caption="发现 → 标记 → 执行"
           cues={[{chapterId: 'tag-driven', at: at('p5-19') - bE.from, durationInFrames: dur('p5-19')}]}
         />
+        <ArchifyRecap
+          slug="supply-overwhelm"
+          caption="纳管缺口"
+          variant="inset"
+          cues={[
+            {chapterId: 'flood-vs-manual', at: at('p5-17') - bE.from, durationInFrames: dur('p5-17')},
+          ]}
+        />
       </Sequence>
 
       <Sequence {...bF} name="5-F 断链最后一环与代码走廊⑤">
-        {/* top=320：代码走廊 5 行 + D10 长行折 2 行的纵向预算；且须低于 inset 画框底边 315 */}
-        <Stage top={320}>
+        {/* 代码走廊 5 行 + D10 长行的纵向预算；Stage 430 让位 inset 底边 416，
+            gap 18 + 终端行加宽 1420（一行放下）把栈底压回 ≤920 */}
+        <Stage top={430} gap={18}>
           <BrokenChain at={at('p5-21') - bF.from} leakAt={at('p5-23') - bF.from} />
           <CodeWalk
             title="M7 供给链 · 一次性映射（掩码策略不能直绑系统标签）"
@@ -768,7 +794,7 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
                 at: at('p5-23') - bF.from,
               },
             ]}
-            width={1220}
+            width={1420}
           />
         </Stage>
         <ArchifyRecap
@@ -780,7 +806,7 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bG} name="5-G 七柱合拢与听证会空白卡">
-        <Stage top={360}>
+        <Stage top={430}>
           <ConflictHearing at={at('p5-29') - bG.from} />
           <div style={{marginTop: 26}}>
             <NumberClash
@@ -798,10 +824,26 @@ export const P5Badge: React.FC<{scene: SceneRange}> = ({scene}) => {
           variant="inset"
           cues={[{chapterId: 'enrich', at: at('p5-28') - bG.from, durationInFrames: dur('p5-28')}]}
         />
+        <ArchifyRecap
+          slug="component-panorama"
+          caption="组件全景 · 供给与出口"
+          variant="inset"
+          cues={[
+            {chapterId: 'reserved-supply', at: at('p5-26') - bG.from, durationInFrames: dur('p5-26')},
+          ]}
+        />
+        <ArchifyRecap
+          slug="majority-shortcut"
+          caption="多数派近道"
+          variant="inset"
+          cues={[
+            {chapterId: 'popularity-wins', at: at('p5-30') - bG.from, durationInFrames: dur('p5-30')},
+          ]}
+        />
       </Sequence>
 
       <Sequence {...bH} name="5-H 四因子称重与标准插座">
-        <Stage top={400}>
+        <Stage top={430}>
           <div style={{display: 'flex', gap: 70, alignItems: 'center'}}>
             <div style={{textAlign: 'center'}}>
               <div style={{fontSize: 76}}>⚖️</div>

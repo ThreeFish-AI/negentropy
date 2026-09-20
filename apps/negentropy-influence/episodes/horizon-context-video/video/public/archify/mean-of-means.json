@@ -1,0 +1,70 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.16,
+ "story_sec": 7.8,
+ "total_wall_sec": 34.16,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "wrong-avg-of-avg",
+   "label": "班级平均分类比",
+   "index": 0,
+   "file": "mean-of-means--wrong-avg-of-avg.mp4",
+   "end_still": "mean-of-means--wrong-avg-of-avg-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.16,
+   "story_sec": 3.34,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.205
+   ],
+   "beat_nodes": [
+    "divideFirst",
+    "avgOfAvg",
+    "classAnalogy"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 21.0
+  },
+  {
+   "id": "measured-122-108",
+   "label": "实测 122 vs 108",
+   "index": 1,
+   "file": "mean-of-means--measured-122-108.mp4",
+   "end_still": "mean-of-means--measured-122-108-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.16,
+   "story_sec": 4.46,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.208,
+    3.312
+   ],
+   "beat_nodes": [
+    "avgOfAvg",
+    "wrong122",
+    "divideOnce",
+    "right108"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 21.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/bangalore-v3/docs/assets/architecture/cognitive-context/horizon-context--mean-of-means.html",
+ "slug": "mean-of-means"
+}

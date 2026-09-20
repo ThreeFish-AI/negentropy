@@ -1,29 +1,50 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 1.92,
- "story_sec": 8.85,
- "total_wall_sec": 22.78,
+ "lead_sec": 0.44,
+ "story_sec": 16.57,
+ "total_wall_sec": 76.5,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
  "chapters": [
   {
+   "id": "sign-vs-wall",
+   "label": "木牌 vs 承重墙",
+   "index": 0,
+   "file": "engine-governance--sign-vs-wall.mp4",
+   "end_still": "engine-governance--sign-vs-wall-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "byp",
+    "rb"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 23.0
+  },
+  {
    "id": "governed-path",
    "label": "治理主路径",
-   "index": 0,
-   "file": "engine-governance--governed-path.webm",
+   "index": 1,
+   "file": "engine-governance--governed-path.mp4",
    "end_still": "engine-governance--governed-path-end.png",
    "beats": 5,
    "dwell_ms": 1100,
-   "lead_sec": 1.92,
-   "story_sec": 5.53,
+   "lead_sec": 0.44,
+   "story_sec": 5.54,
    "beat_offsets_sec": [
     0.0,
-    1.102,
-    2.205,
-    3.308,
-    4.411
+    1.105,
+    2.209,
+    3.314,
+    4.419
    ],
    "beat_nodes": [
     "cal",
@@ -32,31 +53,66 @@
     "rb",
     "out"
    ],
-   "measured_fps": 25.0
+   "measured_fps": 25.0,
+   "capture_fps": 22.0
+  },
+  {
+   "id": "two-layer-defense",
+   "label": "双层防线剖面",
+   "index": 2,
+   "file": "engine-governance--two-layer-defense.mp4",
+   "end_still": "engine-governance--two-layer-defense-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.45,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.208,
+    3.311
+   ],
+   "beat_nodes": [
+    "cal",
+    "flt",
+    "rb",
+    "out"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 20.0
   },
   {
    "id": "bypass-intercepted",
    "label": "绕行仍被拦截",
-   "index": 1,
-   "file": "engine-governance--bypass-intercepted.webm",
+   "index": 3,
+   "file": "engine-governance--bypass-intercepted.mp4",
    "end_still": "engine-governance--bypass-intercepted-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 1.76,
-   "story_sec": 3.32,
+   "lead_sec": 0.44,
+   "story_sec": 3.35,
    "beat_offsets_sec": [
     0.0,
-    1.103,
-    2.206
+    1.105,
+    2.21
    ],
    "beat_nodes": [
     "cal",
     "byp",
     "ax"
    ],
-   "measured_fps": 25.0
+   "measured_fps": 25.0,
+   "capture_fps": 21.0
   }
  ],
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/osaka-v2/docs/assets/architecture/cognitive-context/horizon-context--engine-governance.html",
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/bangalore-v3/docs/assets/architecture/cognitive-context/horizon-context--engine-governance.html",
  "slug": "engine-governance"
 }

@@ -1,0 +1,72 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.16,
+ "story_sec": 8.94,
+ "total_wall_sec": 35.74,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "daily-reset",
+   "label": "每天清零的日循环",
+   "index": 0,
+   "file": "amnesia-intern--daily-reset.mp4",
+   "end_still": "amnesia-intern--daily-reset-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.16,
+   "story_sec": 3.36,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.207
+   ],
+   "beat_nodes": [
+    "geniusHire",
+    "doorIn",
+    "memoryWipe"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 22.0
+  },
+  {
+   "id": "dark-guess",
+   "label": "没术语表，黑暗中瞎猜",
+   "index": 1,
+   "file": "amnesia-intern--dark-guess.mp4",
+   "end_still": "amnesia-intern--dark-guess-end.png",
+   "beats": 5,
+   "dwell_ms": 1100,
+   "lead_sec": 0.12,
+   "story_sec": 5.58,
+   "beat_offsets_sec": [
+    0.0,
+    1.101,
+    2.204,
+    3.308,
+    4.411
+   ],
+   "beat_nodes": [
+    "memoryWipe",
+    "noGlossary",
+    "noCaliber",
+    "darkGuess",
+    "aiAssistant"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 22.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/bangalore-v3/docs/assets/architecture/cognitive-context/horizon-context--amnesia-intern.html",
+ "slug": "amnesia-intern"
+}

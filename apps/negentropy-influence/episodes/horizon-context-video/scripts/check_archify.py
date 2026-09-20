@@ -28,6 +28,7 @@ RATE_MIN, RATE_MAX, MIN_FPS = 0.7, 1.35, 18.0
 
 sys.path.insert(0, str(ROOT.parent.parent / "pipeline" / "scripts"))
 import timeline  # noqa: E402  —— 必须在 sys.path 注入之后导入
+from check_archify_coverage import extract_cues  # noqa: E402  —— 单一 cue 提取器
 
 
 def load_manifest() -> dict:
@@ -42,46 +43,10 @@ def load_manifest() -> dict:
 
 
 def scene_cues() -> list[tuple[str, str, str, str | None]]:
-    """从场景代码抽 (slug, chapterId, 锚句 id, 显式 fit)。
-
-    两道硬失败都是必要的：计数断言防整块 ArchifyRecap 被漏读；at 形态断言防
-    写成 `at: 0, durationInFrames: bX.durationInFrames` 的 cue 静默漏掉 —— 2026-09-19
-    实测正因此让 29 个 cue 只报了 27 个，漏掉的那个 rate 0.62 越界却没进 hold 清单，
-    `--stills` 也没给它排抽帧。少算不报错等于门形同虚设，故漏识别一律硬失败。
-    fit 一并抽取：显式写死 `fit: 'stretch'` 的 cue 要进 explicit_stretch 受越界门
-    约束（硬编码空集会让该分支永不可达，同属「少算不报错」）。
-    """
-    out = []
-    declared = 0
-    for f in sorted(SCENES.glob("P*.tsx")):
-        src = f.read_text("utf-8")
-        declared += len(re.findall(r"chapterId:", src))
-        for blk in re.finditer(r"<ArchifyRecap\b([\s\S]{0,2200}?)/>", src):
-            body = blk.group(1)
-            sm = re.search(r'slug="([^"]+)"', body)
-            if not sm:
-                continue
-            for c in re.finditer(r"\{chapterId:\s*'([^']+)'[^{}]*\}", body):
-                obj = c.group(0)
-                am = re.search(r"at:[^,]*?at\('([a-z0-9-]+)'\)", obj)
-                if am is None:
-                    raise SystemExit(
-                        f"FAIL: {sm.group(1)}/{c.group(1)} 未识别出 `at('句id')` 锚，"
-                        "请改成 `at: at('句id') - bX.from` + `dur('句id')`。"
-                    )
-                fm = re.search(r"fit:\s*'(stretch|hold|trim)'", obj)
-                out.append(
-                    (sm.group(1), c.group(1), am.group(1), fm.group(1) if fm else None)
-                )
-    if len(out) != declared:
-        raise SystemExit(
-            f"FAIL: 场景里声明了 {declared} 个 cue，只识别出 {len(out)} 个。\n"
-            "      漏掉的写法请改成 `at: at('句id') - bX.from` + "
-            "`dur('句id')`（单句 beat 与 `at: 0` 完全等价；dur 是各 scene 里与 at "
-            "对称的取长辅助，不写 w('句id') 字面形态是为了不让 check_scenes 把镜内"
-            "叠加层登记成镜区间）。"
-        )
-    return out
+    """(slug, chapterId, 锚句 id, 显式 fit)——提取本体已上移为管线级单一事实源
+    （check_archify_coverage.extract_cues，含计数/at 形态两道硬断言），此处只做
+    投影：双份提取器必然漂移（ISSUE-187 教训 6 同族）。"""
+    return [(slug, cid, sid, fit) for _f, slug, cid, sid, fit in extract_cues(SCENES)]
 
 
 def emit_stills(man: dict, cues: list[tuple[str, str, str, str | None]]) -> None:

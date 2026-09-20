@@ -1,0 +1,15 @@
+[
+ {
+  "id": "two-paths",
+  "label": "双路径显式声明",
+  "focus": [
+   "ordersTbl",
+   "forkGate",
+   "buyerNode",
+   "refNode",
+   "custTbl",
+   "ambiguous"
+  ],
+  "note": "买家走 customer_id、推荐人走 referrer_id 两条关系同指 customers，必须显式声明走哪条；不声明引擎抛 AmbiguousJoinPath 拒绝猜【一】。"
+ }
+]

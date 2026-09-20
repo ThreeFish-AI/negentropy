@@ -1,0 +1,14 @@
+%%source: docs/research/cognitive-context/011-horizon-context.md#block1 (L32-L80, §1 Horizon Context 解决了什么问题？)
+%%slug: cognitive-context/horizon-context--amnesia-intern
+%%type: workflow
+%%derived: archify workflow v2, authored from source mermaid
+%% fix: (2026-09-20 新增 · 科普视频《拆解 Horizon Context》P1 幕画中画) §1「每天重新入职的天才实习生」类比的日循环面：入职（才华满格）→ 推门上班 → 记忆清零 → 术语表/报表口径双重空白 → 黑暗中瞎猜 →（次日重复，闭环）；裸问准确率 ~25%【三】厂商自报 / 21%【四】第三方复现落在「瞎猜」节点作因果落点；旁注标明「AI 助手进公司时即此状态」。节点压到 7 个以适配 640×360 画中画字号，全图不含任何机制（M1–M7）内容。
+flowchart LR
+    geniusHire["🧑‍🎓 天才实习生入职<br/>才华横溢 · 逻辑满分"] -->|"第一天"| doorIn["🚪 每天推门上班<br/>跨闸机 = 又是全新一天"]
+    doorIn -->|"跨过闸机的瞬间"| memoryWipe["🧠 记忆全部清零<br/>今天不记得昨天（日循环起点）"]
+    memoryWipe -->|"无人交接 · 方言黑话空白"| noGlossary["📕 没见过术语表<br/>也没人讲过公司的规矩"]
+    memoryWipe -->|"无人交底 · 计算口径空白"| noCaliber["📊 没读过内部报表口径<br/>毛收入只写作 amt_ttl_pre_dsc"]
+    noGlossary -->|"无处可查"| darkGuess["🕯️ 黑暗中从零开始瞎猜<br/>裸问准确率 ~25%【三】厂商自报 · 21%【四】第三方复现"]
+    noCaliber -->|"无处可对"| darkGuess
+    darkGuess -.->|"次日推门 · 一切从零重来"| doorIn
+    aiAssistant["🤖 你浅尝辄止的各种 AI 助手"] -.->|"进公司时就是这个状态"| memoryWipe

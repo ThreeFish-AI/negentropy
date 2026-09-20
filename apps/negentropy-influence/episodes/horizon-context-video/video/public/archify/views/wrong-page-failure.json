@@ -1,0 +1,23 @@
+[
+ {
+  "id": "right-book-wrong-page",
+  "label": "手册对 · 引用错",
+  "focus": [
+   "manualBook",
+   "modelFlip",
+   "wrongPage"
+  ],
+  "note": "手册每一页都对，模型生成 SQL 时仍可能翻到错的那一页——语义正确 × 引用错误的独立失效面。"
+ },
+ {
+  "id": "two-branches",
+  "label": "两条失效分支",
+  "focus": [
+   "wrongPage",
+   "wrongJoin",
+   "wrongIntent",
+   "redAnswer"
+  ],
+  "note": "选错关联条件 200→440【一】、误解深层意图 108→122【一】，两条路都把对的语义算成错的答案。"
+ }
+]

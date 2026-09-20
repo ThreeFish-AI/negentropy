@@ -1,0 +1,26 @@
+[
+ {
+  "id": "two-pillars",
+  "label": "两柱承重",
+  "focus": [
+   "verifyAnchor",
+   "verifyCheck",
+   "lineageGate",
+   "lineageLedger",
+   "decisionFlow"
+  ],
+  "note": "验证锚定在事前事中保证答对，列级血缘在事后提供确定性审计闭环，两柱立起企业才敢托付决策流。"
+ },
+ {
+  "id": "three-seals",
+  "label": "柱基三印鉴",
+  "focus": [
+   "sealWrong",
+   "sealRight",
+   "sealLedger",
+   "decisionFlow",
+   "auditableAsset"
+  ],
+  "note": "答错有拦截、答对有底稿、有疑问翻账本——信任变成一行行可以审计的客观工程资产。"
+ }
+]

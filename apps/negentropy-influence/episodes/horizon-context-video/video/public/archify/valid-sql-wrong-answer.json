@@ -1,0 +1,66 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.16,
+ "story_sec": 6.6,
+ "total_wall_sec": 31.51,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "syntax-pass",
+   "label": "语法检查通过",
+   "index": 0,
+   "file": "valid-sql-wrong-answer--syntax-pass.mp4",
+   "end_still": "valid-sql-wrong-answer--syntax-pass-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.16,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.207
+   ],
+   "beat_nodes": [
+    "queryCard",
+    "syntaxPass",
+    "disciplineGuard"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 36.0
+  },
+  {
+   "id": "business-fail",
+   "label": "业务语义错误",
+   "index": 1,
+   "file": "valid-sql-wrong-answer--business-fail.mp4",
+   "end_still": "valid-sql-wrong-answer--business-fail-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.16,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0,
+    1.606
+   ],
+   "beat_nodes": [
+    "bizFail",
+    "verdict"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 43.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/bangalore-v3/docs/assets/architecture/cognitive-context/horizon-context--valid-sql-wrong-answer.html",
+ "slug": "valid-sql-wrong-answer"
+}

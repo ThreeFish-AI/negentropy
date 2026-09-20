@@ -1,9 +1,9 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 1.68,
- "story_sec": 17.59,
- "total_wall_sec": 40.53,
+ "lead_sec": 0.44,
+ "story_sec": 17.65,
+ "total_wall_sec": 66.74,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -12,12 +12,12 @@
    "id": "stage-objects",
    "label": "阶段一 · 对象化",
    "index": 0,
-   "file": "evolution-timeline--stage-objects.webm",
+   "file": "evolution-timeline--stage-objects.mp4",
    "end_still": "evolution-timeline--stage-objects-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 1.68,
-   "story_sec": 3.21,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
    "beat_offsets_sec": [
     0.0,
     1.603
@@ -26,29 +26,30 @@
     "ms1",
     "ms2"
    ],
-   "measured_fps": 25.0
+   "measured_fps": 25.0,
+   "capture_fps": 22.0
   },
   {
    "id": "stage-governed-enrich",
    "label": "阶段二 · 通道与富化",
    "index": 1,
-   "file": "evolution-timeline--stage-governed-enrich.webm",
+   "file": "evolution-timeline--stage-governed-enrich.mp4",
    "end_still": "evolution-timeline--stage-governed-enrich-end.png",
    "beats": 10,
    "dwell_ms": 1100,
-   "lead_sec": 1.88,
-   "story_sec": 11.05,
+   "lead_sec": 0.44,
+   "story_sec": 11.06,
    "beat_offsets_sec": [
     0.0,
-    1.103,
+    1.104,
     2.207,
-    3.31,
-    4.412,
-    5.514,
-    6.617,
-    7.721,
-    8.824,
-    9.927
+    3.313,
+    4.417,
+    5.522,
+    6.626,
+    7.729,
+    8.832,
+    9.938
    ],
    "beat_nodes": [
     "ms3",
@@ -62,21 +63,22 @@
     "ms10",
     "ms11"
    ],
-   "measured_fps": 25.0
+   "measured_fps": 25.0,
+   "capture_fps": 22.0
   },
   {
    "id": "stage-ecosystem",
    "label": "阶段三 · 生态开放",
    "index": 2,
-   "file": "evolution-timeline--stage-ecosystem.webm",
+   "file": "evolution-timeline--stage-ecosystem.mp4",
    "end_still": "evolution-timeline--stage-ecosystem-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 1.96,
-   "story_sec": 3.33,
+   "lead_sec": 0.44,
+   "story_sec": 3.36,
    "beat_offsets_sec": [
     0.0,
-    1.103,
+    1.104,
     2.207
    ],
    "beat_nodes": [
@@ -84,9 +86,18 @@
     "ms13",
     "ms14"
    ],
-   "measured_fps": 25.0
+   "measured_fps": 25.0,
+   "capture_fps": 22.0
   }
  ],
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/osaka-v2/docs/assets/architecture/cognitive-context/horizon-context--evolution-timeline.html",
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/bangalore-v3/docs/assets/architecture/cognitive-context/horizon-context--evolution-timeline.html",
  "slug": "evolution-timeline"
 }

@@ -321,6 +321,8 @@ apps/negentropy-influence/uv.lock
 # archify 工程图 Play 回放录制（派生产物；HTML 为 SSOT，重录用
 # apps/negentropy-influence/pipeline/scripts/record_archify.py，sidecar json 入库）
 apps/negentropy-influence/episodes/*/video/public/archify/*.webm
+# cdp 高清采集的 h264 交付物（record_archify.py --capture cdp，同 webm 派生属性）
+apps/negentropy-influence/episodes/*/video/public/archify/*.mp4
 # 逐章录制的末帧 PNG（fit='hold' 冻结补足用）与 webm 同属派生产物，同批重生成
 apps/negentropy-influence/episodes/*/video/public/archify/*-end.png
 

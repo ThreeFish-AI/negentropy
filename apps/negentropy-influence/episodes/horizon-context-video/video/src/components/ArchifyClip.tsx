@@ -1,7 +1,7 @@
 /** archify 工程图**逐章回放窗**（v3 母题）。
  *
  *  素材链：`pipeline/scripts/record_archify.py --mode chapter --all-chapters`
- *  逐章录制 webm（每章一段）→ `scripts/archify_lead.py` 用场记板白闪测定真实
+ *  逐章录制视频（每章一段，playwright=webm / cdp=mp4）→ `scripts/archify_lead.py` 用场记板白闪测定真实
  *  `leadSec` → `scripts/archify_manifest.py` 生成 `archify.manifest.ts`。
  *
  *  **为什么逐章而不是整段切片**：整段切片要求 `trimBefore` 达 15s 量级，而
@@ -32,14 +32,19 @@ const BOX = {
   /** 整屏主控：顶 150 让出幕标题条（SceneTag 占 y 40–110），底边 880 < SAFE_TOP_Y(920)。
    *  2026-09-19 抽帧目视：top=60 时画框左缘会切掉 SceneTag 的副题。 */
   full: {h: 730, top: 150},
-  /** 画中画：**右上角定位**，底边 315 —— 与主画面分带占位。
-   *  同镜的自制模型把 Stage top 设 ≥350 即可保证零遮挡
-   *  （2026-09-19 抽帧实测：inset 居中会整块盖住装置）。 */
-  inset: {h: 259, top: 56},
+  /** 画中画：**右上角定位**（right 48），底边 416 —— 与主画面分带占位。
+   *  同镜的自制模型把 Stage top 设 ≥430 即可保证零遮挡（2026-09-19 抽帧实测：
+   *  inset 居中会整块盖住装置）。460×259→640×360：VP8@1M 时代 24% 缩放的
+   *  「看不清」一半欠在编码（已换 cdp 高清采集），另一半欠在显示面积——
+   *  放大 39% 后 720×405 会把三分镜的纵向预算顶穿（2-B/4-E/1-D 栈底 ≥1010），
+   *  640 是三分镜重预算后仍有 ≥14px 余量的上限。
+   *  image-rendering 刻意不设置：1440 源在 16:9 框内高质量降采样走 Skia
+   *  mipmap 路径；pixelated/crisp-edges 是最近邻，会把降采样变锯齿。 */
+  inset: {h: 360, top: 56},
 } as const;
 
 export const ArchifyClip: React.FC<{
-  /** public/archify/ 下的 webm 文件名 */
+  /** public/archify/ 下的视频文件名（webm / mp4，随采集方式而定） */
   file: string;
   /** 本段必须占满的帧数 = 所锚句区间的 durationInFrames */
   spanInFrames: number;

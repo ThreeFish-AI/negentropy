@@ -221,7 +221,7 @@
             "accessed": "2026-09-19"
           },
           "status": "final-review",
-          "statusNote": "v4 终渲待审（2026-09-19，代码评审两类画面缺陷修复后重录重渲，见 issue.md ISSUE-188）：15:11.63 = 27349 帧 @30fps / 1920×1080 / 55.5 MB（口播与音频 manifest 未动，时长与 v3 一致）；187 句 4256 字 45 镜；archify 工程图逐章录制 14 张 43 章，进片 12 张 29 章，rate 预演 变速铺满 15 · 冻结补足 13 · 裁切 1。修复项：① 3-A/4-D/5-A/5-E 四镜原只有幕标题加一个 archify cue、其余 14 句共 2042 帧（约 68s）近乎空屏，现按「母图推近 → archify full 锚句 → 机制装置」补齐，母图「每机制推近」从 2 次补到 6 次；② 末帧 PNG 原截 .diagram-container 元素与整视口 webm 不同框，13 处冻结补足在接缝突跳，录制器改截整视口并重录全部 43 章；③ cue 改用 dur(句id) 取长，内容门 WARN 28 归 0。验收：check_script --check-scenes --check-motion FAIL 0 · WARN 0；check_archify FAIL 0 · WARN 2（evolution-timeline 与 autopilot-loop 录制留档未落镜）；tsc 绿；七幕加尾幕体检 FAIL 0 · WARN 0，尾幕渐黑 PASS，WCAG 七色全过；逐帧目视覆盖原空屏 14 句、三处遮挡验证帧、hold 接缝成对帧与两处存量母图镜零回归；信源 pin 097076eb 不变。",
+          "statusNote": "v5 终渲待审（2026-09-20，动效图例扩产+高清重制，口播零改动）：15:11.63 = 27349 帧 @30fps / 1920×1080（音频复用 v4，时长不变）；187 句 4256 字 45 镜；archify 工程图 33 张 86 章逐章高清录制（cdp JPEG q100 @DSF2 → h264 CRF16 @2560×1440 · CFR25，绕开 Playwright 硬编码 VP8@1Mbps），73 个 cue 进片（v4 为 14 图 43 章 29 cue），覆盖率 15.5%→39.0%、P0/P6 结束整幕零锚、D1–D10 实证全部有图，rate 预演 变速铺满 40 · 冻结补足 31 · 裁切 2；inset 画框 460×259→640×360 且全 16 个 inset 镜逐帧像素审计零侵入。新增 19 张严格锚定逐字稿的工程图 + 既有图增补 4 章。覆盖度自动阈门上线：check_archify_coverage.py 句级锚定率/丰富度地板/分镜声明↔cue 双向对账，pipeline.py check 自动串联，本集阈值定稿 28 图/58 cue/30%/70%。验收：check_script FAIL 0；check_archify FAIL 0（WARN 2 = 留档图未落镜）；覆盖门 FAIL 0 · WARN 3（有意保留）；tsc 绿；信源 pin 097076eb 不变。",
           "voice": "sunny-steady + me-bright.wav"
         },
         {

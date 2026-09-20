@@ -1,0 +1,15 @@
+%%source: docs/research/cognitive-context/011-horizon-context.md#block15-2 (L682-L685, §15 批判性边界 第 2 条 · 状态时点) + 逐字稿 p6-07
+%%slug: cognitive-context/horizon-context--preview-gap
+%%type: workflow
+%%derived: archify workflow v2, authored from source mermaid
+%% fix: (2026-09-20 视频动效扩产) 批判边界②落地鸿沟：组件成熟度三级阶梯（实验/预览 → GA → 普遍落地），
+%% 先进组件聚集于预览带挂 Preview 徽标，跨级虚线直标「距离」；只表达「先进组件仍在预览期」这一事实，
+%% 不点名任何具体产品状态（产品级私预/公预明细见源文档，不入图）
+flowchart LR
+    subgraph previewBand["🧪 实验 / 预览带"]
+        advancedComponents["🚀 很多先进组件<br/>仍停留于此 🏷️ Preview"]
+    end
+    gaStage["✅ GA<br/>正式发布"]
+    wideAdoption["🏢 普遍落地<br/>行业日常可用"]
+    advancedComponents --> gaStage --> wideAdoption
+    advancedComponents -.->|"距离"| wideAdoption

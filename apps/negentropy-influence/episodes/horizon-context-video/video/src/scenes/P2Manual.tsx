@@ -223,7 +223,7 @@ export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bB} name="2-B 代码走廊① 注册校验门">
-        <Stage top={350}>
+        <Stage top={430}>
           <CodeWalk
             title="M1 声明相 · 注册期结构校验门"
             lines={[
@@ -242,9 +242,9 @@ export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
             caption="horizon_context_lab.py :235"
             width={1120}
           />
-          {/* 终端行 = selftest 原文逐字摘录（含前导两空格）；改措辞须同步 narration/source-notes */}
+          {/* 终端行 = selftest 原文逐字摘录（含前导两空格）；改措辞须同步 narration/source-notes。
+              inset 底边 416 后纵向预算紧，不留 prompt 行（同 5-D 手法） */}
           <TerminalLog
-            prompt="uv run --no-project python horizon_context_lab.py --selftest"
             lines={[
               {
                 text: '  [PASS] D6: 拆结构校验（relationship 指向非键列）→ relationship bad: referenced column customers.plan is not PRIMARY KEY/UNIQUE—— 无门则垃圾定义静默入库（行数失控的注册期引信）',
@@ -255,8 +255,8 @@ export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
             ]}
             width={1120}
           />
-          {/* top=335：本镜有 inset 画框（y∈[56,315]），默认 44 会被整块压住 */}
-          <EvidenceBadge grade="lab" top={335} />
+          {/* top=430：本镜有 inset 画框（y∈[56,416]），默认 44 会被整块压住 */}
+          <EvidenceBadge grade="lab" top={430} />
         </Stage>
         <ArchifyRecap
           slug="declaration-execution"
@@ -269,7 +269,7 @@ export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bC} name="2-C 双保险锁">
-        <Stage top={400}>
+        <Stage top={430}>
           <DoubleLock breakAt={at('p2-09b') - bC.from} />
         </Stage>
         <ArchifyRecap
@@ -279,6 +279,7 @@ export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
           cues={[
             {chapterId: 'declare', at: at('p2-09') - bC.from, durationInFrames: dur('p2-09')},
             {chapterId: 'recompute', at: at('p2-09a') - bC.from, durationInFrames: dur('p2-09a')},
+            {chapterId: 'switch-divergence', at: at('p2-09b') - bC.from, durationInFrames: dur('p2-09b')},
           ]}
         />
       </Sequence>
@@ -304,7 +305,7 @@ export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bE} name="2-E 复印机陷阱">
-        <Stage top={230}>
+        <Stage top={430}>
           <CopierTrap at={at('p2-15') - bE.from} sumAt={at('p2-17') - bE.from} />
           <div style={{marginTop: 20}}>
             <NumberClash
@@ -315,21 +316,48 @@ export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
               at={at('p2-20') - bE.from}
             />
           </div>
-          <EvidenceBadge grade="lab" at={at('p2-20') - bE.from} />
+          <EvidenceBadge grade="lab" at={at('p2-20') - bE.from} top={430} />
         </Stage>
+        <ArchifyRecap
+          slug="fan-trap"
+          caption="复印机陷阱"
+          variant="inset"
+          cues={[
+            {chapterId: 'copy-inflate', at: at('p2-17') - bE.from, durationInFrames: dur('p2-17')},
+            {chapterId: 'aggregate-first', at: at('p2-19') - bE.from, durationInFrames: dur('p2-19')},
+            {chapterId: 'measured-440', at: at('p2-20') - bE.from, durationInFrames: dur('p2-20')},
+          ]}
+        />
       </Sequence>
 
       <Sequence {...bF} name="2-F 去重安全与派生先聚后除">
-        <Stage top={230}>
+        <Stage top={430}>
           <NumberClash badLabel="不做去重安全" bad="6" goodLabel="按集合去重" good="3" at={at('p2-22') - bF.from} />
           <div style={{marginTop: 46}}>
             <AvgScale at={at('p2-24') - bF.from} />
           </div>
         </Stage>
+        <ArchifyRecap
+          slug="dedup-safety"
+          caption="去重安全"
+          variant="inset"
+          cues={[
+            {chapterId: 'set-vs-rows', at: at('p2-22') - bF.from, durationInFrames: dur('p2-22')},
+          ]}
+        />
+        <ArchifyRecap
+          slug="mean-of-means"
+          caption="平均的平均"
+          variant="inset"
+          cues={[
+            {chapterId: 'wrong-avg-of-avg', at: at('p2-25') - bF.from, durationInFrames: dur('p2-25')},
+            {chapterId: 'measured-122-108', at: at('p2-26') - bF.from, durationInFrames: dur('p2-26')},
+          ]}
+        />
       </Sequence>
 
       <Sequence {...bG} name="2-G 半可加末快照与关系消歧">
-        <Stage top={220}>
+        <Stage top={430}>
           <LastSnapshot at={at('p2-28') - bG.from} clashAt={at('p2-30') - bG.from} />
           <Panel
             accent={theme.engine}
@@ -340,10 +368,28 @@ export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
             </span>
           </Panel>
         </Stage>
+        <ArchifyRecap
+          slug="last-snapshot-gate"
+          caption="末快照"
+          variant="inset"
+          cues={[
+            {chapterId: 'semi-additive', at: at('p2-28') - bG.from, durationInFrames: dur('p2-28')},
+            {chapterId: 'snapshot-vs-sum', at: at('p2-30') - bG.from, durationInFrames: dur('p2-30')},
+          ]}
+        />
+        <ArchifyRecap
+          slug="dual-path-disambiguation"
+          caption="关系消歧"
+          variant="inset"
+          lead={false}
+          cues={[
+            {chapterId: 'two-paths', at: at('p2-31') - bG.from, durationInFrames: dur('p2-31')},
+          ]}
+        />
       </Sequence>
 
       <Sequence {...bH} name="2-H 题眼金句与手册徽章">
-        <Stage top={330}>
+        <Stage top={430}>
           <div
             style={{
               fontFamily: theme.serif,
@@ -359,6 +405,15 @@ export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
           </div>
         </Stage>
         <PillarHUD lit={1} at={at('p2-36') - bH.from} />
+        <ArchifyRecap
+          slug="valid-sql-wrong-answer"
+          caption="语法 × 业务"
+          variant="inset"
+          cues={[
+            {chapterId: 'syntax-pass', at: at('p2-32') - bH.from, durationInFrames: dur('p2-32')},
+            {chapterId: 'business-fail', at: at('p2-33') - bH.from, durationInFrames: dur('p2-33')},
+          ]}
+        />
       </Sequence>
     </AbsoluteFill>
   );

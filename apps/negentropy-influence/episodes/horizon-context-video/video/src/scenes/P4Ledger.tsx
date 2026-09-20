@@ -375,13 +375,22 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
     <AbsoluteFill>
       <Sequence {...bA} name="4-A 引用错手册">
         <SceneTag chapter="M4" tagline="应答层验证锚定：核准题库与盖章底稿" accent={theme.manual} />
-        <Stage top={290}>
+        <Stage top={430}>
           <WrongPage at={at('p4-02') - bA.from} />
         </Stage>
+        <ArchifyRecap
+          slug="wrong-page-failure"
+          caption="选错页失效"
+          variant="inset"
+          cues={[
+            {chapterId: 'right-book-wrong-page', at: at('p4-02') - bA.from, durationInFrames: dur('p4-02')},
+            {chapterId: 'two-branches', at: at('p4-03') - bA.from, durationInFrames: dur('p4-03')},
+          ]}
+        />
       </Sequence>
 
       <Sequence {...bB} name="4-B 盖章底稿与重算对账">
-        <Stage top={380}>
+        <Stage top={430}>
           <StampedAnswer at={at('p4-06') - bB.from} />
         </Stage>
         <ArchifyRecap
@@ -396,7 +405,7 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bC} name="4-C 半堵墙">
-        <Stage top={370}>
+        <Stage top={430}>
           <HalfWall />
         </Stage>
         <ArchifyRecap
@@ -459,7 +468,8 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bE} name="4-E 三道闸与代码走廊③">
-        <Stage top={350}>
+        {/* gap 20：inset 底边 416 后 Stage 430，收窄间隙保栈底 ≤906 */}
+        <Stage top={430} gap={20}>
           <ThreeGates
             at={at('p4-14a') - bE.from}
             rejectAt={at('p4-16') - bE.from}
@@ -493,8 +503,8 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
             ]}
             width={1220}
           />
-          {/* top=335：本镜有 inset 画框（y∈[56,315]），默认 44 会被整块压住 */}
-          <EvidenceBadge grade="lab" top={335} />
+          {/* top=430：本镜有 inset 画框（y∈[56,416]），默认 44 会被整块压住 */}
+          <EvidenceBadge grade="lab" top={430} />
         </Stage>
         <ArchifyRecap
           slug="lineage-ledger"
@@ -505,7 +515,7 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bF} name="4-F 逆流溯源与双柱">
-        <Stage top={380}>
+        <Stage top={430}>
           <div style={{textAlign: 'center'}}>
             <div style={{fontSize: 84}}>🔦</div>
             <div style={{marginTop: 18, fontFamily: theme.sans, fontSize: 34, color: theme.text}}>
@@ -524,10 +534,18 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
             {chapterId: 'ledger-and-blind', at: at('p4-20') - bF.from, durationInFrames: dur('p4-20')},
           ]}
         />
+        <ArchifyRecap
+          slug="trust-assets"
+          caption="双柱信任"
+          variant="inset"
+          cues={[
+            {chapterId: 'two-pillars', at: at('p4-24') - bF.from, durationInFrames: dur('p4-24')},
+          ]}
+        />
       </Sequence>
 
       <Sequence {...bG} name="4-G 信任资产四方印鉴">
-        <Stage top={300}>
+        <Stage top={430}>
           <div
             style={{
               fontFamily: theme.serif,
@@ -543,6 +561,14 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
           </div>
         </Stage>
         <PillarHUD lit={5} at={at('p4-28') - bG.from} />
+        <ArchifyRecap
+          slug="trust-assets"
+          caption="双柱信任"
+          variant="inset"
+          cues={[
+            {chapterId: 'three-seals', at: at('p4-26') - bG.from, durationInFrames: dur('p4-26')},
+          ]}
+        />
       </Sequence>
     </AbsoluteFill>
   );

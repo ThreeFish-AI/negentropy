@@ -24,8 +24,8 @@ const GRADE: Record<EvidenceGrade, {t: string; c: string}> = {
 export const EvidenceBadge: React.FC<{
   grade: EvidenceGrade;
   at?: number;
-  /** 顶边 y。默认 44；同镜有 ArchifyClip 的 inset 画框（y∈[56,315]，底色不透明）时
-   *  必须下移到 335 以下，否则角标会被画框整块压住（2026-09-19 抽帧实测）。 */
+  /** 顶边 y。默认 44；同镜有 ArchifyClip 的 inset 画框（y∈[56,416]，底色不透明）时
+   *  必须下移到 430 以下，否则角标会被画框整块压住（2026-09-19 抽帧实测）。 */
   top?: number;
 }> = ({grade, at = 4, top = 44}) => {
   const o = useProgress(at, DUR.f4);

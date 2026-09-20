@@ -1,0 +1,20 @@
+%%source: docs/research/cognitive-context/011-horizon-context.md (§15 批判性边界第 3 条 L686 「不可绕过」只在引擎周界内成立 · §5 M3 L312 定义出口约束；逐字稿 p6-08/p6-09)
+%%slug: cognitive-context/horizon-context--perimeter-loss
+%%derived: archify workflow v2, authored from source mermaid
+%%type: workflow
+%% fix: (2026-09-20 新增·视频 P6 批判边界③配图) 安全周界单点图：大厦之内闸机/贴标/台账三件套全亮（引擎周界），数据出楼（虚线墙=两 subgraph 边界）后进入外部不可控模型区，治理三件套全灭；边界事实=直查底库/导出数据即绕过 + 定义可携带不解决别家引擎执行（Ossie 口径）；内容边界=逐字稿 p6-08/09 原句 + 精读文档 §15-3，不外引下一集市政比喻；本图无实证数字，故不带【一】【三】【四】角标
+flowchart LR
+    subgraph "大厦之内 · 治理全亮（引擎周界）"
+        insideQuery["📨 楼内查询<br/>人 / BI / Agent"] -->|"任一通道必过检"| gateCheck{"🚪 闸机<br/>行列级验放 · 拦得住"}
+        gateCheck --> insideEffective["✅ 治理全亮<br/>「不可绕过」楼内成立"]
+        tagBinding["🏷️ 贴标<br/>敏感列自动纳管"] -.->|"标签驱动策略"| gateCheck
+        ledgerTrace["📒 台账<br/>列级血缘 · 可追责"] -.->|"流向留痕"| insideEffective
+    end
+    subgraph "大厦之外（虚线墙外）· 外部不可控模型区"
+        externalModel["🤖 外部不可控模型<br/>楼外引擎 · 通用 Agent"]
+        voidKit["🌑 治理三件套熄灭<br/>闸机灭 · 标签失灵 · 台账断"]
+        perimeterLoss["⚠️ 治理瞬间失效<br/>安全边界严格限定在大厦之内"]
+    end
+    insideEffective -.->|"数据出楼：导出 / 直查底库即绕过"| externalModel
+    externalModel -->|"定义可携带 · 执行不随行"| voidKit
+    voidKit --> perimeterLoss

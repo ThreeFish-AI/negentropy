@@ -1,0 +1,89 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.12,
+ "story_sec": 9.93,
+ "total_wall_sec": 47.05,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "copy-inflate",
+   "label": "复印放大 100→300",
+   "index": 0,
+   "file": "fan-trap--copy-inflate.mp4",
+   "end_still": "fan-trap--copy-inflate-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.12,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [
+    0.0,
+    1.101,
+    2.206
+   ],
+   "beat_nodes": [
+    "order100",
+    "rawJoin",
+    "inflated300"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 23.0
+  },
+  {
+   "id": "aggregate-first",
+   "label": "先聚后联铁律",
+   "index": 1,
+   "file": "fan-trap--aggregate-first.mp4",
+   "end_still": "fan-trap--aggregate-first-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.16,
+   "story_sec": 3.34,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.205
+   ],
+   "beat_nodes": [
+    "order100",
+    "aggFirst",
+    "safeJoin"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 23.0
+  },
+  {
+   "id": "measured-440",
+   "label": "实测 200 vs 440",
+   "index": 2,
+   "file": "fan-trap--measured-440.mp4",
+   "end_still": "fan-trap--measured-440-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.16,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "inflated300",
+    "measured"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 22.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/bangalore-v3/docs/assets/architecture/cognitive-context/horizon-context--fan-trap.html",
+ "slug": "fan-trap"
+}

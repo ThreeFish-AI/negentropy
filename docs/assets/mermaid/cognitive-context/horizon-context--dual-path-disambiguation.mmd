@@ -1,0 +1,26 @@
+%%source: docs/research/cognitive-context/011-horizon-context.md#blockM1 (L244, 不变量 B · 保障 5 · 显式指定关联路径 USING relationship) + 原型 A4 实测 docs/research/cognitive-context/assets/horizon_context_lab.py (L178-L179 双关系定义 · L905-L917 消歧实验)
+%%slug: cognitive-context/horizon-context--dual-path-disambiguation
+%%type: workflow
+%%derived: archify workflow v2, authored from source mermaid
+%% fix: (2026-09-20 补产轮) 单章图：orders→customers 双路径关系消歧；列名按原型实测 orders.customer_id / orders.referrer_id（非 buyer_id），拆分数字取 A4 实测输出
+flowchart LR
+    subgraph buyerLane["买家路径 buyer"]
+        buyerNode["🛒 买家路径 buyer<br/>orders.customer_id → customers.id<br/>拆分 [40,50,60,250,250]【一】"]
+    end
+    subgraph mainLane["同一对表：orders → customers"]
+        ordersTbl["📦 orders 订单表<br/>customer_id · referrer_id 两列外键"]
+        forkGate{"🚦 两条关系走哪条？<br/>必须显式声明，否则语义歧义<br/>🏷️ USING (relationship)"}
+        custTbl["👤 customers 客户表<br/>id · PRIMARY KEY"]
+    end
+    subgraph refLane["推荐人路径 referrer"]
+        refNode["🤝 推荐人路径 referrer<br/>orders.referrer_id → customers.id<br/>拆分 [100,250]【一】"]
+    end
+    subgraph rejectLane["不声明的下场"]
+        ambiguous["🚫 AmbiguousJoinPath<br/>multiple join paths ['buyer','referrer']<br/>引擎拒绝瞎猜【一】"]
+    end
+    ordersTbl -->|"两列外键同指一张表"| forkGate
+    forkGate -->|"USING buyer"| buyerNode
+    forkGate -->|"USING referrer"| refNode
+    buyerNode --> custTbl
+    refNode --> custTbl
+    forkGate -.->|"不声明 = 让引擎猜"| ambiguous

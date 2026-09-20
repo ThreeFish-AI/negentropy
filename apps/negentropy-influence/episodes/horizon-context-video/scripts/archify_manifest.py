@@ -42,7 +42,7 @@ OUT.write_text(
     "export type ArchifyChapter = {\n"
     "  /** views JSON 里的章节 id */\n  id: string;\n"
     "  /** 章节小标题（画面左下） */\n  label: string;\n"
-    "  /** public/archify/ 下的 webm 文件名 */\n  file: string;\n"
+    "  /** public/archify/ 下的视频文件名（webm / mp4，随采集方式而定） */\n  file: string;\n"
     "  /** 该章末帧 PNG（fit='hold' 时用于冻结补足） */\n  endStill: string;\n"
     "  /** 本章拍数（每拍 max(1100ms, 3200ms/拍数)） */\n  beats: number;\n"
     "  /** 片内故事起点（秒，视频钟实测，非墙钟估算） */\n  leadSec: number;\n"

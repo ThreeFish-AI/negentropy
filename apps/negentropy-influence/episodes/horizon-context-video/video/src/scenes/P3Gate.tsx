@@ -267,7 +267,7 @@ export const P3Gate: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bB} name="3-B 打码扣留与代理识别">
-        <Stage top={360}>
+        <Stage top={430}>
           <PageScanner
             scanAt={at('p3-05') - bB.from}
             scanSpan={DUR.f6}
@@ -288,7 +288,7 @@ export const P3Gate: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       <Sequence {...bC} name="3-C 木牌与承重墙">
         <SceneTag chapter="M3" tagline="语义级治理：闸机焊死承重墙" accent={theme.engine} />
-        <Stage top={380}>
+        <Stage top={430}>
           <SignVsWall
             at={at('p3-09') - bC.from}
             bypassAt={at('p3-10') - bC.from}
@@ -300,12 +300,12 @@ export const P3Gate: React.FC<{scene: SceneRange}> = ({scene}) => {
           slug="engine-governance"
           caption="语义级治理执行"
           variant="inset"
-          cues={[{chapterId: 'governed-path', at: at('p3-12') - bC.from, durationInFrames: dur('p3-12')}]}
+          cues={[{chapterId: 'sign-vs-wall', at: at('p3-09') - bC.from, durationInFrames: dur('p3-09')}, {chapterId: 'governed-path', at: at('p3-12') - bC.from, durationInFrames: dur('p3-12')}]}
         />
       </Sequence>
 
       <Sequence {...bD} name="3-D 两种坏法对照台与出门行李标签">
-        <Stage top={250}>
+        <Stage top={430}>
           <SplitCompare
             at={at('p3-13a') - bD.from}
             left={{title: '拆掉验放规则（M2 失效）', body: '人当场看到不该看的明文', tone: theme.danger}}
@@ -317,17 +317,34 @@ export const P3Gate: React.FC<{scene: SceneRange}> = ({scene}) => {
             </span>
           </Panel>
         </Stage>
+        <ArchifyRecap
+          slug="governance-demolition"
+          caption="治理破坏台"
+          variant="inset"
+          cues={[
+            {chapterId: 'remove-mask', at: at('p3-13a') - bD.from, durationInFrames: dur('p3-13a')},
+            {chapterId: 'wrong-placement', at: at('p3-13b') - bD.from, durationInFrames: dur('p3-13b')},
+          ]}
+        />
       </Sequence>
 
       <Sequence {...bE} name="3-E 双层防线剖面">
-        <Stage top={280}>
+        <Stage top={430}>
           <TwoLayers at={at('p3-15') - bE.from} bumpAt={at('p3-18') - bE.from} />
         </Stage>
         <EvidenceBadge grade="lab" at={at('p3-17') - bE.from} />
+        <ArchifyRecap
+          slug="engine-governance"
+          caption="语义级治理"
+          variant="inset"
+          cues={[
+            {chapterId: 'two-layer-defense', at: at('p3-16') - bE.from, durationInFrames: dur('p3-16')},
+          ]}
+        />
       </Sequence>
 
       <Sequence {...bF} name="3-F 代码走廊② 执行层拒绝">
-        <Stage top={150}>
+        <Stage top={430}>
           <CodeWalk
             title="M2 执行面 · 查询编译期的 RBAC 拒绝"
             lines={[
@@ -358,12 +375,20 @@ export const P3Gate: React.FC<{scene: SceneRange}> = ({scene}) => {
             ]}
             width={1180}
           />
-          <EvidenceBadge grade="lab" />
+          <EvidenceBadge grade="lab" top={430} />
         </Stage>
+        <ArchifyRecap
+          slug="governance-demolition"
+          caption="治理破坏台"
+          variant="inset"
+          cues={[
+            {chapterId: 'rbac-ablation', at: at('p3-20') - bF.from, durationInFrames: dur('p3-20')},
+          ]}
+        />
       </Sequence>
 
       <Sequence {...bG} name="3-G 编译期安全锁与收束金句">
-        <Stage top={300}>
+        <Stage top={430}>
           <div
             style={{
               fontFamily: theme.serif,

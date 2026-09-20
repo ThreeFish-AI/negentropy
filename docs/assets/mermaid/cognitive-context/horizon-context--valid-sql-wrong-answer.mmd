@@ -1,0 +1,12 @@
+%%source: apps/negentropy-influence/episodes/horizon-context-video/script/narration.md#L103-L104 (p2-32/p2-33 · M1 收口题眼；实测数字出自本仓 horizon_context_lab 原型：拆先聚后联 200→440 · 不遵末快照 7→24)
+%%slug: cognitive-context/horizon-context--valid-sql-wrong-answer
+%%title: 语法合法 × 业务错误
+%%type: workflow
+%%derived: archify workflow v2, authored from source mermaid
+%% note: M1 收口题眼——一枚查询语句卡双判据并置：语法层 ✔ 通过（绿）× 业务语义层 ✘ 错误（红），收束为一句工程常识；200→440 / 7→24 为本仓原型实测【一】
+flowchart LR
+    queryCard["📄 一枚查询语句<br/>SELECT · JOIN · SUM"] --> syntaxPass["✔ 语法检查：通过<br/>引擎照常执行 · 返回结果"]
+    queryCard --> bizFail["✘ 业务语义检查：错误<br/>未先聚后联 → 收入 200 虚增 440【一】<br/>不遵末快照 → 活跃 7 虚增 24【一】"]
+    syntaxPass --> verdict(["语法上完全正确<br/>×<br/>业务分析上彻底错误"])
+    bizFail --> verdict
+    disciplineGuard["📏 计算纪律<br/>先聚后联 · 去重安全 · 末快照"] -.->|"守护"| verdict

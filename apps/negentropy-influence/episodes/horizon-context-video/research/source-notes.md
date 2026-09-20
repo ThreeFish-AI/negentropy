@@ -135,27 +135,52 @@ uv run --no-project python docs/research/cognitive-context/assets/horizon_contex
 uv run --no-project python docs/research/cognitive-context/assets/horizon_context_mcp.py --selftest
 ```
 
-## 十二、archify 工程图回放清单（2026-09-19 新增）
+## 十二、archify 工程图回放清单（2026-09-19 建，2026-09-20 扩产 v5）
 
-> 14 张工程图全部补齐 guided views 并**逐章录制**（43 章 / 182 秒素材），其中 **12 张 / 29 章进片**；
-> `evolution-timeline` 与 `autopilot-loop` 录制留档但本集未落镜（`check_archify` 会以 WARN 常驻提示）。
+> **33 张工程图 / 86 章全部逐章高清录制**（cdp 采集：JPEG q100 @DSF2 → h264 CRF16 @2560×1440，
+> 恒定 CFR25），**73 个 cue 进片**（v3 为 14 图 43 章 29 cue；覆盖率 15.5% → 39.0%，P0/P6
+> 结束整幕零锚，D1–D10 实证全部有图）；`evolution-timeline` 与 `autopilot-loop` 录制留档但
+> 本集未落镜（`check_archify` 与覆盖门以 WARN 常驻提示——文案无对应锚句，不硬塞）。
 > views 源：[../video/public/archify/views/](../video/public/archify/views/)（入库、可评审）；
-> webm 为派生产物（根 `.gitignore` 忽略），重录见 `pipeline/scripts/record_archify.py --mode chapter --all-chapters`。
-> **对齐口径「一章锚一句」**：每章时长 = 拍数 × max(1100ms, 3200ms/拍数)，与该句配音时长做 `playbackRate` 贴合（限 [0.7, 1.35]）。
+> mp4/末帧 PNG 为派生产物（根 `.gitignore` 忽略），重录见 `pipeline/scripts/record_archify.py
+> --mode chapter --all-chapters`。**对齐口径「一章锚一句」**：每章时长 = 拍数 ×
+> max(1100ms, 3200ms/拍数)，与该句配音时长做 `playbackRate` 贴合（限 [0.7, 1.35]，越界自动降
+> hold/trim；实测 73 cue = 变速铺满 40 · 冻结补足 31 · 裁切 2）。
+> 覆盖率/丰富度/匹配度由 `pipeline.py check` 自动串联的 `check_archify_coverage.py` 执法，
+> 阈值见 `pipeline.toml [archify]`。
 
-| 工程图 slug             | 笔记章节 | 章数 | 故事秒 | 落镜                     |
-| ----------------------- | -------- | ---- | ------ | ------------------------ |
-| problem-to-mechanisms   | §1       | 5    | 19.8   | 1-B（inset）· 1-C（full）|
-| component-panorama      | §2.1     | 3    | 18.7   | 1-D（inset）             |
-| evolution-timeline      | §2.2     | 3    | 17.5   | —（录制留档，未落镜）    |
-| declaration-execution   | M1       | 3    | 13.2   | 2-B（inset）· 2-C（inset）|
-| row-column-policy       | M2       | 3    | 11.0   | 3-A（full）· 3-B（inset）|
-| engine-governance       | M3       | 2    | 8.8    | 3-C（inset）· 3-G（inset）|
-| resolve-activation      | M4       | 3    | 9.7    | 4-B（inset）· 4-C        |
-| lineage-ledger          | M5       | 3    | 11.0   | 4-D（full）· 4-E（inset）· 4-F（inset）|
-| agent-identity          | M6       | 3    | 10.8   | 5-A（full）· 5-B/5-C（inset）|
-| classification-tagging  | M7       | 3    | 13.0   | 5-E（full）· 5-F（inset）|
-| collect-enrich-activate | §10      | 3    | 12.1   | 5-G（inset）             |
-| autopilot-loop          | §10      | 3    | 10.9   | —（录制留档，未落镜）    |
-| four-factor-ranking     | §11      | 3    | 13.2   | 5-H（inset）             |
-| open-interop            | §12      | 3    | 12.1   | 5-H（inset）             |
+| 工程图 slug             | 笔记章节 | 章数 | 故事秒 | 进片 cue                                  |
+| ----------------------- | -------- | ---- | ------ | ----------------------------------------- |
+| problem-to-mechanisms   | §1       | 5    | 20.0   | 5（1-B/1-C）                              |
+| bare-key-baseline       | §1       | 3    | 11.0   | 3（0-A）                                  |
+| caliber-clash           | §1       | 3    | 12.1   | 3（0-C/1-B）                              |
+| amnesia-intern          | §1       | 2    | 8.9    | 2（1-A）                                  |
+| component-panorama      | §2.1     | 3    | 18.8   | 3（1-D/5-G）                              |
+| evolution-timeline      | §2.2     | 3    | 17.6   | —（录制留档，未落镜）                     |
+| declaration-execution   | M1       | 4    | 17.8   | 4（2-B/2-C）                              |
+| fan-trap                | M1·D1    | 3    | 9.9    | 3（2-E）                                  |
+| dedup-safety            | M1·D2    | 1    | 5.6    | 1（2-F）                                  |
+| mean-of-means           | M1·D7    | 2    | 7.8    | 2（2-F）                                  |
+| last-snapshot-gate      | M1·D3    | 2    | 7.7    | 2（2-G）                                  |
+| dual-path-disambiguation| M1       | 1    | 6.6    | 1（2-G）                                  |
+| valid-sql-wrong-answer  | M1       | 2    | 6.6    | 2（2-H）                                  |
+| row-column-policy       | M2       | 3    | 11.2   | 3（3-A/3-B）                              |
+| engine-governance       | M3       | 4    | 16.6   | 4（3-C/3-E/3-G）                          |
+| governance-demolition   | M2/M3·D5 | 3    | 10.9   | 3（3-D/3-F）                              |
+| resolve-activation      | M4       | 3    | 9.8    | 3（4-B/4-C）                              |
+| wrong-page-failure      | M4       | 2    | 7.8    | 2（4-A）                                  |
+| lineage-ledger          | M5       | 3    | 11.1   | 3（4-D/4-E/4-F）                          |
+| trust-assets            | M4+M5    | 2    | 11.1   | 2（4-F/4-G）                              |
+| agent-identity          | M6       | 4    | 14.3   | 4（5-A/5-B/5-C/5-D）                      |
+| injection-threat        | M6       | 2    | 7.7    | 2（5-A）                                  |
+| classification-tagging  | M7       | 3    | 13.1   | 2（5-E/5-F）                              |
+| supply-overwhelm        | M7       | 1    | 6.6    | 1（5-E）                                  |
+| collect-enrich-activate | §10      | 3    | 12.2   | 1（5-G）                                  |
+| autopilot-loop          | §10      | 3    | 11.0   | —（录制留档，未落镜）                     |
+| majority-shortcut       | §10·D4   | 2    | 7.8    | 2（5-G/6-D）                              |
+| four-factor-ranking     | §11      | 3    | 13.4   | 1（5-H）                                  |
+| open-interop            | §12      | 3    | 12.2   | 1（5-H）                                  |
+| evidence-grading        | §15      | 2    | 8.9    | 2（6-A）                                  |
+| preview-gap             | §15      | 1    | 3.3    | 1（6-B）                                  |
+| perimeter-loss          | §15      | 2    | 10.0   | 2（6-B）                                  |
+| grain-collapse          | §15      | 3    | 10.1   | 3（6-C，full）                            |

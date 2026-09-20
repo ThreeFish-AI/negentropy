@@ -9,6 +9,8 @@ import {theme} from '../design/theme';
 import {DUR, useDraw, useFadeOut, useProgress, useStagger} from '../motion';
 import {Panel} from '../components/motifs';
 import {BuildingSection, EvidenceBadge, NumberClash, Stage} from '../components/devices';
+import {ARCHIFY} from '../archify.manifest';
+import {ArchifyRecap} from '../components/ArchifyRecap';
 
 const BOUNDS = [
   '提效数字多来自厂商自家基准，增益端无第三方复现',
@@ -128,13 +130,13 @@ const RentedSmart: React.FC<{lineAt: number; quoteAt: number; pullAt: number}> =
   );
 };
 
-/** 6-F 信源卡（14 张工程图拼版背景） */
+/** 6-F 信源卡；图数取 manifest 实时计数——手写总数会随扩产再过期（v5 已犯一次） */
 const SourceCard: React.FC = () => {
   const rows = useStagger(4, {at: 8, stride: 6, dur: DUR.f5});
   const items = [
     '精读笔记：docs/research/cognitive-context/011-horizon-context.md',
     '最小原型：assets/horizon_context_lab.py（十次破坏性实验实测）',
-    'archify 工程图：docs/assets/architecture/cognitive-context/（14 张）',
+    `archify 工程图：docs/assets/architecture/cognitive-context/（${Object.keys(ARCHIFY).length} 张）`,
     'pinned commit：097076eb · 全部断言可回溯',
   ];
   return (
@@ -160,6 +162,7 @@ const SourceCard: React.FC = () => {
 export const P6Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (a: string, b?: string) => beatWindow(scene.sentences, scene.from, a, b);
   const at = (id: string) => w(id).from;
+  const dur = (a: string, b?: string) => w(a, b).durationInFrames;
   const bA = w('p6-01', 'p6-06');
   const bB = w('p6-07', 'p6-09');
   const bC = w('p6-10', 'p6-16');
@@ -169,7 +172,7 @@ export const P6Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
   return (
     <AbsoluteFill>
       <Sequence {...bA} name="6-A 五道警示栅栏与第一条">
-        <Stage top={230}>
+        <Stage top={430}>
           <Fences dimmed={1} at={at('p6-03') - bA.from} />
           <NumberClash
             badLabel="官方称准确率"
@@ -179,13 +182,23 @@ export const P6Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
             at={at('p6-05') - bA.from}
           />
         </Stage>
-        <EvidenceBadge grade="vendor" at={at('p6-04') - bA.from} />
+        {/* top=430：本镜有 inset 画框（y∈[56,416]），默认 44 会被整块压住 */}
+        <EvidenceBadge grade="vendor" at={at('p6-04') - bA.from} top={430} />
+        <ArchifyRecap
+          slug="evidence-grading"
+          caption="证据分级"
+          variant="inset"
+          cues={[
+            {chapterId: 'vendor-claim', at: at('p6-05') - bA.from, durationInFrames: dur('p6-05')},
+            {chapterId: 'not-industry-norm', at: at('p6-06') - bA.from, durationInFrames: dur('p6-06')},
+          ]}
+        />
       </Sequence>
 
       <Sequence {...bB} name="6-B 第二三条边界">
-        {/* top=230 与 6-A 同值：栅栏承接 6-A 的像素位置（6-A 的 NumberClash 只占其下方），
+        {/* top=430 与 6-A 同值：栅栏承接 6-A 的像素位置（6-A 的 NumberClash 只占其下方），
             6-B 单子项时 Stage 从 paddingTop 起排，故同 top 即同位置 */}
-        <Stage top={230}>
+        <Stage top={430}>
           {/* entered：承接 6-A 已入场的栅栏，避免 p6-06→07 边界清零重入（压暗走 dimAts） */}
           <Fences
             dimmed={1}
@@ -199,6 +212,24 @@ export const P6Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
             ]}
           />
         </Stage>
+        <ArchifyRecap
+          slug="preview-gap"
+          caption="落地鸿沟"
+          variant="inset"
+          cues={[
+            {chapterId: 'preview-band', at: at('p6-07') - bB.from, durationInFrames: dur('p6-07')},
+          ]}
+        />
+        <ArchifyRecap
+          slug="perimeter-loss"
+          caption="安全周界"
+          variant="inset"
+          lead={false}
+          cues={[
+            {chapterId: 'inside-effective', at: at('p6-08') - bB.from, durationInFrames: dur('p6-08')},
+            {chapterId: 'outside-void', at: at('p6-09') - bB.from, durationInFrames: dur('p6-09')},
+          ]}
+        />
       </Sequence>
 
       <Sequence {...bC} name="6-C 地基塌方与 477 vs 48">
@@ -220,23 +251,42 @@ export const P6Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
                 <br />
                 但<span style={{color: theme.danger}}>地基已被上游按天打包塌缩</span>
               </div>
+              {/* p6-16 入场：full 画框（p6-13..15）盖住本镜装置，入场须排在 full 窗外（同 5-A badgeAt 范式） */}
               <NumberClash
                 badLabel="治理后仍算出"
                 bad="477"
                 goodLabel="真实值"
                 good="48"
-                at={at('p6-15') - bC.from}
+                at={at('p6-16') - bC.from}
               />
             </div>
           </div>
         </Stage>
         <EvidenceBadge grade="thirdparty" at={at('p6-11') - bC.from} />
+        <ArchifyRecap
+          slug="grain-collapse"
+          caption="上游塌方"
+          variant="full"
+          cues={[
+            {chapterId: 'day-pack-collapse', at: at('p6-13') - bC.from, durationInFrames: dur('p6-13')},
+            {chapterId: 'legal-but-wrong', at: at('p6-14') - bC.from, durationInFrames: dur('p6-14')},
+            {chapterId: 'measured-477-48', at: at('p6-15') - bC.from, durationInFrames: dur('p6-15')},
+          ]}
+        />
       </Sequence>
 
       <Sequence {...bD} name="6-D 第五条边界">
-        <Stage top={280}>
+        <Stage top={430}>
           <Fences dimmed={5} />
         </Stage>
+        <ArchifyRecap
+          slug="majority-shortcut"
+          caption="多数派近道"
+          variant="inset"
+          cues={[
+            {chapterId: 'habit-not-truth', at: at('p6-17') - bD.from, durationInFrames: dur('p6-17')},
+          ]}
+        />
       </Sequence>
 
       <Sequence {...bE} name="6-E 租来的聪明">

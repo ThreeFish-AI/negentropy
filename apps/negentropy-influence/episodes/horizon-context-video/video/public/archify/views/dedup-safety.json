@@ -1,0 +1,14 @@
+[
+ {
+  "id": "set-vs-rows",
+  "label": "数集合 vs 数物理行",
+  "focus": [
+   "eventRows",
+   "naiveCount",
+   "wrong6",
+   "dedupSafety",
+   "right3"
+  ],
+  "note": "同一批 6 条事件行：数物理行把活跃客户从 3 虚增成 6，数去重集合才是 3【一】。"
+ }
+]

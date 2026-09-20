@@ -1,0 +1,24 @@
+[
+ {
+  "id": "daily-reset",
+  "label": "每天清零的日循环",
+  "focus": [
+   "geniusHire",
+   "doorIn",
+   "memoryWipe"
+  ],
+  "note": "天才入职才华满格，跨过闸机记忆即清零，今天不记得昨天。"
+ },
+ {
+  "id": "dark-guess",
+  "label": "没术语表，黑暗中瞎猜",
+  "focus": [
+   "memoryWipe",
+   "noGlossary",
+   "noCaliber",
+   "darkGuess",
+   "aiAssistant"
+  ],
+  "note": "术语与口径双重空白，每次提问从零瞎猜；AI 助手进公司即此状态。"
+ }
+]

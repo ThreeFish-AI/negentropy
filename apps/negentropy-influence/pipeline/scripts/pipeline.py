@@ -195,7 +195,12 @@ def cmd_check(
         extra.append("--check-scenes")
     if motion:
         extra.append("--check-motion")
-    return run(uv_no_project("check_script.py", [], *extra, project=root))
+    rc = run(uv_no_project("check_script.py", [], *extra, project=root))
+    if rc:
+        return rc  # 内容门先红先报（同 cmd_all 短路先例）
+    # archify 覆盖门紧随其后串联，不加 flag：忘带 flag = 检查面静默缩小（ISSUE-168
+    # 失效形态）。无 archify 资产的集由脚本自身干净跳过。
+    return run(uv_no_project("check_archify_coverage.py", [], project=root))
 
 
 def cmd_tts(

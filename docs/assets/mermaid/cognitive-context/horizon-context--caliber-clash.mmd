@@ -1,0 +1,22 @@
+%%source: docs/research/cognitive-context/011-horizon-context.md#block1 (L52-L62, §1 病灶① 口径打架：含义散落)
+%%slug: cognitive-context/horizon-context--caliber-clash
+%%type: architecture
+%%derived: archify architecture v1, authored from source mermaid
+%% fix: (2026-09-20 视频动效扩产) 口径打架：同一指标三种数。为 P0/P1 两幕补画中画图例——
+%% 「净收入」一次提问扇出三个看板三套算式（算式取本集 P0Cold.tsx 0-C 已上屏的三张对撞卡，不新增断言），
+%% 三数对撞后落到两位主管的对账缺口（$14.2M vs $12.8M【三】厂商自报开场数字）；
+%% 20 看板 20 算法标【二】（精读笔记转述官方的「口径散在各自 CASE WHEN」），非原型实测故不标【一】。
+%% 三看板未给具体数值——本集事实源无此三数，只写「第 N 种数」，避免伪精度。
+%% 落地为 architecture 型（先试 workflow 型：四泳道固有 939x660 偏高，1440x900/1600x1000/1920x1080 三视口纵向溢出；
+%% architecture 自由布局出 1360x632 宽幅 ≈2.15:1，四视口 visual-check 全过且更贴合 640x360 画中画）。
+flowchart LR
+    netRevenue["💬 同一个业务指标<br/>「净收入」· 同一次提问"] --> salesBoard["📊 销售看板<br/>SUM(amt) - SUM(disc)<br/>→ 第一种数"]
+    netRevenue --> finBoard["🧾 财务报表<br/>再减一项 SUM(tax)<br/>→ 第二种数"]
+    netRevenue --> opsBoard["📈 运营周报<br/>SUM(amt_net_adj)<br/>→ 第三种数"]
+    salesBoard --> clash{"⚔️ 三种数对撞<br/>谁也不服谁"}
+    finBoard --> clash
+    opsBoard --> clash
+    spread["🗂️ 口径散在各自 CASE WHEN<br/>20 个看板 20 种算法【二】"] -.->|"含义无人治理"| netRevenue
+    clash --> salesLead["🧑‍💼 销售主管报一个数<br/>Q3 收入 $14.2M【三】"]
+    clash --> cfoLead["🧮 财务总监报另一个数<br/>同一季 $12.8M【三】"]
+    salesLead -.->|"谁也对不上"| cfoLead

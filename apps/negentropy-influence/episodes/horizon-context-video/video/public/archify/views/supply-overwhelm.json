@@ -1,0 +1,15 @@
+[
+ {
+  "id": "flood-vs-manual",
+  "label": "涌入压垮人工登记",
+  "focus": [
+   "badgeDone",
+   "dataFlood",
+   "manualStamp",
+   "governedSlow",
+   "ungovernedGap",
+   "overwhelm"
+  ],
+  "note": "新数据涌入快、人工逐表盖章慢，速率差即未纳管裸奔窗口，大厦迟早被压垮。"
+ }
+]

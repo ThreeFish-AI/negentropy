@@ -1,9 +1,9 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 1.96,
- "story_sec": 12.18,
- "total_wall_sec": 32.77,
+ "lead_sec": 0.44,
+ "story_sec": 12.19,
+ "total_wall_sec": 56.85,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -12,17 +12,17 @@
    "id": "portable",
    "label": "定义可携带",
    "index": 0,
-   "file": "open-interop--portable.webm",
+   "file": "open-interop--portable.mp4",
    "end_still": "open-interop--portable-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 1.96,
+   "lead_sec": 0.44,
    "story_sec": 4.43,
    "beat_offsets_sec": [
     0.0,
-    1.103,
-    2.206,
-    3.309
+    1.106,
+    2.212,
+    3.314
    ],
    "beat_nodes": [
     "oss",
@@ -30,23 +30,24 @@
     "sv",
     "dbt"
    ],
-   "measured_fps": 25.0
+   "measured_fps": 25.0,
+   "capture_fps": 44.0
   },
   {
    "id": "socket",
    "label": "受控工具面开放",
    "index": 1,
-   "file": "open-interop--socket.webm",
+   "file": "open-interop--socket.mp4",
    "end_still": "open-interop--socket-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 1.76,
+   "lead_sec": 0.44,
    "story_sec": 4.43,
    "beat_offsets_sec": [
     0.0,
-    1.104,
-    2.207,
-    3.31
+    1.108,
+    2.214,
+    3.317
    ],
    "beat_nodes": [
     "sv",
@@ -54,31 +55,41 @@
     "ext",
     "rbx"
    ],
-   "measured_fps": 25.0
+   "measured_fps": 25.0,
+   "capture_fps": 43.0
   },
   {
    "id": "feedback",
    "label": "反馈回流",
    "index": 2,
-   "file": "open-interop--feedback.webm",
+   "file": "open-interop--feedback.mp4",
    "end_still": "open-interop--feedback-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 1.72,
-   "story_sec": 3.32,
+   "lead_sec": 0.44,
+   "story_sec": 3.33,
    "beat_offsets_sec": [
     0.0,
-    1.104,
-    2.208
+    1.107,
+    2.211
    ],
    "beat_nodes": [
     "fb",
     "sv",
     "ada"
    ],
-   "measured_fps": 25.0
+   "measured_fps": 25.0,
+   "capture_fps": 43.0
   }
  ],
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/osaka-v2/docs/assets/architecture/cognitive-context/horizon-context--open-interop.html",
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/bangalore-v3/docs/assets/architecture/cognitive-context/horizon-context--open-interop.html",
  "slug": "open-interop"
 }

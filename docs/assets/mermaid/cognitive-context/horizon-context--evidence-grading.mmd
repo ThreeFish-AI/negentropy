@@ -1,0 +1,14 @@
+%%source: docs/research/cognitive-context/011-horizon-context.md#sec13-evidence (L595-L615, §13 关键实证数据 · 读表纪律①) + script/narration.json p6-04~p6-06
+%%slug: cognitive-context/horizon-context--evidence-grading
+%%type: workflow
+%%derived: archify workflow v2, authored from source mermaid
+%% fix: (2026-09-20 批判边界新图) 证据分级卡：厂商自报 24.1%→86.3%【三】独占增益侧、第三方复测位空缺（虚线框）；开场基线 25%【三】vs 21%【四】双口径小注作对照；结论=自报最佳数字 ≠ 行业常态（p6-04~06）
+flowchart LR
+    benchSource["🏭 提效数字来源<br/>大部分来自厂商自家基准"] --> gradeCard{"⚖️ 证据分级<br/>这条数字，谁测的？"}
+    gradeCard -->|"厂商自报"| vendorClaim["📣 官方宣称<br/>准确率 24.1% → 86.3%【三】<br/>自家内部基准口径"]
+    gradeCard -.->|"第三方复测"| retestGap["🕳️ 复测位：空缺<br/>增益端无独立复现"]
+    dualBaseline["📋 开场基线双口径<br/>25%【三】Snowflake 内测<br/>21%【四】Anthropic 复测"] -.->|"基线有复测先例"| retestGap
+    vendorClaim --> verdictNorm["🚫 判读纪律<br/>自报最佳数字<br/>≠ 行业常态"]
+    retestGap --> verdictNorm
+    classDef ghost stroke-dasharray:5 5
+    class retestGap ghost

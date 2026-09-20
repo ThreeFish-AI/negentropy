@@ -1,0 +1,19 @@
+%%source: apps/negentropy-influence/episodes/horizon-context-video/script/narration.md#L152-L154 (p4-01~p4-03 镜 4-A · M4 失效面；手册印好/闸机焊牢为前置句)；事实锚 docs/research/cognitive-context/011-horizon-context.md §6 M4（L340「语义视图完全正确，LLM 生成 SQL 错误引用 = 独立失效面」+ typedef「治理定义 ≠ 验证计算」最重批判）；分支实例数字 D1 200→440 / D7 108→122 本仓原型实测
+%%slug: cognitive-context/horizon-context--wrong-page-failure
+%%title: 选错页失效：手册对 ≠ 算得对
+%%type: workflow
+%%derived: archify workflow v2, authored from source mermaid
+%% note: (2026-09-20 视频动效扩产) 手册金光全对 × 模型翻错页照算：两个失效分支（选错关联条件=先联后聚 200→440 / 误解深层意图=平均的平均 108→122）并列汇于红色答案，typedef 判词「治理定义 ≠ 验证计算」收束——M4 应答层验证锚定由此诞生（p4-04）；证据角标随节点标签；不外引市政比喻（属下一集）。
+flowchart LR
+    manualBook["📖 语义手册已印好<br/>每一页定义都对"] --> modelFlip["🤖 模型翻手册<br/>生成 SQL · 选页引用"]
+    deepQuestion["❓ 一次提问<br/>表层问题 + 深层意图"] --> modelFlip
+    modelFlip --> wrongPage["❌ 翻到错误的那一页<br/>语义视图正确 · 引用错了"]
+    subgraph failureBranches["两个失效分支"]
+        wrongJoin["🔀 选错关联条件<br/>真实 200 → 虚增 440【一】"]
+        wrongIntent["🧠 误解深层意图<br/>真实 108 → 错算 122【一】"]
+    end
+    wrongPage --> wrongJoin
+    wrongPage --> wrongIntent
+    wrongJoin --> redAnswer["📵 答案出错<br/>手册对 ≠ 算得对"]
+    wrongIntent --> redAnswer
+    governVerifyGap["⚖️ 治理定义 ≠ 验证计算<br/>typedef 最重批判恰落于此"] -.->|"独立失效面"| redAnswer
