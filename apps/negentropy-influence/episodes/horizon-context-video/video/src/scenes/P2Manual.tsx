@@ -316,7 +316,7 @@ export const P2Manual: React.FC<{scene: SceneRange}> = ({scene}) => {
               at={at('p2-20') - bE.from}
             />
           </div>
-          <EvidenceBadge grade="lab" at={at('p2-20') - bE.from} />
+          <EvidenceBadge grade="lab" at={at('p2-20') - bE.from} top={430} />
         </Stage>
         <ArchifyRecap
           slug="fan-trap"

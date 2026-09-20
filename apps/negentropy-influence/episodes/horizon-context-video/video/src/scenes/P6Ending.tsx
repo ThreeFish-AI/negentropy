@@ -251,12 +251,13 @@ export const P6Ending: React.FC<{scene: SceneRange}> = ({scene}) => {
                 <br />
                 但<span style={{color: theme.danger}}>地基已被上游按天打包塌缩</span>
               </div>
+              {/* p6-16 入场：full 画框（p6-13..15）盖住本镜装置，入场须排在 full 窗外（同 5-A badgeAt 范式） */}
               <NumberClash
                 badLabel="治理后仍算出"
                 bad="477"
                 goodLabel="真实值"
                 good="48"
-                at={at('p6-15') - bC.from}
+                at={at('p6-16') - bC.from}
               />
             </div>
           </div>

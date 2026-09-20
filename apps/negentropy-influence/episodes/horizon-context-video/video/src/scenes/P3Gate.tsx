@@ -375,7 +375,7 @@ export const P3Gate: React.FC<{scene: SceneRange}> = ({scene}) => {
             ]}
             width={1180}
           />
-          <EvidenceBadge grade="lab" />
+          <EvidenceBadge grade="lab" top={430} />
         </Stage>
         <ArchifyRecap
           slug="governance-demolition"
