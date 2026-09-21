@@ -343,6 +343,15 @@ def validate(
         fails.append(
             f"archify.html_pattern 须含 {{slug}} 占位（否则全部图映射到同一文件），实际 {hp}"
         )
+    elif isinstance(hp, str):
+        # 干跑一次 format：{slug} 之外的占位/不成对花括号在此红，而不是让重录驱动
+        # 在 pattern.format(slug=…) 处以裸 KeyError traceback 崩溃。
+        try:
+            hp.format(slug="probe")
+        except (KeyError, IndexError, ValueError, AttributeError):
+            fails.append(
+                f"archify.html_pattern 含 {{slug}} 之外的占位或不成对花括号，实际 {hp}"
+            )
     ho = _get(cfg, "archify.html_overrides") if in_scope("archify.x") else None
     if isinstance(ho, dict) and not all(
         isinstance(k, str) and isinstance(v, str) for k, v in ho.items()

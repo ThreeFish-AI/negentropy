@@ -76,6 +76,35 @@ def expected_products(sidecar: Path, out_dir: Path) -> list[Path]:
     return out
 
 
+def stale_reason(sidecar: Path, views: Path, products: list[Path]) -> str:
+    """→ 非空理由 = 产物虽齐但不可信，须重录；空串 = 可跳过。
+
+    存在性判据的两道盲区，都在此补上：
+      - **mtime 一致性**：录制器逐章写产物、全部录完才写 sidecar，故「产物新于
+        sidecar」只能来自一次被打断/失败的重录——留下的新旧章混合素材里，sidecar
+        的 lead_sec 仅对旧章成立，静默混剪即废片；
+      - **章节集对齐**：sidecar 只记「上次录成什么样」，views JSON 才是「现在要
+        什么」；views 增删章后旧清单仍判已齐，新章永远录不上（要等 tsc/渲染期
+        才炸，归因极难）。只比集合不比顺序——章序不影响按 id 取材。
+    """
+    try:
+        data = json.loads(sidecar.read_text(encoding="utf-8"))
+        sc_m = sidecar.stat().st_mtime
+    except (json.JSONDecodeError, OSError):
+        return ""  # sidecar 读不出：expected_products 已空，调用方判「必须重录」
+    if any(p.is_file() and p.stat().st_mtime > sc_m for p in products):
+        return "产物新于 sidecar（上次重录未完成，新旧章混合态）"
+    try:
+        want = {v.get("id") for v in json.loads(views.read_text(encoding="utf-8"))}
+    except (json.JSONDecodeError, OSError):
+        return ""  # views 读不出：录制器的 --views 注入同样会失败并点名，不重复执法
+    have = {c.get("id") for c in data.get("chapters", [])}
+    if want != have:
+        diff = "、".join(sorted(str(x) for x in want ^ have))
+        return f"views 与 sidecar 章节集不一致（{diff}）"
+    return ""
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="archify 工程图批量重录驱动")
     ap.add_argument("--project", required=True, help="分集工程根（如 $P）")
@@ -152,10 +181,15 @@ def main() -> None:
     print(f"计划重录 {len(plan)} 图（串行）；源图目录 {html_dir}")
     for i, (slug, html, overridden) in enumerate(plan, 1):
         sidecar = archify_dir / f"{slug}.json"
+        views = views_dir / f"{slug}.json"
         products = expected_products(sidecar, archify_dir)
+        # 「已齐」= 文件齐**且**不属于混合/陈旧态；不可信的产物要点名重录，
+        # 静默当作已齐等于把两代素材混进成片（两道判据见 stale_reason）。
+        gap = stale_reason(sidecar, views, products) if products else ""
         if (
             not a.force
             and products
+            and not gap
             and all(p.is_file() and p.stat().st_size > 0 for p in products)
         ):
             skipped.append(slug)
@@ -174,7 +208,6 @@ def main() -> None:
             "--out-dir",
             str(archify_dir),
         ]
-        views = views_dir / f"{slug}.json"
         if views.is_file():
             cmd += ["--views", str(views)]
         # 例外图的文件名派生 slug 与产物名对不上，必须显式钉住，否则产出的 mp4
@@ -186,7 +219,8 @@ def main() -> None:
             cmd += ["--type", t]
 
         label = f"{slug}（例外源图 {html.name}）" if overridden else slug
-        print(f"[{i}/{len(plan)}] 录制 {label}")
+        why = f"；{gap}" if gap else ""
+        print(f"[{i}/{len(plan)}] 录制 {label}{why}")
         if a.dry_run:
             done.append(slug)
             continue

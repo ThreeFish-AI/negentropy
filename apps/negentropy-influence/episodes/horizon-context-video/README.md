@@ -53,7 +53,8 @@ uv run --no-project $R/pipeline.py --project $P check --check-scenes --check-mot
 cd $P/video && pnpm install && cd - >/dev/null
 #    图集清单 = video/public/archify/views/（67 图，与覆盖门同一事实源，不另立第二份）；
 #    slug→源图走 pipeline.toml [archify] 的 html_pattern + html_overrides，失配即 FAIL
-#    不静默跳过。串行约 45 min；中断后原样重跑即从缺口续（已齐者点名跳过）。
+#    不静默跳过。串行约 45 min；中断后原样重跑即从缺口续（已齐者点名跳过；
+#    半程重录或 views 增删章的图会被点名强制重录，不混用两代素材）。
 uv run --with playwright python $R/record_archify_all.py --project $P
 cd $P && uv run --no-project --with pillow python scripts/archify_lead.py && uv run --no-project python scripts/archify_manifest.py
 #    单图返工（用真实图名，勿再写 <slug> 占位符——它与分集 slug 同形异义）：
