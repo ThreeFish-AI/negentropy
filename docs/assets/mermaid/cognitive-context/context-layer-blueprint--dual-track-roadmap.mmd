@@ -1,0 +1,26 @@
+%%source: docs/research/cognitive-context/013-context-layer-blueprint.md §16 双轨演进路线：样板间与本楼改造 (L1249-L1300, 能力 × 轨道对齐矩阵与双泳道)
+%%slug: cognitive-context/context-layer-blueprint--dual-track-roadmap
+%%type: architecture
+%%derived: archify architecture v1, authored fresh (共享设计层辐射双泳道 + 虚线对齐边)
+flowchart TB
+    DESIGN["共享设计层 · 五正交层蓝图<br/>对象 · 目录 · 富化 · 治理 · 激活 = 设计 SSOT（§4–§8）"]
+    subgraph SHOWCASE["样板间轨道 · 独立部署（P0–P3）"]
+        direction TB
+        P0["P0 机制验证 ✅ 已完成<br/>七机制玩具域 + MCP stdio + D1–D10"]
+        P1["P1 最小服务<br/>对象 CRUD · resolve · 四工具 · 双层 RBAC"]
+        P2["P2 信任与自纠<br/>四因子归一 · 冲突浮出 · 反馈闭环 · verified QA"]
+        P3["P3 互操作<br/>Ossie 转换器级 · per-role · derived 校验"]
+        P0 --> P1 --> P2 --> P3
+    end
+    subgraph RENOVATION["本楼改造轨道 · negentropy 织物（Phase 1–3，additive + fail-soft）"]
+        direction TB
+        PH1["Phase 1 · 统一目录<br/>三视图 + 信任归一 + Memory 入 Planner"]
+        PH2["Phase 2 · 统一激活<br/>Router + KB 接地 + ContextGuard + context_strategy"]
+        PH3["Phase 3 · 深度治理<br/>Universal Search + 溯源日志 + 质量指标"]
+        PH1 --> PH2 --> PH3
+    end
+    DESIGN --> P0
+    DESIGN --> PH1
+    PH1 -.->|"目录+信任归一 = P2 前置"| P2
+    PH2 -.->|"激活+守卫+QA 沉淀"| P2
+    PH3 -.->|"检索+溯源（Ossie ⏸）"| P3
