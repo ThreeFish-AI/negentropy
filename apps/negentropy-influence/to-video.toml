@@ -1,0 +1,22 @@
+# to-video skill 工作区级机制配置：skill 的 check_series.py 读工作区根本文件
+# （文件/键缺失 = 空默认，即新工作区的干净初始态）。只放本工作区要对机制
+# 说的内容——机制本身住在 skill 仓。
+
+[check_series]
+# 宿主仓库（negentropy 仓根）级受检面：规则 5 相对链接死链扫描的仓库侧延伸。
+# 这两份文档链接进工作区内容（knowledge-map 机制链 / CHANGELOG 条目），整目录
+# 迁移会一次性打断，故纳入受检面。glob 相对 git 仓库根解析（PROJECT = 工作区
+# 最近含 .git 的祖先）。
+project_globs = ["docs/.agents/knowledge-map.md", "CHANGELOG.md"]
+
+# 规则 7「去站点化」的适用系列：观众可见层（口播/分镜/场景组件）禁课程站标识
+# （learn.shareAI /「课程」/ s01–s20 章号）；self-evolution 系是论文型收尾，
+# 不在列。系列 id 集是内容策略而非机制——规则 7/8 原为 skill 前身
+# check_series.py 里的硬编码，2026-09 机制外置时随内容留在工作区（skill 不
+# 携带任何具体系列的身份）。
+course_series_ids = ["claude-code-explained"]
+
+# 规则 8「下期卡同步」的适用系列：配了「系列身份卡 + 下期预告卡」统一收尾
+# 装置的系列（Harness Engineering 五集）；self-evolution 系是旧版论文型收尾
+# （无身份卡），对其执法是假报——装置在哪个系列落地，规则就管到哪。
+next_card_series_ids = ["claude-code-explained"]

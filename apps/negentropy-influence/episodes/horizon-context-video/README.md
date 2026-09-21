@@ -35,15 +35,15 @@ Context Layer 系列首集。信源为本仓 [Snowflake Horizon Context 精读�
 ## 复现
 
 ```bash
-# 仓库根执行。$I/$R/$V 的定义见 ../../pipeline/README.md 路径变量约定（唯一定义处）
-P=$I/episodes/horizon-context-video
+# 工作区根执行。$T/$W/$P/$V 的定义见 to-video skill 的 pipeline/README.md（唯一定义处：https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/README.md）
+P=$W/episodes/horizon-context-video
 
 # ① 信源核验
-uv run --no-project $R/source_ledger.py --project $P verify
+uv run --no-project $T/pipeline/scripts/source_ledger.py --project $P verify
 
 # ② 逐字稿派生 + 内容门
-uv run --no-project $R/pipeline.py --project $P build
-uv run --no-project $R/pipeline.py --project $P check --check-scenes --check-motion
+uv run --no-project $T/pipeline/scripts/pipeline.py --project $P build
+uv run --no-project $T/pipeline/scripts/pipeline.py --project $P check --check-scenes --check-motion
 
 # ③ archify 动效：全量逐章录制 → 测定 lead → 生成 manifest
 #    mp4 / *-end.png 是派生产物（gitignored，HTML 为 SSOT），**换 worktree 必须全量重录一次**。
@@ -55,22 +55,22 @@ cd $P/video && pnpm install && cd - >/dev/null
 #    slug→源图走 pipeline.toml [archify] 的 html_pattern + html_overrides，失配即 FAIL
 #    不静默跳过。串行约 45 min；中断后原样重跑即从缺口续（已齐者点名跳过；
 #    半程重录或 views 增删章的图会被点名强制重录，不混用两代素材）。
-uv run --with playwright python $R/record_archify_all.py --project $P
+uv run --with playwright python $T/pipeline/scripts/record_archify_all.py --project $P
 cd $P && uv run --no-project --with pillow python scripts/archify_lead.py && uv run --no-project python scripts/archify_manifest.py
 #    单图返工（用真实图名，勿再写 <slug> 占位符——它与分集 slug 同形异义）：
-#      uv run --with playwright python $R/record_archify_all.py --project $P --only agent-identity --force
+#      uv run --with playwright python $T/pipeline/scripts/record_archify_all.py --project $P --only agent-identity --force
 #    chapter 模式默认 cdp 高清采集（CDP JPEG q100 @DSF2 → h264 CRF16 @2560×1440）；
 #    需要旧 screencast 行为时给 record_archify.py 加 --capture playwright。
 
 # ④ 配音（先 refs.py rebuild --name me-bright 重建样本）
-uv run --no-project $R/pipeline.py --project $P tts --plan
-uv run --no-project $R/pipeline.py --project $P tts
+uv run --no-project $T/pipeline/scripts/pipeline.py --project $P tts --plan
+uv run --no-project $T/pipeline/scripts/pipeline.py --project $P tts
 
 # ⑤ 草渲 + 体检 + 终渲
-uv run --no-project $R/pipeline.py --project $P render
-uv run --no-project $R/pipeline.py --project $P qa --video out/draft.mp4 --last-n 6 --check
-uv run --no-project $R/pipeline.py --project $P render --final
-uv run --no-project $R/pipeline.py --project $P captions
+uv run --no-project $T/pipeline/scripts/pipeline.py --project $P render
+uv run --no-project $T/pipeline/scripts/pipeline.py --project $P qa --video out/draft.mp4 --last-n 6 --check
+uv run --no-project $T/pipeline/scripts/pipeline.py --project $P render --final
+uv run --no-project $T/pipeline/scripts/pipeline.py --project $P captions
 ```
 
 ## 内容修改守则

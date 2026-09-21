@@ -78,7 +78,7 @@ flowchart LR
     style I fill:#2d5c1a,stroke:#7ED321,color:#fff
 ```
 
-- 公共脚本收敛于 [pipeline/](../../../pipeline/README.md)（本工程 scripts/ 为薄包装）。
+- 公共脚本收敛于 [pipeline/](https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/README.md)（本工程 scripts/ 为薄包装）。
 - 同步机制：每句一段 MP3；Remotion `calculateMetadata` 读 manifest 自动计算时间轴（句间 0.32s、幕间 +0.9s、片头 0.6s、片尾 2s）——改稿后只需重跑 build→tts→render。
 - 质量门：逐字稿定稿前过 `pipeline/skills/04-verification.md` 双重校验（真实性回溯 + 易懂性评审）；渲染后逐幕抽帧目检。
 

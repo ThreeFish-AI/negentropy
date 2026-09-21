@@ -39,7 +39,7 @@ for f in sorted(SIDE.glob("*.json")):
 body = json.dumps(diagrams, ensure_ascii=False, indent=2)
 OUT.write_text(
     "// 本文件由 scripts/archify_manifest.py 从 public/archify/*.json 生成——请勿手改。\n"
-    "// 数据来源：pipeline/scripts/record_archify.py --mode chapter（逐章录制）\n"
+    "// 数据来源：to-video skill 的 pipeline/scripts/record_archify.py --mode chapter（逐章录制）\n"
     "//         + scripts/archify_lead.py（场记板白闪测定真实 leadSec）。\n"
     "\n"
     "export type ArchifyChapter = {\n"

@@ -59,7 +59,7 @@ flowchart TD
 
 ### 1.1 必须被任何候选保住的资产
 
-现役管线（[pipeline README](../../../apps/negentropy-influence/pipeline/README.md)、[skills/06 运动层规格](../../../apps/negentropy-influence/pipeline/skills/06-remotion-implementation.md)）的核心资产不是 Remotion 本身，而是三层契约：
+现役管线（[pipeline README](https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/README.md)、[skills/06 运动层规格](https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/skills/06-remotion-implementation.md)）的核心资产不是 Remotion 本身，而是三层契约：
 
 1. **audio-first 时序 SSOT**：`tts.py` 产出逐句 mp3 + `manifest.json`（含 `durationSec` 实测时长）→ `calculateMetadata` 推总帧数 → 运动层 `window.ts` 以「父持绝对时间、子为 beat 窗口」实现 **TTS 重测后全片自动重定时、零手工对轨**。任何需要人工对轨的时间轴都是对该缺陷类的回归。
 2. **渲染器无关的 QA 契约**：`qa_frames.py` 对成片 MP4 用 ffmpeg 按句号寻址抽帧（黑帧/重复/字幕安全带/WCAG ≥4.5:1/`--beat-heads` 入场瞬态/`--compare` A-B JND 对拍）。**候选渲染器只要产出同规格 MP4，整套 QA 原样适用**——这放宽了候选池。

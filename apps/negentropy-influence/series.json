@@ -4,7 +4,7 @@
       "id": "self-evolution",
       "title": "自进化系列科普视频",
       "sourceKind": "paper",
-      "rule": "各集独立成片。口播文本严禁出现其他集标题、集数序号或「上一集/上期/第 N 集」等顺序词；序号只存在于视觉层与本文件，据此保证发布顺序变更的 TTS 代价为零（「下期再见」一类顺序无关的收尾语不受此限）。校验器：pipeline/scripts/check_series.py（路径均为本子项目相对）。",
+      "rule": "各集独立成片。口播文本严禁出现其他集标题、集数序号或「上一集/上期/第 N 集」等顺序词；序号只存在于视觉层与本文件，据此保证发布顺序变更的 TTS 代价为零（「下期再见」一类顺序无关的收尾语不受此限）。校验器：to-video skill 的 pipeline/scripts/check_series.py（工作区根锚定）。",
       "episodes": [
         {
           "episode": 1,
@@ -199,7 +199,7 @@
       "id": "context-layer",
       "title": "Context Layer · 上下文层系列",
       "sourceKind": "doc",
-      "rule": "各集独立成片。口播文本严禁出现其他集标题、集数序号或「上一集/上期/第 N 集」等顺序词；序号只存在于视觉层与本文件，据此保证发布顺序变更的 TTS 代价为零（「下期再见」一类顺序无关的收尾语不受此限）。校验器：pipeline/scripts/check_series.py（路径均为本子项目相对）。信源为本仓 Horizon Context 精读笔记 + Context Layer 蓝图 + 最小原型（B 型 · 仓内固定提交，上游 Snowflake 官方页不直接取证、只经精读笔记的 IEEE 引用链间接可溯）。",
+      "rule": "各集独立成片。口播文本严禁出现其他集标题、集数序号或「上一集/上期/第 N 集」等顺序词；序号只存在于视觉层与本文件，据此保证发布顺序变更的 TTS 代价为零（「下期再见」一类顺序无关的收尾语不受此限）。校验器：to-video skill 的 pipeline/scripts/check_series.py（工作区根锚定）。信源为本仓 Horizon Context 精读笔记 + Context Layer 蓝图 + 最小原型（B 型 · 仓内固定提交，上游 Snowflake 官方页不直接取证、只经精读笔记的 IEEE 引用链间接可溯）。",
       "episodes": [
         {
           "episode": 1,

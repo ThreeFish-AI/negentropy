@@ -11,7 +11,7 @@ target_minutes = [13.0, 14.2]
 
 [tts]
 engine   = "indextts"
-ref      = "pipeline/voices/me-bright.wav"   # 子项目根相对（见 pipeline/scripts/paths.py）
+ref      = "voices/me-bright.wav"   # 工作区根相对（见 pipeline/scripts/paths.py）
 ref_sha1 = "54b699cce97f"                          # --expect-ref-sha1 硬校验（12 位，同 tts.py 口径）
 style    = "sunny-steady"   # 2026-08 重录决策：成片档 beams=3（首集全片换 sunny-steady）
 # 两遍法：草稿遍用 CLI 覆写 --style sunny（快 3.4 倍），定稿遍回到本配置默认值。

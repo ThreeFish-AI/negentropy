@@ -14,6 +14,6 @@ target_minutes = [13.0, 14.6]
 engine = "indextts"
 # me-bright = ~/Documents/dify/me-1.mp3 的 start=0.36 / 12s 选段。
 # sunny 系预设的 alpha=0.35 就是在这个选段上标定的，换选段标定即失效（voices/refs.toml）。
-ref = "pipeline/voices/me-bright.wav"
+ref = "voices/me-bright.wav"
 ref_sha1 = "54b699cce97f"
 style = "sunny-steady"

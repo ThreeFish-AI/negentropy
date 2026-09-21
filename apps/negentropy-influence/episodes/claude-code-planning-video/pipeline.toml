@@ -15,9 +15,9 @@ target_minutes = [13.0, 14.6]
 
 [tts]
 engine = "indextts"
-# TODO：选定样本与风格。样本路径**子项目根相对**；ref_sha1 取 12 位（同 tts.py 口径），
+# TODO：选定样本与风格。样本路径**工作区根相对**；ref_sha1 取 12 位（同 tts.py 口径），
 # 用 `uv run --no-project $R/refs.py list` 查当前清单。
-# ⚠️ 风格预设的 alpha 是在**特定选段**上标定的，换选段即失效（见 pipeline/voices/refs.toml）。
-ref = "pipeline/voices/me-bright.wav"
+# ⚠️ 风格预设的 alpha 是在**特定选段**上标定的，换选段即失效（见 voices/refs.toml）。
+ref = "voices/me-bright.wav"
 ref_sha1 = "54b699cce97f"
 style = "sunny-steady"

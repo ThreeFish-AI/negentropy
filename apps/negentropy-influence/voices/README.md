@@ -34,8 +34,8 @@ uv run --no-project --with mutagen $R/tts.py \
     --ref $V/me-bright.wav --style sunny
 ```
 
-**样本决定基线**：克隆会连韵律一起继承，样本比参数更关键——同一位说话人换一段录音，克隆音的音高可差 12~16%、语调起伏差 25~40%（实测见 [VOICE-CLONING.md](../VOICE-CLONING.md) §3.3）。
+**样本决定基线**：克隆会连韵律一起继承，样本比参数更关键——同一位说话人换一段录音，克隆音的音高可差 12~16%、语调起伏差 25~40%（实测见 [VOICE-CLONING.md](https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/VOICE-CLONING.md) §3.3）。
 
 ## 隐私提醒
 
-个人声音属于生物特征信息。**本目录下的音频文件已被根 `.gitignore` 忽略，不会提交入库**；请勿通过其它途径（聊天工具/公开仓库）传播克隆源音频。克隆他人声音需获得本人书面同意，见 [VOICE-CLONING.md](../VOICE-CLONING.md) §八 许可。
+个人声音属于生物特征信息。**本目录下的音频文件已被根 `.gitignore` 忽略，不会提交入库**；请勿通过其它途径（聊天工具/公开仓库）传播克隆源音频。克隆他人声音需获得本人书面同意，见 [VOICE-CLONING.md](https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/VOICE-CLONING.md) §八 许可。

@@ -26,7 +26,32 @@ MANIFEST_TS = ROOT / "video" / "src" / "archify.manifest.ts"
 AUDIO = ROOT / "video" / "public" / "audio" / "manifest.json"
 RATE_MIN, RATE_MAX, MIN_FPS = 0.7, 1.35, 18.0
 
-sys.path.insert(0, str(ROOT.parent.parent / "pipeline" / "scripts"))
+import os  # noqa: E402 - 解析器常量在顶部，此处开始为 skill 定位段
+
+
+def _skill_scripts() -> Path:
+    """定位 to-video skill 的 pipeline/scripts（TO_VIDEO_HOME → 两处约定安装位）。"""
+    candidates = []
+    if env := os.environ.get("TO_VIDEO_HOME"):
+        candidates.append(Path(env).expanduser())
+    candidates += [
+        Path.home() / ".claude" / "skills" / "to-video",
+        Path.home() / ".agents" / "skills" / "to-video",
+    ]
+    for c in candidates:
+        p = c / "pipeline" / "scripts"
+        if (p / "pipeline.py").is_file():
+            return p
+    listed = "\n  ".join(str(c) for c in candidates)
+    sys.exit(
+        "找不到 to-video skill（按序尝试：\n  " + listed + "\n）。\n"
+        "  安装：git clone https://github.com/ThreeFish-AI/to-video <目录>\n"
+        "        ln -s <目录> ~/.claude/skills/to-video"
+        "   # 或设 TO_VIDEO_HOME=<目录>"
+    )
+
+
+sys.path.insert(0, str(_skill_scripts()))
 import timeline  # noqa: E402  —— 必须在 sys.path 注入之后导入
 from check_archify_coverage import extract_cues  # noqa: E402  —— 单一 cue 提取器
 

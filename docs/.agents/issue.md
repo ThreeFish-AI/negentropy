@@ -3529,9 +3529,9 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 
 ## ISSUE-161 科普视频管线配置漂移：分集 README 复现命令与推荐位分叉，照跑即作废整集声纹缓存（2026-08-19）
 
-- **表因**：三集 README 的复现命令写 `--style passionate --ref …/me-1.wav`，而 [VOICE-CLONING.md](../../apps/negentropy-influence/pipeline/VOICE-CLONING.md) §5 推荐位已迁至 `sunny`/`sunny-steady` + `me-bright.wav`（PR #1107）——文档间口径分叉且无任何机制提示。
+- **表因**：三集 README 的复现命令写 `--style passionate --ref …/me-1.wav`，而 [VOICE-CLONING.md](https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/VOICE-CLONING.md) §5 推荐位已迁至 `sunny`/`sunny-steady` + `me-bright.wav`（PR #1107）——文档间口径分叉且无任何机制提示。
 - **根因**：**无分集声明式配置**。可执行参数以复制粘贴形式散落三份 README，推荐位一迁移，旧命令全部变成「合法但错误」——`{id}.mp3` 单槽位 + 摘要含 style/ref_sha1（tts.py `digest_indextts`），照旧命令跑会把整集克隆音频静默改写成 deprecated 风格（179–228 句、数小时级返工）。
-- **处理方式**：① 每集新增 `pipeline.toml`（episode/narration/tts/render 四节）作为可执行参数唯一来源，README 只留 `pipeline.py tts` 一行；② `pipeline.py` 编排入口从配置装配参数并自动带 `--expect-ref-sha1` 指纹硬校验；③ 新增 `.engine` 音色签名标记 + `--allow-voice-switch` 显式放行（含 `--plan` 路径前置，排期阶段即拦截误重录）；④ `refs.py` + `voices/refs.toml` 指纹清单（只存哈希与生成参数，.gitignore 白名单例外放行）。见 [pipeline README](../../apps/negentropy-influence/pipeline/README.md)。
+- **处理方式**：① 每集新增 `pipeline.toml`（episode/narration/tts/render 四节）作为可执行参数唯一来源，README 只留 `pipeline.py tts` 一行；② `pipeline.py` 编排入口从配置装配参数并自动带 `--expect-ref-sha1` 指纹硬校验；③ 新增 `.engine` 音色签名标记 + `--allow-voice-switch` 显式放行（含 `--plan` 路径前置，排期阶段即拦截误重录）；④ `refs.py` + `voices/refs.toml` 指纹清单（只存哈希与生成参数，.gitignore 白名单例外放行）。见 [pipeline README](https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/README.md)。
 - **后续防范**：**可执行参数不落散文文档，文档只引用配置**。任何「文档里手写命令行参数」的流水线都有同款漂移面；评审时见到 README/文档内联长命令行（含风格/样本/版本等会变参数）应要求收敛到声明式配置。
 - **同类影响与注意**：本类漂移在「推荐位会迁移」的领域（模型档位、样本、API 版本）必然复发；修复时务必同时上「拦截层」（签名/指纹硬失败）而不只改文档——文档改对了，下一次迁移照样分叉。
 
@@ -3556,7 +3556,7 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **根因**：**「排版约定 × TN 规则」的隐式耦合**，而非任何一方单独的缺陷。逐字稿有「数字与汉字之间加空格」的排版习惯（`88 页`/`15 分钟`/`16.2 个百分点`），这一约定对绝大多数场景无害；但 macOS 上实际的中文归一化引擎是 **wetext**（`~/tools/index-tts/indextts/utils/front.py:116-142` 按 platform 分叉，Linux 才走 `tn.chinese.normalizer`），其 date/year 规则要求**数字与「年」字面相邻**，插入空格后该规则失配、回落到 cardinal（基数）读法。实测空格敏感性矩阵里**只有 4 位年份这一条被击穿**：`6 月`/`20 日`/`88 页`/`47.6%`/`第 3 章`/`1.2 节`/`0.5~1.0 秒`/`9:30` 加不加空格结果一致且全部正确。另注：中文**不走** NeMo（`infer_v2_5.py:703-707` 是 if/elif，只有 ja/es 走 `nemo_tn`），此前若按 NeMo 排查等于查一条死路径。
 - **处理方式**：① 三集 `narration.md`（唯一维护处）共 8 句去掉数字与「年」之间的空格，重跑 `build_narration.py`；② `check_script.py` 新增 `READING_TRAPS` 成门，把**实测确认会读错**的 7 类写法固化为 FAIL/WARN（4 位年份带空格、三段版本号 `2.5.1`→「二.五点一」、连字符区间 `3-5 倍`→「三减五倍」、`±3%`→「百分之正负三」、`10x`→「十x」、整句无汉字→路由到英文归一化、`1080P`→「一千零八十P」WARN）；③ 每条规则都在 `test_check_script.py` 里配正反例，**反例组同等重要**——本轮调研初稿把 `0.5~1.0 秒` 与 `9:30` 也列为错误，实测证明它们其实正确（`零点五到一点零秒`/`九点三十分`），凭直觉扩大清单会造成误伤。
 - **后续防范**：**给外部引擎的文本，任何排版约定都要过一遍该引擎的真实行为探针，不能凭直觉列禁写清单**。归一化是**幂等**的（预写成汉字读法后再过一遍结果不变），故此类修复可逐句增量做、无需一次性全量改写、也不需要关 `text_normalization` 开关（关掉反而会丢失 `%`/小数/量词这些**已经正确**的能力）。加规则前先跑探针拿到「错读证据」，再把证据写进规则消息里——`READING_TRAPS` 的每条 message 都带实测输出。
-- **同类问题影响与注意**：① 生产若迁 Linux，归一化引擎换成 `tn.chinese.normalizer`，**必须在 Linux 上重跑同一组空格矩阵**确认行为一致；② 修复会改写这 8 句音频（每处少 2–3 个音节、约 −0.4~0.7 s），**牵动 beat 时长与片尾渐黑窗口**（同族踩坑：渐黑窗口须用 beat 时长而非末句时长），故重合成须按集排期、`pipeline.py tts --plan` 确认只有这几句 miss、重渲后 `qa_frames.py --last-n 6 --check` 复检尾幕；③ 本轮同时发现上游有一整套发音标注能力（`<行|HANG2>`）可治多音字，已接通并成门，见 [INDEXTTS-2.5-ADVANCED.md](../../apps/negentropy-influence/pipeline/INDEXTTS-2.5-ADVANCED.md) 与 [PRON-GLOSSARY.md](../../apps/negentropy-influence/pipeline/PRON-GLOSSARY.md)。
+- **同类问题影响与注意**：① 生产若迁 Linux，归一化引擎换成 `tn.chinese.normalizer`，**必须在 Linux 上重跑同一组空格矩阵**确认行为一致；② 修复会改写这 8 句音频（每处少 2–3 个音节、约 −0.4~0.7 s），**牵动 beat 时长与片尾渐黑窗口**（同族踩坑：渐黑窗口须用 beat 时长而非末句时长），故重合成须按集排期、`pipeline.py tts --plan` 确认只有这几句 miss、重渲后 `qa_frames.py --last-n 6 --check` 复检尾幕；③ 本轮同时发现上游有一整套发音标注能力（`<行|HANG2>`）可治多音字，已接通并成门，见 [INDEXTTS-2.5-ADVANCED.md](https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/INDEXTTS-2.5-ADVANCED.md) 与 [PRON-GLOSSARY.md](https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/PRON-GLOSSARY.md)。
 
 ## ISSUE-165 站点标注的规模数字与固定提交实测复算不一致（102/135/180/232 vs 141/191/241/255）（2026-08-21）
 
@@ -3569,14 +3569,14 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **后续防范**：
   1. **凡引用他方标注的规模数字（行数/条目数/参数量），必须在固定版本上自己复算一遍，并写明口径**；复算不上就降级为趋势表述——「复算不出」本身就是「该数字已陈旧」的证据，不是自己算错了。
   2. **散文与代码的新鲜度要分别评估**：同一个信源的不同部分（文案 / 代码 / 图）改版节奏不同，不能因为「取自同一个站点」就认为同龄。
-  3. 双轨取证（站点叙事 + 仓库固定提交）应作为**文档/代码型选题的默认姿势**，规格见 [skills/01-source-extraction.md](../../apps/negentropy-influence/pipeline/skills/01-source-extraction.md) B 型大节。
+  3. 双轨取证（站点叙事 + 仓库固定提交）应作为**文档/代码型选题的默认姿势**，规格见 [skills/01-source-extraction.md](https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/skills/01-source-extraction.md) B 型大节。
 
 ## ISSUE-166 `ERR_PNPM_IGNORED_BUILDS` 在 esbuild 上是无害噪声——不要为消音改动跨集冻结文件（2026-08-21）
 
 - **表因**：新建 `apps/negentropy-influence/episodes/claude-code-explained-video/video` 后首次 `pnpm install --ignore-workspace`（pnpm 11.17.0）报 `[WARN] The "pnpm" field in package.json is no longer read` + `[ERR_PNPM_IGNORED_BUILDS] Ignored build scripts: esbuild@0.28.1`，与 [ISSUE-076](#issue-076-pnpm-v11-升级后-pnpm-install-报-err_pnpm_ignored_builds--packagejsonpnpmoverrides-静默失效2026-05-08) 同源（四集视频工程的 `package.json#pnpm.onlyBuiltDependencies` 都是 v10 写法）。
 - **误判与纠正**：起初判定为「首个卡点」，依次尝试 `.npmrc` 的 `only-built-dependencies[]=esbuild`（v11 不读）、`--allow-build` 旗标（11.17 无此旗标）、本地 `pnpm-workspace.yaml` + `allowBuilds`（能消掉报错，但需去掉 `ignore-workspace=true`，否则连本目录的 workspace 文件一起被忽略）。**随后做端到端验证才发现方向错了**：旧写法下 `@esbuild/darwin-arm64` 平台包与二进制**本来就落地**（它是 optionalDependency，不依赖 postinstall），`esbuild.transform()` 正常、既有集 `remotion bundle` 跑到 100% 并产出 `build/`。
 - **根因**：`ERR_PNPM_IGNORED_BUILDS` 只表示「postinstall 被跳过」，**不等于「依赖不可用」**。是否有害取决于该包的 postinstall 是否**承载功能**：esbuild 的 postinstall 只做校验/链接，平台二进制走 optionalDependencies 分发，故跳过无实际后果；而 ISSUE-076 里的 `sharp` / `unrs-resolver` 才是真正依赖 postinstall 的。
-- **处理方式**：**撤销全部修改**，把 `.npmrc` 恢复到与另外三集逐字节一致（md5 四集相同），只在 [pipeline/README.md](../../apps/negentropy-influence/pipeline/README.md) 新集脚手架清单里留一条说明：这条提示已实测无害、刻意不消音。
+- **处理方式**：**撤销全部修改**，把 `.npmrc` 恢复到与另外三集逐字节一致（md5 四集相同），只在 [pipeline/README.md](https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/README.md) 新集脚手架清单里留一条说明：这条提示已实测无害、刻意不消音。
 - **后续防范**：
   1. **报错不等于故障——先做端到端验证再动手修**。为消掉一条无害提示而改动「A 档跨集冻结文件」，代价是给隔离基线引入一处纯噪声差异，比那条提示本身更贵。
   2. 判据可复用：遇 `ERR_PNPM_IGNORED_BUILDS`，先查该包的平台二进制是否走 optionalDependencies（走 = 大概率无害），再查功能是否真的可用（`require` + 实际调用 + 端到端构建）。
@@ -3627,7 +3627,7 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
   ① **CPU 竞争**：`sysctl -n vm.loadavg` 实测 10+（编辑器 + 会话 + 浏览器 + TTS），
   `pmset -g therm` **零告警**。慢是排队慢，**产物无损**，正确处置是「重排期或停掉别的活」；
   ② **热节流**：负载不高却仍慢、或有热告警。那才需要中止并按
-  [INDEXTTS-2.5-ADVANCED §6.5](../../apps/negentropy-influence/pipeline/INDEXTTS-2.5-ADVANCED.md) 验证环境。
+  [INDEXTTS-2.5-ADVANCED §6.5](https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/INDEXTTS-2.5-ADVANCED.md) 验证环境。
   更根本的一点：**基线 1.868 s/char 取自机器空闲时的长跑**——分母的前置条件没写在判据旁边，
   于是「日常有人用这台机器」这种常态被读成了异常。
 - **处置**：`tts_progress.py` 的越阈文案改为**先分因后处置**（打印 loadavg / therm 两条自检指令与两条分支结论）；
@@ -3729,7 +3729,7 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **处置**：① 四集 `source-archive/` 各放上游**同一固定提交**下的 `LICENSE` 字节副本
   （sha256 `204ff5ee…`，随文记录以便日后复核取的是哪一版）+ `README.md` 出处表
   （上游项目/仓库/许可/固定提交/取数日期/指纹台账位置，章节归属只链接地图不重述）；
-  ② [skills/01](../../apps/negentropy-influence/pipeline/skills/01-source-extraction.md) §多章批量取证
+  ② [skills/01](https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/skills/01-source-extraction.md) §多章批量取证
   增第 4 步「归档即分发，许可声明必须随副本落地」，并写明**这是单一事实源纪律的唯一显式例外**——
   各集工程目录是可被单独取出、单独交付的单位，声明收敛到系列级一处，取出单集时就会丢；
   ③ 上游无许可文件或不允许再分发时**不建归档**，只留台账指纹并在 source-notes 记明理由；
@@ -3806,7 +3806,7 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
      工程钉成它自己的 workspace 根。实测：带不带 `--ignore-workspace`，根 lockfile 均零变更，
      嵌套工程正常生成 22 行单文档 lockfile（不含 packageManagerDependencies，故 8 份既有
      lockfile 无需改动）。该文件已登记进
-     [`skeleton.toml`](../../apps/negentropy-influence/pipeline/templates/video-skeleton/skeleton.toml)
+     [`skeleton.toml`](https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/templates/video-skeleton/skeleton.toml)
      的 `frozen` 清单受漂移门执法（受门 17→18 文件）；`scaffold.py` 用 `rglob` 全量复制，新集自动继承。
   3. 顺带消除两处**第二事实源**：[`docker/frontend/Dockerfile`](../../docker/frontend/Dockerfile) 与
      [`docker/wiki/Dockerfile`](../../docker/wiki/Dockerfile) 原为 `corepack prepare pnpm@latest
@@ -3837,7 +3837,7 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
   1. **升级包管理器后，第一个要验的不是"能不能装"，而是"lockfile 还是不是原来那个 lockfile"**。
      本次 `git status` 只显示"pnpm-lock.yaml modified"——与预期中的变更同名，于是被一眼放过；
      真正该做的是 `git diff --stat` 看量级、并核对 `overrides` / `importers` 等结构性锚点仍在。
-     [`pipeline/README.md`](../../apps/negentropy-influence/pipeline/README.md) 早有"装完检查根
+     [`pipeline/README.md`](https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/README.md) 早有"装完检查根
      lockfile 零变更"的纪律，说明这个危险区**此前已被识别**，只是 v12 把"偶尔"变成了"必然"。
   2. **`latest` dist-tag 未切换＝上游自己说"还不建议默认"**。本次是在 `latest` 仍指向 11.25.0 时
      抢升（12.0.0 发布 6 天内已迭代到 12.2.1），属知情决策；后续同类升级须显式核对
@@ -3926,7 +3926,7 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **后续防范**：
   1. **3D 是 `--check` 的完全盲区**（它只看黑帧/冻帧/字幕带侵入/对比度），本例三轮修复全靠 `remotion still` 逐帧目视。3D 改动的验收成本主要在目视，排期时按「每轮出图 4–5s + 判读」计。
   2. **`zIndex:-1` 会让 3D 画布沉到同容器所有兄弟节点之后**（本例壳整个消失）。z 层级属调用点契约，不写进原语。
-  3. 规格已公共化到 [skills/06 「3D 点缀」节](../../apps/negentropy-influence/pipeline/skills/06-remotion-implementation.md)（三条宪法 + 读色契约 + 构造经验 + 验收），EP2–5 采纳 3D 前先读。
+  3. 规格已公共化到 [skills/06 「3D 点缀」节](https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/skills/06-remotion-implementation.md)（三条宪法 + 读色契约 + 构造经验 + 验收），EP2–5 采纳 3D 前先读。
 - **同类问题影响**：任何「嵌套容器 / 井 / 盒」类 3D 表达；`Socket3D` 的井壁同样按实心板 + 遮挡构造。
 
 ## ISSUE-181 两个渲染进程并发写同一 mp4 → 索引损坏，抽帧 seek 全部落回第 0 帧，伪造出 52 条 WARN（2026-09-06）
@@ -4158,3 +4158,29 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
   「24 个装置」实存 8 个；③ `devices.tsx` 的 `SplitCompare`/`AskCard` 全仓零引用，属 ISSUE-190 防范 4 的清退遗漏，
   且是未来任何 import-closure 改门方案的污染源；④ `skills/05` 把动效列定性为「对实现者的设计指令」、
   `skills/06` 定性为「事后意图摘要」，两份规格互相矛盾，需裁决。
+
+---
+
+## ISSUE-192 科普视频流水线机制外置为公开 skill（to-video）：机制/内容分仓与存量口径迁移（2026-09-21）
+
+- **表因**：`apps/negentropy-influence` 内机制（`pipeline/` 全树 + `.agent/skills/science-video-pipeline` 路由壳）与内容（`episodes/`、`series.json`、`source-map/`、`voices/`）同居一仓——机制每次演进都要挤本仓发布列车，而它对任何「论文/文档/代码 → 科普视频」工作区通用，本仓只是第一个消费者；反之本仓的内容交付节奏也被机制的 lint/依赖面牵连。
+- **根因**：机制与内容的变更节奏不同源。机制是可独立发版的公共基建（应有自己的仓、自己的测试与版本），内容是随本仓 `series.json` 发布顺序走的交付物；同居一仓时二者在 uv workspace 边界、pre-commit files 锚定、依赖扫描面上互相耦合——「复制适配不做共享包」的隔离只做到了集与集之间，没做到仓与仓之间。
+- **处理方式**：
+  1. **机制外置抽取**：`pipeline/` 全树与路由壳迁入公开 skill 仓 [to-video](https://github.com/ThreeFish-AI/to-video)（MIT），实测全绿后发布，安装于 `~/.claude/skills/to-video`；本仓收敛为内容工作区（`.influence-root` 哨兵，skill 兼容识别）。
+  2. **包装器解析器化**：全 10 集 34 个集侧脚本（30 薄包装 + horizon-context 4 件 archify 辅助）不再内嵌机制，改转发 skill 解析器执行。
+  3. **voices 迁工作区根**：`pipeline/voices/` → `voices/`，`tts.ref` 口径改为工作区根相对；缓存摘要内容寻址（只含字节 sha1 不含路径），存量句缓存零失效。
+  4. **钩子 skill 依赖**：pre-commit 两 ruff 钩子与 series-consistency-check 改锚工作区包装器（`apps/negentropy-influence/scripts/`），依赖已安装的 to-video skill，缺席即大声失败而非静默跳过。
+  5. **11/11 陈述刷新**：Definitions Registry 物化口径 11/12 → 11/11（`science-video-pipeline` 随外置删除，盘上 11 个 SKILL.md 已全部入库）；对应两图（`core/framework--engine-interior`、`design/skills--management-ui`）的 HTML/PNG 重生成须走 archify 管线，作为具名跟进项登记在此——在此之前 `framework.md` 内嵌 PNG 仍显示 11/12，勿手改 HTML。
+  6. **受检面声明化**：check_series 的工程级受检面（规则 2/3/5 扫 knowledge-map 与 CHANGELOG）改由工作区根 `to-video.toml` 的 `[check_series] project_globs` 声明，语义不变。
+- **后续防范**：
+  1. **既有 checkout 升级后的 voices 搬迁**：gitignored 的参考音频不随 git 走——若旧 `pipeline/voices/` 下存在 `.wav`，须先 `mv` 到工作区根 `voices/` 再跑 TTS（否则按新口径找不到样本、整集重合成）；**全程严禁 `git clean -xdf`**（同 PR #1111 搬迁纪律）。
+  2. **钩子的 skill 依赖是显式前置**：新环境 clone 本仓后须先安装 to-video skill 再跑 pre-commit；缺席是大声失败，不许为「让钩子过」降级为静默跳过。
+  3. **引用口径**：文档新增对机制的引用一律写 skill 仓 GitHub 绝对 URL（`https://github.com/ThreeFish-AI/to-video/blob/main/<skill 内路径>`），不再写仓内相对路径——机制文件已不在本仓，相对链必死。
+- **同类问题影响与注意事项**：
+  1. **HTML/PNG 重生成跟进项（具名登记）**：`docs/assets/mermaid/core/framework--engine-interior.mmd` 与 `docs/assets/mermaid/design/skills--management-ui.mmd` 标签已改 11/11，对应交互 HTML 与双主题 PNG 尚未重生成（须走 archify 管线 + capture 重采，勿手改）；在此之前两图产物与 `.mmd` 口径暂时不一致。
+  2. **接受的残留**：分集冻结档 `.tsx` 内指向已迁文档的注释按原样保留——改动会触发 `verify_skeleton` 指纹漂移门、迫使全系列重登记，以「注释陈旧」换「指纹稳定」是本轮显式决策，勿顺手清。
+  3. 机制侧后续演进（含 check_series 六规则判据调整）一律改 skill 仓并发版；本仓只持内容、发布顺序与工作区配置。
+
+### 附带发现（预存漂移，非本 PR 引入）
+
+- `context-layer-video/script/narration.json` 相对 `narration.md` 存在**预存陈旧**（HEAD `c8b9aea2` 即如此：md 首句「你可能有个常用的 AI 助手」vs json「你身边可能也有个…」，13 句文本不一致）。抽取 PR 的派生确定性回归（4 集 build）将其暴露；按「抽取不动内容」纪律本 PR 回滚该文件保持原样，**修复（重跑 build 提交新 json）应另开内容侧 PR**，注意该集 status 注记其成片已交付（json 陈旧不影响已渲成片，仅影响后续重渲的口径基线）。
