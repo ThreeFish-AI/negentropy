@@ -4158,3 +4158,13 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
   「24 个装置」实存 8 个；③ `devices.tsx` 的 `SplitCompare`/`AskCard` 全仓零引用，属 ISSUE-190 防范 4 的清退遗漏，
   且是未来任何 import-closure 改门方案的污染源；④ `skills/05` 把动效列定性为「对实现者的设计指令」、
   `skills/06` 定性为「事后意图摘要」，两份规格互相矛盾，需裁决。
+
+---
+
+## ISSUE-192 成片 47s 处 p0-10 句尾「Context」被读成「Context text」：TTS 尾 token 重复采样被 tts-store 逐代继承（2026-09-21）
+
+- **表因**：horizon-context-video 成片约 47s 处，「这集拆一拆 Snowflake 的解法：「Horizon Context」。」句尾的 *Context* 多读出一个重复尾音（听感 "Context text"）。
+- **根因**：IndexTTS 自回归采样在「中文句 + 句尾英文 token（全角引号+句号收尾）」上的尾 token 重复（该句坏 take 4.73s vs 正常 4.28s，多出的 ~0.4s 即重复音节；ASR 转写为 "…Horizon Context Test"）。缺陷 take 自 v4 合成代起被机器级 tts-store 按 digest 原样继承到 v5/v6（`87eba63f` 恢复 187/187 句零重合成＝把坏 take 一并恢复），而 v5/v6 的 QA 全在视觉侧（qa_frames/覆盖门），成片音频无听审与 ASR 抽检环节，故四代未发现。
+- **处理方式**：零文本改动——**store-miss 单句重掷**：把 tts-store 内该句当前 digest 条目改名移出缓存命名空间（`*.bad-1`）+ 删集内 `audio/p0-10.{mp3,sha}` → 重跑 `pipeline.py tts` 仅该句 miss 重合成（随机 seed 新 take，同参数落回同 canonical digest 回存 store，未来任何 worktree 恢复即修复版）；坏 take 留档。验证三重：faster-whisper **medium** ASR 与逐字稿一致（small 模型会把 /kst/ 词尾幻觉成假词，不可用作裁决）、时长 4.73→4.28s、成片内嵌波形与源 take 包络互相关 0.991。时序由 `computeTimeline` 从 manifest 全自动重排（全片 -11 帧），草渲→qa FAIL 0→终渲。
+- **后续防范**：① 句尾英文产品名（Horizon Context / Snowflake / dbt）是重复采样高发位，终渲前应对此类句子跑 ASR-与逐字稿 diff 抽检（候选管线门，本次未落地）；② 裁剪窗 ASR 裁决须用 medium 档且与源 take 做包络互相关兜底（窄窗裁剪会切中词尾本身产生假阳性「多读」）；③ 同代产物跨 worktree 搬运用 `cp -p` + `record_archify_all` 自校验（已齐 67/67 跳过）合法且省 45 min 重录，勿盲目按「换 worktree 必须重录」字面执行。
+- **同类问题影响**：已上线三集 + 本系列成片中所有句尾英文词结束句均可能存在同类隐患；换新 worktree 重建时 tts-store 会继续按 digest 继承任何既有缺陷 take，修复须显式重掷（本条方法）。
