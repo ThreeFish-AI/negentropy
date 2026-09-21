@@ -9,8 +9,9 @@
 > `check_motion` 只按**幕级**粒度比对（`P4*` 任一处调用即满足全幕），本表按更严的**镜级**维护——装置在镜间搬家或退役时，
 > 幕级门会沉默，镜级登记不会。`components/` 内的 hook（`ArchifyClip` 画框弹入 / `devices.tsx` 的 PillarHUD、
 > EvidenceBadge、MechZoom、NumberClash / `CodeWalk`）与 `window.ts` 的纯函数 `progress()` **一律不产生 token**
-> （门不扫 `components/`，写了必恒 WARN），但**必须在散文里点名承担者**。括注 `（本镜无动效 hook）` 的准确含义是
-> 「本幕 scene 文件内无 `useXxx(` 调用」，**不等于本镜静止**——纯图主控镜正在播 `OffthreadVideo`、画框还带入场弹簧。
+> （门不扫 `components/`，写了门也证实不了——同幕他处恰有同 verb 时还会幕级假通过），但**必须在散文里点名承担者**。
+> 括注 `（本镜无动效 hook）` 的准确含义是「本镜内、由本幕 scene 文件定义的装置无 `useXxx(` 调用」，
+> **不等于本镜静止**——纯图主控镜正在播 `OffthreadVideo`、画框还带入场弹簧。
 > ⚠️ 动效列**禁照搬画面列那套 `archify` + `full`/`inset` 字面标注**：`check_archify_coverage` 的 `ANN_COUNT_RE` 扫全文、
 > 而解析数只取画面列，多一处命中即 **FAIL**。同理禁写 `@archify` 之类非动词表标记（会触发「不在词表」WARN）。
 >
@@ -55,7 +56,7 @@
 | 2-B | p2-05..08   | **注册校验门**：坏「关系卡」推向门被弹回盖拒收章 ·**代码走廊①** `validate_view` + 终端 `✗ relationship bad` ·**archify full**：声明执行 章 `gate` ·**archify full**：坏定义注册生死簿 章 `strict-gate`+`nonkey-rejected`+`no-runtime-risk` | archify 全屏回放主控：章内拍脉冲 + 换章弹入由 ArchifyClip 承担；【一】角标淡入在 devices.tsx EvidenceBadge 内（本镜无动效 hook）|
 | 2-C | p2-09..09b  | **双保险锁**：手册封面两把锁（声明锁 / 计算锁）；拧开计算锁 → 文字一字未改、数字 200 跳 440 变红 ·**archify full**：声明执行 章 `recompute` ·**archify full**：手册是算式不是结论 章 `declare-execute-split` | archify 全屏回放主控：章内拍脉冲 + 换章弹入由 ArchifyClip 承担（本镜无动效 hook）|
 | 2-D | p2-10..13   | 宽表死数字（🧊 冻住的数）vs 只存算式、临机现算（⚙️）：左右静态对照卡，字幕推进为节拍 ·**archify full**：临机现算 章 `frozen-widetable`+`formula-only`+`grain-recompute` | archify 全屏回放主控：章内拍脉冲 + 换章弹入由 ArchifyClip 承担（本镜无动效 hook）|
-| 2-E | p2-14..20   | **复印机陷阱**：$100 订单进复印机 → 三张副本 → 求和器滚 $300 爆红；解法「先聚后联」合体；终端 `440 vs 200` ·**archify full**：复印机陷阱 章 `copy-inflate`+`aggregate-first`+`measured-440` ·**archify full**：事件扇出 章 `hundred-three`+`join-disaster` ·**archify full**：计算纪律四条总纲 章 `agg-before-join` | 副本 stagger 逐张推入；求和 count 100→300 + impulse 爆红；p2-15..20 由 ArchifyYield 让位 archify ；`@stagger` `@count` `@impulse`|
+| 2-E | p2-14..20   | **复印机陷阱**：$100 订单进复印机 → 三张副本 → 求和器滚 $300 爆红；解法「先聚后联」合体；终端 `440 vs 200` ·**archify full**：复印机陷阱 章 `copy-inflate`+`aggregate-first`+`measured-440` ·**archify full**：事件扇出 章 `hundred-three`+`join-disaster` ·**archify full**：计算纪律四条总纲 章 `agg-before-join` | 副本 stagger 逐张推入；求和 count 100→300 + impulse 爆红；p2-15..20 由 ArchifyYield 让位 archify；【一】角标淡入在 devices.tsx EvidenceBadge 内 ；`@stagger` `@count` `@impulse`|
 | 2-F | p2-21..26   | 去重集合圈收束（6 vs 3）·**班级平均分天平**：先除后加 122 幽灵飘散 vs 先聚后除 108 落盘 ·**archify full**：去重安全 章 `set-vs-rows` ·**archify full**：平均的平均 章 `wrong-avg-of-avg`+`measured-122-108` ·**archify full**：计算纪律四条总纲 章 `dedup-count`+`divide-after-agg` | 去重对撞卡由 devices.tsx NumberClash 左右错峰推入；天平 spring 倾斜；122 幽灵 progress 淡隐（非 useDim） ；`@spring` `@progress`|
 | 2-G | p2-27..31   | **末快照时间闸**：七格余额「求和」堆叠爆红 24 vs「末快照」只亮 7；买家/推荐人双路径分岔显式声明 ·**archify full**：末快照 章 `semi-additive`+`snapshot-vs-sum` ·**archify full**：关系消歧 章 `two-paths` ·**archify full**：计算纪律四条总纲 章 `semi-additive` | 七根天数条按纯函数 progress 逐根起高（无 use 模型）；24 vs 7 对撞卡在 devices.tsx NumberClash 内（本镜无动效 hook）|
 | 2-H | p2-32..36   | 题眼金句卡「语法完全正确，分析可能彻底错误」→ 规章手册徽章落位，HUD 第一柱点亮 ·**archify full**：语法 × 业务 章 `syntax-pass`+`business-fail` ·**archify full**：多入口一个答案 章 `single-point-bind`+`whoever-asks` ·**archify full**：第一道防线按死两病灶 章 `sealed-off` | archify 全屏回放主控：章内拍脉冲 + 换章弹入由 ArchifyClip 承担；第一柱点亮在 devices.tsx PillarHUD 内（本镜无动效 hook）|
@@ -68,7 +69,7 @@
 | 3-B | p3-05..08    | 机密页翻黑打码、越权行整条抽走；**代理识别灯**变色后切更严脱敏口径 ·**archify full**：章 `family`+`agentface` ·**archify full**：行列级策略 章 `family`+`agentface` ·**archify full**：查询瞬间逐页验放 章 `agent-recognized` | archify 全屏回放主控：章内拍脉冲 + 换章弹入由 ArchifyClip 承担（本镜无动效 hook）|
 | 3-C | p3-09..13    | 草坪「请勿踩踏」木牌（小人轻松翻越）vs 焊入承重墙的实体闸机，人/系统/AI 合流过同一执法点 ·**archify full**：语义级治理 章 `sign-vs-wall`+`governed-path` ·**archify full**：三流合一执法点 章 `sign-vs-wall`+`shared-checkpoint` | 木牌 spring 立起 → 被绕过时 shake 一击（decay）+ progress 压暗倾倒；承重墙 spring 长高 ；`@spring` `@shake` `@progress`|
 | 3-D | p3-13a..13c  | **两种坏法对照台**：左=规则被拆（人看到明文）/ 右=闸机挪到大堂外（受限口径静默溜出）·**出门行李标签**：策略标签随数据箱出楼 ·**archify full**：治理破坏台 章 `remove-mask`+`wrong-placement` ·**archify full**：开放互操作 章 `portable` | archify 全屏回放主控：章内拍脉冲 + 换章弹入由 ArchifyClip 承担（本镜无动效 hook）|
-| 3-E | p3-14..18    | **双层防线剖面**：前台抽走机密词条（体验层）→ 实习生猜名强行发起 → 承重墙红灯拦下（执行层） ·**archify full**：语义级治理 章 `two-layer-defense` ·**archify full**：猜名强查拦截 章 `guessed-name`+`impenetrable` | 第一层 progress 压暗（只是藏起来）；第二层 impulse 强调脉冲；绕行撞墙与红灯由 archify 回放承担 ；`@progress` `@impulse`|
+| 3-E | p3-14..18    | **双层防线剖面**：前台抽走机密词条（体验层）→ 实习生猜名强行发起 → 承重墙红灯拦下（执行层） ·**archify full**：语义级治理 章 `two-layer-defense` ·**archify full**：猜名强查拦截 章 `guessed-name`+`impenetrable` | 第一层 progress 压暗（只是藏起来）；第二层 impulse 强调脉冲；绕行撞墙与红灯由 archify 回放承担；【一】角标淡入在 devices.tsx EvidenceBadge 内 ；`@progress` `@impulse`|
 | 3-F | p3-19..22    | **代码走廊②** `compile_query` RBAC 分支 + 终端 `leak == blocked`；拆闸反事实 `[90, 560]` 泄露卡闪烁 ·**archify full**：治理破坏台 章 `rbac-ablation` ·**archify full**：猜名强查拦截 章 `intercepted` ·**archify full**：藏起来不等于拦得住 章 `teardown-leak`+`hide-not-block` | archify 全屏回放主控：章内拍脉冲 + 换章弹入由 ArchifyClip 承担；【一】角标淡入在 devices.tsx EvidenceBadge 内（本镜无动效 hook）|
 | 3-G | p3-23..26    | 编译期安全锁扣合；收束金句「语义层绝不成绕开安全的后门」·**archify full**：语义级治理 章 `绕行仍被拦截`；HUD 第二三柱点亮 ·**archify full**：编译那一秒的拦截 章 `ux-vs-lifeline`+`no-backdoor`+`compile-second` ·**archify full**：语义级治理 章 `bypass-intercepted` | archify 全屏回放主控：章内拍脉冲 + 换章弹入由 ArchifyClip 承担；第二三柱点亮在 devices.tsx PillarHUD 内（本镜无动效 hook）|
 
