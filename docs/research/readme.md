@@ -14,7 +14,7 @@
 | [Horizon Context ↔ negentropy 机制映射](./cognitive-context/012-horizon-context-mapping-negentropy.md) | 16 条机制逐条对照本仓 definitions registry / patrol-Judge / skills_injector / Catalog（✅ 已对齐 4 · 🔶 值得落地 8 含部分对齐 1 · ⏸ 暂缓 4；2026-09-17 随 M 集重评选重审，新晋四机制补映射），锚点均经代码核验 |
 | [Context Layer 技术蓝图与方案](./cognitive-context/013-context-layer-blueprint.md) | **全量版设计 SSOT（2026-09-20 重设计）**：融合 Horizon 精读全量机制载荷（M1–M7+三专章+D1–D10 破坏实验）+ negentropy 治理织物实例化总装（16 条映射状态表）+ 通用五正交层蓝图 + 业界四路线格局（含 AWS 新席）+ MCP 供给面威胁模型 + 评测标尺与组织运营 + 「治理≠验证」边界对策 + 双轨演进路线（独立部署 P0–P3 × 本仓 Phase 1–3），经六路并行重调研复核，新增脊柱图与双轨图 |
 
-> 本仓**内部**的实施入口见 [Context Layer · 上下文治理层技术方案（实施入口页）](../concepts/design/context-layer.md)（定位声明 + 章节指针 + 实施状态）——其设计正文已于 2026-09-20 全量并入上方蓝图，013 为单一事实源。
+> 本仓**内部**的实施入口（定位声明 + 章节指针 + 实施状态）原为 `docs/concepts/design/context-layer.md`：设计正文已于 2026-09-20 全量并入上方蓝图，该页于 2026-09-21 删除——013 自此为单一事实源。
 
 ## 二、Agent 框架与引擎 · `agent-runtime/`
 

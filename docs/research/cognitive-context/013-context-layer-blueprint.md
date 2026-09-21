@@ -6,7 +6,7 @@ description: "Context Layer 全量蓝图：以 Snowflake Horizon Context M1–M7
 
 > **一句话定位**：本文是 Context Layer 的**技术蓝图与方案合一的全量文档**——以 [Snowflake Horizon Context](https://www.snowflake.com/en/product/features/horizon-context/) 为范本，给出一个可独立部署、面向 Agents 研发与平台集成、并可实例化进任意宿主系统（本文以 negentropy 为实例）的**受治理上下文层**的完整设计：机制原理（M1–M7 精读载荷）→ 通用蓝图（五正交层）→ 实例化方案（negentropy 治理织物）→ 证据与边界 → 演进路线。
 >
-> **重设计说明（2026-09-20）**：本文由三份文档全量重织而成——[Horizon Context 精读笔记](./011-horizon-context.md)的机制载荷与实证、[Context Layer · 上下文治理层技术方案](../../concepts/design/context-layer.md)的 negentropy 实例化设计、旧版通用蓝图的行业全景与五层架构。011 自此文起冻结为**精读过程与重评审审计档案**（其 §16 重评审全过程审计痕迹仅存于彼处，本文收压缩版）；context-layer.md 瘦身为**实施入口页**（定位与指针，设计正文已并入本文）；[机制映射报告](./012-horizon-context-mapping-negentropy.md)的 16 条判定已校准并入本文 §12 状态总表。**设计与知识以本文为单一事实源（SSOT）**；四方互链，引用一律走相对直链。
+> **重设计说明（2026-09-20）**：本文由三份文档全量重织而成——[Horizon Context 精读笔记](./011-horizon-context.md)的机制载荷与实证、`concepts/design/context-layer.md`（Context Layer · 上下文治理层技术方案）的 negentropy 实例化设计、旧版通用蓝图的行业全景与五层架构。011 自此文起冻结为**精读过程与重评审审计档案**（其 §16 重评审全过程审计痕迹仅存于彼处，本文收压缩版）；context-layer.md 先瘦身为**实施入口页**、再于 2026-09-21 删除（定位、指针与实施状态一并并入本文）；[机制映射报告](./012-horizon-context-mapping-negentropy.md)的 16 条判定已校准并入本文 §12 状态总表。**设计与知识以本文为单一事实源（SSOT）**；四方互链，引用一律走相对直链。
 >
 > 循证基础：Horizon 机制详解、Snowflake 官方基准数字与批判性边界见 [精读笔记](./011-horizon-context.md)（其 M 集已于 2026-09-17 经全局重评选校准）；行业格局、第三方实证与失败史的出处见文末参考；本仓代码锚点均经 2026-09-20 实测核验；**2026-09-20 另经六路并行重调研复核**（Horizon 增量 / Apache Ossie / MCP 规范与安全 / 业界格局 / 学术 / 存量外链存活——30 条关键引用全部存活，增量与勘误已织入 §2/§6.1/§7.6/§8.3/§13/§14 各处，标注「重调研增量」「复核」或「实测」字样）。最小原型（M1–M7 七机制 + MCP 服务，约 1195 行纯标准库，十次破坏性实验）随精读笔记入库：[`assets/horizon_context_lab.py`](./assets/horizon_context_lab.py) 与 [`assets/horizon_context_mcp.py`](./assets/horizon_context_mcp.py)。
 
@@ -33,7 +33,7 @@ description: "Context Layer 全量蓝图：以 Snowflake Horizon Context M1–M7
 > | **013（本文）**                                                    | Context Layer **知识与设计 SSOT**：机制原理 + 通用蓝图 + 实例化设计 + 证据 + 边界 + 路线 | 唯一活跃设计维护点                               |
 > | [011 精读笔记](./011-horizon-context.md)                           | 精读过程与重评审审计档案（guided-learn 过程产物）                  | 冻结；Horizon 后续版本跟踪以增量并入本文         |
 > | [012 映射报告](./012-horizon-context-mapping-negentropy.md)        | 锚点核验快照（2026-09-17）                                         | 结论已并入本文 §12；再核验直接更新本文并刷新日期 |
-> | [context-layer.md 实施入口页](../../concepts/design/context-layer.md) | negentropy 实施入口（定位 + 指针）                                 | 设计正文已并入本文，该页保留入口与状态指针       |
+> | `context-layer.md` 实施入口页（已删除）                            | negentropy 实施入口（定位 + 指针）                                 | 2026-09-21 删除，入口与状态指针一并并入本文     |
 
 ---
 
