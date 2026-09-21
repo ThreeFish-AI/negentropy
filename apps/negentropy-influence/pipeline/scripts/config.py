@@ -146,6 +146,29 @@ SCHEMA: tuple[tuple[str, type, object, object, str], ...] = (
         False,
         "匹配度：同锚句双 cue FAIL（全屏独占下一句一图；异句窗含 gap 按构造铺满不重叠）",
     ),
+    (
+        "archify.html_dir",
+        str,
+        "docs/assets/architecture/cognitive-context",
+        False,
+        "重录：交付工程图 HTML 所在目录（仓库根相对）；record_archify_all.py 的 slug→源图映射用",
+    ),
+    (
+        "archify.html_pattern",
+        str,
+        "{slug}.html",
+        False,
+        "重录：源图文件名模板，须含 {slug}（如 horizon-context--{slug}.html）；"
+        "各集前缀不同故默认取退化形态，由本集 toml 覆写",
+    ),
+    (
+        "archify.html_overrides",
+        dict,
+        {},
+        False,
+        "重录：不守约定命名的例外表 {slug = 文件名}（如 next-episode-blueprint 的源图"
+        "是上一集的 context-layer-blueprint--architecture.html）；命中者自动传 --slug 保产物命名",
+    ),
 )
 
 #: 环境变量覆盖：仅限「机器属性」类键，不进受版本控制的 toml
@@ -315,6 +338,27 @@ def validate(
         isinstance(x, str) and re.fullmatch(r"P\d+", x) for x in ex
     ):
         fails.append(f"archify.exempt_scenes 元素应为幕名 P<n>，实际 {ex}")
+    hp = _get(cfg, "archify.html_pattern") if in_scope("archify.x") else None
+    if isinstance(hp, str) and "{slug}" not in hp:
+        fails.append(
+            f"archify.html_pattern 须含 {{slug}} 占位（否则全部图映射到同一文件），实际 {hp}"
+        )
+    elif isinstance(hp, str):
+        # 干跑一次 format：{slug} 之外的占位/不成对花括号在此红，而不是让重录驱动
+        # 在 pattern.format(slug=…) 处以裸 KeyError traceback 崩溃。
+        try:
+            hp.format(slug="probe")
+        except (KeyError, IndexError, ValueError, AttributeError):
+            fails.append(
+                f"archify.html_pattern 含 {{slug}} 之外的占位或不成对花括号，实际 {hp}"
+            )
+    ho = _get(cfg, "archify.html_overrides") if in_scope("archify.x") else None
+    if isinstance(ho, dict) and not all(
+        isinstance(k, str) and isinstance(v, str) for k, v in ho.items()
+    ):
+        fails.append(
+            f"archify.html_overrides 应为 {{slug = 文件名}} 的字符串表，实际 {ho}"
+        )
 
     # 身份校验：把一份「无人读取的死数据」变成 toml 与工程目录之间的连接件。
     # 它防的不是运行期 bug（没人读 slug），而是**手抄来的陈旧 toml 看起来很权威**

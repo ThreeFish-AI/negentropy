@@ -356,6 +356,29 @@ def test_archify_ratio_domain_validated():
     assert any("exempt_scenes" in f for f in fails), fails
 
 
+def test_archify_html_pattern_domain_validated():
+    """pattern 缺 {slug} / 含多余占位或不成对花括号 → validate 红（重录驱动前置，
+    免得 pattern.format(slug=…) 处裸 KeyError traceback）。"""
+    from pathlib import Path as _P
+
+    import tomllib as _t
+
+    for bad in (
+        '"fixed-name.html"',  # 缺 {slug}：全部图映射到同一文件
+        '"ep--{prefix}--{slug}.html"',  # 多余字段：format 裸 KeyError
+        '"ep--{slug.html"',  # 花括号不成对：format 裸 ValueError
+    ):
+        raw = _t.loads(f"[archify]\nhtml_pattern = {bad}\n")
+        cfg, _origin = config.resolve(raw)
+        fails, _warns = config.validate(cfg, raw, _P("."), scope={"archify"})
+        assert any("html_pattern" in f for f in fails), bad
+
+    raw = _t.loads('[archify]\nhtml_pattern = "ep--{slug}.html"\n')
+    cfg, _origin = config.resolve(raw)
+    fails, _warns = config.validate(cfg, raw, _P("."), scope={"archify"})
+    assert not fails, fails
+
+
 def test_archify_defaults_are_loose_floors():
     """默认值是宽松地板（1 图/2 cue/10%/30%）：任何用 archify 的小体量集不误伤。"""
     for dotted, want in {

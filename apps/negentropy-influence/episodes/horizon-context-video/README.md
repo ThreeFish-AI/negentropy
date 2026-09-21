@@ -45,14 +45,22 @@ uv run --no-project $R/source_ledger.py --project $P verify
 uv run --no-project $R/pipeline.py --project $P build
 uv run --no-project $R/pipeline.py --project $P check --check-scenes --check-motion
 
-# ③ archify 动效：补 views → 逐章录制 → 测定 lead → 生成 manifest
-uv run --with playwright python $R/record_archify.py \
-  "$PWD/docs/assets/architecture/cognitive-context/horizon-context--<slug>.html" /dev/null \
-  "$P/video/public/archify/<slug>.json" --mode chapter --all-chapters \
-  --out-dir "$PWD/$P/video/public/archify" --views "$PWD/$P/video/public/archify/views/<slug>.json"
-  # ↑ chapter 模式默认 cdp 高清采集（CDP JPEG q100 @DSF2 → h264 CRF16 @2560×1440）；
-  #   需要旧 screencast 行为时加 --capture playwright。
+# ③ archify 动效：全量逐章录制 → 测定 lead → 生成 manifest
+#    mp4 / *-end.png 是派生产物（gitignored，HTML 为 SSOT），**换 worktree 必须全量重录一次**。
+#    先装 Remotion 依赖（录制器用它内置的 ffmpeg 编码）。⚠️ 不要加 --ignore-workspace：
+#    那会把本工程自锚用的 pnpm-workspace.yaml 一并忽略，esbuild 构建许可随之失效，
+#    安装以 ERR_PNPM_IGNORED_BUILDS 中断、node_modules 半残。
+cd $P/video && pnpm install && cd - >/dev/null
+#    图集清单 = video/public/archify/views/（67 图，与覆盖门同一事实源，不另立第二份）；
+#    slug→源图走 pipeline.toml [archify] 的 html_pattern + html_overrides，失配即 FAIL
+#    不静默跳过。串行约 45 min；中断后原样重跑即从缺口续（已齐者点名跳过；
+#    半程重录或 views 增删章的图会被点名强制重录，不混用两代素材）。
+uv run --with playwright python $R/record_archify_all.py --project $P
 cd $P && uv run --no-project --with pillow python scripts/archify_lead.py && uv run --no-project python scripts/archify_manifest.py
+#    单图返工（用真实图名，勿再写 <slug> 占位符——它与分集 slug 同形异义）：
+#      uv run --with playwright python $R/record_archify_all.py --project $P --only agent-identity --force
+#    chapter 模式默认 cdp 高清采集（CDP JPEG q100 @DSF2 → h264 CRF16 @2560×1440）；
+#    需要旧 screencast 行为时给 record_archify.py 加 --capture playwright。
 
 # ④ 配音（先 refs.py rebuild --name me-bright 重建样本）
 uv run --no-project $R/pipeline.py --project $P tts --plan
