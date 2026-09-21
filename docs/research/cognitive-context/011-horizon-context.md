@@ -366,29 +366,9 @@ description: "「嵌入治理引擎、查询时强制执行」的 Context Layer 
 
 ## 3. Horizon Context 的三阶段治理
 
-```mermaid
-graph LR
-    subgraph COLLECT["① Collect 汇聚"]
-        C1["跨系统元数据连接器"] --> C2["OpenLineage 血缘"]
-        C2 --> C3["OSI 开放语义互换"]
-    end
-    subgraph ENRICH["② Enrich 富化"]
-        E1["语义视图 Semantic Views"] --> E2["自动文档生成"]
-        E2 --> E3["列级血缘 / 质量信号"]
-    end
-    subgraph ACTIVATE["③ Activate 激活"]
-        A1["Universal Search 混合排序"] --> A2["MCP 对外暴露"]
-        A2 --> A3["CoCo 自动发现与查询"]
-    end
-    COLLECT --> ENRICH --> ACTIVATE
+![Horizon Context 三阶段治理骨架：Collect 汇聚（跨系统元数据连接器 / OpenLineage 血缘 / OSI 开放语义互换）三路并列入账 Horizon Catalog，Enrich 富化（语义视图 Semantic Views / 自动文档生成 / 列级血缘·质量信号）三路并列产出 AI-ready 上下文，Activate 激活（Universal Search 混合排序 / MCP 对外暴露 / CoCo 自动发现与查询）三面并列供给；两根贯通脊柱是阶段交接物，原块的三条串行链已按实际依赖修正为并列。节点副标注成熟度（私有预览 / GA / Apache 孵化中）与锚点——承重机制 M1 / M5 与降级专章 §10 / §11 / §12 在同一张骨架上并置，可直读出「哪一格由承重机制托底、哪一格只是供给」。九项中仅语义视图（4/4，M1）与血缘（3/4，M5）入集承重机制，其余七项未入集、降为 §10–§12 三专章（MCP 1/4，旧 M4 双轨 / M6 排序 / M7 互操作 0/4）；正确性硬保证仍在 §2 的 M1–M7，本图作三专章的导航骨架；结论卡另载成熟度落差与本轮未采纳的三条校准。](../../assets/architecture/cognitive-context/horizon-context--three-stage-governance-dark.png)
 
-    classDef collect fill:#1f3a5f,stroke:#5b9bd5,stroke-width:2px,color:#e8f0fe
-    classDef enrich fill:#5a3d1f,stroke:#d59b5b,stroke-width:2px,color:#fdf3e8
-    classDef activate fill:#1f4d2e,stroke:#5bbd7c,stroke-width:2px,color:#e8fbef
-    class C1,C2,C3 collect
-    class E1,E2,E3 enrich
-    class A1,A2,A3 activate
-```
+> 图源（可 diff 文本）：[`horizon-context--three-stage-governance.mmd`](../../assets/mermaid/cognitive-context/horizon-context--three-stage-governance.mmd) · 交互版（下载到本地打开）：[`horizon-context--three-stage-governance.html`](../../assets/architecture/cognitive-context/horizon-context--three-stage-governance.html)
 
 ### 上下文供给与富化
 
@@ -757,7 +737,7 @@ uv run --no-project python docs/research/cognitive-context/assets/horizon_contex
 ## 18. 与本仓的关联
 
 - 机制级对照（definitions registry ↔ context objects、patrol/Judge ↔ eval 自纠环、三层渐进披露 ↔ verified query 分发等 16 条）见 [Horizon Context ↔ negentropy 机制映射报告](./012-horizon-context-mapping-negentropy.md)。
-- 本仓的上下文治理织物方案（Collect/Enrich/Activate 三相 × 四信号层 × Context Catalog/Router/Guard）见 [Context Layer 技术方案](../../concepts/design/context-layer.md)；通用可复刻基础设施的架构设计见 [Context Layer 基础设施设计蓝图](./013-context-layer-blueprint.md)。
+- 本仓的上下文治理织物方案（Collect/Enrich/Activate 三相 × 四信号层 × Context Catalog/Router/Guard）与通用可复刻基础设施的架构设计，同见 [Context Layer 技术蓝图与方案](./013-context-layer-blueprint.md)（原 `concepts/design/context-layer.md` 已于 2026-09-21 并入其中）。
 - Snowflake 数据云调研中的 Horizon Catalog 章节见 [研究文档 §D7](../retrieval-storage/034-snowflake-data-cloud.md)。
 
 ## 参考
