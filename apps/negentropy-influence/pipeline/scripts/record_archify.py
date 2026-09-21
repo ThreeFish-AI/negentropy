@@ -53,6 +53,7 @@ dispatcher fiber）——只写文件 + 入队 sessionId，ack 由主 greenlet �
 import argparse
 import base64
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -482,6 +483,32 @@ def _sniff_diagram_type(src: Path) -> str:
     return ""
 
 
+def _no_placeholder(p: Path, what: str) -> None:
+    """路径里残留 `<…>` 即判为「README 模板没替换」。
+
+    这道判据对**输出路径**不可替代：`<slug>.json` 的父目录存在、`<` `>` 又是合法
+    文件名字符，它是一条完全可写的合法路径，存在性校验对它零覆盖——真放过去会录完
+    全部章节、产出一批字面量命名的 mp4/PNG，最后**以退出码 0 收场**。
+    判据是「任意 `<…>`」而非硬编码 slug 一词，模板换字也自动覆盖。
+    """
+    if "<" in str(p) or ">" in str(p):
+        sys.exit(
+            f"FAIL: {what}的路径残留未替换的占位符：{p}\n"
+            f"      README ③ 是模板——把 <slug> 换成真实图名（清单见分集的 "
+            f"video/public/archify/views/ 下的文件名），批量重录改用 record_archify_all.py。"
+        )
+
+
+def _require_file(p: Path, what: str) -> None:
+    """输入文件的前置存在性校验——在开浏览器之前失败，代价最低。"""
+    _no_placeholder(p, what)
+    if not p.is_file():
+        sys.exit(
+            f"FAIL: {what}不存在：{p}\n"
+            f"      请核对图名与分集 video/public/archify/views/ 下的文件名是否一致。"
+        )
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="archify 引导故事录制器")
     ap.add_argument("src")
@@ -514,27 +541,72 @@ def main() -> None:
         help="图型（落 sidecar 顶层 type，覆盖门图型多样性门的数据源）；"
         "省略则从交付 HTML 的渲染器指纹嗅探，嗅不出（lifecycle/无框平铺）留空",
     )
+    ap.add_argument(
+        "--slug",
+        help="覆盖由文件名推导的 slug（源图名与产物名不一致时用；如 next-episode-blueprint "
+        "的源图是 context-layer-blueprint--architecture.html，推导值 architecture 对不上）",
+    )
     a = ap.parse_args()
     a.capture = a.capture or ("cdp" if a.mode == "chapter" else "playwright")
     if a.mode == "story" and a.capture == "cdp":
         sys.exit("FAIL: story 模式不接 cdp 采集（字节级兼容承诺，见模块 docstring）")
 
     src = Path(a.src).resolve()
-    slug = src.stem.split("--")[-1]
+    views_file = Path(a.views).resolve() if a.views else None
+    sidecar_path = Path(a.out_sidecar)
+    # 前置校验集中在此：凡是开浏览器之前能知道的事，都在开浏览器之前说完。
+    # 就地校验天然排在昂贵动作之后——out_sidecar 的使用点在全部录完之后，
+    # 在那里才发现路径不对等于先烧掉半小时。
+    _require_file(src, "工程图 HTML")
+    if views_file is not None:
+        _require_file(views_file, "--views 的 views JSON")
+    _no_placeholder(sidecar_path, "sidecar 输出")
+    if not sidecar_path.parent.is_dir():
+        sys.exit(
+            f"FAIL: sidecar 的输出目录不存在：{sidecar_path.parent}\n"
+            f"      sidecar 恒落在已入库目录，父目录缺失必是笔误——请核对路径。"
+        )
+    if a.capture == "cdp" and find_remotion() is None:
+        sys.exit(
+            "FAIL: 未找到任何集的 video/node_modules/.bin/remotion——先 pnpm install\n"
+            "      cdp 采集用 remotion 内置 ffmpeg 编码；此处预检，免得录完才失败。"
+        )
+
+    slug = a.slug or src.stem.split("--")[-1]
+    # chapter 模式下 sidecar 文件名承载身份：archify_manifest 按内容里的 slug 建键，
+    # check_archify 却按 <slug>.json 反查——两者不一致 = manifest 与素材各说各话，
+    # 且没有任何门看得见。story 模式不设此约束（context-layer 的旧 sidecar 本就不同名，
+    # 属字节级兼容承诺的一部分）。
+    if a.mode == "chapter" and sidecar_path.stem != slug:
+        sys.exit(
+            f"FAIL: chapter 模式下 sidecar 文件名须等于 slug："
+            f"{sidecar_path.name} vs slug={slug!r}\n"
+            f"      源图名与产物名不一致时用 --slug 显式钉住"
+            f"（如 --slug next-episode-blueprint）。"
+        )
     out_dir = (
         Path(a.out_dir).resolve() if a.out_dir else Path(a.out_webm).resolve().parent
     )
     out_dir.mkdir(parents=True, exist_ok=True)
+    if not os.access(out_dir, os.W_OK):
+        sys.exit(
+            f"FAIL: 产物目录不可写：{out_dir}\n"
+            f"      chapter 模式第 2 个位置参数是哑参（文档写 /dev/null），"
+            f"必须同时给 --out-dir，否则产物目录会落到 /dev。"
+        )
 
     with tempfile.TemporaryDirectory() as td:
         tmp = Path(td)
-        page_src, views = materialize(
-            src, Path(a.views).resolve() if a.views else None, tmp
-        )
+        page_src, views = materialize(src, views_file, tmp)
         if not views:
             sys.exit(
                 f"FAIL: {src.name} 的 archify-guided-views-data 为空，引导故事不可播。\n"
                 f"      请用 --views <views.json> 注入，或先给 archify 源补 meta.views。"
+            )
+        if a.mode == "chapter" and not a.all_chapters:
+            print(
+                f"  注意：未给 --all-chapters，本次只录第 1 章（共 {len(views)} 章）",
+                file=sys.stderr,
             )
 
         with sync_playwright() as p:
@@ -554,7 +626,7 @@ def main() -> None:
     sidecar["source"] = str(src)
     sidecar["slug"] = slug
     sidecar["type"] = a.type or _sniff_diagram_type(src)
-    Path(a.out_sidecar).write_text(
+    sidecar_path.write_text(
         json.dumps(sidecar, ensure_ascii=False, indent=1) + "\n", encoding="utf-8"
     )
     print(json.dumps(sidecar, ensure_ascii=False))

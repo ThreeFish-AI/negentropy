@@ -45,3 +45,9 @@ min_cues_per_minute = 9.0
 min_diagram_types = 4
 # 布局：全屏切换集禁画中画回退
 forbid_inset = true
+# 重录（record_archify_all.py）：slug → 交付工程图的映射。约定优先 + 例外表。
+# 67 张里 66 张守 horizon-context--<slug>.html；唯一例外 next-episode-blueprint 的
+# 源图是上一集的 architecture 图，且文件名派生的 slug（architecture）与产物名对不上，
+# 驱动命中例外表时会自动补 --slug 保住 next-episode-blueprint--*.mp4 的命名。
+html_pattern = "horizon-context--{slug}.html"
+html_overrides = { next-episode-blueprint = "context-layer-blueprint--architecture.html" }
