@@ -24,11 +24,7 @@ P=$I/episodes/<slug>-video           # 目标分集工程（各集 README 里换
 V=$I/pipeline/voices                 # 声音样本目录（整目录 gitignored）
 ```
 
-**四者同锚于仓库根**，故可自由同现在一条命令里。⚠️ 反面教训：`pipeline.toml` 的
-`tts.ref` 与 `series.json` 的 `path` 是**子项目根相对**（由 `paths.INFLUENCE` 拼接），
-把那套写法搬进命令行会造出 `$R/tts_sample.py --ref pipeline/voices/x.wav` 这类
-**在任何 CWD 下都不成立**的混锚命令——命令行里的样本路径一律走 `$V`。
-该纪律由 [tests/test_docs_paths.py](./tests/test_docs_paths.py) 执法。
+**四者同锚于仓库根**，故可自由同现在一条命令里。⚠️ 反面教训：`pipeline.toml` 的 `tts.ref` 与 `series.json` 的 `path` 是**子项目根相对**（由 `paths.INFLUENCE` 拼接），把那套写法搬进命令行会造出 `$R/tts_sample.py --ref pipeline/voices/x.wav` 这类**在任何 CWD 下都不成立**的混锚命令——命令行里的样本路径一律走 `$V`。该纪律由 [tests/test_docs_paths.py](./tests/test_docs_paths.py) 执法。
 
 ## 二、工程目录约定
 
@@ -63,37 +59,37 @@ uv run --no-project $R/pipeline.py --project $P     {status|doctor|build|check|t
 > `clean-samples` 与 `stages` 与具体工程无关，不读 `pipeline.toml`（`--project` 可省）。
 > 本清单与 `pipeline.py` 文件头、[子项目 README](../README.md) 的抄件由 [tests/test_stages.py](./tests/test_stages.py) 对齐 argparse 真实注册表。
 
-| Stage | 命令 | 输入 → 产出 | 幂等/续跑 |
-|---|---|---|---|
-| ③ | `build` | narration.md → narration.json | 纯函数 |
-| ④⑤ | `check` | narration.json + storyboard.md + pipeline.toml → 门 | — |
-| ⑥ | `tts [--plan]` | narration.json + 参考样本 → 逐句 mp3 + manifest | sidecar 摘要 / 逐句续跑 |
-| ⑥+ | `captions` | manifest + timing.json → out/captions.{srt,vtt} | 纯函数 |
-| ⑧ | `render` + `qa` | src + audio → draft.mp4 + 抽帧体检 | 渲染否 / 抽帧是 |
-| ⑨ | `render --final` | 同上 → final.mp4（前置：⑧ 零 FAIL） | 否 |
+| Stage | 命令             | 输入 → 产出                                         | 幂等/续跑               |
+| ----- | ---------------- | --------------------------------------------------- | ----------------------- |
+| ③     | `build`          | narration.md → narration.json                       | 纯函数                  |
+| ④⑤    | `check`          | narration.json + storyboard.md + pipeline.toml → 门 | —                       |
+| ⑥     | `tts [--plan]`   | narration.json + 参考样本 → 逐句 mp3 + manifest     | sidecar 摘要 / 逐句续跑 |
+| ⑥+    | `captions`       | manifest + timing.json → out/captions.{srt,vtt}     | 纯函数                  |
+| ⑧     | `render` + `qa`  | src + audio → draft.mp4 + 抽帧体检                  | 渲染否 / 抽帧是         |
+| ⑨     | `render --final` | 同上 → final.mp4（前置：⑧ 零 FAIL）                 | 否                      |
 
 `status` 为派生式新鲜度表（无状态文件——幂等已由内容摘要提供，再存阶段状态即第二事实源）；`doctor` 自检配置/时序 SSOT/样本指纹/IndexTTS 服务。
 
-| 脚本                                                       | 用途                                                                                                                    | 工程内等价调用                                                                                                                                   |
-| ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| [scripts/build_narration.py](./scripts/build_narration.py) | narration.md → narration.json + 时长估算                                                                                | `uv run --no-project scripts/build_narration.py`                                                                                                 |
-| [scripts/tts.py](./scripts/tts.py)                         | 逐句配音合成 + 时长 manifest（幂等，双引擎：edge 预置音色 / indextts 声音克隆；风格推荐位 sunny 明快阳光，`--steady` 混合档让关键句单独升束宽，`--plan` 预演排期） | `uv run --no-project --with edge-tts --with mutagen scripts/tts.py`（克隆模式免 edge-tts，见 [VOICE-CLONING.md](./VOICE-CLONING.md)）            |
-| [scripts/tts_server.py](./scripts/tts_server.py)           | IndexTTS 推理服务（声音克隆后端，**运行于 index-tts 环境**，非本仓）                                                    | 在 `~/tools/index-tts` 内启动，见 [VOICE-CLONING.md §二](./VOICE-CLONING.md)                                                                     |
-| [scripts/tts_sample.py](./scripts/tts_sample.py)           | 单句声音小样试听（直调 IndexTTS 服务合成一句话 + 全风格 A/B，定稿风格前的必经关口）                                      | 无工程薄包装，从仓库根调用：`uv run --no-project --with mutagen $R/tts_sample.py --ref <样本.wav> --all-styles --play`，见 [VOICE-CLONING.md §5.1](./VOICE-CLONING.md) |
-| [scripts/prepare_ref.py](./scripts/prepare_ref.py)         | 参考音色样本裁剪/规范化（长录音 → **10–14s** 干净 WAV；硬上限 15s——上游超出即静默前截）                                                                      | 无工程薄包装（与具体工程无关），从仓库根调用：`uv run --no-project --with soundfile --with numpy $R/prepare_ref.py <源音频>` |
-| [scripts/prospect_ref.py](./scripts/prospect_ref.py)       | 参考样本选段勘探（按 F0/起伏/音节率/限带质心筛「更亮更轻快」的候选起点）+ `--accept` **保真度验收**（削波/底噪/动态/有效带宽/超 15s，与风格分正交；损伤事后无法弥补故只否决不加权）                              | 无工程薄包装，从仓库根调用：`uv run --no-project --with soundfile --with numpy $R/prospect_ref.py <源音频…>`，见 [VOICE-CLONING.md §3.2](./VOICE-CLONING.md) |
-| [scripts/pipeline.py](./scripts/pipeline.py)             | **单入口编排**（上表）                                                                                                  | `uv run --no-project $R/pipeline.py --project $P tts --plan`                                                      |
-| [scripts/timeline.py](./scripts/timeline.py)             | 时间轴 Python 侧实现（与 timing.ts 同构，直读 timing.json）                                                            | 被 qa_frames/captions/check_script 复用                                                                                                          |
-| [scripts/check_script.py](./scripts/check_script.py)     | ④⑤ 内容门：beat 覆盖性 / 时长预算双口径 / SceneFade 不变式 / `--check-scenes` 分镜↔代码互比                            | `uv run --no-project scripts/check_script.py --check-scenes`                                                                                   |
-| [scripts/check_archify_coverage.py](./scripts/check_archify_coverage.py) | archify 覆盖门（`check` 子命令在内容门后**自动串联**，无 flag）：图例对逐字稿的句级锚定率（整幕零锚 FAIL）/ 图与 cue 丰富度地板 / 分镜声明↔cue 双向对账 + 章节播放单调性；无资产集干净跳过，旧形态（仅 sidecar）点名 WARN 跳过 | `uv run --no-project $R/check_archify_coverage.py --project $P` |
-| [scripts/check_series.py](./scripts/check_series.py)     | 系列一致性六规则（口播反串线 / 多标题顺序 / 序号绑定 / 清单完整性 / 死链 / 可渲染性），执法 [../series.json](../series.json)         | 仓库根：`uv run --no-project $R/check_series.py`（已挂 pre-commit）                                                          |
-| [scripts/captions.py](./scripts/captions.py)             | 导出 srt/vtt（cue 终点不含句间停顿——外挂字幕静默期不留字）                                                             | `uv run --no-project scripts/captions.py`                                                                                                        |
-| [scripts/qa_frames.py](./scripts/qa_frames.py)           | 抽帧 QA（幕/句/`--last-n` 末 N 句）+ `--check` 四项自动体检 + `--check-theme` WCAG 对比度                               | `uv run --no-project --with pillow --with numpy scripts/qa_frames.py out/draft.mp4 --last-n 6 --check`（工程根；视频路径按 CWD 解析，仓库根调用写全 `$P/out/draft.mp4`）                                          |
-| [scripts/paper_extract.py](./scripts/paper_extract.py)   | Stage ① 取证工具箱（§→页映射 / 分栏取文 / caption 收割 / 定点 find / 页面光栅化）                                       | `uv run --no-project --with pymupdf $R/paper_extract.py "<PDF>" find "原文措辞"`                                             |
-| [scripts/refs.py](./scripts/refs.py)                     | 参考样本可复现清单（verify/rebuild；指纹在 [voices/refs.toml](./voices/refs.toml)，只存哈希不存音频）                    | `uv run --no-project $R/refs.py verify`                                                                                     |
-| [scripts/source_ledger.py](./scripts/source_ledger.py)   | Stage ① **B 型信源**可复现清单（fetch/list/verify + sync/audit——后两者消费系列级 [source-map](../source-map/) 地图，幂等批量建台账 + 离线三断言；`repo` 类固定提交 raw 指纹漂移即 FAIL，`site` 类只比归一正文、漂移报 WARN） | `uv run --no-project $R/source_ledger.py --project $P verify`；`sync --map <map.toml> --episode N` / `audit --map <map.toml> --episode N` |
-| [scripts/pron_marks.py](./scripts/pron_marks.py)         | 发音标注 `<原文\|读音>` 的解析与校验（纯函数库，无 IO）：多音字/英文专名的精确读音控制；被 `build_narration.py` 用于硬失败拦非法标注 | 库，不直接调用；语法与规则见其模块文档，台账见 [PRON-GLOSSARY.md](./PRON-GLOSSARY.md)                                                            |
-| [scripts/tts_bench.py](./scripts/tts_bench.py)           | 合成耗时基准与**测量环境体检**（**运行于 index-tts 环境**，同 tts_server.py）：A/A 复现性判定 + 分段计时 + 换页/分配器诊断。本机漂移已定因为热节流，做任何耗时 A/B 前先用它确认环境合格 | 在 `~/tools/index-tts` 内：`./.venv/bin/python <本仓>/$R/tts_bench.py --check-only`；A/A 见 [INDEXTTS-2.5-ADVANCED.md §6.5](./INDEXTTS-2.5-ADVANCED.md) |
+| 脚本                                                                     | 用途                                                                                                                                                                                                                           | 工程内等价调用                                                                                                                                                           |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [scripts/build_narration.py](./scripts/build_narration.py)               | narration.md → narration.json + 时长估算                                                                                                                                                                                       | `uv run --no-project scripts/build_narration.py`                                                                                                                         |
+| [scripts/tts.py](./scripts/tts.py)                                       | 逐句配音合成 + 时长 manifest（幂等，双引擎：edge 预置音色 / indextts 声音克隆；风格推荐位 sunny 明快阳光，`--steady` 混合档让关键句单独升束宽，`--plan` 预演排期）                                                             | `uv run --no-project --with edge-tts --with mutagen scripts/tts.py`（克隆模式免 edge-tts，见 [VOICE-CLONING.md](./VOICE-CLONING.md)）                                    |
+| [scripts/tts_server.py](./scripts/tts_server.py)                         | IndexTTS 推理服务（声音克隆后端，**运行于 index-tts 环境**，非本仓）                                                                                                                                                           | 在 `~/tools/index-tts` 内启动，见 [VOICE-CLONING.md §二](./VOICE-CLONING.md)                                                                                             |
+| [scripts/tts_sample.py](./scripts/tts_sample.py)                         | 单句声音小样试听（直调 IndexTTS 服务合成一句话 + 全风格 A/B，定稿风格前的必经关口）                                                                                                                                            | 无工程薄包装，从仓库根调用：`uv run --no-project --with mutagen $R/tts_sample.py --ref <样本.wav> --all-styles --play`，见 [VOICE-CLONING.md §5.1](./VOICE-CLONING.md)   |
+| [scripts/prepare_ref.py](./scripts/prepare_ref.py)                       | 参考音色样本裁剪/规范化（长录音 → **10–14s** 干净 WAV；硬上限 15s——上游超出即静默前截）                                                                                                                                        | 无工程薄包装（与具体工程无关），从仓库根调用：`uv run --no-project --with soundfile --with numpy $R/prepare_ref.py <源音频>`                                             |
+| [scripts/prospect_ref.py](./scripts/prospect_ref.py)                     | 参考样本选段勘探（按 F0/起伏/音节率/限带质心筛「更亮更轻快」的候选起点）+ `--accept` **保真度验收**（削波/底噪/动态/有效带宽/超 15s，与风格分正交；损伤事后无法弥补故只否决不加权）                                            | 无工程薄包装，从仓库根调用：`uv run --no-project --with soundfile --with numpy $R/prospect_ref.py <源音频…>`，见 [VOICE-CLONING.md §3.2](./VOICE-CLONING.md)             |
+| [scripts/pipeline.py](./scripts/pipeline.py)                             | **单入口编排**（上表）                                                                                                                                                                                                         | `uv run --no-project $R/pipeline.py --project $P tts --plan`                                                                                                             |
+| [scripts/timeline.py](./scripts/timeline.py)                             | 时间轴 Python 侧实现（与 timing.ts 同构，直读 timing.json）                                                                                                                                                                    | 被 qa_frames/captions/check_script 复用                                                                                                                                  |
+| [scripts/check_script.py](./scripts/check_script.py)                     | ④⑤ 内容门：beat 覆盖性 / 时长预算双口径 / SceneFade 不变式 / `--check-scenes` 分镜↔代码互比                                                                                                                                    | `uv run --no-project scripts/check_script.py --check-scenes`                                                                                                             |
+| [scripts/check_archify_coverage.py](./scripts/check_archify_coverage.py) | archify 覆盖门（`check` 子命令在内容门后**自动串联**，无 flag）：图例对逐字稿的句级锚定率（整幕零锚 FAIL）/ 图与 cue 丰富度地板 / 分镜声明↔cue 双向对账 + 章节播放单调性；无资产集干净跳过，旧形态（仅 sidecar）点名 WARN 跳过 | `uv run --no-project $R/check_archify_coverage.py --project $P`                                                                                                          |
+| [scripts/check_series.py](./scripts/check_series.py)                     | 系列一致性六规则（口播反串线 / 多标题顺序 / 序号绑定 / 清单完整性 / 死链 / 可渲染性），执法 [../series.json](../series.json)                                                                                                   | 仓库根：`uv run --no-project $R/check_series.py`（已挂 pre-commit）                                                                                                      |
+| [scripts/captions.py](./scripts/captions.py)                             | 导出 srt/vtt（cue 终点不含句间停顿——外挂字幕静默期不留字）                                                                                                                                                                     | `uv run --no-project scripts/captions.py`                                                                                                                                |
+| [scripts/qa_frames.py](./scripts/qa_frames.py)                           | 抽帧 QA（幕/句/`--last-n` 末 N 句）+ `--check` 四项自动体检 + `--check-theme` WCAG 对比度                                                                                                                                      | `uv run --no-project --with pillow --with numpy scripts/qa_frames.py out/draft.mp4 --last-n 6 --check`（工程根；视频路径按 CWD 解析，仓库根调用写全 `$P/out/draft.mp4`） |
+| [scripts/paper_extract.py](./scripts/paper_extract.py)                   | Stage ① 取证工具箱（§→页映射 / 分栏取文 / caption 收割 / 定点 find / 页面光栅化）                                                                                                                                              | `uv run --no-project --with pymupdf $R/paper_extract.py "<PDF>" find "原文措辞"`                                                                                         |
+| [scripts/refs.py](./scripts/refs.py)                                     | 参考样本可复现清单（verify/rebuild；指纹在 [voices/refs.toml](./voices/refs.toml)，只存哈希不存音频）                                                                                                                          | `uv run --no-project $R/refs.py verify`                                                                                                                                  |
+| [scripts/source_ledger.py](./scripts/source_ledger.py)                   | Stage ① **B 型信源**可复现清单（fetch/list/verify + sync/audit——后两者消费系列级 [source-map](../source-map/) 地图，幂等批量建台账 + 离线三断言；`repo` 类固定提交 raw 指纹漂移即 FAIL，`site` 类只比归一正文、漂移报 WARN）   | `uv run --no-project $R/source_ledger.py --project $P verify`；`sync --map <map.toml> --episode N` / `audit --map <map.toml> --episode N`                                |
+| [scripts/pron_marks.py](./scripts/pron_marks.py)                         | 发音标注 `<原文\|读音>` 的解析与校验（纯函数库，无 IO）：多音字/英文专名的精确读音控制；被 `build_narration.py` 用于硬失败拦非法标注                                                                                           | 库，不直接调用；语法与规则见其模块文档，台账见 [PRON-GLOSSARY.md](./PRON-GLOSSARY.md)                                                                                    |
+| [scripts/tts_bench.py](./scripts/tts_bench.py)                           | 合成耗时基准与**测量环境体检**（**运行于 index-tts 环境**，同 tts_server.py）：A/A 复现性判定 + 分段计时 + 换页/分配器诊断。本机漂移已定因为热节流，做任何耗时 A/B 前先用它确认环境合格                                        | 在 `~/tools/index-tts` 内：`./.venv/bin/python <本仓>/$R/tts_bench.py --check-only`；A/A 见 [INDEXTTS-2.5-ADVANCED.md §6.5](./INDEXTTS-2.5-ADVANCED.md)                  |
 
 中心脚本以 `--project <工程根>` 参数化；工程内 `scripts/*.py` 为薄包装（透传参数、保持原 CLI）。改造/迭代只改 `$R/`，验证门 = 受影响工程的 `narration.json` / `manifest.json` 字节级不变。
 
@@ -101,25 +97,25 @@ uv run --no-project $R/pipeline.py --project $P     {status|doctor|build|check|t
 
 schema、默认值与校验的单一事实源是 [scripts/config.py](./scripts/config.py) 的 `SCHEMA`（此前 schema 只是「两个脚本里 `.get()` 调用的并集」，无处可查、键名 typo 静默生效）。**默认值在代码、toml 只写偏离**——判据是「删机制常数、留策略声明」。跑 `pipeline.py doctor` 打印带来源标注（`pipeline.toml` / `default` / `env:*`）的生效配置表。
 
-| 键 | 必填 | 默认 | 性质 |
-|---|---|---|---|
-| `episode.slug` | ✅ | — | 须等于工程目录名（拦手抄来的陈旧 toml）；**是否登记进 series.json 不在此校验**，那归 `verify_skeleton.py` 的孤儿警告（非阻塞） |
-| `narration.target_minutes` | ✅ | — | `[下限, 上限]` 分钟；缺失会让时长预算门**点名跳过** |
-| `narration.chars_per_min` | | `280` | 机制常数 |
-| `tts.engine` | | `indextts` | **策略声明**（有替代项 edge，且受 `.engine` 签名护栏约束），故保留在 toml |
-| `tts.ref` | engine=indextts | — | **子项目根相对**；内容入缓存摘要（改拼法不失效缓存） |
-| `tts.ref_sha1` | engine=indextts | — | 12 位，同 tts.py 口径 |
-| `tts.style` | engine=indextts | — | STYLE_PRESETS 档名 |
-| `tts.lang` | | `ZH` | 机制常数 |
-| `tts.server` | | `http://127.0.0.1:8766` | **机器属性**：可用 `INDEXTTS_SERVER` 覆盖，永不写进 toml |
-| `render.draft_scale` | | `0.5` | 机制常数（`qa --scale` 推断依赖它） |
-| `render.draft_jpeg_quality` | | `60` | 机制常数 |
-| `archify.min_diagrams` | | `1` | 丰富度地板：views 图数下限；目标值由本集 toml 覆写（策略声明） |
-| `archify.min_cues` | | `2` | cue 总数下限；同上 |
-| `archify.min_anchor_ratio` | | `0.10` | 句级锚定率下限 ∈ [0,1]（ISSUE-188：按句统计） |
-| `archify.min_chapter_ratio` | | `0.30` | 被 cue 引用章 / 总章 下限 |
-| `archify.per_scene_min_anchors` | | `1` | 每幕最少锚句数（整幕零锚 FAIL） |
-| `archify.exempt_scenes` | | `[]` | 豁免零锚判定的幕名（如 `["P6"]`）；豁免在覆盖门输出里点名 |
+| 键                              | 必填            | 默认                    | 性质                                                                                                                           |
+| ------------------------------- | --------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `episode.slug`                  | ✅               | —                       | 须等于工程目录名（拦手抄来的陈旧 toml）；**是否登记进 series.json 不在此校验**，那归 `verify_skeleton.py` 的孤儿警告（非阻塞） |
+| `narration.target_minutes`      | ✅               | —                       | `[下限, 上限]` 分钟；缺失会让时长预算门**点名跳过**                                                                            |
+| `narration.chars_per_min`       |                 | `280`                   | 机制常数                                                                                                                       |
+| `tts.engine`                    |                 | `indextts`              | **策略声明**（有替代项 edge，且受 `.engine` 签名护栏约束），故保留在 toml                                                      |
+| `tts.ref`                       | engine=indextts | —                       | **子项目根相对**；内容入缓存摘要（改拼法不失效缓存）                                                                           |
+| `tts.ref_sha1`                  | engine=indextts | —                       | 12 位，同 tts.py 口径                                                                                                          |
+| `tts.style`                     | engine=indextts | —                       | STYLE_PRESETS 档名                                                                                                             |
+| `tts.lang`                      |                 | `ZH`                    | 机制常数                                                                                                                       |
+| `tts.server`                    |                 | `http://127.0.0.1:8766` | **机器属性**：可用 `INDEXTTS_SERVER` 覆盖，永不写进 toml                                                                       |
+| `render.draft_scale`            |                 | `0.5`                   | 机制常数（`qa --scale` 推断依赖它）                                                                                            |
+| `render.draft_jpeg_quality`     |                 | `60`                    | 机制常数                                                                                                                       |
+| `archify.min_diagrams`          |                 | `1`                     | 丰富度地板：views 图数下限；目标值由本集 toml 覆写（策略声明）                                                                 |
+| `archify.min_cues`              |                 | `2`                     | cue 总数下限；同上                                                                                                             |
+| `archify.min_anchor_ratio`      |                 | `0.10`                  | 句级锚定率下限 ∈ [0,1]（ISSUE-188：按句统计）                                                                                  |
+| `archify.min_chapter_ratio`     |                 | `0.30`                  | 被 cue 引用章 / 总章 下限                                                                                                      |
+| `archify.per_scene_min_anchors` |                 | `1`                     | 每幕最少锚句数（整幕零锚 FAIL）                                                                                                |
+| `archify.exempt_scenes`         |                 | `[]`                    | 豁免零锚判定的幕名（如 `["P6"]`）；豁免在覆盖门输出里点名                                                                      |
 
 未知键报 WARN 并给最近邻建议（保留前向兼容）；类型/取值域/必填/slug 不符报 FAIL。`status` 与 `doctor` 只报不退——诊断工具因被诊断对象有病而拒绝运行是荒谬的；其余子命令 FAIL 即退出。
 
@@ -145,12 +141,9 @@ schema、默认值与校验的单一事实源是 [scripts/config.py](./scripts/c
    uv run --no-project $R/scaffold.py <slug>-video --title "本集标题" \
        --ref <样本名> --ref-sha1 <12位指纹> --style <档名>
    ```
-   scaffold 复制 15 个 frozen 文件 + 渲染 4 个模板（package.json / theme.ts / pipeline.toml / README），
-   **刻意不生成 scenes/**（样例留在模板里）、不改根 `.gitignore`（已通配到分集级）、不写 series.json。
-   跑完立刻 `uv run --no-project $R/verify_skeleton.py` 确认新集与模板零漂移。
+   scaffold 复制 15 个 frozen 文件 + 渲染 4 个模板（package.json / theme.ts / pipeline.toml / README），**刻意不生成 scenes/**（样例留在模板里）、不改根 `.gitignore`（已通配到分集级）、不写 series.json。跑完立刻 `uv run --no-project $R/verify_skeleton.py` 确认新集与模板零漂移。
 2. `theme.ts` 换本集概念色；`video/src/scenes/*` 与 `Main.tsx` 注册表全部新写。
-3. `cd video && pnpm install --ignore-workspace`（必须显式忽略根 workspace；构建脚本许可已在
-   `video/pnpm-workspace.yaml` 的 `allowBuilds.esbuild` 配置）；装完检查根 lockfile 零变更。
+3. `cd video && pnpm install --ignore-workspace`（必须显式忽略根 workspace；构建脚本许可已在 `video/pnpm-workspace.yaml` 的 `allowBuilds.esbuild` 配置）；装完检查根 lockfile 零变更。
    > pnpm 12 起只声明 `--ignore-workspace` 不够：pnpm 仍会沿 `packageManager` 向上锚定到仓库根，
    > **覆写根 `pnpm-lock.yaml`** 且当场不报错。隔离由 `video/pnpm-workspace.yaml` 真正兜住
    > （[ISSUE-175](../../../docs/.agents/issue.md)）。
@@ -158,17 +151,8 @@ schema、默认值与校验的单一事实源是 [scripts/config.py](./scripts/c
    > `pnpm-workspace.yaml` 的 `allowBuilds`（[ISSUE-076](../../../docs/.agents/issue.md)）。骨架已显式允许
    > `esbuild`，勿改回旧字段；缺失该许可会以 `ERR_PNPM_IGNORED_BUILDS` 中断安装并留下半残
    > `node_modules`。
-4. **登记到 [../series.json](../series.json)**（阻塞门：`check_series.py` 规则 4 反向执法——
-   未登记目录一旦写下 `script/narration.md` 即 FAIL；脚手架期为 WARN 分级）：顶层是 `seriesList[]`，新系列追加一个 series 对象
-   （`id` / `title` / `sourceKind` / `rule` / `episodes`），既有系列的新集追加到其 `episodes`。
-   同步 [../series.md](../series.md) 的分节表格。**分级是刻意的**：脚手架期（还没写
-   `narration.md`）只报 WARN，否则「先登记要先定色板色值、先写要先登记」会把新集夹死在
-   两条门之间；`narration.md` 一落盘即转 FAIL——那一刻规则 1 的反串线扫描才真正需要看见它。
-   `verify_skeleton.py` 也会点名孤儿工程目录，但保持 WARN 不计入未登记漂移（`--strict` 不失败）：
-   漂移门管骨架一致性，登记是清单问题，阻塞执法只放在 `check_series.py` 一处。
-5. 按 [skills/](./skills/) 01→05 顺序走内容层，再进生产层。Stage ① 先判**信源型别**：
-   论文型走 A 型（`paper_extract.py` + `paper-notes.md`），文档/代码/课程站点型走 B 型
-   （`source_ledger.py` + `source-notes.md` + 证据三级），见 [skills/01](./skills/01-source-extraction.md)。
+4. **登记到 [../series.json](../series.json)**（阻塞门：`check_series.py` 规则 4 反向执法——未登记目录一旦写下 `script/narration.md` 即 FAIL；脚手架期为 WARN 分级）：顶层是 `seriesList[]`，新系列追加一个 series 对象（`id` / `title` / `sourceKind` / `rule` / `episodes`），既有系列的新集追加到其 `episodes`。同步 [../series.md](../series.md) 的分节表格。**分级是刻意的**：脚手架期（还没写 `narration.md`）只报 WARN，否则「先登记要先定色板色值、先写要先登记」会把新集夹死在两条门之间；`narration.md` 一落盘即转 FAIL——那一刻规则 1 的反串线扫描才真正需要看见它。`verify_skeleton.py` 也会点名孤儿工程目录，但保持 WARN 不计入未登记漂移（`--strict` 不失败）：漂移门管骨架一致性，登记是清单问题，阻塞执法只放在 `check_series.py` 一处。
+5. 按 [skills/](./skills/) 01→05 顺序走内容层，再进生产层。Stage ① 先判**信源型别**：论文型走 A 型（`paper_extract.py` + `paper-notes.md`），文档/代码/课程站点型走 B 型（`source_ledger.py` + `source-notes.md` + 证据三级），见 [skills/01](./skills/01-source-extraction.md)。
 
 ## 七、工程模式
 
