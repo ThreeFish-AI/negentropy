@@ -34,8 +34,8 @@ export const ARCHIFY = {
         "file": "agent-identity--ceiling.mp4",
         "endStill": "agent-identity--ceiling-end.png",
         "beats": 4,
-        "leadSec": 0.16,
-        "storySec": 4.45,
+        "leadSec": 0.44,
+        "storySec": 4.47,
         "beatNodes": [
           "user",
           "agent",
@@ -49,8 +49,8 @@ export const ARCHIFY = {
         "file": "agent-identity--audit.mp4",
         "endStill": "agent-identity--audit-end.png",
         "beats": 2,
-        "leadSec": 0.16,
-        "storySec": 3.26,
+        "leadSec": 0.44,
+        "storySec": 3.22,
         "beatNodes": [
           "sess",
           "qh"
@@ -62,8 +62,8 @@ export const ARCHIFY = {
         "file": "agent-identity--strict.mp4",
         "endStill": "agent-identity--strict-end.png",
         "beats": 2,
-        "leadSec": 0.16,
-        "storySec": 3.23,
+        "leadSec": 0.44,
+        "storySec": 3.22,
         "beatNodes": [
           "sess",
           "pol"
@@ -75,7 +75,7 @@ export const ARCHIFY = {
         "file": "agent-identity--snapshot-vs-live.mp4",
         "endStill": "agent-identity--snapshot-vs-live-end.png",
         "beats": 3,
-        "leadSec": 0.16,
+        "leadSec": 0.44,
         "storySec": 3.34,
         "beatNodes": [
           "user",
@@ -95,7 +95,7 @@ export const ARCHIFY = {
         "file": "amnesia-intern--daily-reset.mp4",
         "endStill": "amnesia-intern--daily-reset-end.png",
         "beats": 3,
-        "leadSec": 0.16,
+        "leadSec": 0.44,
         "storySec": 3.36,
         "beatNodes": [
           "geniusHire",
@@ -109,8 +109,8 @@ export const ARCHIFY = {
         "file": "amnesia-intern--dark-guess.mp4",
         "endStill": "amnesia-intern--dark-guess-end.png",
         "beats": 5,
-        "leadSec": 0.12,
-        "storySec": 5.58,
+        "leadSec": 0.44,
+        "storySec": 5.56,
         "beatNodes": [
           "memoryWipe",
           "noGlossary",
@@ -146,7 +146,7 @@ export const ARCHIFY = {
         "endStill": "attribution-balance--cast-into-infra-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.44,
+        "storySec": 4.45,
         "beatNodes": [
           "cast-into-infra",
           "mech-semantics",
@@ -167,7 +167,7 @@ export const ARCHIFY = {
         "endStill": "autopilot-loop--inputs-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.33,
+        "storySec": 3.35,
         "beatNodes": [
           "in_zero",
           "in_bi",
@@ -181,7 +181,7 @@ export const ARCHIFY = {
         "endStill": "autopilot-loop--valgate-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.47,
+        "storySec": 4.44,
         "beatNodes": [
           "validate",
           "discard",
@@ -196,7 +196,7 @@ export const ARCHIFY = {
         "endStill": "autopilot-loop--loop-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.23,
+        "storySec": 3.26,
         "beatNodes": [
           "consume",
           "vqr"
@@ -214,8 +214,8 @@ export const ARCHIFY = {
         "file": "bare-key-baseline--whole-key.mp4",
         "endStill": "bare-key-baseline--whole-key-end.png",
         "beats": 3,
-        "leadSec": 0.12,
-        "storySec": 3.35,
+        "leadSec": 0.44,
+        "storySec": 3.36,
         "beatNodes": [
           "keyHandover",
           "bareAgent",
@@ -228,8 +228,8 @@ export const ARCHIFY = {
         "file": "bare-key-baseline--blind-wrong.mp4",
         "endStill": "bare-key-baseline--blind-wrong-end.png",
         "beats": 2,
-        "leadSec": 0.16,
-        "storySec": 3.24,
+        "leadSec": 0.44,
+        "storySec": 3.26,
         "beatNodes": [
           "rawTable",
           "wrongAnswer"
@@ -241,7 +241,7 @@ export const ARCHIFY = {
         "file": "bare-key-baseline--baseline-two.mp4",
         "endStill": "bare-key-baseline--baseline-two-end.png",
         "beats": 4,
-        "leadSec": 0.16,
+        "leadSec": 0.44,
         "storySec": 4.45,
         "beatNodes": [
           "wrongAnswer",
@@ -263,7 +263,7 @@ export const ARCHIFY = {
         "endStill": "blueprint-foundation--blueprint-vs-foundation-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.45,
+        "storySec": 4.47,
         "beatNodes": [
           "validateGate",
           "semanticView",
@@ -284,7 +284,7 @@ export const ARCHIFY = {
         "endStill": "calc-discipline-matrix--agg-before-join-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.44,
+        "storySec": 4.45,
         "beatNodes": [
           "handbook",
           "rule-agg-before-join",
@@ -299,7 +299,7 @@ export const ARCHIFY = {
         "endStill": "calc-discipline-matrix--dedup-count-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.36,
+        "storySec": 3.37,
         "beatNodes": [
           "rule-dedup-count",
           "trap-double-count",
@@ -313,7 +313,7 @@ export const ARCHIFY = {
         "endStill": "calc-discipline-matrix--divide-after-agg-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.32,
+        "storySec": 3.37,
         "beatNodes": [
           "rule-divide-after-agg",
           "trap-avg-of-avg",
@@ -347,8 +347,8 @@ export const ARCHIFY = {
         "file": "caliber-clash--three-dashboards.mp4",
         "endStill": "caliber-clash--three-dashboards-end.png",
         "beats": 5,
-        "leadSec": 0.16,
-        "storySec": 5.55,
+        "leadSec": 0.44,
+        "storySec": 5.56,
         "beatNodes": [
           "netRevenue",
           "salesBoard",
@@ -363,8 +363,8 @@ export const ARCHIFY = {
         "file": "caliber-clash--twenty-algorithms.mp4",
         "endStill": "caliber-clash--twenty-algorithms-end.png",
         "beats": 2,
-        "leadSec": 0.12,
-        "storySec": 3.26,
+        "leadSec": 0.44,
+        "storySec": 3.25,
         "beatNodes": [
           "spread",
           "netRevenue"
@@ -376,8 +376,8 @@ export const ARCHIFY = {
         "file": "caliber-clash--owners-clash.mp4",
         "endStill": "caliber-clash--owners-clash-end.png",
         "beats": 3,
-        "leadSec": 0.16,
-        "storySec": 3.33,
+        "leadSec": 0.44,
+        "storySec": 3.35,
         "beatNodes": [
           "clash",
           "salesLead",
@@ -396,8 +396,8 @@ export const ARCHIFY = {
         "file": "cipher-translate--not-model-dumb.mp4",
         "endStill": "cipher-translate--not-model-dumb-end.png",
         "beats": 3,
-        "leadSec": 0.48,
-        "storySec": 3.34,
+        "leadSec": 0.44,
+        "storySec": 3.38,
         "beatNodes": [
           "q-card",
           "ai-brain",
@@ -411,7 +411,7 @@ export const ARCHIFY = {
         "endStill": "cipher-translate--cipher-wall-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.35,
+        "storySec": 3.36,
         "beatNodes": [
           "cipher-wall",
           "dict-missing",
@@ -425,7 +425,7 @@ export const ARCHIFY = {
         "endStill": "cipher-translate--letters-not-meaning-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.45,
+        "storySec": 4.47,
         "beatNodes": [
           "cipher-wall",
           "letters-ok",
@@ -457,6 +457,19 @@ export const ARCHIFY = {
         ]
       },
       {
+        "id": "honest-limit",
+        "label": "能力边界如实",
+        "file": "classification-tagging--honest-limit.mp4",
+        "endStill": "classification-tagging--honest-limit-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.25,
+        "beatNodes": [
+          "pol",
+          "limit"
+        ]
+      },
+      {
         "id": "explicit-gap",
         "label": "未映射显式缺口",
         "file": "classification-tagging--explicit-gap.mp4",
@@ -467,19 +480,6 @@ export const ARCHIFY = {
         "beatNodes": [
           "map",
           "gap"
-        ]
-      },
-      {
-        "id": "honest-limit",
-        "label": "能力边界如实",
-        "file": "classification-tagging--honest-limit.mp4",
-        "endStill": "classification-tagging--honest-limit-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.22,
-        "beatNodes": [
-          "pol",
-          "limit"
         ]
       }
     ]
@@ -504,32 +504,32 @@ export const ARCHIFY = {
         ]
       },
       {
-        "id": "enrich",
-        "label": "双轨富化与冲突浮出",
-        "file": "collect-enrich-activate--enrich.mp4",
-        "endStill": "collect-enrich-activate--enrich-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.38,
-        "beatNodes": [
-          "c",
-          "g",
-          "i"
-        ]
-      },
-      {
         "id": "activate",
         "label": "排序后激活",
         "file": "collect-enrich-activate--activate.mp4",
         "endStill": "collect-enrich-activate--activate-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.42,
+        "storySec": 4.44,
         "beatNodes": [
           "r",
           "a1",
           "a2",
           "a3"
+        ]
+      },
+      {
+        "id": "enrich",
+        "label": "双轨富化与冲突浮出",
+        "file": "collect-enrich-activate--enrich.mp4",
+        "endStill": "collect-enrich-activate--enrich-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.33,
+        "beatNodes": [
+          "c",
+          "g",
+          "i"
         ]
       }
     ]
@@ -545,7 +545,7 @@ export const ARCHIFY = {
         "endStill": "compile-time-block--ux-vs-lifeline-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.44,
+        "storySec": 4.45,
         "beatNodes": [
           "caller",
           "retrieval",
@@ -560,7 +560,7 @@ export const ARCHIFY = {
         "endStill": "compile-time-block--no-backdoor-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.36,
+        "storySec": 3.34,
         "beatNodes": [
           "semantic",
           "caller",
@@ -574,7 +574,7 @@ export const ARCHIFY = {
         "endStill": "compile-time-block--compile-second-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.35,
+        "storySec": 3.33,
         "beatNodes": [
           "engine",
           "gov",
@@ -593,8 +593,8 @@ export const ARCHIFY = {
         "file": "component-panorama--caliber-spine.mp4",
         "endStill": "component-panorama--caliber-spine-end.png",
         "beats": 4,
-        "leadSec": 0.16,
-        "storySec": 4.41,
+        "leadSec": 0.44,
+        "storySec": 4.46,
         "beatNodes": [
           "ap",
           "sv",
@@ -608,8 +608,8 @@ export const ARCHIFY = {
         "file": "component-panorama--consumer-feed.mp4",
         "endStill": "component-panorama--consumer-feed-end.png",
         "beats": 6,
-        "leadSec": 0.12,
-        "storySec": 6.66,
+        "leadSec": 0.44,
+        "storySec": 6.64,
         "beatNodes": [
           "vqr",
           "us",
@@ -625,8 +625,8 @@ export const ARCHIFY = {
         "file": "component-panorama--reserved-supply.mp4",
         "endStill": "component-panorama--reserved-supply-end.png",
         "beats": 7,
-        "leadSec": 0.12,
-        "storySec": 7.76,
+        "leadSec": 0.44,
+        "storySec": 7.77,
         "beatNodes": [
           "ap",
           "cs",
@@ -649,8 +649,8 @@ export const ARCHIFY = {
         "file": "declaration-execution--declare.mp4",
         "endStill": "declaration-execution--declare-end.png",
         "beats": 5,
-        "leadSec": 0.12,
-        "storySec": 5.55,
+        "leadSec": 0.44,
+        "storySec": 5.53,
         "beatNodes": [
           "tables",
           "rels",
@@ -665,7 +665,7 @@ export const ARCHIFY = {
         "file": "declaration-execution--gate.mp4",
         "endStill": "declaration-execution--gate-end.png",
         "beats": 3,
-        "leadSec": 0.12,
+        "leadSec": 0.44,
         "storySec": 3.35,
         "beatNodes": [
           "fivePart",
@@ -679,8 +679,8 @@ export const ARCHIFY = {
         "file": "declaration-execution--recompute.mp4",
         "endStill": "declaration-execution--recompute-end.png",
         "beats": 4,
-        "leadSec": 0.16,
-        "storySec": 4.46,
+        "leadSec": 0.44,
+        "storySec": 4.44,
         "beatNodes": [
           "rbac",
           "agg",
@@ -694,8 +694,8 @@ export const ARCHIFY = {
         "file": "declaration-execution--switch-divergence.mp4",
         "endStill": "declaration-execution--switch-divergence-end.png",
         "beats": 4,
-        "leadSec": 0.12,
-        "storySec": 4.46,
+        "leadSec": 0.44,
+        "storySec": 4.42,
         "beatNodes": [
           "fivePart",
           "rbac",
@@ -715,8 +715,8 @@ export const ARCHIFY = {
         "file": "dedup-safety--set-vs-rows.mp4",
         "endStill": "dedup-safety--set-vs-rows-end.png",
         "beats": 5,
-        "leadSec": 0.12,
-        "storySec": 5.57,
+        "leadSec": 0.44,
+        "storySec": 5.54,
         "beatNodes": [
           "eventRows",
           "naiveCount",
@@ -738,7 +738,7 @@ export const ARCHIFY = {
         "endStill": "definition-registration--strict-gate-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.42,
+        "storySec": 4.43,
         "beatNodes": [
           "validating",
           "rule_fk",
@@ -753,7 +753,7 @@ export const ARCHIFY = {
         "endStill": "definition-registration--nonkey-rejected-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.34,
+        "storySec": 3.36,
         "beatNodes": [
           "bad_fk",
           "validating",
@@ -767,7 +767,7 @@ export const ARCHIFY = {
         "endStill": "definition-registration--no-runtime-risk-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.32,
+        "storySec": 3.33,
         "beatNodes": [
           "rejected",
           "registered",
@@ -787,7 +787,7 @@ export const ARCHIFY = {
         "endStill": "dictionary-drift--dict-outside-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.31,
+        "storySec": 3.33,
         "beatNodes": [
           "dict-mounted",
           "table-v1",
@@ -800,8 +800,8 @@ export const ARCHIFY = {
         "file": "dictionary-drift--schema-changed.mp4",
         "endStill": "dictionary-drift--schema-changed-end.png",
         "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.31,
+        "leadSec": 0.48,
+        "storySec": 3.35,
         "beatNodes": [
           "table-v1",
           "schema-change",
@@ -835,7 +835,7 @@ export const ARCHIFY = {
         "endStill": "dual-baseline-evidence--two-benchmarks-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.42,
+        "storySec": 4.43,
         "beatNodes": [
           "snowflakeInternal",
           "internal25",
@@ -856,7 +856,7 @@ export const ARCHIFY = {
         "endStill": "dual-challenge-fork--challenge-one-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.43,
+        "storySec": 4.42,
         "beatNodes": [
           "foundation",
           "challengeOne",
@@ -871,7 +871,7 @@ export const ARCHIFY = {
         "endStill": "dual-challenge-fork--challenge-two-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.44,
+        "storySec": 4.46,
         "beatNodes": [
           "challengeTwo",
           "ledger",
@@ -892,7 +892,7 @@ export const ARCHIFY = {
         "endStill": "dual-path-disambiguation--two-paths-end.png",
         "beats": 6,
         "leadSec": 0.44,
-        "storySec": 6.63,
+        "storySec": 6.65,
         "beatNodes": [
           "ordersTbl",
           "forkGate",
@@ -915,7 +915,7 @@ export const ARCHIFY = {
         "endStill": "engine-governance--sign-vs-wall-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.23,
+        "storySec": 3.27,
         "beatNodes": [
           "byp",
           "rb"
@@ -928,7 +928,7 @@ export const ARCHIFY = {
         "endStill": "engine-governance--governed-path-end.png",
         "beats": 5,
         "leadSec": 0.44,
-        "storySec": 5.54,
+        "storySec": 5.57,
         "beatNodes": [
           "cal",
           "flt",
@@ -943,8 +943,8 @@ export const ARCHIFY = {
         "file": "engine-governance--two-layer-defense.mp4",
         "endStill": "engine-governance--two-layer-defense-end.png",
         "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.45,
+        "leadSec": 0.48,
+        "storySec": 4.44,
         "beatNodes": [
           "cal",
           "flt",
@@ -959,7 +959,7 @@ export const ARCHIFY = {
         "endStill": "engine-governance--bypass-intercepted-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.35,
+        "storySec": 3.33,
         "beatNodes": [
           "cal",
           "byp",
@@ -979,7 +979,7 @@ export const ARCHIFY = {
         "endStill": "event-fanout--hundred-three-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.46,
+        "storySec": 4.44,
         "beatNodes": [
           "order100",
           "evt-1",
@@ -994,7 +994,7 @@ export const ARCHIFY = {
         "endStill": "event-fanout--join-disaster-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.34,
+        "storySec": 3.35,
         "beatNodes": [
           "naive-join",
           "dup-rows",
@@ -1013,8 +1013,8 @@ export const ARCHIFY = {
         "file": "evidence-grading--vendor-claim.mp4",
         "endStill": "evidence-grading--vendor-claim-end.png",
         "beats": 4,
-        "leadSec": 0.16,
-        "storySec": 4.47,
+        "leadSec": 0.44,
+        "storySec": 4.45,
         "beatNodes": [
           "benchSource",
           "gradeCard",
@@ -1028,8 +1028,8 @@ export const ARCHIFY = {
         "file": "evidence-grading--not-industry-norm.mp4",
         "endStill": "evidence-grading--not-industry-norm-end.png",
         "beats": 4,
-        "leadSec": 0.16,
-        "storySec": 4.43,
+        "leadSec": 0.44,
+        "storySec": 4.42,
         "beatNodes": [
           "vendorClaim",
           "retestGap",
@@ -1049,8 +1049,8 @@ export const ARCHIFY = {
         "file": "evolution-timeline--stage-objects.mp4",
         "endStill": "evolution-timeline--stage-objects-end.png",
         "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.23,
+        "leadSec": 0.4,
+        "storySec": 3.26,
         "beatNodes": [
           "ms1",
           "ms2"
@@ -1063,7 +1063,7 @@ export const ARCHIFY = {
         "endStill": "evolution-timeline--stage-governed-enrich-end.png",
         "beats": 10,
         "leadSec": 0.44,
-        "storySec": 11.06,
+        "storySec": 11.07,
         "beatNodes": [
           "ms3",
           "ms4",
@@ -1084,7 +1084,7 @@ export const ARCHIFY = {
         "endStill": "evolution-timeline--stage-ecosystem-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.36,
+        "storySec": 3.34,
         "beatNodes": [
           "ms12",
           "ms13",
@@ -1103,8 +1103,8 @@ export const ARCHIFY = {
         "file": "fan-trap--copy-inflate.mp4",
         "endStill": "fan-trap--copy-inflate-end.png",
         "beats": 3,
-        "leadSec": 0.12,
-        "storySec": 3.35,
+        "leadSec": 0.44,
+        "storySec": 3.38,
         "beatNodes": [
           "order100",
           "rawJoin",
@@ -1117,8 +1117,8 @@ export const ARCHIFY = {
         "file": "fan-trap--aggregate-first.mp4",
         "endStill": "fan-trap--aggregate-first-end.png",
         "beats": 3,
-        "leadSec": 0.16,
-        "storySec": 3.34,
+        "leadSec": 0.48,
+        "storySec": 3.36,
         "beatNodes": [
           "order100",
           "aggFirst",
@@ -1131,8 +1131,8 @@ export const ARCHIFY = {
         "file": "fan-trap--measured-440.mp4",
         "endStill": "fan-trap--measured-440-end.png",
         "beats": 2,
-        "leadSec": 0.16,
-        "storySec": 3.24,
+        "leadSec": 0.44,
+        "storySec": 3.22,
         "beatNodes": [
           "inflated300",
           "measured"
@@ -1180,7 +1180,7 @@ export const ARCHIFY = {
         "endStill": "forced-query-intercept--intercepted-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.32,
+        "storySec": 3.33,
         "beatNodes": [
           "intern",
           "exec",
@@ -1200,7 +1200,7 @@ export const ARCHIFY = {
         "endStill": "formula-vs-total--declare-execute-split-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.46,
+        "storySec": 4.45,
         "beatNodes": [
           "manual",
           "fiveDecl",
@@ -1215,19 +1215,17 @@ export const ARCHIFY = {
     "type": "dataflow",
     "chapters": [
       {
-        "id": "signals",
-        "label": "四路信号来源",
-        "file": "four-factor-ranking--signals.mp4",
-        "endStill": "four-factor-ranking--signals-end.png",
-        "beats": 5,
+        "id": "topk",
+        "label": "合成与显式裁决",
+        "file": "four-factor-ranking--topk.mp4",
+        "endStill": "four-factor-ranking--topk-end.png",
+        "beats": 3,
         "leadSec": 0.44,
-        "storySec": 5.55,
+        "storySec": 3.35,
         "beatNodes": [
-          "q",
-          "gov",
-          "inf",
-          "use",
-          "tm"
+          "score",
+          "tie",
+          "topk"
         ]
       },
       {
@@ -1237,7 +1235,7 @@ export const ARCHIFY = {
         "endStill": "four-factor-ranking--factors-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.47,
+        "storySec": 4.46,
         "beatNodes": [
           "rel",
           "aut",
@@ -1246,17 +1244,19 @@ export const ARCHIFY = {
         ]
       },
       {
-        "id": "topk",
-        "label": "合成与显式裁决",
-        "file": "four-factor-ranking--topk.mp4",
-        "endStill": "four-factor-ranking--topk-end.png",
-        "beats": 3,
+        "id": "signals",
+        "label": "四路信号来源",
+        "file": "four-factor-ranking--signals.mp4",
+        "endStill": "four-factor-ranking--signals-end.png",
+        "beats": 5,
         "leadSec": 0.44,
-        "storySec": 3.36,
+        "storySec": 5.58,
         "beatNodes": [
-          "score",
-          "tie",
-          "topk"
+          "q",
+          "gov",
+          "inf",
+          "use",
+          "tm"
         ]
       }
     ]
@@ -1272,7 +1272,7 @@ export const ARCHIFY = {
         "endStill": "ghost-edge-pollution--fake-event-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.38,
+        "storySec": 3.41,
         "beatNodes": [
           "ghost-push",
           "ingest-endpoint",
@@ -1300,7 +1300,7 @@ export const ARCHIFY = {
         "endStill": "ghost-edge-pollution--gate-removed-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.34,
+        "storySec": 3.36,
         "beatNodes": [
           "resolve-gate",
           "gate-stripped",
@@ -1334,7 +1334,7 @@ export const ARCHIFY = {
         "endStill": "govern-vs-verify--fourth-boundary-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.44,
+        "storySec": 4.42,
         "beatNodes": [
           "nonAdditiveBy",
           "lineageLog",
@@ -1349,7 +1349,7 @@ export const ARCHIFY = {
         "endStill": "govern-vs-verify--third-party-critique-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.31,
+        "storySec": 3.34,
         "beatNodes": [
           "thirdPartyCritique",
           "agentCalc",
@@ -1383,7 +1383,7 @@ export const ARCHIFY = {
         "endStill": "governance-demolition--remove-mask-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.22,
+        "storySec": 3.26,
         "beatNodes": [
           "removeMask",
           "plainLeak"
@@ -1396,7 +1396,7 @@ export const ARCHIFY = {
         "endStill": "governance-demolition--wrong-placement-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.21,
+        "storySec": 3.26,
         "beatNodes": [
           "wrongGate",
           "silentLeak"
@@ -1409,7 +1409,7 @@ export const ARCHIFY = {
         "endStill": "governance-demolition--rbac-ablation-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.44,
+        "storySec": 4.45,
         "beatNodes": [
           "internProbe",
           "accessDenied",
@@ -1458,7 +1458,7 @@ export const ARCHIFY = {
         "endStill": "grain-collapse--measured-477-48-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.34,
+        "storySec": 3.35,
         "beatNodes": [
           "wrongTotal",
           "crash477",
@@ -1478,7 +1478,7 @@ export const ARCHIFY = {
         "endStill": "hearing-showdown--open-hearing-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.43,
+        "storySec": 4.44,
         "beatNodes": [
           "cardGoverned",
           "cardInferred",
@@ -1499,7 +1499,7 @@ export const ARCHIFY = {
         "endStill": "hidden-vs-blocked--teardown-leak-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.34,
+        "storySec": 3.36,
         "beatNodes": [
           "internQuery",
           "teardownFlag",
@@ -1513,7 +1513,7 @@ export const ARCHIFY = {
         "endStill": "hidden-vs-blocked--hide-not-block-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.42,
+        "storySec": 4.45,
         "beatNodes": [
           "hideSeal",
           "directBypass",
@@ -1534,7 +1534,7 @@ export const ARCHIFY = {
         "endStill": "injection-threat--badge-question-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.26,
+        "storySec": 3.22,
         "beatNodes": [
           "bizAgent",
           "keyDesk"
@@ -1547,7 +1547,7 @@ export const ARCHIFY = {
         "endStill": "injection-threat--master-key-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.46,
+        "storySec": 4.42,
         "beatNodes": [
           "masterKey",
           "inject",
@@ -1568,7 +1568,7 @@ export const ARCHIFY = {
         "endStill": "last-snapshot-gate--semi-additive-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.22,
+        "storySec": 3.23,
         "beatNodes": [
           "weekGrid",
           "semiNote"
@@ -1581,7 +1581,7 @@ export const ARCHIFY = {
         "endStill": "last-snapshot-gate--snapshot-vs-sum-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.46,
+        "storySec": 4.44,
         "beatNodes": [
           "daySum",
           "inflated24",
@@ -1601,8 +1601,8 @@ export const ARCHIFY = {
         "file": "lineage-ledger--engine-lane.mp4",
         "endStill": "lineage-ledger--engine-lane-end.png",
         "beats": 3,
-        "leadSec": 0.16,
-        "storySec": 3.32,
+        "leadSec": 0.44,
+        "storySec": 3.34,
         "beatNodes": [
           "sql",
           "edg",
@@ -1615,8 +1615,8 @@ export const ARCHIFY = {
         "file": "lineage-ledger--ingest-lane.mp4",
         "endStill": "lineage-ledger--ingest-lane-end.png",
         "beats": 4,
-        "leadSec": 0.12,
-        "storySec": 4.46,
+        "leadSec": 0.44,
+        "storySec": 4.43,
         "beatNodes": [
           "evt",
           "gate",
@@ -1630,7 +1630,7 @@ export const ARCHIFY = {
         "file": "lineage-ledger--ledger-and-blind.mp4",
         "endStill": "lineage-ledger--ledger-and-blind-end.png",
         "beats": 3,
-        "leadSec": 0.16,
+        "leadSec": 0.44,
         "storySec": 3.33,
         "beatNodes": [
           "ledger",
@@ -1666,7 +1666,7 @@ export const ARCHIFY = {
         "endStill": "majority-shortcut--habit-not-truth-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.33,
+        "storySec": 3.34,
         "beatNodes": [
           "autoPick",
           "wrongWins",
@@ -1685,8 +1685,8 @@ export const ARCHIFY = {
         "file": "mean-of-means--wrong-avg-of-avg.mp4",
         "endStill": "mean-of-means--wrong-avg-of-avg-end.png",
         "beats": 3,
-        "leadSec": 0.16,
-        "storySec": 3.34,
+        "leadSec": 0.44,
+        "storySec": 3.36,
         "beatNodes": [
           "divideFirst",
           "avgOfAvg",
@@ -1699,8 +1699,8 @@ export const ARCHIFY = {
         "file": "mean-of-means--measured-122-108.mp4",
         "endStill": "mean-of-means--measured-122-108-end.png",
         "beats": 4,
-        "leadSec": 0.16,
-        "storySec": 4.46,
+        "leadSec": 0.44,
+        "storySec": 4.43,
         "beatNodes": [
           "avgOfAvg",
           "wrong122",
@@ -1721,7 +1721,7 @@ export const ARCHIFY = {
         "endStill": "mechanism-experiment-matrix--three-lesions-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.46,
+        "storySec": 4.42,
         "beatNodes": [
           "naive-guess",
           "lesion-caliber",
@@ -1736,7 +1736,7 @@ export const ARCHIFY = {
         "endStill": "mechanism-experiment-matrix--ten-teardowns-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.43,
+        "storySec": 4.45,
         "beatNodes": [
           "lab-code",
           "mech-rows",
@@ -1772,7 +1772,7 @@ export const ARCHIFY = {
         "endStill": "multi-entry-single-truth--whoever-asks-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.35,
+        "storySec": 3.33,
         "beatNodes": [
           "manual",
           "recompute",
@@ -1792,7 +1792,7 @@ export const ARCHIFY = {
         "endStill": "next-episode-blueprint--self-build-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.33,
+        "storySec": 3.36,
         "beatNodes": [
           "consumers",
           "explicit",
@@ -1806,7 +1806,7 @@ export const ARCHIFY = {
         "endStill": "next-episode-blueprint--blueprint-blocks-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.45,
+        "storySec": 4.47,
         "beatNodes": [
           "gate",
           "rank",
@@ -1827,7 +1827,7 @@ export const ARCHIFY = {
         "endStill": "on-demand-recompute--frozen-widetable-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.32,
+        "storySec": 3.34,
         "beatNodes": [
           "ledger",
           "widetable",
@@ -1855,7 +1855,7 @@ export const ARCHIFY = {
         "endStill": "on-demand-recompute--grain-recompute-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.36,
+        "storySec": 3.37,
         "beatNodes": [
           "asker",
           "manual",
@@ -1875,7 +1875,7 @@ export const ARCHIFY = {
         "endStill": "one-checkpoint--sign-vs-wall-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.32,
+        "storySec": 3.36,
         "beatNodes": [
           "woodSign",
           "sideDoor",
@@ -1889,7 +1889,7 @@ export const ARCHIFY = {
         "endStill": "one-checkpoint--shared-checkpoint-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.43,
+        "storySec": 4.45,
         "beatNodes": [
           "humanReport",
           "appQuery",
@@ -1919,21 +1919,6 @@ export const ARCHIFY = {
         ]
       },
       {
-        "id": "socket",
-        "label": "受控工具面开放",
-        "file": "open-interop--socket.mp4",
-        "endStill": "open-interop--socket-end.png",
-        "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.43,
-        "beatNodes": [
-          "sv",
-          "mcp",
-          "ext",
-          "rbx"
-        ]
-      },
-      {
         "id": "feedback",
         "label": "反馈回流",
         "file": "open-interop--feedback.mp4",
@@ -1945,6 +1930,21 @@ export const ARCHIFY = {
           "fb",
           "sv",
           "ada"
+        ]
+      },
+      {
+        "id": "socket",
+        "label": "受控工具面开放",
+        "file": "open-interop--socket.mp4",
+        "endStill": "open-interop--socket-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.44,
+        "beatNodes": [
+          "sv",
+          "mcp",
+          "ext",
+          "rbx"
         ]
       }
     ]
@@ -1959,8 +1959,8 @@ export const ARCHIFY = {
         "file": "perimeter-loss--inside-effective.mp4",
         "endStill": "perimeter-loss--inside-effective-end.png",
         "beats": 5,
-        "leadSec": 0.16,
-        "storySec": 5.55,
+        "leadSec": 0.4,
+        "storySec": 5.56,
         "beatNodes": [
           "insideQuery",
           "gateCheck",
@@ -1975,8 +1975,8 @@ export const ARCHIFY = {
         "file": "perimeter-loss--outside-void.mp4",
         "endStill": "perimeter-loss--outside-void-end.png",
         "beats": 4,
-        "leadSec": 0.16,
-        "storySec": 4.46,
+        "leadSec": 0.44,
+        "storySec": 4.45,
         "beatNodes": [
           "insideEffective",
           "externalModel",
@@ -1997,7 +1997,7 @@ export const ARCHIFY = {
         "endStill": "preview-gap--preview-band-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.34,
+        "storySec": 3.35,
         "beatNodes": [
           "advancedComponents",
           "gaStage",
@@ -2017,7 +2017,7 @@ export const ARCHIFY = {
         "endStill": "problem-to-mechanisms--cause-chain-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.43,
+        "storySec": 4.46,
         "beatNodes": [
           "sym-gap",
           "sym-acc",
@@ -2032,7 +2032,7 @@ export const ARCHIFY = {
         "endStill": "problem-to-mechanisms--encircle-pierce-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.44,
+        "storySec": 4.48,
         "beatNodes": [
           "pierce",
           "m2",
@@ -2047,7 +2047,7 @@ export const ARCHIFY = {
         "endStill": "problem-to-mechanisms--engine-cast-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.43,
+        "storySec": 4.47,
         "beatNodes": [
           "m1",
           "m2",
@@ -2061,8 +2061,8 @@ export const ARCHIFY = {
         "file": "problem-to-mechanisms--answer-ledger.mp4",
         "endStill": "problem-to-mechanisms--answer-ledger-end.png",
         "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.37,
+        "leadSec": 0.48,
+        "storySec": 3.33,
         "beatNodes": [
           "m4",
           "m5",
@@ -2096,7 +2096,7 @@ export const ARCHIFY = {
         "endStill": "query-time-policy--instant-inspection-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.32,
+        "storySec": 3.36,
         "beatNodes": [
           "asker",
           "gate",
@@ -2110,7 +2110,7 @@ export const ARCHIFY = {
         "endStill": "query-time-policy--agent-recognized-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.36,
+        "storySec": 3.33,
         "beatNodes": [
           "agent",
           "gate",
@@ -2130,7 +2130,7 @@ export const ARCHIFY = {
         "endStill": "rented-brilliance--rented-to-owned-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.46,
+        "storySec": 4.43,
         "beatNodes": [
           "haloRented",
           "powerLine",
@@ -2151,7 +2151,7 @@ export const ARCHIFY = {
         "endStill": "resolve-activation--hit-reconcile-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.39,
+        "storySec": 3.35,
         "beatNodes": [
           "ag",
           "vq",
@@ -2164,8 +2164,8 @@ export const ARCHIFY = {
         "file": "resolve-activation--miss-fallback.mp4",
         "endStill": "resolve-activation--miss-fallback-end.png",
         "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.23,
+        "leadSec": 0.48,
+        "storySec": 3.25,
         "beatNodes": [
           "ag",
           "vq"
@@ -2178,7 +2178,7 @@ export const ARCHIFY = {
         "endStill": "resolve-activation--outside-eval-end.png",
         "beats": 1,
         "leadSec": 0.44,
-        "storySec": 3.21,
+        "storySec": 3.22,
         "beatNodes": [
           "ev"
         ]
@@ -2195,8 +2195,8 @@ export const ARCHIFY = {
         "file": "revocation-timeline--realtime-ceiling.mp4",
         "endStill": "revocation-timeline--realtime-ceiling-end.png",
         "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.45,
+        "leadSec": 0.32,
+        "storySec": 4.42,
         "beatNodes": [
           "badge-live",
           "realtime-eval",
@@ -2211,7 +2211,7 @@ export const ARCHIFY = {
         "endStill": "revocation-timeline--static-snapshot-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.35,
+        "storySec": 3.34,
         "beatNodes": [
           "badge-live",
           "snap-frozen",
@@ -2225,7 +2225,7 @@ export const ARCHIFY = {
         "endStill": "revocation-timeline--ten-minutes-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.35,
+        "storySec": 3.32,
         "beatNodes": [
           "admin-revoke",
           "copy-static",
@@ -2245,7 +2245,7 @@ export const ARCHIFY = {
         "endStill": "row-column-policy--perpage-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.46,
+        "storySec": 4.44,
         "beatNodes": [
           "cal",
           "po",
@@ -2260,7 +2260,7 @@ export const ARCHIFY = {
         "endStill": "row-column-policy--family-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.35,
+        "storySec": 3.33,
         "beatNodes": [
           "po",
           "agp",
@@ -2273,8 +2273,8 @@ export const ARCHIFY = {
         "file": "row-column-policy--agentface.mp4",
         "endStill": "row-column-policy--agentface-end.png",
         "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.34,
+        "leadSec": 0.48,
+        "storySec": 3.36,
         "beatNodes": [
           "aid",
           "po",
@@ -2294,7 +2294,7 @@ export const ARCHIFY = {
         "endStill": "seal-off-caliber--sealed-off-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.46,
+        "storySec": 4.43,
         "beatNodes": [
           "caliberClash",
           "definitionDrift",
@@ -2315,7 +2315,7 @@ export const ARCHIFY = {
         "endStill": "sticky-notes-to-manual--first-mechanism-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.45,
+        "storySec": 4.44,
         "beatNodes": [
           "manual",
           "singleVoice",
@@ -2330,7 +2330,7 @@ export const ARCHIFY = {
         "endStill": "sticky-notes-to-manual--scattered-notes-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.35,
+        "storySec": 3.33,
         "beatNodes": [
           "noteSticky",
           "noteDraft",
@@ -2349,7 +2349,7 @@ export const ARCHIFY = {
         "file": "supply-overwhelm--flood-vs-manual.mp4",
         "endStill": "supply-overwhelm--flood-vs-manual-end.png",
         "beats": 6,
-        "leadSec": 0.16,
+        "leadSec": 0.44,
         "storySec": 6.64,
         "beatNodes": [
           "badgeDone",
@@ -2387,7 +2387,7 @@ export const ARCHIFY = {
         "endStill": "tag-gate-linkage--seventh-mechanism-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.36,
+        "storySec": 3.35,
         "beatNodes": [
           "newBatch",
           "classifier",
@@ -2401,7 +2401,7 @@ export const ARCHIFY = {
         "endStill": "tag-gate-linkage--auto-linkage-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.46,
+        "storySec": 4.45,
         "beatNodes": [
           "sysTag",
           "userTag",
@@ -2421,7 +2421,7 @@ export const ARCHIFY = {
         "file": "three-claims-stack--guess-only.mp4",
         "endStill": "three-claims-stack--guess-only-end.png",
         "beats": 3,
-        "leadSec": 0.44,
+        "leadSec": 0.28,
         "storySec": 3.35,
         "beatNodes": [
           "threeClaims",
@@ -2436,7 +2436,7 @@ export const ARCHIFY = {
         "endStill": "three-claims-stack--native-act-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.34,
+        "storySec": 3.32,
         "beatNodes": [
           "agentGuess",
           "nativeCtx",
@@ -2450,7 +2450,7 @@ export const ARCHIFY = {
         "endStill": "three-claims-stack--governed-trust-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.32,
+        "storySec": 3.37,
         "beatNodes": [
           "agentAct",
           "governedCtx",
@@ -2470,7 +2470,7 @@ export const ARCHIFY = {
         "endStill": "trust-assets--two-pillars-end.png",
         "beats": 5,
         "leadSec": 0.44,
-        "storySec": 5.55,
+        "storySec": 5.52,
         "beatNodes": [
           "verifyAnchor",
           "verifyCheck",
@@ -2508,7 +2508,7 @@ export const ARCHIFY = {
         "endStill": "trust-timeline--before-during-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.46,
+        "storySec": 4.42,
         "beatNodes": [
           "question-in",
           "vqr-check",
@@ -2523,7 +2523,7 @@ export const ARCHIFY = {
         "endStill": "trust-timeline--after-audit-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.34,
+        "storySec": 3.35,
         "beatNodes": [
           "lineage-ledger",
           "ol-ingest",
@@ -2543,7 +2543,7 @@ export const ARCHIFY = {
         "endStill": "upstream-traceback--living-ledger-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.46,
+        "storySec": 4.43,
         "beatNodes": [
           "ol-evt",
           "ingest-gate",
@@ -2558,7 +2558,7 @@ export const ARCHIFY = {
         "endStill": "upstream-traceback--three-seconds-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.43,
+        "storySec": 4.45,
         "beatNodes": [
           "question",
           "get-lineage",
@@ -2578,8 +2578,8 @@ export const ARCHIFY = {
         "file": "valid-sql-wrong-answer--syntax-pass.mp4",
         "endStill": "valid-sql-wrong-answer--syntax-pass-end.png",
         "beats": 3,
-        "leadSec": 0.16,
-        "storySec": 3.35,
+        "leadSec": 0.44,
+        "storySec": 3.37,
         "beatNodes": [
           "queryCard",
           "syntaxPass",
@@ -2592,8 +2592,8 @@ export const ARCHIFY = {
         "file": "valid-sql-wrong-answer--business-fail.mp4",
         "endStill": "valid-sql-wrong-answer--business-fail-end.png",
         "beats": 2,
-        "leadSec": 0.16,
-        "storySec": 3.25,
+        "leadSec": 0.44,
+        "storySec": 3.27,
         "beatNodes": [
           "bizFail",
           "verdict"
@@ -2612,7 +2612,7 @@ export const ARCHIFY = {
         "endStill": "venn-intersection--two-iron-rules-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.46,
+        "storySec": 4.44,
         "beatNodes": [
           "badge",
           "intersect",
@@ -2633,7 +2633,7 @@ export const ARCHIFY = {
         "endStill": "vqr-lifecycle--signed-stamped-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.36,
+        "storySec": 3.33,
         "beatNodes": [
           "draft",
           "stamped",
@@ -2653,7 +2653,7 @@ export const ARCHIFY = {
         "endStill": "water-pipe-ledger--fifth-mechanism-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.43,
+        "storySec": 4.41,
         "beatNodes": [
           "m5-badge",
           "ledger",
@@ -2668,7 +2668,7 @@ export const ARCHIFY = {
         "endStill": "water-pipe-ledger--drop-to-drop-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.33,
+        "storySec": 3.37,
         "beatNodes": [
           "orders-pool",
           "engine-pipe",
@@ -2702,7 +2702,7 @@ export const ARCHIFY = {
         "file": "wrong-page-failure--right-book-wrong-page.mp4",
         "endStill": "wrong-page-failure--right-book-wrong-page-end.png",
         "beats": 3,
-        "leadSec": 0.16,
+        "leadSec": 0.44,
         "storySec": 3.34,
         "beatNodes": [
           "manualBook",
@@ -2716,8 +2716,8 @@ export const ARCHIFY = {
         "file": "wrong-page-failure--two-branches.mp4",
         "endStill": "wrong-page-failure--two-branches-end.png",
         "beats": 4,
-        "leadSec": 0.12,
-        "storySec": 4.42,
+        "leadSec": 0.44,
+        "storySec": 4.43,
         "beatNodes": [
           "wrongPage",
           "wrongJoin",
@@ -2738,7 +2738,7 @@ export const ARCHIFY = {
         "endStill": "zero-window-sequence--experiment-risk-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.34,
+        "storySec": 3.31,
         "beatNodes": [
           "experimenter",
           "snap",
@@ -2752,7 +2752,7 @@ export const ARCHIFY = {
         "endStill": "zero-window-sequence--dynamic-intersect-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.32,
+        "storySec": 3.34,
         "beatNodes": [
           "live",
           "mentor",

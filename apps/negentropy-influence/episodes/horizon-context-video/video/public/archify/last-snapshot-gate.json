@@ -1,10 +1,9 @@
 {
- "type": "workflow",
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 7.68,
- "total_wall_sec": 35.4,
+ "story_sec": 7.67,
+ "total_wall_sec": 46.5,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -18,17 +17,17 @@
    "beats": 2,
    "dwell_ms": 1600,
    "lead_sec": 0.44,
-   "story_sec": 3.22,
+   "story_sec": 3.23,
    "beat_offsets_sec": [
     0.0,
-    1.603
+    1.602
    ],
    "beat_nodes": [
     "weekGrid",
     "semiNote"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 21.0
+   "capture_fps": 22.0
   },
   {
    "id": "snapshot-vs-sum",
@@ -39,12 +38,12 @@
    "beats": 4,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 4.46,
+   "story_sec": 4.44,
    "beat_offsets_sec": [
     0.0,
-    1.104,
-    2.207,
-    3.31
+    1.105,
+    2.208,
+    3.312
    ],
    "beat_nodes": [
     "daySum",
@@ -53,7 +52,7 @@
     "exact7"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 22.0
+   "capture_fps": 21.0
   }
  ],
  "capture": {
@@ -64,6 +63,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/bangalore-v3/docs/assets/architecture/cognitive-context/horizon-context--last-snapshot-gate.html",
- "slug": "last-snapshot-gate"
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/tripoli-v4/docs/assets/architecture/cognitive-context/horizon-context--last-snapshot-gate.html",
+ "slug": "last-snapshot-gate",
+ "type": "workflow"
 }

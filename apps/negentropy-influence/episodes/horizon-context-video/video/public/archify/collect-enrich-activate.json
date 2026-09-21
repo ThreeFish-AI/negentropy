@@ -1,10 +1,9 @@
 {
- "type": "dataflow",
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 12.23,
- "total_wall_sec": 43.91,
+ "story_sec": 12.2,
+ "total_wall_sec": 72.53,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -21,9 +20,9 @@
    "story_sec": 4.43,
    "beat_offsets_sec": [
     0.0,
-    1.105,
+    1.107,
     2.211,
-    3.318
+    3.314
    ],
    "beat_nodes": [
     "s1",
@@ -32,46 +31,23 @@
     "c"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 40.0
-  },
-  {
-   "id": "enrich",
-   "label": "双轨富化与冲突浮出",
-   "index": 1,
-   "file": "collect-enrich-activate--enrich.mp4",
-   "end_still": "collect-enrich-activate--enrich-end.png",
-   "beats": 3,
-   "dwell_ms": 1100,
-   "lead_sec": 0.44,
-   "story_sec": 3.38,
-   "beat_offsets_sec": [
-    0.0,
-    1.107,
-    2.213
-   ],
-   "beat_nodes": [
-    "c",
-    "g",
-    "i"
-   ],
-   "measured_fps": 25.0,
-   "capture_fps": 42.0
+   "capture_fps": 35.0
   },
   {
    "id": "activate",
    "label": "排序后激活",
-   "index": 2,
+   "index": 1,
    "file": "collect-enrich-activate--activate.mp4",
    "end_still": "collect-enrich-activate--activate-end.png",
    "beats": 4,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 4.42,
+   "story_sec": 4.44,
    "beat_offsets_sec": [
     0.0,
-    1.103,
-    2.209,
-    3.316
+    1.105,
+    2.208,
+    3.313
    ],
    "beat_nodes": [
     "r",
@@ -80,7 +56,30 @@
     "a3"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 41.0
+   "capture_fps": 39.0
+  },
+  {
+   "id": "enrich",
+   "label": "双轨富化与冲突浮出",
+   "index": 2,
+   "file": "collect-enrich-activate--enrich.mp4",
+   "end_still": "collect-enrich-activate--enrich-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.33,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.213
+   ],
+   "beat_nodes": [
+    "c",
+    "g",
+    "i"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 34.0
   }
  ],
  "capture": {
@@ -91,6 +90,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/bangalore-v3/docs/assets/architecture/cognitive-context/horizon-context--collect-enrich-activate.html",
- "slug": "collect-enrich-activate"
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/tripoli-v4/docs/assets/architecture/cognitive-context/horizon-context--collect-enrich-activate.html",
+ "slug": "collect-enrich-activate",
+ "type": "dataflow"
 }

@@ -1,10 +1,9 @@
 {
- "type": "workflow",
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 10.87,
- "total_wall_sec": 51.59,
+ "story_sec": 10.97,
+ "total_wall_sec": 73.46,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -18,17 +17,17 @@
    "beats": 2,
    "dwell_ms": 1600,
    "lead_sec": 0.44,
-   "story_sec": 3.22,
+   "story_sec": 3.26,
    "beat_offsets_sec": [
     0.0,
-    1.603
+    1.604
    ],
    "beat_nodes": [
     "removeMask",
     "plainLeak"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 22.0
+   "capture_fps": 19.0
   },
   {
    "id": "wrong-placement",
@@ -39,7 +38,7 @@
    "beats": 2,
    "dwell_ms": 1600,
    "lead_sec": 0.44,
-   "story_sec": 3.21,
+   "story_sec": 3.26,
    "beat_offsets_sec": [
     0.0,
     1.605
@@ -49,7 +48,7 @@
     "silentLeak"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 22.0
+   "capture_fps": 19.0
   },
   {
    "id": "rbac-ablation",
@@ -60,12 +59,12 @@
    "beats": 4,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 4.44,
+   "story_sec": 4.45,
    "beat_offsets_sec": [
     0.0,
     1.103,
-    2.206,
-    3.31
+    2.207,
+    3.312
    ],
    "beat_nodes": [
     "internProbe",
@@ -74,7 +73,7 @@
     "verdict"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 22.0
+   "capture_fps": 21.0
   }
  ],
  "capture": {
@@ -85,6 +84,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/bangalore-v3/docs/assets/architecture/cognitive-context/horizon-context--governance-demolition.html",
- "slug": "governance-demolition"
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/tripoli-v4/docs/assets/architecture/cognitive-context/horizon-context--governance-demolition.html",
+ "slug": "governance-demolition",
+ "type": "workflow"
 }

@@ -1,10 +1,9 @@
 {
- "type": "workflow",
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.16,
- "story_sec": 14.28,
- "total_wall_sec": 70.83,
+ "lead_sec": 0.44,
+ "story_sec": 14.25,
+ "total_wall_sec": 69.14,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -17,13 +16,13 @@
    "end_still": "agent-identity--ceiling-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 0.16,
-   "story_sec": 4.45,
+   "lead_sec": 0.44,
+   "story_sec": 4.47,
    "beat_offsets_sec": [
     0.0,
-    1.102,
-    2.204,
-    3.306
+    1.103,
+    2.205,
+    3.308
    ],
    "beat_nodes": [
     "user",
@@ -32,7 +31,7 @@
     "sess"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 21.0
+   "capture_fps": 20.0
   },
   {
    "id": "audit",
@@ -42,11 +41,11 @@
    "end_still": "agent-identity--audit-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 0.16,
-   "story_sec": 3.26,
+   "lead_sec": 0.44,
+   "story_sec": 3.22,
    "beat_offsets_sec": [
     0.0,
-    1.603
+    1.602
    ],
    "beat_nodes": [
     "sess",
@@ -63,8 +62,8 @@
    "end_still": "agent-identity--strict-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 0.16,
-   "story_sec": 3.23,
+   "lead_sec": 0.44,
+   "story_sec": 3.22,
    "beat_offsets_sec": [
     0.0,
     1.603
@@ -74,7 +73,7 @@
     "pol"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 23.0
+   "capture_fps": 24.0
   },
   {
    "id": "snapshot-vs-live",
@@ -84,12 +83,12 @@
    "end_still": "agent-identity--snapshot-vs-live-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 0.16,
+   "lead_sec": 0.44,
    "story_sec": 3.34,
    "beat_offsets_sec": [
     0.0,
-    1.102,
-    2.205
+    1.103,
+    2.206
    ],
    "beat_nodes": [
     "user",
@@ -97,7 +96,7 @@
     "sess"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 22.0
+   "capture_fps": 24.0
   }
  ],
  "capture": {
@@ -108,6 +107,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/bangalore-v3/docs/assets/architecture/cognitive-context/horizon-context--agent-identity.html",
- "slug": "agent-identity"
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/tripoli-v4/docs/assets/architecture/cognitive-context/horizon-context--agent-identity.html",
+ "slug": "agent-identity",
+ "type": "workflow"
 }

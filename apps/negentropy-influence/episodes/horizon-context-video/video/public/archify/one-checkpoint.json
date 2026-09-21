@@ -2,8 +2,8 @@
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 7.75,
- "total_wall_sec": 29.1,
+ "story_sec": 7.81,
+ "total_wall_sec": 47.67,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -17,11 +17,11 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.32,
+   "story_sec": 3.36,
    "beat_offsets_sec": [
     0.0,
-    1.104,
-    2.208
+    1.105,
+    2.209
    ],
    "beat_nodes": [
     "woodSign",
@@ -29,7 +29,7 @@
     "engineGate"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 43.0
+   "capture_fps": 32.0
   },
   {
    "id": "shared-checkpoint",
@@ -40,12 +40,12 @@
    "beats": 4,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 4.43,
+   "story_sec": 4.45,
    "beat_offsets_sec": [
     0.0,
-    1.104,
-    2.207,
-    3.31
+    1.106,
+    2.211,
+    3.319
    ],
    "beat_nodes": [
     "humanReport",
@@ -65,7 +65,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/barcelona-v6/docs/assets/architecture/cognitive-context/horizon-context--one-checkpoint.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/tripoli-v4/docs/assets/architecture/cognitive-context/horizon-context--one-checkpoint.html",
  "slug": "one-checkpoint",
  "type": "architecture"
 }

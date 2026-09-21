@@ -2,8 +2,8 @@
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 9.94,
- "total_wall_sec": 41.47,
+ "story_sec": 10.0,
+ "total_wall_sec": 66.5,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -17,11 +17,11 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.31,
+   "story_sec": 3.33,
    "beat_offsets_sec": [
     0.0,
-    1.102,
-    2.205
+    1.104,
+    2.208
    ],
    "beat_nodes": [
     "dict-mounted",
@@ -29,7 +29,7 @@
     "loose-sync"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 24.0
+   "capture_fps": 19.0
   },
   {
    "id": "schema-changed",
@@ -39,12 +39,12 @@
    "end_still": "dictionary-drift--schema-changed-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 0.44,
-   "story_sec": 3.31,
+   "lead_sec": 0.48,
+   "story_sec": 3.35,
    "beat_offsets_sec": [
     0.0,
-    1.103,
-    2.205
+    1.104,
+    2.208
    ],
    "beat_nodes": [
     "table-v1",
@@ -52,7 +52,7 @@
     "stale-dict"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 24.0
+   "capture_fps": 23.0
   },
   {
    "id": "stale-manual",
@@ -66,8 +66,8 @@
    "story_sec": 3.32,
    "beat_offsets_sec": [
     0.0,
-    1.102,
-    2.205
+    1.103,
+    2.208
    ],
    "beat_nodes": [
     "stale-dict",
@@ -75,7 +75,7 @@
     "wrong-answers"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 23.0
+   "capture_fps": 21.0
   }
  ],
  "capture": {
@@ -86,7 +86,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/barcelona-v6/docs/assets/architecture/cognitive-context/horizon-context--dictionary-drift.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/tripoli-v4/docs/assets/architecture/cognitive-context/horizon-context--dictionary-drift.html",
  "slug": "dictionary-drift",
  "type": "lifecycle"
 }

@@ -1,10 +1,9 @@
 {
- "type": "workflow",
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 3.34,
- "total_wall_sec": 16.65,
+ "story_sec": 3.35,
+ "total_wall_sec": 19.76,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -18,11 +17,11 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.34,
+   "story_sec": 3.35,
    "beat_offsets_sec": [
     0.0,
     1.105,
-    2.209
+    2.208
    ],
    "beat_nodes": [
     "advancedComponents",
@@ -30,7 +29,7 @@
     "wideAdoption"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 23.0
+   "capture_fps": 19.0
   }
  ],
  "capture": {
@@ -41,6 +40,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/bangalore-v3/docs/assets/architecture/cognitive-context/horizon-context--preview-gap.html",
- "slug": "preview-gap"
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/tripoli-v4/docs/assets/architecture/cognitive-context/horizon-context--preview-gap.html",
+ "slug": "preview-gap",
+ "type": "workflow"
 }

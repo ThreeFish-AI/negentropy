@@ -2,8 +2,8 @@
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 11.15,
- "total_wall_sec": 41.21,
+ "story_sec": 11.13,
+ "total_wall_sec": 43.11,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -20,8 +20,8 @@
    "story_sec": 3.33,
    "beat_offsets_sec": [
     0.0,
-    1.105,
-    2.209
+    1.103,
+    2.205
    ],
    "beat_nodes": [
     "newBatch",
@@ -29,7 +29,7 @@
     "unmapped"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 24.0
+   "capture_fps": 23.0
   },
   {
    "id": "seventh-mechanism",
@@ -40,11 +40,11 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.36,
+   "story_sec": 3.35,
    "beat_offsets_sec": [
     0.0,
     1.103,
-    2.206
+    2.205
    ],
    "beat_nodes": [
     "newBatch",
@@ -63,12 +63,12 @@
    "beats": 4,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 4.46,
+   "story_sec": 4.45,
    "beat_offsets_sec": [
     0.0,
-    1.101,
-    2.204,
-    3.307
+    1.104,
+    2.207,
+    3.31
    ],
    "beat_nodes": [
     "sysTag",
@@ -88,7 +88,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/barcelona-v6/docs/assets/architecture/cognitive-context/horizon-context--tag-gate-linkage.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/tripoli-v4/docs/assets/architecture/cognitive-context/horizon-context--tag-gate-linkage.html",
  "slug": "tag-gate-linkage",
  "type": "dataflow"
 }

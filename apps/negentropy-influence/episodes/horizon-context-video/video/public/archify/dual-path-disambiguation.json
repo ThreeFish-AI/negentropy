@@ -1,10 +1,9 @@
 {
- "type": "workflow",
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 6.63,
- "total_wall_sec": 19.27,
+ "story_sec": 6.65,
+ "total_wall_sec": 28.7,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -18,14 +17,14 @@
    "beats": 6,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 6.63,
+   "story_sec": 6.65,
    "beat_offsets_sec": [
     0.0,
     1.105,
     2.21,
-    3.315,
-    4.418,
-    5.521
+    3.311,
+    4.415,
+    5.518
    ],
    "beat_nodes": [
     "ordersTbl",
@@ -36,7 +35,7 @@
     "ambiguous"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 23.0
+   "capture_fps": 20.0
   }
  ],
  "capture": {
@@ -47,6 +46,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/bangalore-v3/docs/assets/architecture/cognitive-context/horizon-context--dual-path-disambiguation.html",
- "slug": "dual-path-disambiguation"
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/tripoli-v4/docs/assets/architecture/cognitive-context/horizon-context--dual-path-disambiguation.html",
+ "slug": "dual-path-disambiguation",
+ "type": "workflow"
 }

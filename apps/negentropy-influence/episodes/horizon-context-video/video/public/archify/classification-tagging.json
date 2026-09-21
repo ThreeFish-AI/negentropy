@@ -1,10 +1,9 @@
 {
- "type": "workflow",
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 13.07,
- "total_wall_sec": 47.52,
+ "story_sec": 13.1,
+ "total_wall_sec": 46.88,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -21,11 +20,11 @@
    "story_sec": 6.64,
    "beat_offsets_sec": [
     0.0,
-    1.102,
+    1.103,
     2.206,
-    3.309,
-    4.413,
-    5.518
+    3.307,
+    4.41,
+    5.513
    ],
    "beat_nodes": [
     "new",
@@ -39,9 +38,30 @@
    "capture_fps": 22.0
   },
   {
+   "id": "honest-limit",
+   "label": "能力边界如实",
+   "index": 1,
+   "file": "classification-tagging--honest-limit.mp4",
+   "end_still": "classification-tagging--honest-limit-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "pol",
+    "limit"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 23.0
+  },
+  {
    "id": "explicit-gap",
    "label": "未映射显式缺口",
-   "index": 1,
+   "index": 2,
    "file": "classification-tagging--explicit-gap.mp4",
    "end_still": "classification-tagging--explicit-gap-end.png",
    "beats": 2,
@@ -50,7 +70,7 @@
    "story_sec": 3.21,
    "beat_offsets_sec": [
     0.0,
-    1.604
+    1.602
    ],
    "beat_nodes": [
     "map",
@@ -58,27 +78,6 @@
    ],
    "measured_fps": 25.0,
    "capture_fps": 22.0
-  },
-  {
-   "id": "honest-limit",
-   "label": "能力边界如实",
-   "index": 2,
-   "file": "classification-tagging--honest-limit.mp4",
-   "end_still": "classification-tagging--honest-limit-end.png",
-   "beats": 2,
-   "dwell_ms": 1600,
-   "lead_sec": 0.44,
-   "story_sec": 3.22,
-   "beat_offsets_sec": [
-    0.0,
-    1.605
-   ],
-   "beat_nodes": [
-    "pol",
-    "limit"
-   ],
-   "measured_fps": 25.0,
-   "capture_fps": 23.0
   }
  ],
  "capture": {
@@ -89,6 +88,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/bangalore-v3/docs/assets/architecture/cognitive-context/horizon-context--classification-tagging.html",
- "slug": "classification-tagging"
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/tripoli-v4/docs/assets/architecture/cognitive-context/horizon-context--classification-tagging.html",
+ "slug": "classification-tagging",
+ "type": "workflow"
 }

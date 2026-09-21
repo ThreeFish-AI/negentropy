@@ -1,10 +1,9 @@
 {
- "type": "workflow",
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.16,
+ "lead_sec": 0.4,
  "story_sec": 10.01,
- "total_wall_sec": 34.55,
+ "total_wall_sec": 51.87,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -17,14 +16,14 @@
    "end_still": "perimeter-loss--inside-effective-end.png",
    "beats": 5,
    "dwell_ms": 1100,
-   "lead_sec": 0.16,
-   "story_sec": 5.55,
+   "lead_sec": 0.4,
+   "story_sec": 5.56,
    "beat_offsets_sec": [
     0.0,
-    1.102,
-    2.206,
-    3.31,
-    4.412
+    1.105,
+    2.208,
+    3.311,
+    4.414
    ],
    "beat_nodes": [
     "insideQuery",
@@ -34,7 +33,7 @@
     "insideEffective"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 23.0
+   "capture_fps": 20.0
   },
   {
    "id": "outside-void",
@@ -44,13 +43,13 @@
    "end_still": "perimeter-loss--outside-void-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 0.16,
-   "story_sec": 4.46,
+   "lead_sec": 0.44,
+   "story_sec": 4.45,
    "beat_offsets_sec": [
     0.0,
     1.105,
     2.21,
-    3.313
+    3.314
    ],
    "beat_nodes": [
     "insideEffective",
@@ -59,7 +58,7 @@
     "perimeterLoss"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 22.0
+   "capture_fps": 20.0
   }
  ],
  "capture": {
@@ -70,6 +69,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/bangalore-v3/docs/assets/architecture/cognitive-context/horizon-context--perimeter-loss.html",
- "slug": "perimeter-loss"
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/tripoli-v4/docs/assets/architecture/cognitive-context/horizon-context--perimeter-loss.html",
+ "slug": "perimeter-loss",
+ "type": "workflow"
 }

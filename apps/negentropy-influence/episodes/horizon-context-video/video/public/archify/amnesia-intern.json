@@ -1,10 +1,9 @@
 {
- "type": "workflow",
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.16,
- "story_sec": 8.94,
- "total_wall_sec": 35.74,
+ "lead_sec": 0.44,
+ "story_sec": 8.92,
+ "total_wall_sec": 43.59,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -17,12 +16,12 @@
    "end_still": "amnesia-intern--daily-reset-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 0.16,
+   "lead_sec": 0.44,
    "story_sec": 3.36,
    "beat_offsets_sec": [
     0.0,
-    1.104,
-    2.207
+    1.103,
+    2.206
    ],
    "beat_nodes": [
     "geniusHire",
@@ -30,7 +29,7 @@
     "memoryWipe"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 22.0
+   "capture_fps": 21.0
   },
   {
    "id": "dark-guess",
@@ -40,14 +39,14 @@
    "end_still": "amnesia-intern--dark-guess-end.png",
    "beats": 5,
    "dwell_ms": 1100,
-   "lead_sec": 0.12,
-   "story_sec": 5.58,
+   "lead_sec": 0.44,
+   "story_sec": 5.56,
    "beat_offsets_sec": [
     0.0,
-    1.101,
-    2.204,
-    3.308,
-    4.411
+    1.103,
+    2.205,
+    3.309,
+    4.413
    ],
    "beat_nodes": [
     "memoryWipe",
@@ -57,7 +56,7 @@
     "aiAssistant"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 22.0
+   "capture_fps": 23.0
   }
  ],
  "capture": {
@@ -68,6 +67,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/bangalore-v3/docs/assets/architecture/cognitive-context/horizon-context--amnesia-intern.html",
- "slug": "amnesia-intern"
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/tripoli-v4/docs/assets/architecture/cognitive-context/horizon-context--amnesia-intern.html",
+ "slug": "amnesia-intern",
+ "type": "workflow"
 }

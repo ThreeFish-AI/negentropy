@@ -1,40 +1,35 @@
 {
- "type": "dataflow",
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 13.38,
- "total_wall_sec": 56.96,
+ "story_sec": 13.39,
+ "total_wall_sec": 73.33,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
  "chapters": [
   {
-   "id": "signals",
-   "label": "四路信号来源",
+   "id": "topk",
+   "label": "合成与显式裁决",
    "index": 0,
-   "file": "four-factor-ranking--signals.mp4",
-   "end_still": "four-factor-ranking--signals-end.png",
-   "beats": 5,
+   "file": "four-factor-ranking--topk.mp4",
+   "end_still": "four-factor-ranking--topk-end.png",
+   "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 5.55,
+   "story_sec": 3.35,
    "beat_offsets_sec": [
     0.0,
-    1.104,
-    2.211,
-    3.318,
-    4.42
+    1.107,
+    2.21
    ],
    "beat_nodes": [
-    "q",
-    "gov",
-    "inf",
-    "use",
-    "tm"
+    "score",
+    "tie",
+    "topk"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 23.0
+   "capture_fps": 39.0
   },
   {
    "id": "factors",
@@ -45,12 +40,12 @@
    "beats": 4,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 4.47,
+   "story_sec": 4.46,
    "beat_offsets_sec": [
     0.0,
-    1.106,
-    2.213,
-    3.317
+    1.103,
+    2.209,
+    3.314
    ],
    "beat_nodes": [
     "rel",
@@ -59,30 +54,34 @@
     "fre"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 21.0
+   "capture_fps": 25.0
   },
   {
-   "id": "topk",
-   "label": "合成与显式裁决",
+   "id": "signals",
+   "label": "四路信号来源",
    "index": 2,
-   "file": "four-factor-ranking--topk.mp4",
-   "end_still": "four-factor-ranking--topk-end.png",
-   "beats": 3,
+   "file": "four-factor-ranking--signals.mp4",
+   "end_still": "four-factor-ranking--signals-end.png",
+   "beats": 5,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.36,
+   "story_sec": 5.58,
    "beat_offsets_sec": [
     0.0,
-    1.104,
-    2.211
+    1.105,
+    2.21,
+    3.315,
+    4.419
    ],
    "beat_nodes": [
-    "score",
-    "tie",
-    "topk"
+    "q",
+    "gov",
+    "inf",
+    "use",
+    "tm"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 43.0
+   "capture_fps": 21.0
   }
  ],
  "capture": {
@@ -93,6 +92,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/bangalore-v3/docs/assets/architecture/cognitive-context/horizon-context--four-factor-ranking.html",
- "slug": "four-factor-ranking"
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/tripoli-v4/docs/assets/architecture/cognitive-context/horizon-context--four-factor-ranking.html",
+ "slug": "four-factor-ranking",
+ "type": "dataflow"
 }

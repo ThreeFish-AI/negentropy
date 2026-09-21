@@ -1,10 +1,9 @@
 {
- "type": "architecture",
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.16,
- "story_sec": 12.14,
- "total_wall_sec": 50.76,
+ "lead_sec": 0.44,
+ "story_sec": 12.16,
+ "total_wall_sec": 76.91,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -17,14 +16,14 @@
    "end_still": "caliber-clash--three-dashboards-end.png",
    "beats": 5,
    "dwell_ms": 1100,
-   "lead_sec": 0.16,
-   "story_sec": 5.55,
+   "lead_sec": 0.44,
+   "story_sec": 5.56,
    "beat_offsets_sec": [
     0.0,
-    1.105,
-    2.207,
-    3.31,
-    4.415
+    1.107,
+    2.213,
+    3.317,
+    4.424
    ],
    "beat_nodes": [
     "netRevenue",
@@ -34,7 +33,7 @@
     "clash"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 43.0
+   "capture_fps": 39.0
   },
   {
    "id": "twenty-algorithms",
@@ -44,11 +43,11 @@
    "end_still": "caliber-clash--twenty-algorithms-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 0.12,
-   "story_sec": 3.26,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
    "beat_offsets_sec": [
     0.0,
-    1.604
+    1.608
    ],
    "beat_nodes": [
     "spread",
@@ -65,12 +64,12 @@
    "end_still": "caliber-clash--owners-clash-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 0.16,
-   "story_sec": 3.33,
+   "lead_sec": 0.44,
+   "story_sec": 3.35,
    "beat_offsets_sec": [
     0.0,
-    1.107,
-    2.213
+    1.105,
+    2.21
    ],
    "beat_nodes": [
     "clash",
@@ -78,7 +77,7 @@
     "cfoLead"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 44.0
+   "capture_fps": 33.0
   }
  ],
  "capture": {
@@ -89,6 +88,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/bangalore-v3/docs/assets/architecture/cognitive-context/horizon-context--caliber-clash.html",
- "slug": "caliber-clash"
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/tripoli-v4/docs/assets/architecture/cognitive-context/horizon-context--caliber-clash.html",
+ "slug": "caliber-clash",
+ "type": "architecture"
 }

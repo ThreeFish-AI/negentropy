@@ -2,8 +2,8 @@
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 7.8,
- "total_wall_sec": 27.04,
+ "story_sec": 7.77,
+ "total_wall_sec": 45.56,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -17,12 +17,12 @@
    "beats": 4,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 4.45,
+   "story_sec": 4.44,
    "beat_offsets_sec": [
     0.0,
-    1.103,
-    2.205,
-    3.307
+    1.104,
+    2.208,
+    3.309
    ],
    "beat_nodes": [
     "manual",
@@ -31,7 +31,7 @@
     "defineAsCompute"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 23.0
+   "capture_fps": 20.0
   },
   {
    "id": "scattered-notes",
@@ -42,10 +42,10 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.35,
+   "story_sec": 3.33,
    "beat_offsets_sec": [
     0.0,
-    1.103,
+    1.104,
     2.207
    ],
    "beat_nodes": [
@@ -54,7 +54,7 @@
     "gather"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 24.0
+   "capture_fps": 21.0
   }
  ],
  "capture": {
@@ -65,7 +65,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/barcelona-v6/docs/assets/architecture/cognitive-context/horizon-context--sticky-notes-to-manual.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/tripoli-v4/docs/assets/architecture/cognitive-context/horizon-context--sticky-notes-to-manual.html",
  "slug": "sticky-notes-to-manual",
  "type": "workflow"
 }

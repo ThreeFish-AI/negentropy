@@ -1,10 +1,9 @@
 {
- "type": "workflow",
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.16,
- "story_sec": 8.9,
- "total_wall_sec": 36.13,
+ "lead_sec": 0.44,
+ "story_sec": 8.87,
+ "total_wall_sec": 53.35,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -17,13 +16,13 @@
    "end_still": "evidence-grading--vendor-claim-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 0.16,
-   "story_sec": 4.47,
+   "lead_sec": 0.44,
+   "story_sec": 4.45,
    "beat_offsets_sec": [
     0.0,
-    1.103,
-    2.206,
-    3.31
+    1.104,
+    2.208,
+    3.311
    ],
    "beat_nodes": [
     "benchSource",
@@ -32,7 +31,7 @@
     "retestGap"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 23.0
+   "capture_fps": 20.0
   },
   {
    "id": "not-industry-norm",
@@ -42,12 +41,12 @@
    "end_still": "evidence-grading--not-industry-norm-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 0.16,
-   "story_sec": 4.43,
+   "lead_sec": 0.44,
+   "story_sec": 4.42,
    "beat_offsets_sec": [
     0.0,
-    1.103,
-    2.207,
+    1.104,
+    2.208,
     3.31
    ],
    "beat_nodes": [
@@ -57,7 +56,7 @@
     "verdictNorm"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 24.0
+   "capture_fps": 21.0
   }
  ],
  "capture": {
@@ -68,6 +67,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/bangalore-v3/docs/assets/architecture/cognitive-context/horizon-context--evidence-grading.html",
- "slug": "evidence-grading"
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/tripoli-v4/docs/assets/architecture/cognitive-context/horizon-context--evidence-grading.html",
+ "slug": "evidence-grading",
+ "type": "workflow"
 }

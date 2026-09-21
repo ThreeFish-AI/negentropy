@@ -1,10 +1,9 @@
 {
- "type": "dataflow",
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 20.0,
- "total_wall_sec": 94.3,
+ "story_sec": 20.07,
+ "total_wall_sec": 117.5,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -18,12 +17,12 @@
    "beats": 4,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 4.43,
+   "story_sec": 4.46,
    "beat_offsets_sec": [
     0.0,
     1.105,
-    2.211,
-    3.314
+    2.21,
+    3.317
    ],
    "beat_nodes": [
     "sym-gap",
@@ -32,7 +31,7 @@
     "verdict"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 40.0
+   "capture_fps": 41.0
   },
   {
    "id": "encircle-pierce",
@@ -43,12 +42,12 @@
    "beats": 4,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 4.44,
+   "story_sec": 4.48,
    "beat_offsets_sec": [
     0.0,
     1.106,
     2.212,
-    3.314
+    3.32
    ],
    "beat_nodes": [
     "pierce",
@@ -57,7 +56,7 @@
     "m6"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 44.0
+   "capture_fps": 43.0
   },
   {
    "id": "engine-cast",
@@ -68,12 +67,12 @@
    "beats": 4,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 4.43,
+   "story_sec": 4.47,
    "beat_offsets_sec": [
     0.0,
-    1.105,
+    1.106,
     2.212,
-    3.318
+    3.319
    ],
    "beat_nodes": [
     "m1",
@@ -82,7 +81,7 @@
     "m6"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 23.0
+   "capture_fps": 18.0
   },
   {
    "id": "answer-ledger",
@@ -92,12 +91,12 @@
    "end_still": "problem-to-mechanisms--answer-ledger-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 0.44,
-   "story_sec": 3.37,
+   "lead_sec": 0.48,
+   "story_sec": 3.33,
    "beat_offsets_sec": [
     0.0,
-    1.106,
-    2.213
+    1.107,
+    2.212
    ],
    "beat_nodes": [
     "m4",
@@ -105,7 +104,7 @@
     "m7"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 22.0
+   "capture_fps": 21.0
   },
   {
    "id": "downgraded-lane",
@@ -119,8 +118,8 @@
    "story_sec": 3.33,
    "beat_offsets_sec": [
     0.0,
-    1.103,
-    2.208
+    1.105,
+    2.21
    ],
    "beat_nodes": [
     "f10",
@@ -139,6 +138,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/bangalore-v3/docs/assets/architecture/cognitive-context/horizon-context--problem-to-mechanisms.html",
- "slug": "problem-to-mechanisms"
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/tripoli-v4/docs/assets/architecture/cognitive-context/horizon-context--problem-to-mechanisms.html",
+ "slug": "problem-to-mechanisms",
+ "type": "dataflow"
 }

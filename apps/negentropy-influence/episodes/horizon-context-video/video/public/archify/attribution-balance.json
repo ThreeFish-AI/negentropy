@@ -2,8 +2,8 @@
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 7.77,
- "total_wall_sec": 32.29,
+ "story_sec": 7.78,
+ "total_wall_sec": 46.01,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -21,7 +21,7 @@
    "beat_offsets_sec": [
     0.0,
     1.105,
-    2.208
+    2.209
    ],
    "beat_nodes": [
     "when-correct",
@@ -29,7 +29,7 @@
     "model-brain"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 42.0
+   "capture_fps": 31.0
   },
   {
    "id": "cast-into-infra",
@@ -40,12 +40,12 @@
    "beats": 4,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 4.44,
+   "story_sec": 4.45,
    "beat_offsets_sec": [
     0.0,
     1.107,
-    2.213,
-    3.319
+    2.211,
+    3.314
    ],
    "beat_nodes": [
     "cast-into-infra",
@@ -54,7 +54,7 @@
     "mech-trust"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 43.0
+   "capture_fps": 32.0
   }
  ],
  "capture": {
@@ -65,7 +65,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/barcelona-v6/docs/assets/architecture/cognitive-context/horizon-context--attribution-balance.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/tripoli-v4/docs/assets/architecture/cognitive-context/horizon-context--attribution-balance.html",
  "slug": "attribution-balance",
  "type": "architecture"
 }

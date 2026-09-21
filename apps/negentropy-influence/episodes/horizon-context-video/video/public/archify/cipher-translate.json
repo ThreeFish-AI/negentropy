@@ -1,9 +1,9 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.48,
- "story_sec": 11.14,
- "total_wall_sec": 54.22,
+ "lead_sec": 0.44,
+ "story_sec": 11.21,
+ "total_wall_sec": 70.56,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -16,12 +16,12 @@
    "end_still": "cipher-translate--not-model-dumb-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 0.48,
-   "story_sec": 3.34,
+   "lead_sec": 0.44,
+   "story_sec": 3.38,
    "beat_offsets_sec": [
     0.0,
-    1.102,
-    2.205
+    1.104,
+    2.206
    ],
    "beat_nodes": [
     "q-card",
@@ -29,7 +29,7 @@
     "cipher-wall"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 22.0
+   "capture_fps": 18.0
   },
   {
    "id": "cipher-wall",
@@ -40,7 +40,7 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.35,
+   "story_sec": 3.36,
    "beat_offsets_sec": [
     0.0,
     1.105,
@@ -52,7 +52,7 @@
     "plain-card"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 22.0
+   "capture_fps": 19.0
   },
   {
    "id": "letters-not-meaning",
@@ -63,12 +63,12 @@
    "beats": 4,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 4.45,
+   "story_sec": 4.47,
    "beat_offsets_sec": [
     0.0,
-    1.102,
-    2.205,
-    3.307
+    1.103,
+    2.207,
+    3.312
    ],
    "beat_nodes": [
     "cipher-wall",
@@ -77,7 +77,7 @@
     "outcome"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 24.0
+   "capture_fps": 20.0
   }
  ],
  "capture": {
@@ -88,7 +88,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/barcelona-v6/docs/assets/architecture/cognitive-context/horizon-context--cipher-translate.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/tripoli-v4/docs/assets/architecture/cognitive-context/horizon-context--cipher-translate.html",
  "slug": "cipher-translate",
  "type": "dataflow"
 }

@@ -1,10 +1,9 @@
 {
- "type": "workflow",
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 11.09,
- "total_wall_sec": 39.35,
+ "story_sec": 11.06,
+ "total_wall_sec": 54.8,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -18,13 +17,13 @@
    "beats": 5,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 5.55,
+   "story_sec": 5.52,
    "beat_offsets_sec": [
     0.0,
     1.104,
     2.207,
-    3.312,
-    4.417
+    3.309,
+    4.413
    ],
    "beat_nodes": [
     "verifyAnchor",
@@ -34,7 +33,7 @@
     "decisionFlow"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 21.0
+   "capture_fps": 22.0
   },
   {
    "id": "three-seals",
@@ -50,8 +49,8 @@
     0.0,
     1.104,
     2.209,
-    3.311,
-    4.416
+    3.313,
+    4.417
    ],
    "beat_nodes": [
     "sealWrong",
@@ -61,7 +60,7 @@
     "auditableAsset"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 23.0
+   "capture_fps": 21.0
   }
  ],
  "capture": {
@@ -72,6 +71,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/bangalore-v3/docs/assets/architecture/cognitive-context/horizon-context--trust-assets.html",
- "slug": "trust-assets"
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/tripoli-v4/docs/assets/architecture/cognitive-context/horizon-context--trust-assets.html",
+ "slug": "trust-assets",
+ "type": "workflow"
 }
