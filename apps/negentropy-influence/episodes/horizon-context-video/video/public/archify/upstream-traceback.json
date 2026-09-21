@@ -2,8 +2,8 @@
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 8.89,
- "total_wall_sec": 29.92,
+ "story_sec": 8.88,
+ "total_wall_sec": 48.87,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -17,12 +17,12 @@
    "beats": 4,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 4.46,
+   "story_sec": 4.43,
    "beat_offsets_sec": [
     0.0,
-    1.104,
-    2.208,
-    3.309
+    1.105,
+    2.209,
+    3.312
    ],
    "beat_nodes": [
     "ol-evt",
@@ -31,7 +31,7 @@
     "ledger"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 24.0
+   "capture_fps": 21.0
   },
   {
    "id": "three-seconds",
@@ -42,12 +42,12 @@
    "beats": 4,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 4.43,
+   "story_sec": 4.45,
    "beat_offsets_sec": [
     0.0,
-    1.102,
-    2.204,
-    3.307
+    1.103,
+    2.207,
+    3.31
    ],
    "beat_nodes": [
     "question",
@@ -56,7 +56,7 @@
     "src-col"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 23.0
+   "capture_fps": 21.0
   }
  ],
  "capture": {
@@ -67,7 +67,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/barcelona-v6/docs/assets/architecture/cognitive-context/horizon-context--upstream-traceback.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/tripoli-v4/docs/assets/architecture/cognitive-context/horizon-context--upstream-traceback.html",
  "slug": "upstream-traceback",
  "type": "dataflow"
 }

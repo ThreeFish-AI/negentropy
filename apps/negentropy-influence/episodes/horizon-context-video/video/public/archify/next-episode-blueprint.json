@@ -2,8 +2,8 @@
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 7.78,
- "total_wall_sec": 31.5,
+ "story_sec": 7.83,
+ "total_wall_sec": 46.41,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -17,11 +17,11 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.33,
+   "story_sec": 3.36,
    "beat_offsets_sec": [
     0.0,
-    1.101,
-    2.204
+    1.104,
+    2.208
    ],
    "beat_nodes": [
     "consumers",
@@ -29,7 +29,7 @@
     "store"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 22.0
+   "capture_fps": 21.0
   },
   {
    "id": "blueprint-blocks",
@@ -40,12 +40,12 @@
    "beats": 4,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 4.45,
+   "story_sec": 4.47,
    "beat_offsets_sec": [
     0.0,
-    1.103,
-    2.205,
-    3.307
+    1.106,
+    2.209,
+    3.313
    ],
    "beat_nodes": [
     "gate",
@@ -54,7 +54,7 @@
     "mcp"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 22.0
+   "capture_fps": 20.0
   }
  ],
  "capture": {
@@ -65,7 +65,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/barcelona-v6/docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/tripoli-v4/docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.html",
  "slug": "next-episode-blueprint",
  "type": "architecture"
 }

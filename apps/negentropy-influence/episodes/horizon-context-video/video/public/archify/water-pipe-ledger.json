@@ -2,8 +2,8 @@
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 12.22,
- "total_wall_sec": 46.26,
+ "story_sec": 12.24,
+ "total_wall_sec": 50.52,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -17,12 +17,12 @@
    "beats": 4,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 4.43,
+   "story_sec": 4.41,
    "beat_offsets_sec": [
     0.0,
-    1.104,
-    2.208,
-    3.312
+    1.102,
+    2.203,
+    3.306
    ],
    "beat_nodes": [
     "m5-badge",
@@ -42,7 +42,7 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.33,
+   "story_sec": 3.37,
    "beat_offsets_sec": [
     0.0,
     1.104,
@@ -54,7 +54,7 @@
     "sales-tap"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 23.0
+   "capture_fps": 21.0
   },
   {
    "id": "not-wastepaper",
@@ -68,7 +68,7 @@
    "story_sec": 4.46,
    "beat_offsets_sec": [
     0.0,
-    1.103,
+    1.105,
     2.209,
     3.312
    ],
@@ -79,7 +79,7 @@
     "ledger"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 23.0
+   "capture_fps": 25.0
   }
  ],
  "capture": {
@@ -90,7 +90,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/barcelona-v6/docs/assets/architecture/cognitive-context/horizon-context--water-pipe-ledger.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/tripoli-v4/docs/assets/architecture/cognitive-context/horizon-context--water-pipe-ledger.html",
  "slug": "water-pipe-ledger",
  "type": "dataflow"
 }

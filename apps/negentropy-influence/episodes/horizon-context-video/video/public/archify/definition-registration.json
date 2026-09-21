@@ -2,8 +2,8 @@
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 11.08,
- "total_wall_sec": 43.33,
+ "story_sec": 11.12,
+ "total_wall_sec": 44.69,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -17,10 +17,10 @@
    "beats": 4,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 4.42,
+   "story_sec": 4.43,
    "beat_offsets_sec": [
     0.0,
-    1.103,
+    1.102,
     2.206,
     3.308
    ],
@@ -42,11 +42,11 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.34,
+   "story_sec": 3.36,
    "beat_offsets_sec": [
     0.0,
-    1.103,
-    2.207
+    1.104,
+    2.208
    ],
    "beat_nodes": [
     "bad_fk",
@@ -65,11 +65,11 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.32,
+   "story_sec": 3.33,
    "beat_offsets_sec": [
     0.0,
     1.103,
-    2.205
+    2.207
    ],
    "beat_nodes": [
     "rejected",
@@ -88,7 +88,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/barcelona-v6/docs/assets/architecture/cognitive-context/horizon-context--definition-registration.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/tripoli-v4/docs/assets/architecture/cognitive-context/horizon-context--definition-registration.html",
  "slug": "definition-registration",
  "type": "lifecycle"
 }

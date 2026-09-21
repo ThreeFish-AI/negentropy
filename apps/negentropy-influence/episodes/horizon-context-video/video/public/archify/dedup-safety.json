@@ -1,10 +1,9 @@
 {
- "type": "workflow",
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.12,
- "story_sec": 5.57,
- "total_wall_sec": 19.71,
+ "lead_sec": 0.44,
+ "story_sec": 5.54,
+ "total_wall_sec": 23.52,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -17,14 +16,14 @@
    "end_still": "dedup-safety--set-vs-rows-end.png",
    "beats": 5,
    "dwell_ms": 1100,
-   "lead_sec": 0.12,
-   "story_sec": 5.57,
+   "lead_sec": 0.44,
+   "story_sec": 5.54,
    "beat_offsets_sec": [
     0.0,
-    1.101,
-    2.205,
-    3.306,
-    4.41
+    1.105,
+    2.208,
+    3.311,
+    4.416
    ],
    "beat_nodes": [
     "eventRows",
@@ -34,7 +33,7 @@
     "right3"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 22.0
+   "capture_fps": 20.0
   }
  ],
  "capture": {
@@ -45,6 +44,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/bangalore-v3/docs/assets/architecture/cognitive-context/horizon-context--dedup-safety.html",
- "slug": "dedup-safety"
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/tripoli-v4/docs/assets/architecture/cognitive-context/horizon-context--dedup-safety.html",
+ "slug": "dedup-safety",
+ "type": "workflow"
 }

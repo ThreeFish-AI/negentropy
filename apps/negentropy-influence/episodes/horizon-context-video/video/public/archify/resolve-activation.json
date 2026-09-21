@@ -1,10 +1,9 @@
 {
- "type": "sequence",
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 9.83,
- "total_wall_sec": 47.61,
+ "story_sec": 9.82,
+ "total_wall_sec": 65.8,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -18,11 +17,11 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.39,
+   "story_sec": 3.35,
    "beat_offsets_sec": [
     0.0,
-    1.103,
-    2.206
+    1.105,
+    2.209
    ],
    "beat_nodes": [
     "ag",
@@ -30,7 +29,7 @@
     "en"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 24.0
+   "capture_fps": 19.0
   },
   {
    "id": "miss-fallback",
@@ -40,8 +39,8 @@
    "end_still": "resolve-activation--miss-fallback-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 0.44,
-   "story_sec": 3.23,
+   "lead_sec": 0.48,
+   "story_sec": 3.25,
    "beat_offsets_sec": [
     0.0,
     1.605
@@ -51,7 +50,7 @@
     "vq"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 23.0
+   "capture_fps": 18.0
   },
   {
    "id": "outside-eval",
@@ -62,7 +61,7 @@
    "beats": 1,
    "dwell_ms": 3200,
    "lead_sec": 0.44,
-   "story_sec": 3.21,
+   "story_sec": 3.22,
    "beat_offsets_sec": [
     0.0
    ],
@@ -70,7 +69,7 @@
     "ev"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 22.0
+   "capture_fps": 20.0
   }
  ],
  "capture": {
@@ -81,6 +80,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/bangalore-v3/docs/assets/architecture/cognitive-context/horizon-context--resolve-activation.html",
- "slug": "resolve-activation"
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/tripoli-v4/docs/assets/architecture/cognitive-context/horizon-context--resolve-activation.html",
+ "slug": "resolve-activation",
+ "type": "sequence"
 }

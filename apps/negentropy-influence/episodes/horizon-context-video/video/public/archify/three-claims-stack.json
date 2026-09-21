@@ -1,9 +1,9 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.44,
- "story_sec": 10.01,
- "total_wall_sec": 46.29,
+ "lead_sec": 0.28,
+ "story_sec": 10.04,
+ "total_wall_sec": 69.71,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -16,12 +16,12 @@
    "end_still": "three-claims-stack--guess-only-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 0.44,
+   "lead_sec": 0.28,
    "story_sec": 3.35,
    "beat_offsets_sec": [
     0.0,
-    1.103,
-    2.205
+    1.107,
+    2.211
    ],
    "beat_nodes": [
     "threeClaims",
@@ -29,7 +29,7 @@
     "agentGuess"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 43.0
+   "capture_fps": 40.0
   },
   {
    "id": "native-act",
@@ -40,11 +40,11 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.34,
+   "story_sec": 3.32,
    "beat_offsets_sec": [
     0.0,
-    1.106,
-    2.209
+    1.107,
+    2.212
    ],
    "beat_nodes": [
     "agentGuess",
@@ -52,7 +52,7 @@
     "agentAct"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 44.0
+   "capture_fps": 33.0
   },
   {
    "id": "governed-trust",
@@ -63,11 +63,11 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.32,
+   "story_sec": 3.37,
    "beat_offsets_sec": [
     0.0,
     1.107,
-    2.211
+    2.214
    ],
    "beat_nodes": [
     "agentAct",
@@ -75,7 +75,7 @@
     "agentTrusted"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 44.0
+   "capture_fps": 42.0
   }
  ],
  "capture": {
@@ -86,7 +86,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/barcelona-v6/docs/assets/architecture/cognitive-context/horizon-context--three-claims-stack.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/tripoli-v4/docs/assets/architecture/cognitive-context/horizon-context--three-claims-stack.html",
  "slug": "three-claims-stack",
  "type": "architecture"
 }

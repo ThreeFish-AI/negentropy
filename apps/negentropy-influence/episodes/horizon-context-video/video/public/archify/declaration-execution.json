@@ -1,10 +1,9 @@
 {
- "type": "workflow",
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.12,
- "story_sec": 17.82,
- "total_wall_sec": 72.59,
+ "lead_sec": 0.44,
+ "story_sec": 17.74,
+ "total_wall_sec": 103.5,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -17,14 +16,14 @@
    "end_still": "declaration-execution--declare-end.png",
    "beats": 5,
    "dwell_ms": 1100,
-   "lead_sec": 0.12,
-   "story_sec": 5.55,
+   "lead_sec": 0.44,
+   "story_sec": 5.53,
    "beat_offsets_sec": [
     0.0,
-    1.103,
-    2.205,
-    3.308,
-    4.411
+    1.104,
+    2.206,
+    3.311,
+    4.416
    ],
    "beat_nodes": [
     "tables",
@@ -34,7 +33,7 @@
     "fivePart"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 23.0
+   "capture_fps": 19.0
   },
   {
    "id": "gate",
@@ -44,12 +43,12 @@
    "end_still": "declaration-execution--gate-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 0.12,
+   "lead_sec": 0.44,
    "story_sec": 3.35,
    "beat_offsets_sec": [
     0.0,
     1.104,
-    2.207
+    2.206
    ],
    "beat_nodes": [
     "fivePart",
@@ -57,7 +56,7 @@
     "reject"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 23.0
+   "capture_fps": 21.0
   },
   {
    "id": "recompute",
@@ -67,11 +66,11 @@
    "end_still": "declaration-execution--recompute-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 0.16,
-   "story_sec": 4.46,
+   "lead_sec": 0.44,
+   "story_sec": 4.44,
    "beat_offsets_sec": [
     0.0,
-    1.103,
+    1.104,
     2.207,
     3.311
    ],
@@ -82,7 +81,7 @@
     "denied"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 23.0
+   "capture_fps": 22.0
   },
   {
    "id": "switch-divergence",
@@ -92,13 +91,13 @@
    "end_still": "declaration-execution--switch-divergence-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 0.12,
-   "story_sec": 4.46,
+   "lead_sec": 0.44,
+   "story_sec": 4.42,
    "beat_offsets_sec": [
     0.0,
-    1.103,
-    2.206,
-    3.311
+    1.105,
+    2.209,
+    3.312
    ],
    "beat_nodes": [
     "fivePart",
@@ -107,7 +106,7 @@
     "result"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 23.0
+   "capture_fps": 21.0
   }
  ],
  "capture": {
@@ -118,6 +117,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/bangalore-v3/docs/assets/architecture/cognitive-context/horizon-context--declaration-execution.html",
- "slug": "declaration-execution"
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/tripoli-v4/docs/assets/architecture/cognitive-context/horizon-context--declaration-execution.html",
+ "slug": "declaration-execution",
+ "type": "workflow"
 }

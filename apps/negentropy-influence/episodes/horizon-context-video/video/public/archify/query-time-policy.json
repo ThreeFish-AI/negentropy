@@ -2,8 +2,8 @@
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 6.68,
- "total_wall_sec": 29.47,
+ "story_sec": 6.69,
+ "total_wall_sec": 26.84,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -17,11 +17,11 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.32,
+   "story_sec": 3.36,
    "beat_offsets_sec": [
     0.0,
     1.103,
-    2.207
+    2.206
    ],
    "beat_nodes": [
     "asker",
@@ -29,7 +29,7 @@
     "policy"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 23.0
+   "capture_fps": 22.0
   },
   {
    "id": "agent-recognized",
@@ -40,10 +40,10 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.36,
+   "story_sec": 3.33,
    "beat_offsets_sec": [
     0.0,
-    1.103,
+    1.102,
     2.207
    ],
    "beat_nodes": [
@@ -63,7 +63,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/barcelona-v6/docs/assets/architecture/cognitive-context/horizon-context--query-time-policy.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/tripoli-v4/docs/assets/architecture/cognitive-context/horizon-context--query-time-policy.html",
  "slug": "query-time-policy",
  "type": "sequence"
 }

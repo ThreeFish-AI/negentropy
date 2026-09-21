@@ -2,8 +2,8 @@
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 11.1,
- "total_wall_sec": 45.81,
+ "story_sec": 11.11,
+ "total_wall_sec": 71.78,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -17,12 +17,12 @@
    "beats": 4,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 4.44,
+   "story_sec": 4.42,
    "beat_offsets_sec": [
     0.0,
-    1.105,
+    1.107,
     2.213,
-    3.315
+    3.316
    ],
    "beat_nodes": [
     "nonAdditiveBy",
@@ -31,7 +31,7 @@
     "wrongResult"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 42.0
+   "capture_fps": 31.0
   },
   {
    "id": "third-party-critique",
@@ -42,11 +42,11 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.31,
+   "story_sec": 3.34,
    "beat_offsets_sec": [
     0.0,
-    1.104,
-    2.207
+    1.108,
+    2.214
    ],
    "beat_nodes": [
     "thirdPartyCritique",
@@ -54,7 +54,7 @@
     "wrongResult"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 43.0
+   "capture_fps": 36.0
   },
   {
    "id": "upstream-collapse",
@@ -68,8 +68,8 @@
    "story_sec": 3.35,
    "beat_offsets_sec": [
     0.0,
-    1.103,
-    2.206
+    1.106,
+    2.21
    ],
    "beat_nodes": [
     "rawDetail",
@@ -77,7 +77,7 @@
     "semanticView"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 40.0
+   "capture_fps": 43.0
   }
  ],
  "capture": {
@@ -88,7 +88,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/barcelona-v6/docs/assets/architecture/cognitive-context/horizon-context--govern-vs-verify.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/tripoli-v4/docs/assets/architecture/cognitive-context/horizon-context--govern-vs-verify.html",
  "slug": "govern-vs-verify",
  "type": "architecture"
 }
