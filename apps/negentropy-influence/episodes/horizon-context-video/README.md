@@ -16,7 +16,7 @@ Context Layer 系列首集。信源为本仓 [Snowflake Horizon Context 精读�
 
 ③ 覆盖门六维加固——新增最长无锚 run / 分幕锚定率 / cue 密度 / 图型多样性 / forbid_inset / 同句排他（+第 4 道 dur 形态断言），sidecar 落 `type` 字段（record_archify --type + 33 张存量回填），本集阈值定稿 66 图 / 146 cue / 60% / 9/分 / 5 种（先红后绿留证 `.temp/coverage-gate-red-before-v4.txt`）。
 
-**验收**：`check_script --check-scenes --check-motion` FAIL 0 · `check_archify` FAIL 0 · WARN 0 · 覆盖门 FAIL 0 · WARN 0（v5 存量 3 WARN 清零：逆序经挪锚修复、两整图接线）· `tsc --noEmit` 绿 · rate 预演 156 cue 零越界 · 估算与实测双口径均落在 `[13.0, 15.4]`（口播未动，实测与 v4 一致）。
+**验收**：`check_script --check-scenes --check-motion` **FAIL 0 · WARN 0**（v6 遗留 30 条动效声明 WARN 已随分镜动效列镜级回收清零；口径复位见 ISSUE-191）· `check_archify` FAIL 0 · WARN 0 · 覆盖门 FAIL 0 · WARN 0（v5 存量 3 WARN 清零：逆序经挪锚修复、两整图接线）· `tsc --noEmit` 绿 · rate 预演 156 cue 零越界 · 估算与实测双口径均落在 `[13.0, 15.4]`（口播未动，实测与 v4 一致）。
 
 ## 目录
 

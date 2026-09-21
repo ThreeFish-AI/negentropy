@@ -4092,5 +4092,69 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
   1. 阈值即验收声明：任何用 archify 的集低于本集 toml `[archify]` 六维线，`pipeline.py check` 直接红；
   2. **工单/分镜里的「空档句」前提必须对照 narration.json 实存句集核验**——本次 p1-23 是跳号句（不存在），据此建的嵌套窗 tsc 与覆盖门全放行、渲染期才抛「未找到句 id」（非 cue 的 at()/dur() 引用不在任何门的形态断言内）；
   3. 跨实例背靠背（含镜界——beat 间无 sceneGap）必须给后挂实例 `lead={false}`，enters 判定只在单实例内生效；
-  4. 装置与图的视觉主权「一句一主」：被图整镜接管的装置退役清退（连 helper/import），独有隐喻装置保留可见岛。
+  4. 装置与图的视觉主权「一句一主」：被图整镜接管的装置退役清退（连 helper/import），独有隐喻装置保留可见岛。**⚠️ 本条漏了半步——分镜「动效」列必须与「画面」列同批回收，否则承诺留在表里、以 WARN 延后暴露：见 ISSUE-191。**
 - **同类问题影响**：六维门与 forbid_inset 对所有用 archify 的集生效（默认宽松地板，本集收紧为策略声明）；p1-23 类坏句引用建议后续在 check_script 加一道全量 at()/dur()/w() 句 id 存在性断言（本轮以渲染抽帧拦截）。
+
+---
+
+## ISSUE-191 装置清退只改了分镜「画面」列：30 条动效 WARN 里 19 条真退役、9 条陈年假标注、2 条门误报（2026-09-21）
+
+- **表因**：`check_script --check-scenes --check-motion` 在 horizon-context-video 上稳定报 `FAIL 0 · WARN 30`
+  （0-A/0-B/0-C · 1-B..1-E · 4-A..4-E/4-G · 5-A/5-E · 6-A..6-F），而该集 `storyboard.md` 表头自述的判定基线是
+  「FAIL 0 + WARN 0，出现任何 WARN 都是真漂移」。按镜级复算更严重：**75 条 `@token` 里镜级为真的只有 14 条**，
+  另有 31 条是「同幕别的镜用过就算过」的假通过，门一条都没报。
+- **根因**（30 条按病理分三类，不可一概而论）：
+  1. **A 类 19 条 · 真退役**：#1153（`f35d546d`「archify 画中画档退役，全屏独占切换改造七场景」）按「视觉主权一句一主」
+     清退约 1000 行自制装置（TerminalAsk/ColumnWall/ThreeDefs/OfficialLadder/WrongPage/StampedAnswer/PipeLedger/
+     ThreeGates/KeyVsBadge/TagLine/RentedSmart 等，`scenes/` 净 +879 / −1911），**同一提交重写了分镜「画面」列，
+     却让「动效」列 45/45 镜逐字未动**——装置没了，承诺留着。
+  2. **B 类 9 条 · 陈年假标注**（`0-B@progress` `1-B/1-D/1-E@stagger` `4-A@shake` `4-C@spring` `4-G@spring`
+     `6-B@progress` `6-F@draw`）：用 `git show ec9043ec:` 重放证实，**这些镜在 #1153 之前本镜就没有对应 hook**
+     （HalfWall 两版都只有 `useProgress`、「四方印鉴」装置在任何一版代码里都不存在、「蓝图 draw 铺开」从未被画过），
+     靠**幕级粒度**蹭同幕别的镜过关。#1153 只是搬走了替它背书的室友。**门的幕级归属会把假标注养到暴露那天，
+     暴露时又伪装成本次回归**——归因写错就会把陈年债记到别人的提交上。
+  3. **C 类 2 条 · 门误报**（`6-A/6-C@progress`）：这两镜挂着 `EvidenceBadge`，其首行即 `useProgress`
+     （`components/devices.tsx:30`），动效真实存在；门只扫 `scenes/*.tsx`（`check_script.py:347-357`）看不见。
+  4. **验收口径先被放宽，回归才得以过关**：本集 README 验收行在 `fed3b321` 写的是「FAIL 0 · WARN 0」，
+     到 `ec9043ec`（#1152）被缩成只剩「FAIL 0」；#1153 在这个已放宽的口径下引入 30 条 WARN，无人拦截，
+     其验收清单亦未列 `--check-motion`。
+- **处理方式**：不改场景代码、不重渲染——逐镜比对句区间与 cue 锚句证实**动效整条消失的镜每一句都有 cue、
+  archify 整镜接管、零视觉空洞**（有未覆盖句的恰好只有保留了自制装置的 4-C/6-A/4-G/6-F/1-B-p1-15）。
+  只回收分镜「动效」列，且按镜级一次性收口：
+  1. **45 镜全表对账**，token 75 → **23**（删 61 = 30 WARN + 31 幕级假通过；补 9 条此前漏声明的真实调用：
+     2-E `@impulse` · 2-F `@spring` · 3-C `@spring @progress` · 3-E `@progress` · 5-B `@impulse @breathe` ·
+     5-F `@stagger` · 6-F `@stagger`）。改后各幕 token 集与该幕 scene 文件实际调用集**逐幕相等**，
+     且每条保留 token 在镜级也能指到行号。
+  2. **34 镜转零 token**，四句定型措辞（纯图主控 / + 证据角标 / + HUD 点柱 / 装置镜实态），
+     统一以 `（本镜无动效 hook）` 收尾；C 类与装置层动效改为**散文点名承担者**（devices.tsx / ArchifyClip / CodeWalk），
+     真话不丢、门不误报。
+  3. 修正 12 处失实散文（1-E「角标 impulse 一闪」本镜根本没有 EvidenceBadge、2-G「时间轴 draw」实为纯函数
+     `progress`、3-C「承重墙 draw」实为 `useSpring`、5-F「断口 shake；绿线 draw」两者都不存在、
+     6-A「第一道 dim 压暗」实为样式分支等）；2-D「静态对照」与 4-F「静态意象卡」两处**既有先例本身也已失实**
+     （两镜已转纯图主控、连 `Stage` 都没有），一并改正。
+  4. storyboard 表头写死 `@动词` 判据与 `（本镜无动效 hook）` 的准确语义；README 验收行复位为 FAIL 0 · WARN 0；
+     `skills/06` 补两条配套铁律。
+- **后续防范**：
+  1. **装置清退必须同一提交改三处**：scene 代码 + 分镜「画面」列 + 分镜「动效」列。只改前两处，第三处会以 WARN
+     延后暴露，且幕级粒度下只暴露一半。ISSUE-190 防范 4 写了「退役清退（连 helper/import）」，**唯独漏了分镜同步**。
+  2. **提取式门的粒度即盲区**：加严路径已明确——按 `<Sequence name="N-X">` 切段后再提取 `useXxx(`，把归属收到镜级。
+     本轮以「表头写死镜级判据 + 表内 45 行镜级取证」建人工不变量，**门的加严另轮**（改门牵动全部 10 集：
+     `context-layer-video` 现有 45 条 motion-WARN 且含 `@snap/@flip/@rotate` 三个词表外动词——它们其实是
+     `SpringPreset`/`EnterKind` 预设名，词表从 `export function use(\w+)` 派生，结构性地无法表达预设；
+     另有 7 集 storyboard 零 token 属「恒绿空过」）。**禁用「一跳 import 闭包」修门**：实测 WARN 30→13，
+     被洗绿的 17 条里 8 条是 A 类真退役（`devices.tsx` 里零引用的 `SplitCompare`/`AskCard` 会让 P0 白拿 stagger）；
+     两跳更糟——42/45 镜挂 `ArchifyRecap`→`ArchifyClip`，`@spring` 与 `@progress` 将在全片不可证伪。
+  3. **「门看不见」不等于「可以不写」**：装置层动效必须进散文并点名承担者，只是不进 `@token`；
+     反过来任何 `@token` 都必须能在本幕 scene 文件里指到行号。两条同时成立才算对账完成。
+  4. **验收口径不得在散文里被无声改小**：README 的门清单是契约，缩写一次就等于把回归合法化。
+- **同类问题影响**：幕级盲区对所有用 `--check-motion` 的集成立（`context-layer-video` 同法待对账）。
+  ⚠️ **动效列禁照搬画面列的 `archify` + `full`/`inset` 字面标注**——`check_archify_coverage` 的 `ANN_COUNT_RE`
+  扫 storyboard **全文**而解析数只取画面列，多一处命中即 **FAIL**（本轮实测：表头警示语误写该字面量，当场
+  107≠105 红门）；同理禁写 `@archify` 之类非动词表标记（触发「不在词表」WARN）。
+  **本轮只动动效列，以下同源债另轮**：① 分镜**画面列**八处失实（1-D 剖面展开 / 1-E「HUD 首次点亮」实为
+  `PillarHUD lit={0}` 一根不亮 / 2-D 静态对照卡 / 3-A 扫描仪 / 4-F 探照灯 / 4-G 四方印鉴 / 5-D 双钟+代码走廊④ /
+  6-C 塌方剖面+NumberClash），改它会动覆盖门的标注计数断言，须与 `check_archify_coverage` 同跑；
+  ② `planning.md` 计数失实——「母图全片 10 次」实存 1 次（`MechZoom` 仅 `P3Gate.tsx:143` 一处引用）、
+  「24 个装置」实存 8 个；③ `devices.tsx` 的 `SplitCompare`/`AskCard` 全仓零引用，属 ISSUE-190 防范 4 的清退遗漏，
+  且是未来任何 import-closure 改门方案的污染源；④ `skills/05` 把动效列定性为「对实现者的设计指令」、
+  `skills/06` 定性为「事后意图摘要」，两份规格互相矛盾，需裁决。

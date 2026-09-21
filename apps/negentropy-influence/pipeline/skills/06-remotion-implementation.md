@@ -213,7 +213,14 @@ QA 验收：逐幕抽帧目检色契约遵守、beat 窗口不越界、角标不
 （如 `` `@enter:fall` ``、`` `@stagger` ``、`` `@draw` ``——动词表 = hooks.ts 的 use*
 导出派生，勿凭记忆写）。`check_script.py --check-motion`（WARN-only）核对镜内声明
 的动词在该幕场景代码中确有调用——「分镜写了动效、代码没实现」这一实测缺陷类的机检。
-反向不报：动效列是意图摘要而非全量清单。入场瞬态另走 `qa_frames.py --beat-heads N`
+反向不报：动效列是意图摘要而非全量清单。**但「摘要」不等于可以失真**：
+`@动词` 的判据是「本镜 `<Sequence>` 内、由本幕 `scenes/P*.tsx` 自身定义的装置调用了该 `useXxx(`」。
+两条配套铁律：① **装置清退 / 视觉主权让渡（如整镜改由 archify 逐章回放接管）时，分镜「动效」列必须与
+「画面」列同批回收**——只改画面列会把承诺留在动效列，且门只按幕级粒度比对（`P4*` 任一处调用即满足全幕），
+同幕别的镜会替它背书、缺陷被养到多年后才暴露（ISSUE-191 实测 30 条 WARN 里 9 条是这样的陈年假标注）；
+② **动效由 `components/` 承担的镜（ArchifyClip 画框弹入 / devices.tsx / CodeWalk）只写散文点名承担者、
+不写 `@token`**——门不扫 `components/`，写了必恒 WARN，删了又会删掉真话，散文是唯一正确的落点。
+入场瞬态另走 `qa_frames.py --beat-heads N`
 （每 beat 头部连抽 N 帧，ISSUE-170 补盲）；重制/重构回归用 `--compare A B`同帧号对拍。
 
 ## 系列身份视觉：五层 Harness 栈（2026-08-23 Harness Engineering 改造引入）
