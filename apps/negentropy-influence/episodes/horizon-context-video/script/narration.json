@@ -47,7 +47,8 @@
   {
     "id": "p0-10",
     "scene": "P0",
-    "text": "这集拆一拆 Snowflake 的解法：「Horizon Context」。"
+    "text": "这集拆一拆 Snowflake 的解法：「Horizon Context」。",
+    "ttsText": "这集拆一拆 Snowflake 的解法：「Horizon <Context|K AA1 N T EH2 K S T>」。"
   },
   {
     "id": "p1-01",
