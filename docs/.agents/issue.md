@@ -4158,3 +4158,18 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
   「24 个装置」实存 8 个；③ `devices.tsx` 的 `SplitCompare`/`AskCard` 全仓零引用，属 ISSUE-190 防范 4 的清退遗漏，
   且是未来任何 import-closure 改门方案的污染源；④ `skills/05` 把动效列定性为「对实现者的设计指令」、
   `skills/06` 定性为「事后意图摘要」，两份规格互相矛盾，需裁决。
+
+---
+
+## ISSUE-192 成片 47s 处 p0-10 句尾「Context」读成「Context text」：TTS 尾音节重复采样被 tts-store 逐代继承 + ASR 验证自证陷阱（2026-09-21）
+
+- **表因**：horizon-context-video 成片约 47s 处，「这集拆一拆 Snowflake 的解法：「Horizon Context」。」句尾的 *Context* 多读出一个尾音节，听感 "Context text"。
+- **根因（两层）**：
+  1. **采样层**：IndexTTS 自回归采样在「中文句 + 句尾英文 token（全角引号+句号收尾）」上高频把 `-text` 拖成独立音节/复读尾簇。原坏 take 4.73s（多出 ~0.4s 摩擦尾簇）；首轮盲重掷 4.28s 仍带同型缺陷（ASR "Context Tabbed"）——**该位置缺陷率约 50%，盲掷不可收敛**。坏 take 自 v4 起被机器级 tts-store 按 digest 逐代继承（恢复 187/187 句零重合成＝把缺陷一并继承），历轮 QA 全在视觉侧，成片音频无听审。
+  2. **验证层（本次最大教训）**：首轮「新 take 已验证干净」的结论是**错的**——复验时给 faster-whisper 传了 `initial_prompt="…Horizon Context。"`，等于把期望答案喂给判据，模型倾向复述 prompt 压掉异常；去掉 prompt 后同一 take 立即现形（"Context Tabbed"）。凡 ASR 验证**一律禁传 initial_prompt**，prompt 只可用于格式引导、绝不可含被测内容。
+- **处理方式（定稿）**：CMU 音素标注治本——narration.md 写 `<Context|K AA1 N T EH2 K S T>`（英文专名走 pron_marks.py 的 ARPAbet 通道，重音 AA1 在首音节、辅音簇 K S T 收尾不带元音，锁死读法）；`strip_marks` 后 `text`（字幕/字数）零变化，仅 `ttsText` 带标注 ⇒ digest 自然变化只重配该句。标注锁音素但韵律仍随机（首轮标注 take 又踩 "Context Con"），故仍需**重掷循环 + 逐 take 无偏验证**（第 2 掷干净，4.20s，zh/en 双档转写与逐字稿一致、尾部无多余有声单元），定稿 take 回存标注版 canonical digest。同型句排查：p1-16 / p1-24 / p6-23 无偏转写均干净，未扩改。终片 27336 帧，字幕随 captions 再生（p0-10 现 42.50–46.70s）。
+- **后续防范**：
+  1. **ASR 抽检门**（候选管线门，本次未落地）：终渲前对句尾英文产品名的句子跑无偏 ASR-与逐字稿 diff；裁决组合 = whisper medium zh+en 双档 + 尾部能量/ZCR 切分（独立齿擦音簇 ZCR>0.25 即多余尾簇）+ 成片内嵌波形与源 take 包络互相关（≥0.99 即同一音频）；whisper small 不可用于裁决（对 TTS 短音频尾 token 幻觉率高）。
+  2. 句尾英文词读法一律**标注兜底**，不赌采样；标注拼写须过 `pron_marks.validate`（CMU 音素 + 重音 0/1/2）。
+  3. 撤销标注类改动会使 digest 回退到旧值、静默恢复历史坏 take——死 digest 下的已知坏 take 应改名隔离（本次 `*.bad-*` 留档于 tts-store）。
+- **同类问题影响**：已上线三集 + 本系列所有「句尾英文词收尾」句子均建议按 §1 组合判据抽检；换新 worktree 重建时 tts-store 会继续按 digest 继承任何既有缺陷 take，修复须显式重掷或加标注换 digest。
