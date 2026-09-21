@@ -1,0 +1,40 @@
+%%source: docs/research/cognitive-context/011-horizon-context.md#blockS3 (L369-L391, §3 Horizon Context 的三阶段治理)
+%%slug: cognitive-context/horizon-context--three-stage-governance
+%%type: dataflow
+%%derived: archify dataflow v1, corrected from source mermaid
+%% fix: (2026-09-21 §3 开篇新图) ① 三个 subgraph 内的串行链改为并列——三项能力互不依赖，原 C1→C2→C3 / E1→E2→E3 / A1→A2→A3 为原块结构性错误（同款错误已由 design/context-layer--collect-phase 的 %% fix 诊断在案，该块系 9bf34b2a 从已删除的 concepts/design/context-layer.md 回流的未修正版）；
+%% ② 原 COLLECT-->ENRICH-->ACTIVATE 是 subgraph 间的边，archify 的 stage 框不能作边端点，落为两个阶段交接物节点（Horizon Catalog / AI-ready 上下文）承接，成五 stage 漏斗；
+%% ③ 九个能力节点 label 逐字保留，成熟度与承重/降级锚点只入 sublabel/tag，不改 label；classDef 字面色值丢弃，改用 archify 语义 type；
+%% ④ 本轮按「仅修拓扑」口径未采纳、留待下轮校准的三条：「自动文档生成」与「质量信号」在 011 全文零出处（仅出现于本块）；「列级血缘」按 §2 属 M5（Collect 面）却置于 Enrich；「OSI 开放语义互换」按 §12 属出口面却置于 Collect。
+%% ⑥ 原 subgraph 标题的 ①②③ 序号去除：五列漏斗下三阶段已不与列序 1:1 对应，而 archify 渲染器自带 01–05 列序号，保留会在同一列给出两个不同数字（如「03 / ②」）；三阶段改由列名与交接列名自解释。
+%% ⑤ 类型取 dataflow 而非 README 约定的 graph→workflow：workflow schema 的 nodes[].col 硬封顶 0..5，装不下五列漏斗，且 lane 折行会产生违反 mainPath 单调性的回折边。
+graph LR
+    subgraph COLLECT["Collect 汇聚"]
+        C1["跨系统元数据连接器"]
+        C2["OpenLineage 血缘"]
+        C3["OSI 开放语义互换"]
+    end
+    CAT["Horizon Catalog<br/>四层上下文信号"]
+    subgraph ENRICH["Enrich 富化"]
+        E1["语义视图 Semantic Views"]
+        E2["自动文档生成"]
+        E3["列级血缘 / 质量信号"]
+    end
+    CTX["AI-ready 上下文<br/>受治理地供给"]
+    subgraph ACTIVATE["Activate 激活"]
+        A1["Universal Search 混合排序"]
+        A2["MCP 对外暴露"]
+        A3["CoCo 自动发现与查询"]
+    end
+    C1 --> CAT
+    C2 --> CAT
+    C3 --> CAT
+    CAT --> E1
+    CAT --> E2
+    CAT --> E3
+    E1 --> CTX
+    E2 --> CTX
+    E3 --> CTX
+    CTX --> A1
+    CTX --> A2
+    CTX --> A3

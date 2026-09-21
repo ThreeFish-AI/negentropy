@@ -366,29 +366,9 @@ description: "「嵌入治理引擎、查询时强制执行」的 Context Layer 
 
 ## 3. Horizon Context 的三阶段治理
 
-```mermaid
-graph LR
-    subgraph COLLECT["① Collect 汇聚"]
-        C1["跨系统元数据连接器"] --> C2["OpenLineage 血缘"]
-        C2 --> C3["OSI 开放语义互换"]
-    end
-    subgraph ENRICH["② Enrich 富化"]
-        E1["语义视图 Semantic Views"] --> E2["自动文档生成"]
-        E2 --> E3["列级血缘 / 质量信号"]
-    end
-    subgraph ACTIVATE["③ Activate 激活"]
-        A1["Universal Search 混合排序"] --> A2["MCP 对外暴露"]
-        A2 --> A3["CoCo 自动发现与查询"]
-    end
-    COLLECT --> ENRICH --> ACTIVATE
+![Horizon Context 三阶段治理骨架：Collect 汇聚（跨系统元数据连接器 / OpenLineage 血缘 / OSI 开放语义互换）三路并列入账 Horizon Catalog，Enrich 富化（语义视图 Semantic Views / 自动文档生成 / 列级血缘·质量信号）三路并列产出 AI-ready 上下文，Activate 激活（Universal Search 混合排序 / MCP 对外暴露 / CoCo 自动发现与查询）三面并列供给；两根贯通脊柱是阶段交接物，原块的三条串行链已按实际依赖修正为并列。节点副标注成熟度（私有预览 / GA / Apache 孵化中）与锚点——承重机制 M1 / M5 与降级专章 §10 / §11 / §12 在同一张骨架上并置，可直读出「哪一格由承重机制托底、哪一格只是供给」。三阶段九项能力在 §16 四人格盲评中 0/4 提名，正确性硬保证仍在 §2 的 M1–M7，本图作 §10–§12 三专章的导航骨架；结论卡另载成熟度落差与本轮未采纳的三条校准。](../../assets/architecture/cognitive-context/horizon-context--three-stage-governance-dark.png)
 
-    classDef collect fill:#1f3a5f,stroke:#5b9bd5,stroke-width:2px,color:#e8f0fe
-    classDef enrich fill:#5a3d1f,stroke:#d59b5b,stroke-width:2px,color:#fdf3e8
-    classDef activate fill:#1f4d2e,stroke:#5bbd7c,stroke-width:2px,color:#e8fbef
-    class C1,C2,C3 collect
-    class E1,E2,E3 enrich
-    class A1,A2,A3 activate
-```
+> 图源（可 diff 文本）：[`horizon-context--three-stage-governance.mmd`](../../assets/mermaid/cognitive-context/horizon-context--three-stage-governance.mmd) · 交互版（下载到本地打开）：[`horizon-context--three-stage-governance.html`](../../assets/architecture/cognitive-context/horizon-context--three-stage-governance.html)
 
 ### 上下文供给与富化
 

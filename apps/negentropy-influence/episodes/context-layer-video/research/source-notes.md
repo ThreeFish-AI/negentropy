@@ -6,7 +6,7 @@
 > - **A 轨 · 复刻蓝图**：[docs/research/cognitive-context/013-context-layer-blueprint.md](../../../../../docs/research/cognitive-context/013-context-layer-blueprint.md)（150 行）——通用可复刻基础设施的设计 SSOT。
 > - **B 轨 · 精读笔记**：[docs/research/cognitive-context/011-horizon-context.md](../../../../../docs/research/cognitive-context/011-horizon-context.md)——机制详解与实证数字（经它间接可溯 Snowflake 上游）。
 > - **C 轨 · 原型实测**：[assets/horizon_context_mcp.py](../../../../../docs/research/cognitive-context/assets/horizon_context_mcp.py)（328 行）+ lab，`--selftest` 全绿（2026-09-12 复跑）。
-> - **D 轨 · 内部织物方案**：[docs/concepts/design/context-layer.md](../../../../../docs/concepts/design/context-layer.md)（352 行）——蓝图在 negentropy 的实例化，工程纪律（ADR/三纪律）引用源。
+> - **D 轨 · 内部织物方案**：[docs/research/cognitive-context/013-context-layer-blueprint.md](../../../../../docs/research/cognitive-context/013-context-layer-blueprint.md)——蓝图在 negentropy 的实例化，工程纪律（ADR/三纪律）引用源；原 `docs/concepts/design/context-layer.md`（352 行）已于 2026-09-21 全量并入该文件并删除。
 > - ⚠ **文档已迁址（2026-09-14）**：上述仓内链接指向迁移后的现址（`docs/research/cognitive-context/`）；取证仍锚定 `cf6724d688d6`，该提交上的原路径为 `docs/reference/paper-notes/` 与 `docs/reference/context-layer-blueprint.md`——[sources.toml](./sources.toml) 的 pinned raw URL 与成片尾幕署名保持原样，均仍可解析。
 >
 > **证据四级**：同上篇（【一】原型实测可复跑 / 【二】仓内文档的讲法 / 【三】厂商自家基准须归属 / 【四】第三方分析须归属）。
