@@ -1,12 +1,12 @@
 ---
 sidebar_position: 6
 title: "Context Layer 技术蓝图与方案"
-description: "Context Layer 全量蓝图：以 Snowflake Horizon Context M1–M7 为范本的通用可复刻五正交层架构（对象/目录/富化/治理/激活）× 业界四路线格局 × MCP 供给面威胁模型 × 评测标尺与组织运营 × negentropy 治理织物实例化总装 × 双轨演进路线；融入 Horizon 精读全量机制载荷、实证数字、十次破坏性实验与批判性边界（2026-09-20 全量重设计）"
+description: "Context Layer 知识与设计 SSOT：以 Snowflake Horizon Context M1–M7 为范本的五正交层通用蓝图（对象/目录/富化/治理/激活）× 业界格局 × MCP 供给面威胁模型 × negentropy 实例化总装 × 双轨演进路线"
 ---
 
 > **一句话定位**：本文是 Context Layer 的**技术蓝图与方案合一的全量文档**——以 [Snowflake Horizon Context](https://www.snowflake.com/en/product/features/horizon-context/) 为范本，给出一个可独立部署、面向 Agents 研发与平台集成、并可实例化进任意宿主系统（本文以 negentropy 为实例）的**受治理上下文层**的完整设计：机制原理（M1–M7 精读载荷）→ 通用蓝图（五正交层）→ 实例化方案（negentropy 治理织物）→ 证据与边界 → 演进路线。
 >
-> **重设计说明（2026-09-20）**：本文由三份文档全量重织而成——[Horizon Context 精读笔记](./011-horizon-context.md)的机制载荷与实证、`concepts/design/context-layer.md`（Context Layer · 上下文治理层技术方案）的 negentropy 实例化设计、旧版通用蓝图的行业全景与五层架构。011 自此文起冻结为**精读过程与重评审审计档案**（其 §16 重评审全过程审计痕迹仅存于彼处，本文收压缩版）；context-layer.md 先瘦身为**实施入口页**、再于 2026-09-21 删除（定位、指针与实施状态一并并入本文）；[机制映射报告](./012-horizon-context-mapping-negentropy.md)的 16 条判定已校准并入本文 §12 状态总表。**设计与知识以本文为单一事实源（SSOT）**；四方互链，引用一律走相对直链。
+> **重设计说明（2026-09-20）**：本文由三份文档全量重织而成——[011 精读笔记](./011-horizon-context.md)的机制载荷与实证、`concepts/design/context-layer.md` 的 negentropy 实例化设计（该文件已于 2026-09-21 删除、定位与实施状态一并并入本文）、旧版通用蓝图的行业全景与五层架构。011 自此文起冻结为**精读过程与重评审审计档案**（§16 全过程审计痕迹仅存于彼处，本文收压缩版）。**设计与知识以本文为单一事实源（SSOT）**；三方互链，引用一律走相对直链。
 >
 > 循证基础：Horizon 机制详解、Snowflake 官方基准数字与批判性边界见 [精读笔记](./011-horizon-context.md)（其 M 集已于 2026-09-17 经全局重评选校准）；行业格局、第三方实证与失败史的出处见文末参考；本仓代码锚点均经 2026-09-20 实测核验；**2026-09-20 另经六路并行重调研复核**（Horizon 增量 / Apache Ossie / MCP 规范与安全 / 业界格局 / 学术 / 存量外链存活——30 条关键引用全部存活，增量与勘误已织入 §2/§6.1/§7.6/§8.3/§13/§14 各处，标注「重调研增量」「复核」或「实测」字样）。最小原型（M1–M7 七机制 + MCP 服务，约 1195 行纯标准库，十次破坏性实验）随精读笔记入库：[`assets/horizon_context_lab.py`](./assets/horizon_context_lab.py) 与 [`assets/horizon_context_mcp.py`](./assets/horizon_context_mcp.py)。
 
@@ -26,14 +26,13 @@ description: "Context Layer 全量蓝图：以 Snowflake Horizon Context M1–M7
 > | **T2 设计主线** | 2–3 h | §1–§11 + §16                                                               | 复刻者           |
 > | **T3 全量**  | ~半天  | 全文（另加 §12 实例化总装 + §13 证据实验室 + §14 边界 + §15 问答）         | 本仓维护者 / 深读评审者 |
 >
-> **四方文档分工**：
+> **三方文档分工**：
 >
 > | 文档                                                               | 重设计后角色                                                       | 维护策略                                         |
 > | ------------------------------------------------------------------ | ------------------------------------------------------------------ | ------------------------------------------------ |
 > | **013（本文）**                                                    | Context Layer **知识与设计 SSOT**：机制原理 + 通用蓝图 + 实例化设计 + 证据 + 边界 + 路线 | 唯一活跃设计维护点                               |
 > | [011 精读笔记](./011-horizon-context.md)                           | 精读过程与重评审审计档案（guided-learn 过程产物）                  | 冻结；Horizon 后续版本跟踪以增量并入本文         |
 > | [012 映射报告](./012-horizon-context-mapping-negentropy.md)        | 锚点核验快照（2026-09-17）                                         | 结论已并入本文 §12；再核验直接更新本文并刷新日期 |
-> | `context-layer.md` 实施入口页（已删除）                            | negentropy 实施入口（定位 + 指针）                                 | 2026-09-21 删除，入口与状态指针一并并入本文     |
 
 ---
 
@@ -71,12 +70,10 @@ description: "Context Layer 全量蓝图：以 Snowflake Horizon Context M1–M7
 
 > 图源（可 diff 文本）：[`horizon-context--problem-to-mechanisms.mmd`](../../assets/mermaid/cognitive-context/horizon-context--problem-to-mechanisms.mmd) · 交互版（下载到本地打开）：[`horizon-context--problem-to-mechanisms.html`](../../assets/architecture/cognitive-context/horizon-context--problem-to-mechanisms.html)
 
-这套体系要兑现的需求规格与本文章节的对应：
+除上表七条承重机制外，另三条非机制性需求规格与本文章节的对应：
 
 | 设计规格           | 通俗版                                         | 蓝图对应            |
 | ------------------ | ---------------------------------------------- | ------------------- |
-| 定义一次、处处生效 | 规章手册只写一遍，处处引用不抄写               | §4 对象层 + §5 目录层 |
-| 治理内嵌、不可绕过 | 闸机焊死在承重墙必经通路上，杜绝大堂告示牌摆设 | §7 治理层           |
 | 双轨养上下文       | 手册编纂（显式）+ 助教偷师（隐式），冲突必见人 | §6 富化层           |
 | 通用接入           | 任何 agent/BI/应用用标准工业插座消费           | §8 激活层（MCP）    |
 | 对冲「治理≠验证」  | 规章合法 ≠ 算式无误，底层单据捣碎时出口须对账  | §9 边界对策         |
@@ -148,7 +145,7 @@ description: "Context Layer 全量蓝图：以 Snowflake Horizon Context M1–M7
 
 | 路线             | 治理发生处   | 代表与一句定位                                                                                                                                                                                                                                            |
 | ---------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 平台内嵌         | 引擎内       | Databricks：UC Business Semantics metric views（2026-04 GA）+ Genie One（2026-06-16 DAIS 宣布、2026-07 确认 GA，从「问答」走向「执行动作」）。Microsoft：Fabric IQ（Build 2026 GA）——Power BI semantic model + Ontology 实体/关系/规则/**动作写回**，Ontology MCP 端点 Coming Soon。Google：Looker LookML → headless；Conversational Analytics（2026-08）把 verified/golden queries 做成一等机制（核心已 GA——2026-07 官方口径，子功能部分 Preview）。**AWS（2026-09 重调研新增席）**：AWS Context（2026-06-17，agent 知识图谱服务）+ Glue 业务上下文/语义搜索预览 + 开源 Context Ontology Accelerator（2026-07-31，Apache-2.0，知识图谱×形式本体×规则，Scan→Model→Serve，经内置 MCP server 供给） |
+| 平台内嵌         | 引擎内       | Databricks：UC Business Semantics metric views（2026-04 GA）+ Genie One（2026-06-16 DAIS 宣布、2026-07 确认 GA，从「问答」走向「执行动作」）。Microsoft：Fabric IQ（Build 2026 GA）——Power BI semantic model + Ontology 实体/关系/规则/**动作写回**，Ontology MCP 端点 Coming Soon。Google：Looker LookML → headless；Conversational Analytics（2026-08）把 verified/golden queries 做成一等机制（状态口径见 §8.1）。**AWS（2026-09 重调研新增席）**：AWS Context（2026-06-17，agent 知识图谱服务）+ Glue 业务上下文/语义搜索预览 + 开源 Context Ontology Accelerator（2026-07-31，Apache-2.0，知识图谱×形式本体×规则，Scan→Model→Serve，经内置 MCP server 供给） |
 | 定义即代码       | 转换层       | dbt MetricFlow：2025-10-28 以 Apache 2.0 开源（OSI 初始参考实现），v1.12+ 支持 Ossie；YAML 与转换代码同仓版本化、PR 评审。**主体注记（2026-09 核验）**：dbt Labs 已并入 Fivetran（2026-06-01 完成合并），合并后定位「面向 AI agents/分析/运营的开放数据基础设施」 |
 | 独立可执行层     | SQL 生成前   | Cube（D3 品牌已于 2025-10 弃用统一；2026-05-14 起分化为开源 Cube Core 与商业 Cube 双轨）：「治理在 SQL 产生之前发生；post-hoc 扫描被子查询/CTE 绕过」。AtScale：「composite context layer」——Horizon 是 system of record，它是 system of consumption；其名言 "A glossary describes things. A semantic layer executes."                           |
 | 跨系统元数据平面 | 元数据平面   | Atlan：已从被动元数据目录演进为 Context Engineering Studio / Context Agents / Context Lakehouse 产品族（2026-04-29 Activate 大会，Context Repos 版本化并经 MCP 分发）。Alation：Semantic Model Mastering——「语义层版 MDM」。DataHub：开源双向 context graph                                 |
@@ -284,7 +281,7 @@ Horizon 把元数据到可用上下文的转化组织为 **Collect（汇聚）�
 | **Semantic（语义）**   | 它意味什么（定义/指标/本体）           | 让 Agent 基于权威定义推理       |
 | **Behavioral（行为）** | 如何被使用（热度/模式）                | 让 Agent 优先选高质量资产       |
 
-四层信号在本仓的具体表级来源见 §12.3；「Behavioral 与 Operational 是一等信号、不是附录」的设计后果见 §5（目录层按 context graph 而非 knowledge graph 设计）。
+四层信号在本仓的具体表级来源见 §12.2；「Behavioral 与 Operational 是一等信号、不是附录」的设计后果见 §5（目录层按 context graph 而非 knowledge graph 设计）。
 
 ---
 
@@ -500,7 +497,7 @@ version: 12
 
 落地时采纳 Horizon 口径的三个纪律（映射 #11）：①**authority 区分 governed/inferred**；②**popularity 用有界变换**（log1p/上限，防全局 max 漂移，原型 `rank` :467 的实现即此）；③**freshness 必须是单一 staleness 量**（直击 Memory 子系统「created_at + last_accessed_at + retention_score 未合成单一 staleness」的已知缺口，见 §12.3 契约表）。
 
-已知缺口：KB chunks 缺 `last_accessed_at`（运行信号缺失）· `quality_score` 多为 NULL（待回填/计算）。资产依赖图（血缘，映射 #14）⏸ 暂缓——本仓 routine/巡检的执行史是运行日志（谁跑了什么），不是资产依赖图（什么派生自什么）；触发条件：出现「定义/文档资产间的派生关系图」需求（如定义变更影响面分析）时，优先引入「写入时自动沉淀依赖边」的引擎副产品模式，而非事后扫描。
+各子系统的信任信号现存缺口（KB chunks 缺 `last_accessed_at`、`quality_score` 多为 NULL 等）统一记于 §12.3 契约表缺口列。资产依赖图（血缘，映射 #14）⏸ 暂缓——本仓 routine/巡检的执行史是运行日志（谁跑了什么），不是资产依赖图（什么派生自什么）；触发条件：出现「定义/文档资产间的派生关系图」需求（如定义变更影响面分析）时，优先引入「写入时自动沉淀依赖边」的引擎副产品模式，而非事后扫描。
 
 ## 6. 富化层：双轨编纂、民间经验与人工裁决
 
@@ -694,7 +691,7 @@ Snowflake 官方给出的核心准则是：**治理策略直接在查询引擎�
 1. **检索层**（体验）：resolve 时对无权角色过滤 private 资产与维度建议；
 2. **执行层**（底线）：execute 必经 RBAC 校验——「检索藏起来但执行层照样跑」是外挂治理层的标准死法（原型 C2）。
 
-配套三件：**出口 guardrails**（PII/敏感信息在**出口**检测/脱敏/拦截，对标 Horizon 出口安检体系——拦 prompt injection / jailbreak 的是 Cortex AI Guardrails（GA 2026-04-20），PII/PHI 实时脱敏是 AI_REDACT（GA 2025-12-08；输入+输出合计 4096 token、输出上限 1024）与 Cortex Guard；两个指称要分开，且两者属概率性/专用性卫星而非承重机制）；**per-role context**（不同角色解析出不同上下文集——Horizon 私测期尚未交付，属本蓝图的后置项）；**审计日志**（谁在何时以何角色消费了何定义）。
+配套三件：**出口 guardrails**（PII/敏感信息在**出口**检测/脱敏/拦截，对标 Horizon 出口安检——Guardrails 与 AI_REDACT 两个指称的区分、GA 日期与 token 上限以 §8.3 第 4 条为 SSOT，两者属概率性/专用性卫星而非承重机制）；**per-role context**（不同角色解析出不同上下文集——Horizon 私测期尚未交付，属本蓝图的后置项）；**审计日志**（谁在何时以何角色消费了何定义）。
 
 ### 7.6 供给面威胁模型：标准插座的安检风控
 
@@ -751,7 +748,7 @@ Snowflake 官方给出的核心准则是：**治理策略直接在查询引擎�
 
 > [!WARNING] **边界声明**
 >
-> 「不可绕过」只在引擎周界内成立——直查底层数据库、导出数据即绕过；Ossie 决定定义**携带**，不解决定义在别家引擎的**执行**。per-role context 未交付（Horizon 私测期单角色全量）；信号排序可能放大多数派错误——popularity 权重下，被 500 条查询使用的错误 join 模式压过 3 条查询的正确模式（§14.1 第 5 条）。
+> 「不可绕过」只在引擎周界内成立，Ossie 只决定定义**携带**、不解决定义在别家引擎的**执行**；per-role context 未交付；信号排序可能放大多数派错误——三条边界的展开与量化细节以 §14.1 第 3/5 条为 SSOT。
 
 ### 7.7 negentropy 实例化：过滤已有，策略对象与守卫在方案
 
@@ -829,7 +826,7 @@ Snowflake 官方给出的核心准则是：**治理策略直接在查询引擎�
 
 如果这套精密的带教体系被锁死在企业内网定制的特制终端机里，外部聘请的高级智囊专家就根本无法接入大厦协同作战，沦为封闭的「认知孤岛」。现代企业为此配发**「全球通用工作护照与标准工业安全插座」**（Ossie 开放语义规范 + Snowflake 官方 MCP Server），并在出口设**海关安检**。
 
-1. **静态定义互通：OSI → Apache Ossie**：2025-09-23 创立（17 家，Tableau CPO 称 "the Rosetta Stone for business data"）→ 28（2025-11-13）→ 33（2026-01-27 OSI v1 定稿，Databricks 入局）→ 50+（Summit 口径，"54" 未见官方页面确认；孵化器 9 月报告新增 ThoughtSpot、PuppyGraph、Kyvos 等）→ 入 Apache 孵化器（官方起始 2026-06-19、**clutch 记录 2026-06-22**、Snowflake 更名公告 2026-07-08——三个日期口径并存，引用时注明）。**版本口径要分清（2026-09-20 复核）**：OSI 时代的 v1 是 2026-01-27 定稿的联盟规范；入 Apache 后仓库内 core-spec 当前为 **0.2.0.dev0（未发布开发版，含 flat 文档破坏性变更，上一版 0.1.1 发布于 2025-12-11）**，孵化器 9 月报告自述规范/工具 "currently at v0.1 pre-Apache"——引用时勿把「OSI v1」与「Apache 版本线」混为一谈。下设 Metric Language / Catalog / Ontology 三工作组；dbt MetricFlow（Apache 2.0）为初始参考实现。**转换器矩阵（2026-09-20 实测）**：converters/ 已含 16 个子目录（databricks/dbt/gooddata/honeydew/microsoft(PowerBI)/nvidia(GSF)/omni/ontology/orionbelt/polaris/salesforce/sigma/snowflake/wisdom 等），POWER_BI vendor 名 2026-09-18 经 #413 正式登记进 core-spec，另有规格变更 #383（单文档单语义模型）与 dbt 转换器/校验器修复（#331/#375/#379/#373）；**首个 Apache source release 仍未切出**（Releases 页为空），2,160 stars / 280 forks（2026-09-20 实测，较 Dremio 9 月初报告 +20%；Dremio 当时口径另记 13 committers / 7 PPMC / 100+ commits / 35 PRs）。**互通正确性在被打磨也在被打脸**：贡献者 2026-09-17~18 密集开立 7 个跨转换器往返缺陷（全部开放——OrionBelt 双向丢 datatype、Databricks 级联删除留悬挂引用、Sigma 一元负号被丢弃、dbt 复杂表达式双重聚合等），另有 #418 跟踪 flat schema 迁移仅完成一半——第三方系统性往返验证正在暴露大量静默语义漂移缺口，与 Datus 的 ASOF/RANGE 静默丢弃结论同向。语义视图可经 `SYSTEM$CREATE_SEMANTIC_VIEW_FROM_YAML` 从规范 YAML 创建（转换是工具级操作，别按「导入即用」预期）。**产品化进程（2026-09 核验，分级表述）**：BI 产品 GA 导入向导——Strategy One 自 2026-06 起可导入 Ossie YAML（预览）、Strategy 2026-07 起导入/导出开箱即用（GUI "Export to Ossie YAML File"）；文档化消费路径——dbt Developer Hub 已上线官方用法页（Ossie 语义模型，约 2026-09-08）可用 Apache Ossie JSON 在 dbt 项目中定义语义模型与指标——「仅 Strategy 一家」的绝对表述已不成立，但 tier-1 BI 的 in-product GA 仍仅此一家；**重评触发器：任一 tier-1 BI/仓产品原生 in-product Ossie 导入导出 GA + 独立保真度等价实测通过**；
+1. **静态定义互通：OSI → Apache Ossie**：2025-09-23 创立（17 家，Tableau CPO 称 "the Rosetta Stone for business data"）→ 28（2025-11-13）→ 33（2026-01-27 OSI v1 定稿，Databricks 入局）→ 50+（Summit 口径，"54" 未见官方页面确认；孵化器 9 月报告新增 ThoughtSpot、PuppyGraph、Kyvos 等）→ 入 Apache 孵化器（官方起始 2026-06-19、**clutch 记录 2026-06-22**、Snowflake 更名公告 2026-07-08——三个日期口径并存，引用时注明）。**版本口径要分清（2026-09-20 复核）**：OSI 时代的 v1 是 2026-01-27 定稿的联盟规范；入 Apache 后仓库内 core-spec 当前为 **0.2.0.dev0（未发布开发版，含 flat 文档破坏性变更，上一版 0.1.1 发布于 2025-12-11）**，孵化器 9 月报告自述规范/工具 "currently at v0.1 pre-Apache"——引用时勿把「OSI v1」与「Apache 版本线」混为一谈。下设 Metric Language / Catalog / Ontology 三工作组；dbt MetricFlow（Apache 2.0）为初始参考实现。**转换器矩阵（2026-09-20 实测）**：converters/ 已含 16 个子目录（databricks/dbt/gooddata/honeydew/microsoft(PowerBI)/nvidia(GSF)/omni/ontology/orionbelt/polaris/salesforce/sigma/snowflake/wisdom 等），POWER_BI vendor 名 2026-09-18 经 #413 正式登记进 core-spec，另有规格变更 #383（单文档单语义模型）与 dbt 转换器/校验器修复（#331/#375/#379/#373）；**首个 Apache source release 仍未切出**（Releases 页为空），2,160 stars / 280 forks（2026-09-20 实测，较 Dremio 9 月初报告 +20%；Dremio 当时口径另记 13 committers / 7 PPMC / 100+ commits / 35 PRs）。**互通正确性在被打磨也在被打脸**：贡献者 2026-09-17~18 密集开立 7 个跨转换器往返缺陷（全部开放——OrionBelt 双向丢 datatype、Databricks 级联删除留悬挂引用、Sigma 一元负号被丢弃、dbt 复杂表达式双重聚合等），另有 #418 跟踪 flat schema 迁移仅完成一半——第三方系统性往返验证正在暴露大量静默语义漂移缺口。语义视图可经 `SYSTEM$CREATE_SEMANTIC_VIEW_FROM_YAML` 从规范 YAML 创建（转换是工具级操作，别按「导入即用」预期）。**产品化进程（2026-09 核验，分级表述）**：BI 产品 GA 导入向导——Strategy One 自 2026-06 起可导入 Ossie YAML（预览）、Strategy 2026-07 起导入/导出开箱即用（GUI "Export to Ossie YAML File"）；文档化消费路径——dbt Developer Hub 已上线官方用法页（Ossie 语义模型，约 2026-09-08）可用 Apache Ossie JSON 在 dbt 项目中定义语义模型与指标——「仅 Strategy 一家」的绝对表述已不成立，但 tier-1 BI 的 in-product GA 仍仅此一家；**重评触发器：任一 tier-1 BI/仓产品原生 in-product Ossie 导入导出 GA + 独立保真度等价实测通过**；
 2. **运行时互通：官方 MCP Server（GA 2025-11-04；docs 页现标题 "Snowflake-managed MCP server"，与产品页外部 agent bullet 的状态标注存在差异，以 docs GA 口径为准）**：5 类工具面（`CORTEX_AGENT_RUN` / `CORTEX_SEARCH_SERVICE_QUERY` / `CORTEX_ANALYST_MESSAGE` / `SYSTEM_EXECUTE_SQL` / `GENERIC`）；官方建议只暴露单个 Cortex Agent 作为面向客户端的唯一工具；协议对齐 **MCP revision 2026-07-28（2026-09 复核更新；旧文所记 2025-11-25 已随「发布以来最大改版」过时——无状态协议核心、MRTR 取代服务端发起请求、`Mcp-Method/Mcp-Name` 头路由、DCR 废弃改由 CIMD 承接、Roots/Sampling/Logging 与旧 HTTP+SSE 进入最短 12 个月弃用窗口）**；OAuth scopes（`session:role:*`，建议 `OAUTH_USE_SECONDARY_ROLES=NONE`）；每 server ≤50 工具；GENERIC/SQL 响应 250KB 截断；2026-08-20 起 tools/call 走 SSE 流；server 不随 failover 组复制；Native Apps 可携带 MCP（2026-08 GA）；只支持 semantic views、不支持 semantic models；Claude Desktop / Claude Code / Cursor 添加自定义连接器即可受控问数；
 3. **生态分发面：Automatic Data Agents（Preview Open）**：对 Marketplace 清单/共享数据一键生成 semantic view + Cortex Agent，生成约 10 分钟、重建会覆盖手工修改——context 首次成为随数据产品自带的「出厂附件」；
 4. **出口安检（两个指称要分开）**：拦 prompt injection / jailbreak 的是 **Cortex AI Guardrails**（GA 2026-04-20）；PII/PHI 实时脱敏是 **AI_REDACT**（GA 2025-12-08；输入+输出合计 4096 token、输出上限 1024）与 Cortex Guard。重评选判定两者为**概率性/专用性卫星**而非承重机制（Guardrails 属 WAF-for-agents 红海可外挂；AI_REDACT 专攻非结构化文本）——但 sample values 不脱敏的缝仍在（元数据经 `GET_DDL WITH EXTENSION` 暴露，官方仅建议，见 §14.1 第 6 条）。出口安检的物理位置在激活层出口（海关），职能同时计入 §7.5 治理层配套三件——双落点，同 M4 的处理。
@@ -890,13 +887,13 @@ Snowflake 官方给出的核心准则是：**治理策略直接在查询引擎�
 
 **现状（核验 2026-09-20）：双通道割裂**——自动通道与按需通道完全分离，互不参照：
 
-![上下文双通道现状：自动通道由 ContextAssembler.assemble() 每轮注入 Core Block、Reflections 与 30/50/20 预算记忆窗口，KG 摘要经 get_memory_summary() 并列接入但整通道无 KB chunk 接地；按需通道 HybridPlanner 经 Intent 分类、并行种子检索、canonical 图扩展与 RRF 重排四阶段但不含 Memory——两通道割裂。](../../assets/architecture/design/context-layer--auto-channel-dark.png)
+![上下文双通道现状：自动通道由 ContextAssembler.assemble() 每轮注入 Core Block、Reflections 与 30/50/20 预算记忆窗口，KG 摘要经 get_memory_summary() 并列接入但整通道无 KB chunk 接地；按需通道 HybridPlanner 经 Intent 分类、并行种子检索、canonical 图扩展与 RRF 重排四阶段但不含 Memory——两通道割裂。](../../assets/architecture/cognitive-context/context-layer--auto-channel-dark.png)
 
-> 图源（可 diff 文本）：[`context-layer--auto-channel.mmd`](../../assets/mermaid/design/context-layer--auto-channel.mmd) · 交互版（下载到本地打开）：[`context-layer--auto-channel.html`](../../assets/architecture/design/context-layer--auto-channel.html)
+> 图源（可 diff 文本）：[`context-layer--auto-channel.mmd`](../../assets/mermaid/cognitive-context/context-layer--auto-channel.mmd) · 交互版（下载到本地打开）：[`context-layer--auto-channel.html`](../../assets/architecture/cognitive-context/context-layer--auto-channel.html)
 
 | 通道     | 载体（实测锚点）                                                                                                                                                             | 内容                                     | 缺口                                       |
 | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- | ------------------------------------------ |
-| 自动注入 | [`ContextAssembler.assemble()`](../../../apps/negentropy/src/negentropy/engine/adapters/postgres/context_assembler.py)（:61）：Core Block（:92）→ Reflection Few-Shot（:100）→ 主记忆窗口（:126）→ budget 元数据 | 记忆 + 预算窗口                          | 无 KB chunk 接地；KG 摘要挂 `get_memory_summary()`（:337 调 `_collect_kg_context` :580），不在 assemble 管线 |
+| 自动注入 | [`ContextAssembler.assemble()`](../../../apps/negentropy/src/negentropy/engine/adapters/postgres/context_assembler.py)（:61）：Core Block（:92）→ Reflection Few-Shot（:100）→ 主记忆窗口（:126）→ budget 元数据 | 记忆 + 预算窗口                          | 无 KB chunk 接地；KG 摘要挂 `get_memory_summary()`（:274 调 `_collect_kg_context` :580），不在 assemble 管线 |
 | 按需检索 | [`HybridPlanner._seed_retrieval()`](../../../apps/negentropy/src/negentropy/agents/tools/hybrid_planner.py)（:322）：Intent 分类 → 并行种子检索（仅 KB corpus）→ canonical 图扩展 → RRF 重排            | KB + KG                                  | **不含 Memory**（零 Memory 检索源接入）     |
 
 > **ADR-2：升级 HybridPlanner 为统一检索骨架，而非新建独立 Router 类。**
@@ -909,9 +906,9 @@ Snowflake 官方给出的核心准则是：**治理策略直接在查询引擎�
 
 **收敛语义（ADR-3）**：自动通道给**接地摘要**（轻量、必出），按需通道给**深度检索**（重量、Agent 显式触发）；二者共享同一套归一信任排名（§5.3）。机制（路由）与策略（各子系统算法）正交。
 
-![统一上下文激活工作流：用户请求经 Context Router 分发为自动注入与按需检索双通道，ContextAssembler 扩展 KB 接地片段、HybridPlanner 扩展 Memory 种子源，两路经统一融合排名与 ContextGuard 治理后注入 LLM Prompt。](../../assets/architecture/design/context-layer--assembler-planner-dark.png)
+![统一上下文激活工作流：用户请求经 Context Router 分发为自动注入与按需检索双通道，ContextAssembler 扩展 KB 接地片段、HybridPlanner 扩展 Memory 种子源，两路经统一融合排名与 ContextGuard 治理后注入 LLM Prompt。](../../assets/architecture/cognitive-context/context-layer--assembler-planner-dark.png)
 
-> 图源（可 diff 文本）：[`context-layer--assembler-planner.mmd`](../../assets/mermaid/design/context-layer--assembler-planner.mmd) · 交互版（下载到本地打开）：[`context-layer--assembler-planner.html`](../../assets/architecture/design/context-layer--assembler-planner.html)
+> 图源（可 diff 文本）：[`context-layer--assembler-planner.mmd`](../../assets/mermaid/cognitive-context/context-layer--assembler-planner.mmd) · 交互版（下载到本地打开）：[`context-layer--assembler-planner.html`](../../assets/architecture/cognitive-context/context-layer--assembler-planner.html)
 
 其余激活面实例化状态：三层渐进披露 ✅（映射 #9：L1 描述常驻 / L2 模板按需 / L3 资源挂载，[`skills_injector.py:342`](../../../apps/negentropy/src/negentropy/agents/skills_injector.py) `format_skills_block`——与「top-k 上下文包（定义+指令+验证问答）」同构）；MCP 供给面 🔶（映射 #13：本仓 McpClientService 是 MCP **客户端**，[`mcp_client.py:307`](../../../apps/negentropy/src/negentropy/interface/mcp_client.py)，方向需从消费转供给——原型已验证纯标准库 stdio 可行）；Ossie YAML 对齐 ⏸（映射 #12，触发条件：上下文对象需要跨系统携带时）。
 
@@ -945,7 +942,7 @@ Typedef 批判的核心：governed 定义在**上游已塌缩的 grain** 上照�
 >
 > 1. **考题 = 业务问题 × 数据团队人工验证的期望值**——期望值必须有人签字，这是与公开基准的本质区别；
 > 2. **用例四类齐全**：歧义措辞、隐晦 join、空结果，以及**越权用例**（Cube 的实践：无权角色试图取私有指标——期望结果是「拒绝 + 审计记录」，不是任何数值）；
-> 3. **golden queries 是一等评测资产**（Google Conversational Analytics 已把 verified/golden queries 做成一等机制，核心功能已 GA——2026-07 官方口径，子功能部分 Preview）：命中即短路重放的验证问答，同时是生产资产与评测考题；
+> 3. **golden queries 是一等评测资产**（Google Conversational Analytics 已把 verified/golden queries 做成一等机制，状态口径见 §8.1）：命中即短路重放的验证问答，同时是生产资产与评测考题；
 > 4. **覆盖内/覆盖外分开判卷**：一张卷子两栏——覆盖内追求确定性命中，覆盖外只考察是否诚实告警 `no_governed_coverage`。
 >
 > KPI 口径只有一条：**报错优于错数**。企业内基准 ~10 题即可起步（Snowflake 官方建模最佳实践，见 §13.3），先让考卷活起来再求全。
@@ -1020,27 +1017,25 @@ Typedef 批判的核心：governed 定义在**上游已塌缩的 grain** 上照�
 
 系统当前**没有统一的上下文层**，上下文在运行期由一条解析链路分散组装（60s TTL 缓存 + 代码回退）：
 
-![请求期上下文注入链（现状）：用户请求经动态指令解析、Agent 行加载、技能渐进注入汇入 LLM 请求；旁路每轮记忆预载与按需混合检索各自读取 PostgreSQL 数据源。](../../assets/architecture/design/context-layer--request-injection-dark.png)
+![请求期上下文注入链（现状）：用户请求经动态指令解析、Agent 行加载、技能渐进注入汇入 LLM 请求；旁路每轮记忆预载与按需混合检索各自读取 PostgreSQL 数据源。](../../assets/architecture/cognitive-context/context-layer--request-injection-dark.png)
 
-> 图源（可 diff 文本）：[`context-layer--request-injection.mmd`](../../assets/mermaid/design/context-layer--request-injection.mmd) · 交互版（下载到本地打开）：[`context-layer--request-injection.html`](../../assets/architecture/design/context-layer--request-injection.html)
+> 图源（可 diff 文本）：[`context-layer--request-injection.mmd`](../../assets/mermaid/cognitive-context/context-layer--request-injection.mmd) · 交互版（下载到本地打开）：[`context-layer--request-injection.html`](../../assets/architecture/cognitive-context/context-layer--request-injection.html)
 
 链路汇聚的 **9 路上下文来源**：① 身份/角色（`_INSTRUCTION` ↔ `agents.system_prompt`）② Skills（三层 Progressive Disclosure）③ Tools（`NegentropyToolset` 解析 `agents.tools`）④ Model（`model_resolver`）⑤ 记忆（`preload_memory_tool` + `ContextAssembler`）⑥ 会话状态（ADK `SessionService` 前缀路由 `user:`/`app:`/`temp:`）⑦ 定义 SSOT（`definitions` 表）⑧ 用户偏好（`state.preferred_agent`）⑨ 引用协议（共享常量）。
 
-经代码级核查，确认上下文流转存在三个违背「单一治理」的结构性缺口：
+经代码级核查，确认上下文流转存在三个违背「单一治理」的结构性缺口（表征、代码锚点与双通道载体的完整对照以 §8.5 双通道表为 SSOT）：
 
-| 缺口                     | 表征                                                                                                        | 代码锚点（实测校准）                                                                                       |
-| ------------------------ | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| **① 存储层检索未统一**   | Memory / KB / KG 各有独立混合检索；`HybridPlanner` 覆盖 KB+KG **但不含 Memory**（零 Memory 检索源接入）       | [`memory_service.py:642`](../../../apps/negentropy/src/negentropy/engine/adapters/postgres/memory_service.py)（`search_memory` 多级回退）；[`hybrid_planner.py:322`](../../../apps/negentropy/src/negentropy/agents/tools/hybrid_planner.py)（`_seed_retrieval` 仅 KB） |
-| **② 双通道注入割裂**     | 自动通道 `ContextAssembler` 注入**记忆**（KG 摘要挂 `get_memory_summary`），**不接地 KB chunks**；KB 仅在 Agent 显式调工具时才被检索 | [`context_assembler.py:61`](../../../apps/negentropy/src/negentropy/engine/adapters/postgres/context_assembler.py)（`assemble`）；KG 摘要在 `get_memory_summary`（:274，调 `_collect_kg_context` :580） |
-| **③ 信任信号未归一**     | Memory（retention/importance）、KB（quality_score/retrieval_count）、KG（confidence/PageRank）各自为政，无统一信任/新鲜度评分；代码回退路径可绕过治理 | 三套评分散落于各 ORM 模型；归一方案见 §5.3（未落地）                                                       |
+- **① 存储层检索未统一**：Memory / KB / KG 各有独立混合检索，`HybridPlanner` 覆盖 KB+KG 但不含 Memory（零 Memory 检索源接入）；
+- **② 双通道注入割裂**：自动通道只注入记忆（KG 摘要挂 `get_memory_summary`）、不接地 KB chunks；KB 仅在 Agent 显式调工具时才被检索；
+- **③ 信任信号未归一**：三子系统信任评分各自为政、无统一新鲜度评分（归一方案见 §5.3，未落地）；代码回退路径的治理绕过由 ContextGuard 全路径部署对冲（§7.7 / §12.6）。
 
 **后果**：Agent 可能用过期记忆回答（而新鲜 KB 知识存在却未被检索）；可能幻觉（相关记忆存在但未调 KB 工具）；信任信号无法跨子系统比较，排名失效。
 
 ### 12.2 运行时分层与四信号来源
 
-![Context Layer 运行时分层：Agent Runtime（五翼 Faculties·Pipelines·Toolset）经统一入口进入上下文治理层，Collect→Enrich→Activate 三相以逻辑视图指针横亘 Memory/KB/KG/Tools/Skills 五子系统，全部持久化于 PostgreSQL（pgvector·AGE·tsvector·pg_cron）。](../../assets/architecture/design/context-layer--runtime-layering-dark.png)
+![Context Layer 运行时分层：Agent Runtime（五翼 Faculties·Pipelines·Toolset）经统一入口进入上下文治理层，Collect→Enrich→Activate 三相以逻辑视图指针横亘 Memory/KB/KG/Tools/Skills 五子系统，全部持久化于 PostgreSQL（pgvector·AGE·tsvector·pg_cron）。](../../assets/architecture/cognitive-context/context-layer--runtime-layering-dark.png)
 
-> 图源（可 diff 文本）：[`context-layer--runtime-layering.mmd`](../../assets/mermaid/design/context-layer--runtime-layering.mmd) · 交互版（下载到本地打开）：[`context-layer--runtime-layering.html`](../../assets/architecture/design/context-layer--runtime-layering.html)
+> 图源（可 diff 文本）：[`context-layer--runtime-layering.mmd`](../../assets/mermaid/cognitive-context/context-layer--runtime-layering.mmd) · 交互版（下载到本地打开）：[`context-layer--runtime-layering.html`](../../assets/architecture/cognitive-context/context-layer--runtime-layering.html)
 
 四层信号在本仓的具体来源：
 
@@ -1081,9 +1076,9 @@ Typedef 批判的核心：governed 定义在**上游已塌缩的 grain** 上照�
 
 自进化系统的 6 个 `TargetHandler` 天然映射为 Context Layer 的进化杠杆；本方案**新增第 7 面** `context_strategy`，沿用完全相同的状态机与护栏：
 
-![Context Layer 进化杠杆总览：六个已落地的 target_kind 进化面与新增 context_strategy 提案，统一汇入 evolution_proposals 状态机，由 EvolutionOrchestrator 与 decision.py 纯函数护栏治理。](../../assets/architecture/design/context-layer--evolution-levers-dark.png)
+![Context Layer 进化杠杆总览：六个已落地的 target_kind 进化面与新增 context_strategy 提案，统一汇入 evolution_proposals 状态机，由 EvolutionOrchestrator 与 decision.py 纯函数护栏治理。](../../assets/architecture/cognitive-context/context-layer--evolution-levers-dark.png)
 
-> 图源（可 diff 文本）：[`context-layer--evolution-levers.mmd`](../../assets/mermaid/design/context-layer--evolution-levers.mmd) · 交互版（下载到本地打开）：[`context-layer--evolution-levers.html`](../../assets/architecture/design/context-layer--evolution-levers.html)
+> 图源（可 diff 文本）：[`context-layer--evolution-levers.mmd`](../../assets/mermaid/cognitive-context/context-layer--evolution-levers.mmd) · 交互版（下载到本地打开）：[`context-layer--evolution-levers.html`](../../assets/architecture/cognitive-context/context-layer--evolution-levers.html)
 
 `context_strategy` 可进化的参数：ContextAssembler 预算比（memory_ratio/history_ratio/system_ratio）· KB 接地片段数 · 信任分权重（§5.3）· Router 模式选择阈值。因其影响所有激活路径，采用更保守的门控（每步→人工审批），复用 [`evolution/decision.py`](../../../apps/negentropy/src/negentropy/engine/evolution/decision.py) 纯函数护栏。
 
@@ -1305,7 +1300,7 @@ M1–M7 七席与三专章的划分源于 2026-09-17 的全局重评选（**四�
 | 风险  | 中高（新能力 + 写入负载）→ 缓解：Universal Search 为 opt-in 端点；溯源 async 不阻塞主链                                                                                                 |
 | 验证  | 跨子系统检索返回相关项；进化可优化预算比；溯源记录每次注入；质量指标可观测                                                                                                                     |
 
-**独立部署路径**：对象层落 PostgreSQL（或任意带版本化的存储）、激活层以单进程 stdio/HTTP MCP server 起步——原型 [`assets/horizon_context_mcp.py`](./assets/horizon_context_mcp.py) 即其零依赖种子。
+**独立部署路径**：对象层落 PostgreSQL（或任意带版本化的存储）、激活层以单进程 stdio/HTTP MCP server 起步。
 
 ## 参考
 

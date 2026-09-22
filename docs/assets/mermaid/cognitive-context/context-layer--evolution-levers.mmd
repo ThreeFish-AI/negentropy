@@ -1,5 +1,5 @@
 %%source: docs/concepts/design/context-layer.md#block5 (L397-L423, §7.1) → 013 §12.5（原 §7.1，2026-09-20 并入 013 全量蓝图）
-%%slug: design/context-layer--evolution-levers
+%%slug: cognitive-context/context-layer--evolution-levers
 %%type: architecture
 %%derived: archify architecture, byte-extract of source mermaid
 %% fix: (1) 状态机补终态 rejected（代码 STATUS_REJECTED，shadow_eval 劣化即拒绝；models/evolution.py L83）；(2) 单在途护栏精确到 target_ref（uq_evolution_proposals_one_inflight 部分唯一索引按 target_ref，同 kind 不同 ref 可并行各 1，"每面"为宽泛说法）；(3) context_strategy 标注"提案"——apps 全仓 grep 零命中，代码未落地；(4) runtime_canary 注明仅 skill 面（base.py advance_runtime_canary 默认 no-op）

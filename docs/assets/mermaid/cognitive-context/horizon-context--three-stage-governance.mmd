@@ -2,7 +2,7 @@
 %%slug: cognitive-context/horizon-context--three-stage-governance
 %%type: dataflow
 %%derived: archify dataflow v1, corrected from source mermaid
-%% fix: (2026-09-21 §3 开篇新图) ① 三个 subgraph 内的串行链改为并列——三项能力互不依赖，原 C1→C2→C3 / E1→E2→E3 / A1→A2→A3 为原块结构性错误（同款错误已由 design/context-layer--collect-phase 的 %% fix 诊断在案，该块系 9bf34b2a 从已删除的 concepts/design/context-layer.md 回流的未修正版）；
+%% fix: (2026-09-21 §3 开篇新图) ① 三个 subgraph 内的串行链改为并列——三项能力互不依赖，原 C1→C2→C3 / E1→E2→E3 / A1→A2→A3 为原块结构性错误（同款错误已由 design/context-layer--collect-phase 的 %% fix 诊断在案（该死图 2026-09-22 清理移除，诊断记录见 git 史），该块系 9bf34b2a 从已删除的 concepts/design/context-layer.md 回流的未修正版）；
 %% ② 原 COLLECT-->ENRICH-->ACTIVATE 是 subgraph 间的边，archify 的 stage 框不能作边端点，落为两个阶段交接物节点（Horizon Catalog / AI-ready 上下文）承接，成五 stage 漏斗；
 %% ③ 九个能力节点 label 逐字保留，成熟度与承重/降级锚点只入 sublabel/tag，不改 label；classDef 字面色值丢弃，改用 archify 语义 type；
 %% ④ 本轮按「仅修拓扑」口径未采纳、留待下轮校准的三条：「自动文档生成」与「质量信号」在 011 全文零出处（仅出现于本块）；「列级血缘」按 §2 属 M5（Collect 面）却置于 Enrich；「OSI 开放语义互换」按 §12 属出口面却置于 Collect。

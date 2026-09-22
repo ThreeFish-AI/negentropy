@@ -1,8 +1,8 @@
 %%source: docs/concepts/design/context-layer.md#block3 (L249-L271, §5.1) → 013 §8.5（原 §5.1，2026-09-20 并入 013 全量蓝图）
-%%slug: design/context-layer--auto-channel
+%%slug: cognitive-context/context-layer--auto-channel
 %%type: workflow
 %%derived: archify workflow v2, byte-extract of source mermaid
-%% fix: 原图把 _collect_kg_context() 画在 assemble() → get_context_window() 的线性链上；代码中该方法由同类的并列公开方法 get_memory_summary()（轻量摘要接口，context_assembler.py L337）调用，assemble() 主链仅 Core Block → Reflections → get_context_window()。本图将 KG 摘要改为 get_memory_summary() 并列入口，其余节点语义逐字节保留
+%% fix: 原图把 _collect_kg_context() 画在 assemble() → get_context_window() 的线性链上；代码中该方法由同类的并列公开方法 get_memory_summary()（轻量摘要接口，context_assembler.py L274）调用，assemble() 主链仅 Core Block → Reflections → get_context_window()。本图将 KG 摘要改为 get_memory_summary() 并列入口，其余节点语义逐字节保留
 graph LR
     subgraph AUTO["自动通道（每轮注入）"]
         A1["ContextAssembler.assemble()"] --> A2["Core Block + Reflections"]
