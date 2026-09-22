@@ -12,7 +12,7 @@
 | [Context Engineering 通俗全解](./cognitive-context/010-context-engineering.md) | 上下文工程主流框架与论文精解 |
 | [Snowflake Horizon Context 精读笔记](./cognitive-context/011-horizon-context.md) | 产业范本精读：三阶段演进全景（语义对象化→治理内嵌→生态开放）+ 重评选校准后七机制 M1–M7（语义视图口径单点×查询期重算 / 查询期行列级访问策略 / 语义级治理执行 / 应答层验证锚定 / 端到端列级血缘 / Agent Identity / 分类与标签驱动策略传播）+ 富化/检索/互操作三专章保留（降级理由与重评触发器随文）+ 实证数字与批判性边界，含随笔记入库的 M1–M7 最小原型（十次破坏性实验）与 MCP 服务原型，M1–M7 各配一张 archify 动效工程图，§1 另配病因链与机制对位总览图、§2 另配组件全景与演进时间线两张总览图，§10–§12 降级章四张沿用（共十四张，trace 动画） |
 | [Horizon Context ↔ negentropy 机制映射](./cognitive-context/012-horizon-context-mapping-negentropy.md) | 16 条机制逐条对照本仓 definitions registry / patrol-Judge / skills_injector / Catalog（✅ 已对齐 4 · 🔶 值得落地 8 含部分对齐 1 · ⏸ 暂缓 4；2026-09-17 随 M 集重评选重审，新晋四机制补映射），锚点均经代码核验 |
-| [Context Layer 技术蓝图与方案](./cognitive-context/013-context-layer-blueprint.md) | **精炼设计蓝图 SSOT（2026-09-22 深度清减至 1W 字内）**：五正交层机制本质（M1–M7）+ 通用设计规格 + 业界四路线格局 + MCP 供给面威胁模型 + 评测标尺与组织运营 + negentropy 实例化总装（ADR/16 条映射状态表/Phase 1–3）+ 双轨演进路线（P0–P3 × Phase 1–3）；全量机制载荷由 011 冻结档案承载（重评选审计存 git 史） |
+| [Context Layer 技术蓝图与方案](./cognitive-context/013-context-layer-blueprint.md) | **精炼设计蓝图 SSOT（2026-09-22 深度清减至 1W 字级；同日内容面重铸为视频前置内容载体：去电报化·三拍叙事·比喻单射·术语首释，约 1.03W 字）**：五正交层机制本质（M1–M7）+ 通用设计规格 + 业界四路线格局 + MCP 供给面威胁模型 + 评测标尺与组织运营 + negentropy 实例化总装（ADR/16 条映射状态表/Phase 1–3）+ 双轨演进路线（P0–P3 × Phase 1–3）；全量机制载荷由 011 冻结档案承载（重评选审计存 git 史） |
 
 > 本仓**内部**的实施入口（定位声明 + 章节指针 + 实施状态）原为 `docs/concepts/design/context-layer.md`：设计正文已于 2026-09-20 全量并入上方蓝图，该页于 2026-09-21 删除——013 自此为单一事实源。
 
