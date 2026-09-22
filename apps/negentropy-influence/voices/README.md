@@ -15,27 +15,29 @@
 ## 使用方式
 
 ```bash
+# 在工作区内执行。$T/$V/$P 的定义见 to-video skill 的 pipeline/README.md（唯一定义处：
+# https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/README.md）
 # 0) 长录音里挑哪一段？先按客观指标筛候选（F0/起伏/音节率/谱质心）：
-uv run --no-project --with soundfile --with numpy $R/prospect_ref.py \
+uv run --no-project --with soundfile --with numpy $T/pipeline/scripts/prospect_ref.py \
     ~/Documents/dify/me-1.mp3 --window 12
 
 # 1) 裁剪并规范化（当前推荐档：me-1.mp3 的 [0.36s, 12.36s)，sunny 风格即在此样本上定档）：
-uv run --no-project --with soundfile $R/prepare_ref.py \
+uv run --no-project --with soundfile $T/pipeline/scripts/prepare_ref.py \
     ~/Documents/dify/me-1.mp3 --start 0.36 --duration 12 \
     --out $V/me-bright.wav
 
 # 2) 先用单句小样试听择优（不需要视频工程）：
-uv run --no-project --with mutagen $R/tts_sample.py \
+uv run --no-project --with mutagen $T/pipeline/scripts/tts_sample.py \
     --ref $V/me-bright.wav --all-styles --play
 
 # 3) 定稿后全量合成：
-uv run --no-project --with mutagen $R/tts.py \
+uv run --no-project --with mutagen $T/pipeline/scripts/tts.py \
     --project $P --engine indextts \
     --ref $V/me-bright.wav --style sunny
 ```
 
-**样本决定基线**：克隆会连韵律一起继承，样本比参数更关键——同一位说话人换一段录音，克隆音的音高可差 12~16%、语调起伏差 25~40%（实测见 [VOICE-CLONING.md](../VOICE-CLONING.md) §3.3）。
+**样本决定基线**：克隆会连韵律一起继承，样本比参数更关键——同一位说话人换一段录音，克隆音的音高可差 12~16%、语调起伏差 25~40%（实测见 [VOICE-CLONING.md](https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/VOICE-CLONING.md) §3.3）。
 
 ## 隐私提醒
 
-个人声音属于生物特征信息。**本目录下的音频文件已被根 `.gitignore` 忽略，不会提交入库**；请勿通过其它途径（聊天工具/公开仓库）传播克隆源音频。克隆他人声音需获得本人书面同意，见 [VOICE-CLONING.md](../VOICE-CLONING.md) §八 许可。
+个人声音属于生物特征信息。**本目录下的音频文件已被根 `.gitignore` 忽略，不会提交入库**；请勿通过其它途径（聊天工具/公开仓库）传播克隆源音频。克隆他人声音需获得本人书面同意，见 [VOICE-CLONING.md](https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/VOICE-CLONING.md) §八 许可。

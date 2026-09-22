@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
-"""薄包装：转发到 to-video skill 公共管线的 archify_lead.py。
+"""工作区级薄包装：转发到 to-video skill 的单入口编排 pipeline.py。
 
-实现收敛于技能仓单一事实源（2026-09 二次抽取迁入）；本文件仅保留原
-CLI 契约（场记板白闪实测回写 lead_sec，工程根直跑形态）。
-
-skill 解析：TO_VIDEO_HOME → ~/.claude/skills/to-video → ~/.agents/skills/to-video，
-全部未命中即**大声退出**并打印安装指令——静默跳过是被禁止的失效形态。
+argv 原样转发（--project / --series / 子命令及其 flag 均由 skill 侧解析）。
+工作区锚由本文件位置自证（parent.parent = 工作区根），硬性覆写 TO_VIDEO_WORKSPACE
+env——从任意 CWD 调用都锚定本工作区，不依赖调用现场。
 """
 
 from __future__ import annotations
@@ -39,15 +37,10 @@ def _skill_scripts() -> Path:
 
 
 if __name__ == "__main__":
+    os.environ["TO_VIDEO_WORKSPACE"] = str(Path(__file__).resolve().parent.parent)
     sys.exit(
         subprocess.run(
-            [
-                sys.executable,
-                str(_skill_scripts() / "archify_lead.py"),
-                "--project",
-                str(Path(__file__).resolve().parent.parent),
-                *sys.argv[1:],
-            ],
+            [sys.executable, str(_skill_scripts() / "pipeline.py"), *sys.argv[1:]],
             check=False,
         ).returncode
     )

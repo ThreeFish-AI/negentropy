@@ -7,7 +7,7 @@
 > 选题：开源课程 [Learn Claude Code](https://learn.shareai.run/zh/s01/) 的「工具与执行」四章
 > —— s01 Agent Loop / s02 Tool Use / s03 Permission / s04 Hooks。
 > 形态：1080p30 横屏，代码动画图解 + 本人音色克隆旁白，无真人出镜、无 BGM。
-> 制作走[公共管线](../../pipeline/README.md)九阶段；本集的可执行参数唯一来源是 [pipeline.toml](./pipeline.toml)。
+> 制作走[公共管线](https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/README.md)九阶段；本集的可执行参数唯一来源是 [pipeline.toml](./pipeline.toml)。
 
 ## 交付状态
 
@@ -64,40 +64,40 @@
 | [script/narration.md](./script/narration.md)           | ★逐字稿 SSOT（唯一人工维护处）                                                                                                     |
 | `script/narration.json`                                | 派生物，`pipeline.py build` 生成，勿手改                                                                                           |
 | [script/storyboard.md](./script/storyboard.md)         | 分镜表（镜号 ↔ 句区间 ↔ 画面 ↔ 动效）                                                                                              |
-| `scripts/*.py`                                         | 薄包装，转发到 [`../../pipeline/scripts/`](../../pipeline/scripts/)                                                                |
+| `scripts/*.py`                                         | 薄包装，转发到 [`$T/pipeline/scripts/`](https://github.com/ThreeFish-AI/to-video/tree/main/pipeline/scripts)                                                                |
 | [video/](./video/)                                     | Remotion 独立 pnpm 工程                                                                                                            |
 | `video/src/components/motifs.tsx`                      | 本集五个视觉母题（终端 / 环形循环 / 分发表 / 闸门 / 插槽）                                                                         |
-| `video/src/motion/`                                    | ★frozen 运动层（令牌/窗口/编排/12 运动模型 hooks——规格见 [skills/06 运动层](../../pipeline/skills/06-remotion-implementation.md)） |
+| `video/src/motion/`                                    | ★frozen 运动层（令牌/窗口/编排/12 运动模型 hooks——规格见 [skills/06 运动层](https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/skills/06-remotion-implementation.md)） |
 | `video/src/components/harness-stack.tsx`               | 系列身份装置（P0 开场栈 / 顶边常驻条 / P6 收尾栈；层数据派生自 series.json）                                                       |
 | `out/`                                                 | 渲染产物（gitignored）                                                                                                             |
 
 ## 复现流水线
 
 ```bash
-# 在仓库根执行。$I/$R/$V 的定义见 ../../pipeline/README.md 路径变量约定（唯一定义处）
-P=$I/episodes/claude-code-explained-video
+# 在工作区根执行。$T/$W/$P/$V 的定义见 to-video skill 的 pipeline/README.md（唯一定义处：https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/README.md）
+P=$W/episodes/claude-code-explained-video
 
 # ① 信源核验（repo 类固定提交硬校验；site 类只比正文，漂移报 WARN）
-uv run --no-project $R/source_ledger.py --project $P verify
+uv run --no-project $T/pipeline/scripts/source_ledger.py --project $P verify
 
 # ② 逐字稿派生 + 内容门（分镜覆盖性 / 时长预算双口径 / 淡入不变式）
-uv run --no-project $R/pipeline.py --project $P build
-uv run --no-project $R/pipeline.py --project $P check --check-scenes
+uv run --no-project $T/pipeline/scripts/pipeline.py --project $P build
+uv run --no-project $T/pipeline/scripts/pipeline.py --project $P check --check-scenes
 
 # ③ 配音（参数全部取自 pipeline.toml，勿在命令行另写 --style/--ref）
-uv run --no-project --with soundfile --with numpy $R/refs.py rebuild --name me-bright
-uv run --no-project $R/pipeline.py --project $P tts --plan   # 排期对账
-uv run --no-project $R/pipeline.py --project $P tts          # 长跑，建议 nohup
+uv run --no-project --with soundfile --with numpy $T/pipeline/scripts/refs.py rebuild --name me-bright
+uv run --no-project $T/pipeline/scripts/pipeline.py --project $P tts --plan   # 排期对账
+uv run --no-project $T/pipeline/scripts/pipeline.py --project $P tts          # 长跑，建议 nohup
 
 # ④ 渲染与体检
-cd $P/video && pnpm install --ignore-workspace && ./node_modules/.bin/tsc --noEmit
-cd - && uv run --no-project $R/pipeline.py --project $P render
-uv run --no-project $R/pipeline.py --project $P qa --video out/draft.mp4 --check
-uv run --no-project $R/pipeline.py --project $P qa --video out/draft.mp4 --last-n 6 --check   # 尾幕渐黑必查（--video 按工程目录解析）
+cd $P/video && pnpm install && ./node_modules/.bin/tsc --noEmit
+cd - && uv run --no-project $T/pipeline/scripts/pipeline.py --project $P render
+uv run --no-project $T/pipeline/scripts/pipeline.py --project $P qa --video out/draft.mp4 --check
+uv run --no-project $T/pipeline/scripts/pipeline.py --project $P qa --video out/draft.mp4 --last-n 6 --check   # 尾幕渐黑必查（--video 按工程目录解析）
 
 # ⑤ 交付
-uv run --no-project $R/pipeline.py --project $P captions
-uv run --no-project $R/pipeline.py --project $P render --final
+uv run --no-project $T/pipeline/scripts/pipeline.py --project $P captions
+uv run --no-project $T/pipeline/scripts/pipeline.py --project $P render --final
 ```
 
 ## 音画同步机制

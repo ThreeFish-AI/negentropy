@@ -182,15 +182,13 @@
 | [ops--publish-flows](./wiki/ops--publish-flows.mmd) | wiki/ops.md | workflow | ✓ | done | fix: 源图 §2.1 为已作废的 SSG+ISR 架构，按仓库代码修正为现行纯 |
 | [publishing--user-flow](./wiki/publishing--user-flow.mmd) | wiki/user-guide/publishing.md | workflow | ✓ | done | fix: 事实核验 6 节点/6 边全部与代码一致，无需语义修正（故 .mmd 未 |
 
-### apps/（apps/*/ README 与管线文档）
+### apps/（apps/*/ README）
 
 | slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | [perceives-readme--five-layers](./apps/perceives-readme--five-layers.mmd) | apps/negentropy-perceives/README.md | architecture | ✓ | done | fix: Round 1 diagnostics: mcp→engines 自动路 |
-| [influence--pipeline-layers](./apps/influence--pipeline-layers.mmd) | apps/negentropy-influence/pipeline/README.md | architecture | ✓ | done | fix: 事实修正 2 条（已写入 .mmd %% fix 行）：① 节点标签对齐 |
-| [indextts--synthesis-flow](./apps/indextts--synthesis-flow.mmd) | apps/negentropy-influence/pipeline/INDEXTTS-2.5-ADVANCED.md | workflow | ✓ | done | fix: 零纠错。源图节点/边与本仓 pipeline/scripts 及上游 c |
-| [indextts--reference-audio](./apps/indextts--reference-audio.mmd) | apps/negentropy-influence/pipeline/INDEXTTS-2.5-ADVANCED.md | workflow | ✓ | done | fix: 事实核验发现源图 2 处边级错误，交付图已按代码重绘（全部写入 .mmd |
-| [voice-cloning--architecture](./apps/voice-cloning--architecture.mmd) | apps/negentropy-influence/pipeline/VOICE-CLONING.md | architecture | ✓ | done | fix: ①节点/边全量对照 pipeline/scripts 核验一致、零语义修 |
+
+> 迁出注记（2026-09-21）：influence--pipeline-layers / voice-cloning--architecture / indextts--synthesis-flow / indextts--reference-audio 四图已随科普视频流水线机制外置删除（源文档迁入 [to-video 技能](https://github.com/ThreeFish-AI/to-video) 仓），对应 .mmd/HTML/PNG 资产同步移除。
 
 ### agents/（docs/.agents/ 巡检与决策文档）
 
