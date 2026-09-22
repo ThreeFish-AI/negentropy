@@ -6,7 +6,7 @@ import type {SceneRange} from '../types';
 import {beatWindow} from '../timing';
 import {theme} from '../design/theme';
 import {DUR, progress, useEnter, useFadeOut, useFlowDash, useStagger} from '../motion';
-import {Backdrop, Panel, SceneTag} from '../components/motifs';
+import {Backdrop, BeatHeadline, Panel, SceneTag} from '../components/motifs';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 
 /** 6-E：sun 与 dream 双色对向合流 → 总金句 → 引用卡（四行错峰）→ 渐黑。
@@ -117,6 +117,7 @@ export const P6Evidence: React.FC<{scene: SceneRange}> = ({scene}) => {
       <Backdrop />
       <SceneTag chapter="P6" tagline="实证、批判与收尾" />
       <Sequence {...b6A} name="6-A 三柱对撞">
+        <BeatHeadline title="论文成绩单" until={at('p6-03') - b6A.from} />
         <ArchifyRecap
           slug="evidence-162x-caliber"
           caption="317 vs 550 vs 51200"
@@ -127,10 +128,12 @@ export const P6Evidence: React.FC<{scene: SceneRange}> = ({scene}) => {
         />
       </Sequence>
       <Sequence {...b6B} name="6-B 口径与拆解">
+        <BeatHeadline title="口径警示" until={at('p6-07') - b6B.from} accent={theme.danger} />
         <ArchifyRecap
           slug="evidence-162x-caliber"
           caption="口径警示 · 拆开看"
           lead={false}
+          tailFrames={b6B.durationInFrames - (at('p6-09') - b6B.from + dur('p6-09'))}
           cues={[
             {chapterId: 'warn', at: at('p6-07') - b6B.from, durationInFrames: dur('p6-07')},
             {chapterId: 'split', at: at('p6-09') - b6B.from, durationInFrames: dur('p6-09')},
@@ -138,9 +141,11 @@ export const P6Evidence: React.FC<{scene: SceneRange}> = ({scene}) => {
         />
       </Sequence>
       <Sequence {...b6C} name="6-C 先省后探">
+        <BeatHeadline title="先省后探" until={at('p6-12') - b6C.from} accent={theme.dream} />
         <ArchifyRecap
           slug="behavior-adaptive"
           caption="先省后探：学出来的章程"
+          tailFrames={b6C.durationInFrames - (at('p6-15') - b6C.from + dur('p6-15'))}
           cues={[
             {chapterId: 'early', at: at('p6-12') - b6C.from, durationInFrames: dur('p6-12')},
             {chapterId: 'save', at: at('p6-13') - b6C.from, durationInFrames: dur('p6-13')},

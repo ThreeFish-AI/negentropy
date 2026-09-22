@@ -1,6 +1,9 @@
 # 《翻旧账不花钱：AI 在梦里改章程》科普视频工程
 
-> 交付状态：**脚手架已生成，内容待撰写**。发布顺序见 [../../series.json](../../series.json)（工作区根）。
+> 交付状态：**v1 终渲待审**（2026-09-23）——时长复算式：**= 18926 帧 @30fps = 630.87s = 10 分 30.87 秒**（含尾静默；
+> ffprobe Duration 00:10:30.87 与复算逐位吻合）。120 句 / 2989 字 / 估算 10.7 分（字数口径），实测 10.5 分（含时距口径）。
+> archify 混合形态：16 图 / 61 章 / 50 cue，锚定 41.7%（P0 纯 Remotion 豁免）；草渲 QA FAIL 0（含 beat-heads / last-n / 主题对比度三色 ≥11:1）。
+> 发布顺序见 [../../series.json](../../series.json)（工作区根）。
 
 ## 目录结构
 
@@ -21,8 +24,13 @@
 # 在工作区内执行。$T/$W/$P/$V 的定义见 to-video skill 的 pipeline/README.md 路径变量约定（唯一定义处）
 P=$W/episodes/dream-rsi-video
 
-# ① 信源核验（B 型信源；A 型论文集跳过）
-uv run --no-project $T/pipeline/scripts/source_ledger.py --project $P verify
+# ① A 型论文集：paper-notes.md 即事实源（arXiv HTML v1 分章并行提取 + 原型复跑一级证据；本地冻结 PDF 已 gitignore）
+
+# ⑤ archify 全量重录（换 worktree 必跑；串行 ~50min）
+cd $P/video && pnpm install && cd - >/dev/null
+uv run --with playwright python $T/pipeline/scripts/record_archify_all.py --project $P
+cd $P && uv run --no-project --with pillow python scripts/archify_lead.py && uv run --no-project python scripts/archify_manifest.py
+# ⚠ 首录后人工审定图型：lifecycle/architecture 无渲染器指纹，嗅探为空——照 dream-rsi-video 的 6 张 sidecar 先例回写 type
 
 # ② 逐字稿派生 + 内容门（分镜覆盖性 / 时长预算双口径 / 淡入不变式）
 uv run --no-project $T/pipeline/scripts/pipeline.py --project $P build

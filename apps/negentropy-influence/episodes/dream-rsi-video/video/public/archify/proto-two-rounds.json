@@ -1,0 +1,120 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 16.2,
+ "total_wall_sec": 153.92,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "t1",
+   "label": "第一轮：并行铺满",
+   "index": 0,
+   "file": "proto-two-rounds--t1.mp4",
+   "end_still": "proto-two-rounds--t1-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "round1"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 16.0
+  },
+  {
+   "id": "dream",
+   "label": "做梦一轮：换章程",
+   "index": 1,
+   "file": "proto-two-rounds--dream.mp4",
+   "end_still": "proto-two-rounds--dream-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "dream"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 16.0
+  },
+  {
+   "id": "t2",
+   "label": "第二轮：新章程交卷",
+   "index": 2,
+   "file": "proto-two-rounds--t2.mp4",
+   "end_still": "proto-two-rounds--t2-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.48,
+   "story_sec": 3.28,
+   "beat_offsets_sec": [
+    0.0,
+    1.606
+   ],
+   "beat_nodes": [
+    "round2",
+    "combo"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 31.0
+  },
+  {
+   "id": "combo",
+   "label": "收放批次：深挖+试探+开新根",
+   "index": 3,
+   "file": "proto-two-rounds--combo.mp4",
+   "end_still": "proto-two-rounds--combo-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.48,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "combo"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 20.0
+  },
+  {
+   "id": "frozen",
+   "label": "变的只有章程",
+   "index": 4,
+   "file": "proto-two-rounds--frozen.mp4",
+   "end_still": "proto-two-rounds--frozen-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "result"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 22.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/quito-v2/docs/assets/architecture/self-evolution/dream-rsi--proto-two-rounds.html",
+ "slug": "proto-two-rounds",
+ "type": "lifecycle"
+}

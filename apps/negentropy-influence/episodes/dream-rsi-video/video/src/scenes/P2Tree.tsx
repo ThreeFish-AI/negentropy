@@ -7,7 +7,7 @@ import type {SceneRange} from '../types';
 import {beatWindow} from '../timing';
 import {theme} from '../design/theme';
 import {DUR, progress, useCount, useDraw, useEnter, useFlowDash, useImpulse, useStagger} from '../motion';
-import {Backdrop, Footnote, NumberedCard, Panel, SceneTag} from '../components/motifs';
+import {Backdrop, BeatHeadline, Footnote, NumberedCard, Panel, SceneTag} from '../components/motifs';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 
 /** 2-C：三支小队分叉出发，编号卡分数滚动落格；0.80 稳定突破格 grow 辉光。 */
@@ -138,6 +138,7 @@ export const P2Tree: React.FC<{scene: SceneRange}> = ({scene}) => {
       <Backdrop tint={theme.sun} />
       <SceneTag chapter="P2" tagline="机制一 · 台账与同一套决策" accent={theme.sun} />
       <Sequence {...b2A} name="2-A 发现树生长">
+        <BeatHeadline title="发现树" sub="台账怎么长成一棵树" until={at('p2-02') - b2A.from} accent={theme.sun} />
         <ArchifyRecap
           slug="discovery-tree"
           caption="台账长成树"
@@ -148,10 +149,12 @@ export const P2Tree: React.FC<{scene: SceneRange}> = ({scene}) => {
         />
       </Sequence>
       <Sequence {...b2B} name="2-B 批次与自由度">
+        <BeatHeadline title="批次" sub="从哪继续 · 派几队并行" until={at('p2-06') - b2B.from} accent={theme.sun} />
         <ArchifyRecap
           slug="replay-simulator"
           caption="批次即全部自由度"
           lead={false}
+          tailFrames={b2B.durationInFrames - (at('p2-06') - b2B.from + dur('p2-06'))}
           cues={[
             {chapterId: 'freedom', at: at('p2-06') - b2B.from, durationInFrames: dur('p2-06')},
           ]}

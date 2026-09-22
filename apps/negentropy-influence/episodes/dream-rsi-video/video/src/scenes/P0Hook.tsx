@@ -125,9 +125,10 @@ const LedgerFlip: React.FC<{flipAt: number; titleAt: number}> = ({flipAt, titleA
   const angle = flip * 180;
   const night = progress(frame, flipAt + DUR.f5, DUR.f4); // 翻过半程后冰蓝一闪
   const title = useEnter('pop', {at: titleAt});
+  const bookOut = 1 - progress(frame, titleAt, DUR.f4); // 标题入场即让位，防叠印
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <div style={{perspective: 1200}}>
+      <div style={{perspective: 1200, opacity: bookOut}}>
         <div
           style={{
             width: 460,

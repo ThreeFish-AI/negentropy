@@ -7,7 +7,7 @@ import type {SceneRange} from '../types';
 import {beatWindow} from '../timing';
 import {theme} from '../design/theme';
 import {DUR, progress, useBreathe, useDraw, useEnter, useReveal} from '../motion';
-import {Backdrop, Footnote, Panel, SceneTag} from '../components/motifs';
+import {Backdrop, BeatHeadline, Footnote, Panel, SceneTag} from '../components/motifs';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 
 /** 3-A：台账页翻开、当年结果逐行显影被「抄录」；生成/评审两图标挂灰色「未调用」牌。 */
@@ -125,6 +125,7 @@ export const P3Dream: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap
           slug="determinism-proof"
           caption="翻台账的两条规则"
+          tailFrames={b3B.durationInFrames - (at('p3-08') - b3B.from + dur('p3-08'))}
           cues={[
             {chapterId: 'reset', at: at('p3-06') - b3B.from, durationInFrames: dur('p3-06')},
             {chapterId: 'nonroot', at: at('p3-07') - b3B.from, durationInFrames: dur('p3-07')},
@@ -137,6 +138,7 @@ export const P3Dream: React.FC<{scene: SceneRange}> = ({scene}) => {
           slug="two-phase-loop"
           caption="夜里做梦：历史钉上沙盘"
           lead={false}
+          tailFrames={b3C.durationInFrames - (at('p3-10') - b3C.from + dur('p3-10'))}
           cues={[{chapterId: 'offline', at: at('p3-10') - b3C.from, durationInFrames: dur('p3-10')}]}
         />
       </Sequence>
@@ -144,6 +146,7 @@ export const P3Dream: React.FC<{scene: SceneRange}> = ({scene}) => {
         <SandboxFence at={0} />
       </Sequence>
       <Sequence {...b3E} name="3-E 四章程对撞">
+        <BeatHeadline title="四章程对撞" sub="同一棵树，各自做梦" until={at('p3-16') - b3E.from} accent={theme.dream} />
         <ArchifyRecap
           slug="four-charters"
           caption="四章程同树分高下"

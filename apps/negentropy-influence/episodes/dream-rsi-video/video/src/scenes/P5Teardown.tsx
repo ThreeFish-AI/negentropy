@@ -6,7 +6,7 @@ import type {SceneRange} from '../types';
 import {beatWindow} from '../timing';
 import {theme} from '../design/theme';
 import {DUR, progress, useEnter, useImpulse, usePushIn, useStagger} from '../motion';
-import {Backdrop, Footnote, NumberedCard, Panel, SceneTag} from '../components/motifs';
+import {Backdrop, BeatHeadline, Footnote, NumberedCard, Panel, SceneTag} from '../components/motifs';
 import {QuoteCard} from '../components/cards';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 
@@ -115,6 +115,7 @@ export const P5Teardown: React.FC<{scene: SceneRange}> = ({scene}) => {
         />
       </Sequence>
       <Sequence {...b5C} name="5-C 拆规矩（D4）">
+        <BeatHeadline title="D4 · 拆重放的规矩" until={at('p5-07') - b5C.from} accent={theme.danger} />
         <ArchifyRecap
           slug="teardown-d4-peek"
           caption="D4 · 拆重放的规矩"

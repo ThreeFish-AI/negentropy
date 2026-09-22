@@ -50,7 +50,10 @@ export const ArchifyRecap: React.FC<{
    *  实例内亦只抑制「与前 cue 背靠背」的换章弹入——空窗后重现的章恢复入场，
    *  否则画框在完全卸载数秒后以全不透明一帧瞬现。 */
   lead?: boolean;
-}> = ({slug, caption, cues, lead = true}) => {
+  /** 末章冻结补足帧数：盖住末 cue 窗之后的镜内空窗句（ISSUE-188 句级画面覆盖——
+   *  cue 只占锚句窗，章间/尾部空窗句由末帧 hold 接管，不再近乎空屏）。 */
+  tailFrames?: number;
+}> = ({slug, caption, cues, lead = true, tailFrames = 0}) => {
   const chapters = ARCHIFY[slug].chapters as readonly {
     id: string;
     label: string;
@@ -69,24 +72,30 @@ export const ArchifyRecap: React.FC<{
               `可用：${chapters.map((c) => c.id).join(' / ')}`,
           );
         }
-        // 与前 cue 背靠背（连续换章）不重放入场；首章与空窗后重现的章做入场。
-        // 空窗判定容 2 帧取整；实测空窗最小 151 帧，阈值不会误伤连续章。
-        const prevEnd =
-          i > 0 ? cues[i - 1].at + cues[i - 1].durationInFrames : -Infinity;
-        const enters = i === 0 || cue.at > prevEnd + 2;
+        // 前向填充：本 cue 窗延至下一 cue 起点（章间空窗句由本章末帧冻结接管）；
+        // 末 cue 再补 tailFrames（尾部空窗句）。fit 按**有效窗**重选：窗变长 →
+        // rate 变小 → pickFit 自动落 hold（原速播完冻结末帧补足），语义恰好成立。
+        const isLast = i + 1 >= cues.length;
+        const nextAt = isLast ? Infinity : cues[i + 1].at;
+        const rawEnd = cue.at + cue.durationInFrames;
+        const effEnd = isLast ? rawEnd + tailFrames : Math.max(rawEnd, nextAt);
+        const span = effEnd - cue.at;
+        // 与前 cue 背靠背（连续换章）不重放入场；首章做入场。
+        // 前向填充后实例内恒背靠背（前窗终点 ≥ 本 cue 起点）。
+        const enters = i === 0;
         return (
           <Sequence
             key={`${cue.chapterId}-${i}`}
             from={cue.at}
-            durationInFrames={cue.durationInFrames}
+            durationInFrames={span}
             name={`archify ${slug}/${ch.id}`}
           >
             <ArchifyClip
               file={ch.file}
-              spanInFrames={cue.durationInFrames}
+              spanInFrames={span}
               leadSec={ch.leadSec}
               storySec={ch.storySec}
-              fit={cue.fit ?? pickFit(ch.storySec, cue.durationInFrames)}
+              fit={cue.fit ?? pickFit(ch.storySec, span)}
               endStill={ch.endStill}
               caption={caption}
               chapterLabel={ch.label}

@@ -19,7 +19,7 @@
 | 1   | [《上线之后，AI 才开始上学》](./episodes/experience-era-agents-video/README.md)               | 部署之后经验怎么攒 | 金/青/紫         | 清华×Frontis 88 页综述（无 arXiv 号），2026-06 | **v3 就绪**（内容校准 + sunny-steady 全片重配，成片 14:01；源码含未重渲改动：P3 格阵落格校准） |
 | 2   | [《AI 如何自己变强？》](./episodes/self-improving-agents-video/README.md)                     | 自我进化改什么     | 蓝/橙            | arXiv:2607.13104（Schmidhuber 团队），2026-07  | 就绪（待升级 sunny-steady，未排期）                                                            |
 | 3   | [《会写代码的 AI，开始给自己写代码》](./episodes/self-evolving-coding-agents-video/README.md) | 代码领域全图       | 绿/洋红          | arXiv:2608.03392（NJUST×NJU），2026-08         | 就绪（源码含未重渲改动；待升级 sunny-steady）                                                  |
-| 4   | [《翻旧账不花钱：AI 在梦里改章程》](./episodes/dream-rsi-video/README.md)                   | 元探索策略怎么改   | 冰蓝/暖白/嫩绿   | arXiv:2609.14858（UMD×DeepMind×UVA），2026-09  | 制作中（2026-09-22 启动，九阶段流水线进行中）                                                   |
+| 4   | [《翻旧账不花钱：AI 在梦里改章程》](./episodes/dream-rsi-video/README.md)                   | 元探索策略怎么改   | 冰蓝/暖白/嫩绿   | arXiv:2609.14858（UMD×DeepMind×UVA），2026-09  | **v1 终渲待审**（10:30.87 · archify 混合 16 图；2026-09-23）                                    |
 
 ## Claude Code Harness Engineering（文档/代码型选题）
 

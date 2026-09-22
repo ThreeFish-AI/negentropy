@@ -265,4 +265,54 @@ export const Backdrop: React.FC<{tint?: string; opacity?: number}> = ({
   );
 };
 
+/** 镜导语卡：首 cue 前的空窗句底衬（ISSUE-188 句级画面覆盖——章图未起、
+ *  画面近乎空屏时，给观众一个章题锚点）；until 帧处淡出让位给首章入场。
+ *  渲染顺序须在 ArchifyRecap 之前（层叠其下）。 */
+export const BeatHeadline: React.FC<{
+  title: string;
+  sub?: string;
+  until: number;
+  accent?: string;
+}> = ({title, sub, until, accent}) => {
+  const frame = useCurrentFrame();
+  const fadeIn = interpolate(frame, [0, 6], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const fadeOut = interpolate(frame, [until, until + 6], [1, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const o = Math.min(fadeIn, fadeOut);
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        top: 400,
+        textAlign: 'center',
+        opacity: o,
+      }}
+    >
+      <div
+        style={{
+          width: 72,
+          height: 4,
+          background: accent ?? theme.text,
+          margin: '0 auto 26px',
+        }}
+      />
+      <div style={{fontFamily: theme.serif, fontSize: 58, fontWeight: 700, color: theme.text}}>
+        {title}
+      </div>
+      {sub ? (
+        <div style={{fontFamily: theme.sans, fontSize: 28, color: theme.dim, marginTop: 14}}>
+          {sub}
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
 export {ease};

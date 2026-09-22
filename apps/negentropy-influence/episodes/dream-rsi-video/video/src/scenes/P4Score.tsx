@@ -100,6 +100,7 @@ export const P4Score: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap
           slug="two-phase-loop"
           caption="做梦内环与防回退闸"
+          tailFrames={b4B2.durationInFrames - (at('p4-10') - b4B2.from + dur('p4-10'))}
           cues={[
             {chapterId: 'revise', at: at('p4-08') - b4B2.from, durationInFrames: dur('p4-08')},
             {chapterId: 'guard', at: at('p4-10') - b4B2.from, durationInFrames: dur('p4-10')},

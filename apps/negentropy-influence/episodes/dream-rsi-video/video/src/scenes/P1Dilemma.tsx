@@ -146,6 +146,7 @@ export const P1Dilemma: React.FC<{scene: SceneRange}> = ({scene}) => {
           slug="expedition-setup"
           caption="探险队三件套"
           lead={false}
+          tailFrames={b1D.durationInFrames - (at('p1-16') - b1D.from + dur('p1-16'))}
           cues={[
             {chapterId: 'ledger', at: at('p1-13') - b1D.from, durationInFrames: dur('p1-13')},
             {chapterId: 'sandbox', at: at('p1-15') - b1D.from, durationInFrames: dur('p1-15')},
