@@ -1,0 +1,14 @@
+%% source: docs/research/self-evolution/144-dream-rsi.md §3
+%% slug: dream-rsi--replay-simulator
+%% type: workflow
+%% derived: docs/assets/architecture/self-evolution/dream-rsi--replay-simulator.html
+flowchart TD
+    OBS["策略只看已见子树（prefix-only）<br/>未揭示分数不可见"] --> ELIG["可选集 A(𝒯) = {root} ∪ 已见叶子<br/>（在线/离线共用同一决策接口）"]
+    ELIG --> BATCH["选批次 C，｜C｜ ≤ W<br/>开哪条线 · 深挖谁 · 并行几个"]
+    BATCH -->|"选根 r"| ROOT["揭示最早创建的未揭示 root 子节点<br/>（开一条已录分支）"]
+    BATCH -->|"选非根叶 v"| CHAIN["揭示 v 的唯一记录子节点<br/>（只读记录，不生成新结果）"]
+    ROOT --> NEWV["已见子树长大"]
+    CHAIN --> NEWV
+    NEWV -->|"空批次 / K₂ 轮耗尽 / 全部揭示"| TERM["终止：得 N（揭示数）、k（轮数）、max s"]
+    TERM --> VSCORE["V = max s − β₁·N + β₂·N/max(1,k)<br/>发现质量 − 执行成本 + 并行度奖励"]
+    NEWV --> OBS

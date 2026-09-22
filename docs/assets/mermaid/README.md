@@ -9,7 +9,8 @@
 > **范围**：按**文档**而非目录界定。已纳入：现役系统文档（`docs/concepts/`、`docs/reference/{perceives,wiki}/`、根与 i18n README、
 > `apps/` README、`docs/.agents/` 巡检文档），以及已走完本管线的研究文献——`docs/research/cognitive-context/` 的
 > Horizon Context 精读与 Context Layer 蓝图（下表 `cognitive-context/` 分节）、
-> `docs/research/agent-harness/` 的五层 Harness 精读（下表 `agent-harness/` 分节）。未纳入：其余 `docs/research/`（第三方调研）与
+> `docs/research/agent-harness/` 的五层 Harness 精读（下表 `agent-harness/` 分节）、
+> `docs/research/self-evolution/` 的 Dream-RSI 精读（下表 `self-evolution/` 分节）。未纳入：其余 `docs/research/`（第三方调研）与
 > `docs/reference/cognizes/`（已退役遗产），**不在此管线**，原地保留渲染。
 
 ## 约定
@@ -41,6 +42,13 @@
 | [claude-code-concurrency--timing-panorama](./agent-harness/claude-code-concurrency--timing-panorama.mmd) | [174 时机层 §2](../../research/agent-harness/174-claude-code-concurrency.md) | workflow | ✓ | done | 后台/通知/定时三支路汇回下一轮（trace 动画） |
 | [claude-code-planning--planning-panorama](./agent-harness/claude-code-planning--planning-panorama.mmd) | [172 规划层 §2](../../research/agent-harness/172-claude-code-planning-coordination.md) | workflow | ✓ | done | 垫纸每轮重装配主链 + 副台/手册/补救梯旁支（trace 动画） |
 | [claude-code-multiagent--collab-panorama](./agent-harness/claude-code-multiagent--collab-panorama.mmd) | [175 协作层 §2](../../research/agent-harness/175-claude-code-multi-agent-platform.md) | workflow | ✓ | done | 排工板/收件格/班次/隔间四组物件汇入同一循环（trace 动画） |
+
+### self-evolution/（docs/research/self-evolution/ 的 Dream-RSI 精读）
+
+| slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| [dream-rsi--two-phase-loop](./self-evolution/dream-rsi--two-phase-loop.mmd) | [144 §2](../../research/self-evolution/144-dream-rsi.md) | workflow | ✓ | done | 在线真实世界 ↔ 离线重放世界两相闭环（trace 动画） |
+| [dream-rsi--replay-simulator](./self-evolution/dream-rsi--replay-simulator.mmd) | [144 §4](../../research/self-evolution/144-dream-rsi.md) | workflow | ✓ | done | 决策接口 + 确定性转移 + 重放目标 V 三分量；底部通道回环 |
 
 > 各分类行由对应重绘波次登记；`产物` 列 ✓ = html + dark/light PNG 已入库。
 
