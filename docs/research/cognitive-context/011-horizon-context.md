@@ -1,7 +1,7 @@
 ---
 sidebar_position: 4
 title: "Snowflake Horizon Context 精读笔记"
-description: "「嵌入治理引擎、查询时强制执行」的 Context Layer 七机制（M1–M7）精读：语义视图口径单点×查询期重算 / 行列级访问策略 / 语义级治理执行 / 应答层验证锚定 / 端到端列级血缘 / Agent Identity / 分类与标签驱动策略传播，附三阶段演进全景、实证数字、批判性边界、2026-09-17 全局重评审记录与随笔记入库的 M1–M7 最小原型"
+description: "Snowflake Horizon Context 精读档案（冻结版；设计 SSOT 见 013 蓝图）：治理引擎内嵌、查询期强制执行的七承重机制 M1–M7——语义视图口径单点×查询期重算 / 行列级访问策略 / 语义级治理执行 / 应答层验证锚定 / 端到端列级血缘 / Agent Identity / 分类与标签驱动策略传播——另附富化、检索、生态三专章（§10–§12）、演进全景、关键实证数字、批判性边界、2026-09-17 全局重评审记录与随文最小原型"
 ---
 
 > [!NOTE] **核心精读范围**
@@ -23,7 +23,18 @@ description: "「嵌入治理引擎、查询时强制执行」的 Context Layer 
 
 > [!TIP] **怎么读笔记**
 >
-> 每个机制节按「类比 → 机制 → 原型」三拍进行记录和实践。本篇机制集经过 2026-09-17 的**全局重评选校准**（方法与判据见 §16 重评审记录）：M1–M7 七个机制是重评选后的「全局最重要承重组件」——口径与应答两席（M1/M4），治理执法四席（M2/M3/M6/M7），账本一席（M5）；富化、检索排序、开放互操作三族因证据成熟度不足**降级为专章保留**（§10–§12，内容不删、降级理由与重评触发器随文写明）。M1–M7 各配一张动效工程图，§1 开篇另配病因链与机制对位总览图，§2 另配组件全景与演进时间线两张总览图（交互版下载到本地打开，默认经典视图可切主题/缩放/聚焦，trace 动画按主路径逐边点亮）。实践取自配套的最小原型 [`assets/horizon_context_lab.py`](./assets/horizon_context_lab.py)（约 1195 行纯标准库代码，M1–M7 七机制 + 场景矩阵 + 十次破坏性实验；另有 MCP 服务原型 [`assets/horizon_context_mcp.py`](./assets/horizon_context_mcp.py) 验证平台集成路径）。
+> 每个机制节按「类比 → 机制 → 原型」三拍进行记录和实践。本篇机制集经过 2026-09-17 的**全局重评选**校准（方法与判据见 §16）：M1–M7 七个机制是重评选后的「全局最重要承重组件」——口径与应答两席（M1/M4）、治理执法四席（M2/M3/M6/M7）、账本一席（M5）；富化、检索排序、开放互操作三族因证据成熟度不足**降级为专章保留**（§10–§12，内容不删、降级理由与重评触发器随文写明）。M1–M7 各配一张动效工程图，§1 开篇另配病因链总览图，§4 配组件全景与演进时间线两张总览图（交互版 HTML 下载到本地打开，可切主题/缩放/聚焦，trace 动画按主路径点亮）。实践取自配套最小原型 [`assets/horizon_context_lab.py`](./assets/horizon_context_lab.py)（约 1195 行纯标准库，七机制 + 场景矩阵 + 十次破坏性实验；MCP 服务原型 [`assets/horizon_context_mcp.py`](./assets/horizon_context_mcp.py)）。
+>
+> **章节地图**：
+>
+> | 层 | 章节 | 载荷 |
+> | :--- | :--- | :--- |
+> | 精读主线 | §1 病灶与问题 → §2 七承重机制（M1–M7） | 先总后分的教学动线 |
+> | 骨架与全景 | §3 三阶段治理骨架（§10–§12 专章挂靠于此）· §4 全景与演进 | 供给导航、组件对照、时间线 |
+> | 证据与实验 | §13 关键实证数据 · §14 动手实践 | 数字纪律 + 玩具域原型 |
+> | 审计层（冻结） | §15 批判性边界 · §16 重评审记录 · §17 验收问答 · §18 本仓关联 | 档案价值 + 013 契约 |
+>
+> **章号即稳定键**：§5–§9 系 2026-09-17 重评选将旧 M3–M7 并入 §2 后腾空的逻辑编号，**已封存、勿复用**——8+ 张 archify 成片与 013 蓝图以「011 §10/§11/§12」等编号回指本篇；新增内容续用 §19+ 或并入既有章节。
 
 配套产物：[Context Layer 基础设施设计蓝图](./013-context-layer-blueprint.md) · [Horizon Context ↔ negentropy 机制映射报告](./012-horizon-context-mapping-negentropy.md)。
 
@@ -37,13 +48,7 @@ description: "「嵌入治理引擎、查询时强制执行」的 Context Layer 
 >
 > Horizon Context 要做的，是为这位天才实习生配备一套嵌入大厦基座的「受治理带教中枢」（终极入职包：全套规章、工具与安防体系），让他秒变懂业务、守规矩的业务老司机：
 >
-> - 可执行的规章手册：语义视图——口径单点定义 × 查询期重算（M1）；
-> - 闸机的逐页验放规则：行列级访问策略，机密页打码、越权行扣留（M2）；
-> - 闸机焊死承重墙的拓扑：语义级治理执行，所有通道共用同一执法点（M3）；
-> - 核准题库与盖章底稿：应答层验证锚定，命中核准题直接出示底稿（M4）；
-> - 全楼出入库台账：端到端列级血缘，谁产出谁消费事后可对账（M5）；
-> - 实习生专用工牌：Agent Identity，权限是带教人的子集、刷卡可归因（M6）；
-> - 机密自动贴标系统：分类与标签驱动策略传播，新文件进楼自动纳管（M7）。
+> 七件装备——可执行的规章手册、闸机的逐页验放规则、闸机焊死承重墙的拓扑、核准题库与盖章底稿、全楼出入库台账、实习生专用工牌、机密自动贴标系统——与下表 M1–M7 一一对应，大白话对照见表右列。
 >
 > 带教体系还有三组配角（速记秘书与见习助教、智能前台与评估尺、工作护照与安全插座与海关安检），分别落在 §10–§12 三个专章——它们仍是剧场的一员，只是不在这七件承重主列。
 >
@@ -61,9 +66,7 @@ description: "「嵌入治理引擎、查询时强制执行」的 Context Layer 
 2. **定义漂移（脱节失效）**：外挂语义层独立于 Context Layer，底层数据表的变更会令语义立即脱节，Agent 会按过期的语义手册瞎猜；
 3. **门禁穿透（治理虚设）**：权限规则只浮在外部系统，拦不住绕过中间层直查物理底表，安全防线形同虚设。
 
-初级 Data Agent 就像一位智商超群的天才实习生，他满腹经纶、理解力极强，但完全不懂贵司的标准流程与方言黑话。
-
-要把这位天才实习生真正培养成懂业务、守规矩的“业务老司机”，Snowflake Horizon Context 的解法是，**把业务 Context 与安全守则铸入底层引擎，使其无法被篡改与绕过**。Horizon Context 的七条承重机制：
+要把这位智商超群、却不懂贵司方言黑话与标准流程的天才实习生培养成懂业务、守规矩的「业务老司机」，Snowflake Horizon Context 的解法是，**把业务 Context 与安全守则铸入底层引擎，使其无法被篡改与绕过**。Horizon Context 的七条承重机制：
 
 | 设计规格               | 底层机制                           | 大白话                                                                   |
 | :--------------------- | :--------------------------------- | :----------------------------------------------------------------------- |
@@ -370,7 +373,7 @@ description: "「嵌入治理引擎、查询时强制执行」的 Context Layer 
 
 > 图源（可 diff 文本）：[`horizon-context--three-stage-governance.mmd`](../../assets/mermaid/cognitive-context/horizon-context--three-stage-governance.mmd) · 交互版（下载到本地打开）：[`horizon-context--three-stage-governance.html`](../../assets/architecture/cognitive-context/horizon-context--three-stage-governance.html)
 
-### 上下文供给与富化
+### §10 上下文供给与富化
 
 > [!TIP] **类比**
 >
@@ -414,7 +417,7 @@ description: "「嵌入治理引擎、查询时强制执行」的 Context Layer 
 > —— 477 vs 48 事故的玩具版
 > ```
 
-### 检索与发现
+### §11 检索与发现
 
 > [!TIP] **类比**
 >
@@ -449,7 +452,7 @@ description: "「嵌入治理引擎、查询时强制执行」的 Context Layer 
 > [('revenue', 'governed', 0.854), ('revenue', 'legacy', 0.826)]
 > ```
 
-### 生态与出口
+### §12 生态与出口
 
 > [!TIP] **类比**
 >
@@ -485,7 +488,7 @@ description: "「嵌入治理引擎、查询时强制执行」的 Context Layer 
 > [PASS] T8: 子进程 stdio 往返: 2 响应行, active_customers=[3, 1, 2]
 > ```
 
-## 4. Horizon Context 全景与三阶段演进
+## 4. Horizon Context 全景与演进
 
 > [!TIP] **Horizon Context 的演进**
 >
@@ -495,7 +498,7 @@ description: "「嵌入治理引擎、查询时强制执行」的 Context Layer 
 > - **阶段二（筑牢闸机与配强助手：守得住、填得满、送得出）**：光有手册不够，大厦直接把门禁体系焊进了机房承重墙（治理内嵌），同时配备速记秘书与见习助教协同补全长尾规章（双轨富化），并与行业盟友敲定通用工作护照的签发框架（Ossie 创立）+ 在门口装上标准工业安全插座（MCP GA）；
 > - **阶段三（跨企盟约：随处用）**：护照正式签发通行（Ossie 捐入 Apache 孵化）、外部特聘专家持护照进驻协同，全楼出入库台账合流运营（生态开放）。
 
-### 2.1 定位：从「登记簿」到「业务的 Working Model」
+### 4.1 定位：从「登记簿」到「业务的 Working Model」
 
 Horizon Context 并非一款孤立的单点产品，而是围绕 **Horizon Catalog**（Snowflake 官方定位为 "the agentic catalog"）长出的一整套能力底座。Snowflake 给这条演进线确立的核心目标只有一个：把 Catalog 从「记录有哪些表的登记簿」升维为「真正理解业务含义的认知中枢」（**"from a system of record into a system of understanding"**）。
 
@@ -535,11 +538,11 @@ Horizon Context 所含组件与七大机制（M1–M7）的对应关系如下：
 - **账本（M5）**：事后可对账的底座——预防类机制之外的事后问责链；
 - **供给与出口（§10–§12）**：体系的自愈血液与开放抓手——富化让 Context 变厚、检索让它送得准、互操作让它带得走（重评选中因证据成熟度降级为专章，降级理由与触发器见各章）。
 
-### 2.2 演进 Timeline：先造对象，再装治理与富化，最后开生态
+### 4.2 演进 Timeline：先造对象，再装治理与富化，最后开生态
 
 **纵观全景**：两年半的演进轨迹呈现出清晰的重心迁移——前期重在**寻址召回（找得到）**，中期深耕**语义对象与引擎治理（算得准、守得住）**，后期聚焦**跨端互通与全域血缘（信得过、带得走）**。
 
-![三阶段演进时间线：阶段一「找得到 → 算得准」（检索先行 → Semantic Views GA）、阶段二「守得住、填得满、送得出」（OSI/MCP 通道 → Select Star/Autopilot 富化 → AI_REDACT/Guardrails/Agent Identity 治理 → Summit 整体发布）、阶段三「随处用」（Cortex Sense/Ossie/全域血缘运营），机制锚点按重评选后 M1–M7 + 专章标注。](../../assets/architecture/cognitive-context/horizon-context--evolution-timeline-dark.png)
+![演进时间线：阶段一「找得到 → 算得准」（检索先行 → Semantic Views GA）、阶段二「守得住、填得满、送得出」（OSI/MCP 通道 → Select Star/Autopilot 富化 → AI_REDACT/Guardrails/Agent Identity 治理 → Summit 整体发布）、阶段三「随处用」（Cortex Sense/Ossie/全域血缘运营），机制锚点按重评选后 M1–M7 + 专章标注。](../../assets/architecture/cognitive-context/horizon-context--evolution-timeline-dark.png)
 
 > 图源（可 diff 文本）：[`horizon-context--evolution-timeline.mmd`](../../assets/mermaid/cognitive-context/horizon-context--evolution-timeline.mmd) · 交互版（下载到本地打开）：[`horizon-context--evolution-timeline.html`](../../assets/architecture/cognitive-context/horizon-context--evolution-timeline.html)
 
@@ -569,10 +572,8 @@ Snowflake 官方的运营哲学是：上下文只有在真实业务流中高频�
 
 > [!TIP] **两个 Snowflake 官方 Agent 的分工与定位**
 >
-> - **CoCo**：数据原生 AI 编程代理（前身 Cortex Code，2026-02-03 发布；提供 Snowsight / Desktop / CLI 三种交互形态）；
-> - **CoWork**：面向知识工作者的日常业务分析助手（前身 Snowflake Intelligence，2025-11-04 GA；其 Automations 能力已于 2026-09-11 GA）；
->
-> - **协同定位**：二者是 Cortex Sense 隐式上下文的核心验证者与直接消费者。Sense 从历史轨迹中提炼出的隐式规则，正是在这类 Agent 的实际交互闭环中被验证与消耗。
+> - **CoCo**：数据原生 AI 编程代理（前身 Cortex Code，2026-02-03 发布；Snowsight / Desktop / CLI 三种交互形态）；
+> - **CoWork**：面向知识工作者的日常业务分析助手（前身 Snowflake Intelligence，2025-11-04 GA；Automations 2026-09-11 GA）——二者同为 Cortex Sense 隐式上下文的核心验证者与直接消费者，Sense 提炼的隐式规则正是在这类 Agent 的交互闭环中被验证与消耗。
 
 下表归纳了两年半间 Horizon Context 演进的关键里程碑（机制详解参见 M1–M7 各节与 §10–§12 专章）：
 
