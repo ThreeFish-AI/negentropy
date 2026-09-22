@@ -69,15 +69,9 @@
 
 | slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| [context-layer--runtime-layering](./design/context-layer--runtime-layering.mmd) | cognitive-context/013-context-layer-blueprint.md §12.2（原 design/context-layer.md §3，已并入） | architecture | ✓ | done | fix: ① 补全 Tools/Skills→PostgreSQL 两条边（builtin |
-| [context-layer--evolution-levers](./design/context-layer--evolution-levers.mmd) | cognitive-context/013-context-layer-blueprint.md §12.5（原 design/context-layer.md §7，已并入） | architecture | ✓ | done | fix: (1) 状态机补终态 rejected（代码 STATUS_REJECTED 存 |
 | [self-evolving--consolidation-loop](./design/self-evolving--consolidation-loop.mmd) | design/self-evolving-agents.md §7 |  | ✓ | done | fix: 1) 补码证负反馈闭环边：memory_retrieval_logs 的 irr |
 | [self-evolving--four-layer-loop](./design/self-evolving--four-layer-loop.mmd) | design/self-evolving-agents.md §2 |  | ✓ | done | fix: 对照仓库代码修正三处：(1) 评测引擎删「Agent-as-a-Judge」（文 |
-| [context-layer--auto-channel](./design/context-layer--auto-channel.mmd) | cognitive-context/013-context-layer-blueprint.md §8.5（原 design/context-layer.md §5，已并入） | workflow | ✓ | done | fix: 1) 事实修正（以代码为准）：原图把 _collect_kg_context() |
-| [context-layer--assembler-planner](./design/context-layer--assembler-planner.mmd) | cognitive-context/013-context-layer-blueprint.md §8.5（原 design/context-layer.md §6，已并入） | workflow | ✓ | done | fix: 源 mermaid 块#4 本身与代码事实自洽（「既有」节点全部核对通过、「新增 |
-| [context-layer--request-injection](./design/context-layer--request-injection.mmd) | cognitive-context/013-context-layer-blueprint.md §12.1（原 design/context-layer.md §2，已并入） | workflow | ✓ | done | fix: 4 处以代码为准的修正（.mmd 携 %% fix 行、facts 笔记逐条锚点 |
 | [0002-ui--phase-roadmap](./design/0002-ui--phase-roadmap.mmd) | design/0002-ui-interaction-enhancements.md | workflow | ✓ | done | fix: 以代码为准修正五处：(1) 原图把 4.1-4.6 六项全部画成 RFC 000 |
-| [context-layer--collect-phase](./design/context-layer--collect-phase.mmd) | cognitive-context/013-context-layer-blueprint.md §3.4（原 design/context-layer.md §1，已并入；图已弃用，013 以 collect-enrich-activate 承载） | dataflow | ✓ | done | fix: ① 拓扑修正（%% fix 已记录于 .mmd）：原块把 Collect 三机制 |
 | [qa-delivery--push-gate](./design/qa-delivery--push-gate.mmd) | design/qa-delivery-pipeline.md | workflow | ✓ | done | fix: 三处按代码修正：1) 原图 PRGate 子图只画「入口→reusable」两层 |
 | [docker-release--pipeline](./design/docker-release--pipeline.mmd) | design/docker-release-pipeline.md | workflow | ✓ | done | fix: D-7 修正已核验并落入产物：workflow matrix 实际为 wiki← |
 | [sso--auth-flow](./design/sso--auth-flow.mmd) | design/sso.md | sequence | ✓ | done | fix: validate 三轮收敛（18 err → 1 err → 0/0）：R1 修 |
@@ -227,6 +221,12 @@
 | [context-layer-blueprint--object-lifecycle](./cognitive-context/context-layer-blueprint--object-lifecycle.mmd) | cognitive-context/013-context-layer-blueprint.md §4.2 通用对象模型 | lifecycle | ✓ | done | 对象生命周期状态机；3 泳道并为 2（冲突与终态合流）保垂直容纳 |
 | [context-layer-blueprint--layer-mechanism-map](./cognitive-context/context-layer-blueprint--layer-mechanism-map.mmd) | cognitive-context/013-context-layer-blueprint.md §3.1 spine 总映射 | architecture | ✓ | done | 五层×M1–M7×negentropy 实例脊柱（2026-09-20 全量重设计新增）：五列横向生命周期，上排机制锚/下排实例状态，M4 双落点与 M5 归位以节点标签承载 |
 | [context-layer-blueprint--dual-track-roadmap](./cognitive-context/context-layer-blueprint--dual-track-roadmap.mmd) | cognitive-context/013-context-layer-blueprint.md §16 双轨演进路线 | architecture | ✓ | done | 样板间 P0–P3 × 本楼改造 Phase 1–3 双泳道（2026-09-20 全量重设计新增）：共享设计层居顶辐射，三虚线对齐边承载能力锚点 |
+| [context-layer--auto-channel](./cognitive-context/context-layer--auto-channel.mmd) | cognitive-context/013-context-layer-blueprint.md §8.5（原 design/context-layer.md §5，已并入；2026-09-22 自 design/ 归位） | workflow | ✓ | done | fix: 1) 事实修正（以代码为准）：原图把 _collect_kg_context() |
+| [context-layer--assembler-planner](./cognitive-context/context-layer--assembler-planner.mmd) | cognitive-context/013-context-layer-blueprint.md §8.5（原 design/context-layer.md §6，已并入；2026-09-22 自 design/ 归位） | workflow | ✓ | done | fix: 源 mermaid 块#4 本身与代码事实自洽（「既有」节点全部核对通过、「新增 |
+| [context-layer--request-injection](./cognitive-context/context-layer--request-injection.mmd) | cognitive-context/013-context-layer-blueprint.md §12.1（原 design/context-layer.md §2，已并入；2026-09-22 自 design/ 归位） | workflow | ✓ | done | fix: 4 处以代码为准的修正（.mmd 携 %% fix 行、facts 笔记逐条锚点 |
+| [context-layer--runtime-layering](./cognitive-context/context-layer--runtime-layering.mmd) | cognitive-context/013-context-layer-blueprint.md §12.2（原 design/context-layer.md §3，已并入；2026-09-22 自 design/ 归位） | architecture | ✓ | done | fix: ① 补全 Tools/Skills→PostgreSQL 两条边（builtin |
+| [context-layer--evolution-levers](./cognitive-context/context-layer--evolution-levers.mmd) | cognitive-context/013-context-layer-blueprint.md §12.5（原 design/context-layer.md §7，已并入；2026-09-22 自 design/ 归位） | architecture | ✓ | done | fix: (1) 状态机补终态 rejected（代码 STATUS_REJECTED 存 |
+| [context-layer--collect-phase](./cognitive-context/context-layer--collect-phase.mmd) | cognitive-context/013-context-layer-blueprint.md §3.4（原 design/context-layer.md §1.1，已并入；2026-09-22 起作为 §3.4 三相流水线总览图直接承载，自 design/ 归位） | dataflow | ✓ | done | fix: 原块把 Collect 三机制与 Enrich 三能力画成串行链；按产品页事实改为三源并列汇入、富化能力并列产出 |
 
 ### 原地保留（无 archify 对应类型 / 不在本管线）
 
