@@ -13,6 +13,6 @@ target_minutes = [15.0, 18.0]
 # 摘要含 style 与 ref_sha1，改档 = 整集重合成（须 --allow-voice-switch 显式放行）。
 # 升级 sunny-steady 属独立重录决策，登记于 series.json 的待升级项。
 engine   = "indextts"
-ref      = "pipeline/voices/me-1.wav"
+ref      = "voices/me-1.wav"
 ref_sha1 = "3ed0d9d60d4b"
 style    = "passionate"

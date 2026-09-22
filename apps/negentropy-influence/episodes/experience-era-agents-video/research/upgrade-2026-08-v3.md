@@ -114,7 +114,7 @@ RISKY=0**，其提出的微调（p5-15/16/18/22/27、p2-15、p4-10/15、p6-13b�
   | B（成片） | `sunny-steady`(beams=3) | 187 | **1.98 h** | 12.89 分 | ≈9.2 |
 
   **B/A ≈ 1.04**——与手册旧记载的「整集升档 +241%（9.9 h）」相差极大。已回写
-  [VOICE-CLONING.md §4.3b](../../../pipeline/VOICE-CLONING.md) 与 `tts.py` 常量注释：旧数据应在机器
+  [VOICE-CLONING.md §4.3b](https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/VOICE-CLONING.md) 与 `tts.py` 常量注释：旧数据应在机器
   被占用/热节流时测得；机器空闲时整集直上 `sunny-steady` 可行，`--steady` 混合档退为忙时折中手段。
 - **缓存正确性核验**：B 遍后独立重算 187 句摘要，**全部匹配 `sunny-steady`(beams=3)**，且 p0-01 不再
   匹配 A 遍 sunny 摘要 → 确认是真重合成而非缓存复用；`.engine` 标记为

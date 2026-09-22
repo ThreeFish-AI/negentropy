@@ -19,9 +19,35 @@ import json
 import sys
 from pathlib import Path
 
+import os
+
 ROOT = Path(__file__).resolve().parent.parent
 SIDE = ROOT / "video" / "public" / "archify"
-R = ROOT.parent.parent / "pipeline" / "scripts"
+
+
+def _skill_scripts() -> Path:
+    """定位 to-video skill 的 pipeline/scripts（TO_VIDEO_HOME → 两处约定安装位）。"""
+    candidates = []
+    if env := os.environ.get("TO_VIDEO_HOME"):
+        candidates.append(Path(env).expanduser())
+    candidates += [
+        Path.home() / ".claude" / "skills" / "to-video",
+        Path.home() / ".agents" / "skills" / "to-video",
+    ]
+    for c in candidates:
+        p = c / "pipeline" / "scripts"
+        if (p / "pipeline.py").is_file():
+            return p
+    listed = "\n  ".join(str(c) for c in candidates)
+    sys.exit(
+        "找不到 to-video skill（按序尝试：\n  " + listed + "\n）。\n"
+        "  安装：git clone https://github.com/ThreeFish-AI/to-video <目录>\n"
+        "        ln -s <目录> ~/.claude/skills/to-video"
+        "   # 或设 TO_VIDEO_HOME=<目录>"
+    )
+
+
+R = _skill_scripts()  # 机制脚本随 to-video skill 安装（2026-09 机制外置）
 
 #: 人工审定图型表（判型依据：交付 HTML 的 data-composition-frame-kind 指纹
 #: + legend 语义，2026-09-20 由产制链路调研定稿）。
@@ -68,8 +94,23 @@ TYPES = {
 sys.path.insert(0, str(R))
 from record_archify import _sniff_diagram_type  # noqa: E402  —— 必须在 sys.path 注入之后导入
 
-# R = apps/negentropy-influence/pipeline/scripts → 仓库根在 R.parents[3]
-DOCS_ASSETS = R.parents[3] / "docs" / "assets" / "architecture" / "cognitive-context"
+
+def _repo_root(start: Path) -> Path:
+    """本仓库根：自 start 向上找 .git（**文件或目录**——worktree 是文件）。"""
+    for p in [start.resolve(), *start.resolve().parents]:
+        if (p / ".git").exists():
+            return p
+    return start.resolve()
+
+
+# skill 不在本仓库内，仓库根改自本文件锚定（原 R.parents[3] 数层数随外置失效）
+DOCS_ASSETS = (
+    _repo_root(Path(__file__))
+    / "docs"
+    / "assets"
+    / "architecture"
+    / "cognitive-context"
+)
 
 
 def _local_html(sidecar: dict, slug: str) -> Path:

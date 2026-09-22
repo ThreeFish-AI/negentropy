@@ -4,9 +4,9 @@ title: "Context Layer 技术蓝图与方案"
 description: "Context Layer 知识与设计 SSOT：以 Snowflake Horizon Context M1–M7 为范本的五正交层通用蓝图（对象/目录/富化/治理/激活）× 业界格局 × MCP 供给面威胁模型 × negentropy 实例化总装 × 双轨演进路线"
 ---
 
-> **定位**：Context Layer 的**精炼设计蓝图 SSOT**——以 [Snowflake Horizon Context](https://www.snowflake.com/en/product/features/horizon-context/) 为范本，可独立部署、可实例化进任意宿主（本文以 negentropy 为实例）的受治理上下文层设计。**文档族分工**：**013（本文）= 设计与判定**（规格、状态、决策、路线）；[011 精读笔记](./011-horizon-context.md) = **全量机制载荷与审计档案**（机制详解与全过程审计——冻结）；[012](./012-horizon-context-mapping-negentropy.md) = 锚点核验快照（结论已并入 §12.7）。`concepts/design/context-layer.md` 已于 2026-09-21 删除并入本文。
+> **定位**：Context Layer 的**精炼设计蓝图 SSOT**——以 [Snowflake Horizon Context](https://www.snowflake.com/en/product/features/horizon-context/) 为范本，可独立部署、可实例化进任意宿主（本文以 negentropy 为实例）的受治理上下文层设计。**文档族分工**：**013（本文）= 设计与判定**（规格、状态、决策、路线）；[011 精读笔记](./011-horizon-context.md) = **全量机制载荷**（精读笔记终稿，冻结——机制详解、组件全景、时间线、实证；过程性内容已于 2026-09-22 裁撤、审计存 git 史）；[012](./012-horizon-context-mapping-negentropy.md) = 锚点核验快照（结论已并入 §12.7）。`concepts/design/context-layer.md` 已于 2026-09-21 删除并入本文。
 >
-> **编号稳定键**：M1–M7 · D1–D10 · #1–#16 映射 · ADR-1/2/3 · P0–P3 · Phase 1–3。章号无前缀指本文；011 §3 三专章（富化/检索/生态）在本文落点 §6/§8.2/§8.3。
+> **编号稳定键**：M1–M7 · D1–D10 · #1–#16 映射 · ADR-1/2/3 · P0–P3 · Phase 1–3。章号无前缀指本文；011 §10/§11/§12 三专章（富化/检索/生态，为其 §3 三子节）在本文落点 §6/§8.2/§8.3。
 
 ## 0. 为什么需要：Agent 在自信地猜数
 
@@ -73,9 +73,9 @@ semantic layer（Business Objects，1990s）→ headless BI 幻灭（2020–23�
 | ---- | ---- | ---- |
 | §4 对象层 | M1 | definitions registry ✅；三字段纪律 / verified QA 🔶 |
 | §5 目录层 | M5 + 四层信号 | 三视图 + 信任归一 🔶 |
-| §6 富化层 | 011 §3·富化 | patrol/Judge 闭环 ✅；冲突浮出面 🔶 |
+| §6 富化层 | 011 §10 | patrol/Judge 闭环 ✅；冲突浮出面 🔶 |
 | §7 治理层 | M2/M3/M6/M7 + 威胁模型 | scoped & accessible ✅；ContextGuard / 策略对象化 / 身份天花板 🔶 |
-| §8 激活层 | M4 + 011 §3·检索/生态 | 三层披露 ✅；Router / KB 接地 / MCP 供给 🔶 |
+| §8 激活层 | M4 + 011 §11/§12 | 三层披露 ✅；Router / KB 接地 / MCP 供给 🔶 |
 
 ![五层×机制×实例脊柱图。](../../assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map-dark.png)
 
@@ -83,7 +83,7 @@ semantic layer（Business Objects，1990s）→ headless BI 幻灭（2020–23�
 
 ### 3.2 范本速览：Horizon Context
 
-围绕 **Horizon Catalog**（"the agentic catalog"）的能力底座：从登记簿升维为「理解系统」（*"a working model of your entire business"*）。命名学事实：伞名在 docs 零命中——须区分「博客伞叙事」与「文档实例化」。组件↔机制对应与四簇解构见 [011 §2](./011-horizon-context.md)。演进三阶段：①语义对象化（2024→2025-08，Semantic Views GA）→ ②治理内嵌与双轨富化（策略下沉语义层、Autopilot GA、OSI+MCP GA、2026-06-02 定名）→ ③生态开放（Sense 预告、Ossie 入 Apache、External Lineage GA）。26 项里程碑见 [011 §2.2](./011-horizon-context.md)。官方双 Agent：CoCo（编程）/ CoWork（分析）。
+围绕 **Horizon Catalog**（"the agentic catalog"）的能力底座：从登记簿升维为「理解系统」（*"a working model of your entire business"*）。命名学事实：伞名在 docs 零命中——须区分「博客伞叙事」与「文档实例化」。组件↔机制对应与四簇解构见 [011 §4.1](./011-horizon-context.md)。演进三阶段：①语义对象化（2024→2025-08，Semantic Views GA）→ ②治理内嵌与双轨富化（策略下沉语义层、Autopilot GA、OSI+MCP GA、2026-06-02 定名）→ ③生态开放（Sense 预告、Ossie 入 Apache、External Lineage GA）。里程碑时间线见 [011 §4.2](./011-horizon-context.md)。官方双 Agent：CoCo（编程）/ CoWork（分析）。
 
 ### 3.4 三相流水线 × 四层信号
 
@@ -180,7 +180,7 @@ version: 12
 
 ## 6. 富化层：双轨编纂、民间经验与人工裁决
 
-### 6.1 机制 · 双轨富化（专章，详解 011 §3·供给与富化）
+### 6.1 机制 · 双轨富化（专章，详解 011 §10）
 
 Snowflake 内部实测：9,685 表人工覆盖 **<5%**——正确读法：**显式轨道单独不闭合供给缺口**。显式轨道 **Autopilot**（GA 2026-02-03）：六路输入、候选过验证门、"from days to minutes"；隐式轨道 **Cortex Sense**（预告期，docs 零命中无可验证入口）：从查询历史与 BI 行为拼装隐式理解（"only ingest metadata and usage patterns, not your actual data rows"）；数字全自报。**三层纪律**：①eval 自纠环（三路输入→修正→重排复测）；②**冲突强制浮出人工**（CONFLICT 卡片并列两定义、无数值、拒答待裁，**禁按 popularity 自动选**——D4 实测自动选让错误口径胜出）；③governed 权重压倒推断。降级理由：盲评 0/4 入集（证据成熟度轴）；**触发器：Sense GA + 首次独立实测**。学术同构：arXiv 2609.19615。
 
@@ -267,11 +267,11 @@ Snowflake 内部实测：9,685 表人工覆盖 **<5%**——正确读法：**显
 
 与 M1 正交的独立失效面：「语义视图正确，但 LLM 生成的 SQL 错引它」。typedef 最重批判："Governing a definition, and labeling it, is still not the same as verifying the calculation an agent runs against it"——M4 是验证缺口**已交付的一半**（另一半 Agent Evaluations 墙外 opt-in）。载体 **VQR**：字段 `name/question/verified_at/verified_by/sql`+confidence；**命中优先**（以已验证查询为生成依据，非重放）；候选三标准（高频/有信息量/新颖）；**>20 条反噬**；社区双向（正向只信命中 VQ；负向版本混乱迁 dbt/CICD——管理成本是重度使用痕迹）。跨厂商同构：Looker verified queries（核心已 GA 2026-07 口径）、Genie certified、ThoughtSpot curated。不可外挂增量：**核验态作为库内可撤销、可审计、随定义分发的一等状态**（按定义继承治理理解，勿拔高）。
 
-### 8.2 金牌前台 · 检索与发现（专章，详解 011 §3·检索与发现）
+### 8.2 金牌前台 · 检索与发现（专章，详解 011 §11）
 
 **检索是正确性前置环节，不是可选优化**：Spider 2.0 最强崩崖（86.6%→10.1%），最难失败是**建错表**；增强+重排再降失败率 49%→67%；Glean \$7.2B 证第一预算优先级。降级依据：Snowflake 量化全自报（NDCG 0.22→0.59）；实现是商品化组件可外挂（以 ACL 镜像漂移为代价）。机制：Universal Search 混合（GA）；Cortex Search 托管混合（>~10 distinct 才挂）；四因子排序；**top-k 硬约束**（整视图 ~100K token）；与 M4 类目边界：VQR 候选集全核验（错误面窄）晋级锚定。触发器：agent 选择路径独立评测或 OBJECT_VISIBILITY 安全研究。
 
-### 8.3 护照与插座 · 生态与出口（专章，详解 011 §3·生态与出口）
+### 8.3 护照与插座 · 生态与出口（专章，详解 011 §12）
 
 1. **OSI → Apache Ossie**：17→28→33（v1 定稿）→ 50+；入孵化器三日期口径并存（06-19/06-22/07-08）；**OSI v1 ≠ Apache 版本线**（core-spec 0.2.0.dev0 未发布）；converters 16 目录、**首 release 未切出**；7 个往返缺陷全开放 + Datus 实测静默丢 ASOF/RANGE；产品化仅 Strategy One in-product。触发器：任一 tier-1 原生 in-product GA + 独立保真度实测。
 2. **官方 MCP Server**（GA 2025-11-04）：5 类工具面；建议只暴露单个 Cortex Agent；协议 revision 2026-07-28（无状态核心、MRTR、DCR 废弃、旧传输 12 个月弃用）；scopes `session:role:*`；≤50 工具；250KB 截断；SSE 流；仅 semantic views；Claude/Cursor 可受控接入。
@@ -415,13 +415,13 @@ known-answer 四原则：①考题=业务问题×人工签字期望值；②用�
 | 4 | M1 重算（§4） | 无（非指标栈） | ⏸ |
 | 5 | M2 策略（§7） | accessible 过滤（非策略对象） | 🔶 |
 | 6 | M3 双层（§7） | 检索过滤有；Guard 在方案 | 🔶 |
-| 7 | 011 §3·富化 自纠环（§6） | patrol/Judge 全链 | ✅ 同构 |
-| 8 | 011 §3·富化 冲突裁决（§6） | 无显式裁决面 | 🔶 |
-| 9 | 011 §3·检索 top-k（§8） | L1/L2/L3 披露 | ✅ |
+| 7 | 011 §10 自纠环（§6） | patrol/Judge 全链 | ✅ 同构 |
+| 8 | 011 §10 冲突裁决（§6） | 无显式裁决面 | 🔶 |
+| 9 | 011 §11 top-k（§8） | L1/L2/L3 披露 | ✅ |
 | 10 | M4 验证问答 | done 文档未沉淀问答对 | 🔶 |
-| 11 | 011 §3·检索 四因子 | 归一未实现；缺 staleness | 🔶 |
-| 12 | 011 §3·生态 Ossie | 无 | ⏸ |
-| 13 | 011 §3·生态 MCP | 方向相反（客户端） | 🔶 供给面 |
+| 11 | 011 §11 四因子 | 归一未实现；缺 staleness | 🔶 |
+| 12 | 011 §12 Ossie | 无 | ⏸ |
+| 13 | 011 §12 MCP | 方向相反（客户端） | 🔶 供给面 |
 | 14 | M5 血缘 | 执行史≠依赖图 | ⏸ |
 | 15 | M6 身份 | agent_type 有、天花板无 | 🔶 |
 | 16 | M7 标签 | 无分类策略链 | ⏸ |
@@ -488,7 +488,7 @@ uv run --no-project python docs/research/cognitive-context/assets/horizon_contex
 
 ### 14.3 重评审记录（压缩版）
 
-M1–M7 与三专章源于 2026-09-17 全局重评选（五透镜扫源 25 候选→四人格盲评→三视角裁决→八路对抗验证；五判据：承重性/不可替代性/跨源共识/独立实证/正交性）。关键 verdict：旧 M1+M2 合为双不变量 M1；引擎治理拆 M2+M3、标签析出 M7；富化/检索/互操作降级专章（证据成熟度轴，各带触发器）；VQR 晋级「验证锚定墙」。25 候选去向全覆盖。**全过程审计仅存 [011 §16](./011-horizon-context.md)。**
+M1–M7 与三专章源于 2026-09-17 全局重评选（五透镜扫源 25 候选→四人格盲评→三视角裁决→八路对抗验证；五判据：承重性/不可替代性/跨源共识/独立实证/正交性）。关键 verdict：旧 M1+M2 合为双不变量 M1；引擎治理拆 M2+M3、标签析出 M7；富化/检索/互操作降级专章（证据成熟度轴，各带触发器）；VQR 晋级「验证锚定墙」。25 候选去向全覆盖。**全过程审计存于 git 历史（PR #1149；2026-09-22 自 011 裁撤）。**
 
 ## 15. 验收问答（要点）
 

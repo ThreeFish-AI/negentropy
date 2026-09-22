@@ -183,7 +183,7 @@ negentropy/
 │   │   └── scripts/                   # 前端专用脚本
 │   ├── negentropy-wiki/               # Wiki 应用 (pnpm 管理，纯静态导出)
 │   ├── negentropy-perceives/          # PDF/Web → Markdown 感知服务 (uv 管理，FastMCP :2992)
-│   └── negentropy-influence/          # 科普视频流水线 (uv 管理脚本，无常驻端口)
+│   └── negentropy-influence/          # 科普视频内容工作区（机制外置 to-video 技能）
 └── .temp/                             # 临时文件（自动清理）
 ```
 

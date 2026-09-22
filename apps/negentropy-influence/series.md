@@ -1,14 +1,14 @@
 # 科普视频作品总览
 
 > 机读 SSOT：[series.json](./series.json)（顶层 `seriesList[]`，多系列并列）。顺序变更只改它 + 视觉层；
-> 口播永不携带序号，校验器 [check_series.py](./pipeline/scripts/check_series.py) 保证散文/组件与清单一致。
+> 口播永不携带序号，校验器 [check_series.py](https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/scripts/check_series.py) 保证散文/组件与清单一致。
 >
 > **多系列执法语义**：反串线（规则 1）**跨系列全局生效**——两个系列各自独立成片，口播互不引用；
 > 顺序类规则（2/3/4）**按系列内判定**——不同系列的发布顺序互相无关，`episode` 的 `1..N`
 > 连续性也只在系列内成立。
 
-制作统一走[公共管线](./pipeline/README.md)（九阶段）；配音经 IndexTTS-2.5 本人音色克隆
-（样本指纹见 [voices/refs.toml](./pipeline/voices/refs.toml)，手册 [VOICE-CLONING.md](./pipeline/VOICE-CLONING.md)）。
+制作统一走[公共管线](https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/README.md)（九阶段）；配音经 IndexTTS-2.5 本人音色克隆
+（样本指纹见 [voices/refs.toml](./voices/refs.toml)，手册 [VOICE-CLONING.md](https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/VOICE-CLONING.md)）。
 
 ## 自进化系列（论文型选题）
 
