@@ -94,7 +94,7 @@ description: "arXiv:2609.14858 精读：把累积发现历史当重放模拟器�
 
 关键保真度声明（论文原话：*"a grounded model of the portion of the discovery space that has already been observed"*）：重放**不产生超出 𝒯i 的任何结果**，分支严格按记录的 parent–child 序遍历。这带来一个结构性边界——每个非根节点只有一条记录链，策略无法「想象」同一起点的其他可能结果；在线转移是随机的（同一起点 agent 可产出不同结果），重放把这种随机性冻结成了单次抽样。
 
-**原型实景**——[`replay()`](./assets/dream_rsi_lab.py)（L156）：selftest 断言「同一策略同一树两次重放逐位一致」（L437-440）验证确定性；根与非根的差异化转移即 L162-174 的 if/else。T1 上的重放对比（实际运行输出）：
+**原型实景**——[`replay()`](./assets/dream_rsi_lab.py)（L156）：selftest 断言「同一策略同一树两次重放逐位一致」（L437-440）验证确定性；根与非根的差异化转移即 L172-184 的 if/else。T1 上的重放对比（实际运行输出）：
 
 ```text
 ── 策略重放分对比（T1 上）──
@@ -161,7 +161,7 @@ uv run --no-project python docs/research/self-evolution/assets/dream_rsi_lab.py 
 | 共享决策接口 A(𝒯)、批次 | `eligible()` / `select_batch()` | L90 / L200 |
 | 在线推演（脚本化随机性） | `World.attempt()` / `online_rollout()` | L113 / L130 |
 | 重放确定性转移（非根唯一子/根最早未揭示） | `replay()` | [L156](./assets/dream_rsi_lab.py#L156) |
-| 重放目标 V 三分量 | `replay()` 末段 | L182 |
+| 重放目标 V 三分量 | `replay()` 末段 | L190 |
 | 策略池（初始/串行/浅尝/全展开/自适应） | 五个 `Policy` 子类 | L204-285 |
 | 修订 + argmax 含当前策略 | `develop_versions()` / `select_policy()` | L287 / L292 |
 | 两轮递归主循环 | `dream_loop()` | [L301](./assets/dream_rsi_lab.py#L301) |

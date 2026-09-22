@@ -6,7 +6,7 @@ description: "把 Dream-RSI 六条机制对照本仓 evolution / routine / eval 
 
 # Dream-RSI ↔ negentropy 机制映射报告
 
-> 把 [Dream-RSI 论文精读笔记](./144-dream-rsi.md)（arXiv:2609.14858）的机制对照到本仓 evolution / routine / eval 体系，回答「论文的哪些设计本仓已有、哪些是真增量、哪些值得落地」。**只分析不改码**；锚点均经 `grep -n` 实际代码核验（分支 `ThreeFish-AI/quito-v2`）。
+> 把 [Dream-RSI 论文精读笔记](./144-dream-rsi.md)（arXiv:2609.14858）的机制对照到本仓 evolution / routine / eval 体系，回答「论文的哪些设计本仓已有、哪些是真增量、哪些值得落地」。**只分析不改码**；锚点均经 `grep -n` 实际代码核验（分支 `ThreeFish-AI/guided-learn-arxiv-2609-14858`）。
 
 ## 结论先行
 
