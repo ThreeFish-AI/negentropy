@@ -1,7 +1,7 @@
 ---
 sidebar_position: 4
 title: "Snowflake Horizon Context 精读笔记"
-description: "Snowflake Horizon Context 精读档案（冻结版；设计 SSOT 见 013 蓝图）：治理引擎内嵌、查询期强制执行的七承重机制 M1–M7——语义视图口径单点×查询期重算 / 行列级访问策略 / 语义级治理执行 / 应答层验证锚定 / 端到端列级血缘 / Agent Identity / 分类与标签驱动策略传播——另附富化、检索、生态三专章（§10–§12）、演进全景、关键实证数字、批判性边界、2026-09-17 全局重评审记录与随文最小原型"
+description: "Snowflake Horizon Context 精读档案（冻结版；设计 SSOT 见 013 蓝图）：治理引擎内嵌、查询期强制执行的七承重机制 M1–M7——语义视图口径单点×查询期重算 / 行列级访问策略 / 语义级治理执行 / 应答层验证锚定 / 端到端列级血缘 / Agent Identity / 分类与标签驱动策略传播——另附富化、检索、生态三专章（§10–§12）、演进全景、关键实证数字、批判性边界与随文最小原型"
 ---
 
 > [!NOTE] **核心精读范围**
@@ -23,7 +23,7 @@ description: "Snowflake Horizon Context 精读档案（冻结版；设计 SSOT �
 
 > [!TIP] **怎么读笔记**
 >
-> 每个机制节按「类比 → 机制 → 原型」三拍进行记录和实践。本篇机制集经过 2026-09-17 的**全局重评选**校准（方法与判据见 §16）：M1–M7 七个机制是重评选后的「全局最重要承重组件」——口径与应答两席（M1/M4）、治理执法四席（M2/M3/M6/M7）、账本一席（M5）；富化、检索排序、开放互操作三族因证据成熟度不足**降级为专章保留**（§10–§12，内容不删、降级理由与重评触发器随文写明）。M1–M7 各配一张动效工程图，§1 开篇另配病因链总览图，§4 配组件全景与演进时间线两张总览图（交互版 HTML 下载到本地打开，可切主题/缩放/聚焦，trace 动画按主路径点亮）。实践取自配套最小原型 [`assets/horizon_context_lab.py`](./assets/horizon_context_lab.py)（约 1195 行纯标准库，七机制 + 场景矩阵 + 十次破坏性实验；MCP 服务原型 [`assets/horizon_context_mcp.py`](./assets/horizon_context_mcp.py)）。
+> 每个机制节按「类比 → 机制 → 原型」三拍进行记录和实践。M1–M7 七个机制是 Horizon Context 的「全局最重要承重组件」——口径与应答两席（M1/M4）、治理执法四席（M2/M3/M6/M7）、账本一席（M5）；富化、检索排序、开放互操作三族**作专章保留**（§10–§12，证据边界随文标注）。M1–M7 各配一张动效工程图，§1 开篇另配病因链总览图，§4 配组件全景与演进时间线两张总览图（交互版 HTML 下载到本地打开，可切主题/缩放/聚焦，trace 动画按主路径点亮）。实践取自配套最小原型 [`assets/horizon_context_lab.py`](./assets/horizon_context_lab.py)（约 1195 行纯标准库，七机制 + 场景矩阵 + 十次破坏性实验；MCP 服务原型 [`assets/horizon_context_mcp.py`](./assets/horizon_context_mcp.py)）。
 >
 > **章节地图**：
 >
@@ -32,9 +32,9 @@ description: "Snowflake Horizon Context 精读档案（冻结版；设计 SSOT �
 > | 精读主线 | §1 病灶与问题 → §2 七承重机制（M1–M7） | 先总后分的教学动线 |
 > | 骨架与全景 | §3 三阶段治理骨架（§10–§12 专章挂靠于此）· §4 全景与演进 | 供给导航、组件对照、时间线 |
 > | 证据与实验 | §13 关键实证数据 · §14 动手实践 | 数字纪律 + 玩具域原型 |
-> | 审计层（冻结） | §15 批判性边界 · §16 重评审记录 · §17 验收问答 · §18 本仓关联 | 档案价值 + 013 契约 |
+> | 边界与问答（冻结） | §15 批判性边界 · §17 验收问答 · §18 本仓关联 | 批判性阅读的收束 |
 >
-> **章号即稳定键**：§5–§9 系 2026-09-17 重评选将旧 M3–M7 并入 §2 后腾空的逻辑编号，**已封存、勿复用**——8+ 张 archify 成片与 013 蓝图以「011 §10/§11/§12」等编号回指本篇；新增内容续用 §19+ 或并入既有章节。
+> **章号即稳定键**：§5–§9 与 §16 系章节重组与过程内容裁撤后腾空的逻辑编号，**已封存、勿复用**——8+ 张 archify 成片与 013 蓝图以「011 §10/§11/§12」等编号回指本篇；新增内容续用 §19+ 或并入既有章节。
 
 配套产物：[Context Layer 基础设施设计蓝图](./013-context-layer-blueprint.md) · [Horizon Context ↔ negentropy 机制映射报告](./012-horizon-context-mapping-negentropy.md)。
 
@@ -97,7 +97,7 @@ description: "Snowflake Horizon Context 精读档案（冻结版；设计 SSOT �
 
 > [!NOTE] **机制**
 >
-> **为什么把「对象模型」与「查询正确性」并列为一个机制的两条不变量**：重评选的对抗验证给出了硬证据——声明唯一性与计算正确性是**两条可各自独立失效的不变量**。机制先祖 Looker 的 `symmetric_aggregates` 是 Explore 级参数、**可显式关闭**：关闭时同一套完全合法的 LookML 定义在 fanout join 下照样算错聚合——「定义被接受而计算语义错」是语义层设计空间中**已文档化的状态**，不是引擎 bug。跨工具的自然实验同向：dbt MetricFlow 遇 fan-out join 直接**拒答**（fail-fast）、Cube pre-aggregation 无匹配即**回退底表**、Snowflake 则 grain 前置聚合 + distinct 跨 join 安全 + `NON ADDITIVE BY`——四家在「定义层」上趋同（各家都是文本声明的指标模型），**差异化恰恰全部发生在「执行半边」**（typedef 对 Snowflake 的评语："It goes further than most semantic layers... A layer that recomputes from base data is better than one that stores frozen totals."）。Snowflake 把两半铸进同一个 DDL 对象（CREATE SEMANTIC VIEW）不可分售，因此并为一个机制；但读者必须知道本章承重两条不变量，旧 M2（查询时语义正确性）时代的规则明细绝不是附属细节。
+> **为什么把「对象模型」与「查询正确性」并列为一个机制的两条不变量**：声明唯一性与计算正确性是**两条可各自独立失效的不变量**。机制先祖 Looker 的 `symmetric_aggregates` 是 Explore 级参数、**可显式关闭**：关闭时同一套完全合法的 LookML 定义在 fanout join 下照样算错聚合——「定义被接受而计算语义错」是语义层设计空间中**已文档化的状态**，不是引擎 bug。跨工具的自然实验同向：dbt MetricFlow 遇 fan-out join 直接**拒答**（fail-fast）、Cube pre-aggregation 无匹配即**回退底表**、Snowflake 则 grain 前置聚合 + distinct 跨 join 安全 + `NON ADDITIVE BY`——四家在「定义层」上趋同（各家都是文本声明的指标模型），**差异化恰恰全部发生在「执行半边」**（typedef 对 Snowflake 的评语："It goes further than most semantic layers... A layer that recomputes from base data is better than one that stores frozen totals."）。Snowflake 把两半铸进同一个 DDL 对象（CREATE SEMANTIC VIEW）不可分售，因此并为一个机制；但读者必须知道本章承重两条不变量，查询正确性半边的规则明细绝不是附属细节。
 >
 > **不变量 A · 口径单点（五段式声明 + 注册期校验门）**：
 >
@@ -170,7 +170,7 @@ description: "Snowflake Horizon Context 精读档案（冻结版；设计 SSOT �
 >
 > 1. **Dynamic Masking**：列级脱敏策略在查询期以**策略所有者角色**求值——无权者看到打码值，有权者看到明文，同一 SQL 对不同角色返回不同投影；
 > 2. **Row Access Policy**：行级过滤策略同理，entitlement 映射表决定哪些行可见；
-> 3. **同族策略全景（重评选补全）**：Aggregation Policy（限定可输出的聚合粒度）与 Projection Policy（限定可投影的列集合）是同一查询期策略对象家族的成员，tag-based 形态可把策略绑到标签而非单列（与 M7 的标签供给链衔接）；
+> 3. **同族策略全景**：Aggregation Policy（限定可输出的聚合粒度）与 Projection Policy（限定可投影的列集合）是同一查询期策略对象家族的成员，tag-based 形态可把策略绑到标签而非单列（与 M7 的标签供给链衔接）；
 > 4. **不可绕过的工程含义**：策略所有权与对象所有权、APPLY 权限三权分立；策略求值发生在引擎内——第三方外挂层（应用侧过滤、BI 内权限）拦不住 agent 直连生成的另一条 SQL，这是「外挂治理可被绕过」的标准死法；
 > 5. **代理会话叠加更严拒绝面**：`IS_AGENT_ACTIVATED` 可作为策略体谓词——同一条策略对代理会话可以更严（身份语义本身归 M6，本机制只消费这个谓词）。
 >
@@ -271,7 +271,7 @@ description: "Snowflake Horizon Context 精读档案（冻结版；设计 SSOT �
 > 3. **内外单一账本是差异化所在**（跨厂商对照的准确口径）：Databricks UC 内部列级血缘同位但**外部血缘弱一档**（手工声明、不入 system tables、有上限）；Microsoft Fabric 原生列级血缘仍缺位（社区补位）；Snowflake 的「外部 OpenLineage 事件并入 GET_LINEAGE 同一账本」当前是领先点；
 > 4. **盲区如实**：ML notebook 不进血缘（社区实测）、上游数据质量问题定位仍止步仓库边界。
 >
-> 置信度分轴（对齐 M6 的处理）：重要性轴——官方叙事明确把血缘锚定为 AI 应答可溯源的支柱；置信度轴——独立第三方口径（a16z）零提及 lineage、社区实证集中于单一来源（50K 表 45s→2s 列级系统实测 + 「表级无用、列级才行」一线判语），**承重地位官方定调先行、独立确认待积**。
+> 置信度分轴：重要性轴——官方叙事明确把血缘锚定为 AI 应答可溯源的支柱；置信度轴——独立第三方口径（a16z）零提及 lineage、社区实证集中于单一来源（50K 表 45s→2s 列级系统实测 + 「表级无用、列级才行」一线判语），**承重地位官方定调先行、独立确认待积**。
 
 ![端到端列级血缘：引擎执行语句自动沉淀对象/列级依赖边（原生），外部 OpenLineage COMPLETE 事件经鉴权+可解析门汇入同一账本，GET_LINEAGE 程序化取数支撑事后对账；ML notebook 与上游边界盲区如实标注。](../../assets/architecture/cognitive-context/horizon-context--lineage-ledger-dark.png)
 
@@ -312,7 +312,7 @@ description: "Snowflake Horizon Context 精读档案（冻结版；设计 SSOT �
 >
 > **GA 时间线四级锚点**（复合不变量全面 GA 至今仅数周，读材料时勿混）：2026-06-02 Summit 新闻稿（Agent Identity GA）→ 2026-07-27 agent_type release note → 2026-07-28 官方博客 GA 重申 → 2026-09-03 RSS GA。
 >
-> **置信度分轴（必须写明）**：重要性轴——重评选 4/4 独立人格入集（agent 时代的代理借权+不可归因是新增硬失败，且 who 轴无其他成员覆盖）、竞对机制类同构（Entra Workload ID 等生态）；置信度轴——独立动手验证已出现（Classmethod 实测走查 2026-09-04、Aimpoint 2026-08-19 等），**具名客户 Agent Identity 生产案例仍为零**、docs 页无状态横幅。第三方评价锚点：*"separating agent from human sessions is something most agentic deployments today handle clumsily or not at all"*。**重评触发器：首份具名客户生产案例或首份独立安全评估发布。**
+> **置信度分轴（必须写明）**：重要性轴——agent 时代的代理借权与不可归因是新增硬失败（who 轴无其他机制覆盖）、竞对机制类同构（Entra Workload ID 等生态）；置信度轴——独立动手验证已出现（Classmethod 实测走查 2026-09-04、Aimpoint 2026-08-19 等），**具名客户 Agent Identity 生产案例仍为零**、docs 页无状态横幅。第三方评价锚点：*"separating agent from human sessions is something most agentic deployments today handle clumsily or not at all"*。
 >
 > 相关对照机制（备查）：**Multi-Party Approval**（多方审批，GA 2026-08-04）——敏感操作强制第二审批人，属治理工作流而非身份机制；**Intent-Driven Governance**（意图驱动治理，私有预览）——按代理声明的使用意图动态放宽/收紧权限，依赖身份轴，独立不变量未定型故不入集。
 
@@ -383,17 +383,17 @@ description: "Snowflake Horizon Context 精读档案（冻结版；设计 SSOT �
 >
 > 整个体系有一条**铁打的纪律底线**：起草的规章与助教提炼的民间习惯口径打架时，系统**绝对不准自作主张瞎蒙一个**，必须向业务主管亮红灯（冲突浮出），交人工裁定。
 
-> [!NOTE] **机制与降级理由**
+> [!NOTE] **机制与证据边界**
 >
-> Snowflake 内部实测揭示了一个残酷现实：全司 9,685 张数据表中，人工构建的语义视图覆盖率**不足 5%**——注意这个数字的正确读法（重评选校准）：它是 Autopilot GA **之后**的内部现态（原文 "This certainly helped, but even so"），证明的是**显式轨道单独不闭合供给缺口**（这恰是 Snowflake 自己立 Sense 的论据），**不是 Autopilot 无价值**的证据。
+> Snowflake 内部实测揭示了一个残酷现实：全司 9,685 张数据表中，人工构建的语义视图覆盖率**不足 5%**——注意这个数字的正确读法：它是 Autopilot GA **之后**的内部现态（原文 "This certainly helped, but even so"），证明的是**显式轨道单独不闭合供给缺口**（这恰是 Snowflake 自己立 Sense 的论据），**不是 Autopilot 无价值**的证据。
 >
 > **显式轨道：Autopilot（GA 2026-02-03）**。六路输入面（从零 / 与 CoCo 对话 inline diff / Tableau TWB·TDS / Power BI pbit·pbix / 自然语言+SQL 对或两列 CSV / YAML 上传）；每条候选过**验证门**：自动验证丢弃无效查询、提取表/列/关系，有效者自动入库 verified queries；主键靠元数据分析或 distinct 计数推断。官方口径收益 "from days to minutes"；规模护栏为**建议非硬限**（"<10 表、≤50 列" 标注 "not a hard limit"）。具名客户证言（eSentire/HiBob/Simon AI/VTS，出自新闻稿）；Gartner 首席分析师 Rita Sallam 独立称其 "a game changer"。管理面 Semantic Studio 已于 2026-08-26 公开预览。目录级外部资产摄取走 Metadata Connectors（Wave 1 五连接器：PostgreSQL、SQL Server、Tableau、Power BI、dbt，源自 Select Star 收购，仍私有预览）。
 >
 > **隐式轨道：Cortex Sense（2026-07 私有预览，无 docs 页）**。从查询历史、转换工具模型和 BI 指标自动拼装隐式理解；官方定位 "designed to work alongside semantic views, not instead of them"；隐私边界 "will only ingest metadata and usage patterns, not your actual data rows"。实证数字 24.1% → 86.3%、成本 $1.76 → $0.59/query（Cortex Sense 博客）与 CoWork 博客的 83/47/23 ——**全部为 Snowflake 内部基准自报口径**（第三方目录厂商明确标注 not independently verified），读法见 §13 与批判性边界第 1 条。行研层背书如实记：Gartner 2026-05 "Context with semantic coherence will become a cost-control and trust strategy"；Futurum 对等支柱表述 "Horizon Context defines and governs the truth; Cortex Sense makes that truth immediately consumable by agents"。
 >
-> **三层纪律防线**（降级后作为智识资产完整保留）：①eval 自纠环（金标准问答集/用户反馈/自检薄弱区三路输入，错配即修正）；②冲突强制浮出人工（同名异义 → CONFLICT 卡片并列两定义、无数值、拒答待裁，**禁止按 popularity 自动选**）；③信号分层排序（governed 金标准权威权重压倒性高于推断口径，排序细节见 §11）。
+> **三层纪律防线**：①eval 自纠环（金标准问答集/用户反馈/自检薄弱区三路输入，错配即修正）；②冲突强制浮出人工（同名异义 → CONFLICT 卡片并列两定义、无数值、拒答待裁，**禁止按 popularity 自动选**）；③信号分层排序（governed 金标准权威权重压倒性高于推断口径，排序细节见 §11）。
 >
-> **降级理由（重评选结论，非重要性否定）**：两条轨道在四份独立盲评提名中双双 0/4 入集——降的是**证据成熟度置信度轴**（Autopilot 被官方文档面自判工具级产物、Sense 私预且数字全自报、载体今日不可被外部 agent 消费验证），不是「供给在架构上次要」。跨厂商镜像句防止结构性误读：Databricks 的旗舰应答 Genie Ontology 正是 "an automatic context store"（自动化富化为地基），但其 84.5% 准确率同为 28 题内部基准——本笔记的证据纪律对两家对称适用。**重评触发器：Cortex Sense GA + 首次独立实测出现即重估**（届时以 Futurum 的 "3.5x unproven" 警句作独立怀疑锚点先行对表）。
+> **证据边界**：两条轨道的实证尚未构成可独立复核的硬证据——Autopilot 被官方文档面自判工具级产物、Sense 私预且数字全自报、载体今日不可被外部 agent 消费验证；但供给在架构上并不次要。跨厂商镜像句防止结构性误读：Databricks 的旗舰应答 Genie Ontology 正是 "an automatic context store"（自动化富化为地基），但其 84.5% 准确率同为 28 题内部基准——本笔记的证据纪律对两家对称适用。
 
 ![Horizon Context 三段流水线：三路元数据并列汇入统一目录，显式/隐式双轨富化（同名冲突浮出人工裁决），经四因子混合排序后供给 CoCo、BI 工具与 MCP 外部 Agent。](../../assets/architecture/cognitive-context/horizon-context--collect-enrich-activate-dark.png)
 
@@ -425,9 +425,9 @@ description: "Snowflake Horizon Context 精读档案（冻结版；设计 SSOT �
 >
 > 前台案头还有一套**「四维评估尺」**：契合度（贴不贴提问）、权威度（正式法条还是民间习惯）、流行度（前辈实战公认度）、新鲜度（本月新规还是两年前老黄历）——四杆秤齐压，权威压过声量。
 
-> [!NOTE] **机制与降级理由（理由经对抗验证重写）**
+> [!NOTE] **机制**
 >
-> **先正一条工程结论（防误读）**：检索与选择**是正确性的前置环节，不是可选优化**。独立证据链：Spider 2.0 上最强通用模型崩崖（GPT-4o 在 Spider 1.0 86.6% → Spider 2.0 10.1%），其最难失败不是语法错而是**建错表**（"queries built on the wrong tables"——Colrows 分析）；Anthropic 工程实践：上下文检索增强 + 重排可把检索失败率再降 49%→67%；企业检索市场对「找对上下文」的定价（Glean ARR 九个月翻倍至 $200M、估值 $7.2B）证明它是企业第一预算优先级。**降级的真实依据只有两条**：Snowflake 侧该族能力的全部量化证据均为官方自报（NDCG 阶梯无独立复现）；其实现（混合检索+重排+信号）是**商品化组件**（Elasticsearch/OpenSearch/Vertex AI Search 同类），可外挂近似（但以 ACL 镜像漂移为代价）。
+> **先正一条工程结论（防误读）**：检索与选择**是正确性的前置环节，不是可选优化**。独立证据链：Spider 2.0 上最强通用模型崩崖（GPT-4o 在 Spider 1.0 86.6% → Spider 2.0 10.1%），其最难失败不是语法错而是**建错表**（"queries built on the wrong tables"——Colrows 分析）；Anthropic 工程实践：上下文检索增强 + 重排可把检索失败率再降 49%→67%；企业检索市场对「找对上下文」的定价（Glean ARR 九个月翻倍至 $200M、估值 $7.2B）证明它是企业第一预算优先级。**证据边界有两条**：Snowflake 侧该族能力的全部量化证据均为官方自报（NDCG 阶梯无独立复现）；其实现（混合检索+重排+信号）是**商品化组件**（Elasticsearch/OpenSearch/Vertex AI Search 同类），可外挂近似（但以 ACL 镜像漂移为代价）。
 >
 > 机制面：
 >
@@ -436,8 +436,6 @@ description: "Snowflake Horizon Context 精读档案（冻结版；设计 SSOT �
 > 3. **四因子信号排序**：relevance / authority / popularity / freshness——量化底座出自 **Cortex Search 工程博客**（注意口径：该文本身未提及 Universal Search；NDCG@10 0.22（纯词法）→ 0.49（向量）→ 0.53（混合）→ 0.59（+重排器），hit rate@1 0.79 → 0.83（+popularity）→ 0.86（+recency），**全部官方自报**）。CoCo 与 CoWork 是消费这套排序的代理，不是排序器本身；
 > 4. **top-k 精选是硬约束**：整视图 ~100,000 token 上限（官方 guideline，超限被 Cortex Agents 剪枝——延迟与质量双伤）；
 > 5. **与 M4 的类目边界**（消除表面矛盾）：VQR 检索的候选集**全部是人工核验对象**（错误面天然窄），通用元数据检索的候选集是全目录（错误面宽）——前者晋级为验证锚定、后者留在本节，是「候选集性质」之别而非「检索不重要」。
->
-> **重评触发器**：Universal Search 出现面向 agent 选择路径的独立评测（企业级 Spider 类基准显示选择环节提升），或 OBJECT_VISIBILITY 出现独立安全研究，即重估。
 
 ![四因子信号排序数据流：问题信号、governed/inferred 条目权威度、查询日志热度与更新时钟分别流入 relevance(0.4)/authority(0.3)/popularity(0.2)/freshness(0.1) 四个评估因子，加权合成后经显式 tie-break 输出有序 top-k 上下文包。](../../assets/architecture/cognitive-context/horizon-context--four-factor-ranking-dark.png)
 
@@ -460,16 +458,16 @@ description: "Snowflake Horizon Context 精读档案（冻结版；设计 SSOT �
 >
 > 现代企业为此配发**「全球通用工作护照与标准工业安全插座」**（Ossie 开放语义规范 + Snowflake 官方 MCP Server），并在出口设**海关安检**（Guardrails 拦注入、AI_REDACT 脱敏）——外部专家插上插头就能协同，且全程佩戴安全缰绳，受承重墙闸机（M2/M3/M6）监管。
 
-> [!NOTE] **机制与降级理由**
+> [!NOTE] **机制**
 >
-> 1. **静态定义互通：OSI → Apache Ossie**：2025-09-23 创立（17 家，Tableau CPO 称 "the Rosetta Stone for business data"）→ 28（2025-11-13）→ 33（2026-01-27 v1 定稿，Databricks 入局）→ 50+（Summit 口径；"54" 未见官方页面确认）→ 入 Apache 孵化器（**clutch 记录 2026-06-22**，Snowflake 更名公告 2026-07-08）；下设 Metric Language / Catalog / Ontology 三工作组；dbt MetricFlow（Apache 2.0）为初始参考实现，另有 Apache Polaris 与 Snowflake Semantic Model 转换器；窗口内动态：Power BI↔Ossie 转换器合入（apache/ossie #329，2026-09-16）、规格变更单文档单语义模型（#383）、dbt 转换器与校验器修复（#331/#375/#379/#373）；Dremio 2026-09 报告：1,800+ stars / 13 committers / 7 PPMC，**首个 source release 尚未切出**。语义视图可经 `SYSTEM$CREATE_SEMANTIC_VIEW_FROM_YAML` 从规范 YAML 创建（转换是工具级操作，别按「导入即用」预期）；Datus 实测桥接保真度损失如实记：ASOF/RANGE 等非等值 join 在导出中被静默丢弃（"The export succeeded; the AI behavior diverged."）。**产品化进程更新（2026-09 核验）**：Strategy One 自 2026-06 起可导入 Ossie YAML（预览）、Strategy 2026-07 起导入/导出开箱即用（GUI "Export to Ossie YAML File"）——「零产品原生支持」已成历史，但仍非普遍；**重评触发器：任一 tier-1 BI/仓产品原生 in-product Ossie 导入导出 GA + 独立保真度等价实测通过**；
+> 1. **静态定义互通：OSI → Apache Ossie**：2025-09-23 创立（17 家，Tableau CPO 称 "the Rosetta Stone for business data"）→ 28（2025-11-13）→ 33（2026-01-27 v1 定稿，Databricks 入局）→ 50+（Summit 口径；"54" 未见官方页面确认）→ 入 Apache 孵化器（**clutch 记录 2026-06-22**，Snowflake 更名公告 2026-07-08）；下设 Metric Language / Catalog / Ontology 三工作组；dbt MetricFlow（Apache 2.0）为初始参考实现，另有 Apache Polaris 与 Snowflake Semantic Model 转换器；窗口内动态：Power BI↔Ossie 转换器合入（apache/ossie #329，2026-09-16）、规格变更单文档单语义模型（#383）、dbt 转换器与校验器修复（#331/#375/#379/#373）；Dremio 2026-09 报告：1,800+ stars / 13 committers / 7 PPMC，**首个 source release 尚未切出**。语义视图可经 `SYSTEM$CREATE_SEMANTIC_VIEW_FROM_YAML` 从规范 YAML 创建（转换是工具级操作，别按「导入即用」预期）；Datus 实测桥接保真度损失如实记：ASOF/RANGE 等非等值 join 在导出中被静默丢弃（"The export succeeded; the AI behavior diverged."）。**产品化进程更新（2026-09 核验）**：Strategy One 自 2026-06 起可导入 Ossie YAML（预览）、Strategy 2026-07 起导入/导出开箱即用（GUI "Export to Ossie YAML File"）——「零产品原生支持」已成历史，但仍非普遍；
 > 2. **运行时互通：官方 MCP Server（GA 2025-11-04；docs 页与产品页外部 agent bullet 的状态标注存在差异，以 docs GA 口径为准）**：5 类工具面（`CORTEX_AGENT_RUN` / `CORTEX_SEARCH_SERVICE_QUERY` / `CORTEX_ANALYST_MESSAGE` / `SYSTEM_EXECUTE_SQL` / `GENERIC`）；官方建议只暴露单个 Cortex Agent 作为面向客户端的唯一工具；协议对齐 MCP revision 2025-11-25；OAuth scopes（`session:role:*`，建议 `OAUTH_USE_SECONDARY_ROLES=NONE`）；每 server ≤50 工具；GENERIC/SQL 响应 250KB 截断；2026-08-20 起 tools/call 走 SSE 流；server 不随 failover 组复制；Native Apps 可携带 MCP（2026-08 GA）；只支持 semantic views、不支持 semantic models；Claude Desktop / Claude Code / Cursor 添加自定义连接器即可受控问数；
 > 3. **生态分发面：Automatic Data Agents（Preview Open）**：对 Marketplace 清单/共享数据一键生成 semantic view + Cortex Agent，生成约 10 分钟、重建会覆盖手工修改——context 首次成为随数据产品自带的「出厂附件」；
-> 4. **出口安检（两个指称要分开）**：拦 prompt injection / jailbreak 的是 **Cortex AI Guardrails**（GA 2026-04-20）；PII/PHI 实时脱敏是 **AI_REDACT**（GA 2025-12-08；输入+输出合计 4096 token、输出上限 1024）与 Cortex Guard。重评选判定两者为**概率性/专用性卫星**而非承重机制（Guardrails 属 WAF-for-agents 红海可外挂；AI_REDACT 专攻非结构化文本）——但 sample values 不脱敏的缝仍在（元数据经 `GET_DDL WITH EXTENSION` 暴露，官方仅建议，见批判性边界第 6 条）。
+> 4. **出口安检（两个指称要分开）**：拦 prompt injection / jailbreak 的是 **Cortex AI Guardrails**（GA 2026-04-20）；PII/PHI 实时脱敏是 **AI_REDACT**（GA 2025-12-08；输入+输出合计 4096 token、输出上限 1024）与 Cortex Guard。两者属**概率性/专用性卫星**而非承重机制（Guardrails 属 WAF-for-agents 红海可外挂；AI_REDACT 专攻非结构化文本）——但 sample values 不脱敏的缝仍在（元数据经 `GET_DDL WITH EXTENSION` 暴露，官方仅建议，见批判性边界第 6 条）。
 >
-> **降级理由与定位声明**（回应「Context Layer 本义」质疑）：互操作战略真实、激活面成立（官方叙事自认 "The last mile of context"）——但激活层的**正确性硬保证全部派生自 M1（口径与计算）+ M2/M3/M6（治理与身份）+ M4（验证锚定）**；MCP/Ossie 是传输件与格式件，属可替代商品（竞对全员同构）。传输之战与含义之战是两场战争（Colrows："transport war vs meaning war"——赢含义战者才配谈激活）。**MCP 是第一顺位晋级候选**，双触发器：①平台层面封锁直连凭证路径（使其承重本体从「派生」升为「原生」）；②与 Cortex AI Gateway（2026-09-15 预览）GA 合流成独立控制面。
+> **定位声明**（回应「Context Layer 本义」质疑）：互操作战略真实、激活面成立（官方叙事自认 "The last mile of context"）——但激活层的**正确性硬保证全部派生自 M1（口径与计算）+ M2/M3/M6（治理与身份）+ M4（验证锚定）**；MCP/Ossie 是传输件与格式件，属可替代商品（竞对全员同构）。传输之战与含义之战是两场战争（Colrows："transport war vs meaning war"——赢含义战者才配谈激活）。
 >
-> **负面案例备查（CoCo 命令门）**：消费侧的命令白名单/沙箱类防线不属承重机制——PromptArmor 独立研究演示绕过，Simon Willison 的判语 "I don't trust them at all" 与 HN 社区的 "A sandbox that can be toggled off is not a sandbox"（2026-03）同向；它是「确定性防线承重、概率性/可自关机制不承重」这一重评选判据的最佳反例，登记于此。
+> **负面案例备查（CoCo 命令门）**：消费侧的命令白名单/沙箱类防线不属承重机制——PromptArmor 独立研究演示绕过，Simon Willison 的判语 "I don't trust them at all" 与 HN 社区的 "A sandbox that can be toggled off is not a sandbox"（2026-03）同向；它是「确定性防线承重、概率性/可自关机制不承重」判据的最佳反例，登记于此。
 >
 > 与 dbt 的分工，Snowflake 官方给了一句干净话术："Use dbt to transform; use Horizon Context to govern meaning."
 
@@ -532,11 +530,11 @@ Horizon Context 所含组件与七大机制（M1–M7）的对应关系如下：
 | **Automatic Data Agents**                                          | 针对 Marketplace 共享数据一键自动生成语义视图与配套 Agent                   | §12（生态） |
 | **出口安检**（Cortex AI Guardrails / AI_REDACT）                   | 拦 prompt injection / 越狱；PII / PHI 出口脱敏                              | §12（出口） |
 
-**系统解构与阅读心法**（重评选后的四簇）：
+**系统解构与阅读心法**（四簇）：
 - **口径与应答（M1 / M4）**：答对的根——定义唯一、计算正确、答案可信分层；
 - **治理执法（M2 / M3 / M6 / M7）**：守得住的骨架——客体可见性、定义出口、主体身份、标记-执行供给链四轴正交；
 - **账本（M5）**：事后可对账的底座——预防类机制之外的事后问责链；
-- **供给与出口（§10–§12）**：体系的自愈血液与开放抓手——富化让 Context 变厚、检索让它送得准、互操作让它带得走（重评选中因证据成熟度降级为专章，降级理由与触发器见各章）。
+- **供给与出口（§10–§12）**：体系的自愈血液与开放抓手——富化让 Context 变厚、检索让它送得准、互操作让它带得走（因证据成熟度作专章，证据边界见各章）。
 
 ### 4.2 演进 Timeline：先造对象，再装治理与富化，最后开生态
 
@@ -694,36 +692,6 @@ uv run --no-project python docs/research/cognitive-context/assets/horizon_contex
 4. **governance ≠ verification**——`NON ADDITIVE BY` 是人填的声明非系统推导；上游 dbt 已把 grain 塌缩（日汇总）后，semantic view 的正确算式照样产出 477 vs 48 的错误数字；lineage 是查询日志观察到的「谁喂谁」记录，不是「这么算合法吗」的校验（Cortex Agent Evaluations 是独立 opt-in 的事后评分，不在 Horizon Context 内）。M4 是这道缺口「已交付的一半」，不是全部。
 5. **信号排序可能放大多数派错误**——popularity 权重下，被 500 条查询使用的错误 join 模式压过 3 条查询的正确模式；per-role context 未交付（私测期单角色全量）。
 6. **出口安检有两条缝**——sample values 是元数据、不脱敏（经 `GET_DDL WITH EXTENSION` 暴露，官方仅建议放代表性非敏感值、无强制）；AI_REDACT 输入+输出合计 4096 token 上限（输出 1024），超长文本的脱敏覆盖存疑。
-7. **方法论边界（重评选自身）**——§16 的机制重评选基于 2026-09-17 可得的**业界公开口径**：学术轴仅最小检索（一条 arXiv 锚）、第三方来源中治理/目录厂商占多数（引用处已标利害关系）、社区证据以 Reddit/HN 快照为主。L2「官方叙事」透镜一处用语与旧框架词撞形（已核为自然用语巧合、非泄漏）；编排示例中一处竞对名经检索不存在（不入笔记）。结论的效力以「该时点可得证据」为限。
-
-## 16. 重评审记录（2026-09-17 全局重评选）
-
-本节是 M 集的审计痕迹：为什么是这七个、旧七条去了哪、争议怎么裁的。
-
-**方法**：无锚定四阶段——①五透镜扫源（官方文档面/官方叙事/第三方批判/时效核对/社区信号，产出 25 个归并候选模块，全程不知道旧 M 集的存在，事后机械泄漏审计零命中）；②四人格独立提名（平台架构师/数据治理官/Agent 应用开发者/怀疑者，各自盲评 Top 5–7）；③三视角裁决（判据严苛/正交分解/因果链完整性，同时持有提名与旧 M 集）；④八路对抗验证（每个争议裁决配独立搜索的怀疑者，双向怀疑：既驳「拟改动」也驳「拟维持」）+ 完备性批判家。
-
-**五判据**：C1 承重性（去掉哪条承诺坍塌，须点名失败模式）/ C2 不可替代性（能否外挂不损失保证）/ C3 跨源共识 / C4 独立实证（仅自报降档）/ C5 机制正交性（不同不变量、可独立失效）。
-
-**提名共识矩阵**（四人格盲评 Top-6/6/7/7 的交集）：语义视图、行列级策略、语义级治理、Agent Identity 四席 4/4 全票；VQR、血缘 3/4；分类标签 3/4；MCP 1/4；旧 M4 双轨、M6 排序、M7 互操作 **0/4**；检索发现面一致第 8–9 名。
-
-**逐条 verdict**（旧 → 新）：
-
-| 旧机制                                    | verdict               | 处置                                                                                                                                                   |
-| ----------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| M1 五段式对象模型 + M2 查询时语义正确性   | merge（对抗验证改造） | 合并为新 M1「口径单点 × 查询期重算」双不变量机制；「不可独立失效」论证被 Looker symmetric_aggregates 反例驳倒，改为双不变量并置 + 跨工具执行语义对比段 |
-| M3 引擎原生治理                           | split                 | 拆为新 M2（行列级策略，客体可见性轴）+ 新 M3（语义级治理，定义出口轴）；出口安检（Guardrails/AI_REDACT）降为 §12 小节；分类标签析出为新 M7             |
-| M4 双轨富化与自纠                         | demote                | §10 专章；置信度轴降档非重要性否定；三层纪律作为智识资产保留；触发器=Sense GA+独立实测                                                                 |
-| M5 检索激活                               | split                 | VQR 部分升格为新 M4（经对抗验证改锚「验证锚定墙」）；发现面降 §11，降级理由经对抗验证重写（检索是正确性前置环节，降级依据只有自报证据+商品化组件）     |
-| M6 信号排序                               | demote                | 并入 §11；四因子数字全程标「自报口径」                                                                                                                 |
-| M7 开放互操作                             | demote                | §12 专章；MCP 记第一顺位晋级候选（双触发器）；激活层机制锚=新 M1+M2/M3/M6+M4                                                                           |
-| （全景级角色）Agent Identity              | promote               | 新 M6；4/4 提名；置信度分轴陈述（独立动手验证已有、具名生产案例零）                                                                                    |
-| （全景级角色）External Lineage + 原生血缘 | promote               | 新 M5；3/4 提名；内外单一账本为差异化证据                                                                                                              |
-
-**争议裁决记录**：①M1+M2 合并（J3 异议「两个不变量」部分成立——合并保留但论证改写、双不变量并置）；②分类标签第 7 席（J3 反对论据「无第三方点名」被新证据证伪——Atlan 列 Horizon key capability 第二位、官方产品页有 classify/tag 叙事）；③VQR 对象级晋级被驳（C2 不足：跨厂商载体同构、「DDL 一等治理」无文档支撑）→ 改锚不变量本身（验证锚定墙）保席。
-
-**25 候选去向全覆盖**（无一无声丢弃）：入集 7（上表）；降级专章 6（Autopilot、Cortex Sense、Metadata Connectors、Universal Search、四因子排序、Ossie/MCP/Automatic Data Agents）；并入在集成员边界 5（物化→M1 性能小节、出口安检→§12、AI 指令面→M1、联邦采集私预缺口→§10 缺口地图、IDG 私预→M6 备查）；留档不参选 5（产品/套件/界面类：Horizon Context 本身、Semantic Studio、CoWork Automations、Deep Research、Catalog Explorer UI）；域外 2（Cortex AI Gateway——独立控制面；CoCo 命令门——负面案例入 §12）。
-
-**勘误记录**：J1 裁决曾以「L2 透镜被旧框架污染」折损 L2-only 证据——经核为自然用语撞形的误报，该折损逻辑撤销（受波及候选按原证据面复算，不改判）；编排示例中一处不存在的竞对名（"Colly"）未入笔记。
 
 ## 17. 验收问答（自测答案要点）
 
@@ -732,8 +700,7 @@ uv run --no-project python docs/research/cognitive-context/assets/horizon_contex
 3. **M4 为什么值得独立一席**：语义视图正确但 LLM 生成 SQL 错误引用它是独立失效面；企业接不接决策流分的是「哪个数字有人背书」这一层。它同时是 typedef 批判的验证缺口「已交付的一半」（A1/A1b 实测命中+对账）。
 4. **M6 的天花板为什么必须实时求值**：快照式权限在用户回收后留下越权窗口（D9 实测）；RSS 的定义就是「不替代 RBAC、只做交集」。
 5. **M7 为什么必须经一次性映射**：官方限制掩码策略不能直绑系统标签——分类识别到的敏感列必须经「系统标签→用户标签」映射才能驱动策略，链条断在映射处则分类形同虚设（D10 实测）。
-6. **降级三族为什么降、怎么回来**：富化（§10）与互操作（§12）降在证据成熟度置信度轴（私预+全自报+载体不可外部消费验证 / 传输件格式件可替代），检索（§11）降在自报证据+商品化组件——都不是「不重要」；三族各带显式重评触发器，触发即重估。
-7. **预测题（两周前新表）**：纯 SV 路径的 Cortex Agent 拒答（无覆盖即不猜）；CoCo+Sense 给推断口径的答案（authority 低、可带 warning）；直连库的通用 agent 可能自信错。第一步观察：Sense 给推断定义的 authority 与警告（原型 C1：`no_governed_coverage` + inferred 条目胜出）。
+6. **预测题（两周前新表）**：纯 SV 路径的 Cortex Agent 拒答（无覆盖即不猜）；CoCo+Sense 给推断口径的答案（authority 低、可带 warning）；直连库的通用 agent 可能自信错。第一步观察：Sense 给推断定义的 authority 与警告（原型 C1：`no_governed_coverage` + inferred 条目胜出）。
 
 ## 18. 与本仓的关联
 
