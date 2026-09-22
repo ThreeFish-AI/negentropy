@@ -6,7 +6,6 @@ import {Subtitle} from './components/Subtitle';
 import {theme} from './design/theme';
 import {computeTimeline, SCENE_FADE_FRAMES} from './timing';
 import type {ManifestItem, SceneRange} from './types';
-
 import {P0Hook} from './scenes/P0Hook';
 import {P1Dilemma} from './scenes/P1Dilemma';
 import {P2Tree} from './scenes/P2Tree';

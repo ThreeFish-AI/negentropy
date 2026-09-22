@@ -1,0 +1,11 @@
+%% source: docs/research/self-evolution/144-dream-rsi.md §5
+%% slug: dream-rsi--v-three-terms
+%% type: dataflow
+%% derived: docs/assets/architecture/self-evolution/dream-rsi--v-three-terms.html
+flowchart LR
+    MAX["发现质量<br/>max_v s_v<br/>最好收获值多少钱"] --> V(("V<br/>重放分"))
+    COST["执行成本 − β₁·N<br/>翻页数折算工钱罚款<br/>（假装你花了钱：每页台账在真实世界对应一次计费的生成+评估）") --> V
+    PAR["并行度奖励 + β₂·N / max(1, k)<br/>多队并排开工<br/>同样活一批干完墙钟更短"] --> V
+    V --> AVG["评估分 = 全部 t 棵历史树上的平均"]
+    AVG --> NOTE["实现口径分裂（附录 B.2 如实记录）：<br/>正文 Eq.1 三项代数和 vs 实际 pareto.auc − λ·parallel_penalty<br/>（beta 网格扫描 + 按并行罚排名）"]
+    style V fill:#0F3244,stroke:#7DD3FC,color:#fff
