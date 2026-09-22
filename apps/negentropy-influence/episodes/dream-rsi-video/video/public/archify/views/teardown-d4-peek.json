@@ -1,0 +1,37 @@
+[
+ {
+  "id": "legal",
+  "label": "老实按页翻",
+  "focus": [
+   "legal",
+   "legal-score"
+  ],
+  "note": "重放按亲子序逐页揭示，浅尝章程只值 0.76。"
+ },
+ {
+  "id": "cheat",
+  "label": "越权抽最优页",
+  "focus": [
+   "peek",
+   "peek-score"
+  ],
+  "note": "跳读最优记录后代，分数虚涨到 0.86。"
+ },
+ {
+  "id": "reversal",
+  "label": "排名反转",
+  "focus": [
+   "reversal",
+   "lesson"
+  ],
+  "note": "0.86 反超真最优 0.85——评估必须对真实成本负责。"
+ },
+ {
+  "id": "lesson",
+  "label": "评估要对真实成本负责",
+  "focus": [
+   "lesson"
+  ],
+  "note": "重放的价值恰在 grounded；断言以真跑输出为准。"
+ }
+]

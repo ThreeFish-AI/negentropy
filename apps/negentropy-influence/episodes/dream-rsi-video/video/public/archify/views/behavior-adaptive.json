@@ -1,0 +1,6 @@
+[
+ {"id":"early","label":"起步：满编探索","focus":["early"],"note":"性能上涨初期每轮评估 110 次，火力全开。"},
+ {"id":"save","label":"顺境：主动省钱","focus":["economize","stalled"],"note":"性能爬坡期评估砍到 50 次——省着花。"},
+ {"id":"re-explore","label":"停滞：加码再探","focus":["re-explore"],"note":"进展一停火力加回来，回到八九十次——够着挣。"},
+ {"id":"perf","label":"成绩单","focus":["performance","lesson"],"note":"每轮最好成绩从 0.43 涨到 1.9——章程是学出来的，不是写死的。"}
+]

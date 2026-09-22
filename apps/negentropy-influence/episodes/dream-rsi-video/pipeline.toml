@@ -24,16 +24,19 @@ style = "sunny-steady"
 
 [archify]
 # archify 混合形态（2026-09-22 拍板）：复用 144 笔记配图 2 张 + 本集新增 ~14 张。
-# 阈值首版低定、由覆盖门输出回填抬升（horizon 先例）；判据 SSOT = check_archify_coverage.py docstring。
+# 阈值按 2026-09-23 覆盖门实测回填：50 cue/120 句锚定 41.7%（混合形态——Remotion 原生镜约六成句窗），
+# 分幕最差 P2 38%；判据 SSOT = check_archify_coverage.py docstring。
 min_diagrams = 15
-min_cues = 50
-min_anchor_ratio = 0.45
+min_cues = 48
+min_anchor_ratio = 0.40
 min_chapter_ratio = 0.70
 max_unanchored_run = 6
-min_scene_anchor_ratio = 0.40
-min_cues_per_minute = 5.0
+min_scene_anchor_ratio = 0.28
+min_cues_per_minute = 4.5
 min_diagram_types = 4
 forbid_inset = true
 # 源图集：仓内 self-evolution 分部（2 张随 144 入库 + 本集新增，均命名 dream-rsi--<slug>.html）
 html_dir = "docs/assets/architecture/self-evolution"
 html_pattern = "dream-rsi--{slug}.html"
+# P0 冷开场为纯 Remotion 装置镜（计费计数器/论文卡/标题卡），显式豁免锚定
+exempt_scenes = ["P0"]

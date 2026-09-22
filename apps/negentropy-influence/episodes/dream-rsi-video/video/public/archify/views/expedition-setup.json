@@ -1,0 +1,6 @@
+[
+ {"id":"team","label":"探险队与选路章程","focus":["expedition","policy"],"note":"章程管方向、深挖、并行、收工——全片唯一被改的东西。"},
+ {"id":"ledger","label":"台账：越铺越大的发现树","focus":["ledger"],"note":"每趟进山留下完整路线与收获，一页指认前一页。"},
+ {"id":"sandbox","label":"沙盘：翻旧账免费","focus":["sandbox"],"note":"历史钉上沙盘成重放模拟器，推演不花一分钱。"},
+ {"id":"staff","label":"幕僚长照推演改章程","focus":["dev","policy"],"note":"改得动就换、改不动保留现任——只有章程层在变。"}
+]

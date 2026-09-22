@@ -7,7 +7,22 @@ import {theme} from './design/theme';
 import {computeTimeline, SCENE_FADE_FRAMES} from './timing';
 import type {ManifestItem, SceneRange} from './types';
 
+import {P0Hook} from './scenes/P0Hook';
+import {P1Dilemma} from './scenes/P1Dilemma';
+import {P2Tree} from './scenes/P2Tree';
+import {P3Dream} from './scenes/P3Dream';
+import {P4Score} from './scenes/P4Score';
+import {P5Teardown} from './scenes/P5Teardown';
+import {P6Evidence} from './scenes/P6Evidence';
+
 const SCENE_COMPONENTS: Record<string, React.FC<{scene: SceneRange}>> = {
+  P0: P0Hook,
+  P1: P1Dilemma,
+  P2: P2Tree,
+  P3: P3Dream,
+  P4: P4Score,
+  P5: P5Teardown,
+  P6: P6Evidence,
 };
 
 export type MainProps = {manifest: ManifestItem[]};

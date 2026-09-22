@@ -242,4 +242,27 @@ export const NumberedCard: React.FC<{
   );
 };
 
+/** 背景网格（60px 网距、8% 透明度、每帧 0.2px 缓漂、全片 ≤40px 循环）——
+ *  spec 06 深度感规格；tint 供幕基调染色（P5 danger 压场等）。 */
+export const Backdrop: React.FC<{tint?: string; opacity?: number}> = ({
+  tint,
+  opacity = 0.08,
+}) => {
+  const frame = useCurrentFrame();
+  const drift = (frame * 0.2) % 60;
+  const hex = Math.round(opacity * 255).toString(16).padStart(2, '0');
+  const color = `${tint ?? theme.dim}${hex}`;
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        inset: -60,
+        backgroundImage: `linear-gradient(to right, ${color} 1px, transparent 1px), linear-gradient(to bottom, ${color} 1px, transparent 1px)`,
+        backgroundSize: '60px 60px',
+        transform: `translate(${drift}px, ${drift * 0.5}px)`,
+      }}
+    />
+  );
+};
+
 export {ease};
