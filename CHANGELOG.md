@@ -14,8 +14,8 @@
   ② **集侧脚本薄包装化**：全 10 集 34 个脚本（30 薄包装 + horizon-context 4 件 archify 辅助）不再内嵌机制，改转发 skill 解析器执行，机制在本仓零副本。
   ③ **pre-commit 钩子改锚工作区包装器**（`apps/negentropy-influence/scripts/check_series.py`），依赖已安装的 to-video skill——缺席即大声失败，不静默跳过。
   ④ **check_series 工程级受检面改由工作区根 `to-video.toml` 声明**（`[check_series] project_globs` 仍覆盖知识索引与 CHANGELOG，规则 2/3/5 语义不变）。
-  ⑤ **知识索引与机制图重指向**：机制类文档链接改 skill 仓 GitHub 绝对 URL；4 张机制图源（influence--pipeline-layers / voice-cloning--architecture / indextts--synthesis-flow / indextts--reference-audio）随外置删除，Definitions Registry 物化口径 11/12 → 11/11（对应 HTML/PNG 重生成须走 archify 管线，登记为 ISSUE-192 跟进项）。
-  过程留痕与迁移注意事项（既有 checkout 的 voices 搬迁、钩子 skill 依赖、接受的残留）见 [ISSUE-192](docs/.agents/issue.md)。
+  ⑤ **知识索引与机制图重指向**：机制类文档链接改 skill 仓 GitHub 绝对 URL；4 张机制图源（influence--pipeline-layers / voice-cloning--architecture / indextts--synthesis-flow / indextts--reference-audio）随外置删除，Definitions Registry 物化口径 11/12 → 11/11（对应 HTML/PNG 重生成须走 archify 管线，登记为 ISSUE-193 跟进项）。
+  过程留痕与迁移注意事项（既有 checkout 的 voices 搬迁、钩子 skill 依赖、接受的残留）见 [ISSUE-193](docs/.agents/issue.md)。
 
 ### Fixed
 
