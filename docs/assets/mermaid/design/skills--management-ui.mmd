@@ -6,7 +6,7 @@
 %% fix: (2) C1 锚点 interface/api.py → interface/skills_api.py（2026-09 六域拆分）；"BFF -->|Authorization 透传|" 修正为 cookie 透传——app/api/_lib/proxy.ts:188-207 必转发 cookie 头、authorization 仅在已带时透传，后端 auth/deps.py get_current_user 读 ne_sso cookie（config/auth.py:38）
 %% fix: (3) 新增 CRUDL → definitions SSOT 边：GET /skills/templates 与 POST /skills/from-template 经 agents/skill_templates/__init__.py load_all() 查 definitions(kind=skill_template) DB 行（原 *.yaml 文件已删除，Phase 1 Definition Registry SSOT 化）；CRUD 写入仍落 skills 表（models/skill.py）
 %% fix: (4) D-14 如实标注：definitions(kind=harness_skill) 经 0098 迁移 seed 11 条，.agent/skills/ 盘上 12 个 SKILL.md，science-video-pipeline 未入 DB（harness_materializer 物化 fail-soft）
-%% fix: 2026-09-21 science-video-pipeline 随流水线机制外置为 to-video 技能删除，.agent/skills 盘上 SKILL.md 12→11，物化口径 11/11 全入库（HTML/PNG 重生成走 archify 管线，登记为 ISSUE-192 跟进项）
+%% fix: 2026-09-21 science-video-pipeline 随流水线机制外置为 to-video 技能删除，.agent/skills 盘上 SKILL.md 12→11，物化口径 11/11 全入库（HTML/PNG 重生成走 archify 管线，登记为 ISSUE-193 跟进项）
 flowchart LR
   subgraph UI["/interface/skills - UI"]
     A1[SkillsPage] -->|CRUD/Inline toggle| A2[SkillFormDrawer]

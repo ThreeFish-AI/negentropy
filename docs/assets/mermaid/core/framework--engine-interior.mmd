@@ -3,7 +3,7 @@
 %% type: architecture
 %% derived: docs/assets/architecture/core/framework--engine-interior.html (+ -dark/-light PNG)
 %% fix: D-1/D-2 三层架构图缺失引擎内部子系统——本图全新补齐统一调度/Routine 编排/ClaudeCodeService/MCP 端点/定义源/保真巡检/自演化七个子系统；D-14 Definitions Registry 如实标 11/12（.agent/skills 盘上 12 个 SKILL.md，migration 0098 仅 seed 11，science-video-pipeline 未入 DB）
-%% fix: 2026-09-21 science-video-pipeline 随流水线机制外置为 to-video 技能删除，.agent/skills 盘上 SKILL.md 12→11，物化口径 11/11 全入库（HTML/PNG 重生成走 archify 管线，登记为 ISSUE-192 跟进项）
+%% fix: 2026-09-21 science-video-pipeline 随流水线机制外置为 to-video 技能删除，.agent/skills 盘上 SKILL.md 12→11，物化口径 11/11 全入库（HTML/PNG 重生成走 archify 管线，登记为 ISSUE-193 跟进项）
 flowchart LR
   subgraph engine["Backend API 引擎进程 · :3292（engine/bootstrap.py 装配）"]
     sched["统一调度<br/>AsyncScheduler · 5s 心跳<br/>FOR UPDATE SKIP LOCKED · SSE"]

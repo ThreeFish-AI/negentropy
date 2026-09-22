@@ -1,116 +1,53 @@
-"""测定每段 archify 章节 webm 的「视频钟零点」并回写 sidecar 的 lead_sec。
+#!/usr/bin/env python3
+"""薄包装：转发到 to-video skill 公共管线的 archify_lead.py。
 
-动机：录制器在播放前插一帧全屏白闪（场记板）。webm 的前段还含页面加载与
-入场落定，**不是**故事起点；用 Python 墙钟去推视频钟会带 ±0.3s 误差（≈9 帧）。
-本脚本直接在像素上找白闪的**末帧**，其后一帧即故事第一拍 —— 把估算换成测量。
+实现收敛于技能仓单一事实源（2026-09 二次抽取迁入）；本文件仅保留原
+CLI 契约（场记板白闪实测回写 lead_sec，工程根直跑形态）。
 
-remotion 内置 ffmpeg 编译时 `--disable-filters`（signalstats/movie 均不可用），
-故走「抽帧 + PIL 测亮度」而非 lavfi 滤镜链。
-
-用法（工程根）：
-  uv run --no-project --with pillow python scripts/archify_lead.py [--window 6.0]
+skill 解析：TO_VIDEO_HOME → ~/.claude/skills/to-video → ~/.agents/skills/to-video，
+全部未命中即**大声退出**并打印安装指令——静默跳过是被禁止的失效形态。
 """
 
-import argparse
-import json
+from __future__ import annotations
+
+import os
 import subprocess
-import tempfile
+import sys
 from pathlib import Path
 
-from PIL import Image
 
-ROOT = Path(__file__).resolve().parent.parent
-ARCHIFY = ROOT / "video" / "public" / "archify"
-FFMPEG = ROOT / "video" / "node_modules" / ".bin" / "remotion"
-WHITE = 200.0  # 白闪判据：32x18 灰度均值（页面底色 #0E1116 ≈ 14）
-
-
-def probe_lead(webm: Path, window: float, fps: int = 25) -> float | None:
-    """返回白闪末帧之后的时间戳（秒）；找不到白闪返回 None。"""
-    with tempfile.TemporaryDirectory() as td:
-        out = Path(td)
-        r = subprocess.run(
-            [
-                str(FFMPEG),
-                "ffmpeg",
-                "-v",
-                "error",
-                "-i",
-                str(webm.resolve()),
-                "-t",
-                str(window),
-                "-vf",
-                "scale=32:18",
-                "-f",
-                "image2",
-                str(out / "f%04d.png"),
-            ],
-            capture_output=True,
-            text=True,
-            timeout=180,
-            cwd=str(ROOT / "video"),
-            check=False,
-        )
-        frames = sorted(out.glob("f*.png"))
-        if not frames:
-            print(f"    ⚠️ 抽帧失败：{r.stderr[:160]}")
-            return None
-        last_white = -1
-        for i, f in enumerate(frames):
-            px = list(Image.open(f).convert("L").getdata())
-            if sum(px) / len(px) >= WHITE:
-                last_white = i
-        if last_white < 0:
-            return None
-        return round((last_white + 1) / fps, 3)
-
-
-def main() -> None:
-    ap = argparse.ArgumentParser()
-    ap.add_argument(
-        "--window", type=float, default=6.0, help="只在片头这么多秒内找白闪"
-    )
-    a = ap.parse_args()
-    if not FFMPEG.is_file():
-        raise SystemExit("缺 video/node_modules —— 先 pnpm install --ignore-workspace")
-
-    total = fixed = missing = 0
-    for sc in sorted(ARCHIFY.glob("*.json")):
-        d = json.loads(sc.read_text(encoding="utf-8"))
-        if not isinstance(d, dict) or not d.get("chapters"):
-            continue
-        print(f"{sc.stem}")
-        for ch in d["chapters"]:
-            total += 1
-            webm = ARCHIFY / ch["file"]
-            if not webm.is_file():
-                print(f"  {ch['id']:<22} ✗ 缺 webm")
-                missing += 1
-                continue
-            # fps 取该章实测值：screencast 是 VFR，抽帧按源片实际帧率逐帧展开，
-            # 写死 25 一旦录制掉帧就会把所有 lead_sec 整体缩放（--min-fps 18 拦不住）
-            lead = probe_lead(webm, a.window, int(round(ch.get("measured_fps") or 25)))
-            if lead is None:
-                print(
-                    f"  {ch['id']:<22} ⚠️ 未找到场记板白闪（保留 lead_sec={ch['lead_sec']}）"
-                )
-                missing += 1
-                continue
-            ch["lead_sec"] = lead
-            fixed += 1
-            print(f"  {ch['id']:<22} lead_sec = {lead:.3f}s")
-        # 按本文件自身的结果判定：missing 是跨文件累加的全局计数，直接拿来写
-        # 每个 sidecar 会让前一张图的失败污染其后所有图（实测 11/14 被误写 false）
-        d["clapper_found"] = all(c["lead_sec"] for c in d["chapters"])
-        d["lead_sec"] = d["chapters"][0]["lead_sec"]
-        sc.write_text(
-            json.dumps(d, ensure_ascii=False, indent=1) + "\n", encoding="utf-8"
-        )
-    print(
-        f"\n>> 场记板测定：{fixed}/{total} 章已回写真实 lead_sec"
-        f"{f'（{missing} 章未找到，沿用原值）' if missing else ''}"
+def _skill_scripts() -> Path:
+    """定位 skill 的 pipeline/scripts 目录；找不到即大声退出。"""
+    candidates = []
+    if env := os.environ.get("TO_VIDEO_HOME"):
+        candidates.append(Path(env).expanduser())
+    candidates += [
+        Path.home() / ".claude" / "skills" / "to-video",
+        Path.home() / ".agents" / "skills" / "to-video",
+    ]
+    for c in candidates:
+        p = c / "pipeline" / "scripts"
+        if (p / "pipeline.py").is_file():
+            return p
+    listed = "\n  ".join(str(c) for c in candidates)
+    sys.exit(
+        "找不到 to-video skill（按序尝试：\n  " + listed + "\n）。\n"
+        "  安装：git clone https://github.com/ThreeFish-AI/to-video <目录>\n"
+        "        ln -s <目录> ~/.claude/skills/to-video"
+        "   # 或设 TO_VIDEO_HOME=<目录>"
     )
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(
+        subprocess.run(
+            [
+                sys.executable,
+                str(_skill_scripts() / "archify_lead.py"),
+                "--project",
+                str(Path(__file__).resolve().parent.parent),
+                *sys.argv[1:],
+            ],
+            check=False,
+        ).returncode
+    )
