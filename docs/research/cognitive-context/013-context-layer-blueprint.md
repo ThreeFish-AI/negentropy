@@ -272,7 +272,13 @@ Horizon 组件与七机制的对应全景：
 
 ### 3.4 三相流水线 × 四层信号：与五层的对齐
 
-Horizon 把元数据到可用上下文的转化组织为 **Collect（汇聚）→ Enrich（富化）→ Activate（激活）** 三段流水线，与 Context Engineering 的 Collection → Management → Usage 三段同构。五层按职责归位：**Collect 落对象层 + 目录层**（受治理对象入库、元数据与血缘入账）、**Enrich 落富化层**（双轨养义 + eval 自纠）、**Activate 落激活层 + 治理层**（受治理地精选与供给）。四层上下文信号（Snowflake 官方 FAQ 口径）是流经三段的**原料**：
+Horizon 把元数据到可用上下文的转化组织为 **Collect（汇聚）→ Enrich（富化）→ Activate（激活）** 三段流水线，与 Context Engineering 的 Collection → Management → Usage 三段同构。五层按职责归位：**Collect 落对象层 + 目录层**（受治理对象入库、元数据与血缘入账）、**Enrich 落富化层**（双轨养义 + eval 自纠）、**Activate 落激活层 + 治理层**（受治理地精选与供给）。
+
+![三相流水线总览（Horizon 组件级）：元数据连接器（Tableau·Power BI）、OpenLineage 血缘（Airflow）与 OSI 开放语义互换（50+ 厂商）三源并列汇入统一目录（Horizon Catalog），经语义视图与自动文档·质量信号富化为受治理上下文（AI-ready），经 Universal Search 混合排序、MCP 对外暴露与 CoCo 受治理问答三出口激活（富化相机制细节图见 §6.1）。](../../assets/architecture/cognitive-context/context-layer--collect-phase-dark.png)
+
+> 图源（可 diff 文本）：[`context-layer--collect-phase.mmd`](../../assets/mermaid/cognitive-context/context-layer--collect-phase.mmd) · 交互版（下载到本地打开）：[`context-layer--collect-phase.html`](../../assets/architecture/cognitive-context/context-layer--collect-phase.html)
+
+四层上下文信号（Snowflake 官方 FAQ 口径）是流经三段的**原料**：
 
 | 信号层                 | 含义                                   | 作用                           |
 | ---------------------- | -------------------------------------- | ------------------------------ |

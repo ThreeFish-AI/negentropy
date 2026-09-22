@@ -226,6 +226,7 @@
 | [context-layer--request-injection](./cognitive-context/context-layer--request-injection.mmd) | cognitive-context/013-context-layer-blueprint.md §12.1（原 design/context-layer.md §2，已并入；2026-09-22 自 design/ 归位） | workflow | ✓ | done | fix: 4 处以代码为准的修正（.mmd 携 %% fix 行、facts 笔记逐条锚点 |
 | [context-layer--runtime-layering](./cognitive-context/context-layer--runtime-layering.mmd) | cognitive-context/013-context-layer-blueprint.md §12.2（原 design/context-layer.md §3，已并入；2026-09-22 自 design/ 归位） | architecture | ✓ | done | fix: ① 补全 Tools/Skills→PostgreSQL 两条边（builtin |
 | [context-layer--evolution-levers](./cognitive-context/context-layer--evolution-levers.mmd) | cognitive-context/013-context-layer-blueprint.md §12.5（原 design/context-layer.md §7，已并入；2026-09-22 自 design/ 归位） | architecture | ✓ | done | fix: (1) 状态机补终态 rejected（代码 STATUS_REJECTED 存 |
+| [context-layer--collect-phase](./cognitive-context/context-layer--collect-phase.mmd) | cognitive-context/013-context-layer-blueprint.md §3.4（原 design/context-layer.md §1.1，已并入；2026-09-22 起作为 §3.4 三相流水线总览图直接承载，自 design/ 归位） | dataflow | ✓ | done | fix: 原块把 Collect 三机制与 Enrich 三能力画成串行链；按产品页事实改为三源并列汇入、富化能力并列产出 |
 
 ### 原地保留（无 archify 对应类型 / 不在本管线）
 

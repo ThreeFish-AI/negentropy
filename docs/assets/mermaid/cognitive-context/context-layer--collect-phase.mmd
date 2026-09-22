@@ -1,0 +1,16 @@
+%%source: docs/concepts/design/context-layer.md#block0 (L46-68, §1.1 行业对标) → 013 §3.4（原 §1.1，2026-09-20 并入；2026-09-22 起作为 §3.4 三相流水线总览图直接承载（富化相机制细节由 §6.1 collect-enrich-activate 承载））
+%%slug: cognitive-context/context-layer--collect-phase
+%%type: dataflow
+%%derived: archify dataflow v1, corrected from source mermaid
+%% fix: 原块把 Collect 三机制（连接器→OpenLineage→OSI）与 Enrich 三能力画成串行链；按产品页事实改为三源并列汇入统一目录、富化能力并列产出受治理上下文（E2/E3 合并为「自动文档 · 质量信号」为布局精简，语义不变）
+graph LR
+    S1["元数据连接器<br/>Tableau · Power BI"] --> CAT["统一目录<br/>Horizon Catalog"]
+    S2["OpenLineage 血缘<br/>Apache Airflow"] --> CAT
+    S3["OSI 开放语义互换<br/>50+ 厂商标准"] --> CAT
+    CAT --> E1["语义视图<br/>Semantic Views"]
+    CAT --> E2["自动文档 · 质量信号<br/>列级血缘"]
+    E1 --> CTX["受治理上下文<br/>AI-ready"]
+    E2 --> CTX
+    CTX --> A1["Universal Search<br/>混合排序"]
+    CTX --> A2["MCP 对外暴露<br/>外部 Agent"]
+    CTX --> A3["CoCo 自动发现与查询<br/>受治理问答"]
