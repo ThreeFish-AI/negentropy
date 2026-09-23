@@ -10,7 +10,8 @@
 > `apps/` README、`docs/.agents/` 巡检文档），以及已走完本管线的研究文献——`docs/research/cognitive-context/` 的
 > Horizon Context 精读与 Context Layer 蓝图（下表 `cognitive-context/` 分节）、
 > `docs/research/agent-harness/` 的五层 Harness 精读（下表 `agent-harness/` 分节）、
-> `docs/research/self-evolution/` 的 Dream-RSI 精读（下表 `self-evolution/` 分节）。未纳入：其余 `docs/research/`（第三方调研）与
+> `docs/research/self-evolution/` 的 Dream-RSI 精读（下表 `self-evolution/` 分节）、
+> `docs/research/agent-infra/` 的 Agent Skills 规范精读（下表 `agent-infra/` 分节）。未纳入：其余 `docs/research/`（第三方调研）与
 > `docs/reference/cognizes/`（已退役遗产），**不在此管线**，原地保留渲染。
 
 ## 约定
@@ -63,6 +64,13 @@
 | [dream-rsi--evidence-162x-caliber](./self-evolution/dream-rsi--evidence-162x-caliber.mmd) | [144 §6](../../research/self-evolution/144-dream-rsi.md) | dataflow | ✓ | done | 317/550/51200 三柱 + 口径警示 + 数据集拆解 |
 | [dream-rsi--behavior-adaptive](./self-evolution/dream-rsi--behavior-adaptive.mmd) | [144 §6](../../research/self-evolution/144-dream-rsi.md) | lifecycle | ✓ | done | 先省后探：110→50→回升与性能 0.427→1.898 |
 | [dream-rsi--unproven-list](./self-evolution/dream-rsi--unproven-list.mmd) | [144 §8](../../research/self-evolution/144-dream-rsi.md) | workflow | ✓ | done | 论文未证明五件事清单（panel+编号反枚举） |
+
+### agent-infra/（docs/research/agent-infra/ 的 Agent Skills 规范精读）
+
+| slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| [agent-skills--progressive-disclosure](./agent-infra/agent-skills--progressive-disclosure.mmd) | [090 §2](../../research/agent-infra/090-agent-skills-spec.md) | workflow | ✓ | done | 运行相：发现→解析→Tier 1 目录→Tier 2 激活→Tier 3 资源，四泳道阶梯 + 预算/激活/契约三卡 |
+| [agent-skills--package-and-validation](./agent-infra/agent-skills--package-and-validation.mmd) | [090 §3](../../research/agent-infra/090-agent-skills-spec.md) | architecture | ✓ | done | 作者相：技能包解剖 × skills-ref 三命令 × 规范↔实现 13 处分歧 |
 
 > 各分类行由对应重绘波次登记；`产物` 列 ✓ = html + dark/light PNG 已入库。
 

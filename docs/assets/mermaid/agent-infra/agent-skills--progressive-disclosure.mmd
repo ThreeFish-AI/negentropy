@@ -1,0 +1,24 @@
+%% source: docs/research/agent-infra/090-agent-skills-spec.md §2
+%% slug: agent-skills--progressive-disclosure
+%% type: workflow
+%% derived: docs/assets/architecture/agent-infra/agent-skills--progressive-disclosure.html
+flowchart LR
+    subgraph BOOT["Step 1–2 · 发现与解析（会话启动）"]
+        direction TB
+        D["扫描作用域<br/>项目级 .agents/skills · .{client}/skills<br/>用户级 ~/.agents/skills"] --> P["解析 SKILL.md<br/>--- YAML frontmatter --- + Markdown 正文"]
+        P --> R["技能记录表（按 name 索引）<br/>name · description · location<br/>同名：项目级覆盖用户级 + 告警"]
+    end
+    subgraph T1["Tier 1 · 目录（常驻，约 50–100 tokens/技能）"]
+        C["available_skills 目录<br/>只含 name + description（+ location）<br/>禁用/无权技能整条隐藏"]
+    end
+    subgraph T2["Tier 2 · 指令（激活时，建议 < 5000 tokens）"]
+        direction TB
+        A["激活判定<br/>模型据 description 自判 · 或用户 /skill-name 显式"] --> B["加载完整 SKILL.md 正文<br/>结构化包裹 + 资源清单（不预读）"]
+    end
+    subgraph T3["Tier 3 · 资源（被正文引用时）"]
+        F["按需读取 scripts/ · references/ · assets/<br/>相对技能根目录 · 引用保持一层深"]
+    end
+    R --> C
+    C --> A
+    B -->|"正文写「见 references/X.md」"| F
+    B --> M["Step 5 · 上下文管理<br/>压缩豁免 · 激活去重"]
