@@ -102,9 +102,9 @@
 
 ## 九、Agent Harness 工程 · `agent-harness/`
 
-> 一手材料：Learn Claude Code 课程站点修订与 [shareAI-lab/learn-claude-code](https://github.com/shareAI-lab/learn-claude-code) 仓库 main 整合版（MIT，固定提交取证）。
+> 一手材料：① 170–175 以 Learn Claude Code 课程站点修订与 [shareAI-lab/learn-claude-code](https://github.com/shareAI-lab/learn-claude-code) 仓库 main 整合版（MIT，固定提交取证）为信源；② 180–181 以阿里巴巴《AI Native 研发范式实践手册》（2026-09，68 页）为信源。
 >
-> **SSOT 边界**：逐章原文引语、可调参数、生产版行号与口播判据在科普视频工程各集 `research/source-notes.md`；章→集归属与固定提交选择只登记在[系列信源地图](../../apps/negentropy-influence/source-map/claude-code-explained.md)。本分部只做**跨层综观、main 轨净增量与本仓机制对位**，冲突一律以上述两处为准。
+> **SSOT 边界（170–175）**：逐章原文引语、可调参数、生产版行号与口播判据在科普视频工程各集 `research/source-notes.md`；章→集归属与固定提交选择只登记在[系列信源地图](../../apps/negentropy-influence/source-map/claude-code-explained.md)。本分部只做**跨层综观、main 轨净增量与本仓机制对位**，冲突一律以上述两处为准。
 
 | 文档 | 主旨 |
 |:---|:---|
@@ -114,6 +114,8 @@
 | [③ 记忆管理](./agent-harness/173-claude-code-memory-management.md) | 收台四步的顺序不变式（大结果先落盘才允许旧结果变占位符）、裁剪的配对硬约束、持久记忆两条加载路径（索引常驻 / 正文按需以免击穿缓存）、旁路挑选与压缩前快照；**原型实测补上材料只有论证没有实验的缺口，并发现顺序与「未读不动」是两道独立保险** |
 | [④ 并发与时机](./agent-harness/174-claude-code-concurrency.md) | 后台任务的显式路由与独立通知块（不复用回执编号）、调度与执行的解耦、诚实边界（调度器随进程死）；附 main 轨 `s16_workflow_runtime`——全仓唯一的事件循环扇出并发，`parallel` 有屏障 vs `pipeline` 无屏障、journal 幂等续跑、双重熔断 |
 | [⑤ 多 Agent 平台](./agent-harness/175-claude-code-multi-agent-platform.md) | 任务图与认领、消费式收件格、带类型校验与幂等的协议握手、自治三阶段与压缩后身份重注入、工作树隔离的拆除纪律、MCP 接入对工具池缓存的连锁反应，以及「机制很多、循环一个」的收束 |
+| [精读：AI Native 研发范式实践手册](./agent-harness/180-ai-native-handbook.md) | 企业级 Harness 视角：三案例 → 五挑战 → 四层基础设施（Harness / 运行环境 / 可信安全 / 可观测）的全貌解剖、五条底层规律（模型提意图·确定性系统决策 / 证据先于结论 / 权限逐级收敛 / 结论绑定现场·不确定即拒 / 环境与知识是第一类上下文）、两个核心争议与批判性边界五条（含度量示例 SQL 多对多扇出实测复现）；≤2000 字精炼版，配套原型六次破坏性实验 |
+| [AI Native 手册 ↔ negentropy 机制映射](./agent-harness/181-ai-native-mapping-negentropy.md) | 十七条机制对照（✅8 / 🔶3 / ⏸6）：闭环骨架已同构，真增量为凭据边界（占位值 + 出站注入）、授权第三态 Challenge 与生产门控对象，均绑定「触达生产或不可信代码」触发条件暂缓 |
 
 ---
 
