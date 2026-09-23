@@ -1,0 +1,47 @@
+[
+ {
+  "id": "six-a",
+  "label": "杠杆·检索与策略",
+  "focus": [
+   "retrieval",
+   "kstrategy"
+  ],
+  "note": "retrieval_config/knowledge_strategy。"
+ },
+ {
+  "id": "six-b",
+  "label": "杠杆·模板与提示",
+  "focus": [
+   "skilltpl",
+   "toolcfg",
+   "mempipe",
+   "agentpr"
+  ],
+  "note": "模板/工具/提示词四杠杆。"
+ },
+ {
+  "id": "seventh",
+  "label": "第 7 杠杆",
+  "focus": [
+   "ctxstrat"
+  ],
+  "note": "context_strategy 影响全部激活路径。"
+ },
+ {
+  "id": "sm",
+  "label": "统一状态机",
+  "focus": [
+   "sm"
+  ],
+  "note": "同一状态机收编。"
+ },
+ {
+  "id": "orch",
+  "label": "编排与护栏",
+  "focus": [
+   "orch",
+   "decision"
+  ],
+  "note": "EvolutionOrchestrator+decision.py。"
+ }
+]

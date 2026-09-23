@@ -1,0 +1,61 @@
+[
+ {
+  "id": "collect",
+  "label": "汇聚元数据",
+  "focus": [
+   "conn",
+   "lineage"
+  ],
+  "note": "连接器+血缘汇入。"
+ },
+ {
+  "id": "open",
+  "label": "开放互换",
+  "focus": [
+   "osi"
+  ],
+  "note": "OSI 开放语义互换入目录。"
+ },
+ {
+  "id": "catalog",
+  "label": "统一目录",
+  "focus": [
+   "catalog"
+  ],
+  "note": "目录成型。"
+ },
+ {
+  "id": "semview",
+  "label": "语义视图",
+  "focus": [
+   "semview"
+  ],
+  "note": "目录长出受治理对象。"
+ },
+ {
+  "id": "enrich",
+  "label": "富化信号",
+  "focus": [
+   "docsignal"
+  ],
+  "note": "自动文档与质量信号。"
+ },
+ {
+  "id": "ctx",
+  "label": "受治理上下文",
+  "focus": [
+   "ctx",
+   "mcp"
+  ],
+  "note": "上下文经 MCP 对外。"
+ },
+ {
+  "id": "search",
+  "label": "检索与发现",
+  "focus": [
+   "usearch",
+   "coco"
+  ],
+  "note": "Universal Search + CoCo。"
+ }
+]

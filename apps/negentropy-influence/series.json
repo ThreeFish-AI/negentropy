@@ -260,14 +260,14 @@
             "#FF9F6B"
           ],
           "source": {
-            "title": "Context Layer 基础设施设计蓝图（docs/reference/context-layer-blueprint.md）",
+            "title": "Context Layer 技术蓝图与方案（docs/research/cognitive-context/013-context-layer-blueprint.md 内容面重铸版）",
             "repo": "https://github.com/ThreeFish-AI/negentropy",
-            "pinnedRef": "cf6724d688d6",
+            "pinnedRef": "6f643c216dee",
             "license": "本仓内部文档",
-            "accessed": "2026-09-12"
+            "accessed": "2026-09-23"
           },
-          "status": "draft-review",
-          "statusNote": "v2 终渲待审（2026-09-14 改版）：14:18 = 858.9s @30fps（177 句）；2026-09-14 终版微调：同款结尾句与字幕剥句号（仅尾句 19s 增量）；重渲 14:19 = 859.0s，七幕 FAIL 0 · 渐黑 PASS · WCAG 过",
+          "status": "final-review",
+          "statusNote": "v3 重制待审（2026-09-23，013 重铸版信源·受治理大厦比喻剧场）：15:21 = 27639 帧 @30fps / 1920×1080（185 句 4362 字，纯语音 14.4 分）；七幕 40 镜 · archify 12 图 70 章逐章回放（37 cue · 锚定 20.0% · 图型 3）· 代码走廊×10 · 顶部分段章节进度条首装（frozen 模板，drift 已撤销）；sunny-steady 全片重合成（IndexTTS 服务 MPS 泄漏修复后稳定长跑）；七幕抽帧 + beat-heads + 尾幕渐黑 FAIL 0 / WARN 0 · WCAG 主题门过；check_script 与覆盖门全绿（6 WARN 为有意叙事重排）；归档根 ~/Documents/video 新启 v1（工程版本 v3）",
           "voice": "sunny-steady + me-bright.wav"
         }
       ]

@@ -1,0 +1,54 @@
+[
+ {
+  "id": "chain",
+  "label": "三级攻击链",
+  "focus": [
+   "ag",
+   "mcp",
+   "ex"
+  ],
+  "note": "客户端→供给面→执行层。"
+ },
+ {
+  "id": "poison",
+  "label": "工具描述投毒",
+  "focus": [
+   "tp"
+  ],
+  "note": "定义层投毒与 rug pull。"
+ },
+ {
+  "id": "inject",
+  "label": "间接注入",
+  "focus": [
+   "ti"
+  ],
+  "note": "响应内指令式语言。"
+ },
+ {
+  "id": "deputy",
+  "label": "confused deputy 与 token",
+  "focus": [
+   "td",
+   "tt"
+  ],
+  "note": "越权代办与透传窃取。"
+ },
+ {
+  "id": "controls",
+  "label": "拦截位",
+  "focus": [
+   "cg",
+   "con"
+  ],
+  "note": "编译期治理门+consent。"
+ },
+ {
+  "id": "data",
+  "label": "数据平面",
+  "focus": [
+   "da"
+  ],
+  "note": "最终资产。"
+ }
+]

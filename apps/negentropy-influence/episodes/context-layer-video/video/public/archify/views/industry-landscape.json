@@ -1,0 +1,55 @@
+[
+ {
+  "id": "embedded",
+  "label": "路线一·平台内嵌",
+  "focus": [
+   "dbx",
+   "sf",
+   "mf",
+   "lkr"
+  ],
+  "note": "治理在引擎内，绑死平台。"
+ },
+ {
+  "id": "code",
+  "label": "路线二·定义即代码",
+  "focus": [
+   "dbt"
+  ],
+  "note": "治理在转换层，不在执行路径。"
+ },
+ {
+  "id": "independent",
+  "label": "路线三·独立可执行层",
+  "focus": [
+   "cube",
+   "ats"
+  ],
+  "note": "治理在 SQL 生成之前。"
+ },
+ {
+  "id": "meta",
+  "label": "路线四·元数据平面",
+  "focus": [
+   "atl"
+  ],
+  "note": "只描述不执行。"
+ },
+ {
+  "id": "palantir",
+  "label": "异类·Palantir",
+  "focus": [
+   "palantir"
+  ],
+  "note": "semantic+kinetic 双层。"
+ },
+ {
+  "id": "bp",
+  "label": "蓝图落位",
+  "focus": [
+   "bp",
+   "agents"
+  ],
+  "note": "本蓝图选第三条路。"
+ }
+]

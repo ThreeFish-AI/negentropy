@@ -1,0 +1,54 @@
+[
+ {
+  "id": "collect",
+  "label": "① Collect",
+  "focus": [
+   "collect"
+  ],
+  "note": "汇聚元数据与血缘。"
+ },
+ {
+  "id": "enrich",
+  "label": "② Enrich",
+  "focus": [
+   "enrich"
+  ],
+  "note": "养厚含义。"
+ },
+ {
+  "id": "activate",
+  "label": "③ Activate",
+  "focus": [
+   "activate"
+  ],
+  "note": "送受治理上下文。"
+ },
+ {
+  "id": "memkb",
+  "label": "记忆与知识库",
+  "focus": [
+   "memory",
+   "kb"
+  ],
+  "note": "记忆+KB 供源。"
+ },
+ {
+  "id": "kgtools",
+  "label": "图谱与工具技能",
+  "focus": [
+   "kg",
+   "tools",
+   "skills"
+  ],
+  "note": "KG+Tools+Skills 供源。"
+ },
+ {
+  "id": "pg",
+  "label": "持久化底座",
+  "focus": [
+   "runtime",
+   "pg"
+  ],
+  "note": "复用 PostgreSQL。"
+ }
+]

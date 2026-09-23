@@ -1,0 +1,46 @@
+[
+ {
+  "id": "auto",
+  "label": "自动注入通道",
+  "focus": [
+   "ca",
+   "prefix"
+  ],
+  "note": "常驻摘要+反思注入。"
+ },
+ {
+  "id": "window",
+  "label": "记忆窗口与 KG",
+  "focus": [
+   "window",
+   "kg"
+  ],
+  "note": "记忆窗口+KG 摘要。"
+ },
+ {
+  "id": "gap1",
+  "label": "缺口·无 KB 接地",
+  "focus": [
+   "auto_gap"
+  ],
+  "note": "不接地知识库。"
+ },
+ {
+  "id": "od",
+  "label": "按需检索通道",
+  "focus": [
+   "hp",
+   "seed",
+   "fuse"
+  ],
+  "note": "种子→图扩展→重排。"
+ },
+ {
+  "id": "gap2",
+  "label": "缺口·不含 Memory",
+  "focus": [
+   "od_gap"
+  ],
+  "note": "缺记忆种子源。"
+ }
+]

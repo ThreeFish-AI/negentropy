@@ -1,0 +1,128 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 16.17,
+ "total_wall_sec": 128.58,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "obj",
+   "label": "对象层·M1",
+   "index": 0,
+   "file": "layer-mechanism-map--obj.mp4",
+   "end_still": "layer-mechanism-map--obj-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "obj-m",
+    "obj-i"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 48.0
+  },
+  {
+   "id": "cat",
+   "label": "目录层·M5",
+   "index": 1,
+   "file": "layer-mechanism-map--cat.mp4",
+   "end_still": "layer-mechanism-map--cat-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "cat-m",
+    "cat-i"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 48.0
+  },
+  {
+   "id": "enr",
+   "label": "富化层·双轨",
+   "index": 2,
+   "file": "layer-mechanism-map--enr.mp4",
+   "end_still": "layer-mechanism-map--enr-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.21,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "enr-m",
+    "enr-i"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 48.0
+  },
+  {
+   "id": "gov",
+   "label": "治理层·四机构",
+   "index": 3,
+   "file": "layer-mechanism-map--gov.mp4",
+   "end_still": "layer-mechanism-map--gov-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "gov-m",
+    "gov-i"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 48.0
+  },
+  {
+   "id": "act",
+   "label": "激活层·锚定",
+   "index": 4,
+   "file": "layer-mechanism-map--act.mp4",
+   "end_still": "layer-mechanism-map--act-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "act-m",
+    "act-i"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 48.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.html",
+ "slug": "layer-mechanism-map",
+ "type": "architecture"
+}

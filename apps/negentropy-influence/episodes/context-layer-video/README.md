@@ -1,6 +1,6 @@
 # 《自己动手，给 AI 搭一个上下文层》科普视频工程
 
-> 交付状态：**v2 终渲待审：14:18 · archify 回放×2 + MCP 实录 + 代码走廊×3 · FAIL 0**。发布顺序见 [../../series.json](../../series.json)。
+> 交付状态：**v3 重制待审（2026-09-23 已归档）**：013 重铸版信源 @ `6f643c216dee`（受治理大厦比喻剧场）；15:21 = 27639 帧 @30fps（185 句 4362 字，纯语音 14.4 分）；七幕 40 镜 · archify 12 图 70 章逐章回放（37 cue · 锚定 20.0%）· 代码走廊×10 · **顶部分段章节进度条首装**（frozen 模板 ChapterProgress，drift 已撤销）；sunny-steady 全片重合成；七幕抽帧 + beat-heads + 尾幕渐黑 + WCAG 全绿；归档 `~/Documents/video/context-layer/自己动手，给 AI 搭一个上下文层 v1.mp4`（归档根新启 v1 · 工程版本 v3）。发布顺序见 [../../series.json](../../series.json)。
 
 ## 目录结构
 

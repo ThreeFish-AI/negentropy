@@ -1,0 +1,128 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.64,
+ "story_sec": 17.34,
+ "total_wall_sec": 198.95,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "six-a",
+   "label": "杠杆·检索与策略",
+   "index": 0,
+   "file": "evolution-levers--six-a.mp4",
+   "end_still": "evolution-levers--six-a-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.64,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "retrieval",
+    "kstrategy"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 27.0
+  },
+  {
+   "id": "six-b",
+   "label": "杠杆·模板与提示",
+   "index": 1,
+   "file": "evolution-levers--six-b.mp4",
+   "end_still": "evolution-levers--six-b-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.43,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.205,
+    3.308
+   ],
+   "beat_nodes": [
+    "skilltpl",
+    "toolcfg",
+    "mempipe",
+    "agentpr"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 27.0
+  },
+  {
+   "id": "seventh",
+   "label": "第 7 杠杆",
+   "index": 2,
+   "file": "evolution-levers--seventh.mp4",
+   "end_still": "evolution-levers--seventh-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "ctxstrat"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "sm",
+   "label": "统一状态机",
+   "index": 3,
+   "file": "evolution-levers--sm.mp4",
+   "end_still": "evolution-levers--sm-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "sm"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 27.0
+  },
+  {
+   "id": "orch",
+   "label": "编排与护栏",
+   "index": 4,
+   "file": "evolution-levers--orch.mp4",
+   "end_still": "evolution-levers--orch-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.21,
+   "beat_offsets_sec": [
+    0.0,
+    1.601
+   ],
+   "beat_nodes": [
+    "orch",
+    "decision"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/cognitive-context/context-layer--evolution-levers.html",
+ "slug": "evolution-levers",
+ "type": "architecture"
+}

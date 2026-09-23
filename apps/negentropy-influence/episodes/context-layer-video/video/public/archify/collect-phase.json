@@ -1,0 +1,162 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 22.61,
+ "total_wall_sec": 157.66,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "collect",
+   "label": "汇聚元数据",
+   "index": 0,
+   "file": "collect-phase--collect.mp4",
+   "end_still": "collect-phase--collect-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.21,
+   "beat_offsets_sec": [
+    0.0,
+    1.602
+   ],
+   "beat_nodes": [
+    "conn",
+    "lineage"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "open",
+   "label": "开放互换",
+   "index": 1,
+   "file": "collect-phase--open.mp4",
+   "end_still": "collect-phase--open-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "osi"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 27.0
+  },
+  {
+   "id": "catalog",
+   "label": "统一目录",
+   "index": 2,
+   "file": "collect-phase--catalog.mp4",
+   "end_still": "collect-phase--catalog-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "catalog"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 27.0
+  },
+  {
+   "id": "semview",
+   "label": "语义视图",
+   "index": 3,
+   "file": "collect-phase--semview.mp4",
+   "end_still": "collect-phase--semview-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "semview"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "enrich",
+   "label": "富化信号",
+   "index": 4,
+   "file": "collect-phase--enrich.mp4",
+   "end_still": "collect-phase--enrich-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.21,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "docsignal"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "ctx",
+   "label": "受治理上下文",
+   "index": 5,
+   "file": "collect-phase--ctx.mp4",
+   "end_still": "collect-phase--ctx-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "ctx",
+    "mcp"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "search",
+   "label": "检索与发现",
+   "index": 6,
+   "file": "collect-phase--search.mp4",
+   "end_still": "collect-phase--search-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0,
+    1.602
+   ],
+   "beat_nodes": [
+    "usearch",
+    "coco"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/cognitive-context/context-layer--collect-phase.html",
+ "slug": "collect-phase",
+ "type": "dataflow"
+}

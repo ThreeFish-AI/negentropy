@@ -1,0 +1,124 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.4,
+ "story_sec": 16.24,
+ "total_wall_sec": 134.79,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "design",
+   "label": "共享设计层",
+   "index": 0,
+   "file": "dual-track-roadmap--design.mp4",
+   "end_still": "dual-track-roadmap--design-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.4,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "design"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 31.0
+  },
+  {
+   "id": "p0",
+   "label": "样板间 P0",
+   "index": 1,
+   "file": "dual-track-roadmap--p0.mp4",
+   "end_still": "dual-track-roadmap--p0-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.21,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "p0"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 27.0
+  },
+  {
+   "id": "p123",
+   "label": "样板间 P1–P3",
+   "index": 2,
+   "file": "dual-track-roadmap--p123.mp4",
+   "end_still": "dual-track-roadmap--p123-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.34,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.209
+   ],
+   "beat_nodes": [
+    "p1",
+    "p2",
+    "p3"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "ph1",
+   "label": "本楼 Phase 1",
+   "index": 3,
+   "file": "dual-track-roadmap--ph1.mp4",
+   "end_still": "dual-track-roadmap--ph1-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "ph1"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "ph23",
+   "label": "本楼 Phase 2–3",
+   "index": 4,
+   "file": "dual-track-roadmap--ph23.mp4",
+   "end_still": "dual-track-roadmap--ph23-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.605
+   ],
+   "beat_nodes": [
+    "ph2",
+    "ph3"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/cognitive-context/context-layer-blueprint--dual-track-roadmap.html",
+ "slug": "dual-track-roadmap",
+ "type": "architecture"
+}
