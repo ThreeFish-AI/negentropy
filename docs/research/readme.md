@@ -70,6 +70,8 @@
 | [Agent Sandbox 综述](./agent-infra/080-agent-sandbox.md) | 五大技术路线正交剖析 |
 | [Agent Sandbox 正交分析](./agent-infra/081-agent-sandbox.md) | Microsandbox / Wasmtime / Firecracker / Vertex |
 | [Agent Sandbox 信任架构深度研究](./agent-infra/082-agent-sandbox.md) | 微虚拟机到托管式执行环境 |
+| [Agent Skills 开放规范精读](./agent-infra/090-agent-skills-spec.md) | agentskills.io 规范（固定提交 `69ef37e9`）：目录即技能包、name 借文件系统拿唯一性、description 独扛触发、三级渐进披露的上下文成本结构；skills-ref 参考实现与规范 13 处分歧（6 处经真实参考实现复现），含最小原型与五次破坏性实验 |
+| [Agent Skills ↔ negentropy 机制映射](./agent-infra/091-agent-skills-mapping-negentropy.md) | 13 条机制对照本仓三套 skill 载体：盘上 11 技能全合规、结构化包裹与同名优先级已对齐；头号发现为 Layer 1 指示的 `expand_skill` 从未挂载（连带 R6-b 在线 canary 门恒被跳过），name/description 规范校验与目录注入防护等 9 条值得落地 |
 | [可观测性对比：Jaeger vs Langfuse](./agent-infra/100-agent-obser.md) | 生成式 AI 可观测性方案选型 |
 
 ## 六、自进化与工具 · `self-evolution/`

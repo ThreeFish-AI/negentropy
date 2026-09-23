@@ -4199,3 +4199,21 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 ### 附带发现（预存漂移，非本 PR 引入）
 
 - `context-layer-video/script/narration.json` 相对 `narration.md` 存在**预存陈旧**（HEAD `c8b9aea2` 即如此：md 首句「你可能有个常用的 AI 助手」vs json「你身边可能也有个…」，13 句文本不一致）。抽取 PR 的派生确定性回归（4 集 build）将其暴露；按「抽取不动内容」纪律本 PR 回滚该文件保持原样，**修复（重跑 build 提交新 json）应另开内容侧 PR**，注意该集 status 注记其成片已交付（json 陈旧不影响已渲成片，仅影响后续重渲的口径基线）。
+
+---
+
+## ISSUE-194 Skills 激活层悬空：Layer 1 目录指示调用的 expand_skill 从未挂载，连带 R6-b 在线 canary 门恒被跳过（2026-09-23）
+
+- **表因**：[Agent Skills 规范精读](../research/agent-infra/090-agent-skills-spec.md) 做本仓映射时发现，`format_skills_block` 在每个注入技能的 Agent 目录末行写死「To use a skill, call expand_skill(name) to retrieve its full template.」（`agents/skills_injector.py:357`），但 Agent 树内没有任何 Agent 持有该工具；多份文档（Skills 设计 §2/§3.2、172 §11、012 #9、013 状态表、skills-advanced / skills-paper-hunter 用户指南）却把「LLM 自主调用 expand_skill」写成已实现。
+- **根因**：Phase 2（#459）实现了 `expand_skill` / `list_available_skills` / `fetch_skill_resource` 三件工具并在 `agents/tools/__init__.py:28-29` 导出，但**从未登记进 `TOOL_REGISTRY`**（`agents/tools/registry.py:64-92`）。六翼 `NegentropyToolset` 先按白名单过滤（`_dynamic_tools.py:121`）、再经 `TOOL_REGISTRY.get()` 解析（`registry.py:129`），根 Agent 仅挂 `log_activity` + `preload_memory_tool`（`agent.py:248`）。`git log -S "expand_skill"` 在 faculties / agent.py / registry.py / `_dynamic_tools.py` 上零命中，说明从未绑定过。「目录承诺的激活路径」与「实际挂载的工具」之间**没有任何机器门禁**，所以缺口能在 Phase 2 → Phase 3 → 进化闭环（#1038）多轮迭代中一直隐身。
+- **二阶影响**：Skill 进化 R6-b runtime canary 在线 error-rate 门以窗口内 `expand_skill` 真实调用（`tool_invocations`）为样本（`engine/evolution/handlers/skill.py:428-480`）。样本不足 `SKILL_RUNTIME_CANARY_MIN_SAMPLES = 10` 时返回 `hold`（`engine/evolution/decision.py:282`、`:444-445`）。调用恒为 0，所以**在线门恒被跳过**，技能晋升实际只由离线复评门裁决。
+- **处理方式**（本次只分析不改码）：
+  1. 在 [091 映射报告 M4](../research/agent-infra/091-agent-skills-mapping-negentropy.md) 给出二选一方案：(a) 兑现契约，三件工具入 `TOOL_REGISTRY` 并挂载到消费 Layer 1 的 Agent，`name` 参数按可见技能枚举约束，无技能则不出目录、不注册工具；(b) 收回承诺，删 Layer 1 末行指令，在 141 与设计文档中注明 R6-b 在线门不可用。
+  2. 在设计 SSOT（`docs/concepts/design/skills.md` §3.2 与 §2 表）和 172 §11 加校正指针。其余文档的表述在方案 (a) 落地后会自动重新成立，暂不改写，以免与 M4 决策打架。
+- **后续防范**：
+  1. **契约即门禁**：落地 (a) 时补集成测试，断言「目录声明的激活工具名 ∈ 该 Agent 实际挂载的工具名」。凡 prompt 里写死工具名的地方，都应有同构断言。
+  2. 文档把某条链路标 ✅ 前，须核到「工具被哪个 Agent 的 `tools=` 实际持有」这一层，不能停在「函数存在 / 已导出」。
+- **同类问题影响与注意事项**：
+  1. `fetch_skill_resource`（Layer 3）同样未挂载，typed resources 只能经 REST / 调度器间接生效。
+  2. 其他在 system prompt 里点名工具的注入器（如引用协议、记忆提示）可能有同类「承诺—挂载」漂移，可按上述断言模式排查。
+  3. 选方案 (a) 时须同步评估 `is_global` 技能注入所有 Agent 的描述体量，以及目录注入防护（091 M3 / M5）：挂载后目录不再只是展示，会变成真实的调用入口。
