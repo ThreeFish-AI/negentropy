@@ -1,0 +1,6 @@
+[
+ {"id":"reset","label":"重置到根再出发","focus":["reset","pick"],"note":"历史固定，重放从只含根的观测树开始，策略逐轮选批次。"},
+ {"id":"nonroot","label":"老节点：唯一后继","focus":["reveal-child"],"note":"选非根节点，只翻开它唯一记录过的下一步。"},
+ {"id":"root","label":"树根：建档序开枝","focus":["reveal-earliest"],"note":"选根按最早创建顺序开已录分支——策略挑不了开哪条。"},
+ {"id":"end","label":"长大与终止","focus":["grow","terminate"],"note":"已见子树长大，空批次/轮尽/全揭示即终止，得 N、k、最高分。"}
+]

@@ -1,0 +1,103 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 12.99,
+ "total_wall_sec": 139.53,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "reset",
+   "label": "重置到根再出发",
+   "index": 0,
+   "file": "determinism-proof--reset.mp4",
+   "end_still": "determinism-proof--reset-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.61
+   ],
+   "beat_nodes": [
+    "reset",
+    "pick"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 17.0
+  },
+  {
+   "id": "nonroot",
+   "label": "老节点：唯一后继",
+   "index": 1,
+   "file": "determinism-proof--nonroot.mp4",
+   "end_still": "determinism-proof--nonroot-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "reveal-child"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 7.0
+  },
+  {
+   "id": "root",
+   "label": "树根：建档序开枝",
+   "index": 2,
+   "file": "determinism-proof--root.mp4",
+   "end_still": "determinism-proof--root-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.48,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "reveal-earliest"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 14.0
+  },
+  {
+   "id": "end",
+   "label": "长大与终止",
+   "index": 3,
+   "file": "determinism-proof--end.mp4",
+   "end_still": "determinism-proof--end-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "grow",
+    "terminate"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 41.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/quito-v2/docs/assets/architecture/self-evolution/dream-rsi--determinism-proof.html",
+ "slug": "determinism-proof",
+ "type": "lifecycle"
+}

@@ -83,6 +83,8 @@
 | [Skill 进化闭环 × 自我改进评测](./self-evolution/141-skills-evolution-and-si-measurement.md) | Skills 三阶段进化 + SI 六目标度量 |
 | [Procedural Graph 论文精读](./self-evolution/142-procedural-graphs.md) | arXiv:2609.09153：程序性知识外置为带 condition/guidance/pitfalls 属性的有向图 + 邻域定位软指导 + 过验证门的自进化，含最小原型与破坏性实验 |
 | [PG ↔ negentropy 机制映射](./self-evolution/143-pg-mapping-negentropy.md) | 五条机制对照本仓 Routine / 巡检 / evolution 门控：验证门平局接受与报告纪律已对齐，编辑级拒绝记忆值得落地，边属性按 YAGNI 暂缓 |
+| [Dream-RSI 论文精读](./self-evolution/144-dream-rsi.md) | arXiv:2609.14858：发现历史即重放模拟器、离线「做梦」确定性重放评估改进探索策略、argmax 含当前策略防回退、只改策略层不动底座，含最小原型与五次破坏性实验 |
+| [Dream-RSI ↔ negentropy 机制映射](./self-evolution/145-dream-rsi-mapping-negentropy.md) | 六条机制对照本仓 evolution / routine / eval 体系：候选包含保证与策略层分离已同构、Judge 锚定方向一致，历史重放模拟器按 YAGNI 暂缓并绑定触发条件，语义注入的 over-constrain 边界须知 |
 
 ## 七、量化与投资科学 · `quant-finance/`
 

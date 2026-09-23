@@ -1,0 +1,29 @@
+[
+ {
+  "id": "pages",
+  "label": "新页的出身与身价",
+  "focus": [
+   "page-a",
+   "page-b"
+  ],
+  "note": "每页记从哪出发、挖到什么、值多少分——分数越大越好。"
+ },
+ {
+  "id": "grow",
+  "label": "台账长成树",
+  "focus": [
+   "root",
+   "branch-a",
+   "branch-b"
+  ],
+  "note": "从根营地出发，每页唯一指认前一页，天然分叉成树。"
+ },
+ {
+  "id": "interface",
+  "label": "同一套决策接口",
+  "focus": [
+   "interface"
+  ],
+  "note": "在线探索与离线做梦共用：挑哪些节点、一批几个，|C|≤W。"
+ }
+]

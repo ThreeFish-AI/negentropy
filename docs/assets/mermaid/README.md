@@ -9,7 +9,8 @@
 > **范围**：按**文档**而非目录界定。已纳入：现役系统文档（`docs/concepts/`、`docs/reference/{perceives,wiki}/`、根与 i18n README、
 > `apps/` README、`docs/.agents/` 巡检文档），以及已走完本管线的研究文献——`docs/research/cognitive-context/` 的
 > Horizon Context 精读与 Context Layer 蓝图（下表 `cognitive-context/` 分节）、
-> `docs/research/agent-harness/` 的五层 Harness 精读（下表 `agent-harness/` 分节）。未纳入：其余 `docs/research/`（第三方调研）与
+> `docs/research/agent-harness/` 的五层 Harness 精读（下表 `agent-harness/` 分节）、
+> `docs/research/self-evolution/` 的 Dream-RSI 精读（下表 `self-evolution/` 分节）。未纳入：其余 `docs/research/`（第三方调研）与
 > `docs/reference/cognizes/`（已退役遗产），**不在此管线**，原地保留渲染。
 
 ## 约定
@@ -41,6 +42,27 @@
 | [claude-code-concurrency--timing-panorama](./agent-harness/claude-code-concurrency--timing-panorama.mmd) | [174 时机层 §2](../../research/agent-harness/174-claude-code-concurrency.md) | workflow | ✓ | done | 后台/通知/定时三支路汇回下一轮（trace 动画） |
 | [claude-code-planning--planning-panorama](./agent-harness/claude-code-planning--planning-panorama.mmd) | [172 规划层 §2](../../research/agent-harness/172-claude-code-planning-coordination.md) | workflow | ✓ | done | 垫纸每轮重装配主链 + 副台/手册/补救梯旁支（trace 动画） |
 | [claude-code-multiagent--collab-panorama](./agent-harness/claude-code-multiagent--collab-panorama.mmd) | [175 协作层 §2](../../research/agent-harness/175-claude-code-multi-agent-platform.md) | workflow | ✓ | done | 排工板/收件格/班次/隔间四组物件汇入同一循环（trace 动画） |
+
+### self-evolution/（docs/research/self-evolution/ 的 Dream-RSI 精读）
+
+| slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| [dream-rsi--two-phase-loop](./self-evolution/dream-rsi--two-phase-loop.mmd) | [144 §2](../../research/self-evolution/144-dream-rsi.md) | workflow | ✓ | done | 在线真实世界 ↔ 离线重放世界两相闭环（trace 动画） |
+| [dream-rsi--replay-simulator](./self-evolution/dream-rsi--replay-simulator.mmd) | [144 §4](../../research/self-evolution/144-dream-rsi.md) | workflow | ✓ | done | 决策接口 + 确定性转移 + 重放目标 V 三分量；底部通道回环 |
+| [dream-rsi--expedition-setup](./self-evolution/dream-rsi--expedition-setup.mmd) | [144 总类比](../../research/self-evolution/144-dream-rsi.md) | architecture | ✓ | done | 探险队/台账/沙盘/幕僚长三件套总装与回灌回路 |
+| [dream-rsi--dilemma-cost](./self-evolution/dream-rsi--dilemma-cost.mmd) | [144 §1](../../research/self-evolution/144-dream-rsi.md) | workflow | ✓ | done | 固定章程砸空转 vs 在线改不起两难，汇流到成本结构与破局 |
+| [dream-rsi--history-as-simulator](./self-evolution/dream-rsi--history-as-simulator.mmd) | [144 §1](../../research/self-evolution/144-dream-rsi.md) | dataflow | ✓ | done | 历史→免费模拟器→四条设计规格→回灌循环 |
+| [dream-rsi--discovery-tree](./self-evolution/dream-rsi--discovery-tree.mmd) | [144 §3](../../research/self-evolution/144-dream-rsi.md) | dataflow | ✓ | done | 台账页 primary parent 长成树 + 共享决策接口批次 |
+| [dream-rsi--determinism-proof](./self-evolution/dream-rsi--determinism-proof.mmd) | [144 §4](../../research/self-evolution/144-dream-rsi.md) | lifecycle | ✓ | done | 重放两条转移规则与终止计分（确定性） |
+| [dream-rsi--four-charters](./self-evolution/dream-rsi--four-charters.mmd) | [144 §4](../../research/self-evolution/144-dream-rsi.md) | dataflow | ✓ | done | 同一棵 T1 树上四章程重放分高下 0.83/0.85/0.76/0.77 |
+| [dream-rsi--v-three-terms](./self-evolution/dream-rsi--v-three-terms.mmd) | [144 §5](../../research/self-evolution/144-dream-rsi.md) | dataflow | ✓ | done | 重放分 V 三分量解剖 + 附录 B.2 口径分裂注记 |
+| [dream-rsi--proto-two-rounds](./self-evolution/dream-rsi--proto-two-rounds.mmd) | [144 §5](../../research/self-evolution/144-dream-rsi.md) | lifecycle | ✓ | done | 两轮递归 0.90→0.92、探测 12→11 与收放批次 |
+| [dream-rsi--teardown-d1-guard](./self-evolution/dream-rsi--teardown-d1-guard.mmd) | [144 §7](../../research/self-evolution/144-dream-rsi.md) | lifecycle | ✓ | done | D1 拆候选包含保证：0.77 上位、下轮退化 0.80 |
+| [dream-rsi--teardown-d4-peek](./self-evolution/dream-rsi--teardown-d4-peek.mmd) | [144 §7](../../research/self-evolution/144-dream-rsi.md) | dataflow | ✓ | done | D4 越权跳读排名反转：0.76→0.86 反超 0.85 |
+| [dream-rsi--teardown-d5-lockin](./self-evolution/dream-rsi--teardown-d5-lockin.mmd) | [144 §7](../../research/self-evolution/144-dream-rsi.md) | lifecycle | ✓ | done | D5 语义引导锁死 0.80 vs 重放改进 0.92 |
+| [dream-rsi--evidence-162x-caliber](./self-evolution/dream-rsi--evidence-162x-caliber.mmd) | [144 §6](../../research/self-evolution/144-dream-rsi.md) | dataflow | ✓ | done | 317/550/51200 三柱 + 口径警示 + 数据集拆解 |
+| [dream-rsi--behavior-adaptive](./self-evolution/dream-rsi--behavior-adaptive.mmd) | [144 §6](../../research/self-evolution/144-dream-rsi.md) | lifecycle | ✓ | done | 先省后探：110→50→回升与性能 0.427→1.898 |
+| [dream-rsi--unproven-list](./self-evolution/dream-rsi--unproven-list.mmd) | [144 §8](../../research/self-evolution/144-dream-rsi.md) | workflow | ✓ | done | 论文未证明五件事清单（panel+编号反枚举） |
 
 > 各分类行由对应重绘波次登记；`产物` 列 ✓ = html + dark/light PNG 已入库。
 

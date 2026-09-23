@@ -1,0 +1,5 @@
+[
+ {"id":"one-tree","label":"同一棵树，谁来做梦","focus":["tree"],"note":"一棵 12 节点的发现树，一次在线运行的产物。"},
+ {"id":"scores","label":"四种章程四份成绩单","focus":["p-parallel","p-adaptive","p-early","p-serial"],"note":"并行铺满 0.83、自适应 0.85、串行深挖 0.77、浅尝即止 0.76——高下立判。"},
+ {"id":"takeaway","label":"一次真实换无数次免费","focus":["takeaway"],"note":"同策略同树推演逐位一致，成千上万种章程各走时间线全部免费。"}
+]

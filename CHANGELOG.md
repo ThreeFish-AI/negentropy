@@ -3,11 +3,6 @@
 本文件遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 约定，版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
 ## [Unreleased]
-- **context-layer 第 2 集 v3 原位重制（[《自己动手，给 AI 搭一个上下文层》](apps/negentropy-influence/episodes/context-layer-video/README.md)）**：信源换代为 013 蓝图**内容面重铸版**（钉 `6f643c216dee`——受治理大厦单一比喻剧场 + 天才实习生主角 + 三拍叙事 + 术语首释），比喻体系自 v2「市政五系统」整体换代。全片 15:21 = 27639 帧 @1080p30（185 句 4362 字，sunny-steady 全片重合成）；七幕 40 镜 · **顶部分段式章节进度条首装**（to-video frozen 模板 ChapterProgress，技能仓两条 drift 撤销履行）· archify 12 图 70 章逐章回放（37 cue · 锚定 20.0%）· 代码走廊×10（D1/D3/D5/D6/D8/D9/D10/T5 实测输出原文）· 五柱 HUD 逐层点亮；内容面经**真实性（3 RISKY + 3 REWRITE 清零）与易懂性（MCP 首释、两段抽象连续段、十余句黑话改写）双代理校验**；七幕抽帧 + beat-heads + 尾幕渐黑 + WCAG 主题门全绿，归档根 `~/Documents/video` 新启 v1（工程版本 v3）。
-- **新增研究分部 `docs/research/agent-harness/`（Agent Harness 工程，六篇 + 最小原型）**：以 Learn Claude Code 课程站点修订与 [shareAI-lab/learn-claude-code](https://github.com/shareAI-lab/learn-claude-code) 仓库 main 整合版（MIT，钉 `f9e8b280`）双轨一手材料为信源，按**执行 → 规划 → 记忆 → 时机 → 协作**五层做跨层精读（[总览](docs/research/agent-harness/170-claude-code-harness-overview.md) + 五章）。净增量三块：① **main 轨视频未取材的两章**（`s16_workflow_runtime` 全仓唯一的事件循环扇出并发——`parallel` 有屏障 vs `pipeline` 无屏障、journal 幂等续跑、token 预算与 agent 上限双熔断；`s17_goal_loop` 无工具评估器 + 停止钩子决策机 + 显式防注入），本分部是其唯一事实源；② **随笔记入库的最小原型** [cc_harness_lab.py](docs/research/agent-harness/assets/cc_harness_lab.py)（纯标准库、确定性、`--selftest` 秒级）与**六次破坏性实验**——其中 D2/D6 补上材料「只有论证没有实验」的缺口，实测得出压缩顺序与「未读结果不许动」是**两道独立保险**（单拆其一无可观测损失、同拆才出现原文永久丢失），并暴露占位符不幂等导致的指针二次丢失；③ 跨章级**文档—实现不一致清单**与仓内旧课轨章号导航警示（本仓 025 记忆系统 §2.5 与 `context_assembler.py` 两处既有引用即引了该仓库已过时的 12 课轨编号）。严守 SSOT 边界：章→集归属与固定提交选择只链接 [系列信源地图](apps/negentropy-influence/source-map/claude-code-explained.md) 不重述，逐章引语与可调参数归科普视频各集 `source-notes.md`。
-- **全仓架构图 Mermaid 抽源集中管理 + archify 全量重绘（114 图）**：现役系统文档全部 Mermaid 图抽取至 `docs/assets/mermaid/`（九分类文本源 SSOT，114 个 `.mmd` 带溯源头注释）→ archify 重绘为交互 HTML + 双主题 PNG（`docs/assets/architecture/<分类>/`，均过 validate 0/0 + visual-check 四视口门）→ 原文档就地替换为暗色 PNG 内嵌 + `.mmd`/HTML 溯源链接；索引与派生链约定见 [Mermaid 文本源索引](docs/assets/mermaid/README.md) 与 [doc-media-assets §5](docs/.agents/doc-media-assets.md)。research（第三方调研）/ cognizes（退役遗产）/ 视频分镜按决策不在此管线；er×3/timeline×2/quadrant×1 无对应类型原地保留。重绘过程顺带修正 16 项文档-代码不一致（D-1~D-16：三层图缺引擎内景七子系统→新增 §6.5、§8.2 cognizes 遗产 schema→models/ 九域 76 表、docker-operations 拓扑 wiki 依赖/幽灵 env/健康检查、perceives 幽灵引用与引擎集、025 §8 pg_cron 控制面退役口径等），并清零 concepts 全域死链（60+ 处层级/迁移路径）。
-- **全仓熵减批次（B1–B12，生产代码净减 2,605 行 + 口径外脚本/锁文件 -1,206 行）**：三路并行取证 + 主线程高危断言独立复核 + 逐批验证的结构性熵减，完整留痕见[全仓熵减审计 2026-09](docs/concepts/operations/codebase-entropy-reduction-2026-09.md)。
-
 ### Changed
 
 - **视频流水线机制外置为公开技能 [to-video](https://github.com/ThreeFish-AI/to-video)（GitHub ThreeFish-AI/to-video，MIT）**：`apps/negentropy-influence/pipeline/` 全树与 `.agent/skills/science-video-pipeline` 路由壳迁出本仓、收敛为独立可安装技能（安装于 `~/.claude/skills/to-video`，实测全绿后发布）；本仓 `apps/negentropy-influence` 收敛为**内容工作区**（episodes/ + series.json + source-map/ + voices/，`.influence-root` 哨兵供 skill 兼容识别）。配套五项：
@@ -104,10 +99,28 @@
   - **生产环境**：spawn `scripts/publish-wiki-pages.sh` 推送到 [`threefish-ai.github.io`](https://github.com/ThreeFish-AI/threefish-ai.github.io) `master` 分支，直接更新 [https://threefish-ai.github.io/](https://threefish-ai.github.io/)；`gh auth token` 可用即零配置，生产目标经 destructive 二次确认（不可逆）。
   - `POST /wiki/publications/{pub_id}/publish` 新增可选请求体 `{ target: "local" | "production" }`（缺省 `local`）；响应回填 `target` / `site_url`。
 
+### 自进化系列科普视频第 4 集《翻旧账不花钱：AI 在梦里改章程》（dream-rsi-video）
+
+- 基于 Dream-RSI 论文精读（arXiv:2609.14858，144 号笔记）制作：10:30.87（18926 帧 @30fps），120 句/2989 字
+- self-evolution 系列首个 archify 混合形态分集：16 图/61 章/50 cue（复用 144 配图 2 张 + 新作 14 张，四件套入 docs/assets）
+- 口播纪律：162× 口径警示句、D4 排名反转（0.76→0.86 反超 0.85）、附录 B.2 实现口径分裂全部带锚；145 映射不进正片
+- v2 增量（2026-09-23）：同步 to-video 模板「顶部章节进度条分代」——`Main.tsx` 挂载 + frozen `ChapterProgress.tsx` + `build` 派生 `chapters.json`（七幕标签），骨架漂移门未登记漂移 2→0，换段帧前后对照像素级对账通过；成片归档 `~/Documents/video/self-evolution/`
+
+- **新增 Dream-RSI 论文精读与机制映射（`docs/research/self-evolution/` 144-145 + 最小原型）**：以 [arXiv:2609.14858](https://arxiv.org/abs/2609.14858)（Dream-RSI: Recursive Self-Improvement through Evolving Worlds，UMD/Google DeepMind）一手材料为信源的导师式精读。核心机制：把累积发现历史（发现树）当**重放模拟器**、离线「做梦」（确定性重放：非根→唯一记录子节点、根→最早未揭示）近零成本评估探索策略、重放目标 V 三分量（质量−成本+并行度）、argmax 候选含当前策略防回退（V\*≥V⁰）、只改策略代码不动底座。[144 精读笔记](docs/research/self-evolution/144-dream-rsi.md) 含两相循环/重放模拟器两张 archify 管线图（`docs/assets/{mermaid,architecture}/self-evolution/`，validate 0/0 + visual-check 四视口全过，资产管线范围首纳 self-evolution 分部）、双 Agent 费曼考评对抗实录（三维盲答→四类缺陷诊断→同构变式复考全绿）与批判性边界五条（重放-在线相关性零消融/做梦自身成本不计账/正文 Eq.1 与附录 B.2 评估口径分裂/增益不一致无方差报告/realized-space 保真度缺口无定量刻画）。[145 映射报告](docs/research/self-evolution/145-dream-rsi-mapping-negentropy.md) 六条对照本仓：M3 候选包含保证与 M5 策略层冻结已同构、M2 与 140 号 Judge 锚定支柱同向（论文为其更强形式）、M1 重放模拟器 YAGNI 暂缓并绑定三触发条件、M6 对 Reflexion/reflections/patrol 注入的 over-constrain 边界警示（§5.1 实证）。配套最小原型 [dream_rsi_lab.py](docs/research/self-evolution/assets/dream_rsi_lab.py)（纯标准库 489 行、确定性、`--selftest` 秒级）与**五次破坏性实验**——其中 D4「重放越权跳读最优记录后代」实测让最弱策略评估分 0.76→0.86 反超真正最优的 0.852（排名反转，重放 grounded 价值的直接证明），D4 初版纸面预期与实测不符按实测修正的插曲本身入笔记为纪律案例。
+- **新增研究分部 `docs/research/agent-harness/`（Agent Harness 工程，六篇 + 最小原型）**：以 Learn Claude Code 课程站点修订与 [shareAI-lab/learn-claude-code](https://github.com/shareAI-lab/learn-claude-code) 仓库 main 整合版（MIT，钉 `f9e8b280`）双轨一手材料为信源，按**执行 → 规划 → 记忆 → 时机 → 协作**五层做跨层精读（[总览](docs/research/agent-harness/170-claude-code-harness-overview.md) + 五章）。净增量三块：① **main 轨视频未取材的两章**（`s16_workflow_runtime` 全仓唯一的事件循环扇出并发——`parallel` 有屏障 vs `pipeline` 无屏障、journal 幂等续跑、token 预算与 agent 上限双熔断；`s17_goal_loop` 无工具评估器 + 停止钩子决策机 + 显式防注入），本分部是其唯一事实源；② **随笔记入库的最小原型** [cc_harness_lab.py](docs/research/agent-harness/assets/cc_harness_lab.py)（纯标准库、确定性、`--selftest` 秒级）与**六次破坏性实验**——其中 D2/D6 补上材料「只有论证没有实验」的缺口，实测得出压缩顺序与「未读结果不许动」是**两道独立保险**（单拆其一无可观测损失、同拆才出现原文永久丢失），并暴露占位符不幂等导致的指针二次丢失；③ 跨章级**文档—实现不一致清单**与仓内旧课轨章号导航警示（本仓 025 记忆系统 §2.5 与 `context_assembler.py` 两处既有引用即引了该仓库已过时的 12 课轨编号）。严守 SSOT 边界：章→集归属与固定提交选择只链接 [系列信源地图](apps/negentropy-influence/source-map/claude-code-explained.md) 不重述，逐章引语与可调参数归科普视频各集 `source-notes.md`。
+- **全仓架构图 Mermaid 抽源集中管理 + archify 全量重绘（114 图）**：现役系统文档全部 Mermaid 图抽取至 `docs/assets/mermaid/`（九分类文本源 SSOT，114 个 `.mmd` 带溯源头注释）→ archify 重绘为交互 HTML + 双主题 PNG（`docs/assets/architecture/<分类>/`，均过 validate 0/0 + visual-check 四视口门）→ 原文档就地替换为暗色 PNG 内嵌 + `.mmd`/HTML 溯源链接；索引与派生链约定见 [Mermaid 文本源索引](docs/assets/mermaid/README.md) 与 [doc-media-assets §5](docs/.agents/doc-media-assets.md)。research（第三方调研）/ cognizes（退役遗产）/ 视频分镜按决策不在此管线；er×3/timeline×2/quadrant×1 无对应类型原地保留。重绘过程顺带修正 16 项文档-代码不一致（D-1~D-16：三层图缺引擎内景七子系统→新增 §6.5、§8.2 cognizes 遗产 schema→models/ 九域 76 表、docker-operations 拓扑 wiki 依赖/幽灵 env/健康检查、perceives 幽灵引用与引擎集、025 §8 pg_cron 控制面退役口径等），并清零 concepts 全域死链（60+ 处层级/迁移路径）。
+- **全仓熵减批次（B1–B12，生产代码净减 2,605 行 + 口径外脚本/锁文件 -1,206 行）**：三路并行取证 + 主线程高危断言独立复核 + 逐批验证的结构性熵减，完整留痕见[全仓熵减审计 2026-09](docs/concepts/operations/codebase-entropy-reduction-2026-09.md)。
+
 ## [0.0.1](https://github.com/ThreeFish-AI/negentropy/releases/tag/v0.0.1) - 2026-06-19
 
 首个公开 MVP。立意于薛定谔「熵减」，Negentropy 不在于打造 Agent，而是构建持续自我进化的认知系统，直面当下 AI 助手的五大熵增痛点——**信息过载、金鱼记忆、浅尝辄止、纸上谈兵、晦涩难懂**，把混沌输入转化为有序、可落地的高价值输出。
 
+
+### Context Layer 系列第 2 集《自己动手，给 AI 搭一个上下文层》v3 原位重制（context-layer-video）
+
+- 信源换代 013 蓝图**内容面重铸版**（钉 `6f643c216dee`——受治理大厦比喻剧场 + 天才实习生主角 + 三拍叙事 + 术语首释），比喻体系自 v2「市政五系统」整体换代；185 句/4362 字经真实性（3 RISKY + 3 REWRITE 清零）与易懂性（MCP 首释、两段抽象连续段、十余句黑话改写）双代理校验
+- 成片 15:21 = 27639 帧 @1080p30（sunny-steady 全片重合成）；七幕 40 镜 · **顶部分段章节进度条同步分代**（frozen ChapterProgress + 技能仓两条 drift 撤销履行，与同日 Dream-RSI v2 同代）· archify 12 图 70 章逐章回放（37 cue · 锚定 20.0%）· 代码走廊×10（D1/D3/D5/D6/D8/D9/D10/T5 实测输出原文）· 五柱 HUD 逐层点亮
+- QA：七幕抽帧 + beat-heads + 尾幕渐黑 + WCAG 主题门全绿；check_script 与覆盖门 FAIL 0/WARN 0（6 WARN 为有意叙事重排备案）；归档 `~/Documents/video/context-layer/自己动手，给 AI 搭一个上下文层 v1.mp4`（归档根新启 v1 · 工程版本 v3）
 ### Core Feature
 
 - **「一核五翼」认知架构**：Negentropy 主智能体统一调度，感知/内化/坐照/知行/影响五系部正交分工，知识获取/问题解决/价值交付三条流水线自动编排，并支持 Skill、Routine 与子代理横向扩展——告别教科书式的**浅尝辄止**。

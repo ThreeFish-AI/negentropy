@@ -1,0 +1,17 @@
+%% source: docs/research/self-evolution/144-dream-rsi.md §3
+%% slug: dream-rsi--discovery-tree
+%% type: dataflow
+%% derived: docs/assets/architecture/self-evolution/dream-rsi--discovery-tree.html
+flowchart TD
+    ROOT["根 r<br/>出发前的空营地（初始 workspace）"]
+    ROOT --> A["叶 A<br/>s=0.80 稳定突破"]
+    ROOT --> B["叶 B<br/>s=0.35 陷阱方向"]
+    A --> N4["新页 #4<br/>s=0.50 初始尝试"]
+    A --> N6["新页 #6<br/>s=0.80"]
+    B --> N5["新页 #5<br/>s=0.35"]
+    PAGE["台账页（每个非根节点 v）<br/>primary parent 唯一指认 · workspace 快照 ·<br/>产物 · 评估诊断 · 分数 s_v（越大越好）"] -.等价于任一节点.- A
+    IFACE["共享决策接口（在线 / 离线同一套）<br/>可选集 A(𝒯) = {root} ∪ 已见叶子<br/>动作 = 批次 C，|C| ≤ W（并行 worker 数）<br/>批次同时决定「从哪继续」与「排几队」"] --> ROOT
+    IFACE --> A
+    IFACE --> B
+    style ROOT fill:#4A3B1F,stroke:#FFE3B3,color:#fff
+    style IFACE fill:#0F3244,stroke:#7DD3FC,color:#fff

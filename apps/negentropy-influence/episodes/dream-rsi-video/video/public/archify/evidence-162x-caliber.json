@@ -1,0 +1,103 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 13.07,
+ "total_wall_sec": 120.44,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "bars",
+   "label": "三根柱子",
+   "index": 0,
+   "file": "evidence-162x-caliber--bars.mp4",
+   "end_still": "evidence-162x-caliber--bars-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.208
+   ],
+   "beat_nodes": [
+    "ours",
+    "controlled",
+    "simples"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 20.0
+  },
+  {
+   "id": "ratio",
+   "label": "约两个数量级",
+   "index": 1,
+   "file": "evidence-162x-caliber--ratio.mp4",
+   "end_still": "evidence-162x-caliber--ratio-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.21,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "ratio"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 23.0
+  },
+  {
+   "id": "warn",
+   "label": "口径警示",
+   "index": 2,
+   "file": "evidence-162x-caliber--warn.mp4",
+   "end_still": "evidence-162x-caliber--warn-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "caliber-warn"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 22.0
+  },
+  {
+   "id": "split",
+   "label": "拆开看",
+   "index": 3,
+   "file": "evidence-162x-caliber--split.mp4",
+   "end_still": "evidence-162x-caliber--split-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "dataset-split"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 18.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/quito-v2/docs/assets/architecture/self-evolution/dream-rsi--evidence-162x-caliber.html",
+ "slug": "evidence-162x-caliber",
+ "type": "dataflow"
+}
