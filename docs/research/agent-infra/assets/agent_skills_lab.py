@@ -442,7 +442,7 @@ def audit_repo() -> None:
             errs = validate(fm, d)
         except ParseError as e:
             fm, errs = {}, [f"parse: {e}"]
-        desc, tools = fm.get("description", ""), fm.get("allowed-tools", "")
+        desc, tools = fm.get("description") or "", fm.get("allowed-tools") or ""
         when = bool(re.search(r"use when|用于|适用|当.*时", desc, re.IGNORECASE))
         extras = [x for x in ("scripts", "references", "assets") if (p.parent / x).is_dir()]
         delim = "—" if not tools else ("comma" if "," in tools else "space")

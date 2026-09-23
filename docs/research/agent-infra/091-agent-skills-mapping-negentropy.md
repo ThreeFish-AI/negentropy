@@ -228,7 +228,7 @@ description: "把 Agent Skills 开放规范的 13 条机制对照本仓三套 sk
 ## 文档漂移清单
 
 以下文档把「模型驱动的 Layer 2/3 激活」写成已实现，与 M4 的核验事实矛盾：
-- [Skills 设计](../../concepts/design/skills.md) §2 对照表「模板按需（Layer 2）」行与 §3.2 首条（已加校正指针）；
+- [Skills 设计](../../concepts/design/skills.md) §2 对照表「模板按需（Layer 2）」「资源文件挂载（Layer 3）」两行与 §3.2 首条（已加校正指针）；
 - [172 规划与协调 §11](../agent-harness/172-claude-code-planning-coordination.md)「技能两层加载」行（已加校正指针）；
 - [skills-advanced.md](../../concepts/user-guide/skills-advanced.md) 与 [skills-paper-hunter.md](../../concepts/user-guide/skills-paper-hunter.md) 中「LLM 自主调用 `expand_skill`」的流程描述；
 - [012 Horizon Context 映射](../cognitive-context/012-horizon-context-mapping-negentropy.md) #9 与 [013 Context Layer 蓝图](../cognitive-context/013-context-layer-blueprint.md) 状态表中的「三层渐进披露 ✅」。
