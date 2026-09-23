@@ -310,7 +310,7 @@ description: "五层 harness 第二层的机制精读：待办清单的整表替
 
 | 本层机制 | 本仓对位 | 判定 |
 |:---|:---|:---|
-| 技能两层加载（目录常驻 + 正文按需） | [Skills 设计](../../concepts/design/skills.md)的渐进披露分层 | ✅ 已对齐（同一范式，已分阶段落地） |
+| 技能两层加载（目录常驻 + 正文按需） | [Skills 设计](../../concepts/design/skills.md)的渐进披露分层 | 🔶 范式已对齐、模型侧激活未接通（目录指示的 `expand_skill` 从未挂载到任何 Agent，见 [091 映射 M4](../agent-infra/091-agent-skills-mapping-negentropy.md)） |
 | 系统提示按运行时状态装配，段落取舍依据是事实而非文本 | [Claude Code 集成设计](../../concepts/subsystems/038-claude-code-integration.md)与上下文装配侧的分档预算 | ✅ 已对齐（装配依据同为真实状态） |
 | 待办的整表替换 + 先校验后替换 | [Routine 系统](../../concepts/subsystems/039-the-routine-system.md)的轮次状态更新 | 🔶 值得落地（本仓无「失败的更新不留半张卡」这一级的原子性约定） |
 | 子 agent：干净历史、只回一条结论、照过门禁 | [Routine 多 Agent 归因](../../concepts/subsystems/040-routine-multi-agent-faculty.md) | 🔶 值得落地（本仓无「撞上限与收敛可区分」的回执语义） |

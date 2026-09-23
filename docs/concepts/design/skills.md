@@ -33,7 +33,7 @@ LLM Agent 的可控性与可扩展性，从根本上是**上下文工程**问题
 | 核心载体                | `SKILL.md` + frontmatter                       | Python/TS 类 + 装饰器                    | Markdown spec + tool 契约                  | DB 表（`skills`）+ 14 字段（含 `enforcement_mode` / `resources`）                                                             |
 | Frontmatter 元数据      | ✓（`name`/`description`/`license`/`version`）  | ✓（class metadata）                      | ✓                                          | ~（DB 列即元数据）                                                                                                            |
 | 描述常驻（Layer 1）     | ✓                                              | ✓                                        | ✓                                          | ✓（Phase 1）                                                                                                                  |
-| 模板按需（Layer 2）     | ✓                                              | ✓                                        | ~                                          | ✓（**Phase 2**：`expand_skill` ADK tool + `POST /skills/{id}/invoke` REST + Jinja2 沙箱）                                     |
+| 模板按需（Layer 2）     | ✓                                              | ✓                                        | ~                                          | ~（**Phase 2**：`expand_skill` ADK tool 未挂载，见 §3.2 校正；`POST /skills/{id}/invoke` REST + Jinja2 沙箱）                                     |
 | 资源文件挂载（Layer 3） | ✓（`scripts/` `references/` `assets/`）        | ✓                                        | ~                                          | ✓（**Phase 2**：JSONB `resources` 数组 + `fetch_skill_resource` 路由到 KG/Memory/Knowledge corpus，不直接 fetch URL 防 SSRF） |
 | 工具白名单              | ✓（`allowed-tools`）                           | ✓                                        | ✓                                          | ✓（**Phase 2**：`enforcement_mode=warning\|strict`，strict 抛 `SkillToolMissingError` → SubAgent 降级启动）                   |
 | 模板分发 / 一键安装     | ✗（手动复制 SKILL.md）                         | ✗                                        | ✓（manifest 包）                           | ✓（**Phase 2**：YAML 模板 + `GET /skills/templates` + `POST /skills/from-template`）                                          |
@@ -61,6 +61,8 @@ LLM Agent 的可控性与可扩展性，从根本上是**上下文工程**问题
 - **mocked E2E 覆盖**：5 个 sibling spec / 17 case。
 
 ### 3.2 Phase 2 增强（本 PR）
+
+> ⚠️ **校正（2026-09-23）**：`expand_skill` / `list_available_skills` / `fetch_skill_resource` 已实现，但**从未挂载**到任何 Agent（未进 `TOOL_REGISTRY`），模型驱动的 Layer 2/3 激活当前不可达；生效的只有 REST invoke、调度器、翻译服务等显式注入路径。详见 [Agent Skills ↔ negentropy 机制映射 M4](../../research/agent-infra/091-agent-skills-mapping-negentropy.md)。
 
 - **Layer 2 按需展开（P0）**：
   - `agents/tools/skill_registry.py:expand_skill(name, vars)`：ADK 内置工具，LLM 决定使用某 Skill 时调用即得到 Jinja2 渲染后的完整 prompt_template；
