@@ -1,0 +1,39 @@
+# 非论文信源清单（可复现取证链，工具：$T/pipeline/scripts/source_ledger.py）
+#
+# kind=repo 指向固定 commit，raw 指纹漂移即 FAIL（说明 URL 里的 ref 不是不可变引用）。
+# kind=site 指向线上页面，只对剥标签归一后的正文比对指纹，漂移报 WARN（去复核笔记）。
+# text_sha256 是判据；raw_sha256 仅供 repo 类硬校验与人工核对。
+
+
+[note-014]
+url = "https://raw.githubusercontent.com/ThreeFish-AI/negentropy/348d8797077e328e3f14fda09142a88c0cec1f93/docs/research/cognitive-context/014-openviking.md"
+kind = "repo"
+pinned_ref = "348d8797077e328e3f14fda09142a88c0cec1f93"
+accessed = "2026-09-24"
+raw_sha256 = "0afe3d777399f886"
+text_sha256 = "bfcba4b1529a92a7"
+bytes = 39307
+lines = 316
+via = "pinned commit, 本仓精读笔记（机制载荷与证据分级 SSOT）"
+
+[mapping-015]
+url = "https://raw.githubusercontent.com/ThreeFish-AI/negentropy/348d8797077e328e3f14fda09142a88c0cec1f93/docs/research/cognitive-context/015-openviking-mapping-negentropy.md"
+kind = "repo"
+pinned_ref = "348d8797077e328e3f14fda09142a88c0cec1f93"
+accessed = "2026-09-24"
+raw_sha256 = "4f4dfcb6af376c76"
+text_sha256 = "ac1f54682bedeb31"
+bytes = 15200
+lines = 83
+via = "pinned commit, 本仓机制映射（13 条判定）"
+
+[lab]
+url = "https://raw.githubusercontent.com/ThreeFish-AI/negentropy/348d8797077e328e3f14fda09142a88c0cec1f93/docs/research/cognitive-context/assets/openviking_lab.py"
+kind = "repo"
+pinned_ref = "348d8797077e328e3f14fda09142a88c0cec1f93"
+accessed = "2026-09-24"
+raw_sha256 = "7f4601143994ee83"
+text_sha256 = "81077724c3795dd2"
+bytes = 26148
+lines = 493
+via = "pinned commit, B1–B6 破坏性实验 A 轨实测"

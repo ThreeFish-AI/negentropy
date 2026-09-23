@@ -1,0 +1,45 @@
+[
+ {
+  "id": "layers",
+  "label": "三层",
+  "focus": [
+   "files",
+   "l1",
+   "l0"
+  ],
+  "note": "原文、导览页、标签的体量差。"
+ },
+ {
+  "id": "gen",
+  "label": "生成链",
+  "focus": [
+   "fsum",
+   "gen"
+  ],
+  "note": "文件简介汇总成导览：一目录一次大模型。"
+ },
+ {
+  "id": "cut",
+  "label": "裁剪",
+  "focus": [
+   "cut"
+  ],
+  "note": "标签从导览首段裁出：零次调用。"
+ },
+ {
+  "id": "sample",
+  "label": "采样闸",
+  "focus": [
+   "sample"
+  ],
+  "note": "超三十二个子项等距抽样。"
+ },
+ {
+  "id": "vec",
+  "label": "向量化",
+  "focus": [
+   "vec"
+  ],
+  "note": "三层各一条卡进索引。"
+ }
+]

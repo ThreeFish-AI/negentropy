@@ -1,0 +1,25 @@
+{
+ "seriesId": "context-layer",
+ "layers": [
+  {
+   "index": 1,
+   "layer": "上下文层",
+   "title": "拆解 Horizon Context：功能、治理、安全与开放性",
+   "published": false
+  },
+  {
+   "index": 2,
+   "layer": "上下文层",
+   "title": "自己动手，给 AI 搭一个上下文层",
+   "published": false
+  },
+  {
+   "index": 3,
+   "layer": "上下文层",
+   "title": "给 AI 一座图书馆：OpenViking 上下文数据库",
+   "published": false
+  }
+ ],
+ "activeIndex": 3,
+ "next": null
+}

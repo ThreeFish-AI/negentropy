@@ -1,0 +1,48 @@
+[
+ {
+  "id": "tree",
+  "label": "一棵树",
+  "focus": [
+   "root",
+   "resources",
+   "user",
+   "agent"
+  ],
+  "note": "统一地址与三大分区。"
+ },
+ {
+  "id": "docs",
+  "label": "公共馆藏区",
+  "focus": [
+   "resources",
+   "rdocs"
+  ],
+  "note": "团队文档按目录组织。"
+ },
+ {
+  "id": "mem",
+  "label": "读者档案室",
+  "focus": [
+   "user",
+   "umem"
+  ],
+  "note": "个人记忆与九类档案卡。"
+ },
+ {
+  "id": "skill",
+  "label": "馆员手册室",
+  "focus": [
+   "agent",
+   "askill"
+  ],
+  "note": "技能也是一个目录。"
+ },
+ {
+  "id": "counter",
+  "label": "位置即身份",
+  "focus": [
+   "counter"
+  ],
+  "note": "碰巧叫 memories 仍是资源：结构推导不认名字。"
+ }
+]

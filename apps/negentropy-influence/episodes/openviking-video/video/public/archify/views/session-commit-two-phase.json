@@ -1,0 +1,43 @@
+[
+ {
+  "id": "live",
+  "label": "来访",
+  "focus": [
+   "live"
+  ],
+  "note": "一次对话结束。"
+ },
+ {
+  "id": "archived",
+  "label": "装订",
+  "focus": [
+   "archived"
+  ],
+  "note": "第一阶段同步归档：原话一字不丢。"
+ },
+ {
+  "id": "p2",
+  "label": "后台整理",
+  "focus": [
+   "p2"
+  ],
+  "note": "第二阶段异步：小结+档案卡。"
+ },
+ {
+  "id": "done",
+  "label": "盖章",
+  "focus": [
+   "done"
+  ],
+  "note": "提交点最后写；重投看到章跳过。"
+ },
+ {
+  "id": "failed",
+  "label": "封条",
+  "focus": [
+   "failed",
+   "redeliver"
+  ],
+  "note": "失败是终态：不重试不回滚。"
+ }
+]
