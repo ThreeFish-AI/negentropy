@@ -1,0 +1,54 @@
+[
+ {
+  "id": "draft",
+  "label": "draft 起点",
+  "focus": [
+   "draft"
+  ],
+  "note": "草稿创建。"
+ },
+ {
+  "id": "governed",
+  "label": "governed 转正",
+  "focus": [
+   "governed"
+  ],
+  "note": "校验+人审成权威口径。"
+ },
+ {
+  "id": "conflict",
+  "label": "conflict 岔道",
+  "focus": [
+   "conflict"
+  ],
+  "note": "同名异义待裁。"
+ },
+ {
+  "id": "superseded",
+  "label": "superseded 让位",
+  "focus": [
+   "superseded"
+  ],
+  "note": "被取代，freshness 衰减。"
+ },
+ {
+  "id": "rejected",
+  "label": "rejected 拒收",
+  "focus": [
+   "rejected"
+  ],
+  "note": "不进运行时。"
+ },
+ {
+  "id": "full",
+  "label": "词条一生",
+  "focus": [
+   "draft",
+   "governed",
+   "conflict",
+   "superseded",
+   "rejected"
+  ],
+  "note": "五态全图。"
+ }
+]

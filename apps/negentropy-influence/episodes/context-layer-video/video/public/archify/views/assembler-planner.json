@@ -1,0 +1,53 @@
+[
+ {
+  "id": "router",
+  "label": "统一入口",
+  "focus": [
+   "request",
+   "router"
+  ],
+  "note": "Context Router 调度。"
+ },
+ {
+  "id": "assembler",
+  "label": "自动通道升级",
+  "focus": [
+   "assembler"
+  ],
+  "note": "ContextAssembler。"
+ },
+ {
+  "id": "grounding",
+  "label": "KB 接地片段",
+  "focus": [
+   "kb_grounding"
+  ],
+  "note": "消除过期记忆幻觉。"
+ },
+ {
+  "id": "planner",
+  "label": "记忆种子源",
+  "focus": [
+   "planner",
+   "memory_seed"
+  ],
+  "note": "Memory 第 4 路。"
+ },
+ {
+  "id": "fusion",
+  "label": "统一融合排名",
+  "focus": [
+   "fusion"
+  ],
+  "note": "归一信任 RRF。"
+ },
+ {
+  "id": "guard",
+  "label": "出口守卫",
+  "focus": [
+   "guard",
+   "llm"
+  ],
+  "note": "注入 LLM 前最后一闸。"
+ }
+]

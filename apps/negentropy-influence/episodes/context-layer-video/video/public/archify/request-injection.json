@@ -1,0 +1,132 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 17.43,
+ "total_wall_sec": 89.24,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "resolve",
+   "label": "指令解析链",
+   "index": 0,
+   "file": "request-injection--resolve.mp4",
+   "end_still": "request-injection--resolve-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.31,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.207
+   ],
+   "beat_nodes": [
+    "request",
+    "provider",
+    "resolver"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "inject",
+   "label": "渐进注入",
+   "index": 1,
+   "file": "request-injection--inject.mp4",
+   "end_still": "request-injection--inject-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.21,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "injector",
+    "llmreq"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "preload",
+   "label": "预载与回退",
+   "index": 2,
+   "file": "request-injection--preload.mp4",
+   "end_still": "request-injection--preload-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "preload",
+    "fallback"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "planner",
+   "label": "检索侧",
+   "index": 3,
+   "file": "request-injection--planner.mp4",
+   "end_still": "request-injection--planner-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "planner"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "tables",
+   "label": "数据侧四表",
+   "index": 4,
+   "file": "request-injection--tables.mp4",
+   "end_still": "request-injection--tables-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.46,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.205,
+    3.308
+   ],
+   "beat_nodes": [
+    "memories",
+    "agents_row",
+    "skills_tables",
+    "kb"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 34.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/cognitive-context/context-layer--request-injection.html",
+ "slug": "request-injection",
+ "type": "workflow"
+}

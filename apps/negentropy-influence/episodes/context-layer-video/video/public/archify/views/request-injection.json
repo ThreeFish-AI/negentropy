@@ -1,0 +1,49 @@
+[
+ {
+  "id": "resolve",
+  "label": "指令解析链",
+  "focus": [
+   "request",
+   "provider",
+   "resolver"
+  ],
+  "note": "动态指令与行加载。"
+ },
+ {
+  "id": "inject",
+  "label": "渐进注入",
+  "focus": [
+   "injector",
+   "llmreq"
+  ],
+  "note": "技能注入进 LLM 请求。"
+ },
+ {
+  "id": "preload",
+  "label": "预载与回退",
+  "focus": [
+   "preload",
+   "fallback"
+  ],
+  "note": "记忆预载+硬编码回退。"
+ },
+ {
+  "id": "planner",
+  "label": "检索侧",
+  "focus": [
+   "planner"
+  ],
+  "note": "混合检索不含 Memory。"
+ },
+ {
+  "id": "tables",
+  "label": "数据侧四表",
+  "focus": [
+   "memories",
+   "agents_row",
+   "skills_tables",
+   "kb"
+  ],
+  "note": "各自读 PG 无统一目录。"
+ }
+]

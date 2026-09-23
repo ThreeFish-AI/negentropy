@@ -1,0 +1,76 @@
+[
+ {
+  "id": "overview",
+  "label": "五正交层总览",
+  "focus": [
+   "store",
+   "catalog",
+   "explicit",
+   "implicit",
+   "eval",
+   "gate",
+   "rank",
+   "mcp"
+  ],
+  "note": "五层一次成像，正交边界清晰。"
+ },
+ {
+  "id": "store",
+  "label": "对象层·放什么",
+  "focus": [
+   "store"
+  ],
+  "note": "上下文对象存储：规章手册本体。"
+ },
+ {
+  "id": "catalog",
+  "label": "目录层·怎么找",
+  "focus": [
+   "catalog"
+  ],
+  "note": "统一目录：索引总账只 UNION 元数据与指针。"
+ },
+ {
+  "id": "explicit",
+  "label": "显式编纂轨",
+  "focus": [
+   "explicit"
+  ],
+  "note": "速记秘书：现成报表起草规章。"
+ },
+ {
+  "id": "implicit",
+  "label": "隐式编纂轨",
+  "focus": [
+   "implicit"
+  ],
+  "note": "见习助教：从查询习惯偷师。"
+ },
+ {
+  "id": "eval",
+  "label": "eval 自纠环",
+  "focus": [
+   "eval"
+  ],
+  "note": "错配→修正→重排复测。"
+ },
+ {
+  "id": "gate",
+  "label": "治理出口",
+  "focus": [
+   "gate",
+   "human"
+  ],
+  "note": "Governance Gate 必经 + 治理角色。"
+ },
+ {
+  "id": "activate",
+  "label": "激活与插座",
+  "focus": [
+   "rank",
+   "mcp",
+   "consumers"
+  ],
+  "note": "四因子排序 + MCP 递到消费者。"
+ }
+]

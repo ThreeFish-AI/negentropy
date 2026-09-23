@@ -1,0 +1,47 @@
+[
+ {
+  "id": "obj",
+  "label": "对象层·M1",
+  "focus": [
+   "obj-m",
+   "obj-i"
+  ],
+  "note": "口径单点×查询期重算 ↔ definitions registry。"
+ },
+ {
+  "id": "cat",
+  "label": "目录层·M5",
+  "focus": [
+   "cat-m",
+   "cat-i"
+  ],
+  "note": "血缘+四层信号 ↔ 三视图。"
+ },
+ {
+  "id": "enr",
+  "label": "富化层·双轨",
+  "focus": [
+   "enr-m",
+   "enr-i"
+  ],
+  "note": "双轨富化 ↔ patrol/Judge。"
+ },
+ {
+  "id": "gov",
+  "label": "治理层·四机构",
+  "focus": [
+   "gov-m",
+   "gov-i"
+  ],
+  "note": "M2/M3/M7/M6 ↔ Guard/身份。"
+ },
+ {
+  "id": "act",
+  "label": "激活层·锚定",
+  "focus": [
+   "act-m",
+   "act-i"
+  ],
+  "note": "M4+检索 ↔ 渐进披露/Router。"
+ }
+]

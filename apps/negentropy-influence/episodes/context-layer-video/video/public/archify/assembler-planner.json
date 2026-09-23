@@ -1,0 +1,143 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.2,
+ "story_sec": 19.44,
+ "total_wall_sec": 178.31,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "router",
+   "label": "统一入口",
+   "index": 0,
+   "file": "assembler-planner--router.mp4",
+   "end_still": "assembler-planner--router-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.2,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "request",
+    "router"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 27.0
+  },
+  {
+   "id": "assembler",
+   "label": "自动通道升级",
+   "index": 1,
+   "file": "assembler-planner--assembler.mp4",
+   "end_still": "assembler-planner--assembler-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "assembler"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 27.0
+  },
+  {
+   "id": "grounding",
+   "label": "KB 接地片段",
+   "index": 2,
+   "file": "assembler-planner--grounding.mp4",
+   "end_still": "assembler-planner--grounding-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "kb_grounding"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "planner",
+   "label": "记忆种子源",
+   "index": 3,
+   "file": "assembler-planner--planner.mp4",
+   "end_still": "assembler-planner--planner-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "planner",
+    "memory_seed"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "fusion",
+   "label": "统一融合排名",
+   "index": 4,
+   "file": "assembler-planner--fusion.mp4",
+   "end_still": "assembler-planner--fusion-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.48,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "fusion"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "guard",
+   "label": "出口守卫",
+   "index": 5,
+   "file": "assembler-planner--guard.mp4",
+   "end_still": "assembler-planner--guard-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "guard",
+    "llm"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 27.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/cognitive-context/context-layer--assembler-planner.html",
+ "slug": "assembler-planner",
+ "type": "workflow"
+}
