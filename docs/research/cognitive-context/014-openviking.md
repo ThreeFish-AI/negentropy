@@ -201,6 +201,8 @@ THINKING recall@3 = 1.00（展开 43 个书架、专家 47 次、读 33839 token
 
 ### 9.1 厂商自报基准（全部【三】，2026-05-29 博客 + README）
 
+> 补记（2026-09-24）：基准博客在上游仓 `blog` 分支有逐字节镜像（`blog/public/post/openviking-benchmark-results/llm.txt@origin/blog`，入库 `c022c7c7`），比易变 URL 更稳、可作钉版本引用（该目录不在主线钉点上，引用须带分支限定）；另经 `git log --all -S'HotpotQA'` 全历史确认，HotpotQA **从未进入任何代码提交**（仅 README 三语与博客），「仓内无适配器」升级为「全历史均无」。
+
 | 实验 | 关键数字 | 一句话读法 |
 | --- | --- | --- |
 | LoCoMo · OpenClaw | 原生 24.20% → 82.08%（×3.39）；输入 token 392.6M → 37.4M（−90.5%，博客写 −91.0%） | 团队自报；judge=doubao-seed-2-0-pro、判分提示偏宽松、失败题不进分母 |

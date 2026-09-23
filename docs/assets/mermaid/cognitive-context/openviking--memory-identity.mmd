@@ -1,0 +1,10 @@
+%% source: docs/research/cognitive-context/014-openviking.md §6.3（视频 P4）
+%% slug: openviking--memory-identity
+%% type: workflow
+%% derived: docs/assets/architecture/cognitive-context/openviking--memory-identity.html
+flowchart LR
+  NEWS["新要点<br/>对话提炼产出"] -->|"提名"| PRE["预取相似旧卡<br/>合并检索 top-5"]
+  PRE -->|"只提名候选"| IDEN{"身份字段裁决<br/>读者 × 主题"}
+  IDEN -->|"规则拼名"| NAME["确定性卡名<br/>文件名即身份"]
+  NAME -->|"查号"| EXISTS{"同名卡存在？<br/>查号不搜索"}
+  EXISTS -->|"判定"| UPSERT["落卡<br/>已有则修订 / 没有则新建"]

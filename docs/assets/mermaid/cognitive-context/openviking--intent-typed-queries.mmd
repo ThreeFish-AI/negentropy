@@ -1,0 +1,14 @@
+%% source: docs/research/cognitive-context/014-openviking.md §5.2（视频 P3）
+%% slug: openviking--intent-typed-queries
+%% type: workflow
+%% derived: docs/assets/architecture/cognitive-context/openviking--intent-typed-queries.html
+flowchart LR
+  Q["用户问题<br/>search 入口"] -->|"提问"| GATE{"有会话？<br/>无会话用原问题"}
+  GATE -->|"有会话"| AN["意图分析<br/>LLM 拆单"]
+  GATE -.->|"无会话·原问题"| MERGE["直接拼接<br/>不去重 · 分数不归一"]
+  AN -->|"拆单"| QRES["资料检索单<br/>找资料"]
+  AN -->|"拆单"| QMEM["记忆检索单<br/>查记忆"]
+  QRES -->|"同路"| QSKILL["技能检索单<br/>翻手册"]
+  QRES -->|"递归"| MERGE
+  QSKILL -->|"递归"| MERGE
+  QMEM -->|"递归"| MERGE

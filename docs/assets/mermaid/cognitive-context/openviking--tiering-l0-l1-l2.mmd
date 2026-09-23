@@ -1,0 +1,14 @@
+%% source: docs/research/cognitive-context/014-openviking.md §4（视频 P2）
+%% slug: openviking--tiering-l0-l1-l2
+%% type: architecture
+%% derived: docs/assets/architecture/cognitive-context/openviking--tiering-l0-l1-l2.html
+flowchart TB
+  FILES["书（L2 原文）<br/>按需才读"] --> FSUM["文件简介<br/>1×LLM / 文件"]
+  FSUM --> SAMPLE["采样闸<br/>>32 子项等距抽样"]
+  SAMPLE -->|"采样简介+子架 L0"| GEN["导览生成<br/>1×LLM / 目录"]
+  GEN --> L1["L1 导览页<br/>≤4000 字符（软上限）"]
+  L1 -->|"H1 后首段"| CUT["首段裁剪<br/>0×LLM"]
+  CUT --> L0["L0 标签<br/>≤256 字符（软上限）"]
+  L0 -->|"向量化"| VEC["向量索引<br/>L0/L1/L2 各一条卡"]
+  L1 -->|"向量化"| VEC
+  FILES -.->|"原文 embedding"| VEC
