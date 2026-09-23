@@ -1,0 +1,21 @@
+%% source: docs/research/agent-infra/090-agent-skills-spec.md §3
+%% slug: agent-skills--package-and-validation
+%% type: architecture
+%% derived: docs/assets/architecture/agent-infra/agent-skills--package-and-validation.html
+flowchart TD
+    subgraph PKG["技能包 = 一个目录（作者侧）"]
+        direction TB
+        DIR["skill-name/<br/>目录名必须等于 name"] --> SK["SKILL.md<br/>必填 name（≤64 · 小写字母数字与连字符）· description（≤1024）<br/>选填 license · compatibility（≤500）· metadata（str→str）· allowed-tools（实验性）"]
+        DIR --> OPT["可选目录<br/>scripts/ 可执行 · references/ 文档 · assets/ 模板与数据"]
+    end
+    subgraph REF["skills-ref 参考实现（demo，非生产 SDK）"]
+        direction TB
+        V["validate<br/>字段白名单 · NFKC 名称规则 · 长度上限 · 目录名一致"]
+        RP["read-properties<br/>只查必填存在 · 静默丢弃未知字段"]
+        TP["to-prompt<br/>available_skills XML · name/description 转义"]
+    end
+    SK --> V
+    SK --> RP
+    RP --> TP
+    TP -->|"目录块交给客户端 Tier 1"| CLIENT["客户端 Agent"]
+    V -.->|"字符集 · skill.md 回退 · --- 非行锚定切分 · 未知字段 · 坏文件整体失败"| GAP["规范 ↔ 实现 13 处分歧<br/>以 specification.mdx 为准"]
