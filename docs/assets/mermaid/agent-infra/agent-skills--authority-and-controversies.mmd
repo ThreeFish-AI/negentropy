@@ -1,0 +1,11 @@
+%% source: apps/negentropy-influence/episodes/agent-skills-video/script/narration.md P6（事实源 research/source-notes.md P6；090 §7 §8；AGENTS.md @69ef37e9）
+%% slug: agent-skills--authority-and-controversies
+%% type: architecture
+%% derived: docs/assets/architecture/agent-infra/agent-skills--authority-and-controversies.html
+flowchart TD
+    SPEC["规范正文 specification.mdx<br/>格式要求的唯一权威"] -->|"不得新增要求"| REF["官方参考实现 skills-ref<br/>示范代码，非生产 SDK"]
+    SPEC -.->|"逐条对照"| DIFF["13 处分歧 · 6 处真跑复现<br/>中文名判合规 · 坏文件整体失败 …"]
+    REF -.-> DIFF
+    DIFF --> C1["争议一 · 严格 vs 宽容<br/>退稿 or 告警照载（RFC 9413：一味宽容侵蚀互通）"]
+    DIFF --> C2["争议二 · 自己挑 vs 人点名<br/>省事但静默出错 / 可靠但要记得住"]
+    DIFF --> C3["争议三 · 极简 vs 信任<br/>无签名 · 无来源 · 无版本锁定"]
