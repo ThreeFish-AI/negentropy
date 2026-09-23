@@ -88,13 +88,18 @@ description: "三案例 → 五挑战 → 四层基础设施的全貌解剖；�
 
 ## 5. 动手实验室
 
-`--selftest` 全绿；`--break all` 跑 D1–D6，实际运行输出摘录：
+`--break all` 跑 D1–D6，实际运行输出摘录：
 
 ```text
 == D3 · 三态聚合把 UNKNOWN 当 PASS ==
   退化：M3 resume 136/137/138/139  (True, False, False, False)  →  (True, False, True, False)
 == D5 · 真实令牌写进 Sandbox 环境变量 ==
   退化：M4 真实令牌出现在构建日志  False  →  True
+```
+
+`--selftest` 全绿，并在末尾附 X1 口径核验（此段 `--break` 不输出）：
+
+```text
   X1 手册 p24 示例 SQL 重放（真值 → 示例 SQL 实得）：
     ai_sessions            3.000 →  13.000  （×4.33）
     change_failure_rate    0.667 →   0.538  （×0.81）
