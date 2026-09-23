@@ -369,7 +369,7 @@ def probe() -> dict:
     cred = sandbox_build(tr)
     LAB.mkdir(exist_ok=True)
     (LAB / "trajectory.json").write_text(
-        json.dumps(tr.__dict__, ensure_ascii=False, indent=2)
+        json.dumps(tr.__dict__, ensure_ascii=False, indent=2), encoding="utf-8"
     )
     return {
         "M1 cancel-rule 交付补丁通过测试": run_tests(easy["patch"])["exit_code"] == 0,
