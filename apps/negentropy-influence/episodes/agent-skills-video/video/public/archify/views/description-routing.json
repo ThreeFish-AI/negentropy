@@ -1,0 +1,38 @@
+[
+  {
+    "id": "judge",
+    "label": "模型自己判断",
+    "focus": [
+      "task",
+      "judge"
+    ],
+    "note": "工单提到 PDF 抽表格填表：多数产品不做关键词匹配，模型读书脊自己判断。"
+  },
+  {
+    "id": "good-desc",
+    "label": "好描述",
+    "focus": [
+      "judge",
+      "good_desc"
+    ],
+    "note": "好描述写清做什么（提取表格·填表·合并）与何时用（一提 PDF/表单就用）。"
+  },
+  {
+    "id": "bad-desc",
+    "label": "差描述",
+    "focus": [
+      "judge",
+      "bad_desc"
+    ],
+    "note": "「帮忙处理 PDF 相关的事」满足硬性规定、上架检查不拦，却对不上任务。"
+  },
+  {
+    "id": "hit-miss",
+    "label": "命中与落空",
+    "focus": [
+      "hit",
+      "miss"
+    ],
+    "note": "好描述命中抽出整本；差描述落空，无报错无警告，手册形同不存在。"
+  }
+]

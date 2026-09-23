@@ -99,6 +99,13 @@
   - **生产环境**：spawn `scripts/publish-wiki-pages.sh` 推送到 [`threefish-ai.github.io`](https://github.com/ThreeFish-AI/threefish-ai.github.io) `master` 分支，直接更新 [https://threefish-ai.github.io/](https://threefish-ai.github.io/)；`gh auth token` 可用即零配置，生产目标经 destructive 二次确认（不可逆）。
   - `POST /wiki/publications/{pub_id}/publish` 新增可选请求体 `{ target: "local" | "production" }`（缺省 `local`）；响应回填 `target` / `site_url`。
 
+### Agent 基础设施系列科普视频第 1 集《经验淬炼成手册：Agent 的轻量蒸馏与按需装配》（agent-skills-video）
+
+- 基于 [Agent Skills 开放规范精读](docs/research/agent-infra/090-agent-skills-spec.md)（090 @ 80b456fb）与上游 agentskills/agentskills @ 69ef37e9 制作：15:24.97（27749 帧 @30fps），200 句/4294 字；新建 doc 型系列 `agent-infra`（归档子目录 ~/Documents/video/agent-infra/）
+- 七幕以「公司手册柜」单一剧场贯穿：淬炼（上游 best-practices / evaluating-skills 新取证）→ 一格一本 → 按需装配（原型账本 2321 vs 39222）→ 书脊路由 → 四次拆解实验 → 规范边界；「轻量蒸馏」全片带「不改模型本身」约束句，091 本仓映射不进正片
+- archify 12 图/58 章/49 cue（复用 090 配图 2 张 + 新作 10 张，四件套入 `docs/assets/{mermaid,architecture}/agent-infra/`）；Stage ④ 双重校验 23+21 条 REWRITE 全落地
+- 草渲全片亮度扫描抓出 P6 整幕渐黑提前（`useFadeOut` 挂在整幕却用末 beat 时长）与三处空窗，修复后终渲 beat-heads/尾幕 FAIL 0；TTS 两次 MPS OOM 经自愈续跑脚本无损补齐
+
 ### 自进化系列科普视频第 4 集《翻旧账不花钱：AI 在梦里改章程》（dream-rsi-video）
 
 - 基于 Dream-RSI 论文精读（arXiv:2609.14858，144 号笔记）制作：10:30.87（18926 帧 @30fps），120 句/2989 字
