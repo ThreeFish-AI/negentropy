@@ -93,7 +93,7 @@
             "date": "2026-09"
           },
           "status": "final-review",
-          "statusNote": "v1 终渲待审（2026-09-23）：18926 帧 = 10:30.87；archify 混合 16 图 61 章 50 cue；草渲 QA FAIL 0",
+          "statusNote": "v2 终渲待审（2026-09-23）：顶部章节进度条（ChapterProgress 分代同步，chapters.json 七幕标签）+ 18926 帧 = 10:30.87；archify 混合 16 图 61 章 50 cue；草渲 QA FAIL 0；成片归档 ~/Documents/video/self-evolution/",
           "voice": "sunny-steady + me-bright.wav"
         }
       ]
