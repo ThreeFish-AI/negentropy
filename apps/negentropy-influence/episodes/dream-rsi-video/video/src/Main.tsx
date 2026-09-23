@@ -1,5 +1,6 @@
 import React from 'react';
 import {AbsoluteFill, Sequence} from 'remotion';
+import {ChapterProgress} from './components/ChapterProgress';
 import {NarrationAudio} from './components/NarrationAudio';
 import {SceneFade} from './components/SceneFade';
 import {Subtitle} from './components/Subtitle';
@@ -27,7 +28,7 @@ const SCENE_COMPONENTS: Record<string, React.FC<{scene: SceneRange}>> = {
 export type MainProps = {manifest: ManifestItem[]};
 
 export const Main: React.FC<MainProps> = ({manifest}) => {
-  const {timed, scenes} = computeTimeline(manifest);
+  const {timed, scenes, totalDurationInFrames} = computeTimeline(manifest);
   return (
     <AbsoluteFill style={{background: theme.bg}}>
       {scenes.map((sc, i) => {
@@ -51,6 +52,8 @@ export const Main: React.FC<MainProps> = ({manifest}) => {
       })}
       <NarrationAudio timed={timed} />
       <Subtitle timed={timed} />
+      {/* 顶部分段章节进度条：chapters.json（build_narration 派生）为空时自渲染 null */}
+      <ChapterProgress scenes={scenes} totalDurationInFrames={totalDurationInFrames} />
     </AbsoluteFill>
   );
 };
