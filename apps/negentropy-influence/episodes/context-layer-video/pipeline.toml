@@ -9,9 +9,9 @@
 slug = "context-layer-video"
 
 [narration]
-# TODO：按本集选题与语速预算填写。口径提示——280 字/分是**含停顿的等效**口径，
-# 裸按字数算会高估约 12% 的句容量，双口径门以 manifest 实测为准。
-target_minutes = [13.0, 14.6]
+# v3 重制（013 重铸版）：182 句 / ~4160 字 / 目标 ≈14:50（280 字/分为含停顿等效口径，
+# 双口径门以 manifest 实测为准）
+target_minutes = [13.0, 15.6]
 
 [tts]
 engine = "indextts"
@@ -21,3 +21,22 @@ engine = "indextts"
 ref = "voices/me-bright.wav"
 ref_sha1 = "54b699cce97f"
 style = "sunny-steady"
+
+[archify]
+# v3 重制：12 图（6 张 blueprint-- 前缀走约定 + 6 张 context-layer-- 前缀走例外表）
+# 54 章章节清单见 video/public/archify/views/。阈值为初稿地板，分镜定稿后按
+# 覆盖门实测回填（定在实测值下 10–15%）。
+# 本集口径（v3 设计实测：41 cue / 38 章 / 12 图全用；装置+代码走廊密集幕的
+# P2 系机制内容无对位图，锚定密度低于 horizon 集属设计内）——分镜定稿后回填。
+min_diagrams = 12
+min_cues = 37
+min_anchor_ratio = 0.20
+min_chapter_ratio = 0.45
+min_scene_anchor_ratio = 0.06
+max_unanchored_run = 21  # P0 冷开场 0-A..0-D 为装置密集镜（对撞卡/大数字/实习生/裂纹），p0-22 起才有首个 cue
+min_cues_per_minute = 2.2
+min_diagram_types = 3
+forbid_inset = true
+html_dir = "docs/assets/architecture/cognitive-context"
+html_pattern = "context-layer-blueprint--{slug}.html"
+html_overrides = { collect-phase = "context-layer--collect-phase.html", auto-channel = "context-layer--auto-channel.html", assembler-planner = "context-layer--assembler-planner.html", request-injection = "context-layer--request-injection.html", runtime-layering = "context-layer--runtime-layering.html", evolution-levers = "context-layer--evolution-levers.html" }

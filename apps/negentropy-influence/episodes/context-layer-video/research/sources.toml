@@ -1,4 +1,4 @@
-# 非论文信源清单（可复现取证链，工具：$R/source_ledger.py）
+# 非论文信源清单（可复现取证链，工具：$T/pipeline/scripts/source_ledger.py）
 #
 # kind=repo 指向固定 commit，raw 指纹漂移即 FAIL（说明 URL 里的 ref 不是不可变引用）。
 # kind=site 指向线上页面，只对剥标签归一后的正文比对指纹，漂移报 WARN（去复核笔记）。
@@ -6,45 +6,45 @@
 
 
 [blueprint]
-url = "https://raw.githubusercontent.com/ThreeFish-AI/negentropy/cf6724d688d663a3508294cb1a44f3758b633998/docs/reference/context-layer-blueprint.md"
+url = "https://raw.githubusercontent.com/ThreeFish-AI/negentropy/6f643c216dee148cd14f0b471c8eef4ab1a85659/docs/research/cognitive-context/013-context-layer-blueprint.md"
 kind = "repo"
-pinned_ref = "cf6724d688d663a3508294cb1a44f3758b633998"
-accessed = "2026-09-12"
-raw_sha256 = "9067f9d4bc06fcde"
-text_sha256 = "3c11c32b7ae87e87"
-bytes = 12464
-lines = 150
-via = "pinned commit, 本仓内部文档"
+pinned_ref = "6f643c216dee148cd14f0b471c8eef4ab1a85659"
+accessed = "2026-09-23"
+raw_sha256 = "745b629872abdcb3"
+text_sha256 = "f9ac0304de376c49"
+bytes = 65703
+lines = 603
+via = "pinned commit, 本仓内部文档（013 重铸版=设计与判定 SSOT）"
 
 [paper-note]
-url = "https://raw.githubusercontent.com/ThreeFish-AI/negentropy/cf6724d688d663a3508294cb1a44f3758b633998/docs/reference/paper-notes/horizon-context.md"
+url = "https://raw.githubusercontent.com/ThreeFish-AI/negentropy/6f643c216dee148cd14f0b471c8eef4ab1a85659/docs/research/cognitive-context/011-horizon-context.md"
 kind = "repo"
-pinned_ref = "cf6724d688d663a3508294cb1a44f3758b633998"
-accessed = "2026-09-12"
-raw_sha256 = "2cac829ddfa9d5dc"
-text_sha256 = "10b2f8eb2c917969"
-bytes = 25667
-lines = 223
-via = "pinned commit, 机制详解引用"
+pinned_ref = "6f643c216dee148cd14f0b471c8eef4ab1a85659"
+accessed = "2026-09-23"
+raw_sha256 = "fb08fe6c44d90211"
+text_sha256 = "f4f6d5bd18565aa7"
+bytes = 105935
+lines = 771
+via = "pinned commit, 机制详解引用（经它间接可溯 Snowflake 上游）"
+
+[lab]
+url = "https://raw.githubusercontent.com/ThreeFish-AI/negentropy/6f643c216dee148cd14f0b471c8eef4ab1a85659/docs/research/cognitive-context/assets/horizon_context_lab.py"
+kind = "repo"
+pinned_ref = "6f643c216dee148cd14f0b471c8eef4ab1a85659"
+accessed = "2026-09-23"
+raw_sha256 = "cd83e85d0cd338a6"
+text_sha256 = "c5509cc4f851cf6d"
+bytes = 59251
+lines = 1195
+via = "pinned commit, D1–D10 与 selftest 的 A 轨实测"
 
 [mcp-prototype]
-url = "https://raw.githubusercontent.com/ThreeFish-AI/negentropy/cf6724d688d663a3508294cb1a44f3758b633998/docs/reference/paper-notes/assets/horizon_context_mcp.py"
+url = "https://raw.githubusercontent.com/ThreeFish-AI/negentropy/6f643c216dee148cd14f0b471c8eef4ab1a85659/docs/research/cognitive-context/assets/horizon_context_mcp.py"
 kind = "repo"
-pinned_ref = "cf6724d688d663a3508294cb1a44f3758b633998"
-accessed = "2026-09-12"
+pinned_ref = "6f643c216dee148cd14f0b471c8eef4ab1a85659"
+accessed = "2026-09-23"
 raw_sha256 = "e4769832a2734829"
 text_sha256 = "580f1e0b604d196e"
 bytes = 15827
 lines = 328
-via = "pinned commit, P0 机制验证"
-
-[internal-fabric]
-url = "https://raw.githubusercontent.com/ThreeFish-AI/negentropy/cf6724d688d663a3508294cb1a44f3758b633998/docs/concepts/design/context-layer.md"
-kind = "repo"
-pinned_ref = "cf6724d688d663a3508294cb1a44f3758b633998"
-accessed = "2026-09-12"
-raw_sha256 = "2acf1f4af2b53ae0"
-text_sha256 = "2d90420e86372b45"
-bytes = 29361
-lines = 352
-via = "pinned commit, 内部织物方案(ADR 纪律引用)"
+via = "pinned commit, stdio 四工具 P0 机制验证"
