@@ -1,0 +1,28 @@
+[
+ {
+  "id": "intact",
+  "label": "保险在：现任兜底",
+  "focus": [
+   "intact"
+  ],
+  "note": "候选名单含现任章程 0.83 保底，改不好就不换。"
+ },
+ {
+  "id": "removed",
+  "label": "拆掉：矮子拔将军",
+  "focus": [
+   "removed",
+   "worse-wins",
+   "degrade"
+  ],
+  "note": "踢出现任后 0.77 被迫上岗，下一轮直接退化到 0.80、只剩 5 次探测。"
+ },
+ {
+  "id": "insurance",
+  "label": "教训",
+  "focus": [
+   "lesson"
+  ],
+  "note": "候选包含保证是零成本的防回退保险。"
+ }
+]

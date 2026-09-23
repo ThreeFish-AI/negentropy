@@ -1,0 +1,42 @@
+# 本集可执行参数的**唯一来源**（ISSUE-161：可执行参数不落散文文档，README 只引用配置）。
+# 编排入口：uv run --no-project $T/pipeline/scripts/pipeline.py --project $P <cmd>（$T/$W/$P/$V 见 to-video skill 的 pipeline/README.md）
+#
+# 只写**本集偏离**：机制常数（chars_per_min / lang / draft_scale / draft_jpeg_quality）
+# 的默认值在 skill 仓 pipeline/scripts/config.py，不要抄回这里。字段表见 skill 的
+# pipeline/README.md，跑 `pipeline.py doctor` 可打印带来源标注的生效配置全表。
+
+[episode]
+slug = "dream-rsi-video"
+
+[narration]
+# 口径提示——280 字/分是**含停顿的等效**口径，双口径门以 manifest 实测为准。
+# 本集定位 ~10 分钟（2800 字量级），七幕预算见 planning.md。
+target_minutes = [9.0, 11.0]
+
+[tts]
+engine = "indextts"
+# TODO：选定样本与风格。样本路径**工作区根相对**；ref_sha1 取 12 位（同 tts.py 口径），
+# 用 `uv run --no-project $T/pipeline/scripts/refs.py list` 查当前清单。
+# ⚠️ 风格预设的 alpha 是在**特定选段**上标定的，换选段即失效（见 $V/refs.toml）。
+ref = "voices/me-bright.wav"
+ref_sha1 = "54b699cce97f"
+style = "sunny-steady"
+
+[archify]
+# archify 混合形态（2026-09-22 拍板）：复用 144 笔记配图 2 张 + 本集新增 ~14 张。
+# 阈值按 2026-09-23 覆盖门实测回填：50 cue/120 句锚定 41.7%（混合形态——Remotion 原生镜约六成句窗），
+# 分幕最差 P2 38%；判据 SSOT = check_archify_coverage.py docstring。
+min_diagrams = 15
+min_cues = 48
+min_anchor_ratio = 0.40
+min_chapter_ratio = 0.70
+max_unanchored_run = 6
+min_scene_anchor_ratio = 0.28
+min_cues_per_minute = 4.5
+min_diagram_types = 4
+forbid_inset = true
+# 源图集：仓内 self-evolution 分部（2 张随 144 入库 + 本集新增，均命名 dream-rsi--<slug>.html）
+html_dir = "docs/assets/architecture/self-evolution"
+html_pattern = "dream-rsi--{slug}.html"
+# P0 冷开场为纯 Remotion 装置镜（计费计数器/论文卡/标题卡），显式豁免锚定
+exempt_scenes = ["P0"]

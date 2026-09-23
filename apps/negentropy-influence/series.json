@@ -72,6 +72,29 @@
           "status": "ready",
           "statusNote": "源码含未重渲改动（系列三卡重排，见 PR 说明）；待升级项：换 sunny-steady 重配",
           "voice": "passionate + me-1.wav（已上线成片所用）"
+        },
+        {
+          "episode": 4,
+          "slug": "dream-rsi-video",
+          "path": "episodes/dream-rsi-video",
+          "title": "翻旧账不花钱：AI 在梦里改章程",
+          "topic": "元探索策略怎么改",
+          "cardSub": "元探索 · 做梦",
+          "accents": [
+            "#7DD3FC",
+            "#FFE3B3",
+            "#A3E635"
+          ],
+          "paper": {
+            "title": "Dream-RSI: Recursive Self-Improvement through Evolving Worlds",
+            "id": "arXiv:2609.14858",
+            "idNote": "",
+            "venue": "University of Maryland × Google DeepMind × University of Virginia",
+            "date": "2026-09"
+          },
+          "status": "final-review",
+          "statusNote": "v2 终渲待审（2026-09-23）：顶部章节进度条（ChapterProgress 分代同步，chapters.json 七幕标签）+ 18926 帧 = 10:30.87；archify 混合 16 图 61 章 50 cue；草渲 QA FAIL 0；成片归档 ~/Documents/video/self-evolution/",
+          "voice": "sunny-steady + me-bright.wav"
         }
       ]
     },

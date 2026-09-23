@@ -1,0 +1,86 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.48,
+ "story_sec": 9.85,
+ "total_wall_sec": 107.83,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "head",
+   "label": "论文没有证明的事",
+   "index": 0,
+   "file": "unproven-list--head.mp4",
+   "end_still": "unproven-list--head-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.48,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "frontier"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 11.0
+  },
+  {
+   "id": "gap-12",
+   "label": "相关性与成本账",
+   "index": 1,
+   "file": "unproven-list--gap-12.mp4",
+   "end_still": "unproven-list--gap-12-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.48,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0,
+    1.605
+   ],
+   "beat_nodes": [
+    "gap-correlation",
+    "gap-cost"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 17.0
+  },
+  {
+   "id": "gap-345",
+   "label": "口径、方差与边界",
+   "index": 2,
+   "file": "unproven-list--gap-345.mp4",
+   "end_still": "unproven-list--gap-345-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.34,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.206
+   ],
+   "beat_nodes": [
+    "gap-caliber",
+    "gap-variance",
+    "gap-fidelity"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 18.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/quito-v2/docs/assets/architecture/self-evolution/dream-rsi--unproven-list.html",
+ "slug": "unproven-list",
+ "type": "workflow"
+}

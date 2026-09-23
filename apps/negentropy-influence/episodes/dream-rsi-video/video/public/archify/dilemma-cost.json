@@ -1,0 +1,105 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 13.08,
+ "total_wall_sec": 129.95,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "dilemma",
+   "label": "两条路都堵",
+   "index": 0,
+   "file": "dilemma-cost--dilemma.mp4",
+   "end_still": "dilemma-cost--dilemma-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.33,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.208
+   ],
+   "beat_nodes": [
+    "rsi",
+    "fixed",
+    "online"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 31.0
+  },
+  {
+   "id": "stuck",
+   "label": "写死砸空转 vs 改不起",
+   "index": 1,
+   "file": "dilemma-cost--stuck.mp4",
+   "end_still": "dilemma-cost--stuck-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.48,
+   "story_sec": 3.27,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "fixed-harm",
+    "online-cost"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 18.0
+  },
+  {
+   "id": "verdict",
+   "label": "成本结构的死结",
+   "index": 2,
+   "file": "dilemma-cost--verdict.mp4",
+   "end_still": "dilemma-cost--verdict-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "verdict"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 16.0
+  },
+  {
+   "id": "breakthrough",
+   "label": "破局：历史已是模拟器",
+   "index": 3,
+   "file": "dilemma-cost--breakthrough.mp4",
+   "end_still": "dilemma-cost--breakthrough-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "breakthrough"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 15.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/quito-v2/docs/assets/architecture/self-evolution/dream-rsi--dilemma-cost.html",
+ "slug": "dilemma-cost",
+ "type": "workflow"
+}

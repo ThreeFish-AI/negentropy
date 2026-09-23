@@ -1,0 +1,28 @@
+[
+ {
+  "id": "inject",
+  "label": "把历史浓缩成一句建议",
+  "focus": [
+   "inject",
+   "locked"
+  ],
+  "note": "「深耕眼下这条线最有前途」注入后，终局锁死 0.80。"
+ },
+ {
+  "id": "replay",
+  "label": "做梦改进的对照组",
+  "focus": [
+   "replay-path",
+   "reached"
+  ],
+  "note": "章程各走时间线，够得着 0.92 的新天地。"
+ },
+ {
+  "id": "diversity",
+  "label": "洞见锁方向，重放保多样",
+  "focus": [
+   "verdict"
+  ],
+  "note": "强语义偏置压缩搜索空间——论文消融与玩具复现同向。"
+ }
+]
