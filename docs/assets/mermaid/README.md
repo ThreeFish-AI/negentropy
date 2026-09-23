@@ -259,6 +259,8 @@
 | [context-layer--runtime-layering](./cognitive-context/context-layer--runtime-layering.mmd) | cognitive-context/013-context-layer-blueprint.md §12.2（原 design/context-layer.md §3，已并入；2026-09-22 自 design/ 归位） | architecture | ✓ | done | fix: ① 补全 Tools/Skills→PostgreSQL 两条边（builtin |
 | [context-layer--evolution-levers](./cognitive-context/context-layer--evolution-levers.mmd) | cognitive-context/013-context-layer-blueprint.md §12.5（原 design/context-layer.md §7，已并入；2026-09-22 自 design/ 归位） | architecture | ✓ | done | fix: (1) 状态机补终态 rejected（代码 STATUS_REJECTED 存 |
 | [context-layer--collect-phase](./cognitive-context/context-layer--collect-phase.mmd) | cognitive-context/013-context-layer-blueprint.md §3.4（原 design/context-layer.md §1.1，已并入；2026-09-22 起作为 §3.4 三相流水线总览图直接承载，自 design/ 归位） | dataflow | ✓ | done | fix: 原块把 Collect 三机制与 Enrich 三能力画成串行链；按产品页事实改为三源并列汇入、富化能力并列产出 |
+| [openviking--ingest-phase](./cognitive-context/openviking--ingest-phase.mmd) | cognitive-context/014-openviking.md §4 图 1 | dataflow | ✓ | done | 编目相五段流水线：请求 → 解析落盘（0×LLM）→ 语义队列 → 摘要与派生（L1 1×LLM、L0 首段裁出 0×LLM）→ 索引与冒泡（L0 未变 NOOP / ≤32 立刷 / 宽目录攒 10%）；结论卡载成本公式、三道异步边界与新鲜度漏斗；2026-09-24 随 014 精读笔记新增 |
+| [openviking--retrieval-phase](./cognitive-context/openviking--retrieval-phase.mmd) | cognitive-context/014-openviking.md §5 图 2 | workflow | ✓ | done | 检索相三泳道：默认档（QUICK 平铺，find 固定）vs 豪华档（配 rerank 才走：全局起点 top-10 → 每批 4 目录下钻 + 逐目录 rerank → 阈值剪枝 α=1.0 → 收敛刹车）→ 借阅推车（先广后深、降档不截断）；结论卡载「默认档才是常态/豪华档三件套/推车纪律」；2026-09-24 随 014 精读笔记新增 |
 
 ### 原地保留（无 archify 对应类型 / 不在本管线）
 

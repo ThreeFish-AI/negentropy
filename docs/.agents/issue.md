@@ -4217,3 +4217,14 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
   1. `fetch_skill_resource`（Layer 3）同样未挂载，typed resources 只能经 REST / 调度器间接生效。
   2. 其他在 system prompt 里点名工具的注入器（如引用协议、记忆提示）可能有同类「承诺—挂载」漂移，可按上述断言模式排查。
   3. 选方案 (a) 时须同步评估 `is_global` 技能注入所有 Agent 的描述体量，以及目录注入防护（091 M3 / M5）：挂载后目录不再只是展示，会变成真实的调用入口。
+
+## ISSUE-195 交互式对话 → 长期记忆链路断开 + 映射取证牵出的 7 处漂移：add_session_to_memory 零调用方、consolidation_jobs 只入队无消费者、force_refresh 被 TypeError 吞掉（2026-09-24）
+
+- **表因**：[OpenViking 精读映射](../research/cognitive-context/015-openviking-mapping-negentropy.md) 对齐 M-d「会话两阶段提交」时发现：本仓交互式对话的内容**不会自动沉淀为长期记忆**——`add_session_to_memory`（`engine/adapters/postgres/memory_service.py:84`）在全仓（含 UI/BFF）没有任何调用方；ADK Runner 也不会自动调用（venv 内 `google/adk/runners.py` 零引用），唯一暴露路径 `PATCH /apps/{a}/users/{u}/memory`（`google/adk/cli/api_server.py:1428`）本仓 UI 未调用。
+- **根因**：富化层在对话路径上没有「供给入口」。`consolidation_jobs` 表（迁移 0043/0044）由调度 handler 调 SQL `trigger_maintenance_consolidation` 入队（`schedulers/handlers/memory_automation.py:173`），但**全仓无消费者**——`fast_replay` / `deep_refection` 两种任务类型从未被生产过（025 §4.3 描述与事实不符）；`create_postgres_memory_service(consolidation_worker=None)` 默认不注入 worker（`engine/factories/memory.py:104`）。Routine 路径有 fire-and-forget 提炼（`orchestrator.py:1393`）佐证断链是「交互式独有」。对比先例：OpenViking 把「会话→记忆」做成 Phase 1 同步归档 + Phase 2 异步提炼 + `.done` 水位的显式提交链，缺口在其设计里有直接对位物。
+- **同批取证发现的 7 处漂移**（详表见 015 §5）：D1 `ContextAssembler.assemble()` 只有单测调用，013 §8.5 / 025 §6.3 把它写成「自动注入通道」（实际生产读取仅 `get_memory_summary()` 回退）；D3 SummarizeStep 传 `force_refresh=True` 因 `get_or_generate_summary` 签名无此参数抛 TypeError 被降级吞掉（`summarize_step.py:40` vs `memory_summarizer.py:93`），强制刷新从未生效且摘要是 24h TTL 不感知源变化；D4 ConflictResolver docstring 宣称三阶段检测、实现只有规则；D5 `save_to_memory` 直写 `embedding=None` 不去重不审计且无回填，对 vector/hybrid 不可见；D6 `_fetch_memory` 按 UUID 读 Memory 不校验 user/app（`agents/tools/skill_resources.py:167`）——**ISSUE-194 方案 (a) 挂载前必须先修**，否则成为跨用户读取通道；D7 013 §12.7 #9「L1/L2/L3 ✅」与 ISSUE-194 结论矛盾待回写；D8 memory_pipeline_prompt 进化面只有 fact extractor 消费，summarizer/reflection 晋升是运行时 no-op。
+- **处理方式**（本次只分析不改码，落地建议见 015 §落地建议汇总）：
+  1. **做**（建议独立 PR，先于 013 Phase 1）：会话巩固触发器（复用 `title_inspector` 的「事件水位差 ≥Δ 且空闲 ≥T」范式）+ `consolidation_jobs` 消费者（`FOR UPDATE SKIP LOCKED` 执行 `_simple_consolidate`）+ `threads.metadata.consolidated_at_event_seq` 水位；巩固 diff 写 `consolidation_jobs.result` 并接 UI `/memory/audit`；修 D3 签名并把 TTL 换成源水位判据。零新表。
+  2. **写**：013 §12.7 #9 状态行校正（L1 ✅ / L2·L3 🔶 ISSUE-194）与 §8.5 宿主更正（D1/D7）；025 §4.1/§4.3 与事实不符处回写。
+  3. **暂缓**：M-a 统一 URI（与 013 ADR-1 冲突，只取寻址不取存储）、typed query、目录递归（YAGNI 触发条件见 015）。
+- **后续防范**：文档把链路标 ✅ 前须核到「调用方/消费者存在」这一层（与 ISSUE-194 同款断言纪律：函数存在 ≠ 链路存在）；「队列表」类设计须与消费者同一 PR 落地，否则只入队的表是 silent no-op 的温床。
