@@ -1,0 +1,18 @@
+%% source: docs/research/cognitive-context/014-openviking.md §6.1（视频 P4）
+%% slug: openviking--session-commit-two-phase
+%% type: lifecycle
+%% derived: docs/assets/architecture/cognitive-context/openviking--session-commit-two-phase.html
+stateDiagram-v2
+  [*] --> LIVE: 会话进行中（消息累积）
+  LIVE --> ARCHIVED: commit（Phase 1 同步装订·必成）
+  state "messages.jsonl（事实层）" as ARCHIVED
+  ARCHIVED --> P2: 入队·异步
+  state "Phase 2 整理（摘要+提炼 并行）" as P2
+  P2 --> DONE: 两步都成功
+  state ".done 已整理（提交点·最后写）" as DONE
+  P2 --> FAILED: 任一步失败
+  state ".failed 终态（不重试·不回滚）" as FAILED
+  REDELIVER --> DONE: 看到章·跳过
+  REDELIVER --> P2: 无章·重跑
+  state "队列重投（至少一次投递）" as REDELIVER
+  DONE --> [*]

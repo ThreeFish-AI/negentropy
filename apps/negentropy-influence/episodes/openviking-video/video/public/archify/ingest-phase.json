@@ -1,0 +1,126 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 16.33,
+ "total_wall_sec": 219.42,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "main",
+   "label": "同步落盘",
+   "index": 0,
+   "file": "ingest-phase--main.mp4",
+   "end_still": "ingest-phase--main-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.37,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.208
+   ],
+   "beat_nodes": [
+    "req",
+    "parse_tb",
+    "agfs"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "queue",
+   "label": "语义队列",
+   "index": 1,
+   "file": "ingest-phase--queue.mp4",
+   "end_still": "ingest-phase--queue-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.4,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "semq"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "summarize",
+   "label": "编目",
+   "index": 2,
+   "file": "ingest-phase--summarize.mp4",
+   "end_still": "ingest-phase--summarize-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "fsum",
+    "dirl0"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 27.0
+  },
+  {
+   "id": "index",
+   "label": "向量化",
+   "index": 3,
+   "file": "ingest-phase--index.mp4",
+   "end_still": "ingest-phase--index-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "embq"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "bubble",
+   "label": "冒泡",
+   "index": 4,
+   "file": "ingest-phase--bubble.mp4",
+   "end_still": "ingest-phase--bubble-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "bubble",
+    "noop"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/karachi-v3/docs/assets/architecture/cognitive-context/openviking--ingest-phase.html",
+ "slug": "ingest-phase",
+ "type": "dataflow"
+}

@@ -1,0 +1,37 @@
+# 本集可执行参数的**唯一来源**（ISSUE-161：可执行参数不落散文文档，README 只引用配置）。
+# 编排入口：uv run --no-project $T/pipeline/scripts/pipeline.py --project $P <cmd>（$T/$W/$P/$V 见 to-video skill 的 pipeline/README.md）
+#
+# 只写**本集偏离**：机制常数（chars_per_min / lang / draft_scale / draft_jpeg_quality）
+# 的默认值在 skill 仓 pipeline/scripts/config.py，不要抄回这里。字段表见 skill 的
+# pipeline/README.md，跑 `pipeline.py doctor` 可打印带来源标注的生效配置全表。
+
+[episode]
+slug = "openviking-video"
+
+[narration]
+# 目标 ≈10.5 分钟：≈2950 字 / ~120 句（280 字/分为含停顿等效口径，双口径门以 manifest 实测为准）
+target_minutes = [9.5, 11.5]
+
+[tts]
+engine = "indextts"
+# 同系列前两集口径：me-bright / sunny-steady（alpha 在原选段上标定，沿用同一样本）
+ref = "voices/me-bright.wav"
+ref_sha1 = "54b699cce97f"
+style = "sunny-steady"
+
+[archify]
+# 本集口径：openviking-- 前缀 8 图（2 张已随 014 入库 + 6 张视频专用）。
+# 阈值已按覆盖门实测回填（2026-09-24：54 cue / 锚定 47.8% / 密度 5.1/分 / 4 图型，定在实测下 10–15%）。
+min_diagrams = 8
+min_cues = 46
+min_anchor_ratio = 0.41
+min_chapter_ratio = 0.45
+min_scene_anchor_ratio = 0.06
+max_unanchored_run = 13  # 实测最长无锚 11 句（豁免幕 P0/P5 不计）
+min_cues_per_minute = 4.4
+min_diagram_types = 4
+forbid_inset = true
+# 装置密集幕豁免：P0 冷开场（三失忆现场/碎岛/碎片箱全自绘装置）、P5 拆台（证据分级卡/反例对撞/复算终端——本集刻意无对位工程图）
+exempt_scenes = ["P0", "P5"]
+html_dir = "docs/assets/architecture/cognitive-context"
+html_pattern = "openviking--{slug}.html"

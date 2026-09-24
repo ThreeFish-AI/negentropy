@@ -8,7 +8,7 @@
 >
 > **范围**：按**文档**而非目录界定。已纳入：现役系统文档（`docs/concepts/`、`docs/reference/{perceives,wiki}/`、根与 i18n README、
 > `apps/` README、`docs/.agents/` 巡检文档），以及已走完本管线的研究文献——`docs/research/cognitive-context/` 的
-> Horizon Context 精读与 Context Layer 蓝图（下表 `cognitive-context/` 分节）、
+> Horizon Context 精读、Context Layer 蓝图与 OpenViking 精读（下表 `cognitive-context/` 分节）、
 > `docs/research/agent-harness/` 的五层 Harness 精读与 AI Native 手册精读（180，下表 `agent-harness/` 分节）、
 > `docs/research/self-evolution/` 的 Dream-RSI 精读（下表 `self-evolution/` 分节）、
 > `docs/research/agent-infra/` 的 Agent Skills 规范精读（下表 `agent-infra/` 分节）。未纳入：其余 `docs/research/`（第三方调研）与
@@ -269,6 +269,15 @@
 | [context-layer--runtime-layering](./cognitive-context/context-layer--runtime-layering.mmd) | cognitive-context/013-context-layer-blueprint.md §12.2（原 design/context-layer.md §3，已并入；2026-09-22 自 design/ 归位） | architecture | ✓ | done | fix: ① 补全 Tools/Skills→PostgreSQL 两条边（builtin |
 | [context-layer--evolution-levers](./cognitive-context/context-layer--evolution-levers.mmd) | cognitive-context/013-context-layer-blueprint.md §12.5（原 design/context-layer.md §7，已并入；2026-09-22 自 design/ 归位） | architecture | ✓ | done | fix: (1) 状态机补终态 rejected（代码 STATUS_REJECTED 存 |
 | [context-layer--collect-phase](./cognitive-context/context-layer--collect-phase.mmd) | cognitive-context/013-context-layer-blueprint.md §3.4（原 design/context-layer.md §1.1，已并入；2026-09-22 起作为 §3.4 三相流水线总览图直接承载，自 design/ 归位） | dataflow | ✓ | done | fix: 原块把 Collect 三机制与 Enrich 三能力画成串行链；按产品页事实改为三源并列汇入、富化能力并列产出 |
+| [openviking--ingest-phase](./cognitive-context/openviking--ingest-phase.mmd) | cognitive-context/014-openviking.md §4 图 1 | dataflow | ✓ | done | 编目相五段流水线：请求 → 解析落盘（0×LLM）→ 语义队列 → 摘要与派生（L1 1×LLM、L0 首段裁出 0×LLM）→ 索引与冒泡（L0 未变 NOOP / ≤32 立刷 / 宽目录攒 10%）；结论卡载成本公式、三道异步边界与新鲜度漏斗；2026-09-24 随 014 精读笔记新增 |
+| [openviking--retrieval-phase](./cognitive-context/openviking--retrieval-phase.mmd) | cognitive-context/014-openviking.md §5 图 2 | workflow | ✓ | done | 检索相三泳道：默认档（QUICK 平铺，find 固定）vs 豪华档（配 rerank 才走：全局起点 top-10 → 每批 4 目录下钻 + 逐目录 rerank → 阈值剪枝 α=1.0 → 收敛刹车）→ 借阅推车（先广后深、降档不截断）；结论卡载「默认档才是常态/豪华档三件套/推车纪律」；2026-09-24 随 014 精读笔记新增 |
+| [openviking--uri-scope-tree](./cognitive-context/openviking--uri-scope-tree.mmd) | cognitive-context/014-openviking.md §3（视频 P1） | architecture | ✓ | done | 一棵树三分区（resources/user/agent）+ 类型由 URI 结构推导（resources/memories 仍是 resource 反例）；结论卡「位置即语义/边界」；2026-09-24 视频第 3 集新增 |
+| [openviking--tiering-l0-l1-l2](./cognitive-context/openviking--tiering-l0-l1-l2.mmd) | cognitive-context/014-openviking.md §4（视频 P2） | architecture | ✓ | done | 分层生成链：文件简介 → 采样闸 → 导览（1×LLM/目录）→ 首段裁剪（0×LLM）→ 标签 → 向量化；软上限 256/4000 字符语义；2026-09-24 视频第 3 集新增 |
+| [openviking--freshness-bubbling](./cognitive-context/openviking--freshness-bubbling.mmd) | cognitive-context/014-openviking.md §4.3（视频 P2） | dataflow | ✓ | done | 新鲜度漏斗：digest 未变 NOOP / 变了上报 / 父级 ≤32 立即重印 / 宽分区攒 10%；代价=兄弟陪写与陈旧窗口；2026-09-24 视频第 3 集新增 |
+| [openviking--intent-typed-queries](./cognitive-context/openviking--intent-typed-queries.mmd) | cognitive-context/014-openviking.md §5.2（视频 P3） | workflow | ✓ | done | 意图拆单三路（资料/记忆/技能）+ 两坑：各路独立递归成本 ×N、结果直接拼接不归一；2026-09-24 视频第 3 集新增 |
+| [openviking--session-commit-two-phase](./cognitive-context/openviking--session-commit-two-phase.mmd) | cognitive-context/014-openviking.md §6.1（视频 P4） | lifecycle | ✓ | done | 两阶段提交状态机：Phase 1 同步装订 → Phase 2 异步整理 → .done 提交点 / .failed 终态；队列重投的幂等跳过；2026-09-24 视频第 3 集新增 |
+| [openviking--memory-identity](./cognitive-context/openviking--memory-identity.mmd) | cognitive-context/014-openviking.md §6.3（视频 P4） | workflow | ✓ | done | 相似 ≠ 同一：预取提名 → 身份字段裁决 → 确定性卡名 → 落卡；残余风险=主题漂移双卡并存；2026-09-24 视频第 3 集新增 |
+| [openviking--lab-break-matrix](./cognitive-context/openviking--lab-break-matrix.mmd) | cognitive-context/014-openviking.md §10（视频 P6） | architecture | ✓ | done | 六次破坏实验退化矩阵（B1 拔标签/B2 刹车/B3 身份/B4 冒泡/B5 父分/B6 提交点）+ 三条教训结论卡；2026-09-24 视频第 3 集新增 |
 
 ### 原地保留（无 archify 对应类型 / 不在本管线）
 

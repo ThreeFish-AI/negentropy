@@ -1,0 +1,11 @@
+%% source: docs/research/cognitive-context/014-openviking.md §4.3（视频 P2）
+%% slug: openviking--freshness-bubbling
+%% type: dataflow
+%% derived: docs/assets/architecture/cognitive-context/openviking--freshness-bubbling.html
+flowchart LR
+  CHANGE["文件变更<br/>本架先重编"] -->|"重编后"| GATE{"L0 摘要变了？<br/>digest 对比"}
+  GATE -.->|"未变"| NOOP["NOOP<br/>零成本"]
+  GATE -->|"变了"| SMALL["上报父级<br/>变了才上报"]
+  SMALL -->|"父级≤32 立即重印"| BUBBLE["祖先重印<br/>兄弟陪写 ≤32"]
+  SMALL -->|"父级>32 计数"| COUNT["宽分区计数<br/>pending/total ≥10%"]
+  COUNT -->|"攒满 10%"| BUBBLE

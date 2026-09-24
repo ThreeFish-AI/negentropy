@@ -1,0 +1,13 @@
+%% source: docs/research/cognitive-context/014-openviking.md §10（视频 P6）
+%% slug: openviking--lab-break-matrix
+%% type: architecture
+%% derived: docs/assets/architecture/cognitive-context/openviking--lab-break-matrix.html
+flowchart TB
+  B1["B1 拔书架标签<br/>豪华档 recall 1.00→0.50；平铺免疫"]
+  B2["B2 收敛刹车砍到 1 轮<br/>recall 不变；展开 43→33 个书架"]
+  B3["B3 卡名不再由主题决定<br/>3 张矛盾偏好卡并存"]
+  B4["B4 关掉冒泡<br/>祖先标签过期：浏览式导航致盲"]
+  B5["B5 父分完全遗传<br/>排序反转；展开 43→62、读 token +21%"]
+  B6["B6 去掉 .done<br/>重投一次：事件卡 ×2"]
+  B1 -.->|"豪华档的两个赌注"| B5
+  B3 -.->|"身份与提交点双保险"| B6

@@ -3,6 +3,11 @@
 本文件遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 约定，版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
 ## [Unreleased]
+### Added
+
+- **OpenViking 精读入仓（docs/research/cognitive-context/ 014–015）**：以 /guided-learn 导师式精读拆解火山引擎开源 Agent 上下文数据库 [OpenViking](https://github.com/volcengine/OpenViking)（钉点 `14a7b81`，AGPL-3.0）——[014 精读笔记](docs/research/cognitive-context/014-openviking.md)（viking:// 文件系统范式、目录级 L0/L1/L2 自底向上生成与新鲜度冒泡、两档检索「find 固定平铺 / search+rerank 目录递归」、会话两阶段提交与确定性身份记忆提炼；代码实值裁决 8 组文档旧口径；厂商基准证据分级含反例与算术错；五条底层规律 + 三个争议 + 双 Agent 费曼对抗实录）与 [015 机制映射](docs/research/cognitive-context/015-openviking-mapping-negentropy.md)（13 条 ✅4/🔶5/⏸4，最大真增量=会话→长期记忆触发断链修复）；编目/检索两相 archify 管线图（openviking--ingest-phase / openviking--retrieval-phase）+ clean-room 最小原型 [openviking_lab.py](docs/research/cognitive-context/assets/openviking_lab.py)（`--selftest` + B1–B6 六次破坏性实验）；取证副产物登记 [ISSUE-195](docs/.agents/issue.md)（交互式对话→记忆断链等 8 处漂移）。
+- **Context Layer 系列第 3 集科普视频（OpenViking 篇）**（[apps/negentropy-influence/episodes/openviking-video](apps/negentropy-influence/episodes/openviking-video/README.md)）：以 014/015/lab 为 B 型信源（钉 `348d8797` + 字节归档），「会自己编目的图书馆」单射比喻剧场七幕 113 句（真实性 RISKY=0 + 易懂性修正回填）；新增 7 张 archify 图（uri-scope-tree / tiering / freshness / intent / session-commit / memory-identity / lab-break-matrix，均入 mermaid 管线）+ 9 图 37 章逐章录制；sunny-steady 全片配音；成片 10:37 @1080p30，内容门 / 覆盖门（54 cue · 锚定 47.8%）/ 七幕 QA / WCAG 主题门全部 FAIL 0 WARN 0，归档 `~/Documents/video/context-layer/` v1。
+
 ### Changed
 
 - **视频流水线机制外置为公开技能 [to-video](https://github.com/ThreeFish-AI/to-video)（GitHub ThreeFish-AI/to-video，MIT）**：`apps/negentropy-influence/pipeline/` 全树与 `.agent/skills/science-video-pipeline` 路由壳迁出本仓、收敛为独立可安装技能（安装于 `~/.claude/skills/to-video`，实测全绿后发布）；本仓 `apps/negentropy-influence` 收敛为**内容工作区**（episodes/ + series.json + source-map/ + voices/，`.influence-root` 哨兵供 skill 兼容识别）。配套五项：

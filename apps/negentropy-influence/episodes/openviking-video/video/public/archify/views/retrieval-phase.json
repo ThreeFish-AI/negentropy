@@ -1,0 +1,45 @@
+[
+ {
+  "id": "route",
+  "label": "分流",
+  "focus": [
+   "q",
+   "route"
+  ],
+  "note": "意图分流：有没有会话。"
+ },
+ {
+  "id": "quick",
+  "label": "默认档",
+  "focus": [
+   "quick"
+  ],
+  "note": "平铺翻卡片柜。"
+ },
+ {
+  "id": "thinking",
+  "label": "豪华档",
+  "focus": [
+   "start",
+   "batch"
+  ],
+  "note": "起点书架与逐批下钻。"
+ },
+ {
+  "id": "prune",
+  "label": "剪枝与刹车",
+  "focus": [
+   "prune",
+   "brake"
+  ],
+  "note": "唯一剪枝与收敛刹车。"
+ },
+ {
+  "id": "asm",
+  "label": "借阅推车",
+  "focus": [
+   "asm"
+  ],
+  "note": "先广后深、降档不截断。"
+ }
+]

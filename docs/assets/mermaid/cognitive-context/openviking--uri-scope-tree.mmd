@@ -1,0 +1,12 @@
+%% source: docs/research/cognitive-context/014-openviking.md §3（apps/negentropy-influence/episodes/openviking-video P1）
+%% slug: openviking--uri-scope-tree
+%% type: architecture
+%% derived: docs/assets/architecture/cognitive-context/openviking--uri-scope-tree.html
+flowchart TB
+  ROOT["viking:// 根<br/>统一地址命名空间"] --> RES["resources 公共馆藏区<br/>团队文档 / 手册"]
+  ROOT --> USR["user/{uid} 读者档案室<br/>个人记忆 / 档案卡"]
+  ROOT --> AGT["agent 馆员手册室<br/>技能包"]
+  RES --> RDOCS["handbook/ policies/<br/>按目录组织的文档树"]
+  USR --> UMEM["memories/preferences/<br/>九类档案卡"]
+  AGT --> ASKILL["skills/pdf/SKILL.md<br/>技能=一个目录"]
+  RES -. "结构推导：仍是 resource" .-> CTR["resources/memories/x<br/>碰巧叫 memories 仍是资源"]

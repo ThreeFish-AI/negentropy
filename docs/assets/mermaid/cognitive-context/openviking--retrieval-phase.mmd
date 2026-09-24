@@ -1,0 +1,19 @@
+%% source: docs/research/cognitive-context/014-openviking.md §5（图 2）
+%% slug: openviking--retrieval-phase
+%% type: workflow
+%% derived: docs/assets/architecture/cognitive-context/openviking--retrieval-phase.html
+flowchart TD
+  Q["用户问题"] --> HASS{"有会话且 enable_intent？"}
+  HASS -- "是" --> IT["IntentAnalyzer：拆 typed query（skill/resource/memory）<br/>无会话则用原 query"]
+  IT --> MODE{"search 配了 rerank？"}
+  HASS -- "否" --> MODE
+  MODE -- "否（默认档）" --> QUICK["QUICK 平铺检索<br/>全层级向量 top-k · find 固定此档"]
+  MODE -- "是（豪华档）" --> START["全局起点：L0/L1 记录 top-10<br/>起点入堆不过阈"]
+  START --> BATCH["每批弹出 4 个目录下钻<br/>子项向量预选 max(2L,20) → 逐目录 rerank"]
+  BATCH --> PRUNE{"f = α·子分 + (1−α)·父分 &gt; 0.1？<br/>α 默认 1.0 = 忽略父分"}
+  PRUNE -- "否" --> CUT["剪枝：不入池、不入堆（唯一剪枝）"]
+  PRUNE -- "是" --> POOL["命中入池 · 目录记录继续入堆<br/>L2 是终点 · 检索期从不读正文"]
+  POOL --> STOP{"top-k 连续 3 批不变（且已满）<br/>或候选池停滞 3 批？"}
+  STOP -- "否" --> BATCH
+  STOP -- "是" --> ASM["借阅推车：默认 1600 token 预算<br/>先广后深 · 装不下降档不截断"]
+  QUICK --> ASM

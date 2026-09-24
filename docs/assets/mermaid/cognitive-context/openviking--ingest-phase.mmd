@@ -1,0 +1,18 @@
+%% source: docs/research/cognitive-context/014-openviking.md §4（图 1）
+%% slug: openviking--ingest-phase
+%% type: dataflow
+%% derived: docs/assets/architecture/cognitive-context/openviking--ingest-phase.html
+flowchart LR
+  REQ["add-resource 请求"] --> PAR["Parser 切分<br/>无 LLM · ≤2048 估算 token 且 ≤6000 字符"]
+  PAR --> TB["TreeBuilder 规划 URI"]
+  TB --> AGFS["内容提交 AGFS<br/>ls/read 已可见 · 尚不可检索"]
+  AGFS --> SEMQ["语义队列（异步）"]
+  SEMQ --> FSUM["文件摘要<br/>1×LLM/文件"]
+  SEMQ --> DIR["目录 L1<br/>1×LLM/目录"]
+  DIR --> L0["L0 = L1 首段裁出<br/>0×LLM · ≤256 字符"]
+  FSUM --> EMBQ["嵌入队列 → 向量索引<br/>此后才可检索"]
+  DIR --> EMBQ
+  L0 --> EMBQ
+  DIR --> GATE{"子目录 L0 正文变了？"}
+  GATE -- "否" --> NOOP["NOOP 零成本"]
+  GATE -- "是" --> BUBBLE["新鲜度冒泡：父级 ≤32 子项立即刷新<br/>否则攒到 pending/total ≥ 10%"]
