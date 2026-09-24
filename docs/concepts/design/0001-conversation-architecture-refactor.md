@@ -31,7 +31,7 @@ Home 页 user↔Agent 交互链路在过去 4 个月发生 **5 次双气泡或�
 | -------------- | ---------------------------------------- | -------------------------------------------- | ------------------------------ |
 | OpenAI Codex   | Thread → Turn → Item（不可变）           | 服务端（CLI 幂等）                           | resumeThread(id)，CLI = SSOT   |
 | OpenClaw       | Gateway-owned session state              | 服务端                                       | 显式 chat.history fetch        |
-| Hermes Agent   | SQLite + FTS5 server state               | 服务端                                       | session lineage 跨 compression |
+| Hermes Agent   | SQLite + FTS5 server state               | 服务端                                       | 默认原地压缩（同会话 ID、旧行软归档）；仅旧式轮换路径才生成 `parent_session_id` 续接会话（`068db016` 核实，见 [190 §6](../../research/agent-harness/190-hermes-agent.md)） |
 | **AG-UI 协议** | TEXT_MESSAGE_* / TOOL_CALL_* / lifecycle | 客户端用 (threadId, runId, messageId) 复合键 | MESSAGES_SNAPSHOT 整体替换     |
 
 **共同结论**：成熟项目都把 dedup 放在**服务端**，客户端只负责渲染。我们当前在 client 做 6 层 dedup 是反模式。
