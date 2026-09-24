@@ -1,0 +1,20 @@
+[
+ {
+  "id": "ip-sibling",
+  "label": "暗号在兄弟小票",
+  "focus": [
+   "ip-sibling-q",
+   "ip-probe-q"
+  ],
+  "note": "藏进另一张小票，本题判『底单有暗号』概率 0.00"
+ },
+ {
+  "id": "ip-state",
+  "label": "暗号在底单",
+  "focus": [
+   "ip-state-doc",
+   "ip-probe-q"
+  ],
+  "note": "写进底单，所有分支可见，概率 0.90–0.92"
+ }
+]

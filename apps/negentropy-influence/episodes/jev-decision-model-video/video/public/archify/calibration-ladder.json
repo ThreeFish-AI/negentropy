@@ -1,0 +1,86 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 9.86,
+ "total_wall_sec": 80.4,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "cl-ladder",
+   "label": "校准台阶",
+   "index": 0,
+   "file": "calibration-ladder--cl-ladder.mp4",
+   "end_still": "calibration-ladder--cl-ladder-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.36,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.204
+   ],
+   "beat_nodes": [
+    "cl-indist",
+    "cl-ood",
+    "cl-forced"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "cl-ledger",
+   "label": "对账账本",
+   "index": 1,
+   "file": "calibration-ladder--cl-ledger.mp4",
+   "end_still": "calibration-ladder--cl-ledger-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "cl-temp"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "cl-temperature",
+   "label": "温度打折的边界",
+   "index": 2,
+   "file": "calibration-ladder--cl-temperature.mp4",
+   "end_still": "calibration-ladder--cl-temperature-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.48,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "cl-temp",
+    "cl-honest"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 27.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/istanbul-v6/docs/assets/architecture/agent-infra/jev--calibration-ladder.html",
+ "slug": "calibration-ladder",
+ "type": "lifecycle"
+}

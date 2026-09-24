@@ -1,0 +1,113 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 16.36,
+ "total_wall_sec": 91.85,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "sc-four-sins",
+   "label": "四宗罪",
+   "index": 0,
+   "file": "sorting-center--sc-four-sins.mp4",
+   "end_still": "sorting-center--sc-four-sins-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "sc-dispatcher"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "sc-mismatch",
+   "label": "错配：判断塞进生成通道",
+   "index": 1,
+   "file": "sorting-center--sc-mismatch.mp4",
+   "end_still": "sorting-center--sc-mismatch-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "sc-dispatcher",
+    "sc-parcel"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "sc-one-liner",
+   "label": "一次前向逐项打分",
+   "index": 2,
+   "file": "sorting-center--sc-one-liner.mp4",
+   "end_still": "sorting-center--sc-one-liner-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0,
+    1.602
+   ],
+   "beat_nodes": [
+    "sc-sorter",
+    "sc-slots"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "sc-tour",
+   "label": "分拣中心总览",
+   "index": 3,
+   "file": "sorting-center--sc-tour.mp4",
+   "end_still": "sorting-center--sc-tour-end.png",
+   "beats": 6,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 6.65,
+   "beat_offsets_sec": [
+    0.0,
+    1.101,
+    2.203,
+    3.305,
+    4.408,
+    5.511
+   ],
+   "beat_nodes": [
+    "sc-dispatcher",
+    "sc-sorter",
+    "sc-slots",
+    "sc-review",
+    "sc-manual",
+    "sc-belt"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/istanbul-v6/docs/assets/architecture/agent-infra/jev--sorting-center.html",
+ "slug": "sorting-center",
+ "type": "architecture"
+}

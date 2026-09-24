@@ -1,0 +1,20 @@
+[
+ {
+  "id": "sw-legal-vs-correct",
+  "label": "合法 ≠ 正确",
+  "focus": [
+   "sw-formal",
+   "sw-semantic"
+  ],
+  "note": "零类型错误是构造保证；投错格口的语义错误仍可能"
+ },
+ {
+  "id": "sw-trap",
+  "label": "陷阱面单",
+  "focus": [
+   "sw-trap",
+   "sw-wall"
+  ],
+  "note": "字面误读：满格把握投进错误的合法格口"
+ }
+]

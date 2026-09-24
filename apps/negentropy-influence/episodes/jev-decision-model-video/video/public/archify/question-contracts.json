@@ -1,0 +1,90 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 10.02,
+ "total_wall_sec": 100.17,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "qc-anatomy",
+   "label": "请求解剖",
+   "index": 0,
+   "file": "question-contracts--qc-anatomy.mp4",
+   "end_still": "question-contracts--qc-anatomy-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [
+    0.0,
+    1.602
+   ],
+   "beat_nodes": [
+    "qc-state",
+    "qc-questions"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "qc-three-types",
+   "label": "三题型",
+   "index": 1,
+   "file": "question-contracts--qc-three-types.mp4",
+   "end_still": "question-contracts--qc-three-types-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.43,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.207
+   ],
+   "beat_nodes": [
+    "qc-noul",
+    "qc-choice",
+    "qc-score"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "qc-closed",
+   "label": "答案空间先定",
+   "index": 2,
+   "file": "question-contracts--qc-closed.mp4",
+   "end_still": "question-contracts--qc-closed-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.33,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.205
+   ],
+   "beat_nodes": [
+    "qc-choice",
+    "qc-validate",
+    "qc-answer"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/istanbul-v6/docs/assets/architecture/agent-infra/jev--question-contracts.html",
+ "slug": "question-contracts",
+ "type": "workflow"
+}

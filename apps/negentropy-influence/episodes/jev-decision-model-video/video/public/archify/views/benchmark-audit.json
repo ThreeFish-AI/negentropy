@@ -1,0 +1,22 @@
+[
+ {
+  "id": "ba-scales",
+  "label": "倍数天平",
+  "focus": [
+   "ba-headline",
+   "ba-demo",
+   "ba-third"
+  ],
+  "note": "头条 193.6×/444.6× vs 自家演示复算 75×/171× vs 第三方 1.2×"
+ },
+ {
+  "id": "ba-pipeline",
+  "label": "考核卷构成",
+  "focus": [
+   "ba-self",
+   "ba-llm-ref",
+   "ba-adapter"
+  ],
+  "note": "自出题 + 两个大模型平均答案 + 对手按自家 adapter 陪跑"
+ }
+]

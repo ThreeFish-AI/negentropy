@@ -1,0 +1,86 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 1.48,
+ "story_sec": 9.65,
+ "total_wall_sec": 80.77,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "ni-two-noul",
+   "label": "两个 Noul 翻车",
+   "index": 0,
+   "file": "no-cross-invariant--ni-two-noul.mp4",
+   "end_still": "no-cross-invariant--ni-two-noul-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 1.48,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.602
+   ],
+   "beat_nodes": [
+    "ni-noul-pair",
+    "ni-sum-119"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "ni-choice",
+   "label": "单个 Choice 兜住",
+   "index": 1,
+   "file": "no-cross-invariant--ni-choice.mp4",
+   "end_still": "no-cross-invariant--ni-choice-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.21,
+   "beat_offsets_sec": [
+    0.0,
+    1.601
+   ],
+   "beat_nodes": [
+    "ni-choice",
+    "ni-sum-1"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "ni-recipe",
+   "label": "编排解",
+   "index": 2,
+   "file": "no-cross-invariant--ni-recipe.mp4",
+   "end_still": "no-cross-invariant--ni-recipe-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.21,
+   "beat_offsets_sec": [
+    0.0,
+    1.602
+   ],
+   "beat_nodes": [
+    "ni-choice",
+    "ni-recipe-code"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/istanbul-v6/docs/assets/architecture/agent-infra/jev--no-cross-invariant.html",
+ "slug": "no-cross-invariant",
+ "type": "workflow"
+}

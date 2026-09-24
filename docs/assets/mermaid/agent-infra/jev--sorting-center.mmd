@@ -1,0 +1,20 @@
+%% source: docs/research/agent-infra/200-jev-system-one-model.md §总类比
+%% slug: jev--sorting-center
+%% type: architecture
+%% derived: docs/assets/architecture/agent-infra/jev--sorting-center.html
+flowchart LR
+    P["面单堆 · state<br/>状态底单 · 只扫一次"]
+    D["调度员 · System 2<br/>大模型 · 慢而贵 · 会写说明"]
+    J["老分拣员 · Jev<br/>扫一眼面单 · 一次前向 · 看得懂手写地址"]
+    T["分拣小票 · questions<br/>是非 / 选格口 / 打等级"]
+    G["格口墙 · criteria<br/>只能往挂牌格口投"]
+    B["传送带推杆 · 执行代码<br/>照单执行"]
+    R["复核台 · 升级 LLM<br/>把握不足送调度员"]
+    M["人工异常台<br/>再没把握的兜底"]
+
+    P -->|扫一眼| J
+    P -.->|规划| D
+    T -->|投递| G
+    J -->|把握高直投| B
+    J -.->|把握不足| R
+    R -.->|再低| M

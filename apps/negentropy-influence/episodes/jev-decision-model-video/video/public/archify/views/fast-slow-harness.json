@@ -1,0 +1,40 @@
+[
+ {
+  "id": "fs-three-lanes",
+  "label": "三条去向",
+  "focus": [
+   "jevh-gate",
+   "jevh-exec",
+   "jevh-llm",
+   "jevh-human"
+  ],
+  "note": "把握高直投、不足复核、再低转人工"
+ },
+ {
+  "id": "fs-rules",
+  "label": "代码规则+窄问题",
+  "focus": [
+   "jevh-state",
+   "jevh-rules",
+   "jevh-jev"
+  ],
+  "note": "每个决策拆成代码规则加窄问题"
+ },
+ {
+  "id": "fs-judge",
+  "label": "评审位",
+  "focus": [
+   "jevh-judge"
+  ],
+  "note": "Jev-as-a-Judge：固定输出反复评，方差小于大模型评委"
+ },
+ {
+  "id": "fs-jevons",
+  "label": "杰文斯回路",
+  "focus": [
+   "jevh-gate",
+   "jevh-jev"
+  ],
+  "note": "判断越便宜，过一遍判断的东西越多——判断密度自己涨上来"
+ }
+]

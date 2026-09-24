@@ -1,0 +1,65 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 6.58,
+ "total_wall_sec": 37.99,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "gt-gates",
+   "label": "三档阈值",
+   "index": 0,
+   "file": "gate-thresholds--gt-gates.mp4",
+   "end_still": "gate-thresholds--gt-gates-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.34,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.204
+   ],
+   "beat_nodes": [
+    "gt-gate-act",
+    "gt-gate-llm",
+    "gt-gate-human"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "gt-budget",
+   "label": "有把握的大多数",
+   "index": 1,
+   "file": "gate-thresholds--gt-budget.mp4",
+   "end_still": "gate-thresholds--gt-budget-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "gt-budget"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/istanbul-v6/docs/assets/architecture/agent-infra/jev--gate-thresholds.html",
+ "slug": "gate-thresholds",
+ "type": "lifecycle"
+}

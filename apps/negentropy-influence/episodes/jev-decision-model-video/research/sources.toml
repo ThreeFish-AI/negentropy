@@ -1,0 +1,154 @@
+# 非论文信源清单（可复现取证链，工具：$T/pipeline/scripts/source_ledger.py）
+#
+# kind=repo 指向固定 commit，raw 指纹漂移即 FAIL（说明 URL 里的 ref 不是不可变引用）。
+# kind=site 指向线上页面，只对剥标签归一后的正文比对指纹，漂移报 WARN（去复核笔记）。
+# text_sha256 是判据；raw_sha256 仅供 repo 类硬校验与人工核对。
+
+
+[study-note]
+url = "https://raw.githubusercontent.com/ThreeFish-AI/negentropy/5ed9640593585a52c00a3974d0ae12b7d670270a/docs/research/agent-infra/200-jev-system-one-model.md"
+kind = "repo"
+pinned_ref = "5ed9640593585a52c00a3974d0ae12b7d670270a"
+accessed = "2026-09-24"
+raw_sha256 = "8396efdd181d6226"
+text_sha256 = "90a681ef0e6f6870"
+bytes = 45689
+lines = 351
+via = "pinned commit, 本仓内部文档（200 精读 = 本集机制讲法/规律/争议/冲突表 SSOT）"
+
+[mapping-report]
+url = "https://raw.githubusercontent.com/ThreeFish-AI/negentropy/5ed9640593585a52c00a3974d0ae12b7d670270a/docs/research/agent-infra/201-jev-mapping-negentropy.md"
+kind = "repo"
+pinned_ref = "5ed9640593585a52c00a3974d0ae12b7d670270a"
+accessed = "2026-09-24"
+raw_sha256 = "a5b385387532a717"
+text_sha256 = "cf0881a2f6d99414"
+bytes = 19301
+lines = 176
+via = "pinned commit, 本仓内部文档（201 映射；不进正片，仅作边界核对）"
+
+[lab]
+url = "https://raw.githubusercontent.com/ThreeFish-AI/negentropy/5ed9640593585a52c00a3974d0ae12b7d670270a/docs/research/agent-infra/assets/jev_lab.py"
+kind = "repo"
+pinned_ref = "5ed9640593585a52c00a3974d0ae12b7d670270a"
+accessed = "2026-09-24"
+raw_sha256 = "0a63494591fa6265"
+text_sha256 = "1e0e1a88120be710"
+bytes = 20998
+lines = 399
+via = "pinned commit, 本仓内部原型（--selftest / --break B1..B6 实测输出）"
+
+[adapter-confidence]
+url = "https://raw.githubusercontent.com/typesafe-ai/system-one-adapter-python/e1d4cc938204b22fc5a3c3aca7044072fe3f712d/src/system_one_adapter/_utils/confidence_metrics.py"
+kind = "repo"
+pinned_ref = "e1d4cc938204b22fc5a3c3aca7044072fe3f712d"
+accessed = "2026-09-24"
+raw_sha256 = "141db0963ce08d98"
+text_sha256 = "8b26d2cc38d4b8dd"
+bytes = 1364
+lines = 32
+via = "pinned commit, TypeSafe 官方适配器（confidence 固定公式代码实证）"
+
+[adapter-client]
+url = "https://raw.githubusercontent.com/typesafe-ai/system-one-adapter-python/e1d4cc938204b22fc5a3c3aca7044072fe3f712d/src/system_one_adapter/_client.py"
+kind = "repo"
+pinned_ref = "e1d4cc938204b22fc5a3c3aca7044072fe3f712d"
+accessed = "2026-09-24"
+raw_sha256 = "a062db2602ac642b"
+text_sha256 = "9a872e06fe8bed5a"
+bytes = 27675
+lines = 652
+via = "pinned commit, TypeSafe 官方适配器（verbalized probabilities + schema 校验纠正重试）"
+
+[kev-model]
+url = "https://raw.githubusercontent.com/jaredpalmer/kev/b8aa777b1f6698a76b3a149f442ef79a3b96e104/kev/model.py"
+kind = "repo"
+pinned_ref = "b8aa777b1f6698a76b3a149f442ef79a3b96e104"
+accessed = "2026-09-24"
+raw_sha256 = "43426d28084e52b6"
+text_sha256 = "222609bf3640b950"
+bytes = 26399
+lines = 401
+via = "pinned commit, Apache-2.0（PointerHead + 注意力掩码 + 交叉熵训练路径）"
+
+[laya-common]
+url = "https://raw.githubusercontent.com/NandhaKishorM/laya/76361c84baa0cfe6a472e72d6d0db480cbf9876c/laya/common.py"
+kind = "repo"
+pinned_ref = "76361c84baa0cfe6a472e72d6d0db480cbf9876c"
+accessed = "2026-09-24"
+raw_sha256 = "99f6d7acfa397536"
+text_sha256 = "70308a341cff118e"
+bytes = 14952
+lines = 338
+via = "pinned commit, Apache-2.0（GRPO 式奖励组合）"
+
+[api-docs]
+url = "https://docs.typesafe.ai/api.md"
+kind = "site"
+accessed = "2026-09-24"
+raw_sha256 = "7ea1c82d9d16bd06"
+text_sha256 = "ff8ebd06027e69aa"
+bytes = 11772
+lines = 338
+via = "官方 API 参考（契约：三题型/上限/422）"
+
+[models-docs]
+url = "https://docs.typesafe.ai/models.md"
+kind = "site"
+accessed = "2026-09-24"
+raw_sha256 = "9d20bb3c90a01475"
+text_sha256 = "d3314ecabd682dc7"
+bytes = 7245
+lines = 105
+via = "官方模型页（定价/限流/上下文/CJK 自认）"
+
+[jaggedness]
+url = "https://docs.typesafe.ai/model-jaggedness/jev-1.13.md"
+kind = "site"
+accessed = "2026-09-24"
+raw_sha256 = "e69329bd32e91ac0"
+text_sha256 = "1a86e3b70775a348"
+bytes = 11588
+lines = 156
+via = "官方 jaggedness 自曝（九类失败模式）"
+
+[launch-blog]
+url = "https://typesafe.ai/blog/introducing-system-one-models-and-jev"
+kind = "site"
+accessed = "2026-09-24"
+raw_sha256 = "88e15c940c8e64e2"
+text_sha256 = "95c7d99ae5ac8c62"
+bytes = 256163
+lines = 218
+via = "官方发布博客（厂商自报，须归属）"
+
+[evals-site]
+url = "https://evals.typesafe.ai/"
+kind = "site"
+accessed = "2026-09-24"
+raw_sha256 = "f2f3cb6032395751"
+text_sha256 = "7147dcd6916e2815"
+bytes = 65008
+lines = 19
+via = "官方 workflow evals（自报基准，须归属）"
+
+[hume-reverse]
+url = "https://archerhume.com/posts/jevs-architecture-unmasked"
+kind = "site"
+accessed = "2026-09-24"
+raw_sha256 = "4cb59ac6dce023e5"
+text_sha256 = "625be56720d1364b"
+bytes = 295827
+lines = 227
+via = "第三方逆向分析（Hume；口播须带归属句，不得表述为既成事实）"
+
+[kev-readme]
+url = "https://raw.githubusercontent.com/jaredpalmer/kev/b8aa777b1f6698a76b3a149f442ef79a3b96e104/README.md"
+kind = "repo"
+pinned_ref = "b8aa777b1f6698a76b3a149f442ef79a3b96e104"
+accessed = "2026-09-24"
+raw_sha256 = "916ea727330a9518"
+text_sha256 = "605b8aa25d10290e"
+bytes = 37429
+lines = 412
+via = "pinned commit, Apache-2.0（交叉熵 + 后验温度 + claims.json CI 核验的自报口径）"

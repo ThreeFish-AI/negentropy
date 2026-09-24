@@ -1,0 +1,19 @@
+{
+ "seriesId": "agent-infra",
+ "layers": [
+  {
+   "index": 1,
+   "layer": "技能",
+   "title": "经验淬炼成手册：Agent 的轻量蒸馏与按需装配",
+   "published": false
+  },
+  {
+   "index": 2,
+   "layer": "判断",
+   "title": "让判断变便宜：Jev 决策模型拆解",
+   "published": false
+  }
+ ],
+ "activeIndex": 2,
+ "next": null
+}

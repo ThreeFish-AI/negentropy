@@ -1,0 +1,20 @@
+[
+ {
+  "id": "gt-gates",
+  "label": "三档阈值",
+  "focus": [
+   "gt-gate-act",
+   "gt-gate-llm",
+   "gt-gate-human"
+  ],
+  "note": "直投、复核、人工三条去向按把握分流"
+ },
+ {
+  "id": "gt-budget",
+  "label": "有把握的大多数",
+  "focus": [
+   "gt-budget"
+  ],
+  "note": "原型里够自信直投的只有两成——省多少取决于分布"
+ }
+]

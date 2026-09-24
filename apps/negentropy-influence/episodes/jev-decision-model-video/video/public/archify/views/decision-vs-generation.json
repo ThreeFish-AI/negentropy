@@ -1,0 +1,29 @@
+[
+ {
+  "id": "dg-split",
+  "label": "分工线",
+  "focus": [
+   "dg-generation",
+   "dg-judgment",
+   "dg-interface"
+  ],
+  "note": "不是替代：小判断挪出生成通道"
+ },
+ {
+  "id": "dg-checklist",
+  "label": "四拿四缺",
+  "focus": [
+   "dg-got",
+   "dg-miss"
+  ],
+  "note": "拿到了结构红利，给不了证据与中文场景"
+ },
+ {
+  "id": "dg-open",
+  "label": "开放问题",
+  "focus": [
+   "dg-open"
+  ],
+  "note": "当每一次判断都便宜到随手来一次，你会拿它去量什么"
+ }
+]

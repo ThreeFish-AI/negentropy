@@ -1,0 +1,21 @@
+[
+ {
+  "id": "cr-formula",
+  "label": "公式读数",
+  "focus": [
+   "cr-probs",
+   "cr-formula-node",
+   "cr-readout"
+  ],
+  "note": "把握读数由固定公式从概率算出，非模型学得"
+ },
+ {
+  "id": "cr-no-new-info",
+  "label": "不是新信息",
+  "focus": [
+   "cr-readout",
+   "cr-adapter"
+  ],
+  "note": "概率分布的另一种读法，文档示例可复算"
+ }
+]

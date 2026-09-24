@@ -1,0 +1,29 @@
+[
+ {
+  "id": "ni-two-noul",
+  "label": "两个 Noul 翻车",
+  "focus": [
+   "ni-noul-pair",
+   "ni-sum-119"
+  ],
+  "note": "小票互不相看，概率加出超过一"
+ },
+ {
+  "id": "ni-choice",
+  "label": "单个 Choice 兜住",
+  "focus": [
+   "ni-choice",
+   "ni-sum-1"
+  ],
+  "note": "只挂合法组合，互斥是构造性质"
+ },
+ {
+  "id": "ni-recipe",
+  "label": "编排解",
+  "focus": [
+   "ni-choice",
+   "ni-recipe-code"
+  ],
+  "note": "合并成 Choice，或由代码校验，别指望模型自觉"
+ }
+]
