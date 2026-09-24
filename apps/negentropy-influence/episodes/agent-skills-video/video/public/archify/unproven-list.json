@@ -1,0 +1,128 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.6,
+ "story_sec": 16.5,
+ "total_wall_sec": 291.82,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "five",
+   "label": "五件事清单",
+   "index": 0,
+   "file": "unproven-list--five.mp4",
+   "end_still": "unproven-list--five-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.6,
+   "story_sec": 3.5,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "saving_q",
+    "saving_gap"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "hundreds",
+   "label": "几百本没人讨论",
+   "index": 1,
+   "file": "unproven-list--hundreds.mp4",
+   "end_still": "unproven-list--hundreds-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.48,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [
+    0.0,
+    1.606
+   ],
+   "beat_nodes": [
+    "hundreds_q",
+    "hundreds_gap"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 27.0
+  },
+  {
+   "id": "trigger",
+   "label": "触发无达标标准",
+   "index": 2,
+   "file": "unproven-list--trigger.mp4",
+   "end_still": "unproven-list--trigger-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.28,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "trigger_q",
+    "trigger_gap"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "trust",
+   "label": "无签名无版本",
+   "index": 3,
+   "file": "unproven-list--trust.mp4",
+   "end_still": "unproven-list--trust-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.48,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "trust_q",
+    "trust_gap"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "check",
+   "label": "过检查≠合规≠好用",
+   "index": 4,
+   "file": "unproven-list--check.mp4",
+   "end_still": "unproven-list--check-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.48,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0,
+    1.602
+   ],
+   "beat_nodes": [
+    "check_q",
+    "check_gap"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/angkor-v1/docs/assets/architecture/agent-infra/agent-skills--unproven-list.html",
+ "slug": "unproven-list",
+ "type": "workflow"
+}

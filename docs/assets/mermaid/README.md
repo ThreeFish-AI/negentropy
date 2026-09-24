@@ -73,6 +73,16 @@
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | [agent-skills--progressive-disclosure](./agent-infra/agent-skills--progressive-disclosure.mmd) | [090 §2](../../research/agent-infra/090-agent-skills-spec.md) | workflow | ✓ | done | 运行相：发现→解析→Tier 1 目录→Tier 2 激活→Tier 3 资源，四泳道阶梯 + 预算/激活/契约三卡 |
 | [agent-skills--package-and-validation](./agent-infra/agent-skills--package-and-validation.mmd) | [090 §3](../../research/agent-infra/090-agent-skills-spec.md) | architecture | ✓ | done | 作者相：技能包解剖 × skills-ref 三命令 × 规范↔实现 13 处分歧 |
+| [agent-skills--handbook-cabinet](./agent-infra/agent-skills--handbook-cabinet.mmd) | [制作分镜 0-A/0-D/0-E/0-F](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | architecture | ✓ | done | 开场总览：老师傅经验孤岛 × 两条老路 × 第三条路 × 轻量蒸馏（agent-skills-video P0） |
+| [agent-skills--distill-loop](./agent-infra/agent-skills--distill-loop.mmd) | [制作分镜 1-A..1-G](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | lifecycle | ✓ | done | 淬炼回路：空泛陷阱→四格便签→资料合成→编辑台→坑点→执行回灌（P1） |
+| [agent-skills--eval-twin-runs](./agent-infra/agent-skills--eval-twin-runs.mmd) | [制作分镜 1-H](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | dataflow | ✓ | done | 试岗对照：同一工单带/不带手册双跑，两边都过删、只有带过是真价值（P1） |
+| [agent-skills--cost-structure](./agent-infra/agent-skills--cost-structure.mmd) | [制作分镜 3-D/3-E](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | dataflow | ✓ | done | 玩具库账本 2321 vs 39222（16.9×）× 书脊墙 vs 按次付费（P3） |
+| [agent-skills--description-routing](./agent-infra/agent-skills--description-routing.mmd) | [制作分镜 4-A..4-C](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | workflow | ✓ | done | 书脊路由：模型自判 × 好/差描述 × 命中与静默落空（P4） |
+| [agent-skills--description-eval](./agent-infra/agent-skills--description-eval.mmd) | [制作分镜 4-D](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | workflow | ✓ | done | 描述评测：20 提问×3 次 × 练习/考核组 × 按考核组挑版 × 1024 红线（P4） |
+| [agent-skills--teardown-identity-budget](./agent-infra/agent-skills--teardown-identity-budget.mmd) | [制作分镜 5-B/5-C](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | dataflow | ✓ | done | 拆 1 冒名手册（扫描先后定真身）× 拆 2 超长描述（+255% · 2.4×）（P5） |
+| [agent-skills--teardown-parse-escape](./agent-infra/agent-skills--teardown-parse-escape.mmd) | [制作分镜 5-D/5-E](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | dataflow | ✓ | done | 拆 3 值内 --- 拦腰截断（参考实现同根因）× 拆 4 伪造第 21 本书（P5） |
+| [agent-skills--authority-and-controversies](./agent-infra/agent-skills--authority-and-controversies.mmd) | [制作分镜 6-A..6-D](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | architecture | ✓ | done | 权威天平 × 13 处分歧/6 处真跑 × 严格/宽容/自己挑/点名/信任（P6） |
+| [agent-skills--unproven-list](./agent-infra/agent-skills--unproven-list.mmd) | [制作分镜 6-E](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | workflow | ✓ | done | 材料没有证明的五件事清单（P6 收束） |
 
 > 各分类行由对应重绘波次登记；`产物` 列 ✓ = html + dark/light PNG 已入库。
 

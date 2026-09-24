@@ -1,0 +1,31 @@
+[
+ {
+  "id": "ledger",
+  "label": "玩具库账本",
+  "focus": [
+   "toy-library",
+   "on-demand",
+   "preload-all"
+  ],
+  "note": "19 技能 4 任务的玩具库实测：按需装配 2321 vs 全部预载 39222，差 16.9 倍。"
+ },
+ {
+  "id": "wall-vs-pay",
+  "label": "书脊墙与按次",
+  "focus": [
+   "on-demand",
+   "spine-wall",
+   "pay-per-use"
+  ],
+  "note": "成本结构两栏：书脊墙随藏书变宽、每个会话都付；整本与附录只在抽取时计数。"
+ },
+ {
+  "id": "caveat",
+  "label": "倍数只说明方向",
+  "focus": [
+   "preload-all",
+   "direction-only"
+  ],
+  "note": "倍数只说明方向，不能直接套真实产品；记住成本结构，别记 16.9 这个数。"
+ }
+]

@@ -1,0 +1,8 @@
+[
+  {"id": "package", "label": "一个抽屉", "focus": ["skill-dir", "skill-md", "optional-dirs"], "note": "一个技能 = 一个文件夹，至少含一份技能说明文件。"},
+  {"id": "required", "label": "两项必填", "focus": ["skill-md"], "note": "头信息只有名字与描述两项必填。"},
+  {"id": "name-rule", "label": "名字即标签", "focus": ["skill-dir", "skill-md"], "note": "名字必须和文件夹名一字不差。"},
+  {"id": "optional", "label": "选填与附录", "focus": ["skill-md", "optional-dirs"], "note": "四项选填 + 脚本 / 参考资料 / 模板三类附录。"},
+  {"id": "validate-gap", "label": "上架检查", "focus": ["cmd-validate", "spec-gap"], "note": "参考实现的上架检查与规范口径不一。"},
+  {"id": "to-prompt-gap", "label": "整体失败", "focus": ["cmd-read-props", "cmd-to-prompt", "spec-gap"], "note": "生成目录遇坏文件整体失败。"}
+]

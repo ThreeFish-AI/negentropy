@@ -1,0 +1,9 @@
+[
+ {"id":"generic-trap","label":"空泛陷阱","focus":["generic_trap"],"note":"只凭模型通用知识，只能写出「妥善处理错误」这类空话。"},
+ {"id":"hands-on","label":"真实任务提炼","focus":["hands_on_task","generic_trap"],"note":"改从真实专长出发：员工办工单，老师傅叫停纠正。"},
+ {"id":"four-notes","label":"四格便签","focus":["four_notes","skill_draft"],"note":"记录员把过程记成步骤/纠正/输入输出格式/背景四格，汇成初稿。"},
+ {"id":"synthesize","label":"资料合成","focus":["artifact_synth","skill_draft"],"note":"另一入口：事故复盘、操作手册、评审意见、补丁合成汇入初稿。"},
+ {"id":"edit-cut","label":"编辑台删减","focus":["skill_draft","edit_desk"],"note":"逐行问「没有这条会做错吗」，答「不会」就划掉。"},
+ {"id":"gotchas","label":"坑点清单","focus":["gotcha_list"],"note":"违背常识的事实用红笔写进正文，让 AI 踩坑前先读到。"},
+ {"id":"execute-revise","label":"执行回灌修订","focus":["real_run","skill_draft","final_skill"],"note":"拿真实任务跑，全部结果回灌初稿，每纠正一次添一条，直至定稿。"}
+]

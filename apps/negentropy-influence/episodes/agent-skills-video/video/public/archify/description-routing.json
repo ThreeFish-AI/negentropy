@@ -1,0 +1,107 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 12.92,
+ "total_wall_sec": 159.64,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "judge",
+   "label": "模型自己判断",
+   "index": 0,
+   "file": "description-routing--judge.mp4",
+   "end_still": "description-routing--judge-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "task",
+    "judge"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 27.0
+  },
+  {
+   "id": "good-desc",
+   "label": "好描述",
+   "index": 1,
+   "file": "description-routing--good-desc.mp4",
+   "end_still": "description-routing--good-desc-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0,
+    1.605
+   ],
+   "beat_nodes": [
+    "judge",
+    "good_desc"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 25.0
+  },
+  {
+   "id": "bad-desc",
+   "label": "差描述",
+   "index": 2,
+   "file": "description-routing--bad-desc.mp4",
+   "end_still": "description-routing--bad-desc-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "judge",
+    "bad_desc"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "hit-miss",
+   "label": "命中与落空",
+   "index": 3,
+   "file": "description-routing--hit-miss.mp4",
+   "end_still": "description-routing--hit-miss-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.48,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "hit",
+    "miss"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/angkor-v1/docs/assets/architecture/agent-infra/agent-skills--description-routing.html",
+ "slug": "description-routing",
+ "type": "workflow"
+}

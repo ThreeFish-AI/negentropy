@@ -1,0 +1,149 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 19.52,
+ "total_wall_sec": 178.17,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "authority",
+   "label": "权威天平",
+   "index": 0,
+   "file": "authority-and-controversies--authority.mp4",
+   "end_still": "authority-and-controversies--authority-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "spec",
+    "ref"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "diff-13",
+   "label": "十三处分歧",
+   "index": 1,
+   "file": "authority-and-controversies--diff-13.mp4",
+   "end_still": "authority-and-controversies--diff-13-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.37,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.207
+   ],
+   "beat_nodes": [
+    "spec",
+    "ref",
+    "diff"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "realrun",
+   "label": "六处真跑",
+   "index": 2,
+   "file": "authority-and-controversies--realrun.mp4",
+   "end_still": "authority-and-controversies--realrun-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "diff",
+    "realrun"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "strict",
+   "label": "严格只退回",
+   "index": 3,
+   "file": "authority-and-controversies--strict.mp4",
+   "end_still": "authority-and-controversies--strict-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.605
+   ],
+   "beat_nodes": [
+    "strict",
+    "diff"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "lenient",
+   "label": "宽容照上架",
+   "index": 4,
+   "file": "authority-and-controversies--lenient.mp4",
+   "end_still": "authority-and-controversies--lenient-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.602
+   ],
+   "beat_nodes": [
+    "lenient",
+    "strict"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "trust",
+   "label": "极简与信任",
+   "index": 5,
+   "file": "authority-and-controversies--trust.mp4",
+   "end_still": "authority-and-controversies--trust-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "trust"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/angkor-v1/docs/assets/architecture/agent-infra/agent-skills--authority-and-controversies.html",
+ "slug": "authority-and-controversies",
+ "type": "architecture"
+}
