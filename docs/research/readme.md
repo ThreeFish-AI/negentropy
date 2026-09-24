@@ -106,7 +106,7 @@
 
 ## 九、Agent Harness 工程 · `agent-harness/`
 
-> 一手材料：① 170–175 以 Learn Claude Code 课程站点修订与 [shareAI-lab/learn-claude-code](https://github.com/shareAI-lab/learn-claude-code) 仓库 main 整合版（MIT，固定提交取证）为信源；② 180–181 以阿里巴巴《AI Native 研发范式实践手册》（2026-09，68 页）为信源。
+> 一手材料：① 170–175 以 Learn Claude Code 课程站点修订与 [shareAI-lab/learn-claude-code](https://github.com/shareAI-lab/learn-claude-code) 仓库 main 整合版（MIT，固定提交取证）为信源；② 180–181 以阿里巴巴《AI Native 研发范式实践手册》（2026-09，68 页）为信源；③ 190–191 以 [NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent) 固定提交 `068db016`（MIT）与其官方文档站为信源。
 >
 > **SSOT 边界（170–175）**：逐章原文引语、可调参数、生产版行号与口播判据在科普视频工程各集 `research/source-notes.md`；章→集归属与固定提交选择只登记在[系列信源地图](../../apps/negentropy-influence/source-map/claude-code-explained.md)。本分部只做**跨层综观、main 轨净增量与本仓机制对位**，冲突一律以上述两处为准。
 
@@ -120,6 +120,8 @@
 | [⑤ 多 Agent 平台](./agent-harness/175-claude-code-multi-agent-platform.md) | 任务图与认领、消费式收件格、带类型校验与幂等的协议握手、自治三阶段与压缩后身份重注入、工作树隔离的拆除纪律、MCP 接入对工具池缓存的连锁反应，以及「机制很多、循环一个」的收束 |
 | [精读：AI Native 研发范式实践手册](./agent-harness/180-ai-native-handbook.md) | 企业级 Harness 视角：三案例 → 五挑战 → 四层基础设施（Harness / 运行环境 / 可信安全 / 可观测）的全貌解剖、五条底层规律（模型提意图·确定性系统决策 / 证据先于结论 / 权限逐级收敛 / 结论绑定现场·不确定即拒 / 环境与知识是第一类上下文）、两个核心争议与批判性边界五条（含度量示例 SQL 多对多扇出实测复现）；≤2000 字精炼版，配套原型六次破坏性实验 |
 | [AI Native 手册 ↔ negentropy 机制映射](./agent-harness/181-ai-native-mapping-negentropy.md) | 十七条机制对照（✅8 / 🔶3 / ⏸6）：闭环骨架已同构，真增量为凭据边界（占位值 + 出站注入）、授权第三态 Challenge 与生产门控对象，均绑定「触达生产或不可信代码」触发条件暂缓 |
+| [精读：Nous Research Hermes Agent](./agent-harness/190-hermes-agent.md) | 自学习闭环 Harness 视角：缓存优先的三段式提示装配（会话内唯一计划内断点是压缩）、有界常驻记忆（2200/1375 字符）+ 按需技能两级记忆、交付后旁路 review 自写技能（分派侧白名单 · 先读后写 · 署名保护）+ Curator 只归档不删除、FTS5 零 LLM 会话检索 + 工具组不拆的四阶段压缩、委派/定时/命令守卫的受控扩张；五条规律（缓存/容量/写回/历史/边界）、三个争议、21 处文档↔代码漂移与「无学习效果评测」的批判性边界，配套原型六次破坏性实验与两张 archify 图 |
+| [Hermes Agent ↔ negentropy 机制映射](./agent-harness/191-hermes-agent-mapping-negentropy.md) | 十六条机制对照（✅4 / 🔶6 / ⏸6）：真增量=交互式对话零压缩（未启用 ADK 原生 EventsCompactionConfig）、记忆写入与注入两端无防注入、历史会话不可检索；取证副产物=中文关键词检索失效（english tsvector 整段汉字单 token，ISSUE-196）、审批门只接线两个工具（ISSUE-197）与 0001 RFC 的 Hermes 口径校正；运行中自写技能按争议一暂缓 |
 
 ---
 
