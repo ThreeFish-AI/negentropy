@@ -514,7 +514,7 @@ const JevonsFuse: React.FC<{at: number; fuseAt: number; gridAt: number}> = ({at,
           ))}
         </div>
         <div style={{fontFamily: theme.sans, fontSize: 24, color: theme.text}}>
-          判断的密度，会自己涨上来
+          杰文斯悖论 · 判断密度 ↑
         </div>
       </div>
     </div>

@@ -73,7 +73,7 @@ const JudgeNodes: React.FC<{at: number; pair1At: number; pair2At: number}> = ({a
   return (
     <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 36}}>
       <div style={{fontFamily: theme.serif, fontSize: 33, color: theme.text}}>
-        每个 Agent 系统里，都塞满了各种小判断
+        Agent 流水线 · 处处是小判断
       </div>
       <div style={{position: 'relative', width: 1460, height: 200}}>
         <div
@@ -371,7 +371,7 @@ const BadgeCrack: React.FC<{at: number; crackAt: number; tagAt: number; lineAt: 
   return (
     <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 22}}>
       <div style={{fontFamily: theme.serif, fontSize: 33, color: theme.text, opacity: lit}}>
-        最麻烦的是：它嘴上的把握不可信
+        口头把握 ≠ 真实命中率
       </div>
       <div style={{position: 'relative', width: 360, height: 300, opacity: lit}}>
         <div
@@ -442,7 +442,7 @@ const BadgeCrack: React.FC<{at: number; crackAt: number; tagAt: number; lineAt: 
         </div>
       </div>
       <div style={{fontFamily: theme.serif, fontSize: 29, color: theme.dim, opacity: lineP}}>
-        嘴上说九成把握，未必真能十次对九次
+        嘴上 90% · 实测未必 9/10
       </div>
     </div>
   );
@@ -541,7 +541,7 @@ const MismatchBoard: React.FC<{at: number; listAt: number; scrollAt: number; scr
   return (
     <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 26}}>
       <div style={{fontFamily: theme.serif, fontSize: 44, color: theme.danger, opacity: word, letterSpacing: 5}}>
-        病根就一个词：错配
+        病根 · 错配
       </div>
       <div style={{display: 'flex', gap: 80, alignItems: 'center'}}>
         <ShortList at={listAt} />
@@ -795,7 +795,7 @@ export const P0Cost: React.FC<{scene: SceneRange}> = ({scene}) => {
         <Stage>
           <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 30}}>
             <div style={{fontFamily: theme.serif, fontSize: 32, color: theme.text}}>
-              这些判断，今天大多交给大模型
+              现状 · 小判断外包给大模型
             </div>
             <div style={{display: 'flex', alignItems: 'center', gap: 56}}>
               <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10}}>

@@ -396,7 +396,7 @@ const WeldedGate: React.FC<{stampAt: number; slamAt: number}> = ({stampAt, slamA
         </div>
       </div>
       <div style={{fontFamily: theme.serif, fontSize: 31, color: theme.text, opacity: welded}}>
-        模型没有「另写一个答案」这个输出通道
+        输出口已焊死 · 只能选，不能另写
       </div>
     </div>
   );

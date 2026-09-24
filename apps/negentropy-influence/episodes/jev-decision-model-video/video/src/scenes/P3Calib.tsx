@@ -614,7 +614,7 @@ const TwoDoors: React.FC<{headAt: number; openAt: number; strikeAt: number; endA
         ))}
       </div>
       <div style={{fontFamily: theme.serif, fontSize: 30, color: theme.text, opacity: end}}>
-        要么嘴硬，要么闭嘴——没有免费的中庸
+        二选一 · 中庸要另付代价
       </div>
     </div>
   );
