@@ -11,7 +11,7 @@
 > Horizon Context 精读、Context Layer 蓝图与 OpenViking 精读（下表 `cognitive-context/` 分节）、
 > `docs/research/agent-harness/` 的五层 Harness 精读与 AI Native 手册精读（180，下表 `agent-harness/` 分节）、
 > `docs/research/self-evolution/` 的 Dream-RSI 精读（下表 `self-evolution/` 分节）、
-> `docs/research/agent-infra/` 的 Agent Skills 规范精读（下表 `agent-infra/` 分节）。未纳入：其余 `docs/research/`（第三方调研）与
+> `docs/research/agent-infra/` 的 Agent Skills 规范精读与 Jev（System One 决策模型）精读（下表 `agent-infra/` 分节）。未纳入：其余 `docs/research/`（第三方调研）与
 > `docs/reference/cognizes/`（已退役遗产），**不在此管线**，原地保留渲染。
 
 ## 约定
@@ -67,11 +67,13 @@
 | [dream-rsi--behavior-adaptive](./self-evolution/dream-rsi--behavior-adaptive.mmd) | [144 §6](../../research/self-evolution/144-dream-rsi.md) | lifecycle | ✓ | done | 先省后探：110→50→回升与性能 0.427→1.898 |
 | [dream-rsi--unproven-list](./self-evolution/dream-rsi--unproven-list.mmd) | [144 §8](../../research/self-evolution/144-dream-rsi.md) | workflow | ✓ | done | 论文未证明五件事清单（panel+编号反枚举） |
 
-### agent-infra/（docs/research/agent-infra/ 的 Agent Skills 规范精读）
+### agent-infra/（docs/research/agent-infra/ 的 Agent Skills 规范精读 + Jev 精读）
 
 | slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | [agent-skills--progressive-disclosure](./agent-infra/agent-skills--progressive-disclosure.mmd) | [090 §2](../../research/agent-infra/090-agent-skills-spec.md) | workflow | ✓ | done | 运行相：发现→解析→Tier 1 目录→Tier 2 激活→Tier 3 资源，四泳道阶梯 + 预算/激活/契约三卡 |
+| [jev--one-pass-decision](./agent-infra/jev--one-pass-decision.mmd) | [190 §2](../../research/agent-infra/190-jev-system-one-model.md) | dataflow | ✓ | done | 推理相：契约（422/255/10 级）→一次编码·分支隔离·选项读出→概率与 confidence 固定公式→阈值三档 + 类型安全≠正确/隔离代价/校准领地三卡 |
+| [jev--fast-slow-harness](./agent-infra/jev--fast-slow-harness.mmd) | [190 §6](../../research/agent-infra/190-jev-system-one-model.md) | workflow | ✓ | done | 编排相：代码规则→System 2 规划→System 1 挑选→置信分流（执行/回规划/人工）+ 回写闭环 + 分流经济学/拆校准账单/System 2 出候选三卡 |
 | [agent-skills--package-and-validation](./agent-infra/agent-skills--package-and-validation.mmd) | [090 §3](../../research/agent-infra/090-agent-skills-spec.md) | architecture | ✓ | done | 作者相：技能包解剖 × skills-ref 三命令 × 规范↔实现 13 处分歧 |
 | [agent-skills--handbook-cabinet](./agent-infra/agent-skills--handbook-cabinet.mmd) | [制作分镜 0-A/0-D/0-E/0-F](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | architecture | ✓ | done | 开场总览：老师傅经验孤岛 × 两条老路 × 第三条路 × 轻量蒸馏（agent-skills-video P0） |
 | [agent-skills--distill-loop](./agent-infra/agent-skills--distill-loop.mmd) | [制作分镜 1-A..1-G](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | lifecycle | ✓ | done | 淬炼回路：空泛陷阱→四格便签→资料合成→编辑台→坑点→执行回灌（P1） |

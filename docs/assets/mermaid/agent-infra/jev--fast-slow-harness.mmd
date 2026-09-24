@@ -1,0 +1,17 @@
+%% source: docs/research/agent-infra/190-jev-system-one-model.md §6
+%% slug: jev--fast-slow-harness
+%% type: workflow
+%% derived: docs/assets/architecture/agent-infra/jev--fast-slow-harness.html
+flowchart LR
+    EV["事件 / 程序状态"] --> RU["代码规则<br/>确定性 if 先过滤"]
+    RU --> PL["System 2 · LLM<br/>规划、生成候选动作（慢 · 贵）"]
+    PL --> J["System 1 · Jev<br/>在候选里挑 / 判定 / 路由<br/>多问一次调用（快 · 廉）"]
+    RU -->|"候选已由程序枚举"| J
+    J --> GT{"按 confidence 分流"}
+    GT -->|"高"| EX["执行器（代码）<br/>寻路 · 调用工具 · 写库"]
+    GT -->|"中"| PL
+    GT -->|"低"| HU["人工 / 澄清"]
+    EX --> ST["结果回写状态"]
+    HU --> ST
+    ST --> EV
+    J -.->|"Jev-as-a-Judge"| QA["评估其他 Agent 输出<br/>质检打分"]
