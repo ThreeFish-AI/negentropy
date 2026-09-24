@@ -486,7 +486,7 @@ const B6Breakdown: React.FC<{lampAt: number; verdictAt: number; fixAt: number; p
         ))}
       </div>
       <div style={{fontFamily: theme.serif, fontSize: 30, color: theme.text, opacity: punch}}>
-        反正，别指望模型自己自觉
+        互斥靠结构兜 · 不靠模型自觉
       </div>
     </div>
   );
