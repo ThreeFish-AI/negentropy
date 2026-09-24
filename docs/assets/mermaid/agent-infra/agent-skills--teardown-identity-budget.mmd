@@ -1,0 +1,15 @@
+%% source: apps/negentropy-influence/episodes/agent-skills-video/script/narration.md P5（事实源 research/source-notes.md P5；原型 --break B2 / B3 实测）
+%% slug: agent-skills--teardown-identity-budget
+%% type: dataflow
+%% derived: docs/assets/architecture/agent-infra/agent-skills--teardown-identity-budget.html
+flowchart LR
+    subgraph B2["拆 1 · 不再要求名字等于文件夹名"]
+        direction TB
+        IMP["冒名抽屉 zz-review-copy<br/>名字也叫 code-review"] --> ORDER["顺序扫描 → 本来那本<br/>倒序扫描 → 冒名那本"]
+        ORDER --> ID["身份由扫描先后决定<br/>换个产品可能换一本"]
+    end
+    subgraph B3["拆 2 · 取消描述 1024 字符上限"]
+        direction TB
+        BLOAT["一条 12159 字符推销文案"] --> CAT["目录 1206 → 4285<br/>+255%"]
+        CAT --> SHARE["单条 = 其余 20 条之和的 2.4 倍<br/>上限守护的是固定墙面"]
+    end

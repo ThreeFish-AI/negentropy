@@ -1,0 +1,26 @@
+%% source: apps/negentropy-influence/episodes/agent-skills-video/script/narration.md P0（事实源 research/source-notes.md P0；090 §1）
+%% slug: agent-skills--handbook-cabinet
+%% type: architecture
+%% derived: docs/assets/architecture/agent-infra/agent-skills--handbook-cabinet.html
+flowchart LR
+    subgraph EXPERT["老师傅的经验（只在一个人脑子里）"]
+        EXP["隐性经验<br/>哪步会卡 · 哪个接口看着正常其实坏了"]
+    end
+    subgraph OLD["两条老路"]
+        direction TB
+        EMPTY["什么都不给<br/>让 AI 凭常识猜"]
+        STUFF["全部手册塞进开场白<br/>开销随「装了多少」增长，不随「用了多少」"]
+    end
+    subgraph THIRD["第三条路 · Agent Skills 开放标准"]
+        direction TB
+        FOLDER["把经验打包成文件夹<br/>可移植 · 可版本管理 · 按需加载"]
+        DISTILL["轻量蒸馏（本片措辞）<br/>不改模型本身，只改模型读到的东西"]
+    end
+    AGENT["AI 助手（员工）<br/>很能干，却不懂团队规矩"]
+    EXP --> EMPTY
+    EXP --> STUFF
+    EXP --> FOLDER
+    FOLDER --> DISTILL
+    EMPTY -.->|"只能猜"| AGENT
+    STUFF -.->|"上下文被撑满"| AGENT
+    DISTILL -->|"用得上时才读"| AGENT

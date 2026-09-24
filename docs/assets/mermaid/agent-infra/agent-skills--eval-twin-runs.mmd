@@ -1,0 +1,12 @@
+%% source: apps/negentropy-influence/episodes/agent-skills-video/script/narration.md P1（事实源 research/source-notes.md P1「验手册」；上游 evaluating-skills.mdx @69ef37e9）
+%% slug: agent-skills--eval-twin-runs
+%% type: dataflow
+%% derived: docs/assets/architecture/agent-infra/agent-skills--eval-twin-runs.html
+flowchart LR
+    CASE["同一张工单<br/>真实提问 + 成功描述"] --> WITH["带手册的员工<br/>干净工位"]
+    CASE --> WITHOUT["不带手册的员工<br/>其余条件相同"]
+    WITH --> QC["质检员逐条打勾<br/>判通过必须附证据"]
+    WITHOUT --> QC
+    QC --> BOTH["两边都能过的检查项<br/>删掉：只会虚抬分数"]
+    QC --> ONLY["只有带手册才过的<br/>= 手册真正的价值"]
+    ONLY --> REVISE["失败断言 + 人工反馈 + 执行轨迹<br/>→ 修订下一版"]

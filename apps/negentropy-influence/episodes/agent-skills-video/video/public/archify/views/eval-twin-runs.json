@@ -1,0 +1,45 @@
+[
+ {
+  "id": "twin",
+  "label": "同一张工单",
+  "focus": [
+   "ticket"
+  ],
+  "note": "同一张真实工单：真实提问加成功描述。"
+ },
+ {
+  "id": "with-without",
+  "label": "带与不带",
+  "focus": [
+   "with_manual",
+   "without_manual"
+  ],
+  "note": "一名带手册、一名空手，其余条件完全相同。"
+ },
+ {
+  "id": "pass-evidence",
+  "label": "打勾贴证据",
+  "focus": [
+   "qc_gate"
+  ],
+  "note": "质检员逐条打勾，判通过必须附上证据。"
+ },
+ {
+  "id": "both-pass",
+  "label": "都过即删",
+  "focus": [
+   "qc_gate",
+   "both_pass"
+  ],
+  "note": "两边都能过的检查项删掉，只会虚抬分数。"
+ },
+ {
+  "id": "only-with",
+  "label": "手册真价值",
+  "focus": [
+   "only_with",
+   "revise_next"
+  ],
+  "note": "只有带手册才过的，才是手册真正的价值。"
+ }
+]

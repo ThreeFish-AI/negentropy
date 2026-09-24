@@ -294,6 +294,38 @@
           "voice": "sunny-steady + me-bright.wav"
         }
       ]
+    },
+    {
+      "id": "agent-infra",
+      "title": "Agent 基础设施系列",
+      "sourceKind": "doc",
+      "rule": "各集独立成片。口播文本严禁出现其他集标题、集数序号或「上一集/上期/第 N 集」等顺序词；序号只存在于视觉层与本文件，据此保证发布顺序变更的 TTS 代价为零（「下期再见」一类顺序无关的收尾语不受此限）。校验器：to-video skill 的 pipeline/scripts/check_series.py（工作区根锚定）。信源为本仓 docs/research/agent-infra/ 精读笔记与最小原型（B 型 · 仓内固定提交），并直接取证上游开放标准的固定提交（规范、指南与参考实现源码）；本仓实现的映射结论不进正片。",
+      "episodes": [
+        {
+          "episode": 1,
+          "slug": "agent-skills-video",
+          "path": "episodes/agent-skills-video",
+          "title": "经验淬炼成手册：Agent 的轻量蒸馏与按需装配",
+          "topic": "Agent Skills：经验怎么交给 AI",
+          "cardSub": "技能 · 按需装配",
+          "accents": [
+            "#FF86A8",
+            "#86A8FF",
+            "#D891F5"
+          ],
+          "source": {
+            "title": "Agent Skills 开放规范精读笔记 + 最小原型（docs/research/agent-infra/090 @ 80b456fb）+ 上游规范与参考实现",
+            "site": "https://agentskills.io/specification",
+            "repo": "https://github.com/agentskills/agentskills",
+            "pinnedRef": "69ef37e9424c",
+            "license": "CC-BY-4.0（文档）/ Apache-2.0（代码）；本仓精读为内部文档",
+            "accessed": "2026-09-23"
+          },
+          "status": "final-review",
+          "statusNote": "v1 终渲待审（2026-09-24）：15:24.97 = 27749 帧 @30fps / 1920×1080（200 句 4294 字，实测 15.5 分）；七幕 41 镜（经验之困 / 淬炼成册 / 一格一本 / 按需装配 / 书脊路由 / 拆解实验 / 规范边界）· archify 12 图 58 章逐章回放（49 cue · 锚定 24.5% · 图型 4 · 密度 3.2/分）；sunny-steady 全片合成（MPS OOM 两次自愈续跑）；草渲全片亮度扫描抓出 P6 整幕渐黑提前与三处 3s 空窗并修复；终渲 beat-heads FAIL 0 · 尾幕 FAIL 0 · WCAG 主题门过；归档 ~/Documents/video/agent-infra/ v1",
+          "voice": "sunny-steady + me-bright.wav"
+        }
+      ]
     }
   ]
 }

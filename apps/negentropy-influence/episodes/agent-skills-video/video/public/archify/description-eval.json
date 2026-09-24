@@ -1,0 +1,111 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 13.18,
+ "total_wall_sec": 180.1,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "queries",
+   "label": "二十条提问",
+   "index": 0,
+   "file": "description-eval--queries.mp4",
+   "end_still": "description-eval--queries-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0,
+    1.605
+   ],
+   "beat_nodes": [
+    "queries",
+    "run3x"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "groups",
+   "label": "练习与考核",
+   "index": 1,
+   "file": "description-eval--groups.mp4",
+   "end_still": "description-eval--groups-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.204
+   ],
+   "beat_nodes": [
+    "run3x",
+    "practice_set",
+    "exam_set"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "pick",
+   "label": "考核组裁决",
+   "index": 2,
+   "file": "description-eval--pick.mp4",
+   "end_still": "description-eval--pick-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.34,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.208
+   ],
+   "beat_nodes": [
+    "edit_desc",
+    "exam_set",
+    "pick_best"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "cap",
+   "label": "1024 红线",
+   "index": 3,
+   "file": "description-eval--cap.mp4",
+   "end_still": "description-eval--cap-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "pick_best",
+    "char_cap"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/angkor-v1/docs/assets/architecture/agent-infra/agent-skills--description-eval.html",
+ "slug": "description-eval",
+ "type": "workflow"
+}
