@@ -3743,6 +3743,11 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
      记录与履行是两件事，需要各自的落点。
 - **同类问题影响**：`research/` 下一切第三方原文归档（A 型论文的 PDF/图片摘录同理，且论文多为
   更严格的出版商版权而非 MIT——那类内容应只留指纹与页码，不留字节）。
+- **复发（2026-09-24，openviking-video）**：声明文件齐备但放深了一层（`source-archive/348d879/`
+  下），不在约定的 `source-archive/{LICENSE,README.md}` 根位置，`test_every_source_archive_carries_upstream_license`
+  在真树集成模式下失败。处置：两文件 `git mv` 至归档根（LICENSE 字节不变），README 相对链接与归档文件
+  路径同步修正；`test_source_map` 12 passed、`check_series` FAIL 0。教训：声明位置是契约的一部分——
+  pin 子目录只放取证字节，声明放归档根，这样同一集换 pin 或多 pin 并存时声明不随子目录走丢。
 
 ## ISSUE-174 tts.py 显式 `--seed` 会改缓存摘要——单句补配变成整集重录，且旧缓存被新签名覆盖（2026-08-23）
 
@@ -4259,3 +4264,9 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
   2. **做**（配置）：三个 task key 入 `task_registry` 或移除死键；`auto_answer_model`/`timeout` 接通或删除。
   3. **写**：结构化输出约定（哪些决策必须闭合、失败信号必须显式、枚举校验成员）。
 - **后续防范**：给 LLM 的「选择题」必须由代码闭合答案空间（enum 成员校验），不能只写在 prompt 里；「解析失败」必须有区别于「模型低分」的显式信号；task key 先注册再使用（`task_models_api` 的注册校验与静默回落的 resolver 之间存在空转区）。
+
+## ISSUE-199 jev 集画面文字逐字复述口播，与烧录字幕叠成两层（2026-09-24）
+
+- **表因**：jev-decision-model-video v2 成片中 9 处结论行 / 标题行与口播逐字相同（如 P0「每个 Agent 系统里，都塞满了各种小判断」），底部字幕又逐句显示同一句。缺陷本体与判据的唯一登记处是 to-video 台账 RSI-007（[ThreeFish-AI/to-video#14](https://github.com/ThreeFish-AI/to-video/pull/14)），本条只记内容侧处置。
+- **处理方式**：9 处改为关键词 / 数字 / 结构锚点（字号位置不变，口播与时间轴不变）；`check_script` 复述门 FAIL 9 → 0、`pipeline check` 与 `tsc` 通过；终渲 26400 帧（14:40 @30fps），与 v2 逐帧对拍差异仅落在改动行（差异像素 ≤0.7%），尾幕自动体检 FAIL 0。
+- **同类问题影响**：其余 12 个已发布集共 76 处同类存量（明细见 to-video RSI-007），复述门现已缺省执法，下次重渲前须先修或逐处以 `caption-dup-ok: <理由>` 说明。
