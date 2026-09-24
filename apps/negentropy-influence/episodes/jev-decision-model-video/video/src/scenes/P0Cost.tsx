@@ -888,7 +888,7 @@ export const P0Cost: React.FC<{scene: SceneRange}> = ({scene}) => {
           cues={[{chapterId: 'sc-tour', at: at('p0-26') - bG.from, durationInFrames: dur('p0-26')}]}
         />
         <Footnote delay={at('p0-30') - bG.from}>
-          {'格口怎么挂 · 面单怎么扫 · 把握怎么对账 · 账单怎么变便宜'}
+          {'格口 · 面单 · 对账 · 账单'}
         </Footnote>
       </Sequence>
     </AbsoluteFill>

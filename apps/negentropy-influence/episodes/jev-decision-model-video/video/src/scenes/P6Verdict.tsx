@@ -244,10 +244,10 @@ const UseRules: React.FC<{titleAt: number; ruleAts: [number, number, number, num
   const rules = ruleAts.map((a) => progress(frame, a, DUR.f5));
   const focusIdx = ruleAts.reduce((acc, a, i) => (frame >= a ? i : acc), -1);
   const items = [
-    '答案空间自己写死，别外包给模型',
-    '互斥的判断，合并成选择题，或者用代码兜底',
-    '门槛跟着风险走——够不上就升级，永远给人留通道',
-    '上线之前，先拿自家的分布，老老实实对一次账',
+    '答案空间 · 自己写死',
+    '互斥判断 · 并成选择题 / 代码兜底',
+    '门槛随风险 · 升级留人',
+    '上线前 · 自家分布对一次账',
   ];
   return (
     <div style={{display: 'flex', flexDirection: 'column', gap: 26, alignItems: 'center'}}>
@@ -310,10 +310,10 @@ const EndFade: React.FC<{loopAt: number; quoteAt: number; srcAt: number}> = ({lo
       </div>
       <div style={{textAlign: 'center', opacity: rise, transform: `translateY(${(1 - rise) * 46}px)`}}>
         <div style={{fontFamily: theme.serif, fontSize: 40, color: theme.text, letterSpacing: 2}}>
-          {'当每一次判断都便宜到可以随手来一次——'}
+          {'判断 ≈ 随手一次'}
         </div>
         <div style={{fontFamily: theme.serif, fontSize: 54, color: theme.slot, marginTop: 26, letterSpacing: 4}}>
-          {'你会拿它，去量什么？'}
+          {'量什么？'}
         </div>
       </div>
       <div style={{display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center'}}>

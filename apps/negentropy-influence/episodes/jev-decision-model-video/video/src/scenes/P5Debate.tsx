@@ -198,7 +198,7 @@ const ScaleTip: React.FC<{at: number; tiltAt: number; captionAt: number}> = ({at
         </text>
       </svg>
       <div style={{fontFamily: theme.serif, fontSize: 27, color: theme.text, opacity: cap}}>
-        {'口径摆在一起看，信几分你自己定'}
+        {'三个口径 · 并列不裁决'}
       </div>
     </div>
   );

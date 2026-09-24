@@ -637,14 +637,16 @@ const ColdBoard: React.FC<{
         </div>
       </div>
       <div style={{fontFamily: theme.serif, fontSize: 29, color: theme.calib, opacity: link}}>
-        {'打分不是每个选项各算各的 —— 选项之间会互相影响'}
+        {'选项之间 ⇄ 互相牵动'}
       </div>
     </div>
   );
 };
 
 /** 1-F 面单特写：手写备注逐字流出，「退款」关键词高亮（useImpulse 脉冲）。 */
-const WAYBILL_TEXT = '这不是退款和账单的问题，是登录页坏了。';
+const WAYBILL_TEXT = '不是退款/账单 —— 登录页挂了';
+const WAYBILL_KW = '退款';
+const WAYBILL_KW_AT = WAYBILL_TEXT.indexOf(WAYBILL_KW);
 const WaybillCloseup: React.FC<{at: number; typeAt: number; typeDur: number; hotAt: number}> = ({
   at,
   typeAt,
@@ -662,7 +664,7 @@ const WaybillCloseup: React.FC<{at: number; typeAt: number; typeDur: number; hot
       <Panel accent={theme.panelBorder} style={{width: 620, padding: '24px 28px'}}>
         <div style={{fontFamily: theme.serif, fontSize: 33, color: theme.text, lineHeight: 1.75}}>
           {WAYBILL_TEXT.split('').map((ch, i) => {
-            const isKw = i >= 3 && i < 5;
+            const isKw = i >= WAYBILL_KW_AT && i < WAYBILL_KW_AT + WAYBILL_KW.length;
             return (
               <span
                 key={i}
@@ -851,7 +853,7 @@ const VerdictFlash: React.FC<{at: number}> = ({at}) => {
           transform: `scale(${1 + pulse * 0.08})`,
         }}
       >
-        {'五张单子 · 三张越界'}
+        {'3 / 5 越界'}
       </div>
     </div>
   );

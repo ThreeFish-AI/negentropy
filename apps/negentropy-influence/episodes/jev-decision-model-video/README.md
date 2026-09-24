@@ -1,6 +1,6 @@
 # 《让判断变便宜：Jev 决策模型拆解》科普视频工程
 
-> 交付状态：**v1 终渲待审（2026-09-24）**——成片 14:40.00（26400 帧 @30fps · 1080p30），归档 `~/Documents/video/agent-infra/让判断变便宜：Jev 决策模型拆解 v1.mp4`（含同名 srt/vtt）；agent-infra 系列 E2；信源 14 条（本仓 200/201/jev_lab @ `5ed96405` + TypeSafe 官方文档/博客/评测站 + 官方 adapter `e1d4cc9` + kev `b8aa777` + laya `76361c8` + Hume 逆向）；逐字稿 v2（180 句 / 4129 字，双重校验清零）；41 镜七幕 · archify 13 图 35 章 35 cue。发布顺序见 [../../series.json](../../series.json)（工作区根）。
+> 交付状态：**v2 终渲待审（2026-09-24）**——成片 14:40.00（26400 帧 @30fps · 1080p30），归档 `~/Documents/video/agent-infra/让判断变便宜：Jev 决策模型拆解 v2.mp4`；v2 修复 v1 的双层字幕（11 处画面文字卡逐字复述口播 → 关键词锚点，防复发门见 to-video RSI-007），v1 保留对照；外挂 srt/vtt 在归档目录 `_captions/` 子目录（勿与 mp4 同名同目录，否则播放器自动叠加）；agent-infra 系列 E2；信源 14 条（本仓 200/201/jev_lab @ `5ed96405` + TypeSafe 官方文档/博客/评测站 + 官方 adapter `e1d4cc9` + kev `b8aa777` + laya `76361c8` + Hume 逆向）；逐字稿 v2（180 句 / 4129 字，双重校验清零）；41 镜七幕 · archify 13 图 35 章 35 cue。发布顺序见 [../../series.json](../../series.json)（工作区根）。
 
 ## 目录结构
 
