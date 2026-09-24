@@ -92,11 +92,20 @@ M4 快慢分工（规则 + 窄问题 + 阈值三档；System 2 出候选，Syste
 == S1 契约校验（422）
   256 选项 → 422: q Choice 须 2..255 个选项，实为 256
   11 级   → 422: q Score 须 2..10 级，实为 11
+  空问题    → 422: state 与 questions 必填
 == S4 闭合输出空间：合法 ≠ 正确
+  [正常] → 'billing'      conf=0.86 合法 ✔
+  ...
   [陷阱·字面误读] → 'billing'      conf=1.00 合法 ✘ 应为 technical
+  [边缘·双类信号] → 'billing'      conf=0.93 合法 ✔
 == B2 拆掉闭合输出空间（生成文本 + 宽松解析）
+  正常：
+      ...
   拆后：
       [正常] → 'Billing team' conf=0.86 越界! ✘ 应为 billing
+      [正常] → 'technical'    conf=1.00 合法 ✔
+      [正常] → 'sales'        conf=1.00 合法 ✔
+      [陷阱·字面误读] → 'Billing team' conf=1.00 越界! ✘ 应为 technical
       [边缘·双类信号] → 'Billing team' conf=0.93 越界! ✘ 应为 billing
 ```
 

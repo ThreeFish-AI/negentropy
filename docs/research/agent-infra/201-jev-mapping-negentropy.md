@@ -107,7 +107,7 @@ description: "Jev（TypeSafe System One Model，jev-1.13.0）与本仓 LLM 结�
 - **本仓现状**：
   - `llm_fact_extractor.py:54` 让模型「Assign confidence between 0.5 and 1.0」，缺省 0.7（`:249`）。该值用于 ConflictResolver 破平（`conflict_resolver.py:140`）与 KG 最低置信过滤（`graph/service.py:725-726`）。
   - 正则意图分类器写死 0.85 / 0.7 / 0.4 / 0.3（`action_intent.py:77-103`），并以 τ=0.7 做门（`agent.py:98-103`）。
-- **差异**：两者都叫 confidence，但都没有频率语义。190 §5 的原型实测显示：未校准时直投决策自称错误率 0.7%，实际是 12%。
+- **差异**：两者都叫 confidence，但都没有频率语义。200 §5 的原型实测显示：未校准时直投决策自称错误率 0.7%，实际是 12%。
 - **建议**：
   - #8 在字段注释与文档里标明「未校准启发式，仅作相对排序，不作绝对阈值」，成本一句话。
   - #9 暂缓。触发条件：意图分类误路由成为可观测问题。
