@@ -1,0 +1,29 @@
+[
+ {
+  "id": "cl-ladder",
+  "label": "校准台阶",
+  "focus": [
+   "cl-indist",
+   "cl-ood",
+   "cl-forced"
+  ],
+  "note": "分布内 0.03 → 分布外 0.107 → 强制不确定 0.246，越陌生越嘴硬"
+ },
+ {
+  "id": "cl-ledger",
+  "label": "对账账本",
+  "focus": [
+   "cl-temp"
+  ],
+  "note": "自称九成把握的件，是否真有九成投对"
+ },
+ {
+  "id": "cl-temperature",
+  "label": "温度打折的边界",
+  "focus": [
+   "cl-temp",
+   "cl-honest"
+  ],
+  "note": "修整体过度自信，修不了排序与漂移；诚实重校准=学会闭嘴"
+ }
+]

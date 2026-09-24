@@ -1,0 +1,41 @@
+[
+ {
+  "id": "sc-four-sins",
+  "label": "四宗罪",
+  "focus": [
+   "sc-dispatcher"
+  ],
+  "note": "慢、贵、要解析、口头概率不可信——判断塞进生成通道的账单"
+ },
+ {
+  "id": "sc-mismatch",
+  "label": "错配：判断塞进生成通道",
+  "focus": [
+   "sc-dispatcher",
+   "sc-parcel"
+  ],
+  "note": "答案只有几个选项的判断，交给会写专著的大模型逐 token 生成"
+ },
+ {
+  "id": "sc-one-liner",
+  "label": "一次前向逐项打分",
+  "focus": [
+   "sc-sorter",
+   "sc-slots"
+  ],
+  "note": "答案空间写死，模型一次前向给每个选项打带概率的分"
+ },
+ {
+  "id": "sc-tour",
+  "label": "分拣中心总览",
+  "focus": [
+   "sc-dispatcher",
+   "sc-sorter",
+   "sc-slots",
+   "sc-review",
+   "sc-manual",
+   "sc-belt"
+  ],
+  "note": "快慢分工全貌：把握分流三条去向，代码照单执行"
+ }
+]

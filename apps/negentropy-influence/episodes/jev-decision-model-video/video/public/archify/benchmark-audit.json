@@ -1,0 +1,69 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.0,
+ "story_sec": 6.7,
+ "total_wall_sec": 66.0,
+ "started_playback": true,
+ "clapper_found": false,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "ba-scales",
+   "label": "倍数天平",
+   "index": 0,
+   "file": "benchmark-audit--ba-scales.mp4",
+   "end_still": "benchmark-audit--ba-scales-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [
+    0.0,
+    1.107,
+    2.211
+   ],
+   "beat_nodes": [
+    "ba-headline",
+    "ba-demo",
+    "ba-third"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 27.0
+  },
+  {
+   "id": "ba-pipeline",
+   "label": "考核卷构成",
+   "index": 1,
+   "file": "benchmark-audit--ba-pipeline.mp4",
+   "end_still": "benchmark-audit--ba-pipeline-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.206
+   ],
+   "beat_nodes": [
+    "ba-self",
+    "ba-llm-ref",
+    "ba-adapter"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/istanbul-v6/docs/assets/architecture/agent-infra/jev--benchmark-audit.html",
+ "slug": "benchmark-audit",
+ "type": "dataflow"
+}

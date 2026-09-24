@@ -1,0 +1,31 @@
+[
+ {
+  "id": "qc-anatomy",
+  "label": "请求解剖",
+  "focus": [
+   "qc-state",
+   "qc-questions"
+  ],
+  "note": "一段状态底单加几张命名问题；key 只是外部编号"
+ },
+ {
+  "id": "qc-three-types",
+  "label": "三题型",
+  "focus": [
+   "qc-noul",
+   "qc-choice",
+   "qc-score"
+  ],
+  "note": "是非、选择、打分——答案形态全部先定"
+ },
+ {
+  "id": "qc-closed",
+  "label": "答案空间先定",
+  "focus": [
+   "qc-choice",
+   "qc-validate",
+   "qc-answer"
+  ],
+  "note": "criteria 即全部可能答案，越界在类型层面无法表达"
+ }
+]

@@ -1,0 +1,30 @@
+[
+ {
+  "id": "op-encode",
+  "label": "state 编码一次",
+  "focus": [
+   "jev-state",
+   "jev-encode"
+  ],
+  "note": "状态底单只扫一次，多问共享这一眼"
+ },
+ {
+  "id": "op-branch",
+  "label": "问题分支隔离",
+  "focus": [
+   "jev-questions",
+   "jev-branch"
+  ],
+  "note": "每问只看底单不看别问"
+ },
+ {
+  "id": "op-readout",
+  "label": "选项读出",
+  "focus": [
+   "jev-readout",
+   "jev-probs",
+   "jev-answer"
+  ],
+  "note": "选项对决策位打分，概率直读"
+ }
+]

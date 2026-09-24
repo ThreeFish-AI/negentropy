@@ -1,0 +1,20 @@
+[
+ {
+  "id": "co-open-path",
+  "label": "拆掉闭合",
+  "focus": [
+   "co-generate",
+   "co-lenient"
+  ],
+  "note": "换成生成加宽松解析，标签立刻漂移"
+ },
+ {
+  "id": "co-verdict",
+  "label": "越界判例",
+  "focus": [
+   "co-out-open",
+   "co-out-closed"
+  ],
+  "note": "类型安全不是模型的属性，是工程的选择"
+ }
+]

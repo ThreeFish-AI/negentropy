@@ -1,0 +1,111 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 14.44,
+ "total_wall_sec": 122.55,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "fs-three-lanes",
+   "label": "三条去向",
+   "index": 0,
+   "file": "fast-slow-harness--fs-three-lanes.mp4",
+   "end_still": "fast-slow-harness--fs-three-lanes-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.69,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.206,
+    3.309
+   ],
+   "beat_nodes": [
+    "jevh-gate",
+    "jevh-exec",
+    "jevh-llm",
+    "jevh-human"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "fs-rules",
+   "label": "代码规则+窄问题",
+   "index": 1,
+   "file": "fast-slow-harness--fs-rules.mp4",
+   "end_still": "fast-slow-harness--fs-rules-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.32,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.205
+   ],
+   "beat_nodes": [
+    "jevh-state",
+    "jevh-rules",
+    "jevh-jev"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "fs-judge",
+   "label": "评审位",
+   "index": 2,
+   "file": "fast-slow-harness--fs-judge.mp4",
+   "end_still": "fast-slow-harness--fs-judge-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.21,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "jevh-judge"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "fs-jevons",
+   "label": "杰文斯回路",
+   "index": 3,
+   "file": "fast-slow-harness--fs-jevons.mp4",
+   "end_still": "fast-slow-harness--fs-jevons-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0,
+    1.602
+   ],
+   "beat_nodes": [
+    "jevh-gate",
+    "jevh-jev"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/istanbul-v6/docs/assets/architecture/agent-infra/jev--fast-slow-harness.html",
+ "slug": "fast-slow-harness",
+ "type": "workflow"
+}
