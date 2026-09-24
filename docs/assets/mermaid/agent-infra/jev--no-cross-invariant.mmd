@@ -1,0 +1,24 @@
+%% source: docs/research/agent-infra/200-jev-system-one-model.md §4 跨问题无不变量 / B6
+%% slug: jev--no-cross-invariant
+%% type: workflow
+%% derived: docs/assets/architecture/agent-infra/jev--no-cross-invariant.html
+flowchart LR
+    D["一个互斥决策<br/>退款 / 拒退 · 只能二选一"]
+    subgraph SPLIT["拆开问法 · 两个 Noul"]
+        direction LR
+        NP["两个 Noul 各自判断<br/>互不相看 · 无组合约束"]
+        SUM119["0.72 + 0.47 = 1.19<br/>官方自曝 · 概率溢出"]
+        FIRE["双双过线执行<br/>原型 B6 · 退款+拒退同时走"]
+    end
+    subgraph MERGE["合并问法 · 单个 Choice"]
+        direction LR
+        CH["单个 Choice<br/>只挂合法组合 · 概率和=1"]
+        SUM1["和 = 1.00 ✔<br/>构造保证组合互斥"]
+        CODE["代码事后校验<br/>互斥别外包给两次独立判断"]
+    end
+    D -->|拆开问法| NP
+    D ==>|合并问法| CH
+    NP --> SUM119
+    SUM119 -.-> FIRE
+    CH ==> SUM1
+    CH -.->|另一解| CODE

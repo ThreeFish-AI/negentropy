@@ -1,0 +1,16 @@
+%% source: docs/research/agent-infra/200-jev-system-one-model.md §5 校准的领地
+%% slug: jev--calibration-ladder
+%% type: lifecycle
+%% derived: docs/assets/architecture/agent-infra/jev--calibration-ladder.html
+stateDiagram-v2
+    direction LR
+    state "分布内<br/>ECE≈0.03 · 相当诚实" as IND
+    state "分布外<br/>0.107 · 噪声底 4.4 倍" as OOD
+    state "强制不确定题<br/>0.246 · 仅一半肯说不知道" as FORCED
+    state "温度缩放<br/>统一打折 · 修不了排序" as TEMP
+    state "诚实重校准<br/>直投归零 · 学会闭嘴" as HONEST
+    IND --> OOD: 换分布
+    OOD --> FORCED: 更陌生
+    IND --> TEMP: 对账打折
+    TEMP --> HONEST: 分布外重校准的结局
+    OOD --> HONEST: 重校准

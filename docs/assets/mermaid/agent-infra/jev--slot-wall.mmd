@@ -1,0 +1,16 @@
+%% source: docs/research/agent-infra/200-jev-system-one-model.md §3
+%% slug: jev--slot-wall
+%% type: architecture
+%% derived: docs/assets/architecture/agent-infra/jev--slot-wall.html
+flowchart LR
+    CR["挂牌选项 criteria<br/>调用方先写死"]
+    TP["两阶段选择<br/>超 255：先分区打分再显式挑"]
+    WALL["格口墙<br/>一面墙 ≤255 格口"]
+    F["形式闸 · 构造保证<br/>零类型错误 · 非实测成绩"]
+    SEM["语义闸 · 仍会投错<br/>官方自报 67.8% · 16% 零概率 · 乱序 13% 翻转"]
+    TRAP["陷阱面单（判例）<br/>字面误读 · 满格把握投错合法格口"]
+    CR -->|"挂牌"| WALL
+    WALL -->|"投递必过形式闸"| F
+    WALL -->|"过了形式闸仍可能错"| SEM
+    CR -.->|"超 255 选项"| TP
+    TRAP -.->|"判例"| SEM

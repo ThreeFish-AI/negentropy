@@ -1,0 +1,20 @@
+%% source: docs/research/agent-infra/200-jev-system-one-model.md §3 B2
+%% slug: jev--closed-vs-open
+%% type: workflow
+%% derived: docs/assets/architecture/agent-infra/jev--closed-vs-open.html
+flowchart LR
+    Q["同一道分类判断<br/>工单归属：账务/技术/销售"]
+    subgraph KEEP["保留闭合 · 类型化"]
+        C["闭合解码<br/>只能输出选项概率"]
+        OC["类型安全 ✔<br/>越界在类型层不可能"]
+        C --> OC
+    end
+    subgraph BREAK["拆掉闭合 · B2 实验"]
+        G["生成一段文字<br/>拆掉闭合后的替身"]
+        L["宽松解析<br/>失败静默放行 · 填默认值"]
+        OO["'Billing team' 越界 ✘<br/>5 单 3 单出界 · 标签漂移"]
+        G -->|自由文本| L
+        L --> OO
+    end
+    Q -->|保留闭合| C
+    Q -.->|拆掉| G

@@ -1,0 +1,17 @@
+%% source: docs/research/agent-infra/200-jev-system-one-model.md §1 定位 + §11 边界
+%% slug: jev--decision-vs-generation
+%% type: architecture
+%% derived: docs/assets/architecture/agent-infra/jev--decision-vs-generation.html
+flowchart LR
+    GEN["生成通道 · System 2<br/>写专著 · 规划 · 说明 · 慢而贵"]
+    IF["接口契约<br/>state + questions → 类型化答案"]
+    JUD["判断通道 · System 1<br/>挂牌选项 · 概率 · 把握读数"]
+    GOT["四样拿到了<br/>闭合空间 · 读一次 · 能对账 · 三向分流"]
+    MISS["四样给不了<br/>零公开 · 构造≠答对 · 口径未对齐 · 中文未证"]
+    OPEN["开放问题<br/>判断变便宜之后，量什么"]
+
+    IF -->|小判断走这| JUD
+    GEN -.->|出候选| IF
+    JUD -.->|核对| GOT
+    JUD -.->|边界| MISS
+    MISS -.->|留给观众| OPEN

@@ -1,0 +1,23 @@
+%% source: docs/research/agent-infra/200-jev-system-one-model.md §5 confidence 公式
+%% slug: jev--confidence-readout
+%% type: dataflow
+%% derived: docs/assets/architecture/agent-infra/jev--confidence-readout.html (+ -dark/-light PNG)
+flowchart LR
+    subgraph S0["概率分布"]
+        P["概率分布<br/>choice 0.88 / 0.12 / 0"]
+    end
+    subgraph S1["公式"]
+        C["Choice 公式<br/>(p_max − 1/K) ÷ (1 − 1/K)"]
+        SC["Score 公式<br/>1 − 离众数距离 ÷ 均匀 MAD"]
+        A["官方 adapter 代码<br/>逐式实现 · 非模型学得"]
+    end
+    subgraph S2["读数与核验"]
+        R["把握读数<br/>示例 0.81 · 可复算到舍入带"]
+    end
+
+    P -->|"choice 题走这"| C
+    P -->|"打分题走这"| SC
+    C -->|"choice 读数"| R
+    SC -->|"score 读数"| R
+    A -.->|"公式出处"| C
+    A -.->|"同一出处"| SC
