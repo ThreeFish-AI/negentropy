@@ -1,5 +1,5 @@
 {
   "position": 5,
   "label": "Agent 基础设施",
-  "description": "AG-UI 协议、Agent Sandbox（综述/正交分析/信任架构）、Agent Skills 开放规范（精读 + 本仓机制映射，含最小原型）与可观测性调研"
+  "description": "AG-UI 协议、Agent Sandbox（综述/正交分析/信任架构）、Agent Skills 开放规范（精读 + 本仓机制映射，含最小原型）、可观测性调研与 Jev（System One 决策模型）精读映射"
 }

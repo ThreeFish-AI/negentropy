@@ -4249,3 +4249,13 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
   1. **做**（下一次触及 approval 的 PR）：二选一并与文档同 PR 落地——① 以 ADK `before_tool_callback` 统一拦截 `HIGH_RISK_TOOLS`，让清单即覆盖面；② 收窄清单至已接线工具，并把 `always` 模式的说明改为如实描述。
   2. **决策**：`invoke_claude_code` 是否纳入审批或命令级硬拦截，维持与 181 #17「CC 最大权限」一致的既定取舍，待产品决策，不在本 Issue 内默认改动。
 - **后续防范**：安全类「清单」必须与「执行点」同处或有覆盖测试（断言清单内每个工具在 `per_tool` 策略下确实触发审批）；文档描述审批覆盖面时以执行点为准，而非以判定表为准。
+## ISSUE-198 LLM 结构化决策点缺「闭合输出空间」纪律 + 3 个未注册 task key 与死配置：自动作答不校验选项成员、Judge/PlanReviewer 解析失败静默降 0 分、global_search 哨兵漏入 reduce（2026-09-24）
+
+- **表因**：[Jev 精读映射](../research/agent-infra/201-jev-mapping-negentropy.md) 对齐「闭合输出空间」机制时发现：本仓让 LLM 做小判断（分类/路由/打分/是非）的路径，答案空间都没有闭合——输出是自由 JSON，经 `loads_lenient` 宽松解析，失败返回 `{}` 由调用方静默填默认值。
+- **根因**：判断类调用被塞进生成通道，且**解析失败与模型真实低分不可区分**：① `claude_code/service.py:1192,1199` 的 prompt 两次要求「回答必须是选项之一」，代码却从不校验成员，非 `answers` 格式原样返回（`:1246-1248`）；② Judge `_parse` 得 `{}` 后 `data.get("score", 0)` 合成 0 分 + `stalled`（`evaluator.py:546-558`）、PlanReviewer 同理合成 `refine`（`plan_reviewer.py:237-248`）——「模型打了 0 分」与「输出被截断」在下游完全同貌；③ `global_search` map prompt 让模型说「无相关信息」（`global_search.py:51`），过滤器只丢空串（`:200-201`），哨兵随证据进 reduce（`:431-435`）。对照先例：TypeSafe adapter 对同类 LLM 基线做逐请求 schema 校验 + 纠正重试；本仓 `LocalReranker` 已有「不生成、只打分」的正确形态。
+- **同批取证的配置类问题**：① `routine.auto_answer` / `routine.memory_extract` / `eval.execute` 三个 task key 在用但未注册（静默回落默认模型；`config/routine.py:187,279` 注释却称走 registry；`task_models_api.py:150-151` 拒绑未知 key）；② `auto_answer_model` / `auto_answer_timeout_seconds` 死配置（`config/routine.py:185-189` 无人读取，调用点硬编码 `timeout=30.0`）；③ ingestion planner 未钉温度、继承 0.7；④ `issue.md` 存在两个 `## ISSUE-128` 标题（`:3076`、`:3119`）。另 3 处文档-实现漂移见 201 §D3/D4/D6。
+- **处理方式**（本次只分析不改码，落地建议见 201 §落地建议）：
+  1. **做**（合并为一个小 PR）：自动作答成员校验 + 纠正重试 + 兜底；`_parse` 对 `{}` 返回显式解析失败信号交现有重试环；`global_search` 过滤「无相关信息」哨兵。
+  2. **做**（配置）：三个 task key 入 `task_registry` 或移除死键；`auto_answer_model`/`timeout` 接通或删除。
+  3. **写**：结构化输出约定（哪些决策必须闭合、失败信号必须显式、枚举校验成员）。
+- **后续防范**：给 LLM 的「选择题」必须由代码闭合答案空间（enum 成员校验），不能只写在 prompt 里；「解析失败」必须有区别于「模型低分」的显式信号；task key 先注册再使用（`task_models_api` 的注册校验与静默回落的 resolver 之间存在空转区）。

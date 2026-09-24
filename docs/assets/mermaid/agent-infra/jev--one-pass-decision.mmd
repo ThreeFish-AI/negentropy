@@ -1,0 +1,33 @@
+%% source: docs/research/agent-infra/200-jev-system-one-model.md §2
+%% slug: jev--one-pass-decision
+%% type: dataflow
+%% derived: docs/assets/architecture/agent-infra/jev--one-pass-decision.html
+flowchart LR
+    subgraph IN["契约层 · 答案空间先定"]
+        direction TB
+        S["state<br/>非结构化程序状态（文本 / JSON）"]
+        Q["questions{}<br/>noul 是非 · choice ≤255 选项 · score ≤10 级"]
+        V["请求校验<br/>越界即 422（不进模型）"]
+        S --> V
+        Q --> V
+    end
+    subgraph RUN["计算层 · 一次前向"]
+        direction TB
+        E["state 编码一次<br/>前缀缓存 · 64k/请求 · 32k=state+最长单问"]
+        B["问题分支 ×N<br/>掩码隔离：只看 state + 本题"]
+        R["选项读出<br/>各选项表示 ↔ 决策位打分（pointer 假设）"]
+        E --> B --> R
+    end
+    subgraph OUT["输出层 · 概率可被程序消费"]
+        direction TB
+        P["probabilities<br/>softmax · 和为 1（校准目标 RLCD）"]
+        C["confidence<br/>固定公式 (p_max−1/K)/(1−1/K)"]
+        A["类型化答案<br/>noul: float · choice: key · score: 期望值"]
+        P --> C --> A
+    end
+    V --> E
+    R --> P
+    A --> G{"阈值三档"}
+    G -->|"≥ τ_hi"| X["执行"]
+    G -->|"τ_lo–τ_hi"| L["升级 System 2 LLM"]
+    G -->|"< τ_lo"| H["转人工"]
