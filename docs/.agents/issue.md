@@ -4229,9 +4229,29 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
   3. **暂缓**：M-a 统一 URI（与 013 ADR-1 冲突，只取寻址不取存储）、typed query、目录递归（YAGNI 触发条件见 015）。
 - **后续防范**：文档把链路标 ✅ 前须核到「调用方/消费者存在」这一层（与 ISSUE-194 同款断言纪律：函数存在 ≠ 链路存在）；「队列表」类设计须与消费者同一 PR 落地，否则只入队的表是 silent no-op 的温床。
 
-## ISSUE-196 LLM 结构化决策点缺「闭合输出空间」纪律 + 3 个未注册 task key 与死配置：自动作答不校验选项成员、Judge/PlanReviewer 解析失败静默降 0 分、global_search 哨兵漏入 reduce（2026-09-24）
+## ISSUE-196 中文关键词检索失效：memories 与知识库的 tsvector 用 english 配置，整段汉字被切成单个 token，tsvector 关键词腿对中文子串全部落空（2026-09-24）
 
-- **表因**：[Jev 精读映射](../research/agent-infra/191-jev-mapping-negentropy.md) 对齐「闭合输出空间」机制时发现：本仓让 LLM 做小判断（分类/路由/打分/是非）的路径，答案空间都没有闭合——输出是自由 JSON，经 `loads_lenient` 宽松解析，失败返回 `{}` 由调用方静默填默认值。
+- **表因**：[Hermes Agent 精读映射](../research/agent-harness/191-hermes-agent-mapping-negentropy.md) 对齐 M10「CJK 分词索引」时发现：Hermes 为中文专门建了 `cjk_unicode61` bigram 与 trigram 两套 FTS5 索引，而本仓混合检索的关键词腿对中文几乎不起作用。本机 PostgreSQL 16.14 只读实测：`to_tsvector('english','用户偏好先给结论，少铺垫')` → `'少铺垫':2 '用户偏好先给结论':1`；以 `plainto_tsquery('english','先给结论')` 匹配为 `f`，只有整段原串 `'用户偏好先给结论'` 才为 `t`。
+- **根因**：迁移 `0047_memory_hybrid_search_function.py` 的触发器写死 `to_tsvector('english', content)`（`:58`，回填 `:89`），`negentropy.hybrid_search()` 与 `_keyword_search` 用 `plainto_tsquery('english', …)`（`:146`/`:151`、`engine/adapters/postgres/memory_service.py:1255`/`:1260`）；知识库的 `search_vector` 由 `0001_init_schema.py:914` 的 `tsvector_update_trigger(search_vector, 'pg_catalog.english', content)` 生成，查询同款（`knowledge/retrieval/repository.py:841`/`:848`）。PG 默认解析器把连续的非 ASCII 字母序列当成一个 word token，`english` 词典对中文不做切分。源头：0047 以 `docs/reference/cognizes/engine/schema/perception_schema.sql` 为权威定义移植，该文件本身即 `english` 口径（`:86`/`:199`），移植时未针对中文调整。
+- **影响**：中文内容的混合检索实际退化为纯向量检索，BM25 融合权重对中文空转。记忆检索在无 embedding 时回退到 `ILIKE '%query%'`（`memory_service.py:808`/`:1290`），中文子串尚能命中；知识库检索没有这层回退，是真正的全量失效。另外，精确词（人名、项目代号、报错原文的中文部分）召回依赖向量相似度，稳定性差。英文与中英混排中的英文词不受影响（`'deploy the static site to CDN' @@ 'deploying site'` 为 `t`）。
+- **处理方式**（本次只登记不改码，方案另行评审）：
+  1. **做**（下一次触及 hybrid search 的 PR）：候选 ① `pg_trgm` / `pg_bigm` 三元或二元组索引；② 入库时做 CJK bigram 预切分写入 `simple` 配置的独立 tsvector 列；③ 查询侧对纯 CJK 查询路由到 trigram / LIKE 回退（Hermes 同款三级回退）。选型前须在 PG16/17/18 上核扩展可用性（本机多版本漂移经验）。
+  2. **写**：013 蓝图检索层补一句「关键词腿对 CJK 的分词口径」。
+  3. **验收**：固定中文样本集上「子串关键词命中率」从 0 提升，且不回退英文 BM25 排序。
+- **后续防范**：从英文语料项目移植检索 schema 时，把「分词配置 × 目标语言」列为显式核对项；混合检索的回归测试须含中文子串用例，并单独断言 tsvector 腿的命中——否则关键词腿失效会被向量腿或 `ILIKE` 回退掩盖、测试恒绿。
+
+## ISSUE-197 审批门只接线两个工具：HIGH_RISK_TOOLS 与用户指南高估了审批覆盖面，能跑主机 Bash 的 invoke_claude_code 不在清单内（2026-09-24）
+
+- **表因**：[Hermes Agent 精读映射](../research/agent-harness/191-hermes-agent-mapping-negentropy.md) M14 对照 Hermes 命令守卫时，独立 Verifier 核验发现 181 #17 的前提「本仓没有通用 shell」已不成立；顺藤核查审批链路后发现覆盖面远小于清单与文档所述。
+- **根因**：`agents/approval.py:46-61` 的 `HIGH_RISK_TOOLS` 只是一张判定表，审批并非统一拦截——`should_request_approval` 全仓只有 `agents/tools/ingest.py:119`（`ingest_to_corpus`）与 `agents/tools/paper.py:343`（`ingest_paper`）两处调用；root agent 的 `before_tool_callback`（`agents/agent.py:239`）只做工具遥测（`engine/observability/tool_telemetry.py:90`）。于是清单内的 `save_to_memory`、`execute_code`、`write_file`、`publish_content`、`send_notification` 在任何策略下都不弹审批，`shell_command`/`send_email` 在全仓并无对应工具。`invoke_claude_code`（`agents/tools/claude_code.py:23`）默认向 Claude Code 开放 `Bash,Read,Write,Edit,Glob,Grep` 并在主机 cwd 运行（权限由 CC 自身 `permission_mode`，默认 auto），却不在清单内。
+- **文档漂移**：用户指南 `docs/concepts/user-guide/chat-essentials.md` 称 `always` 模式「任何工具调用前都弹审批 modal」，实际只作用于上述两个已接线工具；同段「其他高风险工具待后续迭代接入」一句如实，但清单本身未标注接线状态。
+- **处理方式**（本次只登记不改码）：
+  1. **做**（下一次触及 approval 的 PR）：二选一并与文档同 PR 落地——① 以 ADK `before_tool_callback` 统一拦截 `HIGH_RISK_TOOLS`，让清单即覆盖面；② 收窄清单至已接线工具，并把 `always` 模式的说明改为如实描述。
+  2. **决策**：`invoke_claude_code` 是否纳入审批或命令级硬拦截，维持与 181 #17「CC 最大权限」一致的既定取舍，待产品决策，不在本 Issue 内默认改动。
+- **后续防范**：安全类「清单」必须与「执行点」同处或有覆盖测试（断言清单内每个工具在 `per_tool` 策略下确实触发审批）；文档描述审批覆盖面时以执行点为准，而非以判定表为准。
+## ISSUE-198 LLM 结构化决策点缺「闭合输出空间」纪律 + 3 个未注册 task key 与死配置：自动作答不校验选项成员、Judge/PlanReviewer 解析失败静默降 0 分、global_search 哨兵漏入 reduce（2026-09-24）
+
+- **表因**：[Jev 精读映射](../research/agent-infra/201-jev-mapping-negentropy.md) 对齐「闭合输出空间」机制时发现：本仓让 LLM 做小判断（分类/路由/打分/是非）的路径，答案空间都没有闭合——输出是自由 JSON，经 `loads_lenient` 宽松解析，失败返回 `{}` 由调用方静默填默认值。
 - **根因**：判断类调用被塞进生成通道，且**解析失败与模型真实低分不可区分**：① `claude_code/service.py:1192,1199` 的 prompt 两次要求「回答必须是选项之一」，代码却从不校验成员，非 `answers` 格式原样返回（`:1246-1248`）；② Judge `_parse` 得 `{}` 后 `data.get("score", 0)` 合成 0 分 + `stalled`（`evaluator.py:546-558`）、PlanReviewer 同理合成 `refine`（`plan_reviewer.py:237-248`）——「模型打了 0 分」与「输出被截断」在下游完全同貌；③ `global_search` map prompt 让模型说「无相关信息」（`global_search.py:51`），过滤器只丢空串（`:200-201`），哨兵随证据进 reduce（`:431-435`）。对照先例：TypeSafe adapter 对同类 LLM 基线做逐请求 schema 校验 + 纠正重试；本仓 `LocalReranker` 已有「不生成、只打分」的正确形态。
 - **同批取证的配置类问题**：① `routine.auto_answer` / `routine.memory_extract` / `eval.execute` 三个 task key 在用但未注册（静默回落默认模型；`config/routine.py:187,279` 注释却称走 registry；`task_models_api.py:150-151` 拒绑未知 key）；② `auto_answer_model` / `auto_answer_timeout_seconds` 死配置（`config/routine.py:185-189` 无人读取，调用点硬编码 `timeout=30.0`）；③ ingestion planner 未钉温度、继承 0.7；④ `issue.md` 存在两个 `## ISSUE-128` 标题（`:3076`、`:3119`）。另 3 处文档-实现漂移见 191 §D3/D4/D6。
 - **处理方式**（本次只分析不改码，落地建议见 191 §落地建议）：

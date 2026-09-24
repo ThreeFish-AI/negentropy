@@ -9,7 +9,7 @@
 > **范围**：按**文档**而非目录界定。已纳入：现役系统文档（`docs/concepts/`、`docs/reference/{perceives,wiki}/`、根与 i18n README、
 > `apps/` README、`docs/.agents/` 巡检文档），以及已走完本管线的研究文献——`docs/research/cognitive-context/` 的
 > Horizon Context 精读、Context Layer 蓝图与 OpenViking 精读（下表 `cognitive-context/` 分节）、
-> `docs/research/agent-harness/` 的五层 Harness 精读与 AI Native 手册精读（180，下表 `agent-harness/` 分节）、
+> `docs/research/agent-harness/` 的五层 Harness 精读、AI Native 手册精读（180）与 Hermes Agent 精读（190，下表 `agent-harness/` 分节）、
 > `docs/research/self-evolution/` 的 Dream-RSI 精读（下表 `self-evolution/` 分节）、
 > `docs/research/agent-infra/` 的 Agent Skills 规范精读与 Jev（System One 决策模型）精读（下表 `agent-infra/` 分节）。未纳入：其余 `docs/research/`（第三方调研）与
 > `docs/reference/cognizes/`（已退役遗产），**不在此管线**，原地保留渲染。
@@ -33,7 +33,7 @@
 
 > 各分类行由对应重绘波次登记；`产物` 列 ✓ = html + dark/light PNG 已入库。
 
-### agent-harness/（Learn Claude Code 五层精读 · AI Native 手册精读）
+### agent-harness/（Learn Claude Code 五层精读 · AI Native 手册精读 · Hermes Agent 精读）
 
 | slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -45,6 +45,8 @@
 | [claude-code-multiagent--collab-panorama](./agent-harness/claude-code-multiagent--collab-panorama.mmd) | [175 协作层 §2](../../research/agent-harness/175-claude-code-multi-agent-platform.md) | workflow | ✓ | done | 排工板/收件格/班次/隔间四组物件汇入同一循环（trace 动画） |
 | [ai-native--handbook-panorama](./agent-harness/ai-native--handbook-panorama.mmd) | [180 AI Native 手册 §1](../../research/agent-harness/180-ai-native-handbook.md) | dataflow | ✓ | done | 三案例共同观察 → 五挑战 → 四层基础设施 → 可靠交付；组织配套虚线直达（非基础设施） |
 | [ai-native--harness-control-loop](./agent-harness/ai-native--harness-control-loop.mmd) | [180 AI Native 手册 §2](../../research/agent-harness/180-ai-native-handbook.md) | workflow | ✓ | done | 三泳道（模型 / 确定性控制面 / 资源与证据）U 形闭环：PEP⇄PDP → 凭证代理 → 生产变更经 Guardrail 三态门控，Trajectory 旁路 |
+| [hermes-agent--turn-loop](./agent-harness/hermes-agent--turn-loop.mmd) | [190 Hermes Agent §2/§3](../../research/agent-harness/190-hermes-agent.md) | workflow | ✓ | done | 三泳道（主循环 / 压缩 / 持久层）：三段式提示只装配一次，超阈值压缩→重建提示为唯一计划内断点，逐条落盘 state.db（trace 动画；新创作，无原文 mermaid 块） |
+| [hermes-agent--learning-loop](./agent-harness/hermes-agent--learning-loop.mmd) | [190 Hermes Agent §2/§5](../../research/agent-harness/190-hermes-agent.md) | workflow | ✓ | done | 三泳道（前台 / 后台 review / 技能库与 Curator）：交付后分叉 → 分派侧白名单（越界得拒绝回执）→ skill_manage 记署名 → 下次会话进目录（trace 动画；新创作，无原文 mermaid 块） |
 
 ### self-evolution/（docs/research/self-evolution/ 的 Dream-RSI 精读）
 
@@ -72,8 +74,8 @@
 | slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | [agent-skills--progressive-disclosure](./agent-infra/agent-skills--progressive-disclosure.mmd) | [090 §2](../../research/agent-infra/090-agent-skills-spec.md) | workflow | ✓ | done | 运行相：发现→解析→Tier 1 目录→Tier 2 激活→Tier 3 资源，四泳道阶梯 + 预算/激活/契约三卡 |
-| [jev--one-pass-decision](./agent-infra/jev--one-pass-decision.mmd) | [190 §2](../../research/agent-infra/190-jev-system-one-model.md) | dataflow | ✓ | done | 推理相：契约（422/255/10 级）→一次编码·分支隔离·选项读出→概率与 confidence 固定公式→阈值三档 + 类型安全≠正确/隔离代价/校准领地三卡 |
-| [jev--fast-slow-harness](./agent-infra/jev--fast-slow-harness.mmd) | [190 §6](../../research/agent-infra/190-jev-system-one-model.md) | workflow | ✓ | done | 编排相：代码规则→System 2 规划→System 1 挑选→置信分流（执行/回规划/人工）+ 回写闭环 + 分流经济学/拆校准账单/System 2 出候选三卡 |
+| [jev--one-pass-decision](./agent-infra/jev--one-pass-decision.mmd) | [200 §2](../../research/agent-infra/200-jev-system-one-model.md) | dataflow | ✓ | done | 推理相：契约（422/255/10 级）→一次编码·分支隔离·选项读出→概率与 confidence 固定公式→阈值三档 + 类型安全≠正确/隔离代价/校准领地三卡 |
+| [jev--fast-slow-harness](./agent-infra/jev--fast-slow-harness.mmd) | [200 §6](../../research/agent-infra/200-jev-system-one-model.md) | workflow | ✓ | done | 编排相：代码规则→System 2 规划→System 1 挑选→置信分流（执行/回规划/人工）+ 回写闭环 + 分流经济学/拆校准账单/System 2 出候选三卡 |
 | [agent-skills--package-and-validation](./agent-infra/agent-skills--package-and-validation.mmd) | [090 §3](../../research/agent-infra/090-agent-skills-spec.md) | architecture | ✓ | done | 作者相：技能包解剖 × skills-ref 三命令 × 规范↔实现 13 处分歧 |
 | [agent-skills--handbook-cabinet](./agent-infra/agent-skills--handbook-cabinet.mmd) | [制作分镜 0-A/0-D/0-E/0-F](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | architecture | ✓ | done | 开场总览：老师傅经验孤岛 × 两条老路 × 第三条路 × 轻量蒸馏（agent-skills-video P0） |
 | [agent-skills--distill-loop](./agent-infra/agent-skills--distill-loop.mmd) | [制作分镜 1-A..1-G](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | lifecycle | ✓ | done | 淬炼回路：空泛陷阱→四格便签→资料合成→编辑台→坑点→执行回灌（P1） |

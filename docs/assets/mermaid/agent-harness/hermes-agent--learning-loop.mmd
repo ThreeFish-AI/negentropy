@@ -1,0 +1,20 @@
+%% source: docs/research/agent-harness/190-hermes-agent.md §5
+%% slug: hermes-agent--learning-loop
+%% type: workflow
+%% derived: docs/assets/architecture/agent-harness/hermes-agent--learning-loop.html
+flowchart LR
+    subgraph F["前台 · 当班"]
+        I["循环迭代计数<br/>每次请求 +1"] --> G{"交付后检查<br/>≥10 且有最终回答"}
+        N["下次会话 / 压缩后<br/>新技能出现在目录"]
+    end
+    subgraph R["后台 review 分叉 · 睡前复盘"]
+        FK["review 分叉<br/>复用父缓存 · ≤16 轮"] --> W{"分派侧白名单<br/>技能工具 + 只读文件"}
+        W -- "越界调用" --> X["拒绝回执<br/>Do not retry"]
+    end
+    subgraph L["技能库与 Curator · 每周大扫除"]
+        SM["skill_manage<br/>先读后写 · 查署名"] -- "记署名" --> LIB["技能库<br/>created_by = agent"]
+        LIB -. "每 7 天" .-> CU["Curator<br/>只归档不删除"]
+    end
+    G -- "后台线程" --> FK
+    W -- "写知识" --> SM
+    LIB -- "进目录" --> N

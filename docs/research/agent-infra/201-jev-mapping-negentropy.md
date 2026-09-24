@@ -6,7 +6,7 @@ description: "Jev（TypeSafe System One Model，jev-1.13.0）与本仓 LLM 结�
 
 # Jev ↔ negentropy 机制映射报告
 
-> 声明：只分析不改码；锚点均经 `grep -n` 实测（工作区 HEAD `2edf3ed5`；`ng/` = `apps/negentropy/src/negentropy/`）。材料侧证据见 [190 精读笔记](./190-jev-system-one-model.md)，机制编号 M1–M4 与笔记一致：M1 闭合输出空间 / M2 一次编码·分支隔离 / M3 校准概率 / M4 快慢分工编排。
+> 声明：只分析不改码；锚点均经 `grep -n` 实测（工作区 HEAD `2edf3ed5`；`ng/` = `apps/negentropy/src/negentropy/`）。材料侧证据见 [200 精读笔记](./200-jev-system-one-model.md)，机制编号 M1–M4 与笔记一致：M1 闭合输出空间 / M2 一次编码·分支隔离 / M3 校准概率 / M4 快慢分工编排。
 
 ## 结论先行
 
@@ -29,7 +29,7 @@ description: "Jev（TypeSafe System One Model，jev-1.13.0）与本仓 LLM 结�
 
 ## 映射总表
 
-| # | 材料机制（190 出处） | 本仓对应 | 锚点（实测） | 判定 |
+| # | 材料机制（200 出处） | 本仓对应 | 锚点（实测） | 判定 |
 | --- | --- | --- | --- | --- |
 | 1 | M1 闭合输出空间：答案只能是 criteria 之一（§3） | Claude Code 自动作答：prompt 要求「必须从选项中选择」，代码不校验成员，非 `answers` 格式原样返回 | `ng/engine/claude_code/service.py:1192,1199` · `:1246-1248` · `:1255` | 🔶 做 · 最高优先 |
 | 2 | M1 类型错误由构造消灭（§3） | Judge / PlanReviewer：`{}` → score 0 → `stalled` / `refine`；坏 verdict 由分数猜 | `ng/engine/routine/evaluator.py:546-558` · `ng/engine/routine/plan_reviewer.py:237-255` · `ng/engine/utils/json_extract.py:38-60` | 🔶 做 |
@@ -54,12 +54,12 @@ description: "Jev（TypeSafe System One Model，jev-1.13.0）与本仓 LLM 结�
 
 ### #1 自动作答不校验选项成员（🔶 做 · 最高优先）
 
-- **材料怎么做**：Choice 的答案由构造保证属于 `criteria`，越界根本无法输出。官方 adapter 让 LLM 作答时，也先按逐请求 schema 校验，失败则带错误信息纠正重试（190 §3）。
+- **材料怎么做**：Choice 的答案由构造保证属于 `criteria`，越界根本无法输出。官方 adapter 让 LLM 作答时，也先按逐请求 schema 校验，失败则带错误信息纠正重试（200 §3）。
 - **本仓现状**：
   - `_auto_answer_question` 的 prompt 两次强调「必须从选项中选择」「回答必须是选项之一」（`service.py:1192,1199`）。
   - 返回时却直接 `"\n".join(str(a) for a in parsed["answers"])`（`:1246-1248`）；非 `answers` 格式的回复按 `return content` 原样返回（`:1248` 注释「非 answers 格式也返回纯文本」）。
   - 失败走固定兜底答案（`:1255`）。
-- **差异**：模型写出「选项 A（推荐）」这类变体标签，会被当成合法答案写回 Claude Code 的 stdin。这正是 190 原型 B2 复现的「标签漂移越界」。
+- **差异**：模型写出「选项 A（推荐）」这类变体标签，会被当成合法答案写回 Claude Code 的 stdin。这正是 200 原型 B2 复现的「标签漂移越界」。
 - **建议**：在返回前做成员校验，只接受与选项标签精确匹配（或归一化后精确匹配）的答案；不匹配则纠正重试一次，仍失败就走 `:1255` 兜底。改动约十几行。时机：下一次触及 `claude_code/service.py` 时顺手做，或单独起小 PR。
 
 ### #2 解析失败 ≠ 0 分（🔶 做）
@@ -88,11 +88,11 @@ description: "Jev（TypeSafe System One Model，jev-1.13.0）与本仓 LLM 结�
 
 - Judge 一次调用返回多个字段（`evaluator.py:510-517`），对应 M2 的「读一次、答多题」。
 - 差别在于：本仓的多字段是**联合生成**，字段之间互相可见，恰好规避了 Jev「跨问题无不变量」的副作用，代价是串行生成。
-- 同时，`evaluator.py:287-297`「验收未达成绝不判 pass」是一道由代码补上的不变量。这正是 190 §4 给出的编排解：互斥或蕴含约束交给代码或单个 Choice 保证，不指望判读器自觉。
+- 同时，`evaluator.py:287-297`「验收未达成绝不判 pass」是一道由代码补上的不变量。这正是 200 §4 给出的编排解：互斥或蕴含约束交给代码或单个 Choice 保证，不指望判读器自觉。
 
 ### #6 / #7 点分数与阈值（🔶 写 / ⏸）
 
-- **材料怎么做**：Jev 把「是否自动执行」建立在校准概率之上；第三方实测显示，一旦离开分布，概率也不再可信（190 §5）。
+- **材料怎么做**：Jev 把「是否自动执行」建立在校准概率之上；第三方实测显示，一旦离开分布，概率也不再可信（200 §5）。
 - **本仓现状**：
   - Judge 输出单点 0–100 分，`decide()` 按 `score >= threshold` 判成功（`decision.py:147-150`）。
   - 已知逐轮 ±20 振荡由三个 issue 分别修补：锚定 prompt 是 ISSUE-152，容差带是 ISSUE-128，封顶（`evaluator.py:287-297`）是 ISSUE-116。
@@ -133,7 +133,7 @@ description: "Jev（TypeSafe System One Model，jev-1.13.0）与本仓 LLM 结�
     - 官方自认 CJK 较弱。
     - 闭源、同一权重服务所有客户。
     - 二手媒体称大陆不可用，未经一手核实。
-  - 触发条件：可自托管、中文校准经本仓数据验证的决策模型出现。验证协议见 190 §10：自有切片重拟温度，再在分布外切片上测 ECE 与直投错误率。
+  - 触发条件：可自托管、中文校准经本仓数据验证的决策模型出现。验证协议见 200 §10：自有切片重拟温度，再在分布外切片上测 ECE 与直投错误率。
 - **#16（✅）**：`LocalReranker` 是仓内唯一「不生成、只打分」的模型（`reranking.py:84,159`，由 `hybrid_planner.py:684,741-763` 消费）。它证明本仓已有 System One 形组件的接入先例；将来接入决策模型，应沿用 rerank 的接入形态，而不是走 LLM task slot。
 
 ## 落地建议汇总
@@ -170,7 +170,7 @@ description: "Jev（TypeSafe System One Model，jev-1.13.0）与本仓 LLM 结�
 
 ## 交叉引用
 
-- 材料侧：[190 Jev 精读笔记](./190-jev-system-one-model.md)（机制 M1–M4、原型 [jev_lab.py](./assets/jev_lab.py)、破坏性实验 B1–B6）。
+- 材料侧：[200 Jev 精读笔记](./200-jev-system-one-model.md)（机制 M1–M4、原型 [jev_lab.py](./assets/jev_lab.py)、破坏性实验 B1–B6）。
 - 相关子系统：[Routine 系统](../../concepts/subsystems/039-the-routine-system.md)（Judge 与 `decide()`）· [Claude Code 集成](../../concepts/subsystems/038-claude-code-integration.md)（自动作答）· [自进化 Agents Team 方案](../../concepts/design/self-evolving-agents.md)（进化门）。
 - 同类映射：[OpenViking ↔ negentropy](../cognitive-context/015-openviking-mapping-negentropy.md)（去重 LLM 档、ConflictResolver 漂移）· [Agent Skills ↔ negentropy](./091-agent-skills-mapping-negentropy.md)。
-- Issue 登记：[ISSUE-196](../../.agents/issue.md)。
+- Issue 登记：[ISSUE-198](../../.agents/issue.md)。
