@@ -26,7 +26,7 @@ SIDE = ROOT / "video" / "public" / "archify"
 
 
 def _skill_scripts() -> Path:
-    """定位 to-video skill 的 pipeline/scripts（TO_VIDEO_HOME → 两处约定安装位）。"""
+    """定位 to-video skill 的 scripts（TO_VIDEO_HOME → 两处约定安装位）。"""
     candidates = []
     if env := os.environ.get("TO_VIDEO_HOME"):
         candidates.append(Path(env).expanduser())
@@ -35,8 +35,9 @@ def _skill_scripts() -> Path:
         Path.home() / ".agents" / "skills" / "to-video",
     ]
     for c in candidates:
-        p = c / "pipeline" / "scripts"
-        if (p / "pipeline.py").is_file():
+        p = c / "scripts"
+        # 须见 SKILL.md 哨兵：工作区根也有 scripts/pipeline.py（误中即自递归）
+        if (c / "SKILL.md").is_file() and (p / "pipeline.py").is_file():
             return p
     listed = "\n  ".join(str(c) for c in candidates)
     sys.exit(

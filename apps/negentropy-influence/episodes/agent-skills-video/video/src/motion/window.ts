@@ -3,7 +3,7 @@
  * 这是 audio-first 时序与可复用运动模型兼容的核心机制：beat 的绝对帧来自
  * beatWindow()（数据源是 TTS 实测 manifest），子动画不写死帧数、只声明自己在
  * beat 进度上的 [start, end] 窗口 ⇒ 旁白实测时长变化时全部窗口自动重定时，
- * 「写死帧数与口播脱钩」缺陷类（skills/08 实录）由构造消灭。
+ * 「写死帧数与口播脱钩」缺陷类（references/08 实录）由构造消灭。
  *
  * 语义借 MDC TransitionUtils.lerp(startFraction, endFraction)：窗外钳制端点。
  * 本模块零依赖（不 import remotion / theme）——frozen 跨系列共享与 node 单测的前提。
