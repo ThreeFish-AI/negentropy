@@ -11,4 +11,4 @@ Config.setAudioBitrate('192K'); // 单人旁白透明
 Config.setEnforceAudioTrack(true); // 缺音频也出静音轨，防平台拒收无音轨文件
 Config.setJpegQuality(90); // 终渲；草渲由 CLI --jpeg-quality=60 覆盖
 // 注意：不设 setConcurrency——并发度是机器属性，写入三集共享文件正是要消灭的
-// 漂移类型；渲染主机应先 npx remotion benchmark 再以 CLI --concurrency=N 传入。
+// 漂移类型；渲染主机应先 ./node_modules/.bin/remotion benchmark 再以 CLI --concurrency=N 传入。
