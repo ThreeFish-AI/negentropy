@@ -4270,3 +4270,17 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **表因**：jev-decision-model-video v2 成片中 9 处结论行 / 标题行与口播逐字相同（如 P0「每个 Agent 系统里，都塞满了各种小判断」），底部字幕又逐句显示同一句。缺陷本体与判据的唯一登记处是 to-video 台账 RSI-007（[ThreeFish-AI/to-video#14](https://github.com/ThreeFish-AI/to-video/pull/14)），本条只记内容侧处置。
 - **处理方式**：9 处改为关键词 / 数字 / 结构锚点（字号位置不变，口播与时间轴不变）；`check_script` 复述门 FAIL 9 → 0、`pipeline check` 与 `tsc` 通过；终渲 26400 帧（14:40 @30fps），与 v2 逐帧对拍差异仅落在改动行（差异像素 ≤0.7%），尾幕自动体检 FAIL 0。
 - **同类问题影响**：其余 12 个已发布集共 76 处同类存量（明细见 to-video RSI-007），复述门现已缺省执法，下次重渲前须先修或逐处以 `caption-dup-ok: <理由>` 说明。
+
+## ISSUE-200 to-video skill 2.0.0 移除全部历史兼容面：influence 工作区包装器 / pre-commit 钩子 / tts-store 缓存 / skeleton 登记四线失效（2026-09-25）
+
+- **表因**：to-video 技能仓（自本仓 `apps/negentropy-influence/pipeline/` 抽取）发版 2.0.0（[ThreeFish-AI/to-video#16](https://github.com/ThreeFish-AI/to-video/pull/16) 内 RSI-009，用户决策「本仓自行适配、skill 不留兼容」）：删除 `pipeline/` 目录（迁移桩 + `scripts → ../scripts` 软链 ABI）与 `pipeline/README.md`；工作区哨兵只认 `.to-video-root`（不再识别 `.influence-root`）；tts-store 只读 `TO_VIDEO_TTS_STORE`（删 `NE_TTS_STORE` 兼容名与旧默认目录回退）；`skeleton.toml` 清零 33 条 `[[drift]]`、2 组 `[[generation]]`、`baselineOf` 并删 `.npmrc` 占位；5 份薄包装解析函数探测路径 `<skill>/pipeline/scripts` → `<skill>/scripts`（frozen 字节变更）；阶段规格编号对齐（`06-tts-voice.md`/`07-remotion-implementation.md`）。破坏在已安装 clone（`~/.claude/skills/to-video` 软链指向 `~/Documents/projects/aurelius/to-video`）拉取 2.0.0 后生效。
+- **复现（本机实测 2026-09-25）**：`grep -rl 'pipeline" / "scripts' apps/negentropy-influence/{scripts,episodes/*/scripts}` 命中 **61 个文件**（14×tts/build_narration/qa_frames + 17 个 archify 类分集包装器 + 2 个工作区包装器），全部「找不到 to-video skill」；`.pre-commit-config.yaml` 的 `series-consistency-check` entry 走工作区包装器，触及 influence 的提交被拦；旧缓存 `~/Library/Application Support/negentropy-influence/tts-store`（65M / 1815 句，新目录不存在）回退删除后全 miss，重渲一集需重合成 2.5–3.5h；已发布集 README/pipeline.toml 的 GitHub blob 外链 42 处死链（15 处原已 404 + 27 处指向已删迁移桩）；skill 侧登记清零 + frozen 模板字节变更 ⇒ 旧集 `verify_skeleton.py --strict` 大面积 STALE/DRIFT 红。
+- **根因**：机制抽取为独立 skill 后按 semver 独立演化，本仓作为唯一大版本消费方长期钉在 1.x 兼容面上；该兼容面对 skill 侧是单调维护成本（frozen 注释冻结、迁移桩、登记表携带本仓集名），其 2.0.0 决策把适配义务显式移回本仓（其台账 RSI-009 已记录推翻原「保留软链」方案的理由与本清单互链）。
+- **定性**：对制片操作阻断（包装器 / 钩子 / 缓存三线失效），修复动作机械、一次性；对已发布成片零影响（内容字节不动）。
+- **处理方式（第 1/2 步与骨架登记迁移已由 [#1175](https://github.com/ThreeFish-AI/negentropy/pull/1175) 落地，验收四项全过；第 3 步外链修正仍待办）**：
+  1. **做**：61 个包装器探测行批量替换 `pipeline" / "scripts"` → `scripts`——与 to-video 2.0.0 模板字节一致，frozen 同步与 `verify_skeleton` 对模板零漂移随之达成。
+  2. **做**：工作区根补空 `.to-video-root` 哨兵；`mv ~/Library/Application\ Support/negentropy-influence/tts-store ~/Library/Application\ Support/to-video/tts-store`（缓存零重合成迁移）。
+  3. **做（可选）**：已发布集 README/pipeline.toml 的 42 处 blob 外链批量改指 `references/…` 与 `assets/video-skeleton/skeleton.toml`。
+  4. **验收**：任一集 `scripts/tts.py --help` 可跑；pre-commit 钩子 Passed 而非报「找不到 skill」；不改稿跑 `pipeline.py tts` 零重合成；不重渲的已发布集接受 `--strict` 红（或整组同步模板，同步后 rc=0）。
+- **后续防范**：skill 的 major 升级按依赖升级对待——升级前先过其 CHANGELOG Breaking 节；frozen 包装器是复制件，模板变更须整组同步并由 `verify_skeleton` 执法；内容侧集名不进机制仓的登记表（登记面随内容走——长期若需机器登记合法漂移，另立条目设计工作区侧登记）。
+- **同类问题影响**：conductor 的 5 个 influence worktree 同形态（pull 后同样处理或重建）；`~/Documents/projects/aurelius/to-video-e2e` 测试工作区重建即可；skill 侧真树回归语料（`TO_VIDEO_TEST_WORKSPACE`）在本条 1/2 步完成后恢复可用。
