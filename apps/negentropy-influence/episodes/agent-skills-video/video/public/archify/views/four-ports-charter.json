@@ -1,0 +1,52 @@
+[
+ {
+  "id": "fp-quartet",
+  "label": "四联章程",
+  "focus": [
+   "spec",
+   "gemini",
+   "cc",
+   "openai",
+   "vscode"
+  ],
+  "note": "同一纸规范，四个港口各自解释出四种章程。"
+ },
+ {
+  "id": "fp-ports",
+  "label": "四港画像",
+  "focus": [
+   "gemini",
+   "cc",
+   "openai",
+   "vscode"
+  ],
+  "note": "模范生、私货最多、最克制、三路通吃。"
+ },
+ {
+  "id": "fp-paths",
+  "label": "堆场与锚点",
+  "focus": [
+   "yard",
+   "anchor"
+  ],
+  "note": "目录路牌交错，.agents 混战中长成事实锚点。"
+ },
+ {
+  "id": "fp-ref",
+  "label": "验箱师",
+  "focus": [
+   "ref",
+   "spec"
+  ],
+  "note": "参考校验器与条文 13 处对不上，自称 demo。"
+ },
+ {
+  "id": "fp-vacuum",
+  "label": "签名真空",
+  "focus": [
+   "vacuum",
+   "spec"
+  ],
+  "note": "标准未设岗，四家无一验签名。"
+ }
+]

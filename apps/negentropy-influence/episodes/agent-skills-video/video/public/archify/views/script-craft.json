@@ -1,0 +1,24 @@
+[
+ {
+  "id": "sc-pin",
+  "label": "钉死版本",
+  "focus": [
+   "script",
+   "upstream",
+   "pin"
+  ],
+  "note": "uvx/npx 版本号锁定，防三个月后的升级偷袭"
+ },
+ {
+  "id": "sc-rules",
+  "label": "四条家规",
+  "focus": [
+   "r1",
+   "r2",
+   "r3",
+   "r4",
+   "deliver"
+  ],
+  "note": "不问交互 / 报错说人话 / 结果结构化 / 能空跑预演"
+ }
+]

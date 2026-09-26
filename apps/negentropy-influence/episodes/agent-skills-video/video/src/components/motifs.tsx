@@ -243,3 +243,131 @@ export const NumberedCard: React.FC<{
 };
 
 export {ease};
+
+/** 集装箱母题〔M-001〕：货签粉恒定描边（2.5px）+ 同形箱体，全片锚。
+ *  空间语义：箱内装「作业指导书 + 工具」，不是货；「开箱」= 正文进上下文（向右）。
+ *  禁改描边色与线宽（恒定锚纪律）；只换 label / glow / 状态。 */
+export const CargoBox: React.FC<{
+  label?: string;
+  width?: number;
+  height?: number;
+  glow?: number; // 0–1 危险高亮（瞬时红，仅攻击瞬间）
+  lit?: number; // 0–1 整体可见度
+  opened?: boolean; // 开箱态：顶盖虚线上移
+  hot?: boolean; // 命中态：亮绿勾（ok，仅验证瞬间）
+}> = ({label = '', width = 150, height = 104, glow = 0, lit = 1, opened = false, hot = false}) => (
+  <div style={{position: 'relative', width, height, opacity: lit}}>
+    <div
+      style={{
+        width,
+        height,
+        borderRadius: 10,
+        border: `2.5px solid ${theme.conceptDeep}`,
+        background: `${theme.conceptDeep}14`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontFamily: theme.mono,
+        fontSize: 16,
+        color: theme.conceptDeep,
+      }}
+    >
+      {label}
+    </div>
+    {opened ? (
+      <div
+        style={{
+          position: 'absolute',
+          left: 8,
+          right: 8,
+          top: -16,
+          borderTop: `2.5px dashed ${theme.conceptDeep}`,
+          opacity: 0.85,
+        }}
+      />
+    ) : null}
+    {glow > 0 ? (
+      <div
+        style={{
+          position: 'absolute',
+          inset: -3,
+          borderRadius: 12,
+          border: `3px solid ${theme.danger}`,
+          background: `${theme.danger}26`,
+          opacity: glow,
+        }}
+      />
+    ) : null}
+    {hot ? (
+      <div
+        style={{
+          position: 'absolute',
+          right: -12,
+          top: -12,
+          width: 26,
+          height: 26,
+          borderRadius: 13,
+          border: `2.5px solid ${theme.ok}`,
+          color: theme.ok,
+          fontFamily: theme.mono,
+          fontSize: 15,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        ✓
+      </div>
+    ) : null}
+  </div>
+);
+
+/** 台账墙母题〔M-001〕：引航青单行账目，全片锚（tier-1 常驻目录的化身）。
+ *  每行 = 箱号 + 一句货签；hot 行高亮（被想起/被提箱）；shadow 行划线（被遮蔽）。 */
+export const LedgerWall: React.FC<{
+  rows: {id: string; desc: string}[];
+  lit?: number; // 已点亮行数（stagger 由调用侧驱动则传 0 手控）
+  hotIndex?: number;
+  shadowIndex?: number;
+  width?: number;
+  rowH?: number;
+  visible?: number[]; // 各行透明度（外部驱动逐行点亮）
+}> = ({rows, hotIndex = -1, shadowIndex = -1, width = 620, rowH = 44, visible}) => (
+  <div style={{width, fontFamily: theme.mono}}>
+    {rows.map((r, i) => {
+      const op = visible ? visible[i] ?? 1 : 1;
+      const hot = i === hotIndex;
+      const shadowed = i === shadowIndex;
+      return (
+        <div
+          key={r.id}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 14,
+            height: rowH,
+            borderTop: i === 0 ? `1px solid ${theme.concept}55` : undefined,
+            borderBottom: `1px solid ${theme.concept}55`,
+            background: hot ? `${theme.concept}1E` : undefined,
+            opacity: op,
+            padding: '0 10px',
+          }}
+        >
+          <span style={{color: theme.concept, fontSize: 17, minWidth: 150}}>{r.id}</span>
+          <span
+            style={{
+              color: shadowed ? theme.dim : theme.text,
+              fontSize: 15,
+              textDecoration: shadowed ? 'line-through' : undefined,
+              opacity: shadowed ? 0.55 : 0.92,
+              fontFamily: theme.sans,
+            }}
+          >
+            {r.desc}
+          </span>
+          {shadowed ? <span style={{color: theme.deny, fontSize: 13}}>已遮蔽</span> : null}
+        </div>
+      );
+    })}
+  </div>
+);

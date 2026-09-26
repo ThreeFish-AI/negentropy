@@ -1,0 +1,30 @@
+[
+ {
+  "id": "sw-copy",
+  "label": "复制自用",
+  "focus": [
+   "s-live",
+   "s-copy"
+  ],
+  "note": "公司技能复制到个人目录，只改一行自用"
+ },
+ {
+  "id": "sw-shadow",
+  "label": "静默遮蔽",
+  "focus": [
+   "s-copy",
+   "s-shadow"
+  ],
+  "note": "项目压个人：修改在公司仓失效，盘上两份生效一份"
+ },
+ {
+  "id": "sw-warn",
+  "label": "告警义务",
+  "focus": [
+   "s-shadow",
+   "s-warn",
+   "s-blind"
+  ],
+  "note": "合规客户端点名「已被 shadowed」+ 路径；不做则排查全靠猜"
+ }
+]

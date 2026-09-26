@@ -1,0 +1,21 @@
+[
+ {
+  "id": "ir-nocenter",
+  "label": "无注册中心",
+  "focus": [
+   "author",
+   "fs"
+  ],
+  "note": "这套体系没有注册中心——身份不靠申请。"
+ },
+ {
+  "id": "ir-deal",
+  "label": "登记处交易",
+  "focus": [
+   "author",
+   "fs",
+   "client"
+  ],
+  "note": "文件系统免费送唯一身份;客户端按目录名查找命中。"
+ }
+]

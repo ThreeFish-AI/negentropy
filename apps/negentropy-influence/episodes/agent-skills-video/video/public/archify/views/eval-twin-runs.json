@@ -1,0 +1,24 @@
+[
+ {
+  "id": "et-blind",
+  "label": "同单两跑 · 盲评",
+  "focus": [
+   "task",
+   "run_a",
+   "run_b",
+   "judge"
+  ],
+  "note": "同一单活跑两遍，遮幕裁判不知哪份是哪份。"
+ },
+ {
+  "id": "et-assert",
+  "label": "断言记账",
+  "focus": [
+   "judge",
+   "checklist",
+   "ledger",
+   "verdict"
+  ],
+  "note": "清单逐条 PASS/FAIL；token 与质量两栏对账。"
+ }
+]

@@ -1,0 +1,23 @@
+[
+ {
+  "id": "ls-warnload",
+  "label": "警告照放",
+  "focus": [
+   "arrival",
+   "lenient_gate",
+   "loaded"
+  ],
+  "note": "name 对不上目录：警告一声，照装不误。"
+ },
+ {
+  "id": "ls-x2",
+  "label": "实测门",
+  "focus": [
+   "lenient_gate",
+   "strict_gate",
+   "lenient_tally",
+   "strict_tally"
+  ],
+  "note": "自建 12 只技能：严格拒 4 只＝损失 33%，宽容全进。"
+ }
+]

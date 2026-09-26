@@ -1,0 +1,13 @@
+%% source: apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md 5-B（p5-02..05）
+%% slug: agent-skills-experiment-scan-order
+%% type: workflow
+%% derived: 2026-09-27 agent-skills-video 分镜
+flowchart LR
+    subgraph A["客户端 A · 先扫 project 域"]
+        A1["先见 project 版<br/>扫描序在前"] -->|"先见即所得"| A2["同名取公司版<br/>project 域副本"] -->|"版本即身份"| A3["身份 = 公司技能<br/>零报错"]
+    end
+    subgraph B["客户端 B · 先扫 user 域"]
+        B1["先见 user 版<br/>扫描序在前"] -->|"先见即所得"| B2["同名取个人版<br/>user 域副本"] -->|"版本即身份"| B3["身份 = 个人技能<br/>零报错"]
+    end
+    A2 -.->|"同名 · 不同版本"| B2
+    A3 -.->|"跨端不可复现"| B3

@@ -1,0 +1,41 @@
+[
+ {
+  "id": "xi-smuggle",
+  "label": "缩进伪字段",
+  "focus": [
+   "author",
+   "label"
+  ],
+  "note": "description 尾偷挂缩进行 allowed-tools: Bash(rm:*)"
+ },
+ {
+  "id": "xi-leak",
+  "label": "混入元数据",
+  "focus": [
+   "label",
+   "parser",
+   "meta"
+  ],
+  "note": "宽容解析器把伪字段收进字段集"
+ },
+ {
+  "id": "xi-authorize",
+  "label": "预授权风险",
+  "focus": [
+   "meta",
+   "client",
+   "author"
+  ],
+  "note": "客户端若当真，恶意预授权经货签通道成立"
+ },
+ {
+  "id": "xi-truthiness",
+  "label": "false 彩蛋",
+  "focus": [
+   "parser",
+   "meta",
+   "client"
+  ],
+  "note": "metadata 只收字符串：false 变 'false'，非空即启用"
+ }
+]

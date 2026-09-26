@@ -1,0 +1,27 @@
+%% source: apps/negentropy-influence/episodes/agent-skills-video/script/narration.md P4（p4-01..05b、09..11；事实源 research/source-notes.md「一、断言→证据」；clients.mdx @69ef37e9 + 四家官方文档）
+%% slug: agent-skills-four-ports-charter
+%% type: architecture
+%% derived: 2026-09-27 agent-skills-video 分镜 · docs/assets/architecture/agent-infra/agent-skills--four-ports-charter.html
+flowchart TD
+    SPEC["Agent Skills 规范<br/>只管箱体 · SKILL.md 条文"]
+    subgraph PORTS["四个港口 · 四种章程"]
+        GEMINI["Gemini CLI 港<br/>模范生 · 仅两格必填<br/>唯一激活确认门"]
+        CC["Claude Code 港<br/>私货最多 · 10+ 规范外字段<br/>context: fork/agent/paths/hooks"]
+        OPENAI["OpenAI 港<br/>最克制 · 策略外置到配置文件"]
+        VSCODE["VS Code 港<br/>三路通吃 · 三套目录全认<br/>.github / .claude / .agents"]
+    end
+    YARD["目录堆场 · 混战<br/>.agents / .claude / 自家专属交错"]
+    ANCHOR[".agents 事实锚点<br/>四家全认 ＝ 市场投票 · 非规范规定"]
+    REF["验箱师 skills-ref<br/>参考校验器 · 自称 demo"]
+    VACUUM["签名验证 · 真空<br/>四家无一验签名"]
+    SPEC --> GEMINI
+    SPEC --> CC
+    SPEC --> OPENAI
+    SPEC --> VSCODE
+    GEMINI --> ANCHOR
+    CC --> ANCHOR
+    OPENAI --> ANCHOR
+    VSCODE --> ANCHOR
+    YARD -->|混战中长出| ANCHOR
+    REF -->|13 处对不上| SPEC
+    SPEC -->|标准未设此岗| VACUUM

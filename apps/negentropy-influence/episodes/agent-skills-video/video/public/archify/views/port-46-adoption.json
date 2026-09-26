@@ -1,0 +1,36 @@
+[
+ {
+  "id": "pa-open",
+  "label": "捐出开放",
+  "focus": [
+   "anthropic",
+   "open-std"
+  ],
+  "note": "2025 年 Anthropic 把自家技能格式捐出,做成开放标准。"
+ },
+ {
+  "id": "pa-harbor",
+  "label": "竞对全接",
+  "focus": [
+   "open-std",
+   "openai",
+   "google",
+   "microsoft",
+   "cursor"
+  ],
+  "note": "OpenAI、Google、微软、Cursor——正面竞对一年内全部接入。"
+ },
+ {
+  "id": "pa-table",
+  "label": "整张牌桌",
+  "focus": [
+   "showcase",
+   "gate",
+   "openai",
+   "google",
+   "microsoft",
+   "cursor"
+  ],
+  "note": "46 家客户端台账:自报 + logo 审核制,门槛是当下可发现并执行技能。"
+ }
+]

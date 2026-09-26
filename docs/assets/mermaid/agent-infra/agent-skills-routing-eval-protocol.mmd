@@ -1,0 +1,29 @@
+%% source: apps/negentropy-influence/episodes/agent-skills-video/script/narration.md P3（p3-08..p3-11；事实源 research/source-notes.md A13/A14）
+%% slug: agent-skills-routing-eval-protocol
+%% type: workflow
+%% derived: 2026-09-27 agent-skills-video 分镜
+flowchart LR
+    subgraph BUILD["出题"]
+        SEED["真题种子<br/>该技能接的活"]
+        SPLIT["六四分<br/>60% 练 · 40% 考"]
+        EXAM["一套卷子<br/>20 题 × 3 遍"]
+        REWRITE["改签重跑<br/>只在练题上迭代"]
+    end
+    subgraph RUN["考场"]
+        SCHED["一秒面试<br/>只扫货签一眼"]
+        RATE["触发率<br/>命中 ÷ 题数"]
+    end
+    subgraph JUDGE["判卷"]
+        NEAR["近失配<br/>「改个表格」压线"]
+        OUTER["外环无关<br/>如「天气」· 剔除"]
+        GATE["0.5 阈值<br/>≥0.5 才放行"]
+    end
+    SEED -->|"分层切题"| SPLIT
+    SPLIT -->|"考题拼卷"| EXAM
+    EXAM -->|"逐题应考"| SCHED
+    SCHED -->|"三遍计数"| RATE
+    RATE -.->|"错题归因"| NEAR
+    NEAR -.->|"无关剔除"| OUTER
+    RATE -->|"触发率过线？"| GATE
+    GATE -.->|"未过线"| REWRITE
+    REWRITE -->|"换签重考"| SCHED

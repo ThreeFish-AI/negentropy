@@ -1,0 +1,15 @@
+%% source: apps/negentropy-influence/episodes/agent-skills-video/script/narration.md P0（事实源 research/source-notes.md A17–A19；名单 docs/research/agent-infra/210-agent-skills-open-standard.md）
+%% slug: agent-skills--port-46-adoption
+%% type: architecture
+%% derived: 2026-09-27 agent-skills-video 分镜 0-A / 0-B
+flowchart TD
+    A["Anthropic<br/>技能格式发起者 · 2025"] -->|"2025 捐出"| STD["开放标准<br/>SKILL.md 技能格式 · 社区标准"]
+    STD -->|接入| OAI["ChatGPT & Codex<br/>OpenAI"]
+    STD -->|接入| G["Gemini CLI<br/>Google"]
+    STD -->|接入| M["GitHub Copilot<br/>微软"]
+    STD -->|接入| C["Cursor<br/>AI 编辑器"]
+    OAI -->|自报| S["Client Showcase<br/>46 家客户端台账 · 自报 + 审核<br/>整张牌桌"]
+    G -->|自报| S
+    M -->|自报| S
+    C -->|自报| S
+    GATE["收录门槛<br/>当下可发现并执行技能<br/>logo 由 Anthropic 审"] -.审核收录.-> S

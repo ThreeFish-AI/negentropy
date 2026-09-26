@@ -1,0 +1,32 @@
+[
+ {
+  "id": "lb-pair",
+  "label": "两张货签",
+  "focus": [
+   "router",
+   "good",
+   "bad"
+  ],
+  "note": "好签「做什么+何时用」亮；差签「帮忙处理文档」蒙灰"
+ },
+ {
+  "id": "lb-silent",
+  "label": "静默退化",
+  "focus": [
+   "bad",
+   "silent"
+  ],
+  "note": "合规、无害、永不触发——且没有任何报错"
+ },
+ {
+  "id": "lb-intent",
+  "label": "没说关键词",
+  "focus": [
+   "user",
+   "router",
+   "good",
+   "hit"
+  ],
+  "note": "用户只说「这表看着乱」，也要想起清洗技能"
+ }
+]
