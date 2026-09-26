@@ -69,7 +69,7 @@
 | [dream-rsi--behavior-adaptive](./self-evolution/dream-rsi--behavior-adaptive.mmd) | [144 §6](../../research/self-evolution/144-dream-rsi.md) | lifecycle | ✓ | done | 先省后探：110→50→回升与性能 0.427→1.898 |
 | [dream-rsi--unproven-list](./self-evolution/dream-rsi--unproven-list.mmd) | [144 §8](../../research/self-evolution/144-dream-rsi.md) | workflow | ✓ | done | 论文未证明五件事清单（panel+编号反枚举） |
 
-### agent-infra/（docs/research/agent-infra/ 的 Agent Skills 规范精读 + Jev 精读）
+### agent-infra/（docs/research/agent-infra/ 的 Agent Skills 规范精读（090 + 重学 210）+ Jev 精读）
 
 | slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -98,6 +98,8 @@
 | [agent-skills--teardown-parse-escape](./agent-infra/agent-skills--teardown-parse-escape.mmd) | [制作分镜 5-D/5-E](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | dataflow | ✓ | done | 拆 3 值内 --- 拦腰截断（参考实现同根因）× 拆 4 伪造第 21 本书（P5） |
 | [agent-skills--authority-and-controversies](./agent-infra/agent-skills--authority-and-controversies.mmd) | [制作分镜 6-A..6-D](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | architecture | ✓ | done | 权威天平 × 13 处分歧/6 处真跑 × 严格/宽容/自己挑/点名/信任（P6） |
 | [agent-skills--unproven-list](./agent-infra/agent-skills--unproven-list.mmd) | [制作分镜 6-E](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | workflow | ✓ | done | 材料没有证明的五件事清单（P6 收束） |
+| [agent-skills--disclosure-lifecycle](./agent-infra/agent-skills-disclosure-lifecycle.mmd) | [210 §4/§6](../../research/agent-infra/210-agent-skills-open-standard.md) | workflow | ✓ | done | 运行相（重学版）：发现→宽容解析→作用域→台账常驻→语义路由→整载→解释执行 + 压缩豁免/激活去重守护 |
+| [agent-skills--governance-layers](./agent-infra/agent-skills-governance-layers.mmd) | [210 §3/§8/§9](../../research/agent-infra/210-agent-skills-open-standard.md) | architecture | ✓ | done | 治理相（重学版）：规范 MUST/建议/留白 × 指南层 × 生态四家抽样 × 48 PR 悬案三行网格 |
 
 > 各分类行由对应重绘波次登记；`产物` 列 ✓ = html + dark/light PNG 已入库。
 

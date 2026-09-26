@@ -5,6 +5,9 @@ description: "agentskills.io 规范精读（固定提交 69ef37e9）：目录即
 ---
 
 # Agent Skills 开放规范精读笔记
+> [!NOTE]
+> 2026-09-26 重学版见 [210 精读笔记](./210-agent-skills-open-standard.md) 与 [211 映射](./211-agent-skills-mapping-negentropy.md)（新类比体系 / 新实验组 / 生态与 PR 动向增量）；本文为历史版本，结论仍有效、不随重学修订。
+
 
 > [Agent Skills, "Specification," agentskills.io, 2026. [Online]. Available: https://agentskills.io/specification](https://agentskills.io/specification)。源码与参考实现 [agentskills/agentskills](https://github.com/agentskills/agentskills)，固定提交 [`69ef37e9`](https://github.com/agentskills/agentskills/tree/69ef37e9424c0a7ea9dd2293b559e43ec8176379)（2026-08-09），代码 Apache-2.0、文档 CC-BY-4.0。格式最初由 Anthropic 开发，后作为开放标准发布（`home.mdx`「Open development」节）。
 
