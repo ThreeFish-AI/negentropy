@@ -24,3 +24,16 @@ style = "story"
 # story 档（默认）＝段落演绎：同幕连续句按块合成、块间情绪由配音台本驱动。
 # 台本（可选）：script/narration.cues.toml——写稿阶段产出，见 $T/references/VOICE-CLONING.md §4.5。
 # 重制存量集（旧档 → story）须显式 --allow-voice-switch 并补写台本。
+
+[archify]
+# 19 图（17 新绘 + 2 复用 210 运行相/治理相），全部 agent-skills-- 前缀走约定；
+# 章节清单见 video/public/archify/views/。阈值为分镜实测（58 cue · 锚定 50.9% · 密度 4.2/分）
+# 下方 10–15% 回填；覆盖门 check 自动串联。
+html_dir = "docs/assets/architecture/agent-infra"
+html_pattern = "agent-skills--{slug}.html"
+forbid_inset = true
+min_diagrams = 16
+min_cues = 50
+min_cues_per_minute = 3.6
+min_diagram_types = 5
+min_anchor_ratio = 0.43
