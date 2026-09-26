@@ -4265,6 +4265,8 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
   3. **写**：结构化输出约定（哪些决策必须闭合、失败信号必须显式、枚举校验成员）。
 - **后续防范**：给 LLM 的「选择题」必须由代码闭合答案空间（enum 成员校验），不能只写在 prompt 里；「解析失败」必须有区别于「模型低分」的显式信号；task key 先注册再使用（`task_models_api` 的注册校验与静默回落的 resolver 之间存在空转区）。
 
+- **独立复核（2026-09-26，Jev 精读全新重做后的映射）**：在不读本条的隔离条件下重新取证，[201](../research/agent-infra/201-jev-mapping-negentropy.md) 独立复现了上述三点（自动作答非 JSON 分支原样放行、judge/plan_reviewer 解析矫正零日志、三个在用未注册 task key），并新增两处同族问题：① KG 抽取 `confidence` 缺省 1.0 且不 clamp（`knowledge/graph/extractors.py:972`），叠加 `min_entity_confidence` 默认 0.5（`knowledge/types.py:784`、`knowledge/graph/service.py:725-726`）⇒ 字段缺失即以满置信自动通过门槛——缺省方向与「缺省即低集中度」相反；② LLM 口头置信（fact 缺省 0.7 / KG 缺省 1.0）、正则兜底常数（0.5/0.6）与手定启发式常数（0.3–0.85）同列存储并被 `quality.py` 均值与路由门控同样消费，量纲不可比。另：离线 eval 在 judge 不可用时 `score=0.0` 计入均值与通过率（`engine/eval/runner.py:990-997`），与 ①/② 同属「失败伪装成低分」。处理与防范沿用本条三档建议，新增两项已并入 201「做 / 写」档（KG 缺省改向需注意存量回填）。
+
 ## ISSUE-199 jev 集画面文字逐字复述口播，与烧录字幕叠成两层（2026-09-24）
 
 - **表因**：jev-decision-model-video v2 成片中 9 处结论行 / 标题行与口播逐字相同（如 P0「每个 Agent 系统里，都塞满了各种小判断」），底部字幕又逐句显示同一句。缺陷本体与判据的唯一登记处是 to-video 台账 RSI-007（[ThreeFish-AI/to-video#14](https://github.com/ThreeFish-AI/to-video/pull/14)），本条只记内容侧处置。

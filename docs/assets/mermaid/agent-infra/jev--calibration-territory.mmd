@@ -1,0 +1,16 @@
+%% source: docs/research/agent-infra/200-jev-system-one-model.md §5 机制三（校准的领地）
+%% slug: jev--calibration-territory
+%% type: dataflow
+%% derived: archify 重绘（fresh authorship），登记于 docs/assets/mermaid/README.md
+flowchart LR
+  rlcd["RLCD 按结果记分（报七成按七成对账）"]
+  indist["领地内：读数可对账（MMLU ECE 0.031）"]
+  ood["领地外：照报七成（密封集 ECE 0.220，不报警）"]
+  random["内在随机：骰子报 82.9% · 实际 19%"]
+  audit["影子运行 · 自动执行子集抽检"]
+  relabel["温度缩放 · 阈值重标（只改读数不改排序）"]
+  rlcd -->|受训分布| indist
+  indist -->|分布漂移（悄无声息）| ood
+  ood -.->|任务本身随机| random
+  ood -->|抽样发现台阶| audit
+  audit -->|阈值重锚| relabel
