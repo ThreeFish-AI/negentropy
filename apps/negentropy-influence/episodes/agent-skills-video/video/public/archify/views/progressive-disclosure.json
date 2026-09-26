@@ -1,6 +1,0 @@
-[
-  {"id": "tier1", "label": "书脊常驻", "focus": ["scan_scopes", "parse_skill", "skill_registry", "skill_catalog"], "note": "会话启动：扫描、解析、只把名字与描述放进目录。"},
-  {"id": "tier2", "label": "整本按需", "focus": ["activation_gate", "load_body"], "note": "被选中时才加载完整正文。"},
-  {"id": "tier3", "label": "附录按页", "focus": ["read_resources"], "note": "正文引用到哪一页才读哪一页。"},
-  {"id": "contract", "label": "目录契约", "focus": ["skill_catalog", "activation_gate"], "note": "目录承诺的激活路径必须真实存在。"}
-]

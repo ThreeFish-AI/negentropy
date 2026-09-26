@@ -4,12 +4,12 @@
  *  抽出**通用排版/标注机械**，只读底座 token（panel/panelBorder/text/dim +
  *  字体三族）；概念色一律经 `accent` prop 由调用方注入。任何集的 theme.ts
  *  底座都齐，故 scaffold 后无需改动即可 tsc 通过。随集演进时直接改本集副本
- *  （复制适配、不做跨集 import——复用边界见 pipeline/README.md §四）。
+ *  （复制适配、不做跨集 import——复用边界见 references/PIPELINE.md §四）。
  *
  *  刻意**不进模板**的是创作性母题（Terminal / LoopRing / DispatchTable /
  *  GateRouter / SlotRing）：它们承载各集的叙事隐喻，属于每集的创作产物。
  *  需要时从 claude-code-explained-video 的 motifs.tsx 复制对应段落后裁剪、
- *  追加到本文件；母题目录与适用场景见 pipeline/skills/06 的母题表。
+ *  追加到本文件；母题目录与适用场景见 references/08 的母题表。
  */
 import React from 'react';
 import {interpolate, spring, useCurrentFrame, useVideoConfig} from 'remotion';
@@ -37,7 +37,7 @@ export const Panel: React.FC<{
   </div>
 );
 
-/** 底部角标——统一压在 bottom ≥ 150（避让字幕条，skills/06 红线二） */
+/** 底部角标——统一压在 bottom ≥ 150（避让字幕条，references/08 红线二） */
 export const Footnote: React.FC<{children: React.ReactNode; delay?: number}> = ({
   children,
   delay = 0,

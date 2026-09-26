@@ -1,7 +1,7 @@
 {
   "name": "agent-skills-video",
   "private": true,
-  "description": "《经验淬炼成手册：Agent 的轻量蒸馏与按需装配》科普视频 Remotion 工程",
+  "description": "《知识的集装箱：Agent Skills 开放标准》科普视频 Remotion 工程",
   "scripts": {
     "dev": "remotion studio",
     "typecheck": "tsc --noEmit",

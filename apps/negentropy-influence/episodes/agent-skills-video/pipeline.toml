@@ -1,31 +1,26 @@
 # 本集可执行参数的**唯一来源**（ISSUE-161：可执行参数不落散文文档，README 只引用配置）。
-# 编排入口：uv run --no-project $T/pipeline/scripts/pipeline.py --project $P <cmd>（$T/$W/$P/$V 见 to-video skill 的 pipeline/README.md）
+# 编排入口：uv run --no-project $T/scripts/pipeline.py --project $P <cmd>（$T/$W/$P/$V 见 to-video skill 的 references/PIPELINE.md）
 #
 # 只写**本集偏离**：机制常数（chars_per_min / lang / draft_scale / draft_jpeg_quality）
-# 的默认值在 skill 仓 pipeline/scripts/config.py，不要抄回这里。字段表见 skill 的
-# pipeline/README.md，跑 `pipeline.py doctor` 可打印带来源标注的生效配置全表。
+# 的默认值在 skill 仓 scripts/config.py，不要抄回这里。字段表见 skill 的
+# references/PIPELINE.md，跑 `pipeline.py doctor` 可打印带来源标注的生效配置全表。
 
 [episode]
 slug = "agent-skills-video"
 
 [narration]
-# 七幕 / 目标 ≈14 分钟（280 字/分为含停顿等效口径，双口径门以 manifest 实测为准）
-target_minutes = [13.0, 15.6]
+# TODO：按本集选题与语速预算填写。口径提示——280 字/分是**含停顿的等效**口径，
+# 裸按字数算会高估约 12% 的句容量，双口径门以 manifest 实测为准。
+target_minutes = [13.0, 14.6]
 
 [tts]
 engine = "indextts"
-# 近期各集统一音色：me-bright 选段 + sunny-steady（alpha 在该选段上标定，见 $V/refs.toml）。
+# TODO：选定样本与风格。样本路径**工作区根相对**；ref_sha1 取 12 位（同 tts.py 口径），
+# 用 `uv run --no-project $T/scripts/refs.py list` 查当前清单。
+# ⚠️ 风格预设的 alpha 是在**特定选段**上标定的，换选段即失效（见 $V/refs.toml）。
 ref = "voices/me-bright.wav"
 ref_sha1 = "54b699cce97f"
-style = "sunny-steady"
-
-[archify]
-# 12 图（2 张 090 精读原图 + 10 张本集新绘），全部 agent-skills-- 前缀走约定；
-# 章节清单见 video/public/archify/views/。阈值为初稿地板，分镜定稿后按
-# 覆盖门实测回填（定在实测值下 10–15%）。
-html_dir = "docs/assets/architecture/agent-infra"
-html_pattern = "agent-skills--{slug}.html"
-forbid_inset = true
-min_diagrams = 10
-min_cues = 30
-min_diagram_types = 3
+style = "story"
+# story 档（默认）＝段落演绎：同幕连续句按块合成、块间情绪由配音台本驱动。
+# 台本（可选）：script/narration.cues.toml——写稿阶段产出，见 $T/references/VOICE-CLONING.md §4.5。
+# 重制存量集（旧档 → story）须显式 --allow-voice-switch 并补写台本。
