@@ -1,0 +1,19 @@
+{
+ "seriesId": "agent-infra",
+ "layers": [
+  {
+   "index": 1,
+   "layer": "开放标准",
+   "title": "知识的集装箱：Agent Skills 开放标准",
+   "published": false
+  },
+  {
+   "index": 2,
+   "layer": "判断",
+   "title": "让判断变便宜：Jev 决策模型拆解",
+   "published": false
+  }
+ ],
+ "activeIndex": 1,
+ "next": "让判断变便宜：Jev 决策模型拆解"
+}
