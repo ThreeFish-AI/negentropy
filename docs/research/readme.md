@@ -75,8 +75,8 @@
 | [Agent Skills 开放规范精读](./agent-infra/090-agent-skills-spec.md) | agentskills.io 规范（固定提交 `69ef37e9`）：目录即技能包、name 借文件系统拿唯一性、description 独扛触发、三级渐进披露的上下文成本结构；skills-ref 参考实现与规范 13 处分歧（6 处经真实参考实现复现），含最小原型与五次破坏性实验 |
 | [Agent Skills ↔ negentropy 机制映射](./agent-infra/091-agent-skills-mapping-negentropy.md) | 13 条机制对照本仓三套 skill 载体：盘上 11 技能全合规、结构化包裹与同名优先级已对齐；头号发现为 Layer 1 指示的 `expand_skill` 从未挂载（连带 R6-b 在线 canary 门恒被跳过），name/description 规范校验与目录注入防护等 9 条值得落地 |
 | [可观测性对比：Jaeger vs Langfuse](./agent-infra/100-agent-obser.md) | 生成式 AI 可观测性方案选型 |
-| [Jev 精读笔记](./agent-infra/200-jev-system-one-model.md) | TypeSafe「System One Model」：闭合输出空间 × 一次编码·分支隔离 × RLCD 校准 × 快慢分工；confidence 为 adapter 代码可证的固定公式；厂商数字与第三方实测逐级对账 |
-| [Jev ↔ negentropy 机制映射](./agent-infra/201-jev-mapping-negentropy.md) | 16 条映射（✅4/🔶6/⏸6）：最大真增量是「闭合输出空间」纪律（自动作答不校验选项 / Judge 解析失败静默 0 分 / global_search 哨兵漏入 reduce）；直接接入暂缓；7 处取证漂移登记 ISSUE-198 |
+| [Jev 精读笔记](./agent-infra/200-jev-system-one-model.md) | TypeSafe「System One Model」四机制：闭合输出空间 × 共享读·隔离问 × 校准概率与 confidence（adapter 固定公式，读数≠概率）× 快慢分工；官方口径与第三方实测逐项对账（193.6× 复算仅 97.8×、校准领地：分布内 ECE 0.031 / 密封集 0.220）；含纯标准库原型 S1–S11 + B1–B5 破坏实验与 laya 复刻本地实测 |
+| [Jev ↔ negentropy 机制映射](./agent-infra/201-jev-mapping-negentropy.md) | 16 条映射（✅5/🔶9/⏸2）：真增量是四条纪律——解析失败应弃权而非注入默认值（proposer 对照 judge 静默 0 分）、矫正要有 counter、置信缺省方向（KG 缺省 1.0 叠 0.5 阈值=自动通过）、口头置信与启发式常数不可比；接入 Jev 本体暂缓 |
 
 ## 六、自进化与工具 · `self-evolution/`
 

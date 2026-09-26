@@ -1,176 +1,98 @@
 ---
 sidebar_position: 7
-title: "Jev ↔ negentropy 机制映射报告"
-description: "Jev（TypeSafe System One Model，jev-1.13.0）与本仓 LLM 结构化决策点的 16 条机制映射：✅4 / 🔶6 / ⏸6——最大真增量不是接入模型，而是「闭合输出空间」纪律：Claude Code 自动作答不校验答案是否属于选项、Judge 与 PlanReviewer 解析失败静默降为 0 分、global_search 的「无相关信息」哨兵漏入 reduce；直接接入 Jev 暂缓（CJK 较弱、闭源、模型类型体系无位）；另附 7 处取证漂移"
 ---
 
-# Jev ↔ negentropy 机制映射报告
+# Jev（TypeSafe System One Model）↔ negentropy 机制映射报告
 
-> 声明：只分析不改码；锚点均经 `grep -n` 实测（工作区 HEAD `2edf3ed5`；`ng/` = `apps/negentropy/src/negentropy/`）。材料侧证据见 [200 精读笔记](./200-jev-system-one-model.md)，机制编号 M1–M4 与笔记一致：M1 闭合输出空间 / M2 一次编码·分支隔离 / M3 校准概率 / M4 快慢分工编排。
+> 声明：只分析不改码；锚点均经实际代码核验（核验日 2026-09-26，HEAD `95f5a532e`）。锚点路径仓库相对 `apps/negentropy/src/negentropy/`，写法 `文件:行号`。
 
 ## 结论先行
 
-1. **本仓没有一处决策是「System One 形」的**：全仓 `*.py` 零 `logprobs`、零 strict `json_schema`，没有任何 Agent 设置 `output_schema=`。13 处 `response_format={"type": "json_object"}` 调用中，10 处经 `loads_lenient` 宽松解析，解析失败返回 `{}`，调用方静默填默认值；另 3 处用 strict `json.loads`。16 条映射：✅4 / 🔶6 / ⏸6。
-2. **最大真增量是纪律，不是模型**：Jev 最可迁移的一课是 M1——**答案空间先定、越界即拒**。它在本仓对应三个具体缺口，改动都很小：
-   - Claude Code 自动作答的 prompt 写着「回答必须是选项之一」，代码却从不校验，非 `answers` 格式直接原样返回。
-   - Judge 与 PlanReviewer 把「解析失败」和「模型真打了 0 分」混为一谈：前者得 `stalled`，后者得 `refine`。
-   - `global_search` 的 map 阶段让模型说「无相关信息」，过滤器却只丢空串，哨兵因此进入 reduce。
-3. **直接接入 Jev 暂缓（⏸）**，理由有三条：
-   - 官方自认中文与其他 CJK 语言效果较差，而本仓内容以中文为主。
-   - 闭源，且不提供客户专属权重。
-   - 本仓模型类型只有 `llm` / `embedding` / `rerank`，task slot 只接受 `llm` / `embedding`。
+本仓已实现的有三样：**编排级**的快慢分工（四阶段检索级联、失败降级链）、确定性决策守卫对 LLM 读数的封顶与旁路开关，以及一处孤例式的「弃权」解析姿势（evolution proposer）。材料的真增量不在「接入一个更便宜的判断模型」，而在四条可直接落地的纪律：
 
-   触发条件：出现**可自托管、且中文校准经本仓数据验证**的决策模型。候选是 Kev（Qwen 底座）与 Laya（多语言版）。
-4. **校准的教训适用于现有 Judge**：本仓 Judge 输出单点分数，已知逐轮 ±20 振荡（ISSUE-128 / ISSUE-152）。Jev 的 M3/M4 说明，**点分数不能直接当自动执行阈值用**。落地方向是分布化或重复评分，不是换模型。
-5. **取证副产物 7 处漂移**（§5），包括：
-   - 3 个未注册的 task key 静默回落到默认模型，管理端也无法为它们绑定模型。
-   - `auto_answer_model` / `auto_answer_timeout_seconds` 是死配置。
-   - `global_search` 的 docstring 承诺置信度，实际未实现。
+1. 闭合输出空间的弃权语义：解析失败应显式弃权而非注入默认合法值（proposer 的 `None` 弃权 vs evaluator 的静默 0 分是本仓内部现成对照）。
+2. 失败可观测性：矫正与兜底要有 counter，不是零日志（两个 judge 解析器矫正时一行日志都没有）。
+3. 置信默认值的方向：缺 confidence 默认 1.0 叠加 0.5 阈值等于自动通过，方向反了。
+4. 口头 confidence 不可比：启发式常数置信与 LLM 口头置信同列存储、同样被消费，量纲不同。
+
+16 条映射中：5 条 ✅ 已对齐、9 条 🔶 值得落地（多数是「写」级一句话成本或绑明确时机的 counter）、2 条 ⏸ 暂缓（触发条件见文末）。接入 Jev 本体一类建议一律暂缓：官方对中文可用性零量化，且本仓尚无任何校准验证数据可支撑阈值搬家。
 
 ## 映射总表
 
-| # | 材料机制（200 出处） | 本仓对应 | 锚点（实测） | 判定 |
-| --- | --- | --- | --- | --- |
-| 1 | M1 闭合输出空间：答案只能是 criteria 之一（§3） | Claude Code 自动作答：prompt 要求「必须从选项中选择」，代码不校验成员，非 `answers` 格式原样返回 | `ng/engine/claude_code/service.py:1192,1199` · `:1246-1248` · `:1255` | 🔶 做 · 最高优先 |
-| 2 | M1 类型错误由构造消灭（§3） | Judge / PlanReviewer：`{}` → score 0 → `stalled` / `refine`；坏 verdict 由分数猜 | `ng/engine/routine/evaluator.py:546-558` · `ng/engine/routine/plan_reviewer.py:237-255` · `ng/engine/utils/json_extract.py:38-60` | 🔶 做 |
-| 3 | M1 × 官方 adapter「校验失败即带错纠正重试 + 概率归一」（§3） | 10 处 `loads_lenient`、3 处 strict `json.loads`，全仓无 strict schema / 枚举约束 | `ng/engine/utils/json_extract.py:43-44` · `ng/knowledge/ingestion/extraction.py:1859-1868` · `ng/knowledge/graph/extractors.py:929` | 🔶 写 |
-| 4 | M2 一次调用答多题（§4） | Judge 一次调用同时返回 `acceptance_met` / `score` / `verdict` / 反思 | `ng/engine/routine/evaluator.py:510-517,539-567` | ✅ |
-| 5 | M2 隔离的代价：跨问题无不变量，须由编排补（§4） | 代码层不变量：验收未达成绝不判 pass（封顶，ISSUE-116） | `ng/engine/routine/evaluator.py:287-297` | ✅ |
-| 6 | M3 概率可当错误率读（§5） | Judge 单点分数、无概率；逐轮 ±20 振荡由锚定 prompt（ISSUE-152）、容差带（ISSUE-128）、封顶（ISSUE-116）三处修补 | `ng/engine/routine/evaluator.py:548` · `ng/engine/routine/decision.py:147-150` · `docs/.agents/issue.md` ISSUE-128/152 | 🔶 写 |
-| 7 | M3 阈值须落在噪声带之外（§5） | 进化门 `SKILL_GATE_VISIBLE_GAIN_MIN=2.0`、`SKILL_CASE_REGRESSION_DELTA=5.0`，比较的是多 case（≥5）均值，每 case 仅单次评分 | `ng/engine/evolution/decision.py:273,276` · `:317-339` | ⏸ |
-| 8 | M3 confidence 必须有频率语义（§5） | 让 LLM 自报 0.5–1.0 confidence 并用于破平 / 过滤 | `ng/engine/consolidation/llm_fact_extractor.py:54,249` · `ng/engine/governance/conflict_resolver.py:140` · `ng/knowledge/graph/service.py:725-726` | 🔶 写 |
-| 9 | M3 × 硬编码置信（§5） | 正则意图分类器写死 0.85/0.7/0.4/0.3，并以 τ=0.7 / 0.55 做门 | `ng/engine/utils/action_intent.py:77-103` · `ng/agents/agent.py:98-103` · `ng/engine/utils/query_intent.py:54-95` | ⏸ |
-| 10 | M4 阈值三档：执行 / 升级 / 人工（§6） | PlanReviewer fail-open 放行、`max_refines` 上限强制批准；自动作答有固定兜底答案 | `ng/engine/routine/plan_review_hook.py:155-170,195-204` · `ng/engine/claude_code/service.py:1255` | ✅（结构）/ ⏸（置信触发） |
-| 11 | M4 快慢分工：窄判断走快路径（§6） | FacultyBridge 把决策路由给完整 ADK agent（方向相反），默认关 | `ng/engine/routine/faculty_bridge.py:125,162` · `ng/config/routine.py:322-323` | ⏸ |
-| 12 | System One 形空位：边界带是非判断（§6） | 实体消歧第 4 阶段 LLM 校验未实现；0.75–0.88 送人工复核队列 | `ng/knowledge/graph/entity_resolver.py:202,476` · `ng/knowledge/graph/canonical_linker.py:69-72` | ⏸ |
-| 13 | System One 形空位：去重模糊带（§6） | 记忆写入 cos 0.80–0.85 再比 Jaccard ≥0.7（0.80 为硬编码字面量） | `ng/engine/adapters/postgres/memory_service.py:62-63,558-591` | ⏸ |
-| 14 | M2 map-reduce 上的逐块相关性判定（§4） | `global_search` map 阶段让模型说「无相关信息」，过滤只丢空串 ⇒ 哨兵进入 reduce | `ng/knowledge/graph/global_search.py:51` · `:200-201` · `:431-435` | 🔶 做 |
-| 15 | 接入 Jev 类决策模型（§1） | 模型类型枚举仅 LLM / EMBEDDING / RERANK；task slot 只允许 llm / embedding | `ng/models/model_config.py:18-23` · `ng/config/task_registry.py:28` | ⏸ |
-| 16 | 最近邻同构：不生成、只打分（Tier 3） | LocalReranker（bge-reranker-v2-m3 cross-encoder）一次前向对 (query, doc) 打分，分数未校准 | `ng/knowledge/retrieval/reranking.py:84,159` · `ng/agents/tools/hybrid_planner.py:684,741-763` | ✅ |
-
-> 计数口径：每行只计主判定（#10 为分裂判定「✅（结构）/ ⏸（置信触发）」，计入 ✅），故 ✅4 + 🔶6 + ⏸6 = 16。
+| # | 材料机制（出处） | 本仓对应 | 锚点 | 判定 |
+|---|---|---|---|---|
+| 1 | M1 三原语把答案空间钉死在 criteria 内（§M1，规律 1） | 13 处 LLM 调用全部「prompt 散文枚举 + `response_format=json_object`」，零严格 schema | engine/routine/evaluator.py:514、knowledge/graph/extractors.py:885 等 13 处 | 🔶 |
+| 2 | M1 弃权语义：解析失败 ≠ 默认合法值 | proposer 解析失败/越界失控/`no_change` → `None` 弃权 + warn（「宁可不提不乱提」） | engine/evolution/proposer.py:9,218-257 | ✅ |
+| 3 | M1 越界事后矫正须可观测 | judge 族解析矫正全静默：垃圾 JSON → score=0 + verdict 兜底，零日志零计数；FacultyBridge 非空文本直接当命中 | engine/routine/evaluator.py:508-563、engine/routine/plan_reviewer.py:195-206,238-255 | 🔶 |
+| 4 | M1 选择题只认选项原文 | `_auto_answer_question` 非 JSON 时**原样返回 content 作答案**，自由文本冒充闭合选项 | engine/claude_code/service.py:1192,1199,1248 | 🔶 |
+| 5 | M1 枚举层闭合的兜底姿势 | KG 严格 `json.loads` 失败 → warn + `[]`（chunk 静默零实体）vs entity_normalization 的 raise → 重试 → degraded 标记 | knowledge/graph/extractors.py:929-932、engine/consolidation/pipeline/steps/entity_normalization_step.py:71-77,131-140 | 🔶 |
+| 6 | M2 共享一次读、多问一次调用 | evaluator 单合并 prompt 同答 4-5 问（acceptance/score/verdict/reflection），锚定规则显式声明 | engine/routine/evaluator.py:58-88,121-127 | ✅ |
+| 7 | M2 题与题隔离、互不可见 | plan_reviewer N 个模块评审 + 总评 + 分数一次调用，模块间互相污染 | engine/routine/plan_reviewer.py:96-109 | 🔶 |
+| 8 | M2 共享前缀把多问变便宜（12.2×） | map-reduce 每社区独立调用；全仓无 `cache_control`/prompt caching（仅进化 prompt 文本 TTL） | knowledge/graph/global_search.py:183-209、engine/evolution/weights.py:88-104 | ⏸ |
+| 9 | M3 概率可对账、confidence 是派生读数 | KG 抽取 confidence 缺省 **1.0 且不 clamp**，下游 `metadata.get("confidence", 1.0) >= 0.5` 过滤 → 缺失自动通过 | knowledge/graph/extractors.py:972、knowledge/graph/service.py:725-726、knowledge/types.py:784 | 🔶 |
+| 10 | M3 读数只是统计，量纲须可比 | LLM 口头置信（fact 0.7 缺省 / KG 1.0 缺省）与启发式常数置信（0.3-0.85）同列存储、被 avg 与门控同样消费 | engine/consolidation/llm_fact_extractor.py:249-252、engine/utils/query_intent.py:54-95、knowledge/graph/quality.py:157-163 | 🔶 |
+| 11 | M3 阈值是校准曲线上的索引 | 量纲错配已文档化并以 `accept_verdict_pass` 缓解；引擎侧对 judge 输出做确定性封顶 | engine/routine/decision.py:118-123,148、engine/routine/evaluator.py:287-297、models/routine.py:110 | ✅ |
+| 12 | M4 收益在编排不在模型 | 检索级联 cheap-first：混合检索 → 图扩展 → RRF → cross-encoder 重排；rerank 失败降级原序 | agents/tools/hybrid_planner.py:1-8,766、knowledge/retrieval/reranking.py:32-34,158-163,290 | ✅ |
+| 13 | M4 按任务选判断模型 | 按任务静态选模型档（「高风险用更强模型」），非运行时置信分流；3 个在用 task key 未注册、静默落全局默认 | config/routine.py:137-140,185-188,209-212、engine/claude_code/service.py:1053、config/model_resolver.py:37,1097 | 🔶 |
+| 14 | M4 廉价先行、昂贵兜底 | FacultyBridge **贵先**：全 ADK agent 优先、失败降级 litellm 直连，仅 contextvar 预算封顶 | engine/routine/faculty_bridge.py:59-78、engine/routine/evaluator.py:486-498 | ⏸ |
+| 15 | M4 门槛随风险伸缩 | HITL 静态 `HIGH_RISK_TOOLS` 列表 + plan review 轮次封顶后强制放行（fail-open 已注释文档化，下游 gate+judge 兜底） | agents/approval.py:46-61、engine/routine/plan_review_hook.py:154-170,196 | ✅ |
+| 16 | M4 失败要有预算 | `eval_failure_patience=3` 只覆盖基础设施失败；垃圾输出（score=0）零预算且计入 eval 均值/通过率 | config/routine.py:85-88、engine/routine/orchestrator.py:845、engine/eval/runner.py:990-997 | 🔶 |
 
 ## 逐条说明
 
-### #1 自动作答不校验选项成员（🔶 做 · 最高优先）
+**1｜🔶 枚举只活在 prompt 散文里。** 材料 M1 用 Choice/Score/Noul 三原语把答案空间钉死，规律 1 点破 JSON schema 只管格式不管枚举。本仓 13 处 LLM 调用（`grep` 实测计数，分布于 engine/knowledge 共 12 个文件）全部是「枚举写进 prompt 散文 + `response_format={"type":"json_object"}`」。也就是说，只有词法层约束、没有枚举层约束，也没有任何受约束解码。差异是结构性的；但材料自己也承认枚举层闭合需要专用判断模型，通用 LLM 场景下的替代品只有「解析纪律」。建议按「写」级落地：把这一既定姿势与新调用最低三件套（loads_lenient + 字段校验 + 矫正日志）写进一处权威注释。
 
-- **材料怎么做**：Choice 的答案由构造保证属于 `criteria`，越界根本无法输出。官方 adapter 让 LLM 作答时，也先按逐请求 schema 校验，失败则带错误信息纠正重试（200 §3）。
-- **本仓现状**：
-  - `_auto_answer_question` 的 prompt 两次强调「必须从选项中选择」「回答必须是选项之一」（`service.py:1192,1199`）。
-  - 返回时却直接 `"\n".join(str(a) for a in parsed["answers"])`（`:1246-1248`）；非 `answers` 格式的回复按 `return content` 原样返回（`:1248` 注释「非 answers 格式也返回纯文本」）。
-  - 失败走固定兜底答案（`:1255`）。
-- **差异**：模型写出「选项 A（推荐）」这类变体标签，会被当成合法答案写回 Claude Code 的 stdin。这正是 200 原型 B2 复现的「标签漂移越界」。
-- **建议**：在返回前做成员校验，只接受与选项标签精确匹配（或归一化后精确匹配）的答案；不匹配则纠正重试一次，仍失败就走 `:1255` 兜底。改动约十几行。时机：下一次触及 `claude_code/service.py` 时顺手做，或单独起小 PR。
+**2｜✅ proposer 是全仓唯一正确姿势的孤例。** 材料的弃权语义是「解析失败宁可不作答」；proposer 对非 dict、`no_change`、非法权重、越界失控四种失败一律 `return None` 并记 warn（proposer.py:222,226,234,245），模块头注明「宁可不提不乱提」。它还强制 `keyword = round(1.0 - semantic, 4)` 重算（:249），不信任模型的伴生输出。这是本仓离材料 M1 最近的一处。它的价值在于证明该姿势在本仓工程成本上完全可负担，问题只是没有推广。
 
-### #2 解析失败 ≠ 0 分（🔶 做）
+**3｜🔶 judge 族矫正零观测。** 材料 M1 承诺「答案不可能越界」的同时，要求越界之外的错可被看见；本仓正好相反。`evaluator._parse` 里 `data.get("score", 0)` 把缺失/垃圾 score 静默变 0（evaluator.py:548-552）。verdict 越界按分数兜底成 progressing/stalled（:558），整个 `_parse` 没有一行 logger（实测 `grep -c logger` 为 0）；plan_reviewer 同款（plan_reviewer.py:238-255，亦零日志）。重试环只看传输异常（:508-534），垃圾 JSON 不触发重试、变 score=0+stalled 直接落库。更隐蔽的是 FacultyBridge。faculty 返回非空但不可解析的文本，会被 `loads_lenient → {}` 洗成 score=0 并当命中返回、不回退 litellm（evaluator.py:486-498、plan_reviewer.py:195-206）。对照同文件 auto-answer 路径有键存在检查（claude_code/service.py:1218-1219）。差异核心：解析失败被伪装成「低分真实判断」。建议绑 evaluator/plan_reviewer 下次触碰时加矫正 counter 与一条 warn。
 
-- **材料怎么做**：错误形态在类型层面就不可能出现；LLM 基线里，adapter 把解析 / 校验失败作为显式错误处理（纠正重试），而不是填默认值。
-- **本仓现状**：
-  - Judge 的 `_parse` 先 `loads_lenient` 得到 `{}`，再 `raw_score = data.get("score", 0)`（`evaluator.py:546-548`），坏 verdict 按分数回退为 `progressing` / `stalled`（`:556-558`）。
-  - PlanReviewer 同理：`{}` → score 0 → `refine`（`plan_reviewer.py:237,248`）。
-  - 需要补充的细节：只有当模型返回**合法但非对象**的 JSON（如 list）时，`data.get` 抛 `AttributeError`，被 `_judge` 的 `except Exception` 捕获后退避重试（`evaluator.py:531-534`）；全部重试失败时，`evaluate` 返回 `ok=False`，计入 `eval_failure_patience`。真正**静默**的是「解析成空对象」这一支。
-- **差异**：「模型打了 0 分」与「模型输出被截断」在下游看起来完全一样，都会推动 routine 走向 `stalled`。
-- **建议**：`_parse` 在 `data == {}` 时返回显式的解析失败信号，交给现有重试环处理，而不是合成 0 分。改动小，建议与 #1 同一个 PR。
+**4｜🔶 自由文本冒充选项答案。** 材料 M1 的 Choice 要求答案只能是选项之一。`_auto_answer_question` 在 prompt 里两处强调「必须是选项之一的 label 原文」（claude_code/service.py:1192,1199），但解析失败时 `return content`（:1248）把模型原样输出直接回传给 CC 的 AskUserQuestion。约束只存在于 prompt，兜底路径恰好把约束击穿。仅传输异常才走 `_FALLBACK_ANSWER`（:1254,1255）。差异：闭合选项的失败语义应是「落回中性默认」而非「放行任意文本」。建议该模块下次触碰时把非 JSON 分支改走 fallback。
 
-### #3 全仓结构化输出纪律（🔶 写）
+**5｜🔶 同一问题两种姿势并存。** KG 实体抽取用严格 `json.loads`，失败 warn 后 `return []`（extractors.py:929-932）。该 chunk 的静默零实体没有任何 counter，下游不可区分「无实体」与「解析失败」。而 entity_normalization_step 的注释直接点破：`loads_lenient` 返回 `{}` 会「把脏输出伪装成空实体成功」。因此它先校验 `entities` 键、失败 raise 触发重试、最终标 `degraded`（entity_normalization_step.py:131-140，degraded 标记 :71-77）。这说明本仓已在局部识别此问题并给出正解，只是两处姿势相反。建议以 entity_normalization 的「校验-重试-降级标记」为范本，KG 侧补一个 parse-failure counter。
 
-- **本仓现状**：10 处 `loads_lenient` 与 3 处 strict `json.loads` 各自处理失败，没有统一约定。
-  - 宽松侧：`json_extract.py:43-44` 的默认值是 `{}`。
-  - 严格侧：`extraction.py:1859-1868` 失败返回 None，`extractors.py:929` 失败返回 `[]`。
-- **建议**：写一页约定，内容分三点：
-  - 什么决策必须闭合（枚举、分数、布尔），什么可以宽松（摘要、反思文本）。
-  - 失败信号必须显式。
-  - 枚举字段要校验成员。
+**6｜✅ 合并 prompt 是共享读的正例。** 材料 M2 的「state 读一遍、多问合一」在本仓 evaluator 已是事实标准。一个 prompt 同答 acceptance_met/score/verdict/reflection（锚定版再加 progress_evidence），1 次调用（evaluator.py:58-88）。且锚定规则把「证据先于给分」「分数与轨迹相容」写成显式条款（:121-127），这与材料用 criteria 锚定答案空间的思路同构。这是本仓与材料在「便宜的多问」上成本结构最近的一条。
 
-  成本约半小时，放在 [Development](../../concepts/operations/development.md) 或 LLM 调用规范处。
+**7｜🔶 plan_reviewer 的互相污染。** 材料用「题与题互不可见」换隔离；plan_reviewer 反其道，N 个模块评审 + 总 verdict + 分数一次调用（plan_reviewer.py:96-109），总评分数会被前面模块的措辞情绪污染，模块间也无隔离。差异：本仓只有「合并省钱」没有「隔离防污染」的另一半。建议「写」级：在该 prompt 处注明已知污染、模块结论以 status 而非总分定夺（现状已部分如此），暂不拆调用。
 
-### #4 / #5 一次多答与代码层不变量（✅）
+**8｜⏸ 前缀缓存零利用。** 材料 M2 的 12.2× 便宜一半来自「输入计一次、输出免费」的计费形状与共享前缀。本仓 `grep cache_control/prompt_cach/cached_tokens` 全仓零命中（仅进化 prompt 文本 TTL 缓存，weights.py:88-104，与推理侧缓存无关）。judge prompt 前缀（角色设定 + 评审要求）跨迭代高度稳定，是天然的缓存候选。暂缓理由：无 LLM 成本占比数据支撑优先级，且 litellm 跨 provider 的缓存开关行为不一。
 
-- Judge 一次调用返回多个字段（`evaluator.py:510-517`），对应 M2 的「读一次、答多题」。
-- 差别在于：本仓的多字段是**联合生成**，字段之间互相可见，恰好规避了 Jev「跨问题无不变量」的副作用，代价是串行生成。
-- 同时，`evaluator.py:287-297`「验收未达成绝不判 pass」是一道由代码补上的不变量。这正是 200 §4 给出的编排解：互斥或蕴含约束交给代码或单个 Choice 保证，不指望判读器自觉。
+**9｜🔶 置信缺省方向反了。** 材料 M3 的 confidence 是分布形状的派生读数、缺省即低集中度。本仓 KG 链路是 `confidence=float(entity_data.get("confidence", 1.0))`（extractors.py:972，无 clamp 无范围检查）。下游过滤 `e.metadata.get("confidence", 1.0) >= min_conf`，且 `min_entity_confidence` 默认 0.5（service.py:725-726、types.py:784）。结果是字段缺失时自动以满置信通过门槛。同向例证还有 `acceptance_met` 非 bool → `None` → 不施加封顶（evaluator.py:563,287-297）：安全信号缺失时选择宽容。对照 fact extractor 缺省 0.7 至少落在中间。建议绑 KG 抽取链下次触碰时改缺省为显式低值或标记 missing。
 
-### #6 / #7 点分数与阈值（🔶 写 / ⏸）
+**10｜🔶 两种量纲同库同列。** 材料规律 3 强调「读数只是统计」，其前提是量纲统一。本仓同一 `confidence` 列里同时存在三种来源：LLM 口头置信（fact 0.7 缺省、KG 1.0 缺省）、正则兜底常数（strategy.py:199,217 的 0.5/0.6，0.5 恰在阈值上）与手定启发式常数（query_intent.py:54-95 的 0.3-0.7、action_intent.py:77-103 的 0.3-0.85）。消费端不分来源：quality.py:157-163 对全列做 avg 当语料质量指标，agent.py:31,99-103 用 0.7 门控翻转 ingest 路由。差异：材料的 confidence 有固定派生公式保证可比，本仓的常数们没有任何对账基准。建议「写」级：在字段语义处注明三种来源不可比，聚合须分组。
 
-- **材料怎么做**：Jev 把「是否自动执行」建立在校准概率之上；第三方实测显示，一旦离开分布，概率也不再可信（200 §5）。
-- **本仓现状**：
-  - Judge 输出单点 0–100 分，`decide()` 按 `score >= threshold` 判成功（`decision.py:147-150`）。
-  - 已知逐轮 ±20 振荡由三个 issue 分别修补：锚定 prompt 是 ISSUE-152，容差带是 ISSUE-128，封顶（`evaluator.py:287-297`）是 ISSUE-116。
-  - 进化门的 2.0 / 5.0 分边距（`evolution/decision.py:273,276`）比较的是多 case 均值。
-- **口径限定**：±20 是单个巡检 routine 的逐轮分。「门槛边距落在 Judge 噪声带内」是推断，需要对同一技能的 case 均值做重复评分才能坐实。
-- **建议**：
-  - #6 写一页「点分数不可直接当阈值」的设计备忘：同一输出重复评分 N 次，取中位数和四分位距，`decide()` 只在区间整体越线时判成功。
-  - #7 暂缓。触发条件：进化 Phase 3 落地重复评分，或出现一次门槛误判的复盘。
+**11｜✅ 量纲错配的自觉。** 材料 M3 说阈值是校准曲线的索引。本仓 decision.py:118-123 把 `success_score_threshold=100` 与 judge「全部满足≈90-100」的结构性失配写成文档，并以 `accept_verdict_pass` 显式 opt-in 旁路（:148）；巡检任务阈值 99/100 正是这个错配的产物。引擎侧还有确定性封顶：`acceptance_met=False` 时 cap score 且 pass 纠正为 progressing（evaluator.py:287-297），即代码不信任 judge 的自洽性。这与材料「代码拥有控制流、模型只交读数」的分工一致。
 
-### #8 / #9 自报与硬编码置信（🔶 写 / ⏸）
+**12｜✅ 编排收益已在。** 材料 M4/规律 5 的核心是「同一模型放进 workflow 更准更快更便宜」。本仓检索栈是教科书式 cheap-first 级联：意图正则 → 多路 hybrid → 图扩展 → RRF 融合 → cross-encoder 重排（hybrid_planner.py:1-8）。reranker 推理失败回退原序（reranking.py:158-163），CompositeReranker 按 Cohere → 本地 BGE → Noop 降级（:290）。升级靠流水线位置而非分数门控，且 `score_threshold=0.0`（reranking.py:32-34、hybrid_planner.py:766）使重排退化为纯排序。这与材料的置信门控不同，但在「廉价先行」的骨架上已经对齐（threshold 语义另记一笔即可）。
 
-- **本仓现状**：
-  - `llm_fact_extractor.py:54` 让模型「Assign confidence between 0.5 and 1.0」，缺省 0.7（`:249`）。该值用于 ConflictResolver 破平（`conflict_resolver.py:140`）与 KG 最低置信过滤（`graph/service.py:725-726`）。
-  - 正则意图分类器写死 0.85 / 0.7 / 0.4 / 0.3（`action_intent.py:77-103`），并以 τ=0.7 做门（`agent.py:98-103`）。
-- **差异**：两者都叫 confidence，但都没有频率语义。200 §5 的原型实测显示：未校准时直投决策自称错误率 0.7%，实际是 12%。
-- **建议**：
-  - #8 在字段注释与文档里标明「未校准启发式，仅作相对排序，不作绝对阈值」，成本一句话。
-  - #9 暂缓。触发条件：意图分类误路由成为可观测问题。
+**13｜🔶 静态模型档与幽灵 task key。** 材料 M4 按风险分档用模型；本仓以静态配置实现同一目标（evaluator/plan_review/auto_answer 三档，config/routine.py:137-140,185-188,209-212，evaluator.py:152-153 注明高风险用更强模型的动机），这是合理近似。缺口在治理：`routine.auto_answer`（service.py:1053）、`routine.memory_extract`（memory_extractor.py:37）、`eval.execute`（runner.py:172,217）在用但未注册进 `ALL_TASKS`（task_registry.py:58-178）。`is_valid_task_key` 仅在 API 写入时执法（interface/task_models_api.py:150,198,317），resolver 静默落全局默认 `openai/gpt-5-nano`（model_resolver.py:37），唯一信号是 `task_model_resolved` 日志的 "default" 标签（:1097）。运行时置信分流则暂缓（见 #14 与文末）。建议绑 task_registry 下次加槽时补注册或前移校验。
 
-### #10 / #11 分流结构（✅ 结构 / ⏸）
+**14｜⏸ 贵先的反向级联。** 材料的级联是便宜模型先行、按读数升级。FacultyBridge 是全 ADK agent（贵）先行、失败降级 litellm 直连，成本失控仅靠 contextvar 预算封顶（faculty_bridge.py:59-78）。方向相反但动机明确：bridge 买的是 faculty 的内化质量而非省钱，且失败路径有日志。暂缓理由：仓内没有 faculty vs 直连的输出质量/成本 A/B 数据，「贵先是否反模式」无法裁决。
 
-- **已有的分流结构**：PlanReviewer 已有「失败放行」与「`max_refines` 上限强制批准」（`plan_review_hook.py:155-170,195-204`），自动作答已有固定兜底（`service.py:1255`），即已具备「兜底去向」。
-- **差别**：触发条件是**失败**或**次数**，而不是**置信度**。
-- **FacultyBridge**：它把决策交给完整 ADK agent（`faculty_bridge.py:125,162`），是 System 2 化，与 M4 方向相反。默认关（`config/routine.py:322-323`），暂缓。
+**15｜✅ 风险分级的工程近似。** 材料 M4 让门槛随风险伸缩。本仓 HITL 用静态 `HIGH_RISK_TOOLS` 按副作用类别分级（写库/执行/外发，approval.py:46-61），加 allow/block 列表（:122-125），粒度粗但方向一致。plan review 达 5 轮上限后强制放行（plan_review_hook.py:154-170），judge 不可用时 fail-open（:196），在材料视角都是「门槛归零」。但两处都有显式注释说明权衡（放行后仍有 gate+judge+审批兜底、死锁代价更高），是文档化的自觉选择而非疏漏。
 
-### #12 / #13 / #14 System One 形空位
-
-- **#12**：`entity_resolver.py:202` 文档化的第 4 阶段 LLM 校验不存在（`:476`「边界区域暂不合并（LLM 验证留给后续迭代）」），`_borderline_high` 设置后从未被读取。这是一道标准的 Noul 题（「这两个实体是同一个吗」）。暂缓，触发条件：`canonical_linker` 人工复核队列积压成为瓶颈。
-- **#13**：记忆去重 0.80–0.85 模糊带（`memory_service.py:558-591`）同样是 Noul 形。暂缓，与 [015 #8](../cognitive-context/015-openviking-mapping-negentropy.md) 的「LLM 档」判定一致。
-- **#14（🔶 做）**：`global_search` 的 map prompt 让模型在无关时回答「无相关信息」（`global_search.py:51`），过滤器只丢空串（`:200-201`），哨兵因此随证据进入 reduce（`:431-435`），稀释了综合答案的输入。
-  - 最小修复：过滤该哨兵串。
-  - 中期方案：map 阶段改成「相关性是非 + 部分答案」两段，这正是 docstring 承诺而未实现的「置信度」（D3）。
-
-### #15 / #16 接入与最近邻
-
-- **#15（⏸）**：模型类型枚举只有 LLM / EMBEDDING / RERANK（`models/model_config.py:18-23`），task slot 只允许 llm / embedding（`task_registry.py:28`）。接入决策模型需要新增类型与 slot。
-  - 暂缓理由：
-    - 官方自认 CJK 较弱。
-    - 闭源、同一权重服务所有客户。
-    - 二手媒体称大陆不可用，未经一手核实。
-  - 触发条件：可自托管、中文校准经本仓数据验证的决策模型出现。验证协议见 200 §10：自有切片重拟温度，再在分布外切片上测 ECE 与直投错误率。
-- **#16（✅）**：`LocalReranker` 是仓内唯一「不生成、只打分」的模型（`reranking.py:84,159`，由 `hybrid_planner.py:684,741-763` 消费）。它证明本仓已有 System One 形组件的接入先例；将来接入决策模型，应沿用 rerank 的接入形态，而不是走 LLM task slot。
+**16｜🔶 垃圾输出没有预算。** 材料 M4 给每类失败设预算与门槛；本仓 `eval_failure_patience=3` 只数「评估器抛异常」（config/routine.py:85-88、orchestrator.py:845）——基础设施失败有预算，解析垃圾（不抛异常的 score=0）零预算且照常推进决策。离线 eval 更进一步：judge 不可用时 `score=0.0` 计入均值与通过率（runner.py:990-997），`DEFAULT_PASS_THRESHOLD=70.0`（:55）下真实 0 分与垃圾 0 分不可区分。这与 #3 是同一建议的两面：先有 counter，才谈得上预算。
 
 ## 落地建议汇总
 
-- **做**（建议合并为一个小 PR，下次触及 routine / claude_code 时落地）：
-  1. #1 自动作答成员校验 + 纠正重试 + 兜底。
-  2. #2 `_parse` 对 `{}` 返回显式解析失败信号，交给现有重试环。
-  3. #14 `global_search` 过滤「无相关信息」哨兵。
-- **写**：
-  1. #3 结构化输出约定（半小时）。
-  2. #6「点分数不可直接当阈值」设计备忘（一页）。
-  3. #8 自报 confidence 字段注释「未校准启发式」（一句话）。
-- **暂缓**（写明触发条件）：
-  1. #7 进化门重复评分：进化 Phase 3。
-  2. #9 意图分类校准：出现误路由问题。
-  3. #11 FacultyBridge：保持默认关。
-  4. #12 实体消歧 Noul：复核队列积压。
-  5. #13 去重模糊带 Noul：与 015 #8 同步。
-  6. #15 接入决策模型：可自托管 + 中文校准验证。
+**做**（绑明确时机）：
+- 给 judge 族解析器（`evaluator._parse` / `plan_reviewer._parse` / FacultyBridge 消费点）加「矫正发生」counter 与一条 warn。绑 evaluator 或 plan_reviewer 下次触碰（锚定/阈值调整）时；counter 落 metrics，使垃圾 0 分可与真实 0 分区分（#3、#16）。
+- 修 KG 置信缺省方向：`extractors.py:972` 与 `service.py:725-726` 的 `metadata.get("confidence", 1.0)` 缺省改显式低值或 missing 标记。绑 knowledge/graph 抽取链下次触碰时；注意存量实体无该字段的回填影响（#9）。
+- `_auto_answer_question` 解析失败分支改走 `_FALLBACK_ANSWER`，绑 claude_code service 下次触碰（#4）。
+- 补注册或前移校验在用未注册的 task key，绑 task_registry 下次加槽时（#13）。
 
-## 取证副产物：本仓漂移清单
+**写**（一句话成本）：
+- 在 task_registry 或 ADR 写明「枚举只存在于 prompt 散文 + 事后矫正」是全仓既定姿势（含 13 处清单），新 judge 类调用至少沿用 loads_lenient + 字段校验 + 矫正日志三件套（#1）。
+- 在 confidence 字段语义处写一句：LLM 口头置信 / 正则常数 / 启发式常数三种来源不可比，聚合须分组（#10）。
+- plan_reviewer prompt 处注明模块互评污染已知、以 status 为准（#7）；rerank `score_threshold=0` 的「纯排序」语义注一笔（#12）。
 
-| D# | 类别 | 现象 | 锚点 | 影响 |
-| --- | --- | --- | --- | --- |
-| D1 | 配置 | `routine.auto_answer` / `routine.memory_extract` / `eval.execute` 三个 task key 在用但未注册，静默回落默认模型；`config/routine.py` 注释却称「走 task_registry 解析」；管理端拒绑未知 key | `ng/engine/claude_code/service.py:1053` · `ng/engine/routine/memory_extractor.py:37` · `ng/engine/eval/runner.py:172` · `ng/config/routine.py:187,279` · `ng/interface/task_models_api.py:150-151` | 三条链路无法单独指定模型 |
-| D2 | 死配置 | `auto_answer_model` / `auto_answer_timeout_seconds` 定义但无人读取；调用点不传 `model_override`、硬编码 `timeout=30.0` | `ng/config/routine.py:185-189` · `ng/engine/claude_code/service.py:1581-1585` | 用户改配置无效 |
-| D3 | 文档 | `global_search` docstring 承诺「部分答案 + 置信度」，`GlobalSearchEvidence` 无 confidence 字段 | `ng/knowledge/graph/global_search.py:5-9,84-91` | 读者误以为已有相关性过滤 |
-| D4 | 文档 | 意图 boost：docstring「+10% 分」vs 代码 `boost = 0.15` | `ng/engine/adapters/postgres/memory_service.py:1355,1368` | 调参依据失真 |
-| D5 | 配置 | ingestion planner 未钉温度，经 `setdefault` 继承 0.7 做 choice + 是非判断 | `ng/knowledge/ingestion/extraction.py:1848-1854` · `ng/config/model_resolver.py:37-41` | 决策类调用不必要的随机性 |
-| D6 | 死字段 | `entity_resolver` 的 `_borderline_high` 设置后从未读取，第 4 阶段只存在于 docstring | `ng/knowledge/graph/entity_resolver.py:202,212-214,476` | 同 D3 |
-| D7 | 文档 | `issue.md` 存在两个 `## ISSUE-128` 标题 | `docs/.agents/issue.md:3076,3119` | 交叉引用歧义 |
-
-> ConflictResolver docstring 宣称三阶段检测、实现只有规则，已由 [ISSUE-195](../../.agents/issue.md) D4 登记，此处不重复。
+**暂缓**（写明 YAGNI 触发条件）：
+- prompt 前缀缓存：触发条件 = LLM 成本可观测且 judge/抽取前缀占比显著（#8）。
+- 运行时置信分流（按读数升降模型档）：触发条件 = 本域有校准验证的置信信号。材料规律 4 表明曲线一换阈值即作废，本仓无任何校准数据（#13）。
+- FacultyBridge 改 cheap-first：触发条件 = faculty 与直连的输出质量/成本 A/B 数据（#14）。
+- 接入 Jev 本体或增设 judge/rerank 类决策模型槽位：触发条件 = 官方给出中文量化，或可自托管复刻且经本仓数据校准验证（材料批判边界 5：中文可用性零量化；`TaskModelType` 现无此槽位）。
+- 严格 JSON-schema / 受约束解码：触发条件 = 矫正 counter 显示某链路脏输出率高到值得工程化（#1 的升级路径）。
 
 ## 交叉引用
 
-- 材料侧：[200 Jev 精读笔记](./200-jev-system-one-model.md)（机制 M1–M4、原型 [jev_lab.py](./assets/jev_lab.py)、破坏性实验 B1–B6）。
-- 相关子系统：[Routine 系统](../../concepts/subsystems/039-the-routine-system.md)（Judge 与 `decide()`）· [Claude Code 集成](../../concepts/subsystems/038-claude-code-integration.md)（自动作答）· [自进化 Agents Team 方案](../../concepts/design/self-evolving-agents.md)（进化门）。
-- 同类映射：[OpenViking ↔ negentropy](../cognitive-context/015-openviking-mapping-negentropy.md)（去重 LLM 档、ConflictResolver 漂移）· [Agent Skills ↔ negentropy](./091-agent-skills-mapping-negentropy.md)。
-- Issue 登记：[ISSUE-198](../../.agents/issue.md)。
+- 材料机制定义与证据链：[200-jev-system-one-model.md](./200-jev-system-one-model.md) 的 §M1（闭合输出空间，§3）、§M2（共享 state 与隔离，§4）、§M3（校准概率，§5）、§M4（快慢分工，§6）及规律 1-5、争议 3（校准的领地）各节（§7）。
+- 落地建议中「做」档四项建议将在 [issue.md](../../.agents/issue.md) 登记条目，并回链本报告（锚点以本文「文件：行号」为准）。
