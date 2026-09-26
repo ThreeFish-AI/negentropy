@@ -1,0 +1,246 @@
+# 非论文信源清单（可复现取证链，工具：$T/scripts/source_ledger.py）
+#
+# kind=repo 指向固定 commit，raw 指纹漂移即 FAIL（说明 URL 里的 ref 不是不可变引用）。
+# kind=site 指向线上页面，只对剥标签归一后的正文比对指纹，漂移报 WARN（去复核笔记）。
+# text_sha256 是判据；raw_sha256 仅供 repo 类硬校验与人工核对。
+
+
+[as210-research]
+url = "https://raw.githubusercontent.com/ThreeFish-AI/negentropy/72a657351adbf9b5bd2f667c2bede3d8551e65d4/docs/research/agent-infra/210-agent-skills-open-standard.md"
+kind = "repo"
+accessed = "2026-09-26"
+raw_sha256 = "f107ff65df2760fa"
+text_sha256 = "01224f8716ab50d4"
+bytes = 27904
+lines = 237
+via = "pinned commit, 内部文档"
+
+[as211-mapping]
+url = "https://raw.githubusercontent.com/ThreeFish-AI/negentropy/72a657351adbf9b5bd2f667c2bede3d8551e65d4/docs/research/agent-infra/211-agent-skills-mapping-negentropy.md"
+kind = "repo"
+accessed = "2026-09-26"
+raw_sha256 = "9f22a32d2ac85bc4"
+text_sha256 = "c601f3c1d5e0d684"
+bytes = 10080
+lines = 54
+via = "pinned commit, 内部文档"
+
+[as-lab2]
+url = "https://raw.githubusercontent.com/ThreeFish-AI/negentropy/72a657351adbf9b5bd2f667c2bede3d8551e65d4/docs/research/agent-infra/assets/agent_skills_lab2.py"
+kind = "repo"
+accessed = "2026-09-26"
+raw_sha256 = "de225458c9a44bee"
+text_sha256 = "bddbb66af2a564f6"
+bytes = 19207
+lines = 354
+via = "pinned commit, 内部文档"
+
+[spec-mdx]
+url = "https://raw.githubusercontent.com/agentskills/agentskills/69ef37e9424c0a7ea9dd2293b559e43ec8176379/docs/specification.mdx"
+kind = "repo"
+accessed = "2026-09-26"
+raw_sha256 = "b9079c0c10b7930e"
+text_sha256 = "8a731b1f3798efe5"
+bytes = 7166
+lines = 247
+via = "pinned commit, CC-BY-4.0"
+
+[home-mdx]
+url = "https://raw.githubusercontent.com/agentskills/agentskills/69ef37e9424c0a7ea9dd2293b559e43ec8176379/docs/home.mdx"
+kind = "repo"
+accessed = "2026-09-26"
+raw_sha256 = "5ef4ef73f111f473"
+text_sha256 = "3d2c01682706efa5"
+bytes = 3314
+lines = 74
+via = "pinned commit, CC-BY-4.0"
+
+[clients-mdx]
+url = "https://raw.githubusercontent.com/agentskills/agentskills/69ef37e9424c0a7ea9dd2293b559e43ec8176379/docs/clients.mdx"
+kind = "repo"
+accessed = "2026-09-26"
+raw_sha256 = "b715ea5f63a25d4b"
+text_sha256 = "5c4a8ef65d3e823b"
+bytes = 252
+lines = 9
+via = "pinned commit, CC-BY-4.0"
+
+[guide-quickstart]
+url = "https://raw.githubusercontent.com/agentskills/agentskills/69ef37e9424c0a7ea9dd2293b559e43ec8176379/docs/skill-creation/quickstart.mdx"
+kind = "repo"
+accessed = "2026-09-26"
+raw_sha256 = "a6614e814e19fb50"
+text_sha256 = "34a662a6aff4e9c7"
+bytes = 3844
+lines = 80
+via = "pinned commit, CC-BY-4.0"
+
+[guide-best]
+url = "https://raw.githubusercontent.com/agentskills/agentskills/69ef37e9424c0a7ea9dd2293b559e43ec8176379/docs/skill-creation/best-practices.mdx"
+kind = "repo"
+accessed = "2026-09-26"
+raw_sha256 = "a729bc1d746366ec"
+text_sha256 = "124e83b4fd86baab"
+bytes = 14608
+lines = 275
+via = "pinned commit, CC-BY-4.0"
+
+[guide-desc]
+url = "https://raw.githubusercontent.com/agentskills/agentskills/69ef37e9424c0a7ea9dd2293b559e43ec8176379/docs/skill-creation/optimizing-descriptions.mdx"
+kind = "repo"
+accessed = "2026-09-26"
+raw_sha256 = "5d6f72364f819399"
+text_sha256 = "57bbf83179d81b5a"
+bytes = 13151
+lines = 193
+via = "pinned commit, CC-BY-4.0"
+
+[guide-eval]
+url = "https://raw.githubusercontent.com/agentskills/agentskills/69ef37e9424c0a7ea9dd2293b559e43ec8176379/docs/skill-creation/evaluating-skills.mdx"
+kind = "repo"
+accessed = "2026-09-26"
+raw_sha256 = "20e53ee9085966bb"
+text_sha256 = "4d7ac52fbc8a6750"
+bytes = 16755
+lines = 298
+via = "pinned commit, CC-BY-4.0"
+
+[guide-scripts]
+url = "https://raw.githubusercontent.com/agentskills/agentskills/69ef37e9424c0a7ea9dd2293b559e43ec8176379/docs/skill-creation/using-scripts.mdx"
+kind = "repo"
+accessed = "2026-09-26"
+raw_sha256 = "064185783e0f848a"
+text_sha256 = "eeecc317e4d438ae"
+bytes = 12405
+lines = 298
+via = "pinned commit, CC-BY-4.0"
+
+[guide-client]
+url = "https://raw.githubusercontent.com/agentskills/agentskills/69ef37e9424c0a7ea9dd2293b559e43ec8176379/docs/client-implementation/adding-skills-support.mdx"
+kind = "repo"
+accessed = "2026-09-26"
+raw_sha256 = "e1a788f858766f4b"
+text_sha256 = "e445d216546f07fd"
+bytes = 20254
+lines = 335
+via = "pinned commit, CC-BY-4.0"
+
+[repo-agents-md]
+url = "https://raw.githubusercontent.com/agentskills/agentskills/69ef37e9424c0a7ea9dd2293b559e43ec8176379/AGENTS.md"
+kind = "repo"
+accessed = "2026-09-26"
+raw_sha256 = "ed905e17e95d5ce6"
+text_sha256 = "6d24badcb077571c"
+bytes = 1960
+lines = 43
+via = "pinned commit, Apache-2.0 仓内治理文档"
+
+[ref-validator]
+url = "https://raw.githubusercontent.com/agentskills/agentskills/69ef37e9424c0a7ea9dd2293b559e43ec8176379/skills-ref/src/skills_ref/validator.py"
+kind = "repo"
+accessed = "2026-09-26"
+raw_sha256 = "b5ee3d8537c83c95"
+text_sha256 = "dfad958e15043d25"
+bytes = 5154
+lines = 177
+via = "pinned commit, Apache-2.0"
+
+[ref-parser]
+url = "https://raw.githubusercontent.com/agentskills/agentskills/69ef37e9424c0a7ea9dd2293b559e43ec8176379/skills-ref/src/skills_ref/parser.py"
+kind = "repo"
+accessed = "2026-09-26"
+raw_sha256 = "9a74c9a90eb217b8"
+text_sha256 = "0d143d1ab9fca282"
+bytes = 3413
+lines = 112
+via = "pinned commit, Apache-2.0"
+
+[ref-prompt]
+url = "https://raw.githubusercontent.com/agentskills/agentskills/69ef37e9424c0a7ea9dd2293b559e43ec8176379/skills-ref/src/skills_ref/prompt.py"
+kind = "repo"
+accessed = "2026-09-26"
+raw_sha256 = "8ed90a61685b8405"
+text_sha256 = "3c6b6bb0977519a9"
+bytes = 1724
+lines = 58
+via = "pinned commit, Apache-2.0"
+
+[site-claude-code]
+url = "https://code.claude.com/docs/en/skills"
+kind = "site"
+accessed = "2026-09-27"
+raw_sha256 = "5678ff814e81b54e"
+text_sha256 = "9016e0aaf89f89d4"
+bytes = 1150550
+lines = 2194
+via = "Claude Code skills 文档：发现层级/渐进披露/私货字段与 allowed-tools 不受 trust 门控口径"
+
+[site-openai-codex]
+url = "https://developers.openai.com/codex/skills/"
+kind = "site"
+accessed = "2026-09-27"
+raw_sha256 = "8506de0fccf3638d"
+text_sha256 = "24bdb749e93772e4"
+bytes = 384449
+lines = 2167
+via = "OpenAI Codex skills 文档：.agents/skills 扫描 CWD→repo root、frontmatter 最小"
+
+[site-gemini-cli]
+url = "https://github.com/google-gemini/gemini-cli/blob/main/docs/cli/skills.md"
+kind = "site"
+accessed = "2026-09-27"
+raw_sha256 = "b07e59f797300da1"
+text_sha256 = "a7b0d59d9a94058e"
+bytes = 291122
+lines = 1096
+via = "Gemini CLI skills 文档：唯一默认逐技能确认门、.agents/skills 别名优先"
+
+[site-vscode]
+url = "https://code.visualstudio.com/docs/copilot/customization/agent-skills"
+kind = "site"
+accessed = "2026-09-27"
+raw_sha256 = "a1a46564d8d4209e"
+text_sha256 = "b4f74579f8fac6a0"
+bytes = 145648
+lines = 2248
+via = "VS Code Agent Skills 文档：三约定路径通吃、复用 CC 字段语义"
+
+[pr-254-distribution]
+url = "https://github.com/agentskills/agentskills/pull/254"
+kind = "site"
+accessed = "2026-09-27"
+raw_sha256 = "bea74f0f974d9f9d"
+text_sha256 = "3503ede106adc424"
+bytes = 711969
+lines = 8761
+via = "#254 .well-known 分发规范提案（digest/防解压炸弹），2026-03 开、停摆 7 个月"
+
+[pr-573-520-tools]
+url = "https://github.com/agentskills/agentskills/pull/573"
+kind = "site"
+accessed = "2026-09-27"
+raw_sha256 = "f8f98d72ce1ef224"
+text_sha256 = "0969e5fe30eb416f"
+bytes = 299002
+lines = 1715
+via = "#573 放宽 allowed-tools（YAML 数组）与 #520 锁死空格串对冲并存，无裁决通道"
+
+[pr-546-mcp]
+url = "https://github.com/agentskills/agentskills/pull/546"
+kind = "site"
+accessed = "2026-09-27"
+raw_sha256 = "611692c3be06399e"
+text_sha256 = "5cc4197016ffecbb"
+bytes = 327178
+lines = 2091
+via = "#546 为 MCP SEP-2640 保留 io.modelcontextprotocol/ metadata 前缀"
+
+[anthropic-skills]
+url = "https://www.anthropic.com/news/skills"
+kind = "site"
+accessed = "2026-09-27"
+raw_sha256 = "60e5738a7a00c224"
+text_sha256 = "197ee52951f08be1"
+bytes = 547470
+lines = 3865
+via = "Anthropic Skills 官宣（格式发起方与开放标准化的起点口径）"
