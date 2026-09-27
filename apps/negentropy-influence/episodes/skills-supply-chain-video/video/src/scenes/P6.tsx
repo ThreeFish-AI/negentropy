@@ -75,7 +75,16 @@ const SignalBoard: React.FC<{
     {tag: '这次', k: '无密钥签名', sub: '透明日志', at: medalAt2, s: m2},
   ];
   return (
-    <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18}}>
+    // 整体 0.9 缩 + 上提：差别条原底缘 ~y940 侵入字幕安全带（qa p6-08 WARN），缩放后 ~y870
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 18,
+        transform: 'scale(0.9) translateY(-34px)',
+      }}
+    >
       <div style={{display: 'flex', alignItems: 'baseline', gap: 18, opacity: head}}>
         <span style={{fontFamily: theme.serif, fontSize: 36, color: theme.deny, letterSpacing: 3}}>
           三个信号
