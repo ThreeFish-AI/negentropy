@@ -1,0 +1,32 @@
+%% source: docs/research/agent-infra/210-agent-skills-open-standard.md §1/§8（措词对齐 agent-skills-video narration P6）
+%% slug: agent-skills-box-history-rhyme
+%% type: lifecycle
+%% derived: 2026-09-27 agent-skills-video 分镜
+stateDiagram-v2
+    direction LR
+
+    state "1956 自家格式 · 开卡车的 McLean" as s_launch
+    state "专利捐成标准 · 零授权门槛" as s_donate
+    state "箱体全球统一 · 角件尺寸互通" as s_iso
+    state "查验空窗几十年 · 海关主权不碰" as s_gap
+    state "CSI 事故倒逼 · 跨国查验后补" as s_csi
+
+    state "事实标准成型 · 六字段 46 家采纳" as k_fact
+    state "信任分发留白 · 确认门各自为政" as k_blank
+    state "条文后补 · 先事实后条文" as k_rule
+
+    state "先事实·后条文 · 箱体统一→查验后补" as v_rhyme
+
+    [*] --> s_launch
+    s_launch --> s_donate: 格式捐出
+    s_donate --> s_iso: 全数就范
+    s_iso --> s_gap: 只保箱体
+    s_gap --> s_csi: 事故倒逼
+
+    k_fact --> k_blank: 外部性下放
+    k_blank --> k_rule: 先成事实
+    k_rule --> v_rhyme: 多半同路
+
+    s_iso --> k_fact: 同一招法
+    s_gap --> k_blank: 同一空窗
+    s_csi --> k_rule: 同一收尾

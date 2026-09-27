@@ -1,0 +1,130 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 16.32,
+ "total_wall_sec": 64.11,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "ma-old",
+   "label": "旧姿势",
+   "index": 0,
+   "file": "manifest-anatomy--ma-old.mp4",
+   "end_still": "manifest-anatomy--ma-old-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "client",
+    "old"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "ma-index",
+   "label": "总舱单",
+   "index": 1,
+   "file": "manifest-anatomy--ma-index.mp4",
+   "end_still": "manifest-anatomy--ma-index-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0,
+    1.602
+   ],
+   "beat_nodes": [
+    "client",
+    "index"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "ma-fields",
+   "label": "五字段",
+   "index": 2,
+   "file": "manifest-anatomy--ma-fields.mp4",
+   "end_still": "manifest-anatomy--ma-fields-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0,
+    1.605
+   ],
+   "beat_nodes": [
+    "index",
+    "fields"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "ma-seal",
+   "label": "铅封",
+   "index": 3,
+   "file": "manifest-anatomy--ma-seal.mp4",
+   "end_still": "manifest-anatomy--ma-seal-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [
+    0.0,
+    1.605
+   ],
+   "beat_nodes": [
+    "fields",
+    "seal"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "ma-boxes",
+   "label": "两种箱型",
+   "index": 4,
+   "file": "manifest-anatomy--ma-boxes.mp4",
+   "end_still": "manifest-anatomy--ma-boxes-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.34,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.209
+   ],
+   "beat_nodes": [
+    "resolve",
+    "skillmd",
+    "archive"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/dar-es-salaam-v2/docs/assets/architecture/agent-infra/supply-chain--manifest-anatomy.html",
+ "slug": "manifest-anatomy",
+ "type": "architecture"
+}

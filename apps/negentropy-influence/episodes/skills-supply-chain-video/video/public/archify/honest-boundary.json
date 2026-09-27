@@ -1,0 +1,113 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 14.27,
+ "total_wall_sec": 54.46,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "hb-mustnot",
+   "label": "自认边界",
+   "index": 0,
+   "file": "honest-boundary--hb-mustnot.mp4",
+   "end_still": "honest-boundary--hb-mustnot-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.33,
+   "beat_offsets_sec": [
+    0.0,
+    1.101,
+    2.204
+   ],
+   "beat_nodes": [
+    "srv",
+    "gw",
+    "sep"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "hb-partial",
+   "label": "三家部分",
+   "index": 1,
+   "file": "honest-boundary--hb-partial.mp4",
+   "end_still": "honest-boundary--hb-partial-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.47,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.21,
+    3.314
+   ],
+   "beat_nodes": [
+    "matrix",
+    "chatgpt",
+    "fast",
+    "insp"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "hb-proto",
+   "label": "内部原型",
+   "index": 2,
+   "file": "honest-boundary--hb-proto.mp4",
+   "end_still": "honest-boundary--hb-proto-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0,
+    1.605
+   ],
+   "beat_nodes": [
+    "sep",
+    "proto"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "hb-546",
+   "label": "报关无人签",
+   "index": 3,
+   "file": "honest-boundary--hb-546.mp4",
+   "end_still": "honest-boundary--hb-546-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.605
+   ],
+   "beat_nodes": [
+    "sep",
+    "pr546"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/dar-es-salaam-v2/docs/assets/architecture/agent-infra/supply-chain--honest-boundary.html",
+ "slug": "honest-boundary",
+ "type": "dataflow"
+}

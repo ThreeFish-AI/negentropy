@@ -1,0 +1,30 @@
+%% source: docs/research/agent-infra/220-skills-supply-chain.md（复查基线 .temp/skills-e3-lab/research-digest.md / gap-reports.md）
+%% slug: supply-chain-ious-route
+%% type: workflow
+%% derived: 2026-09-28 E3 精读 220 · docs/assets/architecture/agent-infra/supply-chain--ious-route.html
+flowchart LR
+    subgraph SIGN["欠条一 · 签名"]
+        S1["规范零条款 · RFC 全关<br/>247 行零 sign · #247/#358/#418"]
+        S2["评论区三层信任栈<br/>digest · DSSE sidecar · 见证人"]
+        S3["终态：答案在评论区<br/>不在条文 · sigstore 重演"]
+        S1 -->|"安全出圈"| S2 --> S3
+    end
+    subgraph DIST["欠条二 · 分发"]
+        D1["#254 停摆 7 个月<br/>.well-known 舱单 · dirty"]
+        D2["生态已先行营业<br/>vercel-labs SDK + supabase"]
+        D3["终态：de facto 先跑<br/>de jure 停在 PR 里"]
+        D1 -->|"不等规范"| D2 --> D3
+    end
+    subgraph VER["欠条三 · 版本"]
+        V1["规范故意不做<br/>六字段无 version · by design"]
+        V2["双门失效 · 空港无历史<br/>写死不发 · 省略随 HEAD 变脑"]
+        V3["#380 四件套排队<br/>semver · 快照 · lockfile · 信任约定"]
+        V4["终态：降维成变更检测<br/>SEP-2640 digest 只答变没变"]
+        V1 -->|"缺口下放"| V2 -->|"排队于 #254 后"| V3 --> V4
+    end
+    subgraph STAMPS["PR 状态橡皮章"]
+        ST1["橡皮章 CLOSED<br/>签名 RFC 三连关 · completed"]
+        ST2["橡皮章 open · 排队<br/>#254 · #380 · #546 等签收"]
+    end
+    S1 -.-> ST1
+    V3 -.-> ST2

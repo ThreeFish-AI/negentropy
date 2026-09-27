@@ -1,0 +1,40 @@
+[
+ {
+  "id": "re-nearmiss",
+  "label": "近失配",
+  "focus": [
+   "near",
+   "outer"
+  ],
+  "note": "「改个表格」近环命中边界；正解是表格编辑；外环无关剔除"
+ },
+ {
+  "id": "re-protocol",
+  "label": "一套卷子",
+  "focus": [
+   "exam",
+   "sched",
+   "rate",
+   "gate"
+  ],
+  "note": "20 题 × 3 遍算触发率，0.5 阈值"
+ },
+ {
+  "id": "re-holdout",
+  "label": "六四分",
+  "focus": [
+   "split",
+   "exam",
+   "rewrite"
+  ],
+  "note": "60% 练 40% 考，按验证集选优——最好的版本不一定是最后改的那版"
+ },
+ {
+  "id": "re-interview",
+  "label": "一秒面试",
+  "focus": [
+   "sched"
+  ],
+  "note": "调度员只看一眼，货签替你参加面试"
+ }
+]

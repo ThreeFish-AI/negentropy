@@ -1,0 +1,33 @@
+[
+ {
+  "id": "bf-toy",
+  "label": "玩具实测",
+  "focus": [
+   "lib",
+   "ledger",
+   "full",
+   "ledgerCost",
+   "fullCost"
+  ],
+  "note": "自建 20 技能：全载 39,222 token vs 台账 2,321 token"
+ },
+ {
+  "id": "bf-times",
+  "label": "十七倍",
+  "focus": [
+   "ledgerCost",
+   "fullCost",
+   "ratio"
+  ],
+  "note": "≈17×，玩具口径——规模是玩具，方向不骗人"
+ },
+ {
+  "id": "bf-openai",
+  "label": "对岸红线",
+  "focus": [
+   "ledgerCost",
+   "redline"
+  ],
+  "note": "OpenAI 文档口径：技能元数据合计 ≤ 上下文 2% 或 8000 字符"
+ }
+]

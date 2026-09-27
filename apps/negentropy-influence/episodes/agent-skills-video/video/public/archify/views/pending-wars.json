@@ -1,0 +1,35 @@
+[
+ {
+  "id": "pw-stall",
+  "label": "停摆七个月",
+  "focus": [
+   "p-distro",
+   "queue",
+   "pr254",
+   "out-stall"
+  ],
+  "note": "#254 .well-known 分发提案 2026-03 开、至 2026-09 未合，社区催问在途"
+ },
+ {
+  "id": "pw-clash",
+  "label": "对冲无裁决",
+  "focus": [
+   "p-schema",
+   "queue",
+   "pr57520",
+   "out-clash"
+  ],
+  "note": "#573 放宽 allowed-tools 数组 vs #520 锁死空格串——两份对冲提案并存，无人裁决"
+ },
+ {
+  "id": "pw-interop",
+  "label": "最先落地",
+  "focus": [
+   "p-interop",
+   "queue",
+   "pr546",
+   "out-land"
+  ],
+  "note": "#546 为 MCP 保留 io.modelcontextprotocol/ 前缀——没人吃亏的事最先成"
+ }
+]

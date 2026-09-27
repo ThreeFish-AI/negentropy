@@ -1,0 +1,132 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 17.41,
+ "total_wall_sec": 104.1,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "lo-four",
+   "label": "四件套",
+   "index": 0,
+   "file": "lockfile-orphan--lo-four.mp4",
+   "end_still": "lockfile-orphan--lo-four-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.21,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "a1",
+    "b1"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "lo-flip",
+   "label": "自我推翻",
+   "index": 1,
+   "file": "lockfile-orphan--lo-flip.mp4",
+   "end_still": "lockfile-orphan--lo-flip-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "a1",
+    "a2"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "lo-rollback",
+   "label": "回滚盲区",
+   "index": 2,
+   "file": "lockfile-orphan--lo-rollback.mp4",
+   "end_still": "lockfile-orphan--lo-rollback-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "a2",
+    "a3"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "lo-lock",
+   "label": "锁文件",
+   "index": 3,
+   "file": "lockfile-orphan--lo-lock.mp4",
+   "end_still": "lockfile-orphan--lo-lock-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0,
+    1.605
+   ],
+   "beat_nodes": [
+    "a3",
+    "b1"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "lo-orphan",
+   "label": "孤本",
+   "index": 4,
+   "file": "lockfile-orphan--lo-orphan.mp4",
+   "end_still": "lockfile-orphan--lo-orphan-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.47,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.207,
+    3.312
+   ],
+   "beat_nodes": [
+    "b1",
+    "b2",
+    "c1",
+    "c2"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/dar-es-salaam-v2/docs/assets/architecture/agent-infra/supply-chain--lockfile-orphan.html",
+ "slug": "lockfile-orphan",
+ "type": "workflow"
+}

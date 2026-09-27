@@ -1,0 +1,29 @@
+%% source: apps/negentropy-influence/episodes/agent-skills-video/script/narration.md P2（p2-12a..p2-12c）
+%% slug: agent-skills-script-craft
+%% type: workflow
+%% derived: 2026-09-27 agent-skills-video 分镜
+flowchart LR
+    subgraph PKG["技能箱"]
+        MANIFEST["SKILL.md<br/>何时调用脚本"]
+        SCRIPT["箱内脚本<br/>scripts/ 随箱分发"]
+    end
+    subgraph BOX["用户机器"]
+        UPSTREAM["上游新版<br/>行为漂移"]
+        PIN["钉死版本<br/>uvx tool@1.2.3 · npx pkg@4.5.0<br/>防升级偷袭"]
+        ENV["一次性环境<br/>装依赖 → 跑 → 丢弃"]
+        DELIVER["交付结果<br/>人机两读"]
+    end
+    subgraph RULES["脚本家规"]
+        R1["不问交互<br/>脚本不等人"]
+        R2["报错说人话<br/>带修复建议"]
+        R3["结果结构化<br/>JSON + exit code"]
+        R4["能空跑预演<br/>--dry-run 先看后动"]
+    end
+    MANIFEST -->|"指引调用"| SCRIPT
+    SCRIPT -->|"uvx / npx"| PIN
+    UPSTREAM -.->|"不锁则中招"| PIN
+    PIN -->|"同版本可复现"| ENV
+    ENV -->|"跑完即走"| DELIVER
+    SCRIPT -->|"先过家规"| R1
+    R1 --> R2 --> R3 --> R4
+    R4 -->|"四关全过"| DELIVER

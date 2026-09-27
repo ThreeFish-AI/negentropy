@@ -1,0 +1,12 @@
+%% source: apps/negentropy-influence/episodes/agent-skills-video/script/narration.md P2（p2-09..p2-11；事实源 research/source-notes.md）
+%% slug: agent-skills-budget-flipboard
+%% type: dataflow
+%% derived: 2026-09-27 agent-skills-video 分镜
+flowchart LR
+    LIB["自建技能库<br/>20 个玩具技能"] -->|"读 frontmatter"| LEDGER["台账加载<br/>只挂 name+description"]
+    LIB -->|"读全文"| FULL["全量加载<br/>整份 SKILL.md 入场"]
+    LEDGER -->|"常驻元数据"| LC["2,321 token<br/>台账口径"]
+    FULL -->|"常驻正文"| FC["39,222 token<br/>全载口径"]
+    LC -->|"÷ 2,321"| RATIO["≈17×<br/>玩具口径 · 方向不骗人"]
+    FC -->|"÷ 39,222"| RATIO
+    LC -.->|"同一条红线"| RED["对岸红线<br/>≤2% 上下文 · 或 8000 字符<br/>OpenAI 文档口径"]

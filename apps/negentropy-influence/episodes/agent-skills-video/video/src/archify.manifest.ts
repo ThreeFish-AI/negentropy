@@ -1,6 +1,6 @@
-// 本文件由 to-video skill 的 pipeline/scripts/archify_manifest.py 从 public/archify/*.json 生成——请勿手改。
-// 数据来源：pipeline/scripts/record_archify.py --mode chapter（逐章录制）
-//         + pipeline/scripts/archify_lead.py（场记板白闪测定真实 leadSec）。
+// 本文件由 to-video skill 的 scripts/archify_manifest.py 从 public/archify/*.json 生成——请勿手改。
+// 数据来源：scripts/record_archify.py --mode chapter（逐章录制）
+//         + scripts/archify_lead.py（场记板白闪测定真实 leadSec）。
 
 export type ArchifyChapter = {
   /** views JSON 里的章节 id */
@@ -24,833 +24,989 @@ export type ArchifyChapter = {
 export type ArchifyDiagram = {slug: string; type?: string; chapters: ArchifyChapter[]};
 
 export const ARCHIFY = {
-  "authority-and-controversies": {
-    "slug": "authority-and-controversies",
-    "type": "architecture",
+  "box-anatomy": {
+    "slug": "box-anatomy",
     "chapters": [
       {
-        "id": "authority",
-        "label": "权威天平",
-        "file": "authority-and-controversies--authority.mp4",
-        "endStill": "authority-and-controversies--authority-end.png",
+        "id": "ba-box",
+        "label": "箱体解剖",
+        "file": "box-anatomy--ba-box.mp4",
+        "endStill": "box-anatomy--ba-box-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.24,
+        "storySec": 3.23,
         "beatNodes": [
-          "spec",
-          "ref"
+          "folder",
+          "skillmd"
         ]
       },
       {
-        "id": "diff-13",
-        "label": "十三处分歧",
-        "file": "authority-and-controversies--diff-13.mp4",
-        "endStill": "authority-and-controversies--diff-13-end.png",
+        "id": "ba-corner",
+        "label": "六字段角件",
+        "file": "box-anatomy--ba-corner.mp4",
+        "endStill": "box-anatomy--ba-corner-end.png",
+        "beats": 5,
+        "leadSec": 0.44,
+        "storySec": 5.52,
+        "beatNodes": [
+          "skillmd",
+          "f-name",
+          "f-desc",
+          "f-opt",
+          "metadata"
+        ]
+      },
+      {
+        "id": "ba-name",
+        "label": "箱号 = 登记名",
+        "file": "box-anatomy--ba-name.mp4",
+        "endStill": "box-anatomy--ba-name-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.23,
+        "beatNodes": [
+          "f-name",
+          "dirname"
+        ]
+      },
+      {
+        "id": "ba-body",
+        "label": "正文与附件",
+        "file": "box-anatomy--ba-body.mp4",
+        "endStill": "box-anatomy--ba-body-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.37,
+        "storySec": 3.33,
         "beatNodes": [
-          "spec",
-          "ref",
-          "diff"
+          "skillmd",
+          "body",
+          "annex"
         ]
       },
       {
-        "id": "realrun",
-        "label": "六处真跑",
-        "file": "authority-and-controversies--realrun.mp4",
-        "endStill": "authority-and-controversies--realrun-end.png",
-        "beats": 2,
+        "id": "ba-extra",
+        "label": "选填与验箱",
+        "file": "box-anatomy--ba-extra.mp4",
+        "endStill": "box-anatomy--ba-extra-end.png",
+        "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.23,
+        "storySec": 3.34,
         "beatNodes": [
-          "diff",
-          "realrun"
-        ]
-      },
-      {
-        "id": "strict",
-        "label": "严格只退回",
-        "file": "authority-and-controversies--strict.mp4",
-        "endStill": "authority-and-controversies--strict-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.23,
-        "beatNodes": [
-          "strict",
-          "diff"
-        ]
-      },
-      {
-        "id": "lenient",
-        "label": "宽容照上架",
-        "file": "authority-and-controversies--lenient.mp4",
-        "endStill": "authority-and-controversies--lenient-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.23,
-        "beatNodes": [
-          "lenient",
-          "strict"
-        ]
-      },
-      {
-        "id": "trust",
-        "label": "极简与信任",
-        "file": "authority-and-controversies--trust.mp4",
-        "endStill": "authority-and-controversies--trust-end.png",
-        "beats": 1,
-        "leadSec": 0.44,
-        "storySec": 3.22,
-        "beatNodes": [
-          "trust"
+          "f-opt",
+          "metadata",
+          "validator"
         ]
       }
     ]
   },
-  "cost-structure": {
-    "slug": "cost-structure",
+  "box-history-rhyme": {
+    "slug": "box-history-rhyme",
+    "chapters": [
+      {
+        "id": "hr-mclean",
+        "label": "卡车司机",
+        "file": "box-history-rhyme--hr-mclean.mp4",
+        "endStill": "box-history-rhyme--hr-mclean-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.26,
+        "beatNodes": [
+          "s-launch",
+          "s-donate"
+        ]
+      },
+      {
+        "id": "hr-csi",
+        "label": "事故倒逼",
+        "file": "box-history-rhyme--hr-csi.mp4",
+        "endStill": "box-history-rhyme--hr-csi-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.23,
+        "beatNodes": [
+          "s-gap",
+          "s-csi"
+        ]
+      },
+      {
+        "id": "hr-rhyme",
+        "label": "先事实后条文",
+        "file": "box-history-rhyme--hr-rhyme.mp4",
+        "endStill": "box-history-rhyme--hr-rhyme-end.png",
+        "beats": 7,
+        "leadSec": 0.44,
+        "storySec": 7.74,
+        "beatNodes": [
+          "s-iso",
+          "s-gap",
+          "s-csi",
+          "k-fact",
+          "k-blank",
+          "k-rule",
+          "v-rhyme"
+        ]
+      }
+    ]
+  },
+  "budget-flipboard": {
+    "slug": "budget-flipboard",
     "type": "dataflow",
     "chapters": [
       {
-        "id": "ledger",
-        "label": "玩具库账本",
-        "file": "cost-structure--ledger.mp4",
-        "endStill": "cost-structure--ledger-end.png",
+        "id": "bf-toy",
+        "label": "玩具实测",
+        "file": "budget-flipboard--bf-toy.mp4",
+        "endStill": "budget-flipboard--bf-toy-end.png",
+        "beats": 5,
+        "leadSec": 0.44,
+        "storySec": 5.53,
+        "beatNodes": [
+          "lib",
+          "ledger",
+          "full",
+          "ledgerCost",
+          "fullCost"
+        ]
+      },
+      {
+        "id": "bf-times",
+        "label": "十七倍",
+        "file": "budget-flipboard--bf-times.mp4",
+        "endStill": "budget-flipboard--bf-times-end.png",
         "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.36,
+        "leadSec": 0.48,
+        "storySec": 3.38,
         "beatNodes": [
-          "toy-library",
-          "on-demand",
-          "preload-all"
+          "ledgerCost",
+          "fullCost",
+          "ratio"
         ]
       },
       {
-        "id": "wall-vs-pay",
-        "label": "书脊墙与按次",
-        "file": "cost-structure--wall-vs-pay.mp4",
-        "endStill": "cost-structure--wall-vs-pay-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.34,
-        "beatNodes": [
-          "on-demand",
-          "spine-wall",
-          "pay-per-use"
-        ]
-      },
-      {
-        "id": "caveat",
-        "label": "倍数只说明方向",
-        "file": "cost-structure--caveat.mp4",
-        "endStill": "cost-structure--caveat-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.26,
-        "beatNodes": [
-          "preload-all",
-          "direction-only"
-        ]
-      }
-    ]
-  },
-  "description-eval": {
-    "slug": "description-eval",
-    "type": "workflow",
-    "chapters": [
-      {
-        "id": "queries",
-        "label": "二十条提问",
-        "file": "description-eval--queries.mp4",
-        "endStill": "description-eval--queries-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.25,
-        "beatNodes": [
-          "queries",
-          "run3x"
-        ]
-      },
-      {
-        "id": "groups",
-        "label": "练习与考核",
-        "file": "description-eval--groups.mp4",
-        "endStill": "description-eval--groups-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.35,
-        "beatNodes": [
-          "run3x",
-          "practice_set",
-          "exam_set"
-        ]
-      },
-      {
-        "id": "pick",
-        "label": "考核组裁决",
-        "file": "description-eval--pick.mp4",
-        "endStill": "description-eval--pick-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.34,
-        "beatNodes": [
-          "edit_desc",
-          "exam_set",
-          "pick_best"
-        ]
-      },
-      {
-        "id": "cap",
-        "label": "1024 红线",
-        "file": "description-eval--cap.mp4",
-        "endStill": "description-eval--cap-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.24,
-        "beatNodes": [
-          "pick_best",
-          "char_cap"
-        ]
-      }
-    ]
-  },
-  "description-routing": {
-    "slug": "description-routing",
-    "type": "workflow",
-    "chapters": [
-      {
-        "id": "judge",
-        "label": "模型自己判断",
-        "file": "description-routing--judge.mp4",
-        "endStill": "description-routing--judge-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.23,
-        "beatNodes": [
-          "task",
-          "judge"
-        ]
-      },
-      {
-        "id": "good-desc",
-        "label": "好描述",
-        "file": "description-routing--good-desc.mp4",
-        "endStill": "description-routing--good-desc-end.png",
+        "id": "bf-openai",
+        "label": "对岸红线",
+        "file": "budget-flipboard--bf-openai.mp4",
+        "endStill": "budget-flipboard--bf-openai-end.png",
         "beats": 2,
         "leadSec": 0.44,
         "storySec": 3.22,
         "beatNodes": [
-          "judge",
-          "good_desc"
-        ]
-      },
-      {
-        "id": "bad-desc",
-        "label": "差描述",
-        "file": "description-routing--bad-desc.mp4",
-        "endStill": "description-routing--bad-desc-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.23,
-        "beatNodes": [
-          "judge",
-          "bad_desc"
-        ]
-      },
-      {
-        "id": "hit-miss",
-        "label": "命中与落空",
-        "file": "description-routing--hit-miss.mp4",
-        "endStill": "description-routing--hit-miss-end.png",
-        "beats": 2,
-        "leadSec": 0.48,
-        "storySec": 3.24,
-        "beatNodes": [
-          "hit",
-          "miss"
+          "ledgerCost",
+          "redline"
         ]
       }
     ]
   },
-  "distill-loop": {
-    "slug": "distill-loop",
-    "type": "lifecycle",
+  "craft-real-tasks": {
+    "slug": "craft-real-tasks",
+    "type": "workflow",
     "chapters": [
       {
-        "id": "generic-trap",
-        "label": "空泛陷阱",
-        "file": "distill-loop--generic-trap.mp4",
-        "endStill": "distill-loop--generic-trap-end.png",
-        "beats": 1,
-        "leadSec": 0.44,
-        "storySec": 3.26,
-        "beatNodes": [
-          "generic_trap"
-        ]
-      },
-      {
-        "id": "hands-on",
-        "label": "真实任务提炼",
-        "file": "distill-loop--hands-on.mp4",
-        "endStill": "distill-loop--hands-on-end.png",
+        "id": "cr-grow",
+        "label": "真实任务",
+        "file": "craft-real-tasks--cr-grow.mp4",
+        "endStill": "craft-real-tasks--cr-grow-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.22,
+        "storySec": 3.23,
         "beatNodes": [
-          "hands_on_task",
-          "generic_trap"
+          "t1",
+          "t2"
         ]
       },
       {
-        "id": "four-notes",
-        "label": "四格便签",
-        "file": "distill-loop--four-notes.mp4",
-        "endStill": "distill-loop--four-notes-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.25,
-        "beatNodes": [
-          "four_notes",
-          "skill_draft"
-        ]
-      },
-      {
-        "id": "synthesize",
-        "label": "资料合成",
-        "file": "distill-loop--synthesize.mp4",
-        "endStill": "distill-loop--synthesize-end.png",
+        "id": "cr-gotchas",
+        "label": "坑点上册",
+        "file": "craft-real-tasks--cr-gotchas.mp4",
+        "endStill": "craft-real-tasks--cr-gotchas-end.png",
         "beats": 2,
         "leadSec": 0.48,
-        "storySec": 3.26,
+        "storySec": 3.25,
         "beatNodes": [
-          "artifact_synth",
-          "skill_draft"
+          "t2",
+          "b1"
         ]
       },
       {
-        "id": "edit-cut",
-        "label": "编辑台删减",
-        "file": "distill-loop--edit-cut.mp4",
-        "endStill": "distill-loop--edit-cut-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.26,
-        "beatNodes": [
-          "skill_draft",
-          "edit_desk"
-        ]
-      },
-      {
-        "id": "gotchas",
-        "label": "坑点清单",
-        "file": "distill-loop--gotchas.mp4",
-        "endStill": "distill-loop--gotchas-end.png",
-        "beats": 1,
-        "leadSec": 0.44,
-        "storySec": 3.24,
-        "beatNodes": [
-          "gotcha_list"
-        ]
-      },
-      {
-        "id": "execute-revise",
-        "label": "执行回灌修订",
-        "file": "distill-loop--execute-revise.mp4",
-        "endStill": "distill-loop--execute-revise-end.png",
+        "id": "cr-rerun",
+        "label": "跑了再改",
+        "file": "craft-real-tasks--cr-rerun.mp4",
+        "endStill": "craft-real-tasks--cr-rerun-end.png",
         "beats": 3,
         "leadSec": 0.52,
-        "storySec": 3.36,
+        "storySec": 4.56,
         "beatNodes": [
-          "real_run",
-          "skill_draft",
-          "final_skill"
+          "b1",
+          "t3",
+          "b2"
+        ]
+      },
+      {
+        "id": "cr-lean",
+        "label": "会的别写",
+        "file": "craft-real-tasks--cr-lean.mp4",
+        "endStill": "craft-real-tasks--cr-lean-end.png",
+        "beats": 2,
+        "leadSec": 0.52,
+        "storySec": 3.27,
+        "beatNodes": [
+          "b2",
+          "t3"
+        ]
+      }
+    ]
+  },
+  "disclosure-lifecycle": {
+    "slug": "disclosure-lifecycle",
+    "type": "workflow",
+    "chapters": [
+      {
+        "id": "dl-discover",
+        "label": "发现与解析",
+        "file": "disclosure-lifecycle--dl-discover.mp4",
+        "endStill": "disclosure-lifecycle--dl-discover-end.png",
+        "beats": 3,
+        "leadSec": 0.48,
+        "storySec": 3.34,
+        "beatNodes": [
+          "discover",
+          "parse",
+          "resolve"
+        ]
+      },
+      {
+        "id": "dl-catalog",
+        "label": "台账常驻",
+        "file": "disclosure-lifecycle--dl-catalog.mp4",
+        "endStill": "disclosure-lifecycle--dl-catalog-end.png",
+        "beats": 1,
+        "leadSec": 0.28,
+        "storySec": 3.26,
+        "beatNodes": [
+          "catalog"
+        ]
+      },
+      {
+        "id": "dl-activate",
+        "label": "提箱整载",
+        "file": "disclosure-lifecycle--dl-activate.mp4",
+        "endStill": "disclosure-lifecycle--dl-activate-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.25,
+        "beatNodes": [
+          "route",
+          "activate"
+        ]
+      },
+      {
+        "id": "dl-tier3",
+        "label": "隔层按需",
+        "file": "disclosure-lifecycle--dl-tier3.mp4",
+        "endStill": "disclosure-lifecycle--dl-tier3-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.24,
+        "beatNodes": [
+          "interpret",
+          "resources"
+        ]
+      },
+      {
+        "id": "dl-rewrite",
+        "label": "改写账本",
+        "file": "disclosure-lifecycle--dl-rewrite.mp4",
+        "endStill": "disclosure-lifecycle--dl-rewrite-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.26,
+        "beatNodes": [
+          "exempt",
+          "dedupe"
         ]
       }
     ]
   },
   "eval-twin-runs": {
     "slug": "eval-twin-runs",
-    "type": "dataflow",
-    "chapters": [
-      {
-        "id": "twin",
-        "label": "同一张工单",
-        "file": "eval-twin-runs--twin.mp4",
-        "endStill": "eval-twin-runs--twin-end.png",
-        "beats": 1,
-        "leadSec": 0.44,
-        "storySec": 3.26,
-        "beatNodes": [
-          "ticket"
-        ]
-      },
-      {
-        "id": "with-without",
-        "label": "带与不带",
-        "file": "eval-twin-runs--with-without.mp4",
-        "endStill": "eval-twin-runs--with-without-end.png",
-        "beats": 2,
-        "leadSec": 0.48,
-        "storySec": 3.26,
-        "beatNodes": [
-          "with_manual",
-          "without_manual"
-        ]
-      },
-      {
-        "id": "pass-evidence",
-        "label": "打勾贴证据",
-        "file": "eval-twin-runs--pass-evidence.mp4",
-        "endStill": "eval-twin-runs--pass-evidence-end.png",
-        "beats": 1,
-        "leadSec": 0.44,
-        "storySec": 3.25,
-        "beatNodes": [
-          "qc_gate"
-        ]
-      },
-      {
-        "id": "both-pass",
-        "label": "都过即删",
-        "file": "eval-twin-runs--both-pass.mp4",
-        "endStill": "eval-twin-runs--both-pass-end.png",
-        "beats": 2,
-        "leadSec": 0.4,
-        "storySec": 3.27,
-        "beatNodes": [
-          "qc_gate",
-          "both_pass"
-        ]
-      },
-      {
-        "id": "only-with",
-        "label": "手册真价值",
-        "file": "eval-twin-runs--only-with.mp4",
-        "endStill": "eval-twin-runs--only-with-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.22,
-        "beatNodes": [
-          "only_with",
-          "revise_next"
-        ]
-      }
-    ]
-  },
-  "handbook-cabinet": {
-    "slug": "handbook-cabinet",
-    "type": "architecture",
-    "chapters": [
-      {
-        "id": "expert",
-        "label": "经验孤岛",
-        "file": "handbook-cabinet--expert.mp4",
-        "endStill": "handbook-cabinet--expert-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.23,
-        "beatNodes": [
-          "expert-know-how",
-          "ai-assistant"
-        ]
-      },
-      {
-        "id": "old-empty",
-        "label": "什么都不给",
-        "file": "handbook-cabinet--old-empty.mp4",
-        "endStill": "handbook-cabinet--old-empty-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.23,
-        "beatNodes": [
-          "road-empty",
-          "ai-assistant"
-        ]
-      },
-      {
-        "id": "old-stuff",
-        "label": "全塞开场白",
-        "file": "handbook-cabinet--old-stuff.mp4",
-        "endStill": "handbook-cabinet--old-stuff-end.png",
-        "beats": 2,
-        "leadSec": 0.48,
-        "storySec": 3.34,
-        "beatNodes": [
-          "road-stuff",
-          "ai-assistant"
-        ]
-      },
-      {
-        "id": "third-road",
-        "label": "打包成文件夹",
-        "file": "handbook-cabinet--third-road.mp4",
-        "endStill": "handbook-cabinet--third-road-end.png",
-        "beats": 2,
-        "leadSec": 0.88,
-        "storySec": 3.27,
-        "beatNodes": [
-          "expert-know-how",
-          "skill-folder"
-        ]
-      },
-      {
-        "id": "light-distill",
-        "label": "轻量蒸馏",
-        "file": "handbook-cabinet--light-distill.mp4",
-        "endStill": "handbook-cabinet--light-distill-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.33,
-        "beatNodes": [
-          "skill-folder",
-          "light-distill",
-          "ai-assistant"
-        ]
-      }
-    ]
-  },
-  "package-and-validation": {
-    "slug": "package-and-validation",
-    "type": "architecture",
-    "chapters": [
-      {
-        "id": "package",
-        "label": "一个抽屉",
-        "file": "package-and-validation--package.mp4",
-        "endStill": "package-and-validation--package-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.36,
-        "beatNodes": [
-          "skill-dir",
-          "skill-md",
-          "optional-dirs"
-        ]
-      },
-      {
-        "id": "required",
-        "label": "两项必填",
-        "file": "package-and-validation--required.mp4",
-        "endStill": "package-and-validation--required-end.png",
-        "beats": 1,
-        "leadSec": 0.48,
-        "storySec": 3.24,
-        "beatNodes": [
-          "skill-md"
-        ]
-      },
-      {
-        "id": "name-rule",
-        "label": "名字即标签",
-        "file": "package-and-validation--name-rule.mp4",
-        "endStill": "package-and-validation--name-rule-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.26,
-        "beatNodes": [
-          "skill-dir",
-          "skill-md"
-        ]
-      },
-      {
-        "id": "optional",
-        "label": "选填与附录",
-        "file": "package-and-validation--optional.mp4",
-        "endStill": "package-and-validation--optional-end.png",
-        "beats": 2,
-        "leadSec": 0.48,
-        "storySec": 3.25,
-        "beatNodes": [
-          "skill-md",
-          "optional-dirs"
-        ]
-      },
-      {
-        "id": "validate-gap",
-        "label": "上架检查",
-        "file": "package-and-validation--validate-gap.mp4",
-        "endStill": "package-and-validation--validate-gap-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.26,
-        "beatNodes": [
-          "cmd-validate",
-          "spec-gap"
-        ]
-      },
-      {
-        "id": "to-prompt-gap",
-        "label": "整体失败",
-        "file": "package-and-validation--to-prompt-gap.mp4",
-        "endStill": "package-and-validation--to-prompt-gap-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.41,
-        "beatNodes": [
-          "cmd-read-props",
-          "cmd-to-prompt",
-          "spec-gap"
-        ]
-      }
-    ]
-  },
-  "progressive-disclosure": {
-    "slug": "progressive-disclosure",
     "type": "workflow",
     "chapters": [
       {
-        "id": "tier1",
-        "label": "书脊常驻",
-        "file": "progressive-disclosure--tier1.mp4",
-        "endStill": "progressive-disclosure--tier1-end.png",
+        "id": "et-blind",
+        "label": "同单两跑 · 盲评",
+        "file": "eval-twin-runs--et-blind.mp4",
+        "endStill": "eval-twin-runs--et-blind-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.43,
+        "storySec": 4.44,
         "beatNodes": [
-          "scan_scopes",
-          "parse_skill",
-          "skill_registry",
-          "skill_catalog"
+          "task",
+          "run_a",
+          "run_b",
+          "judge"
         ]
       },
       {
-        "id": "tier2",
-        "label": "整本按需",
-        "file": "progressive-disclosure--tier2.mp4",
-        "endStill": "progressive-disclosure--tier2-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.24,
-        "beatNodes": [
-          "activation_gate",
-          "load_body"
-        ]
-      },
-      {
-        "id": "tier3",
-        "label": "附录按页",
-        "file": "progressive-disclosure--tier3.mp4",
-        "endStill": "progressive-disclosure--tier3-end.png",
-        "beats": 1,
-        "leadSec": 0.44,
-        "storySec": 3.22,
-        "beatNodes": [
-          "read_resources"
-        ]
-      },
-      {
-        "id": "contract",
-        "label": "目录契约",
-        "file": "progressive-disclosure--contract.mp4",
-        "endStill": "progressive-disclosure--contract-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.25,
-        "beatNodes": [
-          "skill_catalog",
-          "activation_gate"
-        ]
-      }
-    ]
-  },
-  "teardown-identity-budget": {
-    "slug": "teardown-identity-budget",
-    "type": "dataflow",
-    "chapters": [
-      {
-        "id": "impostor",
-        "label": "冒名手册",
-        "file": "teardown-identity-budget--impostor.mp4",
-        "endStill": "teardown-identity-budget--impostor-end.png",
+        "id": "et-assert",
+        "label": "断言记账",
+        "file": "eval-twin-runs--et-assert.mp4",
+        "endStill": "eval-twin-runs--et-assert-end.png",
         "beats": 4,
-        "leadSec": 0.48,
-        "storySec": 4.46,
-        "beatNodes": [
-          "name-rule",
-          "impostor",
-          "scan-order",
-          "identity-drift"
-        ]
-      },
-      {
-        "id": "bloat",
-        "label": "超长描述",
-        "file": "teardown-identity-budget--bloat.mp4",
-        "endStill": "teardown-identity-budget--bloat-end.png",
-        "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.32,
+        "storySec": 4.45,
         "beatNodes": [
-          "char-cap",
-          "bloat",
-          "catalog-cost"
-        ]
-      },
-      {
-        "id": "share",
-        "label": "2.4 倍于其余总和",
-        "file": "teardown-identity-budget--share.mp4",
-        "endStill": "teardown-identity-budget--share-end.png",
-        "beats": 2,
-        "leadSec": 0.48,
-        "storySec": 3.26,
-        "beatNodes": [
-          "catalog-cost",
-          "share"
+          "judge",
+          "checklist",
+          "ledger",
+          "verdict"
         ]
       }
     ]
   },
-  "teardown-parse-escape": {
-    "slug": "teardown-parse-escape",
-    "type": "dataflow",
+  "experiment-label-injection": {
+    "slug": "experiment-label-injection",
+    "type": "sequence",
     "chapters": [
       {
-        "id": "dash",
-        "label": "三条短横线",
-        "file": "teardown-parse-escape--dash.mp4",
-        "endStill": "teardown-parse-escape--dash-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.23,
-        "beatNodes": [
-          "lab",
-          "dash"
-        ]
-      },
-      {
-        "id": "cut",
-        "label": "拦腰截断",
-        "file": "teardown-parse-escape--cut.mp4",
-        "endStill": "teardown-parse-escape--cut-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.27,
-        "beatNodes": [
-          "cut",
-          "drop"
-        ]
-      },
-      {
-        "id": "drop",
-        "label": "静默消失",
-        "file": "teardown-parse-escape--drop.mp4",
-        "endStill": "teardown-parse-escape--drop-end.png",
-        "beats": 1,
-        "leadSec": 0.44,
-        "storySec": 3.21,
-        "beatNodes": [
-          "drop"
-        ]
-      },
-      {
-        "id": "forge",
-        "label": "伪造目录段",
-        "file": "teardown-parse-escape--forge.mp4",
-        "endStill": "teardown-parse-escape--forge-end.png",
-        "beats": 1,
-        "leadSec": 0.44,
-        "storySec": 3.24,
-        "beatNodes": [
-          "forge"
-        ]
-      },
-      {
-        "id": "view",
-        "label": "多出一本",
-        "file": "teardown-parse-escape--view.mp4",
-        "endStill": "teardown-parse-escape--view-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.23,
-        "beatNodes": [
-          "view",
-          "fake"
-        ]
-      },
-      {
-        "id": "fake",
-        "label": "第二张书脊",
-        "file": "teardown-parse-escape--fake.mp4",
-        "endStill": "teardown-parse-escape--fake-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.22,
-        "beatNodes": [
-          "fake",
-          "shield"
-        ]
-      }
-    ]
-  },
-  "unproven-list": {
-    "slug": "unproven-list",
-    "type": "workflow",
-    "chapters": [
-      {
-        "id": "five",
-        "label": "五件事清单",
-        "file": "unproven-list--five.mp4",
-        "endStill": "unproven-list--five-end.png",
-        "beats": 2,
-        "leadSec": 0.6,
-        "storySec": 3.5,
-        "beatNodes": [
-          "saving_q",
-          "saving_gap"
-        ]
-      },
-      {
-        "id": "hundreds",
-        "label": "几百本没人讨论",
-        "file": "unproven-list--hundreds.mp4",
-        "endStill": "unproven-list--hundreds-end.png",
-        "beats": 2,
-        "leadSec": 0.48,
-        "storySec": 3.26,
-        "beatNodes": [
-          "hundreds_q",
-          "hundreds_gap"
-        ]
-      },
-      {
-        "id": "trigger",
-        "label": "触发无达标标准",
-        "file": "unproven-list--trigger.mp4",
-        "endStill": "unproven-list--trigger-end.png",
+        "id": "xi-smuggle",
+        "label": "缩进伪字段",
+        "file": "experiment-label-injection--xi-smuggle.mp4",
+        "endStill": "experiment-label-injection--xi-smuggle-end.png",
         "beats": 2,
         "leadSec": 0.44,
         "storySec": 3.28,
         "beatNodes": [
-          "trigger_q",
-          "trigger_gap"
+          "author",
+          "label"
         ]
       },
       {
-        "id": "trust",
-        "label": "无签名无版本",
-        "file": "unproven-list--trust.mp4",
-        "endStill": "unproven-list--trust-end.png",
+        "id": "xi-leak",
+        "label": "混入元数据",
+        "file": "experiment-label-injection--xi-leak.mp4",
+        "endStill": "experiment-label-injection--xi-leak-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.34,
+        "beatNodes": [
+          "label",
+          "parser",
+          "meta"
+        ]
+      },
+      {
+        "id": "xi-authorize",
+        "label": "预授权风险",
+        "file": "experiment-label-injection--xi-authorize.mp4",
+        "endStill": "experiment-label-injection--xi-authorize-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.35,
+        "beatNodes": [
+          "meta",
+          "client",
+          "author"
+        ]
+      },
+      {
+        "id": "xi-truthiness",
+        "label": "false 彩蛋",
+        "file": "experiment-label-injection--xi-truthiness.mp4",
+        "endStill": "experiment-label-injection--xi-truthiness-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.32,
+        "beatNodes": [
+          "parser",
+          "meta",
+          "client"
+        ]
+      }
+    ]
+  },
+  "experiment-scan-order": {
+    "slug": "experiment-scan-order",
+    "type": "workflow",
+    "chapters": [
+      {
+        "id": "xo-priority",
+        "label": "拆掉优先级",
+        "file": "experiment-scan-order--xo-priority.mp4",
+        "endStill": "experiment-scan-order--xo-priority-end.png",
         "beats": 2,
-        "leadSec": 0.48,
+        "leadSec": 0.44,
+        "storySec": 3.23,
+        "beatNodes": [
+          "a-first",
+          "b-first"
+        ]
+      },
+      {
+        "id": "xo-drift",
+        "label": "两港漂移",
+        "file": "experiment-scan-order--xo-drift.mp4",
+        "endStill": "experiment-scan-order--xo-drift-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.26,
+        "beatNodes": [
+          "a-hit",
+          "b-hit"
+        ]
+      },
+      {
+        "id": "xo-silent",
+        "label": "无报错",
+        "file": "experiment-scan-order--xo-silent.mp4",
+        "endStill": "experiment-scan-order--xo-silent-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.23,
+        "beatNodes": [
+          "a-ident",
+          "b-ident"
+        ]
+      }
+    ]
+  },
+  "four-ports-charter": {
+    "slug": "four-ports-charter",
+    "type": "architecture",
+    "chapters": [
+      {
+        "id": "fp-quartet",
+        "label": "四联章程",
+        "file": "four-ports-charter--fp-quartet.mp4",
+        "endStill": "four-ports-charter--fp-quartet-end.png",
+        "beats": 5,
+        "leadSec": 0.44,
+        "storySec": 5.56,
+        "beatNodes": [
+          "spec",
+          "gemini",
+          "cc",
+          "openai",
+          "vscode"
+        ]
+      },
+      {
+        "id": "fp-ports",
+        "label": "四港画像",
+        "file": "four-ports-charter--fp-ports.mp4",
+        "endStill": "four-ports-charter--fp-ports-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.42,
+        "beatNodes": [
+          "gemini",
+          "cc",
+          "openai",
+          "vscode"
+        ]
+      },
+      {
+        "id": "fp-paths",
+        "label": "堆场与锚点",
+        "file": "four-ports-charter--fp-paths.mp4",
+        "endStill": "four-ports-charter--fp-paths-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
         "storySec": 3.22,
         "beatNodes": [
-          "trust_q",
-          "trust_gap"
+          "yard",
+          "anchor"
         ]
       },
       {
-        "id": "check",
-        "label": "过检查≠合规≠好用",
-        "file": "unproven-list--check.mp4",
-        "endStill": "unproven-list--check-end.png",
+        "id": "fp-ref",
+        "label": "验箱师",
+        "file": "four-ports-charter--fp-ref.mp4",
+        "endStill": "four-ports-charter--fp-ref-end.png",
         "beats": 2,
-        "leadSec": 0.48,
+        "leadSec": 0.44,
         "storySec": 3.24,
         "beatNodes": [
-          "check_q",
-          "check_gap"
+          "ref",
+          "spec"
+        ]
+      },
+      {
+        "id": "fp-vacuum",
+        "label": "签名真空",
+        "file": "four-ports-charter--fp-vacuum.mp4",
+        "endStill": "four-ports-charter--fp-vacuum-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.26,
+        "beatNodes": [
+          "vacuum",
+          "spec"
+        ]
+      }
+    ]
+  },
+  "governance-layers": {
+    "slug": "governance-layers",
+    "type": "architecture",
+    "chapters": [
+      {
+        "id": "gl-three",
+        "label": "三层治理",
+        "file": "governance-layers--gl-three.mp4",
+        "endStill": "governance-layers--gl-three-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.33,
+        "beatNodes": [
+          "must",
+          "advise",
+          "blank"
+        ]
+      },
+      {
+        "id": "gl-algo",
+        "label": "极简算法",
+        "file": "governance-layers--gl-algo.mp4",
+        "endStill": "governance-layers--gl-algo-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.23,
+        "beatNodes": [
+          "blank",
+          "guide-trust"
+        ]
+      },
+      {
+        "id": "gl-verdict",
+        "label": "判词",
+        "file": "governance-layers--gl-verdict.mp4",
+        "endStill": "governance-layers--gl-verdict-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.33,
+        "beatNodes": [
+          "pr254",
+          "pr573",
+          "pr546"
+        ]
+      }
+    ]
+  },
+  "identity-registry": {
+    "slug": "identity-registry",
+    "type": "sequence",
+    "chapters": [
+      {
+        "id": "ir-nocenter",
+        "label": "无注册中心",
+        "file": "identity-registry--ir-nocenter.mp4",
+        "endStill": "identity-registry--ir-nocenter-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.24,
+        "beatNodes": [
+          "author",
+          "fs"
+        ]
+      },
+      {
+        "id": "ir-deal",
+        "label": "登记处交易",
+        "file": "identity-registry--ir-deal.mp4",
+        "endStill": "identity-registry--ir-deal-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.33,
+        "beatNodes": [
+          "author",
+          "fs",
+          "client"
+        ]
+      }
+    ]
+  },
+  "label-good-bad": {
+    "slug": "label-good-bad",
+    "type": "architecture",
+    "chapters": [
+      {
+        "id": "lb-pair",
+        "label": "两张货签",
+        "file": "label-good-bad--lb-pair.mp4",
+        "endStill": "label-good-bad--lb-pair-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.33,
+        "beatNodes": [
+          "router",
+          "good",
+          "bad"
+        ]
+      },
+      {
+        "id": "lb-silent",
+        "label": "静默退化",
+        "file": "label-good-bad--lb-silent.mp4",
+        "endStill": "label-good-bad--lb-silent-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.25,
+        "beatNodes": [
+          "bad",
+          "silent"
+        ]
+      },
+      {
+        "id": "lb-intent",
+        "label": "没说关键词",
+        "file": "label-good-bad--lb-intent.mp4",
+        "endStill": "label-good-bad--lb-intent-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.44,
+        "beatNodes": [
+          "user",
+          "router",
+          "good",
+          "hit"
+        ]
+      }
+    ]
+  },
+  "lenient-vs-strict": {
+    "slug": "lenient-vs-strict",
+    "type": "workflow",
+    "chapters": [
+      {
+        "id": "ls-warnload",
+        "label": "警告照放",
+        "file": "lenient-vs-strict--ls-warnload.mp4",
+        "endStill": "lenient-vs-strict--ls-warnload-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.35,
+        "beatNodes": [
+          "arrival",
+          "lenient_gate",
+          "loaded"
+        ]
+      },
+      {
+        "id": "ls-x2",
+        "label": "实测门",
+        "file": "lenient-vs-strict--ls-x2.mp4",
+        "endStill": "lenient-vs-strict--ls-x2-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.43,
+        "beatNodes": [
+          "lenient_gate",
+          "strict_gate",
+          "lenient_tally",
+          "strict_tally"
+        ]
+      }
+    ]
+  },
+  "pending-wars": {
+    "slug": "pending-wars",
+    "type": "dataflow",
+    "chapters": [
+      {
+        "id": "pw-stall",
+        "label": "停摆七个月",
+        "file": "pending-wars--pw-stall.mp4",
+        "endStill": "pending-wars--pw-stall-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.45,
+        "beatNodes": [
+          "p-distro",
+          "queue",
+          "pr254",
+          "out-stall"
+        ]
+      },
+      {
+        "id": "pw-clash",
+        "label": "对冲无裁决",
+        "file": "pending-wars--pw-clash.mp4",
+        "endStill": "pending-wars--pw-clash-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.47,
+        "beatNodes": [
+          "p-schema",
+          "queue",
+          "pr57520",
+          "out-clash"
+        ]
+      },
+      {
+        "id": "pw-interop",
+        "label": "最先落地",
+        "file": "pending-wars--pw-interop.mp4",
+        "endStill": "pending-wars--pw-interop-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.46,
+        "beatNodes": [
+          "p-interop",
+          "queue",
+          "pr546",
+          "out-land"
+        ]
+      }
+    ]
+  },
+  "port-46-adoption": {
+    "slug": "port-46-adoption",
+    "chapters": [
+      {
+        "id": "pa-open",
+        "label": "捐出开放",
+        "file": "port-46-adoption--pa-open.mp4",
+        "endStill": "port-46-adoption--pa-open-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.24,
+        "beatNodes": [
+          "anthropic",
+          "open-std"
+        ]
+      },
+      {
+        "id": "pa-harbor",
+        "label": "竞对全接",
+        "file": "port-46-adoption--pa-harbor.mp4",
+        "endStill": "port-46-adoption--pa-harbor-end.png",
+        "beats": 5,
+        "leadSec": 0.44,
+        "storySec": 5.57,
+        "beatNodes": [
+          "open-std",
+          "openai",
+          "google",
+          "microsoft",
+          "cursor"
+        ]
+      },
+      {
+        "id": "pa-table",
+        "label": "整张牌桌",
+        "file": "port-46-adoption--pa-table.mp4",
+        "endStill": "port-46-adoption--pa-table-end.png",
+        "beats": 6,
+        "leadSec": 0.44,
+        "storySec": 6.64,
+        "beatNodes": [
+          "showcase",
+          "gate",
+          "openai",
+          "google",
+          "microsoft",
+          "cursor"
+        ]
+      }
+    ]
+  },
+  "routing-eval-protocol": {
+    "slug": "routing-eval-protocol",
+    "type": "workflow",
+    "chapters": [
+      {
+        "id": "re-nearmiss",
+        "label": "近失配",
+        "file": "routing-eval-protocol--re-nearmiss.mp4",
+        "endStill": "routing-eval-protocol--re-nearmiss-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.25,
+        "beatNodes": [
+          "near",
+          "outer"
+        ]
+      },
+      {
+        "id": "re-protocol",
+        "label": "一套卷子",
+        "file": "routing-eval-protocol--re-protocol.mp4",
+        "endStill": "routing-eval-protocol--re-protocol-end.png",
+        "beats": 4,
+        "leadSec": 0.48,
+        "storySec": 4.47,
+        "beatNodes": [
+          "exam",
+          "sched",
+          "rate",
+          "gate"
+        ]
+      },
+      {
+        "id": "re-holdout",
+        "label": "六四分",
+        "file": "routing-eval-protocol--re-holdout.mp4",
+        "endStill": "routing-eval-protocol--re-holdout-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.35,
+        "beatNodes": [
+          "split",
+          "exam",
+          "rewrite"
+        ]
+      },
+      {
+        "id": "re-interview",
+        "label": "一秒面试",
+        "file": "routing-eval-protocol--re-interview.mp4",
+        "endStill": "routing-eval-protocol--re-interview-end.png",
+        "beats": 1,
+        "leadSec": 0.44,
+        "storySec": 3.26,
+        "beatNodes": [
+          "sched"
+        ]
+      }
+    ]
+  },
+  "script-craft": {
+    "slug": "script-craft",
+    "type": "workflow",
+    "chapters": [
+      {
+        "id": "sc-pin",
+        "label": "钉死版本",
+        "file": "script-craft--sc-pin.mp4",
+        "endStill": "script-craft--sc-pin-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.33,
+        "beatNodes": [
+          "script",
+          "upstream",
+          "pin"
+        ]
+      },
+      {
+        "id": "sc-rules",
+        "label": "四条家规",
+        "file": "script-craft--sc-rules.mp4",
+        "endStill": "script-craft--sc-rules-end.png",
+        "beats": 5,
+        "leadSec": 0.44,
+        "storySec": 5.53,
+        "beatNodes": [
+          "r1",
+          "r2",
+          "r3",
+          "r4",
+          "deliver"
+        ]
+      }
+    ]
+  },
+  "shadow-warning": {
+    "slug": "shadow-warning",
+    "chapters": [
+      {
+        "id": "sw-copy",
+        "label": "复制自用",
+        "file": "shadow-warning--sw-copy.mp4",
+        "endStill": "shadow-warning--sw-copy-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.28,
+        "beatNodes": [
+          "s-live",
+          "s-copy"
+        ]
+      },
+      {
+        "id": "sw-shadow",
+        "label": "静默遮蔽",
+        "file": "shadow-warning--sw-shadow.mp4",
+        "endStill": "shadow-warning--sw-shadow-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.21,
+        "beatNodes": [
+          "s-copy",
+          "s-shadow"
+        ]
+      },
+      {
+        "id": "sw-warn",
+        "label": "告警义务",
+        "file": "shadow-warning--sw-warn.mp4",
+        "endStill": "shadow-warning--sw-warn-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.33,
+        "beatNodes": [
+          "s-shadow",
+          "s-warn",
+          "s-blind"
+        ]
+      }
+    ]
+  },
+  "two-old-roads": {
+    "slug": "two-old-roads",
+    "type": "workflow",
+    "chapters": [
+      {
+        "id": "or-two",
+        "label": "两条老路",
+        "file": "two-old-roads--or-two.mp4",
+        "endStill": "two-old-roads--or-two-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.24,
+        "beatNodes": [
+          "g1",
+          "s1"
+        ]
+      },
+      {
+        "id": "or-guess",
+        "label": "盲航",
+        "file": "two-old-roads--or-guess.mp4",
+        "endStill": "two-old-roads--or-guess-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.26,
+        "beatNodes": [
+          "g1",
+          "g2"
+        ]
+      },
+      {
+        "id": "or-stuff",
+        "label": "超载",
+        "file": "two-old-roads--or-stuff.mp4",
+        "endStill": "two-old-roads--or-stuff-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.35,
+        "beatNodes": [
+          "s1",
+          "s2",
+          "s3"
+        ]
+      },
+      {
+        "id": "or-ledger",
+        "label": "一笔账",
+        "file": "two-old-roads--or-ledger.mp4",
+        "endStill": "two-old-roads--or-ledger-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.32,
+        "beatNodes": [
+          "q",
+          "g2",
+          "s3"
         ]
       }
     ]

@@ -1,0 +1,24 @@
+%% source: apps/negentropy-influence/episodes/agent-skills-video/script/narration.md P1（p1-04..06）
+%% slug: agent-skills--identity-registry
+%% type: sequence
+%% derived: 2026-09-27 agent-skills-video 分镜 1-B
+sequenceDiagram
+    autonumber
+    participant A as 技能作者（创建技能包）
+    participant F as 文件系统（登记处本身）
+    participant C as 客户端（按名查找）
+
+    rect rgb(235, 242, 248)
+    note over A,F: 登记段 · 无中心
+    A->>F: 创建目录 skills/pdf-clean
+    note right of A: 没有注册中心,不向任何机构申请
+    F-->>A: 目录名 = 唯一箱号
+    note right of F: 白拿的唯一身份——标准跟操作系统做的第一笔交易
+    A->>F: 写入 SKILL.md（name=目录名）
+    end
+
+    rect rgb(232, 244, 236)
+    note over A,C: 按名命中段
+    C->>F: 扫描 .agents/skills 按名查找
+    F-->>C: 命中 · 返回整只技能包
+    end

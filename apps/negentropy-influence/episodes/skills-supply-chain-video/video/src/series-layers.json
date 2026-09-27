@@ -1,0 +1,25 @@
+{
+ "seriesId": "agent-infra",
+ "layers": [
+  {
+   "index": 1,
+   "layer": "开放标准",
+   "title": "知识的集装箱：Agent Skills 开放标准",
+   "published": false
+  },
+  {
+   "index": 2,
+   "layer": "判断",
+   "title": "让判断变便宜：Jev 决策模型拆解",
+   "published": false
+  },
+  {
+   "index": 3,
+   "layer": "供应链",
+   "title": "没有海关的港口：Skills 的签名、分发与版本战争",
+   "published": false
+  }
+ ],
+ "activeIndex": 3,
+ "next": null
+}

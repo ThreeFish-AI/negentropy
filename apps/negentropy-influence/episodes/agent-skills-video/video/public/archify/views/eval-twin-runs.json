@@ -1,45 +1,24 @@
 [
  {
-  "id": "twin",
-  "label": "同一张工单",
+  "id": "et-blind",
+  "label": "同单两跑 · 盲评",
   "focus": [
-   "ticket"
+   "task",
+   "run_a",
+   "run_b",
+   "judge"
   ],
-  "note": "同一张真实工单：真实提问加成功描述。"
+  "note": "同一单活跑两遍，遮幕裁判不知哪份是哪份。"
  },
  {
-  "id": "with-without",
-  "label": "带与不带",
+  "id": "et-assert",
+  "label": "断言记账",
   "focus": [
-   "with_manual",
-   "without_manual"
+   "judge",
+   "checklist",
+   "ledger",
+   "verdict"
   ],
-  "note": "一名带手册、一名空手，其余条件完全相同。"
- },
- {
-  "id": "pass-evidence",
-  "label": "打勾贴证据",
-  "focus": [
-   "qc_gate"
-  ],
-  "note": "质检员逐条打勾，判通过必须附上证据。"
- },
- {
-  "id": "both-pass",
-  "label": "都过即删",
-  "focus": [
-   "qc_gate",
-   "both_pass"
-  ],
-  "note": "两边都能过的检查项删掉，只会虚抬分数。"
- },
- {
-  "id": "only-with",
-  "label": "手册真价值",
-  "focus": [
-   "only_with",
-   "revise_next"
-  ],
-  "note": "只有带手册才过的，才是手册真正的价值。"
+  "note": "清单逐条 PASS/FAIL；token 与质量两栏对账。"
  }
 ]

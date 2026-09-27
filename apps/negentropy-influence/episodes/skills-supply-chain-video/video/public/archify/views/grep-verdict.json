@@ -1,0 +1,39 @@
+[
+ {
+  "id": "gv-cmd",
+  "label": "取规范",
+  "focus": [
+   "term",
+   "spec"
+  ],
+  "note": "gh api 取规范原文 · 钉点 69ef37e9"
+ },
+ {
+  "id": "gv-stems",
+  "label": "八词干",
+  "focus": [
+   "term",
+   "grep"
+  ],
+  "note": "8 个安全词干 · 大小写敏感逐一扫"
+ },
+ {
+  "id": "gv-hit",
+  "label": "唯一命中",
+  "focus": [
+   "grep",
+   "spec"
+  ],
+  "note": "247 行仅 1 处命中 · L133 示例"
+ },
+ {
+  "id": "gv-designed",
+  "label": "藏在单词里",
+  "focus": [
+   "spec",
+   "grep",
+   "term"
+  ],
+  "note": "De-sign-ed · 其余 7 词 0 命中"
+ }
+]
