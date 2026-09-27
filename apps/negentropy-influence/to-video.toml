@@ -128,3 +128,68 @@ reason = "停在 2026-09-22 分代之前的更早版本（同 dream-rsi 条目�
 # 「历史遗留清单」，而它本该是「当前合法偏离的完整枚举」。
 # 收敛判据：归一化 diff 证明差异仅为注释文字与 JSX 属性折行，三个 props 表达式
 # 逐字相同 ⇒ 渲染输出零变化，两集**无需重渲**。
+
+# ── V3D 3D 遗产接线（2026-09-28，完全重制）────────────────────────────────
+# EP1 改造期验证过的 3D 原语层（solids-3d/harness-stack/motifs/LottieEmphasis，
+# 含 ISSUE-177/180/182 修复后形态）推广到全系列五集；依赖整组追新至 4.0.529
+# （同 major 全家桶，three 0.186.1 / fiber 9.8.1 / lottie-web 5.13.0）。
+# 组件文件属 seeded 档不进门；此处只登记受门文件的合法偏离。
+[[skeleton.drift]]
+episode = "claude-code-explained-video"
+path = "video/package.json"
+fingerprint = "bdfea44ecd31"
+reason = "V3D 3D 遗产接线（2026-09-28）：+@remotion/{three,lottie,paths,shapes,layout-utils,media}@4.0.529 +three@0.186.1+@react-three/fiber@9.8.1+lottie-web@5.13.0+@types/three。撤销条件=3D 视觉方向放弃时按模板回退"
+
+[[skeleton.drift]]
+episode = "claude-code-explained-video"
+path = "video/remotion.config.ts"
+fingerprint = "cdc1b4788cca"
+reason = "V3D：@remotion/three 无头渲染强制 Chromium OpenGL=angle（一行）。撤销条件同上"
+
+[[skeleton.drift]]
+episode = "claude-code-planning-video"
+path = "video/package.json"
+fingerprint = "bdfea44ecd31"
+reason = "V3D 3D 遗产接线（2026-09-28，同 EP1 条目）"
+
+[[skeleton.drift]]
+episode = "claude-code-planning-video"
+path = "video/remotion.config.ts"
+fingerprint = "cdc1b4788cca"
+reason = "V3D：angle 后端（同 EP1 条目）"
+
+[[skeleton.drift]]
+episode = "claude-code-memory-video"
+path = "video/package.json"
+fingerprint = "bdfea44ecd31"
+reason = "V3D 3D 遗产接线（2026-09-28，同 EP1 条目）"
+
+[[skeleton.drift]]
+episode = "claude-code-memory-video"
+path = "video/remotion.config.ts"
+fingerprint = "cdc1b4788cca"
+reason = "V3D：angle 后端（同 EP1 条目）"
+
+[[skeleton.drift]]
+episode = "claude-code-concurrency-video"
+path = "video/package.json"
+fingerprint = "bdfea44ecd31"
+reason = "V3D 3D 遗产接线（2026-09-28，同 EP1 条目）"
+
+[[skeleton.drift]]
+episode = "claude-code-concurrency-video"
+path = "video/remotion.config.ts"
+fingerprint = "cdc1b4788cca"
+reason = "V3D：angle 后端（同 EP1 条目）"
+
+[[skeleton.drift]]
+episode = "claude-code-multiagent-video"
+path = "video/package.json"
+fingerprint = "bdfea44ecd31"
+reason = "V3D 3D 遗产接线（2026-09-28，同 EP1 条目）"
+
+[[skeleton.drift]]
+episode = "claude-code-multiagent-video"
+path = "video/remotion.config.ts"
+fingerprint = "cdc1b4788cca"
+reason = "V3D：angle 后端（同 EP1 条目）"
