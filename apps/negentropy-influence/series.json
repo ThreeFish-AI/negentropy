@@ -320,8 +320,8 @@
             "license": "CC-BY-4.0（文档）/ Apache-2.0（代码）；本仓精读为内部文档",
             "accessed": "2026-09-26"
           },
-          "status": "scripting",
-          "statusNote": "完全重做（2026-09-26 启动）：旧 v1《经验淬炼成手册》成片归档于交付根 agent-infra/；新版以 210/211 重学为信源、story 段落演绎档配音，目标 14:00–14:40 / 图≥16 / cue≥55 / 锚定≥35% / 复述门 FAIL 0",
+          "status": "final-review",
+          "statusNote": "v1 终渲待审（2026-09-28）：13:03.4 = 23502 帧 @30fps / 1920×1080（119 句 4191 字，复算式与 mdls 逐位一致）；七幕 41 镜 · archify 19 图（17 新绘 + 2 复用 210）63 章 64 cue 逐章回放 · 锚定 53.8% · 图型 5 · 密度 4.9/分 · 最长无锚 6 句；信源 24 条（210/211/lab2 @72a657351 + 上游 @69ef37e9 + 生态四家 + PR 三提案）；story 段落演绎档（24 块相邻换情绪 + 表演标点，服务自愈重启一次）；④ RISKY=0 REWRITE=0 + ⑤ 成文优化 15 处（评审 7.5/10 起）；机器门全绿：check_series/build/check/--check-scenes/check_archify/复述门/tsc/qa --check 尾幕/beat-heads/WCAG(11.9:1) 全 FAIL 0 + 亮度扫描 102 帧零暗段 + 目视 7 帧；外挂字幕已交付 _captions/；旧 v1《经验淬炼成手册》成片保留归档",
           "voice": "story 段落演绎档 + me-bright.wav"
         },
         {
