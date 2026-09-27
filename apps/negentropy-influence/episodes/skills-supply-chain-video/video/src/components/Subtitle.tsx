@@ -60,7 +60,9 @@ export const Subtitle: React.FC<{timed: TimedSentence[]}> = ({timed}) => {
     fontWeight: 500, // 须与下方 div 的 fontWeight 一致，否则测量偏小
   }).fontSize;
   const isZh = lang === PRIMARY_LANG;
-  const twoLine = !isZh && fitted < MIN_FONT_SIZE;
+  // E3 校准：散文式长句（本集最长 81 字）超出单行预算——zh 与 en 同用双行几何
+  // （margin 35 / 字号 30 / 行高 1.3，盒顶 137px ≤ 137.4 检测线，见上方推导链）。
+  const twoLine = fitted < MIN_FONT_SIZE;
   const fontSize = twoLine
     ? EN_TWO_LINE_SIZE
     : Math.max(MIN_FONT_SIZE, Math.min(MAX_FONT_SIZE, fitted));
@@ -68,7 +70,7 @@ export const Subtitle: React.FC<{timed: TimedSentence[]}> = ({timed}) => {
     <AbsoluteFill style={{justifyContent: 'flex-end', alignItems: 'center', pointerEvents: 'none'}}>
       <div
         style={{
-          marginBottom: isZh ? 54 : EN_MARGIN_BOTTOM,
+          marginBottom: twoLine ? EN_MARGIN_BOTTOM : isZh ? 54 : EN_MARGIN_BOTTOM,
           maxWidth: MAX_WIDTH,
           padding: `12px ${PADDING_X}px`,
           borderRadius: 12,
@@ -77,7 +79,7 @@ export const Subtitle: React.FC<{timed: TimedSentence[]}> = ({timed}) => {
           fontFamily: theme.sans,
           fontSize,
           fontWeight: 500,
-          lineHeight: isZh ? 1.35 : EN_LINE_HEIGHT,
+          lineHeight: twoLine ? EN_LINE_HEIGHT : isZh ? 1.35 : EN_LINE_HEIGHT,
           whiteSpace: twoLine ? 'normal' : 'nowrap',
           // 两行均衡断行（csstype 3.2.3 已收录；undefined 时 React 不落 DOM 属性）
           textWrap: twoLine ? 'balance' : undefined,
