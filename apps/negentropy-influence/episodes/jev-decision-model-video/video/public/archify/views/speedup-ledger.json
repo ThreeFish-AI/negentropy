@@ -1,0 +1,36 @@
+[
+ {
+  "id": "sl-setup",
+  "label": "口径设定",
+  "focus": [
+   "evals"
+  ],
+  "note": "参照、出题、对照组——官方自己列的 nuance。"
+ },
+ {
+  "id": "sl-official",
+  "label": "官方出口",
+  "focus": [
+   "headline"
+  ],
+  "note": "首页大数，官方自认偏上限。"
+ },
+ {
+  "id": "sl-recompute",
+  "label": "复算对账",
+  "focus": [
+   "recompute",
+   "demo"
+  ],
+  "note": "公开数据点复算 97.8×；demo 两数之比 171×。"
+ },
+ {
+  "id": "sl-verdict",
+  "label": "归并",
+  "focus": [
+   "indep",
+   "verdict"
+  ],
+  "note": "独立测速只有几倍——量级真，倍数随口径。"
+ }
+]

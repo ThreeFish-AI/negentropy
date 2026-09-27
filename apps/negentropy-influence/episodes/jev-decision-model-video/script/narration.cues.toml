@@ -1,0 +1,293 @@
+# 配音台本（story 档）——与 narration.md 同产。
+# [block.<句id>]：该句是一个故事块的起点（块 = ≤3 句、≤90 字，幕界断块，beat 首句必为块起点）；
+#   emo = 块情绪方向（happy/angry/sad/afraid/disgusted/melancholic/surprised/calm），相邻块方向尽量不同。
+# [say]：表演标点（只改标点不改字，build 校验去标点后与正文全等）；标注句须原样携带 <字|读音>。
+# [take] 不在本阶段填写（合成后 take 验收才用）。
+
+# ── P0 主播与判读员 ────────────────────────────────────────────
+
+[block.p0-01]                       # 暴雨夜观察（铺垫）
+emo = "calm:0.16"
+
+[block.p0-04]                       # 官方之问（悬念）
+emo = "surprised:0.1,calm:0.06"
+
+[block.p0-06]                       # 判读员登场（好奇）
+emo = "calm:0.12"
+
+[block.p0-09]                       # 定位与命名（平实讲解）
+emo = "surprised:0.08,calm:0.08"
+
+[block.p0-12]                       # 快判不是凭感觉（收一句）
+emo = "calm:0.14"
+
+[block.p0-13]                       # 立规矩（严肃）
+emo = "melancholic:0.08,calm:0.1"
+
+[block.p0-16]                       # 三枚徽章（交代）
+emo = "calm:0.12"
+
+[block.p0-18]                       # 徽章落位（收半拍；原块 >118 token 被上游分段）
+emo = "calm:0.1"
+
+[block.p0-19]                       # 三承诺过秤（挑战）
+emo = "afraid:0.1,surprised:0.1"
+
+[block.p0-21]                       # 钩子（收束）
+emo = "calm:0.1"
+
+# ── P1 四个病灶 ────────────────────────────────────────────────
+
+[block.p1-01]                       # 病灶一（立案）
+emo = "calm:0.12"
+
+[block.p1-04]                       # 病灶二：口头置信（质疑）
+emo = "disgusted:0.1,calm:0.06"
+
+[block.p1-06]                       # 黑盒探测结论（扎心）
+emo = "afraid:0.1,surprised:0.08"
+
+[block.p1-08]                       # 病灶三：慢与贵（无奈）
+emo = "melancholic:0.1,calm:0.06"
+
+[block.p1-10]                       # 病灶四：讨好（不满）
+emo = "disgusted:0.1,angry:0.05"
+
+[block.p1-12]                       # 回马枪（反转）
+emo = "surprised:0.12"
+
+[block.p1-15]                       # 公道话（转折后平复）
+emo = "calm:0.12"
+
+[block.p1-16]                       # 四要求立牌（起拍）
+emo = "happy:0.08,calm:0.1"
+
+[block.p1-17]                       # 四条硬要求（列明）
+emo = "calm:0.12"
+
+[block.p1-20]                       # 秒回且便宜（轻快收）
+emo = "happy:0.06,calm:0.1"
+
+[block.p1-22]                       # 计费反直觉（意外之喜）
+emo = "surprised:0.1,happy:0.06"
+
+[block.p1-24]                       # 价格与延迟（压一压）
+emo = "calm:0.12"
+
+# ── P2 预印的格子 ──────────────────────────────────────────────
+
+[block.p2-01]                       # 三类行（讲解）
+emo = "calm:0.12"
+
+[block.p2-04]                       # 判读不是掷骰子（点题）
+emo = "happy:0.06,calm:0.1"
+
+[block.p2-07]                       # 紫色的雨（反直觉）
+emo = "surprised:0.12"
+
+[block.p2-10]                       # 255 与其他格（规矩）
+emo = "calm:0.12"
+
+[block.p2-13]                       # 契约拒绝（实证的爽）
+emo = "happy:0.1,surprised:0.08"
+
+[block.p2-15]                       # 复算核对（踏实）
+emo = "calm:0.12"
+
+[block.p2-17]                       # 只有三个字（冲突起）
+emo = "sad:0.1,afraid:0.06"
+
+[block.p2-20]                       # 0.981 自动执行（警示）
+emo = "afraid:0.14"
+
+[block.p2-22]                       # 窗外大雨单上晴（金句落地）
+emo = "melancholic:0.1,afraid:0.06"
+
+[block.p2-24]                       # 官方自认（平息）
+emo = "calm:0.12"
+
+[block.p2-27]                       # 零幻觉的边界（收+钩子）
+emo = "melancholic:0.08,calm:0.08"
+
+# ── P3 大屏与封卡 ──────────────────────────────────────────────
+
+[block.p3-01]                       # 大屏（铺垫）
+emo = "calm:0.12"
+
+[block.p3-04]                       # 一人一排卡（画面明快）
+emo = "surprised:0.06,calm:0.08"
+
+[block.p3-07]                       # 多问近乎免费（得利）
+emo = "happy:0.12"
+
+[block.p3-11]                       # 暗号悬念（探秘）
+emo = "afraid:0.08,surprised:0.1"
+
+[block.p3-14]                       # 0.90 跳变（揭示）
+emo = "surprised:0.12"
+
+[block.p3-16]                       # 剧场规则与推断（冷静）
+emo = "calm:0.12"
+
+[block.p3-18]                       # 行内影响（警觉）
+emo = "disgusted:0.08,calm:0.08"
+
+[block.p3-20]                       # 挪动与顺序（不安）
+emo = "melancholic:0.08,calm:0.08"
+
+[block.p3-22]                       # 1.19 来了（反直觉高点）
+emo = "surprised:0.14"
+
+[block.p3-25]                       # 加出 1.19（违和）
+emo = "afraid:0.1,surprised:0.06"
+
+[block.p3-28]                       # 原例与自洽（收+钩子）
+emo = "calm:0.12"
+
+# ── P4 柱高与计算栏 ────────────────────────────────────────────
+
+[block.p4-01]                       # 柱高（讲解）
+emo = "calm:0.12"
+
+[block.p4-04]                       # 计算栏（机制之妙）
+emo = "happy:0.08,calm:0.08"
+
+[block.p4-06]                       # 是否行没有这栏（小惊奇）
+emo = "surprised:0.08,calm:0.08"
+
+[block.p4-08]                       # 公式与推断（严谨）
+emo = "calm:0.12"
+
+[block.p4-11]                       # K 依赖（反直觉）
+emo = "surprised:0.12"
+
+[block.p4-14]                       # 含金量下降（隐忧）
+emo = "melancholic:0.08,surprised:0.06"
+
+[block.p4-17]                       # 记分牌登场（踏实）
+emo = "happy:0.1,calm:0.06"
+
+[block.p4-19]                       # 目标合同（交代）
+emo = "calm:0.12"
+
+[block.p4-21]                       # 报七成按七成（对账的笃定）
+emo = "melancholic:0.06,calm:0.1"
+
+[block.p4-24]                       # 口径问题（挑剔）
+emo = "disgusted:0.08,calm:0.08"
+
+[block.p4-26]                       # 徽章回扣+彩蛋（会心）
+emo = "happy:0.1,surprised:0.06"
+
+[block.p4-28]                       # 记分牌拆走（预转，低回）
+emo = "melancholic:0.12"
+
+# ── P5 高原上的七成 ────────────────────────────────────────────
+
+[block.p5-01]                       # 转折点（变奏）
+emo = "afraid:0.12,surprised:0.08"
+
+[block.p5-04]                       # 台阶出现（失落）
+emo = "sad:0.1,afraid:0.08"
+
+[block.p5-07]                       # 没有调令（清醒的低）
+emo = "melancholic:0.12"
+
+[block.p5-10]                       # 分布内数字（平稳举证）
+emo = "calm:0.12"
+
+[block.p5-12]                       # 密封集突变（惊）
+emo = "surprised:0.12,afraid:0.06"
+
+[block.p5-15]                       # 台阶就在这里（沉重）
+emo = "sad:0.1"
+
+[block.p5-17]                       # 骰子（荒诞的妙）
+emo = "surprised:0.12"
+
+[block.p5-20]                       # 82.9 对 19（错愕）
+emo = "afraid:0.1,surprised:0.08"
+
+[block.p5-22]                       # 原理论证（冷静）
+emo = "calm:0.12"
+
+[block.p5-25]                       # 官方也认（低回）
+emo = "melancholic:0.1,calm:0.06"
+
+[block.p5-27]                       # 领地失效复现（警）
+emo = "afraid:0.12"
+
+[block.p5-29]                       # 修读数不修排序（怅然+钩子）
+emo = "melancholic:0.08,calm:0.08"
+
+# ── P6 三道闸与账本 ────────────────────────────────────────────
+
+[block.p6-01]                       # 预案墙（沉稳开场）
+emo = "calm:0.12"
+
+[block.p6-04]                       # 读数过三道闸（起拍）
+emo = "happy:0.08,calm:0.1"
+
+[block.p6-05]                       # 高/中读数两档（明快交代）
+emo = "calm:0.12"
+
+[block.p6-08]                       # 低读数、首席与门槛（交代）
+emo = "surprised:0.06,calm:0.1"
+
+[block.p6-11]                       # 反面警告（告诫）
+emo = "afraid:0.1,disgusted:0.06"
+
+[block.p6-13]                       # 官方考场反直觉（揭）
+emo = "surprised:0.12"
+
+[block.p6-16]                       # 对照与拆错提醒（冷峻）
+emo = "disgusted:0.08,calm:0.08"
+
+[block.p6-19]                       # Jevons 与气泡（兴致起、畅想）
+emo = "happy:0.12,surprised:0.06"
+
+[block.p6-24]                       # 对账开场（郑重）
+emo = "calm:0.12"
+
+[block.p6-27]                       # 口径三件套（挑剔）
+emo = "disgusted:0.06,calm:0.1"
+
+[block.p6-29]                       # 三数字（收官的亮）
+emo = "surprised:0.1,happy:0.06"
+
+[block.p6-32]                       # 命名之争（悬而未决）
+emo = "melancholic:0.08,surprised:0.08"
+
+[block.p6-35]                       # 不裁决（持平）
+emo = "calm:0.12"
+
+[block.p6-37]                       # 三问（留白）
+emo = "melancholic:0.08,calm:0.08"
+
+[block.p6-39]                       # 对拍数字（点睛）
+emo = "surprised:0.08,calm:0.08"
+
+[block.p6-42]                       # 金句（得意收束）
+emo = "happy:0.12"
+
+[block.p6-45]                       # 下期见（平静收拍）
+emo = "calm:0.14"
+
+# ── 表演标点（≤15 处，只改标点）─────────────────────────────────
+
+[say]
+p0-01 = "暴雨夜，电视里的 AI 天气主播口若悬河，一条街一条街地报着雨量。"
+p0-03 = "主播早就比人强了，自动化，却迟迟没来。"
+p1-14 = "作者本人开的回马枪——讨人喜欢，和值得信任，是两个优化目标。"
+p2-09 = "所以他报不出「紫色的雨」——行里，根本没这一格。"
+p2-22 = "行尾的集中度读数，相当于他自报的把握，冲到 0.981，直接触发自动执行。"
+p2-23 = "窗外大雨，单上填「晴」——格式对了，天气，没对。"
+p3-25 = "两张卡加起来——1.19。"
+p4-05 = "这一栏，由表格按固定公式自动算出——判读员的手，从来不碰。"
+p5-01 = "现在——全片的转折点，来了。"
+p5-06 = "他自己不报警——读数，还是那个读数。"
+p5-20 = "这拨人实测下来……那颗骰子，它报到 82.9%。"
+p6-02 = "停不停课、停不停航——从来，不由判读员决定。"
+p6-25 = "官方首页的招牌数字——快 193.6 倍。"
+p6-44 = "判读员不是更聪明的主播——而是，让判断变便宜的新岗位。"
+p6-46 = "这期就到这里——我们，下期见。"

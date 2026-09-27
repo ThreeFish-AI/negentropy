@@ -1,0 +1,41 @@
+[
+ {
+  "id": "pp-design",
+  "label": "实验设计",
+  "focus": [
+   "researcher",
+   "sibling",
+   "screen"
+  ],
+  "note": "把暗号藏在不同位置，看题一能不能报出来。"
+ },
+ {
+  "id": "pp-sibling",
+  "label": "暗号在卡上",
+  "focus": [
+   "researcher",
+   "sibling",
+   "judge"
+  ],
+  "note": "写在兄弟题里：读出 0.00。"
+ },
+ {
+  "id": "pp-state",
+  "label": "暗号进大屏",
+  "focus": [
+   "researcher",
+   "screen",
+   "judge"
+  ],
+  "note": "写进 state：读出 0.90–0.92。"
+ },
+ {
+  "id": "pp-replica",
+  "label": "复刻对拍",
+  "focus": [
+   "researcher",
+   "replica"
+  ],
+  "note": "开源复刻模型上同型现象成立。"
+ }
+]

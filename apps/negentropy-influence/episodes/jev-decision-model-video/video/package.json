@@ -1,7 +1,7 @@
 {
   "name": "jev-decision-model-video",
   "private": true,
-  "description": "《让判断变便宜：Jev 决策模型拆解》科普视频 Remotion 工程",
+  "description": "《Jev：只填格的判读员（工作标题）》科普视频 Remotion 工程",
   "scripts": {
     "dev": "remotion studio",
     "typecheck": "tsc --noEmit",

@@ -2,15 +2,19 @@ import React from 'react';
 import {interpolate, useCurrentFrame} from 'remotion';
 import chaptersJson from '../chapters.json';
 import {theme} from '../design/theme';
+import {useLang} from '../i18n';
+import type {Lang} from '../i18n';
 import type {SceneRange} from '../types';
 
-type Chapter = {scene: string; title: string};
-/** build_narration.py 从 narration.md `## Pn 幕标题` 派生；scaffold 占位 [] 推断为
- *  never[]，统一断言收窄。空数组（首次 build 前）⇒ 本组件不渲染。 */
+type Chapter = {scene: string; title: string; i18n?: Record<string, string>};
+/** build_narration.py 从 narration.md `## Pn 幕标题` 派生（双语集附 i18n: {en: 标题}，
+ *  由 narration.en.md 幕标题容错解析而来）；scaffold 占位 [] 推断为 never[]，统一
+ *  断言收窄。空数组（首次 build 前）⇒ 本组件不渲染。旧代 chapters.json 无 i18n
+ *  键，`as Chapter[]` 收窄对多余键免疫。 */
 const CHAPTERS = chaptersJson as Chapter[];
 
 /* ── 几何带 SSOT：整带收在 y<56 ─────────────────────────────────────────────
- * 依据 skills/06 顶部横条实测：各幕内容最早 y=56 起、SceneTag 在 top:64——
+ * 依据 references/08 顶部横条实测：各幕内容最早 y=56 起、SceneTag 在 top:64——
  *  y<56 是本设计系统已验证的零碰撞常驻带（底部字幕安全带的顶部对偶）。 */
 const MARGIN_X = 4; // 近贴屏幕左右边框，仅留一条竖线宽度的呼吸
 const STRIP_W = 1920 - MARGIN_X * 2;
@@ -35,8 +39,11 @@ const segSpans = (scenes: SceneRange[], total: number) =>
     to: i + 1 < scenes.length ? scenes[i + 1].from : total,
   }));
 
-const titleOf = (scene: string) =>
-  CHAPTERS.find((c) => c.scene === scene)?.title ?? '';
+/** 章节标题：当前语言的译题优先（i18n 键缺失即旧代数据，回落主语言标题） */
+const titleOf = (scene: string, lang: Lang): string => {
+  const entry = CHAPTERS.find((c) => c.scene === scene);
+  return entry?.i18n?.[lang] ?? entry?.title ?? '';
+};
 
 /** 段内居中文字层。宽度用**显式 px**（段宽 − 左右 padding）——左右两层共用同值，
  *  才能保证 ellipsis 截断逐像素一致，双色裁切不错位。 */
@@ -81,6 +88,7 @@ export const ChapterProgress: React.FC<{
   totalDurationInFrames: number;
 }> = ({scenes, totalDurationInFrames}) => {
   const frame = useCurrentFrame();
+  const lang = useLang();
   if (CHAPTERS.length === 0 || scenes.length === 0) {
     return null;
   }
@@ -115,7 +123,7 @@ export const ChapterProgress: React.FC<{
       {segs.map((s, i) => {
         const {x: segX, w} = layout[i];
         const fill = clamp01((frame - s.from) / (s.to - s.from));
-        const title = titleOf(s.scene);
+        const title = titleOf(s.scene, lang);
         const label = title || s.scene; // 标题缺失回退 mono 幕码
         const mono = !title;
         const textW = w - TITLE_PAD_X * 2;

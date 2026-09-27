@@ -59,4 +59,4 @@
 | #   | 作品 | 一句话主题 | 视觉契约（主色） | 信源 | 状态 |
 | --- | --- | --- | --- | --- | --- |
 | 1   | [《经验淬炼成手册：Agent 的轻量蒸馏与按需装配》](./episodes/agent-skills-video/README.md) | Agent Skills：经验怎么交给 AI | 玫瑰焰/矢车菊蓝/兰花紫 | 090 精读 + 最小原型 @ `80b456fb` + agentskills/agentskills @ `69ef37e9`，2026-09-23 | **v1 终渲待审**（15:25 · archify 12 图 58 章 · 归档 ~/Documents/video） |
-| 2   | [《让判断变便宜：Jev 决策模型拆解》](./episodes/jev-decision-model-video/README.md) | Jev 决策模型：小判断怎么变便宜 | 琥珀金/青绿/兰紫/矢车菊蓝 | 200 精读 + 最小原型 @ `5ed96405` + TypeSafe 官方/adapter `e1d4cc9`/kev `b8aa777`/laya `76361c8`，2026-09-24 | **v2 终渲待审**（14:40 · 去双层字幕 · archify 13 图 35 章 · 归档 ~/Documents/video） |
+| 2   | [《只填格的判读员：Jev 决策模型》](./episodes/jev-decision-model-video/README.md) | Jev：小判断的交付方式怎么变 | 格黄/柱青/闸品 | 200 精读 + 原型 + laya 复刻 @ `40bf690` + TypeSafe 官方/adapter/kev/laya/nibzard 钉提交，2026-09-26 | **v1 终渲待审**（14.2 分 · story 配音 · archify 13 图 54 章 · 归档 ~/Documents/video） |

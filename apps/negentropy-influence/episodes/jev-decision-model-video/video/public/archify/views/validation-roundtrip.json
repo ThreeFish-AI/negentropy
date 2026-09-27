@@ -1,0 +1,39 @@
+[
+ {
+  "id": "vr-request",
+  "label": "出单与拒单",
+  "focus": [
+   "code",
+   "api"
+  ],
+  "note": "第 256 格会被打回——契约不是纸面话。"
+ },
+ {
+  "id": "vr-judge",
+  "label": "落格",
+  "focus": [
+   "api",
+   "judge"
+  ],
+  "note": "state 编码一次，判读只对预印格落笔。"
+ },
+ {
+  "id": "vr-return",
+  "label": "返回",
+  "focus": [
+   "judge",
+   "api",
+   "code"
+  ],
+  "note": "落格不越界；输出免费。"
+ },
+ {
+  "id": "vr-route",
+  "label": "代码分流",
+  "focus": [
+   "code",
+   "action"
+  ],
+  "note": "读数过门槛才执行——决定在代码。"
+ }
+]

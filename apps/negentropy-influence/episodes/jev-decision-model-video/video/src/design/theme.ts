@@ -2,7 +2,7 @@
  * 本集视觉契约（seed —— scaffold 复制后**必须**按本集重写概念色）。
  *
  * 底座常量四集通用、不要改；概念色是每集独立设计的产物，规则见
- * pipeline/skills/06-remotion-implementation.md：
+ * references/08-remotion-implementation.md：
  *   - 2–3 个概念色，映射「深度轴」而非枚举条目
  *   - 对 bg (#0E1116) 对比度 ≥ 4.5:1（用 `qa_frames.py --check-theme` 实测）
  *   - 色相不得与已用色撞车（各集 theme.ts 实占色值见 `check_series.py`
@@ -31,13 +31,13 @@ export const theme = {
   sans: "'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', sans-serif",
   mono: "'SF Mono', 'Menlo', 'JetBrains Mono', monospace",
 
-  // ── 本集概念色：四大机制语义轴（planning.md §三）──
-  // 格口与闭合输出空间（M1）：挂牌选项、构造保证、255 上限
-  slot: '#F0B24A',
-  // 一次编码与速度（M2）：面单扫描光、共享前缀、批量小票
-  pass: '#4FD8C4',
-  // 概率与校准（M3）：把握分配、对账账本、校准台阶
-  calib: '#B79CFF',
-  // 分流与编排（M4）：三条去向、阈值闸门、传送带
-  route: '#6FA8FF',
+  // ── 本集概念色（planning.md §3 视觉契约；对比度对 bg #0E1116 实测）──
+  // 格黄＝闭合输出空间/形状保证（13.68:1；深档作黄底上的深色填充或文字 9.12:1）
+  slot: '#E0E25A',
+  slotDeep: '#B8BA3A',
+  // 柱青＝概率/校准（7.72:1；confidence/集中度用柱青描边+mono，派生量不另起新色）
+  bar: '#1BB5D1',
+  // 闸品＝代码控制流/三道闸（6.51:1）
+  gate: '#E860E4',
+  // 主播（聊天 LLM/RLHF）用底座 dim，不占新色相
 } as const;
