@@ -1,0 +1,86 @@
+[
+ {
+  "id": "ip-nine",
+  "label": "九路来源",
+  "focus": [
+   "r1_identity",
+   "r2_skills",
+   "r3_tools",
+   "r4_model",
+   "r5_memory",
+   "r6_session",
+   "r7_defs",
+   "r8_prefs"
+  ],
+  "note": "分散装配现状"
+ },
+ {
+  "id": "ip-hooks",
+  "label": "五挂点",
+  "focus": [
+   "h1_instruction",
+   "h2_before_model",
+   "h3_tool_registry",
+   "h4_tool_callbacks",
+   "h5_sub_agents"
+  ],
+  "note": "生产真实装配面"
+ },
+ {
+  "id": "ip-memory",
+  "label": "记忆真锚",
+  "focus": [
+   "r5_memory",
+   "h3_tool_registry"
+  ],
+  "note": "preload 工具每轮注入"
+ },
+ {
+  "id": "ip-assembler",
+  "label": "参考实现未接线",
+  "focus": [
+   "ref_assembler"
+  ],
+  "note": "assemble() 生产零调用"
+ },
+ {
+  "id": "ip-out",
+  "label": "汇入请求",
+  "focus": [
+   "out_llm"
+  ],
+  "note": "五挂点→LLM"
+ },
+ {
+  "id": "ip-auth",
+  "label": "身份与定义",
+  "focus": [
+   "r1_identity",
+   "r7_defs",
+   "h1_instruction"
+  ],
+  "note": "instruction provider 双源"
+ },
+ {
+  "id": "ip-full",
+  "label": "装配面全景",
+  "focus": [
+   "r1_identity",
+   "r2_skills",
+   "r3_tools",
+   "r4_model",
+   "r5_memory",
+   "r6_session",
+   "r7_defs",
+   "r8_prefs",
+   "h1_instruction",
+   "h2_before_model",
+   "h3_tool_registry",
+   "h4_tool_callbacks",
+   "h5_sub_agents",
+   "ref_assembler",
+   "out_llm"
+  ],
+  "note": "九路×五挂点×未接线"
+ }
+]

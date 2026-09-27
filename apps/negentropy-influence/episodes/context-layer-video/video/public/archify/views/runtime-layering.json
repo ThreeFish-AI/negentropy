@@ -1,0 +1,34 @@
+[
+ {
+  "id": "rl-cgave",
+  "label": "五段内环",
+  "focus": [
+   "cl_collect",
+   "cl_govern",
+   "cl_activate",
+   "cl_verify",
+   "cl_evolve"
+  ],
+  "note": "CGAVE 织物"
+ },
+ {
+  "id": "rl-sys",
+  "label": "五子系统",
+  "focus": [
+   "sys_memory",
+   "sys_kb",
+   "sys_kg",
+   "sys_tools",
+   "sys_skills"
+  ],
+  "note": "指针相连"
+ },
+ {
+  "id": "rl-store",
+  "label": "单库持久",
+  "focus": [
+   "pg_store"
+  ],
+  "note": "PostgreSQL 一库"
+ }
+]

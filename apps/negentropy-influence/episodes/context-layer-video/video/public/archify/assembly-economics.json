@@ -1,0 +1,206 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.0,
+ "story_sec": 31.49,
+ "total_wall_sec": 142.52,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "ae-k1",
+   "label": "预算分配",
+   "index": 0,
+   "file": "assembly-economics--ae-k1.mp4",
+   "end_still": "assembly-economics--ae-k1-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.0,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "k1"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "ae-k2",
+   "label": "渐进披露",
+   "index": 1,
+   "file": "assembly-economics--ae-k2.mp4",
+   "end_still": "assembly-economics--ae-k2-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.0,
+   "story_sec": 3.21,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "k2"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "ae-k3",
+   "label": "JIT 边界",
+   "index": 2,
+   "file": "assembly-economics--ae-k3.mp4",
+   "end_still": "assembly-economics--ae-k3-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.0,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "k3"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "ae-k4",
+   "label": "缓存排序",
+   "index": 3,
+   "file": "assembly-economics--ae-k4.mp4",
+   "end_still": "assembly-economics--ae-k4-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.0,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "k4"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "ae-k5",
+   "label": "压缩分级",
+   "index": 4,
+   "file": "assembly-economics--ae-k5.mp4",
+   "end_still": "assembly-economics--ae-k5-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.0,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "k5"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "ae-ch",
+   "label": "双通道",
+   "index": 5,
+   "file": "assembly-economics--ae-ch.mp4",
+   "end_still": "assembly-economics--ae-ch-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.0,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "ch1",
+    "ch2"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "ae-guard",
+   "label": "出口守卫",
+   "index": 6,
+   "file": "assembly-economics--ae-guard.mp4",
+   "end_still": "assembly-economics--ae-guard-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.0,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "fuse",
+    "guard"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "ae-llm",
+   "label": "入窗",
+   "index": 7,
+   "file": "assembly-economics--ae-llm.mp4",
+   "end_still": "assembly-economics--ae-llm-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.0,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "llm"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "ae-knobs",
+   "label": "五旋钮全景",
+   "index": 8,
+   "file": "assembly-economics--ae-knobs.mp4",
+   "end_still": "assembly-economics--ae-knobs-end.png",
+   "beats": 5,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 5.56,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.206,
+    3.309,
+    4.41
+   ],
+   "beat_nodes": [
+    "k1",
+    "k2",
+    "k3",
+    "k4",
+    "k5"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/atlanta-v4/docs/assets/architecture/cognitive-context/context-layer--assembly-economics.html",
+ "slug": "assembly-economics",
+ "type": "workflow"
+}

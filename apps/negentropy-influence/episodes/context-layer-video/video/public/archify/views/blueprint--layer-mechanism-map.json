@@ -1,0 +1,59 @@
+[
+ {
+  "id": "lm-obj",
+  "label": "对象层席",
+  "focus": [
+   "obj-m",
+   "obj-i"
+  ],
+  "note": "M1↔definitions"
+ },
+ {
+  "id": "lm-cat",
+  "label": "目录层席",
+  "focus": [
+   "cat-m",
+   "cat-i"
+  ],
+  "note": "M5+信号↔三视图"
+ },
+ {
+  "id": "lm-enr",
+  "label": "富化层席",
+  "focus": [
+   "enr-m",
+   "enr-i"
+  ],
+  "note": "双轨↔patrol"
+ },
+ {
+  "id": "lm-gov",
+  "label": "治理层席",
+  "focus": [
+   "gov-m",
+   "gov-i"
+  ],
+  "note": "四机构↔守卫缺口"
+ },
+ {
+  "id": "lm-act",
+  "label": "激活层席",
+  "focus": [
+   "act-m",
+   "act-i"
+  ],
+  "note": "M4↔L1✅L2L3🔶"
+ },
+ {
+  "id": "lm-spine",
+  "label": "全脊柱",
+  "focus": [
+   "obj-m",
+   "cat-m",
+   "enr-m",
+   "gov-m",
+   "act-m"
+  ],
+  "note": "五列横向生命周期"
+ }
+]

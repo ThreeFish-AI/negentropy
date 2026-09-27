@@ -19,8 +19,39 @@ engine = "indextts"
 # 用 `uv run --no-project $T/scripts/refs.py list` 查当前清单。
 # ⚠️ 风格预设的 alpha 是在**特定选段**上标定的，换选段即失效（见 $V/refs.toml）。
 ref = "voices/me-bright.wav"
-ref_sha1 = "TODOTODOTODO"
+ref_sha1 = "54b699cce97f"
 style = "story"
 # story 档（默认）＝段落演绎：同幕连续句按块合成、块间情绪由配音台本驱动。
 # 台本（可选）：script/narration.cues.toml——写稿阶段产出，见 $T/references/VOICE-CLONING.md §4.5。
 # 重制存量集（旧档 → story）须显式 --allow-voice-switch 并补写台本。
+
+[archify]
+# 13 图（6 张 blueprint-- 前缀走 pattern，7 张 context-layer-- 前缀走 overrides）。
+# 阈值按分镜设计值（69 cue/36.5% 锚定/4.8 密度）留 10–15% 余量定稿；录制后以实测微调。
+html_dir = "docs/assets/architecture/cognitive-context"
+# pattern 已无匹配对象（13 图全部显式映射，slug 与视图文件名一致）
+html_pattern = "context-layer--{slug}.html"
+min_diagrams = 13
+min_cues = 62
+min_anchor_ratio = 0.32
+min_chapter_ratio = 0.45
+min_scene_anchor_ratio = 0.06
+max_unanchored_run = 21
+min_cues_per_minute = 4.0
+min_diagram_types = 4
+forbid_inset = true
+
+[archify.html_overrides]
+"blueprint--architecture" = "context-layer-blueprint--architecture.html"
+"blueprint--dual-track-roadmap" = "context-layer-blueprint--dual-track-roadmap.html"
+"blueprint--industry-landscape" = "context-layer-blueprint--industry-landscape.html"
+"blueprint--layer-mechanism-map" = "context-layer-blueprint--layer-mechanism-map.html"
+"blueprint--mcp-threat-model" = "context-layer-blueprint--mcp-threat-model.html"
+"blueprint--object-lifecycle" = "context-layer-blueprint--object-lifecycle.html"
+failure-map = "context-layer--failure-map.html"
+five-sources = "context-layer--five-sources.html"
+lifecycle = "context-layer--lifecycle.html"
+assembly-economics = "context-layer--assembly-economics.html"
+injection-points = "context-layer--injection-points.html"
+runtime-layering = "context-layer--runtime-layering.html"
+evolution-levers = "context-layer--evolution-levers.html"

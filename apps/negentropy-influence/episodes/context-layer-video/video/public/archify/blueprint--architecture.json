@@ -1,0 +1,141 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.0,
+ "story_sec": 27.71,
+ "total_wall_sec": 113.53,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "ax-obj",
+   "label": "对象轴",
+   "index": 0,
+   "file": "blueprint--architecture--ax-obj.mp4",
+   "end_still": "blueprint--architecture--ax-obj-end.png",
+   "beats": 5,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 5.52,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.207,
+    3.308,
+    4.411
+   ],
+   "beat_nodes": [
+    "src-instruction",
+    "src-memory",
+    "src-knowledge",
+    "src-tools",
+    "src-session"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 28.0
+  },
+  {
+   "id": "ax-struct",
+   "label": "结构轴",
+   "index": 1,
+   "file": "blueprint--architecture--ax-struct.mp4",
+   "end_still": "blueprint--architecture--ax-struct-end.png",
+   "beats": 5,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 5.57,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.21,
+    3.313,
+    4.417
+   ],
+   "beat_nodes": [
+    "layer-object",
+    "layer-catalog",
+    "layer-enrich",
+    "layer-govern",
+    "layer-activate"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 28.0
+  },
+  {
+   "id": "ax-time",
+   "label": "时间轴",
+   "index": 2,
+   "file": "blueprint--architecture--ax-time.mp4",
+   "end_still": "blueprint--architecture--ax-time-end.png",
+   "beats": 5,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 5.54,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.206,
+    3.308,
+    4.411
+   ],
+   "beat_nodes": [
+    "ph-collect",
+    "ph-govern",
+    "ph-activate",
+    "ph-verify",
+    "ph-evolve"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "ax-accept",
+   "label": "验收面",
+   "index": 3,
+   "file": "blueprint--architecture--ax-accept.mp4",
+   "end_still": "blueprint--architecture--ax-accept-end.png",
+   "beats": 10,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 11.08,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.207,
+    3.312,
+    4.416,
+    5.518,
+    6.62,
+    7.724,
+    8.826,
+    9.93
+   ],
+   "beat_nodes": [
+    "layer-object",
+    "layer-catalog",
+    "layer-enrich",
+    "layer-govern",
+    "layer-activate",
+    "ph-collect",
+    "ph-govern",
+    "ph-activate",
+    "ph-verify",
+    "ph-evolve"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 24.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/atlanta-v4/docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.html",
+ "slug": "blueprint--architecture",
+ "type": "architecture"
+}

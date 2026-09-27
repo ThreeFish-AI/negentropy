@@ -1,0 +1,55 @@
+[
+ {
+  "id": "ax-obj",
+  "label": "对象轴",
+  "focus": [
+   "src-instruction",
+   "src-memory",
+   "src-knowledge",
+   "src-tools",
+   "src-session"
+  ],
+  "note": "经营什么——五源"
+ },
+ {
+  "id": "ax-struct",
+  "label": "结构轴",
+  "focus": [
+   "layer-object",
+   "layer-catalog",
+   "layer-enrich",
+   "layer-govern",
+   "layer-activate"
+  ],
+  "note": "怎么组织——五层"
+ },
+ {
+  "id": "ax-time",
+  "label": "时间轴",
+  "focus": [
+   "ph-collect",
+   "ph-govern",
+   "ph-activate",
+   "ph-verify",
+   "ph-evolve"
+  ],
+  "note": "怎么流动——CGAVE"
+ },
+ {
+  "id": "ax-accept",
+  "label": "验收面",
+  "focus": [
+   "layer-object",
+   "layer-catalog",
+   "layer-enrich",
+   "layer-govern",
+   "layer-activate",
+   "ph-collect",
+   "ph-govern",
+   "ph-activate",
+   "ph-verify",
+   "ph-evolve"
+  ],
+  "note": "失效模式表=三轴验收"
+ }
+]

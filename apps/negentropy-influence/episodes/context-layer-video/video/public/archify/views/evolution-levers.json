@@ -1,0 +1,37 @@
+[
+ {
+  "id": "el-six",
+  "label": "六面杠杆",
+  "focus": [
+   "retrieval",
+   "kstrategy",
+   "skilltpl",
+   "toolcfg",
+   "mempipe",
+   "agentpr"
+  ],
+  "note": "既有六面"
+ },
+ {
+  "id": "el-ctx",
+  "label": "第七面提案",
+  "focus": [
+   "ctxstrat"
+  ],
+  "note": "context_strategy ⏸"
+ },
+ {
+  "id": "el-sm",
+  "label": "状态机",
+  "focus": [
+   "draft",
+   "shadow",
+   "pending",
+   "canary",
+   "promoted",
+   "rejected",
+   "rollback"
+  ],
+  "note": "八态统一护栏"
+ }
+]
