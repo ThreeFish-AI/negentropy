@@ -787,7 +787,7 @@ export const P2: React.FC<{scene: SceneRange}> = ({scene}) => {
   const at = (id: string) => w(id).from;
   const dur = (a: string, b?: string) => w(a, b).durationInFrames;
   const bA = w('p2-01', 'p2-04');
-  const bB = w('p2-05', 'p2-08');
+  const bB = w('p2-05', 'p2-08f');
   const bC = w('p2-08a', 'p2-08c');
   const bD = w('p2-09', 'p2-10');
   const bE = w('p2-11', 'p2-12');

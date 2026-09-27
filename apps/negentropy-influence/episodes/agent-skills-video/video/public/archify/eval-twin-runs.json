@@ -1,0 +1,73 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 8.89,
+ "total_wall_sec": 41.39,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "et-blind",
+   "label": "同单两跑 · 盲评",
+   "index": 0,
+   "file": "eval-twin-runs--et-blind.mp4",
+   "end_still": "eval-twin-runs--et-blind-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.44,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.206,
+    3.308
+   ],
+   "beat_nodes": [
+    "task",
+    "run_a",
+    "run_b",
+    "judge"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "et-assert",
+   "label": "断言记账",
+   "index": 1,
+   "file": "eval-twin-runs--et-assert.mp4",
+   "end_still": "eval-twin-runs--et-assert-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.45,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.205,
+    3.307
+   ],
+   "beat_nodes": [
+    "judge",
+    "checklist",
+    "ledger",
+    "verdict"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/dar-es-salaam-v2/docs/assets/architecture/agent-infra/agent-skills--eval-twin-runs.html",
+ "slug": "eval-twin-runs",
+ "type": "workflow"
+}

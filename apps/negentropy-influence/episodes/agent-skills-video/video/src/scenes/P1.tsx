@@ -400,7 +400,7 @@ export const P1: React.FC<{scene: SceneRange}> = ({scene}) => {
   const dur = (a: string, b?: string) => w(a, b).durationInFrames;
   const bA = w('p1-01', 'p1-03');
   const bB = w('p1-04', 'p1-06');
-  const bC = w('p1-07', 'p1-08b');
+  const bC = w('p1-07', 'p1-08b2');
   const bD = w('p1-08c', 'p1-08e');
   const bE = w('p1-08f', 'p1-08g');
   const bF = w('p1-09', 'p1-10');
@@ -450,10 +450,9 @@ export const P1: React.FC<{scene: SceneRange}> = ({scene}) => {
           slug="box-anatomy"
           caption="正文与附件 · 规范不管"
           cues={[
+            // box-anatomy 5 章契约：正文附件与选填验箱合并为 ba-body / ba-extra 两章
             {chapterId: 'ba-body', at: at('p1-07') - bC.from, durationInFrames: dur('p1-07')},
-            {chapterId: 'ba-annex', at: at('p1-08') - bC.from, durationInFrames: dur('p1-08')},
-            {chapterId: 'ba-optional', at: at('p1-08a') - bC.from, durationInFrames: dur('p1-08a')},
-            {chapterId: 'ba-validate', at: at('p1-08b') - bC.from, durationInFrames: dur('p1-08b')},
+            {chapterId: 'ba-extra', at: at('p1-08a') - bC.from, durationInFrames: dur('p1-08a')},
           ]}
         />
       </Sequence>

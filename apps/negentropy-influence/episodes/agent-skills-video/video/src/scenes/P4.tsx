@@ -406,8 +406,8 @@ export const P4: React.FC<{scene: SceneRange}> = ({scene}) => {
           caption="四港章程对账"
           lead={false}
           cues={[
-            {chapterId: 'fp-cc', at: at('p4-03') - bB.from, durationInFrames: dur('p4-03')},
-            {chapterId: 'fp-vscode', at: at('p4-04') - bB.from, durationInFrames: dur('p4-04')},
+            // four-ports 5 章契约：CC/VS Code 画像并入 fp-ports 章（p4-04 由本章余窗覆盖）
+            {chapterId: 'fp-ports', at: at('p4-03') - bB.from, durationInFrames: dur('p4-03')},
           ]}
         />
         <Footnote delay={at('p4-04') - bB.from + Math.round(dur('p4-04') / 2)}>私货字段 · 三套全认</Footnote>
@@ -421,8 +421,8 @@ export const P4: React.FC<{scene: SceneRange}> = ({scene}) => {
           caption="四港章程对账"
           lead={false}
           cues={[
-            // fp-paths 章已合并锚点内容（four-ports 5 章契约）；p4-05b 由本章时长覆盖
-            {chapterId: 'fp-paths', at: at('p4-05a') - bC.from, durationInFrames: dur('p4-05a', 'p4-05b')},
+            // fp-paths 章已合并锚点内容（four-ports 5 章契约）；锚在收点句 p4-05b
+            {chapterId: 'fp-paths', at: at('p4-05b') - bC.from, durationInFrames: dur('p4-05b')},
           ]}
         />
         <Footnote delay={at('p4-05b') - bC.from + Math.round(dur('p4-05b') / 2)}>.agents · 四家全认</Footnote>

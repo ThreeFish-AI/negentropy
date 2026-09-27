@@ -493,7 +493,7 @@ export const P5: React.FC<{scene: SceneRange}> = ({scene}) => {
   const dur = (a: string, b?: string) => w(a, b).durationInFrames;
   const bA = w('p5-01', 'p5-02');
   const bB = w('p5-03', 'p5-05');
-  const bC = w('p5-05a', 'p5-05c');
+  const bC = w('p5-05a', 'p5-05e');
   const bD = w('p5-06', 'p5-09');
   const bE = w('p5-09a', 'p5-09b');
   const bF = w('p5-10', 'p5-11');
