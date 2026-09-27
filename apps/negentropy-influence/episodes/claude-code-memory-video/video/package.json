@@ -1,7 +1,7 @@
 {
   "name": "claude-code-memory-video",
   "private": true,
-  "description": "《AI 的记忆：会丢的和不能丢的》科普视频 Remotion 工程",
+  "description": "《记忆管理（重制暂题）》科普视频 Remotion 工程",
   "scripts": {
     "dev": "remotion studio",
     "typecheck": "tsc --noEmit",
@@ -9,12 +9,12 @@
     "render:draft": "remotion render Main ../out/draft.mp4 --scale=0.5 --jpeg-quality=60"
   },
   "dependencies": {
-    "@remotion/cli": "^4.0.0",
-    "@remotion/layout-utils": "4.0.512",
-    "@remotion/media": "4.0.512",
+    "@remotion/cli": "4.0.529",
+    "@remotion/layout-utils": "4.0.529",
+    "@remotion/media": "4.0.529",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "remotion": "^4.0.0"
+    "remotion": "4.0.529"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",

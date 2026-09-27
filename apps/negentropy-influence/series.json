@@ -120,13 +120,13 @@
             "title": "Learn Claude Code · 工具与执行（s01 Agent Loop / s02 Tool Use / s03 Permission / s04 Hooks）",
             "site": "https://learn.shareai.run/zh/s01/",
             "repo": "https://github.com/shareAI-lab/learn-claude-code",
-            "pinnedRef": "f9e8b280f715f9ba107d4517fd39bc5f8ddda618",
+            "pinnedRef": "0dcafa2ae053a1ddd6a72f265431104b08a5aa13",
             "license": "MIT",
-            "accessed": "2026-08-21"
+            "accessed": "2026-09-27"
           },
-          "status": "draft-review",
-          "statusNote": "运动层重制版草渲待审（2026-09-03）：13:58.80 = 25164 帧 @30fps（167 句，配音全量重合成——TTS 复跑漂移 -478 帧仍在预算窗）；七幕 + beat 头部 + 尾幕 FAIL 0 · WARN 0；A/B 对拍 167 帧（基线=重制前代码同 manifest 渲染）：仅 2 帧 >5% 均为 HarnessStack 新装置（P0 开场/P6 收尾），其余 ≤1.5% 归因于顶边常驻条/SceneTag 移位/令牌化缓动；终渲 final.mp4 43.6MB 已出、captions.srt/vtt 齐",
-          "voice": "sunny-steady + me-bright.wav"
+          "status": "producing",
+          "statusNote": "完全重制中（2026-09-27 起）：重调研（上游重钉 main@0dcafa2 / 站点轨复验 67a9126c 未动）+ 十阶段全新制片（story 档 + archify 覆盖门首次引入本系列 + 3D 视觉方向延续）；旧 draft-review 产物已随 rm→scaffold 重置，git 历史可溯",
+          "voice": "story + me-bright.wav"
         },
         {
           "episode": 2,
@@ -146,9 +146,9 @@
             "license": "MIT",
             "accessed": "2026-08-22"
           },
-          "status": "draft-review",
-          "statusNote": "Harness Engineering 改造草渲待审：13:10 = 23706 帧 @30fps（135 句）；七幕抽帧 FAIL 0 · WARN 0；终渲未启动",
-          "voice": "sunny-steady + me-bright.wav"
+          "status": "producing",
+          "statusNote": "完全重制中（2026-09-27 起）：重调研（上游重钉 main@0dcafa2 / 站点轨复验 67a9126c 未动）+ 十阶段全新制片（story 档 + archify 覆盖门首次引入本系列 + 3D 视觉方向延续）；旧 draft-review 产物已随 rm→scaffold 重置，git 历史可溯",
+          "voice": "story + me-bright.wav"
         },
         {
           "episode": 3,
@@ -168,9 +168,9 @@
             "license": "MIT",
             "accessed": "2026-08-22"
           },
-          "status": "draft-review",
-          "statusNote": "Harness Engineering 改造草渲待审：13:07 = 23622 帧 @30fps（139 句）；七幕 FAIL 0（WARN 3 均金句卡刻意静止）；终渲未启动",
-          "voice": "sunny-steady + me-bright.wav"
+          "status": "producing",
+          "statusNote": "完全重制中（2026-09-27 起）：重调研（上游重钉 main@0dcafa2 / 站点轨复验 67a9126c 未动）+ 十阶段全新制片（story 档 + archify 覆盖门首次引入本系列 + 3D 视觉方向延续）；旧 draft-review 产物已随 rm→scaffold 重置，git 历史可溯",
+          "voice": "story + me-bright.wav"
         },
         {
           "episode": 4,
@@ -190,9 +190,9 @@
             "license": "MIT",
             "accessed": "2026-08-22"
           },
-          "status": "draft-review",
-          "statusNote": "Harness Engineering 改造草渲待审：13:07 = 23621 帧 @30fps（139 句）；七幕抽帧 FAIL 0 · WARN 0；终渲未启动",
-          "voice": "sunny-steady + me-bright.wav"
+          "status": "producing",
+          "statusNote": "完全重制中（2026-09-27 起）：重调研（上游重钉 main@0dcafa2 / 站点轨复验 67a9126c 未动）+ 十阶段全新制片（story 档 + archify 覆盖门首次引入本系列 + 3D 视觉方向延续）；旧 draft-review 产物已随 rm→scaffold 重置，git 历史可溯",
+          "voice": "story + me-bright.wav"
         },
         {
           "episode": 5,
@@ -212,9 +212,9 @@
             "license": "MIT",
             "accessed": "2026-08-22"
           },
-          "status": "draft-review",
-          "statusNote": "Harness Engineering 改造草渲待审：13:08 = 23666 帧 @30fps（134 句）；七幕 FAIL 0 · WARN 0（尾帧 WARN 1 为收束卡刻意停留；口径为 08-23 草渲版）——08-24 评审修复 6-D resume 死门+分水岭压卡、2-E 补名册/对比卡两页，remotion still 逐帧复检通过；终渲未启动",
-          "voice": "sunny-steady + me-bright.wav"
+          "status": "producing",
+          "statusNote": "完全重制中（2026-09-27 起）：重调研（上游重钉 main@0dcafa2 / 站点轨复验 67a9126c 未动）+ 十阶段全新制片（story 档 + archify 覆盖门首次引入本系列 + 3D 视觉方向延续）；旧 draft-review 产物已随 rm→scaffold 重置，git 历史可溯",
+          "voice": "story + me-bright.wav"
         }
       ]
     },

@@ -1,19 +1,36 @@
 # 本集可执行参数的**唯一来源**（ISSUE-161：可执行参数不落散文文档，README 只引用配置）。
-# 编排入口：uv run --no-project $T/pipeline/scripts/pipeline.py --project $P <cmd>（$T/$P 定义见 skill 的 pipeline/README.md：https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/README.md）
+# 编排入口：uv run --no-project $T/scripts/pipeline.py --project $P <cmd>（$T/$W/$P/$V 见 to-video skill 的 references/PIPELINE.md）
+#
+# 只写**本集偏离**：机制常数（chars_per_min / lang / draft_scale / draft_jpeg_quality）
+# 的默认值在 skill 仓 scripts/config.py，不要抄回这里。字段表见 skill 的
+# references/PIPELINE.md，跑 `pipeline.py doctor` 可打印带来源标注的生效配置全表。
 
 [episode]
 slug = "claude-code-explained-video"
 
 [narration]
-# 口径来自三集实测反推：4.5 s/句（含句间/幕间停顿），EP1 187 句 → 成片 14:01。
-# 用户要求 ≤15 min，故安全窗取 [13.0, 14.6]，约 185–195 句。
-# 注意：单按 chars_per_min 裸算会高估约 12% 的句容量（不含停顿），双口径门以实测为准。
+# TODO：按本集选题与语速预算填写。口径提示——280 字/分是**含停顿的等效**口径，
+# 裸按字数算会高估约 12% 的句容量，双口径门以 manifest 实测为准。
 target_minutes = [13.0, 14.6]
 
 [tts]
 engine = "indextts"
-# me-bright = ~/Documents/dify/me-1.mp3 的 start=0.36 / 12s 选段。
-# sunny 系预设的 alpha=0.35 就是在这个选段上标定的，换选段标定即失效（voices/refs.toml）。
+# TODO：选定样本与风格。样本路径**工作区根相对**；ref_sha1 取 12 位（同 tts.py 口径），
+# 用 `uv run --no-project $T/scripts/refs.py list` 查当前清单。
+# ⚠️ 风格预设的 alpha 是在**特定选段**上标定的，换选段即失效（见 $V/refs.toml）。
 ref = "voices/me-bright.wav"
 ref_sha1 = "54b699cce97f"
-style = "sunny-steady"
+style = "story"
+# story 档（默认）＝段落演绎：同幕连续句按块合成、块间情绪由配音台本驱动。
+# 台本（可选）：script/narration.cues.toml——写稿阶段产出，见 $T/references/VOICE-CLONING.md §4.5。
+# 重制存量集（旧档 → story）须显式 --allow-voice-switch 并补写台本。
+
+[archify]
+# 覆盖门硬值（对齐 jev 基准）：锚定率 / cue 密度 / 图型数下限；全屏独占三分法。
+# 图集预算在 Stage ② 策划时按本集内容定稿（~8–14 图 / ≥5 型）。
+html_dir = "docs/assets/architecture/agent-harness"
+html_pattern = "claude-code--{slug}.html"
+min_anchor_ratio = 0.30
+min_cues_per_minute = 3.0
+min_diagram_types = 5
+forbid_inset = true  # 全屏独占（storyboard 按此设计）；残留画中画即 FAIL
