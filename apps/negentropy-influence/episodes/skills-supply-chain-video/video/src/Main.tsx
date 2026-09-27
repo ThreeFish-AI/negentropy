@@ -1,5 +1,12 @@
 import React from 'react';
 import {AbsoluteFill, Sequence} from 'remotion';
+import {P0} from './scenes/P0';
+import {P1} from './scenes/P1';
+import {P2} from './scenes/P2';
+import {P3} from './scenes/P3';
+import {P4} from './scenes/P4';
+import {P5} from './scenes/P5';
+import {P6} from './scenes/P6';
 import {ChapterProgress} from './components/ChapterProgress';
 import {NarrationAudio} from './components/NarrationAudio';
 import {SceneFade} from './components/SceneFade';
@@ -11,6 +18,13 @@ import type {Lang} from './i18n';
 import type {ManifestItem, SceneRange} from './types';
 
 const SCENE_COMPONENTS: Record<string, React.FC<{scene: SceneRange}>> = {
+  P0,
+  P1,
+  P2,
+  P3,
+  P4,
+  P5,
+  P6,
 };
 
 export type MainProps = {manifest: ManifestItem[]; lang?: Lang};
