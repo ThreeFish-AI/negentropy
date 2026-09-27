@@ -11,8 +11,9 @@ slug = "skills-supply-chain-video"
 [narration]
 # TODO：按本集选题与语速预算填写。口径提示——280 字/分是**含停顿的等效**口径，
 # 裸按字数算会高估约 12% 的句容量，双口径门以 manifest 实测为准。
-# story 档实测 ~318 字/分（E1 校准）；蓝图目标 12.5-13.5 分钟。
-target_minutes = [12.5, 14.5]
+# story 档实测 ~318 字/分（E1 校准：4191 字→13:03）；280 估算与 manifest 实测双口径同窗：
+# 目标 ~4250 字 → 估算 15.2 分 / 实测 ~13.3 分，下限守实测、上限守估算。
+target_minutes = [12.5, 15.6]
 
 [tts]
 engine = "indextts"

@@ -16,6 +16,8 @@ emo = "sad:0.18"
 emo = "calm:0.28"
 [block.p1-07]
 emo = "disgusted:0.12"
+[block.p1-10a]
+emo = "calm:0.26"
 [block.p1-11]
 emo = "surprised:0.24"
 
@@ -48,6 +50,8 @@ emo = "calm:0.32"
 # ── P5 投毒现场：惧 → 怒 → 史诗映照 ──
 [block.p5-01]
 emo = "afraid:0.16"
+[block.p5-04a]
+emo = "surprised:0.18"
 [block.p5-05]
 emo = "disgusted:0.20"
 [block.p5-10]
