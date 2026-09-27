@@ -5130,7 +5130,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     <!-- Main Diagram -->
     <div class="diagram-container" data-detail-level="read"
          data-preset-badge-editorial-plate="ARCHIFY / 图版 04">
-      <svg viewBox="0 0 812 408" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-animation="trace" data-preset="classic" data-quality-profile="showcase">
+      <svg viewBox="0 0 864 408" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-animation="trace" data-preset="classic" data-quality-profile="showcase">
         <title id="archify-diagram-title">规划与协调：模型的视野是被安排出来的</title>
         <desc id="archify-diagram-description">由 Archify 生成的工作流图。</desc>
         <!-- Definitions -->
@@ -5156,10 +5156,10 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <rect width="100%" height="100%" fill="url(#grid)" />
 
         <!-- Swimlanes -->
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-0" x="40" y="52" width="756" height="106" rx="10" class="c-lane" stroke-width="1"/>
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-0" x="40" y="52" width="808" height="106" rx="10" class="c-lane" stroke-width="1"/>
         <text x="54" y="74" class="t-dim" font-size="10" font-weight="600">01 / 每轮循环 · 主台面</text>
 
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-1" x="40" y="178" width="756" height="106" rx="10" class="c-lane" stroke-width="1"/>
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-1" x="40" y="178" width="808" height="106" rx="10" class="c-lane" stroke-width="1"/>
         <text x="54" y="200" class="t-dim" font-size="10" font-weight="600">02 / 支线 · 按需展开与补救梯</text>
 
         <!-- Phase headers -->
@@ -5169,155 +5169,167 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 
 
         <!-- Edge paths -->
-        <path data-edge-from="assemble" data-edge-to="decide" data-edge-key="0" data-composition-points="236,154;236,174;378,174;378,146" d="M 236 154 L 236 174 L 378 174 L 378 146" class="a-emphasis" data-animate="edge" style="--step:1" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="decide" data-edge-to="execute" data-edge-key="1" data-composition-points="424,120;452,120" d="M 424 120 L 452 120" class="a-emphasis" data-animate="edge" style="--step:2" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="decide" data-edge-to="skill" data-edge-key="2" data-composition-points="378,146;378,168;32,168;32,246;48,246" d="M 378 146 L 378 168 L 32 168 L 32 246 L 48 246" class="a-default" data-animate="edge" style="--step:7" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="decide" data-edge-to="subagent" data-edge-key="3" data-composition-points="424,120;440,120;440,246;424,246" d="M 424 120 L 440 120 L 440 246 L 424 246" class="a-default" data-animate="edge" style="--step:8" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="decide" data-edge-to="todo" data-edge-key="4" data-composition-points="332,130;307,130;307,246;282,246" d="M 332 130 L 307 130 L 307 246 L 282 246" class="a-default" data-animate="edge" style="--step:9" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="execute" data-edge-to="jitter" data-edge-key="5" data-composition-points="498,146;498,168;738,168;738,220" d="M 498 146 L 498 168 L 738 168 L 738 220" class="a-security" data-animate="edge" style="--step:10" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
-        <path data-edge-from="execute" data-edge-to="overflow" data-edge-key="6" data-composition-points="505,146;505,168;618,168;618,220" d="M 505 146 L 505 168 L 618 168 L 618 220" class="a-security" data-animate="edge" style="--step:11" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
-        <path data-edge-from="execute" data-edge-to="trunc" data-edge-key="7" data-composition-points="544,120;560,120;560,246;544,246" d="M 544 120 L 560 120 L 560 246 L 544 246" class="a-security" data-animate="edge" style="--step:12" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
-        <path data-edge-from="execute" data-edge-to="writeback" data-edge-key="8" data-composition-points="498,146;498,162;618,162;618,146" d="M 498 146 L 498 162 L 618 162 L 618 146" class="a-default" data-animate="edge" style="--step:3" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="trunc" data-edge-to="decide" data-edge-label="同一消息序列重发" data-edge-key="9" data-composition-points="498,280;498,300;440,300;440,120;424,120" d="M 498 280 L 498 300 L 440 300 L 440 120 L 424 120" class="a-default" data-animate="edge" style="--step:12" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="user_msg" data-edge-to="assemble" data-edge-key="10" data-composition-points="140,120;168,120" d="M 140 120 L 168 120" class="a-default" data-animate="edge" style="--step:0" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="writeback" data-edge-to="assemble" data-edge-key="11" data-composition-points="618,94;618,28;236,28;236,86" d="M 618 94 L 618 28 L 236 28 L 236 86" class="a-emphasis" data-animate="edge" style="--step:12" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="user_msg" data-edge-to="assemble" data-edge-key="0" data-edge-id="e1" data-composition-points="179,120;226,120" d="M 179 120 L 226 120" class="a-emphasis" data-animate="edge" style="--step:0" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="execute" data-edge-to="trunc" data-edge-key="1" data-edge-id="e10" data-composition-points="656,146;656,168;557,168;557,212" d="M 656 146 L 656 168 L 557 168 L 557 212" class="a-dashed" data-animate="edge" style="--step:7" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
+        <path data-edge-from="execute" data-edge-to="overflow" data-edge-key="2" data-edge-id="e11" data-composition-points="670,146;670,220" d="M 670 146 L 670 220" class="a-dashed" data-animate="edge" style="--step:8" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
+        <path data-edge-from="execute" data-edge-to="jitter" data-edge-key="3" data-edge-id="e12" data-composition-points="684,146;684,168;790,168;790,220" d="M 684 146 L 684 168 L 790 168 L 790 220" class="a-dashed" data-animate="edge" style="--step:9" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
+        <path data-edge-from="trunc" data-edge-to="decide" data-edge-label="同一消息序列重发" data-edge-key="4" data-edge-id="e13" data-composition-points="550,280;550,300;612,300;612,120;596,120" d="M 550 280 L 550 300 L 612 300 L 612 120 L 596 120" class="a-default" data-animate="edge" style="--step:10" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="assemble" data-edge-to="cache" data-edge-label="开工前重估" data-edge-key="5" data-edge-id="e2" data-composition-points="318,113;384,113" d="M 318 113 L 384 113" class="a-emphasis" data-animate="edge" style="--step:1" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="cache" data-edge-to="decide" data-edge-key="6" data-edge-id="e3" data-composition-points="476,120;504,120" d="M 476 120 L 504 120" class="a-emphasis" data-animate="edge" style="--step:2" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="decide" data-edge-to="execute" data-edge-key="7" data-edge-id="e3b" data-composition-points="596,120;624,120" d="M 596 120 L 624 120" class="a-emphasis" data-animate="edge" style="--step:3" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="execute" data-edge-to="writeback" data-edge-key="8" data-edge-id="e4" data-composition-points="670,146;670,162;790,162;790,146" d="M 670 146 L 670 162 L 790 162 L 790 146" class="a-emphasis" data-animate="edge" style="--step:4" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="writeback" data-edge-to="assemble" data-edge-label="下一轮" data-edge-key="9" data-edge-id="e5" data-composition-points="790,94;790,36;272,36;272,86" d="M 790 94 L 790 36 L 272 36 L 272 86" class="a-default" data-animate="edge" style="--step:12" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="cache" data-edge-to="todo" data-edge-label="常驻第一张纸" data-edge-key="10" data-edge-id="e6" data-composition-points="430,146;430,168;272,168;272,212" d="M 430 146 L 430 168 L 272 168 L 272 212" class="a-default" data-animate="edge" style="--step:12" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="cache" data-edge-to="drawer" data-edge-key="11" data-edge-id="e7" data-composition-points="430,146;430,168;32,168;32,246;48,246" d="M 430 146 L 430 168 L 32 168 L 32 246 L 48 246" class="a-default" data-animate="edge" style="--step:12" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="todo" data-edge-to="subagent" data-edge-label="派活" data-edge-key="12" data-edge-id="e9" data-composition-points="272,280;272,296;430,296;430,280" d="M 272 280 L 272 296 L 430 296 L 430 280" class="a-default" data-animate="edge" style="--step:12" stroke-width="1.4" marker-end="url(#arrowhead)"/>
 
         <!-- Nodes -->
         <g id="node-user_msg" data-node-id="user_msg" data-node-label="用户消息" tabindex="0" role="button" aria-label="聚焦用户消息，本轮输入, 每轮循环 · 主台面" aria-pressed="false" data-node-kind="external" data-node-sublabel="本轮输入" data-node-context="每轮循环 · 主台面">
           <title>用户消息 · 本轮输入 · 每轮循环 · 主台面</title>
-          <rect x="48" y="94" width="92" height="52" rx="6" class="c-mask"/>
-          <rect x="48" y="94" width="92" height="52" rx="6" class="c-external" data-animate="node" style="--step:0" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(54 100) scale(0.6875)">
+          <rect x="87" y="94" width="92" height="52" rx="6" class="c-mask"/>
+          <rect x="87" y="94" width="92" height="52" rx="6" class="c-external" data-animate="node" style="--step:0" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(93 100) scale(0.6875)">
             <rect x="2.5" y="5" width="8.5" height="8" rx="1.5"/>
             <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="94" y="115" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">用户消息</text>
-          <text data-detail="context" x="94" y="132" class="t-muted" font-size="8" text-anchor="middle">本轮输入</text>
+          <text data-node-label="" data-detail-anchor="" x="133" y="115" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">用户消息</text>
+          <text data-detail="context" x="133" y="132" class="t-muted" font-size="8" text-anchor="middle">本轮输入</text>
         </g>
 
-        <g id="node-assemble" data-node-id="assemble" data-node-label="装配垫纸" tabindex="0" role="button" aria-label="聚焦装配垫纸，工具池＋技能目录＋记忆索引＋条件段, 每轮循环 · 主台面" aria-pressed="false" data-node-kind="backend" data-node-sublabel="工具池＋技能目录＋记忆索引＋条件段" data-node-tag="按真实运行时状态" data-node-context="每轮循环 · 主台面">
-          <title>装配垫纸 · 工具池＋技能目录＋记忆索引＋条件段 · 每轮循环 · 主台面 · 按真实运行时状态</title>
-          <rect x="168" y="86" width="136" height="68" rx="6" class="c-mask"/>
-          <rect x="168" y="86" width="136" height="68" rx="6" class="c-backend" data-animate="node" style="--step:1" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(174 92) scale(0.6875)">
+        <g id="node-assemble" data-node-id="assemble" data-node-label="选段拼垫纸" tabindex="0" role="button" aria-label="聚焦选段拼垫纸，按真实运行时状态, 每轮循环 · 主台面" aria-pressed="false" data-node-kind="backend" data-node-sublabel="按真实运行时状态" data-node-tag="每轮重估" data-node-context="每轮循环 · 主台面">
+          <title>选段拼垫纸 · 按真实运行时状态 · 每轮循环 · 主台面 · 每轮重估</title>
+          <rect x="226" y="86" width="92" height="68" rx="6" class="c-mask"/>
+          <rect x="226" y="86" width="92" height="68" rx="6" class="c-backend" data-animate="node" style="--step:1" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(232 92) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="236" y="107" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">装配垫纸</text>
-          <text data-detail="context" x="236" y="124" class="t-muted" font-size="6.2" text-anchor="middle">工具池＋技能目录＋记忆索引＋条件段</text>
-        <text data-detail="fine" x="236" y="142" class="t-backend" font-size="7" text-anchor="middle">按真实运行时状态</text>
+          <text data-node-label="" data-detail-anchor="" x="272" y="107" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">选段拼垫纸</text>
+          <text data-detail="context" x="272" y="124" class="t-muted" font-size="8" text-anchor="middle">按真实运行时状态</text>
+        <text data-detail="fine" x="272" y="142" class="t-backend" font-size="7" text-anchor="middle">每轮重估</text>
+        </g>
+
+        <g id="node-cache" data-node-id="cache" data-node-label="命中缓存沿用" tabindex="0" role="button" aria-label="聚焦命中缓存沿用，状态没变就不重算, 每轮循环 · 主台面" aria-pressed="false" data-node-kind="backend" data-node-sublabel="状态没变就不重算" data-node-context="每轮循环 · 主台面">
+          <title>命中缓存沿用 · 状态没变就不重算 · 每轮循环 · 主台面</title>
+          <rect x="384" y="94" width="92" height="52" rx="6" class="c-mask"/>
+          <rect x="384" y="94" width="92" height="52" rx="6" class="c-backend" data-animate="node" style="--step:2" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(390 100) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="430" y="115" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">命中缓存沿用</text>
+          <text data-detail="context" x="430" y="132" class="t-muted" font-size="8" text-anchor="middle">状态没变就不重算</text>
         </g>
 
         <g id="node-decide" data-node-id="decide" data-node-label="读台面决策" tabindex="0" role="button" aria-label="聚焦读台面决策，模型每轮从头重读, 每轮循环 · 主台面" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="模型每轮从头重读" data-node-context="每轮循环 · 主台面">
           <title>读台面决策 · 模型每轮从头重读 · 每轮循环 · 主台面</title>
-          <rect x="332" y="94" width="92" height="52" rx="6" class="c-mask"/>
-          <rect x="332" y="94" width="92" height="52" rx="6" class="c-frontend" data-animate="node" style="--step:2" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="frontend" class="semantic-sigil s-frontend" transform="translate(338 100) scale(0.6875)">
+          <rect x="504" y="94" width="92" height="52" rx="6" class="c-mask"/>
+          <rect x="504" y="94" width="92" height="52" rx="6" class="c-frontend" data-animate="node" style="--step:3" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="frontend" class="semantic-sigil s-frontend" transform="translate(510 100) scale(0.6875)">
             <rect x="2" y="3" width="12" height="10" rx="2"/>
             <path d="M2 6.5h12"/>
             <circle cx="4.1" cy="4.8" r=".7" class="sigil-fill"/>
             <circle cx="6.3" cy="4.8" r=".7" class="sigil-fill"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="378" y="115" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">读台面决策</text>
-          <text data-detail="context" x="378" y="132" class="t-muted" font-size="8" text-anchor="middle">模型每轮从头重读</text>
+          <text data-node-label="" data-detail-anchor="" x="550" y="115" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">读台面决策</text>
+          <text data-detail="context" x="550" y="132" class="t-muted" font-size="8" text-anchor="middle">模型每轮从头重读</text>
         </g>
 
         <g id="node-execute" data-node-id="execute" data-node-label="工具执行" tabindex="0" role="button" aria-label="聚焦工具执行，照过门禁, 每轮循环 · 主台面" aria-pressed="false" data-node-kind="backend" data-node-sublabel="照过门禁" data-node-context="每轮循环 · 主台面">
           <title>工具执行 · 照过门禁 · 每轮循环 · 主台面</title>
-          <rect x="452" y="94" width="92" height="52" rx="6" class="c-mask"/>
-          <rect x="452" y="94" width="92" height="52" rx="6" class="c-backend" data-animate="node" style="--step:3" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(458 100) scale(0.6875)">
+          <rect x="624" y="94" width="92" height="52" rx="6" class="c-mask"/>
+          <rect x="624" y="94" width="92" height="52" rx="6" class="c-backend" data-animate="node" style="--step:4" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(630 100) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="498" y="115" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">工具执行</text>
-          <text data-detail="context" x="498" y="132" class="t-muted" font-size="8" text-anchor="middle">照过门禁</text>
+          <text data-node-label="" data-detail-anchor="" x="670" y="115" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">工具执行</text>
+          <text data-detail="context" x="670" y="132" class="t-muted" font-size="8" text-anchor="middle">照过门禁</text>
         </g>
 
         <g id="node-writeback" data-node-id="writeback" data-node-label="结果回写台面" tabindex="0" role="button" aria-label="聚焦结果回写台面，手册、回执一并入流, 每轮循环 · 主台面" aria-pressed="false" data-node-kind="database" data-node-sublabel="手册、回执一并入流" data-node-context="每轮循环 · 主台面">
           <title>结果回写台面 · 手册、回执一并入流 · 每轮循环 · 主台面</title>
-          <rect x="572" y="94" width="92" height="52" rx="6" class="c-mask"/>
-          <rect x="572" y="94" width="92" height="52" rx="6" class="c-database" data-animate="node" style="--step:4" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(578 100) scale(0.6875)">
+          <rect x="744" y="94" width="92" height="52" rx="6" class="c-mask"/>
+          <rect x="744" y="94" width="92" height="52" rx="6" class="c-database" data-animate="node" style="--step:5" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(750 100) scale(0.6875)">
             <ellipse cx="8" cy="4" rx="5" ry="2"/>
             <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="618" y="115" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">结果回写台面</text>
-          <text data-detail="context" x="618" y="132" class="t-muted" font-size="7.7" text-anchor="middle">手册、回执一并入流</text>
+          <text data-node-label="" data-detail-anchor="" x="790" y="115" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">结果回写台面</text>
+          <text data-detail="context" x="790" y="132" class="t-muted" font-size="7.7" text-anchor="middle">手册、回执一并入流</text>
         </g>
 
-        <g id="node-skill" data-node-id="skill" data-node-label="取技能手册" tabindex="0" role="button" aria-label="聚焦取技能手册，按名字取·目录常驻, 支线 · 按需展开与补救梯" aria-pressed="false" data-node-kind="external" data-node-sublabel="按名字取·目录常驻" data-node-context="支线 · 按需展开与补救梯">
-          <title>取技能手册 · 按名字取·目录常驻 · 支线 · 按需展开与补救梯</title>
-          <rect x="48" y="220" width="92" height="52" rx="6" class="c-mask"/>
-          <rect x="48" y="220" width="92" height="52" rx="6" class="c-external" data-animate="node" style="--step:10" stroke-width="1.5"/>
+        <g id="node-drawer" data-node-id="drawer" data-node-label="抽屉标签与手册" tabindex="0" role="button" aria-label="聚焦抽屉标签与手册，标签每轮都带 · 手册按名字取, 支线 · 按需展开与补救梯" aria-pressed="false" data-node-kind="external" data-node-sublabel="标签每轮都带 · 手册按名字取" data-node-context="支线 · 按需展开与补救梯">
+          <title>抽屉标签与手册 · 标签每轮都带 · 手册按名字取 · 支线 · 按需展开与补救梯</title>
+          <rect x="48" y="220" width="170" height="52" rx="6" class="c-mask"/>
+          <rect x="48" y="220" width="170" height="52" rx="6" class="c-external" data-animate="node" style="--step:12" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(54 226) scale(0.6875)">
             <rect x="2.5" y="5" width="8.5" height="8" rx="1.5"/>
             <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="94" y="241" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">取技能手册</text>
-          <text data-detail="context" x="94" y="258" class="t-muted" font-size="8" text-anchor="middle">按名字取·目录常驻</text>
+          <text data-node-label="" data-detail-anchor="" x="133" y="241" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">抽屉标签与手册</text>
+          <text data-detail="context" x="133" y="258" class="t-muted" font-size="8" text-anchor="middle">标签每轮都带 · 手册按名字取</text>
         </g>
 
-        <g id="node-todo" data-node-id="todo" data-node-label="写工序卡" tabindex="0" role="button" aria-label="聚焦写工序卡，整表替换·至多一件在做, 支线 · 按需展开与补救梯" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="整表替换·至多一件在做" data-node-tag="只增规划不增执行" data-node-context="支线 · 按需展开与补救梯">
-          <title>写工序卡 · 整表替换·至多一件在做 · 支线 · 按需展开与补救梯 · 只增规划不增执行</title>
-          <rect x="190" y="212" width="92" height="68" rx="6" class="c-mask"/>
-          <rect x="190" y="212" width="92" height="68" rx="6" class="c-frontend" data-animate="node" style="--step:11" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="frontend" class="semantic-sigil s-frontend" transform="translate(196 218) scale(0.6875)">
+        <g id="node-todo" data-node-id="todo" data-node-label="写工序卡" tabindex="0" role="button" aria-label="聚焦写工序卡，整表替换 · 先校验后替换, 支线 · 按需展开与补救梯" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="整表替换 · 先校验后替换" data-node-tag="只增规划不增执行" data-node-context="支线 · 按需展开与补救梯">
+          <title>写工序卡 · 整表替换 · 先校验后替换 · 支线 · 按需展开与补救梯 · 只增规划不增执行</title>
+          <rect x="226" y="212" width="92" height="68" rx="6" class="c-mask"/>
+          <rect x="226" y="212" width="92" height="68" rx="6" class="c-frontend" data-animate="node" style="--step:12" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="frontend" class="semantic-sigil s-frontend" transform="translate(232 218) scale(0.6875)">
             <rect x="2" y="3" width="12" height="10" rx="2"/>
             <path d="M2 6.5h12"/>
             <circle cx="4.1" cy="4.8" r=".7" class="sigil-fill"/>
             <circle cx="6.3" cy="4.8" r=".7" class="sigil-fill"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="236" y="233" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">写工序卡</text>
-          <text data-detail="context" x="236" y="250" class="t-muted" font-size="6.6" text-anchor="middle">整表替换·至多一件在做</text>
-        <text data-detail="fine" x="236" y="268" class="t-frontend" font-size="7" text-anchor="middle">只增规划不增执行</text>
+          <text data-node-label="" data-detail-anchor="" x="272" y="233" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">写工序卡</text>
+          <text data-detail="context" x="272" y="250" class="t-muted" font-size="6" text-anchor="middle">整表替换 · 先校验后替换</text>
+        <text data-detail="fine" x="272" y="268" class="t-frontend" font-size="7" text-anchor="middle">只增规划不增执行</text>
         </g>
 
-        <g id="node-subagent" data-node-id="subagent" data-node-label="支起副台" tabindex="0" role="button" aria-label="聚焦支起副台，干净历史·只带回一张回执, 支线 · 按需展开与补救梯" aria-pressed="false" data-node-kind="cloud" data-node-sublabel="干净历史·只带回一张回执" data-node-tag="回执不写干没干完" data-node-context="支线 · 按需展开与补救梯">
-          <title>支起副台 · 干净历史·只带回一张回执 · 支线 · 按需展开与补救梯 · 回执不写干没干完</title>
-          <rect x="332" y="212" width="92" height="68" rx="6" class="c-mask"/>
-          <rect x="332" y="212" width="92" height="68" rx="6" class="c-cloud" data-animate="node" style="--step:12" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="cloud" class="semantic-sigil s-cloud" transform="translate(338 218) scale(0.6875)">
+        <g id="node-subagent" data-node-id="subagent" data-node-label="支起副台" tabindex="0" role="button" aria-label="聚焦支起副台，干净历史 · 只带回一张回执, 支线 · 按需展开与补救梯" aria-pressed="false" data-node-kind="cloud" data-node-sublabel="干净历史 · 只带回一张回执" data-node-tag="过程全部作废" data-node-context="支线 · 按需展开与补救梯">
+          <title>支起副台 · 干净历史 · 只带回一张回执 · 支线 · 按需展开与补救梯 · 过程全部作废</title>
+          <rect x="364" y="212" width="132" height="68" rx="6" class="c-mask"/>
+          <rect x="364" y="212" width="132" height="68" rx="6" class="c-cloud" data-animate="node" style="--step:12" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="cloud" class="semantic-sigil s-cloud" transform="translate(370 218) scale(0.6875)">
             <path d="M4.3 12.5h7.3a2.4 2.4 0 0 0 .2-4.8 4 4 0 0 0-7.5-1.3A3.1 3.1 0 0 0 4.3 12.5Z"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="378" y="233" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">支起副台</text>
-          <text data-detail="context" x="378" y="250" class="t-muted" font-size="6" text-anchor="middle">干净历史·只带回一张回执</text>
-        <text data-detail="fine" x="378" y="268" class="t-cloud" font-size="7" text-anchor="middle">回执不写干没干完</text>
+          <text data-node-label="" data-detail-anchor="" x="430" y="233" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">支起副台</text>
+          <text data-detail="context" x="430" y="250" class="t-muted" font-size="8" text-anchor="middle">干净历史 · 只带回一张回执</text>
+        <text data-detail="fine" x="430" y="268" class="t-cloud" font-size="7" text-anchor="middle">过程全部作废</text>
         </g>
 
-        <g id="node-trunc" data-node-id="trunc" data-node-label="输出被腰斩" tabindex="0" role="button" aria-label="聚焦输出被腰斩，抬上限·原样重发, 支线 · 按需展开与补救梯" aria-pressed="false" data-node-kind="security" data-node-sublabel="抬上限·原样重发" data-node-tag="判断先于写入" data-node-context="支线 · 按需展开与补救梯">
-          <title>输出被腰斩 · 抬上限·原样重发 · 支线 · 按需展开与补救梯 · 判断先于写入</title>
-          <rect x="452" y="212" width="92" height="68" rx="6" class="c-mask"/>
-          <rect x="452" y="212" width="92" height="68" rx="6" class="c-security" data-animate="node" style="--step:12" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(458 218) scale(0.6875)">
+        <g id="node-trunc" data-node-id="trunc" data-node-label="输出被腰斩" tabindex="0" role="button" aria-label="聚焦输出被腰斩，抬上限 · 原样重发, 支线 · 按需展开与补救梯" aria-pressed="false" data-node-kind="security" data-node-sublabel="抬上限 · 原样重发" data-node-tag="判断先于写入" data-node-context="支线 · 按需展开与补救梯">
+          <title>输出被腰斩 · 抬上限 · 原样重发 · 支线 · 按需展开与补救梯 · 判断先于写入</title>
+          <rect x="504" y="212" width="92" height="68" rx="6" class="c-mask"/>
+          <rect x="504" y="212" width="92" height="68" rx="6" class="c-security" data-animate="node" style="--step:12" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(510 218) scale(0.6875)">
             <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
             <path d="m5.8 8 1.5 1.5 3-3"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="498" y="233" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">输出被腰斩</text>
-          <text data-detail="context" x="498" y="250" class="t-muted" font-size="8" text-anchor="middle">抬上限·原样重发</text>
-        <text data-detail="fine" x="498" y="268" class="t-security" font-size="7" text-anchor="middle">判断先于写入</text>
+          <text data-node-label="" data-detail-anchor="" x="550" y="233" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">输出被腰斩</text>
+          <text data-detail="context" x="550" y="250" class="t-muted" font-size="8" text-anchor="middle">抬上限 · 原样重发</text>
+        <text data-detail="fine" x="550" y="268" class="t-security" font-size="7" text-anchor="middle">判断先于写入</text>
         </g>
 
-        <g id="node-overflow" data-node-id="overflow" data-node-label="台面撑爆" tabindex="0" role="button" aria-label="聚焦台面撑爆，收台一次·带闸·压完重试, 支线 · 按需展开与补救梯" aria-pressed="false" data-node-kind="security" data-node-sublabel="收台一次·带闸·压完重试" data-node-context="支线 · 按需展开与补救梯">
-          <title>台面撑爆 · 收台一次·带闸·压完重试 · 支线 · 按需展开与补救梯</title>
-          <rect x="572" y="220" width="92" height="52" rx="6" class="c-mask"/>
-          <rect x="572" y="220" width="92" height="52" rx="6" class="c-security" data-animate="node" style="--step:12" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(578 226) scale(0.6875)">
+        <g id="node-overflow" data-node-id="overflow" data-node-label="台面撑爆" tabindex="0" role="button" aria-label="聚焦台面撑爆，收台一次 · 带一次性闸, 支线 · 按需展开与补救梯" aria-pressed="false" data-node-kind="security" data-node-sublabel="收台一次 · 带一次性闸" data-node-context="支线 · 按需展开与补救梯">
+          <title>台面撑爆 · 收台一次 · 带一次性闸 · 支线 · 按需展开与补救梯</title>
+          <rect x="624" y="220" width="92" height="52" rx="6" class="c-mask"/>
+          <rect x="624" y="220" width="92" height="52" rx="6" class="c-security" data-animate="node" style="--step:12" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(630 226) scale(0.6875)">
             <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
             <path d="m5.8 8 1.5 1.5 3-3"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="618" y="241" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">台面撑爆</text>
-          <text data-detail="context" x="618" y="258" class="t-muted" font-size="6.3" text-anchor="middle">收台一次·带闸·压完重试</text>
+          <text data-node-label="" data-detail-anchor="" x="670" y="241" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">台面撑爆</text>
+          <text data-detail="context" x="670" y="258" class="t-muted" font-size="6.6" text-anchor="middle">收台一次 · 带一次性闸</text>
         </g>
 
-        <g id="node-jitter" data-node-id="jitter" data-node-label="外部抖动" tabindex="0" role="button" aria-label="聚焦外部抖动，限流/过载·退避重试, 支线 · 按需展开与补救梯" aria-pressed="false" data-node-kind="security" data-node-sublabel="限流/过载·退避重试" data-node-context="支线 · 按需展开与补救梯">
-          <title>外部抖动 · 限流/过载·退避重试 · 支线 · 按需展开与补救梯</title>
-          <rect x="692" y="220" width="92" height="52" rx="6" class="c-mask"/>
-          <rect x="692" y="220" width="92" height="52" rx="6" class="c-security" data-animate="node" style="--step:12" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(698 226) scale(0.6875)">
+        <g id="node-jitter" data-node-id="jitter" data-node-label="外部抖动" tabindex="0" role="button" aria-label="聚焦外部抖动，退避加抖动 · 备用模型, 支线 · 按需展开与补救梯" aria-pressed="false" data-node-kind="security" data-node-sublabel="退避加抖动 · 备用模型" data-node-context="支线 · 按需展开与补救梯">
+          <title>外部抖动 · 退避加抖动 · 备用模型 · 支线 · 按需展开与补救梯</title>
+          <rect x="744" y="220" width="92" height="52" rx="6" class="c-mask"/>
+          <rect x="744" y="220" width="92" height="52" rx="6" class="c-security" data-animate="node" style="--step:12" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(750 226) scale(0.6875)">
             <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
             <path d="m5.8 8 1.5 1.5 3-3"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="738" y="241" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">外部抖动</text>
-          <text data-detail="context" x="738" y="258" class="t-muted" font-size="7.7" text-anchor="middle">限流/过载·退避重试</text>
+          <text data-node-label="" data-detail-anchor="" x="790" y="241" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">外部抖动</text>
+          <text data-detail="context" x="790" y="258" class="t-muted" font-size="6.6" text-anchor="middle">退避加抖动 · 备用模型</text>
         </g>
 
         <!-- Edge labels -->
@@ -5325,17 +5337,30 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 
 
 
-
-
-
-
-
-        <g data-detail="context" data-edge-from="trunc" data-edge-to="decide" data-edge-label="同一消息序列重发" data-edge-key="9">
-          <rect x="425.6" y="280" width="86.8" height="14" rx="3" class="c-mask"/>
-          <text x="469" y="290" class="t-muted" font-size="8" text-anchor="middle">同一消息序列重发</text>
+        <g data-detail="context" data-edge-from="trunc" data-edge-to="decide" data-edge-label="同一消息序列重发" data-edge-key="4" data-edge-id="e13">
+          <rect x="537.6" y="280" width="86.8" height="14" rx="3" class="c-mask"/>
+          <text x="581" y="290" class="t-muted" font-size="8" text-anchor="middle">同一消息序列重发</text>
+        </g>
+        <g data-detail="context" data-edge-from="assemble" data-edge-to="cache" data-edge-label="开工前重估" data-edge-key="5" data-edge-id="e2">
+          <rect x="322" y="93" width="58" height="14" rx="3" class="c-mask"/>
+          <text x="351" y="103" class="t-backend" font-size="8" text-anchor="middle">开工前重估</text>
         </g>
 
 
+
+        <g data-detail="context" data-edge-from="writeback" data-edge-to="assemble" data-edge-label="下一轮" data-edge-key="9" data-edge-id="e5">
+          <rect x="511.6" y="16" width="38.8" height="14" rx="3" class="c-mask"/>
+          <text x="531" y="26" class="t-muted" font-size="8" text-anchor="middle">下一轮</text>
+        </g>
+        <g data-detail="context" data-edge-from="cache" data-edge-to="todo" data-edge-label="常驻第一张纸" data-edge-key="10" data-edge-id="e6">
+          <rect x="317.2" y="148" width="67.6" height="14" rx="3" class="c-mask"/>
+          <text x="351" y="158" class="t-muted" font-size="8" text-anchor="middle">常驻第一张纸</text>
+        </g>
+
+        <g data-detail="context" data-edge-from="todo" data-edge-to="subagent" data-edge-label="派活" data-edge-key="12" data-edge-id="e9">
+          <rect x="336" y="276" width="30" height="14" rx="3" class="c-mask"/>
+          <text x="351" y="286" class="t-muted" font-size="8" text-anchor="middle">派活</text>
+        </g>
 
         <!-- Legend -->
         <g data-legend="" data-legend-bridge="">
@@ -5554,12 +5579,12 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       <div class="card">
         <div class="card-header">
           <div class="card-dot cyan"></div>
-          <h3>垫纸看真实状态，不看关键词</h3>
+          <h3>每轮重估，两张纸常驻</h3>
         </div>
         <ul>
-          <li>&bull; 每轮重建系统提示：工具池、技能目录、记忆索引、条件段同频重算</li>
-          <li>&bull; 段落取舍看磁盘与连接的事实，不扫消息文本猜意图</li>
-          <li>&bull; 连上新外接服务，下一轮工具池才出现它的工具</li>
+          <li>&bull; 按运行时状态选段拼垫纸，状态没变命中缓存沿用</li>
+          <li>&bull; 工序卡整表替换，先校验后替换，至多一件在做</li>
+          <li>&bull; 抽屉标签名称＋描述每轮都带，手册要用时才进消息流</li>
         </ul>
       </div>
 
@@ -5571,7 +5596,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <ul>
           <li>&bull; 副台从空白开始，父对话一个字不复制</li>
           <li>&bull; 照过同一套门禁与钩子——隔离的是台面，不是权限</li>
-          <li>&bull; 只带回一张回执，回执上不写它干没干完</li>
+          <li>&bull; 只带回一张回执，过程全部作废，回执不写干没干完</li>
         </ul>
       </div>
 

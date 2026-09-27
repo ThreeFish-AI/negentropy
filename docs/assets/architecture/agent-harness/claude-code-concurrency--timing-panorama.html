@@ -5130,7 +5130,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     <!-- Main Diagram -->
     <div class="diagram-container" data-detail-level="read"
          data-preset-badge-editorial-plate="ARCHIFY / 图版 04">
-      <svg viewBox="0 0 1068 652" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-animation="trace" data-preset="classic" data-quality-profile="showcase">
+      <svg viewBox="0 0 1086 652" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-animation="trace" data-preset="classic" data-quality-profile="showcase">
         <title id="archify-diagram-title">并发与时机：三条互不叠加的支路汇回传送带的下一轮</title>
         <desc id="archify-diagram-description">由 Archify 生成的工作流图。</desc>
         <!-- Definitions -->
@@ -5156,213 +5156,198 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <rect width="100%" height="100%" fill="url(#grid)" />
 
         <!-- Swimlanes -->
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-0" x="40" y="52" width="1012" height="104" rx="10" class="c-lane" stroke-width="1"/>
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-0" x="40" y="52" width="1030" height="104" rx="10" class="c-lane" stroke-width="1"/>
         <text x="54" y="74" class="t-dim" font-size="10" font-weight="600">01 / ① 后台支路 · 按下即走</text>
 
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-1" x="40" y="176" width="1012" height="104" rx="10" class="c-lane" stroke-width="1"/>
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-1" x="40" y="176" width="1030" height="104" rx="10" class="c-lane" stroke-width="1"/>
         <text x="54" y="198" class="t-dim" font-size="10" font-weight="600">02 / ② 通知支路 · 下一轮浮现</text>
 
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-2" x="40" y="300" width="1012" height="104" rx="10" class="c-lane" stroke-width="1"/>
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-2" x="40" y="300" width="1030" height="104" rx="10" class="c-lane" stroke-width="1"/>
         <text x="54" y="322" class="t-dim" font-size="10" font-weight="600">03 / ③ 定时支路 · 没人按开始</text>
 
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-3" x="40" y="424" width="1012" height="104" rx="10" class="c-lane" stroke-width="1"/>
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-3" x="40" y="424" width="1030" height="104" rx="10" class="c-lane" stroke-width="1"/>
         <text x="54" y="446" class="t-dim" font-size="10" font-weight="600">04 / 汇流 · 传送带</text>
 
         <!-- Phase headers -->
-        <line x1="64" y1="35" x2="318" y2="35" class="a-default" stroke-width="1.1"/>
-        <rect x="64" y="27" width="254" height="16" rx="4" class="c-mask"/>
-        <text x="191" y="39" class="t-muted" font-size="8" font-weight="600" text-anchor="middle">判据与门禁</text>
-        <line x1="415.99999999999994" y1="35" x2="707.5999999999999" y2="35" class="a-emphasis" stroke-width="1.1"/>
-        <rect x="415.99999999999994" y="27" width="291.6" height="16" rx="4" class="c-mask"/>
-        <text x="561.8" y="39" class="t-backend" font-size="8" font-weight="600" text-anchor="middle">甩出去 · 不等它</text>
-        <line x1="815.2" y1="35" x2="1027.2" y2="35" class="a-default" stroke-width="1.1"/>
-        <rect x="815.2" y="27" width="212" height="16" rx="4" class="c-mask"/>
-        <text x="921.2" y="39" class="t-muted" font-size="8" font-weight="600" text-anchor="middle">下一轮浮现 · 汇流</text>
+        <line x1="97" y1="35" x2="374" y2="35" class="a-default" stroke-width="1.1"/>
+        <rect x="97" y="27" width="277" height="16" rx="4" class="c-mask"/>
+        <text x="235.5" y="39" class="t-muted" font-size="8" font-weight="600" text-anchor="middle">判据与门禁</text>
+        <line x1="457" y1="35" x2="730" y2="35" class="a-default" stroke-width="1.1"/>
+        <rect x="457" y="27" width="273" height="16" rx="4" class="c-mask"/>
+        <text x="593.5" y="39" class="t-muted" font-size="8" font-weight="600" text-anchor="middle">甩出去 · 不等它</text>
+        <line x1="816" y1="35" x2="1028" y2="35" class="a-default" stroke-width="1.1"/>
+        <rect x="816" y="27" width="212" height="16" rx="4" class="c-mask"/>
+        <text x="922" y="39" class="t-muted" font-size="8" font-weight="600" text-anchor="middle">下一轮浮现 · 汇流</text>
 
         <!-- Workflow groups -->
 
 
         <!-- Edge paths -->
-        <path data-edge-from="caller" data-edge-to="notice" data-edge-label="协议一问一答" data-edge-key="0" data-composition-points="723.6,243;799.2,243" d="M 723.6 243 L 799.2 243" class="a-emphasis" data-animate="edge" style="--step:4" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="clock" data-edge-to="persist" data-edge-label="到点" data-edge-key="1" data-composition-points="172,367;210,367" d="M 172 367 L 210 367" class="a-default" data-animate="edge" style="--step:8" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="contract" data-edge-to="gate" data-edge-key="2" data-composition-points="172,119;210,119" d="M 172 119 L 210 119" class="a-emphasis" data-animate="edge" style="--step:0" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="gate" data-edge-to="wash" data-edge-key="3" data-composition-points="334,119;400,119" d="M 334 119 L 400 119" class="a-emphasis" data-animate="edge" style="--step:1" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="notice" data-edge-to="next" data-edge-key="4" data-composition-points="923.2,243;981.2,243;981.2,465" d="M 923.2 243 L 981.2 243 L 981.2 465" class="a-emphasis" data-animate="edge" style="--step:5" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="persist" data-edge-to="trylock" data-edge-label="经队列交接" data-edge-key="5" data-composition-points="334,367;400,367" d="M 334 367 L 400 367" class="a-default" data-animate="edge" style="--step:12" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="queue" data-edge-to="caller" data-edge-key="6" data-composition-points="524,243;599.6,243" d="M 524 243 L 599.6 243" class="a-emphasis" data-animate="edge" style="--step:3" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="receipt" data-edge-to="next" data-edge-label="这一趟不等它" data-edge-key="7" data-composition-points="723.6,119;981.2,119;981.2,465" d="M 723.6 119 L 981.2 119 L 981.2 465" class="a-default" data-animate="edge" style="--step:12" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="trylock" data-edge-to="next" data-edge-label="空闲即入轮" data-edge-key="8" data-composition-points="524,367;981.2,367;981.2,465" d="M 524 367 L 981.2 367 L 981.2 465" class="a-default" data-animate="edge" style="--step:12" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="wash" data-edge-to="queue" data-edge-label="只余一段摘要" data-edge-key="9" data-composition-points="524,119;540,119;540,166;462,166;462,217" d="M 524 119 L 540 119 L 540 166 L 462 166 L 462 217" class="a-dashed" data-animate="edge" style="--step:2" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
-        <path data-edge-from="wash" data-edge-to="receipt" data-edge-label="登记先于启动" data-edge-key="10" data-composition-points="462,93;462,77;661.6,77;661.6,93" d="M 462 93 L 462 77 L 661.6 77 L 661.6 93" class="a-emphasis" data-animate="edge" style="--step:12" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="decide" data-edge-to="next" data-edge-label="否：当场做完，随托盘回" data-edge-key="0" data-edge-id="e1" data-composition-points="48,119;20,119;20,491;902,491" d="M 48 119 L 20 119 L 20 491 L 902 491" class="a-default" data-animate="edge" style="--step:4" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="clock" data-edge-to="mark" data-edge-label="到点" data-edge-key="1" data-edge-id="e10" data-composition-points="215,367;253,367" d="M 215 367 L 253 367" class="a-default" data-animate="edge" style="--step:5" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="mark" data-edge-to="trylock" data-edge-key="2" data-edge-id="e11" data-composition-points="403,367;431,367" d="M 403 367 L 431 367" class="a-default" data-animate="edge" style="--step:6" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="trylock" data-edge-to="next" data-edge-label="空闲即入轮" data-edge-key="3" data-edge-id="e12" data-composition-points="575,367;982,367;982,465" d="M 575 367 L 982 367 L 982 465" class="a-default" data-animate="edge" style="--step:7" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="decide" data-edge-to="wash" data-edge-label="是" data-edge-key="4" data-edge-id="e2" data-composition-points="238,119;431,119" d="M 238 119 L 431 119" class="a-emphasis" data-animate="edge" style="--step:0" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="wash" data-edge-to="receipt" data-edge-key="5" data-edge-id="e3" data-composition-points="575,119;614,119" d="M 575 119 L 614 119" class="a-emphasis" data-animate="edge" style="--step:1" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="wash" data-edge-to="queue" data-edge-label="只余一段摘要" data-edge-key="6" data-edge-id="e4" data-composition-points="503,145;503,166;594,166;594,243;578,243" d="M 503 145 L 503 166 L 594 166 L 594 243 L 578 243" class="a-default" data-animate="edge" style="--step:10" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="queue" data-edge-to="caller" data-edge-key="7" data-edge-id="e5" data-composition-points="578,243;606,243" d="M 578 243 L 606 243" class="a-default" data-animate="edge" style="--step:11" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="caller" data-edge-to="notice" data-edge-key="8" data-edge-id="e6" data-composition-points="762,243;790,243" d="M 762 243 L 790 243" class="a-default" data-animate="edge" style="--step:12" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="notice" data-edge-to="next" data-edge-key="9" data-edge-id="e7" data-composition-points="862,269;862,484;902,484" d="M 862 269 L 862 484 L 902 484" class="a-emphasis" data-animate="edge" style="--step:12" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="receipt" data-edge-to="next" data-edge-label="这一趟不等它" data-edge-key="10" data-edge-id="e8" data-composition-points="754,119;982,119;982,465" d="M 754 119 L 982 119 L 982 465" class="a-default" data-animate="edge" style="--step:2" stroke-width="1.4" marker-end="url(#arrowhead)"/>
 
         <!-- Nodes -->
-        <g id="node-contract" data-node-id="contract" data-node-label="显式契约进后台" tabindex="0" role="button" aria-label="聚焦显式契约进后台，布尔开关严格为真，不猜, ① 后台支路 · 按下即走 › 判据与门禁" aria-pressed="false" data-node-kind="security" data-node-sublabel="布尔开关严格为真，不猜" data-node-context="① 后台支路 · 按下即走 › 判据与门禁">
-          <title>显式契约进后台 · 布尔开关严格为真，不猜 · ① 后台支路 · 按下即走 › 判据与门禁</title>
-          <rect x="48" y="93" width="124" height="52" rx="6" class="c-mask"/>
-          <rect x="48" y="93" width="124" height="52" rx="6" class="c-security" data-animate="node" style="--step:0" stroke-width="1.5"/>
+        <g id="node-decide" data-node-id="decide" data-node-label="写明要后台，还是像个慢活" tabindex="0" role="button" aria-label="聚焦写明要后台，还是像个慢活，布尔开关严格为真，不猜, ① 后台支路 · 按下即走 › 判据与门禁" aria-pressed="false" data-node-kind="security" data-node-sublabel="布尔开关严格为真，不猜" data-node-context="① 后台支路 · 按下即走 › 判据与门禁">
+          <title>写明要后台，还是像个慢活 · 布尔开关严格为真，不猜 · ① 后台支路 · 按下即走 › 判据与门禁</title>
+          <rect x="48" y="93" width="190" height="52" rx="6" class="c-mask"/>
+          <rect x="48" y="93" width="190" height="52" rx="6" class="c-security" data-animate="node" style="--step:0" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(54 99) scale(0.6875)">
             <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
             <path d="m5.8 8 1.5 1.5 3-3"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="110" y="114" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">显式契约进后台</text>
-          <text data-detail="context" x="110" y="131" class="t-muted" font-size="8" text-anchor="middle">布尔开关严格为真，不猜</text>
+          <text data-node-label="" data-detail-anchor="" x="143" y="114" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">写明要后台，还是像个慢活</text>
+          <text data-detail="context" x="143" y="131" class="t-muted" font-size="8" text-anchor="middle">布尔开关严格为真，不猜</text>
         </g>
 
-        <g id="node-gate" data-node-id="gate" data-node-label="门禁在派工前" tabindex="0" role="button" aria-label="聚焦门禁在派工前，被拒即返回，线程不起, ① 后台支路 · 按下即走 › 判据与门禁" aria-pressed="false" data-node-kind="security" data-node-sublabel="被拒即返回，线程不起" data-node-context="① 后台支路 · 按下即走 › 判据与门禁">
-          <title>门禁在派工前 · 被拒即返回，线程不起 · ① 后台支路 · 按下即走 › 判据与门禁</title>
-          <rect x="210" y="93" width="124" height="52" rx="6" class="c-mask"/>
-          <rect x="210" y="93" width="124" height="52" rx="6" class="c-security" data-animate="node" style="--step:1" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(216 99) scale(0.6875)">
-            <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
-            <path d="m5.8 8 1.5 1.5 3-3"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="272" y="114" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">门禁在派工前</text>
-          <text data-detail="context" x="272" y="131" class="t-muted" font-size="8" text-anchor="middle">被拒即返回，线程不起</text>
-        </g>
-
-        <g id="node-wash" data-node-id="wash" data-node-label="甩进自动清洗槽" tabindex="0" role="button" aria-label="聚焦甩进自动清洗槽，独立进程组 · 不是沙箱, ① 后台支路 · 按下即走 › 甩出去 · 不等它" aria-pressed="false" data-node-kind="backend" data-node-sublabel="独立进程组 · 不是沙箱" data-node-context="① 后台支路 · 按下即走 › 甩出去 · 不等它">
-          <title>甩进自动清洗槽 · 独立进程组 · 不是沙箱 · ① 后台支路 · 按下即走 › 甩出去 · 不等它</title>
-          <rect x="400" y="93" width="124" height="52" rx="6" class="c-mask"/>
-          <rect x="400" y="93" width="124" height="52" rx="6" class="c-backend" data-animate="node" style="--step:2" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(406 99) scale(0.6875)">
+        <g id="node-wash" data-node-id="wash" data-node-label="甩进自动清洗槽" tabindex="0" role="button" aria-label="聚焦甩进自动清洗槽，独立线程挂上号牌, ① 后台支路 · 按下即走 › 甩出去 · 不等它" aria-pressed="false" data-node-kind="backend" data-node-sublabel="独立线程挂上号牌" data-node-context="① 后台支路 · 按下即走 › 甩出去 · 不等它">
+          <title>甩进自动清洗槽 · 独立线程挂上号牌 · ① 后台支路 · 按下即走 › 甩出去 · 不等它</title>
+          <rect x="431" y="93" width="144" height="52" rx="6" class="c-mask"/>
+          <rect x="431" y="93" width="144" height="52" rx="6" class="c-backend" data-animate="node" style="--step:1" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(437 99) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="462" y="114" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">甩进自动清洗槽</text>
-          <text data-detail="context" x="462" y="131" class="t-muted" font-size="8" text-anchor="middle">独立进程组 · 不是沙箱</text>
+          <text data-node-label="" data-detail-anchor="" x="503" y="114" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">甩进自动清洗槽</text>
+          <text data-detail="context" x="503" y="131" class="t-muted" font-size="8" text-anchor="middle">独立线程挂上号牌</text>
         </g>
 
         <g id="node-receipt" data-node-id="receipt" data-node-label="占位回执" tabindex="0" role="button" aria-label="聚焦占位回执，立刻返回，带原编号, ① 后台支路 · 按下即走 › 甩出去 · 不等它" aria-pressed="false" data-node-kind="messagebus" data-node-sublabel="立刻返回，带原编号" data-node-context="① 后台支路 · 按下即走 › 甩出去 · 不等它">
           <title>占位回执 · 立刻返回，带原编号 · ① 后台支路 · 按下即走 › 甩出去 · 不等它</title>
-          <rect x="599.6" y="93" width="124" height="52" rx="6" class="c-mask"/>
-          <rect x="599.6" y="93" width="124" height="52" rx="6" class="c-messagebus" data-animate="node" style="--step:10" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="messagebus" class="semantic-sigil s-messagebus" transform="translate(605.6 99) scale(0.6875)">
+          <rect x="614" y="93" width="140" height="52" rx="6" class="c-mask"/>
+          <rect x="614" y="93" width="140" height="52" rx="6" class="c-messagebus" data-animate="node" style="--step:2" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="messagebus" class="semantic-sigil s-messagebus" transform="translate(620 99) scale(0.6875)">
             <path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"/>
             <circle cx="5" cy="4.5" r="1" class="sigil-fill"/>
             <circle cx="10.5" cy="8" r="1" class="sigil-fill"/>
             <circle cx="7" cy="11.5" r="1" class="sigil-fill"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="661.6" y="114" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">占位回执</text>
-          <text data-detail="context" x="661.6" y="131" class="t-muted" font-size="8" text-anchor="middle">立刻返回，带原编号</text>
+          <text data-node-label="" data-detail-anchor="" x="684" y="114" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">占位回执</text>
+          <text data-detail="context" x="684" y="131" class="t-muted" font-size="8" text-anchor="middle">立刻返回，带原编号</text>
         </g>
 
-        <g id="node-queue" data-node-id="queue" data-node-label="洗完进待取队列" tabindex="0" role="button" aria-label="聚焦洗完进待取队列，不主动叫醒任何人, ② 通知支路 · 下一轮浮现 › 甩出去 · 不等它" aria-pressed="false" data-node-kind="database" data-node-sublabel="不主动叫醒任何人" data-node-context="② 通知支路 · 下一轮浮现 › 甩出去 · 不等它">
-          <title>洗完进待取队列 · 不主动叫醒任何人 · ② 通知支路 · 下一轮浮现 › 甩出去 · 不等它</title>
-          <rect x="400" y="217" width="124" height="52" rx="6" class="c-mask"/>
-          <rect x="400" y="217" width="124" height="52" rx="6" class="c-database" data-animate="node" style="--step:3" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(406 223) scale(0.6875)">
+        <g id="node-queue" data-node-id="queue" data-node-label="洗完挂上待取货架" tabindex="0" role="button" aria-label="聚焦洗完挂上待取货架，不主动叫醒任何人, ② 通知支路 · 下一轮浮现 › 甩出去 · 不等它" aria-pressed="false" data-node-kind="database" data-node-sublabel="不主动叫醒任何人" data-node-context="② 通知支路 · 下一轮浮现 › 甩出去 · 不等它">
+          <title>洗完挂上待取货架 · 不主动叫醒任何人 · ② 通知支路 · 下一轮浮现 › 甩出去 · 不等它</title>
+          <rect x="428" y="217" width="150" height="52" rx="6" class="c-mask"/>
+          <rect x="428" y="217" width="150" height="52" rx="6" class="c-database" data-animate="node" style="--step:7" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(434 223) scale(0.6875)">
             <ellipse cx="8" cy="4" rx="5" ry="2"/>
             <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="462" y="238" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">洗完进待取队列</text>
-          <text data-detail="context" x="462" y="255" class="t-muted" font-size="8" text-anchor="middle">不主动叫醒任何人</text>
+          <text data-node-label="" data-detail-anchor="" x="503" y="238" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">洗完挂上待取货架</text>
+          <text data-detail="context" x="503" y="255" class="t-muted" font-size="8" text-anchor="middle">不主动叫醒任何人</text>
         </g>
 
-        <g id="node-caller" data-node-id="caller" data-node-label="轮首先看叫号器" tabindex="0" role="button" aria-label="聚焦轮首先看叫号器，调模型之前完成注入, ② 通知支路 · 下一轮浮现 › 甩出去 · 不等它" aria-pressed="false" data-node-kind="messagebus" data-node-sublabel="调模型之前完成注入" data-node-context="② 通知支路 · 下一轮浮现 › 甩出去 · 不等它">
-          <title>轮首先看叫号器 · 调模型之前完成注入 · ② 通知支路 · 下一轮浮现 › 甩出去 · 不等它</title>
-          <rect x="599.6" y="217" width="124" height="52" rx="6" class="c-mask"/>
-          <rect x="599.6" y="217" width="124" height="52" rx="6" class="c-messagebus" data-animate="node" style="--step:4" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="messagebus" class="semantic-sigil s-messagebus" transform="translate(605.6 223) scale(0.6875)">
+        <g id="node-caller" data-node-id="caller" data-node-label="收工组装时捎带收集" tabindex="0" role="button" aria-label="聚焦收工组装时捎带收集，并进同一条用户消息, ② 通知支路 · 下一轮浮现 › 甩出去 · 不等它" aria-pressed="false" data-node-kind="messagebus" data-node-sublabel="并进同一条用户消息" data-node-context="② 通知支路 · 下一轮浮现 › 甩出去 · 不等它">
+          <title>收工组装时捎带收集 · 并进同一条用户消息 · ② 通知支路 · 下一轮浮现 › 甩出去 · 不等它</title>
+          <rect x="606" y="217" width="156" height="52" rx="6" class="c-mask"/>
+          <rect x="606" y="217" width="156" height="52" rx="6" class="c-messagebus" data-animate="node" style="--step:8" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="messagebus" class="semantic-sigil s-messagebus" transform="translate(612 223) scale(0.6875)">
             <path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"/>
             <circle cx="5" cy="4.5" r="1" class="sigil-fill"/>
             <circle cx="10.5" cy="8" r="1" class="sigil-fill"/>
             <circle cx="7" cy="11.5" r="1" class="sigil-fill"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="661.6" y="238" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">轮首先看叫号器</text>
-          <text data-detail="context" x="661.6" y="255" class="t-muted" font-size="8" text-anchor="middle">调模型之前完成注入</text>
+          <text data-node-label="" data-detail-anchor="" x="684" y="238" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">收工组装时捎带收集</text>
+          <text data-detail="context" x="684" y="255" class="t-muted" font-size="8" text-anchor="middle">并进同一条用户消息</text>
         </g>
 
-        <g id="node-notice" data-node-id="notice" data-node-label="另起通知块" tabindex="0" role="button" aria-label="聚焦另起通知块，不复用原回执编号, ② 通知支路 · 下一轮浮现 › 下一轮浮现 · 汇流" aria-pressed="false" data-node-kind="messagebus" data-node-sublabel="不复用原回执编号" data-node-context="② 通知支路 · 下一轮浮现 › 下一轮浮现 · 汇流">
-          <title>另起通知块 · 不复用原回执编号 · ② 通知支路 · 下一轮浮现 › 下一轮浮现 · 汇流</title>
-          <rect x="799.2" y="217" width="124" height="52" rx="6" class="c-mask"/>
-          <rect x="799.2" y="217" width="124" height="52" rx="6" class="c-messagebus" data-animate="node" style="--step:5" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="messagebus" class="semantic-sigil s-messagebus" transform="translate(805.2 223) scale(0.6875)">
+        <g id="node-notice" data-node-id="notice" data-node-label="另起一条通知块" tabindex="0" role="button" aria-label="聚焦另起一条通知块，不复用原回执编号, ② 通知支路 · 下一轮浮现 › 下一轮浮现 · 汇流" aria-pressed="false" data-node-kind="messagebus" data-node-sublabel="不复用原回执编号" data-node-context="② 通知支路 · 下一轮浮现 › 下一轮浮现 · 汇流">
+          <title>另起一条通知块 · 不复用原回执编号 · ② 通知支路 · 下一轮浮现 › 下一轮浮现 · 汇流</title>
+          <rect x="790" y="217" width="144" height="52" rx="6" class="c-mask"/>
+          <rect x="790" y="217" width="144" height="52" rx="6" class="c-messagebus" data-animate="node" style="--step:9" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="messagebus" class="semantic-sigil s-messagebus" transform="translate(796 223) scale(0.6875)">
             <path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"/>
             <circle cx="5" cy="4.5" r="1" class="sigil-fill"/>
             <circle cx="10.5" cy="8" r="1" class="sigil-fill"/>
             <circle cx="7" cy="11.5" r="1" class="sigil-fill"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="861.2" y="238" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">另起通知块</text>
-          <text data-detail="context" x="861.2" y="255" class="t-muted" font-size="8" text-anchor="middle">不复用原回执编号</text>
+          <text data-node-label="" data-detail-anchor="" x="862" y="238" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">另起一条通知块</text>
+          <text data-detail="context" x="862" y="255" class="t-muted" font-size="8" text-anchor="middle">不复用原回执编号</text>
         </g>
 
         <g id="node-clock" data-node-id="clock" data-node-label="墙上的定时钟" tabindex="0" role="button" aria-label="聚焦墙上的定时钟，只看表，不看师傅, ③ 定时支路 · 没人按开始 › 判据与门禁" aria-pressed="false" data-node-kind="cloud" data-node-sublabel="只看表，不看师傅" data-node-context="③ 定时支路 · 没人按开始 › 判据与门禁">
           <title>墙上的定时钟 · 只看表，不看师傅 · ③ 定时支路 · 没人按开始 › 判据与门禁</title>
-          <rect x="48" y="341" width="124" height="52" rx="6" class="c-mask"/>
-          <rect x="48" y="341" width="124" height="52" rx="6" class="c-cloud" data-animate="node" style="--step:12" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="cloud" class="semantic-sigil s-cloud" transform="translate(54 347) scale(0.6875)">
+          <rect x="71" y="341" width="144" height="52" rx="6" class="c-mask"/>
+          <rect x="71" y="341" width="144" height="52" rx="6" class="c-cloud" data-animate="node" style="--step:10" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="cloud" class="semantic-sigil s-cloud" transform="translate(77 347) scale(0.6875)">
             <path d="M4.3 12.5h7.3a2.4 2.4 0 0 0 .2-4.8 4 4 0 0 0-7.5-1.3A3.1 3.1 0 0 0 4.3 12.5Z"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="110" y="362" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">墙上的定时钟</text>
-          <text data-detail="context" x="110" y="379" class="t-muted" font-size="8" text-anchor="middle">只看表，不看师傅</text>
+          <text data-node-label="" data-detail-anchor="" x="143" y="362" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">墙上的定时钟</text>
+          <text data-detail="context" x="143" y="379" class="t-muted" font-size="8" text-anchor="middle">只看表，不看师傅</text>
         </g>
 
-        <g id="node-persist" data-node-id="persist" data-node-label="先落盘再入队" tabindex="0" role="button" aria-label="聚焦先落盘再入队，落盘失败即回滚, ③ 定时支路 · 没人按开始 › 判据与门禁" aria-pressed="false" data-node-kind="database" data-node-sublabel="落盘失败即回滚" data-node-context="③ 定时支路 · 没人按开始 › 判据与门禁">
-          <title>先落盘再入队 · 落盘失败即回滚 · ③ 定时支路 · 没人按开始 › 判据与门禁</title>
-          <rect x="210" y="341" width="124" height="52" rx="6" class="c-mask"/>
-          <rect x="210" y="341" width="124" height="52" rx="6" class="c-database" data-animate="node" style="--step:12" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(216 347) scale(0.6875)">
+        <g id="node-mark" data-node-id="mark" data-node-label="日期加分钟做记号" tabindex="0" role="button" aria-label="聚焦日期加分钟做记号，同一分钟只响一次, ③ 定时支路 · 没人按开始 › 判据与门禁" aria-pressed="false" data-node-kind="database" data-node-sublabel="同一分钟只响一次" data-node-context="③ 定时支路 · 没人按开始 › 判据与门禁">
+          <title>日期加分钟做记号 · 同一分钟只响一次 · ③ 定时支路 · 没人按开始 › 判据与门禁</title>
+          <rect x="253" y="341" width="150" height="52" rx="6" class="c-mask"/>
+          <rect x="253" y="341" width="150" height="52" rx="6" class="c-database" data-animate="node" style="--step:11" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(259 347) scale(0.6875)">
             <ellipse cx="8" cy="4" rx="5" ry="2"/>
             <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="272" y="362" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">先落盘再入队</text>
-          <text data-detail="context" x="272" y="379" class="t-muted" font-size="8" text-anchor="middle">落盘失败即回滚</text>
+          <text data-node-label="" data-detail-anchor="" x="328" y="362" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">日期加分钟做记号</text>
+          <text data-detail="context" x="328" y="379" class="t-muted" font-size="8" text-anchor="middle">同一分钟只响一次</text>
         </g>
 
         <g id="node-trylock" data-node-id="trylock" data-node-label="非阻塞试锁" tabindex="0" role="button" aria-label="聚焦非阻塞试锁，拿不到锁＝正忙，跳过, ③ 定时支路 · 没人按开始 › 甩出去 · 不等它" aria-pressed="false" data-node-kind="security" data-node-sublabel="拿不到锁＝正忙，跳过" data-node-context="③ 定时支路 · 没人按开始 › 甩出去 · 不等它">
           <title>非阻塞试锁 · 拿不到锁＝正忙，跳过 · ③ 定时支路 · 没人按开始 › 甩出去 · 不等它</title>
-          <rect x="400" y="341" width="124" height="52" rx="6" class="c-mask"/>
-          <rect x="400" y="341" width="124" height="52" rx="6" class="c-security" data-animate="node" style="--step:12" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(406 347) scale(0.6875)">
+          <rect x="431" y="341" width="144" height="52" rx="6" class="c-mask"/>
+          <rect x="431" y="341" width="144" height="52" rx="6" class="c-security" data-animate="node" style="--step:12" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(437 347) scale(0.6875)">
             <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
             <path d="m5.8 8 1.5 1.5 3-3"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="462" y="362" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">非阻塞试锁</text>
-          <text data-detail="context" x="462" y="379" class="t-muted" font-size="8" text-anchor="middle">拿不到锁＝正忙，跳过</text>
+          <text data-node-label="" data-detail-anchor="" x="503" y="362" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">非阻塞试锁</text>
+          <text data-detail="context" x="503" y="379" class="t-muted" font-size="8" text-anchor="middle">拿不到锁＝正忙，跳过</text>
         </g>
 
         <g id="node-next" data-node-id="next" data-node-label="传送带的下一轮" tabindex="0" role="button" aria-label="聚焦传送带的下一轮，三条支路殊途同归, 汇流 · 传送带 › 下一轮浮现 · 汇流" aria-pressed="false" data-node-kind="backend" data-node-sublabel="三条支路殊途同归" data-node-context="汇流 · 传送带 › 下一轮浮现 · 汇流">
           <title>传送带的下一轮 · 三条支路殊途同归 · 汇流 · 传送带 › 下一轮浮现 · 汇流</title>
-          <rect x="919.2" y="465" width="124" height="52" rx="6" class="c-mask"/>
-          <rect x="919.2" y="465" width="124" height="52" rx="6" class="c-backend" data-animate="node" style="--step:6" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(925.2 471) scale(0.6875)">
+          <rect x="902" y="465" width="160" height="52" rx="6" class="c-mask"/>
+          <rect x="902" y="465" width="160" height="52" rx="6" class="c-backend" data-animate="node" style="--step:3" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(908 471) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="981.2" y="486" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">传送带的下一轮</text>
-          <text data-detail="context" x="981.2" y="503" class="t-muted" font-size="8" text-anchor="middle">三条支路殊途同归</text>
+          <text data-node-label="" data-detail-anchor="" x="982" y="486" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">传送带的下一轮</text>
+          <text data-detail="context" x="982" y="503" class="t-muted" font-size="8" text-anchor="middle">三条支路殊途同归</text>
         </g>
 
         <!-- Edge labels -->
-        <g data-detail="context" data-edge-from="caller" data-edge-to="notice" data-edge-label="协议一问一答" data-edge-key="0">
-          <rect x="727.6000000000001" y="223" width="67.6" height="14" rx="3" class="c-mask"/>
-          <text x="761.4000000000001" y="233" class="t-backend" font-size="8" text-anchor="middle">协议一问一答</text>
+        <g data-detail="context" data-edge-from="decide" data-edge-to="next" data-edge-label="否：当场做完，随托盘回" data-edge-key="0" data-edge-id="e1">
+          <rect x="403.2" y="471" width="115.6" height="14" rx="3" class="c-mask"/>
+          <text x="461" y="481" class="t-muted" font-size="8" text-anchor="middle">否：当场做完，随托盘回</text>
         </g>
-        <g data-detail="context" data-edge-from="clock" data-edge-to="persist" data-edge-label="到点" data-edge-key="1">
-          <rect x="176" y="347" width="30" height="14" rx="3" class="c-mask"/>
-          <text x="191" y="357" class="t-muted" font-size="8" text-anchor="middle">到点</text>
+        <g data-detail="context" data-edge-from="clock" data-edge-to="mark" data-edge-label="到点" data-edge-key="1" data-edge-id="e10">
+          <rect x="219" y="347" width="30" height="14" rx="3" class="c-mask"/>
+          <text x="234" y="357" class="t-muted" font-size="8" text-anchor="middle">到点</text>
+        </g>
+
+        <g data-detail="context" data-edge-from="trylock" data-edge-to="next" data-edge-label="空闲即入轮" data-edge-key="3" data-edge-id="e12">
+          <rect x="749.5" y="347" width="58" height="14" rx="3" class="c-mask"/>
+          <text x="778.5" y="357" class="t-muted" font-size="8" text-anchor="middle">空闲即入轮</text>
+        </g>
+        <g data-detail="context" data-edge-from="decide" data-edge-to="wash" data-edge-label="是" data-edge-key="4" data-edge-id="e2">
+          <rect x="319.5" y="99" width="30" height="14" rx="3" class="c-mask"/>
+          <text x="334.5" y="109" class="t-backend" font-size="8" text-anchor="middle">是</text>
+        </g>
+
+        <g data-detail="context" data-edge-from="wash" data-edge-to="queue" data-edge-label="只余一段摘要" data-edge-key="6" data-edge-id="e4">
+          <rect x="514.7" y="146" width="67.6" height="14" rx="3" class="c-mask"/>
+          <text x="548.5" y="156" class="t-muted" font-size="8" text-anchor="middle">只余一段摘要</text>
         </g>
 
 
 
-        <g data-detail="context" data-edge-from="persist" data-edge-to="trylock" data-edge-label="经队列交接" data-edge-key="5">
-          <rect x="338" y="347" width="58" height="14" rx="3" class="c-mask"/>
-          <text x="367" y="357" class="t-muted" font-size="8" text-anchor="middle">经队列交接</text>
-        </g>
-
-        <g data-detail="context" data-edge-from="receipt" data-edge-to="next" data-edge-label="这一趟不等它" data-edge-key="7">
-          <rect x="818.6000000000001" y="99" width="67.6" height="14" rx="3" class="c-mask"/>
-          <text x="852.4000000000001" y="109" class="t-muted" font-size="8" text-anchor="middle">这一趟不等它</text>
-        </g>
-        <g data-detail="context" data-edge-from="trylock" data-edge-to="next" data-edge-label="空闲即入轮" data-edge-key="8">
-          <rect x="723.6" y="347" width="58" height="14" rx="3" class="c-mask"/>
-          <text x="752.6" y="357" class="t-muted" font-size="8" text-anchor="middle">空闲即入轮</text>
-        </g>
-        <g data-detail="context" data-edge-from="wash" data-edge-to="queue" data-edge-label="只余一段摘要" data-edge-key="9">
-          <rect x="467.2" y="146" width="67.6" height="14" rx="3" class="c-mask"/>
-          <text x="501" y="156" class="t-database" font-size="8" text-anchor="middle">只余一段摘要</text>
-        </g>
-        <g data-detail="context" data-edge-from="wash" data-edge-to="receipt" data-edge-label="登记先于启动" data-edge-key="10">
-          <rect x="528" y="57" width="67.6" height="14" rx="3" class="c-mask"/>
-          <text x="561.8" y="67" class="t-backend" font-size="8" text-anchor="middle">登记先于启动</text>
+        <g data-detail="context" data-edge-from="receipt" data-edge-to="next" data-edge-label="这一趟不等它" data-edge-key="10" data-edge-id="e8">
+          <rect x="834.2" y="99" width="67.6" height="14" rx="3" class="c-mask"/>
+          <text x="868" y="109" class="t-muted" font-size="8" text-anchor="middle">这一趟不等它</text>
         </g>
 
         <!-- Legend -->
@@ -5594,7 +5579,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         </div>
         <ul>
           <li>&bull; 一问一答，补不了第二条回执</li>
-          <li>&bull; 通知挂用户角色，轮首注入</li>
+          <li>&bull; 通知在收工组装时捎带收集，并进同一条用户消息</li>
           <li>&bull; 没有回调唤醒，会话结束即丢失</li>
         </ul>
       </div>
@@ -5606,7 +5591,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         </div>
         <ul>
           <li>&bull; 拿不到锁本身就是忙</li>
-          <li>&bull; 先落盘再入队，失败即回滚</li>
+          <li>&bull; 日期加分钟做记号，同一分钟只响一次</li>
           <li>&bull; 非主线程一律拒绝人工审批</li>
         </ul>
       </div>

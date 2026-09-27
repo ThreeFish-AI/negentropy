@@ -5130,7 +5130,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     <!-- Main Diagram -->
     <div class="diagram-container" data-detail-level="read"
          data-preset-badge-editorial-plate="ARCHIFY / 图版 04">
-      <svg viewBox="0 0 864 534" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-animation="trace" data-preset="classic" data-quality-profile="showcase">
+      <svg viewBox="0 0 948 534" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-animation="trace" data-preset="classic" data-quality-profile="showcase">
         <title id="archify-diagram-title">工具执行一圈：验活 → 门禁 → 执行 → 回带</title>
         <desc id="archify-diagram-description">由 Archify 生成的工作流图。</desc>
         <!-- Definitions -->
@@ -5156,13 +5156,13 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <rect width="100%" height="100%" fill="url(#grid)" />
 
         <!-- Swimlanes -->
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-0" x="40" y="52" width="808" height="106" rx="10" class="c-lane" stroke-width="1"/>
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-0" x="40" y="52" width="892" height="106" rx="10" class="c-lane" stroke-width="1"/>
         <text x="54" y="74" class="t-dim" font-size="10" font-weight="600">01 / 一圈 · 主循环</text>
 
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-1" x="40" y="178" width="808" height="106" rx="10" class="c-lane" stroke-width="1"/>
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-1" x="40" y="178" width="892" height="106" rx="10" class="c-lane" stroke-width="1"/>
         <text x="54" y="200" class="t-dim" font-size="10" font-weight="600">02 / 收工支路</text>
 
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-2" x="40" y="304" width="808" height="106" rx="10" class="c-lane" stroke-width="1"/>
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-2" x="40" y="304" width="892" height="106" rx="10" class="c-lane" stroke-width="1"/>
         <text x="54" y="326" class="t-dim" font-size="10" font-weight="600">03 / 查表与回带</text>
 
         <!-- Phase headers -->
@@ -5172,17 +5172,17 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 
 
         <!-- Edge paths -->
-        <path data-edge-from="master" data-edge-to="check" data-edge-label="产出内容块" data-edge-key="0" data-edge-id="e1" data-composition-points="140,120;206,120" d="M 140 120 L 206 120" class="a-emphasis" data-animate="edge" style="--step:0" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="exit" data-edge-to="done" data-edge-label="空：收工" data-edge-key="1" data-edge-id="e10" data-composition-points="298,246;373.6,246" d="M 298 246 L 373.6 246" class="a-default" data-animate="edge" style="--step:7" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="exit" data-edge-to="master" data-edge-label="非空：拽回续跑" data-edge-key="2" data-edge-id="e11" data-composition-points="206,246;190,246;190,168;94,168;94,146" d="M 206 246 L 190 246 L 190 168 L 94 168 L 94 146" class="a-dashed" data-animate="edge" style="--step:8" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
-        <path data-edge-from="check" data-edge-to="scan" data-edge-label="有：一托盘活" data-edge-key="3" data-edge-id="e2" data-composition-points="252,146;252,162;419.6,162;419.6,146" d="M 252 146 L 252 162 L 419.6 162 L 419.6 146" class="a-default" data-animate="edge" style="--step:1" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="scan" data-edge-to="hooks" data-edge-key="4" data-edge-id="e3" data-composition-points="465.6,120;493.6,120" d="M 465.6 120 L 493.6 120" class="a-default" data-animate="edge" style="--step:2" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="hooks" data-edge-to="gates" data-edge-key="5" data-edge-id="e4" data-composition-points="585.6,120;613.6,120" d="M 585.6 120 L 613.6 120" class="a-default" data-animate="edge" style="--step:3" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="gates" data-edge-to="exec" data-edge-label="放行" data-edge-key="6" data-edge-id="e5" data-composition-points="659.6,146;659.6,174;789.6,174;789.6,154" d="M 659.6 146 L 659.6 174 L 789.6 174 L 789.6 154" class="a-default" data-animate="edge" style="--step:4" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="exec" data-edge-to="result" data-edge-key="7" data-edge-id="e6" data-composition-points="789.6,154;789.6,231;659.6,231;659.6,346" d="M 789.6 154 L 789.6 231 L 659.6 231 L 659.6 346" class="a-default" data-animate="edge" style="--step:12" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="result" data-edge-to="master" data-edge-label="下一轮" data-edge-key="8" data-edge-id="e7" data-composition-points="613.6,372;20,372;20,120;48,120" d="M 613.6 372 L 20 372 L 20 120 L 48 120" class="a-emphasis" data-animate="edge" style="--step:12" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="directory" data-edge-to="exec" data-edge-label="查表" data-edge-key="9" data-edge-id="e8" data-composition-points="789.6,346;789.6,154" d="M 789.6 346 L 789.6 154" class="a-dashed" data-animate="edge" style="--step:12" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
-        <path data-edge-from="check" data-edge-to="exit" data-edge-label="没活" data-edge-key="10" data-edge-id="e9" data-composition-points="252,146;252,168;190,168;190,246;206,246" d="M 252 146 L 252 168 L 190 168 L 190 246 L 206 246" class="a-default" data-animate="edge" style="--step:12" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="master" data-edge-to="check" data-edge-label="产出内容块" data-edge-key="0" data-edge-id="e1" data-composition-points="94,146;94,162;252,162;252,146" d="M 94 146 L 94 162 L 252 162 L 252 146" class="a-emphasis" data-animate="edge" style="--step:0" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="exit" data-edge-to="done" data-edge-label="空：收工" data-edge-key="1" data-edge-id="e10" data-composition-points="465.6,246;522,246" d="M 465.6 246 L 522 246" class="a-default" data-animate="edge" style="--step:7" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="exit" data-edge-to="master" data-edge-label="非空：拽回续跑" data-edge-key="2" data-edge-id="e11" data-composition-points="373.6,246;20,246;20,120;48,120" d="M 373.6 246 L 20 246 L 20 120 L 48 120" class="a-default" data-animate="edge" style="--step:8" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="check" data-edge-to="scan" data-edge-label="有：一托盘活" data-edge-key="3" data-edge-id="e2" data-composition-points="298,120;373.6,120" d="M 298 120 L 373.6 120" class="a-emphasis" data-animate="edge" style="--step:1" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="scan" data-edge-to="hooks" data-edge-key="4" data-edge-id="e3" data-composition-points="465.6,120;522,120" d="M 465.6 120 L 522 120" class="a-default" data-animate="edge" style="--step:2" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="hooks" data-edge-to="gates" data-edge-key="5" data-edge-id="e4" data-composition-points="614,120;642,120" d="M 614 120 L 642 120" class="a-default" data-animate="edge" style="--step:3" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="gates" data-edge-to="exec" data-edge-label="放行" data-edge-key="6" data-edge-id="e5" data-composition-points="716,146;716,174;874,174;874,154" d="M 716 146 L 716 174 L 874 174 L 874 154" class="a-emphasis" data-animate="edge" style="--step:4" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="exec" data-edge-to="result" data-edge-key="7" data-edge-id="e6" data-composition-points="874,154;874,346" d="M 874 154 L 874 346" class="a-default" data-animate="edge" style="--step:12" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="result" data-edge-to="master" data-edge-label="下一轮" data-edge-key="8" data-edge-id="e7" data-composition-points="874,398;874,414;20,414;20,120;48,120" d="M 874 398 L 874 414 L 20 414 L 20 120 L 48 120" class="a-default" data-animate="edge" style="--step:12" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="directory" data-edge-to="exec" data-edge-label="查表" data-edge-key="9" data-edge-id="e8" data-composition-points="716,346;716,231;874,231;874,154" d="M 716 346 L 716 231 L 874 231 L 874 154" class="a-dashed" data-animate="edge" style="--step:12" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
+        <path data-edge-from="check" data-edge-to="exit" data-edge-label="没活" data-edge-key="10" data-edge-id="e9" data-composition-points="252,146;252,168;419.6,168;419.6,220" d="M 252 146 L 252 168 L 419.6 168 L 419.6 220" class="a-default" data-animate="edge" style="--step:12" stroke-width="1.4" marker-end="url(#arrowhead)"/>
 
         <!-- Nodes -->
         <g id="node-master" data-node-id="master" data-node-label="师傅（模型）" tabindex="0" role="button" aria-label="聚焦师傅（模型），产出内容块, 一圈 · 主循环" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="产出内容块" data-node-context="一圈 · 主循环">
@@ -5222,130 +5222,130 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <text data-detail="context" x="419.6" y="132" class="t-muted" font-size="8" text-anchor="middle">外形 → 语义</text>
         </g>
 
-        <g id="node-hooks" data-node-id="hooks" data-node-label="前置插线口" tabindex="0" role="button" aria-label="聚焦前置插线口，权限回调排第一, 一圈 · 主循环" aria-pressed="false" data-node-kind="messagebus" data-node-sublabel="权限回调排第一" data-node-context="一圈 · 主循环">
-          <title>前置插线口 · 权限回调排第一 · 一圈 · 主循环</title>
-          <rect x="493.6" y="94" width="92" height="52" rx="6" class="c-mask"/>
-          <rect x="493.6" y="94" width="92" height="52" rx="6" class="c-messagebus" data-animate="node" style="--step:3" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="messagebus" class="semantic-sigil s-messagebus" transform="translate(499.6 100) scale(0.6875)">
+        <g id="node-hooks" data-node-id="hooks" data-node-label="前置插线口" tabindex="0" role="button" aria-label="聚焦前置插线口，教学版：权限回调排第一, 一圈 · 主循环" aria-pressed="false" data-node-kind="messagebus" data-node-sublabel="教学版：权限回调排第一" data-node-context="一圈 · 主循环">
+          <title>前置插线口 · 教学版：权限回调排第一 · 一圈 · 主循环</title>
+          <rect x="522" y="94" width="92" height="52" rx="6" class="c-mask"/>
+          <rect x="522" y="94" width="92" height="52" rx="6" class="c-messagebus" data-animate="node" style="--step:3" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="messagebus" class="semantic-sigil s-messagebus" transform="translate(528 100) scale(0.6875)">
             <path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"/>
             <circle cx="5" cy="4.5" r="1" class="sigil-fill"/>
             <circle cx="10.5" cy="8" r="1" class="sigil-fill"/>
             <circle cx="7" cy="11.5" r="1" class="sigil-fill"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="539.6" y="115" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">前置插线口</text>
-          <text data-detail="context" x="539.6" y="132" class="t-muted" font-size="8" text-anchor="middle">权限回调排第一</text>
+          <text data-node-label="" data-detail-anchor="" x="568" y="115" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">前置插线口</text>
+          <text data-detail="context" x="568" y="132" class="t-muted" font-size="6.3" text-anchor="middle">教学版：权限回调排第一</text>
         </g>
 
-        <g id="node-gates" data-node-id="gates" data-node-label="门口三道门禁" tabindex="0" role="button" aria-label="聚焦门口三道门禁，硬拒 → 询问 → 放行, 一圈 · 主循环" aria-pressed="false" data-node-kind="security" data-node-sublabel="硬拒 → 询问 → 放行" data-node-context="一圈 · 主循环">
-          <title>门口三道门禁 · 硬拒 → 询问 → 放行 · 一圈 · 主循环</title>
-          <rect x="613.6" y="94" width="92" height="52" rx="6" class="c-mask"/>
-          <rect x="613.6" y="94" width="92" height="52" rx="6" class="c-security" data-animate="node" style="--step:4" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(619.6 100) scale(0.6875)">
+        <g id="node-gates" data-node-id="gates" data-node-label="门口三道门禁" tabindex="0" role="button" aria-label="聚焦门口三道门禁，硬拒 → 询问（危险品按词辨认）→ 放行, 一圈 · 主循环" aria-pressed="false" data-node-kind="security" data-node-sublabel="硬拒 → 询问（危险品按词辨认）→ 放行" data-node-context="一圈 · 主循环">
+          <title>门口三道门禁 · 硬拒 → 询问（危险品按词辨认）→ 放行 · 一圈 · 主循环</title>
+          <rect x="642" y="94" width="148" height="52" rx="6" class="c-mask"/>
+          <rect x="642" y="94" width="148" height="52" rx="6" class="c-security" data-animate="node" style="--step:4" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(648 100) scale(0.6875)">
             <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
             <path d="m5.8 8 1.5 1.5 3-3"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="659.6" y="115" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">门口三道门禁</text>
-          <text data-detail="context" x="659.6" y="132" class="t-muted" font-size="7.7" text-anchor="middle">硬拒 → 询问 → 放行</text>
+          <text data-node-label="" data-detail-anchor="" x="716" y="115" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">门口三道门禁</text>
+          <text data-detail="context" x="716" y="132" class="t-muted" font-size="6.6" text-anchor="middle">硬拒 → 询问（危险品按词辨认）→ 放行</text>
         </g>
 
         <g id="node-exec" data-node-id="exec" data-node-label="真正执行" tabindex="0" role="button" aria-label="聚焦真正执行，一圈 · 主循环" aria-pressed="false" data-node-kind="backend" data-node-tag="上机" data-node-context="一圈 · 主循环">
           <title>真正执行 · 一圈 · 主循环 · 上机</title>
-          <rect x="743.6" y="86" width="92" height="68" rx="6" class="c-mask"/>
-          <rect x="743.6" y="86" width="92" height="68" rx="6" class="c-backend" data-animate="node" style="--step:5" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(749.6 92) scale(0.6875)">
+          <rect x="828" y="86" width="92" height="68" rx="6" class="c-mask"/>
+          <rect x="828" y="86" width="92" height="68" rx="6" class="c-backend" data-animate="node" style="--step:5" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(834 92) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text data-node-label="" x="789.6" y="107" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">真正执行</text>
-        <text data-detail="fine" x="789.6" y="142" class="t-backend" font-size="7" text-anchor="middle">上机</text>
+          <text data-node-label="" x="874" y="107" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">真正执行</text>
+        <text data-detail="fine" x="874" y="142" class="t-backend" font-size="7" text-anchor="middle">上机</text>
         </g>
 
         <g id="node-exit" data-node-id="exit" data-node-label="退出插线口" tabindex="0" role="button" aria-label="聚焦退出插线口，可否决收工, 收工支路" aria-pressed="false" data-node-kind="messagebus" data-node-sublabel="可否决收工" data-node-context="收工支路">
           <title>退出插线口 · 可否决收工 · 收工支路</title>
-          <rect x="206" y="220" width="92" height="52" rx="6" class="c-mask"/>
-          <rect x="206" y="220" width="92" height="52" rx="6" class="c-messagebus" data-animate="node" style="--step:12" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="messagebus" class="semantic-sigil s-messagebus" transform="translate(212 226) scale(0.6875)">
+          <rect x="373.6" y="220" width="92" height="52" rx="6" class="c-mask"/>
+          <rect x="373.6" y="220" width="92" height="52" rx="6" class="c-messagebus" data-animate="node" style="--step:12" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="messagebus" class="semantic-sigil s-messagebus" transform="translate(379.6 226) scale(0.6875)">
             <path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"/>
             <circle cx="5" cy="4.5" r="1" class="sigil-fill"/>
             <circle cx="10.5" cy="8" r="1" class="sigil-fill"/>
             <circle cx="7" cy="11.5" r="1" class="sigil-fill"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="252" y="241" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">退出插线口</text>
-          <text data-detail="context" x="252" y="258" class="t-muted" font-size="8" text-anchor="middle">可否决收工</text>
+          <text data-node-label="" data-detail-anchor="" x="419.6" y="241" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">退出插线口</text>
+          <text data-detail="context" x="419.6" y="258" class="t-muted" font-size="8" text-anchor="middle">可否决收工</text>
         </g>
 
         <g id="node-done" data-node-id="done" data-node-label="收工" tabindex="0" role="button" aria-label="聚焦收工，收工支路" aria-pressed="false" data-node-kind="external" data-node-tag="终态" data-node-context="收工支路">
           <title>收工 · 收工支路 · 终态</title>
-          <rect x="373.6" y="212" width="92" height="68" rx="6" class="c-mask"/>
-          <rect x="373.6" y="212" width="92" height="68" rx="6" class="c-external" data-animate="node" style="--step:12" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(379.6 218) scale(0.6875)">
+          <rect x="522" y="212" width="92" height="68" rx="6" class="c-mask"/>
+          <rect x="522" y="212" width="92" height="68" rx="6" class="c-external" data-animate="node" style="--step:12" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(528 218) scale(0.6875)">
             <rect x="2.5" y="5" width="8.5" height="8" rx="1.5"/>
             <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
           </g>
-          <text data-node-label="" x="419.6" y="233" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">收工</text>
-        <text data-detail="fine" x="419.6" y="268" class="t-external" font-size="7" text-anchor="middle">终态</text>
+          <text data-node-label="" x="568" y="233" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">收工</text>
+        <text data-detail="fine" x="568" y="268" class="t-external" font-size="7" text-anchor="middle">终态</text>
+        </g>
+
+        <g id="node-directory" data-node-id="directory" data-node-label="转接号码簿" tabindex="0" role="button" aria-label="聚焦转接号码簿，名字 → 处理函数, 查表与回带" aria-pressed="false" data-node-kind="database" data-node-sublabel="名字 → 处理函数" data-node-context="查表与回带">
+          <title>转接号码簿 · 名字 → 处理函数 · 查表与回带</title>
+          <rect x="670" y="346" width="92" height="52" rx="6" class="c-mask"/>
+          <rect x="670" y="346" width="92" height="52" rx="6" class="c-database" data-animate="node" style="--step:12" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(676 352) scale(0.6875)">
+            <ellipse cx="8" cy="4" rx="5" ry="2"/>
+            <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="716" y="367" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">转接号码簿</text>
+          <text data-detail="context" x="716" y="384" class="t-muted" font-size="8" text-anchor="middle">名字 → 处理函数</text>
         </g>
 
         <g id="node-result" data-node-id="result" data-node-label="工具结果回带" tabindex="0" role="button" aria-label="聚焦工具结果回带，拒绝也要留回执, 查表与回带" aria-pressed="false" data-node-kind="messagebus" data-node-sublabel="拒绝也要留回执" data-node-context="查表与回带">
           <title>工具结果回带 · 拒绝也要留回执 · 查表与回带</title>
-          <rect x="613.6" y="346" width="92" height="52" rx="6" class="c-mask"/>
-          <rect x="613.6" y="346" width="92" height="52" rx="6" class="c-messagebus" data-animate="node" style="--step:12" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="messagebus" class="semantic-sigil s-messagebus" transform="translate(619.6 352) scale(0.6875)">
+          <rect x="828" y="346" width="92" height="52" rx="6" class="c-mask"/>
+          <rect x="828" y="346" width="92" height="52" rx="6" class="c-messagebus" data-animate="node" style="--step:12" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="messagebus" class="semantic-sigil s-messagebus" transform="translate(834 352) scale(0.6875)">
             <path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"/>
             <circle cx="5" cy="4.5" r="1" class="sigil-fill"/>
             <circle cx="10.5" cy="8" r="1" class="sigil-fill"/>
             <circle cx="7" cy="11.5" r="1" class="sigil-fill"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="659.6" y="367" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">工具结果回带</text>
-          <text data-detail="context" x="659.6" y="384" class="t-muted" font-size="8" text-anchor="middle">拒绝也要留回执</text>
-        </g>
-
-        <g id="node-directory" data-node-id="directory" data-node-label="转接号码簿" tabindex="0" role="button" aria-label="聚焦转接号码簿，名字 → 处理函数, 查表与回带" aria-pressed="false" data-node-kind="database" data-node-sublabel="名字 → 处理函数" data-node-context="查表与回带">
-          <title>转接号码簿 · 名字 → 处理函数 · 查表与回带</title>
-          <rect x="743.6" y="346" width="92" height="52" rx="6" class="c-mask"/>
-          <rect x="743.6" y="346" width="92" height="52" rx="6" class="c-database" data-animate="node" style="--step:12" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(749.6 352) scale(0.6875)">
-            <ellipse cx="8" cy="4" rx="5" ry="2"/>
-            <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="789.6" y="367" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">转接号码簿</text>
-          <text data-detail="context" x="789.6" y="384" class="t-muted" font-size="8" text-anchor="middle">名字 → 处理函数</text>
+          <text data-node-label="" data-detail-anchor="" x="874" y="367" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">工具结果回带</text>
+          <text data-detail="context" x="874" y="384" class="t-muted" font-size="8" text-anchor="middle">拒绝也要留回执</text>
         </g>
 
         <!-- Edge labels -->
         <g data-detail="context" data-edge-from="master" data-edge-to="check" data-edge-label="产出内容块" data-edge-key="0" data-edge-id="e1">
-          <rect x="144" y="100" width="58" height="14" rx="3" class="c-mask"/>
-          <text x="173" y="110" class="t-backend" font-size="8" text-anchor="middle">产出内容块</text>
+          <rect x="144" y="142" width="58" height="14" rx="3" class="c-mask"/>
+          <text x="173" y="152" class="t-backend" font-size="8" text-anchor="middle">产出内容块</text>
         </g>
         <g data-detail="context" data-edge-from="exit" data-edge-to="done" data-edge-label="空：收工" data-edge-key="1" data-edge-id="e10">
-          <rect x="311.6" y="226" width="48.4" height="14" rx="3" class="c-mask"/>
-          <text x="335.8" y="236" class="t-muted" font-size="8" text-anchor="middle">空：收工</text>
+          <rect x="469.6" y="226" width="48.4" height="14" rx="3" class="c-mask"/>
+          <text x="493.8" y="236" class="t-muted" font-size="8" text-anchor="middle">空：收工</text>
         </g>
         <g data-detail="context" data-edge-from="exit" data-edge-to="master" data-edge-label="非空：拽回续跑" data-edge-key="2" data-edge-id="e11">
-          <rect x="103.4" y="148" width="77.2" height="14" rx="3" class="c-mask"/>
-          <text x="142" y="158" class="t-database" font-size="8" text-anchor="middle">非空：拽回续跑</text>
+          <rect x="158.20000000000002" y="226" width="77.2" height="14" rx="3" class="c-mask"/>
+          <text x="196.8" y="236" class="t-muted" font-size="8" text-anchor="middle">非空：拽回续跑</text>
         </g>
         <g data-detail="context" data-edge-from="check" data-edge-to="scan" data-edge-label="有：一托盘活" data-edge-key="3" data-edge-id="e2">
-          <rect x="302" y="142" width="67.6" height="14" rx="3" class="c-mask"/>
-          <text x="335.8" y="152" class="t-muted" font-size="8" text-anchor="middle">有：一托盘活</text>
+          <rect x="302" y="100" width="67.6" height="14" rx="3" class="c-mask"/>
+          <text x="335.8" y="110" class="t-backend" font-size="8" text-anchor="middle">有：一托盘活</text>
         </g>
 
 
         <g data-detail="context" data-edge-from="gates" data-edge-to="exec" data-edge-label="放行" data-edge-key="6" data-edge-id="e5">
-          <rect x="709.6" y="154" width="30" height="14" rx="3" class="c-mask"/>
-          <text x="724.6" y="164" class="t-muted" font-size="8" text-anchor="middle">放行</text>
+          <rect x="780" y="154" width="30" height="14" rx="3" class="c-mask"/>
+          <text x="795" y="164" class="t-backend" font-size="8" text-anchor="middle">放行</text>
         </g>
 
         <g data-detail="context" data-edge-from="result" data-edge-to="master" data-edge-label="下一轮" data-edge-key="8" data-edge-id="e7">
-          <rect x="297.40000000000003" y="352" width="38.8" height="14" rx="3" class="c-mask"/>
-          <text x="316.8" y="362" class="t-backend" font-size="8" text-anchor="middle">下一轮</text>
+          <rect x="427.6" y="394" width="38.8" height="14" rx="3" class="c-mask"/>
+          <text x="447" y="404" class="t-muted" font-size="8" text-anchor="middle">下一轮</text>
         </g>
         <g data-detail="context" data-edge-from="directory" data-edge-to="exec" data-edge-label="查表" data-edge-key="9" data-edge-id="e8">
-          <rect x="774.6" y="326" width="30" height="14" rx="3" class="c-mask"/>
-          <text x="789.6" y="336" class="t-database" font-size="8" text-anchor="middle">查表</text>
+          <rect x="780" y="211" width="30" height="14" rx="3" class="c-mask"/>
+          <text x="795" y="221" class="t-database" font-size="8" text-anchor="middle">查表</text>
         </g>
         <g data-detail="context" data-edge-from="check" data-edge-to="exit" data-edge-label="没活" data-edge-key="10" data-edge-id="e9">
-          <rect x="206" y="148" width="30" height="14" rx="3" class="c-mask"/>
-          <text x="221" y="158" class="t-muted" font-size="8" text-anchor="middle">没活</text>
+          <rect x="320.8" y="148" width="30" height="14" rx="3" class="c-mask"/>
+          <text x="335.8" y="158" class="t-muted" font-size="8" text-anchor="middle">没活</text>
         </g>
 
         <!-- Legend -->
@@ -5580,8 +5580,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <h3>不可协商的拒绝排在可协商的同意前面</h3>
         </div>
         <ul>
-          <li>&bull; 门禁顺序固定：硬拒 → 询问 → 放行</li>
-          <li>&bull; 前置插线口里，权限回调排第一</li>
+          <li>&bull; 门禁顺序固定：硬拒 → 询问（危险品按词辨认）→ 放行</li>
+          <li>&bull; 前置插线口里，权限回调排第一（教学版口径）</li>
           <li>&bull; 被拒的调用也走结果回带，留回执给师傅</li>
         </ul>
       </div>

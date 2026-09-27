@@ -5130,7 +5130,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     <!-- Main Diagram -->
     <div class="diagram-container" data-detail-level="read"
          data-preset-badge-editorial-plate="ARCHIFY / 图版 04">
-      <svg viewBox="0 0 1208 528" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-animation="trace" data-preset="classic" data-quality-profile="showcase">
+      <svg viewBox="0 0 898 528" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-animation="trace" data-preset="classic" data-quality-profile="showcase">
         <title id="archify-diagram-title">多 Agent 平台机制全景：四组朴素物件汇入同一循环</title>
         <desc id="archify-diagram-description">由 Archify 生成的工作流图。</desc>
         <!-- Definitions -->
@@ -5156,187 +5156,182 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <rect width="100%" height="100%" fill="url(#grid)" />
 
         <!-- Swimlanes -->
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-0" x="40" y="52" width="1108" height="104" rx="10" class="c-lane" stroke-width="1"/>
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-0" x="40" y="52" width="842" height="104" rx="10" class="c-lane" stroke-width="1"/>
         <text x="54" y="74" class="t-dim" font-size="10" font-weight="600">01 / 共享底座：板与格</text>
 
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-1" x="40" y="176" width="1108" height="104" rx="10" class="c-lane" stroke-width="1"/>
-        <text x="54" y="198" class="t-dim" font-size="10" font-weight="600">02 / 班组：班次 · 门禁 · 隔间</text>
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-1" x="40" y="176" width="842" height="104" rx="10" class="c-lane" stroke-width="1"/>
+        <text x="54" y="198" class="t-dim" font-size="10" font-weight="600">02 / 班组：班次 · 计划门 · 隔间</text>
 
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-2" x="40" y="300" width="1108" height="104" rx="10" class="c-lane" stroke-width="1"/>
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-2" x="40" y="300" width="842" height="104" rx="10" class="c-lane" stroke-width="1"/>
         <text x="54" y="322" class="t-dim" font-size="10" font-weight="600">03 / 传送带：装配与下一轮</text>
 
         <!-- Phase headers -->
 
 
         <!-- Workflow groups -->
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="group" data-composition-frame-id="group-0" x="44" y="90" width="356" height="62" rx="9" class="c-lane" stroke-width="1"/>
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="group" data-composition-frame-id="group-0" x="44" y="90" width="220" height="62" rx="9" class="c-lane" stroke-width="1"/>
         <text x="54" y="88" class="t-muted" font-size="7" font-weight="600">排工板 · 一文件一活</text>
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="group" data-composition-frame-id="group-1" x="736.4" y="90" width="403.6" height="62" rx="9" class="c-lane" stroke-width="1"/>
-        <text x="746.4" y="88" class="t-muted" font-size="7" font-weight="600">收件格 · 派工单</text>
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="group" data-composition-frame-id="group-1" x="284" y="90" width="274.4" height="62" rx="9" class="c-lane" stroke-width="1"/>
+        <text x="294" y="88" class="t-muted" font-size="7" font-weight="600">收件格 · 派工单</text>
 
         <!-- Edge paths -->
-        <path data-edge-from="claim" data-edge-to="gate" data-edge-label="开工先过门" data-edge-key="0" data-composition-points="396,119;700.4,119;700.4,217" d="M 396 119 L 700.4 119 L 700.4 217" class="a-emphasis" data-animate="edge" style="--step:1" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="fetch" data-edge-to="match" data-edge-key="1" data-composition-points="900.4,119;976,119" d="M 900.4 119 L 976 119" class="a-default" data-animate="edge" style="--step:5" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="gate" data-edge-to="loop" data-edge-label="放行执行" data-edge-key="2" data-composition-points="780.4,243;1049,243;1049,341" d="M 780.4 243 L 1049 243 L 1049 341" class="a-emphasis" data-animate="edge" style="--step:2" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="leave" data-edge-to="post" data-edge-label="改回 pending" data-edge-key="3" data-composition-points="48,243;32,243;32,166;128,166;128,145" d="M 48 243 L 32 243 L 32 166 L 128 166 L 128 145" class="a-dashed" data-animate="edge" style="--step:7" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
-        <path data-edge-from="match" data-edge-to="loop" data-edge-label="注入的消息" data-edge-key="4" data-composition-points="1136,119;1190,119;1190,367;1136,367" d="M 1136 119 L 1190 119 L 1190 367 L 1136 367" class="a-default" data-animate="edge" style="--step:8" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="post" data-edge-to="claim" data-edge-key="5" data-composition-points="208,119;236,119" d="M 208 119 L 236 119" class="a-emphasis" data-animate="edge" style="--step:0" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="tools" data-edge-to="loop" data-edge-label="池子里的工具" data-edge-key="6" data-composition-points="900.4,367;976,367" d="M 900.4 367 L 976 367" class="a-default" data-animate="edge" style="--step:10" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="wait" data-edge-to="gate" data-edge-label="扫板领活" data-edge-key="7" data-composition-points="564,243;620.4,243" d="M 564 243 L 620.4 243" class="a-default" data-animate="edge" style="--step:11" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="worktree" data-edge-to="claim" data-edge-label="认领即绑定" data-edge-key="8" data-composition-points="316,217;316,145" d="M 316 217 L 316 145" class="a-default" data-animate="edge" style="--step:12" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="post" data-edge-to="claim" data-edge-key="0" data-edge-id="e1" data-composition-points="140,119;168,119" d="M 140 119 L 168 119" class="a-emphasis" data-animate="edge" style="--step:0" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="tools" data-edge-to="loop" data-edge-label="池子里的工具" data-edge-key="1" data-edge-id="e10" data-composition-points="674.4,367;750,367" d="M 674.4 367 L 750 367" class="a-default" data-animate="edge" style="--step:6" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="claim" data-edge-to="wait" data-edge-key="2" data-edge-id="e2" data-composition-points="214,145;214,166;334,166;334,217" d="M 214 145 L 214 166 L 334 166 L 334 217" class="a-emphasis" data-animate="edge" style="--step:1" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="fetch" data-edge-to="match" data-edge-key="3" data-edge-id="e3" data-composition-points="380,119;462.4,119" d="M 380 119 L 462.4 119" class="a-default" data-animate="edge" style="--step:8" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="wait" data-edge-to="gate" data-edge-label="扫板领活" data-edge-key="4" data-edge-id="e4" data-composition-points="394,243;450.4,243" d="M 394 243 L 450.4 243" class="a-emphasis" data-animate="edge" style="--step:2" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="wait" data-edge-to="shift" data-edge-key="5" data-edge-id="e5" data-composition-points="334,269;334,285;628.4,285;628.4,269" d="M 334 269 L 334 285 L 628.4 285 L 628.4 269" class="a-default" data-animate="edge" style="--step:10" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="shift" data-edge-to="loop" data-edge-key="6" data-edge-id="e6" data-composition-points="674.4,243;826,243;826,341" d="M 674.4 243 L 826 243 L 826 341" class="a-default" data-animate="edge" style="--step:11" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="worktree" data-edge-to="claim" data-edge-label="认领即绑定" data-edge-key="7" data-edge-id="e7" data-composition-points="48,243;32,243;32,166;207,166;207,145" d="M 48 243 L 32 243 L 32 166 L 207 166 L 207 145" class="a-default" data-animate="edge" style="--step:12" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="match" data-edge-to="loop" data-edge-label="注入的消息" data-edge-key="8" data-edge-id="e8" data-composition-points="554.4,119;798,119;798,341" d="M 554.4 119 L 798 119 L 798 341" class="a-default" data-animate="edge" style="--step:12" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="gate" data-edge-to="loop" data-edge-label="放行执行" data-edge-key="9" data-edge-id="e9" data-composition-points="508.4,217;508.4,160;812,160;812,341" d="M 508.4 217 L 508.4 160 L 812 160 L 812 341" class="a-emphasis" data-animate="edge" style="--step:3" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
 
         <!-- Nodes -->
         <g id="node-post" data-node-id="post" data-node-label="任务落盘" tabindex="0" role="button" aria-label="聚焦任务落盘，一文件一活 · 三态两动作, 共享底座：板与格 › 排工板 · 一文件一活" aria-pressed="false" data-node-kind="database" data-node-sublabel="一文件一活 · 三态两动作" data-node-context="共享底座：板与格 › 排工板 · 一文件一活">
           <title>任务落盘 · 一文件一活 · 三态两动作 · 共享底座：板与格 › 排工板 · 一文件一活</title>
-          <rect x="48" y="93" width="160" height="52" rx="6" class="c-mask"/>
-          <rect x="48" y="93" width="160" height="52" rx="6" class="c-database" data-animate="node" style="--step:0" stroke-width="1.5"/>
+          <rect x="48" y="93" width="92" height="52" rx="6" class="c-mask"/>
+          <rect x="48" y="93" width="92" height="52" rx="6" class="c-database" data-animate="node" style="--step:0" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(54 99) scale(0.6875)">
             <ellipse cx="8" cy="4" rx="5" ry="2"/>
             <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="128" y="114" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">任务落盘</text>
-          <text data-detail="context" x="128" y="131" class="t-muted" font-size="8" text-anchor="middle">一文件一活 · 三态两动作</text>
+          <text data-node-label="" data-detail-anchor="" x="94" y="114" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">任务落盘</text>
+          <text data-detail="context" x="94" y="131" class="t-muted" font-size="6" text-anchor="middle">一文件一活 · 三态两动作</text>
         </g>
 
-        <g id="node-claim" data-node-id="claim" data-node-label="原子认领" tabindex="0" role="button" aria-label="聚焦原子认领，双锁内读判写 · 一人一活, 共享底座：板与格 › 排工板 · 一文件一活" aria-pressed="false" data-node-kind="backend" data-node-sublabel="双锁内读判写 · 一人一活" data-node-context="共享底座：板与格 › 排工板 · 一文件一活">
-          <title>原子认领 · 双锁内读判写 · 一人一活 · 共享底座：板与格 › 排工板 · 一文件一活</title>
-          <rect x="236" y="93" width="160" height="52" rx="6" class="c-mask"/>
-          <rect x="236" y="93" width="160" height="52" rx="6" class="c-backend" data-animate="node" style="--step:1" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(242 99) scale(0.6875)">
+        <g id="node-claim" data-node-id="claim" data-node-label="认领守卫" tabindex="0" role="button" aria-label="聚焦认领守卫，依赖 fail-closed, 共享底座：板与格 › 排工板 · 一文件一活" aria-pressed="false" data-node-kind="backend" data-node-sublabel="依赖 fail-closed" data-node-context="共享底座：板与格 › 排工板 · 一文件一活">
+          <title>认领守卫 · 依赖 fail-closed · 共享底座：板与格 › 排工板 · 一文件一活</title>
+          <rect x="168" y="93" width="92" height="52" rx="6" class="c-mask"/>
+          <rect x="168" y="93" width="92" height="52" rx="6" class="c-backend" data-animate="node" style="--step:1" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(174 99) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="316" y="114" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">原子认领</text>
-          <text data-detail="context" x="316" y="131" class="t-muted" font-size="8" text-anchor="middle">双锁内读判写 · 一人一活</text>
+          <text data-node-label="" data-detail-anchor="" x="214" y="114" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">认领守卫</text>
+          <text data-detail="context" x="214" y="131" class="t-muted" font-size="8" text-anchor="middle">依赖 fail-closed</text>
         </g>
 
-        <g id="node-fetch" data-node-id="fetch" data-node-label="消费式读取" tabindex="0" role="button" aria-label="聚焦消费式读取，读一摞 · 撕一叠, 共享底座：板与格 › 收件格 · 派工单" aria-pressed="false" data-node-kind="messagebus" data-node-sublabel="读一摞 · 撕一叠" data-node-context="共享底座：板与格 › 收件格 · 派工单">
-          <title>消费式读取 · 读一摞 · 撕一叠 · 共享底座：板与格 › 收件格 · 派工单</title>
-          <rect x="740.4" y="93" width="160" height="52" rx="6" class="c-mask"/>
-          <rect x="740.4" y="93" width="160" height="52" rx="6" class="c-messagebus" data-animate="node" style="--step:6" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="messagebus" class="semantic-sigil s-messagebus" transform="translate(746.4 99) scale(0.6875)">
+        <g id="node-fetch" data-node-id="fetch" data-node-label="消息总线" tabindex="0" role="button" aria-label="聚焦消息总线，消费式读取, 共享底座：板与格 › 收件格 · 派工单" aria-pressed="false" data-node-kind="messagebus" data-node-sublabel="消费式读取" data-node-context="共享底座：板与格 › 收件格 · 派工单">
+          <title>消息总线 · 消费式读取 · 共享底座：板与格 › 收件格 · 派工单</title>
+          <rect x="288" y="93" width="92" height="52" rx="6" class="c-mask"/>
+          <rect x="288" y="93" width="92" height="52" rx="6" class="c-messagebus" data-animate="node" style="--step:7" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="messagebus" class="semantic-sigil s-messagebus" transform="translate(294 99) scale(0.6875)">
             <path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"/>
             <circle cx="5" cy="4.5" r="1" class="sigil-fill"/>
             <circle cx="10.5" cy="8" r="1" class="sigil-fill"/>
             <circle cx="7" cy="11.5" r="1" class="sigil-fill"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="820.4" y="114" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">消费式读取</text>
-          <text data-detail="context" x="820.4" y="131" class="t-muted" font-size="8" text-anchor="middle">读一摞 · 撕一叠</text>
+          <text data-node-label="" data-detail-anchor="" x="334" y="114" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">消息总线</text>
+          <text data-detail="context" x="334" y="131" class="t-muted" font-size="8" text-anchor="middle">消费式读取</text>
         </g>
 
-        <g id="node-match" data-node-id="match" data-node-label="协议匹配" tabindex="0" role="button" aria-label="聚焦协议匹配，验号验人验版本 · 换活作废, 共享底座：板与格 › 收件格 · 派工单" aria-pressed="false" data-node-kind="security" data-node-sublabel="验号验人验版本 · 换活作废" data-node-context="共享底座：板与格 › 收件格 · 派工单">
-          <title>协议匹配 · 验号验人验版本 · 换活作废 · 共享底座：板与格 › 收件格 · 派工单</title>
-          <rect x="976" y="93" width="160" height="52" rx="6" class="c-mask"/>
-          <rect x="976" y="93" width="160" height="52" rx="6" class="c-security" data-animate="node" style="--step:7" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(982 99) scale(0.6875)">
+        <g id="node-match" data-node-id="match" data-node-label="协议匹配" tabindex="0" role="button" aria-label="聚焦协议匹配，验号 · 验类型 · 验未结, 共享底座：板与格 › 收件格 · 派工单" aria-pressed="false" data-node-kind="security" data-node-sublabel="验号 · 验类型 · 验未结" data-node-context="共享底座：板与格 › 收件格 · 派工单">
+          <title>协议匹配 · 验号 · 验类型 · 验未结 · 共享底座：板与格 › 收件格 · 派工单</title>
+          <rect x="462.4" y="93" width="92" height="52" rx="6" class="c-mask"/>
+          <rect x="462.4" y="93" width="92" height="52" rx="6" class="c-security" data-animate="node" style="--step:8" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(468.4 99) scale(0.6875)">
             <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
             <path d="m5.8 8 1.5 1.5 3-3"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="1056" y="114" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">协议匹配</text>
-          <text data-detail="context" x="1056" y="131" class="t-muted" font-size="8" text-anchor="middle">验号验人验版本 · 换活作废</text>
+          <text data-node-label="" data-detail-anchor="" x="508.4" y="114" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">协议匹配</text>
+          <text data-detail="context" x="508.4" y="131" class="t-muted" font-size="6.3" text-anchor="middle">验号 · 验类型 · 验未结</text>
         </g>
 
-        <g id="node-leave" data-node-id="leave" data-node-label="人走活退回" tabindex="0" role="button" aria-label="聚焦人走活退回，改回 pending · 清空归属, 班组：班次 · 门禁 · 隔间" aria-pressed="false" data-node-kind="backend" data-node-sublabel="改回 pending · 清空归属" data-node-context="班组：班次 · 门禁 · 隔间">
-          <title>人走活退回 · 改回 pending · 清空归属 · 班组：班次 · 门禁 · 隔间</title>
-          <rect x="48" y="217" width="160" height="52" rx="6" class="c-mask"/>
-          <rect x="48" y="217" width="160" height="52" rx="6" class="c-backend" data-animate="node" style="--step:8" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(54 223) scale(0.6875)">
-            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="128" y="238" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">人走活退回</text>
-          <text data-detail="context" x="128" y="255" class="t-muted" font-size="8" text-anchor="middle">改回 pending · 清空归属</text>
-        </g>
-
-        <g id="node-worktree" data-node-id="worktree" data-node-label="worktree 绑定" tabindex="0" role="button" aria-label="聚焦worktree 绑定，只改默认目录 · 不是沙箱, 班组：班次 · 门禁 · 隔间" aria-pressed="false" data-node-kind="database" data-node-sublabel="只改默认目录 · 不是沙箱" data-node-context="班组：班次 · 门禁 · 隔间">
-          <title>worktree 绑定 · 只改默认目录 · 不是沙箱 · 班组：班次 · 门禁 · 隔间</title>
-          <rect x="236" y="217" width="160" height="52" rx="6" class="c-mask"/>
-          <rect x="236" y="217" width="160" height="52" rx="6" class="c-database" data-animate="node" style="--step:9" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(242 223) scale(0.6875)">
+        <g id="node-worktree" data-node-id="worktree" data-node-label="任务绑隔间" tabindex="0" role="button" aria-label="聚焦任务绑隔间，cwd 随认领切换, 班组：班次 · 计划门 · 隔间" aria-pressed="false" data-node-kind="database" data-node-sublabel="cwd 随认领切换" data-node-context="班组：班次 · 计划门 · 隔间">
+          <title>任务绑隔间 · cwd 随认领切换 · 班组：班次 · 计划门 · 隔间</title>
+          <rect x="48" y="217" width="92" height="52" rx="6" class="c-mask"/>
+          <rect x="48" y="217" width="92" height="52" rx="6" class="c-database" data-animate="node" style="--step:9" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(54 223) scale(0.6875)">
             <ellipse cx="8" cy="4" rx="5" ry="2"/>
             <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="316" y="238" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">worktree 绑定</text>
-          <text data-detail="context" x="316" y="255" class="t-muted" font-size="8" text-anchor="middle">只改默认目录 · 不是沙箱</text>
+          <text data-node-label="" data-detail-anchor="" x="94" y="238" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">任务绑隔间</text>
+          <text data-detail="context" x="94" y="255" class="t-muted" font-size="8" text-anchor="middle">cwd 随认领切换</text>
         </g>
 
-        <g id="node-wait" data-node-id="wait" data-node-label="先收件格后排工板" tabindex="0" role="button" aria-label="聚焦先收件格后排工板，指令压过临时活, 班组：班次 · 门禁 · 隔间" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="指令压过临时活" data-node-context="班组：班次 · 门禁 · 隔间">
-          <title>先收件格后排工板 · 指令压过临时活 · 班组：班次 · 门禁 · 隔间</title>
-          <rect x="404" y="217" width="160" height="52" rx="6" class="c-mask"/>
-          <rect x="404" y="217" width="160" height="52" rx="6" class="c-frontend" data-animate="node" style="--step:10" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="frontend" class="semantic-sigil s-frontend" transform="translate(410 223) scale(0.6875)">
+        <g id="node-wait" data-node-id="wait" data-node-label="先收件格后排工板" tabindex="0" role="button" aria-label="聚焦先收件格后排工板，班组：班次 · 计划门 · 隔间" aria-pressed="false" data-node-kind="frontend" data-node-context="班组：班次 · 计划门 · 隔间">
+          <title>先收件格后排工板 · 班组：班次 · 计划门 · 隔间</title>
+          <rect x="274" y="217" width="120" height="52" rx="6" class="c-mask"/>
+          <rect x="274" y="217" width="120" height="52" rx="6" class="c-frontend" data-animate="node" style="--step:2" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="frontend" class="semantic-sigil s-frontend" transform="translate(280 223) scale(0.6875)">
             <rect x="2" y="3" width="12" height="10" rx="2"/>
             <path d="M2 6.5h12"/>
             <circle cx="4.1" cy="4.8" r=".7" class="sigil-fill"/>
             <circle cx="6.3" cy="4.8" r=".7" class="sigil-fill"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="484" y="238" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">先收件格后排工板</text>
-          <text data-detail="context" x="484" y="255" class="t-muted" font-size="8" text-anchor="middle">指令压过临时活</text>
+          <text data-node-label="" x="334" y="238" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">先收件格后排工板</text>
         </g>
 
-        <g id="node-gate" data-node-id="gate" data-node-label="计划闸门" tabindex="0" role="button" aria-label="聚焦计划闸门，未批不改盘 · 名单制门禁, 班组：班次 · 门禁 · 隔间" aria-pressed="false" data-node-kind="security" data-node-sublabel="未批不改盘 · 名单制门禁" data-node-context="班组：班次 · 门禁 · 隔间">
-          <title>计划闸门 · 未批不改盘 · 名单制门禁 · 班组：班次 · 门禁 · 隔间</title>
-          <rect x="620.4" y="217" width="160" height="52" rx="6" class="c-mask"/>
-          <rect x="620.4" y="217" width="160" height="52" rx="6" class="c-security" data-animate="node" style="--step:2" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(626.4 223) scale(0.6875)">
+        <g id="node-gate" data-node-id="gate" data-node-label="计划门" tabindex="0" role="button" aria-label="聚焦计划门，s16 协议级 · s20 代码级真门, 班组：班次 · 计划门 · 隔间" aria-pressed="false" data-node-kind="security" data-node-sublabel="s16 协议级 · s20 代码级真门" data-node-context="班组：班次 · 计划门 · 隔间">
+          <title>计划门 · s16 协议级 · s20 代码级真门 · 班组：班次 · 计划门 · 隔间</title>
+          <rect x="450.4" y="217" width="116" height="52" rx="6" class="c-mask"/>
+          <rect x="450.4" y="217" width="116" height="52" rx="6" class="c-security" data-animate="node" style="--step:3" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(456.4 223) scale(0.6875)">
             <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
             <path d="m5.8 8 1.5 1.5 3-3"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="700.4" y="238" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">计划闸门</text>
-          <text data-detail="context" x="700.4" y="255" class="t-muted" font-size="8" text-anchor="middle">未批不改盘 · 名单制门禁</text>
+          <text data-node-label="" data-detail-anchor="" x="508.4" y="238" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">计划门</text>
+          <text data-detail="context" x="508.4" y="255" class="t-muted" font-size="6.6" text-anchor="middle">s16 协议级 · s20 代码级真门</text>
         </g>
 
-        <g id="node-tools" data-node-id="tools" data-node-label="工具池每轮重装" tabindex="0" role="button" aria-label="聚焦工具池每轮重装，内置外接同池 · 撞名即中止, 传送带：装配与下一轮" aria-pressed="false" data-node-kind="external" data-node-sublabel="内置外接同池 · 撞名即中止" data-node-context="传送带：装配与下一轮">
-          <title>工具池每轮重装 · 内置外接同池 · 撞名即中止 · 传送带：装配与下一轮</title>
-          <rect x="740.4" y="341" width="160" height="52" rx="6" class="c-mask"/>
-          <rect x="740.4" y="341" width="160" height="52" rx="6" class="c-external" data-animate="node" style="--step:12" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(746.4 347) scale(0.6875)">
+        <g id="node-shift" data-node-id="shift" data-node-label="三拍班次" tabindex="0" role="button" aria-label="聚焦三拍班次，空闲超时即关机, 班组：班次 · 计划门 · 隔间" aria-pressed="false" data-node-kind="backend" data-node-sublabel="空闲超时即关机" data-node-context="班组：班次 · 计划门 · 隔间">
+          <title>三拍班次 · 空闲超时即关机 · 班组：班次 · 计划门 · 隔间</title>
+          <rect x="582.4" y="217" width="92" height="52" rx="6" class="c-mask"/>
+          <rect x="582.4" y="217" width="92" height="52" rx="6" class="c-backend" data-animate="node" style="--step:12" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(588.4 223) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="628.4" y="238" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">三拍班次</text>
+          <text data-detail="context" x="628.4" y="255" class="t-muted" font-size="8" text-anchor="middle">空闲超时即关机</text>
+        </g>
+
+        <g id="node-tools" data-node-id="tools" data-node-label="工具池每轮重装" tabindex="0" role="button" aria-label="聚焦工具池每轮重装，命名归一化, 传送带：装配与下一轮" aria-pressed="false" data-node-kind="external" data-node-sublabel="命名归一化" data-node-context="传送带：装配与下一轮">
+          <title>工具池每轮重装 · 命名归一化 · 传送带：装配与下一轮</title>
+          <rect x="582.4" y="341" width="92" height="52" rx="6" class="c-mask"/>
+          <rect x="582.4" y="341" width="92" height="52" rx="6" class="c-external" data-animate="node" style="--step:12" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(588.4 347) scale(0.6875)">
             <rect x="2.5" y="5" width="8.5" height="8" rx="1.5"/>
             <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="820.4" y="362" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">工具池每轮重装</text>
-          <text data-detail="context" x="820.4" y="379" class="t-muted" font-size="8" text-anchor="middle">内置外接同池 · 撞名即中止</text>
+          <text data-node-label="" data-detail-anchor="" x="628.4" y="362" class="t-primary" font-size="10" font-weight="600" text-anchor="middle">工具池每轮重装</text>
+          <text data-detail="context" x="628.4" y="379" class="t-muted" font-size="8" text-anchor="middle">命名归一化</text>
         </g>
 
         <g id="node-loop" data-node-id="loop" data-node-label="传送带的下一轮" tabindex="0" role="button" aria-label="聚焦传送带的下一轮，注入的消息 + 池子里的工具, 传送带：装配与下一轮" aria-pressed="false" data-node-kind="backend" data-node-sublabel="注入的消息 + 池子里的工具" data-node-context="传送带：装配与下一轮">
           <title>传送带的下一轮 · 注入的消息 + 池子里的工具 · 传送带：装配与下一轮</title>
-          <rect x="976" y="341" width="160" height="52" rx="6" class="c-mask"/>
-          <rect x="976" y="341" width="160" height="52" rx="6" class="c-backend" data-animate="node" style="--step:3" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(982 347) scale(0.6875)">
+          <rect x="750" y="341" width="124" height="52" rx="6" class="c-mask"/>
+          <rect x="750" y="341" width="124" height="52" rx="6" class="c-backend" data-animate="node" style="--step:4" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(756 347) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="1056" y="362" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">传送带的下一轮</text>
-          <text data-detail="context" x="1056" y="379" class="t-muted" font-size="8" text-anchor="middle">注入的消息 + 池子里的工具</text>
+          <text data-node-label="" data-detail-anchor="" x="812" y="362" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">传送带的下一轮</text>
+          <text data-detail="context" x="812" y="379" class="t-muted" font-size="7.7" text-anchor="middle">注入的消息 + 池子里的工具</text>
         </g>
 
         <!-- Edge labels -->
-        <g data-detail="context" data-edge-from="claim" data-edge-to="gate" data-edge-label="开工先过门" data-edge-key="0">
-          <rect x="519.2" y="99" width="58" height="14" rx="3" class="c-mask"/>
-          <text x="548.2" y="109" class="t-backend" font-size="8" text-anchor="middle">开工先过门</text>
+
+        <g data-detail="context" data-edge-from="tools" data-edge-to="loop" data-edge-label="池子里的工具" data-edge-key="1" data-edge-id="e10">
+          <rect x="678.4000000000001" y="347" width="67.6" height="14" rx="3" class="c-mask"/>
+          <text x="712.2" y="357" class="t-muted" font-size="8" text-anchor="middle">池子里的工具</text>
         </g>
 
-        <g data-detail="context" data-edge-from="gate" data-edge-to="loop" data-edge-label="放行执行" data-edge-key="2">
-          <rect x="890.5" y="223" width="48.4" height="14" rx="3" class="c-mask"/>
-          <text x="914.7" y="233" class="t-backend" font-size="8" text-anchor="middle">放行执行</text>
-        </g>
-        <g data-detail="context" data-edge-from="leave" data-edge-to="post" data-edge-label="改回 pending" data-edge-key="3">
-          <rect x="46.2" y="146" width="67.6" height="14" rx="3" class="c-mask"/>
-          <text x="80" y="156" class="t-database" font-size="8" text-anchor="middle">改回 pending</text>
-        </g>
-        <g data-detail="context" data-edge-from="match" data-edge-to="loop" data-edge-label="注入的消息" data-edge-key="4">
-          <rect x="1134" y="99" width="58" height="14" rx="3" class="c-mask"/>
-          <text x="1163" y="109" class="t-muted" font-size="8" text-anchor="middle">注入的消息</text>
+
+        <g data-detail="context" data-edge-from="wait" data-edge-to="gate" data-edge-label="扫板领活" data-edge-key="4" data-edge-id="e4">
+          <rect x="398" y="223" width="48.4" height="14" rx="3" class="c-mask"/>
+          <text x="422.2" y="233" class="t-backend" font-size="8" text-anchor="middle">扫板领活</text>
         </g>
 
-        <g data-detail="context" data-edge-from="tools" data-edge-to="loop" data-edge-label="池子里的工具" data-edge-key="6">
-          <rect x="904.4000000000001" y="347" width="67.6" height="14" rx="3" class="c-mask"/>
-          <text x="938.2" y="357" class="t-muted" font-size="8" text-anchor="middle">池子里的工具</text>
+
+        <g data-detail="context" data-edge-from="worktree" data-edge-to="claim" data-edge-label="认领即绑定" data-edge-key="7" data-edge-id="e7">
+          <rect x="90.5" y="146" width="58" height="14" rx="3" class="c-mask"/>
+          <text x="119.5" y="156" class="t-muted" font-size="8" text-anchor="middle">认领即绑定</text>
         </g>
-        <g data-detail="context" data-edge-from="wait" data-edge-to="gate" data-edge-label="扫板领活" data-edge-key="7">
-          <rect x="568" y="223" width="48.4" height="14" rx="3" class="c-mask"/>
-          <text x="592.2" y="233" class="t-muted" font-size="8" text-anchor="middle">扫板领活</text>
+        <g data-detail="context" data-edge-from="match" data-edge-to="loop" data-edge-label="注入的消息" data-edge-key="8" data-edge-id="e8">
+          <rect x="647.2" y="99" width="58" height="14" rx="3" class="c-mask"/>
+          <text x="676.2" y="109" class="t-muted" font-size="8" text-anchor="middle">注入的消息</text>
         </g>
-        <g data-detail="context" data-edge-from="worktree" data-edge-to="claim" data-edge-label="认领即绑定" data-edge-key="8">
-          <rect x="287" y="197" width="58" height="14" rx="3" class="c-mask"/>
-          <text x="316" y="207" class="t-muted" font-size="8" text-anchor="middle">认领即绑定</text>
+        <g data-detail="context" data-edge-from="gate" data-edge-to="loop" data-edge-label="放行执行" data-edge-key="9" data-edge-id="e9">
+          <rect x="636" y="140" width="48.4" height="14" rx="3" class="c-mask"/>
+          <text x="660.2" y="150" class="t-backend" font-size="8" text-anchor="middle">放行执行</text>
         </g>
 
         <!-- Legend -->
@@ -5560,8 +5555,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         </div>
         <ul>
           <li>&bull; 任务是磁盘上的 JSON 文件，重启恢复＝重新扫目录</li>
-          <li>&bull; 发现可以一起看，认领必须一个一个来</li>
-          <li>&bull; 人走了，活改回 pending 退回板上</li>
+          <li>&bull; 认领守卫带依赖检查，依赖不全即 fail-closed 拒绝</li>
+          <li>&bull; 三拍班次：空闲超时即关机，活退回板上</li>
         </ul>
       </div>
 
@@ -5572,8 +5567,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         </div>
         <ul>
           <li>&bull; 收件格读取＝读出全部行，再删掉整个文件</li>
-          <li>&bull; 回执凭编号＋身份＋工序版本匹配，换活旧批条作废</li>
-          <li>&bull; 任务库有跨进程文件锁，收件格只有进程内锁</li>
+          <li>&bull; 回执凭编号＋类型＋未结状态匹配，换活旧批条作废</li>
+          <li>&bull; 任务绑隔间，cwd 随认领切换，只动自己的目录</li>
         </ul>
       </div>
 
@@ -5583,8 +5578,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <h3>机制很多，循环一个</h3>
         </div>
         <ul>
-          <li>&bull; 队友与外接，以「注入的消息」「池子里的工具」登场</li>
-          <li>&bull; 工具池每轮重装，接上新服务下一轮自然可用</li>
+          <li>&bull; 计划门两级：s16 协议级，s20 才是代码级真门</li>
+          <li>&bull; 工具池每轮重装、命名归一化，接上新服务下一轮自然可用</li>
           <li>&bull; 循环体没有为多 Agent 写过一支分支</li>
         </ul>
       </div>

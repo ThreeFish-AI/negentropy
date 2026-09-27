@@ -3,12 +3,12 @@
 %% type: workflow
 %% derived: docs/assets/architecture/agent-harness/claude-code-planning--planning-panorama.html
 flowchart TD
-    subgraph S1["每轮开工前 · 重铺"]
-        A1["按运行时状态<br/>重建垫纸"] --> A2["工具池同频重算<br/>内置＋外接"]
+    subgraph S1["每轮开工前 · 重估"]
+        A1["按运行时状态<br/>选段拼垫纸"] --> A2["状态没变<br/>命中缓存沿用"]
     end
     subgraph S2["台面上常驻的两张纸"]
-        B1["工序卡<br/>整表替换·至多一件在做"]
-        B2["抽屉标签<br/>名称＋描述"]
+        B1["工序卡<br/>整表替换·先校验后替换"]
+        B2["抽屉标签<br/>名称＋描述·每轮都带"]
     end
     subgraph S3["要用时才展开"]
         C1["抽屉里的手册<br/>按名字取·进消息流"]
@@ -18,7 +18,7 @@ flowchart TD
     subgraph S4["摔了以后的补救梯"]
         D1["被腰斩<br/>抬上限·原样重发"]
         D2["台面撑爆<br/>收台一次·带一次性闸"]
-        D3["外部抖动<br/>退避·必要时换模型"]
+        D3["外部抖动<br/>退避加抖动·备用模型"]
     end
     A2 --> B1
     A2 --> B2
