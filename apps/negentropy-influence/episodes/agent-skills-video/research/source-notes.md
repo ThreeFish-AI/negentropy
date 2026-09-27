@@ -36,6 +36,9 @@
 | A26 | #254 .well-known 分发提案（digest/防解压炸弹）2026-03 开、停摆 7 个月 | 【三】 | pr-254-distribution |
 | A27 | #573（放宽 allowed-tools 数组）与 #520（锁死空格串）对冲并存 | 【三】 | pr-573-520-tools |
 | A28 | #546 为 MCP SEP-2640 保留 io.modelcontextprotocol/ 前缀 | 【三】 | pr-546-mcp |
+| A29 | 规范正文 247 行（specification.mdx 实测 wc -l，无版本号/无 changelog/无安全章节） | 【一】 | spec-mdx（本仓钉点实测） |
+| A30 | 正文建议 <500 行（S:224「Keep your main SKILL.md under 500 lines」）；引用一层深（S:227-237） | 【二】 | spec-mdx `S:224-237` |
+| A31 | 「静默退化」（触发缺失无报错）为 guide-desc 意译术语；Claude Code 私货字段「十来个」＝生态抽样口径 10+；`.agents` 四家全认＝生态抽样小结；集装箱史（McLean 卡车司机出身/CSI 事故后补）＝210 参考[8]（Levinson《The Box》） | 【二】【四】 | guide-desc + 生态抽样 + 210 §8/参考[8] |
 
 ## 二、原型实测（X1–X5，全部可重跑）
 
