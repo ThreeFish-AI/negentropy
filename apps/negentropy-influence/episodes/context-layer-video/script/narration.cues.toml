@@ -186,6 +186,9 @@ emo = "calm:0.12"
 [block.p5-21]                       # resolve 总入口（收拢）
 emo = "calm:0.1"
 
+[block.p5-24]                       # 警示句：隔离边界（轻抬升）
+emo = "surprised:0.06,calm:0.1"
+
 [block.p5-25]                       # 五源五层五段拼图（总结）
 emo = "happy:0.08,calm:0.1"
 

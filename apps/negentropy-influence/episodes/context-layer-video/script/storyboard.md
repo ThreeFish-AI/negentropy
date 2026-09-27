@@ -39,7 +39,7 @@
 | 2-C fan trap | p2-08..12 | evidence：代码走廊①——lab 输出 200 vs 440（实心徽）；订单-事件连线示意：三条线挂上一张订单、金额翻倍（橙） | 终端逐行打印；金额数字 100→300→440 跳变 |
 | 2-D 锁一起 | p2-13 | ·**archify full**：blueprint--object-lifecycle ol-gov | 定义与计算两半合锁动画 |
 | 2-E 本仓骨架 | p2-14..15 | evidence：代码走廊②——definitions 表+422 拒绝（真实仓码，实心徽）；「表→打印页」箭头 | SQL 插入被红色 422 弹回；投影箭头 |
-| 2-F 常驻记忆 | p2-16..18b | device：技术档案柜（谁写/多厚/写满）；·**archify full**：blueprint--object-lifecycle ol-conflict → ol-full | 三问标签逐个贴上柜门；厚度标尺两级刻度；对象一生收 |
+| 2-F 常驻记忆 | p2-16..18c | device：技术档案柜（谁写/多厚/写满）；·**archify full**：blueprint--object-lifecycle ol-conflict → ol-full | 三问标签逐个贴上柜门；厚度标尺两级刻度；对象一生收 |
 | 2-G 版次随行 | p2-19..20 | ·**archify full**：blueprint--object-lifecycle ol-super | 版次标+校准徽随档案移动 |
 | 2-H 收束 | p2-21..22 | master：影子板工具轮廓格回顾（在册·可查·带版次 三标签，绿） | 三标签逐个亮起 |
 
@@ -64,7 +64,7 @@
 | 4-B 只减不增 | p4-05..08 | device：每加一道会签→可关盖人数计数器只减不加（橙数字递减）；落笔瞬间时钟校验 | 计数器 -1 -1 -1；签字笔悬停→时钟绿闪（有效）〔M-003〕 |
 | 4-C 翻译回 AI | p4-09..11 | evidence：两个圆（用户权限∩任务允许面）交集高亮（钢蓝）；权限回收→会话即时失效 | 交集韦恩图收缩动画；工牌碎裂（对照：上次办的工牌还能用=红叉） |
 | 4-D RII 验证 | p4-12..16 | device：复核员提问气泡→带版次底稿拍在台上（绿）→保留单显式标注「未经核准」（橙）；·**archify full**：failure-map fm-unverified | 底稿拍台震动；保留单贴上飞机侧影 |
-| 4-E 477 vs 48 | p4-17..19 | evidence：代码走廊④——塌缩 grain 复现：日汇总叠成柱→477 vs 48（实线徽）；题库卡组 | 柱层叠起；两数字对峙；题库卡翻面亮绿 |
+| 4-E 477 vs 48 | p4-17..19c | evidence：代码走廊④——塌缩 grain 复现：日汇总叠成柱→477 vs 48（实线徽）；题库卡组 | 柱层叠起；两数字对峙；题库卡翻面亮绿 |
 | 4-F 供给面 | p4-20..23 | ·**archify full**：blueprint--mcp-threat-model tm-poison → tm-inject | 图回放：投毒节点橙闪 |
 | 4-G 四家不验签 | p4-24..26 | evidence：98,380/157/632 数字墙（实线徽）；·**archify full**：blueprint--mcp-threat-model tm-token → tm-deputy → tm-gate → tm-full | 四客户端图标+零验签红叉；威胁四型接力；治理门开合 |
 

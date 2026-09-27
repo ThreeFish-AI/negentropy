@@ -142,7 +142,7 @@ const VerdictPlate: React.FC = () => {
     <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
       <div style={{transform: `scale(${0.8 + strike * 0.2})`, border: `4px solid ${theme.ok}`, borderRadius: 14, padding: '34px 56px', background: 'rgba(126,211,33,0.06)'}}>
         <div style={{fontSize: 64, color: theme.ok, letterSpacing: 10}}>判定面</div>
-        <div style={{fontSize: 22, color: theme.dim, marginTop: 14}}>一行声明算不算数 · 只认装配线上真实跑过的路</div>
+        <div style={{fontSize: 22, color: theme.dim, marginTop: 14}}>声明 ⇄ 装配线实跑</div>
       </div>
     </AbsoluteFill>
   );
