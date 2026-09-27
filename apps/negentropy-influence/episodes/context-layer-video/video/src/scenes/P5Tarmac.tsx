@@ -33,7 +33,7 @@ export const P5Tarmac: React.FC<{scene: SceneRange}> = ({scene}) => {
       {/* 5-B 最小够用 */}
       <Sequence from={at('p5-04')} durationInFrames={dur('p5-04', 'p5-06')} name="5-B">
         <PaperCut at={at('p5-04')} />
-        <ArchifyRecap slug="assembly-economics" caption="旋钮一 · 预算分配" cues={[{chapterId: 'ae-k1', at: at('p5-04'), durationInFrames: dur('p5-04', 'p5-06')}]} />
+        <ArchifyRecap slug="assembly-economics" caption="旋钮一 · 预算分配" cues={[{chapterId: 'ae-k1', at: at('p5-04'), durationInFrames: dur('p5-04')}]} />
       </Sequence>
 
       {/* 5-C 渐进披露 + 46/19 */}
@@ -42,12 +42,12 @@ export const P5Tarmac: React.FC<{scene: SceneRange}> = ({scene}) => {
         <div style={{position: 'absolute', bottom: 90, left: 80}}>
           <EvidenceBadge level="solid" at={at('p5-10')} note="Llama 3.1 8B · 16k 窗" />
         </div>
-        <ArchifyRecap slug="assembly-economics" caption="旋钮二 · 渐进披露" cues={[{chapterId: 'ae-k2', at: at('p5-07'), durationInFrames: dur('p5-07', 'p5-09')}]} />
+        <ArchifyRecap slug="assembly-economics" caption="旋钮二 · 渐进披露" cues={[{chapterId: 'ae-k2', at: at('p5-07'), durationInFrames: dur('p5-07')}]} />
       </Sequence>
 
       {/* 5-D JIT */}
       <Sequence from={at('p5-12')} durationInFrames={dur('p5-12', 'p5-13')} name="5-D">
-        <ArchifyRecap slug="assembly-economics" caption="旋钮三 · 预取 vs 按需" cues={[{chapterId: 'ae-k3', at: at('p5-12'), durationInFrames: dur('p5-12', 'p5-13')}]} />
+        <ArchifyRecap slug="assembly-economics" caption="旋钮三 · 预取 vs 按需" cues={[{chapterId: 'ae-k3', at: at('p5-12'), durationInFrames: dur('p5-12')}]} />
       </Sequence>
 
       {/* 5-E 缓存与压缩 */}
@@ -57,7 +57,7 @@ export const P5Tarmac: React.FC<{scene: SceneRange}> = ({scene}) => {
           caption="旋钮四缓存 · 旋钮五压缩"
           cues={[
             {chapterId: 'ae-k4', at: at('p5-14'), durationInFrames: dur('p5-14')},
-            {chapterId: 'ae-k5', at: at('p5-15'), durationInFrames: dur('p5-15', 'p5-16')},
+            {chapterId: 'ae-k5', at: at('p5-15'), durationInFrames: dur('p5-15')},
           ]}
         />
       </Sequence>
@@ -65,12 +65,12 @@ export const P5Tarmac: React.FC<{scene: SceneRange}> = ({scene}) => {
       {/* 5-F 五旋钮命名 */}
       <Sequence from={at('p5-17')} durationInFrames={dur('p5-17', 'p5-18')} name="5-F">
         <KnobNaming at={at('p5-17')} />
-        <ArchifyRecap slug="assembly-economics" caption="装配经济学 · 命名" cues={[{chapterId: 'ae-knobs', at: at('p5-17'), durationInFrames: dur('p5-17', 'p5-18')}]} />
+        <ArchifyRecap slug="assembly-economics" caption="装配经济学 · 命名" cues={[{chapterId: 'ae-knobs', at: at('p5-17'), durationInFrames: dur('p5-17')}]} />
       </Sequence>
 
       {/* 5-G 检索前置 */}
       <Sequence from={at('p5-19')} durationInFrames={dur('p5-19', 'p5-20')} name="5-G">
-        <ArchifyRecap slug="assembly-economics" caption="双通道 · 统一融合" cues={[{chapterId: 'ae-ch', at: at('p5-19'), durationInFrames: dur('p5-19', 'p5-20')}]} />
+        <ArchifyRecap slug="assembly-economics" caption="双通道 · 统一融合" cues={[{chapterId: 'ae-ch', at: at('p5-19'), durationInFrames: dur('p5-19')}]} />
       </Sequence>
 
       {/* 5-H resolve 总入口 */}
@@ -81,7 +81,7 @@ export const P5Tarmac: React.FC<{scene: SceneRange}> = ({scene}) => {
           caption="出口守卫 · 入窗"
           cues={[
             {chapterId: 'ae-guard', at: at('p5-21'), durationInFrames: dur('p5-21')},
-            {chapterId: 'ae-llm', at: at('p5-22'), durationInFrames: dur('p5-22', 'p5-24')},
+            {chapterId: 'ae-llm', at: at('p5-22'), durationInFrames: dur('p5-22')},
           ]}
           lead={false}
         />

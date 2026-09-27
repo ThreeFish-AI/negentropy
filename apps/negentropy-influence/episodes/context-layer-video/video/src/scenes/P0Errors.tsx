@@ -38,13 +38,27 @@ export const P0Errors: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       {/* 0-B/0-C/0-D 三件错：archify 全屏独占，镜界背靠背 lead=false */}
       <Sequence from={at('p0-03')} durationInFrames={dur('p0-03', 'p0-06')} name="0-B">
-        <ArchifyRecap slug="failure-map" caption="失效一 · 过期供给" cues={[{chapterId: 'fm-stale', at: at('p0-03'), durationInFrames: dur('p0-03', 'p0-06')}]} lead={false} />
+        <ArchifyRecap slug="failure-map" caption="失效一 · 过期供给" cues={[
+              {chapterId: 'fm-stale', at: at('p0-03'), durationInFrames: dur('p0-03')},
+              {chapterId: 'fm-stale', at: at('p0-04'), durationInFrames: dur('p0-04'), fit: 'hold'},
+              {chapterId: 'fm-stale', at: at('p0-05'), durationInFrames: dur('p0-05'), fit: 'hold'},
+              {chapterId: 'fm-stale', at: at('p0-06'), durationInFrames: dur('p0-06'), fit: 'hold'},
+            ]} lead={false} />
       </Sequence>
       <Sequence from={at('p0-07')} durationInFrames={dur('p0-07', 'p0-09')} name="0-C">
-        <ArchifyRecap slug="failure-map" caption="失效二 · 口径打架" cues={[{chapterId: 'fm-conflict', at: at('p0-07'), durationInFrames: dur('p0-07', 'p0-09')}]} lead={false} />
+        <ArchifyRecap slug="failure-map" caption="失效二 · 口径打架" cues={[
+              {chapterId: 'fm-conflict', at: at('p0-07'), durationInFrames: dur('p0-07')},
+              {chapterId: 'fm-conflict', at: at('p0-08'), durationInFrames: dur('p0-08'), fit: 'hold'},
+              {chapterId: 'fm-conflict', at: at('p0-09'), durationInFrames: dur('p0-09'), fit: 'hold'},
+            ]} lead={false} />
       </Sequence>
       <Sequence from={at('p0-10')} durationInFrames={dur('p0-10', 'p0-13')} name="0-D">
-        <ArchifyRecap slug="failure-map" caption="失效三 · 代理越权" cues={[{chapterId: 'fm-auth', at: at('p0-10'), durationInFrames: dur('p0-10', 'p0-13')}]} lead={false} />
+        <ArchifyRecap slug="failure-map" caption="失效三 · 代理越权" cues={[
+              {chapterId: 'fm-auth', at: at('p0-10'), durationInFrames: dur('p0-10')},
+              {chapterId: 'fm-auth', at: at('p0-11'), durationInFrames: dur('p0-11'), fit: 'hold'},
+              {chapterId: 'fm-auth', at: at('p0-12'), durationInFrames: dur('p0-12'), fit: 'hold'},
+              {chapterId: 'fm-auth', at: at('p0-13'), durationInFrames: dur('p0-13'), fit: 'hold'},
+            ]} lead={false} />
       </Sequence>
 
       {/* 0-E 换成 AI：证据徽 + 数字对撞 + 八失效全景 */}
@@ -58,7 +72,7 @@ export const P0Errors: React.FC<{scene: SceneRange}> = ({scene}) => {
             <EvidenceBadge level="solid" at={at('p0-16')} note="同模型对照" />
           </div>
         </AbsoluteFill>
-        <ArchifyRecap slug="failure-map" caption="八失效总览" cues={[{chapterId: 'fm-all', at: at('p0-16'), durationInFrames: dur('p0-16', 'p0-17')}]} />
+        <ArchifyRecap slug="failure-map" caption="八失效总览" cues={[{chapterId: 'fm-all', at: at('p0-16'), durationInFrames: dur('p0-16')}]} />
       </Sequence>
 
       {/* 0-F 崩崖 + 97/4 断层 */}

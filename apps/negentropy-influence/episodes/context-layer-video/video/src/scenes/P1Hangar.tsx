@@ -37,8 +37,8 @@ export const P1Hangar: React.FC<{scene: SceneRange}> = ({scene}) => {
           slug="five-sources"
           caption="五源 · 身份与记忆"
           cues={[
-            {chapterId: 'fs-instr', at: at('p1-03'), durationInFrames: dur('p1-03', 'p1-04')},
-            {chapterId: 'fs-mem', at: at('p1-05'), durationInFrames: dur('p1-05', 'p1-06')},
+            {chapterId: 'fs-instr', at: at('p1-03'), durationInFrames: dur('p1-03')},
+            {chapterId: 'fs-mem', at: at('p1-05'), durationInFrames: dur('p1-05')},
           ]}
         />
       </Sequence>
@@ -48,7 +48,7 @@ export const P1Hangar: React.FC<{scene: SceneRange}> = ({scene}) => {
           caption="五源 · 知识 / 能力 / 会话"
           cues={[
             {chapterId: 'fs-know', at: at('p1-07'), durationInFrames: dur('p1-07')},
-            {chapterId: 'fs-tools', at: at('p1-08'), durationInFrames: dur('p1-08', 'p1-09')},
+            {chapterId: 'fs-tools', at: at('p1-08'), durationInFrames: dur('p1-08')},
             {chapterId: 'fs-session', at: at('p1-10'), durationInFrames: dur('p1-10')},
           ]}
           lead={false}
@@ -72,7 +72,7 @@ export const P1Hangar: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       {/* 1-F 时间轴大回路：三段接力 */}
       <Sequence from={at('p1-16')} durationInFrames={dur('p1-16', 'p1-17')} name="1-F">
-        <ArchifyRecap slug="lifecycle" caption="时间轴 · CGAVE 回路" cues={[{chapterId: 'lc-loop', at: at('p1-16'), durationInFrames: dur('p1-16', 'p1-17')}]} />
+        <ArchifyRecap slug="lifecycle" caption="时间轴 · CGAVE 回路" cues={[{chapterId: 'lc-loop', at: at('p1-16'), durationInFrames: dur('p1-16')}]} />
       </Sequence>
       <Sequence from={at('p1-17')} durationInFrames={dur('p1-17')} name="1-Fb">
         <ArchifyRecap slug="lifecycle" caption="验证 · 显式一环" cues={[{chapterId: 'lc-verify', at: at('p1-17'), durationInFrames: dur('p1-17')}]} lead={false} />
@@ -85,7 +85,7 @@ export const P1Hangar: React.FC<{scene: SceneRange}> = ({scene}) => {
           caption="三轴正交 · 换 A 不动 B"
           cues={[
             {chapterId: 'ax-obj', at: at('p1-18'), durationInFrames: dur('p1-18')},
-            {chapterId: 'ax-time', at: at('p1-19'), durationInFrames: dur('p1-19', 'p1-20')},
+            {chapterId: 'ax-time', at: at('p1-19'), durationInFrames: dur('p1-19')},
           ]}
         />
       </Sequence>
@@ -96,7 +96,7 @@ export const P1Hangar: React.FC<{scene: SceneRange}> = ({scene}) => {
           <QuoteCard zh="预算之内，只给最有用的那一小撮" accent={theme.concept} />
         </AbsoluteFill>
         <ArchifyRecap slug="lifecycle" caption="进化 · 复利一环" cues={[{chapterId: 'lc-evolve', at: at('p1-20'), durationInFrames: dur('p1-20')}]} lead={false} />
-        <ArchifyRecap slug="failure-map" caption="静默退化 · context rot" cues={[{chapterId: 'fm-silent', at: at('p1-23'), durationInFrames: dur('p1-23', 'p1-24')}]} />
+        <ArchifyRecap slug="failure-map" caption="静默退化 · context rot" cues={[{chapterId: 'fm-silent', at: at('p1-23'), durationInFrames: dur('p1-23')}]} />
       </Sequence>
 
       {/* 幕尾：工卡第 1 格盖章（进度锚） */}

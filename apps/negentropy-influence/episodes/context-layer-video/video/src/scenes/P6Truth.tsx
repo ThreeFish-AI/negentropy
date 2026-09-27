@@ -50,7 +50,7 @@ export const P6Truth: React.FC<{scene: SceneRange}> = ({scene}) => {
           slug="injection-points"
           caption="参考实现 · 未接线"
           cues={[
-            {chapterId: 'ip-assembler', at: at('p6-02'), durationInFrames: dur('p6-02', 'p6-03')},
+            {chapterId: 'ip-assembler', at: at('p6-02'), durationInFrames: dur('p6-02')},
             {chapterId: 'ip-nine', at: at('p6-04'), durationInFrames: dur('p6-04')},
           ]}
           lead={false}
@@ -64,7 +64,7 @@ export const P6Truth: React.FC<{scene: SceneRange}> = ({scene}) => {
           caption="每轮注入 · 五挂点汇入"
           cues={[
             {chapterId: 'ip-memory', at: at('p6-05'), durationInFrames: dur('p6-05')},
-            {chapterId: 'ip-full', at: at('p6-06'), durationInFrames: dur('p6-06', 'p6-07')},
+            {chapterId: 'ip-full', at: at('p6-06'), durationInFrames: dur('p6-06')},
           ]}
         />
       </Sequence>
@@ -80,7 +80,7 @@ export const P6Truth: React.FC<{scene: SceneRange}> = ({scene}) => {
           ]}
           badge={{level: 'filled', note: 'ISSUE-194 · 菜单能看不能点'}}
         />
-        <ArchifyRecap slug="injection-points" caption="五挂点 · 工具架空位" cues={[{chapterId: 'ip-hooks', at: at('p6-08'), durationInFrames: dur('p6-08', 'p6-10')}]} />
+        <ArchifyRecap slug="injection-points" caption="五挂点 · 工具架空位" cues={[{chapterId: 'ip-hooks', at: at('p6-08'), durationInFrames: dur('p6-08')}]} />
       </Sequence>
 
       {/* 6-E 十六行表 + 杠杆 */}
@@ -88,14 +88,14 @@ export const P6Truth: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap
           slug="blueprint--layer-mechanism-map"
           caption="十六行重核 · 全脊柱"
-          cues={[{chapterId: 'lm-spine', at: at('p6-11'), durationInFrames: dur('p6-11', 'p6-12')}]}
+          cues={[{chapterId: 'lm-spine', at: at('p6-11'), durationInFrames: dur('p6-11')}]}
         />
         <ArchifyRecap
           slug="evolution-levers"
           caption="六面杠杆 · 状态机"
           cues={[
             {chapterId: 'el-six', at: at('p6-12'), durationInFrames: dur('p6-12')},
-            {chapterId: 'el-sm', at: at('p6-13'), durationInFrames: dur('p6-13', 'p6-14')},
+            {chapterId: 'el-sm', at: at('p6-13'), durationInFrames: dur('p6-13')},
           ]}
           lead={false}
         />
@@ -109,8 +109,8 @@ export const P6Truth: React.FC<{scene: SceneRange}> = ({scene}) => {
           cues={[
             {chapterId: 'dt-design', at: at('p6-15'), durationInFrames: dur('p6-15')},
             {chapterId: 'dt-show', at: at('p6-16'), durationInFrames: dur('p6-16')},
-            {chapterId: 'dt-p0', at: at('p6-17'), durationInFrames: dur('p6-17')},
-            {chapterId: 'dt-main', at: at('p6-17b') ?? at('p6-18'), durationInFrames: dur('p6-18')},
+            {chapterId: 'dt-p0', at: at('p6-17'), durationInFrames: dur('p6-17'), fit: 'hold'},
+            {chapterId: 'dt-main', at: at('p6-18'), durationInFrames: dur('p6-18')},
           ]}
           lead={false}
         />

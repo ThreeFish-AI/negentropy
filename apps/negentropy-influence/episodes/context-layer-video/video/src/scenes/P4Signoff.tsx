@@ -29,7 +29,7 @@ export const P4Signoff: React.FC<{scene: SceneRange}> = ({scene}) => {
       {/* 4-A 会签栏四格 */}
       <Sequence from={0} durationInFrames={dur('p4-01', 'p4-04')} name="4-A">
         <SignoffRow at={at('p4-03')} />
-        <ArchifyRecap slug="failure-map" caption="治理层 · 四机构一道墙" cues={[{chapterId: 'fm-gov', at: at('p4-03'), durationInFrames: dur('p4-03', 'p4-04')}]} />
+        <ArchifyRecap slug="failure-map" caption="治理层 · 四机构一道墙" cues={[{chapterId: 'fm-gov', at: at('p4-03'), durationInFrames: dur('p4-03')}]} />
       </Sequence>
 
       {/* 4-B 只减不增 */}
@@ -46,9 +46,12 @@ export const P4Signoff: React.FC<{scene: SceneRange}> = ({scene}) => {
       <Sequence from={at('p4-12')} durationInFrames={dur('p4-12', 'p4-16')} name="4-D">
         <RIIProof at={at('p4-14')} />
         <AbsoluteFill style={{display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 80}}>
-          <QuoteCard zh="会签防的是人 · 放行防的是答案" accent={theme.ok} />
+          <div style={{padding: '14px 26px', border: `2px solid ${theme.ok}`, borderRadius: 10, background: 'rgba(126,211,33,0.06)'}}>
+            <div style={{fontSize: 30, color: theme.ok}}>人 ← 会签</div>
+            <div style={{fontSize: 30, color: theme.ok, marginTop: 6}}>答案 ← 放行</div>
+          </div>
         </AbsoluteFill>
-        <ArchifyRecap slug="failure-map" caption="未验证断言" cues={[{chapterId: 'fm-unverified', at: at('p4-15'), durationInFrames: dur('p4-15', 'p4-16')}]} />
+        <ArchifyRecap slug="failure-map" caption="未验证断言" cues={[{chapterId: 'fm-unverified', at: at('p4-15'), durationInFrames: dur('p4-15')}]} />
       </Sequence>
 
       {/* 4-E 477 vs 48 */}
@@ -66,7 +69,7 @@ export const P4Signoff: React.FC<{scene: SceneRange}> = ({scene}) => {
           caption="供给面 · 自述不可信"
           cues={[
             {chapterId: 'tm-poison', at: at('p4-21'), durationInFrames: dur('p4-21')},
-            {chapterId: 'tm-inject', at: at('p4-22'), durationInFrames: dur('p4-22', 'p4-23')},
+            {chapterId: 'tm-inject', at: at('p4-22'), durationInFrames: dur('p4-22')},
           ]}
         />
       </Sequence>

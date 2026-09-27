@@ -30,7 +30,7 @@ export const P3ShadowBoard: React.FC<{scene: SceneRange}> = ({scene}) => {
       {/* 3-A 影子板：工具入格 */}
       <Sequence from={0} durationInFrames={dur('p3-01', 'p3-04')} name="3-A">
         <ShadowBoard at={at('p3-02')} />
-        <ArchifyRecap slug="runtime-layering" caption="五子系统 · 指针相连" cues={[{chapterId: 'rl-sys', at: at('p3-02'), durationInFrames: dur('p3-02', 'p3-04')}]} />
+        <ArchifyRecap slug="runtime-layering" caption="五子系统 · 指针相连" cues={[{chapterId: 'rl-sys', at: at('p3-02'), durationInFrames: dur('p3-02')}]} />
       </Sequence>
 
       {/* 3-B 信任信号：同一把尺 */}
@@ -39,7 +39,7 @@ export const P3ShadowBoard: React.FC<{scene: SceneRange}> = ({scene}) => {
           slug="runtime-layering"
           caption="信任信号 · 同一把尺"
           cues={[
-            {chapterId: 'rl-cgave', at: at('p3-06'), durationInFrames: dur('p3-06', 'p3-07')},
+            {chapterId: 'rl-cgave', at: at('p3-06'), durationInFrames: dur('p3-06')},
             {chapterId: 'rl-store', at: at('p3-08'), durationInFrames: dur('p3-08')},
           ]}
         />
@@ -57,7 +57,7 @@ export const P3ShadowBoard: React.FC<{scene: SceneRange}> = ({scene}) => {
           ]}
           badge={{level: 'filled', note: 'PG 16.14 实测'}}
         />
-        <ArchifyRecap slug="failure-map" caption="检索割裂" cues={[{chapterId: 'fm-split', at: at('p3-11'), durationInFrames: dur('p3-11', 'p3-12')}]} />
+        <ArchifyRecap slug="failure-map" caption="检索割裂" cues={[{chapterId: 'fm-split', at: at('p3-11'), durationInFrames: dur('p3-11')}]} />
       </Sequence>
 
       {/* 3-D <5% 覆盖率 */}
@@ -76,12 +76,12 @@ export const P3ShadowBoard: React.FC<{scene: SceneRange}> = ({scene}) => {
       {/* 3-F 技术请示单：全片戏剧高点 */}
       <Sequence from={at('p3-19')} durationInFrames={dur('p3-19', 'p3-23')} name="3-F">
         <TechRequest at={at('p3-20')} />
-        <ArchifyRecap slug="blueprint--object-lifecycle" caption="冲突 · 挂起待裁" cues={[{chapterId: 'ol-conflict', at: at('p3-22'), durationInFrames: dur('p3-22', 'p3-23')}]} />
+        <ArchifyRecap slug="blueprint--object-lifecycle" caption="冲突 · 挂起待裁" cues={[{chapterId: 'ol-conflict', at: at('p3-22'), durationInFrames: dur('p3-22')}]} />
       </Sequence>
 
       {/* 3-G 复利 */}
       <Sequence from={at('p3-24')} durationInFrames={dur('p3-24', 'p3-25')} name="3-G">
-        <ArchifyRecap slug="lifecycle" caption="进化 · 一次发现全机队受益" cues={[{chapterId: 'lc-evolve', at: at('p3-24'), durationInFrames: dur('p3-24', 'p3-25')}]} />
+        <ArchifyRecap slug="lifecycle" caption="进化 · 一次发现全机队受益" cues={[{chapterId: 'lc-evolve', at: at('p3-24'), durationInFrames: dur('p3-24')}]} />
       </Sequence>
 
       {/* 3-H 交接班板：草稿区→最后落章 */}

@@ -1,0 +1,182 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.0,
+ "story_sec": 31.74,
+ "total_wall_sec": 149.88,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "tm-client",
+   "label": "客户端环境",
+   "index": 0,
+   "file": "blueprint--mcp-threat-model--tm-client.mp4",
+   "end_still": "blueprint--mcp-threat-model--tm-client-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.0,
+   "story_sec": 3.29,
+   "beat_offsets_sec": [
+    0.0,
+    1.61
+   ],
+   "beat_nodes": [
+    "con",
+    "agent"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "tm-poison",
+   "label": "描述投毒",
+   "index": 1,
+   "file": "blueprint--mcp-threat-model--tm-poison.mp4",
+   "end_still": "blueprint--mcp-threat-model--tm-poison-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.0,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "tool-poison"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "tm-inject",
+   "label": "间接注入",
+   "index": 2,
+   "file": "blueprint--mcp-threat-model--tm-inject.mp4",
+   "end_still": "blueprint--mcp-threat-model--tm-inject-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.0,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "response-injection"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "tm-deputy",
+   "label": "混淆代理",
+   "index": 3,
+   "file": "blueprint--mcp-threat-model--tm-deputy.mp4",
+   "end_still": "blueprint--mcp-threat-model--tm-deputy-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.0,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "confused-deputy"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "tm-token",
+   "label": "令牌透传",
+   "index": 4,
+   "file": "blueprint--mcp-threat-model--tm-token.mp4",
+   "end_still": "blueprint--mcp-threat-model--tm-token-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.0,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "token-theft"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "tm-gate",
+   "label": "治理门与执行",
+   "index": 5,
+   "file": "blueprint--mcp-threat-model--tm-gate.mp4",
+   "end_still": "blueprint--mcp-threat-model--tm-gate-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 4.42,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.208,
+    3.311
+   ],
+   "beat_nodes": [
+    "mcp",
+    "gate",
+    "execution",
+    "data-plane"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "tm-full",
+   "label": "供给面全景",
+   "index": 6,
+   "file": "blueprint--mcp-threat-model--tm-full.mp4",
+   "end_still": "blueprint--mcp-threat-model--tm-full-end.png",
+   "beats": 10,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 11.08,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.205,
+    3.31,
+    4.413,
+    5.517,
+    6.619,
+    7.724,
+    8.83,
+    9.933
+   ],
+   "beat_nodes": [
+    "con",
+    "agent",
+    "tool-poison",
+    "response-injection",
+    "confused-deputy",
+    "token-theft",
+    "mcp",
+    "gate",
+    "execution",
+    "data-plane"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/atlanta-v4/docs/assets/architecture/cognitive-context/context-layer-blueprint--mcp-threat-model.html",
+ "slug": "blueprint--mcp-threat-model",
+ "type": "architecture"
+}

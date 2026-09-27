@@ -1,0 +1,300 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.0,
+ "story_sec": 49.04,
+ "total_wall_sec": 198.92,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "fm-stale",
+   "label": "过期供给",
+   "index": 0,
+   "file": "failure-map--fm-stale.mp4",
+   "end_still": "failure-map--fm-stale-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.0,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "F2"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "fm-conflict",
+   "label": "口径打架",
+   "index": 1,
+   "file": "failure-map--fm-conflict.mp4",
+   "end_still": "failure-map--fm-conflict-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.0,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "F1"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "fm-auth",
+   "label": "代理越权",
+   "index": 2,
+   "file": "failure-map--fm-auth.mp4",
+   "end_still": "failure-map--fm-auth-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.0,
+   "story_sec": 3.21,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "F5"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "fm-breach",
+   "label": "权限穿透",
+   "index": 3,
+   "file": "failure-map--fm-breach.mp4",
+   "end_still": "failure-map--fm-breach-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.0,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "F4"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "fm-unverified",
+   "label": "未验证断言",
+   "index": 4,
+   "file": "failure-map--fm-unverified.mp4",
+   "end_still": "failure-map--fm-unverified-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.0,
+   "story_sec": 3.21,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "F6"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "fm-poison",
+   "label": "供给面投毒",
+   "index": 5,
+   "file": "failure-map--fm-poison.mp4",
+   "end_still": "failure-map--fm-poison-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.0,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "F7"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "fm-split",
+   "label": "检索割裂",
+   "index": 6,
+   "file": "failure-map--fm-split.mp4",
+   "end_still": "failure-map--fm-split-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.0,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "F3"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "fm-silent",
+   "label": "静默退化",
+   "index": 7,
+   "file": "failure-map--fm-silent.mp4",
+   "end_still": "failure-map--fm-silent-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.0,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "F8"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "fm-obj",
+   "label": "对象层堵截",
+   "index": 8,
+   "file": "failure-map--fm-obj.mp4",
+   "end_still": "failure-map--fm-obj-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.0,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "F1",
+    "L4"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "fm-cat",
+   "label": "目录层堵截",
+   "index": 9,
+   "file": "failure-map--fm-cat.mp4",
+   "end_still": "failure-map--fm-cat-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.209
+   ],
+   "beat_nodes": [
+    "F2",
+    "F3",
+    "L5"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "fm-gov",
+   "label": "治理层堵截",
+   "index": 10,
+   "file": "failure-map--fm-gov.mp4",
+   "end_still": "failure-map--fm-gov-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 4.43,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.208,
+    3.312
+   ],
+   "beat_nodes": [
+    "F4",
+    "F5",
+    "F7",
+    "L7"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "fm-act",
+   "label": "激活层堵截",
+   "index": 11,
+   "file": "failure-map--fm-act.mp4",
+   "end_still": "failure-map--fm-act-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 3.33,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.206
+   ],
+   "beat_nodes": [
+    "F6",
+    "F8",
+    "L8"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "fm-all",
+   "label": "八失效全景",
+   "index": 12,
+   "file": "failure-map--fm-all.mp4",
+   "end_still": "failure-map--fm-all-end.png",
+   "beats": 8,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 8.84,
+   "beat_offsets_sec": [
+    0.0,
+    1.101,
+    2.204,
+    3.309,
+    4.413,
+    5.519,
+    6.622,
+    7.725
+   ],
+   "beat_nodes": [
+    "F1",
+    "F2",
+    "F3",
+    "F4",
+    "F5",
+    "F6",
+    "F7",
+    "F8"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/atlanta-v4/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
+ "slug": "failure-map",
+ "type": "architecture"
+}

@@ -1,0 +1,102 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.0,
+ "story_sec": 17.63,
+ "total_wall_sec": 58.06,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "el-six",
+   "label": "六面杠杆",
+   "index": 0,
+   "file": "evolution-levers--el-six.mp4",
+   "end_still": "evolution-levers--el-six-end.png",
+   "beats": 6,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 6.64,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.207,
+    3.311,
+    4.415,
+    5.517
+   ],
+   "beat_nodes": [
+    "retrieval",
+    "kstrategy",
+    "skilltpl",
+    "toolcfg",
+    "mempipe",
+    "agentpr"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "el-ctx",
+   "label": "第七面提案",
+   "index": 1,
+   "file": "evolution-levers--el-ctx.mp4",
+   "end_still": "evolution-levers--el-ctx-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.0,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "ctxstrat"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "el-sm",
+   "label": "状态机",
+   "index": 2,
+   "file": "evolution-levers--el-sm.mp4",
+   "end_still": "evolution-levers--el-sm-end.png",
+   "beats": 7,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 7.77,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.206,
+    3.311,
+    4.414,
+    5.517,
+    6.62
+   ],
+   "beat_nodes": [
+    "draft",
+    "shadow",
+    "pending",
+    "canary",
+    "promoted",
+    "rejected",
+    "rollback"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/atlanta-v4/docs/assets/architecture/cognitive-context/context-layer--evolution-levers.html",
+ "slug": "evolution-levers",
+ "type": "architecture"
+}

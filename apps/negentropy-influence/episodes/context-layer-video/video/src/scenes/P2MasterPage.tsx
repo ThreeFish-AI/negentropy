@@ -34,7 +34,7 @@ export const P2MasterPage: React.FC<{scene: SceneRange}> = ({scene}) => {
       {/* 2-B 当版页：打印机装置 + ol-draft */}
       <Sequence from={at('p2-04')} durationInFrames={dur('p2-04', 'p2-07')} name="2-B">
         <PrintPage at={at('p2-04')} />
-        <ArchifyRecap slug="blueprint--object-lifecycle" caption="对象 · 起草即受控" cues={[{chapterId: 'ol-draft', at: at('p2-04'), durationInFrames: dur('p2-04', 'p2-07')}]} />
+        <ArchifyRecap slug="blueprint--object-lifecycle" caption="对象 · 起草即受控" cues={[{chapterId: 'ol-draft', at: at('p2-04'), durationInFrames: dur('p2-04')}]} />
       </Sequence>
 
       {/* 2-C fan trap 装置：三条事件挂上订单、金额翻倍 */}
@@ -74,8 +74,8 @@ export const P2MasterPage: React.FC<{scene: SceneRange}> = ({scene}) => {
           slug="blueprint--object-lifecycle"
           caption="常驻记忆 · 对象一生"
           cues={[
-            {chapterId: 'ol-conflict', at: at('p2-16'), durationInFrames: dur('p2-16', 'p2-17')},
-            {chapterId: 'ol-full', at: at('p2-18'), durationInFrames: dur('p2-18', 'p2-18b')},
+            {chapterId: 'ol-conflict', at: at('p2-16'), durationInFrames: dur('p2-16')},
+            {chapterId: 'ol-full', at: at('p2-18'), durationInFrames: dur('p2-18')},
           ]}
           lead={false}
         />
@@ -83,7 +83,7 @@ export const P2MasterPage: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       {/* 2-G 版次随行 */}
       <Sequence from={at('p2-19')} durationInFrames={dur('p2-19', 'p2-20')} name="2-G">
-        <ArchifyRecap slug="blueprint--object-lifecycle" caption="被取代 · freshness 衰减" cues={[{chapterId: 'ol-super', at: at('p2-19'), durationInFrames: dur('p2-19', 'p2-20')}]} />
+        <ArchifyRecap slug="blueprint--object-lifecycle" caption="被取代 · freshness 衰减" cues={[{chapterId: 'ol-super', at: at('p2-19'), durationInFrames: dur('p2-19')}]} />
       </Sequence>
 
       {/* 2-H 收束：影子板三标签 + 工卡第 2 格 */}

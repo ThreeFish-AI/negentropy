@@ -1,0 +1,155 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.0,
+ "story_sec": 21.73,
+ "total_wall_sec": 157.48,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "lm-obj",
+   "label": "对象层席",
+   "index": 0,
+   "file": "blueprint--layer-mechanism-map--lm-obj.mp4",
+   "end_still": "blueprint--layer-mechanism-map--lm-obj-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.0,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "obj-m",
+    "obj-i"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "lm-cat",
+   "label": "目录层席",
+   "index": 1,
+   "file": "blueprint--layer-mechanism-map--lm-cat.mp4",
+   "end_still": "blueprint--layer-mechanism-map--lm-cat-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.0,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "cat-m",
+    "cat-i"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "lm-enr",
+   "label": "富化层席",
+   "index": 2,
+   "file": "blueprint--layer-mechanism-map--lm-enr.mp4",
+   "end_still": "blueprint--layer-mechanism-map--lm-enr-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.0,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "enr-m",
+    "enr-i"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "lm-gov",
+   "label": "治理层席",
+   "index": 3,
+   "file": "blueprint--layer-mechanism-map--lm-gov.mp4",
+   "end_still": "blueprint--layer-mechanism-map--lm-gov-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.0,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.601
+   ],
+   "beat_nodes": [
+    "gov-m",
+    "gov-i"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "lm-act",
+   "label": "激活层席",
+   "index": 4,
+   "file": "blueprint--layer-mechanism-map--lm-act.mp4",
+   "end_still": "blueprint--layer-mechanism-map--lm-act-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.0,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "act-m",
+    "act-i"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "lm-spine",
+   "label": "全脊柱",
+   "index": 5,
+   "file": "blueprint--layer-mechanism-map--lm-spine.mp4",
+   "end_still": "blueprint--layer-mechanism-map--lm-spine-end.png",
+   "beats": 5,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 5.57,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.208,
+    3.311,
+    4.413
+   ],
+   "beat_nodes": [
+    "obj-m",
+    "cat-m",
+    "enr-m",
+    "gov-m",
+    "act-m"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/atlanta-v4/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.html",
+ "slug": "blueprint--layer-mechanism-map",
+ "type": "architecture"
+}
