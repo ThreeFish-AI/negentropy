@@ -11,7 +11,7 @@ slug = "jev-decision-model-video"
 [narration]
 # TODO：按本集选题与语速预算填写。口径提示——280 字/分是**含停顿的等效**口径，
 # 裸按字数算会高估约 12% 的句容量，双口径门以 manifest 实测为准。
-target_minutes = [13.0, 15.0]
+target_minutes = [13.0, 16.5]  # v2 清晰度修订扩窗（原 [13,15]，展开解释需更多字数）
 
 [tts]
 engine = "indextts"
