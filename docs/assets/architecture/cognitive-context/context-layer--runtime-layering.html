@@ -5085,7 +5085,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       </div>
     </div>
 
-    <script id="archify-guided-views-data" type="application/json">[{"id":"unified-entry","label":"统一入口","focus":["runtime","activate"],"note":"Agent Runtime 的全部上下文访问经 Activate 单一入口，不直连子系统。"},{"id":"govern-loop","label":"治理闭环","focus":["collect","enrich","activate"],"note":"Collect → Enrich → Activate 三相流水线，访问行为回流目录形成闭环。"},{"id":"pointer-no-copy","label":"指针无副本","focus":["collect","memory","kb","kg","tools","skills"],"note":"Catalog 以逻辑视图指针引用五子系统，零数据复制。"}]</script>
+    <script id="archify-guided-views-data" type="application/json">[]</script>
 
     <script id="archify-i18n-data" type="application/json">{"locale":"zh-CN","messages":{"viewer.kind.frontend":"前端","viewer.kind.backend":"后端","viewer.kind.database":"数据库","viewer.kind.cloud":"云服务","viewer.kind.security":"安全","viewer.kind.messagebus":"消息总线","viewer.kind.external":"外部系统","viewer.kind.neutral":"中性","viewer.kind.node":"节点","viewer.kind.start":"开始","viewer.kind.active":"活动","viewer.kind.waiting":"等待","viewer.kind.decision":"决策","viewer.kind.success":"成功","viewer.kind.failure":"失败","viewer.toolbar.actions":"图表操作","viewer.theme.toggle.title":"切换主题（T）","viewer.theme.toggle":"切换颜色主题","viewer.theme.dark":"深色","viewer.theme.light":"浅色","viewer.preset.choose.title":"选择视觉风格（S 循环切换）","viewer.preset.choose":"选择视觉风格","viewer.preset.style":"风格","viewer.preset.menu":"视觉风格","viewer.preset.identity":"视觉表达","viewer.preset.cycles":"S 循环切换","viewer.preset.classic":"经典","viewer.preset.classic.short":"经典","viewer.preset.classic.hint":"稳定的技术默认风格","viewer.preset.flow":"信号流","viewer.preset.flow.short":"流动","viewer.preset.flow.hint":"突出动态流向","viewer.preset.blueprint":"蓝图","viewer.preset.blueprint.hint":"工程评审","viewer.preset.editorial":"编辑风格","viewer.preset.editorial.hint":"适合发布与上线说明","viewer.preset.badge.signalFlow":"信号流","viewer.preset.badge.blueprint":"蓝图 / 修订 01","viewer.preset.badge.editorial":"编辑风格 / 现场笔记","viewer.preset.badge.editorialPlate":"ARCHIFY / 图版 04","viewer.preset.current":"当前视觉风格：{style}。选择视觉风格","viewer.motion.live":"动态","viewer.motion.still":"静态","viewer.motion.pause":"暂停动效","viewer.motion.resume":"恢复动效","viewer.motion.reduced":"已根据减少动态效果偏好暂停动效","viewer.motion.hidden":"页面不可见时已暂停动效","viewer.motion.yielding":"暂停动效；当前让位于{owner}","viewer.motion.yielding.title":"动态预览已启用 · 正在让位于{owner}","viewer.owner.story":"引导故事","viewer.owner.chapter":"当前章节","viewer.owner.chapterPreview":"章节差异预览","viewer.owner.handoff":"章节交接","viewer.owner.route":"路径探测","viewer.owner.lens":"语义透镜","viewer.owner.relationship":"关系预览","viewer.owner.intent":"意图追踪","viewer.owner.focus":"语义聚焦","viewer.owner.legend":"图例预览","viewer.owner.reader":"读者交互","viewer.present.enter":"进入演示模式","viewer.present.enter.title":"演示模式（F）","viewer.present.exit":"退出演示模式","viewer.present.exit.title":"退出演示模式（F 或 Escape）","viewer.present.present":"演示","viewer.present.exit.label":"退出","viewer.export.button":"导出","viewer.export.button.title":"导出图表（E）","viewer.export.diagram":"导出图表","viewer.export.menu":"导出","viewer.export.subtitle":"便携、整洁的输出","viewer.export.share":"分享","viewer.export.shareCard":"分享卡片","viewer.export.routeShareCard":"路径分享卡片","viewer.export.reachShareCard":"可达范围分享卡片","viewer.export.copyShareCard":"复制分享卡片","viewer.export.copyDiagram":"复制图表","viewer.export.clipboardPng":"复制 PNG 到剪贴板","viewer.export.raster":"位图","viewer.export.image":"图像","viewer.export.lossless":"无损图像","viewer.export.compact":"紧凑图像","viewer.export.modern":"现代图像格式","viewer.export.vectorMotion":"矢量与动效","viewer.export.vectorMotion.heading":"矢量与动效","viewer.export.editable":"可编辑矢量图","viewer.export.motion6s":"6 秒动效","viewer.export.unsupported":"当前浏览器不支持","viewer.export.clipboardUnsupported":"当前浏览器不支持写入图片剪贴板","viewer.export.clipboardUnsupported.period":"当前浏览器不支持写入图片剪贴板。","viewer.export.clipboardUnsupported.short":"此浏览器不支持写入图片剪贴板。","viewer.export.motionUnavailable":"当前浏览器无法录制动效","viewer.export.webmUnavailable":"当前浏览器不支持 WebM","viewer.export.failed":"导出失败：{message}","viewer.export.unknownVariant":"未知的分享卡片类型：{variant}","viewer.export.routeRequired":"请先追踪路径，再导出路径分享卡片","viewer.export.reachRequired":"请先追踪编写可达范围，再导出可达范围分享卡片","viewer.export.unknown":"未知错误","viewer.export.routeFailed":"路径分享卡片导出失败：{message}","viewer.export.reachFailed":"可达范围分享卡片导出失败：{message}","viewer.export.copyFailed":"复制失败：{message}","viewer.export.copiedPng":"已将 PNG 复制到剪贴板","viewer.export.copiedShare":"已复制分享卡片","viewer.export.downloadedShare":"已下载分享卡片","viewer.export.downloadedRoute":"已下载路径分享卡片","viewer.export.downloadedReach":"已下载可达范围分享卡片","viewer.export.downloadedWebm":"已下载 WebM","viewer.export.recording":"正在录制 6 秒动效…","viewer.export.card.routeSummary.one":"路径：{source} → {target} · {count} 个有向跳转","viewer.export.card.routeSummary.other":"路径：{source} → {target} · {count} 个有向跳转","viewer.export.card.reachSummary":"从{origin}开始的编写{direction} · {nodes} · {links} · 最深 {hops}","viewer.export.card.node.one":"{count} 个节点","viewer.export.card.node.other":"{count} 个节点","viewer.export.card.link.one":"{count} 条连接","viewer.export.card.link.other":"{count} 条连接","viewer.export.card.hop.one":"{count} 跳","viewer.export.card.hop.other":"{count} 跳","viewer.export.card.routeBadge":"ARCHIFY · 路径 · {hops}","viewer.export.card.reachBadge":"ARCHIFY · {direction}可达范围","viewer.export.card.defaultBadge":"ARCHIFY · {preset} · {theme}","viewer.export.direction.upstream":"上游","viewer.export.direction.downstream":"下游","viewer.export.error.canvasUnavailable":"无法为{label}使用画布","viewer.export.error.contextUnavailable":"无法为{label}创建二维画布上下文","viewer.export.error.toBlobUnavailable":"{label}无法使用 canvas.toBlob","viewer.export.error.toBlobNull":"{label}的 canvas.toBlob 未返回数据","viewer.export.error.variantsCombined":"无法同时组合多种分享卡片类型","viewer.export.error.viewerState":"分享卡片导出无法移除临时 Viewer 状态","viewer.export.error.routeState":"路径卡片导出无法安全保留已解析路径","viewer.export.error.reachState":"可达范围卡片导出无法安全保留编写的可达范围","viewer.export.error.webmRequirements":"WebM 动效导出需要追踪动画及浏览器 MediaRecorder 支持","viewer.export.error.mediaRecorder":"MediaRecorder 录制失败","viewer.export.error.emptyWebm":"MediaRecorder 生成了空的 WebM","viewer.export.error.webmBackground":"无法为 WebM 导出加载 SVG 背景","viewer.guided.region":"图表引导视图","viewer.guided.previous":"上一个引导视图","viewer.guided.previous.title":"上一个引导视图（[）","viewer.guided.next":"下一个引导视图","viewer.guided.next.title":"下一个引导视图（]）","viewer.guided.views":"引导视图","viewer.guided.explore":"探索此系统","viewer.guided.intro":"沿精选路径逐步查看，而不改变源图表。","viewer.guided.trail":"故事轨迹","viewer.guided.beat":"节点","viewer.guided.nextBeat":"下一步","viewer.guided.play":"播放引导故事","viewer.guided.play.title":"播放引导故事（P）","viewer.guided.pause":"暂停引导故事","viewer.guided.pause.title":"暂停引导故事（P）","viewer.guided.replay":"重播引导故事","viewer.guided.replay.title":"重播引导故事（P）","viewer.guided.playStory":"播放故事","viewer.guided.pauseStory":"暂停","viewer.guided.replayStory":"重播故事","viewer.guided.motionUnavailable":"静态模式下无法播放故事","viewer.guided.enableMotion":"切换为动态模式以播放引导故事","viewer.guided.selectBeatLink":"选择故事节点以复制其精确链接","viewer.guided.copyMoment":"复制此刻","viewer.guided.momentCopied":"已复制时刻链接","viewer.guided.momentCopyFailed":"无法复制故事时刻链接","viewer.guided.copied":"已复制","viewer.guided.copyFailed":"复制失败","viewer.guided.showAll":"显示全部","viewer.guided.showAll.aria":"显示完整图表","viewer.guided.chapters":"故事章节","viewer.guided.storyTrail":"{label}的故事轨迹：{count} 个节点","viewer.guided.chapter.open":"打开第 {index}/{total} 章：{label}，{count} 个停靠点","viewer.guided.chapter.current":"当前第 {index}/{total} 章：{label}，{count} 个停靠点","viewer.guided.chapter.selectedNodes":"已选择 {count} 个节点","viewer.guided.chapter.stops":"{count} 个停靠点","viewer.guided.chapter.stop.one":"{count} 个停靠点","viewer.guided.chapter.stop.other":"{count} 个停靠点","viewer.guided.chapter.current.title":"{label} — 当前章节，{count} 个停靠点","viewer.guided.chapter.delta.expanded":"{stay} 个保留，{enter} 个进入，{leave} 个离开","viewer.guided.chapter.delta.aria":"打开第 {index}/{total} 章：{label}。章节聚焦差异：{delta}","viewer.guided.chapter.delta.title":"{label} — 章节聚焦 {delta}","viewer.guided.handoff":"{from} → {to} · 经由{label}","viewer.guided.share.chapter":"章节 {index} / {total}","viewer.guided.share.initial":"章节 01 / 01","viewer.guided.share.default":"引导章节","viewer.guided.state.ready":"就绪","viewer.guided.state.playing":"播放中","viewer.guided.state.settled":"已完成","viewer.guided.state.paused":"已暂停","viewer.guided.state.pinned":"已固定","viewer.guided.state.still":"静态","viewer.guided.share.step":"步骤 {index} / {total} · {label}","viewer.guided.share.staticMoment":"{step} · 静态时刻","viewer.guided.share.complete":"{count} 个步骤已完成 · {note}","viewer.guided.share.settled":"路径已稳定，可供阅读。","viewer.guided.share.staticPath":"{count} 个步骤 · 静态路径","viewer.guided.share.ready":"{count} 个步骤 · 就绪","viewer.guided.share.aria":"{state}，第 {index}/{total} 章：{label}。{beat}。{route}","viewer.guided.beat.start":"节点 {index} / {total} · {label} · 起点","viewer.guided.beat.forward":"节点 {index} / {total} · {from} → {to}","viewer.guided.beat.reverse":"节点 {index} / {total} · {from} → {to} · 反向编写连接","viewer.guided.beat.multiple":"节点 {index} / {total} · {from} ⇄ {to} · {count} 条编写连接","viewer.guided.beat.group":"节点 {index} / {total} · {from} · {to} · 分组 · 无直接连接","viewer.guided.beat.aria.prefix":"故事节点 {index}/{total}：{label}。","viewer.guided.beat.aria.start":"起点。","viewer.guided.beat.aria.forward":"从{from}经一条正向编写关系到达。","viewer.guided.beat.aria.reverse":"从{from}出发；编写关系实际由{to}指向{from}。","viewer.guided.beat.aria.multiple":"从{from}经 {count} 条编写关系到达；不使用任意动效。","viewer.guided.beat.aria.group":"与{from}分组展示，没有直接编写关系。","viewer.guided.caption.start":"起点","viewer.guided.caption.grouped":"分组过渡 · 无直接编写连接","viewer.guided.caption.more":" +另外 {count} 条","viewer.guided.caption.reverse":"反向编写关系","viewer.guided.caption.relationships":"{count} 条编写关系","viewer.guided.caption.relationship":"编写关系","viewer.guided.caption.direction":"编写方向：{from} → {to}","viewer.guided.caption.starting":"编写起点","viewer.guided.beatLink":"复制当前故事时刻链接：第 {index}/{total} 个节点：{label}","viewer.guided.noStory":"此图表没有编写引导故事。","viewer.guide.eyebrow":"图表指南","viewer.guide.close":"关闭图表指南","viewer.guide.inspecting":"正在检查已编译语义","viewer.guide.actions":"图表探索操作","viewer.guide.find":"查找任意节点","viewer.guide.find.hint":"搜索标签、职责、类型和稳定 ID。","viewer.guide.route":"追踪路径","viewer.guide.route.aria":"追踪有向路径","viewer.guide.route.hint":"查看两个语义节点如何按编写方向连接。","viewer.guide.map":"查看完整系统","viewer.guide.map.hint":"打开带实时视口和稳定节点的语义雷达。","viewer.guide.lens":"比较语义类型","viewer.guide.lens.hint":"统计角色、显示流量并比较直接编写的连接。","viewer.guide.story":"播放引导故事","viewer.guide.story.hint":"浏览已编写的章节和真实关系。","viewer.guide.present":"进入演示模式","viewer.guide.present.hint":"让实时图表占满视口，同时不改变导出。","viewer.guide.shortcuts":"其他键盘快捷键","viewer.guide.shortcut.export":"导出","viewer.guide.shortcut.theme":"主题","viewer.guide.shortcut.style":"风格","viewer.guide.shortcut.reset":"重置","viewer.guide.shortcut.zoomIn":"放大","viewer.guide.shortcut.zoomOut":"缩小","viewer.guide.shortcut.close":"关闭","viewer.guide.facts":"{nodes} · {relationships} · {views}","viewer.guide.fact.node.one":"{count} 个语义节点","viewer.guide.fact.node.other":"{count} 个语义节点","viewer.guide.fact.relationship.one":"{count} 条关系","viewer.guide.fact.relationship.other":"{count} 条关系","viewer.guide.fact.view.one":"{count} 个引导视图","viewer.guide.fact.view.other":"{count} 个引导视图","viewer.guide.story.available.one":"浏览 {count} 个已编写章节及其真实关系。","viewer.guide.story.available.other":"浏览 {count} 个已编写章节及其真实关系。","viewer.guide.story.unavailable":"此图表没有编写引导故事。","viewer.guide.open":"打开图表指南","viewer.guide.noStory":"此图表没有编写引导故事。","viewer.finder.title":"查找节点","viewer.finder.close":"关闭节点查找器","viewer.finder.placeholder":"搜索标签或 ID","viewer.finder.search":"搜索图表节点","viewer.finder.results":"图表节点","viewer.finder.empty":"没有匹配的节点","viewer.finder.result.focus":"聚焦{label}","viewer.finder.result.routeStart":"选择{label}作为路径起点","viewer.finder.result.routeTarget":"选择{label}作为路径终点，{links}","viewer.finder.status.empty":"没有匹配的节点","viewer.finder.status.count.one":"{count} 个匹配节点","viewer.finder.status.count.other":"{count} 个匹配节点","viewer.finder.noun.nodes":"个节点","viewer.finder.link.one":"{count} 条连接","viewer.finder.link.other":"{count} 条连接","viewer.finder.result.focus.one":"聚焦{label}，{count} 条相关连接","viewer.finder.result.focus.other":"聚焦{label}，{count} 条相关连接","viewer.finder.status.filtered":"{visible}/{available} {noun}","viewer.finder.status.all":"{available} {noun}","viewer.passport.eyebrow":"语义护照","viewer.passport.metadata":"节点元数据","viewer.passport.evidence":"已验证的源代码证据","viewer.passport.verified":"已验证来源","viewer.passport.verificationScope":"已按固定修订版本验证本地 Git 证据，未检查远程访问权限。","viewer.passport.reach":"编写可达范围","viewer.passport.reach.trace":"追踪编写的可达性","viewer.passport.upstream":"上游","viewer.passport.downstream":"下游","viewer.passport.upstream.trace":"追踪上游编写可达性","viewer.passport.downstream.trace":"追踪下游编写可达性","viewer.passport.close":"关闭语义护照","viewer.passport.copy":"复制链接","viewer.passport.copy.focus":"复制聚焦节点的链接","viewer.passport.relations":"关系","viewer.passport.relations.show":"显示关联关系","viewer.passport.relations.hide":"隐藏关联关系","viewer.passport.relations.list":"关联关系","viewer.passport.copyRelation":"复制关系","viewer.passport.copyNode":"复制节点","viewer.passport.copyPinned":"复制固定关系的链接","viewer.passport.copySource":"复制来源节点的链接","viewer.passport.copy.focused.success":"已复制聚焦节点链接","viewer.passport.copy.pinned.success":"已复制固定关系链接","viewer.passport.copy.focused.failed":"无法复制聚焦节点链接","viewer.passport.copy.pinned.failed":"无法复制固定关系链接","viewer.passport.relationship.none":"没有关联关系","viewer.passport.relationship.count.one":"{count} 条关系","viewer.passport.relationship.count.other":"{count} 条关系","viewer.passport.relationship.show.one":"显示 {count} 条关联关系","viewer.passport.relationship.show.other":"显示 {count} 条关联关系","viewer.passport.relationship.summary":"{out} 条出向 · {in} 条入向{loops}","viewer.passport.relationship.loops":" · {count} 条自环","viewer.passport.relationship.explorer":"直接关系浏览器","viewer.passport.relationship.help":"使用方向键浏览关系。按 Enter 或空格键固定详情；按 Escape 清除。","viewer.passport.relationship.loopsBack":"回环","viewer.passport.relationship.connectsTo":"连接到","viewer.passport.relationship.connectsFrom":"连接自","viewer.passport.relationship.pinned":"已固定关系 · {from} → {to} · {label}","viewer.passport.relationship.inspect":"检查第 {index}/{total} 条关系：{from} 到 {to}，{label}。按 Enter 查看详情。","viewer.passport.relationship.group.out":"出向","viewer.passport.relationship.group.in":"入向","viewer.passport.relationship.group.loop":"自环","viewer.passport.relationship.row":"{group}：{relationship}，{neighbor}","viewer.passport.relationship.direction.out":"出 →","viewer.passport.relationship.direction.in":"← 入","viewer.passport.relationship.direction.loop":"自环","viewer.passport.sourceCount.one":"{count} 个已验证来源引用","viewer.passport.sourceCount.other":"{count} 个已验证来源引用","viewer.passport.sourceMarker":"来源","viewer.passport.beacon.one":"{count} 个已验证来源；聚焦此节点以检查","viewer.passport.beacon.other":"{count} 个已验证来源；聚焦此节点以检查","viewer.passport.repository.open":"打开已验证的仓库修订版本 {revision}","viewer.passport.source.open":"打开修订版本 {revision} 中已验证的来源 {path}","viewer.passport.source.openLink":"打开 ↗","viewer.passport.reach.upstream.one":"追踪 {count} 个上游编写节点","viewer.passport.reach.upstream.other":"追踪 {count} 个上游编写节点","viewer.passport.reach.downstream.one":"追踪 {count} 个下游编写节点","viewer.passport.reach.downstream.other":"追踪 {count} 个下游编写节点","viewer.passport.reach.noUpstream":"没有上游编写节点","viewer.passport.reach.noDownstream":"没有下游编写节点","viewer.passport.reach.status":"{direction} · {nodes} 个节点 · {links} 条连接 · 最深 {hops} 跳","viewer.route.eyebrow":"路径探测","viewer.route.start":"选择起点节点","viewer.route.start.find":"查找起点","viewer.route.start.find.aria":"查找路径起点","viewer.route.copy":"复制链接","viewer.route.copy.aria":"复制已追踪路径的链接","viewer.route.clear":"清除","viewer.route.clear.aria":"清除路径探测","viewer.route.traced":"已追踪路径","viewer.route.pickTwo":"在图表中选择两个语义节点","viewer.route.pickOne":"在图表中选择一个语义节点","viewer.route.controls":"路径旅程控制","viewer.route.previous":"上一个路径位置","viewer.route.play":"播放路径旅程","viewer.route.pause":"暂停路径旅程","viewer.route.replay":"重播路径旅程","viewer.route.next":"下一个路径位置","viewer.route.journey":"旅程","viewer.route.pause.label":"暂停","viewer.route.replay.label":"重播","viewer.route.overview":"总览","viewer.route.overview.aria":"显示完整路径总览","viewer.route.instructions":"先选择来源，再选择目标；方向很重要。","viewer.route.destination":"选择从{label}出发的目标","viewer.route.destination.find":"查找目标","viewer.route.destination.find.aria":"查找可达的路径目标","viewer.route.differentDestination":"选择其他目标","viewer.route.distinct":"一条路径需要两个不同的语义节点。","viewer.route.unreachable":"没有通往{label}的有向路径","viewer.route.unreachable.detail":"从{source}无法到达{target}。请选择高亮的目标。","viewer.route.start.instructions":"选择来源。下一步只会显示有向可达的目标。","viewer.route.copy.success":"已复制路径链接","viewer.route.copy.failed":"无法复制路径链接","viewer.route.position":"路径位置 {index}/{total}：{label}","viewer.route.step":"第 {index}/{total} 步 · {phase} · {label}","viewer.route.motionRequired":"自动旅程需要动态模式","viewer.route.trigger.clear":"清除已追踪路径","viewer.route.overview.status":"{nodes} · {hops} · 最短编写路径","viewer.route.overview.node.one":"{count} 个节点","viewer.route.overview.node.other":"{count} 个节点","viewer.route.overview.hop.one":"{count} 个有向跳转","viewer.route.overview.hop.other":"{count} 个有向跳转","viewer.route.phase.playing":"播放中","viewer.route.phase.complete":"已完成","viewer.route.phase.inspecting":"检查中","viewer.route.destination.count.one":"有 {count} 个有向目标可用。请选择高亮节点。","viewer.route.destination.count.other":"有 {count} 个有向目标可用。请选择高亮节点。","viewer.route.noOutgoing":"此处没有可用的出向路径。请清除后选择其他来源。","viewer.route.result.title":"{source} 到 {target}","viewer.route.finder.source.title":"选择路径起点","viewer.route.finder.source.placeholder":"搜索路径来源","viewer.route.finder.source.empty":"没有匹配的路径来源","viewer.route.finder.source.results":"可作为路径起点的节点","viewer.route.finder.source.noun":"个路径来源","viewer.route.finder.source.badge":"起点","viewer.route.finder.target.title":"从{label}出发的目标","viewer.route.finder.target.placeholder":"搜索可达目标","viewer.route.finder.target.empty":"没有匹配的可达目标","viewer.route.finder.target.results":"可达路径目标","viewer.route.finder.target.noun":"个可达目标","viewer.route.hop.one":"{count} 跳","viewer.route.hop.other":"{count} 跳","viewer.lens.eyebrow":"语义透镜","viewer.lens.title":"比较系统角色","viewer.lens.close":"关闭语义透镜","viewer.lens.instruction":"最多选择两种语义类型。选择一种可显示其真实流量；选择两种只比较直接编写的关系。","viewer.lens.kinds":"语义类型","viewer.lens.choose":"选择一种类型以检查其节点和相连关系。","viewer.lens.copy":"复制语义透镜链接","viewer.lens.clear":"清除语义透镜","viewer.lens.open":"打开语义透镜","viewer.lens.openActive":"打开当前语义透镜","viewer.lens.legend":"语义图例","viewer.lens.legend.inspect.one":"检查{label}，{count} 个节点","viewer.lens.legend.inspect.other":"检查{label}，{count} 个节点","viewer.lens.kind.count.one":"{label}，{count} 个节点","viewer.lens.kind.count.other":"{label}，{count} 个节点","viewer.lens.compare.one":"{first} → {second}：{forward} · {second} → {first}：{reverse} · 共 {count} 条直接关系","viewer.lens.compare.other":"{first} → {second}：{forward} · {second} → {first}：{reverse} · 共 {count} 条直接关系","viewer.lens.single":"{nodes} · {relationships} · 已连接节点保持可见","viewer.lens.node.one":"{count} 个{label}节点","viewer.lens.node.other":"{count} 个{label}节点","viewer.lens.relationship.one":"{count} 条相连关系","viewer.lens.relationship.other":"{count} 条相连关系","viewer.radar.title":"语义雷达","viewer.radar.building":"正在构建总览","viewer.radar.openFull":"打开完整语义雷达","viewer.radar.open":"打开雷达","viewer.radar.close":"关闭语义雷达","viewer.radar.surface":"图表总览。点击节点进行聚焦，或使用方向键平移。","viewer.radar.click":"点击节点","viewer.radar.drag":"拖动平移","viewer.radar.space":"语义雷达需要更多地图可见空间。","viewer.radar.nodes":"语义图表雷达节点","viewer.radar.focus":"从语义雷达聚焦{label}","viewer.radar.status":"{count} 个节点 · {viewport}","viewer.radar.fullMap":"{count} 个节点 · 完整地图","viewer.radar.compacted":"已收紧雷达，避免遮挡语义护照或地图控件。","viewer.radar.cancelWaiting":"取消等待更多地图空间的语义雷达","viewer.radar.needsSpace":"语义雷达需要更多可见地图空间","viewer.radar.viewport.full":"完整地图","viewer.radar.viewport.width":"宽度 {percent}%","viewer.radar.viewport.scale":"视口 {percent}%","viewer.nav.controls":"图表视图控制","viewer.nav.route":"追踪有向路径","viewer.nav.route.title":"追踪路径（R）","viewer.nav.route.short":"路径","viewer.nav.radar":"打开语义雷达","viewer.nav.radar.title":"语义雷达（M）","viewer.nav.radar.short":"地图","viewer.nav.lens":"打开语义透镜","viewer.nav.lens.title":"语义透镜（L）","viewer.nav.lens.short":"透镜","viewer.nav.find":"查找节点","viewer.nav.find.title":"查找节点（/）","viewer.nav.guide":"打开图表指南","viewer.nav.guide.title":"图表指南（?）","viewer.nav.zoomOut":"缩小","viewer.nav.zoomOut.title":"缩小（-）","viewer.nav.reset":"重置图表视图","viewer.nav.reset.title":"重置视图（0）","viewer.nav.read":"阅读","viewer.nav.zoomIn":"放大","viewer.nav.zoomIn.title":"放大（+）","viewer.nav.camera":"{hint}。重置图表视图","viewer.nav.camera.title":"{semantic}{hint} · 重置视图（0）","viewer.nav.camera.semantic":"语义相机已启用 · ","viewer.nav.level.map":"概览","viewer.nav.level.read":"阅读","viewer.nav.level.full":"完整","viewer.nav.level.auto":"自动","viewer.nav.detail.map":"放大以显示关系标签和节点上下文","viewer.nav.detail.read":"再次放大以显示标签和注释","viewer.nav.detail.full":"完整图表详情","viewer.intent.summary":"{label}。{out} 条出向，{in} 条入向{loops}。共 {total} 条连接。按 Enter 查看详情。","viewer.intent.loops":"，{count} 条自环","viewer.common.copied":"已复制","viewer.common.copyFailed":"复制失败","viewer.common.copyLink":"复制链接","viewer.common.clear":"清除","viewer.common.close":"关闭"}}</script>
     <div class="guided-views no-print" id="guided-views" hidden aria-label="图表引导视图">
@@ -5130,7 +5130,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     <!-- Main Diagram -->
     <div class="diagram-container" data-detail-level="read"
          data-preset-badge-editorial-plate="ARCHIFY / 图版 04">
-      <svg viewBox="0 0 1168 680" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-preset="classic" data-quality-profile="showcase">
+      <svg viewBox="0 0 1280 592" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-preset="classic" data-quality-profile="showcase">
         <title id="archify-diagram-title">Context Layer 运行时分层</title>
         <desc id="archify-diagram-description">由 Archify 生成的架构图。</desc>
         <!-- Definitions -->
@@ -5156,162 +5156,196 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <rect width="100%" height="100%" fill="url(#grid)" />
 
         <!-- Boundaries (behind everything) -->
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="0" data-composition-frame-label="Context Layer · 上下文治理层" x="250" y="192" width="700" height="104" rx="12" class="c-region" stroke-width="1"/>
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="0" data-composition-frame-label="Agent Runtime" x="424" y="14" width="432" height="94" rx="12" class="c-region" stroke-width="1"/>
 
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="1" data-composition-frame-label="上下文子系统" x="72" y="376" width="1056" height="104" rx="12" class="c-region" stroke-width="1"/>
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="1" data-composition-frame-label="Context Layer（上下文治理层）" x="106" y="162" width="1068" height="106" rx="12" class="c-region" stroke-width="1"/>
+
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="2" data-composition-frame-label="子系统" x="106" y="356" width="1068" height="98" rx="12" class="c-region" stroke-width="1"/>
 
         <!-- Connection paths (before components for correct z-order) -->
-        <path data-edge-from="runtime" data-edge-to="activate" data-edge-label="统一入口" data-edge-key="0" data-edge-id="unified-entry" data-composition-points="840,100;840,216" d="M 840 100 L 840 216" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="activate" data-edge-to="collect" data-edge-label="行为回流" data-edge-key="1" data-edge-id="govern-feedback" data-composition-points="840,216;840,150;360,150;360,216" d="M 840 216 L 840 158 Q 840 150 832 150 L 368 150 Q 360 150 360 158 L 360 216" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="collect" data-edge-to="enrich" data-edge-key="2" data-edge-id="phase-1" data-composition-points="450,246;510,246" d="M 450 246 L 510 246" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="enrich" data-edge-to="activate" data-edge-key="3" data-edge-id="phase-2" data-composition-points="690,246;750,246" d="M 690 246 L 750 246" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="collect" data-edge-to="memory" data-edge-label="指针" data-edge-key="4" data-edge-id="ptr-memory" data-composition-points="332,276;332,338;180,338;180,400" d="M 332 276 L 332 330 Q 332 338 324 338 L 188 338 Q 180 338 180 346 L 180 400" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
-        <path data-edge-from="collect" data-edge-to="kb" data-edge-key="5" data-edge-id="ptr-kb" data-composition-points="346,276;346,338;390,338;390,400" d="M 346 276 L 346 330 Q 346 338 354 338 L 382 338 Q 390 338 390 346 L 390 400" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
-        <path data-edge-from="collect" data-edge-to="kg" data-edge-key="6" data-edge-id="ptr-kg" data-composition-points="360,276;360,338;600,338;600,400" d="M 360 276 L 360 330 Q 360 338 368 338 L 592 338 Q 600 338 600 346 L 600 400" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
-        <path data-edge-from="collect" data-edge-to="tools" data-edge-key="7" data-edge-id="ptr-tools" data-composition-points="374,276;374,338;810,338;810,400" d="M 374 276 L 374 330 Q 374 338 382 338 L 802 338 Q 810 338 810 346 L 810 400" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
-        <path data-edge-from="collect" data-edge-to="skills" data-edge-key="8" data-edge-id="ptr-skills" data-composition-points="388,276;388,338;1020,338;1020,400" d="M 388 276 L 388 330 Q 388 338 396 338 L 1012 338 Q 1020 338 1020 346 L 1020 400" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
-        <path data-edge-from="memory" data-edge-to="pg" data-edge-key="9" data-edge-id="persist-memory" data-composition-points="180,460;180,504;572,504;572,548" d="M 180 460 L 180 496 Q 180 504 188 504 L 564 504 Q 572 504 572 512 L 572 548" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="kb" data-edge-to="pg" data-edge-key="10" data-edge-id="persist-kb" data-composition-points="390,460;390,504;586,504;586,548" d="M 390 460 L 390 496 Q 390 504 398 504 L 578 504 Q 586 504 586 512 L 586 548" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="kg" data-edge-to="pg" data-edge-key="11" data-edge-id="persist-kg" data-composition-points="600,460;600,548" d="M 600 460 L 600 548" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="tools" data-edge-to="pg" data-edge-key="12" data-edge-id="persist-tools" data-composition-points="810,460;810,504;614,504;614,548" d="M 810 460 L 810 496 Q 810 504 802 504 L 622 504 Q 614 504 614 512 L 614 548" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="skills" data-edge-to="pg" data-edge-key="13" data-edge-id="persist-skills" data-composition-points="1020,460;1020,504;628,504;628,548" d="M 1020 460 L 1020 496 Q 1020 504 1012 504 L 636 504 Q 628 504 628 512 L 628 548" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="runtime" data-edge-to="cl_activate" data-edge-label="统一入口" data-edge-key="0" data-edge-id="c_entry" data-composition-points="640,88;640,186" d="M 640 88 L 640 186" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="cl_collect" data-edge-to="cl_govern" data-edge-key="1" data-edge-id="c_chain_1" data-composition-points="302,217;336,217" d="M 302 217 L 336 217" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="cl_govern" data-edge-to="cl_activate" data-edge-key="2" data-edge-id="c_chain_2" data-composition-points="516,217;550,217" d="M 516 217 L 550 217" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="cl_activate" data-edge-to="cl_verify" data-edge-key="3" data-edge-id="c_chain_3" data-composition-points="730,217;764,217" d="M 730 217 L 764 217" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="cl_verify" data-edge-to="cl_evolve" data-edge-key="4" data-edge-id="c_chain_4" data-composition-points="944,217;978,217" d="M 944 217 L 978 217" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="cl_activate" data-edge-to="cl_collect" data-edge-key="5" data-edge-id="c_back" data-composition-points="640,186;640,148;212,148;212,186" d="M 640 186 L 640 156 Q 640 148 632 148 L 220 148 Q 212 148 212 156 L 212 186" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="cl_collect" data-edge-to="sys_memory" data-edge-label="指针" data-edge-key="6" data-edge-id="c_ptr_mem" data-composition-points="212,248;212,380" d="M 212 248 L 212 380" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
+        <path data-edge-from="cl_collect" data-edge-to="sys_kb" data-edge-label="指针" data-edge-key="7" data-edge-id="c_ptr_kb" data-composition-points="212,248;212,314;426,314;426,380" d="M 212 248 L 212 306 Q 212 314 220 314 L 418 314 Q 426 314 426 322 L 426 380" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
+        <path data-edge-from="cl_collect" data-edge-to="sys_kg" data-edge-label="指针" data-edge-key="8" data-edge-id="c_ptr_kg" data-composition-points="212,248;212,314;640,314;640,380" d="M 212 248 L 212 306 Q 212 314 220 314 L 632 314 Q 640 314 640 322 L 640 380" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
+        <path data-edge-from="cl_collect" data-edge-to="sys_tools" data-edge-label="指针" data-edge-key="9" data-edge-id="c_ptr_tools" data-composition-points="212,248;212,314;854,314;854,380" d="M 212 248 L 212 306 Q 212 314 220 314 L 846 314 Q 854 314 854 322 L 854 380" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
+        <path data-edge-from="cl_collect" data-edge-to="sys_skills" data-edge-label="指针" data-edge-key="10" data-edge-id="c_ptr_skills" data-composition-points="212,248;212,314;1068,314;1068,380" d="M 212 248 L 212 306 Q 212 314 220 314 L 1060 314 Q 1068 314 1068 322 L 1068 380" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
+        <path data-edge-from="sys_memory" data-edge-to="pg_store" data-edge-key="11" data-edge-id="c_pg_mem" data-composition-points="212,434;212,461;612,461;612,488" d="M 212 434 L 212 453 Q 212 461 220 461 L 604 461 Q 612 461 612 469 L 612 488" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="sys_kb" data-edge-to="pg_store" data-edge-key="12" data-edge-id="c_pg_kb" data-composition-points="426,434;426,461;626,461;626,488" d="M 426 434 L 426 453 Q 426 461 434 461 L 618 461 Q 626 461 626 469 L 626 488" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="sys_kg" data-edge-to="pg_store" data-edge-key="13" data-edge-id="c_pg_kg" data-composition-points="640,434;640,488" d="M 640 434 L 640 488" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="sys_tools" data-edge-to="pg_store" data-edge-key="14" data-edge-id="c_pg_tools" data-composition-points="854,434;854,461;654,461;654,488" d="M 854 434 L 854 453 Q 854 461 846 461 L 662 461 Q 654 461 654 469 L 654 488" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="sys_skills" data-edge-to="pg_store" data-edge-key="15" data-edge-id="c_pg_skills" data-composition-points="1068,434;1068,461;668,461;668,488" d="M 1068 434 L 1068 453 Q 1068 461 1060 461 L 676 461 Q 668 461 668 469 L 668 488" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
 
         <!-- Components -->
-        <g id="node-runtime" data-node-id="runtime" data-node-label="Agent Runtime" tabindex="0" role="button" aria-label="聚焦Agent Runtime，五翼 Faculties · Pipelines · Toolset, 架构组件" aria-pressed="false" data-node-kind="backend" data-node-sublabel="五翼 Faculties · Pipelines · Toolset" data-node-context="架构组件">
-          <title>Agent Runtime · 五翼 Faculties · Pipelines · Toolset · 架构组件</title>
-          <rect x="720" y="36" width="240" height="64" rx="6" class="c-mask"/>
-          <rect x="720" y="36" width="240" height="64" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(726 42) scale(0.6875)">
+        <g id="node-runtime" data-node-id="runtime" data-node-label="五翼 Faculties · Pipelines · Toolset" tabindex="0" role="button" aria-label="聚焦五翼 Faculties · Pipelines · Toolset，Agent Runtime" aria-pressed="false" data-node-kind="backend" data-node-context="Agent Runtime">
+          <title>五翼 Faculties · Pipelines · Toolset · Agent Runtime</title>
+          <rect x="440" y="38" width="400" height="50" rx="6" class="c-mask"/>
+          <rect x="440" y="38" width="400" height="50" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(446 44) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="840" y="66" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Agent Runtime</text>
-        <text data-detail="context" x="840" y="82" class="t-muted" font-size="9" text-anchor="middle">五翼 Faculties · Pipelines · Toolset</text>
+          <text data-node-label="" x="640" y="67" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">五翼 Faculties · Pipelines · Toolset</text>
         </g>
 
-        <g id="node-collect" data-node-id="collect" data-node-label="① Collect 汇聚" tabindex="0" role="button" aria-label="聚焦① Collect 汇聚，Context Catalog · 逻辑视图, Context Layer · 上下文治理层" aria-pressed="false" data-node-kind="backend" data-node-sublabel="Context Catalog · 逻辑视图" data-node-context="Context Layer · 上下文治理层">
-          <title>① Collect 汇聚 · Context Catalog · 逻辑视图 · Context Layer · 上下文治理层</title>
-          <rect x="270" y="216" width="180" height="60" rx="6" class="c-mask"/>
-          <rect x="270" y="216" width="180" height="60" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(276 222) scale(0.6875)">
+        <g id="node-cl_collect" data-node-id="cl_collect" data-node-label="Collect 采集" tabindex="0" role="button" aria-label="聚焦Collect 采集，Context Catalog, Context Layer（上下文治理层）" aria-pressed="false" data-node-kind="backend" data-node-sublabel="Context Catalog" data-node-context="Context Layer（上下文治理层）">
+          <title>Collect 采集 · Context Catalog · Context Layer（上下文治理层）</title>
+          <rect x="122" y="186" width="180" height="62" rx="6" class="c-mask"/>
+          <rect x="122" y="186" width="180" height="62" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(128 192) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="360" y="244" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">① Collect 汇聚</text>
-        <text data-detail="context" x="360" y="260" class="t-muted" font-size="9" text-anchor="middle">Context Catalog · 逻辑视图</text>
+          <text data-node-label="" data-detail-anchor="" x="212" y="215" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Collect 采集</text>
+        <text data-detail="context" x="212" y="231" class="t-muted" font-size="9" text-anchor="middle">Context Catalog</text>
         </g>
 
-        <g id="node-enrich" data-node-id="enrich" data-node-label="② Enrich 富化" tabindex="0" role="button" aria-label="聚焦② Enrich 富化，信任归一 · 语义富化, Context Layer · 上下文治理层" aria-pressed="false" data-node-kind="backend" data-node-sublabel="信任归一 · 语义富化" data-node-context="Context Layer · 上下文治理层">
-          <title>② Enrich 富化 · 信任归一 · 语义富化 · Context Layer · 上下文治理层</title>
-          <rect x="510" y="216" width="180" height="60" rx="6" class="c-mask"/>
-          <rect x="510" y="216" width="180" height="60" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(516 222) scale(0.6875)">
+        <g id="node-cl_govern" data-node-id="cl_govern" data-node-label="Govern 治理" tabindex="0" role="button" aria-label="聚焦Govern 治理，口径 · 可见性 · 注入纪律, Context Layer（上下文治理层）" aria-pressed="false" data-node-kind="backend" data-node-sublabel="口径 · 可见性 · 注入纪律" data-node-context="Context Layer（上下文治理层）">
+          <title>Govern 治理 · 口径 · 可见性 · 注入纪律 · Context Layer（上下文治理层）</title>
+          <rect x="336" y="186" width="180" height="62" rx="6" class="c-mask"/>
+          <rect x="336" y="186" width="180" height="62" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(342 192) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="600" y="244" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">② Enrich 富化</text>
-        <text data-detail="context" x="600" y="260" class="t-muted" font-size="9" text-anchor="middle">信任归一 · 语义富化</text>
+          <text data-node-label="" data-detail-anchor="" x="426" y="215" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Govern 治理</text>
+        <text data-detail="context" x="426" y="231" class="t-muted" font-size="9" text-anchor="middle">口径 · 可见性 · 注入纪律</text>
         </g>
 
-        <g id="node-activate" data-node-id="activate" data-node-label="③ Activate 激活" tabindex="0" role="button" aria-label="聚焦③ Activate 激活，Context Router + Guard, Context Layer · 上下文治理层" aria-pressed="false" data-node-kind="backend" data-node-sublabel="Context Router + Guard" data-node-context="Context Layer · 上下文治理层">
-          <title>③ Activate 激活 · Context Router + Guard · Context Layer · 上下文治理层</title>
-          <rect x="750" y="216" width="180" height="60" rx="6" class="c-mask"/>
-          <rect x="750" y="216" width="180" height="60" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(756 222) scale(0.6875)">
+        <g id="node-cl_activate" data-node-id="cl_activate" data-node-label="Activate 激活" tabindex="0" role="button" aria-label="聚焦Activate 激活，Router + Guard, Context Layer（上下文治理层）" aria-pressed="false" data-node-kind="backend" data-node-sublabel="Router + Guard" data-node-context="Context Layer（上下文治理层）">
+          <title>Activate 激活 · Router + Guard · Context Layer（上下文治理层）</title>
+          <rect x="550" y="186" width="180" height="62" rx="6" class="c-mask"/>
+          <rect x="550" y="186" width="180" height="62" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(556 192) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="840" y="244" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">③ Activate 激活</text>
-        <text data-detail="context" x="840" y="260" class="t-muted" font-size="9" text-anchor="middle">Context Router + Guard</text>
+          <text data-node-label="" data-detail-anchor="" x="640" y="215" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Activate 激活</text>
+        <text data-detail="context" x="640" y="231" class="t-muted" font-size="9" text-anchor="middle">Router + Guard</text>
         </g>
 
-        <g id="node-memory" data-node-id="memory" data-node-label="Memory" tabindex="0" role="button" aria-label="聚焦Memory，记忆 · 海马体, 上下文子系统" aria-pressed="false" data-node-kind="database" data-node-sublabel="记忆 · 海马体" data-node-context="上下文子系统">
-          <title>Memory · 记忆 · 海马体 · 上下文子系统</title>
-          <rect x="92" y="400" width="176" height="60" rx="6" class="c-mask"/>
-          <rect x="92" y="400" width="176" height="60" rx="6" class="c-database" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(98 406) scale(0.6875)">
+        <g id="node-cl_verify" data-node-id="cl_verify" data-node-label="Verify 验证" tabindex="0" role="button" aria-label="聚焦Verify 验证，锚定 · 可观测, Context Layer（上下文治理层）" aria-pressed="false" data-node-kind="backend" data-node-sublabel="锚定 · 可观测" data-node-context="Context Layer（上下文治理层）">
+          <title>Verify 验证 · 锚定 · 可观测 · Context Layer（上下文治理层）</title>
+          <rect x="764" y="186" width="180" height="62" rx="6" class="c-mask"/>
+          <rect x="764" y="186" width="180" height="62" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(770 192) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="854" y="215" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Verify 验证</text>
+        <text data-detail="context" x="854" y="231" class="t-muted" font-size="9" text-anchor="middle">锚定 · 可观测</text>
+        </g>
+
+        <g id="node-cl_evolve" data-node-id="cl_evolve" data-node-label="Evolve 进化" tabindex="0" role="button" aria-label="聚焦Evolve 进化，富化 · 自纠环, Context Layer（上下文治理层）" aria-pressed="false" data-node-kind="backend" data-node-sublabel="富化 · 自纠环" data-node-context="Context Layer（上下文治理层）">
+          <title>Evolve 进化 · 富化 · 自纠环 · Context Layer（上下文治理层）</title>
+          <rect x="978" y="186" width="180" height="62" rx="6" class="c-mask"/>
+          <rect x="978" y="186" width="180" height="62" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(984 192) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="1068" y="215" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Evolve 进化</text>
+        <text data-detail="context" x="1068" y="231" class="t-muted" font-size="9" text-anchor="middle">富化 · 自纠环</text>
+        </g>
+
+        <g id="node-sys_memory" data-node-id="sys_memory" data-node-label="Memory" tabindex="0" role="button" aria-label="聚焦Memory，海马体, 子系统" aria-pressed="false" data-node-kind="database" data-node-sublabel="海马体" data-node-context="子系统">
+          <title>Memory · 海马体 · 子系统</title>
+          <rect x="122" y="380" width="180" height="54" rx="6" class="c-mask"/>
+          <rect x="122" y="380" width="180" height="54" rx="6" class="c-database" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(128 386) scale(0.6875)">
             <ellipse cx="8" cy="4" rx="5" ry="2"/>
             <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="180" y="428" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Memory</text>
-        <text data-detail="context" x="180" y="444" class="t-muted" font-size="9" text-anchor="middle">记忆 · 海马体</text>
+          <text data-node-label="" data-detail-anchor="" x="212" y="405" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Memory</text>
+        <text data-detail="context" x="212" y="421" class="t-muted" font-size="9" text-anchor="middle">海马体</text>
         </g>
 
-        <g id="node-kb" data-node-id="kb" data-node-label="Knowledge Base" tabindex="0" role="button" aria-label="聚焦Knowledge Base，知识库, 上下文子系统" aria-pressed="false" data-node-kind="database" data-node-sublabel="知识库" data-node-context="上下文子系统">
-          <title>Knowledge Base · 知识库 · 上下文子系统</title>
-          <rect x="302" y="400" width="176" height="60" rx="6" class="c-mask"/>
-          <rect x="302" y="400" width="176" height="60" rx="6" class="c-database" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(308 406) scale(0.6875)">
+        <g id="node-sys_kb" data-node-id="sys_kb" data-node-label="Knowledge Base" tabindex="0" role="button" aria-label="聚焦Knowledge Base，知识库, 子系统" aria-pressed="false" data-node-kind="database" data-node-sublabel="知识库" data-node-context="子系统">
+          <title>Knowledge Base · 知识库 · 子系统</title>
+          <rect x="336" y="380" width="180" height="54" rx="6" class="c-mask"/>
+          <rect x="336" y="380" width="180" height="54" rx="6" class="c-database" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(342 386) scale(0.6875)">
             <ellipse cx="8" cy="4" rx="5" ry="2"/>
             <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="390" y="428" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Knowledge Base</text>
-        <text data-detail="context" x="390" y="444" class="t-muted" font-size="9" text-anchor="middle">知识库</text>
+          <text data-node-label="" data-detail-anchor="" x="426" y="405" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Knowledge Base</text>
+        <text data-detail="context" x="426" y="421" class="t-muted" font-size="9" text-anchor="middle">知识库</text>
         </g>
 
-        <g id="node-kg" data-node-id="kg" data-node-label="Knowledge Graph" tabindex="0" role="button" aria-label="聚焦Knowledge Graph，知识图谱, 上下文子系统" aria-pressed="false" data-node-kind="database" data-node-sublabel="知识图谱" data-node-context="上下文子系统">
-          <title>Knowledge Graph · 知识图谱 · 上下文子系统</title>
-          <rect x="512" y="400" width="176" height="60" rx="6" class="c-mask"/>
-          <rect x="512" y="400" width="176" height="60" rx="6" class="c-database" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(518 406) scale(0.6875)">
+        <g id="node-sys_kg" data-node-id="sys_kg" data-node-label="Knowledge Graph" tabindex="0" role="button" aria-label="聚焦Knowledge Graph，知识图谱, 子系统" aria-pressed="false" data-node-kind="database" data-node-sublabel="知识图谱" data-node-context="子系统">
+          <title>Knowledge Graph · 知识图谱 · 子系统</title>
+          <rect x="550" y="380" width="180" height="54" rx="6" class="c-mask"/>
+          <rect x="550" y="380" width="180" height="54" rx="6" class="c-database" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(556 386) scale(0.6875)">
             <ellipse cx="8" cy="4" rx="5" ry="2"/>
             <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="600" y="428" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Knowledge Graph</text>
-        <text data-detail="context" x="600" y="444" class="t-muted" font-size="9" text-anchor="middle">知识图谱</text>
+          <text data-node-label="" data-detail-anchor="" x="640" y="405" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Knowledge Graph</text>
+        <text data-detail="context" x="640" y="421" class="t-muted" font-size="9" text-anchor="middle">知识图谱</text>
         </g>
 
-        <g id="node-tools" data-node-id="tools" data-node-label="Tools" tabindex="0" role="button" aria-label="聚焦Tools，工具注册, 上下文子系统" aria-pressed="false" data-node-kind="database" data-node-sublabel="工具注册" data-node-context="上下文子系统">
-          <title>Tools · 工具注册 · 上下文子系统</title>
-          <rect x="722" y="400" width="176" height="60" rx="6" class="c-mask"/>
-          <rect x="722" y="400" width="176" height="60" rx="6" class="c-database" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(728 406) scale(0.6875)">
+        <g id="node-sys_tools" data-node-id="sys_tools" data-node-label="Tools" tabindex="0" role="button" aria-label="聚焦Tools，工具注册, 子系统" aria-pressed="false" data-node-kind="backend" data-node-sublabel="工具注册" data-node-context="子系统">
+          <title>Tools · 工具注册 · 子系统</title>
+          <rect x="764" y="380" width="180" height="54" rx="6" class="c-mask"/>
+          <rect x="764" y="380" width="180" height="54" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(770 386) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="854" y="405" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Tools</text>
+        <text data-detail="context" x="854" y="421" class="t-muted" font-size="9" text-anchor="middle">工具注册</text>
+        </g>
+
+        <g id="node-sys_skills" data-node-id="sys_skills" data-node-label="Skills" tabindex="0" role="button" aria-label="聚焦Skills，技能库, 子系统" aria-pressed="false" data-node-kind="backend" data-node-sublabel="技能库" data-node-context="子系统">
+          <title>Skills · 技能库 · 子系统</title>
+          <rect x="978" y="380" width="180" height="54" rx="6" class="c-mask"/>
+          <rect x="978" y="380" width="180" height="54" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(984 386) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="1068" y="405" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Skills</text>
+        <text data-detail="context" x="1068" y="421" class="t-muted" font-size="9" text-anchor="middle">技能库</text>
+        </g>
+
+        <g id="node-pg_store" data-node-id="pg_store" data-node-label="PostgreSQL" tabindex="0" role="button" aria-label="聚焦PostgreSQL，pgvector · Apache AGE · tsvector · pg_cron, 架构组件" aria-pressed="false" data-node-kind="database" data-node-sublabel="pgvector · Apache AGE · tsvector · pg_cron" data-node-context="架构组件">
+          <title>PostgreSQL · pgvector · Apache AGE · tsvector · pg_cron · 架构组件</title>
+          <rect x="430" y="488" width="420" height="48" rx="6" class="c-mask"/>
+          <rect x="430" y="488" width="420" height="48" rx="6" class="c-database" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(436 494) scale(0.6875)">
             <ellipse cx="8" cy="4" rx="5" ry="2"/>
             <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="810" y="428" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Tools</text>
-        <text data-detail="context" x="810" y="444" class="t-muted" font-size="9" text-anchor="middle">工具注册</text>
-        </g>
-
-        <g id="node-skills" data-node-id="skills" data-node-label="Skills" tabindex="0" role="button" aria-label="聚焦Skills，技能库, 上下文子系统" aria-pressed="false" data-node-kind="database" data-node-sublabel="技能库" data-node-context="上下文子系统">
-          <title>Skills · 技能库 · 上下文子系统</title>
-          <rect x="932" y="400" width="176" height="60" rx="6" class="c-mask"/>
-          <rect x="932" y="400" width="176" height="60" rx="6" class="c-database" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(938 406) scale(0.6875)">
-            <ellipse cx="8" cy="4" rx="5" ry="2"/>
-            <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="1020" y="428" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Skills</text>
-        <text data-detail="context" x="1020" y="444" class="t-muted" font-size="9" text-anchor="middle">技能库</text>
-        </g>
-
-        <g id="node-pg" data-node-id="pg" data-node-label="PostgreSQL" tabindex="0" role="button" aria-label="聚焦PostgreSQL，pgvector · AGE · tsvector · pg_cron, 架构组件" aria-pressed="false" data-node-kind="database" data-node-sublabel="pgvector · AGE · tsvector · pg_cron" data-node-context="架构组件">
-          <title>PostgreSQL · pgvector · AGE · tsvector · pg_cron · 架构组件</title>
-          <rect x="460" y="548" width="280" height="64" rx="6" class="c-mask"/>
-          <rect x="460" y="548" width="280" height="64" rx="6" class="c-database" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(466 554) scale(0.6875)">
-            <ellipse cx="8" cy="4" rx="5" ry="2"/>
-            <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="600" y="578" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">PostgreSQL</text>
-        <text data-detail="context" x="600" y="594" class="t-muted" font-size="9" text-anchor="middle">pgvector · AGE · tsvector · pg_cron</text>
+          <text data-node-label="" data-detail-anchor="" x="640" y="510" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">PostgreSQL</text>
+        <text data-detail="context" x="640" y="526" class="t-muted" font-size="9" text-anchor="middle">pgvector · Apache AGE · tsvector · pg_cron</text>
         </g>
 
         <!-- Connection labels -->
-        <g data-detail="context" data-edge-from="runtime" data-edge-to="activate" data-edge-label="统一入口" data-edge-key="0" data-edge-id="unified-entry">
-          <rect x="815.8" y="104" width="48.4" height="14" rx="3" class="c-mask"/>
-          <text x="840" y="114" class="t-backend" font-size="8" text-anchor="middle">统一入口</text>
-        </g>
-        <g data-detail="context" data-edge-from="activate" data-edge-to="collect" data-edge-label="行为回流" data-edge-key="1" data-edge-id="govern-feedback">
-          <rect x="575.8" y="130" width="48.4" height="14" rx="3" class="c-mask"/>
-          <text x="600" y="140" class="t-muted" font-size="8" text-anchor="middle">行为回流</text>
-        </g>
-
-
-        <g data-detail="context" data-edge-from="collect" data-edge-to="memory" data-edge-label="指针" data-edge-key="4" data-edge-id="ptr-memory">
-          <rect x="241" y="318" width="30" height="14" rx="3" class="c-mask"/>
-          <text x="256" y="328" class="t-messagebus" font-size="8" text-anchor="middle">指针</text>
+        <g data-detail="context" data-edge-from="runtime" data-edge-to="cl_activate" data-edge-label="统一入口" data-edge-key="0" data-edge-id="c_entry">
+          <rect x="615.8" y="114" width="48.4" height="14" rx="3" class="c-mask"/>
+          <text x="640" y="124" class="t-backend" font-size="8" text-anchor="middle">统一入口</text>
         </g>
 
 
 
 
+
+        <g data-detail="context" data-edge-from="cl_collect" data-edge-to="sys_memory" data-edge-label="指针" data-edge-key="6" data-edge-id="c_ptr_mem">
+          <rect x="159" y="286" width="30" height="14" rx="3" class="c-mask"/>
+          <text x="174" y="296" class="t-messagebus" font-size="8" text-anchor="middle">指针</text>
+        </g>
+        <g data-detail="context" data-edge-from="cl_collect" data-edge-to="sys_kb" data-edge-label="指针" data-edge-key="7" data-edge-id="c_ptr_kb">
+          <rect x="411" y="342" width="30" height="14" rx="3" class="c-mask"/>
+          <text x="426" y="352" class="t-messagebus" font-size="8" text-anchor="middle">指针</text>
+        </g>
+        <g data-detail="context" data-edge-from="cl_collect" data-edge-to="sys_kg" data-edge-label="指针" data-edge-key="8" data-edge-id="c_ptr_kg">
+          <rect x="625" y="342" width="30" height="14" rx="3" class="c-mask"/>
+          <text x="640" y="352" class="t-messagebus" font-size="8" text-anchor="middle">指针</text>
+        </g>
+        <g data-detail="context" data-edge-from="cl_collect" data-edge-to="sys_tools" data-edge-label="指针" data-edge-key="9" data-edge-id="c_ptr_tools">
+          <rect x="839" y="342" width="30" height="14" rx="3" class="c-mask"/>
+          <text x="854" y="352" class="t-messagebus" font-size="8" text-anchor="middle">指针</text>
+        </g>
+        <g data-detail="context" data-edge-from="cl_collect" data-edge-to="sys_skills" data-edge-label="指针" data-edge-key="10" data-edge-id="c_ptr_skills">
+          <rect x="1053" y="342" width="30" height="14" rx="3" class="c-mask"/>
+          <text x="1068" y="352" class="t-messagebus" font-size="8" text-anchor="middle">指针</text>
+        </g>
 
 
 
@@ -5319,26 +5353,31 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 
 
         <!-- Boundary labels (foreground masks keep routes out of titles) -->
-        <g data-graph-role="structural-frame-label" data-composition-frame-id="0" data-composition-frame-kind="region" data-composition-frame-label="Context Layer · 上下文治理层">
-          <rect data-graph-role="structural-frame-label-mask" x="254" y="196" width="161.2" height="16" rx="3" class="c-mask"/>
-          <text data-boundary-label="" x="258" y="209" class="t-cloud" font-size="9" font-weight="600">Context Layer · 上下文治理层</text>
+        <g data-graph-role="structural-frame-label" data-composition-frame-id="0" data-composition-frame-kind="region" data-composition-frame-label="Agent Runtime">
+          <rect data-graph-role="structural-frame-label-mask" x="428" y="18" width="80.2" height="16" rx="3" class="c-mask"/>
+          <text data-boundary-label="" x="432" y="31" class="t-cloud" font-size="9" font-weight="600">Agent Runtime</text>
         </g>
 
-        <g data-graph-role="structural-frame-label" data-composition-frame-id="1" data-composition-frame-kind="region" data-composition-frame-label="上下文子系统">
-          <rect data-graph-role="structural-frame-label-mask" x="76" y="380" width="74.8" height="16" rx="3" class="c-mask"/>
-          <text data-boundary-label="" x="80" y="393" class="t-cloud" font-size="9" font-weight="600">上下文子系统</text>
+        <g data-graph-role="structural-frame-label" data-composition-frame-id="1" data-composition-frame-kind="region" data-composition-frame-label="Context Layer（上下文治理层）">
+          <rect data-graph-role="structural-frame-label-mask" x="110" y="166" width="166.6" height="16" rx="3" class="c-mask"/>
+          <text data-boundary-label="" x="114" y="179" class="t-cloud" font-size="9" font-weight="600">Context Layer（上下文治理层）</text>
+        </g>
+
+        <g data-graph-role="structural-frame-label" data-composition-frame-id="2" data-composition-frame-kind="region" data-composition-frame-label="子系统">
+          <rect data-graph-role="structural-frame-label-mask" x="110" y="360" width="42.4" height="16" rx="3" class="c-mask"/>
+          <text data-boundary-label="" x="114" y="373" class="t-cloud" font-size="9" font-weight="600">子系统</text>
         </g>
 
         <!-- Legend -->
         <g data-legend="" data-legend-bridge="">
-          <text x="40" y="644" class="t-primary" font-size="12" font-weight="650">图例</text>
-          <g data-legend-semantic-kind="backend" data-legend-kind="backend" data-legend-label="后端" data-legend-x="40" data-legend-baseline="664" data-legend-width="63">
-            <rect x="40" y="655" width="16" height="10" rx="2.5" class="c-backend" stroke-width="1"/>
-            <text x="62" y="664" class="t-muted" font-size="10" font-weight="500">后端</text>
+          <text x="40" y="556" class="t-primary" font-size="12" font-weight="650">图例</text>
+          <g data-legend-semantic-kind="backend" data-legend-kind="backend" data-legend-label="后端" data-legend-x="40" data-legend-baseline="576" data-legend-width="63">
+            <rect x="40" y="567" width="16" height="10" rx="2.5" class="c-backend" stroke-width="1"/>
+            <text x="62" y="576" class="t-muted" font-size="10" font-weight="500">后端</text>
           </g>
-          <g data-legend-semantic-kind="database" data-legend-kind="database" data-legend-label="数据库" data-legend-x="125" data-legend-baseline="664" data-legend-width="73">
-            <rect x="125" y="655" width="16" height="10" rx="2.5" class="c-database" stroke-width="1"/>
-            <text x="147" y="664" class="t-muted" font-size="10" font-weight="500">数据库</text>
+          <g data-legend-semantic-kind="database" data-legend-kind="database" data-legend-label="数据库" data-legend-x="125" data-legend-baseline="576" data-legend-width="73">
+            <rect x="125" y="567" width="16" height="10" rx="2.5" class="c-database" stroke-width="1"/>
+            <text x="147" y="576" class="t-muted" font-size="10" font-weight="500">数据库</text>
           </g>
         </g>
       </svg>
@@ -5530,33 +5569,33 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       <div class="card">
         <div class="card-header">
           <div class="card-dot cyan"></div>
-          <h3>运行时边界</h3>
+          <h3>统一注入入口</h3>
         </div>
         <ul>
-          <li>&bull; Agent Runtime（五翼 Faculties / Pipelines / Toolset）不直连子系统</li>
-          <li>&bull; 全部上下文访问经 Activate 单一入口：Router 路由 + Guard 治理</li>
+          <li>&bull; Agent Runtime 仅经 Activate 段进入上下文层，无旁路注入</li>
+          <li>&bull; Context Router + Guard 决定注入口径与可见性</li>
         </ul>
       </div>
 
       <div class="card">
         <div class="card-header">
-          <div class="card-dot emerald"></div>
-          <h3>治理织物</h3>
+          <div class="card-dot violet"></div>
+          <h3>CGAVE 治理闭环</h3>
         </div>
         <ul>
-          <li>&bull; Collect → Enrich → Activate 三相闭环，行为回流目录审计</li>
-          <li>&bull; 引擎级治理执行，策略不可被调用方绕过</li>
+          <li>&bull; Collect → Govern → Activate → Verify → Evolve 五段链路</li>
+          <li>&bull; Activate 可按需回流 Collect 触发增量采集</li>
         </ul>
       </div>
 
       <div class="card">
         <div class="card-header">
           <div class="card-dot amber"></div>
-          <h3>存储底座</h3>
+          <h3>单一持久化真相</h3>
         </div>
         <ul>
-          <li>&bull; 五子系统统一持久化于 PostgreSQL（pgvector / AGE / tsvector / pg_cron）</li>
-          <li>&bull; Catalog 以 VIEW 指针引用子系统，零数据副本防 Split-Brain</li>
+          <li>&bull; 五个子系统统一落 PostgreSQL，无独立存储分叉</li>
+          <li>&bull; pgvector 向量 · AGE 图 · tsvector 全文 · pg_cron 调度</li>
         </ul>
       </div>
     </div>

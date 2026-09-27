@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="generator" content="archify 2.17.0-dev.1">
-  <title>请求期上下文注入链（现状）</title>
+  <title>Context Layer 生命周期：CGAVE 五段大回路</title>
   <script>
     // Resolve the theme before first paint so light-preference users don't
     // see a dark flash. The toolbar script below re-applies with UI state.
@@ -5081,7 +5081,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
            data-preset-badge-blueprint="蓝图 / 修订 01"
            data-preset-badge-editorial="编辑风格 / 现场笔记">
         <div class="pulse-dot"></div>
-        <h1>请求期上下文注入链（现状）</h1>
+        <h1>Context Layer 生命周期：CGAVE 五段大回路</h1>
       </div>
     </div>
 
@@ -5130,9 +5130,9 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     <!-- Main Diagram -->
     <div class="diagram-container" data-detail-level="read"
          data-preset-badge-editorial-plate="ARCHIFY / 图版 04">
-      <svg viewBox="0 0 1000 534" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-preset="classic" data-quality-profile="showcase">
-        <title id="archify-diagram-title">请求期上下文注入链（现状）</title>
-        <desc id="archify-diagram-description">由 Archify 生成的工作流图。</desc>
+      <svg viewBox="0 0 1080 560" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-preset="classic" data-quality-profile="showcase">
+        <title id="archify-diagram-title">Context Layer 生命周期：CGAVE 五段大回路</title>
+        <desc id="archify-diagram-description">由 Archify 生成的数据流图。</desc>
         <!-- Definitions -->
         <defs>
           <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
@@ -5155,246 +5155,174 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <!-- Background Grid -->
         <rect width="100%" height="100%" fill="url(#grid)" />
 
-        <!-- Swimlanes -->
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-0" x="40" y="52" width="932" height="106" rx="10" class="c-lane" stroke-width="1"/>
-        <text x="54" y="74" class="t-dim" font-size="10" font-weight="600">01 / Agent Runtime · 主链</text>
+        <!-- Data Stages -->
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="stage" data-composition-frame-id="0" x="16" y="46" width="168" height="440" rx="10" class="c-lane" stroke-width="1"/>
+        <text x="100" y="68" class="t-dim" font-size="9" font-weight="600" text-anchor="middle">01 / 五源注入</text>
 
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-1" x="40" y="178" width="932" height="106" rx="10" class="c-lane" stroke-width="1"/>
-        <text x="54" y="200" class="t-dim" font-size="10" font-weight="600">02 / 旁路与回退</text>
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="stage" data-composition-frame-id="1" x="231" y="46" width="168" height="440" rx="10" class="c-lane" stroke-width="1"/>
+        <text x="315" y="68" class="t-dim" font-size="9" font-weight="600" text-anchor="middle">02 / Collect 采集</text>
 
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-2" x="40" y="304" width="932" height="106" rx="10" class="c-lane" stroke-width="1"/>
-        <text x="54" y="326" class="t-dim" font-size="10" font-weight="600">03 / PostgreSQL 数据来源</text>
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="stage" data-composition-frame-id="2" x="446" y="46" width="168" height="440" rx="10" class="c-lane" stroke-width="1"/>
+        <text x="530" y="68" class="t-dim" font-size="9" font-weight="600" text-anchor="middle">03 / Govern 治理</text>
 
-        <!-- Phase headers -->
-        <line x1="68" y1="35" x2="324" y2="35" class="a-default" stroke-width="1.1"/>
-        <rect x="68" y="27" width="256" height="16" rx="4" class="c-mask"/>
-        <text x="196" y="39" class="t-muted" font-size="8" font-weight="600" text-anchor="middle">请求接入</text>
-        <line x1="400" y1="35" x2="668" y2="35" class="a-emphasis" stroke-width="1.1"/>
-        <rect x="400" y="27" width="268" height="16" rx="4" class="c-mask"/>
-        <text x="534" y="39" class="t-backend" font-size="8" font-weight="600" text-anchor="middle">解析与读取</text>
-        <line x1="748" y1="35" x2="960" y2="35" class="a-dashed" stroke-width="1.1"/>
-        <rect x="748" y="27" width="212" height="16" rx="4" class="c-mask"/>
-        <text x="854" y="39" class="t-messagebus" font-size="8" font-weight="600" text-anchor="middle">汇入与按需检索</text>
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="stage" data-composition-frame-id="3" x="661" y="46" width="168" height="440" rx="10" class="c-lane" stroke-width="1"/>
+        <text x="745" y="68" class="t-dim" font-size="9" font-weight="600" text-anchor="middle">04 / Activate 激活</text>
 
-        <!-- Workflow groups -->
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="stage" data-composition-frame-id="4" x="876" y="46" width="168" height="440" rx="10" class="c-lane" stroke-width="1"/>
+        <text x="960" y="68" class="t-dim" font-size="9" font-weight="600" text-anchor="middle">05 / Verify 验证 · Evolve 进化</text>
 
-
-        <!-- Edge paths -->
-        <path data-edge-from="injector" data-edge-to="llmreq" data-edge-key="0" data-edge-id="injector-llmreq" data-composition-points="622,146;622,162;794,162;794,146" d="M 622 146 L 622 162 L 794 162 L 794 146" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="injector" data-edge-to="skills_tables" data-edge-label="读" data-edge-key="1" data-edge-id="injector-skills" data-composition-points="544,120;528,120;528,231;622,231;622,346" d="M 544 120 L 528 120 L 528 231 L 622 231 L 622 346" class="a-dashed" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
-        <path data-edge-from="llmreq" data-edge-to="planner" data-edge-label="Agent 调工具" data-edge-key="2" data-edge-id="llmreq-planner" data-composition-points="860,120;984,120;984,246;864,246" d="M 860 120 L 984 120 L 984 246 L 864 246" class="a-dashed" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
-        <path data-edge-from="planner" data-edge-to="kb" data-edge-label="混合检索" data-edge-key="3" data-edge-id="planner-kb" data-composition-points="864,246;880,246;880,426;794,426;794,398" d="M 864 246 L 880 246 L 880 426 L 794 426 L 794 398" class="a-dashed" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
-        <path data-edge-from="preload" data-edge-to="memories" data-edge-label="检索" data-edge-key="4" data-edge-id="preload-memories" data-composition-points="48,246;20,246;20,372;54,372" d="M 48 246 L 20 246 L 20 372 L 54 372" class="a-dashed" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
-        <path data-edge-from="provider" data-edge-to="fallback" data-edge-label="DB 未命中" data-edge-key="5" data-edge-id="provider-fallback" data-composition-points="278,146;278,168;360,168;360,246;344,246" d="M 278 146 L 278 168 L 360 168 L 360 246 L 344 246" class="a-security" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
-        <path data-edge-from="provider" data-edge-to="resolver" data-edge-key="6" data-edge-id="provider-resolver" data-composition-points="348,120;376,120" d="M 348 120 L 376 120" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="request" data-edge-to="preload" data-edge-label="每轮 LLM 请求前" data-edge-key="7" data-edge-id="request-preload" data-composition-points="114,146;114,168;196,168;196,246;180,246" d="M 114 146 L 114 168 L 196 168 L 196 246 L 180 246" class="a-dashed" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
-        <path data-edge-from="request" data-edge-to="provider" data-edge-key="8" data-edge-id="request-provider" data-composition-points="180,120;208,120" d="M 180 120 L 208 120" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="resolver" data-edge-to="agents_row" data-edge-label="读" data-edge-key="9" data-edge-id="resolver-agents" data-composition-points="446,154;446,231;532,231;532,372;516,372" d="M 446 154 L 446 231 L 532 231 L 532 372 L 516 372" class="a-dashed" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
-        <path data-edge-from="resolver" data-edge-to="injector" data-edge-key="10" data-edge-id="resolver-injector" data-composition-points="516,120;544,120" d="M 516 120 L 544 120" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <!-- Flow paths -->
+        <path data-edge-from="sources" data-edge-to="collect" data-edge-label="原始信号" data-edge-key="0" data-edge-id="raw-signals" data-composition-points="156,271;259,271" d="M 156 271 L 259 271" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="collect" data-edge-to="govern" data-edge-label="汇聚信号" data-edge-key="1" data-edge-id="gathered-signals" data-composition-points="371,271;474,271" d="M 371 271 L 474 271" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="govern" data-edge-to="activate" data-edge-label="治理后对象" data-edge-key="2" data-edge-id="governed-objects" data-composition-points="586,271;689,271" d="M 586 271 L 689 271" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="activate" data-edge-to="verify" data-edge-label="预算内装配集" data-edge-key="3" data-edge-id="assembled-set" data-composition-points="801,271;904,271" d="M 801 271 L 904 271" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="verify" data-edge-to="evolve" data-edge-label="验证反馈" data-edge-key="4" data-edge-id="verify-feedback" data-composition-points="960,242;960,186" d="M 960 242 L 960 186" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="verify" data-edge-to="delivery" data-edge-label="最小高信号集" data-edge-key="5" data-edge-id="delivery-set" data-composition-points="960,300;960,356" d="M 960 300 L 960 356" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="evolve" data-edge-to="collect" data-edge-label="错误修正回灌 · 复利" data-edge-key="6" data-edge-id="correction-loop" data-composition-points="904,157;315,157;315,242" d="M 904 157 L 315 157 L 315 242" class="a-dashed" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
+        <path data-edge-from="collect" data-edge-to="activate" data-edge-label="治理织入全程" data-edge-key="7" data-edge-id="governance-weave" data-composition-points="315,300;315,330;745,330;745,300" d="M 315 300 L 315 330 L 745 330 L 745 300" class="a-dashed" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
 
         <!-- Nodes -->
-        <g id="node-request" data-node-id="request" data-node-label="用户请求" tabindex="0" role="button" aria-label="聚焦用户请求，root → Faculty 委派, Agent Runtime · 主链 › 请求接入" aria-pressed="false" data-node-kind="external" data-node-sublabel="root → Faculty 委派" data-node-context="Agent Runtime · 主链 › 请求接入">
-          <title>用户请求 · root → Faculty 委派 · Agent Runtime · 主链 › 请求接入</title>
-          <rect x="48" y="94" width="132" height="52" rx="6" class="c-mask"/>
-          <rect x="48" y="94" width="132" height="52" rx="6" class="c-external" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(54 100) scale(0.6875)">
+        <g id="node-sources" data-node-id="sources" data-node-label="五源" tabindex="0" role="button" aria-label="聚焦五源，运行时上下文输入, 01 / 五源注入" aria-pressed="false" data-node-kind="external" data-node-sublabel="运行时上下文输入" data-node-context="01 / 五源注入">
+          <title>五源 · 运行时上下文输入 · 01 / 五源注入</title>
+          <rect x="44" y="242" width="112" height="58" rx="6" class="c-mask"/>
+          <rect x="44" y="242" width="112" height="58" rx="6" class="c-external" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(50 248) scale(0.6875)">
             <rect x="2.5" y="5" width="8.5" height="8" rx="1.5"/>
             <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="114" y="115" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">用户请求</text>
-          <text data-detail="context" x="114" y="132" class="t-muted" font-size="8" text-anchor="middle">root → Faculty 委派</text>
+          <text data-node-label="" data-detail-anchor="" x="100" y="263" class="t-primary" font-size="10" font-weight="600" text-anchor="middle">五源</text>
+          <text data-detail="context" x="100" y="279" class="t-muted" font-size="7" text-anchor="middle">运行时上下文输入</text>
         </g>
 
-        <g id="node-provider" data-node-id="provider" data-node-label="动态指令解析" tabindex="0" role="button" aria-label="聚焦动态指令解析，make_instruction_provider, Agent Runtime · 主链 › 请求接入" aria-pressed="false" data-node-kind="backend" data-node-sublabel="make_instruction_provider" data-node-context="Agent Runtime · 主链 › 请求接入">
-          <title>动态指令解析 · make_instruction_provider · Agent Runtime · 主链 › 请求接入</title>
-          <rect x="208" y="94" width="140" height="52" rx="6" class="c-mask"/>
-          <rect x="208" y="94" width="140" height="52" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(214 100) scale(0.6875)">
+        <g id="node-collect" data-node-id="collect" data-node-label="Collect 采集" tabindex="0" role="button" aria-label="聚焦Collect 采集，元数据 · 血缘 · 行为信号, 02 / Collect 采集" aria-pressed="false" data-node-kind="backend" data-node-sublabel="元数据 · 血缘 · 行为信号" data-node-tag="C" data-node-context="02 / Collect 采集">
+          <title>Collect 采集 · 元数据 · 血缘 · 行为信号 · 02 / Collect 采集 · C</title>
+          <rect x="259" y="242" width="112" height="58" rx="6" class="c-mask"/>
+          <rect x="259" y="242" width="112" height="58" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(265 248) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="278" y="115" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">动态指令解析</text>
-          <text data-detail="context" x="278" y="132" class="t-muted" font-size="8" text-anchor="middle">make_instruction_provider</text>
+          <text data-node-label="" data-detail-anchor="" x="315" y="263" class="t-primary" font-size="10" font-weight="600" text-anchor="middle">Collect 采集</text>
+          <text data-detail="context" x="315" y="279" class="t-muted" font-size="7" text-anchor="middle">元数据 · 血缘 · 行为信号</text>
+        <text data-detail="fine" x="315" y="289" class="t-backend" font-size="7" text-anchor="middle">C</text>
         </g>
 
-        <g id="node-resolver" data-node-id="resolver" data-node-label="Agent 行加载" tabindex="0" role="button" aria-label="聚焦Agent 行加载，_load_subagent_row, Agent Runtime · 主链 › 解析与读取" aria-pressed="false" data-node-kind="backend" data-node-sublabel="_load_subagent_row" data-node-tag="60s TTL" data-node-context="Agent Runtime · 主链 › 解析与读取">
-          <title>Agent 行加载 · _load_subagent_row · Agent Runtime · 主链 › 解析与读取 · 60s TTL</title>
-          <rect x="376" y="86" width="140" height="68" rx="6" class="c-mask"/>
-          <rect x="376" y="86" width="140" height="68" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(382 92) scale(0.6875)">
+        <g id="node-govern" data-node-id="govern" data-node-label="Govern 治理" tabindex="0" role="button" aria-label="聚焦Govern 治理，口径 · 可见性 · 注入纪律, 03 / Govern 治理" aria-pressed="false" data-node-kind="security" data-node-sublabel="口径 · 可见性 · 注入纪律" data-node-tag="G" data-node-context="03 / Govern 治理">
+          <title>Govern 治理 · 口径 · 可见性 · 注入纪律 · 03 / Govern 治理 · G</title>
+          <rect x="474" y="242" width="112" height="58" rx="6" class="c-mask"/>
+          <rect x="474" y="242" width="112" height="58" rx="6" class="c-security" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(480 248) scale(0.6875)">
+            <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
+            <path d="m5.8 8 1.5 1.5 3-3"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="530" y="263" class="t-primary" font-size="10" font-weight="600" text-anchor="middle">Govern 治理</text>
+          <text data-detail="context" x="530" y="279" class="t-muted" font-size="7" text-anchor="middle">口径 · 可见性 · 注入纪律</text>
+        <text data-detail="fine" x="530" y="289" class="t-security" font-size="7" text-anchor="middle">G</text>
+        </g>
+
+        <g id="node-activate" data-node-id="activate" data-node-label="Activate 激活" tabindex="0" role="button" aria-label="聚焦Activate 激活，预算内装配 · 双通道, 04 / Activate 激活" aria-pressed="false" data-node-kind="backend" data-node-sublabel="预算内装配 · 双通道" data-node-tag="A" data-node-context="04 / Activate 激活">
+          <title>Activate 激活 · 预算内装配 · 双通道 · 04 / Activate 激活 · A</title>
+          <rect x="689" y="242" width="112" height="58" rx="6" class="c-mask"/>
+          <rect x="689" y="242" width="112" height="58" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(695 248) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="446" y="107" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Agent 行加载</text>
-          <text data-detail="context" x="446" y="124" class="t-muted" font-size="8" text-anchor="middle">_load_subagent_row</text>
-        <text data-detail="fine" x="446" y="142" class="t-backend" font-size="7" text-anchor="middle">60s TTL</text>
+          <text data-node-label="" data-detail-anchor="" x="745" y="263" class="t-primary" font-size="10" font-weight="600" text-anchor="middle">Activate 激活</text>
+          <text data-detail="context" x="745" y="279" class="t-muted" font-size="7" text-anchor="middle">预算内装配 · 双通道</text>
+        <text data-detail="fine" x="745" y="289" class="t-backend" font-size="7" text-anchor="middle">A</text>
         </g>
 
-        <g id="node-injector" data-node-id="injector" data-node-label="技能渐进注入" tabindex="0" role="button" aria-label="聚焦技能渐进注入，build_progressive_disclosure_prompt, Agent Runtime · 主链 › 解析与读取" aria-pressed="false" data-node-kind="backend" data-node-sublabel="build_progressive_disclosure_prompt" data-node-context="Agent Runtime · 主链 › 解析与读取">
-          <title>技能渐进注入 · build_progressive_disclosure_prompt · Agent Runtime · 主链 › 解析与读取</title>
-          <rect x="544" y="94" width="156" height="52" rx="6" class="c-mask"/>
-          <rect x="544" y="94" width="156" height="52" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(550 100) scale(0.6875)">
+        <g id="node-verify" data-node-id="verify" data-node-label="Verify 验证" tabindex="0" role="button" aria-label="聚焦Verify 验证，应答锚定 · 可观测 · eval, 05 / Verify 验证 · Evolve 进化" aria-pressed="false" data-node-kind="backend" data-node-sublabel="应答锚定 · 可观测 · eval" data-node-tag="V" data-node-context="05 / Verify 验证 · Evolve 进化">
+          <title>Verify 验证 · 应答锚定 · 可观测 · eval · 05 / Verify 验证 · Evolve 进化 · V</title>
+          <rect x="904" y="242" width="112" height="58" rx="6" class="c-mask"/>
+          <rect x="904" y="242" width="112" height="58" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(910 248) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="622" y="115" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">技能渐进注入</text>
-          <text data-detail="context" x="622" y="132" class="t-muted" font-size="7" text-anchor="middle">build_progressive_disclosure_prompt</text>
+          <text data-node-label="" data-detail-anchor="" x="960" y="263" class="t-primary" font-size="10" font-weight="600" text-anchor="middle">Verify 验证</text>
+          <text data-detail="context" x="960" y="279" class="t-muted" font-size="7" text-anchor="middle">应答锚定 · 可观测 · eval</text>
+        <text data-detail="fine" x="960" y="289" class="t-backend" font-size="7" text-anchor="middle">V</text>
         </g>
 
-        <g id="node-llmreq" data-node-id="llmreq" data-node-label="LLM 请求" tabindex="0" role="button" aria-label="聚焦LLM 请求，instruction + 记忆块, Agent Runtime · 主链 › 汇入与按需检索" aria-pressed="false" data-node-kind="cloud" data-node-sublabel="instruction + 记忆块" data-node-context="Agent Runtime · 主链 › 汇入与按需检索">
-          <title>LLM 请求 · instruction + 记忆块 · Agent Runtime · 主链 › 汇入与按需检索</title>
-          <rect x="728" y="94" width="132" height="52" rx="6" class="c-mask"/>
-          <rect x="728" y="94" width="132" height="52" rx="6" class="c-cloud" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="cloud" class="semantic-sigil s-cloud" transform="translate(734 100) scale(0.6875)">
-            <path d="M4.3 12.5h7.3a2.4 2.4 0 0 0 .2-4.8 4 4 0 0 0-7.5-1.3A3.1 3.1 0 0 0 4.3 12.5Z"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="794" y="115" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">LLM 请求</text>
-          <text data-detail="context" x="794" y="132" class="t-muted" font-size="8" text-anchor="middle">instruction + 记忆块</text>
-        </g>
-
-        <g id="node-preload" data-node-id="preload" data-node-label="记忆预载" tabindex="0" role="button" aria-label="聚焦记忆预载，preload_memory_tool, 旁路与回退 › 请求接入" aria-pressed="false" data-node-kind="messagebus" data-node-sublabel="preload_memory_tool" data-node-context="旁路与回退 › 请求接入">
-          <title>记忆预载 · preload_memory_tool · 旁路与回退 › 请求接入</title>
-          <rect x="48" y="220" width="132" height="52" rx="6" class="c-mask"/>
-          <rect x="48" y="220" width="132" height="52" rx="6" class="c-messagebus" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="messagebus" class="semantic-sigil s-messagebus" transform="translate(54 226) scale(0.6875)">
-            <path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"/>
-            <circle cx="5" cy="4.5" r="1" class="sigil-fill"/>
-            <circle cx="10.5" cy="8" r="1" class="sigil-fill"/>
-            <circle cx="7" cy="11.5" r="1" class="sigil-fill"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="114" y="241" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">记忆预载</text>
-          <text data-detail="context" x="114" y="258" class="t-muted" font-size="8" text-anchor="middle">preload_memory_tool</text>
-        </g>
-
-        <g id="node-fallback" data-node-id="fallback" data-node-label="硬编码回退" tabindex="0" role="button" aria-label="聚焦硬编码回退，_INSTRUCTION, 旁路与回退 › 请求接入" aria-pressed="false" data-node-kind="backend" data-node-sublabel="_INSTRUCTION" data-node-tag="fail-soft" data-node-context="旁路与回退 › 请求接入">
-          <title>硬编码回退 · _INSTRUCTION · 旁路与回退 › 请求接入 · fail-soft</title>
-          <rect x="212" y="212" width="132" height="68" rx="6" class="c-mask"/>
-          <rect x="212" y="212" width="132" height="68" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(218 218) scale(0.6875)">
-            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="278" y="233" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">硬编码回退</text>
-          <text data-detail="context" x="278" y="250" class="t-muted" font-size="8" text-anchor="middle">_INSTRUCTION</text>
-        <text data-detail="fine" x="278" y="268" class="t-backend" font-size="7" text-anchor="middle">fail-soft</text>
-        </g>
-
-        <g id="node-planner" data-node-id="planner" data-node-label="混合检索规划" tabindex="0" role="button" aria-label="聚焦混合检索规划，HybridPlanner.plan, 旁路与回退 › 汇入与按需检索" aria-pressed="false" data-node-kind="messagebus" data-node-sublabel="HybridPlanner.plan" data-node-tag="feature flag" data-node-context="旁路与回退 › 汇入与按需检索">
-          <title>混合检索规划 · HybridPlanner.plan · 旁路与回退 › 汇入与按需检索 · feature flag</title>
-          <rect x="724" y="212" width="140" height="68" rx="6" class="c-mask"/>
-          <rect x="724" y="212" width="140" height="68" rx="6" class="c-messagebus" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="messagebus" class="semantic-sigil s-messagebus" transform="translate(730 218) scale(0.6875)">
-            <path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"/>
-            <circle cx="5" cy="4.5" r="1" class="sigil-fill"/>
-            <circle cx="10.5" cy="8" r="1" class="sigil-fill"/>
-            <circle cx="7" cy="11.5" r="1" class="sigil-fill"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="794" y="233" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">混合检索规划</text>
-          <text data-detail="context" x="794" y="250" class="t-muted" font-size="8" text-anchor="middle">HybridPlanner.plan</text>
-        <text data-detail="fine" x="794" y="268" class="t-messagebus" font-size="7" text-anchor="middle">feature flag</text>
-        </g>
-
-        <g id="node-memories" data-node-id="memories" data-node-label="memories 表" tabindex="0" role="button" aria-label="聚焦memories 表，长期记忆, PostgreSQL 数据来源 › 请求接入" aria-pressed="false" data-node-kind="database" data-node-sublabel="长期记忆" data-node-context="PostgreSQL 数据来源 › 请求接入">
-          <title>memories 表 · 长期记忆 · PostgreSQL 数据来源 › 请求接入</title>
-          <rect x="54" y="346" width="120" height="52" rx="6" class="c-mask"/>
-          <rect x="54" y="346" width="120" height="52" rx="6" class="c-database" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(60 352) scale(0.6875)">
+        <g id="node-evolve" data-node-id="evolve" data-node-label="Evolve 进化" tabindex="0" role="button" aria-label="聚焦Evolve 进化，双轨富化 · 冲突裁决, 05 / Verify 验证 · Evolve 进化" aria-pressed="false" data-node-kind="database" data-node-sublabel="双轨富化 · 冲突裁决" data-node-tag="E" data-node-context="05 / Verify 验证 · Evolve 进化">
+          <title>Evolve 进化 · 双轨富化 · 冲突裁决 · 05 / Verify 验证 · Evolve 进化 · E</title>
+          <rect x="904" y="128" width="112" height="58" rx="6" class="c-mask"/>
+          <rect x="904" y="128" width="112" height="58" rx="6" class="c-database" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(910 134) scale(0.6875)">
             <ellipse cx="8" cy="4" rx="5" ry="2"/>
             <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="114" y="367" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">memories 表</text>
-          <text data-detail="context" x="114" y="384" class="t-muted" font-size="8" text-anchor="middle">长期记忆</text>
+          <text data-node-label="" data-detail-anchor="" x="960" y="149" class="t-primary" font-size="10" font-weight="600" text-anchor="middle">Evolve 进化</text>
+          <text data-detail="context" x="960" y="165" class="t-muted" font-size="7" text-anchor="middle">双轨富化 · 冲突裁决</text>
+        <text data-detail="fine" x="960" y="175" class="t-database" font-size="7" text-anchor="middle">E</text>
         </g>
 
-        <g id="node-agents_row" data-node-id="agents_row" data-node-label="agents 表" tabindex="0" role="button" aria-label="聚焦agents 表，含 agent_versions 快照, PostgreSQL 数据来源 › 解析与读取" aria-pressed="false" data-node-kind="database" data-node-sublabel="含 agent_versions 快照" data-node-context="PostgreSQL 数据来源 › 解析与读取">
-          <title>agents 表 · 含 agent_versions 快照 · PostgreSQL 数据来源 › 解析与读取</title>
-          <rect x="376" y="346" width="140" height="52" rx="6" class="c-mask"/>
-          <rect x="376" y="346" width="140" height="52" rx="6" class="c-database" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(382 352) scale(0.6875)">
-            <ellipse cx="8" cy="4" rx="5" ry="2"/>
-            <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
+        <g id="node-delivery" data-node-id="delivery" data-node-label="交付" tabindex="0" role="button" aria-label="聚焦交付，预算内最小高信号集, 05 / Verify 验证 · Evolve 进化" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="预算内最小高信号集" data-node-context="05 / Verify 验证 · Evolve 进化">
+          <title>交付 · 预算内最小高信号集 · 05 / Verify 验证 · Evolve 进化</title>
+          <rect x="904" y="356" width="112" height="58" rx="6" class="c-mask"/>
+          <rect x="904" y="356" width="112" height="58" rx="6" class="c-frontend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="frontend" class="semantic-sigil s-frontend" transform="translate(910 362) scale(0.6875)">
+            <rect x="2" y="3" width="12" height="10" rx="2"/>
+            <path d="M2 6.5h12"/>
+            <circle cx="4.1" cy="4.8" r=".7" class="sigil-fill"/>
+            <circle cx="6.3" cy="4.8" r=".7" class="sigil-fill"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="446" y="367" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">agents 表</text>
-          <text data-detail="context" x="446" y="384" class="t-muted" font-size="8" text-anchor="middle">含 agent_versions 快照</text>
+          <text data-node-label="" data-detail-anchor="" x="960" y="377" class="t-primary" font-size="10" font-weight="600" text-anchor="middle">交付</text>
+          <text data-detail="context" x="960" y="393" class="t-muted" font-size="7" text-anchor="middle">预算内最小高信号集</text>
         </g>
 
-        <g id="node-skills_tables" data-node-id="skills_tables" data-node-label="skills 表" tabindex="0" role="button" aria-label="聚焦skills 表，skills + skill_versions, PostgreSQL 数据来源 › 解析与读取" aria-pressed="false" data-node-kind="database" data-node-sublabel="skills + skill_versions" data-node-context="PostgreSQL 数据来源 › 解析与读取">
-          <title>skills 表 · skills + skill_versions · PostgreSQL 数据来源 › 解析与读取</title>
-          <rect x="552" y="346" width="140" height="52" rx="6" class="c-mask"/>
-          <rect x="552" y="346" width="140" height="52" rx="6" class="c-database" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(558 352) scale(0.6875)">
-            <ellipse cx="8" cy="4" rx="5" ry="2"/>
-            <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="622" y="367" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">skills 表</text>
-          <text data-detail="context" x="622" y="384" class="t-muted" font-size="8" text-anchor="middle">skills + skill_versions</text>
+        <!-- Flow labels -->
+        <g data-detail="context" data-edge-from="sources" data-edge-to="collect" data-edge-label="原始信号" data-edge-key="0" data-edge-id="raw-signals">
+          <rect x="172.1" y="250" width="70.8" height="27" rx="4" class="c-mask"/>
+          <text x="207.5" y="261" class="t-backend" font-size="8" text-anchor="middle">原始信号</text>
+        <text data-detail="fine" x="207.5" y="272" class="t-dim" font-size="7" text-anchor="middle">四层信号原料</text>
         </g>
-
-        <g id="node-kb" data-node-id="kb" data-node-label="知识分块 + 规范实体" tabindex="0" role="button" aria-label="聚焦知识分块 + 规范实体，chunks · kg canonical, PostgreSQL 数据来源 › 汇入与按需检索" aria-pressed="false" data-node-kind="database" data-node-sublabel="chunks · kg canonical" data-node-context="PostgreSQL 数据来源 › 汇入与按需检索">
-          <title>知识分块 + 规范实体 · chunks · kg canonical · PostgreSQL 数据来源 › 汇入与按需检索</title>
-          <rect x="724" y="346" width="140" height="52" rx="6" class="c-mask"/>
-          <rect x="724" y="346" width="140" height="52" rx="6" class="c-database" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(730 352) scale(0.6875)">
-            <ellipse cx="8" cy="4" rx="5" ry="2"/>
-            <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="794" y="367" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">知识分块 + 规范实体</text>
-          <text data-detail="context" x="794" y="384" class="t-muted" font-size="8" text-anchor="middle">chunks · kg canonical</text>
+        <g data-detail="context" data-edge-from="collect" data-edge-to="govern" data-edge-label="汇聚信号" data-edge-key="1" data-edge-id="gathered-signals">
+          <rect x="396.9" y="250" width="51.2" height="16" rx="4" class="c-mask"/>
+          <text x="422.5" y="261" class="t-backend" font-size="8" text-anchor="middle">汇聚信号</text>
         </g>
-
-        <!-- Edge labels -->
-
-        <g data-detail="context" data-edge-from="injector" data-edge-to="skills_tables" data-edge-label="读" data-edge-key="1" data-edge-id="injector-skills">
-          <rect x="560" y="211" width="30" height="14" rx="3" class="c-mask"/>
-          <text x="575" y="221" class="t-database" font-size="8" text-anchor="middle">读</text>
+        <g data-detail="context" data-edge-from="govern" data-edge-to="activate" data-edge-label="治理后对象" data-edge-key="2" data-edge-id="governed-objects">
+          <rect x="607" y="250" width="61" height="16" rx="4" class="c-mask"/>
+          <text x="637.5" y="261" class="t-backend" font-size="8" text-anchor="middle">治理后对象</text>
         </g>
-        <g data-detail="context" data-edge-from="llmreq" data-edge-to="planner" data-edge-label="Agent 调工具" data-edge-key="2" data-edge-id="llmreq-planner">
-          <rect x="888.2" y="100" width="67.6" height="14" rx="3" class="c-mask"/>
-          <text x="922" y="110" class="t-database" font-size="8" text-anchor="middle">Agent 调工具</text>
+        <g data-detail="context" data-edge-from="activate" data-edge-to="verify" data-edge-label="预算内装配集" data-edge-key="3" data-edge-id="assembled-set">
+          <rect x="817.1" y="250" width="70.8" height="16" rx="4" class="c-mask"/>
+          <text x="852.5" y="261" class="t-backend" font-size="8" text-anchor="middle">预算内装配集</text>
         </g>
-        <g data-detail="context" data-edge-from="planner" data-edge-to="kb" data-edge-label="混合检索" data-edge-key="3" data-edge-id="planner-kb">
-          <rect x="812.8" y="406" width="48.4" height="14" rx="3" class="c-mask"/>
-          <text x="837" y="416" class="t-database" font-size="8" text-anchor="middle">混合检索</text>
+        <g data-detail="context" data-edge-from="verify" data-edge-to="evolve" data-edge-label="验证反馈" data-edge-key="4" data-edge-id="verify-feedback">
+          <rect x="934.4" y="221" width="51.2" height="16" rx="4" class="c-mask"/>
+          <text x="960" y="232" class="t-muted" font-size="8" text-anchor="middle">验证反馈</text>
         </g>
-        <g data-detail="context" data-edge-from="preload" data-edge-to="memories" data-edge-label="检索" data-edge-key="4" data-edge-id="preload-memories">
-          <rect x="22" y="352" width="30" height="14" rx="3" class="c-mask"/>
-          <text x="37" y="362" class="t-database" font-size="8" text-anchor="middle">检索</text>
+        <g data-detail="context" data-edge-from="verify" data-edge-to="delivery" data-edge-label="最小高信号集" data-edge-key="5" data-edge-id="delivery-set">
+          <rect x="924.6" y="303" width="70.8" height="16" rx="4" class="c-mask"/>
+          <text x="960" y="314" class="t-backend" font-size="8" text-anchor="middle">最小高信号集</text>
         </g>
-        <g data-detail="context" data-edge-from="provider" data-edge-to="fallback" data-edge-label="DB 未命中" data-edge-key="5" data-edge-id="provider-fallback">
-          <rect x="292.4" y="148" width="53.199999999999996" height="14" rx="3" class="c-mask"/>
-          <text x="319" y="158" class="t-security" font-size="8" text-anchor="middle">DB 未命中</text>
+        <g data-detail="context" data-edge-from="evolve" data-edge-to="collect" data-edge-label="错误修正回灌 · 复利" data-edge-key="6" data-edge-id="correction-loop">
+          <rect x="262.45" y="178.5" width="105.1" height="16" rx="4" class="c-mask"/>
+          <text x="315" y="189.5" class="t-messagebus" font-size="8" text-anchor="middle">错误修正回灌 · 复利</text>
         </g>
-
-        <g data-detail="context" data-edge-from="request" data-edge-to="preload" data-edge-label="每轮 LLM 请求前" data-edge-key="7" data-edge-id="request-preload">
-          <rect x="114" y="148" width="82" height="14" rx="3" class="c-mask"/>
-          <text x="155" y="158" class="t-database" font-size="8" text-anchor="middle">每轮 LLM 请求前</text>
+        <g data-detail="context" data-edge-from="collect" data-edge-to="activate" data-edge-label="治理织入全程" data-edge-key="7" data-edge-id="governance-weave">
+          <rect x="494.6" y="309" width="70.8" height="16" rx="4" class="c-mask"/>
+          <text x="530" y="320" class="t-messagebus" font-size="8" text-anchor="middle">治理织入全程</text>
         </g>
-
-        <g data-detail="context" data-edge-from="resolver" data-edge-to="agents_row" data-edge-label="读" data-edge-key="9" data-edge-id="resolver-agents">
-          <rect x="474" y="211" width="30" height="14" rx="3" class="c-mask"/>
-          <text x="489" y="221" class="t-database" font-size="8" text-anchor="middle">读</text>
-        </g>
-
 
         <!-- Legend -->
         <g data-legend="" data-legend-bridge="">
-          <text x="20" y="434" class="t-primary" font-size="12" font-weight="650">图例</text>
-          <g data-legend-semantic-kind="backend" data-legend-kind="backend" data-legend-label="Agent 逻辑" data-legend-x="20" data-legend-baseline="454" data-legend-width="87">
-            <rect x="20" y="446" width="14" height="9" rx="2" class="c-backend" stroke-width="1"/>
-            <text x="42" y="454" class="t-muted" font-size="7.5" font-weight="500">Agent 逻辑</text>
+          <text x="40" y="504" class="t-primary" font-size="12" font-weight="650">图例</text>
+          <g data-legend-semantic-kind="emphasis" data-legend-x="40" data-legend-baseline="524" data-legend-width="83">
+            <path d="M 40 521 L 74 521" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+            <text x="83" y="524" class="t-muted" font-size="10" font-weight="500">主要数据</text>
           </g>
-          <g data-legend-semantic-kind="messagebus" data-legend-kind="messagebus" data-legend-label="工具操作" data-legend-x="114" data-legend-baseline="454" data-legend-width="78">
-            <rect x="114" y="446" width="14" height="9" rx="2" class="c-messagebus" stroke-width="1"/>
-            <text x="136" y="454" class="t-muted" font-size="7.5" font-weight="500">工具操作</text>
+          <g data-legend-semantic-kind="dashed" data-legend-x="145" data-legend-baseline="524" data-legend-width="93">
+            <path d="M 145 521 L 179 521" class="a-dashed" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
+            <text x="188" y="524" class="t-muted" font-size="10" font-weight="500">异步批处理</text>
           </g>
-          <g data-legend-semantic-kind="database" data-legend-kind="database" data-legend-label="上下文 / 追踪" data-legend-x="199" data-legend-baseline="454" data-legend-width="100">
-            <rect x="199" y="446" width="14" height="9" rx="2" class="c-database" stroke-width="1"/>
-            <text x="221" y="454" class="t-muted" font-size="7.5" font-weight="500">上下文 / 追踪</text>
+          <g data-legend-semantic-kind="database" data-legend-kind="database" data-legend-label="数据存储" data-legend-x="260" data-legend-baseline="524" data-legend-width="83">
+            <rect x="260" y="516" width="14" height="9" rx="2" class="c-database" stroke-width="1"/>
+            <text x="282" y="524" class="t-muted" font-size="10" font-weight="500">数据存储</text>
           </g>
-          <g data-legend-semantic-kind="cloud" data-legend-kind="cloud" data-legend-label="云服务" data-legend-x="306" data-legend-baseline="454" data-legend-width="70">
-            <rect x="306" y="446" width="14" height="9" rx="2" class="c-cloud" stroke-width="1"/>
-            <text x="328" y="454" class="t-muted" font-size="7.5" font-weight="500">云服务</text>
-          </g>
-          <g data-legend-semantic-kind="external" data-legend-kind="external" data-legend-label="外部系统" data-legend-x="383" data-legend-baseline="454" data-legend-width="78">
-            <rect x="383" y="446" width="14" height="9" rx="2" class="c-external" stroke-width="1"/>
-            <text x="405" y="454" class="t-muted" font-size="7.5" font-weight="500">外部系统</text>
+          <g data-legend-semantic-kind="default" data-legend-x="365" data-legend-baseline="524" data-legend-width="73">
+            <path d="M 365 521 L 399 521" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+            <text x="408" y="524" class="t-muted" font-size="10" font-weight="500">数据流</text>
           </g>
         </g>
       </svg>
@@ -5585,37 +5513,38 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     <div class="cards">
       <div class="card">
         <div class="card-header">
-          <div class="card-dot cyan"></div>
-          <h3>解析链三段与缓存</h3>
-        </div>
-        <ul>
-          <li>&bull; 三段链每轮 LLM 请求前解析指令</li>
-          <li>&bull; 60s TTL 缓存 subagent:&lt;name&gt; 三元组</li>
-          <li>&bull; active_version 命中时读快照覆盖基线</li>
-        </ul>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          <div class="card-dot rose"></div>
-          <h3>对照源图的修正</h3>
-        </div>
-        <ul>
-          <li>&bull; model_resolver 不读 definitions 表</li>
-          <li>&bull; 每轮注入靠 preload_memory_tool 而非 assemble()</li>
-          <li>&bull; Planner 走 KG canonical，不读 kg_relations</li>
-        </ul>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
           <div class="card-dot emerald"></div>
-          <h3>双通道分散现状</h3>
+          <h3>闭环而非串行流水</h3>
         </div>
         <ul>
-          <li>&bull; 指令与记忆两路各自读库，无统一治理</li>
-          <li>&bull; 按需通道由 Agent 显式调工具触发</li>
-          <li>&bull; DB 未命中回退硬编码，fail-soft 不阻塞</li>
+          <li>&bull; 五段构成「采集→治理→激活→验证→进化」大回路，取代旧三相 Collect→Enrich→Activate</li>
+          <li>&bull; Verify/Evolve 显式补环：验证反馈流入进化，进化的错误修正回灌采集</li>
+          <li>&bull; 五源 = instruction · memory · knowledge · tools+skills · session，作为原料流经五段</li>
+          <li>&bull; 回灌让修正产生复利，而非一次性返工</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-dot cyan"></div>
+          <h3>Govern 织入全程</h3>
+        </div>
+        <ul>
+          <li>&bull; 治理把口径、可见性、注入纪律铸进对象与出口，是单点口径源</li>
+          <li>&bull; Collect 到 Activate 的直达虚线提醒：治理不是串行闸门，而是全程纪律</li>
+          <li>&bull; 激活侧的预算分配与渐进披露同样受注入纪律约束</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-dot amber"></div>
+          <h3>预算内最小高信号交付</h3>
+        </div>
+        <ul>
+          <li>&bull; Activate 在预算内装配：预取 + 按需双通道，渐进披露控制入场信号</li>
+          <li>&bull; Verify 对交付产物做应答锚定与可观测评估</li>
+          <li>&bull; Structural / Operational / Semantic / Behavioral 四层信号是流经五段的原料</li>
         </ul>
       </div>
     </div>

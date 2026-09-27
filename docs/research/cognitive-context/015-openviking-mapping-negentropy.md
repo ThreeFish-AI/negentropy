@@ -36,10 +36,10 @@ description: "OpenViking（volcengine 上下文数据库，钉点 14a7b81）与�
 
 ## 逐条说明（判定理由与建议）
 
-**#1 ⏸ 统一 URI**：`viking://` 是「把一切导入自有 AGFS」的副本式设计；013 §5.3 ADR-1 明确拒绝该形态（新表=副本=Split-Brain 引信）。**触发条件**：013 三视图/`context_catalog_unified` 落地时，把 `{item_type}:{uuid}` 定为统一指针格式——只取其寻址语法（scope 语义、确定性 ID），不取其存储。
+**#1 ⏸ 统一 URI**：`viking://` 是「把一切导入自有 AGFS」的副本式设计；013 §5.2 ADR-1 明确拒绝该形态（新表=副本=Split-Brain 引信）。**触发条件**：013 三视图/`context_catalog_unified` 落地时，把 `{item_type}:{uuid}` 定为统一指针格式——只取其寻址语法（scope 语义、确定性 ID），不取其存储。
 **#2 🔶 分层披露**：本仓已有四种两级形态但无「每节点 sidecar」。值得做的只是**新鲜度**子集（#3）；逐目录 sidecar 与本仓「目录=人工 Wiki 组织」的现状不匹配，且 Skills L2/L3 实际不可达（ISSUE-194），先修激活层再谈分层。
 **#3 🔶 新鲜度**：`get_or_generate_summary` 的 24h TTL 不感知源数据变化；且 SummarizeStep 传入的 `force_refresh` 因签名不符抛 TypeError 被降级吞掉（D3）——**绑定 #7 同批**：#7 落地后 summarize step 每次巩固真实执行，TTL 失真随即暴露；修法是把 TTL 换成「源水位差」判据，范式直接复用 `title_inspector.py:191`。
-**#4 ⏸ typed query**：拆分收益取决于「多源统一检索」先存在。**触发**：013 §8.5 ADR-2（HybridPlanner 接 Memory 第 4 路种子）落地后，把 intent 升级为「按源 typed sub-query」。OpenViking 自己的教训（014 §4.1：priority/intent 字段不参与排序、无会话即不触发）说明这条机制的实际收益并未被验证，不必抢跑。
+**#4 ⏸ typed query**：拆分收益取决于「多源统一检索」先存在。**触发**：013 §8.4 ADR-2（HybridPlanner 接 Memory 第 4 路种子）落地后，把 intent 升级为「按源 typed sub-query」。OpenViking 自己的教训（014 §4.1：priority/intent 字段不参与排序、无会话即不触发）说明这条机制的实际收益并未被验证，不必抢跑。
 **#5 ⏸ 目录递归**：需要一棵「语义化的深层目录树」。本仓记忆扁平、KB 目录是人工组织、`navigation` 意图只返回 corpus 列表——现在引入递归等于先造树再检索，YAGNI。**触发**：检索评测出现「建错目录/选错 corpus」类失败占比显著，或 catalog 深度 ≥3 且 Agent 需要按目录浏览。OpenViking 的两条实测教训（014 §4.2：默认部署不触发递归；α=1.0 后层级只影响可达性不影响排序）是引入前必读的反例。
 **#6 ✅ 同步归档**：`events.sequence_num` 全局序 + `append_event` 同步落库，与 Phase 1「归档是事实」等价。
 **#7 🔶 会话→记忆触发（本报告最高优先）**：断链修复而非新特性。最小方案：① 复用 inspector 范式选「事件水位差 ≥Δ 且空闲 ≥T」的会话；② 入队 `consolidation_jobs`（表与部分索引已存在，迁移 0043/0044）；③ 消费者 `FOR UPDATE SKIP LOCKED` 取任务执行 `_simple_consolidate`，成功推进水位。零新表。二阶风险：每会话新增一次 embedding + LLM 提取（用 Δ、T 封顶）；单 uvicorn worker 下消费者必须是异步限流后台任务；巩固后 preload 检索到更多 episodic 行，需观察 `memory_retrieval_logs` 噪声率。
@@ -54,14 +54,14 @@ description: "OpenViking（volcengine 上下文数据库，钉点 14a7b81）与�
 | --- | --- | --- |
 | §4 对象层 | 九类记忆只是另一种分面 | 无新增缺口 |
 | §5 目录层 | M-a 副本式 = ADR-1 的反面教材 | **强化 ADR-1**：统一指针格式随 §5.3 一并定 |
-| §6 富化层 | M-d 提炼是富化层的「供给入口」 | **新增真缺口**：对话路径供给入口断开（#7），013 §6.3 未覆盖 |
+| §6 富化层 | M-d 提炼是富化层的「供给入口」 | **新增真缺口**：对话路径供给入口断开（#7），重铸版 013 §6.2 已并入巩固三件套设计（2026-09-27） |
 | §7 治理层 | memory_diff / .done | 新增 🔶：巩固 diff 落 `result` 字段（#9）、会话水位（#10） |
-| §8 激活层 | M-c 递归 / M-e 轨迹 | **校正 #9 状态行**：`013 §12.7` 的「L1/L2/L3 ✅」应改为「L1 ✅ / L2·L3 🔶（ISSUE-194）」；§8.5「自动注入通道 = `ContextAssembler.assemble()`」与事实不符（见 D1） |
+| §8 激活层 | M-c 递归 / M-e 轨迹 | **校正 #9 状态行**：已销账（2026-09-27 重铸版 013 §11.5：L1 ✅ / L2·L3 🔶 ISSUE-194）；§8.5「自动注入通道 = `ContextAssembler.assemble()`」宿主更正亦已落地（013 §8.4，见 D1） |
 
 ## 落地建议汇总
 
 - **做**（绑定 #7 一批，建议独立 PR，先于 013 Phase 1）：① 会话巩固触发器 + `consolidation_jobs` 消费者 + 水位（#7/#10）；② 巩固 diff 写 `result` 并接 UI（#9）；③ 修 D3 `force_refresh` 签名并改源水位判据（#3）。
-- **写**（一句话成本）：④ 013 §12.7 #9 状态行校正 + §8.5 宿主更正（D1/D7）；⑤ 本报告登记进 issue.md（D2/D3/D6）。
+- **写**（一句话成本）：④ 013 §12.7 #9 状态行校正 + §8.5 宿主更正（D1/D7）——**已销账（2026-09-27，013 完全重铸落地）**；⑤ 本报告登记进 issue.md（D2/D3/D6）。
 - **暂缓**（写明触发条件）：#1（013 三视图落地时）、#4（ADR-2 统一检索后）、#5（目录深度 ≥3 且评测出现选错目录类失败）、#8-LLM 档（模糊带误判被反馈证实）、#13（ISSUE-194 修复后 proposer 仍无证据）。
 
 ## 取证副产物：本仓漂移与风险清单
@@ -74,10 +74,10 @@ description: "OpenViking（volcengine 上下文数据库，钉点 14a7b81）与�
 | D4 | 文档漂移 | ConflictResolver docstring 称三阶段检测（key/embedding/LLM），实现只有按 fact_type 的规则 | `ng/engine/governance/conflict_resolver.py:6` 对照 `:110` | 高估冲突检测能力 |
 | D5 | 写路径分叉 | `save_to_memory` 直写 `embedding=None`：不去重、无 PII 检测、不写审计，且全仓无 embedding 回填 | `ng/agents/tools/internalization.py:72` | 这些行对 vector/hybrid 与 DedupMerge 不可见 |
 | D6 | 授权风险 | `_fetch_memory` 按 UUID 读 Memory，不校验 user/app | `ng/agents/tools/skill_resources.py:167` | 当前因工具未挂载不可达；**ISSUE-194 方案 (a) 落地前必须先修**，否则成为跨用户读取通道 |
-| D7 | 状态表失真 | 013 §12.7 #9「L1/L2/L3 ✅」与 ISSUE-194 结论矛盾 | `docs/research/cognitive-context/013-context-layer-blueprint.md:436` | 待回写 |
+| D7 | 状态表失真 | 013 §12.7 #9「L1/L2/L3 ✅」与 ISSUE-194 结论矛盾 | 013 §11.5 #9 行（2026-09-27 完全重铸后旧行号 :436 失效，以 § 锚为准） | 已回写闭环（重铸版口径：L1 ✅ / L2·L3 🔶） |
 | D8 | 部分接线 | memory_pipeline_prompt 进化面只有 fact extractor 读取；summarizer/reflection 仍用硬编码 prompt | `ng/engine/evolution/weights.py:91` | 这两个 scope 的晋升在运行时是 no-op |
 
 ## 交叉引用
 
-- [OpenViking 精读笔记](./014-openviking.md)（机制载荷与证据分级）· [Context Layer 蓝图](./013-context-layer-blueprint.md)（五层 SSOT）· [Horizon ↔ negentropy 映射](./012-horizon-context-mapping-negentropy.md)（同为「材料机制 ↔ 本仓」先例）
+- [OpenViking 精读笔记](./014-openviking.md)（机制载荷与证据分级）· [Context Layer 蓝图](./013-context-layer-blueprint.md)（三轴 SSOT，2026-09-27 重铸）· [Horizon ↔ negentropy 映射](./012-horizon-context-mapping-negentropy.md)（同为「材料机制 ↔ 本仓」先例）
 - ISSUE-194（expand_skill 未挂载）见 [issue.md](../../.agents/issue.md)；本报告 D1–D8 已按精读流程登记为 ISSUE-195。

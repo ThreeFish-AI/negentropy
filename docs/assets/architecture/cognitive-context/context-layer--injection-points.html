@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="generator" content="archify 2.17.0-dev.1">
-  <title>Context Layer 蓝图 · 五层 × 机制 × 实例脊柱</title>
+  <title>上下文注入点现状：九路来源 × root_agent 五挂点</title>
   <script>
     // Resolve the theme before first paint so light-preference users don't
     // see a dark flash. The toolbar script below re-applies with UI state.
@@ -5081,7 +5081,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
            data-preset-badge-blueprint="蓝图 / 修订 01"
            data-preset-badge-editorial="编辑风格 / 现场笔记">
         <div class="pulse-dot"></div>
-        <h1>Context Layer 蓝图 · 五层 × 机制 × 实例脊柱</h1>
+        <h1>上下文注入点现状：九路来源 × root_agent 五挂点</h1>
       </div>
     </div>
 
@@ -5130,9 +5130,9 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     <!-- Main Diagram -->
     <div class="diagram-container" data-detail-level="read"
          data-preset-badge-editorial-plate="ARCHIFY / 图版 04">
-      <svg viewBox="0 0 1084 536" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-preset="classic" data-quality-profile="showcase">
-        <title id="archify-diagram-title">Context Layer 蓝图 · 五层 × 机制 × 实例脊柱</title>
-        <desc id="archify-diagram-description">由 Archify 生成的架构图。</desc>
+      <svg viewBox="0 0 1177 668" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-preset="classic" data-quality-profile="showcase">
+        <title id="archify-diagram-title">上下文注入点现状：九路来源 × root_agent 五挂点</title>
+        <desc id="archify-diagram-description">由 Archify 生成的工作流图。</desc>
         <!-- Definitions -->
         <defs>
           <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
@@ -5155,219 +5155,254 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <!-- Background Grid -->
         <rect width="100%" height="100%" fill="url(#grid)" />
 
-        <!-- Boundaries (behind everything) -->
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="0" data-composition-frame-label="§4 对象层 · 规章手册" x="9" y="20" width="242" height="448" rx="12" class="c-region" stroke-width="1"/>
+        <!-- Swimlanes -->
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-0" x="40" y="52" width="1121" height="106" rx="10" class="c-lane" stroke-width="1"/>
+        <text x="54" y="74" class="t-dim" font-size="10" font-weight="600">01 / 身份与定义来源</text>
 
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="1" data-composition-frame-label="§5 目录层 · 索引总账" x="215" y="20" width="242" height="448" rx="12" class="c-region" stroke-width="1"/>
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-1" x="40" y="178" width="1121" height="106" rx="10" class="c-lane" stroke-width="1"/>
+        <text x="54" y="200" class="t-dim" font-size="10" font-weight="600">02 / root_agent 五挂点</text>
 
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="2" data-composition-frame-label="§6 富化层 · 双轨编纂" x="421" y="20" width="242" height="448" rx="12" class="c-region" stroke-width="1"/>
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-2" x="40" y="304" width="1121" height="106" rx="10" class="c-lane" stroke-width="1"/>
+        <text x="54" y="326" class="t-dim" font-size="10" font-weight="600">03 / 运行时来源</text>
 
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="3" data-composition-frame-label="§7 治理层 · 承重墙风控" x="627" y="20" width="242" height="448" rx="12" class="c-region" stroke-width="1"/>
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-3" x="40" y="430" width="1121" height="114" rx="10" class="c-lane" stroke-width="1"/>
+        <text x="54" y="452" class="t-dim" font-size="10" font-weight="600">04 / 参考实现 · 生产调用=0</text>
 
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="4" data-composition-frame-label="§8 激活层 · 预算与验证" x="833" y="20" width="242" height="448" rx="12" class="c-region" stroke-width="1"/>
+        <!-- Phase headers -->
 
-        <!-- Connection paths (before components for correct z-order) -->
-        <path data-edge-from="obj-m" data-edge-to="obj-i" data-edge-label="机制↔实例" data-edge-key="0" data-edge-id="map-obj" data-composition-points="123,178;123,320" d="M 123 178 L 123 320" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="cat-m" data-edge-to="cat-i" data-edge-label="机制↔实例" data-edge-key="1" data-edge-id="map-cat" data-composition-points="336,178;336,320" d="M 336 178 L 336 320" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="enr-m" data-edge-to="enr-i" data-edge-label="机制↔实例" data-edge-key="2" data-edge-id="map-enr" data-composition-points="542,178;542,320" d="M 542 178 L 542 320" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="gov-m" data-edge-to="gov-i" data-edge-label="机制↔实例" data-edge-key="3" data-edge-id="map-gov" data-composition-points="748,178;748,320" d="M 748 178 L 748 320" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="act-m" data-edge-to="act-i" data-edge-label="机制↔实例" data-edge-key="4" data-edge-id="map-act" data-composition-points="961,178;961,320" d="M 961 178 L 961 320" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="obj-m" data-edge-to="cat-m" data-edge-label="登记入账" data-edge-key="5" data-edge-id="life-obj-cat" data-composition-points="137,178;137,202;322,202;322,178" d="M 137 178 L 137 194 Q 137 202 145 202 L 314 202 Q 322 202 322 194 L 322 178" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="cat-m" data-edge-to="enr-m" data-edge-label="富化养护" data-edge-key="6" data-edge-id="life-cat-enr" data-composition-points="350,178;350,202;528,202;528,178" d="M 350 178 L 350 194 Q 350 202 358 202 L 520 202 Q 528 202 528 194 L 528 178" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="enr-m" data-edge-to="gov-m" data-edge-label="治理管控" data-edge-key="7" data-edge-id="life-enr-gov" data-composition-points="556,178;556,202;734,202;734,178" d="M 556 178 L 556 194 Q 556 202 564 202 L 726 202 Q 734 202 734 194 L 734 178" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="gov-m" data-edge-to="act-m" data-edge-label="受控供给" data-edge-key="8" data-edge-id="life-gov-act" data-composition-points="762,178;762,202;947,202;947,178" d="M 762 178 L 762 194 Q 762 202 770 202 L 939 202 Q 947 202 947 194 L 947 178" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
 
-        <!-- Components -->
-        <g id="node-obj-m" data-node-id="obj-m" data-node-label="M1 口径单点×查询期重算" tabindex="0" role="button" aria-label="聚焦M1 口径单点×查询期重算，五段式 + 校验门 · 聚合四保障, §4 对象层 · 规章手册" aria-pressed="false" data-node-kind="cloud" data-node-sublabel="五段式 + 校验门 · 聚合四保障" data-node-tag="🏷️ M4 字段在此" data-node-context="§4 对象层 · 规章手册">
-          <title>M1 口径单点×查询期重算 · 五段式 + 校验门 · 聚合四保障 · §4 对象层 · 规章手册 · 🏷️ M4 字段在此</title>
-          <rect x="39" y="50" width="182" height="128" rx="6" class="c-mask"/>
-          <rect x="39" y="50" width="182" height="128" rx="6" class="c-cloud" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="cloud" class="semantic-sigil s-cloud" transform="translate(45 56) scale(0.6875)">
-            <path d="M4.3 12.5h7.3a2.4 2.4 0 0 0 .2-4.8 4 4 0 0 0-7.5-1.3A3.1 3.1 0 0 0 4.3 12.5Z"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="130" y="112" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">M1 口径单点×查询期重算</text>
-        <text data-detail="context" x="130" y="128" class="t-muted" font-size="9" text-anchor="middle">五段式 + 校验门 · 聚合四保障</text>
-        <text data-detail="fine" x="130" y="170" class="t-cloud" font-size="7" text-anchor="middle">🏷️ M4 字段在此</text>
-        </g>
+        <!-- Workflow groups -->
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="group" data-composition-frame-id="group-0" x="440" y="468" width="208" height="72" rx="9" class="c-lane" stroke-width="1"/>
+        <text x="450" y="466" class="t-messagebus" font-size="7" font-weight="600">设计存在 ≠ 生产接线</text>
 
-        <g id="node-obj-i" data-node-id="obj-i" data-node-label="definitions registry ✅" tabindex="0" role="button" aria-label="聚焦definitions registry ✅，4 类 SSOT · 422 门 · 物化 ✅, §4 对象层 · 规章手册" aria-pressed="false" data-node-kind="backend" data-node-sublabel="4 类 SSOT · 422 门 · 物化 ✅" data-node-tag="三字段纪律 🔶" data-node-context="§4 对象层 · 规章手册">
-          <title>definitions registry ✅ · 4 类 SSOT · 422 门 · 物化 ✅ · §4 对象层 · 规章手册 · 三字段纪律 🔶</title>
-          <rect x="39" y="320" width="182" height="128" rx="6" class="c-mask"/>
-          <rect x="39" y="320" width="182" height="128" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(45 326) scale(0.6875)">
+        <!-- Edge paths -->
+        <path data-edge-from="r7_defs" data-edge-to="h1_instruction" data-edge-key="0" data-edge-id="feed_defs" data-composition-points="544,146;544,168;234,168;234,246;218,246" d="M 544 146 L 544 168 L 234 168 L 234 246 L 218 246" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="r5_memory" data-edge-to="h3_tool_registry" data-edge-key="1" data-edge-id="feed_memory" data-composition-points="689.5,372;551,372;551,272" d="M 689.5 372 L 551 372 L 551 272" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="r4_model" data-edge-to="h2_before_model" data-edge-key="2" data-edge-id="feed_model" data-composition-points="336,346;336,272" d="M 336 346 L 336 272" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="r8_prefs" data-edge-to="h1_instruction" data-edge-key="3" data-edge-id="feed_prefs" data-composition-points="749.5,146;749.5,168;234,168;234,246;218,246" d="M 749.5 146 L 749.5 168 L 234 168 L 234 246 L 218 246" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="r6_session" data-edge-to="h2_before_model" data-edge-key="4" data-edge-id="feed_session" data-composition-points="193,372;209,372;209,294;336,294;336,272" d="M 193 372 L 209 372 L 209 294 L 336 294 L 336 272" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="r2_skills" data-edge-to="h1_instruction" data-edge-key="5" data-edge-id="feed_skills" data-composition-points="336,146;336,168;234,168;234,246;218,246" d="M 336 146 L 336 168 L 234 168 L 234 246 L 218 246" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="r3_tools" data-edge-to="h5_sub_agents" data-edge-key="6" data-edge-id="feed_toolset" data-composition-points="935,346;935,272" d="M 935 346 L 935 272" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="r1_identity" data-edge-to="h1_instruction" data-edge-key="7" data-edge-id="main_identity" data-composition-points="63,120;20,120;20,246;48,246" d="M 63 120 L 20 120 L 20 246 L 48 246" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="ref_assembler" data-edge-to="h3_tool_registry" data-edge-label="设计存在 ≠ 已接线（D1 宿主更正）" data-edge-key="8" data-edge-id="ref_not_wired" data-composition-points="544,539;544,560;650,560;650,246;634,246" d="M 544 539 L 544 560 L 650 560 L 650 246 L 634 246" class="a-dashed" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
+        <path data-edge-from="h1_instruction" data-edge-to="h2_before_model" data-edge-key="9" data-edge-id="seq_1_2" data-composition-points="133,272;133,288;336,288;336,272" d="M 133 272 L 133 288 L 336 288 L 336 272" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="h2_before_model" data-edge-to="h3_tool_registry" data-edge-key="10" data-edge-id="seq_2_3" data-composition-points="426,246;454,246" d="M 426 246 L 454 246" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="h3_tool_registry" data-edge-to="h4_tool_callbacks" data-edge-key="11" data-edge-id="seq_3_4" data-composition-points="634,246;662,246" d="M 634 246 L 662 246" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="h4_tool_callbacks" data-edge-to="h5_sub_agents" data-edge-key="12" data-edge-id="seq_4_5" data-composition-points="837,246;865,246" d="M 837 246 L 865 246" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="h5_sub_agents" data-edge-to="out_llm" data-edge-key="13" data-edge-id="seq_5_out" data-composition-points="1005,246;1033,246" d="M 1005 246 L 1033 246" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+
+        <!-- Nodes -->
+        <g id="node-r1_identity" data-node-id="r1_identity" data-node-label="身份" tabindex="0" role="button" aria-label="聚焦身份，instruction provider, 身份与定义来源" aria-pressed="false" data-node-kind="backend" data-node-sublabel="instruction provider" data-node-context="身份与定义来源">
+          <title>身份 · instruction provider · 身份与定义来源</title>
+          <rect x="63" y="94" width="140" height="52" rx="6" class="c-mask"/>
+          <rect x="63" y="94" width="140" height="52" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(69 100) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="130" y="382" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">definitions registry ✅</text>
-        <text data-detail="context" x="130" y="398" class="t-muted" font-size="9" text-anchor="middle">4 类 SSOT · 422 门 · 物化 ✅</text>
-        <text data-detail="fine" x="130" y="440" class="t-backend" font-size="7" text-anchor="middle">三字段纪律 🔶</text>
+          <text data-node-label="" data-detail-anchor="" x="133" y="115" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">身份</text>
+          <text data-detail="context" x="133" y="132" class="t-muted" font-size="8" text-anchor="middle">instruction provider</text>
         </g>
 
-        <g id="node-cat-m" data-node-id="cat-m" data-node-label="M5 血缘 + 四层信号" tabindex="0" role="button" aria-label="聚焦M5 血缘 + 四层信号，External Lineage · S/O/S/B, §5 目录层 · 索引总账" aria-pressed="false" data-node-kind="cloud" data-node-sublabel="External Lineage · S/O/S/B" data-node-tag="🏷️ M5 归位非降格" data-node-context="§5 目录层 · 索引总账">
-          <title>M5 血缘 + 四层信号 · External Lineage · S/O/S/B · §5 目录层 · 索引总账 · 🏷️ M5 归位非降格</title>
-          <rect x="245" y="50" width="182" height="128" rx="6" class="c-mask"/>
-          <rect x="245" y="50" width="182" height="128" rx="6" class="c-cloud" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="cloud" class="semantic-sigil s-cloud" transform="translate(251 56) scale(0.6875)">
-            <path d="M4.3 12.5h7.3a2.4 2.4 0 0 0 .2-4.8 4 4 0 0 0-7.5-1.3A3.1 3.1 0 0 0 4.3 12.5Z"/>
+        <g id="node-r2_skills" data-node-id="r2_skills" data-node-label="Skills" tabindex="0" role="button" aria-label="聚焦Skills，双路注入互斥, 身份与定义来源" aria-pressed="false" data-node-kind="external" data-node-sublabel="双路注入互斥" data-node-context="身份与定义来源">
+          <title>Skills · 双路注入互斥 · 身份与定义来源</title>
+          <rect x="271" y="94" width="130" height="52" rx="6" class="c-mask"/>
+          <rect x="271" y="94" width="130" height="52" rx="6" class="c-external" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(277 100) scale(0.6875)">
+            <rect x="2.5" y="5" width="8.5" height="8" rx="1.5"/>
+            <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="336" y="112" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">M5 血缘 + 四层信号</text>
-        <text data-detail="context" x="336" y="128" class="t-muted" font-size="9" text-anchor="middle">External Lineage · S/O/S/B</text>
-        <text data-detail="fine" x="336" y="170" class="t-cloud" font-size="7" text-anchor="middle">🏷️ M5 归位非降格</text>
+          <text data-node-label="" data-detail-anchor="" x="336" y="115" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Skills</text>
+          <text data-detail="context" x="336" y="132" class="t-muted" font-size="8" text-anchor="middle">双路注入互斥</text>
         </g>
 
-        <g id="node-cat-i" data-node-id="cat-i" data-node-label="三视图+信任归一 🔶" tabindex="0" role="button" aria-label="聚焦三视图+信任归一 🔶，CJK 分词缺口（ISSUE-196）, §5 目录层 · 索引总账" aria-pressed="false" data-node-kind="backend" data-node-sublabel="CJK 分词缺口（ISSUE-196）" data-node-context="§5 目录层 · 索引总账">
-          <title>三视图+信任归一 🔶 · CJK 分词缺口（ISSUE-196） · §5 目录层 · 索引总账</title>
-          <rect x="245" y="320" width="182" height="128" rx="6" class="c-mask"/>
-          <rect x="245" y="320" width="182" height="128" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(251 326) scale(0.6875)">
+        <g id="node-r7_defs" data-node-id="r7_defs" data-node-label="定义 SSOT" tabindex="0" role="button" aria-label="聚焦定义 SSOT，graph-from-DB, 身份与定义来源" aria-pressed="false" data-node-kind="database" data-node-sublabel="graph-from-DB" data-node-context="身份与定义来源">
+          <title>定义 SSOT · graph-from-DB · 身份与定义来源</title>
+          <rect x="479" y="94" width="130" height="52" rx="6" class="c-mask"/>
+          <rect x="479" y="94" width="130" height="52" rx="6" class="c-database" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(485 100) scale(0.6875)">
+            <ellipse cx="8" cy="4" rx="5" ry="2"/>
+            <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="544" y="115" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">定义 SSOT</text>
+          <text data-detail="context" x="544" y="132" class="t-muted" font-size="8" text-anchor="middle">graph-from-DB</text>
+        </g>
+
+        <g id="node-r8_prefs" data-node-id="r8_prefs" data-node-label="偏好 · 引用协议" tabindex="0" role="button" aria-label="聚焦偏好 · 引用协议，身份与定义来源" aria-pressed="false" data-node-kind="backend" data-node-context="身份与定义来源">
+          <title>偏好 · 引用协议 · 身份与定义来源</title>
+          <rect x="674.5" y="94" width="150" height="52" rx="6" class="c-mask"/>
+          <rect x="674.5" y="94" width="150" height="52" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(680.5 100) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="336" y="382" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">三视图+信任归一 🔶</text>
-        <text data-detail="context" x="336" y="398" class="t-muted" font-size="9" text-anchor="middle">CJK 分词缺口（ISSUE-196）</text>
+          <text data-node-label="" x="749.5" y="115" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">偏好 · 引用协议</text>
         </g>
 
-        <g id="node-enr-m" data-node-id="enr-m" data-node-label="011 §10 双轨富化（专章）" tabindex="0" role="button" aria-label="聚焦011 §10 双轨富化（专章），Autopilot · Sense · eval 自纠环, §6 富化层 · 双轨编纂" aria-pressed="false" data-node-kind="cloud" data-node-sublabel="Autopilot · Sense · eval 自纠环" data-node-context="§6 富化层 · 双轨编纂">
-          <title>011 §10 双轨富化（专章） · Autopilot · Sense · eval 自纠环 · §6 富化层 · 双轨编纂</title>
-          <rect x="451" y="50" width="182" height="128" rx="6" class="c-mask"/>
-          <rect x="451" y="50" width="182" height="128" rx="6" class="c-cloud" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="cloud" class="semantic-sigil s-cloud" transform="translate(457 56) scale(0.6875)">
-            <path d="M4.3 12.5h7.3a2.4 2.4 0 0 0 .2-4.8 4 4 0 0 0-7.5-1.3A3.1 3.1 0 0 0 4.3 12.5Z"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="542" y="112" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">011 §10 双轨富化（专章）</text>
-        <text data-detail="context" x="542" y="128" class="t-muted" font-size="9" text-anchor="middle">Autopilot · Sense · eval 自纠环</text>
-        </g>
-
-        <g id="node-enr-i" data-node-id="enr-i" data-node-label="patrol/Judge ✅（锚定版）" tabindex="0" role="button" aria-label="聚焦patrol/Judge ✅（锚定版），冲突浮出 🔶 · 会话巩固断链 🔶, §6 富化层 · 双轨编纂" aria-pressed="false" data-node-kind="backend" data-node-sublabel="冲突浮出 🔶 · 会话巩固断链 🔶" data-node-tag="ISSUE-195" data-node-context="§6 富化层 · 双轨编纂">
-          <title>patrol/Judge ✅（锚定版） · 冲突浮出 🔶 · 会话巩固断链 🔶 · §6 富化层 · 双轨编纂 · ISSUE-195</title>
-          <rect x="451" y="320" width="182" height="128" rx="6" class="c-mask"/>
-          <rect x="451" y="320" width="182" height="128" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(457 326) scale(0.6875)">
+        <g id="node-h1_instruction" data-node-id="h1_instruction" data-node-label="① instruction=provider" tabindex="0" role="button" aria-label="聚焦① instruction=provider，DB system_prompt → 代码回退, root_agent 五挂点" aria-pressed="false" data-node-kind="backend" data-node-sublabel="DB system_prompt → 代码回退" data-node-context="root_agent 五挂点">
+          <title>① instruction=provider · DB system_prompt → 代码回退 · root_agent 五挂点</title>
+          <rect x="48" y="220" width="170" height="52" rx="6" class="c-mask"/>
+          <rect x="48" y="220" width="170" height="52" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(54 226) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="542" y="382" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">patrol/Judge ✅（锚定版）</text>
-        <text data-detail="context" x="542" y="398" class="t-muted" font-size="9" text-anchor="middle">冲突浮出 🔶 · 会话巩固断链 🔶</text>
-        <text data-detail="fine" x="542" y="440" class="t-backend" font-size="7" text-anchor="middle">ISSUE-195</text>
+          <text data-node-label="" data-detail-anchor="" x="133" y="241" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">① instruction=provider</text>
+          <text data-detail="context" x="133" y="258" class="t-muted" font-size="8" text-anchor="middle">DB system_prompt → 代码回退</text>
         </g>
 
-        <g id="node-gov-m" data-node-id="gov-m" data-node-label="M2/M3/M7/M6 四机构" tabindex="0" role="button" aria-label="聚焦M2/M3/M7/M6 四机构，闸机·承重墙·贴标·工牌 + 威胁模型, §7 治理层 · 承重墙风控" aria-pressed="false" data-node-kind="cloud" data-node-sublabel="闸机·承重墙·贴标·工牌 + 威胁模型" data-node-context="§7 治理层 · 承重墙风控">
-          <title>M2/M3/M7/M6 四机构 · 闸机·承重墙·贴标·工牌 + 威胁模型 · §7 治理层 · 承重墙风控</title>
-          <rect x="657" y="50" width="182" height="128" rx="6" class="c-mask"/>
-          <rect x="657" y="50" width="182" height="128" rx="6" class="c-cloud" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="cloud" class="semantic-sigil s-cloud" transform="translate(663 56) scale(0.6875)">
-            <path d="M4.3 12.5h7.3a2.4 2.4 0 0 0 .2-4.8 4 4 0 0 0-7.5-1.3A3.1 3.1 0 0 0 4.3 12.5Z"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="748" y="112" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">M2/M3/M7/M6 四机构</text>
-        <text data-detail="context" x="748" y="128" class="t-muted" font-size="9" text-anchor="middle">闸机·承重墙·贴标·工牌 + 威胁模型</text>
-        </g>
-
-        <g id="node-gov-i" data-node-id="gov-i" data-node-label="交集过滤 ✅ · Guard 不存在 ⏸" tabindex="0" role="button" aria-label="聚焦交集过滤 ✅ · Guard 不存在 ⏸，身份天花板 🔶 · 供给面 🔶, §7 治理层 · 承重墙风控" aria-pressed="false" data-node-kind="backend" data-node-sublabel="身份天花板 🔶 · 供给面 🔶" data-node-context="§7 治理层 · 承重墙风控">
-          <title>交集过滤 ✅ · Guard 不存在 ⏸ · 身份天花板 🔶 · 供给面 🔶 · §7 治理层 · 承重墙风控</title>
-          <rect x="657" y="320" width="182" height="128" rx="6" class="c-mask"/>
-          <rect x="657" y="320" width="182" height="128" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(663 326) scale(0.6875)">
+        <g id="node-h2_before_model" data-node-id="h2_before_model" data-node-label="② before_model_callback" tabindex="0" role="button" aria-label="聚焦② before_model_callback，model/thinking/corpus/hint 注入, root_agent 五挂点" aria-pressed="false" data-node-kind="backend" data-node-sublabel="model/thinking/corpus/hint 注入" data-node-context="root_agent 五挂点">
+          <title>② before_model_callback · model/thinking/corpus/hint 注入 · root_agent 五挂点</title>
+          <rect x="246" y="220" width="180" height="52" rx="6" class="c-mask"/>
+          <rect x="246" y="220" width="180" height="52" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(252 226) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="748" y="382" class="t-primary" font-size="10.3" font-weight="600" text-anchor="middle">交集过滤 ✅ · Guard 不存在 ⏸</text>
-        <text data-detail="context" x="748" y="398" class="t-muted" font-size="9" text-anchor="middle">身份天花板 🔶 · 供给面 🔶</text>
+          <text data-node-label="" data-detail-anchor="" x="336" y="241" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">② before_model_callback</text>
+          <text data-detail="context" x="336" y="258" class="t-muted" font-size="8" text-anchor="middle">model/thinking/corpus/hint 注入</text>
         </g>
 
-        <g id="node-act-m" data-node-id="act-m" data-node-label="M4 验证锚定 · 011 §11/§12" tabindex="0" role="button" aria-label="聚焦M4 验证锚定 · 011 §11/§12，VQR 出示 · 四因子排序 · MCP/Ossie, §8 激活层 · 预算与验证" aria-pressed="false" data-node-kind="cloud" data-node-sublabel="VQR 出示 · 四因子排序 · MCP/Ossie" data-node-tag="🏷️ M4 出示在此" data-node-context="§8 激活层 · 预算与验证">
-          <title>M4 验证锚定 · 011 §11/§12 · VQR 出示 · 四因子排序 · MCP/Ossie · §8 激活层 · 预算与验证 · 🏷️ M4 出示在此</title>
-          <rect x="863" y="50" width="182" height="128" rx="6" class="c-mask"/>
-          <rect x="863" y="50" width="182" height="128" rx="6" class="c-cloud" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="cloud" class="semantic-sigil s-cloud" transform="translate(869 56) scale(0.6875)">
-            <path d="M4.3 12.5h7.3a2.4 2.4 0 0 0 .2-4.8 4 4 0 0 0-7.5-1.3A3.1 3.1 0 0 0 4.3 12.5Z"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="954" y="112" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">M4 验证锚定 · 011 §11/§12</text>
-        <text data-detail="context" x="954" y="128" class="t-muted" font-size="8.7" text-anchor="middle">VQR 出示 · 四因子排序 · MCP/Ossie</text>
-        <text data-detail="fine" x="954" y="170" class="t-cloud" font-size="7" text-anchor="middle">🏷️ M4 出示在此</text>
-        </g>
-
-        <g id="node-act-i" data-node-id="act-i" data-node-label="L1 ✅ · L2·L3 🔶" tabindex="0" role="button" aria-label="聚焦L1 ✅ · L2·L3 🔶，双通道统一 🔶（ADR-2 方案）, §8 激活层 · 预算与验证" aria-pressed="false" data-node-kind="backend" data-node-sublabel="双通道统一 🔶（ADR-2 方案）" data-node-tag="ISSUE-194" data-node-context="§8 激活层 · 预算与验证">
-          <title>L1 ✅ · L2·L3 🔶 · 双通道统一 🔶（ADR-2 方案） · §8 激活层 · 预算与验证 · ISSUE-194</title>
-          <rect x="863" y="320" width="182" height="128" rx="6" class="c-mask"/>
-          <rect x="863" y="320" width="182" height="128" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(869 326) scale(0.6875)">
+        <g id="node-h3_tool_registry" data-node-id="h3_tool_registry" data-node-label="③ tools 装配" tabindex="0" role="button" aria-label="聚焦③ tools 装配，log_activity · preload_memory_tool, root_agent 五挂点" aria-pressed="false" data-node-kind="backend" data-node-sublabel="log_activity · preload_memory_tool" data-node-context="root_agent 五挂点">
+          <title>③ tools 装配 · log_activity · preload_memory_tool · root_agent 五挂点</title>
+          <rect x="454" y="220" width="180" height="52" rx="6" class="c-mask"/>
+          <rect x="454" y="220" width="180" height="52" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(460 226) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="954" y="382" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">L1 ✅ · L2·L3 🔶</text>
-        <text data-detail="context" x="954" y="398" class="t-muted" font-size="9" text-anchor="middle">双通道统一 🔶（ADR-2 方案）</text>
-        <text data-detail="fine" x="954" y="440" class="t-backend" font-size="7" text-anchor="middle">ISSUE-194</text>
+          <text data-node-label="" data-detail-anchor="" x="544" y="241" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">③ tools 装配</text>
+          <text data-detail="context" x="544" y="258" class="t-muted" font-size="8" text-anchor="middle">log_activity · preload_memory_tool</text>
         </g>
 
-        <!-- Connection labels -->
-        <g data-detail="context" data-edge-from="obj-m" data-edge-to="obj-i" data-edge-label="机制↔实例" data-edge-key="0" data-edge-id="map-obj">
-          <rect x="96.4" y="258" width="53.199999999999996" height="14" rx="3" class="c-mask"/>
-          <text x="123" y="268" class="t-muted" font-size="8" text-anchor="middle">机制↔实例</text>
-        </g>
-        <g data-detail="context" data-edge-from="cat-m" data-edge-to="cat-i" data-edge-label="机制↔实例" data-edge-key="1" data-edge-id="map-cat">
-          <rect x="309.4" y="258" width="53.199999999999996" height="14" rx="3" class="c-mask"/>
-          <text x="336" y="268" class="t-muted" font-size="8" text-anchor="middle">机制↔实例</text>
-        </g>
-        <g data-detail="context" data-edge-from="enr-m" data-edge-to="enr-i" data-edge-label="机制↔实例" data-edge-key="2" data-edge-id="map-enr">
-          <rect x="515.4" y="258" width="53.199999999999996" height="14" rx="3" class="c-mask"/>
-          <text x="542" y="268" class="t-muted" font-size="8" text-anchor="middle">机制↔实例</text>
-        </g>
-        <g data-detail="context" data-edge-from="gov-m" data-edge-to="gov-i" data-edge-label="机制↔实例" data-edge-key="3" data-edge-id="map-gov">
-          <rect x="721.4" y="258" width="53.199999999999996" height="14" rx="3" class="c-mask"/>
-          <text x="748" y="268" class="t-muted" font-size="8" text-anchor="middle">机制↔实例</text>
-        </g>
-        <g data-detail="context" data-edge-from="act-m" data-edge-to="act-i" data-edge-label="机制↔实例" data-edge-key="4" data-edge-id="map-act">
-          <rect x="934.4" y="258" width="53.199999999999996" height="14" rx="3" class="c-mask"/>
-          <text x="961" y="268" class="t-muted" font-size="8" text-anchor="middle">机制↔实例</text>
-        </g>
-        <g data-detail="context" data-edge-from="obj-m" data-edge-to="cat-m" data-edge-label="登记入账" data-edge-key="5" data-edge-id="life-obj-cat">
-          <rect x="205.3" y="182" width="48.4" height="14" rx="3" class="c-mask"/>
-          <text x="229.5" y="192" class="t-backend" font-size="8" text-anchor="middle">登记入账</text>
-        </g>
-        <g data-detail="context" data-edge-from="cat-m" data-edge-to="enr-m" data-edge-label="富化养护" data-edge-key="6" data-edge-id="life-cat-enr">
-          <rect x="414.8" y="182" width="48.4" height="14" rx="3" class="c-mask"/>
-          <text x="439" y="192" class="t-backend" font-size="8" text-anchor="middle">富化养护</text>
-        </g>
-        <g data-detail="context" data-edge-from="enr-m" data-edge-to="gov-m" data-edge-label="治理管控" data-edge-key="7" data-edge-id="life-enr-gov">
-          <rect x="620.8" y="182" width="48.4" height="14" rx="3" class="c-mask"/>
-          <text x="645" y="192" class="t-backend" font-size="8" text-anchor="middle">治理管控</text>
-        </g>
-        <g data-detail="context" data-edge-from="gov-m" data-edge-to="act-m" data-edge-label="受控供给" data-edge-key="8" data-edge-id="life-gov-act">
-          <rect x="830.3" y="182" width="48.4" height="14" rx="3" class="c-mask"/>
-          <text x="854.5" y="192" class="t-backend" font-size="8" text-anchor="middle">受控供给</text>
+        <g id="node-h4_tool_callbacks" data-node-id="h4_tool_callbacks" data-node-label="④ tool callbacks" tabindex="0" role="button" aria-label="聚焦④ tool callbacks，before/after_tool_callback 遥测, root_agent 五挂点" aria-pressed="false" data-node-kind="backend" data-node-sublabel="before/after_tool_callback 遥测" data-node-context="root_agent 五挂点">
+          <title>④ tool callbacks · before/after_tool_callback 遥测 · root_agent 五挂点</title>
+          <rect x="662" y="220" width="175" height="52" rx="6" class="c-mask"/>
+          <rect x="662" y="220" width="175" height="52" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(668 226) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="749.5" y="241" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">④ tool callbacks</text>
+          <text data-detail="context" x="749.5" y="258" class="t-muted" font-size="8" text-anchor="middle">before/after_tool_callback 遥测</text>
         </g>
 
-        <!-- Boundary labels (foreground masks keep routes out of titles) -->
-        <g data-graph-role="structural-frame-label" data-composition-frame-id="0" data-composition-frame-kind="region" data-composition-frame-label="§4 对象层 · 规章手册">
-          <rect data-graph-role="structural-frame-label-mask" x="13" y="30" width="118" height="16" rx="3" class="c-mask"/>
-          <text data-boundary-label="" x="17" y="43" class="t-cloud" font-size="9" font-weight="600">§4 对象层 · 规章手册</text>
+        <g id="node-h5_sub_agents" data-node-id="h5_sub_agents" data-node-label="⑤ sub_agents" tabindex="0" role="button" aria-label="聚焦⑤ sub_agents，五翼 + 流水线, root_agent 五挂点" aria-pressed="false" data-node-kind="backend" data-node-sublabel="五翼 + 流水线" data-node-context="root_agent 五挂点">
+          <title>⑤ sub_agents · 五翼 + 流水线 · root_agent 五挂点</title>
+          <rect x="865" y="220" width="140" height="52" rx="6" class="c-mask"/>
+          <rect x="865" y="220" width="140" height="52" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(871 226) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="935" y="241" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">⑤ sub_agents</text>
+          <text data-detail="context" x="935" y="258" class="t-muted" font-size="8" text-anchor="middle">五翼 + 流水线</text>
         </g>
 
-        <g data-graph-role="structural-frame-label" data-composition-frame-id="1" data-composition-frame-kind="region" data-composition-frame-label="§5 目录层 · 索引总账">
-          <rect data-graph-role="structural-frame-label-mask" x="219" y="30" width="118" height="16" rx="3" class="c-mask"/>
-          <text data-boundary-label="" x="223" y="43" class="t-cloud" font-size="9" font-weight="600">§5 目录层 · 索引总账</text>
+        <g id="node-out_llm" data-node-id="out_llm" data-node-label="LLM 请求" tabindex="0" role="button" aria-label="聚焦LLM 请求，root_agent 五挂点" aria-pressed="false" data-node-kind="cloud" data-node-context="root_agent 五挂点">
+          <title>LLM 请求 · root_agent 五挂点</title>
+          <rect x="1033" y="220" width="120" height="52" rx="6" class="c-mask"/>
+          <rect x="1033" y="220" width="120" height="52" rx="6" class="c-cloud" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="cloud" class="semantic-sigil s-cloud" transform="translate(1039 226) scale(0.6875)">
+            <path d="M4.3 12.5h7.3a2.4 2.4 0 0 0 .2-4.8 4 4 0 0 0-7.5-1.3A3.1 3.1 0 0 0 4.3 12.5Z"/>
+          </g>
+          <text data-node-label="" x="1093" y="241" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">LLM 请求</text>
         </g>
 
-        <g data-graph-role="structural-frame-label" data-composition-frame-id="2" data-composition-frame-kind="region" data-composition-frame-label="§6 富化层 · 双轨编纂">
-          <rect data-graph-role="structural-frame-label-mask" x="425" y="30" width="118" height="16" rx="3" class="c-mask"/>
-          <text data-boundary-label="" x="429" y="43" class="t-cloud" font-size="9" font-weight="600">§6 富化层 · 双轨编纂</text>
+        <g id="node-r6_session" data-node-id="r6_session" data-node-label="会话状态" tabindex="0" role="button" aria-label="聚焦会话状态，state, 运行时来源" aria-pressed="false" data-node-kind="backend" data-node-sublabel="state" data-node-context="运行时来源">
+          <title>会话状态 · state · 运行时来源</title>
+          <rect x="73" y="346" width="120" height="52" rx="6" class="c-mask"/>
+          <rect x="73" y="346" width="120" height="52" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(79 352) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="133" y="367" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">会话状态</text>
+          <text data-detail="context" x="133" y="384" class="t-muted" font-size="8" text-anchor="middle">state</text>
         </g>
 
-        <g data-graph-role="structural-frame-label" data-composition-frame-id="3" data-composition-frame-kind="region" data-composition-frame-label="§7 治理层 · 承重墙风控">
-          <rect data-graph-role="structural-frame-label-mask" x="631" y="30" width="128.8" height="16" rx="3" class="c-mask"/>
-          <text data-boundary-label="" x="635" y="43" class="t-cloud" font-size="9" font-weight="600">§7 治理层 · 承重墙风控</text>
+        <g id="node-r4_model" data-node-id="r4_model" data-node-label="Model" tabindex="0" role="button" aria-label="聚焦Model，resolver + ContextVar, 运行时来源" aria-pressed="false" data-node-kind="backend" data-node-sublabel="resolver + ContextVar" data-node-context="运行时来源">
+          <title>Model · resolver + ContextVar · 运行时来源</title>
+          <rect x="261" y="346" width="150" height="52" rx="6" class="c-mask"/>
+          <rect x="261" y="346" width="150" height="52" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(267 352) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="336" y="367" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Model</text>
+          <text data-detail="context" x="336" y="384" class="t-muted" font-size="8" text-anchor="middle">resolver + ContextVar</text>
         </g>
 
-        <g data-graph-role="structural-frame-label" data-composition-frame-id="4" data-composition-frame-kind="region" data-composition-frame-label="§8 激活层 · 预算与验证">
-          <rect data-graph-role="structural-frame-label-mask" x="837" y="30" width="128.8" height="16" rx="3" class="c-mask"/>
-          <text data-boundary-label="" x="841" y="43" class="t-cloud" font-size="9" font-weight="600">§8 激活层 · 预算与验证</text>
+        <g id="node-r5_memory" data-node-id="r5_memory" data-node-label="记忆" tabindex="0" role="button" aria-label="聚焦记忆，preload 工具, 运行时来源" aria-pressed="false" data-node-kind="database" data-node-sublabel="preload 工具" data-node-context="运行时来源">
+          <title>记忆 · preload 工具 · 运行时来源</title>
+          <rect x="689.5" y="346" width="120" height="52" rx="6" class="c-mask"/>
+          <rect x="689.5" y="346" width="120" height="52" rx="6" class="c-database" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(695.5 352) scale(0.6875)">
+            <ellipse cx="8" cy="4" rx="5" ry="2"/>
+            <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="749.5" y="367" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">记忆</text>
+          <text data-detail="context" x="749.5" y="384" class="t-muted" font-size="8" text-anchor="middle">preload 工具</text>
         </g>
+
+        <g id="node-r3_tools" data-node-id="r3_tools" data-node-label="Tools" tabindex="0" role="button" aria-label="聚焦Tools，toolset + schema, 运行时来源" aria-pressed="false" data-node-kind="messagebus" data-node-sublabel="toolset + schema" data-node-context="运行时来源">
+          <title>Tools · toolset + schema · 运行时来源</title>
+          <rect x="865" y="346" width="140" height="52" rx="6" class="c-mask"/>
+          <rect x="865" y="346" width="140" height="52" rx="6" class="c-messagebus" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="messagebus" class="semantic-sigil s-messagebus" transform="translate(871 352) scale(0.6875)">
+            <path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"/>
+            <circle cx="5" cy="4.5" r="1" class="sigil-fill"/>
+            <circle cx="10.5" cy="8" r="1" class="sigil-fill"/>
+            <circle cx="7" cy="11.5" r="1" class="sigil-fill"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="935" y="367" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Tools</text>
+          <text data-detail="context" x="935" y="384" class="t-muted" font-size="8" text-anchor="middle">toolset + schema</text>
+        </g>
+
+        <g id="node-ref_assembler" data-node-id="ref_assembler" data-node-label="ContextAssembler" tabindex="0" role="button" aria-label="聚焦ContextAssembler，assemble() · 30/50/20 预算 · 60s TTL, 参考实现 · 生产调用=0 › 设计存在 ≠ 生产接线" aria-pressed="false" data-node-kind="backend" data-node-sublabel="assemble() · 30/50/20 预算 · 60s TTL" data-node-tag="仅单测" data-node-context="参考实现 · 生产调用=0 › 设计存在 ≠ 生产接线">
+          <title>ContextAssembler · assemble() · 30/50/20 预算 · 60s TTL · 参考实现 · 生产调用=0 › 设计存在 ≠ 生产接线 · 仅单测</title>
+          <rect x="444" y="471" width="200" height="68" rx="6" class="c-mask"/>
+          <rect x="444" y="471" width="200" height="68" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(450 477) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="544" y="492" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">ContextAssembler</text>
+          <text data-detail="context" x="544" y="509" class="t-muted" font-size="8" text-anchor="middle">assemble() · 30/50/20 预算 · 60s TTL</text>
+        <text data-detail="fine" x="544" y="527" class="t-backend" font-size="7" text-anchor="middle">仅单测</text>
+        </g>
+
+        <!-- Edge labels -->
+
+
+
+
+
+
+
+
+        <g data-detail="context" data-edge-from="ref_assembler" data-edge-to="h3_tool_registry" data-edge-label="设计存在 ≠ 已接线（D1 宿主更正）" data-edge-key="8" data-edge-id="ref_not_wired">
+          <rect x="515.2" y="540" width="163.6" height="14" rx="3" class="c-mask"/>
+          <text x="597" y="550" class="t-database" font-size="8" text-anchor="middle">设计存在 ≠ 已接线（D1 宿主更正）</text>
+        </g>
+
+
+
+
+
 
         <!-- Legend -->
         <g data-legend="" data-legend-bridge="">
-          <text x="40" y="500" class="t-primary" font-size="12" font-weight="650">图例</text>
-          <g data-legend-semantic-kind="backend" data-legend-kind="backend" data-legend-label="实例承载 · 落地面" data-legend-x="40" data-legend-baseline="520" data-legend-width="128">
-            <rect x="40" y="511" width="16" height="10" rx="2.5" class="c-backend" stroke-width="1"/>
-            <text x="62" y="520" class="t-muted" font-size="10" font-weight="500">实例承载 · 落地面</text>
+          <text x="20" y="568" class="t-primary" font-size="12" font-weight="650">图例</text>
+          <g data-legend-semantic-kind="backend" data-legend-kind="backend" data-legend-label="Agent 逻辑" data-legend-x="20" data-legend-baseline="588" data-legend-width="87">
+            <rect x="20" y="580" width="14" height="9" rx="2" class="c-backend" stroke-width="1"/>
+            <text x="42" y="588" class="t-muted" font-size="7.5" font-weight="500">Agent 逻辑</text>
           </g>
-          <g data-legend-semantic-kind="cloud" data-legend-kind="cloud" data-legend-label="机制锚 · 设计面" data-legend-x="190" data-legend-baseline="520" data-legend-width="118">
-            <rect x="190" y="511" width="16" height="10" rx="2.5" class="c-cloud" stroke-width="1"/>
-            <text x="212" y="520" class="t-muted" font-size="10" font-weight="500">机制锚 · 设计面</text>
+          <g data-legend-semantic-kind="messagebus" data-legend-kind="messagebus" data-legend-label="工具操作" data-legend-x="114" data-legend-baseline="588" data-legend-width="78">
+            <rect x="114" y="580" width="14" height="9" rx="2" class="c-messagebus" stroke-width="1"/>
+            <text x="136" y="588" class="t-muted" font-size="7.5" font-weight="500">工具操作</text>
+          </g>
+          <g data-legend-semantic-kind="database" data-legend-kind="database" data-legend-label="上下文 / 追踪" data-legend-x="199" data-legend-baseline="588" data-legend-width="100">
+            <rect x="199" y="580" width="14" height="9" rx="2" class="c-database" stroke-width="1"/>
+            <text x="221" y="588" class="t-muted" font-size="7.5" font-weight="500">上下文 / 追踪</text>
+          </g>
+          <g data-legend-semantic-kind="cloud" data-legend-kind="cloud" data-legend-label="云服务" data-legend-x="306" data-legend-baseline="588" data-legend-width="70">
+            <rect x="306" y="580" width="14" height="9" rx="2" class="c-cloud" stroke-width="1"/>
+            <text x="328" y="588" class="t-muted" font-size="7.5" font-weight="500">云服务</text>
+          </g>
+          <g data-legend-semantic-kind="external" data-legend-kind="external" data-legend-label="外部系统" data-legend-x="383" data-legend-baseline="588" data-legend-width="78">
+            <rect x="383" y="580" width="14" height="9" rx="2" class="c-external" stroke-width="1"/>
+            <text x="405" y="588" class="t-muted" font-size="7.5" font-weight="500">外部系统</text>
           </g>
         </g>
       </svg>
@@ -5559,35 +5594,33 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       <div class="card">
         <div class="card-header">
           <div class="card-dot cyan"></div>
-          <h3>五层正交 · 横向生命周期</h3>
+          <h3>五挂点真实装配面</h3>
         </div>
         <ul>
-          <li>&bull; 横向主链：对象 →登记入账→ 目录 →富化养护→ 富化 →治理管控→ 治理 →受控供给→ 激活</li>
-          <li>&bull; 纵向每列：机制锚（设计面）↔ 实例承载（落地面）一一映射</li>
-          <li>&bull; 五层各承一责：规章手册 · 索引总账 · 双轨编纂 · 承重墙风控 · 预算与验证</li>
+          <li>&bull; root_agent 生产装配面 @57987b28b：① instruction ② before_model_callback ③ tools ④ tool callbacks ⑤ sub_agents</li>
+          <li>&bull; ① 挂点汇聚四路来源：身份 / Skills / 定义 SSOT / 偏好·引用协议</li>
         </ul>
       </div>
 
       <div class="card">
         <div class="card-header">
-          <div class="card-dot emerald"></div>
-          <h3>状态口径 · 核验 2026-09-27 @57987b28b</h3>
+          <div class="card-dot amber"></div>
+          <h3>参考实现未接线</h3>
         </div>
         <ul>
-          <li>&bull; ✅ 已落地：definitions registry（物化 default-on）· patrol/Judge 锚定版 · 交集过滤 · L1 披露</li>
-          <li>&bull; 🔶 缺口：三字段纪律 · 三视图+CJK 分词 · 冲突浮出/断链 · 身份天花板/供给面 · L2·L3 · 双通道（ADR-2 方案）</li>
-          <li>&bull; ⏸ 暂缓：Guard 不存在，治理闸门与供给面留白</li>
+          <li>&bull; ContextAssembler.assemble() 设计存在 ≠ 已接线：生产调用=0，仅单测覆盖（D1 宿主更正）</li>
+          <li>&bull; Core Block → Reflection → 记忆窗口，30/50/20 token 预算 · 60s TTL 家族</li>
         </ul>
       </div>
 
       <div class="card">
         <div class="card-header">
           <div class="card-dot violet"></div>
-          <h3>双落点与归位</h3>
+          <h3>九路来源的计数口径</h3>
         </div>
         <ul>
-          <li>&bull; M4 双落点：字段登记在对象层（在册），出示行为在激活层（应答）</li>
-          <li>&bull; M5 归位非降格：血缘落位目录层 Structural 信号位——事后问责链职责不变，并进统一索引总账</li>
+          <li>&bull; 8 个来源节点 = 9 路注入：Skills 双路注入互斥计 2 路，其余七路各计 1 路</li>
+          <li>&bull; 运行时来源各自就近落挂点：Model/会话状态 → ②，记忆 → ③，Tools → ⑤</li>
         </ul>
       </div>
     </div>

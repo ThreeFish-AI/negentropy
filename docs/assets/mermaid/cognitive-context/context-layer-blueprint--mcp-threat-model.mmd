@@ -1,4 +1,4 @@
-%%source: docs/research/cognitive-context/013-context-layer-blueprint.md#block7-6 (§7.6 供给面威胁模型)
+%%source: docs/research/cognitive-context/013-context-layer-blueprint.md §7.2 供给面威胁模型（+MCP 2026-07-28 硬化注记）
 %%slug: cognitive-context/context-layer-blueprint--mcp-threat-model
 %%type: architecture
 %%derived: archify architecture v1, authored from source mermaid
@@ -9,8 +9,8 @@ flowchart LR
         TT["☠️ token 透传窃取"]
     end
     subgraph "Context Layer 供给边界（安全边界）"
-        MCP["🔌 MCP 供给面<br/>list / resolve / compile / feedback"]
-        CG{"🛡️ 编译期治理门<br/>RBAC 于 SQL 生成前评估"}
+        MCP["🔌 MCP 供给面<br/>list / resolve / compile / feedback<br/>2026-07-28：无状态核心 · 每请求自描述"]
+        CG{"🛡️ 编译期治理门<br/>RBAC 于 SQL 生成前评估<br/>token 受众绑定三连禁令"}
         TP["☠️ 工具描述投毒<br/>tool poisoning / rug pull"]
         TI["☠️ 响应内指令注入"]
         TD["☠️ confused deputy<br/>server 以自身权限执行"]

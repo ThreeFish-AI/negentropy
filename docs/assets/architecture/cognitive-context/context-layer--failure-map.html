@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="generator" content="archify 2.17.0-dev.1">
-  <title>双通道现状：自动注入与按需检索的割裂</title>
+  <title>Context Layer 失效地图：八失效 × 五层堵截</title>
   <script>
     // Resolve the theme before first paint so light-preference users don't
     // see a dark flash. The toolbar script below re-applies with UI state.
@@ -5081,7 +5081,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
            data-preset-badge-blueprint="蓝图 / 修订 01"
            data-preset-badge-editorial="编辑风格 / 现场笔记">
         <div class="pulse-dot"></div>
-        <h1>双通道现状：自动注入与按需检索的割裂</h1>
+        <h1>Context Layer 失效地图：八失效 × 五层堵截</h1>
       </div>
     </div>
 
@@ -5130,9 +5130,9 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     <!-- Main Diagram -->
     <div class="diagram-container" data-detail-level="read"
          data-preset-badge-editorial-plate="ARCHIFY / 图版 04">
-      <svg viewBox="0 0 868 408" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-preset="classic" data-quality-profile="showcase">
-        <title id="archify-diagram-title">双通道现状：自动注入与按需检索的割裂</title>
-        <desc id="archify-diagram-description">由 Archify 生成的工作流图。</desc>
+      <svg viewBox="0 0 1280 740" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-preset="classic" data-quality-profile="standard">
+        <title id="archify-diagram-title">Context Layer 失效地图：八失效 × 五层堵截</title>
+        <desc id="archify-diagram-description">由 Archify 生成的架构图。</desc>
         <!-- Definitions -->
         <defs>
           <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
@@ -5155,164 +5155,226 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <!-- Background Grid -->
         <rect width="100%" height="100%" fill="url(#grid)" />
 
-        <!-- Swimlanes -->
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-0" x="40" y="52" width="812" height="106" rx="10" class="c-lane" stroke-width="1"/>
-        <text x="54" y="74" class="t-dim" font-size="10" font-weight="600">01 / 自动通道 · 每轮注入</text>
+        <!-- Boundaries (behind everything) -->
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="0" data-composition-frame-label="八个不可自愈的失效模式（实证见 §0 表）" x="40" y="84" width="358" height="600" rx="12" class="c-region" stroke-width="1"/>
 
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-1" x="40" y="178" width="812" height="106" rx="10" class="c-lane" stroke-width="1"/>
-        <text x="54" y="200" class="t-dim" font-size="10" font-weight="600">02 / 按需通道 · Agent 调工具</text>
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="1" data-composition-frame-label="五正交层的堵截机制" x="406" y="78" width="478" height="566" rx="12" class="c-region" stroke-width="1"/>
 
-        <!-- Phase headers -->
+        <!-- Connection paths (before components for correct z-order) -->
+        <path data-edge-from="F1" data-edge-to="L4" data-edge-label="M1 口径单点" data-edge-key="0" data-edge-id="e1" data-composition-points="374,134;600,134" d="M 374 134 L 600 134" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="F2" data-edge-to="L5" data-edge-label="staleness + 源水位" data-edge-key="1" data-edge-id="e2" data-composition-points="374,206;520,206;520,232;600,232" d="M 374 206 L 512 206 Q 520 206 520 214 L 520 224 Q 520 232 528 232 L 600 232" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="F3" data-edge-to="L5" data-edge-label="统一骨架 + 归一" data-edge-key="2" data-edge-id="e3" data-composition-points="374,278;580,278;580,232;600,232" d="M 374 278 L 572 278 Q 580 278 580 270 L 580 240 Q 580 232 588 232 L 600 232" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="F3" data-edge-to="L8" data-edge-label="ADR-2 统一检索" data-edge-key="3" data-edge-id="e4" data-composition-points="374,278;900,278;900,592;690,592" d="M 374 278 L 892 278 Q 900 278 900 286 L 900 584 Q 900 592 892 592 L 690 592" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="F4" data-edge-to="L7" data-edge-label="M2/M3 双层防线" data-edge-key="4" data-edge-id="e5" data-composition-points="374,350;520,350;520,450;600,450" d="M 374 350 L 512 350 Q 520 350 520 358 L 520 442 Q 520 450 528 450 L 600 450" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="F5" data-edge-to="L7" data-edge-label="M6 权限天花板" data-edge-key="5" data-edge-id="e6" data-composition-points="374,422;520,422;520,450;600,450" d="M 374 422 L 512 422 Q 520 422 520 430 L 520 442 Q 520 450 528 450 L 600 450" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="F6" data-edge-to="L8" data-edge-label="M4 验证锚定" data-edge-key="6" data-edge-id="e7" data-composition-points="374,494;560,494;560,560;560,560" d="M 374 494 L 552 494 Q 560 494 560 502 L 560 560 L 560 560" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="F7" data-edge-to="L7" data-edge-label="供给面威胁模型" data-edge-key="7" data-edge-id="e8" data-composition-points="374,566;410,566;410,660;730,660;730,482" d="M 374 566 L 402 566 Q 410 566 410 574 L 410 652 Q 410 660 418 660 L 722 660 Q 730 660 730 652 L 730 482" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="F8" data-edge-to="L8" data-edge-label="预算分配 + 可观测" data-edge-key="8" data-edge-id="e9" data-composition-points="374,638;395,638;395,592;430,592" d="M 374 638 L 387 638 Q 395 638 395 630 L 395 600 Q 395 592 403 592 L 430 592" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
 
-
-        <!-- Workflow groups -->
-
-
-        <!-- Edge paths -->
-        <path data-edge-from="fuse" data-edge-to="od_gap" data-edge-key="0" data-edge-id="e_fuse_gap" data-composition-points="480,246;628,246" d="M 480 246 L 628 246" class="a-security" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
-        <path data-edge-from="hp" data-edge-to="seed" data-edge-label="Intent 分类" data-edge-key="1" data-edge-id="e_hp_seed" data-composition-points="140,246;210.8,246" d="M 140 246 L 210.8 246" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="kg" data-edge-to="auto_gap" data-edge-key="2" data-edge-id="e_kg_gap" data-composition-points="554,146;554,174;674,174;674,154" d="M 554 146 L 554 174 L 674 174 L 674 154" class="a-security" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
-        <path data-edge-from="ca" data-edge-to="prefix" data-edge-key="3" data-edge-id="e_prefix_inject" data-composition-points="140,120;210.8,120" d="M 140 120 L 210.8 120" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="prefix" data-edge-to="window" data-edge-key="4" data-edge-id="e_prefix_window" data-composition-points="302.8,120;388,120" d="M 302.8 120 L 388 120" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="seed" data-edge-to="fuse" data-edge-label="canonical 桥接" data-edge-key="5" data-edge-id="e_seed_fuse" data-composition-points="302.8,246;388,246" d="M 302.8 246 L 388 246" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="window" data-edge-to="auto_gap" data-edge-key="6" data-edge-id="e_window_gap" data-composition-points="434,146;434,174;674,174;674,154" d="M 434 146 L 434 174 L 674 174 L 674 154" class="a-security" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
-
-        <!-- Nodes -->
-        <g id="node-ca" data-node-id="ca" data-node-label="自动组装" tabindex="0" role="button" aria-label="聚焦自动组装，ContextAssembler, 自动通道 · 每轮注入" aria-pressed="false" data-node-kind="backend" data-node-sublabel="ContextAssembler" data-node-tag="assemble()" data-node-context="自动通道 · 每轮注入">
-          <title>自动组装 · ContextAssembler · 自动通道 · 每轮注入 · assemble()</title>
-          <rect x="48" y="86" width="92" height="68" rx="6" class="c-mask"/>
-          <rect x="48" y="86" width="92" height="68" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(54 92) scale(0.6875)">
-            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="94" y="107" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">自动组装</text>
-          <text data-detail="context" x="94" y="124" class="t-muted" font-size="8" text-anchor="middle">ContextAssembler</text>
-        <text data-detail="fine" x="94" y="142" class="t-backend" font-size="7" text-anchor="middle">assemble()</text>
-        </g>
-
-        <g id="node-prefix" data-node-id="prefix" data-node-label="常驻摘要+反思" tabindex="0" role="button" aria-label="聚焦常驻摘要+反思，Core Block·Reflections, 自动通道 · 每轮注入" aria-pressed="false" data-node-kind="backend" data-node-sublabel="Core Block·Reflections" data-node-context="自动通道 · 每轮注入">
-          <title>常驻摘要+反思 · Core Block·Reflections · 自动通道 · 每轮注入</title>
-          <rect x="210.8" y="94" width="92" height="52" rx="6" class="c-mask"/>
-          <rect x="210.8" y="94" width="92" height="52" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(216.8 100) scale(0.6875)">
-            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="256.8" y="115" class="t-primary" font-size="10.7" font-weight="600" text-anchor="middle">常驻摘要+反思</text>
-          <text data-detail="context" x="256.8" y="132" class="t-muted" font-size="6.3" text-anchor="middle">Core Block·Reflections</text>
-        </g>
-
-        <g id="node-window" data-node-id="window" data-node-label="记忆窗口" tabindex="0" role="button" aria-label="聚焦记忆窗口，get_context_window(), 自动通道 · 每轮注入" aria-pressed="false" data-node-kind="database" data-node-sublabel="get_context_window()" data-node-context="自动通道 · 每轮注入">
-          <title>记忆窗口 · get_context_window() · 自动通道 · 每轮注入</title>
-          <rect x="388" y="94" width="92" height="52" rx="6" class="c-mask"/>
-          <rect x="388" y="94" width="92" height="52" rx="6" class="c-database" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(394 100) scale(0.6875)">
-            <ellipse cx="8" cy="4" rx="5" ry="2"/>
-            <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="434" y="115" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">记忆窗口</text>
-          <text data-detail="context" x="434" y="132" class="t-muted" font-size="7" text-anchor="middle">get_context_window()</text>
-        </g>
-
-        <g id="node-kg" data-node-id="kg" data-node-label="KG 实体摘要" tabindex="0" role="button" aria-label="聚焦KG 实体摘要，get_memory_summary(), 自动通道 · 每轮注入" aria-pressed="false" data-node-kind="database" data-node-sublabel="get_memory_summary()" data-node-context="自动通道 · 每轮注入">
-          <title>KG 实体摘要 · get_memory_summary() · 自动通道 · 每轮注入</title>
-          <rect x="508" y="94" width="92" height="52" rx="6" class="c-mask"/>
-          <rect x="508" y="94" width="92" height="52" rx="6" class="c-database" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(514 100) scale(0.6875)">
-            <ellipse cx="8" cy="4" rx="5" ry="2"/>
-            <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="554" y="115" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">KG 实体摘要</text>
-          <text data-detail="context" x="554" y="132" class="t-muted" font-size="7" text-anchor="middle">get_memory_summary()</text>
-        </g>
-
-        <g id="node-auto_gap" data-node-id="auto_gap" data-node-label="无 KB 接地" tabindex="0" role="button" aria-label="聚焦无 KB 接地，自动通道 · 每轮注入" aria-pressed="false" data-node-kind="external" data-node-tag="缺口" data-node-context="自动通道 · 每轮注入">
-          <title>无 KB 接地 · 自动通道 · 每轮注入 · 缺口</title>
-          <rect x="628" y="86" width="92" height="68" rx="6" class="c-mask"/>
-          <rect x="628" y="86" width="92" height="68" rx="6" class="c-external" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(634 92) scale(0.6875)">
+        <!-- Components -->
+        <g id="node-F1" data-node-id="F1" data-node-label="口径打架" tabindex="0" role="button" aria-label="聚焦口径打架，$14.2M vs $12.8M, 八个不可自愈的失效模式（实证见 §0 表）" aria-pressed="false" data-node-kind="external" data-node-sublabel="$14.2M vs $12.8M" data-node-context="八个不可自愈的失效模式（实证见 §0 表）">
+          <title>口径打架 · $14.2M vs $12.8M · 八个不可自愈的失效模式（实证见 §0 表）</title>
+          <rect x="64" y="108" width="310" height="52" rx="6" class="c-mask"/>
+          <rect x="64" y="108" width="310" height="52" rx="6" class="c-external" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(70 114) scale(0.6875)">
             <rect x="2.5" y="5" width="8.5" height="8" rx="1.5"/>
             <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
           </g>
-          <text data-node-label="" x="674" y="107" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">无 KB 接地</text>
-        <text data-detail="fine" x="674" y="142" class="t-external" font-size="7" text-anchor="middle">缺口</text>
+          <text data-node-label="" data-detail-anchor="" x="219" y="132" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">口径打架</text>
+        <text data-detail="context" x="219" y="148" class="t-muted" font-size="9" text-anchor="middle">$14.2M vs $12.8M</text>
         </g>
 
-        <g id="node-hp" data-node-id="hp" data-node-label="混合规划" tabindex="0" role="button" aria-label="聚焦混合规划，HybridPlanner, 按需通道 · Agent 调工具" aria-pressed="false" data-node-kind="backend" data-node-sublabel="HybridPlanner" data-node-tag="plan()" data-node-context="按需通道 · Agent 调工具">
-          <title>混合规划 · HybridPlanner · 按需通道 · Agent 调工具 · plan()</title>
-          <rect x="48" y="212" width="92" height="68" rx="6" class="c-mask"/>
-          <rect x="48" y="212" width="92" height="68" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(54 218) scale(0.6875)">
-            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="94" y="233" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">混合规划</text>
-          <text data-detail="context" x="94" y="250" class="t-muted" font-size="8" text-anchor="middle">HybridPlanner</text>
-        <text data-detail="fine" x="94" y="268" class="t-backend" font-size="7" text-anchor="middle">plan()</text>
-        </g>
-
-        <g id="node-seed" data-node-id="seed" data-node-label="并行种子检索" tabindex="0" role="button" aria-label="聚焦并行种子检索，asyncio.gather, 按需通道 · Agent 调工具" aria-pressed="false" data-node-kind="database" data-node-sublabel="asyncio.gather" data-node-context="按需通道 · Agent 调工具">
-          <title>并行种子检索 · asyncio.gather · 按需通道 · Agent 调工具</title>
-          <rect x="210.8" y="220" width="92" height="52" rx="6" class="c-mask"/>
-          <rect x="210.8" y="220" width="92" height="52" rx="6" class="c-database" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(216.8 226) scale(0.6875)">
-            <ellipse cx="8" cy="4" rx="5" ry="2"/>
-            <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="256.8" y="241" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">并行种子检索</text>
-          <text data-detail="context" x="256.8" y="258" class="t-muted" font-size="8" text-anchor="middle">asyncio.gather</text>
-        </g>
-
-        <g id="node-fuse" data-node-id="fuse" data-node-label="图扩展+重排" tabindex="0" role="button" aria-label="聚焦图扩展+重排，RRF + Rerank, 按需通道 · Agent 调工具" aria-pressed="false" data-node-kind="backend" data-node-sublabel="RRF + Rerank" data-node-context="按需通道 · Agent 调工具">
-          <title>图扩展+重排 · RRF + Rerank · 按需通道 · Agent 调工具</title>
-          <rect x="388" y="220" width="92" height="52" rx="6" class="c-mask"/>
-          <rect x="388" y="220" width="92" height="52" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(394 226) scale(0.6875)">
-            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="434" y="241" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">图扩展+重排</text>
-          <text data-detail="context" x="434" y="258" class="t-muted" font-size="8" text-anchor="middle">RRF + Rerank</text>
-        </g>
-
-        <g id="node-od_gap" data-node-id="od_gap" data-node-label="不含 Memory" tabindex="0" role="button" aria-label="聚焦不含 Memory，按需通道 · Agent 调工具" aria-pressed="false" data-node-kind="external" data-node-tag="缺口" data-node-context="按需通道 · Agent 调工具">
-          <title>不含 Memory · 按需通道 · Agent 调工具 · 缺口</title>
-          <rect x="628" y="212" width="92" height="68" rx="6" class="c-mask"/>
-          <rect x="628" y="212" width="92" height="68" rx="6" class="c-external" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(634 218) scale(0.6875)">
+        <g id="node-F2" data-node-id="F2" data-node-label="过期供给" tabindex="0" role="button" aria-label="聚焦过期供给，自信地错（staleness）, 八个不可自愈的失效模式（实证见 §0 表）" aria-pressed="false" data-node-kind="external" data-node-sublabel="自信地错（staleness）" data-node-context="八个不可自愈的失效模式（实证见 §0 表）">
+          <title>过期供给 · 自信地错（staleness） · 八个不可自愈的失效模式（实证见 §0 表）</title>
+          <rect x="64" y="180" width="310" height="52" rx="6" class="c-mask"/>
+          <rect x="64" y="180" width="310" height="52" rx="6" class="c-external" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(70 186) scale(0.6875)">
             <rect x="2.5" y="5" width="8.5" height="8" rx="1.5"/>
             <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
           </g>
-          <text data-node-label="" x="674" y="233" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">不含 Memory</text>
-        <text data-detail="fine" x="674" y="268" class="t-external" font-size="7" text-anchor="middle">缺口</text>
+          <text data-node-label="" data-detail-anchor="" x="219" y="204" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">过期供给</text>
+        <text data-detail="context" x="219" y="220" class="t-muted" font-size="9" text-anchor="middle">自信地错（staleness）</text>
         </g>
 
-        <!-- Edge labels -->
-
-        <g data-detail="context" data-edge-from="hp" data-edge-to="seed" data-edge-label="Intent 分类" data-edge-key="1" data-edge-id="e_hp_seed">
-          <rect x="144" y="226" width="62.8" height="14" rx="3" class="c-mask"/>
-          <text x="175.4" y="236" class="t-muted" font-size="8" text-anchor="middle">Intent 分类</text>
+        <g id="node-F3" data-node-id="F3" data-node-label="检索割裂" tabindex="0" role="button" aria-label="聚焦检索割裂，通道互不知情 · CJK 失效, 八个不可自愈的失效模式（实证见 §0 表）" aria-pressed="false" data-node-kind="external" data-node-sublabel="通道互不知情 · CJK 失效" data-node-context="八个不可自愈的失效模式（实证见 §0 表）">
+          <title>检索割裂 · 通道互不知情 · CJK 失效 · 八个不可自愈的失效模式（实证见 §0 表）</title>
+          <rect x="64" y="252" width="310" height="52" rx="6" class="c-mask"/>
+          <rect x="64" y="252" width="310" height="52" rx="6" class="c-external" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(70 258) scale(0.6875)">
+            <rect x="2.5" y="5" width="8.5" height="8" rx="1.5"/>
+            <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="219" y="276" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">检索割裂</text>
+        <text data-detail="context" x="219" y="292" class="t-muted" font-size="9" text-anchor="middle">通道互不知情 · CJK 失效</text>
         </g>
 
-
-
-        <g data-detail="context" data-edge-from="seed" data-edge-to="fuse" data-edge-label="canonical 桥接" data-edge-key="5" data-edge-id="e_seed_fuse">
-          <rect x="306.79999999999995" y="226" width="77.2" height="14" rx="3" class="c-mask"/>
-          <text x="345.4" y="236" class="t-muted" font-size="8" text-anchor="middle">canonical 桥接</text>
+        <g id="node-F4" data-node-id="F4" data-node-label="权限穿透" tabindex="0" role="button" aria-label="聚焦权限穿透，外挂治理标准死法, 八个不可自愈的失效模式（实证见 §0 表）" aria-pressed="false" data-node-kind="external" data-node-sublabel="外挂治理标准死法" data-node-context="八个不可自愈的失效模式（实证见 §0 表）">
+          <title>权限穿透 · 外挂治理标准死法 · 八个不可自愈的失效模式（实证见 §0 表）</title>
+          <rect x="64" y="324" width="310" height="52" rx="6" class="c-mask"/>
+          <rect x="64" y="324" width="310" height="52" rx="6" class="c-external" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(70 330) scale(0.6875)">
+            <rect x="2.5" y="5" width="8.5" height="8" rx="1.5"/>
+            <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="219" y="348" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">权限穿透</text>
+        <text data-detail="context" x="219" y="364" class="t-muted" font-size="9" text-anchor="middle">外挂治理标准死法</text>
         </g>
 
+        <g id="node-F5" data-node-id="F5" data-node-label="代理越权" tabindex="0" role="button" aria-label="聚焦代理越权，借用户全权, 八个不可自愈的失效模式（实证见 §0 表）" aria-pressed="false" data-node-kind="external" data-node-sublabel="借用户全权" data-node-context="八个不可自愈的失效模式（实证见 §0 表）">
+          <title>代理越权 · 借用户全权 · 八个不可自愈的失效模式（实证见 §0 表）</title>
+          <rect x="64" y="396" width="310" height="52" rx="6" class="c-mask"/>
+          <rect x="64" y="396" width="310" height="52" rx="6" class="c-external" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(70 402) scale(0.6875)">
+            <rect x="2.5" y="5" width="8.5" height="8" rx="1.5"/>
+            <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="219" y="420" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">代理越权</text>
+        <text data-detail="context" x="219" y="436" class="t-muted" font-size="9" text-anchor="middle">借用户全权</text>
+        </g>
+
+        <g id="node-F6" data-node-id="F6" data-node-label="未验证断言" tabindex="0" role="button" aria-label="聚焦未验证断言，477 vs 48, 八个不可自愈的失效模式（实证见 §0 表）" aria-pressed="false" data-node-kind="external" data-node-sublabel="477 vs 48" data-node-context="八个不可自愈的失效模式（实证见 §0 表）">
+          <title>未验证断言 · 477 vs 48 · 八个不可自愈的失效模式（实证见 §0 表）</title>
+          <rect x="64" y="468" width="310" height="52" rx="6" class="c-mask"/>
+          <rect x="64" y="468" width="310" height="52" rx="6" class="c-external" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(70 474) scale(0.6875)">
+            <rect x="2.5" y="5" width="8.5" height="8" rx="1.5"/>
+            <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="219" y="492" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">未验证断言</text>
+        <text data-detail="context" x="219" y="508" class="t-muted" font-size="9" text-anchor="middle">477 vs 48</text>
+        </g>
+
+        <g id="node-F7" data-node-id="F7" data-node-label="供给面投毒" tabindex="0" role="button" aria-label="聚焦供给面投毒，技能生态恶意面, 八个不可自愈的失效模式（实证见 §0 表）" aria-pressed="false" data-node-kind="external" data-node-sublabel="技能生态恶意面" data-node-context="八个不可自愈的失效模式（实证见 §0 表）">
+          <title>供给面投毒 · 技能生态恶意面 · 八个不可自愈的失效模式（实证见 §0 表）</title>
+          <rect x="64" y="540" width="310" height="52" rx="6" class="c-mask"/>
+          <rect x="64" y="540" width="310" height="52" rx="6" class="c-external" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(70 546) scale(0.6875)">
+            <rect x="2.5" y="5" width="8.5" height="8" rx="1.5"/>
+            <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="219" y="564" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">供给面投毒</text>
+        <text data-detail="context" x="219" y="580" class="t-muted" font-size="9" text-anchor="middle">技能生态恶意面</text>
+        </g>
+
+        <g id="node-F8" data-node-id="F8" data-node-label="静默退化" tabindex="0" role="button" aria-label="聚焦静默退化，激活悬空 · context rot, 八个不可自愈的失效模式（实证见 §0 表）" aria-pressed="false" data-node-kind="external" data-node-sublabel="激活悬空 · context rot" data-node-context="八个不可自愈的失效模式（实证见 §0 表）">
+          <title>静默退化 · 激活悬空 · context rot · 八个不可自愈的失效模式（实证见 §0 表）</title>
+          <rect x="64" y="612" width="310" height="52" rx="6" class="c-mask"/>
+          <rect x="64" y="612" width="310" height="52" rx="6" class="c-external" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(70 618) scale(0.6875)">
+            <rect x="2.5" y="5" width="8.5" height="8" rx="1.5"/>
+            <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="219" y="636" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">静默退化</text>
+        <text data-detail="context" x="219" y="652" class="t-muted" font-size="9" text-anchor="middle">激活悬空 · context rot</text>
+        </g>
+
+        <g id="node-L4" data-node-id="L4" data-node-label="§4 对象层" tabindex="0" role="button" aria-label="聚焦§4 对象层，M1 口径单点, 五正交层的堵截机制" aria-pressed="false" data-node-kind="security" data-node-sublabel="M1 口径单点" data-node-context="五正交层的堵截机制">
+          <title>§4 对象层 · M1 口径单点 · 五正交层的堵截机制</title>
+          <rect x="600" y="102" width="260" height="64" rx="6" class="c-mask"/>
+          <rect x="600" y="102" width="260" height="64" rx="6" class="c-security" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(606 108) scale(0.6875)">
+            <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
+            <path d="m5.8 8 1.5 1.5 3-3"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="730" y="132" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">§4 对象层</text>
+        <text data-detail="context" x="730" y="148" class="t-muted" font-size="9" text-anchor="middle">M1 口径单点</text>
+        </g>
+
+        <g id="node-L5" data-node-id="L5" data-node-label="§5 目录层" tabindex="0" role="button" aria-label="聚焦§5 目录层，staleness · 信任归一, 五正交层的堵截机制" aria-pressed="false" data-node-kind="security" data-node-sublabel="staleness · 信任归一" data-node-context="五正交层的堵截机制">
+          <title>§5 目录层 · staleness · 信任归一 · 五正交层的堵截机制</title>
+          <rect x="600" y="200" width="260" height="64" rx="6" class="c-mask"/>
+          <rect x="600" y="200" width="260" height="64" rx="6" class="c-security" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(606 206) scale(0.6875)">
+            <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
+            <path d="m5.8 8 1.5 1.5 3-3"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="730" y="230" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">§5 目录层</text>
+        <text data-detail="context" x="730" y="246" class="t-muted" font-size="9" text-anchor="middle">staleness · 信任归一</text>
+        </g>
+
+        <g id="node-L7" data-node-id="L7" data-node-label="§7 治理层" tabindex="0" role="button" aria-label="聚焦§7 治理层，M2/M3 · M6 · 威胁模型, 五正交层的堵截机制" aria-pressed="false" data-node-kind="security" data-node-sublabel="M2/M3 · M6 · 威胁模型" data-node-context="五正交层的堵截机制">
+          <title>§7 治理层 · M2/M3 · M6 · 威胁模型 · 五正交层的堵截机制</title>
+          <rect x="600" y="418" width="260" height="64" rx="6" class="c-mask"/>
+          <rect x="600" y="418" width="260" height="64" rx="6" class="c-security" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(606 424) scale(0.6875)">
+            <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
+            <path d="m5.8 8 1.5 1.5 3-3"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="730" y="448" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">§7 治理层</text>
+        <text data-detail="context" x="730" y="464" class="t-muted" font-size="9" text-anchor="middle">M2/M3 · M6 · 威胁模型</text>
+        </g>
+
+        <g id="node-L8" data-node-id="L8" data-node-label="§8 激活层" tabindex="0" role="button" aria-label="聚焦§8 激活层，统一骨架 ADR-2 · M4 锚定 · 预算, 五正交层的堵截机制" aria-pressed="false" data-node-kind="security" data-node-sublabel="统一骨架 ADR-2 · M4 锚定 · 预算" data-node-context="五正交层的堵截机制">
+          <title>§8 激活层 · 统一骨架 ADR-2 · M4 锚定 · 预算 · 五正交层的堵截机制</title>
+          <rect x="430" y="560" width="260" height="64" rx="6" class="c-mask"/>
+          <rect x="430" y="560" width="260" height="64" rx="6" class="c-security" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(436 566) scale(0.6875)">
+            <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
+            <path d="m5.8 8 1.5 1.5 3-3"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="560" y="590" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">§8 激活层</text>
+        <text data-detail="context" x="560" y="606" class="t-muted" font-size="9" text-anchor="middle">统一骨架 ADR-2 · M4 锚定 · 预算</text>
+        </g>
+
+        <!-- Connection labels -->
+        <g data-detail="context" data-edge-from="F1" data-edge-to="L4" data-edge-label="M1 口径单点" data-edge-key="0" data-edge-id="e1">
+          <rect x="455.6" y="124" width="62.8" height="14" rx="3" class="c-mask"/>
+          <text x="487" y="134" class="t-muted" font-size="8" text-anchor="middle">M1 口径单点</text>
+        </g>
+        <g data-detail="context" data-edge-from="F2" data-edge-to="L5" data-edge-label="staleness + 源水位" data-edge-key="1" data-edge-id="e2">
+          <rect x="401.8" y="196" width="96.39999999999999" height="14" rx="3" class="c-mask"/>
+          <text x="450" y="206" class="t-muted" font-size="8" text-anchor="middle">staleness + 源水位</text>
+        </g>
+        <g data-detail="context" data-edge-from="F3" data-edge-to="L5" data-edge-label="统一骨架 + 归一" data-edge-key="2" data-edge-id="e3">
+          <rect x="504" y="245" width="82" height="14" rx="3" class="c-mask"/>
+          <text x="545" y="255" class="t-muted" font-size="8" text-anchor="middle">统一骨架 + 归一</text>
+        </g>
+        <g data-detail="context" data-edge-from="F3" data-edge-to="L8" data-edge-label="ADR-2 统一检索" data-edge-key="3" data-edge-id="e4">
+          <rect x="906.4" y="410" width="77.2" height="14" rx="3" class="c-mask"/>
+          <text x="945" y="420" class="t-muted" font-size="8" text-anchor="middle">ADR-2 统一检索</text>
+        </g>
+        <g data-detail="context" data-edge-from="F4" data-edge-to="L7" data-edge-label="M2/M3 双层防线" data-edge-key="4" data-edge-id="e5">
+          <rect x="481.4" y="385" width="77.2" height="14" rx="3" class="c-mask"/>
+          <text x="520" y="395" class="t-muted" font-size="8" text-anchor="middle">M2/M3 双层防线</text>
+        </g>
+        <g data-detail="context" data-edge-from="F5" data-edge-to="L7" data-edge-label="M6 权限天花板" data-edge-key="5" data-edge-id="e6">
+          <rect x="403.8" y="412" width="72.4" height="14" rx="3" class="c-mask"/>
+          <text x="440" y="422" class="t-muted" font-size="8" text-anchor="middle">M6 权限天花板</text>
+        </g>
+        <g data-detail="context" data-edge-from="F6" data-edge-to="L8" data-edge-label="M4 验证锚定" data-edge-key="6" data-edge-id="e7">
+          <rect x="428.6" y="484" width="62.8" height="14" rx="3" class="c-mask"/>
+          <text x="460" y="494" class="t-muted" font-size="8" text-anchor="middle">M4 验证锚定</text>
+        </g>
+        <g data-detail="context" data-edge-from="F7" data-edge-to="L7" data-edge-label="供给面威胁模型" data-edge-key="7" data-edge-id="e8">
+          <rect x="521.4" y="650" width="77.2" height="14" rx="3" class="c-mask"/>
+          <text x="560" y="660" class="t-muted" font-size="8" text-anchor="middle">供给面威胁模型</text>
+        </g>
+        <g data-detail="context" data-edge-from="F8" data-edge-to="L8" data-edge-label="预算分配 + 可观测" data-edge-key="8" data-edge-id="e9">
+          <rect x="419.2" y="625" width="91.6" height="14" rx="3" class="c-mask"/>
+          <text x="465" y="635" class="t-muted" font-size="8" text-anchor="middle">预算分配 + 可观测</text>
+        </g>
+
+        <!-- Boundary labels (foreground masks keep routes out of titles) -->
+        <g data-graph-role="structural-frame-label" data-composition-frame-id="0" data-composition-frame-kind="region" data-composition-frame-label="八个不可自愈的失效模式（实证见 §0 表）">
+          <rect data-graph-role="structural-frame-label-mask" x="44" y="88" width="215.2" height="16" rx="3" class="c-mask"/>
+          <text data-boundary-label="" x="48" y="101" class="t-cloud" font-size="9" font-weight="600">八个不可自愈的失效模式（实证见 §0 表）</text>
+        </g>
+
+        <g data-graph-role="structural-frame-label" data-composition-frame-id="1" data-composition-frame-kind="region" data-composition-frame-label="五正交层的堵截机制">
+          <rect data-graph-role="structural-frame-label-mask" x="410" y="82" width="107.2" height="16" rx="3" class="c-mask"/>
+          <text data-boundary-label="" x="414" y="95" class="t-cloud" font-size="9" font-weight="600">五正交层的堵截机制</text>
+        </g>
 
         <!-- Legend -->
         <g data-legend="" data-legend-bridge="">
-          <text x="20" y="308" class="t-primary" font-size="12" font-weight="650">图例</text>
-          <g data-legend-semantic-kind="backend" data-legend-kind="backend" data-legend-label="Agent 逻辑" data-legend-x="20" data-legend-baseline="328" data-legend-width="87">
-            <rect x="20" y="320" width="14" height="9" rx="2" class="c-backend" stroke-width="1"/>
-            <text x="42" y="328" class="t-muted" font-size="7.5" font-weight="500">Agent 逻辑</text>
+          <text x="40" y="704" class="t-primary" font-size="12" font-weight="650">图例</text>
+          <g data-legend-semantic-kind="security" data-legend-kind="security" data-legend-label="安全" data-legend-x="40" data-legend-baseline="724" data-legend-width="63">
+            <rect x="40" y="715" width="16" height="10" rx="2.5" class="c-security" stroke-width="1"/>
+            <text x="62" y="724" class="t-muted" font-size="10" font-weight="500">安全</text>
           </g>
-          <g data-legend-semantic-kind="database" data-legend-kind="database" data-legend-label="上下文 / 追踪" data-legend-x="114" data-legend-baseline="328" data-legend-width="100">
-            <rect x="114" y="320" width="14" height="9" rx="2" class="c-database" stroke-width="1"/>
-            <text x="136" y="328" class="t-muted" font-size="7.5" font-weight="500">上下文 / 追踪</text>
-          </g>
-          <g data-legend-semantic-kind="external" data-legend-kind="external" data-legend-label="外部系统" data-legend-x="221" data-legend-baseline="328" data-legend-width="78">
-            <rect x="221" y="320" width="14" height="9" rx="2" class="c-external" stroke-width="1"/>
-            <text x="243" y="328" class="t-muted" font-size="7.5" font-weight="500">外部系统</text>
+          <g data-legend-semantic-kind="external" data-legend-kind="external" data-legend-label="外部系统" data-legend-x="125" data-legend-baseline="724" data-legend-width="83">
+            <rect x="125" y="715" width="16" height="10" rx="2.5" class="c-external" stroke-width="1"/>
+            <text x="147" y="724" class="t-muted" font-size="10" font-weight="500">外部系统</text>
           </g>
         </g>
       </svg>
@@ -5504,35 +5566,37 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       <div class="card">
         <div class="card-header">
           <div class="card-dot rose"></div>
-          <h3>结构性缺口</h3>
+          <h3>失效面：Agent 在自信地错</h3>
         </div>
         <ul>
-          <li>&bull; 自动通道不接地 KB chunks——记忆过期而 KB 新鲜时直接产生幻觉风险</li>
-          <li>&bull; 按需通道不含 Memory——相关记忆存在但 Agent 不调工具即不可见</li>
-          <li>&bull; 两通道信任信号互不参照，无法跨子系统统一排名</li>
+          <li>&bull; 八类失效均不可自愈：错在结构，不在提示词</li>
+          <li>&bull; 口径打架直接代价：$14.2M vs $12.8M</li>
+          <li>&bull; 未验证断言放大幻觉：477 vs 48</li>
         </ul>
       </div>
 
       <div class="card">
         <div class="card-header">
           <div class="card-dot cyan"></div>
-          <h3>自动通道构成 · ContextAssembler</h3>
+          <h3>堵截面：五正交层各守一段</h3>
         </div>
         <ul>
-          <li>&bull; assemble() 注入顺序：Core Block（≤30% 预算）→ Reflections → get_context_window() 主记忆</li>
-          <li>&bull; 预算比 30% memory / 50% history / 20% system，超标按行截断</li>
-          <li>&bull; KG 摘要走并列接口 get_memory_summary()：_collect_kg_context() 取 importance top-5 实体 + 1-hop 关系（~200 token）</li>
+          <li>&bull; §4 对象层：M1 口径单点，消灭多源打架</li>
+          <li>&bull; §5 目录层：staleness 水位 + 信任归一</li>
+          <li>&bull; §7 治理层：M2/M3 双层防线 · M6 权限天花板 · 供给面威胁模型</li>
+          <li>&bull; §8 激活层：ADR-2 统一检索 · M4 验证锚定 · 预算分配</li>
         </ul>
       </div>
 
       <div class="card">
         <div class="card-header">
           <div class="card-dot amber"></div>
-          <h3>按需通道构成 · HybridPlanner</h3>
+          <h3>验收面：映射边即验收标准</h3>
         </div>
         <ul>
-          <li>&bull; plan() 四阶段：Intent 分类 → asyncio.gather 并行种子检索 → canonical 图扩展 → RRF 融合重排</li>
-          <li>&bull; 种子源仅遍历 KB Corpus（hybrid_search），Memory 不在 _seed_retrieval 之列；单源失败 fail-soft</li>
+          <li>&bull; 每条映射边就是一个验收面：失效 → 堵截机制</li>
+          <li>&bull; 检索割裂双出口（目录层 + 激活层）构成纵深防御</li>
+          <li>&bull; 治理层承接三条边，是权限与供给面的最大公约数</li>
         </ul>
       </div>
     </div>

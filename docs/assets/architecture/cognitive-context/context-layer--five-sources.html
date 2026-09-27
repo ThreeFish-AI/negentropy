@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="generator" content="archify 2.17.0-dev.1">
-  <title>统一上下文激活 · ContextAssembler / HybridPlanner 扩展</title>
+  <title>Agent 运行时上下文五源（ADR-5）</title>
   <script>
     // Resolve the theme before first paint so light-preference users don't
     // see a dark flash. The toolbar script below re-applies with UI state.
@@ -5081,7 +5081,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
            data-preset-badge-blueprint="蓝图 / 修订 01"
            data-preset-badge-editorial="编辑风格 / 现场笔记">
         <div class="pulse-dot"></div>
-        <h1>统一上下文激活 · ContextAssembler / HybridPlanner 扩展</h1>
+        <h1>Agent 运行时上下文五源（ADR-5）</h1>
       </div>
     </div>
 
@@ -5130,9 +5130,9 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     <!-- Main Diagram -->
     <div class="diagram-container" data-detail-level="read"
          data-preset-badge-editorial-plate="ARCHIFY / 图版 04">
-      <svg viewBox="0 0 1140 672" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-preset="classic" data-quality-profile="showcase">
-        <title id="archify-diagram-title">统一上下文激活 · ContextAssembler / HybridPlanner 扩展</title>
-        <desc id="archify-diagram-description">由 Archify 生成的工作流图。</desc>
+      <svg viewBox="0 0 1024 584" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-preset="classic" data-quality-profile="showcase">
+        <title id="archify-diagram-title">Agent 运行时上下文五源（ADR-5）</title>
+        <desc id="archify-diagram-description">由 Archify 生成的架构图。</desc>
         <!-- Definitions -->
         <defs>
           <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
@@ -5155,199 +5155,199 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <!-- Background Grid -->
         <rect width="100%" height="100%" fill="url(#grid)" />
 
-        <!-- Swimlanes -->
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-0" x="40" y="52" width="778" height="106" rx="10" class="c-lane" stroke-width="1"/>
-        <text x="54" y="74" class="t-dim" font-size="10" font-weight="600">01 / 请求与路由</text>
+        <!-- Boundaries (behind everything) -->
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="0" data-composition-frame-label="五源 · 运行时上下文对象" x="6" y="14" width="1012" height="114" rx="12" class="c-region" stroke-width="1"/>
 
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-1" x="40" y="178" width="778" height="112" rx="10" class="c-lane" stroke-width="1"/>
-        <text x="54" y="200" class="t-dim" font-size="10" font-weight="600">02 / 自动注入 · 每轮</text>
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="1" data-composition-frame-label="信任信号 · 归一层标准化（不发明新信号）" x="145" y="166" width="734" height="106" rx="12" class="c-region" stroke-width="1"/>
 
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-2" x="40" y="310" width="778" height="112" rx="10" class="c-lane" stroke-width="1"/>
-        <text x="54" y="332" class="t-dim" font-size="10" font-weight="600">03 / 按需检索 · Agent 触发</text>
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="2" data-composition-frame-label="治理面 · 各源独立，统一织物横亘" x="145" y="310" width="734" height="106" rx="12" class="c-region" stroke-width="1"/>
 
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-3" x="40" y="442" width="778" height="106" rx="10" class="c-lane" stroke-width="1"/>
-        <text x="54" y="464" class="t-dim" font-size="10" font-weight="600">04 / 统一激活 · 治理</text>
+        <!-- Connection paths (before components for correct z-order) -->
+        <path data-edge-from="src-memory" data-edge-to="sig-memory" data-edge-key="0" data-edge-id="e-mem-sig" data-composition-points="320,108;320,152;280,152;280,196" d="M 320 108 L 320 144 Q 320 152 312 152 L 288 152 Q 280 152 280 160 L 280 196" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="src-knowledge" data-edge-to="sig-knowledge" data-edge-key="1" data-edge-id="e-know-sig" data-composition-points="512,108;512,196" d="M 512 108 L 512 196" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="src-tools" data-edge-to="sig-tools" data-edge-key="2" data-edge-id="e-tools-sig" data-composition-points="704,108;704,152;744,152;744,196" d="M 704 108 L 704 144 Q 704 152 712 152 L 736 152 Q 744 152 744 160 L 744 196" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="sig-memory" data-edge-to="gov-privacy" data-edge-key="3" data-edge-id="e-sig-priv" data-composition-points="280,252;280,340" d="M 280 252 L 280 340" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="sig-knowledge" data-edge-to="gov-access" data-edge-key="4" data-edge-id="e-sig-access" data-composition-points="512,252;512,340" d="M 512 252 L 512 340" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="sig-tools" data-edge-to="gov-exec" data-edge-key="5" data-edge-id="e-sig-exec" data-composition-points="744,252;744,340" d="M 744 252 L 744 340" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="gov-privacy" data-edge-to="ctx-output" data-edge-key="6" data-edge-id="e-priv-out" data-composition-points="280,396;280,444;505,444;505,492" d="M 280 396 L 280 436 Q 280 444 288 444 L 497 444 Q 505 444 505 452 L 505 492" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="gov-access" data-edge-to="ctx-output" data-edge-label="CGAVE 生命周期经营" data-edge-key="7" data-edge-id="e-access-out" data-composition-points="512,396;512,492" d="M 512 396 L 512 492" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="gov-exec" data-edge-to="ctx-output" data-edge-key="8" data-edge-id="e-exec-out" data-composition-points="744,396;744,444;519,444;519,492" d="M 744 396 L 744 436 Q 744 444 736 444 L 527 444 Q 519 444 519 452 L 519 492" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
 
-        <!-- Phase headers -->
-        <line x1="48" y1="35" x2="260" y2="35" class="a-default" stroke-width="1.1"/>
-        <rect x="48" y="27" width="212" height="16" rx="4" class="c-mask"/>
-        <text x="154" y="39" class="t-muted" font-size="8" font-weight="600" text-anchor="middle">路由决策</text>
-        <line x1="288" y1="35" x2="528" y2="35" class="a-emphasis" stroke-width="1.1"/>
-        <rect x="288" y="27" width="240" height="16" rx="4" class="c-mask"/>
-        <text x="408" y="39" class="t-backend" font-size="8" font-weight="600" text-anchor="middle">双通道扩展</text>
-        <line x1="556" y1="35" x2="796" y2="35" class="a-dashed" stroke-width="1.1"/>
-        <rect x="556" y="27" width="240" height="16" rx="4" class="c-mask"/>
-        <text x="676" y="39" class="t-messagebus" font-size="8" font-weight="600" text-anchor="middle">统一激活</text>
-
-        <!-- Workflow groups -->
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="group" data-composition-frame-id="group-0" x="270" y="216" width="276" height="70" rx="9" class="c-lane" stroke-width="1"/>
-        <text x="280" y="214" class="t-backend" font-size="7" font-weight="600">ContextAssembler 扩展点</text>
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="group" data-composition-frame-id="group-1" x="270" y="348" width="276" height="70" rx="9" class="c-lane" stroke-width="1"/>
-        <text x="280" y="346" class="t-backend" font-size="7" font-weight="600">HybridPlanner 扩展点</text>
-
-        <!-- Edge paths -->
-        <path data-edge-from="assembler" data-edge-to="kb_grounding" data-edge-key="0" data-edge-id="e_asm_grounding" data-composition-points="394,251;422,251" d="M 394 251 L 422 251" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="fusion" data-edge-to="guard" data-edge-key="1" data-edge-id="e_fusion_guard" data-composition-points="662,510;690,510" d="M 662 510 L 690 510" class="a-security" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
-        <path data-edge-from="kb_grounding" data-edge-to="fusion" data-edge-key="2" data-edge-id="e_grounding_fusion" data-composition-points="542,251;602,251;602,484" d="M 542 251 L 602 251 L 602 484" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="guard" data-edge-to="llm" data-edge-label="含回退" data-edge-key="3" data-edge-id="e_guard_llm" data-composition-points="750,476;750,146" d="M 750 476 L 750 146" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="planner" data-edge-to="fusion" data-edge-key="4" data-edge-id="e_planner_fusion" data-composition-points="334,409;334,503;542,503" d="M 334 409 L 334 503 L 542 503" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="planner" data-edge-to="memory_seed" data-edge-key="5" data-edge-id="e_planner_seed" data-composition-points="394,383;422,383" d="M 394 383 L 422 383" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="request" data-edge-to="router" data-edge-key="6" data-edge-id="e_req_router" data-composition-points="140,120;168,120" d="M 140 120 L 168 120" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="router" data-edge-to="assembler" data-edge-label="auto 自动注入" data-edge-key="7" data-edge-id="e_router_auto" data-composition-points="214,146;214,306;334,306;334,277" d="M 214 146 L 214 306 L 334 306 L 334 277" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="router" data-edge-to="planner" data-edge-label="on_demand 深度检索" data-edge-key="8" data-edge-id="e_router_demand" data-composition-points="221,146;221,438;258,438;258,383;274,383" d="M 221 146 L 221 438 L 258 438 L 258 383 L 274 383" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="memory_seed" data-edge-to="fusion" data-edge-key="9" data-edge-id="e_seed_fusion" data-composition-points="542,383;602,383;602,484" d="M 542 383 L 602 383 L 602 484" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-
-        <!-- Nodes -->
-        <g id="node-request" data-node-id="request" data-node-label="用户请求" tabindex="0" role="button" aria-label="聚焦用户请求，请求与路由 › 路由决策" aria-pressed="false" data-node-kind="external" data-node-context="请求与路由 › 路由决策">
-          <title>用户请求 · 请求与路由 › 路由决策</title>
-          <rect x="48" y="94" width="92" height="52" rx="6" class="c-mask"/>
-          <rect x="48" y="94" width="92" height="52" rx="6" class="c-external" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(54 100) scale(0.6875)">
-            <rect x="2.5" y="5" width="8.5" height="8" rx="1.5"/>
-            <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
-          </g>
-          <text data-node-label="" x="94" y="115" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">用户请求</text>
-        </g>
-
-        <g id="node-router" data-node-id="router" data-node-label="Context Router" tabindex="0" role="button" aria-label="聚焦Context Router，route_context(), 请求与路由 › 路由决策" aria-pressed="false" data-node-kind="backend" data-node-sublabel="route_context()" data-node-context="请求与路由 › 路由决策">
-          <title>Context Router · route_context() · 请求与路由 › 路由决策</title>
-          <rect x="168" y="94" width="92" height="52" rx="6" class="c-mask"/>
-          <rect x="168" y="94" width="92" height="52" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(174 100) scale(0.6875)">
+        <!-- Components -->
+        <g id="node-src-instruction" data-node-id="src-instruction" data-node-label="instruction 身份与规程" tabindex="0" role="button" aria-label="聚焦instruction 身份与规程，system prompt · 约定文件 · 指令版本, 五源 · 运行时上下文对象" aria-pressed="false" data-node-kind="backend" data-node-sublabel="system prompt · 约定文件 · 指令版本" data-node-context="五源 · 运行时上下文对象">
+          <title>instruction 身份与规程 · system prompt · 约定文件 · 指令版本 · 五源 · 运行时上下文对象</title>
+          <rect x="36" y="44" width="184" height="64" rx="6" class="c-mask"/>
+          <rect x="36" y="44" width="184" height="64" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(42 50) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="214" y="115" class="t-primary" font-size="10" font-weight="600" text-anchor="middle">Context Router</text>
-          <text data-detail="context" x="214" y="132" class="t-muted" font-size="8" text-anchor="middle">route_context()</text>
+          <text data-node-label="" data-detail-anchor="" x="128" y="74" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">instruction 身份与规程</text>
+        <text data-detail="context" x="128" y="90" class="t-muted" font-size="8.3" text-anchor="middle">system prompt · 约定文件 · 指令版本</text>
         </g>
 
-        <g id="node-llm" data-node-id="llm" data-node-label="LLM Prompt" tabindex="0" role="button" aria-label="聚焦LLM Prompt，受治理上下文, 请求与路由 › 统一激活" aria-pressed="false" data-node-kind="cloud" data-node-sublabel="受治理上下文" data-node-context="请求与路由 › 统一激活">
-          <title>LLM Prompt · 受治理上下文 · 请求与路由 › 统一激活</title>
-          <rect x="704" y="94" width="92" height="52" rx="6" class="c-mask"/>
-          <rect x="704" y="94" width="92" height="52" rx="6" class="c-cloud" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="cloud" class="semantic-sigil s-cloud" transform="translate(710 100) scale(0.6875)">
-            <path d="M4.3 12.5h7.3a2.4 2.4 0 0 0 .2-4.8 4 4 0 0 0-7.5-1.3A3.1 3.1 0 0 0 4.3 12.5Z"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="750" y="115" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">LLM Prompt</text>
-          <text data-detail="context" x="750" y="132" class="t-muted" font-size="8" text-anchor="middle">受治理上下文</text>
-        </g>
-
-        <g id="node-assembler" data-node-id="assembler" data-node-label="ContextAssembler" tabindex="0" role="button" aria-label="聚焦ContextAssembler，记忆 + KG 摘要 · 既有, 自动注入 · 每轮 › ContextAssembler 扩展点 › 双通道扩展" aria-pressed="false" data-node-kind="backend" data-node-sublabel="记忆 + KG 摘要 · 既有" data-node-context="自动注入 · 每轮 › ContextAssembler 扩展点 › 双通道扩展">
-          <title>ContextAssembler · 记忆 + KG 摘要 · 既有 · 自动注入 · 每轮 › ContextAssembler 扩展点 › 双通道扩展</title>
-          <rect x="274" y="225" width="120" height="52" rx="6" class="c-mask"/>
-          <rect x="274" y="225" width="120" height="52" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(280 231) scale(0.6875)">
+        <g id="node-src-memory" data-node-id="src-memory" data-node-label="memory 记忆" tabindex="0" role="button" aria-label="聚焦memory 记忆，Core Block · Facts · 情景/程序性, 五源 · 运行时上下文对象" aria-pressed="false" data-node-kind="backend" data-node-sublabel="Core Block · Facts · 情景/程序性" data-node-context="五源 · 运行时上下文对象">
+          <title>memory 记忆 · Core Block · Facts · 情景/程序性 · 五源 · 运行时上下文对象</title>
+          <rect x="228" y="44" width="184" height="64" rx="6" class="c-mask"/>
+          <rect x="228" y="44" width="184" height="64" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(234 50) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="334" y="246" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">ContextAssembler</text>
-          <text data-detail="context" x="334" y="263" class="t-muted" font-size="8" text-anchor="middle">记忆 + KG 摘要 · 既有</text>
+          <text data-node-label="" data-detail-anchor="" x="320" y="74" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">memory 记忆</text>
+        <text data-detail="context" x="320" y="90" class="t-muted" font-size="9" text-anchor="middle">Core Block · Facts · 情景/程序性</text>
         </g>
 
-        <g id="node-kb_grounding" data-node-id="kb_grounding" data-node-label="KB 接地片段" tabindex="0" role="button" aria-label="聚焦KB 接地片段，top-3 · ~200 token, 自动注入 · 每轮 › ContextAssembler 扩展点 › 双通道扩展" aria-pressed="false" data-node-kind="database" data-node-sublabel="top-3 · ~200 token" data-node-tag="新增" data-node-context="自动注入 · 每轮 › ContextAssembler 扩展点 › 双通道扩展">
-          <title>KB 接地片段 · top-3 · ~200 token · 自动注入 · 每轮 › ContextAssembler 扩展点 › 双通道扩展 · 新增</title>
-          <rect x="422" y="217" width="120" height="68" rx="6" class="c-mask"/>
-          <rect x="422" y="217" width="120" height="68" rx="6" class="c-database" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(428 223) scale(0.6875)">
+        <g id="node-src-knowledge" data-node-id="src-knowledge" data-node-label="knowledge 知识" tabindex="0" role="button" aria-label="聚焦knowledge 知识，chunks · KG 实体关系 · corpus, 五源 · 运行时上下文对象" aria-pressed="false" data-node-kind="backend" data-node-sublabel="chunks · KG 实体关系 · corpus" data-node-context="五源 · 运行时上下文对象">
+          <title>knowledge 知识 · chunks · KG 实体关系 · corpus · 五源 · 运行时上下文对象</title>
+          <rect x="420" y="44" width="184" height="64" rx="6" class="c-mask"/>
+          <rect x="420" y="44" width="184" height="64" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(426 50) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="512" y="74" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">knowledge 知识</text>
+        <text data-detail="context" x="512" y="90" class="t-muted" font-size="9" text-anchor="middle">chunks · KG 实体关系 · corpus</text>
+        </g>
+
+        <g id="node-src-tools" data-node-id="src-tools" data-node-label="tools+skills 能力" tabindex="0" role="button" aria-label="聚焦tools+skills 能力，工具 schema · 三级披露, 五源 · 运行时上下文对象" aria-pressed="false" data-node-kind="backend" data-node-sublabel="工具 schema · 三级披露" data-node-context="五源 · 运行时上下文对象">
+          <title>tools+skills 能力 · 工具 schema · 三级披露 · 五源 · 运行时上下文对象</title>
+          <rect x="612" y="44" width="184" height="64" rx="6" class="c-mask"/>
+          <rect x="612" y="44" width="184" height="64" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(618 50) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="704" y="74" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">tools+skills 能力</text>
+        <text data-detail="context" x="704" y="90" class="t-muted" font-size="9" text-anchor="middle">工具 schema · 三级披露</text>
+        </g>
+
+        <g id="node-src-session" data-node-id="src-session" data-node-label="session 会话" tabindex="0" role="button" aria-label="聚焦session 会话，历史 · 状态 · 压缩产物, 五源 · 运行时上下文对象" aria-pressed="false" data-node-kind="backend" data-node-sublabel="历史 · 状态 · 压缩产物" data-node-context="五源 · 运行时上下文对象">
+          <title>session 会话 · 历史 · 状态 · 压缩产物 · 五源 · 运行时上下文对象</title>
+          <rect x="804" y="44" width="184" height="64" rx="6" class="c-mask"/>
+          <rect x="804" y="44" width="184" height="64" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(810 50) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="896" y="74" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">session 会话</text>
+        <text data-detail="context" x="896" y="90" class="t-muted" font-size="9" text-anchor="middle">历史 · 状态 · 压缩产物</text>
+        </g>
+
+        <g id="node-sig-memory" data-node-id="sig-memory" data-node-label="retention · importance" tabindex="0" role="button" aria-label="聚焦retention · importance，access_count, 信任信号 · 归一层标准化（不发明新信号）" aria-pressed="false" data-node-kind="database" data-node-sublabel="access_count" data-node-context="信任信号 · 归一层标准化（不发明新信号）">
+          <title>retention · importance · access_count · 信任信号 · 归一层标准化（不发明新信号）</title>
+          <rect x="175" y="196" width="210" height="56" rx="6" class="c-mask"/>
+          <rect x="175" y="196" width="210" height="56" rx="6" class="c-database" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(181 202) scale(0.6875)">
             <ellipse cx="8" cy="4" rx="5" ry="2"/>
             <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="482" y="238" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">KB 接地片段</text>
-          <text data-detail="context" x="482" y="255" class="t-muted" font-size="8" text-anchor="middle">top-3 · ~200 token</text>
-        <text data-detail="fine" x="482" y="273" class="t-database" font-size="7" text-anchor="middle">新增</text>
+          <text data-node-label="" data-detail-anchor="" x="280" y="222" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">retention · importance</text>
+        <text data-detail="context" x="280" y="238" class="t-muted" font-size="9" text-anchor="middle">access_count</text>
         </g>
 
-        <g id="node-planner" data-node-id="planner" data-node-label="HybridPlanner" tabindex="0" role="button" aria-label="聚焦HybridPlanner，KB + KG 种子 · 既有, 按需检索 · Agent 触发 › HybridPlanner 扩展点 › 双通道扩展" aria-pressed="false" data-node-kind="backend" data-node-sublabel="KB + KG 种子 · 既有" data-node-context="按需检索 · Agent 触发 › HybridPlanner 扩展点 › 双通道扩展">
-          <title>HybridPlanner · KB + KG 种子 · 既有 · 按需检索 · Agent 触发 › HybridPlanner 扩展点 › 双通道扩展</title>
-          <rect x="274" y="357" width="120" height="52" rx="6" class="c-mask"/>
-          <rect x="274" y="357" width="120" height="52" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(280 363) scale(0.6875)">
-            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="334" y="378" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">HybridPlanner</text>
-          <text data-detail="context" x="334" y="395" class="t-muted" font-size="8" text-anchor="middle">KB + KG 种子 · 既有</text>
-        </g>
-
-        <g id="node-memory_seed" data-node-id="memory_seed" data-node-label="Memory 种子源" tabindex="0" role="button" aria-label="聚焦Memory 种子源，search_memory, 按需检索 · Agent 触发 › HybridPlanner 扩展点 › 双通道扩展" aria-pressed="false" data-node-kind="database" data-node-sublabel="search_memory" data-node-tag="新增" data-node-context="按需检索 · Agent 触发 › HybridPlanner 扩展点 › 双通道扩展">
-          <title>Memory 种子源 · search_memory · 按需检索 · Agent 触发 › HybridPlanner 扩展点 › 双通道扩展 · 新增</title>
-          <rect x="422" y="349" width="120" height="68" rx="6" class="c-mask"/>
-          <rect x="422" y="349" width="120" height="68" rx="6" class="c-database" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(428 355) scale(0.6875)">
+        <g id="node-sig-knowledge" data-node-id="sig-knowledge" data-node-label="quality · retrieval" tabindex="0" role="button" aria-label="聚焦quality · retrieval，confidence · PageRank, 信任信号 · 归一层标准化（不发明新信号）" aria-pressed="false" data-node-kind="database" data-node-sublabel="confidence · PageRank" data-node-context="信任信号 · 归一层标准化（不发明新信号）">
+          <title>quality · retrieval · confidence · PageRank · 信任信号 · 归一层标准化（不发明新信号）</title>
+          <rect x="407" y="196" width="210" height="56" rx="6" class="c-mask"/>
+          <rect x="407" y="196" width="210" height="56" rx="6" class="c-database" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(413 202) scale(0.6875)">
             <ellipse cx="8" cy="4" rx="5" ry="2"/>
             <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="482" y="370" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Memory 种子源</text>
-          <text data-detail="context" x="482" y="387" class="t-muted" font-size="8" text-anchor="middle">search_memory</text>
-        <text data-detail="fine" x="482" y="405" class="t-database" font-size="7" text-anchor="middle">新增</text>
+          <text data-node-label="" data-detail-anchor="" x="512" y="222" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">quality · retrieval</text>
+        <text data-detail="context" x="512" y="238" class="t-muted" font-size="9" text-anchor="middle">confidence · PageRank</text>
         </g>
 
-        <g id="node-fusion" data-node-id="fusion" data-node-label="统一融合排名" tabindex="0" role="button" aria-label="聚焦统一融合排名，信任归一 + RRF, 统一激活 · 治理 › 统一激活" aria-pressed="false" data-node-kind="backend" data-node-sublabel="信任归一 + RRF" data-node-context="统一激活 · 治理 › 统一激活">
-          <title>统一融合排名 · 信任归一 + RRF · 统一激活 · 治理 › 统一激活</title>
-          <rect x="542" y="484" width="120" height="52" rx="6" class="c-mask"/>
-          <rect x="542" y="484" width="120" height="52" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(548 490) scale(0.6875)">
-            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
+        <g id="node-sig-tools" data-node-id="sig-tools" data-node-label="成功率 · 延迟" tabindex="0" role="button" aria-label="聚焦成功率 · 延迟，active_version · visibility, 信任信号 · 归一层标准化（不发明新信号）" aria-pressed="false" data-node-kind="database" data-node-sublabel="active_version · visibility" data-node-context="信任信号 · 归一层标准化（不发明新信号）">
+          <title>成功率 · 延迟 · active_version · visibility · 信任信号 · 归一层标准化（不发明新信号）</title>
+          <rect x="639" y="196" width="210" height="56" rx="6" class="c-mask"/>
+          <rect x="639" y="196" width="210" height="56" rx="6" class="c-database" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(645 202) scale(0.6875)">
+            <ellipse cx="8" cy="4" rx="5" ry="2"/>
+            <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="602" y="505" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">统一融合排名</text>
-          <text data-detail="context" x="602" y="522" class="t-muted" font-size="8" text-anchor="middle">信任归一 + RRF</text>
+          <text data-node-label="" data-detail-anchor="" x="744" y="222" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">成功率 · 延迟</text>
+        <text data-detail="context" x="744" y="238" class="t-muted" font-size="9" text-anchor="middle">active_version · visibility</text>
         </g>
 
-        <g id="node-guard" data-node-id="guard" data-node-label="ContextGuard" tabindex="0" role="button" aria-label="聚焦ContextGuard，PII + corpus 校验, 统一激活 · 治理 › 统一激活" aria-pressed="false" data-node-kind="security" data-node-sublabel="PII + corpus 校验" data-node-tag="引擎级必经" data-node-context="统一激活 · 治理 › 统一激活">
-          <title>ContextGuard · PII + corpus 校验 · 统一激活 · 治理 › 统一激活 · 引擎级必经</title>
-          <rect x="690" y="476" width="120" height="68" rx="6" class="c-mask"/>
-          <rect x="690" y="476" width="120" height="68" rx="6" class="c-security" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(696 482) scale(0.6875)">
+        <g id="node-gov-privacy" data-node-id="gov-privacy" data-node-label="PII 检测" tabindex="0" role="button" aria-label="聚焦PII 检测，AGM 冲突消解, 治理面 · 各源独立，统一织物横亘" aria-pressed="false" data-node-kind="security" data-node-sublabel="AGM 冲突消解" data-node-context="治理面 · 各源独立，统一织物横亘">
+          <title>PII 检测 · AGM 冲突消解 · 治理面 · 各源独立，统一织物横亘</title>
+          <rect x="175" y="340" width="210" height="56" rx="6" class="c-mask"/>
+          <rect x="175" y="340" width="210" height="56" rx="6" class="c-security" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(181 346) scale(0.6875)">
             <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
             <path d="m5.8 8 1.5 1.5 3-3"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="750" y="497" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">ContextGuard</text>
-          <text data-detail="context" x="750" y="514" class="t-muted" font-size="8" text-anchor="middle">PII + corpus 校验</text>
-        <text data-detail="fine" x="750" y="532" class="t-security" font-size="7" text-anchor="middle">引擎级必经</text>
+          <text data-node-label="" data-detail-anchor="" x="280" y="366" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">PII 检测</text>
+        <text data-detail="context" x="280" y="382" class="t-muted" font-size="9" text-anchor="middle">AGM 冲突消解</text>
         </g>
 
-        <!-- Edge labels -->
+        <g id="node-gov-access" data-node-id="gov-access" data-node-label="accessible 过滤" tabindex="0" role="button" aria-label="聚焦accessible 过滤，评审溯源 · 双时态, 治理面 · 各源独立，统一织物横亘" aria-pressed="false" data-node-kind="security" data-node-sublabel="评审溯源 · 双时态" data-node-context="治理面 · 各源独立，统一织物横亘">
+          <title>accessible 过滤 · 评审溯源 · 双时态 · 治理面 · 各源独立，统一织物横亘</title>
+          <rect x="407" y="340" width="210" height="56" rx="6" class="c-mask"/>
+          <rect x="407" y="340" width="210" height="56" rx="6" class="c-security" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(413 346) scale(0.6875)">
+            <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
+            <path d="m5.8 8 1.5 1.5 3-3"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="512" y="366" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">accessible 过滤</text>
+        <text data-detail="context" x="512" y="382" class="t-muted" font-size="9" text-anchor="middle">评审溯源 · 双时态</text>
+        </g>
+
+        <g id="node-gov-exec" data-node-id="gov-exec" data-node-label="白名单 · 沙箱" tabindex="0" role="button" aria-label="聚焦白名单 · 沙箱，提升审批, 治理面 · 各源独立，统一织物横亘" aria-pressed="false" data-node-kind="security" data-node-sublabel="提升审批" data-node-context="治理面 · 各源独立，统一织物横亘">
+          <title>白名单 · 沙箱 · 提升审批 · 治理面 · 各源独立，统一织物横亘</title>
+          <rect x="639" y="340" width="210" height="56" rx="6" class="c-mask"/>
+          <rect x="639" y="340" width="210" height="56" rx="6" class="c-security" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(645 346) scale(0.6875)">
+            <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
+            <path d="m5.8 8 1.5 1.5 3-3"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="744" y="366" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">白名单 · 沙箱</text>
+        <text data-detail="context" x="744" y="382" class="t-muted" font-size="9" text-anchor="middle">提升审批</text>
+        </g>
+
+        <g id="node-ctx-output" data-node-id="ctx-output" data-node-label="上下文层输出" tabindex="0" role="button" aria-label="聚焦上下文层输出，预算内最小高信号集 · Collect→Govern→Activate→Verify→Evolve, 架构组件" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="预算内最小高信号集 · Collect→Govern→Activate→Verify→Evolve" data-node-tag="CGAVE" data-node-context="架构组件">
+          <title>上下文层输出 · 预算内最小高信号集 · Collect→Govern→Activate→Verify→Evolve · 架构组件 · CGAVE</title>
+          <rect x="262" y="492" width="500" height="56" rx="6" class="c-mask"/>
+          <rect x="262" y="492" width="500" height="56" rx="6" class="c-frontend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="frontend" class="semantic-sigil s-frontend" transform="translate(268 498) scale(0.6875)">
+            <rect x="2" y="3" width="12" height="10" rx="2"/>
+            <path d="M2 6.5h12"/>
+            <circle cx="4.1" cy="4.8" r=".7" class="sigil-fill"/>
+            <circle cx="6.3" cy="4.8" r=".7" class="sigil-fill"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="512" y="518" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">上下文层输出</text>
+        <text data-detail="context" x="512" y="534" class="t-muted" font-size="9" text-anchor="middle">预算内最小高信号集 · Collect→Govern→Activate→Verify→Evolve</text>
+        <text data-detail="fine" x="512" y="540" class="t-frontend" font-size="7" text-anchor="middle">CGAVE</text>
+        </g>
+
+        <!-- Connection labels -->
 
 
 
-        <g data-detail="context" data-edge-from="guard" data-edge-to="llm" data-edge-label="含回退" data-edge-key="3" data-edge-id="e_guard_llm">
-          <rect x="730.6" y="456" width="38.8" height="14" rx="3" class="c-mask"/>
-          <text x="750" y="466" class="t-muted" font-size="8" text-anchor="middle">含回退</text>
+
+
+
+
+        <g data-detail="context" data-edge-from="gov-access" data-edge-to="ctx-output" data-edge-label="CGAVE 生命周期经营" data-edge-key="7" data-edge-id="e-access-out">
+          <rect x="463.8" y="400" width="96.39999999999999" height="14" rx="3" class="c-mask"/>
+          <text x="512" y="410" class="t-backend" font-size="8" text-anchor="middle">CGAVE 生命周期经营</text>
         </g>
 
 
-
-        <g data-detail="context" data-edge-from="router" data-edge-to="assembler" data-edge-label="auto 自动注入" data-edge-key="7" data-edge-id="e_router_auto">
-          <rect x="237.8" y="286" width="72.4" height="14" rx="3" class="c-mask"/>
-          <text x="274" y="296" class="t-backend" font-size="8" text-anchor="middle">auto 自动注入</text>
-        </g>
-        <g data-detail="context" data-edge-from="router" data-edge-to="planner" data-edge-label="on_demand 深度检索" data-edge-key="8" data-edge-id="e_router_demand">
-          <rect x="191.3" y="418" width="96.39999999999999" height="14" rx="3" class="c-mask"/>
-          <text x="239.5" y="428" class="t-muted" font-size="8" text-anchor="middle">on_demand 深度检索</text>
+        <!-- Boundary labels (foreground masks keep routes out of titles) -->
+        <g data-graph-role="structural-frame-label" data-composition-frame-id="0" data-composition-frame-kind="region" data-composition-frame-label="五源 · 运行时上下文对象">
+          <rect data-graph-role="structural-frame-label-mask" x="10" y="24" width="134.2" height="16" rx="3" class="c-mask"/>
+          <text data-boundary-label="" x="14" y="37" class="t-cloud" font-size="9" font-weight="600">五源 · 运行时上下文对象</text>
         </g>
 
+        <g data-graph-role="structural-frame-label" data-composition-frame-id="1" data-composition-frame-kind="region" data-composition-frame-label="信任信号 · 归一层标准化（不发明新信号）">
+          <rect data-graph-role="structural-frame-label-mask" x="149" y="176" width="220.6" height="16" rx="3" class="c-mask"/>
+          <text data-boundary-label="" x="153" y="189" class="t-cloud" font-size="9" font-weight="600">信任信号 · 归一层标准化（不发明新信号）</text>
+        </g>
+
+        <g data-graph-role="structural-frame-label" data-composition-frame-id="2" data-composition-frame-kind="region" data-composition-frame-label="治理面 · 各源独立，统一织物横亘">
+          <rect data-graph-role="structural-frame-label-mask" x="149" y="320" width="177.4" height="16" rx="3" class="c-mask"/>
+          <text data-boundary-label="" x="153" y="333" class="t-cloud" font-size="9" font-weight="600">治理面 · 各源独立，统一织物横亘</text>
+        </g>
 
         <!-- Legend -->
-        <g data-legend="" data-legend-bridge="">
-          <text x="20" y="572" class="t-primary" font-size="12" font-weight="650">图例</text>
-          <g data-legend-semantic-kind="backend" data-legend-kind="backend" data-legend-label="Agent 逻辑" data-legend-x="20" data-legend-baseline="592" data-legend-width="87">
-            <rect x="20" y="584" width="14" height="9" rx="2" class="c-backend" stroke-width="1"/>
-            <text x="42" y="592" class="t-muted" font-size="7.5" font-weight="500">Agent 逻辑</text>
-          </g>
-          <g data-legend-semantic-kind="security" data-legend-kind="security" data-legend-label="策略" data-legend-x="114" data-legend-baseline="592" data-legend-width="61">
-            <rect x="114" y="584" width="14" height="9" rx="2" class="c-security" stroke-width="1"/>
-            <text x="136" y="592" class="t-muted" font-size="7.5" font-weight="500">策略</text>
-          </g>
-          <g data-legend-semantic-kind="database" data-legend-kind="database" data-legend-label="上下文 / 追踪" data-legend-x="182" data-legend-baseline="592" data-legend-width="100">
-            <rect x="182" y="584" width="14" height="9" rx="2" class="c-database" stroke-width="1"/>
-            <text x="204" y="592" class="t-muted" font-size="7.5" font-weight="500">上下文 / 追踪</text>
-          </g>
-          <g data-legend-semantic-kind="cloud" data-legend-kind="cloud" data-legend-label="云服务" data-legend-x="289" data-legend-baseline="592" data-legend-width="70">
-            <rect x="289" y="584" width="14" height="9" rx="2" class="c-cloud" stroke-width="1"/>
-            <text x="311" y="592" class="t-muted" font-size="7.5" font-weight="500">云服务</text>
-          </g>
-          <g data-legend-semantic-kind="external" data-legend-kind="external" data-legend-label="外部系统" data-legend-x="366" data-legend-baseline="592" data-legend-width="78">
-            <rect x="366" y="584" width="14" height="9" rx="2" class="c-external" stroke-width="1"/>
-            <text x="388" y="592" class="t-muted" font-size="7.5" font-weight="500">外部系统</text>
-          </g>
-        </g>
+
       </svg>
       <p class="intent-trace-status no-print" id="intent-trace-status" role="status" aria-live="polite" aria-atomic="true"></p>
       <div class="share-chapter-cue no-print" id="share-chapter-cue" hidden role="status" aria-live="polite">
@@ -5537,36 +5537,35 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       <div class="card">
         <div class="card-header">
           <div class="card-dot cyan"></div>
-          <h3>双通道收敛语义</h3>
+          <h3>三段式读法</h3>
         </div>
         <ul>
-          <li>&bull; 自动通道注入接地摘要：轻量、每轮必出</li>
-          <li>&bull; 按需通道执行深度检索：重量、Agent 显式触发</li>
-          <li>&bull; 两通道共享同一套归一信任排名</li>
+          <li>&bull; 五源 = 对象面：instruction / memory / knowledge / tools+skills / session</li>
+          <li>&bull; 信任信号 = 度量面：归一层做标准化，不发明新信号</li>
+          <li>&bull; 治理面 = 控制面：各源独立，统一织物横亘</li>
         </ul>
       </div>
 
       <div class="card">
         <div class="card-header">
           <div class="card-dot emerald"></div>
-          <h3>两处 Additive 扩展</h3>
+          <h3>CGAVE 生命周期经营</h3>
         </div>
         <ul>
-          <li>&bull; HybridPlanner 追加 Memory 为第 4 路种子源，单源失败 fail-soft</li>
-          <li>&bull; ContextAssembler 新增 KB 接地片段：top-3 chunks、约 200 token</li>
-          <li>&bull; 特性开关 + fail-soft，既有路径零变更</li>
+          <li>&bull; Collect 汇聚 → Govern 治理 → Activate 激活 → Verify 验证 → Evolve 进化</li>
+          <li>&bull; 经营产物：预算内最小高信号集（上下文层输出）</li>
         </ul>
       </div>
 
       <div class="card">
         <div class="card-header">
-          <div class="card-dot rose"></div>
-          <h3>引擎级治理</h3>
+          <div class="card-dot amber"></div>
+          <h3>信号 × 治理对应（ADR-5 示例）</h3>
         </div>
         <ul>
-          <li>&bull; ContextGuard 双检查：PII 扫描 + corpus 访问校验</li>
-          <li>&bull; 两条激活路径含代码回退均必经守卫</li>
-          <li>&bull; 空上下文平凡通过，非空上下文必扫</li>
+          <li>&bull; memory：retention · importance · access_count → PII 检测 · AGM 冲突消解</li>
+          <li>&bull; knowledge：quality · retrieval · confidence · PageRank → accessible 过滤 · 评审溯源 · 双时态</li>
+          <li>&bull; tools+skills：成功率 · 延迟 · active_version · visibility → 白名单 · 沙箱 · 提升审批</li>
         </ul>
       </div>
     </div>

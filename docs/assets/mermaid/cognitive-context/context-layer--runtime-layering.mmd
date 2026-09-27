@@ -1,4 +1,4 @@
-%% source: docs/concepts/design/context-layer.md#block2 (L137-L179, §3.1) → 013 §12.2（原 §3.1，2026-09-20 并入 013 全量蓝图）
+%% source: docs/research/cognitive-context/013-context-layer-blueprint.md §11.2 运行时分层与四信号来源（2026-09-27 重铸：三相→CGAVE 五段）
 %% slug: cognitive-context/context-layer--runtime-layering
 %% type: architecture
 %% derived: archify architecture, byte-extract of source mermaid
@@ -9,10 +9,12 @@ graph TB
     end
     subgraph CONTEXT["Context Layer（上下文治理层）"]
         direction LR
-        CL1["① Collect<br/>Context Catalog"]
-        CL2["② Enrich<br/>信任归一 / 语义富化"]
-        CL3["③ Activate<br/>Context Router + Guard"]
-        CL1 --> CL2 --> CL3
+        CL1["Collect 采集<br/>Context Catalog"]
+        CL2["Govern 治理<br/>口径 · 可见性 · 注入纪律"]
+        CL3["Activate 激活<br/>Router + Guard"]
+        CL4["Verify 验证<br/>锚定 · 可观测"]
+        CL5["Evolve 进化<br/>富化 · 自纠环"]
+        CL1 --> CL2 --> CL3 --> CL4 --> CL5
     end
     subgraph SYS["子系统"]
         M["Memory<br/>海马体"]
@@ -43,6 +45,6 @@ graph TB
     classDef sys fill:#2a1f3d,stroke:#7c5ca5,stroke-width:2px,color:#e8dff5
     classDef infra fill:#5a3d1f,stroke:#d59b5b,stroke-width:2px,color:#fdf3e8
     class F runtime
-    class CL1,CL2,CL3 context
+    class CL1,CL2,CL3,CL4,CL5 context
     class M,KB,KG,T,S sys
     class PG infra

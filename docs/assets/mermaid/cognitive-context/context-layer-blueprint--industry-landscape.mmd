@@ -1,4 +1,4 @@
-%%source: docs/research/cognitive-context/013-context-layer-blueprint.md#block2 (§2 业界格局：四条路线与一个异类)
+%%source: docs/research/cognitive-context/013-context-layer-blueprint.md §2 业界格局与判据（2026-09 快照）
 %%slug: cognitive-context/context-layer-blueprint--industry-landscape
 %%type: architecture
 %%derived: archify architecture v1, authored from source mermaid
@@ -22,6 +22,7 @@ flowchart TB
     end
     PLTR["🏛️ Palantir Ontology<br/>语义 + 受治理动作（kinetic）"]
     AG["🤖 Agent / BI / 应用<br/>同一份定义消费"]
+    GAP["📊 2026-09 落地断层<br/>97% 相信 · 4% 建成（Redis）<br/>传输之战 vs 含义之战：预算投含义侧"]
     SF -->|"引擎内强制执行"| AG
     DBT -->|"Semantic Layer API"| AG
     BP -->|"MCP 供给面（本方案）"| AG
@@ -30,3 +31,4 @@ flowchart TB
     ATS -.->|"读语义定义 → 服务 BI"| SF
     BP -.->|"Ossie YAML 互导"| DBT
     ATL -.->|"联邦互读"| SF
+    GAP -.-> |"所有权真空 · shared ownership"| AG
