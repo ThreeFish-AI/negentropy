@@ -1,11 +1,141 @@
-/** P0 三个自信的错——场景桩（Stage ⑧ 全量实现待录制/TTS 完成后落位；storyboard P0 节为规格）。 */
+/** P0 三个自信的错（p0-01..p0-23，24 句；storyboard「P0 三个自信的错」节）。
+ *
+ *  7 镜 / 7 条 archify cue：
+ *   0-A 夜机坪（纯装置：机库夜灯+工卡首现）
+ *   0-B fm-stale@p0-03 · 0-C fm-conflict@p0-07 · 0-D fm-auth@p0-10（全屏独占；B→C→D 镜界背靠背 lead=false）
+ *   0-E fm-breach@p0-14 + fm-all@p0-16（同实例接力 false）· 0-F fm-unverified@p0-19 + il-gap@p0-21（false）
+ *   0-G 发工卡（装置收口：卡面格线亮起）
+ *  三级证据徽：p0-15/16 solid · p0-19 solid · p0-21 dashed（全限定角标）。
+ */
 import React from 'react';
-import {AbsoluteFill} from 'remotion';
+import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
 import type {SceneRange} from '../types';
+import {beatWindow} from '../timing';
 import {theme} from '../design/theme';
+import {useBreathe, useEnter, usePushIn, useSpring, useStagger} from '../motion';
+import {SceneTag} from '../components/motifs';
+import {ArchifyRecap} from '../components/ArchifyRecap';
+import {EvidenceBadge} from '../components/EvidenceBadge';
+import {WorkCard} from '../components/WorkCard';
 
-export const P0Errors: React.FC<{scene: SceneRange}> = ({scene}) => (
-  <AbsoluteFill style={{background: theme.bg}}>
-    {/* 桩：⑧ 按 storyboard 镜表与 cue 落位实现 */}
-  </AbsoluteFill>
-);
+const hash = (i: number, salt = 1): number =>
+  Math.abs(Math.sin(i * 127.1 + salt * 311.7)) % 1;
+
+export const P0Errors: React.FC<{scene: SceneRange}> = ({scene}) => {
+  const f = useCurrentFrame();
+  const w = (a: string, b?: string) => beatWindow(scene.sentences, scene.from, a, b);
+  const at = (id: string) => w(id).from;
+  const dur = (a: string, b?: string) => w(a, b).durationInFrames;
+
+  return (
+    <AbsoluteFill style={{background: theme.bg}}>
+      <SceneTag chapter="P0" tagline="三个自信的错" accent={theme.concept} />
+
+      {/* 0-A 夜机坪：机位灯呼吸 + 工卡特写首现 */}
+      <Sequence from={0} durationInFrames={dur('p0-01', 'p0-02')} name="0-A">
+        <NightApron at01={at('p0-01')} />
+      </Sequence>
+
+      {/* 0-B/0-C/0-D 三件错：archify 全屏独占，镜界背靠背 lead=false */}
+      <Sequence from={at('p0-03')} durationInFrames={dur('p0-03', 'p0-06')} name="0-B">
+        <ArchifyRecap slug="failure-map" caption="失效一 · 过期供给" cues={[{chapterId: 'fm-stale', at: at('p0-03'), durationInFrames: dur('p0-03', 'p0-06')}]} lead={false} />
+      </Sequence>
+      <Sequence from={at('p0-07')} durationInFrames={dur('p0-07', 'p0-09')} name="0-C">
+        <ArchifyRecap slug="failure-map" caption="失效二 · 口径打架" cues={[{chapterId: 'fm-conflict', at: at('p0-07'), durationInFrames: dur('p0-07', 'p0-09')}]} lead={false} />
+      </Sequence>
+      <Sequence from={at('p0-10')} durationInFrames={dur('p0-10', 'p0-13')} name="0-D">
+        <ArchifyRecap slug="failure-map" caption="失效三 · 代理越权" cues={[{chapterId: 'fm-auth', at: at('p0-10'), durationInFrames: dur('p0-10', 'p0-13')}]} lead={false} />
+      </Sequence>
+
+      {/* 0-E 换成 AI：证据徽 + 数字对撞 + 八失效全景 */}
+      <Sequence from={at('p0-14')} durationInFrames={dur('p0-14', 'p0-17')} name="0-E">
+        <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 28}}>
+          <div style={{display: 'flex', gap: 40, alignItems: 'flex-end'}}>
+            <NumCrash from={19} to={85} at={at('p0-15')} label="共享资料库 → 递对证据页" />
+          </div>
+          <div style={{display: 'flex', gap: 24}}>
+            <EvidenceBadge level="solid" at={at('p0-15')} note="FinanceBench" />
+            <EvidenceBadge level="solid" at={at('p0-16')} note="同模型对照" />
+          </div>
+        </AbsoluteFill>
+        <ArchifyRecap slug="failure-map" caption="八失效总览" cues={[{chapterId: 'fm-all', at: at('p0-16'), durationInFrames: dur('p0-16', 'p0-17')}]} />
+      </Sequence>
+
+      {/* 0-F 崩崖 + 97/4 断层 */}
+      <Sequence from={at('p0-18')} durationInFrames={dur('p0-18', 'p0-21')} name="0-F">
+        <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 26}}>
+          <CliffLine at={at('p0-19')} />
+          <div style={{display: 'flex', gap: 18, alignItems: 'center'}}>
+            <EvidenceBadge level="solid" at={at('p0-19')} note="Spider 2.0" />
+            <EvidenceBadge level="dashed" at={at('p0-21')} note="n=1000 · 方法论未公开" />
+          </div>
+        </AbsoluteFill>
+        <ArchifyRecap slug="failure-map" caption="失效四 · 未验证断言" cues={[{chapterId: 'fm-unverified', at: at('p0-19'), durationInFrames: dur('p0-19')}]} />
+        <ArchifyRecap slug="blueprint--industry-landscape" caption="落地断层" cues={[{chapterId: 'il-gap', at: at('p0-21'), durationInFrames: dur('p0-21')}]} lead={false} />
+      </Sequence>
+
+      {/* 0-G 发工卡 */}
+      <Sequence from={at('p0-22')} durationInFrames={dur('p0-22', 'p0-23')} name="0-G">
+        <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+          <WorkCard stamps={0} totalSlots={7} highlightSlot={0} label="给 AI 的工卡" />
+        </AbsoluteFill>
+      </Sequence>
+    </AbsoluteFill>
+  );
+};
+
+/** 夜机坪：地平线 + 呼吸机位灯（〔M-002〕以静写闷——匀速，不加强调）。 */
+const NightApron: React.FC<{at01: number}> = ({at01}) => {
+  const f = useCurrentFrame();
+  const push = usePushIn(at01, {scale: 1.06, dur: 90});
+  const lamps = useStagger(7, {stride: 6, at: 6});
+  return (
+    <AbsoluteFill style={{transform: push}}>
+      <div style={{position: 'absolute', bottom: 120, left: 0, right: 0, height: 2, background: theme.panelBorder}} />
+      {lamps.map((k, i) => (
+        <div
+          key={i}
+          style={{
+            position: 'absolute',
+            bottom: 124 + hash(i) * 60,
+            left: `${10 + i * 13}%`,
+            width: 10,
+            height: 10,
+            borderRadius: 5,
+            background: theme.concept,
+            opacity: (k * 0.5 + 0.25) * (0.7 + 0.3 * Math.sin(f / 40 + i)),
+          }}
+        />
+      ))}
+      <div style={{position: 'absolute', right: '18%', top: '26%', width: 320}}>
+        <WorkCard stamps={0} totalSlots={7} w={320} label="WORKCARD No.013" />
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+/** 19→85 数字对撞（口播只念数，画面翻牌）。 */
+const NumCrash: React.FC<{from: number; to: number; at: number; label: string}> = ({from, to, at, label}) => {
+  const prog = useSpring('settle', {at, dur: 45});
+  const val = Math.round(from + (to - from) * prog);
+  return (
+    <div style={{textAlign: 'center'}}>
+      <div style={{fontSize: 120, fontWeight: 700, color: theme.ok, fontVariantNumeric: 'tabular-nums'}}>{val}%</div>
+      <div style={{fontSize: 20, color: theme.dim}}>{label}</div>
+    </div>
+  );
+};
+
+/** 崩崖折线：87 → 10 下坠。 */
+const CliffLine: React.FC<{at: number}> = ({at}) => {
+  const enter = useEnter('rise', {at, dur: 24});
+  const pts = [0, 12, 24, 36, 48, 60].map((x, i) => `${x + 20},${170 - Math.min(110, i * 34)}`).join(' ');
+  return (
+    <svg width={320} height={190} style={enter}>
+      <polyline points={pts} fill="none" stroke={theme.conceptDeep} strokeWidth={4} strokeLinecap="round" />
+      <circle cx={80} cy={170 - 34} r={5} fill={theme.conceptDeep} />
+      <text x={30} y={60} fill={theme.dim} fontSize={18}>87%</text>
+      <text x={200} y={165} fill={theme.conceptDeep} fontSize={18}>10%</text>
+    </svg>
+  );
+};
