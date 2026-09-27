@@ -1,0 +1,52 @@
+[
+ {
+  "id": "ba-box",
+  "label": "箱体解剖",
+  "focus": [
+   "folder",
+   "skillmd"
+  ],
+  "note": "打开技能文件夹,里面就一份 SKILL.md——唯一必需。"
+ },
+ {
+  "id": "ba-corner",
+  "label": "六字段角件",
+  "focus": [
+   "skillmd",
+   "f-name",
+   "f-desc",
+   "f-opt",
+   "metadata"
+  ],
+  "note": "文件头六格信息:两格必填,四格选填。"
+ },
+ {
+  "id": "ba-name",
+  "label": "箱号 = 登记名",
+  "focus": [
+   "f-name",
+   "dirname"
+  ],
+  "note": "目录名就是箱号:1–64 字符小写连字符,必须与 name 逐字相等。"
+ },
+ {
+  "id": "ba-body",
+  "label": "正文与附件",
+  "focus": [
+   "skillmd",
+   "body",
+   "annex"
+  ],
+  "note": "正文完全自由,规范一个字不管;附件三目录约定俗成。"
+ },
+ {
+  "id": "ba-extra",
+  "label": "选填与验箱",
+  "focus": [
+   "f-opt",
+   "metadata",
+   "validator"
+  ],
+  "note": "metadata 是私货唯一正门;验箱师只验格式,不验内容。"
+ }
+]

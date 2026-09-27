@@ -1,0 +1,49 @@
+[
+ {
+  "id": "lo-four",
+  "label": "四件套",
+  "focus": [
+   "a1",
+   "b1"
+  ],
+  "note": "semver·快照·锁文件·不可变承诺"
+ },
+ {
+  "id": "lo-flip",
+  "label": "自我推翻",
+  "focus": [
+   "a1",
+   "a2"
+  ],
+  "note": "24 小时内改口：技能是活文档"
+ },
+ {
+  "id": "lo-rollback",
+  "label": "回滚盲区",
+  "focus": [
+   "a2",
+   "a3"
+  ],
+  "note": "六月杀回：旧版 URL+digest 无处可寻"
+ },
+ {
+  "id": "lo-lock",
+  "label": "锁文件",
+  "focus": [
+   "a3",
+   "b1"
+  ],
+  "note": "意图冻结为精确版本 + digest"
+ },
+ {
+  "id": "lo-orphan",
+  "label": "孤本",
+  "focus": [
+   "b1",
+   "b2",
+   "c1",
+   "c2"
+  ],
+  "note": "npm 保税仓兜底 · 空港上游一改即失"
+ }
+]

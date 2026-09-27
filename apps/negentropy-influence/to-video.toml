@@ -29,7 +29,6 @@ next_card_series_ids = ["claude-code-explained"]
 id = "bilingual-i18n"
 reason = "双语渲染分代（2026-09-24，RSI-004）：Root/NarrationAudio/Subtitle/ChapterProgress/Main 加 lang 维度、新增 i18n.tsx；zh 渲染逐像素不变。撤销条件=花名册内各集下次重渲时按整组同步（五文件 + i18n.tsx 拷齐再 tsc），同步后从 roster 删除该集。"
 episodes = [
-  "agent-skills-video",
   "claude-code-concurrency-video",
   "claude-code-explained-video",
   "claude-code-memory-video",
@@ -52,11 +51,6 @@ episodes = [
 "video/src/components/ChapterProgress.tsx" = "ca3d397fe1da"
 "video/src/Main.tsx" = "4cb4e9be10a7" # regioned 归一化口径
 "video/src/i18n.tsx" = "缺失"
-[[skeleton.drift]]
-episode = "agent-skills-video"
-path = "video/src/Main.tsx"
-fingerprint = "6a491ae295ca"
-reason = "场景 import 区末尾比旧代 Main 多一空行（归一化不剥空行，归一化后逐行比对仅此一处，无语义差异——regioned 指纹空行陷阱）；已发布成片，源码保持发布态。撤销条件=按 [[skeleton.generation]] bilingual-i18n 整组同步时一并删去该空行，并撤销本条"
 [[skeleton.drift]]
 episode = "self-improving-agents-video"
 path = "video/src/components/cards.tsx"

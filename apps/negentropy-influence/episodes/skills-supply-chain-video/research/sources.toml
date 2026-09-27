@@ -1,0 +1,166 @@
+# 非论文信源清单（可复现取证链，工具：$T/scripts/source_ledger.py）
+#
+# kind=repo 指向固定 commit，raw 指纹漂移即 FAIL（说明 URL 里的 ref 不是不可变引用）。
+# kind=site 指向线上页面，只对剥标签归一后的正文比对指纹，漂移报 WARN（去复核笔记）。
+# text_sha256 是判据；raw_sha256 仅供 repo 类硬校验与人工核对。
+
+
+[sc220-research]
+url = "https://raw.githubusercontent.com/ThreeFish-AI/negentropy/9284cce2c/docs/research/agent-infra/220-skills-supply-chain.md"
+kind = "repo"
+accessed = "2026-09-27"
+raw_sha256 = "b2fcac0cbcb8cbd3"
+text_sha256 = "05b41223ad7f9da7"
+bytes = 40052
+lines = 236
+via = "pinned commit, 内部文档"
+
+[sc221-mapping]
+url = "https://raw.githubusercontent.com/ThreeFish-AI/negentropy/9284cce2c/docs/research/agent-infra/221-skills-supply-chain-mapping.md"
+kind = "repo"
+accessed = "2026-09-27"
+raw_sha256 = "e45768f7521feab2"
+text_sha256 = "8f2703f9cb092994"
+bytes = 10403
+lines = 58
+via = "pinned commit, 内部文档"
+
+[sc-lab3]
+url = "https://raw.githubusercontent.com/ThreeFish-AI/negentropy/9284cce2c/docs/research/agent-infra/assets/agent_skills_lab3.py"
+kind = "repo"
+accessed = "2026-09-27"
+raw_sha256 = "5f3809e7cf6de10a"
+text_sha256 = "a0d5f29d7923c5a9"
+bytes = 10458
+lines = 202
+via = "pinned commit, 内部文档"
+
+[spec-mdx]
+url = "https://raw.githubusercontent.com/agentskills/agentskills/69ef37e9424c0a7ea9dd2293b559e43ec8176379/docs/specification.mdx"
+kind = "repo"
+accessed = "2026-09-27"
+raw_sha256 = "b9079c0c10b7930e"
+text_sha256 = "8a731b1f3798efe5"
+bytes = 7166
+lines = 247
+via = "pinned commit, CC-BY-4.0"
+
+[guide-client]
+url = "https://raw.githubusercontent.com/agentskills/agentskills/69ef37e9424c0a7ea9dd2293b559e43ec8176379/docs/client-implementation/adding-skills-support.mdx"
+kind = "repo"
+accessed = "2026-09-27"
+raw_sha256 = "e1a788f858766f4b"
+text_sha256 = "e445d216546f07fd"
+bytes = 20254
+lines = 335
+via = "pinned commit, CC-BY-4.0"
+
+[repo-agents-md]
+url = "https://raw.githubusercontent.com/agentskills/agentskills/69ef37e9424c0a7ea9dd2293b559e43ec8176379/AGENTS.md"
+kind = "repo"
+accessed = "2026-09-27"
+raw_sha256 = "ed905e17e95d5ce6"
+text_sha256 = "6d24badcb077571c"
+bytes = 1960
+lines = 43
+via = "pinned commit"
+
+[sep2640-stable]
+url = "https://raw.githubusercontent.com/modelcontextprotocol/ext-skills/b0b3272f/specification/stable/skills.mdx"
+kind = "repo"
+accessed = "2026-09-27"
+raw_sha256 = "b8b4c2faf0ef38d7"
+text_sha256 = "466d4e331154b3de"
+bytes = 52444
+lines = 882
+via = "pinned commit, 规范文本"
+
+[sep2640-decisions]
+url = "https://raw.githubusercontent.com/modelcontextprotocol/ext-skills/b0b3272f/docs/decisions.md"
+kind = "repo"
+accessed = "2026-09-27"
+raw_sha256 = "1046ae56ea161a94"
+text_sha256 = "e971889b359127a6"
+bytes = 53047
+lines = 368
+via = "决策日志"
+
+[vercel-sdk]
+url = "https://raw.githubusercontent.com/vercel-labs/skills/main/src/providers/wellknown.ts"
+kind = "repo"
+accessed = "2026-09-27"
+raw_sha256 = "1e8637f2450ce26f"
+text_sha256 = "3807e200c14b7879"
+bytes = 27217
+lines = 822
+via = "wellknown provider 实现源码"
+
+[cf-rfc]
+url = "https://raw.githubusercontent.com/cloudflare/agent-skills-discovery-rfc/1bd1167983fa5ac9cd47987710c525308eda1a98/README.md"
+kind = "repo"
+accessed = "2026-09-27"
+raw_sha256 = "40835637c31bc495"
+text_sha256 = "393b26485372a23f"
+bytes = 22699
+lines = 467
+via = "RFC 全文"
+
+[usenix-paper]
+url = "https://arxiv.org/abs/2602.06547"
+kind = "repo"
+accessed = "2026-09-27"
+raw_sha256 = "d8f7bd1667497094"
+text_sha256 = "6998dc461ba2a223"
+bytes = 44403
+lines = 636
+via = "论文 PDF 页"
+
+[cc-plugins-doc]
+url = "https://code.claude.com/docs/en/plugins"
+kind = "site"
+accessed = "2026-09-27"
+raw_sha256 = "69bfed0e9c00c5a0"
+text_sha256 = "7034ddd44dd17d81"
+bytes = 445643
+lines = 1570
+via = "官方文档"
+
+[gemini-skills-doc]
+url = "https://github.com/google-gemini/gemini-cli/blob/main/docs/cli/skills.md"
+kind = "site"
+accessed = "2026-09-27"
+raw_sha256 = "6dabae212794327d"
+text_sha256 = "691965f9f7078045"
+bytes = 291121
+lines = 1096
+via = "官方文档"
+
+[pr254-thread]
+url = "https://github.com/agentskills/agentskills/pull/254"
+kind = "site"
+accessed = "2026-09-27"
+raw_sha256 = "0c9893f0fdcc8420"
+text_sha256 = "3503ede106adc424"
+bytes = 711963
+lines = 8761
+via = "PR 楼层评论（活页，accessed 注记）"
+
+[issue46-thread]
+url = "https://github.com/agentskills/agentskills/issues/46"
+kind = "site"
+accessed = "2026-09-27"
+raw_sha256 = "314db7d194d61f49"
+text_sha256 = "7fbeb3cb7e4bdddc"
+bytes = 307152
+lines = 999
+via = "issue 楼层（活页）"
+
+[contextlock-dsse]
+url = "https://raw.githubusercontent.com/mindmodelai/contextlock/master/packages/core/src/dsse.ts"
+kind = "repo"
+accessed = "2026-09-27"
+raw_sha256 = "e557e11e0d8dce1a"
+text_sha256 = "6cd92610284a9cb1"
+bytes = 12161
+lines = 367
+via = "第二层 DSSE 实现（原型级）"

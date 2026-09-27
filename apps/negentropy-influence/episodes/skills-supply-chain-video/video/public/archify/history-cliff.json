@@ -1,0 +1,94 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 11.14,
+ "total_wall_sec": 39.11,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "hc-npm",
+   "label": "npm 八年",
+   "index": 0,
+   "file": "history-cliff--hc-npm.mp4",
+   "end_still": "history-cliff--hc-npm-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.31,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.205
+   ],
+   "beat_nodes": [
+    "npm-start",
+    "npm-eight",
+    "event-stream"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "hc-six",
+   "label": "六个月",
+   "index": 1,
+   "file": "history-cliff--hc-six.mp4",
+   "end_still": "history-cliff--hc-six-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.36,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.205
+   ],
+   "beat_nodes": [
+    "skills-open",
+    "cliff",
+    "event-stream"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "hc-three",
+   "label": "三场战争",
+   "index": 2,
+   "file": "history-cliff--hc-three.mp4",
+   "end_still": "history-cliff--hc-three-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.47,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.209,
+    3.313
+   ],
+   "beat_nodes": [
+    "cliff",
+    "war-dist",
+    "war-sign",
+    "war-ver"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/dar-es-salaam-v2/docs/assets/architecture/agent-infra/supply-chain--history-cliff.html",
+ "slug": "history-cliff",
+ "type": "lifecycle"
+}

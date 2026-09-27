@@ -1,0 +1,13 @@
+%% source: apps/negentropy-influence/episodes/agent-skills-video/script/narration.md P0（p0-11..13）
+%% slug: agent-skills--two-old-roads
+%% type: workflow
+%% derived: 2026-09-27 agent-skills-video 分镜 0-E
+flowchart TD
+    subgraph lane-guess["老路一 · 让它猜"]
+        G1["让它猜规矩<br/>团队约定全靠模型猜"] --> G2["猜错<br/>死法一 · 盲航"]
+    end
+    subgraph lane-stuff["老路二 · 全塞手册"]
+        S1["全塞开场白<br/>20 个技能 × 3000 token"] --> S2["常驻 60000<br/>活没开始记忆先满<br/>死法二 · 超载"] --> S3["注意力互踩<br/>9/10 规矩与眼前无关"]
+    end
+    G2 -->|沉没| Q{"成本函数之问<br/>装了多少 vs 用了多少<br/>问题的根子"}
+    S3 -->|进水| Q

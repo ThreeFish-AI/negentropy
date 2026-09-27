@@ -1,0 +1,35 @@
+%% source: docs/research/agent-infra/210-agent-skills-open-standard.md §8（措词对齐 agent-skills-video narration P6）
+%% slug: agent-skills-pending-wars
+%% type: dataflow
+%% derived: 2026-09-27 agent-skills-video 分镜
+flowchart LR
+    subgraph S0["四向压力"]
+        P2["字段语义松紧<br/>放宽 vs 锁死 · 压力②"]
+        P1["分发与版本化<br/>缺口最大 · 压力①"]
+        P3["跨规范互操作<br/>机器可读化 · 压力③"]
+        P4["维护带宽不足<br/>重复修复挂起 · 压力④"]
+    end
+    subgraph S1["悬案队列"]
+        Q["48 条开放提案<br/>open PR 队列 · 2026-09"]
+    end
+    subgraph S2["代表战场"]
+        C2["#573 ↔ #520<br/>数组 vs 空格串 · allowed-tools"]
+        C1["#254 分发规范<br/>.well-known 提案 · 2026-03 开"]
+        C3["#546 MCP 前缀<br/>io.modelcontextprotocol/"]
+    end
+    subgraph S3["结局分流"]
+        O2["对冲无裁决<br/>两方向并存 · 悬而未决"]
+        O1["停摆七个月<br/>至 2026-09 未合 · 催问在途"]
+        O3["最先落地<br/>没人吃亏的事 · 阻力最小"]
+    end
+
+    P1 -->|"最大缺口"| Q
+    P2 -->|"松紧对冲"| Q
+    P3 -->|"阻力最小"| Q
+    P4 -.->|"带宽不足"| Q
+    Q ==>|"分发悬案"| C1
+    Q -->|"字段悬案"| C2
+    Q -->|"互通悬案"| C3
+    C1 -->|"七月未合"| O1
+    C2 -->|"无人裁决"| O2
+    C3 ==>|"没人吃亏"| O3

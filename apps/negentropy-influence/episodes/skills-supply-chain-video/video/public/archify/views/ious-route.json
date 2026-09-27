@@ -1,0 +1,52 @@
+[
+ {
+  "id": "ir-sign",
+  "label": "签名欠条",
+  "focus": [
+   "s1",
+   "st1"
+  ],
+  "note": "零条款，三份 RFC 盖章关闭"
+ },
+ {
+  "id": "ir-stack",
+  "label": "三层信任栈",
+  "focus": [
+   "s1",
+   "s2",
+   "s3"
+  ],
+  "note": "条文缺席，评论区长出三层栈"
+ },
+ {
+  "id": "ir-dist",
+  "label": "分发欠条",
+  "focus": [
+   "d1",
+   "d2",
+   "d3"
+  ],
+  "note": "de jure 停在 PR，de facto 先营业"
+ },
+ {
+  "id": "ir-404",
+  "label": "舱单实测",
+  "focus": [
+   "d2",
+   "dcurl",
+   "d3"
+  ],
+  "note": "curl 三连：一活、一 404、一 DNS 000"
+ },
+ {
+  "id": "ir-vers",
+  "label": "版本欠条",
+  "focus": [
+   "v1",
+   "v2",
+   "v3",
+   "v4"
+  ],
+  "note": "双门失效，历史版本无入口"
+ }
+]

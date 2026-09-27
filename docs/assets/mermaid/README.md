@@ -69,7 +69,7 @@
 | [dream-rsi--behavior-adaptive](./self-evolution/dream-rsi--behavior-adaptive.mmd) | [144 §6](../../research/self-evolution/144-dream-rsi.md) | lifecycle | ✓ | done | 先省后探：110→50→回升与性能 0.427→1.898 |
 | [dream-rsi--unproven-list](./self-evolution/dream-rsi--unproven-list.mmd) | [144 §8](../../research/self-evolution/144-dream-rsi.md) | workflow | ✓ | done | 论文未证明五件事清单（panel+编号反枚举） |
 
-### agent-infra/（docs/research/agent-infra/ 的 Agent Skills 规范精读 + Jev 精读）
+### agent-infra/（docs/research/agent-infra/ 的 Agent Skills 规范精读（090 + 重学 210）+ Jev 精读）
 
 | slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -88,16 +88,27 @@
 | [jev--benchmark-audit](./agent-infra/jev--benchmark-audit.mmd) | [200 §8 争议 2 / §9.2](../../research/agent-infra/200-jev-system-one-model.md) | dataflow | ✓ | done | 自报基准口径对账（视频 E2 新绘）：自出卷+LLM 平均答案+adapter 陪跑 → 头条 193.6×/444.6× vs 复算 75×/171× vs 第三方 1.2× |
 | [jev--decision-vs-generation](./agent-infra/jev--decision-vs-generation.mmd) | [200 §1 定位 + §11 边界](../../research/agent-infra/200-jev-system-one-model.md) | architecture | ✓ | done | 判断/生成分工（视频 E2 新绘）：两通道+接口契约；四拿（结构红利）vs 四缺（证据与中文场景）+开放问题 |
 | [agent-skills--package-and-validation](./agent-infra/agent-skills--package-and-validation.mmd) | [090 §3](../../research/agent-infra/090-agent-skills-spec.md) | architecture | ✓ | done | 作者相：技能包解剖 × skills-ref 三命令 × 规范↔实现 13 处分歧 |
-| [agent-skills--handbook-cabinet](./agent-infra/agent-skills--handbook-cabinet.mmd) | [制作分镜 0-A/0-D/0-E/0-F](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | architecture | ✓ | done | 开场总览：老师傅经验孤岛 × 两条老路 × 第三条路 × 轻量蒸馏（agent-skills-video P0） |
-| [agent-skills--distill-loop](./agent-infra/agent-skills--distill-loop.mmd) | [制作分镜 1-A..1-G](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | lifecycle | ✓ | done | 淬炼回路：空泛陷阱→四格便签→资料合成→编辑台→坑点→执行回灌（P1） |
-| [agent-skills--eval-twin-runs](./agent-infra/agent-skills--eval-twin-runs.mmd) | [制作分镜 1-H](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | dataflow | ✓ | done | 试岗对照：同一工单带/不带手册双跑，两边都过删、只有带过是真价值（P1） |
-| [agent-skills--cost-structure](./agent-infra/agent-skills--cost-structure.mmd) | [制作分镜 3-D/3-E](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | dataflow | ✓ | done | 玩具库账本 2321 vs 39222（16.9×）× 书脊墙 vs 按次付费（P3） |
-| [agent-skills--description-routing](./agent-infra/agent-skills--description-routing.mmd) | [制作分镜 4-A..4-C](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | workflow | ✓ | done | 书脊路由：模型自判 × 好/差描述 × 命中与静默落空（P4） |
-| [agent-skills--description-eval](./agent-infra/agent-skills--description-eval.mmd) | [制作分镜 4-D](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | workflow | ✓ | done | 描述评测：20 提问×3 次 × 练习/考核组 × 按考核组挑版 × 1024 红线（P4） |
-| [agent-skills--teardown-identity-budget](./agent-infra/agent-skills--teardown-identity-budget.mmd) | [制作分镜 5-B/5-C](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | dataflow | ✓ | done | 拆 1 冒名手册（扫描先后定真身）× 拆 2 超长描述（+255% · 2.4×）（P5） |
-| [agent-skills--teardown-parse-escape](./agent-infra/agent-skills--teardown-parse-escape.mmd) | [制作分镜 5-D/5-E](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | dataflow | ✓ | done | 拆 3 值内 --- 拦腰截断（参考实现同根因）× 拆 4 伪造第 21 本书（P5） |
-| [agent-skills--authority-and-controversies](./agent-infra/agent-skills--authority-and-controversies.mmd) | [制作分镜 6-A..6-D](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | architecture | ✓ | done | 权威天平 × 13 处分歧/6 处真跑 × 严格/宽容/自己挑/点名/信任（P6） |
-| [agent-skills--unproven-list](./agent-infra/agent-skills--unproven-list.mmd) | [制作分镜 6-E](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | workflow | ✓ | done | 材料没有证明的五件事清单（P6 收束） |
+| [agent-skills--disclosure-lifecycle](./agent-infra/agent-skills-disclosure-lifecycle.mmd) | [210 §4/§6](../../research/agent-infra/210-agent-skills-open-standard.md) | workflow | ✓ | done | 运行相（重学版）：发现→宽容解析→作用域→台账常驻→语义路由→整载→解释执行 + 压缩豁免/激活去重守护 |
+| [agent-skills--governance-layers](./agent-infra/agent-skills-governance-layers.mmd) | [210 §3/§8/§9](../../research/agent-infra/210-agent-skills-open-standard.md) | architecture | ✓ | done | 治理相（重学版）：规范 MUST/建议/留白 × 指南层 × 生态四家抽样 × 48 PR 悬案三行网格 |
+| [supply-chain--ious-route](./agent-infra/supply-chain-ious-route.mmd) | [220 §9](../../research/agent-infra/220-skills-supply-chain.md) | workflow | ✓ | done | 三张欠条兑付路线：签名/分发/版本三泳道并行回收+PR 状态橡皮章（E3 精读首绘） |
+| [supply-chain--dual-harbor](./agent-infra/supply-chain-dual-harbor.mmd) | [220 §2/§6](../../research/agent-infra/220-skills-supply-chain.md) | architecture | ✓ | done | 双港区对照：agentskills 冻结 49 天 vs MCP ext-skills 81 天 Final + jonathanhefner 人事桥 + #546 报关单（E3 精读首绘） |
+| [agent-skills--port-46-adoption](./agent-infra/agent-skills-port-46-adoption.mmd) | [分镜 0-A/0-B](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | workflow | ✓ | done | 生态采纳全景（视频 E1 重绘）：2025 捐出→竞对全接→整张牌桌（视频 E1 重绘新绘） |
+| [agent-skills--two-old-roads](./agent-infra/agent-skills-two-old-roads.mmd) | [分镜 0-E](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | workflow | ✓ | done | 两条老路死法：盲航/超载/成本函数之问双泳道（视频 E1 重绘新绘） |
+| [agent-skills--box-anatomy](./agent-infra/agent-skills-box-anatomy.mmd) | [分镜 1-A/1-C](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | architecture | ✓ | done | 技能包解剖：箱体/角件六字段/箱号=登记名/正文附件/选填验箱五章（视频 E1 重绘新绘） |
+| [agent-skills--identity-registry](./agent-infra/agent-skills-identity-registry.mmd) | [分镜 1-B](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | sequence | ✓ | done | 身份登记处时序：无注册中心→文件系统即登记（视频 E1 重绘新绘） |
+| [agent-skills--craft-real-tasks](./agent-infra/agent-skills-craft-real-tasks.mmd) | [分镜 1-D/1-E](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | workflow | ✓ | done | 正文工艺：真实任务长出→坑点上册→跑了再改→会的别写（视频 E1 重绘新绘） |
+| [agent-skills--budget-flipboard](./agent-infra/agent-skills-budget-flipboard.mmd) | [分镜 2-D/2-E](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | dataflow | ✓ | done | 成本翻牌：玩具实测 39222vs2321/≈17×/OpenAI 2% 红线（视频 E1 重绘新绘） |
+| [agent-skills--script-craft](./agent-infra/agent-skills-script-craft.mmd) | [分镜 2-F](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | workflow | ✓ | done | 箱内脚本工艺：钉版本+四条家规（视频 E1 重绘新绘） |
+| [agent-skills--label-good-bad](./agent-infra/agent-skills-label-good-bad.mmd) | [分镜 3-A/3-B](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | architecture | ✓ | done | 好签差签并排：静默退化/没说关键词（视频 E1 重绘新绘） |
+| [agent-skills--routing-eval-protocol](./agent-infra/agent-skills-routing-eval-protocol.mmd) | [分镜 3-C/3-E](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | workflow | ✓ | done | 货签的考试：近失配/20×3 触发率/六四分/一秒面试（视频 E1 重绘新绘） |
+| [agent-skills--four-ports-charter](./agent-infra/agent-skills-four-ports-charter.mmd) | [分镜 4-A..4-C/4-F](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | architecture | ✓ | done | 四港章程：四联卡/四港画像/堆场锚点/验箱师/签名真空（视频 E1 重绘新绘） |
+| [agent-skills--lenient-vs-strict](./agent-infra/agent-skills-lenient-vs-strict.mmd) | [分镜 4-D](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | workflow | ✓ | done | 宽容 vs 严格双泳道：警告照放/12 只实测门（视频 E1 重绘新绘） |
+| [agent-skills--eval-twin-runs](./agent-infra/agent-skills-eval-twin-runs.mmd) | [分镜 4-E](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | workflow | ✓ | done | 双跑盲评：匿名两跑/断言记账（视频 E1 重绘新绘） |
+| [agent-skills--experiment-scan-order](./agent-infra/agent-skills-experiment-scan-order.mmd) | [分镜 5-A/5-B](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | workflow | ✓ | done | 实验一：拆优先级→两港漂移→无报错（视频 E1 重绘新绘） |
+| [agent-skills--shadow-warning](./agent-infra/agent-skills-shadow-warning.mmd) | [分镜 5-C](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | lifecycle | ✓ | done | 遮蔽生命周期：复制→项目域遮蔽→告警/静默双分支（视频 E1 重绘新绘） |
+| [agent-skills--experiment-label-injection](./agent-infra/agent-skills-experiment-label-injection.mmd) | [分镜 5-D/5-E](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | sequence | ✓ | done | 实验二时序：缩进伪字段→误收→若当真→truthiness（视频 E1 重绘新绘） |
+| [agent-skills--pending-wars](./agent-infra/agent-skills-pending-wars.mmd) | [分镜 6-B/6-C](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | dataflow | ✓ | done | 治理悬案流：四向压力→48 PR→停摆/对冲/互通三结局（视频 E1 重绘新绘） |
+| [agent-skills--box-history-rhyme](./agent-infra/agent-skills-box-history-rhyme.mmd) | [分镜 6-D](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | lifecycle | ✓ | done | 集装箱史押韵：1956→CSI→先事实后条文（视频 E1 重绘新绘） |
 
 > 各分类行由对应重绘波次登记；`产物` 列 ✓ = html + dark/light PNG 已入库。
 

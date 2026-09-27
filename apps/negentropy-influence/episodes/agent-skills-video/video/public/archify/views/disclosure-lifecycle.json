@@ -1,0 +1,47 @@
+[
+ {
+  "id": "dl-discover",
+  "label": "发现与解析",
+  "focus": [
+   "discover",
+   "parse",
+   "resolve"
+  ],
+  "note": ".agents/skills 约定 → 宽容解析 → project 覆盖 user"
+ },
+ {
+  "id": "dl-catalog",
+  "label": "台账常驻",
+  "focus": [
+   "catalog"
+  ],
+  "note": "tier 1：每技能 ~50–100 token 常驻台账"
+ },
+ {
+  "id": "dl-activate",
+  "label": "提箱整载",
+  "focus": [
+   "route",
+   "activate"
+  ],
+  "note": "tier 2：description 路由命中后整载 <5000 token"
+ },
+ {
+  "id": "dl-tier3",
+  "label": "隔层按需",
+  "focus": [
+   "interpret",
+   "resources"
+  ],
+  "note": "tier 3：scripts / refs / assets 按需加载"
+ },
+ {
+  "id": "dl-rewrite",
+  "label": "改写账本",
+  "focus": [
+   "exempt",
+   "dedupe"
+  ],
+  "note": "压缩豁免 + 激活去重：内容静默丢失即静默降级"
+ }
+]

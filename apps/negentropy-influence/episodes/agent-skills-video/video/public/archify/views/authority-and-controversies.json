@@ -1,8 +1,0 @@
-[
-  {"id": "authority", "label": "权威天平", "focus": ["spec", "ref"], "note": "格式要求只以规范正文为准；参考实现是示范，不新增要求。"},
-  {"id": "diff-13", "label": "十三处分歧", "focus": ["spec", "ref", "diff"], "note": "规范、客户端指南、参考实现三方逐条对照，找出 13 处分歧。"},
-  {"id": "realrun", "label": "六处真跑", "focus": ["diff", "realrun"], "note": "其中 6 处拿官方参考实现固定提交真跑复现。"},
-  {"id": "strict", "label": "严格只退回", "focus": ["strict", "diff"], "note": "参考实现的检查命令只有硬失败一档，直接退回。"},
-  {"id": "lenient", "label": "宽容照上架", "focus": ["lenient", "strict"], "note": "客户端指南主张提个醒照样上架；谷歌更把名字设为可选。"},
-  {"id": "trust", "label": "极简与信任", "focus": ["trust"], "note": "无签名、不查出处、锁不住版本，信任整体推给客户端。"}
-]

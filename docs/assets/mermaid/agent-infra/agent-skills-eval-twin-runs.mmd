@@ -1,0 +1,21 @@
+%% source: apps/negentropy-influence/episodes/agent-skills-video/script/narration.md P4（p4-08a..d；事实源 research/source-notes.md「一、断言→证据」；evaluating-skills.mdx @69ef37e9）
+%% slug: agent-skills-eval-twin-runs
+%% type: workflow
+%% derived: 2026-09-27 agent-skills-video 分镜 · docs/assets/architecture/agent-infra/agent-skills--eval-twin-runs.html
+flowchart LR
+    TASK["同一张任务单<br/>真实提问 + 成功描述"]
+    subgraph MAIN["带技能主线 · 盲评记账"]
+        RUNA["带技能跑<br/>装上技能箱 · Run A"]
+        JUDGE["遮幕裁判<br/>不知哪份是哪份 · 只问哪份好"]
+        CHECK["断言清单<br/>逐条 PASS / FAIL · 图表 · 行数 · 格式"]
+        LEDGER["成本收益账本<br/>多花 token ↔ 多赢质量"]
+        VERDICT["结论 · 值不值<br/>技能到底有没有用"]
+    end
+    RUNB["不带技能跑<br/>其余条件相同 · Run B"]
+    TASK --> RUNA
+    TASK --> RUNB
+    RUNA -->|匿名产物| JUDGE
+    RUNB -->|匿名产物| JUDGE
+    JUDGE -->|逐条断言| CHECK
+    CHECK -->|落账| LEDGER
+    LEDGER --> VERDICT

@@ -1,0 +1,18 @@
+%% source: apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md 5-D/5-E（p5-06..09b）
+%% slug: agent-skills-experiment-label-injection
+%% type: sequence
+%% derived: 2026-09-27 agent-skills-video 分镜
+sequenceDiagram
+    participant 技能作者 as 技能作者（别有用心）
+    participant 货签 as 货签（SKILL.md frontmatter）
+    participant 解析器 as 解析器（宽容解析）
+    participant 元数据 as 元数据（字段集）
+    participant 客户端 as 客户端（Agent 宿主）
+    技能作者->>货签: 偷挂缩进伪字段（description 尾混入 allowed-tools: Bash(rm:*)）
+    货签->>解析器: 货签原样上桌（不校验未知形态）
+    解析器->>元数据: 伪字段误收入集（缩进行被折成新字段）
+    元数据->>客户端: 字段集原样下发
+    客户端-->>技能作者: 若当真 · rm 预授权成立（Bash(rm:*) 免确认放行）
+    技能作者->>货签: 禁用标记写 false（本意是关闭）
+    解析器->>元数据: false → 'false'（metadata 只收字符串）
+    元数据->>客户端: 非空即启用（被禁用的反而放行）

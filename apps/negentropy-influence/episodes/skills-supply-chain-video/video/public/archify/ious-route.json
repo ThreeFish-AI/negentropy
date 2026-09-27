@@ -1,0 +1,138 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 17.72,
+ "total_wall_sec": 73.55,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "ir-sign",
+   "label": "签名欠条",
+   "index": 0,
+   "file": "ious-route--ir-sign.mp4",
+   "end_still": "ious-route--ir-sign-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "s1",
+    "st1"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "ir-stack",
+   "label": "三层信任栈",
+   "index": 1,
+   "file": "ious-route--ir-stack.mp4",
+   "end_still": "ious-route--ir-stack-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.37,
+   "beat_offsets_sec": [
+    0.0,
+    1.107,
+    2.213
+   ],
+   "beat_nodes": [
+    "s1",
+    "s2",
+    "s3"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 27.0
+  },
+  {
+   "id": "ir-dist",
+   "label": "分发欠条",
+   "index": 2,
+   "file": "ious-route--ir-dist.mp4",
+   "end_still": "ious-route--ir-dist-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.48,
+   "story_sec": 3.34,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.211
+   ],
+   "beat_nodes": [
+    "d1",
+    "d2",
+    "d3"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 27.0
+  },
+  {
+   "id": "ir-404",
+   "label": "舱单实测",
+   "index": 3,
+   "file": "ious-route--ir-404.mp4",
+   "end_still": "ious-route--ir-404-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [
+    0.0,
+    1.106,
+    2.208
+   ],
+   "beat_nodes": [
+    "d2",
+    "dcurl",
+    "d3"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "ir-vers",
+   "label": "版本欠条",
+   "index": 4,
+   "file": "ious-route--ir-vers.mp4",
+   "end_still": "ious-route--ir-vers-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.42,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.206,
+    3.311
+   ],
+   "beat_nodes": [
+    "v1",
+    "v2",
+    "v3",
+    "v4"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 27.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/dar-es-salaam-v2/docs/assets/architecture/agent-infra/supply-chain--ious-route.html",
+ "slug": "ious-route",
+ "type": "workflow"
+}

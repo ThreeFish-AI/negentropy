@@ -1,0 +1,31 @@
+[
+ {
+  "id": "to-samedomain",
+  "label": "同域质疑",
+  "focus": [
+   "prop",
+   "o1",
+   "c1"
+  ],
+  "note": "同一信任域：digest 沦为安慰剂"
+ },
+ {
+  "id": "to-footgun",
+  "label": "双处同步",
+  "focus": [
+   "o2",
+   "c2"
+  ],
+  "note": "换工件漏改舱单，严格端整站不可用"
+ },
+ {
+  "id": "to-pipeline",
+  "label": "流水线门槛",
+  "focus": [
+   "o3",
+   "c3",
+   "stall"
+  ],
+  "note": "发布变哈希同步流水线；#254 停摆 194 天"
+ }
+]

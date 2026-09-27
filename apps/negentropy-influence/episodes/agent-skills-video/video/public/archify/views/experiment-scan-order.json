@@ -1,0 +1,29 @@
+[
+ {
+  "id": "xo-priority",
+  "label": "拆掉优先级",
+  "focus": [
+   "a-first",
+   "b-first"
+  ],
+  "note": "通用约定 project > user 被移除，同名技能只剩扫描顺序裁决"
+ },
+ {
+  "id": "xo-drift",
+  "label": "两港漂移",
+  "focus": [
+   "a-hit",
+   "b-hit"
+  ],
+  "note": "10 只技能盘点，2 只同名不同版：A 港公司版，B 港个人版"
+ },
+ {
+  "id": "xo-silent",
+  "label": "无报错",
+  "focus": [
+   "a-ident",
+   "b-ident"
+  ],
+  "note": "身份锚进扫描顺序的偶然，跨客户端不可复现"
+ }
+]

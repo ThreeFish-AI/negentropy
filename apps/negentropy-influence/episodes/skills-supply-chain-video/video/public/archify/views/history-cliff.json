@@ -1,0 +1,33 @@
+[
+ {
+  "id": "hc-npm",
+  "label": "npm 八年",
+  "focus": [
+   "npm-start",
+   "npm-eight",
+   "event-stream"
+  ],
+  "note": "2010→2018：burnout 移交后投毒"
+ },
+ {
+  "id": "hc-six",
+  "label": "六个月",
+  "focus": [
+   "skills-open",
+   "cliff",
+   "event-stream"
+  ],
+  "note": "2025-12 开放，六个月逼近同一悬崖"
+ },
+ {
+  "id": "hc-three",
+  "label": "三场战争",
+  "focus": [
+   "cliff",
+   "war-dist",
+   "war-sign",
+   "war-ver"
+  ],
+  "note": "分发·签名·版本：三处刻意留白"
+ }
+]

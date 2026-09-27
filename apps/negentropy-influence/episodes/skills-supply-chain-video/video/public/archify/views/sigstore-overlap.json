@@ -1,0 +1,45 @@
+[
+ {
+  "id": "so-map",
+  "label": "逐层对位",
+  "focus": [
+   "l3",
+   "rekor",
+   "l2",
+   "fulcio",
+   "prov"
+  ],
+  "note": "三层栈与 sigstore 逐层对位"
+ },
+ {
+  "id": "so-reinvent",
+  "label": "手工重造",
+  "focus": [
+   "l1",
+   "l2",
+   "l3"
+  ],
+  "note": "评论区三个月，自组织出同构三层"
+ },
+ {
+  "id": "so-motive",
+  "label": "替换动机",
+  "focus": [
+   "fulcio",
+   "rekor",
+   "prov"
+  ],
+  "note": "信任换证据：事后可发现胜事前可信"
+ },
+ {
+  "id": "so-scale",
+  "label": "量产对照",
+  "focus": [
+   "npm",
+   "pypi",
+   "tv",
+   "l2"
+  ],
+  "note": "npm/PyPI 已量产；签章仍是原型"
+ }
+]

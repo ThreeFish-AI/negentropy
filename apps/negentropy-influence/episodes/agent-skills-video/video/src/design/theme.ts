@@ -2,7 +2,7 @@
  * 本集视觉契约（seed —— scaffold 复制后**必须**按本集重写概念色）。
  *
  * 底座常量四集通用、不要改；概念色是每集独立设计的产物，规则见
- * pipeline/skills/06-remotion-implementation.md：
+ * references/08-remotion-implementation.md：
  *   - 2–3 个概念色，映射「深度轴」而非枚举条目
  *   - 对 bg (#0E1116) 对比度 ≥ 4.5:1（用 `qa_frames.py --check-theme` 实测）
  *   - 色相不得与已用色撞车（各集 theme.ts 实占色值见 `check_series.py`
@@ -31,11 +31,9 @@ export const theme = {
   sans: "'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', sans-serif",
   mono: "'SF Mono', 'Menlo', 'JetBrains Mono', monospace",
 
-  // ── 本集概念色：「从经验到装配」深度轴（planning.md §三）──
-  // 淬炼：老师傅的经验、纠正、坑点、修订回路
-  forge: '#FF86A8',
-  // 书脊与目录：名字 + 描述、常驻固定墙面、路由判断
-  spine: '#86A8FF',
-  // 整本与附录：按需抽出的正文、附录、按次付费
-  book: '#D891F5',
+  // ── 本集概念色（知识的港口剧场，2026-09-26 定稿）──
+  // 引航青=港口/台账/规范层；货签粉=知识箱/内容物；警示金=边界与悬案。
+  concept: '#45DFFF',
+  conceptDeep: '#FF7A9E',
+  deny: '#FFC85C',
 } as const;

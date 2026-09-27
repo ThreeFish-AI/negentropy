@@ -1,0 +1,14 @@
+%% source: apps/negentropy-influence/episodes/agent-skills-video/script/narration.md P1（p1-01..08b；事实源 research/source-notes.md A1–A7）
+%% slug: agent-skills--box-anatomy
+%% type: architecture
+%% derived: 2026-09-27 agent-skills-video 分镜 1-A / 1-C
+flowchart TD
+    FOLDER["技能包文件夹<br/>一个目录就是一只箱子"] -->|"唯一必需"| MD["SKILL.md<br/>唯一必需的说明文件<br/>frontmatter + 正文"]
+    FOLDER -.同箱附件.-> ANNEX["附件三目录<br/>scripts/ · references/ · assets/<br/>约定俗成"]
+    FOLDER -.出厂预检.-> VAL["skills-ref validate<br/>只验格式 · 不验内容<br/>验箱师"]
+    MD -->|"正文自由"| BODY["正文<br/>想写步骤写步骤 · 贴例子随意<br/>gotchas 最值钱"]
+    MD -->|必填| NAME["name<br/>必填 · 箱号"]
+    MD -->|必填| DESC["description<br/>必填 · 货签"]
+    MD -.选填.-> OPT["三格选填<br/>license · compatibility · allowed-tools"]
+    MD -.选填.-> META["metadata<br/>string→string 任意键值<br/>私货正门"]
+    NAME -->|"1–64 字符 · 逐字相等"| DIR["目录名<br/>必须与 name 逐字相等"]

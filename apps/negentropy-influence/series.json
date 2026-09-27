@@ -305,25 +305,24 @@
           "episode": 1,
           "slug": "agent-skills-video",
           "path": "episodes/agent-skills-video",
-          "title": "经验淬炼成手册：Agent 的轻量蒸馏与按需装配",
-          "topic": "Agent Skills：经验怎么交给 AI",
-          "cardSub": "技能 · 按需装配",
+          "title": "知识的集装箱：Agent Skills 开放标准",
+          "topic": "Agent Skills：一个文件夹怎么成了行业标准",
+          "cardSub": "开放标准 · 知识打包",
           "accents": [
-            "#FF86A8",
-            "#86A8FF",
-            "#D891F5"
+            "#45DFFF",
+            "#FF7A9E"
           ],
           "source": {
-            "title": "Agent Skills 开放规范精读笔记 + 最小原型（docs/research/agent-infra/090 @ 80b456fb）+ 上游规范与参考实现",
+            "title": "Agent Skills 重学精读 + 最小原型（docs/research/agent-infra/210 @ 72a657351）+ 上游规范与参考实现",
             "site": "https://agentskills.io/specification",
             "repo": "https://github.com/agentskills/agentskills",
-            "pinnedRef": "69ef37e9424c",
+            "pinnedRef": "69ef37e9",
             "license": "CC-BY-4.0（文档）/ Apache-2.0（代码）；本仓精读为内部文档",
-            "accessed": "2026-09-23"
+            "accessed": "2026-09-26"
           },
           "status": "final-review",
-          "statusNote": "v1 终渲待审（2026-09-24）：15:24.97 = 27749 帧 @30fps / 1920×1080（200 句 4294 字，实测 15.5 分）；七幕 41 镜（经验之困 / 淬炼成册 / 一格一本 / 按需装配 / 书脊路由 / 拆解实验 / 规范边界）· archify 12 图 58 章逐章回放（49 cue · 锚定 24.5% · 图型 4 · 密度 3.2/分）；sunny-steady 全片合成（MPS OOM 两次自愈续跑）；草渲全片亮度扫描抓出 P6 整幕渐黑提前与三处 3s 空窗并修复；终渲 beat-heads FAIL 0 · 尾幕 FAIL 0 · WCAG 主题门过；归档 ~/Documents/video/agent-infra/ v1",
-          "voice": "sunny-steady + me-bright.wav"
+          "statusNote": "v1 终渲待审（2026-09-28）：13:03.4 = 23502 帧 @30fps / 1920×1080（119 句 4191 字，复算式与 mdls 逐位一致）；七幕 41 镜 · archify 19 图（17 新绘 + 2 复用 210）63 章 64 cue 逐章回放 · 锚定 53.8% · 图型 5 · 密度 4.9/分 · 最长无锚 6 句；信源 24 条（210/211/lab2 @72a657351 + 上游 @69ef37e9 + 生态四家 + PR 三提案）；story 段落演绎档（24 块相邻换情绪 + 表演标点，服务自愈重启一次）；④ RISKY=0 REWRITE=0 + ⑤ 成文优化 15 处（评审 7.5/10 起）；机器门全绿：check_series/build/check/--check-scenes/check_archify/复述门/tsc/qa --check 尾幕/beat-heads/WCAG(11.9:1) 全 FAIL 0 + 亮度扫描 102 帧零暗段 + 目视 7 帧；外挂字幕已交付 _captions/；旧 v1《经验淬炼成手册》成片保留归档",
+          "voice": "story 段落演绎档 + me-bright.wav"
         },
         {
           "episode": 2,
@@ -349,6 +348,29 @@
           "status": "final-review",
           "statusNote": "v2 终渲待审（2026-09-24）：14:40.00 = 26400 帧 @30fps / 1920×1080（180 句 4129 字，实测 14.7 分）；七幕 41 镜（判断之贵 / 挂牌格口 / 一眼多票 / 把握对账 / 三条去向 / 三方争议 / 各归其位）· archify 13 图 35 章逐章回放（35 cue · 锚定 19.4% · 图型 5 · 密度 2.4/分）；sunny-steady 全片合成（174 句处 MPS OOM，按端口重启服务后补齐）；草渲目视抓出 P3/P6 两处冻帧（改逐句焦点）与 P5 天平砝码悬空、P2 标签压线并修复；终渲七幕 FAIL 0 · 尾幕 FAIL 0 · WCAG 主题门过；v2 修复画面文字与烧录字幕的双层重复（11 处画面文字卡逐字复述口播，改为关键词锚点；成因与防复发见 to-video RSI-007），归档 ~/Documents/video/agent-infra/ v2（v1 保留对照；外挂 srt/vtt 移入 _captions/ 子目录，不再与 mp4 同名同目录）",
           "voice": "sunny-steady + me-bright.wav"
+        },
+        {
+          "episode": 3,
+          "slug": "skills-supply-chain-video",
+          "path": "episodes/skills-supply-chain-video",
+          "title": "没有海关的港口：Skills 的签名、分发与版本战争",
+          "topic": "Agent Skills：签名/分发/版本三战场",
+          "cardSub": "供应链 · 三战场",
+          "accents": [
+            "#FF6A3D",
+            "#A6F750"
+          ],
+          "source": {
+            "title": "Agent Skills 供应链战场精读 + 最小原型（docs/research/agent-infra/220 @ 9284cce2c）+ 上游双仓钉点",
+            "site": "https://agentskills.io/specification",
+            "repo": "https://github.com/agentskills/agentskills",
+            "pinnedRef": "69ef37e9 + modelcontextprotocol/ext-skills@b0b3272f + cloudflare/agent-skills-discovery-rfc@1bd11679",
+            "license": "CC-BY-4.0（文档）/ Apache-2.0（代码）；本仓精读为内部文档",
+            "accessed": "2026-09-27"
+          },
+          "status": "final-review",
+          "statusNote": "E3 成片交付 v1（~/Documents/video/agent-infra/）：13:57（25112 帧÷30fps 复算）· 101 句 4358 字 · archify 20 图/79 cue/锚定 78.2%/密度 5.7 每分/5 图型 · story 段落演绎 me-bright.wav · 机器门全绿：check_series/build/--pre-tts/check --check-scenes/tsc/qa --check（WARN 0）/--check-theme WCAG/亮度扫描/接缝 4 组/13 帧目检 · 信源 16 条三钉点 verify FAIL 0 · Stage ④ 复修 13 句（含 p2-08 静默失配补落盘）· 待 48h 信源复核（#254/#380/#546 状态与冻结天数）",
+          "voice": "story 段落演绎档 + me-bright.wav"
         }
       ]
     }

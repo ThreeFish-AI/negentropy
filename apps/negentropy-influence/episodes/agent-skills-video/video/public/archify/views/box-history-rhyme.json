@@ -1,0 +1,34 @@
+[
+ {
+  "id": "hr-mclean",
+  "label": "卡车司机",
+  "focus": [
+   "s-launch",
+   "s-donate"
+  ],
+  "note": "开卡车出身的 McLean 把自家专利格式捐成行业标准，船公司、铁路、港口全数就范"
+ },
+ {
+  "id": "hr-csi",
+  "label": "事故倒逼",
+  "focus": [
+   "s-gap",
+   "s-csi"
+  ],
+  "note": "跨国查验机制 CSI 是几十年后真实事故才补上的——查验是补课，不是设计"
+ },
+ {
+  "id": "hr-rhyme",
+  "label": "先事实后条文",
+  "focus": [
+   "s-iso",
+   "s-gap",
+   "s-csi",
+   "k-fact",
+   "k-blank",
+   "k-rule",
+   "v-rhyme"
+  ],
+  "note": "箱体先行统一→查验后补；Agent Skills 大概率走同一条路"
+ }
+]
