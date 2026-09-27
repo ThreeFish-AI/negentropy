@@ -368,8 +368,8 @@
             "license": "CC-BY-4.0（文档）/ Apache-2.0（代码）；本仓精读为内部文档",
             "accessed": "2026-09-27"
           },
-          "status": "scripting",
-          "statusNote": "E1 结尾三欠条（签名/分发/版本）的兑付集；以 220/221/lab3 为信源、story 档配音；目标 12.5-13.5 分钟 / 图≥23 / cue≥67 / 锚定≥55%（蓝图 .context/e3-blueprint.md，2026-09-28 拍板：标题二、按蓝图开工）",
+          "status": "final-review",
+          "statusNote": "E3 成片交付 v1（~/Documents/video/agent-infra/）：13:57（25112 帧÷30fps 复算）· 101 句 4358 字 · archify 20 图/79 cue/锚定 78.2%/密度 5.7 每分/5 图型 · story 段落演绎 me-bright.wav · 机器门全绿：check_series/build/--pre-tts/check --check-scenes/tsc/qa --check（WARN 0）/--check-theme WCAG/亮度扫描/接缝 4 组/13 帧目检 · 信源 16 条三钉点 verify FAIL 0 · Stage ④ 复修 13 句（含 p2-08 静默失配补落盘）· 待 48h 信源复核（#254/#380/#546 状态与冻结天数）",
           "voice": "story 段落演绎档 + me-bright.wav"
         }
       ]
