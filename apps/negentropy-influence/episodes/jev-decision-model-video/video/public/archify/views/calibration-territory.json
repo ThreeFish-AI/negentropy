@@ -1,0 +1,42 @@
+[
+ {
+  "id": "ct-in",
+  "label": "领地内",
+  "focus": [
+   "in-dist"
+  ],
+  "note": "报七成的那批日子里约七成真下。"
+ },
+ {
+  "id": "ct-drift",
+  "label": "静默漂移",
+  "focus": [
+   "drift"
+  ],
+  "note": "现实里没有调令——漂移悄无声息。"
+ },
+ {
+  "id": "ct-cliff",
+  "label": "台阶出现",
+  "focus": [
+   "cliff"
+  ],
+  "note": "照样报七成，读数不报警。"
+ },
+ {
+  "id": "ct-fix",
+  "label": "对冲与重标",
+  "focus": [
+   "audit"
+  ],
+  "note": "影子运行与抽检是唯一的台阶探测器。"
+ },
+ {
+  "id": "ct-wild",
+  "label": "无基准地带",
+  "focus": [
+   "dice"
+  ],
+  "note": "公平骰子报 82.9%、实际 19%。"
+ }
+]

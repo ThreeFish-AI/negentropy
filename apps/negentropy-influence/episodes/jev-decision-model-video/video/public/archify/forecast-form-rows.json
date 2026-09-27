@@ -1,0 +1,115 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 14.35,
+ "total_wall_sec": 59.29,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "ff-rows",
+   "label": "三类行",
+   "index": 0,
+   "file": "forecast-form-rows--ff-rows.mp4",
+   "end_still": "forecast-form-rows--ff-rows-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.36,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.21
+   ],
+   "beat_nodes": [
+    "row-choice",
+    "row-score",
+    "row-noul"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "ff-choice",
+   "label": "单选行",
+   "index": 1,
+   "file": "forecast-form-rows--ff-choice.mp4",
+   "end_still": "forecast-form-rows--ff-choice-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.34,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.209
+   ],
+   "beat_nodes": [
+    "caller",
+    "validator",
+    "row-choice"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "ff-closure",
+   "label": "闭合保证",
+   "index": 2,
+   "file": "forecast-form-rows--ff-closure.mp4",
+   "end_still": "forecast-form-rows--ff-closure-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.42,
+   "beat_offsets_sec": [
+    0.0,
+    1.106,
+    2.211,
+    3.315
+   ],
+   "beat_nodes": [
+    "row-choice",
+    "row-score",
+    "row-noul",
+    "consumer"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "ff-trap",
+   "label": "填错的格",
+   "index": 3,
+   "file": "forecast-form-rows--ff-trap.mp4",
+   "end_still": "forecast-form-rows--ff-trap-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "row-choice",
+    "consumer"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/sao-paulo-v3/docs/assets/architecture/agent-infra/jev--forecast-form-rows.html",
+ "slug": "forecast-form-rows",
+ "type": "architecture"
+}

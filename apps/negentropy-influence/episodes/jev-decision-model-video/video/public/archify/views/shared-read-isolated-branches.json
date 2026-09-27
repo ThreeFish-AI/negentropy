@@ -1,0 +1,48 @@
+[
+ {
+  "id": "sr-once",
+  "label": "只编码一次",
+  "focus": [
+   "state-in",
+   "encode"
+  ],
+  "note": "大屏只放一遍——共享前缀。"
+ },
+ {
+  "id": "sr-fanout",
+  "label": "封卡分支",
+  "focus": [
+   "encode",
+   "branch-a",
+   "branch-b"
+  ],
+  "note": "同一前缀，各题独立后缀。"
+ },
+ {
+  "id": "sr-between",
+  "label": "行间互不可见",
+  "focus": [
+   "branch-a",
+   "branch-b",
+   "readout"
+  ],
+  "note": "暗号写在别的卡上，读不到。"
+ },
+ {
+  "id": "sr-within",
+  "label": "行内互相影响",
+  "focus": [
+   "branch-b"
+  ],
+  "note": "同一行的格子会互相牵动。"
+ },
+ {
+  "id": "sr-cost",
+  "label": "代价与对账",
+  "focus": [
+   "readout",
+   "gate"
+  ],
+  "note": "正反卡加出 1.19，自洽交给代码。"
+ }
+]

@@ -1,0 +1,103 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 12.86,
+ "total_wall_sec": 54.19,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "sl-setup",
+   "label": "口径设定",
+   "index": 0,
+   "file": "speedup-ledger--sl-setup.mp4",
+   "end_still": "speedup-ledger--sl-setup-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.21,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "evals"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "sl-official",
+   "label": "官方出口",
+   "index": 1,
+   "file": "speedup-ledger--sl-official.mp4",
+   "end_still": "speedup-ledger--sl-official-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.21,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "headline"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "sl-recompute",
+   "label": "复算对账",
+   "index": 2,
+   "file": "speedup-ledger--sl-recompute.mp4",
+   "end_still": "speedup-ledger--sl-recompute-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.21,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "recompute",
+    "demo"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "sl-verdict",
+   "label": "归并",
+   "index": 3,
+   "file": "speedup-ledger--sl-verdict.mp4",
+   "end_still": "speedup-ledger--sl-verdict-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.601
+   ],
+   "beat_nodes": [
+    "indep",
+    "verdict"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/sao-paulo-v3/docs/assets/architecture/agent-infra/jev--speedup-ledger.html",
+ "slug": "speedup-ledger",
+ "type": "dataflow"
+}

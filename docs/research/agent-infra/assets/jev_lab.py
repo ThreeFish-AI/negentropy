@@ -1,21 +1,18 @@
 #!/usr/bin/env python3
-"""Jev（TypeSafe System One Model）· 最小原型实验室（guided-learn Phase 3）。
+"""jev_lab —— System One 决策契约的最小原型（纯标准库、确定性）。
 
-验证的是「类型化问题 → 一次编码 → 分支隔离 → 闭合解码 → 校准概率 → 阈值分流」这条机制链是否自洽，
-不是模型聪不聪明：
-- Jev 本体闭源（无论文无权重）。此处「判读」用确定性关键词重叠打分器替身 score_options，
-  结构取 Archer Hume 探针假设与 jaredpalmer/kev@b8aa777 的开源实现（state 编码一次、问题分支互不可见、
-  选项对决策位打分）；它回答「机制是否自洽」，不回答「Jev 准不准」。
-- 校准实验用确定性「决策流」替身 decision_stream：真实正确率曲线 true_p(m) 与模型声明概率 stated_p(m)
-  由公式给定、正确与否由低差异序列判定——无随机数，同一命令永远同一日志。
-- confidence 公式逐式照抄官方 adapter：typesafe-ai/system-one-adapter-python@e1d4cc9
-  src/system_one_adapter/_utils/confidence_metrics.py:4-24；契约上限取 docs.typesafe.ai/api.md。
-- 成本/延迟常量取 evals.typesafe.ai 的 workflow 模式表（Jev $0.0004/0.4s、terra $0.0304/10.1s），
-  属厂商自报口径，仅用于演示分流经济学，不是实测。
+验证的是机制是否自洽，不是模型是否聪明：真实的 Jev 是闭源服务，这里的「判读器」
+是确定性关键词打分 mock（无随机数），用来让四个机制「演」出来：
 
-运行：
-  uv run --no-project python docs/research/agent-infra/assets/jev_lab.py --selftest
-  uv run --no-project python docs/research/agent-infra/assets/jev_lab.py --break B1   # B1..B6
+  M1 闭合输出空间  decide()           答案只能落在 criteria 内（形状保证 ≠ 内容保证）
+  M2 共享读·隔离问  ask()              state 编码一次，每题独立分支，题面互不可见
+  M3 概率与读数    confidence()        分布形状的固定统计（TypeSafe adapter 公式）
+                   fit_temperature()   温度缩放只改读数、不改排序
+  M4 编排与分流    route()             代码拥有控制流：自动 / 复核 / 转人工三道闸
+
+用法：
+  python3 jev_lab.py --selftest          # 全部场景断言，结尾打印 SELFTEST PASSED
+  python3 jev_lab.py --break B1..B5      # 逐一拆掉一个机制，打印实测退化
 """
 
 from __future__ import annotations
@@ -23,377 +20,362 @@ from __future__ import annotations
 import argparse
 import json
 import math
-import re
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
-MAX_OPTIONS, MAX_LEVELS = 255, 10  # docs/api.md：Choice ≤255 选项；Score API 接受 ≤10 级
-CHOICE_SHARP, NOUL_SHARP, NOUL_BIAS = 3.0, 5.5, -3.0
-STOP = {"a", "an", "the", "is", "are", "am", "i", "my", "me", "it", "of", "to", "for", "and", "or", "on",
-        "in", "this", "that", "be", "have", "has", "been", "do", "does", "not", "no", "about", "with", "we"}
-
-# 破坏开关：--break Bn 只翻其中一个，每个开关在代码里只影响一两行
-BREAK = {f"B{i}": False for i in range(1, 7)}
+MAX_CHOICES = 255  # 官方契约：Choice 选项上限（O docs/api.md:125）
+MAX_SCORE_LEVELS = 10  # 官方契约：Score 至多 10 级（O docs/api.md:163）
 
 
-class ValidationError(ValueError):
-    """对应 HTTP 422：请求未通过校验。"""
+# ── 机制开关（破坏性实验每次只拆一个） ────────────────────────────────
+@dataclass
+class Switches:
+    closed_output: bool = True  # B1：拆掉闭合输出 → 生成式自由文本 + 宽松解析
+    isolation: bool = True  # B2：拆掉隔离 → 兄弟题面泄漏进本题上下文
+    shared_encode: bool = True  # B3：拆掉共享编码 → 每题重复计费 state
+    calibrated: bool = True  # B4：拆掉校准 → logits 未经温度，读数虚高
+    route_by_risk: bool = True  # B5：拆掉按风险分档 → 一刀切阈值
 
 
-def toks(text: str) -> list[str]:
-    return [w for w in re.findall(r"[a-z0-9]+", text.lower()) if w not in STOP]
+SW = Switches()
 
 
-def softmax(xs: list[float]) -> list[float]:
-    mx = max(xs)
-    es = [math.exp(x - mx) for x in xs]
-    s = sum(es)
-    return [e / s for e in es]
+# ── 玩具域：客服工单 ────────────────────────────────────────────────
+# 每个选项配一组「证据词」，mock 判读器按命中词数给 logit；温度 T 做校准。
+EVIDENCE: dict[str, dict[str, tuple[str, ...]]] = {
+    "department": {
+        "billing": ("charged", "refund", "invoice", "payment"),
+        "technical": ("error", "500", "crash", "integration", "bug"),
+        "account": ("password", "login", "locked", "email"),
+        "other": (),
+    },
+    "urgency": {  # Score：0 平静 / 1 着急 / 2 非常着急
+        "0": ("question", "wondering"),
+        "1": ("soon", "please", "today"),
+        "2": ("now", "immediately", "can't", "every"),
+    },
+}
+FITTED_T = 1.0  # 占位：模块尾部用 fit_temperature(开发集) 覆写，保证「校准」即拟合结果
 
 
-def sigmoid(x: float) -> float:
-    return 1.0 / (1.0 + math.exp(-x))
-
-
-# ── M1 契约：类型化问题 + 请求校验（闭合输出空间的前提） ────────────────────────
-@dataclass(frozen=True)
+@dataclass
 class Question:
-    type: str  # noul | choice | score
+    qid: str
+    kind: str  # choice | score | noul
     instructions: str
-    criteria: tuple = ()  # choice: ((key, desc), ...)；score: (level_desc, ...)；noul: (true_desc, false_desc)
+    criteria: list[str] = field(default_factory=list)
 
 
-def validate_request(state: str, questions: dict[str, Question]) -> None:
-    if not state or not questions:
-        raise ValidationError("422: state 与 questions 必填")
-    for qid, q in questions.items():
-        if q.type == "choice" and not 2 <= len(q.criteria) <= MAX_OPTIONS:
-            raise ValidationError(f"422: {qid} Choice 须 2..{MAX_OPTIONS} 个选项，实为 {len(q.criteria)}")
-        if q.type == "score" and not 2 <= len(q.criteria) <= MAX_LEVELS:
-            raise ValidationError(f"422: {qid} Score 须 2..{MAX_LEVELS} 级，实为 {len(q.criteria)}")
-        if q.type not in {"noul", "choice", "score"}:
-            raise ValidationError(f"422: {qid} 未知题型 {q.type}")
+def validate(questions: list[Question]) -> None:
+    """请求校验层：违反契约直接拒绝（对应官方 400/422）。"""
+    for q in questions:
+        if q.kind == "choice" and not (1 <= len(q.criteria) <= MAX_CHOICES):
+            raise ValueError(f"{q.qid}: Too many choices. Must have at most {MAX_CHOICES} choices.")
+        if q.kind == "score" and not (2 <= len(q.criteria) <= MAX_SCORE_LEVELS):
+            raise ValueError(f"{q.qid}: score levels must be 2..{MAX_SCORE_LEVELS}")
 
 
-# ── confidence：逐式照抄 adapter confidence_metrics.py:4-24（固定公式，非模型学得） ──
-def choice_confidence(probs: list[float]) -> float:
-    if len(probs) == 1:
+def encode_state(state: str) -> tuple[set[str], int]:
+    """共享编码：state 分词一次，返回词集与计费 token 数。"""
+    toks = state.lower().replace(",", " ").replace(".", " ").split()
+    return set(toks), len(toks)
+
+
+def softmax(logits: list[float], t: float) -> list[float]:
+    m = max(logits)
+    ex = [math.exp((x - m) / t) for x in logits]
+    s = sum(ex)
+    return [e / s for e in ex]
+
+
+def confidence(probs: list[float]) -> float:
+    """M3 读数：TypeSafe adapter 的 Choice 公式 (p_max−1/K)/(1−1/K)，纯算术。"""
+    k = len(probs)
+    if k == 1:
         return 1.0
-    u = 1.0 / len(probs)
+    u = 1.0 / k
     return (max(probs) - u) / (1.0 - u)
 
 
-def score_confidence(probs: list[float]) -> float:
-    if len(probs) == 1:
-        return 1.0
-    mode = max(range(len(probs)), key=probs.__getitem__)
-    dist = sum(p * abs(i - mode) for i, p in enumerate(probs))
-    c = (len(probs) - 1) / 2
-    mad = sum(abs(i - c) for i in range(len(probs))) / len(probs)
-    return max(0.0, 1.0 - dist / mad)
+def option_logits(q: Question, context: set[str]) -> list[float]:
+    """mock 判读器：每个选项的 logit = 2 × 命中的证据词数（确定性）。"""
+    table = EVIDENCE.get(q.qid.split("#")[0], {})
+    return [2.0 * sum(w in context for w in table.get(opt, ())) for opt in q.criteria]
 
 
-# ── M2 一次编码 · 分支隔离 · 选项读出（确定性替身） ────────────────────────────
-def score_options(descs: list[str], visible: set[str], temp: float) -> list[float]:
-    logits = [CHOICE_SHARP * len(set(toks(d)) & visible) for d in descs]
-    return softmax([z / temp for z in logits])
+def decide(q: Question, context: set[str], t: float) -> dict:
+    """M1：在 criteria 上分配概率；输出空间在请求里就已钉死。"""
+    # 选项证据表按 qid 前缀取，见 option_logits()（行号保持稳定，勿删此行）
+    if q.kind == "noul":
+        hits = sum(w in context for w in q.instructions.lower().split() if len(w) > 3)
+        p = 1 / (1 + math.exp(-(hits * 2.0 - 1.0) / t))
+        return {"type": "noul", "noul": round(p, 3)}
+    logits = option_logits(q, context)
+    probs = softmax(logits, t)
+    if not SW.closed_output:  # B1：生成式——拼一句话再宽松解析，允许越界
+        best = q.criteria[probs.index(max(probs))]
+        text = f"{best.title()} team" if best != "other" else "Escalations desk"
+        return {"type": q.kind, "raw_text": text, "choice": text}
+    ans = {"type": q.kind, "probabilities": dict(zip(q.criteria, [round(p, 3) for p in probs]))}
+    ans["confidence"] = round(confidence(probs), 3)
+    if q.kind == "choice":
+        ans["choice"] = q.criteria[probs.index(max(probs))]
+    else:  # score：概率加权期望，可落在两级之间
+        ans["score"] = round(sum(i * p for i, p in enumerate(probs)), 3)
+    return ans
 
 
-def verbalize(key: str, n_state_tokens: int) -> str:
-    """B2 用：把「闭合解码」换成「先生成文本再解析」——模拟 LLM 的标签漂移与截断。"""
-    drift = {"billing": "Billing team", "sales": "sales"}.get(key, key)
-    raw = '```json\n{"choice": "%s"}\n```' % drift
-    return raw[:14] if n_state_tokens > 12 else raw  # 长输入撞 max_tokens 被截断
+def ask(state: str, questions: list[Question]) -> dict:
+    """M2：一次请求多问。共享编码 + 每题独立上下文（兄弟题面不可见）。"""
+    validate(questions)
+    ctx, state_tokens = encode_state(state)
+    t = FITTED_T if SW.calibrated else 0.6
+    answers, billed = {}, 0
+    q_tokens = [len(q.instructions.split()) + sum(len(c.split()) for c in q.criteria) for q in questions]
+    for i, q in enumerate(questions):
+        branch = set(ctx)
+        if not SW.isolation:  # B2：兄弟题面泄漏进本题上下文
+            for j, other in enumerate(questions):
+                if j != i:
+                    branch |= set(other.instructions.lower().split())
+        answers[q.qid] = decide(q, branch, t)
+        billed += q_tokens[i] + (0 if SW.shared_encode else state_tokens)
+    billed += state_tokens if SW.shared_encode else 0
+    return {"answers": answers, "usage": {"input_tokens": billed, "output_tokens": 0}}
 
 
-def loads_lenient(raw: str) -> dict:
-    """仿本仓 engine/utils/json_extract.py 的宽松解析：取首 { 到末 }，失败返回 {}。"""
-    i, j = raw.find("{"), raw.rfind("}")
-    try:
-        return json.loads(raw[i : j + 1]) if 0 <= i < j else {}
-    except json.JSONDecodeError:
-        return {}
+def route(action: str, conf: float) -> str:
+    """M4：代码拥有控制流；门槛随动作风险伸缩（O docs/confidence.md）。"""
+    if not SW.route_by_risk:  # B5：一刀切
+        return "auto" if conf >= 0.5 else "human"
+    if conf < 0.5:
+        return "human"
+    high_risk = action in {"refund", "approve_transfer"}
+    return ("auto" if conf >= 0.9 else "review") if high_risk else "auto"
 
 
-def decide(q: Question, visible: set[str], temp: float, n_state: int) -> dict:
-    if q.type == "noul":
-        t, f = (set(toks(x)) for x in q.criteria)
-        x = NOUL_SHARP * (len(t & visible) - len(f & visible)) + NOUL_BIAS
-        return {"noul": round(sigmoid(x / temp), 3)}
-    descs = [d for _, d in q.criteria] if q.type == "choice" else list(q.criteria)
-    probs = score_options(descs, visible, temp)
-    if q.type == "score":
-        return {"score": round(sum(i * p for i, p in enumerate(probs)), 3),
-                "probabilities": [round(p, 3) for p in probs], "confidence": round(score_confidence(probs), 3)}
-    keys = [k for k, _ in q.criteria]
-    top = keys[max(range(len(probs)), key=probs.__getitem__)]
-    if BREAK["B2"]:  # 拆掉闭合输出空间：生成文本 → 宽松解析 → 解析失败静默落默认
-        top = loads_lenient(verbalize(top, n_state)).get("choice", keys[0])
-    return {"choice": top, "probabilities": dict(zip(keys, (round(p, 3) for p in probs))),
-            "confidence": round(choice_confidence(probs), 3)}
-
-
-def ask(state: str, questions: dict[str, Question], temp: float = 1.0) -> tuple[dict, dict]:
-    validate_request(state, questions)
-    stats, shared, answers = {"state_encodes": 0, "tokens": 0}, None, {}
-    for qid, q in questions.items():
-        if shared is None or BREAK["B5"]:  # B5 拆掉共享前缀：每个问题重编码一次 state
-            shared = set(toks(state))
-            stats["state_encodes"] += 1
-            stats["tokens"] += len(toks(state))
-        stats["tokens"] += len(toks(q.instructions + " " + json.dumps(q.criteria)))
-        visible = set(shared)
-        if BREAK["B1"]:  # 拆掉分支隔离：兄弟问题的文字也进了本分支的可见上下文
-            visible |= {w for o, oq in questions.items() if o != qid for w in toks(oq.instructions)}
-        answers[qid] = decide(q, visible, temp, len(toks(state)))
-    return answers, stats
-
-
-# ── M3 校准：确定性决策流 + ECE + 温度拟合 ──────────────────────────────────
-PHI, SQ2 = (math.sqrt(5) - 1) / 2, math.sqrt(2) - 1
-K_SHARP = 2.4  # 模型声明 logit 的「锋利度」——与 kev README 报告的后验温度 2.1–2.4 同量级
-DISC = {"in": 1.0, "ood": 0.45}  # 分布外：真实区分力降到 0.45，模型却照旧锋利
-
-
-def decision_stream(n: int, domain: str, start: int = 0) -> list[tuple[float, bool]]:
-    """每条决策 = (证据强度 m, 是否答对)。true_p 是『真实正确率』曲线，stated 由 K_SHARP 放大。"""
-    out = []
-    for i in range(start, start + n):
-        m = 0.1 + 4.4 * ((i * SQ2) % 1.0)
-        true_p = 1 / 3 if domain == "unknowable" else softmax([DISC[domain] * m, 0.0, 0.0])[0]
-        out.append((m, ((i + 1) * PHI) % 1.0 < true_p))
-    return out
-
-
-def stated_p(m: float, temp: float) -> float:
-    return softmax([K_SHARP * m / temp, 0.0, 0.0])[0]
+def fit_temperature(samples: list[tuple[list[float], int]]) -> float:
+    """在开发集上网格搜索最小化 NLL 的温度（标量，不改 argmax）。"""
+    best_t, best_nll = 1.0, float("inf")
+    for i in range(5, 41):
+        t = i / 10
+        nll = -sum(math.log(max(softmax(lg, t)[y], 1e-12)) for lg, y in samples)
+        if nll < best_nll:
+            best_t, best_nll = t, nll
+    return best_t
 
 
 def ece(pairs: list[tuple[float, bool]], bins: int = 10) -> float:
-    tot, n = 0.0, len(pairs)
+    """期望校准误差：按置信分箱，|准确率−平均置信| 按样本占比加权。"""
+    total, err = len(pairs), 0.0
     for b in range(bins):
-        cell = [(p, c) for p, c in pairs if b / bins <= p < (b + 1) / bins or (b == bins - 1 and p == 1.0)]
+        lo, hi = b / bins, (b + 1) / bins
+        cell = [(c, ok) for c, ok in pairs if lo <= c < hi or (b == bins - 1 and c == 1.0)]
         if cell:
-            tot += len(cell) / n * abs(sum(c for _, c in cell) / len(cell) - sum(p for p, _ in cell) / len(cell))
-    return tot
+            acc = sum(ok for _, ok in cell) / len(cell)
+            avg = sum(c for c, _ in cell) / len(cell)
+            err += len(cell) / total * abs(acc - avg)
+    return err
 
 
-def fit_temperature(data: list[tuple[float, bool]]) -> float:
-    def nll(t: float) -> float:
-        return -sum(math.log(max(1e-12, stated_p(m, t) if c else 1 - stated_p(m, t))) for m, c in data)
-    return min((0.5 + 0.05 * k for k in range(151)), key=nll)  # 网格 0.5–8.0
-
-
-def calib_report(data: list[tuple[float, bool]], temp: float, act_at: float = 0.95) -> dict:
-    pairs = [(stated_p(m, temp), c) for m, c in data]
-    acted = [c for p, c in pairs if p >= act_at]
-    claimed = [1 - p for p, _ in pairs if p >= act_at]  # 过线决策「自称」的错误率
-    return {"ece": round(ece(pairs), 3), "acc": round(sum(c for _, c in pairs) / len(pairs), 3),
-            "conf_err": round(sum(1 for p, c in pairs if p >= 0.9 and not c) / len(pairs), 3),
-            "act_share": round(len(acted) / len(pairs), 3),
-            "act_err": round(1 - sum(acted) / len(acted), 3) if acted else None,
-            "act_claimed": round(sum(claimed) / len(claimed), 3) if claimed else None}
-
-
-# ── M4 快慢分工：阈值三档（执行 / 升级 System 2 / 转人工） ─────────────────────
-JEV_COST, JEV_SEC, LLM_COST, LLM_SEC, LLM_ACC = 0.0004, 0.4, 0.0304, 10.1, 0.97
-
-
-def gate(data: list[tuple[float, bool]], temp: float, hi: float = 0.95, lo: float = 0.6) -> dict:
-    tiers, correct, cost, sec = {"act": 0, "llm": 0, "human": 0}, 0, 0.0, 0.0
-    for i, (m, c) in enumerate(data):
-        p = stated_p(m, temp)
-        cost, sec = cost + JEV_COST, sec + JEV_SEC
-        if p >= hi:
-            tiers["act"] += 1
-            correct += c
-        elif p >= lo:
-            tiers["llm"] += 1
-            cost, sec = cost + LLM_COST, sec + LLM_SEC
-            correct += ((i + 7) * PHI) % 1.0 < LLM_ACC
-        else:  # 人工档：视作全对、成本不计入（只计件），故省下的钱是「上限」
-            tiers["human"] += 1
-            correct += 1
-    n = len(data)
-    return {**tiers, "acc": round(correct / n, 3), "cost": round(cost, 3), "sec": round(sec, 1),
-            "all_llm_cost": round(n * LLM_COST, 3), "all_llm_sec": round(n * LLM_SEC, 1)}
-
-
-# ── 场景 ───────────────────────────────────────────────────────────────────
-DEPT = Question("choice", "Which team should handle this ticket?", (
-    ("billing", "payment payments invoice invoices refund refunds charge charges charged"),
-    ("technical", "bug bugs error errors crash crashes outage login"),
-    ("sales", "pricing upgrade upgrading plan plans quote")))
-URGENT = Question("noul", "Does this convey urgency?", ("urgent immediately now asap", "whenever later"))
-FRUSTRATION = Question("score", "How frustrated is the customer?", ("calm fine", "frustrated failing", "angry furious"))
-TICKETS = [  # (state, 正确部门, 路径类型)
-    ("Help! My payments have been failing for 3 days, urgent", "billing", "正常"),
-    ("The login page crashes with an error after the outage", "technical", "正常"),
-    ("Can I get a quote for upgrading our plan?", "sales", "正常"),
-    ("This is not about refunds, charges or invoices: the login page", "technical", "陷阱·字面误读"),
-    ("I was charged twice and the invoice page shows an error", "billing", "边缘·双类信号"),
+# ── 固定数据集（确定性） ────────────────────────────────────────────
+DEPT = Question("department", "choice", "Which team should handle this ticket?", ["billing", "technical", "account", "other"])
+URG = Question("urgency", "score", "How urgent is this ticket?", ["0", "1", "2"])
+TICKETS = [  # (state, 真实部门) —— 正常 / 陷阱 / 边缘 三类
+    ("I was charged twice for my invoice please refund", "billing"),
+    ("Our integration returns error 500 on every request now", "technical"),
+    ("I am locked out and the password reset email never arrives", "account"),
+    ("Can you tell me your office address", "other"),  # 边缘：无证据词 → 分布平
+    ("The refund page shows error 500 when I click it", "technical"),  # 陷阱：两类证据词冲突
+    ("There is no error, no crash and no bug, I just want my refund", "billing"),  # 陷阱：否定句字面误读
 ]
-REFUND = Question("noul", "Should this order be refunded?", ("broken defective money back", "used weeks"))
-DENY = Question("noul", "Should the refund be denied?", ("used opened weeks", "broken"))
-REFUND_CHOICE = Question("choice", "Refund or deny?", (("refund", "broken defective money back"),
-                                                          ("deny", "used opened weeks")))
-REFUND_STATE = "The charger arrived broken and I want my money back, though I used it for two weeks"
+def synth_corpus(n: int = 120) -> list[tuple[str, str]]:
+    """确定性合成工单：真证据 1–3 个，它类干扰 0–2 个 → 难度分级、约一成真实错误。"""
+    depts = ["billing", "technical", "account"]
+    rows = []
+    for i in range(n):
+        gold = depts[i % 3]
+        rival = depts[(i + 1 + (i // 3) % 2) % 3]
+        true_w = EVIDENCE["department"][gold][: 1 + (i // 2) % 3]
+        noise_w = EVIDENCE["department"][rival][: (i * 5 // 7) % 3]
+        rows.append((" ".join(("ticket",) + true_w + noise_w), gold))
+    return rows
 
 
-def run_tickets(temp: float = 1.0) -> list[str]:
-    log = []
-    for state, gold, kind in TICKETS:
-        a, _ = ask(state, {"department": DEPT})
-        got = a["department"]["choice"]
-        valid = got in {k for k, _ in DEPT.criteria}
-        log.append(f"  [{kind}] → {got!r:14} conf={a['department']['confidence']:.2f} "
-                   f"{'合法' if valid else '越界!'} {'✔' if got == gold else '✘ 应为 ' + gold}")
-    return log
+def shifted_corpus(n: int = 60) -> list[tuple[str, str]]:
+    """分布外：同样的部门，但真证据只剩 1 个、干扰恒为 2 个（「高原」工单）。"""
+    depts = ["billing", "technical", "account"]
+    return [(" ".join(("ticket", EVIDENCE["department"][depts[i % 3]][0])
+                      + EVIDENCE["department"][depts[(i + 1) % 3]][:2]), depts[i % 3]) for i in range(n)]
 
 
-def isolation_probe() -> tuple[float, float]:
-    probe = Question("noul", "Does the state mention the code word zebra?", ("zebra", ""))
-    decoy = Question("noul", "Remember: the code word is zebra. Is the customer polite?", ("please thanks", "rude"))
-    in_sibling, _ = ask("Order 42 shipped late, please check", {"decoy": decoy, "probe": probe})
-    in_state, _ = ask("Order 42 shipped late, the code word is zebra", {"probe": probe})
-    return in_sibling["probe"]["noul"], in_state["probe"]["noul"]
+CORPUS = synth_corpus()
+DEV_SET, TEST_SET = CORPUS[0::2], CORPUS[1::2]  # 偶数条拟合温度，奇数条留作检验
 
 
-def shared_cost(n_q: int = 13, n_state: int = 2000) -> dict:
-    state = " ".join(f"clause{i}" for i in range(n_state))
-    qs = {f"q{i}": Question("noul", f"Does the policy satisfy gdpr article {i}?", ("yes", "no")) for i in range(n_q)}
-    _, one = ask(state, qs)
-    separate = sum(ask(state, {k: q})[1]["tokens"] for k, q in qs.items())
-    return {"one_call": one["tokens"], "encodes": one["state_encodes"], "separate": separate,
-            "ratio": round(separate / one["tokens"], 1)}
+def labeled_logits(rows: list[tuple[str, str]]) -> list[tuple[list[float], int]]:
+    return [(option_logits(DEPT, encode_state(st)[0]), DEPT.criteria.index(g)) for st, g in rows]
 
 
-def refund_pair() -> tuple[float, float, dict]:
-    a, _ = ask(REFUND_STATE, {"refund": REFUND, "deny": DENY})
-    c, _ = ask(REFUND_STATE, {"which": REFUND_CHOICE})
-    return a["refund"]["noul"], a["deny"]["noul"], c["which"]["probabilities"]
+def brier(rows: list[tuple[str, str]], t: float) -> float:
+    """多类 Brier（严格 proper scoring rule）：越低越好。"""
+    tot = 0.0
+    for lg, y in labeled_logits(rows):
+        p = softmax(lg, t)
+        tot += sum((pi - (1.0 if k == y else 0.0)) ** 2 for k, pi in enumerate(p))
+    return tot / len(rows)
 
 
-def refund_policy(act_at: float = 0.9) -> dict:
-    """互斥动作的编排纪律：一个 Choice 由构造保证概率和为 1、至多一个动作过线。"""
-    if BREAK["B6"]:  # 拆成两个独立 Noul：各自过线即执行
-        a, _ = ask(REFUND_STATE, {"refund": REFUND, "deny": DENY})
-        probs = {k: v["noul"] for k, v in a.items()}
-    else:
-        probs = ask(REFUND_STATE, {"which": REFUND_CHOICE})[0]["which"]["probabilities"]
-    acts = [k for k, p in probs.items() if p >= act_at]
-    return {"probs": probs, "sum": round(sum(probs.values()), 2), "actions": acts}
+def calib_pairs(rows: list[tuple[str, str]], t: float) -> list[tuple[float, bool]]:
+    """(p_max, 是否答对)——校准看的是概率本身，不是 confidence 读数。"""
+    out = []
+    for lg, y in labeled_logits(rows):
+        p = softmax(lg, t)
+        out.append((max(p), p.index(max(p)) == y))
+    return out
 
 
-def calib_suite() -> dict:
-    cal, test = decision_stream(600, "in"), decision_stream(600, "in", start=600)
-    t_in = 1.0 if BREAK["B3"] else fit_temperature(cal)  # B3 拆掉温度校准：直接信原始声明概率
-    ood, unk = decision_stream(600, "ood", start=1200), decision_stream(300, "unknowable", start=1800)
-    t_ood = t_in if BREAK["B4"] else fit_temperature(decision_stream(200, "ood", start=2100))  # 自有数据重校准
-    return {"t_in": round(t_in, 2), "t_ood": round(t_ood, 2),
-            "raw": calib_report(test, 1.0), "cal": calib_report(test, t_in),
-            "ood_reuse": calib_report(ood, t_in), "ood": calib_report(ood, t_ood),
-            "unk": calib_report(unk, t_in), "gate": gate(test, t_in), "gate_ood": gate(ood, t_ood)}
+def run_batch() -> list[dict]:
+    rows = []
+    for state, gold in TICKETS:
+        r = ask(state, [DEPT, URG])
+        d = r["answers"]["department"]
+        rows.append({"state": state, "gold": gold, "choice": d["choice"],
+                     "conf": d.get("confidence"), "tokens": r["usage"]["input_tokens"]})
+    return rows
 
 
 def selftest() -> None:
-    print("== S1 契约校验（422）")
-    bad = [({"q": Question("choice", "x", tuple((f"o{i}", "d") for i in range(256)))}, "256 选项"),
-           ({"q": Question("score", "x", tuple(f"l{i}" for i in range(11)))}, "11 级"), ({}, "空问题")]
-    for qs, why in bad:
-        try:
-            ask("s", qs)
-            raise AssertionError(f"{why} 应被拒")
-        except ValidationError as e:
-            print(f"  {why:6} → {e}")
-    print("== S2 confidence 固定公式 × 官方文档示例")
-    c1, c2 = choice_confidence([0.88, 0.12, 0.0]), score_confidence([0.0, 0.95, 0.05])
-    s_val = sum(i * p for i, p in enumerate([0.0, 0.95, 0.05]))
-    presets = [round(choice_confidence(p), 2) for p in ([0.9, 0.06, 0.04], [0.4, 0.33, 0.27], [1 / 3] * 3)]
-    print(f"  choice [0.88,0.12,0] → {c1:.3f}（文档 0.81）；score [0,0.95,0.05] → {c2:.3f}（文档 0.92）"
-          f"；score 值 {s_val:.2f}（文档 1.05）；三预设 {presets}")
-    # 文档示例概率已四舍五入到两位：0.820/0.925 与文档 0.81/0.92 的差异落在舍入带内
-    assert abs(c1 - 0.82) < 1e-9 and abs(c2 - 0.925) < 1e-9 and abs(s_val - 1.05) < 1e-9 and presets == [0.85, 0.1, 0.0]
-    print("== S3 一次请求三题型（共享 state）")
-    a, st = ask(TICKETS[0][0], {"is_urgent": URGENT, "department": DEPT, "frustration": FRUSTRATION})
-    for k, v in a.items():
-        print(f"  {k:11} {v}")
-    assert st["state_encodes"] == 1 and abs(sum(a["department"]["probabilities"].values()) - 1) < 0.01
-    print("== S4 闭合输出空间：合法 ≠ 正确")
-    log = run_tickets()
-    print("\n".join(log))
-    assert all("越界" not in x for x in log) and "✘" in log[3] and "✔" in log[4]
-    print("== S5 分支隔离探针（复刻 Hume：暗号放兄弟问题 vs 放 state）")
-    sib, sta = isolation_probe()
-    print(f"  暗号在兄弟问题 → P={sib}；暗号在 state → P={sta}")
-    assert sib < 0.1 and sta > 0.9
-    print("== S6 共享前缀：13 问 × 2000 token state")
-    sc = shared_cost()
-    print(f"  一次调用处理 {sc['one_call']} token（state 编码 {sc['encodes']} 次）；逐问分调 {sc['separate']} token"
-          f" → {sc['ratio']}×（官方 cookbook 自报 13 问合并 12.2× 便宜）")
-    assert sc["encodes"] == 1 and sc["ratio"] > 10
-    print("== S7 跨问题无不变量：互补两问 vs 单个 Choice")
-    r, d, ch = refund_pair()
-    print(f"  Noul(退款)={r} + Noul(拒退)={d} = {r + d:.2f}；Choice {ch} 和={sum(ch.values()):.2f}")
-    assert r + d > 1.2 and abs(sum(ch.values()) - 1) < 0.01
-    print("== S8 校准：原始 vs 温度缩放（分布内）")
-    cs = calib_suite()
-    print(f"  拟合温度 T={cs['t_in']:.2f}（替身锋利度 {K_SHARP}）；raw {cs['raw']}")
-    print(f"  cal {cs['cal']}")
-    assert abs(cs["t_in"] - K_SHARP) < 0.3 and cs["cal"]["ece"] < cs["raw"]["ece"]
-    assert cs["cal"]["acc"] == cs["raw"]["acc"]  # 温度不改排序 ⇒ 准确率一字不变
-    gap = {k: cs[k]["act_err"] - cs[k]["act_claimed"] for k in ("raw", "cal")}  # 实际 − 自称
-    assert gap["raw"] > 3 * gap["cal"] and cs["raw"]["act_err"] > 2 * 0.05
-    print("== S9 分布外与不可知题")
-    print(f"  OOD 沿用分布内 T {cs['ood_reuse']}")
-    print(f"  OOD 自有切片重拟 T={cs['t_ood']:.2f} {cs['ood']}")
-    print(f"  不可知题（真实正确率 1/3）{cs['unk']}")
-    assert cs["ood_reuse"]["ece"] > 2 * cs["cal"]["ece"] and cs["ood"]["ece"] < cs["ood_reuse"]["ece"]
-    assert cs["unk"]["conf_err"] > 0.1
-    print("== S10 快慢分工：阈值三档（≥0.95 执行 / 0.6–0.95 升级 LLM / <0.6 转人工）")
-    g = cs["gate"]
-    print(f"  {g}")
-    assert g["cost"] < g["all_llm_cost"] and g["act"] > 0 and g["acc"] > cs["cal"]["acc"]
+    global SW
+    SW = Switches()
+    log = print
+    # S1 正常路径：三类工单各归其位
+    rows = run_batch()
+    for r in rows[:3]:
+        assert r["choice"] == r["gold"], r
+    log(f"S1 正常路径  3/3 归位  conf={[r['conf'] for r in rows[:3]]}")
+    # S2 闭合输出：所有答案都在 criteria 内（形状保证）
+    assert all(r["choice"] in DEPT.criteria for r in rows)
+    wrong = [r for r in rows if r["choice"] != r["gold"]]
+    log(f"S2 闭合输出  越界 0/6 · 但内容错 {len(wrong)}/6 → 形状保证≠内容保证")
+    assert len(wrong) >= 1
+    # S3 边缘路径：无证据 → 分布平 → 读数低 → 转人工
+    edge = next(r for r in rows if r["gold"] == "other" and "address" in r["state"])
+    assert edge["conf"] < 0.5 and route("reply", edge["conf"]) == "human"
+    log(f"S3 边缘路径  conf={edge['conf']} → route=human")
+    # S3b 陷阱路径：否定句被字面读成技术故障——集中也会集中地错
+    neg_row = next(r for r in rows if r["state"].startswith("There is no error"))
+    assert neg_row["choice"] != neg_row["gold"] and neg_row["conf"] >= 0.7
+    log(f"S3b 陷阱路径 否定句 → {neg_row['choice']}（真值 {neg_row['gold']}）conf={neg_row['conf']} → route(reply)={route('reply', neg_row['conf'])}")
+    # S4 读数是分布形状的算术（可逐位复算）
+    ans = ask(TICKETS[0][0], [DEPT])["answers"]["department"]
+    probs = list(ans["probabilities"].values())
+    assert abs(confidence(probs) - ans["confidence"]) < 2e-3
+    log(f"S4 读数复算  probs={probs} → conf={ans['confidence']}（公式逐位一致）")
+    # S5 隔离：加入兄弟题不改变本题答案
+    solo = ask(TICKETS[4][0], [DEPT])["answers"]["department"]
+    probe = Question("probe", "noul", "Does the ticket mention billing refund invoice payment charged?")
+    duo = ask(TICKETS[4][0], [DEPT, probe])["answers"]["department"]
+    assert solo == duo
+    log("S5 隔离      单问 == 多问（兄弟题面不可见）")
+    # S6 共享编码计费：多问只加题面 token
+    one = ask(TICKETS[1][0], [DEPT])["usage"]["input_tokens"]
+    many = ask(TICKETS[1][0], [DEPT, URG, probe])["usage"]["input_tokens"]
+    state_tok = encode_state(TICKETS[1][0])[1]
+    assert many - one < 3 * state_tok
+    log(f"S6 共享编码  1 问 {one} tok → 3 问 {many} tok（state {state_tok} tok 只计一次）")
+    # S7 无跨问题不变量：正反两个 Noul 各算各的
+    pos = Question("refund#p", "noul", "The customer asks for a refund of the charge")
+    neg = Question("refund#n", "noul", "The customer does not ask for any refund at all")
+    a = ask(TICKETS[0][0], [pos, neg])["answers"]
+    s = a["refund#p"]["noul"] + a["refund#n"]["noul"]
+    assert abs(s - 1.0) > 0.05
+    log(f"S7 无不变量  P(是)+P(否)={s:.3f} ≠ 1 → 互斥须并成一道 Choice 或交给代码")
+    # S8 温度缩放：只改读数不改排序
+    t = fit_temperature(labeled_logits(DEV_SET))
+    for lg, _ in labeled_logits(TEST_SET):
+        assert softmax(lg, t).index(max(softmax(lg, t))) == softmax(lg, 1.0).index(max(softmax(lg, 1.0)))
+    acc = sum(ok for _, ok in calib_pairs(TEST_SET, t)) / len(TEST_SET)
+    b_fit, b_raw = brier(TEST_SET, t), brier(TEST_SET, 0.6)
+    assert b_fit < b_raw
+    log(f"S8 温度缩放  开发集拟合 T*={t}；检验集准确率 {acc:.3f}（不随 T 变）· Brier {b_raw:.3f}→{b_fit:.3f}")
+    # S11 校准有领地：分布内拟合的 T*，搬到分布外照样高读数放行，错误率跳台阶
+    ind = [ok for p, ok in calib_pairs(TEST_SET, t) if p >= 0.8]
+    ood = [ok for p, ok in calib_pairs(shifted_corpus(), t) if p >= 0.8]
+    err_in, err_ood = 1 - sum(ind) / len(ind), 1 - sum(ood) / len(ood)
+    assert err_ood > err_in + 0.3
+    log(f"S11 领地     同一 T*、同一门槛 p≥0.8：分布内放行 {len(ind)} 条错 {err_in:.0%} → 分布外放行 {len(ood)} 条错 {err_ood:.0%}（读数不报警）")
+    # S9 分流：同一读数，低风险自动、高风险复核
+    assert route("reply", 0.8) == "auto" and route("refund", 0.8) == "review"
+    log("S9 风险分流  conf=0.8：reply→auto · refund→review")
+    # S10 契约校验：256 个选项被拒
+    try:
+        ask("x", [Question("big", "choice", "pick", [f"o{i}" for i in range(256)])])
+        raise AssertionError("256 choices should be rejected")
+    except ValueError as e:
+        log(f"S10 契约     256 选项 → 拒绝：{e}")
     print("SELFTEST PASSED ✔")
 
 
-def breakage(key: str) -> None:
-    def run() -> object:
-        if key == "B1":
-            return dict(zip(("暗号在兄弟问题", "暗号在state"), isolation_probe()))
-        if key == "B2":
-            return run_tickets()
-        if key == "B3":
-            cs = calib_suite()
-            return {"T": cs["t_in"], "test": cs["cal"], "gate": cs["gate"]}
-        if key == "B4":
-            cs = calib_suite()
-            return {"T_ood": cs["t_ood"], "ood": cs["ood"], "gate_ood": cs["gate_ood"]}
-        return shared_cost() if key == "B5" else refund_policy()
-
-    what = {"B1": "拆掉问题分支隔离", "B2": "拆掉闭合输出空间（生成文本 + 宽松解析）", "B3": "拆掉温度校准",
-            "B4": "拆掉『自有数据重校准』，OOD 沿用分布内温度", "B5": "拆掉共享前缀缓存",
-            "B6": "互斥决策拆成两个 Noul（本就无跨问题不变量）"}[key]
-    print(f"== {key} {what}")
-    base = run()
-    BREAK[key] = True
-    broken = run()
-    for tag, val in (("正常", base), ("拆后", broken)):
-        print(f"  {tag}：" + ("\n    ".join([""] + val) if isinstance(val, list) else f"{val}"))
-
-
-def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    g = ap.add_mutually_exclusive_group(required=True)
-    g.add_argument("--selftest", action="store_true")
-    g.add_argument("--break", dest="brk", choices=sorted(BREAK))
-    args = ap.parse_args()
-    if args.selftest:
-        selftest()
+def breakage(name: str) -> None:
+    global SW
+    SW = Switches()
+    # 每个实验从全部机制开启的基线状态出发
+    if name == "B1":
+        SW.closed_output = False
+        out = run_batch()
+        bad = [r["choice"] for r in out if r["choice"] not in DEPT.criteria]
+        print(f"B1 拆闭合输出：越界 {len(bad)}/6 → {bad[:3]}（下游 switch 全部落空）")
+    elif name == "B2":
+        SW.isolation = False
+        probe = Question("probe", "noul", "Does the ticket mention billing refund invoice payment charged?")
+        st = TICKETS[1][0]
+        solo = ask(st, [DEPT])["answers"]["department"]["probabilities"]
+        leak = ask(st, [DEPT, probe])["answers"]["department"]["probabilities"]
+        print(f"B2 拆隔离：同一工单单问 billing={solo['billing']} → 加兄弟题后 billing={leak['billing']}（题面泄漏改写答案）")
+    elif name == "B3":
+        SW.shared_encode = False
+        st, qs = TICKETS[1][0], [DEPT, URG, DEPT, URG, DEPT, URG]
+        qs = [Question(f"{q.qid}#{i}", q.kind, q.instructions, q.criteria) for i, q in enumerate(qs)]
+        broken = ask(st, qs)["usage"]["input_tokens"]
+        SW.shared_encode = True
+        ok = ask(st, qs)["usage"]["input_tokens"]
+        print(f"B3 拆共享编码：6 问计费 {ok} → {broken} tok（×{broken / ok:.2f}）")
+    elif name == "B4":
+        t_fit = fit_temperature(labeled_logits(DEV_SET))
+        rows = []
+        for label, t in (("校准 T*", t_fit), ("拆校准 T=0.6", 0.6)):
+            pairs = calib_pairs(TEST_SET, t)
+            auto = [ok for p, ok in pairs if p >= 0.9]
+            rows.append(f"{label}: Brier {brier(TEST_SET, t):.3f} · ECE {ece(pairs):.3f} · p≥0.9 放行 {len(auto)}/{len(pairs)} 条、其中错 {sum(not ok for ok in auto)} 条")
+        acc = sum(ok for _, ok in calib_pairs(TEST_SET, t_fit)) / len(TEST_SET)
+        print(f"B4 拆校准（检验集 n={len(TEST_SET)}，准确率 {acc:.3f} 两边相同）：" + " ｜ ".join(rows))
+    elif name == "B5":
+        cases = [("refund", 0.62), ("refund", 0.95), ("reply", 0.62), ("approve_transfer", 0.7)]
+        before = [route(a, c) for a, c in cases]
+        SW.route_by_risk = False
+        after = [route(a, c) for a, c in cases]
+        print(f"B5 拆风险分档：{cases} → {before} 变为 {after}（高风险动作被一刀切放行）")
     else:
-        breakage(args.brk)
-    return 0
+        raise SystemExit(f"unknown experiment {name}")
+    SW = Switches()
+
+
+FITTED_T = fit_temperature(labeled_logits(DEV_SET))
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--selftest", action="store_true")
+    ap.add_argument("--break", dest="brk")
+    ap.add_argument("--dump", action="store_true", help="打印批量结果 JSON")
+    a = ap.parse_args()
+    if a.selftest:
+        selftest()
+    elif a.brk:
+        breakage(a.brk)
+    elif a.dump:
+        print(json.dumps(run_batch(), ensure_ascii=False, indent=1))
+    else:
+        ap.print_help()
+        sys.exit(1)

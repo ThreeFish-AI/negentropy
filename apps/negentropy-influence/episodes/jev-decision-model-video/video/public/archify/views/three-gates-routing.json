@@ -1,0 +1,39 @@
+[
+ {
+  "id": "tg-read",
+  "label": "判读交读数",
+  "focus": [
+   "judge",
+   "gate"
+  ],
+  "note": "判读员只填格，停不停课从不由他决定。"
+ },
+ {
+  "id": "tg-auto",
+  "label": "自动闸",
+  "focus": [
+   "gate",
+   "auto"
+  ],
+  "note": "高线以上直接执行——带伞提醒门槛低。"
+ },
+ {
+  "id": "tg-confirm",
+  "label": "确认与人工",
+  "focus": [
+   "gate",
+   "confirm",
+   "human"
+  ],
+  "note": "中档确认后执行，低档转值班员。"
+ },
+ {
+  "id": "tg-chief",
+  "label": "首席兜底",
+  "focus": [
+   "human",
+   "chief"
+  ],
+  "note": "疑难升级 System 2——慢而贵，起草预案。"
+ }
+]

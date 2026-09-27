@@ -1,0 +1,113 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 13.28,
+ "total_wall_sec": 57.31,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "rp-probs",
+   "label": "概率柱",
+   "index": 0,
+   "file": "readout-pipeline--rp-probs.mp4",
+   "end_still": "readout-pipeline--rp-probs-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "probs",
+    "scoreboard"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "rp-formula",
+   "label": "计算栏",
+   "index": 1,
+   "file": "readout-pipeline--rp-formula.mp4",
+   "end_still": "readout-pipeline--rp-formula-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.36,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.207
+   ],
+   "beat_nodes": [
+    "probs",
+    "formula",
+    "conf"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "rp-k",
+   "label": "K 依赖",
+   "index": 2,
+   "file": "readout-pipeline--rp-k.mp4",
+   "end_still": "readout-pipeline--rp-k-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.207
+   ],
+   "beat_nodes": [
+    "conf",
+    "k2",
+    "k10"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "rp-gate",
+   "label": "门槛消费",
+   "index": 3,
+   "file": "readout-pipeline--rp-gate.mp4",
+   "end_still": "readout-pipeline--rp-gate-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.206
+   ],
+   "beat_nodes": [
+    "k2",
+    "k10",
+    "gate"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/sao-paulo-v3/docs/assets/architecture/agent-infra/jev--readout-pipeline.html",
+ "slug": "readout-pipeline",
+ "type": "dataflow"
+}

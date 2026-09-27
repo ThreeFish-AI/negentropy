@@ -1,0 +1,24 @@
+%% source: docs/research/agent-infra/200-jev-system-one-model.md §4 机制二
+%% slug: jev--shared-read-isolated-branches
+%% type: dataflow
+%% derived: archify 重绘（fresh authorship），登记于 docs/assets/mermaid/README.md
+flowchart LR
+  state["请求 state（文本/JSON · ≤32k token）"]
+  qs["questions（每题自带 criteria）"]
+  encode["共享编码（state 只读一遍 · 按输入计费）"]
+  q1["分支 · 题一"]
+  q2["分支 · 题二"]
+  q3["分支 · 题三"]
+  readout["概率分布 + confidence 读数"]
+  gate["代码三档分流（自动 / 复核 / 人工）"]
+  state -->|encode once| encode
+  encode --> q1
+  encode --> q2
+  encode --> q3
+  qs -.->|各题只带自己的题面| q1
+  qs -.-> q2
+  qs -.-> q3
+  q1 --> readout
+  q2 --> readout
+  q3 --> readout
+  readout --> gate

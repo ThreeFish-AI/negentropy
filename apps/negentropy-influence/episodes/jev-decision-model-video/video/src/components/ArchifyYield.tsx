@@ -41,23 +41,5 @@ export const ArchifyYield: React.FC<{
     0,
     ...wins.map(({at, end}) => progress(frame, at, fade) * (1 - progress(frame, end, fade))),
   );
-  // 本集约定：装置一律居中于内容安全区（y 140–870，避让顶部章节条与底部字幕带）
-  return (
-    <AbsoluteFill style={{opacity: 1 - cover}}>
-      <div
-        style={{
-          position: 'absolute',
-          left: 0,
-          right: 0,
-          top: 140,
-          bottom: 210,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        {children}
-      </div>
-    </AbsoluteFill>
-  );
+  return <AbsoluteFill style={{opacity: 1 - cover}}>{children}</AbsoluteFill>;
 };

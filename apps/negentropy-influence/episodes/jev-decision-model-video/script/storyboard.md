@@ -1,87 +1,163 @@
-# 分镜：《让判断变便宜：Jev 决策模型拆解》v1
+# 分镜表：只填格的判读员——Jev 决策模型
 
-> 逐字稿 SSOT：[narration.md](./narration.md)（句 id 即本表的定位锚）；视觉契约见 [planning.md](./planning.md) §三。
-> 一镜（beat）= 2–8 句连续句子共享同一主画面；句区间必须**覆盖本幕每一句**（`check_script.py` 强制）。
-> 色名对应 [../video/src/design/theme.ts](../video/src/design/theme.ts)：`slot` 琥珀金（格口 / 闭合输出空间 / 构造保证）· `pass` 青绿（一次编码 / 速度 / 批量问）· `calib` 兰紫（概率 / 校准 / 对账）· `route` 矢车菊蓝（分流 / 编排 / 阈值）· `danger` 警示红（投错 / 越界 / 破坏实验 / 嘴硬）· `ok` 确认绿（命中 / 校验通过 / 防线）。
-> **镜号必须与 `scenes/*.tsx` 里内嵌 `<Sequence name="N-X">` 保持规范对应**；动效列 `@动词` 对应 motion 模型（hooks.ts）。
-> `@动词` 的判据：当且仅当本镜 `<Sequence>` 内、由本幕 `scenes/P*.tsx` 自身定义的装置调用了该 `useXxx(`。`components/` 内 hook（ArchifyClip 画框弹入 / ArchifyYield 让位 / devices.tsx 装置）与 window.ts 纯函数 `progress()` 不产生 token，但必须在散文里点名承担者。
-> ⚠️ 动效列禁照搬画面列那套标注字面：覆盖门的解析数只取画面列。判定基线 FAIL 0 + WARN 0。
-> ⚠️ 非 beat 用途禁写 `w('句id')` 字面形态：scene 里用与 `at` 对称的 `dur('句id')` 取长。
-> 章节清单见 [../video/public/archify/views/](../video/public/archify/views/)，每章时长 = 拍数 × max(1100ms, 3200ms/拍数)。
-> archify 图集 13 张（2 张 200 精读原图 + 11 张本集新绘），`jev--` 前缀走约定；新图 .mmd 源落 `docs/assets/mermaid/agent-infra/`（溯源锚点用 § 章号 + 机制/实验键，2026-09-22 起不记行号）。
+> 句 id 对齐：镜列引用的句 id 一律以 [`./narration.md`](./narration.md)（口播 SSOT，206 句、P0–P6 七幕）为准；下列 id 在 ⑤ 定稿中已删、**不存在**：`p3-10 p6-12 p6-17 p6-18 p6-20 p6-22 p6-28 p6-43`——镜区间只写实存句。幕内空行＝beat；41 beat → 41 镜，镜界沿 beat 切，句区间连续、无交叠无遗漏。
+> 时长：以 `video/public/audio/manifest.json` 实测为准（音频先行，唯一真相源），本表不写秒数、只写随句推进。
+> 引用图集：[`../video/src/archify.manifest.ts`](../video/src/archify.manifest.ts)（13 图 54 章）；章 label 见 `../video/public/archify/*.json`。
 
-## P0 判断之贵（p0-01..30）
+## 一、本集视觉契约（与 planning.md §三 一致，落地 `video/src/design/theme.ts`）
+
+| 概念 | 色名 | hex | 语义映射 |
+| --- | --- | --- | --- |
+| 格子 | **格黄** | `#E0E25A` | 预印格／criteria／闭合输出／形状保证（预报单描边色，全片恒定〔M-001〕） |
+| 柱高 | **柱青** | `#1BB5D1` | 概率分布／校准／记分牌／对账（实心柱＝概率） |
+| 闸 | **闸品** | `#E860E4` | 代码控制流／预案／三道闸／门槛 |
+| 主播 | **base dim** | `#9AA7B8` | RLHF 聊天模型对照组——中性光、不丑化（官方立场：纯聊天是正解） |
+| 失败 | 警示红 | `#FF5C5C` | 仅失败态：错格、台阶、放行错单、脱轨回路 |
+| 通过 | 确认绿 | `#7ED321` | 仅 ✓ 态（记分牌／核对行） |
+
+- 底 `#0E1116`、panel `#171C26`；金句卡衬线（theme.serif），正文 sans，代码／数字／公式角标 mono。
+- **confidence（集中度）派生纪律**：不另起色相——柱青**描边栏 + mono 数字**（实心柱＝概率、描边栏＝读数），线型差承担「读数只是统计」的教学。
+- **三级角标（全片贴数字角）**：虚线描边圆徽＝**官方自报**；实线描边圆徽＋署名＝**第三方实测**（外测·Hume 等）；实心填充圆徽＋✓＝**我们复算**（复算·原型／复算·复刻／复算·公开数据）。可叠加「✓原始数据核对过」「推断」灰斜体小注。
+- **顶部安全带**：y<56 由章节进度条（ChapterProgress，frozen）占用；各幕画面内容 y≥56 起；SceneTag 维持 top:64。
+- **全屏独占策略**：本集禁画中画，凡挂图一律全屏独占切换；cue 锚句唯一（同锚句双 cue 禁止）；跨实例背靠背（含镜界与幕界接缝）后挂实例一律 `lead={false}`，动效列注「接缝 lead=false」。
+- 画面文字只放关键词／数字／标签／结构，整句复述口播处逐格注 `caption-dup-ok:`。
+
+## 二、分镜表
+
+### P0 主播与判读员（组件 `P0Anchor`）
 
 | 镜 | 句区间 | 画面 | 动效 |
 | --- | --- | --- | --- |
-| 0-A | p0-01..03 | **小判断清单**：任务流水线上密密麻麻闪烁的判断节点（工单归组/动作放行/输出及格/候选排序） | 判断节点由 devices.tsx JudgeNodes useStagger 逐个亮起；`@stagger` |
-| 0-B | p0-04..06 | **让作家盖章**：左侧大模型=伏案写大部头的作家，右侧一枚小章；作家放下笔写一段议论文再盖章 | 议论纸张由本幕 EssayStack useStagger 堆高；印章 useImpulse；`@stagger` `@impulse` |
-| 0-C | p0-07..10 | **慢与贵**：沙漏翻转（三百多秒）+ 账单计数疯涨；角标「3–329s」「$0.20–10/MTok — 官方对照」 ·**archify full**：sorting-center 章 `sc-four-sins`（p0-07） | 账单数字由 devices.tsx TickerBar useCount 滚数；沙漏静态翻转帧；`@count` |
-| 0-D | p0-11..13 | **口头概率不可信**：「九成把握」徽章亮起又碎裂（danger），碎片里露出「训练讨好」标签 | 徽章碎裂由本幕 BadgeCrack 用 useImpulse；`@impulse` |
-| 0-E | p0-14..17 | **错配**：左列「答案只有几个选项」的短清单（slot 高亮）；右列「自由文字」长卷轴无限下拉 ·**archify full**：sorting-center 章 `sc-mismatch`（p0-15） | 左清单 items useStagger；右卷轴 devices.tsx ScrollDrain 用 useProgress 持续滚动；`@stagger` `@progress` |
-| 0-F | p0-18..23 | **Jev 登场**：名片卡（产品名 / 系统一模型 / 卡尼曼快系统注记）→「一次前向、逐项打分」公式条 ·**archify full**：sorting-center 章 `sc-one-liner`（p0-21） | 名片卡 useSpring 升起；打分条由本幕 ScoreSweep 用 useProgress 逐项点亮；`@spring` `@progress` |
-| 0-G | p0-24..30 | **分拣中心总览**：调度员台 / 老分拣员位 / 面单堆 / 小票排 / 格口墙 / 三条去向传送带全部亮灯 ·**archify full**：sorting-center 章 `sc-tour`（p0-26）；章节条七段亮起 | 总览灯光 useStagger 分区点亮；`@stagger` |
+| 0-A 暴雨夜双景对切 | p0-01..05 | 雨夜城市全景；上半电视墙＝主播演播室（base dim 中性光、雨量字幕条逐街滚动），下半值班室＝人工拍板台（章戳＋电话）。p0-03 起全屏独占切旧交付路径工程图（生成→解析→校验→代码，卡点标警示红） ·**archify full**：two-deliveries 章 `td-old` | 雨丝匀速下落；p0-01 主播口播条滚街名；p0-02 值班室章戳落下（承接装置：人工开关台）；p0-03 入图（幕首例，默认 lead），路径节点逐拍点亮、末端开关悬停闪警示红两拍；p0-05 官方开篇引文小条（虚线徽）压在图角。 |
+| 0-B 判读员工位首亮相 | p0-06..12 | 气象台角落一桌一灯：判读员剪影伏案，桌面一张格黄描边预报单只露轮廓（全片母题首次出场〔M-001〕）。p0-09 全屏独占切新交付路径图（资料＋预印格→概率表→代码分支） ·**archify full**：two-deliveries 章 `td-new` | 〔M-002〕匀速落笔特写、无表情、零强调动效；p0-08 笔尖停在格心大特写（承接装置）；p0-09 入图（默认 lead），state-in→judge-fill→answers→gate-branch 逐拍点亮；p0-10 角标浮现「Jev · System One」（mono）；p0-11 补角标「Kahneman《思考，快与慢》」；p0-12「训练有素的快判」小注亮起、其余压暗。 |
+| 0-C 三级角标图例卡 | p0-13..18 | 居中图例卡（panel 底）：三枚圆徽并排——虚线徽「官方自报」／实线徽＋署名位「外测·___」／实心徽＋✓「复算·___」；卡顶标题「谁量的？」（四字关键词，徽面只有标签不整句）。 | p0-13 卡片下滑入停驻；p0-15/16/17 三徽随句各亮一枚；p0-18 三徽缩小飞向画面四角占位、轻晃一拍（预示全片贴角）。 |
+| 0-D 三承诺过秤 | p0-19..22 | 回判读员工位；右侧天平：三枚砝码刻「不越界」「诚实」「快两个数量级」（关键词）。p0-20 全屏独占重放新路径图（三段路径各钉一枚承诺标签） ·**archify full**：two-deliveries | p0-19 工位灯复亮、天平吊入；p0-20 入图（重放 td-new，默认 lead），三段路径按三句承诺各亮一段；p0-21 天平回位整体压向「过秤」端；p0-22 画面右缘推出暗红门缝（P1 转场预告）。 |
 
-## P1 挂牌格口（p1-01..28）
+### P1 四个病灶（组件 `P1Lesions`）
 
 | 镜 | 句区间 | 画面 | 动效 |
 | --- | --- | --- | --- |
-| 1-A | p1-01..03 | **接口解剖**：请求卡 = 状态底单 + 几张问题；问题 key 标注「不发给模型」 ·**archify full**：question-contracts 章 `qc-anatomy`（p1-02） | 请求卡展开由本幕 RequestUnfold 用 useSpring；`@spring` |
-| 1-B | p1-04..06 | **三题型**：是非小票（0–1）/ 选择小票（≤255 选项全打分）/ 打分小票（2–10 级、可落级间）三张样板 ·**archify full**：question-contracts 章 `qc-three-types`（p1-05） | 三张小票 useStagger 依次翻面；级间刻度 useDraw；`@stagger` `@draw` |
-| 1-C | p1-07..08 | **答案空间先定**：选项表被调用方写死盖章（ok），模型输出通道上「另写答案」闸门焊死 ·**archify full**：question-contracts 章 `qc-closed`（p1-07） | 焊死闸门 useImpulse 落闩；`@impulse` |
-| 1-D | p1-09..13 | **零幻觉的真相**：上卡「零类型错误 = 构造保证（官方文档原话）」下卡「准确率 67.8% = 官方自报」；格口墙背景 ·**archify full**：slot-wall 章 `sw-legal-vs-correct`（p1-12） | 双卡由本幕 TruthPair 用 useProgress 对开亮；`@progress` |
-| 1-E | p1-14..19 | **冷数据**：67.8% 计数环；16% 零概率条（danger）；13% 翻转双箭头（选项序倒转） | 计数环 devices.tsx StatRing useCount；翻转箭头 useDraw；`@count` `@draw` |
-| 1-F | p1-20..23 | **陷阱面单**：面单特写「这不是退款和账单的问题，是登录页坏了」→「退款」关键词高亮 → 满格把握投进账务格口，格口闪红 ·**archify full**：slot-wall 章 `sw-trap`（p1-22） | 关键词高亮 useImpulse；投递轨迹由本幕 WrongDrop 用 useSpring 拖入错格；`@impulse` `@spring` |
-| 1-G | p1-24..28 | **B2 拆闭合**：拆解台三栏卡（改了什么/怎么坏/教训）+ 终端走廊滚原型日志（'Billing team' 越界行红显） ·**archify full**：closed-vs-open 章 `co-open-path`（p1-25）+ `co-verdict`（p1-27） | 终端行 devices.tsx TerminalFeed useStagger 滚入；越界行 useImpulse 红闪；`@stagger` `@impulse` |
+| 1-A 病灶公告栏 | p1-01..03 | 应急办公告栏（panel 底）：四格空位待贴。p1-01 全屏独占切四病灶因果图（l1–l4 四节点） ·**archify full**：lesions-to-specs 章 `ls-lesions` | p1-01 入图（幕首例，默认 lead），四节点依次点亮、仅 l1 高亮；p1-02 回公告栏：第一张贴纸「自由文本」拍上（base dim 底警示红描边）；p1-03 贴纸旁画出解析→校验→防脱轨三道虚线小工序、末端小警示红叉。 |
+| 1-B 语气不是概率 | p1-04..07 | 主播台近景：气泡台词「应该不会下太大」（引用样式、标「语气」）；右侧概率刻度尺 0–100%，气泡停在刻度外。对照卡角挂实线徽「外测·黑盒探测」。 | p1-04 气泡台词逐字上浮；p1-05 气泡被吸向刻度尺、停在外侧（警示红描边）；p1-06 对照卡翻出「10,000 次调用」计数器（Counter 滚动）；p1-07「九成把握」与「九成会对」两标记在尺上错位拉开。 |
+| 1-C 慢贵与讨好 | p1-08..11 | 左：逐字吐字机（token 方块一枚枚掉落、计时器以秒递增）；右：观众席点赞潮涌向主播（base dim）。p1-08 全屏独占切后训练三路图的共用底座 ·**archify full**：rlhf-rlvr-rlcd 章 `tr-base`；p1-10 全屏独占切 RLHF 路（底座→RLHF→主播） ·**archify full**：rlhf-rlvr-rlcd 章 `tr-rlhf` | p1-08 入图（默认 lead）底座单节点亮、出口即回吐字机（承接：底座＝吐字的那台机器）；p1-09 吐字机叠价签「以秒计」（警示红）；p1-10 入图（默认 lead，前句为 Remotion 间隙），三节点链亮、「讨好」处主播节点泛 base dim 光晕；p1-11 观众席弹幕条「自信的胡话」以警示红掠过。 |
+| 1-D 回马枪与公道话 | p1-12..15 | 两张文档卡并排：左「调教方法联合发明人＝创始人」（官方文档引用样式＋虚线徽）；右天平两端标签「讨人喜欢」（base dim）vs「值得信任」（柱青）。 | p1-12 左卡滑入；p1-13 发明人署名打字机落定、虚线徽点亮；p1-14 天平两端对峙、中缝「两个优化目标」裂隙拉开（关键词）；p1-15 右侧补小卡「纯聊天＝正解」盖确认绿小勾。 |
+| 1-E 四条硬要求换卡 | p1-16..21 | 公告栏翻面：四条格黄描边贴纸「只填格」「报几成兑现几成」「一屏全单作答」「秒回且便宜」。p1-16 全屏独占切四要求节点图 ·**archify full**：lesions-to-specs 章 `ls-specs`；p1-18 全屏独占切病灶↔要求↔机制对照链 ·**archify full**：lesions-to-specs 章 `ls-rows12`；p1-21 全屏独占切四机制总图（机制地图首亮） ·**archify full**：lesions-to-specs 章 `ls-mech` | p1-16 入图（默认 lead），r1–r4 逐拍点亮；p1-17 回公告栏贴第一条（格黄扫光）；p1-18 入图（默认 lead），l1→r1→m1 与 l2→r2→m2 两条链先后接通、箭头随句推进；p1-19/20 贴第三、四条；p1-21 入图（默认 lead），m1–m4 四节点同亮成地图，随后地图缩为右下角小徽（全片机制进度器）。 |
+| 1-F 接口与价签 | p1-22..26 | 代码卡（CodeCard，闸品描边）：`POST /v1/systemone` 请求／响应两栏骨架；价签角标「4.2¢ / 百万计费单位」挂虚线徽；延迟行「0.x s」带双口径小注（官方／外测）。 | p1-22 请求栏左滑入、响应栏右合拢（资料进、单出）；p1-23 计费行只亮「读」侧（闸品高亮），「落笔免费」旁落笔图标盖确认绿勾；p1-24 价签数字 Counter 滚入＋虚线徽；p1-25 延迟双小注并排淡入；p1-26 右下机制地图 m1 呼吸一次（P2 预告）。 |
 
-## P2 一眼多票（p2-01..27）
-
-| 镜 | 句区间 | 画面 | 动效 |
-| --- | --- | --- | --- |
-| 2-A | p2-01..04 | **闭源交代**：三枚归属徽章——「逆向研究者（上万次探针）」「开源复刻 ×2」「画像 = 最可信假设」 | 徽章 useStagger 亮起并保持；`@stagger` |
-| 2-B | p2-05..07 | **画像三件套**：底单只编码一次 → 每问独立分支 → 选项对决策位读出 ·**archify full**：one-pass-decision 章 `op-encode`（p2-05）+ `op-branch`（p2-06）+ `op-readout`（p2-07） | 本幕主导让位给图回放；句推进由 ArchifyYield 承担；（本镜无动效 hook，回放外无装置） |
-| 2-C | p2-08..11 | **平坦性与计费口径**：延迟曲线（1 问 86.5ms → 100 问近平坦 → 1500 问 610ms）；旁挂「输出量=记账口径」账签 | 曲线 useDraw；数据点 devices.tsx FlatCurve 标注 useImpulse；`@draw` `@impulse` |
-| 2-D | p2-12..13 | **隔离探针**：两条时序对照 ·**archify full**：isolation-probe 章 `ip-sibling`（p2-12）+ `ip-state`（p2-13） | 让位回放；0.00 与 0.9+ 读数卡由 ArchifyYield 衬底；`@progress`（衬底读数条由本幕 ProbeMeter 承担） |
-| 2-E | p2-14..16 | **合调红利**：两根账柱 2078 vs 26078（12.5×）；官方自报 12.2× 角标 | 账柱 devices.tsx LedgerBars useCount 生长；`@count` |
-| 2-F | p2-17..21 | **跨问题无不变量**：两道是非小票背对背（互不相看），概率条 0.72 + 0.47 = 1.19 溢出刻度（danger） ·**archify full**：no-cross-invariant 章 `ni-two-noul`（p2-20） | 概率条由本幕 OverSumBar 用 useProgress 累加溢出；`@progress` |
-| 2-G | p2-22..27 | **B6 双执行与编排解**：退款/拒退两盏灯同时亮红；解法面板「合并成 Choice（和=1）/ 代码兜底」 ·**archify full**：no-cross-invariant 章 `ni-choice`（p2-25）+ `ni-recipe`（p2-26） | 双灯 useImpulse 齐亮；解法面板 useStagger；`@impulse` `@stagger` |
-
-## P3 把握对账（p3-01..28）
+### P2 预印的格子（组件 `P2Form`）
 
 | 镜 | 句区间 | 画面 | 动效 |
 | --- | --- | --- | --- |
-| 3-A | p3-01..03 | **校准训练目标**：「说八成，就该十次对八次」对齐卡；角标 RLCD（配方未公开） | 对齐刻度 useDraw；`@draw` |
-| 3-B | p3-04..08 | **把握读数公式**：概率分布条 → 公式卡「(最高概率 − 瞎猜线) ÷ 归一化」→ 文档示例 0.81 复算 ·**archify full**：confidence-readout 章 `cr-formula`（p3-06）+ `cr-no-new-info`（p3-08） | 复算行 devices.tsx TerminalFeed 滚入；公式高亮 useProgress；`@progress` `@stagger` |
-| 3-C | p3-09..14 | **校准台阶**：三级台阶 0.03 → 0.107 → 0.246 逐级跌落（calib→danger 渐变）；旁挂「承认不知道：大模型九成以上 vs 它一半」对比条 ·**archify full**：calibration-ladder 章 `cl-ladder`（p3-12） | 台阶由本幕 EceSteps 逐句逐级落下（三级各锚 p3-10/11/12，纯函数 progress 派生）、当前句那级提亮加粗，标题 useProgress 提亮；对比条 useCount；`@progress` `@count` |
-| 3-D | p3-15..18 | **对账与温度**：对账账本两栏（自称/实际）+「统一打折」印章盖下；旁注「排序不动 · 准确率不动」 ·**archify full**：calibration-ladder 章 `cl-ledger`（p3-16）+ `cl-temperature`（p3-18） | 打折印章 useImpulse；账本行 useStagger；`@impulse` `@stagger` |
-| 3-E | p3-19..22 | **S8 原型对照**：未校准面板（直投 68% / 自称 0.7% / 实际 12% 火苗图标）→ 校准后面板（直投 19.7%） | 双面板切换由本幕 FireLedger 用 useProgress 交叉亮；火苗 useImpulse；`@progress` `@impulse` |
-| 3-F | p3-23..25 | **B3 账单**：成本柱 10.8 → 4.6（绿降）+ 准确率线 0.972 → 0.91（红降）同框；金句压条「拆看得见的成本，烧看不见的质量」 | 成本柱 useCount；准确率线 useDraw；金句条 useSpring 压入；`@count` `@draw` `@spring` |
-| 3-G | p3-26..28 | **分布外两难**：双门——「嘴硬」门（照投）与「闭嘴」门（全升级），中间「免费中庸」通道标 ⌀ 划掉 | 双门由本幕 TwoDoors 用 useProgress 对开；划掉 useDraw；`@progress` `@draw` |
+| 2-A 三类行样张 | p2-01..06 | 预报单全貌首次展开〔M-001〕：格黄描边表格、三类行样张（单选行／等级行／是否行）与行内预印格。p2-01 全屏独占：机制地图重放、m1 高亮 ·**archify full**：lesions-to-specs·p2-02 全屏独占：三类行图 ·**archify full**：forecast-form-rows 章 `ff-rows`；p2-03 全屏独占：单选行细节 ·**archify full**：forecast-form-rows 章 `ff-choice` | p2-01 入图（幕首例，默认 lead），m1 放大、其余压暗；p2-02 入图（接缝 lead=false），row-choice/score/noul 三行节点逐拍亮；p2-03 入图（接缝 lead=false），caller→validator→row-choice 链亮；p2-04 回预报单：等级行档位刻度（柱青）滑出、「小到中雨」档高亮；p2-05 是否行单格＋描边读数条初现；p2-06「判读桌上资料」小注压向行首（判读≠预测，关键词）。 |
+| 2-B 没有空白处 | p2-07..12 | 预报单推近：空白逐处被封边；「紫色的雨」印章盖向单外、被弹开（警示红）。p2-08 全屏独占：闭合保证图（三类行＋消费端闭环） ·**archify full**：forecast-form-rows 章 `ff-closure` | p2-07 格黄描边逐格「封边」巡回（承接装置）；p2-08 入图（默认 lead），行→consumer 闭环逐拍合拢；p2-09 回单面：紫色印章弹开碎裂；p2-10 行尾浮现「≤255」硬规尺（mono）；p2-11 拆两段示意卡接力（粗筛打分柱青淡→入围细挑柱青深）；p2-12 单选行尾「其他」虚格转实格；无「其他」时最像格被硬塞、警示红闪一拍。 |
+| 2-C 校验层打回 | p2-13..16 | 玩具原型小窗（实心徽「复算·原型」）与外测徽「外测·nibzard·数据核对过」。p2-14 全屏独占：请求往返之出单与拒单 ·**archify full**：validation-roundtrip 章 `vr-request`；p2-16 全屏独占：返回段 ·**archify full**：validation-roundtrip 章 `vr-return` | p2-13 原型小窗亮起（承接装置）；p2-14 入图（默认 lead），code→api 链亮、「256」在 api 处被打回（400 警示红标）；p2-15 回小窗：「225/225 拒收」计数器逐条跳满；p2-16 入图（默认 lead），judge→api→code 归途链亮、原始响应清单逐行盖确认绿✓。 |
+| 2-D 格式对了天气没对 | p2-17..23 | 六张测试单缩略排开（实心徽）：四张绿框、两张警示红框翻出；工单原话卡「没有报错，我就是要退款」；行尾读数卡「0.981」（柱青描边＋mono）；左半窗外大雨雨幕 vs 右半单上「晴」格勾。p2-18 全屏独占：落格段 ·**archify full**：validation-roundtrip 章 `vr-judge`；p2-20 全屏独占：填错的格 ·**archify full**：forecast-form-rows 章 `ff-trap`；p2-22 全屏独占：代码分流段 ·**archify full**：validation-roundtrip 章 `vr-route` | p2-17「不越界」三字压在单角（关键词）；p2-18 入图（默认 lead），api→judge 落格链亮；p2-19 回缩略排：错格两张翻红；p2-20 入图（默认 lead），row-choice 误格→consumer 链亮、警示红沿链传导；p2-21 回工单卡：「技术问题」勾选框被机械勾上（警示红）；p2-22 入图（默认 lead），code→action 自动执行臂落下；p2-23 回分屏高潮〔M-003〕：雨幕与格勾定格停驻，衬线金句卡「格式对了 · 天气没对」浮出。caption-dup-ok: 幕末金句卡刻意回扣 p2-23（衬线停驻收束，同幕回扣惯例）。 |
+| 2-E 零幻觉的口径 | p2-24..29 | 官方 FAQ 引文卡（虚线徽）「保证形状，不保证每个判断都对」；宣传条「零幻觉」拆成两半：左「形状保证」（格黄）／右「判断对错」（灰）。p2-27 全屏独占：形状保证图重放 ·**archify full**：two-deliveries 章 `td-shape` | p2-24 引文卡滑入停驻；p2-25 宣传横幅掠过；p2-26「构造推出」小注（mono）盖在数字上；p2-27 入图（默认 lead），judge-fill→answers 形状段亮、「只此一层」界线压暗其余；p2-28 回分拆条：左半稳固、右半灰格挂量尺图标（能测量、能设门槛）；p2-29 右下机制地图 m3 预亮＋「下一关」箭头（转场）。 |
 
-## P4 三条去向（p4-01..25）
+### P3 大屏与封卡（组件 `P3SealedCards`）
 
 | 镜 | 句区间 | 画面 | 动效 |
 | --- | --- | --- | --- |
-| 4-A | p4-01..05 | **三条去向**：三岔传送带——把握高直投格口 / 不足送调度员复核 / 再低滑人工异常台；闸门标 0.95 / 0.6 ·**archify full**：fast-slow-harness 章 `fs-three-lanes`（p4-03）+ gate-thresholds 章 `gt-gates`（p4-02） | 传送带流向由 devices.tsx ConveyorFlow useProgress 分流；闸门 useImpulse 落杆；`@progress` `@impulse` |
-| 4-B | p4-06..11 | **官方编法与成绩单**：决策拆成「代码规则 + 窄问题」；成绩单卡 67.8% / 万分之四美元 / 0.4 秒（角标「官方自报」）；「思维链全包」对照组跌落条（54%→18%） ·**archify full**：fast-slow-harness 章 `fs-rules`（p4-06） | 跌落条由本幕 PromptDrop 用 useProgress 下滑；成绩卡 useCount；`@progress` `@count` |
-| 4-C | p4-12..15 | **《我的世界》速通**：时间轴——每 15 秒一次高层规划星标 + 连续候选挑拣点；计数器 131 + 35 | 星标与挑拣点 useStagger 沿时间轴铺开；计数器 useCount；`@stagger` `@count` |
-| 4-D | p4-16..18 | **评审实验**：评审席（五份固定输出 × 100 遍）对照一位人工评审；一致率 100% 环 + 三限定角标（样本极小/单一评审/联合发布） ·**archify full**：fast-slow-harness 章 `fs-judge`（p4-16） | 一致率环 useCount；三限定标签 useStagger 贴角；`@count` `@stagger` |
-| 4-E | p4-19..21 | **有把握的大多数**：桶状分布图——够自信直投的两成（route）与复核+人工的八成（灰）；金句「省多少不取决于单价」 ·**archify full**：gate-thresholds 章 `gt-budget`（p4-20） | 分布桶由本幕 ConfidenceMass 用 useProgress 填充；`@progress` |
-| 4-F | p4-22..25 | **杰文斯效应**：煤炉效率曲线上升 → 煤耗总量同步上升；叠化到「判断密度」网格逐格点亮 ·**archify full**：fast-slow-harness 章 `fs-jevons`（p4-24） | 双曲线 useDraw；叠化由本幕 JevonsFuse 用 useProgress 交叉；网格 useStagger 点亮；`@draw` `@progress` `@stagger` |
+| 3-A 大屏与封卡排开 | p3-01..06 | 判读员身后大屏（柱青辉光：云图／雷达／站点读数三栏）；桌沿一排封卡（每行一张、格黄描边）；画面红线：恒一人一桌。p3-01 全屏独占：机制地图重放、m2 高亮 ·**archify full**：lesions-to-specs·p3-02 全屏独占：只编码一次 ·**archify full**：shared-read-isolated-branches 章 `sr-once`；p3-04 全屏独占：封卡分支 ·**archify full**：shared-read-isolated-branches 章 `sr-fanout` | p3-01 入图（幕首例，默认 lead），m2 放大；p3-02 入图（接缝 lead=false），state-in→encode 亮、「只放一遍」徽记钉上；p3-03 回大屏：柱青信息流首放高亮、三栏汇入编码点（首放高亮／复看降底光的第一次）；p3-04 入图（默认 lead），encode→branch-a/b 扇出亮；p3-05 回桌面：一排封卡同时翻面落笔（仍是一人、非多人非投票——红线小注）；p3-06 计费标尺：读大屏段（长、柱青深）vs 每卡一眼（短、柱青浅）。 |
+| 3-B 十三题合一 | p3-07..09 | 合并单：13 张题卡吸进一张大单（格黄）；计费对比条两柱（柱青）「单发 13 次 vs 合一 1 次」；两枚虚线徽（官方教程自测）。 | p3-07 小卡汇聚吸附成一张；p3-08 右柱塌缩至约十二分之一＋「≈1/12」标签（Counter）；p3-09 第二对比条「×10」浮起、两徽并排盖戳。 |
+| 3-C 暗号实验 | p3-11..17 | 实验装置台：研究者席（实线徽「外测·Hume」）＋兄弟行屏／大屏屏两块。p3-12 全屏独占：实验设计 ·**archify full**：passphrase-probe 章 `pp-design`；p3-13 全屏独占：暗号在卡上 ·**archify full**：passphrase-probe 章 `pp-sibling`；p3-14 全屏独占：暗号进大屏 ·**archify full**：passphrase-probe 章 `pp-state`；p3-15 全屏独占：行间互不可见 ·**archify full**：shared-read-isolated-branches 章 `sr-between`；p3-17 全屏独占：复刻对拍 ·**archify full**：passphrase-probe 章 `pp-replica` | p3-11 装置台亮起＋问句标签「卡与卡，看得见吗」（关键词，承接装置）；p3-12 入图（默认 lead），researcher/sibling/screen 三节点亮；p3-13 入图（接缝 lead=false），兄弟行读出「0.00」（mono 大数）；p3-14 入图（接缝 lead=false），暗号移入大屏、读数跳「0.90 上下」（Counter 滚动）；p3-15 入图（接缝 lead=false），branch 隔离墙亮起（卡间断线墙）；p3-16 回装置台：「剧场规则」幕布标签压上＋「真实机制官方没披露」灰斜体小注；p3-17 入图（默认 lead），researcher→replica 外部行为推断链亮＋「推断」小注。 |
+| 3-D 行内挪动 | p3-18..21 | 单张封卡特写（格黄格排开）；无关选项「?」格插入后各格宽度条（柱青）整体挪位。p3-19 全屏独占：行内互相影响 ·**archify full**：shared-read-isolated-branches 章 `sr-within` | p3-18 封卡放大＋「行间已断／行内」两标签并置（承接装置）；p3-19 入图（默认 lead），branch-b 内部权重线摆动；p3-20 回特写：挪动幅度量尺「0.28」（mono、log-odds 小注）；p3-21 格序重排：答案随顺序平移（「顺序敏感 16/16 vs 12/16」角标）。 |
+| 3-E 两卡加出 1.19 | p3-22..27 | 两张封卡并排大数：「会下雨吗 0.72」／「不会下雨吗 0.47」（柱青 mono）；下方横式 0.72＋0.47＝**1.19**（等号后警示红）；虚线徽＋「官方自列」小注（原例 refund/not_refund 小字）。 | p3-22「反直觉」预警细线（警示红）扫过；p3-23/24 两卡先后落定大数；p3-25 横式逐项滑入、1.19 落定脉冲两拍；p3-26 概率刻度尺在 1.0 处爆表断针；p3-27 两卡背靠背示意「各填各的」＋闸品小箭头指向代码对账位。 |
+| 3-F 自洽交给代码 | p3-28..30 | 修复对照卡两枚：左「并成一道单选行」（格黄合并格）／右「代码对账」（闸品流程小块）；预报单行尾「集中度」空栏虚框（描边栏首次露面）。p3-29 全屏独占：代价与对账段 ·**archify full**：shared-read-isolated-branches 章 `sr-cost` | p3-28 官方自列小注盖在 1.19 残影上；p3-29 入图（默认 lead），readout→gate 对账链亮；p3-30 镜头推向行尾空栏虚框（P4 引子），其余压暗。 |
 
-## P5 三方争议（p5-01..21）
-
-| 镜 | 句区间 | 画面 | 动效 |
-| --- | --- | --- | --- |
-| 5-A | p5-01..08 | **分类器之争**：左「专用分类器（固定任务又快又准）」右「零样本通才」；比分翻面动画（0.766 vs 0.727 → 反向）；选址谱滑标（任务稳定度 × 调用量 × 标注成本） | 比分卡由本幕 FlipScore 用 useProgress 翻面；滑标 useImpulse 推到位；`@progress` `@impulse` |
-| 5-B | p5-09..14 | **自报基准**：考核卷构成（自出题 + 两个大模型平均答案 + 对手按自家流程答题） ·**archify full**：benchmark-audit 章 `ba-scales`（p5-10）+ `ba-pipeline`（p5-13）；倍数天平：左盘 193.6×/444.6×，右盘 75×/171× 与 1.2× | 天平倾转由本幕 ScaleTip 用 useSpring；右盘砝码 useStagger 落盘；`@spring` `@stagger` |
-| 5-C | p5-15..21 | **校准外推**：外文面单特写——老分拣员自信盖章，对账账本对不上（danger）；对冲清单三卡（自家数据重新对账 / 保守阈值 / 升级通道）；直投归零的账单 | 盖章 useImpulse；账本裂线 useDraw；对冲卡 useStagger；`@impulse` `@draw` `@stagger` |
-
-## P6 各归其位（p6-01..21）
+### P4 柱高与计算栏（组件 `P4Readout`）
 
 | 镜 | 句区间 | 画面 | 动效 |
 | --- | --- | --- | --- |
-| 6-A | p6-01..03 | **分工线**：左半调度员伏案写专著（生成），右半老分拣员流水线盖章（判断），中间一道清晰接口线 ·**archify full**：decision-vs-generation 章 `dg-split`（p6-03） | 接口线 useDraw 划开；两侧灯 useStagger；`@draw` `@stagger` |
-| 6-B | p6-04..10 | **四拿四缺**：左列四卡（闭合空间/只读一次/能对账/三向分流，各配机制色）右列四卡（架构零公开/构造保证≠答对率/倍数口径/中文未数据，灰 + danger 角标） ·**archify full**：decision-vs-generation 章 `dg-checklist`（p6-08） | 双列卡 useStagger 对位亮；右列印章 useImpulse；`@stagger` `@impulse` |
-| 6-C | p6-11..15 | **用法四条**：清单卡逐条钉上（答案空间自己写死 / 互斥合并或代码兜底 / 阈值跟风险走留人通道 / 上线先对账） | 清单卡由本幕 UseRules 逐句钉入（四条各锚 p6-12..15，纯函数 progress 派生）、当前句那条描边提亮，标题 useProgress 淡入；`@progress` |
-| 6-D | p6-16..21 | **收尾**：杰文斯回环一行字 → 金句卡「当每一次判断都便宜到随手来一次——你会拿它去量什么？」→ 信源卡（TypeSafe 官方站点 · adapter/kev/laya 固定提交 · 三组第三方实测 · 本仓精读 200）→ 渐黑 ·**archify full**：decision-vs-generation 章 `dg-open`（p6-19） | 金句卡 useSpring 升起；渐黑由本幕 EndFade 从末 beat 时长推导（useFadeOut）；`@spring`（渐黑为渲染层函数） |
+| 4-A 柱高与咔哒栏 | p4-01..07 | 预报单单行放大〔M-001〕：行内三根实心柱（柱青）高矮不一；行尾描边栏＋mono 数字＝集中度读数。p4-01 全屏独占：机制地图重放、m3 高亮 ·**archify full**：lesions-to-specs·p4-03 全屏独占：概率柱段 ·**archify full**：readout-pipeline 章 `rp-probs`；p4-05 全屏独占：计算栏段 ·**archify full**：readout-pipeline 章 `rp-formula` | p4-01 入图（幕首例，默认 lead），m3 放大；p4-02 回单行：100% 总量条切分成 10/20/70（三柱生长）；p4-03 入图（默认 lead），probs→scoreboard 亮；p4-04 回行尾：描边栏空框浮现；p4-05 入图（默认 lead），probs→formula→conf 链亮、公式角标（mono＋「官方参考代码·MIT」小注）钉图角；p4-06 是否行滑过、栏位划虚线（无此栏）；p4-07 判读员的手绕开该栏的弧线轨迹（「一道算术」关键词）。 |
+| 4-B 复算一位不差 | p4-08..10 | 双栏对账小卡：左「原型复算」右「公式」两列 mono 数字逐位对齐（实心徽＋✓）；底部灰斜体「服务端同式？——推断」小注。 | p4-08 左栏数字 Counter 逐位滚出；p4-09 公式角标卡放大定格；p4-10「推断」小注浮现＋问号水印（不敲死）。 |
+| 4-C 同一读数两种含金量 | p4-11..16 | 分支对照：左「K=2」右「K=10」两行格黄格；同一读数 0.9（描边栏 mono）下主柱分别到 0.95／0.91（柱青）。p4-13 全屏独占：K 依赖段 ·**archify full**：readout-pipeline 章 `rp-k`；p4-16 全屏独占：门槛消费段 ·**archify full**：readout-pipeline 章 `rp-gate` | p4-11/12 读数 0.9 大字居中（承接装置）；p4-13 入图（默认 lead），conf→k2/k10 双分支亮；p4-14 回对照：右主柱 0.91 落定、矮一截；p4-15 两行间「含金量」天平倾斜；p4-16 入图（默认 lead），k2/k10→gate 亮、门槛线沿柱形走（「量形状、非答对」关键词小注）。 |
+| 4-D 岗前记分牌 | p4-17..23 | 训练场实况记分牌（Remotion 原生 Scoreboard）：双列对账——左列「报的概率」柱（柱青实心）／右列「实况命中」柱（柱青描边）；确认绿✓／警示红✗全片只在此出现。p4-19 全屏独占：RLCD 训练路 ·**archify full**：rlhf-rlvr-rlcd 章 `tr-rlcd` | p4-17 记分牌吊装入帧；p4-18 岗前训练场沙盘铺开（承接装置）；p4-19 入图（默认 lead），base→rlcd→judge 链亮（「RLCD」mono 角标）；p4-20 回记分牌：目标合同三行小卡贴上（「不写稿」「带概率」「高概率↔高命中」关键词）；p4-21「报七成」批次两列柱对齐动画；p4-22 虚高／虚低柱各被扣分削减（警示红）、诚实柱保值盖✓；p4-23「对一批」群体框罩住整排（「不担保单条」小注）。 |
+| 4-E 校准误差的口径 | p4-24..27 | 同一数据两出口对照卡：「算在读数 0.246」vs「算在主柱 0.347」（描边栏两 mono 数并排）；Brier 彩蛋角标卡（1950《Mon. Weather Rev.》引用样式）。 | p4-24 两出口管道分叉动画；p4-25 两数字先后落定、差值高亮；p4-26 三级角标徽章组飞回画面中央对位（「又是那枚徽章」关键词）；p4-27 彩蛋卡翻出、七十年时间轴细线延展。 |
+| 4-F 记分牌拆除 | p4-28..30 | 训练场收摊：记分牌吊离；判读员工位只剩读数平线（柱青描边横线）〔M-003〕。p4-30 全屏独占：领地内状态 ·**archify full**：calibration-territory 章 `ct-in` | p4-28 记分牌上升离框＋「出厂即拆」小注；p4-29「不再学习」锁扣扣上、平线无波动；p4-30 入图（默认 lead），领地节点亮、画面定格，边缘泛起高原轮廓暗纹（幕末预转）。 |
+
+### P5 高原上的七成（组件 `P5Plateau`）
+
+| 镜 | 句区间 | 画面 | 动效 |
+| --- | --- | --- | --- |
+| 5-A 调令与台阶 | p5-01..06 | 调令公函（闸品描边）从右拉出；背景沿海天际线渐变为高原台地；P4 同款记分牌复现：报七成柱（柱青实心）下方实况柱（描边）塌成警示红阶梯，读数平线（柱青描边）纹丝不动并置。p5-03 全屏独占：领地内状态重放（平静领地对照） ·**archify full**：calibration-territory·**色调切换：本镜起转冷色＋警示红梯度（全片之「转」）。** | p5-01「转折」字标压屏一拍即走；p5-02 调令拉开＋背景切换；p5-03 入图（重放 ct-in，默认 lead）——领地内节点亮，出口回切工位：判读员笔速不变〔M-002〕、读数横线持平；p5-04 台阶逐级塌落（警示红阶梯）；p5-05「七成」标记与实况错位拉开；p5-06 读数栏静默、警报铃图标划叉（不报警）。 |
+| 5-B 没有调令的世界 | p5-07..09 | 调令纸幻化为散点分布图（题目／资料微粒由灰转警示红）；两台监视器小窗：影子运行（新旧两工位并排、只记账）＋抽样审计（放大镜抽签）。p5-08 全屏独占：静默漂移 ·**archify full**：calibration-territory 章 `ct-drift` | p5-07 调令纸溶解成散点；p5-08 入图（默认 lead），drift 节点亮、分布微粒悄悄挪动；p5-09 回双监视器：「只记账不动手」标签、抽签动画。 |
+| 5-C 密封新题与台阶 | p5-10..16 | 数字对照卡组（实线徽「外测·Hume·数据核对过」「外测·JevBench」）：0.031→36.7%→差约五十点→读数九成批次实对 42%。p5-16 全屏独占：台阶出现段 ·**archify full**：calibration-territory 章 `ct-cliff` | p5-10/11 「0.031」卡落定＋复算核对行✓（确认绿）；p5-12 密封信封拆封；p5-13「36.7%」大数落定（警示红）；p5-14 差值标尺拉出；p5-15「>0.9」滤网筛批次（承接装置）；p5-16 入图（默认 lead），cliff 台阶节点亮、42% 落在台阶底。 |
+| 5-D 公平骰子 | p5-17..21 | 骰子实验卡（Remotion 原生）：六面骰＋六等分分布柱（柱青）vs 读数柱 82.9%（描边＋mono）vs 命中 19%（警示红）；实线徽「外测·dice」。p5-20 全屏独占：无基准地带 ·**archify full**：calibration-territory 章 `ct-wild` | p5-17 骰子滚入；p5-18 六等分柱成型（世界本身的随机）；p5-19 空读数栏虚框（不该报把握）；p5-20 入图（默认 lead），dice 节点亮（承接＝骰子卡同屏）；p5-21 回卡：82.9% 与 19% 两柱断裂对望＋「400 次」计数器收尾。 |
+| 5-E 原理与门槛 | p5-22..28 | 原理卡（实线徽「外测·Molas·原理侧」）：校准＝模型×分布两圆相交；一座城一套秤服务所有城示意；灰斜体反例小注（新生成数学族 56% 对 35%，欠自信方向）；最小复现对照（实心徽「复算·原型」）：同一道放行门槛，分布内错 19%／分布外全错。 | p5-22 问句标签「为什么一换就失灵」（承接装置）；p5-23 两圆相交动画；p5-24 多城连线全断（警示红）；p5-25 官方认领小卡（虚线徽）「定制只能换单子」；p5-26 原型复现徽亮＋门槛图；p5-27/28 放行对照双开——内错 19%／外全错，画面转深红调（反转段强调）。 |
+| 5-F 修读数不修排序 | p5-29..31 | 复刻工位（实心徽「复算·复刻」）：温度旋钮＋分桶重校曲线（0.466→0.081 两读数并排，描边＋mono）；排序榜单行序不动（该错的照旧放行，警示红行未动）。p5-29 全屏独占：对冲与重标段 ·**archify full**：calibration-territory 章 `ct-fix`；p5-31 全屏独占：判读交读数（闸门轮廓初现） ·**archify full**：three-gates-routing 章 `tg-read` | p5-29 入图（默认 lead），audit 节点亮、旋钮转动；p5-30 回榜单：读数柱齐降（描边集体下移）、榜单行序一格未动（对比动画）；p5-31 入图（默认 lead），judge→gate 亮、「答案在编排里」箭头指向下一幕（幕界转接）。 |
+
+### P6 三道闸与账本（组件 `P6Ledger`）
+
+| 镜 | 句区间 | 画面 | 动效 |
+| --- | --- | --- | --- |
+| 6-A 机制四开闸 | p6-01..04 | 预案墙展开前的机制地图；读数单滑入预案墙。p6-01 全屏独占：机制地图重放、m4 高亮 ·**archify full**：lesions-to-specs·p6-02 全屏独占：同一批需求 ·**archify full**：three-city-architectures 章 `tc-demand`；p6-03 全屏独占：代码消费 ·**archify full**：two-deliveries 章 `td-consume`；p6-04 全屏独占：判读交读数（重放） ·**archify full**：three-gates-routing | p6-01 入图（接缝 lead=false——上一幕末句 p5-31 挂闸门图紧邻），m4 放大；p6-02 入图（接缝 lead=false），demand/rules/anchor/plan 四需求节点亮；p6-03 入图（接缝 lead=false），answers→gate-branch 亮＋「流程归代码」关键词钉图角（官方引文小注）；p6-04 入图（接缝 lead=false，重放 tg-read），judge→gate 亮、三闸门轮廓展开。 |
+| 6-B 三闸高低错落 | p6-05..10 | 预案墙三道闸（闸品门架）：自动闸／复核闸／人工梯高低错落（带伞门槛低、停课停航门槛高——空间隐喻与旁白同向，避〔X-001〕）。p6-05 全屏独占：自动闸 ·**archify full**：three-gates-routing 章 `tg-auto`；p6-06 全屏独占：确认与人工 ·**archify full**：three-gates-routing 章 `tg-confirm`；p6-08 全屏独占：首席兜底 ·**archify full**：three-gates-routing 章 `tg-chief` | p6-05 入图（接缝 lead=false），gate→auto 亮、绿灯放行；p6-06 入图（接缝 lead=false），gate→confirm→human 亮、值班员复核章戳；p6-07 回预案墙：低读数走人工梯＋「升首席」电梯（承接装置）；p6-08 入图（默认 lead，前句为 Remotion 梯），human→chief 亮、首席席慢钟图标（「System 2」mono 角标）；p6-09 门架随风险伸缩（带伞↓停航↑）；p6-10 门槛刻度带「0.5–0.6」（官方示例小注＋「你的代码定」关键词）。 |
+| 6-C 考场三架构 | p6-11..16 | 官方警告横幅（虚线徽）：自作主张循环→脱轨机会（警示红回路箭头）；对拍数字卡「四项平均 67.8% vs 最强对照 74.1%」（对照不点名小注）＋外测·distil 小卡（付款拆问：批准 32/32 全对、金额错 0/16）。p6-11 全屏独占：主播自决之城 ·**archify full**：three-city-architectures 章 `tc-agent`；p6-14 全屏独占：预案之城 ·**archify full**：three-city-architectures 章 `tc-plan` | p6-11 入图（默认 lead），anchor→monitor 回路亮、警示红沿回路脉冲；p6-13 回 Remotion 考场卡：考卷堆叠＋印章（承接装置）；p6-14 入图（默认 lead），plan→judge→chief 亮；p6-15 回数字卡：「67.8%」落定（Jev 名签＋虚线徽）；p6-16「74.1%」落定——王冠图标划叉、「又快又便宜头排」席位标签（关键词）。 |
+| 6-D Jevons 气泡 | p6-19..23 | 城市沙盘（Remotion 原生 CitySandbox，等轴城郭）：单价曲线下坠（闸品细线），询问气泡从万家窗口冒出（柱青）；右下「示意」标签常驻（剧场红线：不念钱数）；Jevons 角标（虚线徽＋官方 FAQ 小注）。 | p6-19 沙盘旋入＋「判断变便宜之后」问句标签；p6-21 煤→判断类比小条（煤块→天平图标）扫过；p6-23 气泡成千上万涌出、密度随曲线下坠陡增（三四波爆发）。 |
+| 6-E 对账三口径 | p6-24..31 | 对账台（LedgerDesk）：三枚角标凹槽＋三数字槽位。p6-24 全屏独占：对账台 ·**archify full**：evidence-reconciliation 章 `er-desk`；p6-25 全屏独占：官方出口 ·**archify full**：speedup-ledger 章 `sl-official`；p6-27 全屏独占：口径设定 ·**archify full**：speedup-ledger 章 `sl-setup`；p6-29 全屏独占：复算对账 ·**archify full**：speedup-ledger 章 `sl-recompute`；p6-30 全屏独占：归并 ·**archify full**：speedup-ledger 章 `sl-verdict`；p6-31 全屏独占：三句裁决 ·**archify full**：evidence-reconciliation 章 `er-verdicts` | p6-24 入图（默认 lead），desk 节点亮、三凹槽翻起；p6-25 入图（接缝 lead=false），headline 亮「193.6×」（mono 大数）＋「偏乐观上限」小注；p6-26 回对账台：注脚两行（卷子自家出／两位专家平均）逐行落；p6-27 入图（默认 lead），evals 设定节点亮；p6-29 入图（接缝 lead=false——p6-28 不存在、p6-27 与 p6-29 相邻），recompute＋demo 亮「97.8×」、实心徽盖戳；p6-30 入图（接缝 lead=false），indep→verdict 亮「2–6×」、实线徽盖戳；p6-31 入图（接缝 lead=false），三 claim 节点各挂一枚徽章亮起（三句裁决＝三徽章对位，方法论收口）。 |
+| 6-F 命名之争 | p6-32..36 | 三口径证词卡并排：左「官方 FAQ：不是 LLM」（虚线徽）／中「官方文档：预训练语言模型加训」（虚线徽）／右「独立逆向：已知组件的组合」（「推断」灰斜体）；底部横条＝毛病清单墙缩影（九张贴纸、「官方自列」虚线徽）。p6-32 全屏独占：四方证据 ·**archify full**：evidence-reconciliation 章 `er-parties`；p6-36 全屏独占：开放三问 ·**archify full**：evidence-reconciliation 章 `er-open` | p6-32 入图（接缝 lead=false），self-report/field-audit/defect-list/homegrown 四证人节点亮；p6-33/34 回证词卡：左右两卡先后翻出、中卡打断手势；毛病清单墙横条随 p6-34 滚入；p6-35 右卡「组件组合」拼图动画；p6-36 入图（默认 lead，前句为 Remotion），open 节点亮、「开放问题一」标签钉上。 |
+| 6-G 三问收口 | p6-37..41 | 三问卡三连：Q1 命名／Q2 领地（配「先重标门槛」行动标签，闸品）／Q3 自培（配对拍数字「0.70 vs 0.45–0.57」，实线徽「外测·kev·对拍数据核对过」）。p6-37 全屏独占：对冲与重标重放 ·**archify full**：calibration-territory·p6-40 全屏独占：RLCD 路重放 ·**archify full**：rlhf-rlvr-rlcd·p6-41 全屏独占：开放三问重放 ·**archify full**：evidence-reconciliation | p6-37 入图（接缝 lead=false），audit 重标节点亮＋「换分布先重标」关键词；p6-38 回三问卡 Q3 翻出（承接：自培工位小图）；p6-39 对拍规则小卡（同一道错误预算）；p6-40 入图（默认 lead），rlcd→judge 亮、「0.70」落定；p6-41 入图（接缝 lead=false），homegrown 节点亮、「0.45–0.57」区间带展开＋「差在排序」小注（警示红）。 |
+| 6-H 回到开头 | p6-42..46 | 首幕暴雨夜城市重现（与 0-A 同构）；判读员工位与主播台最终并置；衬线金句卡「不是更聪明的主播 · 让判断变便宜的新岗位」；方法卡「先问一句：谁量的？」＋三枚角标徽章最终定格（与 0-C 图例首尾闭环）；封卡（系列名＋下期位）。p6-42 全屏独占：旧路重放 ·**archify full**：two-deliveries | p6-42 入图（接缝 lead=false），旧路整链点亮后整体降光（环形收束——回到开头之问）；p6-44 金句卡滑入停驻〔M-003〕。caption-dup-ok: 片尾金句卡刻意回扣 p6-44（衬线停驻收束，同幕回扣惯例）；p6-45 方法卡＋三徽并排定格；p6-46 封卡淡入、「下期见」留黑收尾。 |
+
+## 三、字幕规范
+
+- 底部字幕带由 frozen [`Subtitle`](../video/src/components/Subtitle.tsx) 烧录：**一句一条、单行**，与 `audio/manifest.json` 句窗逐句同步；长句只缩字号一档、不折行。
+- 发音标注（如 `<Jev|JH EH1 V>`）build 期已剥，不进字幕面；英文标识符（Choice／Score／Noul／state／confidence／ECE／RLCD）只进画面角标，字幕随口播中文。
+- 画面文字与字幕分工：画面只放关键词／数字／标签／结构（本表已按此设计，豁免处见各镜 `caption-dup-ok` 注记）。
+
+## 四、实现映射
+
+### 幕 ↔ 场景组件
+
+| 幕 | 组件（`video/src/scenes/`） | 镜数 |
+| --- | --- | --- |
+| P0 主播与判读员 | `P0Anchor.tsx` | 4 |
+| P1 四个病灶 | `P1Lesions.tsx` | 6 |
+| P2 预印的格子 | `P2Form.tsx` | 5 |
+| P3 大屏与封卡 | `P3SealedCards.tsx` | 6 |
+| P4 柱高与计算栏 | `P4Readout.tsx` | 6 |
+| P5 高原上的七成 | `P5Plateau.tsx` | 6 |
+| P6 三道闸与账本 | `P6Ledger.tsx` | 8 |
+
+### 公共组件（`video/src/components/`）
+
+| 组件 | 用途 | 出处 |
+| --- | --- | --- |
+| `ChapterProgress` | 顶部章节进度条（frozen，七段；占 y<56 安全带） | 已有 |
+| `Subtitle` | 底部字幕带（frozen） | 已有 |
+| `ArchifyRecap` | 全屏独占回放（slug／cues／lead／fit；接缝处按本表注 `lead={false}`） | 已有 |
+| `SceneFade`／`SceneTag` | 幕切换与场景标签（top:64） | 已有 |
+| `QuoteCard`（衬线） | 金句卡（2-D／6-H） | 已有 |
+| `Panel`／`Footnote`／`Counter`／`CodeCard`／`NumberedCard`／`Pill`／`FadeUp` | 面板／小注／计数器／代码卡／编号卡／色签 | 已有（motifs/cards） |
+| `BadgeTriad` | 三级角标徽章组（图例卡 0-C、全片贴角、6-E/6-H 收口） | 本集新增 |
+| `ForecastForm` | 预报单母题〔M-001〕：格黄描边＋柱青柱＋描边计算栏，全片同形只换行标签 | 本集新增 |
+| `SealedCard` | 封卡（行卡；一人一桌一排，红线） | 本集新增 |
+| `ConfidenceMeter` | 计算栏描边栏（咔哒翻数、判读员的手绕行） | 本集新增 |
+| `Scoreboard` | 岗前实况记分牌（双列对账；✓✗ 仅此出现；P5 台阶复用） | 本集新增 |
+| `GateWall` | 三道闸预案墙（闸品门架高低错落） | 本集新增 |
+| `CitySandbox` | 城市沙盘（Jevons 气泡，标「示意」） | 本集新增 |
+| `DefectWall` | 毛病清单墙（九类贴纸，官方自列） | 本集新增 |
+| `LedgerDesk` | 对账台（三徽凹槽＋三数字槽位） | 本集新增 |
+| `CompareTable` | 对照表格卡（口径对照／对拍数字／计费对比） | 本集新增 |
+| `ScalePan` | 过秤天平（三承诺／两个优化目标） | 本集新增 |
+| `StateScreen` | 当班资料大屏（柱青辉光，首放高亮复看降底光） | 本集新增 |
+
+## 五、覆盖预算自查表
+
+| 幕 | 镜 | 句 | 全屏独占 cue | 锚定句（占比） | 图型 |
+| --- | --- | --- | --- | --- | --- |
+| P0 | 4 | 22 | 3 | 3（14%） | dataflow |
+| P1 | 6 | 26 | 6 | 6（23%） | architecture·workflow |
+| P2 | 5 | 29 | 10 | 10（34%） | architecture·sequence·dataflow |
+| P3 | 6 | 29 | 10 | 10（34%） | dataflow·sequence·architecture |
+| P4 | 6 | 30 | 7 | 7（23%） | architecture·dataflow·workflow·lifecycle |
+| P5 | 6 | 31 | 6 | 6（19%） | lifecycle·workflow |
+| P6 | 8 | 39 | 21 | 21（54%） | workflow·architecture·dataflow·lifecycle |
+| **全片** | **41** | **206** | **63** | **63（30.6% ≥ 30%）** | **5 型**（architecture／workflow／sequence／dataflow／lifecycle） |
+
+- 章节引用：**52/54 章**（≥45 达标）。未引用两章：`tr-rlvr`（RLVR 路——首席出处已由 `tg-chief` 在 p6-08 承担）、`tc-hard`（硬规则之城——叙事只在 p6-02 隐含旧制，挂图会打断 p6-01..06 独占接力）；如需 54/54 可在评审后补挂，代价是 6-A/6-B 连续独占过密。
+- cue 密度：63 cue ÷ 约 14 分钟 ≈ 4.5／分（≥3.0 达标，以 manifest 实测为准）；最长连续无锚 10 句（p0-10..19 与 p4-20..29，≤12 达标）。
+- 重放 cue（同章第二锚，共 11 个，锚句各异）：机制地图 `ls-mech` 于 p1-21 首亮后，p2-01／p3-01／p4-01／p6-01 四次开场重放（m1–m4 逐幕高亮）；`td-new`@p0-20；`ct-in`@p5-03（首锚 p4-30）；`tg-read`@p6-04（首锚 p5-31）；`ct-fix`@p6-37；`tr-rlcd`@p6-40；`er-open`@p6-41；`td-old`@p6-42（环形收束）。**标注纪律**：章 token（`` `章id` ``）只写在每章首锚所在镜；重放镜用图名级标注（无章 token 的合法形态，免逐章对账）——覆盖门的镜区间核对只认每章首个 cue，重放镜带 token 会产出「锚在区间外」假 WARN。
+- **单调性说明（5 处刻意叙事重组，覆盖门将 WARN 提示人工确认，均有叙事理由）**：① two-deliveries：p6-03 代码消费→p6-42 旧路（片尾「回到开头」环形收束）；② validation-roundtrip：p2-16 返回→p2-18 落格（证据句在前、原型演示在后）；③ calibration-territory：p5-20 无基准地带→p5-29 对冲与重标（反例先于补救的教案顺序）；④ speedup-ledger：p6-25 官方出口→p6-27 口径设定（先亮招牌数、再回溯口径）；⑤ evidence-reconciliation：p6-31 三句裁决→p6-32 四方证据（先对账收口、再传唤证人进命名之争）。
+- 交接待办（非本表职责，报主代理）：① `calibration-territory`／`evidence-reconciliation`／`lesions-to-specs` 三个 sidecar 顶层缺 `type` 字段（覆盖门归 untyped 计 1 种、5 型仍达标；建议写回 lifecycle／architecture／architecture 成实名五型）；② `pipeline.toml [archify]` 尚未声明全屏独占策略开关与豁免幕，按本表设计应在定稿时开启，使残留画中画标注即 FAIL。

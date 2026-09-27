@@ -1,0 +1,111 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 13.24,
+ "total_wall_sec": 59.11,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "tr-base",
+   "label": "共用底座",
+   "index": 0,
+   "file": "rlhf-rlvr-rlcd--tr-base.mp4",
+   "end_still": "rlhf-rlvr-rlcd--tr-base-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.21,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "base"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "tr-rlhf",
+   "label": "RLHF 路",
+   "index": 1,
+   "file": "rlhf-rlvr-rlcd--tr-rlhf.mp4",
+   "end_still": "rlhf-rlvr-rlcd--tr-rlhf-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.207
+   ],
+   "beat_nodes": [
+    "base",
+    "rlhf",
+    "anchor"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "tr-rlvr",
+   "label": "RLVR 路",
+   "index": 2,
+   "file": "rlhf-rlvr-rlcd--tr-rlvr.mp4",
+   "end_still": "rlhf-rlvr-rlcd--tr-rlvr-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.32,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.207
+   ],
+   "beat_nodes": [
+    "base",
+    "rlvr",
+    "chief"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "tr-rlcd",
+   "label": "RLCD 路",
+   "index": 3,
+   "file": "rlhf-rlvr-rlcd--tr-rlcd.mp4",
+   "end_still": "rlhf-rlvr-rlcd--tr-rlcd-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.36,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.208
+   ],
+   "beat_nodes": [
+    "base",
+    "rlcd",
+    "judge"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/sao-paulo-v3/docs/assets/architecture/agent-infra/jev--rlhf-rlvr-rlcd.html",
+ "slug": "rlhf-rlvr-rlcd",
+ "type": "workflow"
+}

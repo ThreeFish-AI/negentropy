@@ -1,0 +1,41 @@
+[
+ {
+  "id": "tc-demand",
+  "label": "同一批需求",
+  "focus": [
+   "demand",
+   "rules",
+   "anchor",
+   "plan"
+  ],
+  "note": "同一座城、同样的判断需求，三种拍板方式。"
+ },
+ {
+  "id": "tc-hard",
+  "label": "硬规则之城",
+  "focus": [
+   "rules",
+   "dev"
+  ],
+  "note": "可靠基元堆决策树——例外靠人改代码。"
+ },
+ {
+  "id": "tc-agent",
+  "label": "主播自决之城",
+  "focus": [
+   "anchor",
+   "monitor"
+  ],
+  "note": "agent loop 自由行动——一个人盯着屏幕。"
+ },
+ {
+  "id": "tc-plan",
+  "label": "预案之城",
+  "focus": [
+   "plan",
+   "judge",
+   "chief"
+  ],
+  "note": "代码持预案，判读员交读数，首席兜疑难。"
+ }
+]
