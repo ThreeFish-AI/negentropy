@@ -1,0 +1,47 @@
+[
+ {
+  "id": "ts-l1",
+  "label": "舱单摘要",
+  "focus": [
+   "l1",
+   "l1-proof"
+  ],
+  "note": "L1 运输完整性：铅封只证箱内未动"
+ },
+ {
+  "id": "ts-l2",
+  "label": "随箱签章",
+  "focus": [
+   "l2",
+   "l2-impl"
+  ],
+  "note": "L2 DSSE sidecar：锚定发货人身份"
+ },
+ {
+  "id": "ts-proto",
+  "label": "原型规模",
+  "focus": [
+   "l2-impl",
+   "l2-proto"
+  ],
+  "note": "213 测试的真代码，月下载仅 12 次"
+ },
+ {
+  "id": "ts-l3",
+  "label": "灯塔见证",
+  "focus": [
+   "l3",
+   "l3-impl"
+  ],
+  "note": "L3 第三方重取、比对、签名留台账"
+ },
+ {
+  "id": "ts-count",
+  "label": "口径校准",
+  "focus": [
+   "l3-impl",
+   "l3-count"
+  ],
+  "note": "18.8 万是文件实例，含 fork"
+ }
+]

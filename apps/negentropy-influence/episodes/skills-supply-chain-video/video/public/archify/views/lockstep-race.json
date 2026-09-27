@@ -1,0 +1,30 @@
+[
+ {
+  "id": "lr-t0",
+  "label": "锁步竞态",
+  "focus": [
+   "client",
+   "index"
+  ],
+  "note": "辩护方的机制：14:00 先取舱单"
+ },
+ {
+  "id": "lr-race",
+  "label": "阴阳舱单",
+  "focus": [
+   "server",
+   "index",
+   "client"
+  ],
+  "note": "发版后取 B：新字节配旧 digest"
+ },
+ {
+  "id": "lr-catch",
+  "label": "摘要拦截",
+  "focus": [
+   "client",
+   "index"
+  ],
+  "note": "E-01：关校验 0 报错，开校验整批打回"
+ }
+]

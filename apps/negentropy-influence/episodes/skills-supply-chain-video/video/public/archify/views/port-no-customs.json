@@ -1,0 +1,43 @@
+[
+ {
+  "id": "pn-46",
+  "label": "箱体互认",
+  "focus": [
+   "fmt",
+   "clients"
+  ],
+  "note": "46 家客户端 · showcase 源码清点口径"
+ },
+ {
+  "id": "pn-gap",
+  "label": "刻意留白",
+  "focus": [
+   "spec",
+   "iou-sign",
+   "iou-dist",
+   "iou-ver"
+  ],
+  "note": "签名 / 分发 / 版本：规范零条款"
+ },
+ {
+  "id": "pn-toxic",
+  "label": "投毒到账",
+  "focus": [
+   "scan",
+   "mal"
+  ],
+  "note": "3,984 扫描 → 76 确认恶意 · 厂商自报"
+ },
+ {
+  "id": "pn-ious",
+  "label": "三张欠条",
+  "focus": [
+   "iou-sign",
+   "iou-dist",
+   "iou-ver",
+   "mal",
+   "clients"
+  ],
+  "note": "海关空置 · 货流绕过直达客户端"
+ }
+]
