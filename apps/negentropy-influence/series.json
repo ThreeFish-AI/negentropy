@@ -266,8 +266,8 @@
             "license": "本仓内部文档",
             "accessed": "2026-09-28"
           },
-          "status": "scripting",
-          "statusNote": "完全重制进行中（2026-09-28 启动）：story 档段落演绎；MRO 机务工卡剧场（59 候选三判官 2:1 遴选）；目标 ~14 分钟；信源钉 a77c65822",
+          "status": "final-review",
+          "statusNote": "v1 终渲待审（2026-09-28，013 完全重铸版信源·机务工卡 MRO 剧场）：14:02.1 = 25263 帧 @30fps / 1920×1080（ffprobe 842.10s 与帧复算逐位一致）；193 句 4109 字 story 段落演绎；archify 13 图 76 章 70 cue · 锚定 36.3% · 密度 5.0/分 · 图型 4；C2 三人格全 pass；覆盖门/check_series/主题门 FAIL 0；交付 ~/Documents/video/context-layer/给 AI 发一张工卡：Agent 上下文层蓝图 v1.mp4 + _captions/",
           "voice": "story 段落演绎（me-bright 系 + cues.toml 台本）"
         },
         {
