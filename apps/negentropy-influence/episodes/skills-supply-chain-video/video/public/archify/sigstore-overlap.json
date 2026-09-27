@@ -1,5 +1,121 @@
 {
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 16.7,
+ "total_wall_sec": 58.13,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "so-map",
+   "label": "逐层对位",
+   "index": 0,
+   "file": "sigstore-overlap--so-map.mp4",
+   "end_still": "sigstore-overlap--so-map-end.png",
+   "beats": 5,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 5.57,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.209,
+    3.314,
+    4.418
+   ],
+   "beat_nodes": [
+    "l3",
+    "rekor",
+    "l2",
+    "fulcio",
+    "prov"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "so-reinvent",
+   "label": "手工重造",
+   "index": 1,
+   "file": "sigstore-overlap--so-reinvent.mp4",
+   "end_still": "sigstore-overlap--so-reinvent-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.34,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.208
+   ],
+   "beat_nodes": [
+    "l1",
+    "l2",
+    "l3"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "so-motive",
+   "label": "替换动机",
+   "index": 2,
+   "file": "sigstore-overlap--so-motive.mp4",
+   "end_still": "sigstore-overlap--so-motive-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.34,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.207
+   ],
+   "beat_nodes": [
+    "fulcio",
+    "rekor",
+    "prov"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "so-scale",
+   "label": "量产对照",
+   "index": 3,
+   "file": "sigstore-overlap--so-scale.mp4",
+   "end_still": "sigstore-overlap--so-scale-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.45,
+   "beat_offsets_sec": [
+    0.0,
+    1.101,
+    2.207,
+    3.312
+   ],
+   "beat_nodes": [
+    "npm",
+    "pypi",
+    "tv",
+    "l2"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/dar-es-salaam-v2/docs/assets/architecture/agent-infra/supply-chain--sigstore-overlap.html",
  "slug": "sigstore-overlap",
- "type": "architecture",
- "chapters": []
+ "type": "architecture"
 }

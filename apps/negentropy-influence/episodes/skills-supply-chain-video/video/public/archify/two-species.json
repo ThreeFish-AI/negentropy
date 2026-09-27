@@ -1,5 +1,73 @@
 {
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 8.89,
+ "total_wall_sec": 28.08,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "ts2-official",
+   "label": "官方示例仓",
+   "index": 0,
+   "file": "two-species--ts2-official.mp4",
+   "end_still": "two-species--ts2-official-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.43,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.204,
+    3.307
+   ],
+   "beat_nodes": [
+    "std",
+    "off-repo",
+    "off-push",
+    "off-art"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "ts2-supabase",
+   "label": "逐版发布",
+   "index": 1,
+   "file": "two-species--ts2-supabase.mp4",
+   "end_still": "two-species--ts2-supabase-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.46,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.203,
+    3.305
+   ],
+   "beat_nodes": [
+    "std",
+    "sup-repo",
+    "sup-rel",
+    "sup-art"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/dar-es-salaam-v2/docs/assets/architecture/agent-infra/supply-chain--two-species.html",
  "slug": "two-species",
- "type": "dataflow",
- "chapters": []
+ "type": "dataflow"
 }

@@ -1,5 +1,113 @@
 {
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 13.26,
+ "total_wall_sec": 51.3,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "fg-gemini",
+   "label": "唯一真卡",
+   "index": 0,
+   "file": "four-gates--fg-gemini.mp4",
+   "end_still": "four-gates--fg-gemini-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.33,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.207
+   ],
+   "beat_nodes": [
+    "skill",
+    "g1",
+    "g2"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "fg-trust",
+   "label": "信任不拦",
+   "index": 1,
+   "file": "four-gates--fg-trust.mp4",
+   "end_still": "four-gates--fg-trust-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "skill",
+    "c1"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "fg-chain",
+   "label": "预授权直通",
+   "index": 2,
+   "file": "four-gates--fg-chain.mp4",
+   "end_still": "four-gates--fg-chain-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.34,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.208
+   ],
+   "beat_nodes": [
+    "c1",
+    "c2",
+    "c3"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "fg-explicit",
+   "label": "明文被拒",
+   "index": 3,
+   "file": "four-gates--fg-explicit.mp4",
+   "end_still": "four-gates--fg-explicit-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.36,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.209
+   ],
+   "beat_nodes": [
+    "c2",
+    "x1",
+    "x2"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/dar-es-salaam-v2/docs/assets/architecture/agent-infra/supply-chain--four-gates.html",
  "slug": "four-gates",
- "type": "workflow",
- "chapters": []
+ "type": "workflow"
 }

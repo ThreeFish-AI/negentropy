@@ -1,5 +1,113 @@
 {
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 14.29,
+ "total_wall_sec": 59.0,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "ii-tag",
+   "label": "隐形墨水",
+   "index": 0,
+   "file": "invisible-ink--ii-tag.mp4",
+   "end_still": "invisible-ink--ii-tag-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.36,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.206
+   ],
+   "beat_nodes": [
+    "atk",
+    "screen",
+    "model"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "ii-calc",
+   "label": "三分钟不修",
+   "index": 1,
+   "file": "invisible-ink--ii-calc.mp4",
+   "end_still": "invisible-ink--ii-calc-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.46,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.206,
+    3.312
+   ],
+   "beat_nodes": [
+    "model",
+    "screen",
+    "atk",
+    "vrp"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "ii-replay",
+   "label": "复刻实验",
+   "index": 2,
+   "file": "invisible-ink--ii-replay.mp4",
+   "end_still": "invisible-ink--ii-replay-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0,
+    1.605
+   ],
+   "beat_nodes": [
+    "atk",
+    "screen"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "ii-typo",
+   "label": "一字母之差",
+   "index": 3,
+   "file": "invisible-ink--ii-typo.mp4",
+   "end_still": "invisible-ink--ii-typo-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "atk",
+    "model"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/dar-es-salaam-v2/docs/assets/architecture/agent-infra/supply-chain--invisible-ink.html",
  "slug": "invisible-ink",
- "type": "sequence",
- "chapters": []
+ "type": "sequence"
 }

@@ -28,13 +28,13 @@ style = "story"
 # 重制存量集（旧档 → story）须显式 --allow-voice-switch 并补写台本。
 
 [archify]
-# 蓝图目标 23 图（含 2 张复用 220）；阈值为分镜实测后回填地板（实测值下 10-15%），
-# 当前为蓝图保守地板。html_pattern 前缀沿用 supply-chain--（与 220 两图同族）。
+# 实测（2026-09-27 覆盖门）：20 图 / 79 章 cue / 锚定 78.2%（79/101）/ 密度 5.7/分 /
+# 图型 5 种 / 最长无锚 5 句 / 含时距总长 14.0 分。地板按实测值下 ~10-15% 回填。
 html_dir = "docs/assets/architecture/agent-infra"
 html_pattern = "supply-chain--{slug}.html"
 forbid_inset = true
-min_diagrams = 18
-min_cues = 55
-min_cues_per_minute = 3.8
+min_diagrams = 17
+min_cues = 68
+min_cues_per_minute = 4.9
 min_diagram_types = 5
-min_anchor_ratio = 0.45
+min_anchor_ratio = 0.67

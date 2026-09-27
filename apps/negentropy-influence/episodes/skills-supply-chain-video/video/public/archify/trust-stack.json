@@ -1,5 +1,128 @@
 {
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 16.18,
+ "total_wall_sec": 64.01,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "ts-l1",
+   "label": "舱单摘要",
+   "index": 0,
+   "file": "trust-stack--ts-l1.mp4",
+   "end_still": "trust-stack--ts-l1-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.21,
+   "beat_offsets_sec": [
+    0.0,
+    1.601
+   ],
+   "beat_nodes": [
+    "l1",
+    "l1-proof"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "ts-l2",
+   "label": "随箱签章",
+   "index": 1,
+   "file": "trust-stack--ts-l2.mp4",
+   "end_still": "trust-stack--ts-l2-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "l2",
+    "l2-impl"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "ts-proto",
+   "label": "原型规模",
+   "index": 2,
+   "file": "trust-stack--ts-proto.mp4",
+   "end_still": "trust-stack--ts-proto-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "l2-impl",
+    "l2-proto"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "ts-l3",
+   "label": "灯塔见证",
+   "index": 3,
+   "file": "trust-stack--ts-l3.mp4",
+   "end_still": "trust-stack--ts-l3-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "l3",
+    "l3-impl"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "ts-count",
+   "label": "口径校准",
+   "index": 4,
+   "file": "trust-stack--ts-count.mp4",
+   "end_still": "trust-stack--ts-count-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [
+    0.0,
+    1.602
+   ],
+   "beat_nodes": [
+    "l3-impl",
+    "l3-count"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/dar-es-salaam-v2/docs/assets/architecture/agent-infra/supply-chain--trust-stack.html",
  "slug": "trust-stack",
- "type": "architecture",
- "chapters": []
+ "type": "architecture"
 }

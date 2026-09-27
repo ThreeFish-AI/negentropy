@@ -1,5 +1,117 @@
 {
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 14.55,
+ "total_wall_sec": 67.74,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "vg-nofield",
+   "label": "无版本格",
+   "index": 0,
+   "file": "version-gates--vg-nofield.mp4",
+   "end_still": "version-gates--vg-nofield-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.44,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.204
+   ],
+   "beat_nodes": [
+    "spec",
+    "layer",
+    "computed"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "vg-pinned",
+   "label": "门一写死",
+   "index": 1,
+   "file": "version-gates--vg-pinned.mp4",
+   "end_still": "version-gates--vg-pinned-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.34,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.207
+   ],
+   "beat_nodes": [
+    "computed",
+    "pinned",
+    "stuck"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "vg-floating",
+   "label": "门二省略",
+   "index": 2,
+   "file": "version-gates--vg-floating.mp4",
+   "end_still": "version-gates--vg-floating-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.32,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.207
+   ],
+   "beat_nodes": [
+    "computed",
+    "float",
+    "jump"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "vg-test",
+   "label": "双门实测",
+   "index": 3,
+   "file": "version-gates--vg-test.mp4",
+   "end_still": "version-gates--vg-test-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.45,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.206,
+    3.31
+   ],
+   "beat_nodes": [
+    "stuck",
+    "pintest",
+    "jump",
+    "floattest"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/dar-es-salaam-v2/docs/assets/architecture/agent-infra/supply-chain--version-gates.html",
  "slug": "version-gates",
- "type": "lifecycle",
- "chapters": []
+ "type": "lifecycle"
 }
