@@ -1,0 +1,10 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "slug": "collab-panorama",
+ "type": "dataflow",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code-multiagent--collab-panorama.html",
+ "views": "views/collab-panorama.json",
+ "status": "pending-record",
+ "note": "建图代理种子 sidecar：复用原位重建（同名 HTML 由 workflow 改 dataflow 五 stage 重绘，10 节点 id 与语义逐字保留：post/claim/fetch/match/worktree/wait/gate/shift/tools/loop）；type 按分镜图集预算表落盘（dataflow，合法词表内无需映射）；HTML 原生嵌前 5 章（schema 上限），第 6–8 章 no-branch／gate-three-beats／all-lit-map 由 record_archify.py 经 --views 注入临时副本播放；focus id 与 views/collab-panorama.json 逐字一致；chapters/时长/lead 等字段由录制时整写。"
+}

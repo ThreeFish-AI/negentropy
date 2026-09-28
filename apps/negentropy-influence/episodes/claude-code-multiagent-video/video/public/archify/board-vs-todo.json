@@ -1,0 +1,10 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "slug": "board-vs-todo",
+ "type": "architecture",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--board-vs-todo.html",
+ "views": "views/board-vs-todo.json",
+ "status": "pending-record",
+ "note": "建图代理种子 sidecar：type 按分镜图集预算表落盘（architecture，合法词表内无需映射）；guided-views 已由同版渲染器 2.17.0-dev.1 原生内嵌（3 章，focus 逐字对齐 views）；chapters/时长/lead 等字段由 record_archify.py 录制时整写。"
+}

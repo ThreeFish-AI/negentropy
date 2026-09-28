@@ -1,10 +1,130 @@
 {
-  "schema": 2,
-  "mode": "chapter",
-  "slug": "notify-protocol",
-  "type": "lifecycle",
-  "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--notify-protocol.html",
-  "views": "views/notify-protocol.json",
-  "status": "pending-record",
-  "note": "建图代理种子 sidecar：type 按分镜图集预算表落盘（预算表写 state，录制器 --type 词表只认 architecture/workflow/sequence/dataflow/lifecycle，映射为 lifecycle）；chapters/时长/lead 等字段由 record_archify.py 录制时整写。"
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 16.29,
+ "total_wall_sec": 160.73,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "hang-the-tag",
+   "label": "只挂牌不拍肩",
+   "index": 0,
+   "file": "notify-protocol--hang-the-tag.mp4",
+   "end_still": "notify-protocol--hang-the-tag-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.37,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.207
+   ],
+   "beat_nodes": [
+    "sink",
+    "call-board",
+    "tag"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 27.0
+  },
+  {
+   "id": "one-to-one",
+   "label": "一问一答",
+   "index": 1,
+   "file": "notify-protocol--one-to-one.mp4",
+   "end_still": "notify-protocol--one-to-one-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "tool-use",
+    "tool-result"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "receipt-spent",
+   "label": "回执已交过",
+   "index": 2,
+   "file": "notify-protocol--receipt-spent.mp4",
+   "end_still": "notify-protocol--receipt-spent-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "tool-result",
+    "ticket"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 27.0
+  },
+  {
+   "id": "no-second-receipt",
+   "label": "不能补发",
+   "index": 3,
+   "file": "notify-protocol--no-second-receipt.mp4",
+   "end_still": "notify-protocol--no-second-receipt-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0,
+    1.602
+   ],
+   "beat_nodes": [
+    "tool-use",
+    "x-mark"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "own-doorway",
+   "label": "另立门户",
+   "index": 4,
+   "file": "notify-protocol--own-doorway.mp4",
+   "end_still": "notify-protocol--own-doorway-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.21,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "task-notification",
+    "call-board"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--notify-protocol.html",
+ "slug": "notify-protocol",
+ "type": "lifecycle"
 }

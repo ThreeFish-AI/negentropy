@@ -334,12 +334,14 @@ const Finale: React.FC<{at16: number; at18: number; at19: number; span: number}>
       <div style={{position: 'absolute', left: 380, top: 310, opacity: stackIn}}>
         <HarnessStackP6 at={at16 + 2} nextBreathAt={at18 + DUR.f3} />
       </div>
-      {/* 系列标语压在栈底（08「P6 收尾用法」） */}
+      {/* 系列标语压在栈底（08「P6 收尾用法」）；top 由栈几何推导：
+          栈顶 310 + 5 层×56 + 4 间距×8 = 622，PlateSlab3D 3D 厚度下探约 28px，
+          实测 3D 底边下探更深，留足呼吸 → 704（原写死 650 与第五层 3D 底边叠压，草渲 t845 目检发现） */}
       <div
         style={{
           position: 'absolute',
           left: 380,
-          top: 650,
+          top: 310 + 5 * 56 + 4 * 8 + 82,
           width: 420,
           textAlign: 'center',
           fontFamily: theme.serif,

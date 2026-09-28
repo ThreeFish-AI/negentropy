@@ -12,8 +12,8 @@
   },
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--bg-placeholder-receipt.html",
-    "sha256": "921f1267ab4b48dbc58f68525c342ac514b40e344fe03cd0895390c38b13b8d2",
-    "bytes": 759941
+    "sha256": "5ed6a40ad1a0fc9739acfc6741c13f089eb9f0c3bbe18ec88940dcaa9d98d677",
+    "bytes": 840249
   },
   "gates": {
     "validate": "pass",
@@ -33,5 +33,5 @@
     "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--bg-placeholder-receipt.browser-check.json"
   },
   "visualReview": "not-requested",
-  "durationMs": 5585
+  "durationMs": 2127
 }

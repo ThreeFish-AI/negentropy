@@ -1,0 +1,10 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "slug": "five-layer-dependency",
+ "type": "architecture",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code-harness--five-layer-dependency.html",
+ "views": "views/five-layer-dependency.json",
+ "status": "pending-record",
+ "note": "建图代理种子 sidecar：复用原位重建（15 节点/15 连线 id 与语义逐字保留，viewBox 1380→1240 等比紧排以过 desktop-readability 门）；type 按分镜图集预算表落盘（architecture，合法词表内无需映射）；同版渲染器 2.17.0-dev.1 classic 原生渲染前 5 章（schema 上限），交付后同容器合并写满 11 章＝ep1 六章＋ep3 三章在前、本集 series-vow／five-lit-finale 追加在后，focus 逐字对齐各集 views；chapters/时长/lead 等字段由 record_archify.py 录制时整写。"
+}

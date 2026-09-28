@@ -1,0 +1,10 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "slug": "protocol-fsm",
+ "type": "lifecycle",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--protocol-fsm.html",
+ "views": "views/protocol-fsm.json",
+ "status": "pending-record",
+ "note": "建图代理种子 sidecar：分镜图集预算表记型 state，录制器词表不含 state，按约定映射为 lifecycle 落盘；锁定版渲染器 2.17.0-dev.1 classic 原生内嵌 4 章（script#archify-guided-views-data 非空，id/label/focus/note 与 views/protocol-fsm.json 逐字一致）；10 个 focus id 全部为图内状态节点，另有图内独有节点 proceed（动手干活）；chapters/时长/lead 等字段由录制时整写。"
+}

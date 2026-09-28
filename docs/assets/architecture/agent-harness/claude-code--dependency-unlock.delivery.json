@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "f6f66680-2ddd-461a-a5e2-d63f6af67239",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/.temp/archify-dependency-unlock/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--dependency-unlock.html",
+  "specification": {
+    "sha256": "f85cf2991709926959125ffbfe56c310a3399249e9a1dbe3fc8b5b9dc35de1c0",
+    "bytes": 9386
+  },
+  "artifact": {
+    "sha256": "4a2652c23d197f3ada26f5209221e9de1bb722e6b7fbc195ff5ed31ebadd3ec9",
+    "bytes": 851297
+  }
+}

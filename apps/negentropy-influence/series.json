@@ -146,8 +146,8 @@
             "license": "MIT",
             "accessed": "2026-08-22"
           },
-          "status": "producing",
-          "statusNote": "完全重制中（2026-09-27 起）：重调研（上游重钉 main@0dcafa2 / 站点轨复验 67a9126c 未动）+ 十阶段全新制片（story 档 + archify 覆盖门首次引入本系列 + 3D 视觉方向延续）；旧 draft-review 产物已随 rm→scaffold 重置，git 历史可溯",
+          "status": "final-review",
+          "statusNote": "完全重制 v1 交付（2026-10-01）：14:19 = 859s @1080p30；169 句 3603 字（254 口径直写零减脂）；story 档（44 块 cues + seed 4242）纯语音 13.17 分；archify 12 图 68 章逐章回放（state→lifecycle 词表映射 2 图）；机器门全绿 + 目检修复 P6 系列题字与第五层层板叠压（qa --check 盲区——全分辨率目检抓出，标语 top 改栈几何推导）；归档 v1 + _captions",
           "voice": "story + me-bright.wav"
         },
         {

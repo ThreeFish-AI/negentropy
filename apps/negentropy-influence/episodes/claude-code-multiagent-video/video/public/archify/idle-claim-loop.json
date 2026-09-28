@@ -1,0 +1,10 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "slug": "idle-claim-loop",
+ "type": "dataflow",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--idle-claim-loop.html",
+ "views": "views/idle-claim-loop.json",
+ "status": "pending-record",
+ "note": "建图代理种子 sidecar：type 按分镜图集预算表落盘（dataflow，合法词表内无需映射）；同版渲染器 2.17.0-dev.1 classic 原生内嵌前 5 章（schema 上限 5），第 6 章 lead-two-jobs 由 record_archify.py 经 --views 注入临时副本播放；6 章 19 个 focus id 全部为图内节点、与 views/idle-claim-loop.json 逐字一致；chapters/时长/lead 等字段由录制时整写。"
+}

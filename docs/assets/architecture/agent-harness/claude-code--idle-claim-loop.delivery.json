@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "41224092-78e6-4090-aad5-6445aef8b27d",
+  "status": "current",
+  "command": "deliver",
+  "type": "dataflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/.temp/archify-idle-claim-loop/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--idle-claim-loop.html",
+  "specification": {
+    "sha256": "78c2b9b25a20c3f0ddd97c912c8ab4c7f696d563005055037fac8d6bf66f4831",
+    "bytes": 11804
+  },
+  "artifact": {
+    "sha256": "7130f0a0b1f6cbec5d6c61b78def86b4cd7bbe49d62746d2233d5f59b1dc7550",
+    "bytes": 863736
+  }
+}

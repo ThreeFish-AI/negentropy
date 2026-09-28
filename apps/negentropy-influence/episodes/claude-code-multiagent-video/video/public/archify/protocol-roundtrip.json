@@ -1,0 +1,10 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "slug": "protocol-roundtrip",
+ "type": "sequence",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--protocol-roundtrip.html",
+ "views": "views/protocol-roundtrip.json",
+ "status": "pending-record",
+ "note": "建图代理种子 sidecar：type 按分镜图集预算表落盘（sequence，合法词表内无需映射）；锁定版渲染器 2.17.0-dev.1 classic 原生内嵌 5 章（schema 上限 5）；15 个参与者泳道 = 全部 focus id。sequence 的 guided-views 只认参与者 id，16 列超出 showcase 可读性门的宽度上限，故 route-before-return 章把抽象键 order 换成 lead（「再交消息」的收方），views/protocol-roundtrip.json 已同步回写，5 章 16 个 focus 槽与图内节点逐字一致、各章拍数不变；chapters/时长/lead 等字段由录制时整写。"
+}

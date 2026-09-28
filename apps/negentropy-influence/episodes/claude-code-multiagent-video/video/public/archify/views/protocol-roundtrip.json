@@ -26,7 +26,7 @@
  {
   "id": "route-before-return",
   "label": "先翻账再交消息",
-  "focus": ["protocol-ledger", "inbox", "order"],
+  "focus": ["protocol-ledger", "inbox", "lead"],
   "note": "消费格子还有个讲究：同一次调用里先翻协议的账，再交消息。"
  }
 ]

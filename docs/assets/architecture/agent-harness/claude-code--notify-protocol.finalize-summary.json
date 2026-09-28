@@ -12,8 +12,8 @@
   },
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--notify-protocol.html",
-    "sha256": "73e959ea4ec78f4c147239179c13e1fd0d868f9776dd2520a4e0dcb2641ddeeb",
-    "bytes": 762416
+    "sha256": "d0b93d1e7d08225fe04c964d7fd979d601b2c9455ead0027afb3a7ede470e0da",
+    "bytes": 841562
   },
   "gates": {
     "validate": "pass",
@@ -33,7 +33,7 @@
     "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--notify-protocol.browser-check.json"
   },
   "visualReview": "not-requested",
-  "durationMs": 5132,
+  "durationMs": 2057,
   "visualReviewRecommendation": {
     "action": "inspect-route-readability",
     "signals": {

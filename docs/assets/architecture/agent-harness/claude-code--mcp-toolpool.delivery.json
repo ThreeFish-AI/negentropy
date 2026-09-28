@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "78297280-cf8f-457f-b9a1-f1d2a6917760",
+  "status": "current",
+  "command": "deliver",
+  "type": "dataflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/.temp/archify-mcp-toolpool/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--mcp-toolpool.html",
+  "specification": {
+    "sha256": "c4fedba373bcb0fb84660fa4aff2d0981e297847aa8a5af8dbf0c2c4d0f48f18",
+    "bytes": 11040
+  },
+  "artifact": {
+    "sha256": "0feef30eba585c91644d5d94af815092d5460d9bf2c6d8104fe83a7356852f46",
+    "bytes": 860035
+  }
+}

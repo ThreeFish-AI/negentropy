@@ -1,10 +1,174 @@
 {
  "schema": 2,
  "mode": "chapter",
- "slug": "apprentice-watch",
- "type": "workflow",
+ "lead_sec": 0.44,
+ "story_sec": 22.87,
+ "total_wall_sec": 100.3,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "teach-zero",
+   "label": "教学版零落地",
+   "index": 0,
+   "file": "apprentice-watch--teach-zero.mp4",
+   "end_still": "apprentice-watch--teach-zero-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0,
+    1.606
+   ],
+   "beat_nodes": [
+    "teach-page",
+    "empty"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 48.0
+  },
+  {
+   "id": "watch-only",
+   "label": "只看不动手",
+   "index": 1,
+   "file": "apprentice-watch--watch-only.mp4",
+   "end_still": "apprentice-watch--watch-only-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [
+    0.0,
+    1.605
+   ],
+   "beat_nodes": [
+    "apprentice",
+    "sink-row"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 49.0
+  },
+  {
+   "id": "growth-not-age",
+   "label": "增量非时长",
+   "index": 2,
+   "file": "apprentice-watch--growth-not-age.mp4",
+   "end_still": "apprentice-watch--growth-not-age-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0,
+    1.605
+   ],
+   "beat_nodes": [
+    "output-meter",
+    "clock-x"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 49.0
+  },
+  {
+   "id": "forty-five-sec",
+   "label": "四十五秒凑近",
+   "index": 3,
+   "file": "apprentice-watch--forty-five-sec.mp4",
+   "end_still": "apprentice-watch--forty-five-sec-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.602
+   ],
+   "beat_nodes": [
+    "output-meter",
+    "threshold-45"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 48.0
+  },
+  {
+   "id": "yn-sniff",
+   "label": "停在问话上",
+   "index": 4,
+   "file": "apprentice-watch--yn-sniff.mp4",
+   "end_still": "apprentice-watch--yn-sniff-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.606
+   ],
+   "beat_nodes": [
+    "prompt-yn",
+    "wait-key"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 48.0
+  },
+  {
+   "id": "side-model-slip",
+   "label": "小模型写字条",
+   "index": 5,
+   "file": "apprentice-watch--side-model-slip.mp4",
+   "end_still": "apprentice-watch--side-model-slip-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.36,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.21
+   ],
+   "beat_nodes": [
+    "slip",
+    "side-model",
+    "main-stream"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 49.0
+  },
+  {
+   "id": "official-monitor",
+   "label": "官方监视工具",
+   "index": 6,
+   "file": "apprentice-watch--official-monitor.mp4",
+   "end_still": "apprentice-watch--official-monitor-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.207
+   ],
+   "beat_nodes": [
+    "monitor-tool",
+    "stream-rows",
+    "timeout-collect"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 49.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
  "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--apprentice-watch.html",
- "views": "views/apprentice-watch.json",
- "status": "pending-record",
- "note": "建图代理种子 sidecar：type 按分镜图集预算表落盘（workflow，合法词表内无需映射）；chapters/时长/lead 等字段由 record_archify.py 录制时整写。"
+ "slug": "apprentice-watch",
+ "type": "workflow"
 }
