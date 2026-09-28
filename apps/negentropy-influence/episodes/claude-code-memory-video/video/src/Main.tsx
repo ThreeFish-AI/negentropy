@@ -9,8 +9,22 @@ import {LangProvider} from './i18n';
 import {computeTimeline, SCENE_FADE_FRAMES} from './timing';
 import type {Lang} from './i18n';
 import type {ManifestItem, SceneRange} from './types';
+import {P0MemoryHook} from './scenes/P0MemoryHook';
+import {P1FullTable} from './scenes/P1FullTable';
+import {P2CompactSteps} from './scenes/P2CompactSteps';
+import {P3LossySummary} from './scenes/P3LossySummary';
+import {P4Ledger} from './scenes/P4Ledger';
+import {P5NightShift} from './scenes/P5NightShift';
+import {P6TwoSystems} from './scenes/P6TwoSystems';
 
 const SCENE_COMPONENTS: Record<string, React.FC<{scene: SceneRange}>> = {
+  P0: P0MemoryHook,
+  P1: P1FullTable,
+  P2: P2CompactSteps,
+  P3: P3LossySummary,
+  P4: P4Ledger,
+  P5: P5NightShift,
+  P6: P6TwoSystems,
 };
 
 export type MainProps = {manifest: ManifestItem[]; lang?: Lang};

@@ -1,1 +1,30 @@
-[]
+[
+ {
+  "scene": "P0",
+  "title": "一个到一群"
+ },
+ {
+  "scene": "P1",
+  "title": "排工板"
+ },
+ {
+  "scene": "P2",
+  "title": "收件格与派工单"
+ },
+ {
+  "scene": "P3",
+  "title": "班次"
+ },
+ {
+  "scene": "P4",
+  "title": "隔间"
+ },
+ {
+  "scene": "P5",
+  "title": "插口"
+ },
+ {
+  "scene": "P6",
+  "title": "收束"
+ }
+]

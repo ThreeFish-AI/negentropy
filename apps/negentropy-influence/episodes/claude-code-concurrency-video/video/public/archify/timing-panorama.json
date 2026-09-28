@@ -1,0 +1,10 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "slug": "timing-panorama",
+ "type": "architecture",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--timing-panorama.html",
+ "views": "views/timing-panorama.json",
+ "status": "pending-record",
+ "note": "建图代理种子 sidecar：type 按分镜图集预算表落盘（architecture，合法词表内无需映射）；HTML 原生嵌 5 章（schema 上限），第 6/7 章 one-belt-close／where-waiting-goes 由 record_archify.py 经 --views 注入临时副本播放；12 个 focus 节点 id 与 views/timing-panorama.json 逐字一致；chapters/时长/lead 等字段由录制时整写。"
+}

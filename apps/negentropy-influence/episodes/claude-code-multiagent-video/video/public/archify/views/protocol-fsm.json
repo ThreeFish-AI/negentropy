@@ -1,0 +1,26 @@
+[
+ {
+  "id": "one-fsm-two-protocols",
+  "label": "一套机制两协议",
+  "focus": ["fsm", "shutdown", "plan-approval"],
+  "note": "关机与计划审批共用一个状态机：pending 走到 approved 或 rejected——单据机制是通用的。"
+ },
+ {
+  "id": "plan-handshake",
+  "label": "计划递单",
+  "focus": ["submit-plan", "pending", "response"],
+  "note": "队友动大手笔前把计划写成单子发给领队；批复回来，再动手。"
+ },
+ {
+  "id": "not-a-gate",
+  "label": "不是代码层的门",
+  "focus": ["request", "note-gate"],
+  "note": "教学版自陈：这只是协议层的请求，不是代码层的门。"
+ },
+ {
+  "id": "self-discipline",
+  "label": "靠自觉",
+  "focus": ["waiting", "agent"],
+  "note": "队友会不会真停下等批复，靠的是它自觉。"
+ }
+]

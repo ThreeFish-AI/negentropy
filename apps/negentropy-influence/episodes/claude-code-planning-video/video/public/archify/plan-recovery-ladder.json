@@ -1,0 +1,348 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 49.01,
+ "total_wall_sec": 201.68,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "ladder-mounted",
+   "label": "三级梯挂上传送带",
+   "index": 0,
+   "file": "plan-recovery-ladder--ladder-mounted.mp4",
+   "end_still": "plan-recovery-ladder--ladder-mounted-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.31,
+   "beat_offsets_sec": [
+    0.0,
+    1.101,
+    2.204
+   ],
+   "beat_nodes": [
+    "belt",
+    "ladder",
+    "three-levels"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "snap-truncated",
+   "label": "摔法一话被掐断",
+   "index": 1,
+   "file": "plan-recovery-ladder--snap-truncated.mp4",
+   "end_still": "plan-recovery-ladder--snap-truncated-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0,
+    1.602
+   ],
+   "beat_nodes": [
+    "level-truncation",
+    "half-sentence"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "snap-overflow",
+   "label": "摔法二台面撑爆",
+   "index": 2,
+   "file": "plan-recovery-ladder--snap-overflow.mp4",
+   "end_still": "plan-recovery-ladder--snap-overflow-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "level-overflow",
+    "desk-full"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "snap-transient",
+   "label": "摔法三外部抖动",
+   "index": 3,
+   "file": "plan-recovery-ladder--snap-transient.mp4",
+   "end_still": "plan-recovery-ladder--snap-transient-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "level-transient",
+    "shake-wave"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "three-catches",
+   "label": "三摔三接不同层",
+   "index": 4,
+   "file": "plan-recovery-ladder--three-catches.mp4",
+   "end_still": "plan-recovery-ladder--three-catches-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.37,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.207
+   ],
+   "beat_nodes": [
+    "level-truncation",
+    "level-overflow",
+    "level-transient"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "layer-split",
+   "label": "里层重试外层兜",
+   "index": 5,
+   "file": "plan-recovery-ladder--layer-split.mp4",
+   "end_still": "plan-recovery-ladder--layer-split-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0,
+    1.605
+   ],
+   "beat_nodes": [
+    "inner-retry",
+    "outer-catch"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "truncation-last",
+   "label": "截断最晚判断",
+   "index": 6,
+   "file": "plan-recovery-ladder--truncation-last.mp4",
+   "end_still": "plan-recovery-ladder--truncation-last-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0,
+    1.605
+   ],
+   "beat_nodes": [
+    "stop-reason",
+    "response-first"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "compact-then-retry",
+   "label": "应急压缩清台",
+   "index": 7,
+   "file": "plan-recovery-ladder--compact-then-retry.mp4",
+   "end_still": "plan-recovery-ladder--compact-then-retry-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.33,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.207
+   ],
+   "beat_nodes": [
+    "level-overflow",
+    "compact-wave",
+    "retry-loop"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "compact-once-gate",
+   "label": "一次性闸 · 只压一次",
+   "index": 8,
+   "file": "plan-recovery-ladder--compact-once-gate.mp4",
+   "end_still": "plan-recovery-ladder--compact-once-gate-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "one-shot-gate",
+    "locked"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "give-up-oversize",
+   "label": "再压也不变小",
+   "index": 9,
+   "file": "plan-recovery-ladder--give-up-oversize.mp4",
+   "end_still": "plan-recovery-ladder--give-up-oversize-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "give-up",
+    "still-oversize"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 23.0
+  },
+  {
+   "id": "backoff-with-jitter",
+   "label": "越等越久掺随机",
+   "index": 10,
+   "file": "plan-recovery-ladder--backoff-with-jitter.mp4",
+   "end_still": "plan-recovery-ladder--backoff-with-jitter-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.209
+   ],
+   "beat_nodes": [
+    "level-transient",
+    "backoff-timeline",
+    "jitter-dots"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "jitter-anti-avalanche",
+   "label": "打散同刻重试",
+   "index": 11,
+   "file": "plan-recovery-ladder--jitter-anti-avalanche.mp4",
+   "end_still": "plan-recovery-ladder--jitter-anti-avalanche-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0,
+    1.605
+   ],
+   "beat_nodes": [
+    "jitter-dots",
+    "spread-clock"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "official-ten-retries",
+   "label": "官方最多十次",
+   "index": 12,
+   "file": "plan-recovery-ladder--official-ten-retries.mp4",
+   "end_still": "plan-recovery-ladder--official-ten-retries-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.605
+   ],
+   "beat_nodes": [
+    "cap-ten",
+    "backoff-timeline"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "fallback-chain",
+   "label": "备用切换与清零",
+   "index": 13,
+   "file": "plan-recovery-ladder--fallback-chain.mp4",
+   "end_still": "plan-recovery-ladder--fallback-chain-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0,
+    1.605
+   ],
+   "beat_nodes": [
+    "fallback-model",
+    "counter-reset"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "exit-protocol",
+   "label": "救不回也有收场",
+   "index": 14,
+   "file": "plan-recovery-ladder--exit-protocol.mp4",
+   "end_still": "plan-recovery-ladder--exit-protocol-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.32,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.206
+   ],
+   "beat_nodes": [
+    "log-line",
+    "write-back",
+    "exit-door"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--plan-recovery-ladder.html",
+ "slug": "plan-recovery-ladder",
+ "type": "lifecycle"
+}

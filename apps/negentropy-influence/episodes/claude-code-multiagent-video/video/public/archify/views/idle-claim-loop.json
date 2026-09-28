@@ -1,0 +1,38 @@
+[
+ {
+  "id": "three-conditions",
+  "label": "三条件合取",
+  "focus": ["pending", "no-owner", "deps-done"],
+  "note": "扫板认领，资格是三个条件的合取。"
+ },
+ {
+  "id": "conj-check",
+  "label": "三条全中",
+  "focus": ["cond-a", "cond-b", "cond-c", "claim"],
+  "note": "状态是待办、没有归属、依赖全做完——三条全中才能领。"
+ },
+ {
+  "id": "deps-read",
+  "label": "有依赖不算不合格",
+  "focus": ["deps-list", "readable"],
+  "note": "最容易读错的是第三条：有依赖，不算不合格。"
+ },
+ {
+  "id": "blocked-only",
+  "label": "只看被挡",
+  "focus": ["uncompleted-dep", "blocked", "free"],
+  "note": "被没干完的活挡着才算；依赖全清的活，照样领。"
+ },
+ {
+  "id": "verify-receipt",
+  "label": "验回执",
+  "focus": ["claim-call", "receipt", "inject"],
+  "note": "回执真写了领到，才把活注入上下文——认领失败不当成功。"
+ },
+ {
+  "id": "lead-two-jobs",
+  "label": "领队两件事",
+  "focus": ["lead", "create", "launch", "no-assign"],
+  "note": "领队全程只干两件事：建活、开机——分配，从没干过。"
+ }
+]

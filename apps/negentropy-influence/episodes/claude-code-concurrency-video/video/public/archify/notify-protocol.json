@@ -1,0 +1,10 @@
+{
+  "schema": 2,
+  "mode": "chapter",
+  "slug": "notify-protocol",
+  "type": "lifecycle",
+  "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--notify-protocol.html",
+  "views": "views/notify-protocol.json",
+  "status": "pending-record",
+  "note": "建图代理种子 sidecar：type 按分镜图集预算表落盘（预算表写 state，录制器 --type 词表只认 architecture/workflow/sequence/dataflow/lifecycle，映射为 lifecycle）；chapters/时长/lead 等字段由 record_archify.py 录制时整写。"
+}

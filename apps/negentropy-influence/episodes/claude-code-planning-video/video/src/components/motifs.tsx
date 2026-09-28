@@ -13,7 +13,7 @@
  *  故任何调用点都不得覆写这两个值——只允许改 size / 位置 / 节点高亮。
  */
 import React from 'react';
-import {interpolate, spring, useCurrentFrame, useVideoConfig} from 'remotion';
+import {AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig} from 'remotion';
 import {theme} from '../design/theme';
 
 /** 环线宽（绝对像素，全片恒定，勿随 size 缩放） */
@@ -686,5 +686,205 @@ export const NumberedCard: React.FC<{
     </div>
   );
 };
+
+// ─────────────────────────────────────────────── 本集新增母题（storyboard 公共组件清单）──
+// DeskPlane 台面（上下文窗口）／ClashCard 三连反转对撞卡（D1/D2/D3）／ReceiptPaper 回执纸。
+// 「本集空间契约」的实现载体：台面恒居画面中央〔M-001 换主角——执行层的锚是循环，本层的
+// 锚是台面〕，五装置自右缘/上缘依次挂入（mech 紫）。「安排台面」的动效只作用于台面内容物。
+
+/** 台面描边线宽（绝对像素，全片恒定，勿随尺寸缩放） */
+export const DESK_STROKE = 6;
+
+/** 台面锚位几何（SSOT）：coreDeep 描边大矩形，恒居画面中央，P0 立锚后全片永不换位。
+ *  台面内容物与装置挂点一律从这组常量推坐标，勿散抄数字。 */
+export const DESK = {left: 480, top: 270, w: 960, h: 540} as const;
+
+/** 台面（上下文窗口）＝本集恒定主视觉〔M-001〕。
+ *  台面框体恒静——装置动效只作用于台面内容物（增/删/换），不触碰框体自身；任何调用点
+ *  不得覆写描边色/线宽/锚位。draw 仅供 P0 立锚描线生长；opacity 供整层让位/压暗
+ *  （由调用方注入——本母题零 hook、零自身动画）。内面填色是 coreDeep 的 7% 确定性
+ *  派生（字面量，可 grep），读作「台面自己的底」而非新概念色。 */
+export const DeskPlane: React.FC<{draw?: number; opacity?: number}> = ({draw = 1, opacity = 1}) => {
+  const d = draw < 0 ? 0 : draw > 1 ? 1 : draw;
+  const s = DESK_STROKE / 2;
+  return (
+    <svg
+      width={DESK.w + DESK_STROKE}
+      height={DESK.h + DESK_STROKE}
+      style={{
+        position: 'absolute',
+        left: DESK.left - s,
+        top: DESK.top - s,
+        opacity,
+        overflow: 'visible',
+      }}
+    >
+      <rect
+        x={s}
+        y={s}
+        width={DESK.w}
+        height={DESK.h}
+        rx={18}
+        fill="#B45A3C12"
+        stroke={theme.coreDeep}
+        strokeWidth={DESK_STROKE}
+        pathLength={1}
+        strokeDasharray={1}
+        strokeDashoffset={1 - d}
+      />
+    </svg>
+  );
+};
+
+/** 对撞卡几何（D1/D2/D3 共用）：左右双卡 + 中央对撞轴 + 底部口径/收束条带。 */
+export const CLASH = {
+  left: {x: 150, y: 300, w: 640, h: 380},
+  right: {x: 1130, y: 300, w: 640, h: 380},
+  axisY: 470,
+  stripY: 766,
+} as const;
+
+/** 三连反转对撞卡（D1/D2/D3 共用形态）。
+ *  左＝拆源码侧 mono 引语卡、右＝官方文档页样——内容由场景经 slot 传入（引语的
+ *  useReveal 逐字属于场景时序，母题不吃 hook）。两支箭头自两侧推进相撞，裁决后
+ *  **右倾**：官方轨胜出的终态与标签语义同向（右卡微升轻放大、左卡下沉压暗 45%、
+ *  全排绕中点顺时针倾 2.4°，左箭被顶退、右箭进占中点）。enter/tilt 全由调用方注入。 */
+export const ClashCard: React.FC<{
+  /** 入场进度：[0] 左卡 [1] 右卡 [2] 箭头推进。 */
+  enter: readonly number[];
+  /** 裁决 0..1（弹簧输出；1 = 右倾终态）。 */
+  tilt: number;
+  left: React.ReactNode;
+  right: React.ReactNode;
+  /** 底部口径递进条 / 收束条（可缺省）。 */
+  strip?: React.ReactNode;
+}> = ({enter, tilt, left, right, strip}) => {
+  const t = tilt < 0 ? 0 : tilt > 1 ? 1 : tilt;
+  const eL = enter[0] ?? 0;
+  const eR = enter[1] ?? 0;
+  const eA = enter[2] ?? 0;
+  // 对撞火花：裁决弹簧行进途中一闪（sin 窗，终态归零——一次性特效不作停驻态）
+  const spark = Math.sin(Math.PI * t);
+  // 箭头停点：无裁决时两箭头在中点两侧相抵；裁决后左箭被顶退、右箭进占中点
+  const tipL = 700 + 130 * eA - 96 * t;
+  const tipR = 1220 - 130 * eA - 66 * t;
+  const arrow = (tip: number, dir: 1 | -1, color: string, o: number) => (
+    <g opacity={o}>
+      <line
+        x1={tip - dir * 170}
+        y1={120}
+        x2={tip - dir * 16}
+        y2={120}
+        stroke={color}
+        strokeWidth={8}
+        strokeLinecap="round"
+      />
+      <path
+        d={`M${tip - dir * 28} 102 L${tip} 120 L${tip - dir * 28} 138`}
+        fill="none"
+        stroke={color}
+        strokeWidth={8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </g>
+  );
+  return (
+    <AbsoluteFill>
+      <div
+        style={{
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          width: 1920,
+          height: 1080,
+          transform: `rotate(${2.4 * t}deg)`,
+          transformOrigin: '960px 700px',
+        }}
+      >
+        {/* 对撞轴（先画＝箭尾自然从卡片后缘探出） */}
+        <svg width={1920} height={240} style={{position: 'absolute', left: 0, top: CLASH.axisY - 120}}>
+          {arrow(tipL, 1, theme.dim, 0.9 * eA * (1 - 0.5 * t))}
+          {arrow(tipR, -1, theme.text, 0.9 * eA)}
+          {t > 0
+            ? Array.from({length: 6}, (_, i) => {
+                const a = (i / 6) * Math.PI * 2;
+                return (
+                  <line
+                    key={i}
+                    x1={960 + Math.cos(a) * 26}
+                    y1={120 + Math.sin(a) * 26}
+                    x2={960 + Math.cos(a) * (44 + 26 * spark)}
+                    y2={120 + Math.sin(a) * (44 + 26 * spark)}
+                    stroke={theme.text}
+                    strokeWidth={4}
+                    strokeLinecap="round"
+                    opacity={spark}
+                  />
+                );
+              })
+            : null}
+        </svg>
+        {/* 左：拆源码侧（败方终态＝下沉 + 压暗） */}
+        <div
+          style={{
+            position: 'absolute',
+            left: CLASH.left.x,
+            top: CLASH.left.y + 10 * t,
+            width: CLASH.left.w,
+            opacity: eL * (1 - 0.45 * t),
+            transform: `translateY(${(1 - eL) * 24}px)`,
+          }}
+        >
+          {left}
+        </div>
+        {/* 右：官方文档页（胜方终态＝微升 + 轻放大） */}
+        <div
+          style={{
+            position: 'absolute',
+            left: CLASH.right.x,
+            top: CLASH.right.y - 8 * t,
+            width: CLASH.right.w,
+            opacity: eR,
+            transform: `translateY(${(1 - eR) * 24}px) scale(${1 + 0.03 * t})`,
+          }}
+        >
+          {right}
+        </div>
+      </div>
+      {strip ? (
+        <div style={{position: 'absolute', left: 0, top: CLASH.stripY, width: 1920}}>{strip}</div>
+      ) : null}
+    </AbsoluteFill>
+  );
+};
+
+/** 回执纸（P2 回执仪式 / 双边界卡复用）：mech 描边纸片＋折角＋两行摘要字与一行结论字。
+ *  「只带回结论、过程作废」的读法全在纸面：摘要行 dim、结论行 mech；位移/落位弹簧
+ *  由调用方注入（transform 在外层），纸面恒不自带动画。 */
+export const ReceiptPaper: React.FC<{w?: number; h?: number; opacity?: number}> = ({
+  w = 190,
+  h = 128,
+  opacity = 1,
+}) => (
+  <svg width={w} height={h} style={{display: 'block', overflow: 'visible', opacity}}>
+    <path
+      d={`M2 12 Q2 2 12 2 H${w - 30} L${w - 2} 30 V${h - 12} Q${w - 2} ${h - 2} ${w - 12} ${h - 2} H12 Q2 ${h - 2} 2 ${h - 12} Z`}
+      fill={theme.panel}
+      stroke={theme.mech}
+      strokeWidth={3}
+    />
+    <path
+      d={`M${w - 30} 2 L${w - 30} 30 L${w - 2} 30`}
+      fill="none"
+      stroke={theme.mech}
+      strokeWidth={2.5}
+      opacity={0.65}
+    />
+    <line x1={20} y1={Math.round(h * 0.42)} x2={w - 22} y2={Math.round(h * 0.42)} stroke={theme.panelBorder} strokeWidth={3} />
+    <line x1={20} y1={Math.round(h * 0.42) + 20} x2={Math.round(w * 0.66)} y2={Math.round(h * 0.42) + 20} stroke={theme.panelBorder} strokeWidth={3} />
+    <line x1={20} y1={h - 26} x2={Math.round(w * 0.58)} y2={h - 26} stroke={theme.mech} strokeWidth={3.5} />
+  </svg>
+);
 
 export {ease};

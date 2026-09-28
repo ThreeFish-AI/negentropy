@@ -1,0 +1,92 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 10.02,
+ "total_wall_sec": 45.49,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "layer-flash",
+   "label": "记忆层一闪",
+   "index": 0,
+   "file": "five-layer-dependency--layer-flash.mp4",
+   "end_still": "five-layer-dependency--layer-flash-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.31,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.204
+   ],
+   "beat_nodes": [
+    "layer-3",
+    "layer-2",
+    "layer-4"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "read-two-books",
+   "label": "先分两本账",
+   "index": 1,
+   "file": "five-layer-dependency--read-two-books.mp4",
+   "end_still": "five-layer-dependency--read-two-books-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.36,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.208
+   ],
+   "beat_nodes": [
+    "loop-core",
+    "layer-3",
+    "device-zones"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "two-dark-zones",
+   "label": "两个区没开灯",
+   "index": 2,
+   "file": "five-layer-dependency--two-dark-zones.mp4",
+   "end_still": "five-layer-dependency--two-dark-zones-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.21
+   ],
+   "beat_nodes": [
+    "dim-zones",
+    "layer-4",
+    "layer-5"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code-harness--five-layer-dependency.html",
+ "slug": "five-layer-dependency",
+ "type": "architecture"
+}

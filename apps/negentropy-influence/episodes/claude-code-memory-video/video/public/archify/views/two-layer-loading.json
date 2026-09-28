@@ -1,0 +1,9 @@
+[
+ {"id": "two-tracks", "label": "两层递送", "focus": ["system-prefix", "user-turn"], "note": "把记忆递到师傅眼前分两层：垫纸一条轨，当前轮一条轨。"},
+ {"id": "index-resident", "label": "扉页常驻垫纸", "focus": ["index-resident", "system-prefix"], "note": "扉页目录常驻垫纸，每一轮都摊开在开头。"},
+ {"id": "body-on-demand", "label": "正文按需进当前轮", "focus": ["selector", "inject-copy", "user-turn"], "note": "正文按需：开工前挑出相关几页，拼进这一次的请求。"},
+ {"id": "copy-not-pollute", "label": "拼的是拷贝", "focus": ["inject-copy", "dialog-ledger"], "note": "拼进去的是一份拷贝，真实的对话记录一个字不动。"},
+ {"id": "cache-stakes", "label": "前缀一动全白算", "focus": ["cache-zone", "system-prefix", "user-turn"], "note": "目录小而常驻吃得住缓存；正文按轮注入不动前缀——前缀一动，前面算过的全白算。"},
+ {"id": "side-query", "label": "目录员旁路", "focus": ["side-query", "selector"], "note": "挑页的活交给目录员：目录＋最近几句用户的话，发一次独立的小调用（按需轨上游）。"},
+ {"id": "model-not-vectors", "label": "模型选不相似度", "focus": ["selector", "model-pick"], "note": "挑选靠模型自己，不是向量相似度——两章代码里一行向量的影子都没有（终态口径）。"}
+]

@@ -1,0 +1,26 @@
+[
+ {
+  "id": "two-roads",
+  "label": "判定分两级",
+  "focus": ["verdict-node", "sync-lane", "bg-lane"],
+  "note": "谁说了算分两级：命令进来先过判定节点，分同步／后台两支（回溯 §一·机制 1）。"
+ },
+ {
+  "id": "explicit-switch",
+  "label": "主路显式开关",
+  "focus": ["checkbox-on", "bg-lane"],
+  "note": "主路＝显式请求：命令单上有开关，勾上就走后台支。"
+ },
+ {
+  "id": "keyword-fallback",
+  "label": "关键词兜底",
+  "focus": ["keyword-scan", "slow-guess", "bg-lane"],
+  "note": "兜底＝启发式猜：未勾时扫描慢活关键词（装东西／跑构建／跑测试），命中转后台。"
+ },
+ {
+  "id": "primary-vs-fallback",
+  "label": "主次定死",
+  "focus": ["verdict-node", "checkbox-on", "keyword-scan"],
+  "note": "项目自承：正路是显式请求，猜只是兜底——主次关系写死。"
+ }
+]

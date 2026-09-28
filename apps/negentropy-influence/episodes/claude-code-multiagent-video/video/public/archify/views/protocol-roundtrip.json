@@ -1,0 +1,32 @@
+[
+ {
+  "id": "two-copies",
+  "label": "一式两份",
+  "focus": ["lead", "teammate", "slip-a", "slip-b"],
+  "note": "收件格上头再添一层——派工单一式两份，编号清清楚楚。"
+ },
+ {
+  "id": "id-roundtrip",
+  "label": "编号往返",
+  "focus": ["request-id", "out", "back"],
+  "note": "请求带着编号出去，回复带着编号回来——传话不看脸，看编号。"
+ },
+ {
+  "id": "three-checks",
+  "label": "三道验证",
+  "focus": ["check-id", "check-type", "check-open"],
+  "note": "回执进门过三道：编号存在、类型配对、单子还没结案。"
+ },
+ {
+  "id": "stale-immune",
+  "label": "结案免疫",
+  "focus": ["closed-slip", "dup-reply", "reject"],
+  "note": "关机的回执批不了计划的请求；结过案的单子对重复回复免疫。"
+ },
+ {
+  "id": "route-before-return",
+  "label": "先翻账再交消息",
+  "focus": ["protocol-ledger", "inbox", "order"],
+  "note": "消费格子还有个讲究：同一次调用里先翻协议的账，再交消息。"
+ }
+]

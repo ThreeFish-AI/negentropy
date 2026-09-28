@@ -1,0 +1,169 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 26.49,
+ "total_wall_sec": 89.68,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "four-layers",
+   "label": "四层手段亮相",
+   "index": 0,
+   "file": "compact-pipeline--four-layers.mp4",
+   "end_still": "compact-pipeline--four-layers-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.45,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.208,
+    3.311
+   ],
+   "beat_nodes": [
+    "snip-lane",
+    "micro-lane",
+    "budget-lane",
+    "digest-lane"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 48.0
+  },
+  {
+   "id": "cost-ladder",
+   "label": "便宜的先跑",
+   "index": 1,
+   "file": "compact-pipeline--cost-ladder.mp4",
+   "end_still": "compact-pipeline--cost-ladder-end.png",
+   "beats": 5,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 5.56,
+   "beat_offsets_sec": [
+    0.0,
+    1.107,
+    2.213,
+    3.317,
+    4.42
+   ],
+   "beat_nodes": [
+    "cost-column",
+    "snip-lane",
+    "micro-lane",
+    "budget-lane",
+    "digest-lane"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 49.0
+  },
+  {
+   "id": "text-vs-llm",
+   "label": "前三层零调用",
+   "index": 2,
+   "file": "compact-pipeline--text-vs-llm.mp4",
+   "end_still": "compact-pipeline--text-vs-llm-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.43,
+   "beat_offsets_sec": [
+    0.0,
+    1.106,
+    2.21,
+    3.314
+   ],
+   "beat_nodes": [
+    "snip-lane",
+    "micro-lane",
+    "budget-lane",
+    "cost-column"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 48.0
+  },
+  {
+   "id": "one-llm-call",
+   "label": "第四层一次调用",
+   "index": 3,
+   "file": "compact-pipeline--one-llm-call.mp4",
+   "end_still": "compact-pipeline--one-llm-call-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [
+    0.0,
+    1.607
+   ],
+   "beat_nodes": [
+    "digest-lane",
+    "cost-column"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 49.0
+  },
+  {
+   "id": "teach-vs-real",
+   "label": "讲课序撞实序",
+   "index": 4,
+   "file": "compact-pipeline--teach-vs-real.mp4",
+   "end_still": "compact-pipeline--teach-vs-real-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "teach-numbering",
+    "real-flow"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 48.0
+  },
+  {
+   "id": "real-order",
+   "label": "实序逐拍点亮",
+   "index": 5,
+   "file": "compact-pipeline--real-order.mp4",
+   "end_still": "compact-pipeline--real-order-end.png",
+   "beats": 5,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 5.57,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.208,
+    3.315,
+    4.421
+   ],
+   "beat_nodes": [
+    "real-flow",
+    "budget-lane",
+    "snip-lane",
+    "micro-lane",
+    "digest-lane"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 49.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--compact-pipeline.html",
+ "slug": "compact-pipeline",
+ "type": "workflow"
+}

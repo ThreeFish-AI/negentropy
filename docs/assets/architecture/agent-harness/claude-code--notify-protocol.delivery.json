@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "38e8d053-74df-4cb6-9e8b-547985c1cbdc",
+  "status": "current",
+  "command": "deliver",
+  "type": "lifecycle",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/.temp/archify-notify-protocol/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--notify-protocol.html",
+  "specification": {
+    "sha256": "7832b0340b9897424bc9850b943cf0b2247e48369340414f25e3af5dbbf8ff31",
+    "bytes": 5036
+  },
+  "artifact": {
+    "sha256": "73e959ea4ec78f4c147239179c13e1fd0d868f9776dd2520a4e0dcb2641ddeeb",
+    "bytes": 762416
+  }
+}

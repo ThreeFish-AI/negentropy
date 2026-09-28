@@ -1,0 +1,10 @@
+{
+  "schema": 2,
+  "mode": "chapter",
+  "slug": "notify-merge",
+  "type": "dataflow",
+  "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--notify-merge.html",
+  "views": "views/notify-merge.json",
+  "status": "pending-record",
+  "note": "建图代理种子 sidecar：type 按分镜图集预算表落盘（dataflow，合法词表内无需映射）；chapters/时长/lead 等字段由 record_archify.py 录制时整写。"
+}

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "0fe3787a-1d76-4488-bc95-f747b36edf9b",
+  "status": "current",
+  "command": "deliver",
+  "type": "lifecycle",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/.temp/archify-durable-lifecycle/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--durable-lifecycle.html",
+  "specification": {
+    "sha256": "9c20d14316b58a89f9a7a8aca94360e2cce6a7afb5d22770cad9751e2e196253",
+    "bytes": 6578
+  },
+  "artifact": {
+    "sha256": "a3ce2241bb2ed6576d78eb3429e6172163e45e048706dc6d2dbb4af58372e914",
+    "bytes": 852245
+  }
+}

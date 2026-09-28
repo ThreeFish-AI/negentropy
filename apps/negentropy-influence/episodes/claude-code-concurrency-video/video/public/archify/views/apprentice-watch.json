@@ -1,0 +1,44 @@
+[
+ {
+  "id": "teach-zero",
+  "label": "教学版零落地",
+  "focus": ["teach-page", "empty"],
+  "note": "负向实证：教学实现对此一行代码都没写（空白页；回溯 §一·生产版对照）。"
+ },
+ {
+  "id": "watch-only",
+  "label": "只看不动手",
+  "focus": ["apprentice", "sink-row"],
+  "note": "学徒只看不动手：隔一阵子去清洗槽边瞄一眼，不插手。"
+ },
+ {
+  "id": "growth-not-age",
+  "label": "增量非时长",
+  "focus": ["output-meter", "clock-x"],
+  "note": "判卡没卡的规矩很怪：只问输出还长不长，不问跑了多久。"
+ },
+ {
+  "id": "forty-five-sec",
+  "label": "四十五秒凑近",
+  "focus": ["output-meter", "threshold-45"],
+  "note": "拆码作者给过一个数：输出四十五秒不涨才凑近去看（归属角标：开源项目作者 · 源码分析）。"
+ },
+ {
+  "id": "yn-sniff",
+  "label": "停在问话上",
+  "focus": ["prompt-yn", "wait-key"],
+  "note": "看它是不是停在一句问话上，等一个不会来的按键；正常长编译一直在吐字就不该被打扰。"
+ },
+ {
+  "id": "side-model-slip",
+  "label": "小模型写字条",
+  "focus": ["slip", "side-model", "main-stream"],
+  "note": "每批活干完贴一张小字条：几个字说清干了啥——写字条的不是师傅本人，是另一路更小的模型，像给改动写标题不写成句子（归属角标：开源项目作者 · 源码分析）。"
+ },
+ {
+  "id": "official-monitor",
+  "label": "官方监视工具",
+  "focus": ["monitor-tool", "stream-rows", "timeout-collect"],
+  "note": "「它还活着吗」的官方答案：产品里配了专门的监视工具，盯着后台输出一行行看，超时就收队（回溯 §一·官方文档对照 12）。"
+ }
+]

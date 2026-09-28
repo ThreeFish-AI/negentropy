@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "workflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/.temp/archify/bg-two-verdicts.workflow.json",
+    "sha256": "a76404840673c2487982301b41b9be42d9256428a807a658f8599796b6f46101",
+    "bytes": 6439
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--bg-two-verdicts.html",
+    "sha256": "acdc37f7c505eec28a09b48095a47d1939592d9a10a9625b8ab3eb8c0e093727",
+    "bytes": 839840
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--bg-two-verdicts.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--bg-two-verdicts.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--bg-two-verdicts.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 6282,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "routesOverSuggestedBends": 2
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [],
+      "detours": [
+        {
+          "relationship": {
+            "id": "switch-to-bg",
+            "from": "checkbox-on",
+            "to": "bg-lane",
+            "label": "勾上 · 走后台",
+            "collectionIndex": 4,
+            "artifactIndex": 5
+          },
+          "bends": 3,
+          "stretch": 1.091
+        },
+        {
+          "relationship": {
+            "id": "verdict-to-fallback",
+            "from": "verdict-node",
+            "to": "keyword-scan",
+            "label": "没勾 · 落兜底",
+            "collectionIndex": 6,
+            "artifactIndex": 7
+          },
+          "bends": 3,
+          "stretch": 1
+        }
+      ],
+      "truncated": false
+    },
+    "hints": [
+      "checkbox-on → bg-lane needs 3 bends: move node checkbox-on or bg-lane so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "verdict-node → keyword-scan needs 3 bends: move node verdict-node or keyword-scan so they share a row or column with matching centers, or sit diagonally with a clear corner."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

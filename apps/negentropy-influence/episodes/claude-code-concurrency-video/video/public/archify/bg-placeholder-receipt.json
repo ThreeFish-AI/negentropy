@@ -1,0 +1,10 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "slug": "bg-placeholder-receipt",
+ "type": "sequence",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--bg-placeholder-receipt.html",
+ "views": "views/bg-placeholder-receipt.json",
+ "status": "pending-record",
+ "note": "建图代理种子 sidecar：type 按分镜图集预算表落盘（sequence，合法词表内无需映射）；chapters/时长/lead 等字段由 record_archify.py 录制时整写。"
+}

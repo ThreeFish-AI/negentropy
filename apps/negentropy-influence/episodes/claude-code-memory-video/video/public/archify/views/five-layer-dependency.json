@@ -1,0 +1,5 @@
+[
+ {"id": "layer-flash", "label": "记忆层一闪", "focus": ["layer-3", "layer-2", "layer-4"], "note": "P0 立碑一闪：五层栈上记忆层点亮（本集视角＝五层链第三层及其相邻投影）。focus 对齐主仓 claude-code-harness--five-layer-dependency.html 既有节点语义，录制前回填 guided-views。"},
+ {"id": "read-two-books", "label": "先分两本账", "focus": ["loop-core", "layer-3", "device-zones"], "note": "读图法收束：看这样的工具先分清两本账——谁在腾地方（收台），谁在守底账（登记簿），两本都收在记忆层。"},
+ {"id": "two-dark-zones", "label": "两个区没开灯", "focus": ["dim-zones", "layer-4", "layer-5"], "note": "工坊地图还有两个区没开灯（时机层、协作层）——装置尽管加，循环不乱动（终态收尾）。"}
+]

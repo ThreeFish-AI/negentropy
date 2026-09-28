@@ -1,0 +1,32 @@
+[
+ {
+  "id": "inbox-per-seat",
+  "label": "门口收件格",
+  "focus": ["seat", "inbox-slot"],
+  "note": "每个工位门口钉一个收件格，一人一格。"
+ },
+ {
+  "id": "jsonl-append",
+  "label": "添一行即投递",
+  "focus": ["inbox-file", "append-line"],
+  "note": "每个格子是一个文件：发消息，就是往对方格子里添一行。"
+ },
+ {
+  "id": "take-all-clear",
+  "label": "整摞拿走",
+  "focus": ["inbox-file", "consume", "emptied"],
+  "note": "读取＝读出全部再删文件——消息只被读到一次。"
+ },
+ {
+  "id": "peek-probe",
+  "label": "只看不取",
+  "focus": ["peek", "inbox-slot"],
+  "note": "探格动作非破坏探测，给工坊判断要不要叫醒师傅。"
+ },
+ {
+  "id": "host-polling",
+  "label": "工坊替他盯",
+  "focus": ["poller", "event-queue", "wake"],
+  "note": "等消息的不是师傅，是工坊——一遍遍替他盯格子，有新条就唤醒新一轮。"
+ }
+]

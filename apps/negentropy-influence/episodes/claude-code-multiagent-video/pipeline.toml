@@ -12,6 +12,8 @@ slug = "claude-code-multiagent-video"
 # TODO：按本集选题与语速预算填写。口径提示——280 字/分是**含停顿的等效**口径，
 # 裸按字数算会高估约 12% 的句容量，双口径门以 manifest 实测为准。
 target_minutes = [13.0, 14.6]
+# 本系列实测口径（ep1 CP1 校准 2026-09-30）：story 档含停顿等效 ≈254 字/分。
+chars_per_min = 254
 
 [tts]
 engine = "indextts"
@@ -34,3 +36,9 @@ min_anchor_ratio = 0.30
 min_cues_per_minute = 3.0
 min_diagram_types = 5
 forbid_inset = true  # 全屏独占（storyboard 按此设计）；残留画中画即 FAIL
+
+# 复用图（2/13）与 html_pattern 不匹配——登记实际文件名（ep1 同款先例）；
+# views 章节清单为本集原生重建（Stage ⑥），html/png 产物不重绘（planning §6 许可）。
+[archify.html_overrides]
+collab-panorama = "claude-code-multiagent--collab-panorama.html"
+five-layer-dependency = "claude-code-harness--five-layer-dependency.html"

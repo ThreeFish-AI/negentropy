@@ -1,0 +1,68 @@
+[
+ {
+  "id": "desk-reread",
+  "label": "每轮从头读台面",
+  "focus": ["desk", "read-sweep", "five-devices"],
+  "note": "全景左半一瞥：每一轮开工，台面都从头读一遍——左半主轴「这一轮看见什么」。"
+ },
+ {
+  "id": "five-devices",
+  "label": "五件东西总览",
+  "focus": ["desk", "five-devices"],
+  "note": "五件安排台面的东西总览一闪：工序卡、副台、抽屉、垫纸、补救梯。"
+ },
+ {
+  "id": "tool-fade",
+  "label": "能力留 · 工具退",
+  "focus": ["device-todo", "fade-mark"],
+  "note": "工序卡区一瞥：规划能力还在，规划工具在退场——装置压暗、退场注记。"
+ },
+ {
+  "id": "question-return",
+  "label": "开头之问",
+  "focus": ["desk", "question-mark"],
+  "note": "总装对账起手：回到开头的问题——它每一轮看到的东西，是谁决定的。"
+ },
+ {
+  "id": "workshop-answers",
+  "label": "工坊的安排",
+  "focus": ["desk", "five-devices", "answer-glow"],
+  "note": "现在能答了：是工坊安排的——全景点亮作答。"
+ },
+ {
+  "id": "m1-pinned",
+  "label": "工序卡：钉回可见",
+  "focus": ["device-todo", "desk"],
+  "note": "工序卡把还剩什么，钉回每轮都看得见的地方。"
+ },
+ {
+  "id": "m2-isolated",
+  "label": "副台：隔走过程",
+  "focus": ["device-side", "desk"],
+  "note": "副台把过程隔走，只放结论上台面。"
+ },
+ {
+  "id": "m3-two-books",
+  "label": "抽屉：两笔账",
+  "focus": ["device-drawer", "desk"],
+  "note": "抽屉把知道什么、读到什么，拆成两笔账。"
+ },
+ {
+  "id": "m4-relaid",
+  "label": "垫纸：按状态重铺",
+  "focus": ["device-pad", "desk"],
+  "note": "垫纸按真实状态重铺，不听嘴上说什么。"
+ },
+ {
+  "id": "m5-protected",
+  "label": "补救梯：保住台面",
+  "focus": ["device-ladder", "desk"],
+  "note": "补救梯在事故之后，把台面保住。"
+ },
+ {
+  "id": "visibility-only",
+  "label": "只改看得见什么",
+  "focus": ["five-devices", "desk", "visibility-beam"],
+  "note": "五件东西没添过新本事——改变的只有每轮开工时看得见什么（终态对账）。"
+ }
+]

@@ -12,6 +12,8 @@ slug = "claude-code-memory-video"
 # TODO：按本集选题与语速预算填写。口径提示——280 字/分是**含停顿的等效**口径，
 # 裸按字数算会高估约 12% 的句容量，双口径门以 manifest 实测为准。
 target_minutes = [13.0, 14.6]
+# 本系列实测口径（ep1 CP1 校准 2026-09-30）：story 档含停顿等效 ≈254 字/分。
+chars_per_min = 254
 
 [tts]
 engine = "indextts"
@@ -34,3 +36,8 @@ min_anchor_ratio = 0.30
 min_cues_per_minute = 3.0
 min_diagram_types = 5
 forbid_inset = true  # 全屏独占（storyboard 按此设计）；残留画中画即 FAIL
+
+# 复用图例外（storyboard 图集表 #11/#12）：原生重建产物 + guided-views 合并嵌入
+[archify.html_overrides]
+memory-panorama = "claude-code-memory--memory-panorama.html"
+five-layer-dependency = "claude-code-harness--five-layer-dependency.html"

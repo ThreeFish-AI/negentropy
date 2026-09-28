@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "3b67af32-d341-4a2f-bf9b-209054d9844a",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/.temp/archify/schedule-three-tiers.architecture.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--schedule-three-tiers.html",
+  "specification": {
+    "sha256": "8243586571a655c28e1a63175ce1e84bd837614576018435d50a3410f1da615e",
+    "bytes": 5993
+  },
+  "artifact": {
+    "sha256": "6e5b24e47797e2c7c435f76e8cb9d002f189d31f1c1383401c98b9330fd964ba",
+    "bytes": 843335
+  }
+}

@@ -1,0 +1,26 @@
+[
+ {
+  "id": "registry-board",
+  "label": "登记板三栏",
+  "focus": ["registry", "id-col", "cmd-col", "status-col"],
+  "note": "幕后簿记：编号／命令／干到哪了三栏，每件后台活挂号在册（回溯 §一·机制 2）。"
+ },
+ {
+  "id": "daemon-thread",
+  "label": "独立线程",
+  "focus": ["worker-thread", "registry", "belt-core"],
+  "note": "真正干活的是一条 daemon 线程，跟传送带各走各的。"
+ },
+ {
+  "id": "lock-critical",
+  "label": "一把锁",
+  "focus": ["lock", "master-side", "sink-side"],
+  "note": "板子两边都在动：谁动谁拿锁，动完就还——读写全在临界区（回溯 §一·机制 5）。"
+ },
+ {
+  "id": "lock-before-write",
+  "label": "先立锁再动手",
+  "focus": ["lock", "registry"],
+  "note": "首次跨线程共享状态：头一回两拨人同写一块板，先立锁再动手。"
+ }
+]
