@@ -1,7 +1,7 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.0,
+ "lead_sec": 0.44,
  "story_sec": 31.49,
  "total_wall_sec": 142.52,
  "started_playback": true,
@@ -16,7 +16,7 @@
    "end_still": "assembly-economics--ae-k1-end.png",
    "beats": 1,
    "dwell_ms": 3200,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 3.25,
    "beat_offsets_sec": [
     0.0
@@ -35,7 +35,7 @@
    "end_still": "assembly-economics--ae-k2-end.png",
    "beats": 1,
    "dwell_ms": 3200,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 3.21,
    "beat_offsets_sec": [
     0.0
@@ -54,7 +54,7 @@
    "end_still": "assembly-economics--ae-k3-end.png",
    "beats": 1,
    "dwell_ms": 3200,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 3.25,
    "beat_offsets_sec": [
     0.0
@@ -73,7 +73,7 @@
    "end_still": "assembly-economics--ae-k4-end.png",
    "beats": 1,
    "dwell_ms": 3200,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 3.24,
    "beat_offsets_sec": [
     0.0
@@ -92,7 +92,7 @@
    "end_still": "assembly-economics--ae-k5-end.png",
    "beats": 1,
    "dwell_ms": 3200,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 3.26,
    "beat_offsets_sec": [
     0.0
@@ -111,7 +111,7 @@
    "end_still": "assembly-economics--ae-ch-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 3.22,
    "beat_offsets_sec": [
     0.0,
@@ -132,7 +132,7 @@
    "end_still": "assembly-economics--ae-guard-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 3.25,
    "beat_offsets_sec": [
     0.0,
@@ -153,7 +153,7 @@
    "end_still": "assembly-economics--ae-llm-end.png",
    "beats": 1,
    "dwell_ms": 3200,
-   "lead_sec": 0.0,
+   "lead_sec": 0.48,
    "story_sec": 3.25,
    "beat_offsets_sec": [
     0.0
@@ -172,7 +172,7 @@
    "end_still": "assembly-economics--ae-knobs-end.png",
    "beats": 5,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 5.56,
    "beat_offsets_sec": [
     0.0,

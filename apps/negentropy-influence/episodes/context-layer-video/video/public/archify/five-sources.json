@@ -1,7 +1,7 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.0,
+ "lead_sec": 0.44,
  "story_sec": 26.18,
  "total_wall_sec": 96.4,
  "started_playback": true,
@@ -16,7 +16,7 @@
    "end_still": "five-sources--fs-instr-end.png",
    "beats": 1,
    "dwell_ms": 3200,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 3.23,
    "beat_offsets_sec": [
     0.0
@@ -35,7 +35,7 @@
    "end_still": "five-sources--fs-mem-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 3.25,
    "beat_offsets_sec": [
     0.0,
@@ -56,7 +56,7 @@
    "end_still": "five-sources--fs-know-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 3.25,
    "beat_offsets_sec": [
     0.0,
@@ -77,7 +77,7 @@
    "end_still": "five-sources--fs-tools-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 3.22,
    "beat_offsets_sec": [
     0.0,
@@ -98,7 +98,7 @@
    "end_still": "five-sources--fs-session-end.png",
    "beats": 1,
    "dwell_ms": 3200,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 3.24,
    "beat_offsets_sec": [
     0.0
@@ -117,7 +117,7 @@
    "end_still": "five-sources--fs-gov-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 0.48,
    "story_sec": 3.33,
    "beat_offsets_sec": [
     0.0,
@@ -140,7 +140,7 @@
    "end_still": "five-sources--fs-out-end.png",
    "beats": 6,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 6.66,
    "beat_offsets_sec": [
     0.0,

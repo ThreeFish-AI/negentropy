@@ -1,7 +1,7 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.0,
+ "lead_sec": 0.44,
  "story_sec": 17.63,
  "total_wall_sec": 58.06,
  "started_playback": true,
@@ -16,7 +16,7 @@
    "end_still": "evolution-levers--el-six-end.png",
    "beats": 6,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 6.64,
    "beat_offsets_sec": [
     0.0,
@@ -45,7 +45,7 @@
    "end_still": "evolution-levers--el-ctx-end.png",
    "beats": 1,
    "dwell_ms": 3200,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 3.22,
    "beat_offsets_sec": [
     0.0
@@ -64,7 +64,7 @@
    "end_still": "evolution-levers--el-sm-end.png",
    "beats": 7,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 7.77,
    "beat_offsets_sec": [
     0.0,

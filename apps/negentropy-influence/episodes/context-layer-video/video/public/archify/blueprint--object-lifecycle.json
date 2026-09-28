@@ -1,7 +1,7 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.0,
+ "lead_sec": 0.44,
  "story_sec": 18.54,
  "total_wall_sec": 65.98,
  "started_playback": true,
@@ -16,7 +16,7 @@
    "end_still": "blueprint--object-lifecycle--ol-draft-end.png",
    "beats": 1,
    "dwell_ms": 3200,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 3.22,
    "beat_offsets_sec": [
     0.0
@@ -35,7 +35,7 @@
    "end_still": "blueprint--object-lifecycle--ol-gov-end.png",
    "beats": 1,
    "dwell_ms": 3200,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 3.25,
    "beat_offsets_sec": [
     0.0
@@ -54,7 +54,7 @@
    "end_still": "blueprint--object-lifecycle--ol-conflict-end.png",
    "beats": 1,
    "dwell_ms": 3200,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 3.24,
    "beat_offsets_sec": [
     0.0
@@ -73,7 +73,7 @@
    "end_still": "blueprint--object-lifecycle--ol-super-end.png",
    "beats": 1,
    "dwell_ms": 3200,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 3.26,
    "beat_offsets_sec": [
     0.0
@@ -92,7 +92,7 @@
    "end_still": "blueprint--object-lifecycle--ol-full-end.png",
    "beats": 5,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 5.57,
    "beat_offsets_sec": [
     0.0,
@@ -122,5 +122,5 @@
  },
  "source": "/Users/cm.huang/conductor/workspaces/negentropy/atlanta-v4/docs/assets/architecture/cognitive-context/context-layer-blueprint--object-lifecycle.html",
  "slug": "blueprint--object-lifecycle",
- "type": ""
+ "type": "lifecycle"
 }

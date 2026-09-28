@@ -1,7 +1,7 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.0,
+ "lead_sec": 0.44,
  "story_sec": 21.73,
  "total_wall_sec": 157.48,
  "started_playback": true,
@@ -16,7 +16,7 @@
    "end_still": "blueprint--layer-mechanism-map--lm-obj-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 3.23,
    "beat_offsets_sec": [
     0.0,
@@ -37,7 +37,7 @@
    "end_still": "blueprint--layer-mechanism-map--lm-cat-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 3.22,
    "beat_offsets_sec": [
     0.0,
@@ -58,7 +58,7 @@
    "end_still": "blueprint--layer-mechanism-map--lm-enr-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 3.26,
    "beat_offsets_sec": [
     0.0,
@@ -79,7 +79,7 @@
    "end_still": "blueprint--layer-mechanism-map--lm-gov-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 3.23,
    "beat_offsets_sec": [
     0.0,
@@ -100,7 +100,7 @@
    "end_still": "blueprint--layer-mechanism-map--lm-act-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 3.22,
    "beat_offsets_sec": [
     0.0,
@@ -121,7 +121,7 @@
    "end_still": "blueprint--layer-mechanism-map--lm-spine-end.png",
    "beats": 5,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 5.57,
    "beat_offsets_sec": [
     0.0,

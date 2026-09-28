@@ -1,7 +1,7 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.0,
+ "lead_sec": 0.44,
  "story_sec": 14.26,
  "total_wall_sec": 143.34,
  "started_playback": true,
@@ -16,7 +16,7 @@
    "end_still": "blueprint--dual-track-roadmap--dt-design-end.png",
    "beats": 1,
    "dwell_ms": 3200,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 3.24,
    "beat_offsets_sec": [
     0.0
@@ -35,7 +35,7 @@
    "end_still": "blueprint--dual-track-roadmap--dt-show-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 0.48,
    "story_sec": 4.44,
    "beat_offsets_sec": [
     0.0,
@@ -60,7 +60,7 @@
    "end_still": "blueprint--dual-track-roadmap--dt-main-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 0.48,
    "story_sec": 3.37,
    "beat_offsets_sec": [
     0.0,
@@ -83,7 +83,7 @@
    "end_still": "blueprint--dual-track-roadmap--dt-p0-end.png",
    "beats": 1,
    "dwell_ms": 3200,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 3.21,
    "beat_offsets_sec": [
     0.0

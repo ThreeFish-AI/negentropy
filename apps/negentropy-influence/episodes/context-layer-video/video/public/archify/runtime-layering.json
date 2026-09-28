@@ -1,7 +1,7 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.0,
+ "lead_sec": 0.44,
  "story_sec": 14.33,
  "total_wall_sec": 46.23,
  "started_playback": true,
@@ -16,7 +16,7 @@
    "end_still": "runtime-layering--rl-cgave-end.png",
    "beats": 5,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 5.52,
    "beat_offsets_sec": [
     0.0,
@@ -43,7 +43,7 @@
    "end_still": "runtime-layering--rl-sys-end.png",
    "beats": 5,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 5.55,
    "beat_offsets_sec": [
     0.0,
@@ -70,7 +70,7 @@
    "end_still": "runtime-layering--rl-store-end.png",
    "beats": 1,
    "dwell_ms": 3200,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 3.26,
    "beat_offsets_sec": [
     0.0
