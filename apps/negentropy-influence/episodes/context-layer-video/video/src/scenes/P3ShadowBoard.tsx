@@ -22,33 +22,43 @@ export const P3ShadowBoard: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (a: string, b?: string) => beatWindow(scene.sentences, scene.from, a, b);
   const at = (id: string) => w(id).from;
   const dur = (a: string, b?: string) => w(a, b).durationInFrames;
+  // 各镜窗口（from 为幕内帧）。镜内 cue/装置锚点一律「at(句id) - 所在镜.from」——
+  // ArchifyRecap 契约 + motion hooks 均按父 Sequence 局部帧解释，漏减会双重偏移。
+  const bA = w('p3-01', 'p3-04');
+  const bB = w('p3-05', 'p3-08');
+  const bC = w('p3-09', 'p3-12');
+  const bD = w('p3-13', 'p3-15');
+  const bE = w('p3-16', 'p3-18');
+  const bF = w('p3-19', 'p3-23');
+  const bG = w('p3-24', 'p3-25');
+  const bH = w('p3-26', 'p3-26b');
 
   return (
     <AbsoluteFill style={{background: theme.bg}}>
       <SceneTag chapter="P3" tagline="影子板与老师傅 · 目录与富化" accent={theme.concept} />
 
       {/* 3-A 影子板：工具入格 */}
-      <Sequence from={0} durationInFrames={dur('p3-01', 'p3-04')} name="3-A">
-        <ShadowBoard at={at('p3-02')} />
-        <ArchifyRecap slug="runtime-layering" caption="五子系统 · 指针相连" cues={[{chapterId: 'rl-sys', at: at('p3-02'), durationInFrames: dur('p3-02')}]} />
+      <Sequence from={bA.from} durationInFrames={bA.durationInFrames} name="3-A">
+        <ShadowBoard at={at('p3-02') - bA.from} />
+        <ArchifyRecap slug="runtime-layering" caption="五子系统 · 指针相连" cues={[{chapterId: 'rl-sys', at: at('p3-02') - bA.from, durationInFrames: dur('p3-02')}]} />
       </Sequence>
 
       {/* 3-B 信任信号：同一把尺 */}
-      <Sequence from={at('p3-05')} durationInFrames={dur('p3-05', 'p3-08')} name="3-B">
+      <Sequence from={bB.from} durationInFrames={bB.durationInFrames} name="3-B">
         <ArchifyRecap
           slug="runtime-layering"
           caption="信任信号 · 同一把尺"
           cues={[
-            {chapterId: 'rl-cgave', at: at('p3-06'), durationInFrames: dur('p3-06')},
-            {chapterId: 'rl-store', at: at('p3-08'), durationInFrames: dur('p3-08')},
+            {chapterId: 'rl-cgave', at: at('p3-06') - bB.from, durationInFrames: dur('p3-06')},
+            {chapterId: 'rl-store', at: at('p3-08') - bB.from, durationInFrames: dur('p3-08')},
           ]}
         />
       </Sequence>
 
       {/* 3-C 中文坑：代码走廊② + 割裂章 */}
-      <Sequence from={at('p3-09')} durationInFrames={dur('p3-09', 'p3-12')} name="3-C">
+      <Sequence from={bC.from} durationInFrames={bC.durationInFrames} name="3-C">
         <CodePane
-          at={at('p3-11')}
+          at={at('p3-11') - bC.from}
           lines={[
             "to_tsvector('english', '用户偏好先给结论，少铺垫')",
             "  → '少铺垫':2  '用户偏好先给结论':1   ← 整段 = 1 个 token",
@@ -57,37 +67,37 @@ export const P3ShadowBoard: React.FC<{scene: SceneRange}> = ({scene}) => {
           ]}
           badge={{level: 'filled', note: 'PG 16.14 实测'}}
         />
-        <ArchifyRecap slug="failure-map" caption="检索割裂" cues={[{chapterId: 'fm-split', at: at('p3-11'), durationInFrames: dur('p3-11')}]} />
+        <ArchifyRecap slug="failure-map" caption="检索割裂" cues={[{chapterId: 'fm-split', at: at('p3-11') - bC.from, durationInFrames: dur('p3-11')}]} />
       </Sequence>
 
       {/* 3-D <5% 覆盖率 */}
-      <Sequence from={at('p3-13')} durationInFrames={dur('p3-13', 'p3-15')} name="3-D">
-        <CoverageBar at={at('p3-15')} />
+      <Sequence from={bD.from} durationInFrames={bD.durationInFrames} name="3-D">
+        <CoverageBar at={at('p3-15') - bD.from} />
         <div style={{position: 'absolute', bottom: 90, left: 80}}>
-          <EvidenceBadge level="dashed" at={at('p3-15')} note="9,685 表 · 自报口径" />
+          <EvidenceBadge level="dashed" at={at('p3-15') - bD.from} note="9,685 表 · 自报口径" />
         </div>
       </Sequence>
 
       {/* 3-E 双轨：手册轨 vs 手感轨 */}
-      <Sequence from={at('p3-16')} durationInFrames={dur('p3-16', 'p3-18')} name="3-E">
-        <DualTrack at={at('p3-17')} />
+      <Sequence from={bE.from} durationInFrames={bE.durationInFrames} name="3-E">
+        <DualTrack at={at('p3-17') - bE.from} />
       </Sequence>
 
       {/* 3-F 技术请示单：全片戏剧高点 */}
-      <Sequence from={at('p3-19')} durationInFrames={dur('p3-19', 'p3-23')} name="3-F">
-        <TechRequest at={at('p3-20')} />
-        <ArchifyRecap slug="blueprint--object-lifecycle" caption="冲突 · 挂起待裁" cues={[{chapterId: 'ol-conflict', at: at('p3-22'), durationInFrames: dur('p3-22')}]} />
+      <Sequence from={bF.from} durationInFrames={bF.durationInFrames} name="3-F">
+        <TechRequest at={at('p3-20') - bF.from} />
+        <ArchifyRecap slug="blueprint--object-lifecycle" caption="冲突 · 挂起待裁" cues={[{chapterId: 'ol-conflict', at: at('p3-22') - bF.from, durationInFrames: dur('p3-22')}]} />
       </Sequence>
 
       {/* 3-G 复利 */}
-      <Sequence from={at('p3-24')} durationInFrames={dur('p3-24', 'p3-25')} name="3-G">
-        <ArchifyRecap slug="lifecycle" caption="进化 · 一次发现全机队受益" cues={[{chapterId: 'lc-evolve', at: at('p3-24'), durationInFrames: dur('p3-24')}]} />
+      <Sequence from={bG.from} durationInFrames={bG.durationInFrames} name="3-G">
+        <ArchifyRecap slug="lifecycle" caption="进化 · 一次发现全机队受益" cues={[{chapterId: 'lc-evolve', at: at('p3-24') - bG.from, durationInFrames: dur('p3-24')}]} />
       </Sequence>
 
       {/* 3-H 交接班板：草稿区→最后落章 */}
-      <Sequence from={at('p3-26')} durationInFrames={dur('p3-26', 'p3-26b')} name="3-H">
-        <HandoverBoard at={at('p3-26b')} />
-        <AbsoluteFill style={{display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 60}}>
+      <Sequence from={bH.from} durationInFrames={bH.durationInFrames} name="3-H">
+        <HandoverBoard at={at('p3-26b') - bH.from} />
+        <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 60}}>
           <WorkCard stamps={3} totalSlots={7} highlightSlot={2} w={340} />
         </AbsoluteFill>
       </Sequence>

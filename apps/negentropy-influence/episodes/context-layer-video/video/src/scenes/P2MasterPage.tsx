@@ -3,7 +3,7 @@
  *  8 镜 / 5 条 archify cue：
  *   2-A 导览（装置：文档柜门）· 2-B ol-draft@04 · 2-C fan trap 装置（订单-事件连线）
  *   2-D ol-gov@13（金句：口径只印一本）· 2-E 代码走廊①（422 拒绝）
- *   2-F ol-conflict@16→ol-full@18（接力 false）· 2-G ol-super@19 · 2-H 影子板收束
+ *   2-F ol-conflict@16→ol-full@18（前隔代码走廊，恢复入场）· 2-G ol-super@19 · 2-H 影子板收束
  */
 import React from 'react';
 import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
@@ -21,42 +21,53 @@ export const P2MasterPage: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (a: string, b?: string) => beatWindow(scene.sentences, scene.from, a, b);
   const at = (id: string) => w(id).from;
   const dur = (a: string, b?: string) => w(a, b).durationInFrames;
+  // 各镜窗口（from 为幕内帧，2-F 按 storyboard SSOT 收到 p2-18c）。镜内 cue/装置锚点
+  // 一律「at(句id) - 所在镜.from」——ArchifyRecap 契约 + motion hooks 均按父 Sequence
+  // 局部帧解释，漏减会双重偏移。
+  const bA = w('p2-01', 'p2-03');
+  const bB = w('p2-04', 'p2-07');
+  const bC = w('p2-08', 'p2-12');
+  const bD = w('p2-13');
+  const bE = w('p2-14', 'p2-15');
+  const bF = w('p2-16', 'p2-18c');
+  const bG = w('p2-19', 'p2-20');
+  const bH = w('p2-21', 'p2-22');
 
   return (
     <AbsoluteFill style={{background: theme.bg}}>
       <SceneTag chapter="P2" tagline="当版页制度 · 对象层" accent={theme.concept} />
 
       {/* 2-A 导览：受控文档库柜门开启 */}
-      <Sequence from={0} durationInFrames={dur('p2-01', 'p2-03')} name="2-A">
-        <VaultDoor at={at('p2-03')} />
+      <Sequence from={bA.from} durationInFrames={bA.durationInFrames} name="2-A">
+        <VaultDoor at={at('p2-03') - bA.from} />
       </Sequence>
 
       {/* 2-B 当版页：打印机装置 + ol-draft */}
-      <Sequence from={at('p2-04')} durationInFrames={dur('p2-04', 'p2-07')} name="2-B">
-        <PrintPage at={at('p2-04')} />
-        <ArchifyRecap slug="blueprint--object-lifecycle" caption="对象 · 起草即受控" cues={[{chapterId: 'ol-draft', at: at('p2-04'), durationInFrames: dur('p2-04')}]} />
+      <Sequence from={bB.from} durationInFrames={bB.durationInFrames} name="2-B">
+        <PrintPage at={at('p2-04') - bB.from} />
+        <ArchifyRecap slug="blueprint--object-lifecycle" caption="对象 · 起草即受控" cues={[{chapterId: 'ol-draft', at: at('p2-04') - bB.from, durationInFrames: dur('p2-04')}]} />
       </Sequence>
 
       {/* 2-C fan trap 装置：三条事件挂上订单、金额翻倍 */}
-      <Sequence from={at('p2-08')} durationInFrames={dur('p2-08', 'p2-12')} name="2-C">
-        <FanTrap at={at('p2-10')} />
+      <Sequence from={bC.from} durationInFrames={bC.durationInFrames} name="2-C">
+        <FanTrap at={at('p2-10') - bC.from} />
         <div style={{position: 'absolute', bottom: 90, left: 80}}>
-          <EvidenceBadge level="filled" at={at('p2-10')} note="对照 200 · 退化 440" />
+          <EvidenceBadge level="filled" at={at('p2-10') - bC.from} note="对照 200 · 退化 440" />
         </div>
       </Sequence>
 
       {/* 2-D 锁一起：金句 + ol-gov */}
-      <Sequence from={at('p2-13')} durationInFrames={dur('p2-13')} name="2-D">
+      <Sequence from={bD.from} durationInFrames={bD.durationInFrames} name="2-D">
         <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
           <QuoteCard zh="口径只印一本 · 用时当场重算" accent={theme.concept} />
         </AbsoluteFill>
-        <ArchifyRecap slug="blueprint--object-lifecycle" caption="对象 · 过门受治理" cues={[{chapterId: 'ol-gov', at: at('p2-13'), durationInFrames: dur('p2-13')}]} />
+        <ArchifyRecap slug="blueprint--object-lifecycle" caption="对象 · 过门受治理" cues={[{chapterId: 'ol-gov', at: at('p2-13') - bD.from, durationInFrames: dur('p2-13')}]} />
       </Sequence>
 
       {/* 2-E 代码走廊①：definitions 表 + 422 */}
-      <Sequence from={at('p2-14')} durationInFrames={dur('p2-14', 'p2-15')} name="2-E">
+      <Sequence from={bE.from} durationInFrames={bE.durationInFrames} name="2-E">
         <CodePane
-          at={at('p2-14b')}
+          at={at('p2-14b') - bE.from}
           lines={[
             'POST /interface/definitions  →  parse_definition(源文本)',
             '  ⚠ DefinitionParseError: relationship 指向非键列',
@@ -67,27 +78,26 @@ export const P2MasterPage: React.FC<{scene: SceneRange}> = ({scene}) => {
         />
       </Sequence>
 
-      {/* 2-F 常驻记忆三问：档案柜 + 冲突/全生命周期 */}
-      <Sequence from={at('p2-16')} durationInFrames={dur('p2-16', 'p2-18b')} name="2-F">
-        <CabinetQuestions at={at('p2-17')} />
+      {/* 2-F 常驻记忆三问：档案柜 + 冲突/全生命周期（前隔 2-E 代码走廊，首章恢复入场） */}
+      <Sequence from={bF.from} durationInFrames={bF.durationInFrames} name="2-F">
+        <CabinetQuestions at={at('p2-17') - bF.from} />
         <ArchifyRecap
           slug="blueprint--object-lifecycle"
           caption="常驻记忆 · 对象一生"
           cues={[
-            {chapterId: 'ol-conflict', at: at('p2-16'), durationInFrames: dur('p2-16')},
-            {chapterId: 'ol-full', at: at('p2-18'), durationInFrames: dur('p2-18')},
+            {chapterId: 'ol-conflict', at: at('p2-16') - bF.from, durationInFrames: dur('p2-16')},
+            {chapterId: 'ol-full', at: at('p2-18') - bF.from, durationInFrames: dur('p2-18')},
           ]}
-          lead={false}
         />
       </Sequence>
 
       {/* 2-G 版次随行 */}
-      <Sequence from={at('p2-19')} durationInFrames={dur('p2-19', 'p2-20')} name="2-G">
-        <ArchifyRecap slug="blueprint--object-lifecycle" caption="被取代 · freshness 衰减" cues={[{chapterId: 'ol-super', at: at('p2-19'), durationInFrames: dur('p2-19')}]} />
+      <Sequence from={bG.from} durationInFrames={bG.durationInFrames} name="2-G">
+        <ArchifyRecap slug="blueprint--object-lifecycle" caption="被取代 · freshness 衰减" cues={[{chapterId: 'ol-super', at: at('p2-19') - bG.from, durationInFrames: dur('p2-19')}]} />
       </Sequence>
 
       {/* 2-H 收束：影子板三标签 + 工卡第 2 格 */}
-      <Sequence from={at('p2-21')} durationInFrames={dur('p2-21', 'p2-22')} name="2-H">
+      <Sequence from={bH.from} durationInFrames={bH.durationInFrames} name="2-H">
         <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 60}}>
           <div style={{display: 'flex', gap: 20}}>
             {['在册', '可查', '带版次'].map((t, i) => (

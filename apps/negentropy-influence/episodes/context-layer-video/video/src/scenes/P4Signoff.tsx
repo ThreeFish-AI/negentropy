@@ -3,7 +3,7 @@
  *  7 镜 / 10 条 archify cue：
  *   4-A 会签栏装置 + fm-gov@03 · 4-B 只减不增计数器 · 4-C 韦恩图交集
  *   4-D RII 底稿/保留单 + fm-unverified@15 · 4-E 477 vs 48 装置
- *   4-F tm-poison@21→tm-inject@22 · 4-G 数字墙 + tm-token@24→tm-deputy@25→tm-gate@26→tm-full（接力）
+ *   4-F tm-poison@21→tm-inject@22 · 4-G 数字墙 + tm-token@24→tm-deputy@25→tm-gate@26（接力）
  */
 import React from 'react';
 import {AbsoluteFill, Sequence} from 'remotion';
@@ -21,78 +21,87 @@ export const P4Signoff: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (a: string, b?: string) => beatWindow(scene.sentences, scene.from, a, b);
   const at = (id: string) => w(id).from;
   const dur = (a: string, b?: string) => w(a, b).durationInFrames;
+  // 各镜窗口（from 为幕内帧）。镜内 cue/装置锚点一律「at(句id) - 所在镜.from」——
+  // ArchifyRecap 契约 + motion hooks 均按父 Sequence 局部帧解释，漏减会双重偏移。
+  const bA = w('p4-01', 'p4-04');
+  const bB = w('p4-05', 'p4-08');
+  const bC = w('p4-09', 'p4-11');
+  const bD = w('p4-12', 'p4-16');
+  const bE = w('p4-17', 'p4-19c');
+  const bF = w('p4-20', 'p4-23');
+  const bG = w('p4-24', 'p4-26');
+  const bZ = w('p4-26');
 
   return (
     <AbsoluteFill style={{background: theme.bg}}>
       <SceneTag chapter="P4" tagline="会签与放行 · 治理层" accent={theme.conceptDeep} />
 
       {/* 4-A 会签栏四格 */}
-      <Sequence from={0} durationInFrames={dur('p4-01', 'p4-04')} name="4-A">
-        <SignoffRow at={at('p4-03')} />
-        <ArchifyRecap slug="failure-map" caption="治理层 · 四机构一道墙" cues={[{chapterId: 'fm-gov', at: at('p4-03'), durationInFrames: dur('p4-03')}]} />
+      <Sequence from={bA.from} durationInFrames={bA.durationInFrames} name="4-A">
+        <SignoffRow at={at('p4-03') - bA.from} />
+        <ArchifyRecap slug="failure-map" caption="治理层 · 四机构一道墙" cues={[{chapterId: 'fm-gov', at: at('p4-03') - bA.from, durationInFrames: dur('p4-03')}]} />
       </Sequence>
 
       {/* 4-B 只减不增 */}
-      <Sequence from={at('p4-05')} durationInFrames={dur('p4-05', 'p4-08')} name="4-B">
-        <ShrinkCounter at={at('p4-05')} />
+      <Sequence from={bB.from} durationInFrames={bB.durationInFrames} name="4-B">
+        <ShrinkCounter at={at('p4-05') - bB.from} />
       </Sequence>
 
       {/* 4-C 韦恩图交集 */}
-      <Sequence from={at('p4-09')} durationInFrames={dur('p4-09', 'p4-11')} name="4-C">
-        <VennIntersect at={at('p4-09b')} />
+      <Sequence from={bC.from} durationInFrames={bC.durationInFrames} name="4-C">
+        <VennIntersect at={at('p4-09b') - bC.from} />
       </Sequence>
 
       {/* 4-D RII 底稿/保留单 */}
-      <Sequence from={at('p4-12')} durationInFrames={dur('p4-12', 'p4-16')} name="4-D">
-        <RIIProof at={at('p4-14')} />
-        <AbsoluteFill style={{display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 80}}>
+      <Sequence from={bD.from} durationInFrames={bD.durationInFrames} name="4-D">
+        <RIIProof at={at('p4-14') - bD.from} />
+        <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 80}}>
           <div style={{padding: '14px 26px', border: `2px solid ${theme.ok}`, borderRadius: 10, background: 'rgba(126,211,33,0.06)'}}>
             <div style={{fontSize: 30, color: theme.ok}}>人 ← 会签</div>
             <div style={{fontSize: 30, color: theme.ok, marginTop: 6}}>答案 ← 放行</div>
           </div>
         </AbsoluteFill>
-        <ArchifyRecap slug="failure-map" caption="未验证断言" cues={[{chapterId: 'fm-unverified', at: at('p4-15'), durationInFrames: dur('p4-15')}]} />
+        <ArchifyRecap slug="failure-map" caption="未验证断言" cues={[{chapterId: 'fm-unverified', at: at('p4-15') - bD.from, durationInFrames: dur('p4-15')}]} />
       </Sequence>
 
       {/* 4-E 477 vs 48 */}
-      <Sequence from={at('p4-17')} durationInFrames={dur('p4-17', 'p4-19')} name="4-E">
-        <Crash477 at={at('p4-18')} />
+      <Sequence from={bE.from} durationInFrames={bE.durationInFrames} name="4-E">
+        <Crash477 at={at('p4-18') - bE.from} />
         <div style={{position: 'absolute', bottom: 90, left: 80}}>
-          <EvidenceBadge level="solid" at={at('p4-18')} note="第三方复现 · 玩具版 4 vs 3" />
+          <EvidenceBadge level="solid" at={at('p4-18') - bE.from} note="第三方复现 · 玩具版 4 vs 3" />
         </div>
       </Sequence>
 
       {/* 4-F 供给面投毒 */}
-      <Sequence from={at('p4-20')} durationInFrames={dur('p4-20', 'p4-23')} name="4-F">
+      <Sequence from={bF.from} durationInFrames={bF.durationInFrames} name="4-F">
         <ArchifyRecap
           slug="blueprint--mcp-threat-model"
           caption="供给面 · 自述不可信"
           cues={[
-            {chapterId: 'tm-poison', at: at('p4-21'), durationInFrames: dur('p4-21')},
-            {chapterId: 'tm-inject', at: at('p4-22'), durationInFrames: dur('p4-22')},
+            {chapterId: 'tm-poison', at: at('p4-21') - bF.from, durationInFrames: dur('p4-21')},
+            {chapterId: 'tm-inject', at: at('p4-22') - bF.from, durationInFrames: dur('p4-22')},
           ]}
         />
       </Sequence>
 
       {/* 4-G 四家不验签 + 三底线 */}
-      <Sequence from={at('p4-24')} durationInFrames={dur('p4-24', 'p4-26')} name="4-G">
-        <NumbersWall at={at('p4-24')} />
+      <Sequence from={bG.from} durationInFrames={bG.durationInFrames} name="4-G">
+        <NumbersWall at={at('p4-24') - bG.from} />
         <ArchifyRecap
           slug="blueprint--mcp-threat-model"
           caption="治理门 · 三级链路"
           cues={[
-            {chapterId: 'tm-token', at: at('p4-24'), durationInFrames: dur('p4-24')},
-            {chapterId: 'tm-deputy', at: at('p4-25'), durationInFrames: dur('p4-25')},
-            {chapterId: 'tm-gate', at: at('p4-26'), durationInFrames: dur('p4-26')},
+            {chapterId: 'tm-token', at: at('p4-24') - bG.from, durationInFrames: dur('p4-24')},
+            {chapterId: 'tm-deputy', at: at('p4-25') - bG.from, durationInFrames: dur('p4-25')},
+            {chapterId: 'tm-gate', at: at('p4-26') - bG.from, durationInFrames: dur('p4-26')},
           ]}
-          lead={false}
         />
       </Sequence>
 
-      {/* 幕尾第 4 格 */}
-      <Sequence from={at('p4-26')} durationInFrames={dur('p4-26')} name="4-Z">
-        <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-          <WorkCard stamps={4} totalSlots={7} highlightSlot={3} w={340} />
+      {/* 幕尾第 4 格：底锚不遮 4-G 全屏 archify（同 1-Z 先例） */}
+      <Sequence from={bZ.from} durationInFrames={bZ.durationInFrames} name="4-Z">
+        <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 90}}>
+          <WorkCard stamps={4} totalSlots={7} highlightSlot={3} w={320} />
         </AbsoluteFill>
       </Sequence>
     </AbsoluteFill>
