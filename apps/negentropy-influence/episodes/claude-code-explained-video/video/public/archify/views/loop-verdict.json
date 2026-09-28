@@ -1,0 +1,32 @@
+[
+ {
+  "id": "two-revisions",
+  "label": "两个修订判据相反",
+  "focus": ["rev-mouth", "rev-hand"],
+  "note": "同一个开源项目的两个修订版本，给出的续轮判据正好相反。"
+ },
+ {
+  "id": "trust-mouth",
+  "label": "一版信嘴上",
+  "focus": ["rev-mouth", "stop-marker"],
+  "note": "模型说了停止才算停止——判据挂在停止标记上。"
+ },
+ {
+  "id": "trust-hand",
+  "label": "一版信手里",
+  "focus": ["rev-hand", "tool-use-block"],
+  "note": "只认响应内容块里有没有工具调用。"
+ },
+ {
+  "id": "official-silent",
+  "label": "官方不披露实现层",
+  "focus": ["official-doc", "undecidable"],
+  "note": "官方文档不披露实现层，这场架判不了，两边只能并存。"
+ },
+ {
+  "id": "flag-flips",
+  "label": "流式即置真",
+  "focus": ["stream-response", "independent-flag", "tool-use-block"],
+  "note": "【三】归属：产品不拿停止标记当唯一依据，另设独立标志位——流式响应一出现工具调用立刻置真；理由：声明滞后于事实。"
+ }
+]

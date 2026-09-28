@@ -1,0 +1,38 @@
+[
+ {
+  "id": "one-tray",
+  "label": "一口气一托盘",
+  "focus": ["tray", "multi-calls"],
+  "note": "师傅一口气递出好几个工具调用，装进同一个托盘。"
+ },
+ {
+  "id": "teach-serial",
+  "label": "教学版一件一件上",
+  "focus": ["serial-exec", "tray"],
+  "note": "教学版托盘讲规矩：多 tool_use 按原始顺序逐个执行，绝不并发。"
+ },
+ {
+  "id": "index-promises",
+  "label": "索引承诺了并发",
+  "focus": ["chapter-index", "concurrency-keyword", "code-probe"],
+  "note": "仓库自己的章节索引把「并发」列为这一章关键词——承诺了代码没有的东西，实测零并发原语。"
+ },
+ {
+  "id": "official-parallel",
+  "label": "官方确认并行与批",
+  "focus": ["official-doc", "parallel-batch"],
+  "note": "【官】产品真有并行工具调用，还有批这一层。"
+ },
+ {
+  "id": "author-schedule",
+  "label": "批内并行批间排队",
+  "focus": ["author-analysis", "batch-parallel", "batch-queue"],
+  "note": "【三】归属：调度是批内并行、有并发上限，批与批之间严格排队。"
+ },
+ {
+  "id": "args-decide",
+  "label": "看实参不看名",
+  "focus": ["args-decide", "parallel-batch"],
+  "note": "能不能并行，看这一次调用的实参，不看工具挂什么名（终态）。"
+ }
+]

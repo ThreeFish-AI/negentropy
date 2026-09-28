@@ -6,11 +6,25 @@ import {SceneFade} from './components/SceneFade';
 import {Subtitle} from './components/Subtitle';
 import {theme} from './design/theme';
 import {LangProvider} from './i18n';
+import {P0HumanLoop} from './scenes/P0HumanLoop';
+import {P1LoopVerify} from './scenes/P1LoopVerify';
+import {P2ToolRegistry} from './scenes/P2ToolRegistry';
+import {P3ThreeGates} from './scenes/P3ThreeGates';
+import {P4HookSockets} from './scenes/P4HookSockets';
+import {P5CheckChain} from './scenes/P5CheckChain';
+import {P6OneLoop} from './scenes/P6OneLoop';
 import {computeTimeline, SCENE_FADE_FRAMES} from './timing';
 import type {Lang} from './i18n';
 import type {ManifestItem, SceneRange} from './types';
 
 const SCENE_COMPONENTS: Record<string, React.FC<{scene: SceneRange}>> = {
+  P0: P0HumanLoop,
+  P1: P1LoopVerify,
+  P2: P2ToolRegistry,
+  P3: P3ThreeGates,
+  P4: P4HookSockets,
+  P5: P5CheckChain,
+  P6: P6OneLoop,
 };
 
 export type MainProps = {manifest: ManifestItem[]; lang?: Lang};
