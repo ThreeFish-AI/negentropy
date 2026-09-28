@@ -54,7 +54,7 @@ export const P6Truth: React.FC<{scene: SceneRange}> = ({scene}) => {
             '$ grep -rn "\\.assemble(" apps/negentropy/src apps/negentropy/tests',
             'tests/unit_tests/engine/test_context_assembler_reflection.py:167:  ← 唯一命中',
             '生产调用数 = 0',
-            '真锚 = NegencyPreloadMemoryTool（每轮 · 用户消息为 query）',
+            '真锚 = NegentropyPreloadMemoryTool（每轮 · 用户消息为 query）',
           ]}
           badge={{level: 'filled', note: 'assemble() 生产零调用'}}
         />

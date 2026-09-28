@@ -257,7 +257,7 @@
 
 | slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| [context-layer--failure-map](./cognitive-context/context-layer--failure-map.mmd) | cognitive-context/013-context-layer-blueprint.md §0 为什么需要（八失效模式×堵截机制） | architecture | ✓ | done | 新增：左八失效右四层堵截、映射边=验收面；97/4 等实证锚入节点 |
+| [context-layer--failure-map](./cognitive-context/context-layer--failure-map.mmd) | cognitive-context/013-context-layer-blueprint.md §0 为什么需要（八失效模式×堵截机制） | architecture | ✓ | done | 新增：左八失效右四层堵截（§6 富化层源水位折入 F2→L5 边）、映射边=验收面；97/4 等实证锚入节点 |
 | [context-layer--five-sources](./cognitive-context/context-layer--five-sources.mmd) | cognitive-context/013-context-layer-blueprint.md §1 术语与范围（ADR-5 五源分类法） | architecture | ✓ | done | 新增：五源×信任信号×治理面三段式；归一层不发明新信号 |
 | [context-layer-blueprint--industry-landscape](./cognitive-context/context-layer-blueprint--industry-landscape.mmd) | cognitive-context/013-context-layer-blueprint.md §2 业界格局与判据 | architecture | ✓ | done | 更新：+2026-09 落地断层节点（97/4·传输vs含义）；四路线保留 |
 | [context-layer-blueprint--architecture](./cognitive-context/context-layer-blueprint--architecture.mmd) | cognitive-context/013-context-layer-blueprint.md §3 总体架构：三轴蓝图（ADR-4） | architecture | ✓ | done | 重设计：五正交层单轴→三轴正交（五源×五层×CGAVE）+验收节点 |

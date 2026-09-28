@@ -3,7 +3,8 @@
  *  7 镜 / 10 条 archify cue：
  *   4-A 会签栏装置 + fm-gov@03 · 4-B 只减不增计数器 · 4-C 韦恩图交集
  *   4-D RII 底稿/保留单 + fm-unverified@15 · 4-E 477 vs 48 装置
- *   4-F tm-poison@21→tm-inject@22 · 4-G 数字墙 + tm-token@24→tm-deputy@25→tm-gate@26（接力）
+ *   4-F tm-poison@21→tm-inject@22 + 数字墙@23（p4-23 为 cue 空窗句，数字归属口播句）
+ *   4-G tm-token@24→tm-deputy@25→tm-gate@26（三章接力占满窗口，不叠装置）
  */
 import React from 'react';
 import {AbsoluteFill, Sequence} from 'remotion';
@@ -67,13 +68,17 @@ export const P4Signoff: React.FC<{scene: SceneRange}> = ({scene}) => {
       {/* 4-E 477 vs 48 */}
       <Sequence from={bE.from} durationInFrames={bE.durationInFrames} name="4-E">
         <Crash477 at={at('p4-18') - bE.from} />
-        <div style={{position: 'absolute', bottom: 90, left: 80}}>
+        <div style={{position: 'absolute', bottom: 150, left: 80}}>
           <EvidenceBadge level="solid" at={at('p4-18') - bE.from} note="第三方复现 · 玩具版 4 vs 3" />
         </div>
       </Sequence>
 
-      {/* 4-F 供给面投毒 */}
+      {/* 4-F 供给面投毒 + 数字墙（98,380/157/632 口播在 p4-23——cue 空窗句，画框卸载后可见） */}
       <Sequence from={bF.from} durationInFrames={bF.durationInFrames} name="4-F">
+        <NumbersWall at={at('p4-23') - bF.from} />
+        <div style={{position: 'absolute', bottom: 150, left: 80}}>
+          <EvidenceBadge level="solid" at={at('p4-23') - bF.from} note="USENIX · 生态扫描" />
+        </div>
         <ArchifyRecap
           slug="blueprint--mcp-threat-model"
           caption="供给面 · 自述不可信"
@@ -86,7 +91,6 @@ export const P4Signoff: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       {/* 4-G 四家不验签 + 三底线 */}
       <Sequence from={bG.from} durationInFrames={bG.durationInFrames} name="4-G">
-        <NumbersWall at={at('p4-24') - bG.from} />
         <ArchifyRecap
           slug="blueprint--mcp-threat-model"
           caption="治理门 · 三级链路"
@@ -98,9 +102,9 @@ export const P4Signoff: React.FC<{scene: SceneRange}> = ({scene}) => {
         />
       </Sequence>
 
-      {/* 幕尾第 4 格：底锚不遮 4-G 全屏 archify（同 1-Z 先例） */}
+      {/* 幕尾第 4 格：底锚 ≥150 避开字幕带/QA 安全区（同 1-Z 先例） */}
       <Sequence from={bZ.from} durationInFrames={bZ.durationInFrames} name="4-Z">
-        <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 90}}>
+        <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 200}}>
           <WorkCard stamps={4} totalSlots={7} highlightSlot={3} w={320} />
         </AbsoluteFill>
       </Sequence>
@@ -213,7 +217,7 @@ const NumbersWall: React.FC<{at: number}> = ({at}) => {
         </div>
       ))}
       <div style={{opacity: rows[2], display: 'flex', gap: 18, marginTop: 10}}>
-        {['Claude', 'Cursor', 'Codex', 'VS Code'].map((c) => (
+        {['Claude', 'Gemini', 'Codex', 'VS Code'].map((c) => (
           <span key={c} style={{padding: '6px 14px', border: `1.5px solid ${theme.panelBorder}`, borderRadius: 6, fontSize: 19, color: theme.dim, textDecoration: 'line-through'}}>{c}</span>
         ))}
         <span style={{fontSize: 19, color: theme.conceptDeep}}>零验签</span>

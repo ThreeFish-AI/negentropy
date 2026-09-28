@@ -1,7 +1,7 @@
 %%source: docs/research/cognitive-context/013-context-layer-blueprint.md §0 为什么需要：Agent 在自信地错（八失效模式 × 堵住它的层·机制）
 %%slug: cognitive-context/context-layer--failure-map
 %%type: architecture
-%%derived: archify architecture v1, authored fresh (左八失效右五层、映射边=验收面)
+%%derived: archify architecture v1, authored fresh (左八失效右四层、映射边=验收面；§6 富化层的源水位刷新职责折入 F2→L5 边标签，故图内四层)
 flowchart LR
     subgraph FAILS["八个不可自愈的失效模式（实证见 §0 表）"]
         direction TB
@@ -14,7 +14,7 @@ flowchart LR
         F7["供给面投毒<br/>技能生态恶意面"]
         F8["静默退化<br/>激活悬空 · context rot"]
     end
-    subgraph LAYERS["五正交层的堵截机制"]
+    subgraph LAYERS["四正交层的堵截机制（富化层源水位折入 F2→L5 边）"]
         direction TB
         L4["§4 对象层<br/>M1 口径单点"]
         L5["§5 目录层<br/>staleness · 信任归一"]

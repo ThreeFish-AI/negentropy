@@ -2,7 +2,7 @@
  *
  *  9 镜 / 9 条 archify cue：
  *   5-A 计时器烧钱装置 · 5-B 裁纸刀 + ae-k1@04 · 5-C 46/19 工具墙 + ae-k2@07
- *   5-D ae-k3@12 · 5-E ae-k4@14→ae-k5@15 + 交接班折行 · 5-F ae-knobs@17
+ *   5-D ae-k3@12 · 5-E ae-k4@14→ae-k5@15（两章各占一句，p5-16 转场句无装置）· 5-F ae-knobs@17
  *   5-G ae-ch@19 · 5-H ae-guard@21→ae-llm@22 · 5-I 三维拼图收口 + 第 5 格
  *  lead 审计：7 实例相邻首末 cue 均隔整句空窗（04→07/07→12/12→14/15→17/17→19/19→21）→ 无背靠背，全部恢复入场。
  */
@@ -51,7 +51,7 @@ export const P5Tarmac: React.FC<{scene: SceneRange}> = ({scene}) => {
       {/* 5-C 渐进披露 + 46/19 */}
       <Sequence from={bC.from} durationInFrames={bC.durationInFrames} name="5-C">
         <ToolWall46 at={at('p5-10') - bC.from} />
-        <div style={{position: 'absolute', bottom: 90, left: 80}}>
+        <div style={{position: 'absolute', bottom: 150, left: 80}}>
           <EvidenceBadge level="solid" at={at('p5-10') - bC.from} note="Llama 3.1 8B · 16k 窗" />
         </div>
         <ArchifyRecap slug="assembly-economics" caption="旋钮二 · 渐进披露" cues={[{chapterId: 'ae-k2', at: at('p5-07') - bC.from, durationInFrames: dur('p5-07')}]} />
@@ -143,7 +143,8 @@ const PaperCut: React.FC<{at: number}> = ({at}) => {
 };
 
 const ToolWall46: React.FC<{at: number}> = ({at}) => {
-  const cells = useStagger(46, {stride: 2, at, dur: 3});
+  // 69 槽 = 46 橙（挂满失败）+ 4 虚线空档 + 19 绿（够用成功）；grid 16 列 5 行容 80 槽
+  const cells = useStagger(69, {stride: 2, at, dur: 3});
   return (
     <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
       <div style={{width: 860, height: 360, display: 'grid', gridTemplateColumns: 'repeat(16,1fr)', gap: 6}}>

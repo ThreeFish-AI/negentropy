@@ -2,8 +2,8 @@
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 49.04,
- "total_wall_sec": 198.92,
+ "story_sec": 49.09,
+ "total_wall_sec": 195.19,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -17,7 +17,7 @@
    "beats": 1,
    "dwell_ms": 3200,
    "lead_sec": 0.44,
-   "story_sec": 3.24,
+   "story_sec": 3.23,
    "beat_offsets_sec": [
     0.0
    ],
@@ -36,7 +36,7 @@
    "beats": 1,
    "dwell_ms": 3200,
    "lead_sec": 0.44,
-   "story_sec": 3.25,
+   "story_sec": 3.24,
    "beat_offsets_sec": [
     0.0
    ],
@@ -55,7 +55,7 @@
    "beats": 1,
    "dwell_ms": 3200,
    "lead_sec": 0.44,
-   "story_sec": 3.21,
+   "story_sec": 3.22,
    "beat_offsets_sec": [
     0.0
    ],
@@ -74,7 +74,7 @@
    "beats": 1,
    "dwell_ms": 3200,
    "lead_sec": 0.44,
-   "story_sec": 3.24,
+   "story_sec": 3.23,
    "beat_offsets_sec": [
     0.0
    ],
@@ -93,7 +93,7 @@
    "beats": 1,
    "dwell_ms": 3200,
    "lead_sec": 0.44,
-   "story_sec": 3.21,
+   "story_sec": 3.24,
    "beat_offsets_sec": [
     0.0
    ],
@@ -112,7 +112,7 @@
    "beats": 1,
    "dwell_ms": 3200,
    "lead_sec": 0.44,
-   "story_sec": 3.22,
+   "story_sec": 3.25,
    "beat_offsets_sec": [
     0.0
    ],
@@ -131,7 +131,7 @@
    "beats": 1,
    "dwell_ms": 3200,
    "lead_sec": 0.44,
-   "story_sec": 3.25,
+   "story_sec": 3.24,
    "beat_offsets_sec": [
     0.0
    ],
@@ -172,7 +172,7 @@
    "story_sec": 3.22,
    "beat_offsets_sec": [
     0.0,
-    1.603
+    1.604
    ],
    "beat_nodes": [
     "F1",
@@ -190,11 +190,11 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.35,
+   "story_sec": 3.33,
    "beat_offsets_sec": [
     0.0,
-    1.105,
-    2.209
+    1.103,
+    2.206
    ],
    "beat_nodes": [
     "F2",
@@ -213,12 +213,12 @@
    "beats": 4,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 4.43,
+   "story_sec": 4.44,
    "beat_offsets_sec": [
     0.0,
-    1.103,
-    2.208,
-    3.312
+    1.104,
+    2.209,
+    3.313
    ],
    "beat_nodes": [
     "F4",
@@ -238,11 +238,11 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.33,
+   "story_sec": 3.32,
    "beat_offsets_sec": [
     0.0,
-    1.102,
-    2.206
+    1.105,
+    2.208
    ],
    "beat_nodes": [
     "F6",
@@ -261,16 +261,16 @@
    "beats": 8,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 8.84,
+   "story_sec": 8.88,
    "beat_offsets_sec": [
     0.0,
-    1.101,
-    2.204,
-    3.309,
-    4.413,
+    1.104,
+    2.208,
+    3.313,
+    4.415,
     5.519,
     6.622,
-    7.725
+    7.723
    ],
    "beat_nodes": [
     "F1",

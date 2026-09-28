@@ -39,7 +39,7 @@ export const P3ShadowBoard: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       {/* 3-A 影子板：工具入格 */}
       <Sequence from={bA.from} durationInFrames={bA.durationInFrames} name="3-A">
-        <ShadowBoard at={at('p3-02') - bA.from} />
+        <ShadowBoard at={at('p3-03') - bA.from} />
         <ArchifyRecap slug="runtime-layering" caption="五子系统 · 指针相连" cues={[{chapterId: 'rl-sys', at: at('p3-02') - bA.from, durationInFrames: dur('p3-02')}]} />
       </Sequence>
 
@@ -58,10 +58,10 @@ export const P3ShadowBoard: React.FC<{scene: SceneRange}> = ({scene}) => {
       {/* 3-C 中文坑：代码走廊② + 割裂章 */}
       <Sequence from={bC.from} durationInFrames={bC.durationInFrames} name="3-C">
         <CodePane
-          at={at('p3-11') - bC.from}
+          at={at('p3-11b') - bC.from}
           lines={[
             "to_tsvector('english', '用户偏好先给结论，少铺垫')",
-            "  → '少铺垫':2  '用户偏好先给结论':1   ← 整段 = 1 个 token",
+            "  → '少铺垫':2  '用户偏好先给结论':1   ← 连续汉字段 = 1 个 token",
             "plainto_tsquery('english','先给结论') @@ … → f",
             '关键词腿全空 · KB 无回退',
           ]}
@@ -73,7 +73,7 @@ export const P3ShadowBoard: React.FC<{scene: SceneRange}> = ({scene}) => {
       {/* 3-D <5% 覆盖率 */}
       <Sequence from={bD.from} durationInFrames={bD.durationInFrames} name="3-D">
         <CoverageBar at={at('p3-15') - bD.from} />
-        <div style={{position: 'absolute', bottom: 90, left: 80}}>
+        <div style={{position: 'absolute', bottom: 150, left: 80}}>
           <EvidenceBadge level="dashed" at={at('p3-15') - bD.from} note="9,685 表 · 自报口径" />
         </div>
       </Sequence>
@@ -97,7 +97,7 @@ export const P3ShadowBoard: React.FC<{scene: SceneRange}> = ({scene}) => {
       {/* 3-H 交接班板：草稿区→最后落章 */}
       <Sequence from={bH.from} durationInFrames={bH.durationInFrames} name="3-H">
         <HandoverBoard at={at('p3-26b') - bH.from} />
-        <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 60}}>
+        <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 200}}>
           <WorkCard stamps={3} totalSlots={7} highlightSlot={2} w={340} />
         </AbsoluteFill>
       </Sequence>
@@ -138,7 +138,7 @@ const CoverageBar: React.FC<{at: number}> = ({at}) => {
     <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16}}>
       <div style={{fontSize: 64, color: theme.conceptDeep, fontVariantNumeric: 'tabular-nums'}}>&lt; {(5 * (0.4 + 0.6 * grow)).toFixed(1)}%</div>
       <div style={{width: 640, height: 26, border: `1.5px solid ${theme.panelBorder}`, borderRadius: 13, overflow: 'hidden'}}>
-        <div style={{width: `${(5 + 95 * grow) * 0.9}%`, height: '100%', background: theme.conceptDeep, opacity: 0.8}} />
+        <div style={{width: `${5 * (0.4 + 0.6 * grow)}%`, height: '100%', background: theme.conceptDeep, opacity: 0.8}} />
       </div>
       <div style={{fontSize: 22, color: theme.dim}}>人工精修覆盖 · 九千多张表</div>
     </AbsoluteFill>
@@ -150,7 +150,7 @@ const DualTrack: React.FC<{at: number}> = ({at}) => {
   return (
     <AbsoluteFill {...{style: {display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 30}}}>
       <div style={{...e, display: 'flex', gap: 60, alignItems: 'center'}}>
-        <div style={{padding: '20px 30px', border: `2px solid ${theme.concept}`, borderRadius: 10, fontSize: 28}}>手册轨<div style={{fontSize: 18, color: theme.dim, marginTop: 6}}>显式 · 可签字</div></div>
+        <div style={{padding: '20px 30px', border: `2px solid ${theme.concept}`, borderRadius: 10, fontSize: 28, color: theme.concept}}>手册轨<div style={{fontSize: 18, color: theme.dim, marginTop: 6}}>显式 · 可签字</div></div>
         <div style={{fontSize: 34, color: theme.dim}}>∥</div>
         <div style={{padding: '20px 30px', border: `2px dashed ${theme.dim}`, borderRadius: 10, fontSize: 28, color: theme.dim}}>手感轨<div style={{fontSize: 18, marginTop: 6}}>可提示 · 永不替手册签字</div></div>
       </div>

@@ -112,9 +112,9 @@ export const P1Hangar: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap slug="failure-map" caption="静默退化 · context rot" cues={[{chapterId: 'fm-silent', at: at('p1-23') - bH.from, durationInFrames: dur('p1-23')}]} />
       </Sequence>
 
-      {/* 幕尾：工卡第 1 格盖章（进度锚；底部锚定 + 收窄，避让 1-H 金句） */}
+      {/* 幕尾：工卡第 1 格盖章（进度锚；底部锚定 200 避开字幕带/QA 安全区 + 收窄避让 1-H 金句） */}
       <Sequence from={bZ.from} durationInFrames={bZ.durationInFrames} name="1-Z">
-        <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 90}}>
+        <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 200}}>
           <WorkCard stamps={1} totalSlots={7} highlightSlot={0} w={320} />
         </AbsoluteFill>
       </Sequence>

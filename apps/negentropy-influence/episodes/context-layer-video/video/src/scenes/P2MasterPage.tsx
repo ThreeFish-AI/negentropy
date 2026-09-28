@@ -1,8 +1,8 @@
 /** P2 当版页制度：对象层（p2-01..p2-22，23 句；storyboard「P2 当版页制度」节）。
  *
  *  8 镜 / 5 条 archify cue：
- *   2-A 导览（装置：文档柜门）· 2-B ol-draft@04 · 2-C fan trap 装置（订单-事件连线）
- *   2-D ol-gov@13（金句：口径只印一本）· 2-E 代码走廊①（422 拒绝）
+ *   2-A 导览（装置：文档柜门）· 2-B ol-draft@04（PrintPage 锚 p2-05，cue 窗外先可见）· 2-C fan trap 装置（订单-事件连线）
+ *   2-D ol-gov@13（全屏独占单句镜）· 2-E 代码走廊①（422 拒绝）
  *   2-F ol-conflict@16→ol-full@18（前隔代码走廊，恢复入场）· 2-G ol-super@19 · 2-H 影子板收束
  */
 import React from 'react';
@@ -12,7 +12,6 @@ import {beatWindow} from '../timing';
 import {theme} from '../design/theme';
 import {useEnter, useSpring, useStagger} from '../motion';
 import {SceneTag} from '../components/motifs';
-import {QuoteCard} from '../components/cards';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 import {EvidenceBadge} from '../components/EvidenceBadge';
 import {WorkCard} from '../components/WorkCard';
@@ -44,23 +43,20 @@ export const P2MasterPage: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       {/* 2-B 当版页：打印机装置 + ol-draft */}
       <Sequence from={bB.from} durationInFrames={bB.durationInFrames} name="2-B">
-        <PrintPage at={at('p2-04') - bB.from} />
+        <PrintPage at={at('p2-05') - bB.from} />
         <ArchifyRecap slug="blueprint--object-lifecycle" caption="对象 · 起草即受控" cues={[{chapterId: 'ol-draft', at: at('p2-04') - bB.from, durationInFrames: dur('p2-04')}]} />
       </Sequence>
 
       {/* 2-C fan trap 装置：三条事件挂上订单、金额翻倍 */}
       <Sequence from={bC.from} durationInFrames={bC.durationInFrames} name="2-C">
         <FanTrap at={at('p2-10') - bC.from} />
-        <div style={{position: 'absolute', bottom: 90, left: 80}}>
+        <div style={{position: 'absolute', bottom: 150, left: 80}}>
           <EvidenceBadge level="filled" at={at('p2-10') - bC.from} note="对照 200 · 退化 440" />
         </div>
       </Sequence>
 
-      {/* 2-D 锁一起：金句 + ol-gov */}
+      {/* 2-D 锁一起：ol-gov 全屏独占（单句镜，不叠卡片层——与 cue 同窗的元素会被不透明画框罩住） */}
       <Sequence from={bD.from} durationInFrames={bD.durationInFrames} name="2-D">
-        <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-          <QuoteCard zh="口径只印一本 · 用时当场重算" accent={theme.concept} />
-        </AbsoluteFill>
         <ArchifyRecap slug="blueprint--object-lifecycle" caption="对象 · 过门受治理" cues={[{chapterId: 'ol-gov', at: at('p2-13') - bD.from, durationInFrames: dur('p2-13')}]} />
       </Sequence>
 
@@ -70,7 +66,7 @@ export const P2MasterPage: React.FC<{scene: SceneRange}> = ({scene}) => {
           at={at('p2-14b') - bE.from}
           lines={[
             'POST /interface/definitions  →  parse_definition(源文本)',
-            '  ⚠ DefinitionParseError: relationship 指向非键列',
+            '  ⚠ DefinitionParseError: Agent 规格缺少必填字段: name',
             '  ← HTTP 422（拒绝落库）',
             'materialize_all()  →  .agent/skills/<key>/SKILL.md（幂等投影）',
           ]}
@@ -193,8 +189,8 @@ const FanTrap: React.FC<{at: number}> = ({at}) => {
             <text x={430} y={53 + i * 64} fill={theme.dim} fontSize={18}>事件 #{i + 1}</text>
           </g>
         ))}
-        <line x1={590} y1={120} x2={680} y2={120} stroke={theme.ok} strokeWidth={2} />
-        <text x={620} y={110} fill={theme.ok} fontSize={20}>×{1 + grow * 2}</text>
+        <line x1={590} y1={120} x2={680} y2={120} stroke={theme.conceptDeep} strokeWidth={2} />
+        <text x={620} y={110} fill={theme.conceptDeep} fontSize={20}>×{Math.round(1 + grow * 2)}</text>
         <text x={300} y={280} fill={theme.conceptDeep} fontSize={26}>
           $100 → ${Math.round(100 + 200 * grow)}
         </text>

@@ -76,7 +76,7 @@
 | 5-B 最小够用 | p5-04..06 | device：几十万页手册只裁几页（裁纸刀落）；·**archify full**：assembly-economics 章 `ae-k1` | 裁切动画；页堆对比悬殊 |
 | 5-C 渐进披露 | p5-07..11 | device：卡面章节号（目录常驻）vs 正文按需调页；46/19 工具实验（实线徽）；·**archify full**：assembly-economics 章 `ae-k2` | 卡面小字→整页展开；工具墙挂载失败闪烁（46 橙/19 绿） |
 | 5-D JIT 边界 | p5-12..13 | ·**archify full**：assembly-economics 章 `ae-k3` | 小体量预取（推车）/大体量按需（呼叫铃）分屏 |
-| 5-E 缓存与压缩 | p5-14..16 | ·**archify full**：assembly-economics 章 `ae-k4`+`ae-k5`；device：交接班纪要折行 | 不变段冻结复用（蓝）/会变段滑动；纪要折纸动画 |
+| 5-E 缓存与压缩 | p5-14..16 | ·**archify full**：assembly-economics 章 `ae-k4`+`ae-k5` | 不变段冻结复用（蓝）/会变段滑动 |
 | 5-F 命名 | p5-17..18 | ·**archify full**：assembly-economics 章 `ae-knobs` | 五旋钮横排点亮命名卡 |
 | 5-G 检索前置 | p5-19..20 | ·**archify full**：assembly-economics 章 `ae-ch` | 找错对象分叉路（橙岔路）vs 四信号排序罗盘 |
 | 5-H resolve | p5-21..24 | ·**archify full**：assembly-economics 章 `ae-guard`+`ae-llm`；device：核准题命中→盖章底稿弹出（绿）；无覆盖→明确说没有 | 总入口闸门开合；底稿/告示二选一弹出 |

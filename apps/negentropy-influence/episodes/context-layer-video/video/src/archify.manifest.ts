@@ -638,7 +638,7 @@ export const ARCHIFY = {
         "endStill": "failure-map--fm-stale-end.png",
         "beats": 1,
         "leadSec": 0.44,
-        "storySec": 3.24,
+        "storySec": 3.23,
         "beatNodes": [
           "F2"
         ]
@@ -650,7 +650,7 @@ export const ARCHIFY = {
         "endStill": "failure-map--fm-conflict-end.png",
         "beats": 1,
         "leadSec": 0.44,
-        "storySec": 3.25,
+        "storySec": 3.24,
         "beatNodes": [
           "F1"
         ]
@@ -662,7 +662,7 @@ export const ARCHIFY = {
         "endStill": "failure-map--fm-auth-end.png",
         "beats": 1,
         "leadSec": 0.44,
-        "storySec": 3.21,
+        "storySec": 3.22,
         "beatNodes": [
           "F5"
         ]
@@ -674,7 +674,7 @@ export const ARCHIFY = {
         "endStill": "failure-map--fm-breach-end.png",
         "beats": 1,
         "leadSec": 0.44,
-        "storySec": 3.24,
+        "storySec": 3.23,
         "beatNodes": [
           "F4"
         ]
@@ -686,7 +686,7 @@ export const ARCHIFY = {
         "endStill": "failure-map--fm-unverified-end.png",
         "beats": 1,
         "leadSec": 0.44,
-        "storySec": 3.21,
+        "storySec": 3.24,
         "beatNodes": [
           "F6"
         ]
@@ -698,7 +698,7 @@ export const ARCHIFY = {
         "endStill": "failure-map--fm-poison-end.png",
         "beats": 1,
         "leadSec": 0.44,
-        "storySec": 3.22,
+        "storySec": 3.25,
         "beatNodes": [
           "F7"
         ]
@@ -710,7 +710,7 @@ export const ARCHIFY = {
         "endStill": "failure-map--fm-split-end.png",
         "beats": 1,
         "leadSec": 0.44,
-        "storySec": 3.25,
+        "storySec": 3.24,
         "beatNodes": [
           "F3"
         ]
@@ -747,7 +747,7 @@ export const ARCHIFY = {
         "endStill": "failure-map--fm-cat-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.35,
+        "storySec": 3.33,
         "beatNodes": [
           "F2",
           "F3",
@@ -761,7 +761,7 @@ export const ARCHIFY = {
         "endStill": "failure-map--fm-gov-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.43,
+        "storySec": 4.44,
         "beatNodes": [
           "F4",
           "F5",
@@ -776,7 +776,7 @@ export const ARCHIFY = {
         "endStill": "failure-map--fm-act-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.33,
+        "storySec": 3.32,
         "beatNodes": [
           "F6",
           "F8",
@@ -790,7 +790,7 @@ export const ARCHIFY = {
         "endStill": "failure-map--fm-all-end.png",
         "beats": 8,
         "leadSec": 0.44,
-        "storySec": 8.84,
+        "storySec": 8.88,
         "beatNodes": [
           "F1",
           "F2",

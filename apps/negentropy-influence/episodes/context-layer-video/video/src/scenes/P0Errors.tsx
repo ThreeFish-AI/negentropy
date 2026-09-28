@@ -3,9 +3,10 @@
  *  7 镜 / 7 条 archify cue：
  *   0-A 夜机坪（纯装置：机库夜灯+工卡首现）
  *   0-B fm-stale@p0-03 · 0-C fm-conflict@p0-07 · 0-D fm-auth@p0-10（全屏独占；B→C→D 镜界背靠背，链首 0-B 恢复入场）
- *   0-E fm-breach@p0-14 + fm-all@p0-16（同实例接力，链首背靠背 0-D 尾故 false）· 0-F fm-unverified@p0-19 + il-gap@p0-21（隔句空窗均入场）
+ *   0-E fm-breach@p0-14（背靠背 0-D 尾故 false）· fm-all@p0-16（空窗 p0-15 后重现，拆独立实例恢复入场）
+ *   0-F fm-unverified@p0-19 + il-gap@p0-21（隔句空窗均入场）
  *   0-G 发工卡（装置收口：卡面格线亮起）
- *  三级证据徽：p0-15/16 solid · p0-19 solid · p0-21 dashed（全限定角标）。
+ *  三级证据徽：p0-15/16 solid · p0-19 solid · p0-20 dashed（全限定角标；p0-21 被 il-gap 图框覆盖故前移空窗句）。
  */
 import React from 'react';
 import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
@@ -73,17 +74,19 @@ export const P0Errors: React.FC<{scene: SceneRange}> = ({scene}) => {
       <Sequence from={bE.from} durationInFrames={bE.durationInFrames} name="0-E">
         <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 28}}>
           <div style={{display: 'flex', gap: 40, alignItems: 'flex-end'}}>
-            <NumCrash from={19} to={85} at={at('p0-15') - bE.from} label="共享资料库 → 递对证据页" />
+            <NumCrash from={19} to={85} at={at('p0-17') - bE.from} label="共享资料库 → 递对证据页" />
           </div>
           <div style={{display: 'flex', gap: 24}}>
             <EvidenceBadge level="solid" at={at('p0-15') - bE.from} note="FinanceBench" />
             <EvidenceBadge level="solid" at={at('p0-16') - bE.from} note="同模型对照" />
           </div>
         </AbsoluteFill>
-        <ArchifyRecap slug="failure-map" caption="八失效总览" cues={[
+        <ArchifyRecap slug="failure-map" caption="权限穿透" cues={[
           {chapterId: 'fm-breach', at: at('p0-14') - bE.from, durationInFrames: dur('p0-14')},
-          {chapterId: 'fm-all', at: at('p0-16') - bE.from, durationInFrames: dur('p0-16')},
         ]} lead={false} />
+        <ArchifyRecap slug="failure-map" caption="八失效总览" cues={[
+          {chapterId: 'fm-all', at: at('p0-16') - bE.from, durationInFrames: dur('p0-16')},
+        ]} />
       </Sequence>
 
       {/* 0-F 崩崖 + 97/4 断层（il-gap 与 fm-unverified 隔整句空窗，恢复入场） */}
@@ -92,7 +95,7 @@ export const P0Errors: React.FC<{scene: SceneRange}> = ({scene}) => {
           <CliffLine at={at('p0-19') - bF.from} />
           <div style={{display: 'flex', gap: 18, alignItems: 'center'}}>
             <EvidenceBadge level="solid" at={at('p0-19') - bF.from} note="Spider 2.0" />
-            <EvidenceBadge level="dashed" at={at('p0-21') - bF.from} note="n=1000 · 方法论未公开" />
+            <EvidenceBadge level="dashed" at={at('p0-20') - bF.from} note="n=1000 · 方法论未公开" />
           </div>
         </AbsoluteFill>
         <ArchifyRecap slug="failure-map" caption="失效四 · 未验证断言" cues={[{chapterId: 'fm-unverified', at: at('p0-19') - bF.from, durationInFrames: dur('p0-19')}]} />
