@@ -105,6 +105,19 @@ path = "video/src/components/Subtitle.tsx"
 fingerprint = "61df1a5e08e2"
 reason = "字幕风格分代（2026-09-14）：模板已升级为渲染层剥除句尾「。」；本集为已发布成片，源码保持发布态。撤销条件=按 to-video.toml [[skeleton.generation]] bilingual-i18n 整组同步（Main + ChapterProgress + Subtitle + Root + NarrationAudio + i18n.tsx，拷齐再 tsc --noEmit），并重跑 build 派生 chapters.json；同步后从 generation roster 删除本集并撤销本条"
 [[skeleton.drift]]
+episode = "claude-code-multiagent-video"
+path = "video/src/components/Subtitle.tsx"
+fingerprint = "61df1a5e08e2"
+reason = "字幕风格分代（2026-09-14）：模板已升级为渲染层剥除句尾「。」；本集为已发布成片，源码保持发布态。撤销条件=按 to-video.toml [[skeleton.generation]] bilingual-i18n 整组同步（Main + ChapterProgress + Subtitle + Root + NarrationAudio + i18n.tsx，拷齐再 tsc --noEmit），并重跑 build 派生 chapters.json；同步后从 generation roster 删除本集并撤销本条"
+
+# 顶部进度条分代（2026-09-22）：模板 Main.tsx 归一化指纹 179be60ed605 为分代前
+# 模板值（10 个既有集此前已收敛对齐、零历史登记——均已发布），与上方 Subtitle
+# 分代同构；新 frozen 的 ChapterProgress.tsx 既有集尚无此
+# 文件（旧脚手架期产物，Main 未挂载不影响渲染），按 cards.tsx 先例钉「缺失」哨兵。
+# 本批与 Subtitle 批的撤销指引已并入 bilingual-i18n 分代（2026-09-24）：单独同步
+# Main/ChapterProgress/Subtitle 任一文件都会因 i18n.tsx import 断链而 tsc 红，
+# 须按上方 [[skeleton.generation]] 整组同步后一并撤销。
+[[skeleton.drift]]
 episode = "experience-era-agents-video"
 path = "video/src/Main.tsx"
 fingerprint = "179be60ed605"
