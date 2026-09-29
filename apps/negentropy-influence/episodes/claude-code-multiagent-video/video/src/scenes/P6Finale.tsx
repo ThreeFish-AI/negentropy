@@ -578,9 +578,6 @@ const FinaleChain: React.FC<{
   const seg2Out = useProgress(at20, DUR.f4);
   const lampsOut = useProgress(at21, DUR.f4);
   const endDim = useProgress(at23, DUR.f5);
-  // 渐黑窗取整镜时长（红线四——勿用末句时长）
-  const keep = useFadeOut(span, {frames: 36});
-  const farewell = useProgress(at23 + 6, DUR.f5);
 
   return (
     <AbsoluteFill style={{pointerEvents: 'none'}}>
@@ -605,9 +602,22 @@ const FinaleChain: React.FC<{
         <IdentityCard at={at17 + 10} />
       </div>
 
-      {/* 渐黑遮罩：末 36 帧，窗取整镜时长 */}
-      <AbsoluteFill style={{background: '#000', opacity: 1 - keep}} />
+      {/* 渐黑遮罩与完结小字已上提为 6-D Sequence 的最后子节点——须盖住 p6-22
+          金句卡（卡在 FinaleChain 之后渲染居 DOM 上层，遮罩若留在本组件内则
+          收暗到不了卡片，镜尾会满亮硬切进空尾场；见 ISSUE-205）。 */}
+    </AbsoluteFill>
+  );
+};
 
+/** 6-D 收尾层：末 36 帧渐黑遮罩 + 完结语，悬于末镜一切内容（含 p6-22 金句卡）
+ *  之上。独立成组件是为让 useFadeOut/useProgress 在 bD Sequence 语境取局部帧——
+ *  挂到 P6Finale 主体会拿到 P6 场景局部帧，遮罩全程满黑（ISSUE-205 实录）。 */
+const FinaleTail: React.FC<{span: number; at23: number}> = ({span, at23}) => {
+  const keep = useFadeOut(span, {frames: 36});
+  const farewell = useProgress(at23 + 6, DUR.f5);
+  return (
+    <>
+      <AbsoluteFill style={{background: '#000', opacity: 1 - keep, pointerEvents: 'none'}} />
       {/* 完结小字（遮罩之上随收暗浮现；无下期卡——完结语气） */}
       <div
         style={{
@@ -625,7 +635,7 @@ const FinaleChain: React.FC<{
       >
         {'后会有期'}
       </div>
-    </AbsoluteFill>
+    </>
   );
 };
 
@@ -742,6 +752,11 @@ export const P6Finale: React.FC<{scene: SceneRange}> = ({scene}) => {
           {/* caption-dup-ok: 家规句金句卡，主字已压短非逐字（storyboard 6-D 注记） */}
           <QuoteWithScrim zh="装置尽管加 · 循环不乱动" />
         </Sequence>
+
+        {/* 渐黑遮罩+完结小字：FinaleTail 为 6-D 最后子节点（盖过金句卡），且其
+            hooks 在本 Sequence 内取 bD 局部帧——窗取整镜时长（红线四）。卡片随
+            遮罩收暗，镜尾不再满亮硬切（ISSUE-205）。 */}
+        <FinaleTail span={bD.durationInFrames} at23={at('p6-23') - bD.from} />
       </Sequence>
     </AbsoluteFill>
   );
