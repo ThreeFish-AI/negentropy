@@ -1,0 +1,32 @@
+%%source: docs/research/cognitive-context/013-context-layer-blueprint.md §1 术语与范围（ADR-5 五源分类法：对象、信任信号与治理面）
+%%slug: cognitive-context/context-layer--five-sources
+%%type: architecture
+%%derived: archify architecture v1, authored fresh (五源×信号×治理面三段式)
+flowchart TB
+    subgraph SRC["Agent 运行时上下文五源（ADR-5）"]
+        direction LR
+        S1["instruction 身份与规程<br/>system prompt · 约定文件 · 指令版本"]
+        S2["memory 记忆<br/>Core Block · Facts · 情景/程序性"]
+        S3["knowledge 知识<br/>chunks · KG 实体关系 · corpus"]
+        S4["tools+skills 能力<br/>工具 schema · 三级披露"]
+        S5["session 会话<br/>历史 · 状态 · 压缩产物"]
+    end
+    subgraph SIG["信任信号（归一层做标准化，不发明新信号）"]
+        direction LR
+        G2["retention · importance<br/>access_count"]
+        G3["quality · retrieval<br/>confidence · PageRank"]
+        G4["成功率 · 延迟<br/>active_version · visibility"]
+    end
+    subgraph GOV["治理面（各源独立，统一织物横亘）"]
+        direction LR
+        V2["PII 检测 · AGM 冲突消解"]
+        V3["accessible 过滤 · 评审溯源 · 双时态"]
+        V4["白名单 · 沙箱 · 提升审批"]
+    end
+    S2 --> G2
+    S3 --> G3
+    S4 --> G4
+    G2 --> V2
+    G3 --> V3
+    G4 --> V4
+    SRC -->|"CGAVE 生命周期经营<br/>Collect→Govern→Activate→Verify→Evolve"| OUT["上下文层输出<br/>预算内最小高信号集"]

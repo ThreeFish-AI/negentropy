@@ -1,0 +1,176 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 26.18,
+ "total_wall_sec": 96.4,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "fs-instr",
+   "label": "身份与规程",
+   "index": 0,
+   "file": "five-sources--fs-instr.mp4",
+   "end_still": "five-sources--fs-instr-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "src-instruction"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "fs-mem",
+   "label": "记忆",
+   "index": 1,
+   "file": "five-sources--fs-mem.mp4",
+   "end_still": "five-sources--fs-mem-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "src-memory",
+    "sig-memory"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "fs-know",
+   "label": "知识",
+   "index": 2,
+   "file": "five-sources--fs-know.mp4",
+   "end_still": "five-sources--fs-know-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0,
+    1.602
+   ],
+   "beat_nodes": [
+    "src-knowledge",
+    "sig-knowledge"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "fs-tools",
+   "label": "能力",
+   "index": 3,
+   "file": "five-sources--fs-tools.mp4",
+   "end_still": "five-sources--fs-tools-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "src-tools",
+    "sig-tools"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "fs-session",
+   "label": "会话",
+   "index": 4,
+   "file": "five-sources--fs-session.mp4",
+   "end_still": "five-sources--fs-session-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "src-session"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "fs-gov",
+   "label": "治理面",
+   "index": 5,
+   "file": "five-sources--fs-gov.mp4",
+   "end_still": "five-sources--fs-gov-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.48,
+   "story_sec": 3.33,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.208
+   ],
+   "beat_nodes": [
+    "gov-privacy",
+    "gov-access",
+    "gov-exec"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "fs-out",
+   "label": "五源汇流",
+   "index": 6,
+   "file": "five-sources--fs-out.mp4",
+   "end_still": "five-sources--fs-out-end.png",
+   "beats": 6,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 6.66,
+   "beat_offsets_sec": [
+    0.0,
+    1.101,
+    2.205,
+    3.309,
+    4.414,
+    5.516
+   ],
+   "beat_nodes": [
+    "src-instruction",
+    "src-memory",
+    "src-knowledge",
+    "src-tools",
+    "src-session",
+    "ctx-output"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/atlanta-v4/docs/assets/architecture/cognitive-context/context-layer--five-sources.html",
+ "slug": "five-sources",
+ "type": "architecture"
+}

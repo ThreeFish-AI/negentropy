@@ -1,32 +1,34 @@
-%%source: docs/research/cognitive-context/013-context-layer-blueprint.md#block3 (§3 总体架构)
+%%source: docs/research/cognitive-context/013-context-layer-blueprint.md §3 总体架构：三轴蓝图（ADR-4 对象轴×结构轴×时间轴正交）
 %%slug: cognitive-context/context-layer-blueprint--architecture
 %%type: architecture
-%%derived: archify architecture v1, authored from source mermaid
+%%derived: archify architecture v2, redesigned from v1 (五正交层单轴 → 三轴正交；v1 见 git 史)
 flowchart TB
-    subgraph "Activation 激活层"
-        MC["🔌 MCP Server<br/>list / resolve / execute / feedback"]
-        RA["🧭 resolve：四因子排序<br/>relevance·authority·popularity·freshness"]
-        GD["🛡️ Governance Gate<br/>双层 RBAC + 出口 guardrails"]
+    subgraph OBJAXIS["对象轴 · 五源（ADR-5）——经营什么"]
+        direction LR
+        O1["instruction"]
+        O2["memory"]
+        O3["knowledge"]
+        O4["tools+skills"]
+        O5["session"]
     end
-    subgraph "Catalog 目录层"
-        CT["📚 统一目录（逻辑视图）<br/>血缘 · 四层信号（结构/运行/语义/行为）"]
+    subgraph STRAXIS["结构轴 · 五正交层（§4–§8）——怎么组织"]
+        direction LR
+        L1["§4 对象层<br/>放什么"]
+        L2["§5 目录层<br/>怎么找"]
+        L3["§6 富化层<br/>怎么养"]
+        L4["§7 治理层<br/>怎么信"]
+        L5["§8 激活层<br/>怎么用"]
     end
-    subgraph "Enrichment 富化层"
-        EX["🏛️ 显式轨道<br/>governed 定义（authority=1.0）"]
-        IN["🔍 隐式轨道<br/>从使用信号推断（authority↓）"]
-        EV["♻️ eval 自纠环 + 冲突浮出人工裁决"]
+    subgraph TIMEAXIS["时间轴 · CGAVE 生命周期（§3.3）——怎么流动"]
+        direction LR
+        T1["Collect<br/>采集"]
+        T2["Govern<br/>治理"]
+        T3["Activate<br/>激活"]
+        T4["Verify<br/>验证"]
+        T5["Evolve<br/>进化"]
+        T1 --> T2 --> T3 --> T4 --> T5
+        T5 -.->|"反馈回路"| T1
     end
-    subgraph "Object Store 对象层"
-        OS["📦 上下文对象<br/>定义/指标/文档/技能/验证问答<br/>（Ossie YAML 可交换）"]
-    end
-    AU["🧑‍💼 人：作者 / 裁决者 / 审计者"]
-    AG["🤖 消费者：agent / BI / 应用<br/>（同一套 RBAC）"]
-    OS --> CT --> EX
-    EX --> CT
-    IN --> CT
-    EV --> EX
-    EV --> IN
-    CT --> RA --> GD --> MC
-    AG <--> MC
-    AU --> EX
-    AU -.->|"裁决 CONFLICT 卡片"| EV
+    OBJAXIS -->|"各源对象入层"| STRAXIS
+    STRAXIS -->|"各层机制随时间运转"| TIMEAXIS
+    TIMEAXIS -->|"失效模式表（§0）= 三轴验收面"| V["✅ 验收：预算内最小高信号集<br/>且可信、可溯源、可进化"]

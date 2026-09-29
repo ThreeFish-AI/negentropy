@@ -1,0 +1,228 @@
+# 配音台本（story 档）——与 narration.md 同产。
+# [block.<句id>]：该句是一个故事块的起点（块 = ≤3 句、≤90 字，幕界断块，beat 首句必为块起点）；
+#   emo = 块情绪方向（happy/angry/sad/afraid/disgusted/melancholic/surprised/calm），相邻块方向尽量不同。
+# [say]：表演标点（只改标点不改字，build 校验去标点后与正文全等）。
+
+# ── P0 三个自信的错 ────────────────────────────────────────────
+
+[block.p0-01]                       # 深夜机坪（静场开场）
+emo = "calm:0.16"
+
+[block.p0-03]                       # 三件错·第一件（平铺）
+emo = "calm:0.1"
+
+[block.p0-07]                       # 第二件·两页打架（起疑）
+emo = "surprised:0.1,calm:0.06"
+
+[block.p0-10]                       # 第三件·越权签字（压低）
+emo = "afraid:0.1,calm:0.08"
+
+[block.p0-12]                       # 共同点：没有报错（点题一拍）
+emo = "melancholic:0.08,calm:0.1"
+
+[block.p0-14]                       # 换成 AI（转折）
+emo = "surprised:0.08,calm:0.08"
+
+[block.p0-17]                       # 模型没换换的是上下文（金句）
+emo = "calm:0.12"
+
+[block.p0-19]                       # 崩崖数字（加重）
+emo = "afraid:0.1,surprised:0.08"
+
+[block.p0-21]                       # 97/4（收半拍）
+emo = "calm:0.1"
+
+[block.p0-22]                       # 给 AI 发一张工卡（钩子）
+emo = "happy:0.1,calm:0.08"
+
+# ── P1 机库全景：五源与三轴 ──────────────────────────────────────
+
+[block.p1-01]                       # 第一问（设问）
+emo = "calm:0.12"
+
+[block.p1-03]                       # 五源逐一点名（数数节奏）
+emo = "calm:0.1"
+
+[block.p1-08]                       # 第四第五源（连贯收）
+emo = "calm:0.08"
+
+[block.p1-11]                       # 五源收束（顿点）
+emo = "surprised:0.08,calm:0.08"
+
+[block.p1-13]                       # 三轴（讲架构·稳）
+emo = "calm:0.12"
+
+[block.p1-18]                       # 为什么正交（自问）
+emo = "surprised:0.06,calm:0.1"
+
+[block.p1-21]                       # 蓝图出处（交代）
+emo = "calm:0.1"
+
+[block.p1-22]                       # 公理（沉）
+emo = "melancholic:0.08,calm:0.1"
+
+[block.p1-25]                       # 目标函数（收束金句）
+emo = "calm:0.12"
+
+# ── P2 当版页制度：对象层 ────────────────────────────────────────
+
+[block.p2-01]                       # 进第一层（导览）
+emo = "calm:0.1"
+
+[block.p2-03]                       # 只印一套（规矩感）
+emo = "calm:0.12"
+
+[block.p2-06]                       # 背下来的一律当错（俏皮一拍）
+emo = "happy:0.08,calm:0.08"
+
+[block.p2-08]                       # 破坏实验开讲（起）
+emo = "surprised:0.08,calm:0.08"
+
+[block.p2-12]                       # 合法但全错（点破）
+emo = "melancholic:0.08,calm:0.1"
+
+[block.p2-14]                       # 本仓骨架（实证转述·平）
+emo = "calm:0.1"
+
+[block.p2-16]                       # 常驻记忆三问（设问串）
+emo = "surprised:0.06,calm:0.1"
+
+[block.p2-18b]                      # 三问末问·截断留痕（严肃收）
+emo = "calm:0.1"
+
+[block.p2-21]                       # 对象层要义（收束）
+emo = "calm:0.12"
+
+# ── P3 影子板与老师傅：目录与富化 ─────────────────────────────────
+
+[block.p3-01]                       # 目录层（导览）
+emo = "calm:0.1"
+
+[block.p3-05]                       # 信谁的（转拆解）
+emo = "surprised:0.06,calm:0.08"
+
+[block.p3-09]                       # 中文的坑（自嘲转折）
+emo = "happy:0.1,surprised:0.08"
+
+[block.p3-13]                       # 富化层（导览）
+emo = "calm:0.1"
+
+[block.p3-15]                       # <5%（现实落差）
+emo = "melancholic:0.1,calm:0.08"
+
+[block.p3-17]                       # 手册与手感（机库味）
+emo = "happy:0.08,calm:0.08"
+
+[block.p3-19]                       # 手册打架怎么办（悬一拍）
+emo = "surprised:0.1,afraid:0.06"
+
+[block.p3-20]                       # 停工（全片戏剧高点·慢而重）
+emo = "afraid:0.12,melancholic:0.08"
+
+[block.p3-23]                       # 自动挑错的赢（冷静点破）
+emo = "melancholic:0.08,calm:0.1"
+
+[block.p3-24]                       # 复利（回升）
+emo = "happy:0.1,calm:0.08"
+
+# ── P4 会签与放行：治理层 ────────────────────────────────────────
+
+[block.p4-01]                       # 治理层（导览）
+emo = "calm:0.1"
+
+[block.p4-03]                       # 会签点名（列队感）
+emo = "calm:0.12"
+
+[block.p4-09]                       # 翻译回 AI（转述·稳）
+emo = "calm:0.1"
+
+[block.p4-12]                       # 防人防答案（对仗）
+emo = "surprised:0.06,calm:0.08"
+
+[block.p4-15]                       # 保留单（较真）
+emo = "melancholic:0.08,calm:0.1"
+
+[block.p4-17]                       # 治理≠验证（立论）
+emo = "calm:0.12"
+
+[block.p4-18b]                      # 重复计数点破（沉）
+emo = "melancholic:0.08,calm:0.1"
+
+[block.p4-20]                       # 供给面（换脸·警觉）
+emo = "afraid:0.08,surprised:0.08"
+
+[block.p4-23]                       # 十万份扫描（数字重读）
+emo = "afraid:0.1,calm:0.08"
+
+[block.p4-26]                       # 三条底线（收束）
+emo = "calm:0.12"
+
+# ── P5 机位时间与工卡夹：激活层 ──────────────────────────────────
+
+[block.p5-01]                       # 激活层（导览）
+emo = "calm:0.1"
+
+[block.p5-02]                       # 机位+工卡夹（朴素）
+emo = "happy:0.08,calm:0.08"
+
+[block.p5-04b]                      # 工具墙对仗收（平）
+emo = "calm:0.1"
+
+[block.p5-06]                       # 预算纪律（点题）
+emo = "calm:0.12"
+
+[block.p5-09]                       # 工具实验（设问起）
+emo = "surprised:0.08,calm:0.08"
+
+[block.p5-12]                       # 预取还是按需（分岔讲）
+emo = "calm:0.1"
+
+[block.p5-16]                       # 交接班纪要（机库味）
+emo = "happy:0.08,calm:0.08"
+
+[block.p5-18]                       # 装配经济学（命名）
+emo = "calm:0.12"
+
+[block.p5-21]                       # resolve 总入口（收拢）
+emo = "calm:0.1"
+
+[block.p5-24]                       # 警示句：隔离边界（轻抬升）
+emo = "surprised:0.06,calm:0.1"
+
+[block.p5-25]                       # 五源五层五段拼图（总结）
+emo = "happy:0.08,calm:0.1"
+
+[block.p5-27]                       # 下一幕预告（留钩）
+emo = "surprised:0.1,calm:0.08"
+
+# ── P6 装配线真相与收口 ──────────────────────────────────────────
+
+[block.p6-01]                       # 图纸≠装配线（第一课·沉）
+emo = "melancholic:0.08,calm:0.1"
+
+[block.p6-03]                       # 调用次数零（爆点·克制）
+emo = "surprised:0.12,afraid:0.08"
+
+[block.p6-06]                       # 铁律（立规）
+emo = "calm:0.12"
+
+[block.p6-08]                       # 菜单不能点（无奈一拍）
+emo = "melancholic:0.08,calm:0.08"
+
+[block.p6-12]                       # 断链与修复（转折回升）
+emo = "calm:0.1"
+
+[block.p6-15]                       # 两条轨道（导览）
+emo = "calm:0.1"
+
+[block.p6-19]                       # 回到那架飞机（回环）
+emo = "surprised:0.06,calm:0.1"
+
+[block.p6-24]                       # 管住的是聪明（收束金句）
+emo = "calm:0.12"
+
+[block.p6-26]                       # 97/4 回响（尾奏）
+emo = "melancholic:0.08,calm:0.1"
+
+[block.p6-28]                       # 关盖放行（终句·稳收）
+emo = "calm:0.14"

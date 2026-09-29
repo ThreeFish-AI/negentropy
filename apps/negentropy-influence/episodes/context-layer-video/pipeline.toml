@@ -1,42 +1,57 @@
 # 本集可执行参数的**唯一来源**（ISSUE-161：可执行参数不落散文文档，README 只引用配置）。
-# 编排入口：uv run --no-project $T/pipeline/scripts/pipeline.py --project $P <cmd>（$T/$P 定义见 skill 的 pipeline/README.md：https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/README.md）
+# 编排入口：uv run --no-project $T/scripts/pipeline.py --project $P <cmd>（$T/$W/$P/$V 见 to-video skill 的 references/PIPELINE.md）
 #
 # 只写**本集偏离**：机制常数（chars_per_min / lang / draft_scale / draft_jpeg_quality）
-# 的默认值在 skill 的 pipeline/scripts/config.py，不要抄回这里。字段表见 skill 的 pipeline/README.md，
-# 跑 `pipeline.py doctor` 可打印带来源标注的生效配置全表。
+# 的默认值在 skill 仓 scripts/config.py，不要抄回这里。字段表见 skill 的
+# references/PIPELINE.md，跑 `pipeline.py doctor` 可打印带来源标注的生效配置全表。
 
 [episode]
 slug = "context-layer-video"
 
 [narration]
-# v3 重制（013 重铸版）：182 句 / ~4160 字 / 目标 ≈14:50（280 字/分为含停顿等效口径，
-# 双口径门以 manifest 实测为准）
-target_minutes = [13.0, 15.6]
+# 口径提示——280 字/分是**含停顿的等效**口径，
+# 裸按字数算会高估约 12% 的句容量，双口径门以 manifest 实测为准。
+target_minutes = [13.0, 14.9]
 
 [tts]
 engine = "indextts"
-# TODO：选定样本与风格。样本路径**工作区根相对**；ref_sha1 取 12 位（同 tts.py 口径），
-# 用 `uv run --no-project $T/pipeline/scripts/refs.py list` 查当前清单。
-# ⚠️ 风格预设的 alpha 是在**特定选段**上标定的，换选段即失效（见 voices/refs.toml）。
+# 样本路径**工作区根相对**；ref_sha1 取 12 位（同 tts.py 口径），
+# 用 `uv run --no-project $T/scripts/refs.py list` 查当前清单。
+# ⚠️ 风格预设的 alpha 是在**特定选段**上标定的，换选段即失效（见 $V/refs.toml）。
 ref = "voices/me-bright.wav"
 ref_sha1 = "54b699cce97f"
-style = "sunny-steady"
+style = "story"
+# story 档（默认）＝段落演绎：同幕连续句按块合成、块间情绪由配音台本驱动。
+# 台本（可选）：script/narration.cues.toml——写稿阶段产出，见 $T/references/VOICE-CLONING.md §4.5。
+# 重制存量集（旧档 → story）须显式 --allow-voice-switch 并补写台本。
 
 [archify]
-# v3 重制：12 图（6 张 blueprint-- 前缀走约定 + 6 张 context-layer-- 前缀走例外表）
-# 54 章章节清单见 video/public/archify/views/。阈值为初稿地板，分镜定稿后按
-# 覆盖门实测回填（定在实测值下 10–15%）。
-# 本集口径（v3 设计实测：41 cue / 38 章 / 12 图全用；装置+代码走廊密集幕的
-# P2 系机制内容无对位图，锚定密度低于 horizon 集属设计内）——分镜定稿后回填。
-min_diagrams = 12
-min_cues = 37
-min_anchor_ratio = 0.20
+# 13 图全部走 [archify.html_overrides] 显式映射（html_pattern 仅作兜底，当前无匹配对象）。
+# 阈值按分镜设计值（69 cue/36.5% 锚定/4.8 密度）留 10–15% 余量定稿；录制后以实测微调。
+html_dir = "docs/assets/architecture/cognitive-context"
+# pattern 已无匹配对象（13 图全部显式映射，slug 与视图文件名一致）
+html_pattern = "context-layer--{slug}.html"
+min_diagrams = 13
+min_cues = 62
+min_anchor_ratio = 0.32
 min_chapter_ratio = 0.45
 min_scene_anchor_ratio = 0.06
-max_unanchored_run = 21  # P0 冷开场 0-A..0-D 为装置密集镜（对撞卡/大数字/实习生/裂纹），p0-22 起才有首个 cue
-min_cues_per_minute = 2.2
-min_diagram_types = 3
+max_unanchored_run = 21
+min_cues_per_minute = 4.0
+min_diagram_types = 4
 forbid_inset = true
-html_dir = "docs/assets/architecture/cognitive-context"
-html_pattern = "context-layer-blueprint--{slug}.html"
-html_overrides = { collect-phase = "context-layer--collect-phase.html", auto-channel = "context-layer--auto-channel.html", assembler-planner = "context-layer--assembler-planner.html", request-injection = "context-layer--request-injection.html", runtime-layering = "context-layer--runtime-layering.html", evolution-levers = "context-layer--evolution-levers.html" }
+
+[archify.html_overrides]
+"blueprint--architecture" = "context-layer-blueprint--architecture.html"
+"blueprint--dual-track-roadmap" = "context-layer-blueprint--dual-track-roadmap.html"
+"blueprint--industry-landscape" = "context-layer-blueprint--industry-landscape.html"
+"blueprint--layer-mechanism-map" = "context-layer-blueprint--layer-mechanism-map.html"
+"blueprint--mcp-threat-model" = "context-layer-blueprint--mcp-threat-model.html"
+"blueprint--object-lifecycle" = "context-layer-blueprint--object-lifecycle.html"
+failure-map = "context-layer--failure-map.html"
+five-sources = "context-layer--five-sources.html"
+lifecycle = "context-layer--lifecycle.html"
+assembly-economics = "context-layer--assembly-economics.html"
+injection-points = "context-layer--injection-points.html"
+runtime-layering = "context-layer--runtime-layering.html"
+evolution-levers = "context-layer--evolution-levers.html"

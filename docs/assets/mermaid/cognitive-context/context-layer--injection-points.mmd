@@ -1,0 +1,37 @@
+%%source: docs/research/cognitive-context/013-context-layer-blueprint.md §11.1 五源注入点现状（D1 修正版：九路来源与 root_agent 五挂点真实装配面）
+%%slug: cognitive-context/context-layer--injection-points
+%%type: workflow
+%%derived: archify workflow v2, redesigned from v1 request-injection（注入/检索各自读 PG → 九路来源×五挂点×真实通道；v1 见 git 史）
+flowchart TB
+    subgraph SOURCES["九路上下文来源"]
+        direction LR
+        R1["身份<br/>instruction provider"]
+        R2["Skills<br/>双路注入互斥"]
+        R3["Tools<br/>toolset+schema"]
+        R4["Model<br/>resolver+ContextVar"]
+        R5["记忆<br/>preload 工具"]
+        R6["会话状态<br/>state"]
+        R7["定义 SSOT<br/>graph-from-DB"]
+        R8["偏好 · 引用协议"]
+    end
+    subgraph HOOKS["root_agent 五挂点（生产真实装配面 @57987b28b）"]
+        direction TB
+        H1["① instruction=provider<br/>DB system_prompt→代码回退"]
+        H2["② before_model_callback<br/>model/thinking/corpus/hint 注入"]
+        H3["③ tools=[log_activity,<br/>preload_memory_tool]"]
+        H4["④ before/after_tool_callback<br/>遥测"]
+        H5["⑤ sub_agents 五翼+流水线"]
+    end
+    subgraph ASSEMBLER["ContextAssembler.assemble()<br/>token 预算参考实现（生产调用=0，仅单测）"]
+        A0["Core Block → Reflection → 记忆窗口<br/>30/50/20 预算 · 60s TTL 家族"]
+    end
+    R1 --> H1
+    R4 --> H2
+    R5 --> H3
+    R6 --> H2
+    R7 --> H1
+    R2 --> H1
+    R3 --> H5
+    R8 --> H1
+    ASSEMBLER -.->|"设计存在 ≠ 已接线<br/>（D1 宿主更正）"| H3
+    HOOKS --> OUT["→ LLM 请求"]

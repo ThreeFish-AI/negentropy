@@ -1,54 +1,34 @@
 [
  {
-  "id": "collect",
-  "label": "① Collect",
+  "id": "rl-cgave",
+  "label": "五段内环",
   "focus": [
-   "collect"
+   "cl_collect",
+   "cl_govern",
+   "cl_activate",
+   "cl_verify",
+   "cl_evolve"
   ],
-  "note": "汇聚元数据与血缘。"
+  "note": "CGAVE 织物"
  },
  {
-  "id": "enrich",
-  "label": "② Enrich",
+  "id": "rl-sys",
+  "label": "五子系统",
   "focus": [
-   "enrich"
+   "sys_memory",
+   "sys_kb",
+   "sys_kg",
+   "sys_tools",
+   "sys_skills"
   ],
-  "note": "养厚含义。"
+  "note": "指针相连"
  },
  {
-  "id": "activate",
-  "label": "③ Activate",
+  "id": "rl-store",
+  "label": "单库持久",
   "focus": [
-   "activate"
+   "pg_store"
   ],
-  "note": "送受治理上下文。"
- },
- {
-  "id": "memkb",
-  "label": "记忆与知识库",
-  "focus": [
-   "memory",
-   "kb"
-  ],
-  "note": "记忆+KB 供源。"
- },
- {
-  "id": "kgtools",
-  "label": "图谱与工具技能",
-  "focus": [
-   "kg",
-   "tools",
-   "skills"
-  ],
-  "note": "KG+Tools+Skills 供源。"
- },
- {
-  "id": "pg",
-  "label": "持久化底座",
-  "focus": [
-   "runtime",
-   "pg"
-  ],
-  "note": "复用 PostgreSQL。"
+  "note": "PostgreSQL 一库"
  }
 ]
