@@ -7,11 +7,11 @@
 ### Claude Code Harness Engineering 系列 5 集完全重制交付（2026-10-01/02）
 
 - **系列完全重制 v1 交付**：基于重写的 170–175 精读与新钉双轨（main `0dcafa2`/站点 `67a9126c`）+ 官方文档轨 C，五集全部同 slug rm→scaffold 重来。成片归档 `~/Documents/video/claude-code-explained/` v1×5 + `_captions/{srt,vtt}`×5：
-  1. [《工具与执行：一个循环，三层装置》](apps/negentropy-influence/episodes/claude-code-explained-video/README.md) 14:10 · 164 句 3644 字（254 字/分实测校准口径直写）· 12 图 65 章 · story 档 43 块 cues
-  2. [《规划与协调：模型的视野是安排出来的》](apps/negentropy-influence/episodes/claude-code-planning-video/README.md) 14:19 · 169 句 · 12 图 68 章（P6 叠压目检修复）
-  3. [《记忆管理：会丢的和不能丢的》](apps/negentropy-influence/episodes/claude-code-memory-video/README.md) 14:19 · 163 句 · 12 图 62 章（双轨口径：站点轨叙事+main 演进彩蛋）
-  4. [《并发：谁来按下开始》](apps/negentropy-influence/episodes/claude-code-concurrency-video/README.md) 14:19 · 170 句 · 12 图 59 章（**Lottie clock-swing headless ANGLE 确定性挂死根因修复**＝原生 PendulumGlyph；半场缺失 108s 黑屏集成期抓出补齐）
-  5. [《多 Agent 平台：从一个到一群》](apps/negentropy-influence/episodes/claude-code-multiagent-video/README.md)（终集）13:50 · 149 句 · 13 图 67 章（door-lock 同款 Lottie 根治=原生 LockStrike；轨 C 八校准全片贯彻；五层身份卡全亮+系列金句收束）
+  1. [《工具与执行：一个循环，三层装置》](apps/negentropy-influence/episodes/claude-code-explained-video/README.md) 14:02.6 · 164 句 3644 字（254 字/分实测校准口径直写）· 12 图 65 章 · story 档 43 块 cues
+  2. [《规划与协调：模型的视野是安排出来的》](apps/negentropy-influence/episodes/claude-code-planning-video/README.md) 14:12.2 · 169 句 · 12 图 68 章（P6 叠压目检修复）
+  3. [《记忆管理：会丢的和不能丢的》](apps/negentropy-influence/episodes/claude-code-memory-video/README.md) 14:13.3 · 163 句 · 12 图 62 章（双轨口径：站点轨叙事+main 演进彩蛋）
+  4. [《并发：谁来按下开始》](apps/negentropy-influence/episodes/claude-code-concurrency-video/README.md) 14:10.8 · 170 句 · 12 图 59 章（**Lottie clock-swing headless ANGLE 确定性挂死根因修复**＝原生 PendulumGlyph；半场缺失 108s 黑屏集成期抓出补齐）
+  5. [《多 Agent 平台：从一个到一群》](apps/negentropy-influence/episodes/claude-code-multiagent-video/README.md)（终集）13:42.8 · 149 句 · 13 图 67 章（door-lock 同款 Lottie 根治=原生 LockStrike；轨 C 八校准全片贯彻；五层身份卡全亮+系列金句收束）
 - 全系列机器门全绿：check_series/build/check--check-scenes/tsc/motion/qa--check FAIL 0 + 亮度带扫描零近黑段 + 全分辨率目检（半分辨率误报翻案×2、真缺陷×2）
 - 新增 archify 图 59 张（ep1–ep5 各 12/12/12/12/13，五型覆盖；3.0.0 版本陷阱两漏网图锁定版 2.17 重建）
 

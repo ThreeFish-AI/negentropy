@@ -78,7 +78,7 @@
 | 4-A | p4-01..03 | 覆盖事故——两师傅剪影同写同一文件（事故卡，角标 `config.py`，不口播），后写盖先写（`deny` 红覆盖闪）→ 文件内容两色混杂 → 回滚困境卡「分不清谁的改动」 | 覆盖红闪 `useImpulse`（decay）；内容混杂滚入 `useReveal`；困境卡抖动 `useShake`（decay）；`@impulse` `@reveal` `@shake` |
 | 4-B | p4-04..09 | 隔间拓扑 ·**archify full**：worktree-bind 章 `booth-per-task`+`copies-branches`+`id-rope`+`bind-no-status`+`pre-arrange`+`auto-switch`（六章接力无空窗；编号绳／门牌／认领切目录由图内承担） · 角标 `git worktree`、`wt/{name}` 由图内承担 | archify 全屏回放主控（本镜无动效 hook） |
 | 4-C | p4-10..14 | 拆除守卫 ·**archify full**：worktree-teardown 章 `default-keep`+`dirty-refuse`+`unknown-refuse`+`discard-with-branch`+`keep-for-review`（五章接力无空窗；三出口卡与流水日志条目由图内承担） · 角标 `remove_worktree`、`discard_changes`、`events.jsonl` 由图内承担 · 与前图背靠背，本图实例关入场 | archify 全屏回放主控（本镜无动效 hook） |
-| 4-D | p4-15..21 | 双重校准卡 ×2——①强度对照：LottieEmphasis 门体一现（components/LottieEmphasis.tsx 承担，薄帘门→铁门锁死动画；planning §3 唯二 3D/Lottie 点缀之二）＋官方引语卡（mono，「检查不可关闭」）＋教学版对照行「换的是落笔位置」＋题词「硬阻断 · 关不掉」 caption-dup-ok: 记忆点标签，主字已压短非逐字 ②关系对照：编号绳剪影卡——教学版独有绑法 vs 官方班组页不提隔间（负证据卡，`dim`）＋小字「官方零记载」；角标 `isolation: worktree`、`You can't turn this check off` | 门体变厚锁死 `useProgress`＋LottieEmphasis 脉冲（不产生 token）；引语逐字 `useReveal`；绳子剪断 `useImpulse`（deny）；对照卡对开 `useEnter:slideL`＋`useEnter:slideR`；`@progress` `@reveal` `@impulse` `@enter:slideL` `@enter:slideR` |
+| 4-D | p4-15..21 | 双重校准卡 ×2——①强度对照：门体一现＝Remotion 原生 LockStrike（薄帘门→铁门锁死——原案 LottieEmphasis door-lock 因 headless ANGLE 确定性挂死退役〔ISSUE-202〕，`lottie/door-lock.json` 留档未用）＋官方引语卡（mono，「检查不可关闭」）＋教学版对照行「换的是落笔位置」＋题词「硬阻断 · 关不掉」 caption-dup-ok: 记忆点标签，主字已压短非逐字 ②关系对照：编号绳剪影卡——教学版独有绑法 vs 官方班组页不提隔间（负证据卡，`dim`）＋小字「官方零记载」；角标 `isolation: worktree`、`You can't turn this check off` | 门体变厚锁死 `useProgress`＋LockStrike 脉冲（不产生 token）；引语逐字 `useReveal`；绳子剪断 `useImpulse`（deny）；对照卡对开 `useEnter:slideL`＋`useEnter:slideR`；`@progress` `@reveal` `@impulse` `@enter:slideL` `@enter:slideR` |
 
 ## P5 插口（p5-01..16）→ `scenes/P5McpSocket.tsx`
 
@@ -112,11 +112,11 @@
 | P1 排工板 | `scenes/P1TaskBoard.tsx` | TaskBoard 母题＋3D 磁吸一现（solids-3d）、自陈／官方引语卡、金句卡 |
 | P2 收件格与派工单 | `scenes/P2MailboxProtocol.tsx` | 对照卡组（临时工 vs 常驻／工具单对开）、副台渐变卡、冒泡链路图 |
 | P3 班次 | `scenes/P3ShiftAutonomy.tsx` | 过载翻转装置、双向卡、复活装置、两数法对照卡 |
-| P4 隔间 | `scenes/P4WorktreeBooths.tsx` | 覆盖事故卡、LottieEmphasis 门体一现、双重校准卡 ×2 |
+| P4 隔间 | `scenes/P4WorktreeBooths.tsx` | 覆盖事故卡、原生 LockStrike 门体一现、双重校准卡 ×2 |
 | P5 插口 | `scenes/P5McpSocket.tsx` | 手写工具墙、缓存堆叠、名片→门禁→登记链 |
 | P6 收束 | `scenes/P6Finale.tsx` | HarnessStackP6（3D 五层全亮）、真门急停、系列身份卡（无下期卡）、家规卡＋渐黑 |
 
-公共组件清单：`Subtitle`（frozen）· `ChapterProgress`（顶部章节条，y<56）· `SceneTag`（top:64）· `QuoteCard`／`FadeUp`／`Pill`（cards.tsx，金句卡衬线体）· `Panel`／`Terminal`／`CodeCard`／`NumberedCard`／`Counter`／`Footnote`（motifs.tsx）· 母题：`LoopRing`（传送带，M-001 恒定 core 橙）＋本集新件 `TaskBoard`（排工板居中）／`MailSlot`（收件格）／`DispatchSlip`（派工单）／`ShiftDial`（班次三拍）／`BoothFrame`（隔间门牌）／`PlugSocket`（标准插口）· `HarnessStackP0`／`HarnessStackP6`／`HarnessBadge`（harness-stack.tsx，P1–P5 常驻顶边条 chip 档，层短名走 series-layers.json）· `Stage3D`／`Slab3D`／`Rim3D`（solids-3d.tsx，P1 磁吸一现）· `LottieEmphasis`（P4 门体）· `ArchifyRecap`（archify cue 载体，frozen 共享——Stage ⑧ 接入；一章锚一句，跨实例背靠背后挂实例关入场）。
+公共组件清单：`Subtitle`（frozen）· `ChapterProgress`（顶部章节条，y<56）· `SceneTag`（top:64）· `QuoteCard`／`FadeUp`／`Pill`（cards.tsx，金句卡衬线体）· `Panel`／`Terminal`／`CodeCard`／`NumberedCard`／`Counter`／`Footnote`（motifs.tsx）· 母题：`LoopRing`（传送带，M-001 恒定 core 橙）＋本集新件 `TaskBoard`（排工板居中）／`MailSlot`（收件格）／`DispatchSlip`（派工单）／`ShiftDial`（班次三拍）／`BoothFrame`（隔间门牌）／`PlugSocket`（标准插口）· `HarnessStackP0`／`HarnessStackP6`／`HarnessBadge`（harness-stack.tsx，P1–P5 常驻顶边条 chip 档，层短名走 series-layers.json）· `Stage3D`／`Slab3D`／`Rim3D`（solids-3d.tsx，P1 磁吸一现）· 门体强调＝原生 LockStrike（P4WorktreeBooths 内联；LottieEmphasis door-lock 因 ANGLE 挂死退役，`lottie/door-lock.json`＋gen 脚本留档未用——ISSUE-202）· `ArchifyRecap`（archify cue 载体，frozen 共享——Stage ⑧ 接入；一章锚一句，跨实例背靠背后挂实例关入场）。
 
 ## 自检对账（Stage ⑥ 收口）
 

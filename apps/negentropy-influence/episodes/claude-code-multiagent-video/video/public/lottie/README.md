@@ -42,12 +42,17 @@
 
 ## 接入点
 
-`src/scenes/P4Hooks.tsx` `PullOut`（4-C 插头咬合）：`plugAt + 6` 触发，
-锚定环右上「工具执行之前」插口节点（中心 `190+218·cos/sin(-20°)`）。
+**本集无 Lottie 活跃接入**：plug-pulse 为 scaffold 共享基线拷贝（跨集字节一致、
+本集无引用）；door-lock 已退役（见下节退役记录）。
 
 ---
 
-## `door-lock.json`（本集 P4 门体锁死脉冲，2026-09-29）
+## `door-lock.json`（本集 P4 门体锁死脉冲，2026-09-29——**已退役**）
+
+**退役记录（ISSUE-202，2026-10-02）**：与 ep4 clock-swing 同款 headless ANGLE
+确定性挂死（崩点 17308 实证）；4-D① 门体锁死强调改 Remotion 原生 `LockStrike`
+（`src/scenes/P4WorktreeBooths.tsx` 内联）。资产与 gen 脚本留档未用——恢复接入
+前提 = ISSUE-202 的 100 帧段渲冒烟通过。
 
 `gen_door_lock.py` 按同一口径生成（脚本生成、非设计工具导出；四条断言同样把关）：
 
@@ -59,5 +64,5 @@
 - 颜色硬编码 theme.deny `#EF6461`（拒绝/拦截唯一语义——「直接拦下」；
   同 plug-pulse 维护债：theme.ts 改色须重跑本脚本）。
 
-接入点：`src/scenes/P4WorktreeBooths.tsx` `PhaseStrength`（4-D① 强度对照）——
-锚 `at('p4-17') + DUR.f5`（官方硬阻断落地），叠在居中门体装置上。
+原接入点：`src/scenes/P4WorktreeBooths.tsx` `PhaseStrength`（4-D① 强度对照）——
+现为原生 LockStrike（锚 `at('p4-17') + DUR.f5`，官方硬阻断落地）。

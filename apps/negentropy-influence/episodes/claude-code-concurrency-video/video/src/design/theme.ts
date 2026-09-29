@@ -35,6 +35,10 @@ export const theme = {
   // 语义：蓝=时机
   concept: '#7FB2E0',
   conceptDeep: '#5C8FB8',
+  // accent=呈现金（P1 沙漏/P2 门铃动机卡强调色）。与 ep5 维度金 #D9B36B 同色相
+  // （39.2°/39.3°——系列「金=强调」语义族，刻意同族非撞色事故）；对 bg 9.9:1 过线。
+  // 决策记录 2026-09-30 评审补登：已同步 series.json 本集 accents 与 planning.md
+  // 色彩契约表（原先未登记，撞色门与已用色登记表双盲）。
   accent: '#EFB13C',
 
   // ── 系列语义键（V3D 3D 层读；HarnessStack/motifs 消费）──

@@ -71,7 +71,7 @@
 
 | 镜 | 句区间 | 画面 | 动效 |
 | --- | --- | --- | --- |
-| 4-A（Lottie 点缀） | p4-01..08 | 定时钟落墙：LottieEmphasis clock-swing 钟摆强调（components/LottieEmphasis.tsx＋`lottie/clock-swing.json`，mech 蓝——planning §3 唯二 3D/Lottie 点缀之二）；七点闹钟叙事卡（睡觉／洗澡／做饭三枚 dim 小图标，钟照响不误 mech）；五格时间表特写（分钟／小时／日／月／星期五格 mech 框依次点亮）＋「用了五十年」老写法徽标（dim）；钟挂上缘墙面居中，与左中台面师傅剪影背对（空间契约：定时线走上缘）；角标 `0 9 * * *`、`cron`、`Unix · 50 years` | 钟摆摆动在 LottieEmphasis 内（不产生 token）；七点到点响铃 `useImpulse`；五格依次点亮 `useStagger`；背对构图淡入 `useEnter:fade`；`@impulse` `@stagger` `@enter:fade` |
+| 4-A（Lottie 点缀） | p4-01..08 | 定时钟落墙：钟摆强调＝Remotion 原生 PendulumGlyph（衰减正弦摆，mech 蓝——原案 LottieEmphasis clock-swing 因 headless ANGLE 确定性挂死 delayRender 退役〔ISSUE-202〕，`lottie/clock-swing.json` 留档未用）；七点闹钟叙事卡（睡觉／洗澡／做饭三枚 dim 小图标，钟照响不误 mech）；五格时间表特写（分钟／小时／日／月／星期五格 mech 框依次点亮）＋「用了五十年」老写法徽标（dim）；钟挂上缘墙面居中，与左中台面师傅剪影背对（空间契约：定时线走上缘）；角标 `0 9 * * *`、`cron`、`Unix · 50 years` | 钟摆摆动在 PendulumGlyph 内（不产生 token）；七点到点响铃 `useImpulse`；五格依次点亮 `useStagger`；背对构图淡入 `useEnter:fade`；`@impulse` `@stagger` `@enter:fade` |
 | 4-B | p4-09..11 | 四层解耦总图首现 ·**archify full**：clock-four-layers 章 `clock-blind`+`four-roles` · 两章接力（p4-09 空窗回落：「有意思的不是钟本身」引子小字＋钟与师傅剪影背对示意 2D 一现——钟面 mech、师傅 text 白，两剪影中隔一道墙线）；角标 `cron_scheduler_loop`、`cron_queue`、`agent_lock`、`[Scheduled]` | 引子小字 `useEnter:fade`；背对示意墙线 `useDraw`；p4-10 起由 ArchifyRecap 主控；`@enter:fade` `@draw` |
 | 4-C | p4-12..19 | 前三层单向链 ·**archify full**：clock-four-layers 章 `tick-keeper`+`slot-keeper`+`lock-is-state` · 三章接力（p4-13 空窗回落：请求条塞入入口小格子一拍；p4-15..18 空窗回落：岗哨试锁双分支 2D——拿得到＝空→条子递上传送带 ok 一闪／拿不到＝忙→这一拍跳过等下一拍 deny 暗闪，锁形图标 mech 亮起——「拿不到锁就是正忙」记忆点段）；角标 `sleep(1)`、`agent_lock.acquire(blocking=False)` | 条子递带 `useFlowDash`；拿锁成功 ok 一闪 `useImpulse`；跳拍暗闪 `useDim`；锁图标呼吸 `useBreathe`；其余由 ArchifyRecap 主控；`@flowDash` `@impulse` `@dim` `@breathe` |
 | 4-D | p4-20..22 | 第四层收话 ·**archify full**：clock-four-layers 章 `same-stream` · 单章（p4-20 空窗回落：条子以一句话形态汇入对话流 2D——钟话条与人话条同色同轨并列两条消息条；p4-22 空窗回落：四层总结卡「判时 · 存条 · 判闲 · 干活」四格）；角标 `[Scheduled] {prompt}` | 消息条并列浮入 `useStagger`；四格总结卡 `useStagger`；p4-21 由 ArchifyRecap 主控；`@stagger` |
@@ -111,11 +111,11 @@
 | P1 自动清洗槽 | `scenes/P1WashSink.tsx` | 3D 清洗槽滚筒一现（solids-3d）、号牌弹出＋金句卡、登记板剪影、边界三联卡、官方对照四连卡 |
 | P2 叫号器 | `scenes/P2CallBoard.tsx` | 挂牌板首现、三态徽标＋推人通路卡、诚实注分栏卡 |
 | P3 学徒的字条 | `scenes/P3ApprenticeSlip.tsx` | 清洗槽群＋卡死槽位（deny）、学徒剪影＋归属引语卡、小字条＋旁路箭头、监视工具流式视图 |
-| P4 墙上的定时钟 | `scenes/P4WallClock.tsx` | LottieEmphasis clock-swing、五格时间表、试锁双分支、轮间触发时间轴 |
+| P4 墙上的定时钟 | `scenes/P4WallClock.tsx` | 原生 PendulumGlyph 钟摆（Lottie clock-swing 退役）、五格时间表、试锁双分支、轮间触发时间轴 |
 | P5 诚实的边界 | `scenes/P5HonestEdge.tsx` | 打烊灯灭（deny 渐暗）、单线圈图（LoopRing 复用）＋归属引语卡、收束三问卡 |
 | P6 收束 | `scenes/P6OneBelt.tsx` | HarnessStackP6（3D）、对账打钩卡、遗产句金句卡、三装置对账卡、系列身份卡/下期卡＋灯牌收暗 |
 
-公共组件清单：`Subtitle`（frozen）· `ChapterProgress`（顶部章节条，y<56）· `SceneTag`（top:64）· `QuoteCard`／`FadeUp`／`Pill`（cards.tsx，金句卡衬线体）· `Panel`／`Terminal`／`CodeCard`／`NumberedCard`／`Counter`／`Footnote`（motifs.tsx）· 母题复用一件：`LoopRing`（传送带／事件循环圈，M-001 恒定）· 新建母题候选四件（Stage ⑧ 落）：`WashDrum`（清洗槽 2D 态）／`ClockFace`（定时钟面＋`useTravel` 秒针）／`CallBoard`（挂牌板＋号码牌翻牌）／`RegistryBoard`（登记板＋锁）· `HarnessStackP0`／`HarnessStackP6`／`HarnessBadge`（harness-stack.tsx，P1–P6 常驻顶边条 chip 档）· `Stage3D`／`Slab3D`／`Rim3D` 等（solids-3d.tsx，P1 滚筒一现）· `LottieEmphasis`（clock-swing，新增 lottie/clock-swing.json）· `ArchifyRecap`／`ArchifyYield`（ep1 frozen 共享件，本集 scaffold 未入库——Stage ⑧ 自 ep1 移植；一章锚一句，帧相邻跨实例后挂 `lead={false}`，本集四处：1-C／2-B／4-C／4-E 坏闹钟实例）。
+公共组件清单：`Subtitle`（frozen）· `ChapterProgress`（顶部章节条，y<56）· `SceneTag`（top:64）· `QuoteCard`／`FadeUp`／`Pill`（cards.tsx，金句卡衬线体）· `Panel`／`Terminal`／`CodeCard`／`NumberedCard`／`Counter`／`Footnote`（motifs.tsx）· 母题复用一件：`LoopRing`（传送带／事件循环圈，M-001 恒定）· 新建母题候选四件（Stage ⑧ 落）：`WashDrum`（清洗槽 2D 态）／`ClockFace`（定时钟面＋`useTravel` 秒针）／`CallBoard`（挂牌板＋号码牌翻牌）／`RegistryBoard`（登记板＋锁）· `HarnessStackP0`／`HarnessStackP6`／`HarnessBadge`（harness-stack.tsx，P1–P6 常驻顶边条 chip 档）· `Stage3D`／`Slab3D`／`Rim3D` 等（solids-3d.tsx，P1 滚筒一现）· 钟摆强调＝原生 PendulumGlyph（P4Clock 内联；LottieEmphasis clock-swing 因 ANGLE 挂死退役，`lottie/clock-swing.json`＋gen 脚本留档未用——ISSUE-202）· `ArchifyRecap`／`ArchifyYield`（ep1 frozen 共享件，本集 scaffold 未入库——Stage ⑧ 自 ep1 移植；一章锚一句，帧相邻跨实例后挂 `lead={false}`，本集四处：1-C／2-B／4-C／4-E 坏闹钟实例）。
 
 ## 自检对账（Stage ⑥ 收口）
 

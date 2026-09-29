@@ -42,12 +42,17 @@
 
 ## 接入点
 
-`src/scenes/P4Hooks.tsx` `PullOut`（4-C 插头咬合）：`plugAt + 6` 触发，
-锚定环右上「工具执行之前」插口节点（中心 `190+218·cos/sin(-20°)`）。
+**本集无 Lottie 活跃接入**：plug-pulse 为 scaffold 共享基线拷贝（跨集字节一致、
+本集无引用）；clock-swing 已退役（见下节退役记录）。
 
 ---
 
-## `clock-swing.json`（本集时钟摆，2026-09-29）
+## `clock-swing.json`（本集时钟摆，2026-09-29——**已退役**）
+
+**退役记录（ISSUE-202，2026-10-02）**：headless ANGLE 渲染确定性挂死 delayRender
+（ep4 草渲五连崩实证，禁用法二分定位）；4-A 钟摆强调改 Remotion 原生
+`PendulumGlyph`（`src/scenes/P4Clock.tsx` 内联，衰减正弦摆）。资产与 gen 脚本
+留档未用——恢复接入前提 = ISSUE-202 的 100 帧段渲冒烟通过。
 
 `gen_clock_swing.py` 按同一口径生成（脚本生成、非设计工具导出；四条断言同样把关）：
 
@@ -57,6 +62,5 @@
   非 M3 单边曲线）；首个全摆幅 ±16°不衰减，此后每半摆 ×0.68 回摆收拢；
 - 末 5 帧整体 accelerate 淡出。颜色硬编码于 JSON（同 plug-pulse 维护债）。
 
-接入点：`src/scenes/P4Clock.tsx` 4-A 定时钟落墙——钟面下方钟摆强调，
-锚 `at('p4-05')`（到点自己响）。
-
+原接入点：`src/scenes/P4Clock.tsx` 4-A 定时针落墙——现为原生 PendulumGlyph
+（锚 `at('p4-05')`，到点自己响）。

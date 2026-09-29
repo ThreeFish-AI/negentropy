@@ -123,7 +123,7 @@
 | P5 补救梯 | `scenes/P5RecoveryLadder.tsx` | 熄火演示、D3 对撞卡＋两路径对开图、退出协议回落＋收束题词（梯子本体全屏图集承载，无 Lottie） |
 | P6 收束 | `scenes/P6ArrangedView.tsx` | HarnessStackP6（3D）、金句卡终态、开放天平、系列身份卡/下期卡 |
 
-公共组件清单：`Subtitle`（frozen）· `ChapterProgress`（顶部章节条，y<56）· `SceneTag`（top:64）· `QuoteCard`／`FadeUp`／`Pill`（cards.tsx，金句卡衬线体）· `Panel`／`Terminal`／`CodeCard`／`NumberedCard`／`Counter`／`Footnote`（motifs.tsx）· `LoopRing`（传送带母题，core 橙〔M-001〕系列恒定——本集底盘背景＋5-A 急停复用）· **本集新增母题（Stage ⑧ 落 motifs.tsx）**：`DeskPlane`（台面恒定主视觉，coreDeep 描边大矩形）／`ClashCard`（三连反转对撞卡共用形态，D1/D2/D3）／`ReceiptPaper`（回执纸）· scaffold 旧母题 `DispatchTable`／`GateRouter`／`SlotRing` 本集不用（Stage ⑧ 可裁）· `HarnessStackP0`／`HarnessStackP6`／`HarnessBadge`（harness-stack.tsx，P1–P6 顶边常驻条 chip 档）· `Stage3D`／`Slab3D` 等（solids-3d.tsx，P2 副台一现）· `LottieEmphasis`（本集未启用——P5 梯子由图集承载）· `ArchifyRecap`（archify cue 载体，frozen 共享——Stage ⑧ 接入；一章锚一句，跨实例背靠背后挂实例 `lead={false}`）。
+公共组件清单：`Subtitle`（frozen）· `ChapterProgress`（顶部章节条，y<56）· `SceneTag`（top:64）· `QuoteCard`／`FadeUp`／`Pill`（cards.tsx，金句卡衬线体）· `Panel`／`Terminal`／`CodeCard`／`NumberedCard`／`Counter`／`Footnote`（motifs.tsx）· `LoopRing`（传送带母题，core 橙〔M-001〕系列恒定——本集底盘背景＋5-A 急停复用）· **本集新增母题（Stage ⑧ 落 motifs.tsx）**：`DeskPlane`（台面恒定主视觉，coreDeep 描边大矩形）／`ClashCard`（三连反转对撞卡共用形态，D1/D2/D3）／`ReceiptPaper`（回执纸）· scaffold 旧母题 `DispatchTable`／`GateRouter`／`SlotRing` 本集不用（Stage ⑧ 可裁）· `HarnessStackP0`／`HarnessStackP6`／`HarnessBadge`（harness-stack.tsx，P1–P6 顶边常驻条 chip 档）· `Stage3D`／`Slab3D` 等（solids-3d.tsx，P2 副台一现）· `LottieEmphasis`（本集未启用——P5 梯子由图集承载；plug-pulse.json＋gen 为 scaffold 共享基线的跨集字节一致拷贝，保留非活跃链路标记，DispatchTable/GateRouter/SlotRing 同理由保留）· `ArchifyRecap`（archify cue 载体，frozen 共享——Stage ⑧ 接入；一章锚一句，跨实例背靠背后挂实例 `lead={false}`）。
 
 ## 自检对账（Stage ⑥ 收口）
 

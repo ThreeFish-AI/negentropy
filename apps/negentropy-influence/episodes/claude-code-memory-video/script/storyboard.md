@@ -127,7 +127,7 @@
 | P5 执笔与夜班 | `scenes/P5PenAndNight.tsx` | 写权双人卡、时间铰链卡、四道门引语卡、官方三连卡、分工一句卡 |
 | P6 两套机制 | `scenes/P6TwoBooks.tsx` | HarnessStackP6（3D）、演进对照卡、开放天平、系列身份卡／下期卡 |
 
-公共组件清单：`Subtitle`（frozen）· `ChapterProgress`（顶部章节条，y<56）· `SceneTag`（top:64）· `QuoteCard`／`FadeUp`／`Pill`（cards.tsx，金句卡衬线体）· `Panel`／`Terminal`／`CodeCard`／`NumberedCard`／`Counter`／`Footnote`（motifs.tsx）· 本集母题四件：`BenchTop`（台面，M-001 恒定 `core` 橙）／`LedgerBook`（登记簿）／`ClaimTag`（取货条·包裹标签）／`SideDesk`（目录员旁路小工位）· `HarnessStackP0`／`HarnessStackP6`／`HarnessBadge`（harness-stack.tsx，P1–P6 常驻顶边条 chip 档）· `Stage3D`／`Slab3D`／`Rim3D`（solids-3d.tsx，P1 台面堆高一现）· `LottieEmphasis`（page-flip——lottie/ 现仅 plug-pulse，Stage ⑧ 需新增 page-flip 资产）· `ArchifyRecap`（archify cue 载体，frozen 共享——Stage ⑧ 接入；一章锚一句，跨实例背靠背后挂实例 `lead={false}`）。
+公共组件清单：`Subtitle`（frozen）· `ChapterProgress`（顶部章节条，y<56）· `SceneTag`（top:64）· `QuoteCard`／`FadeUp`／`Pill`（cards.tsx，金句卡衬线体）· `Panel`／`Terminal`／`CodeCard`／`NumberedCard`／`Counter`／`Footnote`（motifs.tsx）· 本集母题四件：`BenchTop`（台面，M-001 恒定 `core` 橙）／`LedgerBook`（登记簿）／`ClaimTag`（取货条·包裹标签）／`SideDesk`（目录员旁路小工位）· `HarnessStackP0`／`HarnessStackP6`／`HarnessBadge`（harness-stack.tsx，P1–P6 常驻顶边条 chip 档）· `Stage3D`／`Slab3D`／`Rim3D`（solids-3d.tsx，P1 台面堆高一现）· `LottieEmphasis`（page-flip——**本集 headless ANGLE 实渲已通过并成片 v1**，重渲边界与退役判据见 issue.md ISSUE-202）· `ArchifyRecap`（archify cue 载体，frozen 共享——Stage ⑧ 接入；一章锚一句，跨实例背靠背后挂实例 `lead={false}`）。
 
 金句卡三张（QuoteCard 衬线定格）：0-C 碑卡（悬念态）「记忆不是一个功能」· 2-C 顺序金句「先抄地址 · 再扔东西」· 3-C 根因金句「没有持久状态」——主字均压短形态，与口播逐字重合面 <10 字（RSI-007 安全线内）。
 

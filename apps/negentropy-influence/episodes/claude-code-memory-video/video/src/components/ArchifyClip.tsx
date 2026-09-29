@@ -29,11 +29,11 @@ const RATE_MIN = 0.7;
 const RATE_MAX = 1.35;
 
 /** 画框几何：按**高**定尺，三条不变量护栏（改前先在此对账，勿凭感觉放大）：
- *  ① 顶 150：本集 y<56 归 frozen ChapterProgress 章节条、SceneTag 在 right:72
- *     top:64（底缘 ~130）——150 留足纵向避让余量，角标副题不被切；
+ *  ① 顶 150 ≥ 135：SceneTag（y 40–110，副题最长 13 字右缘 ~358 与框左缘横向重叠）
+ *     只能靠纵向避让——top < 135 会切副题（2026-09-19 实测 top=60 切角标副题）；
  *  ② 底边 880 < SAFE_TOP_Y(920)：字幕带安全带（SUBTITLE_BAND_PX=160 同源）；
- *  ③ 框宽 1298 居中（x 311..1609）：与左上 HarnessBadge（left:64 top:64，底缘
- *     ~98）纵向错开——badge 常驻件是母图层叙事锚，不让画框吞掉。
+ *  ③ 框宽 1298 左缘 311 > PillarHUD 右缘 ~274：HUD 在全屏窗内**仍可见**（左下角
+ *     常驻件不是图例，是母图层叙事锚），放大 h 会先吃掉这 37px 余量（h=770 即触线）。
  *  image-rendering 刻意不设置：1440 源在 16:9 框内高质量降采样走 Skia
  *  mipmap 路径；pixelated/crisp-edges 是最近邻，会把降采样变锯齿。 */
 const BOX = {h: 730, top: 150} as const;
