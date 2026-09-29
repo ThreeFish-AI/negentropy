@@ -6,7 +6,8 @@
  *   0-E fm-breach@p0-14（背靠背 0-D 尾故 false）· fm-all@p0-16（空窗 p0-15 后重现，拆独立实例恢复入场）
  *   0-F fm-unverified@p0-19 + il-gap@p0-21（隔句空窗均入场）
  *   0-G 发工卡（装置收口：卡面格线亮起）
- *  三级证据徽：p0-15/16 solid · p0-19 solid · p0-20 dashed（全限定角标；p0-21 被 il-gap 图框覆盖故前移空窗句）。
+ *  三级证据徽（锚句被图框覆盖的一律前移空窗句「先播完再被遮、露终态」）：
+ *  0-E 双 solid@p0-15（p0-16 被 fm-all 盖）· 0-F solid@p0-18 + dashed@p0-20（避 fm-unverified@p0-19 / il-gap@p0-21）。
  */
 import React from 'react';
 import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
@@ -78,7 +79,8 @@ export const P0Errors: React.FC<{scene: SceneRange}> = ({scene}) => {
           </div>
           <div style={{display: 'flex', gap: 24}}>
             <EvidenceBadge level="solid" at={at('p0-15') - bE.from} note="FinanceBench" />
-            <EvidenceBadge level="solid" at={at('p0-16') - bE.from} note="同模型对照" />
+            {/* 同锚 p0-15 并列入场：p0-16 语义句被 fm-all 图框整窗盖住，前移空窗句先播完再被遮 */}
+            <EvidenceBadge level="solid" at={at('p0-15') - bE.from} note="同模型对照" />
           </div>
         </AbsoluteFill>
         <ArchifyRecap slug="failure-map" caption="权限穿透" cues={[
@@ -89,12 +91,12 @@ export const P0Errors: React.FC<{scene: SceneRange}> = ({scene}) => {
         ]} />
       </Sequence>
 
-      {/* 0-F 崩崖 + 97/4 断层（il-gap 与 fm-unverified 隔整句空窗，恢复入场） */}
+      {/* 0-F 崩崖 + 97/4 断层（崩崖+solid 徽前移 p0-18 空窗句先播完，p0-19 起被 fm-unverified 盖、p0-20 露终态；il-gap 与 fm-unverified 隔整句空窗，恢复入场） */}
       <Sequence from={bF.from} durationInFrames={bF.durationInFrames} name="0-F">
         <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 26}}>
-          <CliffLine at={at('p0-19') - bF.from} />
+          <CliffLine at={at('p0-18') - bF.from} />
           <div style={{display: 'flex', gap: 18, alignItems: 'center'}}>
-            <EvidenceBadge level="solid" at={at('p0-19') - bF.from} note="Spider 2.0" />
+            <EvidenceBadge level="solid" at={at('p0-18') - bF.from} note="Spider 2.0" />
             <EvidenceBadge level="dashed" at={at('p0-20') - bF.from} note="n=1000 · 方法论未公开" />
           </div>
         </AbsoluteFill>

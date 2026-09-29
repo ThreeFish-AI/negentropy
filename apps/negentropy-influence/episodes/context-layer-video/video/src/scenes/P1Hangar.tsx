@@ -1,8 +1,8 @@
 /** P1 机库全景：五源与三轴（p1-01..p1-25，25 句；storyboard「P1 机库全景」节）。
  *
  *  8 镜 / 14 条 archify cue（镜内锚点一律 at(句id) − 所在镜.from，ArchifyRecap 契约）：
- *   1-A 设问（装置：一扇窗）· 1-B fs-instr@03→fs-mem@05（隔句空窗，均入场）
- *   1-C fs-know@07→fs-tools@08→fs-session@10（首 cue 隔句入场）· 1-D fs-out@11（背靠背 1-C 尾 false）
+ *   1-A 设问（装置：一扇窗）· 1-B fs-instr@03→fs-mem@05（两章 dur 延至 04/06 填空窗，末帧 hold）
+ *   1-C fs-know@07→fs-tools@08→fs-session@10（tools 延至 09；承 1-B 尾背靠背 false）· 1-D fs-out@11（背靠背 1-C 尾 false）
  *   1-E ax-struct@14 + ax-accept@15（隔句入场）· 1-F lc-loop@16（背靠背 1-E 尾 false）
  *   1-Fb lc-verify@17（false）· 1-G ax-obj@18 + ax-time@19（false）+ lc-evolve@20（跨实例背靠背 false）
  *   1-H fm-silent@23 + 目标函数金句卡 · 1-Z 工卡第 1 格盖章（底部锚定，避让金句）
@@ -44,14 +44,14 @@ export const P1Hangar: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ModelWindow at={at('p1-02') - bA.from} />
       </Sequence>
 
-      {/* 1-B/1-C/1-D 五源：三段接力全屏独占（1-D 背靠背 1-C 尾 → false；1-C 隔句空窗入场） */}
+      {/* 1-B/1-C/1-D 五源：三段接力全屏独占（空窗句由前 cue dur 延展、末帧 hold 填台；1-C/1-D 承前镜尾背靠背 → false） */}
       <Sequence from={bB.from} durationInFrames={bB.durationInFrames} name="1-B">
         <ArchifyRecap
           slug="five-sources"
           caption="五源 · 身份与记忆"
           cues={[
-            {chapterId: 'fs-instr', at: at('p1-03') - bB.from, durationInFrames: dur('p1-03')},
-            {chapterId: 'fs-mem', at: at('p1-05') - bB.from, durationInFrames: dur('p1-05')},
+            {chapterId: 'fs-instr', at: at('p1-03') - bB.from, durationInFrames: dur('p1-03', 'p1-04')},
+            {chapterId: 'fs-mem', at: at('p1-05') - bB.from, durationInFrames: dur('p1-05', 'p1-06')},
           ]}
         />
       </Sequence>
@@ -61,9 +61,10 @@ export const P1Hangar: React.FC<{scene: SceneRange}> = ({scene}) => {
           caption="五源 · 知识 / 能力 / 会话"
           cues={[
             {chapterId: 'fs-know', at: at('p1-07') - bC.from, durationInFrames: dur('p1-07')},
-            {chapterId: 'fs-tools', at: at('p1-08') - bC.from, durationInFrames: dur('p1-08')},
+            {chapterId: 'fs-tools', at: at('p1-08') - bC.from, durationInFrames: dur('p1-08', 'p1-09')},
             {chapterId: 'fs-session', at: at('p1-10') - bC.from, durationInFrames: dur('p1-10')},
           ]}
+          lead={false}
         />
       </Sequence>
       <Sequence from={bD.from} durationInFrames={bD.durationInFrames} name="1-D">
@@ -107,7 +108,7 @@ export const P1Hangar: React.FC<{scene: SceneRange}> = ({scene}) => {
       {/* 1-H 公理 + 目标函数金句卡（金句常驻至 p1-25 末，1-Z 工卡底部避让） */}
       <Sequence from={bH.from} durationInFrames={bH.durationInFrames} name="1-H">
         <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-          <QuoteCard zh="预算之内，只给最有用的那一小撮" accent={theme.concept} />
+          <QuoteCard zh="预算之内 · 最有用的一小撮" accent={theme.concept} />
         </AbsoluteFill>
         <ArchifyRecap slug="failure-map" caption="静默退化 · context rot" cues={[{chapterId: 'fm-silent', at: at('p1-23') - bH.from, durationInFrames: dur('p1-23')}]} />
       </Sequence>

@@ -9,13 +9,13 @@
 slug = "context-layer-video"
 
 [narration]
-# TODO：按本集选题与语速预算填写。口径提示——280 字/分是**含停顿的等效**口径，
+# 口径提示——280 字/分是**含停顿的等效**口径，
 # 裸按字数算会高估约 12% 的句容量，双口径门以 manifest 实测为准。
 target_minutes = [13.0, 14.9]
 
 [tts]
 engine = "indextts"
-# TODO：选定样本与风格。样本路径**工作区根相对**；ref_sha1 取 12 位（同 tts.py 口径），
+# 样本路径**工作区根相对**；ref_sha1 取 12 位（同 tts.py 口径），
 # 用 `uv run --no-project $T/scripts/refs.py list` 查当前清单。
 # ⚠️ 风格预设的 alpha 是在**特定选段**上标定的，换选段即失效（见 $V/refs.toml）。
 ref = "voices/me-bright.wav"
@@ -26,7 +26,7 @@ style = "story"
 # 重制存量集（旧档 → story）须显式 --allow-voice-switch 并补写台本。
 
 [archify]
-# 13 图（6 张 blueprint-- 前缀走 pattern，7 张 context-layer-- 前缀走 overrides）。
+# 13 图全部走 [archify.html_overrides] 显式映射（html_pattern 仅作兜底，当前无匹配对象）。
 # 阈值按分镜设计值（69 cue/36.5% 锚定/4.8 密度）留 10–15% 余量定稿；录制后以实测微调。
 html_dir = "docs/assets/architecture/cognitive-context"
 # pattern 已无匹配对象（13 图全部显式映射，slug 与视图文件名一致）

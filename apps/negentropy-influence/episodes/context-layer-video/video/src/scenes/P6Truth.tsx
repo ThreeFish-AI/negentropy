@@ -1,14 +1,14 @@
 /** P6 装配线真相与收口（p6-01..p6-28，31 句；storyboard「P6 装配线真相与收口」节）。
  *
  *  8 镜 / 15 条 archify cue：
- *   6-A 判定面铸字 · 6-B 代码走廊⑤ + ip-assembler@02→ip-nine@04
- *   6-C ip-memory@05→ip-full@06 · 6-D 代码走廊⑥ + ip-hooks@08
- *   6-E lm-spine@11→el-six@12→el-sm@13 · 6-F dt-design@15→dt-show@16→dt-p0@17→dt-main@18
- *   6-G 回环三堵 fm-stale@21→fm-conflict@22→fm-auth@23 · 6-H 终幕盖章 + TailFade（红线四）
+ *   6-A 判定面铸字 · 6-B 代码走廊③ + ip-assembler@02→ip-nine@04
+ *   6-C ip-memory@05→ip-full@06（扩至 p6-07 镜末）· 6-D 代码走廊④ + ip-hooks@08
+ *   6-E lm-spine@11→el-six@12→el-sm@13（扩至 p6-14 镜末）· 6-F dt-design@15→dt-show@16→dt-p0@17→dt-main@18
+ *   6-G 工卡第 6 格@19→回环三堵 fm-stale@21→fm-conflict@22→fm-auth@23 · 6-H 终幕盖章 + TailFade（红线四）
  *
  *  lead 链（按 cue 实际帧位判定）：6-B 链首恢复入场；6-C 接 6-B 链尾背靠背 false；
- *  6-D / 6-E 链首(lm) / 6-F / 6-G 链首(fm-stale) 均隔句空窗恢复入场；
- *  6-E el 接 lm 尾、6-G 后两堵逐句背靠背 → false。
+ *  ip-full/el-sm 各扩入镜尾空句（填空窗 C/D）后，6-D、6-F 首章与前一链尾跨镜背靠背 → false；
+ *  6-E 链首(lm) / 6-G 链首(fm-stale) 仍隔空窗恢复入场；6-E el 接 lm 尾、6-G 后两堵逐句背靠背 → false。
  */
 import React from 'react';
 import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
@@ -46,10 +46,11 @@ export const P6Truth: React.FC<{scene: SceneRange}> = ({scene}) => {
         <VerdictPlate />
       </Sequence>
 
-      {/* 6-B 零调用：代码走廊⑤（链首：前接 6-A 纯装置，ip-assembler 恢复入场） */}
+      {/* 6-B 零调用：代码走廊③（链首：前接 6-A 纯装置，ip-assembler 恢复入场；
+          CodePane 挪 p6-03 = ip-assembler 窗后本镜唯一空句，尾段由 ip-nine 窗自然遮盖收束） */}
       <Sequence from={bB.from} durationInFrames={bB.durationInFrames} name="6-B">
         <CodePane
-          at={at('p6-02') - bB.from}
+          at={at('p6-03') - bB.from}
           lines={[
             '$ grep -rn "\\.assemble(" apps/negentropy/src apps/negentropy/tests',
             'tests/unit_tests/engine/test_context_assembler_reflection.py:167:  ← 唯一命中',
@@ -68,23 +69,25 @@ export const P6Truth: React.FC<{scene: SceneRange}> = ({scene}) => {
         />
       </Sequence>
 
-      {/* 6-C 真锚链条（6-B 链尾 ip-nine@04 末帧恰接 ip-memory@05 首，背靠背 false） */}
+      {/* 6-C 真锚链条（6-B 链尾 ip-nine@04 末帧恰接 ip-memory@05 首，背靠背 false；
+          ip-full 扩入空句 p6-07 至镜末——填空窗 C/D，rate 2.14 仍 trim、可见拍 5→7/15） */}
       <Sequence from={bC.from} durationInFrames={bC.durationInFrames} name="6-C">
         <ArchifyRecap
           slug="injection-points"
           caption="每轮注入 · 五挂点汇入"
           cues={[
             {chapterId: 'ip-memory', at: at('p6-05') - bC.from, durationInFrames: dur('p6-05')},
-            {chapterId: 'ip-full', at: at('p6-06') - bC.from, durationInFrames: dur('p6-06')},
+            {chapterId: 'ip-full', at: at('p6-06') - bC.from, durationInFrames: dur('p6-06') + dur('p6-07')},
           ]}
           lead={false}
         />
       </Sequence>
 
-      {/* 6-D 菜单不能点：代码走廊⑥（6-C 链尾隔 p6-07 空窗，恢复入场） */}
+      {/* 6-D 菜单不能点：代码走廊④（ip-full 已扩至 6-C 镜末，ip-hooks 跨镜背靠背 → false；
+          CodePane 挪 p6-08b 避开 ip-hooks 窗，至镜末无再遮盖） */}
       <Sequence from={bD.from} durationInFrames={bD.durationInFrames} name="6-D">
         <CodePane
-          at={at('p6-08') - bD.from}
+          at={at('p6-08b') - bD.from}
           lines={[
             'skills_injector.py:357  "To use a skill, call expand_skill(name)"',
             'TOOL_REGISTRY: 20 个符号 · expand_skill 命中数 = 0',
@@ -92,10 +95,11 @@ export const P6Truth: React.FC<{scene: SceneRange}> = ({scene}) => {
           ]}
           badge={{level: 'filled', note: 'ISSUE-194 · 菜单能看不能点'}}
         />
-        <ArchifyRecap slug="injection-points" caption="五挂点 · 工具架空位" cues={[{chapterId: 'ip-hooks', at: at('p6-08') - bD.from, durationInFrames: dur('p6-08')}]} />
+        <ArchifyRecap slug="injection-points" caption="五挂点 · 工具架空位" cues={[{chapterId: 'ip-hooks', at: at('p6-08') - bD.from, durationInFrames: dur('p6-08')}]} lead={false} />
       </Sequence>
 
-      {/* 6-E 十六行表 + 杠杆（lm-spine 隔 p6-08b..p6-10 空窗恢复入场；el-six 接其尾 false） */}
+      {/* 6-E 十六行表 + 杠杆（lm-spine 隔 p6-08b..p6-10 空窗恢复入场；el-six 接其尾 false；
+          el-sm 扩入空句 p6-14 至镜末——填空窗 C/D，rate 1.48→0.81 由 trim 转 stretch、7 拍全见） */}
       <Sequence from={bE.from} durationInFrames={bE.durationInFrames} name="6-E">
         <ArchifyRecap
           slug="blueprint--layer-mechanism-map"
@@ -107,13 +111,13 @@ export const P6Truth: React.FC<{scene: SceneRange}> = ({scene}) => {
           caption="六面杠杆 · 状态机"
           cues={[
             {chapterId: 'el-six', at: at('p6-12') - bE.from, durationInFrames: dur('p6-12')},
-            {chapterId: 'el-sm', at: at('p6-13') - bE.from, durationInFrames: dur('p6-13')},
+            {chapterId: 'el-sm', at: at('p6-13') - bE.from, durationInFrames: dur('p6-13') + dur('p6-14')},
           ]}
           lead={false}
         />
       </Sequence>
 
-      {/* 6-F 双轨（6-E 链尾隔 p6-14 空窗，恢复入场） */}
+      {/* 6-F 双轨（el-sm 已扩至 6-E 镜末，dt-design 跨镜背靠背 → false） */}
       <Sequence from={bF.from} durationInFrames={bF.durationInFrames} name="6-F">
         <ArchifyRecap
           slug="blueprint--dual-track-roadmap"
@@ -124,11 +128,18 @@ export const P6Truth: React.FC<{scene: SceneRange}> = ({scene}) => {
             {chapterId: 'dt-p0', at: at('p6-17') - bF.from, durationInFrames: dur('p6-17'), fit: 'hold'},
             {chapterId: 'dt-main', at: at('p6-18') - bF.from, durationInFrames: dur('p6-18')},
           ]}
+          lead={false}
         />
       </Sequence>
 
-      {/* 6-G 回环三堵（fm-stale 隔 p6-19/20 空窗恢复入场；后两堵逐句背靠背 false） */}
+      {/* 6-G 工卡第 6 格 + 回环三堵（工卡入点 p6-19..20 填两空句、底锚 200 口径，
+          末帧恰接 fm-stale 首恢复入场；后两堵逐句背靠背 false） */}
       <Sequence from={bG.from} durationInFrames={bG.durationInFrames} name="6-G">
+        <Sequence from={at('p6-19') - bG.from} durationInFrames={dur('p6-19', 'p6-20')} name="6-G-card">
+          <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 200}}>
+            <WorkCard stamps={6} totalSlots={7} highlightSlot={5} w={320} />
+          </AbsoluteFill>
+        </Sequence>
         <ArchifyRecap
           slug="failure-map"
           caption="三堵回环 · 过期页"
@@ -180,7 +191,7 @@ const FinalStamp: React.FC<{totalFrames: number}> = ({totalFrames}) => {
         ))}
       </div>
       <div style={{position: 'relative', transform: `scale(${seal})`}}>
-        <WorkCard stamps={7} totalSlots={7} w={430} label="工卡 · 关盖放行" />
+        <WorkCard stamps={7} totalSlots={7} highlightSlot={6} w={430} label="工卡 · 关盖放行" />
         <div
           style={{
             position: 'absolute',

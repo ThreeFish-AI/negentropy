@@ -2,8 +2,8 @@
  *
  *  8 镜 / 5 条 archify cue：
  *   2-A 导览（装置：文档柜门）· 2-B ol-draft@04（PrintPage 锚 p2-05，cue 窗外先可见）· 2-C fan trap 装置（订单-事件连线）
- *   2-D ol-gov@13（全屏独占单句镜）· 2-E 代码走廊①（422 拒绝）
- *   2-F ol-conflict@16→ol-full@18（前隔代码走廊，恢复入场）· 2-G ol-super@19 · 2-H 影子板收束
+ *   2-D ol-gov@13（全屏独占单句镜）· 2-E 代码走廊①（422 拒绝；CodePane 自 p2-14 起打印填半空窗）
+ *   2-F ol-conflict@16→ol-full@18（前隔代码走廊，恢复入场）· 2-G ol-super@19→20（跨句扩到镜末填空窗）· 2-H 影子板收束
  */
 import React from 'react';
 import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
@@ -60,10 +60,10 @@ export const P2MasterPage: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap slug="blueprint--object-lifecycle" caption="对象 · 过门受治理" cues={[{chapterId: 'ol-gov', at: at('p2-13') - bD.from, durationInFrames: dur('p2-13')}]} />
       </Sequence>
 
-      {/* 2-E 代码走廊①：definitions 表 + 422 */}
+      {/* 2-E 代码走廊①：definitions 表 + 422（锚 p2-14：打印动效填掉 p2-14 半空窗，p2-14b 时四行已就位） */}
       <Sequence from={bE.from} durationInFrames={bE.durationInFrames} name="2-E">
         <CodePane
-          at={at('p2-14b') - bE.from}
+          at={at('p2-14') - bE.from}
           lines={[
             'POST /interface/definitions  →  parse_definition(源文本)',
             '  ⚠ DefinitionParseError: Agent 规格缺少必填字段: name',
@@ -87,9 +87,9 @@ export const P2MasterPage: React.FC<{scene: SceneRange}> = ({scene}) => {
         />
       </Sequence>
 
-      {/* 2-G 版次随行 */}
+      {/* 2-G 版次随行（ol-super 跨句扩到镜末：p2-20 空窗由 hold 档末帧冻结补足） */}
       <Sequence from={bG.from} durationInFrames={bG.durationInFrames} name="2-G">
-        <ArchifyRecap slug="blueprint--object-lifecycle" caption="被取代 · freshness 衰减" cues={[{chapterId: 'ol-super', at: at('p2-19') - bG.from, durationInFrames: dur('p2-19')}]} />
+        <ArchifyRecap slug="blueprint--object-lifecycle" caption="被取代 · freshness 衰减" cues={[{chapterId: 'ol-super', at: at('p2-19') - bG.from, durationInFrames: dur('p2-19') + dur('p2-20')}]} />
       </Sequence>
 
       {/* 2-H 收束：影子板三标签 + 工卡第 2 格 */}

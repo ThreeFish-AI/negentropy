@@ -1,10 +1,13 @@
-/** P5 机位时间与工卡夹：激活层（p5-01..p5-27，28 句；storyboard「P5 机位时间」节）。
+/** P5 机位时间与工卡夹：激活层（p5-01..p5-27，29 句；storyboard「P5 机位时间」节）。
  *
  *  9 镜 / 9 条 archify cue：
  *   5-A 计时器烧钱装置 · 5-B 裁纸刀 + ae-k1@04 · 5-C 46/19 工具墙 + ae-k2@07
  *   5-D ae-k3@12 · 5-E ae-k4@14→ae-k5@15（两章各占一句，p5-16 转场句无装置）· 5-F ae-knobs@17
  *   5-G ae-ch@19 · 5-H ae-guard@21→ae-llm@22 · 5-I 三维拼图收口 + 第 5 格
- *  lead 审计：7 实例相邻首末 cue 均隔整句空窗（04→07/07→12/12→14/15→17/17→19/19→21）→ 无背靠背，全部恢复入场。
+ *  空窗回填：ae-k2/ae-k3/ae-ch 向后 dur 求和扩到镜内空句（rate 落 hold 档，播完冻结补足）。
+ *  装置避让：裁纸刀@04b、五旋钮命名卡@18、resolve 闸门@23——三者原锚句被 cue 窗自镜首盖满，挪到 cue 卸载后入场。
+ *  lead 审计（扩窗后重算）：D→E、G→H 镜界背靠背 → 5-E/5-H 传 false；
+ *  余下相邻实例（04→07/09→12/15→17/17→19）仍隔整句空窗，恢复入场。
  */
 import React from 'react';
 import {AbsoluteFill, Sequence} from 'remotion';
@@ -42,27 +45,27 @@ export const P5Tarmac: React.FC<{scene: SceneRange}> = ({scene}) => {
         <BurnClock at={at('p5-03')} />
       </Sequence>
 
-      {/* 5-B 最小够用 */}
+      {/* 5-B 最小够用（ae-k1@04 自镜首盖满首句 → 裁纸刀挪 cue 卸载后的 p5-04b 入场） */}
       <Sequence from={bB.from} durationInFrames={bB.durationInFrames} name="5-B">
-        <PaperCut at={at('p5-04') - bB.from} />
+        <PaperCut at={at('p5-04b') - bB.from} />
         <ArchifyRecap slug="assembly-economics" caption="旋钮一 · 预算分配" cues={[{chapterId: 'ae-k1', at: at('p5-04') - bB.from, durationInFrames: dur('p5-04')}]} />
       </Sequence>
 
-      {/* 5-C 渐进披露 + 46/19 */}
+      {/* 5-C 渐进披露 + 46/19（ae-k2 扩到 p5-09 回填 7.2s 空窗，窗末恰接工具墙@p5-10 入场） */}
       <Sequence from={bC.from} durationInFrames={bC.durationInFrames} name="5-C">
         <ToolWall46 at={at('p5-10') - bC.from} />
         <div style={{position: 'absolute', bottom: 150, left: 80}}>
           <EvidenceBadge level="solid" at={at('p5-10') - bC.from} note="Llama 3.1 8B · 16k 窗" />
         </div>
-        <ArchifyRecap slug="assembly-economics" caption="旋钮二 · 渐进披露" cues={[{chapterId: 'ae-k2', at: at('p5-07') - bC.from, durationInFrames: dur('p5-07')}]} />
+        <ArchifyRecap slug="assembly-economics" caption="旋钮二 · 渐进披露" cues={[{chapterId: 'ae-k2', at: at('p5-07') - bC.from, durationInFrames: dur('p5-07', 'p5-09')}]} />
       </Sequence>
 
-      {/* 5-D JIT */}
+      {/* 5-D JIT（ae-k3 扩到 p5-13 补空窗至镜末 → 5-E 首章镜界背靠背） */}
       <Sequence from={bD.from} durationInFrames={bD.durationInFrames} name="5-D">
-        <ArchifyRecap slug="assembly-economics" caption="旋钮三 · 预取 vs 按需" cues={[{chapterId: 'ae-k3', at: at('p5-12') - bD.from, durationInFrames: dur('p5-12')}]} />
+        <ArchifyRecap slug="assembly-economics" caption="旋钮三 · 预取 vs 按需" cues={[{chapterId: 'ae-k3', at: at('p5-12') - bD.from, durationInFrames: dur('p5-12', 'p5-13')}]} />
       </Sequence>
 
-      {/* 5-E 缓存与压缩 */}
+      {/* 5-E 缓存与压缩（ae-k3 扩窗至 5-D 镜末，ae-k4 镜界背靠背 → lead false 防换章弹入） */}
       <Sequence from={bE.from} durationInFrames={bE.durationInFrames} name="5-E">
         <ArchifyRecap
           slug="assembly-economics"
@@ -71,24 +74,26 @@ export const P5Tarmac: React.FC<{scene: SceneRange}> = ({scene}) => {
             {chapterId: 'ae-k4', at: at('p5-14') - bE.from, durationInFrames: dur('p5-14')},
             {chapterId: 'ae-k5', at: at('p5-15') - bE.from, durationInFrames: dur('p5-15')},
           ]}
+          lead={false}
         />
       </Sequence>
 
-      {/* 5-F 五旋钮命名 */}
+      {/* 5-F 五旋钮命名（ae-knobs@17 自镜首盖满整句 → 命名卡挪 cue 卸载后的 p5-18；
+          扩窗补拍会盖回命名卡故维持 trim：p5-17 内 3/5 拍可见，五名由命名卡补全） */}
       <Sequence from={bF.from} durationInFrames={bF.durationInFrames} name="5-F">
-        <KnobNaming at={at('p5-17') - bF.from} />
+        <KnobNaming at={at('p5-18') - bF.from} />
         <ArchifyRecap slug="assembly-economics" caption="装配经济学 · 命名" cues={[{chapterId: 'ae-knobs', at: at('p5-17') - bF.from, durationInFrames: dur('p5-17')}]} />
       </Sequence>
 
-      {/* 5-G 检索前置 */}
+      {/* 5-G 检索前置（ae-ch 扩到 p5-20 补空窗至镜末 → 5-H 首章镜界背靠背） */}
       <Sequence from={bG.from} durationInFrames={bG.durationInFrames} name="5-G">
-        <ArchifyRecap slug="assembly-economics" caption="双通道 · 统一融合" cues={[{chapterId: 'ae-ch', at: at('p5-19') - bG.from, durationInFrames: dur('p5-19')}]} />
+        <ArchifyRecap slug="assembly-economics" caption="双通道 · 统一融合" cues={[{chapterId: 'ae-ch', at: at('p5-19') - bG.from, durationInFrames: dur('p5-19', 'p5-20')}]} />
       </Sequence>
 
-      {/* 5-H resolve 总入口 */}
-      {/* 5-H：ae-ch@19 结束于 p5-20.from，与本实例首 cue（p5-21）隔整句空窗 → 恢复入场，不传 lead */}
+      {/* 5-H resolve 总入口：ae-ch 扩窗至 5-G 镜末 → ae-guard 镜界背靠背传 lead false；
+          ae-guard+ae-llm 自镜首连播两句 → 闸门挪 ae-llm 卸载后的 p5-23 入场 */}
       <Sequence from={bH.from} durationInFrames={bH.durationInFrames} name="5-H">
-        <ResolveGate at={at('p5-21') - bH.from} />
+        <ResolveGate at={at('p5-23') - bH.from} />
         <ArchifyRecap
           slug="assembly-economics"
           caption="出口守卫 · 入窗"
@@ -96,13 +101,14 @@ export const P5Tarmac: React.FC<{scene: SceneRange}> = ({scene}) => {
             {chapterId: 'ae-guard', at: at('p5-21') - bH.from, durationInFrames: dur('p5-21')},
             {chapterId: 'ae-llm', at: at('p5-22') - bH.from, durationInFrames: dur('p5-22')},
           ]}
+          lead={false}
         />
       </Sequence>
 
-      {/* 5-I 拼图收口 + 第 5 格 */}
+      {/* 5-I 拼图收口 + 第 5 格（工卡底锚 200 对齐 1-Z/3-H/4-Z 口径：卡体 y678-880，让出字幕带且不撞居中拼图） */}
       <Sequence from={bI.from} durationInFrames={bI.durationInFrames} name="5-I">
         <PuzzleMerge at={at('p5-25') - bI.from} />
-        <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 56}}>
+        <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 200}}>
           <WorkCard stamps={5} totalSlots={7} highlightSlot={4} w={320} />
         </AbsoluteFill>
       </Sequence>
@@ -151,15 +157,17 @@ const ToolWall46: React.FC<{at: number}> = ({at}) => {
         {cells.map((k, i) => {
           const bad = i < 46;
           const good = i >= 50 && i < 69;
+          // 46..49 空档格不吃 stagger：恒定低透明度虚线框，「46 橙｜4 空位｜19 绿」的空位语义可见
+          const gap = !bad && !good;
           return (
             <div
               key={i}
               style={{
                 height: 34,
                 borderRadius: 4,
-                opacity: (bad || good ? k : 0) * 0.9,
+                opacity: gap ? 0.35 : k * 0.9,
                 background: bad ? theme.conceptDeep : good ? theme.ok : 'transparent',
-                border: bad || good ? 'none' : `1px dashed ${theme.panelBorder}`,
+                border: gap ? `1px dashed ${theme.panelBorder}` : 'none',
               }}
             />
           );

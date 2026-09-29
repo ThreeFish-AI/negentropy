@@ -1,10 +1,11 @@
 /** P4 会签与放行：治理层（p4-01..p4-26，27 句；storyboard「P4 会签与放行」节）。
  *
  *  7 镜 / 10 条 archify cue：
- *   4-A 会签栏装置 + fm-gov@03 · 4-B 只减不增计数器 · 4-C 韦恩图交集
+ *   4-A 会签栏装置@02（fm-gov@03 开窗前播完）· 4-B 只减不增计数器 · 4-C 韦恩图交集
  *   4-D RII 底稿/保留单 + fm-unverified@15 · 4-E 477 vs 48 装置
  *   4-F tm-poison@21→tm-inject@22 + 数字墙@23（p4-23 为 cue 空窗句，数字归属口播句）
  *   4-G tm-token@24→tm-deputy@25→tm-gate@26（三章接力占满窗口，不叠装置）
+ *  4-Z 工卡第 4 格锚 p4-20（4-F 首句、无 cue 无装置；原锚 p4-26 与 tm-gate 同窗被遮）
  */
 import React from 'react';
 import {AbsoluteFill, Sequence} from 'remotion';
@@ -31,15 +32,15 @@ export const P4Signoff: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bE = w('p4-17', 'p4-19c');
   const bF = w('p4-20', 'p4-23');
   const bG = w('p4-24', 'p4-26');
-  const bZ = w('p4-26');
+  const bZ = w('p4-20');
 
   return (
     <AbsoluteFill style={{background: theme.bg}}>
       <SceneTag chapter="P4" tagline="会签与放行 · 治理层" accent={theme.conceptDeep} />
 
-      {/* 4-A 会签栏四格 */}
+      {/* 4-A 会签栏四格：锚 p4-02「铸在一张卡上」，四章印 ~129 帧收口，先于 fm-gov@03 窗[165,350] 播完 */}
       <Sequence from={bA.from} durationInFrames={bA.durationInFrames} name="4-A">
-        <SignoffRow at={at('p4-03') - bA.from} />
+        <SignoffRow at={at('p4-02') - bA.from} />
         <ArchifyRecap slug="failure-map" caption="治理层 · 四机构一道墙" cues={[{chapterId: 'fm-gov', at: at('p4-03') - bA.from, durationInFrames: dur('p4-03')}]} />
       </Sequence>
 
@@ -56,7 +57,8 @@ export const P4Signoff: React.FC<{scene: SceneRange}> = ({scene}) => {
       {/* 4-D RII 底稿/保留单 */}
       <Sequence from={bD.from} durationInFrames={bD.durationInFrames} name="4-D">
         <RIIProof at={at('p4-14') - bD.from} />
-        <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 80}}>
+        {/* 底部结论卡：底锚 150 对齐证据徽口径（第二行上缘 ≈y878，清出字幕盒 y942） */}
+        <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 150}}>
           <div style={{padding: '14px 26px', border: `2px solid ${theme.ok}`, borderRadius: 10, background: 'rgba(126,211,33,0.06)'}}>
             <div style={{fontSize: 30, color: theme.ok}}>人 ← 会签</div>
             <div style={{fontSize: 30, color: theme.ok, marginTop: 6}}>答案 ← 放行</div>
@@ -102,7 +104,8 @@ export const P4Signoff: React.FC<{scene: SceneRange}> = ({scene}) => {
         />
       </Sequence>
 
-      {/* 幕尾第 4 格：底锚 ≥150 避开字幕带/QA 安全区（同 1-Z 先例） */}
+      {/* 工卡第 4 格：锚 p4-20（4-F 首句、无 cue 无装置；原锚 p4-26 与 tm-gate 画框同窗整段被遮）。
+          窗口止于 p4-20 句末，天然避开 tm-poison@21/tm-inject@22 与数字墙；底锚 200 同 1-Z 先例 */}
       <Sequence from={bZ.from} durationInFrames={bZ.durationInFrames} name="4-Z">
         <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 200}}>
           <WorkCard stamps={4} totalSlots={7} highlightSlot={3} w={320} />
@@ -130,11 +133,11 @@ const SignoffRow: React.FC<{at: number}> = ({at}) => {
 };
 
 const ShrinkCounter: React.FC<{at: number}> = ({at}) => {
-  // 反模式 X-001 核对：口播「只会更少」⇒ 计数器只减不加
+  // 反模式 X-001 核对：口播「只会更少」⇒ 只减不加；权重 3+4+4=11 ⇒ 12→1，终值 1 人保交集非空
   const s1 = useSpring('settle', {at: at + 6, dur: 20});
   const s2 = useSpring('settle', {at: at + 20, dur: 20});
   const s3 = useSpring('settle', {at: at + 34, dur: 20});
-  const n = 12 - Math.round(s1 * 3 + s2 * 4 + s3 * 5);
+  const n = 12 - Math.round(s1 * 3 + s2 * 4 + s3 * 4);
   return (
     <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18}}>
       <div style={{fontSize: 110, color: theme.conceptDeep, fontVariantNumeric: 'tabular-nums'}}>{n}<span style={{fontSize: 40, color: theme.dim}}> 人</span></div>

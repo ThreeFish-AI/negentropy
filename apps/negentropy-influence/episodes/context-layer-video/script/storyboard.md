@@ -10,12 +10,12 @@
 | 镜 | 句区间 | 画面 | 动效 |
 |---|---|---|---|
 | 0-A 夜机坪 | p0-01..02 | master：机库夜景横移，机位灯呼吸；工卡特写首现（钢蓝描边） | 缓推镜头；灯光明暗交替〔M-002〕 |
-| 0-B 过期页 | p0-03..06 | device：当版页打印机吐页，页脚修订号特写被推近；·**archify full**：failure-map 章 `fm-stale` | 页面逐行打印；修订号放大+橙色警示圈 |
-| 0-C 两页打架 | p0-07..09 | device：两页手册并排悬浮，力矩值数字差异高亮（橙）；·**archify full**：failure-map 章 `fm-conflict` | 两页从两侧滑入对撞；引用计数器翻转，错版数字变大 |
-| 0-D 越权签字 | p0-10..13 | device：会签栏最后一格被盖下无权者的章（橙红闪烁）；·**archify full**：failure-map 章 `fm-auth` | 盖章锤落；整卡边缘泛橙——「合格」字样打上又碎裂 |
+| 0-B 过期页 | p0-03..06 | device：（未实现，销账——fm 全屏逐句 hold 承担本镜画面）；·**archify full**：failure-map 章 `fm-stale` | 图回放（fm 全屏逐句 hold） |
+| 0-C 两页打架 | p0-07..09 | device：（未实现，销账——fm 全屏逐句 hold 承担本镜画面）；·**archify full**：failure-map 章 `fm-conflict` | 图回放（fm 全屏逐句 hold） |
+| 0-D 越权签字 | p0-10..13 | device：（未实现，销账——fm 全屏逐句 hold 承担本镜画面）；·**archify full**：failure-map 章 `fm-auth` | 图回放（fm 全屏逐句 hold） |
 | 0-E 换成 AI | p0-14..17 | evidence：三格证据徽排开（实线×2），19%→85% 数字对撞；·**archify full**：failure-map 章 `fm-breach`+`fm-all` | 徽章依次点亮；数字翻牌对比；八失效全景收幕 |
 | 0-F 崩崖实证 | p0-18..21 | evidence：87%→10% 断崖折线（橙）；实线徽；虚线徽（97/4 全限定角标）；·**archify full**：failure-map 章 `fm-unverified`；·**archify full**：blueprint--industry-landscape 章 `il-gap` | 折线下坠动画；两个比例条并排（97 长 4 短）；断层图收 |
-| 0-G 发工卡 | p0-22..23 | master：工卡从机务手中递出，翻面亮出格子线稿（钢蓝）——「一道工序一格」；系列卡入点 | 递卡横移；卡面格子逐格亮起 |
+| 0-G 发工卡 | p0-22..23 | master：工卡从机务手中递出，翻面亮出格子线稿（钢蓝）——「一道工序一格」；（系列卡入点未实现，销账） | 递卡横移；卡面格子逐格亮起 |
 
 ## P1 机库全景：五源与三轴（p1-01..p1-25，26 句）
 
@@ -28,7 +28,7 @@
 | 1-E 结构轴 | p1-12..15 | ·**archify full**：blueprint--architecture 章 `ax-struct`+`ax-accept` | 五层纵向逐层点亮+口诀角标；验收面横幅收 |
 | 1-F 时间轴 | p1-16..17 | ·**archify full**：lifecycle 章 `lc-loop`+`lc-verify` | CGAVE 环形流转，验证/进化两环高亮（绿）；两章分句接力 |
 | 1-G 正交性 | p1-18..20 | ·**archify full**：blueprint--architecture 章 `ax-obj`+`ax-time`；·**archify full**：lifecycle 章 `lc-evolve` | 两章接力；「换 A 不动 B」演示（一轴拖动他轴锁定） |
-| 1-H 公理 | p1-21..25 | evidence：context rot 示意（窗口越满召回曲线越低，橙）；·**archify full**：failure-map 章 `fm-silent` | 曲线下垂；目标函数卡：预算之内，只给最有用的那一小撮 |
+| 1-H 公理 | p1-21..25 | evidence：context rot 示意（窗口越满召回曲线越低，橙）；·**archify full**：failure-map 章 `fm-silent` | 曲线下垂；目标函数卡：预算之内 · 最有用的一小撮 |
 
 ## P2 当版页制度：对象层（p2-01..p2-22，25 句）
 
@@ -36,9 +36,9 @@
 |---|---|---|---|
 | 2-A 导览 | p2-01..03 | master：第一层铭牌亮（钢蓝）；受控文档库柜门开启 | 层推进度条+1；柜门光缝 |
 | 2-B 当版页 | p2-04..07 | device：打印机吐页→页脚时刻戳→用毕入废纸盒；·**archify full**：blueprint--object-lifecycle 章 `ol-draft` | 时钟走字；废纸盒吞页循环〔M-003〕 |
-| 2-C fan trap | p2-08..12 | evidence：代码走廊①——lab 输出 200 vs 440（实心徽）；订单-事件连线示意：三条线挂上一张订单、金额翻倍（橙） | 终端逐行打印；金额数字 100→300→440 跳变 |
+| 2-C fan trap | p2-08..12 | evidence：金额对撞示意装置（非代码走廊、无终端输出）——三条线挂上一张订单、金额翻倍（橙）；徽注「对照 200 · 退化 440」（实心徽，本仓复算） | 金额 100→300 跳变；乘数 ×1→×3（橙） |
 | 2-D 锁一起 | p2-13 | ·**archify full**：blueprint--object-lifecycle 章 `ol-gov` | 定义与计算两半合锁动画 |
-| 2-E 本仓骨架 | p2-14..15 | evidence：代码走廊②——definitions 表+422 拒绝（真实仓码，实心徽）；「表→打印页」箭头 | SQL 插入被红色 422 弹回；投影箭头 |
+| 2-E 本仓骨架 | p2-14..15 | evidence：代码走廊①——definitions 表+422 拒绝（真实仓码，实心徽）；「表→打印页」箭头 | SQL 插入被红色 422 弹回；投影箭头 |
 | 2-F 常驻记忆 | p2-16..18c | device：技术档案柜（谁写/多厚/写满）；·**archify full**：blueprint--object-lifecycle 章 `ol-conflict`+`ol-full` | 三问标签逐个贴上柜门；厚度标尺两级刻度；对象一生收 |
 | 2-G 版次随行 | p2-19..20 | ·**archify full**：blueprint--object-lifecycle 章 `ol-super` | 版次标+校准徽随档案移动 |
 | 2-H 收束 | p2-21..22 | master：影子板工具轮廓格回顾（在册·可查·带版次 三标签，绿） | 三标签逐个亮起 |
@@ -49,7 +49,7 @@
 |---|---|---|---|
 | 3-A 影子板 | p3-01..04 | device：影子板全景，每件工具嵌入轮廓格；新工具画格；·**archify full**：runtime-layering 章 `rl-sys` | 工具入格吸附动画；虚线轮廓→实线（自动贴标） |
 | 3-B 信任信号 | p3-05..08 | ·**archify full**：runtime-layering 章 `rl-cgave`+`rl-store` | 版次号/校准证书徽章点亮；五源信号拉到同一把尺（标尺动画）；单库持久收 |
-| 3-C 中文坑 | p3-09..12 | evidence：代码走廊③——to_tsvector('english',汉字) 输出整段单 token（实心徽）；两条腿示意：关键词腿踩空（橙）；·**archify full**：failure-map 章 `fm-split` | 终端打印 PG 输出；走路小人格一条腿陷空；割裂章收 |
+| 3-C 中文坑 | p3-09..12 | evidence：代码走廊②——to_tsvector('english',汉字) 输出整段单 token（实心徽）；两条腿示意：关键词腿踩空（橙）；·**archify full**：failure-map 章 `fm-split` | 终端打印 PG 输出；走路小人格一条腿陷空；割裂章收 |
 | 3-D 富化现实 | p3-13..15 | evidence：覆盖率条 9685 张表 <5%（虚线徽） | 柱状图 5% 尖刺；数字滚动 |
 | 3-E 双轨 | p3-16..18 | device：手册轨（钢蓝）与老师傅手感轨（暖灰）并行；手感标签「可提示·不签字」 | 双轨滑入；签字章只落手册轨 |
 | 3-F 技术请示 | p3-19..23 | device：全片戏剧高点——停工、两页并排钉上请示单、版次标签、工序挂起牌（橙底）；·**archify full**：blueprint--object-lifecycle 章 `ol-conflict` | 慢镜：图钉落下×2；产线传送带急停；D4 引用计数对比 |
@@ -64,9 +64,9 @@
 | 4-B 只减不增 | p4-05..08 | device：每加一道会签→可关盖人数计数器只减不加（橙数字递减）；落笔瞬间时钟校验 | 计数器 -1 -1 -1；签字笔悬停→时钟绿闪（有效）〔M-003〕 |
 | 4-C 翻译回 AI | p4-09..11 | evidence：两个圆（用户权限∩任务允许面）交集高亮（钢蓝）；权限回收→会话即时失效 | 交集韦恩图收缩动画；工牌碎裂（对照：上次办的工牌还能用=红叉） |
 | 4-D RII 验证 | p4-12..16 | device：复核员提问气泡→带版次底稿拍在台上（绿）→保留单显式标注「未经核准」（橙）；·**archify full**：failure-map 章 `fm-unverified` | 底稿拍台震动；保留单贴上飞机侧影 |
-| 4-E 477 vs 48 | p4-17..19c | evidence：代码走廊④——塌缩 grain 复现：日汇总叠成柱→477 vs 48（实线徽）；题库卡组 | 柱层叠起；两数字对峙；题库卡翻面亮绿 |
-| 4-F 供给面 | p4-20..23 | ·**archify full**：blueprint--mcp-threat-model 章 `tm-poison`+`tm-inject` | 图回放：投毒节点橙闪 |
-| 4-G 四家不验签 | p4-24..26 | evidence：98,380/157/632 数字墙（实线徽）；·**archify full**：blueprint--mcp-threat-model 章 `tm-token`+`tm-deputy`+`tm-gate` | 四客户端图标+零验签红叉；威胁四型接力；治理门开合 |
+| 4-E 477 vs 48 | p4-17..19c | evidence：崩溃数字示意装置（非代码走廊、无终端输出；第三方复现，实线徽）——日汇总叠成柱→477 vs 48；题库卡组 | 柱层叠起；两数字对峙；题库卡翻面亮绿 |
+| 4-F 供给面 | p4-20..23 | device：98,380/157/632 数字墙+四客户端图标+零验签红叉（实线徽 USENIX）@p4-23；里程碑工卡第 4 格章 @p4-20；·**archify full**：blueprint--mcp-threat-model 章 `tm-poison`+`tm-inject` | 图回放：投毒节点橙闪 |
+| 4-G 四家不验签 | p4-24..26 | ·**archify full**：blueprint--mcp-threat-model 章 `tm-token`+`tm-deputy`+`tm-gate` | 威胁四型接力；治理门开合 |
 
 ## P5 机位时间与工卡夹：激活层（p5-01..p5-27，29 句）
 
@@ -87,13 +87,13 @@
 | 镜 | 句区间 | 画面 | 动效 |
 |---|---|---|---|
 | 6-A 判定面 | p6-01..01b | master：铁律铭牌铸字「判定面」——只认装配线上真实跑过的路 | 铸字锤击〔M-003〕 |
-| 6-B 零调用 | p6-02..04 | evidence：代码走廊⑤——assemble() 全仓 grep 唯一命中单测（实心徽）；·**archify full**：injection-points 章 `ip-assembler`+`ip-nine` | 终端 grep 逐行滚过仅一行高亮；九路全景拉开 |
+| 6-B 零调用 | p6-02..04 | evidence：代码走廊③——assemble() 全仓 grep 唯一命中单测（实心徽）；·**archify full**：injection-points 章 `ip-assembler`+`ip-nine` | 终端 grep 逐行滚过仅一行高亮；九路全景拉开 |
 | 6-C 真锚 | p6-05..07 | ·**archify full**：injection-points 章 `ip-memory`+`ip-full` | 每轮查一次→注进窗口链条动画 |
-| 6-D 菜单不能点 | p6-08..10 | evidence：技能目录末行「call expand_skill」+ TOOL_REGISTRY 空缺对拍（代码走廊⑥，实心徽）；·**archify full**：injection-points 章 `ip-hooks` | 目录行高亮→工具架空位打问号；在线考核计数器恒 0 |
+| 6-D 菜单不能点 | p6-08..10 | evidence：技能目录末行「call expand_skill」+ TOOL_REGISTRY 空缺对拍（代码走廊④，实心徽）；·**archify full**：injection-points 章 `ip-hooks` | 目录行高亮→工具架空位打问号；在线考核计数器恒 0 |
 | 6-E 十六行表 | p6-11..14 | ·**archify full**：blueprint--layer-mechanism-map 章 `lm-spine`；·**archify full**：evolution-levers 章 `el-six`+`el-sm` | 表行滚动 ✅/🔶/⏸ 三色；六面杠杆接力；断链行修复设计闪现（绿） |
 | 6-F 双轨 | p6-15..18 | ·**archify full**：blueprint--dual-track-roadmap 章 `dt-design`+`dt-show`+`dt-p0`+`dt-main` | 双泳道展开；P0 已验证章；次序三步曲（先对象→再治理→后生态） |
 | 6-G 回环三堵 | p6-19..23 | master：P0 三件错回放快剪（过期页/两页打架/无权章），每件后接堵截机制徽标（绿）；·**archify full**：failure-map 章 `fm-stale`+`fm-conflict`+`fm-auth` 三章回环 | 快剪节奏；错(橙)→堵(绿)三连配对 |
-| 6-H 收口 | p6-24..28 | master：天才实习生剪影接过工卡；机库全景灯亮；工卡盖满最后一格章→合上→放行（绿章）；系列卡+下期卡 | 盖章锤最后一击（全片唯一全屏定格）；卡片合上黑场收尾 |
+| 6-H 收口 | p6-24..28 | master：工卡盖满最后一格章→放行（绿章）；（未实现，销账——天才实习生剪影/机库全景灯亮/系列卡+下期卡） | 盖章锤最后一击（全片唯一全屏定格）；黑场收尾 |
 
 ## 字幕规范
 
@@ -105,10 +105,10 @@
 |---|---|---|
 | P0 | scenes/P0Errors.tsx | 工卡 hero（恒定锚 M-001）、证据徽、章印组件 |
 | P1 | scenes/P1Hangar.tsx | ArchifyRecap×3 图、机库剖面、五色流光 |
-| P2 | scenes/P2MasterPage.tsx | 打印机 device、代码走廊①②、档案柜 |
-| P3 | scenes/P3ShadowBoard.tsx | 影子板 device、请示单高光、代码走廊③ |
-| P4 | scenes/P4Signoff.tsx | 会签栏 device、韦恩图、底稿/保留单、代码走廊④、threat-model 图 |
+| P2 | scenes/P2MasterPage.tsx | 打印机 device、代码走廊①、档案柜 |
+| P3 | scenes/P3ShadowBoard.tsx | 影子板 device、请示单高光、代码走廊② |
+| P4 | scenes/P4Signoff.tsx | 会签栏 device、韦恩图、底稿/保留单、477vs48 示意装置、threat-model 图 |
 | P5 | scenes/P5Tarmac.tsx | 工卡夹 device、五旋钮、resolve 闸门、assembly 图 |
-| P6 | scenes/P6Truth.tsx | 代码走廊⑤⑥、spine/双轨图、回环快剪、终幕盖章 |
+| P6 | scenes/P6Truth.tsx | 代码走廊③④、spine/双轨图、回环快剪、终幕盖章 |
 
-代码走廊清单（真实仓码/真实 lab 输出，非示意）：① lab selftest D1 输出 · ② definitions registry 422 · ③ PG tsvector 汉字实测 · ④ 477vs48 复现 · ⑤ assemble() grep · ⑥ expand_skill 目录行+registry 空缺。
+代码走廊清单（真实仓码，canonical，与 narration.md 同口径）：① definitions registry 422 拒绝（P2·2-E）· ② PG tsvector 汉字实测（P3·3-C）· ③ assemble() 真实源码（P6·6-B）· ④ expand_skill 真实源码（P6·6-D）。2-C 金额对撞与 4-E 崩溃数字为示意装置（非代码走廊、无终端输出）。

@@ -1,9 +1,9 @@
 /** P3 影子板与老师傅：目录与富化（p3-01..p3-26b，28 句；storyboard「P3 影子板」节）。
  *
  *  8 镜 / 6 条 archify cue：
- *   3-A rl-sys@02 · 3-B rl-cgave@06→rl-store@08（接力）· 3-C 代码走廊②（PG 汉字）+ fm-split@11
- *   3-D <5% 覆盖率装置 · 3-E 双轨装置（手感不签字）· 3-F 技术请示单高光 + ol-conflict@22
- *   3-G lc-evolve@24（复利链）· 3-H 交接班板装置（草稿区→最后落章）
+ *   3-A rl-sys@02 · 3-B rl-cgave@05→07 + rl-store@08（接力；前扩填镜首/镜中空窗）· 3-C 代码走廊②（PG 汉字，自 p3-09 起打印）+ fm-split@11
+ *   3-D <5% 覆盖率装置 · 3-E 双轨装置（手感不签字；锚 p3-16）· 3-F 技术请示单高光 + ol-conflict@22
+ *   3-G lc-evolve@24→25（复利链，跨句扩到镜末填空窗）· 3-H 交接班板装置（草稿区→最后落章）
  */
 import React from 'react';
 import {AbsoluteFill, Sequence} from 'remotion';
@@ -49,16 +49,19 @@ export const P3ShadowBoard: React.FC<{scene: SceneRange}> = ({scene}) => {
           slug="runtime-layering"
           caption="信任信号 · 同一把尺"
           cues={[
-            {chapterId: 'rl-cgave', at: at('p3-06') - bB.from, durationInFrames: dur('p3-06')},
+            // rl-cgave 前后跨句扩展（自 p3-05 起播、盖过 p3-07）填镜首/镜中空窗；三个 dur
+            // 求和恰等于 at('p3-08')−at('p3-05')，收针即 rl-store 的 at——背靠背换章按
+            // ArchifyRecap 契约不重放入场；fit 自动落 hold，原速播完由 endStill 冻结补足。
+            {chapterId: 'rl-cgave', at: at('p3-05') - bB.from, durationInFrames: dur('p3-05') + dur('p3-06') + dur('p3-07')},
             {chapterId: 'rl-store', at: at('p3-08') - bB.from, durationInFrames: dur('p3-08')},
           ]}
         />
       </Sequence>
 
-      {/* 3-C 中文坑：代码走廊② + 割裂章 */}
+      {/* 3-C 中文坑：代码走廊② + 割裂章（CodePane 锚 p3-09：行打印在 fm-split 窗前完成，cue 收后整版即时重现） */}
       <Sequence from={bC.from} durationInFrames={bC.durationInFrames} name="3-C">
         <CodePane
-          at={at('p3-11b') - bC.from}
+          at={at('p3-09') - bC.from}
           lines={[
             "to_tsvector('english', '用户偏好先给结论，少铺垫')",
             "  → '少铺垫':2  '用户偏好先给结论':1   ← 连续汉字段 = 1 个 token",
@@ -78,9 +81,9 @@ export const P3ShadowBoard: React.FC<{scene: SceneRange}> = ({scene}) => {
         </div>
       </Sequence>
 
-      {/* 3-E 双轨：手册轨 vs 手感轨 */}
+      {/* 3-E 双轨：手册轨 vs 手感轨（锚 p3-16：「必须双轨」句起滑入，填镜首空窗） */}
       <Sequence from={bE.from} durationInFrames={bE.durationInFrames} name="3-E">
-        <DualTrack at={at('p3-17') - bE.from} />
+        <DualTrack at={at('p3-16') - bE.from} />
       </Sequence>
 
       {/* 3-F 技术请示单：全片戏剧高点 */}
@@ -89,9 +92,9 @@ export const P3ShadowBoard: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap slug="blueprint--object-lifecycle" caption="冲突 · 挂起待裁" cues={[{chapterId: 'ol-conflict', at: at('p3-22') - bF.from, durationInFrames: dur('p3-22')}]} />
       </Sequence>
 
-      {/* 3-G 复利 */}
+      {/* 3-G 复利（lc-evolve 跨句扩到镜末：p3-25 空窗由 hold 档末帧冻结补足） */}
       <Sequence from={bG.from} durationInFrames={bG.durationInFrames} name="3-G">
-        <ArchifyRecap slug="lifecycle" caption="进化 · 一次发现全机队受益" cues={[{chapterId: 'lc-evolve', at: at('p3-24') - bG.from, durationInFrames: dur('p3-24')}]} />
+        <ArchifyRecap slug="lifecycle" caption="进化 · 一次发现全机队受益" cues={[{chapterId: 'lc-evolve', at: at('p3-24') - bG.from, durationInFrames: dur('p3-24') + dur('p3-25')}]} />
       </Sequence>
 
       {/* 3-H 交接班板：草稿区→最后落章 */}
