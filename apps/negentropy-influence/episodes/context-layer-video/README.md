@@ -1,6 +1,6 @@
 # 《给 AI 发一张工卡：Agent 上下文层蓝图》科普视频工程
 
-> 交付状态：**v1 终渲待审**（2026-09-28，14.0 分 @1080p30，归档 ~/Documents/video/context-layer/）。发布顺序见 [../../series.json](../../series.json)（工作区根）。
+> 交付状态：**v2 终渲待审**（2026-09-29，14:02 @1080p30，第 4 轮评审修复 21 条后重渲，归档 ~/Documents/video/context-layer/）。发布顺序见 [../../series.json](../../series.json)（工作区根）。
 
 ## 目录结构
 

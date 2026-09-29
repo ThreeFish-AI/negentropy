@@ -267,7 +267,7 @@
             "accessed": "2026-09-28"
           },
           "status": "final-review",
-          "statusNote": "v1 终渲待审（2026-09-28，013 完全重铸版信源·机务工卡 MRO 剧场）：14:02.1 = 25263 帧 @30fps / 1920×1080（ffprobe 842.10s 与帧复算逐位一致）；193 句 4109 字 story 段落演绎；archify 13 图 76 章 71 cue · 锚定 36.8% · 密度 5.1/分 · 图型 4；C2 三人格全 pass；覆盖门/check_series/主题门 FAIL 0；交付 ~/Documents/video/context-layer/给 AI 发一张工卡：Agent 上下文层蓝图 v1.mp4 + _captions/",
+          "statusNote": "v2 终渲待审（2026-09-29，013 完全重铸版信源·机务工卡 MRO 剧场，第 4 轮评审修复 21 条后重渲）：14:02.1 = 25263 帧 @30fps / 1920×1080（ffprobe 842.10s 与帧复算逐位一致）；193 句 4109 字 story 段落演绎；archify 13 图 76 章 71 cue · 锚定 36.8% · 密度 5.1/分 · 图型 4；C2 三人格全 pass；覆盖门/check_series/主题门 FAIL 0（七幕+尾幕 qa、全片 5s 亮度带扫描零暗段、11 帧改动镜 still 目视）；交付 ~/Documents/video/context-layer/给 AI 发一张工卡：Agent 上下文层蓝图 v2.mp4 + _captions/",
           "voice": "story 段落演绎（me-bright 系 + cues.toml 台本）"
         },
         {
