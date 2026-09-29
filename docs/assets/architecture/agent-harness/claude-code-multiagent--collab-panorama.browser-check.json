@@ -6,7 +6,7 @@
   "status": "pass",
   "visualReview": "not-requested",
   "provenance": "current",
-  "deliveryReceiptId": "fb4202f8-3939-4249-9f90-f0dc378f438f",
+  "deliveryReceiptId": "a547f518-d926-4f4a-89f7-290352b7cb1a",
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code-multiagent--collab-panorama.html",
     "sha256": "dfb289c435b0a1cae237d2dcbc6043ee26c753eed6a74addd510f464d911a70a",

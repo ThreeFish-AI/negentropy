@@ -44,3 +44,20 @@
 
 `src/scenes/P4Hooks.tsx` `PullOut`（4-C 插头咬合）：`plugAt + 6` 触发，
 锚定环右上「工具执行之前」插口节点（中心 `190+218·cos/sin(-20°)`）。
+
+---
+
+## `door-lock.json`（本集 P4 门体锁死脉冲，2026-09-29）
+
+`gen_door_lock.py` 按同一口径生成（脚本生成、非设计工具导出；四条断言同样把关）：
+
+- 200×200 / 30fps / 22 帧（0.73s）；四层 = 门栓射出（deny，scaleX snap 过冲
+  109.5%→100——与场景侧弹簧同源同公式）→ 内环回响（f2 错峰 f5 收敛）→
+  外环脉冲（f6 扩散 26%→132%，decelerate）→ 落门闪光（f3 内 accelerate 淡出）；
+- 本资产只承担**锁死瞬间的强调脉冲**——「薄帘门→铁门」的门体形变由场景侧
+  `DoorGlyph` SVG 以 `useProgress` 持续驱动（分镜 4-D 动效列分工）；
+- 颜色硬编码 theme.deny `#EF6461`（拒绝/拦截唯一语义——「直接拦下」；
+  同 plug-pulse 维护债：theme.ts 改色须重跑本脚本）。
+
+接入点：`src/scenes/P4WorktreeBooths.tsx` `PhaseStrength`（4-D① 强度对照）——
+锚 `at('p4-17') + DUR.f5`（官方硬阻断落地），叠在居中门体装置上。

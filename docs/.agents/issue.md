@@ -4286,3 +4286,27 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
   4. **验收**：任一集 `scripts/tts.py --help` 可跑；pre-commit 钩子 Passed 而非报「找不到 skill」；不改稿跑 `pipeline.py tts` 零重合成；不重渲的已发布集接受 `--strict` 红（或整组同步模板，同步后 rc=0）。
 - **后续防范**：skill 的 major 升级按依赖升级对待——升级前先过其 CHANGELOG Breaking 节；frozen 包装器是复制件，模板变更须整组同步并由 `verify_skeleton` 执法；内容侧集名不进机制仓的登记表（登记面随内容走——长期若需机器登记合法漂移，另立条目设计工作区侧登记）。
 - **同类问题影响**：conductor 的 5 个 influence worktree 同形态（pull 后同样处理或重建）；`~/Documents/projects/aurelius/to-video-e2e` 测试工作区重建即可；skill 侧真树回归语料（`TO_VIDEO_TEST_WORKSPACE`）在本条 1/2 步完成后恢复可用。
+
+## ISSUE-201 archify 全局 3.0.0 删除 guided-views 模块致录制静默空转 + 建图代理两漏网模式（2026-10-02）
+
+- **表因**：ep4 建图批次两图产物缺 guided-views 嵌入——录制器空转不报错；ep2 三图漏 `claude-code--` 前缀（html_pattern 失配）、ep1 四图漏 sidecar type（图型多样性门 4<5）。
+- **根因**：全局 archify CLI 升级到 3.0.0 删除了 guided-views 模块——用全局 CLI 的建图产物天然无嵌入；建图代理对前缀/type 执行不稳定属提示工程面。
+- **处理方式**：锁定版 `.temp/archify-pinned-2.17.0-dev.1` 重 finalize；sidecar state→lifecycle 词表映射；建图提示词补三防。
+- **后续防范**：to-video 建议 `record_archify_all.py --dry-run` 前置校验 guided-views 非空+pattern 匹配+type 词表合法（三静默缺陷一个门拦）。
+- **同类影响**：所有用全局 archify 的新建图都有此风险。
+
+## ISSUE-202 @remotion/lottie 在 headless ANGLE 渲染确定性挂死 delayRender（ep4/ep5 双实证）（2026-10-02）
+
+- **表因**：ep4 草渲五连崩（Target closed/静默死），ep5 同款两次——swap 耗尽表象掩盖确定性崩点。
+- **根因**：`LottieEmphasis` 在 chrome-headless-shell+ANGLE 下，特定 JSON 初始化挂死，`Waiting for Lottie animation to load` 的 delayRender 永不解除（plug-pulse 同环境可用——按资产触发非全量）。
+- **处理方式**：换 Remotion 原生 SVG 组件（PendulumGlyph/LockStrike）；禁用法二分（100 帧段渲）实证定位。
+- **后续防范**：新 Lottie 资产入片前先跑 100 帧段渲冒烟；swap 耗尽时「随机崩」会掩盖确定性崩点——分段+禁用二分是分离手段。
+- **同类影响**：LottieEmphasis 的「渲染确定性」承诺在此环境有边界。
+
+## ISSUE-203 to-video chars_per_min 默认 280 与 story 档实测 254 漂移致首轮必减脂（2026-10-02）
+
+- **表因**：ep1 首轮 3961 字外推 15.62 分超窗，回 ③ 减脂 317 字；后续四集按 254 直写全部一次过窗。
+- **根因**：默认 280 是 sunny 档口径；story 档（块级情绪演绎）实测纯语音 274 字/分（含停顿等效 254）——档位语速差未被机制感知。
+- **处理方式**：五集 pipeline.toml 显式 `chars_per_min = 254`。
+- **后续防范**：to-video 建议按 tts.style 分档设定默认值，或首轮 TTS 后自动回写校准。
+- **同类影响**：story 档新集沿用 280 会重演「写完必减脂」。

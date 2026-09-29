@@ -33,7 +33,7 @@
     "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code-multiagent--collab-panorama.browser-check.json"
   },
   "visualReview": "not-requested",
-  "durationMs": 2154,
+  "durationMs": 6250,
   "visualReviewRecommendation": {
     "action": "inspect-route-readability",
     "signals": {

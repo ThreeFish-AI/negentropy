@@ -190,8 +190,8 @@
             "license": "MIT",
             "accessed": "2026-08-22"
           },
-          "status": "producing",
-          "statusNote": "完全重制中（2026-09-27 起）：重调研（上游重钉 main@0dcafa2 / 站点轨复验 67a9126c 未动）+ 十阶段全新制片（story 档 + archify 覆盖门首次引入本系列 + 3D 视觉方向延续）；旧 draft-review 产物已随 rm→scaffold 重置，git 历史可溯",
+          "status": "final-review",
+          "statusNote": "完全重制 v1 交付（2026-10-02）：14:19 @1080p30；170 句 3613 字；story 档 43 块 cues；archify 12 图 59 章（两张 3.0.0 漏网图经锁定版 2.17 重建）；**渲染五连崩根因=Lottie clock-swing 在 headless ANGLE 确定性挂死 delayRender**——换原生 PendulumGlyph（衰减正弦摆）根治；集成期抓出并补齐 P1/P2 半场缺失（108s 纯黑屏）；机器门全绿+目检过；归档 v1+_captions",
           "voice": "story + me-bright.wav"
         },
         {
@@ -212,8 +212,8 @@
             "license": "MIT",
             "accessed": "2026-08-22"
           },
-          "status": "producing",
-          "statusNote": "完全重制中（2026-09-27 起）：重调研（上游重钉 main@0dcafa2 / 站点轨复验 67a9126c 未动）+ 十阶段全新制片（story 档 + archify 覆盖门首次引入本系列 + 3D 视觉方向延续）；旧 draft-review 产物已随 rm→scaffold 重置，git 历史可溯",
+          "status": "final-review",
+          "statusNote": "完全重制 v1 交付（2026-10-02 终集）：13:50 @1080p30；149 句 3622 字；story 档 38 块 cues；archify 13 图 67 章（collab-panorama/five-layer 复用重建，five-layer 三集合并 11 章）；终集装置全落位（五层身份卡全亮/系列金句卡/两种身份入场费曼遗产句/无下期卡完结语气）；**door-lock Lottie 同款挂死**→原生 LockStrike 根治；轨 C 八校准全片贯彻；机器门全绿+目检过；归档 v1+_captions",
           "voice": "story + me-bright.wav"
         }
       ]

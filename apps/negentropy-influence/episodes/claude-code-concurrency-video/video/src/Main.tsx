@@ -9,8 +9,22 @@ import {LangProvider} from './i18n';
 import {computeTimeline, SCENE_FADE_FRAMES} from './timing';
 import type {Lang} from './i18n';
 import type {ManifestItem, SceneRange} from './types';
+import {P0TwoTimes} from './scenes/P0TwoTimes';
+import {P1Background} from './scenes/P1Background';
+import {P2Notify} from './scenes/P2Notify';
+import {P3Apprentice} from './scenes/P3Apprentice';
+import {P4Clock} from './scenes/P4Clock';
+import {P5Durable} from './scenes/P5Durable';
+import {P6OneBelt} from './scenes/P6OneBelt';
 
 const SCENE_COMPONENTS: Record<string, React.FC<{scene: SceneRange}>> = {
+  P0: P0TwoTimes,
+  P1: P1Background,
+  P2: P2Notify,
+  P3: P3Apprentice,
+  P4: P4Clock,
+  P5: P5Durable,
+  P6: P6OneBelt,
 };
 
 export type MainProps = {manifest: ManifestItem[]; lang?: Lang};

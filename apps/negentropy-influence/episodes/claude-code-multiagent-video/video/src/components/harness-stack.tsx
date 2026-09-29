@@ -8,6 +8,7 @@
  * 两个组件：
  *  - HarnessStackP0：开场编排（落板 → 本集层高亮呼吸 → 缩退淡出，末段交叉淡入常驻条）；
  *  - HarnessBadge：P1–P6 的常驻顶边条（横向五 chip，y 12–48）。
+ *  - HarnessStackP6：P6 收尾（本集=终集形态：五层全亮错峰呼吸，无下期层预告；见组件注）。
  *
  * ⚠️ 形式对规格的一处适配（评审实测）：规格写「缩退左上角纵向角标（宽 ≤300）」，
  * 但纵向角标（300×194）与既有各幕左上内容五处碰撞（P2 CornerRing 同坐标、P3 小抄、
@@ -75,8 +76,9 @@ const PlateText: React.FC<{
 );
 
 /** 单块层板（平面档，chip=常驻顶边条）。mode: full（开场全尺寸）/ chip（常驻顶边条）/ p6（收尾放大）。
- *  布局与改造前逐字等价：flex 行 + 内容撑宽，不引入 position/width 约束。 */
-const Plate: React.FC<{
+ *  布局与改造前逐字等价：flex 行 + 内容撑宽，不引入 position/width 约束。
+ *  本集导出 Plate：6-D 终集身份卡以 chip 档 ×5 全亮自组装（不新造第二种 chip 形态）。 */
+export const Plate: React.FC<{
   layer: Layer;
   active: boolean;
   dim: number;
@@ -123,7 +125,10 @@ export const PlateSlab3D: React.FC<{
   settle?: number;
   /** P6 收尾档文字（26px）；缺省为 full 档（28px） */
   p6?: boolean;
-}> = ({layer, active, dim, glow, width, height, settle = 1, p6 = false}) => {
+  /** active 棱线色（缺省 core）。本集 6-D 工坊灯牌以 mech 金逐区点亮（读色契约：
+   *  概念色只走棱线，面色恒深底族——accent 只换 edge，face 不变）。 */
+  accent?: string;
+}> = ({layer, active, dim, glow, width, height, settle = 1, p6 = false, accent}) => {
   const depth = 14;
   const headroom = 16; // 画布加高给顶棱留位（正交 zoom=1，投影不放大）
   const canvasH = height + headroom;
@@ -150,7 +155,7 @@ export const PlateSlab3D: React.FC<{
             depth={depth}
             skin={{
               face: active ? PLATE_LIT : theme.panel,
-              edge: active ? theme.core : theme.panelBorder,
+              edge: active ? (accent ?? theme.core) : theme.panelBorder,
               opacity: dim,
             }}
           />
@@ -265,32 +270,57 @@ export const HarnessStackP0: React.FC<{recedeAt: number}> = ({recedeAt}) => {
   );
 };
 
-/** P6 收尾：栈重新放大居中；已发布层保持点亮（EP1 时即本集层）；下期层呼吸预告。 */
-export const HarnessStackP6: React.FC<{at: number; nextBreathAt: number}> = ({at, nextBreathAt}) => {
+/** P6 收尾（终集形态）：五层全亮 + 错峰呼吸——series.next === null（无下期），
+ *  「系列身份」由全栈点亮承担，无下期层预告（EP1 的 nextBreathAt 预告档随终集退役）。
+ *  可选 shrink 把整栈缩至侧位常驻：缩后的栈停在画框左外侧，与全屏回放窗同屏不抢位。
+ *  呼吸辉光落在每层 wrapper 的 boxShadow（与平面 Plate 的 active 辉光同一公式）——
+ *  PlateSlab3D 的 3D 面色不吃 glow（读色契约：面色恒深底族，不随辉光变色）。 */
+export const HarnessStackP6: React.FC<{
+  at: number;
+  /** 缩至侧位：at=句边界锚；dx/dy/scale=目标位移与缩放（相对调用点左上角，origin 0 0）。 */
+  shrink?: {at: number; dx: number; dy: number; scale: number};
+}> = ({at, shrink}) => {
   const enter = useStagger(LAYERS.length, {at, dur: DUR.f4, stride: 4, easing: 'decelerate'});
-  const breath = useBreathe({period: 40, amp: 0.5, base: 0.5});
-  const nextOn = useProgress(nextBreathAt, DUR.f5);
+  // 五层错峰呼吸：系列层恒为五层（series-layers.json），显式五连调用守 hooks 顶层铁律
+  const breath = [
+    useBreathe({period: 46, amp: 0.32, base: 0.68}),
+    useBreathe({period: 46, amp: 0.32, base: 0.68, offset: 9}),
+    useBreathe({period: 46, amp: 0.32, base: 0.68, offset: 18}),
+    useBreathe({period: 46, amp: 0.32, base: 0.68, offset: 27}),
+    useBreathe({period: 46, amp: 0.32, base: 0.68, offset: 36}),
+  ];
+  // 未提供 shrink 时锚在遥不可及处 ⇒ progress 恒 0（hooks 不可条件调用）
+  const rec = useProgress(shrink?.at ?? 1e9, DUR.f6);
+  const dx = shrink?.dx ?? 0;
+  const dy = shrink?.dy ?? 0;
+  const s = shrink?.scale ?? 1;
   return (
-    <div style={{display: 'flex', flexDirection: 'column', gap: 8, width: 420}}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
+        width: 420,
+        transform: `translate(${dx * rec}px, ${dy * rec}px) scale(${1 + (s - 1) * rec})`,
+        transformOrigin: '0 0',
+      }}
+    >
       {LAYERS.slice()
         .reverse()
         .map((l) => {
           const p = enter[l.index - 1];
-          const isNext = NEXT_LAYER !== null && l.index === NEXT_LAYER.index;
-          const lit = l.published || l.index === ACTIVE_INDEX;
-          const glow = isNext ? nextOn * breath : 0;
+          const g = breath[l.index - 1] ?? 0;
           return (
-            <div key={l.index} style={{opacity: p, transform: `translateY(${(1 - p) * 18}px)`}}>
-              <PlateSlab3D
-                layer={l}
-                active={lit || (isNext && nextOn > 0.5)}
-                dim={lit || (isNext && nextOn > 0.5) ? 1 : 0.55}
-                glow={glow}
-                width={420}
-                height={56}
-                settle={p}
-                p6
-              />
+            <div
+              key={l.index}
+              style={{
+                opacity: p,
+                transform: `translateY(${(1 - p) * 18}px)`,
+                boxShadow: `0 0 ${10 + g * 22}px ${theme.core}55`,
+                borderRadius: 12,
+              }}
+            >
+              <PlateSlab3D layer={l} active dim={1} glow={g} width={420} height={56} settle={p} p6 />
             </div>
           );
         })}

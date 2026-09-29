@@ -1,0 +1,134 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 16.49,
+ "total_wall_sec": 71.19,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "default-keep",
+   "label": "默认不拆",
+   "index": 0,
+   "file": "worktree-teardown--default-keep.mp4",
+   "end_still": "worktree-teardown--default-keep-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "remove-call",
+    "refuse"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 48.0
+  },
+  {
+   "id": "dirty-refuse",
+   "label": "有账拒绝",
+   "index": 1,
+   "file": "worktree-teardown--dirty-refuse.mp4",
+   "end_still": "worktree-teardown--dirty-refuse-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [
+    0.0,
+    1.107,
+    2.21
+   ],
+   "beat_nodes": [
+    "uncommitted",
+    "unpushed",
+    "refuse"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 49.0
+  },
+  {
+   "id": "unknown-refuse",
+   "label": "查不动也拒",
+   "index": 2,
+   "file": "worktree-teardown--unknown-refuse.mp4",
+   "end_still": "worktree-teardown--unknown-refuse-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0,
+    1.606
+   ],
+   "beat_nodes": [
+    "status-unknown",
+    "refuse"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 47.0
+  },
+  {
+   "id": "discard-with-branch",
+   "label": "强删连分支",
+   "index": 3,
+   "file": "worktree-teardown--discard-with-branch.mp4",
+   "end_still": "worktree-teardown--discard-with-branch-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.34,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.21
+   ],
+   "beat_nodes": [
+    "discard",
+    "branch",
+    "gone"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 48.0
+  },
+  {
+   "id": "keep-for-review",
+   "label": "保留等审",
+   "index": 4,
+   "file": "worktree-teardown--keep-for-review.mp4",
+   "end_still": "worktree-teardown--keep-for-review-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.33,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.212
+   ],
+   "beat_nodes": [
+    "keep",
+    "branch",
+    "review"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 49.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--worktree-teardown.html",
+ "slug": "worktree-teardown",
+ "type": "lifecycle"
+}

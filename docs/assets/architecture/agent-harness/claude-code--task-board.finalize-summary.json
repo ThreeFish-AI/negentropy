@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "lifecycle",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/.temp/archify-task-board/candidate.json",
+    "sha256": "f5f6412a2623cfcd5f0d7318cb9445eafee28b639fb08772784595d615d52112",
+    "bytes": 6936
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--task-board.html",
+    "sha256": "599e0da363d7fbf5fd0c53feb0a675d27a02b95ca316bcb79a09f415fbb18677",
+    "bytes": 850925
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--task-board.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--task-board.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--task-board.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 4274,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "routesOverSuggestedBends": 3,
+      "routesOverSuggestedStretch": 1
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [],
+      "detours": [
+        {
+          "relationship": {
+            "id": "t-stay-board",
+            "from": "completed",
+            "to": "board",
+            "label": "做完也留档",
+            "collectionIndex": 4,
+            "artifactIndex": 6
+          },
+          "bends": 3,
+          "stretch": 1
+        },
+        {
+          "relationship": {
+            "id": "t-pin-board",
+            "from": "task-file",
+            "to": "board",
+            "label": "",
+            "collectionIndex": 5,
+            "artifactIndex": 7
+          },
+          "bends": 2,
+          "stretch": 1.364
+        },
+        {
+          "relationship": {
+            "id": "t-field-id",
+            "from": "task-file",
+            "to": "id-field",
+            "label": "",
+            "collectionIndex": 6,
+            "artifactIndex": 8
+          },
+          "bends": 3,
+          "stretch": 1
+        },
+        {
+          "relationship": {
+            "id": "t-write-owner",
+            "from": "claim",
+            "to": "owner-field",
+            "label": "写归属 · 领走的人",
+            "collectionIndex": 9,
+            "artifactIndex": 11
+          },
+          "bends": 3,
+          "stretch": 1
+        }
+      ],
+      "truncated": false
+    },
+    "hints": [
+      "completed → board needs 3 bends: move node completed or board so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "task-file → board needs 2 bends: move node task-file or board so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "task-file → id-field needs 3 bends: move node task-file or id-field so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "claim → owner-field needs 3 bends: move node claim or owner-field so they share a row or column with matching centers, or sit diagonally with a clear corner."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

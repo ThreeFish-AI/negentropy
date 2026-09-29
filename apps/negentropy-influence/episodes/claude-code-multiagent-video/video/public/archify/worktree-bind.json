@@ -1,0 +1,161 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 21.05,
+ "total_wall_sec": 98.07,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "booth-per-task",
+   "label": "带门牌隔间",
+   "index": 0,
+   "file": "worktree-bind--booth-per-task.mp4",
+   "end_still": "worktree-bind--booth-per-task-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.34,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.21
+   ],
+   "beat_nodes": [
+    "main-repo",
+    "booth",
+    "nameplate"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 49.0
+  },
+  {
+   "id": "copies-branches",
+   "label": "副本各挂分支",
+   "index": 1,
+   "file": "worktree-bind--copies-branches.mp4",
+   "end_still": "worktree-bind--copies-branches-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.47,
+   "beat_offsets_sec": [
+    0.0,
+    1.106,
+    2.212,
+    3.319
+   ],
+   "beat_nodes": [
+    "worktree-a",
+    "branch-a",
+    "worktree-b",
+    "branch-b"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 48.0
+  },
+  {
+   "id": "id-rope",
+   "label": "编号绳",
+   "index": 2,
+   "file": "worktree-bind--id-rope.mp4",
+   "end_still": "worktree-bind--id-rope-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.33,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.207
+   ],
+   "beat_nodes": [
+    "task-card",
+    "rope",
+    "booth"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 49.0
+  },
+  {
+   "id": "bind-no-status",
+   "label": "绑定不改状态",
+   "index": 3,
+   "file": "worktree-bind--bind-no-status.mp4",
+   "end_still": "worktree-bind--bind-no-status-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.606
+   ],
+   "beat_nodes": [
+    "bind-record",
+    "pending"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 49.0
+  },
+  {
+   "id": "pre-arrange",
+   "label": "提前备料",
+   "index": 4,
+   "file": "worktree-bind--pre-arrange.mp4",
+   "end_still": "worktree-bind--pre-arrange-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.36,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.212
+   ],
+   "beat_nodes": [
+    "board",
+    "booths",
+    "prepare"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 48.0
+  },
+  {
+   "id": "auto-switch",
+   "label": "认领即切目录",
+   "index": 5,
+   "file": "worktree-bind--auto-switch.mp4",
+   "end_still": "worktree-bind--auto-switch-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.32,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.212
+   ],
+   "beat_nodes": [
+    "claim",
+    "cwd-switch",
+    "public-area"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 49.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--worktree-bind.html",
+ "slug": "worktree-bind",
+ "type": "architecture"
+}
