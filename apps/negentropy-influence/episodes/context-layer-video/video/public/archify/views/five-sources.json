@@ -1,0 +1,68 @@
+[
+ {
+  "id": "fs-instr",
+  "label": "身份与规程",
+  "focus": [
+   "src-instruction"
+  ],
+  "note": "工卡开工页"
+ },
+ {
+  "id": "fs-mem",
+  "label": "记忆",
+  "focus": [
+   "src-memory",
+   "sig-memory"
+  ],
+  "note": "技术档案+信任信号"
+ },
+ {
+  "id": "fs-know",
+  "label": "知识",
+  "focus": [
+   "src-knowledge",
+   "sig-knowledge"
+  ],
+  "note": "手册体系"
+ },
+ {
+  "id": "fs-tools",
+  "label": "能力",
+  "focus": [
+   "src-tools",
+   "sig-tools"
+  ],
+  "note": "工具格+当版页"
+ },
+ {
+  "id": "fs-session",
+  "label": "会话",
+  "focus": [
+   "src-session"
+  ],
+  "note": "当班签署轨迹"
+ },
+ {
+  "id": "fs-gov",
+  "label": "治理面",
+  "focus": [
+   "gov-privacy",
+   "gov-access",
+   "gov-exec"
+  ],
+  "note": "三面治理"
+ },
+ {
+  "id": "fs-out",
+  "label": "五源汇流",
+  "focus": [
+   "src-instruction",
+   "src-memory",
+   "src-knowledge",
+   "src-tools",
+   "src-session",
+   "ctx-output"
+  ],
+  "note": "五源→最小高信号集"
+ }
+]

@@ -1,7 +1,7 @@
 {
   "name": "context-layer-video",
   "private": true,
-  "description": "《自己动手，给 AI 搭一个上下文层》科普视频 Remotion 工程",
+  "description": "《给 AI 发一张工卡：Agent 上下文层蓝图》科普视频 Remotion 工程",
   "scripts": {
     "dev": "remotion studio",
     "typecheck": "tsc --noEmit",

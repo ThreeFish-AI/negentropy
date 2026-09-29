@@ -2,21 +2,25 @@ import React from 'react';
 import {interpolate, useCurrentFrame} from 'remotion';
 import chaptersJson from '../chapters.json';
 import {theme} from '../design/theme';
+import {useLang} from '../i18n';
+import type {Lang} from '../i18n';
 import type {SceneRange} from '../types';
 
-type Chapter = {scene: string; title: string};
-/** build_narration.py 从 narration.md `## Pn 幕标题` 派生；scaffold 占位 [] 推断为
- *  never[]，统一断言收窄。空数组（首次 build 前）⇒ 本组件不渲染。 */
+type Chapter = {scene: string; title: string; i18n?: Record<string, string>};
+/** build_narration.py 从 narration.md `## Pn 幕标题` 派生（双语集附 i18n: {en: 标题}，
+ *  由 narration.en.md 幕标题容错解析而来）；scaffold 占位 [] 推断为 never[]，统一
+ *  断言收窄。空数组（首次 build 前）⇒ 本组件不渲染。旧代 chapters.json 无 i18n
+ *  键，`as Chapter[]` 收窄对多余键免疫。 */
 const CHAPTERS = chaptersJson as Chapter[];
 
 /* ── 几何带 SSOT：整带收在 y<56 ─────────────────────────────────────────────
- * 依据 skills/06 顶部横条实测：各幕内容最早 y=56 起、SceneTag 在 top:64——
+ * 依据 references/08 顶部横条实测：各幕内容最早 y=56 起、SceneTag 在 top:64——
  *  y<56 是本设计系统已验证的零碰撞常驻带（底部字幕安全带的顶部对偶）。 */
 const MARGIN_X = 4; // 近贴屏幕左右边框，仅留一条竖线宽度的呼吸
 const STRIP_W = 1920 - MARGIN_X * 2;
 const BAR_Y = 14;
 const BAR_H = 28; // 章节名内嵌段内；原 36 的 4/5，底缘 42 仍收在 y<56
-const SEG_RADIUS = 4; // 微圆角（勿回胶囊——播放头圆点应是段上唯一圆形元素）
+const SEG_RADIUS = 4; // 微圆角
 const SEG_GAP = 8;
 const TITLE_SIZE = 18; // sans 章节名；标题缺失回退 mono 幕码（15）
 const CODE_SIZE = 15;
@@ -35,8 +39,11 @@ const segSpans = (scenes: SceneRange[], total: number) =>
     to: i + 1 < scenes.length ? scenes[i + 1].from : total,
   }));
 
-const titleOf = (scene: string) =>
-  CHAPTERS.find((c) => c.scene === scene)?.title ?? '';
+/** 章节标题：当前语言的译题优先（i18n 键缺失即旧代数据，回落主语言标题） */
+const titleOf = (scene: string, lang: Lang): string => {
+  const entry = CHAPTERS.find((c) => c.scene === scene);
+  return entry?.i18n?.[lang] ?? entry?.title ?? '';
+};
 
 /** 段内居中文字层。宽度用**显式 px**（段宽 − 左右 padding）——左右两层共用同值，
  *  才能保证 ellipsis 截断逐像素一致，双色裁切不错位。 */
@@ -71,15 +78,17 @@ const SegLabel: React.FC<{label: string; mono: boolean; color: string; width: nu
   </div>
 );
 
-/** 顶部分段章节进度条：段宽∝幕时长、已播填充亮色、播放头随帧推进、章节名
- *  内嵌段内居中。文字跨亮填充/深轨两区，用**双色裁切**保对比度：已填侧深字
- *  （bg 压亮填充）、未填侧亮字（当前章 text / 未播章 dim），色随播放头揭示。
+/** 顶部分段章节进度条：段宽∝幕时长、已播填充亮色随帧推进（无播放头——进度
+ *  仅由填充深浅表达）、章节名内嵌段内居中。文字跨亮填充/深轨两区，用**双色裁切**
+ *  保对比度：已填侧深字（bg 压亮填充）、未填侧亮字（当前章 text / 未播章 dim），
+ *  色随填充前沿揭示。
  *  全片 overlay，与 Subtitle 同范式（帧驱动 + 只读底座 token、零 spring）。 */
 export const ChapterProgress: React.FC<{
   scenes: SceneRange[];
   totalDurationInFrames: number;
 }> = ({scenes, totalDurationInFrames}) => {
   const frame = useCurrentFrame();
+  const lang = useLang();
   if (CHAPTERS.length === 0 || scenes.length === 0) {
     return null;
   }
@@ -96,8 +105,6 @@ export const ChapterProgress: React.FC<{
   if (currentIdx === -1) {
     currentIdx = segs.length - 1; // tail：钳在末段
   }
-  const head = layout[currentIdx];
-  const headX = head.x + head.w * clamp01((frame - head.from) / (head.to - head.from));
 
   const lastSeg = segs[segs.length - 1];
   const fadeOutFrames = Math.max(
@@ -116,7 +123,7 @@ export const ChapterProgress: React.FC<{
       {segs.map((s, i) => {
         const {x: segX, w} = layout[i];
         const fill = clamp01((frame - s.from) / (s.to - s.from));
-        const title = titleOf(s.scene);
+        const title = titleOf(s.scene, lang);
         const label = title || s.scene; // 标题缺失回退 mono 幕码
         const mono = !title;
         const textW = w - TITLE_PAD_X * 2;
@@ -145,20 +152,6 @@ export const ChapterProgress: React.FC<{
           </div>
         );
       })}
-      {/* 播放头：亮圆点 + bg 描边（亮填充上保轮廓）+ 辉光（rgba = theme.text 底座 #F2F5FA） */}
-      <div
-        style={{
-          position: 'absolute',
-          left: headX - 7,
-          top: BAR_H / 2 - 7,
-          width: 14,
-          height: 14,
-          borderRadius: 7,
-          background: theme.text,
-          border: `3px solid ${theme.bg}`,
-          boxShadow: '0 0 10px rgba(242,245,250,0.5)',
-        }}
-      />
     </div>
   );
 };

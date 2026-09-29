@@ -1,0 +1,212 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 44.11,
+ "total_wall_sec": 122.32,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "ip-nine",
+   "label": "九路来源",
+   "index": 0,
+   "file": "injection-points--ip-nine.mp4",
+   "end_still": "injection-points--ip-nine-end.png",
+   "beats": 8,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 8.88,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.208,
+    3.312,
+    4.416,
+    5.519,
+    6.622,
+    7.726
+   ],
+   "beat_nodes": [
+    "r1_identity",
+    "r2_skills",
+    "r3_tools",
+    "r4_model",
+    "r5_memory",
+    "r6_session",
+    "r7_defs",
+    "r8_prefs"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "ip-hooks",
+   "label": "五挂点",
+   "index": 1,
+   "file": "injection-points--ip-hooks.mp4",
+   "end_still": "injection-points--ip-hooks-end.png",
+   "beats": 5,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 5.54,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.209,
+    3.314,
+    4.418
+   ],
+   "beat_nodes": [
+    "h1_instruction",
+    "h2_before_model",
+    "h3_tool_registry",
+    "h4_tool_callbacks",
+    "h5_sub_agents"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "ip-memory",
+   "label": "记忆真锚",
+   "index": 2,
+   "file": "injection-points--ip-memory.mp4",
+   "end_still": "injection-points--ip-memory-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.605
+   ],
+   "beat_nodes": [
+    "r5_memory",
+    "h3_tool_registry"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "ip-assembler",
+   "label": "参考实现未接线",
+   "index": 3,
+   "file": "injection-points--ip-assembler.mp4",
+   "end_still": "injection-points--ip-assembler-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "ref_assembler"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "ip-out",
+   "label": "汇入请求",
+   "index": 4,
+   "file": "injection-points--ip-out.mp4",
+   "end_still": "injection-points--ip-out-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "out_llm"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "ip-auth",
+   "label": "身份与定义",
+   "index": 5,
+   "file": "injection-points--ip-auth.mp4",
+   "end_still": "injection-points--ip-auth-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.48,
+   "story_sec": 3.37,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.21
+   ],
+   "beat_nodes": [
+    "r1_identity",
+    "r7_defs",
+    "h1_instruction"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "ip-full",
+   "label": "装配面全景",
+   "index": 6,
+   "file": "injection-points--ip-full.mp4",
+   "end_still": "injection-points--ip-full-end.png",
+   "beats": 15,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 16.59,
+   "beat_offsets_sec": [
+    0.0,
+    1.106,
+    2.21,
+    3.315,
+    4.419,
+    5.52,
+    6.625,
+    7.73,
+    8.835,
+    9.939,
+    11.044,
+    12.149,
+    13.253,
+    14.358,
+    15.461
+   ],
+   "beat_nodes": [
+    "r1_identity",
+    "r2_skills",
+    "r3_tools",
+    "r4_model",
+    "r5_memory",
+    "r6_session",
+    "r7_defs",
+    "r8_prefs",
+    "h1_instruction",
+    "h2_before_model",
+    "h3_tool_registry",
+    "h4_tool_callbacks",
+    "h5_sub_agents",
+    "ref_assembler",
+    "out_llm"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/atlanta-v4/docs/assets/architecture/cognitive-context/context-layer--injection-points.html",
+ "slug": "injection-points",
+ "type": "workflow"
+}

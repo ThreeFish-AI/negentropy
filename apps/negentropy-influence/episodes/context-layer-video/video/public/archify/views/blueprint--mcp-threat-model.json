@@ -1,0 +1,71 @@
+[
+ {
+  "id": "tm-client",
+  "label": "客户端环境",
+  "focus": [
+   "con",
+   "agent"
+  ],
+  "note": "同意与令牌"
+ },
+ {
+  "id": "tm-poison",
+  "label": "描述投毒",
+  "focus": [
+   "tool-poison"
+  ],
+  "note": "自述不可信"
+ },
+ {
+  "id": "tm-inject",
+  "label": "间接注入",
+  "focus": [
+   "response-injection"
+  ],
+  "note": "响应内指令"
+ },
+ {
+  "id": "tm-deputy",
+  "label": "混淆代理",
+  "focus": [
+   "confused-deputy"
+  ],
+  "note": "借权执行"
+ },
+ {
+  "id": "tm-token",
+  "label": "令牌透传",
+  "focus": [
+   "token-theft"
+  ],
+  "note": "跨源窃取"
+ },
+ {
+  "id": "tm-gate",
+  "label": "治理门与执行",
+  "focus": [
+   "mcp",
+   "gate",
+   "execution",
+   "data-plane"
+  ],
+  "note": "编译期评估→受治理执行"
+ },
+ {
+  "id": "tm-full",
+  "label": "供给面全景",
+  "focus": [
+   "con",
+   "agent",
+   "tool-poison",
+   "response-injection",
+   "confused-deputy",
+   "token-theft",
+   "mcp",
+   "gate",
+   "execution",
+   "data-plane"
+  ],
+  "note": "三级链路全景"
+ }
+]

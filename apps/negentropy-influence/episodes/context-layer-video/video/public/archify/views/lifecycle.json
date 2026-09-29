@@ -1,0 +1,56 @@
+[
+ {
+  "id": "lc-collect",
+  "label": "采集",
+  "focus": [
+   "sources",
+   "collect"
+  ],
+  "note": "五源汇聚"
+ },
+ {
+  "id": "lc-govern",
+  "label": "治理",
+  "focus": [
+   "govern"
+  ],
+  "note": "口径·可见性·注入纪律"
+ },
+ {
+  "id": "lc-activate",
+  "label": "激活",
+  "focus": [
+   "activate"
+  ],
+  "note": "预算·披露·双通道"
+ },
+ {
+  "id": "lc-verify",
+  "label": "验证",
+  "focus": [
+   "verify"
+  ],
+  "note": "锚定·可观测"
+ },
+ {
+  "id": "lc-evolve",
+  "label": "进化",
+  "focus": [
+   "evolve",
+   "delivery"
+  ],
+  "note": "回灌复利"
+ },
+ {
+  "id": "lc-loop",
+  "label": "大回路",
+  "focus": [
+   "collect",
+   "govern",
+   "activate",
+   "verify",
+   "evolve"
+  ],
+  "note": "CGAVE 首尾相接"
+ }
+]

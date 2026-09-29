@@ -1,0 +1,121 @@
+[
+ {
+  "id": "fm-stale",
+  "label": "过期供给",
+  "focus": [
+   "F2"
+  ],
+  "note": "过期页自信地错——staleness 不可见"
+ },
+ {
+  "id": "fm-conflict",
+  "label": "口径打架",
+  "focus": [
+   "F1"
+  ],
+  "note": "两版答案之争"
+ },
+ {
+  "id": "fm-auth",
+  "label": "代理越权",
+  "focus": [
+   "F5"
+  ],
+  "note": "没资格的人签了字"
+ },
+ {
+  "id": "fm-breach",
+  "label": "权限穿透",
+  "focus": [
+   "F4"
+  ],
+  "note": "防线虚设"
+ },
+ {
+  "id": "fm-unverified",
+  "label": "未验证断言",
+  "focus": [
+   "F6"
+  ],
+  "note": "无人背书的数字"
+ },
+ {
+  "id": "fm-poison",
+  "label": "供给面投毒",
+  "focus": [
+   "F7"
+  ],
+  "note": "外部来源不可信"
+ },
+ {
+  "id": "fm-split",
+  "label": "检索割裂",
+  "focus": [
+   "F3"
+  ],
+  "note": "通道互不知情"
+ },
+ {
+  "id": "fm-silent",
+  "label": "静默退化",
+  "focus": [
+   "F8"
+  ],
+  "note": "激活悬空·预算耗散"
+ },
+ {
+  "id": "fm-obj",
+  "label": "对象层堵截",
+  "focus": [
+   "F1",
+   "L4"
+  ],
+  "note": "口径单点收口"
+ },
+ {
+  "id": "fm-cat",
+  "label": "目录层堵截",
+  "focus": [
+   "F2",
+   "F3",
+   "L5"
+  ],
+  "note": "staleness+归一"
+ },
+ {
+  "id": "fm-gov",
+  "label": "治理层堵截",
+  "focus": [
+   "F4",
+   "F5",
+   "F7",
+   "L7"
+  ],
+  "note": "四失效一道墙"
+ },
+ {
+  "id": "fm-act",
+  "label": "激活层堵截",
+  "focus": [
+   "F6",
+   "F8",
+   "L8"
+  ],
+  "note": "验证锚定+预算"
+ },
+ {
+  "id": "fm-all",
+  "label": "八失效全景",
+  "focus": [
+   "F1",
+   "F2",
+   "F3",
+   "F4",
+   "F5",
+   "F6",
+   "F7",
+   "F8"
+  ],
+  "note": "验收面总览"
+ }
+]

@@ -1,0 +1,24 @@
+[
+ {
+  "id": "il-routes",
+  "label": "四路线",
+  "focus": [
+   "sf",
+   "dbt",
+   "cube",
+   "atl",
+   "bp",
+   "palantir"
+  ],
+  "note": "治理工序在哪层"
+ },
+ {
+  "id": "il-gap",
+  "label": "落地断层",
+  "focus": [
+   "gap",
+   "agents"
+  ],
+  "note": "97 相信 4 建成"
+ }
+]

@@ -251,24 +251,24 @@
           "episode": 2,
           "slug": "context-layer-video",
           "path": "episodes/context-layer-video",
-          "title": "自己动手，给 AI 搭一个上下文层",
-          "topic": "Context Layer：蓝图怎么复刻",
+          "title": "给 AI 发一张工卡：Agent 上下文层蓝图",
+          "topic": "Context Layer：蓝图怎么复刻（2026-09-28 完全重制）",
           "cardSub": "上下文层 · 蓝图",
           "accents": [
-            "#6FB1E8",
-            "#A3D977",
-            "#FF9F6B"
+            "#5B8DC9",
+            "#F5A623",
+            "#7ED321"
           ],
           "source": {
-            "title": "Context Layer 技术蓝图与方案（docs/research/cognitive-context/013-context-layer-blueprint.md 内容面重铸版）",
+            "title": "Context Layer 技术蓝图：Agent 系统的上下文供给与治理（docs/research/cognitive-context/013 完全重铸版）",
             "repo": "https://github.com/ThreeFish-AI/negentropy",
-            "pinnedRef": "6f643c216dee",
+            "pinnedRef": "a77c65822",
             "license": "本仓内部文档",
-            "accessed": "2026-09-23"
+            "accessed": "2026-09-28"
           },
           "status": "final-review",
-          "statusNote": "v3 重制待审（2026-09-23，013 重铸版信源·受治理大厦比喻剧场）：15:21 = 27639 帧 @30fps / 1920×1080（185 句 4362 字，纯语音 14.4 分）；七幕 40 镜 · archify 12 图 70 章逐章回放（37 cue · 锚定 20.0% · 图型 3）· 代码走廊×10 · 顶部分段章节进度条首装（frozen 模板，drift 已撤销）；sunny-steady 全片重合成（IndexTTS 服务 MPS 泄漏修复后稳定长跑）；七幕抽帧 + beat-heads + 尾幕渐黑 FAIL 0 / WARN 0 · WCAG 主题门过；check_script 与覆盖门全绿（6 WARN 为有意叙事重排）；归档根 ~/Documents/video 新启 v1（工程版本 v3）",
-          "voice": "sunny-steady + me-bright.wav"
+          "statusNote": "v2 终渲待审（2026-09-29，013 完全重铸版信源·机务工卡 MRO 剧场，第 4 轮评审修复 21 条后重渲）：14:02.1 = 25263 帧 @30fps / 1920×1080（ffprobe 842.10s 与帧复算逐位一致）；193 句 4109 字 story 段落演绎；archify 13 图 76 章 71 cue · 锚定 36.8% · 密度 5.1/分 · 图型 4；C2 三人格全 pass；覆盖门/check_series/主题门 FAIL 0（七幕+尾幕 qa、全片 5s 亮度带扫描零暗段、11 帧改动镜 still 目视）；交付 ~/Documents/video/context-layer/给 AI 发一张工卡：Agent 上下文层蓝图 v2.mp4 + _captions/",
+          "voice": "story 段落演绎（me-bright 系 + cues.toml 台本）"
         },
         {
           "episode": 3,

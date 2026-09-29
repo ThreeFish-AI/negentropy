@@ -32,8 +32,9 @@ const RATE_MAX = 1.35;
  *  ① 顶 150 ≥ 135：SceneTag（y 40–110，副题最长 13 字右缘 ~358 与框左缘横向重叠）
  *     只能靠纵向避让——top < 135 会切副题（2026-09-19 实测 top=60 切角标副题）；
  *  ② 底边 880 < SAFE_TOP_Y(920)：字幕带安全带（SUBTITLE_BAND_PX=160 同源）；
- *  ③ 框宽 1298 左缘 311 > PillarHUD 右缘 ~274：HUD 在全屏窗内**仍可见**（左下角
- *     常驻件不是图例，是母图层叙事锚），放大 h 会先吃掉这 37px 余量（h=770 即触线）。
+ *  ③ 框外左下/两侧已无常驻件（PillarHUD 随 v4 重制删除）：工卡/装置仅在无 cue
+ *     窗口入场，或经 ArchifyYield 淡出/被画框遮盖（见各场景避让约定）——放大 h 的
+ *     现实约束收敛回①②；若重引需与 cue 窗共存的常驻件，须先重列此表。
  *  image-rendering 刻意不设置：1440 源在 16:9 框内高质量降采样走 Skia
  *  mipmap 路径；pixelated/crisp-edges 是最近邻，会把降采样变锯齿。 */
 const BOX = {h: 730, top: 150} as const;
@@ -128,7 +129,9 @@ export const ArchifyClip: React.FC<{
             src={staticFile(`archify/${file}`)}
             muted
             playbackRate={rate}
-            trimBefore={Math.round(leadSec * fps)}
+            // +1 帧：trimBefore 边界帧会解码到场记板白闪的末帧（openviking-video 3-C 实测单帧 255 亮度），
+            // 多跳一帧落在故事首帧（亮度 ≈25），视觉上无可感时移
+            trimBefore={Math.round(leadSec * fps) + 1}
             style={{width: '100%', height: '100%', objectFit: 'contain'}}
           />
         </Sequence>

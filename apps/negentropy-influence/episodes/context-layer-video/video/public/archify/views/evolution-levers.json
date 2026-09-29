@@ -1,47 +1,37 @@
 [
  {
-  "id": "six-a",
-  "label": "杠杆·检索与策略",
+  "id": "el-six",
+  "label": "六面杠杆",
   "focus": [
    "retrieval",
-   "kstrategy"
-  ],
-  "note": "retrieval_config/knowledge_strategy。"
- },
- {
-  "id": "six-b",
-  "label": "杠杆·模板与提示",
-  "focus": [
+   "kstrategy",
    "skilltpl",
    "toolcfg",
    "mempipe",
    "agentpr"
   ],
-  "note": "模板/工具/提示词四杠杆。"
+  "note": "既有六面"
  },
  {
-  "id": "seventh",
-  "label": "第 7 杠杆",
+  "id": "el-ctx",
+  "label": "第七面提案",
   "focus": [
    "ctxstrat"
   ],
-  "note": "context_strategy 影响全部激活路径。"
+  "note": "context_strategy ⏸"
  },
  {
-  "id": "sm",
-  "label": "统一状态机",
+  "id": "el-sm",
+  "label": "状态机",
   "focus": [
-   "sm"
+   "draft",
+   "shadow",
+   "pending",
+   "canary",
+   "promoted",
+   "rejected",
+   "rollback"
   ],
-  "note": "同一状态机收编。"
- },
- {
-  "id": "orch",
-  "label": "编排与护栏",
-  "focus": [
-   "orch",
-   "decision"
-  ],
-  "note": "EvolutionOrchestrator+decision.py。"
+  "note": "八态统一护栏"
  }
 ]

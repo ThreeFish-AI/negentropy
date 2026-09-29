@@ -4230,7 +4230,7 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **同批取证发现的 7 处漂移**（详表见 015 §5）：D1 `ContextAssembler.assemble()` 只有单测调用，013 §8.5 / 025 §6.3 把它写成「自动注入通道」（实际生产读取仅 `get_memory_summary()` 回退）；D3 SummarizeStep 传 `force_refresh=True` 因 `get_or_generate_summary` 签名无此参数抛 TypeError 被降级吞掉（`summarize_step.py:40` vs `memory_summarizer.py:93`），强制刷新从未生效且摘要是 24h TTL 不感知源变化；D4 ConflictResolver docstring 宣称三阶段检测、实现只有规则；D5 `save_to_memory` 直写 `embedding=None` 不去重不审计且无回填，对 vector/hybrid 不可见；D6 `_fetch_memory` 按 UUID 读 Memory 不校验 user/app（`agents/tools/skill_resources.py:167`）——**ISSUE-194 方案 (a) 挂载前必须先修**，否则成为跨用户读取通道；D7 013 §12.7 #9「L1/L2/L3 ✅」与 ISSUE-194 结论矛盾待回写；D8 memory_pipeline_prompt 进化面只有 fact extractor 消费，summarizer/reflection 晋升是运行时 no-op。
 - **处理方式**（本次只分析不改码，落地建议见 015 §落地建议汇总）：
   1. **做**（建议独立 PR，先于 013 Phase 1）：会话巩固触发器（复用 `title_inspector` 的「事件水位差 ≥Δ 且空闲 ≥T」范式）+ `consolidation_jobs` 消费者（`FOR UPDATE SKIP LOCKED` 执行 `_simple_consolidate`）+ `threads.metadata.consolidated_at_event_seq` 水位；巩固 diff 写 `consolidation_jobs.result` 并接 UI `/memory/audit`；修 D3 签名并把 TTL 换成源水位判据。零新表。
-  2. **写**：013 §12.7 #9 状态行校正（L1 ✅ / L2·L3 🔶 ISSUE-194）与 §8.5 宿主更正（D1/D7）；025 §4.1/§4.3 与事实不符处回写。
+  2. **写**：013 §12.7 #9 状态行校正（L1 ✅ / L2·L3 🔶 ISSUE-194）与 §8.5 宿主更正（D1/D7）；025 §4.1/§4.3 与事实不符处回写。——**013/015 侧已销账（2026-09-27：013 完全重铸落地——§11.5 #9 校正、§8.4 宿主更正、§6.2 会话巩固三件套并入、015 §6 对位表同步；「做」面仍开放）。025 §4.1/§4.3 回写未做仍开放**（2026-09-28 评审发现销账口径过早并收窄：025 在重铸分支零改动，其 §4.1 仍把 add_session_to_memory→consolidation_jobs 写成在跑链路）
   3. **暂缓**：M-a 统一 URI（与 013 ADR-1 冲突，只取寻址不取存储）、typed query、目录递归（YAGNI 触发条件见 015）。
 - **后续防范**：文档把链路标 ✅ 前须核到「调用方/消费者存在」这一层（与 ISSUE-194 同款断言纪律：函数存在 ≠ 链路存在）；「队列表」类设计须与消费者同一 PR 落地，否则只入队的表是 silent no-op 的温床。
 
@@ -4241,7 +4241,7 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **影响**：中文内容的混合检索实际退化为纯向量检索，BM25 融合权重对中文空转。记忆检索在无 embedding 时回退到 `ILIKE '%query%'`（`memory_service.py:808`/`:1290`），中文子串尚能命中；知识库检索没有这层回退，是真正的全量失效。另外，精确词（人名、项目代号、报错原文的中文部分）召回依赖向量相似度，稳定性差。英文与中英混排中的英文词不受影响（`'deploy the static site to CDN' @@ 'deploying site'` 为 `t`）。
 - **处理方式**（本次只登记不改码，方案另行评审）：
   1. **做**（下一次触及 hybrid search 的 PR）：候选 ① `pg_trgm` / `pg_bigm` 三元或二元组索引；② 入库时做 CJK bigram 预切分写入 `simple` 配置的独立 tsvector 列；③ 查询侧对纯 CJK 查询路由到 trigram / LIKE 回退（Hermes 同款三级回退）。选型前须在 PG16/17/18 上核扩展可用性（本机多版本漂移经验）。
-  2. **写**：013 蓝图检索层补一句「关键词腿对 CJK 的分词口径」。
+  2. **写**：013 蓝图检索层补一句「关键词腿对 CJK 的分词口径」。——**已销账（2026-09-27：013 完全重铸 §5.2 WARNING 落地口径与三候选；「做」面仍开放）**
   3. **验收**：固定中文样本集上「子串关键词命中率」从 0 提升，且不回退英文 BM25 排序。
 - **后续防范**：从英文语料项目移植检索 schema 时，把「分词配置 × 目标语言」列为显式核对项；混合检索的回归测试须含中文子串用例，并单独断言 tsvector 腿的命中——否则关键词腿失效会被向量腿或 `ILIKE` 回退掩盖、测试恒绿。
 
