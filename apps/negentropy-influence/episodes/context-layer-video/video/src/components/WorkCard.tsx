@@ -1,7 +1,7 @@
 /** 工卡 hero（恒定视觉锚 M-001）：钢蓝描边 2px 全片同形，逐格盖章进度跨幕累积。
  *  盖章数由场景按幕推进传入；章印用校准绿（验证通过语义）。 */
 import React from 'react';
-import {theme} from '../design/theme';
+import {theme, withAlpha} from '../design/theme';
 import {useSpring} from '../motion';
 
 export const WorkCard: React.FC<{
@@ -46,7 +46,7 @@ export const WorkCard: React.FC<{
               style={{
                 borderRadius: 6,
                 border: `1.5px solid ${stamped ? theme.ok : theme.panelBorder}`,
-                background: stamped ? 'rgba(126,211,33,0.10)' : 'transparent',
+                background: stamped ? withAlpha(theme.ok, 0.1) : 'transparent',
                 outline: hot ? `2px solid ${theme.conceptDeep}` : 'none',
                 display: 'flex',
                 alignItems: 'center',

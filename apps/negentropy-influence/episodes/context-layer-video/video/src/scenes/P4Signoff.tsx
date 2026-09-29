@@ -1,6 +1,6 @@
-/** P4 会签与放行：治理层（p4-01..p4-26，27 句；storyboard「P4 会签与放行」节）。
+/** P4 会签与放行：治理层（p4-01..p4-26，29 句；storyboard「P4 会签与放行」节）。
  *
- *  7 镜 / 10 条 archify cue：
+ *  7 镜 / 7 条 archify cue：
  *   4-A 会签栏装置@02（fm-gov@03 开窗前播完）· 4-B 只减不增计数器 · 4-C 韦恩图交集
  *   4-D RII 底稿/保留单 + fm-unverified@15 · 4-E 477 vs 48 装置
  *   4-F tm-poison@21→tm-inject@22 + 数字墙@23（p4-23 为 cue 空窗句，数字归属口播句）
@@ -11,10 +11,9 @@ import React from 'react';
 import {AbsoluteFill, Sequence} from 'remotion';
 import type {SceneRange} from '../types';
 import {beatWindow} from '../timing';
-import {theme} from '../design/theme';
+import {theme, withAlpha} from '../design/theme';
 import {useEnter, useSpring, useStagger} from '../motion';
 import {SceneTag} from '../components/motifs';
-import {QuoteCard} from '../components/cards';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 import {EvidenceBadge} from '../components/EvidenceBadge';
 import {WorkCard} from '../components/WorkCard';
@@ -49,27 +48,30 @@ export const P4Signoff: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ShrinkCounter at={at('p4-05') - bB.from} />
       </Sequence>
 
-      {/* 4-C 韦恩图交集 */}
+      {/* 4-C 韦恩图交集（锚前移 p4-09「两边重叠的那块」句填镜首空窗） */}
       <Sequence from={bC.from} durationInFrames={bC.durationInFrames} name="4-C">
-        <VennIntersect at={at('p4-09b') - bC.from} />
+        <VennIntersect at={at('p4-09') - bC.from} />
       </Sequence>
 
       {/* 4-D RII 底稿/保留单 */}
       <Sequence from={bD.from} durationInFrames={bD.durationInFrames} name="4-D">
         <RIIProof at={at('p4-14') - bD.from} />
-        {/* 底部结论卡：底锚 150 对齐证据徽口径（第二行上缘 ≈y878，清出字幕盒 y942） */}
-        <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 150}}>
-          <div style={{padding: '14px 26px', border: `2px solid ${theme.ok}`, borderRadius: 10, background: 'rgba(126,211,33,0.06)'}}>
-            <div style={{fontSize: 30, color: theme.ok}}>人 ← 会签</div>
-            <div style={{fontSize: 30, color: theme.ok, marginTop: 6}}>答案 ← 放行</div>
-          </div>
-        </AbsoluteFill>
+        {/* 底部结论卡：fm-unverified 画框占 y150–880，卡首行（卡顶 ≈y812）整段被盖——挪 cue 卸载后的 p4-16 入场；
+            底锚 150 对齐证据徽口径（第二行上缘 ≈y878，清出字幕盒 y942） */}
+        <Sequence from={at('p4-16') - bD.from} name="4-D-card">
+          <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 150}}>
+            <div style={{padding: '14px 26px', border: `2px solid ${theme.ok}`, borderRadius: 10, background: withAlpha(theme.ok, 0.06)}}>
+              <div style={{fontSize: 30, color: theme.ok}}>人 ← 会签</div>
+              <div style={{fontSize: 30, color: theme.ok, marginTop: 6}}>答案 ← 放行</div>
+            </div>
+          </AbsoluteFill>
+        </Sequence>
         <ArchifyRecap slug="failure-map" caption="未验证断言" cues={[{chapterId: 'fm-unverified', at: at('p4-15') - bD.from, durationInFrames: dur('p4-15')}]} />
       </Sequence>
 
-      {/* 4-E 477 vs 48 */}
+      {/* 4-E 477 vs 48（装置前移 p4-17 填镜首空窗，徽章留证据句 p4-18） */}
       <Sequence from={bE.from} durationInFrames={bE.durationInFrames} name="4-E">
-        <Crash477 at={at('p4-18') - bE.from} />
+        <Crash477 at={at('p4-17') - bE.from} />
         <div style={{position: 'absolute', bottom: 150, left: 80}}>
           <EvidenceBadge level="solid" at={at('p4-18') - bE.from} note="第三方复现 · 玩具版 4 vs 3" />
         </div>
@@ -158,8 +160,8 @@ const VennIntersect: React.FC<{at: number}> = ({at}) => {
   return (
     <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
       <svg width={640} height={340} style={e}>
-        <circle cx={250} cy={170} r={130} fill="rgba(91,141,201,0.18)" stroke={theme.concept} strokeWidth={2} />
-        <circle cx={390} cy={170} r={130} fill="rgba(245,166,35,0.15)" stroke={theme.conceptDeep} strokeWidth={2} />
+        <circle cx={250} cy={170} r={130} fill={withAlpha(theme.concept, 0.18)} stroke={theme.concept} strokeWidth={2} />
+        <circle cx={390} cy={170} r={130} fill={withAlpha(theme.conceptDeep, 0.15)} stroke={theme.conceptDeep} strokeWidth={2} />
         <text x={160} y={60} fill={theme.concept} fontSize={20}>用户有的</text>
         <text x={420} y={60} fill={theme.conceptDeep} fontSize={20}>任务允许的</text>
         <text x={292} y={178} fill={theme.ok} fontSize={24} fontWeight={700}>交集</text>
@@ -174,10 +176,10 @@ const RIIProof: React.FC<{at: number}> = ({at}) => {
   const retain = useSpring('settle', {at: at + 40, dur: 16});
   return (
     <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 70}}>
-      <div style={{transform: `scale(${slap}) rotate(-3deg)`, padding: '22px 30px', background: '#F2F5FA', borderRadius: 8, color: '#171C26', boxShadow: '0 12px 40px rgba(0,0,0,0.5)'}}>
-        <div style={{fontSize: 20, color: '#5a6472'}}>带版次底稿</div>
+      <div style={{transform: `scale(${slap}) rotate(-3deg)`, padding: '22px 30px', background: theme.paper, borderRadius: 8, color: theme.paperInk, boxShadow: '0 12px 40px rgba(0,0,0,0.5)'}}>
+        <div style={{fontSize: 20, color: theme.paperInkDim}}>带版次底稿</div>
         <div style={{fontSize: 44, fontWeight: 700}}>45 N·m · rev.D</div>
-        <div style={{fontSize: 16, color: '#5a6472', marginTop: 6}}>校准证书 №A-1123</div>
+        <div style={{fontSize: 16, color: theme.paperInkDim, marginTop: 6}}>校准证书 №A-1123</div>
       </div>
       <div style={{transform: `scale(${retain}) rotate(4deg)`, padding: '18px 26px', border: `2.5px dashed ${theme.conceptDeep}`, borderRadius: 8}}>
         <div style={{fontSize: 24, color: theme.conceptDeep}}>保留单</div>

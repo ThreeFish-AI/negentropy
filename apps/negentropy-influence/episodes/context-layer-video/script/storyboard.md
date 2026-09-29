@@ -14,27 +14,27 @@
 | 0-C 两页打架 | p0-07..09 | device：（未实现，销账——fm 全屏逐句 hold 承担本镜画面）；·**archify full**：failure-map 章 `fm-conflict` | 图回放（fm 全屏逐句 hold） |
 | 0-D 越权签字 | p0-10..13 | device：（未实现，销账——fm 全屏逐句 hold 承担本镜画面）；·**archify full**：failure-map 章 `fm-auth` | 图回放（fm 全屏逐句 hold） |
 | 0-E 换成 AI | p0-14..17 | evidence：三格证据徽排开（实线×2），19%→85% 数字对撞；·**archify full**：failure-map 章 `fm-breach`+`fm-all` | 徽章依次点亮；数字翻牌对比；八失效全景收幕 |
-| 0-F 崩崖实证 | p0-18..21 | evidence：87%→10% 断崖折线（橙）；实线徽；虚线徽（97/4 全限定角标）；·**archify full**：failure-map 章 `fm-unverified`；·**archify full**：blueprint--industry-landscape 章 `il-gap` | 折线下坠动画；两个比例条并排（97 长 4 短）；断层图收 |
+| 0-F 崩崖实证 | p0-18..21 | evidence：87%→10% 断崖折线（橙）；实线徽；虚线徽（97/4 全限定角标）；·**archify full**：failure-map 章 `fm-unverified`；·**archify full**：blueprint--industry-landscape 章 `il-gap` | 折线下坠动画；两个比例条并排（97 长 4 短）（未实现，销账）；断层图收 |
 | 0-G 发工卡 | p0-22..23 | master：工卡从机务手中递出，翻面亮出格子线稿（钢蓝）——「一道工序一格」；（系列卡入点未实现，销账） | 递卡横移；卡面格子逐格亮起 |
 
 ## P1 机库全景：五源与三轴（p1-01..p1-25，26 句）
 
 | 镜 | 句区间 | 画面 | 动效 |
 |---|---|---|---|
-| 1-A 设问 | p1-01..02 | master：机库剖面图腾出，五个储位待亮；「一扇窗」意象：模型窗口框 | 剖面灯逐区预热；窗口框内五色流光涌入 |
+| 1-A 设问 | p1-01..02 | master：机库剖面图腾出，五个储位待亮（未实现，销账）；「一扇窗」意象：模型窗口框 | 剖面灯逐区预热（未实现，销账）；窗口框内五色流光涌入 |
 | 1-B 源一二 | p1-03..06 | ·**archify full**：five-sources 章 `fs-instr`+`fs-mem` 两章接力 | 图回放（章间 beat 边界切换） |
 | 1-C 源三四五 | p1-07..10 | ·**archify full**：five-sources 章 `fs-know`+`fs-tools`+`fs-session` 三章接力 | 图回放 |
 | 1-D 五源收束 | p1-11 | ·**archify full**：five-sources 章 `fs-out` | 五源齐亮汇入输出横杆 |
 | 1-E 结构轴 | p1-12..15 | ·**archify full**：blueprint--architecture 章 `ax-struct`+`ax-accept` | 五层纵向逐层点亮+口诀角标；验收面横幅收 |
 | 1-F 时间轴 | p1-16..17 | ·**archify full**：lifecycle 章 `lc-loop`+`lc-verify` | CGAVE 环形流转，验证/进化两环高亮（绿）；两章分句接力 |
 | 1-G 正交性 | p1-18..20 | ·**archify full**：blueprint--architecture 章 `ax-obj`+`ax-time`；·**archify full**：lifecycle 章 `lc-evolve` | 两章接力；「换 A 不动 B」演示（一轴拖动他轴锁定） |
-| 1-H 公理 | p1-21..25 | evidence：context rot 示意（窗口越满召回曲线越低，橙）；·**archify full**：failure-map 章 `fm-silent` | 曲线下垂；目标函数卡：预算之内 · 最有用的一小撮 |
+| 1-H 公理 | p1-21..25 | evidence：context rot 曲线示意（未实现，销账——金句卡常驻承担本镜画面）；·**archify full**：failure-map 章 `fm-silent` | 曲线下垂（未实现，销账）；目标函数卡：预算之内 · 最有用的一小撮 |
 
 ## P2 当版页制度：对象层（p2-01..p2-22，25 句）
 
 | 镜 | 句区间 | 画面 | 动效 |
 |---|---|---|---|
-| 2-A 导览 | p2-01..03 | master：第一层铭牌亮（钢蓝）；受控文档库柜门开启 | 层推进度条+1；柜门光缝 |
+| 2-A 导览 | p2-01..03 | master：第一层铭牌亮（钢蓝）（未实现，销账）；受控文档库柜门开启 | 层推进度条+1（未实现，销账）；柜门光缝 |
 | 2-B 当版页 | p2-04..07 | device：打印机吐页→页脚时刻戳→用毕入废纸盒；·**archify full**：blueprint--object-lifecycle 章 `ol-draft` | 时钟走字；废纸盒吞页循环〔M-003〕 |
 | 2-C fan trap | p2-08..12 | evidence：金额对撞示意装置（非代码走廊、无终端输出）——三条线挂上一张订单、金额翻倍（橙）；徽注「对照 200 · 退化 440」（实心徽，本仓复算） | 金额 100→300 跳变；乘数 ×1→×3（橙） |
 | 2-D 锁一起 | p2-13 | ·**archify full**：blueprint--object-lifecycle 章 `ol-gov` | 定义与计算两半合锁动画 |
@@ -49,22 +49,22 @@
 |---|---|---|---|
 | 3-A 影子板 | p3-01..04 | device：影子板全景，每件工具嵌入轮廓格；新工具画格；·**archify full**：runtime-layering 章 `rl-sys` | 工具入格吸附动画；虚线轮廓→实线（自动贴标） |
 | 3-B 信任信号 | p3-05..08 | ·**archify full**：runtime-layering 章 `rl-cgave`+`rl-store` | 版次号/校准证书徽章点亮；五源信号拉到同一把尺（标尺动画）；单库持久收 |
-| 3-C 中文坑 | p3-09..12 | evidence：代码走廊②——to_tsvector('english',汉字) 输出整段单 token（实心徽）；两条腿示意：关键词腿踩空（橙）；·**archify full**：failure-map 章 `fm-split` | 终端打印 PG 输出；走路小人格一条腿陷空；割裂章收 |
+| 3-C 中文坑 | p3-09..12 | evidence：代码走廊②——to_tsvector('english',汉字) 输出整段单 token（实心徽）；两条腿示意：关键词腿踩空（橙）（未实现，销账）；·**archify full**：failure-map 章 `fm-split` | 终端打印 PG 输出；走路小人格一条腿陷空（未实现，销账）；割裂章收 |
 | 3-D 富化现实 | p3-13..15 | evidence：覆盖率条 9685 张表 <5%（虚线徽） | 柱状图 5% 尖刺；数字滚动 |
 | 3-E 双轨 | p3-16..18 | device：手册轨（钢蓝）与老师傅手感轨（暖灰）并行；手感标签「可提示·不签字」 | 双轨滑入；签字章只落手册轨 |
 | 3-F 技术请示 | p3-19..23 | device：全片戏剧高点——停工、两页并排钉上请示单、版次标签、工序挂起牌（橙底）；·**archify full**：blueprint--object-lifecycle 章 `ol-conflict` | 慢镜：图钉落下×2；产线传送带急停；D4 引用计数对比 |
 | 3-G 复利 | p3-24..25 | ·**archify full**：lifecycle 章 `lc-evolve` | 漏油→报告→MPD→培训四节点链式点亮（绿）；机队剪影复制扩散 |
-| 3-H 会话原料 | p3-26..26b | device：交接班板草稿区→正式档案箭头，最后一步才落章 | 草稿便签累积；最终章落定（绿） |
+| 3-H 会话原料 | p3-26..26b | device：交接班板草稿区→正式档案箭头，最后一步才落章（便签累积未实现，销账——板体自 p3-26b 整体入场，p3-26 空台由底部工卡承担） | 草稿便签累积（未实现，销账）；最终章落定（绿） |
 
 ## P4 会签与放行：治理层（p4-01..p4-26，29 句）
 
 | 镜 | 句区间 | 画面 | 动效 |
 |---|---|---|---|
 | 4-A 会签栏 | p4-01..04 | device：工卡会签栏四格（执照/机型/必检/客户）逐一亮起；·**archify full**：failure-map 章 `fm-gov` | 四格章印逐格落下 |
-| 4-B 只减不增 | p4-05..08 | device：每加一道会签→可关盖人数计数器只减不加（橙数字递减）；落笔瞬间时钟校验 | 计数器 -1 -1 -1；签字笔悬停→时钟绿闪（有效）〔M-003〕 |
-| 4-C 翻译回 AI | p4-09..11 | evidence：两个圆（用户权限∩任务允许面）交集高亮（钢蓝）；权限回收→会话即时失效 | 交集韦恩图收缩动画；工牌碎裂（对照：上次办的工牌还能用=红叉） |
+| 4-B 只减不增 | p4-05..08 | device：每加一道会签→可关盖人数计数器只减不加（橙数字递减）；落笔瞬间时钟校验（未实现，销账） | 计数器 -1 -1 -1；签字笔悬停→时钟绿闪（有效）〔M-003〕（未实现，销账） |
+| 4-C 翻译回 AI | p4-09..11 | evidence：两个圆（用户权限∩任务允许面）交集高亮（钢蓝）；权限回收→会话即时失效（未实现，销账） | 交集韦恩图收缩动画（未实现，销账——静态双圆+入场 pop）；工牌碎裂（对照：上次办的工牌还能用=红叉）（未实现，销账） |
 | 4-D RII 验证 | p4-12..16 | device：复核员提问气泡→带版次底稿拍在台上（绿）→保留单显式标注「未经核准」（橙）；·**archify full**：failure-map 章 `fm-unverified` | 底稿拍台震动；保留单贴上飞机侧影 |
-| 4-E 477 vs 48 | p4-17..19c | evidence：崩溃数字示意装置（非代码走廊、无终端输出；第三方复现，实线徽）——日汇总叠成柱→477 vs 48；题库卡组 | 柱层叠起；两数字对峙；题库卡翻面亮绿 |
+| 4-E 477 vs 48 | p4-17..19c | evidence：崩溃数字示意装置（非代码走廊、无终端输出；第三方复现，实线徽）——日汇总叠成柱→477 vs 48；题库卡组（未实现，销账） | 柱层叠起；两数字对峙；题库卡翻面亮绿（未实现，销账） |
 | 4-F 供给面 | p4-20..23 | device：98,380/157/632 数字墙+四客户端图标+零验签红叉（实线徽 USENIX）@p4-23；里程碑工卡第 4 格章 @p4-20；·**archify full**：blueprint--mcp-threat-model 章 `tm-poison`+`tm-inject` | 图回放：投毒节点橙闪 |
 | 4-G 四家不验签 | p4-24..26 | ·**archify full**：blueprint--mcp-threat-model 章 `tm-token`+`tm-deputy`+`tm-gate` | 威胁四型接力；治理门开合 |
 
@@ -79,7 +79,7 @@
 | 5-E 缓存与压缩 | p5-14..16 | ·**archify full**：assembly-economics 章 `ae-k4`+`ae-k5` | 不变段冻结复用（蓝）/会变段滑动 |
 | 5-F 命名 | p5-17..18 | ·**archify full**：assembly-economics 章 `ae-knobs` | 五旋钮横排点亮命名卡 |
 | 5-G 检索前置 | p5-19..20 | ·**archify full**：assembly-economics 章 `ae-ch` | 找错对象分叉路（橙岔路）vs 四信号排序罗盘 |
-| 5-H resolve | p5-21..24 | ·**archify full**：assembly-economics 章 `ae-guard`+`ae-llm`；device：核准题命中→盖章底稿弹出（绿）；无覆盖→明确说没有 | 总入口闸门开合；底稿/告示二选一弹出 |
+| 5-H resolve | p5-21..24 | ·**archify full**：assembly-economics 章 `ae-guard`+`ae-llm`；device：核准题命中→盖章底稿弹出（绿）；无覆盖→明确说没有（底稿弹出/无覆盖告示未实现，销账——resolve 闸门装置承担） | 总入口闸门开合；底稿/告示二选一弹出（未实现，销账） |
 | 5-I 蓝图拼图 | p5-25..27 | master：五源×五层×五段三维拼图合体（钢蓝主调）——完整蓝图一闪；转场：真实机库装配线 | 拼图块飞入合体；色调转实拍感灰 |
 
 ## P6 装配线真相与收口（p6-01..p6-28，31 句）
@@ -104,7 +104,7 @@
 | 幕 | 组件 | 公共件 |
 |---|---|---|
 | P0 | scenes/P0Errors.tsx | 工卡 hero（恒定锚 M-001）、证据徽、章印组件 |
-| P1 | scenes/P1Hangar.tsx | ArchifyRecap×3 图、机库剖面、五色流光 |
+| P1 | scenes/P1Hangar.tsx | ArchifyRecap×4 图、机库剖面、五色流光 |
 | P2 | scenes/P2MasterPage.tsx | 打印机 device、代码走廊①、档案柜 |
 | P3 | scenes/P3ShadowBoard.tsx | 影子板 device、请示单高光、代码走廊② |
 | P4 | scenes/P4Signoff.tsx | 会签栏 device、韦恩图、底稿/保留单、477vs48 示意装置、threat-model 图 |

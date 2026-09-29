@@ -8,7 +8,7 @@ export type BadgeLevel = 'dashed' | 'solid' | 'filled';
 
 const META: Record<BadgeLevel, {label: string; color: string; border: string}> = {
   dashed: {label: '官方自报', color: theme.dim, border: theme.conceptDeep},
-  solid: {label: '第三方实测', color: '#F2F5FA', border: theme.concept},
+  solid: {label: '第三方实测', color: theme.text, border: theme.concept},
   filled: {label: '本仓复算', color: theme.ok, border: theme.ok},
 };
 

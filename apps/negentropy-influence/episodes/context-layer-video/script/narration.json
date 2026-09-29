@@ -3,6 +3,7 @@
     "id": "p0-01",
     "scene": "P0",
     "text": "深夜机坪，一架客机停在检修位。",
+    "beatStart": true,
     "blockStart": true,
     "cue": {
       "emo": "calm:0.16"
@@ -11,7 +12,8 @@
   {
     "id": "p0-02",
     "scene": "P0",
-    "text": "它的麻烦不是零件坏了，是三件「没错的错」。"
+    "text": "它的麻烦不是零件坏了，是三件「没错的错」。",
+    "beatStart": true
   },
   {
     "id": "p0-03",
@@ -30,13 +32,13 @@
   {
     "id": "p0-05",
     "scene": "P0",
-    "text": "过期的手册不发黄、不长毛，印得同样权威。"
+    "text": "过期的手册不发黄、不长毛，印得同样权威。",
+    "beatStart": true
   },
   {
     "id": "p0-06",
     "scene": "P0",
-    "text": "错的，只是页脚那个没人翻的修订号。",
-    "ttsText": "错的，只是页脚那个没人翻的修订号。"
+    "text": "错的，只是页脚那个没人翻的修订号。"
   },
   {
     "id": "p0-07",
@@ -55,8 +57,7 @@
   {
     "id": "p0-09",
     "scene": "P0",
-    "text": "结果，错的那版赢了。",
-    "ttsText": "结果，错的那版赢了。"
+    "text": "结果，错的那版赢了。"
   },
   {
     "id": "p0-10",
@@ -103,12 +104,14 @@
   {
     "id": "p0-16",
     "scene": "P0",
-    "text": "把正确的证据页递给它，还是它，对八十五道。"
+    "text": "把正确的证据页递给它，还是它，对八十五道。",
+    "beatStart": true
   },
   {
     "id": "p0-17",
     "scene": "P0",
     "text": "模型没换，换的是上下文。",
+    "beatStart": true,
     "blockStart": true,
     "cue": {
       "emo": "calm:0.12"
@@ -131,7 +134,8 @@
   {
     "id": "p0-20",
     "scene": "P0",
-    "text": "最难的失败不是语法错，是从头搞错了对象。"
+    "text": "最难的失败不是语法错，是从头搞错了对象。",
+    "beatStart": true
   },
   {
     "id": "p0-21",
@@ -146,6 +150,7 @@
     "id": "p0-22",
     "scene": "P0",
     "text": "今天干一件事：给 AI 发张工卡——机务开工前领的任务单。",
+    "beatStart": true,
     "blockStart": true,
     "cue": {
       "emo": "happy:0.1,calm:0.08"
@@ -165,6 +170,7 @@
     "id": "p1-01",
     "scene": "P1",
     "text": "第一个问题：管住 AI 的上下文，到底管什么？",
+    "beatStart": true,
     "blockStart": true,
     "cue": {
       "emo": "calm:0.12"
@@ -179,6 +185,7 @@
     "id": "p1-03",
     "scene": "P1",
     "text": "第一，身份与规程：它是谁，按什么章程办事。",
+    "beatStart": true,
     "blockStart": true,
     "cue": {
       "emo": "calm:0.1"
@@ -241,6 +248,7 @@
     "id": "p1-13",
     "scene": "P1",
     "text": "对象轴管「经营什么」，就是那五源。",
+    "beatStart": true,
     "blockStart": true,
     "cue": {
       "emo": "calm:0.12"
@@ -264,7 +272,8 @@
   {
     "id": "p1-17",
     "scene": "P1",
-    "text": "验证和进化是显式两环，不是可有可无的尾巴。"
+    "text": "验证和进化是显式两环，不是可有可无的尾巴。",
+    "beatStart": true
   },
   {
     "id": "p1-18",
@@ -331,6 +340,7 @@
     "id": "p2-01",
     "scene": "P2",
     "text": "进第一层：对象层，放什么。",
+    "beatStart": true,
     "blockStart": true,
     "cue": {
       "emo": "calm:0.1"
@@ -367,19 +377,18 @@
     "blockStart": true,
     "cue": {
       "emo": "happy:0.08,calm:0.08"
-    },
-    "ttsText": "你背下来的力矩值？一律当错。"
+    }
   },
   {
     "id": "p2-07",
     "scene": "P2",
-    "text": "要用，就当场回母本取数。",
-    "ttsText": "要用，就当场回母本取数。"
+    "text": "要用，就当场回母本取数。"
   },
   {
     "id": "p2-08",
     "scene": "P2",
     "text": "为什么这么较真？看个破坏实验。",
+    "beatStart": true,
     "blockStart": true,
     "cue": {
       "emo": "surprised:0.08,calm:0.08"
@@ -398,7 +407,8 @@
   {
     "id": "p2-11",
     "scene": "P2",
-    "text": "先汇总再连接——每条各自算干净再挂——整月答案才是两百。"
+    "text": "先汇总再连接——每条各自算干净再挂——整月答案才是两百。",
+    "beatStart": true
   },
   {
     "id": "p2-12",
@@ -431,7 +441,8 @@
   {
     "id": "p2-15",
     "scene": "P2",
-    "text": "盘上的文件，只是这张表打印的当版页。"
+    "text": "盘上的文件，只是这张表打印的当版页。",
+    "beatStart": true
   },
   {
     "id": "p2-16",
@@ -480,6 +491,7 @@
     "id": "p2-21",
     "scene": "P2",
     "text": "对象层要义：每个含义都像影子板的工具——在册、可查、带版次。",
+    "beatStart": true,
     "blockStart": true,
     "cue": {
       "emo": "calm:0.12"
@@ -494,6 +506,7 @@
     "id": "p3-01",
     "scene": "P3",
     "text": "第二层，目录层，怎么找。",
+    "beatStart": true,
     "blockStart": true,
     "cue": {
       "emo": "calm:0.1"
@@ -570,7 +583,8 @@
   {
     "id": "p3-12",
     "scene": "P3",
-    "text": "填法三条路：重建关键词索引、入库预切词、查询绕行，都在蓝图待评审。"
+    "text": "填法三条路：重建关键词索引、入库预切词、查询绕行，都在蓝图待评审。",
+    "beatStart": true
   },
   {
     "id": "p3-13",
@@ -598,7 +612,8 @@
   {
     "id": "p3-16",
     "scene": "P3",
-    "text": "必须双轨：显式轨从报表起草规章，隐式轨从使用习惯挖暗知识。"
+    "text": "必须双轨：显式轨从报表起草规章，隐式轨从使用习惯挖暗知识。",
+    "beatStart": true
   },
   {
     "id": "p3-17",
@@ -612,8 +627,7 @@
   {
     "id": "p3-18",
     "scene": "P3",
-    "text": "手感可以提示，永远不能替手册签字。",
-    "ttsText": "手感可以提示，永远不能替手册签字。"
+    "text": "手感可以提示，永远不能替手册签字。"
   },
   {
     "id": "p3-19",
@@ -641,7 +655,8 @@
   {
     "id": "p3-22",
     "scene": "P3",
-    "text": "裁定回来前，工序挂起，系统绝不准自己挑一个。"
+    "text": "裁定回来前，工序挂起，系统绝不准自己挑一个。",
+    "beatStart": true
   },
   {
     "id": "p3-23",
@@ -680,6 +695,7 @@
     "id": "p4-01",
     "scene": "P4",
     "text": "治理层，怎么信。",
+    "beatStart": true,
     "blockStart": true,
     "cue": {
       "emo": "calm:0.1"
@@ -728,6 +744,7 @@
     "id": "p4-09",
     "scene": "P4",
     "text": "翻译回 AI：代理能动的权限，是两边重叠的那块。",
+    "beatStart": true,
     "blockStart": true,
     "cue": {
       "emo": "calm:0.1"
@@ -779,8 +796,7 @@
   {
     "id": "p4-16",
     "scene": "P4",
-    "text": "绝不冒充有人背书——这叫验证锚定。",
-    "ttsText": "绝不冒充有人背书——这叫验证锚定。"
+    "text": "绝不冒充有人背书——这叫验证锚定。"
   },
   {
     "id": "p4-17",
@@ -808,7 +824,8 @@
   {
     "id": "p4-19",
     "scene": "P4",
-    "text": "把要紧问题连同核准答案编成题库，最后一道闸。"
+    "text": "把要紧问题连同核准答案编成题库，最后一道闸。",
+    "beatStart": true
   },
   {
     "id": "p4-19c",
@@ -846,7 +863,8 @@
   {
     "id": "p4-24",
     "scene": "P4",
-    "text": "四家头部客户端，没一家核对过作者签名。"
+    "text": "四家头部客户端，没一家核对过作者签名。",
+    "beatStart": true
   },
   {
     "id": "p4-25",
@@ -866,6 +884,7 @@
     "id": "p5-01",
     "scene": "P5",
     "text": "激活层，怎么用。",
+    "beatStart": true,
     "blockStart": true,
     "cue": {
       "emo": "calm:0.1"
@@ -940,7 +959,8 @@
   {
     "id": "p5-11",
     "scene": "P5",
-    "text": "工具太多，天才也会挑花眼。"
+    "text": "工具太多，天才也会挑花眼。",
+    "beatStart": true
   },
   {
     "id": "p5-12",
@@ -984,6 +1004,7 @@
     "id": "p5-18",
     "scene": "P5",
     "text": "这五条管的不只是省钱。",
+    "beatStart": true,
     "blockStart": true,
     "cue": {
       "emo": "calm:0.12"
@@ -1059,6 +1080,7 @@
     "id": "p6-01",
     "scene": "P6",
     "text": "先立一条验收铁律，我管它叫判定面。",
+    "beatStart": true,
     "blockStart": true,
     "cue": {
       "emo": "melancholic:0.08,calm:0.1"
@@ -1091,7 +1113,8 @@
   {
     "id": "p6-04",
     "scene": "P6",
-    "text": "唯一用它的，是它自己考自己的自测代码。"
+    "text": "唯一用它的，是它自己考自己的自测代码。",
+    "beatStart": true
   },
   {
     "id": "p6-05",
@@ -1130,7 +1153,7 @@
     "id": "p6-09",
     "scene": "P6",
     "text": "菜单能看，不能点。",
-    "ttsText": "菜单能看，不能点。"
+    "beatStart": true
   },
   {
     "id": "p6-10",
@@ -1146,6 +1169,7 @@
     "id": "p6-12",
     "scene": "P6",
     "text": "会话到长期记忆的链路是断的：零个调用方。",
+    "beatStart": true,
     "blockStart": true,
     "cue": {
       "emo": "calm:0.1"
@@ -1249,7 +1273,6 @@
     "blockStart": true,
     "cue": {
       "emo": "calm:0.14"
-    },
-    "ttsText": "工卡盖满最后一格章，关盖，放行。"
+    }
   }
 ]

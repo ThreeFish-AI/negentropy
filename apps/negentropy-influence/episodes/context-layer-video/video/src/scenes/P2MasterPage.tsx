@@ -1,4 +1,4 @@
-/** P2 当版页制度：对象层（p2-01..p2-22，23 句；storyboard「P2 当版页制度」节）。
+/** P2 当版页制度：对象层（p2-01..p2-22，25 句；storyboard「P2 当版页制度」节）。
  *
  *  8 镜 / 5 条 archify cue：
  *   2-A 导览（装置：文档柜门）· 2-B ol-draft@04（PrintPage 锚 p2-05，cue 窗外先可见）· 2-C fan trap 装置（订单-事件连线）
@@ -6,10 +6,10 @@
  *   2-F ol-conflict@16→ol-full@18（前隔代码走廊，恢复入场）· 2-G ol-super@19→20（跨句扩到镜末填空窗）· 2-H 影子板收束
  */
 import React from 'react';
-import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
+import {AbsoluteFill, Sequence} from 'remotion';
 import type {SceneRange} from '../types';
 import {beatWindow} from '../timing';
-import {theme} from '../design/theme';
+import {theme, withAlpha} from '../design/theme';
 import {useEnter, useSpring, useStagger} from '../motion';
 import {SceneTag} from '../components/motifs';
 import {ArchifyRecap} from '../components/ArchifyRecap';
@@ -47,9 +47,9 @@ export const P2MasterPage: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap slug="blueprint--object-lifecycle" caption="对象 · 起草即受控" cues={[{chapterId: 'ol-draft', at: at('p2-04') - bB.from, durationInFrames: dur('p2-04')}]} />
       </Sequence>
 
-      {/* 2-C fan trap 装置：三条事件挂上订单、金额翻倍 */}
+      {/* 2-C fan trap 装置：静态结构前移 p2-09（「订单挂三条事件」句填镜首空窗），grow 弹簧留 p2-10 金额翻倍句 */}
       <Sequence from={bC.from} durationInFrames={bC.durationInFrames} name="2-C">
-        <FanTrap at={at('p2-10') - bC.from} />
+        <FanTrap at={at('p2-09') - bC.from} growAt={at('p2-10') - bC.from} />
         <div style={{position: 'absolute', bottom: 150, left: 80}}>
           <EvidenceBadge level="filled" at={at('p2-10') - bC.from} note="对照 200 · 退化 440" />
         </div>
@@ -110,7 +110,7 @@ export const P2MasterPage: React.FC<{scene: SceneRange}> = ({scene}) => {
 const StampTag: React.FC<{text: string; delay: number}> = ({text, delay}) => {
   const e = useEnter('fall', {at: delay, dur: 16});
   return (
-    <div style={{...e, padding: '10px 22px', border: `2px solid ${theme.ok}`, borderRadius: 8, fontSize: 30, color: theme.ok, background: 'rgba(126,211,33,0.08)'}}>
+    <div style={{...e, padding: '10px 22px', border: `2px solid ${theme.ok}`, borderRadius: 8, fontSize: 30, color: theme.ok, background: withAlpha(theme.ok, 0.08)}}>
       {text}
     </div>
   );
@@ -155,19 +155,19 @@ const PrintPage: React.FC<{at: number}> = ({at}) => {
             left: 30,
             right: 30,
             height: 300 * out,
-            background: '#F2F5FA',
+            background: theme.paper,
             borderRadius: '0 0 6px 6px',
             overflow: 'hidden',
             padding: 14,
             boxSizing: 'border-box',
           }}
         >
-          <div style={{fontSize: 16, color: '#171C26', lineHeight: 1.7}}>
+          <div style={{fontSize: 16, color: theme.paperInk, lineHeight: 1.7}}>
             AMM 32-11-00
             <br />
             力矩值 45 N·m
             <br />
-            <span style={{fontSize: 13, color: '#5a6472'}}>打印时刻 04:12 · 用毕即废</span>
+            <span style={{fontSize: 13, color: theme.paperInkDim}}>打印时刻 04:12 · 用毕即废</span>
           </div>
         </div>
       </div>
@@ -175,8 +175,8 @@ const PrintPage: React.FC<{at: number}> = ({at}) => {
   );
 };
 
-const FanTrap: React.FC<{at: number}> = ({at}) => {
-  const grow = useSpring('settle', {at, dur: 45});
+const FanTrap: React.FC<{at: number; growAt?: number}> = ({at, growAt}) => {
+  const grow = useSpring('settle', {at: growAt ?? at, dur: 45});
   return (
     <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
       <svg width={760} height={300}>
@@ -231,10 +231,9 @@ export const CodePane: React.FC<{
   badge?: {level: 'dashed' | 'solid' | 'filled'; note?: string};
 }> = ({at, lines, badge}) => {
   const rows = useStagger(lines.length, {stride: 12, at});
-  const f = useCurrentFrame();
   return (
     <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-      <div style={{width: 900, background: '#0B0E14', border: `1.5px solid ${theme.panelBorder}`, borderRadius: 10, padding: '18px 24px', fontFamily: 'SF Mono, Menlo, monospace'}}>
+      <div style={{width: 900, background: theme.terminalBg, border: `1.5px solid ${theme.panelBorder}`, borderRadius: 10, padding: '18px 24px', fontFamily: theme.mono}}>
         {lines.map((l, i) => (
           <div key={i} style={{opacity: rows[i], fontSize: 21, lineHeight: 1.9, color: l.includes('⚠') || l.includes('422') ? theme.conceptDeep : theme.text, whiteSpace: 'pre'}}>
             <span style={{color: theme.dim, marginRight: 14}}>{String(i + 1).padStart(2, '0')}</span>
@@ -243,7 +242,7 @@ export const CodePane: React.FC<{
         ))}
         {badge ? (
           <div style={{marginTop: 12}}>
-            <EvidenceBadge level={badge.level} at={at + rows.length * 6} note={badge.note} />
+            <EvidenceBadge level={badge.level} at={at + (rows.length - 1) * 12 + 5} note={badge.note} />
           </div>
         ) : null}
       </div>

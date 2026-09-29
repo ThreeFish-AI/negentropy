@@ -2,7 +2,7 @@
  *
  *  9 镜 / 9 条 archify cue：
  *   5-A 计时器烧钱装置 · 5-B 裁纸刀 + ae-k1@04 · 5-C 46/19 工具墙 + ae-k2@07
- *   5-D ae-k3@12 · 5-E ae-k4@14→ae-k5@15（两章各占一句，p5-16 转场句无装置）· 5-F ae-knobs@17
+ *   5-D ae-k3@12 · 5-E ae-k4@14→ae-k5@15→16（ae-k5 延至 16 末填空窗）· 5-F ae-knobs@17
  *   5-G ae-ch@19 · 5-H ae-guard@21→ae-llm@22 · 5-I 三维拼图收口 + 第 5 格
  *  空窗回填：ae-k2/ae-k3/ae-ch 向后 dur 求和扩到镜内空句（rate 落 hold 档，播完冻结补足）。
  *  装置避让：裁纸刀@04b、五旋钮命名卡@18、resolve 闸门@23——三者原锚句被 cue 窗自镜首盖满，挪到 cue 卸载后入场。
@@ -13,8 +13,8 @@ import React from 'react';
 import {AbsoluteFill, Sequence} from 'remotion';
 import type {SceneRange} from '../types';
 import {beatWindow} from '../timing';
-import {theme} from '../design/theme';
-import {useEnter, useSpring, useStagger} from '../motion';
+import {theme, withAlpha} from '../design/theme';
+import {useSpring, useStagger} from '../motion';
 import {SceneTag} from '../components/motifs';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 import {EvidenceBadge} from '../components/EvidenceBadge';
@@ -40,9 +40,9 @@ export const P5Tarmac: React.FC<{scene: SceneRange}> = ({scene}) => {
     <AbsoluteFill style={{background: theme.bg}}>
       <SceneTag chapter="P5" tagline="机位时间与工卡夹 · 激活层" accent={theme.concept} />
 
-      {/* 5-A 计时器 */}
+      {/* 5-A 计时器（锚前移 p5-02 填镜首空窗——装置内容与该句口播同构；spring 120f 亦收进 318f 窗，计数可落 $4,600 终值） */}
       <Sequence from={0} durationInFrames={dur('p5-01', 'p5-03')} name="5-A">
-        <BurnClock at={at('p5-03')} />
+        <BurnClock at={at('p5-02')} />
       </Sequence>
 
       {/* 5-B 最小够用（ae-k1@04 自镜首盖满首句 → 裁纸刀挪 cue 卸载后的 p5-04b 入场） */}
@@ -57,22 +57,22 @@ export const P5Tarmac: React.FC<{scene: SceneRange}> = ({scene}) => {
         <div style={{position: 'absolute', bottom: 150, left: 80}}>
           <EvidenceBadge level="solid" at={at('p5-10') - bC.from} note="Llama 3.1 8B · 16k 窗" />
         </div>
-        <ArchifyRecap slug="assembly-economics" caption="旋钮二 · 渐进披露" cues={[{chapterId: 'ae-k2', at: at('p5-07') - bC.from, durationInFrames: dur('p5-07', 'p5-09')}]} />
+        <ArchifyRecap slug="assembly-economics" caption="旋钮二 · 渐进披露" cues={[{chapterId: 'ae-k2', at: at('p5-07') - bC.from, durationInFrames: dur('p5-07') + dur('p5-08') + dur('p5-09')}]} />
       </Sequence>
 
       {/* 5-D JIT（ae-k3 扩到 p5-13 补空窗至镜末 → 5-E 首章镜界背靠背） */}
       <Sequence from={bD.from} durationInFrames={bD.durationInFrames} name="5-D">
-        <ArchifyRecap slug="assembly-economics" caption="旋钮三 · 预取 vs 按需" cues={[{chapterId: 'ae-k3', at: at('p5-12') - bD.from, durationInFrames: dur('p5-12', 'p5-13')}]} />
+        <ArchifyRecap slug="assembly-economics" caption="旋钮三 · 预取 vs 按需" cues={[{chapterId: 'ae-k3', at: at('p5-12') - bD.from, durationInFrames: dur('p5-12') + dur('p5-13')}]} />
       </Sequence>
 
-      {/* 5-E 缓存与压缩（ae-k3 扩窗至 5-D 镜末，ae-k4 镜界背靠背 → lead false 防换章弹入） */}
+      {/* 5-E 缓存与压缩（ae-k3 扩窗至 5-D 镜末，ae-k4 镜界背靠背 → lead false 防换章弹入；ae-k5 延至 p5-16 末填空窗） */}
       <Sequence from={bE.from} durationInFrames={bE.durationInFrames} name="5-E">
         <ArchifyRecap
           slug="assembly-economics"
           caption="旋钮四缓存 · 旋钮五压缩"
           cues={[
             {chapterId: 'ae-k4', at: at('p5-14') - bE.from, durationInFrames: dur('p5-14')},
-            {chapterId: 'ae-k5', at: at('p5-15') - bE.from, durationInFrames: dur('p5-15')},
+            {chapterId: 'ae-k5', at: at('p5-15') - bE.from, durationInFrames: dur('p5-15') + dur('p5-16')},
           ]}
           lead={false}
         />
@@ -87,7 +87,7 @@ export const P5Tarmac: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       {/* 5-G 检索前置（ae-ch 扩到 p5-20 补空窗至镜末 → 5-H 首章镜界背靠背） */}
       <Sequence from={bG.from} durationInFrames={bG.durationInFrames} name="5-G">
-        <ArchifyRecap slug="assembly-economics" caption="双通道 · 统一融合" cues={[{chapterId: 'ae-ch', at: at('p5-19') - bG.from, durationInFrames: dur('p5-19', 'p5-20')}]} />
+        <ArchifyRecap slug="assembly-economics" caption="双通道 · 统一融合" cues={[{chapterId: 'ae-ch', at: at('p5-19') - bG.from, durationInFrames: dur('p5-19') + dur('p5-20')}]} />
       </Sequence>
 
       {/* 5-H resolve 总入口：ae-ch 扩窗至 5-G 镜末 → ae-guard 镜界背靠背传 lead false；
@@ -141,7 +141,7 @@ const PaperCut: React.FC<{at: number}> = ({at}) => {
         ))}
       </div>
       <div style={{fontSize: 48, color: theme.concept}}>✂</div>
-      <div style={{width: 110, height: 74, background: '#F2F5FA', borderRadius: 4, transform: `translateX(${cut * 30}px)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, color: '#171C26'}}>
+      <div style={{width: 110, height: 74, background: theme.paper, borderRadius: 4, transform: `translateX(${cut * 30}px)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, color: theme.paperInk}}>
         本卡 4 页
       </div>
     </AbsoluteFill>
@@ -203,7 +203,7 @@ const ResolveGate: React.FC<{at: number}> = ({at}) => {
         <rect x={110} y={80} width={120} height={100} rx={10} fill="none" stroke={theme.concept} strokeWidth={2} />
         <text x={132} y={136} fill={theme.concept} fontSize={20}>总入口</text>
         <path d={`M 230 130 L ${330 + open * 60} 130`} stroke={theme.ok} strokeWidth={3} />
-        <rect x={400} y={70} width={200} height={120} rx={10} fill="rgba(126,211,33,0.08)" stroke={theme.ok} strokeWidth={2} />
+        <rect x={400} y={70} width={200} height={120} rx={10} fill={withAlpha(theme.ok, 0.08)} stroke={theme.ok} strokeWidth={2} />
         <text x={424} y={120} fill={theme.ok} fontSize={20}>配好料的上下文</text>
         <text x={424} y={152} fill={theme.dim} fontSize={16}>top-k · 指令 · 底稿? · 告警</text>
         <path d="M 600 130 L 700 130" stroke={theme.ok} strokeWidth={3} />

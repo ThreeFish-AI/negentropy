@@ -1,9 +1,9 @@
-/** P1 机库全景：五源与三轴（p1-01..p1-25，25 句；storyboard「P1 机库全景」节）。
+/** P1 机库全景：五源与三轴（p1-01..p1-25，26 句；storyboard「P1 机库全景」节）。
  *
  *  8 镜 / 14 条 archify cue（镜内锚点一律 at(句id) − 所在镜.from，ArchifyRecap 契约）：
  *   1-A 设问（装置：一扇窗）· 1-B fs-instr@03→fs-mem@05（两章 dur 延至 04/06 填空窗，末帧 hold）
  *   1-C fs-know@07→fs-tools@08→fs-session@10（tools 延至 09；承 1-B 尾背靠背 false）· 1-D fs-out@11（背靠背 1-C 尾 false）
- *   1-E ax-struct@14 + ax-accept@15（隔句入场）· 1-F lc-loop@16（背靠背 1-E 尾 false）
+ *   1-E ax-struct@12→14（前移填镜首空窗）+ ax-accept@15 · 1-F lc-loop@16（背靠背 1-E 尾 false）
  *   1-Fb lc-verify@17（false）· 1-G ax-obj@18 + ax-time@19（false）+ lc-evolve@20（跨实例背靠背 false）
  *   1-H fm-silent@23 + 目标函数金句卡 · 1-Z 工卡第 1 格盖章（底部锚定，避让金句）
  */
@@ -12,7 +12,7 @@ import {AbsoluteFill, Sequence} from 'remotion';
 import type {SceneRange} from '../types';
 import {beatWindow} from '../timing';
 import {theme} from '../design/theme';
-import {useEnter} from '../motion';
+import {useEnter, useStagger} from '../motion';
 import {SceneTag} from '../components/motifs';
 import {QuoteCard} from '../components/cards';
 import {ArchifyRecap} from '../components/ArchifyRecap';
@@ -50,8 +50,8 @@ export const P1Hangar: React.FC<{scene: SceneRange}> = ({scene}) => {
           slug="five-sources"
           caption="五源 · 身份与记忆"
           cues={[
-            {chapterId: 'fs-instr', at: at('p1-03') - bB.from, durationInFrames: dur('p1-03', 'p1-04')},
-            {chapterId: 'fs-mem', at: at('p1-05') - bB.from, durationInFrames: dur('p1-05', 'p1-06')},
+            {chapterId: 'fs-instr', at: at('p1-03') - bB.from, durationInFrames: dur('p1-03') + dur('p1-04')},
+            {chapterId: 'fs-mem', at: at('p1-05') - bB.from, durationInFrames: dur('p1-05') + dur('p1-06')},
           ]}
         />
       </Sequence>
@@ -61,7 +61,7 @@ export const P1Hangar: React.FC<{scene: SceneRange}> = ({scene}) => {
           caption="五源 · 知识 / 能力 / 会话"
           cues={[
             {chapterId: 'fs-know', at: at('p1-07') - bC.from, durationInFrames: dur('p1-07')},
-            {chapterId: 'fs-tools', at: at('p1-08') - bC.from, durationInFrames: dur('p1-08', 'p1-09')},
+            {chapterId: 'fs-tools', at: at('p1-08') - bC.from, durationInFrames: dur('p1-08') + dur('p1-09')},
             {chapterId: 'fs-session', at: at('p1-10') - bC.from, durationInFrames: dur('p1-10')},
           ]}
           lead={false}
@@ -71,13 +71,13 @@ export const P1Hangar: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap slug="five-sources" caption="五源汇流" cues={[{chapterId: 'fs-out', at: at('p1-11') - bD.from, durationInFrames: dur('p1-11')}]} lead={false} />
       </Sequence>
 
-      {/* 1-E 结构轴五层 + 验收面（隔句空窗，首 cue 入场） */}
+      {/* 1-E 结构轴五层 + 验收面（ax-struct 前移 p1-12 填镜首空窗，窗延至 p1-14 末） */}
       <Sequence from={bE.from} durationInFrames={bE.durationInFrames} name="1-E">
         <ArchifyRecap
           slug="blueprint--architecture"
           caption="结构轴 · 五正交层"
           cues={[
-            {chapterId: 'ax-struct', at: at('p1-14') - bE.from, durationInFrames: dur('p1-14')},
+            {chapterId: 'ax-struct', at: at('p1-12') - bE.from, durationInFrames: dur('p1-12') + dur('p1-13') + dur('p1-14')},
             {chapterId: 'ax-accept', at: at('p1-15') - bE.from, durationInFrames: dur('p1-15')},
           ]}
         />
@@ -123,21 +123,21 @@ export const P1Hangar: React.FC<{scene: SceneRange}> = ({scene}) => {
   );
 };
 
-/** 「一扇窗」装置：模型窗口框 + 五色流光涌入。 */
+/** 「一扇窗」装置：模型窗口框 + 五色流光涌入（错峰 grow 兑现 storyboard 动效承诺）。 */
 const ModelWindow: React.FC<{at: number}> = ({at}) => {
   const enter = useEnter('pop', {at, dur: 20});
-  const flows = ['#5B8DC9', '#F5A623', '#7ED321', '#C9A0FF', '#FF9F6B'];
+  const bars = useStagger(5, {stride: 7, at: at + 8});
   return (
     <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
       <div style={{...enter, position: 'relative', width: 640, height: 360, border: `3px solid ${theme.concept}`, borderRadius: 14, background: theme.panel}}>
-        {flows.map((c, i) => (
+        {theme.sourceFlows.map((c, i) => (
           <div
             key={i}
             style={{
               position: 'absolute',
               top: `${18 + i * 14}%`,
               left: 0,
-              width: `${30 + i * 12}%`,
+              width: `${(30 + i * 12) * bars[i]}%`,
               height: 10,
               borderRadius: 5,
               background: c,

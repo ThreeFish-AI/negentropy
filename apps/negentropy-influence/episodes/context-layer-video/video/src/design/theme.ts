@@ -35,5 +35,19 @@ export const theme = {
   // 与 E1（#E8C06A/#5CBFB0/#C9A0FF）、E3（#FF6F91/#3DDC97/#8C9EFF）零撞车；对 #0E1116 对比度均 ≥4.5:1（QA 期 --check-theme 复测）。
   concept: '#5B8DC9',      // 钢蓝：工卡/装配/五源主结构
   conceptDeep: '#F5A623',  // 工业橙：会签/失效/越权警示
-  deny: '#7ED321',         // 校准绿：RII 验证/放行/复利（与 ok 同源——本集「验证通过」语义）
+  // （deny 已删：与 ok 同值的纯别名、全仓 0 引用——「验证通过」语义统一走 ok）
+
+  // ── 本集物料面色（纸面工卡/底稿与终端黑；收口既往散写值，数值不变）──
+  paper: '#F2F5FA',       // 纸面（工卡纸/带版次底稿）——与 text 同值、语义槽独立
+  paperInk: '#171C26',    // 纸面主墨（纸上正文）——与 panel 同值
+  paperInkDim: '#5a6472', // 纸面次墨（纸上注释/小字）
+  terminalBg: '#0B0E14',  // 终端黑（代码走廊/技术请示单内嵌终端底）
+
+  // ── 五源流光（1-A「一扇窗」涌入条；品红替换 E1 概念紫 #C9A0FF——玫红系与 E3 #FF6F91
+  //    色相仅差 6° 亦弃，取 ~300° 全系列空槽）──
+  sourceFlows: ['#5B8DC9', '#F5A623', '#7ED321', '#D65DB1', '#FF9F6B'],
 } as const;
+
+/** hex alpha 派生：withAlpha(theme.ok, 0.08) → '#7ED32114'（a∈[0,1]，替代散写 rgba 手抄）。 */
+export const withAlpha = (hex: string, a: number): string =>
+  hex + Math.round(a * 255).toString(16).padStart(2, '0');

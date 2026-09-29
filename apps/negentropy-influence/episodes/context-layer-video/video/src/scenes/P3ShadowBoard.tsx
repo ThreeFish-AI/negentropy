@@ -1,4 +1,4 @@
-/** P3 影子板与老师傅：目录与富化（p3-01..p3-26b，28 句；storyboard「P3 影子板」节）。
+/** P3 影子板与老师傅：目录与富化（p3-01..p3-26b，29 句；storyboard「P3 影子板」节）。
  *
  *  8 镜 / 6 条 archify cue：
  *   3-A rl-sys@02 · 3-B rl-cgave@05→07 + rl-store@08（接力；前扩填镜首/镜中空窗）· 3-C 代码走廊②（PG 汉字，自 p3-09 起打印）+ fm-split@11
@@ -12,7 +12,6 @@ import {beatWindow} from '../timing';
 import {theme} from '../design/theme';
 import {useEnter, useSpring, useStagger} from '../motion';
 import {SceneTag} from '../components/motifs';
-import {QuoteCard} from '../components/cards';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 import {EvidenceBadge} from '../components/EvidenceBadge';
 import {CodePane} from './P2MasterPage';
@@ -73,9 +72,9 @@ export const P3ShadowBoard: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap slug="failure-map" caption="检索割裂" cues={[{chapterId: 'fm-split', at: at('p3-11') - bC.from, durationInFrames: dur('p3-11')}]} />
       </Sequence>
 
-      {/* 3-D <5% 覆盖率 */}
+      {/* 3-D <5% 覆盖率（装置前移 p3-14 填镜首空窗，徽章留证据句 p3-15） */}
       <Sequence from={bD.from} durationInFrames={bD.durationInFrames} name="3-D">
-        <CoverageBar at={at('p3-15') - bD.from} />
+        <CoverageBar at={at('p3-14') - bD.from} />
         <div style={{position: 'absolute', bottom: 150, left: 80}}>
           <EvidenceBadge level="dashed" at={at('p3-15') - bD.from} note="9,685 表 · 自报口径" />
         </div>
@@ -174,7 +173,7 @@ const TechRequest: React.FC<{at: number}> = ({at}) => {
             {v: pin1, tag: 'AMM 32-11 rev.C', val: '45 N·m'},
             {v: pin2, tag: 'AMM 32-11 rev.D', val: '52 N·m'},
           ].map((p, i) => (
-            <div key={i} style={{flex: 1, position: 'relative', background: '#0B0E14', borderRadius: 8, padding: '16px 18px', border: `1.5px solid ${theme.panelBorder}`}}>
+            <div key={i} style={{flex: 1, position: 'relative', background: theme.terminalBg, borderRadius: 8, padding: '16px 18px', border: `1.5px solid ${theme.panelBorder}`}}>
               <div style={{fontSize: 18, color: theme.dim}}>{p.tag}</div>
               <div style={{fontSize: 40, color: theme.text, marginTop: 8, fontVariantNumeric: 'tabular-nums'}}>{p.val}</div>
               <div style={{position: 'absolute', top: -10, left: '50%', width: 14, height: 14, borderRadius: 7, background: theme.conceptDeep, transform: `scale(${p.v})`}} />

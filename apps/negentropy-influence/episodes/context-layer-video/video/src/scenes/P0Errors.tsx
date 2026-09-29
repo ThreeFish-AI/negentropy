@@ -14,7 +14,7 @@ import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
 import type {SceneRange} from '../types';
 import {beatWindow} from '../timing';
 import {theme} from '../design/theme';
-import {useBreathe, useEnter, usePushIn, useSpring, useStagger} from '../motion';
+import {useEnter, usePushIn, useSpring, useStagger} from '../motion';
 import {SceneTag} from '../components/motifs';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 import {EvidenceBadge} from '../components/EvidenceBadge';
@@ -24,7 +24,6 @@ const hash = (i: number, salt = 1): number =>
   Math.abs(Math.sin(i * 127.1 + salt * 311.7)) % 1;
 
 export const P0Errors: React.FC<{scene: SceneRange}> = ({scene}) => {
-  const f = useCurrentFrame();
   const w = (a: string, b?: string) => beatWindow(scene.sentences, scene.from, a, b);
   const at = (id: string) => w(id).from;
   const dur = (a: string, b?: string) => w(a, b).durationInFrames;

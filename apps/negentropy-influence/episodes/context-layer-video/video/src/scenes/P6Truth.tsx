@@ -14,12 +14,10 @@ import React from 'react';
 import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
 import type {SceneRange} from '../types';
 import {beatWindow} from '../timing';
-import {theme} from '../design/theme';
+import {theme, withAlpha} from '../design/theme';
 import {useFadeOut, useSpring, useStagger} from '../motion';
 import {SceneTag} from '../components/motifs';
-import {QuoteCard} from '../components/cards';
 import {ArchifyRecap} from '../components/ArchifyRecap';
-import {EvidenceBadge} from '../components/EvidenceBadge';
 import {CodePane} from './P2MasterPage';
 import {WorkCard} from '../components/WorkCard';
 
@@ -162,7 +160,7 @@ const VerdictPlate: React.FC = () => {
   const strike = Math.min(1, Math.max(0, (f - 4) / 8));
   return (
     <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-      <div style={{transform: `scale(${0.8 + strike * 0.2})`, border: `4px solid ${theme.ok}`, borderRadius: 14, padding: '34px 56px', background: 'rgba(126,211,33,0.06)'}}>
+      <div style={{transform: `scale(${0.8 + strike * 0.2})`, border: `4px solid ${theme.ok}`, borderRadius: 14, padding: '34px 56px', background: withAlpha(theme.ok, 0.06)}}>
         <div style={{fontSize: 64, color: theme.ok, letterSpacing: 10}}>判定面</div>
         <div style={{fontSize: 22, color: theme.dim, marginTop: 14}}>声明 ⇄ 装配线实跑</div>
       </div>
@@ -203,7 +201,7 @@ const FinalStamp: React.FC<{totalFrames: number}> = ({totalFrames}) => {
             color: theme.ok,
             fontSize: 40,
             transform: 'rotate(12deg)',
-            background: 'rgba(14,17,22,0.9)',
+            background: withAlpha(theme.bg, 0.9),
             letterSpacing: 6,
           }}
         >
