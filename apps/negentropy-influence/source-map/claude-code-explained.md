@@ -94,6 +94,8 @@ s20 不作 ep5 的普通章节、作终幕收束装置（一整轮七步传送�
 | —— | `s16_workflow_runtime` | main 新增，本系列不覆盖（精读归 174 附录） |
 | —— | `s17_goal_loop` | main 新增，本系列不覆盖（精读归 172 附录） |
 
+> **docs 侧分工（2026-10-01）**：`docs/research/agent-harness/176-learn-claude-code-memory.md` 是 s08/s09 的 guided-learn 完全重读（钉 main `ce8f9f18` + 站点页 2026-09-30 抓取 + 官方文档当日交叉），属 docs 精读层、未继承 170–175；本表的章→集归属与各集钉选不受其影响（已交付集的钉默认不动，见规则 5），视频取证仍以各集 source-notes 为准。
+
 ## 五、维护规则
 
 1. **改动只发生在这里**：章→集归属、钉选、`readmeFile`（随修订变）、`sitePaths`

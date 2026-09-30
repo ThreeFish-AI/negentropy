@@ -47,6 +47,8 @@
 | [ai-native--harness-control-loop](./agent-harness/ai-native--harness-control-loop.mmd) | [180 AI Native 手册 §2](../../research/agent-harness/180-ai-native-handbook.md) | workflow | ✓ | done | 三泳道（模型 / 确定性控制面 / 资源与证据）U 形闭环：PEP⇄PDP → 凭证代理 → 生产变更经 Guardrail 三态门控，Trajectory 旁路 |
 | [hermes-agent--turn-loop](./agent-harness/hermes-agent--turn-loop.mmd) | [190 Hermes Agent §2/§3](../../research/agent-harness/190-hermes-agent.md) | workflow | ✓ | done | 三泳道（主循环 / 压缩 / 持久层）：三段式提示只装配一次，超阈值压缩→重建提示为唯一计划内断点，逐条落盘 state.db（trace 动画；新创作，无原文 mermaid 块） |
 | [hermes-agent--learning-loop](./agent-harness/hermes-agent--learning-loop.mmd) | [190 Hermes Agent §2/§5](../../research/agent-harness/190-hermes-agent.md) | workflow | ✓ | done | 三泳道（前台 / 后台 review / 技能库与 Curator）：交付后分叉 → 分派侧白名单（越界得拒绝回执）→ skill_manage 记署名 → 下次会话进目录（trace 动画；新创作，无原文 mermaid 块） |
+| [learn-claude-code-memory--compact-pipeline](./agent-harness/learn-claude-code-memory--compact-pipeline.mmd) | [176 记忆管理 §3](../../research/agent-harness/176-learn-claude-code-memory.md) | workflow | ✓ | done | 三泳道（预处理 0 调用 / 摘要与调用 / 应急与循环）：四层管线主链 + 未超限直达旁路 + PTL 应急回路 + 工具执行回环（新创作，无原文 mermaid 块） |
+| [learn-claude-code-memory--recall-loop](./agent-harness/learn-claude-code-memory--recall-loop.mmd) | [176 记忆管理 §4](../../research/agent-harness/176-learn-claude-code-memory.md) | workflow | ✓ | done | 三泳道（召回注入两条路径 / 对话主循环 / 写入与整理）：索引常驻固定前缀 + 旁路选择按需注入，会话尾提取三门 → 写文件 → ≥10 条整理（新创作，无原文 mermaid 块） |
 
 ### self-evolution/（docs/research/self-evolution/ 的 Dream-RSI 精读）
 
