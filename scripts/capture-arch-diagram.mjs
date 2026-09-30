@@ -258,11 +258,11 @@ async function main() {
       if (now !== theme) throw new Error(`主题切换失败: 期望 ${theme} 实得 ${now}`);
       const r = await cdp.evalFn(PAGE_FNS.exportBlob, "png");
       const okDims = r.dims
-        && r.dims.width % Math.round(vb.width) === 0 && r.dims.height % Math.round(vb.height) === 0
-        && r.dims.width / vb.width === r.dims.height / vb.height
+        && r.dims.width % 4 === 0 && r.dims.height % 4 === 0
+        && r.dims.width >= vb.width * 3 && r.dims.height >= vb.height * 3
         && r.dims.width / vb.width >= 3;
       if (!okDims) {
-        throw new Error(`PNG 尺寸异常: ${JSON.stringify(r.dims)}（期望 viewBox ${vb.width}×${vb.height} 的 ≥3 整数倍等比）`);
+        throw new Error(`PNG 尺寸异常: ${JSON.stringify(r.dims)}（期望 viewBox ${vb.width}×${vb.height} 的 ≥3 倍且 4 对齐；现行导出器含不对称画布边距，不再要求与 viewBox 严格等比）`);
       }
       const file = path.join(outDir, `${opts.slug}-${theme}.png`);
       writeAtomic(file, Buffer.from(r.base64, "base64"));
