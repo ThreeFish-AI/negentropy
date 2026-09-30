@@ -257,10 +257,13 @@ async function main() {
       const now = await cdp.evalFn(PAGE_FNS.setTheme, theme);
       if (now !== theme) throw new Error(`主题切换失败: 期望 ${theme} 实得 ${now}`);
       const r = await cdp.evalFn(PAGE_FNS.exportBlob, "png");
+      // 2026-10 漂移修复：新版 archify 导出器栅格化「内容并集 + 48px padding」（可含结论卡），
+      // 不再恰为 viewBox 整数倍——放宽为「完整包含 viewBox ≥3× + 两轴缩放同量级」，防半幅/空图意图不变。
+      const scaleW = r.dims && r.dims.width / vb.width;
+      const scaleH = r.dims && r.dims.height / vb.height;
       const okDims = r.dims
-        && r.dims.width % Math.round(vb.width) === 0 && r.dims.height % Math.round(vb.height) === 0
-        && r.dims.width / vb.width === r.dims.height / vb.height
-        && r.dims.width / vb.width >= 3;
+        && scaleW >= 3 && scaleH >= 3
+        && Math.abs(scaleW - scaleH) / Math.min(scaleW, scaleH) <= 0.5;
       if (!okDims) {
         throw new Error(`PNG 尺寸异常: ${JSON.stringify(r.dims)}（期望 viewBox ${vb.width}×${vb.height} 的 ≥3 整数倍等比）`);
       }

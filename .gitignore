@@ -317,3 +317,6 @@ apps/negentropy-influence/episodes/*/video/public/archify/*-end.png
 
 # guided-learn 最小原型的运行产物（docs/research/*/assets/*_lab.py 落盘目录）
 .lab_out/
+
+# archify 技能本地创作沙箱（候选 JSON 与修复现场，不入库）
+.archify/
