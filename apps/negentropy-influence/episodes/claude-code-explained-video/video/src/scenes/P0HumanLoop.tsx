@@ -184,8 +184,10 @@ const NoLoopSplit: React.FC<{at03: number; at04: number; span: number}> = ({at03
             <span style={{fontFamily: theme.sans, fontSize: 30, fontWeight: 700, color: theme.text}}>{'无循环'}</span>
             <span style={{fontFamily: theme.mono, fontSize: 20, color: theme.dim}}>{'no loop'}</span>
           </div>
-          <Person x={352} y={318} color={theme.text} />
-          <div style={{position: 'absolute', left: 118, top: 528}}>
+          <Person x={352} y={152} color={theme.text} />
+          {/* 人形/终端/停戳整组上移 166：终端底边 rel 578（距 Panel 底 30px），abs 814
+              收回 Panel 内（原 top 528+216=980，越出 Panel 底 136px 且侵入字幕安全带 920） */}
+          <div style={{position: 'absolute', left: 118, top: 362}}>
             <Terminal
               width={592}
               height={216}
@@ -199,7 +201,7 @@ const NoLoopSplit: React.FC<{at03: number; at04: number; span: number}> = ({at03
             style={{
               position: 'absolute',
               right: 26,
-              top: 540,
+              top: 374,
               opacity: stopped,
               transform: `rotate(-8deg) scale(${0.8 + 0.2 * stopped})`,
               border: `3px solid ${theme.dim}`,

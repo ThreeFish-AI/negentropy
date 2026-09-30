@@ -4,7 +4,7 @@
 
 ## [Unreleased]
 ### Added
-### Claude Code Harness Engineering 系列 5 集完全重制交付（2026-10-01/02）
+### Claude Code Harness Engineering 系列 5 集完全重制交付（2026-09-28..30）
 
 - **系列完全重制 v1 交付**：基于重写的 170–175 精读与新钉双轨（main `0dcafa2`/站点 `67a9126c`）+ 官方文档轨 C，五集全部同 slug rm→scaffold 重来。成片归档 `~/Documents/video/claude-code-explained/` v1×5 + `_captions/{srt,vtt}`×5：
   1. [《工具与执行：一个循环，三层装置》](apps/negentropy-influence/episodes/claude-code-explained-video/README.md) 14:02.6 · 164 句 3644 字（254 字/分实测校准口径直写）· 12 图 65 章 · story 档 43 块 cues

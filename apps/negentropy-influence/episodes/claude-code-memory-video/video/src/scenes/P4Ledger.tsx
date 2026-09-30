@@ -679,7 +679,8 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
             {at: at('p4-20') - bD.from, durationInFrames: dur('p4-20')},
           ]}
         >
-          <Sequence from={at('p4-18') - bD.from} durationInFrames={dur('p4-18') + dur('p4-19')}>
+          {/* 窗终点=p4-20 cue 起点，让位斜坡全作用于已卸载子树 ⇒ 补 f3 骑过斜坡（同 4-B 扉页口径） */}
+          <Sequence from={at('p4-18') - bD.from} durationInFrames={dur('p4-18') + dur('p4-19') + DUR.f3}>
             <CacheBar />
           </Sequence>
           <Sequence from={at('p4-21') - bD.from} durationInFrames={dur('p4-21')}>
@@ -707,7 +708,8 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bE} name="4-E 目录员旁路">
-        <Sequence from={0} durationInFrames={dur('p4-23')}>
+        {/* 窗终点=side-query cue 起点（默认 lead 画框弹簧 at:2 起步）⇒ 补 f3 骑过画框入场段 */}
+        <Sequence from={0} durationInFrames={dur('p4-23') + DUR.f3}>
           <KeeperIntro />
         </Sequence>
         {/* 空窗后重现（p4-23 引子隔开）→ 默认 lead */}
@@ -724,7 +726,8 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bF} name="4-F 模型挑选而非向量">
-        <Sequence from={0} durationInFrames={dur('p4-28')}>
+        {/* 窗终点=model-not-vectors cue 起点（默认 lead 画框弹簧 at:2 起步）⇒ 补 f3 骑过画框入场段 */}
+        <Sequence from={0} durationInFrames={dur('p4-28') + DUR.f3}>
           <GrepZero />
         </Sequence>
         <ArchifyRecap

@@ -878,12 +878,14 @@ const PermissionBubble: React.FC<{atAsk: number; atChain: number; atQuote: numbe
           </span>
         </div>
         <div style={{opacity: quoteIn}}>
+          {/* 逐字锚 atQuote（P1 ClaimScene 范式）：at=0 会在 p2-30 挂载帧起跑，
+              可见时（quoteIn≈p2-32，约 350 帧后）早已打完（2026-09-30 评审） */}
           <MonoQuote
             badge="官"
             badgeColor={theme.core}
             line1={'Teammate permission prompts appear'}
             line2={'in the lead session'}
-            at={0}
+            at={atQuote}
             width={1120}
           />
         </div>

@@ -670,7 +670,7 @@ export const P6TwoSystems: React.FC<{scene: SceneRange}> = ({scene}) => {
           slug="memory-panorama"
           caption="记忆全景"
           cues={[
-            // fit='trim' 显式留痕：章 7 拍 7.76s vs 句窗 2.57s（rate 3.42），前句是
+            // fit='trim' 显式留痕：章 7 拍 7.76s vs 句窗 1.95s（rate 3.98），前句是
             // StackReturn 归位岛、后句 lossy-side 专属 cue，无法扩窗——全景仅作开答
             // 过渡（前两拍），完整兑现由 two-clamps@p6-13 / vow-cashed@p6-14 承接
             {chapterId: 'answer-panorama', at: at('p6-08') - bB.from, durationInFrames: dur('p6-08'), fit: 'trim'},

@@ -329,7 +329,10 @@ const SelfIntro: React.FC<{atCard: number; atClaims: number; atReg: number; atOf
   const okLight = useImpulse({at: atReg, dur: DUR.f6});
   const okOn = useProgress(atReg, DUR.f4);
   const gateLabel = useProgress(atReg + DUR.f4, DUR.f4);
-  // p5-16 官方两档引语卡（@reveal 逐字）＋金句定格；链条退后
+  // p5-16 官方两档引语卡（@reveal 逐字）＋金句定格；链条退后。
+  // 整卡随 p5-16 slideR 入场（P4 PhaseStrength official 同款）——外层无门控则
+  // 空卡（不透明底+表头）自本镜第 0 帧悬浮 ~17s 压住右侧名片卡（2026-09-30 评审）
+  const official = useEnter('slideR', {at: atOfficial, dur: DUR.f5, dist: 60});
   const dim = useDim({at: atOfficial, to: 0.22, dur: DUR.f5});
   const quote = useReveal('filters the tool out before Claude sees it', {at: atOfficial + DUR.f4, cps: 20});
   const tiers = useStagger(2, {at: atOfficial + DUR.f3, stride: 10, dur: DUR.f4});
@@ -457,8 +460,8 @@ const SelfIntro: React.FC<{atCard: number; atClaims: number; atReg: number; atOf
         </div>
       </div>
 
-      {/* p5-16 官方两档引语卡（mono 引语态；链条退后） */}
-      <div style={{position: 'absolute', left: 560, top: 210}}>
+      {/* p5-16 官方两档引语卡（mono 引语态；链条退后；整卡 slideR 入场，内容行仍走 atOfficial 时序） */}
+      <div style={{position: 'absolute', left: 560, top: 210, ...official}}>
         <Panel style={{width: 800, boxSizing: 'border-box', padding: '22px 32px'}}>
           <div
             style={{
@@ -551,9 +554,11 @@ export const P5McpSocket: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bC} name="5-C 缓存拆解">
-        {/* 堆叠装置在 stale-list-miss 全屏窗内让位（b 模式：opacity 淡出让位） */}
+        {/* 堆叠装置在 stale-list-miss 全屏窗内让位（b 模式：opacity 淡出让位）。
+            窗终点=p5-11 cue 起点，内层 dur 含句间 gap ⇒ 补 f3 骑过让位斜坡，
+            否则斜坡全作用于已卸载子树、cue 空窗重现裸底（ep3 P4Ledger:682 同修法） */}
         <ArchifyYield cues={[{at: at('p5-11') - bC.from, durationInFrames: dur('p5-11')}]}>
-          <Sequence durationInFrames={dur('p5-10')} name="5-C 缓存堆叠">
+          <Sequence durationInFrames={dur('p5-10') + DUR.f3} name="5-C 缓存堆叠">
             <CacheStack atScatter={3 * DUR.f6} />
           </Sequence>
         </ArchifyYield>

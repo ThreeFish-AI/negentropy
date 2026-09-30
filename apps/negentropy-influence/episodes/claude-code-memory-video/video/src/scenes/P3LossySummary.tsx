@@ -481,7 +481,8 @@ export const P3LossySummary: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bD} name="3-D 官方对照与保留面">
-        <Sequence from={at('p3-14') - bD.from} durationInFrames={dur('p3-14') + dur('p3-15')}>
+        {/* 窗终点=all-for-one-line cue 起点（默认 lead 画框弹簧 at:2 起步）⇒ 补 f3 骑过画框入场段 */}
+        <Sequence from={at('p3-14') - bD.from} durationInFrames={dur('p3-14') + dur('p3-15') + DUR.f3}>
           <OfficialFresh />
         </Sequence>
         <ArchifyRecap

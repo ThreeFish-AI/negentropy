@@ -1,12 +1,11 @@
 /** 本集视觉母题库（每集独有；复用边界见 pipeline/README.md §四——
  *  Remotion 原语复制适配、不做跨集共享包）。
  *
- *  五个母题，对应 script/storyboard.md 反复出现的画面语言：
+ *  四个母题，对应 script/storyboard.md 反复出现的画面语言：
  *    Terminal      终端窗口 + 打字机（P0 痛点、P2 命令拼接、P5 回照）
  *    LoopRing      环形循环 —— 全片恒定视觉锚（P1…P5 共五次出现）
  *    DispatchTable 字典分发表（P2 工具分发、P4 时机注册表）
  *    GateRouter    闸门路由（P3 三道闸门）
- *    SlotRing      插槽注册板（P4 四个插口挂在环外）
  *
  *  ★ LoopRing 的不变量：`stroke` 恒为 theme.core、`strokeWidth` 恒为绝对像素
  *  （不随 size 缩放）。「循环始终不变」这个主题靠它被**看见**而不是被听说，
@@ -478,87 +477,6 @@ export const GateRouter: React.FC<{
         </text>
       ) : null}
     </svg>
-  );
-};
-
-// ─────────────────────────────────────────────────────────── 母题 5：插槽注册板
-
-export type Slot = {name: string; when: string; callbacks: string[]};
-
-/**
- * 环外四个插槽，按一整轮的时间顺序排在**四个角**（左上→右上→右下→左下）。
- *
- * 定位契约：本组件用 `position:absolute`，故调用方必须给一个
- * `position:relative` 的容器，且容器尺寸至少为 `size + 2*(SLOT_W + SLOT_GAP)`
- * 宽、`size + 220` 高 —— 否则卡片会压到环上或互相重叠（4-D 曾踩：卡片盖住环、
- * 「工具执行之后」被完全遮住）。环应居中于该容器。
- */
-export const SLOT_W = 330;
-export const SLOT_GAP = 40;
-
-export const SlotRing: React.FC<{
-  slots: Slot[];
-  /** 已点亮到第几个（-1 全暗） */
-  lit: number;
-  /** 环直径——用于推导容器尺寸，须与同容器内 LoopRing 的 size 一致 */
-  size?: number;
-}> = ({slots, lit, size = 430}) => {
-  const frame = useCurrentFrame();
-  const {fps} = useVideoConfig();
-  const W = size + 2 * (SLOT_W + SLOT_GAP);
-  const right = W - SLOT_W;
-  // 四角：上排贴顶、下排贴底，横向让出环的直径
-  const pos = [
-    {left: 0, top: 0},
-    {left: right, top: 0},
-    {left: right, top: undefined as number | undefined, bottom: 0},
-    {left: 0, top: undefined as number | undefined, bottom: 0},
-  ];
-  return (
-    <>
-      {slots.map((s, i) => {
-        const on = i <= lit;
-        const enter = spring({frame: frame - i * 6, fps, config: {damping: 200}});
-        const p = pos[i];
-        return (
-          <div
-            key={s.name}
-            style={{
-              position: 'absolute',
-              left: p.left,
-              top: p.top,
-              bottom: p.bottom,
-              width: SLOT_W,
-              opacity: on ? enter : 0.22,
-              transform: `translateX(${on ? 0 : i === 1 || i === 2 ? 18 : -18}px)`,
-            }}
-          >
-            <Panel
-              accent={on ? theme.mech : theme.panelBorder}
-              style={{padding: '12px 16px', background: on ? theme.mechDeep : theme.panel}}
-            >
-              <div style={{fontFamily: theme.sans, fontSize: 25, fontWeight: 700, color: on ? theme.mech : theme.dim}}>
-                {s.name}
-              </div>
-              <div style={{fontFamily: theme.sans, fontSize: 19, color: theme.dim, marginTop: 3}}>
-                {s.when}
-              </div>
-              {on
-                ? s.callbacks.map((c) => (
-                    <div
-                      key={c}
-                      style={{fontFamily: theme.mono, fontSize: 20, color: theme.text, marginTop: 5}}
-                    >
-                      {'▸ '}
-                      {c}
-                    </div>
-                  ))
-                : null}
-            </Panel>
-          </div>
-        );
-      })}
-    </>
   );
 };
 

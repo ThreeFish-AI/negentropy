@@ -952,7 +952,8 @@ const TurnTimeline: React.FC<{atBars: number; atBusy: number}> = ({atBars, atBus
 /** 吊杆+摆锤：进场 12 帧内升起，随后等幅缓摆（正弦衰减）——到点响起的物理感。 */
 const PendulumGlyph: React.FC<{at: number; left: number; top: number}> = ({at, left, top}) => {
   const rise = useEnter('rise', {at, dur: DUR.f4, dist: 26});
-  const t = useProgress(at + DUR.f4, 9999); // 摆动相位（0→1 累进）
+  // 摆动相位：0→1 线性走完 240 帧（~3 次完整摆衰减）；窗尽钳 1 ⇒ deg=0 归正中
+  const t = useProgress(at + DUR.f4, 240, 'linear');
   const deg = 26 * Math.sin(t * Math.PI * 6) * Math.exp(-t * 1.6); // 衰减摆
   return (
     <div style={{position: 'absolute', left, top, width: 216, height: 302, opacity: rise.opacity * 0.95}}>

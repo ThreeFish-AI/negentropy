@@ -64,9 +64,6 @@ const Person: React.FC<{x: number; y: number; scale?: number; opacity?: number}>
 
 // ── 5-A 大实话先行：打烊灯灭（p5-01..03） ───────────────────────────────
 
-/** 秒针停摆角度（半途——停在 4 点多钟的位置，永不走完这一圈） */
-const STOP_DEG = 137;
-
 const ClosingDown: React.FC<{atDie: number; atGone: number}> = ({atDie, atGone}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
@@ -79,7 +76,7 @@ const ClosingDown: React.FC<{atDie: number; atGone: number}> = ({atDie, atGone})
   const drumStop = atDie + DUR.f4;
   const drumRot = 120 * clamp01(progress(frame, DUR.f5, drumStop - DUR.f5));
   const sinkDim = useDim({at: atDie, to: 0.4, dur: DUR.f5});
-  // 定时钟：秒针匀速绕行 → 停在半途（useTravel 连续，停摆帧起冻结）
+  // 定时钟：秒针匀速绕行 → 冻结在半途（drumStop 相位决定：≈328°，十到十一点位，永不走完这一圈）
   const SEC_PER_LAP = 6;
   const travel = useTravel({cx: 0, cy: 0, r: 1, secPerLap: SEC_PER_LAP});
   const frozen = ((((drumStop / (fps * SEC_PER_LAP)) % 1) + 1) % 1) * 360;

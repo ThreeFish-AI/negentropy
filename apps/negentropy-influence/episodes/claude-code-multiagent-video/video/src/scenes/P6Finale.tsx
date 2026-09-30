@@ -80,13 +80,24 @@ const Person: React.FC<{x: number; y: number; color: string; scale?: number; opa
 
 /** 金句卡定格层：可选衬底 scrim（叠在仍在场的装置上，先入场后压暗）；缺省无衬底。
  *  caption-dup-ok 注记由调用处随 storyboard 豁免逐卡声明。 */
-const QuoteWithScrim: React.FC<{zh: string; scrim?: boolean}> = ({zh, scrim = false}) => {
+const QuoteWithScrim: React.FC<{zh: string; scrim?: boolean; span?: number}> = ({
+  zh,
+  scrim = false,
+  span,
+}) => {
   const rawO = useProgress(2, DUR.f4);
   // scrim=false = 无衬底（QuoteCard 自带卡底可独立悬浮）。勿回写成 1：恒满 0.86
   // 会首帧瞬跳，且盖死右侧车道常驻的身份卡（2026-09-30 评审实录）
   const o = scrim ? rawO : 0;
+  // 窗尾下行斜坡（8 帧线性，手法同 FinaleTail 的 useFadeOut 尾坡）：限定窗的
+  // Sequence 在窗尾整帧卸载，无斜坡则 0.86 暗幕与其下满亮装置间 1 帧亮度跳变
+  // （ISSUE-205 只盖片尾渐黑，这张中途 scrim 未覆盖；2026-09-30 评审批注 e4595eb3）。
+  // 无 span（恒驻窗，交给 FinaleTail 收暗）时斜坡起点不可达，恒为 1
+  const out = useFadeOut(span ?? Number.MAX_SAFE_INTEGER, {frames: 8});
   return (
-    <AbsoluteFill style={{background: withAlpha(theme.bg, 0.86 * o), pointerEvents: 'none'}}>
+    <AbsoluteFill
+      style={{opacity: out, background: withAlpha(theme.bg, 0.86 * o), pointerEvents: 'none'}}
+    >
       <QuoteCard zh={zh} />
     </AbsoluteFill>
   );
@@ -744,10 +755,11 @@ export const P6Finale: React.FC<{scene: SceneRange}> = ({scene}) => {
           at21={at('p6-21') - bD.from}
           at23={at('p6-23') - bD.from}
         />
-        {/* p6-19 系列收束金句（终集特款） */}
+        {/* p6-19 系列收束金句（终集特款；span 传入 ⇒ scrim 与卡随窗尾斜坡平滑退出，
+            p6-20 起无 1 帧亮度跳变） */}
         <Sequence from={at('p6-19') - bD.from} durationInFrames={dur('p6-19')} name="6-D 收束金句">
           {/* caption-dup-ok: 系列总收束句金句卡，主字已压短非逐字（storyboard 6-D 注记） */}
-          <QuoteWithScrim zh="机制很多 · 循环一个" scrim />
+          <QuoteWithScrim zh="机制很多 · 循环一个" scrim span={dur('p6-19')} />
         </Sequence>
         {/* cue 8/8：collab-panorama/all-lit-map（空窗长后重现 → 默认入场）。
             窗 = p6-21..p6-22 两句（258 帧 8.60s）：章 10 拍 11.54s，单句窗只够播 30%——

@@ -157,11 +157,12 @@ const SinkRowWatch: React.FC = () => {
       >
         {'甩出去的活 · 卡在半路？'}
       </div>
-      <div style={{position: 'absolute', left: 470, top: 340, display: 'flex', gap: 60}}>
+      {/* 槽位水平排开：SinkSlot 根节点 absolute，flex/gap 不生效——间距走 x（260 = 200 槽宽 + 60 间隔），右缘 1420 */}
+      <div style={{position: 'absolute', left: 440, top: 340}}>
         {row.map((s, i) => (
           <SinkSlot
             key={i}
-            x={0}
+            x={i * 260}
             y={0}
             size={200}
             stuck={s.stuck}

@@ -9,7 +9,7 @@
  *  后挂的 4-D 实例 lead={false}。
  */
 import React from 'react';
-import {AbsoluteFill, Sequence} from 'remotion';
+import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
@@ -140,22 +140,25 @@ const SocketMotif: React.FC<{
   atQuote: number;
   atAll: number;
 }> = ({span, atPlug, seatAt, atQuote, atAll}) => {
+  const frame = useCurrentFrame();
   // 插口描线展开：环沿 →「执行前」口
   const draw = useDraw(2, DUR.f5);
   const plugPop = useEnter('pop', {at: atPlug, dur: DUR.f4});
   // 到站减速（decelerate）：挂入的动作是「对准」不是「砸进」
   const travel = useProgress(atPlug + DUR.f4, DUR.f6, 'decelerate');
   const seatGlow = useImpulse({at: seatAt, dur: DUR.f6});
-  const allLit = useProgress(atAll, DUR.f4);
-  const seated = useProgress(seatAt - DUR.f4, DUR.f4);
-  const lit = allLit > 0.5 ? 3 : seated > 0.5 ? 1 : -1;
+  // 点亮锚（显式帧）：咬合 beat（seatAt）点亮前两口、p4-06 全亮 beat（atAll）
+  // 点亮后两口。lit 的翻转与 SlotRing 的 enterAt 同帧——翻转若晚于弹簧起跳，
+  // 入场前几帧会被 on 门控吞掉，点亮处出现透明度跳变
+  const enterAt = [seatAt, seatAt, atAll, atAll];
+  const lit = frame >= atAll ? 3 : frame >= seatAt ? 1 : -1;
 
   return (
     <AbsoluteFill>
       <KernelCore size={SLOT_RING.size} left={SLOT_BOX.left + SLOT_RING.inLeft} top={SLOT_BOX.top + SLOT_RING.inTop} span={span} />
 
       <div style={{position: 'absolute', left: SLOT_BOX.left, top: SLOT_BOX.top, width: SLOT_BOX.w, height: SLOT_BOX.h}}>
-        <SlotRing slots={SOCKETS} lit={lit} size={SLOT_RING.size} />
+        <SlotRing slots={SOCKETS} lit={lit} enterAt={enterAt} size={SLOT_RING.size} />
       </div>
 
       <svg width={1920} height={1080} style={{position: 'absolute', left: 0, top: 0}}>
