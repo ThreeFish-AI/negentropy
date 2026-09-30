@@ -4343,3 +4343,13 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **处理方式**：本批修码后五集全量重渲（render --final + captions + deliver，归档 v2），按 ISSUE-204 三源对账（mdls/mp4 实测/manifest 复算）后回填 statusNote 与 CHANGELOG。
 - **后续防范**：改共享冻结件（Archify 三件/Subtitle/i18n 系）的 PR 须登记「波及集清单+重渲待办」，交付登记以成片时间戳 ≥ 修复提交为验收线。
 - **同类问题影响**：未来任何共享件变更同理；RSI 侧（to-video #24）已把纯底色段门入仓，重渲后可自动拦截空段回归。
+
+## ISSUE-208 archify 3.0.0 figure 导出与 capture-arch-diagram.mjs 4× 断言不兼容（2026-10-01，开放）
+
+- **表因**：用已装 archify 3.0.0 产出新图后，`node scripts/capture-arch-diagram.mjs` 恒 FATAL「PNG 尺寸异常」——导出 PNG = viewBox + 恒定图框边距（FIGURE_CARD_PADDING=24 ×2 + 标题头 ~50，实测 viewBox 1204×548 → 导出 1308×702，×4 后非整数倍），而脚本断言严格等于 viewBox×4（为 archify ≤2.x 的 authored-height 无图框导出所写）。仓内既有全部 PNG（five-layer/hermes/execution-panorama 等）均为旧版 archify 产的精确 4×。
+- **根因**：archify 3.0.0 的 PNG 导出走 `figureLayout()`（serializeSvg figure:true）：把 svg 包进带标题头与卡片衬底的「图版」再栅格化，导出区域 ≠ svg viewBox；采集脚本的完整性断言未随之演进。另注：workflow 型（readable-v2 布局契约）即便补 meta.viewBox 得到 authored-height，figure 边距依旧存在；且 workflow 型在全仓资产中从未有成功采集先例。
+- **处理方式（本次）**：不改仓脚本（冻结契约），lab 侧写采集变体 `.temp/<lab>/capture-fig.mjs`——走 exportMenu 的 `svg-dark`/`svg-light` 纯 SVG 导出（无图框），页内按 viewBox×4 栅格化，双主题、尺寸断言与原子写对齐仓脚本口径；新图 `claude-code-tooling--loop-mounted-layers` 双 PNG 即此产出（4816×2192 = 1204×548×4）。
+- **待办**：capture-arch-diagram.mjs 增加 archify 3.x 模式（按 figureLayout 实测边距推导期望尺寸，或直接切 SVG 导出×N 栅格化路径），否则 3.0.0 产的新图全部无法走仓管线。
+- **后续防范**：archify 升版后先跑一张探针图过采集脚本再批量出图；「导出尺寸契约」属于脚本与工具间的隐性接口，升级核对面应包含它。
+- **同类问题影响**：所有计划用 archify 3.x 新绘/重绘的 docs/assets/architecture 图。
+- **追加（2026-10-01）**：3.0.0 产出 HTML 另含行尾空格（loop-mounted-layers 实测 15 处，2.17 无），trailing-whitespace 钩子剥空格会使 finalize/delivery 回执 sha256 与入库文件失配（仓惯例要求一致，bg-board-and-lock 2.17 实证 MATCH）。处置：pre-commit 的 trailing-whitespace/end-of-file-fixer 对 docs/assets/architecture/ 增加豁免（与 source-archive/ 同理：冻结产物保指纹，经用户确认）。

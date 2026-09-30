@@ -1,0 +1,16 @@
+%% source: docs/research/agent-harness/171-claude-code-tooling-execution.md §2
+%% slug: claude-code-tooling--loop-mounted-layers
+%% type: workflow
+%% derived: docs/assets/architecture/agent-harness/claude-code-tooling--loop-mounted-layers.html
+flowchart TD
+    IN["用户问题（首条 user 消息）"] --> UPS["UserPromptSubmit 钩子<br/>输入后·进模型前"]
+    UPS --> MODEL["模型：读消息数组 + 工具清单"]
+    MODEL --> SIG{"回答里有<br/>工具请求块？"}
+    SIG -- 无 --> STOP["Stop 钩子<br/>收尾·非 None 可强制续跑"]
+    SIG -- 有 --> PRE["PreToolUse 钩子<br/>三闸门：硬拒绝→规则→问人"]
+    PRE -- 拒绝 --> DENY["被拒原因作为 tool_result"]
+    PRE -- 放行 --> DISP["TOOL_HANDLERS 查表执行"]
+    DISP --> POST["PostToolUse 钩子<br/>输出检查/副作用"]
+    DENY --> FEED["以 user 消息回喂"]
+    POST --> FEED
+    FEED --> MODEL
