@@ -2,8 +2,11 @@
 
 本文件遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 约定，版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
-## [Unreleased]
 ### Added
+### Snowflake Horizon Context 精读换代更新（2026-09-30）
+
+- **[011 精读笔记](docs/research/cognitive-context/011-horizon-context.md) guided-learn 换代重写（§7 四桶继承，61 处编辑·53+/39-，零标题变更零重编号零图变更）**：Phase 0 十读源代理 55 快照（webReader 缓存陈旧处一律 curl 实况交叉）+ 125 条旧稿声明逐条裁定——**保留** 22 帧框架 / **更新** 21 项 / **删除** 4 处失真（Rita Sallam 引语实出自其本人 LinkedIn 换 Simon AI CTO 新闻稿在场引语、OSI "13 committers/7 PPMC" 查无实据改 clutch 实况 4 人、docs 伞名「全站零命中」被 S17 证伪改「已开始实例化」、「agentic catalog」改 universal AI catalog 实况引语）/ **新增** 9 项（物化 59x–91x 自报基准+Semantic SQL only 限定、agent 入血缘一等节点、MCP 仅 tool capabilities、Ataccama trust signals、OSS 范围纪律、时间线 09-17 后 7+ 里程碑等）。四项旧引用悬空补证：VQR >20 阈值（analyst-optimization 页）、Cube 回退底表（cube.dev .md 导出）、Glean $200M（官方二稿）、物化 Aug-12 工程博客。源稿对账 89 行 3+1 全新 Checker 两轮（26 行返工复判+三处终修），COUNTS 八项全零、URL UNREG 0、REFS 33=在用 33；仓内 lab 双 selftest 真跑逐字一致零漂移（lab 零修改）；盲评 2 判官 3 章无返修；外行四测读懂/看会/学通全过、听知跨段过+复述按 1 轮上限记已知局限；8 处外行补阙增量 Checker 8/8 保留。信源面新增 [31]–[33] 参考三条（物化工程博客/Ossie 官网+Ataccama/Release Notes 2025–2026）并扩充 [4][7][11][12][20][24][28][30] 八条既有条目锚。状态时点 2026-09-17 → 2026-09-30（§15 逐项重验，Semantic Studio 记 docs/产品页口径两说）。
+
 ### Claude Code Harness Engineering 系列 5 集完全重制交付（2026-09-28..30）
 
 - **系列完全重制 v1 交付**：基于重写的 170–175 精读与新钉双轨（main `0dcafa2`/站点 `67a9126c`）+ 官方文档轨 C，五集全部同 slug rm→scaffold 重来。成片归档 `~/Documents/video/claude-code-explained/` v1×5 + `_captions/{srt,vtt}`×5：
