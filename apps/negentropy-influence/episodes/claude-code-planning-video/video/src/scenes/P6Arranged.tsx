@@ -50,7 +50,9 @@ const withAlpha = (hex: string, a: number): string =>
 // ── 6-B p6-08 空窗回落：「零新本事」小卡 ────────────────────────────────
 
 const ZeroCard: React.FC<{at08: number; at09: number}> = ({at08, at09}) => {
-  const pop = useEnter('pop', {at: DUR.f2, dur: DUR.f4});
+  // 入场锚 p6-08 句起（卡片直接挂 6-B、无句锚 Sequence 包裹，at 须自带句偏移；
+  // 否则弹簧在 6-B 帧 3 即播完——被全屏 archify 遮盖，空窗句只见硬切静止卡）
+  const pop = useEnter('pop', {at: at08 + DUR.f2, dur: DUR.f4});
   // p6-09 画框回来前先退场（避免被入场弹簧半透明地压住）
   const out = useProgress(at09 - DUR.f3, DUR.f3);
   const o = pop.opacity * (1 - out);

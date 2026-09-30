@@ -128,7 +128,9 @@ export const ArchifyClip: React.FC<{
             src={staticFile(`archify/${file}`)}
             muted
             playbackRate={rate}
-            trimBefore={Math.round(leadSec * fps)}
+            // +1 帧：trimBefore 边界帧会解码到场记板白闪的末帧（openviking-video 3-C 实测单帧 255 亮度），
+            // 多跳一帧落在故事首帧（亮度 ≈25），视觉上无可感时移
+            trimBefore={Math.round(leadSec * fps) + 1}
             style={{width: '100%', height: '100%', objectFit: 'contain'}}
           />
         </Sequence>

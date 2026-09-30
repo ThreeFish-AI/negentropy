@@ -5,7 +5,8 @@
  *  ★ 台面母题（P12BenchDevices.BenchTop，core 橙恒定描边〔M-001〕）恒居左中锚位：
  *    2-A 台面全景聚焦、2-D 台面上的最近窗口；取货条 ClaimTag 在 2-A/2-D 复用同形。
  *  archify 两图（pointer-trade / compact-entries）全屏独占：一章锚一句（at+dur 同句单参）；
- *  2-B 跨实例背靠背接 2-A，lead={false}；2-F 空窗后重现保持默认 lead（分镜 lead 清单）。
+ *  2-B 首章跨实例背靠背接 2-A，lead={false}；2-B 次章（p2-07 空窗后重现）与 2-F
+ *  空窗后重现各自独立实例保持默认 lead（分镜 lead 清单）。
  */
 import React from 'react';
 import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
@@ -572,15 +573,18 @@ export const P2CompactSteps: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bB} name="2-B 占位符与通用提示">
-        {/* 跨实例背靠背接 2-A：lead={false} */}
+        {/* 跨实例背靠背接 2-A：lead={false}（仅为首章所需） */}
         <ArchifyRecap
           slug="pointer-trade"
           caption="指针换空间"
           lead={false}
-          cues={[
-            {chapterId: 'slide-and-flatten', at: at('p2-06') - bB.from, durationInFrames: dur('p2-06')},
-            {chapterId: 'hint-no-address', at: at('p2-08') - bB.from, durationInFrames: dur('p2-08')},
-          ]}
+          cues={[{chapterId: 'slide-and-flatten', at: at('p2-06') - bB.from, durationInFrames: dur('p2-06')}]}
+        />
+        {/* hint-no-address 在 p2-07 空窗后重现 → 独立实例默认入场（4-D cache-stakes 同款拆分） */}
+        <ArchifyRecap
+          slug="pointer-trade"
+          caption="指针换空间"
+          cues={[{chapterId: 'hint-no-address', at: at('p2-08') - bB.from, durationInFrames: dur('p2-08')}]}
         />
         <Sequence from={at('p2-07') - bB.from} durationInFrames={dur('p2-07') + DUR.f3} name="2-B 占位符引语卡">
           <PlaceholderQuote />

@@ -3,8 +3,8 @@
  *  ★ 空间契约：定时线装置族挂**上缘墙面**（ClockFace 母题 + 入口小格子 + 岗哨），
  *    与右缘后台线分轨；传送带（core 橙恒转底盘〔M-001〕）恒居左中锚位，
  *    「装置在动而传送带不停」的动效铁律落在 4-C 递条一拍。
- *  ★ 4-A 是本集 Lottie 点缀之二：LottieEmphasis clock-swing 钟摆强调（mech 蓝，
- *    资产由 public/lottie/gen_clock_swing.py 生成）。
+ *  ★ 4-A 钟摆强调＝Remotion 原生 PendulumGlyph（Lottie clock-swing 因 headless ANGLE
+ *    确定性挂死退役〔ISSUE-202〕；public/lottie/ 资产留档未用）。
  *  ★ archify 全屏独占两图接力：clock-four-layers 三镜（4-B/4-C/4-D——4-C 与 4-B
  *    帧相邻 ⇒ lead={false}，4-D 前有 p4-20 空窗 ⇒ 默认 lead）＋ clock-dedupe×
  *    clock-bad-jobs 双实例（4-E 内坏闹钟实例接前图末章帧相邻 ⇒ lead={false}）。
@@ -19,7 +19,6 @@ import type {SceneRange} from '../types';
 import {Footnote, LoopRing, Panel, SceneTag} from '../components/motifs';
 import {HarnessBadge} from '../components/harness-stack';
 import {ClockFace} from '../components/clock-face';
-import {LottieEmphasis} from '../components/LottieEmphasis';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 import {
   DUR,
