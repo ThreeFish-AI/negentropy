@@ -11,24 +11,24 @@
 > **archify 资产档位**：全屏独占（`forbid_inset`，无画中画）——播放期自制装置由 ArchifyYield 淡出让位或空窗句回落；章节数据＝录制 SSOT，见 [../video/public/archify/views/](../video/public/archify/views/)，每章时长＝拍数 × max(1100ms, 3200ms/拍数)；cue 纪律：一章锚一句（`at('句id')` + `dur('同句id')` 单参），同锚句双 cue 即 FAIL；**同图跨镜界帧相邻的后挂实例一律 `lead={false}`**（本集四处：1-C／2-B／4-C／4-E 内坏闹钟实例；空窗后重现的实例保持默认 lead）。timing-panorama 等同名题材产物按 planning §3 走全原生重绘，不开旧产物复用通道。
 > ⚠️ 动效列与一切散文**禁写**画面列那套档位字面标注（覆盖门按全文计数断言，多一处命中即 FAIL），散文一律写「全屏独占／画中画」；`@动词` 只用 [motion/hooks.ts](../video/src/motion/hooks.ts) 实存模型，判据＝本镜 `<Sequence>` 内由本幕 scene 自身定义的装置调用了该 `useXxx(`（`components/` 内装置承担者一律散文点名，不产生 token）；角标 token 与章节 token 分处不同 `·` 段（覆盖门按段解析，混段即串账）。
 
-## 图集预算表（12 图全原生重绘；6 型；59 章＝59 cue 计划，锚定率 59/170≈0.35 ≥ 0.30，密度 ≈4.2/分 ≥ 3.0；命名循 `claude-code--{slug}.html`，与其他集不撞名）
+## 图集预算表（12 图全原生重绘；5 型；59 章＝59 cue 计划，锚定率 59/170≈0.35 ≥ 0.30，密度 ≈4.2/分 ≥ 3.0；命名循 `claude-code--{slug}.html`，与其他集不撞名）
 
 | # | slug（新绘落 `docs/assets/architecture/agent-harness/claude-code--<slug>.html`） | 型 | 服务幕/句段 | 章 |
 | --- | --- | --- | --- | --- |
 | 1 | bg-two-verdicts | workflow | P1 两级判定（p1-07..12） | 4 |
 | 2 | bg-placeholder-receipt | sequence | P1 占位回执时序（p1-13..17） | 4 |
 | 3 | bg-board-and-lock | architecture | P1 登记板与锁（p1-18..22） | 4 |
-| 4 | notify-protocol | state | P2 一问一答与独立通知（p2-01..07） | 5 |
+| 4 | notify-protocol | lifecycle | P2 一问一答与独立通知（p2-01..07） | 5 |
 | 5 | notify-merge | dataflow | P2 同框合流（p2-08..12） | 5 |
 | 6 | apprentice-watch | workflow | P3 停滞判据＋小字条＋官方监视（p3-01..16） | 7 |
 | 7 | clock-four-layers | architecture | P4 四层解耦总装（p4-09..22） | 6 |
 | 8 | clock-dedupe | dataflow | P4 带日期分钟去重（p4-23..27） | 4 |
-| 9 | clock-bad-jobs | state | P4 坏任务三层防护（p4-28..31） | 3 |
+| 9 | clock-bad-jobs | lifecycle | P4 坏任务三层防护（p4-28..31） | 3 |
 | 10 | durable-lifecycle | lifecycle | P5 durable 生命周期（p5-04..10） | 5 |
 | 11 | schedule-three-tiers | architecture | P5 官方三档阶梯（p5-11..17） | 5 |
 | 12 | timing-panorama | architecture | P0 双闪预告（p0-04/p0-17）＋P5 全景自白（p5-19..23）＋P6 收束读图（p6-06/p6-13） | 7 |
 
-> 型多样性＝workflow×2 / sequence×1 / architecture×4 / state×2 / dataflow×2 / lifecycle×1 ＝ 6 型 ≥ 5（sidecar 顶层 `type` 录制时按本表落盘）。主仓 docs 侧另有 `claude-code-concurrency--timing-panorama.html` 旧产物（文档图层），与本集 `claude-code--timing-panorama.html` 不同名不撞车，后者按本集 views 全原生重绘。P0/P6 首尾幕的幕级锚定由 #12 双闪与收束章承担（ep1 先例：总装图首尾复用），其余 11 图全部服务正文幕。
+> 型多样性＝workflow×2 / sequence×1 / architecture×4 / dataflow×2 / lifecycle×3 ＝ 5 型 ≥ 5（sidecar 顶层 `type` 以落盘实测为准：notify-protocol 与 clock-bad-jobs 建图期为 state、落盘重嗅探为 lifecycle——本表按交付物登记，与 manifest 同源；ISSUE-201 型漂移先例在案）。主仓 docs 侧另有 `claude-code-concurrency--timing-panorama.html` 旧产物（文档图层），与本集 `claude-code--timing-panorama.html` 不同名不撞车，后者按本集 views 全原生重绘。P0/P6 首尾幕的幕级锚定由 #12 双闪与收束章承担（ep1 先例：总装图首尾复用），其余 11 图全部服务正文幕。
 
 ## P0 两类时间（p0-01..18）→ `scenes/P0TwoTimes.tsx`
 
@@ -39,7 +39,7 @@
 | 0-C | p0-11..14 | 到点的活：日历墙（上缘 mech 蓝刻度网格）＋九点整刻度高亮点亮；空台面（师傅剪影缺席，空无一人）；「你说一句 · 它动一下」对白气泡（dim 灰人色）；漏触发示意——日历翻页一天过去、九点再亮但带上无活；角标 `0 9 * * *`（预告，不口播） | 九点刻度点亮 `useImpulse`（一次性）；日历翻页 `useProgress`；空台面留白呼吸 `useBreathe`（dim 低频）；`@impulse` `@progress` `@breathe` |
 | 0-D | p0-15..18 | 悬念立碑：主问题字卡双联对开（「等不等？」「谁按开始？」，mech 蓝点睛「等」「按」二字——落 p0-15 立碑句）→「更快的机器」「更多的工坊」字卡双双划掉（dim 划线）→ 两装置预告剪影自右缘点亮（mech 蓝 ×2：清洗槽滚筒轮廓／定时钟盘轮廓）＋全图二闪（两支路点亮态） ·**archify full**：timing-panorama 章 `two-devices-lit` · p0-18 金句预埋小卡（衬线体预告态「没有平行宇宙」） caption-dup-ok: 金句预埋小卡，主字压短非逐字 · 角标 `run_in_background`、`cron`（预告态） | 双联字卡对开 `useEnter:slideL`＋`useEnter:slideR`；划掉 `useProgress`（decelerate）；装置剪影右缘滑入 `useEnter:slideR`＋常驻辉光 `useBreathe`（mech）；预埋小卡衬线定格〔M-003〕；p0-17 由 ArchifyRecap 主控；`@enter:slideL` `@enter:slideR` `@progress` `@breathe` |
 
-## P1 自动清洗槽（p1-01..32）→ `scenes/P1WashSink.tsx`
+## P1 自动清洗槽（p1-01..32）→ `scenes/P1Background.tsx`（组装层＋装置半场）＋`scenes/P1Boundary.tsx`（1-E…1-F 边界与产品对照半场，同 scene 句窗并列挂载；HarnessBadge/SceneTag 归幕首侧）
 
 | 镜 | 句区间 | 画面 | 动效 |
 | --- | --- | --- | --- |
@@ -50,7 +50,7 @@
 | 1-E | p1-23..27 | 边界三联卡：①登记板断电——板面字迹散粒消散（内存态，dim）②线程拴在工坊大门——链条连线 mech→门框（打烊即断，deny 暗示）③摘要小票只裁开头一段——剪刀裁切、前段高亮后段虚化；p1-26【官】官方文档页样小卡并列（「退出自动清理」标签）；角标 `in-memory`、`daemon=True`、`summary[:200]`（定性呈现） | 字迹消散 `useProgress`＋`useDim`；链条 `useDraw`；裁切 `useImpulse`；官方卡 `useEnter:rise`；`@progress` `@dim` `@draw` `@impulse` `@enter:rise` |
 | 1-F | p1-28..32 | 官方产品面对照卡（教学版左／产品右）四连：任务号即回／快捷键挪后台／超时自动转后台（沙漏漏完→转后台箭头）／输出落文件读回；「产品更讲究」题词；角标 `Ctrl+B`、`timeout → background`、`output file + Read` | 四连卡依次入场 `useStagger`；沙漏漏完 `useProgress`；转移箭头 `useFlowDash`；`@stagger` `@progress` `@flowDash` |
 
-## P2 叫号器（p2-01..23）→ `scenes/P2CallBoard.tsx`
+## P2 叫号器（p2-01..23）→ `scenes/P2Notify.tsx`（组装层＋装置半场）＋`scenes/P2Official.tsx`（2-C…2-D 官方同构与诚实注半场，同 scene 句窗并列挂载；HarnessBadge/SceneTag 归幕首侧）
 
 | 镜 | 句区间 | 画面 | 动效 |
 | --- | --- | --- | --- |
@@ -59,7 +59,7 @@
 | 2-C | p2-13..19 | 官方 SDK 同构卡：三态徽标（完成／失败／停止三枚 mech 徽标依次点亮）＋长调用后台化小图（外部长调用→后台→真实结果原路返回）；推人通路卡（桌面通知弹出图形＋门铃一声，ok 瞬态）；「给模型小票 · 给人门铃」对句题词（p2-18 记忆点）；p2-19 收束小字「完成 · 独立事件」；角标 `TaskNotificationMessage`、`PushNotification` | 三态徽标 `useStagger`；原路返回 `useFlowDash`；桌面通知弹出 `useEnter:pop`＋ok 一闪 `useImpulse`；`@stagger` `@flowDash` `@enter:pop` `@impulse` |
 | 2-D | p2-20..23 | 诚实注卡：账本空白页翻动（零量化记录——页面上只有目录线没有数字行）＋「动机 ≠ 成绩单」分栏卡（左「动机 · 空转烧钱」右「成绩单 · 空白」）；p2-23 记忆点题词「不必干等 · 不是更便宜」（压短对句定格）；角标 `token billing`（动机面） | 空白页翻页 `useProgress`；分栏卡对开 `useEnter:slideL`＋`useEnter:slideR`；题词终态定格〔M-003〕；`@progress` `@enter:slideL` `@enter:slideR` |
 
-## P3 学徒的字条（p3-01..16）→ `scenes/P3ApprenticeSlip.tsx`
+## P3 学徒的字条（p3-01..16）→ `scenes/P3Apprentice.tsx`
 
 | 镜 | 句区间 | 画面 | 动效 |
 | --- | --- | --- | --- |
@@ -67,7 +67,7 @@
 | 3-B | p3-09..13 | 小字条动效 ·**archify full**：apprentice-watch 章 `side-model-slip` · 单章（p3-09..10 空窗回落：「副业」引子小字＋每批活完成贴一张小条的 2D 动效一现——几个字的样例短条；p3-12..13 空窗回落：旁路箭头（mech 细线）先于主线完成的对比小图——主线流水条仍在吐字 vs 旁路已贴条＋记忆点小卡「并行 · 而且更快」）；角标 `Haiku side-query`、`git-commit-subject, not sentence` | 小字条逐张贴上 `useEnter:pop`；旁路箭头 `useFlowDash`（mech）；主线吐字 `useReveal`；p3-11 由 ArchifyRecap 主控；`@enter:pop` `@flowDash` `@reveal` |
 | 3-C | p3-14..16 | 官方产品面 ·**archify full**：apprentice-watch 章 `official-monitor` · 单章（p3-15 空窗回落：监视工具流式视图 2D 细化——后台输出逐行回流的行缓冲＋游标＋「超时就收队」时限小标；p3-16 空窗回落：收束对句「教学版没教 · 产品配齐」）；角标 `Monitor` | 行回流 `useReveal`（逐行）；游标呼吸 `useBreathe`；收束对句 `useStagger`；p3-14 由 ArchifyRecap 主控；`@reveal` `@breathe` `@stagger` |
 
-## P4 墙上的定时钟（p4-01..35，p4-03/p4-29 空号）→ `scenes/P4WallClock.tsx`
+## P4 墙上的定时钟（p4-01..35，p4-03/p4-29 空号）→ `scenes/P4Clock.tsx`
 
 | 镜 | 句区间 | 画面 | 动效 |
 | --- | --- | --- | --- |
@@ -78,7 +78,7 @@
 | 4-E | p4-23..31 | 防重放＋坏闹钟双图接力 ·**archify full**：clock-dedupe 章 `sixty-glances`+`date-plus-minute`+`hhmm-trap`+`one-key-two-errors` ·**archify full**：clock-bad-jobs 章 `validate-first`+`quarantine-bad`+`fire-and-delete` · 七章接力（p4-23 空窗回落：2D 钟面秒针扫过六十格，同一分钟命中格连闪——引出「每秒都醒、最小刻度是分钟」）；角标 `minute_marker`、`validate_cron`、`recurring=False` | 秒针绕行 `useTravel`＋命中格连闪 `useImpulse`；其余由 ArchifyRecap 主控（坏闹钟实例接前图末章帧相邻，`lead={false}`）；`@travel` `@impulse` |
 | 4-F | p4-32..35 | 官方对齐卡：轮间触发时间轴——用户话条与定时话条交错排列、定时话只插在两轮之间（绝不在半截打断；busy 段标灰等本轮结束）；「每秒检查 · 低优先级」标签；角标 `low priority`、`between your turns` | 话条交错入场 `useStagger`；busy 段置灰 `useDim`；时间轴推进 `useProgress`；`@stagger` `@dim` `@progress` |
 
-## P5 诚实的边界（p5-01..30）→ `scenes/P5HonestEdge.tsx`
+## P5 诚实的边界（p5-01..30）→ `scenes/P5Durable.tsx`
 
 | 镜 | 句区间 | 画面 | 动效 |
 | --- | --- | --- | --- |
@@ -108,11 +108,11 @@
 | 幕 | 组件 | 装置重心 |
 | --- | --- | --- |
 | P0 两类时间 | `scenes/P0TwoTimes.tsx` | HarnessStackP0（3D）、慢活卡带＋计费条、日历墙、主问题双联字卡、装置预告剪影＋金句预埋小卡 |
-| P1 自动清洗槽 | `scenes/P1WashSink.tsx` | 3D 清洗槽滚筒一现（solids-3d）、号牌弹出＋金句卡、登记板剪影、边界三联卡、官方对照四连卡 |
-| P2 叫号器 | `scenes/P2CallBoard.tsx` | 挂牌板首现、三态徽标＋推人通路卡、诚实注分栏卡 |
-| P3 学徒的字条 | `scenes/P3ApprenticeSlip.tsx` | 清洗槽群＋卡死槽位（deny）、学徒剪影＋归属引语卡、小字条＋旁路箭头、监视工具流式视图 |
-| P4 墙上的定时钟 | `scenes/P4WallClock.tsx` | 原生 PendulumGlyph 钟摆（Lottie clock-swing 退役）、五格时间表、试锁双分支、轮间触发时间轴 |
-| P5 诚实的边界 | `scenes/P5HonestEdge.tsx` | 打烊灯灭（deny 渐暗）、单线圈图（LoopRing 复用）＋归属引语卡、收束三问卡 |
+| P1 自动清洗槽 | `scenes/P1Background.tsx`＋`P1Boundary.tsx` | 3D 清洗槽滚筒一现（solids-3d）、号牌弹出＋金句卡、登记板剪影、边界三联卡、官方对照四连卡 |
+| P2 叫号器 | `scenes/P2Notify.tsx`＋`P2Official.tsx` | 挂牌板首现、三态徽标＋推人通路卡、诚实注分栏卡 |
+| P3 学徒的字条 | `scenes/P3Apprentice.tsx` | 清洗槽群＋卡死槽位（deny）、学徒剪影＋归属引语卡、小字条＋旁路箭头、监视工具流式视图 |
+| P4 墙上的定时钟 | `scenes/P4Clock.tsx` | 原生 PendulumGlyph 钟摆（Lottie clock-swing 退役）、五格时间表、试锁双分支、轮间触发时间轴 |
+| P5 诚实的边界 | `scenes/P5Durable.tsx` | 打烊灯灭（deny 渐暗）、单线圈图（LoopRing 复用）＋归属引语卡、收束三问卡 |
 | P6 收束 | `scenes/P6OneBelt.tsx` | HarnessStackP6（3D）、对账打钩卡、遗产句金句卡、三装置对账卡、系列身份卡/下期卡＋灯牌收暗 |
 
 公共组件清单：`Subtitle`（frozen）· `ChapterProgress`（顶部章节条，y<56）· `SceneTag`（top:64）· `QuoteCard`／`FadeUp`／`Pill`（cards.tsx，金句卡衬线体）· `Panel`／`Terminal`／`CodeCard`／`NumberedCard`／`Counter`／`Footnote`（motifs.tsx）· 母题复用一件：`LoopRing`（传送带／事件循环圈，M-001 恒定）· 新建母题候选四件（Stage ⑧ 落）：`WashDrum`（清洗槽 2D 态）／`ClockFace`（定时钟面＋`useTravel` 秒针）／`CallBoard`（挂牌板＋号码牌翻牌）／`RegistryBoard`（登记板＋锁）· `HarnessStackP0`／`HarnessStackP6`／`HarnessBadge`（harness-stack.tsx，P1–P6 常驻顶边条 chip 档）· `Stage3D`／`Slab3D`／`Rim3D` 等（solids-3d.tsx，P1 滚筒一现）· 钟摆强调＝原生 PendulumGlyph（P4Clock 内联；LottieEmphasis clock-swing 因 ANGLE 挂死退役，`lottie/clock-swing.json`＋gen 脚本留档未用——ISSUE-202）· `ArchifyRecap`／`ArchifyYield`（ep1 frozen 共享件，本集 scaffold 未入库——Stage ⑧ 自 ep1 移植；一章锚一句，帧相邻跨实例后挂 `lead={false}`，本集四处：1-C／2-B／4-C／4-E 坏闹钟实例）。
@@ -120,7 +120,7 @@
 ## 自检对账（Stage ⑥ 收口）
 
 - 句覆盖：0-A p0-01 → 6-C p6-18，幕内镜区间首尾相接、跨幕无缝——32 镜 170/170 全覆盖无重叠、镜号唯一（p4-03/p4-29 空号：4-A 区间 p4-01..08、4-E 区间 p4-23..31 跨空号按实存句连续）。
-- 图集：12 图全原生重绘 · 6 型（workflow／sequence／architecture／state／dataflow／lifecycle）· 每图 3–7 章 · 59 章＝59 cue 计划（章章有 cue，被引用章比 1.0）。
+- 图集：12 图全原生重绘 · 5 型（workflow／sequence／architecture／dataflow／lifecycle，按落盘实测登记）· 每图 3–7 章 · 59 章＝59 cue 计划（章章有 cue，被引用章比 1.0）。
 - 锚定：59/170 ≈ 0.35 ≥ 0.30；分幕锚定 P0 2/18、P1 12/32、P2 10/23、P3 7/16、P4 13/33、P5 13/30、P6 2/18——全部 ≥1 锚且 ≥5%；最长连续无锚 run＝12 ≤ 12（run 幕边界不重置），**四处贴上限**：p0-05..16／p1-23..p2-02／p2-13..p3-01／p5-24..p6-05——均为 2D 定制剧场段（边界三联卡／SDK 同构／单线圈收束等，无适配图例），Stage ⑧ 不得删这四段边界的邻接 cue；次长 10（p3-15..p4-09）。
 - 单调性：各图章按锚句顺序正向播放无逆序（timing-panorama 跨幕 P0→P5→P6 七章锚句 p0-04→p6-13 单调；apprentice-watch 三镜接力 p3-02→p3-14 序内；clock-four-layers 三镜接力 p4-10→p4-21 序内）。
 - 档位标注：20 处（均在画面列，`·` 段与角标 token 隔离），章 token 59 个逐一可解析到 views id。

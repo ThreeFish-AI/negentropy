@@ -1,7 +1,7 @@
 {
   "name": "claude-code-explained-video",
   "private": true,
-  "description": "《工具与执行（重制暂题）》科普视频 Remotion 工程",
+  "description": "《工具与执行：一个循环，三层装置》科普视频 Remotion 工程",
   "scripts": {
     "dev": "remotion studio",
     "typecheck": "tsc --noEmit",

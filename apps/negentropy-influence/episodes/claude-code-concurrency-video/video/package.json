@@ -1,7 +1,7 @@
 {
   "name": "claude-code-concurrency-video",
   "private": true,
-  "description": "《并发（重制暂题）》科普视频 Remotion 工程",
+  "description": "《并发：谁来按下开始》科普视频 Remotion 工程",
   "scripts": {
     "dev": "remotion studio",
     "typecheck": "tsc --noEmit",
