@@ -8,7 +8,7 @@
 >
 > **提取方式**：2026-09-28 五维度重调研（钉点逐章 curl 取原文）；字节归档 `research/source-archive/67a9126/`；指纹见 [sources.toml](./sources.toml)。图片纪律：站点 SVG 不下载不嵌入，只转文字规格。
 >
-> **轨道分叉提示（写给撰稿人，不进口播）**：本集两章编号与旧 12 课轨撞号（旧 s08=Background Tasks、旧 s09=Agent Teams），涉编号一律写「站点轨 + 章全称」。仓内旧精读 [173](../../../../../docs/research/agent-harness/173-claude-code-memory-management.md) 钉的是 main 轨 `f9e8b28`，与本集钉点在「看不见的守卫 / 占位符指针 / 注入位置」三处实现不同（见各章「轨道差异」注记），引用其结论前先对表。
+> **轨道分叉提示（写给撰稿人，不进口播）**：本集两章编号与旧 12 课轨撞号（旧 s08=Background Tasks、旧 s09=Agent Teams），涉编号一律写「站点轨 + 章全称」。仓内精读 [173](../../../../../docs/research/agent-harness/173-claude-code-memory-management.md) 的机制正文与本集同钉站点轨 `67a9126`；其 main 轨演进注记（`f9e8b28`→`0dcafa2a`）与本集钉点在「看不见的守卫 / 占位符指针 / 注入位置」三处实现不同（见各章「轨道差异」注记），引用其 main 轨结论前先对表。
 
 ---
 

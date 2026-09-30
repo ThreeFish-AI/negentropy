@@ -223,7 +223,7 @@ Claude Code 记忆系统使用封闭的四类型系统（`src/memdir/memoryTypes
 
 ### 2.5 工业实践深度对标：Agent Harness 设计模式
 
-基于 [shareAI-lab/learn-claude-code](https://github.com/shareAI-lab/learn-claude-code) 的渐进式 Agent 构建教程，提炼以下设计模式（机制精读的单一事实源：[agent-harness 分部](../../../research/agent-harness/170-claude-code-harness-overview.md)；下列章节名为仓库根级现行目录，非旧 12 课轨 `agents/` 编号）：
+基于 [shareAI-lab/learn-claude-code](https://github.com/shareAI-lab/learn-claude-code) 的渐进式 Agent 构建教程，提炼以下设计模式（机制精读的单一事实源：[agent-harness 分部](../../research/agent-harness/170-claude-code-harness-overview.md)；下列章节名为仓库根级现行目录，非旧 12 课轨 `agents/` 编号）：
 
 **四步压缩管线**（`s08_context_compact`，旧轨 `agents/s06` 三层版的现行形态）：按预算落盘 → 掐中段 → 占位符化 →（估算超限才）整体摘要，另有 API 拒收后的应急补救通道。Transcripts 保存完整历史到磁盘，"Nothing is truly lost — just moved out of active context."
 
