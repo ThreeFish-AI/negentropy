@@ -2,7 +2,12 @@
 
 本文件遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 约定，版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
+## [Unreleased]
 ### Added
+### 011 配套原型对梳理清减（preening-substrate L2）
+
+- **[horizon_context_lab.py / horizon_context_mcp.py](docs/research/cognitive-context/assets/horizon_context_mcp.py) 梳理清减（L2·行为逐字节等价）**：独立 Verifier 四门盲审 ACCEPT。三项负债处置——①`rank` 内联重复实现 `_matches` 双向子串判定收敛为单一调用（SSOT，逐字符同构证据）；②「按指标名找所属视图」跨文件双写（lab `mock_agent` 内联 vs mcp `_find_metric_view`）收敛为 lab 导出 `find_view_for_metric`（公开面 +1，mcp 删本地副本改 import，两消费方原子迁移）；③六处机制横幅+行内编号自 2026-09-17 重评选前的旧编号重锚至 011 §14 现行映射。已审视不改：日期→月 `[:7]` 双写（谓词语境独立）；五项 Chesterton 围栏保留。度量：1523→1519 行（-4），双 selftest 44 PASS 输出与基线逐字节一致（diff+cmp 双零），predict_driver 外部 import 探针等价；011 §14 22 个行号钉全量联动+「约 1195 行」→「约 1200 行」。
+
 ### Snowflake Horizon Context 精读换代更新（2026-09-30）
 
 - **[011 精读笔记](docs/research/cognitive-context/011-horizon-context.md) guided-learn 换代重写（§7 四桶继承，61 处编辑·53+/39-，零标题变更零重编号零图变更）**：Phase 0 十读源代理 55 快照（webReader 缓存陈旧处一律 curl 实况交叉）+ 125 条旧稿声明逐条裁定——**保留** 22 帧框架 / **更新** 21 项 / **删除** 4 处失真（Rita Sallam 引语实出自其本人 LinkedIn 换 Simon AI CTO 新闻稿在场引语、OSI "13 committers/7 PPMC" 查无实据改 clutch 实况 4 人、docs 伞名「全站零命中」被 S17 证伪改「已开始实例化」、「agentic catalog」改 universal AI catalog 实况引语）/ **新增** 9 项（物化 59x–91x 自报基准+Semantic SQL only 限定、agent 入血缘一等节点、MCP 仅 tool capabilities、Ataccama trust signals、OSS 范围纪律、时间线 09-17 后 7+ 里程碑等）。四项旧引用悬空补证：VQR >20 阈值（analyst-optimization 页）、Cube 回退底表（cube.dev .md 导出）、Glean $200M（官方二稿）、物化 Aug-12 工程博客。源稿对账 89 行 3+1 全新 Checker 两轮（26 行返工复判+三处终修），COUNTS 八项全零、URL UNREG 0、REFS 33=在用 33；仓内 lab 双 selftest 真跑逐字一致零漂移（lab 零修改）；盲评 2 判官 3 章无返修；外行四测读懂/看会/学通全过、听知跨段过+复述按 1 轮上限记已知局限；8 处外行补阙增量 Checker 8/8 保留。信源面新增 [31]–[33] 参考三条（物化工程博客/Ossie 官网+Ataccama/Release Notes 2025–2026）并扩充 [4][7][11][12][20][24][28][30] 八条既有条目锚。状态时点 2026-09-17 → 2026-09-30（§15 逐项重验，Semantic Studio 记 docs/产品页口径两说）。
