@@ -1,950 +1,789 @@
-/** P6 收束：机制很多，循环一个（分镜 6-A…6-E）
- *  FullTurn 母题（系列终曲）：七段传送带走一整轮；环从传送带中央升起居中重描
- *  一遍（呼应系列首集环成形动画的节奏）；机制图标环立四周；金句压场；渐黑。
- *  ★ 渐黑窗口从**末 beat 总时长**推导（beatDurationInFrames），不是末句时长
- *    —— 第三集上线教训（skills/06 渲染红线四）。 */
+/** P6 收束（p6-01..23，4 镜 8 cue）——分镜 6-A…6-D。
+ *
+ *  cue 清单（8）：
+ *   6-A five-layer-dependency/five-lit-finale@p6-02（五层全亮；本镜首图，默认入场）
+ *   6-A collab-panorama/mech-homecoming@p6-03 + tool-belt-27@p6-04（与前图背靠背
+ *       → 后挂实例 lead={false}）
+ *   6-A collab-panorama/identity-message@p6-06 + identity-tool@p6-07 + no-branch@p6-08
+ *       （空窗一句 p6-05 后重现 → 默认入场）
+ *   6-B collab-panorama/gate-three-beats@p6-10（no-branch 后空窗一句 → 默认入场；
+ *       自制终章卡让位，真门停机由章内承担）
+ *   6-D collab-panorama/all-lit-map@p6-21（空窗长后重现 → 默认入场）
+ *
+ *  ★ 终集特款（storyboard 自检对账）：五层身份卡全亮（6-A 五层全亮呼吸 + 6-D
+ *    chip 档 ×5）、系列收束金句「机制很多 · 循环一个」、费曼遗产「两种身份」
+ *    金句卡（caption-dup-ok 在案）、**无下期卡**（series-layers.json next=null）、
+ *    收尾完结语气「后会有期」、末帧渐黑窗取整镜时长。
+ *  ★ 6-A 3D 栈由 components/harness-stack.tsx 的 HarnessStackP6 承担（终集形态：
+ *    五层全亮错峰呼吸 + p6-05 缩至侧位常驻——缩后的栈停在画框左外侧，与全屏
+ *    回放窗同屏不抢位）；本镜 scene 侧零动效 hook（金句卡由 QuoteCard 承担）。
+ *  ★ 6-D 身份卡标题主段是 check_series 规则 8 的受检硬编码（改标题先改
+ *    series.json 再同步此串）；层短名走 series-layers.json 数据（LAYERS）。
+ *  ★ 空间契约：6-B/6-D 传送带母题（LoopRing，core 橙恒定描边〔M-001〕）恒居
+ *    左中锚位 RING；6-A/6-D 为系列装置镜（3D 栈/灯牌居中），6-C 卡片对称分置。
+ */
 import React from 'react';
-import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig} from 'remotion';
+import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Footnote, LoopRing, Panel, phase, SceneTag, useRingDot} from '../components/motifs';
+import {QuoteCard} from '../components/cards';
+import {Footnote, LoopRing, Panel, SceneTag} from '../components/motifs';
+import {HarnessBadge, HarnessStackP6, LAYERS, Plate, PlateSlab3D} from '../components/harness-stack';
+import {ArchifyRecap} from '../components/ArchifyRecap';
+import {ArchifyYield} from '../components/ArchifyYield';
+import {
+  DUR,
+  clamp01,
+  progress,
+  useEnter,
+  useFadeOut,
+  useFlowDash,
+  useProgress,
+  useReveal,
+  useStagger,
+} from '../motion';
 
-/** 七段传送带：进料 / 护栏 / 选面 / 执行 / 外接 / 补救 / 记账（一整轮） */
-const SEGMENTS = [
-  {t: '进料', s: '你说一句话'},
-  {t: '护栏', s: '输入前钩子'},
-  {t: '选面', s: '通知汇入 · 收拾桌面'},
-  {t: '执行', s: '问模型 · 过闸分发'},
-  {t: '外接', s: '垫纸拼装'},
-  {t: '补救', s: '回填 · 记账'},
-  {t: '停机', s: '没活就收尾'},
-];
+// ── 本幕通用 ────────────────────────────────────────────────────────────
 
-/** 6-A 四样东西归位小图 + 七段传送带描线成形 */
-const ConveyorForms: React.FC<{beltAt: number}> = ({beltAt}) => {
-  const frame = useCurrentFrame();
-  const {fps} = useVideoConfig();
-  // 四小图标滑入底部（板/箱/号/桌）
-  const four = [
-    {t: '板', kind: 'board'},
-    {t: '箱', kind: 'mail'},
-    {t: '号', kind: 'num'},
-    {t: '桌', kind: 'desk'},
-  ];
-  // 传送带描线：自左向右
-  const draw = interpolate(frame - beltAt, [0, 34], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
+/** 常驻系列条定位：顶边 y<56 归 frozen ChapterProgress，本集各幕 Badge 统一 top:64。 */
+const BADGE_STYLE: React.CSSProperties = {top: 64};
+
+/** 内核左中锚位与巡游节律——与 P0 同位同尺同速（全系列恒定）。 */
+const RING = {size: 300, left: 180, top: 390} as const;
+const LAP_FRAMES = 75;
+
+/** hex + 动态透明度（帧驱动，无随机） */
+const withAlpha = (hex: string, a: number): string =>
+  `${hex}${Math.round(clamp01(a) * 255)
+    .toString(16)
+    .padStart(2, '0')}`;
+
+/** 人形剪影（师傅 = text 白，一律无彩——P0 台面微缩回放同形） */
+const Person: React.FC<{x: number; y: number; color: string; scale?: number; opacity?: number}> = ({
+  x,
+  y,
+  color,
+  scale = 1,
+  opacity = 0.9,
+}) => (
+  <svg
+    width={120 * scale}
+    height={180 * scale}
+    viewBox="0 0 120 180"
+    style={{position: 'absolute', left: x, top: y, opacity}}
+  >
+    <circle cx={60} cy={34} r={28} fill={color} />
+    <path d="M0 180 Q0 76 60 70 Q120 76 120 180 Z" fill={color} />
+  </svg>
+);
+
+/** 金句卡定格层：可选衬底 scrim（叠在仍在场的装置上，先入场后压暗）；缺省无衬底。
+ *  caption-dup-ok 注记由调用处随 storyboard 豁免逐卡声明。 */
+const QuoteWithScrim: React.FC<{zh: string; scrim?: boolean; span?: number}> = ({
+  zh,
+  scrim = false,
+  span,
+}) => {
+  const rawO = useProgress(2, DUR.f4);
+  // scrim=false = 无衬底（QuoteCard 自带卡底可独立悬浮）。勿回写成 1：恒满 0.86
+  // 会首帧瞬跳，且盖死右侧车道常驻的身份卡（2026-09-30 评审实录）
+  const o = scrim ? rawO : 0;
+  // 窗尾下行斜坡（8 帧线性，手法同 FinaleTail 的 useFadeOut 尾坡）：限定窗的
+  // Sequence 在窗尾整帧卸载，无斜坡则 0.86 暗幕与其下满亮装置间 1 帧亮度跳变
+  // （ISSUE-205 只盖片尾渐黑，这张中途 scrim 未覆盖；2026-09-30 评审批注 e4595eb3）。
+  // 无 span（恒驻窗，交给 FinaleTail 收暗）时斜坡起点不可达，恒为 1
+  const out = useFadeOut(span ?? Number.MAX_SAFE_INTEGER, {frames: 8});
   return (
-    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="Comprehensive" tagline="Many Mechanisms, One Loop" accent={theme.core} />
-      {/* 四小图标（顶部一排） */}
-      <div style={{display: 'flex', gap: 44, marginBottom: 90}}>
-        {four.map((f, i) => {
-          const e = spring({frame: frame - 6 - i * 7, fps, config: {damping: 200}});
-          const c = theme.mech;
-          return (
-            <div key={f.t} style={{textAlign: 'center', opacity: e, transform: `translateY(${(1 - e) * 20}px)`}}>
-              <svg width={90} height={70}>
-                {f.kind === 'board' ? (
-                  <>
-                    <rect x={8} y={8} width={74} height={54} rx={7} fill="none" stroke={c} strokeWidth={4} />
-                    <line x1={8} y1={28} x2={82} y2={28} stroke={c} strokeWidth={3} />
-                    <line x1={36} y1={28} x2={36} y2={62} stroke={c} strokeWidth={3} />
-                  </>
-                ) : f.kind === 'mail' ? (
-                  <>
-                    <path d="M16 58 V30 A29 24 0 0 1 74 30 V58 Z" fill="none" stroke={c} strokeWidth={4} />
-                    <path d="M45 20 L45 46 M37 38 L45 48 L53 38" fill="none" stroke={c} strokeWidth={4} strokeLinecap="round" />
-                  </>
-                ) : f.kind === 'num' ? (
-                  <>
-                    <rect x={12} y={16} width={30} height={24} rx={5} fill="none" stroke={c} strokeWidth={4} />
-                    <rect x={48} y={30} width={30} height={24} rx={5} fill="none" stroke={c} strokeWidth={4} />
-                    <line x1={42} y1={28} x2={48} y2={42} stroke={c} strokeWidth={4} />
-                  </>
-                ) : (
-                  <>
-                    <rect x={10} y={14} width={70} height={18} rx={5} fill="none" stroke={c} strokeWidth={4} />
-                    <rect x={10} y={38} width={70} height={18} rx={5} fill="none" stroke={c} strokeWidth={4} />
-                    <circle cx={20} cy={64} r={4} fill={c} />
-                    <circle cx={70} cy={64} r={4} fill={c} />
-                  </>
-                )}
-              </svg>
-              <div style={{fontFamily: theme.sans, fontSize: 22, color: theme.dim, marginTop: 4}}>{f.t}</div>
-            </div>
-          );
-        })}
-      </div>
-      {/* 七段传送带：底线 + 七格 */}
-      <div style={{position: 'relative', width: 1560, height: 240}}>
-        <svg width={1560} height={240} style={{position: 'absolute', left: 0, top: 0}}>
-          {/* 带面主线：描线成形（pathLength 归一化，红线三） */}
-          <line
-            x1={40}
-            y1={170}
-            x2={40 + draw * 1480}
-            y2={170}
-            stroke={theme.mech}
-            strokeWidth={6}
-            strokeLinecap="round"
-          />
-          {/* 滚轮：两端 + 中段 */}
-          {[60, 780, 1500].map((x, i) => (
-            <circle
-              key={x}
-              cx={x}
-              cy={170}
-              r={20}
-              fill="none"
-              stroke={theme.mech}
-              strokeWidth={5}
-              opacity={draw > (i === 0 ? 0 : i === 1 ? 0.5 : 0.98) ? 1 : 0}
-            />
-          ))}
-        </svg>
-        {/* 七段标签格 */}
-        {SEGMENTS.map((seg, i) => {
-          const x = 90 + i * 210;
-          const on = draw > (i + 0.5) / 7;
-          return (
-            <div
-              key={seg.t}
-              style={{
-                position: 'absolute',
-                left: x - 80,
-                top: 60,
-                width: 160,
-                textAlign: 'center',
-                opacity: on ? 1 : 0.18,
-              }}
-            >
-              <div style={{fontFamily: theme.mono, fontSize: 17, color: theme.panelBorder}}>
-                {String(i + 1).padStart(2, '0')}
-              </div>
-              <div style={{fontFamily: theme.serif, fontSize: 30, fontWeight: 700, color: theme.mech}}>
-                {seg.t}
-              </div>
-              <div style={{fontFamily: theme.sans, fontSize: 17, color: theme.dim, marginTop: 4}}>{seg.s}</div>
-            </div>
-          );
-        })}
-      </div>
-      <Footnote delay={beltAt + 24}>{'收尾全景：一整轮，从头到尾走一遍'}</Footnote>
+    <AbsoluteFill
+      style={{opacity: out, background: withAlpha(theme.bg, 0.86 * o), pointerEvents: 'none'}}
+    >
+      <QuoteCard zh={zh} />
     </AbsoluteFill>
   );
 };
 
-/** 6-B ★一整轮：包裹逐段走，每段亮起时回闪该段机制的小图标 */
-const FullTurn: React.FC<{pkgAt: number}> = ({pkgAt}) => {
-  const frame = useCurrentFrame();
-  // 包裹逐段推进：七段 × 每段 ~14 帧
-  const per = 14;
-  const prog = Math.max(0, frame - pkgAt);
-  const segIdx = Math.min(6, Math.floor(prog / per));
-  const within = (prog % per) / per;
-  // 每段机制小图标（回闪母题缩略）：与前几集机制对应
-  const icons: {t: string; draw: (c: string, lit: boolean) => React.ReactNode}[] = [
-    {
-      t: '清单',
-      draw: (c, lit) => (
-        <svg width={74} height={58}>
-          {[0, 1, 2].map((i) => (
-            <g key={i}>
-              <rect x={8} y={8 + i * 17} width={10} height={10} rx={2} fill="none" stroke={c} strokeWidth={3} />
-              <line x1={24} y1={13 + i * 17} x2={64} y2={13 + i * 17} stroke={c} strokeWidth={3} opacity={lit ? 1 : 0.5} />
-            </g>
-          ))}
-        </svg>
-      ),
-    },
-    {
-      t: '闸门',
-      draw: (c) => (
-        <svg width={74} height={58}>
-          {[0, 1].map((i) => (
-            <rect key={i} x={14 + i * 28} y={10} width={10} height={38} rx={3} fill={c} />
-          ))}
-        </svg>
-      ),
-    },
-    {
-      t: '抽屉',
-      draw: (c) => (
-        <svg width={74} height={58}>
-          <rect x={8} y={12} width={58} height={16} rx={4} fill="none" stroke={c} strokeWidth={3} />
-          <rect x={8} y={34} width={58} height={16} rx={4} fill="none" stroke={c} strokeWidth={3} />
-        </svg>
-      ),
-    },
-    {
-      t: '分发表',
-      draw: (c) => (
-        <svg width={74} height={58}>
-          <rect x={8} y={8} width={58} height={42} rx={5} fill="none" stroke={c} strokeWidth={3} />
-          <line x1={8} y1={22} x2={66} y2={22} stroke={c} strokeWidth={2.5} />
-          <line x1={8} y1={36} x2={66} y2={36} stroke={c} strokeWidth={2.5} />
-        </svg>
-      ),
-    },
-    {
-      t: '插口',
-      draw: (c) => (
-        <svg width={74} height={58}>
-          <rect x={10} y={16} width={54} height={26} rx={6} fill="none" stroke={c} strokeWidth={3} />
-          <line x1={24} y1={8} x2={24} y2={16} stroke={c} strokeWidth={5} strokeLinecap="round" />
-          <line x1={50} y1={8} x2={50} y2={16} stroke={c} strokeWidth={5} strokeLinecap="round" />
-        </svg>
-      ),
-    },
-    {
-      t: '信箱',
-      draw: (c) => (
-        <svg width={74} height={58}>
-          <path d="M14 50 V26 A23 19 0 0 1 60 26 V50 Z" fill="none" stroke={c} strokeWidth={3} />
-          <line x1={37} y1={18} x2={37} y2={40} stroke={c} strokeWidth={3} />
-          <path d="M31 33 L37 41 L43 33" fill="none" stroke={c} strokeWidth={3} strokeLinecap="round" />
-        </svg>
-      ),
-    },
-    {
-      t: '握手',
-      draw: (c) => (
-        <svg width={74} height={58}>
-          <rect x={6} y={18} width={26} height={20} rx={4} fill="none" stroke={c} strokeWidth={3} />
-          <rect x={42} y={18} width={26} height={20} rx={4} fill="none" stroke={c} strokeWidth={3} />
-          <line x1={32} y1={28} x2={42} y2={28} stroke={c} strokeWidth={3} />
-        </svg>
-      ),
-    },
-  ];
-  const pkgX = 130 + (segIdx + within) * 210;
-  return (
-    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <div style={{position: 'relative', width: 1560, height: 520}}>
-        {/* 传送带：底线 + 滚轮 */}
-        <svg width={1560} height={520} style={{position: 'absolute', left: 0, top: 0}}>
-          <line x1={40} y1={330} x2={1520} y2={330} stroke={theme.panelBorder} strokeWidth={6} />
-          {[60, 780, 1500].map((x) => (
-            <circle key={x} cx={x} cy={330} r={18} fill="none" stroke={theme.panelBorder} strokeWidth={5} />
-          ))}
-        </svg>
-        {/* 七段：段名 + 机制小图标（走过即亮） */}
-        {SEGMENTS.map((seg, i) => {
-          const lit = i <= segIdx;
-          const flash = i === segIdx;
-          const x = 130 + i * 210;
-          const c = lit ? theme.mech : theme.panelBorder;
-          return (
-            <div key={seg.t} style={{position: 'absolute', left: x - 85, top: 110, width: 170, textAlign: 'center'}}>
-              {/* 机制小图标（回闪） */}
-              <div style={{height: 64, display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
-                {icons[i].draw(c, lit)}
-              </div>
-              <div style={{fontFamily: theme.sans, fontSize: 16, color: theme.dim, marginTop: 6}}>
-                {icons[i].t}
-              </div>
-              <div
-                style={{
-                  fontFamily: theme.serif,
-                  fontSize: 28,
-                  fontWeight: 700,
-                  color: lit ? theme.mech : theme.dim,
-                  marginTop: 8,
-                  textShadow: flash ? `0 0 18px ${theme.mech}` : 'none',
-                }}
-              >
-                {seg.t}
-              </div>
-            </div>
-          );
-        })}
-        {/* 包裹：沿带推进的小方块（带编号） */}
-        <div
-          style={{
-            position: 'absolute',
-            left: pkgX - 22,
-            top: 330 - 64,
-            width: 44,
-            height: 44,
-            borderRadius: 8,
-            background: theme.panel,
-            border: `3px solid ${theme.core}`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontFamily: theme.mono,
-            fontSize: 17,
-            color: theme.core,
-            boxShadow: `0 0 16px ${theme.core}66`,
-          }}
-        >
-          {'活'}
-        </div>
-      </div>
-      <Footnote delay={pkgAt + 30}>{'从头到尾，十几样机制各就各位'}</Footnote>
-    </AbsoluteFill>
-  );
-};
+// ── 6-A 终集栈：放大居中 → 缩至侧位常驻 ─────────────────────────────────
 
-/** 6-C ★★系列终曲帧：环从传送带中央升起居中重描一遍；机制图标环立四周；金句压场 */
-const SeriesFinale: React.FC<{riseAt: number; quoteAt: number}> = ({riseAt, quoteAt}) => {
+/** 3D 栈放大与五层点亮全在 HarnessStackP6（components/ 承担，不产生 token）；
+ *  p6-05 空窗回落时缩至画框左外侧常驻（全屏回放窗期间保持可见）。 */
+const StackFinale: React.FC<{at05: number}> = ({at05}) => (
+  <div style={{position: 'absolute', left: 750, top: 318, pointerEvents: 'none'}}>
+    <HarnessStackP6
+      at={2}
+      shrink={{at: at05 + DUR.f3, dx: -670, dy: 42, scale: 0.5}}
+    />
+  </div>
+);
+
+// ── 6-B 计划门三拍终章：协议单 → 真门急停 → 产品自动批 ───────────────────
+
+/** 官方引语（轨C #39，mono 引语态逐字） */
+const OFFICIAL_PLAN_QUOTE =
+  "Claude Code approves the plan in the lead's session as soon as the request arrives, without the lead reviewing it";
+
+const PlanGateFinale: React.FC<{
+  at09: number;
+  at10: number;
+  at11: number;
+  at12: number;
+  at13: number;
+}> = ({at09, at10, at11, at12, at13}) => {
   const frame = useCurrentFrame();
-  const dot = useRingDot(2.5, 40);
-  // 环升起：从传送带中央（小环）升起放大居中（px 居中推导，红线一）
-  const rise = interpolate(frame - riseAt, [0, 40], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-  // 环重描：升起到位后从 0 重画一遍（呼应系列首集 RingBirth 的描线节奏 4→40 帧）
-  const redraw = interpolate(frame - riseAt - 40, [4, 40], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-  // 机制图标环立四周（升起后浮现，下半环八方小柱——顶部让位金句）
-  const pillars = phase(frame, riseAt + 52, 20);
-  // 金句
-  const quote = phase(frame, quoteAt, 18);
-  const CX = 960;
-  const CY = 520;
-  const size = 200 + rise * 260; // 从小环放大到居中大环
-  // 四周机制图标（八方，椭圆分布：横向 480 / 纵向 290，全部落在环下方与两侧——
-  // 顶部留给金句、底部避让字幕安全带 y≥920）
-  const around = ['清单', '闸门', '插口', '分发表', '信箱', '握手', '桌子', '看板'];
+  // 传送带恒转（〔M-001〕恒色恒线宽）
+  const ringDraw = useProgress(2, 30, 'decelerate');
+  // 真门急停：恒速 → 冻结（decelerate 包络吃掉最后半窗行程，静置不转）
+  const STOP_AT = at10 + DUR.f5;
+  const freeze = useProgress(STOP_AT, DUR.f4, 'decelerate');
+  const spinT = (Math.min(frame, STOP_AT) + DUR.f4 * 0.5 * freeze) / LAP_FRAMES;
+  // 光点先骑描线前沿（EP1 同款），再匀速巡游，STOP_AT 处随包络冻结
+  const dot = (ringDraw + spinT) % 1;
+  // 协议单缩小回放：p6-09 大凭证落定 → p6-10 停到真门旁等批
+  const slipIn = useProgress(at09 + 2, DUR.f5, 'decelerate');
+  const slipPark = useProgress(at10 + DUR.f3, DUR.f5);
+  const waitOn = useProgress(at11 + DUR.f3, DUR.f4);
+  // 产品自动批：官方引语卡（p6-12，mono 逐字）
+  const quoteIn = useProgress(at12 + 2, DUR.f4);
+  const line = useReveal(OFFICIAL_PLAN_QUOTE, {at: at12 + 6, cps: 16});
+  // 「拦截挪到权限层」流向箭头（p6-13，dim 行进虚线）
+  const arrowIn = useProgress(at13 + 2, DUR.f4);
+  const flow = useFlowDash({dash: 12, gap: 14, period: 42});
+
+  const slipScale = 1 + 0.28 * (1 - slipIn);
+  const parkX = -160 * slipPark;
+  const parkY = 300 * slipPark;
+  const parkS = 1 - 0.38 * slipPark;
+
   return (
     <AbsoluteFill>
-      {/* 背景余留：传送带淡去 */}
-      <div style={{position: 'absolute', inset: 0, opacity: 1 - rise * 0.7}}>
-        <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-          <svg width={1560} height={200}>
-            <line x1={40} y1={160} x2={1520} y2={160} stroke={theme.panelBorder} strokeWidth={5} opacity={0.6} />
-            {[60, 780, 1500].map((x) => (
-              <circle key={x} cx={x} cy={160} r={16} fill="none" stroke={theme.panelBorder} strokeWidth={4} opacity={0.6} />
-            ))}
-          </svg>
-        </AbsoluteFill>
+      {/* 传送带母题：恒居左中锚位；p6-10 中段骤停冻结（core 静置不转） */}
+      <div style={{position: 'absolute', left: RING.left, top: RING.top}}>
+        <LoopRing size={RING.size} draw={ringDraw} dotProgress={dot} showLabels={false} />
       </div>
-      {/* 环：从传送带中央升起放大居中，重描一遍（同色同宽同节点） */}
-      <div style={{position: 'absolute', left: CX - size / 2, top: CY - size / 2}}>
-        <LoopRing
-          size={size}
-          draw={rise < 1 ? 1 : redraw}
-          dotProgress={rise >= 1 && redraw > 0.98 ? dot : undefined}
-        />
-      </div>
-      {/* 机制图标环立四周：下半环八方小立牌（mech 描边） */}
-      {pillars > 0 ? (
-        <svg width={1920} height={1080} style={{position: 'absolute', inset: 0, pointerEvents: 'none'}}>
-          {around.map((t, i) => {
-            const ang = (20 + i * 20) * (Math.PI / 180); // 20°..160°：两侧 + 下半环
-            const px = CX + 480 * Math.cos(ang);
-            const py = CY + 290 * Math.sin(ang);
-            return (
-              <g key={t} opacity={pillars}>
-                <rect
-                  x={px - 52}
-                  y={py - 20}
-                  width={104}
-                  height={40}
-                  rx={8}
-                  fill={theme.panel}
-                  stroke={theme.mech}
-                  strokeWidth={2.5}
-                />
-                <text
-                  x={px}
-                  y={py + 7}
-                  textAnchor="middle"
-                  fontFamily={theme.sans}
-                  fontSize={20}
-                  fill={theme.mech}
-                >
-                  {t}
-                </text>
-              </g>
-            );
-          })}
-        </svg>
-      ) : null}
-      {/* 金句：机制很多，循环一个（core 大字；无强调动效期间环匀速巡游——首集手法） */}
-      {quote > 0 ? (
+
+      {/* 协议单（前幕单据缩小回放，虚线凭证） */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 660,
+          top: 300,
+          transform: `translate(${parkX}px, ${parkY}px) scale(${slipScale * parkS})`,
+          transformOrigin: '50% 50%',
+        }}
+      >
         <div
           style={{
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            top: 120,
+            width: 300,
+            boxSizing: 'border-box',
+            padding: '14px 20px',
+            border: `2px dashed ${theme.dim}`,
+            borderRadius: 12,
+            background: theme.panel,
             textAlign: 'center',
-            opacity: quote,
-            transform: `translateY(${(1 - quote) * 26}px)`,
           }}
         >
-          <div style={{fontFamily: theme.serif, fontSize: 66, fontWeight: 700, color: theme.core, letterSpacing: 6}}>
-            {'机制很多，循环一个'}
-          </div>
-          <div style={{fontFamily: theme.sans, fontSize: 26, color: theme.dim, marginTop: 14}}>
-            {'变的从来不是它，是它周围的脚手架'}
+          <div style={{fontFamily: theme.mono, fontSize: 22, color: theme.dim}}>{'submit_plan'}</div>
+          <div style={{fontFamily: theme.sans, fontSize: 28, fontWeight: 600, color: theme.text, marginTop: 4}}>
+            {'计划单'}
           </div>
         </div>
-      ) : null}
-    </AbsoluteFill>
-  );
-};
-
-/** 6-D ★谁持有计划：四象对比（Harness Engineering 收官纲图）
- *  官方 workflows 的四方对比——临时工/技能包/队友：计划由模型逐回合现场决定；
- *  第四种（动态工作流）：脚本持有计划，中间结果住变量、上下文只装最终答案。
- *  底部条带三段轮换：运行时三分区（p6-09/10）→ 六模式选二（p6-11a/b）→
- *  resume 重放（p6-11c/d，干完的秒亮 / 没干完的重跑 / 其后启动的全部重跑）。
- *  分水岭竖线落下是全片思想高点；收官反转「Harness 第一次由它自己来写」。 */
-const WhoHoldsPlan: React.FC<{
-  gridAt: number;
-  divideAt: number;
-  runtimeAt: number;
-  modesAt: number;
-  resumeAt: number;
-  twistAt: number;
-}> = ({gridAt, divideAt, runtimeAt, modesAt, resumeAt, twistAt}) => {
-  const frame = useCurrentFrame();
-  const {fps} = useVideoConfig();
-  const cols = [
-    {t: '临时工', who: '模型逐回合', mid: '各自的上下文'},
-    {t: '技能包', who: '模型按提示', mid: '上下文窗口'},
-    {t: '队友', who: '领队逐回合', mid: '共享任务表'},
-    {t: '脚本', who: '脚本决定', mid: '脚本变量', fourth: true},
-  ];
-  const divide = spring({frame: frame - divideAt, fps, config: {damping: 160}});
-  const runtime = interpolate(frame - runtimeAt, [0, 26], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-  const twist = interpolate(frame - twistAt, [0, 20], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-  // 底部条带三段互斥轮换：三分区 →(modesAt) 六模式 →(resumeAt) resume 重放。
-  // 原实现模式卡浮 top:66 压住四象卡头、resume 卡被 `twist <= 0` 锁死——twistAt
-  // 绑 p6-11，在音频顺序上早于 p6-11c，门恒假（评审修复：改为同条带换页）。
-  const runtimeOut = interpolate(frame - modesAt, [0, 10], [1, 0], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-  const modesIn = interpolate(frame - modesAt, [0, 10], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-  const modesOut = interpolate(frame - resumeAt, [-10, 0], [1, 0], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-  const resumeIn = interpolate(frame - resumeAt, [0, 12], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-  // 分水岭竖线落点：三四列间隙中心。列行 4×340 + 3×18 居中于 1760 容器，
-  // 第 3/4 列间隙中心 = (1760-1412)/2 + 3×358 - 9 = 1239（画布 x≈1319）——
-  // 此前误取画布中心 960，线压在「队友」卡身上（评审修复：由列布局推导）。
-  const COLS_W = 340 * 4 + 18 * 3;
-  const CX = (1760 - COLS_W) / 2 + 3 * (340 + 18) - 18 / 2;
-  return (
-    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <div style={{position: 'relative', width: 1760, height: 640}}>
-        <div style={{fontFamily: theme.serif, fontSize: 40, color: theme.text, textAlign: 'center', marginBottom: 24}}>
-          {'谁持有计划？'}
-        </div>
-        <div style={{display: 'flex', gap: 18, justifyContent: 'center'}}>
-          {cols.map((c, i) => {
-            const e = spring({frame: frame - gridAt - i * 7, fps, config: {damping: 200}});
-            const color = c.fourth ? theme.core : theme.panelBorder;
-            return (
-              <div
-                key={c.t}
-                style={{
-                  width: 340,
-                  opacity: e,
-                  transform: `translateY(${(1 - e) * 24}px)`,
-                  border: `2.5px solid ${color}`,
-                  borderRadius: 14,
-                  background: c.fourth ? theme.coreDeep : theme.panel,
-                  padding: '18px 20px',
-                  boxShadow: c.fourth ? `0 0 22px ${theme.core}44` : 'none',
-                }}
-              >
-                {/* 列顶：计划持有者图章 */}
-                <div style={{display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12}}>
-                  <div
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 20,
-                      border: `2.5px solid ${c.fourth ? theme.core : theme.dim}`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 20,
-                      color: c.fourth ? theme.core : theme.dim,
-                    }}
-                  >
-                    {c.fourth ? 'S' : 'M'}
-                  </div>
-                  <div>
-                    <div style={{fontFamily: theme.sans, fontSize: 25, color: theme.text}}>{c.t}</div>
-                    <div style={{fontFamily: theme.sans, fontSize: 16, color: theme.dim}}>{c.who}</div>
-                  </div>
-                </div>
-                <div style={{fontFamily: theme.sans, fontSize: 17, color: theme.dim, lineHeight: 1.6}}>
-                  <div>{'中间结果：'}</div>
-                  <div style={{color: theme.text}}>{c.mid}</div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        {/* 分水岭竖线：三四列之间落下（终点收在底部条带上方——resume 卡
-            （y≈506 起）入场时不与线尾辉光相撞，评审补渲实测 420 会擦到卡角） */}
-        {divide > 0 ? (
-          <div
-            style={{
-              position: 'absolute',
-              left: CX - 9,
-              top: 90,
-              width: 5,
-              height: 370 * divide,
-              background: theme.core,
-              boxShadow: `0 0 18px ${theme.core}88`,
-            }}
-          />
-        ) : null}
-        {divide > 0.9 ? (
-          <div
-            style={{
-              position: 'absolute',
-              left: CX,
-              top: 62,
-              transform: 'translateX(-50%)',
-              fontFamily: theme.sans,
-              fontSize: 20,
-              color: theme.core,
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {'分水岭'}
-          </div>
-        ) : null}
-        {/* 运行时三分区一行（缩略）——modesAt 起换页让位给六模式卡 */}
-        {runtime > 0 && runtimeOut > 0.01 ? (
-          <div
-            style={{
-              position: 'absolute',
-              left: 0,
-              right: 0,
-              bottom: 60,
-              display: 'flex',
-              justifyContent: 'center',
-              gap: 26,
-              opacity: runtime * runtimeOut,
-              transform: `translateY(${(1 - runtime) * 14}px)`,
-            }}
-          >
-            {[
-              {t: '会话侧', s: '只装最终答案'},
-              {t: '运行时侧', s: '循环·分支·中间结果'},
-              {t: 'agent 侧', s: '并发 16 · 总量 1000'},
-            ].map((z) => (
-              <div
-                key={z.t}
-                style={{
-                  border: `1.5px solid ${theme.panelBorder}`,
-                  borderRadius: 10,
-                  padding: '10px 22px',
-                  background: theme.panel,
-                  textAlign: 'center',
-                }}
-              >
-                <div style={{fontFamily: theme.sans, fontSize: 20, color: theme.text}}>{z.t}</div>
-                <div style={{fontFamily: theme.mono, fontSize: 16, color: theme.dim, marginTop: 3}}>{z.s}</div>
-              </div>
-            ))}
-          </div>
-        ) : null}
-        {/* p6-11a/b 六模式选二：扇出汇总 / 对抗核验（底部条带第二页；resumeAt 起换页） */}
-        {modesIn > 0 && modesOut > 0.01 ? (
-          <div
-            style={{
-              position: 'absolute',
-              left: 0,
-              right: 0,
-              bottom: 60,
-              display: 'flex',
-              justifyContent: 'center',
-              gap: 26,
-              opacity: modesIn * modesOut,
-              transform: `translateY(${(1 - modesIn) * 14}px)`,
-            }}
-          >
-            {/* 扇出→汇总漏斗 */}
-            <div
-              style={{
-                border: `2px solid ${theme.mech}`,
-                borderRadius: 12,
-                background: theme.panel,
-                padding: '12px 18px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 14,
-              }}
-            >
-              <svg width={150} height={64}>
-                {[0, 1, 2].map((k) => (
-                  <circle key={k} cx={26} cy={14 + k * 18} r={7} fill={theme.mech} />
-                ))}
-                <path d="M40 32 C 74 32, 86 32, 118 32" fill="none" stroke={theme.mech} strokeWidth={2.5} opacity={0.6} />
-                <polygon points="148,32 132,24 132,40" fill={theme.mech} />
-              </svg>
-              <div>
-                <div style={{fontFamily: theme.sans, fontSize: 21, color: theme.text}}>{'扇出 → 汇总'}</div>
-                <div style={{fontFamily: theme.sans, fontSize: 16, color: theme.dim, marginTop: 2}}>
-                  {'一批活各自干完，合成一份'}
-                </div>
-              </div>
-            </div>
-            {/* 对抗核验：挑刺→改到合格 */}
-            <div
-              style={{
-                border: `2px solid ${theme.mech}`,
-                borderRadius: 12,
-                background: theme.panel,
-                padding: '12px 18px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 14,
-              }}
-            >
-              <svg width={150} height={64}>
-                <rect x={12} y={12} width={52} height={40} rx={8} fill="none" stroke={theme.mech} strokeWidth={2.5} />
-                <text x={38} y={38} textAnchor="middle" fontFamily={theme.mono} fontSize={17} fill={theme.mech}>
-                  干
-                </text>
-                <text x={92} y={38} textAnchor="middle" fontFamily={theme.mono} fontSize={19} fill={theme.peer}>
-                  挑刺
-                </text>
-                <path d="M66 32 C 76 32, 80 32, 84 32" fill="none" stroke={theme.dim} strokeWidth={2.5} />
-                <polygon points="84,32 78,28 78,36" fill={theme.dim} />
-              </svg>
-              <div>
-                <div style={{fontFamily: theme.sans, fontSize: 21, color: theme.text}}>{'干完 → 挑刺 → 改'}</div>
-                <div style={{fontFamily: theme.sans, fontSize: 16, color: theme.dim, marginTop: 2}}>
-                  {'改到合格才算完'}
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : null}
-        {/* p6-11c/d resume 重放：A 干完秒亮（绿）/ B 没干完重跑（黄）/ C、D 其后启动全部重跑（对勾抹掉）。
-            此前门 `frame >= resumeAt && twist <= 0` 恒假（twistAt 绑 p6-11 早于 p6-11c，
-            评审修复：换页进入、不再依赖 twist 退出——反转金句卡在 6-D 末尾叠印不冲突） */}
-        {resumeIn > 0 ? (
-          <div
-            style={{
-              position: 'absolute',
-              left: 0,
-              right: 0,
-              bottom: 58,
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              gap: 14,
-              opacity: resumeIn,
-            }}
-          >
-            <div style={{fontFamily: theme.sans, fontSize: 21, color: theme.dim, marginRight: 8}}>
-              {'中断重放：'}
-            </div>
-            {[
-              {t: 'A · 已干完', fate: '秒亮', ok: true},
-              {t: 'B · 没干完', fate: '从头重跑', warn: true},
-              {t: 'C · 其后启动', fate: '全部重跑', fail: true},
-              {t: 'D · 其后启动', fate: '全部重跑', fail: true},
-            ].map((r, i) => {
-              const e = interpolate(frame - resumeAt - 4 - i * 5, [0, 8], [0, 1], {
-                extrapolateLeft: 'clamp',
-                extrapolateRight: 'clamp',
-              });
-              const c = r.ok ? theme.ok : r.warn ? theme.peer : theme.deny;
-              return (
-                <div
-                  key={r.t}
-                  style={{
-                    border: `2px solid ${c}`,
-                    borderRadius: 10,
-                    background: theme.panel,
-                    padding: '10px 16px',
-                    textAlign: 'center',
-                    opacity: e,
-                  }}
-                >
-                  <div style={{fontFamily: theme.mono, fontSize: 18, color: theme.text}}>{r.t}</div>
-                  <div style={{fontFamily: theme.sans, fontSize: 17, color: c, marginTop: 3}}>{r.fate}</div>
-                </div>
-              );
-            })}
-          </div>
-        ) : null}
-        {/* 收官反转 */}
-        {twist > 0 ? (
-          <div
-            style={{
-              position: 'absolute',
-              left: 0,
-              right: 0,
-              bottom: -46,
-              textAlign: 'center',
-              opacity: twist,
-              fontFamily: theme.serif,
-              fontSize: 34,
-              color: theme.core,
-            }}
-          >
-            {'Harness 第一次，开始由它自己来写'}
-          </div>
-        ) : null}
       </div>
-      <Footnote delay={runtimeAt}>
-        {'四形态对比·六模式选二·resume 重放 —— 官方文档 workflows'}
-      </Footnote>
-    </AbsoluteFill>
-  );
-};
+      {/* 停在真门旁等批（p6-11：批文不回来，一步都不走） */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 512,
+          top: 626,
+          fontFamily: theme.sans,
+          fontSize: 22,
+          color: theme.dim,
+          letterSpacing: 2,
+          opacity: waitOn,
+        }}
+      >
+        {'等批复'}
+      </div>
 
-const SourceAndFade: React.FC<{beatDurationInFrames: number; partsAt: number; costAt: number; seriesAt: number}> = ({
-  beatDurationInFrames,
-  partsAt,
-  costAt,
-  seriesAt,
-}) => {
-  const frame = useCurrentFrame();
-  const {fps} = useVideoConfig();
-  // p6-12 零件四连小图（板/箱/号/桌）与 p6-13/14 十五倍对比条先于信源卡（分镜 6-E 承诺）
-  const partsT = interpolate(frame - partsAt, [0, 18], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-  const costT = interpolate(frame - costAt, [0, 18], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-  const preludeGone = interpolate(frame - (seriesAt - 26), [0, 20], [1, 0], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-  const enter = spring({frame: frame - (seriesAt - 22), fps, config: {damping: 200}});
-  const rows = [
-    ['官方文档', 'code.claude.com/docs · 取数2026年8月'],
-    ['工程博客', 'anthropic.com/engineering'],
-    ['源码分析', '第三方逆向分析 · 片中逐处标注'],
-    ['数字口径', '开源仓库钉版 67a9126c 实测 · 字节归档'],
-  ];
-  const seriesT = phase(frame, seriesAt, 20);
-  // 渐黑：末 1.2 秒线性压暗到全黑，窗口从 beat 总时长反推
-  const fadeFrames = Math.round(1.2 * fps);
-  const fadeStart = beatDurationInFrames - fadeFrames;
-  const dark = interpolate(frame, [fadeStart, beatDurationInFrames], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-  return (
-    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      {/* p6-12 零件四连小图 + p6-13/14 官方冷水（十五倍）——信源卡之前的收束段 */}
-      {preludeGone > 0.01 ? (
-        <div
-          style={{
-            position: 'absolute',
-            opacity: partsT * preludeGone,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 30,
-          }}
-        >
-          <div style={{display: 'flex', gap: 40}}>
-            {[
-              {t: '板子', d: 'M14 10 h36 v26 h-36 Z M22 42 v8 M42 42 v8'},
-              {t: '信箱', d: 'M12 14 h40 v26 h-40 Z M12 22 h40 M44 22 v6 a4 4 0 0 1 -8 0 v-6'},
-              {t: '编号', d: 'M10 16 h44 v24 h-44 Z M10 24 h44 M10 32 h44 M20 16 v24'},
-              {t: '桌子', d: 'M10 20 h48 M14 20 v24 M54 20 v24 M28 30 h12 v8 h-12 Z'},
-            ].map((p, i) => (
-              <div key={p.t} style={{textAlign: 'center'}}>
-                <svg width={68} height={60} style={{overflow: 'visible'}}>
-                  <path d={p.d} fill="none" stroke={theme.dim} strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                <div style={{fontFamily: theme.sans, fontSize: 21, color: theme.text, marginTop: 6}}>{p.t}</div>
-              </div>
-            ))}
-          </div>
-          {/* 十五倍对比条：普通对话 1× vs 多智能体 15× */}
-          {costT > 0 ? (
-            <div style={{opacity: costT, display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center'}}>
-              <div style={{display: 'flex', alignItems: 'center', gap: 14}}>
-                <span style={{fontFamily: theme.sans, fontSize: 20, color: theme.dim, width: 150, textAlign: 'right'}}>
-                  {'普通对话'}
-                </span>
-                <div style={{width: 90, height: 18, borderRadius: 5, background: theme.dim, opacity: 0.7}} />
-                <span style={{fontFamily: theme.mono, fontSize: 19, color: theme.dim}}>{'1×'}</span>
-              </div>
-              <div style={{display: 'flex', alignItems: 'center', gap: 14}}>
-                <span style={{fontFamily: theme.sans, fontSize: 20, color: theme.text, width: 150, textAlign: 'right'}}>
-                  {'多智能体'}
-                </span>
-                <div
-                  style={{
-                    width: interpolate(frame - costAt, [0, 22], [90, 90 * 15], {extrapolateRight: 'clamp'}),
-                    maxWidth: 1350,
-                    height: 18,
-                    borderRadius: 5,
-                    background: theme.peer,
-                  }}
-                />
-                <span style={{fontFamily: theme.mono, fontSize: 19, color: theme.peer}}>{'≈15×'}</span>
-              </div>
-              <div style={{fontFamily: theme.sans, fontSize: 19, color: theme.dim, marginTop: 4}}>
-                {'并行和专精，必须挣回它们的协调成本 —— 官方工程博客'}
-              </div>
-            </div>
-          ) : null}
-        </div>
-      ) : null}
-      <div style={{opacity: enter * (1 - seriesT * 0.85), transform: `translateY(${(1 - enter) * 20}px)`}}>
-        <Panel style={{padding: '30px 40px', width: 940}}>
-          <div style={{fontFamily: theme.sans, fontSize: 24, color: theme.peer, marginBottom: 18}}>
-            {'信源'}
-          </div>
-          {rows.map(([k, v], i) => (
-            <div
-              key={k}
+      {/* 官方引语卡（p6-12，mono 引语态逐字；【官】徽标） */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 620,
+          top: 258,
+          opacity: quoteIn,
+          transform: `translateY(${(1 - quoteIn) * 16}px)`,
+        }}
+      >
+        <Panel style={{width: 1140, boxSizing: 'border-box', padding: '24px 32px'}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14}}>
+            <span
               style={{
-                display: 'flex',
-                marginBottom: 10,
-                opacity: interpolate(frame - 8 - i * 4, [0, 10], [0, 1], {
-                  extrapolateLeft: 'clamp',
-                  extrapolateRight: 'clamp',
-                }),
+                fontFamily: theme.sans,
+                fontSize: 22,
+                color: theme.dim,
+                border: `2px solid ${theme.dim}`,
+                borderRadius: 6,
+                padding: '2px 10px',
               }}
             >
-              <div style={{width: 150, fontFamily: theme.sans, fontSize: 23, color: theme.dim}}>
-                {k}
-              </div>
-              <div style={{fontFamily: theme.mono, fontSize: 23, color: theme.text}}>{v}</div>
-            </div>
-          ))}
-          {/* 诚实行：产品内部断言均为源码分析（三级证据的公开落点） */}
+              {'官'}
+            </span>
+            <span style={{fontFamily: theme.sans, fontSize: 24, color: theme.dim}}>
+              {'官方文档 · 计划审批'}
+            </span>
+          </div>
           <div
             style={{
-              marginTop: 14,
-              paddingTop: 12,
-              borderTop: `1px solid ${theme.panelBorder}`,
-              fontFamily: theme.sans,
-              fontSize: 20,
-              color: theme.dim,
-              opacity: interpolate(frame - 8 - rows.length * 4, [0, 10], [0, 0.9], {
-                extrapolateLeft: 'clamp',
-                extrapolateRight: 'clamp',
-              }),
+              fontFamily: theme.mono,
+              fontSize: 28,
+              lineHeight: 1.6,
+              color: theme.text,
+              whiteSpace: 'pre-wrap',
+              minHeight: 96,
             }}
           >
-            {'涉及产品内部的部分，均为第三方的源码分析，片中已逐处标注'}
+            {line}
           </div>
         </Panel>
       </div>
-      {/* 系列身份卡 */}
-      {seriesT > 0 ? (
-        <div
-          style={{
-            position: 'absolute',
-            textAlign: 'center',
-            opacity: seriesT,
-            transform: `translateY(${(1 - seriesT) * 18}px)`,
-          }}
-        >
-          <div style={{fontFamily: theme.serif, fontSize: 34, color: theme.dim, letterSpacing: 3}}>
-            {'Claude Code Harness Engineering'}
-          </div>
-          <div
-            style={{
-              fontFamily: theme.serif,
-              fontSize: 62,
-              fontWeight: 700,
-              color: theme.core,
-              marginTop: 18,
-            }}
-          >
-            {'协作层：从一个到一群'}
-          </div>
-          {/* 下期预告卡：标题只在画面（反串线纪律） */}
-          <div
-            style={{
-              marginTop: 26,
-              padding: '13px 28px',
-              border: `1.5px solid ${theme.panelBorder}`,
-              borderRadius: 12,
-              background: theme.panel,
-            }}
-          >
-            <div style={{fontFamily: theme.sans, fontSize: 20, color: theme.dim, letterSpacing: 2}}>
-              {'下期 · 新方向'}
-            </div>
-            <div style={{fontFamily: theme.serif, fontSize: 31, color: theme.text, marginTop: 5}}>
-              {'给这样的系统打分'}
-            </div>
-          </div>
-        </div>
-      ) : null}
-      {/* 渐黑遮罩（末 1.2s 线性压暗；窗口从 beat 总时长推导——红线四） */}
-      <AbsoluteFill style={{background: '#000', opacity: dark, pointerEvents: 'none'}} />
+
+      {/* 「拦截挪到权限层」：真门位 → 权限层位（dim 行进虚线，p6-13） */}
+      <svg width={1920} height={1080} style={{position: 'absolute', left: 0, top: 0, opacity: arrowIn}}>
+        <line x1={470} y1={722} x2={1268} y2={580} stroke={theme.dim} strokeWidth={4} {...flow} />
+        <path d="M1268 580 l-22 -6 l4 20 Z" fill={theme.dim} />
+      </svg>
+      <div
+        style={{
+          position: 'absolute',
+          left: 252,
+          top: 702,
+          opacity: arrowIn,
+        }}
+      >
+        <Panel accent={theme.core} style={{padding: '8px 20px'}}>
+          <span style={{fontFamily: theme.sans, fontSize: 26, fontWeight: 600, color: theme.core}}>{'真门'}</span>
+        </Panel>
+      </div>
+      <div
+        style={{
+          position: 'absolute',
+          left: 1288,
+          top: 552,
+          opacity: arrowIn,
+          transform: `translateY(${(1 - arrowIn) * 12}px)`,
+        }}
+      >
+        <Panel style={{padding: '8px 20px'}}>
+          <span style={{fontFamily: theme.sans, fontSize: 26, fontWeight: 600, color: theme.dim}}>{'权限层'}</span>
+        </Panel>
+      </div>
+
+      <Footnote delay={at12}>{'plan_approval_response'}</Footnote>
     </AbsoluteFill>
   );
 };
+
+// ── 6-C 校准总句：教室 → 厂房 ────────────────────────────────────────────
+
+/** 课桌（松排）→ 门禁厂房（紧排）各 8 席：排布滑移的两个端点（线稿 dim，不站队）。 */
+const DESK_CLASS: [number, number][] = [
+  [40, 44],
+  [135, 44],
+  [230, 44],
+  [325, 44],
+  [85, 170],
+  [180, 170],
+  [275, 170],
+  [370, 170],
+];
+const DESK_FACTORY: [number, number][] = [
+  [780, 60],
+  [960, 60],
+  [1140, 60],
+  [1320, 60],
+  [780, 190],
+  [960, 190],
+  [1140, 190],
+  [1320, 190],
+];
+
+const ClassroomToFactory: React.FC<{at15: number}> = ({at15}) => {
+  // 排布滑移：beat 级动作（36 帧显式，标尺外——见 08 运动层铁律④）
+  const slideP = useProgress(at15 + DUR.f3, 36);
+  // 两句并陈小卡对开（同 accent 同权重——不站队）
+  const left = useEnter('slideL', {at: at15 + 8, dur: DUR.f5, dist: 60});
+  const right = useEnter('slideR', {at: at15 + 12, dur: DUR.f5, dist: 60});
+
+  const sideCard = (
+    enter: {opacity: number; transform: string},
+    x: number,
+    tag: string,
+    title: string,
+    sub: string,
+  ) => (
+    <div style={{position: 'absolute', left: x, top: 745, ...enter}}>
+      <Panel style={{width: 480, boxSizing: 'border-box', padding: '18px 26px'}}>
+        <span
+          style={{
+            display: 'inline-block',
+            padding: '2px 12px',
+            borderRadius: 999,
+            border: `2px solid ${theme.dim}`,
+            color: theme.dim,
+            fontFamily: theme.mono,
+            fontSize: 18,
+          }}
+        >
+          {tag}
+        </span>
+        <div style={{display: 'flex', alignItems: 'baseline', gap: 16, marginTop: 8}}>
+          <span style={{fontFamily: theme.sans, fontSize: 38, fontWeight: 700, color: theme.text}}>{title}</span>
+          <span style={{fontFamily: theme.sans, fontSize: 24, color: theme.dim}}>{sub}</span>
+        </div>
+      </Panel>
+    </div>
+  );
+
+  return (
+    <AbsoluteFill>
+      {/* 校准总句金句卡（衬线定格，上移让出线稿带） */}
+      <div style={{position: 'absolute', inset: 0, transform: 'translateY(-210px)', pointerEvents: 'none'}}>
+        <QuoteCard zh="教室 → 厂房" />
+      </div>
+
+      {/* 转场意象：工坊线稿从课桌排布滑向门禁厂房排布（p6-15） */}
+      <svg width={1400} height={300} viewBox="0 0 1400 300" style={{position: 'absolute', left: 260, top: 420}}>
+        {/* 厂房围界：左侧留门禁口（滑移到位后读作「带门禁的厂房」） */}
+        <path
+          d="M700 10 H1380 V290 H700 V186 M700 114 V10"
+          fill="none"
+          stroke={theme.dim}
+          strokeWidth={3}
+          opacity={0.35 + 0.65 * slideP}
+        />
+        {/* 门禁口（亮起随滑移） */}
+        <rect x={664} y={114} width={18} height={72} fill="none" stroke={theme.text} strokeWidth={3} opacity={slideP} />
+        {DESK_CLASS.map((c, i) => {
+          const f = DESK_FACTORY[i];
+          const x = c[0] + (f[0] - c[0]) * slideP;
+          const y = c[1] + (f[1] - c[1]) * slideP;
+          return (
+            <g key={i} transform={`translate(${x} ${y})`}>
+              <rect x={0} y={0} width={44} height={28} rx={4} fill="none" stroke={theme.dim} strokeWidth={3} />
+              <line x1={6} y1={34} x2={38} y2={34} stroke={theme.dim} strokeWidth={3} strokeLinecap="round" />
+            </g>
+          );
+        })}
+      </svg>
+
+      {/* 两句并陈小卡（不站队：同 accent 同形态） */}
+      {sideCard(left, 280, '教学版', '教室', '讲清机制')}
+      {sideCard(right, 1160, '官方', '厂房', '带门禁')}
+    </AbsoluteFill>
+  );
+};
+
+// ── 6-D 系列终态 ─────────────────────────────────────────────────────────
+
+/** 系列身份卡（chip 档 ×5 全亮，终集特款）：层短名走 series-layers.json；
+ *  标题主段受检硬编码（check_series 规则 8——改标题先改 series.json 再同步此串）；
+ *  无下期卡（series-layers.json next=null，完结语气由 6-D 末「后会有期」承担）。 */
+const IdentityCard: React.FC<{at: number}> = ({at}) => {
+  const chips = useStagger(LAYERS.length, {at, dur: DUR.f4, stride: 6});
+  return (
+    <div style={{position: 'absolute', left: 1648, top: 282, width: 236}}>
+      <Panel accent={theme.core} style={{padding: '16px 18px'}}>
+        <div style={{fontFamily: theme.mono, fontSize: 13, color: theme.dim, letterSpacing: 1.5, lineHeight: 1.6}}>
+          {'Claude Code'}
+          <br />
+          {'Harness Engineering'}
+        </div>
+        <div style={{display: 'flex', flexDirection: 'column', gap: 6, marginTop: 12}}>
+          {LAYERS.map((l) => (
+            <div
+              key={l.index}
+              style={{opacity: chips[l.index - 1], transform: `translateY(${(1 - chips[l.index - 1]) * 12}px)`}}
+            >
+              <Plate layer={l} active dim={1} scale="chip" />
+            </div>
+          ))}
+        </div>
+        <div
+          style={{
+            fontFamily: theme.serif,
+            fontSize: 26,
+            fontWeight: 700,
+            color: theme.core,
+            marginTop: 14,
+            letterSpacing: 2,
+          }}
+        >
+          {'从一个到一群'}
+        </div>
+      </Panel>
+    </div>
+  );
+};
+
+/** P0 台面溢出微缩回放（p6-16「回到开头」）：小台面 + 四件活，一件滑落。 */
+const MiniReplay: React.FC<{at16: number}> = ({at16}) => {
+  const inO = useProgress(2, DUR.f4);
+  const off = useProgress(at16 + 10, DUR.f5);
+  return (
+    <div style={{opacity: inO}}>
+      <Person x={250} y={222} color={theme.text} scale={0.62} />
+      <div
+        style={{
+          position: 'absolute',
+          left: 150,
+          top: 340,
+          width: 330,
+          height: 96,
+          borderRadius: 12,
+          background: theme.coreDeep,
+          boxShadow: `0 0 0 2px ${withAlpha(theme.coreDeep, 0.6)}`,
+        }}
+      />
+      {[
+        {x: 176, y: 356},
+        {x: 248, y: 368},
+        {x: 320, y: 356},
+        {x: 384, y: 368},
+      ].map((it, i) => (
+        <div
+          key={i}
+          style={{
+            position: 'absolute',
+            left: it.x - (i === 0 ? off * 400 : 0),
+            top: it.y + (i === 0 ? off * 80 : 0),
+            width: 56,
+            height: 24,
+            borderRadius: 5,
+            border: `2px solid ${theme.dim}`,
+            background: theme.panel,
+            opacity: i === 0 ? 1 - 0.8 * off : 0.9,
+          }}
+        />
+      ))}
+    </div>
+  );
+};
+
+/** 五物件答卡全亮（p6-17：板、格子、单据、隔间、插口——mech 金）。 */
+const ANSWERS = ['板', '格子', '单据', '隔间', '插口'] as const;
+
+const AnswerCards: React.FC<{at17: number}> = ({at17}) => {
+  const cards = useStagger(ANSWERS.length, {at: at17 + 2, stride: 6, dur: DUR.f4});
+  return (
+    <>
+      {ANSWERS.map((zh, i) => (
+        <div
+          key={zh}
+          style={{
+            position: 'absolute',
+            left: 480 + i * 196,
+            top: 445,
+            opacity: cards[i],
+            transform: `translateY(${(1 - cards[i]) * 20}px)`,
+          }}
+        >
+          <Panel
+            accent={theme.mech}
+            style={{
+              width: 176,
+              boxSizing: 'border-box',
+              padding: '16px 18px',
+              textAlign: 'center',
+              boxShadow: `0 0 18px ${withAlpha(theme.mech, 0.4)}`,
+            }}
+          >
+            <div style={{fontFamily: theme.mono, fontSize: 17, color: theme.mechDeep}}>
+              {`0${i + 1}`}
+            </div>
+            <div style={{fontFamily: theme.sans, fontSize: 34, fontWeight: 700, color: theme.mech, marginTop: 2}}>
+              {zh}
+            </div>
+          </Panel>
+        </div>
+      ))}
+    </>
+  );
+};
+
+/** 同一件事三步微环（p6-18：要工具／等结果／再想一步，LoopRing core 橙〔M-001〕）。 */
+const THREE_STEPS = ['要工具', '等结果', '再想一步'] as const;
+
+const ThreeStepRing: React.FC<{at18: number; span: number}> = ({at18, span}) => {
+  const ringDraw = useProgress(at18 + 2, 30, 'decelerate');
+  const run = useProgress(at18, Math.max(1, span - at18), 'linear');
+  const dot = (run * ((span - at18) / LAP_FRAMES)) % 1;
+  const steps = useStagger(THREE_STEPS.length, {at: at18 + 10, stride: 8, dur: DUR.f4});
+  // 三标签沿环三等分位（-90°/30°/150°，label 半径 150——环 r=104）
+  const labelPos = [
+    {left: 270, top: 322},
+    {left: 500, top: 600},
+    {left: 64, top: 600},
+  ];
+  return (
+    <>
+      <div style={{position: 'absolute', left: RING.left, top: RING.top}}>
+        <LoopRing size={RING.size} draw={ringDraw} dotProgress={dot} showLabels={false} />
+      </div>
+      {THREE_STEPS.map((s, i) => (
+        <div
+          key={s}
+          style={{
+            position: 'absolute',
+            left: labelPos[i].left,
+            top: labelPos[i].top,
+            opacity: steps[i],
+            transform: `translateX(${(1 - steps[i]) * 14}px)`,
+          }}
+        >
+          <Panel accent={theme.panelBorder} style={{padding: '8px 18px'}}>
+            <span style={{fontFamily: theme.sans, fontSize: 24, fontWeight: 600, color: theme.text}}>{s}</span>
+          </Panel>
+        </div>
+      ))}
+    </>
+  );
+};
+
+/** 工坊灯牌逐区点亮（p6-20：五区 mech 金逐区亮起；区名=系列层短名数据）。 */
+const ZoneLamps: React.FC<{at20: number}> = ({at20}) => {
+  const rowIn = useProgress(at20, DUR.f3);
+  const lits = useStagger(LAYERS.length, {at: at20 + 4, stride: 10, dur: DUR.f4});
+  return (
+    <div style={{opacity: rowIn}}>
+      {LAYERS.map((l, i) => {
+        const lit = lits[i];
+        return (
+          <div key={l.index} style={{position: 'absolute', left: 230 + i * 280, top: 400}}>
+            <PlateSlab3D
+              layer={l}
+              active={lit > 0.5}
+              dim={0.55 + 0.45 * lit}
+              glow={lit}
+              width={250}
+              height={150}
+              p6
+              accent={theme.mech}
+            />
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+/** 6-D 收尾编排：回到开头（微缩回放＋答卡）→ 三步微环 → 收束金句 → 灯牌逐区 →
+ *  全屏地图 → 家规卡＋身份卡常驻 → 灯牌收暗渐黑＋「后会有期」。 */
+const FinaleChain: React.FC<{
+  span: number;
+  at16: number;
+  at17: number;
+  at18: number;
+  at20: number;
+  at21: number;
+  at23: number;
+}> = ({span, at16, at17, at18, at20, at21, at23}) => {
+  const seg1Out = useProgress(at18, DUR.f4);
+  const seg2Out = useProgress(at20, DUR.f4);
+  const lampsOut = useProgress(at21, DUR.f4);
+  const endDim = useProgress(at23, DUR.f5);
+
+  return (
+    <AbsoluteFill style={{pointerEvents: 'none'}}>
+      {/* p6-16..17：回到开头（台面微缩回放＋五物件答卡全亮） */}
+      <div style={{opacity: 1 - seg1Out}}>
+        <MiniReplay at16={at16} />
+        <AnswerCards at17={at17} />
+      </div>
+
+      {/* p6-18：同一件事三步微环 */}
+      <div style={{opacity: 1 - seg2Out}}>
+        <ThreeStepRing at18={at18} span={span} />
+      </div>
+
+      {/* p6-20：工坊灯牌逐区点亮（p6-21 让位全屏地图后收暗退场） */}
+      <div style={{opacity: 1 - lampsOut}}>
+        <ZoneLamps at20={at20} />
+      </div>
+
+      {/* 身份卡常驻（右侧车道，与画框同屏；p6-23 灯牌收暗随压） */}
+      <div style={{opacity: 1 - 0.45 * endDim}}>
+        <IdentityCard at={at17 + 10} />
+      </div>
+
+      {/* 渐黑遮罩与完结小字已上提为 6-D Sequence 的最后子节点——须盖住 p6-22
+          金句卡（卡在 FinaleChain 之后渲染居 DOM 上层，遮罩若留在本组件内则
+          收暗到不了卡片，镜尾会满亮硬切进空尾场；见 ISSUE-205）。 */}
+    </AbsoluteFill>
+  );
+};
+
+/** 6-D 收尾层：末 36 帧渐黑遮罩 + 完结语，悬于末镜一切内容（含 p6-22 金句卡）
+ *  之上。独立成组件是为让 useFadeOut/useProgress 在 bD Sequence 语境取局部帧——
+ *  挂到 P6Finale 主体会拿到 P6 场景局部帧，遮罩全程满黑（ISSUE-205 实录）。 */
+const FinaleTail: React.FC<{span: number; at23: number}> = ({span, at23}) => {
+  const keep = useFadeOut(span, {frames: 36});
+  const farewell = useProgress(at23 + 6, DUR.f5);
+  return (
+    <>
+      <AbsoluteFill style={{background: '#000', opacity: 1 - keep, pointerEvents: 'none'}} />
+      {/* 完结小字（遮罩之上随收暗浮现；无下期卡——完结语气） */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 0,
+          top: 492,
+          width: 1920,
+          textAlign: 'center',
+          fontFamily: theme.serif,
+          fontSize: 38,
+          color: theme.text,
+          letterSpacing: 12,
+          opacity: farewell,
+        }}
+      >
+        {'后会有期'}
+      </div>
+    </>
+  );
+};
+
+// ── 幕组装 ──────────────────────────────────────────────────────────────
+
 export const P6Finale: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (fromId: string, toId?: string) => beatWindow(scene.sentences, scene.from, fromId, toId);
   const at = (id: string) => w(id).from;
-  const bA = w('p6-01', 'p6-02');
-  const bB = w('p6-03', 'p6-04');
-  const bC = w('p6-05', 'p6-06');
-  const bD = w('p6-07', 'p6-11d');
-  const bE = w('p6-12', 'p6-17');
-  const rel = (b: {from: number}, id: string) => at(id) - b.from;
+  const dur = (id: string) => w(id).durationInFrames;
+
+  const bA = w('p6-01', 'p6-08');
+  const bB = w('p6-09', 'p6-13');
+  const bC = w('p6-14', 'p6-15');
+  const bD = w('p6-16', 'p6-23');
+
+  // 常驻条调度：6-A 栈在场（放大＋侧位常驻承担系列身份）→ 6-B/C Badge 接管 →
+  // 6-D 身份卡接管。progress 纯函数且恒 clamp 在 1，让位须写成窗（进场×退场）。
+  const frame = useCurrentFrame();
+  const badgeO =
+    progress(frame, at('p6-09') - DUR.f4, DUR.f4) * (1 - progress(frame, bD.from, DUR.f4));
+
+  // 6-D 家规金句卡：p6-22 起常驻到镜尾（随渐黑收暗，勿在 p6-23 硬切）
+  const ruleFrom = at('p6-22') - bD.from;
+  const ruleSpan = Math.max(1, bD.durationInFrames - ruleFrom);
+
   return (
     <AbsoluteFill>
-      <Sequence {...bA} name="6-A 四样归位与传送带">
-        <ConveyorForms beltAt={rel(bA, 'p6-02')} />
-      </Sequence>
-      <Sequence {...bB} name="6-B 一整轮快闪">
-        <FullTurn pkgAt={rel(bB, 'p6-03')} />
-      </Sequence>
-      <Sequence {...bC} name="6-C 系列终曲帧">
-        <SeriesFinale riseAt={0} quoteAt={rel(bC, 'p6-06')} />
-      </Sequence>
-      <Sequence {...bD} name="6-D 谁持有计划">
-        <WhoHoldsPlan
-          gridAt={rel(bD, 'p6-07')}
-          divideAt={rel(bD, 'p6-08')}
-          runtimeAt={rel(bD, 'p6-10')}
-          modesAt={rel(bD, 'p6-11a')}
-          resumeAt={rel(bD, 'p6-11c')}
-          twistAt={rel(bD, 'p6-11')}
+      <HarnessBadge style={{...BADGE_STYLE, opacity: badgeO}} />
+
+      <Sequence {...bA} name="6-A 五层全亮（3D）">
+        <SceneTag chapter="One Loop" tagline="循环没改" />
+        {/* 3D 栈放大与五层点亮在 HarnessStackP6（终集形态，p6-05 缩至侧位常驻） */}
+        <StackFinale at05={at('p6-05') - bA.from} />
+        {/* cue 1/7：five-layer-dependency/five-lit-finale（本镜首图 → 默认入场）。
+            fit='trim' 显式留痕：章 6 拍 6.64s vs 句窗 3.00s（rate 2.21）——前溯会盖住
+            p6-01 的 3D 栈开场、后接 mech-homecoming 背靠背，无处扩窗；「五层全亮」
+            主叙事由 StackFinale 3D 栈承担，图内演进到第三层即让位（2026-09-30 评审决策） */}
+        <ArchifyRecap
+          slug="five-layer-dependency"
+          caption="五层依赖"
+          cues={[{chapterId: 'five-lit-finale', at: at('p6-02') - bA.from, durationInFrames: dur('p6-02'), fit: 'trim'}]}
+        />
+        {/* cue 2..3/7：collab-panorama 实例一（与前图背靠背 → 后挂实例关入场） */}
+        <ArchifyRecap
+          slug="collab-panorama"
+          caption="协作全景"
+          lead={false}
+          cues={[
+            // fit='trim' 显式留痕：章 10 拍 11.38s vs 句窗 6.67s（rate 1.80），前后句均有
+            // 专属 cue 无法扩窗；「执行、回填、再问一轮」整圈语义由口播承担，图内播到
+            // wait 拍后即切 27 工具带（2026-09-30 评审决策）
+            {chapterId: 'mech-homecoming', at: at('p6-03') - bA.from, durationInFrames: dur('p6-03'), fit: 'trim'},
+            {chapterId: 'tool-belt-27', at: at('p6-04') - bA.from, durationInFrames: dur('p6-04')},
+          ]}
+        />
+        {/* 费曼遗产金句卡（p6-05 空窗岛） */}
+        <Sequence from={at('p6-05') - bA.from} durationInFrames={dur('p6-05')} name="6-A 费曼金句">
+          {/* caption-dup-ok: 费曼遗产句金句卡，主字已压短非逐字（storyboard 6-A 注记） */}
+          <QuoteCard zh="两种身份 · 一条消息 一个工具" />
+        </Sequence>
+        {/* cue 4..6/7：collab-panorama 实例二（空窗一句后重现 → 默认入场） */}
+        <ArchifyRecap
+          slug="collab-panorama"
+          caption="协作全景"
+          cues={[
+            {chapterId: 'identity-message', at: at('p6-06') - bA.from, durationInFrames: dur('p6-06')},
+            {chapterId: 'identity-tool', at: at('p6-07') - bA.from, durationInFrames: dur('p6-07')},
+            {chapterId: 'no-branch', at: at('p6-08') - bA.from, durationInFrames: dur('p6-08')},
+          ]}
         />
       </Sequence>
-      <Sequence {...bE} name="6-E 零件·十五倍·信源卡·渐黑">
-        {/* p6-12 零件四连；p6-13/14 十五倍对比条；p6-15 起信源卡；渐黑窗口从本 beat 总时长推导（红线四） */}
-        <SourceAndFade
-          beatDurationInFrames={bE.durationInFrames}
-          partsAt={rel(bE, 'p6-12')}
-          costAt={rel(bE, 'p6-13')}
-          seriesAt={rel(bE, 'p6-15')}
+
+      <Sequence {...bB} name="6-B 计划门三拍终章">
+        {/* 可见岛 p6-09 / p6-11..13；窗 = 本镜 1 条 cue 窗（p6-10）
+            （真门骤停由章内真门停机等拍承担，回落时 ring 已静置） */}
+        <ArchifyYield cues={[{at: at('p6-10') - bB.from, durationInFrames: dur('p6-10')}]}>
+          <PlanGateFinale
+            at09={at('p6-09') - bB.from}
+            at10={at('p6-10') - bB.from}
+            at11={at('p6-11') - bB.from}
+            at12={at('p6-12') - bB.from}
+            at13={at('p6-13') - bB.from}
+          />
+        </ArchifyYield>
+        {/* cue 7/8：collab-panorama/gate-three-beats（no-branch 后空窗一句 → 默认入场） */}
+        <ArchifyRecap
+          slug="collab-panorama"
+          caption="协作全景"
+          cues={[{chapterId: 'gate-three-beats', at: at('p6-10') - bB.from, durationInFrames: dur('p6-10')}]}
         />
+      </Sequence>
+
+      <Sequence {...bC} name="6-C 教室与厂房">
+        <ClassroomToFactory at15={at('p6-15') - bC.from} />
+      </Sequence>
+
+      <Sequence {...bD} name="6-D 系列终态（3D）">
+        <FinaleChain
+          span={bD.durationInFrames}
+          at16={at('p6-16') - bD.from}
+          at17={at('p6-17') - bD.from}
+          at18={at('p6-18') - bD.from}
+          at20={at('p6-20') - bD.from}
+          at21={at('p6-21') - bD.from}
+          at23={at('p6-23') - bD.from}
+        />
+        {/* p6-19 系列收束金句（终集特款；span 传入 ⇒ scrim 与卡随窗尾斜坡平滑退出，
+            p6-20 起无 1 帧亮度跳变） */}
+        <Sequence from={at('p6-19') - bD.from} durationInFrames={dur('p6-19')} name="6-D 收束金句">
+          {/* caption-dup-ok: 系列总收束句金句卡，主字已压短非逐字（storyboard 6-D 注记） */}
+          <QuoteWithScrim zh="机制很多 · 循环一个" scrim span={dur('p6-19')} />
+        </Sequence>
+        {/* cue 8/8：collab-panorama/all-lit-map（空窗长后重现 → 默认入场）。
+            窗 = p6-21..p6-22 两句（258 帧 8.60s）：章 10 拍 11.54s，单句窗只够播 30%——
+            扩至家规句末恰落 stretch（rate 1.342），全亮在家规金句收点定格；身份卡走
+            右侧车道与画框同屏（FinaleChain :600 契约），p6-23 地图卸载、灯牌收暗渐黑
+            不受影响（2026-09-30 评审修复：口播「全部亮灯」对位） */}
+        <ArchifyRecap
+          slug="collab-panorama"
+          caption="协作全景"
+          cues={[{chapterId: 'all-lit-map', at: at('p6-21') - bD.from, durationInFrames: dur('p6-21') + dur('p6-22')}]}
+        />
+        {/* p6-22 家规金句卡＋身份卡常驻 */}
+        <Sequence from={ruleFrom} durationInFrames={ruleSpan} name="6-D 家规金句">
+          {/* caption-dup-ok: 家规句金句卡，主字已压短非逐字（storyboard 6-D 注记） */}
+          <QuoteWithScrim zh="装置尽管加 · 循环不乱动" />
+        </Sequence>
+
+        {/* 渐黑遮罩+完结小字：FinaleTail 为 6-D 最后子节点（盖过金句卡），且其
+            hooks 在本 Sequence 内取 bD 局部帧——窗取整镜时长（红线四）。卡片随
+            遮罩收暗，镜尾不再满亮硬切（ISSUE-205）。 */}
+        <FinaleTail span={bD.durationInFrames} at23={at('p6-23') - bD.from} />
       </Sequence>
     </AbsoluteFill>
   );
 };
+
+export default P6Finale;

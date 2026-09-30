@@ -1,0 +1,26 @@
+[
+ {
+  "id": "turn-cap",
+  "label": "轮数有上限",
+  "focus": ["turn-meter", "cap-line"],
+  "note": "副台干活有轮数上限，撞线就得收工。"
+ },
+ {
+  "id": "backward-scan",
+  "label": "倒序找最近一段话",
+  "focus": ["history", "backward-arrow", "nearest-text"],
+  "note": "撞线时最后一句不是结论，就倒序往回找最近一段话交回；找不到走兜底占位句。"
+ },
+ {
+  "id": "same-shape",
+  "label": "两条路同一形态",
+  "focus": ["receipt-a", "receipt-b", "same-shape"],
+  "note": "回溯命中交回的回执，与正常收敛交回的回执同形（兜底句路径反而可区分）。"
+ },
+ {
+  "id": "receipt-blind",
+  "label": "回执不写干没干完",
+  "focus": ["receipt", "blind-spot"],
+  "note": "回执上不写它有没有干完——主台只见结论，不知收场。"
+ }
+]

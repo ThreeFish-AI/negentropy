@@ -1,0 +1,180 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 23.17,
+ "total_wall_sec": 104.82,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "standard-socket",
+   "label": "标准协议",
+   "index": 0,
+   "file": "mcp-toolpool--standard-socket.mp4",
+   "end_still": "mcp-toolpool--standard-socket-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "mcp-socket",
+    "external"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 48.0
+  },
+  {
+   "id": "connect-discover",
+   "label": "连接发现两步",
+   "index": 1,
+   "file": "mcp-toolpool--connect-discover.mp4",
+   "end_still": "mcp-toolpool--connect-discover-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [
+    0.0,
+    1.606
+   ],
+   "beat_nodes": [
+    "connect",
+    "tools-list"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 47.0
+  },
+  {
+   "id": "namespace-rename",
+   "label": "统一重新起名",
+   "index": 2,
+   "file": "mcp-toolpool--namespace-rename.mp4",
+   "end_still": "mcp-toolpool--namespace-rename-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.34,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.205
+   ],
+   "beat_nodes": [
+    "tool",
+    "prefix",
+    "renamed"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 48.0
+  },
+  {
+   "id": "no-collision",
+   "label": "互不冲撞",
+   "index": 3,
+   "file": "mcp-toolpool--no-collision.mp4",
+   "end_still": "mcp-toolpool--no-collision-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.204
+   ],
+   "beat_nodes": [
+    "sanitize",
+    "name-a",
+    "name-b"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "rebuild-each-round",
+   "label": "每轮重装",
+   "index": 4,
+   "file": "mcp-toolpool--rebuild-each-round.mp4",
+   "end_still": "mcp-toolpool--rebuild-each-round-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.209
+   ],
+   "beat_nodes": [
+    "pool",
+    "assemble",
+    "round"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 49.0
+  },
+  {
+   "id": "new-machine-next-round",
+   "label": "下一轮自然可用",
+   "index": 5,
+   "file": "mcp-toolpool--new-machine-next-round.mp4",
+   "end_still": "mcp-toolpool--new-machine-next-round-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.32,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.209
+   ],
+   "beat_nodes": [
+    "new-machine",
+    "pool",
+    "loop"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 49.0
+  },
+  {
+   "id": "stale-list-miss",
+   "label": "旧清单叫空",
+   "index": 6,
+   "file": "mcp-toolpool--stale-list-miss.mp4",
+   "end_still": "mcp-toolpool--stale-list-miss-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.32,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.209
+   ],
+   "beat_nodes": [
+    "cache-list",
+    "call",
+    "miss"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 48.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--mcp-toolpool.html",
+ "slug": "mcp-toolpool",
+ "type": "dataflow"
+}

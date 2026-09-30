@@ -1,0 +1,134 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 17.6,
+ "total_wall_sec": 75.15,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "pair-rule",
+   "label": "同去同留",
+   "index": 0,
+   "file": "pair-guard--pair-rule.mp4",
+   "end_still": "pair-guard--pair-rule-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "pair-bond"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "pair-bound",
+   "label": "一对搭档",
+   "index": 1,
+   "file": "pair-guard--pair-bound.mp4",
+   "end_still": "pair-guard--pair-bound-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.33,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.208
+   ],
+   "beat_nodes": [
+    "request-card",
+    "result-card",
+    "pair-bond"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "orphan-rejected",
+   "label": "孤立回执非法",
+   "index": 2,
+   "file": "pair-guard--orphan-rejected.mp4",
+   "end_still": "pair-guard--orphan-rejected-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [
+    0.0,
+    1.605
+   ],
+   "beat_nodes": [
+    "orphan-result",
+    "reject-stamp"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "cut-yields",
+   "label": "切点让开",
+   "index": 3,
+   "file": "pair-guard--cut-yields.mp4",
+   "end_still": "pair-guard--cut-yields-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.36,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.208
+   ],
+   "beat_nodes": [
+    "cut-point-a",
+    "cut-point-b",
+    "pair-bond"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "content-vs-structure",
+   "label": "丢内容不丢结构",
+   "index": 4,
+   "file": "pair-guard--content-vs-structure.mp4",
+   "end_still": "pair-guard--content-vs-structure-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.42,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.206,
+    3.309
+   ],
+   "beat_nodes": [
+    "invariant",
+    "pair-bond",
+    "request-card",
+    "result-card"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--pair-guard.html",
+ "slug": "pair-guard",
+ "type": "lifecycle"
+}

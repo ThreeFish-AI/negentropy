@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "867e6fbe-901c-4e83-9df5-b46c17debc9a",
+  "status": "current",
+  "command": "deliver",
+  "type": "sequence",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/.temp/archify-bg-placeholder-receipt/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--bg-placeholder-receipt.html",
+  "specification": {
+    "sha256": "b4e18b80a09ee3584143aa711a68f80796778410fc718a904fca60969c054677",
+    "bytes": 5840
+  },
+  "artifact": {
+    "sha256": "5ed6a40ad1a0fc9739acfc6741c13f089eb9f0c3bbe18ec88940dcaa9d98d677",
+    "bytes": 840249
+  }
+}

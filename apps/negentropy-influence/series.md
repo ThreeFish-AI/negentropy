@@ -30,11 +30,11 @@
 
 | #   | 作品                                                                                  | 一句话主题                    | 视觉契约（主色）                         | 信源                                                                                              | 状态                                                                        |
 | --- | ------------------------------------------------------------------------------------- | ----------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| 1   | [《执行层：一个循环，就是全部》](./episodes/claude-code-explained-video/README.md)    | 工具与执行：把模型装进Harness | 陶土橙/石青/警示红                       | [Learn Claude Code](https://learn.shareai.run/zh/s01/) s01–s04 + 仓库 @ `f9e8b28`（MIT），2026-08 | **Harness Engineering 改造中**（配音缓存 170/170 迁移命中；改造草渲后交付） |
-| 2   | [《规划层：模型的视野是安排出来的》](./episodes/claude-code-planning-video/README.md) | 规划与协调：谁替它安排视野    | 鸢紫 `view`（底座陶土橙/石青全系列共享） | s05–s07 · s10 · s11 @ 站点同源修订 `67a9126c`（MIT）                                              | **Harness Engineering 改造中**（135 句基线；改造草渲后交付）                |
-| 3   | [《记忆层：会丢的和不能丢的》](./episodes/claude-code-memory-video/README.md)         | 记忆管理：窗口内外的两本账    | 苔绿 `keep`                              | s08 · s09 @ `67a9126c`（MIT）                                                                     | **Harness Engineering 改造中**（139 句基线；改造草渲后交付）                |
-| 4   | [《时机层：谁来按下开始》](./episodes/claude-code-concurrency-video/README.md)        | 并发与调度：谁替它看表        | 霜蓝 `later`                             | s13 · s14 @ `67a9126c`（MIT）                                                                     | **Harness Engineering 改造中**（139 句基线；改造草渲后交付）                |
-| 5   | [《协作层：从一个到一群》](./episodes/claude-code-multiagent-video/README.md)         | 多 Agent 协作：谁持有计划     | 赭金 `peer`                              | s12 · s15–s20 @ `67a9126c`（MIT）                                                                 | **Harness Engineering 改造中**（134 句基线；改造草渲后交付）                |
+| 1   | [《工具与执行：一个循环，三层装置》](./episodes/claude-code-explained-video/README.md) | 循环不变式与三层挂载装置 | core #D97757 恒定/mech 石青 | 站点 s01–s04 钉 main `0dcafa2`（MIT）＋官方文档轨 C；台账 12 条 audit FAIL 0 | ✅ **完全重制 v1 交付**（14:02.6 · 164 句 · 12 图 65 章 · 归档 v1+_captions） |
+| 2   | [《规划与协调：模型的视野是安排出来的》](./episodes/claude-code-planning-video/README.md) | 五件安排台面的装置 | mech 鸢紫 #9C90EE | s05–s07·s10·s11 @ `67a9126c` ＋轨 C | ✅ **完全重制 v1 交付**（14:12.2 · 169 句 · 12 图 68 章 · 目检修复 P6 叠压） |
+| 3   | [《记忆管理：会丢的和不能丢的》](./episodes/claude-code-memory-video/README.md) | 两套咬合的机制 | mech 苔绿 #A9C46C | s08·s09 @ `67a9126c` ＋轨 C（main 演进彩蛋） | ✅ **完全重制 v1 交付**（14:13.3 · 163 句 · 12 图 62 章） |
+| 4   | [《并发：谁来按下开始》](./episodes/claude-code-concurrency-video/README.md) | 后台不等＋定时钟自动 | mech 霜蓝 #7FB2E0 | s13·s14 @ `67a9126c` ＋轨 C | ✅ **完全重制 v1 交付**（14:10.8 · 170 句 · 12 图 59 章 · Lottie 根因修复） |
+| 5   | [《多 Agent 平台：从一个到一群》](./episodes/claude-code-multiagent-video/README.md) | 从一个到一群的五物件 | mech 协作金 #D9B36B | s12·s15–s20 @ `67a9126c` ＋轨 C 八校准 | ✅ **完全重制 v1 交付**（13:42.8 · 149 句 · 13 图 67 章 · 终集收束） |
 
 > 章节→集归属与**站点/仓库修订分叉**（站点为 20 章旧修订、仓库 main 已整合为 17 章，故双钉）：
 > 系列级登记见 [source-map/claude-code-explained.md](./source-map/claude-code-explained.md)。

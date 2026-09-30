@@ -1,0 +1,50 @@
+[
+ {
+  "id": "one-to-many",
+  "label": "从一个到一群",
+  "focus": ["loop", "wait", "shift", "tools"],
+  "note": "P0 一闪：多 Agent 平台全景预告——四组朴素物件围着同一条循环。"
+ },
+ {
+  "id": "mech-homecoming",
+  "label": "机制归位",
+  "focus": ["post", "claim", "fetch", "match", "worktree", "wait", "gate", "shift", "tools", "loop"],
+  "note": "终点站把机制放回同一个循环：要一次工具，执行、回填、再问一轮。"
+ },
+ {
+  "id": "tool-belt-27",
+  "label": "二十七件工具",
+  "focus": ["tools", "loop"],
+  "note": "二十七件工具，全挂在同一条循环上。"
+ },
+ {
+  "id": "identity-message",
+  "label": "身份一：注入的消息",
+  "focus": ["fetch", "wait", "loop"],
+  "note": "一条注入的消息：收件格的条子、后台的完工、定时的到点。"
+ },
+ {
+  "id": "identity-tool",
+  "label": "身份二：架上的工具",
+  "focus": ["tools", "claim", "gate"],
+  "note": "工具架上的一个工具：招队友、发单据、开隔间、连外接。"
+ },
+ {
+  "id": "no-branch",
+  "label": "没单开分支",
+  "focus": ["loop"],
+  "note": "循环体从头到尾，没为多人单开过分支。"
+ },
+ {
+  "id": "gate-three-beats",
+  "label": "计划门三拍",
+  "focus": ["gate", "loop"],
+  "note": "协议单——真门停机等批——产品自动批：一道门的三拍终章对照。"
+ },
+ {
+  "id": "all-lit-map",
+  "label": "工坊地图全亮",
+  "focus": ["post", "claim", "fetch", "match", "worktree", "wait", "gate", "shift", "tools", "loop"],
+  "note": "今晚，工坊的地图全部亮灯——四组物件与循环同时点亮（系列终态定格）。"
+ }
+]

@@ -1,0 +1,38 @@
+[
+ {
+  "id": "quiet-big-day",
+  "label": "安静的大事",
+  "focus": ["fence", "gate-set"],
+  "note": "装门禁那天，还发生了一件安静的大事——同一天两件事并置。"
+ },
+ {
+  "id": "fence-removed",
+  "label": "围墙整个拆掉",
+  "focus": ["fence", "file-tools", "workdir"],
+  "note": "上一版 safe_path 围墙被整个拆除（s03 起代码零命中，虚线残影呈现）。"
+ },
+ {
+  "id": "downgrade-ask",
+  "label": "报错降级为问人",
+  "focus": ["outside-path", "hard-error", "ask-user"],
+  "note": "文件越界从直接报错，降级成问一句用户。"
+ },
+ {
+  "id": "wall-to-intercom",
+  "label": "墙换成对讲机",
+  "focus": ["fence", "ask-user"],
+  "note": "同一天，墙换成了对讲机——拆墙双联画的右联。"
+ },
+ {
+  "id": "net-effect",
+  "label": "按净效应算账",
+  "focus": ["gate-set", "ask-user", "net-effect"],
+  "note": "门多了、墙没了，这笔账要按净效应算（终态）。"
+ },
+ {
+  "id": "denied-receipt",
+  "label": "被拒也给回执",
+  "focus": ["denied-result", "dialogue"],
+  "note": "门禁的交互义务：拒绝不是让调用凭空消失，而是回写一条 Permission denied 的 tool_result 进对话——Agent 看得见自己被拒，才好换路走。"
+ }
+]

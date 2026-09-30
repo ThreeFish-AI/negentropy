@@ -1,7 +1,7 @@
 {
   "name": "claude-code-planning-video",
   "private": true,
-  "description": "《AI 的视野是安排出来的：写下来的计划，另开的桌子》科普视频 Remotion 工程",
+  "description": "《规划与协调：模型的视野是安排出来的》科普视频 Remotion 工程",
   "scripts": {
     "dev": "remotion studio",
     "typecheck": "tsc --noEmit",
@@ -9,12 +9,20 @@
     "render:draft": "remotion render Main ../out/draft.mp4 --scale=0.5 --jpeg-quality=60"
   },
   "dependencies": {
-    "@remotion/cli": "^4.0.0",
-    "@remotion/layout-utils": "4.0.512",
-    "@remotion/media": "4.0.512",
+    "@remotion/cli": "4.0.529",
+    "@remotion/layout-utils": "4.0.529",
+    "@remotion/media": "4.0.529",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "remotion": "^4.0.0"
+    "remotion": "4.0.529",
+    "@remotion/lottie": "4.0.529",
+    "@remotion/paths": "4.0.529",
+    "@remotion/shapes": "4.0.529",
+    "@remotion/three": "4.0.529",
+    "@types/three": "0.186.0",
+    "@react-three/fiber": "9.8.1",
+    "lottie-web": "5.13.0",
+    "three": "0.186.1"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",

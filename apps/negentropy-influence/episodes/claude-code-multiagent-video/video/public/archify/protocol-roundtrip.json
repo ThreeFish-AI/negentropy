@@ -1,0 +1,140 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 17.79,
+ "total_wall_sec": 73.13,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "two-copies",
+   "label": "一式两份",
+   "index": 0,
+   "file": "protocol-roundtrip--two-copies.mp4",
+   "end_still": "protocol-roundtrip--two-copies-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.41,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.206,
+    3.307
+   ],
+   "beat_nodes": [
+    "lead",
+    "teammate",
+    "slip-a",
+    "slip-b"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "id-roundtrip",
+   "label": "编号往返",
+   "index": 1,
+   "file": "protocol-roundtrip--id-roundtrip.mp4",
+   "end_still": "protocol-roundtrip--id-roundtrip-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.208
+   ],
+   "beat_nodes": [
+    "request-id",
+    "out",
+    "back"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "three-checks",
+   "label": "三道验证",
+   "index": 2,
+   "file": "protocol-roundtrip--three-checks.mp4",
+   "end_still": "protocol-roundtrip--three-checks-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [
+    0.0,
+    1.106,
+    2.212
+   ],
+   "beat_nodes": [
+    "check-id",
+    "check-type",
+    "check-open"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "stale-immune",
+   "label": "结案免疫",
+   "index": 3,
+   "file": "protocol-roundtrip--stale-immune.mp4",
+   "end_still": "protocol-roundtrip--stale-immune-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.33,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.207
+   ],
+   "beat_nodes": [
+    "closed-slip",
+    "dup-reply",
+    "reject"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "route-before-return",
+   "label": "先翻账再交消息",
+   "index": 4,
+   "file": "protocol-roundtrip--route-before-return.mp4",
+   "end_still": "protocol-roundtrip--route-before-return-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [
+    0.0,
+    1.106,
+    2.211
+   ],
+   "beat_nodes": [
+    "protocol-ledger",
+    "inbox",
+    "lead"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--protocol-roundtrip.html",
+ "slug": "protocol-roundtrip",
+ "type": "sequence"
+}

@@ -1,0 +1,178 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 23.05,
+ "total_wall_sec": 101.39,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "three-beats",
+   "label": "三拍班次",
+   "index": 0,
+   "file": "shift-three-beats--three-beats.mp4",
+   "end_still": "shift-three-beats--three-beats-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.34,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.21
+   ],
+   "beat_nodes": [
+    "work",
+    "idle",
+    "shutdown"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 49.0
+  },
+  {
+   "id": "work-cap",
+   "label": "轮数上限",
+   "index": 1,
+   "file": "shift-three-beats--work-cap.mp4",
+   "end_still": "shift-three-beats--work-cap-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0,
+    1.606
+   ],
+   "beat_nodes": [
+    "work",
+    "turns-counter"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 49.0
+  },
+  {
+   "id": "idle-order",
+   "label": "先格子后板",
+   "index": 2,
+   "file": "shift-three-beats--idle-order.mp4",
+   "end_still": "shift-three-beats--idle-order-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.32,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.209
+   ],
+   "beat_nodes": [
+    "inbox",
+    "board",
+    "poll-arrow"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 48.0
+  },
+  {
+   "id": "instruction-first",
+   "label": "指令在前",
+   "index": 3,
+   "file": "shift-three-beats--instruction-first.mp4",
+   "end_still": "shift-three-beats--instruction-first-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.33,
+   "beat_offsets_sec": [
+    0.0,
+    1.106,
+    2.213
+   ],
+   "beat_nodes": [
+    "inbox",
+    "shutdown-request",
+    "priority"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 49.0
+  },
+  {
+   "id": "timeout-leave",
+   "label": "超时下班",
+   "index": 4,
+   "file": "shift-three-beats--timeout-leave.mp4",
+   "end_still": "shift-three-beats--timeout-leave-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.34,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.207
+   ],
+   "beat_nodes": [
+    "idle",
+    "timeout",
+    "summary-slip"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 48.0
+  },
+  {
+   "id": "no-fixed-timeout",
+   "label": "产品不赶人",
+   "index": 5,
+   "file": "shift-three-beats--no-fixed-timeout.mp4",
+   "end_still": "shift-three-beats--no-fixed-timeout-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0,
+    1.605
+   ],
+   "beat_nodes": [
+    "idle",
+    "manual-shutdown"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "done-two-ways",
+   "label": "报信两数法",
+   "index": 6,
+   "file": "shift-three-beats--done-two-ways.mp4",
+   "end_still": "shift-three-beats--done-two-ways-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [
+    0.0,
+    1.601
+   ],
+   "beat_nodes": [
+    "result-message",
+    "idle-notification"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--shift-three-beats.html",
+ "slug": "shift-three-beats",
+ "type": "lifecycle"
+}

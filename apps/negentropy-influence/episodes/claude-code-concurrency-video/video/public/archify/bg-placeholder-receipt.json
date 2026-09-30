@@ -1,0 +1,111 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 13.17,
+ "total_wall_sec": 59.68,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "sink-in-trade",
+   "label": "活进槽换什么",
+   "index": 0,
+   "file": "bg-placeholder-receipt--sink-in-trade.mp4",
+   "end_still": "bg-placeholder-receipt--sink-in-trade-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.32,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.207
+   ],
+   "beat_nodes": [
+    "master",
+    "sink",
+    "return-lane"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 48.0
+  },
+  {
+   "id": "ticket-first",
+   "label": "号牌当场返回",
+   "index": 1,
+   "file": "bg-placeholder-receipt--ticket-first.mp4",
+   "end_still": "bg-placeholder-receipt--ticket-first-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.33,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.207
+   ],
+   "beat_nodes": [
+    "sink",
+    "ticket",
+    "master"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 48.0
+  },
+  {
+   "id": "belt-unpaused",
+   "label": "带一拍不停",
+   "index": 2,
+   "file": "bg-placeholder-receipt--belt-unpaused.mp4",
+   "end_still": "bg-placeholder-receipt--belt-unpaused-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [
+    0.0,
+    1.605
+   ],
+   "beat_nodes": [
+    "belt-core",
+    "sink"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "four-digit-id",
+   "label": "四位编号",
+   "index": 3,
+   "file": "bg-placeholder-receipt--four-digit-id.mp4",
+   "end_still": "bg-placeholder-receipt--four-digit-id-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "ticket",
+    "bg-id-0001"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 49.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--bg-placeholder-receipt.html",
+ "slug": "bg-placeholder-receipt",
+ "type": "sequence"
+}

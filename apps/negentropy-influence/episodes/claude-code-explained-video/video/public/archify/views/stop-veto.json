@@ -1,0 +1,20 @@
+[
+ {
+  "id": "stop-not-solo",
+  "label": "收工非独断",
+  "focus": ["stop-moment", "loop-core"],
+  "note": "收工，也不是循环一个人说了算——退出时刻被装置共享。"
+ },
+ {
+  "id": "message-yank",
+  "label": "递消息拽回续跑",
+  "focus": ["hook-msg", "inject-user", "rerun", "loop-core"],
+  "note": "退出那一刻，装置递回一条消息即注入 user 消息，循环再跑一轮（core 橙回环箭头）。"
+ },
+ {
+  "id": "master-overruled",
+  "label": "师傅说不算",
+  "focus": ["master-says", "pulled-back", "rerun"],
+  "note": "师傅说做完了？装置说不算，还能拽回来接着干（终态）。"
+ }
+]

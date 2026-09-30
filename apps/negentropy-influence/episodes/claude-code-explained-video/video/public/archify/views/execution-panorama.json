@@ -1,0 +1,38 @@
+[
+ {
+  "id": "belt-lap",
+  "label": "工具执行一圈",
+  "focus": ["belt", "verify", "gates", "execute", "feed-back"],
+  "note": "全景一瞥（P0 一闪）：验活 → 门禁 → 执行 → 回带——工具执行一圈的总装视图。focus 节点 id 对齐主仓 claude-code-tooling--execution-panorama.html 既有节点语义，录制前回填 guided-views。"
+ },
+ {
+  "id": "recount",
+  "label": "回头对账",
+  "focus": ["belt", "debt-capability", "debt-security", "debt-extension"],
+  "note": "三笔债对账盘点开场：能力/安全/扩展三债并列摆上全景。"
+ },
+ {
+  "id": "debt-ledger",
+  "label": "三债各归其位",
+  "focus": ["debt-capability", "registry-port", "debt-security", "gate-port", "debt-extension", "hook-port"],
+  "note": "能力债号码簿扛了，安全债门禁挡了，扩展债插线口接了——三债逐一打钩。"
+ },
+ {
+  "id": "device-per-chapter",
+  "label": "每章都在加装置",
+  "focus": ["registry-port", "gate-port", "hook-port", "belt"],
+  "note": "回头看这四章：每一章都在加装置，没有一章在改传送带。"
+ },
+ {
+  "id": "skeleton-verbatim",
+  "label": "骨架逐字没变",
+  "focus": ["skeleton", "belt"],
+  "note": "循环骨架四章摆在一起逐字同头——README「循环不变」互证。"
+ },
+ {
+  "id": "vow-cashed",
+  "label": "立碑兑现",
+  "focus": ["vow-stone", "belt", "registry-port", "gate-port", "hook-port"],
+  "note": "当初立的碑到此兑现：三笔债，三种挂法，循环一行不改（终态）。"
+ }
+]

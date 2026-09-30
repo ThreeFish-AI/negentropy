@@ -1,0 +1,136 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 17.61,
+ "total_wall_sec": 109.45,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "three-tiers",
+   "label": "三档阶梯",
+   "index": 0,
+   "file": "schedule-three-tiers--three-tiers.mp4",
+   "end_still": "schedule-three-tiers--three-tiers-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.36,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.208
+   ],
+   "beat_nodes": [
+    "tier-loop",
+    "tier-desktop",
+    "tier-cloud"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 47.0
+  },
+  {
+   "id": "session-loop",
+   "label": "会话内最快",
+   "index": 1,
+   "file": "schedule-three-tiers--session-loop.mp4",
+   "end_still": "schedule-three-tiers--session-loop-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.48,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "tier-loop",
+    "loop-cmd"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 48.0
+  },
+  {
+   "id": "desktop-tier",
+   "label": "桌面档",
+   "index": 2,
+   "file": "schedule-three-tiers--desktop-tier.mp4",
+   "end_still": "schedule-three-tiers--desktop-tier-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.207
+   ],
+   "beat_nodes": [
+    "tier-desktop",
+    "min-1min",
+    "survive-restart"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 48.0
+  },
+  {
+   "id": "cloud-tier",
+   "label": "云端档",
+   "index": 3,
+   "file": "schedule-three-tiers--cloud-tier.mp4",
+   "end_still": "schedule-three-tiers--cloud-tier-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "tier-cloud",
+    "no-session"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 48.0
+  },
+  {
+   "id": "same-edge-two-ways",
+   "label": "同界两走法",
+   "index": 4,
+   "file": "schedule-three-tiers--same-edge-two-ways.mp4",
+   "end_still": "schedule-three-tiers--same-edge-two-ways-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.42,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.207,
+    3.311
+   ],
+   "beat_nodes": [
+    "boundary-line",
+    "tier-loop",
+    "tier-desktop",
+    "tier-cloud"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 48.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--schedule-three-tiers.html",
+ "slug": "schedule-three-tiers",
+ "type": "architecture"
+}

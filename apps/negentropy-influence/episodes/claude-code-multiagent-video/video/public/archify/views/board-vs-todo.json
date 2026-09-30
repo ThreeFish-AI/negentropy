@@ -1,0 +1,20 @@
+[
+ {
+  "id": "todo-vanishes",
+  "label": "待办断电即失",
+  "focus": ["session-todo", "power-off", "vanish"],
+  "note": "P0 一闪：待办记在会话里——断电重启，什么都不剩。"
+ },
+ {
+  "id": "two-layers",
+  "label": "两层账本",
+  "focus": ["session-todo", "task-graph"],
+  "note": "待办在会话内防漂移，任务图跨会话带依赖与归属——活放在板上，不放在谁的脑子里。"
+ },
+ {
+  "id": "crash-resume",
+  "label": "重扫即恢复",
+  "focus": ["disk-dir", "rescan", "progress-back"],
+  "note": "进程死了目录还在，重启扫一遍板，进度全回来。"
+ }
+]

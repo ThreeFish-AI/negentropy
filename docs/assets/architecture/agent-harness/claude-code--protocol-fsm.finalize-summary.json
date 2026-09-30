@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "lifecycle",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/.temp/archify-protocol-fsm/candidate.json",
+    "sha256": "be86fe95dfb580df347370143fd82c841d30f5bbf1d5d026a8266ad6759d13e5",
+    "bytes": 8252
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--protocol-fsm.html",
+    "sha256": "160d4f679b10d5c96abd2fc1f4e824df11f544948c8b6bc8dfa2cddcaecfea3e",
+    "bytes": 847038
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--protocol-fsm.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--protocol-fsm.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--protocol-fsm.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 2017,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "routesOverSuggestedBends": 2
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [],
+      "detours": [
+        {
+          "relationship": {
+            "id": "t-reject-return",
+            "from": "response",
+            "to": "submit-plan",
+            "label": "驳回 · 带意见重交",
+            "collectionIndex": 4,
+            "artifactIndex": 6
+          },
+          "bends": 3,
+          "stretch": 1.236,
+          "directCorridorBlockers": [
+            {
+              "id": "request",
+              "label": "协议层请求",
+              "box": [
+                189,
+                126,
+                118,
+                62
+              ]
+            },
+            {
+              "id": "pending",
+              "label": "待批",
+              "box": [
+                343,
+                126,
+                118,
+                62
+              ]
+            }
+          ]
+        },
+        {
+          "relationship": {
+            "id": "t-agent-proceed",
+            "from": "agent",
+            "to": "proceed",
+            "label": "没门拦 · 也能先动",
+            "collectionIndex": 12,
+            "artifactIndex": 14
+          },
+          "bends": 3,
+          "stretch": 1.165
+        }
+      ],
+      "truncated": false
+    },
+    "hints": [
+      "agent → proceed needs 3 bends: move node agent or proceed so they share a row or column with matching centers, or sit diagonally with a clear corner."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

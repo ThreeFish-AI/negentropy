@@ -1,0 +1,30 @@
+[
+ {
+  "scene": "P0",
+  "title": "每轮从头读"
+ },
+ {
+  "scene": "P1",
+  "title": "工序卡"
+ },
+ {
+  "scene": "P2",
+  "title": "副台与回执"
+ },
+ {
+  "scene": "P3",
+  "title": "抽屉与手册"
+ },
+ {
+  "scene": "P4",
+  "title": "垫纸重铺"
+ },
+ {
+  "scene": "P5",
+  "title": "补救梯"
+ },
+ {
+  "scene": "P6",
+  "title": "收束"
+ }
+]

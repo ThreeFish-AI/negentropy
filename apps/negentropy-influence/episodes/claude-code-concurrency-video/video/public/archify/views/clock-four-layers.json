@@ -1,0 +1,38 @@
+[
+ {
+  "id": "clock-blind",
+  "label": "钟不认识师傅",
+  "focus": ["wall-clock", "master-silhouette", "back-to-back"],
+  "note": "钟与师傅剪影背对：墙上的钟不认识师傅，也不知道台面上在干什么（回溯 §二·机制 1/6）。"
+ },
+ {
+  "id": "four-roles",
+  "label": "四层各一事",
+  "focus": ["layer-clock", "layer-slot", "layer-sentry", "layer-belt"],
+  "note": "整套调度拆成四层，每层只干一件事：判时／存条／判闲／干活。"
+ },
+ {
+  "id": "tick-keeper",
+  "label": "第一层判时",
+  "focus": ["wall-clock", "layer-clock"],
+  "note": "第一层钟：每秒醒一次，只看表不看人（回溯 §二·机制 6）。"
+ },
+ {
+  "id": "slot-keeper",
+  "label": "第二层存条",
+  "focus": ["entry-slot", "layer-slot"],
+  "note": "第二层入口小格子：只存条子，别的不管（回溯 §二·机制 9）。"
+ },
+ {
+  "id": "lock-is-state",
+  "label": "锁即状态",
+  "focus": ["layer-sentry", "agent-lock"],
+  "note": "拿不到锁就是正忙：忙碌不需要另立牌子，锁本身就是状态（回溯 §二·机制 10）。"
+ },
+ {
+  "id": "same-stream",
+  "label": "同一条流",
+  "focus": ["layer-belt", "messages-stream"],
+  "note": "第四层传送带：把条子当一句话收进对话，钟话人话进了同一条流，听不出差别（回溯 §二·机制 11）。"
+ }
+]

@@ -3,35 +3,35 @@
  "layers": [
   {
    "index": 1,
-   "layer": "执行层",
-   "title": "执行层：一个循环，就是全部",
+   "layer": "工具与执行",
+   "title": "工具与执行：一个循环，三层装置",
    "published": false
   },
   {
    "index": 2,
-   "layer": "规划层",
-   "title": "规划层：模型的视野是安排出来的",
+   "layer": "规划与协调",
+   "title": "规划与协调：模型的视野是安排出来的",
    "published": false
   },
   {
    "index": 3,
-   "layer": "记忆层",
-   "title": "记忆层：会丢的和不能丢的",
+   "layer": "记忆管理",
+   "title": "记忆管理：会丢的和不能丢的",
    "published": false
   },
   {
    "index": 4,
-   "layer": "时机层",
-   "title": "时机层：谁来按下开始",
+   "layer": "并发",
+   "title": "并发：谁来按下开始",
    "published": false
   },
   {
    "index": 5,
-   "layer": "协作层",
-   "title": "协作层：从一个到一群",
+   "layer": "多 Agent 平台",
+   "title": "多 Agent 平台：从一个到一群",
    "published": false
   }
  ],
  "activeIndex": 1,
- "next": "规划层：模型的视野是安排出来的"
+ "next": "规划与协调：模型的视野是安排出来的"
 }

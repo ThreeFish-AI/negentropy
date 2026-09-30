@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "a547f518-d926-4f4a-89f7-290352b7cb1a",
+  "status": "current",
+  "command": "deliver",
+  "type": "dataflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/.temp/archify-collab-panorama/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code-multiagent--collab-panorama.html",
+  "specification": {
+    "sha256": "35a7736c9393f9dc32961e9499fc9a39a9426dd07f2ba203e46bd74422eb8c32",
+    "bytes": 7366
+  },
+  "artifact": {
+    "sha256": "dfb289c435b0a1cae237d2dcbc6043ee26c753eed6a74addd510f464d911a70a",
+    "bytes": 842255
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "47095faa-35ae-4a21-bb64-27bd741a1b0c",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/.temp/archify-mailbox-consume/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--mailbox-consume.html",
+  "specification": {
+    "sha256": "1a3d5f171e125b435d6f871e0e180c262d09f9942305898b6c9576cf91184e8e",
+    "bytes": 6815
+  },
+  "artifact": {
+    "sha256": "463824c21828b866a4213e19e37ef6683d08583d366fc11b071ae7a62d9b8d4b",
+    "bytes": 847286
+  }
+}

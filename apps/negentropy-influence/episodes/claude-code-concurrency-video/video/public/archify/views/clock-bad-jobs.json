@@ -1,0 +1,20 @@
+[
+ {
+  "id": "validate-first",
+  "label": "注册先验表",
+  "focus": ["validate", "reject"],
+  "note": "坏闹钟第一防：注册前先验表，不合法当场拒收（回溯 §二·机制 5）。"
+ },
+ {
+  "id": "quarantine-bad",
+  "label": "单独兜住",
+  "focus": ["runtime-error", "quarantine", "wall-clock"],
+  "note": "第二防：运行中出错的单独兜住——一个坏闹钟，不许拖垮整面墙（回溯 §二·防护与竞态）。"
+ },
+ {
+  "id": "fire-and-delete",
+  "label": "响完即删",
+  "focus": ["one-shot", "delete", "recurring"],
+  "note": "一次性的活响完即删；周期性的留下待下次（回溯 §二·机制 8）。"
+ }
+]

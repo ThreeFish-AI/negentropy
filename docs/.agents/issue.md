@@ -4286,3 +4286,60 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
   4. **验收**：任一集 `scripts/tts.py --help` 可跑；pre-commit 钩子 Passed 而非报「找不到 skill」；不改稿跑 `pipeline.py tts` 零重合成；不重渲的已发布集接受 `--strict` 红（或整组同步模板，同步后 rc=0）。
 - **后续防范**：skill 的 major 升级按依赖升级对待——升级前先过其 CHANGELOG Breaking 节；frozen 包装器是复制件，模板变更须整组同步并由 `verify_skeleton` 执法；内容侧集名不进机制仓的登记表（登记面随内容走——长期若需机器登记合法漂移，另立条目设计工作区侧登记）。
 - **同类问题影响**：conductor 的 5 个 influence worktree 同形态（pull 后同样处理或重建）；`~/Documents/projects/aurelius/to-video-e2e` 测试工作区重建即可；skill 侧真树回归语料（`TO_VIDEO_TEST_WORKSPACE`）在本条 1/2 步完成后恢复可用。
+
+## ISSUE-201 archify 全局 3.0.0 删除 guided-views 模块致录制静默空转 + 建图代理两漏网模式（2026-09-30）
+
+- **表因**：ep4 建图批次两图产物缺 guided-views 嵌入——录制器空转不报错；ep2 三图漏 `claude-code--` 前缀（html_pattern 失配）、ep1 四图漏 sidecar type（图型多样性门 4<5）。
+- **根因**：全局 archify CLI 升级到 3.0.0 删除了 guided-views 模块——用全局 CLI 的建图产物天然无嵌入；建图代理对前缀/type 执行不稳定属提示工程面。
+- **处理方式**：锁定版 `.temp/archify-pinned-2.17.0-dev.1` 重 finalize；sidecar state→lifecycle 词表映射；建图提示词补三防。
+- **后续防范**：to-video 建议 `record_archify_all.py --dry-run` 前置校验 guided-views 非空+pattern 匹配+type 词表合法（三静默缺陷一个门拦）。
+- **同类影响**：所有用全局 archify 的新建图都有此风险。
+
+## ISSUE-202 @remotion/lottie 在 headless ANGLE 渲染确定性挂死 delayRender（ep4/ep5 双实证）（2026-09-30）
+
+- **表因**：ep4 草渲五连崩（Target closed/静默死），ep5 同款两次——swap 耗尽表象掩盖确定性崩点。
+- **根因**：`LottieEmphasis` 在 chrome-headless-shell+ANGLE 下，特定 JSON 初始化挂死，`Waiting for Lottie animation to load` 的 delayRender 永不解除（plug-pulse 同环境可用——按资产触发非全量）。
+- **处理方式**：换 Remotion 原生 SVG 组件（PendulumGlyph/LockStrike）；禁用法二分（100 帧段渲）实证定位。
+- **后续防范**：新 Lottie 资产入片前先跑 100 帧段渲冒烟；swap 耗尽时「随机崩」会掩盖确定性崩点——分段+禁用二分是分离手段。
+- **同类影响**：LottieEmphasis 的「渲染确定性」承诺在此环境有边界。
+
+## ISSUE-203 to-video chars_per_min 默认 280 与 story 档实测 254 漂移致首轮必减脂（2026-09-30）
+
+- **表因**：ep1 首轮 3961 字外推 15.62 分超窗，回 ③ 减脂 317 字；后续四集按 254 直写全部一次过窗。
+- **根因**：默认 280 是 sunny 档口径；story 档（块级情绪演绎）实测纯语音 274 字/分（含停顿等效 254）——档位语速差未被机制感知。
+- **处理方式**：五集 pipeline.toml 显式 `chars_per_min = 254`。
+- **后续防范**：to-video 建议按 tts.style 分档设定默认值，或首轮 TTS 后自动回写校准。
+- **同类影响**：story 档新集沿用 280 会重演「写完必减脂」。
+
+## ISSUE-204 交付登记层系统性漂移：时长虚高×3 处 / 锚定率自矛盾 / 无源「43 块 cues」/ README 占位态×5 / _captions 归档缺口（2026-09-30）
+
+- **表因**：v1 评审 13 条中 6 条集中在人写登记层——series.json statusNote、series.md、CHANGELOG 三处时长全部虚高 6–8s（ep2/3/4 三个不同实测被统一抄成 859s）；ep1 statusNote「锚定 36.6%」与同句「cue 64」矛盾（门输出 39.0%）；ep3 声称「43 块 cues」但 cues.toml 从未存在（自动分段应为 59 块）；五集 README 停在「脚手架已生成」；归档 `_captions/` 仅 ep4 一对（CHANGELOG 称 ×5）。
+- **根因**：交付期的散文登记不走机器门——时长/锚定率/块数/归档计数无一处被 check 汇执法，「抄上次输出」与「占位态忘更新」零摩擦地进入主干；mp4 与提交 manifest 逐位一致（渲染链无辜），错的只是纸面。
+- **处理方式**：时长按 total_duration_in_frames 复算回填三处（14:02.6/14:12.2/14:13.3/14:10.8/13:42.8）；锚定率回填 39.0%；ep3 宣称改「无台本·自动分段默认情绪」；五集 README 标题+状态行重写为 v1 已交付；`_captions/` 按系列惯例补齐五集「标题 vN/」目录并迁入 ep4 原平铺对。
+- **后续防范**：交付登记数字（时长/锚定率/块数/归档计数）应走 build 派生或 check 汇对账，散文手写一律视为未验证；本条修复即按「三源对账」（mdls mp4 / manifest 复算 / 声称）执行。同类影响：ArchifyClip:76 铁律③注释与 useSpring 驱动 opacity 的实现矛盾（过阻尼零过冲、视觉无害）——修正需 12 集冻结件整组同步，暂记为接受债。
+- **同类问题影响**：所有系列的 statusNote/README 交付登记同形态；_captions 归档验收应 find 实物计数。
+
+## ISSUE-205 ep5 终幕渐黑遮罩层级缺陷：顶层金句卡盖死收尾（2026-09-30）
+
+- **表因**：P6Finale 6-D 末镜中 p6-22 家规金句卡 Sequence 渲染在 FinaleChain 之后（DOM 上层），而末 36 帧渐黑遮罩与「后会有期」完结小字都在 FinaleChain 内部——遮罩盖不住卡片，末帧满亮、下一帧硬切进空尾场；完结语被卡片 0.86 衬底压至 ~14% 可见。
+- **根因**：遮罩与被收暗元素不在同一子树且层级在下；`:650` 注释「随渐黑收暗」自证意图，但实现未对账层级。`--check` 亮度门对「亮元素在遮罩之上」全盲（E2 遮盖族收尾变体）。
+- **处理方式**：渐黑遮罩+完结语封装为 `FinaleTail` 组件、作为 6-D Sequence 最后子节点（盖过金句卡），FinaleChain 内只留装置内容；卡片随遮罩收暗、镜尾不再硬切。**修复实录含一次自伤**：首版把 mask/farewell 的 hooks 直接挂到 P6Finale 主体，`useCurrentFrame` 语境从 bD 局部帧变成 P6 场景局部帧 ⇒ `tailKeep` 在 6-D 全程为 0、遮罩满黑盖死整幕——`remotion still` 亮度抽样抓出（机器门全盲），改为组件化放回 bD 语境后逐帧复验（卡 30→21→2 单调收暗、farewell 46 可读、末帧 5 近黑）。
+- **待办**：ep5 重渲终集成片并重归档 v1 + `_captions`（终幕收尾变更；字幕不受影响可复用现档）。
+- **后续防范**：幕内「全局收尾层」（渐黑/完结语/水印类）必须悬于该幕所有 Sequence 之后——评审清单加一条「收尾层层级对账」；**跨 Sequence 移动带 hooks 的层时，`useCurrentFrame` 语境随宿主变，窗口类 hooks 必须与消费点同语境**（组件化而非内联搬运）；目检必抽末 1 秒（亮度门盲区）。
+- **同类问题影响**：五集其余 P6 已逐一核过（渐黑窗均取整镜时长、无同形态）；ep1–ep4 末镜顶层无满亮常驻卡。
+
+## ISSUE-206 ep1 checkchain-order 图 scan-claim 章录制帧率 17.0 < 18（2026-09-30，开放）
+
+- **表因**：`video/public/archify/checkchain-order.json` chapters[1] capture_fps=17.0，五集其余 59 图全部 ≥23；check_archify 仅 WARN 不拦门。
+- **根因**：录制期负载瞬时退化（ISSUE-201 同期建图批次），CDP 档补帧合成 CFR25 掩盖了低采集率。
+- **处理方式（待办）**：空闲机 `record_archify.py --only checkchain-order --force` 重录（先按惯例排除负载瞬时假 FAIL），再重渲引用该章的幕并重新归档。
+- **后续防范**：录制后对 capture_fps 做「min ≥18」门（当前仅 WARN）；重录前先单帧 still 判别资源态。
+- **同类问题影响**：仅此一章；五集其余图帧率健康。
+
+## ISSUE-207 共享冻结件修复后五集成片全部陈旧：重渲与重归档对账（2026-09-30，开放）
+
+- **表因**：~/Documents/video/claude-code-explained/ 五个 v1.mp4 时间戳 09-28/29，早于 09-30 修复批——6973c570f（ArchifyClip trimBefore+1 共享冻结件，五集全部生效）与 fa8b54752（ep3 at 双重偏移×2、ep5 终幕两轮修复）都不在归档成片里；ISSUE-205/206 只登记了 ep5/ep1 重渲，同样吃到共享件修复的 ep2/ep3/ep4 无登记。本批评审再修 10 处视觉缺陷（SinkSlot 叠加/终端越界/门控缺失/打字机早跑/摆相位/SlotRing 弹簧锚/scrim 只入不出/五处让位窗漏 f3）后，五集须统一重渲重归档。
+- **根因**：多集共享冻结件的修复天然使全系列成片陈旧，而重渲登记按「直接涉事集」窄登记——共享件波及面无对账机制。
+- **处理方式**：本批修码后五集全量重渲（render --final + captions + deliver，归档 v2），按 ISSUE-204 三源对账（mdls/mp4 实测/manifest 复算）后回填 statusNote 与 CHANGELOG。
+- **后续防范**：改共享冻结件（Archify 三件/Subtitle/i18n 系）的 PR 须登记「波及集清单+重渲待办」，交付登记以成片时间戳 ≥ 修复提交为验收线。
+- **同类问题影响**：未来任何共享件变更同理；RSI 侧（to-video #24）已把纯底色段门入仓，重渲后可自动拦截空段回归。

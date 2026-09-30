@@ -1,0 +1,32 @@
+[
+ {
+  "id": "belt-turn",
+  "label": "传送带一圈三件事",
+  "focus": ["loop-core", "ledger", "tool-use-block", "tool-result"],
+  "note": "while True 每圈固定三步：落账→验活→回填，一圈即一个生命周期。"
+ },
+ {
+  "id": "append-first",
+  "label": "师傅先落账",
+  "focus": ["assistant-msg", "ledger"],
+  "note": "assistant 回合先原样 append 进对话记录，不做加工——落账纪律第一条。"
+ },
+ {
+  "id": "hand-check",
+  "label": "看手里有没有调用",
+  "focus": ["content-blocks", "tool-use-block"],
+  "note": "只扫本轮响应的内容块里有无 tool_use——每圈唯一的验活动作。"
+ },
+ {
+  "id": "no-tool-exit",
+  "label": "没递就收圈",
+  "focus": ["tool-use-block", "stop-exit", "loop-core"],
+  "note": "没有工具调用即本轮到此为止、循环退出；绝不硬塞空结果（非空工具结果纪律）。"
+ },
+ {
+  "id": "pair-backfill",
+  "label": "按编号配对回填",
+  "focus": ["executor", "tool-result", "pairing", "ledger"],
+  "note": "结果按 tool_use_id 配对回灌对话，喂给下一圈。"
+ }
+]

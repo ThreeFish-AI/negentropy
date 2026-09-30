@@ -1,0 +1,32 @@
+[
+ {
+  "id": "hang-the-tag",
+  "label": "只挂牌不拍肩",
+  "focus": ["sink", "call-board", "tag"],
+  "note": "清洗槽不来拍师傅肩膀：把号码牌挂上门口的叫号器（回溯 §一·机制 3）。"
+ },
+ {
+  "id": "one-to-one",
+  "label": "一问一答",
+  "focus": ["tool-use", "tool-result"],
+  "note": "硬协议：一次派工只配一张回执，配对关系锁死。"
+ },
+ {
+  "id": "receipt-spent",
+  "label": "回执已交过",
+  "focus": ["tool-result", "ticket"],
+  "note": "号牌发出去那一刻，占位的回执已经交过了——名额已用。"
+ },
+ {
+  "id": "no-second-receipt",
+  "label": "不能补发",
+  "focus": ["tool-use", "x-mark"],
+  "note": "洗完是另一件事：不能拿旧编号再补一条。"
+ },
+ {
+  "id": "own-doorway",
+  "label": "另立门户",
+  "focus": ["task-notification", "call-board"],
+  "note": "完成通知只能另立门户：独立的小票，不占回执的名额。"
+ }
+]

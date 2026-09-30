@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "95037df1-e800-40d9-a3c1-2d7bfb987e3f",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/.temp/archify-board-vs-todo/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--board-vs-todo.html",
+  "specification": {
+    "sha256": "5c6b62cb38edbafaae81bd0fc95046a333258fecf1955b9e20bb4c890eb250ec",
+    "bytes": 6849
+  },
+  "artifact": {
+    "sha256": "b7b96ba9c38ab056589cdcb6406de88e60bdb37e7cbe90d13ce99a8bcc1e3a69",
+    "bytes": 843962
+  }
+}

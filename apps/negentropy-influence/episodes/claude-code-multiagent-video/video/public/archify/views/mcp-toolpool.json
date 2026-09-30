@@ -1,0 +1,44 @@
+[
+ {
+  "id": "standard-socket",
+  "label": "标准协议",
+  "focus": ["mcp-socket", "external"],
+  "note": "外部服务只要实现标准协议，就能直接接。"
+ },
+ {
+  "id": "connect-discover",
+  "label": "连接发现两步",
+  "focus": ["connect", "tools-list"],
+  "note": "连接分两步：先连上，再发现——对方报出自己会干什么。"
+ },
+ {
+  "id": "namespace-rename",
+  "label": "统一重新起名",
+  "focus": ["tool", "prefix", "renamed"],
+  "note": "工具进池前统一重新起名：服务名加工具名，挂在同一个前缀底下。"
+ },
+ {
+  "id": "no-collision",
+  "label": "互不冲撞",
+  "focus": ["sanitize", "name-a", "name-b"],
+  "note": "字母表外的字符一律替换；不同服务的同名工具，互不冲撞。"
+ },
+ {
+  "id": "rebuild-each-round",
+  "label": "每轮重装",
+  "focus": ["pool", "assemble", "round"],
+  "note": "最漂亮的一条：工具池每一轮重新组装。"
+ },
+ {
+  "id": "new-machine-next-round",
+  "label": "下一轮自然可用",
+  "focus": ["new-machine", "pool", "loop"],
+  "note": "接上一台新机器，下一轮池子里自然就有它——循环一行不改。"
+ },
+ {
+  "id": "stale-list-miss",
+  "label": "旧清单叫空",
+  "focus": ["cache-list", "call", "miss"],
+  "note": "缓存里的工具清单是旧的：模型按旧清单叫新工具，会叫空。"
+ }
+]

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "5524a61b-1322-4047-999d-baf7e6ee6aff",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/.temp/archify-worktree-bind/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--worktree-bind.html",
+  "specification": {
+    "sha256": "c1e705ff71b4717219fc6051d412a60e83bc88c5f25c87470f035947f1b58b75",
+    "bytes": 10495
+  },
+  "artifact": {
+    "sha256": "9e8fc93f8e00fae0d888b9aa45687f497449552a6cbe01eae651badd9aa58b43",
+    "bytes": 859688
+  }
+}

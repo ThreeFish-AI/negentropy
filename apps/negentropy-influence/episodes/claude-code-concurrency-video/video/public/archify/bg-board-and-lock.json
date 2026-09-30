@@ -1,0 +1,115 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 14.35,
+ "total_wall_sec": 57.33,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "registry-board",
+   "label": "登记板三栏",
+   "index": 0,
+   "file": "bg-board-and-lock--registry-board.mp4",
+   "end_still": "bg-board-and-lock--registry-board-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.46,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.207,
+    3.309
+   ],
+   "beat_nodes": [
+    "registry",
+    "id-col",
+    "cmd-col",
+    "status-col"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "daemon-thread",
+   "label": "独立线程",
+   "index": 1,
+   "file": "bg-board-and-lock--daemon-thread.mp4",
+   "end_still": "bg-board-and-lock--daemon-thread-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.32,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.208
+   ],
+   "beat_nodes": [
+    "worker-thread",
+    "registry",
+    "belt-core"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "lock-critical",
+   "label": "一把锁",
+   "index": 2,
+   "file": "bg-board-and-lock--lock-critical.mp4",
+   "end_still": "bg-board-and-lock--lock-critical-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.48,
+   "story_sec": 3.34,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.21
+   ],
+   "beat_nodes": [
+    "lock",
+    "master-side",
+    "sink-side"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "lock-before-write",
+   "label": "先立锁再动手",
+   "index": 3,
+   "file": "bg-board-and-lock--lock-before-write.mp4",
+   "end_still": "bg-board-and-lock--lock-before-write-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.605
+   ],
+   "beat_nodes": [
+    "lock",
+    "registry"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--bg-board-and-lock.html",
+ "slug": "bg-board-and-lock",
+ "type": "architecture"
+}

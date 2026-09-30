@@ -1,848 +1,898 @@
-/** P2 另开一张副桌（分镜 2-A…2-F）—— Subagent
- *  桌面暴涨 → 副桌滑出（缩小克隆环）→ 分屏回执 → 派活上锁 + 迷你闸门
- *  → ★五要素等号锁（本集最反直觉深挖帧）→ 共享抽屉 + 审批冒泡。 */
+/** P2 副台与回执（p2-01..30，7 镜 9 cue）——分镜 2-A…2-G。
+ *
+ *  ★ 空间契约：DeskPlane 主台（coreDeep 大矩形〔M-001〕）恒居画面中央、框体恒静；
+ *    副台是第二件 mech 紫装置，**自主台右侧展开**——2-B 的 solids-3d 台体一现是本集
+ *    唯一 3D 点缀（planning §3 定案），3D 组合零 motion hook、运动量全部由本幕以 prop
+ *    注入；主台内容物对副台压暗不可见（useDim），隔离带 dim 虚线。
+ *  ★ 2-C 回执仪式：副台中间过程碎纸化（过程不进主台），单张回执（mech 描边纸片）
+ *    跨过台面边界弧线落在主台——「只带回结论」的空间读法。
+ *  ★ 2-E 是三连反转对撞卡的第二次出场（D2）：右倾终态＝官方轨胜出。
+ *  archify 两图全屏独占：2-D 副台解剖＋三条边界（p2-12／p2-14 空窗句回落自制小卡）、
+ *    2-F 撞线回溯＋回执同形（两镜与前镜均隔长空档 → 默认 lead）。
+ */
 import React from 'react';
-import {AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig} from 'remotion';
+import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {QuoteCard} from '../components/cards';
-import {Chip, Counter, Desk, Footnote, LoopRing, Panel, SceneTag, Stamp, useRingDot} from '../components/motifs';
+import {ClashCard, DeskPlane, Footnote, LoopRing, Panel, ReceiptPaper, SceneTag} from '../components/motifs';
+import {HarnessBadge} from '../components/harness-stack';
+import {SHELL_FACES, Slab3D, Stage3D, axoRotation} from '../components/solids-3d';
+import {ArchifyRecap} from '../components/ArchifyRecap';
+import {DUR, clamp01, progress, useCount, useDim, useEnter, useProgress, useReveal, useSpring, useStagger} from '../motion';
 
-/** 2-A 桌面色块暴涨成灾：一百多条记录填满桌面；计费计数器持续跳字。 */
-const DeskFlood: React.FC<{floodAt: number; billAt: number}> = ({floodAt, billAt}) => {
-  const frame = useCurrentFrame();
-  const rows = 10;
-  const cols = 16;
-  const shown = Math.max(0, Math.floor((frame - floodAt) * 0.8));
-  const kinds: Array<'user' | 'model' | 'tool'> = ['tool', 'tool', 'model', 'tool', 'user'];
-  const labels = ['tool: read', 'tool: bash', 'assistant', 'tool: edit', 'user'];
-  const overflow = interpolate(frame - floodAt - 100, [0, 30], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
+/** 常驻系列条定位：与 SceneTag 同行（P1–P6 同值，由 Integrate 统一核对） */
+const BADGE_STYLE: React.CSSProperties = {top: 64};
+
+/** hex + 确定性透明度（帧驱动；无随机） */
+const withAlpha = (hex: string, a: number): string =>
+  `${hex}${Math.round(clamp01(a) * 255)
+    .toString(16)
+    .padStart(2, '0')}`;
+
+/** 师傅（及翻版）剪影——text 白，人一律无彩 */
+const Person: React.FC<{x: number; y: number; scale?: number; opacity?: number}> = ({
+  x,
+  y,
+  scale = 1,
+  opacity = 0.88,
+}) => (
+  <svg
+    width={120 * scale}
+    height={180 * scale}
+    viewBox="0 0 120 180"
+    style={{position: 'absolute', left: x, top: y, opacity}}
+  >
+    <circle cx={60} cy={34} r={28} fill={theme.text} />
+    <path d="M0 180 Q0 76 60 70 Q120 76 120 180 Z" fill={theme.text} />
+  </svg>
+);
+
+/** 坑对账卡（与 P1 同形：幕开幕账的共用形态） */
+const PitCard: React.FC<{index: string; zh: string; at: number}> = ({index, zh, at}) => {
+  const e = useEnter('fade', {at, dur: DUR.f5});
   return (
-    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <SceneTag chapter="task tool" tagline="全新 messages[] · 只回传结论" accent={theme.view} />
-      <div style={{position: 'relative'}}>
-        <Desk width={1420} height={540}>
-          <div style={{position: 'absolute', inset: 14, overflow: 'hidden', borderRadius: 12}}>
-            {Array.from({length: rows}).map((_, r) => (
-              <div key={r} style={{display: 'flex', gap: 6, marginBottom: 6, paddingLeft: 6}}>
-                {Array.from({length: cols}).map((_, c) => {
-                  const idx = r * cols + c;
-                  if (idx >= shown) return null;
-                  const kk = kinds[r % kinds.length];
-                  const w = 74 + ((idx * 29) % 3) * 18;
-                  return <Chip key={c} kind={kk} label={labels[r % labels.length]} width={w} height={26} style={{fontSize: 16}} />;
-                })}
-              </div>
-            ))}
-          </div>
-          {/* 溢出桌沿：色块堆到溢出 */}
-          {overflow > 0 ? (
-            <div
-              style={{
-                position: 'absolute',
-                right: -80 - overflow * 60,
-                top: 60,
-                opacity: overflow * 0.8,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 8,
-              }}
-            >
-              {['tool', 'tool', 'tool'].map((l, i) => (
-                <Chip key={i} kind="tool" label={l} width={110} height={26} style={{fontSize: 16}} />
-              ))}
-            </div>
-          ) : null}
-        </Desk>
-        {/* 计费计数器（mech）：持续跳字 */}
-        <div
-          style={{
-            position: 'absolute',
-            right: -140,
-            top: -60,
-            padding: '12px 20px',
-            border: `2px solid ${frame >= billAt ? theme.mech : theme.panelBorder}`,
-            borderRadius: 10,
-            background: theme.panel,
-            opacity: interpolate(frame - billAt, [0, 10], [0, 1], {
-              extrapolateLeft: 'clamp',
-              extrapolateRight: 'clamp',
-            }),
-          }}
-        >
-          <div style={{fontFamily: theme.sans, fontSize: 19, color: theme.dim}}>{'本轮计费 token'}</div>
-          <div style={{fontFamily: theme.mono, fontSize: 44, fontWeight: 700, color: theme.mech}}>
-            <Counter from={0} to={shown * 131} start={billAt} frames={9999} />
-          </div>
-        </div>
-      </div>
-      <Footnote delay={billAt}>{'跟目标无关，但一直占着位置、一直计着费'}</Footnote>
-    </AbsoluteFill>
+    <div style={{position: 'absolute', left: 96, top: 132, ...e}}>
+      <Panel accent={theme.mech} style={{padding: '12px 24px', display: 'flex', alignItems: 'baseline', gap: 14}}>
+        <span style={{fontFamily: theme.mono, fontSize: 26, color: theme.mech}}>{index}</span>
+        <span style={{fontFamily: theme.sans, fontSize: 30, fontWeight: 600, color: theme.text}}>{zh}</span>
+      </Panel>
+    </div>
   );
 };
 
-/** 2-B 副桌滑出（自带缩小克隆环），主桌上「翻找」的脏纸堆整体飞向副桌。 */
-const SideDeskSlidesOut: React.FC<{slideAt: number; flyAt: number; cleanAt: number}> = ({
-  slideAt,
-  flyAt,
-  cleanAt,
+/** 台面文件 glyph（过程数据一律无彩：dim 描边） */
+const FileGlyph: React.FC<{x: number; y: number; s?: number; o?: number}> = ({x, y, s = 1, o = 1}) => (
+  <svg width={30 * s} height={40 * s} style={{position: 'absolute', left: x, top: y, opacity: o}}>
+    <path
+      d={`M${3 * s} ${2 * s} H${19 * s} L${27 * s} ${10 * s} V${38 * s} H${3 * s} Z`}
+      fill={theme.panel}
+      stroke={theme.dim}
+      strokeWidth={2.5}
+    />
+    <path d={`M${19 * s} ${2 * s} V${10 * s} H${27 * s}`} fill="none" stroke={theme.dim} strokeWidth={2} />
+    <line x1={8 * s} y1={18 * s} x2={22 * s} y2={18 * s} stroke={theme.panelBorder} strokeWidth={2.5} />
+    <line x1={8 * s} y1={26 * s} x2={22 * s} y2={26 * s} stroke={theme.panelBorder} strokeWidth={2.5} />
+  </svg>
+);
+
+// ── 2-A 坑二对账：上下文污染滚涨 ─────────────────────────────────────────
+
+const FILE_ROWS = 5;
+const FILE_COLS = 6;
+
+const PollutionSurge: React.FC<{atRows: number; rowsWin: number; atCounts: number}> = ({
+  atRows,
+  rowsWin,
+  atCounts,
 }) => {
-  const frame = useCurrentFrame();
-  const {fps} = useVideoConfig();
-  const slide = spring({frame: frame - slideAt, fps, config: {damping: 200}});
-  // 纸堆打包飞行：主桌右缘 → 副桌
-  const fly = interpolate(frame - flyAt, [0, 26], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-  const clean = interpolate(frame - cleanAt, [0, 20], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
+  const rows = useStagger(FILE_ROWS, {at: atRows, fit: {total: Math.max(1, rowsWin)}});
+  const n1 = useCount({from: 0, to: 30, at: atCounts, dur: DUR.f6, ease: 'standard'});
+  const n2 = useCount({from: 0, to: 60, at: atCounts + 14, dur: DUR.f6, ease: 'standard'});
+  const n3 = useCount({from: 0, to: 100, at: atCounts + 28, dur: DUR.f6, ease: 'standard'});
+  const cards = useStagger(3, {at: atCounts, stride: 14, dur: DUR.f4});
+  const note = useProgress(atCounts + DUR.f6, DUR.f4);
+
+  const counters: {v: number; unit: string; suffix?: string}[] = [
+    {v: n1, unit: '文件'},
+    {v: n2, unit: '轮'},
+    {v: n3, unit: '条', suffix: '+'},
+  ];
   return (
-    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <div style={{position: 'relative', width: 1720, height: 640}}>
-        {/* 主桌：翻找的脏纸堆 */}
-        <div style={{position: 'absolute', left: 30, top: 100}}>
-          <Desk width={880} height={440}>
-            <div style={{position: 'absolute', inset: 14, opacity: 1 - fly * 0.92}}>
-              {['tool: read ×12', 'tool: bash', 'assistant', 'tool: edit', 'tool: read ×8'].map((l, i) => (
-                <div key={i} style={{marginBottom: 8}}>
-                  <Chip kind={i % 2 === 0 ? 'tool' : 'model'} label={l} width={300 + (i % 3) * 60} />
-                </div>
-              ))}
-            </div>
-            {/* 纸堆飞行后主桌留下清空的桌面 */}
-            {clean > 0 ? (
-              <div
+    <AbsoluteFill>
+      {/* 台面内容物滚涨：文件图标一行行堆叠（dim） */}
+      {Array.from({length: FILE_ROWS}, (_, r) =>
+        Array.from({length: FILE_COLS}, (_, c) => {
+          const p = rows[r];
+          return (
+            <FileGlyph
+              key={`${r}-${c}`}
+              x={790 + c * 64}
+              y={350 + r * 76 - (1 - p) * 22}
+              o={p}
+            />
+          );
+        }),
+      )}
+
+      {/* 滚涨计数数字卡三联（叙事口径） */}
+      {counters.map((c, i) => (
+        <div
+          key={c.unit}
+          style={{
+            position: 'absolute',
+            left: 1520,
+            top: 300 + i * 148,
+            opacity: cards[i],
+            transform: `translateY(${(1 - cards[i]) * 16}px)`,
+          }}
+        >
+          <Panel accent={theme.mechDeep} style={{width: 330, padding: '16px 26px'}}>
+            <div style={{display: 'flex', alignItems: 'baseline', gap: 8}}>
+              <span
                 style={{
-                  position: 'absolute',
-                  inset: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontFamily: theme.sans,
-                  fontSize: 30,
-                  color: theme.dim,
-                  opacity: clean,
+                  fontFamily: theme.mono,
+                  fontSize: 62,
+                  fontWeight: 700,
+                  color: theme.mech,
+                  fontVariantNumeric: 'tabular-nums',
                 }}
               >
-                {'主桌继续干主活'}
-              </div>
-            ) : null}
-          </Desk>
-          <div
-            style={{
-              textAlign: 'center',
-              marginTop: 12,
-              fontFamily: theme.sans,
-              fontSize: 24,
-              color: theme.dim,
-            }}
-          >
-            {'主桌（你俩的对话）'}
-          </div>
-        </div>
-        {/* 副桌：mech 描边 + 自带缩小克隆环 */}
-        <div
-          style={{
-            position: 'absolute',
-            right: 20,
-            top: 130,
-            transform: `translateX(${(1 - slide) * 520}px)`,
-            opacity: slide,
-          }}
-        >
-          <div style={{position: 'relative'}}>
-            <MiniDeskWithRing cleanAt={cleanAt} fly={fly} />
-            <div
-              style={{
-                textAlign: 'center',
-                marginTop: 12,
-                fontFamily: theme.sans,
-                fontSize: 24,
-                color: theme.mech,
-              }}
-            >
-              {'副桌（分身的干净桌面）'}
+                {Math.round(c.v)}
+                {c.suffix}
+              </span>
+              <span style={{fontFamily: theme.sans, fontSize: 26, color: theme.dim, marginLeft: 6}}>{c.unit}</span>
             </div>
-          </div>
+          </Panel>
         </div>
-        {/* 纸堆飞行：从主桌打包飞向副桌 */}
-        {fly > 0 && fly < 1 ? (
-          <svg width={1720} height={640} style={{position: 'absolute', inset: 0, pointerEvents: 'none'}}>
-            <g>
-              {[0, 1, 2].map((k) => {
-                const t = Math.max(0, fly - k * 0.08);
-                const x = 500 + t * 700;
-                const y = 320 + Math.sin(t * Math.PI) * -80 - k * 34;
-                return (
-                  <rect
-                    key={k}
-                    x={x}
-                    y={y}
-                    width={90}
-                    height={26}
-                    rx={5}
-                    fill={theme.panel}
-                    stroke={theme.mech}
-                    strokeWidth={2}
-                    opacity={0.85}
-                    transform={`rotate(${t * 12} ${x + 45} ${y + 13})`}
-                  />
-                );
-              })}
-            </g>
-          </svg>
-        ) : null}
-      </div>
-      <Footnote delay={cleanAt}>{'副桌上是全新对话记录：干干净净，只有一句任务说明'}</Footnote>
-    </AbsoluteFill>
-  );
-};
-
-/** 副桌（mech 描边）+ 缩小克隆环（同色同宽，尺寸小）+ 干净态三行对话。 */
-const MiniDeskWithRing: React.FC<{cleanAt: number; fly: number}> = ({cleanAt, fly}) => {
-  const frame = useCurrentFrame();
-  const dot = useRingDot(2.6);
-  const deskW = 600;
-  return (
-    <div style={{position: 'relative', width: deskW}}>
-      <Desk width={deskW} height={380} accent={theme.mech}>
-        <div style={{position: 'absolute', inset: 12}}>
-          {/* 缩小克隆环：分身自己的循环（尺寸小于 260 时关标签） */}
-          <div style={{position: 'absolute', left: 8, top: 8, opacity: 0.95}}>
-            <LoopRing size={150} draw={1} dotProgress={dot} showExit={false} showLabels={false} />
-          </div>
-          {/* 干净态：仅一句任务说明 + 少量工具块 */}
-          <div style={{position: 'absolute', left: 180, top: 26, right: 16}}>
-            <Chip kind="task" label="任务：追这个缺陷" width={240} height={34} style={{fontSize: 20}} />
-            <div style={{marginTop: 12, opacity: interpolate(frame - cleanAt, [0, 14], [0.35, 0.95], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'})}}>
-              <div style={{marginBottom: 8}}>
-                <Chip kind="tool" label="tool: read" width={200} />
-              </div>
-              <div style={{marginBottom: 8}}>
-                <Chip kind="tool" label="tool: bash" width={190} />
-              </div>
-              <Chip kind="model" label="assistant" width={210} />
-            </div>
-          </div>
-        </div>
-      </Desk>
+      ))}
       <div
         style={{
           position: 'absolute',
-          left: 10,
-          bottom: -32,
-          fontFamily: theme.mono,
-          fontSize: 19,
+          left: 1520,
+          top: 748,
+          fontFamily: theme.sans,
+          fontSize: 21,
           color: theme.dim,
-          opacity: 0.8,
+          opacity: note,
         }}
       >
-        {'messages[] = [任务说明]'}
+        {'叙事口径'}
       </div>
-      <div style={{position: 'absolute', right: 0, top: -46, opacity: fly > 0.9 ? 1 : 0}}>
-        <div
-          style={{
-            fontFamily: theme.sans,
-            fontSize: 22,
-            color: theme.mech,
-            border: `2px solid ${theme.mech}`,
-            borderRadius: 8,
-            padding: '4px 12px',
-          }}
-        >
-          {'分身在此跑自己的循环'}
+    </AbsoluteFill>
+  );
+};
+
+// ── 2-B 副台升起（solids-3d 一现） ───────────────────────────────────────
+
+/** 副台 3D 几何（世界单位 = CSS px；正交 zoom 1——solids-3d 宪法二） */
+const SIDE3D = {plateW: 360, plateH: 24, plateD: 230, legW: 20, legH: 148, canvas: {w: 500, h: 360}} as const;
+/** 副台画布锚位（自主台右侧展开）：画布中心 ≈ (1690, 560) */
+const SIDE_CANVAS = {left: 1440, top: 380} as const;
+/** 升起行程：r=0 时台面整组沉在画布下缘之外，r=1 落位 */
+const SIDE_TRAVEL = 262;
+
+/** 副台台体（mech 紫装置）：台板 + 双腿。零 motion hook——rise 由调用方注入；
+ *  面色走 SHELL_FACES 梯度（宪法三），概念色只走 mech/mechDeep 棱线。 */
+const SideDesk3D: React.FC<{rise: number}> = ({rise}) => {
+  const r = clamp01(rise);
+  return (
+    <Stage3D width={SIDE3D.canvas.w} height={SIDE3D.canvas.h}>
+      {/* 静置俯角 20°/偏航 -8°（朝主台一侧微转）；相机全程不动（宪法二） */}
+      <group rotation={axoRotation({pitch: 20, yaw: -8})} position={[0, -SIDE_TRAVEL * (1 - r), 0]}>
+        <Slab3D
+          width={SIDE3D.plateW}
+          height={SIDE3D.plateH}
+          depth={SIDE3D.plateD}
+          position={[0, 60, 0]}
+          skin={{face: SHELL_FACES[1], edge: theme.mech, edgeOpacity: 0.9}}
+        />
+        {[-1, 1].map((s) => (
+          <Slab3D
+            key={s}
+            width={SIDE3D.legW}
+            height={SIDE3D.legH}
+            depth={SIDE3D.legW}
+            position={[s * 140, 60 - SIDE3D.plateH / 2 - SIDE3D.legH / 2, 30]}
+            skin={{face: SHELL_FACES[2], edge: theme.mechDeep, edgeOpacity: 0.8}}
+          />
+        ))}
+      </group>
+    </Stage3D>
+  );
+};
+
+/** 全新台面上的任务条子：白纸无彩（结论前的一切都不上色）。入场经 style 注入。 */
+const TaskSlip: React.FC<{style?: React.CSSProperties}> = ({style}) => (
+  <div style={{position: 'absolute', left: 1620, top: 410, ...style}}>
+    <svg width={140} height={78} style={{display: 'block'}}>
+      <rect x={1.5} y={1.5} width={137} height={75} rx={6} fill={theme.text} />
+      <path d="M110 1.5 V22 H138.5" fill="none" stroke={theme.panelBorder} strokeWidth={2} />
+      <line x1={16} y1={34} x2={124} y2={34} stroke={theme.panelBorder} strokeWidth={3} />
+      <line x1={16} y1={50} x2={92} y2={50} stroke={theme.panelBorder} strokeWidth={3} />
+    </svg>
+  </div>
+);
+
+const SideDeskRise: React.FC<{atRise: number; atSlip: number; atIso: number; atLoop: number; span: number}> = ({
+  atRise,
+  atSlip,
+  atIso,
+  atLoop,
+  span,
+}) => {
+  const rise = useSpring('settle', {at: atRise, dur: DUR.f6});
+  // 主台内容物对副台压暗不可见（台面框体〔M-001〕不随之压暗——恒静）
+  const dim = useDim({at: atRise + DUR.f4, to: 0.35, dur: DUR.f6});
+  const slip = useEnter('pop', {at: atSlip, dur: DUR.f4, springPreset: 'settle'});
+  const iso = useProgress(atIso, DUR.f5);
+  // 师傅翻版跑自己的循环：mini LoopRing（core 橙微缩，恒定锚的节拍也不变）
+  const loopIn = useProgress(atLoop, DUR.f5);
+  const spin = useProgress(0, Math.max(1, span), 'linear');
+  const deskLabels = useProgress(atRise + DUR.f5, DUR.f4);
+
+  return (
+    <AbsoluteFill>
+      {/* 主台（框体恒静）＋内容物压暗 */}
+      <DeskPlane />
+      <div style={{position: 'absolute', left: 0, top: 0, opacity: dim}}>
+        <Person x={560} y={110} scale={0.9} />
+        <FileGlyph x={820} y={430} o={0.9} />
+        <FileGlyph x={880} y={470} o={0.9} />
+        <FileGlyph x={860} y={520} o={0.9} />
+      </div>
+
+      {/* 副台 3D 一现：画布紧贴 3D 区域（本集唯一 3D 点缀） */}
+      <div style={{position: 'absolute', left: SIDE_CANVAS.left, top: SIDE_CANVAS.top}}>
+        <SideDesk3D rise={rise} />
+      </div>
+
+      {/* 隔离带：两台之间的 dim 虚线（隔离的是对话，不是世界） */}
+      <svg width={1920} height={1080} style={{position: 'absolute', left: 0, top: 0}}>
+        <line
+          x1={1466}
+          y1={250}
+          x2={1466}
+          y2={800}
+          stroke={theme.dim}
+          strokeWidth={3}
+          strokeDasharray="10 14"
+          opacity={0.7 * iso}
+        />
+      </svg>
+
+      {/* 全新台面上只放一张任务条子（白纸无彩） */}
+      <TaskSlip style={{opacity: slip.opacity, transform: slip.transform}} />
+
+      {/* 师傅翻版：在副台从头干起、跑自己的循环 */}
+      <div style={{position: 'absolute', left: 0, top: 0, opacity: loopIn}}>
+        <Person x={1722} y={386} scale={0.55} />
+        <div style={{position: 'absolute', left: 1596, top: 498}}>
+          <LoopRing size={130} dotProgress={spin * (span / 75)} showLabels={false} showExit={false} />
         </div>
+      </div>
+
+      {/* 台面标签（主台/副台） */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 900,
+          top: 826,
+          fontFamily: theme.sans,
+          fontSize: 24,
+          color: theme.dim,
+          opacity: deskLabels,
+        }}
+      >
+        {'主台'}
+      </div>
+      <div
+        style={{
+          position: 'absolute',
+          left: 1654,
+          top: 690,
+          fontFamily: theme.sans,
+          fontSize: 24,
+          color: theme.dim,
+          opacity: deskLabels * clamp01(rise),
+        }}
+      >
+        {'副台'}
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+// ── 2-C 回执仪式：碎纸化＋回执弧线落位 ───────────────────────────────────
+
+/** 副台 2D 收敛形态（3D 只在 2-B 一现；此后副台以 2D 同形常驻） */
+const SideDesk2D: React.FC<{x: number; y: number}> = ({x, y}) => (
+  <svg width={380} height={190} style={{position: 'absolute', left: x, top: y}}>
+    <rect x={0} y={0} width={380} height={18} rx={7} fill={theme.panel} stroke={theme.mech} strokeWidth={4} />
+    <line x1={30} y1={18} x2={30} y2={190} stroke={theme.mechDeep} strokeWidth={5} />
+    <line x1={350} y1={18} x2={350} y2={190} stroke={theme.mechDeep} strokeWidth={5} />
+  </svg>
+);
+
+/** 二次贝塞尔（回执弧线） */
+const qbez = (p0: {x: number; y: number}, pc: {x: number; y: number}, p1: {x: number; y: number}, t: number) => {
+  const u = 1 - t;
+  return {
+    x: u * u * p0.x + 2 * u * t * pc.x + t * t * p1.x,
+    y: u * u * p0.y + 2 * u * t * pc.y + t * t * p1.y,
+  };
+};
+
+const RECEIPT_PATH = {
+  from: {x: 1640, y: 430},
+  ctrl: {x: 1180, y: 290},
+  to: {x: 860, y: 552},
+} as const;
+
+const ReceiptRite: React.FC<{atScraps: number; atFly: number; atTitle: number}> = ({
+  atScraps,
+  atFly,
+  atTitle,
+}) => {
+  const frame = useCurrentFrame();
+  const title = useProgress(atTitle, DUR.f5);
+  const fly = useSpring('settle', {at: atFly, dur: DUR.f6});
+  const flyIn = useProgress(atFly, DUR.f3);
+  // 碎纸化：副台中间过程逐片淡出飘散（纯函数 per-scrap 窗口——铁律①的 map 形态）
+  const scraps = [
+    {x: 1520, y: 418, w: 46, h: 30},
+    {x: 1580, y: 404, w: 60, h: 34},
+    {x: 1656, y: 424, w: 42, h: 28},
+    {x: 1706, y: 400, w: 66, h: 38},
+    {x: 1560, y: 448, w: 52, h: 30},
+    {x: 1640, y: 458, w: 40, h: 26},
+    {x: 1740, y: 446, w: 48, h: 32},
+  ];
+  const deskIn = useProgress(2, DUR.f4);
+  const pos = qbez(RECEIPT_PATH.from, RECEIPT_PATH.ctrl, RECEIPT_PATH.to, clamp01(fly));
+  return (
+    <AbsoluteFill>
+      <DeskPlane />
+      <Person x={560} y={110} scale={0.9} />
+      <SideDesk2D x={1490} y={470} />
+
+      {/* 副台干活的中间过程：碎纸化（dim 淡出飘散——过程不进主台） */}
+      {scraps.map((s, i) => {
+        const p = progress(frame, atScraps + i * 4, DUR.f6);
+        return (
+          <div
+            key={i}
+            style={{
+              position: 'absolute',
+              left: s.x,
+              top: s.y - 52 * p,
+              width: s.w,
+              height: s.h,
+              borderRadius: 4,
+              background: theme.panel,
+              border: `2px solid ${theme.dim}`,
+              opacity: (1 - p) * deskIn,
+              transform: `rotate(${(i % 2 === 0 ? 1 : -1) * 14 * p}deg)`,
+            }}
+          />
+        );
+      })}
+      <div
+        style={{
+          position: 'absolute',
+          left: 1490,
+          top: 432,
+          fontFamily: theme.sans,
+          fontSize: 22,
+          color: theme.dim,
+          opacity: deskIn,
+        }}
+      >
+        {'副台'}
+      </div>
+
+      {/* 单张回执：跨过台面边界，弧线落在主台台面（mech 描边纸片） */}
+      <div
+        style={{
+          position: 'absolute',
+          left: pos.x - 95,
+          top: pos.y - 64,
+          opacity: flyIn,
+          transform: `rotate(${clamp01(fly) * 14 - 7}deg)`,
+        }}
+      >
+        <ReceiptPaper w={190} h={128} />
+      </div>
+      <div
+        style={{
+          position: 'absolute',
+          left: 770,
+          top: 826,
+          fontFamily: theme.sans,
+          fontSize: 24,
+          color: theme.dim,
+          opacity: deskIn,
+        }}
+      >
+        {'主台'}
+      </div>
+
+      {/* 题词（落位后停驻〔M-003〕） */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 0,
+          top: 212,
+          width: 1920,
+          textAlign: 'center',
+          fontFamily: theme.serif,
+          fontSize: 46,
+          fontWeight: 700,
+          color: theme.text,
+          opacity: title,
+        }}
+      >
+        <span style={{color: theme.mech}}>{'一张回执'}</span>
+        <span style={{color: theme.dim}}>{' · '}</span>
+        <span>{'过程作废'}</span>
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+// ── 2-D 空窗回落件 ───────────────────────────────────────────────────────
+
+/** p2-12 空窗回落：「同工作区」文件落地小标记（副作用保留——文件落在两台共用的地上） */
+const WorkdirMark: React.FC = () => {
+  const e = useEnter('pop', {at: 2, dur: DUR.f4, springPreset: 'settle'});
+  return (
+    <div style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, ...e}}>
+      <div
+        style={{
+          position: 'absolute',
+          left: 560,
+          top: 360,
+          width: 800,
+          textAlign: 'center',
+          fontFamily: theme.sans,
+          fontSize: 32,
+          fontWeight: 600,
+          color: theme.text,
+        }}
+      >
+        {'同工作区'}
+      </div>
+      <div
+        style={{
+          position: 'absolute',
+          left: 560,
+          top: 420,
+          width: 800,
+          height: 210,
+          border: `3px dashed ${theme.dim}`,
+          borderRadius: 16,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 56,
+        }}
+      >
+        {[1.5, 1.2].map((s, i) => (
+          <svg key={i} width={30 * s} height={40 * s}>
+            <path
+              d={`M${3 * s} ${2 * s} H${19 * s} L${27 * s} ${10 * s} V${38 * s} H${3 * s} Z`}
+              fill={theme.panel}
+              stroke={theme.dim}
+              strokeWidth={2.5}
+            />
+            <path d={`M${19 * s} ${2 * s} V${10 * s} H${27 * s}`} fill="none" stroke={theme.dim} strokeWidth={2} />
+          </svg>
+        ))}
+      </div>
+      <div
+        style={{
+          position: 'absolute',
+          left: 560,
+          top: 660,
+          width: 800,
+          textAlign: 'center',
+          fontFamily: theme.sans,
+          fontSize: 24,
+          color: theme.dim,
+        }}
+      >
+        {'写的文件 · 跑的命令都生效'}
       </div>
     </div>
   );
 };
 
-/** 2-C 分屏：副桌小环转动 + 工具调用闪现；主桌只收到一张回执卡（view）。 */
-const SplitReceipt: React.FC<{receiptAt: number; fadeAt: number}> = ({receiptAt, fadeAt}) => {
-  const frame = useCurrentFrame();
-  const dot = useRingDot(2.4);
-  // 回执卡飞回主桌落定；副桌纸堆淡出
-  const receipt = interpolate(frame - receiptAt, [0, 30], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-  const subFade = interpolate(frame - fadeAt, [0, 22], [1, 0.25], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
+/** p2-14 空窗回落：「拦因回传」小卡（每次工具调用也过门禁，被拦就把原因回给副台） */
+const BlockReasonCard: React.FC = () => {
+  const e = useEnter('pop', {at: 2, dur: DUR.f4, springPreset: 'settle'});
   return (
-    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <div style={{display: 'flex', gap: 80, alignItems: 'center'}}>
-        {/* 主桌：只收到一张回执卡 */}
-        <div style={{position: 'relative'}}>
-          <Desk width={640} height={400}>
-            <div style={{position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-              {receipt > 0 ? (
-                <div
-                  style={{
-                    /* 回执从右侧副桌飞回主桌：起点在主桌右外 480px、上方 160px */
-                    transform: `translate(${(1 - receipt) * 480}px, ${(1 - receipt) * -160}px) scale(${0.7 + 0.3 * receipt})`,
-                    opacity: receipt,
-                  }}
-                >
-                  <Panel accent={theme.view} style={{width: 420, padding: '20px 24px'}}>
-                    <div style={{fontFamily: theme.mono, fontSize: 19, color: theme.dim}}>{'回执 · 最后一条结论'}</div>
-                    <div style={{fontFamily: theme.sans, fontSize: 26, color: theme.text, marginTop: 10, lineHeight: 1.5}}>
-                      {'缺陷在 rename_util.py:41，'}
-                      <br />
-                      {'已修，测试全绿。'}
-                    </div>
-                  </Panel>
-                </div>
-              ) : (
-                <div style={{fontFamily: theme.sans, fontSize: 28, color: theme.dim}}>{'等待中……'}</div>
-              )}
-            </div>
-          </Desk>
-          <div style={{textAlign: 'center', marginTop: 12, fontFamily: theme.sans, fontSize: 24, color: theme.dim}}>
-            {'主桌：看不见中间过程'}
+    <div style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, ...e}}>
+      <div style={{position: 'absolute', left: 600, top: 400}}>
+        <Panel style={{width: 720, height: 260, padding: 0, overflow: 'hidden'}}>
+          <div
+            style={{
+              padding: '14px 28px',
+              borderBottom: `2px solid ${theme.panelBorder}`,
+              fontFamily: theme.sans,
+              fontSize: 28,
+              fontWeight: 600,
+              color: theme.text,
+            }}
+          >
+            {'拦因回传'}
           </div>
-        </div>
-        {/* 副桌：小环转动 + 工具调用闪现 */}
-        <div style={{position: 'relative', opacity: subFade}}>
-          <Desk width={640} height={400} accent={theme.mech}>
-            <div style={{position: 'absolute', inset: 12}}>
-              <div style={{position: 'absolute', left: 20, top: 30}}>
-                <LoopRing size={210} draw={1} dotProgress={dot} showExit={false} showLabels={false} />
-              </div>
-              <div style={{position: 'absolute', right: 20, top: 30, width: 330}}>
-                {['tool: read a.py', 'tool: read b.py', 'tool: edit c.py', 'tool: bash pytest'].map((l, i) => {
-                  const on = frame >= i * 20 + 10;
-                  return (
-                    <div key={l} style={{marginBottom: 10, opacity: on ? 1 : 0.2}}>
-                      <Chip kind="tool" label={l} width={300} height={30} style={{fontSize: 17}} />
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </Desk>
-          <div style={{textAlign: 'center', marginTop: 12, fontFamily: theme.sans, fontSize: 24, color: theme.mech}}>
-            {'副桌：三十个文件在这里读'}
+          <div style={{position: 'relative', height: 178}}>
+            <svg width={720} height={178}>
+              {/* 门禁闸（deny） */}
+              <rect x={96} y={44} width={16} height={90} rx={5} fill={theme.deny} />
+              <rect x={124} y={44} width={16} height={90} rx={5} fill={theme.deny} opacity={0.55} />
+              {/* 回传箭头：被拦 → 原因弯回副台 */}
+              <path
+                d="M170 88 H420 Q470 88 470 128 V150"
+                fill="none"
+                stroke={theme.dim}
+                strokeWidth={4}
+                strokeDasharray="9 9"
+              />
+              <path d="M458 140 L470 154 L482 140" fill="none" stroke={theme.dim} strokeWidth={4} />
+              {/* 副台 mini 形 */}
+              <rect x={520} y={96} width={130} height={12} rx={5} fill={theme.panel} stroke={theme.mech} strokeWidth={3} />
+              <line x1={540} y1={108} x2={540} y2={150} stroke={theme.mechDeep} strokeWidth={4} />
+              <line x1={630} y1={108} x2={630} y2={150} stroke={theme.mechDeep} strokeWidth={4} />
+            </svg>
           </div>
-        </div>
+        </Panel>
       </div>
-      <Footnote delay={receiptAt + 30}>{'丢的只是纸，不是活 —— 写过的文件都在硬盘上'}</Footnote>
-    </AbsoluteFill>
+    </div>
   );
 };
 
-/** 2-D 两条纪律：派活卡 deny 描边+锁定图标；分身动手前迷你闸门逐次落下。 */
-const TwoDisciplines: React.FC<{lockAt: number; gateAt: number; dotAt: number}> = ({
-  lockAt,
-  gateAt,
-  dotAt,
-}) => {
-  const frame = useCurrentFrame();
-  const lock = spring({frame: frame - lockAt, fps: 30, config: {damping: 12}});
-  const gateDrop = interpolate(frame - gateAt, [0, 16], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-  // 请求过闸打点
-  const pass = interpolate(frame - dotAt, [0, 22], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-  const tools = ['读文件', '跑命令', '改文件', '写清单'];
+// ── 2-E D2 对撞卡 ────────────────────────────────────────────────────────
+
+/** D2 左槽：拆源码引语卡（mono 逐字＋归属角标） */
+const D2Quote: React.FC<{atAttr: number; atQuote: number}> = ({atAttr, atQuote}) => {
+  const attr = useProgress(atAttr, DUR.f4);
+  const line = useReveal('派生工具默认在禁用名单', {at: atQuote + 4, cps: 9});
   return (
-    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <div style={{position: 'relative', width: 1460, height: 620}}>
-        {/* 左：副桌工具卡阵列——「派活」卡打叉上锁 */}
-        <div style={{position: 'absolute', left: 0, top: 60}}>
+    <Panel style={{width: '100%', height: 380, boxSizing: 'border-box', padding: '26px 32px'}}>
+      <div style={{display: 'flex', alignItems: 'center', gap: 14, opacity: attr}}>
+        <span
+          style={{
+            fontFamily: theme.sans,
+            fontSize: 21,
+            color: theme.dim,
+            border: `2px solid ${theme.dim}`,
+            borderRadius: 6,
+            padding: '2px 10px',
+          }}
+        >
+          {'【三】'}
+        </span>
+        <span style={{fontFamily: theme.sans, fontSize: 23, color: theme.dim}}>{'开源项目作者 · 源码分析'}</span>
+      </div>
+      <div style={{marginTop: 40, minHeight: 120}}>
+        <span style={{fontFamily: theme.serif, fontSize: 64, color: theme.panelBorder}}>{'“'}</span>
+        <div style={{fontFamily: theme.mono, fontSize: 36, lineHeight: 1.8, color: theme.text, whiteSpace: 'pre'}}>
+          {line}
+        </div>
+      </div>
+    </Panel>
+  );
+};
+
+/** D2 右槽：官方文档页样 */
+const D2Docs: React.FC = () => (
+  <Panel accent={theme.panelBorder} style={{width: '100%', height: 380, boxSizing: 'border-box', padding: '22px 30px'}}>
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        paddingBottom: 14,
+        borderBottom: `2px solid ${theme.panelBorder}`,
+      }}
+    >
+      {[0, 1, 2].map((i) => (
+        <div key={i} style={{width: 11, height: 11, borderRadius: 999, background: theme.panelBorder}} />
+      ))}
+      <span style={{marginLeft: 10, fontFamily: theme.mono, fontSize: 19, color: theme.dim}}>{'docs'}</span>
+    </div>
+    <div style={{marginTop: 44, fontFamily: theme.sans, fontSize: 52, fontWeight: 700, color: theme.text}}>
+      {'默认可再派'}
+    </div>
+    <div style={{marginTop: 14, fontFamily: theme.sans, fontSize: 27, color: theme.dim}}>{'最深三层'}</div>
+  </Panel>
+);
+
+const D2Clash: React.FC<{
+  atLeft: number;
+  atAttr: number;
+  atQuote: number;
+  atRight: number;
+  atArrows: number;
+  atTilt: number;
+  atStrip: number;
+}> = ({atLeft, atAttr, atQuote, atRight, atArrows, atTilt, atStrip}) => {
+  const eL = useProgress(atLeft, DUR.f5, 'decelerate');
+  const eR = useProgress(atRight, DUR.f5, 'decelerate');
+  const eA = useProgress(atArrows, DUR.f5);
+  const tilt = useSpring('settle', {at: atTilt, dur: DUR.f5});
+  const strip = useProgress(atStrip, DUR.f5);
+  return (
+    <AbsoluteFill>
+      <ClashCard
+        enter={[eL, eR, eA]}
+        tilt={tilt}
+        left={<D2Quote atAttr={atAttr} atQuote={atQuote} />}
+        right={<D2Docs />}
+        strip={
           <div
             style={{
+              textAlign: 'center',
               fontFamily: theme.sans,
               fontSize: 25,
               color: theme.dim,
-              marginBottom: 18,
+              letterSpacing: 2,
+              opacity: strip,
             }}
           >
-            {'分身的工具表'}
+            {'教学不给工具 · 产品默认放开 · 以官方为准'}
           </div>
-          <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 190px)', gap: 16}}>
-            {tools.map((t, i) => (
-              <Panel
-                key={t}
-                accent={i === 3 ? theme.deny : theme.panelBorder}
-                style={{
-                  width: 190,
-                  padding: '16px 16px',
-                  position: 'relative',
-                  background: i === 3 ? theme.denyDeep : theme.panel,
-                }}
-              >
-                <div style={{fontFamily: theme.sans, fontSize: 24, color: i === 3 ? theme.deny : theme.text}}>
-                  {t}
-                </div>
-                <div style={{fontFamily: theme.mono, fontSize: 17, color: theme.dim, marginTop: 4}}>
-                  {i === 3 ? 'task（不存在）' : 'ok'}
-                </div>
-                {/* 锁定图标：派活卡打叉上锁 */}
-                {i === 3 && lock > 0.05 ? (
-                  <svg width={100} height={100} style={{position: 'absolute', inset: 0, pointerEvents: 'none'}}>
-                    <g opacity={lock}>
-                      <line x1={30} y1={20} x2={30 + 52 * lock} y2={20 + 70 * lock} stroke={theme.deny} strokeWidth={7} strokeLinecap="round" />
-                      {/* 挂锁：锁体 + 锁梁 */}
-                      <g transform="translate(140 64) scale(0.5)">
-                        <rect x={-20} y={0} width={40} height={30} rx={6} fill={theme.deny} />
-                        <path d="M-12 0 v-12 a12 12 0 0 1 24 0 v12" fill="none" stroke={theme.deny} strokeWidth={7} />
-                      </g>
-                    </g>
-                  </svg>
-                ) : null}
-              </Panel>
-            ))}
-          </div>
-          <div
-            style={{
-              marginTop: 18,
-              fontFamily: theme.sans,
-              fontSize: 22,
-              color: theme.deny,
-              opacity: interpolate(frame - lockAt - 6, [0, 12], [0, 1], {
-                extrapolateLeft: 'clamp',
-                extrapolateRight: 'clamp',
-              }),
-            }}
-          >
-            {'不许再往下派 —— 防孙子孙无穷尽'}
-          </div>
-        </div>
-        {/* 右：迷你闸门（P3 语言复用）逐次落下，请求过闸打点 */}
-        <div style={{position: 'absolute', right: 0, top: 90, width: 560}}>
-          <div style={{fontFamily: theme.sans, fontSize: 25, color: theme.dim, marginBottom: 16}}>
-            {'动手之前：照样过闸'}
-          </div>
-          <svg width={560} height={300}>
-            <line x1={30} y1={170} x2={530} y2={170} stroke={theme.panelBorder} strokeWidth={4} />
-            {['禁止表', '规则', '问你'].map((g, i) => {
-              const gx = 120 + i * 150;
-              const h = 96 * gateDrop;
-              const c = i === 0 ? theme.deny : theme.mech;
-              return (
-                <g key={g}>
-                  <rect x={gx - 8} y={170 - h} width={16} height={h} rx={5} fill={c} />
-                  <text x={gx} y={170 - h - 14} textAnchor="middle" fontFamily={theme.sans} fontSize={21} fontWeight={600} fill={c}>
-                    {g}
-                  </text>
-                </g>
-              );
-            })}
-            {/* 请求光点过闸 */}
-            {pass > 0 ? (
-              <g>
-                <circle cx={40 + pass * 480} cy={170} r={13} fill={theme.view} />
-                {pass >= 1 ? (
-                  <text x={520} y={130} textAnchor="end" fontFamily={theme.sans} fontSize={24} fontWeight={700} fill={theme.view}>
-                    {'放行'}
-                  </text>
-                ) : null}
-              </g>
-            ) : null}
-          </svg>
-          <div style={{fontFamily: theme.sans, fontSize: 23, color: theme.dim, marginTop: 8, textAlign: 'center'}}>
-            {'隔离的是视野，不是权限'}
-          </div>
-        </div>
-      </div>
+        }
+      />
     </AbsoluteFill>
   );
 };
 
-/** 2-E ★五要素等号锁：两桌并置，五要素卡逐张比对，全部对上后锁扣合拢、SAVE 印章砸下。 */
-const FiveFactorLock: React.FC<{compareAt: number[]; lockAt: number; saveAt: number}> = ({
-  compareAt,
-  lockAt,
-  saveAt,
-}) => {
-  const frame = useCurrentFrame();
-  const {fps} = useVideoConfig();
-  const factors = ['系统提示', '工具表', '模型', '消息前缀', '思考配置'];
-  const matched = compareAt.map((a) => frame >= a + 14);
-  const allOn = frame >= lockAt;
-  const lock = spring({frame: frame - lockAt, fps, config: {damping: 13}});
-  return (
-    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <div style={{position: 'relative', width: 1560, height: 760}}>
-        {/* 两桌并置 */}
-        <div style={{position: 'absolute', left: 20, top: 30}}>
-          <MiniDeskLabel title="父亲桌" accent={theme.view} />
-        </div>
-        <div style={{position: 'absolute', right: 20, top: 30}}>
-          <MiniDeskLabel title="分身桌" accent={theme.mech} />
-        </div>
-        {/* 五要素卡：左右滑入逐字节对齐（每对上一张亮 mech）。行内容 880px 居中（px 数学，红线一） */}
-        <div style={{position: 'absolute', left: 1560 / 2 - 440, top: 130}}>
-          {factors.map((f, i) => {
-            const t = interpolate(frame - compareAt[i], [0, 18], [0, 1], {
-              extrapolateLeft: 'clamp',
-              extrapolateRight: 'clamp',
-            });
-            const m = matched[i];
-            return (
-              <div key={f} style={{display: 'flex', alignItems: 'center', marginBottom: 14}}>
-                {/* 父侧卡（从左滑入） */}
-                <div style={{transform: `translateX(${(1 - t) * -80}px)`, opacity: t}}>
-                  <Panel
-                    accent={m ? theme.mech : theme.panelBorder}
-                    style={{width: 340, padding: '12px 18px', background: m ? theme.mechDeep : theme.panel}}
-                  >
-                    <div style={{fontFamily: theme.sans, fontSize: 23, color: m ? theme.mech : theme.text}}>{f}</div>
-                    <div style={{fontFamily: theme.mono, fontSize: 17, color: theme.dim, marginTop: 2}}>
-                      {m ? '逐字节一致' : '比对中……'}
-                    </div>
-                  </Panel>
-                </div>
-                {/* 中缝：等号或问号 */}
-                <div style={{width: 200, textAlign: 'center', fontFamily: theme.mono, fontSize: 40, fontWeight: 700, color: m ? theme.mech : theme.dim}}>
-                  {m ? '=' : '≠'}
-                </div>
-                {/* 子侧卡（从右滑入） */}
-                <div style={{transform: `translateX(${(1 - t) * 80}px)`, opacity: t}}>
-                  <Panel
-                    accent={m ? theme.mech : theme.panelBorder}
-                    style={{width: 340, padding: '12px 18px', background: m ? theme.mechDeep : theme.panel}}
-                  >
-                    <div style={{fontFamily: theme.sans, fontSize: 23, color: m ? theme.mech : theme.text}}>{f}</div>
-                    <div style={{fontFamily: theme.mono, fontSize: 17, color: theme.dim, marginTop: 2}}>
-                      {m ? '逐字节一致' : '比对中……'}
-                    </div>
-                  </Panel>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        {/* 等号锁扣：全部对上后「咔」合拢 */}
-        {lock > 0.02 ? (
-          <svg width={1560} height={760} style={{position: 'absolute', inset: 0, pointerEvents: 'none'}}>
-            <g transform="translate(780 60)" opacity={lock}>
-              <rect x={-120} y={-26} width={240} height={52} rx={10} fill={theme.panel} stroke={theme.mech} strokeWidth={4} />
-              <text x={0} y={10} textAnchor="middle" fontFamily={theme.sans} fontSize={28} fontWeight={700} fill={theme.mech}>
-                {'五要素全等'}
-              </text>
-              {/* 锁扣咬合动画：两半锁环合拢 */}
-              <path
-                d={`M-160 -8 a30 30 0 0 1 ${lock * 30} ${-26 * lock}`}
-                fill="none"
-                stroke={theme.mech}
-                strokeWidth={7}
-                strokeLinecap="round"
-              />
-              <path
-                d={`M160 -8 a30 30 0 0 0 ${-lock * 30} ${-26 * lock}`}
-                fill="none"
-                stroke={theme.mech}
-                strokeWidth={7}
-                strokeLinecap="round"
-              />
-            </g>
-          </svg>
-        ) : null}
-        {/* SAVE 印章砸下 + 冲击波 */}
-        {allOn ? (
-          <>
-            <Stamp text="SAVE" color={theme.mech} at={saveAt} size={150} rotate={10} style={{position: 'absolute', right: 120, bottom: 60}} />
-            <svg width={1560} height={760} style={{position: 'absolute', inset: 0, pointerEvents: 'none'}}>
-              {frame - saveAt < 24 ? (
-                <circle
-                  cx={1380}
-                  cy={640}
-                  r={40 + ((frame - saveAt) / 24) * 180}
-                  fill="none"
-                  stroke={theme.mech}
-                  strokeWidth={5}
-                  opacity={1 - (frame - saveAt) / 24}
-                />
-              ) : null}
-            </svg>
-          </>
-        ) : null}
-      </div>
-      <Footnote delay={saveAt + 6}>
-        {'fork 继承完整对话 · 共享提示缓存 —— 官方文档 sub-agents'}
-      </Footnote>
-    </AbsoluteFill>
-  );
-};
+// ── 2-G 官方双边界两联卡 ─────────────────────────────────────────────────
 
-const MiniDeskLabel: React.FC<{title: string; accent: string}> = ({title, accent}) => (
-  <div
-    style={{
-      fontFamily: theme.serif,
-      fontSize: 34,
-      fontWeight: 700,
-      color: accent,
-      border: `3px solid ${accent}`,
-      borderRadius: 12,
-      padding: '10px 26px',
-    }}
-  >
-    {title}
-  </div>
+/** 随行件 glyph：嘱托册（册子）／代码状态快照（相机）——一律 dim（官方件非本集装置） */
+const BookGlyph: React.FC = () => (
+  <svg width={64} height={64}>
+    <rect x={8} y={6} width={48} height={52} rx={5} fill="none" stroke={theme.dim} strokeWidth={4} />
+    <line x1={8} y1={18} x2={56} y2={18} stroke={theme.dim} strokeWidth={4} />
+    {[0, 1, 2].map((i) => (
+      <line key={i} x1={18} y1={30 + i * 9} x2={46} y2={30 + i * 9} stroke={theme.panelBorder} strokeWidth={3} />
+    ))}
+  </svg>
 );
 
-/** 2-F 半拉隔离：共享抽屉 + 审批卡冒泡上浮 + 收束金句。 */
-const SharedDrawer: React.FC<{drawerAt: number; bubbleAt: number; cagesAt: number; quoteAt: number}> = ({
-  drawerAt,
-  bubbleAt,
-  cagesAt,
-  quoteAt,
-}) => {
-  const frame = useCurrentFrame();
-  if (frame >= quoteAt) {
-    return <QuoteCard zh="脏活不占主桌。" accent={theme.view} />;
-  }
-  const open = interpolate(frame - drawerAt, [0, 20], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-  const bubble = interpolate(frame - bubbleAt, [0, 40], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
+const CameraGlyph: React.FC = () => (
+  <svg width={64} height={64}>
+    <rect x={4} y={16} width={56} height={40} rx={8} fill="none" stroke={theme.dim} strokeWidth={4} />
+    <path d="M22 16 L28 6 H36 L42 16" fill="none" stroke={theme.dim} strokeWidth={4} />
+    <circle cx={32} cy={36} r={12} fill="none" stroke={theme.dim} strokeWidth={4} />
+  </svg>
+);
+
+const DualBorders: React.FC<{
+  atHead: number;
+  atUpper: number;
+  atItems: number;
+  atLower: number;
+  atTicks: number;
+  atNote: number;
+}> = ({atHead, atUpper, atItems, atLower, atTicks, atNote}) => {
+  const head = useProgress(atHead, DUR.f5);
+  const upper = useEnter('rise', {at: atUpper, dur: DUR.f5, dist: 26});
+  const items = useStagger(2, {at: atItems, stride: 12, dur: DUR.f4});
+  const lower = useEnter('rise', {at: atLower, dur: DUR.f5, dist: 26});
+  // 占位刻度条：mono 点阵逐点揭示（每一点 = 一张回执占走的台面）
+  const ticks = useReveal('················', {at: atTicks, cps: 7});
+  const note = useProgress(atNote, DUR.f4);
+
   return (
-    <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
-      <div style={{position: 'relative', width: 1500, height: 660}}>
-        {/* 两桌（缩略） */}
-        <div style={{position: 'absolute', left: 40, top: 40}}>
-          <Desk width={520} height={280} accent={theme.view}>
-            <div style={{position: 'absolute', left: 18, top: 18, fontFamily: theme.sans, fontSize: 24, color: theme.view}}>
-              {'父亲桌'}
+    <AbsoluteFill>
+      <div
+        style={{
+          position: 'absolute',
+          left: 0,
+          top: 176,
+          width: 1920,
+          textAlign: 'center',
+          fontFamily: theme.serif,
+          fontSize: 34,
+          color: theme.dim,
+          opacity: head,
+        }}
+      >
+        {'官方补的两条边界'}
+      </div>
+
+      {/* 上联：干净 ≠ 空（副台开工随行件） */}
+      <div style={{position: 'absolute', left: 300, top: 268, ...upper}}>
+        <Panel style={{width: 1320, height: 240, padding: '22px 34px'}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: 18}}>
+            <span style={{fontFamily: theme.sans, fontSize: 38, fontWeight: 700, color: theme.text}}>{'干净'}</span>
+            <span style={{fontFamily: theme.sans, fontSize: 34, color: theme.dim}}>{'≠'}</span>
+            <span style={{fontFamily: theme.sans, fontSize: 38, fontWeight: 700, color: theme.text}}>{'空'}</span>
+            <div style={{marginLeft: 'auto', display: 'flex', gap: 64}}>
+              {[BookGlyph, CameraGlyph].map((G, i) => (
+                <div key={i} style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, opacity: items[i]}}>
+                  <G />
+                  <span style={{fontFamily: theme.sans, fontSize: 22, color: theme.dim}}>
+                    {i === 0 ? '嘱托册' : '快照'}
+                  </span>
+                </div>
+              ))}
             </div>
-          </Desk>
-        </div>
-        <div style={{position: 'absolute', right: 40, top: 40}}>
-          <Desk width={520} height={280} accent={theme.mech}>
-            <div style={{position: 'absolute', left: 18, top: 18, fontFamily: theme.sans, fontSize: 24, color: theme.mech}}>
-              {'分身桌'}
+          </div>
+        </Panel>
+      </div>
+
+      {/* 下联：隔过程 · 不隔结果（回执占位刻度条——回执也花钱） */}
+      <div style={{position: 'absolute', left: 300, top: 560, ...lower}}>
+        <Panel accent={theme.coreDeep} style={{width: 1320, height: 250, padding: '22px 34px'}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: 18}}>
+            <span style={{fontFamily: theme.sans, fontSize: 38, fontWeight: 700, color: theme.text}}>
+              {'隔过程'}
+            </span>
+            <span style={{fontFamily: theme.sans, fontSize: 34, color: theme.dim}}>{'·'}</span>
+            <span style={{fontFamily: theme.sans, fontSize: 38, fontWeight: 700, color: theme.text}}>
+              {'不隔结果'}
+            </span>
+          </div>
+          {/* 台面切面（coreDeep）上的占位刻度条 */}
+          <div style={{position: 'relative', marginTop: 40, width: 900}}>
+            <div style={{position: 'absolute', left: 0, bottom: -14, width: 900, height: 9, borderRadius: 5, background: theme.coreDeep}} />
+            <div
+              style={{
+                fontFamily: theme.mono,
+                fontSize: 40,
+                color: theme.dim,
+                letterSpacing: 8,
+                whiteSpace: 'pre',
+                lineHeight: 1,
+              }}
+            >
+              {ticks}
             </div>
-          </Desk>
-        </div>
-        {/* 共享抽屉：虚线双桌共连，盖半开、两端各画一只手同时拉开 */}
-        <div style={{position: 'absolute', left: 0, right: 0, top: 380}}>
-          <div
-            style={{
-              margin: '0 auto',
-              width: 700,
-              height: 130,
-              border: `3px dashed ${theme.dim}`,
-              borderRadius: 12,
-              position: 'relative',
-              background: theme.panel,
-              opacity: interpolate(frame - drawerAt, [0, 14], [0, 1], {
-                extrapolateLeft: 'clamp',
-                extrapolateRight: 'clamp',
-              }),
-            }}
-          >
-            {/* 抽屉盖半开：盖板向右滑出 20% */}
+            <div style={{position: 'absolute', right: -140, top: -58}}>
+              <ReceiptPaper w={140} h={94} />
+            </div>
             <div
               style={{
                 position: 'absolute',
                 left: 0,
-                top: 0,
-                bottom: 0,
-                width: `${100 - open * 22}%`,
-                borderRight: `3px solid ${theme.dim}`,
-                background: `${theme.panelBorder}55`,
-                borderRadius: '12px 0 0 12px',
-              }}
-            />
-            <div
-              style={{
-                position: 'absolute',
-                inset: 0,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontFamily: theme.mono,
+                top: 64,
+                fontFamily: theme.sans,
                 fontSize: 22,
                 color: theme.dim,
+                opacity: note,
               }}
             >
-              {'读过的文件（readFileState）'}
+              {'自己花钱'}
             </div>
-            {/* 两端各一只手同时拉开 */}
-            {open > 0.1 ? (
-              <>
-                <svg width={40} height={40} style={{position: 'absolute', left: -46, top: 46}}>
-                  <path d="M6 34 L20 20 M12 34 L26 20 M18 34 L32 20" stroke={theme.dim} strokeWidth={4} strokeLinecap="round" />
-                  <path d="M4 38 q8 -8 18 -8 l14 -14" fill="none" stroke={theme.dim} strokeWidth={4} strokeLinecap="round" />
-                </svg>
-                <svg width={40} height={40} style={{position: 'absolute', right: -46, top: 46, transform: 'scaleX(-1)'}}>
-                  <path d="M6 34 L20 20 M12 34 L26 20 M18 34 L32 20" stroke={theme.dim} strokeWidth={4} strokeLinecap="round" />
-                  <path d="M4 38 q8 -8 18 -8 l14 -14" fill="none" stroke={theme.dim} strokeWidth={4} strokeLinecap="round" />
-                </svg>
-              </>
-            ) : null}
           </div>
-        </div>
-        {/* 审批卡气泡：沿虚线路径从副桌冒泡上浮到主桌屏幕 */}
-        {bubble > 0 && bubble < 1 ? (
-          <svg width={1500} height={660} style={{position: 'absolute', inset: 0, pointerEvents: 'none'}}>
-            <path
-              d="M 1120 320 C 1180 240, 760 190, 380 250"
-              fill="none"
-              stroke={theme.view}
-              strokeWidth={3}
-              strokeDasharray="7 7"
-              opacity={0.5}
-            />
-          </svg>
-        ) : null}
-        {bubble > 0 ? (
-          <div
-            style={{
-              position: 'absolute',
-              left: 940 + (1 - bubble) * 130 - bubble * 500,
-              top: 320 - bubble * 200,
-              opacity: Math.min(1, bubble * 2),
-            }}
-          >
-            <Panel accent={theme.view} style={{width: 330, padding: '14px 18px'}}>
-              <div style={{fontFamily: theme.sans, fontSize: 21, color: theme.dim}}>{'分身要弹审批窗'}</div>
-              <div style={{fontFamily: theme.sans, fontSize: 26, color: theme.view, marginTop: 6}}>
-                {'冒泡到父亲屏幕 —— 还是你说了算'}
-              </div>
-            </Panel>
-          </div>
-        ) : null}
-        {/* p2-28a..c 三只笼子：在场上限 20 / 轮数上限 / 上下文配额（Harness Engineering 改造） */}
-        {frame >= cagesAt ? (
-          <div
-            style={{
-              position: 'absolute',
-              left: 0,
-              right: 0,
-              top: 368,
-              display: 'flex',
-              justifyContent: 'center',
-              gap: 22,
-            }}
-          >
-            {[
-              {t: '同时在场', n: '≤ 20'},
-              {t: '轮数上限', n: '每只有限'},
-              {t: '上下文配额', n: '烧完收工'},
-            ].map((c, i) => {
-              const e = interpolate(frame - cagesAt - i * 6, [0, 10], [0, 1], {
-                extrapolateLeft: 'clamp',
-                extrapolateRight: 'clamp',
-              });
-              return (
-                <div
-                  key={c.t}
-                  style={{
-                    width: 300,
-                    border: `2.5px solid ${theme.mech}`,
-                    borderRadius: 10,
-                    background: theme.panel,
-                    padding: '12px 16px',
-                    textAlign: 'center',
-                    opacity: e,
-                    transform: `translateY(${(1 - e) * 14}px)`,
-                  }}
-                >
-                  <div style={{fontFamily: theme.sans, fontSize: 23, color: theme.text}}>{c.t}</div>
-                  <div style={{fontFamily: theme.mono, fontSize: 19, color: theme.mech, marginTop: 4}}>{c.n}</div>
-                </div>
-              );
-            })}
-          </div>
-        ) : null}
-        {/* 虚线连线标签：桌是分开了，有些抽屉还是共用的 */}
-        <div
-          style={{
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            bottom: 30,
-            textAlign: 'center',
-            fontFamily: theme.sans,
-            fontSize: 25,
-            color: theme.dim,
-            opacity: interpolate(frame - bubbleAt - 20, [0, 14], [0, 1], {
-              extrapolateLeft: 'clamp',
-              extrapolateRight: 'clamp',
-            }),
-          }}
-        >
-          {'隔离是半拉的：免得同一个文件读两遍'}
-        </div>
+        </Panel>
       </div>
     </AbsoluteFill>
   );
 };
 
+// ── 幕组装 ──────────────────────────────────────────────────────────────
+
 export const P2SideDesk: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (fromId: string, toId?: string) => beatWindow(scene.sentences, scene.from, fromId, toId);
+  // at() = 时点锚（某句起始帧）；dur() = 与 at 对称的单句取长（cue 窗落在同一句 id 上）
   const at = (id: string) => w(id).from;
-  const bA = w('p2-01', 'p2-04');
-  const relA = (id: string) => at(id) - bA.from;
-  const bB = w('p2-05', 'p2-07');
-  const relB = (id: string) => at(id) - bB.from;
-  const bC = w('p2-08', 'p2-11');
-  const relC = (id: string) => at(id) - bC.from;
-  const bD = w('p2-12', 'p2-15');
-  const relD = (id: string) => at(id) - bD.from;
-  const bE = w('p2-16', 'p2-24');
-  const relE = (id: string) => at(id) - bE.from;
-  const bF = w('p2-25', 'p2-30');
-  const relF = (id: string) => at(id) - bF.from;
+  const dur = (id: string) => w(id).durationInFrames;
+
+  const bA = w('p2-01', 'p2-02');
+  const bB = w('p2-04', 'p2-07');
+  const bC = w('p2-08', 'p2-09');
+  const bD = w('p2-10', 'p2-16');
+  const bE = w('p2-17', 'p2-20');
+  const bF = w('p2-21', 'p2-24');
+  const bG = w('p2-25', 'p2-30');
+
   return (
     <AbsoluteFill>
-      <Sequence {...bA} name="2-A 桌面暴涨与计费">
-        {/* p2-03「一百多条」起暴涨；p2-04「一直计着费」起计数器 */}
-        <DeskFlood floodAt={relA('p2-03')} billAt={relA('p2-04')} />
+      <HarnessBadge style={BADGE_STYLE} />
+
+      <Sequence {...bA} name="2-A 过程污染滚涨">
+        <SceneTag chapter="messages" tagline="副台与回执" />
+        <DeskPlane />
+        <Person x={560} y={110} scale={0.9} />
+        <PitCard index="坑二" zh="过程污染" at={at('p2-01') - bA.from} />
+        <PollutionSurge
+          atRows={at('p2-02') - bA.from}
+          rowsWin={dur('p2-02')}
+          atCounts={at('p2-02') - bA.from + DUR.f4}
+        />
+        <Footnote delay={at('p2-02') - bA.from}>{'messages'}</Footnote>
       </Sequence>
-      <Sequence {...bB} name="2-B 副桌滑出">
-        {/* p2-06「另开一张干净的副桌」滑入；纸堆随即飞过去 */}
-        <SideDeskSlidesOut slideAt={relB('p2-06')} flyAt={relB('p2-06') + 26} cleanAt={relB('p2-07')} />
+
+      <Sequence {...bB} name="2-B 副台升起（3D 一现）">
+        <SideDeskRise
+          atRise={at('p2-04') - bB.from}
+          atSlip={at('p2-05') - bB.from + 6}
+          atIso={at('p2-06') - bB.from}
+          atLoop={at('p2-07') - bB.from}
+          span={bB.durationInFrames}
+        />
+        <Footnote delay={at('p2-05') - bB.from}>{'task · fresh context'}</Footnote>
       </Sequence>
-      <Sequence {...bC} name="2-C 分屏回执">
-        <SplitReceipt receiptAt={relC('p2-09')} fadeAt={relC('p2-10')} />
+
+      <Sequence {...bC} name="2-C 回执仪式">
+        {/* p2-08＝回执跨界落位；p2-09＝中间过程碎纸化＋题词（句义对位） */}
+        <ReceiptRite
+          atScraps={at('p2-09') - bC.from}
+          atFly={at('p2-08') - bC.from + 8}
+          atTitle={at('p2-09') - bC.from + Math.round(dur('p2-09') * 0.45)}
+        />
+        <Footnote delay={at('p2-08') - bC.from}>{'extract_text · only summary'}</Footnote>
       </Sequence>
-      <Sequence {...bD} name="2-D 派活上锁与迷你闸门">
-        {/* p2-12 第一条纪律（无派活工具）；p2-14 第二条（照样过闸） */}
-        <TwoDisciplines lockAt={relD('p2-12')} gateAt={relD('p2-14')} dotAt={relD('p2-14') + 20} />
-      </Sequence>
-      <Sequence {...bE} name="2-E 五要素等号锁">
-        {/* p2-22 列举五要素 → 逐张比对；p2-23「五样一字不差」锁合拢；SAVE 随后砸下 */}
-        <FiveFactorLock
-          compareAt={[
-            relE('p2-22'),
-            relE('p2-22') + 10,
-            relE('p2-22') + 20,
-            relE('p2-22') + 30,
-            relE('p2-22') + 40,
+
+      <Sequence {...bD} name="2-D 副台三条边界">
+        {/* 前镜（1-F p1-26）隔长空档 → 默认 lead；实例内 p2-12／p2-14 空窗后
+            border-gate／no-sub-desk 自动恢复入场 */}
+        <ArchifyRecap
+          slug="plan-side-desk"
+          caption="副台解剖"
+          cues={[
+            {chapterId: 'three-borders', at: at('p2-10') - bD.from, durationInFrames: dur('p2-10')},
+            {chapterId: 'border-world', at: at('p2-11') - bD.from, durationInFrames: dur('p2-11')},
+            {chapterId: 'border-gate', at: at('p2-13') - bD.from, durationInFrames: dur('p2-13')},
+            {chapterId: 'no-sub-desk', at: at('p2-15') - bD.from, durationInFrames: dur('p2-15')},
+            {chapterId: 'recursion-capability', at: at('p2-16') - bD.from, durationInFrames: dur('p2-16')},
           ]}
-          lockAt={relE('p2-23')}
-          saveAt={relE('p2-23') + 24}
+        />
+        {/* p2-12 空窗回落：同工作区文件落地小标记（窗＝本句，勿越入后续 cue 窗） */}
+        <Sequence from={at('p2-12') - bD.from} durationInFrames={dur('p2-12')} name="2-D 同工作区小标记">
+          <WorkdirMark />
+        </Sequence>
+        {/* p2-14 空窗回落：拦因回传小卡 */}
+        <Sequence from={at('p2-14') - bD.from} durationInFrames={dur('p2-14')} name="2-D 拦因回传小卡">
+          <BlockReasonCard />
+        </Sequence>
+      </Sequence>
+
+      <Sequence {...bE} name="2-E D2 对撞">
+        <D2Clash
+          atLeft={at('p2-17') - bE.from}
+          atAttr={at('p2-17') - bE.from + 8}
+          atQuote={at('p2-18') - bE.from}
+          atRight={at('p2-19') - bE.from}
+          atArrows={at('p2-19') - bE.from + 10}
+          atTilt={at('p2-20') - bE.from}
+          atStrip={at('p2-20') - bE.from + 6}
+        />
+        <Footnote delay={at('p2-19') - bE.from}>{'subagents up to three layers'}</Footnote>
+      </Sequence>
+
+      <Sequence {...bF} name="2-F 撞线回溯与回执同形">
+        {/* 2-D 之后隔 p2-17..20 空档 → 默认 lead（分镜背靠背清单不含本镜） */}
+        <ArchifyRecap
+          slug="plan-side-guards"
+          caption="撞线回溯"
+          cues={[
+            {chapterId: 'turn-cap', at: at('p2-21') - bF.from, durationInFrames: dur('p2-21')},
+            {chapterId: 'backward-scan', at: at('p2-22') - bF.from, durationInFrames: dur('p2-22')},
+            {chapterId: 'same-shape', at: at('p2-23') - bF.from, durationInFrames: dur('p2-23')},
+            {chapterId: 'receipt-blind', at: at('p2-24') - bF.from, durationInFrames: dur('p2-24')},
+          ]}
         />
       </Sequence>
-      <Sequence {...bF} name="2-F 共享抽屉·审批冒泡·三只笼子">
-        {/* p2-26「有些抽屉还是共用的」抽屉拉开；p2-27 审批卡冒泡；p2-28a 三只笼子；p2-29 收束金句 */}
-        <SharedDrawer
-          drawerAt={relF('p2-26')}
-          bubbleAt={relF('p2-27')}
-          cagesAt={relF('p2-28a')}
-          quoteAt={relF('p2-29')}
+
+      <Sequence {...bG} name="2-G 官方双边界">
+        <DualBorders
+          atHead={at('p2-25') - bG.from}
+          atUpper={at('p2-26') - bG.from}
+          atItems={at('p2-27') - bG.from}
+          atLower={at('p2-28') - bG.from}
+          atTicks={at('p2-29') - bG.from}
+          atNote={at('p2-29') - bG.from + DUR.f5}
         />
+        <Footnote delay={at('p2-27') - bG.from}>{'CLAUDE.md hierarchy · git status snapshot'}</Footnote>
       </Sequence>
     </AbsoluteFill>
   );
 };
+
+export default P2SideDesk;
