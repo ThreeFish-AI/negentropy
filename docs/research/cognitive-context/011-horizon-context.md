@@ -25,7 +25,7 @@ description: "Snowflake Horizon Context 精读档案（冻结版；设计 SSOT �
 
 > [!TIP] **怎么读笔记**
 >
-> 每个机制节按「类比 → 机制 → 原型」三拍进行记录和实践。M1–M7 七个机制是 Horizon Context 的「全局最重要承重组件」——口径与应答两席（M1/M4）、治理执法四席（M2/M3/M6/M7）、账本一席（M5）；富化、检索排序、开放互操作三族**作专章保留**（§10–§12，证据边界随文标注）。M1–M7 各配一张动效工程图，§1 开篇另配病因链总览图，§4 配组件全景与演进时间线两张总览图（交互版 HTML 下载到本地打开，可切主题/缩放/聚焦，trace 动画按主路径点亮）。实践取自配套最小原型 [`assets/horizon_context_lab.py`](./assets/horizon_context_lab.py)（约 1195 行纯标准库，七机制 + 场景矩阵 + 十次破坏性实验；MCP 服务原型 [`assets/horizon_context_mcp.py`](./assets/horizon_context_mcp.py)）。
+> 每个机制节按「类比 → 机制 → 原型」三拍进行记录和实践。M1–M7 七个机制是 Horizon Context 的「全局最重要承重组件」——口径与应答两席（M1/M4）、治理执法四席（M2/M3/M6/M7）、账本一席（M5）；富化、检索排序、开放互操作三族**作专章保留**（§10–§12，证据边界随文标注）。M1–M7 各配一张动效工程图，§1 开篇另配病因链总览图，§4 配组件全景与演进时间线两张总览图（交互版 HTML 下载到本地打开，可切主题/缩放/聚焦，trace 动画按主路径点亮）。实践取自配套最小原型 [`assets/horizon_context_lab.py`](./assets/horizon_context_lab.py)（约 1200 行纯标准库，七机制 + 场景矩阵 + 十次破坏性实验；MCP 服务原型 [`assets/horizon_context_mcp.py`](./assets/horizon_context_mcp.py)）。
 >
 > **章节地图**：
 >
@@ -641,13 +641,13 @@ uv run --no-project python docs/research/cognitive-context/assets/horizon_contex
 | M1 口径单点：五段式对象 + 校验门   | `SemanticView` :160 · `VerifiedQuery` :151 · `validate_view` :235（FK→键列 / 重名 / ≥1 dim+metric / NON ADDITIVE 维度存在） |
 | M1 查询期重算：查询引擎 + 破坏开关 | `compile_query` :378 · `_naive_joined_rows` :319（反事实）· `_aggregate` :345 · USING 消歧 `_dim_value` :291                |
 | M2 行列级策略（执行面拒绝）        | `compile_query` :378 内 `enforce_rbac` 分支（PRIVATE 拒绝）；代理严拒面 `session_allows` :785                               |
-| M3 语义级治理（双层防线）          | 检索层过滤 `resolve` :536 的 `dim_filtered`（体验）+ 执行层拒绝（底线，同上）                                               |
-| M4 应答层验证锚定                  | `VerifiedQuery` :151 · `resolve` :536 命中路由 · `mock_agent` :600（verified 短路 / compile / cannot_answer）               |
-| M5 端到端列级血缘                  | `record_lineage` :680（执行自动沉淀·derived 展开）· `ingest_external_lineage` :710（三道闸）· `get_lineage` :698            |
-| M6 Agent Identity                  | `agent_session` :766（天花板只减不增）· `audit_log`（agent_type 归因）· `session_allows` :785（严拒面+实时求值）            |
-| M7 分类与标签驱动                  | `classify` :810 · `policy_for` :816（一次性映射）· `project_cell` :824                                                      |
-| §10 富化（冲突浮出 + 自纠环）      | `detect_conflicts` :497 · `adjudicate` :513 · `eval_loop` :633                                                              |
-| §11 检索（四因子排序）             | `rank` :467 · `freshness` :456（REF_DATE 固定字面量）                                                                       |
+| M3 语义级治理（双层防线）          | 检索层过滤 `resolve` :534 的 `dim_filtered`（体验）+ 执行层拒绝（底线，同上）                                               |
+| M4 应答层验证锚定                  | `VerifiedQuery` :151 · `resolve` :534 命中路由 · `mock_agent` :603（verified 短路 / compile / cannot_answer）               |
+| M5 端到端列级血缘                  | `record_lineage` :683（执行自动沉淀·derived 展开）· `ingest_external_lineage` :713（三道闸）· `get_lineage` :701            |
+| M6 Agent Identity                  | `agent_session` :769（天花板只减不增）· `audit_log`（agent_type 归因）· `session_allows` :788（严拒面+实时求值）            |
+| M7 分类与标签驱动                  | `classify` :813 · `policy_for` :819（一次性映射）· `project_cell` :827                                                      |
+| §10 富化（冲突浮出 + 自纠环）      | `detect_conflicts` :495 · `adjudicate` :511 · `eval_loop` :636                                                              |
+| §11 检索（四因子排序）             | `rank` :467（相关度判定收敛于 `_matches` :460）· `freshness` :456（REF_DATE 固定字面量）                                                                       |
 | §12 生态（MCP 开放互操作）         | `horizon_context_mcp.py`（stdio 服务 + T1–T8 场景自测）                                                                     |
 
 **破坏性实验**（均为实测，每个只改一个 flag / 一行）：

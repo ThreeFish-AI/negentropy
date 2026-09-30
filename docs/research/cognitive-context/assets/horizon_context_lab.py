@@ -273,7 +273,7 @@ def validate_view(view: SemanticView, tables: dict) -> list:
 
 
 # ---------------------------------------------------------------------------
-# M2 + M3 · 确定性查询引擎（含破坏实验开关）
+# M1 查询期重算 + M2/M3 执行面防线 · 确定性查询引擎（含破坏实验开关）
 # ---------------------------------------------------------------------------
 
 class AccessDenied(Exception):
@@ -411,7 +411,7 @@ def compile_query(view: SemanticView, metric_name: str, dims=None, role="analyst
         return _aggregate(spec_rows, m, objs, view, tables,
                           via, distinct_safe, last_snapshot)
 
-    record_lineage(view, metric, dim_objs)   # 新 M5：引擎执行副产品自动沉淀血缘（derived 展开记底层指标）
+    record_lineage(view, metric, dim_objs)   # M5：引擎执行副产品自动沉淀血缘（derived 展开记底层指标）
     if metric.agg == "derived":
         num_m = _metric(view, metric.derived_from[0])
         den_m = _metric(view, metric.derived_from[1])
@@ -431,7 +431,7 @@ def compile_query(view: SemanticView, metric_name: str, dims=None, role="analyst
 
 
 # ---------------------------------------------------------------------------
-# M4 + M6 · 目录、信号排序、冲突隔离
+# §11 检索排序 + §10 冲突隔离 · 目录与信任信号（Catalog/rank/freshness）
 # ---------------------------------------------------------------------------
 
 @dataclass
@@ -465,9 +465,7 @@ def _matches(entry: CatalogEntry, question: str) -> bool:
 
 
 def rank(entry: CatalogEntry, question: str) -> float:
-    names = (entry.name,) + tuple(entry.synonyms)
-    q = question.lower()
-    relevance = 1.0 if any(n.lower() in q or q in n.lower() for n in names) else 0.0
+    relevance = 1.0 if _matches(entry, question) else 0.0
     pop = math.log1p(entry.popularity) / math.log1p(POP_CAP)
     return (W_RELEVANCE * relevance + W_AUTHORITY * entry.authority
             + W_POPULARITY * pop + W_FRESHNESS * freshness(entry.updated))
@@ -518,7 +516,7 @@ class Catalog:
 
 
 # ---------------------------------------------------------------------------
-# M5 · 检索激活 + mock agent
+# M3 检索层过滤 + M4 应答锚定 · resolve 与 mock agent（消费 §11 排序）
 # ---------------------------------------------------------------------------
 
 @dataclass
@@ -550,7 +548,7 @@ def resolve(catalog: Catalog, views, question: str, role: str,
     if not top:
         pkg.warnings.append("no_context_found")
         return pkg
-    # ---- 冲突浮出：CONFLICT 卡片，不给数字（M4 的核心纪律）----
+    # ---- 冲突浮出：CONFLICT 卡片，不给数字（§10 冲突纪律的核心）----
     if top[0][1].status == "conflict":
         pkg.needs_adjudication = True
         pkg.conflict_card = [{"name": e.name, "source": e.source,
@@ -597,6 +595,11 @@ def infer_compile(entry: CatalogEntry, dims):
     return {k: out[k] for k in sorted(out)}
 
 
+def find_view_for_metric(views, metric: str):
+    """按指标名定位其所属 governed 视图（找不到返回 None；装配不变量保证 governed 条目必命中）。"""
+    return next((v for v in views if any(m.name == metric for m in v.metrics)), None)
+
+
 def mock_agent(catalog: Catalog, pkg: ContextPackage, question: str, role: str,
                views, flags=None):
     """确定性 mock（对标 CoCo/Cortex Analyst）：
@@ -618,7 +621,7 @@ def mock_agent(catalog: Catalog, pkg: ContextPackage, question: str, role: str,
     if any(w.startswith("dim_filtered") for w in pkg.warnings):
         dims = []                                    # 检索层已过滤 PRIVATE 维度建议
     if entry.source == "governed":
-        view = next(v for v in views if any(m.name == entry.metric_name for m in v.metrics))
+        view = find_view_for_metric(views, entry.metric_name)
         result = compile_query(view, entry.metric_name, dims=dims, role=role, **flags)
     else:
         result = infer_compile(entry, dims)
@@ -627,7 +630,7 @@ def mock_agent(catalog: Catalog, pkg: ContextPackage, question: str, role: str,
 
 
 # ---------------------------------------------------------------------------
-# M4 · eval 自纠环（金标准问答 → 修正理解 → 重排）
+# §10 富化 · eval 自纠环（金标准问答 → 修正理解 → 重排）
 # ---------------------------------------------------------------------------
 
 def eval_loop(catalog: Catalog, views, gold):
@@ -662,7 +665,7 @@ def eval_loop(catalog: Catalog, views, gold):
 
 
 # ---------------------------------------------------------------------------
-# 新 M5/M6/M7 · 血缘账本 / 代理身份 / 分类标签（2026-09-17 重评审晋级机制）
+# M5/M6/M7 · 血缘账本 / 代理身份 / 分类标签（2026-09-17 重评审晋级）
 # ---------------------------------------------------------------------------
 
 @dataclass(frozen=True)
@@ -741,7 +744,7 @@ def ingest_external_lineage(event, *, has_ingest_privilege=True, tables=TABLES,
     return n
 
 
-# ---- 新 M6 · Agent Identity：代理身份与会话权限天花板 ----
+# ---- M6 · Agent Identity：代理身份与会话权限天花板 ----
 
 USER_PERMS = {                          # 用户直接权限（统一 RBAC 现状）
     "data_governance": {"use:sales_sv", "select:orders", "select:customers"},
@@ -796,7 +799,7 @@ def session_allows(session: AgentSession, perm: str) -> bool:
     return perm in session.perms
 
 
-# ---- 新 M7 · 分类与标签驱动策略传播 ----
+# ---- M7 · 分类与标签驱动策略传播 ----
 
 CLASSIFY_HINTS = {                      # 自动分类扫描：列名 → 系统分类标签
     "phone": "CONTACT_INFO", "email": "CONTACT_INFO", "ssn": "CONTACT_INFO",
