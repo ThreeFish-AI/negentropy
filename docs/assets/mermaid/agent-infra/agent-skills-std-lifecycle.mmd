@@ -1,0 +1,16 @@
+%% source: docs/research/agent-infra/230-agent-skills-standard.md §4 渐进披露 + §6 客户端契约
+%% slug: agent-skills-std-lifecycle
+%% type: workflow
+%% derived: archify 重绘（fresh authorship），登记于 docs/assets/mermaid/README.md
+flowchart LR
+  disc["发现：扫项目域+用户域目录<br/>同名=项目压用户并告警"]
+  loadp["宽容装载：坏 YAML 包裹重试<br/>名字不匹配警告照载；缺 description 跳过"]
+  tier1["目录 tier1（常驻）<br/>每技能一行 name+description<br/>约 50–100 token"]
+  tier2["激活 tier2：模型自主比对 description<br/>整读正文（建议 <5000 token）"]
+  tier3["执行 tier3：资源按需<br/>references/scripts/assets 用到才读"]
+  comp["长会话压缩<br/>技能正文豁免保护 + 激活去重"]
+  strict["严格校验器（旁路）<br/>skills-ref：六字段白名单<br/>出厂检验非装载门"]
+  inj["注入防御：目录块 name/description 转义<br/>location 不转义（留白）"]
+  disc --> loadp --> tier1 --> tier2 --> tier3 --> comp
+  strict -.旁路校验.-> loadp
+  inj -.防线在目录块.-> tier1
