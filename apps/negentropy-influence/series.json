@@ -147,7 +147,7 @@
             "accessed": "2026-08-22"
           },
           "status": "final-review",
-          "statusNote": "完全重制 v1 交付（2026-09-29）：14:12.2 = 852s @1080p30（25566 帧复算）；169 句 3603 字（254 口径直写零减脂）；story 档（44 块 cues + seed 4242）纯语音 13.17 分；archify 12 图 68 章逐章回放（state→lifecycle 词表映射 2 图）；机器门全绿 + 目检修复 P6 系列题字与第五层层板叠压（qa --check 盲区——全分辨率目检抓出，标语 top 改栈几何推导）；归档 v1 + _captions",
+          "statusNote": "**v2 交付**（2026-09-30 重渲，含两轮评审修复 14+16 处；v1 2026-09-29 初渲）原 v1 口径（2026-09-29）：14:12.2 = 852s @1080p30（25566 帧复算）；169 句 3603 字（254 口径直写零减脂）；story 档（44 块 cues + seed 4242）纯语音 13.17 分；archify 12 图 68 章逐章回放（state→lifecycle 词表映射 2 图）；机器门全绿 + 目检修复 P6 系列题字与第五层层板叠压（qa --check 盲区——全分辨率目检抓出，标语 top 改栈几何推导）；归档 v1 + _captions",
           "voice": "story + me-bright.wav"
         },
         {
@@ -169,7 +169,7 @@
             "accessed": "2026-08-22"
           },
           "status": "final-review",
-          "statusNote": "完全重制 v1 交付（2026-09-29）：14:13.3 = 853s @1080p30（25598 帧复算）；163 句 3644 字（254 实测口径直写零减脂）；story 档（seed 4242 · 无配音台本——自动分段默认情绪向量，见 issue.md ISSUE-204）；archify 12 图 62 章逐章回放（含 memory-panorama/five-layer 复用原生重建，锚定 38%）；双轨口径干净（站点轨叙事+main 彩蛋）；机器门全绿：check FAIL 0（3 豁免 WARN 金句卡）/tsc/motion 15:15/qa FAIL 0/亮度带零近黑/目检过（半分辨率疑似贴边经判例排除）；归档 v1 + _captions",
+          "statusNote": "**v2 交付**（2026-09-30 重渲，含两轮评审修复 14+16 处；v1 2026-09-29 初渲）原 v1 口径（2026-09-29）：14:13.3 = 853s @1080p30（25598 帧复算）；163 句 3644 字（254 实测口径直写零减脂）；story 档（seed 4242 · 无配音台本——自动分段默认情绪向量，见 issue.md ISSUE-204）；archify 12 图 62 章逐章回放（含 memory-panorama/five-layer 复用原生重建，锚定 38%）；双轨口径干净（站点轨叙事+main 彩蛋）；机器门全绿：check FAIL 0（3 豁免 WARN 金句卡）/tsc/motion 15:15/qa FAIL 0/亮度带零近黑/目检过（半分辨率疑似贴边经判例排除）；归档 v1 + _captions",
           "voice": "story + me-bright.wav"
         },
         {
@@ -192,7 +192,7 @@
             "accessed": "2026-08-22"
           },
           "status": "final-review",
-          "statusNote": "完全重制 v1 交付（2026-09-30）：14:10.8 @1080p30（25523 帧复算）；170 句 3613 字；story 档 43 块 cues；archify 12 图 59 章（两张 3.0.0 漏网图经锁定版 2.17 重建）；**渲染五连崩根因=Lottie clock-swing 在 headless ANGLE 确定性挂死 delayRender**——换原生 PendulumGlyph（衰减正弦摆）根治；集成期抓出并补齐 P1/P2 半场缺失（108s 纯黑屏）；机器门全绿+目检过；归档 v1+_captions",
+          "statusNote": "**v2 交付**（2026-09-30 重渲，含两轮评审修复 14+16 处；v1 2026-09-30 初渲）原 v1 口径（2026-09-30）：14:10.8 @1080p30（25523 帧复算）；170 句 3613 字；story 档 43 块 cues；archify 12 图 59 章（两张 3.0.0 漏网图经锁定版 2.17 重建）；**渲染五连崩根因=Lottie clock-swing 在 headless ANGLE 确定性挂死 delayRender**——换原生 PendulumGlyph（衰减正弦摆）根治；集成期抓出并补齐 P1/P2 半场缺失（108s 纯黑屏）；机器门全绿+目检过；归档 v1+_captions",
           "voice": "story + me-bright.wav"
         },
         {
@@ -214,7 +214,7 @@
             "accessed": "2026-08-22"
           },
           "status": "final-review",
-          "statusNote": "完全重制 v1 交付（2026-09-30 终集）：13:42.8 @1080p30（24683 帧复算）；149 句 3622 字；story 档 38 块 cues；archify 13 图 67 章（collab-panorama/five-layer 复用重建，five-layer 三集合并 11 章）；终集装置全落位（五层身份卡全亮/系列金句卡/两种身份入场费曼遗产句/无下期卡完结语气）；**door-lock Lottie 同款挂死**→原生 LockStrike 根治；轨 C 八校准全片贯彻；机器门全绿+目检过；归档 v1+_captions",
+          "statusNote": "**v2 交付**（2026-09-30 重渲，含两轮评审修复 14+16 处；v1 2026-09-30 初渲）原 v1 口径（2026-09-30 终集）：13:42.8 @1080p30（24683 帧复算）；149 句 3622 字；story 档 38 块 cues；archify 13 图 67 章（collab-panorama/five-layer 复用重建，five-layer 三集合并 11 章）；终集装置全落位（五层身份卡全亮/系列金句卡/两种身份入场费曼遗产句/无下期卡完结语气）；**door-lock Lottie 同款挂死**→原生 LockStrike 根治；轨 C 八校准全片贯彻；机器门全绿+目检过；归档 v1+_captions",
           "voice": "story + me-bright.wav"
         }
       ]
