@@ -76,7 +76,7 @@ description: "以课程双轨一手材料（仓库 main 17 章 @ 0dcafa2a / 站�
 
 | 章 | 机制钉点 | 覆盖 | 一句话本质 |
 |:---|:---|:---|:---|
-| [① 工具与执行](./171-claude-code-tooling-execution.md) | main `0dcafa2a` | 循环 · 工具 · 权限 · 钩子 | 它敢在你机器上动手，靠的不是更聪明，是传送带外面挂着的三层可拆卸装置 |
+| [① 工具与执行](./171-claude-code-tooling-execution.md) | main `ce8f9f18` | 循环 · 工具 · 权限 · 钩子 | 它敢在你机器上动手，靠的不是更聪明，是传送带外面挂着的三层可拆卸装置 |
 | [② 规划与协调](./172-claude-code-planning-coordination.md) | 站点 `67a9126`（附录 main） | 待办 · 子 agent · 技能 · 系统提示 · 错误恢复 | 它每一轮都把台面从头重读一遍——所以「看见什么」从来不是它自己说了算 |
 | [③ 记忆管理](./173-claude-code-memory-management.md) | 站点 `67a9126`（演进节 main） | 上下文压缩 · 持久记忆 | 记忆不是一个功能，是两套咬合的机制：一套承认会丢，一套保证不丢 |
 | [④ 并发与时机](./174-claude-code-concurrency.md) | 站点 `67a9126`（附录 main） | 后台任务 · 定时调度 | 所谓后台没有平行宇宙，只是「不等它」；而有些活连按开始的人都不要 |
@@ -190,7 +190,7 @@ SELFTEST PASSED ✔
 |:---|:---|:---|:---|:---|
 | D1 | 循环判据退回「信停止标记」 | `ran_late_tool  True → False`——内容块里明明还有活，循环提前收工 | 判据要看手里有没有活，不看它说没说完 | [①](./171-claude-code-tooling-execution.md) |
 | D2 | 压缩顺序调换（旧结果替换抢在落盘之前） | **无可观测差异** | 顺序不是唯一的保险，「没看过的不许动」独立兜住了同一条不变式 | [③](./173-claude-code-memory-management.md) |
-| D3 | 关掉工具调用与其结果的配对保护 | `pairs_intact  True → False`——裁剪把配对拆散 | 裁剪可以丢内容，不能丢结构 | [①](./171-claude-code-tooling-execution.md) |
+| D3 | 关掉工具调用与其结果的配对保护 | `pairs_intact  True → False`——裁剪把配对拆散 | 裁剪可以丢内容，不能丢结构 | [原型](./assets/cc_harness_lab.py) |
 | D4 | 权限闸门顺序倒置（人工审批先于硬拒绝表） | `ran_deny_listed  False → True`——硬拒绝表上的命令被放行执行 | 不可协商的拒绝必须排在可协商的同意前面 | [①](./171-claude-code-tooling-execution.md) |
 | D5 | 无屏障管道改成有屏障并行 | `makespan  4.0 → 6.0`（+50%） | 屏障的代价是让快的等慢的，且逐段累积 | [④](./174-claude-code-concurrency.md) |
 | D6 | 顺序与「没看过的不许动」**两道保险同时失效** | `lost_forever 0 → 1`（一份原文从未落盘）、`pointer_lost 0 → 1`（一份已落盘但指针被抹掉） | 两道保险各自都够用，一起拆才出事——这才是顺序纪律真正的分量 | [③](./173-claude-code-memory-management.md) |

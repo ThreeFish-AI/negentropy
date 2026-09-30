@@ -4,6 +4,9 @@
 
 ## [Unreleased]
 ### Added
+### Learn Claude Code ① 工具与执行（s01–s04）guided-learn 全新精读原位重写（171）
+
+- **171 原位重写**（[docs/research/agent-harness/171-claude-code-tooling-execution.md](docs/research/agent-harness/171-claude-code-tooling-execution.md)）：以 /guided-learn 首次精读协议完全重做、隔离旧稿影响——三轨信源（站点 2026-09-30 实况快照 + main `ce8f9f18` + 官方文档 hooks/permissions/settings）覆盖 34 单元；30 行循环内核＋三挂件（工具表/权限三闸门/钩子注册表）通俗拆解，每机制一条端到端走查；三轨漂移实测定版（站点 LOC 徽章 102/135/180/232 滞后于 main 实测 151/206/267/280、s01 续轮判据分叉 stop_reason vs 内容块、s03 词边界正则增量、hooks 事件 27→官方 33）；五规律三争议五批判边界；配套新原型 [cc_tools_lab.py](docs/research/agent-harness/assets/cc_tools_lab.py)（纯标准库，`--selftest` + 5 破坏性实验：判据迟到 0 工具/硬索引 KeyError/闸门调序 4→0 文件/返回值反转全阻断/无防循环标志冲到封顶）与新图 [loop-mounted-layers](docs/assets/mermaid/agent-harness/claude-code-tooling--loop-mounted-layers.mmd)（archify 三件套）；旧 execution-panorama 作为已交付视频冻结判例锚保留。质量闸：源稿对账 36 断言 COUNTS 全 0（4 独立 Checker）+ REFS=在用=10、成文精修保真 INV/FENCE/REFS 全绿、入站扫描 9 行零 STALE（170 钉点/D3 链接/readme/knowledge-map/mermaid 索引五处同步）、盲评 3 章全胜或平局、外行四测四项出闸（T5 补阙后变式复测通过；听知术语长尾记已知局限）。
 ### Claude Code Harness Engineering 系列 5 集完全重制交付（2026-09-28..30）
 
 - **系列完全重制 v1 交付**：基于重写的 170–175 精读与新钉双轨（main `0dcafa2`/站点 `67a9126c`）+ 官方文档轨 C，五集全部同 slug rm→scaffold 重来。成片归档 `~/Documents/video/claude-code-explained/` v1×5 + `_captions/{srt,vtt}`×5：

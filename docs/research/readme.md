@@ -115,7 +115,7 @@
 | 文档 | 主旨 |
 |:---|:---|
 | [五层 Harness 精读总览](./agent-harness/170-claude-code-harness-overview.md) | 执行→规划→记忆→时机→协作五层的依赖链与层间缺口、角色台账（单射贯穿，含 0dcafa2a 新机制归位）、证据四级纪律（【一】【二】【三】【官】）、SSOT 边界、main 轨独有两章落位（撞号防御唯一展开层已迁系列信源地图）、换钉复验的批判边界与 025 消歧办结记录；含最小原型 **D1–D6 破坏性实验 + V1/V2 修复验证**（旧原生缺陷在 main 已被课程独立修复的实测） |
-| [① 工具与执行](./agent-harness/171-claude-code-tooling-execution.md) | 循环不变式与续轮判据（看内容块不看停止标记）、工具分发与批次、执行前校验链、权限三闸门顺序的正确性论证（含 main 新增破坏性命令词正则）、钩子作为权限与审计的共用扩展点；轨 C 官方文档对照（权限规则/工具清单/审批口径的分歧与同构） |
+| [① 工具与执行](./agent-harness/171-claude-code-tooling-execution.md) | 30 行循环内核＋三样挂件（工具表/权限闸门/钩子注册表）的通俗拆解：续轮判据两版分岔（stop_reason 迟到实测）、查表失败形态、三闸门顺序与「最严者胜」合取（调序实测 4→0 文件）、返回值契约反转实测；教学版↔生产版距离 + 站点/源仓/官方三轨漂移（LOC 徽章滞后、27→33 事件）；配套原型 cc_tools_lab.py 五实验 |
 | [② 规划与协调](./agent-harness/172-claude-code-planning-coordination.md) | 待办只增规划不增执行、子 agent 的上下文隔离与结果回注、技能渐进披露、系统提示按运行时状态装配、错误恢复三类分治；附 main 轨 `s17_goal_loop` 目标闸门（无工具评估器 + 停止钩子决策机 + 显式防注入）——**与官方 `CLAUDE_CODE_STOP_HOOK_BLOCK_CAP` 同名同值的强对位（goal loop 是产品机制的教学镜像）**；轨 C 对照 |
 | [③ 记忆管理](./agent-harness/173-claude-code-memory-management.md) | 站点轨收台管线（批次预算落盘→掐中段→占位符化→条件摘要，占位符**不携指针**）的顺序不变式、裁剪配对硬约束、登记簿与扉页目录、旁路挑选；**双轨叙事**——main 轨演进节（0dcafa2a 四项机制级修复：占位符幂等/压前兜底落盘/条件化 micro/fit_tool_results，V1/V2 实测 PASS）+ 三道保险升级；轨 C 对照（官方无 microcompact 术语等七硬分歧） |
 | [④ 并发与时机](./agent-harness/174-claude-code-concurrency.md) | 后台任务的显式路由与独立通知块（不复用回执编号）、调度与执行的解耦、诚实边界（调度器随进程死）；附 main 轨 `s16_workflow_runtime`（换钉 0dcafa2a 复核）——`parallel` 有屏障 vs `pipeline` 无屏障、journal 幂等续跑、双重熔断；轨 C 对照（后台任务/定时任务官方口径与教学版差 5 倍的抖动上限等） |
