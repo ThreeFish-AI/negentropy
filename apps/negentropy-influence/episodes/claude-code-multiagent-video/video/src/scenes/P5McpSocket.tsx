@@ -36,6 +36,13 @@ import type {DrawProps} from '../motion';
 /** 常驻系列条定位：与 SceneTag 同行（P1–P6 同值，由 Integrate 统一核对） */
 const BADGE_STYLE: React.CSSProperties = {top: 64};
 
+/** theme 色 + α（hex 后缀形态）：ok 走 token 而非 rgba 十进制复写——改值不漂移、
+ *  撞色登记口径可清点（P6Finale 同款工具） */
+const withAlpha = (hex: string, a: number): string =>
+  `${hex}${Math.round(clamp01(a) * 255)
+    .toString(16)
+    .padStart(2, '0')}`;
+
 /** 传送带巡游节律：2.5s/圈（全片同值） */
 const LAP_FRAMES = 75;
 
@@ -354,7 +361,7 @@ const SelfIntro: React.FC<{atCard: number; atClaims: number; atReg: number; atOf
                     borderRadius: 8,
                     paddingLeft: 14,
                     border: `2px solid ${r.ok && okOn > 0.5 ? theme.ok : theme.panelBorder}`,
-                    background: r.ok ? `rgba(126,211,33,${0.05 + 0.14 * clamp01(okLight)})` : 'transparent',
+                    background: r.ok ? withAlpha(theme.ok, 0.05 + 0.14 * clamp01(okLight)) : 'transparent',
                     opacity: rows[i],
                   }}
                 >

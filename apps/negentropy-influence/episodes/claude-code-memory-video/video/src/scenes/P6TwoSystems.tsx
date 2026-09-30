@@ -1,6 +1,6 @@
-/** P6 两套机制（p6-01..21，4 镜 7 cue）——分镜 6-A…6-D。
+/** P6 两套机制（p6-01..21，4 镜 9 cue）——分镜 6-A…6-D。
  *
- *  cue 清单（7）：
+ *  cue 清单（9）：
  *   6-A memory-panorama/evolved-hint@p6-03 / roads-closed@p6-05（实例一，默认 lead）
  *   6-B memory-panorama/answer-panorama@p6-08 / lossy-side@p6-09 / ledger-side@p6-11
  *      / two-clamps@p6-13 / vow-cashed@p6-14（实例二；与实例一隔 p6-06..07 两句
@@ -670,7 +670,10 @@ export const P6TwoSystems: React.FC<{scene: SceneRange}> = ({scene}) => {
           slug="memory-panorama"
           caption="记忆全景"
           cues={[
-            {chapterId: 'answer-panorama', at: at('p6-08') - bB.from, durationInFrames: dur('p6-08')},
+            // fit='trim' 显式留痕：章 7 拍 7.76s vs 句窗 2.57s（rate 3.42），前句是
+            // StackReturn 归位岛、后句 lossy-side 专属 cue，无法扩窗——全景仅作开答
+            // 过渡（前两拍），完整兑现由 two-clamps@p6-13 / vow-cashed@p6-14 承接
+            {chapterId: 'answer-panorama', at: at('p6-08') - bB.from, durationInFrames: dur('p6-08'), fit: 'trim'},
             {chapterId: 'lossy-side', at: at('p6-09') - bB.from, durationInFrames: dur('p6-09')},
             {chapterId: 'ledger-side', at: at('p6-11') - bB.from, durationInFrames: dur('p6-11')},
             {chapterId: 'two-clamps', at: at('p6-13') - bB.from, durationInFrames: dur('p6-13')},

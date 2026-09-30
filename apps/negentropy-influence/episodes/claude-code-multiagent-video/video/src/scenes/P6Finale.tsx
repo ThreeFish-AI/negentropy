@@ -78,11 +78,13 @@ const Person: React.FC<{x: number; y: number; color: string; scale?: number; opa
   </svg>
 );
 
-/** 金句卡定格层：可选衬底 scrim（叠在仍在场的装置上，先入场后压暗）。
+/** 金句卡定格层：可选衬底 scrim（叠在仍在场的装置上，先入场后压暗）；缺省无衬底。
  *  caption-dup-ok 注记由调用处随 storyboard 豁免逐卡声明。 */
 const QuoteWithScrim: React.FC<{zh: string; scrim?: boolean}> = ({zh, scrim = false}) => {
   const rawO = useProgress(2, DUR.f4);
-  const o = scrim ? rawO : 1;
+  // scrim=false = 无衬底（QuoteCard 自带卡底可独立悬浮）。勿回写成 1：恒满 0.86
+  // 会首帧瞬跳，且盖死右侧车道常驻的身份卡（2026-09-30 评审实录）
+  const o = scrim ? rawO : 0;
   return (
     <AbsoluteFill style={{background: withAlpha(theme.bg, 0.86 * o), pointerEvents: 'none'}}>
       <QuoteCard zh={zh} />
@@ -669,11 +671,14 @@ export const P6Finale: React.FC<{scene: SceneRange}> = ({scene}) => {
         <SceneTag chapter="One Loop" tagline="循环没改" />
         {/* 3D 栈放大与五层点亮在 HarnessStackP6（终集形态，p6-05 缩至侧位常驻） */}
         <StackFinale at05={at('p6-05') - bA.from} />
-        {/* cue 1/7：five-layer-dependency/five-lit-finale（本镜首图 → 默认入场） */}
+        {/* cue 1/7：five-layer-dependency/five-lit-finale（本镜首图 → 默认入场）。
+            fit='trim' 显式留痕：章 6 拍 6.64s vs 句窗 3.00s（rate 2.21）——前溯会盖住
+            p6-01 的 3D 栈开场、后接 mech-homecoming 背靠背，无处扩窗；「五层全亮」
+            主叙事由 StackFinale 3D 栈承担，图内演进到第三层即让位（2026-09-30 评审决策） */}
         <ArchifyRecap
           slug="five-layer-dependency"
           caption="五层依赖"
-          cues={[{chapterId: 'five-lit-finale', at: at('p6-02') - bA.from, durationInFrames: dur('p6-02')}]}
+          cues={[{chapterId: 'five-lit-finale', at: at('p6-02') - bA.from, durationInFrames: dur('p6-02'), fit: 'trim'}]}
         />
         {/* cue 2..3/7：collab-panorama 实例一（与前图背靠背 → 后挂实例关入场） */}
         <ArchifyRecap
@@ -681,7 +686,10 @@ export const P6Finale: React.FC<{scene: SceneRange}> = ({scene}) => {
           caption="协作全景"
           lead={false}
           cues={[
-            {chapterId: 'mech-homecoming', at: at('p6-03') - bA.from, durationInFrames: dur('p6-03')},
+            // fit='trim' 显式留痕：章 10 拍 11.38s vs 句窗 6.67s（rate 1.80），前后句均有
+            // 专属 cue 无法扩窗；「执行、回填、再问一轮」整圈语义由口播承担，图内播到
+            // wait 拍后即切 27 工具带（2026-09-30 评审决策）
+            {chapterId: 'mech-homecoming', at: at('p6-03') - bA.from, durationInFrames: dur('p6-03'), fit: 'trim'},
             {chapterId: 'tool-belt-27', at: at('p6-04') - bA.from, durationInFrames: dur('p6-04')},
           ]}
         />
@@ -741,11 +749,15 @@ export const P6Finale: React.FC<{scene: SceneRange}> = ({scene}) => {
           {/* caption-dup-ok: 系列总收束句金句卡，主字已压短非逐字（storyboard 6-D 注记） */}
           <QuoteWithScrim zh="机制很多 · 循环一个" scrim />
         </Sequence>
-        {/* cue 8/8：collab-panorama/all-lit-map（空窗长后重现 → 默认入场） */}
+        {/* cue 8/8：collab-panorama/all-lit-map（空窗长后重现 → 默认入场）。
+            窗 = p6-21..p6-22 两句（258 帧 8.60s）：章 10 拍 11.54s，单句窗只够播 30%——
+            扩至家规句末恰落 stretch（rate 1.342），全亮在家规金句收点定格；身份卡走
+            右侧车道与画框同屏（FinaleChain :600 契约），p6-23 地图卸载、灯牌收暗渐黑
+            不受影响（2026-09-30 评审修复：口播「全部亮灯」对位） */}
         <ArchifyRecap
           slug="collab-panorama"
           caption="协作全景"
-          cues={[{chapterId: 'all-lit-map', at: at('p6-21') - bD.from, durationInFrames: dur('p6-21')}]}
+          cues={[{chapterId: 'all-lit-map', at: at('p6-21') - bD.from, durationInFrames: dur('p6-21') + dur('p6-22')}]}
         />
         {/* p6-22 家规金句卡＋身份卡常驻 */}
         <Sequence from={ruleFrom} durationInFrames={ruleSpan} name="6-D 家规金句">

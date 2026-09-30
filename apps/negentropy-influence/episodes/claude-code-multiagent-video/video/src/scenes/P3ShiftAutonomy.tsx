@@ -498,7 +498,7 @@ export const P3ShiftAutonomy: React.FC<{scene: SceneRange}> = ({scene}) => {
         >
           <DuoCards at={2} />
         </Sequence>
-        {/* 3-B 末图后隔多句空窗 → 默认入场 */}
+        {/* 3-C 末图后隔多句空窗 → 默认入场 */}
         <ArchifyRecap
           slug="shift-three-beats"
           caption="班次三拍"

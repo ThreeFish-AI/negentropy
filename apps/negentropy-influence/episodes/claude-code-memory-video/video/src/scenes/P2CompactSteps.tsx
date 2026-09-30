@@ -610,7 +610,9 @@ export const P2CompactSteps: React.FC<{scene: SceneRange}> = ({scene}) => {
           slug="compact-entries"
           caption="压缩入口"
           cues={[
-            {chapterId: 'entries-overview', at: at('p2-17') - bE.from, durationInFrames: dur('p2-17')},
+            // fit='trim' 显式留痕：章 4 拍 4.46s vs 句窗 3.07s（rate 1.45），前后句均有
+            // 专属 cue/装置无法扩窗，末拍被切属已接受决策（2026-09-30 评审）
+            {chapterId: 'entries-overview', at: at('p2-17') - bE.from, durationInFrames: dur('p2-17'), fit: 'trim'},
             {chapterId: 'auto-gate', at: at('p2-18') - bE.from, durationInFrames: dur('p2-18')},
             {chapterId: 'manual-tool', at: at('p2-19') - bE.from, durationInFrames: dur('p2-19')},
           ]}
@@ -632,7 +634,9 @@ export const P2CompactSteps: React.FC<{scene: SceneRange}> = ({scene}) => {
           ]}
         />
         <Sequence from={at('p2-24') - bF.from} name="2-F 尺子不准小卡">
-          <RulerCard atFlash={at('p2-25') - bF.from} />
+          {/* atFlash 锚须相对本子 Sequence（0 = p2-24 起点）而非 bF——bF 基准超出
+              序列寿命致 deny 偏差带闪永不触发（2026-09-30 评审实录，remotion still 验证） */}
+          <RulerCard atFlash={at('p2-25') - at('p2-24')} />
         </Sequence>
       </Sequence>
 

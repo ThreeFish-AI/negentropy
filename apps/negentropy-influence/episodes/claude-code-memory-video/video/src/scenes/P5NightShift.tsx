@@ -603,10 +603,13 @@ export const P5NightShift: React.FC<{scene: SceneRange}> = ({scene}) => {
           <Sequence from={at('p5-16') - bD.from} durationInFrames={dur('p5-16')}>
             <DutyStrip />
           </Sequence>
-          <Sequence from={at('p5-17') - bD.from} durationInFrames={dur('p5-17')}>
+          {/* 多挂 f3 盖满 ArchifyYield 淡出再卸载（1-A/2-A 同款先例）：两句窗终点
+              恰为 p5-18/p5-20 窗起点，只挂 dur 会在让位斜坡第 0 帧硬切漏背景。
+              DutyStrip→TruncStrip 为同槽卡置换（pop 进场惯用形），不在此列 */}
+          <Sequence from={at('p5-17') - bD.from} durationInFrames={dur('p5-17') + DUR.f3}>
             <TruncStrip />
           </Sequence>
-          <Sequence from={at('p5-19') - bD.from} durationInFrames={dur('p5-19')}>
+          <Sequence from={at('p5-19') - bD.from} durationInFrames={dur('p5-19') + DUR.f3}>
             <WarnStrip />
           </Sequence>
         </ArchifyYield>

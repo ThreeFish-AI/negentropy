@@ -636,7 +636,9 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
             {at: at('p4-09') - bB.from, durationInFrames: dur('p4-09')},
           ]}
         >
-          <Sequence from={0} durationInFrames={dur('p4-05')}>
+          {/* 多挂 f3 盖满 ArchifyYield 淡出再卸载（1-A/2-A 同款先例）：句窗终点恰为
+              p4-06 窗起点，只挂 dur 会在让位斜坡第 0 帧硬切漏背景 */}
+          <Sequence from={0} durationInFrames={dur('p4-05') + DUR.f3}>
             <IndexFirstPage />
           </Sequence>
         </ArchifyYield>
@@ -731,7 +733,9 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
           cues={[{chapterId: 'model-not-vectors', at: at('p4-29') - bF.from, durationInFrames: dur('p4-29')}]}
         />
         <Sequence from={at('p4-30') - bF.from} durationInFrames={dur('p4-30') + dur('p4-31') + dur('p4-32')}>
-          <ThirdQuote at32={at('p4-32') - bF.from} />
+          {/* at32 锚须相对本子 Sequence（0 = p4-30 起点）而非 bF——bF 基准会超出
+              序列寿命致官方口径卡恒零帧（2026-09-30 评审实录，remotion still 验证） */}
+          <ThirdQuote at32={at('p4-32') - at('p4-30')} />
         </Sequence>
         <Footnote delay={2}>{'grep -r vector → 0 · Sonnet · standard file tools'}</Footnote>
       </Sequence>

@@ -503,8 +503,11 @@ const ToolNotPlanning: React.FC<{atCards: number; atDim: number; atSwitch: numbe
   const cards = useStagger(2, {at: atCards, stride: 12, dur: DUR.f5});
   // 左卡划暗（工具被关掉）：划线宽 + 压暗，停驻终态〔M-003〕
   const dimP = useProgress(atDim, DUR.f5);
-  // 拨杆翻转：空间通道走弹簧（settle 终态 = 「如今 · 关掉换旧」——终态与标签语义同向）
+  // 拨杆翻转：空间通道（杆位移）走弹簧（settle 终态 = 「如今 · 关掉换旧」——终态与标签语义同向）；
+  // 标签交叉淡化是 effects 通道，另取 progress——铁律③「不透明度永不吃弹簧」
+  // （settle 当前无过冲故成片无感，但换 snap 档会让标签过冲闪烁，2026-09-30 评审实录）
   const s = useSpring('settle', {at: atSwitch, dur: DUR.f5});
+  const sw = useProgress(atSwitch, DUR.f5);
   const travel = 244;
 
   const card = (zh: string, accent: string) => (
@@ -600,7 +603,7 @@ const ToolNotPlanning: React.FC<{atCards: number; atDim: number; atSwitch: numbe
               fontFamily: theme.mono,
               fontSize: 24,
               color: theme.dim,
-              opacity: 1 - s,
+              opacity: 1 - sw,
             }}
           >
             {'强制开'}
@@ -618,7 +621,7 @@ const ToolNotPlanning: React.FC<{atCards: number; atDim: number; atSwitch: numbe
               fontFamily: theme.mono,
               fontSize: 24,
               color: theme.text,
-              opacity: s,
+              opacity: sw,
             }}
           >
             {'关掉换旧'}
@@ -669,7 +672,7 @@ const PlanModeAnchor: React.FC<{at: number}> = ({at}) => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: withAlpha(theme.danger, 0.08),
+            background: withAlpha(theme.deny, 0.08),
           }}
         >
           <span style={{fontFamily: theme.serif, fontSize: 30, fontWeight: 600, color: theme.text}}>

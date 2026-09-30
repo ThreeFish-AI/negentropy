@@ -643,7 +643,10 @@ export const P5Durable: React.FC<{scene: SceneRange}> = ({scene}) => {
             {chapterId: 'session-loop', at: at('p5-13') - bC.from, durationInFrames: dur('p5-13')},
             {chapterId: 'desktop-tier', at: at('p5-14') - bC.from, durationInFrames: dur('p5-14')},
             {chapterId: 'cloud-tier', at: at('p5-15') - bC.from, durationInFrames: dur('p5-15')},
-            {chapterId: 'same-edge-two-ways', at: at('p5-17') - bC.from, durationInFrames: dur('p5-17')},
+            // fit='trim' 显式留痕：章 4 拍 4.42s vs 句窗 3.27s（rate 1.353 恰越上沿），
+            // 前句 p5-16 是双栏小卡空窗岛无法并窗；被裁的第 4 拍 tier-cloud 已在
+            // p5-15 cloud-tier 专属 cue 完整呈现（2026-09-30 评审决策）
+            {chapterId: 'same-edge-two-ways', at: at('p5-17') - bC.from, durationInFrames: dur('p5-17'), fit: 'trim'},
           ]}
         />
         <Sequence from={at('p5-11') - bC.from} durationInFrames={dur('p5-11')} name="5-C 过渡小字">

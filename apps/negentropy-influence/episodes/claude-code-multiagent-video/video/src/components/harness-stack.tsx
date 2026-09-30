@@ -1,9 +1,10 @@
 /** 系列身份装置：五层 Harness 栈——skills/06「系列身份视觉」规格的落地。
  *
- * 层序/层名/发布态/下集标题一律取 series-layers.json（build_narration 从
- * series.json 派生——硬编码即漂移，规格原话）。注意 P6 下期卡内的**标题主段**
- * 仍是硬编码字符串：check_series 规则 8 以 tsx 文本对账 series.json，数据化会
- * 让那条门失明（两层口径：层短名走数据，标题主段走规则 8 的受检硬编码）。
+ * 层序/层名/发布态一律取 series-layers.json（build_narration 从 series.json
+ * 派生——硬编码即漂移，规格原话）。本集=终集：无下期卡与下期层预告（EP1 的
+ * isNext 预告档与 NEXT_LAYER 导出已随终集形态退役）；check_series 规则 8 的
+ * 受检硬编码标题主段在 P6Finale 身份卡（两层口径：层短名走数据，标题主段
+ * 走规则 8 的受检硬编码）。
  *
  * 两个组件：
  *  - HarnessStackP0：开场编排（落板 → 本集层高亮呼吸 → 缩退淡出，末段交叉淡入常驻条）；
@@ -28,7 +29,6 @@ export type Layer = {index: number; layer: string; title: string; published: boo
 
 export const LAYERS = series.layers as Layer[];
 export const ACTIVE_INDEX = series.activeIndex as number;
-export const NEXT_LAYER = LAYERS[ACTIVE_INDEX] ?? null; // P6 呼吸预告的层
 
 const STACK_CROSSFADE_FRAMES = 8;
 

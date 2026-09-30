@@ -56,7 +56,9 @@ export const ClockFace: React.FC<{
       viewBox={`0 0 ${size} ${size}`}
     >
       <g transform={`translate(${pad} ${pad})`}>
-        {/* 面圈：绝对线宽（M-001 同纪律：不随 r 缩放） */}
+        {/* 面圈：绝对线宽（M-001 同纪律：不随 r 缩放）。DIAL_FACE 底色与 frozen
+            ArchifyClip 画框底（ArchifyClip.tsx BOX 背景）刻意同值——钟面读作
+            「挂进画框的表盘」，色随画框底走不随 theme 走（有注释的确定性派生豁免） */}
         <circle cx={r} cy={r} r={r} fill="#0B0E13" stroke={face} strokeWidth={6} />
         {/* 12 刻度：四正位长刻度 mech，其余 deep */}
         {Array.from({length: 12}, (_, i) => {

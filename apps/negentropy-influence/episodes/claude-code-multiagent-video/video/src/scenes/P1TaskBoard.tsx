@@ -639,7 +639,7 @@ export const P1TaskBoard: React.FC<{scene: SceneRange}> = ({scene}) => {
         <Sequence durationInFrames={at('p1-18') - bE.from}>
           <LagScene span={at('p1-18') - bE.from} />
         </Sequence>
-        {/* 1-C 末图后隔四句空窗 → 默认入场 */}
+        {/* 1-D 末图后隔四句空窗 → 默认入场 */}
         <ArchifyRecap
           slug="dependency-unlock"
           caption="依赖与解锁"

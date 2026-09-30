@@ -33,6 +33,13 @@ import {
 /** 常驻系列条定位：与 SceneTag 同行（P1–P6 同值，由 Integrate 统一核对） */
 const BADGE_STYLE: React.CSSProperties = {top: 64};
 
+/** theme 色 + α（hex 后缀形态）：deny 走 token 而非 rgba 十进制复写——改值不漂移、
+ *  撞色登记口径可清点（P6Finale 同款工具） */
+const withAlpha = (hex: string, a: number): string =>
+  `${hex}${Math.round(clamp01(a) * 255)
+    .toString(16)
+    .padStart(2, '0')}`;
+
 /** 传送带巡游节律：2.5s/圈（全片同值） */
 const LAP_FRAMES = 75;
 
@@ -165,7 +172,7 @@ const OverwriteAccident: React.FC<{atWrite: number; atOver: number; atStuck: num
                       whiteSpace: 'pre',
                       background:
                         i === 0 && flash > 0.02 && over > 0.02
-                          ? `rgba(239,100,97,${0.06 + 0.16 * flash})`
+                          ? withAlpha(theme.deny, 0.06 + 0.16 * flash)
                           : 'transparent',
                       borderRadius: 6,
                       paddingLeft: 6,
@@ -376,7 +383,7 @@ const PhaseStrength: React.FC<{atTeach: number; atIron: number; atBlock: number}
           padding: '8px 22px',
           borderRadius: 10,
           border: `3px solid ${theme.deny}`,
-          background: `rgba(239,100,97,${0.05 + 0.18 * clamp01(hit)})`,
+          background: withAlpha(theme.deny, 0.05 + 0.18 * clamp01(hit)),
           fontFamily: theme.sans,
           fontSize: 24,
           fontWeight: 600,

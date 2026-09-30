@@ -40,10 +40,12 @@ export const theme = {
   // ── 系列语义键（V3D 3D 层读；HarnessStack/motifs 消费）──
   // core = 循环内核：**全系列恒定 #D97757**（「循环始终不变」主线的视觉锚）；
   // mech/mechDeep = 挂在内核外的机制：**每集维度色**（本集 #9C90EE）——
-  // 「循环不变、机制每集不同」的语义分工。deny 复用 danger（拒绝/危险唯一语义）。
+  // 「循环不变、机制每集不同」的语义分工。
   core: '#D97757',
   coreDeep: '#B45A3C',
-  deny: '#EF6461', // 拒绝/危险唯一语义（3D 层读；与 danger 同源）
+  // deny（系列档 #EF6461，3D 层/HarnessStack 读）与 danger（UI 档 #FF5C5C）是
+  // 两个 token：拒绝语义场景一律走 deny，勿混用（2026-09-30 评审对账）
+  deny: '#EF6461',
   mech: '#9C90EE',
   mechDeep: '#7A6BC9',
 } as const;
