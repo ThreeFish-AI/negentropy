@@ -322,8 +322,8 @@
             "license": "CC-BY-4.0（文档）/ Apache-2.0（代码）；本仓精读为内部文档",
             "accessed": "2026-09-30"
           },
-          "status": "draft",
-          "statusNote": "230 换代原位重制（第三代精读成片，Stage 0 建集）：v2《知识的集装箱》(13:03) 与 v1《经验淬炼成手册》(15:25) 成片保留归档 ~/Documents/video/agent-infra/，源码经 git 历史可溯",
+          "status": "final-review",
+          "statusNote": "230 换代重制 v1 终渲待审（2026-10-02）：13:07.8 = 787.8s @30fps = 23,632 帧 / 1920×1080（124 句 3675 字，实测语速校准 285 字/分等效：story 裸语速 349 → duration-factor 1.15 全片统一）；七幕 34 镜 · archify 双图直通 2 图 16 章 19 cue（锚定 15.3% · 图型 2 · 3.0 兼容层注入：80 行 guidedViews 桥接原生 focus API，fps 15→62）· story 档 49 块 + 24 句表演标点；取证链：gl-notes 冻结快照 @d7c651f9f + sources 10 条（repo 轨 @69ef37e9 FAIL 0）+ 数字对账 37 项零漂移 + lab4 六日志复跑；④ RISKY=0 REWRITE=0（含 p2-11 五任务算术重构）+ ⑤ 独立评审 8/10 两 REWRITE 全修；机器门全绿：check_series/build/check--check-scenes/tsc/qa--check 七幕逐扫+尾幕+beat-heads/--check-theme（10.17:1）全 FAIL 0 WARN 0 + 目检四帧；信源 230 @ 本分支 d7c651f9f（C 型）；旧 v2《知识的集装箱》13:03 与 v1《经验淬炼成手册》15:25 成片保留归档",
           "voice": "story 段落演绎档 + me-bright.wav"
         },
         {

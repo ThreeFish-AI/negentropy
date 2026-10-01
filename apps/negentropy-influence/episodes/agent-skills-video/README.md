@@ -1,6 +1,6 @@
 # 《刻意做小：Agent Skills 开放标准》科普视频工程
 
-> 交付状态：**脚手架已生成，内容待撰写**。发布顺序见 [../../series.json](../../series.json)（工作区根）。
+> 交付状态：**v1 终渲待审（2026-10-02）**：13:07.8 @1080p30 · 124 句 3675 字 · archify 双图 16 章 19 cue · 机器门全绿（check/tsc/qa 全 FAIL 0）· 归档 `~/Documents/video/agent-infra/` v1 + `_captions/`。复现流水线见下。
 
 ## 目录结构
 

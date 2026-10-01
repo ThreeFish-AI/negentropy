@@ -4,6 +4,15 @@
 
 ## [Unreleased]
 ### Added
+### Agent 基础设施系列 E1 换代重制：《刻意做小：Agent Skills 开放标准》（230 精读成片）
+
+- **E1 原位重制交付**（v2《知识的集装箱》13:03 与 v1《经验淬炼成手册》15:25 成片保留归档 `~/Documents/video/agent-infra/`，源码经 git 历史可溯）：基于 [230 三代重读精读](docs/research/agent-infra/230-agent-skills-standard.md)（C 型信源）的完全重新拆解——机制主线 × X1–X5 破坏实验反例穿插 × 230 白话体系（餐厅菜单/门牌招牌/交警年检），旧版港口剧场整体退役、两版框架零共享；新三色板（账本金 `#F2B33D`/门牌靛 `#6D8BFF`/年检紫 `#A88BE8`，WCAG 10.17:1）
+- **成片数字**：13:08（788s @30fps=23,632 帧）· 124 句 3675 字（实测语速校准 285 字/分等效：story 裸语速实测 349 → `--duration-factor 1.15` 全片统一）· 七幕 34 镜 · archify 2 图 16 章直通 19 cue（锚定 15.3%/图型 2）· story 档 49 块 + 24 句表演标点
+- **取证链**：gl-notes 冻结快照（230 @ `d7c651f9f`）+ sources.toml 10 条（repo 轨 raw @`69ef37e9` 硬校验 FAIL 0，与 E3 集同钉指纹交叉一致）+ number-reconciliation 37 项全复算零漂移 + lab4 六日志复跑（X4 613→694/+13% 逐位一致）；口播数字全汉字带「约」（chars/4 近似口径）
+- **双校验+成文**：④ 真实性 116 句全锚（RISKY 0 REWRITE 0，含 p2-11 五任务算术错挂重构）+ 易懂性 6→通过线（上下文/token 同位白话焊接、门牌失配边界补掐断、三方口径纠偏）；⑤ 独立评审 8/10（REWRITE 2 全修 + SUGGEST 吸收 8）
+- **机器门全绿**：check_series/build/check--check-scenes/tsc/motion/qa--check（七幕逐扫+尾幕+beat-heads）/--check-theme 全 FAIL 0 WARN 0 + 目检四帧（开场目录树/X1 消融/三级记账/X4 账本红侧）
+- **工程突破**：archify 3.0 与录制器断层修复——自制 80 行 guidedViews 兼容层（组合 3.0 原生 focus.set/view.reveal/view.centerAt + 播放期脉动保帧率 15→62fps），docs 原件 SSOT 零拷贝注入；TTS MPS 泄漏三阶段对抗终以 `--mps-mem-limit-gib 0` 根治
+
 ### Agent Skills 开放标准三代完全重读（230 精读与通俗拆解）
 
 - **新版 guided-learn 完全重读交付**：应用户要求以换代后的 guided-learn 技能对 [agentskills.io](https://agentskills.io) 全站 9 页 + [agentskills/agentskills](https://github.com/agentskills/agentskills) 仓（钉 `69ef37e9`，2026-08-09 冻结，站点实况 curl 交叉一致）做完全重读，生产全程防污染禁读旧两代精读（090/091/210/211/220/221）。[230-agent-skills-standard.md](docs/research/agent-infra/230-agent-skills-standard.md)（sidebar_position 12）：
