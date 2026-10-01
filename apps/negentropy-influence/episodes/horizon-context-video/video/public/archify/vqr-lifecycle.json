@@ -1,7 +1,7 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.0,
+ "lead_sec": 0.44,
  "story_sec": 3.35,
  "total_wall_sec": 122.12,
  "started_playback": true,
@@ -16,7 +16,7 @@
    "end_still": "vqr-lifecycle--signed-stamped-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 3.35,
    "beat_offsets_sec": [
     0.0,
@@ -42,5 +42,5 @@
  },
  "source": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/horizon-context--vqr-lifecycle.html",
  "slug": "vqr-lifecycle",
- "type": ""
+ "type": "lifecycle"
 }

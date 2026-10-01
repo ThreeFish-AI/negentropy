@@ -1,7 +1,7 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.0,
+ "lead_sec": 0.44,
  "story_sec": 7.06,
  "total_wall_sec": 156.65,
  "started_playback": true,
@@ -16,7 +16,7 @@
    "end_still": "three-claims-stack--guess-only-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 3.38,
    "beat_offsets_sec": [
     0.0,
@@ -39,7 +39,7 @@
    "end_still": "three-claims-stack--governed-trust-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 0.52,
    "story_sec": 3.68,
    "beat_offsets_sec": [
     0.0,
@@ -65,5 +65,5 @@
  },
  "source": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/horizon-context--three-claims-stack.html",
  "slug": "three-claims-stack",
- "type": ""
+ "type": "architecture"
 }

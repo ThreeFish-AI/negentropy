@@ -1,7 +1,7 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.0,
+ "lead_sec": 0.44,
  "story_sec": 9.11,
  "total_wall_sec": 78.16,
  "started_playback": true,
@@ -16,7 +16,7 @@
    "end_still": "collect-enrich-activate--collect-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 4.63,
    "beat_offsets_sec": [
     0.0,
@@ -41,7 +41,7 @@
    "end_still": "collect-enrich-activate--activate-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 4.48,
    "beat_offsets_sec": [
     0.0,

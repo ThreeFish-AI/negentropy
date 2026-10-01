@@ -1,7 +1,7 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.0,
+ "lead_sec": 0.44,
  "story_sec": 8.91,
  "total_wall_sec": 174.29,
  "started_playback": true,
@@ -16,7 +16,7 @@
    "end_still": "upstream-traceback--living-ledger-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 4.44,
    "beat_offsets_sec": [
     0.0,
@@ -41,7 +41,7 @@
    "end_still": "upstream-traceback--three-seconds-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 4.47,
    "beat_offsets_sec": [
     0.0,

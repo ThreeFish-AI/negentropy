@@ -107,8 +107,8 @@
 | 7-B 读表纪律 | p7-03 | evidence：·**archify full**：evidence-grading 章 `vendor-claim`@p7-03；角标「谁测的/什么条件/截至何时」三连章 | 图回放；三问角标错峰`@stagger` |
 | 7-C 治理≠验证 | p7-04..06 | evidence：·**archify full**：grain-collapse 章 `day-pack-collapse`@p7-04+`legal-but-wrong`@p7-05+govern-vs-verify 章 `upstream-collapse`@p7-06；477 vs 48 断崖对比（实线徽·typedef 转述） | 图回放三章接力（断崖下坠`@count`） |
 | 7-D 玩具复现 | p7-07..08 | device：两天各记两笔（2+2）vs 去重（3）小算式走查；证据徽（实心）；·**archify full**：grain-collapse 章 `measured-477-48`@p7-07 + govern-vs-verify 章 `third-party-critique`@p7-08 | 算式逐笔落位`@count`；图回放两章接力 |
-| 7-E 边界 | p7-10..12b | device：**边界护栏卡**三栏（引擎内=有效 / 出楼=承诺清零 / 转换层=另一层责任）；·**archify full**：perimeter-loss 章 `inside-effective`@p7-10+`outside-void`@p7-11 | 护栏卡三栏错峰`@stagger`；图回放两章接力 |
-| 7-F 五规律 | p7-13..16 | evidence：·**archify full**：five-laws 章 `laws-overview`+`law-execution-half`+`law-two-insurance`+`law-trinity`（新图·四章对应 p7-13..16 一章一句）；**定义卡母题满屏回照收束**（历次形态叠影） | 图回放五章接力（逐条点亮）；叠影淡入`@enter:fade` |
+| 7-E 边界 | p7-10..12b | device：**边界护栏卡**三栏（引擎内=有效 / 出楼=承诺清零 / 转换层=另一层责任）；·**archify full**：perimeter-loss 章 `inside-effective`@p7-10+`outside-void`@p7-11+evidence-grading 章 `not-industry-norm`@p7-12（dbt 争议=非行业常态） | 护栏卡三栏错峰`@stagger`；图回放三章接力 |
+| 7-F 五规律 | p7-13..16 | device：原生五卡逐句点亮（①执行半边/②执行点/③双保险/④冲突浮出·人工裁决/⑤三件套——panel 底+编号反枚举、激活金描边微光；five-laws 图转为 docs 研究资产不进片）；**定义卡母题满屏回照收束**（历次形态叠影） | 五卡`@stagger`错峰落位+逐句金描边点亮；叠影淡入`@enter:fade` |
 | 7-G 自测三问 | p7-17..18 | device：三问卡竖排（定义复制了吗？/策略在哪层求值？/验证交付了什么？）；·**archify full**：three-claims-stack 章 `guess-only`@p7-17+`governed-trust`@p7-18 | 三问卡逐张翻面`@reveal`；图回放两章接力 |
 | 7-H 收尾 | p7-19 | master：三问卡收拢入定义卡母题，卡片翻转亮出三色描边定格；尾幕渐黑（从末 beat 时长推导）+片尾字幕 | 收拢定格`@pushIn`；渐黑窗口（不写死帧数） |
 
@@ -133,7 +133,7 @@ archify 消费端：`ArchifyClip/ArchifyRecap/ArchifyYield` 从 E2（context-lay
 
 ## 新图清单（建图工单）
 
-- ★ `horizon-context--five-laws`（dataflow）：五规律总卡，四章 `laws-overview / law-execution-half / law-two-insurance / law-trinity`（§19 规律 1–5 收四拍：总览→执行半边+执行点→双保险+冲突浮出→三件套；67 图无对应载荷）。
+- `horizon-context--five-laws`（dataflow）：五规律总卡四章——**docs 研究资产**（011 §19 配图；archify 3.0 viewer 已移除 guidedViews 模块、录制器无法消费，视频侧改原生五卡实现，见 P7Laws.tsx）。
 - 备选未建：ann-walkthrough（Animated State Trace 由场景原生实现更优）、boundary-guardrail（护栏卡由场景原生实现）。
 
 ## 覆盖门预期（首轮实测后回填定稿）

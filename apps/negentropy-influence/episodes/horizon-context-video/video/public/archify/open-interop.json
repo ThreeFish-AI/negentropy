@@ -1,7 +1,7 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.0,
+ "lead_sec": 0.44,
  "story_sec": 12.26,
  "total_wall_sec": 156.3,
  "started_playback": true,
@@ -16,7 +16,7 @@
    "end_still": "open-interop--portable-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 4.46,
    "beat_offsets_sec": [
     0.0,
@@ -41,7 +41,7 @@
    "end_still": "open-interop--feedback-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 3.35,
    "beat_offsets_sec": [
     0.0,
@@ -64,7 +64,7 @@
    "end_still": "open-interop--socket-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 4.45,
    "beat_offsets_sec": [
     0.0,

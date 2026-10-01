@@ -1,7 +1,7 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.0,
+ "lead_sec": 0.44,
  "story_sec": 3.37,
  "total_wall_sec": 29.26,
  "started_playback": true,
@@ -16,7 +16,7 @@
    "end_still": "compile-time-block--no-backdoor-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 3.37,
    "beat_offsets_sec": [
     0.0,

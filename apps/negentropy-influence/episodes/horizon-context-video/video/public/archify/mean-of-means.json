@@ -1,7 +1,7 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.0,
+ "lead_sec": 0.44,
  "story_sec": 3.34,
  "total_wall_sec": 52.47,
  "started_playback": true,
@@ -16,7 +16,7 @@
    "end_still": "mean-of-means--wrong-avg-of-avg-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 3.34,
    "beat_offsets_sec": [
     0.0,

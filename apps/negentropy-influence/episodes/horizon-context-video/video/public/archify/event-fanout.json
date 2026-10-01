@@ -1,7 +1,7 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.0,
+ "lead_sec": 0.48,
  "story_sec": 4.44,
  "total_wall_sec": 40.32,
  "started_playback": true,
@@ -16,7 +16,7 @@
    "end_still": "event-fanout--hundred-three-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 0.48,
    "story_sec": 4.44,
    "beat_offsets_sec": [
     0.0,

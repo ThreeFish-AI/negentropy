@@ -1,7 +1,7 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.0,
+ "lead_sec": 0.48,
  "story_sec": 7.4,
  "total_wall_sec": 188.9,
  "started_playback": true,
@@ -16,7 +16,7 @@
    "end_still": "valid-sql-wrong-answer--syntax-pass-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 0.48,
    "story_sec": 3.36,
    "beat_offsets_sec": [
     0.0,
@@ -39,7 +39,7 @@
    "end_still": "valid-sql-wrong-answer--business-fail-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 0.0,
+   "lead_sec": 0.48,
    "story_sec": 4.04,
    "beat_offsets_sec": [
     0.0,

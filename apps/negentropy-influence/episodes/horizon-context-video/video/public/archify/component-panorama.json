@@ -1,7 +1,7 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.0,
+ "lead_sec": 0.44,
  "story_sec": 18.86,
  "total_wall_sec": 131.65,
  "started_playback": true,
@@ -16,7 +16,7 @@
    "end_still": "component-panorama--caliber-spine-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 4.44,
    "beat_offsets_sec": [
     0.0,
@@ -41,7 +41,7 @@
    "end_still": "component-panorama--consumer-feed-end.png",
    "beats": 6,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 0.4,
    "story_sec": 6.65,
    "beat_offsets_sec": [
     0.0,
@@ -70,7 +70,7 @@
    "end_still": "component-panorama--reserved-supply-end.png",
    "beats": 7,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 0.32,
    "story_sec": 7.77,
    "beat_offsets_sec": [
     0.0,

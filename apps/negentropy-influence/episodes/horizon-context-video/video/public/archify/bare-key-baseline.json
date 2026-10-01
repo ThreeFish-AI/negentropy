@@ -1,7 +1,7 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.0,
+ "lead_sec": 0.44,
  "story_sec": 11.64,
  "total_wall_sec": 128.34,
  "started_playback": true,
@@ -16,7 +16,7 @@
    "end_still": "bare-key-baseline--whole-key-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 3.35,
    "beat_offsets_sec": [
     0.0,
@@ -39,7 +39,7 @@
    "end_still": "bare-key-baseline--blind-wrong-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 0.0,
+   "lead_sec": 0.48,
    "story_sec": 3.24,
    "beat_offsets_sec": [
     0.0,
@@ -60,7 +60,7 @@
    "end_still": "bare-key-baseline--baseline-two-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 5.05,
    "beat_offsets_sec": [
     0.0,

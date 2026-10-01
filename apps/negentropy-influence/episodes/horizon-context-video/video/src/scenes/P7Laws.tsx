@@ -1,13 +1,13 @@
 /** P7 规律与边界（p7-01..p7-19，19 句，无 p7-09；storyboard「P7 规律与边界」节）。
  *
- *  8 镜 / 16 条 archify cue（全部句锚定；P7 各句窗严格相接，除 7-F 外每实例首 cue
+ *  8 镜 / 12 条 archify cue（7-F 原生五卡实现——five-laws 图转 docs 资产；除 7-F 外每实例首 cue
  *  均与上一实例链尾跨实例背靠背 → lead={false}；7-F 隔 p7-12..12b 空窗恢复入场）：
  *   7-A 徽墙+冷水 dual-baseline-evidence two-benchmarks@01 → evidence-grading vendor-claim@02
  *   7-B 读表三问 evidence-grading vendor-claim@03（同章重放，镜界背靠背）
  *   7-C 治理≠验证 grain-collapse day-pack-collapse@04→legal-but-wrong@05 + govern-vs-verify upstream-collapse@06
  *   7-D 玩具复现 grain-collapse measured-477-48@07（同 slug 跨实例）+ govern-vs-verify third-party-critique@08
  *   7-E 边界 perimeter-loss inside-effective@10→outside-void@11；p7-12/12b 空窗让护栏卡+dbt 角标全显
- *   7-F 五规律 five-laws 四章逐句（新图，章 id 钉自 storyboard 建图工单）+ 定义卡母题满屏叠影
+ *   7-F 五规律原生五卡逐句点亮 + 定义卡母题满屏叠影
  *   7-G 自测三问 three-claims-stack guess-only@17（接 7-F 链尾背靠背）→ governed-trust@18
  *   7-H 收拢入母题、翻转亮三色描边定格；尾幕渐黑 useFadeOut 从末 beat 总时长推导（红线四）
  *
@@ -312,6 +312,67 @@ const DbtWindow: React.FC<{at: number}> = ({at}) => {
         <div style={{width: `${((v - 33) / 32) * 100}%`, height: '100%', background: theme.conceptDeep}} />
       </div>
     </div>
+  );
+};
+
+// ─────────────────────────────────────────────── 7-F 原生五规律卡
+
+/** 五规律逐句点亮：p7-13 亮题+①② / p7-14 高亮①② / p7-15 高亮③④ / p7-16 高亮⑤。
+ *  反枚举色彩：panel 底+编号，激活才金描边+微光；画面文字只放关键词（口播承载完整句）。 */
+const LAW_ROWS = [
+  {no: '①', kw: '执行半边', note: '定义层已商品化'},
+  {no: '②', kw: '执行点', note: '强制力来自求值处'},
+  {no: '③', kw: '双保险', note: '注册校验 × 查询重算'},
+  {no: '④', kw: '冲突浮出 · 人工裁决', note: '不投多数票'},
+  {no: '⑤', kw: '三件套', note: '声明 × 背书 × 审计'},
+] as const;
+
+const FiveLawsStack: React.FC<{a13: number; a14: number; a15: number; a16: number}> = ({a13, a14, a15, a16}) => {
+  const f = useCurrentFrame();
+  const st = useStagger(LAW_ROWS.length, {at: a13, dur: DUR.f4, stride: DUR.f2}); // number[]：各卡 0→1
+  const hl = (from: number) => progress(f, from, DUR.f5);
+  const active: Record<number, number> = {
+    0: Math.max(hl(a14), hl(a16)),
+    1: Math.max(hl(a14), hl(a16)),
+    2: hl(a15),
+    3: hl(a15),
+    4: hl(a16),
+  };
+  const glow = useBreathe({period: 90});
+  return (
+    <AbsoluteFill style={{alignItems: 'center', paddingTop: 150}}>
+      <div style={{fontFamily: theme.sans, fontSize: 30, color: theme.dim, letterSpacing: 6, marginBottom: 28}}>
+        {'五条底层规律'}
+      </div>
+      {LAW_ROWS.map((r, i) => {
+        const on = active[i] ?? 0;
+        return (
+          <div
+            key={r.no}
+            style={{
+              boxSizing: 'border-box',
+              width: 1160,
+              height: 96,
+              marginBottom: 14,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 24,
+              padding: '0 30px',
+              borderRadius: 14,
+              background: theme.panel,
+              border: `2px solid ${on > 0 ? theme.concept : theme.panelBorder}`,
+              boxShadow: on > 0 ? `0 0 ${18 * on * (0.7 + 0.3 * glow)}px rgba(232,192,106,${0.35 * on})` : 'none',
+              opacity: st[i],
+              transform: `translateY(${(1 - st[i]) * 26}px)`,
+            }}
+          >
+            <span style={{fontFamily: theme.serif, fontSize: 34, color: on > 0 ? theme.concept : theme.dim}}>{r.no}</span>
+            <span style={{fontFamily: theme.sans, fontSize: 30, color: theme.text}}>{r.kw}</span>
+            <span style={{marginLeft: 'auto', fontFamily: theme.mono, fontSize: 19, color: theme.dim}}>{r.note}</span>
+          </div>
+        );
+      })}
+    </AbsoluteFill>
   );
 };
 
@@ -676,19 +737,21 @@ export const P7Laws: React.FC<{scene: SceneRange}> = ({scene}) => {
           ]}
           lead={false}
         />
+        <ArchifyRecap
+          slug="evidence-grading"
+          caption="非行业常态"
+          cues={[{chapterId: 'not-industry-norm', at: at('p7-12') - bE.from, durationInFrames: dur('p7-12')}]}
+          lead={false}
+        />
       </Sequence>
 
-      {/* 7-F 五规律：四章逐句（隔 p7-12..12b 空窗恢复入场）+ 母题满屏叠影逐句淡入 */}
+      {/* 7-F 五规律：原生五卡逐句点亮（five-laws 图为 docs 研究资产，视频侧原生实现）+ 母题叠影 */}
       <Sequence from={bF.from} durationInFrames={bF.durationInFrames} name="7-F 五规律">
-        <ArchifyRecap
-          slug="five-laws"
-          caption="五规律总卡"
-          cues={[
-            {chapterId: 'laws-overview', at: at('p7-13') - bF.from, durationInFrames: dur('p7-13')},
-            {chapterId: 'law-execution-half', at: at('p7-14') - bF.from, durationInFrames: dur('p7-14')},
-            {chapterId: 'law-two-insurance', at: at('p7-15') - bF.from, durationInFrames: dur('p7-15')},
-            {chapterId: 'law-trinity', at: at('p7-16') - bF.from, durationInFrames: dur('p7-16')},
-          ]}
+        <FiveLawsStack
+          a13={at('p7-13') - bF.from}
+          a14={at('p7-14') - bF.from}
+          a15={at('p7-15') - bF.from}
+          a16={at('p7-16') - bF.from}
         />
         <LawsEcho
           anchors={[

@@ -1,9 +1,9 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.0,
- "story_sec": 4.46,
- "total_wall_sec": 39.29,
+ "lead_sec": 0.44,
+ "story_sec": 8.85,
+ "total_wall_sec": 115.36,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -16,19 +16,44 @@
    "end_still": "evidence-grading--vendor-claim-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
-   "story_sec": 4.46,
+   "lead_sec": 0.44,
+   "story_sec": 4.43,
    "beat_offsets_sec": [
     0.0,
     1.104,
     2.208,
-    3.312
+    3.311
    ],
    "beat_nodes": [
     "benchSource",
     "gradeCard",
     "vendorClaim",
     "retestGap"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 30.0
+  },
+  {
+   "id": "not-industry-norm",
+   "label": "自报≠行业常态",
+   "index": 1,
+   "file": "evidence-grading--not-industry-norm.mp4",
+   "end_still": "evidence-grading--not-industry-norm-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.42,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.206,
+    3.308
+   ],
+   "beat_nodes": [
+    "vendorClaim",
+    "retestGap",
+    "dualBaseline",
+    "verdictNorm"
    ],
    "measured_fps": 25.0,
    "capture_fps": 27.0

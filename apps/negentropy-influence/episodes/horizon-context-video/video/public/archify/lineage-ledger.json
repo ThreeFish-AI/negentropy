@@ -1,7 +1,7 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.0,
+ "lead_sec": 0.44,
  "story_sec": 11.11,
  "total_wall_sec": 162.62,
  "started_playback": true,
@@ -16,7 +16,7 @@
    "end_still": "lineage-ledger--engine-lane-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 3.33,
    "beat_offsets_sec": [
     0.0,
@@ -39,7 +39,7 @@
    "end_still": "lineage-ledger--ingest-lane-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 0.48,
    "story_sec": 4.44,
    "beat_offsets_sec": [
     0.0,
@@ -64,7 +64,7 @@
    "end_still": "lineage-ledger--ledger-and-blind-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 0.48,
    "story_sec": 3.34,
    "beat_offsets_sec": [
     0.0,

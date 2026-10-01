@@ -1,7 +1,7 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.0,
+ "lead_sec": 0.4,
  "story_sec": 3.23,
  "total_wall_sec": 64.81,
  "started_playback": true,
@@ -16,7 +16,7 @@
    "end_still": "last-snapshot-gate--semi-additive-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 0.0,
+   "lead_sec": 0.4,
    "story_sec": 3.23,
    "beat_offsets_sec": [
     0.0,
