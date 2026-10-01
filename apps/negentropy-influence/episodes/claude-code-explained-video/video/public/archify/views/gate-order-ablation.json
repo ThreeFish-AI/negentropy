@@ -1,0 +1,41 @@
+[
+  {
+    "id": "normal-first",
+    "label": "正常序：禁忌表最先拦下",
+    "focus": [
+      "n_order",
+      "n_deny",
+      "n_block"
+    ],
+    "note": "同一单 rm -rf / 先过禁忌表 DENY_LIST：子串命中即硬拒，不执行也不问人——实测 4 个文件完好"
+  },
+  {
+    "id": "reorder-early",
+    "label": "调序：规则与签字提前",
+    "focus": [
+      "r_order",
+      "r_allow",
+      "r_ask"
+    ],
+    "note": "规则与问用户提到最前：'rm ' 命中转问人——不可谈判的硬拒绝被挤到最后"
+  },
+  {
+    "id": "one-y-pass",
+    "label": "一个 y 就通过签字关",
+    "focus": [
+      "r_ask",
+      "r_deny"
+    ],
+    "note": "签字只要一个 y 即放行返回；排在后面的禁忌表根本轮不到——「永远不行」被降级成「一句 y 就行」"
+  },
+  {
+    "id": "wipe-zero",
+    "label": "实测：4 个文件 → 0",
+    "focus": [
+      "r_exec",
+      "r_zero",
+      "n_block"
+    ],
+    "note": "同一单、同一句 y：正常序拦在禁忌表，4 个文件完好；调序后放行执行，4 → 0"
+  }
+]

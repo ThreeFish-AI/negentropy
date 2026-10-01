@@ -1,0 +1,132 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 17.36,
+ "total_wall_sec": 386.65,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "stream-order",
+   "label": "① 内容块与停止标记不是同时到",
+   "index": 0,
+   "file": "stop-reason-race--stream-order.mp4",
+   "end_still": "stop-reason-race--stream-order-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.96,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.21
+   ],
+   "beat_nodes": [
+    "stream",
+    "loopstop",
+    "loopblock"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 28.0
+  },
+  {
+   "id": "stop-late",
+   "label": "② 信标记侧：迟到当成没开单",
+   "index": 1,
+   "file": "stop-reason-race--stop-late.mp4",
+   "end_still": "stop-reason-race--stop-late-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "stream",
+    "loopstop"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 27.0
+  },
+  {
+   "id": "stop-die",
+   "label": "③ 信标记侧：1 轮即停 0 工具",
+   "index": 2,
+   "file": "stop-reason-race--stop-die.mp4",
+   "end_still": "stop-reason-race--stop-die-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0,
+    1.605
+   ],
+   "beat_nodes": [
+    "loopstop",
+    "task"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 27.0
+  },
+  {
+   "id": "block-live",
+   "label": "④ 看内容块侧：3 轮 2 工具跑完",
+   "index": 3,
+   "file": "stop-reason-race--block-live.mp4",
+   "end_still": "stop-reason-race--block-live-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.71,
+   "beat_offsets_sec": [
+    0.0,
+    1.107,
+    2.212
+   ],
+   "beat_nodes": [
+    "loopblock",
+    "stream",
+    "task"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 27.0
+  },
+  {
+   "id": "verdict",
+   "label": "⑤ 判据要看不会迟到的事实",
+   "index": 4,
+   "file": "stop-reason-race--verdict.mp4",
+   "end_still": "stop-reason-race--verdict-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.48,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0,
+    1.605
+   ],
+   "beat_nodes": [
+    "stream",
+    "loopblock"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/claude-code--stop-reason-race.html",
+ "slug": "stop-reason-race",
+ "type": "sequence"
+}

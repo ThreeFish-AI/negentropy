@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "22dc573a-f1d2-43d5-85fa-6e1204637f96",
+  "status": "current",
+  "command": "deliver",
+  "type": "lifecycle",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/.archify/lifecycle-stop-guard-1827/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/claude-code--stop-guard.html",
+  "specification": {
+    "sha256": "5713ecf52ae8d3e6aff89f87061a96be4faad69d09595934781f1987ab117a8f",
+    "bytes": 5855
+  },
+  "artifact": {
+    "sha256": "3781bdf4a1c3be231e180c828361f4182485b102b32925f5dd79464129a74593",
+    "bytes": 839390
+  }
+}

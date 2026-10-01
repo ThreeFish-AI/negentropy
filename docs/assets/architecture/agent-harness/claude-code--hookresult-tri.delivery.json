@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "e8401f65-cdc4-4efa-a03e-e6baa3b69040",
+  "status": "current",
+  "command": "deliver",
+  "type": "lifecycle",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/.archify/lifecycle-hookresult-tri-1827/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/claude-code--hookresult-tri.html",
+  "specification": {
+    "sha256": "66e293b45a5b5ce6374d519bff31e8012e205c77f66ea93cd59bd95fdf2a0710",
+    "bytes": 6331
+  },
+  "artifact": {
+    "sha256": "d8ac46ee89fe14b74b9ad83a0a3d366c5c23d7b67e334ab35f7ece5a1cef8d80",
+    "bytes": 843154
+  }
+}

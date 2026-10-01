@@ -1,0 +1,160 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 28.86,
+ "total_wall_sec": 253.81,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "four-states",
+   "label": "四态总览：多一个「不表态」",
+   "index": 0,
+   "file": "gate-four-result--four-states.mp4",
+   "end_still": "gate-four-result--four-states-end.png",
+   "beats": 5,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 5.54,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.205,
+    3.308,
+    4.41
+   ],
+   "beat_nodes": [
+    "merge",
+    "res_allow",
+    "res_deny",
+    "res_ask",
+    "res_pass"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 27.0
+  },
+  {
+   "id": "eight-sources",
+   "label": "八来源分层合并",
+   "index": 1,
+   "file": "gate-four-result--eight-sources.mp4",
+   "end_still": "gate-four-result--eight-sources-end.png",
+   "beats": 9,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 9.97,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.208,
+    3.312,
+    4.417,
+    5.521,
+    6.625,
+    7.727,
+    8.832
+   ],
+   "beat_nodes": [
+    "src_user",
+    "src_project",
+    "src_local",
+    "src_flag",
+    "src_enterprise",
+    "src_cli",
+    "src_session",
+    "src_inline",
+    "merge"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 33.0
+  },
+  {
+   "id": "override",
+   "label": "高优先级覆盖低优先级",
+   "index": 2,
+   "file": "gate-four-result--override.mp4",
+   "end_still": "gate-four-result--override-end.png",
+   "beats": 6,
+   "dwell_ms": 1100,
+   "lead_sec": 0.48,
+   "story_sec": 6.68,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.206,
+    3.31,
+    4.415,
+    5.519
+   ],
+   "beat_nodes": [
+    "src_user",
+    "src_project",
+    "src_local",
+    "src_flag",
+    "src_enterprise",
+    "merge"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 27.0
+  },
+  {
+   "id": "classifier",
+   "label": "分类器代审：单子连同对话发判断模型",
+   "index": 3,
+   "file": "gate-four-result--classifier.mp4",
+   "end_still": "gate-four-result--classifier-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.32,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.208
+   ],
+   "beat_nodes": [
+    "classifier",
+    "merge",
+    "res_allow"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 27.0
+  },
+  {
+   "id": "fallback-human",
+   "label": "连拒多次回退人工",
+   "index": 4,
+   "file": "gate-four-result--fallback-human.mp4",
+   "end_still": "gate-four-result--fallback-human-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.207
+   ],
+   "beat_nodes": [
+    "classifier",
+    "fallback",
+    "res_ask"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/claude-code--gate-four-result.html",
+ "slug": "gate-four-result",
+ "type": "architecture"
+}

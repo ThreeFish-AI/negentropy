@@ -1,0 +1,134 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 18.57,
+ "total_wall_sec": 196.26,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "v1-base",
+   "label": "v1 · 102 行：循环 + 一把 bash",
+   "index": 0,
+   "file": "four-version-ledger--v1-base.mp4",
+   "end_still": "four-version-ledger--v1-base-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "v1",
+    "lp1"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 27.0
+  },
+  {
+   "id": "v2-table",
+   "label": "v2 · 135 行：+开单表，循环只换一行",
+   "index": 1,
+   "file": "four-version-ledger--v2-table.mp4",
+   "end_still": "four-version-ledger--v2-table-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.28,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "v2",
+    "lp2"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 27.0
+  },
+  {
+   "id": "v3-gates",
+   "label": "v3 · 180 行：+三重把关进管线",
+   "index": 2,
+   "file": "four-version-ledger--v3-gates.mp4",
+   "end_still": "four-version-ledger--v3-gates-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.21,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "v3",
+    "lp3"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "v4-hooks",
+   "label": "v4 · 232 行：+规程节点，把关搬家",
+   "index": 3,
+   "file": "four-version-ledger--v4-hooks.mp4",
+   "end_still": "four-version-ledger--v4-hooks-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "v4",
+    "lp4"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "ledger",
+   "label": "对账：循环几乎没动",
+   "index": 4,
+   "file": "four-version-ledger--ledger.mp4",
+   "end_still": "four-version-ledger--ledger-end.png",
+   "beats": 5,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 5.6,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.206,
+    3.308,
+    4.411
+   ],
+   "beat_nodes": [
+    "v5",
+    "lp1",
+    "lp2",
+    "lp3",
+    "lp4"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 28.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/claude-code--four-version-ledger.html",
+ "slug": "four-version-ledger",
+ "type": "lifecycle"
+}

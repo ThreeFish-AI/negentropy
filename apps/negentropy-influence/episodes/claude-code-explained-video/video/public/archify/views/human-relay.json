@@ -1,0 +1,56 @@
+[
+  {
+    "id": "manual-full",
+    "label": "人肉往返全貌",
+    "focus": [
+      "u_ask",
+      "m_read",
+      "m_say",
+      "u_copy",
+      "u_term",
+      "u_back"
+    ],
+    "note": "贴代码→给建议→自己执行→报错再贴回——一个来回，全靠一双手在两边搬"
+  },
+  {
+    "id": "talk-only",
+    "label": "模型只说不干",
+    "focus": [
+      "m_say",
+      "u_ask",
+      "u_copy"
+    ],
+    "note": "它在聊天框里说完了，活还得你来干：建议是文本，不是动作"
+  },
+  {
+    "id": "your-hands",
+    "label": "每轮交接都是你的手",
+    "focus": [
+      "u_ask",
+      "u_copy",
+      "u_term",
+      "u_back"
+    ],
+    "note": "复制、粘贴、开终端、读输出——四步交接每轮重来，你就是中间层"
+  },
+  {
+    "id": "loop-takes-over",
+    "label": "循环接手",
+    "focus": [
+      "c_ledger",
+      "c_doctor",
+      "c_desk"
+    ],
+    "note": "同一套转交写进程序：开单执行、报告贴回，每轮自动做——人只出第一句"
+  },
+  {
+    "id": "gap-preview",
+    "label": "差距预告",
+    "focus": [
+      "x_table",
+      "x_gate",
+      "x_hook"
+    ],
+    "note": "敢放权还差三样——开单表、把关、规程节点；装齐后，教学版从 102 行长到 232 行"
+  }
+]

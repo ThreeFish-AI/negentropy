@@ -1,0 +1,132 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 16.5,
+ "total_wall_sec": 272.3,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "arrive",
+   "label": "一张单子到关前",
+   "index": 0,
+   "file": "gate-three-tier--arrive.mp4",
+   "end_still": "gate-three-tier--arrive-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "in",
+    "g1"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "hard-deny",
+   "label": "禁忌表硬拒，翻不了案",
+   "index": 1,
+   "file": "gate-three-tier--hard-deny.mp4",
+   "end_still": "gate-three-tier--hard-deny-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.27,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "g1",
+    "denied"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "rule-hit",
+   "label": "按工具规则比对",
+   "index": 2,
+   "file": "gate-three-tier--rule-hit.mp4",
+   "end_still": "gate-three-tier--rule-hit-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "g2",
+    "g3"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 27.0
+  },
+  {
+   "id": "ask-sign",
+   "label": "问人签字，默认拒",
+   "index": 3,
+   "file": "gate-three-tier--ask-sign.mp4",
+   "end_still": "gate-three-tier--ask-sign-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.48,
+   "story_sec": 3.36,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.208
+   ],
+   "beat_nodes": [
+    "g3",
+    "ok",
+    "denied"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 32.0
+  },
+  {
+   "id": "default-pass",
+   "label": "三关皆空默认做＋被拒也有回执",
+   "index": 4,
+   "file": "gate-three-tier--default-pass.mp4",
+   "end_still": "gate-three-tier--default-pass-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.48,
+   "story_sec": 3.38,
+   "beat_offsets_sec": [
+    0.0,
+    1.106,
+    2.21
+   ],
+   "beat_nodes": [
+    "run",
+    "denied",
+    "fed"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 27.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/claude-code--gate-three-tier.html",
+ "slug": "gate-three-tier",
+ "type": "lifecycle"
+}

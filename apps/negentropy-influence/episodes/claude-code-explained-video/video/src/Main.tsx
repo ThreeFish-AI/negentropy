@@ -6,11 +6,25 @@ import {SceneFade} from './components/SceneFade';
 import {Subtitle} from './components/Subtitle';
 import {theme} from './design/theme';
 import {LangProvider} from './i18n';
+import {P0ForgetfulDoctor} from './scenes/P0ForgetfulDoctor';
+import {P1IntakeLoop} from './scenes/P1IntakeLoop';
+import {P2DispatchTable} from './scenes/P2DispatchTable';
+import {P3ThreeGates} from './scenes/P3ThreeGates';
+import {P4HookNodes} from './scenes/P4HookNodes';
+import {P5Preflight} from './scenes/P5Preflight';
+import {P6Finale} from './scenes/P6Finale';
 import {computeTimeline, SCENE_FADE_FRAMES} from './timing';
 import type {Lang} from './i18n';
 import type {ManifestItem, SceneRange} from './types';
 
 const SCENE_COMPONENTS: Record<string, React.FC<{scene: SceneRange}>> = {
+  P0: P0ForgetfulDoctor,
+  P1: P1IntakeLoop,
+  P2: P2DispatchTable,
+  P3: P3ThreeGates,
+  P4: P4HookNodes,
+  P5: P5Preflight,
+  P6: P6Finale,
 };
 
 export type MainProps = {manifest: ManifestItem[]; lang?: Lang};
