@@ -2,24 +2,27 @@
 %% slug: learn-claude-code-memory--compact-pipeline
 %% type: workflow
 %% derived: docs/assets/architecture/agent-harness/learn-claude-code-memory--compact-pipeline.html
-flowchart TD
-    IN["messages（每次模型调用前）"] --> B["L_budget 大结果落盘<br/>本批总量 > 200K 字符<br/>最大者先落盘 · 收据+预览 2000<br/>0 API"]
-    B --> S["L_snip 裁中段<br/>消息 > 50 条<br/>保头 3 + 尾 46 · 中段归档 transcript<br/>0 API"]
-    S --> Q1{"估算 > 50K<br/>字符？"}
-    Q1 -- 否 --> CALL["模型调用"]
-    Q1 -- 是 --> M["L_micro 旧结果换地址<br/>已读过 · 早于最近 3 条 · >120 字符<br/>替换前先落盘 · unseen 不动<br/>0 API"]
-    M --> F["L_fit 未读兜底<br/>最新批最大的落盘<br/>留 1000 字符预览<br/>0 API"]
-    F --> Q2{"仍超限？"}
-    Q2 -- 否 --> CALL
-    Q2 -- 是 --> CH["L_compact 模型摘要<br/>transcript 归档 → 事实摘要<br/>当前请求与摘要分离<br/>1 API · 熔断 3 次"]
-    CH --> CALL
-    CALL -- "prompt_too_long" --> RC["应急 reactive<br/>摘要较早历史 + 保尾 5 条<br/>配对回退 · 重试 1 次"]
-    RC --> CALL
-    CALL -- "模型主动调用 compact 工具" --> CH
-    CALL --> OUT["工具执行 → 结果追加<br/>回到下一轮 prepare"]
-    style B fill:#1e3a5f,color:#e2e8f0
-    style S fill:#1e3a5f,color:#e2e8f0
-    style M fill:#1e3a5f,color:#e2e8f0
-    style F fill:#1e3a5f,color:#e2e8f0
-    style CH fill:#5f3a1e,color:#e2e8f0
-    style RC fill:#5f1e2a,color:#e2e8f0
+flowchart LR
+    subgraph A["01 三层预处理 · 0 次调用"]
+        IN["messages<br/>消息列表"]
+        B["L1 大结果落盘<br/>>200K 先落最大"]
+        SNIP["L2 裁中段<br/>>50 条·配对回退"]
+        MF["L3 旧结果换地址<br/>先落盘再替换"]
+        IN --> B --> SNIP
+        SNIP -- "超 50K" --> MF
+    end
+    subgraph C["02 摘要与模型调用"]
+        CH["L4 模型摘要<br/>事实摘要·请求分离 · 1 次调用"]
+        CALL["模型调用<br/>API 请求"]
+        CH --> CALL
+    end
+    subgraph E["EX 应急与循环"]
+        TOOLS["工具执行<br/>结果追加回列表"]
+        RC["应急裁剪<br/>保尾 5 条·重试 1 次<br/>PTL 后"]
+    end
+    SNIP -- "未超限直达" --> CALL
+    MF -- "仍超限" --> CH
+    CALL -- "prompt_too_long" --> RC
+    RC -- "重试 1 次" --> CALL
+    CALL -- "tool_use" --> TOOLS
+    TOOLS -- "下一轮" --> IN

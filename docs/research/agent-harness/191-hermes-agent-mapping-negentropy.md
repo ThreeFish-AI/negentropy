@@ -1,5 +1,5 @@
 ---
-sidebar_position: 10
+sidebar_position: 11
 title: "Hermes Agent ↔ negentropy 机制映射报告"
 description: "十六条机制对照（✅4 / 🔶6 含部分对齐 1 / ⏸6）：真增量是交互式对话的上下文压缩（全仓零压缩、未启用 ADK 2.2 原生 EventsCompactionConfig）、记忆写入与注入两端的防注入、零 LLM 原文会话检索；取证副产物为中文关键词检索失效（english tsvector 整段汉字单 token，PG 实测，ISSUE-196）与审批门只接线两个工具（ISSUE-197）；运行中自写技能按争议一暂缓"
 ---

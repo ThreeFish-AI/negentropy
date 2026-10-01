@@ -2,23 +2,28 @@
 %% slug: learn-claude-code-memory--recall-loop
 %% type: workflow
 %% derived: docs/assets/architecture/agent-harness/learn-claude-code-memory--recall-loop.html
-flowchart TD
-    U["用户请求开始"] --> IDX["MEMORY.md 索引常驻<br/>system prompt 固定前缀<br/>命中 prompt cache · 便宜"]
-    U --> SEL["旁路选择（轻量 1 次调用）<br/>最近对话 + name/description 目录<br/>选 ≤5 条 · 失败降级关键词"]
-    IDX --> SYS["system prompt<br/>（每次调用开头不变区）"]
-    SEL --> LOAD["读取选中文件正文<br/>总量 ≤20K 字符"]
-    LOAD --> TURN["注入当前 user turn<br/>（不破坏固定前缀）<br/>召回内容=背景知识 · 冲突时当前请求优先"]
-    SYS --> LLM["模型调用"]
-    TURN --> LLM
-    LLM --> TOOLS["工具执行"]
-    TOOLS --> LLM
-    LLM -- "停止且无工具调用（会话告一段落）" --> EXT["提取：三道门<br/>① scope=persistent<br/>② 临时词黑名单 20 词<br/>③ 三重查重"]
-    EXT -- "全过" --> WRITE["写 .memory/*.md + frontmatter<br/>重建索引"]
-    WRITE --> GATE{"文件数 ≥ 10？"}
-    GATE -- 是 --> CONS["整理（事务性）<br/>快照 → 合并去重 ≤30 条<br/>失败恢复原样"]
-    CONS --> IDX
-    WRITE --> IDX
-    style IDX fill:#1e3a5f,color:#e2e8f0
-    style SEL fill:#2d2a4a,color:#e2e8f0
-    style EXT fill:#1e3a5f,color:#e2e8f0
-    style CONS fill:#1e3a5f,color:#e2e8f0
+flowchart LR
+    subgraph A["01 召回注入 · 两条路径"]
+        IDX["MEMORY.md 索引<br/>常驻固定前缀·写入后自动重建"]
+        SYS["system prompt<br/>命中缓存·便宜"]
+        SEL["旁路选择<br/>轻量 1 次调用·选 ≤5 条"]
+        LOAD["读正文并注入 turn<br/>≤20K 字符·不动前缀"]
+        IDX --> SYS
+        SEL --> LOAD
+    end
+    subgraph B["02 对话主循环"]
+        REQ["用户请求<br/>会话开始"]
+        LLM["模型调用<br/>工具循环"]
+    end
+    subgraph C["03 写入与整理 · 会话尾"]
+        EXT["提取·三道门<br/>scope·临时词·查重<br/>会话告一段落"]
+        W["写记忆文件<br/>frontmatter+重建索引"]
+        CONS["整理<br/>≥10 条·快照·合并·恢复"]
+        EXT -- "三门全过" --> W
+        W -- "≥10 条" --> CONS
+    end
+    REQ --> IDX
+    REQ -- "并行" --> SEL
+    SYS --> LLM
+    LOAD --> LLM
+    LLM -- "停止且无工具调用" --> EXT
