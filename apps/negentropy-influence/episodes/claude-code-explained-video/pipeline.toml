@@ -10,9 +10,9 @@ slug = "claude-code-explained-video"
 
 [narration]
 target_minutes = [13.0, 14.6]
-# story 档实测口径（ISSUE-203，系列五集同款覆写）：含停顿等效 254 字/分；
-# 默认 280 会高估约 10% 句容量，与 manifest 实测口径背离。
-chars_per_min = 254
+# 本集实测校准（2026-10-02，ISSUE-203 纪律）：df=1.24 慢速档全片含停顿口径
+# 3326 字 / 13.3 分 = 250 字/分；估算门按实测收敛（默认 280 高估句容量）。
+chars_per_min = 250
 
 [archify]
 # 覆盖门硬值（对齐系列既有基准）：锚定率 / cue 密度 / 图型数下限；全屏独占三分法。
