@@ -413,7 +413,7 @@ def selftest() -> int:
         L("SELFTEST FAILED ✘")
         sys.exit(1)
     (LAB / "lab4-selftest.json").write_text(
-        json.dumps({"battery": BATTERY_LOG, "report": report}, ensure_ascii=False, indent=2), encoding="utf-8")
+        json.dumps({"battery": BATTERY_LOG, "report": report}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return 0
 
 

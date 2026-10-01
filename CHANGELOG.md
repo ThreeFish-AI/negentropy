@@ -10,7 +10,7 @@
   - **五规律×三争议**：成本按使用付费 / 一根字符串的路由 / 身份借文件系统 / 被解释的文本 / 互操作压倒完备；严格宽容双轨 / 关门哲学与 51 条 open PR / 互操作约定与私有目录
   - **三方六处分歧逐条锚定**（规范↔skills-ref↔客户端）：六字段白名单 vs 指南宽容照载 vs Claude Code 本地 20 字段（claude.ai 上传面六字段硬门）；`find_skill_md` 兼收小写、空目录块仍输出、`location` 不转义、NFKC 归一、必填字段口径
   - **生态三家实测口径**：Claude Code（20 字段 + `.claude/skills` 系，文档零提 `.agents/skills`）/ Codex（原生 `.agents/skills` 四级 + 目录预算 2%/8000 字符超限先截 description）/ VS Code（quickstart 用约定目录）
-  - **配套原型 [agent_skills_lab4.py](docs/research/agent-infra/assets/agent_skills_lab4.py)**：纯标准库 458 行、12 assert 全绿，复刻发现→目录→激活→按需资源→压缩保护全链路；X1–X5 五次破坏性实验（身份漂移技能静默蒸发 / 严格门当装载门装载面 -1/6 / 目录注入 0→1 / 资源预载常驻 +64% / 压缩保护拆除策略静默丢失无报错）
+  - **配套原型 [agent_skills_lab4.py](docs/research/agent-infra/assets/agent_skills_lab4.py)**：纯标准库 458 行、12 assert 全绿，复刻发现→目录→激活→按需资源→压缩保护全链路；X1–X5 五次破坏性实验（身份漂移技能静默蒸发 / 严格门当装载门装载面 -1/6 / 目录注入 0→1 / 资源预载常驻 +29% / 压缩保护拆除策略静默丢失无报错）
   - **两张 archify 图入管线**：`agent-skills-std-lifecycle`（运行相）与 `agent-skills-std-dual-track`（治理相），finalize 四门全绿、双主题 PNG 采集、mermaid README 登记
   - **验收链**：源稿对账 28 行（独立 Checker，返工 5 句复判全过、46+55 处摘录机器校验命中）；盲评 6:0 成稿全胜；外行四测四项通过（闭卷 24 题先验可答→补 3 道材料特有数字题闭合诊断力；听知按工程档案口径主线复述全覆盖 + 二线术语记已知局限）；保真核对 INV PASS 全程维持
 - **修复**：`scripts/capture-arch-diagram.mjs` PNG 尺寸断言与现行 archify 导出器不匹配（导出画布含不对称边距，严格 viewBox 等比断言对新采集恒挂）——放宽为「≥3 倍且 4 对齐」并保留防半幅/空图意图
