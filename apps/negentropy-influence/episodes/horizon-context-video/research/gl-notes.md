@@ -610,3 +610,7 @@ uv run --no-project python docs/research/cognitive-context/assets/horizon_contex
      口播处置：若提及 Semantic Studio，按「截至 2026-10-01 官方 release notes 已标 GA」+时点归属；
      不确定语态（两说）表述作废。
   2. Apache clutch ossie（S21）：Committers 13 / PPMC 7 与笔记一致，无翻转。
+- **勘误登记（2026-10-01，④ 校验发现，制片期不回写正文）**：§19 规律 4 的「200:3」系数字混编——
+  「500 条压过 3 条」是官方 Sense 博客示例（§10/§15-5①，【三】），本仓 lab 实测为 inferred popularity=200
+  vs governed popularity=5（register_view 对受治理条目恒置 5，lab.py:489/:842），**正确比值为 200:5**。
+  本集口播采用本仓实测口径（200:5）。
