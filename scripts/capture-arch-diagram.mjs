@@ -249,7 +249,7 @@ async function main() {
     await new Promise((r) => setTimeout(r, 1500));
     const prep = await cdp.evalFn(PAGE_FNS.prepare);
     // exportMenu 的 RASTER_SCALE=4（导出器对宽 viewBox 有 4800px 上限，实际缩放可为 3×）：
-    // 断言「整数倍缩放 + 纵横比一致」防半幅/空图
+    // 断言「双维 ≥3 倍 + 4 对齐」防半幅/空图；导出画布含不对称边距，不要求与 viewBox 严格等比
     const vb = prep.viewBox;
     console.log(`[page] theme=${prep.theme} viewBox=${vb.width}×${vb.height} fonts=${prep.fontsStatus}`);
 
@@ -259,8 +259,7 @@ async function main() {
       const r = await cdp.evalFn(PAGE_FNS.exportBlob, "png");
       const okDims = r.dims
         && r.dims.width % 4 === 0 && r.dims.height % 4 === 0
-        && r.dims.width >= vb.width * 3 && r.dims.height >= vb.height * 3
-        && r.dims.width / vb.width >= 3;
+        && r.dims.width >= vb.width * 3 && r.dims.height >= vb.height * 3;
       if (!okDims) {
         throw new Error(`PNG 尺寸异常: ${JSON.stringify(r.dims)}（期望 viewBox ${vb.width}×${vb.height} 的 ≥3 倍且 4 对齐；现行导出器含不对称画布边距，不再要求与 viewBox 严格等比）`);
       }
