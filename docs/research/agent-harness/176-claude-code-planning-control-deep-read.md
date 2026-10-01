@@ -178,7 +178,7 @@ uv run --no-project python docs/research/agent-harness/assets/planning_control_l
 
 | 机制 | 实现单元（原型内） | 课程对应（钉点 [2]） |
 |---|---|---|
-| M1 待办+唠叨 | `agent_loop_m1` / `run_todo_write` / `normalize_todos` | `s05_todo_write/code.py:86-107,144-155`（课程 235–281 行） |
+| M1 待办+唠叨 | `agent_loop_m1` / `run_todo_write` / `normalize_todos` | `s05_todo_write/code.py:124-142,144-155`（课程 235–281 行） |
 | M2 子代理 | `spawn_subagent` / `extract_text` / `SUB_TOOLS` | `s06_subagent/code.py:182-262` |
 | M3 技能两级 | `parse_frontmatter` / `scan_skills` / `build_system` / `load_skill` | `s07_skill_loading/code.py:53-102,269-274` |
 | M4 指令组装 | `assemble_system_prompt` / `PromptCache.get` | `s10_system_prompt/code.py:42-93,157-168` |
