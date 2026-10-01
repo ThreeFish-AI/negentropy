@@ -472,7 +472,6 @@ def experiment_D5(log):
     """拆 M5：reactive compact 不记账——超限后反复压缩直到循环守卫兜底。"""
     llm = MockLLM([PromptTooLongError("too long")] * 8 + [Exception("stop")])
     msgs = [{"role": "user", "content": f"m{i}"} for i in range(12)]
-    st = RecoveryState()
     class NoAccount(RecoveryState):  # has_compacted 永远 False
         @property
         def has_compacted(self): return False

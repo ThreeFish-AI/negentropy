@@ -249,7 +249,7 @@ async function main() {
     await new Promise((r) => setTimeout(r, 1500));
     const prep = await cdp.evalFn(PAGE_FNS.prepare);
     // exportMenu 的 RASTER_SCALE=4（导出器对宽 viewBox 有 4800px 上限，实际缩放可为 3×）：
-    // 断言「整数倍缩放 + 纵横比一致」防半幅/空图
+    // 断言「完整包含 viewBox ≥3× 且两轴缩放同量级」防半幅/空图
     const vb = prep.viewBox;
     console.log(`[page] theme=${prep.theme} viewBox=${vb.width}×${vb.height} fonts=${prep.fontsStatus}`);
 
@@ -265,7 +265,7 @@ async function main() {
         && scaleW >= 3 && scaleH >= 3
         && Math.abs(scaleW - scaleH) / Math.min(scaleW, scaleH) <= 0.5;
       if (!okDims) {
-        throw new Error(`PNG 尺寸异常: ${JSON.stringify(r.dims)}（期望 viewBox ${vb.width}×${vb.height} 的 ≥3 整数倍等比）`);
+        throw new Error(`PNG 尺寸异常: ${JSON.stringify(r.dims)}（期望完整包含 viewBox ${vb.width}×${vb.height} 且两轴缩放 ≥3×、比例偏差 ≤50%）`);
       }
       const file = path.join(outDir, `${opts.slug}-${theme}.png`);
       writeAtomic(file, Buffer.from(r.base64, "base64"));

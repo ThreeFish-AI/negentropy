@@ -106,7 +106,7 @@ description: "以课程站点五节（s05 TodoWrite/s06 Subagent/s07 Skill Loadi
 - 按需加载 `load_skill`（269–274 行）：按注册表查名字，不走文件路径。调用方给的名字只是键，拼不出路径，所以天然没有路径遍历面。
 - 子代理工具表（214–227 行）：没有 `load_skill`，也没有 `task`，所以子代理既不能委派，也不能加载技能。
 
-拿一条具体输入走一遍（对应原型 M3 场景，实际运行日志见 §9）。技能目录里放一个 SQL 规范技能，启动后系统指令共 128 字符。模型说「我需要 SQL 规范」，于是调 `load_skill("sql-style")`，注册表命中，全文作为工具结果注入。如果并成一级、把全文全塞系统指令，128 字符会变成 5981 字符，放大约 47 倍，而且**每一轮**都带（§9 D3 实测）。
+拿一条具体输入走一遍（对应原型 M3 机制与 D3 单技能配置，实际运行日志见 §9）。技能目录里放一个 SQL 规范技能，启动后系统指令共 128 字符。模型说「我需要 SQL 规范」，于是调 `load_skill("sql-style")`，注册表命中，全文作为工具结果注入。如果并成一级、把全文全塞系统指令，128 字符会变成 5981 字符，放大约 47 倍，而且**每一轮**都带（§9 D3 实测）。
 
 本文原型还实测了课程没提的三个边界行为（同构机制 [2]）。两个技能声明同名 `name` 时，目录序靠后的会静默覆盖靠前的，因为注册表以声明名为键。启动扫描是一次性快照，运行期新放的技能目录，旧注册表看不见；这是注册表为换取安全付出的代价，不是拆掉它的坏法。按名字查键还意味着，目录名与声明名不一致时，模型必须按目录宣传的声明名调用才能命中。
 
@@ -171,6 +171,7 @@ description: "以课程站点五节（s05 TodoWrite/s06 Subagent/s07 Skill Loadi
 ```bash
 uv run --no-project python docs/research/agent-harness/assets/planning_control_lab.py --selftest     # 14 场景断言全绿
 uv run --no-project python docs/research/agent-harness/assets/planning_control_lab.py --experiment D2  # 单拆一个机制看退化
+uv run --no-project python docs/research/agent-harness/assets/planning_control_lab.py --t4            # 拆注册表变体（T4 两行实测）
 ```
 
 原型里的 LLM 角色全部用脚本化序列替代：无网络、无随机数、不睡眠，退避延迟只计算并记录。所以它验证的是**机制自洽**，不是模型能力。机制与实现单元的对应如下：
