@@ -1083,19 +1083,21 @@ export const P3Signboard: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       <Sequence {...bC} name="3-C 评测四步">
         <SceneTag chapter="P3" tagline="一句招牌" accent={theme.conceptDeep} />
-        <Stage>
-          <EvalLadder
-            frameAt={at('p3-11') - bC.from}
-            steps={[
-              at('p3-12') - bC.from,
-              at('p3-13') - bC.from,
-              at('p3-14') - bC.from,
-              at('p3-15') - bC.from,
-            ]}
-            durs={[dur('p3-12'), dur('p3-13'), dur('p3-14'), dur('p3-15')]}
-          />
-        </Stage>
         {/* 激活章二次锚（p3-13 跑分判定=SKILL.md 是否真的被读入）——全屏独占期间阶梯让位 */}
+        <ArchifyYield cues={[{at: at('p3-13') - bC.from, durationInFrames: dur('p3-13')}]}>
+          <Stage>
+            <EvalLadder
+              frameAt={at('p3-11') - bC.from}
+              steps={[
+                at('p3-12') - bC.from,
+                at('p3-13') - bC.from,
+                at('p3-14') - bC.from,
+                at('p3-15') - bC.from,
+              ]}
+              durs={[dur('p3-12'), dur('p3-13'), dur('p3-14'), dur('p3-15')]}
+            />
+          </Stage>
+        </ArchifyYield>
         <ArchifyRecap
           slug="lifecycle"
           caption="激活 · 跑分判定"

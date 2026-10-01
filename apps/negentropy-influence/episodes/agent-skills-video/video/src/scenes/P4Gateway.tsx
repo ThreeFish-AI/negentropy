@@ -24,7 +24,7 @@ import {
   useStagger,
 } from '../motion';
 import {SceneTag} from '../components/motifs';
-import {CornerNote, SkillMenuCard, Stage} from '../components/e1-motifs';
+import {CornerNote, SCREEN_INK, SkillMenuCard, Stage} from '../components/e1-motifs';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 import {ArchifyYield} from '../components/ArchifyYield';
 
@@ -584,7 +584,7 @@ const RuleTen: React.FC<{at05: number; d05: number; at05a: number; d05a: number}
           height: 48,
           borderRadius: 8,
           border: `1.5px solid ${theme.panelBorder}`,
-          background: '#0B0E13',
+          background: SCREEN_INK,
           padding: '0 16px',
           opacity: stripP,
           gap: 9,
@@ -1038,7 +1038,7 @@ const InjectText: React.FC<{
   const execP = progress(frame, at12 + Math.round(d12 * 0.3), DUR.f4);
   const escP = progress(frame, at12a + Math.round(d12a * 0.25), DUR.f5);
   const boundP = progress(frame, at12a + Math.round(d12a * 0.8), DUR.f4);
-  // p4-13 拆解窗：archify 窗起收场（p4-14 回到完好态）
+  // p4-13 拆解窗：p4-14（archAt）起收场回完好态，为 location 揭示让画面
   const rawAt = at13 + Math.round(d13 * 0.15);
   const forgeAt = at13 + Math.round(d13 * 0.35);
   const cntAt = at13 + Math.round(d13 * 0.5);
@@ -1330,10 +1330,12 @@ export const P4Gateway: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bD = w('p4-07', 'p4-10');
   const bE = w('p4-11', 'p4-14');
   const bF = w('p4-15');
-  // 4-E 拆解态与 archify 注入章的分界：伪行/计数器先落（前 70%），后半窗让位画框
+  // 4-E 注入章回放挂引句 p4-11（「再拆一条：目录块的转义」）：p4-12..14 三句
+  // 全部让给目录块文本层——原挂 p4-14（bE 末句）时「窗外复现」结构性不存在，
+  // location 揭示零可见帧
   const injWin = {
-    at: at('p4-14') - bE.from,
-    durationInFrames: dur('p4-14'),
+    at: at('p4-11') - bE.from,
+    durationInFrames: dur('p4-11'),
   };
   return (
     <AbsoluteFill>
@@ -1360,13 +1362,14 @@ export const P4Gateway: React.FC<{scene: SceneRange}> = ({scene}) => {
             />
           </div>
         </Stage>
-        {/* lc-discover 章回放挂 p4-01；五步横条钉在画框下方全程推进 */}
+        {/* lc-discover 章回放挂 p4-01；lc-load 不在本镜挂（宽容装载章已在 P5-5C
+         *  整句回放，此处 p4-03 留给宽容解析装置——同句双呈现会把装置生命期
+         *  全部盖死）；五步横条钉在画框下方全程推进 */}
         <ArchifyRecap
           slug="lifecycle"
           caption="生命周期"
           cues={[
             {chapterId: 'lc-discover', at: at('p4-01') - bA.from, durationInFrames: dur('p4-01'), },
-            {chapterId: 'lc-load', at: at('p4-03') - bA.from, durationInFrames: dur('p4-03'), },
           ]}
         />
         <LifeRail
@@ -1405,30 +1408,34 @@ export const P4Gateway: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       <Sequence {...bD} name="4-D 不对称">
         <SceneTag chapter="P4" tagline="门口的规矩" accent={theme.conceptDeep} />
-        {/* Codex 扩展面章回放（p4-08「Codex 原生只用它」）——全屏独占期间门脸卡让位 */}
+        {/* Codex 扩展面章回放（p4-08「Codex 原生只用它」）——全屏独占期间门脸卡
+         *  让位（此前 recap 写在 Stage 之前，卡片反而叠画在图中央） */}
+        <ArchifyYield cues={[{at: at('p4-08') - bD.from, durationInFrames: dur('p4-08')}]}>
+          <Stage>
+            <ThreeFaces
+              at07={at('p4-07') - bD.from}
+              d07={dur('p4-07')}
+              at08={at('p4-08') - bD.from}
+              d08={dur('p4-08')}
+              at09={at('p4-09') - bD.from}
+              d09={dur('p4-09')}
+              at10={at('p4-10') - bD.from}
+              d10={dur('p4-10')}
+            />
+          </Stage>
+        </ArchifyYield>
         <ArchifyRecap
           slug="dual-track"
           caption="扩展 · Codex"
           cues={[{chapterId: 'dt-ext-c', at: at('p4-08') - bD.from, durationInFrames: dur('p4-08'), }]}
         />
-        <Stage>
-          <ThreeFaces
-            at07={at('p4-07') - bD.from}
-            d07={dur('p4-07')}
-            at08={at('p4-08') - bD.from}
-            d08={dur('p4-08')}
-            at09={at('p4-09') - bD.from}
-            d09={dur('p4-09')}
-            at10={at('p4-10') - bD.from}
-            d10={dur('p4-10')}
-          />
-        </Stage>
         <CornerNote text="三家文档实测 · 2026-09-30" x={60} y={898} />
       </Sequence>
 
       <Sequence {...bE} name="4-E X3 注入">
         <SceneTag chapter="P4" tagline="门口的规矩" accent={theme.deny} />
-        {/* 目录块文本层：archify 窗内让位、窗外复现（p4-14 回完好态 + location） */}
+        {/* 目录块文本层：archify 窗（p4-11 引句）内让位、窗外复现——p4-12 完好态
+         *  基底、p4-12a 转义改写、p4-13 拆解伪造、p4-14 收场回完好态 + location 揭示 */}
         <ArchifyYield cues={[{at: injWin.at, durationInFrames: injWin.durationInFrames}]}>
           <InjectText
             at11={at('p4-11') - bE.from}
@@ -1439,13 +1446,13 @@ export const P4Gateway: React.FC<{scene: SceneRange}> = ({scene}) => {
             d12a={dur('p4-12a')}
             at13={at('p4-13') - bE.from}
             d13={dur('p4-13')}
-            archAt={injWin.at}
+            archAt={at('p4-14') - bE.from}
             at14={at('p4-14') - bE.from}
             d14={dur('p4-14')}
           />
         </ArchifyYield>
-        {/* 菜单卡（M-001）：evil-craft 行与伪行同拍染红，archify 窗起永久让位 */}
-        <FadeWrap hideAt={injWin.at}>
+        {/* 菜单卡（M-001）：evil-craft 行与伪行同拍染红，location 揭示前让位收场 */}
+        <FadeWrap hideAt={at('p4-14') - bE.from}>
           <SkillMenuCard
             appearAt={at('p4-11') - bE.from + 10}
             forgedRow="evil-craft"
@@ -1457,7 +1464,7 @@ export const P4Gateway: React.FC<{scene: SceneRange}> = ({scene}) => {
           slug="lifecycle"
           caption="注入防御"
           cues={[
-            {chapterId: 'lc-inject', at: at('p4-14') - bE.from, durationInFrames: dur('p4-14'), },
+            {chapterId: 'lc-inject', at: at('p4-11') - bE.from, durationInFrames: dur('p4-11'), },
           ]}
         />
       </Sequence>

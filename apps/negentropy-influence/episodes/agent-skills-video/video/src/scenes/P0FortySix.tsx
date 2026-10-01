@@ -287,6 +287,7 @@ const TwoDeadEnds: React.FC<{guessAt: number; stuffAt: number; billAt: number; b
 const Flip: React.FC<{cardAt: number; doorAt: number}> = ({cardAt, doorAt}) => {
   const frame = useCurrentFrame();
   const settle = useSpring('settle', {at: cardAt, dur: DUR.f6});
+  const settleO = progress(frame, cardAt, DUR.f6); // opacity 走时长缓动（effects 不变量）
   const doorP = progress(frame, doorAt, DUR.f5);
   return (
     <div style={{position: 'relative', width: 1100, height: 520}}>
@@ -295,7 +296,7 @@ const Flip: React.FC<{cardAt: number; doorAt: number}> = ({cardAt, doorAt}) => {
           position: 'absolute',
           left: 60,
           top: 120,
-          opacity: settle,
+          opacity: settleO,
           transform: `translateY(${(1 - settle) * 26}px)`,
         }}
       >

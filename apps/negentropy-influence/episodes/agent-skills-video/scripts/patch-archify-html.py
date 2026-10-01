@@ -14,9 +14,12 @@ import re
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
-SRC_DIR = ROOT / "docs/assets/architecture/agent-infra"
-P = ROOT / "apps/negentropy-influence/episodes/agent-skills-video"
+# 本脚本位于 apps/negentropy-influence/episodes/agent-skills-video/scripts/：
+# parents[1]=本集目录，parents[5]=仓库根（源自 .temp/ 搬迁而来，层级不可再按
+# 旧 parent.parent 推导）
+P = Path(__file__).resolve().parents[1]
+REPO = Path(__file__).resolve().parents[5]
+SRC_DIR = REPO / "docs/assets/architecture/agent-infra"
 VIEWS_DIR = P / "video/public/archify/views"
 OUT_DIR = P / "video/public/archify/html"
 MARK = "<!-- guided-views-compat (E1 injected) -->"

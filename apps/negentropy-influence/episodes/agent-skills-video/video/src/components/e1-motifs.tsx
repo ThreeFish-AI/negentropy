@@ -12,6 +12,11 @@ import {useCurrentFrame} from 'remotion';
 import {theme} from '../design/theme';
 import {DUR, progress, useSpring} from '../motion';
 
+/** 屏内墨色：比 bg 更深一档的「屏内」黑——archify 画框（ArchifyClip）/ P4 终端
+ *  条 / P5 年检机屏共用的内衬底色。单点登记于本集组件库（theme 不收：主题门
+ *  将 theme 键一律按概念色检对比度，容器色会被误拦）。 */
+export const SCREEN_INK = '#0B0E13';
+
 /** 舞台：内容居中 + 顶部安全带（y≥56 起步，章节条占 y14–42）。 */
 export const Stage: React.FC<{children: React.ReactNode; top?: number}> = ({children, top = 56}) => (
   <div
@@ -246,14 +251,14 @@ export const Plaque: React.FC<{
           boxShadow: `0 6px 24px ${theme.conceptDeep}33`,
         }}
       >
-        <div style={{fontSize: 15, color: '#0E1116', opacity: 0.72, letterSpacing: 3}}>
+        <div style={{fontSize: 15, color: theme.bg, opacity: 0.72, letterSpacing: 3}}>
           户口登记名
         </div>
         <div
           style={{
             fontFamily: theme.mono,
             fontSize: 22,
-            color: '#0E1116',
+            color: theme.bg,
             fontWeight: 700,
             marginTop: 2,
           }}
@@ -261,7 +266,7 @@ export const Plaque: React.FC<{
           {title}
         </div>
         {sub && (
-          <div style={{fontSize: 13, color: '#0E1116', opacity: 0.72, marginTop: 4}}>{sub}</div>
+          <div style={{fontSize: 13, color: theme.bg, opacity: 0.72, marginTop: 4}}>{sub}</div>
         )}
       </div>
     );

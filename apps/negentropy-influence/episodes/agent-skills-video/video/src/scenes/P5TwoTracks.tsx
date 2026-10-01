@@ -12,7 +12,7 @@ import {beatWindow} from '../timing';
 import {theme} from '../design/theme';
 import {DUR, progress, useCount, useDraw, useImpulse, useSpring, useStagger} from '../motion';
 import {SceneTag} from '../components/motifs';
-import {Stage} from '../components/e1-motifs';
+import {SCREEN_INK, Stage} from '../components/e1-motifs';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 
 /** 小车图形（零 hooks 的静态 glyph；位移由外层 g transform 驱动）。 */
@@ -159,7 +159,7 @@ const LaneCard: React.FC<{
             <path d="M238 42 H274" stroke={theme.deny} strokeWidth={5} strokeLinecap="round" />
             {/* p5-03 红章：未登记字段 */}
             <g transform={`translate(112,4) rotate(-10) scale(${0.7 + 0.3 * stamp})`} opacity={stampO}>
-              <rect x={0} y={0} width={136} height={40} rx={6} fill="#0E1116" stroke={theme.danger} strokeWidth={2.5} />
+              <rect x={0} y={0} width={136} height={40} rx={6} fill={theme.bg} stroke={theme.danger} strokeWidth={2.5} />
               <text x={68} y={26} textAnchor="middle" fontFamily={theme.mono} fontSize={15} fill={theme.danger}>
                 未登记字段
               </text>
@@ -460,7 +460,7 @@ const GateAtStore: React.FC<{at: number; dur: number}> = ({at, dur}) => {
               marginTop: 6,
               height: 42,
               borderRadius: 4,
-              background: '#0B0E13',
+              background: SCREEN_INK,
               border: `1.5px solid ${theme.panelBorder}`,
               display: 'flex',
               alignItems: 'center',
@@ -641,8 +641,8 @@ const DoorPlaque: React.FC<{at: number; dur: number}> = ({at, dur}) => {
             <div style={{position: 'absolute', left: 34, top: -58, width: 2, height: 58, background: theme.panelBorder}} />
             <div style={{position: 'absolute', right: 34, top: -58, width: 2, height: 58, background: theme.panelBorder}} />
             <div style={{background: theme.deny, borderRadius: 8, padding: '12px 26px', boxShadow: `0 6px 22px ${theme.deny}33`}}>
-              <div style={{fontSize: 13, color: '#0E1116', opacity: 0.72, letterSpacing: 3, textAlign: 'center'}}>规范之门</div>
-              <div style={{fontSize: 22, fontWeight: 700, color: '#0E1116', marginTop: 2}}>拿不准就不加</div>
+              <div style={{fontSize: 13, color: theme.bg, opacity: 0.72, letterSpacing: 3, textAlign: 'center'}}>规范之门</div>
+              <div style={{fontSize: 22, fontWeight: 700, color: theme.bg, marginTop: 2}}>拿不准就不加</div>
             </div>
           </div>
         </div>
@@ -924,9 +924,11 @@ export const P5TwoTracks: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       <Sequence {...bC} name="5-C 消融">
         <SceneTag chapter="P5" tagline="交警与年检" accent={theme.deny} />
+        {/* 与 5-B 的 dt-ext-a 跨 Sequence 逐帧背靠背（dur 含句尾 gap），抑制入场弹簧重放 */}
         <ArchifyRecap
           slug="lifecycle"
           caption="装载路径"
+          lead={false}
           cues={[{chapterId: 'lc-load', at: at('p5-09') - bC.from, durationInFrames: dur('p5-09')}]}
         />
         {/* p5-10 年检机进店门：红叉拦下 + 装载面 6→5 */}

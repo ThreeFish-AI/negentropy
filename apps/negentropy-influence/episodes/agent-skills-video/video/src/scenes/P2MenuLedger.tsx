@@ -968,12 +968,14 @@ const CompactGuard: React.FC<{
   const guardO = (1 - 0.55 * focusP) * (1 - hookP);
   // 下一道菜：M-001 事实源里的 report-merger（换班之后的那行）
   const nextRow = MENU_ROWS[1];
-  // 格阵几何：8×3 格，格宽 50 / 格高 34 / 间隙 4；正文块压在第 2 行第 4..6 格
+  // 格阵几何：8×3 格，格宽 50 / 格高 34 / 间隙 4；正文块压在第 2 行第 4..6 格。
+  //  blockTop 基数 = padding-top 16 + 表头行高 ~22 + 格阵 marginTop 12（对齐卡内
+  // 第 2 行格顶；此前基数 66 漏算表头，块整体低 ~16px 且因缺 relative 锚错容器）
   const CELL_W = 50;
   const CELL_H = 34;
   const GAP = 4;
   const blockLeft = 20 + 3 * (CELL_W + GAP);
-  const blockTop = 66 + 1 * (CELL_H + GAP);
+  const blockTop = 50 + 1 * (CELL_H + GAP);
   const blockW = 3 * CELL_W + 2 * GAP;
   /** 上下文格阵：横扫过的早期内容压暗（压缩腾地方），正文块独立叠加。 */
   const grid = (localP: number) => (
@@ -999,8 +1001,11 @@ const CompactGuard: React.FC<{
       })}
     </div>
   );
-  /** 单卡壳：prot 决定完好（ok 绿沿）/ 拆解（danger 沿）双态语义色。 */
+  /** 单卡壳：prot 决定完好（ok 绿沿）/ 拆解（danger 沿）双态语义色。
+   *  position:relative 是卡内 absolute 正文块/碎片的定位锚——缺了会锚到
+   * 外层行容器，双卡同值坐标全部叠到左卡。 */
   const cardBox = (prot: boolean): React.CSSProperties => ({
+    position: 'relative',
     width: 470,
     background: theme.panel,
     border: `1.5px solid ${prot ? `${theme.ok}55` : `${theme.danger}55`}`,

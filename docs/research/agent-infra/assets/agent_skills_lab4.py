@@ -5,7 +5,10 @@
 并镜像 skills-ref 的严格校验器与客户端指南的宽容装载双轨。材料里的「模型」角色由
 确定性关键词匹配器 mock——本原型回答「机制是否自洽」，不回答「模型是否聪明」。
 token 口径 = chars/4 近似，仅作同口径相对比较（非材料数字）。
-无随机数：同一命令永远同一日志。
+无随机数：同一 **checkout 路径** 下同一命令永远同一日志——tier1 计费含 location 的
+绝对路径长度（prompt 块内 len//4），换 worktree/路径重跑 tier1/常驻两档数字会随
+路径变长而漂移（tier2/tier3 不受影响）；成片与对账文档引用的 454/613/694 冻结于
+生成时的 checkout 路径。
 
 用法：
   uv run --no-project python agent_skills_lab4.py --selftest
@@ -120,6 +123,8 @@ def load_skill(d: Path, breaks: set[str]) -> dict | None:
         warns.append(f"规范外字段 {extra}（宽容照载）")
     if not name.strip():
         return None
+    # location 记真实绝对路径（进 prompt 块参与 chars/4 计费）——tier1 数字因此
+    # 依赖 checkout 路径长度，属已知口径（见文件头 docstring），勿以此做跨机对账
     return {"identity": identity, "name": name, "description": meta["description"],
             "body": body, "location": str(skill_md), "dir": d, "warns": warns,
             "resources": sorted(str(p.relative_to(d)) for p in d.rglob("*") if p.is_file()

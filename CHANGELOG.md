@@ -7,7 +7,8 @@
 ### Agent 基础设施系列 E1 换代重制：《刻意做小：Agent Skills 开放标准》（230 精读成片）
 
 - **E1 原位重制交付**（v2《知识的集装箱》13:03 与 v1《经验淬炼成手册》15:25 成片保留归档 `~/Documents/video/agent-infra/`，源码经 git 历史可溯）：基于 [230 三代重读精读](docs/research/agent-infra/230-agent-skills-standard.md)（C 型信源）的完全重新拆解——机制主线 × X1–X5 破坏实验反例穿插 × 230 白话体系（餐厅菜单/门牌招牌/交警年检），旧版港口剧场整体退役、两版框架零共享；新三色板（账本金 `#F2B33D`/门牌靛 `#6D8BFF`/年检紫 `#A88BE8`，WCAG 10.17:1）
-- **成片数字**：13:08（788s @30fps=23,632 帧）· 124 句 3675 字（实测语速校准 285 字/分等效：story 裸语速实测 349 → `--duration-factor 1.15` 全片统一）· 七幕 34 镜 · archify 2 图 16 章直通 19 cue（锚定 15.3%/图型 2）· story 档 49 块 + 24 句表演标点
+- **成片数字**：13:07.7（787.7s @30fps=23,631 帧）· 124 句 3678 字（实测语速校准 285 字/分等效：story 裸语速实测 349 → `--duration-factor 1.15` 全片统一）· 七幕 34 镜 · archify 2 图 16 章直通 20 cue（锚定 16.1%/图型 2）· story 档 49 块 + 24 句表演标点
+- **v1 评审修复重渲（13 条全修）**：P2 压缩双卡 `position:relative` 定位锚（右卡红块不再叠左卡）；4-E 注入章前移 p4-11 引句、p4-12..14 三句让给装置（location「不转义·留白」揭示从零可见帧恢复）；4-A 撤 lc-load 同句双呈现（宽容解析装置归位，章保留在 P5-5C 回放）；4-D 门脸卡包 yield + recap z 序归位（原卡片叠画图上）；P5-5C 跨实例 `lead={false}`；3-C 阶梯包 yield；P1 菜单卡（M-001）提升幕级跨 1-D 常驻；spring→opacity 四处改时长缓动（effects 不变量）；theme 登记 `screen` token 收敛三处 `#0B0E13`/八处 `#0E1116` 字面量；注入器 `parents[5]` 修复复现链（重跑字节一致）；storyboard 补 lc-strict/lc-execute 标注；交付数字四处对账修正（23,631 帧/20 cue/16.1%/3678 字）；lab4 tier1 路径依赖口径入档（数字冻结于生成时 checkout）
 - **取证链**：gl-notes 冻结快照（230 @ `d7c651f9f`）+ sources.toml 10 条（repo 轨 raw @`69ef37e9` 硬校验 FAIL 0，与 E3 集同钉指纹交叉一致）+ number-reconciliation 37 项全复算零漂移 + lab4 六日志复跑（X4 613→694/+13% 逐位一致）；口播数字全汉字带「约」（chars/4 近似口径）
 - **双校验+成文**：④ 真实性 116 句全锚（RISKY 0 REWRITE 0，含 p2-11 五任务算术错挂重构）+ 易懂性 6→通过线（上下文/token 同位白话焊接、门牌失配边界补掐断、三方口径纠偏）；⑤ 独立评审 8/10（REWRITE 2 全修 + SUGGEST 吸收 8）
 - **机器门全绿**：check_series/build/check--check-scenes/tsc/motion/qa--check（七幕逐扫+尾幕+beat-heads）/--check-theme 全 FAIL 0 WARN 0 + 目检四帧（开场目录树/X1 消融/三级记账/X4 账本红侧）

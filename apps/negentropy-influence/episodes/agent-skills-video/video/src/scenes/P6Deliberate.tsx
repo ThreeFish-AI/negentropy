@@ -101,8 +101,8 @@ const SignThumb: React.FC = () => (
 /** 缩略③门牌（P1）：靛底门牌，name 与户口登记名逐字一致。 */
 const DoorThumb: React.FC = () => (
   <div style={{width: 158, background: theme.conceptDeep, borderRadius: 10, padding: '10px 16px', textAlign: 'center'}}>
-    <div style={{fontSize: 10.5, color: '#0E1116', opacity: 0.72, letterSpacing: 2}}>户口登记名</div>
-    <div style={{fontFamily: theme.mono, fontSize: 15, fontWeight: 700, color: '#0E1116', marginTop: 2}}>name</div>
+    <div style={{fontSize: 10.5, color: theme.bg, opacity: 0.72, letterSpacing: 2}}>户口登记名</div>
+    <div style={{fontFamily: theme.mono, fontSize: 15, fontWeight: 700, color: theme.bg, marginTop: 2}}>name</div>
   </div>
 );
 

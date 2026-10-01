@@ -46,7 +46,7 @@ const Stamp: React.FC<{at: number; text: string; color: string; size?: number; s
           color,
           borderRadius: 10,
           padding: sub ? '7px 22px 6px' : '8px 24px',
-          background: '#0E1116cc',
+          background: `${theme.bg}cc`,
           textAlign: 'center',
         }}
       >
@@ -149,7 +149,7 @@ const FieldCard: React.FC<{revealAt: number; hlAt: number; optAt: number; quoteA
           style={{
             fontSize: 13,
             fontWeight: 600,
-            color: '#0E1116',
+            color: theme.bg,
             background: theme.conceptDeep,
             borderRadius: 99,
             padding: '2.5px 12px',
@@ -245,6 +245,7 @@ const IdentityRule: React.FC<{
 }> = ({plaqueAt, matchAt, stampAt, normAt, zhAt}) => {
   const frame = useCurrentFrame();
   const plaque = useSpring('settle', {at: plaqueAt, dur: DUR.f6});
+  const plaqueO = progress(frame, plaqueAt, DUR.f6); // opacity 走时长缓动（effects 不变量）
   const chars = useStagger(NAME.length, {at: matchAt, dur: DUR.f3, stride: 5});
   const matchAll = chars[NAME.length - 1];
   const drawn = useDraw(matchAt, DUR.f6);
@@ -275,7 +276,7 @@ const IdentityRule: React.FC<{
       {/* 上：门牌特写 ↔ 目录名/name 逐字比对 */}
       <div style={{display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 92}}>
         {/* 门牌 = 户口登记名；登记处章在 p1-07 压下 */}
-        <div style={{position: 'relative', opacity: plaque, transform: `translateY(${(1 - plaque) * -24}px)`}}>
+        <div style={{position: 'relative', opacity: plaqueO, transform: `translateY(${(1 - plaque) * -24}px)`}}>
           <Plaque variant="door" title={NAME} width={300} />
           {/* 不设发牌机构：划空标签 */}
           <div style={{position: 'relative', marginTop: 18, width: 132, opacity: strikeP}}>
@@ -461,6 +462,8 @@ const X1Ablation: React.FC<{
   const frame = useCurrentFrame();
   const rule = useSpring('settle', {at: ruleAt, dur: DUR.f5});
   const panels = useSpring('settle', {at: rowsAt, dur: DUR.f6});
+  const ruleO = progress(frame, ruleAt, DUR.f5); // opacity 走时长缓动（effects 不变量）
+  const panelsO = progress(frame, rowsAt, DUR.f6);
   const st = useStagger(6, {at: rowsAt + DUR.f4, dur: DUR.f3, stride: 5});
   const strikeP = progress(frame, breakAt, DUR.f5);
   const cnt = Math.round(useCount({from: 6, to: 5, at: vanishAt, dur: DUR.f5}));
@@ -471,7 +474,7 @@ const X1Ablation: React.FC<{
   return (
     <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 28}}>
       {/* 规矩牌：p1-10 尾被红笔划掉 + 改信属性卡（拆解的世界） */}
-      <div style={{position: 'relative', opacity: rule, transform: `translateY(${(1 - rule) * -16}px)`}}>
+      <div style={{position: 'relative', opacity: ruleO, transform: `translateY(${(1 - rule) * -16}px)`}}>
         <div
           style={{
             fontFamily: theme.mono,
@@ -518,7 +521,7 @@ const X1Ablation: React.FC<{
           display: 'flex',
           flexDirection: 'row',
           gap: 90,
-          opacity: panels,
+          opacity: panelsO,
           transform: `translateY(${(1 - panels) * 24}px)`,
         }}
       >
@@ -747,13 +750,6 @@ export const P1Doorplate: React.FC<{scene: SceneRange}> = ({scene}) => {
             {chapterId: 'lc-strict', at: at('p1-12') - bC.from, durationInFrames: dur('p1-12'), },
           ]}
         />
-        {/* M-001 首亮：与主装置同帧打 X1 点，全屏窗内 dimmed */}
-        <MenuAnchor
-          appearAt={at('p1-09') - bC.from + Math.round(dur('p1-09') * 0.15)}
-          vanishAt={at('p1-11') - bC.from + Math.round(dur('p1-11') * 0.3)}
-          yieldAt={at('p1-12') - bC.from}
-          yieldDur={dur('p1-12')}
-        />
       </Sequence>
 
       <Sequence {...bD} name="1-D 钩子">
@@ -766,6 +762,18 @@ export const P1Doorplate: React.FC<{scene: SceneRange}> = ({scene}) => {
           />
         </Stage>
         <LedgerPeek peekAt={at('p1-14') - bD.from + Math.round(dur('p1-14') * 0.62)} />
+      </Sequence>
+
+      {/* M-001 首亮后右上常驻（storyboard 契约「P1 首亮后右上常驻，P6 合页」）：
+       *  幕级单实例跨 1-C..1-D，at 值仍以 bC.from 为原点——避免分镜各挂一份在
+       *  镜界重放入场弹簧、1-D 整镜无锚断档 */}
+      <Sequence from={bC.from} durationInFrames={scene.durationInFrames - bC.from}>
+        <MenuAnchor
+          appearAt={at('p1-09') - bC.from + Math.round(dur('p1-09') * 0.15)}
+          vanishAt={at('p1-11') - bC.from + Math.round(dur('p1-11') * 0.3)}
+          yieldAt={at('p1-12') - bC.from}
+          yieldDur={dur('p1-12')}
+        />
       </Sequence>
     </AbsoluteFill>
   );
