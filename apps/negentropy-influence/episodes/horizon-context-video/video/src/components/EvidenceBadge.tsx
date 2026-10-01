@@ -30,8 +30,8 @@ export const EvidenceBadge: React.FC<{
           background: level === 'filled' ? m.border : 'transparent',
         }}
       />
-      <span style={{fontSize: 20, color: m.color}}>{m.label}</span>
-      {note ? <span style={{fontSize: 18, color: theme.dim}}>{note}</span> : null}
+      <span style={{fontFamily: theme.sans, fontSize: 20, color: m.color}}>{m.label}</span>
+      {note ? <span style={{fontFamily: theme.sans, fontSize: 18, color: theme.dim}}>{note}</span> : null}
     </div>
   );
 };

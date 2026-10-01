@@ -412,7 +412,7 @@ const AgentToggle: React.FC<{at: number; tag: string}> = ({at, tag}) => {
           style={{
             position: 'absolute',
             top: 2.5,
-            left: 3 + (1 - Math.min(1, s)) * 30,
+            left: 3 + Math.min(1, s) * 30,
             width: 18,
             height: 18,
             borderRadius: 9,

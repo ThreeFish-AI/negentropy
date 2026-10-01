@@ -1,6 +1,6 @@
 /** P2 口径与现算（p2-01..p2-28，27 句；storyboard v3「P2 口径与现算」节）。
  *
- *  10 镜 / 17 条 archify cue（chapterId 集合与画面列逐章一致）：
+ *  10 镜 / 16 条 archify cue（chapterId 集合与画面列逐章一致；⑨ 修复删 2-I no-backdoor 后回写）：
  *   2-A 术语卡三连（@stagger）· 2-B 两章接力 + p2-05 定义卡母题正式注册（金描边+五段式刻度）
  *   2-C 校验门单句图 · 2-D p2-07 空窗补「两条底线」开题装置 + 三章接力
  *   2-E / 2-F / 2-G 纯图回放接力 · 2-H Ann 走查签名镜（StateTrace + 右侧朴素路径对照，

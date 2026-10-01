@@ -1,7 +1,7 @@
 /** P7 规律与边界（p7-01..p7-19，19 句，无 p7-09；storyboard「P7 规律与边界」节）。
  *
- *  8 镜 / 12 条 archify cue（7-F 原生五卡实现——five-laws 图转 docs 资产；除 7-F 外每实例首 cue
- *  均与上一实例链尾跨实例背靠背 → lead={false}；7-F 隔 p7-12..12b 空窗恢复入场）：
+ *  8 镜 / 13 条 archify cue（7-F 原生五卡实现——five-laws 图转 docs 资产；除 7-F 外每实例首 cue
+ *  均与上一实例链尾跨实例背靠背 → lead={false}；7-F 隔 p7-12b 空窗恢复入场）：
  *   7-A 徽墙+冷水 dual-baseline-evidence two-benchmarks@01 → evidence-grading vendor-claim@02
  *   7-B 读表三问 evidence-grading vendor-claim@03（同章重放，镜界背靠背）
  *   7-C 治理≠验证 grain-collapse day-pack-collapse@04→legal-but-wrong@05 + govern-vs-verify upstream-collapse@06
@@ -361,7 +361,7 @@ const FiveLawsStack: React.FC<{a13: number; a14: number; a15: number; a16: numbe
               borderRadius: 14,
               background: theme.panel,
               border: `2px solid ${on > 0 ? theme.concept : theme.panelBorder}`,
-              boxShadow: on > 0 ? `0 0 ${18 * on * (0.7 + 0.3 * glow)}px rgba(232,192,106,${0.35 * on})` : 'none',
+              boxShadow: on > 0 ? `0 0 ${18 * on * (0.7 + 0.3 * glow)}px ${withA(theme.concept, 0.35 * on)}` : 'none',
               opacity: st[i],
               transform: `translateY(${(1 - st[i]) * 26}px)`,
             }}
@@ -707,12 +707,13 @@ export const P7Laws: React.FC<{scene: SceneRange}> = ({scene}) => {
         />
       </Sequence>
 
-      {/* 7-E 边界：两章接力（接 7-D 链尾背靠背 → false）；p7-12/12b 空窗让护栏卡全显（1-C 嵌套范式，
-          嵌套窗内局部帧 0 = p7-12 句边界） */}
+      {/* 7-E 边界：两章接力（接 7-D 链尾背靠背 → false）+ not-industry-norm 占 p7-12（storyboard 声明位）；
+          护栏卡+dbt 角标改锚 p7-12b 空窗全显（1-C 嵌套范式，嵌套窗内局部帧 0 = p7-12b 句边界——
+          原锚 p7-12 会被该 cue 整句遮盖，DbtWindow 33→65 翻牌将在自己旁白句背后演完） */}
       <Sequence from={bE.from} durationInFrames={bE.durationInFrames} name="7-E 边界">
         <Sequence
-          from={at('p7-12') - bE.from}
-          durationInFrames={dur('p7-12', 'p7-12b')}
+          from={at('p7-12b') - bE.from}
+          durationInFrames={dur('p7-12b')}
           name="7-E-guardrail"
         >
           <AbsoluteFill

@@ -397,7 +397,7 @@ const TitleCard: React.FC<{at16: number}> = ({at16}) => {
     {c: theme.verify, zh: '验证'},
   ];
   return (
-    <AbsoluteFill style={{background: `rgba(14,17,22,${0.93 * scrim})`}}>
+    <AbsoluteFill style={{background: withA(theme.bg, 0.93 * scrim)}}>
       <div style={{...enter, textAlign: 'center', paddingTop: 40}}>
         <div style={{display: 'flex', gap: 30, justifyContent: 'center', marginBottom: 46}}>
           {bars.map((b, i) => {

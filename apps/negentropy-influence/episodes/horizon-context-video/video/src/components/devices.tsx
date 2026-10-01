@@ -102,7 +102,9 @@ export const DefinitionCard: React.FC<{
         position: 'relative',
         width: DC.w,
         height: DC.h,
-        transform: `${e.transform} scale(${scale})`,
+        // e.transform 为 'none'（fade）时不可拼接——CSS 里 none 与函数混用会让整条
+        // transform 非法被丢弃（7-F 叠影缩放曾因此全失效），none 分支须整体省略
+        transform: `${e.transform === 'none' ? '' : `${e.transform} `}scale(${scale})`,
         boxShadow: halo > 0 ? `0 0 ${34 * halo}px ${withA(theme.concept, 0.4 * halo)}` : 'none',
       }}
     >
