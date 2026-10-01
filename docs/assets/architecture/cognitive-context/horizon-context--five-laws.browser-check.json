@@ -9,8 +9,8 @@
   "deliveryReceiptId": "3728ee3e-9c6b-40bb-9a87-ec14cf92720c",
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/horizon-context--five-laws.html",
-    "sha256": "ca4576028135b4eaa07d5e37d82a9a1b1d861e45f4bef78a9e8290205220afbc",
-    "bytes": 772789
+    "sha256": "2caaed4296343af8b0263d6fc27a6706355f7c713f6c444099dc12a2ad53cea0",
+    "bytes": 773813
   },
   "state": {
     "detail": "read",

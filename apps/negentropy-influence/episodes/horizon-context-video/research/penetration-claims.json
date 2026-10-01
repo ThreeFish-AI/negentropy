@@ -433,7 +433,7 @@
      "verdict": "HIT"
     }
    ],
-   "summary": "计数：HIT 37 / FUZZY 1 / MISS 0 / B-TRACK 0，共 38 条断言（本分区无原型实测数字，无 B-TRACK 项）。总评：SCQA 导读、§1 三症状与 §4.2 时间线的全部日期/百分比/金额断言均可在冻结快照内逐字或近逐字命中，可信度高。三点备注：① §4.2 时间线实际为 19 行里程碑（任务描述写 17 行），2025-09-23→2026-09-30 全部日期逐一穿透命中；② 唯一 FUZZY 为「17 家 launch partner」——S49 原发稿列 16 家合作方 + Snowflake 主导共 17，数字本身未印在页面（digest C7.8 早有同注，算术正确、语义同一，无需改稿，口播若引此数注意其为计数推导值）；③ 2026-06-02 行的「Cortex Sense 私预/CoWork」在 live 页已删、仅存原发稿留档（S32 快照注记逐字引）+ S30 交叉，与头部 [1] 声明的留档版读取纪律自洽；Agent Identity GA 在 live 页经脚注成立。release-note 类结论（RN-03-05/07-09/08-26/08-31/09-02/09-03×2/09-10/09-15/09-21、C9.1/C9.2/C9.6/C10.8/C10.9、K014/K017/K024/K069/K074/K075）均在本轮对快照实核后复用，非仅转录。"
+   "summary": "计数：HIT 36 / FUZZY 1 / MISS 0 / B-TRACK 0，共 37 条断言（本分区无原型实测数字，无 B-TRACK 项；2026-10-02 评审复核：summary 计数与 claims 数组对齐，数组为计数真值）。总评：SCQA 导读、§1 三症状与 §4.2 时间线的全部日期/百分比/金额断言均可在冻结快照内逐字或近逐字命中，可信度高。三点备注：① §4.2 时间线实际为 19 行里程碑（任务描述写 17 行），2025-09-23→2026-09-30 全部日期逐一穿透命中；② 唯一 FUZZY 为「17 家 launch partner」——S49 原发稿列 16 家合作方 + Snowflake 主导共 17，数字本身未印在页面（digest C7.8 早有同注，算术正确、语义同一，无需改稿，口播若引此数注意其为计数推导值）；③ 2026-06-02 行的「Cortex Sense 私预/CoWork」在 live 页已删、仅存原发稿留档（S32 快照注记逐字引）+ S30 交叉，与头部 [1] 声明的留档版读取纪律自洽；Agent Identity GA 在 live 页经脚注成立。release-note 类结论（RN-03-05/07-09/08-26/08-31/09-02/09-03×2/09-10/09-15/09-21、C9.1/C9.2/C9.6/C10.8/C10.9、K014/K017/K024/K069/K074/K075）均在本轮对快照实核后复用，非仅转录。"
   },
   {
    "section": "mechanisms",
@@ -808,7 +808,7 @@
      "verdict": "HIT"
     }
    ],
-   "summary": "分区 §2（M1–M7 全部机制数字）+ §14（D1–D10 实测值与官方护栏数字）共 45 条断言全量穿透：HIT 23、FUZZY 2、MISS 0、B-TRACK 20。页源数字全部命中：物化 59x–91x/359GB→120MB（S5）、MAX_STALENESS 120 秒（S4）、9,685 表/<5%（S30）、477 vs 48（S41）、VQR >20 条（S50）、~100,000 token 与 5–10 表（S7）、RSS GA 2026-09-03（S28）、External lineage GA 2026-09-03（S16b）、Cortex Agent lineage 2026-09-02（S16c）、Classmethod 2026-09-04（S25）、openai-gpt-5-mini（S14）、四层信号（S0）、五段式 DDL（S2）、fan trap $100/$300 与平均的平均 2/30/16/4.8（S33）均逐字命中，并复用 digest-claims 既有逐字引文（C2.4/C2.15/C9.1/C10.5/C3.1/K005/K051/K027 等）。两条 FUZZY 均为数字形式略异语义同一：VQR「每条至多执行 4 次」原文拼作 \"up to four times\"（S50）；M6「四种入口」原文入口表列 5 行（Snowflake OAuth 与 External OAuth 两支被正文并为一族，S13）。B-TRACK 20 条＝§2/§14 全部原型实测数字（Ann 300/600、D5 [90,560]、T2b/T5、A1/A1b、E1/E1b、E2/E2b/D9、E3/D10、D1–D10 十行），经 2026-10-01 重跑 selftest-lab/selftest-mcp-2026-10-01.txt 逐行复算全等；§14 速查表 23 个函数行号另对 horizon_context_lab.py 逐项 grep 复核 23/23 全中。总评：本分区无 MISS、无降级项，厂商自报/第三方/原型三级证据链在数字层面全部闭合，唯二 FUZZY 不构成事实性偏差。"
+   "summary": "分区 §2（M1–M7 全部机制数字）+ §14（D1–D10 实测值与官方护栏数字）共 43 条断言全量穿透：HIT 23、FUZZY 2、MISS 0、B-TRACK 18（2026-10-02 评审复核：summary 计数与 claims 数组对齐，数组为计数真值）。页源数字全部命中：物化 59x–91x/359GB→120MB（S5）、MAX_STALENESS 120 秒（S4）、9,685 表/<5%（S30）、477 vs 48（S41）、VQR >20 条（S50）、~100,000 token 与 5–10 表（S7）、RSS GA 2026-09-03（S28）、External lineage GA 2026-09-03（S16b）、Cortex Agent lineage 2026-09-02（S16c）、Classmethod 2026-09-04（S25）、openai-gpt-5-mini（S14）、四层信号（S0）、五段式 DDL（S2）、fan trap $100/$300 与平均的平均 2/30/16/4.8（S33）均逐字命中，并复用 digest-claims 既有逐字引文（C2.4/C2.15/C9.1/C10.5/C3.1/K005/K051/K027 等）。两条 FUZZY 均为数字形式略异语义同一：VQR「每条至多执行 4 次」原文拼作 \"up to four times\"（S50）；M6「四种入口」原文入口表列 5 行（Snowflake OAuth 与 External OAuth 两支被正文并为一族，S13）。B-TRACK 18 条＝§2/§14 全部原型实测数字（Ann 300/600、D5 [90,560]、T2b/T5、A1/A1b、E1/E1b、E2/E2b/D9、E3/D10、D1–D10 十行），经 2026-10-01 重跑 selftest-lab/selftest-mcp-2026-10-01.txt 逐行复算全等；§14 速查表 23 个函数行号另对 horizon_context_lab.py 逐项 grep 复核 23/23 全中。总评：本分区无 MISS、无降级项，厂商自报/第三方/原型三级证据链在数字层面全部闭合，唯二 FUZZY 不构成事实性偏差。"
   },
   {
    "section": "evidence-chapters",

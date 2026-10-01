@@ -50,7 +50,7 @@
 
 ## 修复后机器门
 
-- build：156 句 / 4554 字 / 70 块 / 7 say · 零 FAIL
+- build：156 句 / 4554 字 / 71 块 / 7 say · 零 FAIL
 - check_script --pre-tts：估算 17.9 分（窗 16.0–18.0）· 读法陷阱 0 · 字幕宽度 0 · FAIL 0 WARN 0
 - --pron-candidates：语义规则未标注 0（7 处 `<行|HANG2>` 已标）
 
