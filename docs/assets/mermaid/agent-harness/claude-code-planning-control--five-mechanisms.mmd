@@ -4,7 +4,7 @@
 %% derived: docs/assets/architecture/agent-harness/claude-code-planning-control--five-mechanisms.html
 flowchart TD
     U["用户任务"] --> L0
-    subgraph LOOP["执行循环 · 骨架从 s01 到 s20 一行不改"]
+    subgraph LOOP["执行循环 · 骨架 s01→s20 结构不变"]
         L0["① 循环开头<br/>M1 计数器满 3 轮注入 reminder"] --> L1["② 调用 LLM<br/>M5 分类恢复包裹这一步"]
         L1 -->|"stop_reason = tool_use"| L2["③ 工具分发 TOOL_HANDLERS<br/>M2 task 在此派子代理"]
         L2 --> L3["④ 结果追加回消息流<br/>M3 load_skill 全文经 tool_result 进场"]
