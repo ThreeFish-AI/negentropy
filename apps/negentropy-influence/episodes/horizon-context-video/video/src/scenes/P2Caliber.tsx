@@ -8,7 +8,7 @@
  *   2-I 两章图接力 · 2-J p2-25 性能疑问钟 / p2-26 图 / p2-27 限定两卡+基线标尺 / p2-28 金句卡
  *
  *  偏离 storyboard 之处（全屏独占 1298×730 物理冲突，Stage ⑨ 复核）：
- *   - 2-I「红绿消融同屏 AblationPair」与 no-backdoor@p2-23 + nonkey-rejected@p2-24 两章
+ *   - 2-I p2-23 AblationPair 主画面 + p2-24 nonkey-rejected 章（no-backdoor 密度锚已撤——视觉抽查发现整镜图例遮盖装置）
  *     全句 cue 无共存窗口（E2 纪律：装置只落 cue 空窗句/遮盖后窗口）——按 cue 优先落成；
  *     消融语义（垃圾定义入库 vs 注册期拦截）由两章图承担，D6/拦截日志文案随图。
  *   - 2-D 证据徽（虚线 <5% of 9,685）归属句 p2-10 被全句 cue 占据，框外角标破坏
@@ -20,6 +20,7 @@ import React from 'react';
 import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
 import type {SceneRange} from '../types';
 import {beatWindow} from '../timing';
+import {AblationPair} from '../components/devices';
 import {theme} from '../design/theme';
 import {DUR, progress, useBreathe, useCount, useDraw, useEnter, useFlowDash, useStagger} from '../motion';
 import {SceneTag} from '../components/motifs';
@@ -173,17 +174,23 @@ export const P2Caliber: React.FC<{scene: SceneRange}> = ({scene}) => {
         />
       </Sequence>
 
-      {/* 2-I 拆门消融：两章接力（AblationPair 与全句 cue 无共存窗口，偏离说明见文件头） */}
+      {/* 2-I 拆门消融：p2-23 红绿消融同屏主画面（视觉抽查修复：原实现整镜被全屏图例遮盖），
+          p2-24 archify 接力非键外键被拒章 */}
       <Sequence from={bI.from} durationInFrames={bI.durationInFrames} name="2-I 拆门消融">
-        <ArchifyRecap
-          slug="compile-time-block"
-          caption="编译期拦截 · 无后门"
-          cues={[{chapterId: 'no-backdoor', at: at('p2-23') - bI.from, durationInFrames: dur('p2-23')}]}
-        />
+        <Sequence from={at('p2-23') - bI.from} durationInFrames={dur('p2-23')} name="2-I-ablation">
+          <AbsoluteFill style={{alignItems: 'center', justifyContent: 'center'}}>
+            <AblationPair
+              at={0}
+              width={1620}
+              minHeight={430}
+              left={{tag: '门拆掉', title: '注册期无校验', lines: ['外键 → 非键列 customers.plan', '垃圾定义静默入库', '行数失控的注册期引信'], flow: {}}}
+              right={{tag: '门在位', title: '注册期拦截', lines: ['structure check：非法定义', 'referenced column is not', 'PRIMARY KEY / UNIQUE —— 拒']}}
+            />
+          </AbsoluteFill>
+        </Sequence>
         <ArchifyRecap
           slug="definition-registration"
           caption="非键外键 · 注册期被拒"
-          lead={false}
           cues={[{chapterId: 'nonkey-rejected', at: at('p2-24') - bI.from, durationInFrames: dur('p2-24')}]}
         />
       </Sequence>

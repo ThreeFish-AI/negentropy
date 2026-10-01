@@ -40,7 +40,7 @@
 | 2-F 平均的平均 | p2-14..15 | evidence：·**archify full**：calc-discipline-matrix 章 `divide-after-agg`@p2-14+mean-of-means 章 `wrong-avg-of-avg`@p2-15 | 图回放两章接力（16 vs 4.8 数字对撞） |
 | 2-G 半可加 | p2-16 | evidence：·**archify full**：last-snapshot-gate 章 `semi-additive` | 图回放（500+500≠1000） |
 | 2-H Ann 走查 | p2-18..22 | device：**Animated State Trace 签名镜**——Ann 三张订单卡进入引擎，本表聚合收敛一行（300），事件表全程灰置；右半屏朴素路径六行复制（600）翻红；证据徽（实心·本仓复算）；·**archify full**：event-fanout 章 `hundred-three`@p2-21+fan-trap 章 `measured-440`@p2-22 | 状态逐拍变换`@travel`+`@count`（300/600 翻牌）；两路对比高亮；图回放两章接力 |
-| 2-I 拆门消融 | p2-23..24 | device：**红绿消融同屏**——左红：外键指向非键列、垃圾定义入库；右绿：注册期拦截 + 拦截日志角标（referenced column is not PRIMARY KEY）；证据徽（实心）；·**archify full**：compile-time-block 章 `no-backdoor`@p2-23+definition-registration 章 `nonkey-rejected`@p2-24 | 左右同屏`@stagger`；红侧崩溃链路`@flowDash`；图回放两章接力 |
+| 2-I 拆门消融 | p2-23..24 | device：**红绿消融同屏**（p2-23 主画面）——左红：外键指向非键列、垃圾定义入库；右绿：注册期拦截 + 拦截日志（referenced column is not PRIMARY KEY）；证据徽（实心）；·**archify full**：definition-registration 章 `nonkey-rejected`@p2-24 | 左右同屏`@stagger`；红侧崩溃链路`@flowDash`；图回放 |
 | 2-J 物化与收口 | p2-25..28 | device：**Baseline-Anchored Bar**——59×–91× 动态增长条（`useCount`）+ 基线标尺与工况角标（TPC-DS 4 查询 · 359GB→120MB · 虚线徽）；·**archify full**：on-demand-recompute 章 `grain-recompute`@p2-26；p2-28 金句卡（衬线体）：「SQL 合法 ≠ 答案对」 | 增长条`@count`；金句卡`@enter:pop`+微光〔M-003〕 |
 
 ## P3 规则与执法（p3-01..p3-21，21 句）
