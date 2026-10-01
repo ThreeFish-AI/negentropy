@@ -6,6 +6,7 @@
 同一命令永远同一日志。运行：
     python3 multiagent_lab.py --selftest            # 全场景自检（秒级）
     python3 multiagent_lab.py --break B1|B2|B2v|B3|B4|B5   # 破坏性实验（每次只拆一个）
+    python3 multiagent_lab.py --demo t5race         # 交错窗口演示（认领竞态）
 """
 
 import json
@@ -215,7 +216,7 @@ def connect_mcp(server_name, tools):
 
 
 def assemble_tool_pool(builtin):
-    pool, handlers = dict(builtin), dict(builtin)
+    pool = dict(builtin)
     for srv, tools in MCP_CLIENTS.items():
         for raw, fn in tools.items():
             pool[f"mcp__{normalize(srv)}__{normalize(raw)}"] = fn
