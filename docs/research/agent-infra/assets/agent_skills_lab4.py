@@ -208,6 +208,10 @@ class Ledger:
     def add(self, tier: int, text: str):
         setattr(self, f"t{tier}", getattr(self, f"t{tier}") + max(1, len(text) // 4))
 
+    def remove(self, tier: int, text: str):
+        # 与 add 同式扣减，保证逐出与记账逐笔对冲（tier 由上下文条目携带，不从 key 形状推断）
+        setattr(self, f"t{tier}", getattr(self, f"t{tier}") - max(1, len(text) // 4))
+
     def resident(self) -> int:
         return self.t1 + self.t2 + self.t3
 
@@ -252,37 +256,39 @@ def re_split_terms(desc: str) -> list[str]:
 
 
 def activate(key: str, catalog: dict, ledger: Ledger, breaks: set[str]) -> str:
-    """tier2 激活：整读正文（X4 时把资源也一并吞进常驻）。"""
+    """tier2 激活：整读正文（X4 时把资源也一并吞进常驻）。上下文条目记 (tier, text)。"""
     sk = catalog[key]
     if key in MOCK_CONTEXT["skills"]:  # 指南 Step5：激活去重
         return "already-active"
-    MOCK_CONTEXT["skills"][key] = sk["body"]
+    MOCK_CONTEXT["skills"][key] = (2, sk["body"])
     ledger.add(2, sk["body"])
     if "X4" in breaks:
         for rel in sk["resources"]:
-            p = sk["dir"] / rel
-            MOCK_CONTEXT["skills"][key + "::" + rel] = p.read_text(encoding="utf-8")
-            ledger.add(2, p.read_text(encoding="utf-8"))
+            txt = (sk["dir"] / rel).read_text(encoding="utf-8")
+            MOCK_CONTEXT["skills"][key + "::" + rel] = (2, txt)
+            ledger.add(2, txt)
     return "loaded"
 
 
 def load_resource(key: str, rel: str, catalog: dict, ledger: Ledger) -> str:
-    """tier3：正文引用到、真正要用才读。"""
-    p = catalog[key]["dir"] / rel
-    txt = p.read_text(encoding="utf-8")
-    MOCK_CONTEXT["skills"][key + "::" + rel] = txt
+    """tier3：正文引用到、真正要用才读；已在上下文（如 X4 预载）则直接复用，不重复计费。"""
+    ck = key + "::" + rel
+    if ck in MOCK_CONTEXT["skills"]:  # 资源级去重：预载过的文件不因正文再引用而二次常驻
+        return MOCK_CONTEXT["skills"][ck][1]
+    txt = (catalog[key]["dir"] / rel).read_text(encoding="utf-8")
+    MOCK_CONTEXT["skills"][ck] = (3, txt)
     ledger.add(3, txt)
     return txt
 
 
 def compaction(protect: bool, ledger: Ledger) -> None:
-    """指南 Step5：压缩时应豁免技能内容；X5=不豁免。"""
+    """指南 Step5：压缩时应豁免技能内容；X5=不豁免（按条目原 tier 逐笔对冲）。"""
     if protect:
         MOCK_CONTEXT["notes"].append("（压缩完成，技能内容受保护）")
         return
     for k in list(MOCK_CONTEXT["skills"]):
-        v = MOCK_CONTEXT["skills"].pop(k)
-        ledger.t2 -= max(1, len(v) // 4)
+        tier, v = MOCK_CONTEXT["skills"].pop(k)
+        ledger.remove(tier, v)
     MOCK_CONTEXT["notes"].append("（压缩完成）")
 
 
@@ -291,7 +297,7 @@ def run_task(task: str, catalog: dict, ledger: Ledger, breaks: set[str]) -> dict
     if key is None:
         return {"task": task, "routed": None, "result": "no-match", "policy_followed": False, "error": False}
     state = activate(key, catalog, ledger, breaks)
-    body = MOCK_CONTEXT["skills"].get(key, "")
+    body = MOCK_CONTEXT["skills"].get(key, ("", ""))[1]
     if "references/approver-list.md" in body and "references/approver-list.md" in catalog[key]["resources"]:
         load_resource(key, "references/approver-list.md", catalog, ledger)
     policy_ok = "POLICY:" in body
@@ -354,7 +360,7 @@ def scenario(breaks: set[str]) -> dict:
     # 长会话压缩 + 压缩后「同一工作流的延续动作」（X5 考场：不再重新路由，只凭现存上下文继续）
     compaction(protect=("X5" not in breaks), ledger=ledger)
     L(f"[compress] {'受保护' if 'X5' not in breaks else '未保护'}；技能正文留存 {len(MOCK_CONTEXT['skills'])} 份")
-    policy_in_ctx = any("POLICY:" in v for v in MOCK_CONTEXT["skills"].values())
+    policy_in_ctx = any("POLICY:" in v[1] for v in MOCK_CONTEXT["skills"].values())
     post = {"task": "（延续动作）把下周五和老王的换班也提交了", "routed": "(继续已激活技能，不重新路由)",
             "policy_followed": policy_in_ctx,
             "result": "pass" if policy_in_ctx else "silent-fail", "error": False}
