@@ -2,7 +2,6 @@ import {Config} from '@remotion/cli/config';
 
 Config.setVideoImageFormat('jpeg'); // jpeg 显著快于 png（无透明需求）
 Config.setOverwriteOutput(true);
-Config.setChromiumOpenGlRenderer('angle'); // @remotion/three 无头渲染强制要求（3D 层板，V3D 遗产接线）
 // —— 交付硬化（B 站/YouTube）——
 Config.setCodec('h264'); // 平台通吃；h265 经平台二压反而更差
 Config.setCrf(18); // h264 视觉无损档

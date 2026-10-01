@@ -129,18 +129,6 @@ reason = "停在 2026-09-22 分代之前的更早版本（该集晚于此文件�
 # （同 major 全家桶，three 0.186.1 / fiber 9.8.1 / lottie-web 5.13.0）。
 # 组件文件属 seeded 档不进门；此处只登记受门文件的合法偏离。
 [[skeleton.drift]]
-episode = "claude-code-explained-video"
-path = "video/package.json"
-fingerprint = "bdfea44ecd31"
-reason = "V3D 3D 遗产接线（2026-09-28）：+@remotion/{three,lottie,paths,shapes,layout-utils,media}@4.0.529 +three@0.186.1+@react-three/fiber@9.8.1+lottie-web@5.13.0+@types/three。撤销条件=3D 视觉方向放弃时按模板回退"
-
-[[skeleton.drift]]
-episode = "claude-code-explained-video"
-path = "video/remotion.config.ts"
-fingerprint = "cdc1b4788cca"
-reason = "V3D：@remotion/three 无头渲染强制 Chromium OpenGL=angle（一行）。撤销条件同上"
-
-[[skeleton.drift]]
 episode = "claude-code-planning-video"
 path = "video/package.json"
 fingerprint = "bdfea44ecd31"

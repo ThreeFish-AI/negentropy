@@ -9,13 +9,20 @@
 slug = "claude-code-explained-video"
 
 [narration]
-# TODO：按本集选题与语速预算填写。口径提示——280 字/分是**含停顿的等效**口径，
-# 裸按字数算会高估约 12% 的句容量，双口径门以 manifest 实测为准。
 target_minutes = [13.0, 14.6]
-# 本集实测校准（2026-09-29 CP1）：story 档 32 句样段实测 274 字/分纯语音口径，
-# 含停顿等效 ≈ 254 字/分（纯语音 869s+停顿 68s 外推 3961 字=15.62 分超窗）；
-# 默认 280 会让估算门高估约 10%，与 manifest 实测口径背离——按实测收敛。
+# story 档实测口径（ISSUE-203，系列五集同款覆写）：含停顿等效 254 字/分；
+# 默认 280 会高估约 10% 句容量，与 manifest 实测口径背离。
 chars_per_min = 254
+
+[archify]
+# 覆盖门硬值（对齐系列既有基准）：锚定率 / cue 密度 / 图型数下限；全屏独占三分法。
+# 图集预算在 Stage ② 策划时按本集内容定稿（~10–13 图 / ≥5 型）。
+html_dir = "docs/assets/architecture/agent-harness"
+html_pattern = "claude-code--{slug}.html"
+min_anchor_ratio = 0.30
+min_cues_per_minute = 3.0
+min_diagram_types = 5
+forbid_inset = true  # 全屏独占（storyboard 按此设计）；残留画中画即 FAIL
 
 [tts]
 engine = "indextts"
@@ -28,18 +35,3 @@ style = "story"
 # story 档（默认）＝段落演绎：同幕连续句按块合成、块间情绪由配音台本驱动。
 # 台本（可选）：script/narration.cues.toml——写稿阶段产出，见 $T/references/VOICE-CLONING.md §4.5。
 # 重制存量集（旧档 → story）须显式 --allow-voice-switch 并补写台本。
-
-[archify]
-# 覆盖门硬值（对齐 jev 基准）：锚定率 / cue 密度 / 图型数下限；全屏独占三分法。
-# 图集预算在 Stage ② 策划时按本集内容定稿（~8–14 图 / ≥5 型）。
-html_dir = "docs/assets/architecture/agent-harness"
-html_pattern = "claude-code--{slug}.html"
-min_anchor_ratio = 0.30
-min_cues_per_minute = 3.0
-min_diagram_types = 5
-forbid_inset = true  # 全屏独占（storyboard 按此设计）；残留画中画即 FAIL
-
-# 复用图例外（分镜图集表 #11/#12）：slug → 既有 docs 产物（guided-views 已回填）
-[archify.html_overrides]
-execution-panorama = "claude-code-tooling--execution-panorama.html"
-five-layer-dependency = "claude-code-harness--five-layer-dependency.html"

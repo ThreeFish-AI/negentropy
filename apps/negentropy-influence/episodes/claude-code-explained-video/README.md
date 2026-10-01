@@ -1,6 +1,6 @@
-# 《工具与执行：一个循环，三层装置》科普视频工程
+# 《工具与执行：一个循环，三层外设》科普视频工程
 
-> 交付状态：**v1 已交付**（2026-09-30，14:02.6 @1080p30（total_duration_in_frames 复算），归档 ~/Documents/video/claude-code-explained/ v1 + _captions）。发布顺序见 [../../series.json](../../series.json)（工作区根）。
+> 交付状态：**脚手架已生成，内容待撰写**。发布顺序见 [../../series.json](../../series.json)（工作区根）。
 
 ## 目录结构
 
