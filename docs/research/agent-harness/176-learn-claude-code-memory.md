@@ -206,7 +206,7 @@ micro 用文本占位（无 API 层 cache_edits 权限）；read_file 不特殊�
 
 原型是对两章机制的浓缩重写（[`assets/memory_lab.py`](./assets/memory_lab.py)，单文件纯标准库，模型角色全部用确定性 mock 替代——原型回答「机制是否自洽」，不回答「模型是否聪明」；沙箱自建临时目录、不动仓库），34 项断言全绿【一】：
 
-下面两行命令（仓库根目录运行）分别执行机制自检与五项破坏实验；表中「L185–L334」这类标注指原型文件里对应代码的行号范围。
+下面两行命令（仓库根目录运行）分别执行机制自检与五项破坏实验；表中「L185–L336」这类标注指原型文件里对应代码的行号范围。
 
 ```bash
 uv run --no-project python docs/research/agent-harness/assets/memory_lab.py --selftest   # 机制自检（秒级）

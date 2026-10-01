@@ -13,9 +13,8 @@ import sys
 import tempfile
 from pathlib import Path
 
-from memory_lab import (Compactor, MemoryStore, MockLLM, CONTEXT_CHAR_LIMIT,
-                        MAX_MESSAGES, estimate_chars, has_tool_use, is_tool_result,
-                        make_pair, validate_pairs, big_content)
+from memory_lab import (Compactor, MemoryStore, CONTEXT_CHAR_LIMIT, MAX_MESSAGES,
+                        estimate_chars, make_pair, validate_pairs, big_content)
 
 
 def header(title: str) -> None:
