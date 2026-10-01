@@ -397,7 +397,6 @@ def selftest():
 def run_break():
     global BREAK
     BREAK = sys.argv[2] if len(sys.argv) > 2 else None
-    base = {}
     if BREAK == "B1":      # 拆依赖 fail-closed
         A = create_task("打地基"); B = create_task("盖楼", blockedBy=[A["id"]])
         r = claim_task(B["id"], "alice")
