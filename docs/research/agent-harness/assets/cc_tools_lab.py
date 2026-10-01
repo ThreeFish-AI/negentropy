@@ -187,10 +187,13 @@ def trigger_hooks(hooks, event, *args):
 def run_agent(vfs: VFS, model: MockModel, answers, log, hooks=None, messages=None,
               use_content_signal=True, hard_index=False, stop_hook_active_guard=True):
     """s04 版引擎。use_content_signal=False 改回 s01 判据；hard_index 硬索引（实验2）；
-    stop_hook_active_guard 关掉 Stop 防循环标志（实验5）。"""
+    stop_hook_active_guard 关掉 Stop 防循环标志（实验4/5）。"""
     hooks = hooks if hooks is not None else default_hooks(answers, log)
     handlers = make_handlers(vfs)
     messages = messages if messages is not None else []
+    # 四点位之一：用户输入提交后、进模型前触发一次（首轮带 user 消息时）
+    if messages and messages[0].get("role") == "user":
+        trigger_hooks(hooks, "UserPromptSubmit", messages[0]["content"])
     stop_hook_active = False
     turns = 0
     while True:
@@ -411,7 +414,6 @@ def exp4():
                 return "BLOCKED-by-inverted-semantics"
         return None
 
-    global trigger_hooks_ref
     log: list[str] = []
     vfs = VFS({"/workspace/x.txt": "1"})
     VFS._current = vfs
@@ -425,7 +427,7 @@ def exp4():
     orig = M.trigger_hooks
     M.trigger_hooks = inverted_trigger
     try:
-        msgs = run_agent(vfs, model, [], log, hooks=hooks)
+        msgs = run_agent(vfs, model, [], log, hooks=hooks, stop_hook_active_guard=False)
     finally:
         M.trigger_hooks = orig
     blocked = sum(1 for m in msgs if isinstance(m.get("content"), list) for b in m["content"]
@@ -463,7 +465,8 @@ def pred_t4():
                      tool("bash", "b1", command="rm -rf ./scratch/notes")], "stop_reason": "tool_use"},
         {"content": [text_block("done")], "stop_reason": "end_turn"},
     ])
-    msgs = run_agent(vfs, model, ["y"], log)
+    msgs = run_agent(vfs, model, ["y"], log,
+                     messages=[{"role": "user", "content": "清理 scratch/notes 并写季度摘要。"}])
     print("\n".join(log))
     print(f"VFS 终态: {sorted(vfs.files)}")
     return log

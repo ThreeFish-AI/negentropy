@@ -209,7 +209,7 @@ def trigger_hooks(event, *args):
 
 返回值的语义是**非对称**的：同样是「非 `None`」，挂在 PreToolUse 上是踩刹车（本次工具不执行、拒因回喂模型），挂在 Stop 上是踩油门（把这句话注入对话、循环继续跑）[1]。s03 的权限逻辑原封不动迁进一个 PreToolUse 回调，循环里那行 `check_permission(block)` 换成 `trigger_hooks("PreToolUse", block)`——扩展点从「改循环」变成「注册回调」[1]。
 
-再用 §5 分路表里的 `rm -rf ./tmp/build-cache` 走一遍 s04 链路（逐行为本仓原型实测日志）：用户输入后先过 UserPromptSubmit（打印工作目录提示）；模型举手后，PreToolUse 链按注册顺序执行——权限回调先跑：命中规则、暂停问用户；用户答 `y`，权限回调返回 `None`（放行），轮到日志回调打印 `[HOOK] bash(...)`；然后查表执行、PostToolUse 检查输出、结果以 `user` 消息回喂。下一轮模型若无新请求，Stop 回调统计本会话工具调用次数后放行停机 [1]。
+再用 §5 分路表里的 `rm -rf ./tmp/build-cache` 走一遍 s04 链路（逐行为本仓原型实测日志）：用户输入后先过 UserPromptSubmit（打印工作目录提示）；模型举手后，PreToolUse 链按注册顺序执行——权限回调先跑：命中规则、暂停问用户；用户答 `y`，权限回调返回 `None`（放行），轮到日志回调打印 `HOOK PreToolUse log: bash(...)`；然后查表执行、PostToolUse 检查输出、结果以 `user` 消息回喂。下一轮模型若无新请求，Stop 回调统计本会话工具调用次数后放行停机 [1]。
 
 注意一个细节：**被拒的调用连日志回调都轮不到**——权限回调返回了非 `None`，触发函数立即短路返回，后面的回调不再执行。这是「谁先喊停谁负责」的自然结果。
 
@@ -239,16 +239,16 @@ def trigger_hooks(event, *args):
 
 原型两份同源：仓库资产版 [`assets/cc_tools_lab.py`](./assets/cc_tools_lab.py)（长期保存）与 `.temp` 实验室版（随清理消失）。纯标准库、确定性 mock 模型、虚拟文件系统——材料里的模型角色全部脚本化替代，原型回答「机制是否自洽」，不回答「模型是否聪明」。运行：`uv run --no-project python docs/research/agent-harness/assets/cc_tools_lab.py --selftest`（全场景断言）或 `--exp 1..5` / `--pred t4|t5|gates`，产物落 `.lab_out/`。
 
-机制 → 代码行号速查（`cc_tools_lab.py`；行号对资产版与实验室版一致）：
+机制 → 代码行号速查（`cc_tools_lab.py` 资产版）：
 
 | 机制 | 位置 |
 | :--- | :--- |
-| 虚拟文件系统与五个工具实现 | `VFS` 类（L23 起）、`bash`（L44） |
-| 确定性 mock 模型（`stop_reason` 可迟到） | `MockModel`（L99） |
-| 工具分发表 | `make_handlers`（L120） |
-| 闸门 1/2/3 | `check_deny_list`（L134）、`check_rules`（L140）、`ask_user`（L150）、`check_permission`（L154） |
-| 钩子注册表与触发 | `make_hooks`（L171）、`register_hook`（L174）、`trigger_hooks`（L177） |
-| s04 完整引擎 | `run_agent`（L186）、默认钩子组（L236） |
+| 虚拟文件系统与五个工具实现 | `VFS` 类（L24）、`bash`（L45） |
+| 确定性 mock 模型（`stop_reason` 可迟到） | `MockModel`（L100） |
+| 工具分发表 | `make_handlers`（L121） |
+| 闸门 1/2/3 | `check_deny_list`（L135）、`check_rules`（L141）、`ask_user`（L151）、`check_permission`（L155） |
+| 钩子注册表与触发 | `make_hooks`（L172）、`register_hook`（L175）、`trigger_hooks`（L178） |
+| s04 完整引擎 | `run_agent`（L187）、默认钩子组（L236） |
 
 破坏性实验实测退化（每次只拆一个机制，逐字取自实际运行日志）：
 
