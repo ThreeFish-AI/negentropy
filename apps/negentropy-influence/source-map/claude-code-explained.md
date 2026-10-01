@@ -13,7 +13,7 @@
 | 轨 | 修订 | 章 | 中文章名 | 提交 |
 |---|---|---|---|---|
 | 站点 `learn.shareai.run/zh` | 2026-07 修订 | **20 章** | `README.md` | `67a9126c`（2026-07-29，分支 `fix/s08-s20-sync-frontmatter-parser`，站点内容与该分支逐字一致；**2026-09-28 线上复验未动**） |
-| 仓库 `main` | 2026-08 整合 | **17 章** | `README.zh.md` | `0dcafa2a`（2026-08-27；2026-09-27 重钉——旧钉 `f9e8b280` 后 25 提交，唯一机制级变更为 s08 压缩管线，余为 UTF-8/递归 glob 机械修复） |
+| 仓库 `main` | 2026-08 整合 | **17 章** | `README.zh.md` | `ce8f9f18`（2026-09-28；2026-10-01 重钉——旧钉 `0dcafa2a`（2026-08-27；再旧 `f9e8b280`）后仅 2 提交 #586/#587，s01–s04 各章 code.py +10/11 行 OS-aware shell context，无机制级变更；重钉对齐 171 号精读所读轨） |
 | 旧 12 课轨（历史遗产） | 仓库 `docs/` + `agents/` | 12 课 | 三语 markdown | 两钉上均在，属最老一层，**仅作考古对照，禁止引用**（本仓两处旧引用已于 2026-09-28 消歧） |
 
 这是 ISSUE-165「站点 LOC 复算不出」的真正根因：**站点整站是课程的旧修订**，页面上
@@ -21,10 +21,11 @@
 
 - **ep2–ep5 钉 `67a9126c`**：用户的五大分组（工具与执行 / 规划与协调 / 记忆管理 /
   并发 / 多 Agent 平台）正是站点 20 章版的 `LAYERS`，只在该修订下成立；
-- **ep1 钉 main 新头（`0dcafa2a`）**：其核心记忆点「看内容块别信停止标记」正依赖
+- **ep1 钉 main 新头（`ce8f9f18`，171 精读轨）**：其核心记忆点「看内容块别信停止标记」正依赖
   main 比站点新——站点的「深入 CC 源码」把「教学版看 stop_reason」当作与产品的差异
   来讲，而 main 已把判据改成内容块。钉站点轨会让这条对比失去靶子（2026-09-27 重钉
-  随重调研同步，s03 新增的破坏性命令词正则是 ep1 复核增量）。
+  随重调研同步，s03 新增的破坏性命令词正则是 ep1 复核增量；2026-10-01 重钉对齐
+  171 号精读所读 `ce8f9f18`，逐字稿 code.py:NN 锚点与精读同树可复算）。
 
 耐久性：`67a9126c` 在未合并分支上（分支被强推/删除则 raw URL 失效）。
 `source_ledger.py verify` 会在 raw 指纹漂移时 FAIL 报警，台账已登记全指纹
@@ -66,7 +67,7 @@ s18–s20 仅存在于站点轨；main 无 s18+。**s01/s02 是唯一三轨同�
 
 | 集 | 工程 | 层（站点分组） | 章节 | 钉 |
 |---|---|---|---|---|
-| 1 | [claude-code-explained-video](../episodes/claude-code-explained-video/README.md) | 工具与执行 | s01 · s02 · s03 · s04 | `0dcafa2a` |
+| 1 | [claude-code-explained-video](../episodes/claude-code-explained-video/README.md) | 工具与执行 | s01 · s02 · s03 · s04 | `ce8f9f18` |
 | 2 | [claude-code-planning-video](../episodes/claude-code-planning-video/README.md) | 规划与协调 | s05 · s06 · s07 · s10 · s11 | `67a9126c` |
 | 3 | [claude-code-memory-video](../episodes/claude-code-memory-video/README.md) | 记忆管理 | s08 · s09 | `67a9126c` |
 | 4 | [claude-code-concurrency-video](../episodes/claude-code-concurrency-video/README.md) | 并发 | s13 · s14 | `67a9126c` |

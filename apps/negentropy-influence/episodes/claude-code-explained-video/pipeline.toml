@@ -24,6 +24,10 @@ min_cues_per_minute = 3.0
 min_diagram_types = 5
 forbid_inset = true  # 全屏独占（storyboard 按此设计）；残留画中画即 FAIL
 
+# 复用图例外（P6 系列身份卡）：系列级五层身份装置，沿用既有 guided-views
+[archify.html_overrides]
+five-layer-dependency = "claude-code-harness--five-layer-dependency.html"
+
 [tts]
 engine = "indextts"
 # TODO：选定样本与风格。样本路径**工作区根相对**；ref_sha1 取 12 位（同 tts.py 口径），

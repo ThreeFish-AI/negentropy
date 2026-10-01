@@ -1,0 +1,130 @@
+# 非论文信源清单（可复现取证链，工具：$T/scripts/source_ledger.py）
+#
+# kind=repo 指向固定 commit，raw 指纹漂移即 FAIL（说明 URL 里的 ref 不是不可变引用）。
+# kind=site 指向线上页面，只对剥标签归一后的正文比对指纹，漂移报 WARN（去复核笔记）。
+# text_sha256 是判据；raw_sha256 仅供 repo 类硬校验与人工核对。
+
+
+[s01-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/ce8f9f186058939da54c9d6fead78dfb5d0fd6c3/s01_agent_loop/README.zh.md"
+kind = "repo"
+pinned_ref = "ce8f9f186058939da54c9d6fead78dfb5d0fd6c3"
+accessed = "2026-10-01"
+raw_sha256 = "00ce3791e20530d2"
+text_sha256 = "2d2b9f29d6793a90"
+bytes = 4659
+lines = 155
+via = "pinned commit, MIT"
+
+[s01-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/ce8f9f186058939da54c9d6fead78dfb5d0fd6c3/s01_agent_loop/code.py"
+kind = "repo"
+pinned_ref = "ce8f9f186058939da54c9d6fead78dfb5d0fd6c3"
+accessed = "2026-10-01"
+raw_sha256 = "abe71cd04d1b63aa"
+text_sha256 = "c791d043aa0fcba7"
+bytes = 4796
+lines = 151
+via = "pinned commit, MIT; LOC 实测依据"
+
+[s01-site]
+url = "https://learn.shareai.run/zh/s01/"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "50eae889b19c5f50"
+text_sha256 = "5c680dfb18b3624e"
+bytes = 51138
+lines = 226
+
+[s02-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/ce8f9f186058939da54c9d6fead78dfb5d0fd6c3/s02_tool_use/README.zh.md"
+kind = "repo"
+pinned_ref = "ce8f9f186058939da54c9d6fead78dfb5d0fd6c3"
+accessed = "2026-10-01"
+raw_sha256 = "915435d5e9144846"
+text_sha256 = "b5faf60b3abd095c"
+bytes = 4910
+lines = 164
+via = "pinned commit, MIT"
+
+[s02-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/ce8f9f186058939da54c9d6fead78dfb5d0fd6c3/s02_tool_use/code.py"
+kind = "repo"
+pinned_ref = "ce8f9f186058939da54c9d6fead78dfb5d0fd6c3"
+accessed = "2026-10-01"
+raw_sha256 = "fa6fdaa4e75ae430"
+text_sha256 = "00fb4a1df16c414d"
+bytes = 7599
+lines = 206
+via = "pinned commit, MIT; LOC 实测依据"
+
+[s02-site]
+url = "https://learn.shareai.run/zh/s02/"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "1fc6c5d05263886b"
+text_sha256 = "08846b8b05d3ec2e"
+bytes = 57128
+lines = 236
+
+[s03-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/ce8f9f186058939da54c9d6fead78dfb5d0fd6c3/s03_permission/README.zh.md"
+kind = "repo"
+pinned_ref = "ce8f9f186058939da54c9d6fead78dfb5d0fd6c3"
+accessed = "2026-10-01"
+raw_sha256 = "da23348cf11cdd58"
+text_sha256 = "412644141c73cc4b"
+bytes = 5553
+lines = 168
+via = "pinned commit, MIT"
+
+[s03-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/ce8f9f186058939da54c9d6fead78dfb5d0fd6c3/s03_permission/code.py"
+kind = "repo"
+pinned_ref = "ce8f9f186058939da54c9d6fead78dfb5d0fd6c3"
+accessed = "2026-10-01"
+raw_sha256 = "6854e6b2ad0b5343"
+text_sha256 = "1d5ec5f2d1b10133"
+bytes = 9788
+lines = 267
+via = "pinned commit, MIT; LOC 实测依据"
+
+[s03-site]
+url = "https://learn.shareai.run/zh/s03/"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "ae54c96b095bc788"
+text_sha256 = "1a3fc2a7a75dec35"
+bytes = 67071
+lines = 284
+
+[s04-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/ce8f9f186058939da54c9d6fead78dfb5d0fd6c3/s04_hooks/README.zh.md"
+kind = "repo"
+pinned_ref = "ce8f9f186058939da54c9d6fead78dfb5d0fd6c3"
+accessed = "2026-10-01"
+raw_sha256 = "432550e4497e6091"
+text_sha256 = "f6dc20f477d97362"
+bytes = 7898
+lines = 224
+via = "pinned commit, MIT"
+
+[s04-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/ce8f9f186058939da54c9d6fead78dfb5d0fd6c3/s04_hooks/code.py"
+kind = "repo"
+pinned_ref = "ce8f9f186058939da54c9d6fead78dfb5d0fd6c3"
+accessed = "2026-10-01"
+raw_sha256 = "5a3b8e174390e388"
+text_sha256 = "3d59b3314d88dd58"
+bytes = 10708
+lines = 280
+via = "pinned commit, MIT; LOC 实测依据"
+
+[s04-site]
+url = "https://learn.shareai.run/zh/s04/"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "3ec4a442808b2a5d"
+text_sha256 = "213cc53568f96038"
+bytes = 71867
+lines = 351
