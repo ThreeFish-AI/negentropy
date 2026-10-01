@@ -129,6 +129,18 @@ reason = "停在 2026-09-22 分代之前的更早版本（该集晚于此文件�
 # （同 major 全家桶，three 0.186.1 / fiber 9.8.1 / lottie-web 5.13.0）。
 # 组件文件属 seeded 档不进门；此处只登记受门文件的合法偏离。
 [[skeleton.drift]]
+episode = "claude-code-explained-video"
+path = "video/package.json"
+fingerprint = "6f4f4de6d61d"
+reason = "依赖整组追新（2026-10-01 完全重制）：remotion 四包 4.0.529→4.0.532（同 major 补丁位）。撤销条件=按模板钉版回退"
+
+[[skeleton.drift]]
+episode = "claude-code-explained-video"
+path = "video/pnpm-workspace.yaml"
+fingerprint = "0e62d7e2af2a"
+reason = "pnpm 12 minimumReleaseAge 供应链保护自动追加 @remotion/*@4.0.532 豁免清单（pnpm install 自管变更，2026-10-01）。撤销条件=依赖回退时随装一并复原"
+
+[[skeleton.drift]]
 episode = "claude-code-planning-video"
 path = "video/package.json"
 fingerprint = "bdfea44ecd31"
