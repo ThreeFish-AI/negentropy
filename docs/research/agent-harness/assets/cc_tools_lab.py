@@ -209,7 +209,10 @@ def run_agent(vfs: VFS, model: MockModel, answers, log, hooks=None, messages=Non
         if not want_more:
             force = trigger_hooks(hooks, "Stop", messages)
             if force and not (stop_hook_active and stop_hook_active_guard):
-                log.append(f"STOP-HOOK force-continue{'' if not stop_hook_active else ' (guard: once)'}")
+                # 注记仅在「已续跑过且守卫未开」时出现——此时循环会一直续跑到封顶；
+                # 守卫生效的硬停在下一分支的 blocked 日志（勿再写成 "(guard: once)"，
+                # 字面会被读作守卫已拦截，与真实行为相反）
+                log.append(f"STOP-HOOK force-continue{' (stop_hook_active set; guard off)' if stop_hook_active else ''}")
                 messages.append({"role": "user", "content": force if isinstance(force, str) else str(force)})
                 stop_hook_active = True
                 continue
@@ -515,8 +518,12 @@ def main():
     if cmd == "--selftest":
         selftest()
     elif cmd == "--exp":
+        if len(sys.argv) < 3:
+            raise SystemExit("用法: cc_tools_lab.py --exp {1|2|3|4|5}")
         {"1": exp1, "2": exp2, "3": exp3, "4": exp4, "5": exp5}[sys.argv[2]]()
     elif cmd == "--pred":
+        if len(sys.argv) < 3:
+            raise SystemExit("用法: cc_tools_lab.py --pred {t4|t5|gates}")
         {"t4": pred_t4, "t5": pred_t5, "gates": pred_gates}[sys.argv[2].lower()]()
     else:
         print(__doc__)
