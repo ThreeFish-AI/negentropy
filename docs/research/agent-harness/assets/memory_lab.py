@@ -275,9 +275,11 @@ class Compactor:
             content = str(block.get("content", ""))
             if len(content) <= MICRO_REPLACE_MIN:
                 continue
-            path = self.outputs_dir / f"{block.get('tool_use_id', 'unknown')}.txt"
+            tid = str(block.get("tool_use_id", "unknown"))
+            safe = re.sub(r"[^A-Za-z0-9._-]", "_", tid)[:120] or "unknown"
+            path = self.outputs_dir / f"{safe}.txt"
             if not path.exists():
-                self.persist(block.get("tool_use_id", "unknown"), content)
+                self.persist(tid, content)
             block["content"] = f"[Earlier tool result saved at {path}]"
         return messages
 

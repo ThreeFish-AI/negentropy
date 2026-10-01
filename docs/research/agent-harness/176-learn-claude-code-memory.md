@@ -217,10 +217,10 @@ uv run --no-project python docs/research/agent-harness/assets/destruct.py       
 
 | 机制 | 位置 |
 | --- | --- |
-| budget / snip / micro / fit / compact / reactive / prepare | `Compactor` 类 L185–L334 |
+| budget / snip / micro / fit / compact / reactive / prepare | `Compactor` 类 L185–L336 |
 | 配对校验（双向） | `validate_pairs` L152 |
 | unseen 计算 | `_unseen_positions` L261 |
-| 记忆存取 / 召回两路径 / 三道门 / 事务性整理 | `MemoryStore` 类 L350–L514 |
+| 记忆存取 / 召回两路径 / 三道门 / 事务性整理 | `MemoryStore` 类 L352–L516 |
 
 破坏性实验（每次只拆一个机制，实测退化【一】）：
 
@@ -268,7 +268,7 @@ uv run --no-project python docs/research/agent-harness/assets/destruct.py       
 
 ### 9.2 材料没有证明的事
 
-1. 「深入 CC 源码」全部基于闭源实现的逆向分析（compact.ts 等不在开源仓库，实测无 src/ 可查），行号与常量无法独立复核；其中与官方文档互证的点（MEMORY.md 200 行/25KB、compact 后重读 ≤5 文件、skill 重注入预算）可信度高，其余（query.ts 执行顺序、60 分钟 micro 间隔、四层门控默认值）只有站点单方转述。
+1. 「深入 CC 源码」全部基于闭源实现的逆向分析（compact.ts 等不在开源仓库，实测无 src/ 可查），行号与常量无法独立复核；其中与官方文档互证的点（MEMORY.md 200 行/25KB、compact 后重读 ≤5 文件）可信度高，skill 重注入预算仅有官方文档单源（§5.2 表无【三】侧出处），其余（query.ts 执行顺序、60 分钟 micro 间隔、四层门控默认值）只有站点单方转述。
 2. 压缩与记忆均无质量评估：摘要保真度、记忆召回率、LLM 选择记忆相对向量检索的优劣，材料都未给对照实验——「便宜的先跑」的论证只有 API 调用次数一个维度，缺 token 成本对照。
 3. 教学版 `len(json.dumps(messages))` 估算与真实 token 计数的偏差未量化；50,000 字符阈值与 CC 的 token 阈值不可直接换算（中文与代码的字符/token 比差异巨大）。
 4. 站点页头元数据（LOC、工具数）与仓库实测不符、同步机制未知——课程两形态的数字引用须逐处注明口径。
