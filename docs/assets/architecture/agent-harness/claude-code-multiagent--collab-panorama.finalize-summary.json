@@ -3,17 +3,17 @@
   "ok": true,
   "command": "finalize",
   "status": "pass",
-  "type": "dataflow",
+  "type": "workflow",
   "quality": "showcase",
   "specification": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/.temp/archify-collab-panorama/candidate.json",
-    "sha256": "35a7736c9393f9dc32961e9499fc9a39a9426dd07f2ba203e46bd74422eb8c32",
-    "bytes": 7366
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/.temp/lcc-multiagent-v2-lab/archify/candidate.json",
+    "sha256": "26c0527813ab338175845a7e2913575e60c58556b33280f1f162f82607720e2b",
+    "bytes": 5761
   },
   "artifact": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code-multiagent--collab-panorama.html",
-    "sha256": "dfb289c435b0a1cae237d2dcbc6043ee26c753eed6a74addd510f464d911a70a",
-    "bytes": 842255
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code-multiagent--collab-panorama.html",
+    "sha256": "36a730f95d304f5e862ccc6b31cbe15d07828934c343dfd12261a6ac513adca3",
+    "bytes": 765092
   },
   "gates": {
     "validate": "pass",
@@ -28,12 +28,12 @@
     "truncated": false
   },
   "evidence": {
-    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code-multiagent--collab-panorama.finalize.json",
-    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code-multiagent--collab-panorama.finalize-summary.json",
-    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code-multiagent--collab-panorama.browser-check.json"
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code-multiagent--collab-panorama.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code-multiagent--collab-panorama.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code-multiagent--collab-panorama.browser-check.json"
   },
   "visualReview": "not-requested",
-  "durationMs": 6250,
+  "durationMs": 2211,
   "visualReviewRecommendation": {
     "action": "inspect-route-readability",
     "signals": {
@@ -45,41 +45,22 @@
       "detours": [
         {
           "relationship": {
-            "id": "f-shift-loop",
-            "from": "shift",
-            "to": "loop",
-            "label": "干活一拍",
-            "collectionIndex": 6,
-            "artifactIndex": 7
+            "id": "writeback-compact",
+            "from": "writeback",
+            "to": "compact",
+            "label": "下一轮",
+            "collectionIndex": 12,
+            "artifactIndex": 13
           },
           "bends": 3,
-          "stretch": 1.261,
-          "directCorridorBlockers": [
-            {
-              "id": "match",
-              "label": "协议匹配",
-              "box": [
-                240,
-                316,
-                150,
-                58
-              ]
-            },
-            {
-              "id": "wait",
-              "label": "先收件格后排工板",
-              "box": [
-                680,
-                316,
-                130,
-                58
-              ]
-            }
-          ]
+          "stretch": 1.195
         }
       ],
       "truncated": false
     },
+    "hints": [
+      "writeback → compact needs 3 bends: move node writeback or compact so they share a row or column with matching centers, or sit diagonally with a clear corner."
+    ],
     "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
   }
 }

@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
-  "receiptId": "a547f518-d926-4f4a-89f7-290352b7cb1a",
+  "receiptId": "6e1b8fc3-85d8-4355-bd3f-cea5cefc7b24",
   "status": "current",
   "command": "deliver",
-  "type": "dataflow",
-  "input": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/.temp/archify-collab-panorama/candidate.json",
-  "output": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code-multiagent--collab-panorama.html",
+  "type": "workflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/.temp/lcc-multiagent-v2-lab/archify/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code-multiagent--collab-panorama.html",
   "specification": {
-    "sha256": "35a7736c9393f9dc32961e9499fc9a39a9426dd07f2ba203e46bd74422eb8c32",
-    "bytes": 7366
+    "sha256": "26c0527813ab338175845a7e2913575e60c58556b33280f1f162f82607720e2b",
+    "bytes": 5761
   },
   "artifact": {
-    "sha256": "dfb289c435b0a1cae237d2dcbc6043ee26c753eed6a74addd510f464d911a70a",
-    "bytes": 842255
+    "sha256": "36a730f95d304f5e862ccc6b31cbe15d07828934c343dfd12261a6ac513adca3",
+    "bytes": 765092
   }
 }

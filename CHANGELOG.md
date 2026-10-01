@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 ### Added
+### 175 多 Agent 平台新一代精读重制（2026-10-01）
+
+- 用新版 guided-learn 六阶段自治流水线对 learn-claude-code「多 Agent 平台」七章（站点轨 s12/s15–s20 @ `67a9126c`）完全重做并[原位重写 ⑤](docs/research/agent-harness/175-claude-code-multi-agent-platform.md)：以「七样共享物件挂回同一条循环」为纲（任务板/信箱/编号握手/空闲自取/工作树/MCP 插座/收官集成），含章际诚实边界（s16 无执行门控→s20 真门、钉点版自动认领不切工具目录）与官方文档三处对照（agent teams 实验性默认关、四任务工具取代旧待办、mcp__ 命名同规则）；Checker 源稿对账 32+4 行全绿、盲评双判官三章全胜、外行四测四项通过（听知记 1 项已知局限，验收由 LLM 代理完成）
+- 随稿入库：[multiagent_lab.py](docs/research/agent-harness/assets/multiagent_lab.py) 纯标准库确定性原型（31 断言自检 + B1–B5 六组拆守卫实验 + 交错窗口演示，日志逐字可复刻）；全景图 archify 3.0 重绘三件套（[.mmd](docs/assets/mermaid/agent-harness/claude-code-multiagent--collab-panorama.mmd)/HTML/双主题 PNG）；[研究文献索引](docs/research/readme.md)与[知识索引](docs/.agents/knowledge-map.md)登记同步
+
 ### Claude Code Harness Engineering 系列 5 集完全重制交付（2026-09-28..30）
 
 - **系列完全重制 v1 交付**：基于重写的 170–175 精读与新钉双轨（main `0dcafa2`/站点 `67a9126c`）+ 官方文档轨 C，五集全部同 slug rm→scaffold 重来。成片归档 `~/Documents/video/claude-code-explained/` v1×5 + `_captions/{srt,vtt}`×5：
