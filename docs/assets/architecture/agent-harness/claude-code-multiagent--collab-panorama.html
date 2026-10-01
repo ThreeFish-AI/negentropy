@@ -5034,7 +5034,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 
         <!-- Edge paths -->
         <path data-edge-from="assemble" data-edge-to="llm" data-edge-key="0" data-edge-id="assemble-llm" data-composition-routing="workflow-v2-auto" data-edge-role="" data-composition-points="660,243;688,243" d="M 660 243 L 688 243" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="background" data-edge-to="inject" data-edge-label="完成通知" data-edge-key="1" data-edge-id="background-inject" data-composition-routing="workflow-v2-auto" data-edge-role="async" data-composition-points="528,491;274,491;274,269" d="M 528 491 L 274 491 L 274 269" class="a-dashed" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
+        <path data-edge-from="background" data-edge-to="inject" data-edge-label="完成通知" data-edge-key="1" data-edge-id="background-inject" data-composition-routing="workflow-v2-auto" data-edge-role="async" data-composition-points="528,491;281,491;281,269" d="M 528 491 L 281 491 L 281 269" class="a-dashed" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
         <path data-edge-from="compact" data-edge-to="assemble" data-edge-key="2" data-edge-id="compact-assemble" data-composition-routing="workflow-v2-auto" data-edge-role="" data-composition-points="500,243;528,243" d="M 500 243 L 528 243" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
         <path data-edge-from="decide" data-edge-to="gate" data-edge-label="有" data-edge-key="3" data-edge-id="decide-gate" data-composition-routing="workflow-v2-auto" data-edge-role="" data-composition-points="924,269;924,341" d="M 924 269 L 924 341" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
         <path data-edge-from="decide" data-edge-to="stop" data-edge-label="无" data-edge-key="4" data-edge-id="decide-stop" data-composition-routing="workflow-v2-auto" data-edge-role="branch" data-composition-points="924,217;924,145" d="M 924 217 L 924 145" class="a-security" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
@@ -5045,7 +5045,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <path data-edge-from="input" data-edge-to="inject" data-edge-key="9" data-edge-id="input-inject" data-composition-routing="workflow-v2-auto" data-edge-role="" data-composition-points="180,243;208,243" d="M 180 243 L 208 243" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
         <path data-edge-from="llm" data-edge-to="decide" data-edge-key="10" data-edge-id="llm-decide" data-composition-routing="workflow-v2-auto" data-edge-role="" data-composition-points="820,243;858,243" d="M 820 243 L 858 243" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
         <path data-edge-from="shared" data-edge-to="dispatch" data-edge-label="认领·收发·切目录" data-edge-key="11" data-edge-id="shared-dispatch" data-composition-routing="workflow-v2-auto" data-edge-role="branch" data-composition-points="754,465;754,393" d="M 754 465 L 754 393" class="a-dashed" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
-        <path data-edge-from="writeback" data-edge-to="compact" data-edge-label="下一轮" data-edge-key="12" data-edge-id="writeback-compact" data-composition-routing="workflow-v2-auto" data-edge-role="return" data-composition-points="368,367;352,367;352,290;434,290;434,269" d="M 368 367 L 352 367 L 352 290 L 434 290 L 434 269" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="writeback" data-edge-to="inject" data-edge-label="下一轮" data-edge-key="12" data-edge-id="writeback-inject" data-composition-routing="workflow-v2-auto" data-edge-role="return" data-composition-points="422,341;422,290;298,290;298,269" d="M 422 341 L 422 290 L 298 290 L 298 269" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
 
         <!-- Nodes -->
         <g id="node-stop" data-node-id="stop" data-node-label="停止钩子" tabindex="0" role="button" aria-label="聚焦停止钩子，统计·审计后返回, 收尾" aria-pressed="false" data-node-kind="security" data-node-sublabel="统计·审计后返回" data-node-context="收尾">
@@ -5196,8 +5196,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <!-- Edge labels -->
 
         <g data-detail="context" data-edge-from="background" data-edge-to="inject" data-edge-label="完成通知" data-edge-key="1" data-edge-id="background-inject">
-          <rect x="376.8" y="471" width="48.4" height="14" rx="3" class="c-mask"/>
-          <text x="401" y="481" class="t-edge-dashed" font-size="8" text-anchor="middle">完成通知</text>
+          <rect x="380.3" y="471" width="48.4" height="14" rx="3" class="c-mask"/>
+          <text x="404.5" y="481" class="t-edge-dashed" font-size="8" text-anchor="middle">完成通知</text>
         </g>
 
         <g data-detail="context" data-edge-from="decide" data-edge-to="gate" data-edge-label="有" data-edge-key="3" data-edge-id="decide-gate">
@@ -5227,9 +5227,9 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <rect x="710.6" y="419" width="86.8" height="14" rx="3" class="c-mask"/>
           <text x="754" y="429" class="t-edge-dashed" font-size="8" text-anchor="middle">认领·收发·切目录</text>
         </g>
-        <g data-detail="context" data-edge-from="writeback" data-edge-to="compact" data-edge-label="下一轮" data-edge-key="12" data-edge-id="writeback-compact">
-          <rect x="373.6" y="270" width="38.8" height="14" rx="3" class="c-mask"/>
-          <text x="393" y="280" class="t-edge-emphasis" font-size="8" text-anchor="middle">下一轮</text>
+        <g data-detail="context" data-edge-from="writeback" data-edge-to="inject" data-edge-label="下一轮" data-edge-key="12" data-edge-id="writeback-inject">
+          <rect x="340.6" y="270" width="38.8" height="14" rx="3" class="c-mask"/>
+          <text x="360" y="280" class="t-edge-emphasis" font-size="8" text-anchor="middle">下一轮</text>
         </g>
 
         <!-- Legend -->

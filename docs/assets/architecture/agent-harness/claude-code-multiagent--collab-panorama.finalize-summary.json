@@ -7,13 +7,13 @@
   "quality": "showcase",
   "specification": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/.temp/lcc-multiagent-v2-lab/archify/candidate.json",
-    "sha256": "26c0527813ab338175845a7e2913575e60c58556b33280f1f162f82607720e2b",
-    "bytes": 5761
+    "sha256": "3ed35d61bee7d5f08426667d7fc7378699bd9948a21ba72e3a35f0ce93469e50",
+    "bytes": 5759
   },
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code-multiagent--collab-panorama.html",
-    "sha256": "36a730f95d304f5e862ccc6b31cbe15d07828934c343dfd12261a6ac513adca3",
-    "bytes": 765092
+    "sha256": "734fa21167ccc2ea8629fa1c098007dc736fd6b40bffed17de72ebd699dacfb8",
+    "bytes": 765072
   },
   "gates": {
     "validate": "pass",
@@ -33,34 +33,5 @@
     "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code-multiagent--collab-panorama.browser-check.json"
   },
   "visualReview": "not-requested",
-  "durationMs": 2211,
-  "visualReviewRecommendation": {
-    "action": "inspect-route-readability",
-    "signals": {
-      "routesOverSuggestedBends": 1
-    },
-    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
-    "affectedRoutes": {
-      "crossings": [],
-      "detours": [
-        {
-          "relationship": {
-            "id": "writeback-compact",
-            "from": "writeback",
-            "to": "compact",
-            "label": "下一轮",
-            "collectionIndex": 12,
-            "artifactIndex": 13
-          },
-          "bends": 3,
-          "stretch": 1.195
-        }
-      ],
-      "truncated": false
-    },
-    "hints": [
-      "writeback → compact needs 3 bends: move node writeback or compact so they share a row or column with matching centers, or sit diagonally with a clear corner."
-    ],
-    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
-  }
+  "durationMs": 2254
 }
