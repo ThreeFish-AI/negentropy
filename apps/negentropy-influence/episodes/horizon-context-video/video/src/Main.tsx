@@ -9,8 +9,25 @@ import {LangProvider} from './i18n';
 import {computeTimeline, SCENE_FADE_FRAMES} from './timing';
 import type {Lang} from './i18n';
 import type {ManifestItem, SceneRange} from './types';
+import {P0Symptoms} from './scenes/P0Symptoms';
+import {P1Map} from './scenes/P1Map';
+import {P2Caliber} from './scenes/P2Caliber';
+import {P3Policy} from './scenes/P3Policy';
+import {P4Ledger} from './scenes/P4Ledger';
+import {P5Identity} from './scenes/P5Identity';
+import {P6Supply} from './scenes/P6Supply';
+import {P7Laws} from './scenes/P7Laws';
+
 
 const SCENE_COMPONENTS: Record<string, React.FC<{scene: SceneRange}>> = {
+  P0: P0Symptoms,
+  P1: P1Map,
+  P2: P2Caliber,
+  P3: P3Policy,
+  P4: P4Ledger,
+  P5: P5Identity,
+  P6: P6Supply,
+  P7: P7Laws,
 };
 
 export type MainProps = {manifest: ManifestItem[]; lang?: Lang};

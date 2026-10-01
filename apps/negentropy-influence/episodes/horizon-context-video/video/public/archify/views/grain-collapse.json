@@ -1,0 +1,32 @@
+[
+ {
+  "id": "day-pack-collapse",
+  "label": "按天打包 · grain 塌缩",
+  "focus": [
+   "rawGrain",
+   "dayPack",
+   "grainCollapse"
+  ],
+  "note": "原本单笔记录的数据被上游按天直接打包，grain 从多粒塌缩成日粒，进楼前信息已丢。"
+ },
+ {
+  "id": "legal-but-wrong",
+  "label": "图纸合法 · 总数仍错",
+  "focus": [
+   "pillarLights",
+   "blueprintLegal",
+   "wrongTotal"
+  ],
+  "note": "大厦七柱全亮、手册标准、门禁严——图纸全合法，算出的总数依然彻底错误。"
+ },
+ {
+  "id": "measured-477-48",
+  "label": "477 vs 48 对撞",
+  "focus": [
+   "wrongTotal",
+   "crash477",
+   "verdictGovernVerify"
+  ],
+  "note": "第三方复现 477 对 48【四】：治理保证的是图纸合法，救不了上游已经塌方的地基。"
+ }
+]

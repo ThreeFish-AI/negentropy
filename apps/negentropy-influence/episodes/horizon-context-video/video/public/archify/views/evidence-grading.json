@@ -1,0 +1,13 @@
+[
+ {
+  "id": "vendor-claim",
+  "label": "厂商自报无复测",
+  "focus": [
+   "benchSource",
+   "gradeCard",
+   "vendorClaim",
+   "retestGap"
+  ],
+  "note": "官方称准确率升到八成六，全部出自自家基准口径，没有第三方复测。"
+ }
+]

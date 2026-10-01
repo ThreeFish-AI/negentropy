@@ -1,0 +1,31 @@
+[
+ {
+  "id": "copy-inflate",
+  "label": "复印放大 100→300",
+  "focus": [
+   "order100",
+   "rawJoin",
+   "inflated300"
+  ],
+  "note": "订单表直连事件表求和，100 元被复印成 3 份，收入虚增 300 元【一】。"
+ },
+ {
+  "id": "aggregate-first",
+  "label": "先聚后联铁律",
+  "focus": [
+   "order100",
+   "aggFirst",
+   "safeJoin"
+  ],
+  "note": "关联事件表前先在订单内部把 100 元算定，再拼接，收入仍是 100 元。"
+ },
+ {
+  "id": "measured-440",
+  "label": "实测 200 vs 440",
+  "focus": [
+   "inflated300",
+   "measured"
+  ],
+  "note": "实测拆掉「先聚后联」，一月收入从 200 暴增到 440【一】。"
+ }
+]

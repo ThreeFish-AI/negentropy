@@ -1,0 +1,24 @@
+[
+ {
+  "id": "three-lesions",
+  "label": "三病灶爆发",
+  "focus": [
+   "naive-guess",
+   "lesion-caliber",
+   "lesion-drift",
+   "lesion-pierce"
+  ],
+  "note": "仅靠瞎猜，必然爆发三个系统性病灶。"
+ },
+ {
+  "id": "ten-teardowns",
+  "label": "十次拆坏预告",
+  "focus": [
+   "lab-code",
+   "mech-rows",
+   "exp-cols",
+   "verdict"
+  ],
+  "note": "用简单的代码来模拟演练，一层层拆解。"
+ }
+]

@@ -1,0 +1,13 @@
+[
+ {
+  "id": "popularity-wins",
+  "label": "热度裁决错误多数胜出",
+  "focus": [
+   "inferredDef",
+   "autoPick",
+   "wrongWins",
+   "rightAnswer"
+  ],
+  "note": "按热度自动选，错误口径 [6,1,2] 借多数人赢【一】，正确的 [3,1,2] 反而落选。"
+ }
+]

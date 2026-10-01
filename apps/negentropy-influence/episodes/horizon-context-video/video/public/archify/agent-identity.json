@@ -1,0 +1,113 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.0,
+ "story_sec": 14.29,
+ "total_wall_sec": 148.48,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "ceiling",
+   "label": "权限天花板只减不增",
+   "index": 0,
+   "file": "agent-identity--ceiling.mp4",
+   "end_still": "agent-identity--ceiling-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 4.44,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.206,
+    3.31
+   ],
+   "beat_nodes": [
+    "user",
+    "agent",
+    "ceil",
+    "sess"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 27.0
+  },
+  {
+   "id": "audit",
+   "label": "刷卡可归因",
+   "index": 1,
+   "file": "agent-identity--audit.mp4",
+   "end_still": "agent-identity--audit-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.0,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0,
+    1.607
+   ],
+   "beat_nodes": [
+    "sess",
+    "qh"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 24.0
+  },
+  {
+   "id": "strict",
+   "label": "供策略叠加严拒面",
+   "index": 2,
+   "file": "agent-identity--strict.mp4",
+   "end_still": "agent-identity--strict-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.0,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "sess",
+    "pol"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "snapshot-vs-live",
+   "label": "快照 vs 实时双钟",
+   "index": 3,
+   "file": "agent-identity--snapshot-vs-live.mp4",
+   "end_still": "agent-identity--snapshot-vs-live-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 3.36,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.207
+   ],
+   "beat_nodes": [
+    "user",
+    "ceil",
+    "sess"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/horizon-context--agent-identity.html",
+ "slug": "agent-identity",
+ "type": "workflow"
+}

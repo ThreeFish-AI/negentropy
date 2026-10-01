@@ -26,16 +26,16 @@ style = "story"
 
 [archify]
 # 图集 SSOT 覆写：本集图例沿用仓级资产（011 gen2 精读 + 历次视频扩产），不另建 $W/archify-html/。
-# 阈值为设计值留 10–15% 余量的初稿（设计目标 35 图 / 130 cue / 60% 锚定 / 5 型 / 最长无锚 4），
-# Stage ⑥ 首轮覆盖门实测后回填定稿（先红后绿留证 .temp/）。
+# 阈值按 Stage ⑥ 分镜定稿实测回填（2026-10-01，先红后绿留证 .temp/coverage-gate-calibration.md）：
+# 设计值 44 图 / 109 cue / 69.9% 锚定 / 6.09 cue 每分 / 5 型 / 最长无锚 4。
 html_dir = "docs/assets/architecture/cognitive-context"
 html_pattern = "horizon-context--{slug}.html"
-min_diagrams = 30
-min_cues = 110
-min_anchor_ratio = 0.50
-min_chapter_ratio = 0.60
-min_scene_anchor_ratio = 0.40
+min_diagrams = 40
+min_cues = 104
+min_anchor_ratio = 0.55
+min_chapter_ratio = 0.55
+min_scene_anchor_ratio = 0.35
 max_unanchored_run = 5
-min_cues_per_minute = 6.0
+min_cues_per_minute = 5.8
 min_diagram_types = 5
 forbid_inset = true

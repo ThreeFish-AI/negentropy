@@ -1,0 +1,23 @@
+[
+ {
+  "id": "agg-before-join",
+  "label": "先聚后联铁律",
+  "focus": [
+   "handbook",
+   "rule-agg-before-join",
+   "trap-fanout",
+   "recompute"
+  ],
+  "note": "现场重算最怕复印机陷阱——先聚合，后关联。"
+ },
+ {
+  "id": "divide-after-agg",
+  "label": "先聚后除",
+  "focus": [
+   "rule-divide-after-agg",
+   "trap-avg-of-avg",
+   "recompute"
+  ],
+  "note": "派生指标的先聚后除——客单价不能平均的平均。"
+ }
+]

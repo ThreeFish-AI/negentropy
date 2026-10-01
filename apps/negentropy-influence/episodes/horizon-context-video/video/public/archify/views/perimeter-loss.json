@@ -1,0 +1,25 @@
+[
+ {
+  "id": "inside-effective",
+  "label": "楼内治理全亮",
+  "focus": [
+   "insideQuery",
+   "gateCheck",
+   "tagBinding",
+   "ledgerTrace",
+   "insideEffective"
+  ],
+  "note": "任一通道必过闸机，贴标纳管、台账留痕——「不可绕过」在楼内成立。"
+ },
+ {
+  "id": "outside-void",
+  "label": "出楼即失效",
+  "focus": [
+   "insideEffective",
+   "externalModel",
+   "voidKit",
+   "perimeterLoss"
+  ],
+  "note": "数据一出楼（导出/直查底库），规则不随行，治理瞬间失效。"
+ }
+]

@@ -1,0 +1,12 @@
+[
+ {
+  "id": "signed-stamped",
+  "label": "签字盖章",
+  "focus": [
+   "draft",
+   "stamped",
+   "asset"
+  ],
+  "note": "题库不仅有标准答案，还记录了谁在何时签字盖章。"
+ }
+]
