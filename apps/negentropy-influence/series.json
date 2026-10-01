@@ -244,8 +244,8 @@
             "license": "本仓内部文档",
             "accessed": "2026-10-01"
           },
-          "status": "scripting",
-          "statusNote": "完全重制中（2026-10-01 清场重建）：同 slug rm→scaffold（story 档、骨架原生当代）；信源切 C 型 gl-notes（011 gen2 冻结 @192ae6ca95db）+ 原型双 selftest 复算升【一】；目标 17 分钟完整版（8 幕，M1–M7 全四拍 + §19 规律争议收口）",
+          "status": "final-review",
+          "statusNote": "完全重制 v1 终渲待审（2026-10-02，011 gen2 C 型信源·story 档·零跨域剧场）：15:05.69 = 27171 帧 @30fps · 1920×1080（ffprobe 905.69s 与帧复算一致）；156 句 4554 字 story 段落演绎（78 块情绪台本，实测校准 302 字/分含时距）；八幕 66 镜；archify 48 图 105 章逐章录制 106 cue · 锚定 67.9% · 7.0 cue/分 · 5 图型；⑨ 视觉抽查修复 2-I 消融镜整镜遮盖；check_series/覆盖门/tsc/qa --check 全 FAIL 0；交付 ~/Documents/video/context-layer/拆解 Horizon Context：含义怎么治理、答案怎么可信 v1.mp4（96.9MB）",
           "voice": "story 段落演绎（me-bright 系 + cues.toml 台本）"
         },
         {

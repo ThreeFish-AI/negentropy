@@ -4,18 +4,19 @@ Context Layer 系列第 1 集。Snowflake Horizon Context（受治理上下文�
 （语义视图双不变量 / 行列级策略 / 语义级治理 / 验证锚定 VQR / 列级血缘 / Agent Identity / 分类纳管）
 逐件「讲机制 + 走查 + 拆掉一次」——零跨域剧场，gen2 白话直讲教学法（C 型信源直通承接）。
 
-> **交付状态**：⑦ TTS 合成中（本 README 数据槽随 ⑨⑩ 收口回填终值）。
+> **交付状态 v1 终渲待审**（2026-10-02）：15:05.69 = 27171 帧 @30fps · 1920×1080（ffprobe 与帧复算逐位一致）· 96.9MB；
+> 归档 `~/Documents/video/context-layer/拆解 Horizon Context：含义怎么治理、答案怎么可信 v1.mp4` + `v1_captions/`。
 
 ## 结构
 
-- **八幕 156 句**（估算 17.9 分钟 @story 254 字/分，窗 [16.0, 18.0]）：P0 三个症状一个病根 →
+- **八幕 156 句**（实测全片 15:05.69，首轮校准窗 [14.0, 16.3]；story 块合成实测 302 字/分含时距）：P0 三个症状一个病根 →
   P1 七机制地图 → P2 口径与现算（M1）→ P3 规则与执法（M2+M3）→ P4 背书与血缘（M4+M5）→
   P5 身份与纳管（M6+M7）→ P6 供给与生态 → P7 规律与边界
 - **story 段落演绎配音**：me-bright 声音克隆 + `script/narration.cues.toml` 导演台本（78 块情绪 + 7 句表演标点）
 - **视觉母题**：「同一份定义单」金描边定义卡全片同形〔M-001〕——P0 空卡座缺席 → P2 注册 →
   P3 挂策略扣件 → P4 签名盖章 → P7 满屏回照；色彩契约 金=口径 / 紫=治理 / 青=验证
-- **archify 图例**：48 图 105 章 107 cue 全屏独占逐章回放，句级锚定 68.6%，5 图型；红绿消融同屏
-  演尽 D 系列破坏实验（左崩溃右拦截），证据徽三级（虚线=厂商自报/实线=第三方/实心=本仓复算）
+- **archify 图例**：48 图 105 章逐章录制 106 cue 全屏独占回放，句级锚定 67.9% · 7.0 cue/分 · 5 图型；
+  红绿消融同屏演尽破坏实验（左崩溃右拦截，⑨ 视觉抽查修复 2-I 整镜遮盖一例），证据徽三级
 
 ## 信源（C 型 · guided-learn gen2 直通承接）
 
@@ -57,9 +58,9 @@ uv run --no-project $T/scripts/pipeline.py --project <P> render --final && capti
 - [x] selftest 复算 diff 双零 · 穿透 126 条 MISS 0
 - [x] build/④ RISKY=0/⑤ 评审 REWRITE=0 · --pre-tts FAIL 0 WARN 0 · 多音字语义未标注 0
 - [x] tsc 零错 · archify 覆盖门 107 cue/68.6%/5 型 FAIL 0（WARN 16=叙事性章序重组+登记豁免）
-- [ ] ⑦ manifest 句数=156 · 首轮语速校准（>3% 偏差回写 chars_per_min）
-- [ ] ⑨ qa --check FAIL 0 + 全幕逐 scene + beat-heads + 全分辨率目检
-- [ ] ⑩ 终渲时长窗实测 + captions + deliver 归档
+- [x] ⑦ manifest 156 句全成 · 首轮校准回写 302 字/分 + 窗 [14.0, 16.3]（story 块合成消除块内停顿）
+- [x] ⑨ qa --check 五项 FAIL 0 WARN 0 · 八幕逐 scene FAIL 0 · beat-heads 91 帧 · 四帧视觉抽查（修复 2-I）
+- [x] ⑩ 终渲 15:05.69 落窗（ffprobe 905.69s 与 27171 帧÷30 双口径一致）· captions srt/vtt · deliver v1 + 字幕随片归档
 
 ## 重制差异（vs v6.1 旧版）
 
@@ -67,9 +68,9 @@ uv run --no-project $T/scripts/pipeline.py --project <P> render --final && capti
 |---|---|---|
 | 信源 | 旧 011（797 行·类比剧场） | 011 gen2 冻结 @192ae6ca9（548 行·白话直讲）+ 穿透复算 |
 | 叙事 | 七幕类比剧场（天才实习生/大厦） | 八幕零剧场，机制四拍（术语→机制→走查→拆掉） |
-| 配音 | sunny-steady 稳态 | story 段落演绎（78 块情绪台本） |
+| 配音 | sunny-steady 稳态 | story 段落演绎（78 块情绪台本，302 字/分实测） |
 | 数字 | 200:3（承笔记混编） | 200:5（lab 实测口径 + 勘误登记） |
-| 图例 | 67 图 156 cue 83.4% | 48 图 107 cue 68.6%（剧场词图 10+ 张退役） |
+| 图例 | 67 图 156 cue 83.4% | 48 图 106 cue 67.9%（剧场词图 10+ 张退役） |
 | ⑧ 装置 | devices.tsx 剧场母图 | 装置层 13 件（定义卡母题/红绿消融/基线标尺…） |
 
 ## C 型首例偏差记录（to-video 01 §C）
