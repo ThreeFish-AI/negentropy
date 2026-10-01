@@ -9,8 +9,12 @@
 slug = "agent-skills-video"
 
 [narration]
-# 时长窗对齐系列惯例（旧 v2 成片 13:03 / E3 13:57；story 档 254 字/分 → 预算 ~3430 字）。
+# 时长窗对齐系列惯例（旧 v2 成片 13:03 / E3 13:57）。
+# 语速校准（2026-10-01 实测）：story 档裸语速 349 字/分（+37% vs 机制默认 254），
+# duration-factor 1.15 → 实测等效 ~304 字/分；3678 字 ≈ 12.1 分纯语音 + ~0.8 分停顿
+# ≈ 12.9 分，窗内。tts 显式传 duration-factor（入缓存摘要=全片同速重录）。
 target_minutes = [12.5, 14.5]
+chars_per_min = 285
 
 [archify]
 # 230 精读伴生双图（C 型直通承接）。源图 = archify 3.0 产物（无 guided-views 模块，

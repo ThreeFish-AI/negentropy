@@ -128,7 +128,7 @@ export const ARCHIFY = {
   },
   "lifecycle": {
     "slug": "lifecycle",
-    "type": "workflow",
+    "type": "lifecycle",
     "chapters": [
       {
         "id": "lc-discover",
