@@ -31,9 +31,11 @@ export const theme = {
   sans: "'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', sans-serif",
   mono: "'SF Mono', 'Menlo', 'JetBrains Mono', monospace",
 
-  // ── 本集概念色（知识的港口剧场，2026-09-26 定稿）──
-  // 引航青=港口/台账/规范层；货签粉=知识箱/内容物；警示金=边界与悬案。
-  concept: '#45DFFF',
-  conceptDeep: '#FF7A9E',
-  deny: '#FFC85C',
+  // ── 本集概念色（刻意做小篇，2026-10-01 定稿）──
+  // 账本金=三级记账/账本数字/目录常驻行（经济学核心）；
+  // 门牌靛=身份与路由信号（name/description、门牌、招牌、目录行文字）；
+  // 年检紫=制度与治理面（规范、校验、分歧表、守门哲学）。
+  concept: '#F2B33D',
+  conceptDeep: '#6D8BFF',
+  deny: '#A88BE8',
 } as const;

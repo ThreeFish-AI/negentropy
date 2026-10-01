@@ -9,11 +9,22 @@
 slug = "agent-skills-video"
 
 [narration]
-# TODO：按本集选题与语速预算填写。口径提示——280 字/分是**含停顿的等效**口径，
-# 裸按字数算会高估约 12% 的句容量，双口径门以 manifest 实测为准。
-# story 档实测语速 ~318 字/分（280 为 sunny 档含停顿口径）；窗取 series 上限 15.6，
-# 实测口径按 manifest 复核（首版 3852 字 → 12.1 分校准得出 318）。
-target_minutes = [13.0, 15.6]
+# 时长窗对齐系列惯例（旧 v2 成片 13:03 / E3 13:57；story 档 254 字/分 → 预算 ~3430 字）。
+target_minutes = [12.5, 14.5]
+
+[archify]
+# 230 精读伴生双图直通承接（C 型）：html_dir 锚定仓库根（非 $P），零拷贝 SSOT；
+# pattern 只命中 agent-skills-std-lifecycle / agent-skills-std-dual-track 两张
+# （不会误扫旧 agent-skills--* 前缀 19 图）。两图集密度结构性低于多图集（E3 5.7/分），
+# 地板先给保守可跑值，Stage ⑥ storyboard 定稿后按覆盖门实测值下 ~10-15% 回填。
+html_dir = "docs/assets/architecture/agent-infra"
+html_pattern = "agent-skills-std-{slug}.html"
+forbid_inset = true
+min_diagrams = 2
+min_cues = 12
+min_cues_per_minute = 0.9
+min_diagram_types = 2
+min_anchor_ratio = 0.10
 
 [tts]
 engine = "indextts"
@@ -26,16 +37,3 @@ style = "story"
 # story 档（默认）＝段落演绎：同幕连续句按块合成、块间情绪由配音台本驱动。
 # 台本（可选）：script/narration.cues.toml——写稿阶段产出，见 $T/references/VOICE-CLONING.md §4.5。
 # 重制存量集（旧档 → story）须显式 --allow-voice-switch 并补写台本。
-
-[archify]
-# 19 图（17 新绘 + 2 复用 210 运行相/治理相），全部 agent-skills-- 前缀走约定；
-# 章节清单见 video/public/archify/views/。阈值为分镜实测（58 cue · 锚定 50.9% · 密度 4.2/分）
-# 下方 10–15% 回填；覆盖门 check 自动串联。
-html_dir = "docs/assets/architecture/agent-infra"
-html_pattern = "agent-skills--{slug}.html"
-forbid_inset = true
-min_diagrams = 16
-min_cues = 50
-min_cues_per_minute = 3.6
-min_diagram_types = 5
-min_anchor_ratio = 0.43

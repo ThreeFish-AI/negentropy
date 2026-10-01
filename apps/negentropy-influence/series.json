@@ -306,23 +306,24 @@
           "episode": 1,
           "slug": "agent-skills-video",
           "path": "episodes/agent-skills-video",
-          "title": "知识的集装箱：Agent Skills 开放标准",
-          "topic": "Agent Skills：一个文件夹怎么成了行业标准",
-          "cardSub": "开放标准 · 知识打包",
+          "title": "刻意做小：Agent Skills 开放标准",
+          "topic": "Agent Skills：一个刻意做小的知识打包标准",
+          "cardSub": "开放标准 · 按使用付费",
           "accents": [
-            "#45DFFF",
-            "#FF7A9E"
+            "#F2B33D",
+            "#6D8BFF",
+            "#A88BE8"
           ],
           "source": {
-            "title": "Agent Skills 重学精读 + 最小原型（docs/research/agent-infra/210 @ 72a657351）+ 上游规范与参考实现",
+            "title": "Agent Skills 开放标准三代重读精读（docs/research/agent-infra/230 @ 本分支 d7c651f9f，C 型信源）+ agentskills/agentskills 全站 9 页源码级 @ 69ef37e9",
             "site": "https://agentskills.io/specification",
             "repo": "https://github.com/agentskills/agentskills",
             "pinnedRef": "69ef37e9",
             "license": "CC-BY-4.0（文档）/ Apache-2.0（代码）；本仓精读为内部文档",
-            "accessed": "2026-09-26"
+            "accessed": "2026-09-30"
           },
-          "status": "final-review",
-          "statusNote": "v1 终渲待审（2026-09-28）：13:03.4 = 23502 帧 @30fps / 1920×1080（119 句 4191 字，复算式与 mdls 逐位一致）；七幕 41 镜 · archify 19 图（17 新绘 + 2 复用 210）63 章 64 cue 逐章回放 · 锚定 53.8% · 图型 5 · 密度 4.9/分 · 最长无锚 6 句；信源 24 条（210/211/lab2 @72a657351 + 上游 @69ef37e9 + 生态四家 + PR 三提案）；story 段落演绎档（24 块相邻换情绪 + 表演标点，服务自愈重启一次）；④ RISKY=0 REWRITE=0 + ⑤ 成文优化 15 处（评审 7.5/10 起）；机器门全绿：check_series/build/check/--check-scenes/check_archify/复述门/tsc/qa --check 尾幕/beat-heads/WCAG(11.9:1) 全 FAIL 0 + 亮度扫描 102 帧零暗段 + 目视 7 帧；外挂字幕已交付 _captions/；旧 v1《经验淬炼成手册》成片保留归档",
+          "status": "draft",
+          "statusNote": "230 换代原位重制（第三代精读成片，Stage 0 建集）：v2《知识的集装箱》(13:03) 与 v1《经验淬炼成手册》(15:25) 成片保留归档 ~/Documents/video/agent-infra/，源码经 git 历史可溯",
           "voice": "story 段落演绎档 + me-bright.wav"
         },
         {
