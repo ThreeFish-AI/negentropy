@@ -18,7 +18,7 @@ chars_per_min = 285
 
 [archify]
 # 230 精读伴生双图（C 型直通承接）。源图 = archify 3.0 产物（无 guided-views 模块，
-# 录制器不可直录）；本集用 .temp/e1-patch-archify-html.py 从 docs 原件拷贝并注入
+# 录制器不可直录）；本集用 scripts/patch-archify-html.py 从 docs 原件拷贝并注入
 # 精简 guidedViews 兼容层（组合 3.0 原生 focus.set/view.reveal/view.centerAt），
 # 落本集 html/——docs 原件（SSOT）不动。重跑注入器即幂等重建。
 html_dir = "apps/negentropy-influence/episodes/agent-skills-video/video/public/archify/html"
