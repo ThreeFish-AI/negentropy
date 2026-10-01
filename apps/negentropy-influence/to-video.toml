@@ -187,3 +187,15 @@ episode = "claude-code-multiagent-video"
 path = "video/remotion.config.ts"
 fingerprint = "cdc1b4788cca"
 reason = "V3D：angle 后端（同 EP1 条目）"
+
+[[skeleton.drift]]
+episode = "agent-skills-video"
+path = "video/pnpm-workspace.yaml"
+fingerprint = "0e62d7e2af2a"
+reason = "remotion 全家桶追新 4.0.529→4.0.532（2026-10-01）时 pnpm 12.2 自动追加 minimumReleaseAgeExclude 清单（29 个 @remotion/* 精确版本），其余段与模板逐字一致；撤销条件=模板吸收该机制或回退 4.0.529"
+
+[[skeleton.drift]]
+episode = "agent-skills-video"
+path = "video/package.json"
+fingerprint = "6cce7fafb405"
+reason = "remotion 全家桶 4.0.529→4.0.532（2026-10-01 同 major 整组追新，npm view 4.0.532 为当日最新）；verify_skeleton 未报本文件（seeded 渲染件），此条为版本基线留痕"

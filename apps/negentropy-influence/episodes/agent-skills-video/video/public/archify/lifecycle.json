@@ -1,0 +1,159 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 26.05,
+ "total_wall_sec": 118.54,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "lc-discover",
+   "label": "发现",
+   "index": 0,
+   "file": "lifecycle--lc-discover.mp4",
+   "end_still": "lifecycle--lc-discover-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "discover"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "lc-load",
+   "label": "宽容装载",
+   "index": 1,
+   "file": "lifecycle--lc-load.mp4",
+   "end_still": "lifecycle--lc-load-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.48,
+   "story_sec": 3.27,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "loadp"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 63.0
+  },
+  {
+   "id": "lc-catalog",
+   "label": "目录常驻",
+   "index": 2,
+   "file": "lifecycle--lc-catalog.mp4",
+   "end_still": "lifecycle--lc-catalog-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "catalog"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "lc-activate",
+   "label": "激活",
+   "index": 3,
+   "file": "lifecycle--lc-activate.mp4",
+   "end_still": "lifecycle--lc-activate-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "activate"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "lc-execute",
+   "label": "按需执行",
+   "index": 4,
+   "file": "lifecycle--lc-execute.mp4",
+   "end_still": "lifecycle--lc-execute-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "execute"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 71.0
+  },
+  {
+   "id": "lc-compact",
+   "label": "压缩保护",
+   "index": 5,
+   "file": "lifecycle--lc-compact.mp4",
+   "end_still": "lifecycle--lc-compact-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "compact"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "lc-strict",
+   "label": "严格校验",
+   "index": 6,
+   "file": "lifecycle--lc-strict.mp4",
+   "end_still": "lifecycle--lc-strict-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.28,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "strict"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "lc-inject",
+   "label": "注入防御",
+   "index": 7,
+   "file": "lifecycle--lc-inject.mp4",
+   "end_still": "lifecycle--lc-inject-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "inject"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 62.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/vancouver-v3/apps/negentropy-influence/episodes/agent-skills-video/video/public/archify/html/lifecycle.html",
+ "slug": "lifecycle",
+ "type": "workflow"
+}

@@ -1,0 +1,159 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 25.95,
+ "total_wall_sec": 109.95,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "dt-spec",
+   "label": "规范面",
+   "index": 0,
+   "file": "dual-track--dt-spec.mp4",
+   "end_still": "dual-track--dt-spec-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "spec"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 65.0
+  },
+  {
+   "id": "dt-strict",
+   "label": "校验轨道",
+   "index": 1,
+   "file": "dual-track--dt-strict.mp4",
+   "end_still": "dual-track--dt-strict-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "val"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 62.0
+  },
+  {
+   "id": "dt-lenient",
+   "label": "装载轨道",
+   "index": 2,
+   "file": "dual-track--dt-lenient.mp4",
+   "end_still": "dual-track--dt-lenient-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "guide"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 62.0
+  },
+  {
+   "id": "dt-ext-a",
+   "label": "扩展·Claude Code",
+   "index": 3,
+   "file": "dual-track--dt-ext-a.mp4",
+   "end_still": "dual-track--dt-ext-a-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "ext1"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "dt-ext-b",
+   "label": "扩展·claude.ai",
+   "index": 4,
+   "file": "dual-track--dt-ext-b.mp4",
+   "end_still": "dual-track--dt-ext-b-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.27,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "ext2"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "dt-ext-c",
+   "label": "扩展·Codex",
+   "index": 5,
+   "file": "dual-track--dt-ext-c.mp4",
+   "end_still": "dual-track--dt-ext-c-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.21,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "ext3"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 62.0
+  },
+  {
+   "id": "dt-eco",
+   "label": "生态登记",
+   "index": 6,
+   "file": "dual-track--dt-eco.mp4",
+   "end_still": "dual-track--dt-eco-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "eco"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "dt-gate",
+   "label": "守门哲学",
+   "index": 7,
+   "file": "dual-track--dt-gate.mp4",
+   "end_still": "dual-track--dt-gate-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "gate"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 62.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/vancouver-v3/apps/negentropy-influence/episodes/agent-skills-video/video/public/archify/html/dual-track.html",
+ "slug": "dual-track",
+ "type": "workflow"
+}
