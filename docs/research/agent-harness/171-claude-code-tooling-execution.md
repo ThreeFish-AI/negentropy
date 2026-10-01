@@ -237,7 +237,7 @@ def trigger_hooks(event, *args):
 
 ## 8. 动手实验室
 
-原型两份同源：仓库资产版 [`assets/cc_tools_lab.py`](./assets/cc_tools_lab.py)（长期保存）与 `.temp` 实验室版（随清理消失）。纯标准库、确定性 mock 模型、虚拟文件系统——材料里的模型角色全部脚本化替代，原型回答「机制是否自洽」，不回答「模型是否聪明」。运行：`uv run --no-project python docs/research/agent-harness/assets/cc_tools_lab.py --selftest`（全场景断言）或 `--exp 1..5` / `--pred t4|t5|gates`，产物落 `.lab_out/`。
+原型两份同源：仓库资产版 [`assets/cc_tools_lab.py`](./assets/cc_tools_lab.py)（长期保存）与 `.temp` 实验室版（随清理消失）。纯标准库、确定性 mock 模型、虚拟文件系统——材料里的模型角色全部脚本化替代，原型回答「机制是否自洽」，不回答「模型是否聪明」。运行：`uv run --no-project python docs/research/agent-harness/assets/cc_tools_lab.py --selftest`（全场景断言）或 `--exp 1..5` / `--pred t4|t5|gates`，产物落脚本旁 `.lab_out/`（与仓内其他 lab 同口径，不随执行目录漂移）。
 
 机制 → 代码行号速查（`cc_tools_lab.py` 资产版）：
 

@@ -8,7 +8,7 @@ shareAI-lab/learn-claude-code main @ ce8f9f18（MIT）。
 它回答「机制是否自洽」，不回答「模型是否聪明」：LLM 角色全部用确定性
 脚本化序列（MockModel）替代；bash 在虚拟文件系统（VFS）上模拟执行，
 不触碰真实 shell。同一命令永远同一日志（无随机、无时间）。
-运行产物写入当前目录 .lab_out/。
+运行产物写入脚本所在目录旁的 .lab_out/。
 
 层级：s01 循环 → s02 查表分发 → s03 三闸门 → s04 钩子注册表。
 用法：--selftest 全场景断言；--exp 1..5 破坏性实验；--pred t4/t5/gates 实跑。
@@ -293,7 +293,9 @@ def selftest():
     run_agent(vfs, model, answers, log, messages=messages)
     out = "\n".join(log)
     print(out)
-    import os; os.makedirs(".lab_out", exist_ok=True)
+    from pathlib import Path
+    out_dir = Path(__file__).resolve().parent / ".lab_out"   # 与 cc_harness_lab/ai_native_lab 同口径：产物落脚本旁
+    out_dir.mkdir(exist_ok=True)
     # 断言：正常路径（写/读放行）、陷阱路径（sudo 拒绝）、边缘路径（rm 规则命中问用户且 y）
     assert any("GATE2->3" in l and "ALLOW" in l for l in log), "规则命中应问用户"
     assert any("GATE1 DENY" in l and "sudo" in l for l in log), "sudo 应被硬拒绝"
@@ -315,7 +317,7 @@ def selftest():
     vfs2, model2, answers2 = scenario(log2)
     run_agent(vfs2, model2, answers2, log2, messages=[{"role": "user", "content": "帮我整理工作区：写季度摘要、读 README、清掉 scratch 草稿。"}])
     assert log2 == log, "两次运行日志应完全一致（确定性）"
-    with open(".lab_out/messages.json", "w") as f:
+    with open(out_dir / "messages.json", "w") as f:
         json.dump(messages, f, ensure_ascii=False, indent=1)
     print("SELFTEST PASSED ✔")
 
@@ -455,18 +457,18 @@ def exp5():
 
 # --------- 预测题实跑 ---------
 def pred_t4():
-    """T4 同构走查：write_file(工作区内) + bash(rm -rf ./scratch/notes)。"""
+    """T4 同构走查：write_file(工作区内) + bash(rm -rf ./tmp/build-cache)，命令与笔记 §5/§6 对账。"""
     print("== T4 走查实跑 ==")
     log: list[str] = []
-    vfs = VFS({"/workspace/scratch/notes/one.txt": "1", "/workspace/scratch/notes/two.txt": "2"})
+    vfs = VFS({"/workspace/tmp/build-cache/one.txt": "1", "/workspace/tmp/build-cache/two.txt": "2"})
     VFS._current = vfs
     model = MockModel([
         {"content": [tool("write_file", "w1", path="report/summary.txt", content="Q3 summary"),
-                     tool("bash", "b1", command="rm -rf ./scratch/notes")], "stop_reason": "tool_use"},
+                     tool("bash", "b1", command="rm -rf ./tmp/build-cache")], "stop_reason": "tool_use"},
         {"content": [text_block("done")], "stop_reason": "end_turn"},
     ])
     msgs = run_agent(vfs, model, ["y"], log,
-                     messages=[{"role": "user", "content": "清理 scratch/notes 并写季度摘要。"}])
+                     messages=[{"role": "user", "content": "清理 tmp/build-cache 并写季度摘要。"}])
     print("\n".join(log))
     print(f"VFS 终态: {sorted(vfs.files)}")
     return log
