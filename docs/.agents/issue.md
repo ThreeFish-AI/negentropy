@@ -4328,11 +4328,11 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **后续防范**：幕内「全局收尾层」（渐黑/完结语/水印类）必须悬于该幕所有 Sequence 之后——评审清单加一条「收尾层层级对账」；**跨 Sequence 移动带 hooks 的层时，`useCurrentFrame` 语境随宿主变，窗口类 hooks 必须与消费点同语境**（组件化而非内联搬运）；目检必抽末 1 秒（亮度门盲区）。
 - **同类问题影响**：五集其余 P6 已逐一核过（渐黑窗均取整镜时长、无同形态）；ep1–ep4 末镜顶层无满亮常驻卡。
 
-## ISSUE-206 ep1 checkchain-order 图 scan-claim 章录制帧率 17.0 < 18（2026-09-30，开放）
+## ISSUE-206 ep1 checkchain-order 图 scan-claim 章录制帧率 17.0 < 18（2026-09-30，随 ep1 重制失效关闭 2026-10-02）
 
 - **表因**：`video/public/archify/checkchain-order.json` chapters[1] capture_fps=17.0，五集其余 59 图全部 ≥23；check_archify 仅 WARN 不拦门。
 - **根因**：录制期负载瞬时退化（ISSUE-201 同期建图批次），CDP 档补帧合成 CFR25 掩盖了低采集率。
-- **处理方式（待办）**：空闲机 `record_archify.py --only checkchain-order --force` 重录（先按惯例排除负载瞬时假 FAIL），再重渲引用该章的幕并重新归档。
+- **处理方式**：随 ep1 完全重制（新题《工具与执行：一个循环，三层外设》）失效关闭——checkchain-order 图已整体退役删除（新图集 13 新绘＋five-layer 复用），重录待办不再适用；CHANGELOG 同批登记「ISSUE-206 的 ep1 侧随重制关闭」。
 - **后续防范**：录制后对 capture_fps 做「min ≥18」门（当前仅 WARN）；重录前先单帧 still 判别资源态。
 - **同类问题影响**：仅此一章；五集其余图帧率健康。
 

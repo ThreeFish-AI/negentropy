@@ -125,7 +125,7 @@
             "accessed": "2026-10-01"
           },
           "status": "final-review",
-          "statusNote": "完全重制 v1 交付（2026-10-02，替换 2026-09-30 工坊剧场版——旧成片《三层装置》v1/v2 归档保留）：13:17.0 = 797s @1080p30（时长窗 [13.0,14.6] 实测落窗；ffprobe 双源一致 797.013s=23910 帧复算）；141 句 3326 字（df=1.24 慢速档实测 250 字/分覆写——⑤ 成文短促句式裸跑 332 字/分致 10.9 分超窗，duration_factor 调回系列口径）；story 档配音（me-bright 克隆 + 58 块 cues 台本 + seed 4242，p5-14 块拆分消分段缝）；archify 13 图（12 新绘+five-layer 复用）67 章逐章回放（cue 62 · 锚定 44% · 5 型 · 密度 4.7/分 · capture_fps 最低 18.0）；机器门全绿：check_series/check FAIL 0（2 条 by-design 叙事重组逆序 WARN）/tsc 零错/motion 15:15/qa 七幕+尾幕+beat 头部全 FAIL 0/全片抽样 8 帧+末秒逐帧目检过（渐黑收尾正确）；归档 ~/Documents/video/claude-code-explained/ v1 + _captions（srt/vtt）",
+          "statusNote": "完全重制 v1 交付（2026-10-02，替换 2026-09-30 工坊剧场版——旧成片《三层装置》v1/v2 归档保留）：13:17.0 = 797s @1080p30（时长窗 [13.0,14.6] 实测落窗；ffprobe 双源一致 797.013s=23910 帧复算）；141 句 3326 字（df=1.24 慢速档实测 250 字/分覆写——⑤ 成文短促句式裸跑 332 字/分致 10.9 分超窗，duration_factor 调回系列口径）；story 档配音（me-bright 克隆 + 55 块 cues 台本 + seed 4242，tts 自动分段 +2＝57 合成段；p5-14 拆块已入台本、待下次 TTS 生效）；archify 14 图（13 新绘+five-layer 复用）67 章逐章回放（cue 62 · 锚定 44% · 5 型 · 密度 4.7/分 · capture_fps 最低 18.0）；机器门全绿：check_series/check FAIL 0（2 条 by-design 叙事重组逆序 WARN）/tsc 零错/motion 15:15/qa 七幕+尾幕+beat 头部全 FAIL 0/全片抽样 8 帧+末秒逐帧目检过（渐黑收尾正确）；归档 ~/Documents/video/claude-code-explained/ v1 + _captions（srt/vtt）",
           "voice": "story + me-bright.wav"
         },
         {

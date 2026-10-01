@@ -12,7 +12,7 @@
 > **archify 资产档位**：全屏独占（`forbid_inset`，无画中画）——播放期自制装置让位或空窗句回落自制卡；章节数据＝录制 SSOT，见 [../video/public/archify/views/](../video/public/archify/views/)；cue 纪律：一章锚一句（`at('句id')` + `dur('同句id')` 单参），同锚句双 cue 即 FAIL，跨实例背靠背（含镜界切换）后挂实例须 `lead={false}`。
 > ⚠️ 动效列与一切散文**禁写**画面列那套档位字面标注；`@动词` 只用 [motion/hooks.ts](../video/src/motion/hooks.ts) 实存模型，判据＝本镜 `<Sequence>` 内由本幕 scene 自身定义的装置调用了该 `useXxx(`（`components/` 内装置承担者一律散文点名，不产生 token）。
 
-## 图集预算表（13 图＝12 新绘＋1 复用；5 型；67 章＝cue 计划 62，锚定率 62/141≈0.44 ≥ 0.30，密度 ≈4.7/分 ≥ 3.0——时长按 13.1 分预估，以 manifest 实测为准）
+## 图集预算表（14 图＝13 新绘＋1 复用；5 型；67 章＝cue 计划 62，锚定率 62/141≈0.44 ≥ 0.30，密度 ≈4.7/分 ≥ 3.0——时长按 13.1 分预估，以 manifest 实测为准）
 
 | # | slug（落 `docs/assets/architecture/agent-harness/claude-code--<slug>.html`） | 型 | 服务幕/句段 | 章 |
 | --- | --- | --- | --- | --- |
@@ -31,7 +31,7 @@
 | 13 | four-version-ledger | lifecycle | P5 四版对账（p5-09..13） | 5 |
 | 复用 | five-layer-dependency（html_overrides） | architecture | P6 系列身份卡（p6-01/09） | 3 |
 
-> 型多样性＝workflow×3 / architecture×3 / lifecycle×5 / sequence×2 / dataflow×2 ＝ 5 型 ≥ 5（sidecar 顶层 `type` 已预置随录制落盘）。four-version-ledger 的 `v2-table` 章仅在 P5 引用（P2 的「执行行」句用自制代码卡对切，避免同图章跨幕回放乱序）；`human-relay·your-hands`、`gate-four-result·override`、`five-layer·read-two-books` 三章本集不引用（章比 62/67≈0.93 ≥ 0.30）。
+> 型多样性＝workflow×3 / architecture×3 / lifecycle×5 / sequence×2 / dataflow×2 ＝ 5 型 ≥ 5（sidecar 顶层 `type` 已预置随录制落盘）。four-version-ledger 的 `v2-table` 章仅在 P5 引用（P2 的「执行行」句用自制代码卡对切，避免同图章跨幕回放乱序）；`human-relay·your-hands`、`gate-four-result·override`、`five-layer·read-two-books`、`dispatch-table·order-in`、`dispatch-table·feed-back` 五章本集不引用（章比 62/67≈0.93 ≥ 0.30）。
 
 ## P0 失忆的医生（p0-01..15）→ `scenes/P0ForgetfulDoctor.tsx`
 
@@ -50,7 +50,7 @@
 | 1-B | p1-07..10 | 病历本两署名：p1-09 句让位 ·**archify full**：intake-loop 章 `two-signatures` · 其余句回落自制——病历本特写（两栏表头「问方／答方」逐条落字；科室报告卡片无署名栏、被贴进问方栏瞬间 `mech` 青高亮）；角标 `tool_result → user 信封` | 落字逐条 `useReveal`（mono）；贴栏瞬间一次性强调 `useImpulse`（mech）；p1-09 由 ArchifyRecap 主控；`@reveal` `@impulse` |
 | 1-C | p1-11..12 | 判停分屏：p1-11 句让位 ·**archify full**：intake-loop 章 `order-or-done`+`discharge-return` · p1-12 句让位 ·**archify full**：intake-loop （discharge-return）（同图相邻两章，单实例内自动抑制）；自制判停刻度收尾（环上「开单→转／没单→停」两态拨杆）；角标：看内容块（画内呈现） | 两章连播（单实例内自动抑制）；拨杆两态翻转 `useSpring`（局部帧）；`@spring` |
 | 1-D | p1-13..15 | 流式坑：p1-13 句让位 ·**archify full**：stop-reason-race 章 `stream-order` · p1-14..15 回落自制——传真纸页逐页吐出动画（单子先落盘、盖章标记迟迟未到，`dim` 灰纸页＋迟到标记 `deny` 红闪）；角标 `流式=逐段输出` | 纸页吐出 `useStagger`（scene 传真装置）；迟到标记红闪 `useImpulse`（deny）；p1-13 由 ArchifyRecap 主控；`@stagger` `@impulse` |
-| 1-E | p1-16..20 | 实验 1 对照：p1-16 自制实验封条卡（「破坏性实验 · 1」mono 徽标）→ p1-17 句让位 ·**archify full**：stop-reason-race 章 `stop-late`+`block-live`+`verdict`+`stop-die` · p1-18 句让位 ·**archify full**：stop-reason-race （block-live） · p1-19 回落自制双轨小卡（旧页／新码两卡对切）· p1-20 句让位 ·**archify full**：stop-reason-race （verdict） · 金句「看内容 · 不看迟到的标记」不设卡（口播已收束，图内承担）；角标 `1 轮 0 工具 vs 3 轮 2 工具` | 封条卡落下 `useEnter:fall`；同图三段连播（单实例内自动抑制）；双轨小卡对切 `useStagger`；`@enter:fall` `@stagger` |
+| 1-E | p1-16..20 | 实验 1 对照：p1-16 前半自制实验封条卡（「破坏性实验 · 1」mono 徽标）→ p1-16 句尾让位 ·**archify full**：stop-reason-race 章 `stop-late` · p1-17 句让位 ·**archify full**：stop-reason-race 章 `stop-die` · p1-18 句让位 ·**archify full**：stop-reason-race （block-live） · p1-19 回落自制双轨小卡（旧页／新码两卡对切）· p1-20 句让位 ·**archify full**：stop-reason-race （verdict） · 金句「看内容 · 不看迟到的标记」不设卡（口播已收束，图内承担）；角标 `1 轮 0 工具 vs 3 轮 2 工具` | 封条卡落下 `useEnter:fall`；同图四段连播（单实例内自动抑制，stop-late/stop-die 分锚 p1-16 尾/p1-17 避同锚句双 cue）；双轨小卡对切 `useStagger`；`@enter:fall` `@stagger` |
 | 1-F | p1-21..23 | 生产版对照（自制卡）：千行级文件示意（大矩形虚化＋「千行级」角标，**不引具体行数**）内一小段循环内核高亮「三十来行」；四周保护壳图标阵列（超时／报错／中止／停机）；归属角标「对外拆解口径」 | 大矩形淡入 `useEnter:fade`；内核段高亮 `useImpulse`；保护壳图标阵列 `useStagger`；`@enter:fade` `@impulse` `@stagger` |
 | 1-G | p1-24..26 | 交棒：行数尺第一格复亮＋医生位旁命令行卡片（拼查看／拼替换两条命令皱眉小脸）；p1-26 下一层剪影（开单表，mech 青）自右缘探入 | 命令行卡片抖动 `useSpring`（微幅）；开单表剪影探入 `useEnter:slideR`；`@spring` `@enter:slideR` |
 

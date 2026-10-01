@@ -127,9 +127,11 @@ export const P6Finale: React.FC<{scene: SceneRange}> = ({scene}) => {
   const t1 = useReveal('一张表 管它能干什么', {at: at('p6-03') - bA.from, cps: 9});
   const t2 = useReveal('一道关 管它能不能干', {at: at('p6-03') - bA.from + 14, cps: 9});
   const t3 = useReveal('一圈节点 管它何时说话', {at: at('p6-03') - bA.from + 28, cps: 9});
-  // 6-C：身份卡与下期卡入场
-  const enterId = useEnter('fade', {at: at('p6-09') - bC.from + 20, dur: DUR.f5});
-  const enterNext = useEnter('fade', {at: at('p6-09') - bC.from + 44, dur: DUR.f5});
+  // 6-C：身份卡与下期卡入场——本组件体 hooks 吃 P6 幕局部帧（勿减 bC.from），
+  // 且 p6-09 全句被 two-dark-zones archify 独占窗盖住，入场一律锚到 p6-10
+  // （画框卸载后）才可见：卡1 +8／卡2 +22，错峰在末幕渐黑起点（36 帧）前完成
+  const enterId = useEnter('fade', {at: at('p6-10') + 8, dur: DUR.f5});
+  const enterNext = useEnter('fade', {at: at('p6-10') + 22, dur: DUR.f5});
 
   return (
     <AbsoluteFill style={{opacity: fade}}>
@@ -214,7 +216,8 @@ export const P6Finale: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bC} name="6-C 系列身份与下期">
-        <SeriesBoard at={2} nextHint />
+        {/* 板错峰同样锚到 p6-10（archify 卸载后可见；at 为 bC 局部帧——子组件上下文） */}
+        <SeriesBoard at={at('p6-10') - bC.from + 2} nextHint />
         {/* 系列身份卡 → 下期卡：主段为规则 8 受检硬编码（见上方 RULE8_* 注释） */}
         <div
           style={{
