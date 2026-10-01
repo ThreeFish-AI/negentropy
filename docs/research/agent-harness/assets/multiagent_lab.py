@@ -148,7 +148,7 @@ def scan_unclaimed():
 def idle_poll(name, inject, wt_ctx=None):
     """一个空闲步：先信箱（关机立即回执退出），后看板（认领第一个）。
     返回 'work' / 'shutdown' / 'timeout'。"""
-    steps = POLL_STEPS if BREAK != "B5" else 10 ** 9   # B5：永不超时
+    steps = POLL_STEPS if BREAK != "B5" else POLL_STEPS * 10  # B5：超时没了（演示 120 步截断）
     for _ in range(steps):
         tick(IDLE_POLL_INTERVAL)
         inbox = read_inbox(name)
@@ -348,6 +348,10 @@ def selftest():
     check("批复后恢复", carol.drain_inbox(inject), "work")
     check("恢复后可干活", carol.tool_step(
         "bash", {"command": "ls"}, pool), "未知工具")
+    check("领 U 开工", carol.tool_step(
+        "claim_task", {"task_id": U["id"]}, pool), "认领")
+    check("完工 U 收单", carol.tool_step(
+        "complete_task", {"task_id": U["id"]}, pool), "完成")
 
     # 场景 5 · 权限门（s20 PreToolUse）
     check("黑名单拦截", carol.tool_step(
@@ -365,7 +369,9 @@ def selftest():
     V = create_task("改电路")
     check("建屋并绑定", create_worktree("electric", V["id"]), "建 electric")
     check("绑定不改状态", TASKS[V["id"]]["status"], "pending")
-    check("auto 领 V 进屋", idle_poll("erin", inject, {"path": None}), "work")
+    wt = {"path": None}
+    check("auto 领 V 进屋", idle_poll("erin", inject, wt), "work")
+    check("认领即切目录", str(wt["path"]), "electric")
     WORKTREES["electric"]["changes"] = 2
     check("有改动拒删", remove_worktree("electric"), "拒")
     check("强删成功", remove_worktree("electric", discard_changes=True), "删")
@@ -435,12 +441,12 @@ def run_break():
               f"重复否决回执 = {r3}；终态 = {PENDING[rid]['status']}\n"
               f"[B4] 教训：错类回执销错单、重复回执翻烧饼")
     elif BREAK == "B5":    # 拆空闲超时
-        create_task("占板任务")  # 有任务但先被领走，模拟无活
+        Z = create_task("占板任务"); claim_task(Z["id"], "zed")  # 两单皆有主，板上真空
         A = create_task("已领"); claim_task(A["id"], "zed")
         result = idle_poll("zed2", inject)
-        print(f"[B5] 改动：idle 轮询无超时上限\n"
+        print(f"[B5] 改动：idle 轮询无超时上限（演示在第 120 步截断，防不可终止）\n"
               f"[B5] 实测：板上无可领任务时 idle_poll 返回 = {result}；"
-              f"步进时钟走到 t={_tick}（基线 12 步即 timeout 收工）\n"
+              f"步进时钟走到 t={_tick}（基线 12 步/t=60 即 timeout 收工，拆掉后多转 10 倍仍不停）\n"
               f"[B5] 教训：没有超时纪律，空闲代理永不收工、白转到底")
     else:
         print("用法：--break B1|B2|B2v|B3|B4|B5"); sys.exit(2)
