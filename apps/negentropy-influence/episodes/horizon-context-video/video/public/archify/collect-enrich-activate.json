@@ -1,0 +1,73 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.0,
+ "story_sec": 9.11,
+ "total_wall_sec": 78.16,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "collect",
+   "label": "三路元数据汇聚",
+   "index": 0,
+   "file": "collect-enrich-activate--collect.mp4",
+   "end_still": "collect-enrich-activate--collect-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 4.63,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.206,
+    3.309
+   ],
+   "beat_nodes": [
+    "s1",
+    "s2",
+    "s3",
+    "c"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 48.0
+  },
+  {
+   "id": "activate",
+   "label": "排序后激活",
+   "index": 1,
+   "file": "collect-enrich-activate--activate.mp4",
+   "end_still": "collect-enrich-activate--activate-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 4.48,
+   "beat_offsets_sec": [
+    0.0,
+    1.107,
+    2.21,
+    3.313
+   ],
+   "beat_nodes": [
+    "r",
+    "a1",
+    "a2",
+    "a3"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 48.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/horizon-context--collect-enrich-activate.html",
+ "slug": "collect-enrich-activate",
+ "type": "dataflow"
+}

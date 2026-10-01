@@ -138,6 +138,15 @@ export const ARCHIFY = {
       {"id": "measured-440", "label": "实测 200 vs 440", "file": "fan-trap--measured-440.mp4", "endStill": "fan-trap--measured-440-end.png", "beats": 1, "leadSec": 0.44, "storySec": 1.0, "beatNodes": ["inflated300", "measured"]},
     ],
   },
+  "five-laws": {
+    "slug": "five-laws",
+    "chapters": [
+      {"id": "laws-overview", "label": "五规律总览", "file": "five-laws--laws-overview.mp4", "endStill": "five-laws--laws-overview-end.png", "beats": 2, "leadSec": 0.44, "storySec": 1.0, "beatNodes": ["fiveLaws", "overview"]},
+      {"id": "law-execution-half", "label": "执行半边与执行点", "file": "five-laws--law-execution-half.mp4", "endStill": "five-laws--law-execution-half-end.png", "beats": 2, "leadSec": 0.44, "storySec": 1.0, "beatNodes": ["defCommodity", "execPoint"]},
+      {"id": "law-two-insurance", "label": "双保险与冲突浮出", "file": "five-laws--law-two-insurance.mp4", "endStill": "five-laws--law-two-insurance-end.png", "beats": 2, "leadSec": 0.44, "storySec": 1.0, "beatNodes": ["registerCheck", "queryRecompute", "conflictSurface"]},
+      {"id": "law-trinity", "label": "声明背书审计三件套", "file": "five-laws--law-trinity.mp4", "endStill": "five-laws--law-trinity-end.png", "beats": 1, "leadSec": 0.44, "storySec": 1.0, "beatNodes": ["declare", "endorse", "audit"]},
+    ],
+  },
   "forced-query-intercept": {
     "slug": "forced-query-intercept",
     "chapters": [

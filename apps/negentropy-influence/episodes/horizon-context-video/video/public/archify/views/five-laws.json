@@ -1,0 +1,48 @@
+[
+ {
+  "id": "laws-overview",
+  "label": "五规律总览",
+  "focus": [
+   "execution-half",
+   "enforcement-point",
+   "register-gate",
+   "query-recompute",
+   "human-verdict",
+   "trusted-answer"
+  ],
+  "note": "五条规律一条线：差异化在执行半边，正确性靠双保险，可信靠配套。"
+ },
+ {
+  "id": "law-execution-half",
+  "label": "规律①② 执行与执法",
+  "focus": [
+   "commodity-layer",
+   "execution-half",
+   "enforcement-point"
+  ],
+  "note": "定义层已商品化，差异化全在执行半边；强制力来自执行点，不是定义点。"
+ },
+ {
+  "id": "law-two-insurance",
+  "label": "规律③④ 双保险与裁决",
+  "focus": [
+   "register-gate",
+   "query-recompute",
+   "majority-trap",
+   "conflict-surface",
+   "human-verdict"
+  ],
+  "note": "注册校验×查询重算，两道独立保险；冲突浮出人工裁决，不搞多数派投票。"
+ },
+ {
+  "id": "law-trinity",
+  "label": "规律⑤ 三件套",
+  "focus": [
+   "governed",
+   "endorsed",
+   "audited",
+   "trusted-answer"
+  ],
+  "note": "声明×背书×审计配套，缺一不可——单靠治理，477 vs 48 照样发生。"
+ }
+]

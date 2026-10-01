@@ -1,0 +1,108 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.0,
+ "story_sec": 18.86,
+ "total_wall_sec": 131.65,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "caliber-spine",
+   "label": "口径主线",
+   "index": 0,
+   "file": "component-panorama--caliber-spine.mp4",
+   "end_still": "component-panorama--caliber-spine-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 4.44,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.205,
+    3.308
+   ],
+   "beat_nodes": [
+    "ap",
+    "sv",
+    "gov",
+    "pol"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 27.0
+  },
+  {
+   "id": "consumer-feed",
+   "label": "消费端五路汇入",
+   "index": 1,
+   "file": "component-panorama--consumer-feed.mp4",
+   "end_still": "component-panorama--consumer-feed-end.png",
+   "beats": 6,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 6.65,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.207,
+    3.312,
+    4.417,
+    5.521
+   ],
+   "beat_nodes": [
+    "vqr",
+    "us",
+    "mcp",
+    "el",
+    "grd",
+    "agents"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 28.0
+  },
+  {
+   "id": "reserved-supply",
+   "label": "降级保留区",
+   "index": 2,
+   "file": "component-panorama--reserved-supply.mp4",
+   "end_still": "component-panorama--reserved-supply-end.png",
+   "beats": 7,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 7.77,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.207,
+    3.309,
+    4.412,
+    5.516,
+    6.618
+   ],
+   "beat_nodes": [
+    "ap",
+    "cs",
+    "us",
+    "oss",
+    "mcp",
+    "ada",
+    "grd"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 27.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/horizon-context--component-panorama.html",
+ "slug": "component-panorama",
+ "type": "architecture"
+}

@@ -1,0 +1,69 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.0,
+ "story_sec": 8.02,
+ "total_wall_sec": 134.2,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "intake-test",
+   "label": "进楼考验",
+   "index": 0,
+   "file": "tag-gate-linkage--intake-test.mp4",
+   "end_still": "tag-gate-linkage--intake-test-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 3.34,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.208
+   ],
+   "beat_nodes": [
+    "newBatch",
+    "manualCount",
+    "unmapped"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "seventh-mechanism",
+   "label": "第七大机制",
+   "index": 1,
+   "file": "tag-gate-linkage--seventh-mechanism.mp4",
+   "end_still": "tag-gate-linkage--seventh-mechanism-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 4.68,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.21
+   ],
+   "beat_nodes": [
+    "newBatch",
+    "classifier",
+    "sysTag"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 27.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/horizon-context--tag-gate-linkage.html",
+ "slug": "tag-gate-linkage",
+ "type": "dataflow"
+}

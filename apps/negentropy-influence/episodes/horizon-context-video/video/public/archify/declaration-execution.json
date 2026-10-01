@@ -1,0 +1,75 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.0,
+ "story_sec": 9.99,
+ "total_wall_sec": 91.96,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "declare",
+   "label": "五段式声明",
+   "index": 0,
+   "file": "declaration-execution--declare.mp4",
+   "end_still": "declaration-execution--declare-end.png",
+   "beats": 5,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 5.55,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.208,
+    3.312,
+    4.415
+   ],
+   "beat_nodes": [
+    "tables",
+    "rels",
+    "facts",
+    "metrics",
+    "fivePart"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 32.0
+  },
+  {
+   "id": "switch-divergence",
+   "label": "执行开关分化",
+   "index": 1,
+   "file": "declaration-execution--switch-divergence.mp4",
+   "end_still": "declaration-execution--switch-divergence-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 4.44,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.206,
+    3.309
+   ],
+   "beat_nodes": [
+    "fivePart",
+    "rbac",
+    "agg",
+    "result"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 27.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/horizon-context--declaration-execution.html",
+ "slug": "declaration-execution",
+ "type": "workflow"
+}

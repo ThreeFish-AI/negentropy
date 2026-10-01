@@ -1,0 +1,71 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.0,
+ "story_sec": 7.76,
+ "total_wall_sec": 89.27,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "inputs",
+   "label": "六路输入面",
+   "index": 0,
+   "file": "autopilot-loop--inputs.mp4",
+   "end_still": "autopilot-loop--inputs-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 3.32,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.208
+   ],
+   "beat_nodes": [
+    "in_zero",
+    "in_bi",
+    "in_pairs"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 27.0
+  },
+  {
+   "id": "valgate",
+   "label": "验证门与入库",
+   "index": 1,
+   "file": "autopilot-loop--valgate.mp4",
+   "end_still": "autopilot-loop--valgate-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 4.44,
+   "beat_offsets_sec": [
+    0.0,
+    1.106,
+    2.21,
+    3.314
+   ],
+   "beat_nodes": [
+    "validate",
+    "discard",
+    "sv",
+    "vqr"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 41.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/horizon-context--autopilot-loop.html",
+ "slug": "autopilot-loop",
+ "type": "workflow"
+}

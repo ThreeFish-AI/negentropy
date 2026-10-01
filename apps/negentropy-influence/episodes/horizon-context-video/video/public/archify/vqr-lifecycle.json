@@ -1,0 +1,46 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.0,
+ "story_sec": 3.35,
+ "total_wall_sec": 122.12,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "signed-stamped",
+   "label": "签字盖章",
+   "index": 0,
+   "file": "vqr-lifecycle--signed-stamped.mp4",
+   "end_still": "vqr-lifecycle--signed-stamped-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.207
+   ],
+   "beat_nodes": [
+    "draft",
+    "stamped",
+    "asset"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/horizon-context--vqr-lifecycle.html",
+ "slug": "vqr-lifecycle",
+ "type": ""
+}

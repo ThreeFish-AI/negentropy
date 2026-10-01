@@ -1,0 +1,92 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.0,
+ "story_sec": 11.44,
+ "total_wall_sec": 145.32,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "fake-event",
+   "label": "故意推虚构流水",
+   "index": 0,
+   "file": "ghost-edge-pollution--fake-event.mp4",
+   "end_still": "ghost-edge-pollution--fake-event-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 4.76,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.206
+   ],
+   "beat_nodes": [
+    "ghost-push",
+    "ingest-endpoint",
+    "resolve-gate"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 32.0
+  },
+  {
+   "id": "rejected",
+   "label": "当场拒收",
+   "index": 1,
+   "file": "ghost-edge-pollution--rejected.mp4",
+   "end_still": "ghost-edge-pollution--rejected-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.207
+   ],
+   "beat_nodes": [
+    "resolve-gate",
+    "gate-reject",
+    "ledger-clean"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 27.0
+  },
+  {
+   "id": "gate-removed",
+   "label": "拆掉解析闸",
+   "index": 2,
+   "file": "ghost-edge-pollution--gate-removed.mp4",
+   "end_still": "ghost-edge-pollution--gate-removed-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 3.33,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.205
+   ],
+   "beat_nodes": [
+    "resolve-gate",
+    "gate-stripped",
+    "ghost-in-ledger"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/horizon-context--ghost-edge-pollution.html",
+ "slug": "ghost-edge-pollution",
+ "type": ""
+}

@@ -107,7 +107,7 @@
 | 7-B 读表纪律 | p7-03 | evidence：·**archify full**：evidence-grading 章 `vendor-claim`@p7-03；角标「谁测的/什么条件/截至何时」三连章 | 图回放；三问角标错峰`@stagger` |
 | 7-C 治理≠验证 | p7-04..06 | evidence：·**archify full**：grain-collapse 章 `day-pack-collapse`@p7-04+`legal-but-wrong`@p7-05+govern-vs-verify 章 `upstream-collapse`@p7-06；477 vs 48 断崖对比（实线徽·typedef 转述） | 图回放三章接力（断崖下坠`@count`） |
 | 7-D 玩具复现 | p7-07..08 | device：两天各记两笔（2+2）vs 去重（3）小算式走查；证据徽（实心）；·**archify full**：grain-collapse 章 `measured-477-48`@p7-07 + govern-vs-verify 章 `third-party-critique`@p7-08 | 算式逐笔落位`@count`；图回放两章接力 |
-| 7-E 边界 | p7-10..12 | device：**边界护栏卡**三栏（引擎内=有效 / 出楼=承诺清零 / 转换层=另一层责任）；·**archify full**：perimeter-loss 章 `inside-effective`@p7-10+`outside-void`@p7-11 | 护栏卡三栏错峰`@stagger`；图回放两章接力 |
+| 7-E 边界 | p7-10..12b | device：**边界护栏卡**三栏（引擎内=有效 / 出楼=承诺清零 / 转换层=另一层责任）；·**archify full**：perimeter-loss 章 `inside-effective`@p7-10+`outside-void`@p7-11 | 护栏卡三栏错峰`@stagger`；图回放两章接力 |
 | 7-F 五规律 | p7-13..16 | evidence：·**archify full**：five-laws 章 `laws-overview`+`law-execution-half`+`law-two-insurance`+`law-trinity`（新图·四章对应 p7-13..16 一章一句）；**定义卡母题满屏回照收束**（历次形态叠影） | 图回放五章接力（逐条点亮）；叠影淡入`@enter:fade` |
 | 7-G 自测三问 | p7-17..18 | device：三问卡竖排（定义复制了吗？/策略在哪层求值？/验证交付了什么？）；·**archify full**：three-claims-stack 章 `guess-only`@p7-17+`governed-trust`@p7-18 | 三问卡逐张翻面`@reveal`；图回放两章接力 |
 | 7-H 收尾 | p7-19 | master：三问卡收拢入定义卡母题，卡片翻转亮出三色描边定格；尾幕渐黑（从末 beat 时长推导）+片尾字幕 | 收拢定格`@pushIn`；渐黑窗口（不写死帧数） |
