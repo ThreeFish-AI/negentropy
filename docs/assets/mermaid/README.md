@@ -47,7 +47,7 @@
 | [ai-native--harness-control-loop](./agent-harness/ai-native--harness-control-loop.mmd) | [180 AI Native 手册 §2](../../research/agent-harness/180-ai-native-handbook.md) | workflow | ✓ | done | 三泳道（模型 / 确定性控制面 / 资源与证据）U 形闭环：PEP⇄PDP → 凭证代理 → 生产变更经 Guardrail 三态门控，Trajectory 旁路 |
 | [hermes-agent--turn-loop](./agent-harness/hermes-agent--turn-loop.mmd) | [190 Hermes Agent §2/§3](../../research/agent-harness/190-hermes-agent.md) | workflow | ✓ | done | 三泳道（主循环 / 压缩 / 持久层）：三段式提示只装配一次，超阈值压缩→重建提示为唯一计划内断点，逐条落盘 state.db（trace 动画；新创作，无原文 mermaid 块） |
 | [hermes-agent--learning-loop](./agent-harness/hermes-agent--learning-loop.mmd) | [190 Hermes Agent §2/§5](../../research/agent-harness/190-hermes-agent.md) | workflow | ✓ | done | 三泳道（前台 / 后台 review / 技能库与 Curator）：交付后分叉 → 分派侧白名单（越界得拒绝回执）→ skill_manage 记署名 → 下次会话进目录（trace 动画；新创作，无原文 mermaid 块） |
-| [claude-code-planning-control--five-mechanisms](./agent-harness/claude-code-planning-control--five-mechanisms.mmd) | [176 §2](../../../research/agent-harness/176-claude-code-planning-control-deep-read.md) | workflow | ✓ | done | 四泳道（信号主线/工具与挂点/过程隔离/视野供给）：骨架不变五装置各挂一点（三张结论卡） |
+| [claude-code-planning-control--five-mechanisms](./agent-harness/claude-code-planning-control--five-mechanisms.mmd) | [176 §2](../../research/agent-harness/176-claude-code-planning-control-deep-read.md) | workflow | ✓ | done | 四泳道（信号主线/工具与挂点/过程隔离/视野供给）：骨架不变五装置各挂一点（三张结论卡） |
 
 ### self-evolution/（docs/research/self-evolution/ 的 Dream-RSI 精读）
 
