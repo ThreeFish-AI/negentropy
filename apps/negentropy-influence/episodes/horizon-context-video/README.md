@@ -1,82 +1,58 @@
-# 《拆解 Horizon Context：功能、治理、安全与开放性》
+# 《拆解 Horizon Context：含义怎么治理、答案怎么可信》科普视频工程
 
-Context Layer 系列首集。信源为本仓 [Snowflake Horizon Context 精读笔记](../../../../docs/research/cognitive-context/011-horizon-context.md) 与配套最小原型（B 型 · 仓内固定提交 `097076eb`），逐条断言回溯 [research/source-notes.md](./research/source-notes.md)。
+> 交付状态：**脚手架已生成，内容待撰写**。发布顺序见 [../../series.json](../../series.json)（工作区根）。
 
-**交付状态**：v6.1 终渲待审（2026-09-21 修复 47s 处 p0-10 句尾「Context」重复尾音——CMU 音素标注 `<Context|K AA1 N T EH2 K S T>` 定稿 + 单句重掷，字幕与视觉零改动；v6=图例 2× 扩产 + 全屏独占切换 + 阈门六维加固，口播零改动）。
+## 目录结构
 
-**15:11.20 = 27336 帧 @30fps · 1920×1080**（v6.1 修 p0-10 句尾读音后总长 -13 帧，见 ISSUE-192；音频其余 186 句复用 v4）。
+| 路径 | 说明 |
+|---|---|
+| `research/` | Stage ① 取证产物：全部口播断言须可回溯至此 |
+| `script/planning.md` | Stage ② 策划案（六节齐，含本集视觉契约） |
+| `script/narration.md` | Stage ③ 逐字稿 **★单一事实源**（勿改 narration.json） |
+| `script/storyboard.md` | Stage ⑥ 分镜表（镜号 ↔ 句 id 区间 ↔ 画面 ↔ 动效） |
+| `scripts/*.py` | 薄包装 → to-video skill 的 scripts/（解析器定位，保 CLI 契约） |
+| `video/` | Remotion 独立 pnpm 工程（嵌套 workspace 自锚隔离） |
+| `out/` | 渲染产物（gitignored） |
+| `pipeline.toml` | 本集可执行参数的唯一来源（字段表见 [to-video skill 的 references/PIPELINE.md](https://github.com/ThreeFish-AI/to-video/blob/main/references/PIPELINE.md)） |
 
-187 句 / 4256 字 / 45 镜；archify 工程图 **67 张 / 162 章逐章高清录制，156 个 cue 进片**（v5 为 33 图 86 章 73 cue）：句级锚定率 39.0% → **83.4%**、cue 密度 5.4 → **10.3/分**、图型 4 → **5 种**（lifecycle 0→7 补空白）、最长无锚 7 → **4 句**，D1–D10 实证全部有图。
-
-**v6 改了什么**：
-
-① 图例 2.03× 扩产——新增 34 张严格锚定逐字稿的工程图（密文对译 / 双基线证据链 / 外挂词典漂移 / 官方三句递进 / 七机制×十次拆坏 / 便利贴收拢成册 / 坏定义注册生死簿 D6 / 手册两半剖面 / 临机现算 / 事件扇出 / 多入口一个答案 / 计算纪律四条总纲 / 第一道防线 / 查询期逐页验放 / 三流合一 / 猜名强查拦截 D5 / 编译那一秒 / 藏≠拦 D5 / 核准条目的一生 / 落地两挑战 / 全楼水管台账 / 虚构流水入账 D8 / 逆流溯源 / 信任三段 / 权限交集 / 权限回收两种命运 D9 / 零越权窗口 D9 / 听证会 / 贴标即联动 / 治理≠计算 / 图纸vs地基 / 归因天平 / 租来的聪明 / 下期蓝图）+ 13 个闲置章接线（autopilot-loop / evolution-timeline 两整图启用）+ 2 处挪锚（declare→p2-04 修复章序逆序、ingest-lane→p4-14a）；
-
-② **inset 画中画退役**——archify 播放期不与自制装置同屏：三分法切换（嵌套子窗 / ArchifyYield 淡出让位 / 画框直遮），42 处 inset 全部转全屏独占（640×360 → 1298×730 整屏），被图整镜接管的装置按「视觉主权一句一主」原则退役，独有隐喻装置（半堵墙 / 栅栏立起 / 记忆柱等）保留可见岛；
-
-③ 覆盖门六维加固——新增最长无锚 run / 分幕锚定率 / cue 密度 / 图型多样性 / forbid_inset / 同句排他（+第 4 道 dur 形态断言），sidecar 落 `type` 字段（record_archify --type + 33 张存量回填），本集阈值定稿 66 图 / 146 cue / 60% / 9/分 / 5 种（先红后绿留证 `.temp/coverage-gate-red-before-v4.txt`）。
-
-**验收**：`check_script --check-scenes --check-motion` **FAIL 0 · WARN 0**（v6 遗留 30 条动效声明 WARN 已随分镜动效列镜级回收清零；口径复位见 ISSUE-191）· `check_archify` FAIL 0 · WARN 0 · 覆盖门 FAIL 0 · WARN 0（v5 存量 3 WARN 清零：逆序经挪锚修复、两整图接线）· `tsc --noEmit` 绿 · rate 预演 156 cue 零越界 · 估算与实测双口径均落在 `[13.0, 15.4]`（口播未动，实测与 v4 一致）。
-
-## 目录
-
-| 路径                               | 作用                                                                              |
-| ---------------------------------- | --------------------------------------------------------------------------------- |
-| `pipeline.toml`                    | 本集可执行参数**唯一来源**（预算窗 / TTS 样本与风格）                             |
-| `script/planning.md`               | 策划案六节（定位 / 叙事 / 视觉语言 / 幕结构 / 管线 / 边界）                       |
-| `script/narration.md`              | **逐字稿 SSOT**——只改这里，`narration.json` 由 build 派生                         |
-| `script/storyboard.md`             | 45 镜分镜表，镜号与 `scenes/*.tsx` 的 `<Sequence name>` 一一对应                  |
-| `research/sources.toml`            | 信源台账（pinned commit，`source_ledger.py verify` 执法）                         |
-| `video/src/scenes/`                | 七幕场景（P0Cold / P1Intern / P2Manual / P3Gate / P4Ledger / P5Badge / P6Ending） |
-| `video/src/components/devices.tsx` | 本集视觉装置库（大厦剖面母图 / 七格 HUD / 对照台 / 数字对撞 / 证据角标）          |
-| `video/public/archify/views/`      | 67 张工程图的引导故事定义（**入库**；mp4/end PNG 为派生产物）                     |
-| `scripts/`                         | 薄包装 + 本集专用：`archify_lead.py`（场记板测定）/ `archify_manifest.py`         |
-
-## 复现
+## 复现流水线
 
 ```bash
-# 工作区根执行。$T/$W/$P/$V 的定义见 to-video skill 的 pipeline/README.md（唯一定义处：https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/README.md）
+# 在工作区内执行。$T/$W/$P/$V 的定义见 to-video skill 的 references/PIPELINE.md 路径变量约定（唯一定义处）
 P=$W/episodes/horizon-context-video
 
-# ① 信源核验
-uv run --no-project $T/pipeline/scripts/source_ledger.py --project $P verify
+# ① 信源核验（B 型信源；A 型论文集跳过）
+uv run --no-project $T/scripts/source_ledger.py --project $P verify
 
-# ② 逐字稿派生 + 内容门
-uv run --no-project $T/pipeline/scripts/pipeline.py --project $P build
-uv run --no-project $T/pipeline/scripts/pipeline.py --project $P check --check-scenes --check-motion
+# ② 逐字稿派生 + 内容门（分镜覆盖性 / 时长预算双口径 / 淡入不变式）
+uv run --no-project $T/scripts/pipeline.py --project $P build
+uv run --no-project $T/scripts/pipeline.py --project $P check --check-scenes
 
-# ③ archify 动效：全量逐章录制 → 测定 lead → 生成 manifest
-#    mp4 / *-end.png 是派生产物（gitignored，HTML 为 SSOT），**换 worktree 必须全量重录一次**。
-#    先装 Remotion 依赖（录制器用它内置的 ffmpeg 编码）。⚠️ 不要加 --ignore-workspace：
-#    那会把本工程自锚用的 pnpm-workspace.yaml 一并忽略，esbuild 构建许可随之失效，
-#    安装以 ERR_PNPM_IGNORED_BUILDS 中断、node_modules 半残。
-cd $P/video && pnpm install && cd - >/dev/null
-#    图集清单 = video/public/archify/views/（67 图，与覆盖门同一事实源，不另立第二份）；
-#    slug→源图走 pipeline.toml [archify] 的 html_pattern + html_overrides，失配即 FAIL
-#    不静默跳过。串行约 45 min；中断后原样重跑即从缺口续（已齐者点名跳过；
-#    半程重录或 views 增删章的图会被点名强制重录，不混用两代素材）。
-uv run --with playwright python $T/pipeline/scripts/record_archify_all.py --project $P
-cd $P && uv run --no-project --with pillow python scripts/archify_lead.py && uv run --no-project python scripts/archify_manifest.py
-#    单图返工（用真实图名，勿再写 <slug> 占位符——它与分集 slug 同形异义）：
-#      uv run --with playwright python $T/pipeline/scripts/record_archify_all.py --project $P --only agent-identity --force
-#    chapter 模式默认 cdp 高清采集（CDP JPEG q100 @DSF2 → h264 CRF16 @2560×1440）；
-#    需要旧 screencast 行为时给 record_archify.py 加 --capture playwright。
+# ③ 配音（参数全部取自 pipeline.toml，勿在命令行另写 --style/--ref）
+uv run --no-project $T/scripts/pipeline.py --project $P tts --plan   # 排期对账
+uv run --no-project $T/scripts/pipeline.py --project $P tts          # 长跑，建议 nohup
 
-# ④ 配音（先 refs.py rebuild --name me-bright 重建样本）
-uv run --no-project $T/pipeline/scripts/pipeline.py --project $P tts --plan
-uv run --no-project $T/pipeline/scripts/pipeline.py --project $P tts
+# ④ 渲染与体检（工具一律 ./node_modules/.bin/ 直调，防污染根 workspace）
+cd $P/video && pnpm install && ./node_modules/.bin/tsc --noEmit
+cd - && uv run --no-project $T/scripts/pipeline.py --project $P render
+uv run --no-project $T/scripts/pipeline.py --project $P qa --video out/draft.mp4 --check
+uv run --no-project $T/scripts/pipeline.py --project $P qa --video out/draft.mp4 --last-n 6 --check   # 尾幕渐黑必查（--video 按工程目录解析）
 
-# ⑤ 草渲 + 体检 + 终渲
-uv run --no-project $T/pipeline/scripts/pipeline.py --project $P render
-uv run --no-project $T/pipeline/scripts/pipeline.py --project $P qa --video out/draft.mp4 --last-n 6 --check
-uv run --no-project $T/pipeline/scripts/pipeline.py --project $P render --final
-uv run --no-project $T/pipeline/scripts/pipeline.py --project $P captions
+# ⑤ 交付
+uv run --no-project $T/scripts/pipeline.py --project $P captions
+uv run --no-project $T/scripts/pipeline.py --project $P render --final
+# 交付归档（可选；根 = --root 一次性 或 env TO_VIDEO_DELIVER_ROOT 持久，机器属性不进 toml）
+uv run --no-project $T/scripts/pipeline.py --project $P deliver
 ```
 
 ## 内容修改守则
 
-1. **逐字稿只改 `script/narration.md`**；`narration.json` 是派生物，手改必被 build 覆盖。
-2. 时序常数只在 `video/src/timing.json`；口播永不出现他集标题与集数序号（`check_series.py` 规则 1）。
-3. **破坏性实验编号（D1–D10）与裸 `Context`/`Agent` 不进口播**——只进角标与终端输出。
-4. 每个承重机制必须走满四拍：类比 → 机制不变量 → 破坏性实验反证 → 一句话收口。
-5. 改骨架前先跑 `verify_skeleton.py`；archify 回放改动后必须重跑 `archify_manifest.py`；图例对逐字稿的覆盖/丰富/匹配（含分镜 archify 标注对账）已由 `pipeline.py check` 自动串联（check_archify_coverage.py，阈值见 pipeline.toml `[archify]`）。
+- 逐字稿只改 `script/narration.md`；`narration.json` / `manifest.json` 是派生物。
+- 时序常数只在 `video/src/timing.json`（timing.ts 与 Python 侧 timeline.py 共读）。
+- **口播永不出现他集标题与集数序号**——顺序只在视觉层与 series.json（`check_series.py` 执法）。
+- 骨架冻结档位见 [to-video skill 的 skeleton.toml](https://github.com/ThreeFish-AI/to-video/blob/main/assets/video-skeleton/skeleton.toml)；
+  改动前先跑 `uv run --no-project $T/scripts/verify_skeleton.py`。
+
+## 许可
+
+源论文/文档版权归原作者；本工程仅为解读与再创作，画面与口播为原创。

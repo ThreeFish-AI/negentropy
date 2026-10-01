@@ -229,7 +229,7 @@
           "episode": 1,
           "slug": "horizon-context-video",
           "path": "episodes/horizon-context-video",
-          "title": "拆解 Horizon Context：功能、治理、安全与开放性",
+          "title": "拆解 Horizon Context：含义怎么治理、答案怎么可信",
           "topic": "Horizon Context：含义怎么治理",
           "cardSub": "上下文层 · 治理",
           "accents": [
@@ -238,15 +238,15 @@
             "#C9A0FF"
           ],
           "source": {
-            "title": "Snowflake Horizon Context 精读笔记 + 最小原型实验室（docs/research/cognitive-context/）",
+            "title": "Snowflake Horizon Context 精读与通俗拆解（guided-learn gen2 冻结版）+ 最小原型实验室（selftest 复算）",
             "repo": "https://github.com/ThreeFish-AI/negentropy",
-            "pinnedRef": "097076ebedd3",
+            "pinnedRef": "192ae6ca95db",
             "license": "本仓内部文档",
-            "accessed": "2026-09-19"
+            "accessed": "2026-10-01"
           },
-          "status": "final-review",
-          "statusNote": "v5 终渲待审（2026-09-20，动效图例扩产+高清重制，口播零改动）：15:11.63 = 27349 帧 @30fps / 1920×1080（音频复用 v4，时长不变）；187 句 4256 字 45 镜；archify 工程图 33 张 86 章逐章高清录制（cdp JPEG q100 @DSF2 → h264 CRF16 @2560×1440 · CFR25，绕开 Playwright 硬编码 VP8@1Mbps），73 个 cue 进片（v4 为 14 图 43 章 29 cue），覆盖率 15.5%→39.0%、P0/P6 结束整幕零锚、D1–D10 实证全部有图，rate 预演 变速铺满 40 · 冻结补足 31 · 裁切 2；inset 画框 460×259→640×360 且全 16 个 inset 镜逐帧像素审计零侵入。新增 19 张严格锚定逐字稿的工程图 + 既有图增补 4 章。覆盖度自动阈门上线：check_archify_coverage.py 句级锚定率/丰富度地板/分镜声明↔cue 双向对账，pipeline.py check 自动串联，本集阈值定稿 28 图/58 cue/30%/70%。验收：check_script FAIL 0；check_archify FAIL 0（WARN 2 = 留档图未落镜）；覆盖门 FAIL 0 · WARN 3（有意保留）；tsc 绿；信源 pin 097076eb 不变。",
-          "voice": "sunny-steady + me-bright.wav"
+          "status": "scripting",
+          "statusNote": "完全重制中（2026-10-01 清场重建）：同 slug rm→scaffold（story 档、骨架原生当代）；信源切 C 型 gl-notes（011 gen2 冻结 @192ae6ca95db）+ 原型双 selftest 复算升【一】；目标 17 分钟完整版（8 幕，M1–M7 全四拍 + §19 规律争议收口）",
+          "voice": "story 段落演绎（me-bright 系 + cues.toml 台本）"
         },
         {
           "episode": 2,
