@@ -8,7 +8,7 @@ description: "以课程双轨一手材料（仓库 main 17 章 @ 0dcafa2a / 站�
 
 > [!NOTE] **核心精读范围**
 >
-> - 课程仓库 main 轨（17 章整合版）：[shareAI-lab/learn-claude-code](https://github.com/shareAI-lab/learn-claude-code) @ [`0dcafa2a`](https://github.com/shareAI-lab/learn-claude-code/tree/0dcafa2ae053a1ddd6a72f265431104b08a5aa13)（2026-08-27），License **MIT**——① 层机制钉点与 main 轨独有两章
+> - 课程仓库 main 轨（17 章整合版）：[shareAI-lab/learn-claude-code](https://github.com/shareAI-lab/learn-claude-code) @ [`0dcafa2a`](https://github.com/shareAI-lab/learn-claude-code/tree/0dcafa2ae053a1ddd6a72f265431104b08a5aa13)（2026-08-27），License **MIT**——① 层机制钉点与 main 轨独有两章；① 已于 2026-10-01 换代重写并换钉 main `ce8f9f18`（见下表），本轨 `0dcafa2a` 仍是 ②–⑤ 的 main 附录与 s16/s17 两章的钉点
 > - 课程站点（20 章修订）：[Learn Claude Code](https://learn.shareai.run/zh/s01/)，内容与分支 @ `67a9126c`（2026-07-29）逐字一致——②–⑤ 层机制钉点；逐集钉选理由见[系列信源地图](../../../apps/negentropy-influence/source-map/claude-code-explained.md)
 > - Anthropic 官方文档（产品现状口径）：[code.claude.com/docs](https://code.claude.com/docs)，访问 2026-09-28（旧域名 `docs.claude.com/en/docs/claude-code/*` 已整体 301 迁移至此）
 > - raw 取数与复验：2026-09-28；配套最小原型：[`assets/cc_harness_lab.py`](./assets/cc_harness_lab.py)（纯标准库，`--selftest` 秒级，六次破坏性实验）
@@ -17,7 +17,7 @@ description: "以课程双轨一手材料（仓库 main 17 章 @ 0dcafa2a / 站�
 
 **总类比**：把整套东西想象成**一间通宵不打烊的工坊**。模型是那位手很快、但从不记事的师傅；harness 是这间工坊本身——传送带把活一趟趟送到他面前，门禁决定哪些活允许上机器，台面会满、满了要收拾，墙上的钟替他记着几点该干什么，隔壁工位上还有别人在同时干活。**全篇五章 = 工坊的五个区**，同一个物件在全文只扮演一个角色，绝不换脸。
 
-**怎么读这篇笔记**：五章各自独立成篇，每个机制节按「**类比 → 机制 → 实景**」三拍走；实景全部取自**固定提交上的课程原文实测或配套原型的实际运行输出**——它把材料里由模型承担的角色换成确定性脚本，因此回答的是「机制是否自洽」，不回答「模型是否聪明」。每章机制主体分钉站点轨或 main 轨，另一轨的差异以「轨道差异注记」内联，产品现状另设「官方文档对照」一节——**三套口径先分轨、再下笔**。
+**怎么读这篇笔记**：五章各自独立成篇，每个机制节按「**类比 → 机制 → 实景**」三拍走；实景全部取自**固定提交上的课程原文实测或配套原型的实际运行输出**——它把材料里由模型承担的角色换成确定性脚本，因此回答的是「机制是否自洽」，不回答「模型是否聪明」。每章机制主体分钉站点轨或 main 轨，另一轨的差异以「轨道差异注记」内联，产品现状另设「官方文档对照」一节（① 换代重写后改为节内内联三轨对照）——**三套口径先分轨、再下笔**。
 
 ---
 
@@ -82,7 +82,7 @@ description: "以课程双轨一手材料（仓库 main 17 章 @ 0dcafa2a / 站�
 | [④ 并发与时机](./174-claude-code-concurrency.md) | 站点 `67a9126`（附录 main） | 后台任务 · 定时调度 | 所谓后台没有平行宇宙，只是「不等它」；而有些活连按开始的人都不要 |
 | [⑤ 多 Agent 平台](./175-claude-code-multi-agent-platform.md) | 站点 `67a9126`（演进注记 main） | 任务图 · 团队 · 协议 · 自治 · 隔离 · MCP | 把「多 Agent」拆开，全是朴素物件；而循环还是那一个 |
 
-每章另有「官方文档对照」一节收本维硬分歧；21 条硬分歧按维分配，185 条【官】事实全量留在取证 lab 与各集 notes（见 §4）。哪一章钉哪个提交的全系列登记处是[系列信源地图](../../../apps/negentropy-influence/source-map/claude-code-explained.md)。
+②–⑤ 各章另有「官方文档对照」一节收本维硬分歧（① 换代重写后改为节内内联对照）；21 条硬分歧按维分配，185 条【官】事实全量留在取证 lab 与各集 notes（见 §4）。哪一章钉哪个提交的全系列登记处是[系列信源地图](../../../apps/negentropy-influence/source-map/claude-code-explained.md)。
 
 ## 4. 证据分级（全篇纪律）
 

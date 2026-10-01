@@ -451,7 +451,7 @@ def exp5():
         hooks = default_hooks([], log)
         hooks["Stop"] = [lambda messages: "stop hook errored; please self-correct"]  # 永远喊续
         msgs = run_agent(vfs, model, [], log, hooks=hooks, stop_hook_active_guard=guard)
-        print(f"[{label}] 实际轮数={len(msgs)}（日志尾: {log[-1]}）")
+        print(f"[{label}] 实际消息数={len(msgs)}（日志尾: {log[-1]}）")
     print("教训：续跑标志是停机权的最后一道闸——没有它，一个总在报错的 Stop 钩子让 Agent 永不停机。\n")
 
 
