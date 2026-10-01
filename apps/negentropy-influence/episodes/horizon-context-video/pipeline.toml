@@ -9,8 +9,10 @@
 slug = "horizon-context-video"
 
 [narration]
-# 17 分钟完整版目标 ±1（story 档 254 字/分 ⇒ ≈4300±300 字；首轮 TTS 后实测校准）。
-target_minutes = [16.0, 18.0]
+# 首轮 TTS 实测校准（2026-10-02）：story 块合成消除块内句间停顿，含时距全片 15.1 分 ⇒ 等效 302 字/分
+# （非 story 集假设的 254）。窗按实测中心 ±1.2 收敛；chars_per_min 回写实测值供后续集估算参照。
+target_minutes = [14.0, 16.3]
+chars_per_min = 302
 
 [tts]
 engine = "indextts"
