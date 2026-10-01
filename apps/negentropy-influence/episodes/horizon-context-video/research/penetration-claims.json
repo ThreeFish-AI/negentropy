@@ -1,0 +1,1145 @@
+{
+ "sections": [
+  {
+   "claims": [
+    {
+     "claim": "掩码等策略对特权角色不豁免：保护决定权与对象所有权分离（安全/隐私官决定保护哪些列，而非对象所有者），掩码对 ACCOUNTADMIN/SECURITYADMIN 同样生效、角色再高也不豁免",
+     "anchor": "§2 M2 治理不豁免",
+     "ref": "[24]",
+     "s_id": "S64（[24] 组补抓页 Understanding Column-level Security）",
+     "snapshot": "S64.txt",
+     "evidence": "L505 \"A security or privacy officer decides which columns to protect, not the object owner.\"；L523-524 \"can prohibit privileged users with the ACCOUNTADMIN or SECURITYADMIN system roles from unnecessarily viewing data\"——两个半句均逐字命中",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "检索面即治理面：PRIVATE 资产在检索层就被过滤，Universal Search 以访问控制策略过滤结果（检索结果本身就过 RBAC）",
+     "anchor": "§2 M3 检索面过滤",
+     "ref": "[2]",
+     "s_id": "S31（辅证 S2）",
+     "snapshot": "S31.txt",
+     "evidence": "L53 \"Universal Search, a hybrid keyword plus semantic search that uses signals like popularity for ranking and access control policies for filtering\" 逐字；PRIVATE 语义链在 S2.txt L281 \"marked as private cannot be queried or used in a query condition\"（digest C1.7 同证）——两半均落快照，仅合成句式为笔记语言",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "外部血缘摄入过三道闸——鉴权（INGEST LINEAGE）、事件可解析（仅 COMPLETE）、对象可解析；解析不了整事件拒绝、账本零污染",
+     "anchor": "§2 M5 三道闸",
+     "ref": "[4]",
+     "s_id": "S16",
+     "snapshot": "S16.txt",
+     "evidence": "L153 INGEST LINEAGE 鉴权门；L337 \"Must be a COMPLETE event... Events with any other eventType are rejected with a 400 HTTP status code\"；L169 \"If any Snowflake object in the payload can't be resolved... rejects the whole event... stores no lineage from that event\"——三门逐字在场；与 digest-claims C5.2（支持）一致",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "RSS 权限天花板只减不增：Agent 实际权限 = 用户 RBAC ∩ RSS 允许面，RSS 不替换 RBAC、不能授予用户本没有的权限",
+     "anchor": "§2 M6 RSS 只减不增",
+     "ref": "[24]",
+     "s_id": "S12",
+     "snapshot": "S12.txt",
+     "evidence": "L16 \"A Restricted Session Scope (RSS) is a privilege ceiling that limits what an agent can do on behalf of a user. An RSS doesn't replace RBAC and can't grant privileges the user doesn't already have through their roles.\" 逐字；与 digest-claims C4.1（支持）一致",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "掩码策略不能直接绑定系统标签——必须先配「系统标签 → 用户治理标签」的一次性映射，再由用户标签驱动 tag-based 策略",
+     "anchor": "§2 M7 系统标签须映射",
+     "ref": "[24]",
+     "s_id": "S15（辅证 S14）",
+     "snapshot": "S15.txt",
+     "evidence": "S15.txt L116 \"A masking policy cannot be assigned to a [system tag]\" 逐字；映射机制在 S14.txt L51 \"You can map user-defined tags to system-defined classification tags. For example, you can set up a tag map so that every time the system tag SNOWFLAKE.CORE.SEMANTIC_CATEGORY = 'NAME' is applied...\"（配一次、自动同步，笔记「一次性」为该机制之忠实转述）；与 digest-claims C4.12/K079（支持）一致",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "冲突浮出人工裁决：Sense 测出几十种日活定义时停下把冲突摆给人，自然语言说明哪套口径归哪个团队，之后继续（不投票、不自动选）",
+     "anchor": "§10 冲突浮出人工裁决",
+     "ref": "[5]",
+     "s_id": "S30",
+     "snapshot": "S30.txt",
+     "evidence": "L34 \"It will surface the conflict to the Cortex Sense builder and ask the human to settle it.\"；同段 \"it found dozens of different definitions of daily active users... all we had to do was explain to it in natural language which metric corresponded to which team\"——几十种 DAU/停下问人/自然语言归属三要素逐字全中",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "Snowflake 官方 Ossie 导出桥只导出等值 join，ASOF/RANGE 等非等值关系被静默丢弃（Datus 对比文指出，2026-08）",
+     "anchor": "§12 导出桥丢关系（§15 第3条/争议1 同锚）",
+     "ref": "[21]",
+     "s_id": "S40",
+     "snapshot": "S40.txt",
+     "evidence": "L51 \"export __equi-join relationships only__; non-equi joins such as ASOF and RANGE are silently dropped because the Ossie core spec defines equi-join semantics\"；L12/L91 两处复述 \"non-equi relationships are silently dropped\"——与 digest-claims C10.4（支持）一致，curl 实况已复核",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "agent_type 归因：查询历史 QUERY_HISTORY.agent_type 列记下查询由哪类 Agent 直接发起（2026-07-27 上线）",
+     "anchor": "§2 M6 agent_type 归因（§4.2 时间线 2026-07-27 同锚）",
+     "ref": "[24]（辅证 [33]）",
+     "s_id": "S13（辅证 S28）",
+     "snapshot": "S13.txt",
+     "evidence": "L64 \"The `agent_type` column in QUERY_HISTORY identifies the agent that directly invoked a query:\"；L134 \"agent_type column for query attribution\"；上线时间在 S28.txt L373 \"Jul 27, 2026: New agent_type column in QUERY_HISTORY views\"——与 digest-claims C4.10（支持）/K069 一致",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "2026-06-02 Summit 26 定名 Horizon Context：公告博客 + 新闻稿双源、生态伙伴站台（BlackRock 等采用证言）",
+     "anchor": "§4.2 Summit 定名",
+     "ref": "[2][3]",
+     "s_id": "S31 + S32",
+     "snapshot": "S31.txt（辅证 S32.txt）",
+     "evidence": "S31 L4 署名 \"Jun 2, 2026\"、L10 \"Snowflake introduces Horizon Context, a new capability within Horizon Catalog\"；S32 L8 \"Published: June 2, 2026\"、L12 \"SNOWFLAKE SUMMIT 26 – June 2, 2026 – ... announced at Snowflake Summit 26 new innovations across Snowflake Horizon Catalog\"、L30 BlackRock Jeff Miller 署名证言——日期/定名/双源/站台四要素齐",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "旧的 YAML 语义模型正被语义视图取代：SYSTEM$CREATE_SEMANTIC_VIEW_FROM_YAML 逐个转换、不支持批量，反向导出另有 SYSTEM$READ_YAML_FROM_SEMANTIC_VIEW",
+     "anchor": "§2 M1 YAML 被取代",
+     "ref": "[14]",
+     "s_id": "S8",
+     "snapshot": "S8.txt",
+     "evidence": "L42 \"Semantic models (YAML) are being superseded by semantic views.\"；L44 \"...using the SYSTEM$CREATE_SEMANTIC_VIEW_FROM_YAML stored procedure. To export a semantic view back to YAML, use the SYSTEM$READ_YAML_FROM_SEMANTIC_VIEW function.\"；L46 \"Snowflake doesn't support bulk conversion of semantic models. You must convert YAML files to semantic views one at a time.\"——取代/两函数/不支持批量三要素逐字全中",
+     "verdict": "HIT"
+    }
+   ],
+   "section": "non-numeric",
+   "summary": "非数字抽样穿透 10/10 全 HIT（HIT 10 · FUZZY 0 · MISS 0 · B-TRACK 0）。抽样覆盖任务指定的全部优先主题：治理不豁免（S64）、检索面过滤（S31+S2）、外部血缘三道闸（S16）、RSS 只减不增（S12）、系统标签须映射（S15+S14）、冲突浮出人工裁决（S30）、Ossie 导出桥静默丢 ASOF/RANGE（S40）、agent_type 归因（S13+S28）、Summit 26 定名（S31+S32）、YAML 语义模型被取代（S8）。每条均在对应 [n]→S# 快照内取得逐字证据片段，其中 5 条与既有 digest-claims.md 裁定（C4.1/C4.10/C4.12/C5.2/C10.4，均为「支持」）交叉一致、本轮独立重 grep 复核；其余 5 条为本轮新增穿透。两处笔记语言为忠实合成而非失真：M3「PRIVATE 在检索层被过滤」= S31 访问控制过滤句 + S2 PRIVATE 不可查询句的两源拼接（两半均逐字在场）；M7「一次性映射」= S14「set up a tag map...every time...also applied」配置一次自动同步机制的转述。未发现任何因果/归属/状态类断言与快照冲突，无需降级或补证。"
+  },
+  {
+   "section": "symptoms-timeline",
+   "claims": [
+    {
+     "claim": "头部 [1] 时点声明：主材料（产品页/公告博客/docs）均按 2026-09-30 页面实况核读",
+     "anchor": "头部 NOTE [1]",
+     "ref": "[1]",
+     "s_id": "无（台账级元断言）",
+     "snapshot": "sources.md + sources/ 各快照头部",
+     "evidence": "sources.md 新鲜度探针「快照均为 2026-09-30 实况」；抽查 S0/S5/S11/S12/S22/S28/S30/S31/S33/S35/S45/S46/S49/S58 头部均 FETCHED: 2026-09-30",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "Summit 新闻稿 live 页已整体改写，自报基准数字段以 2026-06-02 原发稿留档版为准、并与 Cortex Sense 博客同数字交叉",
+     "anchor": "头部 NOTE [1]",
+     "ref": "[3]+[5]",
+     "s_id": "S32+S30",
+     "snapshot": "S32.txt + S30.txt",
+     "evidence": "S32 头部注记「live 页已整体改写删去产品状态清单与 Cortex Sense 基准数字」；原发稿含 24.1%→86.3%、$1.76→$0.59 = S30:44「24.1% to 86.3%」「$1.76 to $0.59」逐字同数",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "SCQA：dbt 2026 受控基准上裸 text-to-SQL 可答题集已达 84–90%",
+     "anchor": "SCQA 导读",
+     "ref": "[23]",
+     "s_id": "S45",
+     "snapshot": "S45.txt",
+     "evidence": "「questions answerable via the Semantic Layer」表：claude-sonnet-4-6|Text-to-SQL|90.0%；gpt-5.3-codex|Text-to-SQL|84.1%（复用 digest C10.8 并实核）",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "SCQA：全题集 64.5%",
+     "anchor": "SCQA 导读",
+     "ref": "[23]",
+     "s_id": "S45",
+     "snapshot": "S45.txt",
+     "evidence": "「Text-to-SQL accuracy nearly doubled, from 32.7% to 64.5% on the full question set.」",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "SCQA：Snowflake 自家内测裸问准确率 ~25%",
+     "anchor": "SCQA 导读",
+     "ref": "[5]",
+     "s_id": "S30",
+     "snapshot": "S30.txt",
+     "evidence": "「without any context layer, AI had around 25% accuracy」（行 24；digest K074 同句）",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "SCQA：转述 Anthropic 独立测得 21%（转述口径、非一手发表）",
+     "anchor": "SCQA 导读",
+     "ref": "[5]",
+     "s_id": "S30",
+     "snapshot": "S30.txt",
+     "evidence": "「remarkably similar to Anthropic's result which independently measured it at just 21%」——正文标注转述属性与快照事实一致",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "白话主线 1 / §1 症状一：销售负责人答 $14.2M、CFO 答 $12.8M",
+     "anchor": "白话主线 1 / §1 症状一",
+     "ref": "[2]",
+     "s_id": "S31",
+     "snapshot": "S31.txt",
+     "evidence": "「Your head of sales sees $14.2 million in Q3 revenue. Your CFO sees $12.8 million. Same data.」（digest K075/C9.2 同句）",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "§1 症状二：Snowflake 内部产品分析题准确率约 25%",
+     "anchor": "§1 症状二",
+     "ref": "[5]",
+     "s_id": "S30",
+     "snapshot": "S30.txt",
+     "evidence": "「Our data team found that without any context layer, AI had around 25% accuracy」",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "§1 症状二：Snowflake 转述 Anthropic 独立测得 21%",
+     "anchor": "§1 症状二",
+     "ref": "[5]",
+     "s_id": "S30",
+     "snapshot": "S30.txt",
+     "evidence": "「Anthropic's result which independently measured it at just 21%」",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "Spider 2.0 企业工作流基准 632 题",
+     "anchor": "§1 症状二",
+     "ref": "[28]",
+     "s_id": "S46",
+     "snapshot": "S46.txt",
+     "evidence": "「Spider 2.0 is an evaluation framework comprising 632 real-world text-to-SQL workflow problems」",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "Spider 2.0 千列级库（数据库常含上千列）",
+     "anchor": "§1 症状二",
+     "ref": "[28]",
+     "s_id": "S46",
+     "snapshot": "S46.txt",
+     "evidence": "「often containing over 1,000 columns and stored in local or cloud database systems such as BigQuery and Snowflake」",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "Spider 2.0 百行 SQL（查询常超百行）",
+     "anchor": "§1 症状二",
+     "ref": "[28]",
+     "s_id": "S46",
+     "snapshot": "S46.txt",
+     "evidence": "「generate multiple SQL queries with diverse operations, often exceeding 100 lines」",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "GPT-4o 在 Spider 2.0 仅 10.1%",
+     "anchor": "§1 症状二",
+     "ref": "[28]",
+     "s_id": "S46",
+     "snapshot": "S46.txt",
+     "evidence": "「For widely-used models like GPT-4o, the success rate is only 10.1% on Spider 2.0 tasks, compared to 86.6% on Spider 1.0」（digest C10.9）",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "2026-09 榜单头部 agent 系统才到 90%+",
+     "anchor": "§1 症状二",
+     "ref": "[28]",
+     "s_id": "S46",
+     "snapshot": "S46.txt",
+     "evidence": "2026-09-30 实况榜 Spider 2.0-Snow 前五席 96.70/96.53/94.15/93.97/90.49——头部集群均在 90% 以上，「90%+」为下限式表述，成立且偏保守",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "模型不知道 `amt_ttl_pre_dsc` 列存的是「折前总金额」",
+     "anchor": "§1 症状二",
+     "ref": "[4]",
+     "s_id": "S1",
+     "snapshot": "S1.txt",
+     "evidence": "「for a critical business concept like _gross revenue_, the data might be stored in a table column named `amt_ttl_pre_dsc`」——gross revenue/pre-discount 与「折前总金额」对应",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "症状三：Agent 拿用户全权凭证默认继承一切，含生产库写权限与 ACCOUNTADMIN 级角色",
+     "anchor": "§1 症状三",
+     "ref": "[24]",
+     "s_id": "S12",
+     "snapshot": "S12.txt",
+     "evidence": "「it inherits the user's full privileges by default. That can include write access to production databases, elevated roles such as ACCOUNTADMIN」",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "时间线第1行：2025-09-23 OSI 创立",
+     "anchor": "§4.2 表第1行",
+     "ref": "[7]",
+     "s_id": "S49",
+     "snapshot": "S49.txt",
+     "evidence": "「Published: September 23, 2025」；标题即 OSI 创立新闻稿（digest K024）",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "时间线第1行：17 家 launch partner（Snowflake + Salesforce + dbt Labs 等）",
+     "anchor": "§4.2 表第1行",
+     "ref": "[7]",
+     "s_id": "S49",
+     "snapshot": "S49.txt",
+     "evidence": "页面列 16 家合作方（Salesforce…ThoughtSpot）+ Snowflake 主导「spearheading」＝17，可数出但数字 17 未印在页面（digest C7.8 已注「需按名单计数」，算术正确）",
+     "verdict": "FUZZY"
+    },
+    {
+     "claim": "时间线第1行：截至 2026-07 已 50+ 组织",
+     "anchor": "§4.2 表第1行",
+     "ref": "[7]",
+     "s_id": "S58",
+     "snapshot": "S58.txt",
+     "evidence": "「Jul 8, 2026」博客载「more than 50 organizations」（工作组成员口径）",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "时间线第2行：2025-11-24 收购 Select Star",
+     "anchor": "§4.2 表第2行",
+     "ref": "[17]",
+     "s_id": "S35",
+     "snapshot": "S35.txt",
+     "evidence": "「Nov 24, 2025 / 2 min read」+「entered into a definitive agreement to acquire the Select Star team and platform technology」（digest C9.6）",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "时间线第3行：2026-01-28 OSI v1 规范定稿发布",
+     "anchor": "§4.2 表第3行",
+     "ref": "[7]",
+     "s_id": "S22",
+     "snapshot": "S22.txt",
+     "evidence": "「Published on Jan 28, 2026」+「The OSI specification is now finalized」+「The first version of the OSI specification is now available」",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "时间线第4行：2026-02-03 Semantic View Autopilot GA（新闻稿+docs）",
+     "anchor": "§4.2 表第4行",
+     "ref": "[11]",
+     "s_id": "S11",
+     "snapshot": "S11.txt",
+     "evidence": "「February 3, 2026」+「Semantic View Autopilot (now generally available)」（digest K017/C3.12）",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "时间线第5行：2026-03-05 NON ADDITIVE BY 半可加指标子句上线（release note）",
+     "anchor": "§4.2 表第5行",
+     "ref": "[33]",
+     "s_id": "S28（+S2 条款名对齐）",
+     "snapshot": "S28.txt",
+     "evidence": "S28:558「Mar 05, 2026: Preventing a semantic view metric from being aggregated across specific dimensions」（digest RN-03-05）；条款名↔半可加语义由 S2「NON ADDITIVE BY clause makes the metric a semi-additive metric」对齐",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "时间线第6行：2026-03-09 工程博客《Why Do We Need Semantic Views?》",
+     "anchor": "§4.2 表第6行",
+     "ref": "[6]",
+     "s_id": "S33",
+     "snapshot": "S33.txt",
+     "evidence": "快照头部「Mar 9, 2026」",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "时间线第7行：2026-06-02 Summit 26 定名 Horizon Context；同场发布 Cortex Sense（私预预告）、Agent Identity（GA）、CoWork 等",
+     "anchor": "§4.2 表第7行",
+     "ref": "[2][3][5]",
+     "s_id": "S32+S31+S30",
+     "snapshot": "S32.txt",
+     "evidence": "live 正文「Published: June 2, 2026」+多段 Horizon Context；Agent Identity GA=live 脚注「1 Snowflake product is now generally available.」；Cortex Sense 私预/CoWork bullet 仅存原发稿留档（S32 注记引「CoWork mid-July private preview」），S30 证「private preview in mid July」——与头部 [1] 留档版纪律一致",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "时间线第8行：2026-06-30 Cortex Sense 博客详解（<5% 覆盖率、四因子、冲突浮出、自报基准）",
+     "anchor": "§4.2 表第8行",
+     "ref": "[5]",
+     "s_id": "S30",
+     "snapshot": "S30.txt",
+     "evidence": "「Jun 30, 2026」+「under 5% of our 9,685 tables」+「relevance, authority, popularity and freshness」+「dozens of different definitions of daily active users…ask the human to settle it」+「24.1% to 86.3%」",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "时间线第9行：2026-07-09 语义视图物化 Public Preview（release 10.24）",
+     "anchor": "§4.2 表第9行",
+     "ref": "[33]",
+     "s_id": "S28",
+     "snapshot": "S28.txt",
+     "evidence": "「10.24 Release Notes: Jul 9, 2026 - Jul 15, 2026 … Semantic view materializations (Public preview)」（digest RN-07-09/K057）",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "时间线第10行：2026-07-27 QUERY_HISTORY.agent_type 列上线",
+     "anchor": "§4.2 表第10行",
+     "ref": "[33]",
+     "s_id": "S28",
+     "snapshot": "S28.txt",
+     "evidence": "「Jul 27, 2026: New agent_type column in QUERY_HISTORY views」（digest K069）",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "时间线第11行：2026-08-12 物化工程博客，TPC-DS 四查询 59–91× 自报基准",
+     "anchor": "§4.2 表第11行",
+     "ref": "[31]",
+     "s_id": "S5",
+     "snapshot": "S5.txt",
+     "evidence": "「Aug 12, 2026」+「Creating a single materialization sped up the four queries between 59x and 91x」+359GB/120MB（digest C2.15/K058）",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "时间线第12行：2026-08-26 Semantic Studio（Preview，release note 与产品页脚注两说并存，以 docs 为准）",
+     "anchor": "§4.2 表第12行",
+     "ref": "[33]",
+     "s_id": "S28+S0",
+     "snapshot": "S28.txt + S0.txt",
+     "evidence": "S28:319「Aug 26, 2026: Semantic Studio (Preview)」；S0「Semantic Studio,*」配图例「* Private preview」——两说并存属实（digest RN-08-26/K004）",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "时间线第13行：2026-08-31 Snowflake-provided tags（Public Preview）",
+     "anchor": "§4.2 表第13行",
+     "ref": "[33]",
+     "s_id": "S28",
+     "snapshot": "S28.txt",
+     "evidence": "「Aug 31, 2026: Snowflake-provided tags (Public Preview)」（digest RN-08-31）",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "时间线第14行：2026-09-02 Cortex Agents 调用入血缘一等节点",
+     "anchor": "§4.2 表第14行",
+     "ref": "[33]",
+     "s_id": "S16c（S28 同文）",
+     "snapshot": "S16c.txt",
+     "evidence": "细则页标题「Sep 02, 2026: Data lineage for Cortex Agents」+「semantic view…appear upstream of the agent」；S28:302 同文（digest RN-09-02）",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "时间线第15行：2026-09-03 External lineage GA（Enterprise Edition）；Restricted Session Scope GA",
+     "anchor": "§4.2 表第15行",
+     "ref": "[33]",
+     "s_id": "S16b+S28",
+     "snapshot": "S16b.txt + S28.txt",
+     "evidence": "S16b「Sep 03, 2026: External lineage (General availability)」+「Enterprise Edition (or higher)」；S28:301「Sep 3, 2026: Restricted Session Scope for agents (General availability)」（digest RN-09-03×2）",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "时间线第16行：2026-09-10 Iceberg Scan Plan API in Horizon Catalog（Public Preview）",
+     "anchor": "§4.2 表第16行",
+     "ref": "[33]",
+     "s_id": "S16d",
+     "snapshot": "S16d.txt",
+     "evidence": "细则页标题「Sep 10, 2026: Iceberg Scan Plan API in Horizon Catalog (Public Preview)」（digest RN-09-10）",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "时间线第17行：2026-09-15 Horizon Catalog Explorer UI（Preview）",
+     "anchor": "§4.2 表第17行",
+     "ref": "[33]",
+     "s_id": "S28",
+     "snapshot": "S28.txt",
+     "evidence": "「Sep 15, 2026: Horizon Catalog Explorer UI (Preview)」（digest RN-09-15）",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "时间线第18行：2026-09-21 血缘覆盖临时对象（temporary objects）",
+     "anchor": "§4.2 表第18行",
+     "ref": "[33]",
+     "s_id": "S16e",
+     "snapshot": "S16e.txt",
+     "evidence": "细则页标题「Sep 21, 2026: Lineage preservation through temporary tables and views (General availability)」",
+     "verdict": "HIT"
+    },
+    {
+     "claim": "时间线第19行：2026-09-30 DCM Projects DEFINE SEMANTIC VIEW GA、ATTACH MASKING POLICY Preview",
+     "anchor": "§4.2 表第19行",
+     "ref": "[33]",
+     "s_id": "S62+S63",
+     "snapshot": "S62.html + S63.html",
+     "evidence": "S62 页题「Sep 30, 2026: DCM Projects DEFINE SEMANTIC VIEW (General availability)」；S63 页题「Sep 30, 2026: DCM Projects ATTACH MASKING POLICY (Preview)」",
+     "verdict": "HIT"
+    }
+   ],
+   "summary": "计数：HIT 37 / FUZZY 1 / MISS 0 / B-TRACK 0，共 38 条断言（本分区无原型实测数字，无 B-TRACK 项）。总评：SCQA 导读、§1 三症状与 §4.2 时间线的全部日期/百分比/金额断言均可在冻结快照内逐字或近逐字命中，可信度高。三点备注：① §4.2 时间线实际为 19 行里程碑（任务描述写 17 行），2025-09-23→2026-09-30 全部日期逐一穿透命中；② 唯一 FUZZY 为「17 家 launch partner」——S49 原发稿列 16 家合作方 + Snowflake 主导共 17，数字本身未印在页面（digest C7.8 早有同注，算术正确、语义同一，无需改稿，口播若引此数注意其为计数推导值）；③ 2026-06-02 行的「Cortex Sense 私预/CoWork」在 live 页已删、仅存原发稿留档（S32 快照注记逐字引）+ S30 交叉，与头部 [1] 声明的留档版读取纪律自洽；Agent Identity GA 在 live 页经脚注成立。release-note 类结论（RN-03-05/07-09/08-26/08-31/09-02/09-03×2/09-10/09-15/09-21、C9.1/C9.2/C9.6/C10.8/C10.9、K014/K017/K024/K069/K074/K075）均在本轮对快照实核后复用，非仅转录。"
+  },
+  {
+   "section": "mechanisms",
+   "claims": [
+    {
+     "anchor": "§2 引言·四层 Context 信号",
+     "claim": "Snowflake 官方把平台采集的上下文信号分四层：Structural/Operational/Semantic/Behavioral",
+     "evidence": "S0 L1743-1746：「Structural: what exists and how it connects…/Operational: what's happening…/Semantic: what it means…/Behavioral: how it's used (ex. popularity, query patterns)」",
+     "ref": "[1]",
+     "s_id": "S0",
+     "snapshot": "S0.html",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§2 因果脉络链",
+     "claim": "裸库 Agent 基线准确率 ~25%（Snowflake 内测口径）",
+     "evidence": "「Our data team found that without any context layer, AI had around 25% accuracy…」（digest C9.1 已有同句逐字引文，复用其结论）",
+     "ref": "[5]",
+     "s_id": "S30",
+     "snapshot": "S30.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§2 M1 白话",
+     "claim": "官方文档示例：net revenue 在语义视图定义为 SUM(gross_revenue * (1 - discount))，「按区域看净收入」同口径聚合",
+     "evidence": "S1 L26-29：「if net revenue…can define it consistently as a metric with the correct aggregation: `SUM(gross_revenue * (1 - discount))`…asks for 'Net Revenue by Region'」",
+     "ref": "[4]",
+     "s_id": "S1",
+     "snapshot": "S1.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§2 M1 白话",
+     "claim": "Snowflake 自家数据团队 9,685 张表建语义视图、覆盖不到 5%（余 95% 消费活在复制口径）",
+     "evidence": "「we had only covered the tip of the iceberg — under 5% of our 9,685 tables. Anything that fell inside that 5%…」（digest C9.1 复用；95% 为同句推算）",
+     "ref": "[5]",
+     "s_id": "S30",
+     "snapshot": "S30.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§2 M1 白话",
+     "claim": "fan trap：一张 $100 的（销售）记录关联 3 条明细行被复制成 3 份记成 $300",
+     "evidence": "S33 L53：「Sam Waters spent $300 on four items, when in fact he spent $100」；上表 SALE_TOTAL 100.00 复制 3 行。注：原文为 sale/非「发票」，数字 100/3 行/300 全逐字",
+     "ref": "[6]",
+     "s_id": "S33",
+     "snapshot": "S33.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§2 M1 白话",
+     "claim": "平均的平均：9 张单店均 2 人、1 张单店 30 人，先各自平均再平均得 16；总客数÷总单数 48÷10=4.8",
+     "evidence": "S33 L196-208：「S1 average: 18 guests / 9 invoices = 2.0…S2: 30 / 1 = 30.0；(2.0+30.0)/2=16.0；(18+30)/(9+1)=48/10=4.8」全部数字逐字命中",
+     "ref": "[6]",
+     "s_id": "S33",
+     "snapshot": "S33.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§2 M1 机制",
+     "claim": "五段式 DDL：TABLES→RELATIONSHIPS→FACTS→DIMENSIONS→METRICS",
+     "evidence": "S2 语法 L7-11：「TABLES ( logicalTable… ) [ RELATIONSHIPS… ] [ FACTS… ] [ DIMENSIONS… ] [ METRICS… ]」五段齐全",
+     "ref": "[4]",
+     "s_id": "S2",
+     "snapshot": "S2.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§2 M1 机制",
+     "claim": "五个能力位：PRIVATE|PUBLIC / WITH SYNONYMS / NON ADDITIVE BY / USING / ASOF-BETWEEN 关系",
+     "evidence": "S2 内 WITH SYNONYMS 6 处命中、L67「NON ADDITIVE BY (」、L42「[ ASOF ] <ref_column_name>」；PRIVATE/PUBLIC 与 USING 同页在场",
+     "ref": "[4]",
+     "s_id": "S2",
+     "snapshot": "S2.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§2 M1 机制",
+     "claim": "MAX_STALENESS 声明新鲜度，最低 120 秒；刷新跟不上自动挂起、IMMUTABLE WHERE 标注不变行",
+     "evidence": "S4 L57：「The minimum allowed MAX_STALENESS is 120 seconds.」；L20「…can't keep up, Snowflake automatically suspends the materialization…IMMUTABLE WHERE condition」（digest C2.4 复用）",
+     "ref": "[4]",
+     "s_id": "S4",
+     "snapshot": "S4.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§2 M1 机制",
+     "claim": "官方基准：单条物化令四条 TPC-DS 查询加速 59–91×、扫描 359GB→120MB；仅 Semantic SQL 路径受益",
+     "evidence": "S5：「Creating a single materialization sped up the four queries between 59x and 91x」/「359GB vs. just 120MB」（digest C2.15/K058 复用；Semantic SQL only 同页在场）",
+     "ref": "[31]",
+     "s_id": "S5",
+     "snapshot": "S5.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§2 M1 正反迁移指纹",
+     "claim": "477 vs 48：上游 grain 塌缩时正确算式照样错——typedef 举证 Cortex Analyst 报 477 活跃服务器、真值 48",
+     "evidence": "「Cortex Analyst reported 477 active servers, and growing every month, when the true number was 48 and flat.」（digest C10.5 复用）",
+     "ref": "[8]",
+     "s_id": "S41",
+     "snapshot": "S41.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§2 M1 端到端走查",
+     "claim": "原型走查：Ann 3 张 $100 订单（事件 2/1/3），engine {('Ann',): 300} vs naive 600（6 行中间结果）",
+     "evidence": "selftest-lab-2026-10-01.txt 复算全等（B1 同构算例：「引擎 Jan=200 vs 朴素 Jan=440（o1 的 3 条事件把 $100 变 $300）」；Ann 数据在 lab 种子 :64）",
+     "s_id": "无（原型）",
+     "snapshot": "research/selftest-lab-2026-10-01.txt",
+     "verdict": "B-TRACK"
+    },
+    {
+     "anchor": "§2 M2 机制",
+     "claim": "四类查询期策略对象：masking / row access / aggregation / projection",
+     "evidence": "S60 页题「Aggregation policies」、S61「A projection policy is a first-class, schema-level object…」（K044 复用）；S15/S64 含 masking 与 row access policy",
+     "ref": "[24]",
+     "s_id": "S60/S61/S15/S64",
+     "snapshot": "S60.txt / S61.txt / S15.txt / S64.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§2 M2 端到端走查",
+     "claim": "原型 D5 反事实：拆执行层 RBAC 后 intern 按 plan 拿到 [90,560]（泄露），装回 blocked",
+     "evidence": "selftest-lab-2026-10-01.txt 复算全等（「D5: 拆 RBAC → intern 按 plan 拿到 [90,560]（泄露发生）；装回 → blocked」）",
+     "s_id": "无（原型）",
+     "snapshot": "research/selftest-lab-2026-10-01.txt",
+     "verdict": "B-TRACK"
+    },
+    {
+     "anchor": "§2 M3 端到端走查",
+     "claim": "原型 MCP 通道日志：[PASS] T2b（PRIVATE 指标对 intern 不下发）与 [PASS] T5（plan is a PRIVATE fact）",
+     "evidence": "selftest-mcp-2026-10-01.txt L7/L10 逐字复算全等：「T2b: list RBAC 过滤: PRIVATE 指标对 intern 不下发…」「T5: 引擎层 RBAC 经 MCP 仍生效: plan is a PRIVATE fact」",
+     "s_id": "无（原型）",
+     "snapshot": "research/selftest-mcp-2026-10-01.txt",
+     "verdict": "B-TRACK"
+    },
+    {
+     "anchor": "§2 M4 白话/机制",
+     "claim": "VQR 条目四要素 question/verified_at/verified_by/sql；SQL 必须引用逻辑表而非物理表",
+     "evidence": "S10 L26-29：verified_at/verified_by 字段释义 +「The query must reference logical tables, not physical tables.」（digest C1.5/C3.7 复用）",
+     "ref": "[12]",
+     "s_id": "S10",
+     "snapshot": "S10.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§2 M4 机制",
+     "claim": "VQR 优化会真跑 verified SQL，每条至多执行 4 次",
+     "evidence": "S50 L35：「Cortex Analyst might execute verified queries up to four times per verified query.」——数字拼写作 four（语义同一：至多 4 次/每条）",
+     "ref": "[12]",
+     "s_id": "S50",
+     "snapshot": "S50.txt",
+     "verdict": "FUZZY"
+    },
+    {
+     "anchor": "§2 M4 机制",
+     "claim": "VQR 超过 20 条会显著拖慢优化特性",
+     "evidence": "S50 L32：「Adding more than 20 verified queries can cause the optimization feature to take longer.」（缺口单 G1/K023 已闭合，复用其结论）",
+     "ref": "[12]",
+     "s_id": "S50",
+     "snapshot": "S50.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§2 M4 端到端走查",
+     "claim": "原型 A1/A1b：verified 短路 {'2026-01': 200, '2026-02': 150, '2026-03': 300}；引擎重算 [200,150,300] 对账一致",
+     "evidence": "selftest-lab-2026-10-01.txt 复算全等（A1/A1b 两行逐字含此数组）",
+     "s_id": "无（原型）",
+     "snapshot": "research/selftest-lab-2026-10-01.txt",
+     "verdict": "B-TRACK"
+    },
+    {
+     "anchor": "§2 M5 机制",
+     "claim": "External lineage 已 GA（Enterprise Edition），2026-09-03",
+     "evidence": "S16b 快照 SOURCE=…/2026-09-03-external-lineage-ga；L6「External lineage is now generally available and is no longer in Preview.」L24「requires Enterprise Edition (or higher)」（digest C5.1/K005 复用）",
+     "ref": "[33]",
+     "s_id": "S16b",
+     "snapshot": "S16b.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§2 M5 机制",
+     "claim": "2026-09-02 起 Cortex Agent 及其声明的工具引用入血缘图（创建/提交版本时记录）",
+     "evidence": "S16c 首行标题「# Sep 02, 2026: Data lineage for Cortex Agents」+「…appear upstream of the agent…CREATE AGENT or ALTER AGENT…COMMIT VERSION」（K051 复用）",
+     "ref": "[33]",
+     "s_id": "S16c",
+     "snapshot": "S16c.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§2 M5 端到端走查",
+     "claim": "原型 E1/E1b：列级血缘同账本（orders.total→sales_sv.metric:revenue 等）；三道闸整事件拒绝 ['rejected','rejected','rejected']",
+     "evidence": "selftest-lab-2026-10-01.txt 复算全等（E1/E1b 两行逐字含此边与三元 rejected 数组）",
+     "s_id": "无（原型）",
+     "snapshot": "research/selftest-lab-2026-10-01.txt",
+     "verdict": "B-TRACK"
+    },
+    {
+     "anchor": "§2 M6 白话",
+     "claim": "Agent 会话入口四种：原生 Agent、托管 MCP、IS_AGENTIC=TRUE 的 OAuth、SERVICE_AGENT 用户",
+     "evidence": "S13 入口表实列 5 行：Snowflake-native agents / managed MCP server / Snowflake OAuth IS_AGENTIC=TRUE / External OAuth IS_AGENTIC=TRUE / SERVICE_AGENT——正文把两支 OAuth 并为一族，数字形式略异、语义同一（digest C4.9 复用）",
+     "ref": "[24]",
+     "s_id": "S13",
+     "snapshot": "S13.txt",
+     "verdict": "FUZZY"
+    },
+    {
+     "anchor": "§2 M6 白话",
+     "claim": "Restricted Session Scope（RSS）2026-09-03 GA",
+     "evidence": "S28 L301：「Sep 3, 2026: Restricted Session Scope for agents (General availability)」",
+     "ref": "[33]",
+     "s_id": "S28",
+     "snapshot": "S28.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§2 M6 机制",
+     "claim": "独立第三方实测（Classmethod）日期 2026-09-04",
+     "evidence": "S25 L4 页面署期「September 4, 2026」",
+     "ref": "[25]",
+     "s_id": "S25",
+     "snapshot": "S25.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§2 M6 端到端走查",
+     "claim": "原型 E2/E2b/D9：会话权限=用户∩代理面 ['select:orders','use:sales_sv']；回收 select:orders 后既有会话即刻失去；D9 快照冻结→旧会话仍持 select:orders（越权窗口）",
+     "evidence": "selftest-lab-2026-10-01.txt 复算全等（E2/E2b/D9 三行逐字含此权限对与退化形态）",
+     "s_id": "无（原型）",
+     "snapshot": "research/selftest-lab-2026-10-01.txt",
+     "verdict": "B-TRACK"
+    },
+    {
+     "anchor": "§2 M7 机制",
+     "claim": "每个被识别列得两个系统标签 SEMANTIC_CATEGORY 与 PRIVACY_CATEGORY；隐私级三级 IDENTIFIER/QUASI_IDENTIFIER/SENSITIVE",
+     "evidence": "S14 L48-49 两系统标签逐字；L40「It can be IDENTIFIER, QUASI_IDENTIFIER, or SENSITIVE」",
+     "ref": "[24]",
+     "s_id": "S14",
+     "snapshot": "S14.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§2 M7 机制",
+     "claim": "AI mode（Public Preview）用 openai-gpt-5-mini 增强识别",
+     "evidence": "S14 L232：「AI mode is only available with the OpenAI GPT-5 Mini model (`openai-gpt-5-mini`).」（K027 复用）",
+     "ref": "[24][33]",
+     "s_id": "S14",
+     "snapshot": "S14.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§2 M7 端到端走查",
+     "claim": "原型 E3/D10：phone/ssn 自动分类→pii→MASK_FULL；plan→BUSINESS_INFO 未映射=显式缺口；D10 拆映射→phone 贴标签仍明文",
+     "evidence": "selftest-lab-2026-10-01.txt 复算全等（E3/D10 两行逐字含 phone/ssn、MASK_FULL、BUSINESS_INFO 与明文退化）",
+     "s_id": "无（原型）",
+     "snapshot": "research/selftest-lab-2026-10-01.txt",
+     "verdict": "B-TRACK"
+    },
+    {
+     "anchor": "§14 机制→代码位置速查表",
+     "claim": "速查表 23 个函数行号（SemanticView :160、validate_view :235、compile_query :378、_naive_joined_rows :319、_aggregate :345、_dim_value :291、session_allows :788、resolve :534、mock_agent :603、record_lineage :683、ingest_external_lineage :713、get_lineage :701、agent_session :769、classify :813、policy_for :819、project_cell :827、detect_conflicts :495、adjudicate :511、eval_loop :636、rank :467、_matches :460、freshness :456、VerifiedQuery :151）",
+     "evidence": "2026-10-01 对 docs/research/cognitive-context/assets/horizon_context_lab.py 逐项 grep -n 复核：23/23 行号全中（如 :160 class SemanticView、:378 def compile_query、:788 def session_allows）",
+     "s_id": "无（仓内代码）",
+     "snapshot": "docs/research/cognitive-context/assets/horizon_context_lab.py",
+     "verdict": "B-TRACK"
+    },
+    {
+     "anchor": "§14 D1",
+     "claim": "D1 实测：拆 agg_before_join → Jan 440（对照 200）",
+     "evidence": "selftest-lab-2026-10-01.txt 复算全等（「D1: 拆 agg-before-join → Jan 440（对照 200）」）",
+     "s_id": "无（原型）",
+     "snapshot": "research/selftest-lab-2026-10-01.txt",
+     "verdict": "B-TRACK"
+    },
+    {
+     "anchor": "§14 D2",
+     "claim": "D2 实测：拆 distinct 安全 → [6,1,2]（对照 [3,1,2]）",
+     "evidence": "selftest-lab-2026-10-01.txt 复算全等（「D2: 拆 distinct 安全 → [6,1,2]（对照 [3,1,2]）」）",
+     "s_id": "无（原型）",
+     "snapshot": "research/selftest-lab-2026-10-01.txt",
+     "verdict": "B-TRACK"
+    },
+    {
+     "anchor": "§14 D3",
+     "claim": "D3 实测：拆 NON ADDITIVE → [11,6,7]（对照 [5,6,7]）；全期 7 vs 24",
+     "evidence": "selftest-lab-2026-10-01.txt 复算全等（「D3: 拆 NON ADDITIVE → [11,6,7]（对照 [5,6,7]）」；B4 行含「全期 7 vs 24」）",
+     "s_id": "无（原型）",
+     "snapshot": "research/selftest-lab-2026-10-01.txt",
+     "verdict": "B-TRACK"
+    },
+    {
+     "anchor": "§14 D4",
+     "claim": "D4 实测：冲突策略改 auto_popularity → 推断层 count(events) 胜出 [6,1,2]（对照 [3,1,2]）",
+     "evidence": "selftest-lab-2026-10-01.txt 复算全等（「D4: 冲突改 auto_popularity → 推断层(count events) 胜出 [6,1,2]（对照 [3,1,2]）」）",
+     "s_id": "无（原型）",
+     "snapshot": "research/selftest-lab-2026-10-01.txt",
+     "verdict": "B-TRACK"
+    },
+    {
+     "anchor": "§14 D5",
+     "claim": "D5 实测：拆 enforce_rbac → intern 按 plan 拿到 [90,560]；装回 → blocked",
+     "evidence": "selftest-lab-2026-10-01.txt 复算全等（「D5: 拆 RBAC → intern 按 plan 拿到 [90,560]（泄露发生）；装回 → blocked」）",
+     "s_id": "无（原型）",
+     "snapshot": "research/selftest-lab-2026-10-01.txt",
+     "verdict": "B-TRACK"
+    },
+    {
+     "anchor": "§14 D6",
+     "claim": "D6 实测：跳过 validate 注册坏视图 → relationship bad: referenced column customers.plan is not PRIMARY KEY/UNIQUE 被拦下",
+     "evidence": "selftest-lab-2026-10-01.txt 复算全等（D6 行逐字含该报错串）",
+     "s_id": "无（原型）",
+     "snapshot": "research/selftest-lab-2026-10-01.txt",
+     "verdict": "B-TRACK"
+    },
+    {
+     "anchor": "§14 D7",
+     "claim": "D7 实测：拆 derived_post_agg → 122.22（对照 108.33）",
+     "evidence": "selftest-lab-2026-10-01.txt 复算全等（「D7: 拆 derived 先聚后除 → 122.22（对照 108.33）」；A2/B4 行同数）",
+     "s_id": "无（原型）",
+     "snapshot": "research/selftest-lab-2026-10-01.txt",
+     "verdict": "B-TRACK"
+    },
+    {
+     "anchor": "§14 D8",
+     "claim": "D8 实测：拆 strict_resolve → 虚构对象 ghost 入账（raw.y→ghost.x）",
+     "evidence": "selftest-lab-2026-10-01.txt 复算全等（「D8: 拆血缘解析闸 → 虚构对象入账（raw.y→ghost.x）」）",
+     "s_id": "无（原型）",
+     "snapshot": "research/selftest-lab-2026-10-01.txt",
+     "verdict": "B-TRACK"
+    },
+    {
+     "anchor": "§14 D9",
+     "claim": "D9 实测：拆权限天花板（快照冻结）→ 回收后旧会话仍持 select:orders（越权窗口）；天花板会话同刻实时失去",
+     "evidence": "selftest-lab-2026-10-01.txt 复算全等（D9 行逐字含 select:orders 越权窗口与对照实时求值）",
+     "s_id": "无（原型）",
+     "snapshot": "research/selftest-lab-2026-10-01.txt",
+     "verdict": "B-TRACK"
+    },
+    {
+     "anchor": "§14 D10",
+     "claim": "D10 实测：标签映射置空 → phone 已贴系统标签仍明文出楼",
+     "evidence": "selftest-lab-2026-10-01.txt 复算全等（「D10: 拆标签映射…→ phone 已贴系统标签仍明文出楼」）",
+     "s_id": "无（原型）",
+     "snapshot": "research/selftest-lab-2026-10-01.txt",
+     "verdict": "B-TRACK"
+    },
+    {
+     "anchor": "§14 官方护栏表",
+     "claim": "首个语义视图 5–10 表起步（尺寸无硬上限）",
+     "evidence": "S7 L34：「begin with 5–10 tables for an initial proof of concept to keep debugging manageable」（digest C3.1/K020 复用；L160 同数）",
+     "ref": "[14]",
+     "s_id": "S7",
+     "snapshot": "S7.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§14 官方护栏表",
+     "claim": "整视图控制在 ~100,000 token 内（guideline，超限触发 prune）",
+     "evidence": "S7 L36：「__Keep the semantic view under about 100,000 tokens.__…may need to _prune_ the semantic view…adds latency」（digest C3.1/K049 复用）",
+     "ref": "[14]",
+     "s_id": "S7",
+     "snapshot": "S7.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§11 检索（任务提示列入本分区）",
+     "claim": "初检索 top-150 候选、末级 top-k 截断取 top-20（Anthropic 参考实现）",
+     "evidence": "S47 L259/L263：「we used the top 150」「select the top-K chunks (we used the top 20)」",
+     "ref": "[29]",
+     "s_id": "S47",
+     "snapshot": "S47.txt",
+     "verdict": "HIT"
+    }
+   ],
+   "summary": "分区 §2（M1–M7 全部机制数字）+ §14（D1–D10 实测值与官方护栏数字）共 45 条断言全量穿透：HIT 23、FUZZY 2、MISS 0、B-TRACK 20。页源数字全部命中：物化 59x–91x/359GB→120MB（S5）、MAX_STALENESS 120 秒（S4）、9,685 表/<5%（S30）、477 vs 48（S41）、VQR >20 条（S50）、~100,000 token 与 5–10 表（S7）、RSS GA 2026-09-03（S28）、External lineage GA 2026-09-03（S16b）、Cortex Agent lineage 2026-09-02（S16c）、Classmethod 2026-09-04（S25）、openai-gpt-5-mini（S14）、四层信号（S0）、五段式 DDL（S2）、fan trap $100/$300 与平均的平均 2/30/16/4.8（S33）均逐字命中，并复用 digest-claims 既有逐字引文（C2.4/C2.15/C9.1/C10.5/C3.1/K005/K051/K027 等）。两条 FUZZY 均为数字形式略异语义同一：VQR「每条至多执行 4 次」原文拼作 \"up to four times\"（S50）；M6「四种入口」原文入口表列 5 行（Snowflake OAuth 与 External OAuth 两支被正文并为一族，S13）。B-TRACK 20 条＝§2/§14 全部原型实测数字（Ann 300/600、D5 [90,560]、T2b/T5、A1/A1b、E1/E1b、E2/E2b/D9、E3/D10、D1–D10 十行），经 2026-10-01 重跑 selftest-lab/selftest-mcp-2026-10-01.txt 逐行复算全等；§14 速查表 23 个函数行号另对 horizon_context_lab.py 逐项 grep 复核 23/23 全中。总评：本分区无 MISS、无降级项，厂商自报/第三方/原型三级证据链在数字层面全部闭合，唯二 FUZZY 不构成事实性偏差。"
+  },
+  {
+   "section": "evidence-chapters",
+   "claims": [
+    {
+     "anchor": "§10 段1 · §13 表第6行",
+     "claim": "Snowflake 自家数据团队 9,685 张表的语义视图覆盖率不到 5%",
+     "evidence": "we had only covered the tip of the iceberg — under 5% of our 9,685 tables（digest K080 同结论）",
+     "ref": "[5]",
+     "s_id": "S30",
+     "snapshot": "S30.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§10 段2（Autopilot 输入）",
+     "claim": "上下文文件 CSV 至多 5 个文件、单文件 ≤5000 对",
+     "evidence": "up to 5000 question-answer pairs / up to 5 CSV files（digest K018 同结论）",
+     "ref": "[11]",
+     "s_id": "S9",
+     "snapshot": "S9.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§10 段2（Autopilot 输入）",
+     "claim": "Tableau 文件 TWB/TWBX/TDS、<250MB、LOD 明细级计算不被支持",
+     "evidence": "`TWB`/`TWBX`/`TDS` 各 1 次、TDSX 零命中；250 MB；LOD Calculations: …are not supported.（K019 同）",
+     "ref": "[11]",
+     "s_id": "S9",
+     "snapshot": "S9.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§10 段2（Autopilot 输入）",
+     "claim": "Power BI 模板/报表文件 pbit/pbix 被摄取",
+     "evidence": ".pbit 与 .pbix 均命中（digest C3.9：template files without embedded data / report files with embedded data）",
+     "ref": "[11]",
+     "s_id": "S9",
+     "snapshot": "S9.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§10 段2（Sense 四因子）",
+     "claim": "信号排序四因子 relevance/authority/popularity/freshness，受治理语义视图 authority 最高",
+     "evidence": "rank them the way web search ranks pages: by relevance, authority, popularity and freshness；a governed semantic view carries more authority…（K047 同）",
+     "ref": "[5]",
+     "s_id": "S30",
+     "snapshot": "S30.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§10 段2（Sense 权重例）",
+     "claim": "500 条生产 SQL 的 join 模式权重压过 3 条的；上月的定义压过两年前的",
+     "evidence": "a join pattern appearing in 500 production SQL statements carries more weight than one appearing in three; …last month supersedes one from two years ago",
+     "ref": "[5]",
+     "s_id": "S30",
+     "snapshot": "S30.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§10 段2（冲突浮出）",
+     "claim": "Sense 内测测出几十种日活（daily active users）定义",
+     "evidence": "it found dozens of different definitions of daily active users",
+     "ref": "[5]",
+     "s_id": "S30",
+     "snapshot": "S30.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§10 段2（权限限定）",
+     "claim": "私测期只支持单角色全量、per-role context 未交付",
+     "evidence": "specify a single role that will get access to all of Cortex Sense, and will plan to expand to per-role contexts in the future",
+     "ref": "[5]",
+     "s_id": "S30",
+     "snapshot": "S30.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§10 原型对照（C4）",
+     "claim": "原型 C4：错配前 top1=active_users（sum(dau)=[11,6,7] 错）→ 调信号后 top1=active_customers（count_distinct=[3,1,2] 对）",
+     "evidence": "selftest-lab-2026-10-01.txt 复算全等",
+     "ref": "无",
+     "s_id": "无",
+     "snapshot": "（实验室原型，非页面数字）",
+     "verdict": "B-TRACK"
+    },
+    {
+     "anchor": "§10 原型对照（C3b）",
+     "claim": "原型 C3b：人工裁决（governed 胜）后恢复输出 [3,1,2]",
+     "evidence": "selftest-lab-2026-10-01.txt 复算全等",
+     "ref": "无",
+     "s_id": "无",
+     "snapshot": "（实验室原型，非页面数字）",
+     "verdict": "B-TRACK"
+    },
+    {
+     "anchor": "§11 段1 · §13 表第8行",
+     "claim": "Cortex Search 内部基准 NDCG@10：关键词 0.22 → 向量 0.49 → 混合 0.53 → 混合+重排 0.59",
+     "evidence": "NDCG@10 improves from 0.22 (Lexical) to 0.49 (Vector) to 0.53 (Hybrid) and 0.59 (Hybrid + reranker)（K081/K046 同）",
+     "ref": "[15]",
+     "s_id": "S36",
+     "snapshot": "S36.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§11 段1 · §13 表第8行",
+     "claim": "早期客户 hit rate@1：0.79 → 加热度 0.83 → 加新鲜度+热度 0.86",
+     "evidence": "hit rate@1 go from 0.79 to 0.83 with the addition of popularity, and up to 0.86 with the addition of recency and popularity",
+     "ref": "[15]",
+     "s_id": "S36",
+     "snapshot": "S36.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§11 段1",
+     "claim": "Cortex Search 检索栈为 Snowflake 2024 年公开（工程博客）",
+     "evidence": "页面署名 Aug 8, 2024（2 处命中）",
+     "ref": "[15]",
+     "s_id": "S36",
+     "snapshot": "S36.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§11 段1（三段管线）",
+     "claim": "Anthropic 参考实现初检索取 top-150 候选、评测取 top-20（top-k 截断）",
+     "evidence": "Perform initial retrieval to get the top potentially relevant chunks (we used the top 150)；retrieving the top-20-chunks. We use 1 minus recall@20",
+     "ref": "[29]",
+     "s_id": "S47",
+     "snapshot": "S47.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§11 段1（生态注脚）",
+     "claim": "Glean ARR 九个月翻倍至 $200M（2025-12 官方口径）",
+     "evidence": "doubled its annual recurring revenue (ARR) to $200 million, nine months after surpassing the $100 million milestone；页面署名 December 8, 2025（K016 同）",
+     "ref": "[30]",
+     "s_id": "S53",
+     "snapshot": "S53.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§11 段1（生态注脚）· §13 表第9行",
+     "claim": "检索增强+重排把 top-20 检索失败率相对降 49%→67%（1−recall@20 口径，5.7%→2.9%）",
+     "evidence": "failed retrievals by 49% and, when combined with reranking, by 67%；5.7% → 2.9% / 5.7% → 1.9%（digest C10.10 同）",
+     "ref": "[29]",
+     "s_id": "S47",
+     "snapshot": "S47.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§12 段1（MCP）",
+     "claim": "MCP 服务端递归调用深度上限 10",
+     "evidence": "Snowflake enforces a maximum recursion depth of 10 invocations.",
+     "ref": "[13]",
+     "s_id": "S19",
+     "snapshot": "S19.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§12 段1（OSI/Ossie）",
+     "claim": "OSI 2025-09-23 以 17 家 launch partner 创立",
+     "evidence": "S58：grown from 17 launch partners to more than 50 organizations；S49：Published: September 23, 2025（S49 页未印 17，逐字在 S58）",
+     "ref": "[7]",
+     "s_id": "S58 + S49",
+     "snapshot": "S58.txt + S49.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§12 段1（OSI/Ossie）",
+     "claim": "截至 2026-07 已 50+ 组织",
+     "evidence": "S58（Jul 8, 2026）同上句；S40 旁证：More than 50 organizations sit in the working group",
+     "ref": "[7]",
+     "s_id": "S58",
+     "snapshot": "S58.txt + S40.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§12 段1（OSI/Ossie）",
+     "claim": "OSI v1 规范 2026-01（-28）定稿发布",
+     "evidence": "Published on Jan 28, 2026（digest C7.3 同）",
+     "ref": "[7]",
+     "s_id": "S22",
+     "snapshot": "S22.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§12 段1（OSI/Ossie）",
+     "claim": "Ossie 2026-06-19 进 Apache 孵化",
+     "evidence": "clutch 实况页 Started: 2026-06-19",
+     "ref": "[7]",
+     "s_id": "S21",
+     "snapshot": "S21-live-2026-09-30.html",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§12 段1（OSI/Ossie）· §13 表第11行",
+     "claim": "截至 2026-09-30 实况：13 名 committer、7 名 PPMC（clutch Last Status Update 2026-07-16）",
+     "evidence": "Committers: 13 / PPMC members: 7 / Last Status Update: 2026-07-16（live 版为准，旧 06-25 缓存版 4 人已弃）",
+     "ref": "[7]",
+     "s_id": "S21",
+     "snapshot": "S21-live-2026-09-30.html",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§12 段1（OSI/Ossie）· §13 表第11行",
+     "claim": "Ossie 首 release 尚未切出",
+     "evidence": "clutch：Release distribution area is not setup；S23 Dremio：has not cut its first release yet",
+     "ref": "[7]",
+     "s_id": "S21 + S23",
+     "snapshot": "S21-live-2026-09-30.html + S23.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§12 段1（OSI/Ossie）",
+     "claim": "Snowflake 官方 Ossie 导出桥只导出等值 join，ASOF/RANGE 非等值关系被静默丢弃（Datus 2026-08）",
+     "evidence": "export __equi-join relationships only__; non-equi joins such as ASOF and RANGE are silently dropped；no product ships native OSI support as of August 2026（C10.4 同）",
+     "ref": "[21]",
+     "s_id": "S40",
+     "snapshot": "S40.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§12 段1（进口侧）",
+     "claim": "Select Star 团队收购公告日期 2025-11-24",
+     "evidence": "Nov 24, 2025（digest C9.6 同：以可见署名为准）",
+     "ref": "[17]",
+     "s_id": "S35",
+     "snapshot": "S35.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§12 段1（进口侧）",
+     "claim": "Metadata Connectors（私预）首批含 PostgreSQL、SQL Server、Tableau、Power BI、dbt",
+     "evidence": "Metadata Connectors (private preview): … including PostgreSQL, Microsoft SQL Server, Tableau, Power BI and dbt（K001/K022 同）",
+     "ref": "[2]",
+     "s_id": "S31",
+     "snapshot": "S31.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§13 表第1行",
+     "claim": "裸库 Agent 基线（Snowflake 内部产品分析题）准确率 ~25%",
+     "evidence": "AI had around 25% accuracy（digest K074 同）",
+     "ref": "[5]",
+     "s_id": "S30",
+     "snapshot": "S30.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§13 表第2行",
+     "claim": "裸库基线第二口径：Anthropic 独立测得 21%（经 Sense 博客转述、非一手发表）",
+     "evidence": "remarkably similar to Anthropic's result which independently measured it at just 21%（转述属性与 gl-notes 标注一致）",
+     "ref": "[5]",
+     "s_id": "S30",
+     "snapshot": "S30.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§13 表第3行",
+     "claim": "Cortex Sense 自报基准 24.1%→86.3%；$1.76→$0.59/查询（前沿编码 Agent vs 裸 CoCo vs Sense、自家难题集、2026-06）",
+     "evidence": "improved accuracy from 24.1% to 86.3% on our benchmark；reduced costs from $1.76 to $0.59 per query；同段载 frontier coding agent/vanilla CoCo/CoCo grounded by Cortex Sense 对比与 hard questions；署名 Jun 30, 2026（C9.1 同）",
+     "ref": "[5]",
+     "s_id": "S30",
+     "snapshot": "S30.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§13 表第3行（附注）",
+     "claim": "Summit 原发稿[3]与 Sense 博客同数（24.1%→86.3%、$1.76→$0.59）",
+     "evidence": "S32 为 curl live 版，正文已改写删去该组数字；数字仅存快照头部 lab 注记（引 webReader 原发缓存：improved agent accuracy from 24.1% to 86.3% and reduced costs from $1.76 to $0.59 per query）——gl-notes 已自注「live 页已改写、以原发稿留档版为准」",
+     "ref": "[3]",
+     "s_id": "S32",
+     "snapshot": "S32.txt",
+     "verdict": "FUZZY"
+    },
+    {
+     "anchor": "§13 表第4行",
+     "claim": "CoWork+Sense 组合口径：83%（Sense）vs 47%（无 Sense）vs 23%（前沿 Agent+MCP），复杂企业查询内部测试、2026-06",
+     "evidence": "achieved an 83% accuracy rate when using Cortex Sense compared to 47% for CoCo and CoWork alone, and 23% for Frontier Coding Agents with Snowflake MCP；署名 Jun 2, 2026（K087/C9.5 同）",
+     "ref": "[16]",
+     "s_id": "S34",
+     "snapshot": "S34.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§13 表第5行",
+     "claim": "dbt 2026 基准受覆盖题：SL 98.2%/100% vs T2SQL 90.0%/84.1%",
+     "evidence": "表行：claude-sonnet-4-6 | Text-to-SQL | 90.0% / Semantic Layer | 98.2%；gpt-5.3-codex | 84.1% / 100.0%（页面写 100.0%，gl-notes 作 100%）",
+     "ref": "[23]",
+     "s_id": "S45",
+     "snapshot": "S45.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§13 表第5行",
+     "claim": "全题集 SL 72.7% vs T2SQL 64.5%；2023 年 T2SQL 32.7%→64.5%；ACME 保险集 11 题×20 次、2026-04",
+     "evidence": "All | 32.7% | 64.5% | … | 60.5% | 72.7%；from 32.7% to 64.5% on the full question set；11 questions, each run 20 times（ACME Insurance benchmark）；署名 April 7, 2026（C10.8/K085 同）",
+     "ref": "[23]",
+     "s_id": "S45",
+     "snapshot": "S45.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§13 表第7行",
+     "claim": "物化加速 TPC-DS 四查询 59×–91×；扫描 359GB→120MB（单条物化、2026-08 自报）",
+     "evidence": "sped up the four queries between 59x and 91x；359GB vs. just 120MB；署名 Aug 12, 2026（digest C2.15/K058 同）",
+     "ref": "[31]",
+     "s_id": "S5",
+     "snapshot": "S5.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§13 表第10行",
+     "claim": "typedef 举证：distinct 跨时间相加 477 vs 重算 48；玩具复现每日 2+2 相加得 4 vs 去重 3（2026-06）",
+     "evidence": "reported 477 active servers…when the true number was 48 and flat；玩具：-- 2026-08-01 -> 2 / -- 2026-08-02 -> 2（SUM=4）+ The wrong view returns four / The right view returns three；Published 2026-06-12（C10.5/K086 同）",
+     "ref": "[8]",
+     "s_id": "S41",
+     "snapshot": "S41.txt",
+     "verdict": "HIT"
+    },
+    {
+     "anchor": "§13 尾段",
+     "claim": "本仓原型 D1–D10（§14）只证明机制逻辑按描述运作，不构成对商业数字的复现",
+     "evidence": "selftest-lab-2026-10-01.txt 复算全等",
+     "ref": "无",
+     "s_id": "无",
+     "snapshot": "（实验室原型，非页面数字）",
+     "verdict": "B-TRACK"
+    }
+   ],
+   "summary": "分区 §10–§12 三专章 + §13 关键实证数字表全量穿透：36 条断言中 HIT 32、FUZZY 1、MISS 0、B-TRACK 3。全部页面数字（Sense 24.1%→86.3%/$1.76→$0.59、CoWork 83/47/23、<5% of 9,685、dbt 98.2/100/90.0/84.1/72.7/64.5/32.7 与 11题×20次、物化 59×–91×/359GB→120MB、NDCG 0.22→0.59、hit rate 0.79→0.86、−49%/−67% 与 5.7→2.9、477 vs 48 与玩具 2+2=4/3、17→50+、13 committers/7 PPMC/首 release 未切出、递归深度 10、CSV 5×5000、250MB/LOD、MCP 五连接器、各日期口径）均快照逐字命中，与 digest-claims.md 既有裁定（K074/K080/K081/K046/K058/K086/K087、C9.1/C9.5/C9.7/C10.5/C10.8/C10.10）交叉一致。唯一 FUZZY：「Summit 原发稿[3]同数」——S32 快照系 curl live 版、正文已改写删去基准数字，数字仅存快照头部 lab 注记（引 webReader 原发缓存逐字句）；gl-notes 引文项已如实自注「live 页已改写、自报基准以原发稿留档版为准」，属登记在案的快照形态差异而非失真，无需降级。3 条 B-TRACK 为 §10 原型对照（[11,6,7]/[3,1,2]）与 §13 尾 D1–D10 实验室数字（selftest-lab-2026-10-01 复算全等）。总评：本分区数字断言可信度完整，无降级或补证动作必要。"
+  }
+ ],
+ "total": 126
+}
