@@ -684,6 +684,41 @@ def run_selftest() -> int:
     merged_n = store.consolidate(fail=False)
     check("consolidate.merged", 0 < merged_n <= 30 and len(store.list_memories()) == merged_n)
 
+    # T11/T12 walkthrough（§3.4 两个场景；独立 root 防串台，输出数字即笔记 §3.4/§6 引用源）
+    def walkthrough(sizes: list[int]) -> tuple[list[dict], int, list[str], list[int], int]:
+        wroot = Path(tempfile.mkdtemp(prefix="memory-lab-w-"))
+        try:
+            wcomp = Compactor(wroot)
+            calls = [{"type": "tool_use", "id": f"tu{i}", "name": "read_file",
+                      "input": {"path": f"f{i}.py"}} for i in range(len(sizes))]
+            msgs = [{"role": "user", "content": "q"},
+                    {"role": "assistant", "content": calls},
+                    {"role": "user", "content": [
+                        {"type": "tool_result", "tool_use_id": c["id"],
+                         "content": big_content(n, f"f{i}")} for i, (c, n) in enumerate(zip(calls, sizes))]}]
+            before = MockLLM.calls
+            out = wcomp.prepare(msgs, "q")
+            files = sorted(p.name for p in (wroot / ".task_outputs" / "tool-results").glob("*.txt"))
+            lens = [len(str(b.get("content", ""))) for b in out[-1]["content"]]
+            return out, MockLLM.calls - before, files, lens, estimate_chars(out)
+        finally:
+            shutil.rmtree(wroot, ignore_errors=True)
+
+    _out1, llm1, files1, lens1, est1 = walkthrough([40_000, 170_000, 320_000])
+    check("walk.s1-all-persisted", files1 == ["tu0.txt", "tu1.txt", "tu2.txt"] and llm1 == 0,
+          f"budget 落 tu2/tu1、fit 兜底落 tu0，摘要调用 {llm1} 次，files={files1}")
+    check("walk.s1-fit-receipt", 1000 <= lens1[0] < 2000,
+          f"tu0 换 1,000 预览收据（{lens1[0]} 字符；budget 收据为 2,000 预览，{lens1[1]} 字符）")
+    check("walk.s1-final", est1 < CONTEXT_CHAR_LIMIT,
+          f"终态估算 {est1}（json 转义换行令 budget 后估算略超 50,000，fit 因此多落一条）")
+
+    _out2, llm2, files2, lens2, est2 = walkthrough([25_000, 45_000, 260_000])
+    check("walk.s2-persisted", files2 == ["tu1.txt", "tu2.txt"] and llm2 == 0,
+          f"budget 落 260K、fit 落 45K，25K 完整保留，摘要调用 {llm2} 次")
+    check("walk.s2-kept", lens2[0] >= 25_000 and 1000 <= lens2[1] < 2000,
+          f"tu0 原样 {lens2[0]}，tu1 换 1,000 预览收据（{lens2[1]} 字符）")
+    check("walk.s2-final", est2 < CONTEXT_CHAR_LIMIT, f"终态估算 {est2}")
+
     print("\n".join(log))
     print(f"\nSELFTEST PASSED ✔ ({len(log)} checks, mock-LLM calls={MockLLM.calls})")
     shutil.rmtree(root, ignore_errors=True)
