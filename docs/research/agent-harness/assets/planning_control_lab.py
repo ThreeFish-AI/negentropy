@@ -525,7 +525,6 @@ def main():
         print("\n".join(log)); print("SELFTEST PASSED ✔")
         return 0
     if args.experiment:
-        import importlib
         fn = {"D1": experiment_D1, "D2": experiment_D2, "D3": experiment_D3,
               "D4": experiment_D4, "D5": experiment_D5}[args.experiment]
         out = fn(log, tmp) if fn.__code__.co_argcount == 2 else fn(log)
