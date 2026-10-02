@@ -9,22 +9,8 @@ import {LangProvider} from './i18n';
 import {computeTimeline, SCENE_FADE_FRAMES} from './timing';
 import type {Lang} from './i18n';
 import type {ManifestItem, SceneRange} from './types';
-import {P0Reread} from './scenes/P0Reread';
-import {P1TodoCard} from './scenes/P1TodoCard';
-import {P2SideDesk} from './scenes/P2SideDesk';
-import {P3Paper} from './scenes/P3Paper';
-import {P4Ladder} from './scenes/P4Ladder';
-import {P5Scene} from './scenes/P5Scene';
-import {P6Arranged} from './scenes/P6Arranged';
 
 const SCENE_COMPONENTS: Record<string, React.FC<{scene: SceneRange}>> = {
-  P0: P0Reread,
-  P1: P1TodoCard,
-  P2: P2SideDesk,
-  P3: P3Paper,
-  P4: P4Ladder,
-  P5: P5Scene,
-  P6: P6Arranged,
 };
 
 export type MainProps = {manifest: ManifestItem[]; lang?: Lang};

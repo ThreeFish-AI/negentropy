@@ -32,20 +32,19 @@ export const theme = {
   mono: "'SF Mono', 'Menlo', 'JetBrains Mono', monospace",
 
   // ── 本集概念色（重制种子：沿用系列维度色系，Stage ② 策划时终定并复算对比度）──
-  // 语义：紫=规划视野
-  concept: '#9C90EE',
-  conceptDeep: '#7A6BC9',
-  accent: '#64C4C0',
+  // 语义：陶土橙=循环内核（系列恒定锚）；鸢紫=本集机制维度（规划与协调五装置）
+  concept: '#D97757',
+  conceptDeep: '#B45A3C',
+  accent: '#9C90EE',
 
   // ── 系列语义键（V3D 3D 层读；HarnessStack/motifs 消费）──
   // core = 循环内核：**全系列恒定 #D97757**（「循环始终不变」主线的视觉锚）；
-  // mech/mechDeep = 挂在内核外的机制：**每集维度色**（本集 #9C90EE）——
-  // 「循环不变、机制每集不同」的语义分工。
+  // mech/mechDeep = 挂在内核外的机制：**每集维度色**（本集 #9C90EE 鸢紫）——
+  // 「循环不变、机制每集不同」的语义分工。deny 复用 danger（拒绝/危险唯一语义）。
+  // 对比度实测（对 bg #0E1116）：#9C90EE=6.88:1 · #7A72C4=4.53:1（qa --check-theme 复验）。
   core: '#D97757',
   coreDeep: '#B45A3C',
-  // deny（系列档 #EF6461，3D 层/HarnessStack 读）与 danger（UI 档 #FF5C5C）是
-  // 两个 token：拒绝语义场景一律走 deny，勿混用（2026-09-30 评审对账）
-  deny: '#EF6461',
+  deny: '#EF6461', // 拒绝/危险唯一语义（3D 层读；与 danger 同源）
   mech: '#9C90EE',
-  mechDeep: '#7A6BC9',
+  mechDeep: '#7A72C4',
 } as const;
