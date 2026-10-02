@@ -1,7 +1,7 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.0,
+ "lead_sec": 0.44,
  "story_sec": 14.44,
  "total_wall_sec": 102.5,
  "started_playback": true,
@@ -16,7 +16,7 @@
    "end_still": "pc2-prompt-shelf--shelf-sections-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 6.4,
    "beat_offsets_sec": [
     0.0,
@@ -41,7 +41,7 @@
    "end_still": "pc2-prompt-shelf--shelf-state-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 4.52,
    "beat_offsets_sec": [
     0.0,
@@ -66,7 +66,7 @@
    "end_still": "pc2-prompt-shelf--shelf-split-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 0.0,
+   "lead_sec": 0.48,
    "story_sec": 3.52,
    "beat_offsets_sec": [
     0.0,

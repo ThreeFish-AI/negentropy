@@ -1,7 +1,7 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.0,
+ "lead_sec": 0.44,
  "story_sec": 26.8,
  "total_wall_sec": 125.13,
  "started_playback": true,
@@ -16,7 +16,7 @@
    "end_still": "pc2-recovery-ledger--ledger-book-end.png",
    "beats": 5,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 9.23,
    "beat_offsets_sec": [
     0.0,
@@ -43,7 +43,7 @@
    "end_still": "pc2-recovery-ledger--ledger-ablation-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 4.17,
    "beat_offsets_sec": [
     0.0,
@@ -66,7 +66,7 @@
    "end_still": "pc2-recovery-ledger--ledger-ruling-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 13.4,
    "beat_offsets_sec": [
     0.0,
@@ -90,5 +90,5 @@
  },
  "source": "/Users/cm.huang/conductor/workspaces/negentropy/whitehorse/docs/assets/architecture/agent-harness/claude-code--pc2-recovery-ledger.html",
  "slug": "pc2-recovery-ledger",
- "type": ""
+ "type": "lifecycle"
 }

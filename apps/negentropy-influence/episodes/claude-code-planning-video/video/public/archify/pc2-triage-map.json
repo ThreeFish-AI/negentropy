@@ -1,7 +1,7 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.0,
+ "lead_sec": 0.44,
  "story_sec": 26.6,
  "total_wall_sec": 99.4,
  "started_playback": true,
@@ -16,7 +16,7 @@
    "end_still": "pc2-triage-map--triage-mount-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 16.87,
    "beat_offsets_sec": [
     0.0,
@@ -39,7 +39,7 @@
    "end_still": "pc2-triage-map--triage-trunc-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 3.25,
    "beat_offsets_sec": [
     0.0,
@@ -60,7 +60,7 @@
    "end_still": "pc2-triage-map--triage-overflow-end.png",
    "beats": 1,
    "dwell_ms": 3200,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 3.22,
    "beat_offsets_sec": [
     0.0
@@ -79,7 +79,7 @@
    "end_still": "pc2-triage-map--triage-transient-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 3.26,
    "beat_offsets_sec": [
     0.0,

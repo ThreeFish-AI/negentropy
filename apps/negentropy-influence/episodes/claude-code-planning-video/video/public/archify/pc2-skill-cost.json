@@ -1,7 +1,7 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.0,
+ "lead_sec": 0.44,
  "story_sec": 6.56,
  "total_wall_sec": 65.87,
  "started_playback": true,
@@ -16,7 +16,7 @@
    "end_still": "pc2-skill-cost--cost-ablation-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 3.23,
    "beat_offsets_sec": [
     0.0,
@@ -37,7 +37,7 @@
    "end_still": "pc2-skill-cost--cost-ruling-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 3.33,
    "beat_offsets_sec": [
     0.0,

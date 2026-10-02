@@ -1,7 +1,7 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.0,
+ "lead_sec": 0.44,
  "story_sec": 32.26,
  "total_wall_sec": 158.05,
  "started_playback": true,
@@ -16,7 +16,7 @@
    "end_still": "pc2-sub-lanes--lanes-walk-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 4.9,
    "beat_offsets_sec": [
     0.0,
@@ -41,7 +41,7 @@
    "end_still": "pc2-sub-lanes--lanes-receipt-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 24.04,
    "beat_offsets_sec": [
     0.0,
@@ -64,7 +64,7 @@
    "end_still": "pc2-sub-lanes--lanes-contrast-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 3.32,
    "beat_offsets_sec": [
     0.0,

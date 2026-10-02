@@ -1,7 +1,7 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.0,
+ "lead_sec": 0.44,
  "story_sec": 21.67,
  "total_wall_sec": 183.4,
  "started_playback": true,
@@ -16,7 +16,7 @@
    "end_still": "pc2-panorama--pan-loop-end.png",
    "beats": 5,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 8.51,
    "beat_offsets_sec": [
     0.0,
@@ -43,7 +43,7 @@
    "end_still": "pc2-panorama--pan-m1-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 3.34,
    "beat_offsets_sec": [
     0.0,
@@ -64,7 +64,7 @@
    "end_still": "pc2-panorama--pan-m2-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 3.31,
    "beat_offsets_sec": [
     0.0,
@@ -85,7 +85,7 @@
    "end_still": "pc2-panorama--pan-m3-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 3.27,
    "beat_offsets_sec": [
     0.0,
@@ -106,7 +106,7 @@
    "end_still": "pc2-panorama--pan-m4-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 0.0,
+   "lead_sec": 0.44,
    "story_sec": 3.24,
    "beat_offsets_sec": [
     0.0,

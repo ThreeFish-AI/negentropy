@@ -125,7 +125,7 @@ const AllMountsLit: React.FC<{span: number}> = ({span}) => {
         })}
       </div>
       <div style={{position: 'absolute', left: 0, top: 640, width: 1920, textAlign: 'center', fontFamily: theme.sans, fontSize: 22, color: theme.dim, opacity: t}}>
-        {'五个装置到齐 · 回到全景'}
+        {'五挂点 · 齐'}
       </div>
     </AbsoluteFill>
   );
