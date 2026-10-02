@@ -1,0 +1,44 @@
+[
+  {
+    "id": "p0-01",
+    "scene": "P0",
+    "text": "这是占位开场：等待，正在堵住主循环。",
+    "beatStart": true
+  },
+  {
+    "id": "p1-01",
+    "scene": "P1",
+    "text": "慢命令与周期任务，两种等待各有各的死法。",
+    "beatStart": true
+  },
+  {
+    "id": "p2-01",
+    "scene": "P2",
+    "text": "占位回执先闭合问答，真结果以通知进场。",
+    "beatStart": true
+  },
+  {
+    "id": "p3-01",
+    "scene": "P3",
+    "text": "判时与执行解耦，队列吸收到点但没空的时间差。",
+    "beatStart": true
+  },
+  {
+    "id": "p4-01",
+    "scene": "P4",
+    "text": "写在磁盘上的任务定义，不等于任务会自己跑。",
+    "beatStart": true
+  },
+  {
+    "id": "p5-01",
+    "scene": "P5",
+    "text": "每次只拆一个零件，看它换哪种死法。",
+    "beatStart": true
+  },
+  {
+    "id": "p6-01",
+    "scene": "P6",
+    "text": "五条规律收束全片，下期再见。",
+    "beatStart": true
+  }
+]

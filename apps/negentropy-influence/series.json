@@ -169,16 +169,16 @@
             "accessed": "2026-08-22"
           },
           "status": "final-review",
-          "statusNote": "**v2 交付**（2026-09-30 重渲，含两轮评审修复 14+16 处；v1 2026-09-29 初渲）原 v1 口径（2026-09-29）：14:13.3 = 853s @1080p30（25598 帧复算）；163 句 3644 字（254 实测口径直写零减脂）；story 档（seed 4242 · 无配音台本——自动分段默认情绪向量，见 issue.md ISSUE-204）；archify 12 图 62 章逐章回放（含 memory-panorama/five-layer 复用原生重建，锚定 38%）；双轨口径干净（站点轨叙事+main 彩蛋）；机器门全绿：check FAIL 0（3 豁免 WARN 金句卡）/tsc/motion 15:15/qa FAIL 0/亮度带零近黑/目检过（半分辨率疑似贴边经判例排除）；归档 v1 + _captions",
+          "statusNote": "**v2 交付**（2026-09-30 重渲，含两轮评审修复 14+16 处；v1 2026-09-29 初渲）原 v1 口径（2026-09-29）：14:13.3 = 853s @1080p30（25598 帧复算）；163 句 3644 字（254 实测口径直写零减脂）；story 档（seed 4242 · 无配音台本——自动分段默认情绪向量，见 issue.md ISSUE-204）；archify 12 图 62 章逐章回放（含 memory-panorama/five-layer 复用原生重建，锚定 38%）；双轨口径干净（站点轨叙事+main 彩蛋）；机器门全绿：check FAIL 0（3 豁免 WARN 金句卡）/tsc/motion 15:15/qa FAIL 0/亮度带零近黑/目检过（半分辨率疑似贴边经判例排除）；归档 v1 + _captions；**待重渲（2026-10-03）**：下期卡标题已同步 ep4 换题（并发与调度：一张回执和四层钟），成片重渲排入 ep4 交付连坐批次",
           "voice": "story + me-bright.wav"
         },
         {
           "episode": 4,
           "slug": "claude-code-concurrency-video",
           "path": "episodes/claude-code-concurrency-video",
-          "title": "并发：谁来按下开始",
+          "title": "并发与调度：一张回执和四层钟",
           "topic": "并发与调度：谁替它看表",
-          "cardSub": "并发 · 时机",
+          "cardSub": "并发 · 调度",
           "accents": [
             "#7FB2E0",
             "#EFB13C"
