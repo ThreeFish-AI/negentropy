@@ -197,5 +197,5 @@ reason = "remotion 全家桶追新 4.0.529→4.0.532（2026-10-01）时 pnpm 12.
 [[skeleton.drift]]
 episode = "agent-skills-video"
 path = "video/package.json"
-fingerprint = "6cce7fafb405"
-reason = "remotion 全家桶 4.0.529→4.0.532（2026-10-01 同 major 整组追新，npm view 4.0.532 为当日最新）；verify_skeleton 未报本文件（seeded 渲染件），此条为版本基线留痕"
+fingerprint = "6f4f4de6d61d"
+reason = "remotion 全家桶 4.0.529→4.0.532（2026-10-01 同 major 整组追新，npm view 4.0.532 为当日最新）；verify_skeleton 当期未点名本文件，此条为版本基线留痕。structured 档：指纹口径=结构化归一 md5[:12]（2026-10-02 评审修正，原登记值非本文件任何口径的指纹）"

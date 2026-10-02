@@ -12,7 +12,7 @@
  * 设计要点（承自旗舰脚本的实测结论，详见 docs/.agents/doc-media-assets.md）：
  *   1. 静态图走产物内置 exportMenu（RASTER_SCALE=4 原生矢量栅格化），不用整页截图。
  *   2. 拦截导出 blob 必须「记录但透传」URL.createObjectURL，取最后一个 blob。
- *   3. PNG 实际尺寸必须等于 viewBox × 4（防半幅/空图），尺寸断言按每图 viewBox 动态计算。
+ *   3. PNG 实际尺寸双维 ≥3 倍且 4 对齐（防半幅/空图；导出画布含不对称边距，不要求与 viewBox 严格等比），尺寸断言按每图 viewBox 动态计算。
  *
  * 零 npm 依赖：CDP over WebSocket（Node 内置 WebSocket，需 Node >= 22）。
  */

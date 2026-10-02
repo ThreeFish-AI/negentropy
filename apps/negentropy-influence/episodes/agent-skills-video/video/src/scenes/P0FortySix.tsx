@@ -356,7 +356,8 @@ export const P0FortySix: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       <Sequence {...bB} name="0-B 登记名单">
         <SceneTag chapter="P0" tagline="四十六家之谜" accent={theme.conceptDeep} />
-        {/* dt-eco 章回放承载 46 家生态面；p0-04 三枚「无」标签走角标层 */}
+        {/* dt-eco 章回放承载 46 家生态面；p0-04「三无」句仅口播承载（全屏独占期
+            场景侧不设装置，防吞没），角标只留取数口径 */}
         <ArchifyRecap
           slug="dual-track"
           caption="生态登记 · 46 家"
