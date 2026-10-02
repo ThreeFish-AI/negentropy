@@ -7,10 +7,24 @@ import {Subtitle} from './components/Subtitle';
 import {theme} from './design/theme';
 import {LangProvider} from './i18n';
 import {computeTimeline, SCENE_FADE_FRAMES} from './timing';
+import {P0Scratchpad} from './scenes/P0Scratchpad';
+import {P1CheapFirst} from './scenes/P1CheapFirst';
+import {P2RedLines} from './scenes/P2RedLines';
+import {P3AfterSummary} from './scenes/P3AfterSummary';
+import {P4CatalogBody} from './scenes/P4CatalogBody';
+import {P5ThreeGates} from './scenes/P5ThreeGates';
+import {P6Production} from './scenes/P6Production';
 import type {Lang} from './i18n';
 import type {ManifestItem, SceneRange} from './types';
 
 const SCENE_COMPONENTS: Record<string, React.FC<{scene: SceneRange}>> = {
+  P0: P0Scratchpad,
+  P1: P1CheapFirst,
+  P2: P2RedLines,
+  P3: P3AfterSummary,
+  P4: P4CatalogBody,
+  P5: P5ThreeGates,
+  P6: P6Production,
 };
 
 export type MainProps = {manifest: ManifestItem[]; lang?: Lang};

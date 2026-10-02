@@ -3,7 +3,11 @@
     "id": "p0-01",
     "scene": "P0",
     "text": "先把模型桌上那张草稿纸请出来。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.25"
+    }
   },
   {
     "id": "p0-02",
@@ -23,13 +27,18 @@
   {
     "id": "p0-05",
     "scene": "P0",
-    "text": "纸的大小是固定的，写满了，接口直接拒收。"
+    "text": "纸的大小是固定的，写满了，接口直接拒收。",
+    "ttsText": "纸的大小是固定的，写满了——接口直接拒收。"
   },
   {
     "id": "p0-06",
     "scene": "P0",
     "text": "最占纸面的，不是人说的话。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.2,surprised:0.1"
+    }
   },
   {
     "id": "p0-07",
@@ -51,7 +60,11 @@
     "id": "p0-10",
     "scene": "P0",
     "text": "两个生死问题。第一个：任务一长纸就满，凭什么跑一整天不崩？",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.3,calm:0.2"
+    }
   },
   {
     "id": "p0-11",
@@ -72,7 +85,11 @@
     "id": "p1-01",
     "scene": "P1",
     "text": "先答第一问。答案的思路，搬家的人最懂。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.25"
+    }
   },
   {
     "id": "p1-02",
@@ -87,18 +104,27 @@
   {
     "id": "p1-04",
     "scene": "P1",
-    "text": "实在放不下的，才写一张清单，处理掉原件——连这一步，原件也归了档。"
+    "text": "实在放不下的，才写一张清单，处理掉原件——连这一步，原件也归了档。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.2,happy:0.1"
+    }
   },
   {
     "id": "p1-05",
     "scene": "P1",
-    "text": "这个开源项目的压缩队伍一模一样：便宜的先跑，贵的殿后。"
+    "text": "这个开源项目的压缩队伍一模一样：便宜的先跑，贵的殿后。",
+    "ttsText": "这个开源项目的压缩队伍，一模一样——便宜的先跑，贵的殿后。"
   },
   {
     "id": "p1-07",
     "scene": "P1",
     "text": "每次调模型之前，队伍先看最新一批工具结果。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.25"
+    }
   },
   {
     "id": "p1-08",
@@ -114,7 +140,11 @@
     "id": "p1-11",
     "scene": "P1",
     "text": "第二层看条数：对话超过五十条，就裁中段。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.25"
+    }
   },
   {
     "id": "p1-12",
@@ -126,7 +156,11 @@
     "id": "p1-13",
     "scene": "P1",
     "text": "前两层过后还超，才轮到第三层：旧结果换地址。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.25"
+    }
   },
   {
     "id": "p1-14",
@@ -148,7 +182,11 @@
     "id": "p1-17",
     "scene": "P1",
     "text": "三层全是零成本腾挪，一次模型都不调。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.2,surprised:0.1"
+    }
   },
   {
     "id": "p1-18",
@@ -169,7 +207,11 @@
     "id": "p1-21",
     "scene": "P1",
     "text": "这条队伍实战如何？拿原型实测走一遍。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.25,calm:0.15"
+    }
   },
   {
     "id": "p1-22",
@@ -179,12 +221,17 @@
   {
     "id": "p1-23",
     "scene": "P1",
-    "text": "队伍开动：最大的先搬，第二大的跟上，最后一个落盘留收据。"
+    "text": "队伍开动：最大的先搬，第二大的跟上，最后一个落盘留收据。",
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.3,calm:0.1"
+    }
   },
   {
     "id": "p1-24",
     "scene": "P1",
-    "text": "纸面回到六千多字，全程零次模型摘要。"
+    "text": "纸面回到六千多字，全程零次模型摘要。",
+    "ttsText": "纸面回到六千多字，全程，零次模型摘要。"
   },
   {
     "id": "p1-25b",
@@ -195,7 +242,11 @@
     "id": "p1-27",
     "scene": "P1",
     "text": "万一估算没拦住，接口还是拒收呢？",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.2,afraid:0.1"
+    }
   },
   {
     "id": "p1-28",
@@ -211,7 +262,11 @@
     "id": "p2-01",
     "scene": "P2",
     "text": "腾地方有两条红线。第一条，得先说纸的结构。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.15,calm:0.15"
+    }
   },
   {
     "id": "p2-02",
@@ -221,12 +276,17 @@
   {
     "id": "p2-03",
     "scene": "P2",
-    "text": "像出菜口的菜挂着点单小票——收银对账，菜必须指得回小票。"
+    "text": "像出菜口的菜挂着点单小票——收银对账，菜必须指得回小票。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.2"
+    }
   },
   {
     "id": "p2-04",
     "scene": "P2",
-    "text": "小票一撕，这道菜就成了对不上账的黑单，整单作废。"
+    "text": "小票一撕，这道菜就成了对不上账的黑单，整单作废。",
+    "ttsText": "小票一撕，这道菜，就成了对不上账的黑单——整单作废。"
   },
   {
     "id": "p2-05",
@@ -237,7 +297,11 @@
     "id": "p2-07",
     "scene": "P2",
     "text": "每个裁剪点都替第一条红线站岗。裁中段之前先查切点。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.25"
+    }
   },
   {
     "id": "p2-08",
@@ -257,13 +321,21 @@
   {
     "id": "p2-11",
     "scene": "P2",
-    "text": "吓唬人吗？原型里把切点回退拆掉：断裂从零变一，接口校验当场报错。"
+    "text": "吓唬人吗？原型里把切点回退拆掉：断裂从零变一，接口校验当场报错。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.2,disgusted:0.1"
+    }
   },
   {
     "id": "p2-13",
     "scene": "P2",
     "text": "第二条红线更反直觉：没读过的东西，不许压。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.18,surprised:0.12"
+    }
   },
   {
     "id": "p2-14",
@@ -273,7 +345,11 @@
   {
     "id": "p2-15",
     "scene": "P2",
-    "text": "像门口没拆的快递：东西到了还没开箱，当废纸箱卖掉，这单就白买了。"
+    "text": "像门口没拆的快递：东西到了还没开箱，当废纸箱卖掉，这单就白买了。",
+    "blockStart": true,
+    "cue": {
+      "emo": "melancholic:0.15,calm:0.15"
+    }
   },
   {
     "id": "p2-16",
@@ -289,7 +365,11 @@
     "id": "p2-18",
     "scene": "P2",
     "text": "拆掉第一道：刚返回的检索结果，超出兜底范围的部分被换成地址行。",
-    "ttsText": "拆掉第一道：刚返回的检索结果，超出兜底范围的部分被换成地址<行|HANG2>。"
+    "ttsText": "拆掉第一道：刚返回的检索结果，超出兜底范围的部分被换成地址<行|HANG2>。",
+    "blockStart": true,
+    "cue": {
+      "emo": "disgusted:0.15,afraid:0.15"
+    }
   },
   {
     "id": "p2-19",
@@ -299,18 +379,27 @@
   {
     "id": "p2-20",
     "scene": "P2",
-    "text": "两道保险各挡各的风险，谁也替代不了谁——红线之内，腾挪才叫安全。"
+    "text": "两道保险各挡各的风险，谁也替代不了谁——红线之内，腾挪才叫安全。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.3"
+    }
   },
   {
     "id": "p3-01",
     "scene": "P3",
     "text": "真走到摘要那步，丢的就不只是空间了。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "melancholic:0.2,calm:0.1"
+    }
   },
   {
     "id": "p3-02",
     "scene": "P3",
-    "text": "你叮嘱过「缩进用 tab 别用空格」，摘要里可能只剩「用户有代码风格偏好」。"
+    "text": "你叮嘱过「缩进用 tab 别用空格」，摘要里可能只剩「用户有代码风格偏好」。",
+    "ttsText": "你叮嘱过「缩进用 tab 别用空格」——摘要里，可能只剩「用户有代码风格偏好」。"
   },
   {
     "id": "p3-03",
@@ -326,7 +415,11 @@
     "id": "p3-05",
     "scene": "P3",
     "text": "摘要这一步规矩比想象的多，四件事按次序来。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.25"
+    }
   },
   {
     "id": "p3-06",
@@ -357,7 +450,11 @@
     "id": "p3-11",
     "scene": "P3",
     "text": "摘要万一连着失败？讲义里配了熔断：连错三次就停手。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.2,surprised:0.1"
+    }
   },
   {
     "id": "p3-12",
@@ -368,7 +465,11 @@
     "id": "p3-13",
     "scene": "P3",
     "text": "就算都做对了，还有一道绕不开的坎。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.25,calm:0.15"
+    }
   },
   {
     "id": "p3-14",
@@ -389,7 +490,11 @@
     "id": "p4-01",
     "scene": "P4",
     "text": "一本卡片册，一条记忆一张卡片——落到磁盘上，一个目录一个文件。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.2,calm:0.15"
+    }
   },
   {
     "id": "p4-03",
@@ -416,7 +521,11 @@
     "id": "p4-07",
     "scene": "P4",
     "text": "存下来只是第一步。真问题：怎么让模型每轮带着记忆，还不贵？",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.15,afraid:0.1"
+    }
   },
   {
     "id": "p4-08",
@@ -426,7 +535,11 @@
   {
     "id": "p4-10",
     "scene": "P4",
-    "text": "解法藏在接口的计费规则里，想象一家复印店。"
+    "text": "解法藏在接口的计费规则里，想象一家复印店。",
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.25,surprised:0.1"
+    }
   },
   {
     "id": "p4-11",
@@ -436,7 +549,8 @@
   {
     "id": "p4-12",
     "scene": "P4",
-    "text": "从第一页改一个字？后面整叠全按新页算。"
+    "text": "从第一页改一个字？后面整叠全按新页算。",
+    "ttsText": "从第一页改一个字？后面整叠，全按新页算。"
   },
   {
     "id": "p4-13",
@@ -447,7 +561,11 @@
     "id": "p4-14",
     "scene": "P4",
     "text": "这条规则逼出一个漂亮的分层。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.2,happy:0.1"
+    }
   },
   {
     "id": "p4-15",
@@ -462,7 +580,11 @@
   {
     "id": "p4-17",
     "scene": "P4",
-    "text": "两层靠一次轻量旁路调用衔接：在主对话之外，专为挑记忆多发一次小请求。"
+    "text": "两层靠一次轻量旁路调用衔接：在主对话之外，专为挑记忆多发一次小请求。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.25"
+    }
   },
   {
     "id": "p4-18",
@@ -478,7 +600,11 @@
     "id": "p4-20",
     "scene": "P4",
     "text": "旁路调用失败了呢？降级成关键词给目录打分，糙一点，但不断粮。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.2"
+    }
   },
   {
     "id": "p4-21",
@@ -499,7 +625,11 @@
     "id": "p5-01",
     "scene": "P5",
     "text": "卡片册不会自己长出来。用户也不会每次都说「记住这个」——偏好散落在正常对话里。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.25"
+    }
   },
   {
     "id": "p5-03",
@@ -510,17 +640,29 @@
     "id": "p5-05",
     "scene": "P5",
     "text": "提回的只是候选，进库前三道门挨个过——拿三句输入走一遍。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.15,surprised:0.1"
+    }
   },
   {
     "id": "p5-07",
     "scene": "P5",
-    "text": "第一句：「我用 tab 缩进，记住这个。」三门全过，落进卡片册。"
+    "text": "第一句：「我用 tab 缩进，记住这个。」三门全过，落进卡片册。",
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.15,calm:0.1"
+    }
   },
   {
     "id": "p5-07b",
     "scene": "P5",
-    "text": "第二句：「本次会话先用测试库。」——「本次会话」撞上临时词黑名单，第二道门拦下。"
+    "text": "第二句：「本次会话先用测试库。」——「本次会话」撞上临时词黑名单，第二道门拦下。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.2,afraid:0.1"
+    }
   },
   {
     "id": "p5-09",
@@ -530,13 +672,18 @@
   {
     "id": "p5-10",
     "scene": "P5",
-    "text": "三句进来，只入库一条。这不是效率低，是设计如此。"
+    "text": "三句进来，只入库一条。这不是效率低，是设计如此。",
+    "ttsText": "三句进来，只入库一条——这不是效率低，是设计如此。"
   },
   {
     "id": "p5-11",
     "scene": "P5",
     "text": "判断跨会话还是只限本次，有套人人熟悉的说法：会议纪要和桌角便签。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.2"
+    }
   },
   {
     "id": "p5-12",
@@ -557,7 +704,11 @@
     "id": "p5-15",
     "scene": "P5",
     "text": "第三道门管重复：名字、描述、正文任一相同就拒。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.25"
+    }
   },
   {
     "id": "p5-16",
@@ -577,7 +728,11 @@
   {
     "id": "p5-19",
     "scene": "P5",
-    "text": "原型里把恢复拆掉——写盘半路失败，十条变零条，救不回来。"
+    "text": "原型里把恢复拆掉——写盘半路失败，十条变零条，救不回来。",
+    "blockStart": true,
+    "cue": {
+      "emo": "disgusted:0.15,sad:0.1"
+    }
   },
   {
     "id": "p5-20",
@@ -588,7 +743,11 @@
     "id": "p5-21",
     "scene": "P5",
     "text": "记忆到底该存什么？界线一句话：草稿纸内的腾挪管省着放，卡片册管跨会话值得留。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.25"
+    }
   },
   {
     "id": "p5-22",
@@ -604,12 +763,17 @@
     "id": "p6-01",
     "scene": "P6",
     "text": "收个尾，回到开头那两问。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.3,happy:0.1"
+    }
   },
   {
     "id": "p6-02",
     "scene": "P6",
-    "text": "跑一整天不崩，靠便宜的先跑、贵的殿后；第二天还记得你，靠目录常驻、正文按需。"
+    "text": "跑一整天不崩，靠便宜的先跑、贵的殿后；第二天还记得你，靠目录常驻、正文按需。",
+    "ttsText": "跑一整天不崩，靠便宜的先跑、贵的殿后；第二天还记得你——靠目录常驻，正文按需。"
   },
   {
     "id": "p6-03",
@@ -619,7 +783,11 @@
   {
     "id": "p6-04",
     "scene": "P6",
-    "text": "据对这个开源项目闭源实现的逆向分析：真实队伍里还多出一层独立的回收系统。"
+    "text": "据对这个开源项目闭源实现的逆向分析：真实队伍里还多出一层独立的回收系统。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.15,calm:0.15"
+    }
   },
   {
     "id": "p6-04b",
@@ -635,7 +803,11 @@
     "id": "p6-07",
     "scene": "P6",
     "text": "有些数字，两路独立证据对上了。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.2,calm:0.1"
+    }
   },
   {
     "id": "p6-08",
@@ -652,7 +824,11 @@
     "id": "p6-10",
     "scene": "P6",
     "text": "挑记忆也有讲究：据逆向分析，产品让模型自己读着挑，不靠自动相似度检索。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.15"
+    }
   },
   {
     "id": "p6-10b",
@@ -668,7 +844,11 @@
     "id": "p6-12",
     "scene": "P6",
     "text": "这一集的机制，拧成五条带得走的规律。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.3"
+    }
   },
   {
     "id": "p6-13",
@@ -699,7 +879,11 @@
     "id": "p6-18",
     "scene": "P6",
     "text": "两处真实的分歧，留给你判断。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.2,calm:0.1"
+    }
   },
   {
     "id": "p6-19",
@@ -714,12 +898,21 @@
   {
     "id": "p6-21",
     "scene": "P6",
-    "text": "画条边界：它成立的前提，是单个助手、消息列表式对话、调用配对结果的接口——超出范围，另当别论。"
+    "text": "画条边界：它成立的前提，是单个助手、消息列表式对话、调用配对结果的接口——超出范围，另当别论。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.2,melancholic:0.1"
+    }
   },
   {
     "id": "p6-23",
     "scene": "P6",
-    "text": "一张草稿纸，一本卡片册。"
+    "text": "一张草稿纸，一本卡片册。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.35"
+    },
+    "ttsText": "一张草稿纸，一本卡片册。"
   },
   {
     "id": "p6-24",

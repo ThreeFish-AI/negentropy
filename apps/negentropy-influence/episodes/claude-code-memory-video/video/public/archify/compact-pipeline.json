@@ -1,0 +1,119 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 17.68,
+ "total_wall_sec": 116.9,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "cheap-first",
+   "label": "便宜的先跑四层",
+   "index": 0,
+   "file": "compact-pipeline--cheap-first.mp4",
+   "end_still": "compact-pipeline--cheap-first-end.png",
+   "beats": 6,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 6.65,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.209,
+    3.312,
+    4.415,
+    5.518
+   ],
+   "beat_nodes": [
+    "messages",
+    "l1",
+    "l2",
+    "l3",
+    "l4",
+    "call"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 49.0
+  },
+  {
+   "id": "bypass",
+   "label": "未超限旁路直达",
+   "index": 1,
+   "file": "compact-pipeline--bypass.mp4",
+   "end_still": "compact-pipeline--bypass-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [
+    0.0,
+    1.605
+   ],
+   "beat_nodes": [
+    "l2",
+    "call"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 48.0
+  },
+  {
+   "id": "reactive",
+   "label": "报错后应急裁剪",
+   "index": 2,
+   "file": "compact-pipeline--reactive.mp4",
+   "end_still": "compact-pipeline--reactive-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "call",
+    "trim"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "batch-wait",
+   "label": "主动压缩等批次完成",
+   "index": 3,
+   "file": "compact-pipeline--batch-wait.mp4",
+   "end_still": "compact-pipeline--batch-wait-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.52,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.208,
+    3.311
+   ],
+   "beat_nodes": [
+    "call",
+    "tools",
+    "compact",
+    "l1"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 49.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/managua-v1/docs/assets/architecture/agent-harness/learn-claude-code-memory--compact-pipeline.html",
+ "slug": "compact-pipeline",
+ "type": "workflow"
+}
