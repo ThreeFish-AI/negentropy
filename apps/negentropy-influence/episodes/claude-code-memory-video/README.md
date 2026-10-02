@@ -6,7 +6,7 @@
 
 | 路径 | 说明 |
 |---|---|
-| `research/` | Stage ① 取证产物：全部口播断言须可回溯至此 |
+| `research/` | Stage ① 取证产物：全部口播断言须可回溯至此（C 型：[gl-notes.md](./research/gl-notes.md) 正文=[176 精读](../../../../docs/research/agent-harness/176-learn-claude-code-memory.md) 冻结快照 + 附录 A 类比登记表 + 附录 B 穿透记录） |
 | `script/planning.md` | Stage ② 策划案（六节齐，含本集视觉契约） |
 | `script/narration.md` | Stage ③ 逐字稿 **★单一事实源**（勿改 narration.json） |
 | `script/storyboard.md` | Stage ⑥ 分镜表（镜号 ↔ 句 id 区间 ↔ 画面 ↔ 动效） |
@@ -21,7 +21,7 @@
 # 在工作区内执行。$T/$W/$P/$V 的定义见 to-video skill 的 references/PIPELINE.md 路径变量约定（唯一定义处）
 P=$W/episodes/claude-code-memory-video
 
-# ① 信源核验（B 型信源；A 型论文集跳过）
+# ① 信源核验（C 型信源=docs 精读 176 冻结快照 research/gl-notes.md；活源台账 6 条 @ce8f9f18）
 uv run --no-project $T/scripts/source_ledger.py --project $P verify
 
 # ② 逐字稿派生 + 内容门（分镜覆盖性 / 时长预算双口径 / 淡入不变式）
