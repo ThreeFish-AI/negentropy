@@ -674,11 +674,11 @@ const HookPull: React.FC<{freeAt: number; pullAt: number; qAt: number}> = ({free
   );
 };
 
-/** M-002 探出半格：账本条从底缘滑出 48px（t1=454 已常驻、t2/t3 归零）。 */
+/** M-002 探出：账本条（h=54）从底缘整条滑入（t1=454 已常驻、t2/t3 归零）。 */
 const LedgerPeek: React.FC<{peekAt: number}> = ({peekAt}) => {
   const p = useProgress(peekAt, DUR.f6, 'decelerate');
   return (
-    <div style={{position: 'absolute', left: 0, right: 0, bottom: 0, height: 96, transform: `translateY(${96 - 48 * p}px)`, zIndex: 40}}>
+    <div style={{position: 'absolute', left: 0, right: 0, bottom: 0, height: 54, transform: `translateY(${54 - 54 * p}px)`, zIndex: 40}}>
       <LedgerBar t1={454} t2={0} t3={0} sum={454} />
     </div>
   );

@@ -29,6 +29,7 @@ const CarGlyph: React.FC<{x: number; tone: string}> = ({x, tone}) => (
 const ValidatorIntro: React.FC<{cardAt: number; sealAt: number}> = ({cardAt, sealAt}) => {
   const frame = useCurrentFrame();
   const enter = useSpring('settle', {at: cardAt, dur: DUR.f5});
+  const enterO = progress(frame, cardAt, DUR.f5); // effects 不变量：透明度走时长缓动
   const seal = useSpring('snap', {at: sealAt, dur: DUR.f4});
   const sealO = progress(frame, sealAt, DUR.f3);
   return (
@@ -40,7 +41,7 @@ const ValidatorIntro: React.FC<{cardAt: number; sealAt: number}> = ({cardAt, sea
           border: `1.5px solid ${theme.deny}55`,
           borderRadius: 14,
           padding: '36px 42px',
-          opacity: enter,
+          opacity: enterO,
           transform: `translateY(${(1 - enter) * 22}px)`,
         }}
       >

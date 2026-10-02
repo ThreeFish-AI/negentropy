@@ -625,8 +625,9 @@ const PreAuth: React.FC<{
   const dialogL = Math.max(win(c1, 0, 0.8), win(c2, 0, 0.8));
   const checkL = Math.max(win(c1, 0.5, 0.8), win(c2, 0.5, 0.8));
   const litL = Math.max(win(c1, 0, 0.8), win(c2, 0, 0.8));
-  // 右列：牌照落下 → 弹窗消失、直达
+  // 右列：牌照落下 → 弹窗消失、直达（透明度走时长缓动——effects 不变量）
   const plateS = useSpring('settle', {at: at06a + Math.round(d06a * 0.12), dur: DUR.f5});
+  const plateO = progress(frame, at06a + Math.round(d06a * 0.12), DUR.f5);
   const rDie = progress(frame, at06a + Math.round(d06a * 0.35), DUR.f4);
   const directP = progress(frame, at06a + Math.round(d06a * 0.5), DUR.f5);
   const dialogR = Math.max(win(c1, 0, 1), win(c2, 0, 1)) * (1 - rDie);
@@ -743,7 +744,7 @@ const PreAuth: React.FC<{
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                opacity: plateS,
+                opacity: plateO,
                 transform: `translateY(${(1 - plateS) * -34}px) rotate(${(1 - plateS) * -4}deg)`,
                 boxShadow: `0 6px 24px ${theme.conceptDeep}2e`,
               }}
@@ -1451,10 +1452,11 @@ export const P4Gateway: React.FC<{scene: SceneRange}> = ({scene}) => {
             d14={dur('p4-14')}
           />
         </ArchifyYield>
-        {/* 菜单卡（M-001）：evil-craft 行与伪行同拍染红，location 揭示前让位收场 */}
+        {/* 菜单卡（M-001）：p4-11 是 lc-inject 全屏窗，入场让到窗外 p4-12 起；
+            evil-craft 行与伪行同拍染红，location 揭示前让位收场 */}
         <FadeWrap hideAt={at('p4-14') - bE.from}>
           <SkillMenuCard
-            appearAt={at('p4-11') - bE.from + 10}
+            appearAt={at('p4-12') - bE.from + 10}
             forgedRow="evil-craft"
             forgeAt={at('p4-13') - bE.from + Math.round(dur('p4-13') * 0.35)}
           />

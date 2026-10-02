@@ -165,11 +165,11 @@
 
 ## §10 动手实验室
 
-**主旨综述**：原型 agent_skills_lab4.py——纯标准库、464 行、确定性，「模型」由关键词匹配器替身，回答的是机制自洽而非模型聪明；token 为 chars/4 近似口径。复刻全链路：发现（项目/用户双域、同名项目压用户、宽容装载、目录名身份）→ 目录块（XML、转义）→ 激活（整读正文、去重）→ 按需资源 → 压缩保护，外加镜像 skills-ref 的严格校验器。12 assert 全绿之上，X1–X5 五次破坏性实验各拆一个核心约束，实测退化全部有日志为证。
+**主旨综述**：原型 agent_skills_lab4.py——纯标准库、469 行、确定性，「模型」由关键词匹配器替身，回答的是机制自洽而非模型聪明；token 为 chars/4 近似口径。复刻全链路：发现（项目/用户双域、同名项目压用户、宽容装载、目录名身份）→ 目录块（XML、转义）→ 激活（整读正文、去重）→ 按需资源 → 压缩保护，外加镜像 skills-ref 的严格校验器。12 assert 全绿之上，X1–X5 五次破坏性实验各拆一个核心约束，实测退化全部有日志为证。
 
 **核心机制与数字**：
-- 原型：「纯标准库、464 行、确定性」；严格校验镜像「六字段白名单、Unicode 身份、NFKC」；12 assert 全绿（230 文首 description：「12 assert 全绿」）。
-- 机制→行号速查（230 §10）：`build_fixtures` L32 · `parse_frontmatter`/`load_skill` L82/L101 · `strict_validate` L129 · `discover` L167 · `to_prompt` L188 · `Ledger` L202 · `mock_route` L222 · `activate`/`load_resource` L258/L273 · `compaction` L284 · `run_task` L295。
+- 原型：「纯标准库、469 行、确定性」；严格校验镜像「六字段白名单、Unicode 身份、NFKC」；12 assert 全绿（230 文首 description：「12 assert 全绿」）。
+- 机制→行号速查（230 §10）：`build_fixtures` L35 · `parse_frontmatter`/`load_skill` L85/L104 · `strict_validate` L134 · `discover` L172 · `to_prompt` L193 · `Ledger` L207 · `mock_route` L227 · `activate`/`load_resource` L263/L278 · `compaction` L289 · `run_task` L300。
 - 破坏性实验三件套（实测退化均为实际运行日志）[230 §10 表]：
   - **X1** 拆「name=目录名」（装载改按 frontmatter 名建档）：「目录 6→5；『合并周报』技能静默消失、任务 no-match，无任何告警」——身份不借文件系统，名字漂移等于技能蒸发。
   - **X2** 严格门当装载门（六字段白名单挪用到装载路径）：「带扩展字段的技能整体消失，装载面 6→5（-1/6）」——出厂检验的门不能当店门。
@@ -259,7 +259,7 @@
 
 | 资产 | 路径 | 说明 |
 |---|---|---|
-| lab4 原型 | [docs/research/agent-infra/assets/agent_skills_lab4.py](../../../../../docs/research/agent-infra/assets/agent_skills_lab4.py) | 纯标准库、464 行（已实测 wc -l 一致）、12 assert 全绿；`--selftest` 与 `--break X1..X5`；机制→行号速查见本文 §10 |
+| lab4 原型 | [docs/research/agent-infra/assets/agent_skills_lab4.py](../../../../../docs/research/agent-infra/assets/agent_skills_lab4.py) | 纯标准库、469 行（已实测 wc -l 一致；d7c651f9f 冻结时 464，末位提交 +5 行注释）、12 assert 全绿；`--selftest` 与 `--break X1..X5`；机制→行号速查见本文 §10 |
 | lab4 运行日志（本集） | [lab4-selftest.log](./lab4-selftest.log) + [lab4-break-X1.log](./lab4-break-X1.log) ～ [lab4-break-X5.log](./lab4-break-X5.log)（本目录） | 六份日志与本集 2026-10-01 复跑逐笔一致（§10 节内登记）——账本数字一级证据 |
 | archify 图 ①生命周期 | [agent-skills-std-lifecycle.html](../../../../../docs/assets/architecture/agent-infra/agent-skills-std-lifecycle.html)（+ dark/light .png 同目录；.mmd 源 [agent-skills-std-lifecycle.mmd](../../../../../docs/assets/mermaid/agent-infra/agent-skills-std-lifecycle.mmd)） | 230 §4 引用（运行相）；一句话结论：「四步生命周期里只有目录是常驻成本，正文与资源都在『用上』那一刻才记账，压缩环节是唯一的例外保护点」 |
 | archify 图 ②双轨治理 | [agent-skills-std-dual-track.html](../../../../../docs/assets/architecture/agent-infra/agent-skills-std-dual-track.html)（+ dark/light .png 同目录；.mmd 源 [agent-skills-std-dual-track.mmd](../../../../../docs/assets/mermaid/agent-infra/agent-skills-std-dual-track.mmd)） | 230 §8 引用（治理相）；一句话结论：「规范只钉六字段与目录形状，装载面宽容、校验面严格、扩展面各家自理，三条轨道各自服务连通性、纯净度与功能诉求」 |

@@ -70,7 +70,7 @@
 | 镜 | 句区间 | 画面 | 动效 |
 | --- | --- | --- | --- |
 | 6-A 卡墙 | p6-01..06 | 五规律卡墙：每张卡点亮时卡面浮现该幕标志画面缩略（菜单行 / 招牌 / 门牌 / 文本页 / 留白框），逐张点亮；p6-06 第六格空框亮边框线（留白即答案） | 卡墙 `@stagger` 逐张 `@reveal`；空框 `@draw` 描边 |
-| 6-B 哲学 | p6-07..09 | 全屏金句「不是没做完，是刻意不做」（衬线体）；p6-08 背后浮现 46 家名单墙淡影；p6-09 三枚留白标签「分发 / 信任 / 版本」飘向画面边缘外 | 金句 `@pushIn`；名单墙 `@dim` 淡影；标签 `@travel` 飘出 |
+| 6-B 哲学 | p6-07..09 | **archify full**：dual-track 章 `dt-gate`（p6-07 守门哲学回响，P5-5-D 同章再现）；随后全屏金句「不是没做完，是刻意不做」（衬线体）；p6-08 背后浮现 46 家名单墙淡影；p6-09 三枚留白标签「分发 / 信任 / 版本」飘向画面边缘外 | 章节回放；金句 `@pushIn`；名单墙 `@dim` 淡影；标签 `@travel` 飘出 |
 | 6-C 护栏 | p6-10..12 | 三枚护栏卡竖排：「自报登记」「行为可能不同」「信任与防篡改缺席」，第三枚下角小字「装前看 allowed-tools」 | 卡 `@stagger` `@enter`；小字 `@reveal` |
 | 6-D 收尾 | p6-13..16 | 回到开场目录树同机位：文件夹依旧六个，但每个旁边多了一行已读亮的目录行（呼应 P0）；p6-15 光标在新建文件夹上敲出两行必填；渐黑收尾（用末 beat 时长） | 目录树 `@reveal` 复现；光标 `@draw`；`@fadeOut` 渐黑 |
 
@@ -92,6 +92,6 @@
 | P5 | `P5TwoTracks.tsx` | 双轨意象、分歧徽章、X2 消融、关门队列 |
 | P6 | `P6Deliberate.tsx` | 五规律卡墙、护栏卡、目录树复现、收尾渐黑 |
 
-- 恒定装置：`components/motifs/SkillMenuCard.tsx`（M-001，P1 首亮后右上常驻，P6 合页）、`components/motifs/LedgerBar.tsx`（M-002，P1-D 探出、P2 主场、P6 收拢）、门牌/招牌字形 `components/motifs/Plaque.tsx`（M-004）。
-- archify 回放：`components/ArchifyRecap`（frozen）按上方 15 处全屏独占标注消费 `archify.manifest.ts`（2 图 16 章）；全屏独占、无画中画。
+- 恒定装置：`components/e1-motifs.tsx`（M-001 SkillMenuCard，P1 首亮后右上常驻；M-002 LedgerBar，P1-D 探出、P2 主场；M-004 Plaque 门牌/招牌字形）。
+- archify 回放：`components/ArchifyRecap`（frozen）按上方 16 处全屏独占标注消费 `archify.manifest.ts`（2 图 16 章）；全屏独占、无画中画。
 - 运动层铁律：动画时点一律 `rel(beat,'句id')` 推导，禁写死帧数；弹簧只喂局部帧；hooks 顶层调用。

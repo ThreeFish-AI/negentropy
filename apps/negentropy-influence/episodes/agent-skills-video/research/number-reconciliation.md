@@ -51,7 +51,7 @@
 
 ## 五、原型实验（六份复跑日志逐位对账）
 
-证据：`lab4-selftest.log` + `lab4-break-X1..X5.log`（2026-10-01 17:22 复跑产物）+ 本次幂等重跑（`uv run --no-project python docs/research/agent-infra/assets/agent_skills_lab4.py --selftest`，输出 613/PASSED 与日志逐位同）+ tracked 自证件 `lab4-selftest.json`（454/613 在档）。token 均为 chars/4 整数除近似口径（230 §4 已自标）。
+证据：`lab4-selftest.log` + `lab4-break-X1..X5.log`（2026-10-01 17:22 复跑产物）+ 本次幂等重跑（`uv run --no-project python docs/research/agent-infra/assets/agent_skills_lab4.py --selftest`，**同生成时 checkout 路径下**输出 613/PASSED 与日志逐位同——tier1 计费含 location 绝对路径长度，换 worktree/路径重跑 tier1/常驻两档会漂移，见脚本 docstring）+ tracked 自证件 `lab4-selftest.json`（454/613 在档）。token 均为 chars/4 整数除近似口径（230 §4 已自标）。
 
 | 数字 | 230 口径与出处 | 证据指针 | 复算结果 | 判定 |
 | --- | --- | --- | --- | --- |
@@ -67,7 +67,7 @@
 | X4 涨幅 81 = 未被读到的 submit.py 体量 | §4 走查 | fixtures：submit.py 全文 326 chars，326//4 = 81 = 694−613 | 算术逐位成立 | 一致 |
 | X5：留存 0 份、策略遵守 False→silent-fail、报错信号无 | §10 X5 行 | X5 日志 `未保护；技能正文留存 0 份`、`策略遵守 False；结果 silent-fail；报错信号 无` | 一致 | 一致 |
 | X5：tier2→0、常驻 613→454 | §10 X5 行（隐含） | X5 日志 `tier2=0 tier3=0 常驻合计=454`（=tier1 孤值） | 一致 | 一致 |
-| 原型 464 行纯标准库 | 230 frontmatter·§10 | `wc -l agent_skills_lab4.py` = 464 | 一致 | 一致 |
+| 原型 469 行纯标准库（d7c651f9f 冻结时 464，末位提交 +5 行注释） | 230 frontmatter·§10 | `wc -l agent_skills_lab4.py` = 469 | 一致 | 一致 |
 | 12 assert 全绿 | 230 frontmatter·§10 | selftest 日志 12 × `PASS` + `SELFTEST PASSED ✔`；tracked json 同构 | 一致 | 一致 |
 
 ## 口播可用性
@@ -77,8 +77,8 @@
 | 钉死口径，可进口播（须带「截至 2026-09-30」或「规范钉点 69ef37e9」限定） | 六字段与各字段上限（1–64 / 1–1024 / 1–500）；三级量级 50–100 / <5000 / <500 行；Codex 2% 与 8000 字符；Claude Code 20 字段（6+14）与 1536 截断；生态 46/45/26/14；仓史 145 提交、12-16 init、12-18 落地、2026-03 峰值 42 | 全部来自钉点快照或规范原文，可钉死引用；生态四数是自报登记口径（230 §12 已声明无第三方复核），口播建议保留「登记」措辞 |
 | 确定性实验，可进口播（须带「chars/4 近似口径」或「约」） | 454 / +62 / +97 / 613 / 694（+13%）/ X1–X5 全部退化形态 | 脚本确定性、重跑幂等（本次已二次复跑对齐）；+13% 实为 13.21%，口播说「涨了约一成三」或「+13%」皆可，勿报小数；token 数字一律加「约」 |
 | 活数据，只进画面角标（或口播强制带「截至」短语） | stars（25,811@09-30 → 25,826@10-01，仍在涨）；open PR（51，暂稳）；冻结天数（52@09-30 → 53@10-01，随日递增） | 任何一处进成片都须挂「截至 2026-09-30」角标或动态化处理；否则宁可改定性「两万五千多家 star」/「五十来条 PR 排队」/「冻结一个多月」 |
-| 复算失败须降级定性 | （无） | 本次 35 项全部复算成功，无降级项 |
+| 复算失败须降级定性 | （无） | 本次 37 项全部复算成功，无降级项 |
 
 补充弹药（日志在档、230 §10 表未引用，可按需取用）：X1 常驻 613→542、X2 tier2 62→51、X3 常驻 613→599（tier1 454→440）、X5 常驻退回 tier1 孤值 454——四组数字与 230 已引用数字同源同日志，口径自洽，引用时注明「同份复跑日志」即可。
 
-失效警示：`.temp/agent-skills-open-standard-lab/`（clone @69ef37e9 与 S0–S5 落盘）属易失临时物；`.temp` 下另有旧夹具状态的 lab4-selftest.json 快照（460/619 口径），与现行夹具不一致、不采信（230 评审修复 d7c651f9f 已改账本口径）。对账以本表「证据指针」列的可重跑命令与仓内 tracked 文件为准。
+失效警示：`.temp/agent-skills-open-standard-lab/`（clone @69ef37e9 与 S0–S5 落盘）属易失临时物；`.temp` 下另有旧夹具状态的 lab4-selftest.json 快照（460/619 口径），与现行夹具不一致、不采信（230 评审修复 d7c651f9f 已改账本口径）。另：tier1/常驻两档计费含 location 绝对路径长度（脚本 docstring 已披露），换 worktree/路径复跑会得到不同 tier1/常驻——454/613/694 冻结于生成时的 checkout 路径，复跑须回到同路径，否则以 tracked `lab4-selftest.json` 为准。对账以本表「证据指针」列的可重跑命令与仓内 tracked 文件为准。

@@ -92,6 +92,7 @@ export const SkillMenuCard: React.FC<{
 }) => {
   const frame = useCurrentFrame();
   const enter = useSpring('settle', {at: appearAt, dur: DUR.f6});
+  const enterO = progress(frame, appearAt, DUR.f6); // effects 不变量：透明度走时长缓动
   const collapseP = collapsed ? progress(frame, collapseAt, DUR.f5) : 0;
   return (
     <div
@@ -100,7 +101,7 @@ export const SkillMenuCard: React.FC<{
         right: 40,
         top: 72,
         width: 316,
-        opacity: (0.22 + 0.78 * enter) * (1 - 0.55 * Number(dimmed)),
+        opacity: enterO * (1 - 0.55 * Number(dimmed)),
         transform: `translateY(${(1 - enter) * -26}px) scale(${collapsed ? 1 - 0.18 * collapseP : 1})`,
         background: theme.panel,
         border: `1.5px solid ${theme.panelBorder}`,
@@ -157,7 +158,9 @@ export const SkillMenuCard: React.FC<{
 };
 
 /** 〔M-002〕账本条：底部三级计数带。
- *  t1/t2/t3 三格数值；sum 合计；redMode 开启时合计染红跳变（X4：613→694）。 */
+ *  t1/t2/t3 三格数值；sum 合计；redMode 开启时合计染红跳变（X4：613→694）。
+ *  h=54：顶缘 y=1026 恰在字幕药丸底缘（y1026）之下——96 版顶缘 y984 会整幕
+ *  盖住 zh 字幕字形带（y963–1004）的下半截（z40 恒在 z-auto 字幕之上）。 */
 export const LedgerBar: React.FC<{
   t1: number;
   t2: number;
@@ -194,7 +197,7 @@ export const LedgerBar: React.FC<{
         left: 0,
         right: 0,
         bottom: 0,
-        height: 96,
+        height: 54,
         background: `${theme.panel}e8`,
         borderTop: `1.5px solid ${theme.panelBorder}`,
         display: 'flex',
@@ -208,7 +211,7 @@ export const LedgerBar: React.FC<{
       {cell('目录 t1', t1, theme.conceptDeep)}
       {cell('正文 t2', t2, theme.concept)}
       {cell('资源 t3', t3, theme.concept)}
-      <div style={{width: 1, height: 44, background: theme.panelBorder}} />
+      <div style={{width: 1, height: 30, background: theme.panelBorder}} />
       <div style={{display: 'flex', alignItems: 'baseline', gap: 8}}>
         <span style={{fontSize: 14, color: theme.dim, fontFamily: theme.mono}}>常驻合计</span>
         <span

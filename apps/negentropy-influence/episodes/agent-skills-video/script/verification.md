@@ -3,7 +3,7 @@
 > 校验对象：[narration.md](./narration.md) v1（初稿待校验），116 句 × 七幕（P0–P6），全量逐句、不抽样。
 > 校验日期：2026-10-01。判定规格：[04-verification.md](https://github.com/ThreeFish-AI/to-video/blob/main/references/04-verification.md) §A 四级制（VERIFIED / ANALOGY / RISKY / REWRITE）。
 >
-> 事实源与回溯链（单一事实源纪律）：narration → [research/gl-notes.md](../research/gl-notes.md)（C 型冻结快照，冻结版 `d7c651f9f`，证据分级【一】/【二】）→ 五条原始信源（钉点 `69ef37e9`，[research/sources.toml](../research/sources.toml)）；数字另对 [research/number-reconciliation.md](../research/number-reconciliation.md)（复算日 2026-10-01，35 项全一致）；X 实验句逐笔对 [lab4 六份复跑日志](../research/lab4-selftest.log)（2026-10-01 复跑与 230 及仓内日志逐位一致，【一】级）。
+> 事实源与回溯链（单一事实源纪律）：narration → [research/gl-notes.md](../research/gl-notes.md)（C 型冻结快照，冻结版 `d7c651f9f`，证据分级【一】/【二】）→ 五条原始信源（钉点 `69ef37e9`，[research/sources.toml](../research/sources.toml)）；数字另对 [research/number-reconciliation.md](../research/number-reconciliation.md)（复算日 2026-10-01，37 项全一致）；X 实验句逐笔对 [lab4 六份复跑日志](../research/lab4-selftest.log)（2026-10-01 复跑与 230 及仓内日志逐位一致，【一】级）。
 >
 > 判定口径（本表执行口径，依据 gl-notes 风险边界与对账表「口播可用性」）：
 > 1. **ANALOGY** = 由类比登记表（菜单/门牌/招牌/交警年检/门五族）承载载荷的句子，逐条对照登记表失配边界核对机制忠实度；一句话内喻体与本体并存时按载荷主导侧归类，本体断言均在锚点列注明。
