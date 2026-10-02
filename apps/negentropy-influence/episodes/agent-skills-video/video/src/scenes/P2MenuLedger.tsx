@@ -18,6 +18,7 @@ import {
   useDraw,
   useEnter,
   useImpulse,
+  useProgress,
   usePushIn,
   useShake,
   useSpring,
@@ -1279,9 +1280,12 @@ const MenuLedgerChrome: React.FC<{
   // t2：2-C 五份正文累计 +62 → X4 预载暴涨 +178（62→240）
   const t2a = useCount({to: 62, at: t2At, dur: t2Span});
   const t2b = useCount({to: 178, at: redAt, dur: redDur});
-  // t3：p2-12 审批名单 +97 → X4 预载后资源并入正文侧、格清零
+  // t3：p2-12 审批名单 +97 → X4 预载后资源并入正文侧、格清零（清零须与 t2b
+  //  同曲线同速对冲——useProgress 与 useCount 同走 standard 缓动，合计恒
+  //  613+81·e(p) 单调涨；clear 用 DUR.f4 或线性 progress 都会在句首/句末
+  //  跌穿 613，与口播「从六百一十三涨到六百九十四」相悖）
   const t3raw = useCount({to: 97, at: t3At, dur: t3Dur});
-  const clear = progress(frame, redAt, DUR.f4);
+  const clear = useProgress(redAt, redDur);
   const t2 = t2a + t2b;
   const t3 = t3raw * (1 - clear);
   // archify 全屏窗：双装置 dimmed（窗边界取 DUR.f3 交叉淡化，同 ArchifyYield 口径）
