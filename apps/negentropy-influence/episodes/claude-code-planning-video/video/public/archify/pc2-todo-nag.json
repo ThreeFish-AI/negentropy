@@ -1,0 +1,117 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.0,
+ "story_sec": 21.39,
+ "total_wall_sec": 205.05,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "nag-device",
+   "label": "三态工序卡",
+   "index": 0,
+   "file": "pc2-todo-nag--nag-device.mp4",
+   "end_still": "pc2-todo-nag--nag-device-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 3.33,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.204
+   ],
+   "beat_nodes": [
+    "td-pending",
+    "td-progress",
+    "td-done"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 62.0
+  },
+  {
+   "id": "nag-count",
+   "label": "计数器爬格",
+   "index": 1,
+   "file": "pc2-todo-nag--nag-count.mp4",
+   "end_still": "pc2-todo-nag--nag-count-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 11.3,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.205,
+    3.308
+   ],
+   "beat_nodes": [
+    "ct-clear",
+    "ct-1",
+    "ct-2",
+    "ct-3"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 62.0
+  },
+  {
+   "id": "nag-fire",
+   "label": "满三注入",
+   "index": 2,
+   "file": "pc2-todo-nag--nag-fire.mp4",
+   "end_still": "pc2-todo-nag--nag-fire-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [
+    0.0,
+    1.101,
+    2.203
+   ],
+   "beat_nodes": [
+    "ct-3",
+    "rm-msg",
+    "ct-clear"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "nag-ablate",
+   "label": "拆掉清零",
+   "index": 3,
+   "file": "pc2-todo-nag--nag-ablate.mp4",
+   "end_still": "pc2-todo-nag--nag-ablate-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 3.41,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.203
+   ],
+   "beat_nodes": [
+    "td-done",
+    "ab-keep",
+    "ab-drop"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/whitehorse/docs/assets/architecture/agent-harness/claude-code--pc2-todo-nag.html",
+ "slug": "pc2-todo-nag",
+ "type": ""
+}

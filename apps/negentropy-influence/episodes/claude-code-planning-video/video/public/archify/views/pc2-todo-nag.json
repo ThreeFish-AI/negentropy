@@ -1,0 +1,43 @@
+[
+ {
+  "id": "nag-device",
+  "label": "三态工序卡",
+  "focus": [
+   "td-pending",
+   "td-progress",
+   "td-done"
+  ],
+  "note": "待办→进行中→完成；工具只存计划不执行，加的是规划能力"
+ },
+ {
+  "id": "nag-count",
+  "label": "计数器爬格",
+  "focus": [
+   "ct-clear",
+   "ct-1",
+   "ct-2",
+   "ct-3"
+  ],
+  "note": "三轮没碰待办，刻度 0→3：有工具调用的轮次各记一格"
+ },
+ {
+  "id": "nag-fire",
+  "label": "满三注入",
+  "focus": [
+   "ct-3",
+   "rm-msg",
+   "ct-clear"
+  ],
+  "note": "提醒以 user 消息落入消息流，随历史携带；注入随即清零"
+ },
+ {
+  "id": "nag-ablate",
+  "label": "拆掉清零",
+  "focus": [
+   "td-done",
+   "ab-keep",
+   "ab-drop"
+  ],
+  "note": "同一任务对照：在位 0 次提醒 ↔ 拆后 1 次误报"
+ }
+]

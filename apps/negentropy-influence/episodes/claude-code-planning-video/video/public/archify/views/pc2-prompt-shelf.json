@@ -1,0 +1,33 @@
+[
+ {
+  "id": "shelf-sections",
+  "label": "四段货架",
+  "focus": [
+   "seg-id",
+   "seg-tools",
+   "seg-ws",
+   "seg-mem"
+  ],
+  "note": "身份、工具、工作区三段永远在；记忆段按需，看记忆文件在不在、空不空。"
+ },
+ {
+  "id": "shelf-state",
+  "label": "只认真实状态",
+  "focus": [
+   "registry",
+   "cwd",
+   "memfile",
+   "statedict"
+  ],
+  "note": "工具看注册表，工作区看路径，记忆看文件在不在；全程不在消息里搜关键词。"
+ },
+ {
+  "id": "shelf-split",
+  "label": "各段独立",
+  "focus": [
+   "seg-id",
+   "seg-tools"
+  ],
+  "note": "各段独立维护：改工具段不碰身份段，换一处不用重写整页垫纸。"
+ }
+]

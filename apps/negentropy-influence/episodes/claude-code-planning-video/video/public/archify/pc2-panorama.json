@@ -1,0 +1,134 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.0,
+ "story_sec": 21.67,
+ "total_wall_sec": 183.4,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "pan-loop",
+   "label": "全景总览 · 循环四步",
+   "index": 0,
+   "file": "pc2-panorama--pan-loop.mp4",
+   "end_still": "pc2-panorama--pan-loop-end.png",
+   "beats": 5,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 8.51,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.203,
+    3.304,
+    4.404
+   ],
+   "beat_nodes": [
+    "u",
+    "l0",
+    "l1",
+    "l2",
+    "l3"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 63.0
+  },
+  {
+   "id": "pan-m1",
+   "label": "挂点① 唠叨计数器",
+   "index": 1,
+   "file": "pc2-panorama--pan-m1.mp4",
+   "end_still": "pc2-panorama--pan-m1-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.0,
+   "story_sec": 3.34,
+   "beat_offsets_sec": [
+    0.0,
+    1.602
+   ],
+   "beat_nodes": [
+    "l0",
+    "m1"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "pan-m2",
+   "label": "挂点② 副台派单",
+   "index": 2,
+   "file": "pc2-panorama--pan-m2.mp4",
+   "end_still": "pc2-panorama--pan-m2-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.0,
+   "story_sec": 3.31,
+   "beat_offsets_sec": [
+    0.0,
+    1.602
+   ],
+   "beat_nodes": [
+    "l2",
+    "sub"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "pan-m3",
+   "label": "挂点③ 技能进场",
+   "index": 3,
+   "file": "pc2-panorama--pan-m3.mp4",
+   "end_still": "pc2-panorama--pan-m3-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.0,
+   "story_sec": 3.27,
+   "beat_offsets_sec": [
+    0.0,
+    1.601
+   ],
+   "beat_nodes": [
+    "l3",
+    "m3"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "pan-m4",
+   "label": "挂点④ 指令组装",
+   "index": 4,
+   "file": "pc2-panorama--pan-m4.mp4",
+   "end_still": "pc2-panorama--pan-m4-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.0,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0,
+    1.601
+   ],
+   "beat_nodes": [
+    "m4",
+    "l1"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/whitehorse/docs/assets/architecture/agent-harness/claude-code--pc2-panorama.html",
+ "slug": "pc2-panorama",
+ "type": "workflow"
+}

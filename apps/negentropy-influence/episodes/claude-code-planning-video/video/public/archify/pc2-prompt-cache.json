@@ -1,0 +1,98 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.0,
+ "story_sec": 24.99,
+ "total_wall_sec": 138.28,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "cache-hit",
+   "label": "状态没变就复用",
+   "index": 0,
+   "file": "pc2-prompt-cache--cache-hit.mp4",
+   "end_still": "pc2-prompt-cache--cache-hit-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 4.46,
+   "beat_offsets_sec": [
+    0.0,
+    1.1,
+    2.202,
+    3.303
+   ],
+   "beat_nodes": [
+    "assemble",
+    "cache",
+    "prompt",
+    "memfile"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "cache-fingerprint",
+   "label": "拼串做键",
+   "index": 1,
+   "file": "pc2-prompt-cache--cache-fingerprint.mp4",
+   "end_still": "pc2-prompt-cache--cache-fingerprint-end.png",
+   "beats": 5,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 5.83,
+   "beat_offsets_sec": [
+    0.0,
+    1.101,
+    2.201,
+    3.303,
+    4.403
+   ],
+   "beat_nodes": [
+    "statedict",
+    "key",
+    "tools",
+    "cwd",
+    "memfile"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 63.0
+  },
+  {
+   "id": "cache-dirty",
+   "label": "键被污染",
+   "index": 2,
+   "file": "pc2-prompt-cache--cache-dirty.mp4",
+   "end_still": "pc2-prompt-cache--cache-dirty-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 14.7,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.204
+   ],
+   "beat_nodes": [
+    "dirty",
+    "key",
+    "cache"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 62.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/whitehorse/docs/assets/architecture/agent-harness/claude-code--pc2-prompt-cache.html",
+ "slug": "pc2-prompt-cache",
+ "type": "dataflow"
+}

@@ -1,0 +1,130 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.0,
+ "story_sec": 60.81,
+ "total_wall_sec": 244.45,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "fail-plan",
+   "label": "长任务丢计划",
+   "index": 0,
+   "file": "pc2-failures--fail-plan.mp4",
+   "end_still": "pc2-failures--fail-plan-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 3.37,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.204
+   ],
+   "beat_nodes": [
+    "task",
+    "msgs",
+    "f1"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 62.0
+  },
+  {
+   "id": "fail-flood",
+   "label": "过程淹没主线",
+   "index": 1,
+   "file": "pc2-failures--fail-flood.mp4",
+   "end_still": "pc2-failures--fail-flood-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.0,
+   "story_sec": 3.21,
+   "beat_offsets_sec": [
+    0.0,
+    1.601
+   ],
+   "beat_nodes": [
+    "toolres",
+    "f2"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "fail-carry",
+   "label": "知识全带太贵",
+   "index": 2,
+   "file": "pc2-failures--fail-carry.mp4",
+   "end_still": "pc2-failures--fail-carry-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.0,
+   "story_sec": 3.27,
+   "beat_offsets_sec": [
+    0.0,
+    1.6
+   ],
+   "beat_nodes": [
+    "pack",
+    "f3"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "fail-clash",
+   "label": "指令堆积打架",
+   "index": 3,
+   "file": "pc2-failures--fail-clash.mp4",
+   "end_still": "pc2-failures--fail-clash-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.0,
+   "story_sec": 29.97,
+   "beat_offsets_sec": [
+    0.0,
+    1.602
+   ],
+   "beat_nodes": [
+    "pack",
+    "f4"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 67.0
+  },
+  {
+   "id": "fail-crash",
+   "label": "故障即崩",
+   "index": 4,
+   "file": "pc2-failures--fail-crash.mp4",
+   "end_still": "pc2-failures--fail-crash-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.0,
+   "story_sec": 20.99,
+   "beat_offsets_sec": [
+    0.0,
+    1.602
+   ],
+   "beat_nodes": [
+    "call",
+    "f5"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 64.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/whitehorse/docs/assets/architecture/agent-harness/claude-code--pc2-failures.html",
+ "slug": "pc2-failures",
+ "type": "workflow"
+}

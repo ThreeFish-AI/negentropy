@@ -1,0 +1,30 @@
+[
+ {
+  "id": "levels-two",
+  "label": "两级结构",
+  "focus": [
+   "catalog",
+   "loader",
+   "manual"
+  ],
+  "note": "标签层常驻指令区；手册层点名才取"
+ },
+ {
+  "id": "levels-cost",
+  "label": "两级成本",
+  "focus": [
+   "catalog",
+   "manual"
+  ],
+  "note": "标签约上百 token ↔ 手册约两千（教程作者估算口径）"
+ },
+ {
+  "id": "levels-lifecycle",
+  "label": "两种命运",
+  "focus": [
+   "catalog",
+   "history"
+  ],
+  "note": "目录每轮常驻；全文进消息流，满窗可被裁"
+ }
+]

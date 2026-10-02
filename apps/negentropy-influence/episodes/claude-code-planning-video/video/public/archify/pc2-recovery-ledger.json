@@ -1,0 +1,94 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.0,
+ "story_sec": 26.8,
+ "total_wall_sec": 125.13,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "ledger-book",
+   "label": "五项记账",
+   "index": 0,
+   "file": "pc2-recovery-ledger--ledger-book.mp4",
+   "end_still": "pc2-recovery-ledger--ledger-book-end.png",
+   "beats": 5,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 9.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.101,
+    2.203,
+    3.305,
+    4.406
+   ],
+   "beat_nodes": [
+    "led-upgrade",
+    "led-continue",
+    "led-compact",
+    "led-overload",
+    "led-model"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "ledger-ablation",
+   "label": "拆掉记账",
+   "index": 1,
+   "file": "pc2-recovery-ledger--ledger-ablation.mp4",
+   "end_still": "pc2-recovery-ledger--ledger-ablation-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 4.17,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.207
+   ],
+   "beat_nodes": [
+    "led-compact",
+    "exit-grace",
+    "runaway"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 63.0
+  },
+  {
+   "id": "ledger-ruling",
+   "label": "不记账会吃掉病人",
+   "index": 2,
+   "file": "pc2-recovery-ledger--ledger-ruling.mp4",
+   "end_still": "pc2-recovery-ledger--ledger-ruling-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.0,
+   "story_sec": 13.4,
+   "beat_offsets_sec": [
+    0.0,
+    1.602
+   ],
+   "beat_nodes": [
+    "overlong",
+    "runaway"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/whitehorse/docs/assets/architecture/agent-harness/claude-code--pc2-recovery-ledger.html",
+ "slug": "pc2-recovery-ledger",
+ "type": ""
+}

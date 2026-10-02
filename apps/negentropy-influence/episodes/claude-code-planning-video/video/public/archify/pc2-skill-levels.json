@@ -1,0 +1,88 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.0,
+ "story_sec": 20.59,
+ "total_wall_sec": 105.79,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "levels-two",
+   "label": "两级结构",
+   "index": 0,
+   "file": "pc2-skill-levels--levels-two.mp4",
+   "end_still": "pc2-skill-levels--levels-two-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 4.58,
+   "beat_offsets_sec": [
+    0.0,
+    1.101,
+    2.203
+   ],
+   "beat_nodes": [
+    "catalog",
+    "loader",
+    "manual"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "levels-cost",
+   "label": "两级成本",
+   "index": 1,
+   "file": "pc2-skill-levels--levels-cost.mp4",
+   "end_still": "pc2-skill-levels--levels-cost-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.0,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [
+    0.0,
+    1.602
+   ],
+   "beat_nodes": [
+    "catalog",
+    "manual"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "levels-lifecycle",
+   "label": "两种命运",
+   "index": 2,
+   "file": "pc2-skill-levels--levels-lifecycle.mp4",
+   "end_still": "pc2-skill-levels--levels-lifecycle-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.0,
+   "story_sec": 12.75,
+   "beat_offsets_sec": [
+    0.0,
+    1.6
+   ],
+   "beat_nodes": [
+    "catalog",
+    "history"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 62.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/whitehorse/docs/assets/architecture/agent-harness/claude-code--pc2-skill-levels.html",
+ "slug": "pc2-skill-levels",
+ "type": "architecture"
+}

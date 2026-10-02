@@ -1,0 +1,94 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.0,
+ "story_sec": 32.26,
+ "total_wall_sec": 158.05,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "lanes-walk",
+   "label": "两轮调查",
+   "index": 0,
+   "file": "pc2-sub-lanes--lanes-walk.mp4",
+   "end_still": "pc2-sub-lanes--lanes-walk-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 4.9,
+   "beat_offsets_sec": [
+    0.0,
+    1.101,
+    2.203,
+    3.304
+   ],
+   "beat_nodes": [
+    "main",
+    "sub",
+    "hook",
+    "fs"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "lanes-receipt",
+   "label": "一句结论回主线",
+   "index": 1,
+   "file": "pc2-sub-lanes--lanes-receipt.mp4",
+   "end_still": "pc2-sub-lanes--lanes-receipt-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 24.04,
+   "beat_offsets_sec": [
+    0.0,
+    1.101,
+    2.202
+   ],
+   "beat_nodes": [
+    "sub",
+    "main",
+    "stream"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "lanes-contrast",
+   "label": "不隔离的代价",
+   "index": 2,
+   "file": "pc2-sub-lanes--lanes-contrast.mp4",
+   "end_still": "pc2-sub-lanes--lanes-contrast-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 3.32,
+   "beat_offsets_sec": [
+    0.0,
+    1.101,
+    2.203
+   ],
+   "beat_nodes": [
+    "sub",
+    "fs",
+    "stream"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/whitehorse/docs/assets/architecture/agent-harness/claude-code--pc2-sub-lanes.html",
+ "slug": "pc2-sub-lanes",
+ "type": "sequence"
+}

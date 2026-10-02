@@ -1,0 +1,35 @@
+[
+ {
+  "id": "cache-hit",
+  "label": "状态没变就复用",
+  "focus": [
+   "assemble",
+   "cache",
+   "prompt",
+   "memfile"
+  ],
+  "note": "无记忆文件时三段拼装一次；状态没变、键相同，直接命中返回上次拼好的串；记忆文件落下后状态变化，重组装成四段"
+ },
+ {
+  "id": "cache-fingerprint",
+  "label": "拼串做键",
+  "focus": [
+   "statedict",
+   "key",
+   "tools",
+   "cwd",
+   "memfile"
+  ],
+  "note": "全部状态按固定顺序拼成一串字当键；不用自带的哈希编号法——进程随机化会让同一份状态拼出不同的键"
+ },
+ {
+  "id": "cache-dirty",
+  "label": "键被污染",
+  "focus": [
+   "dirty",
+   "key",
+   "cache"
+  ],
+  "note": "键里掺进每轮都变的成分，同一状态每轮拼出不同的键：一次组装四次命中，变成五次重组装零命中"
+ }
+]

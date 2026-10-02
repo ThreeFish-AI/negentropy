@@ -1,0 +1,21 @@
+[
+ {
+  "id": "backoff-seq",
+  "label": "三连等",
+  "focus": [
+   "wait-1",
+   "wait-2",
+   "wait-3",
+   "model-switch"
+  ],
+  "note": "半秒多 → 一秒 → 两秒半；第三次过载换模型"
+ },
+ {
+  "id": "backoff-jitter",
+  "label": "加一点抖动",
+  "focus": [
+   "jitter"
+  ],
+  "note": "免得一群请求挤在同一秒集体重试"
+ }
+]
