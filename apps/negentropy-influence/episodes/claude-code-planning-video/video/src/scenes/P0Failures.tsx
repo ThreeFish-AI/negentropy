@@ -10,7 +10,6 @@ import {AbsoluteFill, Sequence} from 'remotion';
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Panel, SceneTag} from '../components/motifs';
 import {HarnessBadge, HarnessStackP0, harnessStackCrossAt} from '../components/harness-stack';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 import {DUR, useProgress} from '../motion';
@@ -52,17 +51,24 @@ const OpeningStack: React.FC<{span: number}> = ({span}) => {
   );
 };
 
-/** 0-E 装置：上下两行（看到的 ↔ 需要的）错位对照，未对齐格红色警示——持续态（M-003） */
-const MisalignRow: React.FC<{span: number}> = ({span}) => {
+/** 0-E 装置：上下两行（看到的 ↔ 需要的）错位对照，未对齐格红色警示（M-003）。
+ *  @pushIn 两行格组先后推入；台面标注为 storyboard 0-E 原文（钉顶部）。 */
+const MisalignRow: React.FC = () => {
+  const inTag = useProgress(0, DUR.f4);
+  const inSeen = useProgress(DUR.f2, DUR.f4);
+  const inNeed = useProgress(DUR.f3, DUR.f4);
   const seen = ['计划', '过程', '知识', '指令', '管线'];
   const need = ['计划', '结论', '此刻', '实况', '续命'];
   return (
     <AbsoluteFill style={{pointerEvents: 'none'}}>
+      <div style={{position: 'absolute', left: 210, top: 226, width: 1500, opacity: inTag, fontFamily: theme.sans, fontSize: 20, color: theme.dim, letterSpacing: 3}}>
+        {'台面 · 上下文＝模型这一轮看到的全部消息'}
+      </div>
       <div style={{position: 'absolute', left: 210, top: 300, width: 1500}}>
         <div style={{fontFamily: theme.sans, fontSize: 22, color: theme.dim, letterSpacing: 4, marginBottom: 18}}>
           {'模型看到的'}
         </div>
-        <div style={{display: 'flex', gap: 20}}>
+        <div style={{display: 'flex', gap: 20, opacity: inSeen, transform: `translateX(${(1 - inSeen) * -48}px)`}}>
           {seen.map((t) => (
             <div key={t} style={{width: 276, height: 92, borderRadius: 10, background: theme.panel, border: `1px solid ${theme.panelBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: theme.serif, fontSize: 30, color: theme.text}}>
               {t}
@@ -72,14 +78,14 @@ const MisalignRow: React.FC<{span: number}> = ({span}) => {
         <div style={{fontFamily: theme.sans, fontSize: 22, color: theme.dim, letterSpacing: 4, margin: '34px 0 18px'}}>
           {'它此刻需要的'}
         </div>
-        <div style={{display: 'flex', gap: 20}}>
+        <div style={{display: 'flex', gap: 20, opacity: inNeed, transform: `translateX(${(1 - inNeed) * 48}px)`}}>
           {need.map((t, i) => (
             <div key={t} style={{width: 276, height: 92, borderRadius: 10, background: theme.panel, border: `1px solid ${i === 0 ? theme.core : theme.danger}`, boxShadow: i === 0 ? 'none' : `0 0 18px ${theme.danger}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: theme.serif, fontSize: 30, color: i === 0 ? theme.core : theme.danger}}>
               {t}
             </div>
           ))}
         </div>
-        <div style={{marginTop: 44, fontFamily: theme.sans, fontSize: 24, color: theme.dim, letterSpacing: 2}}>
+        <div style={{marginTop: 44, opacity: inNeed, fontFamily: theme.sans, fontSize: 24, color: theme.dim, letterSpacing: 2}}>
           {'错位了 —— 供给没人管'}
         </div>
       </div>
@@ -101,8 +107,8 @@ export const P0Failures: React.FC<{scene: SceneRange}> = ({scene}) => {
 
   return (
     <AbsoluteFill>
-      <HarnessBadge style={BADGE_STYLE} />
-
+      {/* 常驻条逐镜渲染（兄弟集同款）：0-A 走 OpeningStack 的 badgeIn 交叉淡入揭示，
+          0-E 镜内自带；archify 全屏镜由满屏画面覆盖，不另挂场景级副本（防 0-A 双显）。 */}
       <Sequence {...bA} name="0-A 系列片头（3D）">
         <OpeningStack span={bA.durationInFrames} />
       </Sequence>
@@ -114,7 +120,7 @@ export const P0Failures: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bC} name="0-C 淹没">
-        <ArchifyRecap slug="pc2-failures" caption="失败现场" cues={[
+        <ArchifyRecap slug="pc2-failures" caption="失败现场" lead={false} cues={[
           {chapterId: 'fail-flood', at: at('p0-06') - bC.from, durationInFrames: dur('p0-06') + dur('p0-07') + dur('p0-08')},
         ]} />
       </Sequence>
@@ -130,7 +136,7 @@ export const P0Failures: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       <Sequence {...bE} name="0-E 病根错位">
         <HarnessBadge style={BADGE_STYLE} />
-        <MisalignRow span={bE.durationInFrames} />
+        <MisalignRow />
       </Sequence>
 
       <Sequence {...bF} name="0-F 全景首亮">

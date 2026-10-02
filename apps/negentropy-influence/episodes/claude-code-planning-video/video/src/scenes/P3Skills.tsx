@@ -9,7 +9,6 @@ import {AbsoluteFill, Sequence} from 'remotion';
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Panel} from '../components/motifs';
 import {HarnessBadge} from '../components/harness-stack';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 import {DUR, useProgress} from '../motion';
@@ -116,7 +115,8 @@ export const P3Skills: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bB} name="3-B 两级与成本">
-        <ArchifyRecap slug="pc2-skill-levels" caption="技能两级" cues={[
+        {/* 跨图背靠背（3-A pan-m3 尾→本章首章）：lead={false} */}
+        <ArchifyRecap slug="pc2-skill-levels" caption="技能两级" lead={false} cues={[
           {chapterId: 'levels-two', at: at('p3-04') - bB.from, durationInFrames: dur('p3-04') + dur('p3-05') + dur('p3-06')},
           {chapterId: 'levels-cost', at: at('p3-07') - bB.from, durationInFrames: dur('p3-07')},
         ]} />
@@ -133,7 +133,8 @@ export const P3Skills: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bE} name="3-E 消融与结论">
-        <ArchifyRecap slug="pc2-skill-cost" caption="拆掉两级" cues={[
+        {/* 跨图背靠背（3-D levels-lifecycle 尾→本章首章）：lead={false} */}
+        <ArchifyRecap slug="pc2-skill-cost" caption="拆掉两级" lead={false} cues={[
           {chapterId: 'cost-ablation', at: at('p3-15') - bE.from, durationInFrames: dur('p3-15') + dur('p3-16') + dur('p3-17')},
           {chapterId: 'cost-ruling', at: at('p3-18') - bE.from, durationInFrames: dur('p3-18') + dur('p3-19')},
         ]} />

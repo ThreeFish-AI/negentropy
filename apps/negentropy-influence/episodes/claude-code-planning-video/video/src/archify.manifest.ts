@@ -386,6 +386,7 @@ export const ARCHIFY = {
   },
   "pc2-rules": {
     "slug": "pc2-rules",
+    "type": "lifecycle",
     "chapters": [
       {
         "id": "rule-position",
@@ -543,6 +544,7 @@ export const ARCHIFY = {
   },
   "pc2-sub-guard": {
     "slug": "pc2-sub-guard",
+    "type": "architecture",
     "chapters": [
       {
         "id": "guard-three",
@@ -636,6 +638,7 @@ export const ARCHIFY = {
   },
   "pc2-todo-nag": {
     "slug": "pc2-todo-nag",
+    "type": "lifecycle",
     "chapters": [
       {
         "id": "nag-device",

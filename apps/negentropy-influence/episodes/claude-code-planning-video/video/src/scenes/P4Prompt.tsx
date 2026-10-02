@@ -9,11 +9,9 @@ import {AbsoluteFill, Sequence} from 'remotion';
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Panel} from '../components/motifs';
 import {HarnessBadge} from '../components/harness-stack';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 import {DUR, useProgress, useStagger} from '../motion';
-import {useFlowDash} from '../motion';
 
 const BADGE_STYLE: React.CSSProperties = {top: 64};
 
@@ -104,7 +102,7 @@ const MenuAnalogy: React.FC<{at04: number; at05: number; at06: number}> = ({at04
           letterSpacing: 2,
         }}
       >
-        {'类比边界：不覆盖分段维护，也不覆盖服务端那层缓存'}
+        {'类比边界 · 不含 分段维护 / 服务端缓存'}
       </div>
     </AbsoluteFill>
   );
@@ -135,8 +133,8 @@ const TwoLayerCache: React.FC<{at20: number; at20b: number}> = ({at20, at20b}) =
     <AbsoluteFill style={{pointerEvents: 'none'}}>
       <HarnessBadge style={BADGE_STYLE} />
       <div style={{position: 'absolute', left: 210, top: 320, display: 'flex', gap: 80}}>
-        {col('第一层 · 本地', '拼串的功夫', '状态没变，不重新拼那页——省的是自己动手的功夫', theme.mech, left, false)}
-        {col('第二层 · 服务端', '前缀的重算', '开头一段保持不变，服务端才能按开头复用', theme.core, right, true)}
+        {col('第一层 · 本地', '拼串的功夫', '状态没变 → 不重拼那页', theme.mech, left, false)}
+        {col('第二层 · 服务端', '前缀的重算', '开头不变 → 按开头复用', theme.core, right, true)}
       </div>
       <div
         style={{
@@ -194,7 +192,8 @@ export const P4Prompt: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bD} name="4-D 走查命中">
-        <ArchifyRecap slug="pc2-prompt-cache" caption="缓存键" cues={[
+        {/* 跨图背靠背（4-C shelf-split 尾→本章首章）：lead={false} */}
+        <ArchifyRecap slug="pc2-prompt-cache" caption="缓存键" lead={false} cues={[
           {chapterId: 'cache-hit', at: at('p4-10') - bD.from, durationInFrames: dur('p4-10') + dur('p4-11') + dur('p4-12') + dur('p4-13')},
         ]} />
       </Sequence>
@@ -207,7 +206,8 @@ export const P4Prompt: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bF} name="4-F 键污染消融">
-        <ArchifyRecap slug="pc2-prompt-cache" caption="缓存键" cues={[
+        {/* 同图跨镜背靠背（4-E 尾→本章首章）：lead={false} */}
+        <ArchifyRecap slug="pc2-prompt-cache" caption="缓存键" lead={false} cues={[
           {chapterId: 'cache-dirty', at: at('p4-16') - bF.from, durationInFrames: dur('p4-16') + dur('p4-17') + dur('p4-18') + dur('p4-19')},
         ]} />
       </Sequence>

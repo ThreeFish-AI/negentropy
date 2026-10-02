@@ -102,25 +102,28 @@ const ConsultantAnalogy: React.FC<{at06: number; at07: number; at08: number}> = 
           letterSpacing: 2,
         }}
       >
-        {'类比边界：顾问是另一个人，子代理是同一段程序的另一场对话'}
+        {'类比边界 · 另一个人 ≠ 另一场对话'}
       </div>
     </AbsoluteFill>
   );
 };
 
-/** 2-B 装置：主线/副台分屏——副台自开列表自跑循环，末尾撕一页回执飞回主线 */
+/** 2-B 装置：主线/副台分屏——副台自开列表自跑循环，末尾撕一页回执飞回主线。
+ *  @enter:slide 双栏分屏（分镜 2-B）：左栏自左推入、右栏自右推入。 */
 const SideDeskSplit: React.FC<{at05: number}> = ({at05}) => {
   const fly = useProgress(at05, 24);
+  const inL = useProgress(0, DUR.f4);
+  const inR = useProgress(DUR.f2, DUR.f4);
   return (
     <AbsoluteFill style={{pointerEvents: 'none'}}>
       <HarnessBadge style={BADGE_STYLE} />
-      <div style={{position: 'absolute', left: 200, top: 260, width: 640}}>
+      <div style={{position: 'absolute', left: 200, top: 260, width: 640, opacity: inL, transform: `translateX(${(1 - inL) * -56}px)`}}>
         <div style={{fontFamily: theme.sans, fontSize: 20, color: theme.dim, letterSpacing: 3, marginBottom: 16}}>{'主线台面'}</div>
         {[1, 0.85, 0.7].map((o, i) => (
           <div key={i} style={{height: 52, marginBottom: 10, borderRadius: 8, background: theme.panel, border: `1px solid ${theme.panelBorder}`, opacity: o}} />
         ))}
       </div>
-      <div style={{position: 'absolute', left: 1080, top: 260, width: 640}}>
+      <div style={{position: 'absolute', left: 1080, top: 260, width: 640, opacity: inR, transform: `translateX(${(1 - inR) * 56}px)`}}>
         <div style={{fontFamily: theme.sans, fontSize: 20, color: theme.mech, letterSpacing: 3, marginBottom: 16}}>{'副台 · 全新列表'}</div>
         {[0.9, 0.75, 0.6, 0.45].map((o, i) => (
           <div key={i} style={{height: 40, marginBottom: 8, borderRadius: 8, background: `${theme.mech}12`, border: `1px solid ${theme.mechDeep}66`, opacity: o}} />
@@ -210,14 +213,14 @@ export const P2Subagent: React.FC<{scene: SceneRange}> = ({scene}) => {
         {/* 三章接力：首章锚 p2-09，后两章随句推进（p2-12 / p2-14b） */}
         <ArchifyRecap slug="pc2-sub-guard" caption="副台的防线" cues={[
           {chapterId: 'guard-three', at: at('p2-09') - bD.from, durationInFrames: dur('p2-09') + dur('p2-10') + dur('p2-11')},
-          {chapterId: 'guard-notask', at: at('p2-12') - bD.from, durationInFrames: dur('p2-12') + dur('p2-13') + dur('p2-14')},
+          {chapterId: 'guard-notask', at: at('p2-12') - bD.from, durationInFrames: dur('p2-12') + dur('p2-13') + dur('p2-13b') + dur('p2-14')},
           {chapterId: 'guard-fallback', at: at('p2-14b') - bD.from, durationInFrames: dur('p2-14b')},
         ]} />
       </Sequence>
 
       <Sequence {...bE} name="2-E 走查·回执·对比">
-        {/* 跨镜背靠背：本章首章前 p2-15 为空窗句回落；三章随句接力 */}
-        <ArchifyRecap slug="pc2-sub-lanes" caption="主线与副台" cues={[
+        {/* 跨图背靠背（2-D guard-fallback 尾→本章首章）：lead={false}；三章随句接力 */}
+        <ArchifyRecap slug="pc2-sub-lanes" caption="主线与副台" lead={false} cues={[
           {chapterId: 'lanes-walk', at: at('p2-15') - bE.from, durationInFrames: dur('p2-15') + dur('p2-16')},
           {chapterId: 'lanes-receipt', at: at('p2-17') - bE.from, durationInFrames: dur('p2-17')},
           {chapterId: 'lanes-contrast', at: at('p2-18') - bE.from, durationInFrames: dur('p2-18') + dur('p2-19')},

@@ -6,11 +6,10 @@
  *  空间契约：分诊口=本集新增唯一角色席；账本红侧「拆掉」绿侧「在位」。
  */
 import React from 'react';
-import {AbsoluteFill, Sequence} from 'remotion';
+import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Panel} from '../components/motifs';
 import {HarnessBadge} from '../components/harness-stack';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 import {DUR, useProgress, useStagger} from '../motion';
@@ -95,9 +94,11 @@ const PrinterAnalogy: React.FC<{at04: number; at05: number; at06: number}> = ({a
   );
 };
 
-/** 5-H 装置：五挂点齐亮收拢——五个 mech 光点在循环环上同时呼吸 */
+/** 5-H 装置：五挂点齐亮收拢——五个 mech 光点在循环环上错相呼吸（@breathe，分镜 5-H） */
 const AllMountsLit: React.FC<{span: number}> = ({span}) => {
   const t = useProgress(Math.round(span * 0.3), 22);
+  const frame = useCurrentFrame();
+  const breathe = (i: number) => 0.5 + 0.5 * Math.sin((frame / 21) * Math.PI + (i * Math.PI * 2) / 5);
   return (
     <AbsoluteFill style={{pointerEvents: 'none'}}>
       <HarnessBadge style={BADGE_STYLE} />
@@ -117,8 +118,8 @@ const AllMountsLit: React.FC<{span: number}> = ({span}) => {
                 height: 22,
                 borderRadius: 11,
                 background: theme.mech,
-                boxShadow: `0 0 ${16 + 10 * Math.sin(t * Math.PI)}px ${theme.mech}`,
-                opacity: 0.4 + 0.6 * t,
+                boxShadow: `0 0 ${12 + 9 * breathe(i)}px ${theme.mech}`,
+                opacity: (0.35 + 0.65 * t) * (0.7 + 0.3 * breathe(i)),
               }}
             />
           );
@@ -174,8 +175,8 @@ export const P5Recovery: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bE} name="5-E 瞬态与三连等">
-        {/* 跨图背靠背（triage-transient → backoff-seq）：次图 lead={false}，两实例接力 */}
-        <ArchifyRecap slug="pc2-triage-map" caption="分诊地图" cues={[
+        {/* 同图跨镜背靠背（5-D 尾→本章首章）+ 跨图接力（triage→backoff）：两实例均 lead={false} */}
+        <ArchifyRecap slug="pc2-triage-map" caption="分诊地图" lead={false} cues={[
           {chapterId: 'triage-transient', at: at('p5-11') - bE.from, durationInFrames: dur('p5-11')},
         ]} />
         <ArchifyRecap slug="pc2-backoff-scale" caption="退避标尺" lead={false} cues={[
@@ -184,13 +185,15 @@ export const P5Recovery: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bF} name="5-F 双序列与抖动">
-        <ArchifyRecap slug="pc2-backoff-scale" caption="退避标尺" cues={[
+        {/* 同图跨镜背靠背（5-E backoff-seq 尾→本章首章）：lead={false} */}
+        <ArchifyRecap slug="pc2-backoff-scale" caption="退避标尺" lead={false} cues={[
           {chapterId: 'backoff-jitter', at: at('p5-13') - bF.from, durationInFrames: dur('p5-13') + dur('p5-14') + dur('p5-15') + dur('p5-16') + dur('p5-16b')},
         ]} />
       </Sequence>
 
       <Sequence {...bG} name="5-G 账本三章">
-        <ArchifyRecap slug="pc2-recovery-ledger" caption="恢复账本" cues={[
+        {/* 跨图背靠背（5-F 尾→本章首章）：lead={false} */}
+        <ArchifyRecap slug="pc2-recovery-ledger" caption="恢复账本" lead={false} cues={[
           {chapterId: 'ledger-book', at: at('p5-17') - bG.from, durationInFrames: dur('p5-17') + dur('p5-18')},
           {chapterId: 'ledger-ablation', at: at('p5-19') - bG.from, durationInFrames: dur('p5-19') + dur('p5-20')},
           {chapterId: 'ledger-ruling', at: at('p5-21') - bG.from, durationInFrames: dur('p5-21')},

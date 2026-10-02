@@ -12,7 +12,7 @@ import type {SceneRange} from '../types';
 import {Panel} from '../components/motifs';
 import {HarnessBadge} from '../components/harness-stack';
 import {ArchifyRecap} from '../components/ArchifyRecap';
-import {clamp01, useProgress} from '../motion';
+import {useProgress} from '../motion';
 
 const BADGE_STYLE: React.CSSProperties = {top: 64};
 
@@ -216,14 +216,15 @@ export const P1Todo: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bB} name="1-B 三态工序卡">
-        <ArchifyRecap slug="pc2-todo-nag" caption="待办与唠叨" cues={[
+        {/* 跨镜背靠背（1-A pan-m1 尾→本章首章）：lead={false} */}
+        <ArchifyRecap slug="pc2-todo-nag" caption="待办与唠叨" lead={false} cues={[
           {chapterId: 'nag-device', at: at('p1-03') - bB.from, durationInFrames: dur('p1-03') + dur('p1-04') + dur('p1-05')},
         ]} />
       </Sequence>
 
       <Sequence {...bC} name="1-C 爬格与注入">
-        {/* 同图两章背靠背：第二章 lead={false} */}
-        <ArchifyRecap slug="pc2-todo-nag" caption="待办与唠叨" cues={[
+        {/* 同图跨镜背靠背（1-B 尾→本章首章）+ 实例内两章接力（enters 自动抑制换章弹入） */}
+        <ArchifyRecap slug="pc2-todo-nag" caption="待办与唠叨" lead={false} cues={[
           {chapterId: 'nag-count', at: at('p1-06') - bC.from, durationInFrames: dur('p1-06') + dur('p1-07')},
           {chapterId: 'nag-fire', at: at('p1-08') - bC.from, durationInFrames: dur('p1-08')},
         ]} />

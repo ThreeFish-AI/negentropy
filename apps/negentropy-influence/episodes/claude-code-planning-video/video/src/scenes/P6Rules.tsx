@@ -76,6 +76,31 @@ const SeriesFinale: React.FC<{span: number; atCards: number}> = ({span, atCards}
   );
 };
 
+/** 6-C 前半拍装置：护栏卡三行（storyboard 6-C）——p6-11..12 浮现，archify 接手前渐隐。
+ *  行文只放关键词对（画面纪律），口播细节留给字幕。 */
+const GuardCard: React.FC<{out: number}> = ({out}) => {
+  const rows = useStagger(3, {at: 0, dur: DUR.f4, stride: DUR.f3});
+  const fade = useProgress(out, DUR.f4);
+  return (
+    <AbsoluteFill style={{pointerEvents: 'none'}}>
+      <div style={{position: 'absolute', left: 0, top: 360, width: 1920, display: 'flex', justifyContent: 'center', opacity: 1 - fade}}>
+        <Panel style={{padding: '30px 52px', display: 'flex', flexDirection: 'column', gap: 26}}>
+          {[
+            {k: '三轮提醒', v: '教学发明'},
+            {k: '完成率', v: '无对照实验'},
+            {k: '篇幅估算', v: '只是口径'},
+          ].map((r, i) => (
+            <div key={r.v} style={{display: 'flex', alignItems: 'baseline', gap: 22, opacity: rows[i] ?? 0, transform: `translateY(${(1 - (rows[i] ?? 0)) * 16}px)`}}>
+              <div style={{fontFamily: theme.sans, fontSize: 21, color: theme.dim, letterSpacing: 3}}>{r.k}</div>
+              <div style={{fontFamily: theme.serif, fontSize: 32, color: theme.mech, letterSpacing: 5}}>{r.v}</div>
+            </div>
+          ))}
+        </Panel>
+      </div>
+    </AbsoluteFill>
+  );
+};
+
 /** 6-B 装置：争议双栏（全新上下文 ↔ 缓存友好前缀）+ 第二对取舍两行 */
 const ControversyCols: React.FC<{at07: number; at10b: number}> = ({at07, at10b}) => {
   const cols = useStagger(2, {at: at07, dur: 18, stride: 14});
@@ -109,13 +134,13 @@ const ControversyCols: React.FC<{at07: number; at10b: number}> = ({at07, at10b})
         {'两派账本不同 · 都对'}
       </div>
       <div style={{position: 'absolute', left: 380, top: 680, width: 1160, opacity: pair2}}>
-        {['知识放消息流 · 省钱但会被裁', '常驻指令区 · 稳定但每轮花钱'].map((t) => (
+        {['消息流 · 省钱 · 会被裁', '常驻指令区 · 稳定 · 花钱'].map((t) => (
           <div key={t} style={{fontFamily: theme.serif, fontSize: 24, color: theme.text, textAlign: 'center', lineHeight: 2.1}}>
             {t}
           </div>
         ))}
         <div style={{fontFamily: theme.sans, fontSize: 19, color: theme.dim, textAlign: 'center', marginTop: 8}}>
-          {'没有免费午餐 · 按使用频率分档'}
+          {'按使用频率分档'}
         </div>
       </div>
     </AbsoluteFill>
@@ -152,7 +177,7 @@ export const P6Rules: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bC} name="6-C 护栏与口径">
-        {/* TODO(实装): 护栏卡三行（教学发明/无对照实验/估算口径）浮现于前半拍 */}
+        <GuardCard out={at('p6-13') - bC.from - DUR.f4} />
         <ArchifyRecap slug="pc2-ablation-bar" caption="数字口径" cues={[
           {chapterId: 'ablation-scale', at: at('p6-13') - bC.from, durationInFrames: dur('p6-13')},
           {chapterId: 'ablation-ruling', at: at('p6-14') - bC.from, durationInFrames: dur('p6-14') + dur('p6-14b')},
