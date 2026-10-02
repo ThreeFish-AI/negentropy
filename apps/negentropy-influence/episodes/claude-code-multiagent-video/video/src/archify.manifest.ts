@@ -1,14 +1,23 @@
-// 占位 manifest——由 to-video scripts/archify_manifest.py 在录制后覆写（请勿手改）。
-// 本占位仅解 tsc：slug/type/章节 id/beatNodes 与 views/*.json 一致；leadSec/storySec 为口径估值。
+// 本文件由 to-video skill 的 scripts/archify_manifest.py 从 public/archify/*.json 生成——请勿手改。
+// 数据来源：scripts/record_archify.py --mode chapter（逐章录制）
+//         + scripts/archify_lead.py（场记板白闪测定真实 leadSec）。
 
 export type ArchifyChapter = {
+  /** views JSON 里的章节 id */
   id: string;
+  /** 章节小标题（画面左下） */
   label: string;
+  /** public/archify/ 下的视频文件名（webm / mp4，随采集方式而定） */
   file: string;
+  /** 该章末帧 PNG（fit='hold' 时用于冻结补足） */
   endStill: string;
+  /** 本章拍数（每拍 max(1100ms, 3200ms/拍数)） */
   beats: number;
+  /** 片内故事起点（秒，视频钟实测，非墙钟估算） */
   leadSec: number;
+  /** 本章正片时长（秒） */
   storySec: number;
+  /** 逐拍点亮的节点 id，供抽帧目视核对 */
   beatNodes: string[];
 };
 
@@ -25,8 +34,8 @@ export const ARCHIFY = {
         "file": "claim-guards-break--three-gates.mp4",
         "endStill": "claim-guards-break--three-gates-end.png",
         "beats": 5,
-        "leadSec": 1.6,
-        "storySec": 5.5,
+        "leadSec": 1.0,
+        "storySec": 5.54,
         "beatNodes": [
           "scan",
           "g-status",
@@ -41,8 +50,8 @@ export const ARCHIFY = {
         "file": "claim-guards-break--b1.mp4",
         "endStill": "claim-guards-break--b1-end.png",
         "beats": 2,
-        "leadSec": 1.6,
-        "storySec": 3.2,
+        "leadSec": 0.52,
+        "storySec": 3.26,
         "beatNodes": [
           "b1-lane",
           "g-deps"
@@ -54,8 +63,8 @@ export const ARCHIFY = {
         "file": "claim-guards-break--b2-b2v.mp4",
         "endStill": "claim-guards-break--b2-b2v-end.png",
         "beats": 4,
-        "leadSec": 1.6,
-        "storySec": 4.4,
+        "leadSec": 0.52,
+        "storySec": 4.46,
         "beatNodes": [
           "b2-lane",
           "b2v-lane",
@@ -69,8 +78,8 @@ export const ARCHIFY = {
         "file": "claim-guards-break--ok.mp4",
         "endStill": "claim-guards-break--ok-end.png",
         "beats": 2,
-        "leadSec": 1.6,
-        "storySec": 3.2,
+        "leadSec": 0.52,
+        "storySec": 3.22,
         "beatNodes": [
           "ok-lane",
           "reject"
@@ -88,8 +97,8 @@ export const ARCHIFY = {
         "file": "claim-race-window--two-lifelines.mp4",
         "endStill": "claim-race-window--two-lifelines-end.png",
         "beats": 2,
-        "leadSec": 1.6,
-        "storySec": 3.2,
+        "leadSec": 0.44,
+        "storySec": 3.23,
         "beatNodes": [
           "alice",
           "bob"
@@ -101,8 +110,8 @@ export const ARCHIFY = {
         "file": "claim-race-window--interleaved.mp4",
         "endStill": "claim-race-window--interleaved-end.png",
         "beats": 2,
-        "leadSec": 1.6,
-        "storySec": 3.2,
+        "leadSec": 0.44,
+        "storySec": 3.24,
         "beatNodes": [
           "alice",
           "bob"
@@ -114,8 +123,8 @@ export const ARCHIFY = {
         "file": "claim-race-window--overwrite.mp4",
         "endStill": "claim-race-window--overwrite-end.png",
         "beats": 2,
-        "leadSec": 1.6,
-        "storySec": 3.2,
+        "leadSec": 0.44,
+        "storySec": 3.25,
         "beatNodes": [
           "bob",
           "board"
@@ -127,8 +136,8 @@ export const ARCHIFY = {
         "file": "claim-race-window--window.mp4",
         "endStill": "claim-race-window--window-end.png",
         "beats": 3,
-        "leadSec": 1.6,
-        "storySec": 3.3,
+        "leadSec": 0.44,
+        "storySec": 3.37,
         "beatNodes": [
           "alice",
           "bob",
@@ -147,8 +156,8 @@ export const ARCHIFY = {
         "file": "collab-panorama--four-prep.mp4",
         "endStill": "collab-panorama--four-prep-end.png",
         "beats": 4,
-        "leadSec": 1.6,
-        "storySec": 4.4,
+        "leadSec": 0.44,
+        "storySec": 4.42,
         "beatNodes": [
           "input",
           "inject",
@@ -162,8 +171,8 @@ export const ARCHIFY = {
         "file": "collab-panorama--llm-judge.mp4",
         "endStill": "collab-panorama--llm-judge-end.png",
         "beats": 2,
-        "leadSec": 1.6,
-        "storySec": 3.2,
+        "leadSec": 0.44,
+        "storySec": 3.27,
         "beatNodes": [
           "llm",
           "decide"
@@ -175,8 +184,8 @@ export const ARCHIFY = {
         "file": "collab-panorama--dispatch.mp4",
         "endStill": "collab-panorama--dispatch-end.png",
         "beats": 4,
-        "leadSec": 1.6,
-        "storySec": 4.4,
+        "leadSec": 0.44,
+        "storySec": 4.46,
         "beatNodes": [
           "gate",
           "dispatch",
@@ -190,8 +199,8 @@ export const ARCHIFY = {
         "file": "collab-panorama--externals.mp4",
         "endStill": "collab-panorama--externals-end.png",
         "beats": 2,
-        "leadSec": 1.6,
-        "storySec": 3.2,
+        "leadSec": 0.44,
+        "storySec": 3.22,
         "beatNodes": [
           "background",
           "shared"
@@ -209,8 +218,8 @@ export const ARCHIFY = {
         "file": "dependency-failclosed--four-cards.mp4",
         "endStill": "dependency-failclosed--four-cards-end.png",
         "beats": 4,
-        "leadSec": 1.6,
-        "storySec": 4.4,
+        "leadSec": 0.48,
+        "storySec": 4.42,
         "beatNodes": [
           "t-build",
           "t-api",
@@ -224,8 +233,8 @@ export const ARCHIFY = {
         "file": "dependency-failclosed--walkthrough.mp4",
         "endStill": "dependency-failclosed--walkthrough-end.png",
         "beats": 3,
-        "leadSec": 1.6,
-        "storySec": 3.3,
+        "leadSec": 0.52,
+        "storySec": 3.37,
         "beatNodes": [
           "guard",
           "t-build",
@@ -238,8 +247,8 @@ export const ARCHIFY = {
         "file": "dependency-failclosed--blocked.mp4",
         "endStill": "dependency-failclosed--blocked-end.png",
         "beats": 2,
-        "leadSec": 1.6,
-        "storySec": 3.2,
+        "leadSec": 0.48,
+        "storySec": 3.22,
         "beatNodes": [
           "t-test",
           "guard"
@@ -251,8 +260,8 @@ export const ARCHIFY = {
         "file": "dependency-failclosed--failclosed.mp4",
         "endStill": "dependency-failclosed--failclosed-end.png",
         "beats": 2,
-        "leadSec": 1.6,
-        "storySec": 3.2,
+        "leadSec": 0.52,
+        "storySec": 3.25,
         "beatNodes": [
           "ghost-ref",
           "guard"
@@ -270,8 +279,8 @@ export const ARCHIFY = {
         "file": "duty-clock-loop--three-states.mp4",
         "endStill": "duty-clock-loop--three-states-end.png",
         "beats": 3,
-        "leadSec": 1.6,
-        "storySec": 3.3,
+        "leadSec": 0.52,
+        "storySec": 3.33,
         "beatNodes": [
           "work",
           "idle",
@@ -284,8 +293,8 @@ export const ARCHIFY = {
         "file": "duty-clock-loop--tick-order.mp4",
         "endStill": "duty-clock-loop--tick-order-end.png",
         "beats": 3,
-        "leadSec": 1.6,
-        "storySec": 3.3,
+        "leadSec": 0.52,
+        "storySec": 3.37,
         "beatNodes": [
           "tick",
           "look-slot",
@@ -298,8 +307,8 @@ export const ARCHIFY = {
         "file": "duty-clock-loop--timeout.mp4",
         "endStill": "duty-clock-loop--timeout-end.png",
         "beats": 2,
-        "leadSec": 1.6,
-        "storySec": 3.2,
+        "leadSec": 0.52,
+        "storySec": 3.24,
         "beatNodes": [
           "timeout",
           "shutdown"
@@ -311,8 +320,8 @@ export const ARCHIFY = {
         "file": "duty-clock-loop--b5.mp4",
         "endStill": "duty-clock-loop--b5-end.png",
         "beats": 1,
-        "leadSec": 1.6,
-        "storySec": 3.2,
+        "leadSec": 0.52,
+        "storySec": 3.25,
         "beatNodes": [
           "b5-spin"
         ]
@@ -329,8 +338,8 @@ export const ARCHIFY = {
         "file": "five-layer-dependency--five-lit-finale.mp4",
         "endStill": "five-layer-dependency--five-lit-finale-end.png",
         "beats": 6,
-        "leadSec": 1.6,
-        "storySec": 6.6,
+        "leadSec": 0.44,
+        "storySec": 6.65,
         "beatNodes": [
           "loop-core",
           "layer-1",
@@ -352,8 +361,8 @@ export const ARCHIFY = {
         "file": "mailslot-consume--append.mp4",
         "endStill": "mailslot-consume--append-end.png",
         "beats": 4,
-        "leadSec": 1.6,
-        "storySec": 4.4,
+        "leadSec": 0.44,
+        "storySec": 4.46,
         "beatNodes": [
           "sender",
           "slot-door",
@@ -367,8 +376,8 @@ export const ARCHIFY = {
         "file": "mailslot-consume--take-all.mp4",
         "endStill": "mailslot-consume--take-all-end.png",
         "beats": 3,
-        "leadSec": 1.6,
-        "storySec": 3.3,
+        "leadSec": 0.44,
+        "storySec": 3.38,
         "beatNodes": [
           "take-all",
           "peek",
@@ -381,8 +390,8 @@ export const ARCHIFY = {
         "file": "mailslot-consume--wake.mp4",
         "endStill": "mailslot-consume--wake-end.png",
         "beats": 2,
-        "leadSec": 1.6,
-        "storySec": 3.2,
+        "leadSec": 0.44,
+        "storySec": 3.25,
         "beatNodes": [
           "wake",
           "queue-merge"
@@ -394,8 +403,8 @@ export const ARCHIFY = {
         "file": "mailslot-consume--b3.mp4",
         "endStill": "mailslot-consume--b3-end.png",
         "beats": 2,
-        "leadSec": 1.6,
-        "storySec": 3.2,
+        "leadSec": 0.44,
+        "storySec": 3.28,
         "beatNodes": [
           "b3-loop",
           "ok-lane"
@@ -413,8 +422,8 @@ export const ARCHIFY = {
         "file": "receipt-fsm--approve-reject.mp4",
         "endStill": "receipt-fsm--approve-reject-end.png",
         "beats": 4,
-        "leadSec": 1.6,
-        "storySec": 4.4,
+        "leadSec": 0.44,
+        "storySec": 4.45,
         "beatNodes": [
           "pending",
           "approved",
@@ -434,8 +443,8 @@ export const ARCHIFY = {
         "file": "receipt-ledger--roundtrip.mp4",
         "endStill": "receipt-ledger--roundtrip-end.png",
         "beats": 3,
-        "leadSec": 1.6,
-        "storySec": 3.3,
+        "leadSec": 0.44,
+        "storySec": 3.33,
         "beatNodes": [
           "requester",
           "responder",
@@ -448,8 +457,8 @@ export const ARCHIFY = {
         "file": "receipt-ledger--three-checks.mp4",
         "endStill": "receipt-ledger--three-checks-end.png",
         "beats": 3,
-        "leadSec": 1.6,
-        "storySec": 3.3,
+        "leadSec": 0.44,
+        "storySec": 3.37,
         "beatNodes": [
           "v-id",
           "v-type",
@@ -462,8 +471,8 @@ export const ARCHIFY = {
         "file": "receipt-ledger--settle.mp4",
         "endStill": "receipt-ledger--settle-end.png",
         "beats": 2,
-        "leadSec": 1.6,
-        "storySec": 3.2,
+        "leadSec": 0.44,
+        "storySec": 3.24,
         "beatNodes": [
           "ledger-book",
           "requester"
@@ -475,8 +484,8 @@ export const ARCHIFY = {
         "file": "receipt-ledger--b4.mp4",
         "endStill": "receipt-ledger--b4-end.png",
         "beats": 2,
-        "leadSec": 1.6,
-        "storySec": 3.2,
+        "leadSec": 0.44,
+        "storySec": 3.26,
         "beatNodes": [
           "responder",
           "ledger-book"
@@ -494,8 +503,8 @@ export const ARCHIFY = {
         "file": "room-ledger-bind--ledger.mp4",
         "endStill": "room-ledger-bind--ledger-end.png",
         "beats": 3,
-        "leadSec": 1.6,
-        "storySec": 3.3,
+        "leadSec": 0.48,
+        "storySec": 3.35,
         "beatNodes": [
           "repo-ledger",
           "history",
@@ -508,8 +517,8 @@ export const ARCHIFY = {
         "file": "room-ledger-bind--branches.mp4",
         "endStill": "room-ledger-bind--branches-end.png",
         "beats": 4,
-        "leadSec": 1.6,
-        "storySec": 4.4,
+        "leadSec": 0.52,
+        "storySec": 4.43,
         "beatNodes": [
           "branch-line",
           "room-1",
@@ -523,8 +532,8 @@ export const ARCHIFY = {
         "file": "room-ledger-bind--bind.mp4",
         "endStill": "room-ledger-bind--bind-end.png",
         "beats": 2,
-        "leadSec": 1.6,
-        "storySec": 3.2,
+        "leadSec": 0.48,
+        "storySec": 3.23,
         "beatNodes": [
           "bind-field",
           "task-card"
@@ -536,8 +545,8 @@ export const ARCHIFY = {
         "file": "room-ledger-bind--namecheck.mp4",
         "endStill": "room-ledger-bind--namecheck-end.png",
         "beats": 1,
-        "leadSec": 1.6,
-        "storySec": 3.2,
+        "leadSec": 0.52,
+        "storySec": 3.25,
         "beatNodes": [
           "name-check"
         ]
@@ -554,8 +563,8 @@ export const ARCHIFY = {
         "file": "room-teardown--entry.mp4",
         "endStill": "room-teardown--entry-end.png",
         "beats": 2,
-        "leadSec": 1.6,
-        "storySec": 3.2,
+        "leadSec": 0.52,
+        "storySec": 3.23,
         "beatNodes": [
           "teardown-entry",
           "count-check"
@@ -567,8 +576,8 @@ export const ARCHIFY = {
         "file": "room-teardown--refuse.mp4",
         "endStill": "room-teardown--refuse-end.png",
         "beats": 3,
-        "leadSec": 1.6,
-        "storySec": 3.3,
+        "leadSec": 0.52,
+        "storySec": 3.35,
         "beatNodes": [
           "dirty",
           "unknown",
@@ -581,8 +590,8 @@ export const ARCHIFY = {
         "file": "room-teardown--force-keep.mp4",
         "endStill": "room-teardown--force-keep-end.png",
         "beats": 2,
-        "leadSec": 1.6,
-        "storySec": 3.2,
+        "leadSec": 0.48,
+        "storySec": 3.23,
         "beatNodes": [
           "force-del",
           "keep"
@@ -594,8 +603,8 @@ export const ARCHIFY = {
         "file": "room-teardown--audit.mp4",
         "endStill": "room-teardown--audit-end.png",
         "beats": 1,
-        "leadSec": 1.6,
-        "storySec": 3.2,
+        "leadSec": 0.52,
+        "storySec": 3.24,
         "beatNodes": [
           "audit-log"
         ]
@@ -612,8 +621,8 @@ export const ARCHIFY = {
         "file": "seven-artifacts--overview.mp4",
         "endStill": "seven-artifacts--overview-end.png",
         "beats": 3,
-        "leadSec": 1.6,
-        "storySec": 3.3,
+        "leadSec": 0.52,
+        "storySec": 3.34,
         "beatNodes": [
           "building",
           "masters",
@@ -626,8 +635,8 @@ export const ARCHIFY = {
         "file": "seven-artifacts--public-five.mp4",
         "endStill": "seven-artifacts--public-five-end.png",
         "beats": 6,
-        "leadSec": 1.6,
-        "storySec": 6.6,
+        "leadSec": 0.52,
+        "storySec": 6.63,
         "beatNodes": [
           "floor-public",
           "wall",
@@ -643,8 +652,8 @@ export const ARCHIFY = {
         "file": "seven-artifacts--private-rooms.mp4",
         "endStill": "seven-artifacts--private-rooms-end.png",
         "beats": 2,
-        "leadSec": 1.6,
-        "storySec": 3.2,
+        "leadSec": 0.48,
+        "storySec": 3.25,
         "beatNodes": [
           "floor-private",
           "rooms"
@@ -656,8 +665,8 @@ export const ARCHIFY = {
         "file": "seven-artifacts--corridor.mp4",
         "endStill": "seven-artifacts--corridor-end.png",
         "beats": 1,
-        "leadSec": 1.6,
-        "storySec": 3.2,
+        "leadSec": 0.52,
+        "storySec": 3.23,
         "beatNodes": [
           "corridor"
         ]
@@ -674,8 +683,8 @@ export const ARCHIFY = {
         "file": "socket-pool--connect-discover.mp4",
         "endStill": "socket-pool--connect-discover-end.png",
         "beats": 4,
-        "leadSec": 1.6,
-        "storySec": 4.4,
+        "leadSec": 0.48,
+        "storySec": 4.42,
         "beatNodes": [
           "ext-docs",
           "ext-deploy",
@@ -689,8 +698,8 @@ export const ARCHIFY = {
         "file": "socket-pool--prefix.mp4",
         "endStill": "socket-pool--prefix-end.png",
         "beats": 5,
-        "leadSec": 1.6,
-        "storySec": 5.5,
+        "leadSec": 0.48,
+        "storySec": 5.54,
         "beatNodes": [
           "prefix-rule",
           "tool-docs",
@@ -705,8 +714,8 @@ export const ARCHIFY = {
         "file": "socket-pool--rebuild.mp4",
         "endStill": "socket-pool--rebuild-end.png",
         "beats": 2,
-        "leadSec": 1.6,
-        "storySec": 3.2,
+        "leadSec": 0.52,
+        "storySec": 3.22,
         "beatNodes": [
           "rebuild",
           "pool"
@@ -718,8 +727,8 @@ export const ARCHIFY = {
         "file": "socket-pool--stale.mp4",
         "endStill": "socket-pool--stale-end.png",
         "beats": 2,
-        "leadSec": 1.6,
-        "storySec": 3.2,
+        "leadSec": 0.48,
+        "storySec": 3.22,
         "beatNodes": [
           "stale-call",
           "cache-note"
@@ -737,8 +746,8 @@ export const ARCHIFY = {
         "file": "task-card-anatomy--card-fields.mp4",
         "endStill": "task-card-anatomy--card-fields-end.png",
         "beats": 7,
-        "leadSec": 1.6,
-        "storySec": 7.7,
+        "leadSec": 0.52,
+        "storySec": 7.75,
         "beatNodes": [
           "card",
           "f-id",
@@ -755,8 +764,8 @@ export const ARCHIFY = {
         "file": "task-card-anatomy--three-states.mp4",
         "endStill": "task-card-anatomy--three-states-end.png",
         "beats": 3,
-        "leadSec": 1.6,
-        "storySec": 3.3,
+        "leadSec": 0.52,
+        "storySec": 3.35,
         "beatNodes": [
           "st-pending",
           "st-progress",
@@ -769,8 +778,8 @@ export const ARCHIFY = {
         "file": "task-card-anatomy--two-actions.mp4",
         "endStill": "task-card-anatomy--two-actions-end.png",
         "beats": 2,
-        "leadSec": 1.6,
-        "storySec": 3.2,
+        "leadSec": 0.52,
+        "storySec": 3.23,
         "beatNodes": [
           "act-claim",
           "act-complete"
@@ -778,6 +787,6 @@ export const ARCHIFY = {
       }
     ]
   }
-} as const;
+} as const satisfies Record<string, ArchifyDiagram>;
 
 export type ArchifySlug = keyof typeof ARCHIFY;

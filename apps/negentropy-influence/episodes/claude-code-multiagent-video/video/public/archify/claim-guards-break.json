@@ -1,7 +1,7 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.0,
+ "lead_sec": 1.0,
  "story_sec": 16.48,
  "total_wall_sec": 68.47,
  "started_playback": true,
@@ -16,7 +16,7 @@
    "end_still": "claim-guards-break--three-gates-end.png",
    "beats": 5,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 1.0,
    "story_sec": 5.54,
    "beat_offsets_sec": [],
    "beat_nodes": [
@@ -37,7 +37,7 @@
    "end_still": "claim-guards-break--b1-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 0.0,
+   "lead_sec": 0.52,
    "story_sec": 3.26,
    "beat_offsets_sec": [],
    "beat_nodes": [
@@ -55,7 +55,7 @@
    "end_still": "claim-guards-break--b2-b2v-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 0.0,
+   "lead_sec": 0.52,
    "story_sec": 4.46,
    "beat_offsets_sec": [],
    "beat_nodes": [
@@ -75,7 +75,7 @@
    "end_still": "claim-guards-break--ok-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 0.0,
+   "lead_sec": 0.52,
    "story_sec": 3.22,
    "beat_offsets_sec": [],
    "beat_nodes": [

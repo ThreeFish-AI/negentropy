@@ -1,0 +1,100 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.48,
+ "story_sec": 16.4,
+ "total_wall_sec": 63.02,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "connect-discover",
+   "label": "连接与发现",
+   "index": 0,
+   "file": "socket-pool--connect-discover.mp4",
+   "end_still": "socket-pool--connect-discover-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.48,
+   "story_sec": 4.42,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "ext-docs",
+    "ext-deploy",
+    "connect",
+    "discover"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "prefix",
+   "label": "挂牌防撞",
+   "index": 1,
+   "file": "socket-pool--prefix.mp4",
+   "end_still": "socket-pool--prefix-end.png",
+   "beats": 5,
+   "dwell_ms": 1100,
+   "lead_sec": 0.48,
+   "story_sec": 5.54,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "prefix-rule",
+    "tool-docs",
+    "tool-status",
+    "tool-trigger",
+    "pool"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "rebuild",
+   "label": "每轮重组",
+   "index": 2,
+   "file": "socket-pool--rebuild.mp4",
+   "end_still": "socket-pool--rebuild-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.52,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "rebuild",
+    "pool"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "stale",
+   "label": "旧清单叫空",
+   "index": 3,
+   "file": "socket-pool--stale.mp4",
+   "end_still": "socket-pool--stale-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.48,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "stale-call",
+    "cache-note"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/apps/negentropy-influence/episodes/claude-code-multiagent-video/video/public/archify/html/socket-pool.html",
+ "slug": "socket-pool",
+ "type": "dataflow"
+}

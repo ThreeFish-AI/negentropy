@@ -412,8 +412,8 @@ const FiveGains: React.FC<{at15: number; at18: number; span: number}> = ({at15, 
           </div>
         ))}
       </div>
-      {/* 合口计数（2/2） */}
-      <div style={{position: 'absolute', left: 1650, top: 840, opacity: m2O}}>
+      {/* 合口计数（2/2）——top 840→800：底缘原 ~940 侵入字幕带上沿安全带（y≥920，qa WARN 实证） */}
+      <div style={{position: 'absolute', left: 1650, top: 800, opacity: m2O}}>
         <Panel accent={theme.accent} style={{width: 200, boxSizing: 'border-box', padding: '10px 18px', textAlign: 'center'}}>
           <div style={{fontFamily: theme.sans, fontSize: 19, color: theme.dim}}>{'伏笔合口'}</div>
           <div style={{fontFamily: theme.mono, fontSize: 40, color: theme.accent, fontVariantNumeric: 'tabular-nums'}}>{`${Math.round(closed)}/2`}</div>

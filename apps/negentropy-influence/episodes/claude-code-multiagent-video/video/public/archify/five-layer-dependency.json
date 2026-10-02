@@ -1,0 +1,52 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 6.65,
+ "total_wall_sec": 16.14,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "five-lit-finale",
+   "label": "五层全亮",
+   "index": 0,
+   "file": "five-layer-dependency--five-lit-finale.mp4",
+   "end_still": "five-layer-dependency--five-lit-finale-end.png",
+   "beats": 6,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 6.65,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.21,
+    3.314,
+    4.417,
+    5.522
+   ],
+   "beat_nodes": [
+    "loop-core",
+    "layer-1",
+    "layer-2",
+    "layer-3",
+    "layer-4",
+    "layer-5"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 27.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/apps/negentropy-influence/episodes/claude-code-multiagent-video/video/public/archify/html/five-layer-dependency.html",
+ "slug": "five-layer-dependency",
+ "type": "architecture"
+}
