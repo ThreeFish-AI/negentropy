@@ -520,11 +520,17 @@ def main():
     elif cmd == "--exp":
         if len(sys.argv) < 3:
             raise SystemExit("用法: cc_tools_lab.py --exp {1|2|3|4|5}")
-        {"1": exp1, "2": exp2, "3": exp3, "4": exp4, "5": exp5}[sys.argv[2]]()
+        exp = {"1": exp1, "2": exp2, "3": exp3, "4": exp4, "5": exp5}.get(sys.argv[2])
+        if exp is None:
+            raise SystemExit(f"未知实验编号: {sys.argv[2]!r}（可用 1|2|3|4|5）")
+        exp()
     elif cmd == "--pred":
         if len(sys.argv) < 3:
             raise SystemExit("用法: cc_tools_lab.py --pred {t4|t5|gates}")
-        {"t4": pred_t4, "t5": pred_t5, "gates": pred_gates}[sys.argv[2].lower()]()
+        pred = {"t4": pred_t4, "t5": pred_t5, "gates": pred_gates}.get(sys.argv[2].lower())
+        if pred is None:
+            raise SystemExit(f"未知走查名: {sys.argv[2]!r}（可用 t4|t5|gates）")
+        pred()
     else:
         print(__doc__)
 
