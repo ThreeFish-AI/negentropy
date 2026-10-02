@@ -733,13 +733,13 @@ export const P1CheapFirst: React.FC<{scene: SceneRange}> = ({scene}) => {
         <Footnote delay={8}>{'tool_result_budget'}</Footnote>
       </Sequence>
 
-      {/* 前镜 2-A 为场景镜 → 首章默认入场；p1-08/09 为分镜 cue 预算的留白句 */}
+      {/* 前镜 1-A 为场景镜 → 首章默认入场；cheap-first 盖满 p1-07..09（hold 末帧，零空屏） */}
       <Sequence {...bB} name="1-B 落盘收据 图镜">
         <ArchifyRecap
           slug="compact-pipeline"
           caption="四层压缩管线"
           cues={[
-            {chapterId: 'cheap-first', at: at('p1-07') - bB.from, durationInFrames: dur('p1-07')},
+            {chapterId: 'cheap-first', at: at('p1-07') - bB.from, durationInFrames: dur('p1-07') + dur('p1-08') + dur('p1-09'), fit: 'hold'},
           ]}
         />
       </Sequence>
@@ -775,13 +775,13 @@ export const P1CheapFirst: React.FC<{scene: SceneRange}> = ({scene}) => {
         <Footnote delay={6}>{'micro_compact · 80%'}</Footnote>
       </Sequence>
 
-      {/* 前镜 2-D 为场景镜 → 首章默认入场；p1-18/19 空窗（bypass→batch-wait 章间留白） */}
+      {/* 前镜 1-D 为场景镜 → 首章默认入场；bypass 盖满 p1-17..19 再接 batch-wait（零空屏） */}
       <Sequence {...bE} name="1-E 摘要殿后 图镜">
         <ArchifyRecap
           slug="compact-pipeline"
           caption="四层压缩管线"
           cues={[
-            {chapterId: 'bypass', at: at('p1-17') - bE.from, durationInFrames: dur('p1-17')},
+            {chapterId: 'bypass', at: at('p1-17') - bE.from, durationInFrames: dur('p1-17') + dur('p1-18') + dur('p1-19'), fit: 'hold'},
             {chapterId: 'batch-wait', at: at('p1-20') - bE.from, durationInFrames: dur('p1-20')},
           ]}
         />
@@ -798,19 +798,19 @@ export const P1CheapFirst: React.FC<{scene: SceneRange}> = ({scene}) => {
             {chapterId: 'three-big', at: at('p1-21') - bF.from, durationInFrames: dur('p1-21')},
             {chapterId: 'budget-pass', at: at('p1-22') - bF.from, durationInFrames: dur('p1-22')},
             {chapterId: 'fit-fallback', at: at('p1-23') - bF.from, durationInFrames: dur('p1-23')},
-            {chapterId: 'final-zero', at: at('p1-24') - bF.from, durationInFrames: dur('p1-24')},
+            {chapterId: 'final-zero', at: at('p1-24') - bF.from, durationInFrames: dur('p1-24') + dur('p1-25b'), fit: 'hold'},
           ]}
         />
       </Sequence>
 
-      {/* 前镜 2-F 为图镜 → lead={false}（分镜 lead 清单，任务口径）；p1-27/p1-29 留白句 */}
+      {/* 前镜 1-F 为图镜 → lead={false}；reactive 章自 p1-27 起盖满本镜三句（hold 末帧，零空屏） */}
       <Sequence {...bG} name="1-G 应急裁剪 图镜">
         <ArchifyRecap
           lead={false}
           slug="compact-pipeline"
           caption="四层压缩管线"
           cues={[
-            {chapterId: 'reactive', at: at('p1-28') - bG.from, durationInFrames: dur('p1-28')},
+            {chapterId: 'reactive', at: at('p1-27') - bG.from, durationInFrames: dur('p1-27') + dur('p1-28') + dur('p1-29'), fit: 'hold'},
           ]}
         />
       </Sequence>

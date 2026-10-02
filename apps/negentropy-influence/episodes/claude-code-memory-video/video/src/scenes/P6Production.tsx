@@ -484,13 +484,14 @@ const DualRulers: React.FC<{at07: number; at08: number; at09: number}> = ({at07,
             </span>
             <OfficialPill text="官方文档 · 工况" />
           </div>
+          {/* 水位读数：左置于标题下（与右侧触发线标签「967K 才动手」分带，防随水位右移撞字） */}
           <div
             style={{
               position: 'absolute',
-              right: 30,
-              top: 84,
+              left: 30,
+              top: 76,
               fontFamily: theme.mono,
-              fontSize: 44,
+              fontSize: 40,
               fontWeight: 700,
               color: theme.accent,
               fontVariantNumeric: 'tabular-nums',
@@ -618,7 +619,7 @@ const DualRulers: React.FC<{at07: number; at08: number; at09: number}> = ({at07,
           </div>
           <div style={{display: 'flex', gap: 24, marginTop: 18}}>
             <VerifyCell value="200 行" sub="头 200 行" conv={conv} flash={flash} merged={merged} />
-            <VerifyCell value="25KB" sub="两万五千字节封顶" conv={conv} flash={flash} merged={merged} />
+            <VerifyCell value="25KB" sub="字节上限" conv={conv} flash={flash} merged={merged} />
           </div>
           <div
             style={{
@@ -1193,7 +1194,10 @@ const Finale: React.FC<{
   const conds = useStagger(3, {at: at21 + 6, dur: DUR.f4, stride: 8});
   const outOfScope = useProgress(at21 + 26, DUR.f4);
   // 金句卡（p6-23）与对句（p6-24）；p6-25 让位收尾栈
-  const phase1 = useDim({at: at23, to: 0.12, dur: DUR.f5});
+  // 阶段一在金句卡登场时压暗，并在 p6-25 收尾栈入场前完全清场（残影叠压五层栈）
+  const phase1Dim = useDim({at: at23, to: 0.12, dur: DUR.f5});
+  const phase1Gone = useProgress(at25 - DUR.f4, DUR.f4);
+  const phase1 = phase1Dim * (1 - phase1Gone);
   const quoteIn = useEnter('rise', {at: at23, dur: DUR.f5, springPreset: 'settleSoft', dist: 22});
   const subIn = useProgress(at24 + 2, DUR.f4);
   const quoteOut = useProgress(at25 - DUR.f5, DUR.f5);

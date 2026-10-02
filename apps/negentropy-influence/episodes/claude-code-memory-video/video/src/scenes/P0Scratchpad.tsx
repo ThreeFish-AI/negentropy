@@ -357,8 +357,8 @@ const OneCTwoQuestions: React.FC<{
   return (
     <AbsoluteFill>
       <MapAnchor active="scratchpad" />
-      <QuestionCard index="问一" lead="凭什么" hot="跑一整天不崩" tail="？" at={atQ1} left={400} />
-      <QuestionCard index="问二" lead="凭什么" hot="第二天还记得你" tail="？" at={atQ2} glowAt={glowQ2} left={960} />
+      <QuestionCard index="问一" lead="凭什么" hot="跑一整天不崩" tail="？" at={atQ1} left={380} />
+      <QuestionCard index="问二" lead="凭什么" hot="第二天还记得你" tail="？" at={atQ2} glowAt={glowQ2} left={980} />
       <ScratchSample at={atMotif} stride={motifStride} />
       <svg width={1920} height={1080} style={{position: 'absolute', left: 0, top: 0}}>
         <path d="M680 538 C655 480, 570 445, 478 398" fill="none" stroke={theme.dim} strokeWidth={3} opacity={0.85} {...linkA} />

@@ -373,9 +373,9 @@ const LayerSwitch: React.FC<{switchAt: number; quoteAt: number; q2At: number; se
         }}
       >
         <div style={{fontFamily: theme.serif, fontSize: 40, color: theme.text, letterSpacing: 2}}>
-          {'凭什么'}
-          <span style={{color: theme.mech}}>{'第二天'}</span>
-          {'还记得你？'}
+          {'第二问 · '}
+          <span style={{color: theme.mech}}>{'跨会话'}</span>
+          {' 记得你'}
         </div>
       </div>
     </AbsoluteFill>

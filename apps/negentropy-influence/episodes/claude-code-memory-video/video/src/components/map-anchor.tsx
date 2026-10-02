@@ -49,7 +49,7 @@ export const MapAnchor: React.FC<{
             key={z.id}
             style={{
               position: 'absolute',
-              left: 240 + col * 480,
+              left: 260 + col * 480, // 3×440+2×40=1400 → (1920−1400)/2 居中
               top: 200,
               width: 440,
               padding: '26px 28px',
