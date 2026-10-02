@@ -137,8 +137,10 @@ const NumDuel: React.FC<{at1: number}> = ({at1}) => {
   const left = useEnter('rise', {at: at1, dur: DUR.f6, dist: 60, restBottom: 632});
   const right = useEnter('rise', {at: at1 + 9, dur: DUR.f6, dist: 60, restBottom: 632});
   const glow = useBreathe({period: 96, base: 0.42, amp: 0.58});
+  // AbsoluteFill 自带 flexDirection:column——横向对峙必须显式 row（E2 同型翻车）；
+  // row 居中后数字底缘 y≈632，与 useEnter rise 钳制的 restBottom:632 精确互证
   return (
-    <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 224}}>
+    <AbsoluteFill style={{display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 224}}>
       <div style={{...left}}>
         <div
           style={{

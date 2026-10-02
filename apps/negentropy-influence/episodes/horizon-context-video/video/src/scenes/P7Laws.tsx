@@ -106,7 +106,7 @@ const ColdWash: React.FC<{at: number}> = ({at}) => {
   return (
     <AbsoluteFill
       style={{
-        background: 'linear-gradient(180deg, rgba(124,158,205,0.13), rgba(108,146,196,0.08))',
+        background: `linear-gradient(180deg, ${withA(theme.washCold, 0.13)}, ${withA(theme.washColdDeep, 0.08)})`,
         opacity: o,
         pointerEvents: 'none',
       }}
@@ -445,11 +445,15 @@ const QuestionCard: React.FC<{
   accent?: string;
   reveal?: boolean;
   width?: number;
-}> = ({at, kicker, q, accent = theme.verify, reveal = true, width = 272}) => {
+  /** 静态落位态：跳过翻面/渐入（7-H 收拢复用 7-G 已落定的卡，免重播重闪）。 */
+  settled?: boolean;
+}> = ({at, kicker, q, accent = theme.verify, reveal = true, width = 272, settled = false}) => {
   const frame = useCurrentFrame();
-  const flip = useSpring('settle', {at, dur: DUR.f5});
-  const o = progress(frame, at, DUR.f3);
-  const shown = useReveal(q, {at: at + 7, cps: 11});
+  // settled 经足够负的 at 等价达成（弹簧 hook 不可条件调用；局部帧 0 时已越过全部余振）
+  const atEff = settled ? -999 : at;
+  const flip = useSpring('settle', {at: atEff, dur: DUR.f5});
+  const o = settled ? 1 : progress(frame, atEff, DUR.f3);
+  const shown = useReveal(q, {at: atEff + 7, cps: 11});
   return (
     <div
       style={{
@@ -481,9 +485,11 @@ const QuestionCard: React.FC<{
 
 /** 7-G 三问卡竖排（右侧边带，逐张翻面打字）。 */
 const QuestionStack: React.FC<{baseAt: number}> = ({baseAt}) => (
-  <AbsoluteFill style={{perspective: 1100, pointerEvents: 'none'}}>
+  <AbsoluteFill style={{pointerEvents: 'none'}}>
+    {/* perspective 只作用于直接子元素的 transform——挂在 wrapper 上，QuestionCard
+        的 rotateY 才取到 3D 投影（否则正交压扁；对照 7-H 中心卡 preserve-3d 写法） */}
     {SELFCHECK.map((c, i) => (
-      <div key={c.kicker} style={{position: 'absolute', left: QSPOT[i].left, top: QSPOT[i].top}}>
+      <div key={c.kicker} style={{position: 'absolute', left: QSPOT[i].left, top: QSPOT[i].top, perspective: 1100}}>
         <QuestionCard at={baseAt + i * 13} kicker={c.kicker} q={c.q} accent={c.accent} />
       </div>
     ))}
@@ -574,7 +580,7 @@ const FinalCollapse: React.FC<{totalFrames: number}> = ({totalFrames}) => {
                 transform: `translate(${tx * conv[i]}px, ${ty * conv[i]}px) scale(${1 - 0.5 * conv[i]})`,
               }}
             >
-              <QuestionCard at={0} kicker={c.kicker} q={c.q} accent={c.accent} reveal={false} />
+              <QuestionCard at={0} settled kicker={c.kicker} q={c.q} accent={c.accent} reveal={false} />
             </div>
           );
         })}

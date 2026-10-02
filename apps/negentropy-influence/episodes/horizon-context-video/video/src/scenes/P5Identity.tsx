@@ -160,8 +160,9 @@ const AssumptionShift: React.FC<{a1: number; span1: number; a2: number; a3: numb
   const ring = useDraw(a2, DUR.f6);
   const quote = useEnter('rise', {at: a3, dur: DUR.f5, dist: 26});
   const tally = progress(frame, a2 + KEYS.length * 13 + 8, DUR.f4);
+  // row：剪影卡（360）左 · 钥匙串（540）右并排居中；金句浮标悬于两者下方不叠
   return (
-    <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 150}}>
+    <AbsoluteFill style={{display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 150}}>
       {/* 剪影卡：人 → Agent（紫 = 身份层） */}
       <div
         style={{

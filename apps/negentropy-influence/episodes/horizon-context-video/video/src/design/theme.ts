@@ -37,4 +37,9 @@ export const theme = {
   concept: '#E8C06A',      // 金：「同一份定义」口径主线（语义视图/指标/口径单点）
   conceptDeep: '#C9A0FF',  // 紫：治理与身份层（策略/Agent Identity/血缘账本）
   verify: '#5CBFB0',       // 青：验证锚定与对账（VQR/证据分级/理性收口）
+
+  // ── 本集装饰色（P7 7-A「色温转冷」scrim 双蓝；非 accent，登记后
+  //    occupied-hex 撞色门可见——场景侧经 withA 派生渐变，勿再内联色值）──
+  washCold: '#7C9ECD',
+  washColdDeep: '#6C92C4',
 } as const;

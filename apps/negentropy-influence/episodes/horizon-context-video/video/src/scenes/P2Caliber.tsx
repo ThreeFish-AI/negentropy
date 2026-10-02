@@ -322,7 +322,9 @@ const AnnTrace: React.FC<{at: number; askAt: number; outAt: number; naiveAt: num
   naiveAt,
   badgeAt,
 }) => (
-  <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 36}}>
+  // row：引擎（1320）左 · 朴素路径（430）右，总宽 1786 与头注卸载推导互证
+  // （AbsoluteFill 自带 flexDirection:column，横向必须显式 row）
+  <AbsoluteFill style={{display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 36}}>
     <StateTrace
       at={at}
       inputs={[

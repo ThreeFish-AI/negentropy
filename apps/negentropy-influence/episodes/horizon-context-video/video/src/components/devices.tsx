@@ -387,7 +387,7 @@ export type AblationSideSpec = {
   lines: readonly string[];
   /** 退化/泄露数字位（useCount 翻牌）。 */
   meter?: AblationMeter;
-  /** 底部行进虚线（红侧崩溃链路扩散 / 绿侧持续拦截）。 */
+  /** 底部行进虚线（红侧崩溃链路扩散 / 绿侧持续拦截）；label=虚线上方链路注记。 */
   flow?: {label?: string};
 };
 
@@ -478,6 +478,11 @@ const AblationSideView: React.FC<{side: AblationSideSpec; tone: string; at: numb
             {side.meter.suffix ?? ''}
           </span>
           <span style={{fontFamily: theme.sans, fontSize: 21, color: theme.dim}}>{side.meter.label}</span>
+        </div>
+      ) : null}
+      {side.flow?.label ? (
+        <div style={{marginTop: 12, fontFamily: theme.mono, fontSize: 15, letterSpacing: 1, color: withA(tone, 0.92)}}>
+          {side.flow.label}
         </div>
       ) : null}
       {side.flow ? (
@@ -775,7 +780,9 @@ export const StateTrace: React.FC<{
             color: outTone,
           }}
         >
-          {output.countTo !== undefined ? Math.round(outV) : output.value}
+          {/* countTo 翻牌时货币前缀从 value 剥离复用（'$300'→'$'+翻牌），不与
+              NaiveLane 等调用方的 `{'$'}{v}` 写法形成裸数字不对称 */}
+          {output.countTo !== undefined ? `${output.value.match(/^\D+/)?.[0] ?? ''}${Math.round(outV)}` : output.value}
         </div>
       </div>
     </div>
