@@ -24,9 +24,11 @@ repos:
       # 空白/末行钩子会剥尾随空格致指纹漂移（E2 s07 实录：12 字节被剥、sha256 失配）
       - id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
-        exclude: source-archive/
+        # docs/assets/architecture/ 为 archify 交付回执件（含尾随空白的 canonical 字节），
+        # 空白钩子剥过后回执 sha 漂移（E2 实录同款）；与 source-archive/ 同口径豁免。
+        exclude: 'source-archive/|^docs/assets/architecture/'
       - id: end-of-file-fixer
-        exclude: source-archive/
+        exclude: 'source-archive/|^docs/assets/architecture/'
       - id: check-yaml
         # pnpm 12 起根 pnpm-lock.yaml 是多文档 YAML（packageManagerDependencies 独占首个
         # 文档，见 ISSUE-175）；只豁免这份机器产物，手写 YAML 仍受单文档校验约束。

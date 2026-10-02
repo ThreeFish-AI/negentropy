@@ -1,0 +1,1090 @@
+[
+  {
+    "id": "p0-01",
+    "scene": "P0",
+    "text": "能用工具的循环跑起来了，新的问题也跟着来了。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.20"
+    }
+  },
+  {
+    "id": "p0-02",
+    "scene": "P0",
+    "text": "任务一长一变复杂，它会用五种方式失灵。"
+  },
+  {
+    "id": "p0-03",
+    "scene": "P0",
+    "text": "第一种，丢计划。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.15"
+    }
+  },
+  {
+    "id": "p0-04",
+    "scene": "P0",
+    "text": "十步的重构任务，两三步一做，就开始即兴发挥。"
+  },
+  {
+    "id": "p0-05",
+    "scene": "P0",
+    "text": "计划只写在开头那句话里，工具结果一涌进来，就把它挤出去了。"
+  },
+  {
+    "id": "p0-06",
+    "scene": "P0",
+    "text": "第二种，过程淹没主线。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.12"
+    }
+  },
+  {
+    "id": "p0-07",
+    "scene": "P0",
+    "text": "修一个缺陷，读三十个文件、聊六十轮，消息涨到一百二十条。"
+  },
+  {
+    "id": "p0-08",
+    "scene": "P0",
+    "text": "大半是追踪过程，跟最终目标没关系。"
+  },
+  {
+    "id": "p0-09",
+    "scene": "P0",
+    "text": "第三种，知识全带太贵。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.12"
+    }
+  },
+  {
+    "id": "p0-10",
+    "scene": "P0",
+    "text": "三份规范六千五百行全塞进指令，改个颜色也整包带着。",
+    "ttsText": "三份规范六千五百<行|HANG2>全塞进指令，改个颜色也整包带着。",
+    "blockStart": true,
+    "cue": {
+      "emo": "disgusted:0.10"
+    }
+  },
+  {
+    "id": "p0-11",
+    "scene": "P0",
+    "text": "第四种，指令越堆越多，互相打架。"
+  },
+  {
+    "id": "p0-12",
+    "scene": "P0",
+    "text": "第五种最干脆：接口一过载，程序直接崩。"
+  },
+  {
+    "id": "p0-13",
+    "scene": "P0",
+    "text": "五种失败，病根是同一个。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "melancholic:0.10,surprised:0.10"
+    }
+  },
+  {
+    "id": "p0-14",
+    "scene": "P0",
+    "text": "模型每轮能看到的，就是发给它的那串消息列表，也叫上下文。"
+  },
+  {
+    "id": "p0-15",
+    "scene": "P0",
+    "text": "它看到的，和它此刻需要的，错位了。",
+    "ttsText": "它看到的，和它此刻需要的——错位了。"
+  },
+  {
+    "id": "p0-15b",
+    "scene": "P0",
+    "text": "上下文是模型唯一的记忆，又是稀缺资源：塞多了稀释注意力，塞少了缺信息。",
+    "blockStart": true,
+    "cue": {
+      "emo": "melancholic:0.12"
+    }
+  },
+  {
+    "id": "p0-15c",
+    "scene": "P0",
+    "text": "更麻烦的是，模型自己看不见自己的忘性。"
+  },
+  {
+    "id": "p0-16",
+    "scene": "P0",
+    "text": "修法不是换更聪明的模型，而是改供给。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.22"
+    }
+  },
+  {
+    "id": "p0-16b",
+    "scene": "P0",
+    "text": "这层管的东西，行话叫视野：模型每一轮看到的全部内容。",
+    "ttsText": "这层管的东西，<行|HANG2>话叫视野：模型每一轮看到的全部内容。"
+  },
+  {
+    "id": "p0-17",
+    "scene": "P0",
+    "text": "在循环的五个固定位置，挂上五个装置。"
+  },
+  {
+    "id": "p0-18",
+    "scene": "P0",
+    "text": "计划要看得见，大过程要挪出去，知识要按需进场。",
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.30"
+    }
+  },
+  {
+    "id": "p0-19",
+    "scene": "P0",
+    "text": "指令要按实况拼装，管线断了要分类自愈。"
+  },
+  {
+    "id": "p0-20",
+    "scene": "P0",
+    "text": "接下来，五个挨个拆开看。",
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.20"
+    }
+  },
+  {
+    "id": "p1-01",
+    "scene": "P1",
+    "text": "先修丢计划。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.18"
+    }
+  },
+  {
+    "id": "p1-02",
+    "scene": "P1",
+    "text": "给模型一个待办工具，让它把步骤列成带状态的清单。"
+  },
+  {
+    "id": "p1-03",
+    "scene": "P1",
+    "text": "三种状态：待办、进行中、已完成。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.15"
+    }
+  },
+  {
+    "id": "p1-04",
+    "scene": "P1",
+    "text": "这个工具不做任何实际工作，不能读文件，也不能跑命令。"
+  },
+  {
+    "id": "p1-05",
+    "scene": "P1",
+    "text": "它给的不是执行能力，是规划能力。",
+    "ttsText": "它给的不是执行能力，是，规划能力。"
+  },
+  {
+    "id": "p1-06",
+    "scene": "P1",
+    "text": "但模型干得起劲，会忘了更新清单。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.15"
+    }
+  },
+  {
+    "id": "p1-07",
+    "scene": "P1",
+    "text": "循环里挂一个计数器：连续三轮没碰待办，下一轮开头就注入一条提醒。"
+  },
+  {
+    "id": "p1-08",
+    "scene": "P1",
+    "text": "提醒以用户消息的身份进消息流，跟着历史走，不常驻。"
+  },
+  {
+    "id": "p1-09",
+    "scene": "P1",
+    "text": "拿一个任务走一遍。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.20"
+    }
+  },
+  {
+    "id": "p1-10",
+    "scene": "P1",
+    "text": "输入：给一批文件补类型注解，再加注释，最后加入口守卫。"
+  },
+  {
+    "id": "p1-11",
+    "scene": "P1",
+    "text": "第一轮，模型先交出三项计划，计数器随即清零。"
+  },
+  {
+    "id": "p1-12",
+    "scene": "P1",
+    "text": "第二轮改文件，第三轮跑测试，第四轮修失败，计数器涨到三。",
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.25"
+    }
+  },
+  {
+    "id": "p1-13",
+    "scene": "P1",
+    "text": "第五轮开头，提醒注入，模型回头看清单，把第一项标成完成。"
+  },
+  {
+    "id": "p1-14",
+    "scene": "P1",
+    "text": "这套提醒可靠吗？拆开看。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.12"
+    }
+  },
+  {
+    "id": "p1-15",
+    "scene": "P1",
+    "text": "拿掉「更新即清零」这一行，同样的任务，提醒从零次变成一次误报。",
+    "ttsText": "拿掉「更新即清零」这一<行|HANG2>，同样的任务，提醒从零次变成一次误报。"
+  },
+  {
+    "id": "p1-16",
+    "scene": "P1",
+    "text": "模型明明更新过计划，还是被唠叨了。",
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.10"
+    }
+  },
+  {
+    "id": "p1-17",
+    "scene": "P1",
+    "text": "复位和置位同等重要，这是拆装实测的结论。"
+  },
+  {
+    "id": "p1-17b",
+    "scene": "P1",
+    "text": "顺带交代：三轮这个数是教学发明，教程作者拆过源码，说那边没有固定轮数。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
+  },
+  {
+    "id": "p1-18",
+    "scene": "P1",
+    "text": "边界也要说清：清单存在内存里，进程一退就没了。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.15"
+    }
+  },
+  {
+    "id": "p1-19",
+    "scene": "P1",
+    "text": "它管计划可见，不管任务持久——那是别层装置的事。"
+  },
+  {
+    "id": "p1-20",
+    "scene": "P1",
+    "text": "计划留住了，大过程还在往主线上灌，下一个装置接它。"
+  },
+  {
+    "id": "p2-01",
+    "scene": "P2",
+    "text": "第二种失败，过程淹没主线。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "melancholic:0.10"
+    }
+  },
+  {
+    "id": "p2-02",
+    "scene": "P2",
+    "text": "人遇到这种事，会开个新终端去追，追完把结论写进笔记。"
+  },
+  {
+    "id": "p2-03",
+    "scene": "P2",
+    "text": "程序给模型同样的能力：一个任务工具，把一件事整段委托出去。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.15"
+    }
+  },
+  {
+    "id": "p2-04",
+    "scene": "P2",
+    "text": "被委托的子代理，拿到一段全新的消息列表，自己跑自己的循环。",
+    "beatStart": true
+  },
+  {
+    "id": "p2-05",
+    "scene": "P2",
+    "text": "跑完只交回最后一句话，中间读了什么、做了什么，全部丢弃。"
+  },
+  {
+    "id": "p2-06",
+    "scene": "P2",
+    "text": "像请一位外包顾问：自带笔记本记过程，最后只交一页结论。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.20"
+    }
+  },
+  {
+    "id": "p2-07",
+    "scene": "P2",
+    "text": "但他刷的是公司的门禁卡，交付物留在公司共享盘。"
+  },
+  {
+    "id": "p2-08",
+    "scene": "P2",
+    "text": "类比到此为止——顾问是另一个人，子代理是同一段程序的另一场对话。"
+  },
+  {
+    "id": "p2-09",
+    "scene": "P2",
+    "text": "所以「隔离」这个词要掰直：隔离的是记忆，不是权限。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.12"
+    }
+  },
+  {
+    "id": "p2-10",
+    "scene": "P2",
+    "text": "消息史不共享，安全钩子照跑，文件改动保留。"
+  },
+  {
+    "id": "p2-11",
+    "scene": "P2",
+    "text": "危险命令在副台上，同样会被拦下。"
+  },
+  {
+    "id": "p2-12",
+    "scene": "P2",
+    "text": "那能不能委托之后再委托？干脆不给这个能力。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.18"
+    }
+  },
+  {
+    "id": "p2-13",
+    "scene": "P2",
+    "text": "子代理的工具表里没有任务工具，链条到这一层就断。"
+  },
+  {
+    "id": "p2-13b",
+    "scene": "P2",
+    "text": "副台还有一道保险：跑满三十轮就强制收工。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.15"
+    }
+  },
+  {
+    "id": "p2-14",
+    "scene": "P2",
+    "text": "指令里也写了不要再委派，但那只是双保险。"
+  },
+  {
+    "id": "p2-14b",
+    "scene": "P2",
+    "text": "最后一句话若是停在半截的，程序向前回溯，找回最近一条完整结论。"
+  },
+  {
+    "id": "p2-15",
+    "scene": "P2",
+    "text": "走一遍：让子任务去查，这个项目用什么测试框架。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.22"
+    }
+  },
+  {
+    "id": "p2-16",
+    "scene": "P2",
+    "text": "子代理开新列表，两轮：先读配置文件，再看测试目录。"
+  },
+  {
+    "id": "p2-17",
+    "scene": "P2",
+    "text": "最后只回一句结论，主线从一条消息变成两条。"
+  },
+  {
+    "id": "p2-18",
+    "scene": "P2",
+    "text": "同一件事不隔离，八轮过程全灌主线，消息涨到十九条。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.20"
+    }
+  },
+  {
+    "id": "p2-19",
+    "scene": "P2",
+    "text": "十九比二，这就是隔离的价值。",
+    "ttsText": "十九比二——这就是隔离的价值。"
+  },
+  {
+    "id": "p2-20",
+    "scene": "P2",
+    "text": "副台折掉了过程，接下来轮到知识进场。"
+  },
+  {
+    "id": "p3-01",
+    "scene": "P3",
+    "text": "第三种失败，知识全带太贵。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "melancholic:0.08"
+    }
+  },
+  {
+    "id": "p3-02",
+    "scene": "P3",
+    "text": "每个任务需要的知识不一样，全塞指令区就是白花钱。"
+  },
+  {
+    "id": "p3-03",
+    "scene": "P3",
+    "text": "解法是两级：目录常驻，全文按需。"
+  },
+  {
+    "id": "p3-04",
+    "scene": "P3",
+    "text": "目录这级：每个技能一张标签，写名字和一句描述。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.15"
+    }
+  },
+  {
+    "id": "p3-05",
+    "scene": "P3",
+    "text": "标签常驻指令里，教程作者估算，每个只要上百个 token。"
+  },
+  {
+    "id": "p3-06",
+    "scene": "P3",
+    "text": "token，模型的计字单位，先记个粗略印象就行。"
+  },
+  {
+    "id": "p3-07",
+    "scene": "P3",
+    "text": "抽屉里的手册，等你点名要了才整本取出，作者估算每本约两千个。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
+  },
+  {
+    "id": "p3-08",
+    "scene": "P3",
+    "text": "走一遍：技能目录里，躺着一份数据库规范。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.20"
+    }
+  },
+  {
+    "id": "p3-09",
+    "scene": "P3",
+    "text": "启动时扫描所有抽屉，标签进目录，模型每轮都看得见自己有什么技能。",
+    "beatStart": true
+  },
+  {
+    "id": "p3-10",
+    "scene": "P3",
+    "text": "模型说要这份规范，点名加载，登记名单按名字命中。",
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.15"
+    }
+  },
+  {
+    "id": "p3-11",
+    "scene": "P3",
+    "text": "全文作为一条工具结果进消息流，这一轮才付全价。"
+  },
+  {
+    "id": "p3-12",
+    "scene": "P3",
+    "text": "位置决定命运：目录在指令区，每轮常驻。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.15"
+    }
+  },
+  {
+    "id": "p3-13",
+    "scene": "P3",
+    "text": "全文在消息流里；这份列表有容量上限，窗口一满要腾地方，它可能先被裁掉。"
+  },
+  {
+    "id": "p3-14",
+    "scene": "P3",
+    "text": "裁掉也不慌——目录还在，再点一次名就能取回。"
+  },
+  {
+    "id": "p3-14b",
+    "scene": "P3",
+    "text": "注册表还有两个边界行为：两个技能声明同一个名字，后放的会静默覆盖先放的。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.10"
+    }
+  },
+  {
+    "id": "p3-14c",
+    "scene": "P3",
+    "text": "运行期新放的技能，旧注册表也看不见，这是拿安全换来的，不是坏法。"
+  },
+  {
+    "id": "p3-15",
+    "scene": "P3",
+    "text": "拆掉两级试试：把全文直接塞进指令区。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.12"
+    }
+  },
+  {
+    "id": "p3-16",
+    "scene": "P3",
+    "text": "一份技能，系统指令从一百二十八字符，涨到五千九百八十一。"
+  },
+  {
+    "id": "p3-17",
+    "scene": "P3",
+    "text": "放大约四十七倍，而且每一轮都要带。"
+  },
+  {
+    "id": "p3-18",
+    "scene": "P3",
+    "text": "结论一句话：常驻的只能是索引，不是知识本体。",
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.25"
+    },
+    "ttsText": "结论一句话：常驻的只能是索引——不是知识本体。"
+  },
+  {
+    "id": "p3-19",
+    "scene": "P3",
+    "text": "知识管住了，指令自己却越滚越大，下一个装置管它。"
+  },
+  {
+    "id": "p4-01",
+    "scene": "P4",
+    "text": "第四种失败，指令堆积打架。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "melancholic:0.08"
+    }
+  },
+  {
+    "id": "p4-02",
+    "scene": "P4",
+    "text": "每加一个能力就堆一段，换项目要重写，改一处怕碰坏别处。"
+  },
+  {
+    "id": "p4-03",
+    "scene": "P4",
+    "text": "翻转思路：指令别当文档写，要当运行时拼装的配置。"
+  },
+  {
+    "id": "p4-04",
+    "scene": "P4",
+    "text": "像每日菜单：招牌菜永远印，时令菜看今天有没有货，现场拼一页。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.18"
+    }
+  },
+  {
+    "id": "p4-05",
+    "scene": "P4",
+    "text": "食材没变，就直接用昨天打印好的那页——这就是缓存。"
+  },
+  {
+    "id": "p4-06",
+    "scene": "P4",
+    "text": "类比到这里：它不覆盖分段维护，也不覆盖服务端那层缓存。"
+  },
+  {
+    "id": "p4-07",
+    "scene": "P4",
+    "text": "实现分两步：先分段，再按真实状态拼。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.15"
+    }
+  },
+  {
+    "id": "p4-08",
+    "scene": "P4",
+    "text": "身份、工具、工作区，永远在；记忆段，看那个记忆文件在不在。"
+  },
+  {
+    "id": "p4-09",
+    "scene": "P4",
+    "text": "判断依据全是可查的系统状态，不在消息里搜关键词。"
+  },
+  {
+    "id": "p4-09b",
+    "scene": "P4",
+    "text": "分段还有个好处：各段独立维护，改工具段不碰身份段。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
+  },
+  {
+    "id": "p4-10",
+    "scene": "P4",
+    "text": "走一段对话：用户问，读一下说明文档。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.18"
+    }
+  },
+  {
+    "id": "p4-11",
+    "scene": "P4",
+    "text": "状态里没有记忆文件，拼出三段。"
+  },
+  {
+    "id": "p4-12",
+    "scene": "P4",
+    "text": "紧接着再问一句，状态没变，缓存命中，直接返回。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.15"
+    }
+  },
+  {
+    "id": "p4-13",
+    "scene": "P4",
+    "text": "用户让模型建了记忆文件，下一轮状态变了，重组装成四段。"
+  },
+  {
+    "id": "p4-14",
+    "scene": "P4",
+    "text": "缓存的键有讲究，把全部状态按固定顺序拼成一串字——同一份状态，永远拼出同一串字。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.15"
+    }
+  },
+  {
+    "id": "p4-15",
+    "scene": "P4",
+    "text": "不用程序自带的编号方法——那套编号换次运行就变，还可能报错。"
+  },
+  {
+    "id": "p4-16",
+    "scene": "P4",
+    "text": "把键弄脏试试：往里掺一个每轮都变的成分。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.12"
+    }
+  },
+  {
+    "id": "p4-17",
+    "scene": "P4",
+    "text": "同样连问五次，正常只组装一次，命中四次。"
+  },
+  {
+    "id": "p4-18",
+    "scene": "P4",
+    "text": "键被污染后，五次全部重组装，命中零次。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.12"
+    }
+  },
+  {
+    "id": "p4-19",
+    "scene": "P4",
+    "text": "缓存的前提，是键确定。"
+  },
+  {
+    "id": "p4-20",
+    "scene": "P4",
+    "text": "还要分清：这层缓存省的是本地拼串，跟服务端的前缀缓存是两码事。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.15"
+    }
+  },
+  {
+    "id": "p4-20b",
+    "scene": "P4",
+    "text": "前缀缓存补一句：让开头一段保持不变，服务端才能按开头复用。"
+  },
+  {
+    "id": "p4-21",
+    "scene": "P4",
+    "text": "四个装置管好了该看什么，最后一个管管线断了怎么办。"
+  },
+  {
+    "id": "p5-01",
+    "scene": "P5",
+    "text": "第五种失败最干脆：接口一过载，程序直接崩。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.15"
+    }
+  },
+  {
+    "id": "p5-02",
+    "scene": "P5",
+    "text": "生产环境里，接口错误是常态，不是缺陷。"
+  },
+  {
+    "id": "p5-03",
+    "scene": "P5",
+    "text": "最后一个装置，把模型调用那一步整个包住，就地分诊。"
+  },
+  {
+    "id": "p5-04",
+    "scene": "P5",
+    "text": "像修打印机：没墨换墨盒再打，卡纸抽纸重打，连续断电才换备用机。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.18"
+    }
+  },
+  {
+    "id": "p5-05",
+    "scene": "P5",
+    "text": "没有人对着断电的机器猛按打印键。"
+  },
+  {
+    "id": "p5-06",
+    "scene": "P5",
+    "text": "类比缺一块：打印机靠人分诊，这里靠代码按错误信号自动分诊。"
+  },
+  {
+    "id": "p5-07",
+    "scene": "P5",
+    "text": "三条恢复路径，各管一类错误。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.18"
+    }
+  },
+  {
+    "id": "p5-08",
+    "scene": "P5",
+    "text": "输出被截断？第一次不保存半截，直接把上限从八千提到六万四，原样重发。"
+  },
+  {
+    "id": "p5-09",
+    "scene": "P5",
+    "text": "还截断，才保存半截并注入续写提示，至多三次。"
+  },
+  {
+    "id": "p5-10",
+    "scene": "P5",
+    "text": "上下文超限？应急压缩，只留最后五条消息，而且只允许一次。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.12"
+    }
+  },
+  {
+    "id": "p5-10b",
+    "scene": "P5",
+    "text": "已经压过还超限，就直接退出，再压一次也不会更小。"
+  },
+  {
+    "id": "p5-11",
+    "scene": "P5",
+    "text": "限流或过载？指数退避，实测三连等：半秒多、一秒、两秒半。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.15"
+    }
+  },
+  {
+    "id": "p5-12",
+    "scene": "P5",
+    "text": "连续三次过载，就切换备用模型。"
+  },
+  {
+    "id": "p5-13",
+    "scene": "P5",
+    "text": "走两段实测序列。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.22"
+    }
+  },
+  {
+    "id": "p5-14",
+    "scene": "P5",
+    "text": "第一段：遇到限流，等半秒多重试，又限流，等一秒，然后成功。"
+  },
+  {
+    "id": "p5-15",
+    "scene": "P5",
+    "text": "第二段：连续三次过载，前两次各等一段，第三次切换模型再等一段，成功。"
+  },
+  {
+    "id": "p5-16",
+    "scene": "P5",
+    "text": "全程零人工介入。",
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.18"
+    }
+  },
+  {
+    "id": "p5-16b",
+    "scene": "P5",
+    "text": "退避的等待里还要加一点抖动，免得一群请求挤在同一秒集体重试。"
+  },
+  {
+    "id": "p5-17",
+    "scene": "P5",
+    "text": "分诊口旁边还有一本账：升级用过没有，续写几次，压缩试过没有。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.15"
+    }
+  },
+  {
+    "id": "p5-18",
+    "scene": "P5",
+    "text": "每一项都在回答：这一招还剩几次。"
+  },
+  {
+    "id": "p5-19",
+    "scene": "P5",
+    "text": "拆掉记账试试：同样连续超限，正常压缩一次就止损退出。",
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.15"
+    }
+  },
+  {
+    "id": "p5-20",
+    "scene": "P5",
+    "text": "拆掉后反复压缩八次，每压一次都在丢消息。"
+  },
+  {
+    "id": "p5-21",
+    "scene": "P5",
+    "text": "不记账的恢复，会吃掉自己的病人。",
+    "ttsText": "不记账的恢复，会吃掉，自己的病人。"
+  },
+  {
+    "id": "p5-22",
+    "scene": "P5",
+    "text": "五个装置到齐，回到全景收个总。",
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.20"
+    }
+  },
+  {
+    "id": "p6-01",
+    "scene": "P6",
+    "text": "五个装置背后，是同五条工程规律。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.15"
+    }
+  },
+  {
+    "id": "p6-02",
+    "scene": "P6",
+    "text": "注入位置决定生命周期和成本。",
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.25"
+    }
+  },
+  {
+    "id": "p6-03",
+    "scene": "P6",
+    "text": "判定只认真实状态，不做内容猜测。"
+  },
+  {
+    "id": "p6-04",
+    "scene": "P6",
+    "text": "隔离是过程级的有损压缩。"
+  },
+  {
+    "id": "p6-05",
+    "scene": "P6",
+    "text": "恢复资源有限，必须记账。",
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.30"
+    }
+  },
+  {
+    "id": "p6-06",
+    "scene": "P6",
+    "text": "结构防线优于语言嘱咐。"
+  },
+  {
+    "id": "p6-07",
+    "scene": "P6",
+    "text": "留一个真开放的争议。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "melancholic:0.10"
+    }
+  },
+  {
+    "id": "p6-08",
+    "scene": "P6",
+    "text": "教学版给子任务全新上下文，图的是正确。"
+  },
+  {
+    "id": "p6-09",
+    "scene": "P6",
+    "text": "教程作者拆过真实产品的源码，按他的分析，那边构造缓存友好的前缀，图的是成本。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.10"
+    }
+  },
+  {
+    "id": "p6-10",
+    "scene": "P6",
+    "text": "两派账本不同，都对——这是选址问题，不是对错问题。",
+    "ttsText": "两派账本不同，都对——这是选址问题，不是，对错问题。"
+  },
+  {
+    "id": "p6-10b",
+    "scene": "P6",
+    "text": "还有一对取舍：知识放消息流，省钱但会被裁掉。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "melancholic:0.10"
+    }
+  },
+  {
+    "id": "p6-10c",
+    "scene": "P6",
+    "text": "常驻指令区，稳定但每一轮都要花钱。"
+  },
+  {
+    "id": "p6-10d",
+    "scene": "P6",
+    "text": "没有免费午餐，只能按使用频率分档。"
+  },
+  {
+    "id": "p6-11",
+    "scene": "P6",
+    "text": "也有护栏要交代。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.15"
+    }
+  },
+  {
+    "id": "p6-12",
+    "scene": "P6",
+    "text": "三轮提醒是教学发明；提醒到底提不提高完成率，没有对照实验。"
+  },
+  {
+    "id": "p6-13",
+    "scene": "P6",
+    "text": "那些篇幅估算，只是教程作者的口径，没给测量方法。"
+  },
+  {
+    "id": "p6-14",
+    "scene": "P6",
+    "text": "数字要分开看：退化倍数是拆装实测，估算数只当量级参考。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
+  },
+  {
+    "id": "p6-14b",
+    "scene": "P6",
+    "text": "顺带一个判断：把重试的耐心放大十倍，不会更稳，只会更糟，账本纪律管的就是这个。"
+  },
+  {
+    "id": "p6-15",
+    "scene": "P6",
+    "text": "循环没变，变的是挂在它身上的供给。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.28"
+    }
+  },
+  {
+    "id": "p6-16",
+    "scene": "P6",
+    "text": "视野错位，就一个一个修正。"
+  },
+  {
+    "id": "p6-17",
+    "scene": "P6",
+    "text": "下期，聊聊哪些该丢，哪些不能丢。",
+    "ttsText": "下期，聊聊——哪些该丢，哪些不能丢。"
+  }
+]
