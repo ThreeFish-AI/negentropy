@@ -20,6 +20,15 @@
 - 全系列机器门全绿：check_series/build/check--check-scenes/tsc/motion/qa--check FAIL 0 + 亮度带扫描零近黑段 + 全分辨率目检（半分辨率误报翻案×2、真缺陷×2）
 - archify 图面新增 55 张、复用既有 4 张（五集在用 59 张；ep1–ep5 各用 12/12/12/12/13 图次、含跨集复用，五型覆盖；3.0.0 版本陷阱两漏网图锁定版 2.17 重建）
 
+### ep5《多 Agent 平台：七件设施，一条走廊》换题完全重制 v1 交付（edge 终声版，2026-10-03）
+
+- cc 系列终集换代重制（继 ep1/ep2/ep3 后本波收官）：同 slug 原位重置换题，《从一个到一群》工厂车间叙事全弃，改「一栋楼的公共制度」楼宇动线域全新七幕（失忆的楼/任务墙/递话口/回执簿与值班钟/门牌房/认证插座/环形走廊终考）——**走廊=第七件设施**，标题下半句悬念 P0 埋 P6 兑现，主线单问「计划放在谁手里」首次正面闭环
+- C 型信源换代：175 冻结快照 @`0ecf6527c` 直接成片（钉 `67a9126c` 不换；附录 A 类比登记表一物一喻 + 附录 B 复算与穿透：34 断言+六组实验逐字复现、s18 两处源码事实增量补证）；147 句 4038 字（278 edge 口径直写）；RSI-039 钩子矩阵★1 落地；**六组破坏实验全入片**（B1/B2+B2v/B3/B4/B5/t5race 红绿消融——系列首例）；三段「缺口→P6 合口」伏笔线
+- **edge 终声**（zh-CN-YunxiNeural @+12% 定档 + timing B 档收紧）：实测 14:17.8=857.8s 落窗 [13.0,14.6]（25734 帧复算=mdls 双源一致；+4% 时 15.7 超窗的定档过程与 .engine 签名护栏实录见 pipeline.toml 注释）；cues 台本 47 块预置——indextts me-bright 重配待用户人工触发即升档
+- archify 3.0 产线 12 新图+2 复用=14 图 49 章逐章回放（锚定 33.3%·3.4/分·5 型·lead 49/49 实测；RSI-038 兼容层注入器 E1 范式泛化，锚契约 14/14 零缺——sequence 消息锚不可聚焦的机制约束已按实情改锚 participant）；七幕 43 镜场景（CorridorRing〔M-001〕core 橙 6px 恒定走廊锚/LodgeMap 换幕高亮坐标装置/终集五层全亮身份卡）
+- 机器门全绿：check_series/build/check --check-scenes --check-motion/覆盖门/check_archify/tsc/motion 15:15/qa 五项双遍（草渲+全分辨率终渲）/WCAG/末帧渐黑零亮残留（ISSUE-205 协议）；目检修复 1 处（合口徽章侵字幕安全带，栈几何推导定位）；归档 v1 + _captions（新题另起 v1，旧题 v1/v2 原样保留）
+- 涟漪：series.json/series.md 换题+交付态、四兄弟集 series-layers.json、ep4 下期卡副题、source-map 换注重制、knowledge-map 175 行成片注记
+
 ### Learn Claude Code 五层 Harness 精读完全重调研重写（170–175 六篇原位重写）
 
 - **Learn Claude Code 五层 Harness 精读完全重调研重写**（[docs/research/agent-harness/170–175](docs/research/agent-harness/170-claude-code-harness-overview.md)）：以 /guided-learn + /preening-substrate 完全重做——重钉双轨（main `f9e8b280`→`0dcafa2a` 2026-08-27，25 提交章级变更矩阵；站点轨 `67a9126c` 线上复验未动）+ 新增**轨 C 官方文档**（code.claude.com，185 条【官】事实/21 硬分歧，补 ISSUE-178/179 根因缺口）。六篇结构换血不换骨：证据纪律升四级（+【官】）、每篇新增「官方文档对照」节（worktree 官方硬阻断不可关闭、计划审批官方自动批准、权限冒泡、Agent teams 实验性开关、官方无 microcompact 术语等）、173 双轨叙事（站点轨占位符不携指针 vs main `0dcafa2a` 四项机制级修复——**V1/V2 实测证明旧研究两个原生缺陷已被课程独立修复**，D2/D6 升「两道 vs 三道保险」双口径）、172 附录新发现 goal loop 与官方 `CLAUDE_CODE_STOP_HOOK_BLOCK_CAP` 同名同值强对位。撞号防御三轨对照表迁入系列信源地图（全仓唯一展开层）；025/context_assembler 旧 12 课轨引用消歧办结。质量闸：29+5+5+6 代理编排（取证/综合/证伪/重写）、独立证伪 270 条断言 267 PASS（4 条转写级失配修复）、费曼三维考评首轮全绿、熵审计 51 负债四桶处置、跨文档 grep 门 + 全量链接零死链；五张 panorama 图 mermaid 源同步更新并重渲染。

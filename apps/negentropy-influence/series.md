@@ -34,7 +34,7 @@
 | 2   | [《规划与协调：模型的视野是安排出来的》](./episodes/claude-code-planning-video/README.md) | 五件安排台面的装置 | mech 鸢紫 #9C90EE | s05–s07·s10·s11 @ `67a9126c` ＋轨 C | ✅ **完全重制 v1 交付**（14:12.2 · 169 句 · 12 图 68 章 · 目检修复 P6 叠压） |
 | 3   | [《记忆管理：会丢的和不能丢的》](./episodes/claude-code-memory-video/README.md) | 两套咬合的机制 | mech 苔绿 #A9C46C | s08·s09 @ `67a9126c` ＋轨 C（main 演进彩蛋） | ✅ **完全重制 v1 交付**（14:13.3 · 163 句 · 12 图 62 章） |
 | 4   | [《并发：谁来按下开始》](./episodes/claude-code-concurrency-video/README.md) | 后台不等＋定时钟自动 | mech 霜蓝 #7FB2E0 | s13·s14 @ `67a9126c` ＋轨 C | ✅ **完全重制 v1 交付**（14:10.8 · 170 句 · 12 图 59 章 · Lottie 根因修复） |
-| 5   | [《多 Agent 平台：七件设施，一条走廊》](./episodes/claude-code-multiagent-video/README.md) | 从一个到一群的五物件 | mech 协作金 #D9B36B | s12·s15–s20 @ `67a9126c` ＋轨 C 八校准 | ✅ **完全重制 v1 交付**（13:42.8 · 149 句 · 13 图 67 章 · 终集收束） |
+| 5   | [《多 Agent 平台：七件设施，一条走廊》](./episodes/claude-code-multiagent-video/README.md) | 七件设施与一条走廊（终集） | mech 协作金 #D9B36B | s12·s15–s20 @ `67a9126c`（C 型=175 冻结快照） | ✅ **换题重制 v1 交付**（edge 终声版 14:17.8 · 147 句 4038 字 · 14 图 49 章 · 六实验入片 · indextts 重配待触发） |
 
 > 章节→集归属与**站点/仓库修订分叉**（站点为 20 章旧修订、仓库 main 已整合为 17 章，故双钉）：
 > 系列级登记见 [source-map/claude-code-explained.md](./source-map/claude-code-explained.md)。
