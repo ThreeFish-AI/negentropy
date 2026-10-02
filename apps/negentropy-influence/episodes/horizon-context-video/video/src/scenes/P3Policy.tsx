@@ -612,7 +612,9 @@ const TopologyContrast: React.FC<{at: number}> = ({at}) => {
           width: 700,
           height: 380,
           opacity: st[0],
-          transform: `translateY(${(1 - st[0]) * 24}px)`,
+          // 自上落入（负向）：静息底缘 y942 与字幕盒顶 y942.6 仅 0.6px 余量，
+          // 正向位移会在入场期侵入字幕带（绕开 useEnter restBottom 钳制，评审修复）
+          transform: `translateY(${(1 - st[0]) * -24}px)`,
           borderRadius: 14,
           border: `2px dashed ${theme.panelBorder}`,
           background: theme.panel,
@@ -673,7 +675,8 @@ const TopologyContrast: React.FC<{at: number}> = ({at}) => {
           width: 700,
           height: 380,
           opacity: st[1],
-          transform: `translateY(${(1 - st[1]) * 24}px)`,
+          // 同上箱：负向落入，底缘最深即静息位 y942，不再侵入字幕带
+          transform: `translateY(${(1 - st[1]) * -24}px)`,
           borderRadius: 14,
           border: `2.5px solid ${theme.conceptDeep}`,
           background: theme.panel,

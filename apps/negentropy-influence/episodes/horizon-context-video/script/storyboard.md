@@ -63,7 +63,7 @@
 | 镜 | 句区间 | 画面 | 动效 |
 |---|---|---|---|
 | 4-A 失效面 | p4-01..02 | evidence：·**archify full**：valid-sql-wrong-answer 章 `syntax-pass`+`business-fail`；语法绿灯/答案红灯对照 | 图回放两章接力 |
-| 4-B 核准题库 | p4-04..05 | evidence：·**archify full**：one-checkpoint 章 `sign-vs-wall`@p4-04+vqr-lifecycle 章 `signed-stamped`@p4-05；**定义卡母题：签名盖章位（青）**；四要素卡（题/查询/验证人/日期） | 图回放两章接力；盖章落印`@enter:fall`+青色印记脉冲 |
+| 4-B 核准题库 | p4-04..05 | evidence：·**archify full**：one-checkpoint 章 `sign-vs-checkpoint`@p4-04+vqr-lifecycle 章 `signed-stamped`@p4-05；**定义卡母题：签名盖章位（青）**；四要素卡（题/查询/验证人/日期） | 图回放两章接力；盖章落印`@enter:fall`+青色印记脉冲 |
 | 4-C 命中短路 | p4-06..08 | evidence：·**archify full**：resolve-activation 章 `hit-reconcile`@p4-07+one-checkpoint 章 `shared-checkpoint`@p4-06 | 图回放两章接力（命中路由亮线`@flowDash`） |
 | 4-D 对账走查 | p4-09..10 | device：题库返回 200/150/300 与引擎重算并排滚动对账，逐月打勾；证据徽（实心·本仓复算） | 双列计数`@count`；对勾错峰`@stagger` |
 | 4-E 三条出路 | p4-11..14 | evidence：·**archify full**：resolve-activation 章 `miss-fallback`+`outside-eval`；代价角标（至多 4 次 / 超 20 条拖慢 · 虚线徽·官方文档） | 图回放两章接力 |

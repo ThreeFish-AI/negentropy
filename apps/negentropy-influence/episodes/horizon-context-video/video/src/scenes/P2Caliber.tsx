@@ -190,6 +190,11 @@ export const P2Caliber: React.FC<{scene: SceneRange}> = ({scene}) => {
               right={{tag: '门在位', title: '注册期拦截', lines: ['structure check：非法定义', 'referenced column is not', 'PRIMARY KEY / UNIQUE —— 拒']}}
             />
           </AbsoluteFill>
+          {/* storyboard 2-I 指定的实心证据徽（消融同屏先例 3-G 同构，评审补齐）：
+              拦截行为锚 011 表 D6（玩具原型 structure check 实测） */}
+          <div style={{position: 'absolute', left: 80, bottom: 150}}>
+            <EvidenceBadge level="filled" at={0} note="D6 · 玩具原型实测" />
+          </div>
         </Sequence>
         <ArchifyRecap
           slug="definition-registration"

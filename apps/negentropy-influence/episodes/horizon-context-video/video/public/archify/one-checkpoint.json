@@ -9,11 +9,11 @@
  "measured_fps": 25.0,
  "chapters": [
   {
-   "id": "sign-vs-wall",
+   "id": "sign-vs-checkpoint",
    "label": "木牌vs承重墙",
    "index": 0,
-   "file": "one-checkpoint--sign-vs-wall.mp4",
-   "end_still": "one-checkpoint--sign-vs-wall-end.png",
+   "file": "one-checkpoint--sign-vs-checkpoint.mp4",
+   "end_still": "one-checkpoint--sign-vs-checkpoint-end.png",
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,

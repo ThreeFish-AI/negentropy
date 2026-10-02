@@ -323,26 +323,6 @@ export const ARCHIFY = {
       }
     ]
   },
-  "compile-time-block": {
-    "slug": "compile-time-block",
-    "type": "sequence",
-    "chapters": [
-      {
-        "id": "no-backdoor",
-        "label": "不成后门",
-        "file": "compile-time-block--no-backdoor.mp4",
-        "endStill": "compile-time-block--no-backdoor-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.37,
-        "beatNodes": [
-          "semantic",
-          "caller",
-          "engine"
-        ]
-      }
-    ]
-  },
   "component-panorama": {
     "slug": "component-panorama",
     "type": "architecture",
@@ -1244,10 +1224,10 @@ export const ARCHIFY = {
     "type": "architecture",
     "chapters": [
       {
-        "id": "sign-vs-wall",
+        "id": "sign-vs-checkpoint",
         "label": "木牌vs承重墙",
-        "file": "one-checkpoint--sign-vs-wall.mp4",
-        "endStill": "one-checkpoint--sign-vs-wall-end.png",
+        "file": "one-checkpoint--sign-vs-checkpoint.mp4",
+        "endStill": "one-checkpoint--sign-vs-checkpoint-end.png",
         "beats": 3,
         "leadSec": 0.44,
         "storySec": 3.34,

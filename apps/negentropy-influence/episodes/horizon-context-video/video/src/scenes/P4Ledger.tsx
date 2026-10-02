@@ -4,7 +4,7 @@
  *  （句窗含句间 gap 严格相接），链上除 4-A 首章与 4-E 空窗后重现的 miss-fallback
  *  外一律 lead={false}；链在 4-D 装置镜与 p4-12/14 两处空窗断开：
  *   4-A valid-sql-wrong-answer：syntax-pass@01 → business-fail@02
- *   4-B one-checkpoint sign-vs-wall@04 + vqr-lifecycle signed-stamped@05；
+ *   4-B one-checkpoint sign-vs-checkpoint@04 + vqr-lifecycle signed-stamped@05；
  *      定义卡母题·签名盖章位（stampAt=p4-05）为 4-D② 基底层——两章 cue 全覆盖
  *      句窗、画框遮盖期不可见（首例 lead=false 连链故无入场瞬态）；可见读出由
  *      左缘四要素卡 + VQR 落章（@enter:fall + 青印脉冲）承担
@@ -76,7 +76,7 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
         ]} />
       </Sequence>
 
-      {/* 4-B 核准题库：sign-vs-wall@04（接 4-A 链尾背靠背）→ signed-stamped@05。
+      {/* 4-B 核准题库：sign-vs-checkpoint@04（接 4-A 链尾背靠背）→ signed-stamped@05。
           定义卡母题盖章位 = 基底层（被画框整镜遮盖，4-D② 范式）；左缘四要素卡 + VQR 落章可见 */}
       <Sequence from={bB.from} durationInFrames={bB.durationInFrames} name="4-B 核准题库">
         <AbsoluteFill style={{alignItems: 'center', justifyContent: 'center'}}>
@@ -90,7 +90,7 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
         </AbsoluteFill>
         <FourElements at={at('p4-04') - bB.from} sealAt={at('p4-05') - bB.from} />
         <ArchifyRecap slug="one-checkpoint" caption="核准题库 · 共用执法点" cues={[
-          {chapterId: 'sign-vs-wall', at: at('p4-04') - bB.from, durationInFrames: dur('p4-04')},
+          {chapterId: 'sign-vs-checkpoint', at: at('p4-04') - bB.from, durationInFrames: dur('p4-04')},
         ]} lead={false} />
         <ArchifyRecap slug="vqr-lifecycle" caption="签字盖章 · VQR" cues={[
           {chapterId: 'signed-stamped', at: at('p4-05') - bB.from, durationInFrames: dur('p4-05')},
@@ -123,8 +123,9 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
           同窗叠加——CostCard 整卡遮盖「未命中」中卡并切左右卡（评审修复，实证帧 15171） */}
       <Sequence from={bE.from} durationInFrames={bE.durationInFrames} name="4-E 三条出路">
         <Sequence from={at('p4-12') - bE.from} durationInFrames={dur('p4-12')} name="4-E-exits">
-          {/* 窗即 p4-12：局部帧 0 = 句首；p4-13 起 cue 整句遮盖，卸载无可感变化 */}
-          <ThreeExits at={0} />
+          {/* 窗即 p4-12：局部帧 0 = 句首；末 8 帧自淡出让位——p4-13 的 outside-eval
+              是空窗后重现章，画框入场弹簧头两帧全透明，硬切会留 ~2 帧空底 */}
+          <ThreeExits at={0} until={dur('p4-12')} />
         </Sequence>
         <Sequence from={at('p4-14') - bE.from} durationInFrames={dur('p4-14')} name="4-E-cost">
           {/* 窗即 p4-14：局部帧 0 = 句首 */}
@@ -154,7 +155,9 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
           左缘三道闸指示条页缘可见（@spring 逐道落锁；p4-18 拒收态） */}
       <Sequence from={bG.from} durationInFrames={bG.durationInFrames} name="4-G 三道闸">
         <TriGates at={at('p4-17b') - bG.from} rejectAt={at('p4-18') - bG.from} />
-        <OpenLineageChip at={at('p4-17b') - bG.from} />
+        {/* 续挂（背靠背，装置层 lead 语义）：4-F 实例镜尾已满显，-999 预置满显
+            跳过淡入，否则镜界闪灭 ~8 帧再重渐入（与 ArchifyClip lead={false} 同构） */}
+        <OpenLineageChip at={-999} />
         <ArchifyRecap slug="lineage-ledger" caption="血缘账本 · 外部摄取" cues={[
           {chapterId: 'ingest-lane', at: at('p4-17b') - bG.from, durationInFrames: dur('p4-17b')},
         ]} lead={false} />
@@ -476,18 +479,21 @@ const ReconcileRow: React.FC<{label: string; value: number; at: number; checkAt:
 
 // ─────────────────────────────────────────────── 4-E 三条出路 / 代价卡
 
-/** 三条出路（p4-12 空窗句）：panel 底 + 编号反枚举并列；「静默瞎猜」划线除名。 */
-const ThreeExits: React.FC<{at: number}> = ({at}) => {
+/** 三条出路（p4-12 空窗句）：panel 底 + 编号反枚举并列；「静默瞎猜」划线除名。
+ *  until（窗长）给出时末 8 帧自淡出——窗外下一句是空窗后重现的 archify 章，
+ *  画框入场弹簧头两帧全透明，无退场会在句界硬切出 ~2 帧空底（评审修复）。 */
+const ThreeExits: React.FC<{at: number; until?: number}> = ({at, until}) => {
   const st = useStagger(3, {at, stride: 8, dur: DUR.f4});
   const frame = useCurrentFrame();
   const chipO = progress(frame, at + 26, DUR.f4);
+  const fadeOut = until != null ? 1 - progress(frame, until - 8, 8) : 1;
   const exits = [
     {n: '01', t: '命中题库', s: '直接执行验证查询', a: theme.verify},
     {n: '02', t: '未命中', s: '走现算 · 用治理定义', a: theme.concept},
     {n: '03', t: '无治理覆盖', s: '明确告警 · 不硬猜', a: theme.conceptDeep},
   ];
   return (
-    <AbsoluteFill style={{flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 34}}>
+    <AbsoluteFill style={{flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 34, opacity: fadeOut}}>
       <div style={{display: 'flex', gap: 26}}>
         {exits.map((x, i) => (
           <div

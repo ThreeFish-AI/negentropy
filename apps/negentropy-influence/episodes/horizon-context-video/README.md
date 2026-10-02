@@ -15,12 +15,12 @@ Context Layer 系列第 1 集。Snowflake Horizon Context（受治理上下文�
 - **story 段落演绎配音**：me-bright 声音克隆 + `script/narration.cues.toml` 导演台本（71 块情绪标记 · TTS 合成 78 块 + 7 句表演标点）
 - **视觉母题**：「同一份定义单」金描边定义卡全片同形〔M-001〕——P0 空卡座缺席 → P2 注册 →
   P3 挂策略扣件 → P4 签名盖章 → P7 满屏回照；色彩契约 金=口径 / 紫=治理 / 青=验证
-- **archify 图例**：48 图 105 章逐章录制 106 cue 全屏独占回放，句级锚定 67.9% · 7.0 cue/分 · 5 图型；
+- **archify 图例**：47 图 104 章逐章录制 106 cue 全屏独占回放，句级锚定 67.9% · 7.0 cue/分 · 5 图型；
   红绿消融同屏演尽破坏实验（左崩溃右拦截，⑨ 视觉抽查修复 2-I 整镜遮盖一例），证据徽三级
 
 ## 信源（C 型 · guided-learn gen2 直通承接）
 
-- 冻结快照 `research/gl-notes.md` = 011 精读笔记 gen2 @192ae6ca9（548 行，2026-09-30 信源实况）
+- 冻结快照 `research/gl-notes.md` = 011 精读笔记 gen2 @192ae6ca9（011 本体 548 行，全文含冻结头与附录 616 行；2026-09-30 信源实况）
 - 原型双 selftest 复算 2026-10-01 与基线逐字节一致（升【一】级证据）：`research/selftest-*-2026-10-01.txt`
 - 穿透抽查 126 条断言零 MISS：`research/penetration-report.md` + `penetration-claims.json`
 - 信源台账 71 条（3 repo 钉 192ae6ca9 + 68 site）：`research/sources.toml` · verify FAIL 0
@@ -33,7 +33,7 @@ research/     gl-notes 冻结快照 · sources.toml 台账 · 穿透报告 · se
 script/       planning（六节）· narration v2（156 句）· cues.toml（story 台本）· storyboard v3（66 镜）· verification（④⑤ 报告）
 scripts/      build_narration / tts / qa_frames 薄包装（转发 to-video skill）
 video/        Remotion 工程：scenes 八幕 · components 装置层 13 件+archify 消费端 · motion（frozen）
-              public/archify/ 48 图 sidecar+views（mp4/end.png 派生物 gitignored）
+              public/archify/ 47 图 sidecar+views（mp4/end.png 派生物 gitignored）
 out/          渲染产物（gitignored）
 ```
 
@@ -57,7 +57,7 @@ uv run --no-project $T/scripts/pipeline.py --project <P> render --final && capti
 - [x] 清场双门 verify_skeleton/check_series FAIL 0 · 信源台账 verify 71 条 FAIL 0
 - [x] selftest 复算 diff 双零 · 穿透 126 条 MISS 0
 - [x] build/④ RISKY=0/⑤ 评审 REWRITE=0 · --pre-tts FAIL 0 WARN 0 · 多音字语义未标注 0
-- [x] tsc 零错 · archify 覆盖门 106 cue/67.9%/5 型 FAIL 0（WARN 17=叙事性章序重组 14 + 镜锚错位 2 + 白录 1，均人工确认留档）
+- [x] tsc 零错 · archify 覆盖门 106 cue/67.9%/5 型 FAIL 0（WARN 15=叙事性章序重组 14 + 镜锚 1；该 1 为 7-B vendor-claim 同章跨镜接力声明，覆盖门 hit-first 语义的已知盲区——P7Laws 两条真实 cue 各自锚 p7-02/p7-03 已核验，渲染无误）
 - [x] ⑦ manifest 156 句全成 · 首轮校准回写 302 字/分 + 窗 [14.0, 16.3]（story 块合成消除块内停顿）
 - [x] ⑨ qa --check 五项 FAIL 0 WARN 0 · 八幕逐 scene FAIL 0 · beat-heads 91 帧 · 四帧视觉抽查（修复 2-I）
 - [x] ⑩ 终渲 15:05.63 落窗（ffprobe 905.63s 与 27169 帧÷30 双口径一致）· captions srt/vtt · deliver v1 + 字幕随片归档
@@ -70,7 +70,7 @@ uv run --no-project $T/scripts/pipeline.py --project <P> render --final && capti
 | 叙事 | 七幕类比剧场（天才实习生/大厦） | 八幕零剧场，机制四拍（术语→机制→走查→拆掉） |
 | 配音 | sunny-steady 稳态 | story 段落演绎（71 块情绪标记 · 合成 78 块，302 字/分实测） |
 | 数字 | 200:3（承笔记混编） | 200:5（lab 实测口径 + 勘误登记） |
-| 图例 | 67 图 156 cue 83.4% | 48 图 106 cue 67.9%（剧场词图 10+ 张退役） |
+| 图例 | 67 图 156 cue 83.4% | 47 图 106 cue 67.9%（剧场词图 10+ 张退役） |
 | ⑧ 装置 | devices.tsx 剧场母图 | 装置层 13 件（定义卡母题/红绿消融/基线标尺…） |
 
 ## C 型首例偏差记录（to-video 01 §C）
