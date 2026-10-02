@@ -1,7 +1,7 @@
 {
-  "name": "claude-code-memory-video",
+  "name": "claude-code-concurrency-video",
   "private": true,
-  "description": "《记忆管理：会丢的和不能丢的》科普视频 Remotion 工程",
+  "description": "《并发：谁来按下开始》科普视频 Remotion 工程",
   "scripts": {
     "dev": "remotion studio",
     "typecheck": "tsc --noEmit",

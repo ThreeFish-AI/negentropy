@@ -1,5 +1,0 @@
-[
- {"id": "four-questions", "label": "四问分型", "focus": ["q-who", "q-how", "q-what", "q-where"], "note": "记忆分四类，按回答什么问题划分——四个问句入口排开。"},
- {"id": "who-and-how", "label": "你是谁怎么做事", "focus": ["q-who", "type-user", "q-how", "type-feedback"], "note": "你是谁，是偏好；怎么做事，是反馈——两问两型对位。"},
- {"id": "what-and-where", "label": "何事何地", "focus": ["q-what", "type-project", "q-where", "type-reference"], "note": "正在发生什么，是项目动态；东西在哪找，是线索（终态收口）。"}
-]

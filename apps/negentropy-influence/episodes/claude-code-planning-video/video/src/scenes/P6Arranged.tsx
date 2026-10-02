@@ -12,7 +12,7 @@
  *  ★ 6-C 金句卡终态〔M-003〕：全幅衬底 + 衬线定格（caption-dup-ok 豁免在案），
  *    一次性特效只作入场——句中点抽帧仍可读出该陈述。
  *  ★ 6-E 系列身份卡/下期卡：标题主段是 check_series 规则 8 的受检硬编码——
- *    本集「模型的视野是安排出来的」＋下集「会丢的和不能丢的」（改标题先改
+ *    本集「模型的视野是安排出来的」＋下集「一张草稿纸和一本卡片册」（改标题先改
  *    series.json 再同步此串）；层短名走 series-layers.json 数据（NEXT_LAYER）。
  *    灯牌收暗 + 末 36 帧渐黑（窗取整镜时长——红线四）。
  */
@@ -308,7 +308,7 @@ const SeriesCards: React.FC<{at16: number; at18: number}> = ({at16, at18}) => {
             {`下期 · ${NEXT_LAYER?.layer ?? ''}`}
           </div>
           <div style={{fontFamily: theme.serif, fontSize: 34, color: theme.text, marginTop: 8}}>
-            {'会丢的和不能丢的'}
+            {'一张草稿纸和一本卡片册'}
           </div>
         </div>
       </div>

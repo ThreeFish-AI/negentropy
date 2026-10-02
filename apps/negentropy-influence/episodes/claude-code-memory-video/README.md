@@ -1,6 +1,6 @@
-# 《记忆管理：会丢的和不能丢的》科普视频工程
+# 《记忆管理：一张草稿纸和一本卡片册》科普视频工程
 
-> 交付状态：**v1 已交付**（2026-10-01，14:13.3 @1080p30（total_duration_in_frames 复算），归档 ~/Documents/video/claude-code-explained/ v1 + _captions）。发布顺序见 [../../series.json](../../series.json)（工作区根）。
+> 交付状态：**脚手架已生成，内容待撰写**。发布顺序见 [../../series.json](../../series.json)（工作区根）。
 
 ## 目录结构
 
