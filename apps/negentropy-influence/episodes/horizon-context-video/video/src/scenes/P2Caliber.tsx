@@ -112,6 +112,7 @@ export const P2Caliber: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap
           slug="calc-discipline-matrix"
           caption="计算纪律 · 先聚后连"
+          lead={false}
           cues={[{chapterId: 'agg-before-join', at: at('p2-11') - bE.from, durationInFrames: dur('p2-11')}]}
         />
         <ArchifyRecap
@@ -130,6 +131,7 @@ export const P2Caliber: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap
           slug="calc-discipline-matrix"
           caption="先聚后除"
+          lead={false}
           cues={[{chapterId: 'divide-after-agg', at: at('p2-14') - bF.from, durationInFrames: dur('p2-14')}]}
         />
         <ArchifyRecap
@@ -145,6 +147,7 @@ export const P2Caliber: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap
           slug="last-snapshot-gate"
           caption="半可加 · 跨时间不叠加"
+          lead={false}
           cues={[{chapterId: 'semi-additive', at: at('p2-16') - bG.from, durationInFrames: dur('p2-16')}]}
         />
       </Sequence>

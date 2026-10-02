@@ -133,7 +133,7 @@ archify 消费端：`ArchifyClip/ArchifyRecap/ArchifyYield` 从 E2（context-lay
 
 ## 新图清单（建图工单）
 
-- `horizon-context--five-laws`（dataflow）：五规律总卡四章——**docs 研究资产**（011 §19 配图；archify 3.0 viewer 已移除 guidedViews 模块、录制器无法消费，视频侧改原生五卡实现，见 P7Laws.tsx）。
+- `horizon-context--five-laws`（dataflow）：五规律总卡四章——**docs 研究资产**（archify 3.0 viewer 已移除 guidedViews 模块、录制器无法消费，视频侧改原生五卡实现，见 P7Laws.tsx；HTML/回执存档于 docs/assets/architecture/cognitive-context/，未内嵌 011 正文——内嵌需走冻结件回写与 PNG 采集管线，留作后续独立任务）。
 - 备选未建：ann-walkthrough（Animated State Trace 由场景原生实现更优）、boundary-guardrail（护栏卡由场景原生实现）。
 
 ## 覆盖门预期（首轮实测后回填定稿）

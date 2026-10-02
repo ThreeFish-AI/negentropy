@@ -1,10 +1,10 @@
 /** P3 规则与执法（p3-01..p3-21，21 句；storyboard v3「P3 规则与执法」节）。
  *
  *  10 镜 / 13 条 archify cue：
- *   3-B perpage@02 · 3-C family@03→instant-inspection@04（异 slug 背靠背，次实例 lead={false}）
+ *   3-B perpage@02 · 3-C family@03→instant-inspection@04（family 接 3-B 同 slug 换章、次棒异 slug，均 lead={false}）
  *   3-D single-point-bind@05→whoever-asks@06（同 slug 接力）· 3-E agent-recognized@08→agentface@09（异 slug，lead={false}）
  *   3-G teardown-leak@13→hide-not-block@14（同 slug，让尾窗）· 3-H sign-vs-wall@16→governed-path@17（同 slug）
- *   3-I guessed-name@18→two-layer-defense@19（异 slug，lead={false}）
+ *   3-I guessed-name@18（首棒接 3-H governed-path 背靠背，lead={false}）→two-layer-defense@19（异 slug，lead={false}）
  *
  *  archify full 全屏独占 ⇒ 同镜装置只住 cue 外句窗（ArchifyYield 让位）。装置窗对 cue 窗的
  *  三处小额偏移均为命名帧常量（时点仍由句边界推导，非写死绝对帧）：
@@ -106,6 +106,7 @@ export const P3Policy: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap
           slug="row-column-policy"
           caption="行·列策略族"
+          lead={false}
           cues={[{chapterId: 'family', at: at('p3-03') - bC.from, durationInFrames: dur('p3-03')}]}
         />
         <ArchifyRecap
@@ -264,6 +265,7 @@ export const P3Policy: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap
           slug="forced-query-intercept"
           caption="强制拦截"
+          lead={false}
           cues={[{chapterId: 'guessed-name', at: at('p3-18') - bI.from, durationInFrames: dur('p3-18')}]}
         />
         <ArchifyRecap
@@ -733,7 +735,7 @@ const TopologyContrast: React.FC<{at: number}> = ({at}) => {
 const JRecap: React.FC<{at: number}> = ({at}) => {
   const glow = useBreathe({period: 190, base: 0.3, amp: 0.5});
   return (
-    <AbsoluteFill style={{display: 'flex', justifyContent: 'center', alignItems: 'flex-start'}}>
+    <AbsoluteFill style={{display: 'flex', justifyContent: 'flex-start', alignItems: 'center'}}>
       <div style={{marginTop: 64}}>
         <DefinitionCard at={at} enter="pop" title="净收入" claspAt={CLASP_SEATED} halo={glow} scale={0.5} />
       </div>
