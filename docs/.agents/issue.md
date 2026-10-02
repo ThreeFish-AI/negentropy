@@ -4353,3 +4353,11 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **后续防范**：archify 升版后先跑一张探针图过采集脚本再批量出图；「导出尺寸契约」属于脚本与工具间的隐性接口，升级核对面应包含它。
 - **同类问题影响**：所有计划用 archify 3.x 新绘/重绘的 docs/assets/architecture 图。
 - **追加（2026-10-01）**：3.0.0 产出 HTML 另含行尾空格（loop-mounted-layers 实测 15 处，2.17 无），trailing-whitespace 钩子剥空格会使 finalize/delivery 回执 sha256 与入库文件失配（仓惯例要求一致，bg-board-and-lock 2.17 实证 MATCH）。处置：pre-commit 的 trailing-whitespace/end-of-file-fixer 对 docs/assets/architecture/ 增加豁免（与 source-archive/ 同理：冻结产物保指纹，经用户确认）。
+
+## ISSUE-209 ep1 P6 复用图 five-layer-dependency 章节集误用记忆集视角：finale 亮错层（2026-10-02，开放）
+
+- **表因**：ep1 完全重制把复用图 `five-layer-dependency` 的 views/录制 sidecar/manifest 三处章节集整体拷贝自记忆集（claude-code-memory-video）：`layer-flash` label「记忆层一闪」、focus=[layer-3, layer-2, layer-4]、note 自述「本集视角＝五层链第三层」；`two-dark-zones` 只留 L4/L5 暗区（ep3 已播三集的状态）。成片 final.mp4 p6-01 窗抽帧实证：左下章节标题「记忆层一闪」、扫光落在规划/记忆/时机层，L1（工具与执行）不在焦点集。
+- **根因**：five-layer HTML 是系列共享底座，但 guided-views 的 focus/label 是**每集视角的派生物**——「复用 html_overrides」被误执行成「连别集的叙事视角章节一起拷贝」。旧版 ep1 对同一 HTML 自派生过 layer-1 视角章节（layer-preview focus=[layer-1,2,3]、four-dark-zones focus=[layer-2..5]），证明重派生才是既有做法；重制时旧章集被删、新章集直接取自 ep3，评审对账 storyboard（6-A「本集层点亮」/6-C「后续各层」）才暴露。
+- **待办**：① 按 L1 视角重写 `video/public/archify/views/five-layer-dependency.json`（6-A 章 focus=[layer-1,±相邻]、label 去「记忆」；6-C 章改四层留白 focus=[dim-zones, layer-2..5]）；② 空闲机 `record_archify.py --only five-layer-dependency` 重录三章并重生成 manifest；③ P6Finale cue chapterId 随新章名同步；④ 重渲 + 三源时长对账 + 重新归档 v1（与 ISSUE-207 重渲列车合并）；⑤ 同批捎带 P0 0-C 病历本 stagger 修复（2026-10-02 评审 #8 已改源码、成片未含，见 P0ForgetfulDoctor.tsx 评审注记）。
+- **后续防范**：复用图（html_overrides）接入新集时，views/label 必须按本集视角重派生，禁止跨集拷贝 sidecar；覆盖门/录制前加一条「章 label 与本集身份一致」的人工核对项（机器门无法判视角）。
+- **同类问题影响**：检查其余四集对 five-layer-dependency 的章节引用——ep2–ep5 各自 sidecar 均为当集视角派生（ep3 即正主），无同形态；未来任何跨集复用图同理。
