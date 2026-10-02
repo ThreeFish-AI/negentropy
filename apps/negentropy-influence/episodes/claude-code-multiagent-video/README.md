@@ -1,6 +1,6 @@
-# 《多 Agent 平台：从一个到一群》科普视频工程
+# 《多 Agent 平台：七件设施，一条走廊》科普视频工程
 
-> 交付状态：**v1 已交付**（2026-10-02，13:42.8 @1080p30（total_duration_in_frames 复算），归档 ~/Documents/video/claude-code-explained/ v1 + _captions）。发布顺序见 [../../series.json](../../series.json)（工作区根）。
+> 交付状态：**完全重制进行中**（2026-10-02 换题《七件设施，一条走廊》；上一代《多 Agent 平台：从一个到一群》已归档 v1/v2）。C 型信源 = [175 冻结快照](../../../../docs/research/agent-harness/175-claude-code-multi-agent-platform.md) @ `0ecf6527c`；本轮 edge 终声。发布顺序见 [../../series.json](../../series.json)（工作区根）。
 
 ## 目录结构
 

@@ -1,7 +1,7 @@
 {
   "name": "claude-code-multiagent-video",
   "private": true,
-  "description": "《多 Agent 平台：从一个到一群》科普视频 Remotion 工程",
+  "description": "《多 Agent 平台：七件设施，一条走廊》科普视频 Remotion 工程",
   "scripts": {
     "dev": "remotion studio",
     "typecheck": "tsc --noEmit",
