@@ -3,7 +3,12 @@
     "id": "p0-01",
     "scene": "P0",
     "text": "这是一栋通宵亮灯的小楼，里面每一位师傅手艺都是顶尖的，却谁也记不住昨天。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.22"
+    },
+    "ttsText": "这是一栋通宵亮灯的小楼……里面每一位师傅，手艺都是顶尖的，却，谁也记不住昨天。"
   },
   {
     "id": "p0-02",
@@ -19,7 +24,11 @@
     "id": "p0-04",
     "scene": "P0",
     "text": "想象一位师傅接下重构整个后端的活：四个模块的细节，装不进一场对话。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "melancholic:0.16"
+    }
   },
   {
     "id": "p0-05",
@@ -34,13 +43,18 @@
   {
     "id": "p0-07",
     "scene": "P0",
-    "text": "活多到要一班组人的时候——计划，放在谁手里？"
+    "text": "活多到要一班组人的时候——计划，放在谁手里？",
+    "ttsText": "活多到要一班组人的时候——计划，放在，谁手里？"
   },
   {
     "id": "p0-08",
     "scene": "P0",
     "text": "答案不是请更聪明的师傅，是给失忆的师傅们换一套房子。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
   },
   {
     "id": "p0-09",
@@ -66,7 +80,11 @@
     "id": "p1-01",
     "scene": "P1",
     "text": "第一件设施，是大厅里那面任务墙。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.14"
+    }
   },
   {
     "id": "p1-02",
@@ -92,7 +110,11 @@
     "id": "p1-06",
     "scene": "P1",
     "text": "关键不在字段，在于卡挂在墙上，不挂在谁的脑子里。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
   },
   {
     "id": "p1-07",
@@ -103,7 +125,11 @@
     "id": "p1-08",
     "scene": "P1",
     "text": "墙还自己管顺序：每张卡带前置清单，清单里的活全做完才能领。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p1-09",
@@ -118,7 +144,11 @@
   {
     "id": "p1-11",
     "scene": "P1",
-    "text": "完成的一瞬间，墙扫一遍全场，播报刚解锁的活：写接口、写文档。"
+    "text": "完成的一瞬间，墙扫一遍全场，播报刚解锁的活：写接口、写文档。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.10"
+    }
   },
   {
     "id": "p1-12",
@@ -139,7 +169,11 @@
     "id": "p1-15",
     "scene": "P1",
     "text": "谁来派活？没人派。空闲的师傅自己扫墙：待办、无主、前置全清。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p1-16",
@@ -149,7 +183,11 @@
   {
     "id": "p1-17",
     "scene": "P1",
-    "text": "现在拆给你看：把依赖判定改成恒真。"
+    "text": "现在拆给你看：把依赖判定改成恒真。",
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.20"
+    }
   },
   {
     "id": "p1-18",
@@ -170,7 +208,11 @@
     "id": "p1-21",
     "scene": "P1",
     "text": "最隐蔽的坑，连守卫都挡不住：两位师傅，同一瞬间扫墙。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.24"
+    }
   },
   {
     "id": "p1-22",
@@ -190,13 +232,18 @@
   {
     "id": "p1-25",
     "scene": "P1",
-    "text": "守卫挡得住明抢，挡不住同一瞬间。"
+    "text": "守卫挡得住明抢，挡不住同一瞬间。",
+    "ttsText": "守卫挡得住明抢，挡不住，同一瞬间。"
   },
   {
     "id": "p2-01",
     "scene": "P2",
     "text": "墙解决了「谁干什么」，第二件设施解决「怎么说话」，就是门上的递话口。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.12"
+    }
   },
   {
     "id": "p2-02",
@@ -211,7 +258,11 @@
   {
     "id": "p2-04",
     "scene": "P2",
-    "text": "队友本身就是一条后台线程：自己的说明单、自己的对话、一组精简工具。"
+    "text": "队友本身就是一条后台线程：自己的说明单、自己的对话、一组精简工具。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p2-05",
@@ -227,7 +278,11 @@
   {
     "id": "p2-07",
     "scene": "P2",
-    "text": "一封信，一辈子只被读一次。"
+    "text": "一封信，一辈子只被读一次。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
   },
   {
     "id": "p2-08",
@@ -238,7 +293,11 @@
     "id": "p2-09",
     "scene": "P2",
     "text": "等信的不是师傅本人，是楼：一遍遍替他盯着口，有新信就叫醒一轮。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p2-10",
@@ -248,7 +307,11 @@
   {
     "id": "p2-11",
     "scene": "P2",
-    "text": "走一遍：队长让甲建一张表、乙检查这张表。"
+    "text": "走一遍：队长让甲建一张表、乙检查这张表。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.10"
+    }
   },
   {
     "id": "p2-12",
@@ -265,7 +328,11 @@
     "id": "p2-14",
     "scene": "P2",
     "text": "队友的边界写在工具单上：那箱工具里没有招队友、没有开新活。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
   },
   {
     "id": "p2-15",
@@ -276,7 +343,11 @@
     "id": "p2-16",
     "scene": "P2",
     "text": "拆给你看：把「读后清空」改成读后不删。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.18"
+    }
   },
   {
     "id": "p2-17",
@@ -287,7 +358,11 @@
     "id": "p2-18",
     "scene": "P2",
     "text": "官方文档明写：这套机制是实验性的，默认关闭，要环境开关打开。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p2-19",
@@ -298,7 +373,11 @@
     "id": "p3-01",
     "scene": "P3",
     "text": "传话通了。第三件设施管拍板，是前台的回执簿；第四件管节奏，是墙角的值班钟。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p3-02",
@@ -314,7 +393,11 @@
     "id": "p3-04",
     "scene": "P3",
     "text": "单子出门带编号，回执回家过三道核验。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p3-05",
@@ -329,7 +412,11 @@
   {
     "id": "p3-07",
     "scene": "P3",
-    "text": "为什么类型这道闸不能省？所有回执混在同一个口里。"
+    "text": "为什么类型这道闸不能省？所有回执混在同一个口里。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.12"
+    }
   },
   {
     "id": "p3-08",
@@ -345,7 +432,11 @@
     "id": "p3-10",
     "scene": "P3",
     "text": "拆给你看：把核验拆掉。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.22"
+    }
   },
   {
     "id": "p3-11",
@@ -361,7 +452,11 @@
     "id": "p3-13",
     "scene": "P3",
     "text": "一处诚实缺口：队友交了计划并没真停，只发了一封信，靠自觉等批复。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "melancholic:0.14"
+    }
   },
   {
     "id": "p3-14",
@@ -372,7 +467,11 @@
     "id": "p3-15",
     "scene": "P3",
     "text": "再说值班钟。队友的节奏从两段变三段：干活、空闲、收工。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p3-16",
@@ -382,7 +481,12 @@
   {
     "id": "p3-17",
     "scene": "P3",
-    "text": "口里躺着关机请求，立即回执退出——指令，永远排在发现的活前面。"
+    "text": "口里躺着关机请求，立即回执退出——指令，永远排在发现的活前面。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.14"
+    },
+    "ttsText": "口里躺着关机请求，立即回执退出——指令，永远，排在发现的活前面。"
   },
   {
     "id": "p3-18",
@@ -398,7 +502,11 @@
     "id": "p3-20",
     "scene": "P3",
     "text": "拆给你看：把超时拆掉。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.18"
+    }
   },
   {
     "id": "p3-21",
@@ -409,7 +517,11 @@
     "id": "p3-22",
     "scene": "P3",
     "text": "值班钟还管一件小事：身份。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.10"
+    }
   },
   {
     "id": "p3-23",
@@ -420,7 +532,11 @@
     "id": "p4-01",
     "scene": "P4",
     "text": "第五件设施在楼上：门牌房，它管「在哪干」。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.12"
+    }
   },
   {
     "id": "p4-02",
@@ -436,7 +552,11 @@
     "id": "p4-04",
     "scene": "P4",
     "text": "解法借用版本控制的祖传手艺，三句话讲完。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p4-05",
@@ -452,7 +572,11 @@
     "id": "p4-07",
     "scene": "P4",
     "text": "墙上的卡加一个「房号」字段做绑定：只写字段、不改状态，活还是待办等人领。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p4-08",
@@ -463,7 +587,11 @@
     "id": "p4-09",
     "scene": "P4",
     "text": "认领到带房号的活，读写自动落在那间房里；交活，切回大厅。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "melancholic:0.12"
+    }
   },
   {
     "id": "p4-10",
@@ -479,7 +607,11 @@
     "id": "p4-12",
     "scene": "P4",
     "text": "干完了，拆房。默认答案是：不拆。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
   },
   {
     "id": "p4-13",
@@ -489,12 +621,17 @@
   {
     "id": "p4-14",
     "scene": "P4",
-    "text": "明说「丢弃」，才强拆，连分支一起删；想留，就保留，等人审。"
+    "text": "明说「丢弃」，才强拆，连分支一起删；想留，就保留，等人审。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.14"
+    }
   },
   {
     "id": "p4-15",
     "scene": "P4",
-    "text": "有改动，拒拆——这五个字，是留给未来自己的救命索。"
+    "text": "有改动，拒拆——这五个字，是留给未来自己的救命索。",
+    "ttsText": "有改动，拒拆——这五个字，是留给未来自己的，救命索。"
   },
   {
     "id": "p4-16",
@@ -506,7 +643,11 @@
     "id": "p4-17",
     "scene": "P4",
     "text": "这个开源项目的作者拆过真实实现后说：产品里，任务卡和门牌房是两套独立系统。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p4-18",
@@ -517,7 +658,11 @@
     "id": "p5-01",
     "scene": "P5",
     "text": "第六件设施回到楼下：认证插座，它管「家伙从哪来」。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.12"
+    }
   },
   {
     "id": "p5-02",
@@ -528,7 +673,11 @@
     "id": "p5-03",
     "scene": "P5",
     "text": "插座的规矩两步：连接、发现。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p5-04",
@@ -538,7 +687,11 @@
   {
     "id": "p5-05",
     "scene": "P5",
-    "text": "走一遍：接上文档服务，多出「查文档」；再接部署，又多两件。"
+    "text": "走一遍：接上文档服务，多出「查文档」；再接部署，又多两件。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.10"
+    }
   },
   {
     "id": "p5-06",
@@ -554,7 +707,11 @@
     "id": "p5-08",
     "scene": "P5",
     "text": "但动态工具，有一个不显眼的代价。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "melancholic:0.12"
+    }
   },
   {
     "id": "p5-09",
@@ -564,7 +721,11 @@
   {
     "id": "p5-10",
     "scene": "P5",
-    "text": "因为缓存里是旧清单：模型按旧名单叫新工具，叫一个空。"
+    "text": "因为缓存里是旧清单：模型按旧名单叫新工具，叫一个空。",
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.16"
+    }
   },
   {
     "id": "p5-11",
@@ -574,13 +735,18 @@
   {
     "id": "p5-12",
     "scene": "P5",
-    "text": "图新鲜，就不吃缓存——这是这一段亲手付的账。"
+    "text": "图新鲜，就不吃缓存——这是这一段亲手付的账。",
+    "ttsText": "图新鲜，就不吃缓存——这是这一段，亲手付的账。"
   },
   {
     "id": "p5-13",
     "scene": "P5",
     "text": "最后一个细节：工具自报「只读」还是「破坏性」，只是文字。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
   },
   {
     "id": "p5-14",
@@ -601,7 +767,11 @@
     "id": "p6-01",
     "scene": "P6",
     "text": "六件设施都亮了灯，第七件呢？",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.18"
+    }
   },
   {
     "id": "p6-02",
@@ -617,7 +787,11 @@
     "id": "p6-04",
     "scene": "P6",
     "text": "先不揭晓：一轮走完，你都路过哪些格子？",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p6-05",
@@ -632,7 +806,11 @@
   {
     "id": "p6-07",
     "scene": "P6",
-    "text": "没有，走停止钩子收尾；有，先过权限，再分发：内置、外接、后台三个去向。"
+    "text": "没有，走停止钩子收尾；有，先过权限，再分发：内置、外接、后台三个去向。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
   },
   {
     "id": "p6-08",
@@ -643,7 +821,11 @@
     "id": "p6-08a",
     "scene": "P6",
     "text": "走一条慢活：模型要装一个包，一判定是慢活。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.10"
+    }
   },
   {
     "id": "p6-08b",
@@ -653,7 +835,11 @@
   {
     "id": "p6-08c",
     "scene": "P6",
-    "text": "后台跑完，通知流回准备区，下一轮接着收尾。"
+    "text": "后台跑完，通知流回准备区，下一轮接着收尾。",
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.12"
+    }
   },
   {
     "id": "p6-09",
@@ -664,18 +850,27 @@
     "id": "p6-10",
     "scene": "P6",
     "text": "还有一个不动声色的坚持：要不要继续工具轮，看的不是模型嘴上说的停。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.14"
+    }
   },
   {
     "id": "p6-11",
     "scene": "P6",
-    "text": "看的是回答里，实际出现没出现工具调用块——看单子，不看嘴。"
+    "text": "看的是回答里，实际出现没出现工具调用块——看单子，不看嘴。",
+    "ttsText": "看的是回答里，实际出现没出现工具调用块——看单子，不看嘴。"
   },
   {
     "id": "p6-12",
     "scene": "P6",
     "text": "有五样机制，只在集成版里才长全。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.12"
+    }
   },
   {
     "id": "p6-13",
@@ -690,7 +885,11 @@
   {
     "id": "p6-15",
     "scene": "P6",
-    "text": "前面留的第一个缺口，在这里合上。"
+    "text": "前面留的第一个缺口，在这里合上。",
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.14"
+    }
   },
   {
     "id": "p6-16",
@@ -700,7 +899,11 @@
   {
     "id": "p6-17",
     "scene": "P6",
-    "text": "失败恢复有了梯子：退一步再试、换备用接着来、截断了放宽限度续写。"
+    "text": "失败恢复有了梯子：退一步再试、换备用接着来、截断了放宽限度续写。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p6-18",
@@ -711,7 +914,11 @@
     "id": "p6-19",
     "scene": "P6",
     "text": "多人协作在这条走廊里只有两种身份：一条注入的消息，或一个工具。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.14"
+    }
   },
   {
     "id": "p6-20",
@@ -723,13 +930,21 @@
     "scene": "P6",
     "text": "收官这份教学码，内置工具二十七件，两千一百三十行。",
     "beatStart": true,
-    "ttsText": "收官这份教学码，内置工具二十七件，两千一百三十<行|HANG2>。"
+    "ttsText": "收官这份教学码，内置工具二十七件，两千一百三十<行|HANG2>。",
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.12"
+    }
   },
   {
     "id": "p6-22",
     "scene": "P6",
     "text": "收官的话值得照读：这套系统的复杂性，不是另一个更聪明的脑子，而是成熟装置层的复杂性。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.14"
+    }
   },
   {
     "id": "p6-23",
@@ -745,7 +960,11 @@
     "id": "p6-25",
     "scene": "P6",
     "text": "把边界也钉在墙上：机制证明了自洽，没证明并发正确——同一瞬间两人认领同一张卡，就是活证据。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "melancholic:0.14"
+    }
   },
   {
     "id": "p6-26",
@@ -756,7 +975,12 @@
     "id": "p6-27",
     "scene": "P6",
     "text": "天快亮了，回到开场那个问题：计划，放在谁手里？",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    },
+    "ttsText": "天快亮了，回到开场那个问题——计划，放在，谁手里？"
   },
   {
     "id": "p6-28",
@@ -766,7 +990,11 @@
   {
     "id": "p6-29",
     "scene": "P6",
-    "text": "失忆的师傅们靠七件设施干完了一整夜；所有人走过的，始终是同一条走廊。"
+    "text": "失忆的师傅们靠七件设施干完了一整夜；所有人走过的，始终是同一条走廊。",
+    "blockStart": true,
+    "cue": {
+      "emo": "melancholic:0.18"
+    }
   },
   {
     "id": "p6-30",
@@ -776,6 +1004,7 @@
   {
     "id": "p6-31",
     "scene": "P6",
-    "text": "机制很多，循环一个——这栋楼教了一整夜的事，就这一句。"
+    "text": "机制很多，循环一个——这栋楼教了一整夜的事，就这一句。",
+    "ttsText": "机制很多，循环一个……这栋楼教了一整夜的事，就这一句。"
   }
 ]

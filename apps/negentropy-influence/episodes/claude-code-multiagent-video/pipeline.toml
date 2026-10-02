@@ -20,6 +20,11 @@ chars_per_min = 278
 # 整集评审通过后由用户显式触发用 IndexTTS-2.5 + 本人声音重配（references/07 §重配）。
 # ⚠ edge 为终声时**不得挂 style 终声档锚**——挂了实测门即跳过（PIPELINE.md 字段表）。
 engine = "edge"
+# ⚠ 本集 rate 偏差（2026-10-03 实测定档）：zh-CN-YunxiNeural @ +4% 实测 15.7 分超窗 1.1 分，
+# 提速到 +12% + timing.json 收紧（gap 0.32→0.2 / scene 0.9→0.6 / tail 2.0→1.6）后实测 14.3 分落窗。
+# pipeline.py tts 不透传 rate——重跑须用工程内薄包装（.engine 签名含 rate，护栏会拦静默降速）：
+#   cd $P && uv run --no-project --with edge-tts --with mutagen scripts/tts.py \
+#     --engine edge --narration-lang zh --rate +12% --allow-voice-switch
 # 重配三步（届时执行）：① engine 改 "indextts" + 补下方 ref/ref_sha1 + style = "story"；
 # ② `pipeline.py tts --allow-voice-switch`；③ 重走 render → qa → check → captions → render --final。
 # TODO（重配前补齐，非建集前置）：样本路径**工作区根相对**；ref_sha1 取 12 位
