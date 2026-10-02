@@ -165,7 +165,11 @@ const ClinicFirstLook: React.FC<{atEnter: number; atPlate: number}> = ({atEnter,
   const enters = useStagger(4, {at: atEnter, stride: 9, dur: DUR.f5});
   return (
     <>
-      <Ledger x={150} y={130} />
+      {/* 病历本＝四件套 stagger 第 2 席（与病历说明 caption 同锚 enters[1]），
+          唯一凭据不再硬切入场——2026-10-02 评审意见修复 */}
+      <div style={{position: 'absolute', left: 150, top: 130, opacity: enters[1]}}>
+        <Ledger x={0} y={0} />
+      </div>
       <div style={{position: 'absolute', left: 150, top: 320, opacity: enters[2]}}>
         <Doctor x={0} y={0} scale={0.72} />
         <div

@@ -35,7 +35,7 @@ siteBase = "https://learn.shareai.run/zh"
 # UTF-8/递归 glob 机械修复。站点轨分支 HEAD 未动（67a9126c），线上 s08 页逐字
 # 复验一致，5 分组前提稳固，站点钉不变。
 # 2026-10-01 重钉（ep1 完全重制）：main 0dcafa2 → ce8f9f18（2026-09-28，仅 2 提交
-# #586/#587）——s01–s04 各章 code.py +10/11 行（OS-aware shell context，README
+# #586/#587）——s01–s04 各章 code.py 净增 +9/10 行（OS-aware shell context，README
 # 未动，无机制级变更）；重钉对齐 171 号精读所读轨（精读/逐字稿/code.py:NN 锚点
 # 同树可复算，两钉 LOC 已差 9–10 行/章，沿用旧钉即双倍重验）。站点钉不变。
 [[pin]]
