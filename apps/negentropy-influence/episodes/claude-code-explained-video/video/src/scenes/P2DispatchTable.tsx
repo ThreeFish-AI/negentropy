@@ -13,7 +13,7 @@ import {AbsoluteFill, Sequence} from 'remotion';
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Doctor, LineGauge, ProvenanceTag, withAlpha} from '../components/clinic';
+import {Doctor, ExpBadge, LineGauge, ProvenanceTag, withAlpha} from '../components/clinic';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 import {
   DUR,
@@ -354,31 +354,7 @@ const GaugeCell: React.FC<{at: number}> = ({at}) => {
   );
 };
 
-// ── 2-D 破坏性实验封条卡（scene 自定义装置——@enter:fall 由本镜自证） ─────────
-
-const SealCard: React.FC<{at: number; n: number}> = ({at, n}) => {
-  const e = useEnter('fall', {at, dur: DUR.f4, dist: 90});
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        left: 742,
-        top: 408,
-        ...e,
-        padding: '12px 32px',
-        background: withAlpha(theme.deny, 0.12),
-        border: `2.5px dashed ${withAlpha(theme.deny, 0.85)}`,
-        borderRadius: 10,
-        fontFamily: theme.mono,
-        fontSize: 27,
-        color: theme.deny,
-        letterSpacing: 3,
-      }}
-    >
-      {`破坏性实验 · ${n}`}
-    </div>
-  );
-};
+// ── 2-D 破坏性实验封条卡＝ExpBadge lg 档（clinic 共享） ─────────────────────
 
 // ── 2-E 多单与并行：左＝教学版按序串行（dim 排队）；右＝分批并行（mech 齐闪） ──
 
@@ -711,7 +687,7 @@ export const P2DispatchTable: React.FC<{scene: SceneRange}> = ({scene}) => {
         />
         {/* p2-11 前半：实验封条卡（句尾让位给 unknown-in） */}
         <Sequence durationInFrames={seal11} name="2-D 实验封条">
-          <SealCard at={2} n={2} />
+          <ExpBadge x={742} y={408} at={2} n={2} size="lg" />
           <MonoTag x={748} y={300} at={6}>{'KeyError vs Unknown'}</MonoTag>
         </Sequence>
       </Sequence>

@@ -172,7 +172,10 @@ export const HarnessPlate: React.FC<{x: number; y: number; at?: number}> = ({x, 
   );
 };
 
-/** 行数尺——底边恒驻四格进度条（102/135/180/232，教学版口径）。
+/** 行数尺——底部安全带恒驻四格进度条（102/135/180/232，教学版口径）。
+ *  落位铁三角：archify 全屏画框下缘 880 之下（5-B 逐版点亮不被画框遮）、
+ *  字幕避让带 920 之上（长句字幕板顶缘 ≈943 且 qa 侵入检测带 [920,948) 零进入）、
+ *  格高压缩 ≤40px（20px label 档）——三窗叠加后唯一可行带即 [880, 920]。
  *  lit：已点亮格数（1..4）；gauge 逐格点亮用 useCount 由调用侧驱动时传 litFrame。 */
 export const LINE_GAUGE: {label: string; sub: string}[] = [
   {label: '102', sub: '循环'},
@@ -181,7 +184,7 @@ export const LINE_GAUGE: {label: string; sub: string}[] = [
   {label: '232', sub: '+节点'},
 ];
 
-export const LineGauge: React.FC<{lit: number; y?: number}> = ({lit, y = 972}) => (
+export const LineGauge: React.FC<{lit: number; y?: number}> = ({lit, y = 880}) => (
   <div style={{position: 'absolute', left: 240, top: y, width: 1440, display: 'flex', gap: 18}}>
     {LINE_GAUGE.map((g, i) => {
       const on = i < lit;
@@ -190,7 +193,7 @@ export const LineGauge: React.FC<{lit: number; y?: number}> = ({lit, y = 972}) =
           key={g.label}
           style={{
             flex: 1,
-            padding: '8px 14px',
+            padding: '4px 12px',
             background: '#171C26',
             border: `2px solid ${on ? theme.core : withAlpha(theme.dim, 0.28)}`,
             borderRadius: 6,
@@ -200,8 +203,8 @@ export const LineGauge: React.FC<{lit: number; y?: number}> = ({lit, y = 972}) =
             opacity: on ? 1 : 0.45,
           }}
         >
-          <span style={{fontFamily: theme.mono, fontSize: 26, color: on ? theme.text : theme.dim}}>{g.label}</span>
-          <span style={{fontFamily: theme.sans, fontSize: 18, color: on ? theme.core : theme.dim}}>{g.sub}</span>
+          <span style={{fontFamily: theme.mono, fontSize: 20, color: on ? theme.text : theme.dim}}>{g.label}</span>
+          <span style={{fontFamily: theme.sans, fontSize: 14, color: on ? theme.core : theme.dim}}>{g.sub}</span>
         </div>
       );
     })}
@@ -285,9 +288,18 @@ export const QuoteCard: React.FC<{
   );
 };
 
-/** 破坏性实验封条卡（mono 徽标，实验编号唯一变量） */
-export const ExpBadge: React.FC<{x: number; y: number; at: number; n: number}> = ({x, y, at, n}) => {
-  const e = useEnter('fall', {at, dur: DUR.f4});
+/** 破坏性实验封条卡（mono 徽标，实验编号唯一变量）。
+ *  size 单一事实源：md＝让位窗前小徽标（24px 档）；lg＝自制段主画面放大档（27px 档）。
+ *  收敛自 P1/P2 各自复制的 SealCard（2026-10-02 评审：三实现两规格 → 一处两档）。 */
+export const ExpBadge: React.FC<{x: number; y: number; at: number; n: number; size?: 'md' | 'lg'}> = ({
+  x,
+  y,
+  at,
+  n,
+  size = 'md',
+}) => {
+  const lg = size === 'lg';
+  const e = useEnter('fall', {at, dur: DUR.f4, dist: lg ? 90 : 30});
   return (
     <div
       style={{
@@ -295,14 +307,14 @@ export const ExpBadge: React.FC<{x: number; y: number; at: number; n: number}> =
         left: x,
         top: y,
         ...e,
-        padding: '10px 26px',
+        padding: lg ? '12px 32px' : '10px 26px',
         background: withAlpha(theme.deny, 0.12),
-        border: `2px dashed ${withAlpha(theme.deny, 0.8)}`,
-        borderRadius: 8,
+        border: `${lg ? 2.5 : 2}px dashed ${withAlpha(theme.deny, lg ? 0.85 : 0.8)}`,
+        borderRadius: lg ? 10 : 8,
         fontFamily: theme.mono,
-        fontSize: 24,
+        fontSize: lg ? 27 : 24,
         color: theme.deny,
-        letterSpacing: 2,
+        letterSpacing: lg ? 3 : 2,
       }}
     >
       {`破坏性实验 · ${n}`}

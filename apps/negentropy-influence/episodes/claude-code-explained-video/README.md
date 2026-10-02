@@ -1,6 +1,6 @@
 # 《工具与执行：一个循环，三层外设》科普视频工程
 
-> 交付状态：**v1 已交付（2026-10-02）**——13:17.0 = 797s @1080p30 · 141 句 3326 字 · story 档 df=1.24 · archify 14 图 67 章（13 新绘＋five-layer 复用；cue 62 · 锚定 44% · 5 型）· 机器门全绿 + 目检过。归档 `~/Documents/video/claude-code-explained/` v1 + `_captions/`（旧《三层装置》v1/v2 原位保留，本集为完全重制替换）。发布顺序见 [../../series.json](../../series.json)（工作区根）。
+> 交付状态：**v1 已交付（2026-10-02）**——13:17.0 = 797s @1080p30 · 141 句 3326 字 · story 档 df=1.24 · archify 14 图 67 章（13 新绘＋five-layer 复用；cue 62 · 锚定 44% · 5 型）· 机器门 check_series/check_script FAIL 0 · 覆盖门 FAIL 0 / WARN 3（2 条叙事重组 by-design ＋ 1 条 verdict 跨图同名章解析限制——stop-reason-race 与 lookup-failure 各有 `verdict` 章，覆盖门 token 全局匹配下双镜声明必剩一条错位 WARN，根治须章改名重录）+ 目检过。归档 `~/Documents/video/claude-code-explained/` v1 + `_captions/`（旧《三层装置》v1/v2 原位保留，本集为完全重制替换）。发布顺序见 [../../series.json](../../series.json)（工作区根）。
 
 ## 目录结构
 

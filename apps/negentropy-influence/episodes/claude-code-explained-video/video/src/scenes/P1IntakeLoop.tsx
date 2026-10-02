@@ -15,7 +15,7 @@ import {AbsoluteFill, Sequence} from 'remotion';
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Doctor, LineGauge, ProvenanceTag, withAlpha} from '../components/clinic';
+import {Doctor, ExpBadge, LineGauge, ProvenanceTag, withAlpha} from '../components/clinic';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 import {
   DUR,
@@ -406,32 +406,7 @@ const FaxStack: React.FC<{atPages: number; atStamp: number}> = ({atPages, atStam
   );
 };
 
-// ── 1-E 实验封条卡 + 双轨小卡 ──────────────────────────────────────────────
-
-/** 破坏性实验封条卡（scene 自定义装置——@enter:fall 由本镜自证） */
-const SealCard: React.FC<{at: number; n: number}> = ({at, n}) => {
-  const e = useEnter('fall', {at, dur: DUR.f4, dist: 90});
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        left: 742,
-        top: 408,
-        ...e,
-        padding: '12px 32px',
-        background: withAlpha(theme.deny, 0.12),
-        border: `2.5px dashed ${withAlpha(theme.deny, 0.85)}`,
-        borderRadius: 10,
-        fontFamily: theme.mono,
-        fontSize: 27,
-        color: theme.deny,
-        letterSpacing: 3,
-      }}
-    >
-      {`破坏性实验 · ${n}`}
-    </div>
-  );
-};
+// ── 1-E 实验封条卡（ExpBadge lg 档，clinic 共享）+ 双轨小卡 ────────────────
 
 /** p1-19 双轨小卡：旧判据（信迟到的标记）vs 新判据（看病历内容）对切 */
 const DualTrack: React.FC<{at: number}> = ({at}) => {
@@ -761,7 +736,7 @@ export const P1IntakeLoop: React.FC<{scene: SceneRange}> = ({scene}) => {
         />
         {/* p1-16 前半：实验封条卡（句尾让位给 stop-late） */}
         <Sequence durationInFrames={seal16} name="1-E 实验封条">
-          <SealCard at={2} n={1} />
+          <ExpBadge x={742} y={408} at={2} n={1} size="lg" />
         </Sequence>
         {/* p1-19 回落：双轨小卡（旧页/新码两卡对切） */}
         <Sequence from={at('p1-19') - bE.from} durationInFrames={dur('p1-19')} name="1-E 双轨小卡">

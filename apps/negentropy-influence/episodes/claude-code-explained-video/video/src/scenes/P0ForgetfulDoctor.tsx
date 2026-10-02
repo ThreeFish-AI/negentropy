@@ -22,13 +22,14 @@ import {
   withAlpha,
 } from '../components/clinic';
 import {ArchifyRecap} from '../components/ArchifyRecap';
-import {DUR, useCount, useEnter, useImpulse, useReveal, useStagger} from '../motion';
+import {DUR, useCount, useEnter, useImpulse, useStagger} from '../motion';
 
-/** 聊天框两侧（0-A）——左用户敲字、右模型回复，白纸隐喻卡 */
+/** 聊天框两侧（0-A）——左用户敲字、右模型回复，白纸隐喻卡。
+ *  白纸卡只放压短关键词（「一张白纸 · 全忘」），不逐字复述口播 p0-03——
+ *  RSI-007 双层字幕纪律（2026-10-02 评审修复，同 0-B 金句卡压短形态）。 */
 const ChatDuo: React.FC<{atChat: number; atPaper: number}> = ({atChat, atPaper}) => {
   const enters = useStagger(2, {at: atChat, stride: 8, dur: DUR.f5});
   const paper = useEnter('fall', {at: atPaper, dur: DUR.f5, dist: 90});
-  const scatter = useReveal('进来一批文字 · 吐出一批文字 · 转身就忘', {at: atPaper + 6, cps: 10});
   return (
     <>
       {[
@@ -73,7 +74,7 @@ const ChatDuo: React.FC<{atChat: number; atPaper: number}> = ({atChat, atPaper})
           color: theme.dim,
         }}
       >
-        {'一张白纸 · '}{scatter}
+        {'一张白纸 · 全忘'}
       </div>
     </>
   );
@@ -114,6 +115,10 @@ export const P0ForgetfulDoctor: React.FC<{scene: SceneRange}> = ({scene}) => {
     <AbsoluteFill>
       <Sequence {...bA} name="0-A 开场设问与白纸">
         <ChatDuo atChat={2} atPaper={at('p0-03') - bA.from} />
+        {/* 登记角标 llm(messages)——英文标识符只进画面角标的唯一落点（storyboard 0-A 双重登记） */}
+        <div style={{position: 'absolute', left: 246, top: 64}}>
+          <FootnoteGhost at={2}>{'llm(messages)'}</FootnoteGhost>
+        </div>
       </Sequence>
 
       <Sequence {...bB} name="0-B 人肉往返">

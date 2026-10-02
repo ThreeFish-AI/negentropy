@@ -4,7 +4,7 @@
 >
 > **信源地图**：章→集归属、双轨钉选（本集钉仓库 main @ `ce8f9f18`，17 章整合版 · 171 精读轨）只登记在系列级信源地图，本文件不重述：[../../../source-map/claude-code-explained.md](../../../source-map/claude-code-explained.md)（机器版 [claude-code-explained.toml](../../../source-map/claude-code-explained.toml)）。
 >
-> **首要信源（171 号精读笔记）**：[../../../../../docs/research/agent-harness/171-claude-code-tooling-execution.md](../../../../../docs/research/agent-harness/171-claude-code-tooling-execution.md)——三轨证据与五个破坏性实验的完整分析。取证日本仓 HEAD = `47e662dbb`（171 最后修订）。本文件凡写「171 §N」均指该文第 N 节。
+> **首要信源（171 号精读笔记）**：[../../../../../docs/research/agent-harness/171-claude-code-tooling-execution.md](../../../../../docs/research/agent-harness/171-claude-code-tooling-execution.md)——三轨证据与五个破坏性实验的完整分析。取证日：本仓 HEAD = `47e662dbb`（171 最后修订）。本文件凡写「171 §N」均指该文第 N 节。
 >
 > **提取方式与日期**：2026-10-01，字节归档 [`source-archive/ce8f9f1/`](./source-archive/ce8f9f1/)（固定提交 `ce8f9f186058939da54c9d6fead78dfb5d0fd6c3`，2026-09-28，MIT；出处表见 [source-archive/README.md](./source-archive/README.md)）；全指纹（raw/text sha256、字节数、行数）见 [sources.toml](./sources.toml)。站点页快照不在本地，站点叙事一律经 171 转引并标【二】。
 
@@ -62,7 +62,7 @@
 6. **run_bash 内置危险命令黑名单**（s01 已有最小拦截层，非零防护起步）：5 个危险模式子串匹配（`["rm -rf /", "sudo", "shutdown", "reboot", "> /dev/"]`），命中返回错误字符串——不执行、不抛异常、**不问人**。锚点：`code.py:80-83`（dangerous 列表 `code.py:81`）。此层与 s03 闸门不同：拦截结果以错误串回喂模型，无规则匹配与用户审批。
 7. **执行防护三件套**：超时 120 秒、stdout+stderr 合并截断 50000 字符、空输出占位 `(no output)`——模型永远收到非空字符串，异常全部捕为错误串不炸循环。锚点：`code.py:84-92`（`timeout=120` 在 `code.py:86`、`out[:50000]` 在 `code.py:88`）。
 8. **SYSTEM 锚定工作目录 + 行为指令**：`f"You are a coding agent at {os.getcwd()}. … Use bash to solve tasks. Act, don't explain."`。锚点：`code.py:62-65`。
-9. **OS-aware 环境提示**（ce8f9f1 相对上一钉 +10/11 行的主体，source-map 记 #586/#587「OS-aware shell context，无机制级变更」）：按 `os.name` 给出 Windows cmd.exe / Unix-like shell 两种环境说明。锚点：`code.py:56-61`（ENVIRONMENT_PROMPT 三元分支）。
+9. **OS-aware 环境提示**（ce8f9f1 相对上一钉毛增 +10/11 行的主体——各删 1 行 SYSTEM、净增 +9/10，与 source-map「净增」口径互注，source-map 记 #586/#587「OS-aware shell context，无机制级变更」）：按 `os.name` 给出 Windows cmd.exe / Unix-like shell 两种环境说明。锚点：`code.py:56-61`（ENVIRONMENT_PROMPT 三元分支）。
 10. **多轮 REPL 会话**：入口为交互式 REPL，`history` 列表跨提问累积，退出词 `q/exit`；会话末打印模型最终 text block。锚点：`code.py:130-151`。
 11. **终端观测装修**：被执行命令黄色 ANSI 高亮打印（`$ ` 前缀）、终端只预览输出前 200 字符（完整截断内容仍回喂模型）、提示符用 `\001/\002` 零宽标记防 readline 错位。锚点：`code.py:116-118`、`code.py:137-138`（注释 `# \001/\002 tell Readline the ANSI escapes have zero display width.`）。
 12. **macOS 兼容与网关自适配**：readline 四条绑定修 macOS libedit UTF-8 退格（课程仓库 issue #143）；设 `ANTHROPIC_BASE_URL` 时移除 `ANTHROPIC_AUTH_TOKEN` 并以 BASE_URL 构造客户端。锚点：`code.py:35-43`、`code.py:50-53`。
