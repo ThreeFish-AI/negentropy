@@ -12,8 +12,87 @@ import type {SceneRange} from '../types';
 import {Panel} from '../components/motifs';
 import {HarnessBadge} from '../components/harness-stack';
 import {ArchifyRecap} from '../components/ArchifyRecap';
+import {DUR, useProgress} from '../motion';
 
 const BADGE_STYLE: React.CSSProperties = {top: 64};
+
+/** 3-C 规范走查：标签常驻垫纸（左）→ 点名（中）→ 手册整本抽出经工具结果落进消息流（右） */
+const SkillWalk: React.FC<{at08: number; at10: number; at11: number}> = ({at08, at10, at11}) => {
+  const base = useProgress(at08, DUR.f5);
+  const pick = useProgress(at10, DUR.f5);
+  const enter = useProgress(at11, DUR.f6);
+  return (
+    <AbsoluteFill style={{pointerEvents: 'none'}}>
+      <HarnessBadge style={BADGE_STYLE} />
+      {/* 左：系统指令区（垫纸）——标签常驻 */}
+      <div style={{position: 'absolute', left: 240, top: 280, width: 430, opacity: base}}>
+        <div style={{fontFamily: theme.sans, fontSize: 19, color: theme.dim, letterSpacing: 3, marginBottom: 14}}>
+          {'系统指令区 · 每轮常驻'}
+        </div>
+        {['sql-style　SQL 规范', 'api-doc　接口约定', 'react-style　前端规范'].map((t, i) => (
+          <div
+            key={t}
+            style={{
+              padding: '12px 20px',
+              marginBottom: 10,
+              borderRadius: 8,
+              background: theme.panel,
+              border: `1px solid ${i === 0 ? theme.mechDeep : theme.panelBorder}`,
+              fontFamily: theme.mono,
+              fontSize: 20,
+              color: i === 0 ? theme.mech : theme.dim,
+            }}
+          >
+            {t}
+          </div>
+        ))}
+        <div style={{fontFamily: theme.sans, fontSize: 17, color: theme.dim, marginTop: 10, opacity: base}}>
+          {'一张标签 · 上百 token（教程作者估算）'}
+        </div>
+      </div>
+      {/* 中：点名动作 */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 760,
+          top: 420,
+          opacity: pick,
+          fontFamily: theme.sans,
+          fontSize: 22,
+          color: theme.text,
+          padding: '12px 24px',
+          borderRadius: 10,
+          border: `1px dashed ${theme.mechDeep}`,
+        }}
+      >
+        {'点名 · load_skill("sql-style")'}
+      </div>
+      {/* 右：消息流——手册整本落入 */}
+      <div style={{position: 'absolute', left: 1150, top: 300, width: 480, opacity: enter}}>
+        <div style={{fontFamily: theme.sans, fontSize: 19, color: theme.dim, letterSpacing: 3, marginBottom: 14}}>
+          {'消息流 · 这一轮才付全价'}
+        </div>
+        <div
+          style={{
+            padding: '20px 26px',
+            borderRadius: 10,
+            background: `${theme.mech}14`,
+            border: `1px solid ${theme.mechDeep}`,
+            fontFamily: theme.serif,
+            fontSize: 24,
+            color: theme.text,
+            lineHeight: 1.7,
+          }}
+        >
+          {'《SQL 规范》全文'}
+          <div style={{fontFamily: theme.sans, fontSize: 17, color: theme.dim, marginTop: 10}}>
+            {'约两千 token · 随历史携带'}
+          </div>
+        </div>
+      </div>
+    </AbsoluteFill>
+  );
+};
 
 export const P3Skills: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (fromId: string, toId?: string) => beatWindow(scene.sentences, scene.from, fromId, toId);
@@ -44,10 +123,7 @@ export const P3Skills: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bC} name="3-C 规范走查">
-        {/* TODO(实装): 标签常驻垫纸 + 点名后手册抽出经工具结果落进消息流（角标 load_skill） */}
-        <AbsoluteFill style={{alignItems: 'center', justifyContent: 'center'}}>
-          <Panel accent={theme.mech}>{'SQL 规范走查（待实装）'}</Panel>
-        </AbsoluteFill>
+        <SkillWalk at08={0} at10={at('p3-10') - bC.from} at11={at('p3-11') - bC.from} />
       </Sequence>
 
       <Sequence {...bD} name="3-D 两种命运">

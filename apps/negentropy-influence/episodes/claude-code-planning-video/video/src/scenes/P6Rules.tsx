@@ -76,6 +76,53 @@ const SeriesFinale: React.FC<{span: number; atCards: number}> = ({span, atCards}
   );
 };
 
+/** 6-B 装置：争议双栏（全新上下文 ↔ 缓存友好前缀）+ 第二对取舍两行 */
+const ControversyCols: React.FC<{at07: number; at10b: number}> = ({at07, at10b}) => {
+  const cols = useStagger(2, {at: at07, dur: 18, stride: 14});
+  const pair2 = useProgress(at10b, 18);
+  return (
+    <AbsoluteFill style={{pointerEvents: 'none'}}>
+      <HarnessBadge style={BADGE_STYLE} />
+      <div style={{position: 'absolute', left: 230, top: 270, display: 'flex', gap: 60}}>
+        {[
+          {t: '教学版', s: '全新上下文', why: '图的是正确', tone: theme.mech},
+          {t: '真实产品侧', s: '缓存友好前缀', why: '图的是成本（教程作者源码分析）', tone: theme.core},
+        ].map((c, i) => (
+          <div
+            key={c.s}
+            style={{
+              width: 480,
+              padding: '24px 32px',
+              borderRadius: 12,
+              background: theme.panel,
+              border: `1px solid ${c.tone}77`,
+              opacity: cols[i] ?? 0,
+            }}
+          >
+            <div style={{fontFamily: theme.sans, fontSize: 18, color: theme.dim, letterSpacing: 3}}>{c.t}</div>
+            <div style={{fontFamily: theme.serif, fontSize: 29, color: c.tone, marginTop: 10}}>{c.s}</div>
+            <div style={{fontFamily: theme.sans, fontSize: 20, color: theme.text, marginTop: 12}}>{c.why}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{position: 'absolute', left: 0, top: 560, width: 1920, textAlign: 'center', opacity: cols[1] ?? 0, fontFamily: theme.sans, fontSize: 22, color: theme.dim}}>
+        {'两派账本不同 · 都对'}
+      </div>
+      <div style={{position: 'absolute', left: 380, top: 680, width: 1160, opacity: pair2}}>
+        {['知识放消息流 · 省钱但会被裁', '常驻指令区 · 稳定但每轮花钱'].map((t) => (
+          <div key={t} style={{fontFamily: theme.serif, fontSize: 24, color: theme.text, textAlign: 'center', lineHeight: 2.1}}>
+            {t}
+          </div>
+        ))}
+        <div style={{fontFamily: theme.sans, fontSize: 19, color: theme.dim, textAlign: 'center', marginTop: 8}}>
+          {'没有免费午餐 · 按使用频率分档'}
+        </div>
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+
 export const P6Rules: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (fromId: string, toId?: string) => beatWindow(scene.sentences, scene.from, fromId, toId);
   const at = (id: string) => w(id).from;
@@ -101,10 +148,7 @@ export const P6Rules: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bB} name="6-B 争议双栏">
-        {/* TODO(实装): 全新上下文（正确）↔ 缓存友好前缀（成本）天平；第二对取舍两行 */}
-        <AbsoluteFill style={{alignItems: 'center', justifyContent: 'center'}}>
-          <Panel accent={theme.mech}>{'争议双栏 + 取舍两行（待实装）'}</Panel>
-        </AbsoluteFill>
+        <ControversyCols at07={0} at10b={at('p6-10b') - bB.from} />
       </Sequence>
 
       <Sequence {...bC} name="6-C 护栏与口径">

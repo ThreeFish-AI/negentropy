@@ -13,8 +13,124 @@ import type {SceneRange} from '../types';
 import {Panel} from '../components/motifs';
 import {HarnessBadge} from '../components/harness-stack';
 import {ArchifyRecap} from '../components/ArchifyRecap';
+import {DUR, useProgress, useStagger} from '../motion';
 
 const BADGE_STYLE: React.CSSProperties = {top: 64};
+
+/** 5-B 修打印机三拍：没墨换墨盒 / 卡纸抽纸 / 断电换备用机——登记表类比带失配句角标 */
+const PrinterAnalogy: React.FC<{at04: number; at05: number; at06: number}> = ({at04, at05, at06}) => {
+  const cases = useStagger(2, {at: at04, dur: DUR.f4, stride: DUR.f3});
+  const p3 = useProgress(at05, DUR.f5);
+  const noBlind = useProgress(at06, DUR.f5);
+  const rows = [
+    {sym: '没墨', fix: '换墨盒再打', color: 'mech'},
+    {sym: '卡纸', fix: '抽纸重打', color: 'mech'},
+    {sym: '连续断电', fix: '换备用机', color: 'danger'},
+  ] as const;
+  const tone = (k: string) => (k === 'danger' ? theme.danger : k === 'mech' ? theme.mech : theme.dim);
+  return (
+    <AbsoluteFill style={{pointerEvents: 'none'}}>
+      <HarnessBadge style={BADGE_STYLE} />
+      <div style={{position: 'absolute', left: 480, top: 250, width: 960}}>
+        {rows.map((r, i) => {
+          const vis = i < 2 ? (cases[i] ?? 0) : p3;
+          return (
+            <div
+              key={r.sym}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 26,
+                padding: '22px 32px',
+                marginBottom: 18,
+                borderRadius: 12,
+                background: theme.panel,
+                border: `1px solid ${i === 2 ? `${theme.danger}88` : theme.panelBorder}`,
+                opacity: vis,
+                transform: `translateX(${(1 - vis) * -24}px)`,
+              }}
+            >
+              <div style={{fontFamily: theme.serif, fontSize: 28, color: tone(r.color), width: 190}}>
+                {r.sym}
+              </div>
+              <div style={{fontFamily: theme.sans, fontSize: 22, color: theme.dim}}>→</div>
+              <div style={{fontFamily: theme.serif, fontSize: 28, color: theme.text}}>{r.fix}</div>
+            </div>
+          );
+        })}
+        {/* 拍三：不盲按——对着断电猛按打印键打红叉 */}
+        <div
+          style={{
+            marginTop: 14,
+            padding: '16px 32px',
+            borderRadius: 12,
+            border: `1px dashed ${theme.danger}aa`,
+            opacity: noBlind,
+            fontFamily: theme.sans,
+            fontSize: 23,
+            color: theme.danger,
+            textAlign: 'center',
+          }}
+        >
+          {'没有人对着断电猛按打印键'}
+        </div>
+      </div>
+      <div
+        style={{
+          position: 'absolute',
+          left: 0,
+          bottom: 170,
+          width: 1920,
+          textAlign: 'center',
+          opacity: noBlind,
+          fontFamily: theme.sans,
+          fontSize: 19,
+          color: theme.dim,
+          letterSpacing: 2,
+        }}
+      >
+        {'类比边界：打印机靠人分诊，这里靠代码自动分诊；记账要回工程术语'}
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+/** 5-H 装置：五挂点齐亮收拢——五个 mech 光点在循环环上同时呼吸 */
+const AllMountsLit: React.FC<{span: number}> = ({span}) => {
+  const t = useProgress(Math.round(span * 0.3), 22);
+  return (
+    <AbsoluteFill style={{pointerEvents: 'none'}}>
+      <HarnessBadge style={BADGE_STYLE} />
+      <div style={{position: 'absolute', left: 960, top: 420}}>
+        {/* 循环环（core 恒定锚） */}
+        <div style={{position: 'absolute', left: -130, top: -130, width: 260, height: 260, borderRadius: 130, border: `2.5px solid ${theme.core}`}} />
+        {[0, 72, 144, 216, 288].map((deg, i) => {
+          const r = (deg * Math.PI) / 180;
+          return (
+            <div
+              key={i}
+              style={{
+                position: 'absolute',
+                left: Math.cos(r) * 130 - 11,
+                top: Math.sin(r) * 130 - 11,
+                width: 22,
+                height: 22,
+                borderRadius: 11,
+                background: theme.mech,
+                boxShadow: `0 0 ${16 + 10 * Math.sin(t * Math.PI)}px ${theme.mech}`,
+                opacity: 0.4 + 0.6 * t,
+              }}
+            />
+          );
+        })}
+      </div>
+      <div style={{position: 'absolute', left: 0, top: 640, width: 1920, textAlign: 'center', fontFamily: theme.sans, fontSize: 22, color: theme.dim, opacity: t}}>
+        {'五个装置到齐 · 回到全景'}
+      </div>
+    </AbsoluteFill>
+  );
+};
+
 
 export const P5Recovery: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (fromId: string, toId?: string) => beatWindow(scene.sentences, scene.from, fromId, toId);
@@ -41,10 +157,7 @@ export const P5Recovery: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bB} name="5-B 修打印机三拍">
-        {/* TODO(实装): 换墨盒/抽纸/换备用机；失配句角标「记账无对应，回工程术语」 */}
-        <AbsoluteFill style={{alignItems: 'center', justifyContent: 'center'}}>
-          <Panel accent={theme.core}>{'修打印机意象三拍（待实装）'}</Panel>
-        </AbsoluteFill>
+        <PrinterAnalogy at04={0} at05={at('p5-05') - bB.from} at06={at('p5-06') - bB.from} />
       </Sequence>
 
       <Sequence {...bC} name="5-C 路径一截断">
@@ -85,10 +198,7 @@ export const P5Recovery: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bH} name="5-H 五挂点齐亮">
-        {/* TODO(实装): 五挂点齐亮全景缩略收拢（@breathe） */}
-        <AbsoluteFill style={{alignItems: 'center', justifyContent: 'center'}}>
-          <Panel accent={theme.mech}>{'五挂点齐亮收拢（待实装）'}</Panel>
-        </AbsoluteFill>
+        <AllMountsLit span={bH.durationInFrames} />
       </Sequence>
     </AbsoluteFill>
   );

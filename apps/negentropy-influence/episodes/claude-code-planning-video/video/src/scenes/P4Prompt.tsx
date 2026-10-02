@@ -12,8 +12,151 @@ import type {SceneRange} from '../types';
 import {Panel} from '../components/motifs';
 import {HarnessBadge} from '../components/harness-stack';
 import {ArchifyRecap} from '../components/ArchifyRecap';
+import {DUR, useProgress, useStagger} from '../motion';
+import {useFlowDash} from '../motion';
 
 const BADGE_STYLE: React.CSSProperties = {top: 64};
+
+/** 4-B 每日菜单三拍：招牌菜恒印 / 时令菜看货 / 昨天那页复用（=缓存）——登记表类比带失配句角标 */
+const MenuAnalogy: React.FC<{at04: number; at05: number; at06: number}> = ({at04, at05, at06}) => {
+  const p1 = useStagger(2, {at: at04, dur: DUR.f4, stride: DUR.f2});
+  const p2 = useProgress(at05, DUR.f5);
+  const p3 = useProgress(at06, DUR.f5);
+  return (
+    <AbsoluteFill style={{pointerEvents: 'none'}}>
+      <HarnessBadge style={BADGE_STYLE} />
+      {/* 菜单页主体 */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 660,
+          top: 220,
+          width: 600,
+          padding: '36px 44px',
+          borderRadius: 14,
+          background: theme.panel,
+          border: `1px solid ${theme.panelBorder}`,
+          transform: `rotate(-1.2deg)`,
+        }}
+      >
+        <div style={{fontFamily: theme.serif, fontSize: 30, color: theme.text, letterSpacing: 6, marginBottom: 26}}>
+          {'每 日 菜 单'}
+        </div>
+        {/* 拍一：招牌菜恒印 */}
+        <div style={{opacity: p1[0] ?? 0, marginBottom: 18}}>
+          <div style={{fontFamily: theme.sans, fontSize: 19, color: theme.dim, letterSpacing: 3}}>
+            {'招牌 · 永远印'}
+          </div>
+          <div style={{fontFamily: theme.serif, fontSize: 27, color: theme.core, marginTop: 6}}>
+            {'身份 · 工具 · 工作区'}
+          </div>
+        </div>
+        {/* 拍二：时令菜看货（记忆段） */}
+        <div style={{opacity: (p1[1] ?? 0) * p2, marginBottom: 18}}>
+          <div style={{fontFamily: theme.sans, fontSize: 19, color: theme.dim, letterSpacing: 3}}>
+            {'时令 · 看有没有货'}
+          </div>
+          <div
+            style={{
+              fontFamily: theme.serif,
+              fontSize: 27,
+              marginTop: 6,
+              color: p2 > 0.5 ? theme.mech : theme.dim,
+              textDecoration: p2 > 0.5 ? 'none' : 'line-through',
+            }}
+          >
+            {'记忆段（文件在才印）'}
+          </div>
+        </div>
+        {/* 拍三：昨天那页复用（缓存） */}
+        <div style={{opacity: p3}}>
+          <div style={{fontFamily: theme.sans, fontSize: 19, color: theme.dim, letterSpacing: 3}}>
+            {'食材没变 · 直接用昨天那页'}
+          </div>
+          <div
+            style={{
+              marginTop: 10,
+              padding: '8px 18px',
+              borderRadius: 8,
+              border: `1px dashed ${theme.ok}88`,
+              fontFamily: theme.sans,
+              fontSize: 22,
+              color: theme.ok,
+              display: 'inline-block',
+            }}
+          >
+            {'这就是缓存'}
+          </div>
+        </div>
+      </div>
+      {/* 失配句角标（类比纪律） */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 0,
+          bottom: 170,
+          width: 1920,
+          textAlign: 'center',
+          opacity: p3,
+          fontFamily: theme.sans,
+          fontSize: 19,
+          color: theme.dim,
+          letterSpacing: 2,
+        }}
+      >
+        {'类比边界：不覆盖分段维护，也不覆盖服务端那层缓存'}
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+/** 4-G 两层缓存双栏：本地拼串层（左）vs 服务端前缀层（右）——开头不变才能按开头复用 */
+const TwoLayerCache: React.FC<{at20: number; at20b: number}> = ({at20, at20b}) => {
+  const left = useProgress(at20, DUR.f5);
+  const right = useProgress(at20b, DUR.f5);
+  const col = (title: string, sub: string, body: string, tone: string, vis: number, dashed: boolean) => (
+    <div
+      style={{
+        width: 560,
+        padding: '26px 32px',
+        borderRadius: 12,
+        background: theme.panel,
+        border: `1px solid ${dashed ? `${tone}88` : theme.panelBorder}`,
+        opacity: vis,
+        borderStyle: dashed ? 'dashed' : 'solid',
+      }}
+    >
+      <div style={{fontFamily: theme.sans, fontSize: 19, color: theme.dim, letterSpacing: 3}}>{title}</div>
+      <div style={{fontFamily: theme.serif, fontSize: 27, color: tone, marginTop: 10}}>{sub}</div>
+      <div style={{fontFamily: theme.sans, fontSize: 21, color: theme.text, marginTop: 16, lineHeight: 1.8}}>{body}</div>
+    </div>
+  );
+  return (
+    <AbsoluteFill style={{pointerEvents: 'none'}}>
+      <HarnessBadge style={BADGE_STYLE} />
+      <div style={{position: 'absolute', left: 210, top: 320, display: 'flex', gap: 80}}>
+        {col('第一层 · 本地', '拼串的功夫', '状态没变，不重新拼那页——省的是自己动手的功夫', theme.mech, left, false)}
+        {col('第二层 · 服务端', '前缀的重算', '开头一段保持不变，服务端才能按开头复用', theme.core, right, true)}
+      </div>
+      <div
+        style={{
+          position: 'absolute',
+          left: 0,
+          bottom: 190,
+          width: 1920,
+          textAlign: 'center',
+          opacity: right,
+          fontFamily: theme.sans,
+          fontSize: 22,
+          color: theme.dim,
+          letterSpacing: 2,
+        }}
+      >
+        {'两码事 —— 各省各的账'}
+      </div>
+    </AbsoluteFill>
+  );
+};
 
 export const P4Prompt: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (fromId: string, toId?: string) => beatWindow(scene.sentences, scene.from, fromId, toId);
@@ -39,10 +182,7 @@ export const P4Prompt: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bB} name="4-B 每日菜单三拍">
-        {/* TODO(实装): 招牌菜恒印/时令菜看货/昨天那页复用（=缓存）；失配句角标 */}
-        <AbsoluteFill style={{alignItems: 'center', justifyContent: 'center'}}>
-          <Panel accent={theme.core}>{'每日菜单意象三拍（待实装）'}</Panel>
-        </AbsoluteFill>
+        <MenuAnalogy at04={0} at05={at('p4-05') - bB.from} at06={at('p4-06') - bB.from} />
       </Sequence>
 
       <Sequence {...bC} name="4-C 货架三章">
@@ -73,10 +213,7 @@ export const P4Prompt: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bG} name="4-G 两层缓存双栏">
-        {/* TODO(实装): 本地拼串层 vs 服务端前缀层「开头不变按开头复用」双栏，钩 P5 */}
-        <AbsoluteFill style={{alignItems: 'center', justifyContent: 'center'}}>
-          <Panel accent={theme.mechDeep}>{'两层缓存双栏 + 钩 P5（待实装）'}</Panel>
-        </AbsoluteFill>
+        <TwoLayerCache at20={at('p4-20') - bG.from} at20b={at('p4-20b') - bG.from} />
       </Sequence>
     </AbsoluteFill>
   );

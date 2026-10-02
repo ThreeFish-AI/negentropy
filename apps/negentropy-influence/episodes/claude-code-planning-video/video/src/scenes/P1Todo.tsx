@@ -128,6 +128,71 @@ const FiveRoundWalk: React.FC<{at11: number; at12: number; at13: number; span: n
   );
 };
 
+/** 1-F 装置：工序卡淡出标注内存态；过程条目自右涌入钩 P2 */
+const MemoryLimit: React.FC<{span: number; at19: number; at20: number}> = ({span, at19, at20}) => {
+  const memo = useProgress(at19, 18);
+  const flood = useProgress(at20, 20);
+  return (
+    <AbsoluteFill style={{pointerEvents: 'none'}}>
+      <div style={{position: 'absolute', left: 480, top: 340, width: 480, opacity: 1 - memo * 0.75, transform: `scale(${1 - memo * 0.12})`}}>
+        <Panel style={{padding: '24px 30px'}}>
+          <div style={{fontFamily: theme.serif, fontSize: 30, color: theme.text}}>{'待办清单'}</div>
+          <div style={{fontFamily: theme.sans, fontSize: 20, color: theme.dim, marginTop: 8}}>{'三态工序卡'}</div>
+        </Panel>
+      </div>
+      <div
+        style={{
+          position: 'absolute',
+          left: 1060,
+          top: 360,
+          opacity: memo,
+          padding: '18px 26px',
+          borderRadius: 10,
+          border: `1px solid ${theme.danger}77`,
+          background: `${theme.danger}12`,
+          fontFamily: theme.sans,
+          fontSize: 22,
+          color: theme.danger,
+        }}
+      >
+        {'内存态 · 进程退出即清'}
+      </div>
+      <div style={{position: 'absolute', left: 0, top: 560, width: 1920, height: 320, overflow: 'hidden', pointerEvents: 'none'}}>
+        {[0, 1, 2, 3, 4].map((i) => (
+          <div
+            key={i}
+            style={{
+              position: 'absolute',
+              left: 1920 - flood * (1400 + i * 120),
+              top: i * 62,
+              width: 300,
+              height: 46,
+              borderRadius: 8,
+              background: `${theme.mechDeep}22`,
+              border: `1px solid ${theme.mechDeep}55`,
+              opacity: flood,
+            }}
+          />
+        ))}
+        <div
+          style={{
+            position: 'absolute',
+            left: 1920 - flood * 620,
+            top: 190,
+            fontFamily: theme.sans,
+            fontSize: 22,
+            color: theme.dim,
+            opacity: flood,
+          }}
+        >
+          {'大过程涌进主线 →'}
+        </div>
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+
 export const P1Todo: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (fromId: string, toId?: string) => beatWindow(scene.sentences, scene.from, fromId, toId);
   const at = (id: string) => w(id).from;
@@ -181,10 +246,8 @@ export const P1Todo: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bF} name="1-F 内存态红线">
-        {/* TODO(实装): 工序卡淡出 + 「内存态·进程退出即清」标注 + 过程条目涌入钩 P2 */}
-        <AbsoluteFill style={{alignItems: 'center', justifyContent: 'center'}}>
-          <Panel accent={theme.mechDeep}>{'内存态红线 + 钩 P2（待实装）'}</Panel>
-        </AbsoluteFill>
+        <HarnessBadge style={BADGE_STYLE} />
+        <MemoryLimit span={bF.durationInFrames} at19={at('p1-19') - bF.from} at20={at('p1-20') - bF.from} />
       </Sequence>
     </AbsoluteFill>
   );
