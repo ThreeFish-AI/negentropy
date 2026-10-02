@@ -4,12 +4,12 @@ Context Layer 系列第 1 集。Snowflake Horizon Context（受治理上下文�
 （语义视图双不变量 / 行列级策略 / 语义级治理 / 验证锚定 VQR / 列级血缘 / Agent Identity / 分类纳管）
 逐件「讲机制 + 走查 + 拆掉一次」——零跨域剧场，gen2 白话直讲教学法（C 型信源直通承接）。
 
-> **交付状态 v1 终渲待审**（2026-10-02）：15:05.63 = 27169 帧 @30fps · 1920×1080（ffprobe 905.63s 与帧复算一致）· 96.9MB；
-> 归档 `~/Documents/video/context-layer/拆解 Horizon Context：含义怎么治理、答案怎么可信 v1.mp4` + `v1_captions/`。
+> **交付状态 v2 终渲待审**（2026-10-02，评审 H 轮）：15:05.90 = 27177 帧 @30fps · 1920×1080（ffprobe 视频流 27177 帧与帧复算一致）· 97.1MB；
+> 归档 `~/Documents/video/context-layer/拆解 Horizon Context：含义怎么治理、答案怎么可信 v2.mp4` + `v2_captions/`（v1 存档保留）。
 
 ## 结构
 
-- **八幕 156 句**（实测全片 15:05.63，首轮校准窗 [14.0, 16.3]；story 块合成实测 302 字/分含时距）：P0 三个症状一个病根 →
+- **八幕 156 句**（实测全片 15:05.90，首轮校准窗 [14.0, 16.3]；story 块合成实测 302 字/分含时距）：P0 三个症状一个病根 →
   P1 七机制地图 → P2 口径与现算（M1）→ P3 规则与执法（M2+M3）→ P4 背书与血缘（M4+M5）→
   P5 身份与纳管（M6+M7）→ P6 供给与生态 → P7 规律与边界
 - **story 段落演绎配音**：me-bright 声音克隆 + `script/narration.cues.toml` 导演台本（71 块情绪标记 · TTS 合成 78 块 + 7 句表演标点）
@@ -60,7 +60,9 @@ uv run --no-project $T/scripts/pipeline.py --project <P> render --final && capti
 - [x] tsc 零错 · archify 覆盖门 106 cue/67.9%/5 型 FAIL 0（WARN 15=叙事性章序重组 14 + 镜锚 1；该 1 为 7-B vendor-claim 同章跨镜接力声明，覆盖门 hit-first 语义的已知盲区——P7Laws 两条真实 cue 各自锚 p7-02/p7-03 已核验，渲染无误）
 - [x] ⑦ manifest 156 句全成 · 首轮校准回写 302 字/分 + 窗 [14.0, 16.3]（story 块合成消除块内停顿）
 - [x] ⑨ qa --check 五项 FAIL 0 WARN 0 · 八幕逐 scene FAIL 0 · beat-heads 91 帧 · 四帧视觉抽查（修复 2-I）
-- [x] ⑩ 终渲 15:05.63 落窗（ffprobe 905.63s 与 27169 帧÷30 双口径一致）· captions srt/vtt · deliver v1 + 字幕随片归档
+- [x] ⑩ 终渲 15:05.90 落窗（ffprobe 视频流 27177 帧与帧复算双口径一致）· captions srt/vtt · deliver v2 + 字幕随片归档
+- [x] H 轮（2026-10-02）：p2-21/22 口播对齐画面实例数字后 `[block.p2-20]` 重录（27169→27177 帧）；换场交界逐帧亮度
+  实测（句界 −2..+4 连续帧中区 max 单调无断层，P2×4/P4×3/3-G 全覆盖）；终渲修复句 qa --check 11 句 FAIL 0 WARN 0
 
 ## 重制差异（vs v6.1 旧版）
 
