@@ -118,10 +118,18 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       {/* 4-E 三条出路：miss-fallback@11（空窗后重现，恢复入场）→ outside-eval@13；
-          p4-12 三条出路卡 / p4-14 代价卡 + 虚线徽（官方文档） */}
+          p4-12 三条出路卡 / p4-14 代价卡 + 虚线徽（官方文档）。
+          两装置按句窗互斥（2-J 范式）：同为居中 AbsoluteFill 且无退场，滞留会在 p4-14
+          同窗叠加——CostCard 整卡遮盖「未命中」中卡并切左右卡（评审修复，实证帧 15171） */}
       <Sequence from={bE.from} durationInFrames={bE.durationInFrames} name="4-E 三条出路">
-        <ThreeExits at={at('p4-12') - bE.from} />
-        <CostCard at={at('p4-14') - bE.from} />
+        <Sequence from={at('p4-12') - bE.from} durationInFrames={dur('p4-12')} name="4-E-exits">
+          {/* 窗即 p4-12：局部帧 0 = 句首；p4-13 起 cue 整句遮盖，卸载无可感变化 */}
+          <ThreeExits at={0} />
+        </Sequence>
+        <Sequence from={at('p4-14') - bE.from} durationInFrames={dur('p4-14')} name="4-E-cost">
+          {/* 窗即 p4-14：局部帧 0 = 句首 */}
+          <CostCard at={0} />
+        </Sequence>
         <div style={{position: 'absolute', bottom: 150, left: 80}}>
           <EvidenceBadge level="dashed" at={at('p4-14') - bE.from} note="官方文档 · 优化代价" />
         </div>

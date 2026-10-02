@@ -1,14 +1,15 @@
 /** P7 规律与边界（p7-01..p7-19，19 句，无 p7-09；storyboard「P7 规律与边界」节）。
  *
- *  8 镜 / 13 条 archify cue（7-F 原生五卡实现——five-laws 图转 docs 资产；除 7-F 外每实例首 cue
- *  均与上一实例链尾跨实例背靠背 → lead={false}；7-F 隔 p7-12b 空窗恢复入场）：
+ *  8 镜 / 13 条 archify cue（7-F 原生五卡实现——five-laws 图转 docs 资产，无 cue 可接链；
+ *  其余实例首 cue 均与上一实例链尾跨实例背靠背 → lead={false}，唯 7-G 隔 p7-12b + 7-F
+ *  四句长空窗 ~26s 恢复入场）：
  *   7-A 徽墙+冷水 dual-baseline-evidence two-benchmarks@01 → evidence-grading vendor-claim@02
  *   7-B 读表三问 evidence-grading vendor-claim@03（同章重放，镜界背靠背）
  *   7-C 治理≠验证 grain-collapse day-pack-collapse@04→legal-but-wrong@05 + govern-vs-verify upstream-collapse@06
  *   7-D 玩具复现 grain-collapse measured-477-48@07（同 slug 跨实例）+ govern-vs-verify third-party-critique@08
  *   7-E 边界 perimeter-loss inside-effective@10→outside-void@11；p7-12/12b 空窗让护栏卡+dbt 角标全显
  *   7-F 五规律原生五卡逐句点亮 + 定义卡母题满屏叠影
- *   7-G 自测三问 three-claims-stack guess-only@17（接 7-F 链尾背靠背）→ governed-trust@18
+ *   7-G 自测三问 three-claims-stack guess-only@17（隔 7-F 长空窗恢复入场）→ governed-trust@18
  *   7-H 收拢入母题、翻转亮三色描边定格；尾幕渐黑 useFadeOut 从末 beat 总时长推导（红线四）
  *
  *  P7 角标带约定（v4 全屏独占的落点）：7-A..7-D 每句都挂 cue、镜内无空窗句，徽墙/
@@ -764,7 +765,9 @@ export const P7Laws: React.FC<{scene: SceneRange}> = ({scene}) => {
         />
       </Sequence>
 
-      {/* 7-G 自测三问：右侧边带竖排翻面（p7-18 起）+ 两章接力（接 7-F 链尾背靠背 → false） */}
+      {/* 7-G 自测三问：右侧边带竖排翻面（p7-18 起）+ 两章接力。
+          首 cue 恢复入场：上一 cue（not-industry-norm）止于 p7-12，隔 p7-12b + 7-F 四句
+          长空窗（~26s）——非背靠背，画框瞬现违 ArchifyRecap 契约（评审修复） */}
       <Sequence from={bG.from} durationInFrames={bG.durationInFrames} name="7-G 自测三问">
         <QuestionStack baseAt={at('p7-18') - bG.from} />
         <ArchifyRecap
@@ -774,7 +777,6 @@ export const P7Laws: React.FC<{scene: SceneRange}> = ({scene}) => {
             {chapterId: 'guess-only', at: at('p7-17') - bG.from, durationInFrames: dur('p7-17')},
             {chapterId: 'governed-trust', at: at('p7-18') - bG.from, durationInFrames: dur('p7-18')},
           ]}
-          lead={false}
         />
       </Sequence>
 
