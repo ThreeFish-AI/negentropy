@@ -369,18 +369,22 @@ const NEW_COLS = [
 
 const SchemaGrid: React.FC<{at: number; span: number}> = ({at, span}) => {
   const frame = useCurrentFrame();
-  const flow = useFlowDash({dash: 12, gap: 16, period: 30}); // 扫描波行进（@flowDash）
-  const flash = useImpulse({at: at + Math.round(span * 0.66), dur: 16, peak: 1}); // 波次命中 +phone 的点亮脉冲（@impulse）
-  const pending = useCount({to: NEW_COLS.length, at: at + 16, dur: 42}); // 新增待保护列计数（@count）
-  const appear = progress(frame, at, DUR.f4);
-  const droop = progress(frame, at + 30, Math.max(DUR.f6, span - 30)); // 标签员渐疲
-  const hit = progress(frame, at + Math.round(span * 0.66), DUR.f3);
   const COLS = 18;
   const ROWS = 8;
   const CELL = 40;
   const GAP = 8;
   const W = COLS * (CELL + GAP) - GAP;
   const H = ROWS * (CELL + GAP) - GAP;
+  // 波次命中 +phone 的点亮锚（评审 H 轮）：扫描线 84 帧周期（sweepX 同式反解），过
+  // +phone 列中心（c=4 → x = 4×48+20 = 212）在 t≈23 与 t≈107 两轮——锚第二轮过境，
+  // 波扫到列上的瞬间点亮（原锚 0.66×span 与波相位脱钩，走远后芯片才亮）
+  const hitAt = at + 84 + Math.round(((NEW_COLS[0].c * (CELL + GAP) + CELL / 2 + 40) / (W + 80)) * 84);
+  const flow = useFlowDash({dash: 12, gap: 16, period: 30}); // 扫描波行进（@flowDash）
+  const flash = useImpulse({at: hitAt, dur: 16, peak: 1}); // 波次命中 +phone 的点亮脉冲（@impulse）
+  const pending = useCount({to: NEW_COLS.length, at: at + 16, dur: 42}); // 新增待保护列计数（@count）
+  const appear = progress(frame, at, DUR.f4);
+  const droop = progress(frame, at + 30, Math.max(DUR.f6, span - 30)); // 标签员渐疲
+  const hit = progress(frame, hitAt, DUR.f3);
   const sweepX = (((Math.max(0, frame - at) % 84) / 84) * (W + 80)) - 40; // 波次循环扫过
   return (
     <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 34}}>

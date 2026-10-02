@@ -51,6 +51,9 @@ const withA = (hex: string, a: number): string => {
 const TERMS_HEAD = 30; // 3-B：四术语卡先落，随后 perpage 接棒
 const CLASP_HEAD = 36; // 3-D：定义卡+紫挂扣先扣，随后 single-point-bind 接棒
 const ABLATION_TAIL = 72; // 3-G：hide-not-block 让出 p3-14 尾窗给消融装置
+const ABLATION_OVERLAP = 8; // 3-G 换场交叉帧（评审 H 轮）：画框末 8 帧自淡出 × 装置提前 8 帧
+                              // 入场 × ArchifyYield 尾窗同步前移——三者同拍，消「画框卸载帧
+                              // 整屏空底 + yield×装置双重淡入吞掉 ~8 帧」的换场断层
 const CLASP_SEATED = -30; // 3-J 回照：挂扣在 3-D 已扣上——负锚 = 入场前已完成
 
 export const P3Policy: React.FC<{scene: SceneRange}> = ({scene}) => {
@@ -70,8 +73,8 @@ export const P3Policy: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bJ = w('p3-20', 'p3-21');
   // 3-F 走查四步锚在 p3-11 句窗的分数位（口播分句即步骤分界）
   const atP311 = (f: number) => at('p3-11') - bF.from + Math.round(dur('p3-11') * f);
-  // 3-G 消融装置的尾窗起点（hide-not-block 让出的部分）
-  const ablAt = at('p3-14') - bG.from + dur('p3-14') - ABLATION_TAIL;
+  // 3-G 消融装置的尾窗起点（hide-not-block 让出的部分，再提前 OVERLAP 帧与画框末淡出交叉）
+  const ablAt = at('p3-14') - bG.from + dur('p3-14') - ABLATION_TAIL - ABLATION_OVERLAP;
 
   return (
     <AbsoluteFill style={{background: theme.bg}}>
@@ -196,12 +199,15 @@ export const P3Policy: React.FC<{scene: SceneRange}> = ({scene}) => {
         <TeardownChip at={at('p3-12') - bF.from} text="D5 · 即将拆除：执行层检查" />
       </Sequence>
 
-      {/* 3-G 拆执行层：两章图让尾窗给红绿消融（左 90→560 泄露翻牌 / 右拦截墙落锁 @spring） */}
+      {/* 3-G 拆执行层：两章图让尾窗给红绿消融（左 90→560 泄露翻牌 / 右拦截墙落锁 @spring）。
+          换场三拍同锚（评审 H 轮）：yield 尾窗与装置起点均提前 OVERLAP 帧，画框 cue 末
+          OVERLAP 帧自淡出——装置在画框淡出与 yield 释放中渐显，画框卸载帧（240+OVERLAP）
+          装置已 ~半显，无空底帧 */}
       <Sequence {...bG} name="3-G 拆执行层">
         <ArchifyYield
           cues={[
             {at: at('p3-13') - bG.from, durationInFrames: dur('p3-13')},
-            {at: at('p3-14') - bG.from, durationInFrames: dur('p3-14') - ABLATION_TAIL},
+            {at: at('p3-14') - bG.from, durationInFrames: dur('p3-14') - ABLATION_TAIL - ABLATION_OVERLAP},
           ]}
         >
           <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
@@ -235,7 +241,7 @@ export const P3Policy: React.FC<{scene: SceneRange}> = ({scene}) => {
           caption="藏 vs 拦"
           cues={[
             {chapterId: 'teardown-leak', at: at('p3-13') - bG.from, durationInFrames: dur('p3-13')},
-            {chapterId: 'hide-not-block', at: at('p3-14') - bG.from, durationInFrames: dur('p3-14') - ABLATION_TAIL},
+            {chapterId: 'hide-not-block', at: at('p3-14') - bG.from, durationInFrames: dur('p3-14') - ABLATION_TAIL, exitFrames: ABLATION_OVERLAP},
           ]}
         />
       </Sequence>

@@ -34,6 +34,18 @@ const withA = (hex: string, a: number): string => {
   return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
 };
 
+/** 装置越过句界的滞留帧：后继画框 lead 入场弹簧 at:2 起步，局部帧 0–3 近全透明
+ *  （抽帧实测 max=17 纯底）——装置淡出若止于句界，死区仍是空底。 */
+const XF_TAIL = 6;
+
+/** 句窗末交叉淡出（4-E ThreeExits `until` 判例的通用化）：装置窗与句窗同长且无退场时，
+ *  句末硬卸载 + 后继（lead 入场章/QuoteCard pop）头部全透明会留空底。所在 Sequence
+ *  须延长 XF_TAIL 帧，until = 延长后的窗长——淡出窗 [句界−2, 句界+6] 跨过画框入场死区。 */
+const FadeTail: React.FC<{until: number; children: React.ReactNode}> = ({until, children}) => {
+  const frame = useCurrentFrame();
+  return <AbsoluteFill style={{opacity: 1 - progress(frame, until - 8, 8)}}>{children}</AbsoluteFill>;
+};
+
 export const P2Caliber: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (a: string, b?: string) => beatWindow(scene.sentences, scene.from, a, b);
   const at = (id: string) => w(id).from;
@@ -152,17 +164,20 @@ export const P2Caliber: React.FC<{scene: SceneRange}> = ({scene}) => {
         />
       </Sequence>
 
-      {/* 2-H Ann 走查：签名镜。装置组（StateTrace + 朴素路径对照 + 实心徽）止于 p2-20 句末卸载——
-          总宽 1786 超画框 1298，若滞留会在 p2-21/22 两侧外露，破坏全屏独占；卸载即让位两章图 */}
+      {/* 2-H Ann 走查：签名镜。装置组（StateTrace + 朴素路径对照 + 实心徽）止于 p2-20 句末
+          卸载让位两章图（总宽 1786 超画框 1298，滞留会在 p2-21/22 两侧外露破坏全屏独占）；
+          末 8 帧自淡出与 lead 入场章交叉淡化，消句界空底（评审 H 轮） */}
       <Sequence from={bH.from} durationInFrames={bH.durationInFrames} name="2-H Ann 走查">
-        <Sequence from={at('p2-18') - bH.from} durationInFrames={dur('p2-18', 'p2-20')} name="2-H-walk">
-          <AnnTrace
-            at={at('p2-18') - bH.from}
-            askAt={at('p2-19') - bH.from}
-            outAt={at('p2-20') - bH.from - 26}
-            naiveAt={at('p2-20') - bH.from - 8}
-            badgeAt={at('p2-20') - bH.from + 44}
-          />
+        <Sequence from={at('p2-18') - bH.from} durationInFrames={dur('p2-18', 'p2-20') + XF_TAIL} name="2-H-walk">
+          <FadeTail until={dur('p2-18', 'p2-20') + XF_TAIL}>
+            <AnnTrace
+              at={at('p2-18') - bH.from}
+              askAt={at('p2-19') - bH.from}
+              outAt={at('p2-20') - bH.from - 26}
+              naiveAt={at('p2-20') - bH.from - 8}
+              badgeAt={at('p2-20') - bH.from + 44}
+            />
+          </FadeTail>
         </Sequence>
         <ArchifyRecap
           slug="event-fanout"
@@ -180,21 +195,23 @@ export const P2Caliber: React.FC<{scene: SceneRange}> = ({scene}) => {
       {/* 2-I 拆门消融：p2-23 红绿消融同屏主画面（视觉抽查修复：原实现整镜被全屏图例遮盖），
           p2-24 archify 接力非键外键被拒章 */}
       <Sequence from={bI.from} durationInFrames={bI.durationInFrames} name="2-I 拆门消融">
-        <Sequence from={at('p2-23') - bI.from} durationInFrames={dur('p2-23')} name="2-I-ablation">
-          <AbsoluteFill style={{alignItems: 'center', justifyContent: 'center'}}>
-            <AblationPair
-              at={0}
-              width={1620}
-              minHeight={430}
-              left={{tag: '门拆掉', title: '注册期无校验', lines: ['外键 → 非键列 customers.plan', '垃圾定义静默入库', '行数失控的注册期引信'], flow: {}}}
-              right={{tag: '门在位', title: '注册期拦截', lines: ['structure check：非法定义', 'referenced column is not', 'PRIMARY KEY / UNIQUE —— 拒']}}
-            />
-          </AbsoluteFill>
-          {/* storyboard 2-I 指定的实心证据徽（消融同屏先例 3-G 同构，评审补齐）：
-              拦截行为锚 011 表 D6（玩具原型 structure check 实测） */}
-          <div style={{position: 'absolute', left: 80, bottom: 150}}>
-            <EvidenceBadge level="filled" at={0} note="D6 · 玩具原型实测" />
-          </div>
+        <Sequence from={at('p2-23') - bI.from} durationInFrames={dur('p2-23') + XF_TAIL} name="2-I-ablation">
+          <FadeTail until={dur('p2-23') + XF_TAIL}>
+            <AbsoluteFill style={{alignItems: 'center', justifyContent: 'center'}}>
+              <AblationPair
+                at={0}
+                width={1620}
+                minHeight={430}
+                left={{tag: '门拆掉', title: '注册期无校验', lines: ['外键 → 非键列 customers.plan', '垃圾定义静默入库', '行数失控的注册期引信'], flow: {}}}
+                right={{tag: '门在位', title: '注册期拦截', lines: ['structure check：非法定义', 'referenced column is not', 'PRIMARY KEY / UNIQUE —— 拒']}}
+              />
+            </AbsoluteFill>
+            {/* storyboard 2-I 指定的实心证据徽（消融同屏先例 3-G 同构，评审补齐）：
+                拦截行为锚 011 表 D6（玩具原型 structure check 实测） */}
+            <div style={{position: 'absolute', left: 80, bottom: 150}}>
+              <EvidenceBadge level="filled" at={0} note="D6 · 玩具原型实测" />
+            </div>
+          </FadeTail>
         </Sequence>
         <ArchifyRecap
           slug="definition-registration"
@@ -205,18 +222,22 @@ export const P2Caliber: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       {/* 2-J 物化与收口：p2-25 设问钟 / p2-26 图 / p2-27 限定+基线标尺 / p2-28 金句卡（at 门控，句前透明） */}
       <Sequence from={bJ.from} durationInFrames={bJ.durationInFrames} name="2-J 物化与收口">
-        <Sequence from={at('p2-25') - bJ.from} durationInFrames={dur('p2-25')} name="2-J-question">
-          {/* 窗即 p2-25：局部帧 0 = 句首 */}
-          <PerfQuestion at={0} />
+        <Sequence from={at('p2-25') - bJ.from} durationInFrames={dur('p2-25') + XF_TAIL} name="2-J-question">
+          {/* 局部帧 0 = 句首；越过句界 XF_TAIL 帧交叉淡出，跨过 grain-recompute 的 lead 入场死区 */}
+          <FadeTail until={dur('p2-25') + XF_TAIL}>
+            <PerfQuestion at={0} />
+          </FadeTail>
         </Sequence>
         <ArchifyRecap
           slug="on-demand-recompute"
           caption="物化 · 按粒度预卷"
           cues={[{chapterId: 'grain-recompute', at: at('p2-26') - bJ.from, durationInFrames: dur('p2-26')}]}
         />
-        <Sequence from={at('p2-27') - bJ.from} durationInFrames={dur('p2-27')} name="2-J-gain">
-          {/* 窗即 p2-27：局部帧 0 = 句首 */}
-          <MaterializeGain at={0} />
+        <Sequence from={at('p2-27') - bJ.from} durationInFrames={dur('p2-27') + XF_TAIL} name="2-J-gain">
+          {/* 局部帧 0 = 句首；越过句界 XF_TAIL 帧交叉淡出，与 QuoteCard 的 pop 入场重叠 */}
+          <FadeTail until={dur('p2-27') + XF_TAIL}>
+            <MaterializeGain at={0} />
+          </FadeTail>
         </Sequence>
         <QuoteCard at={at('p2-28') - bJ.from} zh={'SQL 合法 ≠ 答案对'} kicker="P2 · 一句收口" />
       </Sequence>

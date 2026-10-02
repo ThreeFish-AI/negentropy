@@ -98,14 +98,16 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       {/* 4-C 命中短路：shared-checkpoint@06 → hit-reconcile@07（跨镜续链）；
-          p4-08 空窗句画框卸载，命中路由亮线走查（@flowDash） */}
+          p4-08 空窗句画框卸载，命中路由亮线走查（@flowDash）。
+          hit-reconcile 末 8 帧自淡出 × HitRoute 提前 8 帧入场 = 交叉淡化（评审 H 轮，
+          消「画框硬卸载 + 装置首帧全透明」的句界空底） */}
       <Sequence from={bC.from} durationInFrames={bC.durationInFrames} name="4-C 命中短路">
-        <HitRoute at={at('p4-08') - bC.from} />
+        <HitRoute at={at('p4-08') - bC.from - 8} />
         <ArchifyRecap slug="one-checkpoint" caption="核准题库 · 共用执法点" cues={[
           {chapterId: 'shared-checkpoint', at: at('p4-06') - bC.from, durationInFrames: dur('p4-06')},
         ]} lead={false} />
         <ArchifyRecap slug="resolve-activation" caption="命中 · 验证查询直行" cues={[
-          {chapterId: 'hit-reconcile', at: at('p4-07') - bC.from, durationInFrames: dur('p4-07')},
+          {chapterId: 'hit-reconcile', at: at('p4-07') - bC.from, durationInFrames: dur('p4-07'), exitFrames: 8},
         ]} lead={false} />
       </Sequence>
 
@@ -120,23 +122,26 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
       {/* 4-E 三条出路：miss-fallback@11（空窗后重现，恢复入场）→ outside-eval@13；
           p4-12 三条出路卡 / p4-14 代价卡 + 虚线徽（官方文档）。
           两装置按句窗互斥（2-J 范式）：同为居中 AbsoluteFill 且无退场，滞留会在 p4-14
-          同窗叠加——CostCard 整卡遮盖「未命中」中卡并切左右卡（评审修复，实证帧 15171） */}
+          同窗叠加——CostCard 整卡遮盖「未命中」中卡并切左右卡（评审修复，实证帧 15171）。
+          「画框→装置」双向（评审 H 轮）：两章 cue 末 8 帧自淡出，装置窗各提前 8 帧
+          入场交叉——装置首帧 rise/stagger 全透明，画框硬卸载会留 ~1 帧空底 */}
       <Sequence from={bE.from} durationInFrames={bE.durationInFrames} name="4-E 三条出路">
-        <Sequence from={at('p4-12') - bE.from} durationInFrames={dur('p4-12')} name="4-E-exits">
-          {/* 窗即 p4-12：局部帧 0 = 句首；末 8 帧自淡出让位——p4-13 的 outside-eval
-              是空窗后重现章，画框入场弹簧头两帧全透明，硬切会留 ~2 帧空底 */}
-          <ThreeExits at={0} until={dur('p4-12')} />
+        <Sequence from={at('p4-12') - bE.from - 8} durationInFrames={dur('p4-12') + 8 + 6} name="4-E-exits">
+          {/* 窗自句首提前 8 帧与 miss-fallback 末淡出交叉；窗尾越过句界 6 帧——p4-13 的
+              outside-eval 是空窗后重现章，画框入场弹簧 at:2 起步、局部帧 0–3 近全透明
+              （抽帧实测 max=17），淡出止于句界会留 3 帧空底 */}
+          <ThreeExits at={0} until={dur('p4-12') + 8 + 6} />
         </Sequence>
-        <Sequence from={at('p4-14') - bE.from} durationInFrames={dur('p4-14')} name="4-E-cost">
-          {/* 窗即 p4-14：局部帧 0 = 句首 */}
+        <Sequence from={at('p4-14') - bE.from - 8} durationInFrames={dur('p4-14') + 8} name="4-E-cost">
+          {/* 窗自句首提前 8 帧与 outside-eval 末淡出交叉；镜尾由 P5 镜界接（接受形态） */}
           <CostCard at={0} />
         </Sequence>
         <div style={{position: 'absolute', bottom: 150, left: 80}}>
-          <EvidenceBadge level="dashed" at={at('p4-14') - bE.from} note="官方文档 · 优化代价" />
+          <EvidenceBadge level="dashed" at={at('p4-14') - bE.from - 8} note="官方文档 · 优化代价" />
         </div>
         <ArchifyRecap slug="resolve-activation" caption="未命中 · 三条出路" cues={[
-          {chapterId: 'miss-fallback', at: at('p4-11') - bE.from, durationInFrames: dur('p4-11')},
-          {chapterId: 'outside-eval', at: at('p4-13') - bE.from, durationInFrames: dur('p4-13')},
+          {chapterId: 'miss-fallback', at: at('p4-11') - bE.from, durationInFrames: dur('p4-11'), exitFrames: 8},
+          {chapterId: 'outside-eval', at: at('p4-13') - bE.from, durationInFrames: dur('p4-13'), exitFrames: 8},
         ]} />
       </Sequence>
 

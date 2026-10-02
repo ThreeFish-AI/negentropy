@@ -46,37 +46,46 @@ const titleOf = (scene: string, lang: Lang): string => {
 };
 
 /** 段内居中文字层。宽度用**显式 px**（段宽 − 左右 padding）——左右两层共用同值，
- *  才能保证 ellipsis 截断逐像素一致，双色裁切不错位。 */
+ *  才能保证 ellipsis 截断逐像素一致，双色裁切不错位。
+ *  超宽标题自适应降字号（评审 H 轮）：CJK 每字占 fontSize+letterSpacing（=size+1）px，
+ *  n 字装进 width 需 size ≤ width/n − 1——P0「三个症状一个病根」8 字在 176px 段
+ *  （textW 148px）按 TITLE_SIZE=18 需 152px 必截断，降到 17px（144px）恰好容纳；
+ *  下限 14px 之后再窄的段交回 ellipsis。 */
 const SegLabel: React.FC<{label: string; mono: boolean; color: string; width: number}> = ({
   label,
   mono,
   color,
   width,
-}) => (
-  <div
-    style={{
-      position: 'absolute',
-      left: TITLE_PAD_X,
-      top: 0,
-      width,
-      height: BAR_H,
-      // 块级居中（lineHeight + textAlign）：text-overflow 只作用 block 容器，
-      // flex 容器上「…」不渲染（超宽标题会两侧硬切）
-      lineHeight: `${BAR_H}px`,
-      textAlign: 'center',
-      fontFamily: mono ? theme.mono : theme.sans,
-      fontSize: mono ? CODE_SIZE : TITLE_SIZE,
-      fontWeight: 500,
-      letterSpacing: 1,
-      color,
-      whiteSpace: 'nowrap',
-      overflow: 'hidden',
-      textOverflow: 'ellipsis',
-    }}
-  >
-    {label}
-  </div>
-);
+}) => {
+  const size = mono
+    ? CODE_SIZE
+    : Math.max(14, Math.min(TITLE_SIZE, Math.floor(width / label.length) - 1));
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left: TITLE_PAD_X,
+        top: 0,
+        width,
+        height: BAR_H,
+        // 块级居中（lineHeight + textAlign）：text-overflow 只作用 block 容器，
+        // flex 容器上「…」不渲染（超宽标题会两侧硬切）
+        lineHeight: `${BAR_H}px`,
+        textAlign: 'center',
+        fontFamily: mono ? theme.mono : theme.sans,
+        fontSize: size,
+        fontWeight: 500,
+        letterSpacing: 1,
+        color,
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+      }}
+    >
+      {label}
+    </div>
+  );
+};
 
 /** 顶部分段章节进度条：段宽∝幕时长、已播填充亮色随帧推进（无播放头——进度
  *  仅由填充深浅表达）、章节名内嵌段内居中。文字跨亮填充/深轨两区，用**双色裁切**

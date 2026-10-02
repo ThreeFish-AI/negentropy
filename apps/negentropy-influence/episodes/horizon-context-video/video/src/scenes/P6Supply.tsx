@@ -111,12 +111,15 @@ export const P6Supply: React.FC<{scene: SceneRange}> = ({scene}) => {
       <Sequence {...bD} name="6-D 冲突裁决">
         <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 36}}>
           <DauChip at={at('p6-09') - bD.from + 6} />
+          {/* 12 张是抽样示意（评审 H 轮）：口播 p6-09「测出几十种」——× 12 的精确
+              计数与量级对不上，角标改定性文案 */}
           <ConflictCards
             at={4}
             labels={DAU_DEFS}
             verdictAt={at('p6-09') - bD.from + Math.round(dur('p6-09') * 0.2)}
             stampText="人工裁决"
             note={'口径归属 · 团队定'}
+            badgeText={'CONFLICT · 定义漂移样本'}
           />
         </AbsoluteFill>
         <StepNote at={at('p6-09') - bD.from + Math.round(dur('p6-09') * 0.48)} />
@@ -218,6 +221,8 @@ const SeaLead: React.FC<{at: number}> = ({at}) => {
         </span>
         <span style={{fontFamily: theme.sans, fontSize: 24, color: theme.dim}}>{'张表'}</span>
       </div>
+      {/* litRatio 显式覆写（评审 H 轮）：缺省 0.05 定格「5.0%」与口播 p6-03「覆盖率
+          不到 5%」相抵——4.8% 是「<5%」的合法示值（信源只锚 <5%，无更精确口径） */}
       <TableSea
         at={at + 4}
         countAt={at + 12}
@@ -225,6 +230,7 @@ const SeaLead: React.FC<{at: number}> = ({at}) => {
         rows={10}
         totalLabel={'Snowflake 全库'}
         litNote={'语义视图已覆盖'}
+        litRatio={0.048}
       />
       <EvidenceBadge level="dashed" at={at + 14} note="Snowflake 自报" />
     </AbsoluteFill>

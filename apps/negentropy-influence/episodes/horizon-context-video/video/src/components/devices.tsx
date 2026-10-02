@@ -1131,7 +1131,10 @@ export const ConflictCards: React.FC<{
   verdictAt: number;
   stampText?: string;
   note?: string;
-}> = ({at, labels, verdictAt, stampText = '人工裁决', note}) => {
+  /** 角标文案，默认 `CONFLICT × N`。卡阵为抽样示意时传无计数文案——精确计数
+   *  与口播量级（如「几十种」）对不上会构成画面数字 ≠ 口播数字的读者可见矛盾。 */
+  badgeText?: string;
+}> = ({at, labels, verdictAt, stampText = '人工裁决', note, badgeText}) => {
   const frame = useCurrentFrame();
   const settle = 1 - progress(frame, verdictAt, DUR.f5);
   const cols = 4;
@@ -1157,7 +1160,7 @@ export const ConflictCards: React.FC<{
           color: theme.dim,
         }}
       >
-        {`CONFLICT × ${labels.length}`}
+        {badgeText ?? `CONFLICT × ${labels.length}`}
       </span>
       {labels.map((l, i) => {
         const p = progress(frame, at + i * 3, DUR.f3);

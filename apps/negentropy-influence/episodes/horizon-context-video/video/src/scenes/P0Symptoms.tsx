@@ -399,8 +399,9 @@ const TitleCard: React.FC<{at16: number}> = ({at16}) => {
     {c: theme.verify, zh: '验证'},
   ];
   return (
-    <AbsoluteFill style={{background: withA(theme.bg, 0.93 * scrim)}}>
-      <div style={{...enter, textAlign: 'center', paddingTop: 40}}>
+    <AbsoluteFill style={{background: withA(theme.bg, 0.93 * scrim), justifyContent: 'center'}}>
+      {/* 垂直居中（AbsoluteFill 默认 flex-start 会整块贴顶、下半空屏）；水平居中由 textAlign 承担 */}
+      <div style={{...enter, textAlign: 'center'}}>
         <div style={{display: 'flex', gap: 30, justifyContent: 'center', marginBottom: 46}}>
           {bars.map((b, i) => {
             const p = progress(frame, at16 + 6 + i * 7, DUR.f4);
