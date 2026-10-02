@@ -147,7 +147,7 @@
             "accessed": "2026-08-22"
           },
           "status": "final-review",
-          "statusNote": "**v2 交付**（2026-09-30 重渲，含两轮评审修复 14+16 处；v1 2026-09-29 初渲）原 v1 口径（2026-09-29）：14:12.2 = 852s @1080p30（25566 帧复算）；169 句 3603 字（254 口径直写零减脂）；story 档（44 块 cues + seed 4242）纯语音 13.17 分；archify 12 图 68 章逐章回放（state→lifecycle 词表映射 2 图）；机器门全绿 + 目检修复 P6 系列题字与第五层层板叠压（qa --check 盲区——全分辨率目检抓出，标语 top 改栈几何推导）；归档 v1 + _captions",
+          "statusNote": "**v3 交付**（2026-10-03 换题涟漪重渲：ep3 换题《一张草稿纸和一本卡片册》→ 本集 P6 下期卡同步+换机重建）802.5s = 13.37 分 @1080p30（本轮 me-bright 重合成实测 324 字/分 → timing.json B 档覆写同 ep3 参数句隙 0.32→0.68 拉至 13.37 落窗）；169 句 story 档重合成（169 mp3+manifest 全新）；archify 12 图 68 章全量重录（68/68 lead 回写）；P6 下期卡新题 still 验证 ✓；机器门全绿（check/tsc/qa/覆盖门/实测门 FAIL 0）；归档 v3 + _captions。原 v1/v2 口径见 git 历史",
           "voice": "story + me-bright.wav"
         },
         {

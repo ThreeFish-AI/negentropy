@@ -2,8 +2,8 @@
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 17.68,
- "total_wall_sec": 97.11,
+ "story_sec": 17.66,
+ "total_wall_sec": 88.61,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -17,11 +17,11 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.33,
+   "story_sec": 3.34,
    "beat_offsets_sec": [
     0.0,
-    1.102,
-    2.205
+    1.103,
+    2.207
    ],
    "beat_nodes": [
     "cabinet",
@@ -40,7 +40,7 @@
    "beats": 2,
    "dwell_ms": 1600,
    "lead_sec": 0.44,
-   "story_sec": 3.24,
+   "story_sec": 3.23,
    "beat_offsets_sec": [
     0.0,
     1.603
@@ -64,8 +64,8 @@
    "story_sec": 3.33,
    "beat_offsets_sec": [
     0.0,
-    1.103,
-    2.205
+    1.102,
+    2.207
    ],
    "beat_nodes": [
     "labels-strip",
@@ -84,12 +84,12 @@
    "beats": 4,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 4.45,
+   "story_sec": 4.43,
    "beat_offsets_sec": [
     0.0,
     1.103,
-    2.205,
-    3.307
+    2.206,
+    3.311
    ],
    "beat_nodes": [
     "manual",
@@ -108,12 +108,12 @@
    "end_still": "plan-skill-layers--split-in-time-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 0.48,
+   "lead_sec": 0.44,
    "story_sec": 3.33,
    "beat_offsets_sec": [
     0.0,
-    1.103,
-    2.207
+    1.102,
+    2.208
    ],
    "beat_nodes": [
     "labels-strip",
@@ -132,7 +132,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--plan-skill-layers.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/managua-v1/docs/assets/architecture/agent-harness/claude-code--plan-skill-layers.html",
  "slug": "plan-skill-layers",
  "type": "dataflow"
 }

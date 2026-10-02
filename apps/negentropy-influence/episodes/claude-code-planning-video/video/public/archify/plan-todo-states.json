@@ -2,8 +2,8 @@
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 4.42,
- "total_wall_sec": 24.19,
+ "story_sec": 4.46,
+ "total_wall_sec": 22.15,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -17,12 +17,12 @@
    "beats": 4,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 4.42,
+   "story_sec": 4.46,
    "beat_offsets_sec": [
     0.0,
-    1.103,
-    2.205,
-    3.309
+    1.106,
+    2.21,
+    3.316
    ],
    "beat_nodes": [
     "state-pending",
@@ -31,7 +31,7 @@
     "terminal-icons"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 48.0
+   "capture_fps": 49.0
   }
  ],
  "capture": {
@@ -42,7 +42,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--plan-todo-states.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/managua-v1/docs/assets/architecture/agent-harness/claude-code--plan-todo-states.html",
  "slug": "plan-todo-states",
  "type": "lifecycle"
 }

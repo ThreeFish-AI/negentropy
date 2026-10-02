@@ -2,8 +2,8 @@
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 13.36,
- "total_wall_sec": 234.27,
+ "story_sec": 11.01,
+ "total_wall_sec": 55.96,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -17,17 +17,17 @@
    "beats": 2,
    "dwell_ms": 1600,
    "lead_sec": 0.44,
-   "story_sec": 4.16,
+   "story_sec": 3.22,
    "beat_offsets_sec": [
     0.0,
-    1.604
+    1.602
    ],
    "beat_nodes": [
     "section-dict",
     "topic-blocks"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 27.0
+   "capture_fps": 26.0
   },
   {
    "id": "always-sections",
@@ -38,12 +38,12 @@
    "beats": 4,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 5.84,
+   "story_sec": 4.43,
    "beat_offsets_sec": [
     0.0,
-    1.104,
-    2.208,
-    3.311
+    1.105,
+    2.209,
+    3.313
    ],
    "beat_nodes": [
     "sec-identity",
@@ -52,7 +52,7 @@
     "always-bus"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 27.0
+   "capture_fps": 26.0
   },
   {
    "id": "conditional-memory",
@@ -67,7 +67,7 @@
    "beat_offsets_sec": [
     0.0,
     1.103,
-    2.205
+    2.207
    ],
    "beat_nodes": [
     "sec-memory",
@@ -86,7 +86,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--plan-prompt-sections.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/managua-v1/docs/assets/architecture/agent-harness/claude-code--plan-prompt-sections.html",
  "slug": "plan-prompt-sections",
  "type": "architecture"
 }

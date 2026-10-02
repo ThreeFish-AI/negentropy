@@ -2,8 +2,8 @@
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 12.42,
- "total_wall_sec": 190.47,
+ "story_sec": 9.77,
+ "total_wall_sec": 57.33,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -17,7 +17,7 @@
    "beats": 2,
    "dwell_ms": 1600,
    "lead_sec": 0.44,
-   "story_sec": 3.24,
+   "story_sec": 3.22,
    "beat_offsets_sec": [
     0.0,
     1.603
@@ -27,7 +27,7 @@
     "cache-hit"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 27.0
+   "capture_fps": 26.0
   },
   {
    "id": "deterministic-key",
@@ -38,17 +38,17 @@
    "beats": 2,
    "dwell_ms": 1600,
    "lead_sec": 0.44,
-   "story_sec": 5.86,
+   "story_sec": 3.23,
    "beat_offsets_sec": [
     0.0,
-    1.61
+    1.604
    ],
    "beat_nodes": [
     "sorted-serialize",
     "key-slot"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 41.0
+   "capture_fps": 49.0
   },
   {
    "id": "no-builtin-hash",
@@ -63,7 +63,7 @@
    "beat_offsets_sec": [
     0.0,
     1.105,
-    2.208
+    2.21
    ],
    "beat_nodes": [
     "builtin-hash",
@@ -82,7 +82,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--plan-prompt-cache.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/managua-v1/docs/assets/architecture/agent-harness/claude-code--plan-prompt-cache.html",
  "slug": "plan-prompt-cache",
  "type": "workflow"
 }
