@@ -14,7 +14,7 @@ import {AbsoluteFill, Sequence} from 'remotion';
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {DeptGate, Doctor, QuoteCard, ProvenanceTag, withAlpha} from '../components/clinic';
+import {DeptGate, Doctor, MonoTag, QuoteCard, ProvenanceTag, withAlpha} from '../components/clinic';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 import {
   DUR,
@@ -27,29 +27,6 @@ import {
   useSpring,
   useStagger,
 } from '../motion';
-
-/** 轻量 mono 角标（关键词/数字/口径注——英文标识符只进角标；同 P0 FootnoteGhost 形态） */
-const MonoTag: React.FC<{x: number; y: number; at: number; children: React.ReactNode}> = ({x, y, at, children}) => {
-  const e = useEnter('fade', {at, dur: DUR.f3});
-  return (
-    <span
-      style={{
-        position: 'absolute',
-        left: x,
-        top: y,
-        ...e,
-        padding: '4px 12px',
-        border: `1.5px solid ${withAlpha(theme.dim, 0.5)}`,
-        borderRadius: 5,
-        fontFamily: theme.mono,
-        fontSize: 16,
-        color: theme.dim,
-      }}
-    >
-      {children}
-    </span>
-  );
-};
 
 // ── 3-A 事故快闪：指令卡 → 整盘删除命令单（rm 字样，deny 急闪） ─────────────
 
@@ -464,7 +441,7 @@ const BadgeSplit: React.FC<{at: number}> = ({at}) => {
         </div>
       </div>
       <ProvenanceTag x={600} y={640} at={at + 6} text={'对外拆解口径'} />
-      <ProvenanceTag x={880} y={640} at={at + 8} text={'官方文档'} />
+      <ProvenanceTag x={880} y={640} at={at + 8} text={'官方分层口径'} />
     </div>
   );
 };

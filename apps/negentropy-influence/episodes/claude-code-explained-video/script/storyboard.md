@@ -18,7 +18,7 @@
 | --- | --- | --- | --- | --- |
 | 1 | human-relay | workflow | P0 人肉往返与循环接手（p0-04/05/10/15） | 5 |
 | 2 | intake-loop | architecture | P1 循环本体四瞥（p1-01/02/09/11/12） | 5 |
-| 3 | stop-reason-race | sequence | P1 流式坑与实验 1（p1-13/17/18/20） | 5 |
+| 3 | stop-reason-race | sequence | P1 流式坑与实验 1（p1-13/16/17/18/20） | 5 |
 | 4 | dispatch-table | dataflow | P2 查表分发与围栏（p2-07/08/19） | 5 |
 | 5 | lookup-failure | lifecycle | P2 实验 2 全程（p2-11..15） | 5 |
 | 6 | gate-three-tier | lifecycle | P3 三重把关（p3-01/04/05/06/09） | 5 |
@@ -46,7 +46,7 @@
 
 | 镜 | 句区间 | 画面 | 动效 |
 | --- | --- | --- | --- |
-| 1-A | p1-01..06 | 循环本体五步：p1-01 句让位 ·**archify full**：intake-loop 章 `five-steps`+`full-reread` · p1-02 句让位 ·**archify full**：intake-loop （full-reread） · p1-03..06 回落自制——诊室圆环特写，五步位逐个点亮（全量进诊→落账→收单→执行→回喂，core 橙流转动）；角标 `messages`／`tool_use`／`tool_result` 逐步浮现 | 两章连播（单实例内自动抑制）；自制段五步位依次点亮 `useStagger`＋环体缓转 `useFlowDash`（core 橙）；角标逐个浮现 `useReveal`；`@stagger` `@flowDash` `@reveal` |
+| 1-A | p1-01..06 | 循环本体五步：p1-01 句让位 ·**archify full**：intake-loop 章 `five-steps`+`full-reread` · p1-02 句让位 ·**archify full**：intake-loop （full-reread） · p1-03..06 回落自制——诊室圆环特写，五步位逐个点亮（全量进诊→落账→收单→执行→回喂，core 橙流转动）；角标 `messages`／`tool_use`／`tool_result` 逐步浮现 | 两章连播（单实例内自动抑制）；自制段五步位逐句锚定 `useProgress`×5（2026-10-02 评审修复：均匀 fit 滞后一步，改各步独立锚「第N步」句头）＋环体缓转 `useFlowDash`（core 橙）；角标逐个浮现 `useReveal`；`@progress` `@flowDash` `@reveal` |
 | 1-B | p1-07..10 | 病历本两署名：p1-09 句让位 ·**archify full**：intake-loop 章 `two-signatures` · 其余句回落自制——病历本特写（两栏表头「问方／答方」逐条落字；科室报告卡片无署名栏、被贴进问方栏瞬间 `mech` 青高亮）；角标 `tool_result → user 信封` | 落字逐条 `useReveal`（mono）；贴栏瞬间一次性强调 `useImpulse`（mech）；p1-09 由 ArchifyRecap 主控；`@reveal` `@impulse` |
 | 1-C | p1-11..12 | 判停分屏：p1-11 句让位 ·**archify full**：intake-loop 章 `order-or-done`+`discharge-return` · p1-12 句让位 ·**archify full**：intake-loop （discharge-return）（同图相邻两章，单实例内自动抑制）；自制判停刻度收尾（环上「开单→转／没单→停」两态拨杆）；角标：看内容块（画内呈现） | 两章连播（单实例内自动抑制）；拨杆两态翻转 `useSpring`（局部帧）；`@spring` |
 | 1-D | p1-13..15 | 流式坑：p1-13 句让位 ·**archify full**：stop-reason-race 章 `stream-order` · p1-14..15 回落自制——传真纸页逐页吐出动画（单子先落盘、盖章标记迟迟未到，`dim` 灰纸页＋迟到标记 `deny` 红闪）；角标 `流式=逐段输出` | 纸页吐出 `useStagger`（scene 传真装置）；迟到标记红闪 `useImpulse`（deny）；p1-13 由 ArchifyRecap 主控；`@stagger` `@impulse` |
@@ -74,7 +74,7 @@
 | 3-C | p3-10..11 | 铁律卡（自制）：禁忌表格上盖封条章「翻不了案」（`deny` 红印章下压）；p3-11 句让位 ·**archify full**：gate-order-ablation 章 `normal-first`（正常序：禁忌表最先拦下——顺序的基准态）；角标：顺序即机制（画内呈现） | 封条章盖下 `useEnter:fall`＋压纸震颤 `useSpring`（微幅）；p3-11 由 ArchifyRecap 主控；`@enter:fall` `@spring` |
 | 3-D | p3-12..15 | 实验 3：p3-12 句让位 ·**archify full**：gate-order-ablation 章 `reorder-early`+`one-y-pass`+`wipe-zero` · p3-13 句让位 （one-y-pass） · p3-14 句让位 （wipe-zero） · p3-15 回落自制金句卡「次序 · 就是机制」衬线定格 caption-dup-ok: 压短记忆点（口播「把关的次序，本身就是机制」缩为六字）（金句卡为 components 承担者，散文点名）；角标 `4 文件 → 0` | 同图三章连播（单实例内自动抑制）；本镜无 scene 自制动效 hook（金句卡由 components 承担） |
 | 3-E | p3-16..20 | 两面性（自制卡）：左半「过拦」——绝对路径删除列表逐条划掉（`deny` 连坐线）；右半「漏拦」——命令变体／套层展开两条小字逃逸箭头绕过筛子；p3-19 作者自认引语卡（「示意 · 不是安全边界」，mono 引号）；p3-20 词边界补丁小卡（`词边界` 角标点亮，归属注「规则层补丁」）；角标 `词边界正则` | 左半划线 `useProgress`（连坐）；右半箭头逃逸 `useFlowDash`（dim）；引语卡逐字 `useReveal`；补丁卡点亮 `useImpulse`（mech）；`@progress` `@flowDash` `@reveal` `@impulse` |
-| 3-F | p3-21..26 | 生产版对照：p3-21 自制过渡（「真实产品里 · 厚得多」小卡）→ p3-22 句让位 ·**archify full**：gate-four-result 章 `four-states`+`eight-sources`+`classifier`+`fallback-human` · p3-23 句让位 （eight-sources） · p3-24 句让位 （classifier） · p3-25 句让位 （fallback-human） · p3-26 回落自制收束——关卡徽章 vs 医生位（关卡侧「放行」徽（ok） 绿点亮、医生侧无徽（dim））；归属角标「对外拆解口径」＋`官方文档` | 过渡小卡 `useEnter:pop`；同图四章连播（单实例内自动抑制）；收束徽章点亮 `useImpulse`（ok）；`@enter:pop` `@impulse` |
+| 3-F | p3-21..26 | 生产版对照：p3-21 自制过渡（「真实产品里 · 厚得多」小卡）→ p3-22 句让位 ·**archify full**：gate-four-result 章 `four-states`+`eight-sources`+`classifier`+`fallback-human` · p3-23 句让位 （eight-sources） · p3-24 句让位 （classifier） · p3-25 句让位 （fallback-human） · p3-26 回落自制收束——关卡徽章 vs 医生位（关卡侧「放行」徽（ok） 绿点亮、医生侧无徽（dim））；归属角标「对外拆解口径」＋`官方分层口径`（分层【官】、四态/八来源/分类器【三】——2026-10-02 评审改：原裸 `官方文档` 与回溯分级相悖） | 过渡小卡 `useEnter:pop`；同图四章连播（单实例内自动抑制）；收束徽章点亮 `useImpulse`（ok）；`@enter:pop` `@impulse` |
 
 ## P4 规程节点（p4-01..27）→ `scenes/P4HookNodes.tsx`
 

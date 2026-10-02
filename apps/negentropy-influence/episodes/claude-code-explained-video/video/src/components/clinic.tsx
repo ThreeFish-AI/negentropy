@@ -349,3 +349,27 @@ export const ProvenanceTag: React.FC<{x: number; y: number; at?: number; text?: 
     </div>
   );
 };
+
+/** 轻量 mono 角标（关键词/数字/口径注——英文标识符只进角标；同 P0 FootnoteGhost
+ *  形态；2026-10-02 评审收敛：P1/P2/P3/P6 四份逐字节副本合一于此） */
+export const MonoTag: React.FC<{x: number; y: number; at: number; children: React.ReactNode}> = ({x, y, at, children}) => {
+  const e = useEnter('fade', {at, dur: DUR.f3});
+  return (
+    <span
+      style={{
+        position: 'absolute',
+        left: x,
+        top: y,
+        ...e,
+        padding: '4px 12px',
+        border: `1.5px solid ${withAlpha(theme.dim, 0.5)}`,
+        borderRadius: 5,
+        fontFamily: theme.mono,
+        fontSize: 16,
+        color: theme.dim,
+      }}
+    >
+      {children}
+    </span>
+  );
+};

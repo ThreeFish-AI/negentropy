@@ -15,7 +15,7 @@ import {AbsoluteFill, Sequence} from 'remotion';
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Doctor, ExpBadge, LineGauge, ProvenanceTag, withAlpha} from '../components/clinic';
+import {Doctor, ExpBadge, LineGauge, MonoTag, ProvenanceTag, withAlpha} from '../components/clinic';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 import {
   DUR,
@@ -27,29 +27,6 @@ import {
   useSpring,
   useStagger,
 } from '../motion';
-
-/** 轻量 mono 角标（关键词/数字/口径注——英文标识符只进角标；同 P0 FootnoteGhost 形态） */
-const MonoTag: React.FC<{x: number; y: number; at: number; children: React.ReactNode}> = ({x, y, at, children}) => {
-  const e = useEnter('fade', {at, dur: DUR.f3});
-  return (
-    <span
-      style={{
-        position: 'absolute',
-        left: x,
-        top: y,
-        ...e,
-        padding: '4px 12px',
-        border: `1.5px solid ${withAlpha(theme.dim, 0.5)}`,
-        borderRadius: 5,
-        fontFamily: theme.mono,
-        fontSize: 16,
-        color: theme.dim,
-      }}
-    >
-      {children}
-    </span>
-  );
-};
 
 // ── 1-A 圆环特写：五步位逐个点亮＋导流虚线缓转＋角标三枚浮现 ────────────────
 
@@ -765,7 +742,10 @@ export const P1IntakeLoop: React.FC<{scene: SceneRange}> = ({scene}) => {
           slug="stop-reason-race"
           caption="实验1 · 判据对照"
           cues={[
-            {chapterId: 'stop-late', at: at('p1-16') - bE.from + seal16, durationInFrames: dur('p1-16') - seal16},
+            // stop-late 落 trim 留痕（契约同 P4 recall-loop）：seal16 让位封条卡后窗仅
+            // 1.50s vs storySec 3.22s → rate 2.15，原速播＋裁尾约 1.7s（后两拍大部分
+            // 被裁，属封条卡让位的叙事取舍）
+            {chapterId: 'stop-late', at: at('p1-16') - bE.from + seal16, durationInFrames: dur('p1-16') - seal16, fit: 'trim'},
             {chapterId: 'stop-die', at: at('p1-17') - bE.from, durationInFrames: dur('p1-17')},
             {chapterId: 'block-live', at: at('p1-18') - bE.from, durationInFrames: dur('p1-18')},
             {chapterId: 'verdict', at: at('p1-20') - bE.from, durationInFrames: dur('p1-20')},

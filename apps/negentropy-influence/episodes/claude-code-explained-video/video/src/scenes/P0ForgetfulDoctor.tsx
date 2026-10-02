@@ -127,14 +127,19 @@ export const P0ForgetfulDoctor: React.FC<{scene: SceneRange}> = ({scene}) => {
           slug="human-relay"
           caption="人当中间层"
           cues={[
-            {chapterId: 'manual-full', at: at('p0-04') - bB.from, durationInFrames: dur('p0-04')},
+            // manual-full 落 trim 留痕（契约同 P4 recall-loop）：p0-04 窗 3.93s vs
+            // storySec 6.70s → rate 1.70，原速播＋裁尾约 2.8s（往返拍收束让位给对话起句）
+            {chapterId: 'manual-full', at: at('p0-04') - bB.from, durationInFrames: dur('p0-04'), fit: 'trim'},
             {chapterId: 'talk-only', at: at('p0-05') - bB.from, durationInFrames: dur('p0-05')},
           ]}
         />
-        {/* p0-06 空窗回落：金句卡（压短形态，非逐字复述） */}
+        {/* p0-06 空窗回落：金句卡（压短形态，非逐字复述）＋storyboard 登记角标 chat */}
         <QuoteCard x={640} y={430} at={at('p0-06') - bB.from} width={640}>
           {'说完了 · 活还是你的'}
         </QuoteCard>
+        <div style={{position: 'absolute', left: 246, top: 64}}>
+          <FootnoteGhost at={at('p0-06') - bB.from}>{'chat'}</FootnoteGhost>
+        </div>
       </Sequence>
 
       <Sequence {...bC} name="0-C 诊室定妆">
@@ -177,9 +182,15 @@ const ClinicFirstLook: React.FC<{atEnter: number; atPlate: number}> = ({atEnter,
       </div>
       <div style={{position: 'absolute', left: 150, top: 320, opacity: enters[2]}}>
         <Doctor x={0} y={0} scale={0.72} />
+        {/* 标签独立 absolute（Doctor 脱流，in-flow 会从容器顶起排压头部圆——
+            同 P6 SplitScreen 修复口径，2026-10-02 评审） */}
         <div
           style={{
-            marginTop: 4,
+            position: 'absolute',
+            top: 140,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            whiteSpace: 'nowrap',
             textAlign: 'center',
             fontFamily: theme.sans,
             fontSize: 20,

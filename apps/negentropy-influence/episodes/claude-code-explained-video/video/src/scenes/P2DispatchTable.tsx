@@ -13,7 +13,7 @@ import {AbsoluteFill, Sequence} from 'remotion';
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Doctor, ExpBadge, LineGauge, ProvenanceTag, withAlpha} from '../components/clinic';
+import {Doctor, ExpBadge, LineGauge, MonoTag, ProvenanceTag, withAlpha} from '../components/clinic';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 import {
   DUR,
@@ -26,29 +26,6 @@ import {
   useSpring,
   useStagger,
 } from '../motion';
-
-/** 轻量 mono 角标（关键词/数字/口径注——英文标识符只进角标；同 P0 FootnoteGhost 形态） */
-const MonoTag: React.FC<{x: number; y: number; at: number; children: React.ReactNode}> = ({x, y, at, children}) => {
-  const e = useEnter('fade', {at, dur: DUR.f3});
-  return (
-    <span
-      style={{
-        position: 'absolute',
-        left: x,
-        top: y,
-        ...e,
-        padding: '4px 12px',
-        border: `1.5px solid ${withAlpha(theme.dim, 0.5)}`,
-        borderRadius: 5,
-        fontFamily: theme.mono,
-        fontSize: 16,
-        color: theme.dim,
-      }}
-    >
-      {children}
-    </span>
-  );
-};
 
 // ── 2-A 单工具时代：命令单卡 / 意图书→长命令（缠绕箭头）/ 册页剪影探入 ───────
 
@@ -688,7 +665,9 @@ export const P2DispatchTable: React.FC<{scene: SceneRange}> = ({scene}) => {
           caption="未知名字的分叉"
           cues={[
             {chapterId: 'unknown-in', at: at('p2-11') - bD.from + seal11, durationInFrames: dur('p2-11') - seal11},
-            {chapterId: 'hard-crash', at: at('p2-12') - bD.from, durationInFrames: dur('p2-12')},
+            // hard-crash 落 trim 留痕（契约同 P4 recall-loop）：p2-12 窗 4.47s vs
+            // storySec 6.72s → rate 1.50，原速播＋裁尾约 2.2s（崩溃拍收束让位给自纠起句）
+            {chapterId: 'hard-crash', at: at('p2-12') - bD.from, durationInFrames: dur('p2-12'), fit: 'trim'},
             {chapterId: 'soft-unknown', at: at('p2-13') - bD.from, durationInFrames: dur('p2-13')},
             {chapterId: 'self-fix', at: at('p2-14') - bD.from, durationInFrames: dur('p2-14')},
             {chapterId: 'verdict', at: at('p2-15') - bD.from, durationInFrames: dur('p2-15')},

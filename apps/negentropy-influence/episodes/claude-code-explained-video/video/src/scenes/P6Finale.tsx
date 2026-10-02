@@ -18,6 +18,7 @@ import {
   Doctor,
   LineGauge,
   LoopRing,
+  MonoTag,
   PeripheralRow,
   QuoteCard,
   withAlpha,
@@ -25,33 +26,10 @@ import {
 import {ArchifyRecap} from '../components/ArchifyRecap';
 import {DUR, useCount, useEnter, useFadeOut, useImpulse, useProgress, useReveal, useStagger} from '../motion';
 
-/** 本集层（series-layers.json 数据面——层短名走数据，标题主段走规则 8 受检硬编码） */
+/** 本集层（series-layers.json 数据面——层短名走数据，集序走 activeIndex，标题主段走规则 8 受检硬编码） */
 const LAYERS = layersData.layers as readonly {index: number; layer: string; title: string}[];
-const ACTIVE_INDEX = 1; // 第 1 集 · 工具与执行
+const ACTIVE_INDEX = layersData.activeIndex; // 第 1 集 · 工具与执行（数据面派生，勿硬编码副本）
 const NEXT_LAYER = LAYERS.find((l) => l.index === ACTIVE_INDEX + 1) ?? null;
-
-/** 轻量 mono 角标（关键词/数字/口径注——英文标识符只进角标；同 P0 FootnoteGhost 形态） */
-const MonoTag: React.FC<{x: number; y: number; at: number; children: React.ReactNode}> = ({x, y, at, children}) => {
-  const e = useEnter('fade', {at, dur: DUR.f3});
-  return (
-    <span
-      style={{
-        position: 'absolute',
-        left: x,
-        top: y,
-        ...e,
-        padding: '4px 12px',
-        border: `1.5px solid ${withAlpha(theme.dim, 0.5)}`,
-        borderRadius: 5,
-        fontFamily: theme.mono,
-        fontSize: 16,
-        color: theme.dim,
-      }}
-    >
-      {children}
-    </span>
-  );
-};
 
 /** 五层层板：本集层 core 橙点亮、下集层微亮预告、其余 dim（数据驱动，零硬编码层名） */
 const SeriesBoard: React.FC<{at: number; nextHint?: boolean}> = ({at, nextHint = false}) => {
@@ -132,6 +110,70 @@ const TwoStep: React.FC<{at: number}> = ({at}) => {
   );
 };
 
+/** 6-B 分工定格：分屏对切入场（storyboard 型注记 useStagger）＋放行徽章 ok 点亮
+ *  （useImpulse，同 3-F BadgeSplit 形制）——2026-10-02 评审补落：原裸 JSX 直渲，
+ *  p6-04..05 约 11s 零运动。标签独立 absolute：Doctor 根节点 absolute 脱流，
+ *  in-flow 子元素会从容器顶起排压到头部圆上。 */
+const SplitScreen: React.FC<{at: number}> = ({at}) => {
+  const enters = useStagger(2, {at, stride: 9, dur: DUR.f5});
+  const hot = useImpulse({at: at + 20, dur: DUR.f5, peak: 1});
+  return (
+    <>
+      <div style={{position: 'absolute', left: 330, top: 280, width: 102, opacity: enters[0]}}>
+        <Doctor x={0} y={0} scale={0.85} />
+        <div
+          style={{
+            position: 'absolute',
+            top: 165,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            whiteSpace: 'nowrap',
+            textAlign: 'center',
+            fontFamily: theme.sans,
+            fontSize: 20,
+            color: theme.dim,
+          }}
+        >
+          {'开单 · 无放行徽'}
+        </div>
+      </div>
+      <div
+        style={{
+          position: 'absolute',
+          left: 1080,
+          top: 300,
+          width: 300,
+          padding: '26px 0',
+          textAlign: 'center',
+          background: '#171C26',
+          border: `3px solid ${theme.mech}`,
+          borderRadius: 12,
+          opacity: enters[1],
+        }}
+      >
+        <div style={{fontFamily: theme.sans, fontSize: 30, color: theme.mech}}>{'关卡'}</div>
+        <div
+          style={{
+            display: 'inline-block',
+            marginTop: 12,
+            padding: '4px 18px',
+            borderRadius: 999,
+            background: withAlpha(theme.ok, 0.15),
+            border: `2px solid ${theme.ok}`,
+            fontFamily: theme.sans,
+            fontSize: 20,
+            color: theme.ok,
+            transform: `scale(${1 + 0.08 * hot})`,
+            boxShadow: `0 0 ${16 * hot}px ${withAlpha(theme.ok, 0.6 * hot)}`,
+          }}
+        >
+          {'放行'}
+        </div>
+      </div>
+    </>
+  );
+};
+
 /** 规则 8 受检硬编码（check_series 扫 P6 源码文本）：改标题先改 series.json 再同步此串。
  *  本集主段 =「一个循环，三层外设」／下集主段 =「模型的视野是安排出来的」。 */
 const RULE8_THIS_MAIN = '一个循环，三层外设';
@@ -149,9 +191,9 @@ export const P6Finale: React.FC<{scene: SceneRange}> = ({scene}) => {
   // 字条为关键词对（主语 + 短语），非口播逐字子串——原「一张表 管它能干什么」
   // 三条合计复现 p6-03 约 94%，RSI-007 违例（2026-10-02 评审修复）
   const gaugeLit = Math.round(useCount({to: 4, at: 4, dur: DUR.f6}));
-  const t1 = useReveal('一张表 · 能干什么', {at: at('p6-03') - bA.from, cps: 9});
-  const t2 = useReveal('一道关 · 能不能干', {at: at('p6-03') - bA.from + 14, cps: 9});
-  const t3 = useReveal('一圈节点 · 何时说话', {at: at('p6-03') - bA.from + 28, cps: 9});
+  const t1 = useReveal('一张表 · 能干什么', {at: at('p6-03'), cps: 9});
+  const t2 = useReveal('一道关 · 能不能干', {at: at('p6-03') + 14, cps: 9});
+  const t3 = useReveal('一圈节点 · 何时说话', {at: at('p6-03') + 28, cps: 9});
   // 6-C：身份卡与下期卡入场——本组件体 hooks 吃 P6 幕局部帧（勿减 bC.from），
   // 且 p6-09 全句被 two-dark-zones archify 独占窗盖住，入场一律锚到 p6-10
   // （画框卸载后）才可见：卡1 +8／卡2 +22，错峰在末幕渐黑起点（36 帧）前完成
@@ -199,57 +241,7 @@ export const P6Finale: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bB} name="6-B 分工与方法论">
-        {/* 分工定格：左医生（无徽章）/右关卡（放行徽章 ok 绿）。
-            标签须独立 absolute：Doctor 根节点是 absolute 脱流，in-flow 子元素会
-            从容器顶起排压到头部圆上（2026-10-02 评审修复） */}
-        <div style={{position: 'absolute', left: 330, top: 280, width: 102}}>
-          <Doctor x={0} y={0} scale={0.85} />
-          <div
-            style={{
-              position: 'absolute',
-              top: 165,
-              left: '50%',
-              transform: 'translateX(-50%)',
-              whiteSpace: 'nowrap',
-              textAlign: 'center',
-              fontFamily: theme.sans,
-              fontSize: 20,
-              color: theme.dim,
-            }}
-          >
-            {'开单 · 无放行徽'}
-          </div>
-        </div>
-        <div
-          style={{
-            position: 'absolute',
-            left: 1080,
-            top: 300,
-            width: 300,
-            padding: '26px 0',
-            textAlign: 'center',
-            background: '#171C26',
-            border: `3px solid ${theme.mech}`,
-            borderRadius: 12,
-          }}
-        >
-          <div style={{fontFamily: theme.sans, fontSize: 30, color: theme.mech}}>{'关卡'}</div>
-          <div
-            style={{
-              display: 'inline-block',
-              marginTop: 12,
-              padding: '4px 18px',
-              borderRadius: 999,
-              background: withAlpha(theme.ok, 0.15),
-              border: `2px solid ${theme.ok}`,
-              fontFamily: theme.sans,
-              fontSize: 20,
-              color: theme.ok,
-            }}
-          >
-            {'放行'}
-          </div>
-        </div>
+        <SplitScreen at={at('p6-04') - bB.from} />
         <TwoStep at={at('p6-06') - bB.from} />
         <QuoteCard x={560} y={820} at={at('p6-08') - bB.from} width={800}>
           {'循环稳 · 外设全'}
