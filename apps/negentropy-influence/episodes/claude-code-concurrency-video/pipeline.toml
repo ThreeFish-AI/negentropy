@@ -20,9 +20,8 @@ chars_per_min = 254
 # 两档策略（RSI-034）：制作期 edge 草声（免费、秒级、需联网、免样本）；
 # 整集评审通过后由用户显式触发用 IndexTTS-2.5 + 本人声音重配（references/07 §重配）。
 engine = "edge"
-# 终声档锚点：edge 期间不参与合成，仅作预算门估算口径（story=254 字/分）
-# 与重配预置；重配时把 engine 改 "indextts" 并补下方两项即生效。
-style = "story"
+# 注：本片以 edge 为交付声（用户 2026-10-02 拍板），已删 style 锚点恢复 manifest 实测时长门；
+# 未来升档 IndexTTS-2.5 时改 engine="indextts" 并回补 ref/ref_sha1/style（story）——升档须显式 --allow-voice-switch。
 # TODO（重配前补齐，非建集前置）：样本路径**工作区根相对**；ref_sha1 取 12 位
 # （同 tts.py 口径），用 `uv run --no-project $T/scripts/refs.py list` 查当前清单。
 # ⚠️ 风格预设的 alpha 是在**特定选段**上标定的，换选段即失效（见 $V/refs.toml）。
