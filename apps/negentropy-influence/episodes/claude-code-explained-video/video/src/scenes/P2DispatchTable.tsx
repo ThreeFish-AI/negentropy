@@ -286,7 +286,7 @@ const FlipLine: React.FC<{at: number}> = ({at}) => {
           }}
         >
           <span style={{fontFamily: theme.sans, fontSize: 19, color: theme.dim}}>{'写死调用'}</span>
-          <span style={{fontFamily: theme.mono, fontSize: 26, color: theme.dim}}>{'run_bash(cmd)'}</span>
+          <span style={{fontFamily: theme.mono, fontSize: 26, color: theme.dim}}>{'run_bash()'}</span>
         </div>
         <div
           style={{

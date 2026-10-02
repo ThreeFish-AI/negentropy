@@ -180,7 +180,7 @@ const ClinicFirstLook: React.FC<{atEnter: number; atPlate: number}> = ({atEnter,
       <div style={{position: 'absolute', left: 150, top: 130, opacity: enters[1]}}>
         <Ledger x={0} y={0} />
       </div>
-      <div style={{position: 'absolute', left: 150, top: 320, opacity: enters[2]}}>
+      <div style={{position: 'absolute', left: 150, top: 320, width: 86, opacity: enters[2]}}>
         <Doctor x={0} y={0} scale={0.72} />
         {/* 标签独立 absolute（Doctor 脱流，in-flow 会从容器顶起排压头部圆——
             同 P6 SplitScreen 修复口径，2026-10-02 评审） */}
@@ -200,7 +200,7 @@ const ClinicFirstLook: React.FC<{atEnter: number; atPlate: number}> = ({atEnter,
           {'医生 · 模型'}
         </div>
       </div>
-      <div style={{position: 'absolute', left: 810, top: 240, opacity: enters[3]}}>
+      <div style={{position: 'absolute', left: 810, top: 230, opacity: enters[3]}}>
         <DeptGate x={0} y={0} lit />
       </div>
       <div style={{position: 'absolute', left: 660, top: 430, opacity: enters[0]}}>

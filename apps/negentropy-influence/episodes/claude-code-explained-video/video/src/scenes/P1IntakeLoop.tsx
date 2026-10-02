@@ -5,8 +5,9 @@
  *  ★ 实验 1：信迟到的停止标记 vs 看病历内容（传真吐纸＋双轨小卡）；生产版对照
  *    （千行级文件虚化 · 三十来行内核高亮 · 四枚保护壳）；交棒＝行数尺第一格复亮
  *    ＋命令行卡片（拼查看/拼替换）＋开单表剪影自右缘探入。
- *  archify 全屏独占：intake-loop 四瞥＋stop-reason-race 五章。1-D stream-order 承 1-C
- *    discharge-return 镜界背靠背 → lead={false}；1-E 四章一实例（stop-late 承封条卡
+ *  archify 全屏独占：intake-loop 四瞥＋stop-reason-race 五章。1-C discharge-return
+ *    提前让位留空窗 → 1-D stream-order 走默认 lead 入场（原 lead={false}「镜界背靠背」
+ *    前提不成立，2026-10-02 评审移除）；1-E 四章一实例（stop-late 承封条卡
  *    句尾让位与 stop-die 分锚 p1-16/p1-17——同锚句双 cue 是硬 FAIL，两章不能共锚一句；
  *    verdict 经 p1-19 空窗后由实例内空窗判定恢复入场）。
  */

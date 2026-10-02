@@ -17,37 +17,9 @@ import {AbsoluteFill, Sequence} from 'remotion';
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {LineGauge, QuoteCard, withAlpha} from '../components/clinic';
+import {LineGauge, MonoTag, QuoteCard, withAlpha} from '../components/clinic';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 import {DUR, useCount, useEnter, useImpulse, useProgress, useSpring, useStagger} from '../motion';
-
-/** 轻量角标（P0 FootnoteGhost 同形制；英文标识符只落角标位） */
-const FootnoteChip: React.FC<{x: number; y: number; at: number; children: React.ReactNode}> = ({
-  x,
-  y,
-  at,
-  children,
-}) => {
-  const e = useEnter('fade', {at, dur: DUR.f3});
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        left: x,
-        top: y,
-        ...e,
-        padding: '4px 12px',
-        border: `1.5px solid ${withAlpha(theme.dim, 0.5)}`,
-        borderRadius: 5,
-        fontFamily: theme.mono,
-        fontSize: 16,
-        color: theme.dim,
-      }}
-    >
-      {children}
-    </div>
-  );
-};
 
 // ── 5-A 末道工序：执行门（p5-06） ───────────────────────────────────────
 
@@ -390,9 +362,9 @@ export const P5Preflight: React.FC<{scene: SceneRange}> = ({scene}) => {
         />
         <Sequence from={at('p5-08') - bB.from} durationInFrames={dur('p5-08')}>
           <IntroHead at={4} />
-          <FootnoteChip x={246} y={64} at={2}>
+          <MonoTag x={246} y={64} at={2}>
             {'执行行：只换过一次 · 教学版'}
-          </FootnoteChip>
+          </MonoTag>
         </Sequence>
         <ArchifyRecap
           slug="four-version-ledger"

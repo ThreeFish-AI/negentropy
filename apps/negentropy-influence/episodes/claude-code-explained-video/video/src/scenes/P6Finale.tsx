@@ -206,7 +206,7 @@ export const P6Finale: React.FC<{scene: SceneRange}> = ({scene}) => {
         <div style={{position: 'absolute', left: 660, top: 300}}>
           <LoopRing x={0} y={0} size={300} litSteps={5} spin glow />
         </div>
-        <PeripheralRow x={1060} y={430} lit={3} at={4} />
+        <PeripheralRow x={1060} y={430} lit={3} at={at('p6-02') - bA.from} />
         <LineGauge lit={gaugeLit} />
         {/* p6-03 三连排比小字条（关键词对，RSI-007：非逐字复述口播） */}
         {[t1, t2, t3].map((txt, i) => (
@@ -266,7 +266,7 @@ export const P6Finale: React.FC<{scene: SceneRange}> = ({scene}) => {
             letterSpacing: 3,
           }}
         >
-          {`Claude Code Harness Engineering · 第 1 集 · ${RULE8_THIS_MAIN}`}
+          {`Claude Code Harness Engineering · 第 ${ACTIVE_INDEX} 集 · ${RULE8_THIS_MAIN}`}
         </div>
         {NEXT_LAYER && (
           <div
