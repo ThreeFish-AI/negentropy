@@ -2,8 +2,8 @@
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 11.13,
- "total_wall_sec": 43.11,
+ "story_sec": 8.02,
+ "total_wall_sec": 134.2,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -17,11 +17,11 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.33,
+   "story_sec": 3.34,
    "beat_offsets_sec": [
     0.0,
     1.103,
-    2.205
+    2.208
    ],
    "beat_nodes": [
     "newBatch",
@@ -29,7 +29,7 @@
     "unmapped"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 23.0
+   "capture_fps": 26.0
   },
   {
    "id": "seventh-mechanism",
@@ -40,11 +40,11 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.35,
+   "story_sec": 4.68,
    "beat_offsets_sec": [
     0.0,
-    1.103,
-    2.205
+    1.105,
+    2.21
    ],
    "beat_nodes": [
     "newBatch",
@@ -52,32 +52,7 @@
     "sysTag"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 23.0
-  },
-  {
-   "id": "auto-linkage",
-   "label": "免重复配置",
-   "index": 2,
-   "file": "tag-gate-linkage--auto-linkage.mp4",
-   "end_still": "tag-gate-linkage--auto-linkage-end.png",
-   "beats": 4,
-   "dwell_ms": 1100,
-   "lead_sec": 0.44,
-   "story_sec": 4.45,
-   "beat_offsets_sec": [
-    0.0,
-    1.104,
-    2.207,
-    3.31
-   ],
-   "beat_nodes": [
-    "sysTag",
-    "userTag",
-    "policy",
-    "gate"
-   ],
-   "measured_fps": 25.0,
-   "capture_fps": 23.0
+   "capture_fps": 27.0
   }
  ],
  "capture": {
@@ -88,7 +63,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/tripoli-v4/docs/assets/architecture/cognitive-context/horizon-context--tag-gate-linkage.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/horizon-context--tag-gate-linkage.html",
  "slug": "tag-gate-linkage",
  "type": "dataflow"
 }

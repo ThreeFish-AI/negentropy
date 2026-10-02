@@ -1,9 +1,9 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.44,
- "story_sec": 7.79,
- "total_wall_sec": 27.19,
+ "lead_sec": 0.48,
+ "story_sec": 4.44,
+ "total_wall_sec": 40.32,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -16,13 +16,13 @@
    "end_still": "event-fanout--hundred-three-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 0.44,
+   "lead_sec": 0.48,
    "story_sec": 4.44,
    "beat_offsets_sec": [
     0.0,
-    1.103,
-    2.208,
-    3.31
+    1.105,
+    2.209,
+    3.313
    ],
    "beat_nodes": [
     "order100",
@@ -31,30 +31,7 @@
     "evt-3"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 23.0
-  },
-  {
-   "id": "join-disaster",
-   "label": "直接关联的灾难",
-   "index": 1,
-   "file": "event-fanout--join-disaster.mp4",
-   "end_still": "event-fanout--join-disaster-end.png",
-   "beats": 3,
-   "dwell_ms": 1100,
-   "lead_sec": 0.44,
-   "story_sec": 3.35,
-   "beat_offsets_sec": [
-    0.0,
-    1.103,
-    2.206
-   ],
-   "beat_nodes": [
-    "naive-join",
-    "dup-rows",
-    "sum-300"
-   ],
-   "measured_fps": 25.0,
-   "capture_fps": 24.0
+   "capture_fps": 26.0
   }
  ],
  "capture": {
@@ -65,7 +42,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/tripoli-v4/docs/assets/architecture/cognitive-context/horizon-context--event-fanout.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/horizon-context--event-fanout.html",
  "slug": "event-fanout",
  "type": "dataflow"
 }

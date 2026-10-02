@@ -4,16 +4,22 @@
   {
    "index": 1,
    "layer": "上下文层",
-   "title": "拆解 Horizon Context：功能、治理、安全与开放性",
+   "title": "拆解 Horizon Context：含义怎么治理、答案怎么可信",
    "published": false
   },
   {
    "index": 2,
    "layer": "上下文层",
-   "title": "自己动手，给 AI 搭一个上下文层",
+   "title": "给 AI 发一张工卡：Agent 上下文层蓝图",
+   "published": false
+  },
+  {
+   "index": 3,
+   "layer": "上下文层",
+   "title": "给 AI 一座图书馆：OpenViking 上下文数据库",
    "published": false
   }
  ],
  "activeIndex": 1,
- "next": "自己动手，给 AI 搭一个上下文层"
+ "next": "给 AI 发一张工卡：Agent 上下文层蓝图"
 }

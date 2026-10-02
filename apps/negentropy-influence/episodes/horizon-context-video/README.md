@@ -1,82 +1,84 @@
-# 《拆解 Horizon Context：功能、治理、安全与开放性》
+# 拆解 Horizon Context：含义怎么治理、答案怎么可信（完全重制版）
 
-Context Layer 系列首集。信源为本仓 [Snowflake Horizon Context 精读笔记](../../../../docs/research/cognitive-context/011-horizon-context.md) 与配套最小原型（B 型 · 仓内固定提交 `097076eb`），逐条断言回溯 [research/source-notes.md](./research/source-notes.md)。
+Context Layer 系列第 1 集。Snowflake Horizon Context（受治理上下文层）的精读拆解：七个承重机制
+（语义视图双不变量 / 行列级策略 / 语义级治理 / 验证锚定 VQR / 列级血缘 / Agent Identity / 分类纳管）
+逐件「讲机制 + 走查 + 拆掉一次」——零跨域剧场，gen2 白话直讲教学法（C 型信源直通承接）。
 
-**交付状态**：v6.1 终渲待审（2026-09-21 修复 47s 处 p0-10 句尾「Context」重复尾音——CMU 音素标注 `<Context|K AA1 N T EH2 K S T>` 定稿 + 单句重掷，字幕与视觉零改动；v6=图例 2× 扩产 + 全屏独占切换 + 阈门六维加固，口播零改动）。
+> **交付状态 v2 终渲待审**（2026-10-02，评审 H 轮）：15:05.90 = 27177 帧 @30fps · 1920×1080（ffprobe 视频流 27177 帧与帧复算一致）· 97.1MB；
+> 归档 `~/Documents/video/context-layer/拆解 Horizon Context：含义怎么治理、答案怎么可信 v2.mp4` + `v2_captions/`（v1 存档保留）。
 
-**15:11.20 = 27336 帧 @30fps · 1920×1080**（v6.1 修 p0-10 句尾读音后总长 -13 帧，见 ISSUE-192；音频其余 186 句复用 v4）。
+## 结构
 
-187 句 / 4256 字 / 45 镜；archify 工程图 **67 张 / 162 章逐章高清录制，156 个 cue 进片**（v5 为 33 图 86 章 73 cue）：句级锚定率 39.0% → **83.4%**、cue 密度 5.4 → **10.3/分**、图型 4 → **5 种**（lifecycle 0→7 补空白）、最长无锚 7 → **4 句**，D1–D10 实证全部有图。
+- **八幕 156 句**（实测全片 15:05.90，首轮校准窗 [14.0, 16.3]；story 块合成实测 302 字/分含时距）：P0 三个症状一个病根 →
+  P1 七机制地图 → P2 口径与现算（M1）→ P3 规则与执法（M2+M3）→ P4 背书与血缘（M4+M5）→
+  P5 身份与纳管（M6+M7）→ P6 供给与生态 → P7 规律与边界
+- **story 段落演绎配音**：me-bright 声音克隆 + `script/narration.cues.toml` 导演台本（71 块情绪标记 · TTS 合成 78 块 + 7 句表演标点）
+- **视觉母题**：「同一份定义单」金描边定义卡全片同形〔M-001〕——P0 空卡座缺席 → P2 注册 →
+  P3 挂策略扣件 → P4 签名盖章 → P7 满屏回照；色彩契约 金=口径 / 紫=治理 / 青=验证
+- **archify 图例**：47 图 104 章逐章录制 106 cue 全屏独占回放，句级锚定 67.9% · 7.0 cue/分 · 5 图型；
+  红绿消融同屏演尽破坏实验（左崩溃右拦截，⑨ 视觉抽查修复 2-I 整镜遮盖一例），证据徽三级
 
-**v6 改了什么**：
+## 信源（C 型 · guided-learn gen2 直通承接）
 
-① 图例 2.03× 扩产——新增 34 张严格锚定逐字稿的工程图（密文对译 / 双基线证据链 / 外挂词典漂移 / 官方三句递进 / 七机制×十次拆坏 / 便利贴收拢成册 / 坏定义注册生死簿 D6 / 手册两半剖面 / 临机现算 / 事件扇出 / 多入口一个答案 / 计算纪律四条总纲 / 第一道防线 / 查询期逐页验放 / 三流合一 / 猜名强查拦截 D5 / 编译那一秒 / 藏≠拦 D5 / 核准条目的一生 / 落地两挑战 / 全楼水管台账 / 虚构流水入账 D8 / 逆流溯源 / 信任三段 / 权限交集 / 权限回收两种命运 D9 / 零越权窗口 D9 / 听证会 / 贴标即联动 / 治理≠计算 / 图纸vs地基 / 归因天平 / 租来的聪明 / 下期蓝图）+ 13 个闲置章接线（autopilot-loop / evolution-timeline 两整图启用）+ 2 处挪锚（declare→p2-04 修复章序逆序、ingest-lane→p4-14a）；
-
-② **inset 画中画退役**——archify 播放期不与自制装置同屏：三分法切换（嵌套子窗 / ArchifyYield 淡出让位 / 画框直遮），42 处 inset 全部转全屏独占（640×360 → 1298×730 整屏），被图整镜接管的装置按「视觉主权一句一主」原则退役，独有隐喻装置（半堵墙 / 栅栏立起 / 记忆柱等）保留可见岛；
-
-③ 覆盖门六维加固——新增最长无锚 run / 分幕锚定率 / cue 密度 / 图型多样性 / forbid_inset / 同句排他（+第 4 道 dur 形态断言），sidecar 落 `type` 字段（record_archify --type + 33 张存量回填），本集阈值定稿 66 图 / 146 cue / 60% / 9/分 / 5 种（先红后绿留证 `.temp/coverage-gate-red-before-v4.txt`）。
-
-**验收**：`check_script --check-scenes --check-motion` **FAIL 0 · WARN 0**（v6 遗留 30 条动效声明 WARN 已随分镜动效列镜级回收清零；口径复位见 ISSUE-191）· `check_archify` FAIL 0 · WARN 0 · 覆盖门 FAIL 0 · WARN 0（v5 存量 3 WARN 清零：逆序经挪锚修复、两整图接线）· `tsc --noEmit` 绿 · rate 预演 156 cue 零越界 · 估算与实测双口径均落在 `[13.0, 15.4]`（口播未动，实测与 v4 一致）。
+- 冻结快照 `research/gl-notes.md` = 011 精读笔记 gen2 @192ae6ca9（011 本体 548 行，全文含冻结头与附录 616 行；2026-09-30 信源实况）
+- 原型双 selftest 复算 2026-10-01 与基线逐字节一致（升【一】级证据）：`research/selftest-*-2026-10-01.txt`
+- 穿透抽查 126 条断言零 MISS：`research/penetration-report.md` + `penetration-claims.json`
+- 信源台账 71 条（3 repo 钉 192ae6ca9 + 68 site）：`research/sources.toml` · verify FAIL 0
+- 勘误登记：011 §19「200:3」系官方例与 lab 实测混编，本集口播采用 lab 实测 200:5（gl-notes 附录 B）
 
 ## 目录
 
-| 路径                               | 作用                                                                              |
-| ---------------------------------- | --------------------------------------------------------------------------------- |
-| `pipeline.toml`                    | 本集可执行参数**唯一来源**（预算窗 / TTS 样本与风格）                             |
-| `script/planning.md`               | 策划案六节（定位 / 叙事 / 视觉语言 / 幕结构 / 管线 / 边界）                       |
-| `script/narration.md`              | **逐字稿 SSOT**——只改这里，`narration.json` 由 build 派生                         |
-| `script/storyboard.md`             | 45 镜分镜表，镜号与 `scenes/*.tsx` 的 `<Sequence name>` 一一对应                  |
-| `research/sources.toml`            | 信源台账（pinned commit，`source_ledger.py verify` 执法）                         |
-| `video/src/scenes/`                | 七幕场景（P0Cold / P1Intern / P2Manual / P3Gate / P4Ledger / P5Badge / P6Ending） |
-| `video/src/components/devices.tsx` | 本集视觉装置库（大厦剖面母图 / 七格 HUD / 对照台 / 数字对撞 / 证据角标）          |
-| `video/public/archify/views/`      | 67 张工程图的引导故事定义（**入库**；mp4/end PNG 为派生产物）                     |
-| `scripts/`                         | 薄包装 + 本集专用：`archify_lead.py`（场记板测定）/ `archify_manifest.py`         |
-
-## 复现
-
-```bash
-# 工作区根执行。$T/$W/$P/$V 的定义见 to-video skill 的 pipeline/README.md（唯一定义处：https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/README.md）
-P=$W/episodes/horizon-context-video
-
-# ① 信源核验
-uv run --no-project $T/pipeline/scripts/source_ledger.py --project $P verify
-
-# ② 逐字稿派生 + 内容门
-uv run --no-project $T/pipeline/scripts/pipeline.py --project $P build
-uv run --no-project $T/pipeline/scripts/pipeline.py --project $P check --check-scenes --check-motion
-
-# ③ archify 动效：全量逐章录制 → 测定 lead → 生成 manifest
-#    mp4 / *-end.png 是派生产物（gitignored，HTML 为 SSOT），**换 worktree 必须全量重录一次**。
-#    先装 Remotion 依赖（录制器用它内置的 ffmpeg 编码）。⚠️ 不要加 --ignore-workspace：
-#    那会把本工程自锚用的 pnpm-workspace.yaml 一并忽略，esbuild 构建许可随之失效，
-#    安装以 ERR_PNPM_IGNORED_BUILDS 中断、node_modules 半残。
-cd $P/video && pnpm install && cd - >/dev/null
-#    图集清单 = video/public/archify/views/（67 图，与覆盖门同一事实源，不另立第二份）；
-#    slug→源图走 pipeline.toml [archify] 的 html_pattern + html_overrides，失配即 FAIL
-#    不静默跳过。串行约 45 min；中断后原样重跑即从缺口续（已齐者点名跳过；
-#    半程重录或 views 增删章的图会被点名强制重录，不混用两代素材）。
-uv run --with playwright python $T/pipeline/scripts/record_archify_all.py --project $P
-cd $P && uv run --no-project --with pillow python scripts/archify_lead.py && uv run --no-project python scripts/archify_manifest.py
-#    单图返工（用真实图名，勿再写 <slug> 占位符——它与分集 slug 同形异义）：
-#      uv run --with playwright python $T/pipeline/scripts/record_archify_all.py --project $P --only agent-identity --force
-#    chapter 模式默认 cdp 高清采集（CDP JPEG q100 @DSF2 → h264 CRF16 @2560×1440）；
-#    需要旧 screencast 行为时给 record_archify.py 加 --capture playwright。
-
-# ④ 配音（先 refs.py rebuild --name me-bright 重建样本）
-uv run --no-project $T/pipeline/scripts/pipeline.py --project $P tts --plan
-uv run --no-project $T/pipeline/scripts/pipeline.py --project $P tts
-
-# ⑤ 草渲 + 体检 + 终渲
-uv run --no-project $T/pipeline/scripts/pipeline.py --project $P render
-uv run --no-project $T/pipeline/scripts/pipeline.py --project $P qa --video out/draft.mp4 --last-n 6 --check
-uv run --no-project $T/pipeline/scripts/pipeline.py --project $P render --final
-uv run --no-project $T/pipeline/scripts/pipeline.py --project $P captions
+```
+research/     gl-notes 冻结快照 · sources.toml 台账 · 穿透报告 · selftest 复算 · GL 台账冻结归档
+script/       planning（六节）· narration v2（156 句）· cues.toml（story 台本）· storyboard v3（66 镜）· verification（④⑤ 报告）
+scripts/      build_narration / tts / qa_frames 薄包装（转发 to-video skill）
+video/        Remotion 工程：scenes 八幕 · components 装置层 13 件+archify 消费端 · motion（frozen）
+              public/archify/ 47 图 sidecar+views（mp4/end.png 派生物 gitignored）
+out/          渲染产物（gitignored）
 ```
 
-## 内容修改守则
+## 复现流水线
 
-1. **逐字稿只改 `script/narration.md`**；`narration.json` 是派生物，手改必被 build 覆盖。
-2. 时序常数只在 `video/src/timing.json`；口播永不出现他集标题与集数序号（`check_series.py` 规则 1）。
-3. **破坏性实验编号（D1–D10）与裸 `Context`/`Agent` 不进口播**——只进角标与终端输出。
-4. 每个承重机制必须走满四拍：类比 → 机制不变量 → 破坏性实验反证 → 一句话收口。
-5. 改骨架前先跑 `verify_skeleton.py`；archify 回放改动后必须重跑 `archify_manifest.py`；图例对逐字稿的覆盖/丰富/匹配（含分镜 archify 标注对账）已由 `pipeline.py check` 自动串联（check_archify_coverage.py，阈值见 pipeline.toml `[archify]`）。
+```bash
+# 全链（to-video skill · 十阶段）
+uv run --no-project $T/scripts/pipeline.py --project apps/negentropy-influence/episodes/horizon-context-video \
+  build && check            # ③④ 内容层（覆盖门自动串联）
+uv run --no-project --with playwright $T/scripts/record_archify_all.py --project <P>   # ⑥' 逐章录制
+uv run --no-project --with pillow $T/scripts/archify_lead.py --project <P>            # lead 白闪实测
+uv run --no-project $T/scripts/archify_manifest.py --project <P>                      # manifest 真值
+uv run --no-project --with mutagen $T/scripts/tts_resume.py -- --engine indextts --project <P> \
+  --ref <W>/voices/me-bright.wav --expect-ref-sha1 54b699cce97f                       # ⑦ 长跑自愈
+uv run --no-project $T/scripts/pipeline.py --project <P> render && qa --video out/draft.mp4 --check  # ⑨
+uv run --no-project $T/scripts/pipeline.py --project <P> render --final && captions && deliver      # ⑩
+```
+
+## 机器门（收口回填）
+
+- [x] 清场双门 verify_skeleton/check_series FAIL 0 · 信源台账 verify 71 条 FAIL 0
+- [x] selftest 复算 diff 双零 · 穿透 126 条 MISS 0
+- [x] build/④ RISKY=0/⑤ 评审 REWRITE=0 · --pre-tts FAIL 0 WARN 0 · 多音字语义未标注 0
+- [x] tsc 零错 · archify 覆盖门 106 cue/67.9%/5 型 FAIL 0（WARN 15=叙事性章序重组 14 + 镜锚 1；该 1 为 7-B vendor-claim 同章跨镜接力声明，覆盖门 hit-first 语义的已知盲区——P7Laws 两条真实 cue 各自锚 p7-02/p7-03 已核验，渲染无误）
+- [x] ⑦ manifest 156 句全成 · 首轮校准回写 302 字/分 + 窗 [14.0, 16.3]（story 块合成消除块内停顿）
+- [x] ⑨ qa --check 五项 FAIL 0 WARN 0 · 八幕逐 scene FAIL 0 · beat-heads 91 帧 · 四帧视觉抽查（修复 2-I）
+- [x] ⑩ 终渲 15:05.90 落窗（ffprobe 视频流 27177 帧与帧复算双口径一致）· captions srt/vtt · deliver v2 + 字幕随片归档
+- [x] H 轮（2026-10-02）：p2-21/22 口播对齐画面实例数字后 `[block.p2-20]` 重录（27169→27177 帧）；换场交界逐帧亮度
+  实测（句界 −2..+4 连续帧中区 max 单调无断层，P2×4/P4×3/3-G 全覆盖）；终渲修复句 qa --check 11 句 FAIL 0 WARN 0
+
+## 重制差异（vs v6.1 旧版）
+
+| 维 | 旧版 v6.1 | 本版 |
+|---|---|---|
+| 信源 | 旧 011（797 行·类比剧场） | 011 gen2 冻结 @192ae6ca9（548 行·白话直讲）+ 穿透复算 |
+| 叙事 | 七幕类比剧场（天才实习生/大厦） | 八幕零剧场，机制四拍（术语→机制→走查→拆掉） |
+| 配音 | sunny-steady 稳态 | story 段落演绎（71 块情绪标记 · 合成 78 块，302 字/分实测） |
+| 数字 | 200:3（承笔记混编） | 200:5（lab 实测口径 + 勘误登记） |
+| 图例 | 67 图 156 cue 83.4% | 47 图 106 cue 67.9%（剧场词图 10+ 张退役） |
+| ⑧ 装置 | devices.tsx 剧场母图 | 装置层 13 件（定义卡母题/红绿消融/基线标尺…） |
+
+## C 型首例偏差记录（to-video 01 §C）
+
+1. **链接落位平移**：gl-notes 冻结正文 51 处相对链接按新落位机械改写指回仓内目标（内容零变更）。
+2. **archify 3.0 代际差**：当前 archify viewer 已移除 guided-views 模块——five-laws 新图无法被录制器
+   消费（canonical 容器注入亦不奏效，模块而非数据缺失），视频侧改原生实现；该图转为 docs 研究资产。
+   15 张既有 3.0 代扩产图以空容器注入通过录制预检（数据面补齐即可消费）。注入使 five-laws.html
+   较交付时 +1024B，delivery/browser-check 双回执 artifact 指纹已重同步至入库实物（2026-10-02 评审修复）。

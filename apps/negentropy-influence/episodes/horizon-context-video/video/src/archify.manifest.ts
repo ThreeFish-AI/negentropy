@@ -1,5 +1,5 @@
-// 本文件由 scripts/archify_manifest.py 从 public/archify/*.json 生成——请勿手改。
-// 数据来源：pipeline/scripts/record_archify.py --mode chapter（逐章录制）
+// 本文件由 to-video skill 的 scripts/archify_manifest.py 从 public/archify/*.json 生成——请勿手改。
+// 数据来源：scripts/record_archify.py --mode chapter（逐章录制）
 //         + scripts/archify_lead.py（场记板白闪测定真实 leadSec）。
 
 export type ArchifyChapter = {
@@ -35,7 +35,7 @@ export const ARCHIFY = {
         "endStill": "agent-identity--ceiling-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.47,
+        "storySec": 4.44,
         "beatNodes": [
           "user",
           "agent",
@@ -50,7 +50,7 @@ export const ARCHIFY = {
         "endStill": "agent-identity--audit-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.22,
+        "storySec": 3.25,
         "beatNodes": [
           "sess",
           "qh"
@@ -63,7 +63,7 @@ export const ARCHIFY = {
         "endStill": "agent-identity--strict-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.22,
+        "storySec": 3.24,
         "beatNodes": [
           "sess",
           "pol"
@@ -76,82 +76,11 @@ export const ARCHIFY = {
         "endStill": "agent-identity--snapshot-vs-live-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.34,
+        "storySec": 3.36,
         "beatNodes": [
           "user",
           "ceil",
           "sess"
-        ]
-      }
-    ]
-  },
-  "amnesia-intern": {
-    "slug": "amnesia-intern",
-    "type": "workflow",
-    "chapters": [
-      {
-        "id": "daily-reset",
-        "label": "每天清零的日循环",
-        "file": "amnesia-intern--daily-reset.mp4",
-        "endStill": "amnesia-intern--daily-reset-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.36,
-        "beatNodes": [
-          "geniusHire",
-          "doorIn",
-          "memoryWipe"
-        ]
-      },
-      {
-        "id": "dark-guess",
-        "label": "没术语表，黑暗中瞎猜",
-        "file": "amnesia-intern--dark-guess.mp4",
-        "endStill": "amnesia-intern--dark-guess-end.png",
-        "beats": 5,
-        "leadSec": 0.44,
-        "storySec": 5.56,
-        "beatNodes": [
-          "memoryWipe",
-          "noGlossary",
-          "noCaliber",
-          "darkGuess",
-          "aiAssistant"
-        ]
-      }
-    ]
-  },
-  "attribution-balance": {
-    "slug": "attribution-balance",
-    "type": "architecture",
-    "chapters": [
-      {
-        "id": "not-the-brain",
-        "label": "不取决于大脑",
-        "file": "attribution-balance--not-the-brain.mp4",
-        "endStill": "attribution-balance--not-the-brain-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.33,
-        "beatNodes": [
-          "when-correct",
-          "balance",
-          "model-brain"
-        ]
-      },
-      {
-        "id": "cast-into-infra",
-        "label": "取决于铸基",
-        "file": "attribution-balance--cast-into-infra.mp4",
-        "endStill": "attribution-balance--cast-into-infra-end.png",
-        "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.45,
-        "beatNodes": [
-          "cast-into-infra",
-          "mech-semantics",
-          "mech-governance",
-          "mech-trust"
         ]
       }
     ]
@@ -167,7 +96,7 @@ export const ARCHIFY = {
         "endStill": "autopilot-loop--inputs-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.35,
+        "storySec": 3.32,
         "beatNodes": [
           "in_zero",
           "in_bi",
@@ -188,19 +117,6 @@ export const ARCHIFY = {
           "sv",
           "vqr"
         ]
-      },
-      {
-        "id": "loop",
-        "label": "激活与反馈回流",
-        "file": "autopilot-loop--loop.mp4",
-        "endStill": "autopilot-loop--loop-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.26,
-        "beatNodes": [
-          "consume",
-          "vqr"
-        ]
       }
     ]
   },
@@ -215,7 +131,7 @@ export const ARCHIFY = {
         "endStill": "bare-key-baseline--whole-key-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.36,
+        "storySec": 3.35,
         "beatNodes": [
           "keyHandover",
           "bareAgent",
@@ -228,8 +144,8 @@ export const ARCHIFY = {
         "file": "bare-key-baseline--blind-wrong.mp4",
         "endStill": "bare-key-baseline--blind-wrong-end.png",
         "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.26,
+        "leadSec": 0.48,
+        "storySec": 3.24,
         "beatNodes": [
           "rawTable",
           "wrongAnswer"
@@ -242,33 +158,12 @@ export const ARCHIFY = {
         "endStill": "bare-key-baseline--baseline-two-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.45,
+        "storySec": 5.05,
         "beatNodes": [
           "wrongAnswer",
           "vendorBench",
           "thirdPartyBench",
           "sameOrder"
-        ]
-      }
-    ]
-  },
-  "blueprint-foundation": {
-    "slug": "blueprint-foundation",
-    "type": "architecture",
-    "chapters": [
-      {
-        "id": "blueprint-vs-foundation",
-        "label": "图纸vs地基",
-        "file": "blueprint-foundation--blueprint-vs-foundation.mp4",
-        "endStill": "blueprint-foundation--blueprint-vs-foundation-end.png",
-        "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.47,
-        "beatNodes": [
-          "validateGate",
-          "semanticView",
-          "dbtDaily",
-          "answerWrong"
         ]
       }
     ]
@@ -284,25 +179,11 @@ export const ARCHIFY = {
         "endStill": "calc-discipline-matrix--agg-before-join-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.45,
+        "storySec": 6.1,
         "beatNodes": [
           "handbook",
           "rule-agg-before-join",
           "trap-fanout",
-          "recompute"
-        ]
-      },
-      {
-        "id": "dedup-count",
-        "label": "去重计数安全",
-        "file": "calc-discipline-matrix--dedup-count.mp4",
-        "endStill": "calc-discipline-matrix--dedup-count-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.37,
-        "beatNodes": [
-          "rule-dedup-count",
-          "trap-double-count",
           "recompute"
         ]
       },
@@ -313,26 +194,11 @@ export const ARCHIFY = {
         "endStill": "calc-discipline-matrix--divide-after-agg-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.37,
+        "storySec": 3.35,
         "beatNodes": [
           "rule-divide-after-agg",
           "trap-avg-of-avg",
           "recompute"
-        ]
-      },
-      {
-        "id": "semi-additive",
-        "label": "半可加规则",
-        "file": "calc-discipline-matrix--semi-additive.mp4",
-        "endStill": "calc-discipline-matrix--semi-additive-end.png",
-        "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.43,
-        "beatNodes": [
-          "rule-semi-additive",
-          "trap-sum-over-time",
-          "recompute",
-          "answer"
         ]
       }
     ]
@@ -348,7 +214,7 @@ export const ARCHIFY = {
         "endStill": "caliber-clash--three-dashboards-end.png",
         "beats": 5,
         "leadSec": 0.44,
-        "storySec": 5.56,
+        "storySec": 5.57,
         "beatNodes": [
           "netRevenue",
           "salesBoard",
@@ -364,73 +230,10 @@ export const ARCHIFY = {
         "endStill": "caliber-clash--twenty-algorithms-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.25,
+        "storySec": 3.26,
         "beatNodes": [
           "spread",
           "netRevenue"
-        ]
-      },
-      {
-        "id": "owners-clash",
-        "label": "主管对账对不上",
-        "file": "caliber-clash--owners-clash.mp4",
-        "endStill": "caliber-clash--owners-clash-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.35,
-        "beatNodes": [
-          "clash",
-          "salesLead",
-          "cfoLead"
-        ]
-      }
-    ]
-  },
-  "cipher-translate": {
-    "slug": "cipher-translate",
-    "type": "dataflow",
-    "chapters": [
-      {
-        "id": "not-model-dumb",
-        "label": "不是模型笨",
-        "file": "cipher-translate--not-model-dumb.mp4",
-        "endStill": "cipher-translate--not-model-dumb-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.38,
-        "beatNodes": [
-          "q-card",
-          "ai-brain",
-          "cipher-wall"
-        ]
-      },
-      {
-        "id": "cipher-wall",
-        "label": "物理列名乱码",
-        "file": "cipher-translate--cipher-wall.mp4",
-        "endStill": "cipher-translate--cipher-wall-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.36,
-        "beatNodes": [
-          "cipher-wall",
-          "dict-missing",
-          "plain-card"
-        ]
-      },
-      {
-        "id": "letters-not-meaning",
-        "label": "认得出字母",
-        "file": "cipher-translate--letters-not-meaning.mp4",
-        "endStill": "cipher-translate--letters-not-meaning-end.png",
-        "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.47,
-        "beatNodes": [
-          "cipher-wall",
-          "letters-ok",
-          "dict-missing",
-          "outcome"
         ]
       }
     ]
@@ -445,8 +248,8 @@ export const ARCHIFY = {
         "file": "classification-tagging--tag-driven.mp4",
         "endStill": "classification-tagging--tag-driven-end.png",
         "beats": 6,
-        "leadSec": 0.44,
-        "storySec": 6.64,
+        "leadSec": 0.48,
+        "storySec": 6.65,
         "beatNodes": [
           "new",
           "cls",
@@ -463,7 +266,7 @@ export const ARCHIFY = {
         "endStill": "classification-tagging--honest-limit-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.25,
+        "storySec": 3.26,
         "beatNodes": [
           "pol",
           "limit"
@@ -475,8 +278,8 @@ export const ARCHIFY = {
         "file": "classification-tagging--explicit-gap.mp4",
         "endStill": "classification-tagging--explicit-gap-end.png",
         "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.21,
+        "leadSec": 0.4,
+        "storySec": 3.25,
         "beatNodes": [
           "map",
           "gap"
@@ -495,7 +298,7 @@ export const ARCHIFY = {
         "endStill": "collect-enrich-activate--collect-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.43,
+        "storySec": 4.63,
         "beatNodes": [
           "s1",
           "s2",
@@ -510,75 +313,12 @@ export const ARCHIFY = {
         "endStill": "collect-enrich-activate--activate-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.44,
+        "storySec": 4.48,
         "beatNodes": [
           "r",
           "a1",
           "a2",
           "a3"
-        ]
-      },
-      {
-        "id": "enrich",
-        "label": "双轨富化与冲突浮出",
-        "file": "collect-enrich-activate--enrich.mp4",
-        "endStill": "collect-enrich-activate--enrich-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.33,
-        "beatNodes": [
-          "c",
-          "g",
-          "i"
-        ]
-      }
-    ]
-  },
-  "compile-time-block": {
-    "slug": "compile-time-block",
-    "type": "sequence",
-    "chapters": [
-      {
-        "id": "ux-vs-lifeline",
-        "label": "体验vs命门",
-        "file": "compile-time-block--ux-vs-lifeline.mp4",
-        "endStill": "compile-time-block--ux-vs-lifeline-end.png",
-        "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.45,
-        "beatNodes": [
-          "caller",
-          "retrieval",
-          "engine",
-          "gov"
-        ]
-      },
-      {
-        "id": "no-backdoor",
-        "label": "不成后门",
-        "file": "compile-time-block--no-backdoor.mp4",
-        "endStill": "compile-time-block--no-backdoor-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.34,
-        "beatNodes": [
-          "semantic",
-          "caller",
-          "engine"
-        ]
-      },
-      {
-        "id": "compile-second",
-        "label": "编译那一秒",
-        "file": "compile-time-block--compile-second.mp4",
-        "endStill": "compile-time-block--compile-second-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.33,
-        "beatNodes": [
-          "engine",
-          "gov",
-          "caller"
         ]
       }
     ]
@@ -594,7 +334,7 @@ export const ARCHIFY = {
         "endStill": "component-panorama--caliber-spine-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.46,
+        "storySec": 4.44,
         "beatNodes": [
           "ap",
           "sv",
@@ -608,8 +348,8 @@ export const ARCHIFY = {
         "file": "component-panorama--consumer-feed.mp4",
         "endStill": "component-panorama--consumer-feed-end.png",
         "beats": 6,
-        "leadSec": 0.44,
-        "storySec": 6.64,
+        "leadSec": 0.4,
+        "storySec": 6.65,
         "beatNodes": [
           "vqr",
           "us",
@@ -625,7 +365,7 @@ export const ARCHIFY = {
         "file": "component-panorama--reserved-supply.mp4",
         "endStill": "component-panorama--reserved-supply-end.png",
         "beats": 7,
-        "leadSec": 0.44,
+        "leadSec": 0.32,
         "storySec": 7.77,
         "beatNodes": [
           "ap",
@@ -650,7 +390,7 @@ export const ARCHIFY = {
         "endStill": "declaration-execution--declare-end.png",
         "beats": 5,
         "leadSec": 0.44,
-        "storySec": 5.53,
+        "storySec": 5.55,
         "beatNodes": [
           "tables",
           "rels",
@@ -660,69 +400,18 @@ export const ARCHIFY = {
         ]
       },
       {
-        "id": "gate",
-        "label": "注册期结构校验门",
-        "file": "declaration-execution--gate.mp4",
-        "endStill": "declaration-execution--gate-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.35,
-        "beatNodes": [
-          "fivePart",
-          "gate",
-          "reject"
-        ]
-      },
-      {
-        "id": "recompute",
-        "label": "查询期按 grain 重算",
-        "file": "declaration-execution--recompute.mp4",
-        "endStill": "declaration-execution--recompute-end.png",
-        "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.44,
-        "beatNodes": [
-          "rbac",
-          "agg",
-          "result",
-          "denied"
-        ]
-      },
-      {
         "id": "switch-divergence",
         "label": "执行开关分化",
         "file": "declaration-execution--switch-divergence.mp4",
         "endStill": "declaration-execution--switch-divergence-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.42,
+        "storySec": 4.44,
         "beatNodes": [
           "fivePart",
           "rbac",
           "agg",
           "result"
-        ]
-      }
-    ]
-  },
-  "dedup-safety": {
-    "slug": "dedup-safety",
-    "type": "workflow",
-    "chapters": [
-      {
-        "id": "set-vs-rows",
-        "label": "数集合 vs 数物理行",
-        "file": "dedup-safety--set-vs-rows.mp4",
-        "endStill": "dedup-safety--set-vs-rows-end.png",
-        "beats": 5,
-        "leadSec": 0.44,
-        "storySec": 5.54,
-        "beatNodes": [
-          "eventRows",
-          "naiveCount",
-          "wrong6",
-          "dedupSafety",
-          "right3"
         ]
       }
     ]
@@ -737,8 +426,8 @@ export const ARCHIFY = {
         "file": "definition-registration--strict-gate.mp4",
         "endStill": "definition-registration--strict-gate-end.png",
         "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.43,
+        "leadSec": 0.48,
+        "storySec": 4.44,
         "beatNodes": [
           "validating",
           "rule_fk",
@@ -753,25 +442,11 @@ export const ARCHIFY = {
         "endStill": "definition-registration--nonkey-rejected-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.36,
+        "storySec": 3.33,
         "beatNodes": [
           "bad_fk",
           "validating",
           "rejected"
-        ]
-      },
-      {
-        "id": "no-runtime-risk",
-        "label": "注册期进不去",
-        "file": "definition-registration--no-runtime-risk.mp4",
-        "endStill": "definition-registration--no-runtime-risk-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.33,
-        "beatNodes": [
-          "rejected",
-          "registered",
-          "runtime"
         ]
       }
     ]
@@ -781,41 +456,13 @@ export const ARCHIFY = {
     "type": "lifecycle",
     "chapters": [
       {
-        "id": "dict-outside",
-        "label": "词典在库外",
-        "file": "dictionary-drift--dict-outside.mp4",
-        "endStill": "dictionary-drift--dict-outside-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.33,
-        "beatNodes": [
-          "dict-mounted",
-          "table-v1",
-          "loose-sync"
-        ]
-      },
-      {
-        "id": "schema-changed",
-        "label": "底层一改",
-        "file": "dictionary-drift--schema-changed.mp4",
-        "endStill": "dictionary-drift--schema-changed-end.png",
-        "beats": 3,
-        "leadSec": 0.48,
-        "storySec": 3.35,
-        "beatNodes": [
-          "table-v1",
-          "schema-change",
-          "stale-dict"
-        ]
-      },
-      {
         "id": "stale-manual",
         "label": "按旧手册猜",
         "file": "dictionary-drift--stale-manual.mp4",
         "endStill": "dictionary-drift--stale-manual-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.32,
+        "storySec": 3.35,
         "beatNodes": [
           "stale-dict",
           "ai-stale-manual",
@@ -835,71 +482,12 @@ export const ARCHIFY = {
         "endStill": "dual-baseline-evidence--two-benchmarks-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.43,
+        "storySec": 4.46,
         "beatNodes": [
           "snowflakeInternal",
           "internal25",
           "anthropicRetest",
           "retest21"
-        ]
-      }
-    ]
-  },
-  "dual-challenge-fork": {
-    "slug": "dual-challenge-fork",
-    "type": "architecture",
-    "chapters": [
-      {
-        "id": "challenge-one",
-        "label": "第一个挑战",
-        "file": "dual-challenge-fork--challenge-one.mp4",
-        "endStill": "dual-challenge-fork--challenge-one-end.png",
-        "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.42,
-        "beatNodes": [
-          "foundation",
-          "challengeOne",
-          "vqr",
-          "sealedAnswer"
-        ]
-      },
-      {
-        "id": "challenge-two",
-        "label": "第二个挑战",
-        "file": "dual-challenge-fork--challenge-two.mp4",
-        "endStill": "dual-challenge-fork--challenge-two-end.png",
-        "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.46,
-        "beatNodes": [
-          "challengeTwo",
-          "ledger",
-          "intakeGate",
-          "auditClose"
-        ]
-      }
-    ]
-  },
-  "dual-path-disambiguation": {
-    "slug": "dual-path-disambiguation",
-    "type": "workflow",
-    "chapters": [
-      {
-        "id": "two-paths",
-        "label": "双路径显式声明",
-        "file": "dual-path-disambiguation--two-paths.mp4",
-        "endStill": "dual-path-disambiguation--two-paths-end.png",
-        "beats": 6,
-        "leadSec": 0.44,
-        "storySec": 6.65,
-        "beatNodes": [
-          "ordersTbl",
-          "forkGate",
-          "buyerNode",
-          "refNode",
-          "custTbl",
-          "ambiguous"
         ]
       }
     ]
@@ -914,8 +502,8 @@ export const ARCHIFY = {
         "file": "engine-governance--sign-vs-wall.mp4",
         "endStill": "engine-governance--sign-vs-wall-end.png",
         "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.27,
+        "leadSec": 0.48,
+        "storySec": 3.23,
         "beatNodes": [
           "byp",
           "rb"
@@ -928,7 +516,7 @@ export const ARCHIFY = {
         "endStill": "engine-governance--governed-path-end.png",
         "beats": 5,
         "leadSec": 0.44,
-        "storySec": 5.57,
+        "storySec": 5.96,
         "beatNodes": [
           "cal",
           "flt",
@@ -943,27 +531,13 @@ export const ARCHIFY = {
         "file": "engine-governance--two-layer-defense.mp4",
         "endStill": "engine-governance--two-layer-defense-end.png",
         "beats": 4,
-        "leadSec": 0.48,
-        "storySec": 4.44,
+        "leadSec": 0.44,
+        "storySec": 4.45,
         "beatNodes": [
           "cal",
           "flt",
           "rb",
           "out"
-        ]
-      },
-      {
-        "id": "bypass-intercepted",
-        "label": "绕行仍被拦截",
-        "file": "engine-governance--bypass-intercepted.mp4",
-        "endStill": "engine-governance--bypass-intercepted-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.33,
-        "beatNodes": [
-          "cal",
-          "byp",
-          "ax"
         ]
       }
     ]
@@ -978,27 +552,13 @@ export const ARCHIFY = {
         "file": "event-fanout--hundred-three.mp4",
         "endStill": "event-fanout--hundred-three-end.png",
         "beats": 4,
-        "leadSec": 0.44,
+        "leadSec": 0.48,
         "storySec": 4.44,
         "beatNodes": [
           "order100",
           "evt-1",
           "evt-2",
           "evt-3"
-        ]
-      },
-      {
-        "id": "join-disaster",
-        "label": "直接关联的灾难",
-        "file": "event-fanout--join-disaster.mp4",
-        "endStill": "event-fanout--join-disaster-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.35,
-        "beatNodes": [
-          "naive-join",
-          "dup-rows",
-          "sum-300"
         ]
       }
     ]
@@ -1014,7 +574,7 @@ export const ARCHIFY = {
         "endStill": "evidence-grading--vendor-claim-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.45,
+        "storySec": 4.43,
         "beatNodes": [
           "benchSource",
           "gradeCard",
@@ -1049,8 +609,8 @@ export const ARCHIFY = {
         "file": "evolution-timeline--stage-objects.mp4",
         "endStill": "evolution-timeline--stage-objects-end.png",
         "beats": 2,
-        "leadSec": 0.4,
-        "storySec": 3.26,
+        "leadSec": 1.88,
+        "storySec": 3.25,
         "beatNodes": [
           "ms1",
           "ms2"
@@ -1062,8 +622,8 @@ export const ARCHIFY = {
         "file": "evolution-timeline--stage-governed-enrich.mp4",
         "endStill": "evolution-timeline--stage-governed-enrich-end.png",
         "beats": 10,
-        "leadSec": 0.44,
-        "storySec": 11.07,
+        "leadSec": 0.6,
+        "storySec": 11.06,
         "beatNodes": [
           "ms3",
           "ms4",
@@ -1084,7 +644,7 @@ export const ARCHIFY = {
         "endStill": "evolution-timeline--stage-ecosystem-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.34,
+        "storySec": 5.43,
         "beatNodes": [
           "ms12",
           "ms13",
@@ -1104,7 +664,7 @@ export const ARCHIFY = {
         "endStill": "fan-trap--copy-inflate-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.38,
+        "storySec": 4.69,
         "beatNodes": [
           "order100",
           "rawJoin",
@@ -1132,7 +692,7 @@ export const ARCHIFY = {
         "endStill": "fan-trap--measured-440-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.22,
+        "storySec": 3.23,
         "beatNodes": [
           "inflated300",
           "measured"
@@ -1151,40 +711,11 @@ export const ARCHIFY = {
         "endStill": "forced-query-intercept--guessed-name-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.34,
+        "storySec": 3.33,
         "beatNodes": [
           "retrieval",
           "intern",
           "exec"
-        ]
-      },
-      {
-        "id": "impenetrable",
-        "label": "不可穿透底线",
-        "file": "forced-query-intercept--impenetrable.mp4",
-        "endStill": "forced-query-intercept--impenetrable-end.png",
-        "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.42,
-        "beatNodes": [
-          "exec",
-          "semantic",
-          "policy",
-          "intern"
-        ]
-      },
-      {
-        "id": "intercepted",
-        "label": "调取即拦截",
-        "file": "forced-query-intercept--intercepted.mp4",
-        "endStill": "forced-query-intercept--intercepted-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.33,
-        "beatNodes": [
-          "intern",
-          "exec",
-          "policy"
         ]
       }
     ]
@@ -1200,7 +731,7 @@ export const ARCHIFY = {
         "endStill": "formula-vs-total--declare-execute-split-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.45,
+        "storySec": 4.47,
         "beatNodes": [
           "manual",
           "fiveDecl",
@@ -1220,8 +751,8 @@ export const ARCHIFY = {
         "file": "four-factor-ranking--topk.mp4",
         "endStill": "four-factor-ranking--topk-end.png",
         "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.35,
+        "leadSec": 0.56,
+        "storySec": 3.38,
         "beatNodes": [
           "score",
           "tie",
@@ -1235,7 +766,7 @@ export const ARCHIFY = {
         "endStill": "four-factor-ranking--factors-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.46,
+        "storySec": 4.44,
         "beatNodes": [
           "rel",
           "aut",
@@ -1250,7 +781,7 @@ export const ARCHIFY = {
         "endStill": "four-factor-ranking--signals-end.png",
         "beats": 5,
         "leadSec": 0.44,
-        "storySec": 5.58,
+        "storySec": 5.54,
         "beatNodes": [
           "q",
           "gov",
@@ -1272,7 +803,7 @@ export const ARCHIFY = {
         "endStill": "ghost-edge-pollution--fake-event-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.41,
+        "storySec": 4.76,
         "beatNodes": [
           "ghost-push",
           "ingest-endpoint",
@@ -1286,7 +817,7 @@ export const ARCHIFY = {
         "endStill": "ghost-edge-pollution--rejected-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.33,
+        "storySec": 3.35,
         "beatNodes": [
           "resolve-gate",
           "gate-reject",
@@ -1300,25 +831,11 @@ export const ARCHIFY = {
         "endStill": "ghost-edge-pollution--gate-removed-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.36,
+        "storySec": 3.33,
         "beatNodes": [
           "resolve-gate",
           "gate-stripped",
           "ghost-in-ledger"
-        ]
-      },
-      {
-        "id": "ledger-detached",
-        "label": "对账成空话",
-        "file": "ghost-edge-pollution--ledger-detached.mp4",
-        "endStill": "ghost-edge-pollution--ledger-detached-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.34,
-        "beatNodes": [
-          "ghost-in-ledger",
-          "detached",
-          "audit-hollow"
         ]
       }
     ]
@@ -1327,21 +844,6 @@ export const ARCHIFY = {
     "slug": "govern-vs-verify",
     "type": "architecture",
     "chapters": [
-      {
-        "id": "fourth-boundary",
-        "label": "第四条最重要",
-        "file": "govern-vs-verify--fourth-boundary.mp4",
-        "endStill": "govern-vs-verify--fourth-boundary-end.png",
-        "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.42,
-        "beatNodes": [
-          "nonAdditiveBy",
-          "lineageLog",
-          "govStamp",
-          "wrongResult"
-        ]
-      },
       {
         "id": "third-party-critique",
         "label": "第三方批判",
@@ -1363,58 +865,11 @@ export const ARCHIFY = {
         "endStill": "govern-vs-verify--upstream-collapse-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.35,
+        "storySec": 3.38,
         "beatNodes": [
           "rawDetail",
           "upstreamRollup",
           "semanticView"
-        ]
-      }
-    ]
-  },
-  "governance-demolition": {
-    "slug": "governance-demolition",
-    "type": "workflow",
-    "chapters": [
-      {
-        "id": "remove-mask",
-        "label": "坏法① 拆验放规则",
-        "file": "governance-demolition--remove-mask.mp4",
-        "endStill": "governance-demolition--remove-mask-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.26,
-        "beatNodes": [
-          "removeMask",
-          "plainLeak"
-        ]
-      },
-      {
-        "id": "wrong-placement",
-        "label": "坏法② 闸机装错位",
-        "file": "governance-demolition--wrong-placement.mp4",
-        "endStill": "governance-demolition--wrong-placement-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.26,
-        "beatNodes": [
-          "wrongGate",
-          "silentLeak"
-        ]
-      },
-      {
-        "id": "rbac-ablation",
-        "label": "坏法③ D5 泄露对照",
-        "file": "governance-demolition--rbac-ablation.mp4",
-        "endStill": "governance-demolition--rbac-ablation-end.png",
-        "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.45,
-        "beatNodes": [
-          "internProbe",
-          "accessDenied",
-          "sensitiveLeak",
-          "verdict"
         ]
       }
     ]
@@ -1430,7 +885,7 @@ export const ARCHIFY = {
         "endStill": "grain-collapse--day-pack-collapse-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.36,
+        "storySec": 3.32,
         "beatNodes": [
           "rawGrain",
           "dayPack",
@@ -1444,7 +899,7 @@ export const ARCHIFY = {
         "endStill": "grain-collapse--legal-but-wrong-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.35,
+        "storySec": 3.36,
         "beatNodes": [
           "pillarLights",
           "blueprintLegal",
@@ -1458,32 +913,11 @@ export const ARCHIFY = {
         "endStill": "grain-collapse--measured-477-48-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.35,
+        "storySec": 3.34,
         "beatNodes": [
           "wrongTotal",
           "crash477",
           "verdictGovernVerify"
-        ]
-      }
-    ]
-  },
-  "hearing-showdown": {
-    "slug": "hearing-showdown",
-    "type": "workflow",
-    "chapters": [
-      {
-        "id": "open-hearing",
-        "label": "必须开听证会",
-        "file": "hearing-showdown--open-hearing.mp4",
-        "endStill": "hearing-showdown--open-hearing-end.png",
-        "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.44,
-        "beatNodes": [
-          "cardGoverned",
-          "cardInferred",
-          "conflictCard",
-          "hearingSeat"
         ]
       }
     ]
@@ -1499,7 +933,7 @@ export const ARCHIFY = {
         "endStill": "hidden-vs-blocked--teardown-leak-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.36,
+        "storySec": 3.32,
         "beatNodes": [
           "internQuery",
           "teardownFlag",
@@ -1513,7 +947,7 @@ export const ARCHIFY = {
         "endStill": "hidden-vs-blocked--hide-not-block-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.45,
+        "storySec": 4.42,
         "beatNodes": [
           "hideSeal",
           "directBypass",
@@ -1534,7 +968,7 @@ export const ARCHIFY = {
         "endStill": "injection-threat--badge-question-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.22,
+        "storySec": 3.25,
         "beatNodes": [
           "bizAgent",
           "keyDesk"
@@ -1546,8 +980,8 @@ export const ARCHIFY = {
         "file": "injection-threat--master-key.mp4",
         "endStill": "injection-threat--master-key-end.png",
         "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.42,
+        "leadSec": 0.48,
+        "storySec": 4.44,
         "beatNodes": [
           "masterKey",
           "inject",
@@ -1567,26 +1001,11 @@ export const ARCHIFY = {
         "file": "last-snapshot-gate--semi-additive.mp4",
         "endStill": "last-snapshot-gate--semi-additive-end.png",
         "beats": 2,
-        "leadSec": 0.44,
+        "leadSec": 0.4,
         "storySec": 3.23,
         "beatNodes": [
           "weekGrid",
           "semiNote"
-        ]
-      },
-      {
-        "id": "snapshot-vs-sum",
-        "label": "末快照 7 vs 求和 24",
-        "file": "last-snapshot-gate--snapshot-vs-sum.mp4",
-        "endStill": "last-snapshot-gate--snapshot-vs-sum-end.png",
-        "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.44,
-        "beatNodes": [
-          "daySum",
-          "inflated24",
-          "lastSnap",
-          "exact7"
         ]
       }
     ]
@@ -1602,7 +1021,7 @@ export const ARCHIFY = {
         "endStill": "lineage-ledger--engine-lane-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.34,
+        "storySec": 3.33,
         "beatNodes": [
           "sql",
           "edg",
@@ -1615,8 +1034,8 @@ export const ARCHIFY = {
         "file": "lineage-ledger--ingest-lane.mp4",
         "endStill": "lineage-ledger--ingest-lane-end.png",
         "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.43,
+        "leadSec": 0.48,
+        "storySec": 4.44,
         "beatNodes": [
           "evt",
           "gate",
@@ -1630,8 +1049,8 @@ export const ARCHIFY = {
         "file": "lineage-ledger--ledger-and-blind.mp4",
         "endStill": "lineage-ledger--ledger-and-blind-end.png",
         "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.33,
+        "leadSec": 0.48,
+        "storySec": 3.34,
         "beatNodes": [
           "ledger",
           "q",
@@ -1651,26 +1070,12 @@ export const ARCHIFY = {
         "endStill": "majority-shortcut--popularity-wins-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.45,
+        "storySec": 5.93,
         "beatNodes": [
           "inferredDef",
           "autoPick",
           "wrongWins",
           "rightAnswer"
-        ]
-      },
-      {
-        "id": "habit-not-truth",
-        "label": "习惯不等于真理",
-        "file": "majority-shortcut--habit-not-truth.mp4",
-        "endStill": "majority-shortcut--habit-not-truth-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.34,
-        "beatNodes": [
-          "autoPick",
-          "wrongWins",
-          "warningNote"
         ]
       }
     ]
@@ -1686,26 +1091,11 @@ export const ARCHIFY = {
         "endStill": "mean-of-means--wrong-avg-of-avg-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.36,
+        "storySec": 3.34,
         "beatNodes": [
           "divideFirst",
           "avgOfAvg",
           "classAnalogy"
-        ]
-      },
-      {
-        "id": "measured-122-108",
-        "label": "实测 122 vs 108",
-        "file": "mean-of-means--measured-122-108.mp4",
-        "endStill": "mean-of-means--measured-122-108-end.png",
-        "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.43,
-        "beatNodes": [
-          "avgOfAvg",
-          "wrong122",
-          "divideOnce",
-          "right108"
         ]
       }
     ]
@@ -1721,7 +1111,7 @@ export const ARCHIFY = {
         "endStill": "mechanism-experiment-matrix--three-lesions-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.42,
+        "storySec": 4.44,
         "beatNodes": [
           "naive-guess",
           "lesion-caliber",
@@ -1735,8 +1125,8 @@ export const ARCHIFY = {
         "file": "mechanism-experiment-matrix--ten-teardowns.mp4",
         "endStill": "mechanism-experiment-matrix--ten-teardowns-end.png",
         "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.45,
+        "leadSec": 0.48,
+        "storySec": 4.49,
         "beatNodes": [
           "lab-code",
           "mech-rows",
@@ -1757,7 +1147,7 @@ export const ARCHIFY = {
         "endStill": "multi-entry-single-truth--single-point-bind-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.46,
+        "storySec": 4.44,
         "beatNodes": [
           "salesLead",
           "finAnalyst",
@@ -1772,46 +1162,11 @@ export const ARCHIFY = {
         "endStill": "multi-entry-single-truth--whoever-asks-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.33,
+        "storySec": 3.35,
         "beatNodes": [
           "manual",
           "recompute",
           "singleAnswer"
-        ]
-      }
-    ]
-  },
-  "next-episode-blueprint": {
-    "slug": "next-episode-blueprint",
-    "type": "architecture",
-    "chapters": [
-      {
-        "id": "self-build",
-        "label": "撇开云厂商自建",
-        "file": "next-episode-blueprint--self-build.mp4",
-        "endStill": "next-episode-blueprint--self-build-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.36,
-        "beatNodes": [
-          "consumers",
-          "explicit",
-          "store"
-        ]
-      },
-      {
-        "id": "blueprint-blocks",
-        "label": "五块通用积木",
-        "file": "next-episode-blueprint--blueprint-blocks.mp4",
-        "endStill": "next-episode-blueprint--blueprint-blocks-end.png",
-        "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.47,
-        "beatNodes": [
-          "gate",
-          "rank",
-          "eval",
-          "mcp"
         ]
       }
     ]
@@ -1826,8 +1181,8 @@ export const ARCHIFY = {
         "file": "on-demand-recompute--frozen-widetable.mp4",
         "endStill": "on-demand-recompute--frozen-widetable-end.png",
         "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.34,
+        "leadSec": 0.48,
+        "storySec": 3.36,
         "beatNodes": [
           "ledger",
           "widetable",
@@ -1841,7 +1196,7 @@ export const ARCHIFY = {
         "endStill": "on-demand-recompute--formula-only-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.33,
+        "storySec": 3.37,
         "beatNodes": [
           "widetable",
           "asker",
@@ -1855,7 +1210,7 @@ export const ARCHIFY = {
         "endStill": "on-demand-recompute--grain-recompute-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.37,
+        "storySec": 3.33,
         "beatNodes": [
           "asker",
           "manual",
@@ -1869,13 +1224,13 @@ export const ARCHIFY = {
     "type": "architecture",
     "chapters": [
       {
-        "id": "sign-vs-wall",
+        "id": "sign-vs-checkpoint",
         "label": "木牌vs承重墙",
-        "file": "one-checkpoint--sign-vs-wall.mp4",
-        "endStill": "one-checkpoint--sign-vs-wall-end.png",
+        "file": "one-checkpoint--sign-vs-checkpoint.mp4",
+        "endStill": "one-checkpoint--sign-vs-checkpoint-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.36,
+        "storySec": 3.34,
         "beatNodes": [
           "woodSign",
           "sideDoor",
@@ -1889,7 +1244,7 @@ export const ARCHIFY = {
         "endStill": "one-checkpoint--shared-checkpoint-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.45,
+        "storySec": 4.46,
         "beatNodes": [
           "humanReport",
           "appQuery",
@@ -1910,7 +1265,7 @@ export const ARCHIFY = {
         "endStill": "open-interop--portable-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.43,
+        "storySec": 4.46,
         "beatNodes": [
           "oss",
           "sys",
@@ -1925,7 +1280,7 @@ export const ARCHIFY = {
         "endStill": "open-interop--feedback-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.33,
+        "storySec": 3.35,
         "beatNodes": [
           "fb",
           "sv",
@@ -1939,7 +1294,7 @@ export const ARCHIFY = {
         "endStill": "open-interop--socket-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.44,
+        "storySec": 4.45,
         "beatNodes": [
           "sv",
           "mcp",
@@ -1959,8 +1314,8 @@ export const ARCHIFY = {
         "file": "perimeter-loss--inside-effective.mp4",
         "endStill": "perimeter-loss--inside-effective-end.png",
         "beats": 5,
-        "leadSec": 0.4,
-        "storySec": 5.56,
+        "leadSec": 0.44,
+        "storySec": 5.9,
         "beatNodes": [
           "insideQuery",
           "gateCheck",
@@ -1975,33 +1330,13 @@ export const ARCHIFY = {
         "file": "perimeter-loss--outside-void.mp4",
         "endStill": "perimeter-loss--outside-void-end.png",
         "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.45,
+        "leadSec": 0.48,
+        "storySec": 4.47,
         "beatNodes": [
           "insideEffective",
           "externalModel",
           "voidKit",
           "perimeterLoss"
-        ]
-      }
-    ]
-  },
-  "preview-gap": {
-    "slug": "preview-gap",
-    "type": "workflow",
-    "chapters": [
-      {
-        "id": "preview-band",
-        "label": "预览带：先进组件聚集",
-        "file": "preview-gap--preview-band.mp4",
-        "endStill": "preview-gap--preview-band-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.35,
-        "beatNodes": [
-          "advancedComponents",
-          "gaStage",
-          "wideAdoption"
         ]
       }
     ]
@@ -2017,7 +1352,7 @@ export const ARCHIFY = {
         "endStill": "problem-to-mechanisms--cause-chain-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.46,
+        "storySec": 4.67,
         "beatNodes": [
           "sym-gap",
           "sym-acc",
@@ -2031,8 +1366,8 @@ export const ARCHIFY = {
         "file": "problem-to-mechanisms--encircle-pierce.mp4",
         "endStill": "problem-to-mechanisms--encircle-pierce-end.png",
         "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.48,
+        "leadSec": 0.48,
+        "storySec": 5.6,
         "beatNodes": [
           "pierce",
           "m2",
@@ -2047,7 +1382,7 @@ export const ARCHIFY = {
         "endStill": "problem-to-mechanisms--engine-cast-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.47,
+        "storySec": 7.46,
         "beatNodes": [
           "m1",
           "m2",
@@ -2062,7 +1397,7 @@ export const ARCHIFY = {
         "endStill": "problem-to-mechanisms--answer-ledger-end.png",
         "beats": 3,
         "leadSec": 0.48,
-        "storySec": 3.33,
+        "storySec": 3.34,
         "beatNodes": [
           "m4",
           "m5",
@@ -2075,8 +1410,8 @@ export const ARCHIFY = {
         "file": "problem-to-mechanisms--downgraded-lane.mp4",
         "endStill": "problem-to-mechanisms--downgraded-lane-end.png",
         "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.33,
+        "leadSec": 0.48,
+        "storySec": 3.35,
         "beatNodes": [
           "f10",
           "f11",
@@ -2096,7 +1431,7 @@ export const ARCHIFY = {
         "endStill": "query-time-policy--instant-inspection-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.36,
+        "storySec": 3.42,
         "beatNodes": [
           "asker",
           "gate",
@@ -2119,27 +1454,6 @@ export const ARCHIFY = {
       }
     ]
   },
-  "rented-brilliance": {
-    "slug": "rented-brilliance",
-    "type": "lifecycle",
-    "chapters": [
-      {
-        "id": "rented-to-owned",
-        "label": "租用→自有",
-        "file": "rented-brilliance--rented-to-owned.mp4",
-        "endStill": "rented-brilliance--rented-to-owned-end.png",
-        "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.43,
-        "beatNodes": [
-          "haloRented",
-          "powerLine",
-          "governanceCastIn",
-          "ownedBrilliance"
-        ]
-      }
-    ]
-  },
   "resolve-activation": {
     "slug": "resolve-activation",
     "type": "sequence",
@@ -2151,7 +1465,7 @@ export const ARCHIFY = {
         "endStill": "resolve-activation--hit-reconcile-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.35,
+        "storySec": 5.38,
         "beatNodes": [
           "ag",
           "vq",
@@ -2178,7 +1492,7 @@ export const ARCHIFY = {
         "endStill": "resolve-activation--outside-eval-end.png",
         "beats": 1,
         "leadSec": 0.44,
-        "storySec": 3.22,
+        "storySec": 3.26,
         "beatNodes": [
           "ev"
         ]
@@ -2195,8 +1509,8 @@ export const ARCHIFY = {
         "file": "revocation-timeline--realtime-ceiling.mp4",
         "endStill": "revocation-timeline--realtime-ceiling-end.png",
         "beats": 4,
-        "leadSec": 0.32,
-        "storySec": 4.42,
+        "leadSec": 0.44,
+        "storySec": 4.46,
         "beatNodes": [
           "badge-live",
           "realtime-eval",
@@ -2210,26 +1524,12 @@ export const ARCHIFY = {
         "file": "revocation-timeline--static-snapshot.mp4",
         "endStill": "revocation-timeline--static-snapshot-end.png",
         "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.34,
+        "leadSec": 0.48,
+        "storySec": 4.52,
         "beatNodes": [
           "badge-live",
           "snap-frozen",
           "copy-static"
-        ]
-      },
-      {
-        "id": "ten-minutes",
-        "label": "十分钟后回收",
-        "file": "revocation-timeline--ten-minutes.mp4",
-        "endStill": "revocation-timeline--ten-minutes-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.32,
-        "beatNodes": [
-          "admin-revoke",
-          "copy-static",
-          "stale-holds"
         ]
       }
     ]
@@ -2244,8 +1544,8 @@ export const ARCHIFY = {
         "file": "row-column-policy--perpage.mp4",
         "endStill": "row-column-policy--perpage-end.png",
         "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.44,
+        "leadSec": 0.48,
+        "storySec": 4.43,
         "beatNodes": [
           "cal",
           "po",
@@ -2259,8 +1559,8 @@ export const ARCHIFY = {
         "file": "row-column-policy--family.mp4",
         "endStill": "row-column-policy--family-end.png",
         "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.33,
+        "leadSec": 0.48,
+        "storySec": 6.88,
         "beatNodes": [
           "po",
           "agp",
@@ -2273,91 +1573,12 @@ export const ARCHIFY = {
         "file": "row-column-policy--agentface.mp4",
         "endStill": "row-column-policy--agentface-end.png",
         "beats": 3,
-        "leadSec": 0.48,
-        "storySec": 3.36,
+        "leadSec": 0.44,
+        "storySec": 3.35,
         "beatNodes": [
           "aid",
           "po",
           "cls"
-        ]
-      }
-    ]
-  },
-  "seal-off-caliber": {
-    "slug": "seal-off-caliber",
-    "type": "workflow",
-    "chapters": [
-      {
-        "id": "sealed-off",
-        "label": "两病灶按死",
-        "file": "seal-off-caliber--sealed-off.mp4",
-        "endStill": "seal-off-caliber--sealed-off-end.png",
-        "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.43,
-        "beatNodes": [
-          "caliberClash",
-          "definitionDrift",
-          "semanticView",
-          "sealedOff"
-        ]
-      }
-    ]
-  },
-  "sticky-notes-to-manual": {
-    "slug": "sticky-notes-to-manual",
-    "type": "workflow",
-    "chapters": [
-      {
-        "id": "first-mechanism",
-        "label": "第一大机制",
-        "file": "sticky-notes-to-manual--first-mechanism.mp4",
-        "endStill": "sticky-notes-to-manual--first-mechanism-end.png",
-        "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.44,
-        "beatNodes": [
-          "manual",
-          "singleVoice",
-          "liveCompute",
-          "defineAsCompute"
-        ]
-      },
-      {
-        "id": "scattered-notes",
-        "label": "口径散落便利贴",
-        "file": "sticky-notes-to-manual--scattered-notes.mp4",
-        "endStill": "sticky-notes-to-manual--scattered-notes-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.33,
-        "beatNodes": [
-          "noteSticky",
-          "noteDraft",
-          "gather"
-        ]
-      }
-    ]
-  },
-  "supply-overwhelm": {
-    "slug": "supply-overwhelm",
-    "type": "workflow",
-    "chapters": [
-      {
-        "id": "flood-vs-manual",
-        "label": "涌入压垮人工登记",
-        "file": "supply-overwhelm--flood-vs-manual.mp4",
-        "endStill": "supply-overwhelm--flood-vs-manual-end.png",
-        "beats": 6,
-        "leadSec": 0.44,
-        "storySec": 6.64,
-        "beatNodes": [
-          "badgeDone",
-          "dataFlood",
-          "manualStamp",
-          "governedSlow",
-          "ungovernedGap",
-          "overwhelm"
         ]
       }
     ]
@@ -2373,7 +1594,7 @@ export const ARCHIFY = {
         "endStill": "tag-gate-linkage--intake-test-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.33,
+        "storySec": 3.34,
         "beatNodes": [
           "newBatch",
           "manualCount",
@@ -2387,26 +1608,11 @@ export const ARCHIFY = {
         "endStill": "tag-gate-linkage--seventh-mechanism-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.35,
+        "storySec": 4.68,
         "beatNodes": [
           "newBatch",
           "classifier",
           "sysTag"
-        ]
-      },
-      {
-        "id": "auto-linkage",
-        "label": "免重复配置",
-        "file": "tag-gate-linkage--auto-linkage.mp4",
-        "endStill": "tag-gate-linkage--auto-linkage-end.png",
-        "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.45,
-        "beatNodes": [
-          "sysTag",
-          "userTag",
-          "policy",
-          "gate"
         ]
       }
     ]
@@ -2421,26 +1627,12 @@ export const ARCHIFY = {
         "file": "three-claims-stack--guess-only.mp4",
         "endStill": "three-claims-stack--guess-only-end.png",
         "beats": 3,
-        "leadSec": 0.28,
-        "storySec": 3.35,
+        "leadSec": 0.44,
+        "storySec": 3.38,
         "beatNodes": [
           "threeClaims",
           "noCtx",
           "agentGuess"
-        ]
-      },
-      {
-        "id": "native-act",
-        "label": "原生植入才能行动",
-        "file": "three-claims-stack--native-act.mp4",
-        "endStill": "three-claims-stack--native-act-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.32,
-        "beatNodes": [
-          "agentGuess",
-          "nativeCtx",
-          "agentAct"
         ]
       },
       {
@@ -2449,85 +1641,12 @@ export const ARCHIFY = {
         "file": "three-claims-stack--governed-trust.mp4",
         "endStill": "three-claims-stack--governed-trust-end.png",
         "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.37,
+        "leadSec": 0.52,
+        "storySec": 3.68,
         "beatNodes": [
           "agentAct",
           "governedCtx",
           "agentTrusted"
-        ]
-      }
-    ]
-  },
-  "trust-assets": {
-    "slug": "trust-assets",
-    "type": "workflow",
-    "chapters": [
-      {
-        "id": "two-pillars",
-        "label": "两柱承重",
-        "file": "trust-assets--two-pillars.mp4",
-        "endStill": "trust-assets--two-pillars-end.png",
-        "beats": 5,
-        "leadSec": 0.44,
-        "storySec": 5.52,
-        "beatNodes": [
-          "verifyAnchor",
-          "verifyCheck",
-          "lineageGate",
-          "lineageLedger",
-          "decisionFlow"
-        ]
-      },
-      {
-        "id": "three-seals",
-        "label": "柱基三印鉴",
-        "file": "trust-assets--three-seals.mp4",
-        "endStill": "trust-assets--three-seals-end.png",
-        "beats": 5,
-        "leadSec": 0.44,
-        "storySec": 5.54,
-        "beatNodes": [
-          "sealWrong",
-          "sealRight",
-          "sealLedger",
-          "decisionFlow",
-          "auditableAsset"
-        ]
-      }
-    ]
-  },
-  "trust-timeline": {
-    "slug": "trust-timeline",
-    "type": "lifecycle",
-    "chapters": [
-      {
-        "id": "before-during",
-        "label": "事前事中答对",
-        "file": "trust-timeline--before-during.mp4",
-        "endStill": "trust-timeline--before-during-end.png",
-        "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.42,
-        "beatNodes": [
-          "question-in",
-          "vqr-check",
-          "verified-answer",
-          "adhoc-answer"
-        ]
-      },
-      {
-        "id": "after-audit",
-        "label": "事后审计闭环",
-        "file": "trust-timeline--after-audit.mp4",
-        "endStill": "trust-timeline--after-audit-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.35,
-        "beatNodes": [
-          "lineage-ledger",
-          "ol-ingest",
-          "audit-close"
         ]
       }
     ]
@@ -2543,7 +1662,7 @@ export const ARCHIFY = {
         "endStill": "upstream-traceback--living-ledger-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.43,
+        "storySec": 4.44,
         "beatNodes": [
           "ol-evt",
           "ingest-gate",
@@ -2558,7 +1677,7 @@ export const ARCHIFY = {
         "endStill": "upstream-traceback--three-seconds-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.45,
+        "storySec": 4.47,
         "beatNodes": [
           "question",
           "get-lineage",
@@ -2578,8 +1697,8 @@ export const ARCHIFY = {
         "file": "valid-sql-wrong-answer--syntax-pass.mp4",
         "endStill": "valid-sql-wrong-answer--syntax-pass-end.png",
         "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.37,
+        "leadSec": 0.48,
+        "storySec": 3.36,
         "beatNodes": [
           "queryCard",
           "syntaxPass",
@@ -2592,8 +1711,8 @@ export const ARCHIFY = {
         "file": "valid-sql-wrong-answer--business-fail.mp4",
         "endStill": "valid-sql-wrong-answer--business-fail-end.png",
         "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.27,
+        "leadSec": 0.48,
+        "storySec": 4.04,
         "beatNodes": [
           "bizFail",
           "verdict"
@@ -2611,8 +1730,8 @@ export const ARCHIFY = {
         "file": "venn-intersection--two-iron-rules.mp4",
         "endStill": "venn-intersection--two-iron-rules-end.png",
         "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.44,
+        "leadSec": 0.56,
+        "storySec": 4.47,
         "beatNodes": [
           "badge",
           "intersect",
@@ -2633,96 +1752,11 @@ export const ARCHIFY = {
         "endStill": "vqr-lifecycle--signed-stamped-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.33,
+        "storySec": 3.35,
         "beatNodes": [
           "draft",
           "stamped",
           "asset"
-        ]
-      }
-    ]
-  },
-  "water-pipe-ledger": {
-    "slug": "water-pipe-ledger",
-    "type": "dataflow",
-    "chapters": [
-      {
-        "id": "fifth-mechanism",
-        "label": "第五大机制",
-        "file": "water-pipe-ledger--fifth-mechanism.mp4",
-        "endStill": "water-pipe-ledger--fifth-mechanism-end.png",
-        "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.41,
-        "beatNodes": [
-          "m5-badge",
-          "ledger",
-          "engine-pipe",
-          "ext-pipe"
-        ]
-      },
-      {
-        "id": "drop-to-drop",
-        "label": "每滴水从哪到哪",
-        "file": "water-pipe-ledger--drop-to-drop.mp4",
-        "endStill": "water-pipe-ledger--drop-to-drop-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.37,
-        "beatNodes": [
-          "orders-pool",
-          "engine-pipe",
-          "sales-tap"
-        ]
-      },
-      {
-        "id": "not-wastepaper",
-        "label": "不是废纸都收",
-        "file": "water-pipe-ledger--not-wastepaper.mp4",
-        "endStill": "water-pipe-ledger--not-wastepaper-end.png",
-        "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.46,
-        "beatNodes": [
-          "ext-pipe",
-          "resolve-gate",
-          "rejected",
-          "ledger"
-        ]
-      }
-    ]
-  },
-  "wrong-page-failure": {
-    "slug": "wrong-page-failure",
-    "type": "workflow",
-    "chapters": [
-      {
-        "id": "right-book-wrong-page",
-        "label": "手册对 · 引用错",
-        "file": "wrong-page-failure--right-book-wrong-page.mp4",
-        "endStill": "wrong-page-failure--right-book-wrong-page-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.34,
-        "beatNodes": [
-          "manualBook",
-          "modelFlip",
-          "wrongPage"
-        ]
-      },
-      {
-        "id": "two-branches",
-        "label": "两条失效分支",
-        "file": "wrong-page-failure--two-branches.mp4",
-        "endStill": "wrong-page-failure--two-branches-end.png",
-        "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.43,
-        "beatNodes": [
-          "wrongPage",
-          "wrongJoin",
-          "wrongIntent",
-          "redAnswer"
         ]
       }
     ]
@@ -2738,7 +1772,7 @@ export const ARCHIFY = {
         "endStill": "zero-window-sequence--experiment-risk-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.31,
+        "storySec": 3.87,
         "beatNodes": [
           "experimenter",
           "snap",
@@ -2751,8 +1785,8 @@ export const ARCHIFY = {
         "file": "zero-window-sequence--dynamic-intersect.mp4",
         "endStill": "zero-window-sequence--dynamic-intersect-end.png",
         "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.34,
+        "leadSec": 0.48,
+        "storySec": 3.74,
         "beatNodes": [
           "live",
           "mentor",
@@ -2766,7 +1800,7 @@ export const ARCHIFY = {
         "endStill": "zero-window-sequence--zero-window-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.36,
+        "storySec": 3.4,
         "beatNodes": [
           "mentor",
           "snap",

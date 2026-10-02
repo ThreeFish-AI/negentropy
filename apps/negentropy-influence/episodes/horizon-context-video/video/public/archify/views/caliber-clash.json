@@ -19,15 +19,5 @@
    "netRevenue"
   ],
   "note": "口径散在各自 CASE WHEN 里，含义无人治理，20 个看板能写 20 种算法。"
- },
- {
-  "id": "owners-clash",
-  "label": "主管对账对不上",
-  "focus": [
-   "clash",
-   "salesLead",
-   "cfoLead"
-  ],
-  "note": "销售主管与财务总监各报一个数，同一份数据谁也对不上。"
  }
 ]
