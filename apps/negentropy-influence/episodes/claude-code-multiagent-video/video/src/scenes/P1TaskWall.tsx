@@ -407,7 +407,8 @@ export const P1TaskWall: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bF} name="1-F 消融③·t5race">
-        {/* cue 12-15/15：claim-race-window 逐章（双生命线→交错→落笔重叠→竞争窗口） */}
+        {/* cue 12-15/15：claim-race-window 逐章（双生命线→交错→落笔重叠→竞争窗口）；
+            与 1-E 末章（ok@p1-20）镜界紧邻 → lead={false} */}
         <ArchifyRecap
           slug="claim-race-window"
           caption="竞争窗口"
@@ -417,6 +418,7 @@ export const P1TaskWall: React.FC<{scene: SceneRange}> = ({scene}) => {
             {chapterId: 'overwrite', at: at('p1-23') - bF.from, durationInFrames: dur('p1-23')},
             {chapterId: 'window', at: at('p1-24') - bF.from, durationInFrames: dur('p1-24')},
           ]}
+          lead={false}
         />
         {/* p1-25 金句卡压尾 */}
         <Sequence from={at('p1-25') - bF.from} durationInFrames={dur('p1-25')} name="1-F 金句压尾">

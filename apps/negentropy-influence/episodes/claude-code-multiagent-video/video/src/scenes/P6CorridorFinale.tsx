@@ -484,7 +484,7 @@ const TwoIdentities: React.FC<{at20: number}> = ({at20}) => {
 // ── 6-G 数字卡 ──────────────────────────────────────────────────────────
 
 /** 27 件内置工具滚动点名＋2130 行标尺；双档口径色角标（教学码实测=mech / 讲义=dim）。
- *  工具实名清单＝gl-notes 附录 B 穿透表（收官章 code.py BUILTIN_TOOLS 块实测 27 件，字母序）。 */
+ *  工具实名清单＝gl-notes 附录 B 穿透表（收官章 code.py BUILTIN_TOOLS 块实测 27 件，源码块序）。 */
 const BUILTIN_TOOL_NAMES = [
   'bash', 'read_file', 'write_file', 'edit_file', 'glob', 'todo_write', 'task', 'load_skill',
   'compact', 'create_task', 'list_tasks', 'get_task', 'claim_task', 'complete_task',
