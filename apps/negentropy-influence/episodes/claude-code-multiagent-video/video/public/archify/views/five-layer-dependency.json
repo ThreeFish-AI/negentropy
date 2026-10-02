@@ -1,0 +1,15 @@
+[
+ {
+  "id": "five-lit-finale",
+  "label": "五层全亮",
+  "focus": [
+   "loop-core",
+   "layer-1",
+   "layer-2",
+   "layer-3",
+   "layer-4",
+   "layer-5"
+  ],
+  "note": "系列五层栈终态全亮——机制很多，循环一个。"
+ }
+]

@@ -1,0 +1,40 @@
+[
+ {
+  "id": "roundtrip",
+  "label": "单号往返",
+  "focus": [
+   "requester",
+   "responder",
+   "ledger-book"
+  ],
+  "note": "开单带编号出门，回执同编号回家。"
+ },
+ {
+  "id": "three-checks",
+  "label": "三道核验",
+  "focus": [
+   "v-id",
+   "v-type",
+   "v-pending"
+  ],
+  "note": "找单/验类型/看结没结案，三道全过才销账。"
+ },
+ {
+  "id": "settle",
+  "label": "销账",
+  "focus": [
+   "ledger-book",
+   "requester"
+  ],
+  "note": "销账只认它自己那张回执；第二张不再理会。"
+ },
+ {
+  "id": "b4",
+  "label": "拆核验",
+  "focus": [
+   "responder",
+   "ledger-book"
+  ],
+  "note": "错类销错单、重复翻烧饼，终态被拒。"
+ }
+]

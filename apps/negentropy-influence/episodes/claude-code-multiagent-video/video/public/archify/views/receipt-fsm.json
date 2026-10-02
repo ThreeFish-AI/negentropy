@@ -1,0 +1,13 @@
+[
+ {
+  "id": "approve-reject",
+  "label": "一套状态机",
+  "focus": [
+   "pending",
+   "approved",
+   "rejected",
+   "type-check"
+  ],
+  "note": "待定→已批准/已拒绝；类型闸防错配，已决单不再改。"
+ }
+]

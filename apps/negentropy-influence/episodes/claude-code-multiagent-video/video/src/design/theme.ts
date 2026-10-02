@@ -31,7 +31,10 @@ export const theme = {
   sans: "'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', sans-serif",
   mono: "'SF Mono', 'Menlo', 'JetBrains Mono', monospace",
 
-  // ── 本集概念色（重置期种子；完整色彩契约 Stage ② 策划定稿并回填此处）──
+  // ── 本集概念色（planning §3 色彩契约）──
   accent: '#D9B36B', // 赭金——系列槽位色（规则 4 登记值）：七件设施 / 公共制度维度
   concept: '#D97757', // core 橙——环形走廊 = 循环（系列五层锚〔M-001〕的本集换装）
+  core: '#D97757', // 系列五层栈恒定色（harness-stack 消费；与 concept 同值异名——语义各归）
+  mech: '#D9B36B', // 机械/维度色（solids-3d 五层身份卡棱线消费；=accent 赭金，本集维度）
+  mechDeep: '#A8823F', // 深赭——私人房层 / 账本线 / 3D 面色梯度（仅装饰线与填充，不作正文文本色）
 } as const;

@@ -1,0 +1,100 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.0,
+ "story_sec": 16.48,
+ "total_wall_sec": 68.47,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "three-gates",
+   "label": "三守卫",
+   "index": 0,
+   "file": "claim-guards-break--three-gates.mp4",
+   "end_still": "claim-guards-break--three-gates-end.png",
+   "beats": 5,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 5.54,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "scan",
+    "g-status",
+    "g-owner",
+    "g-deps",
+    "write-name"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 64.0
+  },
+  {
+   "id": "b1",
+   "label": "拆守卫三",
+   "index": 1,
+   "file": "claim-guards-break--b1.mp4",
+   "end_still": "claim-guards-break--b1-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.0,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "b1-lane",
+    "g-deps"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "b2-b2v",
+   "label": "拆守卫一二",
+   "index": 2,
+   "file": "claim-guards-break--b2-b2v.mp4",
+   "end_still": "claim-guards-break--b2-b2v-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.0,
+   "story_sec": 4.46,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "b2-lane",
+    "b2v-lane",
+    "g-owner",
+    "g-status"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 63.0
+  },
+  {
+   "id": "ok",
+   "label": "对照：在位",
+   "index": 3,
+   "file": "claim-guards-break--ok.mp4",
+   "end_still": "claim-guards-break--ok-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.0,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "ok-lane",
+    "reject"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 62.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/apps/negentropy-influence/episodes/claude-code-multiagent-video/video/public/archify/html/claim-guards-break.html",
+ "slug": "claim-guards-break",
+ "type": "dataflow"
+}

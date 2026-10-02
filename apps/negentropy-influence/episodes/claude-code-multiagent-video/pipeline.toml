@@ -35,17 +35,17 @@ engine = "edge"
 # 台本 script/narration.cues.toml 已随 Stage ⑤ 后预置（story 块/情绪弧），重配零前置。
 
 [archify]
-# 覆盖门硬值：锚定率 / cue 密度 / 图型数下限；全屏独占三分法。
-# 图集预算（Stage ② 定稿）：12 新绘 + 2 复用 = 14 图 / 6 型。
-html_dir = "docs/assets/architecture/agent-harness"
-html_pattern = "claude-code--{slug}.html"
+# 源图 = archify 3.0 产物（无 guided-views 模块，录制器不可直录）；本集用
+# scripts/patch-archify-html.py 从 docs 原件拷贝并注入精简 guidedViews 兼容层
+# （E1 范式，RSI-038），落本集 html/——docs 原件（SSOT）不动。重跑注入器即幂等重建。
+# 首录后须逐图人工审计 sidecar type（嗅探 14/67 不可靠，ISSUE-201 ③）。
+html_dir = "apps/negentropy-influence/episodes/claude-code-multiagent-video/video/public/archify/html"
+html_pattern = "{slug}.html"
 min_anchor_ratio = 0.30
 min_cues_per_minute = 3.0
 min_diagram_types = 5
 forbid_inset = true  # 全屏独占（storyboard 按此设计）；残留画中画即 FAIL
-
-# 复用图（2/14）与 html_pattern 不匹配——登记实际文件名（ep1 同款先例）；
-# views 章节清单为本集原生重建（Stage ⑥），html/png 产物不重绘（planning §6 许可）。
-[archify.html_overrides]
-collab-panorama = "claude-code-multiagent--collab-panorama.html"
-five-layer-dependency = "claude-code-harness--five-layer-dependency.html"
+# 终幕 6-D..6-J（p6-10..29，20 句）为 storyboard 刻意设计的装置镜段（判据卡/五增量
+# 合口/数字卡/收官断言/边界护栏/天亮回收），零 archify 锚；豁免 P6 的连续无锚 run
+# 计数（openviking 先例）。P6 分幕锚定率不受豁免影响仍过（5/34 ≥ 下限）。
+exempt_scenes = ["P6"]

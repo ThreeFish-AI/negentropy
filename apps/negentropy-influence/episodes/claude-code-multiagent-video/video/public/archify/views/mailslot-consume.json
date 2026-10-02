@@ -1,0 +1,41 @@
+[
+ {
+  "id": "append",
+  "label": "追加一行",
+  "focus": [
+   "sender",
+   "slot-door",
+   "inbox-file",
+   "append"
+  ],
+  "note": "发消息=往门上的口里塞进一行字。"
+ },
+ {
+  "id": "take-all",
+  "label": "整摞取走",
+  "focus": [
+   "take-all",
+   "peek",
+   "inbox-file"
+  ],
+  "note": "收信=整摞取走口里清空；另有一个只看不取的探测。"
+ },
+ {
+  "id": "wake",
+  "label": "楼替人盯口",
+  "focus": [
+   "wake",
+   "queue-merge"
+  ],
+  "note": "有新信就叫醒一轮；键盘与信汇入同一队列。"
+ },
+ {
+  "id": "b3",
+  "label": "拆消费语义",
+  "focus": [
+   "b3-loop",
+   "ok-lane"
+  ],
+  "note": "读后不删：同一封信被读第二遍，活儿重做。"
+ }
+]

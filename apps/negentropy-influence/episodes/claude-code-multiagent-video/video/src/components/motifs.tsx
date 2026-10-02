@@ -66,8 +66,11 @@ export const Footnote: React.FC<{children: React.ReactNode; delay?: number}> = (
   );
 };
 
-/** 幕标题条：左上角章号 + 标语（角标性质，不进口播）。章号默认 text，
- *  各集常换成本集概念色（ep1 即是 core）——这是 chrome 层少数的「随集演进」点 */
+/** 幕标题条：章号 + 标语（角标性质，不进口播）。章号默认 text，
+ *  各集常换成本集概念色（ep1 即是 core）——这是 chrome 层少数的「随集演进」点。
+ *  本集定位：左上、常驻系列条（y64..98）之下一行（top:112）——右上角让位给
+ *  LodgeMap 缩略坐标装置（本集常驻件）；tagline 控制在 8 字内，右缘 <300，
+ *  与 archify 全屏画框（左缘 311、顶 150）零碰撞。 */
 export const SceneTag: React.FC<{
   chapter: string;
   tagline: string;
@@ -76,7 +79,7 @@ export const SceneTag: React.FC<{
   const frame = useCurrentFrame();
   const o = interpolate(frame, [6, 24], [0, 1], {extrapolateRight: 'clamp'});
   return (
-    <div style={{position: 'absolute', left: 72, top: 64, opacity: o}}>
+    <div style={{position: 'absolute', left: 72, top: 112, opacity: o}}>
       <div
         style={{
           fontFamily: theme.mono,
@@ -239,6 +242,181 @@ export const NumberedCard: React.FC<{
         ) : null}
       </Panel>
     </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────── 本集母题
+
+/** 走廊环线宽（绝对像素，全片恒定，勿随 size 缩放——〔M-001〕） */
+export const RING_STROKE = 6;
+
+/** 环形走廊母题（〔M-001〕恒定视觉锚）：core 橙描边 + 绝对线宽 6px 全片锁定，
+ *  只换 size / 描画进度 / 辉光强度——「走廊始终不变」靠它被看见而非被听说。
+ *  自 ep1 LoopRing 的描边纪律裁剪：不带节点、不带出口线；描画走 pathLength
+ *  归一化（红线三：不与像素 dasharray 混用）；辉光是低透明宽描边的静态叠加
+ *  （effects 不吃弹簧），强度由调用方经 glow 注入（如 useBreathe 输出）。 */
+export const CorridorRing: React.FC<{
+  size?: number;
+  /** 0..1 描线进度（缺省 1 = 已成环） */
+  draw?: number;
+  /** 0..1 辉光强度（外圈低透明宽描边） */
+  glow?: number;
+  /** 整体透明度（缩略档压暗用） */
+  opacity?: number;
+}> = ({size = 300, draw = 1, glow = 0, opacity = 1}) => {
+  const pad = RING_STROKE / 2 + 8; // 描边半宽 + 呼吸辉光余量
+  const r = size / 2 - pad;
+  const cx = size / 2;
+  const d = Math.max(0, Math.min(1, draw));
+  return (
+    <svg width={size} height={size} style={{overflow: 'visible', opacity}}>
+      {/* 呼吸辉光：主环下的低透明宽描边（颜色同主环——恒色纪律） */}
+      {glow > 0 ? (
+        <circle
+          cx={cx}
+          cy={cx}
+          r={r}
+          fill="none"
+          stroke={theme.concept}
+          strokeWidth={RING_STROKE * 2.6}
+          strokeLinecap="round"
+          opacity={0.16 * glow}
+        />
+      ) : null}
+      <circle
+        cx={cx}
+        cy={cx}
+        r={r}
+        fill="none"
+        stroke={theme.concept}
+        strokeWidth={RING_STROKE}
+        strokeLinecap="round"
+        pathLength={1}
+        strokeDasharray={1}
+        strokeDashoffset={1 - d}
+        transform={`rotate(-90 ${cx} ${cx})`}
+      />
+    </svg>
+  );
+};
+
+/** 七件设施缩略坐标（楼体剖面常驻件）：上层房带（mechDeep 深赭）＋中层走廊环
+ *  （core 橙缩略，描边恒 6px——〔M-001〕的缩小身位）＋下层五设施格。
+ *  active 高亮当前幕设施、压暗其余；corridorHidden 把走廊位留成「?」（0-C 预告态：
+ *  第七件未揭晓）。尺寸 ≤240×150，调用方放右上角（y≥56，不入字幕带）。 */
+export type LodgeFacility = 'wall' | 'slot' | 'ledger' | 'clock' | 'socket' | 'rooms' | 'corridor';
+
+const LODGE_CELLS: {key: LodgeFacility; label: string}[] = [
+  {key: 'wall', label: '墙'},
+  {key: 'slot', label: '口'},
+  {key: 'ledger', label: '簿'},
+  {key: 'clock', label: '钟'},
+  {key: 'socket', label: '座'},
+];
+
+export const LodgeMap: React.FC<{
+  active: LodgeFacility | null;
+  /** 第七位留「?」：走廊环压暗 + 问号（0-C 章毕预告态） */
+  corridorHidden?: boolean;
+  opacity?: number;
+}> = ({active, corridorHidden = false, opacity = 1}) => {
+  const W = 220;
+  const H = 140;
+  const ringOn = active === 'corridor';
+  return (
+    <svg width={W} height={H} style={{opacity, overflow: 'visible'}}>
+      {/* 上层房带（私人层——深赭仅装饰线） */}
+      <rect
+        x={10}
+        y={8}
+        width={200}
+        height={34}
+        rx={5}
+        fill="none"
+        stroke={active === 'rooms' ? theme.mechDeep : theme.panelBorder}
+        strokeWidth={active === 'rooms' ? 2.5 : 1.5}
+        opacity={active === null || active === 'rooms' ? 1 : 0.45}
+      />
+      {[0, 1, 2].map((i) => (
+        <line
+          key={i}
+          x1={60 + i * 50}
+          y1={12}
+          x2={60 + i * 50}
+          y2={38}
+          stroke={theme.panelBorder}
+          strokeWidth={1}
+          opacity={active === 'rooms' ? 0.9 : 0.4}
+        />
+      ))}
+      <text
+        x={16}
+        y={29}
+        fontFamily={theme.sans}
+        fontSize={12}
+        fill={active === 'rooms' ? theme.text : theme.dim}
+        opacity={active === 'rooms' ? 1 : 0.55}
+      >
+        {'房'}
+      </text>
+      {/* 中层走廊环（core 橙缩略——描边恒 6px〔M-001〕；预告态压暗留「?」） */}
+      {corridorHidden ? (
+        <>
+          <circle cx={110} cy={57} r={11} fill="none" stroke={theme.panelBorder} strokeWidth={6} opacity={0.5} />
+          <text
+            x={110}
+            y={63}
+            textAnchor="middle"
+            fontFamily={theme.mono}
+            fontSize={15}
+            fill={theme.dim}
+          >
+            {'?'}
+          </text>
+        </>
+      ) : (
+        <g opacity={active === null || ringOn ? 1 : 0.45}>
+          <circle
+            cx={110}
+            cy={57}
+            r={11}
+            fill="none"
+            stroke={theme.concept}
+            strokeWidth={RING_STROKE}
+          />
+        </g>
+      )}
+      {/* 下层五设施格（公共层——赭金激活才染色，反枚举） */}
+      {LODGE_CELLS.map((c, i) => {
+        const on = active === c.key;
+        const x = 12 + i * 40;
+        return (
+          <g key={c.key} opacity={active === null || on ? 1 : 0.4}>
+            <rect
+              x={x}
+              y={80}
+              width={34}
+              height={46}
+              rx={4}
+              fill={on ? `${theme.accent}1F` : 'none'}
+              stroke={on ? theme.accent : theme.panelBorder}
+              strokeWidth={on ? 2.5 : 1.5}
+            />
+            <text
+              x={x + 17}
+              y={108}
+              textAnchor="middle"
+              fontFamily={theme.sans}
+              fontSize={15}
+              fontWeight={on ? 700 : 400}
+              fill={on ? theme.accent : theme.dim}
+            >
+              {c.label}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
   );
 };
 

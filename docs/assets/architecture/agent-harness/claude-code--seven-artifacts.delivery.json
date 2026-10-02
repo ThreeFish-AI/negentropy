@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "f1127398-d977-45a1-b4b6-c06d79971670",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/.archify/architecture-seven-artifacts-20261003-003512/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code--seven-artifacts.html",
+  "specification": {
+    "sha256": "f93f05ac4784e98e92ec16f982cb17807a134b64516266e1f6fdd8b1968daeaf",
+    "bytes": 7134
+  },
+  "artifact": {
+    "sha256": "ce05a2cc0a7a1ddc9044e6038ae487354e5cb885da3886c34077269aba2664ce",
+    "bytes": 767378
+  }
+}
