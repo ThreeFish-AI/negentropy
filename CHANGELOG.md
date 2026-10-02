@@ -4,6 +4,15 @@
 
 ## [Unreleased]
 ### Added
+### 「规划与协调」集 C 型信源完全重制 v1 交付（2026-10-02，C 型 GL 信源首例）
+
+- [「规划与协调」集（C 型重制 v1，换题）](apps/negentropy-influence/episodes/claude-code-planning-video/README.md) **13:20.73 · 155 句 3428 字 · 14 图 47 章逐章回放（锚定 30.3% · 密度 3.5/分 · 5 型全屏独占）**，归档 `~/Documents/video/claude-code-explained/` 新题 v1 + `_captions`（旧题《模型的视野是安排出来的》v1/v2 原样保留）
+- **C 型 GL 信源首例**：以 176《精读与通俗拆解》冻结为集内事实源（gl-notes.md + 附录 A 类比登记表合入），穿透抽查三组并行 74 断言 0 FAIL（常量 26 + 站点 36 + 抽样 10，弧线前置四数离线补证闭合），`planning_control_lab` 本集复算全对（D1–D5/t4）升【一】级证据
+- **换新标题**（原题级联五处同步：series.json/ep1 下期卡硬编码/knowledge-map/归档不覆写）；全链机器门双零（内容门+archify 覆盖门 FAIL 0 · WARN 0）+ 三镜目检（0-A/1-D/P6，P6 五层栈定位修复）
+- **archify 3.0 桥接层**：guided-views 容器 + Archify.guidedViews 播放器 + 脉动保帧 CSS（冒烟 capture_fps 62），14 图 showcase 四门全绿；旧 plan-* 12 图 36 文件孤儿清除（grep 零引用）
+- TTS story 档 65 块（12 轮自愈续跑完成）；tts_resume 旗标位次序坑（--max-restarts 须在 `--` 前）实测记录
+- pre-commit：trailing-whitespace/end-of-file-fixer 豁免扩至 docs/assets/architecture/（archify 回执 canonical 字节防剥，E2 前科同款）
+
 ### Claude Code Harness Engineering 系列 5 集完全重制交付（2026-09-28..30）
 
 - **系列完全重制 v1 交付**：基于重写的 170–175 精读与新钉双轨（main `0dcafa2`/站点 `67a9126c`）+ 官方文档轨 C，五集全部同 slug rm→scaffold 重来。成片归档 `~/Documents/video/claude-code-explained/` v1×5 + `_captions/{srt,vtt}`×5：

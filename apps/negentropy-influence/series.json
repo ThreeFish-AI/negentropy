@@ -146,8 +146,8 @@
             "license": "MIT",
             "accessed": "2026-08-22"
           },
-          "status": "draft",
-          "statusNote": "完全重制中（2026-10-02 启动）：同 slug rm→scaffold 重来，不受旧版影响；C 型 GL 信源（176 精读冻结 gl-notes + 穿透抽查 + lab 复算）；换新标题（旧题《规划与协调：模型的视野是安排出来的》v1/v2 成片在归档原样保留）；story + me-bright.wav @54b699cce97f；时长窗 [13.0, 14.6]",
+          "status": "final-review",
+          "statusNote": "**v1 交付**（2026-10-02，C 型 176 信源完全重制）：13:20.73 = 800.7s @1080p30；155 句 3428 字（254 口径）；story 档 65 块（12 轮自愈续跑）；archify 14 图 47 章逐章回放（锚定 30.3% · 密度 3.5/分 · 5 型 · 全屏独占）；全链机器门双零（内容+覆盖 FAIL 0/WARN 0）+ 三镜目检 + P6 栈定位修复；归档 新题 v1 + _captions（旧题 v1/v2 原样保留）；旧 plan-* 12 图孤儿清除",
           "voice": "story + me-bright.wav"
         },
         {
