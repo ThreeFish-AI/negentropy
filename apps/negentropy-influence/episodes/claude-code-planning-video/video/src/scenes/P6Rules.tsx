@@ -30,8 +30,8 @@ const SeriesFinale: React.FC<{span: number; atCards: number}> = ({span, atCards}
   ];
   return (
     <AbsoluteFill style={{pointerEvents: 'none'}}>
-      {/* 五层身份栈：居中放大，下期层呼吸预告（HarnessStackP6 内置） */}
-      <div style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, opacity: cards}}>
+      {/* 五层身份栈：右侧居中（y≥56 安全区内），下期层呼吸预告（HarnessStackP6 内置） */}
+      <div style={{position: 'absolute', left: 1210, top: 330, opacity: cards}}>
         <HarnessStackP6 at={atCards} nextBreathAt={atCards + DUR.f5} />
       </div>
 
