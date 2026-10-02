@@ -1,5 +1,5 @@
 # 配音台本（story 档）——与 narration.md 同产。
-# [block.<句id>]：该句是一个故事块的起点（块 = ≤3 句、≤90 字，幕界断块，beat 首句必为块起点）；
+# [block.<句id>]：该句是一个故事块的起点（块按情绪单元切分，通常 ≤3 句 / ≤90 字、实测上限 4 句 / 123 字；幕界断块，beat 首句必为块起点）；
 #   emo = 块情绪方向（happy/angry/sad/afraid/disgust/melancholic/surprised/calm），相邻块方向尽量不同。
 # [say]：表演标点（只改标点不改字，build 校验去标点后与正文全等）。
 

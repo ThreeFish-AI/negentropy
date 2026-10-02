@@ -138,5 +138,5 @@ archify 消费端：`ArchifyClip/ArchifyRecap/ArchifyYield` 从 E2（context-lay
 
 ## 覆盖门预期（首轮实测后回填定稿）
 
-- 设计在用图 ~40 张（A 类直用，零剧场词命中）；cue 密集锚定见画面列（一章↔一句，同锚句零重复）；跨实例背靠背处场景代码须 `lead={false}`。
+- 实际在用图 47 张（终值回填；A 类直用，零剧场词命中）；cue 密集锚定见画面列（一章↔一句，同锚句零重复）；跨实例背靠背处场景代码须 `lead={false}`。
 - sidecar type 词表按录制器 `--type` 五值回填（architecture/workflow/sequence/dataflow/lifecycle）。

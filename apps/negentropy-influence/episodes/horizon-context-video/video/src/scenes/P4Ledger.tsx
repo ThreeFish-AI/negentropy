@@ -1,8 +1,8 @@
 /** P4 背书与血缘（p4-01..p4-22，22 句无 p4-03；storyboard「P4 背书与血缘」节）。
  *
  *  8 镜 / 16 条 archify cue（一章锚一句）。cue 窗自 4-A 起跨镜背靠背连续成链
- *  （句窗含句间 gap 严格相接），链上除 4-A 首章与 4-E 空窗后重现的 miss-fallback
- *  外一律 lead={false}；链在 4-D 装置镜与 p4-12/14 两处空窗断开：
+ *  （句窗含句间 gap 严格相接），链上除 4-A 首章与 miss-fallback@11 / engine-lane@16
+ *  两个断点后首章外一律 lead={false}；链在 4-D 装置镜与 p4-12/14 两处空窗断开：
  *   4-A valid-sql-wrong-answer：syntax-pass@01 → business-fail@02
  *   4-B one-checkpoint sign-vs-checkpoint@04 + vqr-lifecycle signed-stamped@05；
  *      定义卡母题·签名盖章位（stampAt=p4-05）为 4-D② 基底层——两章 cue 全覆盖
