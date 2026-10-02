@@ -13,15 +13,15 @@
 |---|---|---|---|---|
 | 1 | pc2-panorama | workflow | P0 总亮 p0-16；P1–P4 挂点回照 p1-01/p2-01/p3-01/p4-01 | 5 |
 | 2 | pc2-failures | workflow | P0 蒙太奇 p0-03/06/10/11/12 | 5 |
-| 3 | pc2-todo-nag | lifecycle | P1 装置/计数/注入/消融 p1-03/06/07/14 | 4 |
+| 3 | pc2-todo-nag | lifecycle | P1 装置/计数/注入/消融 p1-03/06/08/14 | 4 |
 | 4 | pc2-sub-guard | architecture | P2 三不/防线/回退 p2-09/12/14b | 3 |
 | 5 | pc2-sub-lanes | sequence | P2 走查/回执/对比 p2-15/17/18 | 3 |
-| 6 | pc2-skill-levels | architecture | P3 两级/成本/生命周期 p3-03/05/12 | 3 |
+| 6 | pc2-skill-levels | architecture | P3 两级/成本/生命周期 p3-04/07/12 | 3 |
 | 7 | pc2-skill-cost | dataflow | P3 消融/结论 p3-15/18 | 2 |
 | 8 | pc2-prompt-shelf | workflow | P4 分段/实况/独立维护 p4-07/08/09b | 3 |
-| 9 | pc2-prompt-cache | dataflow | P4 走查/指纹/污染 p4-12/14/16 | 3 |
+| 9 | pc2-prompt-cache | dataflow | P4 走查/指纹/污染 p4-10/14/16 | 3 |
 | 10 | pc2-triage-map | workflow | P5 挂点/截断/超限/瞬态 p5-01/07/10/11 | 4 |
-| 11 | pc2-backoff-scale | dataflow | P5 序列/抖动 p5-11/16b | 2 |
+| 11 | pc2-backoff-scale | dataflow | P5 序列/抖动 p5-12/13 | 2 |
 | 12 | pc2-recovery-ledger | lifecycle | P5 账本/消融/结论 p5-17/19/21 | 3 |
 | 13 | pc2-rules | lifecycle | P6 五规律逐条 p6-02..06 | 5 |
 | 14 | pc2-ablation-bar | dataflow | P6 口径/裁决 p6-13/14 | 2 |
