@@ -30,6 +30,29 @@ const LAYERS = layersData.layers as readonly {index: number; layer: string; titl
 const ACTIVE_INDEX = 1; // 第 1 集 · 工具与执行
 const NEXT_LAYER = LAYERS.find((l) => l.index === ACTIVE_INDEX + 1) ?? null;
 
+/** 轻量 mono 角标（关键词/数字/口径注——英文标识符只进角标；同 P0 FootnoteGhost 形态） */
+const MonoTag: React.FC<{x: number; y: number; at: number; children: React.ReactNode}> = ({x, y, at, children}) => {
+  const e = useEnter('fade', {at, dur: DUR.f3});
+  return (
+    <span
+      style={{
+        position: 'absolute',
+        left: x,
+        top: y,
+        ...e,
+        padding: '4px 12px',
+        border: `1.5px solid ${withAlpha(theme.dim, 0.5)}`,
+        borderRadius: 5,
+        fontFamily: theme.mono,
+        fontSize: 16,
+        color: theme.dim,
+      }}
+    >
+      {children}
+    </span>
+  );
+};
+
 /** 五层层板：本集层 core 橙点亮、下集层微亮预告、其余 dim（数据驱动，零硬编码层名） */
 const SeriesBoard: React.FC<{at: number; nextHint?: boolean}> = ({at, nextHint = false}) => {
   const enters = useStagger(LAYERS.length, {at, stride: 5, dur: DUR.f4});
@@ -122,11 +145,13 @@ export const P6Finale: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bB = w('p6-04', 'p6-08');
   const bC = w('p6-09', 'p6-10');
   const fade = useFadeOut(scene.durationInFrames);
-  // 6-A：行数尺四格计数点亮 + 三连「管它」排比逐条显字（hooks 顶层恒定序）
+  // 6-A：行数尺四格计数点亮 + 三连排比小字条逐条显字（hooks 顶层恒定序）。
+  // 字条为关键词对（主语 + 短语），非口播逐字子串——原「一张表 管它能干什么」
+  // 三条合计复现 p6-03 约 94%，RSI-007 违例（2026-10-02 评审修复）
   const gaugeLit = Math.round(useCount({to: 4, at: 4, dur: DUR.f6}));
-  const t1 = useReveal('一张表 管它能干什么', {at: at('p6-03') - bA.from, cps: 9});
-  const t2 = useReveal('一道关 管它能不能干', {at: at('p6-03') - bA.from + 14, cps: 9});
-  const t3 = useReveal('一圈节点 管它何时说话', {at: at('p6-03') - bA.from + 28, cps: 9});
+  const t1 = useReveal('一张表 · 能干什么', {at: at('p6-03') - bA.from, cps: 9});
+  const t2 = useReveal('一道关 · 能不能干', {at: at('p6-03') - bA.from + 14, cps: 9});
+  const t3 = useReveal('一圈节点 · 何时说话', {at: at('p6-03') - bA.from + 28, cps: 9});
   // 6-C：身份卡与下期卡入场——本组件体 hooks 吃 P6 幕局部帧（勿减 bC.from），
   // 且 p6-09 全句被 two-dark-zones archify 独占窗盖住，入场一律锚到 p6-10
   // （画框卸载后）才可见：卡1 +8／卡2 +22，错峰在末幕渐黑起点（36 帧）前完成
@@ -141,7 +166,7 @@ export const P6Finale: React.FC<{scene: SceneRange}> = ({scene}) => {
         </div>
         <PeripheralRow x={1060} y={430} lit={3} at={4} />
         <LineGauge lit={gaugeLit} />
-        {/* p6-03 三连「管它」排比小字条（压短形态，非逐字复述口播） */}
+        {/* p6-03 三连排比小字条（关键词对，RSI-007：非逐字复述口播） */}
         {[t1, t2, t3].map((txt, i) => (
           <div
             key={i}
@@ -169,13 +194,29 @@ export const P6Finale: React.FC<{scene: SceneRange}> = ({scene}) => {
           caption="系列五层"
           cues={[{chapterId: 'layer-flash', at: at('p6-01') - bA.from, durationInFrames: dur('p6-01')}]}
         />
+        {/* 分镜 6-A 角标：Harness（画内呈现）——p6-02 起可见（p6-01 被 archify 全屏窗盖住） */}
+        <MonoTag x={246} y={64} at={at('p6-02') - bA.from}>{'Harness'}</MonoTag>
       </Sequence>
 
       <Sequence {...bB} name="6-B 分工与方法论">
-        {/* 分工定格：左医生（无徽章）/右关卡（放行徽章 ok 绿） */}
-        <div style={{position: 'absolute', left: 330, top: 280}}>
+        {/* 分工定格：左医生（无徽章）/右关卡（放行徽章 ok 绿）。
+            标签须独立 absolute：Doctor 根节点是 absolute 脱流，in-flow 子元素会
+            从容器顶起排压到头部圆上（2026-10-02 评审修复） */}
+        <div style={{position: 'absolute', left: 330, top: 280, width: 102}}>
           <Doctor x={0} y={0} scale={0.85} />
-          <div style={{textAlign: 'center', fontFamily: theme.sans, fontSize: 20, color: theme.dim, marginTop: 4}}>
+          <div
+            style={{
+              position: 'absolute',
+              top: 165,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              whiteSpace: 'nowrap',
+              textAlign: 'center',
+              fontFamily: theme.sans,
+              fontSize: 20,
+              color: theme.dim,
+            }}
+          >
             {'开单 · 无放行徽'}
           </div>
         </div>

@@ -132,7 +132,7 @@ flowchart LR
     B2 --> B4["storyboard.md（镜↔句↔画面）"]
   end
   subgraph 视觉层
-    B1 -- 图集预算 --> C1["archify 12 新图<br/>（锁定版 2.17）"]
+    B1 -- 图集预算 --> C1["archify 13 新图<br/>（锁定版 2.17）"]
     C1 --> C2["views/ sidecar"]
     C2 --> C3["逐章录制 → manifest"]
     B4 --> C4["scenes/*.tsx + Main.tsx"]

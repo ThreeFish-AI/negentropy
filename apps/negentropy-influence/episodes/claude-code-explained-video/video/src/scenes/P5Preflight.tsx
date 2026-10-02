@@ -4,8 +4,9 @@
  *    「执行」门开单据驶入（ok 放行瞬态）＋顺序金句 → 四版对账（行数尺随
  *    v1..v4 各章逐格点亮 102/135/180/232）→ 方法论卡（骨架留 · 规模砍）
  *    ＋收束金句。
- *  ★ 空间契约：行数尺沿底边恒驻（y972，archify 画框底缘 880 之下，不与图
- *    冲突）；「执行」门与链式角标 mech 青外设位；人无彩。
+ *  ★ 空间契约：行数尺沿底边恒驻（y=880 与 archify 画框底缘齐平，占认可带
+ *    [880,920]、字幕板顶缘之上——见 clinic.tsx LineGauge 落位铁三角）；「执行」
+ *    门与链式角标 mech 青外设位；人无彩。
  *  ★ archify 两图全屏独占：preflight-chain 五章连播（p5-01..05 句句相邻）、
  *    four-version-ledger 五章连播（p5-09..13）。两实例首章前均有整句空窗
  *    （幕首句／p5-06..08 三句自制），全片无跨实例背靠背接缝，lead 一律走
@@ -378,7 +379,7 @@ export const P5Preflight: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       {/* 首章（p5-09）前隔 p5-06..08 三句自制 → lead 走默认；行数尺居底边带
-          （y972），在 archify 画框底缘（880）之下，逐格点亮不与图冲突 */}
+          （y=880，与 archify 画框底缘齐平、占认可带 [880,920]），逐格点亮不被画框遮挡 */}
       <Sequence {...bB} name="5-B 四版对账">
         <LedgerGauge
           atIntro={2}
@@ -399,7 +400,9 @@ export const P5Preflight: React.FC<{scene: SceneRange}> = ({scene}) => {
           cues={[
             {chapterId: 'v1-base', at: at('p5-09') - bB.from, durationInFrames: dur('p5-09')},
             {chapterId: 'v2-table', at: at('p5-10') - bB.from, durationInFrames: dur('p5-10')},
-            {chapterId: 'v3-gates', at: at('p5-11') - bB.from, durationInFrames: dur('p5-11')},
+            // v3-gates 落 trim 留痕（契约同 P4 recall-loop）：p5-11 窗 2.30s vs
+            // storySec 3.21s → rate 1.40，原速播＋裁尾约 0.9s（v3 版收束拍让位给 v4 起句）
+            {chapterId: 'v3-gates', at: at('p5-11') - bB.from, durationInFrames: dur('p5-11'), fit: 'trim'},
             {chapterId: 'v4-hooks', at: at('p5-12') - bB.from, durationInFrames: dur('p5-12')},
             {chapterId: 'ledger', at: at('p5-13') - bB.from, durationInFrames: dur('p5-13')},
           ]}

@@ -176,7 +176,7 @@ export const HarnessPlate: React.FC<{x: number; y: number; at?: number}> = ({x, 
  *  落位铁三角：archify 全屏画框下缘 880 之下（5-B 逐版点亮不被画框遮）、
  *  字幕避让带 920 之上（长句字幕板顶缘 ≈943 且 qa 侵入检测带 [920,948) 零进入）、
  *  格高压缩 ≤40px（20px label 档）——三窗叠加后唯一可行带即 [880, 920]。
- *  lit：已点亮格数（1..4）；gauge 逐格点亮用 useCount 由调用侧驱动时传 litFrame。 */
+ *  lit：已点亮格数（1..4）；逐格点亮由调用侧以 Math.round(useCount(...)) 算好后传入。 */
 export const LINE_GAUGE: {label: string; sub: string}[] = [
   {label: '102', sub: '循环'},
   {label: '135', sub: '+表'},

@@ -31,7 +31,7 @@
 | 13 | four-version-ledger | lifecycle | P5 四版对账（p5-09..13） | 5 |
 | 复用 | five-layer-dependency（html_overrides） | architecture | P6 系列身份卡（p6-01/09） | 3 |
 
-> 型多样性＝workflow×3 / architecture×3 / lifecycle×5 / sequence×2 / dataflow×2 ＝ 5 型 ≥ 5（sidecar 顶层 `type` 已预置随录制落盘）。four-version-ledger 的 `v2-table` 章仅在 P5 引用（P2 的「执行行」句用自制代码卡对切，避免同图章跨幕回放乱序）；`human-relay·your-hands`、`gate-four-result·override`、`five-layer·read-two-books`、`dispatch-table·order-in`、`dispatch-table·feed-back` 五章本集不引用（章比 62/67≈0.93 ≥ 0.30）。
+> 型多样性＝workflow×2 / architecture×3 / lifecycle×5 / sequence×2 / dataflow×2 ＝ 5 型 ≥ 5（sidecar 顶层 `type` 已预置随录制落盘）。`four-version-ledger` 的 `v2-table` 章仅在 P5 引用（P2 的「执行行」句用自制代码卡对切，避免同图章跨幕回放乱序）；`human-relay·your-hands`、`gate-four-result·override`、`five-layer·read-two-books`、`dispatch-table·order-in`、`dispatch-table·feed-back` 五章本集不引用（章比 62/67≈0.93 ≥ 0.30）。
 
 ## P0 失忆的医生（p0-01..15）→ `scenes/P0ForgetfulDoctor.tsx`
 
@@ -40,7 +40,7 @@
 | 0-A | p0-01..03 | 开场设问：聊天框两侧定格（左用户敲字／右模型回复一段建议）；p0-03「白纸」隐喻——一张白纸卡从聊天框飘落、定格压短关键词「一张白纸 · 全忘」（`dim`，非逐字复述）；角标 `llm(messages)` | 聊天框双侧淡入 `useEnter:fade`；白纸卡飘落定格 `useEnter:fall`（scene 自定义白纸装置，压短形态）；`@enter:fade` `@enter:fall` |
 | 0-B | p0-04..06 | 人肉往返 ·**archify full**：human-relay 章 `manual-full`+`talk-only` · p0-05 句中段让位 ·**archify full**：human-relay （talk-only） · p0-06 金句回落——自制金句卡衬线体「说完了 · 活还是你的」（压短形态）caption-dup-ok: 金句卡定格记忆点，主字压短非逐字；角标 `chat` | archify 全屏回放主控（两章同实例连播自动抑制）；金句卡 QuoteCard 衬线定格（components 承担者，散文点名，不产生 token） |
 | 0-C | p0-07..11 | **诊室定场（母题定妆）**：自制诊室全景首现——中央接诊循环圆环（core 橙〔M-001〕锁线宽，五步位刻度暂虚）、左上病历本槽位、左医生位（无彩剪影）、右科室门；「Harness」字卡挂门楣；p0-10 句让位 ·**archify full**：human-relay 章 `loop-takes-over` | 诊室四件依次入场 `useStagger`（循环母题随组淡入定妆，core 橙恒定线宽）；Harness 字卡钉位 `useEnter:pop`；p0-10 由 ArchifyRecap 主控；`@stagger` `@enter:pop` |
-| 0-D | p0-12..15 | 行数尺首现：底边四格进度条（第一格 `102` 点亮，其余虚影）；p0-14 三枚外设剪影（表／关／节点，mech 青）自右缘挂入循环右侧；p0-15 句让位 ·**archify full**：human-relay 章 `gap-preview` · 金句卡「三层外设」衬线定格 caption-dup-ok: 集名主段标题词定格，压短非逐字；角标 `102 行 · 教学版` | 行数尺第一格计数点亮 `useCount`；三剪影右缘滑入 `useEnter:slideR`；常驻微光由 PeripheralRow 内 `useBreathe` 承担（components 承担者，散文点名）；p0-15 由 ArchifyRecap 主控；`@count` `@enter:slideR` |
+| 0-D | p0-12..15 | 行数尺首现：底边四格进度条（第一格 `102` 点亮，其余虚影）；p0-14 三枚外设剪影（表／关／节点，mech 青）自右缘挂入循环右侧；p0-15 句让位 ·**archify full**：human-relay 章 `gap-preview`；角标 `102 行 · 教学版`（金句卡「三层外设」**裁定不落**：p0-15 全句窗让位给 gap-preview，集名主段定格已由 P6 系列身份卡承担——2026-10-02 评审回写） | 行数尺第一格计数点亮 `useCount`；三剪影右缘滑入 `useEnter:slideR`；常驻微光由 PeripheralRow 内 `useBreathe` 承担（components 承担者，散文点名）；p0-15 由 ArchifyRecap 主控；`@count` `@enter:slideR` |
 
 ## P1 接诊循环（p1-01..26）→ `scenes/P1IntakeLoop.tsx`
 

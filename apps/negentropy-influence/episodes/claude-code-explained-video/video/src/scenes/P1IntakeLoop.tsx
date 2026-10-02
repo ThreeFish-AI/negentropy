@@ -55,12 +55,19 @@ const MonoTag: React.FC<{x: number; y: number; at: number; children: React.React
 
 const LOOP_STEPS = ['进诊', '落账', '收单', '执行', '回喂'];
 
-const LoopCloseup: React.FC<{atSteps: number; stepsWin: number; tagsAt: readonly number[]}> = ({
-  atSteps,
-  stepsWin,
+const LoopCloseup: React.FC<{stepsAt: readonly number[]; tagsAt: readonly number[]}> = ({
+  stepsAt,
   tagsAt,
 }) => {
-  const steps = useStagger(LOOP_STEPS.length, {at: atSteps, fit: {total: Math.max(1, stepsWin)}});
+  // 五步逐句锚定（2026-10-02 评审修复）：均匀 fit 会把点亮摊平——「第四步」句
+  // 全程无新点亮、「第五步」句尾才亮第④项；改各步独立 useProgress 锚「第N步」句头，
+  // ①随特写出现预点亮（第一步口播在 p1-02 的 archify 全屏窗内，早已讲过）
+  const s1 = useProgress(stepsAt[0], DUR.f5);
+  const s2 = useProgress(stepsAt[1], DUR.f5);
+  const s3 = useProgress(stepsAt[2], DUR.f5);
+  const s4 = useProgress(stepsAt[3], DUR.f5);
+  const s5 = useProgress(stepsAt[4], DUR.f5);
+  const steps = [s1, s2, s3, s4, s5];
   const dash = useFlowDash({dash: 14, gap: 22, period: 46});
   const inP = useProgress(0, DUR.f4); // 承 archify 全屏窗的硬切缓入
   const tag0 = useReveal('messages', {at: tagsAt[0], cps: 12});
@@ -282,6 +289,9 @@ const StopDial: React.FC<{at: number}> = ({at}) => {
   const s = useSpring('settle', {at: at + 3, dur: DUR.f5});
   const sw = useProgress(at + 3, DUR.f5); // effects 通道不吃弹簧（铁律③）
   const knobX = 712 + 420 * s;
+  // 判据两态对照的「迟到方」：stop_reason 打叉后淡出（对照下方常亮的 内容块）
+  const strikeIn = useProgress(at + 2, DUR.f3);
+  const strikeOut = 1 - useProgress(at + 34, DUR.f4);
   return (
     <div style={{position: 'absolute', inset: 0, opacity: inP}}>
       <svg width={190} height={190} style={{position: 'absolute', left: 865, top: 300}}>
@@ -325,6 +335,27 @@ const StopDial: React.FC<{at: number}> = ({at}) => {
           border: `3px solid ${sw > 0.5 ? theme.dim : theme.core}`,
         }}
       />
+      {/* 分镜 1-C 角标两态对照：stop_reason 打叉淡出（迟到的标记不让看）vs
+          内容块 点亮（真正该看的判据）——2026-10-02 评审修复补齐缺的半边 */}
+      <span
+        style={{
+          position: 'absolute',
+          left: 640,
+          top: 276,
+          opacity: strikeIn * strikeOut,
+          padding: '4px 12px',
+          border: `1.5px solid ${withAlpha(theme.dim, 0.5)}`,
+          borderRadius: 5,
+          fontFamily: theme.mono,
+          fontSize: 16,
+          color: theme.dim,
+          textDecoration: 'line-through',
+          textDecorationColor: theme.deny,
+          textDecorationThickness: 2,
+        }}
+      >
+        stop_reason
+      </span>
       <MonoTag x={898} y={276} at={at + 2}>{'内容块'}</MonoTag>
     </div>
   );
@@ -670,8 +701,13 @@ export const P1IntakeLoop: React.FC<{scene: SceneRange}> = ({scene}) => {
         {/* p1-03..06 回落自制：圆环特写（五步位点亮＋角标三枚浮现） */}
         <Sequence from={at('p1-03') - bA.from} name="1-A 五步特写">
           <LoopCloseup
-            atSteps={2}
-            stepsWin={at('p1-06') + dur('p1-06') - at('p1-03')}
+            stepsAt={[
+              2, // ① 预点亮：第一步口播（p1-02）在 archify 窗内已讲过
+              8, // ②「第二步」＝本特写首句（p1-03 句头），紧随①稍错峰
+              at('p1-04') - at('p1-03'), // ③「第三步」
+              at('p1-05') - at('p1-03'), // ④「第四步」
+              at('p1-06') - at('p1-03'), // ⑤「第五步」
+            ]}
             tagsAt={[2, at('p1-04') - at('p1-03'), at('p1-06') - at('p1-03')]}
           />
         </Sequence>
@@ -709,11 +745,12 @@ export const P1IntakeLoop: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bD} name="1-D 流式坑">
-        {/* 承 1-C discharge-return 镜界背靠背（p1-12 窗尽接 p1-13）→ lead={false} */}
+        {/* 1-C 的 discharge-return 提前 tail12（65 帧）让位给 StopDial，本实例首 cue
+            距上个 archify 卸载有整段空窗（>2 帧）→ lead 走默认 true 恢复入场弹簧
+            （2026-10-02 评审修复：原 lead={false} 的「镜界背靠背」前提不成立） */}
         <ArchifyRecap
           slug="stop-reason-race"
           caption="流式时序"
-          lead={false}
           cues={[{chapterId: 'stream-order', at: at('p1-13') - bD.from, durationInFrames: dur('p1-13')}]}
         />
         <Sequence from={at('p1-14') - bD.from} name="1-D 传真吐纸">

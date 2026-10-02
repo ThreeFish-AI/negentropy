@@ -249,7 +249,9 @@ const RegistryBook: React.FC<{atOpen: number; atReg: number; atFive: number}> = 
           })}
         </div>
       </div>
-      {/* 封面（spring 旋开） */}
+      {/* 封面（spring 旋开）。backfaceVisibility 必须保留：过 90° 后渲染的是元素背面
+          （「开单表」镜像反字），且投影落 [647,962] 会整盖左页说明单——藏背面后
+          翻开只呈现 0→90° 的旋开段，左页说明单全程可见（2026-10-02 评审修复） */}
       <div
         style={{
           position: 'absolute',
@@ -259,6 +261,7 @@ const RegistryBook: React.FC<{atOpen: number; atReg: number; atFive: number}> = 
           height: 446,
           transformOrigin: 'left center',
           transform: `perspective(1300px) rotateY(${-165 * open}deg)`,
+          backfaceVisibility: 'hidden',
           background: '#10141C',
           border: `2px solid ${withAlpha(theme.mech, 0.5)}`,
           borderRadius: 10,
@@ -525,17 +528,21 @@ const FenceCloseup: React.FC<{at: number; atBypass: number}> = ({at, atBypass}) 
   const hot = useImpulse({at: atBypass, dur: DUR.f5, peak: 1});
   const mineIn = useEnter('pop', {at: atBypass + 6, dur: DUR.f4});
   const inP = useProgress(at, DUR.f4);
+  // 四窗＝文件科全部四个工具（读/写/改/找——教学源工具表的 read/write/edit/glob）
+  // ——原 3 窗漏「找文件」，暗示 glob 单子在围栏外，与 p2-19「文件类的单子
+  // 不许出项目文件夹半步」相悖（2026-10-02 评审修复，围栏随之加宽 60px）
   const windows = [
-    {x: 500, t: '读文件'},
-    {x: 660, t: '写文件'},
-    {x: 820, t: '改文件'},
+    {x: 480, t: '读文件'},
+    {x: 620, t: '写文件'},
+    {x: 760, t: '改文件'},
+    {x: 900, t: '找文件'},
   ];
   return (
     <div style={{position: 'absolute', inset: 0, opacity: inP}}>
       {/* 围栏（pathLength 归一化描画＋mech 微光） */}
-      <svg width={620} height={430} style={{position: 'absolute', left: 420, top: 210}}>
+      <svg width={680} height={430} style={{position: 'absolute', left: 420, top: 210}}>
         <path
-          d="M26 14 H594 Q606 14 606 26 V404 Q606 416 594 416 H26 Q14 416 14 404 V26 Q14 14 26 14 Z"
+          d="M26 14 H654 Q666 14 666 26 V404 Q666 416 654 416 H26 Q14 416 14 404 V26 Q14 14 26 14 Z"
           fill={withAlpha(theme.mech, 0.04)}
           stroke={theme.mech}
           strokeWidth={2.5}
@@ -543,7 +550,7 @@ const FenceCloseup: React.FC<{at: number; atBypass: number}> = ({at, atBypass}) 
           {...draw}
         />
       </svg>
-      <div style={{position: 'absolute', left: 420, top: 236, width: 620, textAlign: 'center', fontFamily: theme.sans, fontSize: 20, color: theme.mech}}>
+      <div style={{position: 'absolute', left: 420, top: 236, width: 680, textAlign: 'center', fontFamily: theme.sans, fontSize: 20, color: theme.mech}}>
         {'文件科 · 院内'}
       </div>
       {windows.map((wd) => (
@@ -553,7 +560,7 @@ const FenceCloseup: React.FC<{at: number; atBypass: number}> = ({at, atBypass}) 
             position: 'absolute',
             left: wd.x,
             top: 320,
-            width: 140,
+            width: 130,
             height: 74,
             background: theme.panel,
             border: `2px solid ${withAlpha(theme.dim, 0.5)}`,
@@ -669,7 +676,9 @@ export const P2DispatchTable: React.FC<{scene: SceneRange}> = ({scene}) => {
         <FlipLine at={at('p2-09') - bC.from} />
         <GaugeCell at={at('p2-10') - bC.from} />
         <LineGauge lit={2} />
-        <MonoTag x={712} y={878} at={at('p2-09') - bC.from}>{'执行行：只换过一次 · 教学版'}</MonoTag>
+        {/* 口径注 y=830：原 y=878 落进行数尺格带（880..916）压住已点亮的第二格文字
+            （2026-10-02 评审修复）——上移至尺带上方 50px 留隙 */}
+        <MonoTag x={712} y={830} at={at('p2-09') - bC.from}>{'执行行：只换过一次 · 教学版'}</MonoTag>
       </Sequence>
 
       <Sequence {...bD} name="2-D 实验2取值分叉">

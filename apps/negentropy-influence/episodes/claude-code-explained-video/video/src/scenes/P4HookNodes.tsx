@@ -662,7 +662,10 @@ export const P4HookNodes: React.FC<{scene: SceneRange}> = ({scene}) => {
           slug="stop-guard"
           caption="结诊双保险"
           cues={[
-            {chapterId: 'recall-loop', at: at('p4-20') - bE.from, durationInFrames: dur('p4-20')},
+            // recall-loop 落 trim 留痕（契约：ArchifyRecap 头注「落 trim 的 cue 一律显式
+            // fit 留痕」）：p4-20 窗 4.13s vs storySec 6.06s → rate 1.47，原速播＋裁尾
+            // 约 1.9s（第三拍 loop「拉回来再跑一轮」大部分被裁，属本镜叙事让位）
+            {chapterId: 'recall-loop', at: at('p4-20') - bE.from, durationInFrames: dur('p4-20'), fit: 'trim'},
             {chapterId: 'cap-100', at: at('p4-21') - bE.from, durationInFrames: dur('p4-21')},
             {chapterId: 'guard-flag', at: at('p4-23') - bE.from, durationInFrames: dur('p4-23')},
             {chapterId: 'guard-cap8', at: at('p4-24') - bE.from, durationInFrames: dur('p4-24')},
