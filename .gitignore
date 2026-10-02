@@ -315,5 +315,9 @@ apps/negentropy-influence/episodes/*/video/public/archify/*.mp4
 # 逐章录制的末帧 PNG（fit='hold' 冻结补足用）与 webm 同属派生产物，同批重生成
 apps/negentropy-influence/episodes/*/video/public/archify/*-end.png
 
+# archify 3.0 技能的工作目录（按图型+时间戳建 session，候选/采集草稿；
+# 交付物=docs/assets/architecture 的 canonical HTML + 仓内 sidecar，工作目录不入库）
+.archify/
+
 # guided-learn 最小原型的运行产物（docs/research/*/assets/*_lab.py 落盘目录）
 .lab_out/
