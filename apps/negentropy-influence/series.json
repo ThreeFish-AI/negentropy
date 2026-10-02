@@ -168,8 +168,8 @@
             "license": "MIT",
             "accessed": "2026-10-02"
           },
-          "status": "in-production",
-          "statusNote": "完全重制进行中（2026-10-02 启动）：C 型信源=docs 精读 176（钉 ce8f9f18，冻结快照落 research/gl-notes.md）；换标题（旧《记忆管理：会丢的和不能丢的》→ 新题）；stage 进度随提交更新",
+          "status": "final-review",
+          "statusNote": "**v1 完全重制交付**（2026-10-02，13.15 分 = 789.08s @1080p30，ffprobe/mdls/manifest 三源对账落窗 [13.0,14.6]）：139 句 3688 字（me-bright 终声实测 324 字/分纯语音——timing.json B 档覆写句隙 0.32→0.68 拉至 13.15 分落窗，实测口径 281 字/分回写）；C 型信源=docs 精读 176（钉 ce8f9f18 冻结快照 gl-notes.md+类比登记表承接+数字全量穿透）；story 档 68 块+cues 台本（tab×3/token×2 CMU 标注 ASR 实证）；archify 12 图（10 新绘+2 张 176 图原生重建）45 章逐章回放（48 cue · 锚定 34.5% · 密度 3.7/分 · 5 型 · 最长无锚 12 句）；四维策划评审 17 findings+④A/B 双重校验+⑤成文优化 REWRITE=0 全落；全句中点空屏扫描 0（P1 七句空屏修复）；机器门全绿（check_series/tsc/qa --check FAIL 0/覆盖门/实测门）；归档 ~/Documents/video/claude-code-explained/ v1 + _captions",
           "voice": "story + me-bright.wav"
         },
         {
