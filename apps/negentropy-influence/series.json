@@ -192,7 +192,7 @@
             "accessed": "2026-08-22"
           },
           "status": "final-review",
-          "statusNote": "完全重制 v1 交付（2026-10-03，C 型信源重制）：14:26.8 = 866.8s @1080p30（26005 帧复算，时长窗 [13.0,14.6] 实测落窗，三源对账：mdls=866.836/manifest 含时距 14.4 分/本注 866.8 一致）；149 句 3681 字（骨架 A 拆机实验室七幕，钩子 H1）；edge 草声 zh-CN-YunxiNeural 全片（IndexTTS-2.5 本人声音升档待用户显式触发）；archify 13 图 47 章 48 cue（11 新绘+2 复用 176，3.0 注入兼容层直通；锚定 32.2% · 密度 3.3/分 · 5 型 · 全屏独占）；机器门全绿：check_series/check--check-scenes/tsc/qa --check FAIL 0（qa 1 豁免 WARN：P1 推镜瞬态扫入字幕带上缘，运动期瞬态、中间帧探针零命中、判例留痕；覆盖门另 WARN 8——5 个「锚在镜区间之外」＝门脚本对同章多实例匹配首实例的误报（四处实例锚逐一核对正确）、2 个章播放顺序逆序＝叙事重组（knock-walk-away/ablation-panel 换序回放，场景注释留痕）、1 个 3 sidecar 缺 type＝已按交付回执写回 lifecycle/sequence/lifecycle（「五型齐」自此为真五具名型），写回后该 WARN 消）；双重校验 43+36 项闭合；归档 ~/Documents/video/claude-code-explained/ v1 + _captions；ep3 下期卡连坐重渲同批进行",
+          "statusNote": "完全重制 v1 交付（2026-10-03，C 型信源重制）：14:26.8 = 866.8s @1080p30（26005 帧复算，时长窗 [13.0,14.6] 实测落窗，三源对账：mdls=866.836/manifest 含时距 14.4 分/本注 866.8 一致）；149 句 3681 字（骨架 A 拆机实验室七幕，钩子 H1）；edge 草声 zh-CN-YunxiNeural 全片（IndexTTS-2.5 本人声音升档待用户显式触发）；archify 13 图 47 章 48 cue（11 新绘+2 复用 176，3.0 注入兼容层直通；锚定 32.2% · 密度 3.3/分 · 5 型 · 全屏独占）；机器门全绿：check_series/check--check-scenes/tsc/qa --check FAIL 0（qa 1 豁免 WARN：P1 推镜瞬态扫入字幕带上缘，运动期瞬态、中间帧探针零命中、判例留痕；覆盖门另 WARN 8——6 个「锚在镜区间之外」＝门脚本对同章多实例匹配首实例的误报（各实例锚逐一核对正确；2026-10-03 评审修复轮 3-A 二段换 full-cycle 后新增 3-G 同款双实例误报）、2 个章播放顺序逆序＝叙事重组（knock-walk-away/ablation-panel 换序回放，场景注释留痕）、1 个 3 sidecar 缺 type＝已按交付回执写回 lifecycle/sequence/lifecycle（「五型齐」自此为真五具名型），写回后该 WARN 消）；双重校验 43+36 项闭合；归档 ~/Documents/video/claude-code-explained/ v1 + _captions；ep3 下期卡连坐重渲同批进行",
           "voice": "edge 草声 zh-CN-YunxiNeural（升档待触发）"
         },
         {

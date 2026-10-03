@@ -1,8 +1,10 @@
 /** P3 四层钟（p3-01..31，7 镜 11 cue）——分镜 3-A…3-G。
  *
  *  cue 清单（archify full 全屏独占，一 cue = 一章，dur 求和拼写）：
- *  - 3-A cron-four-layers「四层钟」：four-roles@p3-01(+02) / four-roles@p3-03(+04+05)
- *    ——同实例两 cue 背靠背，换章自动关入场（实例内抑制，非跨实例 lead）
+ *  - 3-A cron-four-layers「四层钟」：four-roles@p3-01(+02) / full-cycle@p3-03(+04+05)
+ *    ——同实例两 cue 背靠背，换章自动关入场（实例内抑制，非跨实例 lead）。
+ *    二段原锚 four-roles 同章重放会在窗界整帧跳回章首「倒带」（评审修复：p3-03..05
+ *    逐层细讲对应换 full-cycle 全周期走查章续播新内容，不再重启同源）
  *  - 3-D cron-dom-dow-or「五段与或门」：and-or@p3-13(+14) / both-ways@p3-15(+16+17)
  *  - 3-E three-safeguards「三道保险」：mark-date@p3-18(+19+20+21) / per-task-guard@p3-22 / double-check@p3-23
  *  - 3-F knock-walk-away「敲门走开」：loop-wake@p3-24(+25) / door-busy@p3-26(+27) / door-open@p3-28
@@ -600,7 +602,8 @@ export const P3FourLayerClock: React.FC<{scene: SceneRange}> = ({scene}) => {
           caption="四层钟"
           cues={[
             {chapterId: 'four-roles', at: at('p3-01') - bA.from, durationInFrames: dur('p3-01') + dur('p3-02')},
-            {chapterId: 'four-roles', at: at('p3-03') - bA.from, durationInFrames: dur('p3-03') + dur('p3-04') + dur('p3-05')},
+            // 评审修复：二段换 full-cycle（原 four-roles 同章背靠背重放＝窗界整帧跳回章首倒带）
+            {chapterId: 'full-cycle', at: at('p3-03') - bA.from, durationInFrames: dur('p3-03') + dur('p3-04') + dur('p3-05')},
           ]}
         />
       </Sequence>

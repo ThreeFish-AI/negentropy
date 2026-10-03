@@ -612,11 +612,7 @@ export const P4DiskNotAlive: React.FC<{scene: SceneRange}> = ({scene}) => {
           slug="disk-not-alive"
           caption="磁盘与活着"
           cues={[
-            {
-              chapterId: 'two-lives',
-              at: at('p4-01') - bA.from,
-              durationInFrames: dur('p4-01') + dur('p4-02') + dur('p4-03'),
-            },
+            {chapterId: 'two-lives', at: at('p4-01') - bA.from, durationInFrames: dur('p4-01') + dur('p4-02') + dur('p4-03')},
           ]}
         />
         <Sequence from={at('p4-04') - bA.from} durationInFrames={dur('p4-04')} name="4-A 旋钮回落">
@@ -654,11 +650,7 @@ export const P4DiskNotAlive: React.FC<{scene: SceneRange}> = ({scene}) => {
           slug="disk-not-alive"
           caption="磁盘与活着"
           cues={[
-            {
-              chapterId: 'escape-routes',
-              at: at('p4-11') - bD.from,
-              durationInFrames: dur('p4-11') + dur('p4-12'),
-            },
+            {chapterId: 'escape-routes', at: at('p4-11') - bD.from, durationInFrames: dur('p4-11') + dur('p4-12')},
           ]}
         />
       </Sequence>
@@ -671,11 +663,7 @@ export const P4DiskNotAlive: React.FC<{scene: SceneRange}> = ({scene}) => {
           caption="四层钟"
           lead={false}
           cues={[
-            {
-              chapterId: 'durable-side',
-              at: at('p4-13') - bE.from,
-              durationInFrames: dur('p4-13') + dur('p4-14'),
-            },
+            {chapterId: 'durable-side', at: at('p4-13') - bE.from, durationInFrames: dur('p4-13') + dur('p4-14')},
           ]}
         />
         <Sequence from={at('p4-15') - bE.from} durationInFrames={dur('p4-15')} name="4-E 双线彩蛋">

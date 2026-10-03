@@ -760,11 +760,7 @@ export const P6ReconRules: React.FC<{scene: SceneRange}> = ({scene}) => {
           caption="对账三类"
           lead={false}
           cues={[
-            {
-              chapterId: 'red-jitter',
-              at: at('p6-03') - bB.from,
-              durationInFrames: dur('p6-03') + dur('p6-04') + dur('p6-05') + dur('p6-06'),
-            },
+            {chapterId: 'red-jitter', at: at('p6-03') - bB.from, durationInFrames: dur('p6-03') + dur('p6-04') + dur('p6-05') + dur('p6-06')},
           ]}
         />
       </Sequence>
@@ -782,11 +778,7 @@ export const P6ReconRules: React.FC<{scene: SceneRange}> = ({scene}) => {
           caption="对账三类"
           lead={false}
           cues={[
-            {
-              chapterId: 'gray-extra',
-              at: at('p6-07') - bC.from,
-              durationInFrames: dur('p6-07') + dur('p6-08') + dur('p6-09') + dur('p6-10'),
-            },
+            {chapterId: 'gray-extra', at: at('p6-07') - bC.from, durationInFrames: dur('p6-07') + dur('p6-08') + dur('p6-09') + dur('p6-10')},
           ]}
         />
       </Sequence>
