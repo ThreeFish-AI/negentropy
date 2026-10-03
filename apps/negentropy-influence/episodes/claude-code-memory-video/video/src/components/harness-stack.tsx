@@ -8,7 +8,7 @@
  * 组件：
  *  - HarnessBadge：常驻顶边条（横向五 chip，y 12–48）；
  *  - HarnessStackP6：收尾放大栈（下期层呼吸预告）；
- *  - PlateSlab3D：3D 层板渲染后端（上两者复用）。
+ *  - PlateSlab3D：3D 层板渲染后端（仅 HarnessStackP6 消费；Badge chip 档走平面 Plate）。
  *  （本集 P0 开场不用 HarnessStack 落板——全貌坐标装置 MapAnchor 承担，P0 版开场编排已随旧 P0 场景移除。）
  *
  * ⚠️ 形式对规格的一处适配（评审实测）：规格写「缩退左上角纵向角标（宽 ≤300）」，
@@ -103,7 +103,7 @@ const Plate: React.FC<{
   );
 };
 
-/** 三维层板：仅 full/p6 档（P0 开场 / P6 收尾）的渲染后端；chip 档仍走平面 Plate。
+/** 三维层板：仅 p6 档（P6 收尾）的渲染后端（旧 P0 开场档已随旧 P0 场景移除）；chip 档仍走平面 Plate。
  *  动效数值（active/dim/glow/settle）全部复用既有 hooks 输出，只换呈现层；
  *  文字留在 DOM 层叠放（文字永不进 3D/Lottie）。读色契约：active=core 描边、
  *  glow→自发光、dim→不透明度，与平面 Plate 逐项对位。 */
@@ -176,7 +176,9 @@ export const PlateSlab3D: React.FC<{
   );
 };
 
-/** 常驻顶边条：P1–P6（横向五 chip，y 12–48——见文件头形式适配说明）。 */
+/** 顶边条（横向五 chip，y 12–48——见文件头形式适配说明）。本集仅 P6 挂载且以
+ *  top:64 覆写（P1–P5 由全貌坐标 Chip 替位，见 P0 头注）；默认 top:12 与
+ *  ChapterProgress 全宽顶条（y14–42）同带，裸挂须覆写。 */
 export const HarnessBadge: React.FC<{style?: React.CSSProperties}> = ({style}) => (
   <div
     style={{

@@ -75,7 +75,7 @@ const MovingMap: React.FC<{
   const q1In = useProgress(q1At, DUR.f3);
   const q1Out = useProgress(cardAts[0], DUR.f3);
   const slots = useProgress(10, DUR.f4);
-  // 三格横移：slideL（自右滑入读作左向横移）+ settle 弹簧（铁律②局部帧）
+  // 三格横移：slideL（自左侧 −120px 起步向右滑入落位，新卡自左邻背后钻出）+ settle 弹簧（铁律②局部帧）
   const e0 = useEnter('slideL', {at: cardAts[0], dist: 120, dur: DUR.f5, springPreset: 'settle'});
   const e1 = useEnter('slideL', {at: cardAts[1], dist: 120, dur: DUR.f5, springPreset: 'settle'});
   const e2 = useEnter('slideL', {at: cardAts[2], dist: 120, dur: DUR.f5, springPreset: 'settle'});

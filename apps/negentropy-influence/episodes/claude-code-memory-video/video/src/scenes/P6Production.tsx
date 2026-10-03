@@ -2,7 +2,8 @@
  *
  *  ★ 本幕以场景层装置为主，含 4 个 archify 回看实例：6-A cheap-first@p6-03
  *    （空窗后重现 → lead 默认入场）与 6-D retreat-fix/prefix-hit/one-of-three
- *    @p6-14..16（三例句句相接，后两例 lead={false}）；双问回收／对照条／双标尺／
+ *    @p6-14..16（三例 cue 收缩到语音段后实例间各隔 20 帧句隙＝空窗 → 均默认
+ *    入场；勿回退 lead={false}——空窗后整框一帧瞬现）；双问回收／对照条／双标尺／
  *    卡片墙／五规律卡／收尾栈为场景层自制装置。
  *  ★ 顶部行共存：本集 seeded motifs 的 SceneTag 在左上（left:72 top:64），与
  *    HarnessBadge（left:64 top:64）同格重叠，且 6-A 右上还驻 MapAnchorChip——
@@ -1600,7 +1601,7 @@ export const P6Production: React.FC<{scene: SceneRange}> = ({scene}) => {
         />
         {/* 规律回看：三条规律各锚回其机制图（章可重放、锚句唯一）；cue 收缩到
             语音段（句窗含 20 帧句隙，让给五规律卡翻页——画框无出场动画、
-            Sequence 边界即卸载），后两例 lead={false} 抑制入场弹簧重放 */}
+            Sequence 边界即卸载），实例间隔 20 帧＝空窗 → 三例均默认入场 */}
         <ArchifyRecap
           slug="pairing-interlock"
           caption="规律 · 结构"
@@ -1611,15 +1612,15 @@ export const P6Production: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap
           slug="cache-economics"
           caption="规律 · 经济学"
-          lead={false}
           cues={[
-            {chapterId: 'prefix-hit', at: at('p6-15') - bD.from, durationInFrames: dur('p6-15') - SENTENCE_GAP_FRAMES},
+            // 3.9s 窗 × storySec 5.57s → rate 1.43 落 trim（显式留痕）：bill 终拍
+            // 不到达，取舍＝规律回看拍到 cacheHit/fullPrice 证据链即足
+            {chapterId: 'prefix-hit', at: at('p6-15') - bD.from, durationInFrames: dur('p6-15') - SENTENCE_GAP_FRAMES, fit: 'trim'},
           ]}
         />
         <ArchifyRecap
           slug="memory-gates"
           caption="规律 · 治理"
-          lead={false}
           cues={[
             {chapterId: 'one-of-three', at: at('p6-16') - bD.from, durationInFrames: dur('p6-16') - SENTENCE_GAP_FRAMES},
           ]}

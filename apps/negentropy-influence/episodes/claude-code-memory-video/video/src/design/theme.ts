@@ -31,9 +31,8 @@ export const theme = {
   sans: "'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', sans-serif",
   mono: "'SF Mono', 'Menlo', 'JetBrains Mono', monospace",
 
-  // ── 本集概念色（重制种子：记忆层维度色=苔绿，沿系列槽位；Stage ② 复核对比度）──
-  // 语义：苔绿=记忆/跨会话（长期层）
-  concept: '#A9C46C',
+  // ── 本集概念色（重制种子；Stage ② 复核对比度）──
+  // 维度色苔绿 #A9C46C 由系列语义键 mech 承载（见下），不设独立 concept token。
   // accent=账单/成本金（P4 缓存经济学强调）——系列「金=强调」语义族
   // （与 ep4 #EFB13C / ep5 #D9B36B 同族各持独立 hex，2026-10-03 评审定夺：
   // 换独立金并登记 series.json accents，撞色门/已用色表不再双盲）。

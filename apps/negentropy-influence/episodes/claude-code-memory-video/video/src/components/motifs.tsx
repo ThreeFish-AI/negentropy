@@ -113,5 +113,3 @@ export const Counter: React.FC<{
     </span>
   );
 };
-
-export {ease};

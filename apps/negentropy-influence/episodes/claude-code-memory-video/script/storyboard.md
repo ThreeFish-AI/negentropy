@@ -1,8 +1,8 @@
 # 分镜表 · 《记忆管理：一张草稿纸和一本卡片册》（v1）
 
 > **句 id 对齐**：镜 ⊆ beat（narration.md v2 幕内空行分组；镜可在 beat 内再切分——如 2-C/2-D、4-A/4-A2、4-C/4-D 各共享一个 beat），`beatWindow(sentences, scene.from, id, id2)` 按句 id 取窗；句区间覆盖各幕全部句子、无交叠无遗漏（`check --check-scenes` 执法）。
-> **时长**：以 `video/public/audio/manifest.json` 实测为准（me-bright 终声已派生：789.00s = 13.15 分，与 statusNote 一致）。
-> **视觉契约**（与 [planning.md](./planning.md) §3 一致）：bg `#0E1116`／panel `#171C26`／text `#F2F5FA`／dim `#9AA7B8`；**mech 苔绿 `#A9C46C`=卡片册·记忆·长期（本集维度色）**；**core 橙 `#D97757`=循环内核恒定**（3D 层）；**账单金 `#F0C244`=钱·成本·计费**；红线红 `#FF5C5C`（deny `#EF6461`）=破坏·拦截警示；确认绿 `#7ED321`=机制在位。灰白系底座=草稿纸·会话内。
+> **时长**：以 `video/public/audio/manifest.json` 实测为准（me-bright 终声已派生：789.03s = 13.15 分 · 23,671 帧，与 statusNote 一致）。
+> **视觉契约**（与 [planning.md](./planning.md) §3 一致）：bg `#0E1116`／panel `#171C26`／text `#F2F5FA`／dim `#9AA7B8`；**mech 苔绿 `#A9C46C`=卡片册·记忆·长期（本集维度色）**；**core 橙 `#D97757`=循环内核恒定**（3D 层）；**账单金 `#F0C244`=钱·成本·计费**；红线红 `#FF5C5C`（danger）=破坏·拦截警示；确认绿 `#7ED321`=机制在位。灰白系底座=草稿纸·会话内。
 > **顶部安全带 y<56** 归章节进度条；各镜画面 y≥56 起；底部角标 bottom≥150 避字幕条。
 > **archify 引导图**：全屏独占三分法（`forbid_inset`）；图集预算表见文末；cue 一章锚一句、锚句全片唯一；lead 契约＝**帧相邻才 false**：与前一图镜末章帧相邻（无空窗回落句窗隔断）的实例传 lead=false 防重入弹簧，空窗后重现的实例一律默认入场（ArchifyClip 契约——否则整框以全不透明一帧瞬现）。
 
@@ -72,7 +72,7 @@
 | 6-A 双问回收与对照 | p6-01..05 | ·**archify full**：compact-pipeline 章 `cheap-first`（p6-03 开源教学骨架回看，空窗后重现默认入场）；场景镜：双问字卡回收（两联卡与五规律总括句同帧点亮）；「教学四层 vs 生产五层」对照高亮条（左列四层·灰白系，右列五层·右起第五层苔绿高亮+标签「独立回收系统」）；坐标装置点尾区 | `@enter:fade` 双问回收；`@stagger` 对照条两列逐层点亮；`@count` 层计数 4→5 |
 | 6-B 互证双标尺 | p6-07..09 | 场景镜：双标尺（useCount 动态）——左：1M 窗口标尺+967K 触发线（工况角标【官】）；右：目录页双格上限「头 200 行／25KB」双点重合闪亮（基线=官方文档口径） | `@count` 标尺水位；`@impulse` 双点重合 |
 | 6-C 生产形态两帧 | p6-10..11 | 场景镜：挑选帧——卡片墙按修改时间排序扫描、犹豫卡盖「拿不准就不选」章、选中 ≤5 张苔绿描边；提取帧——回合结束挂钩弹起→fire-and-forget 箭头射出→受限进程图标（角标「不写对话记录 · 最多五轮」） | `@travel` 扫描游标；`@enter:pop` 挂钩弹起；`@flowDash` 箭头 |
-| 6-D 五规律卡 | p6-12..17 | ·**archify full**：pairing-interlock 章 `retreat-fix`（p6-14 结构规律回看）·**archify full**：cache-economics 章 `prefix-hit`（p6-15 经济学规律回看，lead=false）·**archify full**：memory-gates 章 `one-of-three`（p6-16 治理规律回看，lead=false）；场景镜：五规律卡逐条翻页（代价阶梯／配对完整／前缀稳定／垃圾优先／索引正文分离；每卡一行判词），总括句与首卡同帧；角标 LSM-tree / B-tree 小字 | `@stagger` 五卡翻页；`@enter:rise` 判词行 |
+| 6-D 五规律卡 | p6-12..17 | ·**archify full**：pairing-interlock 章 `retreat-fix`（p6-14 结构规律回看；三例 cue 收缩到语音段、实例间 20 帧空窗 → 均默认入场）·**archify full**：cache-economics 章 `prefix-hit`（p6-15 经济学规律回看，fit=trim 显式留痕——bill 拍取舍见 P6 代码注）·**archify full**：memory-gates 章 `one-of-three`（p6-16 治理规律回看）；场景镜：五规律卡逐条翻页（代价阶梯／配对完整／前缀稳定／垃圾优先／索引正文分离；每卡一行判词），总括句与首卡同帧；角标 LSM-tree / B-tree 小字 | `@stagger` 五卡翻页；`@enter:rise` 判词行 |
 | 6-E 边界与收尾 | p6-18..25 | 场景镜：两争议悬置双面卡（窗口大小之争／提取时机之争，不裁决）；边界护栏卡（成立前提三条件+Out-of-Scope 一行）；五层 Harness 栈放大居中（记忆层苔绿点亮，系列身份卡）；下期卡《并发：谁来按下开始》；坐标装置尾区收束；末镜渐黑 | `@enter:fade` 悬置卡翻转；`@breathe` 记忆层脉冲；`@fadeOut` 末 beat 总时长推导渐黑（红线四） |
 
 ## 字幕规范
