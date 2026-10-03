@@ -132,7 +132,7 @@ const DoorWithSlot: React.FC<{x: number; y: number; glow?: number; label?: strin
 
 /** 影子帮工（来去半透明 @enter:fade）对照常驻队友（门牌+工位长亮）。 */
 const ShadowVsMate: React.FC<{at02: number; at03: number; at04: number}> = ({at02, at03, at04}) => {
-  const shadowIn = useEnter('fade', {at: 6, dur: DUR.f5});
+  const shadowIn = useEnter('fade', {at: at02, dur: DUR.f5});
   // 影子帮工 p2-02 段末淡走（干完就走）
   const frame = useCurrentFrame();
   const shadowOut = progress(frame, at03 - 10, DUR.f5);
@@ -159,8 +159,8 @@ const ShadowVsMate: React.FC<{at02: number; at03: number; at04: number}> = ({at0
       <div style={{position: 'absolute', left: 1560, top: 300}}>
         <Person x={0} y={0} color={theme.text} opacity={0.9} />
       </div>
-      {/* 三件行头（p2-04） */}
-      <div style={{position: 'absolute', left: 620, top: 640, display: 'flex', gap: 24}}>
+      {/* 三件行头（p2-04）；left 330：右缘 330+3×250+2×24=1128，避右侧门板（x1180 起） */}
+      <div style={{position: 'absolute', left: 330, top: 640, display: 'flex', gap: 24}}>
         {kits.map((k, i) => (
           <div key={k.k} style={{opacity: kit[i], transform: `translateY(${(1 - kit[i]) * 16}px)`}}>
             <Panel accent={theme.accent} style={{width: 250, boxSizing: 'border-box', padding: '16px 20px'}}>
@@ -179,7 +179,7 @@ const ShadowVsMate: React.FC<{at02: number; at03: number; at04: number}> = ({at0
 
 /** 队列汇流：键盘事件＋口内信条两条 @flow 流线汇入同一注入口；楼（梁上一只眼）
  *  巡视频闪（useTravel 小环巡游点）；甲乙两口信先后入队长的口、整摞取走（@count 2）。 */
-const QueueMerge: React.FC<{at11: number; at12: number; at13: number}> = ({at11, at12, at13}) => {
+const QueueMerge: React.FC<{at12: number; at13: number}> = ({at12, at13}) => {
   const flowA = useFlowDash({dash: 14, gap: 18, period: 22});
   const flowB = useFlowDash({dash: 14, gap: 18, period: 22, });
   // 楼的巡视小环（恒定巡游——楼替人盯口）
@@ -266,7 +266,7 @@ const ToolBoundary: React.FC<{at15: number}> = ({at15}) => {
                       padding: '18px 20px',
                       borderRadius: 10,
                       background: theme.bg,
-                      border: `2px solid ${t.ok ? theme.panelBorder : theme.panelBorder}`,
+                      border: `2px solid ${t.ok ? theme.panelBorder : theme.danger}`,
                       position: 'relative',
                     }}
                   >
@@ -404,7 +404,7 @@ export const P2MailSlot: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bC} name="2-C 楼替人盯口">
-        <QueueMerge at11={at('p2-11') - bC.from} at12={at('p2-12') - bC.from} at13={at('p2-13') - bC.from} />
+        <QueueMerge at12={at('p2-12') - bC.from} at13={at('p2-13') - bC.from} />
       </Sequence>
 
       <Sequence {...bD} name="2-D 边界在工具单">

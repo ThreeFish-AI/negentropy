@@ -263,9 +263,9 @@ const NamePlate: React.FC<{at14: number; at15: number; at16: number}> = ({at14, 
         </div>
       </div>
 
-      {/* 虚位门（门形图标虚位——门装在收官段的钩子上） */}
+      {/* 虚位门（门形图标虚位——门装在收官段的钩子上）；视口高须容下 y=240 的注记（svg 默认裁剪） */}
       <div style={{position: 'absolute', left: 1190, top: 470, opacity: door * doorDim}}>
-        <svg width={150} height={210}>
+        <svg width={150} height={265}>
           <rect x={6} y={6} width={130} height={196} rx={10} fill="none" stroke={theme.dim} strokeWidth={3} strokeDasharray="12 9" />
           <circle cx={112} cy={108} r={9} fill={theme.dim} opacity={0.6} />
           <text x={71} y={240} textAnchor="middle" fontFamily={theme.mono} fontSize={19} fill={theme.dim}>
@@ -284,12 +284,12 @@ const NamePlate: React.FC<{at14: number; at15: number; at16: number}> = ({at14, 
         </Panel>
       </div>
 
-      {/* 【三】丰富度角标（p5-16） */}
+      {/* 【三】丰富度角标（p5-16）；top 310 避「不拦截」角标（其占 y≈234..292，right:-190 外挂） */}
       <div
         style={{
           position: 'absolute',
           left: 1130,
-          top: 250,
+          top: 310,
           opacity: richO,
           transform: `scale(${0.85 + 0.15 * rich})`,
           fontFamily: theme.sans,

@@ -224,6 +224,8 @@ const HonestGap1: React.FC<{at13: number; at14: number}> = ({at13, at14}) => {
 
 /** 对话被压短 → 工牌淡出 → 楼重挂工牌点亮。 */
 const BadgeReinject: React.FC<{at22: number; at23: number}> = ({at22, at23}) => {
+  // 镜首入场（p3-22「值班钟还管一件小事：身份」期间淡入，勿瞬现）
+  const enter = useEnter('fade', {at: at22, dur: DUR.f4});
   // 对话卡压缩（@dim＋纵向压扁）
   const squish = useProgress(at23, DUR.f5);
   const dim = useDim({at: at23, to: 0.45, dur: DUR.f5});
@@ -234,7 +236,7 @@ const BadgeReinject: React.FC<{at22: number; at23: number}> = ({at22, at23}) => 
   const dropO = useProgress(at23 + 40, DUR.f3);
   const pulse = useImpulse({at: at23 + 46, dur: DUR.f6, peak: 1});
   return (
-    <AbsoluteFill>
+    <AbsoluteFill style={enter}>
       {/* 梁上一只手（右上垂下） */}
       <div style={{position: 'absolute', left: 900, top: 96, opacity: dropO}}>
         <svg width={80} height={110}>

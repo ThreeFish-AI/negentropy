@@ -209,7 +209,7 @@ const WallSurvives: React.FC<{at06: number; at07: number}> = ({at06, at07}) => {
 
 /** 三条件闸门卡：三盏灯依次亮（待办∧无主∧前置全清），写名占住盖章。 */
 const ClaimGate: React.FC<{at15: number; at16: number}> = ({at15, at16}) => {
-  const lamps = useStagger(3, {at: 10, dur: DUR.f4, stride: 12});
+  const lamps = useStagger(3, {at: at15 + 10, dur: DUR.f4, stride: 12});
   const names = ['待办', '无主', '前置清'];
   // 写名盖章：p1-16「三条全中才能写名」
   const stamp = useSpring('snap', {at: at16 + 8, dur: DUR.f4});

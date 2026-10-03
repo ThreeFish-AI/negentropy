@@ -22,7 +22,7 @@ import {Footnote, LodgeMap, Panel, SceneTag} from '../components/motifs';
 import {HarnessBadge} from '../components/harness-stack';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 import {ArchifyYield} from '../components/ArchifyYield';
-import {DUR, clamp01, progress, useDraw, useEnter, useImpulse, useProgress, useShake, useSpring, useStagger, useTravel} from '../motion';
+import {DUR, clamp01, progress, useDraw, useEnter, useImpulse, useProgress, useShake, useSpring, useTravel} from '../motion';
 
 // ── 本幕通用 ────────────────────────────────────────────────────────────
 
@@ -58,14 +58,14 @@ const KeyCard: React.FC<{at: number; main: string; sub?: string; accent?: string
 /** 同目录两笔写同一文件：两支笔交错、后写覆盖先写（红闪）；回滚箭头打结。 */
 const AccidentScene: React.FC<{at02: number; at03: number}> = ({at02, at03}) => {
   const frame = useCurrentFrame();
-  // 两支笔的书写进度（交错推进）
+  // 两支笔的书写进度（镜首铺陈：p4-01 讲「第五件设施」期间两位师傅已在写）
   const penA = progress(frame, 10, 40);
   const penB = progress(frame, 34, 40);
-  // 覆盖红闪（后写盖先写）
-  const over = useImpulse({at: 76, dur: DUR.f6, peak: 1});
-  const overO = progress(frame, 74, DUR.f3);
-  // 文件卡抖动（碰撞）
-  const shake = useShake({at: 72, amp: 5, freq: 1.4, decay: true, dur: DUR.f6});
+  // 覆盖红闪（后写盖先写）——锚 p4-02 尾段「后写的盖掉先写的」（句首只点名事故现场）
+  const over = useImpulse({at: at02 + 110, dur: DUR.f6, peak: 1});
+  const overO = progress(frame, at02 + 108, DUR.f3);
+  // 文件卡抖动（碰撞，与红闪同拍）
+  const shake = useShake({at: at02 + 106, amp: 5, freq: 1.4, decay: true, dur: DUR.f6});
   // 回滚箭头打结（@draw）
   const knot = useDraw(at03, 40);
   const knotO = progress(frame, at03, DUR.f3);
@@ -241,7 +241,7 @@ const ClaimIntoRoom: React.FC<{at09: number; at10: number; at11: number}> = ({at
 const TwoSystems: React.FC<{at17: number}> = ({at17}) => {
   const riseL = useEnter('rise', {at: 4, dur: DUR.f5, springPreset: 'settle', dist: 26});
   const riseR = useEnter('rise', {at: 10, dur: DUR.f5, springPreset: 'settle', dist: 26});
-  // 拆开（p4-18：靠师傅自己对上号——两卡背向弹开）
+  // 拆开（p4-17「两套独立系统」——两卡背向弹开；p4-18 的「对上号」由金句卡承接）
   const apart = useSpring('settle', {at: at17 + 10, dur: DUR.f5});
   const apartO = useProgress(at17 + 10, DUR.f4);
   const sep = 40 + 140 * apart;

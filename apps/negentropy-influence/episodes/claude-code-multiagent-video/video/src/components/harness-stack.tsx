@@ -1,13 +1,16 @@
 /** 系列身份装置：五层 Harness 栈——skills/06「系列身份视觉」规格的落地。
  *
  * 层序/层名/发布态/下集标题一律取 series-layers.json（build_narration 从
- * series.json 派生——硬编码即漂移，规格原话）。注意 P6 下期卡内的**标题主段**
+ * series.json 派生——硬编码即漂移，规格原话）。注意 P6 场景内的**本集题字主段**
  * 仍是硬编码字符串：check_series 规则 8 以 tsx 文本对账 series.json，数据化会
- * 让那条门失明（两层口径：层短名走数据，标题主段走规则 8 的受检硬编码）。
+ * 让那条门失明（两层口径：层短名走数据，题字主段走规则 8 的受检硬编码）。
+ * 终集体例：series-layers next=null ⇒ 无下期层，P6 不设下期卡（五层全亮收官），
+ * 规则 8 的受检锚即 P6 本集题字。
  *
- * 两个组件：
+ * 三个组件：
  *  - HarnessStackP0：开场编排（落板 → 本集层高亮呼吸 → 缩退淡出，末段交叉淡入常驻条）；
- *  - HarnessBadge：P1–P6 的常驻顶边条（横向五 chip，y 12–48）。
+ *  - HarnessBadge：P1–P6 的常驻顶边条（横向五 chip，y 12–48）；
+ *  - HarnessStackP6：终章收尾档（栈放大居中；终集五层全亮，非终集为下期层呼吸预告）。
  *
  * ⚠️ 形式对规格的一处适配（评审实测）：规格写「缩退左上角纵向角标（宽 ≤300）」，
  * 但纵向角标（300×194）与既有各幕左上内容五处碰撞（P2 CornerRing 同坐标、P3 小抄、
@@ -111,7 +114,8 @@ const Plate: React.FC<{
 /** 三维层板：仅 full/p6 档（P0 开场 / P6 收尾）的渲染后端；chip 档仍走平面 Plate。
  *  动效数值（active/dim/glow/settle）全部复用既有 hooks 输出，只换呈现层；
  *  文字留在 DOM 层叠放（文字永不进 3D/Lottie）。读色契约：active=core 描边、
- *  glow→自发光、dim→不透明度，与平面 Plate 逐项对位。 */
+ *  glow→wrapper 外辉光（Solids3D basic 材质不吃光、板面禁 emissive——ISSUE-177
+ *  教训二，对位平面 Plate L102 的同式口径）、dim→不透明度。 */
 export const PlateSlab3D: React.FC<{
   layer: Layer;
   active: boolean;
@@ -132,7 +136,15 @@ export const PlateSlab3D: React.FC<{
   const yaw = (8 * Math.PI) / 180;
   const rotationX = settleTilt + (1 - settle) * ((-18 * Math.PI) / 180);
   return (
-    <div style={{position: 'relative', width: '100%', height: canvasH}}>
+    <div
+      style={{
+        position: 'relative',
+        width: '100%',
+        height: canvasH,
+        borderRadius: 10,
+        boxShadow: glow > 0.01 ? `0 0 ${10 + glow * 22}px ${theme.core}55` : undefined,
+      }}
+    >
       <ThreeCanvas
         width={width}
         height={canvasH}
@@ -281,12 +293,13 @@ export const HarnessStackP6: React.FC<{at: number; nextBreathAt: number}> = ({at
           // 非终集沿用 published/active 口径（published 派生面不可靠，终集不再依赖）。
           const lit = NEXT_LAYER === null || l.published || l.index === ACTIVE_INDEX;
           const glow = isNext ? nextOn * breath : 0;
+          // 呼吸预告连续化：面色随 nextOn 渐提，描边过半点亮（点灯瞬态保留）；禁一帧阶跃
           return (
             <div key={l.index} style={{opacity: p, transform: `translateY(${(1 - p) * 18}px)`}}>
               <PlateSlab3D
                 layer={l}
                 active={lit || (isNext && nextOn > 0.5)}
-                dim={lit || (isNext && nextOn > 0.5) ? 1 : 0.55}
+                dim={lit ? 1 : isNext ? 0.55 + 0.45 * nextOn : 0.55}
                 glow={glow}
                 width={420}
                 height={56}

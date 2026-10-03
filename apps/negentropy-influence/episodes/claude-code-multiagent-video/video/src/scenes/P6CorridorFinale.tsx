@@ -4,7 +4,8 @@
  *   6-B collab-panorama four-prep@p6-05（跨句扩窗 dur 求和盖 p6-05..06——
  *      空格自填后逐格点亮，接 6-C 首章构成跨镜界背靠背）
  *   6-C collab-panorama llm-judge@p6-07 / dispatch@p6-08 / externals@p6-09
- *      （与 6-B 末章镜界紧邻 → lead={false}；p6-08a..c 空窗=慢活走查装置）
+ *      （前两章与 6-B 末章镜界紧邻 → lead={false}；externals 隔 p6-08a..c 空窗
+ *      须独立实例恢复入场——实例级 false 会压掉空窗章的 enters；空窗=慢活走查装置）
  *   6-K five-layer-dependency five-lit-finale@p6-30（五层全亮终态，系列身份卡底图）
  *
  *  ★ 6-A 第七件揭晓：坐标装置放大回全屏——六设施灯全亮、CorridorRing 描画点亮
@@ -22,7 +23,6 @@ import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {QuoteCard} from '../components/cards';
 import {CorridorRing, Footnote, Panel, SceneTag} from '../components/motifs';
 import {ACTIVE_INDEX, HarnessBadge, HarnessStackP6, LAYERS} from '../components/harness-stack';
 import {ArchifyRecap} from '../components/ArchifyRecap';
@@ -41,7 +41,6 @@ import {
   useImpulse,
   useProgress,
   useReveal,
-  useSpring,
   useStagger,
   useTravel,
 } from '../motion';
@@ -139,10 +138,11 @@ const SeventhReveal: React.FC<{at02: number; at03: number}> = ({at02, at03}) => 
 
 // ── 6-B 终考·空格自填 ────────────────────────────────────────────────────
 
-/** 沿途图空格态（p6-04 前置帧）：格子虚线＋「?」，观众自填。 */
+/** 沿途图空格态（p6-04 前置帧）：格子虚线＋「?」，观众自填（标签由 four-prep 章揭晓，
+ *  空格态不得提前写出——storyboard 6-B「先不揭晓」契约）。 */
 const BlankPanorama: React.FC = () => {
   const fade = useEnter('fade', {at: 2, dur: DUR.f4});
-  const cells = ['输入钩子 ?', '通知注入 ?', '压缩 ?', '组装 ?'];
+  const cells = ['?', '?', '?', '?'];
   const frame = useCurrentFrame();
   const blink = 0.55 + 0.45 * Math.sin(frame / 7);
   return (
@@ -253,11 +253,12 @@ const SlowJobTrace: React.FC<{atA: number; span: number}> = ({atA, span}) => {
 
 /** 判据卡：工具调用块在场 ✓ vs 嘴上说的停 ✕（角标 tool_use / stop_reason）；
  *  金句位「看单子，不看嘴」。 */
-const JudgeCard: React.FC<{at11: number}> = ({at11}) => {
+const JudgeCard: React.FC<{at10: number; dur10: number; at11: number}> = ({at10, dur10, at11}) => {
   const rise = useEnter('rise', {at: 6, dur: DUR.f5, springPreset: 'settle', dist: 28});
   const o = useProgress(6, DUR.f4);
-  const check = useImpulse({at: 26, dur: DUR.f6, peak: 1});
-  const cross = useImpulse({at: 44, dur: DUR.f6, peak: 1});
+  // ✕ 挂 p6-10 尾段（口播「看的不是模型嘴上说的停」）；✓ 与金句同锚 p6-11（工具调用块）
+  const cross = useImpulse({at: at10 + Math.round(dur10 * 0.75), dur: DUR.f6, peak: 1});
+  const check = useImpulse({at: at11, dur: DUR.f6, peak: 1});
   const quote = useProgress(at11, DUR.f4);
   return (
     <AbsoluteFill>
@@ -300,7 +301,6 @@ const JudgeCard: React.FC<{at11: number}> = ({at11}) => {
 /** 五增量卡：权限钩子 / 真门急停（缺口①合口·走廊冻结）/ 四层压缩 / 恢复梯子 /
  *  切目录（缺口②合口·虚线换实线）；合口计数 2/2。 */
 const FiveGains: React.FC<{at15: number; at18: number; span: number}> = ({at15, at18, span}) => {
-  const frame = useCurrentFrame();
   const cards = useStagger(5, {at: 8, dur: DUR.f4, fit: {total: Math.max(40, Math.round(span * 0.5))}});
   // 合口标记：①@p6-15 ②@p6-18
   const m1 = useImpulse({at: at15 + 4, dur: DUR.f6, peak: 1});
@@ -671,7 +671,6 @@ const BoundaryCard: React.FC<{at25: number; at26: number}> = ({at25, at26}) => {
 
 /** 天亮转场（窗外泛白）＋主问题回收卡（三设施图标＋走廊环末次定妆〔M-001〕）。 */
 const DawnRecall: React.FC<{at27: number; at28: number; at29: number}> = ({at27, at28, at29}) => {
-  const frame = useCurrentFrame();
   // 夜幕层压暗→提起（泛白=夜幕 @dim）
   const nightDim = useDim({at: at27, to: 0.25, dur: DUR.f6});
   // 回收卡（p6-27 问句回归 → p6-28 答案行 → p6-29 一整夜收束）
@@ -772,7 +771,9 @@ const SeriesFinale: React.FC<{at31: number}> = ({at31}) => {
   return (
     <AbsoluteFill style={{pointerEvents: 'none'}}>
       <div style={{position: 'absolute', left: STACK.left, top: STACK.top, opacity: stackIn}}>
-        <HarnessStackP6 at={2} nextBreathAt={spanFallback} />
+        {/* 锚 p6-31（at31+2）：bK 镜首是 p6-30 的 archify 全屏窗，at=2 会让逐层
+            stagger 全程被 ArchifyYield 压制、只剩整体淡入（storyboard「身份卡 @stagger」） */}
+        <HarnessStackP6 at={at31 + 2} nextBreathAt={spanFallback} />
       </div>
       {/* 系列金句压栈底（08「P6 收尾用法」；top 由栈几何推导＋82 安全距） */}
       <div
@@ -882,21 +883,27 @@ export const P6CorridorFinale: React.FC<{scene: SceneRange}> = ({scene}) => {
         >
           <SlowJobTrace atA={at('p6-08a') - bC.from} span={bC.durationInFrames} />
         </ArchifyYield>
-        {/* cue 2-4/5：collab-panorama（判据→分发→循环外）；与 6-B 末章镜界紧邻 → lead={false} */}
+        {/* cue 2-3/5：collab-panorama（判据→分发）；与 6-B 末章镜界紧邻 → lead={false} */}
         <ArchifyRecap
           slug="collab-panorama"
           caption="终考·岔口与回流"
           cues={[
             {chapterId: 'llm-judge', at: at('p6-07') - bC.from, durationInFrames: dur('p6-07')},
             {chapterId: 'dispatch', at: at('p6-08') - bC.from, durationInFrames: dur('p6-08')},
-            {chapterId: 'externals', at: at('p6-09') - bC.from, durationInFrames: dur('p6-09')},
           ]}
           lead={false}
+        />
+        {/* cue 4/5：externals 隔 p6-08a..c 空窗（~13s）→ 独立实例走默认入场：
+            实例级 lead={false} 会连空窗章的 enters 一并压掉（画框瞬现，ArchifyRecap 契约） */}
+        <ArchifyRecap
+          slug="collab-panorama"
+          caption="终考·岔口与回流"
+          cues={[{chapterId: 'externals', at: at('p6-09') - bC.from, durationInFrames: dur('p6-09')}]}
         />
       </Sequence>
 
       <Sequence {...bD} name="6-D 判据卡">
-        <JudgeCard at11={at('p6-11') - bD.from} />
+        <JudgeCard at10={at('p6-10') - bD.from} dur10={dur('p6-10')} at11={at('p6-11') - bD.from} />
       </Sequence>
 
       <Sequence {...bE} name="6-E 五增量·合口">
