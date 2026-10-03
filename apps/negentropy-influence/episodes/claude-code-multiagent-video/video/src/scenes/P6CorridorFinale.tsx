@@ -102,8 +102,8 @@ const SeventhReveal: React.FC<{at02: number; at03: number}> = ({at02, at03}) => 
               </text>
             </g>
           ))}
-          {/* 第七位（揭晓中——环贯通全楼） */}
-          <text x={1010} y={408} textAnchor="middle" fontFamily={theme.serif} fontSize={44} fontWeight={700} fill={theme.concept} opacity={titleO}>
+          {/* 第七位（揭晓中——环贯通全楼；x=右余带中点 (1014+1100)/2——避「座」格右缘 1014） */}
+          <text x={1055} y={408} textAnchor="middle" fontFamily={theme.serif} fontSize={44} fontWeight={700} fill={theme.concept} opacity={titleO}>
             {'七'}
           </text>
         </svg>
@@ -151,9 +151,9 @@ const BlankPanorama: React.FC = () => {
   return (
     <AbsoluteFill>
       <div style={{position: 'absolute', left: 330, top: 330, display: 'flex', gap: 30, ...fade}}>
-        {cells.map((c) => (
+        {cells.map((c, i) => (
           <div
-            key={c}
+            key={i}
             style={{
               width: 280,
               height: 200,
@@ -436,8 +436,8 @@ const FiveGains: React.FC<{at15: number; at18: number; span: number}> = ({at15, 
 const TwoIdentities: React.FC<{at20: number}> = ({at20}) => {
   const flowM = useFlowDash({dash: 12, gap: 16, period: 18});
   const flowT = useFlowDash({dash: 12, gap: 16, period: 18});
-  // 环上巡游点（谁干活都得走）
-  const loop = useTravel({cx: 960, cy: 470, r: 170, secPerLap: 2.8});
+  // 环上巡游点（谁干活都得走；r=CorridorRing 描边中心线半径 size/2−(RING_STROKE/2+8)=159）
+  const loop = useTravel({cx: 960, cy: 470, r: 159, secPerLap: 2.8});
   const breathe = useBreathe({period: 50, amp: 0.5, base: 0.5});
   const zero = useImpulse({at: at20, dur: DUR.f6, peak: 1});
   const zeroO = useProgress(at20, DUR.f4);
@@ -593,7 +593,7 @@ const FinalClaim: React.FC<{at24: number}> = ({at24}) => {
       </div>
       {/* 五层身份卡半亮预备（右下——第五层呼吸） */}
       <div style={{position: 'absolute', left: 1480, top: 430, opacity: stackIn, display: 'flex', flexDirection: 'column', gap: 6}}>
-        {LAYERS.map((l) => {
+        {LAYERS.slice().reverse().map((l) => {
           const isLast = l.index === ACTIVE_INDEX;
           return (
             <div
@@ -736,13 +736,13 @@ const FinaleTail: React.FC<{span: number; wordsAt: number}> = ({span, wordsAt}) 
     <AbsoluteFill style={{pointerEvents: 'none'}}>
       {/* 渐黑遮罩：末 36 帧，窗取整镜时长（红线四——勿用末句时长） */}
       <AbsoluteFill style={{background: '#000', opacity: 1 - keep}} />
-      {/* 完结语（黑幕之上） */}
+      {/* 完结语（黑幕之上；避五层身份栈（x750..1170 · y310..702）与 slogan 712——下移至其下） */}
       <div
         style={{
           position: 'absolute',
           left: 0,
           right: 0,
-          top: 470,
+          top: 770,
           textAlign: 'center',
           fontFamily: theme.serif,
           fontSize: 52,
@@ -884,7 +884,9 @@ export const P6CorridorFinale: React.FC<{scene: SceneRange}> = ({scene}) => {
             {at: at('p6-09') - bC.from, durationInFrames: dur('p6-09')},
           ]}
         >
-          <SlowJobTrace atA={at('p6-08a') - bC.from} span={bC.durationInFrames} />
+          {/* span=空窗末端局部帧（p6-09 起点）而非整镜：stagger 须在可见窗（仅空窗 ~401f）内
+              排完，铺到整镜会把 step4/5 与车道/回流环排进 p6-09 全屏窗、被画框压死 */}
+          <SlowJobTrace atA={at('p6-08a') - bC.from} span={at('p6-09') - bC.from} />
         </ArchifyYield>
         {/* cue 2-3/5：collab-panorama（判据→分发）；与 6-B 末章镜界紧邻 → lead={false} */}
         <ArchifyRecap
@@ -892,7 +894,9 @@ export const P6CorridorFinale: React.FC<{scene: SceneRange}> = ({scene}) => {
           caption="终考·岔口与回流"
           cues={[
             {chapterId: 'llm-judge', at: at('p6-07') - bC.from, durationInFrames: dur('p6-07')},
-            {chapterId: 'dispatch', at: at('p6-08') - bC.from, durationInFrames: dur('p6-08')},
+            // fit='trim' 留痕：窗 3.0s < story 4.46s（rate 1.487），章末 stop 拍裁尾认受——
+            // 扩窗会吃掉 p6-08a 起的慢活走查空窗，两害取轻
+            {chapterId: 'dispatch', at: at('p6-08') - bC.from, durationInFrames: dur('p6-08'), fit: 'trim'},
           ]}
           lead={false}
         />
@@ -938,12 +942,15 @@ export const P6CorridorFinale: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyYield cues={[{at: at('p6-30') - bK.from, durationInFrames: dur('p6-30')}]}>
           <SeriesFinale at31={at('p6-31') - bK.from} />
         </ArchifyYield>
-        {/* cue 5/5：five-layer-dependency five-lit-finale（五层全亮终态，系列身份卡底图） */}
+        {/* cue 5/5：five-layer-dependency five-lit-finale（五层全亮终态，系列身份卡底图）。
+            fit='trim' 留痕：窗 3.9s < story 6.65s（rate 1.705），画框内仅 Layer 1–3 点亮；
+            扩窗到 p6-31 会压制 SeriesFinale 五层卡现身（ArchifyYield 窗内装置不可见），
+            「五层全亮」完整 payoff 由 p6-31 的 HarnessStackP6 逐层落板承接 */}
         <ArchifyRecap
           slug="five-layer-dependency"
           caption="五层全亮"
           cues={[
-            {chapterId: 'five-lit-finale', at: at('p6-30') - bK.from, durationInFrames: dur('p6-30')},
+            {chapterId: 'five-lit-finale', at: at('p6-30') - bK.from, durationInFrames: dur('p6-30'), fit: 'trim'},
           ]}
         />
         {/* FinaleTail：末子节点——渐黑（窗从末 beat 总时长推导）＋完结语 */}

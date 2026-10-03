@@ -112,9 +112,15 @@ JS_TEMPLATE = """
 
 
 def main() -> None:
+    # --only 仅认精确形态 `--only a,b`；其余任何带参形态（--only=a、漏值、多余参数）
+    # 直接报用法退出——静默落全量会无声扩大重跑半径
     only = None
     if len(sys.argv) == 3 and sys.argv[1] == "--only":
         only = set(sys.argv[2].split(","))
+    elif len(sys.argv) != 1:
+        sys.exit(
+            f"用法: {sys.argv[0]} [--only slug1,slug2]（当前参数: {' '.join(sys.argv[1:])}）"
+        )
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     failures = []
     for slug, fname in SLUG_MAP.items():

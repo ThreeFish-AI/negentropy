@@ -35,8 +35,10 @@ const withAlpha = (hex: string, a: number): string =>
     .toString(16)
     .padStart(2, '0')}`;
 
-/** 空窗回落关键词小卡。 */
-const KeyCard: React.FC<{at: number; main: string; sub?: string; accent?: string; left?: number; top?: number; width?: number}> = ({
+/** 空窗回落关键词小卡。
+ *  同位轮换退场（同 P5 形态）：out 指向后卡 at、前卡交叉淡出——否则空窗回落起点
+ *  新旧卡叠印（opacity 恒 1 的旧卡从半透明新卡下透出）。 */
+const KeyCard: React.FC<{at: number; main: string; sub?: string; accent?: string; left?: number; top?: number; width?: number; out?: number}> = ({
   at,
   main,
   sub,
@@ -44,10 +46,13 @@ const KeyCard: React.FC<{at: number; main: string; sub?: string; accent?: string
   left = 660,
   top = 400,
   width = 600,
+  out,
 }) => {
   const o = useProgress(at, DUR.f4);
+  const gone = useProgress(out ?? 10_000, DUR.f3);
+  const vis = o * (1 - gone);
   return (
-    <div style={{position: 'absolute', left, top, width, opacity: o, transform: `translateY(${(1 - o) * 14}px)`, textAlign: 'center'}}>
+    <div style={{position: 'absolute', left, top, width, opacity: vis, transform: `translateY(${(1 - o) * 14}px)`, textAlign: 'center'}}>
       <Panel accent={accent} style={{boxSizing: 'border-box', padding: '22px 30px'}}>
         <div style={{fontFamily: theme.sans, fontSize: 34, fontWeight: 600, color: theme.text}}>{main}</div>
         {sub ? <div style={{fontFamily: theme.mono, fontSize: 21, color: theme.dim, marginTop: 10}}>{sub}</div> : null}
@@ -346,7 +351,7 @@ export const P3LedgerClock: React.FC<{scene: SceneRange}> = ({scene}) => {
             {at: at('p3-07') - bB.from, durationInFrames: dur('p3-07')},
           ]}
         >
-          <KeyCard at={at('p3-08') - bB.from} main={'只认编号 → 销错单'} sub={'type check 不能省'} accent={theme.danger} />
+          <KeyCard at={at('p3-08') - bB.from} out={at('p3-09') - bB.from} main={'只认编号 → 销错单'} sub={'type check 不能省'} accent={theme.danger} />
           <KeyCard at={at('p3-09') - bB.from} main={'看编号 · 更看类型'} sub={'match_response 三闸'} accent={theme.accent} />
         </ArchifyYield>
         {/* cue 1-3/9：receipt-ledger 逐章（单号往返→三道核验→销账） */}
@@ -394,7 +399,7 @@ export const P3LedgerClock: React.FC<{scene: SceneRange}> = ({scene}) => {
             {at: at('p3-19') - bE.from, durationInFrames: dur('p3-19')},
           ]}
         >
-          <KeyCard at={at('p3-17') - bE.from} main={'口 > 墙 · 指令优先'} sub={'关机请求 → 立即回执退出'} accent={theme.accent} />
+          <KeyCard at={at('p3-17') - bE.from} out={at('p3-18') - bE.from} main={'口 > 墙 · 指令优先'} sub={'关机请求 → 立即回执退出'} accent={theme.accent} />
           <KeyCard at={at('p3-18') - bE.from} main={'口空 → 扫墙'} sub={'三条件 · 有活领活'} accent={theme.accent} />
         </ArchifyYield>
         {/* cue 6-8/9：duty-clock-loop 逐章（三态→先口后墙→超时收工） */}

@@ -44,7 +44,7 @@
 | 3-B 三道核验 | p3-04..p3-09 | ·**archify full**：receipt-ledger `roundtrip`+`three-checks`+`settle`（单号往返→三闸→销账；第二张回执不理会）＋ receipt-fsm `approve-reject`（一套状态机两协议：待定→已批准/已拒绝；背靠背 lead={false}——勿反引号，会被对账器当章token） | 逐章回放 |
 | 3-C 消融⑤·翻烧饼 | p3-10..p3-12 | ·**archify full**：receipt-ledger `b4`（错类销错单→重复翻面→终态被拒，账面翻烧饼三连红） | 逐章回放 |
 | 3-D 诚实缺口① | p3-13..p3-14 | 诚实边界卡：计划门=只发了一封信（信封图标飞出、线程仍在跑——小灯常亮）；「天亮前回来合上」伏笔标记（金句位挂「缺口①」角标） | 信封 `@enter:flyIn`；小灯 `@breathe`；伏笔角标 `@impulse` |
-| 3-E 值班钟节拍 | p3-15..p3-19 | ·**archify full**：duty-clock-loop `three-states`+`tick-order`+`timeout`（三态环→每五秒先口后墙→六十秒十二拍收工留结论） | 逐章回放 |
+| 3-E 值班钟节拍 | p3-15..p3-19 | ·**archify full**：duty-clock-loop `三态节奏`+`tick-order`+`timeout`（三态环→每五秒先口后墙→六十秒十二拍收工留结论；本章 token 用 label——其章 id 与 1-A 的 task-card-anatomy 同名章撞名，写 id 会被覆盖门 hit-first 误配） | 逐章回放 |
 | 3-F 消融⑥·钟不停 | p3-20..p3-21 | ·**archify full**：duty-clock-loop `b5`（红侧：板上没活、钟转十倍仍不停；对照绿侧到点收工） | 逐章回放 |
 | 3-G 工牌重注入 | p3-22..p3-23 | 装置镜：对话被压短（卡片压缩动画）→师傅头顶工牌淡出→楼（梁上一只手）重挂工牌点亮 | 压缩 `@dim`；工牌淡出 `@enter:fade`；重挂 `@impulse`＋`@spring` |
 

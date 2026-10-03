@@ -267,10 +267,11 @@ const TwoSystems: React.FC<{at17: number}> = ({at17}) => {
           </div>
         </div>
       </div>
-      {/* 断开的绑定线（无绑定——靠师傅自己看着对） */}
+      {/* 断开的绑定线（无绑定——靠师傅自己看着对；端点随两卡的 70·apart 平移内收，
+          否则 apart→1 时线内端伸进面板 ~20px） */}
       <svg width={1920} height={1080} style={{position: 'absolute', left: 0, top: 0, opacity: apartO}}>
-        <line x1={960 - sep / 2 - 20} y1={420} x2={960 - sep / 2 - 90} y2={420} stroke={theme.danger} strokeWidth={4} />
-        <line x1={960 + sep / 2 + 20} y1={420} x2={960 + sep / 2 + 90} y2={420} stroke={theme.danger} strokeWidth={4} />
+        <line x1={960 - sep / 2 - 20 - apart * 70} y1={420} x2={960 - sep / 2 - 90 - apart * 70} y2={420} stroke={theme.danger} strokeWidth={4} />
+        <line x1={960 + sep / 2 + 20 + apart * 70} y1={420} x2={960 + sep / 2 + 90 + apart * 70} y2={420} stroke={theme.danger} strokeWidth={4} />
         <text x={960} y={398} textAnchor="middle" fontFamily={theme.sans} fontSize={30} fontWeight={700} fill={theme.danger}>
           {'✕ 无绑定'}
         </text>

@@ -53,8 +53,10 @@ const Person: React.FC<{x: number; y: number; color: string; scale?: number; opa
   </svg>
 );
 
-/** 空窗回落关键词小卡（画面文字只放关键词/数字/标签——复述门）。 */
-const KeyCard: React.FC<{at: number; main: string; sub?: string; accent?: string; left?: number; top?: number; width?: number}> = ({
+/** 空窗回落关键词小卡（画面文字只放关键词/数字/标签——复述门）。
+ *  同位轮换退场（同 P5 形态）：out 指向后卡 at、前卡交叉淡出——否则空窗回落起点
+ *  新旧卡叠印（opacity 恒 1 的旧卡从半透明新卡下透出）。 */
+const KeyCard: React.FC<{at: number; main: string; sub?: string; accent?: string; left?: number; top?: number; width?: number; out?: number}> = ({
   at,
   main,
   sub,
@@ -62,10 +64,13 @@ const KeyCard: React.FC<{at: number; main: string; sub?: string; accent?: string
   left = 660,
   top = 400,
   width = 600,
+  out,
 }) => {
   const o = useProgress(at, DUR.f4);
+  const gone = useProgress(out ?? 10_000, DUR.f3);
+  const vis = o * (1 - gone);
   return (
-    <div style={{position: 'absolute', left, top, width, opacity: o, transform: `translateY(${(1 - o) * 14}px)`, textAlign: 'center'}}>
+    <div style={{position: 'absolute', left, top, width, opacity: vis, transform: `translateY(${(1 - o) * 14}px)`, textAlign: 'center'}}>
       <Panel accent={accent} style={{boxSizing: 'border-box', padding: '22px 30px'}}>
         <div style={{fontFamily: theme.sans, fontSize: 34, fontWeight: 600, color: theme.text}}>{main}</div>
         {sub ? (
@@ -371,8 +376,8 @@ export const P1TaskWall: React.FC<{scene: SceneRange}> = ({scene}) => {
             {at: at('p1-13') - bC.from, durationInFrames: dur('p1-13')},
           ]}
         >
-          <KeyCard at={2} main={'前置清单 · 顺序闸'} sub={'blockedBy 全清才可领'} accent={theme.accent} />
-          <KeyCard at={at('p1-11') - bC.from} main={'完成 → 播报解锁'} sub={'complete_task · 广播新可用'} accent={theme.accent} />
+          <KeyCard at={2} out={at('p1-11') - bC.from} main={'前置清单 · 顺序闸'} sub={'blockedBy 全清才可领'} accent={theme.accent} />
+          <KeyCard at={at('p1-11') - bC.from} out={at('p1-14') - bC.from} main={'完成 → 播报解锁'} sub={'complete_task · 广播新可用'} accent={theme.accent} />
           <KeyCard at={at('p1-14') - bC.from} main={'不放行 · 不崩溃'} sub={'失败关闭 · fail-closed'} accent={theme.danger} />
         </ArchifyYield>
         {/* cue 4-7/15：dependency-failclosed 逐章（四卡→走查→被阻塞→失败关闭） */}
@@ -398,7 +403,8 @@ export const P1TaskWall: React.FC<{scene: SceneRange}> = ({scene}) => {
           slug="claim-guards-break"
           caption="拆守卫对照"
           cues={[
-            {chapterId: 'three-gates', at: at('p1-17') - bE.from, durationInFrames: dur('p1-17')},
+            // fit='trim' 留痕：rate 1.351 恰越 1.35 界（窗 4.1s vs story 5.54s，裁尾 26%）
+            {chapterId: 'three-gates', at: at('p1-17') - bE.from, durationInFrames: dur('p1-17'), fit: 'trim'},
             {chapterId: 'b1', at: at('p1-18') - bE.from, durationInFrames: dur('p1-18')},
             {chapterId: 'b2-b2v', at: at('p1-19') - bE.from, durationInFrames: dur('p1-19')},
             {chapterId: 'ok', at: at('p1-20') - bE.from, durationInFrames: dur('p1-20')},

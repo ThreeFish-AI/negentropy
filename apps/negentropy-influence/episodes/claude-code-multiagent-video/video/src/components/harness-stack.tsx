@@ -113,7 +113,7 @@ const Plate: React.FC<{
 
 /** 三维层板：仅 full/p6 档（P0 开场 / P6 收尾）的渲染后端；chip 档仍走平面 Plate。
  *  动效数值（active/dim/glow/settle）全部复用既有 hooks 输出，只换呈现层；
- *  文字留在 DOM 层叠放（文字永不进 3D/Lottie）。读色契约：active=core 描边、
+ *  文字留在 DOM 层叠放（文字永不进 3D）。读色契约：active=core 描边、
  *  glow→wrapper 外辉光（Solids3D basic 材质不吃光、板面禁 emissive——ISSUE-177
  *  教训二，对位平面 Plate L102 的同式口径）、dim→不透明度。 */
 export const PlateSlab3D: React.FC<{
