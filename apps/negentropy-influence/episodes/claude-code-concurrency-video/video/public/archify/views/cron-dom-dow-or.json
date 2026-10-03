@@ -1,0 +1,20 @@
+[
+ {
+  "id": "five-fields",
+  "label": "五段·分时日月星期",
+  "focus": ["expr-in", "f-min", "f-hour", "f-dom", "f-month", "f-dow"],
+  "note": "P3 第三拍前段（p3-10..12）：五段各一格分时日月星期，此例 0 9 1 * 1 逐段对位。"
+ },
+ {
+  "id": "and-or",
+  "label": "三段全中·这对任一",
+  "focus": ["and-gate", "or-gate", "fire"],
+  "note": "P3 第三拍中段（p3-13..16）：分时月三段 AND 全中才过，日与星期这对 OR 任一中即过，两门都过才触发。"
+ },
+ {
+  "id": "both-ways",
+  "label": "9·28 与每月一号都响",
+  "focus": ["ex-928", "ex-month1", "or-gate"],
+  "note": "P3 第三拍收尾（p3-14..17）：零食家规类比；9 月 28 礼拜一日没中星中、每月一号日中星没中，都照样响。"
+ }
+]

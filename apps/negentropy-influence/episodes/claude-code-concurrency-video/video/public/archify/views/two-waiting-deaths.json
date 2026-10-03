@@ -1,0 +1,44 @@
+[
+ {
+  "id": "belt-anatomy",
+  "label": "传送带一问一答",
+  "focus": [
+   "ask",
+   "belt-core",
+   "fast-cmd"
+  ],
+  "note": "P0 第二拍（p0-03..05）：主循环＝传送带，师傅开口要工具、装置执行、结果递回，循环往复。"
+ },
+ {
+  "id": "slow-death",
+  "label": "慢活堵路",
+  "focus": [
+   "belt-core",
+   "slow-cmd",
+   "stall",
+   "idle",
+   "billing"
+  ],
+  "note": "P0 第一拍（p0-06..08）：慢命令一跑问答卡半路，整带停摆，干等按字数计费钱照烧。"
+ },
+ {
+  "id": "manual-death",
+  "label": "到点没人推",
+  "focus": [
+   "manual",
+   "calendar",
+   "no-push"
+  ],
+  "note": "P0 第二拍（p0-09..10）：日历上的周期任务全靠人开口，没人推就不动。"
+ },
+ {
+  "id": "one-root",
+  "label": "一个病根两种表现",
+  "focus": [
+   "stall",
+   "no-push",
+   "belt-core"
+  ],
+  "note": "P0 收拍（p0-11..12）：两种白等同一病根——等待塞进传送带，触发权攥在人和师傅手里。"
+ }
+]

@@ -10,7 +10,22 @@ import {computeTimeline, SCENE_FADE_FRAMES} from './timing';
 import type {Lang} from './i18n';
 import type {ManifestItem, SceneRange} from './types';
 
+import {P0TwoWaits} from './scenes/P0TwoWaits';
+import {P1RootAndSpecs} from './scenes/P1RootAndSpecs';
+import {P2OneReceipt} from './scenes/P2OneReceipt';
+import {P3FourLayerClock} from './scenes/P3FourLayerClock';
+import {P4DiskNotAlive} from './scenes/P4DiskNotAlive';
+import {P5AblationLab} from './scenes/P5AblationLab';
+import {P6ReconRules} from './scenes/P6ReconRules';
+
 const SCENE_COMPONENTS: Record<string, React.FC<{scene: SceneRange}>> = {
+  P0: P0TwoWaits,
+  P1: P1RootAndSpecs,
+  P2: P2OneReceipt,
+  P3: P3FourLayerClock,
+  P4: P4DiskNotAlive,
+  P5: P5AblationLab,
+  P6: P6ReconRules,
 };
 
 export type MainProps = {manifest: ManifestItem[]; lang?: Lang};

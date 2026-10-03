@@ -1,0 +1,33 @@
+[
+ {
+  "id": "turn-one",
+  "label": "第一回合·占位",
+  "focus": [
+   "shifu",
+   "mainloop",
+   "pipeline"
+  ],
+  "note": "P2 2-H 前半（p2-23..24）：师傅发起安装依赖丢后台，主循环起跑 bg_0001、回占位回执。"
+ },
+ {
+  "id": "turn-two",
+  "label": "第二回合·同框",
+  "focus": [
+   "shifu",
+   "mainloop",
+   "pipeline",
+   "config"
+  ],
+  "note": "P2 2-H 中段（p2-25..26）：第二回合读配置文件当场拿内容，安装完成通知与文件内容同框（R8：读文件在第二回合）。"
+ },
+ {
+  "id": "zero-wait",
+  "label": "零干等",
+  "focus": [
+   "shifu",
+   "pipeline",
+   "config"
+  ],
+  "note": "P2 2-H 收拍（p2-27..28）：师傅一分钟都没干等——慢活后台常跑，快命令当场回。"
+ }
+]

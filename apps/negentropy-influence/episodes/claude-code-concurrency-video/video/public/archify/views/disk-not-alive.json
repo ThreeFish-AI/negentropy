@@ -1,0 +1,42 @@
+[
+ {
+  "id": "two-lives",
+  "label": "两档·内存与磁盘",
+  "focus": [
+   "register",
+   "in-memory",
+   "persist-file"
+  ],
+  "note": "服务 P4 开场（p4-01..02）：同一个注册分两档——默认只活在内存，勾了持久才写进 .scheduled_tasks.json。"
+ },
+ {
+  "id": "shutdown",
+  "label": "一关就停 vs 文件仍亮",
+  "focus": [
+   "shutdown",
+   "gone",
+   "file-alive"
+  ],
+  "note": "服务 P4 主拍（p4-03..08）：最容易误解的前提——调度器活在进程里，进程一关内存线就没了，文件线仍亮。"
+ },
+ {
+  "id": "restore",
+  "label": "重启恢复·补一次",
+  "focus": [
+   "load-restore",
+   "catch-up",
+   "list-only",
+   "exceptions-gone"
+  ],
+  "note": "服务 P4 收拍（p4-09..12）：下次启动加载恢复、发现该触发补一次；边界支线：复制走只列出不执行、--resume 四类例外不回来，引出无人值守三条路。"
+ },
+ {
+  "id": "escape-routes",
+  "label": "无人值守三条路",
+  "focus": [
+   "persist-file",
+   "load-restore"
+  ],
+  "note": "P4 4-D（p4-11..12）：云上的例程／桌面端／代码仓库自动化三档，各有取舍（开机？开会话？碰本地文件？）。"
+ }
+]

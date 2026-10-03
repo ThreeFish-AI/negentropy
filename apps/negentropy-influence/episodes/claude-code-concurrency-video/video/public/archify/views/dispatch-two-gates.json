@@ -1,0 +1,20 @@
+[
+ {
+  "id": "gate-one",
+  "label": "第一道·拨杆",
+  "focus": ["cmd-in", "gate-explicit", "bg-out"],
+  "note": "P2 第二拍（p2-05..06）：谁决定去后台——第一道闸看后台参数拨杆，打了勾直接放行进清洗槽。"
+ },
+ {
+  "id": "gate-two",
+  "label": "第二道·筛网",
+  "focus": ["gate-explicit", "gate-heuristic", "bg-out", "sync-out"],
+  "note": "P2 第二拍（p2-07..08）：没人要求时兜底——慢关键词筛网 11 个孔，命中丢进清洗槽，没命中同步执行。"
+ },
+ {
+  "id": "false-slip",
+  "label": "说不要也拦不住",
+  "focus": ["note-false", "gate-heuristic", "bg-out"],
+  "note": "P2 第二拍（p2-09）：显式 run_in_background=false 照样漏过筛网掉进清洗槽——代码事实。"
+ }
+]
