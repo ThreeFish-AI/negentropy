@@ -13,7 +13,7 @@
  *  ★ 6-E 五增量·合口：缺口①② 标记点亮（@impulse＋@count 2/2）、走廊冻结帧、
  *    4-D 的虚线在此换实线。
  *  ★ 6-G 数字卡：useCount 27 滚动点名＋2130 行标尺 @draw＋双档口径色角标
- *    （教学码实测=mech / 讲义口径=dim；27 件工具名无信源清单——以编号点名，不杜撰）。
+ *    （教学码实测=mech / 讲义口径=dim；27 件工具名＝源码 BUILTIN_TOOLS 序实名滚动——附录 B 穿透表同源）。
  *  ★ 6-K 终章：HarnessStackP6（series-layers next=null——终集无下期层，勿加下期卡）
  *    ＋系列金句压底＋FinaleTail（渐黑窗从末 beat 总时长推导——红线四；完结语
  *    @reveal）。挂 6-K Sequence 最后子节点。

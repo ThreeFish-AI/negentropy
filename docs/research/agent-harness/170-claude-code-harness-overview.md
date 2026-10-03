@@ -97,8 +97,8 @@ description: "以课程双轨一手材料（仓库 main 17 章 @ 0dcafa2a / 站�
 
 > [!IMPORTANT] **本组不是口播取证源**
 >
-> 科普视频各集的逐章取证、原文引语、可调参数与生产版对照（含轨 C 官方事实集全量），归各集 `research/source-notes.md`；章→集归属、钉选与三轨撞号防御，只登记在[系列信源地图](../../../apps/negentropy-influence/source-map/claude-code-explained.md)。
-> **除「main 轨独有两章」与本文最小原型实测外，本组任何断言若与各集 source-notes 冲突，一律以 notes 为准。**
+> 科普视频各集的逐章取证、原文引语、可调参数与生产版对照（含轨 C 官方事实集全量），归各集 `research/source-notes.md`（⑤ ep5 为 gl-notes.md，175 冻结快照）；章→集归属、钉选与三轨撞号防御，只登记在[系列信源地图](../../../apps/negentropy-influence/source-map/claude-code-explained.md)。
+> **除「main 轨独有两章」与本文最小原型实测外，本组任何断言若与各集 source-notes（⑤ ep5 为 gl-notes.md）冲突，一律以 notes 为准。**
 
 ## 5. 本组不得重述的事实（SSOT 边界）
 
@@ -106,7 +106,7 @@ description: "以课程双轨一手材料（仓库 main 17 章 @ 0dcafa2a / 站�
 
 1. 章→集归属 · 2. 固定提交的选择与理由 · 3. 站点 20 章 ↔ main 17 章逐行对照表 · 4. 三轨编号对照与全部撞号点 · 5. 取证台账的条目命名与审计判据 —— 全部指向[系列信源地图](../../../apps/negentropy-influence/source-map/claude-code-explained.md)（其 §二「撞号防御」是全仓唯一展开层）
 6. 各集标题／集序／配色／时长／交付状态 —— 指向 `series.json` / `series.md`
-7. 逐字口播文本与各集口播禁用清单 · 8. 站点／仓库原文的逐字引语 · 9. 站点插图的文字规格转写 · 10. 闭源源码的文件名与行号 · 11. 各章总行数／工具数实测总表与各集分歧清单 —— 全部指向各集 `research/source-notes.md`（main 独有两章的附录为唯一豁免，见 §6）
+7. 逐字口播文本与各集口播禁用清单 · 8. 站点／仓库原文的逐字引语 · 9. 站点插图的文字规格转写 · 10. 闭源源码的文件名与行号 · 11. 各章总行数／工具数实测总表与各集分歧清单 —— 全部指向各集 `research/source-notes.md`（⑤ ep5 为 gl-notes.md；main 独有两章的附录为唯一豁免，见 §6）
 
 **可写与不可写的判据**：**机制不变式与顺序约束可写**（如「大结果必须先落盘，之后才允许旧结果变成占位符」），它跨修订稳定，是精读的本体；**随修订漂移的可调常数不写**（保留条数、字节阈值、预算上限、小时数、个数上限），一律以「参数见对应集 notes」代之。
 

@@ -127,7 +127,8 @@ const LodgeStage: React.FC<{at02: number; at03: number}> = ({at02, at03}) => {
 
       {/* 两层小楼（flyIn 弹簧落位） */}
       <div style={{position: 'absolute', left: LODGE.left, top: LODGE.top, width: LODGE.w, height: LODGE.h, ...fly}}>
-        <svg width={LODGE.w} height={LODGE.h}>
+        {/* overflow:visible——楼顶小檐 y=-16 外挑 ±14 出视口，默认裁剪会吃掉檐 */}
+        <svg width={LODGE.w} height={LODGE.h} style={{overflow: 'visible'}}>
           {/* 楼体轮廓 */}
           <rect x={0} y={0} width={LODGE.w} height={LODGE.h} rx={12} fill={LODGE_INK} stroke={theme.panelBorder} strokeWidth={3} />
           {/* 楼层分隔线（楼上私人层 / 楼下公共层〔X-001〕） */}
@@ -240,9 +241,12 @@ const SoloCollapse: React.FC<{at06: number; at07: number; span07: number}> = ({a
   const rise = useEnter('rise', {at: at07, dur: DUR.f5, springPreset: 'settle', dist: 34});
   const riseIn = useProgress(at07, DUR.f4);
   const quoteSpan = Math.max(1, span07);
+  // 金句浮起时装置整体压暗（衬线大字直接叠印窗口/卡列不可读——净读衬底）
+  const quoteDim = useDim({at: at07, to: 0.3, dur: DUR.f5});
 
   return (
     <AbsoluteFill>
+      <AbsoluteFill style={{opacity: quoteDim}}>
       {/* 对话窗口（context window——装不下） */}
       <div style={{position: 'absolute', left: 170, top: 170}}>
         <Panel style={{width: 700, height: 560, padding: 0, overflow: 'hidden'}}>
@@ -285,6 +289,7 @@ const SoloCollapse: React.FC<{at06: number; at07: number; span07: number}> = ({a
           ))}
         </Panel>
       </div>
+      </AbsoluteFill>
 
       {/* p0-07 主问题金句卡（衬线——「计划放在谁手里？」6-J 回收） */}
       <Sequence from={at07} durationInFrames={quoteSpan} name="0-B 主问题金句卡">

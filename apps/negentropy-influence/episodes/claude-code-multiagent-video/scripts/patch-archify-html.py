@@ -117,6 +117,12 @@ def main() -> None:
     only = None
     if len(sys.argv) == 3 and sys.argv[1] == "--only":
         only = set(sys.argv[2].split(","))
+        unknown = only - SLUG_MAP.keys()
+        if unknown:
+            # 取值校验：拼错/空串/带空格会命中零图——零迭代+空 failures=静默空转 exit 0
+            sys.exit(
+                f"FAIL: --only 含未知图名 {sorted(unknown)}（合法: {','.join(SLUG_MAP)}）"
+            )
     elif len(sys.argv) != 1:
         sys.exit(
             f"用法: {sys.argv[0]} [--only slug1,slug2]（当前参数: {' '.join(sys.argv[1:])}）"
@@ -170,19 +176,21 @@ def main() -> None:
             failures.append(f"{slug}: 无 </body>")
             continue
         html = html.replace("</body>", block + "</body>", 1)
-        out = OUT_DIR / f"{slug}.html"
-        out.write_text(html, encoding="utf-8")
-        # 自检：容器可被 read_views 正则命中、焦点节点 id 全部存在
+        # 自检先行（容器可被 read_views 正则命中、焦点节点 id 全部存在）——
+        # 通过才落盘：缺节点时坏产物不得覆盖 html/（下游录制器会直接消费）
         m = re.search(r'id="archify-guided-views-data"[^>]*>([\s\S]*?)</script>', html)
         assert m, f"{slug} 容器未命中"
         parsed = json.loads(m.group(1))
         missing = [
             n for v in parsed for n in v["focus"] if f'data-node-id="{n}"' not in html
         ]
-        status = "OK" if not missing else f"缺节点 {missing}"
-        print(f"{slug}: {len(parsed)} 章 → {out.name} [{status}]")
         if missing:
             failures.append(f"{slug}: 缺节点 {missing}")
+            print(f"{slug}: {len(parsed)} 章 → 未落盘 [缺节点 {missing}]")
+            continue
+        out = OUT_DIR / f"{slug}.html"
+        out.write_text(html, encoding="utf-8")
+        print(f"{slug}: {len(parsed)} 章 → {out.name} [OK]")
     if failures:
         sys.exit("FAIL:\n" + "\n".join(failures))
 
