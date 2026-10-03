@@ -29,6 +29,12 @@
 - 机器门全绿：check_series/build/check --check-scenes --check-motion/覆盖门/check_archify/tsc/motion 15:15/qa 五项双遍（草渲+全分辨率终渲）/WCAG/末帧渐黑零亮残留（ISSUE-205 协议）；目检修复 1 处（合口徽章侵字幕安全带，栈几何推导定位）；归档 v1 + _captions（新题另起 v1，旧题 v1/v2 原样保留）
 - 涟漪：series.json/series.md 换题+交付态、四兄弟集 series-layers.json、ep4 下期卡副题、source-map 换注重制、knowledge-map 175 行成片注记
 
+### ep5《七件设施，一条走廊》v2 评审修复轮交付（2026-10-03）
+
+- **交付物对齐 HEAD（分叉收口）**：v1 归档停在修复前构建（02:21 渲，其后 6 轮修复提交未入片）；v2 重渲重归档=6 commits 60 项修复全入片，时长口径不变（14:17.8=857.812s·25734 帧，纯视觉修复零时序变更）；归档 `v2.mp4`+`_captions`（v1 与旧题各版原样保留）
+- 末轮 9 项：P0 p0-07 主问题金句卡补装置压暗衬底（抽帧实证叠印消除——6-J 回收伏笔帧可读性）/P0 楼顶小檐 svg overflow:visible（原被根视口裁至 2px，檐 15px 外挑成形）/注入器 `--only` 取值校验（typo·空串·带空格 FAIL 退出，防静默空转）+自检先行通过才落盘/planning「6 型→5 型」与「恢复梯子四级→三级+并入注记」as-built 回填/P6 头注正名 BUILTIN_TOOLS 实名序/research readme·170-overview 四处「各集 source-notes」补 ⑤ ep5=gl-notes 例外（消取证链断点）
+- 机器门复检全绿：tsc/check_series FAIL 0/内容门+覆盖门 FAIL 0·WARN 0/草渲 qa（P0 全幕+尾幕渐黑）FAIL 0·WARN 0/终渲 qa FAIL 0/注入器全量重跑字节级幂等
+
 ### Learn Claude Code 五层 Harness 精读完全重调研重写（170–175 六篇原位重写）
 
 - **Learn Claude Code 五层 Harness 精读完全重调研重写**（[docs/research/agent-harness/170–175](docs/research/agent-harness/170-claude-code-harness-overview.md)）：以 /guided-learn + /preening-substrate 完全重做——重钉双轨（main `f9e8b280`→`0dcafa2a` 2026-08-27，25 提交章级变更矩阵；站点轨 `67a9126c` 线上复验未动）+ 新增**轨 C 官方文档**（code.claude.com，185 条【官】事实/21 硬分歧，补 ISSUE-178/179 根因缺口）。六篇结构换血不换骨：证据纪律升四级（+【官】）、每篇新增「官方文档对照」节（worktree 官方硬阻断不可关闭、计划审批官方自动批准、权限冒泡、Agent teams 实验性开关、官方无 microcompact 术语等）、173 双轨叙事（站点轨占位符不携指针 vs main `0dcafa2a` 四项机制级修复——**V1/V2 实测证明旧研究两个原生缺陷已被课程独立修复**，D2/D6 升「两道 vs 三道保险」双口径）、172 附录新发现 goal loop 与官方 `CLAUDE_CODE_STOP_HOOK_BLOCK_CAP` 同名同值强对位。撞号防御三轨对照表迁入系列信源地图（全仓唯一展开层）；025/context_assembler 旧 12 课轨引用消歧办结。质量闸：29+5+5+6 代理编排（取证/综合/证伪/重写）、独立证伪 270 条断言 267 PASS（4 条转写级失配修复）、费曼三维考评首轮全绿、熵审计 51 负债四桶处置、跨文档 grep 门 + 全量链接零死链；五张 panorama 图 mermaid 源同步更新并重渲染。
