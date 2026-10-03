@@ -10,8 +10,8 @@
  *  ★ lead 判定（跨实例不传 lead={false} 的依据）：4-A 实例末 cue 窗止于 p4-03
  *    末帧，4-B 首 cue 起于 p4-05 首帧，中隔 p4-04 整句（TTS 实测句窗 ≥60 帧，
  *    ≫ ArchifyRecap 的 2 帧背靠背容差）⇒ 非紧邻 ⇒ 默认 lead；4-D 与 4-B 同 slug
- *    但隔 4-C 整镜（3 句）⇒ 默认 lead；4-E 换图且与 P3 末实例隔整幕（SceneFade
- *    交叉淡化）⇒ 默认 lead。
+ *    但隔 4-C 整镜（3 句）⇒ 默认 lead；4-E 与 4-D 背靠背（p4-12 末→p4-13 首
+ *    紧邻，跨 slug 换图）⇒ lead={false}（评审修复；与 P3 末实例隔整幕非豁免依据）。
  *  ★ 空窗回落（native 件，零 Lottie 全 svg/CSS）：
  *    · p4-04 两档旋钮件——左磁盘文件（文件名小字 .scheduled_tasks.json）/右
  *      内存条/中间旋钮两档各拧一次、两侧图标随档位明暗；末段「进程」虚线框
@@ -664,10 +664,12 @@ export const P4DiskNotAlive: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bE} name="4-E 彩蛋对比">
-        {/* 换图（cron-four-layers）且与 P3 末实例隔整幕 ⇒ 默认 lead */}
+        {/* 与 4-D 背靠背（p4-12 末=p4-13 始，跨 slug 换图）→ lead={false}；
+            同 slug 的 P3 末实例隔整幕不构成豁免依据 */}
         <ArchifyRecap
           slug="cron-four-layers"
           caption="四层钟"
+          lead={false}
           cues={[
             {
               chapterId: 'durable-side',

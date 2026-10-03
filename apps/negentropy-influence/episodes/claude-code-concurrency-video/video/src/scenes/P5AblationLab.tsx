@@ -8,7 +8,8 @@
  *   5-C p5-09..10 ablation-panel / date-slip     —— lead={false}：同 slug 跨镜背靠背
  *        （p5-08 末→p5-09 首紧邻）；
  *   5-D p5-11..13 ablation-panel / silent-miss   —— lead={false}：同上（p5-10→p5-11）；
- *   5-E p5-14..15 knock-walk-away / door-busy    —— 默认 lead：换 slug 换图（敲门走开）；
+ *   5-E p5-14..15 knock-walk-away / door-busy    —— lead={false}：与 5-D 背靠背
+ *        （p5-13 末→p5-14 首紧邻，跨 slug 换图同判例·评审修复）；
  *   5-F p5-17..20 ablation-panel / burn-wait     —— 默认 lead：与 5-D 同 slug，但中间隔了
  *        5-E 换图镜（p5-14..16 空窗），非紧邻同图 ⇒ 入场恢复；
  *   5-G p5-21..25 ablation-panel / timeout-crash —— lead={false}：与 5-F 同 slug 跨镜
@@ -883,10 +884,12 @@ export const P5AblationLab: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bE} name="5-E 开关四·忙锁">
-        {/* 换 slug 换图（敲门走开）⇒ 默认 lead；cue 窗止于 p5-15 末 */}
+        {/* 与 5-D 背靠背（p5-13 末=p5-14 始，跨 slug 换图同判例）→ lead={false}；
+            cue 窗止于 p5-15 末 */}
         <ArchifyRecap
           slug="knock-walk-away"
           caption="敲门走开"
+          lead={false}
           cues={[{chapterId: 'door-busy', at: at('p5-14') - bE.from, durationInFrames: dur('p5-14') + dur('p5-15')}]}
         />
         {/* p5-15 读数卡（窗内句）；p5-16 窗外句由全屏装置接手（v4 三分法窗外句窗档） */}

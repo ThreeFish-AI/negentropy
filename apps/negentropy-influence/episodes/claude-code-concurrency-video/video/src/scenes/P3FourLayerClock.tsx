@@ -7,7 +7,8 @@
  *  - 3-E three-safeguards「三道保险」：mark-date@p3-18(+19+20+21) / per-task-guard@p3-22 / double-check@p3-23
  *  - 3-F knock-walk-away「敲门走开」：loop-wake@p3-24(+25) / door-busy@p3-26(+27) / door-open@p3-28
  *  - 3-G cron-four-layers「四层钟」：full-cycle@p3-29(+30+31)
- *    ——与 3-A 同 slug 实例隔 3-D..3-F 多镜（非背靠背）→ 默认 lead
+ *    ——与 3-F 背靠背（p3-28 末→p3-29 首紧邻，跨 slug）→ lead={false}（评审修复；
+ *    与 3-A 同 slug 隔多镜不构成豁免）
  *  native：3-B 医院四联画 / 3-C 五段表达式。
  *
  *  ★要点：上缘定时线空间分轨——定时线横陈上缘、钟类装置挂其上（与右缘后台线
@@ -636,10 +637,11 @@ export const P3FourLayerClock: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bE} name="3-E 三道保险">
-        {/* 与 3-D 不同 slug、非背靠背 → 默认 lead；三 cue 连续换章自动抑制 */}
+        {/* 与 3-D 背靠背（p3-17 末=p3-18 始，跨 slug）→ lead={false}；三 cue 连续换章自动抑制 */}
         <ArchifyRecap
           slug="three-safeguards"
           caption="三道保险"
+          lead={false}
           cues={[
             {chapterId: 'mark-date', at: at('p3-18') - bE.from, durationInFrames: dur('p3-18') + dur('p3-19') + dur('p3-20') + dur('p3-21')},
             {chapterId: 'per-task-guard', at: at('p3-22') - bE.from, durationInFrames: dur('p3-22')},
@@ -649,9 +651,11 @@ export const P3FourLayerClock: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bF} name="3-F 敲门走开">
+        {/* 与 3-E 背靠背（p3-23 末=p3-24 始，跨 slug）→ lead={false} */}
         <ArchifyRecap
           slug="knock-walk-away"
           caption="敲门走开"
+          lead={false}
           cues={[
             {chapterId: 'loop-wake', at: at('p3-24') - bF.from, durationInFrames: dur('p3-24') + dur('p3-25')},
             {chapterId: 'door-busy', at: at('p3-26') - bF.from, durationInFrames: dur('p3-26') + dur('p3-27')},
@@ -661,10 +665,11 @@ export const P3FourLayerClock: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bG} name="3-G 全周期走查">
-        {/* 与 3-A 同 slug 实例隔 3-D..3-F 多镜（非背靠背）→ 默认 lead */}
+        {/* 与 3-F 背靠背（p3-28 末=p3-29 始，跨 slug）→ lead={false}；同 slug 的 3-A 隔多镜不构成豁免 */}
         <ArchifyRecap
           slug="cron-four-layers"
           caption="四层钟"
+          lead={false}
           cues={[
             {chapterId: 'full-cycle', at: at('p3-29') - bG.from, durationInFrames: dur('p3-29') + dur('p3-30') + dur('p3-31')},
           ]}

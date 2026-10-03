@@ -246,6 +246,13 @@ export {ease};
 
 // ── 本集恒定视觉锚：传送带母题（core 橙描边恒定〔M-001〕，跨镜色值线宽逐像素一致） ──
 
+/** #RRGGBB → #RRGGBBAA（透明度为本件常量，无需 clamp） */
+const withAlpha = (hex: string, a: number): string =>
+  `${hex}${Math.round(a * 255).toString(16).padStart(2, '0')}`;
+
+/** 抬升面板填充：panel（#171C26）的亮一档，底座无此 token，本件局部登记 */
+const PANEL_RAISED = '#1E2530';
+
 /** 传送带：横贯条带＋三个标签节点（开口→工具→结果）。全片多幕同形出场，只换周边标签。
  *  dim 态＝带停摆（core 色降透明）。静态母题（评审修复：无 frame 参数——恒速
  *  行进感由调用侧叠 useFlowDash 虚线层，见 P0 BeltLine；无随机）。 */
@@ -256,9 +263,11 @@ export const BeltStrip: React.FC<{
   dim?: boolean;
   labels?: [string, string, string];
 }> = ({x, y, width, dim = false, labels = ['开口', '工具', '结果']}) => {
-  const core = '#D97757';
-  const body = dim ? 'rgba(217,119,87,0.28)' : 'rgba(217,119,87,0.16)';
-  const edge = dim ? 'rgba(217,119,87,0.55)' : core;
+  // 评审修复：色一律读 theme token（core=系列恒定锚）；仅「抬升面板填充」为底座
+  // 无 token 的本件局部色，具名登记于此（#1E2530，panel 的亮一档）。
+  const core = theme.core;
+  const body = withAlpha(core, dim ? 0.28 : 0.16);
+  const edge = dim ? withAlpha(core, 0.55) : core;
   return (
     <svg width={width} height={96} viewBox={`0 0 ${width} 96`} style={{position: 'absolute', left: x, top: y, opacity: dim ? 0.65 : 1}}>
       <rect x={2} y={40} width={width - 4} height={16} rx={8} fill={body} stroke={edge} strokeWidth={2.5} />
@@ -266,8 +275,8 @@ export const BeltStrip: React.FC<{
         const nx = 40 + i * ((width - 160) / 2);
         return (
           <g key={lb} transform={`translate(${nx + i * 6}, 0)`}>
-            <rect x={0} y={22} width={64} height={52} rx={6} fill={dim ? '#171C26' : '#1E2530'} stroke={edge} strokeWidth={1.6} />
-            <text x={32} y={53} textAnchor="middle" fontSize={17} fill={dim ? '#9AA7B8' : '#F2F5FA'} fontFamily="'PingFang SC','Hiragino Sans GB',sans-serif">
+            <rect x={0} y={22} width={64} height={52} rx={6} fill={dim ? theme.panel : PANEL_RAISED} stroke={edge} strokeWidth={1.6} />
+            <text x={32} y={53} textAnchor="middle" fontSize={17} fill={dim ? theme.dim : theme.text} fontFamily={theme.sans}>
               {lb}
             </text>
           </g>

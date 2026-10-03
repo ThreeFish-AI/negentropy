@@ -341,7 +341,8 @@ const ApprenticeCorner: React.FC<{at11: number; at12: number}> = ({at11, at12}) 
         <line x1={4} y1={5} x2={216} y2={5} stroke={theme.panelBorder} strokeWidth={4} strokeLinecap="round" />
       </svg>
       {/* 放大镜（只看不动手：镜头常亮微光） */}
-      <svg width={96} height={96} viewBox="0 0 96 96" style={{position: 'absolute', left: 186, top: 702, opacity: inO.opacity}}>
+      <svg width={96} height={96} viewBox="0 0 96 96" style={{position: 'absolute', left: 186, top: 702, opacity: inO.opacity, overflow: 'visible'}}>
+        {/* 柄端绕 (40,40) 转 −20° 落 ≈(101.5, 68.7)，出视口 5.5px——overflow visible（P3 NurseGlyph 同款）防柄尖平切 */}
         <g transform="rotate(-20 40 40)">
           <circle cx={40} cy={40} r={26} fill={withAlpha(theme.accent, 0.1)} stroke={theme.mech} strokeWidth={4} />
           <line x1={59} y1={59} x2={88} y2={88} stroke={theme.mech} strokeWidth={7} strokeLinecap="round" />
