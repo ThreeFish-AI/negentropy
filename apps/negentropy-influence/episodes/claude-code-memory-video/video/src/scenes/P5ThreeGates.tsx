@@ -777,7 +777,7 @@ export const P5ThreeGates: React.FC<{scene: SceneRange}> = ({scene}) => {
       {/* 本集 P1–P5 不挂 HarnessBadge（P0 头注设计：坐标 Chip 替位，五层栈只在
           P6 收尾）——此前误挂默认 top:12 会整幕压进 frozen ChapterProgress 带 */}
       <Sequence {...bA} name="5-A 提取时机">
-        <SceneTag chapter={'P5'} tagline={'三道门'} accent={theme.mech} />
+        <SceneTag chapter={'Three Gates'} tagline={'三道门'} accent={theme.mech} />
         <MapAnchorChip active="cardfile" enterAt={10} />
         {/* p5-01 空窗回落：提取时机开卷（时钟+快照相机），p5-03 起让位图10 */}
         <Sequence durationInFrames={at('p5-03') - bA.from} name="5-A 开卷回落">

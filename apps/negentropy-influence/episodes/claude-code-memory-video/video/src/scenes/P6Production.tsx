@@ -91,7 +91,7 @@ const QCARDS = [
 ] as const;
 
 /** 教学四层（P1 已立的管线名，灰白系）＝生产五层的前四层 */
-const TEACH_LAYERS = ['大件落盘', '裁中段', '旧换地址', '模型摘要'] as const;
+const TEACH_LAYERS = ['落盘收据', '裁中段', '换地址', '模型摘要'] as const;
 
 const DualRecall: React.FC<{
   at01: number;
@@ -1371,7 +1371,7 @@ const Finale: React.FC<{
             letterSpacing: 6,
           }}
         >
-          {'草稿纸 × 卡片册'}
+          {'一张草稿纸，一本卡片册'}
         </div>
         <div
           style={{
@@ -1547,7 +1547,7 @@ export const P6Production: React.FC<{scene: SceneRange}> = ({scene}) => {
       <Sequence {...bA} name="6-A 双问回收与对照">
         {/* SceneTag 平移到 Badge 右侧共存（文件头「顶部行共存」说明） */}
         <div style={{transform: 'translateX(660px)'}}>
-          <SceneTag chapter="Production" tagline="照进生产" />
+          <SceneTag chapter="Production" tagline="照进生产" accent={theme.mech} />
         </div>
         <MapAnchorChip active="tail" enterAt={4} />
         <DualRecall

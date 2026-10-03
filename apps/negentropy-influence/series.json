@@ -170,7 +170,7 @@
             "accessed": "2026-10-02"
           },
           "status": "final-review",
-          "statusNote": "**v1 完全重制交付**（2026-10-02，13.15 分 = 789.08s @1080p30，ffprobe/mdls/manifest 三源对账落窗 [13.0,14.6]）：139 句 3688 字（me-bright 终声实测 324 字/分纯语音——timing.json B 档覆写句隙 0.32→0.68 拉至 13.15 分落窗，实测口径 281 字/分回写）；C 型信源=docs 精读 176（钉 ce8f9f18 冻结快照 gl-notes.md+类比登记表承接+数字全量穿透）；story 档 68 块+cues 台本（tab×3/token×2 CMU 标注 ASR 实证）；archify 12 图（10 新绘+2 张 176 图原生重建）45 章逐章回放（48 cue · 锚定 34.5% · 密度 3.7/分 · 5 型 · 最长无锚 12 句）；四维策划评审 17 findings+④A/B 双重校验+⑤成文优化 REWRITE=0 全落；全句中点空屏扫描 0（P1 七句空屏修复）；机器门全绿（check_series/tsc/qa --check FAIL 0/覆盖门/实测门）；归档 ~/Documents/video/claude-code-explained/ v1 + _captions",
+          "statusNote": "**v2 交付**（2026-10-03，评审修复二轮 13 项后重渲重归档：金句卡恢复口播原句逗号形/PlateSlab3D 接线 glow——下期层呼吸辉光恢复渲染/SceneTag 七幕统一英文机制名+P3·P6 补 accent/教学四层对齐 P1 管线名/HarnessStackP0 死代码清除/68→46 块口径修正+ep2 v3 同步/storyboard 镜⊆beat 与终声口径/cues 块口径/snip 46/47 冲突并陈；13.15 分 = 789.03s mdls/manifest 对账；归档 v2 + _captions，v1 2026-10-02 见 git 历史）。原 v1 完全重制交付（2026-10-02，13.15 分 = 789.08s @1080p30 三源对账落窗 [13.0,14.6]）：139 句 3688 字（me-bright 终声实测 324 字/分纯语音——timing.json B 档覆写句隙 0.32→0.68 拉至 13.15 分落窗，实测口径 281 字/分回写）；C 型信源=docs 精读 176（钉 ce8f9f18 冻结快照 gl-notes.md+类比登记表承接+数字全量穿透）；story 档 46 块+cues 台本（tab×3/token×2 CMU 标注 ASR 实证）；archify 12 图（10 新绘+2 张 176 图原生重建）45 章逐章回放（48 cue · 锚定 34.5% · 密度 3.7/分 · 5 型 · 最长无锚 12 句）；四维策划评审 17 findings+④A/B 双重校验+⑤成文优化 REWRITE=0 全落；全句中点空屏扫描 0（P1 七句空屏修复）；机器门全绿（check_series/tsc/qa --check FAIL 0/覆盖门/实测门）",
           "voice": "story + me-bright.wav"
         },
         {

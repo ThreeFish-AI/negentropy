@@ -5,9 +5,11 @@
  * 仍是硬编码字符串：check_series 规则 8 以 tsx 文本对账 series.json，数据化会
  * 让那条门失明（两层口径：层短名走数据，标题主段走规则 8 的受检硬编码）。
  *
- * 两个组件：
- *  - HarnessStackP0：开场编排（落板 → 本集层高亮呼吸 → 缩退淡出，末段交叉淡入常驻条）；
- *  - HarnessBadge：P1–P6 的常驻顶边条（横向五 chip，y 12–48）。
+ * 组件：
+ *  - HarnessBadge：常驻顶边条（横向五 chip，y 12–48）；
+ *  - HarnessStackP6：收尾放大栈（下期层呼吸预告）；
+ *  - PlateSlab3D：3D 层板渲染后端（上两者复用）。
+ *  （本集 P0 开场不用 HarnessStack 落板——全貌坐标装置 MapAnchor 承担，P0 版开场编排已随旧 P0 场景移除。）
  *
  * ⚠️ 形式对规格的一处适配（评审实测）：规格写「缩退左上角纵向角标（宽 ≤300）」，
  * 但纵向角标（300×194）与既有各幕左上内容五处碰撞（P2 CornerRing 同坐标、P3 小抄、
@@ -16,11 +18,10 @@
  * 也不与 SceneTag 相干）。缩退以交叉淡出衔接，避免纵向→横向的形态跳变。
  */
 import React from 'react';
-import {AbsoluteFill} from 'remotion';
 import {ThreeCanvas} from '@remotion/three';
 import {theme} from '../design/theme';
 import {Slab3D} from './solids-3d';
-import {DUR, useBreathe, useDim, useProgress, useStagger} from '../motion';
+import {DUR, useBreathe, useProgress, useStagger} from '../motion';
 import series from '../series-layers.json';
 
 export type Layer = {index: number; layer: string; title: string; published: boolean};
@@ -29,15 +30,9 @@ export const LAYERS = series.layers as Layer[];
 export const ACTIVE_INDEX = series.activeIndex as number;
 export const NEXT_LAYER = LAYERS[ACTIVE_INDEX] ?? null; // P6 呼吸预告的层
 
-const STACK_CROSSFADE_FRAMES = 8;
-
 /** 3D 板 active 档的面色：在 theme.panel 基础上掺极少量 core 的暖意（读作「被点亮的深底」），
  *  刻意**不**用 core 本色——整块变实心暖色会压掉白色层名的对比度（首版实测）。 */
 const PLATE_LIT = '#241C1E';
-
-/** 开场全尺寸栈与常驻顶边条开始交叉淡化的局部帧。 */
-export const harnessStackCrossAt = (recedeAt: number): number =>
-  recedeAt + DUR.f6 - STACK_CROSSFADE_FRAMES;
 
 /** 层板文字对（编号 + 层名）：平面 Plate 与三维 PlateSlab3D 共用同一组文字节点；
  *  文字永不进 3D。⚠️ 返回 Fragment 而非带定位的容器——chip 档常驻条靠**内容自然撑宽**
@@ -157,7 +152,8 @@ export const PlateSlab3D: React.FC<{
         </group>
       </ThreeCanvas>
       {/* 文字层：绝对定位叠在 canvas 上、下移 headroom/2 与板视觉中心对位（文字永不进 3D）。
-          此处 absolute 安全——full/p6 档宽度由 width prop 显式给定，不依赖内容撑宽。 */}
+          此处 absolute 安全——full/p6 档宽度由 width prop 显式给定，不依赖内容撑宽。
+          glow 外辉光挂 DOM 层（3D basic 材质不吃光），与平面 Plate 的 boxShadow 同式对位。 */}
       <div
         style={{
           position: 'absolute',
@@ -171,6 +167,7 @@ export const PlateSlab3D: React.FC<{
           padding: '0 18px',
           boxSizing: 'border-box',
           opacity: dim,
+          boxShadow: glow > 0 ? `0 0 ${10 + glow * 22}px ${theme.core}55` : undefined,
         }}
       >
         <PlateText layer={layer} active={active} chip={false} p6={p6} />
@@ -197,73 +194,6 @@ export const HarnessBadge: React.FC<{style?: React.CSSProperties}> = ({style}) =
     ))}
   </div>
 );
-
-/** P0 开场编排：自底向上落板（6 帧一层）→ 本集层高亮呼吸两次 → 其余压暗 55% →
- *  缩退淡出（向左上收小；末 8 帧与常驻顶边条交叉淡入——衔接 P1 起的 HarnessBadge）。 */
-export const HarnessStackP0: React.FC<{recedeAt: number}> = ({recedeAt}) => {
-  const drops = useStagger(LAYERS.length, {at: 2, dur: DUR.f4, stride: 6, easing: 'decelerate'});
-  const hiAt = 2 + (LAYERS.length - 1) * 6 + DUR.f4 + 2;
-  const glowBreathe = useBreathe({period: 15, amp: 0.5, base: 0.5});
-  // 呼吸两次（30f）后收敛到 0.7 的持续高亮
-  const breathePhase = useProgress(hiAt + 30, DUR.f6);
-  const glow = glowBreathe * (1 - breathePhase) + 0.7 * breathePhase;
-  const dim = useDim({at: hiAt, to: 0.55, dur: DUR.f5});
-  const rec = useProgress(recedeAt, DUR.f6);
-  // 缩退：向左上收小 + 尾段淡出；常驻条同步交叉淡入（换形式不跳变）
-  const crossAt = harnessStackCrossAt(recedeAt);
-  const out = useProgress(crossAt, STACK_CROSSFADE_FRAMES);
-  const fullX = 730;
-  const fullY = 300;
-  const tx = fullX + (64 - fullX) * rec;
-  const ty = fullY + (12 - fullY) * rec;
-  const s = 1 - 0.55 * rec;
-  return (
-    <AbsoluteFill style={{pointerEvents: 'none'}}>
-      <HarnessBadge style={{opacity: out}} />
-      <div
-        style={{
-          position: 'absolute',
-          left: 0,
-          top: 0,
-          width: 460,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 10,
-          transform: `translate(${tx}px, ${ty}px) scale(${s})`,
-          transformOrigin: '0 0',
-          opacity: 1 - out,
-        }}
-      >
-        {LAYERS.slice()
-          .reverse()
-          .map((l) => {
-            // 自底向上落板：index 1（执行层，最底）最先动
-            const p = drops[l.index - 1];
-            const isHi = l.index === ACTIVE_INDEX;
-            return (
-              <div
-                key={l.index}
-                style={{
-                  opacity: p,
-                  transform: `translateY(${(1 - p) * 26}px)`,
-                }}
-              >
-                <PlateSlab3D
-                  layer={l}
-                  active={isHi}
-                  dim={isHi ? 1 : dim}
-                  glow={isHi ? glow : 0}
-                  width={460}
-                  height={64}
-                  settle={p}
-                />
-              </div>
-            );
-          })}
-      </div>
-    </AbsoluteFill>
-  );
-};
 
 /** P6 收尾：栈重新放大居中；已发布层保持点亮（EP1 时即本集层）；下期层呼吸预告。 */
 export const HarnessStackP6: React.FC<{at: number; nextBreathAt: number}> = ({at, nextBreathAt}) => {

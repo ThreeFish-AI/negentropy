@@ -732,7 +732,7 @@ export const P1CheapFirst: React.FC<{scene: SceneRange}> = ({scene}) => {
   return (
     <AbsoluteFill>
       <Sequence {...bA} name="1-A 搬家三格横移">
-        <SceneTag chapter="P1" tagline="便宜的先跑" accent={theme.mech} />
+        <SceneTag chapter="Cheap First" tagline="便宜的先跑" accent={theme.mech} />
         <MapAnchorChip active="scratchpad" enterAt={6} />
         <MovingMap
           q1At={at('p1-01') - bA.from + Math.round(dur('p1-01') * 0.2)}
@@ -759,7 +759,7 @@ export const P1CheapFirst: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bC} name="1-C 裁中段">
-        <SceneTag chapter="P1" tagline="便宜的先跑" accent={theme.mech} />
+        <SceneTag chapter="Cheap First" tagline="便宜的先跑" accent={theme.mech} />
         <RollCut
           rollAt={6}
           litAt={at('p1-11') - bC.from + Math.round(dur('p1-11') * 0.42)}
@@ -773,7 +773,7 @@ export const P1CheapFirst: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bD} name="1-D 换地址与八成">
-        <SceneTag chapter="P1" tagline="便宜的先跑" accent={theme.mech} />
+        <SceneTag chapter="Cheap First" tagline="便宜的先跑" accent={theme.mech} />
         <AddressGauge
           l3At={at('p1-13') - bD.from + Math.round(dur('p1-13') * 0.35)}
           collapseAts={[

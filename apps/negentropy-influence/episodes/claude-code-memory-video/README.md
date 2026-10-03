@@ -1,6 +1,6 @@
 # 《记忆管理：一张草稿纸和一本卡片册》科普视频工程
 
-> 交付状态：**v1 已交付**（2026-10-02，13.15 分 @1080p30，归档 ~/Documents/video/claude-code-explained/ v1 + _captions）。C 型信源=docs 精读 176（钉 ce8f9f18）。发布顺序见 [../../series.json](../../series.json)（工作区根）。
+> 交付状态：**v2 已交付**（2026-10-03，评审修复二轮 13 项后重渲——金句卡口播原句/下期层呼吸辉光/SceneTag 七幕统一/教学四层对齐 P1 管线名/死代码清理/交付口径对账；13.15 分 = 789.03s @1080p30，mdls/manifest 对账，归档 ~/Documents/video/claude-code-explained/ v2 + _captions；v1 2026-10-02 见归档）。C 型信源=docs 精读 176（钉 ce8f9f18）。发布顺序见 [../../series.json](../../series.json)（工作区根）。
 
 ## 目录结构
 

@@ -925,7 +925,7 @@ export const P2RedLines: React.FC<{scene: SceneRange}> = ({scene}) => {
       <MapAnchorChip active="scratchpad" />
 
       <Sequence {...bA} name="2-A 小票互锁">
-        <SceneTag chapter="两条红线" tagline="小票互锁 · 没读过的不压" accent={theme.danger} />
+        <SceneTag chapter="Red Lines" tagline="小票互锁 · 没读过的不压" accent={theme.danger} />
         {/* 幕界后首镜：前实例（P1 2-G）隔幕间呼吸 ⇒ 默认 lead；p2-03 空窗后 torn-reject 恢复入场 */}
         <ArchifyRecap
           slug="pairing-interlock"

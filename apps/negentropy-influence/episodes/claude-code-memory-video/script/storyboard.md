@@ -1,7 +1,7 @@
 # 分镜表 · 《记忆管理：一张草稿纸和一本卡片册》（v1）
 
-> **句 id 对齐**：镜=beat（narration.md v2 幕内空行分组），`beatWindow(sentences, scene.from, id, id2)` 取窗；句区间覆盖各幕全部句子、无交叠无遗漏（`check --check-scenes` 执法）。
-> **时长**：以 `video/public/audio/manifest.json` 实测为准（edge 草声 13.25 分；终声后重派生）。
+> **句 id 对齐**：镜 ⊆ beat（narration.md v2 幕内空行分组；镜可在 beat 内再切分——如 2-C/2-D、4-A/4-A2、4-C/4-D 各共享一个 beat），`beatWindow(sentences, scene.from, id, id2)` 按句 id 取窗；句区间覆盖各幕全部句子、无交叠无遗漏（`check --check-scenes` 执法）。
+> **时长**：以 `video/public/audio/manifest.json` 实测为准（me-bright 终声已派生：789.00s = 13.15 分，与 statusNote 一致）。
 > **视觉契约**（与 [planning.md](./planning.md) §3 一致）：bg `#0E1116`／panel `#171C26`／text `#F2F5FA`／dim `#9AA7B8`；**mech 苔绿 `#A9C46C`=卡片册·记忆·长期（本集维度色）**；**core 橙 `#D97757`=循环内核恒定**（3D 层）；**账单金 `#F0C244`=钱·成本·计费**；红线红 `#FF5C5C`（deny `#EF6461`）=破坏·拦截警示；确认绿 `#7ED321`=机制在位。灰白系底座=草稿纸·会话内。
 > **顶部安全带 y<56** 归章节进度条；各镜画面 y≥56 起；底部角标 bottom≥150 避字幕条。
 > **archify 引导图**：全屏独占三分法（`forbid_inset`）；图集预算表见文末；cue 一章锚一句、锚句全片唯一；lead 契约＝**帧相邻才 false**：与前一图镜末章帧相邻（无空窗回落句窗隔断）的实例传 lead=false 防重入弹簧，空窗后重现的实例一律默认入场（ArchifyClip 契约——否则整框以全不透明一帧瞬现）。

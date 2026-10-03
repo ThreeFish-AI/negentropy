@@ -728,7 +728,7 @@ export const P4CatalogBody: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bA2 = w('p4-05', 'p4-06');
   const bB = w('p4-07', 'p4-13');
   const bC = w('p4-14', 'p4-16');
-  const bD = w('p4-17', 'p4-18b'); // 分镜「p4-17..19」的第三句实为 p4-18b（narration 权威 id）
+  const bD = w('p4-17', 'p4-18b'); // 分镜 4-D「p4-17..18b」（narration 权威 id）
   const bE = w('p4-20', 'p4-23');
 
   return (

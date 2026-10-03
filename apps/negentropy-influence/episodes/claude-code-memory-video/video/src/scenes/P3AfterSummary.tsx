@@ -397,7 +397,7 @@ export const P3AfterSummary: React.FC<{scene: SceneRange}> = ({scene}) => {
   return (
     <AbsoluteFill>
       <Sequence {...bA} name="3-A 偏好塌缩">
-        <SceneTag chapter="P3" tagline="压扁之后" />
+        <SceneTag chapter="After Summary" tagline="压扁之后" accent={theme.mech} />
         {/* 幕首镜坐标缩略条（map-anchor 契约：其余各幕首镜短暂驻场后渐隐） */}
         <MapAnchorChip active="scratchpad" enterAt={at('p3-01') - bA.from + 6} />
         <SummaryMachine
