@@ -12,6 +12,7 @@
 """
 
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -143,7 +144,10 @@ def main() -> None:
             continue
         html = html.replace("</body>", block + "</body>", 1)
         out = OUT_DIR / f"{slug}.html"
-        out.write_text(html, encoding="utf-8")
+        # 原子写：先落 temp 再 os.replace，写中途崩溃/磁盘满不留下半写 HTML 被录制链消费
+        tmp = out.with_suffix(".html.tmp")
+        tmp.write_text(html, encoding="utf-8")
+        os.replace(tmp, out)
         # 自检：容器可被 read_views 正则命中、节点 id 全部存在
         m = re.search(r'id="archify-guided-views-data"[^>]*>([\s\S]*?)</script>', html)
         assert m, f"{slug}: 容器未命中"
