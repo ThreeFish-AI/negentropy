@@ -158,7 +158,8 @@
           "topic": "记忆管理：窗口内外的两本账",
           "cardSub": "记忆管理 · 两套机制",
           "accents": [
-            "#A9C46C"
+            "#A9C46C",
+            "#F0C244"
           ],
           "source": {
             "title": "Learn Claude Code · 记忆管理（s08 Context Compact / s09 Memory）",

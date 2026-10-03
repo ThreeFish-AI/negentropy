@@ -1,11 +1,11 @@
-/** P0 重发的账单（p0-01..13，3 镜 · scratchpad-anatomy 4 cue）——分镜 1-A…1-C。
+/** P0 重发的账单（p0-01..13，3 镜 · scratchpad-anatomy 4 cue）——分镜 0-A…0-C。
  *
  *  ★ 系列开场换轴：本集不用 HarnessStack 落板、不挂 HarnessBadge 常驻条——
  *    全貌坐标装置（MapAnchor）在 1-C 首亮全图替代（五层栈只在 P6 收尾，
  *    常驻条由坐标 Chip 在后续各幕替位）。
  *  ★ cue 锚句（一章锚一句、全片唯一）：fixed-prefix@p0-01 · pair-interlock@p0-02 ·
- *    full-resend@p0-04 · heavy-results@p0-06。1-B 与 1-A 同图跨镜 → lead={false}
- *    （文首全局契约「前一镜为图镜一律 lead={false}」）。
+ *    full-resend@p0-04 · heavy-results@p0-06。0-B 与 0-A 同图但 p0-05 装置窗隔断 →
+ *    空窗后重现，lead 默认入场（契约=帧相邻才 false）。
  *  ★ fit 显式两处按 views focus 数 × dwell（多拍 1.1s、≤2 拍 1.6s）估算：
  *    fixed-prefix 1 拍 vs 3.7s 窗 → hold；full-resend 6 拍 vs 4.5s 窗 → trim。
  *    录制重派生 archify.manifest 后须对 storySec 复核这两处（ArchifyRecap 头注纪律）。
@@ -414,10 +414,10 @@ export const P0Scratchpad: React.FC<{scene: SceneRange}> = ({scene}) => {
         <Sequence from={at('p0-09') - bB.from} durationInFrames={dur('p0-09') + DUR.f3} name="0-B 头号大户回落">
           <TopHolder span={dur('p0-09')} />
         </Sequence>
-        {/* 前镜同为 scratchpad-anatomy 实例 → lead={false}（全局契约一律；镜首画框满
-            不透明切入=镜切读法）。heavy-results 3 拍 vs 3.5s 窗 rate≈0.93 → 自动 stretch */}
+        {/* 前镜虽同为 scratchpad-anatomy 实例，但 p0-05 装置窗隔断＝空窗后重现 →
+            lead 默认入场（帧相邻才 false，契约见 ArchifyClip）。heavy-results 3 拍
+            vs 3.5s 窗 rate≈0.93 → 自动 stretch */}
         <ArchifyRecap
-          lead={false}
           slug="scratchpad-anatomy"
           caption="草稿纸解剖"
           cues={[

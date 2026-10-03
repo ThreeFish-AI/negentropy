@@ -1,14 +1,14 @@
-/** P2 两条红线（p2-01..20，4 镜 7 cue）——分镜 4-A…4-D。
+/** P2 两条红线（p2-01..20，4 镜 7 cue）——分镜 2-A…2-D。
  *
- *  ★ 三镜图镜（4-A/4-C/4-D）全屏独占；空窗句回落自制装置（嵌套范式：装置窗
- *    与 cue 窗按句区间互不重叠，无需 ArchifyYield）——4-A p2-01 纸面互锁首现 /
- *    p2-03 出菜口小票；4-C p2-14..15 门口快递；4-D p2-19..20 两道保险收束卡
+ *  ★ 三镜图镜（2-A/2-C/2-D）全屏独占；空窗句回落自制装置（嵌套范式：装置窗
+ *    与 cue 窗按句区间互不重叠，无需 ArchifyYield）——2-A p2-01 纸面互锁首现 /
+ *    p2-03 出菜口小票；2-C p2-14..15 门口快递；2-D p2-19..20 两道保险收束卡
  *    （画面数字 9,009→137 由图章承载，场景层不重复）。
- *  ★ 4-B 正反同屏消融台（本幕唯一场景镜，左坏右好〔X-001〕）：右好=切点回退
+ *  ★ 2-B 正反同屏消融台（本幕唯一场景镜，左坏右好〔X-001〕）：右好=切点回退
  *    两拍→整对越过绿章；左坏=剪刀两拍拆回退→断裂 Counter 0→1→校验红章；
  *    下缘「等批次完成」锁定按钮（工具进度条走完前灰锁）。
- *  lead 清单：4-A 幕界后首镜默认 lead；4-C 前镜为场景镜默认 lead；
- *    4-D 前镜 4-C 亦为 unseen-guard 实例 ⇒ lead={false}（跨实例接缝防重入弹簧）。
+ *  lead 清单：2-A 幕界后首镜默认 lead；2-C 前镜为场景镜默认 lead；
+ *    2-D 前镜 2-C 亦为 unseen-guard 实例 ⇒ lead={false}（跨实例接缝防重入弹簧）。
  */
 import React from 'react';
 import {AbsoluteFill, Sequence} from 'remotion';
@@ -124,7 +124,7 @@ const VerdictStamp: React.FC<{text: string; color: string; at: number; x: number
   );
 };
 
-// ── 4-A p2-01 空窗回落：纸面配对互锁首现 ────────────────────────────────
+// ── 2-A p2-01 空窗回落：纸面配对互锁首现 ────────────────────────────────
 
 /** 一对消息卡 + 右缘编号环互锁连线（进度全由调用方传入，本件零 hooks） */
 const PairRow: React.FC<{
@@ -230,7 +230,7 @@ const PairStrip: React.FC = () => {
   );
 };
 
-// ── 4-A p2-03 空窗回落：出菜口小票（菜挂小票 · 对账比喻） ────────────────
+// ── 2-A p2-03 空窗回落：出菜口小票（菜挂小票 · 对账比喻） ────────────────
 
 const TicketRail: React.FC = () => {
   const shelf = useDraw(0, DUR.f5);
@@ -327,7 +327,7 @@ const TicketRail: React.FC = () => {
   );
 };
 
-// ── 4-B 正反同屏消融台（p2-07..11 全窗场景镜） ───────────────────────────
+// ── 2-B 正反同屏消融台（p2-07..11 全窗场景镜） ───────────────────────────
 
 /** 消融台几何（panel 局部坐标）：双联 780×410，消息栈四行，切线三档位 */
 const BENCH = {
@@ -705,7 +705,7 @@ const AblationBench: React.FC<{
   );
 };
 
-// ── 4-C p2-14..15 空窗回落：门口快递（没拆的箱不许动） ───────────────────
+// ── 2-C p2-14..15 空窗回落：门口快递（没拆的箱不许动） ───────────────────
 
 const DoorParcels: React.FC<{atStrike: number}> = ({atStrike}) => {
   const door = useEnter('rise', {at: 2, dur: DUR.f5, dist: 24});
@@ -822,7 +822,7 @@ const DoorParcels: React.FC<{atStrike: number}> = ({atStrike}) => {
   );
 };
 
-// ── 4-D p2-19..20 空窗回落：两道保险收束卡（9,009→137 由图章承载，此处不重复） ──
+// ── 2-D p2-19..20 空窗回落：两道保险收束卡（9,009→137 由图章承载，此处不重复） ──
 
 const TwoGuardsClose: React.FC<{atTag: number}> = ({atTag}) => {
   const head = useProgress(2, DUR.f3);
@@ -962,7 +962,7 @@ export const P2RedLines: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bC} name="2-C 快递与双保险">
-        {/* 前镜 4-B 为场景镜 ⇒ 默认 lead；p2-14..15 空窗后 old-swap 恢复入场，two-guards 背靠背自动抑制 */}
+        {/* 前镜 2-B 为场景镜 ⇒ 默认 lead；p2-14..15 空窗后 old-swap 恢复入场，two-guards 背靠背自动抑制 */}
         <ArchifyRecap
           slug="unseen-guard"
           caption="未读保护"
@@ -980,7 +980,7 @@ export const P2RedLines: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bD} name="2-D 拆保护消融">
-        {/* 前镜 4-C 亦为 unseen-guard 实例、p2-17→p2-18 帧相邻 ⇒ lead={false} */}
+        {/* 前镜 2-C 亦为 unseen-guard 实例、p2-17→p2-18 帧相邻 ⇒ lead={false} */}
         <ArchifyRecap
           lead={false}
           slug="unseen-guard"

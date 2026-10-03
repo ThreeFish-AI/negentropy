@@ -36,8 +36,9 @@ export const theme = {
   concept: '#A9C46C',
   conceptDeep: '#87A24E',
   // accent=账单/成本金（P4 缓存经济学强调）——系列「金=强调」语义族
-  // （与 ep4 #EFB13C / ep5 #D9B36B 同族，非撞色事故）；accents 只登记维度色。
-  accent: '#EFB13C',
+  // （与 ep4 #EFB13C / ep5 #D9B36B 同族各持独立 hex，2026-10-03 评审定夺：
+  // 换独立金并登记 series.json accents，撞色门/已用色表不再双盲）。
+  accent: '#F0C244',
 
   // ── 系列语义键（V3D 3D 层读；HarnessStack/motifs 消费）──
   // core = 循环内核：**全系列恒定 #D97757**；mech = 本集维度色（苔绿）。

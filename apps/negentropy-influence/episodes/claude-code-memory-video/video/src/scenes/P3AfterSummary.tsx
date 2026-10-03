@@ -1,14 +1,14 @@
 /** P3 压扁之后（p3-01..16，4 镜）——摘要机纸带毛化 / summary-surgery 两图镜 / 换层镜。
  *
- *  ★ 5-A 摘要机（场景镜）：精确便签「缩进用 tab 不用空格」随纸带（useFlowDash
+ *  ★ 3-A 摘要机（场景镜）：精确便签「缩进用 tab 不用空格」随纸带（useFlowDash
  *    流动虚线）传入摘要机，出纸「用户有代码风格偏好」归类卡——字迹毛化=透明度
  *    分层（清晰层→模糊层交叉淡化，全帧驱动零随机）；两侧小字对照标签。
- *  ★ 5-B/5-C 图镜（archify full 全屏独占）：summary-surgery 三章两实例接力。
+ *  ★ 3-B/3-C 图镜（archify full 全屏独占）：summary-surgery 三章两实例接力。
  *    four-steps 跨 p3-05..09 空窗回填（dur 求和拼写，首段句 id 与 at 锚一致——
  *    覆盖门可识别对账）；anti-inject 锚 p3-10 与前 cue 背靠背（实例内自动抑制
- *    换章弹入）。5-C 与 5-B 帧相邻接 → lead={false}；fuse-3 跨 p3-11..12，
+ *    换章弹入）。3-C 与 3-B 帧相邻接 → lead={false}；fuse-3 跨 p3-11..12，
  *    p3-12 出处双标签「讲义口径 · 开源代码无此实现」由场景层右下叠加。
- *  ★ 5-D 换层镜：MapAnchor 全屏三分卡〔M-001〕从草稿纸层（灰白系）交叉淡化
+ *  ★ 3-D 换层镜：MapAnchor 全屏三分卡〔M-001〕从草稿纸层（灰白系）交叉淡化
  *    切至卡片册层（mech 苔绿）+ pushIn 整幅展开；「连摘要都不剩」浮字与
  *    第二问字卡回收（mech 点睛）。
  *  SceneTag/Footnote 由本文件幕首镜持有（P2Notify 惯例），后镜不重复挂载。
@@ -23,7 +23,7 @@ import {Footnote, Panel, SceneTag} from '../components/motifs';
 import {MapAnchor, MapAnchorChip} from '../components/map-anchor';
 import {DUR, useDim, useEnter, useFlowDash, useImpulse, useProgress, usePushIn} from '../motion';
 
-// ── 5-A 摘要机 ──────────────────────────────────────────────────────────────
+// ── 3-A 摘要机 ──────────────────────────────────────────────────────────────
 
 /** 纸带传送几何（px 推导，居中不混 %）：纸带 y=560 贯穿左右；机器体 320×260 居中。
  *  便签/归类卡均 z 序压在机器体之下——滑入滑出被机器自然遮蔽（进出纸口意象）。 */
@@ -274,7 +274,7 @@ const SummaryMachine: React.FC<{
   );
 };
 
-// ── 5-C 出处双标签（场景层右下叠加，bottom≥150 避字幕带、让位图框底缘 880） ──
+// ── 3-C 出处双标签（场景层右下叠加，bottom≥150 避字幕带、让位图框底缘 880） ──
 
 const ProvenanceTags: React.FC<{at: number}> = ({at}) => {
   const o = useProgress(at, DUR.f5);
@@ -305,7 +305,7 @@ const ProvenanceTags: React.FC<{at: number}> = ({at}) => {
   );
 };
 
-// ── 5-D 换层编排 ────────────────────────────────────────────────────────────
+// ── 3-D 换层编排 ────────────────────────────────────────────────────────────
 
 /** 全貌坐标装置整幅切换：草稿纸层（subActive=四层管线——摘要即其第四层）淡出，
  *  卡片册层交叉淡化淡入 + pushIn 整幅展开；两实例同刻挂载、入场弹簧在隐藏期
@@ -414,7 +414,7 @@ export const P3AfterSummary: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bB} name="3-B 四件事流水线">
-        {/* 前镜 5-A 为场景镜 → 本实例首章默认入场。four-steps 跨 p3-05..09 空窗回填
+        {/* 前镜 3-A 为场景镜 → 本实例首章默认入场。four-steps 跨 p3-05..09 空窗回填
             （dur 求和形态，首段句 id 与 at 锚一致——四步口播全落在四步主链章内）；
             anti-inject 与前 cue 背靠背，实例内自动抑制换章弹入 */}
         <ArchifyRecap
@@ -429,7 +429,7 @@ export const P3AfterSummary: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bC} name="3-C 熔断">
-        {/* 前镜 5-B 亦图镜且帧相邻接（anti-inject 末帧 == p3-11 首帧）→ lead={false}；
+        {/* 前镜 3-B 亦图镜且帧相邻接（anti-inject 末帧 == p3-11 首帧）→ lead={false}；
             fuse-3 跨 p3-11..12 求和扩窗——p3-12 出处句由场景层双标签叠加承载 */}
         <ArchifyRecap
           lead={false}

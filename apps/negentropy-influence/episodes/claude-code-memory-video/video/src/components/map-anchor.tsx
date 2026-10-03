@@ -4,8 +4,10 @@
  *  四环节+三道门）/ 尾区（规律·边界）。〔M-001 恒定视觉锚〕：三分卡几何与
  *  色契约全片同形复现，只换 active 高亮与 sub 子环节点亮——消除被动收看的
  *  局部迷航。两种形态：
- *  - <MapAnchor>     全屏三分卡（P0 首亮全图 / P3→P4 换层镜 / P6 尾区收束）
- *  - <MapAnchorChip> 右上缩略条（其余各幕首镜短暂驻场后渐隐，y=64 起）
+ *  - <MapAnchor>     全屏三分卡（P0 首亮全图 / P3→P4 换层镜；三分卡错峰落位：
+ *                     左→中→右每卡 +5 帧，分镜 0-C〔M-001〕声明）
+ *  - <MapAnchorChip> 右上缩略条（其余各幕首镜短暂驻场后渐隐，y=64 起；P6 尾区
+ *                     用本形态，不用全屏卡）
  *
  *  色契约：草稿纸层=灰白系（text/dim/panel，会话内·短期）；卡片册层=mech
  *  苔绿（跨会话·长期）；尾区=dim 灰底+core 橙点（规律收束）。高亮层 100%
@@ -35,12 +37,17 @@ export const MapAnchor: React.FC<{
   enterAt?: number;
   fadeAt?: number;
 }> = ({active, subActive = -1, enterAt = 0, fadeAt = -1}) => {
-  const e = useEnter('rise', {at: enterAt, springPreset: 'settle'});
+  // 三卡错峰落位（分镜 0-C〔M-001〕：左→中→右 +5 帧/卡）；固定三卡＝三次顶层
+  // hook 调用，勿改成循环内调用
+  const zoneE0 = useEnter('rise', {at: enterAt, springPreset: 'settle'});
+  const zoneE1 = useEnter('rise', {at: enterAt + 5, springPreset: 'settle'});
+  const zoneE2 = useEnter('rise', {at: enterAt + 10, springPreset: 'settle'});
+  const zoneE = [zoneE0, zoneE1, zoneE2];
   // 运动层门面为位置参数签名（useProgress(at, dur)）——fadeAt<0 时钳到 0，
   // 下方三元已把该项乘出，不产生假淡出
   const fade = useProgress(Math.max(0, fadeAt), 21);
   return (
-    <AbsoluteFill style={{opacity: e.opacity * (fadeAt >= 0 ? 1 - fade : 1)}}>
+    <AbsoluteFill style={{opacity: fadeAt >= 0 ? 1 - fade : 1}}>
       {ZONES.map((z, i) => {
         const lit = z.id === active;
         const col = i % 3;
@@ -56,7 +63,8 @@ export const MapAnchor: React.FC<{
               borderRadius: 16,
               border: `2px solid ${lit ? zoneTint(z.id) : theme.panelBorder}`,
               background: theme.panel,
-              opacity: lit ? 1 : 0.55,
+              opacity: zoneE[i].opacity * (lit ? 1 : 0.55),
+              transform: zoneE[i].transform,
               filter: lit ? 'none' : 'brightness(0.72)',
               fontFamily: theme.sans,
             }}

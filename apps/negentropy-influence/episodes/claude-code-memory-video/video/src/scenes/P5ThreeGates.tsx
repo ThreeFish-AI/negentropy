@@ -1,12 +1,13 @@
-/** P5 三道门（p5-01..23，5 镜 · archify 三图 10 cue）——分镜 7-A…7-E。
+/** P5 三道门（p5-01..23，5 镜 · archify 三图 11 cue）——分镜 5-A…5-E。
  *
  *  本幕是卡片册层的「守门」半场：提取时机（图10 一章）→ 三句穿门走查（图11
  *  五章接力，全片高潮）→ 便签对置（场景镜）→ 事务整理（图12 四章）→ 界线卡
  *  收束（场景镜：界线 + 官方两席定位 + 卡片册母题合拢苔绿 breathe）。
- *  lead 清单（跨实例接缝）：7-B 前镜 7-A 末章帧相邻 → lead={false}；
- *  7-A 幕界后首镜 / 7-D 前镜场景镜 → lead 默认 true。
+ *  lead 清单（跨实例接缝，契约=帧相邻才 false）：5-B 前镜 5-A 末章帧相邻 →
+ *  lead={false}；5-A 幕界后首镜 / 5-D 前镜场景镜 / 5-E 空窗后重现（p5-20
+ *  装置窗隔断）→ lead 默认 true。
  *  图镜空窗由嵌套句窗装置持有画面（无 ArchifyYield 的嵌套范式）：
- *  7-A 前窗=提取时机开卷（时钟+快照相机）；7-D 前窗=查重门三盏比对灯、
+ *  5-A 前窗=提取时机开卷（时钟+快照相机）；5-D 前窗=查重门三盏比对灯、
  *  后窗=事务三步收束（10→0 破坏回声）。色契约：mech 苔绿=卡片册/跨会话；
  *  danger 红=拦截/破坏；底座灰白=草稿纸域。零随机零 Date.now，全帧驱动。
  */
@@ -16,7 +17,6 @@ import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {Footnote, Panel, SceneTag} from '../components/motifs';
-import {HarnessBadge} from '../components/harness-stack';
 import {MapAnchorChip} from '../components/map-anchor';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 import {DUR, useBreathe, useDraw, useEnter, useImpulse, useProgress, useSpring, useStagger} from '../motion';
@@ -26,7 +26,7 @@ const CLOCK_LAP = 75;
 
 const rad = (deg: number): number => (deg * Math.PI) / 180;
 
-// ── 7-A 前窗：提取时机开卷（p5-01 空窗回落，p5-03 起让位图10） ───────────
+// ── 5-A 前窗：提取时机开卷（p5-01 空窗回落，p5-03 起让位图10） ───────────
 
 const ExtractPrelude: React.FC<{enterAt: number; chipsAt: number; flashAt: number}> = ({
   enterAt,
@@ -61,7 +61,7 @@ const ExtractPrelude: React.FC<{enterAt: number; chipsAt: number; flashAt: numbe
           </span>
           <span style={{fontFamily: theme.mono, fontSize: 20, color: theme.dim}}>{'extract'}</span>
         </div>
-        {/* 候选散落：三句偏好伏笔（7-B 穿门走查的同三句） */}
+        {/* 候选散落：三句偏好伏笔（5-B 穿门走查的同三句） */}
         <div style={{display: 'flex', alignItems: 'center', gap: 16, marginTop: 26}}>
           <span style={{fontFamily: theme.mono, fontSize: 19, color: theme.dim}}>{'候选散落'}</span>
           {['缩进偏好', '测试库', '任务备注'].map((t, i) => (
@@ -131,7 +131,7 @@ const ExtractPrelude: React.FC<{enterAt: number; chipsAt: number; flashAt: numbe
   );
 };
 
-// ── 7-C 便签对置（p5-11..14 场景镜） ────────────────────────────────────
+// ── 5-C 便签对置（p5-11..14 场景镜） ────────────────────────────────────
 
 const MinutesVsSticky: React.FC<{
   atLeft: number;
@@ -345,7 +345,7 @@ const MinutesVsSticky: React.FC<{
   );
 };
 
-// ── 7-D 前窗：查重门三盏比对灯（p5-15 空窗回落） ────────────────────────
+// ── 5-D 前窗：查重门三盏比对灯（p5-15 空窗回落） ────────────────────────
 
 const DedupLamps: React.FC<{enterAt: number; lampsAt: number; verdictAt: number}> = ({
   enterAt,
@@ -440,7 +440,7 @@ const DedupLamps: React.FC<{enterAt: number; lampsAt: number; verdictAt: number}
   );
 };
 
-// ── 7-D 后窗：事务三步收束（p5-20，10→0 破坏回声） ──────────────────────
+// ── 5-D 后窗：事务三步收束（p5-20，10→0 破坏回声） ──────────────────────
 
 const TxnSteps: React.FC<{enterAt: number; atWarn: number}> = ({enterAt, atWarn}) => {
   const e = useEnter('rise', {at: enterAt, dist: 30, springPreset: 'settle'});
@@ -534,7 +534,7 @@ const TxnSteps: React.FC<{enterAt: number; atWarn: number}> = ({enterAt, atWarn}
   );
 };
 
-// ── 7-E 界线卡（p5-21..23 场景镜） ──────────────────────────────────────
+// ── 5-E 界线卡（p5-21..23 场景镜） ──────────────────────────────────────
 
 const BoundaryCard: React.FC<{
   at: number;
@@ -774,8 +774,8 @@ export const P5ThreeGates: React.FC<{scene: SceneRange}> = ({scene}) => {
 
   return (
     <AbsoluteFill>
-      <HarnessBadge />
-
+      {/* 本集 P1–P5 不挂 HarnessBadge（P0 头注设计：坐标 Chip 替位，五层栈只在
+          P6 收尾）——此前误挂默认 top:12 会整幕压进 frozen ChapterProgress 带 */}
       <Sequence {...bA} name="5-A 提取时机">
         <SceneTag chapter={'P5'} tagline={'三道门'} accent={theme.mech} />
         <MapAnchorChip active="cardfile" enterAt={10} />
@@ -799,7 +799,7 @@ export const P5ThreeGates: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bB} name="5-B 三句穿门">
-        {/* 前镜 7-A 末章与本镜首章帧相邻：lead={false}（分镜 lead 清单）；五章句句相接 */}
+        {/* 前镜 5-A 末章与本镜首章帧相邻：lead={false}（分镜 lead 清单）；五章句句相接 */}
         <ArchifyRecap
           lead={false}
           slug="memory-gates"
@@ -838,7 +838,7 @@ export const P5ThreeGates: React.FC<{scene: SceneRange}> = ({scene}) => {
           />
           <Footnote delay={6}>{'consolidate'}</Footnote>
         </Sequence>
-        {/* 前镜 7-C 为场景镜：lead 默认 true */}
+        {/* 前镜 5-C 为场景镜：lead 默认 true */}
         <ArchifyRecap
           slug="consolidation-txn"
           caption="事务整理"
@@ -856,12 +856,11 @@ export const P5ThreeGates: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bE} name="5-E 界线卡">
-        {/* p5-21 界线句：全景图整理章回看（承接 5-D 事务链，前镜图镜 → lead={false}）；
-            界线卡入场让到 p5-22 起 */}
+        {/* p5-21 界线句：全景图整理章回看（承接 5-D 事务链；p5-20 装置窗隔断＝空窗后
+            重现 → lead 默认入场，不再瞬现）；界线卡入场让到 p5-22 起 */}
         <ArchifyRecap
           slug="recall-loop"
           caption="四环节全景"
-          lead={false}
           cues={[
             {chapterId: 'consolidate', at: at('p5-21') - bE.from, durationInFrames: dur('p5-21')},
           ]}
@@ -889,10 +888,18 @@ export const P5ThreeGates: React.FC<{scene: SceneRange}> = ({scene}) => {
         {/* 界线分隔：竖线 + 标签 */}
         <BoundaryDivider atLine={at('p5-22') - bE.from} />
         <BoundaryChip atChip={at('p5-22') + Math.round(dur('p5-22') * 0.45) - bE.from} />
-        <CardfileClose
-          atCards={at('p5-21') + Math.round(dur('p5-21') * 0.6) - bE.from}
-          atBreathe={at('p5-23') + Math.round(dur('p5-23') * 0.2) - bE.from}
-        />
+        {/* 卡片册母题合拢：整件让到 consolidate cue 窗外（p5-22 起）——全屏独占契约，
+            基座 Panel 与飞卡不得与画框同屏（此前 bE 全窗挂载，右缘压进画框 8.1s） */}
+        <Sequence
+          from={at('p5-22') - bE.from}
+          durationInFrames={bE.durationInFrames - (at('p5-22') - bE.from)}
+          name="5-E 卡片册合拢"
+        >
+          <CardfileClose
+            atCards={Math.round(dur('p5-22') * 0.45)}
+            atBreathe={dur('p5-22') + Math.round(dur('p5-23') * 0.2)}
+          />
+        </Sequence>
         <OfficialMap atPanel={at('p5-23') + Math.round(dur('p5-23') * 0.3) - bE.from} />
         <Footnote delay={6}>{'CLAUDE.md · auto memory'}</Footnote>
       </Sequence>

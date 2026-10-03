@@ -1,13 +1,13 @@
-/** P1 便宜的先跑（p1-01..29，7 镜 8 cue）——分镜 2-A…2-G。
+/** P1 便宜的先跑（p1-01..29，7 镜 8 cue）——分镜 1-A…1-G。
  *
  *  三场景镜 + 四图镜（全屏独占三分法）：
- *  - 2-A 搬家三格横移（仓储→装箱登记→清单处理）→ 下缘四格管线轮廓对位；
+ *  - 1-A 搬家三格横移（仓储→装箱登记→清单处理）→ 下缘四格管线轮廓对位；
  *    MapAnchorChip 首镜驻场高亮草稿纸层（本幕开镜侧持有，其余镜不重挂）。
- *  - 2-B/2-E/2-G compact-pipeline（cheap-first / bypass+batch-wait / reactive）
- *    与 2-F batch-walkthrough 四章接力为图镜；2-F 前镜 2-E、2-G 前镜 2-F 皆图镜
+ *  - 1-B/1-E/1-G compact-pipeline（cheap-first / bypass+batch-wait / reactive）
+ *    与 1-F batch-walkthrough 四章接力为图镜；1-F 前镜 1-E、1-G 前镜 1-F 皆图镜
  *    → 两实例 lead={false}（分镜 lead 清单：跨实例接缝防重入弹簧）。
- *  - 2-C 纸卷裁中段（画面字 50/3/46；@draw 裁切线 + 中段块平移入归档柜）。
- *  - 2-D 旧结果换地址（量尺指针 @count 压向 80% 刻度·账单金；未读批防护罩 @enter:pop）。
+ *  - 1-C 纸卷裁中段（画面字 50/3/46；@draw 裁切线 + 中段块平移入归档柜）。
+ *  - 1-D 旧结果换地址（量尺指针 @count 压向 80% 刻度·账单金；未读批防护罩 @enter:pop）。
  *  图镜空窗句（p1-08/09、p1-18/19、p1-25b、p1-27、p1-29）为分镜 cue 预算的留白句，
  *  背景直出（horizon 1-B「空档无装置」先例），由覆盖门对账。
  */
@@ -21,7 +21,7 @@ import {Footnote, Panel, SceneTag} from '../components/motifs';
 import {MapAnchorChip} from '../components/map-anchor';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 
-// ── 2-A 搬家三格 + 四格管线轮廓对位 ────────────────────────────────────────
+// ── 1-A 搬家三格 + 四格管线轮廓对位 ────────────────────────────────────────
 
 const MOVES = [
   {title: '仓储', sub: '大家具原样搬进 · 随时取回'},
@@ -64,7 +64,7 @@ const MoveGlyph: React.FC<{kind: number}> = ({kind}) => (
   </svg>
 );
 
-/** 2-A 主装置：三格横移地图（@stagger 逐句滑入）+ p1-05 四格管线对位（@enter:rise）。 */
+/** 1-A 主装置：三格横移地图（@stagger 逐句滑入）+ p1-05 四格管线对位（@enter:rise）。 */
 const MovingMap: React.FC<{
   q1At: number;
   cardAts: readonly number[];
@@ -289,7 +289,7 @@ const MovingMap: React.FC<{
   );
 };
 
-// ── 2-C 纸卷裁中段（画面字 50/3/46） ──────────────────────────────────────
+// ── 1-C 纸卷裁中段（画面字 50/3/46） ──────────────────────────────────────
 
 const CELL_N = 60; // 轴向条目总数（示意）：首 3 + 中 11 + 尾 46
 const CELL_X0 = 220;
@@ -298,13 +298,23 @@ const CELL_W = 23;
 const MID_FROM = 3; // 中段（归档）条目下标区间 [MID_FROM, MID_TO]
 const MID_TO = 13;
 
-/** 单格：kept=true 时叠加高亮带（灰白系 tint——草稿纸层不占概念色） */
-const RollCell: React.FC<{i: number; shown: number; kept: boolean; bands: number}> = ({i, shown, kept, bands}) => (
+/** 单格：kept=true 时叠加高亮带（灰白系 tint——草稿纸层不占概念色）。
+ *  ox/oy=所在坐标系原点：顶层格走画布原点（CELL_X0,470）；中段块 wrapper 内
+ *  的格走 wrapper 原点（0,0）——wrapper 自身已定位在 (midLeft,470)，子格若再带
+ *  画布坐标会双重叠加（含 containing block 陷阱）。 */
+const RollCell: React.FC<{i: number; shown: number; kept: boolean; bands: number; ox?: number; oy?: number}> = ({
+  i,
+  shown,
+  kept,
+  bands,
+  ox = CELL_X0,
+  oy = 470,
+}) => (
   <div
     style={{
       position: 'absolute',
-      left: CELL_X0 + i * CELL_PITCH,
-      top: 470,
+      left: ox + i * CELL_PITCH,
+      top: oy,
       width: CELL_W,
       height: 120,
       borderRadius: 3,
@@ -325,7 +335,7 @@ const RollCell: React.FC<{i: number; shown: number; kept: boolean; bands: number
   </div>
 );
 
-/** 2-C 主装置：纸卷轴向特写——首 3/尾 46 高亮带 + @draw 裁切线 + 中段块平移入归档柜。 */
+/** 1-C 主装置：纸卷轴向特写——首 3/尾 46 高亮带 + @draw 裁切线 + 中段块平移入归档柜。 */
 const RollCut: React.FC<{
   rollAt: number;
   litAt: number;
@@ -419,23 +429,6 @@ const RollCut: React.FC<{
         />
       </svg>
 
-      {/* 中段整块（吊离原位 → 归档柜首抽屉） */}
-      <div
-        style={{
-          position: 'absolute',
-          left: midLeft,
-          top: 470,
-          width: midW,
-          height: 120,
-          transformOrigin: '0 0',
-          transform: `translate(${travel * tx}px, ${travel * ty}px) scale(${1 - 0.45 * travel})`,
-        }}
-      >
-        {Array.from({length: MID_TO - MID_FROM + 1}, (_, j) => (
-          <RollCell key={j} i={j + MID_FROM} shown={cells[j + MID_FROM]} kept={false} bands={0} />
-        ))}
-      </div>
-
       {/* 原处留一行标记 */}
       <div
         style={{
@@ -476,16 +469,35 @@ const RollCut: React.FC<{
           <div style={{marginTop: 10, height: 76, border: `2px dashed ${theme.panelBorder}`, borderRadius: 8}} />
         </Panel>
       </div>
+
+      {/* 中段整块（吊离原位 → 归档柜首抽屉）。★ 渲染序刻意在柜体之后：
+          块要落进抽屉内部（Panel 不透明底），若在柜体之前渲染会被柜底盖住
+          （2026-10-03 评审：坐标修复后块飞抵即消失的另一半根因）。 */}
+      <div
+        style={{
+          position: 'absolute',
+          left: midLeft,
+          top: 470,
+          width: midW,
+          height: 120,
+          transformOrigin: '0 0',
+          transform: `translate(${travel * tx}px, ${travel * ty}px) scale(${1 - 0.45 * travel})`,
+        }}
+      >
+        {Array.from({length: MID_TO - MID_FROM + 1}, (_, j) => (
+          <RollCell key={j} i={j} shown={cells[j + MID_FROM]} kept={false} bands={0} ox={0} oy={0} />
+        ))}
+      </div>
     </AbsoluteFill>
   );
 };
 
-// ── 2-D 换地址与八成（量尺 + 防护罩） ─────────────────────────────────────
+// ── 1-D 换地址与八成（量尺 + 防护罩） ─────────────────────────────────────
 
 const BLOCK_W = 740;
 const BLOCK_H = 120;
 
-/** 2-D 主装置：旧结果块占位符化 + 量尺指针 @count 压向 80%（账单金）+ 未读批防护罩。 */
+/** 1-D 主装置：旧结果块占位符化 + 量尺指针 @count 压向 80%（账单金）+ 未读批防护罩。 */
 const AddressGauge: React.FC<{
   l3At: number;
   collapseAts: readonly number[];
@@ -633,7 +645,9 @@ const AddressGauge: React.FC<{
         </g>
         <line x1={1544} y1={yN} x2={1656} y2={yN} stroke={theme.accent} strokeWidth={4} strokeLinecap="round" />
         <circle cx={1544} cy={yN} r={5 + 3 * glow} fill={theme.accent} />
-        <text x={1666} y={yN + 7} fontFamily={theme.mono} fontSize={24} fill={theme.accent}>
+        {/* 读数挂指针线上方：落定 level=80 时与 '80 · 八成' 刻度标签（基线 350）
+            垂直分层，不再同基线叠印 */}
+        <text x={1666} y={yN - 18} fontFamily={theme.mono} fontSize={24} fill={theme.accent}>
           {`${Math.round(level)}%`}
         </text>
       </svg>
@@ -787,7 +801,7 @@ export const P1CheapFirst: React.FC<{scene: SceneRange}> = ({scene}) => {
         />
       </Sequence>
 
-      {/* 跨镜界帧相邻接 2-E 末章（p1-20 末 = p1-21 首）→ lead={false}（分镜 lead 清单）；
+      {/* 跨镜界帧相邻接 1-E 末章（p1-20 末 = p1-21 首）→ lead={false}（分镜 lead 清单）；
           p1-25b 为本实例尾后留白句 */}
       <Sequence {...bF} name="1-F T11 实测走查 图镜">
         <ArchifyRecap

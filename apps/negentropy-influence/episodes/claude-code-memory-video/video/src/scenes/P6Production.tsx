@@ -1,19 +1,20 @@
-/** P6 照进生产（p6-01..25，5 镜 0 cue）——分镜 8-A…8-E。
+/** P6 照进生产（p6-01..25，5 镜 4 cue 回看）——分镜 6-A…6-E。
  *
- *  ★ 本幕 5 镜全场景、零图镜：archify 图集预算表 44 cue 无一落 P6（12 图止于
- *    7-D 事务四章），故本文件无 ArchifyRecap 实例；双问回收／对照条／双标尺／
- *    卡片墙／五规律卡／收尾栈全为场景层自制装置。
+ *  ★ 本幕以场景层装置为主，含 4 个 archify 回看实例：6-A cheap-first@p6-03
+ *    （空窗后重现 → lead 默认入场）与 6-D retreat-fix/prefix-hit/one-of-three
+ *    @p6-14..16（三例句句相接，后两例 lead={false}）；双问回收／对照条／双标尺／
+ *    卡片墙／五规律卡／收尾栈为场景层自制装置。
  *  ★ 顶部行共存：本集 seeded motifs 的 SceneTag 在左上（left:72 top:64），与
- *    HarnessBadge（left:64 top:64）同格重叠，且 8-A 右上还驻 MapAnchorChip——
+ *    HarnessBadge（left:64 top:64）同格重叠，且 6-A 右上还驻 MapAnchorChip——
  *    SceneTag 以包裹层平移到 Badge 右侧（x≈732，Badge 五 chip 实宽至 ~713），
  *    三件同帧共存；ep1 的解法是把 SceneTag 右置，本集 motifs 已左置，故由
  *    本幕包裹层适配，不改共享层。
- *  ★ 8-E 收尾：HarnessStackP6（复制件，层序读 series-layers.json，本集层=记忆
+ *  ★ 6-E 收尾：HarnessStackP6（复制件，层序读 series-layers.json，本集层=记忆
  *    管理高亮；mech 苔绿光环是本幕叠加的柔光，不动冻结件本体——分镜「记忆层
  *    苔绿点亮」与组件 core 高亮的折衷）。下期卡标题主段「谁来按下开始」与身份
  *    卡「一张草稿纸和一本卡片册」是 check_series 规则 8 受检硬编码（改标题先改
  *    series.json 再同步此串）。
- *  ★ 末 36 帧渐黑窗取整镜（8-E）时长——红线四：勿用末句时长（末句后还有句间
+ *  ★ 末 36 帧渐黑窗取整镜（6-E）时长——红线四：勿用末句时长（末句后还有句间
  *    停顿与片尾静默）。
  *  ★ p6-23 金句卡「一张草稿纸，一本卡片册」为口播原句（逗号形）；身份卡全名
  *    （「和」形）由 p6-25 身份卡承载——两串刻意不同，勿「统一」。
@@ -81,7 +82,7 @@ const OfficialPill: React.FC<{text?: string; style?: React.CSSProperties}> = ({
   </span>
 );
 
-// ── 8-A 双问回收与「教学四层 vs 生产五层」对照 ──────────────────────────
+// ── 6-A 双问回收与「教学四层 vs 生产五层」对照 ──────────────────────────
 
 /** P0 双问回收：两联卡同帧点亮（p6-01），p6-02 逐条落答案（mech 点睛）。 */
 const QCARDS = [
@@ -1061,7 +1062,9 @@ const LawCard: React.FC<{
   vAt: number;
   until: number;
 }> = ({index, law, at, vAt, until}) => {
+  // spatial 走弹簧（rotateX）、effects 走时长+缓动（opacity）——运动层铁律③
   const flip = useSpring('settle', {at, dur: DUR.f5});
+  const flipO = useProgress(at, DUR.f5);
   const activeP = useProgress(vAt, DUR.f4) * (1 - useProgress(until, DUR.f4));
   const dimP = useProgress(until, DUR.f4);
   return (
@@ -1070,7 +1073,7 @@ const LawCard: React.FC<{
         style={{
           transformOrigin: '50% 100%',
           transform: `rotateX(${(1 - flip) * -72}deg)`,
-          opacity: flip * (1 - 0.32 * dimP),
+          opacity: flipO * (1 - 0.32 * dimP),
         }}
       >
         <div style={{position: 'relative'}}>
@@ -1159,7 +1162,7 @@ const FiveLaws: React.FC<{at12: number; at13: number; at14: number; at15: number
   );
 };
 
-// ── 8-E 边界与收尾 ──────────────────────────────────────────────────────
+// ── 6-E 边界与收尾 ──────────────────────────────────────────────────────
 
 const DISPUTES = [
   {title: '窗口大小之争', q: '压缩会被终结吗？', sides: ['会 · 纸越做越大', '不会 · 盯账单与注意力']},
@@ -1514,7 +1517,7 @@ const Finale: React.FC<{
         </div>
       </div>
 
-      {/* 末 36 帧渐黑（红线四：窗取整镜 8-E 时长，勿用末句时长） */}
+      {/* 末 36 帧渐黑（红线四：窗取整镜 6-E 时长，勿用末句时长） */}
       <AbsoluteFill style={{background: '#000', opacity: 1 - keep}} />
     </AbsoluteFill>
   );
@@ -1533,7 +1536,7 @@ export const P6Production: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bD = w('p6-12', 'p6-17');
   const bE = w('p6-18', 'p6-25');
 
-  // 常驻系列条：8-E 金句卡（p6-23）起隐藏——收尾栈放大时五层信息已在栈上
+  // 常驻系列条：6-E 金句卡（p6-23）起隐藏——收尾栈放大时五层信息已在栈上
   const frame = useCurrentFrame();
   const badgeO = 1 - progress(frame, at('p6-23'), DUR.f4);
 

@@ -1,16 +1,17 @@
-/** P4 目录与正文（p4-01..23，5 镜 11 cue）——分镜 6-A…6-E。
+/** P4 目录与正文（p4-01..23，6 镜 11 cue）——分镜 4-A…4-E。
  *
- *  本幕为全图链：五镜全部由 archify 工程图主控——memory-file-anatomy 四章 /
- *  cache-economics 三章 / recall-loop 一章 / sidecar-selection 三章；6-B 起四镜
- *  与前图镜背靠背，一律 lead={false}（分镜 lead 清单）。cue 落镜以文末图集预算表
- *  为权威源；anchor 句全片唯一、at/dur 独立重算不沿镜累加。
+ *  本幕为全图链：五镜全部由 archify 工程图主控——memory-file-anatomy 三章落镜 /
+ *  cache-economics 三章 / recall-loop 两章 / sidecar-selection 三章；镜间均有回落
+ *  装置句窗隔断（非帧相邻）→ 实例一律 lead 默认入场（契约=帧相邻才 false，见
+ *  ArchifyClip）。cue 落镜以文末图集预算表为权威源；anchor 句全片唯一、
+ *  at/dur 独立重算不沿镜累加。
  *
  *  空窗句由场景层回落装置持有（archify 全屏独占，装置只住窗外句窗）：
- *  - 6-A p4-05 四类两例（分镜画面注：用户类「tab 缩进」/参考类「bug 在哪个模块」）
- *  - 6-B p4-07..10 缓存经济学开卷：问题卡 → 全部塞进被否（danger 章「否」）→ 计费规则预告
- *  - 6-C p4-14 分层成形 / p4-16 正文按需注入（放前面=搅坏前缀）
- *  - 6-D p4-18b 挑卡实例走查：问句 → 目录扫描 → 只进一张
- *  - 6-E p4-21..22 安全阀（ok 章）+ 当前请求天平；p4-23 收束字卡右缘叠加（勿复述整句）
+ *  - 4-A2 p4-05 四类两例（分镜画面注：用户类「tab 缩进」/参考类「bug 在哪个模块」）
+ *  - 4-B p4-07..10 缓存经济学开卷：问题卡 → 全部塞进被否（danger 章「否」）→ 计费规则预告
+ *  - 4-C p4-14 分层成形 / p4-16 正文按需注入（放前面=搅坏前缀）
+ *  - 4-D p4-18b 挑卡实例走查：问句 → 目录扫描 → 只进一张
+ *  - 4-E p4-21..22 安全阀（ok 章）+ 当前请求天平；p4-23 收束字卡右缘叠加（勿复述整句）
  *
  *  色契约：mech 苔绿=卡片册·记忆；accent 金=计费·成本（本幕主轴「账单金」）；
  *  danger=否决；ok=机制在位（安全阀）。chrome：SceneTag 全幕驻场（y64，与
@@ -26,7 +27,7 @@ import {ArchifyRecap} from '../components/ArchifyRecap';
 import {MapAnchorChip} from '../components/map-anchor';
 import {DUR, useDim, useDraw, useEnter, useFlowDash, useImpulse, useProgress, useSpring, useStagger} from '../motion';
 
-// ── 6-A p4-05 空窗：四类两例点亮 ─────────────────────────────────────────
+// ── 4-A2 p4-05 空窗：四类两例点亮 ─────────────────────────────────────────
 
 /** 四类色标卡的两例（用户类/参考类），mech 苔绿标签 + 引号便签体关键词 */
 const TypeExamples: React.FC<{span: number; atRef: number}> = ({span, atRef}) => {
@@ -76,7 +77,7 @@ const TypeExamples: React.FC<{span: number; atRef: number}> = ({span, atRef}) =>
   );
 };
 
-// ── 6-B p4-07..10 空窗：缓存经济学开卷回落 ──────────────────────────────
+// ── 4-B p4-07..10 空窗：缓存经济学开卷回落 ──────────────────────────────
 
 /** 开卷三拍：真问题（带着记忆·还不贵）→ 最直白做法被否（塞满指令区·无关白付）→ 计费规则预告（复印店） */
 const CostQuestion: React.FC<{
@@ -221,7 +222,7 @@ const CostQuestion: React.FC<{
   );
 };
 
-// ── 6-C p4-14 空窗：分层成形（快窗 ~3.5s） ──────────────────────────────
+// ── 4-C p4-14 空窗：分层成形（快窗 ~3.5s） ──────────────────────────────
 
 /** 规则条（前缀相同→缓存价）压出两张层卡：目录页·常驻（mech）/ 记忆正文·按需 */
 const LayerTease: React.FC<{span: number}> = ({span}) => {
@@ -292,7 +293,7 @@ const LayerTease: React.FC<{span: number}> = ({span}) => {
   );
 };
 
-// ── 6-C p4-16 空窗：正文按需注入当轮提问 ────────────────────────────────
+// ── 4-C p4-16 空窗：正文按需注入当轮提问 ────────────────────────────────
 
 /** 上：指令区·前缀不变（目录页盖缓存价章）；下：当轮提问按需注入记忆正文；警示：放前面=搅坏前缀 */
 const BodyOnDemand: React.FC<{span: number}> = ({span}) => {
@@ -427,7 +428,7 @@ const BodyOnDemand: React.FC<{span: number}> = ({span}) => {
   );
 };
 
-// ── 6-D p4-18b 空窗：挑卡实例走查 ───────────────────────────────────────
+// ── 4-D p4-18b 空窗：挑卡实例走查 ───────────────────────────────────────
 
 /** 三段走查：你问「卡顿修好了吗」→ 目录扫描锁定 bug 卡 → 正文只进这一张 */
 const PickExample: React.FC<{span: number}> = ({span}) => {
@@ -544,7 +545,7 @@ const PickExample: React.FC<{span: number}> = ({span}) => {
   );
 };
 
-// ── 6-E p4-21..23 空窗：安全阀 + 当前请求天平；p4-23 收束字卡右缘叠加 ──
+// ── 4-E p4-21..23 空窗：安全阀 + 当前请求天平；p4-23 收束字卡右缘叠加 ──
 
 /** 左：注入内容盖「背景知识·非新命令」章（ok=机制在位）；右：冲突天平当前请求胜出 */
 const SafetyValve: React.FC<{
@@ -678,7 +679,7 @@ const SafetyValve: React.FC<{
   );
 };
 
-/** p4-23 收束字卡：右缘叠加（分镜 6-E），关键词两联——常驻=mech / 按需=accent，勿复述整句 */
+/** p4-23 收束字卡：右缘叠加（分镜 4-E），关键词两联——常驻=mech / 按需=accent，勿复述整句 */
 const ClosingCard: React.FC = () => {
   const e = useEnter('slideR', {at: 3, dur: DUR.f5, dist: 70, springPreset: 'settle'});
   const glow = useImpulse({at: DUR.f5, dur: DUR.f6, peak: 20});
@@ -737,8 +738,8 @@ export const P4CatalogBody: React.FC<{scene: SceneRange}> = ({scene}) => {
       <MapAnchorChip active="cardfile" />
 
       <Sequence {...bA} name="4-A 卡片册解剖">
-        {/* 前镜 5-D 为场景镜 → 本实例首章默认入场；图 7 的 index-rebuild 章由 6-A2
-            的全景图 write-rebuild 章同语义覆盖（一镜一图，不双挂） */}
+        {/* 前镜 3-D 为场景镜 → 本实例首章默认入场；图 7 的 index-rebuild 章由
+            4-A2 的全景图 write-rebuild 章同语义覆盖（一镜一图，不双挂） */}
         <ArchifyRecap
           slug="memory-file-anatomy"
           caption="记忆卡片册"
@@ -751,7 +752,7 @@ export const P4CatalogBody: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bA2} name="4-A2 写入全景回看">
-        {/* 前镜 6-A 为图镜 → lead={false}；p4-05 是写入例句（write-rebuild 章「写文件
+        {/* 前镜 4-A2 为图镜 → lead={false}；p4-05 是写入例句（write-rebuild 章「写文件
             +索引重建」的具象锚），p4-06 空窗由两例装置持有 */}
         <ArchifyRecap
           slug="recall-loop"
@@ -767,7 +768,7 @@ export const P4CatalogBody: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bB} name="4-B 复印店账单">
-        {/* 前镜 6-A 为图镜 → lead={false}；p4-07..10 空窗由开卷装置持有，p4-11 起三章接力 */}
+        {/* p4-06..10 空窗由开卷装置持有（~24s 隔断=空窗后重现）→ lead 默认入场；p4-11 起三章接力 */}
         <Sequence durationInFrames={at('p4-11') - bB.from} name="4-B 账单开卷回落">
           <CostQuestion
             span={at('p4-11') - bB.from}
@@ -778,7 +779,6 @@ export const P4CatalogBody: React.FC<{scene: SceneRange}> = ({scene}) => {
           />
         </Sequence>
         <ArchifyRecap
-          lead={false}
           slug="cache-economics"
           caption="缓存经济学"
           cues={[
@@ -790,12 +790,11 @@ export const P4CatalogBody: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bC} name="4-C 两层加载">
-        {/* lead={false}（前镜图镜）；p4-14 前窗分层成形、p4-15 图章、p4-16 后窗正文按需 */}
+        {/* p4-14 前窗分层成形（隔断=空窗后重现 → lead 默认入场）、p4-15 图章、p4-16 后窗正文按需 */}
         <Sequence durationInFrames={at('p4-15') - bC.from} name="4-C 分层成形">
           <LayerTease span={at('p4-15') - bC.from} />
         </Sequence>
         <ArchifyRecap
-          lead={false}
           slug="recall-loop"
           caption="记忆回路"
           cues={[
@@ -808,9 +807,9 @@ export const P4CatalogBody: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bD} name="4-D 旁路挑选">
-        {/* 两章背靠背（p4-17→p4-18 帧相邻，实例内自动抑制换章弹入）；p4-18b 实例走查 */}
+        {/* 实例首章空窗后重现（p4-16 装置窗隔断）→ lead 默认入场；p4-17→p4-18 两章
+            帧相邻由实例内自动抑制换章弹入；p4-18b 实例走查 */}
         <ArchifyRecap
-          lead={false}
           slug="sidecar-selection"
           caption="旁路挑选"
           cues={[
@@ -824,9 +823,9 @@ export const P4CatalogBody: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bE} name="4-E 降级与安全阀">
-        {/* fallback-valve 锚 p4-20；p4-21..22 安全阀+天平，p4-23 收束字卡右缘叠加（装置压暗让位） */}
+        {/* fallback-valve 锚 p4-20（p4-18b 装置窗隔断=空窗后重现 → lead 默认入场）；
+            p4-21..22 安全阀+天平，p4-23 收束字卡右缘叠加（装置压暗让位） */}
         <ArchifyRecap
-          lead={false}
           slug="sidecar-selection"
           caption="旁路挑选"
           cues={[
