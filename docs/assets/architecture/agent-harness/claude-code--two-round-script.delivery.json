@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "7b2827ba-04f5-460d-998a-8e0281c5834f",
+  "status": "current",
+  "command": "deliver",
+  "type": "sequence",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/.temp/archify/sequence-two-round-script-fig/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/docs/assets/architecture/agent-harness/claude-code--two-round-script.html",
+  "specification": {
+    "sha256": "221bf8eb21489831a53301c2ac00561e9437516e21c376e8e8fcf6b6f3181303",
+    "bytes": 2848
+  },
+  "artifact": {
+    "sha256": "4c1bfda93f7d96628348ad35bb7c9451348dc17a5849267d0edffc654a6462a7",
+    "bytes": 752421
+  }
+}

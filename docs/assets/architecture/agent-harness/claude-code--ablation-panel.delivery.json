@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "f4306db6-7d41-4bfe-aad5-fed702897455",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/.temp/archify/architecture-ablation-panel-fig/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/docs/assets/architecture/agent-harness/claude-code--ablation-panel.html",
+  "specification": {
+    "sha256": "06e82df9e68d0893e69813747ff9c1211c432c99c14f5cb8210ff304d463d832",
+    "bytes": 3280
+  },
+  "artifact": {
+    "sha256": "f1340016a07b7bbe3afe25f703cb65584ddbc0f7827ce3229a5b9dbe8ba34767",
+    "bytes": 757598
+  }
+}
