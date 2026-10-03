@@ -357,7 +357,9 @@ const OfficialCard: React.FC = () => {
           </div>
         </Panel>
       </div>
-      <Footnote delay={20}>{'产品：15 种消息类型（画面注）'}</Footnote>
+      {/* 15 种消息类型=【三】级（gl-notes 数字纪律：产品侧数字画面字必带归属，
+          口播零数字不兜底）；「三 · 据源码分析」与 P4/P5 角标逐字同源 */}
+      <Footnote delay={20}>{'产品：15 种消息类型 · 三 · 据源码分析'}</Footnote>
     </AbsoluteFill>
   );
 };
