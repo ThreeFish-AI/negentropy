@@ -4,6 +4,7 @@
 > **时长声明**：各镜时长以 `video/public/audio/manifest.json` 实测为准（edge 合成含时距全片 14.4 分 ∈ [13.0,14.6]）；timing 常数落 `video/src/timing.json`。
 > **本集视觉契约**（与 planning.md 一致）：core 陶土橙 `#D97757`＝主循环/传送带（全系列恒定锚〔M-001〕）；mech 时机蓝 `#7FB2E0`/深蓝 `#5C8FB8`＝时机层机制族；accent 金 `#EFB13C`＝金句卡/强调；警示红 `#FF5C5C`＝实验「拆掉后」崩溃态；确认绿 `#7ED321`＝「机制在位」基线态；深色底 `#0E1116`。空间分轨：后台线走画面右缘纵深、定时线走上缘横陈，两线不叠压。
 > **图例策略**：全屏独占；archify 逐章回放共 13 图 47 章 48 cue（锚定率 0.322，密度 3.33/分，五型齐）。
+> **hold 档口径（2026-10-03 评审留痕，v1 接受债）**：48 cue 中 45 个因「多句窗 × 短 storySec（3.2–7.8s）」落 pickFit hold 档（endStill 定格补足 +2~+25s，极端 gray-extra 25.1s；成片抽帧实证画框区逐像素静止），合计约 7.8 分钟定格。与 ep3 基线（中位窗 4.5s、最大定格 3.0s）相比是编排层回归，但句窗受已定稿配音约束不可收窄；v2 若迭代，优先给 worst-10 章加 beats 拉长 storySec 或重排锚句，本版显式接受。
 > **顶部安全带**：y<56 为章节条占用，各镜内容 y≥56 起。
 > **画面文字不复述口播**（RSI-007）：画面只放关键词/数字/标签/结构。
 
@@ -42,7 +43,7 @@
 
 | 镜 | 句区间 | 画面 | 动效 |
 |---|---|---|---|
-| 3-A 四层总装 | p3-01..05 | 四泳道全屏：判时流水线／队列账本／交付流水线／执行；上缘定时线横陈；角标 `Scheduler/Queue/Processor/Consumer`。·**archify full**：cron-four-layers `four-roles`+`four-roles` | 图例引导回放；四层随句逐层点亮，每层亮时其泳道边框 mech 蓝一拍（背靠背接缝实例已按规则处理入场） |
+| 3-A 四层总装 | p3-01..05 | 四泳道全屏：判时流水线／队列账本／交付流水线／执行；上缘定时线横陈；角标 `Scheduler/Queue/Processor/Consumer`。·**archify full**：cron-four-layers `four-roles`+`full-cycle` | 图例引导回放；首段四层总装（p3-01..02），p3-03..05 逐层细讲换 `full-cycle` 全周期走查章（评审修复：原同章 `four-roles` 背靠背重放会在窗界整帧跳回章首倒带——换章续播新内容；背靠背接缝实例内自动抑制入场） |
 | 3-B 医院四联画 | p3-06..09 | 四联画：排班表（判时）／候诊屏（缓冲）／护士（交付）／医生（执行）；末帧盖「比方到此为止」章 | 四联画逐格点亮；护士「叫人」手势一拍；盖章（deny 红边）落于「加急插队」小字上 |
 | 3-C 五段表达式 | p3-10..12 | 五段格子（分/时/日/月/星期）逐格点亮；三行示例滚动（每天九点/每五分钟/工作日九点）；角标 `0 9 * * *` 等 | 格子自左逐格点亮；示例行上滚替换 |
 | 3-D 或门反直觉 | p3-13..17 | 日格与星期格之间浮出「或」门；右侧小画面：零食家规（周末∪下雨→零食）；实例卡「9 月 28 日 · 礼拜一 · 照样响」「每月一号 · 也会响」。·**archify full**：cron-dom-dow-or `and-or`+`both-ways` | 或门图标弹入；两个实例卡先后翻起；第二卡翻起时或门再闪一拍 |
@@ -92,13 +93,13 @@
 
 | 幕 | 组件 | 公共组件 |
 |---|---|---|
-| P0 | `scenes/P0TwoWaits.tsx` | ArchifyRecap（两处）、金句标签、计费条（本集件） |
-| P1 | `scenes/P1RootAndSpecs.tsx` | ArchifyRecap（三处）、立碑装置（本集件）、HarnessStack（P1-C 地图底座可选） |
-| P2 | `scenes/P2OneReceipt.tsx` | ArchifyRecap（六处）、金句卡（cards）、闸门/筛网（本集件） |
-| P3 | `scenes/P3FourLayerClock.tsx` | ArchifyRecap（七处）、表达式五段格（本集件）、原生钟面 glyph |
+| P0 | `scenes/P0TwoWaits.tsx` | ArchifyRecap（三处）、金句标签、计费条（本集件） |
+| P1 | `scenes/P1RootAndSpecs.tsx` | ArchifyRecap（两处）、立碑装置（本集件）、HarnessStack（P1-C 地图底座可选） |
+| P2 | `scenes/P2OneReceipt.tsx` | ArchifyRecap（七处）、金句卡（cards）、闸门/筛网（本集件） |
+| P3 | `scenes/P3FourLayerClock.tsx` | ArchifyRecap（五处）、表达式五段格（本集件）、原生钟面 glyph |
 | P4 | `scenes/P4DiskNotAlive.tsx` | ArchifyRecap（四处）、双图标/卷帘门（本集件，零 Lottie） |
-| P5 | `scenes/P5AblationLab.tsx` | ArchifyRecap（六处）、红绿对拍面板（本集件，确认绿/警示红契约） |
-| P6 | `scenes/P6ReconRules.tsx` | ArchifyRecap（五处）、金句卡（cards）、对账账本（本集件） |
+| P5 | `scenes/P5AblationLab.tsx` | ArchifyRecap（七处）、红绿对拍面板（本集件，确认绿/警示红契约） |
+| P6 | `scenes/P6ReconRules.tsx` | ArchifyRecap（六处）、金句卡（cards）、对账账本（本集件） |
 
 - 运动层只用 `src/motion/` 冻结件（spring/schedule/window 铁律）；`ArchifyClip/Recap/Yield`、`harness-stack`、`solids-3d` 为共享冻结件只挂不改（ISSUE-207）；全片零 Lottie（ISSUE-202，钟摆/锁类强调用原生 glyph）。
 - cue 纪律：每 cue 单行字面 `at('句id') - bX.from`＋单参 `dur('同句id')`；跨句扩窗写 `dur('a') + dur('b')` 求和形态且首段句与 at 锚一致；同 slug 章节按锚句单调；镜界相邻的背靠背实例 `lead={false}`。

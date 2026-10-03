@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 ### Added
+### Claude Code Harness Engineering 系列第 4 集并发完全重制交付（2026-10-03）
+
+- **ep4《并发与调度》完全重制交付**（新题全称见 series.json SSOT）（C 型信源=176 独立重学冻结，骨架 A 拆机实验室，14:26.8 @1080p30，edge 草声版）：11 张新绘 archify 图（五型齐）+ 176 两图复用直通，47 章 48 cue 全屏独占，覆盖门 32.2%/3.3 每分；43 条数字穿透 + 双重校验 79 项闭合；ep3 下期卡同步新题并连坐重渲。
+
 ### Learn Claude Code 并发与调度独立重学精读（176，2026-10-01）
 
 - **Learn Claude Code「并发」两节独立重学精读入仓（docs/research/agent-harness/ 176）**：以最新版 /guided-learn（`cc1aa47`）对站点轨 s13 Background Tasks × s14 Cron Scheduler 做**零继承**的全新精读（不读不引 170–175 与系列 source-notes；源文件钉 `67a9126c`，与 fix/s18 分支四文件字节一致实测，main 平行轨 `ce8f9f18` 对照注记）——[176 精读笔记](docs/research/agent-harness/176-claude-code-concurrency-relearn.md)：占位回执守住「一次调用配一个结果」的协议名额、通知由主循环每轮收集后以新消息身份回注；cron 四层解耦（判时/队列/非阻塞交付/执行）与三道保险；durable 的进程内前提与官方三档替代；官方文档逐项对账（印证清单 + **抖动上限硬分歧**：课程 10%/15 分钟 vs 官方 30 分钟或区间之半 + 超时自动转后台三路径的 120 秒血缘）；教学版三处边界实测（后台路径复用 120 秒超时→开篇「十分钟例子」实际跑不完、通知摘要截 200 字、通知未转义）。配套原型 [cc_async_scheduling_lab.py](docs/research/agent-harness/assets/cc_async_scheduling_lab.py)（纯标准库确定性仿真，`--selftest` + e1–e5 五次破坏性实验）与两张 archify 图（`claude-code-bg-tasks--placeholder-notification-loop` / `claude-code-cron--four-layer-decoupling`，入 mermaid 管线）。质量闸：源稿对账两轮全新 Checker（29 行，4 行返工改正后 COUNTS 全 0、REFS 9/9）；成文盲评双判官一致判成稿胜；外行四测（LLM 代理）暴露并修复一处**类比失配**（「日历打卡」暗示记号累积，而代码每任务只留最近一次——原型实跑证伪后转直讲）。
@@ -67,7 +71,6 @@
 
 ### Added
 
-- ep4《并发与调度》完全重制交付（新题全称见 series.json SSOT）（C 型信源=176 独立重学冻结，骨架 A 拆机实验室，14:26.8 @1080p30，edge 草声版）：11 张新绘 archify 图（五型齐）+ 176 两图复用直通，47 章 48 cue 全屏独占，覆盖门 32.2%/3.3 每分；43 条数字穿透 + 双重校验 79 项闭合；ep3 下期卡同步新题并连坐重渲。
 - **[全仓熵减审计 2026-09](docs/concepts/operations/codebase-entropy-reduction-2026-09.md)**：批次清单与验证证据、执行期勘误表、行为变更声明、后端共享测试库基线方法论、跨模块重复决策记录（图引擎/markdown/cn 有意分叉边界、agents-chat-core 单消费者定位）与 backlog 全登记；[ISSUE-183/184](docs/.agents/issue.md) 沉淀路由遮蔽与测试库破窗两类跨上下文教训。新增测试资产 529 行（路由契约/集成冒烟/BFF 契约）。
 
 
