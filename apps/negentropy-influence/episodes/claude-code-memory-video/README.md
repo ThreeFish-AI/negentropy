@@ -1,6 +1,6 @@
 # 《记忆管理：一张草稿纸和一本卡片册》科普视频工程
 
-> 交付状态：**v2 已交付**（2026-10-03，评审修复二轮 13 项后重渲——金句卡口播原句/下期层呼吸辉光/SceneTag 七幕统一/教学四层对齐 P1 管线名/死代码清理/交付口径对账；13.15 分 = 789.03s @1080p30，mdls/manifest 对账，归档 ~/Documents/video/claude-code-explained/ v2 + _captions；v1 2026-10-02 见归档）。C 型信源=docs 精读 176（钉 ce8f9f18）。发布顺序见 [../../series.json](../../series.json)（工作区根）。
+> 交付状态：**v3 已交付**（2026-10-03，评审修复三轮 16 项后重渲——173 死链改指 gl-notes/176 §9.3→§9.2 与 137 浮动注记/两图 mmd 回写 HTML 文案同构/P0 0-B 装置接缝精确句窗（886·1098 帧像素实证）/motifs·theme 死代码清除/memory_lab T8b 降级断言 35 checks/destruct 实验4 独立 root/pipeline 注释终声口径/CHANGELOG 与 storyboard 口径；13.15 分 = 789.03s @1080p30，帧数不变 23,670，mdls/manifest 对账，归档 ~/Documents/video/claude-code-explained/ v3 + _captions；v2 = 789.03s 二轮 13 项、v1 = 789.08s 2026-10-02，均见归档/git 历史）。C 型信源=docs 精读 176（钉 ce8f9f18）。发布顺序见 [../../series.json](../../series.json)（工作区根）。
 
 ## 目录结构
 

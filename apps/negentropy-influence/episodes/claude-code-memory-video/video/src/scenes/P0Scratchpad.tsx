@@ -1,7 +1,7 @@
 /** P0 重发的账单（p0-01..13，3 镜 · scratchpad-anatomy 4 cue）——分镜 0-A…0-C。
  *
  *  ★ 系列开场换轴：本集不用 HarnessStack 落板、不挂 HarnessBadge 常驻条——
- *    全貌坐标装置（MapAnchor）在 1-C 首亮全图替代（五层栈只在 P6 收尾，
+ *    全貌坐标装置（MapAnchor）在 0-C 首亮全图替代（五层栈只在 P6 收尾，
  *    常驻条由坐标 Chip 在后续各幕替位）。
  *  ★ cue 锚句（一章锚一句、全片唯一）：fixed-prefix@p0-01 · pair-interlock@p0-02 ·
  *    full-resend@p0-04 · heavy-results@p0-06。0-B 与 0-A 同图但 p0-05 装置窗隔断 →
@@ -9,11 +9,12 @@
  *  ★ fit 显式两处按 views focus 数 × dwell（多拍 1.1s、≤2 拍 1.6s）估算：
  *    fixed-prefix 1 拍 vs 3.7s 窗 → hold；full-resend 6 拍 vs 4.5s 窗 → trim。
  *    录制重派生 archify.manifest 后须对 storySec 复核这两处（ArchifyRecap 头注纪律）。
- *  ★ 图镜空窗句由窗外回落装置持有（嵌套句窗 ±DUR.f3：装置先渲染、ArchifyRecap
- *    压顶，画框入场期自其下淡入——4-D②「画框直接遮盖」的平滑化，不引 ArchifyYield）：
+ *  ★ 图镜空窗句由窗外回落装置持有（嵌套句窗头 −DUR.f3：装置先渲染、ArchifyRecap
+ *    压顶，画框入场期自其下淡入——4-D②「画框直接遮盖」的平滑化，不引 ArchifyYield；
+ *    0-B 相邻装置接缝互不覆盖，尾部一律不延 +DUR.f3，防尾帧裸露硬切）：
  *    p0-03 纸在模型之外 / p0-05 写满拒收 / p0-07 千行文件≈几轮 / p0-08 token 卡 /
  *    p0-09 头号大户三巨块。
- *  ★ 1-C：MapAnchor 首亮全图（active='scratchpad'）+ 双问字卡两联（mech 点睛、
+ *  ★ 0-C：MapAnchor 首亮全图（active='scratchpad'）+ 双问字卡两联（mech 点睛、
  *    第二问 @impulse）+ 草稿纸母题小样右下驻场 + p0-13 两问→两机制预告虚线。
  */
 import React from 'react';
@@ -284,7 +285,7 @@ const TopHolder: React.FC<{span: number}> = ({span}) => {
   );
 };
 
-// ── 1-C 双问字卡 + 坐标首亮 + 草稿纸母题小样 ────────────────────────────
+// ── 0-C 双问字卡 + 坐标首亮 + 草稿纸母题小样 ────────────────────────────
 
 /** 双问字卡：问句主体 serif + mech 苔绿点睛短语；glowAt 给一次 impulse 辉光（第二问） */
 const QuestionCard: React.FC<{
@@ -340,7 +341,7 @@ const ScratchSample: React.FC<{at: number; stride: number}> = ({at, stride}) => 
   );
 };
 
-/** 1-C 主舞台：MapAnchor 全图首亮（M-001 恒定锚）压底，双问卡与母题小样浮上；
+/** 0-C 主舞台：MapAnchor 全图首亮（M-001 恒定锚）压底，双问卡与母题小样浮上；
  *  p0-13 两问各引一条虚线指向其机制层（问一→草稿纸层 text 白点、问二→卡片册层 mech 点） */
 const OneCTwoQuestions: React.FC<{
   atQ1: number;
@@ -405,13 +406,15 @@ export const P0Scratchpad: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bB} name="0-B 大头与拒收">
-        <Sequence from={at('p0-07') - bB.from - DUR.f3} durationInFrames={dur('p0-07') + DUR.f3 * 2} name="0-B 千行文件回落">
+        {/* 0-B 相邻回落装置 footprint 互不覆盖：尾部不延 +DUR.f3（仅首窗保留头 −f3
+            先于画框渲染），否则前装置尾帧裸露后整块硬切消失。 */}
+        <Sequence from={at('p0-07') - bB.from - DUR.f3} durationInFrames={dur('p0-07') + DUR.f3} name="0-B 千行文件回落">
           <FileEquation />
         </Sequence>
-        <Sequence from={at('p0-08') - bB.from} durationInFrames={dur('p0-08') + DUR.f3} name="0-B 计费单位回落">
+        <Sequence from={at('p0-08') - bB.from} durationInFrames={dur('p0-08')} name="0-B 计费单位回落">
           <TokenCard span={dur('p0-08')} />
         </Sequence>
-        <Sequence from={at('p0-09') - bB.from} durationInFrames={dur('p0-09') + DUR.f3} name="0-B 头号大户回落">
+        <Sequence from={at('p0-09') - bB.from} durationInFrames={dur('p0-09')} name="0-B 头号大户回落">
           <TopHolder span={dur('p0-09')} />
         </Sequence>
         {/* 前镜虽同为 scratchpad-anatomy 实例，但 p0-05 装置窗隔断＝空窗后重现 →

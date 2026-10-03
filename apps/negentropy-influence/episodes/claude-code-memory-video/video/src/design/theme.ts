@@ -34,17 +34,14 @@ export const theme = {
   // ── 本集概念色（重制种子：记忆层维度色=苔绿，沿系列槽位；Stage ② 复核对比度）──
   // 语义：苔绿=记忆/跨会话（长期层）
   concept: '#A9C46C',
-  conceptDeep: '#87A24E',
   // accent=账单/成本金（P4 缓存经济学强调）——系列「金=强调」语义族
   // （与 ep4 #EFB13C / ep5 #D9B36B 同族各持独立 hex，2026-10-03 评审定夺：
   // 换独立金并登记 series.json accents，撞色门/已用色表不再双盲）。
   accent: '#F0C244',
 
-  // ── 系列语义键（V3D 3D 层读；HarnessStack/motifs 消费）──
+  // ── 系列语义键（HarnessStack/motifs 消费）──
   // core = 循环内核：**全系列恒定 #D97757**；mech = 本集维度色（苔绿）。
   core: '#D97757',
-  coreDeep: '#B45A3C',
-  deny: '#EF6461', // 拒绝/危险唯一语义（3D 层读；与 danger 同源）
   mech: '#A9C46C',
   mechDeep: '#87A24E',
 } as const;
