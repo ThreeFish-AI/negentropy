@@ -124,7 +124,7 @@ const PainSplit: React.FC<{listAt: number; viewAt: number; gridAt: number}> = ({
           </div>
         ))}
         <div style={{fontSize: 17, color: theme.dim, paddingLeft: 21, opacity: st[2]}}>
-          这类工序知识，模型记不住
+          模型记不住
         </div>
       </div>
       {/* 开工视野卡：上下文=一次开工能看到的全部内容 */}
@@ -157,7 +157,7 @@ const PainSplit: React.FC<{listAt: number; viewAt: number; gridAt: number}> = ({
           })}
         </div>
         <div style={{fontSize: 14.5, color: theme.dim, marginTop: 12, opacity: gridP}}>
-          一次开工能看到的全部内容 —— 塞进去的每格都有代价
+          每格都有代价
         </div>
       </div>
     </div>
@@ -365,7 +365,7 @@ export const P0FortySix: React.FC<{scene: SceneRange}> = ({scene}) => {
             {chapterId: 'dt-eco', at: at('p0-03') - bB.from, durationInFrames: dur('p0-03') + dur('p0-04'), },
           ]}
         />
-        <CornerNote text="取数 2026-09-30 · 登记口径（自报）" y={150} x={60} />
+        <CornerNote text="取数 2026-09-30 · 登记口径（自报）" y={898} x={60} />
       </Sequence>
 
       <Sequence {...bC} name="0-C 工序知识">

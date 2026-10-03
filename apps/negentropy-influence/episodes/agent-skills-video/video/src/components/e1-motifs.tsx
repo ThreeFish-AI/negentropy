@@ -70,7 +70,6 @@ export const MENU_ROWS = [
 export const SkillMenuCard: React.FC<{
   appearAt: number;
   checkedRow?: string;
-  checkAt?: number;
   vanishedRow?: string;
   vanishAt?: number;
   forgedRow?: string;
@@ -81,7 +80,6 @@ export const SkillMenuCard: React.FC<{
 }> = ({
   appearAt,
   checkedRow,
-  checkAt = 0,
   vanishedRow,
   vanishAt = 0,
   forgedRow,

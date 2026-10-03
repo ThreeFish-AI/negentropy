@@ -50,7 +50,7 @@ const PageGlyph: React.FC<{w: number; h: number; stroke: string}> = ({w, h, stro
   </svg>
 );
 
-/** 幕内退场包装：hideAt 起淡出、不回弹（菜单卡在 4-E archify 窗起永久让位）。 */
+/** 幕内退场包装：hideAt 起淡出、不回弹（菜单卡入场在 4-E 窗内 p4-12 起，location 揭示前让位收场）。 */
 const FadeWrap: React.FC<{hideAt: number; children: React.ReactNode}> = ({hideAt, children}) => {
   const frame = useCurrentFrame();
   return <div style={{opacity: 1 - progress(frame, hideAt, DUR.f4)}}>{children}</div>;
