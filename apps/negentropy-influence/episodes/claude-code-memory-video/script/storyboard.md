@@ -2,16 +2,16 @@
 
 > **句 id 对齐**：镜=beat（narration.md v2 幕内空行分组），`beatWindow(sentences, scene.from, id, id2)` 取窗；句区间覆盖各幕全部句子、无交叠无遗漏（`check --check-scenes` 执法）。
 > **时长**：以 `video/public/audio/manifest.json` 实测为准（edge 草声 13.25 分；终声后重派生）。
-> **视觉契约**（与 [planning.md](./planning.md) §3 一致）：bg `#0E1116`／panel `#171C26`／text `#F2F5FA`／dim `#9AA7B8`；**mech 苔绿 `#A9C46C`=卡片册·记忆·长期（本集维度色）**；**core 橙 `#D97757`=循环内核恒定**（3D 层）；**账单金 `#EFB13C`=钱·成本·计费**；红线红 `#FF5C5C`（deny `#EF6461`）=破坏·拦截警示；确认绿 `#7ED321`=机制在位。灰白系底座=草稿纸·会话内。
+> **视觉契约**（与 [planning.md](./planning.md) §3 一致）：bg `#0E1116`／panel `#171C26`／text `#F2F5FA`／dim `#9AA7B8`；**mech 苔绿 `#A9C46C`=卡片册·记忆·长期（本集维度色）**；**core 橙 `#D97757`=循环内核恒定**（3D 层）；**账单金 `#F0C244`=钱·成本·计费**；红线红 `#FF5C5C`（deny `#EF6461`）=破坏·拦截警示；确认绿 `#7ED321`=机制在位。灰白系底座=草稿纸·会话内。
 > **顶部安全带 y<56** 归章节进度条；各镜画面 y≥56 起；底部角标 bottom≥150 避字幕条。
-> **archify 引导图**：全屏独占三分法（`forbid_inset`）；图集预算表见文末；cue 一章锚一句、锚句全片唯一；前一镜为引导图实例的镜，其 `<ArchifyRecap>` 一律 lead=false（跨实例接缝防重入弹簧）。
+> **archify 引导图**：全屏独占三分法（`forbid_inset`）；图集预算表见文末；cue 一章锚一句、锚句全片唯一；lead 契约＝**帧相邻才 false**：与前一图镜末章帧相邻（无空窗回落句窗隔断）的实例传 lead=false 防重入弹簧，空窗后重现的实例一律默认入场（ArchifyClip 契约——否则整框以全不透明一帧瞬现）。
 
 ## P0 重发的账单（组件 `P0Scratchpad.tsx`）
 
 | 镜 | 句区间 | 画面 | 动效 |
 |---|---|---|---|
-| 0-A 草稿纸解剖 | p0-01..05 | ·**archify full**：scratchpad-anatomy 章 `fixed-prefix`+`pair-interlock`+`full-resend`（纸解剖全屏：指令区/消息对/全量重发边依次聚焦） | 章节回放三分句接力 |
-| 0-B 大头与拒收 | p0-06..09 | ·**archify full**：scratchpad-anatomy 章 `heavy-results`（同图续章：巨型结果块聚焦，lead=false） | 章节回放 |
+| 0-A 草稿纸解剖 | p0-01..05 | ·**archify full**：scratchpad-anatomy 章 `fixed-prefix`+`pair-interlock`+`full-resend`（纸解剖全屏：指令区/消息对/全量重发边依次聚焦）；空窗回落 p0-03 纸面旁注（PaperAside）、p0-05 拒收章（RejectStamp） | 章节回放三分句接力 |
+| 0-B 大头与拒收 | p0-06..09 | ·**archify full**：scratchpad-anatomy 章 `heavy-results`（同图续章：巨型结果块聚焦；p0-05 装置窗隔断＝空窗后重现，默认入场）；空窗回落 p0-07 千行等式（FileEquation）、p0-08 计费单位（TokenCard）、p0-09 头号大户（TopHolder） | 章节回放 |
 | 0-C 双问字卡 | p0-10..13 | 场景镜：全貌坐标装置首亮全图（草稿纸层／卡片册层／尾区三分卡，当前高亮草稿纸层，其余压暗）；双问字卡两联（「凭什么跑一整天不崩？」／「凭什么第二天还记得你？」，mech 苔绿点睛）；草稿纸母题小样（纸张+行线）右下驻场 | `@enter:rise` 坐标三分卡错峰落位〔M-001 恒定锚〕；`@impulse` 第二问字卡点睛 |
 
 ## P1 便宜的先跑（组件 `P1CheapFirst.tsx`）
@@ -33,7 +33,7 @@
 | 2-A 小票互锁 | p2-01..05 | ·**archify full**：pairing-interlock 章 `paired-ok`+`torn-reject`+`retreat-fix`（配对时序三章接力：常态→黑单→回退修复）；空窗回落 p2-01 纸面互锁首现、p2-03..03 出菜口小票装置 | 章节回放三章接力 |
 | 2-B 拆回退消融 | p2-07..11 | 场景镜：正反同屏消融（左坏：剪刀拆回退→断裂计数 0→1 跳红→mock 校验红章；右好：切点回退两拍动画→整对越过绿章）；下缘「等批次完成」锁定按钮（压缩按钮在进度条走完前灰锁） | `@count` 断裂计数 0→1；`@enter:slide` 剪刀两拍；警示红↔确认绿对置 |
 | 2-C 快递与双保险 | p2-13..17 | ·**archify full**：unseen-guard 章 `unseen-safe`+`old-swap`+`two-guards`（未读保护状态图三章接力）；空窗回落 p2-14..15 门口快递装置 | 章节回放三章接力 |
-| 2-D 拆保护消融 | p2-18..20 | ·**archify full**：unseen-guard 章 `guard-off`（破坏路径章，画面字 9,009→137，lead=false）；空窗回落 p2-19..20 两道保险收束卡 | 章节回放 |
+| 2-D 拆保护消融 | p2-18..20 | ·**archify full**：unseen-guard 章 `guard-off`（破坏路径章，画面字 9,009→137；p2-17 末章帧相邻 → lead=false）；空窗回落 p2-19..20 两道保险收束卡（p2-20 金句字卡「红线之内，腾挪才叫安全」＝口播原句收束形，同 P6 p6-23 口播原句形，刻意逐字） | 章节回放 |
 
 ## P3 压扁之后（组件 `P3AfterSummary.tsx`）
 
@@ -50,10 +50,10 @@
 |---|---|---|---|
 | 4-A 卡片册解剖 | p4-01..04 | ·**archify full**：memory-file-anatomy 章 `one-file`+`frontmatter`+`four-types`（存储解剖三章接力） | 章节回放三章接力 |
 | 4-A2 写入全景回看 | p4-05..06 | ·**archify full**：recall-loop 章 `write-rebuild`（全景图写入章：写文件+索引重建，锚写入例句；lead=false；p4-06 四类两例装置由场景层持有） | 章节回放 |
-| 4-B 复印店账单 | p4-07..13 | ·**archify full**：cache-economics 章 `prefix-hit`+`one-char`+`two-lanes`（复印店三章接力，账单金主轴，lead=false） | 章节回放三章接力 |
-| 4-C 两层加载 | p4-14..16 | ·**archify full**：recall-loop 章 `two-channels`（全景图两通道章：目录常驻缓存价 vs 正文按需，lead=false） | 章节回放 |
-| 4-D 旁路挑选 | p4-17..18b | ·**archify full**：sidecar-selection 章 `sidecar-pick`+`budget-funnel`（旁路时序+限额漏斗两章接力，lead=false） | 章节回放两章接力 |
-| 4-E 降级与安全阀 | p4-20..23 | ·**archify full**：sidecar-selection 章 `fallback-valve`（降级+安全阀章，lead=false）；句 p4-23 收束字卡「有什么常驻 · 是什么按需」由场景层右缘叠加 | 章节回放 |
+| 4-B 复印店账单 | p4-07..13 | ·**archify full**：cache-economics 章 `prefix-hit`+`one-char`+`two-lanes`（复印店三章接力，账单金主轴；p4-06..10 装置窗隔断＝空窗后默认入场） | 章节回放三章接力 |
+| 4-C 两层加载 | p4-14..16 | ·**archify full**：recall-loop 章 `two-channels`（全景图两通道章：目录常驻缓存价 vs 正文按需；p4-14 装置窗隔断＝默认入场） | 章节回放 |
+| 4-D 旁路挑选 | p4-17..18b | ·**archify full**：sidecar-selection 章 `sidecar-pick`+`budget-funnel`（旁路时序+限额漏斗两章接力；p4-16 装置窗隔断＝默认入场，章内接力自动抑制） | 章节回放两章接力 |
+| 4-E 降级与安全阀 | p4-20..23 | ·**archify full**：sidecar-selection 章 `fallback-valve`（降级+安全阀章；p4-18b 装置窗隔断＝默认入场）；句 p4-23 收束字卡「有什么常驻 · 是什么按需」由场景层右缘叠加 | 章节回放 |
 
 ## P5 三道门（组件 `P5ThreeGates.tsx`）
 
@@ -63,7 +63,7 @@
 | 5-B 三句穿门 | p5-05..10 | ·**archify full**：memory-gates 章 `three-in`+`first-pass`+`second-block`+`third-block`+`one-of-three`（三句穿门走查五章接力，lead=false；终态计数「入库 1/3」由图章 note 承载） | 章节回放五章接力（Animated State Trace 全片高潮） |
 | 5-C 便签对置 | p5-11..14 | 场景镜：会议纪要本（苔绿·跨次生效）vs 桌角便签（灰·当次作废）对置卡；拦截提示条「关键词级一刀切」 | `@enter:rise` 对置卡；`@impulse` 拦截条 |
 | 5-D 事务整理 | p5-15..20 | ·**archify full**：consolidation-txn 章 `trigger-snapshot`+`swap-write`+`fail-rollback`+`no-snapshot`（事务四章接力，含 10→0 破坏章） | 章节回放四章接力 |
-| 5-E 界线卡 | p5-21..23 | ·**archify full**：recall-loop 章 `consolidate`（p5-21 全景图整理章回看，承接 5-D 事务链，lead=false）；场景镜：界线卡（左「草稿纸内的腾挪：省着放」/右「卡片册：跨会话值得留」）；地图坐标小图（官方产品两席定位）；卡片册母题合拢定格 | `@enter:settle` 界线卡；`@breathe` 卡片册苔绿辉光收束 |
+| 5-E 界线卡 | p5-21..23 | ·**archify full**：recall-loop 章 `consolidate`（p5-21 全景图整理章回看，承接 5-D 事务链；p5-20 装置窗隔断＝空窗后默认入场）；场景镜：界线卡（左「草稿纸内的腾挪：省着放」/右「卡片册：跨会话值得留」）；地图坐标小图（官方产品两席定位）；卡片册母题合拢定格（让到 cue 窗外，p5-22 起） | `@enter:settle` 界线卡；`@breathe` 卡片册苔绿辉光收束 |
 
 ## P6 照进生产（组件 `P6Production.tsx`）
 
@@ -91,11 +91,11 @@
 | P5 | `P5ThreeGates.tsx` | 便签对置、界线卡、母题合拢 |
 | P6 | `P6Production.tsx` | 对照条、双标尺、卡片墙、五规律卡、护栏卡、`components/harness-stack.tsx`（复制自 ep4）、下期卡 |
 
-公共：`components/motifs.tsx`（seeded chrome 层 Panel/Footnote/SceneTag/Counter/CodeCard/NumberedCard）+ 本集新增 `map-anchor.tsx`（全貌坐标装置）+ `harness-stack.tsx`（系列复制源 ep4，层序/层名读 series-layers.json）；`ArchifyRecap` 三件为 frozen 薄包装。信源卡（P6 依据与致谢）四条固定行走 8-E 右下小字（系列惯例）。
+公共：`components/motifs.tsx`（seeded chrome 层 Panel/Footnote/SceneTag/Counter/CodeCard/NumberedCard）+ 本集新增 `map-anchor.tsx`（全貌坐标装置）+ `harness-stack.tsx`（系列复制源 ep4，层序/层名读 series-layers.json）；`ArchifyRecap` 三件为 frozen 薄包装。信源卡（P6 依据与致谢）四条固定行走 6-E 右下小字（系列惯例）。
 
 ## archify 图集预算表
 
-12 图（10 新绘＋2 复用重建）· 5 型 · 45 章引导故事 · 48 cue 落镜（密度按实测分钟复算 ≥3.0；句级锚定率 44/139=31.7% ≥30%）：
+12 图（10 新绘＋2 复用重建）· 5 型 · 45 章引导故事 · 48 cue 落镜（密度按实测分钟复算 ≥3.0；句级锚定率 48/139=34.5% ≥30%，与覆盖门同口径、含 P6 四条回看锚句）：
 
 | # | 图 | 型 | 章数 | cue 落镜 |
 |---|---|---|---|---|

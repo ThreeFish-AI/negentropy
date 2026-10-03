@@ -323,13 +323,13 @@ uv run --no-project python docs/research/agent-harness/assets/destruct.py       
 | s08 工具 6 个 / s09 工具 5 个（§2 版本差异） | s08 `TOOLS = [*BASE_TOOLS, COMPACT_TOOL]`（bash/read_file/write_file/edit_file/glob + compact）；s09 TOOLS 内联 5 个（无 compact） | ✅ 与正文一致；站点页头 9/6 为讲义口径，口播用 6/5 实测 |
 | 批次预算 200,000 / 单结果落盘线 30,000 / 收据预览 2,000（§3.1 L1） | `TOOL_RESULT_BATCH_CHAR_LIMIT = 200000` · `LARGE_RESULT_CHAR_LIMIT = 30000` · `preview_chars: int = 2000` | ✅ |
 | snip 阈值 50 条、保首 3 + 近 46（§3.1 L2） | `def snip_compact(..., max_messages: int = 50)` · `head_end = 3` · `tail_start = len(messages) - (max_messages - head_end - 1)`（46 为计算值 `50−3−1`，源码无字面 46） | ✅（46 是推导口径，口播可说「保留最初三条与最近四十六条」并落 3/46 画面字） |
-| micro 阈值 50,000、目标八成、旧结果 >120 字符、fit 未读批留 1,000（§3.1 L3） | `CONTEXT_CHAR_LIMIT = 50000` · `target = int(self.CONTEXT_CHAR_LIMIT * 0.8)` · `[:120]`（micro 扫描截断口径） · `preview_chars=1000`（fit 路径） | ✅（120 在源码中为预览截断参数，正文「长于 120 字符的旧结果」表述与代码语义一致） |
+| micro 阈值 50,000、目标八成、旧结果 >120 字符、fit 未读批留 1,000（§3.1 L3） | `CONTEXT_CHAR_LIMIT = 50000` · `target = int(self.CONTEXT_CHAR_LIMIT * 0.8)` · `if len(content) <= 120: continue`（micro 扫描最短长度闸门，s08 L435） · `preview_chars=1000`（fit 路径） | ✅（正文「长于 120 字符的旧结果」与闸门语义一致） |
 | prepare 顺序 budget→snip→(>50K)micro→fit→compact_history（§3.1） | `prepare()` 逐行目检：顺序与条件分支逐字吻合 | ✅ |
 | reactive 保尾 5 条、重试 1 次（§3.1 应急） | `KEEP_RECENT_MESSAGES = 5`（tail_start 计算 + 配对回退）· 模块 docstring L36 `prompt_too_long -> reactive_compact -> retry once` | ✅ |
 | micro 保留最近 3 条（§3.3 双保险） | `KEEP_RECENT_RESULTS = 3`（`consumed[:-self.KEEP_RECENT_RESULTS]`） | ✅ |
 | 记忆四类 type（§4.1） | `MEMORY_TYPES = ("user", "feedback", "project", "reference")` | ✅ |
 | 临时词黑名单 19 个中英日（§4.3） | `TEMPORARY_MEMORY_MARKERS` 实数 19（英 9 + 中 7 + 日 3） | ✅ |
-| 召回：最近 3 轮 ≤4,000 字符、目录 ≤12,000、选 ≤5 条、正文 ≤20,000（§4.2） | `reversed(turns))[:4000]` · `catalog[:12000]` · `max_tokens=200`（旁路输出上限，选 5 条为提示词约束） · `RECALL_CHAR_LIMIT = 20000` | ✅ |
+| 召回：最近 3 轮 ≤4,000 字符、目录 ≤12,000、选 ≤5 条、正文 ≤20,000（§4.2） | `reversed(turns))[:4000]` · `catalog[:12000]` · `max_items=5`（形参截断，s09 L286/L319；`max_tokens=200` 为旁路输出上限） · `RECALL_CHAR_LIMIT = 20000` | ✅ |
 | 整理 ≥10 条触发、至多 30 条（§4.4） | `CONSOLIDATE_THRESHOLD = 10` · 提示词内 `30 records` 上限文案 | ✅（30 为提示词约束口径） |
 | 原型 T11/T12 数字（§3.4/§6） | 本集复跑 `--selftest`：530K→6,677、0 次摘要；T12 终态 32,390 全绿 | ✅【一】级成立 |
 | 信源鲜度 | main HEAD = `ce8f9f18`（2026-09-28，无新提交）；s08 站点页 86,347 字节与 GL 台账一致 | ✅ 零漂移 |
