@@ -16,7 +16,7 @@
 |---|---|
 | GL 产物（冻结对象） | [docs/research/agent-infra/230-agent-skills-standard.md](../../../../../docs/research/agent-infra/230-agent-skills-standard.md)（211 行） |
 | GL 首次入库 | commit `6a3604066`，2026-10-01（「Agent Skills 开放标准三代完全重读精读笔记（230）与配套原型」） |
-| 本快照冻结版 | commit `d7c651f9f`，2026-10-01（「230 评审修复：账本按 tier 逐笔对冲根除 X4 双计与 X5 负数，同步口径 +13% 与位次 12」；其后仅 `0bba74b92` 做行数元数据同步——464→469 行与行号速查刷新，内容口径未变） |
+| 本快照冻结版 | commit `d7c651f9f`，2026-10-01（「230 评审修复：账本按 tier 逐笔对冲根除 X4 双计与 X5 负数，同步口径 +13% 与位次 12」；其后 `123f8a20b` 给脚本加 5 行 docstring 披露（464→469 行，纯注释不动计费逻辑）、`0bba74b92` 同步 230 文档内引用与行号速查，内容口径未变） |
 | 快照制作日期 / 制作方式 | 2026-10-01 · 通读 230 全文逐节四段式摘编，数字原样引用不改写 |
 
 **原始信源清单**（5 条，全 B 型；GL 取数日期一律 2026-09-30，编号沿用 230 文末 IEEE 参考）：
@@ -265,4 +265,4 @@
 | archify 图 ②双轨治理 | [agent-skills-std-dual-track.html](../../../../../docs/assets/architecture/agent-infra/agent-skills-std-dual-track.html)（+ dark/light .png 同目录；.mmd 源 [agent-skills-std-dual-track.mmd](../../../../../docs/assets/mermaid/agent-infra/agent-skills-std-dual-track.mmd)） | 230 §8 引用（治理相）；一句话结论：「规范只钉六字段与目录形状，装载面宽容、校验面严格、扩展面各家自理，三条轨道各自服务连通性、纯净度与功能诉求」 |
 | 上游 GL 取证台账 | `.temp/agent-skills-open-standard-lab/sources.md`（仓库根，指针登记不重述） | 新鲜度探针 + 覆盖表；活信源指纹承接 `research/sources.toml` 按 C 型规格§一-1 另步落地 |
 
-> archify 图按 C 型规格§一-3 承接：拷入工作区 `archify-html/` 供 Stage ⑥/⑧ `record_archify_all.py` 录制，免除从零重绘。
+> archify 图按 C 型规格§一-3 承接：拷入工作区 `video/public/archify/html/` 供 Stage ⑥/⑧ `record_archify_all.py` 录制，免除从零重绘。

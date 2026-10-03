@@ -764,7 +764,7 @@ export const P1Doorplate: React.FC<{scene: SceneRange}> = ({scene}) => {
         <LedgerPeek peekAt={at('p1-14') - bD.from + Math.round(dur('p1-14') * 0.62)} />
       </Sequence>
 
-      {/* M-001 首亮后右上常驻（storyboard 契约「P1 首亮后右上常驻，P6 合页」）：
+      {/* M-001 首亮后右上常驻（planning.md M-001 打点链；P6 收束由 6-D 目录树回扣承载）：
        *  幕级单实例跨 1-C..1-D，at 值仍以 bC.from 为原点——避免分镜各挂一份在
        *  镜界重放入场弹簧、1-D 整镜无锚断档 */}
       <Sequence from={bC.from} durationInFrames={scene.durationInFrames - bC.from}>

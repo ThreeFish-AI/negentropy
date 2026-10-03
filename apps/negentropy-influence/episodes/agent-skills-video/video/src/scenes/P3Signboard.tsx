@@ -1083,14 +1083,15 @@ export const P3Signboard: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       <Sequence {...bC} name="3-C 评测四步">
         <SceneTag chapter="P3" tagline="一句招牌" accent={theme.conceptDeep} />
-        {/* 激活章二次锚（p3-13 跑分判定=SKILL.md 是否真的被读入）——全屏独占期间阶梯让位 */}
-        <ArchifyYield cues={[{at: at('p3-13') - bC.from, durationInFrames: dur('p3-13')}]}>
+        {/* 激活章二次锚（p3-13 跑分判定=SKILL.md 是否真的被读入）——全屏独占期间阶梯
+         *  让位；窗缩至句前缀（尾 56 帧留给第 2 级跑分点亮，防动画全程被窗吞没） */}
+        <ArchifyYield cues={[{at: at('p3-13') - bC.from, durationInFrames: dur('p3-13') - 56}]}>
           <Stage>
             <EvalLadder
               frameAt={at('p3-11') - bC.from}
               steps={[
                 at('p3-12') - bC.from,
-                at('p3-13') - bC.from,
+                at('p3-13') - bC.from + dur('p3-13') - 56,
                 at('p3-14') - bC.from,
                 at('p3-15') - bC.from,
               ]}
@@ -1101,7 +1102,7 @@ export const P3Signboard: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap
           slug="lifecycle"
           caption="激活 · 跑分判定"
-          cues={[{chapterId: 'lc-activate', at: at('p3-13') - bC.from, durationInFrames: dur('p3-13'), }]}
+          cues={[{chapterId: 'lc-activate', at: at('p3-13') - bC.from, durationInFrames: dur('p3-13') - 56, }]}
         />
       </Sequence>
 

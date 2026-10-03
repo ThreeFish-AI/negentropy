@@ -66,7 +66,7 @@ export const MENU_ROWS = [
 
 /** 〔M-001〕技能菜单卡：右上恒定锚。剧情打点全由 props 声明：
  *  appearAt 入场帧；checkedRow 打勾行（激活）；vanishedRow 静默消失行（X1）；
- *  forgedRow 染红伪造行（X3）；collapsed 合页收拢（P6 收束）。 */
+ *  forgedRow 染红伪造行（X3）。P6 收束由 6-D 目录树回扣承载（planning M-001）。 */
 export const SkillMenuCard: React.FC<{
   appearAt: number;
   checkedRow?: string;
@@ -74,8 +74,6 @@ export const SkillMenuCard: React.FC<{
   vanishAt?: number;
   forgedRow?: string;
   forgeAt?: number;
-  collapsed?: boolean;
-  collapseAt?: number;
   dimmed?: boolean;
 }> = ({
   appearAt,
@@ -84,14 +82,11 @@ export const SkillMenuCard: React.FC<{
   vanishAt = 0,
   forgedRow,
   forgeAt = 0,
-  collapsed = false,
-  collapseAt = 0,
   dimmed = false,
 }) => {
   const frame = useCurrentFrame();
   const enter = useSpring('settle', {at: appearAt, dur: DUR.f6});
   const enterO = progress(frame, appearAt, DUR.f6); // effects 不变量：透明度走时长缓动
-  const collapseP = collapsed ? progress(frame, collapseAt, DUR.f5) : 0;
   return (
     <div
       style={{
@@ -100,7 +95,7 @@ export const SkillMenuCard: React.FC<{
         top: 72,
         width: 316,
         opacity: enterO * (1 - 0.55 * Number(dimmed)),
-        transform: `translateY(${(1 - enter) * -26}px) scale(${collapsed ? 1 - 0.18 * collapseP : 1})`,
+        transform: `translateY(${(1 - enter) * -26}px)`,
         background: theme.panel,
         border: `1.5px solid ${theme.panelBorder}`,
         borderRadius: 12,
@@ -166,11 +161,9 @@ export const LedgerBar: React.FC<{
   sum: number;
   redModeAt?: number;
   dimmed?: boolean;
-  visible?: boolean;
-}> = ({t1, t2, t3, sum, redModeAt, dimmed = false, visible = true}) => {
+}> = ({t1, t2, t3, sum, redModeAt, dimmed = false}) => {
   const frame = useCurrentFrame();
   const red = redModeAt !== undefined ? progress(frame, redModeAt, DUR.f4) : 0;
-  if (!visible) return null;
   const cell = (label: string, val: number, accent: string) => (
     <div style={{display: 'flex', alignItems: 'baseline', gap: 8}}>
       <span style={{fontSize: 14, color: theme.dim, fontFamily: theme.mono}}>{label}</span>
@@ -232,14 +225,13 @@ export const LedgerBar: React.FC<{
 
 /** 〔M-004〕门牌/招牌字形系统。
  *  variant='door'：靛蓝底白字门牌（name=目录名，身份面）
- *  variant='sign'：街头招牌框（description，路由面）；lit 点亮招牌文字。 */
+ *  variant='sign'：街头招牌框（description，路由面），招牌文字常亮。 */
 export const Plaque: React.FC<{
   variant: 'door' | 'sign';
   title: string;
   sub?: string;
   width?: number;
-  lit?: boolean;
-}> = ({variant, title, sub, width = 340, lit = true}) => {
+}> = ({variant, title, sub, width = 340}) => {
   if (variant === 'door') {
     return (
       <div
@@ -276,7 +268,7 @@ export const Plaque: React.FC<{
     <div
       style={{
         width,
-        border: `3px solid ${lit ? theme.conceptDeep : theme.panelBorder}`,
+        border: `3px solid ${theme.conceptDeep}`,
         borderRadius: 8,
         padding: '14px 18px 10px',
         background: theme.panel,
@@ -310,7 +302,7 @@ export const Plaque: React.FC<{
           fontFamily: theme.mono,
           fontSize: 17,
           lineHeight: 1.5,
-          color: lit ? theme.text : theme.dim,
+          color: theme.text,
         }}
       >
         {title}

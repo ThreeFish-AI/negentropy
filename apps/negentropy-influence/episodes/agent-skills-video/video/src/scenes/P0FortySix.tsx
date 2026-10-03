@@ -9,7 +9,7 @@ import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
 import type {SceneRange} from '../types';
 import {beatWindow} from '../timing';
 import {theme} from '../design/theme';
-import {DUR, progress, useSpring, useStagger} from '../motion';
+import {DUR, progress, useBreathe, useSpring, useStagger} from '../motion';
 import {SceneTag} from '../components/motifs';
 import {CornerNote, Plaque, Stage} from '../components/e1-motifs';
 import {ArchifyRecap} from '../components/ArchifyRecap';
@@ -220,7 +220,7 @@ const TwoDeadEnds: React.FC<{guessAt: number; stuffAt: number; billAt: number; b
       {/* 路线二：塞开场白 */}
       <div style={{display: 'flex', alignItems: 'center', gap: 26, opacity: stuffP}}>
         <div style={{fontSize: 16, color: theme.dim, width: 74}}>路线二</div>
-        <div style={{fontSize: 21, color: theme.text}}>手册全塞进开场白</div>
+        <div style={{fontSize: 21, color: theme.text}}>全塞进开场白</div>
         {/* 格阵：填满 → 变暗 → 挤压 */}
         <div
           style={{
@@ -289,6 +289,7 @@ const Flip: React.FC<{cardAt: number; doorAt: number}> = ({cardAt, doorAt}) => {
   const settle = useSpring('settle', {at: cardAt, dur: DUR.f6});
   const settleO = progress(frame, cardAt, DUR.f6); // opacity 走时长缓动（effects 不变量）
   const doorP = progress(frame, doorAt, DUR.f5);
+  const hover = useBreathe({period: 90, amp: 0.45}); // 门牌悬停呼吸（与 1-D HookPull 同款口径）
   return (
     <div style={{position: 'relative', width: 1100, height: 520}}>
       <div
@@ -301,7 +302,7 @@ const Flip: React.FC<{cardAt: number; doorAt: number}> = ({cardAt, doorAt}) => {
         }}
       >
         <div style={{fontSize: 17, color: theme.dim, marginBottom: 14, letterSpacing: 2}}>
-          Agent Skills 把这笔账整个反过来
+          Agent Skills · 账反过来了
         </div>
         <div
           style={{
@@ -312,9 +313,9 @@ const Flip: React.FC<{cardAt: number; doorAt: number}> = ({cardAt, doorAt}) => {
             fontWeight: 700,
           }}
         >
-          常驻的只留一行
+          常驻一行
           <br />
-          用到的，才付钱
+          用到才付钱
         </div>
       </div>
       {/* 门牌：答案的前一半 */}
@@ -324,7 +325,7 @@ const Flip: React.FC<{cardAt: number; doorAt: number}> = ({cardAt, doorAt}) => {
           right: 80,
           bottom: 96,
           opacity: doorP,
-          transform: `translateY(${(1 - doorP) * 40}px) rotate(${(1 - doorP) * -6}deg)`,
+          transform: `translateY(${(1 - doorP) * 40 + (hover - 0.55) * -10 * doorP}px) rotate(${(1 - doorP) * -6}deg)`,
         }}
       >
         <Plaque variant="door" title="?" sub="答案的前一半，钉在门牌上" />
