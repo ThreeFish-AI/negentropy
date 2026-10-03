@@ -261,6 +261,8 @@ apps/negentropy-ui/.yarn/*
 
 # Temp files
 .temp/
+# archify 技能建图工作现场（candidate+试渲染；canonical HTML 已拷入 docs/assets/architecture/ 并入库，现场留盘供修复重跑、不入库）
+.archify/
 .playwright-mcp/
 
 # Playwright auth artifacts (browser session reuse) — see docs/agents/browser-validation.md

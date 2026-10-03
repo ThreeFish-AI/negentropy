@@ -1,0 +1,36 @@
+%% source: docs/research/agent-harness/176-learn-claude-code-memory.md §4.2
+%% slug: learn-claude-code-memory--recall-loop
+%% type: workflow
+%% derived: docs/assets/architecture/agent-harness/learn-claude-code-memory--recall-loop.html
+%% 回写对齐: 泳道标题/节点/边标签与 HTML 交付物逐字对齐（2026-10-03 回写；五泳道、「会话尾提取+三道门」拆两节点，文案以 HTML 为准）
+flowchart LR
+    subgraph A["01 常驻通道 · 两条召回路径"]
+        IDX["MEMORY.md 目录<br/>常驻固定前缀"]
+        SYS["system prompt<br/>开头不变 · 命中缓存"]
+        IDX --> SYS
+    end
+    subgraph B["02 对话主循环"]
+        REQ["用户请求<br/>会话开始"]
+        LLM["模型调用<br/>工具循环"]
+    end
+    subgraph C["03 按需通道 · 两条召回路径"]
+        SEL["旁路选择<br/>轻量 1 次调用 · 选 ≤5 条"]
+        LOAD["读正文 · 注入当轮<br/>≤20K 字符 · 不动前缀"]
+        SEL --> LOAD
+    end
+    subgraph D["04 会话尾 · 提取写回"]
+        EXT["会话尾提取<br/>压缩前快照"]
+        GATES["三道门<br/>scope · 临时词 · 查重"]
+        W["写记忆文件<br/>frontmatter+正文"]
+        EXT --> GATES
+        GATES -- "三门全过" --> W
+    end
+    subgraph E["05 低频整理"]
+        CONS["低频整理<br/>快照 · 合并 · 恢复"]
+    end
+    REQ --> IDX
+    REQ -. "并行" .-> SEL
+    SYS --> LLM
+    LOAD --> LLM
+    LLM -- "停止且无工具调用" --> EXT
+    W -- "≥10 条" --> CONS

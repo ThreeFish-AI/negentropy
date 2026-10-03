@@ -1,0 +1,33 @@
+%% source: docs/research/agent-harness/176-learn-claude-code-memory.md §3.1
+%% slug: learn-claude-code-memory--compact-pipeline
+%% type: workflow
+%% derived: docs/assets/architecture/agent-harness/learn-claude-code-memory--compact-pipeline.html
+%% 回写对齐: 泳道标题/节点/边标签与 HTML 交付物逐字对齐（2026-10-03 回写；compact 节点补齐，文案以 HTML 为准）
+flowchart LR
+    subgraph A["01 四层压缩管线（L1–L3 · 0 次调用）"]
+        IN["消息列表<br/>对话上下文"]
+        B["L1 大结果落盘<br/>&gt;20万字 → 收据+预览"]
+        SNIP["L2 裁中段<br/>&gt;50条 · 保首尾 · 归档中间"]
+        MF["L3 旧结果换地址<br/>估算仍超5万 · 压到八成"]
+        CH["L4 模型摘要<br/>只留五类事实 · 1次调用"]
+        IN --> B --> SNIP
+    end
+    subgraph C["02 模型调用"]
+        CALL["模型调用<br/>API 请求"]
+    end
+    subgraph E["EX 工具与应急"]
+        TOOLS["工具批次执行<br/>整批完成才进下一轮"]
+        COMPACT["compact 主动压缩<br/>等整批工具完成后触发"]
+        RC["应急裁剪<br/>保尾5条 · 摘要更早 · 重试1次"]
+    end
+    SNIP -- "仍超限" --> MF
+    SNIP -. "未超限 · 直达" .-> CALL
+    MF --> CH
+    CH --> CALL
+    CALL -- "prompt_too_long" --> RC
+    RC -- "重试 1 次" --> CALL
+    CALL -- "tool_use" --> TOOLS
+    CALL -- "点名 compact" --> COMPACT
+    TOOLS -- "整批完成" --> COMPACT
+    COMPACT -- "下一轮调用前重走四层" --> B
+    TOOLS -- "下一轮" --> IN

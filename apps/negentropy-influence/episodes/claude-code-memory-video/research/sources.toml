@@ -6,62 +6,62 @@
 
 
 [s08-readme]
-url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s08_context_compact/README.md"
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/ce8f9f186058939da54c9d6fead78dfb5d0fd6c3/s08_context_compact/README.zh.md"
 kind = "repo"
-pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
-accessed = "2026-09-28"
-raw_sha256 = "9687f76096c568ab"
-text_sha256 = "5aa4efee2ca96785"
-bytes = 15408
-lines = 310
+pinned_ref = "ce8f9f186058939da54c9d6fead78dfb5d0fd6c3"
+accessed = "2026-10-02"
+raw_sha256 = "bfb6c3df3728c928"
+text_sha256 = "c3bbf6b1ba3fd1e3"
+bytes = 14195
+lines = 342
 via = "pinned commit, MIT"
 
 [s08-code]
-url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s08_context_compact/code.py"
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/ce8f9f186058939da54c9d6fead78dfb5d0fd6c3/s08_context_compact/code.py"
 kind = "repo"
-pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
-accessed = "2026-09-28"
-raw_sha256 = "468a558cd7d64438"
-text_sha256 = "ecd10f067a32c01a"
-bytes = 24947
-lines = 534
+pinned_ref = "ce8f9f186058939da54c9d6fead78dfb5d0fd6c3"
+accessed = "2026-10-02"
+raw_sha256 = "4eeedf2e3edeb526"
+text_sha256 = "7624531795911a82"
+bytes = 24096
+lines = 601
 via = "pinned commit, MIT; LOC 实测依据"
 
 [s08-site]
 url = "https://learn.shareai.run/zh/s08/"
 kind = "site"
-accessed = "2026-09-28"
+accessed = "2026-10-02"
 raw_sha256 = "1c1c7d535eebf5d4"
 text_sha256 = "7f727fdfea291ad1"
 bytes = 86347
 lines = 360
 
 [s09-readme]
-url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s09_memory/README.md"
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/ce8f9f186058939da54c9d6fead78dfb5d0fd6c3/s09_memory/README.zh.md"
 kind = "repo"
-pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
-accessed = "2026-09-28"
-raw_sha256 = "ba8b85dc56db4ceb"
-text_sha256 = "5701fe69627b090a"
-bytes = 13736
-lines = 280
+pinned_ref = "ce8f9f186058939da54c9d6fead78dfb5d0fd6c3"
+accessed = "2026-10-02"
+raw_sha256 = "ec5d2a5f49a0d402"
+text_sha256 = "2e08d1364496bfd5"
+bytes = 8159
+lines = 195
 via = "pinned commit, MIT"
 
 [s09-code]
-url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s09_memory/code.py"
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/ce8f9f186058939da54c9d6fead78dfb5d0fd6c3/s09_memory/code.py"
 kind = "repo"
-pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
-accessed = "2026-09-28"
-raw_sha256 = "2ccbf9f0b4b1abd5"
-text_sha256 = "e62d905d2a5a1cf3"
-bytes = 27121
-lines = 655
+pinned_ref = "ce8f9f186058939da54c9d6fead78dfb5d0fd6c3"
+accessed = "2026-10-02"
+raw_sha256 = "b36a04297641b06a"
+text_sha256 = "c7d8d6c1f52830f8"
+bytes = 27544
+lines = 784
 via = "pinned commit, MIT; LOC 实测依据"
 
 [s09-site]
 url = "https://learn.shareai.run/zh/s09/"
 kind = "site"
-accessed = "2026-09-28"
+accessed = "2026-10-02"
 raw_sha256 = "7e1551645ce60a68"
 text_sha256 = "51645677896d6e3e"
 bytes = 86020

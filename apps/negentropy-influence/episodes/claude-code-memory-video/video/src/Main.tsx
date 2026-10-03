@@ -7,24 +7,24 @@ import {Subtitle} from './components/Subtitle';
 import {theme} from './design/theme';
 import {LangProvider} from './i18n';
 import {computeTimeline, SCENE_FADE_FRAMES} from './timing';
+import {P0Scratchpad} from './scenes/P0Scratchpad';
+import {P1CheapFirst} from './scenes/P1CheapFirst';
+import {P2RedLines} from './scenes/P2RedLines';
+import {P3AfterSummary} from './scenes/P3AfterSummary';
+import {P4CatalogBody} from './scenes/P4CatalogBody';
+import {P5ThreeGates} from './scenes/P5ThreeGates';
+import {P6Production} from './scenes/P6Production';
 import type {Lang} from './i18n';
 import type {ManifestItem, SceneRange} from './types';
-import {P0MemoryHook} from './scenes/P0MemoryHook';
-import {P1FullTable} from './scenes/P1FullTable';
-import {P2CompactSteps} from './scenes/P2CompactSteps';
-import {P3LossySummary} from './scenes/P3LossySummary';
-import {P4Ledger} from './scenes/P4Ledger';
-import {P5NightShift} from './scenes/P5NightShift';
-import {P6TwoSystems} from './scenes/P6TwoSystems';
 
 const SCENE_COMPONENTS: Record<string, React.FC<{scene: SceneRange}>> = {
-  P0: P0MemoryHook,
-  P1: P1FullTable,
-  P2: P2CompactSteps,
-  P3: P3LossySummary,
-  P4: P4Ledger,
-  P5: P5NightShift,
-  P6: P6TwoSystems,
+  P0: P0Scratchpad,
+  P1: P1CheapFirst,
+  P2: P2RedLines,
+  P3: P3AfterSummary,
+  P4: P4CatalogBody,
+  P5: P5ThreeGates,
+  P6: P6Production,
 };
 
 export type MainProps = {manifest: ManifestItem[]; lang?: Lang};

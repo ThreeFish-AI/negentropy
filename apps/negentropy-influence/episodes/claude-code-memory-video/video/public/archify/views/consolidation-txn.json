@@ -1,0 +1,41 @@
+[
+  {
+    "id": "trigger-snapshot",
+    "label": "满十条先快照",
+    "focus": [
+      "trigger",
+      "snapshot"
+    ],
+    "note": "新记忆平时只追加；攒满 10 条才触发低频整理——先把全部原文件复制成快照，为事务搭好回滚底座。"
+  },
+  {
+    "id": "swap-write",
+    "label": "删旧写新至多三十条",
+    "focus": [
+      "delete-old",
+      "write-new",
+      "done"
+    ],
+    "note": "事务内先删旧再写新：合并去重、应用修正、淘汰过时、保留具体偏好，至多保留 30 条，写完才提交。"
+  },
+  {
+    "id": "fail-rollback",
+    "label": "失败即恢复原样",
+    "focus": [
+      "failed",
+      "rollback",
+      "trigger"
+    ],
+    "note": "删或写任一步被中断，就用快照把原文件原样恢复——记忆回到触发前的状态，攒够再重新整理。"
+  },
+  {
+    "id": "no-snapshot",
+    "label": "拆掉快照：十条变零条",
+    "focus": [
+      "skip-snapshot",
+      "write-crash",
+      "memory-zero"
+    ],
+    "note": "拆掉快照直接删旧写新：一旦写盘中途失败，旧条目已删、新条目未落盘，记忆从 10 条塌缩到 0 条，不可恢复。"
+  }
+]

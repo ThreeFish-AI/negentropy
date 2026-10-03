@@ -1,8 +1,1 @@
-[
- {"id": "four-layers", "label": "四层手段亮相", "focus": ["snip-lane", "micro-lane", "budget-lane", "digest-lane"], "note": "教学版四层收台手段编了号：裁中段、压条子、搬仓库、请记录员——四条泳道排开。"},
- {"id": "cost-ladder", "label": "便宜的先跑", "focus": ["cost-column", "snip-lane", "micro-lane", "budget-lane", "digest-lane"], "note": "成本列 0/0/0/1：四层一个脾气，按贵贱排班——便宜的先跑，贵的后跑。"},
- {"id": "text-vs-llm", "label": "前三层零调用", "focus": ["snip-lane", "micro-lane", "budget-lane", "cost-column"], "note": "前三层是纯文本活：裁、压、搬都不惊动模型，成本列三个 0。"},
- {"id": "one-llm-call", "label": "第四层一次调用", "focus": ["digest-lane", "cost-column"], "note": "记录员动笔才是唯一一次模型调用：把整段历史收成一份摘要。"},
- {"id": "teach-vs-real", "label": "讲课序撞实序", "focus": ["teach-numbering", "real-flow"], "note": "编号是讲解顺序（灰置），干活是另一套顺序——两列并列对撞。"},
- {"id": "real-order", "label": "实序逐拍点亮", "focus": ["real-flow", "budget-lane", "snip-lane", "micro-lane", "digest-lane"], "note": "真实执行：先搬仓库落盘，再裁中段，再压条子，最后才请记录员（终态）。"}
-]
+[{"id":"cheap-first","label":"便宜的先跑四层","focus":["messages","l1","l2","l3","l4","call"],"note":"零成本的落盘与裁剪先上，直到最后才花管线里唯一的 1 次模型调用做摘要。"},{"id":"bypass","label":"未超限旁路直达","focus":["l2","call"],"note":"L2 裁完估算没超限？虚线旁路跳过 L3/L4，直接发起模型调用。"},{"id":"reactive","label":"报错后应急裁剪","focus":["call","trim"],"note":"prompt_too_long 报错才动手：保尾 5 条、摘要更早历史，只重试一次。"},{"id":"batch-wait","label":"主动压缩等批次完成","focus":["call","tools","compact","l1"],"note":"模型点名 compact 后不抢跑，等整批工具收尾，下一轮调用前主动走四层。"}]

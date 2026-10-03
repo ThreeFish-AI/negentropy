@@ -1,0 +1,107 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 14.16,
+ "total_wall_sec": 286.78,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "one-file",
+   "label": "一记忆一文件",
+   "index": 0,
+   "file": "memory-file-anatomy--one-file.mp4",
+   "end_still": "memory-file-anatomy--one-file-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "memory-file"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "frontmatter",
+   "label": "开头三元元信息",
+   "index": 1,
+   "file": "memory-file-anatomy--frontmatter.mp4",
+   "end_still": "memory-file-anatomy--frontmatter-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "frontmatter"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "index-rebuild",
+   "label": "写入后索引自动重建",
+   "index": 2,
+   "file": "memory-file-anatomy--index-rebuild.mp4",
+   "end_still": "memory-file-anatomy--index-rebuild-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "memory-file",
+    "index"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "four-types",
+   "label": "四类各答一个问题",
+   "index": 3,
+   "file": "memory-file-anatomy--four-types.mp4",
+   "end_still": "memory-file-anatomy--four-types-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.48,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.205,
+    3.308
+   ],
+   "beat_nodes": [
+    "type-user",
+    "type-feedback",
+    "type-project",
+    "type-reference"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/managua-v1/docs/assets/architecture/agent-harness/claude-code--memory-file-anatomy.html",
+ "slug": "memory-file-anatomy",
+ "type": "architecture"
+}

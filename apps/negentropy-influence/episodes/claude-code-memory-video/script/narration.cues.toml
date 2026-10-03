@@ -1,0 +1,125 @@
+# 配音台本（story 档故事块）——《记忆管理：一张草稿纸和一本卡片册》v2
+# 块=合成单位（按情绪弧分组，不设句数/字数硬上限——实测 1–6 句、最大 163 字），幕界天然断块；[say] 只改标点不改字；
+# 情绪弧：P0 好奇→紧张→悬念｜P1 平实→兴奋→揭示→收束｜P2 紧张→警示→安心
+# ｜P3 遗憾→沉稳→悬念｜P4 兴奋→得意→安心｜P5 平实→紧张→警示→沉稳
+# ｜P6 收束→对照→金句→开放→余韵
+
+# ── P0 重发的账单 ──
+[block.p0-01]
+emo = "calm:0.25"
+[block.p0-06]
+emo = "afraid:0.2,surprised:0.1"
+[block.p0-10]
+emo = "surprised:0.3,calm:0.2"
+
+# ── P1 便宜的先跑 ──
+[block.p1-01]
+emo = "calm:0.25"
+[block.p1-04]
+emo = "calm:0.2,happy:0.1"
+[block.p1-07]
+emo = "calm:0.25"
+[block.p1-11]
+emo = "calm:0.25"
+[block.p1-13]
+emo = "calm:0.25"
+[block.p1-17]
+emo = "happy:0.2,surprised:0.1"
+[block.p1-21]
+emo = "surprised:0.25,calm:0.15"
+[block.p1-23]
+emo = "happy:0.3,calm:0.1"
+[block.p1-27]
+emo = "calm:0.2,afraid:0.1"
+
+# ── P2 两条红线 ──
+[block.p2-01]
+emo = "afraid:0.15,calm:0.15"
+[block.p2-03]
+emo = "calm:0.2"
+[block.p2-07]
+emo = "calm:0.25"
+[block.p2-11]
+emo = "surprised:0.2,disgusted:0.1"
+[block.p2-13]
+emo = "afraid:0.18,surprised:0.12"
+[block.p2-15]
+emo = "melancholic:0.15,calm:0.15"
+[block.p2-18]
+emo = "disgusted:0.15,afraid:0.15"
+[block.p2-20]
+emo = "calm:0.3"
+
+# ── P3 压扁之后 ──
+[block.p3-01]
+emo = "melancholic:0.2,calm:0.1"
+[block.p3-05]
+emo = "calm:0.25"
+[block.p3-11]
+emo = "calm:0.2,surprised:0.1"
+[block.p3-13]
+emo = "surprised:0.25,calm:0.15"
+
+# ── P4 目录与正文 ──
+[block.p4-01]
+emo = "happy:0.2,calm:0.15"
+[block.p4-07]
+emo = "calm:0.15,afraid:0.1"
+[block.p4-10]
+emo = "happy:0.25,surprised:0.1"
+[block.p4-14]
+emo = "calm:0.2,happy:0.1"
+[block.p4-17]
+emo = "calm:0.25"
+[block.p4-20]
+emo = "calm:0.2"
+
+# ── P5 三道门 ──
+[block.p5-01]
+emo = "calm:0.25"
+[block.p5-05]
+emo = "calm:0.15,surprised:0.1"
+[block.p5-07]
+emo = "happy:0.15,calm:0.1"
+[block.p5-07b]
+emo = "surprised:0.2,afraid:0.1"
+[block.p5-11]
+emo = "calm:0.2"
+[block.p5-15]
+emo = "calm:0.25"
+[block.p5-19]
+emo = "disgusted:0.15,sad:0.1"
+[block.p5-21]
+emo = "calm:0.25"
+
+# ── P6 照进生产 ──
+[block.p6-01]
+emo = "calm:0.3,happy:0.1"
+[block.p6-04]
+emo = "surprised:0.15,calm:0.15"
+[block.p6-07]
+emo = "happy:0.2,calm:0.1"
+[block.p6-10]
+emo = "calm:0.15"
+[block.p6-12]
+emo = "calm:0.3"
+[block.p6-18]
+emo = "surprised:0.2,calm:0.1"
+[block.p6-21]
+emo = "calm:0.2,melancholic:0.1"
+[block.p6-23]
+emo = "calm:0.35"
+
+# ── 表演标点（只改标点；build 执法「去标点后与正文全等」）──
+[say]
+p0-05 = "纸的大小是固定的，写满了——接口直接拒收。"
+p1-05 = "这个开源项目的压缩队伍，一模一样——便宜的先跑，贵的殿后。"
+p1-24 = "纸面回到六千多字，全程，零次模型摘要。"
+p2-04 = "小票一撕，这道菜，就成了对不上账的黑单——整单作废。"
+p3-02 = "你叮嘱过「缩进用 <tab|T AE1 B> 别用空格」——摘要里，可能只剩「用户有代码风格偏好」。"
+
+p4-12 = "从第一页改一个字？后面整叠，全按新页算。"
+p5-10 = "三句进来，只入库一条——这不是效率低，是设计如此。"
+p6-02 = "跑一整天不崩，靠便宜的先跑、贵的殿后；第二天还记得你——靠目录常驻，正文按需。"
+# p6-23 金句「一张草稿纸，一本卡片册。」曾列表演标点但 say 与原文全等＝no-op
+# （build 门告警形态），已删——金句重音由 [block.p6-23] emo=calm:0.35 承载。

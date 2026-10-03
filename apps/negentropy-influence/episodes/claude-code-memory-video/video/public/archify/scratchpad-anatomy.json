@@ -1,0 +1,119 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 17.71,
+ "total_wall_sec": 94.11,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "full-resend",
+   "label": "每次调用全量重发",
+   "index": 0,
+   "file": "scratchpad-anatomy--full-resend.mp4",
+   "end_still": "scratchpad-anatomy--full-resend-end.png",
+   "beats": 6,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 6.66,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.207,
+    3.308,
+    4.412,
+    5.514
+   ],
+   "beat_nodes": [
+    "api",
+    "sys-prompt",
+    "user-ask",
+    "assistant-call-1",
+    "result-1",
+    "heavy-result"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "fixed-prefix",
+   "label": "开头固定的指令区",
+   "index": 1,
+   "file": "scratchpad-anatomy--fixed-prefix.mp4",
+   "end_still": "scratchpad-anatomy--fixed-prefix-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "sys-prompt"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "pair-interlock",
+   "label": "调用与结果编号互锁",
+   "index": 2,
+   "file": "scratchpad-anatomy--pair-interlock.mp4",
+   "end_still": "scratchpad-anatomy--pair-interlock-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.45,
+   "beat_offsets_sec": [
+    0.0,
+    1.101,
+    2.204,
+    3.307
+   ],
+   "beat_nodes": [
+    "assistant-call-1",
+    "result-1",
+    "assistant-call-2",
+    "result-2"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "heavy-results",
+   "label": "工具结果是大头",
+   "index": 3,
+   "file": "scratchpad-anatomy--heavy-results.mp4",
+   "end_still": "scratchpad-anatomy--heavy-results-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.205
+   ],
+   "beat_nodes": [
+    "heavy-result",
+    "heavy-log",
+    "search-hits"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/managua-v1/docs/assets/architecture/agent-harness/claude-code--scratchpad-anatomy.html",
+ "slug": "scratchpad-anatomy",
+ "type": "architecture"
+}

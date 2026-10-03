@@ -2,8 +2,8 @@
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 16.74,
- "total_wall_sec": 74.85,
+ "story_sec": 16.75,
+ "total_wall_sec": 94.13,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -20,8 +20,8 @@
    "story_sec": 3.36,
    "beat_offsets_sec": [
     0.0,
-    1.103,
-    2.207
+    1.104,
+    2.206
    ],
    "beat_nodes": [
     "old-card",
@@ -40,11 +40,11 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.35,
+   "story_sec": 3.34,
    "beat_offsets_sec": [
     0.0,
     1.104,
-    2.209
+    2.21
    ],
    "beat_nodes": [
     "checklist",
@@ -63,11 +63,11 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.35,
+   "story_sec": 3.33,
    "beat_offsets_sec": [
     0.0,
     1.105,
-    2.208
+    2.209
    ],
    "beat_nodes": [
     "fail-x",
@@ -86,11 +86,11 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.33,
+   "story_sec": 3.35,
    "beat_offsets_sec": [
     0.0,
-    1.107,
-    2.212
+    1.106,
+    2.21
    ],
    "beat_nodes": [
     "counter",
@@ -109,11 +109,11 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.35,
+   "story_sec": 3.37,
    "beat_offsets_sec": [
     0.0,
     1.103,
-    2.207
+    2.209
    ],
    "beat_nodes": [
     "reminder-note",
@@ -121,7 +121,7 @@
     "reset-zero"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 48.0
+   "capture_fps": 49.0
   }
  ],
  "capture": {
@@ -132,7 +132,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--plan-todo-swap.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/managua-v1/docs/assets/architecture/agent-harness/claude-code--plan-todo-swap.html",
  "slug": "plan-todo-swap",
  "type": "workflow"
 }

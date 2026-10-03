@@ -1,6 +1,6 @@
 # 《规划与协调：模型的视野是安排出来的》科普视频工程
 
-> 交付状态：**v1 已交付**（2026-10-01，14:12.2 @1080p30（total_duration_in_frames 复算），归档 ~/Documents/video/claude-code-explained/ v1 + _captions）。发布顺序见 [../../series.json](../../series.json)（工作区根）。
+> 交付状态：**v3 已交付**（2026-10-03 换题涟漪重渲：P6 下期卡同步新题 + me-bright 重合成 + B 档覆写拉窗，802.5s = 13.37 分 @1080p30，归档 ~/Documents/video/claude-code-explained/ v3 + _captions；v1/v2 口径见 git 历史）。发布顺序见 [../../series.json](../../series.json)（工作区根）。
 
 ## 目录结构
 

@@ -1,5 +1,10 @@
 /** 本集 3D 原语层（seeded 档，与 motifs.tsx 严格平行）。
  *
+ *  溯源与裁剪（2026-10-03 评审）：本文件随 ep4《并发》整体拷贝建立（V3D 接线），
+ *  ep4 专属装置 Rim3D/Socket3D/Plug3D/Drum3D 与其面色常量（SHELL_FACES 等）
+ *  在本集零接线，已裁——仅保留本集实际消费的 Slab3D 系；下文宪法中的 ep4 场景
+ *  举例（LoopRing 六次出场、5-D 壳等）保留原叙事作为约束出处。
+ *
  *  分层理由与 frozen 边界一致：**frozen 的 motion/ 共享「怎么动」（机制），
  *  本层给「画什么的三维形状」（策略）**。故本层：
  *    - 零 useCurrentFrame、零 motion hook、零 import '../motion'；
@@ -27,45 +32,10 @@
  *  ── ISSUE-177 教训一写进类型 ────────────────────────────────────────
  *  容器的 position/width 属**调用点契约**，不属被抽取内容。故本层
  *  **没有任何导出会产生带 position 的 DOM 节点**：实体原语一律返回 <group>，
- *  Stage3D 的 style 在类型上就 Omit 掉了定位属性。
+ *  不建画布（画布由 harness-stack 的 ThreeCanvas 承担）。
  */
 import React, {useMemo} from 'react';
-import {ThreeCanvas} from '@remotion/three';
 import * as THREE from 'three';
-import {theme} from '../design/theme';
-
-// ── 面色梯度（宪法三：字面量，可 grep、可算 WCAG） ─────────────────────
-//
-// 深 → 浅：bg < SOCKET_WALL < panel < PLATE_LIT
-// 对 theme.text #F2F5FA 的对比度（与 qa_frames --check-theme 同算法）：
-//   panel #171C26 15.62:1 · PLATE_LIT #241C1E 15.26:1 · SOCKET_WALL #141922 16.31:1
-//   —— 全部 ≥ 12:1 的预算线。
-// ⚠️ 这些常量**刻意不进 theme.ts**：--check-theme 会遍历 theme 的所有色 token
-//    并按「概念色 on bg」判 4.5:1，深色面板色会被当概念色查而直接 FAIL。
-
-/** 壳壁的四层面色梯度（自内向外**逐层变暗**）。
- *
- *  ⚠️ 这组值来自实景抽帧的修复：首版四层全用 theme.panel（对 bg 只差一档），
- *  面在暗底上读不出来，棱线成了唯一可见物，四层叠加于是读成**一堆细线框**而不是
- *  「有内外之分的体」。壳与框的差别本就在「面是否可见」，所以面色必须自己拉开层次。
- *  自内向外变暗 = 越靠外越背光，符合「井」的朴素光感（仍是手绘梯度，非光照计算）。
- *  对 theme.text #F2F5FA 的对比度：#39435A 9.66 · #2E374B 11.45 · #242C3C 13.13 ·
- *  #1B212D 14.62 —— 全部远超「文字 on 面色 ≥ 7:1」的下限（本层无文字叠加，仅作余量）。
- *  ⚠️ 首版取 #232A36→#12161E（灰度 0.10–0.14），在 bg #0E1116 上几乎与背景同色，
- *  面根本读不出来 ⇒ 只剩棱线可见、整组读成线框堆。**面要被看见，必须与 bg 拉开**。 */
-export const SHELL_FACES = ['#39435A', '#2E374B', '#242C3C', '#1B212D'] as const;
-
-/** 插座井壁：比 panel 更暗一档 = 手绘的「凹进去」暗部。 */
-export const SOCKET_WALL = '#141922';
-
-/** 房屋轴测：全片静置角度，与既有 PlateSlab3D 同源。 */
-export const AXO = {pitch: -12, yaw: 8} as const;
-
-export const axoRotation = (o: {pitch?: number; yaw?: number} = {}): [number, number, number] => [
-  ((o.pitch ?? AXO.pitch) * Math.PI) / 180,
-  ((o.yaw ?? AXO.yaw) * Math.PI) / 180,
-  0,
-];
 
 /** 读色皮肤——「平面语义 → 3D 属性」的唯一载体。
  *  face 大面积**永不**用概念色（core/mech/deny）；概念色只走 edge。 */
@@ -87,24 +57,6 @@ export type SolidSkin = {
    *  压倒面，整组读成「一堆细线框」而不是「体」（5-D 壳首版实景抽帧的修复）。 */
   noEdges?: boolean;
 };
-
-/** 世界约定（全片唯一）：正交 + zoom 1 ⇒ 1 世界单位 = 1 CSS px；原点在画布中心。
- *  相机全片零动画（宪法二）。
- *  ⚠️ style 在类型上就禁掉了定位属性——定位是调用点契约（ISSUE-177 教训一）。 */
-export const Stage3D: React.FC<{
-  width: number;
-  height: number;
-  style?: Omit<
-    React.CSSProperties,
-    'position' | 'inset' | 'top' | 'left' | 'right' | 'bottom' | 'width' | 'height'
-  >;
-  children?: React.ReactNode;
-}> = ({width, height, style, children}) => (
-  <ThreeCanvas width={width} height={height} orthographic camera={{position: [0, 0, 100], zoom: 1}} style={style}>
-    {/* 零光源（宪法三）：basic 材质不吃光，明暗全部来自手写面色梯度 */}
-    {children}
-  </ThreeCanvas>
-);
 
 /** 正面轮廓线顶点（矩形四角闭合）：edges 的单像素棱线在暗底不足以读作 2px 描边，
  *  故在正面再叠一圈 lineLoop 加权。 */
@@ -164,135 +116,6 @@ export const Slab3D: React.FC<{
           <lineBasicMaterial color={skin.edge} transparent opacity={eop} />
         </lineLoop>
       )}
-    </group>
-  );
-};
-
-/** 矩形井壁的一圈（中空框 = 上下左右四条 Slab3D，无前盖）。
- *
- *  5-D 的「壳」由内向外四圈叠成：层序即 z 序 —— 循环在最内（最小、最靠前），
- *  插口在最外（最大、最靠后，从四周包住内层），于是口播的「挂在外面」在几何上成立。
- *  井壁内表面朝向观者，这是「里面」不再靠约定、而成为几何事实的原因
- *  （2D 边框只能画外轮廓）。
- *
- *  合拢由调用方注入：close 0 = 四条各自在框外 openDist 处，1 = 合拢到位。 */
-export const Rim3D: React.FC<{
-  /** 合拢到位时的内沿尺寸（CSS px） */
-  innerWidth: number;
-  innerHeight: number;
-  /** 框条宽 */
-  band: number;
-  depth?: number;
-  skin: SolidSkin;
-  /** 合拢进度 0..1（调用方以 win(parentProgress,[s,e]) 注入——不新增时点） */
-  close: number;
-  /** 未合拢时四条各自的起始外移距离（px） */
-  openDist?: number;
-  position?: [number, number, number];
-  renderOrder?: number;
-}> = ({innerWidth, innerHeight, band, depth = 16, skin, close, openDist = 90, position, renderOrder}) => {
-  const c = close < 0 ? 0 : close > 1 ? 1 : close;
-  const off = (1 - c) * openDist;
-  // 四条的落位：上下条横跨内沿+两侧框条宽，左右条只占内沿高（避免角部重叠加深）
-  const hx = innerWidth / 2 + band / 2;
-  const hy = innerHeight / 2 + band / 2;
-  const outerW = innerWidth + band * 2;
-  // 未合拢时整体更透（effects 通道纯线性映射，非弹簧——铁律③）
-  const op = (skin.opacity ?? 1) * (0.35 + 0.65 * c);
-  const bandSkin: SolidSkin = {...skin, opacity: op, edgeOpacity: op};
-  return (
-    <group position={position}>
-      {/* 上 / 下：横条 */}
-      <Slab3D width={outerW} height={band} depth={depth} skin={bandSkin} position={[0, hy + off, 0]} renderOrder={renderOrder} />
-      <Slab3D width={outerW} height={band} depth={depth} skin={bandSkin} position={[0, -hy - off, 0]} renderOrder={renderOrder} />
-      {/* 左 / 右：竖条 */}
-      <Slab3D width={band} height={innerHeight} depth={depth} skin={bandSkin} position={[-hx - off, 0, 0]} renderOrder={renderOrder} />
-      <Slab3D width={band} height={innerHeight} depth={depth} skin={bandSkin} position={[hx + off, 0, 0]} renderOrder={renderOrder} />
-    </group>
-  );
-};
-
-/** 插座（4-C）：内凹方口 —— 口沿四条 + 井底。
- *  井底用 theme.bg（全片最深）⇒ 读作「洞」；井壁 SOCKET_WALL 比 panel 更暗一档。
- *  ★ skin **不吃 face**：两处面色都是「凹陷」这一读法的组成部分（宪法三要求它们是
- *    字面量，不能由调用方运行时决定），故类型上就 Omit 掉，避免调用点传了个空操作。 */
-export const Socket3D: React.FC<{
-  size: number;
-  /** 井深；也是插头行程的下限锚 */
-  wellDepth?: number;
-  skin: Omit<SolidSkin, 'face'>;
-  position?: [number, number, number];
-  rotation?: [number, number, number];
-}> = ({size, wellDepth = 26, skin, position, rotation}) => {
-  const band = Math.max(6, Math.round(size * 0.16));
-  const inner = size - band * 2;
-  return (
-    <group position={position} rotation={rotation}>
-      {/* 井底：沉在 -wellDepth 处的暗面板 —— 「洞」的底 */}
-      <Slab3D
-        width={inner}
-        height={inner}
-        depth={4}
-        skin={{face: theme.bg, edge: SOCKET_WALL, faceOutline: false, opacity: skin.opacity}}
-        position={[0, 0, -wellDepth]}
-      />
-      {/* 井壁四条：面色比 panel 更暗（凹陷暗部），棱线仍是概念色（口沿读法） */}
-      <Rim3D
-        innerWidth={inner}
-        innerHeight={inner}
-        band={band}
-        depth={wellDepth}
-        skin={{face: SOCKET_WALL, edge: skin.edge, opacity: skin.opacity, edgeOpacity: skin.edgeOpacity}}
-        close={1}
-        position={[0, 0, -wellDepth / 2]}
-      />
-    </group>
-  );
-};
-
-/** 插头（4-C）：沿插座轴线进入的方块 + 两根插脚。
- *
- *  seat 0 = 完全在外，1 = 咬合到底。
- *  ★ 内部对 z 行程取 min(seat,1)：SPRING.snap 的 ζ=0.6 ⇒ 峰值 **1.095**，
- *    不钳制插头会穿透井底。过冲不丢 —— 它被转成棱线短暂提亮（edgeBoost）。 */
-export const Plug3D: React.FC<{
-  size: number;
-  seat: number;
-  /** 完全拔出时距咬合位的行程（px） */
-  travel?: number;
-  skin: SolidSkin;
-  position?: [number, number, number];
-  rotation?: [number, number, number];
-}> = ({size, seat, travel = 96, skin, position, rotation}) => {
-  const s = seat < 0 ? 0 : seat > 1 ? 1 : seat;
-  // 过冲量（seat > 1 的部分）转为棱线提亮，绝不转为额外行程
-  const edgeBoost = Math.min(1, Math.max(0, seat - 1) * 6);
-  const z = (1 - s) * travel;
-  const pinW = Math.max(4, Math.round(size * 0.14));
-  const pinLen = Math.round(size * 0.42);
-  const eop = Math.min(1, (skin.edgeOpacity ?? skin.opacity ?? 1) + edgeBoost * 0.6);
-  const body: SolidSkin = {...skin, edgeOpacity: eop};
-  return (
-    <group position={position} rotation={rotation}>
-      <group position={[0, 0, z]}>
-        {/* 插头本体 */}
-        <Slab3D width={size} height={size} depth={22} skin={body} />
-        {/* 两根插脚：先于本体进洞，是「沿轴线进入」的方向指示 */}
-        <Slab3D
-          width={pinW}
-          height={pinW}
-          depth={pinLen}
-          skin={{face: skin.edge, edge: skin.edge, faceOutline: false, opacity: skin.opacity}}
-          position={[-size * 0.22, 0, -11 - pinLen / 2]}
-        />
-        <Slab3D
-          width={pinW}
-          height={pinW}
-          depth={pinLen}
-          skin={{face: skin.edge, edge: skin.edge, faceOutline: false, opacity: skin.opacity}}
-          position={[size * 0.22, 0, -11 - pinLen / 2]}
-        />
-      </group>
     </group>
   );
 };

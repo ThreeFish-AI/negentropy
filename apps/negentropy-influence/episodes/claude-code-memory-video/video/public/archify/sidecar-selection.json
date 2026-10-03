@@ -1,0 +1,86 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 9.85,
+ "total_wall_sec": 54.23,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "sidecar-pick",
+   "label": "一次轻量旁路调用",
+   "index": 0,
+   "file": "sidecar-selection--sidecar-pick.mp4",
+   "end_still": "sidecar-selection--sidecar-pick-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "sidecar"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "budget-funnel",
+   "label": "输入与挑回都被掐小（≤5 条）",
+   "index": 1,
+   "file": "sidecar-selection--budget-funnel.mp4",
+   "end_still": "sidecar-selection--budget-funnel-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "main",
+    "sidecar"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "fallback-valve",
+   "label": "降级与安全阀",
+   "index": 2,
+   "file": "sidecar-selection--fallback-valve.mp4",
+   "end_still": "sidecar-selection--fallback-valve-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.208
+   ],
+   "beat_nodes": [
+    "main",
+    "index",
+    "files"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/managua-v1/docs/assets/architecture/agent-harness/claude-code--sidecar-selection.html",
+ "slug": "sidecar-selection",
+ "type": "sequence"
+}

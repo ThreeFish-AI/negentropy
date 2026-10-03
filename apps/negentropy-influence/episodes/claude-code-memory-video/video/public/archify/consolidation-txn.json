@@ -1,0 +1,113 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.48,
+ "story_sec": 13.45,
+ "total_wall_sec": 300.35,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "trigger-snapshot",
+   "label": "满十条先快照",
+   "index": 0,
+   "file": "consolidation-txn--trigger-snapshot.mp4",
+   "end_still": "consolidation-txn--trigger-snapshot-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.48,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "trigger",
+    "snapshot"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 48.0
+  },
+  {
+   "id": "swap-write",
+   "label": "删旧写新至多三十条",
+   "index": 1,
+   "file": "consolidation-txn--swap-write.mp4",
+   "end_still": "consolidation-txn--swap-write-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.36,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.208
+   ],
+   "beat_nodes": [
+    "delete-old",
+    "write-new",
+    "done"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 48.0
+  },
+  {
+   "id": "fail-rollback",
+   "label": "失败即恢复原样",
+   "index": 2,
+   "file": "consolidation-txn--fail-rollback.mp4",
+   "end_still": "consolidation-txn--fail-rollback-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.32,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.206
+   ],
+   "beat_nodes": [
+    "failed",
+    "rollback",
+    "trigger"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 49.0
+  },
+  {
+   "id": "no-snapshot",
+   "label": "拆掉快照：十条变零条",
+   "index": 3,
+   "file": "consolidation-txn--no-snapshot.mp4",
+   "end_still": "consolidation-txn--no-snapshot-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.48,
+   "story_sec": 3.55,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.208
+   ],
+   "beat_nodes": [
+    "skip-snapshot",
+    "write-crash",
+    "memory-zero"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 48.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/managua-v1/docs/assets/architecture/agent-harness/claude-code--consolidation-txn.html",
+ "slug": "consolidation-txn",
+ "type": "lifecycle"
+}

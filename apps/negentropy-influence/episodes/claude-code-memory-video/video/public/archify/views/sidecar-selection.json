@@ -1,0 +1,29 @@
+[
+  {
+    "id": "sidecar-pick",
+    "label": "一次轻量旁路调用",
+    "focus": [
+      "sidecar"
+    ],
+    "note": "主对话派一个专为挑记忆的小请求，只带最少输入，回来只有文件名。"
+  },
+  {
+    "id": "budget-funnel",
+    "label": "输入与挑回都被掐小（≤5 条）",
+    "focus": [
+      "main",
+      "sidecar"
+    ],
+    "note": "进旁路的内容截小/掐小；挑回最多 5 条文件名，之后只读被选中的正文。"
+  },
+  {
+    "id": "fallback-valve",
+    "label": "降级与安全阀",
+    "focus": [
+      "main",
+      "index",
+      "files"
+    ],
+    "note": "旁路失败就用关键词给目录打分兜底；注入内容标注背景知识，冲突以当前请求为准。"
+  }
+]

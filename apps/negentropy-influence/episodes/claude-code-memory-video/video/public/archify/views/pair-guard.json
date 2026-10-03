@@ -1,7 +1,0 @@
-[
- {"id": "pair-rule", "label": "同去同留", "focus": ["pair-bond"], "note": "铁律入口：请求和回执，必须同去同留——配对线是裁剪的守护不变式。"},
- {"id": "pair-bound", "label": "一对搭档", "focus": ["request-card", "result-card", "pair-bond"], "note": "模型递出的一张调用卡与紧跟其后的结果卡，一张对一张，绝不能拆散。"},
- {"id": "orphan-rejected", "label": "孤立回执非法", "focus": ["orphan-result", "reject-stamp"], "note": "留下孤零零的回执，下一趟请求本身就不合法——API 直接拒收。"},
- {"id": "cut-yields", "label": "切点让开", "focus": ["cut-point-a", "cut-point-b", "pair-bond"], "note": "切点宁可向两侧让开、多留一段，也不碰这对搭档的接缝。"},
- {"id": "content-vs-structure", "label": "丢内容不丢结构", "focus": ["invariant", "pair-bond", "request-card", "result-card"], "note": "裁剪可以丢内容，不能丢结构——配对就是那条不能丢的结构（终态）。"}
-]

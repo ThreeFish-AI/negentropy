@@ -2,154 +2,104 @@
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 26.49,
- "total_wall_sec": 89.68,
+ "story_sec": 17.68,
+ "total_wall_sec": 116.9,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
  "chapters": [
   {
-   "id": "four-layers",
-   "label": "四层手段亮相",
+   "id": "cheap-first",
+   "label": "便宜的先跑四层",
    "index": 0,
-   "file": "compact-pipeline--four-layers.mp4",
-   "end_still": "compact-pipeline--four-layers-end.png",
-   "beats": 4,
+   "file": "compact-pipeline--cheap-first.mp4",
+   "end_still": "compact-pipeline--cheap-first-end.png",
+   "beats": 6,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 4.45,
+   "story_sec": 6.65,
    "beat_offsets_sec": [
     0.0,
     1.104,
-    2.208,
-    3.311
+    2.209,
+    3.312,
+    4.415,
+    5.518
    ],
    "beat_nodes": [
-    "snip-lane",
-    "micro-lane",
-    "budget-lane",
-    "digest-lane"
-   ],
-   "measured_fps": 25.0,
-   "capture_fps": 48.0
-  },
-  {
-   "id": "cost-ladder",
-   "label": "便宜的先跑",
-   "index": 1,
-   "file": "compact-pipeline--cost-ladder.mp4",
-   "end_still": "compact-pipeline--cost-ladder-end.png",
-   "beats": 5,
-   "dwell_ms": 1100,
-   "lead_sec": 0.44,
-   "story_sec": 5.56,
-   "beat_offsets_sec": [
-    0.0,
-    1.107,
-    2.213,
-    3.317,
-    4.42
-   ],
-   "beat_nodes": [
-    "cost-column",
-    "snip-lane",
-    "micro-lane",
-    "budget-lane",
-    "digest-lane"
+    "messages",
+    "l1",
+    "l2",
+    "l3",
+    "l4",
+    "call"
    ],
    "measured_fps": 25.0,
    "capture_fps": 49.0
   },
   {
-   "id": "text-vs-llm",
-   "label": "前三层零调用",
-   "index": 2,
-   "file": "compact-pipeline--text-vs-llm.mp4",
-   "end_still": "compact-pipeline--text-vs-llm-end.png",
-   "beats": 4,
-   "dwell_ms": 1100,
-   "lead_sec": 0.44,
-   "story_sec": 4.43,
-   "beat_offsets_sec": [
-    0.0,
-    1.106,
-    2.21,
-    3.314
-   ],
-   "beat_nodes": [
-    "snip-lane",
-    "micro-lane",
-    "budget-lane",
-    "cost-column"
-   ],
-   "measured_fps": 25.0,
-   "capture_fps": 48.0
-  },
-  {
-   "id": "one-llm-call",
-   "label": "第四层一次调用",
-   "index": 3,
-   "file": "compact-pipeline--one-llm-call.mp4",
-   "end_still": "compact-pipeline--one-llm-call-end.png",
+   "id": "bypass",
+   "label": "未超限旁路直达",
+   "index": 1,
+   "file": "compact-pipeline--bypass.mp4",
+   "end_still": "compact-pipeline--bypass-end.png",
    "beats": 2,
    "dwell_ms": 1600,
    "lead_sec": 0.44,
    "story_sec": 3.26,
    "beat_offsets_sec": [
     0.0,
-    1.607
+    1.605
    ],
    "beat_nodes": [
-    "digest-lane",
-    "cost-column"
-   ],
-   "measured_fps": 25.0,
-   "capture_fps": 49.0
-  },
-  {
-   "id": "teach-vs-real",
-   "label": "讲课序撞实序",
-   "index": 4,
-   "file": "compact-pipeline--teach-vs-real.mp4",
-   "end_still": "compact-pipeline--teach-vs-real-end.png",
-   "beats": 2,
-   "dwell_ms": 1600,
-   "lead_sec": 0.44,
-   "story_sec": 3.22,
-   "beat_offsets_sec": [
-    0.0,
-    1.603
-   ],
-   "beat_nodes": [
-    "teach-numbering",
-    "real-flow"
+    "l2",
+    "call"
    ],
    "measured_fps": 25.0,
    "capture_fps": 48.0
   },
   {
-   "id": "real-order",
-   "label": "实序逐拍点亮",
-   "index": 5,
-   "file": "compact-pipeline--real-order.mp4",
-   "end_still": "compact-pipeline--real-order-end.png",
-   "beats": 5,
-   "dwell_ms": 1100,
+   "id": "reactive",
+   "label": "报错后应急裁剪",
+   "index": 2,
+   "file": "compact-pipeline--reactive.mp4",
+   "end_still": "compact-pipeline--reactive-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
    "lead_sec": 0.44,
-   "story_sec": 5.57,
+   "story_sec": 3.25,
    "beat_offsets_sec": [
     0.0,
-    1.104,
-    2.208,
-    3.315,
-    4.421
+    1.604
    ],
    "beat_nodes": [
-    "real-flow",
-    "budget-lane",
-    "snip-lane",
-    "micro-lane",
-    "digest-lane"
+    "call",
+    "trim"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "batch-wait",
+   "label": "主动压缩等批次完成",
+   "index": 3,
+   "file": "compact-pipeline--batch-wait.mp4",
+   "end_still": "compact-pipeline--batch-wait-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.52,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.208,
+    3.311
+   ],
+   "beat_nodes": [
+    "call",
+    "tools",
+    "compact",
+    "l1"
    ],
    "measured_fps": 25.0,
    "capture_fps": 49.0
@@ -163,7 +113,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--compact-pipeline.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/managua-v1/docs/assets/architecture/agent-harness/learn-claude-code-memory--compact-pipeline.html",
  "slug": "compact-pipeline",
  "type": "workflow"
 }
