@@ -250,6 +250,10 @@ export const NumberedCard: React.FC<{
 /** 走廊环线宽（绝对像素，全片恒定，勿随 size 缩放——〔M-001〕） */
 export const RING_STROKE = 6;
 
+/** 楼体母题面色（P0/P6 楼体共用——跨幕同色须共享常量防漂移；
+ *  母题装饰底色不占语义槽，storyboard 视觉契约「母题装饰底」行登记） */
+export const LODGE_INK = '#10151d';
+
 /** 环形走廊母题（〔M-001〕恒定视觉锚）：core 橙描边 + 绝对线宽 6px 全片锁定，
  *  只换 size / 描画进度 / 辉光强度——「走廊始终不变」靠它被看见而非被听说。
  *  自 ep1 LoopRing 的描边纪律裁剪：不带节点、不带出口线；描画走 pathLength

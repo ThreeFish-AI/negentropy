@@ -23,6 +23,8 @@ SRC_DIR = REPO / "docs/assets/architecture/agent-harness"
 VIEWS_DIR = P / "video/public/archify/views"
 OUT_DIR = P / "video/public/archify/html"
 MARK = "<!-- guided-views-compat (ep5 injected) -->"
+# 结束标记须是完整 HTML 注释：拼「MARK + " end"」会把 end 落在注释外成裸文本节点
+MARK_END = "<!-- guided-views-compat (ep5 injected) end -->"
 
 # 2.x 原生带 guided-views 的图：纯拷贝不注入（避免双容器；views 章表仍可点名原生章 id）
 NO_INJECT = {"five-layer-dependency"}
@@ -133,9 +135,14 @@ def main() -> None:
             out.write_text(html, encoding="utf-8")
             print(f"{slug}: 纯拷贝（原生 guided-views）→ {out.name} [OK]")
             continue
-        # 幂等：剥旧注入块（本注入器或原生容器的兼容块）
+        # 幂等：剥旧注入块（兼容旧版「MARK end」裸文本结束标记与现行 MARK_END）
         html = re.sub(
-            re.escape(MARK) + r"[\s\S]*?" + re.escape(MARK + " end"),
+            re.escape(MARK)
+            + r"[\s\S]*?(?:"
+            + re.escape(MARK_END)
+            + r"|"
+            + re.escape(MARK + " end")
+            + r")",
             "",
             html,
         )
@@ -151,7 +158,7 @@ def main() -> None:
             f"{json.dumps(views, ensure_ascii=False)}</script>\n"
             f"{style}"
             f"<script>{JS_TEMPLATE}</script>\n"
-            f"{MARK} end\n"
+            f"{MARK_END}\n"
         )
         if "</body>" not in html:
             failures.append(f"{slug}: 无 </body>")

@@ -23,7 +23,7 @@ import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {CorridorRing, Footnote, Panel, SceneTag} from '../components/motifs';
+import {CorridorRing, Footnote, LODGE_INK, Panel, SceneTag} from '../components/motifs';
 import {ACTIVE_INDEX, HarnessBadge, HarnessStackP6, LAYERS} from '../components/harness-stack';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 import {ArchifyYield} from '../components/ArchifyYield';
@@ -54,6 +54,9 @@ const withAlpha = (hex: string, a: number): string =>
     .toString(16)
     .padStart(2, '0')}`;
 
+/** 6-J 夜幕底（bg 族深面——模块内一次性装饰底，不进 theme；storyboard 契约「母题装饰底」行登记） */
+const DUSK_VEIL = '#05070a';
+
 // ── 6-A 第七件揭晓 ──────────────────────────────────────────────────────
 
 /** 坐标装置放大回全屏：六设施灯全亮（stagger）＋走廊环描画点亮（〔M-001〕）
@@ -77,7 +80,7 @@ const SeventhReveal: React.FC<{at02: number; at03: number}> = ({at02, at03}) => 
       <div style={{position: 'absolute', left: 410, top: 170, opacity: lodgeIn}}>
         <svg width={1100} height={560}>
           {/* 楼体外框＋楼层分隔 */}
-          <rect x={0} y={0} width={1100} height={560} rx={14} fill="#10151d" stroke={theme.panelBorder} strokeWidth={3} />
+          <rect x={0} y={0} width={1100} height={560} rx={14} fill={LODGE_INK} stroke={theme.panelBorder} strokeWidth={3} />
           <line x1={0} y1={200} x2={1100} y2={200} stroke={theme.panelBorder} strokeWidth={2} opacity={0.8} />
           {/* 楼上房带（第六件·门牌房——已亮） */}
           {[0, 1, 2, 3].map((i) => (
@@ -682,11 +685,11 @@ const DawnRecall: React.FC<{at27: number; at28: number; at29: number}> = ({at27,
   return (
     <AbsoluteFill>
       {/* 夜幕层（提亮=压暗夜色） */}
-      <AbsoluteFill style={{background: '#05070a', opacity: 0.5 * nightDim, pointerEvents: 'none'}} />
+      <AbsoluteFill style={{background: DUSK_VEIL, opacity: 0.5 * nightDim, pointerEvents: 'none'}} />
       {/* 暖光（天亮——自顶部泛白） */}
       <AbsoluteFill
         style={{
-          background: 'linear-gradient(180deg, rgba(217,179,107,0.28) 0%, rgba(217,179,107,0.0) 55%)',
+          background: `linear-gradient(180deg, ${withAlpha(theme.accent, 0.28)} 0%, ${withAlpha(theme.accent, 0)} 55%)`,
           opacity: night,
           pointerEvents: 'none',
         }}
@@ -761,7 +764,7 @@ const spanFallback = 10_000;
 
 /** 五层身份卡（HarnessStackP6·数据驱动——series-layers next=null 终集无下期层）
  *  ＋系列金句压底。 */
-const STACK = {left: 750, top: 310} as const; // 题字避让几何：310 + 5×56 + 4×8 + 82 = 704
+const STACK = {left: 750, top: 310} as const; // 行占位 72（canvasH=56+16 headroom，见 harness-stack PlateSlab3D）：栈底 310+5×72+4×8=702
 
 const SeriesFinale: React.FC<{at31: number}> = ({at31}) => {
   const stackIn = useProgress(at31, DUR.f5);
@@ -775,12 +778,12 @@ const SeriesFinale: React.FC<{at31: number}> = ({at31}) => {
             stagger 全程被 ArchifyYield 压制、只剩整体淡入（storyboard「身份卡 @stagger」） */}
         <HarnessStackP6 at={at31 + 2} nextBreathAt={spanFallback} />
       </div>
-      {/* 系列金句压栈底（08「P6 收尾用法」；top 由栈几何推导＋82 安全距） */}
+      {/* 系列金句压栈底（08「P6 收尾用法」；top=栈底 702＋10px 余量，按行占位 72 口径推导） */}
       <div
         style={{
           position: 'absolute',
           left: STACK.left,
-          top: STACK.top + 5 * 56 + 4 * 8 + 82,
+          top: STACK.top + 5 * 72 + 4 * 8 + 10,
           width: 420,
           textAlign: 'center',
           fontFamily: theme.serif,

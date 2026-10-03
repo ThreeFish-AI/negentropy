@@ -20,7 +20,7 @@ import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {QuoteCard} from '../components/cards';
-import {Footnote, LodgeMap, NumberedCard, Panel, SceneTag} from '../components/motifs';
+import {Footnote, LODGE_INK, LodgeMap, NumberedCard, Panel, SceneTag} from '../components/motifs';
 import {HarnessBadge, HarnessStackP0, harnessStackCrossAt} from '../components/harness-stack';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 import {DUR, clamp01, progress, useDim, useEnter, useImpulse, useProgress, useStagger} from '../motion';
@@ -38,6 +38,8 @@ const withAlpha = (hex: string, a: number): string =>
 
 /** 夜空天际线基色（bg 族深面——模块内面色常量，不进 theme） */
 const SKYLINE = '#121820';
+/** 开场黑罩（bg 族深面·一次性——模块内装饰底，不进 theme；storyboard 契约「母题装饰底」行登记） */
+const NIGHT_VEIL = '#04060a';
 /** 亮窗暖光（accent 的低透明身位） */
 const WIN = (a: number) => withAlpha(theme.accent, a);
 
@@ -127,11 +129,11 @@ const LodgeStage: React.FC<{at02: number; at03: number}> = ({at02, at03}) => {
       <div style={{position: 'absolute', left: LODGE.left, top: LODGE.top, width: LODGE.w, height: LODGE.h, ...fly}}>
         <svg width={LODGE.w} height={LODGE.h}>
           {/* 楼体轮廓 */}
-          <rect x={0} y={0} width={LODGE.w} height={LODGE.h} rx={12} fill="#10151d" stroke={theme.panelBorder} strokeWidth={3} />
+          <rect x={0} y={0} width={LODGE.w} height={LODGE.h} rx={12} fill={LODGE_INK} stroke={theme.panelBorder} strokeWidth={3} />
           {/* 楼层分隔线（楼上私人层 / 楼下公共层〔X-001〕） */}
           <line x1={0} y1={250} x2={LODGE.w} y2={250} stroke={theme.panelBorder} strokeWidth={2} opacity={0.8} />
           {/* 楼顶小檐 */}
-          <rect x={-14} y={-16} width={LODGE.w + 28} height={18} rx={4} fill="#10151d" stroke={theme.panelBorder} strokeWidth={2} />
+          <rect x={-14} y={-16} width={LODGE.w + 28} height={18} rx={4} fill={LODGE_INK} stroke={theme.panelBorder} strokeWidth={2} />
           {/* 上层房带：暗格（深赭装饰线，亮窗微光） */}
           {upperWins.map((w, i) => (
             <g key={i}>
@@ -183,10 +185,10 @@ const LodgeStage: React.FC<{at02: number; at03: number}> = ({at02, at03}) => {
       </div>
 
       {/* 首秒全黑罩（高反差开场：全黑城市→楼亮起） */}
-      <AbsoluteFill style={{background: '#04060a', opacity: 1 - nightLift, pointerEvents: 'none'}} />
+      <AbsoluteFill style={{background: NIGHT_VEIL, opacity: 1 - nightLift, pointerEvents: 'none'}} />
       {/* 开场角标（画面备注声明） */}
       <Footnote delay={18}>{'agent loop · context window'}</Footnote>
-      {/* p0-02 尾：警句小字（关键词锚点，非逐字） */}
+      {/* p0-02 尾：警句小字（关键词锚点，非逐字；口播「明天从零开始」约在句内 151f——锚 +130 落字先行） */}
       <div
         style={{
           position: 'absolute',
@@ -198,7 +200,7 @@ const LodgeStage: React.FC<{at02: number; at03: number}> = ({at02, at03}) => {
           fontSize: 30,
           color: theme.dim,
           letterSpacing: 2,
-          opacity: progress(frame, at02 + 60, DUR.f4) * o,
+          opacity: progress(frame, at02 + 130, DUR.f4) * o,
         }}
       >
         {'明天 · 从零开始'}

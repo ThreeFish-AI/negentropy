@@ -33,8 +33,9 @@ const withAlpha = (hex: string, a: number): string =>
     .toString(16)
     .padStart(2, '0')}`;
 
-const KeyCard: React.FC<{at: number; main: string; sub?: string; accent?: string; left?: number; top?: number; width?: number}> = ({
+const KeyCard: React.FC<{at: number; out?: number; main: string; sub?: string; accent?: string; left?: number; top?: number; width?: number}> = ({
   at,
+  out,
   main,
   sub,
   accent,
@@ -43,8 +44,11 @@ const KeyCard: React.FC<{at: number; main: string; sub?: string; accent?: string
   width = 600,
 }) => {
   const o = useProgress(at, DUR.f4);
+  // 同位轮换退场：out 指向后卡 at，前卡交叉淡出——否则空窗回落起点新旧卡叠印（评审修复）
+  const gone = useProgress(out ?? 10_000, DUR.f3);
+  const vis = o * (1 - gone);
   return (
-    <div style={{position: 'absolute', left, top, width, opacity: o, transform: `translateY(${(1 - o) * 14}px)`, textAlign: 'center'}}>
+    <div style={{position: 'absolute', left, top, width, opacity: vis, transform: `translateY(${(1 - o) * 14}px)`, textAlign: 'center'}}>
       <Panel accent={accent} style={{boxSizing: 'border-box', padding: '22px 30px'}}>
         <div style={{fontFamily: theme.sans, fontSize: 34, fontWeight: 600, color: theme.text}}>{main}</div>
         {sub ? <div style={{fontFamily: theme.mono, fontSize: 21, color: theme.dim, marginTop: 10}}>{sub}</div> : null}
@@ -345,8 +349,8 @@ export const P5SocketPlate: React.FC<{scene: SceneRange}> = ({scene}) => {
             {at: at('p5-06') - bB.from, durationInFrames: dur('p5-06')},
           ]}
         >
-          <KeyCard at={2} main={'两步 · 连接 → 发现'} sub={'connect · discover'} accent={theme.accent} />
-          <KeyCard at={at('p5-05') - bB.from} main={'走一遍 · 文档 → 部署'} sub={'查文档 · +3 件'} accent={theme.accent} top={400} />
+          <KeyCard at={2} out={at('p5-05') - bB.from} main={'两步 · 连接 → 发现'} sub={'connect · discover'} accent={theme.accent} />
+          <KeyCard at={at('p5-05') - bB.from} out={at('p5-07') - bB.from} main={'走一遍 · 文档 → 部署'} sub={'查文档 · +3 件'} accent={theme.accent} top={400} />
           <KeyCard at={at('p5-07') - bB.from} main={'同名不撞 · 挂楼牌'} sub={'mcp__服务__工具'} accent={theme.accent} />
         </ArchifyYield>
         {/* cue 1-2/4：socket-pool 逐章（连接与发现→挂牌防撞） */}
