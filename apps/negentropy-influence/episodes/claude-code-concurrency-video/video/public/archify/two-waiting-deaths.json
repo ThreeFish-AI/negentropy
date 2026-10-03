@@ -1,0 +1,101 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 15.67,
+ "total_wall_sec": 65.1,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "belt-anatomy",
+   "label": "传送带一问一答",
+   "index": 0,
+   "file": "two-waiting-deaths--belt-anatomy.mp4",
+   "end_still": "two-waiting-deaths--belt-anatomy-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.39,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "ask",
+    "belt-core",
+    "fast-cmd"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 62.0
+  },
+  {
+   "id": "slow-death",
+   "label": "慢活堵路",
+   "index": 1,
+   "file": "two-waiting-deaths--slow-death.mp4",
+   "end_still": "two-waiting-deaths--slow-death-end.png",
+   "beats": 5,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 5.58,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "belt-core",
+    "slow-cmd",
+    "stall",
+    "idle",
+    "billing"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 62.0
+  },
+  {
+   "id": "manual-death",
+   "label": "到点没人推",
+   "index": 2,
+   "file": "two-waiting-deaths--manual-death.mp4",
+   "end_still": "two-waiting-deaths--manual-death-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "manual",
+    "calendar",
+    "no-push"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 62.0
+  },
+  {
+   "id": "one-root",
+   "label": "一个病根两种表现",
+   "index": 3,
+   "file": "two-waiting-deaths--one-root.mp4",
+   "end_still": "two-waiting-deaths--one-root-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "stall",
+    "no-push",
+    "belt-core"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 62.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/apps/negentropy-influence/episodes/claude-code-concurrency-video/video/public/archify/html/two-waiting-deaths.html",
+ "slug": "two-waiting-deaths",
+ "type": "workflow"
+}

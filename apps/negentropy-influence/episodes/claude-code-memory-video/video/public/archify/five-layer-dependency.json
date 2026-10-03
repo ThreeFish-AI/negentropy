@@ -2,8 +2,8 @@
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 10.02,
- "total_wall_sec": 45.49,
+ "story_sec": 9.95,
+ "total_wall_sec": 53.23,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -20,8 +20,8 @@
    "story_sec": 3.31,
    "beat_offsets_sec": [
     0.0,
-    1.102,
-    2.204
+    1.103,
+    2.207
    ],
    "beat_nodes": [
     "layer-3",
@@ -40,11 +40,11 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.36,
+   "story_sec": 3.32,
    "beat_offsets_sec": [
     0.0,
-    1.103,
-    2.208
+    1.104,
+    2.206
    ],
    "beat_nodes": [
     "loop-core",
@@ -63,11 +63,11 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.35,
+   "story_sec": 3.32,
    "beat_offsets_sec": [
     0.0,
     1.103,
-    2.21
+    2.206
    ],
    "beat_nodes": [
     "dim-zones",
@@ -86,7 +86,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code-harness--five-layer-dependency.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/docs/assets/architecture/agent-harness/claude-code-harness--five-layer-dependency.html",
  "slug": "five-layer-dependency",
  "type": "architecture"
 }

@@ -2,8 +2,8 @@
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 16.41,
- "total_wall_sec": 74.22,
+ "story_sec": 16.43,
+ "total_wall_sec": 69.18,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -17,7 +17,7 @@
    "beats": 1,
    "dwell_ms": 3200,
    "lead_sec": 0.44,
-   "story_sec": 3.22,
+   "story_sec": 3.25,
    "beat_offsets_sec": [
     0.0
    ],
@@ -39,8 +39,8 @@
    "story_sec": 3.36,
    "beat_offsets_sec": [
     0.0,
-    1.104,
-    2.207
+    1.103,
+    2.206
    ],
    "beat_nodes": [
     "catalog-truncate",
@@ -62,8 +62,8 @@
    "story_sec": 3.35,
    "beat_offsets_sec": [
     0.0,
-    1.103,
-    2.206
+    1.105,
+    2.209
    ],
    "beat_nodes": [
     "reverse-gate",
@@ -82,10 +82,10 @@
    "beats": 2,
    "dwell_ms": 1600,
    "lead_sec": 0.44,
-   "story_sec": 3.23,
+   "story_sec": 3.25,
    "beat_offsets_sec": [
     0.0,
-    1.605
+    1.604
    ],
    "beat_nodes": [
     "reverse-gate",
@@ -103,10 +103,10 @@
    "beats": 2,
    "dwell_ms": 1600,
    "lead_sec": 0.44,
-   "story_sec": 3.25,
+   "story_sec": 3.22,
    "beat_offsets_sec": [
     0.0,
-    1.603
+    1.605
    ],
    "beat_nodes": [
     "reverse-gate",
@@ -124,7 +124,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--night-shift.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/docs/assets/architecture/agent-harness/claude-code--night-shift.html",
  "slug": "night-shift",
  "type": "lifecycle"
 }

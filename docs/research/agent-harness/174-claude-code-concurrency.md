@@ -6,6 +6,8 @@ description: "第四层把时间还给主循环：按站点轨 67a9126 重取证
 
 # ④ 并发与时机：谁来按下开始
 
+> 独立重学篇：s13/s14 两节另有一篇不继承本篇叙事与结论的全新精读，见 [176](./176-claude-code-concurrency-relearn.md)（与本篇并存，互不替代）。
+
 > **一句话本质**：所谓后台没有平行宇宙，只是「不等它」；而有些活连按开始的人都不要。
 
 ---
@@ -24,7 +26,7 @@ description: "第四层把时间还给主循环：按站点轨 67a9126 重取证
 | 有些活不由任何一次对话触发 | 周期调度：四层解耦 + 错过不补 | 墙上的钟替你按开始 |
 | 钟叫起来的活，撞上师傅正忙 | 非阻塞试锁探空闲，拿不到就跳过这一拍 | 拿不到锁就说明他正忙 |
 
-> **证据口径**：本章机制正文按站点轨 `s13_background_tasks` / `s14_cron_scheduler`（钉 `67a9126`）叙述，与第 4 集钉点一致；main 轨（`0dcafa2a`）的演进差异以「轨道差异注记」内联。双轨钉选与章→集归属唯一登记在[系列信源地图](../../../apps/negentropy-influence/source-map/claude-code-explained.md)；逐字引语与可调参数归[对应集事实源](../../../apps/negentropy-influence/episodes/claude-code-concurrency-video/research/source-notes.md)。撞号纪律：站点轨 s13/s14 与 main 轨 s13（Agent Teams）/s14（MCP Plugin）同号不同物，凡引章号一律带轨名。
+> **证据口径**：本章机制正文按站点轨 `s13_background_tasks` / `s14_cron_scheduler`（钉 `67a9126`）叙述，与第 4 集钉点一致；main 轨（`0dcafa2a`）的演进差异以「轨道差异注记」内联。双轨钉选与章→集归属唯一登记在[系列信源地图](../../../apps/negentropy-influence/source-map/claude-code-explained.md)；逐字引语与可调参数归[对应集事实源](../../../apps/negentropy-influence/episodes/claude-code-concurrency-video/research/gl-notes.md)。撞号纪律：站点轨 s13/s14 与 main 轨 s13（Agent Teams）/s14（MCP Plugin）同号不同物，凡引章号一律带轨名。
 
 ---
 
@@ -239,7 +241,7 @@ description: "第四层把时间还给主循环：按站点轨 67a9126 重取证
 
 ## 9. 官方文档对照
 
-官方文档站已整体迁移：`docs.claude.com/en/docs/claude-code/*` 301 → `code.claude.com/docs/en/*`（下表页名均可按此基址拼出；访问 2026-09-28）。只收本维硬分歧与同构锚，全量事实集归[对应集事实源](../../../apps/negentropy-influence/episodes/claude-code-concurrency-video/research/source-notes.md)。
+官方文档站已整体迁移：`docs.claude.com/en/docs/claude-code/*` 301 → `code.claude.com/docs/en/*`（下表页名均可按此基址拼出；访问 2026-09-28）。只收本维硬分歧与同构锚，全量事实集归[对应集事实源](../../../apps/negentropy-influence/episodes/claude-code-concurrency-video/research/gl-notes.md)。
 
 | # | 主题 | 课程口径 | 官方口径【官】 | 处置 |
 |---|---|:---|:---|:---|

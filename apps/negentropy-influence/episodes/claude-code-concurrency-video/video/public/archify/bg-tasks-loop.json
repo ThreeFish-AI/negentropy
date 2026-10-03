@@ -1,0 +1,104 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 18.9,
+ "total_wall_sec": 65.16,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "gate-dispatch",
+   "label": "双闸分派",
+   "index": 0,
+   "file": "bg-tasks-loop--gate-dispatch.mp4",
+   "end_still": "bg-tasks-loop--gate-dispatch-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.46,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "model",
+    "gate",
+    "bg",
+    "sync"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 62.0
+  },
+  {
+   "id": "placeholder-hand",
+   "label": "占位回执三件事",
+   "index": 1,
+   "file": "bg-tasks-loop--placeholder-hand.mp4",
+   "end_still": "bg-tasks-loop--placeholder-hand-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.43,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "gate",
+    "bg",
+    "placeholder",
+    "cont"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "notify-merge",
+   "label": "通知合流一条消息",
+   "index": 2,
+   "file": "bg-tasks-loop--notify-merge.mp4",
+   "end_still": "bg-tasks-loop--notify-merge-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "bg",
+    "collect",
+    "read"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 62.0
+  },
+  {
+   "id": "two-round-script",
+   "label": "两回合剧本",
+   "index": 3,
+   "file": "bg-tasks-loop--two-round-script.mp4",
+   "end_still": "bg-tasks-loop--two-round-script-end.png",
+   "beats": 6,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 6.66,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "gate",
+    "bg",
+    "placeholder",
+    "cont",
+    "collect",
+    "read"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/apps/negentropy-influence/episodes/claude-code-concurrency-video/video/public/archify/html/bg-tasks-loop.html",
+ "slug": "bg-tasks-loop",
+ "type": "workflow"
+}

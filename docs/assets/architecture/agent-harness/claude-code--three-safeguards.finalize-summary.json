@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "lifecycle",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/.temp/archify/lifecycle-three-safeguards-fig/candidate.json",
+    "sha256": "a8863cafa261d403f37fe24b7ccae530545defd8545db6c01b29346681cf8f12",
+    "bytes": 3003
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/docs/assets/architecture/agent-harness/claude-code--three-safeguards.html",
+    "sha256": "5dbb2dcca18f0ebcfdbb39eaf0a2949fc11b9b6b7e8c114c1cdadb7f54fce97a",
+    "bytes": 759524
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/docs/assets/architecture/agent-harness/claude-code--three-safeguards.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/docs/assets/architecture/agent-harness/claude-code--three-safeguards.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/docs/assets/architecture/agent-harness/claude-code--three-safeguards.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 1736
+}

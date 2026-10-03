@@ -1,0 +1,102 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 18.74,
+ "total_wall_sec": 72.01,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "four-roles",
+   "label": "四层各司其职",
+   "index": 0,
+   "file": "cron-four-layers--four-roles.mp4",
+   "end_still": "cron-four-layers--four-roles-end.png",
+   "beats": 5,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 5.55,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "ticker",
+    "queue",
+    "lock",
+    "inject",
+    "work"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "yield-loop",
+   "label": "让行回环",
+   "index": 1,
+   "file": "cron-four-layers--yield-loop.mp4",
+   "end_still": "cron-four-layers--yield-loop-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "lock",
+    "queue"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "full-cycle",
+   "label": "全周期走查",
+   "index": 2,
+   "file": "cron-four-layers--full-cycle.mp4",
+   "end_still": "cron-four-layers--full-cycle-end.png",
+   "beats": 6,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 6.68,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "disk",
+    "ticker",
+    "queue",
+    "lock",
+    "inject",
+    "work"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "durable-side",
+   "label": "存档旁挂",
+   "index": 3,
+   "file": "cron-four-layers--durable-side.mp4",
+   "end_still": "cron-four-layers--durable-side-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "disk",
+    "ticker"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/apps/negentropy-influence/episodes/claude-code-concurrency-video/video/public/archify/html/cron-four-layers.html",
+ "slug": "cron-four-layers",
+ "type": "workflow"
+}
