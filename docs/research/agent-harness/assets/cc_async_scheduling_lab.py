@@ -147,6 +147,8 @@ def validate_cron(expr):
                     return f"{name}: Invalid range: {part}"
                 if not (lo <= int(a) <= hi and lo <= int(b) <= hi):
                     return f"{name}: Range {part} out of bounds [{lo}-{hi}]"
+                if int(a) > int(b):
+                    return f"{name}: Descending range: {part}"
             elif not part.isdigit() or not (lo <= int(part) <= hi):
                 return f"{name}: Invalid field: {part}"
     return None
@@ -330,6 +332,7 @@ def selftest():
     expect("minute" in validate_cron("61 * * * *"), "minute bounds")
     expect("Expected 5 fields" in validate_cron("* * * *"), "field count")
     expect("hour" in validate_cron("0 25 * * *"), "hour bounds")
+    expect("Descending" in validate_cron("59-2 * * * *"), "descending range")
     print("cron unit: OK")
 
     print("== 基线仿真 ==")
