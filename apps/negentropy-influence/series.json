@@ -102,7 +102,7 @@
       "id": "claude-code-explained",
       "title": "Claude Code Harness Engineering",
       "sourceKind": "course",
-      "rule": "与自进化系列完全独立：两个系列的口播互不引用（校验器规则 1 跨系列全局生效），发布顺序与视觉契约各自独立（规则 2/3/4 按系列内判定）。信源为官方文档 + Anthropic 工程博客 + 开源课程仓库（站点 20 章/5 阶段只作组织骨架，观众层匿名化——规则 7），故 episode 用 source 字段（含 pinnedRef 与访问日期）而非 paper 字段——证据等级分层见各集 research/source-notes.md。",
+      "rule": "与自进化系列完全独立：两个系列的口播互不引用（校验器规则 1 跨系列全局生效），发布顺序与视觉契约各自独立（规则 2/3/4 按系列内判定）。信源为官方文档 + Anthropic 工程博客 + 开源课程仓库（站点 20 章/5 阶段只作组织骨架，观众层匿名化——规则 7），故 episode 用 source 字段（含 pinnedRef 与访问日期）而非 paper 字段——证据等级分层见各集 research/source-notes.md（第 4 集并发为 gl-notes.md）。",
       "episodes": [
         {
           "episode": 1,
@@ -192,7 +192,7 @@
             "accessed": "2026-08-22"
           },
           "status": "final-review",
-          "statusNote": "完全重制 v1 交付（2026-10-03，C 型信源重制）：14:26.8 = 866.8s @1080p30（26005 帧复算，时长窗 [13.0,14.6] 实测落窗，三源对账：mdls=866.836/manifest 含时距 14.4 分/本注 866.8 一致）；149 句 3681 字（骨架 A 拆机实验室七幕，钩子 H1）；edge 草声 zh-CN-YunxiNeural 全片（IndexTTS-2.5 本人声音升档待用户显式触发）；archify 13 图 47 章 48 cue（11 新绘+2 复用 176，3.0 注入兼容层直通；锚定 32.2% · 密度 3.3/分 · 5 型 · 全屏独占）；机器门全绿：check_series/check--check-scenes/tsc/qa --check FAIL 0（qa 1 豁免 WARN：P1 推镜瞬态扫入字幕带上缘，运动期瞬态、中间帧探针零命中、判例留痕；覆盖门另 WARN 8——6 个「锚在镜区间之外」＝门脚本对同章多实例匹配首实例的误报（各实例锚逐一核对正确；2026-10-03 评审修复轮 3-A 二段换 full-cycle 后新增 3-G 同款双实例误报）、2 个章播放顺序逆序＝叙事重组（knock-walk-away/ablation-panel 换序回放，场景注释留痕）、1 个 3 sidecar 缺 type＝已按交付回执写回 lifecycle/sequence/lifecycle（「五型齐」自此为真五具名型），写回后该 WARN 消）；双重校验 43+36 项闭合；归档 ~/Documents/video/claude-code-explained/ v1 + _captions；ep3 下期卡连坐重渲同批进行",
+          "statusNote": "完全重制 v1 交付（2026-10-03，C 型信源重制）：14:26.8 = 866.8s @1080p30（26005 帧复算，时长窗 [13.0,14.6] 实测落窗，三源对账：mdls=866.836/manifest 含时距 14.4 分/本注 866.8 一致）；149 句 3681 字（骨架 A 拆机实验室七幕，钩子 H1）；edge 草声 zh-CN-YunxiNeural 全片（IndexTTS-2.5 本人声音升档待用户显式触发）；archify 13 图 47 章 48 cue（11 新绘+2 复用 176，3.0 注入兼容层直通；锚定 32.2% · 密度 3.3/分 · 5 型 · 全屏独占）；机器门全绿：check_series/check--check-scenes/tsc/qa --check FAIL 0（qa 1 豁免 WARN：P1 推镜瞬态扫入字幕带上缘，运动期瞬态、中间帧探针零命中、判例留痕；覆盖门另 WARN 8——6 个「锚在镜区间之外」＝门脚本对同章多实例匹配首实例的误报（各实例锚逐一核对正确；2026-10-03 评审修复轮 3-A 二段换 full-cycle 后新增 3-G 同款双实例误报）、2 个章播放顺序逆序＝叙事重组（knock-walk-away/ablation-panel 换序回放，场景注释留痕）、1 个 3 sidecar 缺 type＝已按交付回执写回 lifecycle/sequence/lifecycle（「五型齐」自此为真五具名型），写回后该 WARN 消）；双重校验 43+36 项闭合；归档 ~/Documents/video/claude-code-explained/ v1 + _captions；ep3 下期卡连坐重渲同批进行；评审修复轮四（2026-10-03，15 处）：P6 6-C/6-D 同章倒带合并场景级单实例（48→47 cue，锚定 31.5%/密度 3.25/分仍过覆盖门）、P3/P4 HarnessBadge 右置 top:64（默认档 y12–48 被 ChapterProgress 实底整段压盖，渲帧像素剖面实证）、P1 金句标题下沉 top:64（原与章节条横腰相交抹除中段 4.5s）、P2 两处逐字复述口播改关键词、其余 11 处小修（取模/死参/8px 偏移/jam 取整/4px 越界/注记对齐等）；成片随 ep3 连坐批次重渲",
           "voice": "edge 草声 zh-CN-YunxiNeural（升档待触发）"
         },
         {
