@@ -4302,6 +4302,7 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **处理方式**：换 Remotion 原生 SVG 组件（PendulumGlyph/LockStrike）；禁用法二分（100 帧段渲）实证定位。
 - **后续防范**：新 Lottie 资产入片前先跑 100 帧段渲冒烟；swap 耗尽时「随机崩」会掩盖确定性崩点——分段+禁用二分是分离手段。
 - **同类影响**：LottieEmphasis 的「渲染确定性」承诺在此环境有边界。
+- **退役注记（2026-10-03）**：ep4 并发重制已删尽 `public/lottie/` 资产并全片零 Lottie，`LottieEmphasis.tsx` 在该集转为零引用保留（五集字节一致冻结件，单删会破跨集指纹），`@remotion/lottie`/`lottie-web` 依赖随之冻结为死依赖——待系列级统一退役时一并移除组件与依赖。
 
 ## ISSUE-203 to-video chars_per_min 默认 280 与 story 档实测 254 漂移致首轮必减脂（2026-09-30）
 
