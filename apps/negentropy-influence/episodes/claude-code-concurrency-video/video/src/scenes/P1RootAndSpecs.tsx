@@ -385,9 +385,10 @@ const MapFrameScene: React.FC<{atTank: number; atClock: number; atGlints: number
   // 五零件高亮小点闪：一扫光（错峰正弦包络，帧驱动无随机）
   const glints = useStagger(5, {at: atGlints, stride: 6, dur: DUR.f5});
 
-  // 定时钟指针：九点起锚、匀速走针（到点自响的常态读法）
+  // 定时钟指针：九点起锚、匀速走针（到点自响的常态读法）。屏幕坐标 y 向下，
+  // 9 点位＝180°（指左）：分针竖直指 12、时针水平指 9（与 P0 墙上钟同读数）
   const minuteA = ((-90 + frame * 0.55) * Math.PI) / 180;
-  const hourA = ((270 + frame * 0.045) * Math.PI) / 180;
+  const hourA = ((180 + frame * 0.045) * Math.PI) / 180;
 
   return (
     <AbsoluteFill>
@@ -399,9 +400,10 @@ const MapFrameScene: React.FC<{atTank: number; atClock: number; atGlints: number
         <line x1={340} y1={96} x2={1900} y2={96} stroke={withAlpha(theme.mechDeep, 0.5)} strokeWidth={2.5} strokeDasharray="10 14" />
       </svg>
 
-      {/* 左列 mini 传送带（开口→工具→结果）：与轨迹线同带，横贯读法的西段 */}
+      {/* 左列 mini 传送带（开口→工具→结果）：与轨迹线同带，横贯读法的西段（静态
+          地图底座；恒速滚动感归 P0 工坊带的 useFlowDash 层，此处不传 frame） */}
       <div style={{opacity: base}}>
-        <BeltStrip x={MAP.beltX} y={MAP.beltY} width={MAP.beltW} frame={frame} />
+        <BeltStrip x={MAP.beltX} y={MAP.beltY} width={MAP.beltW} />
       </div>
 
       {/* 右缘纵深·自动清洗槽（梯形透视剪影，自右缘滑入挂定） */}
@@ -522,7 +524,7 @@ const PRINT_FRAMES = 54;
 const PRINT_STEPS = 6;
 
 const TankReceiptScene: React.FC<{atPrint: number; atText: number; atGlow: number}> = ({atPrint, atText, atGlow}) => {
-  const zoom = usePushIn(2, {scale: 0.24, dur: 46}); // 收敛：42% 缩放把槽体结构带进字幕安全带（qa WARN+目检定谳）
+  const zoom = usePushIn(2, {scale: 0.24, dur: 46}); // 收敛：24% 推近把槽体结构带进字幕安全带（qa WARN+目检定谳）
   const print = useProgress(atPrint, PRINT_FRAMES, 'linear');
   const textIn = useProgress(atText, DUR.f4);
   const glow = useImpulse({at: atGlow, dur: DUR.f5, peak: 16});

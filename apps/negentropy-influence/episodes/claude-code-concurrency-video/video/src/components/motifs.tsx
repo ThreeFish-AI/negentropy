@@ -246,16 +246,16 @@ export {ease};
 
 // ── 本集恒定视觉锚：传送带母题（core 橙描边恒定〔M-001〕，跨镜色值线宽逐像素一致） ──
 
-/** 传送带：横贯条带＋三个滚动节点（开口→工具→结果）。全片多幕同形出场，只换周边标签。
- *  dim 态＝带停摆（core 色降透明）；带体恒速滚动由 frames 驱动，无随机。 */
+/** 传送带：横贯条带＋三个标签节点（开口→工具→结果）。全片多幕同形出场，只换周边标签。
+ *  dim 态＝带停摆（core 色降透明）。静态母题（评审修复：无 frame 参数——恒速
+ *  行进感由调用侧叠 useFlowDash 虚线层，见 P0 BeltLine；无随机）。 */
 export const BeltStrip: React.FC<{
   x: number;
   y: number;
   width: number;
   dim?: boolean;
-  frame?: number;
   labels?: [string, string, string];
-}> = ({x, y, width, dim = false, frame = 0, labels = ['开口', '工具', '结果']}) => {
+}> = ({x, y, width, dim = false, labels = ['开口', '工具', '结果']}) => {
   const core = '#D97757';
   const body = dim ? 'rgba(217,119,87,0.28)' : 'rgba(217,119,87,0.16)';
   const edge = dim ? 'rgba(217,119,87,0.55)' : core;

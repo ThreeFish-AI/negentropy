@@ -301,7 +301,9 @@ const GrayAdditions: React.FC<{at07: number; at08: number; at09: number; at10: n
           <div style={{fontFamily: theme.sans, fontSize: 22, color: theme.dim, marginTop: 2}}>{'未讲'}</div>
         </div>
       </div>
-      <GrayRow y={210} at={at07 + 120} plus="＋" zh="后台化 · 三条路" mono="开口之外 ×2" />
+      {/* 首行右缘收敛（评审修复）：zh 去「 · 」装饰后总宽约 -31px，右缘 ≈1911-1919
+          收进画布；「开口之外 ×2」术语与 p6-08 口播逐字保持 */}
+      <GrayRow y={210} at={at07 + 120} plus="＋" zh="后台化三条路" mono="开口之外 ×2" />
       <GrayRow y={286} at={at08 + 80} plus="＋" zh="按键转后台" mono="Ctrl+B" />
       <GrayRow y={352} at={at08 + 150} plus="＋" zh="跑满两分钟 · 自动转" mono="120s" />
       <GrayRow y={436} at={at09 + 12} plus="！" zh="还是那个两分钟" highlight />
@@ -553,12 +555,21 @@ const RuleFive: React.FC<{at15: number; at16: number; at17: number}> = ({at15, a
 
 // ── 6-F 边界与收束：地图回看标注 + 传送带快转定格 + 下期卡 + 幕末渐黑 ────
 
-/** 全片地图回看的车道标注（P1-C 同构小图：两装置剪影＋域标签；地图本体在画框）。 */
-const MapRecap: React.FC<{at18: number; grayAt: number; spinAt: number}> = ({at18, grayAt, spinAt}) => {
+/** 「永不触发」锚（让可选动效缺省时不产生条件 hook） */
+const FAR = 1e9;
+
+/** 全片地图回看的车道标注（P1-C 同构小图：两装置剪影＋域标签；地图本体在画框）。
+ *  handoffAt：身份卡入场前一拍，边界卡让位淡出（评审修复：原与身份卡几何叠压）。 */
+const MapRecap: React.FC<{at18: number; grayAt: number; spinAt: number; handoffAt?: number}> = ({
+  at18,
+  grayAt,
+  spinAt,
+  handoffAt = FAR,
+}) => {
   const frame = useCurrentFrame();
   const kick = useProgress(at18 + 2, DUR.f5);
   const devO = useProgress(at18 + 10, DUR.f5);
-  const tagO = useProgress(at18 + 4, DUR.f5);
+  const tagO = useProgress(at18 + 4, DUR.f5) * (1 - useProgress(handoffAt, DUR.f5));
   const grayO = useProgress(grayAt, DUR.f5);
   const beltO = useProgress(at18 + 16, DUR.f5);
   // 收句「等，被赶出了传送带」：快转 14 帧后冻结（定格），冲量辉光标记定格点
@@ -678,6 +689,20 @@ const NextCard: React.FC<{at: number}> = ({at}) => {
   );
 };
 
+/** 身份卡（左车道）：与下期卡同族淡入（评审修复：原在组件顶层算 opacity，帧基准
+ *  是场景帧而锚是 6-F 局部帧——身份卡在 p6-18 首帧即满透明瞬现；组件化进 bF
+ *  Sequence 后局部帧口径与 NextCard 一致）；落位接管 MapRecap 边界卡让出的位置。 */
+const IdCard: React.FC<{at: number}> = ({at}) => {
+  const inO = useProgress(at, DUR.f6);
+  return (
+    <div style={{position: 'absolute', left: 96, top: 396, opacity: inO, transform: `translateY(${(1 - inO) * 12}px)`}}>
+      <div style={{fontFamily: theme.mono, fontSize: 13, color: theme.dim, letterSpacing: 2}}>{'本集'}</div>
+      {/* 规则 8：身份卡标题字面量与 series.json 逐字同步（去前缀段） */}
+      <div style={{fontFamily: theme.serif, fontSize: 24, fontWeight: 600, color: theme.mech, marginTop: 6}}>{'一张回执和四层钟'}</div>
+    </div>
+  );
+};
+
 /** 幕末渐黑（红线四）：挂在 6-F Sequence 最后子节点，盖过画框与下期卡；
  *  useFadeOut 在本 Sequence 语境取 bF 局部帧，窗=bF 整镜时长（终点即末 beat 终点）。 */
 const FadeTail: React.FC<{span: number}> = ({span}) => {
@@ -707,8 +732,7 @@ export const P6ReconRules: React.FC<{scene: SceneRange}> = ({scene}) => {
   const dur19 = dur('p6-19');
   const grayAt = at18 + Math.round(dur18 * 0.62); // 「另一场戏」落点
   const spinAt = at19 + Math.round(dur19 * 0.58); // 「等，被赶出了传送带」落点
-  const nextAt = at19 + Math.round(dur19 * 0.42); // 收句回顾落定后、下期卡淡入
-  const idCardO = useProgress(nextAt - 6, DUR.f6); // 身份卡淡入（与下期卡同族）
+  const nextAt = at19 + Math.round(dur19 * 0.42); // 收句回顾落定后、下期卡/身份卡淡入
 
   return (
     <AbsoluteFill>
@@ -790,18 +814,15 @@ export const P6ReconRules: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bF} name="6-F 边界与收束">
-        <MapRecap at18={at18} grayAt={grayAt} spinAt={spinAt} />
+        <MapRecap at18={at18} grayAt={grayAt} spinAt={spinAt} handoffAt={nextAt - 6} />
         {/* cue 6/6：spec-two-promises/map-back（同图跨镜重现；lead 判定见文件头 ★ 留痕） */}
         <ArchifyRecap
           slug="spec-two-promises"
           caption="两条规格"
           cues={[{chapterId: 'map-back', at: at('p6-18') - bF.from, durationInFrames: dur('p6-18') + dur('p6-19')}]}
         />
-        {/* 规则 8：身份卡标题字面量（去前缀段）——6-F 左车道 */}
-        <div style={{position: 'absolute', left: 96, top: 396, opacity: idCardO}}>
-          <div style={{fontFamily: theme.mono, fontSize: 13, color: theme.dim, letterSpacing: 2}}>{'本集'}</div>
-          <div style={{fontFamily: theme.serif, fontSize: 24, fontWeight: 600, color: theme.mech, marginTop: 6}}>{'一张回执和四层钟'}</div>
-        </div>
+        {/* 规则 8：身份卡（左车道，p6-19 句 42% 与下期卡同族淡入；边界卡已让位） */}
+        <IdCard at={nextAt} />
         <NextCard at={nextAt} />
         {/* 幕末渐黑：最后子节点，盖过画框/车道一切内容（含下期卡） */}
         <FadeTail span={bF.durationInFrames} />

@@ -2,8 +2,10 @@
  *
  *  cue 清单（4）：
  *   0-B two-waiting-deaths/belt-anatomy@p0-03（dur p0-03+04+05，整镜全屏）
- *   0-C two-waiting-deaths/slow-death@p0-06（dur p0-06+07+08，整镜全屏）
- *   0-D two-waiting-deaths/manual-death@p0-09（dur p0-09+10）
+ *   0-C two-waiting-deaths/slow-death@p0-06（dur p0-06+07+08，整镜全屏；与 0-B
+ *    同 slug 跨镜背靠背（p0-05 末=p0-06 始，gap=0）→ lead={false}）
+ *   0-D two-waiting-deaths/manual-death@p0-09（dur p0-09+10；与 0-C 同 slug 跨镜
+ *    背靠背（p0-08 末=p0-09 始，gap=0）→ lead={false}）
  *   0-D two-waiting-deaths/one-root@p0-11（dur p0-11+12；与上章同实例背靠背换章，
  *    lead 由组件内自动抑制——不传 lead prop）
  *
@@ -109,10 +111,13 @@ const BeltLine: React.FC<{dim?: boolean}> = ({dim}) => {
   );
 };
 
-/** 工坊底台（0-B..0-D 恒位恒构）：全宽传送带＋师傅剪影站台前（左缘列）。
- *  dim＝带停（0-D）；fadeInAt＝0-B 黑场渐显锚（其余镜传 -999 直通）。 */
-const WorkshopBase: React.FC<{dim?: boolean; fadeInAt?: number}> = ({dim, fadeInAt = -999}) => {
-  const o = useProgress(fadeInAt, DUR.f6);
+/** 工坊底台（0-B..0-D 恒位恒构，单实例贯穿三镜）：挂在镜 Sequence 之外读场景
+ *  连续帧——行进虚线相位不再随镜界重挂归零（〔M-001〕恒速不停，评审修复）；
+ *  bAt=0-B 场景帧（黑场渐显锚），dimFrom=0-D 场景帧（带停＝dim 态＋虚线撤去）。 */
+const BeltStage: React.FC<{bAt: number; dimFrom: number}> = ({bAt, dimFrom}) => {
+  const frame = useCurrentFrame();
+  const o = useProgress(bAt, DUR.f6);
+  const dim = frame >= dimFrom;
   return (
     <AbsoluteFill style={{opacity: o}}>
       <BeltLine dim={dim} />
@@ -522,6 +527,9 @@ export const P0TwoWaits: React.FC<{scene: SceneRange}> = ({scene}) => {
 
   return (
     <AbsoluteFill style={{background: theme.bg}}>
+      {/* 工坊底台单实例贯穿 0-B..0-D（镜外连续层，虚线相位跨镜续接；0-A 黑场期渐显前不可见） */}
+      <BeltStage bAt={bB.from} dimFrom={bD.from} />
+
       <Sequence {...bA} name="0-A 视听合力开场">
         {/* 开篇首镜：黑场起装置剪影，除角标外零画面文字（禁静态文字卡） */}
         <Machine flashAt={deathWordAt - bA.from} />
@@ -530,8 +538,6 @@ export const P0TwoWaits: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       <Sequence {...bB} name="0-B 工坊回归">
         <SceneTag chapter="P0" tagline="两种白等" accent={theme.core} />
-        {/* 黑场渐显（场景请回来）；舞台铺画框之后，缘列露出（见文件头★） */}
-        <WorkshopBase fadeInAt={0} />
         <NightTag />
         {/* cue 1/4：belt-anatomy（整镜全屏；带解剖归画框，舞台带同轴同向） */}
         <ArchifyRecap
@@ -543,30 +549,31 @@ export const P0TwoWaits: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       <Sequence {...bC} name="0-C 慢活堵路">
         <SceneTag chapter="P0" tagline="两种白等" accent={theme.core} />
-        <WorkshopBase />
         <SlowWaitStage span={bC.durationInFrames} cardAt={at('p0-06') - bC.from + 4} />
         <Footnote delay={at('p0-07') - bC.from}>{'pip install torch · npm run build'}</Footnote>
-        {/* cue 2/4：slow-death（整镜全屏；慢活堵路归画框，计费在缘列陪跑） */}
+        {/* cue 2/4：slow-death（整镜全屏；慢活堵路归画框，计费在缘列陪跑；与 0-B 跨镜背靠背 → lead={false}） */}
         <ArchifyRecap
           slug="two-waiting-deaths"
           caption="两种白等"
           cues={[{chapterId: 'slow-death', at: at('p0-06') - bC.from, durationInFrames: dur('p0-06') + dur('p0-07') + dur('p0-08')}]}
+          lead={false}
         />
       </Sequence>
 
       <Sequence {...bD} name="0-D 到点没人推">
         <SceneTag chapter="P0" tagline="两种白等" accent={theme.core} />
-        {/* 带停＝dim＋虚线撤去；「同框缩小并列」由 one-root 章承担（见文件头★） */}
-        <WorkshopBase dim />
+        {/* 带停＝dim＋虚线撤去（由镜外 BeltStage 以场景帧切换）；「同框缩小并列」由 one-root 章承担（见文件头★） */}
         <NoPushStage
           wallAt={at('p0-09') - bD.from + 2}
           noteAt={at('p0-10') - bD.from}
           rootAt={at('p0-11') - bD.from}
         />
-        {/* cue 3+4/4：manual-death → one-root（同实例相邻换章，lead 组件内自动抑制） */}
+        {/* cue 3+4/4：manual-death → one-root（manual-death 与 0-C 跨镜背靠背 → 实例 lead={false}；
+            one-root 同实例相邻换章，lead 组件内自动抑制） */}
         <ArchifyRecap
           slug="two-waiting-deaths"
           caption="两种白等"
+          lead={false}
           cues={[
             {chapterId: 'manual-death', at: at('p0-09') - bD.from, durationInFrames: dur('p0-09') + dur('p0-10')},
             {chapterId: 'one-root', at: at('p0-11') - bD.from, durationInFrames: dur('p0-11') + dur('p0-12')},

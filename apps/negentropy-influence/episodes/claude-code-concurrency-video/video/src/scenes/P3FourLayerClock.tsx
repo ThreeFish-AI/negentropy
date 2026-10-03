@@ -31,7 +31,6 @@ import {
   progress,
   schedule,
   useDim,
-  useDraw,
   useEnter,
   useImpulse,
   useProgress,
@@ -258,16 +257,16 @@ const DoctorGlyph: React.FC<{seeAt: number}> = ({seeAt}) => {
   );
 };
 
-/** 四联画格：panel 底＋简笔＋名称＋角色 chip；点亮时边框 mech 一拍，可挂高亮/压暗锚 */
+/** 四联画格：panel 底＋简笔＋名称＋角色 chip；点亮时边框 mech 一拍，可挂高亮/压暗锚。
+ *  name/role 单一事实源＝QUAD[index]（评审修复：调用处不再平行硬编码） */
 const QuadPanel: React.FC<{
   index: number;
   litAt: number;
-  name: string;
-  role: string;
   dimAt?: number;
   hotAt?: number[];
   children?: React.ReactNode;
-}> = ({index, litAt, name, role, dimAt = FAR, hotAt = [], children}) => {
+}> = ({index, litAt, dimAt = FAR, hotAt = [], children}) => {
+  const {name, role} = QUAD[index];
   const enter = useEnter('rise', {at: litAt, dur: DUR.f5, dist: 40, springPreset: 'settle', restBottom: QUAD_Y + QUAD_H});
   const dim = useDim({at: dimAt, to: 0.55, dur: DUR.f4});
   const frame = useCurrentFrame();
@@ -340,16 +339,16 @@ const HospitalQuad: React.FC<{a06: number; a07: number; a08: number; a09: number
       <SceneTag chapter="四层钟" tagline="医院类比 · 四联画" accent={theme.mech} />
       <TimingRail at={a06} />
 
-      <QuadPanel index={0} litAt={lit[0]} name="排班表" role="判时" dimAt={a09}>
+      <QuadPanel index={0} litAt={lit[0]} dimAt={a09}>
         <ScheduleBoardGlyph at={lit[0]} />
       </QuadPanel>
-      <QuadPanel index={1} litAt={lit[1]} name="候诊屏" role="缓冲" dimAt={a09}>
+      <QuadPanel index={1} litAt={lit[1]} dimAt={a09}>
         <WaitingScreenGlyph at={lit[1]} />
       </QuadPanel>
-      <QuadPanel index={2} litAt={lit[2]} name="护士" role="交付" dimAt={a09} hotAt={[nurseCallAt]}>
+      <QuadPanel index={2} litAt={lit[2]} dimAt={a09} hotAt={[nurseCallAt]}>
         <NurseGlyph callAt={nurseCallAt} />
       </QuadPanel>
-      <QuadPanel index={3} litAt={lit[3]} name="医生" role="执行" hotAt={[doctorSeeAt, flyEnd]}>
+      <QuadPanel index={3} litAt={lit[3]} hotAt={[doctorSeeAt, flyEnd]}>
         <DoctorGlyph seeAt={doctorSeeAt} />
       </QuadPanel>
 

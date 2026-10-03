@@ -5,9 +5,10 @@
  *    PillarHUD 同类的边距母图层锚，播放期不让位（分轨替代 ArchifyYield）；
  *    三件事（流水线灯/滚筒跳号/抽屉上锁）、占位小票、「叫号器」点睛的句锚
  *    点亮全部落在 lane 上，与画框特写互为总分。
- *  ★ 跨实例背靠背：2-F 与 2-E 同章 placeholder-hand（p2-13 末＝p2-14 始，
- *    帧相邻）实例必须 lead={false}（分镜 lead 清单）；2-G 实例内两 cue 中隔
- *    p2-19 空窗，第二 cue 恢复入场由组件自动判定。
+ *  ★ 跨实例背靠背 lead 判定：同 slug 帧相邻 → lead={false}（2-F/2-E、2-G/2-F 均
+ *    同图相接，gap=0）；换 slug 换图 → 默认 lead（2-H 两回合剧本是新图，入场即换
+ *    图动效，P5 5-E 同判例）；2-G 实例内两 cue 中隔 p2-19 空窗，第二 cue 恢复
+ *    入场由组件自动判定。
  *  ★ 2-G p2-19 空窗由主循环带持有画面：通知 chip 自右缘 lane 沿虚轨落入
  *    BeltStrip（M-001 传送带恒定锚），衔接第二 cue 的画框重现。
  *  cue 清单（11）：
@@ -15,7 +16,7 @@
  *    2-C dispatch-two-gates     gate-one@p2-05(+06) / gate-two@p2-07(+08)
  *    2-E bg-tasks-loop          placeholder-hand@p2-10..13
  *    2-F bg-tasks-loop          placeholder-hand@p2-14..15（lead={false}）
- *    2-G bg-tasks-loop          notify-merge@p2-16..18 / notify-merge@p2-20..22
+ *    2-G bg-tasks-loop          notify-merge@p2-16..18 / notify-merge@p2-20..22（lead={false}）
  *    2-H two-round-script       turn-one@p2-23(+24) / turn-two@p2-25(+26) / zero-wait@p2-27(+28)
  *  native：2-B 网购金句卡（衬线 + accent 金）/ 2-D 拨杆拨否仍坠落（单句镜）/
  *    2-H p2-29..30 排队层 + 下一台装置预告；2-A/2-C/2-E/2-F/2-G/2-H(cue 窗) 纯图镜。
@@ -32,7 +33,9 @@ import {DUR, useBreathe, useDraw, useEnter, useImpulse, useProgress, useSpring, 
 
 /** 常驻系列条定位：y<56 归 ChapterProgress 章节条；本集 motifs 种子把 SceneTag
  *  落在左上（left:72/top:64），Badge 让到同行右端（left:auto + right:64）——
- *  双端分置互不叠压、也不侵入章节条（P1–P6 各幕同值，由组装方统一核对）。 */
+ *  双端分置互不叠压、也不侵入章节条。挂载面（组装方核对口径）：P2/P3/P4 挂
+ *  Badge（P2 右置 top:64、P3/P4 默认 left:64/top:12），P1/P5/P6 顶带让位给
+ *  地图/对拍/收尾版式不挂——系列身份由 P6 身份卡收束（评审修复：如实标注）。 */
 const BADGE_STYLE: React.CSSProperties = {left: 'auto', right: 64, top: 64};
 
 // ── 2-B 网购金句卡（衬线 · accent 金） ──────────────────────────────────
@@ -122,14 +125,15 @@ const ShopAnalogy: React.FC<{atCard: number; atIconL: number; atIconR: number}> 
           </div>
         </Panel>
       </div>
-      {/* 合页中缝闪光（两页合拢一拍） */}
+      {/* 合页中缝闪光（两页合拢一拍）——条高贴合两卡内容高（评审修复：原 298
+          比卡实际约 184px 悬空百余像素，闪光拍会露出无依托竖线） */}
       <div
         style={{
           position: 'absolute',
           left: 958,
-          top: 336,
+          top: 340,
           width: 4,
-          height: 298,
+          height: 184,
           borderRadius: 2,
           background: theme.accent,
           opacity: seam * 0.85,
@@ -790,10 +794,12 @@ export const P2OneReceipt: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bG} name="2-G 通知合流">
-        {/* 同章双 cue 中隔 p2-19 空窗：第二 cue 恢复入场由组件自动判定 */}
+        {/* 同章双 cue 中隔 p2-19 空窗：第二 cue 恢复入场由组件自动判定；首 cue 与
+            2-F 实例跨镜背靠背（p2-15 末=p2-16 始，gap=0）→ lead={false} */}
         <ArchifyRecap
           slug="bg-tasks-loop"
           caption="占位回执"
+          lead={false}
           cues={[
             {chapterId: 'notify-merge', at: at('p2-16') - bG.from, durationInFrames: dur('p2-16') + dur('p2-17') + dur('p2-18')},
             {chapterId: 'notify-merge', at: at('p2-20') - bG.from, durationInFrames: dur('p2-20') + dur('p2-21') + dur('p2-22')},
@@ -806,7 +812,8 @@ export const P2OneReceipt: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bH} name="2-H 两回合剧本">
-        {/* 三 cue 句句相接——实例内自动抑制 */}
+        {/* 三 cue 句句相接——实例内自动抑制；与 2-G 虽背靠背（p2-22 末=p2-23 始）但
+            换 slug 换图 → 默认 lead（新图入场是换图动效，P5 5-E 同判例） */}
         <ArchifyRecap
           slug="two-round-script"
           caption="两回合剧本"
