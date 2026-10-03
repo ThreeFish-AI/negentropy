@@ -294,6 +294,7 @@ export const ARCHIFY = {
   },
   "disk-not-alive": {
     "slug": "disk-not-alive",
+    "type": "lifecycle",
     "chapters": [
       {
         "id": "two-lives",
@@ -404,6 +405,7 @@ export const ARCHIFY = {
   },
   "knock-walk-away": {
     "slug": "knock-walk-away",
+    "type": "sequence",
     "chapters": [
       {
         "id": "loop-wake",
@@ -606,6 +608,7 @@ export const ARCHIFY = {
   },
   "three-safeguards": {
     "slug": "three-safeguards",
+    "type": "lifecycle",
     "chapters": [
       {
         "id": "mark-date",
