@@ -22,7 +22,7 @@ import {Footnote, LodgeMap, Panel, SceneTag} from '../components/motifs';
 import {HarnessBadge} from '../components/harness-stack';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 import {ArchifyYield} from '../components/ArchifyYield';
-import {DUR, clamp01, progress, useEnter, useFlowDash, useImpulse, useProgress, useSpring, useStagger} from '../motion';
+import {DUR, clamp01, progress, useBreathe, useEnter, useFlowDash, useImpulse, useProgress, useSpring, useStagger} from '../motion';
 
 // ── 本幕通用 ────────────────────────────────────────────────────────────
 
@@ -294,8 +294,8 @@ const ClaimGate: React.FC<{at15: number; at16: number}> = ({at15, at16}) => {
 const RaceQuote: React.FC = () => {
   const rise = useEnter('rise', {at: 2, dur: DUR.f5, springPreset: 'settle', dist: 30});
   const o = useProgress(2, DUR.f4);
-  const frame = useCurrentFrame();
-  const glow = 0.5 + 0.5 * Math.sin(frame / 9);
+  // 呼吸辉光：period=2π·9 与原 sin(frame/9) 严格等值（P6 收敛同款约定）
+  const glow = useBreathe({period: 2 * Math.PI * 9, amp: 0.5, base: 0.5});
   return (
     <AbsoluteFill style={{pointerEvents: 'none'}}>
       <div style={{position: 'absolute', left: 0, right: 0, top: 330, ...rise, opacity: o}}>

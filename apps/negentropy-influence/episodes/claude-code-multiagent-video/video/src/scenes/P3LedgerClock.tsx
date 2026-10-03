@@ -332,7 +332,7 @@ export const P3LedgerClock: React.FC<{scene: SceneRange}> = ({scene}) => {
   return (
     <AbsoluteFill>
       <HarnessBadge style={BADGE_STYLE} />
-      <SceneTag chapter="P3" tagline="回执簿·值班钟" accent={theme.accent} />
+      <SceneTag chapter="P3" tagline="回执簿与值班钟" accent={theme.accent} />
       <div style={{position: 'absolute', left: 1668, top: 56, opacity: mapIn}}>
         <LodgeMap active={mapActive} />
       </div>

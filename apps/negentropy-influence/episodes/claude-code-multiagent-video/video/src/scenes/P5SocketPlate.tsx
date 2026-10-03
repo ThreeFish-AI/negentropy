@@ -350,7 +350,7 @@ export const P5SocketPlate: React.FC<{scene: SceneRange}> = ({scene}) => {
           ]}
         >
           <KeyCard at={2} out={at('p5-05') - bB.from} main={'两步 · 连接 → 发现'} sub={'connect · discover'} accent={theme.accent} />
-          <KeyCard at={at('p5-05') - bB.from} out={at('p5-07') - bB.from} main={'走一遍 · 文档 → 部署'} sub={'查文档 · +3 件'} accent={theme.accent} top={400} />
+          <KeyCard at={at('p5-05') - bB.from} out={at('p5-07') - bB.from} main={'走一遍 · 文档 → 部署'} sub={'+1 · 再 +2 · 合计 3 件'} accent={theme.accent} top={400} />
           <KeyCard at={at('p5-07') - bB.from} main={'同名不撞 · 挂楼牌'} sub={'mcp__服务__工具'} accent={theme.accent} />
         </ArchifyYield>
         {/* cue 1-2/4：socket-pool 逐章（连接与发现→挂牌防撞） */}

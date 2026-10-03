@@ -188,7 +188,7 @@ const SlowJobTrace: React.FC<{atA: number; span: number}> = ({atA, span}) => {
   // 后台车道行进（后台线程跑完）
   const flow = useFlowDash({dash: 12, gap: 16, period: 20});
   // 通知回流点（沿环巡游——回到准备区）
-  const loop = useTravel({cx: 1500, cy: 420, r: 44, secPerLap: 2.6});
+  const loop = useTravel({cx: 1500, cy: 452, r: 44, secPerLap: 2.6});
   const backO = steps[4];
   return (
     <AbsoluteFill>
@@ -232,11 +232,13 @@ const SlowJobTrace: React.FC<{atA: number; span: number}> = ({atA, span}) => {
         <path d="M620 560 C 900 640, 1200 640, 1456 500" fill="none" stroke={theme.panelBorder} strokeWidth={3} />
         <path d="M620 560 C 900 640, 1200 640, 1456 500" fill="none" stroke={theme.accent} strokeWidth={4} {...flow} />
       </svg>
-      {/* 准备区回流环（通知流回准备区——下一轮收尾） */}
+      {/* 准备区回流环（通知流回准备区——下一轮收尾）。
+          环顶 452-44=408 距第 5 步卡底 ~391（巡游点顶 399）留 8px 净空，勿再上移
+          （会压「通知回流」卡底带，P4 循环轨道同款口径）；标签 y=524 随环下移。 */}
       <svg width={1920} height={1080} style={{position: 'absolute', left: 0, top: 0, opacity: backO}}>
-        <circle cx={1500} cy={420} r={44} fill="none" stroke={theme.concept} strokeWidth={4} opacity={0.75} />
+        <circle cx={1500} cy={452} r={44} fill="none" stroke={theme.concept} strokeWidth={4} opacity={0.75} />
         <circle cx={loop.x} cy={loop.y} r={9} fill={theme.concept} />
-        <text x={1500} y={508} textAnchor="middle" fontFamily={theme.mono} fontSize={19} fill={theme.dim}>
+        <text x={1500} y={524} textAnchor="middle" fontFamily={theme.mono} fontSize={19} fill={theme.dim}>
           {'准备区 · 下一轮'}
         </text>
       </svg>
