@@ -9,7 +9,7 @@
 | 冻结日期 | 2026-10-02（本集 Stage ①，自当前分支 HEAD 复制；上游正文此后变更不自动跟进） |
 | 生成方式 | guided-learn 零继承独立重学（黑名单禁读 170–175 与旧 ep4 取证；源钉 `67a9126c`，main 轨 `ce8f9f18` 对照） |
 | GL 取数日期 | 2026-09-30（全部上游信源） |
-| 活源台账 | `sources.toml`（source_ledger.py 派生+登记，14 条；audit FAIL 0 / verify FAIL 0 @2026-10-02） |
+| 活源台账 | `sources.toml`（source_ledger.py 派生+登记，15 条；audit FAIL 0 / verify FAIL 0 @2026-10-02） |
 | 字节归档 | `source-archive/67a9126/`（站点轨四文件＋LICENSE）· `source-archive/ce8f9f1/`（main 轨双 README＋LICENSE） |
 
 **原始信源清单**（176 参考 [1]–[9] ↔ 台账条目映射）：
@@ -24,6 +24,7 @@
 | [6] routines | off-routines | site | 官方 Routines（云例程） |
 | [7] interactive-mode | off-interactive-mode | site | 官方交互模式（Background Bash） |
 | [8] tool-use overview | off-tooluse-overview | site | Messages API 配对语义（platform 文档） |
+| [8b] handle-tool-calls | off-handle-tool-calls | site | 配对语义补证（O15 增量；`tool_use_id` 回传＋未解决 400） |
 | [9] main 轨 @ce8f9f18 | main-s11-readme / main-s12-readme | repo | 平行分叉对照（英文原稿、无源码对照节） |
 
 **证据定级**：按 B 型三级 ≤ 二级处理；176 §6 中课程对闭源实现解读、官方无记载者（45 秒看门狗、七种后台任务类型、Haiku 摘要、`tengu_kairos_cron`、cron 降级服务标记等）一律三级——口播须带归属句、不得说成产品既成事实、画面角标归属。176 内置 lab 实测（e1–e5）**本集已复算**（见附录一），按「本集实测」升一级登记。
@@ -114,7 +115,7 @@ def should_run_background(tool_name, tool_input):
 
 后台命令跑完后，输出不是补进原来的应答（名额已用掉），而是包装成一条独立的任务通知，结构是固定的一组尖括号标签（XML 样式，形如 `<task_notification>…</task_notification>`），里面依次是任务号、状态、原命令、不超过 200 字的摘要[1]。送它进对话的不是另开的线程，而是 Agent 主循环自己：每一轮执行完当轮的工具调用、准备把结果交回模型之前，主循环顺手查一遍登记表，把已完成的任务收成通知，和当轮的工具结果**合入同一条用户消息**送进对话（在教学代码和官方示例里，消息列表只出现模型和用户两种发言身份；程序交回的工具结果、后台通知都装进用户消息送进去，系统提示另走单独的参数），模型像收到一条新消息一样读到它。这一步不经过队列，主循环直接去登记表里取；取的时候同样要先拿登记表那把锁，只占一瞬。
 
-端到端走查一遍（材料给的两回合剧本[1]）：第 1 回合，模型发起 `npm install`（带后台参数）→ 循环回占位结果 `bg_0001 已启动` → 模型接着读 package.json（快命令，同步，当场拿内容）。第 2 回合，安装完成 → 循环收集后台结果 → 安装通知与配置文件内容同框出现。Agent 没干等一分钟。
+端到端走查一遍（材料给的两回合剧本[1]）：第 1 回合，模型发起 `npm install`（带后台参数）→ 循环回占位结果 `bg_0001 已启动` → 模型口头预告「顺手把配置文件也读了」。第 2 回合，模型读 package.json（快命令，同步，当场拿内容）→ 循环收集后台结果 → 安装通知与配置文件内容同框出现。Agent 没干等一分钟。
 
 教学版在每轮工具循环时顺手收集后台结果；生产版用一条通知队列把完成事件送进后续回合，不必等工具循环[1]。
 
@@ -322,7 +323,7 @@ python3 docs/research/agent-harness/assets/cc_async_scheduling_lab.py --selftest
 ### 穿透裁定（写作期必须消费的四个结论）
 
 1. **R1 定谳**：s13 慢关键词共 **11 个**（`code.py:323-325` 逐词 install/build/test/deploy/compile/docker build/pip install/npm install/cargo build/pytest/make），与 176 清单逐词一致；GL 内部台账 sources.md U4 的「10 词」为转述误差，不采用。
-2. **R8 修正**：两回合剧本中「读 package.json」发生在**第 2 回合**（README:164-176：第 1 回合止于占位与口头预告「Let me also read the config」；第 2 回合读文件，安装通知与文件内容同框）。Stage ③ 写 P2 走查按此表述，不照搬 176 §3.4 的压缩版。main 轨为三回合变体（s11 README:120-134），不进口播。
+2. **R8 修正**：两回合剧本中「读 package.json」发生在**第 2 回合**（README:164-176：第 1 回合止于占位与口头预告「Let me also read the config」；第 2 回合读文件，安装通知与文件内容同框）。Stage ③ 写 P2 走查按此表述，不照搬 176 §3.4 的压缩版。main 轨为三回合变体（s11 README:120-134），不进口播。〔评审修复轮：176 本体 §3.4 与本文件冻结副本已按源件同步修正，两处不再分叉。〕
 3. **O15 补证闭合**：配对语义规范性原文由 handle-tool-calls 子页增量补证（`tool_use_id` 回传字段 + 结果块必须先行 + 未解决即 400 错误）；台账新增 `off-handle-tool-calls` 条目。口播可按「每个工具调用都要有一个带同一个编号的结果回它」表述。
 4. **R10 补充**：`'0 9 1 * 1'` 因 OR 语义**每周一 09:00 与每月 1 日 09:00 都触发**——讲 OR 实例时可补这半句（更反直觉）。
 

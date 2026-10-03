@@ -8,6 +8,7 @@
 用法: python3 cc_async_scheduling_lab.py --selftest
 """
 import json
+import os
 import sys
 import tempfile
 from dataclasses import dataclass, asdict
@@ -226,7 +227,10 @@ class QueueProcessor:
 # ── 仿真驱动 ────────────────────────────────────────────────────────
 
 def run_simulation(exp="none", verbose=True):
-    sched = CronScheduler(Path(tempfile.gettempdir()) / ".cc_async_demo.json", exp)
+    # 存档文件名带 uid/pid：并发两次运行互不踩踏，也不再是共享 tempdir 里的
+    # 固定可预测路径（评审修复；原固定名可被 symlink 预置覆写任意受害者文件）
+    save = Path(tempfile.gettempdir()) / f".cc_async_demo.{os.getuid()}.{os.getpid()}.json"
+    sched = CronScheduler(save, exp)
     proc = QueueProcessor(sched, transcript := [], exp)
     bg = BackgroundTasks()
     base = datetime(2026, 9, 28, 8, 59, 30)  # 周一
