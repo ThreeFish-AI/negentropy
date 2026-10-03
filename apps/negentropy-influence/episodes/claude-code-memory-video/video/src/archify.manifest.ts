@@ -198,6 +198,7 @@ export const ARCHIFY = {
   },
   "consolidation-txn": {
     "slug": "consolidation-txn",
+    "type": "lifecycle",
     "chapters": [
       {
         "id": "trigger-snapshot",
@@ -604,6 +605,7 @@ export const ARCHIFY = {
   },
   "summary-surgery": {
     "slug": "summary-surgery",
+    "type": "lifecycle",
     "chapters": [
       {
         "id": "four-steps",
@@ -650,6 +652,7 @@ export const ARCHIFY = {
   },
   "unseen-guard": {
     "slug": "unseen-guard",
+    "type": "lifecycle",
     "chapters": [
       {
         "id": "unseen-safe",
