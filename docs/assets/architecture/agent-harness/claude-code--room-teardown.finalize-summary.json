@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "lifecycle",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/.archify/lifecycle-room-teardown-20261003-003558/candidate.json",
+    "sha256": "0125f1f2f2c0e567954d5fb5fc5faa9f160663b7896c84e7f7cac206feddbf72",
+    "bytes": 4376
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code--room-teardown.html",
+    "sha256": "b0c5866de98e390c48d511d4049843ab2f8e524799a1c80c1694ded8a9137e55",
+    "bytes": 766355
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code--room-teardown.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code--room-teardown.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code--room-teardown.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 2027,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "resolvedCrossovers": 2,
+      "routesOverSuggestedBends": 1
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [
+        {
+          "left": {
+            "id": "t-count-unknown",
+            "from": "count-check",
+            "to": "unknown",
+            "label": "查不动",
+            "collectionIndex": 3,
+            "artifactIndex": 4
+          },
+          "right": {
+            "id": "t-dirty-refuse",
+            "from": "dirty",
+            "to": "refuse",
+            "label": "有改动，拒拆",
+            "collectionIndex": 4,
+            "artifactIndex": 5
+          },
+          "point": [
+            507,
+            138
+          ]
+        },
+        {
+          "left": {
+            "id": "t-count-unknown",
+            "from": "count-check",
+            "to": "unknown",
+            "label": "查不动",
+            "collectionIndex": 3,
+            "artifactIndex": 4
+          },
+          "right": {
+            "id": "t-refuse-audit",
+            "from": "refuse",
+            "to": "audit-log",
+            "label": "记一行",
+            "collectionIndex": 8,
+            "artifactIndex": 9
+          },
+          "point": [
+            534,
+            138
+          ]
+        }
+      ],
+      "detours": [
+        {
+          "relationship": {
+            "id": "t-refuse-audit",
+            "from": "refuse",
+            "to": "audit-log",
+            "label": "记一行",
+            "collectionIndex": 8,
+            "artifactIndex": 9
+          },
+          "bends": 4,
+          "stretch": 1
+        }
+      ],
+      "truncated": false
+    },
+    "hints": [
+      "count-check → unknown crosses dirty → refuse: move the node of whichever is a branch, return, or second entrance to the other side of the main path, so that relationship runs through an empty corridor.",
+      "count-check → unknown crosses refuse → audit-log: move the node of whichever is a branch, return, or second entrance to the other side of the main path, so that relationship runs through an empty corridor.",
+      "refuse → audit-log needs 4 bends: move node refuse or audit-log so they share a row or column with matching centers, or sit diagonally with a clear corner."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

@@ -1,0 +1,35 @@
+[
+ {
+  "id": "card-fields",
+  "label": "六字段",
+  "focus": [
+   "card",
+   "f-id",
+   "f-title",
+   "f-desc",
+   "f-status",
+   "f-owner",
+   "f-blockedby"
+  ],
+  "note": "一张卡一个文件：编号/标题/描述/状态/占有人/前置清单。"
+ },
+ {
+  "id": "three-states",
+  "label": "三态",
+  "focus": [
+   "st-pending",
+   "st-progress",
+   "st-done"
+  ],
+  "note": "待办→进行中→已完成。"
+ },
+ {
+  "id": "two-actions",
+  "label": "两动作",
+  "focus": [
+   "act-claim",
+   "act-complete"
+  ],
+  "note": "认领=写名占住；完成=翻面销账。"
+ }
+]

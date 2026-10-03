@@ -73,8 +73,7 @@ s18–s20 仅存在于站点轨；main 无 s18+。**s01/s02 是唯一三轨同�
 | 5 | [claude-code-multiagent-video](../episodes/claude-code-multiagent-video/README.md) | 多 Agent 平台 | s12 · s15 · s16 · s17 · s18 · s19 · s20 | `67a9126c` |
 
 注：章号一律指**站点 20 章版**（ep1 的 s01–s04 目录名在两轨恰好相同）。
-s20 不作 ep5 的普通章节、作终幕收束装置（一整轮七步传送带，标语「机制很多，
-循环一个」直接回答系列主线）；s16（Team Protocols）单章取证，见机器版 note。
+ep5 于 2026-10-02 **换题完全重制**（《多 Agent 平台：七件设施，一条走廊》，楼宇公共制度全新叙事）：C 型信源 = [175 冻结快照](../../../docs/research/agent-harness/175-claude-code-multi-agent-platform.md) @ `0ecf6527c`，钉 `67a9126c` 不换、章表不动。s20 不作普通章节、仍作终幕收束装置（环形走廊终考，第七件设施揭晓；「机制很多，循环一个」直接回答系列主线）；s16（Team Protocols）单章取证，见机器版 note。
 
 ## 四、与 main 17 章版的对照
 

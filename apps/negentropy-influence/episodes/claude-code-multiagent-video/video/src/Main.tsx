@@ -7,24 +7,24 @@ import {Subtitle} from './components/Subtitle';
 import {theme} from './design/theme';
 import {LangProvider} from './i18n';
 import {computeTimeline, SCENE_FADE_FRAMES} from './timing';
+import {P0ForgetfulLodge} from './scenes/P0ForgetfulLodge';
+import {P1TaskWall} from './scenes/P1TaskWall';
+import {P2MailSlot} from './scenes/P2MailSlot';
+import {P3LedgerClock} from './scenes/P3LedgerClock';
+import {P4RoomPlate} from './scenes/P4RoomPlate';
+import {P5SocketPlate} from './scenes/P5SocketPlate';
+import {P6CorridorFinale} from './scenes/P6CorridorFinale';
 import type {Lang} from './i18n';
 import type {ManifestItem, SceneRange} from './types';
-import {P0OneToCrowd} from './scenes/P0OneToCrowd';
-import {P1TaskBoard} from './scenes/P1TaskBoard';
-import {P2MailboxProtocol} from './scenes/P2MailboxProtocol';
-import {P3ShiftAutonomy} from './scenes/P3ShiftAutonomy';
-import {P4WorktreeBooths} from './scenes/P4WorktreeBooths';
-import {P5McpSocket} from './scenes/P5McpSocket';
-import {P6Finale} from './scenes/P6Finale';
 
 const SCENE_COMPONENTS: Record<string, React.FC<{scene: SceneRange}>> = {
-  P0: P0OneToCrowd,
-  P1: P1TaskBoard,
-  P2: P2MailboxProtocol,
-  P3: P3ShiftAutonomy,
-  P4: P4WorktreeBooths,
-  P5: P5McpSocket,
-  P6: P6Finale,
+  P0: P0ForgetfulLodge,
+  P1: P1TaskWall,
+  P2: P2MailSlot,
+  P3: P3LedgerClock,
+  P4: P4RoomPlate,
+  P5: P5SocketPlate,
+  P6: P6CorridorFinale,
 };
 
 export type MainProps = {manifest: ManifestItem[]; lang?: Lang};

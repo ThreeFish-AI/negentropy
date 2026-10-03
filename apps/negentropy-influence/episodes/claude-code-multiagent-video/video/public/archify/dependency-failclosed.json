@@ -1,0 +1,98 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.48,
+ "story_sec": 14.26,
+ "total_wall_sec": 59.36,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "four-cards",
+   "label": "四卡上墙",
+   "index": 0,
+   "file": "dependency-failclosed--four-cards.mp4",
+   "end_still": "dependency-failclosed--four-cards-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.48,
+   "story_sec": 4.42,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "t-build",
+    "t-api",
+    "t-test",
+    "t-doc"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "walkthrough",
+   "label": "走查",
+   "index": 1,
+   "file": "dependency-failclosed--walkthrough.mp4",
+   "end_still": "dependency-failclosed--walkthrough-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.52,
+   "story_sec": 3.37,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "guard",
+    "t-build",
+    "unlock"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "blocked",
+   "label": "被阻塞",
+   "index": 2,
+   "file": "dependency-failclosed--blocked.mp4",
+   "end_still": "dependency-failclosed--blocked-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.48,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "t-test",
+    "guard"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "failclosed",
+   "label": "失败关闭",
+   "index": 3,
+   "file": "dependency-failclosed--failclosed.mp4",
+   "end_still": "dependency-failclosed--failclosed-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.52,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "ghost-ref",
+    "guard"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/apps/negentropy-influence/episodes/claude-code-multiagent-video/video/public/archify/html/dependency-failclosed.html",
+ "slug": "dependency-failclosed",
+ "type": "workflow"
+}

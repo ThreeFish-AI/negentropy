@@ -1,0 +1,39 @@
+[
+ {
+  "id": "three-states",
+  "label": "三态节奏",
+  "focus": [
+   "work",
+   "idle",
+   "shutdown"
+  ],
+  "note": "干活/空闲/收工，两段变三段。"
+ },
+ {
+  "id": "tick-order",
+  "label": "先口后墙",
+  "focus": [
+   "tick",
+   "look-slot",
+   "look-wall"
+  ],
+  "note": "每五秒一拍：先看门上的口，再看任务墙。"
+ },
+ {
+  "id": "timeout",
+  "label": "超时收工",
+  "focus": [
+   "timeout",
+   "shutdown"
+  ],
+  "note": "六十秒十二拍没等到活就收工，留最后一条结论。"
+ },
+ {
+  "id": "b5",
+  "label": "拆超时",
+  "focus": [
+   "b5-spin"
+  ],
+  "note": "板上没活，钟转十倍仍不停——空闲的队友永不收工。"
+ }
+]

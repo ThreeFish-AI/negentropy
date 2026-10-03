@@ -102,7 +102,7 @@
       "id": "claude-code-explained",
       "title": "Claude Code Harness Engineering",
       "sourceKind": "course",
-      "rule": "与自进化系列完全独立：两个系列的口播互不引用（校验器规则 1 跨系列全局生效），发布顺序与视觉契约各自独立（规则 2/3/4 按系列内判定）。信源为官方文档 + Anthropic 工程博客 + 开源课程仓库（站点 20 章/5 阶段只作组织骨架，观众层匿名化——规则 7），故 episode 用 source 字段（含 pinnedRef 与访问日期）而非 paper 字段——证据等级分层见各集 research/source-notes.md。",
+      "rule": "与自进化系列完全独立：两个系列的口播互不引用（校验器规则 1 跨系列全局生效），发布顺序与视觉契约各自独立（规则 2/3/4 按系列内判定）。信源为官方文档 + Anthropic 工程博客 + 开源课程仓库（站点 20 章/5 阶段只作组织骨架，观众层匿名化——规则 7），故 episode 用 source 字段（含 pinnedRef 与访问日期）而非 paper 字段——证据等级分层见各集 research/source-notes.md（⑤ ep5 为 gl-notes.md，175 冻结快照）。",
       "episodes": [
         {
           "episode": 1,
@@ -199,7 +199,7 @@
           "episode": 5,
           "slug": "claude-code-multiagent-video",
           "path": "episodes/claude-code-multiagent-video",
-          "title": "多 Agent 平台：从一个到一群",
+          "title": "多 Agent 平台：七件设施，一条走廊",
           "topic": "多 Agent 协作：谁持有计划",
           "cardSub": "多 Agent 平台 · 协作",
           "accents": [
@@ -211,11 +211,11 @@
             "repo": "https://github.com/shareAI-lab/learn-claude-code",
             "pinnedRef": "67a9126c6435a8654ba7a6f68c0fd2130f00a462",
             "license": "MIT",
-            "accessed": "2026-08-22"
+            "accessed": "2026-10-02"
           },
           "status": "final-review",
-          "statusNote": "**v2 交付**（2026-09-30 重渲，含两轮评审修复 14+16 处；v1 2026-09-30 初渲）原 v1 口径（2026-09-30 终集）：13:42.8 @1080p30（24683 帧复算）；149 句 3622 字；story 档 38 块 cues；archify 13 图 67 章（collab-panorama/five-layer 复用重建，five-layer 三集合并 11 章）；终集装置全落位（五层身份卡全亮/系列金句卡/两种身份入场费曼遗产句/无下期卡完结语气）；**door-lock Lottie 同款挂死**→原生 LockStrike 根治；轨 C 八校准全片贯彻；机器门全绿+目检过；归档 v1+_captions",
-          "voice": "story + me-bright.wav"
+          "statusNote": "**v2 交付**（2026-10-03 评审修复轮重渲：9 commits 80 项修复全入片——P0 金句卡衬底/楼顶小檐成形/KeyCard 退场/慢活走查空窗/P2 Footnote 归属入片/P4 循环轨道净空/footer 贴口播/P6 回流环净空/P5 工具数口径/P3 章名统一/P1 sin 收敛/归档分叉终收口等，交付物对齐 HEAD（md5 复核）；v1 同日初渲=修复前构建）：14:17.8 = 857.8s @1080p30（25734 帧复算=mdls 857.812s 双源一致，纯视觉零时序变更）；147 句 4015 字（278 口径直写）；edge 终声（zh-CN-YunxiNeural @+12%，实测 4015÷14.3=280.8 字/分校准偏差 1%）；archify 14 图（12 新绘+collab-panorama/five-layer 复用）49 章逐章回放（49 cue · 锚定 33.3% · 3.4/分 · 5 型 · lead 49/49 实测）；六组破坏实验全入片（B1/B2+B2v/B3/B4/B5/t5race 红绿消融）；机器门全绿：check_series/build/check --check-scenes --check-motion/覆盖门/check_archify/tsc/motion 15:15/qa 五项（草渲+全分辨率终渲双遍）/WCAG/末帧渐黑零亮残留；归档 v2 + _captions（v1 原样保留，v2 已按 17:37 三轮重建构建覆盖重归档（md5 556d253d 与渲染产物字节一致））；C 型=175 冻结快照 @0ecf6527c；indextts me-bright 重配待用户人工触发（cues 台本已预置）",
+          "voice": "edge + zh-CN-YunxiNeural（+12%）"
         }
       ]
     },

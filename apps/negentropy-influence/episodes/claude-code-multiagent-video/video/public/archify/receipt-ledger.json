@@ -1,0 +1,97 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 13.2,
+ "total_wall_sec": 59.15,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "roundtrip",
+   "label": "单号往返",
+   "index": 0,
+   "file": "receipt-ledger--roundtrip.mp4",
+   "end_still": "receipt-ledger--roundtrip-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.33,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "requester",
+    "responder",
+    "ledger-book"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 63.0
+  },
+  {
+   "id": "three-checks",
+   "label": "三道核验",
+   "index": 1,
+   "file": "receipt-ledger--three-checks.mp4",
+   "end_still": "receipt-ledger--three-checks-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.37,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "v-id",
+    "v-type",
+    "v-pending"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 62.0
+  },
+  {
+   "id": "settle",
+   "label": "销账",
+   "index": 2,
+   "file": "receipt-ledger--settle.mp4",
+   "end_still": "receipt-ledger--settle-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "ledger-book",
+    "requester"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "b4",
+   "label": "拆核验",
+   "index": 3,
+   "file": "receipt-ledger--b4.mp4",
+   "end_still": "receipt-ledger--b4-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "responder",
+    "ledger-book"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 62.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/apps/negentropy-influence/episodes/claude-code-multiagent-video/video/public/archify/html/receipt-ledger.html",
+ "slug": "receipt-ledger",
+ "type": "sequence"
+}
