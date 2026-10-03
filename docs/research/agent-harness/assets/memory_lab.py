@@ -67,7 +67,7 @@ class MockLLM:
         cands: list[dict] = []
         for line in dialogue.splitlines():
             low = line.lower()
-            if "prefer" in low or "记住" in low or "prefer" in line:
+            if "prefer" in low or "记住" in low:
                 cands.append({
                     "name": f"pref-{len(cands)}",
                     "type": "user",
@@ -269,7 +269,7 @@ class Compactor:
         results = list(self._all_tool_result_blocks(messages))
         unseen = self._unseen_positions(messages)
         consumed = [e for e in results if e[:2] not in unseen]
-        for _, _, block in consumed[:-KEEP_RECENT_RESULTS] if KEEP_RECENT_RESULTS else []:
+        for _, _, block in consumed[:-KEEP_RECENT_RESULTS]:
             if estimate_chars(messages) <= target:
                 break
             content = str(block.get("content", ""))
@@ -650,6 +650,15 @@ def run_selftest() -> int:
     loaded = store.load_memories("database tuning question")
     check("recall.loaded", "database facts" in loaded and "tabs" not in loaded,
           "只加载相关记忆")
+
+    # T8b 降级路径（§4.2 召回两路径之二）：select_indices 抛异常 → 关键词打分兜底
+    class _SideQueryDown(MockLLM):
+        def select_indices(self, query: str, names: list[str]) -> list[int]:
+            raise RuntimeError("side-query unavailable")
+    degraded = MemoryStore(root, llm=_SideQueryDown())
+    picked = degraded.select_relevant("user prefers tabs question")
+    check("recall.degraded-keyword", any("user-preference-tabs" in p for p in picked),
+          f"{picked}")
 
     # T9 extract 三门
     stored = store.extract_memories(

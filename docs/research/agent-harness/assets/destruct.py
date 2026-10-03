@@ -141,20 +141,24 @@ def experiment4(root: Path) -> None:
         def should_store(self, cand, existing):   # 改动：全放行
             return True
 
-    store = NoGatesStore(root)
-    protected = MemoryStore(root)
-    dialogue = ("user: just for this session use the staging database\n"
-                "user: this is a current task note\n"
-                "user: I prefer tabs. Remember that.\n")
-    protected.extract_memories(dialogue)
-    names_p = sorted(m["name"] for m in protected.list_memories())
-    store.extract_memories(dialogue)
-    names_b = sorted(m["name"] for m in store.list_memories())
-    leaked = [n for n in names_b if n.startswith(("tmp-", "task-"))]
-    print(f"改了什么：should_store 恒真（scope 审查、临时词黑名单、查重全部失效）")
-    print(f"实测：保护版入库 = {names_p}（只剩持久偏好）")
-    print(f"      拆除版入库 = {names_b}")
-    print(f"      其中 {leaked} 是「本次/当前任务」级临时指令——下次会话它们会替用户做主")
+    root4 = Path(tempfile.mkdtemp(prefix="memory-lab-x4-"))  # 拆除版独立 root：清单不混对照版产物
+    try:
+        store = NoGatesStore(root4)
+        protected = MemoryStore(root)
+        dialogue = ("user: just for this session use the staging database\n"
+                    "user: this is a current task note\n"
+                    "user: I prefer tabs. Remember that.\n")
+        protected.extract_memories(dialogue)
+        names_p = sorted(m["name"] for m in protected.list_memories())
+        store.extract_memories(dialogue)
+        names_b = sorted(m["name"] for m in store.list_memories())
+        leaked = [n for n in names_b if n.startswith(("tmp-", "task-"))]
+        print(f"改了什么：should_store 恒真（scope 审查、临时词黑名单、查重全部失效）")
+        print(f"实测：保护版入库 = {names_p}（只剩持久偏好）")
+        print(f"      拆除版入库 = {names_b}")
+        print(f"      其中 {leaked} 是「本次/当前任务」级临时指令——下次会话它们会替用户做主")
+    finally:
+        shutil.rmtree(root4, ignore_errors=True)
     print(f"教训：记忆系统的死法不是记不住，而是记错——写入端的门决定它是资产还是负债。")
 
 
