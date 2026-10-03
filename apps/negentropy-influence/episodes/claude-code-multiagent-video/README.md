@@ -1,6 +1,6 @@
 # 《多 Agent 平台：七件设施，一条走廊》科普视频工程
 
-> 交付状态：**完全重制 v1 交付（edge 终声版，2026-10-03）**：14:17.8 = 857.8s @1080p30（25734 帧复算=mdls 双源一致）；147 句 4038 字；archify 14 图 49 章逐章回放（锚定 33.3%·5 型）；六组破坏实验全入片；机器门全绿（草渲+全分辨率终渲双遍 QA）；归档 `~/Documents/video/claude-code-explained/多 Agent 平台：七件设施，一条走廊 v1.mp4` + `_captions`。上一代《从一个到一群》v1/v2 原样保留。C 型信源 = [175 冻结快照](../../../../docs/research/agent-harness/175-claude-code-multi-agent-platform.md) @ `0ecf6527c`。本轮 edge 终声（zh-CN-YunxiNeural +12%）；**indextts me-bright 重配待用户人工触发**（cues 台本 47 块已预置，升档三步见 pipeline.toml 注释）。发布顺序见 [../../series.json](../../series.json)（工作区根）。
+> 交付状态：**完全重制 v1 交付（edge 终声版，2026-10-03）**：14:17.8 = 857.8s @1080p30（25734 帧复算=mdls 双源一致）；147 句 4015 字；archify 14 图 49 章逐章回放（锚定 33.3%·5 型）；六组破坏实验全入片；机器门全绿（草渲+全分辨率终渲双遍 QA）；归档 `~/Documents/video/claude-code-explained/多 Agent 平台：七件设施，一条走廊 v1.mp4` + `_captions`。上一代《从一个到一群》v1/v2 原样保留。C 型信源 = [175 冻结快照](../../../../docs/research/agent-harness/175-claude-code-multi-agent-platform.md) @ `0ecf6527c`。本轮 edge 终声（zh-CN-YunxiNeural +12%）；**indextts me-bright 重配待用户人工触发**（cues 台本 55 块已预置，升档三步见 pipeline.toml 注释）。发布顺序见 [../../series.json](../../series.json)（工作区根）。
 
 ## 目录结构
 

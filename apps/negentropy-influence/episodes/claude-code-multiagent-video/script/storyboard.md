@@ -92,12 +92,12 @@
 
 | 幕 | 组件 | 公共装置 |
 |---|---|---|
-| P0 | `P0ForgetfulLodge` | 楼体剖面缩略坐标装置（本集新建 `components/lodge-map.tsx`：下层设施带+上层房带+走廊环，换幕高亮 API）；走廊环母题 `components/corridor-ring.tsx`（core 橙 6px 描边恒定〔M-001〕，自 ep1 `LoopRing` 复制裁剪） |
-| P1 | `P1TaskWall` | 磁挂牌墙（`components/magnet-wall.tsx`）；闸门三灯卡；金句卡（frozen cards） |
-| P2 | `P2MailSlot` | 门+递话口装置（`components/mail-slot.tsx`）；队列汇流（`@flow` 双流） |
-| P3 | `P3LedgerClock` | 回执簿（单据+编号章 `components/receipt-book.tsx`）；值班钟（钟摆 `@spring`）；工牌 |
+| P0 | `P0ForgetfulLodge` | 楼体剖面缩略坐标装置（`components/motifs.tsx` 的 `LodgeMap`：下层设施带+上层房带+走廊环，换幕高亮 API）；走廊环母题 `CorridorRing`（同文件；core 橙 6px 描边恒定〔M-001〕，自 ep1 `LoopRing` 复制裁剪） |
+| P1 | `P1TaskWall` | 磁挂牌墙（`MagnetCard`）；闸门三灯卡；金句卡（frozen cards） |
+| P2 | `P2MailSlot` | 门+递话口装置（`DoorWithSlot`，幕内定义）；队列汇流（`@flow` 双流） |
+| P3 | `P3LedgerClock` | 回执簿（单据+编号章，幕内定义）；值班钟（钟摆 `@spring`）；工牌 |
 | P4 | `P4RoomPlate` | 账本-房间拓扑装置；覆盖事故红闪；伏笔角标组件（缺口①②，P6 复用点亮态） |
-| P5 | `P5SocketPlate` | 插排+插头+挂牌（`components/socket-strip.tsx`）；铭牌卡 |
+| P5 | `P5SocketPlate` | 插排+插头+挂牌（幕内定义）；铭牌卡 |
 | P6 | `P6CorridorFinale` | `harness-stack.tsx`/`solids-3d.tsx`（自 ep4 复制：P6 五层身份卡全亮+完结语气，无下期层）；终考空格帧；数字卡双标尺；边界护栏卡；FinaleTail（渐黑+完结语，挂 P6 末 Sequence 最后子节点） |
 
 archify 逐章回放统一走 `ArchifyRecap`（frozen）；cue 写法：章 id+锚句+fit，同锚句唯一；跨实例背靠背（6-B→6-C 镜界）后挂实例 `lead={false}`；fit 缺省自动挡（stretch/hold/trim），显式 fit 留给超窗章。
