@@ -1,6 +1,6 @@
 # 《记忆管理：一张草稿纸和一本卡片册》科普视频工程
 
-> 交付状态：**v3 已交付**（2026-10-03，评审修复三轮 16 项后重渲——173 死链改指 gl-notes/176 §9.3→§9.2 与 137 浮动注记/两图 mmd 回写 HTML 文案同构/P0 0-B 装置接缝精确句窗（886·1098 帧像素实证）/motifs·theme 死代码清除/memory_lab T8b 降级断言 35 checks/destruct 实验4 独立 root/pipeline 注释终声口径/CHANGELOG 与 storyboard 口径；13.15 分 = 789.03s @1080p30，帧数不变 23,670，mdls/manifest 对账，归档 ~/Documents/video/claude-code-explained/ v3 + _captions；v2 = 789.03s 二轮 13 项、v1 = 789.08s 2026-10-02，均见归档/git 历史）。C 型信源=docs 精读 176（钉 ce8f9f18）。发布顺序见 [../../series.json](../../series.json)（工作区根）。
+> 交付状态：**v4 已交付**（2026-10-03，收官评审 15 项修复后重渲——check_script 金句卡 caption-dup-ok 豁免注（站红 FAIL 归零）/6-D 五规律卡翻页重锚（三条规律回看 cue 收缩到语音段、~20 帧句隙让给翻卡，卡 2–4 弹簧与高亮不再被整句吞没；still 三点实证 22080/22100/22440）/four-steps 章 storySec 按录制产物封顶 3.72s（45 章唯一超产物项）/P0 头注 fit 复核回填/8-x→6-x 与「前镜 4-A」注释纠偏/断言计数 35 两索引（knowledge-map·readme）/gl-notes 复算记录与冻结点日期戳/v1 时长 789.08→789.03 三处连坐（mdls 实测 789.034）/readme SSOT source-notes 例外句/narration 英文枚举补 bug·K/planning 终稿回写注/ep2 pipeline 13.37 实测回填/_captions 版本目录补档（本集 v3/v4 + ep2 v3；v1/v2 时点字幕无档可考）；173 死链改指 gl-notes/176 §9.3→§9.2 与 137 浮动注记/两图 mmd 回写 HTML 文案同构/P0 0-B 装置接缝精确句窗（886·1098 帧像素实证）/motifs·theme 死代码清除/memory_lab T8b 降级断言 35 checks/destruct 实验4 独立 root/pipeline 注释终声口径/CHANGELOG 与 storyboard 口径；13.15 分 = 789.03s @1080p30，帧数不变 23,670，mdls/manifest 对账，归档 ~/Documents/video/claude-code-explained/ v4 + _captions；v3 = 789.03s 三轮 16 项、v2 = 789.03s 二轮 13 项、v1 = 789.03s 2026-10-02，均见归档/git 历史）。C 型信源=docs 精读 176（钉 ce8f9f18）。发布顺序见 [../../series.json](../../series.json)（工作区根）。
 
 ## 目录结构
 

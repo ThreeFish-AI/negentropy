@@ -22,7 +22,7 @@
 import React from 'react';
 import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
 import {theme} from '../design/theme';
-import {beatWindow} from '../timing';
+import {beatWindow, SENTENCE_GAP_FRAMES} from '../timing';
 import type {SceneRange} from '../types';
 import {Counter, Footnote, Panel, SceneTag} from '../components/motifs';
 import {MapAnchorChip} from '../components/map-anchor';
@@ -410,7 +410,7 @@ const DualRecall: React.FC<{
   );
 };
 
-// ── 8-B 互证双标尺 ──────────────────────────────────────────────────────
+// ── 6-B 互证双标尺 ──────────────────────────────────────────────────────
 
 /** 右侧双格：逆向分析与官方文档两个证据点收敛重合（【三】↔【官】互证） */
 const VerifyCell: React.FC<{value: string; sub: string; conv: number; flash: number; merged: number}> = ({
@@ -667,7 +667,7 @@ const DualRulers: React.FC<{at07: number; at08: number; at09: number}> = ({at07,
   );
 };
 
-// ── 8-C 生产形态两帧：挑选帧 → 提取帧 ────────────────────────────────────
+// ── 6-C 生产形态两帧：挑选帧 → 提取帧 ────────────────────────────────────
 
 /** 卡片墙几何：6 列 × 4 行（列序=修改时间序，扫描游标自左向右） */
 const WALL = {x: 170, y: 250, cols: 6, rows: 4, cw: 150, ch: 116, gap: 12} as const;
@@ -1046,7 +1046,7 @@ const ProdShapes: React.FC<{at10: number; at10b: number; dur10b: number; at11: n
   );
 };
 
-// ── 8-D 五规律卡翻页 ────────────────────────────────────────────────────
+// ── 6-D 五规律卡翻页 ────────────────────────────────────────────────────
 
 const LAWS = [
   {name: '代价阶梯', verdict: '可逆先跑 · 有损殿后', tag: '成本'},
@@ -1123,19 +1123,21 @@ const LawCard: React.FC<{
   );
 };
 
-const FiveLaws: React.FC<{at12: number; at13: number; at14: number; at15: number; at16: number; at17: number}> = ({
-  at12,
-  at13,
-  at14,
-  at15,
-  at16,
-  at17,
-}) => {
+const FiveLaws: React.FC<{
+  at12: number;
+  at13: number;
+  end14: number;
+  end15: number;
+  end16: number;
+  at17: number;
+}> = ({at12, at13, end14, end15, end16, at17}) => {
   const headIn = useProgress(at12, DUR.f4);
-  // 总括句与首卡同帧（分镜）；卡 2..5 各随判词句翻上
-  const flipAts = [at12 + 8, at14, at15, at16, at17];
-  const vAts = [at13, at14, at15, at16, at17];
-  const untils = [at14, at15, at16, at17, at17 + DUR.f6 * 3];
+  // 总括句与首卡同帧（分镜）；卡 2..4 在各判词句语音段末翻上——回看 cue 收缩到
+  // 语音段（句窗含 20 帧句隙），句隙里卡完整可见（弹簧 f5=12 帧，画框边界即
+  // 卸载、无出场动画）；卡 5 随 p6-17（该句无 cue，全程可见）。
+  const flipAts = [at12 + 8, end14, end15, end16, at17];
+  const vAts = [at13, end14, end15, end16, at17];
+  const untils = [end14, end15, end16, at17, at17 + DUR.f6 * 3];
   return (
     <AbsoluteFill>
       <div
@@ -1373,6 +1375,7 @@ const Finale: React.FC<{
             letterSpacing: 6,
           }}
         >
+          {/* caption-dup-ok: 金句卡刻意逐字复述 p6-23 口播原句（storyboard 2-D「刻意逐字」） */}
           {'一张草稿纸，一本卡片册'}
         </div>
         <div
@@ -1590,18 +1593,19 @@ export const P6Production: React.FC<{scene: SceneRange}> = ({scene}) => {
         <FiveLaws
           at12={at('p6-12') - bD.from}
           at13={at('p6-13') - bD.from}
-          at14={at('p6-14') - bD.from}
-          at15={at('p6-15') - bD.from}
-          at16={at('p6-16') - bD.from}
+          end14={at('p6-14') + dur('p6-14') - SENTENCE_GAP_FRAMES - bD.from}
+          end15={at('p6-15') + dur('p6-15') - SENTENCE_GAP_FRAMES - bD.from}
+          end16={at('p6-16') + dur('p6-16') - SENTENCE_GAP_FRAMES - bD.from}
           at17={at('p6-17') - bD.from}
         />
-        {/* 规律回看：三条规律各锚回其机制图（章可重放、锚句唯一）；三实例背靠背，
-            首例前为五规律卡（空窗）→ 默认入场，后两例 lead={false} */}
+        {/* 规律回看：三条规律各锚回其机制图（章可重放、锚句唯一）；cue 收缩到
+            语音段（句窗含 20 帧句隙，让给五规律卡翻页——画框无出场动画、
+            Sequence 边界即卸载），后两例 lead={false} 抑制入场弹簧重放 */}
         <ArchifyRecap
           slug="pairing-interlock"
           caption="规律 · 结构"
           cues={[
-            {chapterId: 'retreat-fix', at: at('p6-14') - bD.from, durationInFrames: dur('p6-14')},
+            {chapterId: 'retreat-fix', at: at('p6-14') - bD.from, durationInFrames: dur('p6-14') - SENTENCE_GAP_FRAMES},
           ]}
         />
         <ArchifyRecap
@@ -1609,7 +1613,7 @@ export const P6Production: React.FC<{scene: SceneRange}> = ({scene}) => {
           caption="规律 · 经济学"
           lead={false}
           cues={[
-            {chapterId: 'prefix-hit', at: at('p6-15') - bD.from, durationInFrames: dur('p6-15')},
+            {chapterId: 'prefix-hit', at: at('p6-15') - bD.from, durationInFrames: dur('p6-15') - SENTENCE_GAP_FRAMES},
           ]}
         />
         <ArchifyRecap
@@ -1617,7 +1621,7 @@ export const P6Production: React.FC<{scene: SceneRange}> = ({scene}) => {
           caption="规律 · 治理"
           lead={false}
           cues={[
-            {chapterId: 'one-of-three', at: at('p6-16') - bD.from, durationInFrames: dur('p6-16')},
+            {chapterId: 'one-of-three', at: at('p6-16') - bD.from, durationInFrames: dur('p6-16') - SENTENCE_GAP_FRAMES},
           ]}
         />
         <Footnote delay={4}>{'LSM-tree · B-tree'}</Footnote>

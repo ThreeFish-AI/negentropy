@@ -2,7 +2,7 @@
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 10.91,
+ "story_sec": 10.18,
  "total_wall_sec": 45.07,
  "started_playback": true,
  "clapper_found": true,
@@ -17,7 +17,7 @@
    "beats": 4,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 4.45,
+   "story_sec": 3.72,
    "beat_offsets_sec": [
     0.0,
     1.102,

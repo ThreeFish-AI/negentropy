@@ -752,7 +752,7 @@ export const P4CatalogBody: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bA2} name="4-A2 写入全景回看">
-        {/* 前镜 4-A2 为图镜 → lead={false}；p4-05 是写入例句（write-rebuild 章「写文件
+        {/* 前镜 4-A 为图镜 → lead={false}；p4-05 是写入例句（write-rebuild 章「写文件
             +索引重建」的具象锚），p4-06 空窗由两例装置持有 */}
         <ArchifyRecap
           slug="recall-loop"

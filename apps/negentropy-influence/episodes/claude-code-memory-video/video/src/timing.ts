@@ -6,6 +6,8 @@ import constants from './timing.json';
 export const FPS = constants.fps;
 /** 句间停顿 */
 const SENTENCE_GAP_SEC = constants.sentenceGapSec;
+/** 句间停顿帧数（句窗 durationInFrames = 语音 + 本值；cue 要「只占语音段」时减去它） */
+export const SENTENCE_GAP_FRAMES = Math.round(SENTENCE_GAP_SEC * FPS);
 /** 幕间额外停顿（转场呼吸） */
 const SCENE_GAP_SEC = constants.sceneGapSec;
 /** 片头静默引导 */

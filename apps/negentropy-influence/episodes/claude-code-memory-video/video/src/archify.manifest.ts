@@ -614,7 +614,7 @@ export const ARCHIFY = {
         "endStill": "summary-surgery--four-steps-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.45,
+        "storySec": 3.72,
         "beatNodes": [
           "transcript",
           "distill",

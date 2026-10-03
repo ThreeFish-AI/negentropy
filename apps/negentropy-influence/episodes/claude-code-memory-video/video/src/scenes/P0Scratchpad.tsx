@@ -6,8 +6,10 @@
  *  ★ cue 锚句（一章锚一句、全片唯一）：fixed-prefix@p0-01 · pair-interlock@p0-02 ·
  *    full-resend@p0-04 · heavy-results@p0-06。0-B 与 0-A 同图但 p0-05 装置窗隔断 →
  *    空窗后重现，lead 默认入场（契约=帧相邻才 false）。
- *  ★ fit 显式两处按 views focus 数 × dwell（多拍 1.1s、≤2 拍 1.6s）估算：
- *    fixed-prefix 1 拍 vs 3.7s 窗 → hold；full-resend 6 拍 vs 4.5s 窗 → trim。
+ *  ★ fit 显式两处按 views focus 数 × dwell（多拍 1.1s、≤2 拍 1.6s）估算；B 档
+ *    句隙 0.68 口径下复核（2026-10-03）：fixed-prefix 窗 3.39s（2.71+0.68）、
+ *    storySec 3.25 → rate 0.96 自动档会选 stretch，显式 hold 压住（行为=末帧
+ *    定格，无害）；full-resend 窗 4.14s（3.46+0.68）→ trim 仍成立。
  *    录制重派生 archify.manifest 后须对 storySec 复核这两处（ArchifyRecap 头注纪律）。
  *  ★ 图镜空窗句由窗外回落装置持有（嵌套句窗头 −DUR.f3：装置先渲染、ArchifyRecap
  *    压顶，画框入场期自其下淡入——4-D②「画框直接遮盖」的平滑化，不引 ArchifyYield；
