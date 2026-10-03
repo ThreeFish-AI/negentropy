@@ -22,7 +22,6 @@ const MenuAnalogy: React.FC<{at04: number; at05: number; at06: number}> = ({at04
   const p3 = useProgress(at06, DUR.f5);
   return (
     <AbsoluteFill style={{pointerEvents: 'none'}}>
-      <HarnessBadge style={BADGE_STYLE} />
       {/* 菜单页主体 */}
       <div
         style={{
@@ -131,7 +130,6 @@ const TwoLayerCache: React.FC<{at20: number; at20b: number}> = ({at20, at20b}) =
   );
   return (
     <AbsoluteFill style={{pointerEvents: 'none'}}>
-      <HarnessBadge style={BADGE_STYLE} />
       <div style={{position: 'absolute', left: 210, top: 320, display: 'flex', gap: 80}}>
         {col('第一层 · 本地', '拼串的功夫', '状态没变 → 不重拼那页', theme.mech, left, false)}
         {col('第二层 · 服务端', '前缀的重算', '开头不变 → 按开头复用', theme.core, right, true)}

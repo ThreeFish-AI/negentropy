@@ -107,7 +107,6 @@ const ControversyCols: React.FC<{at07: number; at10b: number}> = ({at07, at10b})
   const pair2 = useProgress(at10b, 18);
   return (
     <AbsoluteFill style={{pointerEvents: 'none'}}>
-      <HarnessBadge style={BADGE_STYLE} />
       <div style={{position: 'absolute', left: 230, top: 270, display: 'flex', gap: 60}}>
         {[
           {t: '教学版', s: '全新上下文', why: '图的是正确', tone: theme.mech},

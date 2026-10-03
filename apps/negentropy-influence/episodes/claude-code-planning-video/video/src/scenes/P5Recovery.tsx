@@ -29,7 +29,6 @@ const PrinterAnalogy: React.FC<{at04: number; at05: number; at06: number}> = ({a
   const tone = (k: string) => (k === 'danger' ? theme.danger : k === 'mech' ? theme.mech : theme.dim);
   return (
     <AbsoluteFill style={{pointerEvents: 'none'}}>
-      <HarnessBadge style={BADGE_STYLE} />
       <div style={{position: 'absolute', left: 480, top: 250, width: 960}}>
         {rows.map((r, i) => {
           const vis = i < 2 ? (cases[i] ?? 0) : p3;
@@ -101,7 +100,6 @@ const AllMountsLit: React.FC<{span: number}> = ({span}) => {
   const breathe = (i: number) => 0.5 + 0.5 * Math.sin((frame / 21) * Math.PI + (i * Math.PI * 2) / 5);
   return (
     <AbsoluteFill style={{pointerEvents: 'none'}}>
-      <HarnessBadge style={BADGE_STYLE} />
       <div style={{position: 'absolute', left: 960, top: 420}}>
         {/* 循环环（core 恒定锚） */}
         <div style={{position: 'absolute', left: -130, top: -130, width: 260, height: 260, borderRadius: 130, border: `2.5px solid ${theme.core}`}} />

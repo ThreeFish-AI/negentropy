@@ -23,7 +23,6 @@ const ConsultantAnalogy: React.FC<{at06: number; at07: number; at08: number}> = 
   const p3 = useProgress(at08, DUR.f5);
   return (
     <AbsoluteFill style={{pointerEvents: 'none'}}>
-      <HarnessBadge style={BADGE_STYLE} />
       <div style={{position: 'absolute', left: 300, top: 260, width: 620}}>
         {/* 拍一：笔记本（自己的过程记录） */}
         <div
@@ -116,7 +115,6 @@ const SideDeskSplit: React.FC<{at05: number}> = ({at05}) => {
   const inR = useProgress(DUR.f2, DUR.f4);
   return (
     <AbsoluteFill style={{pointerEvents: 'none'}}>
-      <HarnessBadge style={BADGE_STYLE} />
       <div style={{position: 'absolute', left: 200, top: 260, width: 640, opacity: inL, transform: `translateX(${(1 - inL) * -56}px)`}}>
         <div style={{fontFamily: theme.sans, fontSize: 20, color: theme.dim, letterSpacing: 3, marginBottom: 16}}>{'主线台面'}</div>
         {[1, 0.85, 0.7].map((o, i) => (
@@ -159,7 +157,6 @@ const FoldToP3: React.FC<{span: number}> = ({span}) => {
   const t = useProgress(Math.round(span * 0.4), 20);
   return (
     <AbsoluteFill style={{pointerEvents: 'none'}}>
-      <HarnessBadge style={BADGE_STYLE} />
       <div style={{position: 'absolute', left: 660, top: 420, width: 600, opacity: 1 - t * 0.6, transform: `scale(${1 - t * 0.2})`}}>
         <Panel style={{padding: '20px 30px'}}>
           <div style={{fontFamily: theme.serif, fontSize: 26, color: theme.mech}}>{'副台 · 收拢'}</div>

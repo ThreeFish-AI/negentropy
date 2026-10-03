@@ -22,7 +22,6 @@ const SkillWalk: React.FC<{at08: number; at10: number; at11: number}> = ({at08, 
   const enter = useProgress(at11, DUR.f6);
   return (
     <AbsoluteFill style={{pointerEvents: 'none'}}>
-      <HarnessBadge style={BADGE_STYLE} />
       {/* 左：系统指令区（垫纸）——标签常驻 */}
       <div style={{position: 'absolute', left: 240, top: 280, width: 430, opacity: base}}>
         <div style={{fontFamily: theme.sans, fontSize: 19, color: theme.dim, letterSpacing: 3, marginBottom: 14}}>

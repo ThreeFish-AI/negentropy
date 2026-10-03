@@ -16,13 +16,10 @@ import {useProgress} from '../motion';
 
 const BADGE_STYLE: React.CSSProperties = {top: 64};
 
-/** 工序卡三态色（mech 维度：进行中亮、完成落定） */
-const STATE_COLOR = {todo: 'dim', doing: 'mech', done: 'ok'} as const;
-
 /** 1-D 走查装置：五轮轮转（交计划→改文件→跑测试→修失败→提醒回看）+ 工序卡三态迁移。
  *  时点全由句边界推导：p1-11 交计划 / p1-12 三轮推进 / p1-13 提醒回看标完成。 */
-const FiveRoundWalk: React.FC<{at11: number; at12: number; at13: number; span: number}> = ({
-  at11, at12, at13, span,
+const FiveRoundWalk: React.FC<{at11: number; at12: number; at13: number}> = ({
+  at11, at12, at13,
 }) => {
   // 三段推进进度：句内驱动
   const p11 = useProgress(at11, 18);
@@ -129,7 +126,7 @@ const FiveRoundWalk: React.FC<{at11: number; at12: number; at13: number; span: n
 };
 
 /** 1-F 装置：工序卡淡出标注内存态；过程条目自右涌入钩 P2 */
-const MemoryLimit: React.FC<{span: number; at19: number; at20: number}> = ({span, at19, at20}) => {
+const MemoryLimit: React.FC<{at19: number; at20: number}> = ({at19, at20}) => {
   const memo = useProgress(at19, 18);
   const flood = useProgress(at20, 20);
   return (
@@ -231,12 +228,10 @@ export const P1Todo: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bD} name="1-D 五轮走查">
-        <HarnessBadge style={BADGE_STYLE} />
         <FiveRoundWalk
           at11={at('p1-11') - bD.from}
           at12={at('p1-12') - bD.from}
           at13={at('p1-13') - bD.from}
-          span={bD.durationInFrames}
         />
       </Sequence>
 
@@ -247,8 +242,7 @@ export const P1Todo: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bF} name="1-F 内存态红线">
-        <HarnessBadge style={BADGE_STYLE} />
-        <MemoryLimit span={bF.durationInFrames} at19={at('p1-19') - bF.from} at20={at('p1-20') - bF.from} />
+        <MemoryLimit at19={at('p1-19') - bF.from} at20={at('p1-20') - bF.from} />
       </Sequence>
     </AbsoluteFill>
   );

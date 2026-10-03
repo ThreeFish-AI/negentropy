@@ -108,24 +108,28 @@ export const P0Failures: React.FC<{scene: SceneRange}> = ({scene}) => {
   return (
     <AbsoluteFill>
       {/* 常驻条逐镜渲染（兄弟集同款）：0-A 走 OpeningStack 的 badgeIn 交叉淡入揭示，
-          0-E 镜内自带；archify 全屏镜由满屏画面覆盖，不另挂场景级副本（防 0-A 双显）。 */}
+          0-E 与四个 archify 镜各自镜内挂——archify 内框 y150 起、顶带透明，badge 位
+          不被覆盖；逐镜补挂而非场景级副本（防 0-A/0-E 双显）。 */}
       <Sequence {...bA} name="0-A 系列片头（3D）">
         <OpeningStack span={bA.durationInFrames} />
       </Sequence>
 
       <Sequence {...bB} name="0-B 丢计划">
+        <HarnessBadge style={BADGE_STYLE} />
         <ArchifyRecap slug="pc2-failures" caption="失败现场" cues={[
           {chapterId: 'fail-plan', at: at('p0-03') - bB.from, durationInFrames: dur('p0-03') + dur('p0-04') + dur('p0-05')},
         ]} />
       </Sequence>
 
       <Sequence {...bC} name="0-C 淹没">
+        <HarnessBadge style={BADGE_STYLE} />
         <ArchifyRecap slug="pc2-failures" caption="失败现场" lead={false} cues={[
           {chapterId: 'fail-flood', at: at('p0-06') - bC.from, durationInFrames: dur('p0-06') + dur('p0-07') + dur('p0-08')},
         ]} />
       </Sequence>
 
       <Sequence {...bD} name="0-D 全带·打架·即崩">
+        <HarnessBadge style={BADGE_STYLE} />
         {/* p0-09 为章前空窗句（失败三引入），三章背靠背：后两章 lead={false} */}
         <ArchifyRecap slug="pc2-failures" caption="失败现场" cues={[
           {chapterId: 'fail-carry', at: at('p0-10') - bD.from, durationInFrames: dur('p0-10')},
@@ -140,6 +144,7 @@ export const P0Failures: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bF} name="0-F 全景首亮">
+        <HarnessBadge style={BADGE_STYLE} />
         <ArchifyRecap slug="pc2-panorama" caption="一个循环 · 五个挂点" cues={[
           {chapterId: 'pan-loop', at: at('p0-16') - bF.from, durationInFrames: dur('p0-16') + dur('p0-16b') + dur('p0-17') + dur('p0-18') + dur('p0-19') + dur('p0-20')},
         ]} />
