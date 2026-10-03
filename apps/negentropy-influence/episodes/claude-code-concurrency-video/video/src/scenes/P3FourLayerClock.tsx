@@ -117,7 +117,7 @@ const TimingRail: React.FC<{at: number}> = ({at}) => {
   const fade = useProgress(at, DUR.f4);
   const ticks = Math.round((RAIL_X1 - RAIL_X0) / RAIL_STEP) + 1;
   const step = Math.floor(Math.max(0, frame - at - DUR.f5) / 30);
-  const px = RAIL_X0 + RAIL_STEP * (step % (ticks - 1));
+  const px = RAIL_X0 + RAIL_STEP * (step % ticks); // ticks=21 含末刻度；%ticks 才能巡到 x=RAIL_X1（评审修复）
   const clockCx = 1440;
   const clockCy = RAIL_Y + 18 + 52;
   return (
@@ -593,7 +593,8 @@ export const P3FourLayerClock: React.FC<{scene: SceneRange}> = ({scene}) => {
 
   return (
     <AbsoluteFill>
-      <HarnessBadge />
+      {/* Badge 右置 top:64（P2 判例）：默认档 y12–48 会被 ChapterProgress 实底条带整段压盖 */}
+      <HarnessBadge style={{left: 'auto', right: 64, top: 64}} />
 
       <Sequence {...bA} name="3-A 四层总装">
         {/* 实例内两 cue 背靠背 → 换章自动关入场（ArchifyRecap 实例内抑制） */}

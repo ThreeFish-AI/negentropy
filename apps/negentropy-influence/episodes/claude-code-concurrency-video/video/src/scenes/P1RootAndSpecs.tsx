@@ -65,8 +65,12 @@ const lapPos = (f: number, stops: readonly number[], jamFrame: number) => {
   if (lap < 0 || t >= 1) {
     return null;
   }
-  const half = t < 0.5 ? t / 0.5 : (t - 0.5) / 0.5;
-  return t < 0.5
+  // 冻结态取精确 t=0.75（评审修复）：54×0.75=40.5 非整帧，Math.round 取 41 会让
+  // 卡死位偏离泳道中点 ~22px；按契约值定格，40→0.75 的 10px 跳变远小于正常
+  // 22px/帧行程，冻结瞬间不可辨。
+  const tt = f >= jamFrame ? 0.75 : t;
+  const half = tt < 0.5 ? tt / 0.5 : (tt - 0.5) / 0.5;
+  return tt < 0.5
     ? {x: TRACK_L + half * (TRACK_R - TRACK_L), y: LANE_ASK_Y, slow: lap === 2}
     : {x: TRACK_R - half * (TRACK_R - TRACK_L), y: LANE_ANS_Y, slow: lap === 2};
 };
@@ -193,7 +197,9 @@ const RootAnatomy: React.FC<{
       >
         {'对话协议 · 一问一答'}
       </div>
-      <div style={{position: 'absolute', left: 0, top: 0, width: 1920, opacity: root.opacity, transform: root.transform}}>
+      {/* 评审修复：标题原 top:0 与 ChapterProgress 实底条带 y14–42 横腰相交（46px
+          字形只剩上下残边），下沉到 y≥56 带的 top:64——1-A SceneTag 在左上角，中央无碰撞 */}
+      <div style={{position: 'absolute', left: 0, top: 64, width: 1920, opacity: root.opacity, transform: root.transform}}>
         <div style={{textAlign: 'center', fontFamily: theme.sans, fontSize: 46, fontWeight: 700, color: theme.text}}>
           {'没有时间感'}
         </div>
@@ -364,8 +370,8 @@ const MAP = {
   beltW: 300,
   clock: {cx: 1214, cy: 98, r: 40},
   glints: [
-    [72, 512], // mini 传送带 · 开口
-    [224, 512], // mini 传送带 · 结果
+    [80, 512], // mini 传送带 · 开口（screen 系：beltX 8 + 盒中心 72）
+    [232, 512], // mini 传送带 · 结果（screen 系：beltX 8 + 盒中心 224）
     [1680, 570], // 后台线肘弯（慢活下槽）
     [1713, 662], // 清洗槽口
     [1214, 98], // 定时钟

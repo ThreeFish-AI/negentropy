@@ -1,14 +1,13 @@
-/** P6 对账与五条规律（p6-01..19，6 镜 6 cue）——分镜 6-A…6-F。
+/** P6 对账与五条规律（p6-01..19，6 镜 5 cue）——分镜 6-A…6-F。
  *
- *  cue 清单（6；slug/章 id 按 storyboard，manifest 由录制链整文件重建后可编译：
- *  当前占位 manifest 仅有 two-waiting-deaths，recon-verdicts / spec-two-promises
- *  回填后本文件 tsc 即绿——勿为迁就占位改 slug）：
+ *  cue 清单（5；slug/章 id 按 storyboard 对应 manifest，13 图齐备、本文件 tsc 全绿）：
  *   6-A recon-verdicts/green-list@p6-01（dur p6-01+p6-02；本片该图首现实例 → 默认 lead）
  *   6-B recon-verdicts/red-jitter@p6-03（dur 四句和；与 6-A 同 slug、p6-02 末→p6-03 首
  *       紧邻跨镜 → lead={false}）
- *   6-C recon-verdicts/gray-extra@p6-07（dur 四句和；与 6-B 紧邻 → lead={false}）
- *   6-D recon-verdicts/gray-extra@p6-11（dur p6-11+p6-12；同章重现、与 6-C 紧邻 →
- *       lead={false}；p6-13..14 空窗岛 = 学徒争议卡满幅登场段）
+ *   6-C recon-verdicts/gray-extra@p6-07（dur 六句和 p6-07..12；挂场景级跨 6-C/6-D 两镜
+ *       ——评审修复四：原 6-C/6-D 双实例同章背靠背＝镜界整帧跳回章首「倒带」
+ *       （3bba7a783 判例连坐），合并单实例续播；与 6-B 跨镜紧邻 → lead={false}；
+ *       p6-13..14 空窗岛 = 学徒争议卡满幅登场段，窗终点 p6-12 不受影响）
  *   6-E spec-two-promises/map-back@p6-15（dur p6-15+p6-16；换图 → 默认 lead）
  *   6-F spec-two-promises/map-back@p6-18（dur p6-18+p6-19；默认入场）。
  *       ★ 集成裁决（2026-10-03）：p6-17 是 ~6s 空窗岛（两 cue 帧不紧邻），按
@@ -23,7 +22,8 @@
  *    6-F 整镜时长——其终点即末 beat（p6-15..19）终点，勿改用末句单句窗
  *    （长黑屏教训：useFadeOut 只吃窗尾 36 帧，窗缩短≠起点不变）。
  *  ★ 下期卡：HarnessStackP6 + NEXT_LAYER（series-layers.json，activeIndex=4 →
- *    next=多 Agent 平台层）；措辞只「下期」，层名走 NEXT_LAYER 数据，零集标题文字。
+ *    next=多 Agent 平台层）；措辞只「下期」；层名走 NEXT_LAYER 数据，集/下集
+ *    标题主段是规则 8 受检硬编码字面量（:685/:702，与 series.json 逐字同步）。
  *  ★ 色彩契约：ok=印证绿（账页打勾/标尺数字）、deny=分歧警示点、accent=金句卡、
  *    mech=学徒与装置轮廓、core=传送带〔M-001〕；零 Lottie（天平/放大镜全原生
  *    SVG glyph）；顶部 y<56 留空归 ChapterProgress，SceneTag top:64。
@@ -737,10 +737,21 @@ export const P6ReconRules: React.FC<{scene: SceneRange}> = ({scene}) => {
 
   return (
     <AbsoluteFill>
+      {/* cue 3/5：recon-verdicts/gray-extra——挂场景级跨 6-C/6-D 两镜（评审修复四：
+          原双实例同章背靠背＝镜界整帧跳回章首倒带，3bba7a783 判例连坐；单实例续播，
+          at 用场景级帧、不减镜 from——P0 BeltStage 同款挂法。与 6-B 跨镜紧邻 →
+          lead={false}；p6-13..14 空窗岛在窗终点之后，不受影响） */}
+      <ArchifyRecap
+        slug="recon-verdicts"
+        caption="对账三类"
+        lead={false}
+        cues={[{chapterId: 'gray-extra', at: at('p6-07'), durationInFrames: dur('p6-07') + dur('p6-08') + dur('p6-09') + dur('p6-10') + dur('p6-11') + dur('p6-12')}]}
+      />
+
       <Sequence {...bA} name="6-A 对账桌开张">
         <SceneTag chapter="对账桌" tagline="一半印证 · 一半翻案" />
         <ReconTable at01={at('p6-01') - bA.from} at02={at('p6-02') - bA.from} />
-        {/* cue 1/6：recon-verdicts/green-list（本片该图首现 → 默认 lead；窗=两句和） */}
+        {/* cue 1/5：recon-verdicts/green-list（本片该图首现 → 默认 lead；窗=两句和） */}
         <ArchifyRecap
           slug="recon-verdicts"
           caption="对账三类"
@@ -754,7 +765,7 @@ export const P6ReconRules: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ClaimBlock side="L" at={at('p6-05') - bB.from + 50} who="教学版" big="≤ 10%" lines={['按间隔比例', '封顶 15 分钟']} />
         <ClaimBlock side="R" at={at('p6-06') - bB.from + 6} who="官方产品" big="30 分钟" lines={['或间隔之半', 'interval / 2']} />
         <VerdictPill at={at('p6-06') - bB.from + 110} />
-        {/* cue 2/6：recon-verdicts/red-jitter（与 6-A 同 slug 跨镜紧邻 → lead={false}；窗=四句和） */}
+        {/* cue 2/5：recon-verdicts/red-jitter（与 6-A 同 slug 跨镜紧邻 → lead={false}；窗=四句和） */}
         <ArchifyRecap
           slug="recon-verdicts"
           caption="对账三类"
@@ -772,33 +783,19 @@ export const P6ReconRules: React.FC<{scene: SceneRange}> = ({scene}) => {
           at09={at('p6-09') - bC.from}
           at10={at('p6-10') - bC.from}
         />
-        {/* cue 3/6：recon-verdicts/gray-extra（与 6-B 紧邻 → lead={false}；窗=四句和） */}
-        <ArchifyRecap
-          slug="recon-verdicts"
-          caption="对账三类"
-          lead={false}
-          cues={[
-            {chapterId: 'gray-extra', at: at('p6-07') - bC.from, durationInFrames: dur('p6-07') + dur('p6-08') + dur('p6-09') + dur('p6-10')},
-          ]}
-        />
       </Sequence>
 
       <Sequence {...bD} name="6-D 学徒登场">
-        {/* 车道层（学徒/归属条）在 cue 窗内即入席；争议卡锚在 p6-13 岛内、无需让位层 */}
+        {/* 车道层（学徒/归属条）在 cue 窗内即入席；争议卡锚在 p6-13 岛内、无需让位层。
+            评审修复四：本镜不再挂独立 archify cue——背板由下方场景级 gray-extra
+            合并实例（p6-07..12）续播承接，原同章背靠背双实例会在镜界整帧倒带 */}
         <ApprenticeCorner at11={at('p6-11') - bD.from} at12={at('p6-12') - bD.from} />
         <OpenQuestions at13={at('p6-13') - bD.from} at14={at('p6-14') - bD.from} />
-        {/* cue 4/6：recon-verdicts/gray-extra（同章重现、与 6-C 紧邻 → lead={false}；窗=两句和） */}
-        <ArchifyRecap
-          slug="recon-verdicts"
-          caption="对账三类"
-          lead={false}
-          cues={[{chapterId: 'gray-extra', at: at('p6-11') - bD.from, durationInFrames: dur('p6-11') + dur('p6-12')}]}
-        />
       </Sequence>
 
       <Sequence {...bE} name="6-E 五规律金句">
         <RuleFive at15={at('p6-15') - bE.from} at16={at('p6-16') - bE.from} at17={at('p6-17') - bE.from} />
-        {/* cue 5/6：spec-two-promises/map-back（换图 → 默认 lead；窗=两句和） */}
+        {/* cue 4/5：spec-two-promises/map-back（换图 → 默认 lead；窗=两句和） */}
         <ArchifyRecap
           slug="spec-two-promises"
           caption="两条规格"
@@ -808,7 +805,7 @@ export const P6ReconRules: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       <Sequence {...bF} name="6-F 边界与收束">
         <MapRecap at18={at18} grayAt={grayAt} spinAt={spinAt} handoffAt={nextAt - 6} />
-        {/* cue 6/6：spec-two-promises/map-back（同图跨镜重现；lead 判定见文件头 ★ 留痕） */}
+        {/* cue 5/5：spec-two-promises/map-back（同图跨镜重现；lead 判定见文件头 ★ 留痕） */}
         <ArchifyRecap
           slug="spec-two-promises"
           caption="两条规格"

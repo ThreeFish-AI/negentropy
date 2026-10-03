@@ -601,9 +601,10 @@ export const P4DiskNotAlive: React.FC<{scene: SceneRange}> = ({scene}) => {
 
   return (
     <AbsoluteFill>
-      {/* 本集 SceneTag 左置 top:64 ⇒ 常驻系列条保持组件默认顶边位（y12–48）；
-          勿仿他集传 top:64——那会正压 SceneTag。幕自有内容一律 y≥56 起。 */}
-      <HarnessBadge />
+      {/* 本集 SceneTag 左置 top:64 ⇒ Badge 让到同行右端（P2 判例：left:auto +
+          right:64），双端分置互不叠压、也不侵入 y<56 章节条带（评审修复：默认档
+          y12–48 会被章节条实底整段压盖）。幕自有内容一律 y≥56 起。 */}
+      <HarnessBadge style={{left: 'auto', right: 64, top: 64}} />
 
       <Sequence {...bA} name="4-A 两档旋钮">
         <SceneTag chapter="durable" tagline="两档旋钮" />

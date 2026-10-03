@@ -153,8 +153,8 @@ const Gear: React.FC<{frame: number; stroke: string}> = ({frame, stroke}) => (
   </g>
 );
 
-/** 管道：矩管＋双法兰＋行进虚线流（匀速；流相由 useFlowDash 自取当前帧）。 */
-const Duct: React.FC<{frame: number; stroke: string}> = ({stroke}) => {
+/** 管道：矩管＋双法兰＋行进虚线流（匀速；流相由 useFlowDash 自取当前帧——无外部帧参数）。 */
+const Duct: React.FC<{stroke: string}> = ({stroke}) => {
   const dash = useFlowDash({dash: 9, gap: 15, period: 18});
   return (
     <g>
@@ -241,7 +241,7 @@ const PartGlyph: React.FC<{frame: number; kind: PartKind; stroke: string}> = ({
   kind === 'gear' ? (
     <Gear frame={frame} stroke={stroke} />
   ) : kind === 'duct' ? (
-    <Duct frame={frame} stroke={stroke} />
+    <Duct stroke={stroke} />
   ) : kind === 'clock' ? (
     <Clockface frame={frame} stroke={stroke} />
   ) : kind === 'trough' ? (
@@ -520,7 +520,7 @@ export const P0TwoWaits: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bD = w('p0-09', 'p0-12');
 
   // p0-01 句尾词「换一种死法」：句窗含尾距 ~10 帧（sentenceGapSec 0.32s@30fps），
-  // 亮红脉冲锚在词尾（impulse 12 帧，居中覆盖句尾词）
+  // 亮红脉冲锚在词音频收尾（-11≈尾距-1，impulse 12 帧自词落点处亮起）
   const deathWordAt = at('p0-01') + dur('p0-01') - 11;
   // p0-02 句尾词「行话叫 Harness」：角标同拍浮现
   const harnessAt = at('p0-02') + Math.round(dur('p0-02') * 0.72);

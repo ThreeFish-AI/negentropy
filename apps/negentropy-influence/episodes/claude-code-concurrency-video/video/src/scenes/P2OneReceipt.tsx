@@ -29,13 +29,13 @@ import type {SceneRange} from '../types';
 import {BeltStrip, Footnote, Panel, SceneTag} from '../components/motifs';
 import {HarnessBadge} from '../components/harness-stack';
 import {ArchifyRecap} from '../components/ArchifyRecap';
-import {DUR, useBreathe, useDraw, useEnter, useImpulse, useProgress, useSpring, useStagger} from '../motion';
+import {DUR, useBreathe, useDraw, useEnter, useFlowDash, useImpulse, useProgress, useSpring, useStagger} from '../motion';
 
 /** 常驻系列条定位：y<56 归 ChapterProgress 章节条；本集 motifs 种子把 SceneTag
  *  落在左上（left:72/top:64），Badge 让到同行右端（left:auto + right:64）——
  *  双端分置互不叠压、也不侵入章节条。挂载面（组装方核对口径）：P2/P3/P4 挂
- *  Badge（P2 右置 top:64、P3/P4 默认 left:64/top:12），P1/P5/P6 顶带让位给
- *  地图/对拍/收尾版式不挂——系列身份由 P6 身份卡收束（评审修复：如实标注）。 */
+ *  Badge 且三集一律右置 top:64（评审修复：默认档 y12–48 会被章节条实底压盖），
+ *  P1/P5/P6 顶带让位给地图/对拍/收尾版式不挂——系列身份由 P6 身份卡收束。 */
 const BADGE_STYLE: React.CSSProperties = {left: 'auto', right: 64, top: 64};
 
 // ── 2-B 网购金句卡（衬线 · accent 金） ──────────────────────────────────
@@ -121,7 +121,7 @@ const ShopAnalogy: React.FC<{atCard: number; atIconL: number; atIconR: number}> 
             </span>
           </div>
           <div style={{fontFamily: theme.serif, fontSize: 27, color: theme.text, marginTop: 20}}>
-            {'独立消息 · 不占名额'}
+            {'独立消息'}
           </div>
         </Panel>
       </div>
@@ -537,6 +537,9 @@ const MainLoopGap: React.FC<{span: number}> = ({span}) => {
   const trail = useDraw(DUR.f4, Math.max(DUR.f5, span - DUR.f5 * 2));
   const chipIn = useProgress(DUR.f4, DUR.f4);
   const travel = useProgress(DUR.f4, span - DUR.f4 * 2, 'decelerate');
+  // 行进虚线（评审修复）：M-001 运动语言里运行中的带恒有 dash（motifs BeltStrip
+  // 契约——恒速行进感由调用侧叠层，P0 BeltLine 判例）；只画节点盒之间的空档。
+  const dash = useFlowDash({dash: 14, gap: 26, period: 26});
   // 起点：右缘 lane 登记表侧；终点：传送带「开口」节点
   const chipX = 1600 + (430 - 1600) * travel;
   const chipY = 425 + (575 - 425) * travel;
@@ -545,6 +548,11 @@ const MainLoopGap: React.FC<{span: number}> = ({span}) => {
     <AbsoluteFill>
       <div style={beltIn}>
         <BeltStrip x={340} y={530} width={920} />
+        {/* 盒位（viewBox 系）：40..104 / 426..490 / 812..876——虚线段收在两处中段空档 */}
+        <svg width={920} height={96} viewBox="0 0 920 96" style={{position: 'absolute', left: 340, top: 530}}>
+          <line x1={110} y1={48} x2={420} y2={48} stroke={theme.core} strokeWidth={3} strokeLinecap="round" opacity={0.7} {...dash} />
+          <line x1={496} y1={48} x2={806} y2={48} stroke={theme.core} strokeWidth={3} strokeLinecap="round" opacity={0.7} {...dash} />
+        </svg>
       </div>
       <div
         style={{
@@ -609,7 +617,7 @@ const TailNote: React.FC<{atRelease: number; atNext: number; span: number}> = ({
         <Panel style={{width: 620, padding: '26px 30px'}}>
           <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'baseline'}}>
             <span style={{fontFamily: theme.serif, fontSize: 29, fontWeight: 700, color: theme.text}}>
-              {'官方还多一层'}
+              {'产品版 · 多一层'}
             </span>
             <span style={{fontFamily: theme.mono, fontSize: 17, color: theme.dim}}>{'queued'}</span>
           </div>

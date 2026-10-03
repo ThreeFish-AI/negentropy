@@ -634,7 +634,9 @@ const ReceiptFail: React.FC<{
 
   return (
     <div style={{position: 'absolute', left: 24, top: 508, ...enter}}>
-      <div style={{transform: `scale(${1 + 0.055 * zoomIn * (1 - zoomOut)})`, transformOrigin: '0% 85%'}}>
+      {/* 特写缩放向左扩张（评审修复：origin 原 '0% 85%'，峰值右缘 315.2 越入 311
+          画框车道界；改 '100% 85%' 后右缘钉在 300 不动，峰值左缘 8.8 仍在车道内） */}
+      <div style={{transform: `scale(${1 + 0.055 * zoomIn * (1 - zoomOut)})`, transformOrigin: '100% 85%'}}>
         <Panel style={{width: 276, boxSizing: 'border-box', padding: '14px 18px 16px', position: 'relative'}}>
           <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between'}}>
             <span style={{fontFamily: theme.sans, fontSize: 24, fontWeight: 700, color: theme.text}}>{'两处翻车'}</span>
