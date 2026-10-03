@@ -266,7 +266,9 @@ def run_simulation(exp="none", verbose=True):
     metrics["cargo_summary_len"] = (len(cargo_notes[0].split("<summary>")[1].split("</summary>")[0])
                                     if cargo_notes else -1)
     if verbose:
-        print("pip 通知末行:", metrics["pip_note"].splitlines()[-2].strip())
+        pip_lines = metrics["pip_note"].splitlines()
+        if len(pip_lines) > 1:  # e5 同步路径占位串单行，无末行可取
+            print("pip 通知末行:", pip_lines[-2].strip())
         print("cargo 摘要长度(截断于200):", metrics["cargo_summary_len"])
 
     # — s14 注册 + 毒任务 + 双日推进 —
