@@ -313,15 +313,17 @@ const ToolBoundary: React.FC<{at15: number}> = ({at15}) => {
 
 // ── 2-F 官方对照 ────────────────────────────────────────────────────────
 
-/** 官方对照卡【官】：页样＋三行要点 @reveal ＋收件箱=文件行。 */
-const OfficialCard: React.FC = () => {
+/** 官方对照卡【官】：页样＋三行要点 @reveal ＋收件箱=文件行。
+ *  at19=p2-19 的镜内偏移——footer 是 p2-19 的关键词蒸馏，reveal 须贴其口播
+ *  起点而非随 p2-18 三要点连排（时点纪律同 P0 警句贴口播落字先例）。 */
+const OfficialCard: React.FC<{at19: number}> = ({at19}) => {
   const rise = useEnter('rise', {at: 2, dur: DUR.f5, springPreset: 'settle', dist: 26});
   const rows = ['实验性 · experimental', '默认关闭 · off by default', '环境开关 · opt-in'];
   const footer = '收件箱 = 文件 · 逐条校验';
   const r1 = useReveal(rows[0], {at: 14, cps: 14});
   const r2 = useReveal(rows[1], {at: 14 + 16, cps: 14});
   const r3 = useReveal(rows[2], {at: 14 + 32, cps: 14});
-  const rf = useReveal(footer, {at: 14 + 52, cps: 16});
+  const rf = useReveal(footer, {at: at19 + 12, cps: 16});
   const reveals = [r1, r2, r3];
   return (
     <AbsoluteFill>
@@ -426,7 +428,7 @@ export const P2MailSlot: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bF} name="2-F 官方对照">
-        <OfficialCard />
+        <OfficialCard at19={at('p2-19') - bF.from} />
       </Sequence>
     </AbsoluteFill>
   );

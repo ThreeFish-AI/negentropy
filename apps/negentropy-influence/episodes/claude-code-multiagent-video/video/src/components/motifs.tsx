@@ -366,7 +366,7 @@ export const LodgeMap: React.FC<{
       {/* 中层走廊环（core 橙缩略——描边恒 6px〔M-001〕；预告态压暗留「?」） */}
       {corridorHidden ? (
         <>
-          <circle cx={110} cy={57} r={11} fill="none" stroke={theme.panelBorder} strokeWidth={6} opacity={0.5} />
+          <circle cx={110} cy={57} r={11} fill="none" stroke={theme.panelBorder} strokeWidth={RING_STROKE} opacity={0.5} />
           <text
             x={110}
             y={63}

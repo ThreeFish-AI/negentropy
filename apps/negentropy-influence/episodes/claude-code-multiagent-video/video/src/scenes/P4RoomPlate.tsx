@@ -139,8 +139,9 @@ const ClaimIntoRoom: React.FC<{at09: number; at10: number; at11: number}> = ({at
   const travel = progress(frame, at09 + 6, 26);
   const cardX = 360 + travel * 760;
   const cardY = 430 - travel * 150;
-  // 房内工作循环点（落房后的读写循环——@travel 巡游）
-  const loop = useTravel({cx: 1240, cy: 300, r: 34, secPerLap: 2.2});
+  // 房底循环轨道点（读写落房的回路——@travel 巡游）。圆心须在面板底边下方：
+  // 弧顶 345-28=317 距房内文字带底 ~280 留 37px 净空，勿再上移（会压 .worktrees 行）
+  const loop = useTravel({cx: 1240, cy: 345, r: 28, secPerLap: 2.2});
   const loopO = progress(frame, at09 + 32, DUR.f4);
   // 目录标签切换（大厅 → 房-2）
   const dirFlip = progress(frame, at09 + 30, DUR.f4);
@@ -176,9 +177,9 @@ const ClaimIntoRoom: React.FC<{at09: number; at10: number; at11: number}> = ({at
           <div style={{fontFamily: theme.mono, fontSize: 18, color: theme.dim, marginTop: 6}}>{'.worktrees/room-2'}</div>
         </div>
       </div>
-      {/* 房内工作循环（读写落房） */}
+      {/* 房底循环轨道（读写落房——贴房外底边，净空见上注） */}
       <svg width={1920} height={1080} style={{position: 'absolute', left: 0, top: 0, opacity: loopO}}>
-        <circle cx={1240} cy={300} r={34} fill="none" stroke={theme.panelBorder} strokeWidth={3} />
+        <circle cx={1240} cy={345} r={28} fill="none" stroke={theme.panelBorder} strokeWidth={3} />
         <circle cx={loop.x} cy={loop.y} r={8} fill={theme.accent} />
       </svg>
       {/* 旅行中的任务卡 */}

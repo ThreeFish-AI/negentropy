@@ -160,7 +160,7 @@ const LodgeStage: React.FC<{at02: number; at03: number}> = ({at02, at03}) => {
             </g>
           ))}
         </svg>
-        {/* 师傅伏案（右二窗前；p0-02 擦除重来——纸面碎屑） */}
+        {/* 师傅伏案（楼上最右窗正下、楼下第五湾位「座」格前；p0-02 擦除重来——纸面碎屑） */}
         <Person x={620} y={300} scale={0.42} opacity={0.85 * o * (0.4 + 0.6 * (ups[3] ?? 0))} />
         <div style={{position: 'absolute', left: 700, top: 330, width: 64, height: 44, background: theme.panel, border: `2px solid ${theme.panelBorder}`, borderRadius: 4, opacity: eraseDim * o}}>
           {[0, 1].map((i) => (
@@ -309,7 +309,7 @@ const MapCorner: React.FC<{at12: number}> = ({at12}) => {
   const pulse = useImpulse({at: at12 + DUR.f4, dur: DUR.f6, peak: 1});
   return (
     <div style={{position: 'absolute', left: 1668, top: 56, ...fade}}>
-      {/* 装置底衬（与画框右缘 1609 保持 31px 净空） */}
+      {/* 装置底衬（与画框右缘 1609 保持 59px 净空） */}
       <div
         style={{
           padding: '8px 10px',

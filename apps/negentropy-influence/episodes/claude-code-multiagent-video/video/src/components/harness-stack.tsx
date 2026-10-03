@@ -4,7 +4,7 @@
  * series.json 派生——硬编码即漂移，规格原话）。注意 P6 场景内的**本集题字主段**
  * 仍是硬编码字符串：check_series 规则 8 以 tsx 文本对账 series.json，数据化会
  * 让那条门失明（两层口径：层短名走数据，题字主段走规则 8 的受检硬编码）。
- * 终集体例：series-layers next=null ⇒ 无下期层，P6 不设下期卡（五层全亮收官），
+ * 终集体例：NEXT_LAYER=null ⇒ 无下期层，P6 不设下期卡（五层全亮收官），
  * 规则 8 的受检锚即 P6 本集题字。
  *
  * 三个组件：
@@ -30,7 +30,11 @@ export type Layer = {index: number; layer: string; title: string; published: boo
 
 export const LAYERS = series.layers as Layer[];
 export const ACTIVE_INDEX = series.activeIndex as number;
-export const NEXT_LAYER = LAYERS[ACTIVE_INDEX] ?? null; // P6 呼吸预告的层
+// P6 呼吸预告的层。隐式约定（勿改层号语义）：layers[].index 为 1-based 层号而
+// 数组下标 0-based——LAYERS[ACTIVE_INDEX] 恰为下一层，终集（层号=数组长度）越界
+// 得 null 即「无下期」。json 的 next 字段是 build_narration 派生的声明性冗余（代码
+// 不读）；published 由各集 status=="ready" 派生，升 ready 后已发布层自动点亮。
+export const NEXT_LAYER = LAYERS[ACTIVE_INDEX] ?? null;
 
 const STACK_CROSSFADE_FRAMES = 8;
 

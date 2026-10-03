@@ -146,8 +146,7 @@ const SeventhReveal: React.FC<{at02: number; at03: number}> = ({at02, at03}) => 
 const BlankPanorama: React.FC = () => {
   const fade = useEnter('fade', {at: 2, dur: DUR.f4});
   const cells = ['?', '?', '?', '?'];
-  const frame = useCurrentFrame();
-  const blink = 0.55 + 0.45 * Math.sin(frame / 7);
+  const blink = useBreathe({period: 44, amp: 0.45, base: 0.55});
   return (
     <AbsoluteFill>
       <div style={{position: 'absolute', left: 330, top: 330, display: 'flex', gap: 30, ...fade}}>
@@ -770,7 +769,7 @@ const SeriesFinale: React.FC<{at31: number}> = ({at31}) => {
   const stackIn = useProgress(at31, DUR.f5);
   const slogan = useProgress(at31 + DUR.f4, DUR.f4);
   const frame = useCurrentFrame();
-  const lamp = 0.75 + 0.25 * Math.sin(frame / 11);
+  const lamp = useBreathe({period: 69, amp: 0.25, base: 0.75});
   return (
     <AbsoluteFill style={{pointerEvents: 'none'}}>
       <div style={{position: 'absolute', left: STACK.left, top: STACK.top, opacity: stackIn}}>

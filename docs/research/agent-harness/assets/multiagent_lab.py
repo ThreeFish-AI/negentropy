@@ -238,8 +238,8 @@ def permission_gate(tool, args):
 class Teammate:
     """脚本化队友：tool_step 按 waiting_plan 与权限门执行一步。"""
 
-    def __init__(self, name, role):
-        self.name, self.role = name, role
+    def __init__(self, name):
+        self.name = name
         self.wt_ctx = {"path": None}
         self.waiting_plan = None
 
@@ -303,7 +303,7 @@ def selftest():
     # 场景 1 · 正常路径：四任务两队友，自取+解锁
     P = create_task("铺底座"); Q = create_task("砌墙", blockedBy=[P["id"]])
     R = create_task("装灯", blockedBy=[P["id"]]); S = create_task("验收")
-    alice, bob = Teammate("alice", "工"), Teammate("bob", "工")
+    alice, bob = Teammate("alice"), Teammate("bob")
     check("alice 自取 P", idle_poll("alice", inject, alice.wt_ctx), "work")
     check("P in_progress", TASKS[P["id"]]["status"], "in_progress")
     check("alice 完成 P 解锁 Q/R",
@@ -338,7 +338,7 @@ def selftest():
 
     # 场景 4 · 计划门（s20 真门）
     U = create_task("刷漆")
-    carol = Teammate("carol", "工")
+    carol = Teammate("carol")
     pool = {}
     check("交计划冻结", carol.tool_step(
         "submit_plan", {"plan": "先底漆后面漆"}, pool), "等待批复")

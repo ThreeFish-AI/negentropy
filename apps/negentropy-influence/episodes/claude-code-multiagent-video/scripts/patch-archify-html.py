@@ -140,7 +140,11 @@ def main() -> None:
         if not vpath.is_file():
             failures.append(f"{slug}: views 章表缺失 views/{slug}.json")
             continue
-        views = json.loads(vpath.read_text(encoding="utf-8"))
+        try:
+            views = json.loads(vpath.read_text(encoding="utf-8"))
+        except (ValueError, OSError) as e:
+            failures.append(f"{slug}: views JSON 解析失败 {vpath.name}: {e}")
+            continue
         html = src.read_text(encoding="utf-8")
         if slug in NO_INJECT:
             out = OUT_DIR / f"{slug}.html"
@@ -179,11 +183,20 @@ def main() -> None:
         # 自检先行（容器可被 read_views 正则命中、焦点节点 id 全部存在）——
         # 通过才落盘：缺节点时坏产物不得覆盖 html/（下游录制器会直接消费）
         m = re.search(r'id="archify-guided-views-data"[^>]*>([\s\S]*?)</script>', html)
-        assert m, f"{slug} 容器未命中"
-        parsed = json.loads(m.group(1))
-        missing = [
-            n for v in parsed for n in v["focus"] if f'data-node-id="{n}"' not in html
-        ]
+        if not m:  # assert 门禁用（python -O 剥 assert，自检须常开）
+            failures.append(f"{slug}: 容器未命中（注入块损坏）")
+            continue
+        try:
+            parsed = json.loads(m.group(1))
+            missing = [
+                n
+                for v in parsed
+                for n in v["focus"]
+                if f'data-node-id="{n}"' not in html
+            ]
+        except (ValueError, KeyError, TypeError) as e:
+            failures.append(f"{slug}: 注入块 JSON/焦点结构异常: {e}")
+            continue
         if missing:
             failures.append(f"{slug}: 缺节点 {missing}")
             print(f"{slug}: {len(parsed)} 章 → 未落盘 [缺节点 {missing}]")
