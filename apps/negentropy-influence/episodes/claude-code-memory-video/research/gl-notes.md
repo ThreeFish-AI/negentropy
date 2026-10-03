@@ -1,13 +1,13 @@
 # 事实源：记忆管理两章（s08 上下文压缩 + s09 记忆系统）· C 型 GL 冻结快照
 
-> **C 型登记**：正文为 guided-learn 完全重读精读产物 [176 · Learn Claude Code 记忆管理](../../../../../docs/research/agent-harness/176-learn-claude-code-memory.md) 的冻结快照（2026-09-30 定稿取数，2026-10-01 四轮评审修复至 `eb5890518`）。本文件是本集口播的**单一事实源正文**；各集不重述章节归属与钉选——见 [系列信源地图](../../../source-map/claude-code-explained.md)。
+> **C 型登记**：正文为 guided-learn 完全重读精读产物 [176 · Learn Claude Code 记忆管理](../../../../../docs/research/agent-harness/176-learn-claude-code-memory.md) 的冻结快照（2026-09-30 定稿取数，2026-10-01 四轮评审修复至 `eb5890518`；2026-10-03 随 176 三轮评审修复同步至 `4ee6a3cd9`——§9.3→§9.2、137 机器浮动注记、断言数 35，快照与正文持续同编辑）。本文件是本集口播的**单一事实源正文**；各集不重述章节归属与钉选——见 [系列信源地图](../../../source-map/claude-code-explained.md)。
 >
 > **原始信源清单**（回溯链指针，不另开笔记）：
 > 1. B 型 · 课程仓库 `s08_context_compact/`、`s09_memory/`（README.zh.md + code.py），GitHub main @ `ce8f9f18`（2026-09-28，MIT）——指纹台账 [sources.toml](./sources.toml)；字节归档 [source-archive/ce8f9f1/](./source-archive/ce8f9f1/README.md)
 > 2. B 型 · 站点两页 <https://learn.shareai.run/zh/s08/> · <https://learn.shareai.run/zh/s09/>（GL 抓取 2026-09-30；本集 2026-10-02 复核 s08 页字节数与 GL 台账一致、锚点齐全，未漂移）
 > 3. 【官】Claude Code 官方文档三页（memory / context-window / model-config，2026-09-30 与【三】互证）——引用处一律带「官方文档」归属
 >
-> **本集复算记录（2026-10-02）**：`memory_lab.py --selftest` 35 断言全绿；`destruct.py` 5 项破坏实验全过（正文【一】级断言本集复算成立）；数字断言全量穿透 `code.py@ce8f9f18`，逐条结果见文末**附录 B**。
+> **本集复算记录（2026-10-02 首算 34 断言；2026-10-03 T8b 入库后复跑 35 断言全绿）**：`memory_lab.py --selftest`；`destruct.py` 5 项破坏实验全过（正文【一】级断言本集复算成立）；数字断言全量穿透 `code.py@ce8f9f18`，逐条结果见文末**附录 B**。
 >
 > **证据分级（沿用正文标注）**：【一】原型实测（本集已复算）／【二】课程讲法／【三】站点对 CC 闭源源码的逆向分析（**口播必带归属句**，不得说成产品既成事实）／【官】官方文档。**数字纪律**：站点页头 LOC/工具数元数据（414/528、9/6）与仓库实测（601/784 行、6/5 工具）不符，口播一律用仓库实测口径并注明；熔断器 3 次仅站点讲义有（仓库无实现），口播须带「课程讲义」归属。
 
