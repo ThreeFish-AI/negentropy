@@ -144,7 +144,7 @@
 2. **闸门 1：DENY_LIST 硬拒绝（7 条，子串匹配，仅对 bash）**：`["rm -rf /", "sudo", "shutdown", "reboot", "mkfs", "dd if=", "> /dev/sda"]`，命中直接拒绝——不执行、不问人。锚点：`code.py:155-156`、`check_deny_list` `code.py:158-162`、「仅 bash」限定 `code.py:202`（README 未展开此限定，以代码为准）。副作用即 171 §5 分路表的「过拦」：子串 `"rm -rf /"` 同样匹配一切绝对路径递归删除（如 `rm -rf /tmp/cache` 也被拦）。
 3. **闸门 2：声明式规则表（两条）**：每条规则指定工具 + 检查条件 + 消息，回答「什么时候需要问用户」。锚点：`PERMISSION_RULES` `code.py:175-183`、`check_rules` `code.py:185-189`；README:57 `**闸门 2**负责规则匹配，用来描述"什么时候需要问用户"。每条规则指定工具和检查条件。` 规则一 = 文件工具路径越出工作区；规则二 = bash 破坏性命令（词边界正则或关键词 `["rm ", "> /etc/", "chmod 777"]`）。
 4. **词边界正则（DESTRUCTIVE_COMMAND_WORD）**：只在命令位（行首或 `; & | ( )` 换行之后）识别 `rm`/`del`，大小写不敏感；`model`、`delimiter` 这类假阳性不再误伤。锚点：正则 `code.py:166-168`、`contains_destructive_command` `code.py:171-172`。README 实例（README:155）：`在 Windows 上，del test.txt 和 DEL test.txt 会触发闸门 2，而 model、delimiter 和 echo del test.txt 不会。` 此正则为 main 轨相对站点修订的增量（171 §5：源仓已补、站点页未同步【二】）。
-5. **规则一覆盖 read_file（工作区外检查扩到读）**：`"tools": ["read_file", "write_file", "edit_file"]`——读取工作区外路径也要问人。锚点：`code.py:176`。message 文案分歧：code.py:178 `"Writing outside workspace"` vs README:74 `"Access outside workspace"`（分歧 D11；且 read_file 命中时文案仍说 Writing，系文案滞后，以行为为准）。
+5. **规则一覆盖 read_file（工作区外检查扩到读）**：`"tools": ["read_file", "write_file", "edit_file"]`——读取工作区外路径也要问人。锚点：`code.py:176`。message 文案分歧：code.py:178 `"Writing outside workspace"` vs README:73 `"Access outside workspace"`（分歧 D11；且 read_file 命中时文案仍说 Writing，系文案滞后，以行为为准）。
 6. **闸门 3：用户审批，默认拒绝**：规则命中后暂停，终端打印原因与参数，`Allow? [y/N]`——只有 `y/yes` 才放行，空回车即 deny。锚点：`ask_user` `code.py:193-197`。
 7. **三道都没命中 → 直接执行**：日常大多数操作走这条路（README:34 `三道都没命中 → 直接执行。大部分日常操作走这条路。`；管线结构证据 `code.py:207-212`——两关都空过即 `return True`）。
 8. **拒绝结果回喂**：被拒调用不静默消失，以 `Permission denied.` 的 tool_result 回给模型，循环继续。锚点：`code.py:236-239`。
@@ -249,7 +249,7 @@
 - **D8 · DENY_LIST 跨章漂移**：s03 = 7 条（含 `"> /dev/sda"`，`s03 code.py:156`）→ s04 = 6 条（`s04 code.py:151`）；s01/s02 则是 run_bash 内置 dangerous 5 条（含 `"> /dev/"`）。处置：口播引条数必须钉章，或不念具体数字（计数随修订/跨章漂移）。
 - **D9 · s02「bash 不受限制」**：README:159 称 `bash 不受限制，rm -rf / 还是能跑`；code.py 实物（标注 `-- From s01 (unchanged) --`，`s02 code.py:63-66`）存在 5 条危险子串黑名单，`rm -rf /` 恰在其中会被拦。处置：按 code.py 叙述；README 语义理解为「本章未给 bash 增加新的权限层（黑名单系 s01 遗留且按子串匹配、可绕过）」，不是字面「无任何拦截」。
 - **D10 · s02 分发示例**：README:100 为硬索引 `TOOL_HANDLERS[block.name]`；code.py 实实现为 `.get()` + `Unknown: {name}` 兜底（`s02 code.py:180-181`）。处置：以 code.py 为准；硬索引形态仅作实验 2 的破坏性对照（2.5 节）。
-- **D11 · s03 规则一 message 文案**：README:74 `"Access outside workspace"` vs code.py:178 `"Writing outside workspace"`；且规则一 tools 已含 read_file（code.py:176）而文案仍说 Writing。处置：以 code.py 行为为准，口播不逐字念该 message。
+- **D11 · s03 规则一 message 文案**：README:73 `"Access outside workspace"` vs code.py:178 `"Writing outside workspace"`；且规则一 tools 已含 read_file（code.py:176）而文案仍说 Writing。处置：以 code.py 行为为准，口播不逐字念该 message。
 - **D12 · s01 内置拦截 ≠ 三闸门（防错挂）**：s01/s02 的 run_bash 内置黑名单（错误串回喂、不问人）与 s03 三闸门（硬拒→规则→问人）是两层不同机制；s03 起 run_bash 黑名单与 safe_path 均移除、上收为管线（3.2-9）。处置：叙述严格按章演进，不得说「s01 就有权限系统」。
 
 ## 开放问题（转引 171 §9「核心争议」与 §10「材料没有证明的事」）

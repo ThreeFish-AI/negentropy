@@ -17,6 +17,7 @@ import {
   Ledger,
   LineGauge,
   LoopRing,
+  MonoTag,
   PeripheralRow,
   QuoteCard,
   withAlpha,
@@ -116,9 +117,7 @@ export const P0ForgetfulDoctor: React.FC<{scene: SceneRange}> = ({scene}) => {
       <Sequence {...bA} name="0-A 开场设问与白纸">
         <ChatDuo atChat={2} atPaper={at('p0-03') - bA.from} />
         {/* 登记角标 llm(messages)——英文标识符只进画面角标的唯一落点（storyboard 0-A 双重登记） */}
-        <div style={{position: 'absolute', left: 246, top: 64}}>
-          <FootnoteGhost at={2}>{'llm(messages)'}</FootnoteGhost>
-        </div>
+        <MonoTag x={246} y={64} at={2}>{'llm(messages)'}</MonoTag>
       </Sequence>
 
       <Sequence {...bB} name="0-B 人肉往返">
@@ -137,9 +136,7 @@ export const P0ForgetfulDoctor: React.FC<{scene: SceneRange}> = ({scene}) => {
         <QuoteCard x={640} y={430} at={at('p0-06') - bB.from} width={640}>
           {'说完了 · 活还是你的'}
         </QuoteCard>
-        <div style={{position: 'absolute', left: 246, top: 64}}>
-          <FootnoteGhost at={at('p0-06') - bB.from}>{'chat'}</FootnoteGhost>
-        </div>
+        <MonoTag x={246} y={64} at={at('p0-06') - bB.from}>{'chat'}</MonoTag>
       </Sequence>
 
       <Sequence {...bC} name="0-C 诊室定妆">
@@ -162,9 +159,7 @@ export const P0ForgetfulDoctor: React.FC<{scene: SceneRange}> = ({scene}) => {
           caption="差距预告"
           cues={[{chapterId: 'gap-preview', at: at('p0-15') - bD.from, durationInFrames: dur('p0-15')}]}
         />
-        <div style={{position: 'absolute', left: 246, top: 64}}>
-          <FootnoteGhost at={at('p0-12') - bD.from}>{'102 行 · 教学版'}</FootnoteGhost>
-        </div>
+        <MonoTag x={246} y={64} at={at('p0-12') - bD.from}>{'102 行 · 教学版'}</MonoTag>
       </Sequence>
     </AbsoluteFill>
   );
@@ -211,26 +206,6 @@ const ClinicFirstLook: React.FC<{atEnter: number; atPlate: number}> = ({atEnter,
         {'病历本 = 唯一凭据 · 每轮全量重读'}
       </div>
     </>
-  );
-};
-
-/** 轻量角标（画面关键词，≤6 字＋口径注） */
-export const FootnoteGhost: React.FC<{at: number; children: React.ReactNode}> = ({at, children}) => {
-  const e = useEnter('fade', {at, dur: DUR.f3});
-  return (
-    <span
-      style={{
-        ...e,
-        padding: '4px 12px',
-        border: `1.5px solid ${withAlpha(theme.dim, 0.5)}`,
-        borderRadius: 5,
-        fontFamily: theme.mono,
-        fontSize: 16,
-        color: theme.dim,
-      }}
-    >
-      {children}
-    </span>
   );
 };
 

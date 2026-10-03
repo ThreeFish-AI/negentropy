@@ -2,8 +2,9 @@
  *
  *  ★ 〔M-001〕恒定视觉锚的落点：`LoopRing` 锁死 core 橙描边色与绝对线宽（5px），
  *    全片每次出场逐像素同形，只换周边标签与点亮数——「循环本体从不改」的空间表达。
- *  ★ 恒定空间契约（防 X-001 空间逆旁白）：`ClinicStage` 里循环恒居中央、病历本左上、
- *    医生位左、科室门右，全片不换位；三层外设一律自右缘挂入（mech 青）。
+ *  ★ 恒定空间契约（防 X-001 空间逆旁白）：各场景手排坐标维持（以 P0 0-C 诊室定妆
+ *    为准）——循环恒居中央、病历本左上、医生位左、科室门右，全片不换位；三层外设
+ *    一律自右缘挂入（mech 青）。
  *  ★ 人（医生/来诊者）一律无彩（text 白/dim 灰）——装置才有颜色。
  */
 import React from 'react';
@@ -289,8 +290,10 @@ export const QuoteCard: React.FC<{
 };
 
 /** 破坏性实验封条卡（mono 徽标，实验编号唯一变量）。
- *  size 单一事实源：md＝让位窗前小徽标（24px 档）；lg＝自制段主画面放大档（27px 档）。
- *  收敛自 P1/P2 各自复制的 SealCard（2026-10-02 评审：三实现两规格 → 一处两档）。 */
+ *  size 单一事实源：md＝与其它自制件并存的窄窗小徽标（24px 档）；lg＝自制段主画面
+ *  放大档（27px 档）——同构「封条卡→句尾让位」节拍（徽标独占自制段）恒用 lg＋(742,408)
+ *  （2026-10-03 评审：4-D 原混用 md 已对齐）。收敛自 P1/P2 各自复制的 SealCard
+ *  （2026-10-02 评审：三实现两规格 → 一处两档）。 */
 export const ExpBadge: React.FC<{x: number; y: number; at: number; n: number; size?: 'md' | 'lg'}> = ({
   x,
   y,
@@ -350,8 +353,8 @@ export const ProvenanceTag: React.FC<{x: number; y: number; at?: number; text?: 
   );
 };
 
-/** 轻量 mono 角标（关键词/数字/口径注——英文标识符只进角标；同 P0 FootnoteGhost
- *  形态；2026-10-02 评审收敛：P1/P2/P3/P6 四份逐字节副本合一于此） */
+/** 轻量 mono 角标（关键词/数字/口径注——英文标识符只进角标；2026-10-02/03 评审
+ *  收敛：P1/P2/P3/P6 与 P0 FootnoteGhost 共五份同形副本合一于此） */
 export const MonoTag: React.FC<{x: number; y: number; at: number; children: React.ReactNode}> = ({x, y, at, children}) => {
   const e = useEnter('fade', {at, dur: DUR.f3});
   return (

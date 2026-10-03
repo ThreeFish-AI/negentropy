@@ -17,7 +17,7 @@
 | # | slug（落 `docs/assets/architecture/agent-harness/claude-code--<slug>.html`） | 型 | 服务幕/句段 | 章 |
 | --- | --- | --- | --- | --- |
 | 1 | human-relay | workflow | P0 人肉往返与循环接手（p0-04/05/10/15） | 5 |
-| 2 | intake-loop | architecture | P1 循环本体四瞥（p1-01/02/09/11/12） | 5 |
+| 2 | intake-loop | architecture | P1 循环本体 5 cue·3 实例（p1-01/02/09/11/12） | 5 |
 | 3 | stop-reason-race | sequence | P1 流式坑与实验 1（p1-13/16/17/18/20） | 5 |
 | 4 | dispatch-table | dataflow | P2 查表分发与围栏（p2-07/08/19） | 5 |
 | 5 | lookup-failure | lifecycle | P2 实验 2 全程（p2-11..15） | 5 |
@@ -31,7 +31,7 @@
 | 13 | four-version-ledger | lifecycle | P5 四版对账（p5-09..13） | 5 |
 | 复用 | five-layer-dependency（html_overrides） | architecture | P6 系列身份卡（p6-01/09） | 3 |
 
-> 型多样性＝workflow×2 / architecture×3 / lifecycle×5 / sequence×2 / dataflow×2 ＝ 5 型 ≥ 5（sidecar 顶层 `type` 已预置随录制落盘）。`four-version-ledger` 的 `v2-table` 章仅在 P5 引用（P2 的「执行行」句用自制代码卡对切，避免同图章跨幕回放乱序）；`human-relay·your-hands`、`gate-four-result·override`、`five-layer·read-two-books`、`dispatch-table·order-in`、`dispatch-table·feed-back` 五章本集不引用（章比 62/67≈0.93 ≥ 0.30）。
+> 型多样性＝workflow×2 / architecture×3 / lifecycle×5 / sequence×2 / dataflow×2 ＝ 5 型 ≥ 5（sidecar 顶层 `type` 已预置随录制落盘）。`four-version-ledger` 的 `v2-table` 章仅在 P5 引用（P2 的「执行行」句用自制代码卡对切，避免同图章跨幕回放乱序）；`human-relay·your-hands`、`gate-four-result·override`、`five-layer·loop-first`、`dispatch-table·order-in`、`dispatch-table·feed-back` 五章本集不引用（章比 62/67≈0.93 ≥ 0.30）。
 
 ## P0 失忆的医生（p0-01..15）→ `scenes/P0ForgetfulDoctor.tsx`
 
@@ -39,7 +39,7 @@
 | --- | --- | --- | --- |
 | 0-A | p0-01..03 | 开场设问：聊天框两侧定格（左用户敲字／右模型回复一段建议）；p0-03「白纸」隐喻——一张白纸卡从聊天框飘落、定格压短关键词「一张白纸 · 全忘」（`dim`，非逐字复述）；角标 `llm(messages)` | 聊天框双侧淡入 `useEnter:fade`；白纸卡飘落定格 `useEnter:fall`（scene 自定义白纸装置，压短形态）；`@enter:fade` `@enter:fall` |
 | 0-B | p0-04..06 | 人肉往返 ·**archify full**：human-relay 章 `manual-full`+`talk-only` · p0-05 句中段让位 ·**archify full**：human-relay （talk-only） · p0-06 金句回落——自制金句卡衬线体「说完了 · 活还是你的」（压短形态）caption-dup-ok: 金句卡定格记忆点，主字压短非逐字；角标 `chat` | archify 全屏回放主控（两章同实例连播自动抑制）；金句卡 QuoteCard 衬线定格（components 承担者，散文点名，不产生 token） |
-| 0-C | p0-07..11 | **诊室定场（母题定妆）**：自制诊室全景首现——中央接诊循环圆环（core 橙〔M-001〕锁线宽，五步位刻度暂虚）、左上病历本槽位（下方常驻字条 `病历本 = 唯一凭据 · 每轮全量重读`，随病历本组淡入）、左医生位（无彩剪影）、右科室门；「Harness」字卡挂门楣；p0-10 句让位 ·**archify full**：human-relay 章 `loop-takes-over` | 诊室四件依次入场 `useStagger`（循环母题随组淡入定妆，core 橙恒定线宽）；Harness 字卡钉位 `useEnter:pop`；p0-10 由 ArchifyRecap 主控；`@stagger` `@enter:pop` |
+| 0-C | p0-07..11 | **诊室定场（母题定妆）**：自制诊室全景首现——中央接诊循环圆环（core 橙〔M-001〕锁线宽，五步位刻度暂虚）、左上病历本槽位（下方常驻字条 `病历本 = 唯一凭据 · 每轮全量重读`，随病历本组淡入）、左医生位（无彩剪影，位上标签 `医生 · 模型`）、右科室门；「Harness」字卡挂门楣；p0-10 句让位 ·**archify full**：human-relay 章 `loop-takes-over` | 诊室四件依次入场 `useStagger`（循环母题随组淡入定妆，core 橙恒定线宽）；Harness 字卡钉位 `useEnter:pop`；p0-10 由 ArchifyRecap 主控；`@stagger` `@enter:pop` |
 | 0-D | p0-12..15 | 行数尺首现：底边四格进度条（第一格 `102` 点亮，其余虚影）；p0-14 三枚外设剪影（表／关／节点，mech 青）自右缘挂入循环右侧；p0-15 句让位 ·**archify full**：human-relay 章 `gap-preview`；角标 `102 行 · 教学版`（金句卡「三层外设」**裁定不落**：p0-15 全句窗让位给 gap-preview，集名主段定格已由 P6 系列身份卡承担——2026-10-02 评审回写） | 行数尺第一格计数点亮 `useCount`；三剪影右缘滑入 `useEnter:slideR`；常驻微光由 PeripheralRow 内 `useBreathe` 承担（components 承担者，散文点名）；p0-15 由 ArchifyRecap 主控；`@count` `@enter:slideR` |
 
 ## P1 接诊循环（p1-01..26）→ `scenes/P1IntakeLoop.tsx`
@@ -71,7 +71,7 @@
 | --- | --- | --- | --- |
 | 3-A | p3-01..03 | 事故快闪：指令卡「清理一下项目」→ 一张整盘删除命令单（`rm -rf /` 字样）已递到科室门口、`deny` 红警示描边急闪；p3-01 句尾让位 ·**archify full**：gate-three-tier 章 `arrive` · p3-02..03 回落自制——三层筛装置剪影旋入画面右侧（mech 青）；角标 `rm -rf /` | 指令卡→命令单对切 `useStagger`；红描边急闪 `useImpulse`（deny）；三层筛旋入 `useEnter:slideR`；p3-01 由 ArchifyRecap 主控；`@stagger` `@impulse` `@enter:slideR` |
 | 3-B | p3-04..09 | 三重把关主体：p3-04 句让位 ·**archify full**：gate-three-tier 章 `hard-deny`+`rule-hit`+`ask-sign`+`default-pass` · p3-05 句让位 （rule-hit） · p3-06 句让位 （ask-sign） · p3-07..08 回落自制——皆空默认直行道（单据小卡列队过闸，`ok` 绿瞬态）· p3-09 句让位 ·**archify full**：gate-three-tier （default-pass）（被拒回执在图内）；角标（代码字样，画内呈现）：DENY→RULES→ASK | 同图三章＋回环 default-pass 连播（单实例内自动抑制）；直行道单据列队 `useStagger`＋放行绿闪 `useImpulse`（ok）；`@stagger` `@impulse` |
-| 3-C | p3-10..11 | 铁律卡（自制）：禁忌表格上盖封条章「翻不了案」（`deny` 红印章下压）；p3-11 句让位 ·**archify full**：gate-order-ablation 章 `normal-first`（正常序：禁忌表最先拦下——顺序的基准态）；角标：顺序即机制（画内呈现） | 封条章盖下 `useEnter:fall`＋压纸震颤 `useSpring`（微幅）；p3-11 由 ArchifyRecap 主控；`@enter:fall` `@spring` |
+| 3-C | p3-10..11 | 铁律卡（自制）：禁忌表格上盖封条章「翻不了案」（`deny` 红印章下压）；p3-11 句让位 ·**archify full**：gate-order-ablation 章 `normal-first`（正常序：禁忌表最先拦下——顺序的基准态）；角标：顺序=机制（画内呈现） | 封条章盖下 `useEnter:fall`＋压纸震颤 `useSpring`（微幅）；p3-11 由 ArchifyRecap 主控；`@enter:fall` `@spring` |
 | 3-D | p3-12..15 | 实验 3：p3-12 句让位 ·**archify full**：gate-order-ablation 章 `reorder-early`+`one-y-pass`+`wipe-zero` · p3-13 句让位 （one-y-pass） · p3-14 句让位 （wipe-zero） · p3-15 回落自制金句卡「次序 · 就是机制」衬线定格 caption-dup-ok: 压短记忆点（口播「把关的次序，本身就是机制」缩为六字）（金句卡为 components 承担者，散文点名）；角标 `4 文件 → 0` | 同图三章连播（单实例内自动抑制）；本镜无 scene 自制动效 hook（金句卡由 components 承担） |
 | 3-E | p3-16..20 | 两面性（自制卡）：左半「过拦」——绝对路径删除列表逐条划掉（`deny` 连坐线）；右半「漏拦」——命令变体／套层展开两条小字逃逸箭头绕过筛子；p3-19 作者自认引语卡（「示意 · 不是安全边界」，mono 引号）；p3-20 词边界补丁小卡（`词边界` 角标点亮，归属注「规则层补丁」）；角标 `词边界正则` | 左半划线 `useProgress`（连坐）；右半箭头逃逸 `useFlowDash`（dim）；引语卡逐字 `useReveal`；补丁卡点亮 `useImpulse`（mech）；`@progress` `@flowDash` `@reveal` `@impulse` |
 | 3-F | p3-21..26 | 生产版对照：p3-21 自制过渡（「真实产品里 · 厚得多」小卡）→ p3-22 句让位 ·**archify full**：gate-four-result 章 `four-states`+`eight-sources`+`classifier`+`fallback-human` · p3-23 句让位 （eight-sources） · p3-24 句让位 （classifier） · p3-25 句让位 （fallback-human） · p3-26 回落自制收束——关卡徽章 vs 医生位（关卡侧「放行」徽（ok） 绿点亮、医生侧无徽（dim））；归属角标「对外拆解口径」＋`官方分层口径`（分层【官】、四态/八来源/分类器【三】——2026-10-02 评审改：原裸 `官方文档` 与回溯分级相悖） | 过渡小卡 `useEnter:pop`；同图四章连播（单实例内自动抑制）；收束徽章点亮 `useImpulse`（ok）；`@enter:pop` `@impulse` |
@@ -101,4 +101,4 @@
 | --- | --- | --- | --- |
 | 6-A | p6-01..03 | 诊室全景收束：循环圆环恒定 core 橙缓转，三层外设（表／关／节点）依次亮 mech 青定格；行数尺四格全亮；p6-01 句让位 ·**archify full**：five-layer-dependency 章 `layer-flash`（系列五层层板、本集层点亮）；p6-03 三连「管它」排比自制小字条随节奏点亮；角标：Harness（画内呈现） | 三外设依次点亮 `useStagger`；行数尺四格全亮 `useCount`；排比小字条随句节奏 `useReveal`；p6-01 由 ArchifyRecap 主控；`@stagger` `@count` `@reveal` |
 | 6-B | p6-04..08 | 分工定格：医生位与关卡分屏——开单动作（左，无彩）与放行闸（右，`ok` 绿徽章）各亮一次；关卡侧「放行」徽章恒亮、医生侧无徽章；p6-06..08 观看方法论两步卡「先找循环 → 再数挂件」（任意 agent 剪影套用，两步依次点亮）；金句卡「循环稳 · 外设全」衬线定格 caption-dup-ok: 金句卡为压短形态 | 分屏对切 `useStagger`；徽章点亮 `useImpulse`（ok）；两步卡递进 `useProgress`；金句卡 QuoteCard；`@stagger` `@impulse` `@progress` |
-| 6-C | p6-09..10 | 系列收束装置：five-layer 层板全亮定格 → 系列身份卡 → 下期预告卡（视觉层含本集主段「一个循环，三层外设」与下期主段「模型的视野是安排出来的」——规则 8 受检硬编码）→ 收尾渐黑窗口；p6-09 句让位 ·**archify full**：five-layer-dependency 章 `two-dark-zones`（两个区没开灯＝后续各层的留白预告） | 层板全亮 `useStagger`；身份卡→下期卡交替 `useEnter:fade`；渐黑由 P6 幕级 `useFadeOut` 承担（SceneFade 末幕不淡出，防双重渐黑）；p6-09 由 ArchifyRecap 主控；`@stagger` `@enter:fade` |
+| 6-C | p6-09..10 | 系列收束装置：five-layer 层板全亮定格 → 系列身份卡 → 下期预告卡（视觉层含本集主段「一个循环，三层外设」与下期主段「模型的视野是安排出来的」——规则 8 受检硬编码）→ 收尾渐黑窗口；p6-09 句让位 ·**archify full**：five-layer-dependency 章 `four-dark-zones`（四层还没开灯＝后续各层的留白预告；ISSUE-209 修复：L1 视角重派生） | 层板全亮 `useStagger`；身份卡→下期卡交替 `useEnter:fade`；渐黑由 P6 幕级 `useFadeOut` 承担（SceneFade 末幕不淡出，防双重渐黑）；p6-09 由 ArchifyRecap 主控；`@stagger` `@enter:fade` |

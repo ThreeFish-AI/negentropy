@@ -608,7 +608,7 @@ export const P4HookNodes: React.FC<{scene: SceneRange}> = ({scene}) => {
           pickFit 会落 trim 档＝原速播＋裁尾，属预期兜底） */}
       <Sequence {...bD} name="4-D 实验4 反转">
         <Sequence from={at('p4-17') - bD.from} durationInFrames={dur('p4-17')}>
-          <ExpBadge x={835} y={300} at={2} n={4} />
+          <ExpBadge x={742} y={408} at={2} n={4} size="lg" />
         </Sequence>
         <ArchifyRecap
           slug="hookresult-tri"

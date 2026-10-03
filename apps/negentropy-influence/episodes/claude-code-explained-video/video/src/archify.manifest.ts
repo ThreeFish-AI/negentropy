@@ -103,42 +103,44 @@ export const ARCHIFY = {
     "chapters": [
       {
         "id": "layer-flash",
-        "label": "记忆层一闪",
+        "label": "工具层一闪",
         "file": "five-layer-dependency--layer-flash.mp4",
         "endStill": "five-layer-dependency--layer-flash-end.png",
         "beats": 3,
-        "leadSec": 0.48,
-        "storySec": 3.36,
+        "leadSec": 0.44,
+        "storySec": 3.6,
         "beatNodes": [
-          "layer-3",
+          "layer-1",
           "layer-2",
-          "layer-4"
+          "layer-3"
         ]
       },
       {
-        "id": "read-two-books",
-        "label": "先分两本账",
-        "file": "five-layer-dependency--read-two-books.mp4",
-        "endStill": "five-layer-dependency--read-two-books-end.png",
+        "id": "loop-first",
+        "label": "先认循环",
+        "file": "five-layer-dependency--loop-first.mp4",
+        "endStill": "five-layer-dependency--loop-first-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.35,
+        "storySec": 3.32,
         "beatNodes": [
           "loop-core",
-          "layer-3",
+          "layer-1",
           "device-zones"
         ]
       },
       {
-        "id": "two-dark-zones",
-        "label": "两个区没开灯",
-        "file": "five-layer-dependency--two-dark-zones.mp4",
-        "endStill": "five-layer-dependency--two-dark-zones-end.png",
-        "beats": 3,
-        "leadSec": 0.4,
-        "storySec": 3.38,
+        "id": "four-dark-zones",
+        "label": "四层还没开灯",
+        "file": "five-layer-dependency--four-dark-zones.mp4",
+        "endStill": "five-layer-dependency--four-dark-zones-end.png",
+        "beats": 5,
+        "leadSec": 0.52,
+        "storySec": 5.56,
         "beatNodes": [
           "dim-zones",
+          "layer-2",
+          "layer-3",
           "layer-4",
           "layer-5"
         ]

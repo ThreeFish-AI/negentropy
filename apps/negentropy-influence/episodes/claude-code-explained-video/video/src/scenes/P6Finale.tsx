@@ -195,7 +195,7 @@ export const P6Finale: React.FC<{scene: SceneRange}> = ({scene}) => {
   const t2 = useReveal('一道关 · 能不能干', {at: at('p6-03') + 14, cps: 9});
   const t3 = useReveal('一圈节点 · 何时说话', {at: at('p6-03') + 28, cps: 9});
   // 6-C：身份卡与下期卡入场——本组件体 hooks 吃 P6 幕局部帧（勿减 bC.from），
-  // 且 p6-09 全句被 two-dark-zones archify 独占窗盖住，入场一律锚到 p6-10
+  // 且 p6-09 全句被 four-dark-zones archify 独占窗盖住，入场一律锚到 p6-10
   // （画框卸载后）才可见：卡1 +8／卡2 +22，错峰在末幕渐黑起点（36 帧）前完成
   const enterId = useEnter('fade', {at: at('p6-10') + 8, dur: DUR.f5});
   const enterNext = useEnter('fade', {at: at('p6-10') + 22, dur: DUR.f5});
@@ -236,7 +236,8 @@ export const P6Finale: React.FC<{scene: SceneRange}> = ({scene}) => {
           caption="系列五层"
           cues={[{chapterId: 'layer-flash', at: at('p6-01') - bA.from, durationInFrames: dur('p6-01')}]}
         />
-        {/* 分镜 6-A 角标：Harness（画内呈现）——p6-02 起可见（p6-01 被 archify 全屏窗盖住） */}
+        {/* 分镜 6-A 角标：Harness（画内呈现）——p6-01 为 archify 全屏独占窗（forbid_inset），
+            角标按契约锚到窗外 p6-02（(246,64) 本身在画框 x311..1609/y150..880 之外） */}
         <MonoTag x={246} y={64} at={at('p6-02') - bA.from}>{'Harness'}</MonoTag>
       </Sequence>
 
@@ -285,11 +286,11 @@ export const P6Finale: React.FC<{scene: SceneRange}> = ({scene}) => {
             {`下期 · ${RULE8_NEXT_MAIN}`}
           </div>
         )}
-        {/* p6-09 句让位：留白预告一瞥（两个区没开灯 = 后续各层） */}
+        {/* p6-09 句让位：留白预告一瞥（四层还没开灯 = 后续各层） */}
         <ArchifyRecap
           slug="five-layer-dependency"
           caption="留白预告"
-          cues={[{chapterId: 'two-dark-zones', at: at('p6-09') - bC.from, durationInFrames: dur('p6-09')}]}
+          cues={[{chapterId: 'four-dark-zones', at: at('p6-09') - bC.from, durationInFrames: dur('p6-09')}]}
         />
       </Sequence>
     </AbsoluteFill>

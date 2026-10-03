@@ -5,7 +5,7 @@
  *  ★ 实验 1：信迟到的停止标记 vs 看病历内容（传真吐纸＋双轨小卡）；生产版对照
  *    （千行级文件虚化 · 三十来行内核高亮 · 四枚保护壳）；交棒＝行数尺第一格复亮
  *    ＋命令行卡片（拼查看/拼替换）＋开单表剪影自右缘探入。
- *  archify 全屏独占：intake-loop 四瞥＋stop-reason-race 五章。1-C discharge-return
+ *  archify 全屏独占：intake-loop 5 cue·3 实例＋stop-reason-race 五章。1-C discharge-return
  *    提前让位留空窗 → 1-D stream-order 走默认 lead 入场（原 lead={false}「镜界背靠背」
  *    前提不成立，2026-10-02 评审移除）；1-E 四章一实例（stop-late 承封条卡
  *    句尾让位与 stop-die 分锚 p1-16/p1-17——同锚句双 cue 是硬 FAIL，两章不能共锚一句；
@@ -54,10 +54,23 @@ const LoopCloseup: React.FC<{stepsAt: readonly number[]; tagsAt: readonly number
   const tags = [tag0, tag1, tag2];
   const size = 340;
   const r = size / 2;
+  // 标签半径 r+38=208 超出半视口 170：画布四周外扩 PAD 容纳步位标签
+  // （2026-10-03 评审修复：原视口裁掉「进诊/落账/回喂」三枚、切「收单/执行」）
+  const pad = 62;
+  const canvas = size + pad * 2;
   return (
     <>
-      <div style={{position: 'absolute', left: 960 - r, top: 268, width: size, height: size, opacity: inP}}>
-        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      <div
+        style={{
+          position: 'absolute',
+          left: 960 - r - pad,
+          top: 268 - pad,
+          width: canvas,
+          height: canvas,
+          opacity: inP,
+        }}
+      >
+        <svg width={canvas} height={canvas} viewBox={`${-pad} ${-pad} ${canvas} ${canvas}`}>
           {/* M-001 母题描边：色与线宽锁死 */}
           <circle cx={r} cy={r} r={r - 6} fill="none" stroke={theme.core} strokeWidth={5} />
           <circle
@@ -744,8 +757,8 @@ export const P1IntakeLoop: React.FC<{scene: SceneRange}> = ({scene}) => {
           caption="实验1 · 判据对照"
           cues={[
             // stop-late 落 trim 留痕（契约同 P4 recall-loop）：seal16 让位封条卡后窗仅
-            // 1.50s vs storySec 3.22s → rate 2.15，原速播＋裁尾约 1.7s（后两拍大部分
-            // 被裁，属封条卡让位的叙事取舍）
+            // 44 帧=1.47s vs storySec 3.22s → rate 2.20，原速播＋裁尾约 1.75s（后两拍
+            // 大部分被裁，属封条卡让位的叙事取舍；89−Math.round(44.5)=44 帧实窗口径）
             {chapterId: 'stop-late', at: at('p1-16') - bE.from + seal16, durationInFrames: dur('p1-16') - seal16, fit: 'trim'},
             {chapterId: 'stop-die', at: at('p1-17') - bE.from, durationInFrames: dur('p1-17')},
             {chapterId: 'block-live', at: at('p1-18') - bE.from, durationInFrames: dur('p1-18')},

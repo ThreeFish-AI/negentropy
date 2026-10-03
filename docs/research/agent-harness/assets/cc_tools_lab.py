@@ -401,8 +401,10 @@ def exp3():
         {"content": [tool("bash", "d1", command="rm -rf /")], "stop_reason": "tool_use"},
         {"content": [text_block("cleaned")], "stop_reason": "end_turn"},
     ])
-    msgs = run_agent(vfs, model, ["y"], log)                          # 用户顺手按了 y
-    check_permission = orig
+    try:
+        msgs = run_agent(vfs, model, ["y"], log)                      # 用户顺手按了 y
+    finally:
+        check_permission = orig
     after = len(vfs.files)
     print(f"实测：命令含删除词->先问用户->用户按 y->执行。VFS 文件数 {before} -> {after}（{'全部被删' if after == 0 else '部分保留'}）")
     print(f"  日志: {'; '.join(log[:5])}")
@@ -490,8 +492,10 @@ def pred_t5():
         {"content": [tool("bash", "c1", command="sudo chmod 777 /var/run/app")], "stop_reason": "tool_use"},
         {"content": [text_block("done")], "stop_reason": "end_turn"},
     ])
-    msgs = run_agent(vfs, model, ["n"], log)  # 用户这次按 n
-    DENY_LIST = orig
+    try:
+        msgs = run_agent(vfs, model, ["n"], log)  # 用户这次按 n
+    finally:
+        DENY_LIST = orig
     print("\n".join(log))
     tr = [b for m in msgs if isinstance(m.get("content"), list) for b in m["content"]
           if isinstance(b, dict) and b.get("type") == "tool_result"]
