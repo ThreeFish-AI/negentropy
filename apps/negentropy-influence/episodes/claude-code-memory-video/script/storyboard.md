@@ -50,7 +50,7 @@
 |---|---|---|---|
 | 4-A 卡片册解剖 | p4-01..04 | ·**archify full**：memory-file-anatomy 章 `one-file`+`frontmatter`+`four-types`（存储解剖三章接力） | 章节回放三章接力 |
 | 4-A2 写入全景回看 | p4-05..06 | ·**archify full**：recall-loop 章 `write-rebuild`（全景图写入章：写文件+索引重建，锚写入例句；lead=false；p4-06 四类两例装置由场景层持有） | 章节回放 |
-| 4-B 复印店账单 | p4-07..13 | ·**archify full**：cache-economics 章 `prefix-hit`+`one-char`+`two-lanes`（复印店三章接力，账单金主轴；p4-06..10 装置窗隔断＝空窗后默认入场） | 章节回放三章接力 |
+| 4-B 复印店账单 | p4-07..13 | ·**archify full**：cache-economics 章 `prefix-hit`+`one-char`+`two-lanes`（复印店三章接力，账单金主轴；p4-06 镜末装置窗隔断＝空窗后默认入场） | 章节回放三章接力 |
 | 4-C 两层加载 | p4-14..16 | ·**archify full**：recall-loop 章 `two-channels`（全景图两通道章：目录常驻缓存价 vs 正文按需；p4-14 装置窗隔断＝默认入场） | 章节回放 |
 | 4-D 旁路挑选 | p4-17..18b | ·**archify full**：sidecar-selection 章 `sidecar-pick`+`budget-funnel`（旁路时序+限额漏斗两章接力；p4-16 装置窗隔断＝默认入场，章内接力自动抑制） | 章节回放两章接力 |
 | 4-E 降级与安全阀 | p4-20..23 | ·**archify full**：sidecar-selection 章 `fallback-valve`（降级+安全阀章；p4-18b 装置窗隔断＝默认入场）；句 p4-23 收束字卡「有什么常驻 · 是什么按需」由场景层右缘叠加 | 章节回放 |

@@ -12,7 +12,7 @@ description: "双钉重写：机制正文钉站点轨 67a9126（批次预算落�
 **一句话本质**：记忆不是一个功能，是两套咬合的机制——一套承认会丢，一套保证不丢。
 
 > [!NOTE]
-> **本篇双钉与证据级**。机制正文钉**站点轨** `s08_context_compact` / `s09_memory` @ `67a9126`（2026-07-29，站点 20 章修订，第 3 集信源）；main 轨同名目录已演进到 `0dcafa2a`（2026-08-27），差异集中设第 8 节、随文内联「main 轨差异」注记；旧钉 `f9e8b28`（2026-08-18）只在演进叙事中出现。**两轨同号同目录名而内容不同版本，凡引机制必带轨别。**章→集归属与钉选理由只登记在[系列信源地图](../../../apps/negentropy-influence/source-map/claude-code-explained.md)；逐字引语与可调参数见[对应集 notes](../../../apps/negentropy-influence/episodes/claude-code-memory-video/research/source-notes.md)。证据级沿用[总纲 §4](./170-claude-code-harness-overview.md)：【一】钉点实测／【二】课程讲法／【三】课程作者对闭源源码的分析（带归属句）／【官】Anthropic 官方文档（2026-09-28 抓取，URL 见第 9 节）。
+> **本篇双钉与证据级**。机制正文钉**站点轨** `s08_context_compact` / `s09_memory` @ `67a9126`（2026-07-29，站点 20 章修订）；main 轨同名目录已演进到 `0dcafa2a`（2026-08-27），差异集中设第 8 节、随文内联「main 轨差异」注记；旧钉 `f9e8b28`（2026-08-18）只在演进叙事中出现。**两轨同号同目录名而内容不同版本，凡引机制必带轨别。**第 3 集已于 2026-10-02 换题重制并换钉 main `ce8f9f18`（与 [176](./176-learn-claude-code-memory.md) 同钉），本篇保留原双钉演进叙事。章→集归属与钉选理由只登记在[系列信源地图](../../../apps/negentropy-influence/source-map/claude-code-explained.md)；逐字引语与可调参数见[对应集 notes](../../../apps/negentropy-influence/episodes/claude-code-memory-video/research/gl-notes.md)。证据级沿用[总纲 §4](./170-claude-code-harness-overview.md)：【一】钉点实测／【二】课程讲法／【三】课程作者对闭源源码的分析（带归属句）／【官】Anthropic 官方文档（2026-09-28 抓取，URL 见第 9 节）。
 
 ## 1. 这一层要解决什么问题
 
@@ -351,4 +351,4 @@ main 自旧钉 `f9e8b28` 前进 25 个提交（2026-08-19 → 08-27，104 文件
 
 [3] Anthropic, "Claude Code documentation," *code.claude.com/docs/en*：`memory` / `context-window` / `model-config` / `how-claude-code-works` / `costs` / `sessions` / `prompt-caching`（访问 2026-09-28；旧域名 `docs.claude.com/en/docs/claude-code/*` 已 301 迁移至此）.
 
-[4] 本仓, "五层 Harness 精读总览与配套原型 · 系列信源地图 · 第 3 集事实源," [`170-claude-code-harness-overview.md`](./170-claude-code-harness-overview.md) · [`assets/cc_harness_lab.py`](./assets/cc_harness_lab.py) · [`source-map/claude-code-explained.md`](../../../apps/negentropy-influence/source-map/claude-code-explained.md) · [`source-notes.md`](../../../apps/negentropy-influence/episodes/claude-code-memory-video/research/source-notes.md)
+[4] 本仓, "五层 Harness 精读总览与配套原型 · 系列信源地图 · 第 3 集事实源," [`170-claude-code-harness-overview.md`](./170-claude-code-harness-overview.md) · [`assets/cc_harness_lab.py`](./assets/cc_harness_lab.py) · [`source-map/claude-code-explained.md`](../../../apps/negentropy-influence/source-map/claude-code-explained.md) · [`gl-notes.md`](../../../apps/negentropy-influence/episodes/claude-code-memory-video/research/gl-notes.md)

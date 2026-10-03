@@ -15,7 +15,7 @@ slug = "claude-code-memory-video"
 target_minutes = [13.0, 14.6]
 # 本集实测口径（ep3 me-bright 终声 2026-10-02 校准，RSI-021 回写）：含时距等效 ≈281 字/分。
 # B 档覆写行使（timing.json，本集首例）：me-bright 纯语音实测 324 字/分，254 预算口径偏快——
-# 不改稿不重合成，句隙 0.32→0.68/幕隙 0.9→1.2/尾静默 2→3 拉至 13.14 分落窗（决策记录住此，timing.json 保持纯 JSON）。
+# 不改稿不重合成，句隙 0.32→0.68/幕隙 0.9→1.2/尾静默 2→3 拉至 13.15 分落窗（实测 789.00s 帧 / 789.03s mdls；决策记录住此，timing.json 保持纯 JSON）。
 chars_per_min = 281
 
 [tts]
@@ -23,10 +23,10 @@ chars_per_min = 281
 # 整集评审通过后由用户显式触发用 IndexTTS-2.5 + 本人声音重配（references/07 §重配）。
 engine = "indextts"
 # 终声档锚点：edge 期间不参与合成，仅作预算门估算口径（story=254 字/分）
-# 与重配预置；重配时把 engine 改 "indextts" 并补下方两项即生效。
+# 与重配预置；me-bright 重配已于 2026-10-02 落定（engine/style/ref/ref_sha1 均为终声态）。
 style = "story"
-# TODO（重配前补齐，非建集前置）：样本路径**工作区根相对**；ref_sha1 取 12 位
-# （同 tts.py 口径），用 `uv run --no-project $T/scripts/refs.py list` 查当前清单。
+# 样本路径**工作区根相对**；ref_sha1 取 12 位（同 tts.py 口径），
+# 清单用 `uv run --no-project $T/scripts/refs.py list` 查。
 # ⚠️ 风格预设的 alpha 是在**特定选段**上标定的，换选段即失效（见 $V/refs.toml）。
 ref = "voices/me-bright.wav"
 ref_sha1 = "54b699cce97f"
