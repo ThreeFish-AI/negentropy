@@ -888,7 +888,9 @@ const ProdShapes: React.FC<{at10: number; at10b: number; dur10b: number; at11: n
       </div>
 
       {/* ── 提取帧（p6-11）── */}
-      <div style={{position: 'absolute', left: 0, top: 0, opacity: 1 - pickOut}}>
+      {/* 交叉淡入：与挑选帧退场同期（勿改回 1-pickOut——子件 at11+9 才入场，
+          反向 fade 会让提取帧在登场前归零、整镜空台，2026-10-03 评审抽帧实锤） */}
+      <div style={{position: 'absolute', left: 0, top: 0, opacity: pickOut}}>
         {/* 回合结束卡 + 挂钩弹起（分镜 @enter:pop → settle 弹起） */}
         <div
           style={{

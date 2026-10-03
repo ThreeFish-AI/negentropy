@@ -8,8 +8,8 @@
  *    → 两实例 lead={false}（分镜 lead 清单：跨实例接缝防重入弹簧）。
  *  - 1-C 纸卷裁中段（画面字 50/3/46；@draw 裁切线 + 中段块平移入归档柜）。
  *  - 1-D 旧结果换地址（量尺指针 @count 压向 80% 刻度·账单金；未读批防护罩 @enter:pop）。
- *  图镜空窗句（p1-08/09、p1-18/19、p1-25b、p1-27、p1-29）为分镜 cue 预算的留白句，
- *  背景直出（horizon 1-B「空档无装置」先例），由覆盖门对账。
+ *  图镜非锚句（p1-08/09、p1-18/19、p1-25b、p1-27/29）不设自制回落装置：cue 窗按
+ *  dur 求和扩窗、fit:'hold' 盖满末帧（零空屏），由覆盖门对账。
  */
 import React from 'react';
 import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
@@ -758,8 +758,17 @@ export const P1CheapFirst: React.FC<{scene: SceneRange}> = ({scene}) => {
         />
       </Sequence>
 
-      <Sequence {...bC} name="1-C 裁中段">
+      {/* 1-C/1-D 两场景镜共用幕标签（1-C 锚定、跨镜持续——逐镜重挂会在切镜处
+          瞬灭再淡入，2026-10-03 评审抽帧实锤；P3「幕首镜持有」惯例的场景镜组变体） */}
+      <Sequence
+        from={bC.from}
+        durationInFrames={bD.from + bD.durationInFrames - bC.from}
+        name="1-C/1-D 幕标签"
+      >
         <SceneTag chapter="Cheap First" tagline="便宜的先跑" accent={theme.mech} />
+      </Sequence>
+
+      <Sequence {...bC} name="1-C 裁中段">
         <RollCut
           rollAt={6}
           litAt={at('p1-11') - bC.from + Math.round(dur('p1-11') * 0.42)}
@@ -773,7 +782,6 @@ export const P1CheapFirst: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bD} name="1-D 换地址与八成">
-        <SceneTag chapter="Cheap First" tagline="便宜的先跑" accent={theme.mech} />
         <AddressGauge
           l3At={at('p1-13') - bD.from + Math.round(dur('p1-13') * 0.35)}
           collapseAts={[
