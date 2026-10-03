@@ -522,7 +522,7 @@ const PRINT_FRAMES = 54;
 const PRINT_STEPS = 6;
 
 const TankReceiptScene: React.FC<{atPrint: number; atText: number; atGlow: number}> = ({atPrint, atText, atGlow}) => {
-  const zoom = usePushIn(2, {scale: 0.42, dur: 46});
+  const zoom = usePushIn(2, {scale: 0.24, dur: 46}); // 收敛：42% 缩放把槽体结构带进字幕安全带（qa WARN+目检定谳）
   const print = useProgress(atPrint, PRINT_FRAMES, 'linear');
   const textIn = useProgress(atText, DUR.f4);
   const glow = useImpulse({at: atGlow, dur: DUR.f5, peak: 16});
