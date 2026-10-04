@@ -362,7 +362,7 @@ const BoardOpen: React.FC<{
       {/* p3-04 请求卡（右侧驶入，停在招牌旁） + 判定注 */}
       <RequestCard text="周五换班" x={lerp(1580, 552, cardP)} y={96} checkedP={checkP} o={progress(frame, reqAt, DUR.f3)} />
       <div style={{position: 'absolute', left: 556, top: 168, fontFamily: theme.mono, fontSize: 15, color: theme.dim, opacity: noteO}}>
-        判定：模型 · 无关键词匹配
+        判定：模型 · 多数实现无关键词匹配
       </div>
       {/* 右列 · p3-05：衬线强调句 */}
       <div style={{position: 'absolute', left: 780, top: 452, opacity: serifO, transform: `translateY(${(1 - serif) * 24}px)`}}>

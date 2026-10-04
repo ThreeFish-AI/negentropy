@@ -1,0 +1,23 @@
+== 破坏性实验 X3：拆目录转义：name/description 不再 html.escape → 注入载荷伪造目录行 ==
+  [discover] 登记 shift-swap（user）目录行就绪
+  [discover] 登记 deploy-helper（project）目录行就绪；警告：规范外字段 ['disable-model-invocation']（宽容照载）
+  [discover] 登记 evil-craft（project）目录行就绪
+  [discover] 登记 legacy-notes（project）目录行就绪
+  [discover] 登记 pantry-inventory（project）目录行就绪
+  [discover] 登记 report-merger（project）目录行就绪；警告：name 'shift-swap' != 目录 'report-merger'，以目录名为身份
+  [discover] 同名遮蔽：shift-swap（project 覆盖 user）
+  [discover] 登记 shift-swap（project）目录行就绪
+[tier1] 目录 6 技能，prompt 块 440 token（chars/4 近似）
+[tier1] 注入检测：目录行解析出 fake-admin 1 处（注入成功！）
+[run] 帮我把这周五和小李的换班在系统里提交… → 路由 shift-swap；结果 pass；报错信号 无
+[run] 茶水间该盘点补货了… → 路由 pantry-inventory；结果 pass；报错信号 无
+[run] 把新预发环境部署了… → 路由 deploy-helper；结果 pass；报错信号 无
+[run] 把上周的旧会议纪要归档… → 路由 legacy-notes；结果 pass；报错信号 无
+[run] 把三季度的周报合并成一份… → 路由 report-merger；结果 pass；报错信号 无
+[compress] 受保护；技能正文留存 6 份
+[run-post] 压缩后延续任务 → 策略遵守 True；结果 pass；报错信号 无
+[ledger] tier1=440 tier2=62 tier3=97 常驻合计=599（chars/4 近似）
+
+== 对照（正常 → 破坏） ==
+  目录规模 6→6；注入行 0→1
+  账本 tier2 62→62 tier3 97→97 常驻 613→599

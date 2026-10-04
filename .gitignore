@@ -319,3 +319,5 @@ apps/negentropy-influence/episodes/*/video/public/archify/*-end.png
 .lab_out/
 # lab4 起原型直接在 assets/ 下重建 fixtures/ 夹具（含注入载荷），同属运行产物
 docs/research/agent-infra/assets/fixtures/
+# E1 lab4 六份运行日志例外入仓：gl-notes 台账按一级证据登记并建仓内链接（research/ 白名单，v8 评审修复）
+!apps/negentropy-influence/episodes/agent-skills-video/research/*.log
