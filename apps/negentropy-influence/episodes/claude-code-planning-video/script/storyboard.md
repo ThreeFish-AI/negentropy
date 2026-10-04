@@ -35,7 +35,7 @@
 | 0-A | p0-01..02 | 系列片头 HarnessStack 五层栈自底向上落板，第二层「规划与协调」高亮脉冲两次后缩为顶边常驻条；传送带环居中缓转 | `@stagger` 落板；`@breathe` 本层点亮〔M-001〕 |
 | 0-B | p0-03..05 | ·**archify full**：pc2-failures `fail-plan` | 全屏逐章回放（工序卡挤落） |
 | 0-C | p0-06..08 | ·**archify full**：pc2-failures `fail-flood` | 全屏逐章回放（120 条淹没） |
-| 0-D | p0-09..12 | ·**archify full**：pc2-failures `fail-carry` + `fail-clash` + `fail-crash`（背靠背，后挂 lead={false}） | 全屏逐章回放（红色调收尾） |
+| 0-D | p0-09..12 | ·**archify full**：pc2-failures `fail-carry` + `fail-clash` + `fail-crash`（背靠背，后挂 lead={false}） | 全屏逐章回放（红色调收尾；as-built：p0-09 为章前空窗句，cue 自 p0-10 起） |
 | 0-E | p0-13..15c | 五格收拢成一行错位示意「看到的 ≠ 需要的」；台面标注「上下文=模型这一轮看到的全部消息」 | 两行格组先后推入（as-built：translateX 渐入，未走 `@pushIn` 命名 hook）〔M-003〕 |
 | 0-F | p0-16..20 | ·**archify full**：pc2-panorama `pan-loop` | 全屏逐章回放 |
 

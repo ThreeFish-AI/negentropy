@@ -143,8 +143,8 @@ reason = "V3D：@remotion/three 无头渲染强制 Chromium OpenGL=angle（一�
 [[skeleton.drift]]
 episode = "claude-code-planning-video"
 path = "video/package.json"
-fingerprint = "bdfea44ecd31"
-reason = "V3D 3D 遗产接线（2026-09-28，同 EP1 条目）"
+fingerprint = "639be7f7420c"
+reason = "V3D 3D 遗产接线（2026-09-28，同 EP1 条目）；2026-10-02 v3 轮 lottie 死依赖清除（@remotion/lottie+lottie-web 移除）后指纹随之更新"
 
 [[skeleton.drift]]
 episode = "claude-code-planning-video"

@@ -16,7 +16,7 @@
 
 # Learn Claude Code「规划与协调」五节 精读与通俗拆解
 
-> [1] shareAI-lab, "Learn Claude Code," 课程站点「规划与协调」（Planning & Control）部分五节：s05 TodoWrite / s06 Subagent / s07 Skill Loading / s10 System Prompt / s11 Error Recovery. [Online]. Available: https://learn.shareai.run/zh/s05/ （及 /zh/s06/ 、/zh/s07/ 、/zh/s10/ 、/zh/s11/）. 所据版本：站点 2026-09-30 实况快照；源码取同仓分支 `fix/s08-s20-sync-frontmatter-parser` 钉点 `67a9126c`（2026-07-28）[2]，逐节对账站点与该钉点内容一致（每章 6/6 小节标题交集，站点独有者仅为内嵌图题）。无勘误或撤稿迹象。
+> [1] shareAI-lab, "Learn Claude Code," 课程站点「规划与协调」（Planning & Control）部分五节：s05 TodoWrite / s06 Subagent / s07 Skill Loading / s10 System Prompt / s11 Error Recovery. [Online]. Available: https://learn.shareai.run/zh/s05/ （及 /zh/s06/ 、/zh/s07/ 、/zh/s10/ 、/zh/s11/）. 所据版本：站点 2026-09-30 实况快照；源码取同仓分支 `fix/s08-s20-sync-frontmatter-parser` 钉点 `67a9126c`（2026-07-29）[2]，逐节对账站点与该钉点内容一致（每章 6/6 小节标题交集，站点独有者仅为内嵌图题）。无勘误或撤稿迹象。
 
 **一句话定位**：编码 Agent 里的模型，每轮只看得到「上下文」，也就是发给它的那一串消息列表。「规划与协调」讲的是在执行循环的固定位置装上五个装置，把「模型每轮看到什么」从放任自流变成显式管理：计划要看得见，大过程要挪出去，知识要按需进场，指令要按实况拼装，管线断了要分类自愈。
 

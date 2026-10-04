@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 上游项目 | shareAI-lab/learn-claude-code（https://github.com/shareAI-lab/learn-claude-code） |
-| 固定提交 | `67a9126c6435a8654ba7a6f68c0fd2130f00a462`（分支 fix/s08-s20-sync-frontmatter-parser，2026-07-28） |
+| 固定提交 | `67a9126c6435a8654ba7a6f68c0fd2130f00a462`（分支 fix/s08-s20-sync-frontmatter-parser，2026-07-29） |
 | 许可 | MIT（根 LICENSE 字节副本在本目录，sha256 `204ff5ee216c8f895268a23b66d959f82aa4d868e871e0690fbf2844eff8a26b`） |
 | 取数日期 | GL guided-learn 2026-09-30 抓取；本归档 2026-10-02 离线复制的同源字节（.temp/lcc-planning-lab/） |
 | 指纹台账 | 本集 `research/sources.toml`（sync 自系列地图，verify FAIL 0） |
