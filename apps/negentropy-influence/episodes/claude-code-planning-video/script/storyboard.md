@@ -36,7 +36,7 @@
 | 0-B | p0-03..05 | ·**archify full**：pc2-failures `fail-plan` | 全屏逐章回放（工序卡挤落） |
 | 0-C | p0-06..08 | ·**archify full**：pc2-failures `fail-flood` | 全屏逐章回放（120 条淹没） |
 | 0-D | p0-09..12 | ·**archify full**：pc2-failures `fail-carry` + `fail-clash` + `fail-crash`（背靠背，后挂 lead={false}） | 全屏逐章回放（红色调收尾） |
-| 0-E | p0-13..15c | 五格收拢成一行错位示意「看到的 ≠ 需要的」；台面标注「上下文=模型这一轮看到的全部消息」 | `@pushIn` 对齐错位格〔M-003〕 |
+| 0-E | p0-13..15c | 五格收拢成一行错位示意「看到的 ≠ 需要的」；台面标注「上下文=模型这一轮看到的全部消息」 | 两行格组先后推入（as-built：translateX 渐入，未走 `@pushIn` 命名 hook）〔M-003〕 |
 | 0-F | p0-16..20 | ·**archify full**：pc2-panorama `pan-loop` | 全屏逐章回放 |
 
 ## P1 计划回到视野（组件 `P1Todo`）
@@ -46,7 +46,7 @@
 | 1-A | p1-01..02 | ·**archify full**：pc2-panorama `pan-m1` | 全屏逐章回放（挂点①回照） |
 | 1-B | p1-03..05 | ·**archify full**：pc2-todo-nag `nag-device` | 全屏逐章回放（三态工序卡） |
 | 1-C | p1-06..08 | ·**archify full**：pc2-todo-nag `nag-count` + `nag-fire`（背靠背，后挂 lead={false}） | 全屏逐章回放（刻度环+注入） |
-| 1-D | p1-09..13 | 类型注解任务走查：五轮标签轮转（交计划→改文件→跑测试→修失败→提醒回看），工序卡状态随轮迁移 | `@flow` 轮转；`rel(beat,'p1-11')` 驱动 |
+| 1-D | p1-09..13 | 类型注解任务走查：五轮标签轮转（交计划→改文件→跑测试→修失败→提醒回看），工序卡状态随轮迁移 | 高亮逐轮迁移（as-built：句边界驱动 activeIdx，未走 `@flow` 命名 hook）；`rel(beat,'p1-11')` 驱动 |
 | 1-E | p1-14..17b | ·**archify full**：pc2-todo-nag `nag-ablate` | 全屏逐章回放（0↔1 消融标尺） |
 | 1-F | p1-18..20 | 工序卡淡出标注「内存态·进程退出即清」；台面右侧过程条目涌入钩到 P2 | `@fadeout` |
 
@@ -67,7 +67,7 @@
 |---|---|---|---|
 | 3-A | p3-01..03 | ·**archify full**：pc2-panorama `pan-m3` | 全屏逐章回放（挂点③回照） |
 | 3-B | p3-04..07 | ·**archify full**：pc2-skill-levels `levels-two` + `levels-cost`（接力） | 全屏逐章回放（两级+token 对比） |
-| 3-C | p3-08..11 | SQL 规范走查：抽屉标签常驻垫纸；点名后手册整本抽出经工具结果落进消息流 | `@draw` 抽出；`@travel` 进场〔四定式②〕 |
+| 3-C | p3-08..11 | SQL 规范走查：抽屉标签常驻垫纸；点名后手册整本抽出经工具结果落进消息流 | 三级先后淡入（as-built：`@draw`/`@travel` 未实装，降级 useProgress 淡入）〔四定式②〕 |
 | 3-D | p3-12..14c | ·**archify full**：pc2-skill-levels `levels-lifecycle` | 全屏逐章回放（常驻 vs 可裁） |
 | 3-E | p3-15..19 | ·**archify full**：pc2-skill-cost `cost-ablation` + `cost-ruling` | 全屏逐章回放（128→5981 标尺+结论） |
 
@@ -81,7 +81,7 @@
 | 4-D | p4-10..13 | ·**archify full**：pc2-prompt-cache `cache-hit` | 全屏逐章回放（三段→命中→四段走查） |
 | 4-E | p4-14..15 | ·**archify full**：pc2-prompt-cache `cache-fingerprint` | 全屏逐章回放（拼串成键） |
 | 4-F | p4-16..19 | ·**archify full**：pc2-prompt-cache `cache-dirty` | 全屏逐章回放（5/0 标尺消融） |
-| 4-G | p4-20..21 | 两层缓存双栏图：本地拼串层 vs 服务端前缀层「开头不变按开头复用」 | `@flowDash` 双栏；钩到 P5 |
+| 4-G | p4-20..21 | 两层缓存双栏图：本地拼串层 vs 服务端前缀层「开头不变按开头复用」 | 双栏先后淡入（as-built：`@flowDash` 未实装）；钩到 P5 |
 
 ## P5 断了分类自愈（组件 `P5Recovery`）
 
@@ -101,7 +101,7 @@
 | 镜 | 句区间 | 画面 | 动效 |
 |---|---|---|---|
 | 6-A | p6-01..06 | ·**archify full**：pc2-rules `rule-position` + `rule-state` + `rule-lossy` + `rule-ledger` + `rule-structure`（五条接力） | 全屏逐章回放（金句条快板） |
-| 6-B | p6-07..10d | 争议双栏：全新上下文（正确）↔ 缓存友好前缀（成本），天平意象；第二对取舍两行 | `@enter:rise` 双栏 |
+| 6-B | p6-07..10d | 争议双栏：全新上下文（正确）↔ 缓存友好前缀（成本），天平意象；第二对取舍两行 | 双栏 stagger 淡入（as-built：`@enter:rise` 未实装） |
 | 6-C | p6-11..14b | 护栏卡三行（教学发明/无对照实验/估算口径）；·**archify full**：pc2-ablation-bar `ablation-scale` + `ablation-ruling`（接力，p6-13/p6-14 锚） | 卡片浮现；全屏逐章回放 |
 | 6-D | p6-15..17 | 系列身份卡（五层栈缩略，本层点亮）+ 下期卡（下期标题主段「会丢的和不能丢的」）+ 信源卡四行；工坊灯牌收暗 | `@stagger` 卡组；`@fadeout` 收暗（红线四：末 beat 总时长推导渐黑） |
 
@@ -111,4 +111,4 @@
 
 ## 公共组件清单
 
-系列装置（自 ep1 复制裁剪）：`HarnessStackP0/P6`、`HarnessBadge`；共享：`ArchifyRecap/ArchifyClip/ArchifyYield`（frozen 三件套）、`Panel/Footnote/SceneTag/CodeCard/NumberedCard`（chrome 层 motifs）、金句卡（cards）。本集新增装置：工序卡（TodoCard）、回执条（ReceiptStrip）、计数刻度环（NagDial）、消融双标尺（AblationBar）——全部落 `components/`，零 motion 依赖外的自造轮子。
+系列装置（自 ep1 复制裁剪）：`HarnessStackP0/P6`、`HarnessBadge`；共享：`ArchifyRecap/ArchifyClip/ArchifyYield`（frozen 三件套）、`Panel`（chrome 层 motifs 存活件；Footnote/SceneTag/CodeCard/NumberedCard 已随重制退役）、金句卡（cards）。本集新增装置 as-built 均为场景内联实现、未提取共享组件：工序卡（`P1Todo` FiveRoundWalk + pc2-todo-nag 图内三态卡）、回执条（`P2Subagent` SideDeskSplit 飞页）、计数刻度环与消融双标尺（pc2-todo-nag 图内 nag-count/nag-ablate 章）。

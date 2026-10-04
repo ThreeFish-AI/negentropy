@@ -17,7 +17,8 @@ import {DUR, useProgress, useStagger} from '../motion';
 const BADGE_STYLE: React.CSSProperties = {top: 64};
 
 /** 5-B 修打印机三拍：没墨换墨盒 / 卡纸抽纸 / 断电换备用机——登记表类比带失配句角标。
- *  锚位对齐口播（p5-04 三例并念 → stagger(3)；红叉条=p5-05 逐字；类比边界条=p5-06）。 */
+ *  锚位对齐口播（p5-04 三例并念 → stagger(3)；红叉条=p5-05 关键词化「断电 ≠ 猛按」——
+ *  画面纪律禁逐字复述口播（RSI-007）；类比边界条=p5-06 关键词对）。 */
 const PrinterAnalogy: React.FC<{at04: number; at05: number; at06: number}> = ({at04, at05, at06}) => {
   const cases = useStagger(3, {at: at04, dur: DUR.f4, stride: DUR.f3});
   const noBlind = useProgress(at05, DUR.f5);
@@ -71,7 +72,7 @@ const PrinterAnalogy: React.FC<{at04: number; at05: number; at06: number}> = ({a
             textAlign: 'center',
           }}
         >
-          {'没有人对着断电猛按打印键'}
+          {'断电 ≠ 猛按'}
         </div>
       </div>
       <div
@@ -88,7 +89,7 @@ const PrinterAnalogy: React.FC<{at04: number; at05: number; at06: number}> = ({a
           opacity: edge,
         }}
       >
-        {'类比边界：打印机靠人分诊，这里靠代码自动分诊；记账要回工程术语'}
+        {'类比边界 · 人分诊 ↔ 代码分诊；记账回工程术语'}
       </div>
     </AbsoluteFill>
   );

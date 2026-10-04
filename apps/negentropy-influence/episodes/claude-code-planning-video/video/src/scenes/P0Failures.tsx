@@ -52,7 +52,7 @@ const OpeningStack: React.FC<{span: number}> = ({span}) => {
 };
 
 /** 0-E 装置：上下两行（看到的 ↔ 需要的）错位对照，未对齐格红色警示（M-003）。
- *  @pushIn 两行格组先后推入；台面标注为 storyboard 0-E 原文（钉顶部）。 */
+ *  两行格组先后推入（translateX 渐入，as-built）；台面标注为 storyboard 0-E 原文（钉顶部）。 */
 const MisalignRow: React.FC = () => {
   const inTag = useProgress(0, DUR.f4);
   const inSeen = useProgress(DUR.f2, DUR.f4);
