@@ -209,7 +209,9 @@ export const P6Finale: React.FC<{scene: SceneRange}> = ({scene}) => {
         </div>
         <PeripheralRow x={1060} y={430} lit={3} at={at('p6-02') - bA.from} />
         <LineGauge lit={gaugeLit} />
-        {/* p6-03 三连排比小字条（关键词对，RSI-007：非逐字复述口播） */}
+        {/* p6-03 三连排比小字条（关键词对，RSI-007：非逐字复述口播）。
+            容器随内容同拍入场（R12：原无门控，空面板框自 p6-02 句头悬空 199 帧——
+            同 P1 tags opacity 门控判例） */}
         {[t1, t2, t3].map((txt, i) => (
           <div
             key={i}
@@ -227,6 +229,7 @@ export const P6Finale: React.FC<{scene: SceneRange}> = ({scene}) => {
               fontSize: 21,
               color: theme.text,
               textAlign: 'center',
+              opacity: txt ? 1 : 0,
             }}
           >
             {txt}

@@ -35,7 +35,8 @@ import {
 
 // ── 4-A 循环膨胀（p4-01..04） ────────────────────────────────────────────
 
-/** 检查代码行：首行真名 check_permission()，其余为无差别点阵行（不虚构函数名） */
+/** 检查代码行：行堆中唯一真名行 check_permission() 居第二行（首行已是无差别点阵——
+ *  「被塞胖」叙事；i===1 特判锚此行 16px/text 白突出，勿调数组序。不虚构函数名） */
 const ROWS_HEAD = ['·'.repeat(20), 'check_permission()'] as const;
 const ROWS_MORE = ['·'.repeat(22), '·'.repeat(20), '·'.repeat(24)] as const;
 

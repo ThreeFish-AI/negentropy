@@ -35,7 +35,7 @@ const ChatDuo: React.FC<{atChat: number; atPaper: number}> = ({atChat, atPaper})
   return (
     <>
       {[
-        {x: 300, who: '你', tone: theme.text},
+        {x: 340, who: '你', tone: theme.text}, // R12：双框组心 940→960、对白纸卡侧隙 50/10→10/10、外边距 340 对称
         {x: 1160, who: '模型', tone: theme.dim},
       ].map((s, i) => (
         <div

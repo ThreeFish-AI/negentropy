@@ -397,7 +397,9 @@ const SerialParallel: React.FC<{atCards: number; atQueue: number; atFlash: numbe
               key={nm}
               style={{
                 position: 'absolute',
-                left: 40 + p * 380,
+                // R12：stride 370=门框左缘 pb 580（730−2×2 边框−26−120）−起点 40−单宽 170，
+                // 终位右缘恰贴门缘；原 380 越门框 10px 呈「破门」
+                left: 40 + p * 370,
                 top: 128 + i * 74,
                 width: 170,
                 padding: '10px 0',
