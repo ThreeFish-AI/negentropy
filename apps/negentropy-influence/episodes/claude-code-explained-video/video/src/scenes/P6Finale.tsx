@@ -83,8 +83,10 @@ const SeriesBoard: React.FC<{at: number; nextHint?: boolean}> = ({at, nextHint =
 const TwoStep: React.FC<{at: number}> = ({at}) => {
   const p1 = useProgress(at, DUR.f5);
   const p2 = useProgress(at + 20, DUR.f5);
+  // left=742=(1920−436)/2：两步卡组组心归 960 中轴（R13 修复原 520 左坠 222px，
+  // 与正下方金句卡 960 轴对齐——同 :220 排比行居中口径）
   return (
-    <div style={{position: 'absolute', left: 520, top: 620, display: 'flex', gap: 36}}>
+    <div style={{position: 'absolute', left: 742, top: 620, display: 'flex', gap: 36}}>
       {[
         {zh: '先找循环', p: p1},
         {zh: '再数挂件', p: p2},

@@ -381,7 +381,8 @@ const GuardCard: React.FC<{at: number}> = ({at}) => {
           {'真实产品'}
         </div>
         <div style={{marginTop: 14, display: 'flex', gap: 10, justifyContent: 'center'}}>
-          <span style={chip}>{'stopHookActive'}</span>
+          {/* 中文注兜底（R13 补齐半边——同 4-C「· 判空不判真」判例；「标志位」锚 p4-23 口播词） */}
+          <span style={chip}>{'stopHookActive · 标志位'}</span>
           <span style={chip}>{'官方：连续 8 次硬停'}</span>
         </div>
       </div>
@@ -602,8 +603,9 @@ export const P4HookNodes: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       {/* 与 4-C 同图异实例：两实例间隔 p4-16 空窗句，非背靠背 → lead 走默认；
-          首章为 p4-17 句尾让位（切点见 TAIL_SPLIT；半窗偏短，storySec 偏长时
-          pickFit 会落 trim 档＝原速播＋裁尾，属预期兜底） */}
+          首章为 p4-17 句尾让位（切点见 TAIL_SPLIT；半窗 81f=2.7s vs storySec 3.21s
+          → rate 1.19 → pickFit 落 stretch＝1.19× 变速铺满不裁尾，R13 注释归真——
+          原注「落 trim 裁尾」与实算档位不符，勿照旧注补 fit:'trim' 致真裁章尾） */}
       <Sequence {...bD} name="4-D 实验4 反转">
         <Sequence from={at('p4-17') - bD.from} durationInFrames={dur('p4-17')}>
           <ExpBadge x={742} y={408} at={2} n={4} />

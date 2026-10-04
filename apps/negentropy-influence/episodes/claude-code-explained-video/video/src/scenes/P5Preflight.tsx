@@ -270,8 +270,12 @@ const MethodCard: React.FC<{atCols: number; atPairs: number}> = ({atCols, atPair
             style={{
               display: 'flex',
               alignItems: 'baseline',
-              justifyContent: 'center',
+              // R13：三行共享原点（定宽 520 + margin auto 居中＝组心 960，各行 flex-start）
+              // ——原逐行 center 且第三行右值盒 160≠60，四列相对前两行整体左移 50px 呈之字错位
+              justifyContent: 'flex-start',
               gap: 22,
+              width: 520,
+              margin: '0 auto',
               height: 86,
               opacity: rows[i],
               transform: `translateY(${(1 - rows[i]) * 14}px)`,
