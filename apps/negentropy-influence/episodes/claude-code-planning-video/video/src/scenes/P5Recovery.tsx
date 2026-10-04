@@ -12,6 +12,7 @@ import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {HarnessBadge} from '../components/harness-stack';
 import {ArchifyRecap} from '../components/ArchifyRecap';
+import {HoldRevive} from '../components/HoldRevive';
 import {DUR, useProgress, useStagger} from '../motion';
 
 const BADGE_STYLE: React.CSSProperties = {top: 64};
@@ -165,6 +166,7 @@ export const P5Recovery: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap slug="pc2-triage-map" caption="分诊地图" cues={[
           {chapterId: 'triage-trunc', at: at('p5-07') - bC.from, durationInFrames: dur('p5-07') + dur('p5-08') + dur('p5-09')},
         ]} />
+        <HoldRevive at={at('p5-07') - bC.from + 98} points={['截断 · 首次不存半截', '上限 8K → 64K · 重发', '再截 · 存半截 · 三次封顶']} />
       </Sequence>
 
       <Sequence {...bD} name="5-D 路径二超限">
@@ -172,6 +174,7 @@ export const P5Recovery: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap slug="pc2-triage-map" caption="分诊地图" lead={false} cues={[
           {chapterId: 'triage-overflow', at: at('p5-10') - bD.from, durationInFrames: dur('p5-10') + dur('p5-10b')},
         ]} />
+        <HoldRevive at={at('p5-10') - bD.from + 97} points={['超限 · 压缩留五条 · 一次', '再超 · 到此为止']} />
       </Sequence>
 
       <Sequence {...bE} name="5-E 瞬态与三连等">
@@ -198,6 +201,7 @@ export const P5Recovery: React.FC<{scene: SceneRange}> = ({scene}) => {
           {chapterId: 'ledger-ablation', at: at('p5-19') - bG.from, durationInFrames: dur('p5-19') + dur('p5-20')},
           {chapterId: 'ledger-ruling', at: at('p5-21') - bG.from, durationInFrames: dur('p5-21'), fit: 'trim'},
         ]} />
+        <HoldRevive at={at('p5-19') - bG.from + 125} points={['有记账 · 一次止损', '拆记账 · 反复压 8 次']} />
       </Sequence>
 
       <Sequence {...bH} name="5-H 五挂点齐亮">

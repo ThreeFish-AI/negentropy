@@ -12,6 +12,7 @@ import type {SceneRange} from '../types';
 import {Panel} from '../components/motifs';
 import {HarnessBadge} from '../components/harness-stack';
 import {ArchifyRecap} from '../components/ArchifyRecap';
+import {HoldRevive} from '../components/HoldRevive';
 import {useProgress} from '../motion';
 
 const BADGE_STYLE: React.CSSProperties = {top: 64};
@@ -219,6 +220,7 @@ export const P1Todo: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap slug="pc2-todo-nag" caption="待办与唠叨" lead={false} cues={[
           {chapterId: 'nag-device', at: at('p1-03') - bB.from, durationInFrames: dur('p1-03') + dur('p1-04') + dur('p1-05')},
         ]} />
+        <HoldRevive at={at('p1-03') - bB.from + 100} points={['待办态 · 进行态 · 完成态', '不执行 · 只规划']} />
       </Sequence>
 
       <Sequence {...bC} name="1-C 爬格与注入">
@@ -241,6 +243,8 @@ export const P1Todo: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap slug="pc2-todo-nag" caption="待办与唠叨" cues={[
           {chapterId: 'nag-ablate', at: at('p1-14') - bE.from, durationInFrames: dur('p1-14') + dur('p1-15') + dur('p1-16') + dur('p1-17') + dur('p1-17b')},
         ]} />
+        {/* ISSUE-208 方案 a：nag-ablate 章 3.4s，hold 自 ~101 帧起——要点唤活 */}
+        <HoldRevive at={at('p1-14') - bE.from + 101} points={['撤清零线 → 误报现身', '计划已更 · 唠叨依旧', '复位 ≈ 置位']} />
       </Sequence>
 
       <Sequence {...bF} name="1-F 内存态红线">

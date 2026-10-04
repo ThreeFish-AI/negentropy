@@ -12,6 +12,7 @@ import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {HarnessBadge, HarnessStackP0, harnessStackCrossAt} from '../components/harness-stack';
 import {ArchifyRecap} from '../components/ArchifyRecap';
+import {HoldRevive} from '../components/HoldRevive';
 import {DUR, useProgress} from '../motion';
 
 const BADGE_STYLE: React.CSSProperties = {top: 64};
@@ -119,6 +120,7 @@ export const P0Failures: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap slug="pc2-failures" caption="失败现场" cues={[
           {chapterId: 'fail-plan', at: at('p0-03') - bB.from, durationInFrames: dur('p0-03') + dur('p0-04') + dur('p0-05')},
         ]} />
+        <HoldRevive at={at('p0-03') - bB.from + 101} points={['十步重构 · 三步即兴', '计划只占开头一句', '涌进来 · 计划被挤走']} />
       </Sequence>
 
       <Sequence {...bC} name="0-C 淹没">
@@ -126,6 +128,7 @@ export const P0Failures: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap slug="pc2-failures" caption="失败现场" lead={false} cues={[
           {chapterId: 'fail-flood', at: at('p0-06') - bC.from, durationInFrames: dur('p0-06') + dur('p0-07') + dur('p0-08')},
         ]} />
+        <HoldRevive at={at('p0-06') - bC.from + 96} points={['一修 · 三十文件 · 六十轮', '消息 120 条', '大半与目标无关']} />
       </Sequence>
 
       <Sequence {...bD} name="0-D 全带·打架·即崩">
@@ -148,6 +151,7 @@ export const P0Failures: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap slug="pc2-panorama" caption="一个循环 · 五个挂点" cues={[
           {chapterId: 'pan-loop', at: at('p0-16') - bF.from, durationInFrames: dur('p0-16') + dur('p0-16b') + dur('p0-17') + dur('p0-18') + dur('p0-19') + dur('p0-20')},
         ]} />
+        <HoldRevive at={at('p0-16') - bF.from + 255} points={['改供给 · 非换模型', '视野 = 这一轮的所见', '循环五处 · 各挂一件', '看得见 · 挪出去 · 按需进', '看实况 · 现场拼装']} />
       </Sequence>
     </AbsoluteFill>
   );

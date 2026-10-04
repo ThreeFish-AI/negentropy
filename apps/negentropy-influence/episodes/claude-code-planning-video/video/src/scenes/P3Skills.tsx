@@ -11,6 +11,7 @@ import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {HarnessBadge} from '../components/harness-stack';
 import {ArchifyRecap} from '../components/ArchifyRecap';
+import {HoldRevive} from '../components/HoldRevive';
 import {DUR, useProgress} from '../motion';
 
 const BADGE_STYLE: React.CSSProperties = {top: 64};
@@ -111,6 +112,7 @@ export const P3Skills: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap slug="pc2-panorama" caption="挂点③ · 技能进场" cues={[
           {chapterId: 'pan-m3', at: at('p3-01') - bA.from, durationInFrames: dur('p3-01') + dur('p3-02') + dur('p3-03')},
         ]} />
+        <HoldRevive at={at('p3-01') - bA.from + 98} points={['通通常驻 · 白花钱', '两级式：索引在 · 全文取']} />
       </Sequence>
 
       <Sequence {...bB} name="3-B 两级与成本">
@@ -119,6 +121,7 @@ export const P3Skills: React.FC<{scene: SceneRange}> = ({scene}) => {
           {chapterId: 'levels-two', at: at('p3-04') - bB.from, durationInFrames: dur('p3-04') + dur('p3-05') + dur('p3-06')},
           {chapterId: 'levels-cost', at: at('p3-07') - bB.from, durationInFrames: dur('p3-07')},
         ]} />
+        <HoldRevive at={at('p3-04') - bB.from + 137} points={['一技能 · 一标签', '常驻成本 · 上百 token']} />
       </Sequence>
 
       <Sequence {...bC} name="3-C 规范走查">
@@ -129,6 +132,7 @@ export const P3Skills: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap slug="pc2-skill-levels" caption="技能两级" cues={[
           {chapterId: 'levels-lifecycle', at: at('p3-12') - bD.from, durationInFrames: dur('p3-12') + dur('p3-13') + dur('p3-14') + dur('p3-14b') + dur('p3-14c')},
         ]} />
+        <HoldRevive at={at('p3-12') - bD.from + 382} points={['在什么位置 · 定什么命', '全文走消息流 · 可能被裁', '裁了不慌 · 再点即回', '同名 · 后者悄悄顶替', '新放的 · 旧表看不见']} />
       </Sequence>
 
       <Sequence {...bE} name="3-E 消融与结论">
@@ -137,6 +141,8 @@ export const P3Skills: React.FC<{scene: SceneRange}> = ({scene}) => {
           {chapterId: 'cost-ablation', at: at('p3-15') - bE.from, durationInFrames: dur('p3-15') + dur('p3-16') + dur('p3-17')},
           {chapterId: 'cost-ruling', at: at('p3-18') - bE.from, durationInFrames: dur('p3-18') + dur('p3-19')},
         ]} />
+        <HoldRevive at={at('p3-18') - bE.from + 100} points={['常驻 = 索引 · 非本体', '知识归位 · 指令仍涨']} />
+        <HoldRevive at={at('p3-15') - bE.from + 97} points={['全文塞指令 · 128 → 5981', '≈47 倍 · 每轮都带']} />
       </Sequence>
     </AbsoluteFill>
   );

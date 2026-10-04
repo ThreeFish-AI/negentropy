@@ -12,6 +12,7 @@ import type {SceneRange} from '../types';
 import {Panel} from '../components/motifs';
 import {HarnessBadge} from '../components/harness-stack';
 import {ArchifyRecap} from '../components/ArchifyRecap';
+import {HoldRevive} from '../components/HoldRevive';
 import {DUR, useProgress, useStagger} from '../motion';
 
 const BADGE_STYLE: React.CSSProperties = {top: 64};
@@ -196,6 +197,7 @@ export const P2Subagent: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap slug="pc2-panorama" caption="挂点② · 副台派单" cues={[
           {chapterId: 'pan-m2', at: at('p2-01') - bA.from, durationInFrames: dur('p2-01') + dur('p2-02') + dur('p2-03')},
         ]} />
+        <HoldRevive at={at('p2-01') - bA.from + 99} points={['人：新终端 · 记结论', '模型：委派一件 · 整段办完']} />
       </Sequence>
 
       <Sequence {...bB} name="2-B 副台分屏">
@@ -213,6 +215,7 @@ export const P2Subagent: React.FC<{scene: SceneRange}> = ({scene}) => {
           {chapterId: 'guard-notask', at: at('p2-12') - bD.from, durationInFrames: dur('p2-12') + dur('p2-13') + dur('p2-13b') + dur('p2-14')},
           {chapterId: 'guard-fallback', at: at('p2-14b') - bD.from, durationInFrames: dur('p2-14b')},
         ]} />
+        <HoldRevive at={at('p2-12') - bD.from + 170} points={['工具表无 task · 链条即断', '三十轮 · 到站收工', '指令劝阻 = 第二道保险']} />
       </Sequence>
 
       <Sequence {...bE} name="2-E 走查·回执·对比">
@@ -222,6 +225,8 @@ export const P2Subagent: React.FC<{scene: SceneRange}> = ({scene}) => {
           {chapterId: 'lanes-receipt', at: at('p2-17') - bE.from, durationInFrames: dur('p2-17'), fit: 'trim'},
           {chapterId: 'lanes-contrast', at: at('p2-18') - bE.from, durationInFrames: dur('p2-18') + dur('p2-19')},
         ]} />
+        <HoldRevive at={at('p2-18') - bE.from + 100} points={['不隔离：19 条灌主线', '19 : 2 · 隔离的账']} />
+        <HoldRevive at={at('p2-15') - bE.from + 147} points={['两轮查完 · 配置先行']} />
       </Sequence>
 
       <Sequence {...bF} name="2-F 收拢钩 P3">

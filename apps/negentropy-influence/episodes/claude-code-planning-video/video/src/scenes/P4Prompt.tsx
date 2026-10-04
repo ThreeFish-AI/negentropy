@@ -11,6 +11,7 @@ import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {HarnessBadge} from '../components/harness-stack';
 import {ArchifyRecap} from '../components/ArchifyRecap';
+import {HoldRevive} from '../components/HoldRevive';
 import {DUR, useProgress, useStagger} from '../motion';
 
 const BADGE_STYLE: React.CSSProperties = {top: 64};
@@ -177,6 +178,7 @@ export const P4Prompt: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap slug="pc2-panorama" caption="挂点④ · 指令组装" lead={false} cues={[
           {chapterId: 'pan-m4', at: at('p4-01') - bA.from, durationInFrames: dur('p4-01') + dur('p4-02') + dur('p4-03')},
         ]} />
+        <HoldRevive at={at('p4-01') - bA.from + 97} points={['堆一段 · 重写 · 怕碰坏', '指令 = 运行时配置']} />
       </Sequence>
 
       <Sequence {...bB} name="4-B 每日菜单三拍">
@@ -189,6 +191,7 @@ export const P4Prompt: React.FC<{scene: SceneRange}> = ({scene}) => {
           {chapterId: 'shelf-state', at: at('p4-08') - bC.from, durationInFrames: dur('p4-08') + dur('p4-09')},
           {chapterId: 'shelf-split', at: at('p4-09b') - bC.from, durationInFrames: dur('p4-09b')},
         ]} />
+        <HoldRevive at={at('p4-08') - bC.from + 136} points={['三段恒在：身份类 · 工具类 · 工作区类', '记忆段 · 查文件存续', '判据皆可查 · 非字面匹配']} />
       </Sequence>
 
       <Sequence {...bD} name="4-D 走查命中">
@@ -196,6 +199,7 @@ export const P4Prompt: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap slug="pc2-prompt-cache" caption="缓存键" lead={false} cues={[
           {chapterId: 'cache-hit', at: at('p4-10') - bD.from, durationInFrames: dur('p4-10') + dur('p4-11') + dur('p4-12') + dur('p4-13')},
         ]} />
+        <HoldRevive at={at('p4-10') - bD.from + 134} points={['原状态 · 命中 · 直返', '文件一建 · 三段变四段']} />
       </Sequence>
 
       <Sequence {...bE} name="4-E 拼串做键">
@@ -203,6 +207,7 @@ export const P4Prompt: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap slug="pc2-prompt-cache" caption="缓存键" lead={false} cues={[
           {chapterId: 'cache-fingerprint', at: at('p4-14') - bE.from, durationInFrames: dur('p4-14') + dur('p4-15')},
         ]} />
+        <HoldRevive at={at('p4-14') - bE.from + 175} points={['状态拼串 · 同状态同串', '弃自带编号 · 免换运行即变']} />
       </Sequence>
 
       <Sequence {...bF} name="4-F 键污染消融">
