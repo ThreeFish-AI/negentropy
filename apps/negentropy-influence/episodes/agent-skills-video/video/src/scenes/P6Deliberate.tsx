@@ -507,7 +507,7 @@ const GuardStack: React.FC<{g1: number; g2: number; g3: number; noteAt: number}>
  *  亮出「已读亮的目录行」（name 常驻 + description 一句话，M-001 同源夹具注）。
  *  「凭什么？」回声随答案点亮而让位。 */
 const DirTreeReprise: React.FC<{fallAt: number; lineAt: number}> = ({fallAt, lineAt}) => {
-  const st = useStagger(6, {at: fallAt, dur: DUR.f4, stride: 7}); // 与 P0 DirTree 同编排
+  const st = useStagger(6, {at: fallAt, dur: DUR.f5, stride: 7}); // 与 P0 DirTree 同编排（f5+stride7 逐位一致）
   const lit = useStagger(6, {at: lineAt, dur: DUR.f4, stride: 5}); // 目录行逐行点亮
   const echo = useDim({at: lineAt, to: 0.3, dur: DUR.f5}); // 问题让位给机制答案
   return (
@@ -530,7 +530,7 @@ const DirTreeReprise: React.FC<{fallAt: number; lineAt: number}> = ({fallAt, lin
       </div>
       {/* 树干线 */}
       <div style={{position: 'absolute', left: 26, top: 96, bottom: 10, width: 2, background: theme.panelBorder}} />
-      <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 286px)', gap: '24px 22px'}}>
+      <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 286px)', gap: '26px 22px'}}>
         {MENU_ROWS.map((r, i) => (
           <div
             key={r.id}

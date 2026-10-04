@@ -126,8 +126,11 @@ def main() -> None:
         missing = [
             n for v in parsed for n in v["focus"] if f'data-node-id="{n}"' not in html
         ]
-        status = "OK" if not missing else f"缺节点 {missing}"
-        print(f"{slug}: {len(parsed)} 章 → {out.name} [{status}]")
+        if missing:
+            # 强失败（对齐 assert 的严格度）：节点 id 失配时录制器只校验章 id 不校验
+            # 节点 id，playCurrent 的 centerAt/focus.set 会静默跳过——不能只打印退出 0
+            sys.exit(f"FAIL: {slug} 缺节点 {missing}（HTML 与 views/{slug}.json 失配）")
+        print(f"{slug}: {len(parsed)} 章 → {out.name} [OK]")
 
 
 if __name__ == "__main__":

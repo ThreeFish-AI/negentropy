@@ -9,7 +9,7 @@ import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
 import type {SceneRange} from '../types';
 import {beatWindow} from '../timing';
 import {theme} from '../design/theme';
-import {DUR, progress, useBreathe, useSpring, useStagger} from '../motion';
+import {DUR, progress, useBreathe, usePushIn, useSpring, useStagger} from '../motion';
 import {SceneTag} from '../components/motifs';
 import {CornerNote, Plaque, Stage} from '../components/e1-motifs';
 import {ArchifyRecap} from '../components/ArchifyRecap';
@@ -288,6 +288,7 @@ const Flip: React.FC<{cardAt: number; doorAt: number}> = ({cardAt, doorAt}) => {
   const frame = useCurrentFrame();
   const settle = useSpring('settle', {at: cardAt, dur: DUR.f6});
   const settleO = progress(frame, cardAt, DUR.f6); // opacity 走时长缓动（effects 不变量）
+  const push = usePushIn(cardAt, {scale: 0.05}); // 金句 @pushIn（storyboard 0-E 契约，与 P2/P4/P6 金句卡同款）
   const doorP = progress(frame, doorAt, DUR.f5);
   const hover = useBreathe({period: 90, amp: 0.45}); // 门牌悬停呼吸（与 1-D HookPull 同款口径）
   return (
@@ -298,7 +299,7 @@ const Flip: React.FC<{cardAt: number; doorAt: number}> = ({cardAt, doorAt}) => {
           left: 60,
           top: 120,
           opacity: settleO,
-          transform: `translateY(${(1 - settle) * 26}px)`,
+          transform: `translateY(${(1 - settle) * 26}px) ${push}`,
         }}
       >
         <div style={{fontSize: 17, color: theme.dim, marginBottom: 14, letterSpacing: 2}}>

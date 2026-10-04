@@ -317,8 +317,9 @@ const CatalogStack: React.FC<{rowsAt: number; countAt: number; countDur: number}
 };
 
 /** 2-C 原型走查：任务单〔M-005〕→ 目录对上（菜单卡打勾在幕级 chrome 层同步）→
- *  正文整份翻开（+62 计 t2）→ 审批名单文件弹出（+97 计 t3）→ p2-13 未点到
- *  的技能始终一行（合计 613 由底部账本条定格，幕内不再复刻数字）。 */
+ *  正文整份翻开（t2 逐笔滚动累计）→ 审批名单文件弹出（+97 计 t3）→ p2-13
+ *  「五份共 +62」合计徽章随口播弹出（62 是整轮五份正文的合计，非单份——与
+ *  口播「五份正文共加约六十二」对齐；合计 613 由底部账本条定格）。 */
 const Walkthrough: React.FC<{
   taskAt: number;
   matchAt: number;
@@ -444,9 +445,10 @@ const Walkthrough: React.FC<{
           整份读入 · 账上添一笔
         </div>
       </div>
-      {/* +62 徽章：正文的账（t2 在底部账本条滚动累计） */}
+      {/* 五份共 +62 徽章：整轮正文的合计账（p2-13 口播「五份正文共加约六十二」；
+       *  单份≈12 不单独标数；t2 在底部账本条滚动累计） */}
       <div style={{position: 'absolute', left: 812, top: 128}}>
-        <span style={badge(b62o, b62)}>+62</span>
+        <span style={badge(b62o, b62)}>五份共 +62</span>
       </div>
       {/* 审批名单：正文指路翻出的参考文件（t3） */}
       <div
@@ -1391,7 +1393,7 @@ export const P2MenuLedger: React.FC<{scene: SceneRange}> = ({scene}) => {
           <Walkthrough
             taskAt={at('p2-10') - bC.from}
             matchAt={at('p2-11') - bC.from}
-            plus62At={at('p2-11') - bC.from + Math.round(dur('p2-11') * 0.55)}
+            plus62At={at('p2-13') - bC.from + Math.round(dur('p2-13') * 0.22)}
             fileAt={at('p2-12') - bC.from}
             plus97At={at('p2-12') - bC.from + Math.round(dur('p2-12') * 0.5)}
             sumAt={at('p2-13') - bC.from}

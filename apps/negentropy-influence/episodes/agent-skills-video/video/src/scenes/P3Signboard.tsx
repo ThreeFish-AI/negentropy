@@ -820,8 +820,8 @@ const EvalLadder: React.FC<{frameAt: number; steps: number[]; durs: number[]}> =
               <div style={{position: 'relative', width: 368, height: 190, marginTop: 6}}>
                 {i === 0 && <StepQuiz at={steps[0]} />}
                 {i === 1 && <StepScore at={steps[1]} />}
-                {i === 2 && <StepSplit at={steps[2]} dur={durs[2]} />}
-                {i === 3 && <StepConverge at={steps[3]} dur={durs[3]} />}
+                {i === 2 && <StepSplit at={steps[2]} dur={durs[0]} />}
+                {i === 3 && <StepConverge at={steps[3]} dur={durs[1]} />}
               </div>
             </div>
           </React.Fragment>
@@ -1095,7 +1095,7 @@ export const P3Signboard: React.FC<{scene: SceneRange}> = ({scene}) => {
                 at('p3-14') - bC.from,
                 at('p3-15') - bC.from,
               ]}
-              durs={[dur('p3-12'), dur('p3-13'), dur('p3-14'), dur('p3-15')]}
+              durs={[dur('p3-14'), dur('p3-15')]}
             />
           </Stage>
         </ArchifyYield>

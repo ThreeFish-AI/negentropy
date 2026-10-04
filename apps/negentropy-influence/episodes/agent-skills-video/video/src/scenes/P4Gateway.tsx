@@ -866,8 +866,11 @@ const ThreeFaces: React.FC<{
 }> = ({at07, d07, at08, d08, at09, d09, at10, d10}) => {
   const frame = useCurrentFrame();
   const headP = progress(frame, at07 + Math.round(d07 * 0.12), DUR.f5);
-  const c1 = progress(frame, at08 + Math.round(d08 * 0.18), DUR.f5);
-  const c2 = progress(frame, at08 + Math.round(d08 * 0.6), DUR.f5);
+  // 窗缩尾 56 帧点亮（同 3-C 先例）：c1/c2 原锚 0.18/0.6×d08 全落 p4-08 全屏窗内
+  // 零可见帧，改锚窗尾（d08-56）起错峰——Codex/VS Code 卡随句尾浮现
+  const winEnd = at08 + d08 - 56;
+  const c1 = progress(frame, winEnd, DUR.f5);
+  const c2 = progress(frame, winEnd + Math.round(d08 * 0.16), DUR.f5);
   const c3 = progress(frame, at09 + Math.round(d09 * 0.15), DUR.f5);
   const gapP = progress(frame, at09 + Math.round(d09 * 0.6), DUR.f5);
   const dimC = 1 - 0.6 * progress(frame, at10 + 4, DUR.f4);
@@ -1410,8 +1413,9 @@ export const P4Gateway: React.FC<{scene: SceneRange}> = ({scene}) => {
       <Sequence {...bD} name="4-D 不对称">
         <SceneTag chapter="P4" tagline="门口的规矩" accent={theme.conceptDeep} />
         {/* Codex 扩展面章回放（p4-08「Codex 原生只用它」）——全屏独占期间门脸卡
-         *  让位（此前 recap 写在 Stage 之前，卡片反而叠画在图中央） */}
-        <ArchifyYield cues={[{at: at('p4-08') - bD.from, durationInFrames: dur('p4-08')}]}>
+         *  让位（此前 recap 写在 Stage 之前，卡片反而叠画在图中央）；窗缩至句
+         *  前缀（尾 56 帧留给 c1/c2 门脸卡点亮，防入场全程被窗吞没——3-C 同款） */}
+        <ArchifyYield cues={[{at: at('p4-08') - bD.from, durationInFrames: dur('p4-08') - 56}]}>
           <Stage>
             <ThreeFaces
               at07={at('p4-07') - bD.from}
@@ -1428,7 +1432,7 @@ export const P4Gateway: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap
           slug="dual-track"
           caption="扩展 · Codex"
-          cues={[{chapterId: 'dt-ext-c', at: at('p4-08') - bD.from, durationInFrames: dur('p4-08'), }]}
+          cues={[{chapterId: 'dt-ext-c', at: at('p4-08') - bD.from, durationInFrames: dur('p4-08') - 56, }]}
         />
         <CornerNote text="三家文档实测 · 2026-09-30" x={60} y={898} />
       </Sequence>

@@ -476,7 +476,8 @@ const GateAtStore: React.FC<{at: number; dur: number}> = ({at, dur}) => {
           </div>
         </div>
       </div>
-      {/* 带扩展字段的技能卡：进门即被拦下、整体消失 */}
+      {/* 带扩展字段的技能卡：进门即被红叉拦下、淡成残影下沉（红叉钉住=拦下证据
+       *  陈列；「整体消失」由右侧装载面 6→5 那格承载，口播 p5-10） */}
       <div style={{position: 'absolute', left: cardX, top: 128, width: 236, opacity: 1 - 0.88 * gone, transform: `translateY(${gone * 36}px)`}}>
         <div style={{background: theme.panel, border: `1.5px solid ${theme.panelBorder}`, borderRadius: 10, padding: '12px 16px'}}>
           <div style={{fontSize: 12.5, color: theme.dim, marginBottom: 8}}>技能卡</div>
