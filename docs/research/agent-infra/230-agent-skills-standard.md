@@ -6,7 +6,7 @@ description: "以 agentskills.io 全站 9 页 + 规范仓钉点 69ef37e9（2026-
 
 # Agent Skills 开放标准精读与通俗拆解
 
-> [1] agentskills community (originated by Anthropic), "Agent Skills: Specification, guides, and reference implementation," GitHub repository `agentskills/agentskills`, commit `69ef37e9` (Aug. 9, 2026, frozen since), documentation site agentskills.io (accessed Sep. 30, 2026, verified byte-equivalent to the pinned commit up to rendering). 本篇为对该标准的完全重读：全部结论由独立重读规范、指南、参考实现源码与三家客户端官方文档得出，关键断言逐条对回信源原文。
+> [1] agentskills community (originated by Anthropic), "Agent Skills: Specification, skill-creation guides, and client implementation guide," GitHub repository `agentskills/agentskills`, commit `69ef37e9` (Aug. 9, 2026, frozen since), documentation site agentskills.io (accessed Sep. 30, 2026, verified byte-equivalent to the pinned commit up to rendering). 本篇为对该标准的完全重读：全部结论由独立重读规范、指南、参考实现源码与三家客户端官方文档得出，关键断言逐条对回信源原文。
 
 **一句话定位**：Agent Skills 是一个刻意做小的「知识打包」开放格式——一个文件夹 + 一份 `SKILL.md`（两行必填元数据 + 自由正文），把「教 AI（agent，能自己动手干活的 AI 程序）把活干对」的操作说明变成任何兼容客户端（运行这类 AI 的软件工具）都能装、都能按同一套记账方式加载的标准包裹；标准只钉死包裹的形状与身份规则，分发、信任、执行全部留给生态。
 

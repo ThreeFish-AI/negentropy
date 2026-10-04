@@ -10,7 +10,7 @@
  "chapters": [
   {
    "id": "lc-discover",
-   "label": "发现",
+   "label": "\u53d1\u73b0",
    "index": 0,
    "file": "lifecycle--lc-discover.mp4",
    "end_still": "lifecycle--lc-discover-end.png",
@@ -27,7 +27,7 @@
   },
   {
    "id": "lc-load",
-   "label": "宽容装载",
+   "label": "\u5bbd\u5bb9\u88c5\u8f7d",
    "index": 1,
    "file": "lifecycle--lc-load.mp4",
    "end_still": "lifecycle--lc-load-end.png",
@@ -44,7 +44,7 @@
   },
   {
    "id": "lc-catalog",
-   "label": "目录常驻",
+   "label": "\u76ee\u5f55\u5e38\u9a7b",
    "index": 2,
    "file": "lifecycle--lc-catalog.mp4",
    "end_still": "lifecycle--lc-catalog-end.png",
@@ -61,7 +61,7 @@
   },
   {
    "id": "lc-activate",
-   "label": "激活",
+   "label": "\u6fc0\u6d3b",
    "index": 3,
    "file": "lifecycle--lc-activate.mp4",
    "end_still": "lifecycle--lc-activate-end.png",
@@ -78,7 +78,7 @@
   },
   {
    "id": "lc-execute",
-   "label": "按需执行",
+   "label": "\u6309\u9700\u6267\u884c",
    "index": 4,
    "file": "lifecycle--lc-execute.mp4",
    "end_still": "lifecycle--lc-execute-end.png",
@@ -95,7 +95,7 @@
   },
   {
    "id": "lc-compact",
-   "label": "压缩保护",
+   "label": "\u538b\u7f29\u4fdd\u62a4",
    "index": 5,
    "file": "lifecycle--lc-compact.mp4",
    "end_still": "lifecycle--lc-compact-end.png",
@@ -112,7 +112,7 @@
   },
   {
    "id": "lc-strict",
-   "label": "严格校验",
+   "label": "\u4e25\u683c\u6821\u9a8c",
    "index": 6,
    "file": "lifecycle--lc-strict.mp4",
    "end_still": "lifecycle--lc-strict-end.png",
@@ -129,7 +129,7 @@
   },
   {
    "id": "lc-inject",
-   "label": "注入防御",
+   "label": "\u6ce8\u5165\u9632\u5fa1",
    "index": 7,
    "file": "lifecycle--lc-inject.mp4",
    "end_still": "lifecycle--lc-inject-end.png",
@@ -155,5 +155,5 @@
  },
  "source": "/Users/cm.huang/conductor/workspaces/negentropy/vancouver-v3/apps/negentropy-influence/episodes/agent-skills-video/video/public/archify/html/lifecycle.html",
  "slug": "lifecycle",
- "type": "lifecycle"
+ "type": "workflow"
 }

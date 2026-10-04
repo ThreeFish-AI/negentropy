@@ -24,14 +24,17 @@ chars_per_min = 285
 html_dir = "apps/negentropy-influence/episodes/agent-skills-video/video/public/archify/html"
 html_pattern = "{slug}.html"
 forbid_inset = true
-# 覆盖门五值为 scaffold 期保守地板（无 Stage⑥ 实测回填——成片实测 20 cue /
-# ≈1.53 cue 每分 / 锚定 16.1% / 图型 2 / 双图 16 章，门值较实测低 38–41%，
-# 吸收分镜期 cue 数不确定余量；兄弟集惯例为实测 −10~15% 回填，本集未做，
-# 收紧须携成片实测数字同改）。
+# 覆盖门分两组登记（成片实测：20 cue / ≈1.53 cue 每分 / 锚定 16.1% / 双图均 workflow 泳道型 / 16 章）：
+# ① cue 派生三门（min_cues/min_cues_per_minute/min_anchor_ratio）＝scaffold 保守地板，
+#    较实测低 38–41%，吸收分镜期 cue 数不确定余量；兄弟集惯例为实测 −10~15% 回填，本集未做。
+# ② 图数/图型两门＝零余量贴实测（min_diagrams=2 与双图实测持平；min_diagram_types=1：
+#    两图经 mermaid SSOT/README/HTML 泳道语义三源定谳均为 workflow 型——v11 前 sidecar
+#    孤票「lifecycle」系录制 --type 落盘误值，v13 四源归一并降门 2→1，原门值 2 靠假登记
+#    撑起属结构性失真）。收紧须携成片实测数字同改。
 min_diagrams = 2
 min_cues = 12
 min_cues_per_minute = 0.9
-min_diagram_types = 2
+min_diagram_types = 1
 min_anchor_ratio = 0.10
 
 [tts]
