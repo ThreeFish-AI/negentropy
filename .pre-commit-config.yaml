@@ -21,12 +21,14 @@ repos:
     rev: v4.6.0  # pre-commit framework v5 尚未发布，暂用 v4 系列最新
     hooks:
       # source-archive/ 为按固定提交归档的第三方源码字节快照（ruff 门同理已避开），
-      # 空白/末行钩子会剥尾随空格致指纹漂移（E2 s07 实录：12 字节被剥、sha256 失配）
+      # 空白/末行钩子会剥尾随空格致指纹漂移（E2 s07 实录：12 字节被剥、sha256 失配）；
+      # docs/assets/architecture/ 为 archify 冻结产物，其 finalize/delivery 回执记 sha256，
+      # 3.0.0 起产出含行尾空格（ISSUE-208 实录），剥空格会使回执与入库文件失配
       - id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
-        exclude: source-archive/
+        exclude: (source-archive/|docs/assets/architecture/)
       - id: end-of-file-fixer
-        exclude: source-archive/
+        exclude: (source-archive/|docs/assets/architecture/)
       - id: check-yaml
         # pnpm 12 起根 pnpm-lock.yaml 是多文档 YAML（packageManagerDependencies 独占首个
         # 文档，见 ISSUE-175）；只豁免这份机器产物，手写 YAML 仍受单文档校验约束。

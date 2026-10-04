@@ -1,0 +1,51 @@
+[
+  {
+    "id": "four-mounts",
+    "label": "四点位全景：挂点在哪",
+    "focus": [
+      "ups",
+      "pre",
+      "post",
+      "stop"
+    ],
+    "note": "提交后 / 执行前 / 执行后 / 结诊时——四个挂点全在环体外，循环本体一行不改"
+  },
+  {
+    "id": "registry",
+    "label": "注册表：挂上=列表加一行",
+    "focus": [
+      "ups"
+    ],
+    "note": "HOOKS 注册表 {事件名:[钩子函数列表]}，注册=追加一行；trigger_hook 依序执行，谁先有意见听谁的"
+  },
+  {
+    "id": "pre-intercept",
+    "label": "执行前节点：拦下单子",
+    "focus": [
+      "vitals",
+      "pre",
+      "perm"
+    ],
+    "note": "医生开单先过 PreToolUse——把关迁来当第一个核对项，钩子有意见单子就到不了科室"
+  },
+  {
+    "id": "post-ledger",
+    "label": "执行后节点：记账归档",
+    "focus": [
+      "desk",
+      "post",
+      "ledger"
+    ],
+    "note": "科室执行完过 PostToolUse，副作用与记账归档；tool_result 回喂病历本，循环往复"
+  },
+  {
+    "id": "stop-recall",
+    "label": "结诊节点：拉回续跑",
+    "focus": [
+      "vitals",
+      "stop",
+      "doctor"
+    ],
+    "note": "判停没开单才轮到 Stop——小结写「还得留观」就能拉回，强制医生再跑一轮"
+  }
+]

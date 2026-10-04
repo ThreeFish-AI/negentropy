@@ -1,38 +1,5 @@
 [
- {
-  "id": "layer-preview",
-  "label": "装置预告一闪",
-  "focus": ["layer-1", "layer-2", "layer-3"],
-  "note": "P0 悬念立碑一闪：挂在循环外、随时可拆的装置剪影（本集视角＝五层链首层及其相邻投影）。focus 对齐主仓 claude-code-harness--five-layer-dependency.html 既有节点语义，录制前回填 guided-views。"
- },
- {
-  "id": "debt-chain",
-  "label": "五层还债链",
-  "focus": ["layer-1", "layer-2", "layer-3", "layer-4", "layer-5"],
-  "note": "每一层都在偿还上一层欠下的债——回到开头那个问题。"
- },
- {
-  "id": "one-loop",
-  "label": "机制很多循环一个",
-  "focus": ["loop-core", "layer-1", "layer-2", "layer-3", "layer-4", "layer-5"],
-  "note": "机制很多，循环一个——敢动手靠的是装置，不是胆量（金句章）。"
- },
- {
-  "id": "grown-where",
-  "label": "长在表里门上插口上",
-  "focus": ["layer-1", "registry-face", "gate-face", "hook-face"],
-  "note": "能力长在表里，安全长在门上，扩展长在插口上——三个生长面收束。"
- },
- {
-  "id": "read-map",
-  "label": "先找循环再看装置",
-  "focus": ["loop-core", "device-zones"],
-  "note": "看任何一个这样的工具：先找它的循环，再看它挂了什么装置（读图法）。"
- },
- {
-  "id": "four-dark-zones",
-  "label": "四个区没开灯",
-  "focus": ["dim-zones", "layer-2", "layer-3", "layer-4", "layer-5"],
-  "note": "工坊地图上还有四个区没开灯——每一区还是那个脾气：装置尽管加，循环不乱动（终态收尾）。"
- }
+ {"id": "layer-flash", "label": "工具层一闪", "focus": ["layer-1", "layer-2", "layer-3"], "note": "P6 6-A 身份卡一闪：五层栈上工具与执行层（L1）点亮——本集视角＝五层链首层及其相邻投影。focus 对齐主仓 claude-code-harness--five-layer-dependency.html 既有节点语义（ISSUE-209：L1 视角重派生，替换误拷的记忆集视角）。"},
+ {"id": "loop-first", "label": "先认循环", "focus": ["loop-core", "layer-1", "device-zones"], "note": "读图法收束：看这样的工具先认它的循环，再看挂在触点上的三层外设——表、闸、节点（本集不引用，备收录）。"},
+ {"id": "four-dark-zones", "label": "四层还没开灯", "focus": ["dim-zones", "layer-2", "layer-3", "layer-4", "layer-5"], "note": "P6 6-C 终态收尾：后面四层还没开灯——外设尽管加，循环不乱动（留白预告；第一集视角＝后四层全留白）。"}
 ]

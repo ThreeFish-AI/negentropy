@@ -1,0 +1,113 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 13.32,
+ "total_wall_sec": 176.87,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "normal-first",
+   "label": "正常序：禁忌表最先拦下",
+   "index": 0,
+   "file": "gate-order-ablation--normal-first.mp4",
+   "end_still": "gate-order-ablation--normal-first-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.207
+   ],
+   "beat_nodes": [
+    "n_order",
+    "n_deny",
+    "n_block"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 27.0
+  },
+  {
+   "id": "reorder-early",
+   "label": "调序：规则与签字提前",
+   "index": 1,
+   "file": "gate-order-ablation--reorder-early.mp4",
+   "end_still": "gate-order-ablation--reorder-early-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.37,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.207
+   ],
+   "beat_nodes": [
+    "r_order",
+    "r_allow",
+    "r_ask"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 24.0
+  },
+  {
+   "id": "one-y-pass",
+   "label": "一个 y 就通过签字关",
+   "index": 2,
+   "file": "gate-order-ablation--one-y-pass.mp4",
+   "end_still": "gate-order-ablation--one-y-pass-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.48,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "r_ask",
+    "r_deny"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "wipe-zero",
+   "label": "实测：4 个文件 → 0",
+   "index": 3,
+   "file": "gate-order-ablation--wipe-zero.mp4",
+   "end_still": "gate-order-ablation--wipe-zero-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.37,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.207
+   ],
+   "beat_nodes": [
+    "r_exec",
+    "r_zero",
+    "n_block"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/claude-code--gate-order-ablation.html",
+ "slug": "gate-order-ablation",
+ "type": "workflow"
+}

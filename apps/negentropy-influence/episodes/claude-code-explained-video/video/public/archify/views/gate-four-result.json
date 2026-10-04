@@ -1,0 +1,63 @@
+[
+  {
+    "id": "four-states",
+    "label": "四态总览：多一个「不表态」",
+    "focus": [
+      "merge",
+      "res_allow",
+      "res_deny",
+      "res_ask",
+      "res_pass"
+    ],
+    "note": "把关结论不是三种而是四种：allow 放行／deny 拒绝／ask 问人／passthrough 不表态——不表态最终也转成问人"
+  },
+  {
+    "id": "eight-sources",
+    "label": "八来源分层合并",
+    "focus": [
+      "src_user",
+      "src_project",
+      "src_local",
+      "src_flag",
+      "src_enterprise",
+      "src_cli",
+      "src_session",
+      "src_inline",
+      "merge"
+    ],
+    "note": "规则不是一张本地表：基座五层配置，再叠命令行、会话内、内联三源，共 8 处分层合并"
+  },
+  {
+    "id": "override",
+    "label": "高优先级覆盖低优先级",
+    "focus": [
+      "src_user",
+      "src_project",
+      "src_local",
+      "src_flag",
+      "src_enterprise",
+      "merge"
+    ],
+    "note": "用户级→项目级→本地→功能开关→企业策略，层层向上；任何环节的「允许」推翻不了写死的「禁止」"
+  },
+  {
+    "id": "classifier",
+    "label": "分类器代审：单子连同对话发判断模型",
+    "focus": [
+      "classifier",
+      "merge",
+      "res_allow"
+    ],
+    "note": "自动模式里第二个模型代审：开单连同对话上下文发过去，由它判断能否自动批准"
+  },
+  {
+    "id": "fallback-human",
+    "label": "连拒多次回退人工",
+    "focus": [
+      "classifier",
+      "fallback",
+      "res_ask"
+    ],
+    "note": "分类器连续拒绝多次，自动放行回退人工——代审有兜底"
+  }
+]

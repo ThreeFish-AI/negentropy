@@ -1,0 +1,53 @@
+[
+  {
+    "id": "full-chain",
+    "label": "全链一镜：五道工序",
+    "focus": [
+      "loop",
+      "schema",
+      "toolself",
+      "hook",
+      "perm",
+      "desk"
+    ],
+    "note": "一单 tool_use 的旅程：核对、自检、节点把关在前，签字在最后，科室收尾——顺序是定死的"
+  },
+  {
+    "id": "cheap-first",
+    "label": "参数核对 · 最靠前",
+    "focus": [
+      "loop",
+      "schema"
+    ],
+    "note": "Zod schema 结构核对：字段与类型一眼定——畸形单最先挡掉"
+  },
+  {
+    "id": "semantic-check",
+    "label": "工具自检 validateInput",
+    "focus": [
+      "schema",
+      "toolself"
+    ],
+    "note": "结构对了还要合事理：工具自己的语义校验，把「类型对但语义错」的单拦下"
+  },
+  {
+    "id": "mid-gate",
+    "label": "前置节点把关居中",
+    "focus": [
+      "toolself",
+      "hook",
+      "perm"
+    ],
+    "note": "PreToolUse 节点可拦可改；官方口径：前置钩子先于权限提示"
+  },
+  {
+    "id": "ask-last",
+    "label": "签字最后 → 执行",
+    "focus": [
+      "perm",
+      "desk",
+      "loop"
+    ],
+    "note": "权限关做规则匹配，需要时才 ask 签字——排在最后；过了才交科室，tool_result 回喂"
+  }
+]

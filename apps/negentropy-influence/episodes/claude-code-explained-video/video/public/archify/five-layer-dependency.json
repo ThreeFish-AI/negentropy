@@ -2,26 +2,26 @@
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 28.77,
- "total_wall_sec": 93.56,
+ "story_sec": 12.48,
+ "total_wall_sec": 119.61,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
  "chapters": [
   {
-   "id": "layer-preview",
-   "label": "装置预告一闪",
+   "id": "layer-flash",
+   "label": "工具层一闪",
    "index": 0,
-   "file": "five-layer-dependency--layer-preview.mp4",
-   "end_still": "five-layer-dependency--layer-preview-end.png",
+   "file": "five-layer-dependency--layer-flash.mp4",
+   "end_still": "five-layer-dependency--layer-flash-end.png",
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.32,
+   "story_sec": 3.6,
    "beat_offsets_sec": [
     0.0,
-    1.103,
-    2.206
+    1.102,
+    2.205
    ],
    "beat_nodes": [
     "layer-1",
@@ -32,102 +32,23 @@
    "capture_fps": 26.0
   },
   {
-   "id": "debt-chain",
-   "label": "五层还债链",
+   "id": "loop-first",
+   "label": "先认循环",
    "index": 1,
-   "file": "five-layer-dependency--debt-chain.mp4",
-   "end_still": "five-layer-dependency--debt-chain-end.png",
-   "beats": 5,
+   "file": "five-layer-dependency--loop-first.mp4",
+   "end_still": "five-layer-dependency--loop-first-end.png",
+   "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 5.56,
+   "story_sec": 3.32,
    "beat_offsets_sec": [
     0.0,
     1.103,
-    2.207,
-    3.31,
-    4.414
-   ],
-   "beat_nodes": [
-    "layer-1",
-    "layer-2",
-    "layer-3",
-    "layer-4",
-    "layer-5"
-   ],
-   "measured_fps": 25.0,
-   "capture_fps": 26.0
-  },
-  {
-   "id": "one-loop",
-   "label": "机制很多循环一个",
-   "index": 2,
-   "file": "five-layer-dependency--one-loop.mp4",
-   "end_still": "five-layer-dependency--one-loop-end.png",
-   "beats": 6,
-   "dwell_ms": 1100,
-   "lead_sec": 0.44,
-   "story_sec": 6.66,
-   "beat_offsets_sec": [
-    0.0,
-    1.103,
-    2.207,
-    3.308,
-    4.411,
-    5.514
+    2.204
    ],
    "beat_nodes": [
     "loop-core",
     "layer-1",
-    "layer-2",
-    "layer-3",
-    "layer-4",
-    "layer-5"
-   ],
-   "measured_fps": 25.0,
-   "capture_fps": 26.0
-  },
-  {
-   "id": "grown-where",
-   "label": "长在表里门上插口上",
-   "index": 3,
-   "file": "five-layer-dependency--grown-where.mp4",
-   "end_still": "five-layer-dependency--grown-where-end.png",
-   "beats": 4,
-   "dwell_ms": 1100,
-   "lead_sec": 0.44,
-   "story_sec": 4.44,
-   "beat_offsets_sec": [
-    0.0,
-    1.102,
-    2.203,
-    3.307
-   ],
-   "beat_nodes": [
-    "layer-1",
-    "registry-face",
-    "gate-face",
-    "hook-face"
-   ],
-   "measured_fps": 25.0,
-   "capture_fps": 26.0
-  },
-  {
-   "id": "read-map",
-   "label": "先找循环再看装置",
-   "index": 4,
-   "file": "five-layer-dependency--read-map.mp4",
-   "end_still": "five-layer-dependency--read-map-end.png",
-   "beats": 2,
-   "dwell_ms": 1600,
-   "lead_sec": 0.44,
-   "story_sec": 3.22,
-   "beat_offsets_sec": [
-    0.0,
-    1.603
-   ],
-   "beat_nodes": [
-    "loop-core",
     "device-zones"
    ],
    "measured_fps": 25.0,
@@ -135,20 +56,20 @@
   },
   {
    "id": "four-dark-zones",
-   "label": "四个区没开灯",
-   "index": 5,
+   "label": "四层还没开灯",
+   "index": 2,
    "file": "five-layer-dependency--four-dark-zones.mp4",
    "end_still": "five-layer-dependency--four-dark-zones-end.png",
    "beats": 5,
    "dwell_ms": 1100,
-   "lead_sec": 0.44,
-   "story_sec": 5.57,
+   "lead_sec": 0.52,
+   "story_sec": 5.56,
    "beat_offsets_sec": [
     0.0,
-    1.102,
-    2.206,
-    3.308,
-    4.412
+    1.103,
+    2.207,
+    3.31,
+    4.413
    ],
    "beat_nodes": [
     "dim-zones",
@@ -158,7 +79,7 @@
     "layer-5"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 26.0
+   "capture_fps": 27.0
   }
  ],
  "capture": {
@@ -169,7 +90,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code-harness--five-layer-dependency.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/claude-code-harness--five-layer-dependency.html",
  "slug": "five-layer-dependency",
  "type": "architecture"
 }

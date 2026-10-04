@@ -108,9 +108,9 @@
           "episode": 1,
           "slug": "claude-code-explained-video",
           "path": "episodes/claude-code-explained-video",
-          "title": "工具与执行：一个循环，三层装置",
-          "topic": "工具与执行：把模型装进Harness",
-          "cardSub": "工具与执行 · 循环",
+          "title": "工具与执行：一个循环，三层外设",
+          "topic": "工具与执行：谁开单，谁放行",
+          "cardSub": "工具与执行 · 循环与外设",
           "accents": [
             "#D97757",
             "#64C4C0",
@@ -120,12 +120,12 @@
             "title": "Learn Claude Code · 工具与执行（s01 Agent Loop / s02 Tool Use / s03 Permission / s04 Hooks）",
             "site": "https://learn.shareai.run/zh/s01/",
             "repo": "https://github.com/shareAI-lab/learn-claude-code",
-            "pinnedRef": "0dcafa2ae053a1ddd6a72f265431104b08a5aa13",
+            "pinnedRef": "ce8f9f186058939da54c9d6fead78dfb5d0fd6c3",
             "license": "MIT",
-            "accessed": "2026-09-27"
+            "accessed": "2026-10-01"
           },
           "status": "final-review",
-          "statusNote": "完全重制 v1 交付（2026-09-30）：14:02.6 = 843s @1080p30（时长窗 [13.0,14.6] 实测落窗；843s=25279 帧复算）；164 句 3644 字（CP1 实测 274 字/分校准 chars_per_min=254 后减脂 317 字）；story 档配音（me-bright 克隆 + 43 块 cues 台本 + seed 4242）；archify 12 图（10 新绘+2 复用重建）65 章逐章回放（cue 64 · 锚定 39.0% · 5 型 · 密度 4.6/分）；机器门全绿：check_series/build/check--check-scenes FAIL 0（2 豁免 WARN 金句卡）/tsc 零错/motion 测试/qa --check FAIL 0/亮度带扫描零近黑段/全分辨率目检翻案无缺陷；归档 ~/Documents/video/claude-code-explained/ v1 + _captions",
+          "statusNote": "完全重制 v1 交付（2026-10-02，替换 2026-09-30 工坊剧场版——旧成片《三层装置》v1/v2 归档保留）：13:17.0 = 797s @1080p30（时长窗 [13.0,14.6] 实测落窗；ffprobe 双源一致 797.013s=23910 帧复算）；141 句 3326 字（df=1.24 慢速档实测 250 字/分覆写——⑤ 成文短促句式裸跑 332 字/分致 10.9 分超窗，duration_factor 调回系列口径）；story 档配音（me-bright 克隆 + 55 块 cues 台本 + seed 4242，tts 自动分段 +2＝57 合成段；p5-14 拆块已入台本、待下次 TTS 生效）；archify 14 图（13 新绘+five-layer 复用）67 章逐章回放（cue 62 · 锚定 44% · 5 型 · 密度 4.7/分 · capture_fps 最低 18.0）；机器门全绿：check_series/check FAIL 0（2 条 by-design 叙事重组逆序 WARN）/tsc 零错/motion 15:15/qa 七幕+尾幕+beat 头部全 FAIL 0/全片抽样 8 帧+末秒逐帧目检过（渐黑收尾正确）；归档 ~/Documents/video/claude-code-explained/ v1 + _captions（srt/vtt）",
           "voice": "story + me-bright.wav"
         },
         {

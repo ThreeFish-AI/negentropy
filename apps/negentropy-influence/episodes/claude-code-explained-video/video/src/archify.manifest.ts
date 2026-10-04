@@ -24,351 +24,75 @@ export type ArchifyChapter = {
 export type ArchifyDiagram = {slug: string; type?: string; chapters: ArchifyChapter[]};
 
 export const ARCHIFY = {
-  "checkchain-order": {
-    "slug": "checkchain-order",
-    "type": "workflow",
-    "chapters": [
-      {
-        "id": "scan-form",
-        "label": "第一道扫外形",
-        "file": "checkchain-order--scan-form.mp4",
-        "endStill": "checkchain-order--scan-form-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.23,
-        "beatNodes": [
-          "scan-a",
-          "workpiece"
-        ]
-      },
-      {
-        "id": "scan-claim",
-        "label": "第二道扫认领",
-        "file": "checkchain-order--scan-claim.mp4",
-        "endStill": "checkchain-order--scan-claim-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.24,
-        "beatNodes": [
-          "scan-b",
-          "machine"
-        ]
-      },
-      {
-        "id": "scan-permit",
-        "label": "第三道扫许可",
-        "file": "checkchain-order--scan-permit.mp4",
-        "endStill": "checkchain-order--scan-permit-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.23,
-        "beatNodes": [
-          "scan-c1",
-          "scan-c2"
-        ]
-      },
-      {
-        "id": "green-relay",
-        "label": "全绿电门合闸",
-        "file": "checkchain-order--green-relay.mp4",
-        "endStill": "checkchain-order--green-relay-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.36,
-        "beatNodes": [
-          "green-lamps",
-          "power-relay",
-          "machine"
-        ]
-      },
-      {
-        "id": "red-halt",
-        "label": "任一红灯不通电",
-        "file": "checkchain-order--red-halt.mp4",
-        "endStill": "checkchain-order--red-halt-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.32,
-        "beatNodes": [
-          "red-lamp",
-          "power-relay",
-          "workpiece"
-        ]
-      },
-      {
-        "id": "order-stable",
-        "label": "稳定的是顺序",
-        "file": "checkchain-order--order-stable.mp4",
-        "endStill": "checkchain-order--order-stable-end.png",
-        "beats": 5,
-        "leadSec": 0.44,
-        "storySec": 5.54,
-        "beatNodes": [
-          "scan-a",
-          "scan-b",
-          "scan-c1",
-          "scan-c2",
-          "power-relay"
-        ]
-      }
-    ]
-  },
-  "dispatch-map": {
-    "slug": "dispatch-map",
+  "dispatch-table": {
+    "slug": "dispatch-table",
     "type": "dataflow",
     "chapters": [
       {
-        "id": "switch-line",
-        "label": "执行行换成查表",
-        "file": "dispatch-map--switch-line.mp4",
-        "endStill": "dispatch-map--switch-line-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.36,
-        "beatNodes": [
-          "loop-core",
-          "execute-line",
-          "registry"
-        ]
-      },
-      {
-        "id": "name-handler",
-        "label": "左名右函数",
-        "file": "dispatch-map--name-handler.mp4",
-        "endStill": "dispatch-map--name-handler-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.36,
-        "beatNodes": [
-          "registry",
-          "tool-name",
-          "handler-fn"
-        ]
-      },
-      {
-        "id": "four-new-tools",
-        "label": "一次注册四工具",
-        "file": "dispatch-map--four-new-tools.mp4",
-        "endStill": "dispatch-map--four-new-tools-end.png",
-        "beats": 5,
-        "leadSec": 0.44,
-        "storySec": 5.57,
-        "beatNodes": [
-          "tool-read",
-          "tool-write",
-          "tool-edit",
-          "tool-glob",
-          "registry"
-        ]
-      },
-      {
-        "id": "ledger-grows",
-        "label": "簿厚了带没动",
-        "file": "dispatch-map--ledger-grows.mp4",
-        "endStill": "dispatch-map--ledger-grows-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.25,
-        "beatNodes": [
-          "registry",
-          "loop-core"
-        ]
-      },
-      {
-        "id": "belt-still",
-        "label": "改簿不改带",
-        "file": "dispatch-map--belt-still.mp4",
-        "endStill": "dispatch-map--belt-still-end.png",
+        "id": "order-in",
+        "label": "① 单子进来：name + input",
+        "file": "dispatch-table--order-in.mp4",
+        "endStill": "dispatch-table--order-in-end.png",
         "beats": 2,
         "leadSec": 0.44,
         "storySec": 3.22,
         "beatNodes": [
-          "loop-core",
+          "order",
+          "tools"
+        ]
+      },
+      {
+        "id": "table-lookup",
+        "label": "② 查表：TOOL_HANDLERS[name]",
+        "file": "dispatch-table--table-lookup.mp4",
+        "endStill": "dispatch-table--table-lookup-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.24,
+        "beatNodes": [
+          "order",
           "registry"
         ]
-      }
-    ]
-  },
-  "execution-panorama": {
-    "slug": "execution-panorama",
-    "chapters": [
-      {
-        "id": "belt-lap",
-        "label": "工具执行一圈",
-        "file": "execution-panorama--belt-lap.mp4",
-        "endStill": "execution-panorama--belt-lap-end.png",
-        "beats": 5,
-        "leadSec": 0.48,
-        "storySec": 5.52,
-        "beatNodes": [
-          "belt",
-          "verify",
-          "gates",
-          "execute",
-          "feed-back"
-        ]
       },
       {
-        "id": "recount",
-        "label": "回头对账",
-        "file": "execution-panorama--recount.mp4",
-        "endStill": "execution-panorama--recount-end.png",
-        "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.45,
-        "beatNodes": [
-          "belt",
-          "debt-capability",
-          "debt-security",
-          "debt-extension"
-        ]
-      },
-      {
-        "id": "debt-ledger",
-        "label": "三债各归其位",
-        "file": "execution-panorama--debt-ledger.mp4",
-        "endStill": "execution-panorama--debt-ledger-end.png",
-        "beats": 6,
-        "leadSec": 0.44,
-        "storySec": 6.66,
-        "beatNodes": [
-          "debt-capability",
-          "registry-port",
-          "debt-security",
-          "gate-port",
-          "debt-extension",
-          "hook-port"
-        ]
-      },
-      {
-        "id": "device-per-chapter",
-        "label": "每章都在加装置",
-        "file": "execution-panorama--device-per-chapter.mp4",
-        "endStill": "execution-panorama--device-per-chapter-end.png",
-        "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.47,
-        "beatNodes": [
-          "registry-port",
-          "gate-port",
-          "hook-port",
-          "belt"
-        ]
-      },
-      {
-        "id": "skeleton-verbatim",
-        "label": "骨架逐字没变",
-        "file": "execution-panorama--skeleton-verbatim.mp4",
-        "endStill": "execution-panorama--skeleton-verbatim-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.26,
-        "beatNodes": [
-          "skeleton",
-          "belt"
-        ]
-      },
-      {
-        "id": "vow-cashed",
-        "label": "立碑兑现",
-        "file": "execution-panorama--vow-cashed.mp4",
-        "endStill": "execution-panorama--vow-cashed-end.png",
-        "beats": 5,
-        "leadSec": 0.44,
-        "storySec": 5.53,
-        "beatNodes": [
-          "vow-stone",
-          "belt",
-          "registry-port",
-          "gate-port",
-          "hook-port"
-        ]
-      }
-    ]
-  },
-  "fence-to-intercom": {
-    "slug": "fence-to-intercom",
-    "type": "architecture",
-    "chapters": [
-      {
-        "id": "quiet-big-day",
-        "label": "安静的大事",
-        "file": "fence-to-intercom--quiet-big-day.mp4",
-        "endStill": "fence-to-intercom--quiet-big-day-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.25,
-        "beatNodes": [
-          "fence",
-          "gate-set"
-        ]
-      },
-      {
-        "id": "fence-removed",
-        "label": "围墙整个拆掉",
-        "file": "fence-to-intercom--fence-removed.mp4",
-        "endStill": "fence-to-intercom--fence-removed-end.png",
+        "id": "dept-exec",
+        "label": "③ 科室执行：纯函数 **input",
+        "file": "dispatch-table--dept-exec.mp4",
+        "endStill": "dispatch-table--dept-exec-end.png",
         "beats": 3,
-        "leadSec": 0.48,
-        "storySec": 3.34,
+        "leadSec": 0.52,
+        "storySec": 7.44,
         "beatNodes": [
-          "fence",
-          "file-tools",
-          "workdir"
+          "safe",
+          "filedesk",
+          "bashdesk"
         ]
       },
       {
-        "id": "downgrade-ask",
-        "label": "报错降级为问人",
-        "file": "fence-to-intercom--downgrade-ask.mp4",
-        "endStill": "fence-to-intercom--downgrade-ask-end.png",
+        "id": "feed-back",
+        "label": "④ 结果包成 tool_result 回喂",
+        "file": "dispatch-table--feed-back.mp4",
+        "endStill": "dispatch-table--feed-back-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.28,
+        "beatNodes": [
+          "result",
+          "ledger"
+        ]
+      },
+      {
+        "id": "grow-table",
+        "label": "⑤ 加新本事 = 表上添两笔",
+        "file": "dispatch-table--grow-table.mp4",
+        "endStill": "dispatch-table--grow-table-end.png",
         "beats": 3,
         "leadSec": 0.44,
         "storySec": 3.34,
         "beatNodes": [
-          "outside-path",
-          "hard-error",
-          "ask-user"
-        ]
-      },
-      {
-        "id": "wall-to-intercom",
-        "label": "墙换成对讲机",
-        "file": "fence-to-intercom--wall-to-intercom.mp4",
-        "endStill": "fence-to-intercom--wall-to-intercom-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.26,
-        "beatNodes": [
-          "fence",
-          "ask-user"
-        ]
-      },
-      {
-        "id": "net-effect",
-        "label": "按净效应算账",
-        "file": "fence-to-intercom--net-effect.mp4",
-        "endStill": "fence-to-intercom--net-effect-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.35,
-        "beatNodes": [
-          "gate-set",
-          "ask-user",
-          "net-effect"
-        ]
-      },
-      {
-        "id": "denied-receipt",
-        "label": "被拒也给回执",
-        "file": "fence-to-intercom--denied-receipt.mp4",
-        "endStill": "fence-to-intercom--denied-receipt-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.25,
-        "beatNodes": [
-          "denied-result",
-          "dialogue"
+          "tools",
+          "newh",
+          "registry"
         ]
       }
     ]
@@ -378,13 +102,13 @@ export const ARCHIFY = {
     "type": "architecture",
     "chapters": [
       {
-        "id": "layer-preview",
-        "label": "装置预告一闪",
-        "file": "five-layer-dependency--layer-preview.mp4",
-        "endStill": "five-layer-dependency--layer-preview-end.png",
+        "id": "layer-flash",
+        "label": "工具层一闪",
+        "file": "five-layer-dependency--layer-flash.mp4",
+        "endStill": "five-layer-dependency--layer-flash-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.32,
+        "storySec": 3.6,
         "beatNodes": [
           "layer-1",
           "layer-2",
@@ -392,74 +116,27 @@ export const ARCHIFY = {
         ]
       },
       {
-        "id": "debt-chain",
-        "label": "五层还债链",
-        "file": "five-layer-dependency--debt-chain.mp4",
-        "endStill": "five-layer-dependency--debt-chain-end.png",
-        "beats": 5,
+        "id": "loop-first",
+        "label": "先认循环",
+        "file": "five-layer-dependency--loop-first.mp4",
+        "endStill": "five-layer-dependency--loop-first-end.png",
+        "beats": 3,
         "leadSec": 0.44,
-        "storySec": 5.56,
-        "beatNodes": [
-          "layer-1",
-          "layer-2",
-          "layer-3",
-          "layer-4",
-          "layer-5"
-        ]
-      },
-      {
-        "id": "one-loop",
-        "label": "机制很多循环一个",
-        "file": "five-layer-dependency--one-loop.mp4",
-        "endStill": "five-layer-dependency--one-loop-end.png",
-        "beats": 6,
-        "leadSec": 0.44,
-        "storySec": 6.66,
+        "storySec": 3.32,
         "beatNodes": [
           "loop-core",
           "layer-1",
-          "layer-2",
-          "layer-3",
-          "layer-4",
-          "layer-5"
-        ]
-      },
-      {
-        "id": "grown-where",
-        "label": "长在表里门上插口上",
-        "file": "five-layer-dependency--grown-where.mp4",
-        "endStill": "five-layer-dependency--grown-where-end.png",
-        "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.44,
-        "beatNodes": [
-          "layer-1",
-          "registry-face",
-          "gate-face",
-          "hook-face"
-        ]
-      },
-      {
-        "id": "read-map",
-        "label": "先找循环再看装置",
-        "file": "five-layer-dependency--read-map.mp4",
-        "endStill": "five-layer-dependency--read-map-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.22,
-        "beatNodes": [
-          "loop-core",
           "device-zones"
         ]
       },
       {
         "id": "four-dark-zones",
-        "label": "四个区没开灯",
+        "label": "四层还没开灯",
         "file": "five-layer-dependency--four-dark-zones.mp4",
         "endStill": "five-layer-dependency--four-dark-zones-end.png",
         "beats": 5,
-        "leadSec": 0.44,
-        "storySec": 5.57,
+        "leadSec": 0.52,
+        "storySec": 5.56,
         "beatNodes": [
           "dim-zones",
           "layer-2",
@@ -470,533 +147,897 @@ export const ARCHIFY = {
       }
     ]
   },
-  "hook-channels": {
-    "slug": "hook-channels",
-    "type": "dataflow",
+  "four-version-ledger": {
+    "slug": "four-version-ledger",
+    "type": "lifecycle",
     "chapters": [
       {
-        "id": "four-event-sockets",
-        "label": "四个事件口",
-        "file": "hook-channels--four-event-sockets.mp4",
-        "endStill": "hook-channels--four-event-sockets-end.png",
-        "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.43,
-        "beatNodes": [
-          "evt-user-prompt",
-          "evt-pre",
-          "evt-post",
-          "evt-stop"
-        ]
-      },
-      {
-        "id": "two-functions",
-        "label": "循环只认两个函数",
-        "file": "hook-channels--two-functions.mp4",
-        "endStill": "hook-channels--two-functions-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.24,
-        "beatNodes": [
-          "register-fn",
-          "trigger-fn"
-        ]
-      },
-      {
-        "id": "return-channel",
-        "label": "返回值唯一信道",
-        "file": "hook-channels--return-channel.mp4",
-        "endStill": "hook-channels--return-channel-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.21,
-        "beatNodes": [
-          "ret-none",
-          "ret-object"
-        ]
-      },
-      {
-        "id": "none-vs-object",
-        "label": "空没意见非空干预",
-        "file": "hook-channels--none-vs-object.mp4",
-        "endStill": "hook-channels--none-vs-object-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.34,
-        "beatNodes": [
-          "ret-none",
-          "ret-object",
-          "evt-pre"
-        ]
-      },
-      {
-        "id": "brake-gas",
-        "label": "刹车与油门",
-        "file": "hook-channels--brake-gas.mp4",
-        "endStill": "hook-channels--brake-gas-end.png",
-        "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.43,
-        "beatNodes": [
-          "evt-pre",
-          "evt-stop",
-          "brake",
-          "gas"
-        ]
-      },
-      {
-        "id": "parallel-merge",
-        "label": "产品并行拒绝优先",
-        "file": "hook-channels--parallel-merge.mp4",
-        "endStill": "hook-channels--parallel-merge-end.png",
+        "id": "v1-base",
+        "label": "v1 · 102 行：循环 + 一把 bash",
+        "file": "four-version-ledger--v1-base.mp4",
+        "endStill": "four-version-ledger--v1-base-end.png",
         "beats": 2,
         "leadSec": 0.44,
         "storySec": 3.25,
         "beatNodes": [
-          "parallel-hooks",
-          "merge-deny-first"
-        ]
-      }
-    ]
-  },
-  "loop-anatomy": {
-    "slug": "loop-anatomy",
-    "chapters": [
-      {
-        "id": "belt-turn",
-        "label": "传送带一圈三件事",
-        "file": "loop-anatomy--belt-turn.mp4",
-        "endStill": "loop-anatomy--belt-turn-end.png",
-        "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.44,
-        "beatNodes": [
-          "loop-core",
-          "ledger",
-          "tool-use-block",
-          "tool-result"
+          "v1",
+          "lp1"
         ]
       },
       {
-        "id": "append-first",
-        "label": "师傅先落账",
-        "file": "loop-anatomy--append-first.mp4",
-        "endStill": "loop-anatomy--append-first-end.png",
+        "id": "v2-table",
+        "label": "v2 · 135 行：+开单表，循环只换一行",
+        "file": "four-version-ledger--v2-table.mp4",
+        "endStill": "four-version-ledger--v2-table-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.28,
+        "beatNodes": [
+          "v2",
+          "lp2"
+        ]
+      },
+      {
+        "id": "v3-gates",
+        "label": "v3 · 180 行：+三重把关进管线",
+        "file": "four-version-ledger--v3-gates.mp4",
+        "endStill": "four-version-ledger--v3-gates-end.png",
         "beats": 2,
         "leadSec": 0.44,
         "storySec": 3.21,
         "beatNodes": [
-          "assistant-msg",
-          "ledger"
+          "v3",
+          "lp3"
         ]
       },
       {
-        "id": "hand-check",
-        "label": "看手里有没有调用",
-        "file": "loop-anatomy--hand-check.mp4",
-        "endStill": "loop-anatomy--hand-check-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.25,
-        "beatNodes": [
-          "content-blocks",
-          "tool-use-block"
-        ]
-      },
-      {
-        "id": "no-tool-exit",
-        "label": "没递就收圈",
-        "file": "loop-anatomy--no-tool-exit.mp4",
-        "endStill": "loop-anatomy--no-tool-exit-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.34,
-        "beatNodes": [
-          "tool-use-block",
-          "stop-exit",
-          "loop-core"
-        ]
-      },
-      {
-        "id": "pair-backfill",
-        "label": "按编号配对回填",
-        "file": "loop-anatomy--pair-backfill.mp4",
-        "endStill": "loop-anatomy--pair-backfill-end.png",
-        "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.42,
-        "beatNodes": [
-          "executor",
-          "tool-result",
-          "pairing",
-          "ledger"
-        ]
-      }
-    ]
-  },
-  "loop-verdict": {
-    "slug": "loop-verdict",
-    "type": "workflow",
-    "chapters": [
-      {
-        "id": "two-revisions",
-        "label": "两个修订判据相反",
-        "file": "loop-verdict--two-revisions.mp4",
-        "endStill": "loop-verdict--two-revisions-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.24,
-        "beatNodes": [
-          "rev-mouth",
-          "rev-hand"
-        ]
-      },
-      {
-        "id": "trust-mouth",
-        "label": "一版信嘴上",
-        "file": "loop-verdict--trust-mouth.mp4",
-        "endStill": "loop-verdict--trust-mouth-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.21,
-        "beatNodes": [
-          "rev-mouth",
-          "stop-marker"
-        ]
-      },
-      {
-        "id": "trust-hand",
-        "label": "一版信手里",
-        "file": "loop-verdict--trust-hand.mp4",
-        "endStill": "loop-verdict--trust-hand-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.22,
-        "beatNodes": [
-          "rev-hand",
-          "tool-use-block"
-        ]
-      },
-      {
-        "id": "official-silent",
-        "label": "官方不披露实现层",
-        "file": "loop-verdict--official-silent.mp4",
-        "endStill": "loop-verdict--official-silent-end.png",
+        "id": "v4-hooks",
+        "label": "v4 · 232 行：+规程节点，把关搬家",
+        "file": "four-version-ledger--v4-hooks.mp4",
+        "endStill": "four-version-ledger--v4-hooks-end.png",
         "beats": 2,
         "leadSec": 0.44,
         "storySec": 3.23,
         "beatNodes": [
-          "official-doc",
-          "undecidable"
+          "v4",
+          "lp4"
         ]
       },
       {
-        "id": "flag-flips",
-        "label": "流式即置真",
-        "file": "loop-verdict--flag-flips.mp4",
-        "endStill": "loop-verdict--flag-flips-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.36,
-        "beatNodes": [
-          "stream-response",
-          "independent-flag",
-          "tool-use-block"
-        ]
-      }
-    ]
-  },
-  "registry-contract": {
-    "slug": "registry-contract",
-    "type": "dataflow",
-    "chapters": [
-      {
-        "id": "two-step-signup",
-        "label": "注册两步",
-        "file": "registry-contract--two-step-signup.mp4",
-        "endStill": "registry-contract--two-step-signup-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.33,
-        "beatNodes": [
-          "signup-flow",
-          "schema-card",
-          "handler-def"
-        ]
-      },
-      {
-        "id": "hidden-third-boom",
-        "label": "第三处暗契约",
-        "file": "registry-contract--hidden-third-boom.mp4",
-        "endStill": "registry-contract--hidden-third-boom-end.png",
+        "id": "ledger",
+        "label": "对账：循环几乎没动",
+        "file": "four-version-ledger--ledger.mp4",
+        "endStill": "four-version-ledger--ledger-end.png",
         "beats": 5,
         "leadSec": 0.44,
-        "storySec": 5.56,
+        "storySec": 5.6,
         "beatNodes": [
-          "schema-card",
-          "handler-def",
-          "kwarg-unpack",
-          "name-mismatch",
-          "runtime-boom"
-        ]
-      },
-      {
-        "id": "unknown-fallback",
-        "label": "查不到不崩",
-        "file": "registry-contract--unknown-fallback.mp4",
-        "endStill": "registry-contract--unknown-fallback-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.26,
-        "beatNodes": [
-          "unknown-name",
-          "fallback-string"
-        ]
-      },
-      {
-        "id": "per-tool-try",
-        "label": "每台机器自己兜故障",
-        "file": "registry-contract--per-tool-try.mp4",
-        "endStill": "registry-contract--per-tool-try-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.24,
-        "beatNodes": [
-          "try-except",
-          "error-note"
-        ]
-      },
-      {
-        "id": "loop-immune",
-        "label": "伤不到循环分毫",
-        "file": "registry-contract--loop-immune.mp4",
-        "endStill": "registry-contract--loop-immune-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.34,
-        "beatNodes": [
-          "try-except",
-          "error-note",
-          "shielded-loop"
+          "v5",
+          "lp1",
+          "lp2",
+          "lp3",
+          "lp4"
         ]
       }
     ]
   },
-  "stop-veto": {
-    "slug": "stop-veto",
+  "gate-four-result": {
+    "slug": "gate-four-result",
+    "type": "architecture",
     "chapters": [
       {
-        "id": "stop-not-solo",
-        "label": "收工非独断",
-        "file": "stop-veto--stop-not-solo.mp4",
-        "endStill": "stop-veto--stop-not-solo-end.png",
-        "beats": 2,
+        "id": "four-states",
+        "label": "四态总览：多一个「不表态」",
+        "file": "gate-four-result--four-states.mp4",
+        "endStill": "gate-four-result--four-states-end.png",
+        "beats": 5,
         "leadSec": 0.44,
-        "storySec": 3.24,
+        "storySec": 5.54,
         "beatNodes": [
-          "stop-moment",
-          "loop-core"
+          "merge",
+          "res_allow",
+          "res_deny",
+          "res_ask",
+          "res_pass"
         ]
       },
       {
-        "id": "message-yank",
-        "label": "递消息拽回续跑",
-        "file": "stop-veto--message-yank.mp4",
-        "endStill": "stop-veto--message-yank-end.png",
-        "beats": 4,
+        "id": "eight-sources",
+        "label": "八来源分层合并",
+        "file": "gate-four-result--eight-sources.mp4",
+        "endStill": "gate-four-result--eight-sources-end.png",
+        "beats": 9,
+        "leadSec": 0.44,
+        "storySec": 9.97,
+        "beatNodes": [
+          "src_user",
+          "src_project",
+          "src_local",
+          "src_flag",
+          "src_enterprise",
+          "src_cli",
+          "src_session",
+          "src_inline",
+          "merge"
+        ]
+      },
+      {
+        "id": "override",
+        "label": "高优先级覆盖低优先级",
+        "file": "gate-four-result--override.mp4",
+        "endStill": "gate-four-result--override-end.png",
+        "beats": 6,
         "leadSec": 0.48,
-        "storySec": 4.46,
+        "storySec": 6.68,
         "beatNodes": [
-          "hook-msg",
-          "inject-user",
-          "rerun",
-          "loop-core"
+          "src_user",
+          "src_project",
+          "src_local",
+          "src_flag",
+          "src_enterprise",
+          "merge"
         ]
       },
       {
-        "id": "master-overruled",
-        "label": "师傅说不算",
-        "file": "stop-veto--master-overruled.mp4",
-        "endStill": "stop-veto--master-overruled-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.34,
-        "beatNodes": [
-          "master-says",
-          "pulled-back",
-          "rerun"
-        ]
-      }
-    ]
-  },
-  "three-gates": {
-    "slug": "three-gates",
-    "chapters": [
-      {
-        "id": "welded-gate",
-        "label": "焊死的铁门",
-        "file": "three-gates--welded-gate.mp4",
-        "endStill": "three-gates--welded-gate-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.25,
-        "beatNodes": [
-          "gate-deny",
-          "deny-list"
-        ]
-      },
-      {
-        "id": "bash-scope",
-        "label": "只盯命令行",
-        "file": "three-gates--bash-scope.mp4",
-        "endStill": "three-gates--bash-scope-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.22,
-        "beatNodes": [
-          "deny-list",
-          "bash-machine"
-        ]
-      },
-      {
-        "id": "rule-gate",
-        "label": "规则匹配门",
-        "file": "three-gates--rule-gate.mp4",
-        "endStill": "three-gates--rule-gate-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.25,
-        "beatNodes": [
-          "gate-rule",
-          "rule-table"
-        ]
-      },
-      {
-        "id": "intercom-gate",
-        "label": "对讲机默认拒绝",
-        "file": "three-gates--intercom-gate.mp4",
-        "endStill": "three-gates--intercom-gate-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.33,
-        "beatNodes": [
-          "gate-ask",
-          "user",
-          "default-deny"
-        ]
-      },
-      {
-        "id": "order-locked",
-        "label": "次序焊死",
-        "file": "three-gates--order-locked.mp4",
-        "endStill": "three-gates--order-locked-end.png",
+        "id": "classifier",
+        "label": "分类器代审：单子连同对话发判断模型",
+        "file": "gate-four-result--classifier.mp4",
+        "endStill": "gate-four-result--classifier-end.png",
         "beats": 3,
         "leadSec": 0.44,
         "storySec": 3.32,
         "beatNodes": [
-          "gate-deny",
-          "gate-rule",
-          "gate-ask"
+          "classifier",
+          "merge",
+          "res_allow"
         ]
       },
       {
-        "id": "one-line-join",
-        "label": "接进循环只加一行",
-        "file": "three-gates--one-line-join.mp4",
-        "endStill": "three-gates--one-line-join-end.png",
+        "id": "fallback-human",
+        "label": "连拒多次回退人工",
+        "file": "gate-four-result--fallback-human.mp4",
+        "endStill": "gate-four-result--fallback-human-end.png",
         "beats": 3,
-        "leadSec": 0.48,
-        "storySec": 3.31,
+        "leadSec": 0.44,
+        "storySec": 3.35,
         "beatNodes": [
-          "one-line-hook",
-          "gate-deny",
-          "loop-core"
+          "classifier",
+          "fallback",
+          "res_ask"
         ]
       }
     ]
   },
-  "tool-batch-layers": {
-    "slug": "tool-batch-layers",
+  "gate-order-ablation": {
+    "slug": "gate-order-ablation",
     "type": "workflow",
     "chapters": [
       {
-        "id": "one-tray",
-        "label": "一口气一托盘",
-        "file": "tool-batch-layers--one-tray.mp4",
-        "endStill": "tool-batch-layers--one-tray-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.24,
-        "beatNodes": [
-          "tray",
-          "multi-calls"
-        ]
-      },
-      {
-        "id": "teach-serial",
-        "label": "教学版一件一件上",
-        "file": "tool-batch-layers--teach-serial.mp4",
-        "endStill": "tool-batch-layers--teach-serial-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.25,
-        "beatNodes": [
-          "serial-exec",
-          "tray"
-        ]
-      },
-      {
-        "id": "index-promises",
-        "label": "索引承诺了并发",
-        "file": "tool-batch-layers--index-promises.mp4",
-        "endStill": "tool-batch-layers--index-promises-end.png",
+        "id": "normal-first",
+        "label": "正常序：禁忌表最先拦下",
+        "file": "gate-order-ablation--normal-first.mp4",
+        "endStill": "gate-order-ablation--normal-first-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.34,
+        "storySec": 3.35,
         "beatNodes": [
-          "chapter-index",
-          "concurrency-keyword",
-          "code-probe"
+          "n_order",
+          "n_deny",
+          "n_block"
         ]
       },
       {
-        "id": "official-parallel",
-        "label": "官方确认并行与批",
-        "file": "tool-batch-layers--official-parallel.mp4",
-        "endStill": "tool-batch-layers--official-parallel-end.png",
+        "id": "reorder-early",
+        "label": "调序：规则与签字提前",
+        "file": "gate-order-ablation--reorder-early.mp4",
+        "endStill": "gate-order-ablation--reorder-early-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.37,
+        "beatNodes": [
+          "r_order",
+          "r_allow",
+          "r_ask"
+        ]
+      },
+      {
+        "id": "one-y-pass",
+        "label": "一个 y 就通过签字关",
+        "file": "gate-order-ablation--one-y-pass.mp4",
+        "endStill": "gate-order-ablation--one-y-pass-end.png",
+        "beats": 2,
+        "leadSec": 0.48,
+        "storySec": 3.23,
+        "beatNodes": [
+          "r_ask",
+          "r_deny"
+        ]
+      },
+      {
+        "id": "wipe-zero",
+        "label": "实测：4 个文件 → 0",
+        "file": "gate-order-ablation--wipe-zero.mp4",
+        "endStill": "gate-order-ablation--wipe-zero-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.37,
+        "beatNodes": [
+          "r_exec",
+          "r_zero",
+          "n_block"
+        ]
+      }
+    ]
+  },
+  "gate-three-tier": {
+    "slug": "gate-three-tier",
+    "type": "lifecycle",
+    "chapters": [
+      {
+        "id": "arrive",
+        "label": "一张单子到关前",
+        "file": "gate-three-tier--arrive.mp4",
+        "endStill": "gate-three-tier--arrive-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.22,
+        "storySec": 3.23,
         "beatNodes": [
-          "official-doc",
-          "parallel-batch"
+          "in",
+          "g1"
         ]
       },
       {
-        "id": "author-schedule",
-        "label": "批内并行批间排队",
-        "file": "tool-batch-layers--author-schedule.mp4",
-        "endStill": "tool-batch-layers--author-schedule-end.png",
+        "id": "hard-deny",
+        "label": "禁忌表硬拒，翻不了案",
+        "file": "gate-three-tier--hard-deny.mp4",
+        "endStill": "gate-three-tier--hard-deny-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.27,
+        "beatNodes": [
+          "g1",
+          "denied"
+        ]
+      },
+      {
+        "id": "rule-hit",
+        "label": "按工具规则比对",
+        "file": "gate-three-tier--rule-hit.mp4",
+        "endStill": "gate-three-tier--rule-hit-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.26,
+        "beatNodes": [
+          "g2",
+          "g3"
+        ]
+      },
+      {
+        "id": "ask-sign",
+        "label": "问人签字，默认拒",
+        "file": "gate-three-tier--ask-sign.mp4",
+        "endStill": "gate-three-tier--ask-sign-end.png",
+        "beats": 3,
+        "leadSec": 0.48,
+        "storySec": 3.36,
+        "beatNodes": [
+          "g3",
+          "ok",
+          "denied"
+        ]
+      },
+      {
+        "id": "default-pass",
+        "label": "三关皆空默认做＋被拒也有回执",
+        "file": "gate-three-tier--default-pass.mp4",
+        "endStill": "gate-three-tier--default-pass-end.png",
+        "beats": 3,
+        "leadSec": 0.48,
+        "storySec": 3.38,
+        "beatNodes": [
+          "run",
+          "denied",
+          "fed"
+        ]
+      }
+    ]
+  },
+  "hook-mount": {
+    "slug": "hook-mount",
+    "type": "dataflow",
+    "chapters": [
+      {
+        "id": "four-mounts",
+        "label": "四点位全景：挂点在哪",
+        "file": "hook-mount--four-mounts.mp4",
+        "endStill": "hook-mount--four-mounts-end.png",
+        "beats": 4,
+        "leadSec": 0.48,
+        "storySec": 4.42,
+        "beatNodes": [
+          "ups",
+          "pre",
+          "post",
+          "stop"
+        ]
+      },
+      {
+        "id": "registry",
+        "label": "注册表：挂上=列表加一行",
+        "file": "hook-mount--registry.mp4",
+        "endStill": "hook-mount--registry-end.png",
+        "beats": 1,
+        "leadSec": 0.44,
+        "storySec": 3.27,
+        "beatNodes": [
+          "ups"
+        ]
+      },
+      {
+        "id": "pre-intercept",
+        "label": "执行前节点：拦下单子",
+        "file": "hook-mount--pre-intercept.mp4",
+        "endStill": "hook-mount--pre-intercept-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.5,
+        "beatNodes": [
+          "vitals",
+          "pre",
+          "perm"
+        ]
+      },
+      {
+        "id": "post-ledger",
+        "label": "执行后节点：记账归档",
+        "file": "hook-mount--post-ledger.mp4",
+        "endStill": "hook-mount--post-ledger-end.png",
+        "beats": 3,
+        "leadSec": 0.48,
+        "storySec": 3.49,
+        "beatNodes": [
+          "desk",
+          "post",
+          "ledger"
+        ]
+      },
+      {
+        "id": "stop-recall",
+        "label": "结诊节点：拉回续跑",
+        "file": "hook-mount--stop-recall.mp4",
+        "endStill": "hook-mount--stop-recall-end.png",
+        "beats": 3,
+        "leadSec": 0.48,
+        "storySec": 3.33,
+        "beatNodes": [
+          "vitals",
+          "stop",
+          "doctor"
+        ]
+      }
+    ]
+  },
+  "hookresult-tri": {
+    "slug": "hookresult-tri",
+    "type": "lifecycle",
+    "chapters": [
+      {
+        "id": "tri-overview",
+        "label": "三值：None / 意见 / False",
+        "file": "hookresult-tri--tri-overview.mp4",
+        "endStill": "hookresult-tri--tri-overview-end.png",
+        "beats": 4,
+        "leadSec": 0.48,
+        "storySec": 4.46,
+        "beatNodes": [
+          "q2",
+          "vNone",
+          "vFalse",
+          "q3"
+        ]
+      },
+      {
+        "id": "first-wins",
+        "label": "首个非 None 短路",
+        "file": "hookresult-tri--first-wins.mp4",
+        "endStill": "hookresult-tri--first-wins-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.33,
+        "beatNodes": [
+          "q1",
+          "q3",
+          "e1"
+        ]
+      },
+      {
+        "id": "false-trap",
+        "label": "False 陷阱：它是有意见",
+        "file": "hookresult-tri--false-trap.mp4",
+        "endStill": "hookresult-tri--false-trap-end.png",
         "beats": 3,
         "leadSec": 0.44,
         "storySec": 3.36,
         "beatNodes": [
-          "author-analysis",
-          "batch-parallel",
-          "batch-queue"
+          "q2",
+          "vFalse",
+          "q3"
         ]
       },
       {
-        "id": "args-decide",
-        "label": "看实参不看名",
-        "file": "tool-batch-layers--args-decide.mp4",
-        "endStill": "tool-batch-layers--args-decide-end.png",
+        "id": "flip-zero-tools",
+        "label": "反转实验：全失灵 0 工具",
+        "file": "hookresult-tri--flip-zero-tools.mp4",
+        "endStill": "hookresult-tri--flip-zero-tools-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.21,
+        "beatNodes": [
+          "x1",
+          "x2"
+        ]
+      },
+      {
+        "id": "flip-stop-hijack",
+        "label": "反转实验：Stop 劫持到封顶",
+        "file": "hookresult-tri--flip-stop-hijack.mp4",
+        "endStill": "hookresult-tri--flip-stop-hijack-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.23,
+        "beatNodes": [
+          "x1",
+          "x3"
+        ]
+      }
+    ]
+  },
+  "human-relay": {
+    "slug": "human-relay",
+    "type": "workflow",
+    "chapters": [
+      {
+        "id": "manual-full",
+        "label": "人肉往返全貌",
+        "file": "human-relay--manual-full.mp4",
+        "endStill": "human-relay--manual-full-end.png",
+        "beats": 6,
+        "leadSec": 0.44,
+        "storySec": 6.7,
+        "beatNodes": [
+          "u_ask",
+          "m_read",
+          "m_say",
+          "u_copy",
+          "u_term",
+          "u_back"
+        ]
+      },
+      {
+        "id": "talk-only",
+        "label": "模型只说不干",
+        "file": "human-relay--talk-only.mp4",
+        "endStill": "human-relay--talk-only-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.33,
+        "beatNodes": [
+          "m_say",
+          "u_ask",
+          "u_copy"
+        ]
+      },
+      {
+        "id": "your-hands",
+        "label": "每轮交接都是你的手",
+        "file": "human-relay--your-hands.mp4",
+        "endStill": "human-relay--your-hands-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 6.73,
+        "beatNodes": [
+          "u_ask",
+          "u_copy",
+          "u_term",
+          "u_back"
+        ]
+      },
+      {
+        "id": "loop-takes-over",
+        "label": "循环接手",
+        "file": "human-relay--loop-takes-over.mp4",
+        "endStill": "human-relay--loop-takes-over-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.68,
+        "beatNodes": [
+          "c_ledger",
+          "c_doctor",
+          "c_desk"
+        ]
+      },
+      {
+        "id": "gap-preview",
+        "label": "差距预告",
+        "file": "human-relay--gap-preview.mp4",
+        "endStill": "human-relay--gap-preview-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.31,
+        "beatNodes": [
+          "x_table",
+          "x_gate",
+          "x_hook"
+        ]
+      }
+    ]
+  },
+  "intake-loop": {
+    "slug": "intake-loop",
+    "type": "architecture",
+    "chapters": [
+      {
+        "id": "five-steps",
+        "label": "五步一圈：调·落·判·执·回",
+        "file": "intake-loop--five-steps.mp4",
+        "endStill": "intake-loop--five-steps-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.46,
+        "beatNodes": [
+          "doctor",
+          "vitals",
+          "desk",
+          "ledger"
+        ]
+      },
+      {
+        "id": "full-reread",
+        "label": "每一轮都是全量重读",
+        "file": "intake-loop--full-reread.mp4",
+        "endStill": "intake-loop--full-reread-end.png",
+        "beats": 2,
+        "leadSec": 0.48,
+        "storySec": 3.44,
+        "beatNodes": [
+          "ledger",
+          "doctor"
+        ]
+      },
+      {
+        "id": "two-signatures",
+        "label": "病历本只认两种署名",
+        "file": "intake-loop--two-signatures.mp4",
+        "endStill": "intake-loop--two-signatures-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 7.08,
+        "beatNodes": [
+          "ledger",
+          "doctor",
+          "desk"
+        ]
+      },
+      {
+        "id": "order-or-done",
+        "label": "续诊还是结诊，只看开没开单",
+        "file": "intake-loop--order-or-done.mp4",
+        "endStill": "intake-loop--order-or-done-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.27,
+        "beatNodes": [
+          "vitals",
+          "desk"
+        ]
+      },
+      {
+        "id": "discharge-return",
+        "label": "没开单→结诊交还",
+        "file": "intake-loop--discharge-return.mp4",
+        "endStill": "intake-loop--discharge-return-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.27,
+        "beatNodes": [
+          "vitals",
+          "patient"
+        ]
+      }
+    ]
+  },
+  "lookup-failure": {
+    "slug": "lookup-failure",
+    "type": "lifecycle",
+    "chapters": [
+      {
+        "id": "unknown-in",
+        "label": "① 未知 name 进来",
+        "file": "lookup-failure--unknown-in.mp4",
+        "endStill": "lookup-failure--unknown-in-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.25,
+        "beatNodes": [
+          "unknown",
+          "lookup"
+        ]
+      },
+      {
+        "id": "hard-crash",
+        "label": "② 硬索引：KeyError 当场崩",
+        "file": "lookup-failure--hard-crash.mp4",
+        "endStill": "lookup-failure--hard-crash-end.png",
+        "beats": 2,
+        "leadSec": 1.28,
+        "storySec": 6.72,
+        "beatNodes": [
+          "lookup",
+          "crash"
+        ]
+      },
+      {
+        "id": "soft-unknown",
+        "label": "③ 软查表：Unknown 回喂",
+        "file": "lookup-failure--soft-unknown.mp4",
+        "endStill": "lookup-failure--soft-unknown-end.png",
+        "beats": 2,
+        "leadSec": 0.48,
+        "storySec": 3.27,
+        "beatNodes": [
+          "lookup",
+          "feed"
+        ]
+      },
+      {
+        "id": "self-fix",
+        "label": "④ 医生看到 Unknown 自纠",
+        "file": "lookup-failure--self-fix.mp4",
+        "endStill": "lookup-failure--self-fix-end.png",
+        "beats": 3,
+        "leadSec": 0.48,
+        "storySec": 3.35,
+        "beatNodes": [
+          "feed",
+          "selffix",
+          "resume"
+        ]
+      },
+      {
+        "id": "verdict",
+        "label": "⑤ 失败形态由取值方式决定",
+        "file": "lookup-failure--verdict.mp4",
+        "endStill": "lookup-failure--verdict-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.36,
+        "beatNodes": [
+          "lookup",
+          "crash",
+          "feed"
+        ]
+      }
+    ]
+  },
+  "preflight-chain": {
+    "slug": "preflight-chain",
+    "type": "sequence",
+    "chapters": [
+      {
+        "id": "full-chain",
+        "label": "全链一镜：五道工序",
+        "file": "preflight-chain--full-chain.mp4",
+        "endStill": "preflight-chain--full-chain-end.png",
+        "beats": 6,
+        "leadSec": 0.48,
+        "storySec": 6.66,
+        "beatNodes": [
+          "loop",
+          "schema",
+          "toolself",
+          "hook",
+          "perm",
+          "desk"
+        ]
+      },
+      {
+        "id": "cheap-first",
+        "label": "参数核对 · 最靠前",
+        "file": "preflight-chain--cheap-first.mp4",
+        "endStill": "preflight-chain--cheap-first-end.png",
+        "beats": 2,
+        "leadSec": 0.48,
+        "storySec": 3.38,
+        "beatNodes": [
+          "loop",
+          "schema"
+        ]
+      },
+      {
+        "id": "semantic-check",
+        "label": "工具自检 validateInput",
+        "file": "preflight-chain--semantic-check.mp4",
+        "endStill": "preflight-chain--semantic-check-end.png",
+        "beats": 2,
+        "leadSec": 0.48,
+        "storySec": 3.23,
+        "beatNodes": [
+          "schema",
+          "toolself"
+        ]
+      },
+      {
+        "id": "mid-gate",
+        "label": "前置节点把关居中",
+        "file": "preflight-chain--mid-gate.mp4",
+        "endStill": "preflight-chain--mid-gate-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.32,
+        "beatNodes": [
+          "toolself",
+          "hook",
+          "perm"
+        ]
+      },
+      {
+        "id": "ask-last",
+        "label": "签字最后 → 执行",
+        "file": "preflight-chain--ask-last.mp4",
+        "endStill": "preflight-chain--ask-last-end.png",
+        "beats": 3,
+        "leadSec": 0.52,
+        "storySec": 3.37,
+        "beatNodes": [
+          "perm",
+          "desk",
+          "loop"
+        ]
+      }
+    ]
+  },
+  "stop-guard": {
+    "slug": "stop-guard",
+    "type": "lifecycle",
+    "chapters": [
+      {
+        "id": "recall-loop",
+        "label": "无防护：拉回再拉回",
+        "file": "stop-guard--recall-loop.mp4",
+        "endStill": "stop-guard--recall-loop-end.png",
+        "beats": 3,
+        "leadSec": 0.48,
+        "storySec": 6.06,
+        "beatNodes": [
+          "pull",
+          "run",
+          "loop"
+        ]
+      },
+      {
+        "id": "cap-100",
+        "label": "无防护：冲到 100 条封顶",
+        "file": "stop-guard--cap-100.mp4",
+        "endStill": "stop-guard--cap-100-end.png",
+        "beats": 2,
+        "leadSec": 0.48,
+        "storySec": 3.23,
+        "beatNodes": [
+          "loop",
+          "cap"
+        ]
+      },
+      {
+        "id": "guard-flag",
+        "label": "保险一：标志位带标重入",
+        "file": "stop-guard--guard-flag.mp4",
+        "endStill": "stop-guard--guard-flag-end.png",
+        "beats": 2,
+        "leadSec": 0.64,
+        "storySec": 3.74,
+        "beatNodes": [
+          "run",
+          "flag"
+        ]
+      },
+      {
+        "id": "guard-cap8",
+        "label": "保险二：8 次连续续跑硬停",
+        "file": "stop-guard--guard-cap8.mp4",
+        "endStill": "stop-guard--guard-cap8-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.28,
+        "beatNodes": [
+          "count",
+          "hard8"
+        ]
+      },
+      {
+        "id": "stop-clean",
+        "label": "对照：3 条内干净停机",
+        "file": "stop-guard--stop-clean.mp4",
+        "endStill": "stop-guard--stop-clean-end.png",
+        "beats": 3,
+        "leadSec": 0.48,
+        "storySec": 3.34,
+        "beatNodes": [
+          "cap",
+          "hard8",
+          "clean"
+        ]
+      }
+    ]
+  },
+  "stop-reason-race": {
+    "slug": "stop-reason-race",
+    "type": "sequence",
+    "chapters": [
+      {
+        "id": "stream-order",
+        "label": "① 内容块与停止标记不是同时到",
+        "file": "stop-reason-race--stream-order.mp4",
+        "endStill": "stop-reason-race--stream-order-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.96,
+        "beatNodes": [
+          "stream",
+          "loopstop",
+          "loopblock"
+        ]
+      },
+      {
+        "id": "stop-late",
+        "label": "② 信标记侧：迟到当成没开单",
+        "file": "stop-reason-race--stop-late.mp4",
+        "endStill": "stop-reason-race--stop-late-end.png",
         "beats": 2,
         "leadSec": 0.44,
         "storySec": 3.22,
         "beatNodes": [
-          "args-decide",
-          "parallel-batch"
+          "stream",
+          "loopstop"
+        ]
+      },
+      {
+        "id": "stop-die",
+        "label": "③ 信标记侧：1 轮即停 0 工具",
+        "file": "stop-reason-race--stop-die.mp4",
+        "endStill": "stop-reason-race--stop-die-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.22,
+        "beatNodes": [
+          "loopstop",
+          "task"
+        ]
+      },
+      {
+        "id": "block-live",
+        "label": "④ 看内容块侧：3 轮 2 工具跑完",
+        "file": "stop-reason-race--block-live.mp4",
+        "endStill": "stop-reason-race--block-live-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.71,
+        "beatNodes": [
+          "loopblock",
+          "stream",
+          "task"
+        ]
+      },
+      {
+        "id": "verdict",
+        "label": "⑤ 判据要看不会迟到的事实",
+        "file": "stop-reason-race--verdict.mp4",
+        "endStill": "stop-reason-race--verdict-end.png",
+        "beats": 2,
+        "leadSec": 0.48,
+        "storySec": 3.25,
+        "beatNodes": [
+          "stream",
+          "loopblock"
         ]
       }
     ]

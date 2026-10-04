@@ -1,0 +1,132 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.48,
+ "story_sec": 19.65,
+ "total_wall_sec": 511.83,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "recall-loop",
+   "label": "无防护：拉回再拉回",
+   "index": 0,
+   "file": "stop-guard--recall-loop.mp4",
+   "end_still": "stop-guard--recall-loop-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.48,
+   "story_sec": 6.06,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.209
+   ],
+   "beat_nodes": [
+    "pull",
+    "run",
+    "loop"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 28.0
+  },
+  {
+   "id": "cap-100",
+   "label": "无防护：冲到 100 条封顶",
+   "index": 1,
+   "file": "stop-guard--cap-100.mp4",
+   "end_still": "stop-guard--cap-100-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.48,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.605
+   ],
+   "beat_nodes": [
+    "loop",
+    "cap"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "guard-flag",
+   "label": "保险一：标志位带标重入",
+   "index": 2,
+   "file": "stop-guard--guard-flag.mp4",
+   "end_still": "stop-guard--guard-flag-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.64,
+   "story_sec": 3.74,
+   "beat_offsets_sec": [
+    0.0,
+    1.605
+   ],
+   "beat_nodes": [
+    "run",
+    "flag"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 25.0
+  },
+  {
+   "id": "guard-cap8",
+   "label": "保险二：8 次连续续跑硬停",
+   "index": 3,
+   "file": "stop-guard--guard-cap8.mp4",
+   "end_still": "stop-guard--guard-cap8-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.28,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "count",
+    "hard8"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 27.0
+  },
+  {
+   "id": "stop-clean",
+   "label": "对照：3 条内干净停机",
+   "index": 4,
+   "file": "stop-guard--stop-clean.mp4",
+   "end_still": "stop-guard--stop-clean-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.48,
+   "story_sec": 3.34,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.208
+   ],
+   "beat_nodes": [
+    "cap",
+    "hard8",
+    "clean"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/claude-code--stop-guard.html",
+ "slug": "stop-guard",
+ "type": "lifecycle"
+}

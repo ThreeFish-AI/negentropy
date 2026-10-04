@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "66e5e031-81e8-4edb-9af2-077170776558",
+  "status": "current",
+  "command": "deliver",
+  "type": "sequence",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/.archify/sequence-stop-reason-race-1841/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/claude-code--stop-reason-race.html",
+  "specification": {
+    "sha256": "1225e4bf41c9a31d0b89f0c723a5f92dec8efe283440eef460323f30177471aa",
+    "bytes": 4828
+  },
+  "artifact": {
+    "sha256": "4cf533d527d053ba051e9352897ba86f777bb8b69be840cad6fd3435281018f2",
+    "bytes": 836161
+  }
+}

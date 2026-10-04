@@ -1,0 +1,49 @@
+[
+  {
+    "id": "stream-order",
+    "label": "① 内容块与停止标记不是同时到",
+    "focus": [
+      "stream",
+      "loopstop",
+      "loopblock"
+    ],
+    "note": "流式响应里 stop_reason 可能迟到于内容块到达；两条时间线拿到的是同一批到达事件"
+  },
+  {
+    "id": "stop-late",
+    "label": "② 信标记侧：迟到当成没开单",
+    "focus": [
+      "stream",
+      "loopstop"
+    ],
+    "note": "以 stop_reason 判续停的循环：标记没到，就被当成这轮没开单"
+  },
+  {
+    "id": "stop-die",
+    "label": "③ 信标记侧：1 轮即停 0 工具",
+    "focus": [
+      "loopstop",
+      "task"
+    ],
+    "note": "第 1 轮就判停退出，0 个工具执行，任务半途而废"
+  },
+  {
+    "id": "block-live",
+    "label": "④ 看内容块侧：3 轮 2 工具跑完",
+    "focus": [
+      "loopblock",
+      "stream",
+      "task"
+    ],
+    "note": "本轮回复里有 tool_use 内容块就继续：3 轮跑完，2 个工具执行"
+  },
+  {
+    "id": "verdict",
+    "label": "⑤ 判据要看不会迟到的事实",
+    "focus": [
+      "stream",
+      "loopblock"
+    ],
+    "note": "停止标记会迟到，内容块到了就是到了——续诊判停盯内容块，不盯停止标记"
+  }
+]

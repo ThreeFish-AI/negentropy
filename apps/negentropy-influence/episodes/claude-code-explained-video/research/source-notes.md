@@ -1,272 +1,287 @@
-# 事实源：《Learn Claude Code》工具与执行 4 章
+# 事实源：《Learn Claude Code》工具与执行 4 章（s01–s04）· 逐章引语台账
 
-> **本集口播的单一事实源**。逐字稿中每一条断言都必须能回溯到本文件的某一节。
+> **本集口播的单一事实源**。逐字稿每一条断言都必须能回溯到本文件的某一节；本文件的每一条断言都必须能回溯到下列信源的具体锚点。
 >
-> **信源双轨与修订分叉**：章节归属与双钉（本集钉 `0dcafa2`，仓库 main 17 章整合版）只登记在系列级信源地图，本文件不重述：见 [../../../source-map/claude-code-explained.md](../../../source-map/claude-code-explained.md)。
+> **信源地图**：章→集归属、双轨钉选（本集钉仓库 main @ `ce8f9f18`，17 章整合版 · 171 精读轨）只登记在系列级信源地图，本文件不重述：[../../../source-map/claude-code-explained.md](../../../source-map/claude-code-explained.md)（机器版 [claude-code-explained.toml](../../../source-map/claude-code-explained.toml)）。
 >
-> **证据分级**：【一】仓库实测（@ 0dcafa2，可复算）／【二】站点正文／【三】课程作者对 Claude Code 源码的分析（口播必带归属句 + 画面角标）／【官】Anthropic 官方文档（产品现状口径，域名已迁 code.claude.com）。
+> **首要信源（171 号精读笔记）**：[../../../../../docs/research/agent-harness/171-claude-code-tooling-execution.md](../../../../../docs/research/agent-harness/171-claude-code-tooling-execution.md)——三轨证据与五个破坏性实验的完整分析。取证日：本仓 HEAD = `47e662dbb`（时为 171 最后修订；其后 `34b150526` 原地修订一次，本文件行号锚已复核全命中）。本文件凡写「171 §N」均指该文第 N 节。
 >
-> **提取方式**：2026-09-28 五维度重调研（钉点逐章 curl 取原文）；字节归档 `research/source-archive/0dcafa2/`；指纹见 [sources.toml](./sources.toml)。图片纪律：站点 SVG 不下载不嵌入，只转文字规格。
->
-> **本集特有纪律**：① 撞号——本集钉 main 轨，其中 s03/s04 与旧 12 课轨撞号（旧 s03 TodoWrite、旧 s04 Subagent），涉及时写「main 轨 + 章全称」，禁止裸用编号；s01/s02 为三轨同号同物安全区。② 数字——口播不引绝对行数/活数据；课程计数（DENY_LIST 条数、截断上限等）随修订漂移，以本文件「机制」条目的 code.py 锚点为准，不在口播中念具体数字。③【三】断言不转引具体 CC 文件行号进「口播可用」层——转抄保留在「生产版对照」小节并标注归属义务。
+> **提取方式与日期**：2026-10-01，字节归档 [`source-archive/ce8f9f1/`](./source-archive/ce8f9f1/)（固定提交 `ce8f9f186058939da54c9d6fead78dfb5d0fd6c3`，2026-09-28，MIT；出处表见 [source-archive/README.md](./source-archive/README.md)）；全指纹（raw/text sha256、字节数、行数）见 [sources.toml](./sources.toml)。站点页快照不在本地，站点叙事一律经 171 转引并标【二】。
+
+## 证据分级
+
+| 级 | 定义 | 可复核性 |
+|---|---|---|
+| 【一】 | 仓库实测 @ `ce8f9f18`（字节归档复算；行号锚点 `code.py:NN` 均按归档文件实际行号，本次逐条 grep 验证）。含本仓原型 [`cc_tools_lab.py`](../../../../../docs/research/agent-harness/assets/cc_tools_lab.py) 的破坏性实验结论（属本仓实测，行号锚点 `lab:NN`） | 完全可复核（归档字节 + 指纹） |
+| 【二】 | 站点正文（learn.shareai.run，站点 20 章修订）。快照不在本地，全部经 171 转引（171 取快照 2026-09-30） | 经 171 间接复核 |
+| 【三】 | 课程作者对 Claude Code 闭源源码的分析（材料「深入 CC 源码」层，经 171 §3–§7 转引）。**口播引用必须带归属句**（如「课程作者拆源码后发现」），CC 文件名+行号均系「材料所读时点」，闭源不可独立复核（171 §7/§10.2 口径） | 不可独立复核，须标注归属 |
+| 【官】 | Anthropic 官方文档（带 URL + 访问日期 2026-09-30，经 171 参考文献转引） | 可在线复核 |
+
+171 引用的三份官方文档（均 accessed 2026-09-30）：Hooks reference `https://code.claude.com/docs/en/hooks`；Configure permissions `https://code.claude.com/docs/en/permissions`；Settings files and precedence `https://code.claude.com/docs/en/settings`。
 
 ---
 
-## 实测总表（【一】· 2026-09-28 @ 0dcafa2）
+## 实测总表【一】
 
-| 章 | 总行 | 非空非注释 | 工具数 |
-|---|---:|---:|---:|
-| s01_agent_loop | 142 | 106 | 1 |
-| s02_tool_use | 196 | 149 | 5 |
-| s03_permission | 257 | 192 | 5 |
-| s04_hooks | 271 | 215 | 5 |
+| 章 | 仓库 `wc -l` @ ce8f9f18 | 站点徽章【二】（171 §7） | 工具数 | 教学版钩子事件数 |
+|---|---:|---:|---:|---:|
+| s01_agent_loop | **151** | 102 | 1（bash，`code.py:68-76`） | —（尚无钩子层） |
+| s02_tool_use | **206** | 135 | 5（`code.py:138-149`） | — |
+| s03_permission | **267** | 180 | 5（`code.py:134-145`） | — |
+| s04_hooks | **280** | 232 | 5（`code.py:116-127`） | 4（`code.py:137`：UserPromptSubmit / PreToolUse / PostToolUse / Stop） |
 
-口径：总行 = `wc -l code.py`（含空行、注释、docstring）；非空非注释 = `grep -cvE '^\s*(#|$)'`（docstring 正文行计入）；工具数 = `TOOLS` 数组中 `"name":` 条目计数。全部取自钉点 raw 文件（指纹见 [sources.toml](./sources.toml)）。README「三十多行」指 s01 循环**内核**（`agent_loop` 函数体），非全文件——口播引用须带此口径。另：s03/s04 的 `agent_loop` 骨架逐字同头（`def agent_loop` → `while True` → `client.messages.create` → append assistant），与两章 README「循环不变」声明互证【一】。
+口径说明（逐条）：
 
-## 一、s01 Agent Loop —— 一个工具 + 一个循环 = 一个 Agent
+- **LOC 双口径**：仓库列 = 归档 `code.py` 的 `wc -l`（含空行/注释/docstring，本次复算，与 sources.toml `lines` 字段一致）；徽章列 = 站点页首徽章宣称值，经 171 §7 转引（站点 2026-09-30 快照）。两列**不是同一版本**：徽章描述更早的教学版（171 §10.4：材料未说明口径；source-map：站点整站是课程旧修订，ISSUE-165 根因）。
+- **工具数** = `TOOLS` 数组条目计数。**钩子事件数** = `HOOKS` 注册表键数（教学版 4；CC 生产版 27【三】→ 官方今日 33【官】，见 s04 节）。
+- 附带口径：归档 README 行数 155 / 164 / 168 / 224（sources.toml）；`DENY_LIST` 条数按章漂移——s01/s02 为 run_bash 内置 dangerous 5 条（s01 `code.py:81`、s02 `code.py:64`），s03 独立 DENY_LIST 7 条（`code.py:156`），s04 缩为 6 条（`code.py:151`）；口播引条数必须钉章。
+- README「三十多行」（s01 README:116）指 `agent_loop` 函数体内核（`code.py:96-126`），非全文件——口播引用须带此口径。
 
-### 定位与标语
+---
 
-- README 标语：`*"One loop & Bash is all you need"* — 一个工具 + 一个循环 = 一个 Agent。`；Harness 层定位：「**Harness 层**: 循环 — 模型与真实世界的第一道连接。」
-- 章节链 s01 → … → s17（17 课），「后面 16 个章节都在这个循环上叠加机制，循环本身始终不变」。
-- 要消灭的痛点：「模型能输出一条 bash 命令，但输出完了就停了，它不会自己跑，也不会看到结果后继续推理。」「每一个来回，你都在做中间层。而把它自动化，就是这一章要做的事。」
-- 全书分工语义（README）：模型负责决策（要不要调工具、调哪个），harness 负责执行（调用工具，把结果作为新消息追加）。
-- code.py 模块 docstring："This is the core loop: feed tool results back to the model until the model decides to stop. Later chapters add policy, hooks, and lifecycle controls around it."
-- SYSTEM 提示词行为指令："Act, don't explain."（做，别解释）
-- s02 悬念三连（下集钩子）：「给它 5 个真正的工具，会发生什么？模型会不会一次调用多个工具？几个工具同时跑会不会互相踩？」
+## 一、s01 Agent Loop —— 一个循环就够了
 
-### 机制【一】
+### 1.1 定位与标语（README 引语，逐字）
 
-- **Agent Loop 主循环**：`while True` 循环，模型调用工具就继续、不调就停——全书唯一始终不变的核心。
-  - README：「一个 `while True` 循环，模型调用工具就继续，不调用就停。循环直接检查响应里的内容块：」
-  - 锚点：`code.py:87 def agent_loop`；`code.py:88 while True:`；调用参数 `code.py:89-92`（model=MODEL, system=SYSTEM, messages=messages, tools=TOOLS, max_tokens=8000）
-- **tool_use 信号检测（循环终止条件）**：循环靠检查响应内容块里有没有 `tool_use` 决定继续还是退出，不用额外标志位。
-  - README（信号表）：「| 包含 `tool_use` block | 模型要求调用工具 | 执行 → 结果喂回去 → 继续 |」「| 不包含 `tool_use` block | 模型没有调用工具 | 退出循环 |」
-  - 锚点：`code.py:98-102`（`tool_calls = [block for block in response.content if block.type == "tool_use"]`；`if not tool_calls: return`）
-- **assistant 回合先落账 + 非空工具结果纪律**：无论是否调工具，assistant 回答先追加进 messages；只有实际存在 `tool_use` block 才进入执行阶段，不会追加空的工具结果消息。
-  - README：「**第 3 步**：追加模型回答，检查它是否调了工具。没调 → 结束。」「只有实际存在的 `tool_use` block 才会进入执行阶段，因此不会追加空的工具结果消息。」
-  - 锚点：`code.py:95`（`messages.append({"role": "assistant", "content": response.content})`）
-- **tool_result 回喂（tool_use_id 配对）**：执行每个工具调用后，结果以带对应 `tool_use_id` 的 `tool_result` block 组成一条 user 消息追加回 messages，回到第 2 步。
-  - README：「**第 5 步**：把工具结果作为新消息追加，回到第 2 步。」
-  - 锚点：`code.py:104-117`（收集 `results` 后 `messages.append({"role": "user", "content": results})`）
-- **单 bash 工具定义**：工具集只有一条——name `bash`、入参仅 `command` 字符串。
-  - README：「现在模型手里只有 bash 一个工具，读文件要 `cat`，写文件要 `echo ... >`，找个文件要 `find`，又丑又容易出错。」
-  - 锚点：`code.py:59-67 TOOLS`（description "Run a shell command."；input_schema 仅 command 必填）
-- **危险命令黑名单**：执行前对命令做 5 个危险模式的子串匹配，命中即拦截返回错误字符串（不抛异常、不执行）。
-  - README 未展开（仅安全提示，见「定位」）；清单只在 code.py。
-  - 锚点：`code.py:71-74 run_bash`（dangerous 五模式；命中返回 `"Error: Dangerous command blocked"`）
-- **执行防护三件套（超时/截断/空输出占位）**：subprocess 超时；stdout+stderr 合并后截断再回喂；空输出用占位串，保证模型总收到非空结果。
-  - 锚点：`code.py:76-83 run_bash`（timeout=120；`out[:50000]`；空输出 `"(no output)"`；TimeoutExpired / FileNotFoundError / OSError 均捕为错误字符串不炸循环）
-- **系统提示词锚定工作目录**：SYSTEM 把当前目录注入，并下达「行动优先于解释」指令。
-  - 锚点：`code.py:56 SYSTEM`（`f"You are a coding agent at {os.getcwd()}. Use bash to solve tasks. Act, don't explain."`）
-- **多轮 REPL 会话（history 跨 query 复用）**：入口为交互式 REPL，history 列表跨提问累积；退出后打印模型最终 text block。
-  - 锚点：`code.py:121-142`
-- **终端观测装修**：被执行命令以黄色 ANSI 高亮打印（`$ ` 前缀），终端只预览输出前段（完整截断后内容仍回喂模型）；提示符用零宽标记避免 readline 错位。
-  - 锚点：`code.py:107-109`；`code.py:128-129`（注释 `# \001/\002 tell Readline the ANSI escapes have zero display width.`）
-- **readline macOS 兼容修补（课程仓库 issue #143）**：导入 readline 并绑定四条设置修复 macOS libedit 的 UTF-8 退格；非 macOS 静默跳过。
-  - 锚点：`code.py:35-43`（注释 `# #143 UTF-8 backspace fix for macOS libedit`）
-- **网关 BASE_URL 自适配**：设置了 `ANTHROPIC_BASE_URL` 时移除 `ANTHROPIC_AUTH_TOKEN`，客户端以 BASE_URL 构造；`.env` 经 `load_dotenv(override=True)` 加载。
-  - 锚点：`code.py:48-54`
+- 章标题：`s01: Agent Loop — 一个循环就够了`；页首金句（README:6）：`*"One loop & Bash is all you need"* — 一个工具 + 一个循环 = 一个 Agent。`
+- Harness 层定位（README:8）：`**Harness 层**: 循环 — 模型与真实世界的第一道连接。`
+- 痛点引语（README:14-20）：`模型能输出一条 bash 命令，但输出完了就停了，它不会自己跑，也不会看到结果后继续推理。`／`每一个来回，你都在做中间层。而把它自动化，就是这一章要做的事。`
+- 内核宣言（README:116）：`三十多行，这就是最小可运行的 agent harness 内核。……后面 16 个章节都在这个循环上叠加机制，循环本身始终不变。`（「16 个章节」＝归档 main 17 章导航口径，README:5：`s01 → s02 → s03 → s04 → ... → s16 → s17`）
+- code.py docstring 金句（code.py:23-25）：`This is the core loop: feed tool results back to the model until the model decides to stop. Later chapters add policy, hooks, and lifecycle controls around it.`
+- 系统提示词行为指令（code.py:64）：`"Use bash to solve tasks. Act, don't explain."`（做，别解释）
+- 安全前向声明（README:122）：`代码会执行模型生成的 shell 命令。建议在一个临时测试目录中运行，避免影响你的项目文件。s03 会加入权限控制。`
+- 下章钩子（README:152）：`s02 Tool Use → 给它 5 个真正的工具，会发生什么？模型会不会一次调用多个工具？几个工具同时跑会不会互相踩？`
 
-### 生产版对照【三】
+### 1.2 机制【一】（断言 + 归档锚点）
 
-本章无「深入 CC 源码」节（README.zh @0dcafa2 全文不含，亦无对真实 CC 源码文件/行号的引用；code.py 内 `#143` 为课程仓库自身 issue 编号）。与本章相关的【三】级主张经轨 C 对照字段转录：
+1. **主循环五步骨架**：`agent_loop` = 调模型 → 追加 assistant 回答 → 收集工具请求 → 执行收集结果 → 以 user 消息回喂，`while True` 驱动。锚点：`code.py:96 def agent_loop`、`code.py:97 while True:`、调模型参数（model/system/messages/tools/max_tokens=8000）`code.py:98-101`。docstring 伪代码骨架另见 `code.py:7-12`。
+2. **续轮/停止判据 = 内容块**（本章最重要事实）：循环收集回答里的 `tool_use` 块，空则 `return`——不引用任何停止标记字段。**实测归档 8 文件（4 章 code.py + README）`stop_reason` 零命中**。锚点：`code.py:107-109`（`tool_calls = [block for block in response.content if block.type == "tool_use"]`）、`code.py:110-111`（`if not tool_calls: return`）。README 信号表（README:28-33）：`一个 while True 循环，模型调用工具就继续，不调用就停。循环直接检查响应里的内容块：`（含 tool_use block / 无 tool_use block 两行信号表）。
+3. **assistant 先落账 + 非空结果纪律**：回答无论是否带工具请求都先追加进 messages；只有实际存在 `tool_use` 块才执行，不追加空结果消息。锚点：`code.py:104`；README:67 `只有实际存在的 tool_use block 才会进入执行阶段，因此不会追加空的工具结果消息。`
+4. **tool_result 以 user 消息回喂 + id 配对**：每个结果带对应 `tool_use_id`，打包成一条 `user` 消息追加，回到第 2 步。锚点：`code.py:119-123`（results 收集）、`code.py:126`（`messages.append({"role": "user", "content": results})`）；README:82-86（第 5 步）。
+5. **单 bash 工具的 JSON Schema**：工具集仅一条——name `bash`、入参仅 `command` 字符串必填。锚点：`code.py:68-76`（description `"Run a shell command."`）。
+6. **run_bash 内置危险命令黑名单**（s01 已有最小拦截层，非零防护起步）：5 个危险模式子串匹配（`["rm -rf /", "sudo", "shutdown", "reboot", "> /dev/"]`），命中返回错误字符串——不执行、不抛异常、**不问人**。锚点：`code.py:80-83`（dangerous 列表 `code.py:81`）。此层与 s03 闸门不同：拦截结果以错误串回喂模型，无规则匹配与用户审批。
+7. **执行防护三件套**：超时 120 秒、stdout+stderr 合并截断 50000 字符、空输出占位 `(no output)`——模型永远收到非空字符串，异常全部捕为错误串不炸循环。锚点：`code.py:84-92`（`timeout=120` 在 `code.py:86`、`out[:50000]` 在 `code.py:88`）。
+8. **SYSTEM 锚定工作目录 + 行为指令**：`f"You are a coding agent at {os.getcwd()}. … Use bash to solve tasks. Act, don't explain."`。锚点：`code.py:62-65`。
+9. **OS-aware 环境提示**（ce8f9f1 相对上一钉毛增 +10/11 行的主体——各删 1 行 SYSTEM、净增 +9/10，与 source-map「净增」口径互注，source-map 记 #586/#587「OS-aware shell context，无机制级变更」）：按 `os.name` 给出 Windows cmd.exe / Unix-like shell 两种环境说明。锚点：`code.py:56-61`（ENVIRONMENT_PROMPT 三元分支）。
+10. **多轮 REPL 会话**：入口为交互式 REPL，`history` 列表跨提问累积，退出词 `q/exit`；会话末打印模型最终 text block。锚点：`code.py:130-151`。
+11. **终端观测装修**：被执行命令黄色 ANSI 高亮打印（`$ ` 前缀）、终端只预览输出前 200 字符（完整截断内容仍回喂模型）、提示符用 `\001/\002` 零宽标记防 readline 错位。锚点：`code.py:116-118`、`code.py:137-138`（注释 `# \001/\002 tell Readline the ANSI escapes have zero display width.`）。
+12. **macOS 兼容与网关自适配**：readline 四条绑定修 macOS libedit UTF-8 退格（课程仓库 issue #143）；设 `ANTHROPIC_BASE_URL` 时移除 `ANTHROPIC_AUTH_TOKEN` 并以 BASE_URL 构造客户端。锚点：`code.py:35-43`、`code.py:50-53`。
 
-- 【三】产品不把停止标记当续轮的唯一依据，而是另设一个独立标志位（流式过程中一旦收到工具调用块就置真），理由是声明会滞后于事实——续轮判据是「内容块里有无工具调用」的**结构事实**而非停止标记**声明**，属课程作者的闭源源码级结论；官方文档不覆盖此层（见下「官方文档对照」1.4），口播引用必须带归属句 + 画面角标。
+### 1.3 生产版对照【三】（经 171 §3 转引；口播必带归属句）
 
-### 官方文档对照【官】
+- 【三】CC 核心文件 `query.ts`（1729 行，材料所读时点）核心仍是这 30 行循环；续轮判据不同——CC 不拿 `stop_reason` 当唯一依据，而维护 `needsFollowUp` 标志：流式输出时 `stop_reason` 可能还没送达而 `tool_use` 块已出现在正文，看到块就置真续跑；源码注释原话 `stop_reason === 'tool_use' is unreliable`。
+- 【三】其余约 1700 行是退出路径（阻塞上限、提示过长、模型报错、中止、钩子停机、轮次上限）与流式执行器等保护壳。
+- 不可独立复核性（171 §10.1/§10.2 口径照交代）：「1729 行核心 = 30 行循环」是修辞性等价，材料未量化保护机制行数占比；`query.ts` 行号级论断 CC 闭源、官方文档无对应披露。
 
-1. 三阶段循环（how-claude-code-works § The agentic loop）："gather context, take action, and **verify results**… These phases blend together."——官方是用户可见的产品级叙述，课程是实现级骨架（本轮工具调用执行+结果追回）。**互补**。
-2. 循环可打断、扩展点插在循环特定阶段（Glossary · Agentic loop）："You can interrupt the loop at any point to redirect. Most extension points, including hooks, skills, and MCP, plug into specific phases of this loop."——课程教「循环极小、可生长的都挂循环外」；官方明说扩展点插在循环特定阶段。**一致**。
-3. harness 官方定义（Glossary · Agentic harness）："The tools, context management, and execution environment that turn a language model into a capable coding agent. Claude Code is the harness; Claude is the model inside it. The harness supplies file access, shell execution, permission gating, memory loading, and the loop that chains actions together."——与课程「模型决策 / harness 执行」分工及「Claude Code 是 harness」口径对得上。**一致**。
-4. 续轮判据不披露（Glossary + how-claude-code-works 全 6 页）：官方仅有 "repeat until done" 等产品级表述，未出现 stop marker / stop_reason /「内容块里有无工具调用」等实现层口径。**互补（官方空白）**——课程判据主张无法用官方文档校准，只能以源码/SDK 行为佐证；站点轨旧修订（信停止标记）与 main 轨（信内容块）之争官方同样无法裁决。
-5. 打断与同轮排队（how-claude-code-works § Interrupt and steer）：Esc 立即停止并**取消正在运行的工具调用**；排队消息在工具调用结束后**同轮内**被读取、下一步前调整。**互补**（官方补用户侧打断语义）。
+### 1.4 官方文档对照【官】
+
+- 官方空白（171 §7）：三份官方文档均不披露续轮判据实现层（`stop_reason` / 内容块判据之争官方无法裁决）；s01 层唯一的官方可交叉项为零。口播讲到此处不得借官方背书。
+
+### 1.5 171 增量【一】：实验 1（续轮判据分岔）
+
+- **实验 1**（`cc_tools_lab.py:329-346`，判据开关在引擎 `lab:208`）：模拟流式响应 `stop_reason` 迟到（置 None）而正文已带工具请求——只看 `stop_reason` 的教学判据让循环**第一轮就退出、0 个工具执行**；看内容块的生产判据 3 轮跑完、2 个工具执行。171 §8 教训句（逐字）：`用迟到的信号当判据，任务半途而废`。
+- 归档侧互证：源仓 main 已把运行版切到内容块判据（本节 1.2-2 的零命中实测 + 171 §3「源仓已跟进」）；站点页仍先教 `stop_reason` 两信号表、差异留给附录【二】（171 §3）——此分叉即本集钉 main 轨的原因（source-map 一节一）。
+
+---
 
 ## 二、s02 Tool Use —— 多加一个工具，只加一行
 
-### 定位与标语
+### 2.1 定位与标语（README 引语，逐字）
 
-- README 标题：`s02: Tool Use — 多加一个工具，只加一行`；标语：*"加一个工具, 只加一个 handler"* — 循环不用动, 新工具注册进 dispatch map 就行。
-- Harness 层定位：「**Harness 层**: 工具分发 — 扩展模型能触达的边界。」
-- 痛点（翻译层）：「模型想的是"读这个文件"，却要拼出 `cat path/to/file`。多了一层翻译，浪费 token，还容易拼错。」
-- code.py docstring 金句："Key insight: the loop stays the same; only tool registration and dispatch grow."（循环保持不变，只有工具注册与分发在生长）
-- 章末交棒 s03：「file tools 受 `safe_path` 保护，但 bash 不受限制，`rm -rf /` 还是能跑。」→「s03 Permission → 在工具执行之前加一道门：这个操作安全吗？需要用户批准吗？」
+- 页首金句（README:6）：`*"加一个工具, 只加一个 handler"* — 循环不用动, 新工具注册进 dispatch map 就行。`；Harness 层定位（README:8）：`**Harness 层**: 工具分发 — 扩展模型能触达的边界。`
+- 痛点引语（README:14-16）：`s01 的 Agent 只有一个 bash 工具。读文件要 cat，写文件要 echo "..." > file.py，改文件要 sed。`／`模型想的是"读这个文件"，却要拼出 cat path/to/file。多了一层翻译，浪费 token，还容易拼错。`
+- code.py docstring 金句（code.py:21）：`Key insight: the loop stays the same; only tool registration and dispatch grow.`
+- 唯一变动口径（README:24）：`s01 的循环完全保留（LLM 调用、tool_use block 判断、消息追加）。唯一的变动在工具执行那 1 行：run_bash() 替换为 TOOL_HANDLERS[block.name]() 查表分发。`
+- 下章交棒（README:159-161）：`现在 Agent 有 5 个专用工具。file tools 受 safe_path 保护，但 bash 不受限制，rm -rf / 还是能跑。`→`s03 Permission → 在工具执行之前加一道门：这个操作安全吗？需要用户批准吗？`（「bash 不受限制」与 code.py 实物的出入见分歧清单 D9）
 
-### 机制【一】
+### 2.2 机制【一】
 
-- **TOOL_HANDLERS 查表分发**：工具名 → 处理函数的字典，把 s01 硬编码的 `run_bash()` 变成查表调用；加工具 = 加一行映射。
-  - README：「s01 的循环完全保留（LLM 调用、`tool_use` block 判断、消息追加）。唯一的变动在工具执行那 1 行：`run_bash()` 替换为 `TOOL_HANDLERS[block.name]()` 查表分发。」
-  - 锚点：`code.py:143 TOOL_HANDLERS`；`code.py:170-171`（`handler = TOOL_HANDLERS.get(block.name)`；`output = handler(**block.input) if handler else f"Unknown: {block.name}"`）；对照注释 `code.py:150-151`
-- **加工具两步注册**：`TOOLS` 数组加一条 JSON schema 描述 + `TOOL_HANDLERS` 字典加一行映射，循环不动。
-  - README：「给 Agent 加一个工具只需要做两件事：1. **定义工具**… 2. **注册处理函数**…」「加一个工具 = 在 `TOOLS` 数组加一条 + 在 `TOOL_HANDLERS` 字典加一行。循环不变。」
-  - 锚点：`code.py:128 TOOLS`（5 条）；`code.py:143 TOOL_HANDLERS`（5 行映射）
-  - 隐含第三契约（code.py:171 `handler(**block.input)` 按关键字展开 ⇒ schema 属性名必须与处理函数形参名逐字一致）【一，代码事实】
-- **safe_path 工作区路径围栏**：文件类工具路径先 resolve 再验 `is_relative_to(WORKDIR)`，越界抛错；仅覆盖 file tools，不含 bash。
-  - README（变更表）：「路径安全 | 无 | safe_path 校验（仅 file tools）」
-  - 锚点：`code.py:71 def safe_path`；`code.py:73-74`；`WORKDIR = Path.cwd()`（code.py:44）。实测 grep：safe_path 命中 5 行（docstring 提及 + 定义 + read/write/edit 三处调用点）【一，2026-09-28 复核】
-- **read_file：行级读取 + limit 截断**：按行读，`limit` 截断并附剩余行数提示。
-  - 锚点：`code.py:78 run_read`；`code.py:81-82`（`... ({len(lines) - limit} more lines)`）；异常兜底 `return f"Error: {e}"`
-- **write_file：父目录自建 + 字节数回执**：写入前自动 `mkdir(parents=True)`，成功返回写入字节数。
-  - 锚点：`code.py:88 run_write`；`code.py:91`；`code.py:93 return f"Wrote {len(content)} bytes to {path}"`
-- **edit_file：精确文本单次替换**：要求 `old_text` 精确存在，只替换第一处，找不到即报错。
-  - 锚点：`code.py:98 run_edit`；`code.py:102-103`（`Error: text not found in {path}`）；`code.py:104`（`text.replace(old_text, new_text, 1)`）
-- **glob：递归检索 + 条数上限 + 越界过滤**：按 pattern 递归匹配（`**`），去重排序后截断到上限并提示收窄 pattern，同时过滤解析后越出工作区的路径；空结果返回占位串。
-  - 锚点：`code.py:110 run_glob`；`code.py:113-117`（越界过滤）；`code.py:118-120`（上限 200 条）；`code.py:121 "(no matches)"`
-- **多 tool_use 按原始顺序逐个执行**：模型一次可返回多个 tool_use block，循环按 `response.content` 原始顺序逐个执行，每个调用各自回一条 `tool_result`；教学版无任何并发原语（无线程池、无异步）。
-  - README：「模型经常一次返回多个 tool_use："读一下 a.py 和 b.py，然后列出所有 .py 文件"。这些调用按照 `response.content` 中的原始顺序逐个执行。」
-  - 锚点：`code.py:161-163`；`code.py:168 for block in tool_calls:`（顺序执行）；`code.py:173 results.append(...)`
-  - 兜底纪律：未知工具返回错误串而非崩溃（code.py:171）；每个工具函数自带 try/except 以字符串回错（code.py:84-85, 94-95, 106-107, 122-123）
+1. **TOOL_HANDLERS 查表分发**：工具名 → 处理函数的字典，替代 s01 硬编码 `run_bash()`；对照注释原样保留两版写法。锚点：`code.py:151-156`（表定义，注释 `replaces s01's hard-coded run_bash call`）；`code.py:159-161`（s01/s02 两行对照注释：`# s01: output = run_bash(block.input["command"])` / `# s02: output = TOOL_HANDLERS[block.name](**block.input)`）。
+2. **加工具两步注册契约**：`TOOLS` 数组加一条 JSON schema + `TOOL_HANDLERS` 加一行映射，循环不动。锚点：`code.py:138-149`（5 条定义；注释 `code.py:136` `one tool in s01, five in s02`）+ `code.py:153-156`；README:105 `加一个工具 = 在 TOOLS 数组加一条 + 在 TOOL_HANDLERS 字典加一行。循环不变。`
+3. **软查表 + 未知工具兜底**（归档实实现）：`handler = TOOL_HANDLERS.get(block.name)`，查不到回喂 `Unknown: {name}` 让模型自纠，程序不崩。锚点：`code.py:180-181`。README:100 示例为硬索引 `TOOL_HANDLERS[block.name]`（节选简化，分歧 D10）。隐含第三契约：`handler(**block.input)` 按关键字展开 ⇒ schema 属性名必须与处理函数形参名逐字一致（`code.py:181`，代码事实）。
+4. **safe_path 工作区围栏**：文件类工具路径先 resolve 再验 `is_relative_to(WORKDIR)`，越界抛 `ValueError: Path escapes workspace`；仅覆盖 file tools、不含 bash。锚点：`code.py:81-85`；README 变更表（README:134）`| 路径安全 | 无 | safe_path 校验（仅 file tools） |`。实测 grep：safe_path 命中 5 行（docstring 提及 + 定义 + read/write/edit 三处调用点）。
+5. **read_file 行级读取 + limit 截断**：按行读，limit 截断附 `... ({n} more lines)` 提示。锚点：`code.py:88-95`。
+6. **write_file 父目录自建 + 字节数回执**：`mkdir(parents=True)` 后写，返回 `Wrote {n} bytes to {path}`。锚点：`code.py:98-105`。
+7. **edit_file 精确单次替换**：`old_text` 必须精确存在，仅替换第一处（`replace(old, new, 1)`），找不到报 `Error: text not found`。锚点：`code.py:108-117`。
+8. **run_glob 递归检索 + 上限 + 越界过滤**：`**` 递归匹配、去重排序、超 200 条截断并提示收窄 pattern、过滤解析后越出工作区的路径、空结果占位 `(no matches)`。锚点：`code.py:120-133`（上限与提示 `code.py:128-130`）。
+9. **多 tool_use 按原始顺序逐个执行、零并发原语**：一轮可含多个工具请求，循环按 `response.content` 原始顺序串行执行，各回一条 `tool_result`；全章无任何线程池/异步。锚点：`code.py:171-185`（收集判据 171-175、顺序执行 177-183）；README:113 `这些调用按照 response.content 中的原始顺序逐个执行。`
+10. **run_bash 自 s01 原样保留**：注释明写 `# -- From s01 (unchanged) --`，dangerous 5 条黑名单与超时/截断全部继承。锚点：`code.py:61-76`（dangerous 在 `code.py:64`）。
+11. **异常字符串化纪律**：四个文件工具全部 try/except 捕获为 `Error: {e}` 字符串回喂，任何工具失败都不炸循环。锚点：`code.py:94-95`、`code.py:104-105`、`code.py:116-117`、`code.py:132-133`。
 
-### 生产版对照【三】
+### 2.3 生产版对照【三】（经 171 §4 转引；口播必带归属句）
 
-本章无「深入 CC 源码」节。经轨 C 对照字段转录的【三】级主张：
+- 【三】CC 按「连续块」分批执行多个工具：按原始顺序扫描，连续可并发的编进同一批真正并行（有并发上限），不能并发的单独开批串行，批与批之间严格保序。
+- 【三】能否并发按**本次具体输入**判定、不按工具类型：`Bash ls`（只读）可并发、`Bash rm`（写）不行、`TaskCreate` 虽写任务状态但写不同文件照样可并发。
+- 【三】CC 每个工具调用过五步验证：schema 校验 → 工具级参数校验 → PreToolUse 钩子 → 权限检查 → 执行。
+- 【三】结果超上限落盘成「预览 + 文件路径」；读文件工具上限设为无穷大——否则「读文件 → 输出落盘 → 再读落盘文件」无限套娃（171 §10.5 注明此条系材料转述、无独立证据，教学版亦无此机制）。
 
-- 【三】产品侧工具调用被切成连续的批次：批内并行且有并发上限、批间严格有序；能否并行由**本次调用的实参**判定，而非工具的读写属性——课程作者拆闭源源码后的结论；官方文档只确认到「存在并行与批」这一层，调度细节未披露（见下 2.3 与分歧清单 D3）。口播引用必须带归属句 + 画面角标。
-- 教学版与 CC 内置工具的概念层对应（bash/read_file/write_file/edit_file 同名同语义）：课程**未展开**此项对应（取证笔记 §4 标记「课程未展开」），口播不得安到课程头上；官方内置工具面见下 2.2【官】。
+### 2.4 官方文档对照【官】
 
-### 官方文档对照【官】
+- 本章无官方直接交叉条目（171 仅引 hooks/permissions/settings 三份；工具面与调度细节不在其中）。并行/批层的官方披露仅到 hooks 文档 `PostToolBatch` 一级（经 171 §2 全景图引用口径：PostToolUse 按次触发、批级事件存在），调度细节官方未披露——口播讲到产品并发只能带【三】归属句，不得写成官方口径。
 
-1. 工具回灌循环（how-claude-code-works § Tools）："Without tools, Claude can only respond with text. With tools, Claude can act… Each tool use returns information that feeds back into the loop, informing Claude's next decision."——与课程「每次工具调用的结果作为新消息追回循环」同构。**一致**。
-2. 内置工具面（§ Tools）：五类（File operations / Search / Execution / Web / Code intelligence）+ "tools for spawning subagents, asking you questions, and other orchestration tasks"（完整清单在 tools-reference）。教学版个位数工具 vs 产品全集。**互补**——「加工具改表、不动循环」的结构主张在产品规模下依然成立。
-3. 并行工具调用与「批」层（hooks § PostToolBatch）："Runs once after every tool call in a batch has resolved, before Claude Code sends the next request to the model. `PostToolUse` fires once per tool, which means it fires concurrently when Claude makes parallel tool calls."——官方确认产品存在并行工具调用与批层。**对教学版构成分歧**（教学版纯串行，见分歧清单 D3）。
-4. 钩子事件挂在循环的每次工具调用上（hooks § Hook lifecycle）：节奏三分——per session（SessionStart/SessionEnd）、per turn（UserPromptSubmit/Stop/StopFailure）、on every tool call（PreToolUse/PostToolUse，`EndConversation` 例外两事件都跳过）——与课程 s04 事件表节奏一致，官方另给完整事件表（含 PermissionRequest/Notification/PreCompact 等）。**一致 + 互补**。
+### 2.5 171 增量【一】：实验 2（查表的失败形态）
+
+- **实验 2**（`cc_tools_lab.py:349-370`；硬索引分支 `lab:229-230`、软查表对照 `lab:232-233`）：把分发表删掉 `edit_file` 项并改硬索引取值——模型再调 `edit_file` 时当场抛 `KeyError: 'edit_file'` 崩溃、整轮 tool_result 未生成；软查表 `.get` 对照只得 `Unknown: edit_file` 回喂模型自纠。171 §8 教训句：`查表的失败形态由取值方式决定`。
+- 归档侧落点：s02 归档实物正是软查表形态（`code.py:180-181`）——实验 2 的「软侧对照」即仓库真实写法，「硬索引崩溃」是对 README:100 节选示例的破坏性推演。
+
+---
 
 ## 三、s03 Permission —— 执行前做权限判断
 
-### 定位与标语
+### 3.1 定位与标语（README 引语，逐字）
 
-- README 标题：`s03: Permission — 执行前做权限判断`；标语：*"工具执行前先做权限判断"* — 权限管线决定哪些操作需要审批。
-- Harness 层定位：「**Harness 层**: 权限 — 在工具执行前加一道门。」
-- 核心理念：「安全边界由代码负责，判断发生在工具执行之前。」
-- 起点失败模式：「s02 的 Agent 有 5 个工具。file tools 受 `safe_path` 保护，但 bash 不受限制。让它"清理一下项目"，可能执行 `rm -rf /`。」
-- code.py docstring："Only one line added to the agent loop:"（整套权限系统接入循环只花一行）
-- 引出 s04：「当前权限检查每次都在循环里硬编码 `check_permission()`。如果我想在每次工具执行前后加日志？…这些扩展逻辑散落在 loop 里，循环很快就会膨胀。」
+- 页首金句（README:6）：`*"工具执行前先做权限判断"* — 权限管线决定哪些操作需要审批。`；Harness 层定位（README:8）：`**Harness 层**: 权限 — 在工具执行前加一道门。`
+- 核心理念（README:16）：`安全边界由代码负责，判断发生在工具执行之前。`
+- 起点失败模式（README:14）：`s02 的 Agent 有 5 个工具。file tools 受 safe_path 保护，但 bash 不受限制。让它"清理一下项目"，可能执行 rm -rf /。`
+- 接入口径（README:24）：`s02 的循环完全保留。唯一的变动是在工具执行前插入 check_permission()。每个工具调用依次经过三道闸门：硬拒绝优先，软询问次之，都没命中就放行。`
+- code.py docstring（code.py:23-25）：`Only one line added to the agent loop:`（下方即 `if not check_permission(block): continue` 伪代码）。
+- 教学自认（README:42，逐字）：`这张表使用简单字符串匹配来说明权限闸门的位置，不能视为完整的安全边界。`
+- 下章交棒（README:163-165）：`当前权限检查每次都在循环里硬编码 check_permission()。……这些扩展逻辑散落在 loop 里，循环很快就会膨胀。`→`s04 Hooks → 给循环加钩子，扩展逻辑挂在钩子上，循环保持干净。`
 
-### 机制【一】
+### 3.2 机制【一】
 
-- **三道闸门权限管线（check_permission）**：工具执行前依次过三道门——硬拒绝、规则匹配、用户审批；任一拒绝则不执行，三道都没命中就直接执行（「大部分日常操作走这条路」）；s02 的 agent loop 只加一行接入。
-  - README：「s02 的循环完全保留。唯一的变动是在工具执行前插入 `check_permission()`。每个工具调用依次经过三道闸门：硬拒绝优先，软询问次之，都没命中就放行。」
-  - 锚点：`code.py:191 def check_permission`；接入点 `code.py:226 if not check_permission(block):`
-- **闸门 1：硬拒绝列表（DENY_LIST）**：一张永远禁止的命令表，子串匹配，命中直接拒绝、不执行、不询问；**仅对 bash 工具生效**。
-  - README：「**闸门 1**：一张硬拒绝表，先查，命中就返回阻止信息。这张表使用简单字符串匹配来说明权限闸门的位置，不能视为完整的安全边界。」
-  - 锚点：`code.py:146 DENY_LIST`（本章 7 条，含 `> /dev/sda`；注意 s04 漂移为 6 条，见分歧清单）；`code.py:148 check_deny_list`；「仅对 bash 生效」锚点 `code.py:192 if block.name == "bash":`（README 未展开此限定，以代码为准）
-- **闸门 2：规则匹配（PERMISSION_RULES）**：声明式规则表，每条指定工具与检查条件，回答「什么时候需要问用户」；命中后转交闸门 3。
-  - README：「**闸门 2**负责规则匹配，用来描述"什么时候需要问用户"。每条规则指定工具和检查条件。」
-  - 锚点：`code.py:165 PERMISSION_RULES`（两条：file tools 出工作区 / bash 破坏性命令）；`code.py:175 check_rules`
-- **命令词位正则（DESTRUCTIVE_COMMAND_WORD）**：只在「命令位」（行首或 `;`、`&`、`|`、`(`、`)`、换行之后）识别 `rm`/`del`，大小写不敏感；子串与参数位不触发。
-  - README（「试一下」第 5 条）：「在 Windows 上，`del test.txt` 和 `DEL test.txt` 会触发闸门 2，而 `model`、`delimiter` 和 `echo del test.txt` 不会。」
-  - 锚点：`code.py:156 DESTRUCTIVE_COMMAND_WORD = re.compile(...)`；`code.py:161 contains_destructive_command`
-  - 演进注记：该正则为 main 轨 0dcafa2 相对旧钉新增（PR #548），并传播到 13/17 个根级章（s03–s14、s17，即带 s03 权限层的章；s15_integrated_harness 虽带 Bash 工具但无此正则）【一，fork-ledger §5 已同步修正】
-- **闸门 3：用户审批（ask_user）**：规则命中后暂停循环，终端打印原因与参数，等用户输入；**默认拒绝**。
-  - README：「**闸门 3**：规则命中后，暂停等用户输入。」
-  - 锚点：`code.py:183 def ask_user`；`code.py:186 choice = input("   Allow? [y/N] ")`；`code.py:187`（空输入即 deny）
-- **拒绝结果回灌（Permission denied. tool_result）**：被拒的调用不静默消失，而是以 tool_result 形式回给模型，Agent 能看到自己被拒。
-  - 锚点：`code.py:226-229`（`results.append({... "content": "Permission denied."})` 后 `continue`）
-- **s02 硬边界的拆除（净效应样本）**：本章起文件工具不再调用 safe_path（实测 grep 零命中），越界从「函数级直接报错」改为「规则匹配 → 问用户」——装门禁的同时把墙换成了对讲机。
-  - 证据：s02 safe_path 命中 5 行（定义 + 3 调用点）vs s03 零命中【一，2026-09-28 复核】；越界检查内联进规则一（`code.py:166-172` check 为 `not (WORKDIR / args.get("path", "")).resolve().is_relative_to(WORKDIR)`）
-- **提示词层并行声明**：SYSTEM 同时声明破坏性操作需审批（提示词与代码双层）。
-  - 锚点：`code.py:59 SYSTEM = f"You are a coding agent at {WORKDIR}. All destructive operations require user approval."`（课程正文未展开，代码事实）
+1. **三闸门管线 check_permission**：工具执行前依次过 硬拒绝 → 规则匹配 → 用户审批；任一拒绝即不执行；接入循环只加一个 if。锚点：管线 `code.py:201-212`；接入点 `code.py:236-239`；README 三闸门表（README:28-32）。
+2. **闸门 1：DENY_LIST 硬拒绝（7 条，子串匹配，仅对 bash）**：`["rm -rf /", "sudo", "shutdown", "reboot", "mkfs", "dd if=", "> /dev/sda"]`，命中直接拒绝——不执行、不问人。锚点：`code.py:155-156`、`check_deny_list` `code.py:158-162`、「仅 bash」限定 `code.py:202`（README 未展开此限定，以代码为准）。副作用即 171 §5 分路表的「过拦」：子串 `"rm -rf /"` 同样匹配一切绝对路径递归删除（如 `rm -rf /tmp/cache` 也被拦）。
+3. **闸门 2：声明式规则表（两条）**：每条规则指定工具 + 检查条件 + 消息，回答「什么时候需要问用户」。锚点：`PERMISSION_RULES` `code.py:175-183`、`check_rules` `code.py:185-189`；README:57 `**闸门 2**负责规则匹配，用来描述"什么时候需要问用户"。每条规则指定工具和检查条件。` 规则一 = 文件工具路径越出工作区；规则二 = bash 破坏性命令（词边界正则或关键词 `["rm ", "> /etc/", "chmod 777"]`）。
+4. **词边界正则（DESTRUCTIVE_COMMAND_WORD）**：只在命令位（行首或 `; & | ( )` 换行之后）识别 `rm`/`del`，大小写不敏感；`model`、`delimiter` 这类假阳性不再误伤。锚点：正则 `code.py:166-168`、`contains_destructive_command` `code.py:171-172`。README 实例（README:155）：`在 Windows 上，del test.txt 和 DEL test.txt 会触发闸门 2，而 model、delimiter 和 echo del test.txt 不会。` 此正则为 main 轨相对站点修订的增量（171 §5：源仓已补、站点页未同步【二】）。
+5. **规则一覆盖 read_file（工作区外检查扩到读）**：`"tools": ["read_file", "write_file", "edit_file"]`——读取工作区外路径也要问人。锚点：`code.py:176`。message 文案分歧：code.py:178 `"Writing outside workspace"` vs README:73 `"Access outside workspace"`（分歧 D11；且 read_file 命中时文案仍说 Writing，系文案滞后，以行为为准）。
+6. **闸门 3：用户审批，默认拒绝**：规则命中后暂停，终端打印原因与参数，`Allow? [y/N]`——只有 `y/yes` 才放行，空回车即 deny。锚点：`ask_user` `code.py:193-197`。
+7. **三道都没命中 → 直接执行**：日常大多数操作走这条路（README:34 `三道都没命中 → 直接执行。大部分日常操作走这条路。`；管线结构证据 `code.py:207-212`——两关都空过即 `return True`）。
+8. **拒绝结果回喂**：被拒调用不静默消失，以 `Permission denied.` 的 tool_result 回给模型，循环继续。锚点：`code.py:236-239`。
+9. **安全层的两次搬家（演进事实，防错挂）**：① run_bash 内置黑名单（s01/s02 `dangerous` 5 条）在本章 run_bash 中**已移除**（`code.py:74-81` 无 dangerous，grep 零命中）——拦截上收为独立 DENY_LIST 管线并扩到 7 条；② safe_path 在本章**整体移除**（grep 零命中），文件工具路径检查上移到闸门 2 规则一——越界从「函数级直接报错」变为「规则命中 → 问用户」。叙述时不得把 s01 的内置拦截说成「三闸门」。
+10. **SYSTEM 提示词同步换血**：s03 的系统提示去掉 `"Act, don't explain."`，改为 `"All destructive operations require user approval."`——提示词层与代码层双声明。锚点：`code.py:66-69`（README 未展开，代码事实）。
+11. **分发与查表自 s02 原样继承**：TOOLS/TOOL_HANDLERS/软查表兜底逐字同 s02（`code.py:132-150`、`code.py:241-242`），与「循环不变」声明互证。
 
-### 生产版对照【三】
+### 3.3 生产版对照【三】（经 171 §5 转引；口播必带归属句）
 
-本章无「深入 CC 源码」节。经轨 C 对照字段转录的【三】级主张：
+- 【三】CC 权限结论不是三种而是**四种行为**：允许 / 拒绝 / 询问 / 「本工具不表态、交通用管线」（最后这种最终也转成询问）。
+- 【三】规则不是一张本地表，而是从 **8 个来源**分层合并（用户级、项目级、本地级、功能开关、企业策略、命令行参数、内联命令、会话内授权），高优先级覆盖低优先级。
+- 【三】`isDestructive()` 只管界面上的红色标签、不参与权限决策（易误会点）。
+- 【三】自动模式下有一个「分类器」：把工具调用连同对话上下文发给一个判断模型决定能否自动批准，连拒太多次会回退人工（171 §5；「YoloClassifier」代号称法见分歧 D5，口播禁用代号）。
+- 【三】铁律：任何环节说了「允许」都不能推翻配置里写死的「禁止」——安全决策取最严的、不取最后的。
 
-- 【三】产品里权限规则求值**独立于钩子**，钩子是权限评估的扩展/输入而非宿主——「权限实现成一个钩子」只是教学版的权宜（课程作者源码分析同口径：产品里钩子从属于权限管线）。口播引用必须带归属句；正文以官方口径为准（见下 3.6 与分歧清单 D2）。
+### 3.4 官方文档对照【官】
 
-### 官方文档对照【官】
+- 权限模式谱系（permissions 文档，accessed 2026-09-30，经 171 §5 转引）：官方六模式（手动 / 接受编辑 / 计划 / 自动 / 不问 / 全跳过）正是「问多少」这个连续谱的产品化——两派争议（见开放问题 6）在产品里两端都保留。
+- 设置分层覆盖（settings 文档，accessed 2026-09-30，经 171 §5/§7 转引）：官方给出与【三】8 来源同构的口径——企业托管 > 命令行 > 项目本地 > 项目共享 > 用户级。171 §7 判定：此条获官方同构支撑。
 
-1. 分层权限系统与默认免批面（permissions § Permission system）："Claude Code uses a tiered permission system to balance power and safety."——按工具类型分层默认免批：工作目录内读免批、只读 Bash 白名单免批、文件修改需批、Web fetch 预批文档域名免批。教学版只有三段闸门，无分层免批面。**互补**。
-2. 求值顺序：deny → ask → allow，首中即决（§ Manage permissions）："Rules are evaluated in order: deny, then ask, then allow. The first match in that order determines the outcome, and rule specificity doesn't change the order."——与课程三闸门「先匹配到哪档按哪档办」逐句对应。**一致**。
-3. 放行无法在拒绝上开洞（§ Manage permissions）："A broad deny rule like `Bash(aws *)` blocks every matching call, including calls that also match a narrower allow rule… An allow rule can't carve an exception out of a deny rule."——课程「不可协商的拒绝排在可协商的同意前」的机制化。**一致**。
-4. 跨来源合并（settings § Lists merge instead of overriding + § Settings precedence）："combines the lists instead of picking one"；"If a tool is denied at any level, no other level can allow it."——多来源并集 + deny 全局优先。教学版单一规则来源。**互补**。
-5. 设置优先级五层（settings + permissions）："managed settings, command line, project local, shared project, user"——受管最高，"no other level, including command line arguments, can override a managed permission rule"。**一致**。
-6. 权限由 harness 执行、不由模型执行（permissions § Manage permissions，Note）："Permission rules are enforced by Claude Code, not by the model. Instructions in your prompt or `CLAUDE.md` shape what Claude tries to do, but they don't change what Claude Code allows."——提示词只能影响模型**尝试**什么，改不了门禁**放行**什么。**一致**。
-7. 模式层：六模式（permission-modes + how-claude-code-works）：default（Manual）/ acceptEdits / plan / auto / dontAsk / bypassPermissions；`Shift+Tab` 循环切换。教学版只有规则三档 + 问人，无模式层。**互补**。
-8. auto 模式：分类器代审、看不到工具结果、已是内置起步模式（permission-modes）："a second model, the classifier, reviews actions instead of you"；"Tool results are stripped from those requests, so hostile content in a file or web page can't manipulate the classifier directly."；"With Claude Code v2.1.283 or later, auto mode is the built-in starting permission mode for interactive terminal and VS Code sessions."——**一致 + 互补（默认值更新：auto 已是交互会话起步模式）**。
-9. 拒绝的回灌语义（permissions § Add a comment when you answer a permission prompt）："**No**: Claude Code sends your comment to Claude as the reason for the denial, and Claude continues working."——与课程「被拒也补一条结果再继续」一致。**一致**。
-10. 整工具移除与只读 Bash 白名单（permissions § Manage permissions + § Read-only commands）："A bare tool name like `Bash` removes the tool from Claude's context entirely, so Claude never sees it."；内建只读命令集（ls/cat/echo/pwd/head/tail/grep/find/wc/which/diff/stat/du/cd + 只读 git）"runs them without a permission prompt in every mode… The set is not configurable"。——教学版 deny 只拦执行；产品 bare deny 连工具定义都移出上下文。**互补**。
-11. 信任门：收紧免信任、放松需信任（permissions § Project allow rules and workspace trust）：项目文件里的 `permissions.allow` 与 `additionalDirectories` 需先接受 workspace trust 对话框才生效；"`deny` and `ask` rules aren't affected, since they only restrict."——授予权能力的规则设信任门、只收不放的规则不设门。**互补**。
+### 3.5 171 增量【一】：实验 3 + 分路表实跑
+
+- **分路表五条命令逐条实跑**（`--pred gates`，`cc_tools_lab.py:502-513`；闸门实现对照 `lab:135-168`）：
+
+| 命令 | 闸门 1 | 闸门 2 | 最终 |
+|---|---|---|---|
+| `rm -rf /` | 命中（整盘删除） | —— | 拒绝 |
+| `rm -rf /tmp/cache` | **命中**（子串 `"rm -rf /"` 连带拦下一切绝对路径递归删除） | —— | 拒绝 |
+| `rm -rf ./tmp/build-cache` | 未命中（相对路径） | 命中（含 `rm `） | 问用户 |
+| `sudo ls` | 命中（`sudo`） | —— | 拒绝 |
+| `cat /etc/hosts` | 未命中 | 未命中 | 放行 |
+
+  两面性（171 §5）：**过拦**与**漏拦**并存——换写法、加层 shell 展开可能绕过；课程自认「简单字符串匹配不是可靠安全机制，命令变体和 shell 展开可能绕过」【二】。
+- **实验 3 闸门调序**（`cc_tools_lab.py:373-409`）：把规则与问用户提到最前、硬拒绝殿后，用户顺手按一个 `y`——整盘删除命令真的被执行，虚拟文件系统 4 个文件 → 0 个。171 §8 教训句：`「永远不行」必须最先，否则被一句同意放走`。
+- 补充实跑（`--pred t5`，`lab:480-499`）：DENY_LIST 删掉 `sudo` 后，`sudo chmod 777 /var/run/app` 落入闸门 2 → 问用户（按 `n` 即拒）——黑名单与规则层的互补关系可运行演示。
+
+---
 
 ## 四、s04 Hooks —— 挂在循环上，不写进循环里
 
-### 定位与标语
+### 4.1 定位与标语（README 引语，逐字）
 
-- README 标语：*"挂在循环上, 不写进循环里"* — hook 在工具执行前后注入扩展逻辑。
-- Harness 层定位：「**Harness 层**: hook — 扩展点不侵入循环。」
-- 动机（反模式）：每加一个新行为（「记录每次 bash 调用」「操作后自动 git add」）都要修改 `agent_loop` 本身，「很快循环就认不出来了」；「你想扩展的是 Agent 的行为，但你改的却是循环本身。循环应该是一个稳定的核心，扩展应该挂在外面。」
-- 结构总结：「四个 hook 覆盖了 agent cycle 的关键节点：输入→执行前→执行后→退出。循环只负责调用 trigger_hooks()，具体逻辑全在 hook 回调里。」
-- 引出 s05：「Agent 现在能安全执行操作了。但它有没有停下来想过"我应该先做什么，再做什么"？…s05 TodoWrite → 给 Agent 一个计划工具。先列清单，再做。」
+- 页首金句（README:7）：`*"挂在循环上, 不写进循环里"* — hook 在工具执行前后注入扩展逻辑。`；Harness 层定位（README:9）：`**Harness 层**: hook — 扩展点不侵入循环。`
+- 反模式引语（README:15-34）：`但每次加一个新检查，比如"记录每次 bash 调用"、"操作后自动 git add"，都要修改 agent_loop 函数。`（README 膨胀伪代码末行注释 `# ... 很快循环就认不出来了`，README:31）／`你想扩展的是 Agent 的行为，但你改的却是循环本身。循环应该是一个稳定的核心，扩展应该挂在外面。`（README:34）
+- 接入口径（README:42）：`s03 的循环和权限逻辑完全保留。唯一的变动是把 check_permission() 从循环体内移到了 hook 上，循环不再直接调用任何检查函数，改为 trigger_hooks("PreToolUse", block)，由注册表决定跑什么。`
+- 四事件宣言（README:44）：`四个事件，覆盖一个完整的 agent cycle：`；结构总结（README:183）：`四个 hook 覆盖了 agent cycle 的关键节点：输入→执行前→执行后→退出。循环只负责调用 trigger_hooks()，具体逻辑全在 hook 回调里。`
+- 下章交棒（README:219-221）：`Agent 现在能安全执行操作了。但它有没有停下来想过"我应该先做什么，再做什么"？`→`s05 TodoWrite → 给 Agent 一个计划工具。先列清单，再做。`（归档 main 轨 s05 = todo_write；站点 20 章轨 s05 亦为 TodoWrite——本处两轨同物，但编号纪律仍按 source-map）
 
-### 机制【一】
+### 4.2 机制【一】
 
-- **HOOKS 注册表（四事件模型）**：事件名映射到回调列表的字典，是全部扩展逻辑的挂载点。四事件：UserPromptSubmit（用户输入提交后、进 LLM 前：输入验证、注入上下文）/ PreToolUse（工具执行前：权限检查、日志记录）/ PostToolUse（工具执行后：副作用、输出检查）/ Stop（循环即将退出时：收尾清理、决定是否继续）。
-  - README：「**hook 注册表**：一个字典，事件名映射到回调列表。」
-  - 锚点：`code.py:128 HOOKS = {"UserPromptSubmit": [], "PreToolUse": [], "PostToolUse": [], "Stop": []}`
-- **register_hook() / trigger_hooks()**：注册即挂载、触发即遍历；循环只认这两个函数，不认任何具体检查。
-  - README：「扩展通过 `register_hook()` 添加，循环只调用 `trigger_hooks()`。」
-  - 锚点：`code.py:130 def register_hook`；`code.py:133 def trigger_hooks`
-- **返回值控制流协议（None vs 非 None）**：hook 返回 None 表示放行/无意见，返回非 None 表示干预——唯一的控制流信道；**只有 PreToolUse 与 Stop 拥有控制流权力**，UserPromptSubmit 与 PostToolUse 的返回值不参与控制流。
-  - README：「`PreToolUse` 返回非 `None` 时，本次工具执行被阻止；`Stop` 返回非 `None` 时，循环继续。`UserPromptSubmit` 和 `PostToolUse` 的返回值不参与控制流。」
-  - 锚点：`code.py:133-138 trigger_hooks`（`code.py:136 if result is not None`）
-- **permission_hook（s03 权限逻辑迁移）**：s03 的 `check_permission()` 原封不动搬进一个 PreToolUse hook，逻辑不变、位置改变——权限从此与日志回调平级。
-  - README：「s03 的权限检查逻辑现在包装成 PreToolUse hook」
-  - 锚点：`code.py:153 def permission_hook`（docstring：`PreToolUse: s03 check_permission() logic moved here.`）；注册在 `code.py:205`
-- **三层权限判定（hook 内）**：黑名单直接拒；破坏性命令启发式须人工确认；文件路径越出工作区须人工确认；确认默认拒绝。
-  - 锚点：`code.py:142 DENY_LIST`（本章 6 条，较 s03 漂移少 `> /dev/sda`，见分歧清单）；`code.py:143-145 DESTRUCTIVE_COMMAND_WORD`；`code.py:146 DESTRUCTIVE`（3 关键词）；`code.py:166 input("   Allow? [y/N] ")`（默认 N）
-- **log_hook（PreToolUse 日志）**：每次工具执行前打印调用预览（取前两个参数值、截 60 字符）。
-  - 锚点：`code.py:179 def log_hook`（`code.py:181`）
-- **large_output_hook（PostToolUse 大输出提醒）**：工具输出超阈值告警（「输出检查」类用途）。
-  - 锚点：`code.py:185 def large_output_hook`（阈值 `code.py:187`，100000 字符）
-- **context_inject_hook（UserPromptSubmit 上下文注入点）**：用户输入提交后、进 LLM 前触发；本章示例只打印当前工作目录并返回 None（`return None = no modification, let prompt through`）——文档口径「注入上下文」与本章实现（打印一行、返回值无人读）存在能力落差。
-  - 锚点：`code.py:192 def context_inject_hook`；触发点 `code.py:265 trigger_hooks("UserPromptSubmit", query)`
-- **summary_hook（Stop 收尾统计）**：循环即将退出时统计本次会话的工具调用次数（遍历 messages 中 tool_result 块计数）；恒返回 None（允许退出）。
-  - 锚点：`code.py:197 def summary_hook`；`code.py:227 force = trigger_hooks("Stop", messages)`
-- **Stop hook 强制续跑**：Stop hook 返回消息时，该消息被注入为 user 消息并 continue，循环被强行延续——hook 可以「拒绝停止」；该能力存在于协议中，本章示例未启用。
-  - README：「`Stop` 返回非 `None` 时，循环继续。」
-  - 锚点：`code.py:227-230`（`messages.append({"role": "user", "content": force}); continue`）
-- **循环去硬化（唯一一处改动）**：agent_loop 与 s03 结构相同，唯一变动是权限调用点换成 hook 触发；权限被拒时工具得到一条 "Permission denied …" 的 tool_result——拦截也走正常消息回路。
-  - README：「**循环里只改了一处**：s03 直接调用 `check_permission(block)`，s04 改为 `trigger_hooks("PreToolUse", block)`」
-  - 锚点：`code.py:215 def agent_loop`；`code.py:236 blocked = trigger_hooks("PreToolUse", block)`；`code.py:245 trigger_hooks("PostToolUse", block, output)`；`code.py:212-213` 对照注释；`code.py:238-240`（拒绝回灌）
+1. **HOOKS 注册表（四事件）**：事件名 → 回调列表的字典，全部扩展的挂载点。锚点：`code.py:137 HOOKS = {"UserPromptSubmit": [], "PreToolUse": [], "PostToolUse": [], "Stop": []}`；README:59 `**hook 注册表**：一个字典，事件名映射到回调列表。` 四事件触发时机与典型用途表（README:46-51）：UserPromptSubmit=用户输入提交后进 LLM 前（输入验证、注入上下文）/ PreToolUse=工具执行前（权限检查、日志记录）/ PostToolUse=工具执行后（副作用如自动 git add、输出检查）/ Stop=循环即将退出时（收尾清理、决定是否继续）。
+2. **register_hook / trigger_hooks**：注册即往列表追加、触发即依序执行；循环只认这两个函数、不认任何具体检查。锚点：`code.py:139-140`、`code.py:142-147`；README:53 `扩展通过 register_hook() 添加，循环只调用 trigger_hooks()。`
+3. **非 None 短路协议**：回调依序执行，谁的返回值不是 `None` 谁就喊停（触发函数立即返回、后续回调不再执行）。锚点：`code.py:145`（`if result is not None:  # A hook result blocks this tool call.`）；README 代码注释（README:75）`返回值 ≠ None → hook 说"停"`。
+4. **返回值语义非对称**：同为「非 None」，挂 PreToolUse 是踩刹车（本次工具不执行、拒因回喂），挂 Stop 是踩油门（消息注入对话、循环续跑）；UserPromptSubmit 与 PostToolUse 返回值不参与控制流。锚点：README:80（逐字：`PreToolUse 返回非 None 时，本次工具执行被阻止；Stop 返回非 None 时，循环继续。UserPromptSubmit 和 PostToolUse 的返回值不参与控制流。`）；代码对照 `code.py:245-249`（Pre）vs `code.py:235-240`（Stop）。
+5. **permission_hook：s03 三闸门迁入回调**：s03 的权限逻辑（DENY_LIST → 正则/关键词 → 问用户；文件工具越界问用户）原封不动包进一个 PreToolUse 回调，位置改变、逻辑不变——权限从此与日志回调平级。锚点：`code.py:162-186`（docstring `code.py:163`：`"""PreToolUse: s03 check_permission() logic moved here."""`）；注册 `code.py:214`；bash 分支 `code.py:164-177`、文件分支 `code.py:178-185`。
+6. **DENY_LIST 跨章漂移（6 条）**：s04 为 `["rm -rf /", "sudo", "shutdown", "reboot", "mkfs", "dd if="]`——较 s03 少 `"> /dev/sda"`（分歧 D8）。锚点：`code.py:151`；DESTRUCTIVE_COMMAND_WORD（同 s03）`code.py:152-154`；DESTRUCTIVE 三关键词 `code.py:155`。
+7. **log_hook / large_output_hook**：PreToolUse 日志回调（打印工具名+参数预览）；PostToolUse 大输出提醒（>100000 字符告警）。锚点：`code.py:188-192`、`code.py:194-198`（阈值 `code.py:196`）。
+8. **context_inject_hook（UserPromptSubmit 点位）**：用户输入后、进模型前触发；本章示例只打印当前工作目录并返回 None——「注入上下文」的文档口径与本章实现（打印一行、返回值无人读）存在能力落差。锚点：`code.py:201-203`；触发点 `code.py:274`（主 REPL 循环内、append user 消息前）。
+9. **summary_hook（Stop 收尾统计）**：循环将退时统计会话 tool_result 数并打印；恒返回 None（放行停机）。锚点：`code.py:206-211`。
+10. **Stop 强制续跑**：Stop 钩子返回非 None 时，返回值作为 user 消息注入并 `continue`——钩子可以「拒绝停止」。**实测归档版无 stopHookActive 防护标志、无轮次封顶**：一个总返回非 None 的 Stop 钩子在教学版就是真·无限循环（生产版对照见 4.3；实验 5 见 4.5）。锚点：`code.py:235-240`（`force = trigger_hooks("Stop", messages)` / `if force:` / `messages.append({"role": "user", "content": force})` / `continue` / `return`）；README:142 代码注释 `return None = allow stop, return string = force continuation`。
+11. **循环唯一改动**：agent_loop 与 s03 同构，仅权限调用点换成钩子触发；被拒调用以 `str(blocked)` 的 tool_result 回喂——拦截也走正常消息回路。锚点：对照注释 `code.py:220-222`（`# s03: if not check_permission(block): ...` / `# s04: if trigger_hooks("PreToolUse", block): ...`）；`code.py:245-249`；PostToolUse 触发 `code.py:254`；README:162 `**循环里只改了一处**：s03 直接调用 check_permission(block)，s04 改为 trigger_hooks("PreToolUse", block)`。
+12. **被拒的调用连日志回调都轮不到**：注册顺序 permission_hook 先于 log_hook（`code.py:214-215`），权限回调返回非 None 即短路（`code.py:143-146`）——「谁先喊停谁负责」的自然结果。此条同时是 s04 链路实测走查（171 §6 / lab `--pred t4`）的观测点。
 
-### 生产版对照【三】
+### 4.3 生产版对照【三】（经 171 §6 转引；口播必带归属句）
 
-本章无「深入 CC 源码」节。经轨 C 对照字段转录的【三】级主张：
+- 【三】CC 实际有 **27 个钩子事件**（工具相关、会话相关、用户交互、子代理、压缩、团队协作……；材料所读时点）；教学版只讲覆盖一个完整回合的 4 个。
+- 【三】返回值从「None 与否」扩展成 **14 个字段**（阻塞错误、阻止后续、权限行为、改写输入、附加上下文……）。
+- 【三】钩子说「允许」越不过配置里的「拒绝/询问」——课程称这是 CC 权限系统最重要的安全设计；教学版没有这一层，材料自认「在生产环境中会形成安全漏洞」【二】。
+- 【三】`stopHookActive` 防无限循环：Stop 钩子报错后循环带标志重入，后续迭代不再被同一钩子拖着跑（官方已证实字段存在与用途并加计数上限，见 4.4）。
+- 【三】PostToolUse 可以「优雅停机」：返回阻止继续的字段，让代理完成任务式收束而非崩溃。
+- 【三】CC 的 State 共 10 个字段（材料所读时点），教学版只用到其中的 messages。
 
-- 【三】产品有「本轮已由退出钩子接管」的标志位抑制重复触发、防 Stop 钩子死循环——课程作者源码分析；官方以 `stop_hook_active` 字段 + **8 次连续续轮上限**的量化口径证实并细化（见下 4.9）。口播引用带归属句。
-- 【三】产品里钩子从属于权限管线（同 s03 节转录条目；见分歧清单 D2）。
+### 4.4 官方文档对照【官】（hooks 文档，accessed 2026-09-30，经 171 §6/§7 转引）
 
-### 官方文档对照【官】
+- **事件数已演进为 33**（材料 27 → 官方 2026-09-30 实况 33，新增消息展示、目录变更、模型切换等 6 类）——事件清单在持续生长，**口播引数字必须带日期**。
+- `stop_hook_active` 字段的存在与用途获官方证实，并追加量化上限：**连续强制续跑 8 次即硬停**（防无限循环的双保险：标志之外再加计数上限）。
+- 171 §7 交叉结论：27 事件数与 `stop_hook_active` 在官方文档获得交叉证实（前者已演进）；设置分层获同构支撑；**其余源码行号级论断（`query.ts:830` 一类）来自材料对闭源源码的阅读，无法独立复核**。
 
-1. 钩子定义与处理器类型（hooks 首段）："Hooks are user-defined shell commands, HTTP endpoints, MCP tool calls, LLM prompts, or subagents that execute automatically at specific points in Claude Code's lifecycle. Claude Code fires the same hook events wherever it runs…"——教学版钩子 = 进程内 Python 回调；产品处理器五类（command/http/mcp_tool/prompt/agent）。**互补**。
-2. PreToolUse 的位置（hooks § PreToolUse + permissions § Extend permissions with hooks）："Runs after Claude creates tool parameters and before processing the tool call."；"PreToolUse hooks run before the permission prompt, for every tool except `EndConversation`."——「前置钩子先于权限判定」的顺序获官方确认；官方另区分 PermissionRequest 事件（仅当要弹权限提示时触发）。**一致 + 互补**。
-3. PreToolUse 决策四值；钩子决定不能绕过权限规则（hooks § PreToolUse decision control + permissions）："allow / deny / ask / defer"（defer 供 `-p` 子进程场景暂停/恢复）；"Hook decisions don't bypass permission rules. Claude Code evaluates deny and ask rules regardless of what a PreToolUse hook returns…"——「插线口只能收紧、不能放松」逐字成立；官方另给 allow 的例外清单（no-mode-auto-approves 动作与 AskUserQuestion/ExitPlanMode 跳不过）。**一致 + 互补**。
-4. 阻断钩子压过放行规则（permissions § Extend permissions with hooks）："A blocking hook also takes precedence over allow rules. A hook that exits with code 2 stops the tool call before permission rules are evaluated…"——与 4.3 合起来构成对称不变量。**一致**。
-5. exit 2 / 沉默 / 超时三态（hooks § Exit code 2 / § How a hook resolves / § Timeouts）："Exit 2 means a blocking error… even a JSON `permissionDecision` of `\"allow\"` can't override it."；"staying silent doesn't approve it"（沉默不等于批准）；"A timed-out `command`, `http`, or `mcp_tool` hook doesn't block the tool call… don't count on a stalled hook to act as a gate"（超时不算拦截；默认超时 command/http/mcp_tool 600s、prompt 30s、agent 60s）。**一致 + 互补**。
-6. 多钩子：并行执行 + 决策按优先级合并（hooks § Hook handler fields + § PreToolUse decision control）："All matching hooks run in parallel. If you define the same handler in more than one settings file, it runs once."；"precedence is `deny` > `defer` > `ask` > `allow`."——**对教学版构成分歧**（教学版串行 + 第一个非空短路；见分歧清单 D1）。
-7. PostToolUse：成功后立即运行；有真实决策语义（hooks § PostToolUse + decision control）："Runs immediately after a tool completes successfully."；`decision: "block"` 把 reason 加在工具结果旁（Claude 仍见原始输出）；`updatedToolOutput` 只改模型所见——"The tool has already run by the time the hook fires, so any files written, commands executed, or network requests sent have already taken effect."——教学版「执行后返回值被调用方丢弃、无任何效果」与产品方向差（课程自记为教学版瑕疵）。**互补（方向性差异）**。
-8. PostToolBatch：批级事件可停循环（hooks § PostToolBatch）："fires exactly once with the full batch"；"Returning `decision: \"block\"` or `continue: false` stops the agentic loop before the next model call."——产品「批」层的直接文档证据；循环外装置可终止循环的又一实例。**互补**。
-9. Stop：退出否决 + 防死循环上限（hooks § Stop）：`decision: "block"` 阻止停止；`stop_hook_active` 字段；"Claude Code applies an 8-consecutive-continuation cap: after stop hooks have continued the turn eight times in a row, Claude Code overrides the next block and ends the turn."——课程「收工不是循环一个人说了算」与官方一致；官方给出量化上限。**一致 + 互补（量化）**。
-10. 硬性放行/拒绝用权限系统而非钩子（hooks § Common fields，`if` 条目）："Because the `if` filter is best-effort, use the permission system rather than a hook to enforce a hard allow or deny."——**一致**。
+### 4.5 171 增量【一】：实验 4 / 实验 5 + 链路走查
 
-## 分歧清单
+- **实验 4 返回值语义反转**（`cc_tools_lab.py:412-441`）：把「None 当放行」反转成「None 当阻止」——0 个工具成功执行（本应放行的日常读取也进不来），Stop 钩子被劫持成无限续跑直到 50 轮封顶。171 §8 教训句：`「非 None 才喊停」是全部扩展共享的契约`。
+- **实验 5 拿掉防循环标志**（`cc_tools_lab.py:444-458`；防护逻辑在引擎 `lab:210-220`）：一个总在报错的 Stop 钩子（永远要求续跑）——无 `stopHookActive` 防护：冲到 100 条消息封顶不停；有防护：3 条消息内正常停机。171 §8 教训句：`防循环标志是停机权的最后一道闸`。归档互证：教学版实物即无防护形态（4.2-10），生产版防护属【三】+【官】。
+- **s04 全链路走查实跑**（`--pred t4`，`lab:462-477`）：`rm -rf ./tmp/build-cache` 在 s04 引擎里的完整链路（171 §6 逐字取自实测日志）：用户输入过 UserPromptSubmit（打印工作目录）→ 模型举手 → PreToolUse 链按注册序执行：权限回调先跑、命中规则问用户 → 答 `y` 权限回调返回 None（放行）→ 轮到日志回调打印 → 查表执行 → PostToolUse 检查输出 → 结果以 user 消息回喂 → 下一轮无新请求则 Stop 统计后放行停机。
+- 附：原型 selftest（`lab:292-325`）断言「三轮后正常停止、4 条 tool_result、两次运行日志逐字节一致（确定性）」。
 
-处置默认规则：课程 vs 官方分歧，取更可核验的官方轨；口播措辞建议「课程教 X；官方文档当前说 Y」。README vs code 分歧，一律以 code.py 为准（课程 README 代码块系节选简化）。
+---
 
-### A. 课程 vs 官方
+## 分歧清单（处置默认规则：课程 vs 官方取官方轨；README vs code 一律以 code.py 为准；随章/随修订漂移的计数不进口播）
 
-- **D1 · 钩子执行与合并语义**：课程 s04 教「事件 → 回调列表，按注册顺序**串行**调用，第一个返回非空的**就地短路**」，并据此可推出「权限回调先注册 → 拦截导致日志回调漏记」；官方 hooks 文档明写 "All matching hooks run in parallel" + 多决策合并 "precedence is `deny` > `defer` > `ask` > `allow`"。教学版的串行短路语义（及「漏记」推论）不描述产品行为——产品里不存在注册顺序遮蔽。口播措辞建议：「课程教按注册顺序串行、先到先短路；官方文档说全部匹配钩子并行执行、多个决策按 拒绝>延迟>询问>放行 合并」；「漏记」推论只可作教学版结构瑕疵讲，不得外推产品。
-- **D2 · 权限的架构位置**：课程 s03→s04 把权限实现为 PreToolUse 回调列表的第一项（「权限不再是特权逻辑，只是众多插件中的第一个」）；官方产品中权限规则求值独立于钩子——"Claude Code evaluates deny and ask rules regardless of what a PreToolUse hook returns"，钩子是权限评估的扩展/输入而非宿主（【三】源码分析同口径）。方向相反。处置：教学版写法讲成「扩展点统一」的结构演示，不得说成产品权限架构。
-- **D3 · 工具执行并发**：课程 s02 教学代码严格串行（固定提交实测零并发原语、该章自身说明明写逐个执行），但仓库章节索引把「并发」列为该章关键概念；官方文档确认产品存在并行工具调用与「批」层（PostToolBatch/PostToolUse concurrent）。课程正文承诺与教学代码、与产品现状两头不符。处置：教学版「不存在同时」如实讲；产品侧只讲到「存在并行与批」这一官方披露层，批间次序与并行判定细节不披露、只能带【三】归属转述。
+### A. 轨间与数字口径（口播必读）
 
-### B. README vs code（章内取证差异）
+- **D1 · LOC 徽章 vs 仓库实测**：站点徽章 102/135/180/232【二】vs 归档 `wc -l` 151/206/267/280【一】——两版课程，徽章描述更早教学版（171 §10.4：材料未说明口径）。处置：**口播用站点 102 系作教学叙事进度尺并说明口径**（「站点叙事版 100 来行」），本台账并记双口径；不把 151 系说成站点数字。
+- **D2 · query.ts 行数两口径**：站点附录口径 3300+【二，任务转引，站点快照不在本地未复核】vs 171 转述材料核查 1729【三，材料所读时点】。处置：**口播不引任何具体行数**；如需体量对比只说「千行级的核心文件」量级并带归属句。
+- **D3 · 并发默认数**：站点口径 3 vs 官方文档口径 10（两数字均为任务转引口径，归档与 171 均未载具体值，171 §4 只说「有并发上限」）。处置：**口播不引任何并发默认数**，只讲「连续块分批、批内并行有上限」的机制层（带【三】归属句）。
+- **D4 · hooks 事件数 27 → 33**：材料所读时点 27【三】→ 官方 2026-09-30 实况 33【官】。处置：**带日期读**（「课程作者拆的时候是 27 个；官方文档今天已经列到 33 个」）。
+- **D5 · 「YoloClassifier」代号**：归档 8 文件 grep `yolo`（不区分大小写）**零命中**；171 §5 亦只称「分类器」。处置：**口播用「自动模式里的分类器」**，禁用代号。
+- **D6 · 编号与导航**：归档（main 17 章轨）README 导航 `s01 → … → s16 → s17`（s01 README:5；s04 README:5 的 s05 链接为 `../s05_todo_write/`）；站点为 20 章修订；另有旧 12 课历史轨（171 版本与信源说明；source-map 二节「三轨三物」撞号表）。处置：站点页内出现的旧导航/旧编号交叉引用**按现行站点 20 章编号理解**，涉两轨同号一律「轨道 + 章全称」，归属以 source-map 为唯一事实源。
+- **D7 · 续轮判据的轨间之争（本集钉 main 的原因）**：站点 s01 教「续轮看 stop_reason」两信号表、差异留给附录【二】（171 §3/§9 争议 2）；归档 main 已改为看内容块且 `stop_reason` 全仓零命中【一】。处置：机制叙述以归档（main）为准，「站点还教旧判据」本身可作为课程内部分层的叙事点；官方不披露实现层、无法裁决（171 §7）。
 
-- **s02 分发示例**：README 示例为直取下标 `TOOL_HANDLERS[block.name]`；code.py 实实现为 `.get()` + `Unknown: {name}` 兜底。以 code.py 为准。
-- **s02「bash 不受限制」**：README 结尾说 bash 不受限制、`rm -rf /` 还是能跑；code.py 的 run_bash（标注 "-- From s01 (unchanged) --"）实际存在危险命令子串黑名单与超时/截断。两条并列记录：README 指本章未给 bash 增加新防护层（黑名单为 s01 遗留且按子串匹配），不是字面「无任何拦截」。
-- **s02 glob 节选缺件**：README 的 run_glob 节选未含越界过滤与空结果回退，code.py 为完整实现。
-- **s03 规则一 message 措辞**：README 代码块写 "Access outside workspace"；code.py 写 "Writing outside workspace"。以 code.py 为准。
-- **s04 permission_hook 摘录简化**：README 摘录只含 bash 黑名单与路径检查两分支，code.py 实际还有破坏性命令确认分支与彩色终端输出；context_inject_hook/summary_hook 的 README 摘录带 docstring 与返回类型标注，code.py 实文无。
+### B. README vs code.py（章内取证差异，以 code.py 为准）
 
-### C. 轨间与跨章
+- **D8 · DENY_LIST 跨章漂移**：s03 = 7 条（含 `"> /dev/sda"`，`s03 code.py:156`）→ s04 = 6 条（`s04 code.py:151`）；s01/s02 则是 run_bash 内置 dangerous 5 条（含 `"> /dev/"`）。处置：口播引条数必须钉章，或不念具体数字（计数随修订/跨章漂移）。
+- **D9 · s02「bash 不受限制」**：README:159 称 `bash 不受限制，rm -rf / 还是能跑`；code.py 实物（标注 `-- From s01 (unchanged) --`，`s02 code.py:63-66`）存在 5 条危险子串黑名单，`rm -rf /` 恰在其中会被拦。处置：按 code.py 叙述；README 语义理解为「本章未给 bash 增加新的权限层（黑名单系 s01 遗留且按子串匹配、可绕过）」，不是字面「无任何拦截」。
+- **D10 · s02 分发示例**：README:100 为硬索引 `TOOL_HANDLERS[block.name]`；code.py 实实现为 `.get()` + `Unknown: {name}` 兜底（`s02 code.py:180-181`）。处置：以 code.py 为准；硬索引形态仅作实验 2 的破坏性对照（2.5 节）。
+- **D11 · s03 规则一 message 文案**：README:73 `"Access outside workspace"` vs code.py:178 `"Writing outside workspace"`；且规则一 tools 已含 read_file（code.py:176）而文案仍说 Writing。处置：以 code.py 行为为准，口播不逐字念该 message。
+- **D12 · s01 内置拦截 ≠ 三闸门（防错挂）**：s01/s02 的 run_bash 内置黑名单（错误串回喂、不问人）与 s03 三闸门（硬拒→规则→问人）是两层不同机制；s03 起 run_bash 黑名单与 safe_path 均移除、上收为管线（3.2-9）。处置：叙述严格按章演进，不得说「s01 就有权限系统」。
 
-- **续轮判据的轨间之争**：课程站点轨（旧修订）信停止标记（「停止标记不是工具调用，即返回」）vs 本集钉的 main 轨看内容块——同一课程两个修订判据相反（经轨 C §1.4 对照转录；轨拓扑见 fork-ledger §0：站点分支 = main@ac82266 冻结 +1 提交）。官方文档不披露实现层，无法裁决。口播措辞建议：「同一门课的两个修订，判据正好相反；官方文档只讲到产品级三阶段，不披露实现。」
-- **跨章常数漂移（DENY_LIST）**：s03 为 7 条（含 `> /dev/sda`）→ s04 为 6 条（无此项）。随修订/跨章漂移的计数不进口播（数字纪律），引参数以本文件锚点为准。
+## 开放问题（转引 171 §9「核心争议」与 §10「材料没有证明的事」）
+
+1. **「1729 行核心就是 30 行循环」是修辞性等价**：材料未量化保护机制行数占比，「核心」是教学定位而非测量结论（171 §10.1）——口播引用须带归属句与「材料口径」限定。
+2. **源码行号级论断不可独立复核**：`query.ts:830-834` 一类均来自材料对 CC 闭源源码的阅读；官方文档只能部分交叉（`stop_hook_active` 已证实、事件数已演进）（171 §10.2）。
+3. **教学闸门的边界本身在移动**：字符串匹配可被绕过系材料自认，但绕过面未量化；源仓已补词边界正则而站点未同步（171 §10.3）。
+4. **站点徽章与源仓实况不同版**，材料未说明口径（171 §10.4；即 D1）。
+5. **「读文件工具上限无穷大防落盘套娃」是材料转述**，无独立证据；教学版无此机制亦无实验（171 §10.5）。
+6. **争议：权限审批自动化到什么程度**——手动派（危险边界必须人把关）vs 分类器派（自动批、连拒才回退人工）；两派看到不同失败模式（自动放行的破坏 vs 审批疲劳），是「误放行代价 × 误打扰代价」的连续谱选址，不可消解只可对冲；官方把两端都留在产品里（171 §9 争议 1）。
+7. **争议：第一课的续轮判据教哪个**——概念最简（stop_reason 一个字段）vs 行为最真（数内容块，流式下不踩坑）；课程解法是分层（正文教字段、附录揭差异），实验 1 把差异做成可运行分岔（171 §9 争议 2）。
+8. **争议：钩子的能力边界**——一派当全能扩展点、一派坚持钩子只能「看」；生产裁决是「能力给足、否决权不给」（钩子的允许翻不了配置的案），教学版省略此层且材料自认会成安全漏洞（171 §9 争议 3）。
+
+---
+
+## 验收自检（写完后逐条回溯复核；抽 10 条断言 → 命中位置）
+
+| # | 抽检断言（出处节） | 级 | 回溯命中（本次 grep/nl 实测） | 归属句义务 |
+|---|---|---|---|---|
+| 1 | s01 续轮判据 = 内容块、stop_reason 归档零命中（1.2-2） | 【一】 | `s01_agent_loop/code.py:107-111`（grep 命中 L107/108/110）；归档 8 文件 grep `stop_reason` zero hits | — |
+| 2 | s02 软查表 + Unknown 兜底（2.2-3） | 【一】 | `s02_tool_use/code.py:180-181`（grep 命中 L180/181） | — |
+| 3 | s03 DENY_LIST 7 条（3.2-2 / D8） | 【一】 | `s03_permission/code.py:156`（grep 命中，7 元素逐字） | — |
+| 4 | s04 DENY_LIST 漂移为 6 条（4.2-6 / D8） | 【一】 | `s04_hooks/code.py:151`（grep 命中，无 `> /dev/sda`） | — |
+| 5 | s04 Stop 续跑无防护标志（4.2-10） | 【一】 | `s04_hooks/code.py:235-240`（grep 命中 L236-238；L239 `continue`、L240 `return`，全文件无 stop_hook/active 字样） | — |
+| 6 | CC needsFollowUp + 注释原话「stop_reason === 'tool_use' is unreliable」（1.3） | 【三】 | 171:125（§3，grep 命中该行含原话与 needsFollowUp） | **已标注**：1.3 节首行「口播必带归属句」+ 不可独立复核交代 |
+| 7 | CC 权限规则 8 来源分层合并（3.3） | 【三】 | 171 §5（171:183：8 个来源列举 + 高优先级覆盖） | **已标注**：3.3 节首行归属义务 + 「材料所读时点」 |
+| 8 | CC 连续块分批并发 + 五步验证（2.3） | 【三】 | 171 §4（171:150：分批/按输入判并发/五步验证） | **已标注**：2.3 节首行归属义务 |
+| 9 | 官方 hooks 事件 33 个 + 续跑 8 次硬停，访问日期 2026-09-30（4.4 / D4） | 【官】 | 171:216（33 个、新增 6 类）、171:229/232（8 次上限）；URL `code.claude.com/docs/en/hooks`（171:324） | —（带日期已满足） |
+| 10 | 站点徽章 102/135/180/232（实测总表 / D1） | 【二】 | 171:226（§7 表首行：站点页首徽章，2026-09-30） | — |
+| 11（附） | 「YoloClassifier」归档零命中（D5） | 【一】 | 归档目录 grep `-i yolo` zero hits（本次实测） | — |
+| 12（附） | 实验 3 调序致 VFS 4→0 文件（3.5） | 【一】 | `cc_tools_lab.py:373-409`（exp3；L407 打印 `before -> after`）；171 §8 表行 3 | — |
+
+【三】级抽检 3 条（#6/#7/#8）逐条确认已在正文标注归属句义务与「材料所读时点/不可独立复核」交代。
+
+**断言总数（分项）**：机制【一】46 条（s01 12 + s02 11 + s03 11 + s04 12）；【三】19 条（s01 2 组 + s02 4 + s03 5 + s04 6，含 2 条注明转述无独立证据）；【官】交叉 5 条（33 事件 / 8 次上限 / stop_hook_active 证实 / 模式谱系 / 设置分层）；171 实验结论 7 条（实验 1–5 + 分路表 + t4/t5 走查）；分歧 12 条（D1–D12）；开放问题 8 条。合计 **97 条**。所有计数类断言（LOC/工具数/事件数/条数/阈值）均已写明口径。
