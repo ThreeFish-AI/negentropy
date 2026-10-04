@@ -4,9 +4,9 @@
  *    「执行」门开单据驶入（ok 放行瞬态）＋顺序金句 → 四版对账（行数尺随
  *    v1..v4 各章逐格点亮 102/135/180/232）→ 方法论卡（骨架留 · 规模砍）
  *    ＋收束金句。
- *  ★ 空间契约：行数尺沿底边恒驻（y=880 与 archify 画框底缘齐平，占认可带
- *    [880,920]、字幕板顶缘之上——见 clinic.tsx LineGauge 落位铁三角）；「执行」
- *    门与链式角标 mech 青外设位；人无彩。
+ *  ★ 空间契约：行数尺仅 5-B 携尺（y=880 底边带逐格点亮不被画框遮，占认可带
+ *    [880,920]——生命周期口径见 clinic.tsx LineGauge 注释与 storyboard:8；
+ *    R11 撤本幕「恒驻」旧口径）；「执行」门与链式角标 mech 青外设位；人无彩。
  *  ★ archify 两图全屏独占：preflight-chain 五章连播（p5-01..05 句句相邻）、
  *    four-version-ledger 五章连播（p5-09..13）。两实例首章前均有整句空窗
  *    （幕首句／p5-06..08 三句自制），全片无跨实例背靠背接缝，lead 一律走
@@ -110,7 +110,10 @@ const DoorExec: React.FC<{at: number}> = ({at}) => {
               boxSizing: 'border-box',
               background: theme.panel,
               border: `2px solid ${withAlpha(theme.mech, 0.8)}`,
-              transform: `translateX(${(i === 0 ? -1 : 1) * open * 186}px)`,
+              // R11 修复：可视域=padding-box [0,374]（border-box 380−3px 边框×2），
+              // 开启终态各留 4px 对称残边——左 -186→残 [0,4]，右 +180→残 [370,374]；
+              // 原 ±186 右门整体滑出被裁、左门独留 4px 非对称
+              transform: `translateX(${(i === 0 ? -186 : 180) * open}px)`,
             }}
           />
         ))}

@@ -140,10 +140,11 @@ const SplitScreen: React.FC<{at: number}> = ({at}) => {
       <div
         style={{
           position: 'absolute',
+          // R11 五值对齐 3-F BadgeSplit 先例（原自注「同形制」而五处分档未登记）
           left: 1080,
           top: 300,
-          width: 300,
-          padding: '26px 0',
+          width: 320,
+          padding: '24px 0',
           textAlign: 'center',
           background: theme.panel,
           border: `3px solid ${theme.mech}`,
@@ -151,17 +152,17 @@ const SplitScreen: React.FC<{at: number}> = ({at}) => {
           opacity: enters[1],
         }}
       >
-        <div style={{fontFamily: theme.sans, fontSize: 30, color: theme.mech}}>{'关卡'}</div>
+        <div style={{fontFamily: theme.sans, fontSize: 28, color: theme.mech}}>{'关卡'}</div>
         <div
           style={{
             display: 'inline-block',
             marginTop: 12,
-            padding: '4px 18px',
+            padding: '4px 20px',
             borderRadius: 999,
             background: withAlpha(theme.ok, 0.15),
             border: `2px solid ${theme.ok}`,
             fontFamily: theme.sans,
-            fontSize: 20,
+            fontSize: 21,
             color: theme.ok,
             transform: `scale(${1 + 0.08 * hot})`,
             boxShadow: `0 0 ${16 * hot}px ${withAlpha(theme.ok, 0.6 * hot)}`,
@@ -204,7 +205,7 @@ export const P6Finale: React.FC<{scene: SceneRange}> = ({scene}) => {
     <AbsoluteFill style={{opacity: fade}}>
       <Sequence {...bA} name="6-A 诊室收束">
         <div style={{position: 'absolute', left: 660, top: 300}}>
-          <LoopRing x={0} y={0} size={300} litSteps={5} spin glow />
+          <LoopRing x={0} y={0} size={300} litSteps={5} glow />
         </div>
         <PeripheralRow x={1060} y={430} lit={3} at={at('p6-02') - bA.from} />
         <LineGauge lit={gaugeLit} />
@@ -214,7 +215,8 @@ export const P6Finale: React.FC<{scene: SceneRange}> = ({scene}) => {
             key={i}
             style={{
               position: 'absolute',
-              left: 470 + i * 380,
+              // left=410=(1920−1100)/2：三字条组（3×340+2×40）归 960 中轴（R11 修复原 470 右偏 60px）
+              left: 410 + i * 380,
               top: 700,
               width: 340,
               padding: '10px 16px',

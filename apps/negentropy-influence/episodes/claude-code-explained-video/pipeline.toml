@@ -30,6 +30,9 @@ five-layer-dependency = "claude-code-harness--five-layer-dependency.html"
 
 [tts]
 engine = "indextts"
+# ⚠️ 本集以 --duration-factor 1.24 录制（R11 口径收口：df 不在 pipeline.toml/编排器
+# 承载通道内，story 预设 1.0——重录须直调 $T/scripts/tts.py 显式 --duration-factor 1.24，
+# 机器级 store 按 digest 保留 1.24 版本可回收；否则缓存全失配回落 1.0，实测时长门 FAIL）。
 # TODO：选定样本与风格。样本路径**工作区根相对**；ref_sha1 取 12 位（同 tts.py 口径），
 # 用 `uv run --no-project $T/scripts/refs.py list` 查当前清单。
 # ⚠️ 风格预设的 alpha 是在**特定选段**上标定的，换选段即失效（见 $V/refs.toml）。

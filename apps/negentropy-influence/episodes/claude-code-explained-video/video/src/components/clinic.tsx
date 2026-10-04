@@ -2,7 +2,7 @@
  *
  *  ★ 〔M-001〕恒定视觉锚的落点：`LoopRing` 锁死 core 橙描边色与绝对线宽（5px）
  *    与刻度绝对值，直径随镜适配（同形可缩放，R10 契约对齐 as-built：0-C 定妆 280／
- *    1-A·4-A 特写与膨胀 340／4-F·6-A 常规 300），只换周边标签与点亮数——「循环本体从不改」的空间表达。
+ *    1-A·4-A 特写与膨胀 340／4-B·6-A 常规 300——R11 纠 4-F 错挂，4-F 无环），只换周边标签与点亮数——「循环本体从不改」的空间表达。
  *  ★ 恒定空间契约（防 X-001 空间逆旁白）：各场景手排坐标维持（以 P0 0-C 诊室定妆
  *    为准）——循环恒居中央、病历本左上、医生位左、科室门右，全片不换位；三层外设
  *    一律自右缘挂入（mech 青）。
@@ -20,15 +20,14 @@ export const withAlpha = (hex: string, a: number): string =>
     .padStart(2, '0')}`;
 
 /** 接诊循环圆环〔M-001〕——core 橙恒定描边 5px，五步位刻度沿环均布。
- *  litSteps：已点亮的步位序号上界（0..5）；spin：环体导流虚线缓转（母题呼吸）。 */
+ *  litSteps：已点亮的步位序号上界（0..5）；导流虚线恒绘缓转（母题呼吸，R11 spin 死分支已删）。 */
 export const LoopRing: React.FC<{
   x: number;
   y: number;
   size?: number;
   litSteps?: number;
-  spin?: boolean;
   glow?: boolean;
-}> = ({x, y, size = 300, litSteps = 0, spin = false, glow = false}) => {
+}> = ({x, y, size = 300, litSteps = 0, glow = false}) => {
   const frame = useCurrentFrame();
   const breath = useBreathe({period: 150, amp: 0.08, base: 0.92});
   const r = size / 2;
@@ -49,18 +48,17 @@ export const LoopRing: React.FC<{
           strokeWidth={5}
           opacity={glow ? breath : 1}
         />
-        {spin && (
-          <circle
-            cx={r}
-            cy={r}
-            r={r - 20}
-            fill="none"
-            stroke={withAlpha(theme.core, 0.45)}
-            strokeWidth={2}
-            strokeDasharray="14 22"
-            strokeDashoffset={-((frame * 0.6) % 36)}
-          />
-        )}
+        {/* 导流虚线恒绘（R11 删 spin 死分支：全集 4 调用点均 spin，false 分支不可达——同 Ledger.open 判例） */}
+        <circle
+          cx={r}
+          cy={r}
+          r={r - 20}
+          fill="none"
+          stroke={withAlpha(theme.core, 0.45)}
+          strokeWidth={2}
+          strokeDasharray="14 22"
+          strokeDashoffset={-((frame * 0.6) % 36)}
+        />
         {ticks.map((t, i) => {
           const ang = (i / 5) * Math.PI * 2 - Math.PI / 2;
           const tx = r + Math.cos(ang) * (r - 6);
@@ -111,8 +109,8 @@ export const Doctor: React.FC<{x: number; y: number; scale?: number; opacity?: n
 );
 
 /** 病历本（唯一凭据，dim 灰册页 + mech 青书签线） */
-export const Ledger: React.FC<{x: number; y: number; scale?: number}> = ({x, y, scale = 1}) => (
-  <div style={{position: 'absolute', left: x, top: y, transform: `scale(${scale})`}}>
+export const Ledger: React.FC<{x: number; y: number}> = ({x, y}) => (
+  <div style={{position: 'absolute', left: x, top: y}}>
     <svg width={210} height={150} viewBox="0 0 210 150">
       <rect x={10} y={8} width={190} height={134} rx={8} fill={theme.panel} stroke={theme.panelBorder} strokeWidth={2} />
       <line x1={105} y1={8} x2={105} y2={142} stroke={theme.panelBorder} strokeWidth={2} />

@@ -145,23 +145,28 @@ const LoopCloseup: React.FC<{stepsAt: readonly number[]; tagsAt: readonly number
           gap: 22,
         }}
       >
-        {tags.map((t, i) =>
-          t ? (
-            <span
-              key={i}
-              style={{
-                padding: '5px 14px',
-                border: `1.5px solid ${withAlpha(theme.dim, 0.45)}`,
-                borderRadius: 5,
-                fontFamily: theme.mono,
-                fontSize: 17,
-                color: theme.dim,
-              }}
-            >
-              {t}
-            </span>
-          ) : null,
-        )}
+        {/* 恒渲染＋满文定宽（R11 修复：原条件 null＋逐字加宽使 flex 居中组随打字
+            连续 reflow，已浮现角标被横向推移——同 DualTrack/FaxStack opacity 占位
+            形态；打字机 useReveal 保留在文本层，@reveal token 语义不变） */}
+        {tags.map((t, i) => (
+          <span
+            key={i}
+            style={{
+              width: [86, 86, 118][i],
+              textAlign: 'center',
+              boxSizing: 'border-box',
+              padding: '5px 4px',
+              border: `1.5px solid ${withAlpha(theme.dim, 0.45)}`,
+              borderRadius: 5,
+              fontFamily: theme.mono,
+              fontSize: 17,
+              color: theme.dim,
+              opacity: t ? 1 : 0,
+            }}
+          >
+            {t}
+          </span>
+        ))}
       </div>
     </>
   );
@@ -676,15 +681,21 @@ export const P1IntakeLoop: React.FC<{scene: SceneRange}> = ({scene}) => {
   // 句内切分（帧数全部由句窗推导，禁写死）：
   //  · seal16＝p1-16 前半给封条卡，stop-late 句尾让位（1-E）
   //  · tail12＝p1-12 尾段给判停拨杆收尾（1-C）
+  //  · core21＝1-F 内核点亮＝「循环内核就三十来行」口播位（≈第 24/33 字，
+  //    p1-21 实长 8.13s 见 video/public/audio/manifest.json——R11 修复原 +14f 提前 5s+）
   const seal16 = Math.round(dur('p1-16') * 0.5);
   const tail12 = Math.round(dur('p1-12') * 0.35);
+  const core21 = Math.round(dur('p1-21') * 0.66);
 
   return (
     <AbsoluteFill>
       <Sequence {...bA} name="1-A 循环本体五步">
-        {/* 两章同实例背靠背（实例内自动抑制换章弹入） */}
+        {/* 两章同实例背靠背（实例内自动抑制换章弹入）。
+            lead={false}：承 0-D gap-preview 镜界背靠背（p0-15 窗尽接 p1-01，
+            全片唯一幕界 archify→archify 相邻——R11 修复） */}
         <ArchifyRecap
           slug="intake-loop"
+          lead={false}
           caption="循环本体"
           cues={[
             {chapterId: 'five-steps', at: at('p1-01') - bA.from, durationInFrames: dur('p1-01')},
@@ -778,7 +789,7 @@ export const P1IntakeLoop: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bF} name="1-F 生产版对照">
-        <KiloFile atBox={at('p1-21') - bF.from} atCore={at('p1-21') - bF.from + 14} atShell={at('p1-22') - bF.from} />
+        <KiloFile atBox={at('p1-21') - bF.from} atCore={at('p1-21') - bF.from + core21} atShell={at('p1-22') - bF.from} />
       </Sequence>
 
       <Sequence {...bG} name="1-G 交棒">

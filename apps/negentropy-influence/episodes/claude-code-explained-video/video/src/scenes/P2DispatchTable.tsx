@@ -190,7 +190,8 @@ const RegistryBook: React.FC<{atOpen: number; atReg: number; atFive: number}> = 
           >
             <div style={{fontFamily: theme.sans, fontSize: 21, color: theme.text}}>{'说明单'}</div>
             <div style={{marginTop: 8, fontFamily: theme.mono, fontSize: 15, color: theme.mech}}>{'TOOLS'}</div>
-            <div style={{marginTop: 10, fontFamily: theme.sans, fontSize: 17, color: theme.dim}}>{'叫什么 · 怎么开'}</div>
+            {/* 压短关键词对（R11 改词：原「叫什么 · 怎么开」系口播 p2-04 逐字子串未登记豁免——RSI-007） */}
+            <div style={{marginTop: 10, fontFamily: theme.sans, fontSize: 17, color: theme.dim}}>{'名称 · 开法'}</div>
           </div>
         </div>
         <div style={{flex: 1, position: 'relative', padding: '20px 24px'}}>
@@ -341,14 +342,16 @@ const GaugeCell: React.FC<{at: number}> = ({at}) => {
 
 // ── 2-E 多单与并行：左＝教学版按序串行（dim 排队）；右＝分批并行（mech 齐闪） ──
 
-const SerialParallel: React.FC<{atCards: number; atQueue: number; atFlash: number}> = ({
+const SerialParallel: React.FC<{atCards: number; atQueue: number; atFlash: number; atNote: number}> = ({
   atCards,
   atQueue,
   atFlash,
+  atNote,
 }) => {
   const panels = useStagger(2, {at: atCards, stride: 12, dur: DUR.f5});
   const queue = useStagger(3, {at: atQueue, stride: 24, dur: DUR.f6});
   const flash = useImpulse({at: atFlash, dur: DUR.f5, peak: 1});
+  const note = useProgress(atNote, DUR.f5); // 小注挂 p2-18（R11：原挂 panels[1] 提前 15s 泄结论）
   const names = ['查看', '列目录', '读配置'];
   const batch = ['只读 A', '只读 B', '只读 C'];
   return (
@@ -487,7 +490,7 @@ const SerialParallel: React.FC<{atCards: number; atQueue: number; atFlash: numbe
           fontFamily: theme.sans,
           fontSize: 21,
           color: theme.dim,
-          opacity: panels[1],
+          opacity: note,
         }}
       >
         {'同一工具两个实例：'}
@@ -688,6 +691,7 @@ export const P2DispatchTable: React.FC<{scene: SceneRange}> = ({scene}) => {
           atCards={at('p2-16') - bE.from}
           atQueue={at('p2-16') - bE.from + 8}
           atFlash={at('p2-17') - bE.from + 10}
+          atNote={at('p2-18') - bE.from}
         />
       </Sequence>
 

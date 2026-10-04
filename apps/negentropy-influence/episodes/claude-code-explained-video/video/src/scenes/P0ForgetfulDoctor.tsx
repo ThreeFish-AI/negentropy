@@ -169,13 +169,17 @@ export const P0ForgetfulDoctor: React.FC<{scene: SceneRange}> = ({scene}) => {
         <CountCard at={2} to={Number(LINE_GAUGE[0].label)} />
         <LineGauge lit={1} />
         <PeripheralRow x={1140} y={430} lit={3} at={at('p0-14') - bD.from} />
+        {/* 角标收进自制段（R11 修复：原常驻镜尾，p0-15 全屏窗期间 (246,64) 在画框外
+            悬挂可见且口径已过时——同 5-B 角标窗内范式） */}
+        <Sequence durationInFrames={at('p0-15') - bD.from} name="0-D 自制段角标">
+          <MonoTag x={246} y={64} at={at('p0-12') - bD.from}>{`${LINE_GAUGE[0].label} 行 · 教学版`}</MonoTag>
+        </Sequence>
         {/* p0-15 句让位：差距预告一瞥（caption=实例角色，R9 修复同串双绘） */}
         <ArchifyRecap
           slug="human-relay"
           caption="差距在哪"
           cues={[{chapterId: 'gap-preview', at: at('p0-15') - bD.from, durationInFrames: dur('p0-15')}]}
         />
-        <MonoTag x={246} y={64} at={at('p0-12') - bD.from}>{`${LINE_GAUGE[0].label} 行 · 教学版`}</MonoTag>
       </Sequence>
     </AbsoluteFill>
   );
@@ -215,7 +219,7 @@ const ClinicFirstLook: React.FC<{atEnter: number; atPlate: number}> = ({atEnter,
         <DeptGate x={0} y={0} lit />
       </div>
       <div style={{position: 'absolute', left: 660, top: 430, opacity: enters[0]}}>
-        <LoopRing x={0} y={0} size={280} litSteps={0} spin glow />
+        <LoopRing x={0} y={0} size={280} litSteps={0} glow />
       </div>
       <HarnessPlate x={840} y={170} at={atPlate} />
       <div style={{position: 'absolute', left: 660, top: 730, width: 600, opacity: enters[1], transform: `translateY(${(1 - enters[1]) * 12}px)`, fontFamily: theme.sans, fontSize: 21, color: theme.dim}}>

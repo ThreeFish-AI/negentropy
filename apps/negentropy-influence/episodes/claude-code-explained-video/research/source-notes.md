@@ -4,7 +4,7 @@
 >
 > **信源地图**：章→集归属、双轨钉选（本集钉仓库 main @ `ce8f9f18`，17 章整合版 · 171 精读轨）只登记在系列级信源地图，本文件不重述：[../../../source-map/claude-code-explained.md](../../../source-map/claude-code-explained.md)（机器版 [claude-code-explained.toml](../../../source-map/claude-code-explained.toml)）。
 >
-> **首要信源（171 号精读笔记）**：[../../../../../docs/research/agent-harness/171-claude-code-tooling-execution.md](../../../../../docs/research/agent-harness/171-claude-code-tooling-execution.md)——三轨证据与五个破坏性实验的完整分析。取证日：本仓 HEAD = `47e662dbb`（时为 171 最后修订；其后 `34b150526` 原地修订一次，本文件行号锚已复核全命中；2026-10-04 R9 评审注：`bc12bf23b` 给 lab exp3/pred_t5 补 try/finally +4 行后，本文 7 处 lab 行号锚已按 HEAD 连坐重算，复核恢复全命中）。本文件凡写「171 §N」均指该文第 N 节。
+> **首要信源（171 号精读笔记）**：[../../../../../docs/research/agent-harness/171-claude-code-tooling-execution.md](../../../../../docs/research/agent-harness/171-claude-code-tooling-execution.md)——三轨证据与五个破坏性实验的完整分析。取证日：本仓 HEAD = `47e662dbb`（171 最后修订为 `e419c9661`；其后 `34b150526` 原地修订一次，本文件行号锚已复核全命中；2026-10-04 R9 评审注：`bc12bf23b` 给 lab exp3/pred_t5 补 try/finally +4 行后，本文 7 处 lab 行号锚已按 HEAD 连坐重算，复核恢复全命中；R11 评审注：原「时为 171 最后修订」系归属错挂——`47e662dbb` 从未触碰 171）。本文件凡写「171 §N」均指该文第 N 节。
 >
 > **提取方式与日期**：2026-10-01，字节归档 [`source-archive/ce8f9f1/`](./source-archive/ce8f9f1/)（固定提交 `ce8f9f186058939da54c9d6fead78dfb5d0fd6c3`，2026-09-28，MIT；出处表见 [source-archive/README.md](./source-archive/README.md)）；全指纹（raw/text sha256、字节数、行数）见 [sources.toml](./sources.toml)。站点页快照不在本地，站点叙事一律经 171 转引并标【二】。
 

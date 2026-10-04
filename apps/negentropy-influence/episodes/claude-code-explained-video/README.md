@@ -29,6 +29,8 @@ uv run --no-project $T/scripts/pipeline.py --project $P build
 uv run --no-project $T/scripts/pipeline.py --project $P check --check-scenes
 
 # ③ 配音（参数全部取自 pipeline.toml，勿在命令行另写 --style/--ref）
+#    ⚠️ 例外：本集 df=1.24 不走编排器——重录须直调 `uv run --no-project $T/scripts/tts.py --project $P --duration-factor 1.24`
+#    （story 预设 1.0；编排器不透传该参数，见 pipeline.toml [tts] 注记。store 按 digest 保留 1.24 版本可回收）
 uv run --no-project $T/scripts/pipeline.py --project $P tts --plan   # 排期对账
 uv run --no-project $T/scripts/pipeline.py --project $P tts          # 长跑，建议 nohup
 

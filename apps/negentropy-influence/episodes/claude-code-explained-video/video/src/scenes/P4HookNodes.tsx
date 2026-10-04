@@ -65,7 +65,7 @@ const BloatLoop: React.FC<{atRing: number; atMore: number; atWorse: number}> = (
           transform: `scale(${1 + 0.1 * grow + 0.05 * wring})`,
         }}
       >
-        <LoopRing x={0} y={0} size={340} litSteps={5} spin />
+        <LoopRing x={0} y={0} size={340} litSteps={5} />
       </div>
       <div style={{position: 'absolute', left: 852, top: 330, width: 216}}>
         {texts.map((t, i) => (
@@ -182,7 +182,7 @@ const FourSeats: React.FC<{at: number; atShout: number}> = ({at, atShout}) => {
   return (
     <>
       <div style={{position: 'absolute', left: 810, top: 300, opacity: ringIn}}>
-        <LoopRing x={0} y={0} size={300} litSteps={5} spin />
+        <LoopRing x={0} y={0} size={300} litSteps={5} />
         <svg
           width={300}
           height={300}
@@ -472,7 +472,7 @@ const ScaleLedger: React.FC<{at: number; atMore: number}> = ({at, atMore}) => {
           width: 1920,
           top: 420,
           display: 'flex',
-          alignItems: 'center',
+          alignItems: 'stretch', // R11：三格等高（原 center 下第三格独有日期戳行使三卡顶/底缘各错 ~16px）
           justifyContent: 'center',
           gap: 26,
         }}
@@ -482,7 +482,7 @@ const ScaleLedger: React.FC<{at: number; atMore: number}> = ({at, atMore}) => {
             {i > 0 && (
               // 分隔随右侧格入场（对照 P5 MethodCard 的 rows[i] 门控口径；
               // 2026-10-04 评审：原恒显致 beat 头两枚 ↔ 孤立悬浮已门控）
-              <div style={{fontFamily: theme.mono, fontSize: 40, color: theme.dim, opacity: enters[i]}}>{'↔'}</div>
+              <div style={{alignSelf: 'center', fontFamily: theme.mono, fontSize: 40, color: theme.dim, opacity: enters[i]}}>{'↔'}</div>
             )}
             <div
               style={{
