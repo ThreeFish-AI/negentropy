@@ -125,7 +125,7 @@
             "accessed": "2026-09-27"
           },
           "status": "final-review",
-          "statusNote": "完全重制 v1 交付（2026-09-30）：14:02.6 = 843s @1080p30（时长窗 [13.0,14.6] 实测落窗；843s=25279 帧复算）；164 句 3644 字（CP1 实测 274 字/分校准 chars_per_min=254 后减脂 317 字）；story 档配音（me-bright 克隆 + 43 块 cues 台本 + seed 4242）；archify 12 图（10 新绘+2 复用重建）65 章逐章回放（cue 64 · 锚定 39.0% · 5 型 · 密度 4.6/分）；机器门全绿：check_series/build/check--check-scenes FAIL 0（2 豁免 WARN 金句卡）/tsc 零错/motion 测试/qa --check FAIL 0/亮度带扫描零近黑段/全分辨率目检翻案无缺陷；归档 ~/Documents/video/claude-code-explained/ v1 + _captions",
+          "statusNote": "完全重制 v1 交付（2026-09-30）：14:02.6 = 843s @1080p30（时长窗 [13.0,14.6] 实测落窗；843s=25279 帧复算）；164 句 3644 字（CP1 实测 274 字/分校准 chars_per_min=254 后减脂 317 字）；story 档配音（me-bright 克隆 + 43 块 cues 台本 + seed 4242）；archify 12 图（10 新绘+2 复用重建）65 章逐章回放（cue 64 · 锚定 39.0% · 5 型 · 密度 4.6/分）；机器门全绿：check_series/build/check--check-scenes FAIL 0（2 豁免 WARN 金句卡）/tsc 零错/motion 测试/qa --check FAIL 0/亮度带扫描零近黑段/全分辨率目检翻案无缺陷；归档 ~/Documents/video/claude-code-explained/ v1 + _captions；开放项：下期卡已级联新题《规划与协调：视野错位的五种修正手法》（ep2 换题 v3 连带），归档成片像素内仍为旧题，待重渲重归档（ISSUE-207 验收线：成片时间戳 ≥ 修复提交）",
           "voice": "story + me-bright.wav"
         },
         {
@@ -147,7 +147,7 @@
             "accessed": "2026-08-22"
           },
           "status": "final-review",
-          "statusNote": "**v3 交付**（2026-10-04；v2 2026-10-02 C 型 176 信源完全重制含评审修复 15 处；v3 = badge 双绘修复 + 二轮评审修复 10 处重渲）：13:20.73 = 800.7s @1080p30；155 句 3428 字（254 口径）；story 档 65 块；archify 14 图 47 章逐章回放（锚定 30.3% · 密度 3.5/分 · 5 型 · 全屏独占）；内容+覆盖 FAIL 0（内容门 1 条 RSI-039 开篇 WARN 为 skill 后加规则五集同款）· 七幕 QA FAIL 0（尾幕指纹 WARN 像素 diff 判假阳性）；归档 新题 v1/v2/v3 + _captions×3（v3 字幕同 v2；旧题 v1/v2/v3 原样保留）；开放项：扩窗 hold 定格 ≈4min（ISSUE-208 待拍板）",
+          "statusNote": "**v4 交付**（2026-10-04；v2 2026-10-02 C 型 176 信源完全重制含评审修复 15 处；v3 = badge 双绘 + 二轮评审 10 处重渲；v4 = 三轮评审修复 8 处重渲——5-B 红叉条/边界条关键词化（RSI-007 漏网×2，抽帧实证）、storyboard 组件清单与动效标注 as-built 对齐×6、gl-notes 穿透计数 74→73 三处连坐、附录 A 首登章节 §3→§4/§6/§7、cues.toml 契约软化+两块例外留痕、readme SSOT 伞述补 C 型例外；ep1 下期卡重渲债已登记其 statusNote 开放项）：13:20.73 = 800.7s @1080p30（24020 帧）；155 句 3428 字（254 口径）；story 档 65 块；archify 14 图 47 章逐章回放（锚定 30.3% · 密度 3.5/分 · 5 型 · 全屏独占）；内容+覆盖 FAIL 0（RSI-039 开篇 WARN 五集同款）· tsc/系列门 FAIL 0；归档 新题 v1–v4 + _captions×4（v4 字幕同 v3 逐字节；旧题 v1/v2/v3 原样保留；md5 源=档 014ab7d8）；开放项：扩窗 hold 定格 ≈4min（ISSUE-208 待拍板）",
           "voice": "story + me-bright.wav"
         },
         {

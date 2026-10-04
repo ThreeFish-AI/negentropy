@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 ### Added
+### 「规划与协调」集 v4 交付：三轮评审修复 8 处重渲（2026-10-04）
+
+- **v4 = 三轮评审（本地 DiffComment 8 条全收）**：5-B 红叉条「断电 ≠ 猛按」+ 类比边界条关键词对化（RSI-007 漏网 ×2，成片抽帧实证画面/字幕单层承载）；storyboard 公共组件清单与 0-E/1-D/3-C/4-G/6-B 动效标注 as-built 对齐（`@draw`/`@travel`/`@flowDash`/`@enter:rise` 未实装降级留痕）+ P0Failures 头注同步；gl-notes 附录 C 穿透计数 74→73（常量 26 + 站点 37 含 1 UNRESOLVED + 抽样 10）三处连坐（README/CHANGELOG）；附录 A 首登章节 §3→§4/§6/§7；cues.toml 契约软化（beat 对齐例外须块前留痕）+ p2-03/p3-08 两块留痕；docs/research/readme SSOT 伞述补 C 型集例外；ep1 下期卡重渲债登记 series.json ep1 statusNote 开放项（ISSUE-207 验收线）
+- 终渲 24020 帧归档 v4 + _captions×4（字幕与 v3 逐字节同；md5 源=档 014ab7d8 复核命中）；tsc / 内容门 / archify 覆盖门 / check_series 全 FAIL 0
+
 ### 「规划与协调」集 v3 交付：二轮评审修复 10 处 + badge 双绘修复重渲（2026-10-04）
 
 - **v3 = 611ff33c1（badge 双绘：删 11 处镜内实例 + P0 四镜补挂）+ 二轮评审修复 10 处**：5-B 打印机三拍句锚对齐（stagger(3)@p5-04 / 红叉条 p5-05 / 边界条 p5-06）、4-B「这就是缓存」徽章锚 p4-05、幕界背靠背 `lead={false}`×2（1-A/4-A，gap=0 接续点）、1-D p11 死参接线（p1-11 前惰性预览、随句点亮兑现 storyboard rel 承诺）、9 条 trim cue 补显式 `fit:'trim'` 留痕、SeriesFinale stagger(4→3)、P1 幕标题统一「计划回到视野」（build 派生同步）、lottie 死依赖清除、theme deny/danger 注释复原两 token 裁定
@@ -13,7 +18,7 @@
 ### 「规划与协调」集 C 型信源完全重制 v1 交付（2026-10-02，C 型 GL 信源首例）
 
 - [「规划与协调」集（C 型重制 v2，换题）](apps/negentropy-influence/episodes/claude-code-planning-video/README.md) **13:20.73 · 155 句 3428 字 · 14 图 47 章逐章回放（锚定 30.3% · 密度 3.5/分 · 5 型全屏独占）**，归档 `~/Documents/video/claude-code-explained/` 新题 v1+v2 + `_captions`（旧题《模型的视野是安排出来的》v1/v2 原样保留）
-- **C 型 GL 信源首例**：以 176《精读与通俗拆解》冻结为集内事实源（gl-notes.md + 附录 A 类比登记表合入），穿透抽查三组并行 74 断言 0 FAIL（常量 26 + 站点 36 + 抽样 10，弧线前置四数离线补证闭合），`planning_control_lab` 本集复算全对（D1–D5/t4）升【一】级证据
+- **C 型 GL 信源首例**：以 176《精读与通俗拆解》冻结为集内事实源（gl-notes.md + 附录 A 类比登记表合入），穿透抽查三组并行 73 断言 0 FAIL（常量 26 + 站点 37 含 1 UNRESOLVED + 抽样 10，弧线前置四数离线补证闭合），`planning_control_lab` 本集复算全对（D1–D5/t4）升【一】级证据
 - **换新标题**（原题级联五处同步：series.json/ep1 下期卡硬编码/knowledge-map/归档不覆写）；全链机器门双零（内容门+archify 覆盖门 FAIL 0 · WARN 0）+ 三镜目检（0-A/1-D/P6，P6 五层栈定位修复）
 - **archify 3.0 桥接层**：guided-views 容器 + Archify.guidedViews 播放器 + 脉动保帧 CSS（冒烟 capture_fps 62），14 图 showcase 四门全绿；旧 plan-* 12 图 36 文件孤儿清除（grep 零引用）
 - TTS story 档 65 块（12 轮自愈续跑完成）；tts_resume 旗标位次序坑（--max-restarts 须在 `--` 前）实测记录
