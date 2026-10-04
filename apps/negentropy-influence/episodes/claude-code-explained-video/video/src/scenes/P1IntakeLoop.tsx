@@ -96,7 +96,7 @@ const LoopCloseup: React.FC<{stepsAt: readonly number[]; tagsAt: readonly number
                   cx={tx}
                   cy={ty}
                   r={14}
-                  fill="#0E1116"
+                  fill={theme.bg}
                   stroke={lit ? theme.core : withAlpha(theme.core, 0.4)}
                   strokeWidth={2.5}
                 />
@@ -282,7 +282,7 @@ const StopDial: React.FC<{at: number}> = ({at}) => {
   // 拨杆行程贴合轨道两端（700..1220、knob 宽 30）：s=0 左缘贴左端、s=1 右缘贴右端
   // （2026-10-04 评审：原 712+420 终位悬停轨道末端前 73px 已对齐）
   const knobX = 715 + 490 * s;
-  // 判据两态对照的「迟到方」：stop_reason 打叉后淡出（对照下方常亮的 内容块）
+  // 判据两态对照的「迟到方」：stop_reason 打叉后淡出（对照右侧常亮的 内容块）
   const strikeIn = useProgress(at + 2, DUR.f3);
   const strikeOut = 1 - useProgress(at + 34, DUR.f4);
   return (
@@ -430,7 +430,7 @@ const FaxStack: React.FC<{atPages: number; atStamp: number}> = ({atPages, atStam
   );
 };
 
-// ── 1-E 实验封条卡（ExpBadge lg 档，clinic 共享）+ 双轨小卡 ────────────────
+// ── 1-E 实验封条卡（ExpBadge，clinic 共享）+ 双轨小卡 ────────────────
 
 /** p1-19 双轨小卡：旧判据（信迟到的标记）vs 新判据（看病历内容）对切 */
 const DualTrack: React.FC<{at: number}> = ({at}) => {
@@ -538,7 +538,7 @@ const KiloFile: React.FC<{atBox: number; atCore: number; atShell: number}> = ({a
             key={nm}
             style={{
               position: 'absolute',
-              left: 660 + i * 160,
+              left: 650 + i * 160,
               top: 726,
               width: 140,
               height: 62,
@@ -713,7 +713,7 @@ export const P1IntakeLoop: React.FC<{scene: SceneRange}> = ({scene}) => {
         {/* p1-09 句让位：两署名一瞥 */}
         <ArchifyRecap
           slug="intake-loop"
-          caption="两种署名"
+          caption="两栏署名"
           cues={[{chapterId: 'two-signatures', at: at('p1-09') - bB.from, durationInFrames: dur('p1-09')}]}
         />
         {/* p1-10 回落：轮流往下写＋报告贴进问方栏 */}

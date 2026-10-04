@@ -678,7 +678,7 @@ export const ARCHIFY = {
     "chapters": [
       {
         "id": "five-steps",
-        "label": "五步一圈：调·落·判·执·回",
+        "label": "五步一圈：进·落·收·执·回",
         "file": "intake-loop--five-steps.mp4",
         "endStill": "intake-loop--five-steps-end.png",
         "beats": 4,

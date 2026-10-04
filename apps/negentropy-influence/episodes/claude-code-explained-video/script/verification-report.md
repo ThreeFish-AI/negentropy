@@ -1,7 +1,7 @@
 # 逐字稿双重校验报告（Stage ④）
 
 > 校验对象：[`narration.md`](./narration.md)（完全重制版 v1，实测 **141 句 / 非空白字符 3420（汉字 2892）**——稿头自述 3424 字为记账口径微差，非缺陷。2026-10-03 评审回建口径：v1＝raw 3427／非空白 3423／汉字 2889；v2 的 3326＝raw（含 4 个 ASCII 空格），非空白 3322）。
-> 事实源（唯一回溯终点）：[`../research/source-notes.md`](../research/source-notes.md)（97 条断言，含 D1–D12 分歧 12 条与 8 条开放问题——加法见 source-notes 尾注）。
+> 事实源（唯一回溯终点）：[`../research/source-notes.md`](../research/source-notes.md)（95 条断言，含 D1–D12 分歧 12 条与 8 条开放问题——加法见 source-notes 尾注，R10 评审按分项实数归一）。
 > 交叉取证（只读，用于定性「改稿」还是「先补台账」）：字节归档 `research/source-archive/ce8f9f1/`（s01–s04 code.py 实物）与 171 号精读笔记（`docs/research/agent-harness/171-….md`）。
 > 判级：**VERIFIED**=回溯【一】/【二】且等价或弱化；**ANALOGY**=隐喻表述且映射不失真；**RISKY**=超台账范围/口径错/归属缺失/隐喻误导；**REWRITE**=外行会得出错误机制结论，必须改写。
 

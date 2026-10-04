@@ -1,5 +1,5 @@
 [
-  {"id": "five-steps", "label": "五步一圈：调·落·判·执·回", "focus": ["doctor", "vitals", "desk", "ledger"], "note": "循环本体：调模型→落账→判停→执行→报告回喂，转一圈回到判停手里，循环本体从不改"},
+  {"id": "five-steps", "label": "五步一圈：进·落·收·执·回", "focus": ["doctor", "vitals", "desk", "ledger"], "note": "循环本体：进诊→落账→收单→执行→回喂，转一圈回到判停手里，循环本体从不改"},
   {"id": "full-reread", "label": "每一轮都是全量重读", "focus": ["ledger", "doctor"], "note": "病历本是唯一记忆：整本送进诊室，一条不落——无状态模型的记忆全靠这一本"},
   {"id": "two-signatures", "label": "病历本只认两种署名", "focus": ["ledger", "doctor", "desk"], "note": "问方/答方两栏；工具报告没有自己的署名，只能贴进问方栏目回喂——tool_result 借 user 信封"},
   {"id": "order-or-done", "label": "续诊还是结诊，只看开没开单", "focus": ["vitals", "desk"], "note": "开了单→交科室执行；判据不问医生主观，只看病历里有没有单子"},

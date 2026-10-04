@@ -15,6 +15,7 @@ import {
   Doctor,
   HarnessPlate,
   Ledger,
+  LINE_GAUGE,
   LineGauge,
   LoopRing,
   MonoTag,
@@ -140,7 +141,20 @@ export const P0ForgetfulDoctor: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bC} name="0-C 诊室定妆">
-        <ClinicFirstLook atEnter={2} atPlate={at('p0-11') - bC.from} />
+        {/* 诊室让位（R10 修复）：常驻件拆锚 cue 窗外两段（3-F 嵌套 Sequence 范式）——
+            原整幕常驻致 p0-10 全屏窗期间框外医生/病历本仍可见，违「全屏独占·播放期
+            装置让位」契约；回场段重放 stagger＝「程序接管后诊室回归」，Harness 挂牌
+            随 p0-11「这套程序叫 Harness」落位 */}
+        <Sequence durationInFrames={at('p0-10') - bC.from} name="0-C 诊室定妆前段">
+          {/* atPlate 取本段末帧之外＝前段不挂 Harness 牌（牌属 p0-11 回场） */}
+          <ClinicFirstLook atEnter={2} atPlate={at('p0-10') - bC.from + 1} />
+        </Sequence>
+        <Sequence
+          from={at('p0-10') + dur('p0-10') - bC.from}
+          durationInFrames={bC.from + bC.durationInFrames - at('p0-10') - dur('p0-10')}
+          name="0-C 诊室定妆回场">
+          <ClinicFirstLook atEnter={2} atPlate={2} />
+        </Sequence>
         {/* p0-10 句让位：循环接手一瞥（与 0-B 实例隔幕，独立实例恢复入场）。
             caption=实例角色（R9 修复：原与章 label「循环接手」逐字同串双绘） */}
         <ArchifyRecap
@@ -151,7 +165,8 @@ export const P0ForgetfulDoctor: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bD} name="0-D 行数尺与三层外设">
-        <CountCard at={2} to={102} />
+        {/* to 由 LINE_GAUGE 数据面派生（R10：消 102 硬编码副本，与底部尺带同源） */}
+        <CountCard at={2} to={Number(LINE_GAUGE[0].label)} />
         <LineGauge lit={1} />
         <PeripheralRow x={1140} y={430} lit={3} at={at('p0-14') - bD.from} />
         {/* p0-15 句让位：差距预告一瞥（caption=实例角色，R9 修复同串双绘） */}
@@ -160,7 +175,7 @@ export const P0ForgetfulDoctor: React.FC<{scene: SceneRange}> = ({scene}) => {
           caption="差距在哪"
           cues={[{chapterId: 'gap-preview', at: at('p0-15') - bD.from, durationInFrames: dur('p0-15')}]}
         />
-        <MonoTag x={246} y={64} at={at('p0-12') - bD.from}>{'102 行 · 教学版'}</MonoTag>
+        <MonoTag x={246} y={64} at={at('p0-12') - bD.from}>{`${LINE_GAUGE[0].label} 行 · 教学版`}</MonoTag>
       </Sequence>
     </AbsoluteFill>
   );

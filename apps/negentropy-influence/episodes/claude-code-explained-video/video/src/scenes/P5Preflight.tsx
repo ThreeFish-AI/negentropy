@@ -229,7 +229,8 @@ const MethodCard: React.FC<{atCols: number; atPairs: number}> = ({atCols, atPair
   };
   return (
     <>
-      <div style={{position: 'absolute', left: 380, top: 210, width: 1180, display: 'flex', gap: 24}}>
+      {/* left=370=(1920−1180)/2：组心归 960 中轴（R10 修复原 380 右偏 10px，与下方排行/金句卡同轴） */}
+      <div style={{position: 'absolute', left: 370, top: 210, width: 1180, display: 'flex', gap: 24}}>
         <div
           style={{
             ...panel,

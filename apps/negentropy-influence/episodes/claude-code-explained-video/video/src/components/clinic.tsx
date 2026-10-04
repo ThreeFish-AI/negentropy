@@ -1,7 +1,8 @@
 /** 本集共享装置层——「接诊循环」视觉母题的实现基准。
  *
- *  ★ 〔M-001〕恒定视觉锚的落点：`LoopRing` 锁死 core 橙描边色与绝对线宽（5px），
- *    全片每次出场逐像素同形，只换周边标签与点亮数——「循环本体从不改」的空间表达。
+ *  ★ 〔M-001〕恒定视觉锚的落点：`LoopRing` 锁死 core 橙描边色与绝对线宽（5px）
+ *    与刻度绝对值，直径随镜适配（同形可缩放，R10 契约对齐 as-built：0-C 定妆 280／
+ *    1-A·4-A 特写与膨胀 340／4-F·6-A 常规 300），只换周边标签与点亮数——「循环本体从不改」的空间表达。
  *  ★ 恒定空间契约（防 X-001 空间逆旁白）：各场景手排坐标维持（以 P0 0-C 诊室定妆
  *    为准）——循环恒居中央、病历本左上、医生位左、科室门右，全片不换位；三层外设
  *    一律自右缘挂入（mech 青）。
@@ -67,7 +68,7 @@ export const LoopRing: React.FC<{
           const lit = i < litSteps;
           return (
             <g key={t}>
-              <circle cx={tx} cy={ty} r={13} fill="#0E1116" stroke={lit ? theme.core : withAlpha(theme.core, 0.35)} strokeWidth={2.5} />
+              <circle cx={tx} cy={ty} r={13} fill={theme.bg} stroke={lit ? theme.core : withAlpha(theme.core, 0.35)} strokeWidth={2.5} />
               <text x={tx} y={ty + 5} textAnchor="middle" fontFamily={theme.sans} fontSize={14} fill={lit ? theme.text : theme.dim}>
                 {t}
               </text>
@@ -170,7 +171,10 @@ export const HarnessPlate: React.FC<{x: number; y: number; at?: number}> = ({x, 
   );
 };
 
-/** 行数尺——底部安全带恒驻四格进度条（102/135/180/232，教学版口径）。
+/** 行数尺——底部安全带四格进度条（102/135/180/232，教学版口径）。生命周期
+ *  as-built（R10 对齐）：0-D 首现 102／1-G 复亮／2-C 点 135／P3·P4 两幕不携尺
+ *  （第三、四格首亮在 5-B 逐章复现）／5-B 全景 0→4 逐章重点亮／6-A 全亮——
+ *  非逐幕恒驻（storyboard 头「恒定空间契约」同口径）。
  *  落位铁三角：archify 全屏画框下缘 880 之下（5-B 逐版点亮不被画框遮）、
  *  字幕避让带 920 之上（长句字幕板顶缘 ≈943 且 qa 侵入检测带 [920,948) 零进入）、
  *  格高压缩 ≤40px（20px label 档）——三窗叠加后唯一可行带即 [880, 920]。
@@ -287,7 +291,7 @@ export const QuoteCard: React.FC<{
 };
 
 /** 破坏性实验封条卡（mono 徽标，实验编号唯一变量）。
- *  自制段主画面放大档（27px 档）——同构「封条卡→句尾让位」节拍（徽标独占自制段）
+ *  自制段主画面档（27px 单档）——同构「封条卡→句尾让位」节拍（徽标独占自制段）
  *  恒用 (742,408)（2026-10-03 评审：4-D 原混用 md 已对齐；2026-10-04 评审：md 档
  *  零消费删除，仅存单档）。收敛自 P1/P2 各自复制的 SealCard（2026-10-02 评审：
  *  三实现两规格 → 一处两档）。P2 2-F 埋雷预告卡同签名边框、字号/字体/背景 alpha

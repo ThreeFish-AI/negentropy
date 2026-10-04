@@ -132,7 +132,13 @@ const SieveStack: React.FC<{at: number}> = ({at}) => {
 
 const FastLane: React.FC<{at: number}> = ({at}) => {
   const queue = useStagger(3, {at, stride: 26, dur: DUR.f6});
-  const pass = useImpulse({at: at + 40, dur: DUR.f4, peak: 1});
+  // 逐卡放行绿闪（R10 修复：原单发 at+40 魔数与三卡过闸时刻全不重合）——
+  // 卡 i 翻绿帧 = stagger 起点 [2,28,54]（at=2 起、stride 26）+ eased 0.62 ≈ +5.4
+  // （DUR.f6=21 帧 standard 贝塞尔）：[7, 33, 59]，闪窗跨翻绿点前 2 帧
+  const pass0 = useImpulse({at: at + 7, dur: DUR.f4, peak: 1});
+  const pass1 = useImpulse({at: at + 33, dur: DUR.f4, peak: 1});
+  const pass2 = useImpulse({at: at + 59, dur: DUR.f4, peak: 1});
+  const pass = [pass0, pass1, pass2];
   const gateIn = useProgress(at, DUR.f4);
   const names = ['查看', '列目录', '日常单'];
   return (
@@ -147,7 +153,9 @@ const FastLane: React.FC<{at: number}> = ({at}) => {
               left: i * 46,
               top: 0,
               width: 14,
-              height: 220,
+              // 高 250：盖住第三行卡（行 3 顶 528+卡高≈51=底 579，R10 修复原
+              // 220 底 550 使「日常单」下半段从闸体外穿过）
+              height: 250,
               borderRadius: 7,
               background: theme.panel,
               border: `2px solid ${withAlpha(theme.dim, 0.55)}`,
@@ -178,7 +186,7 @@ const FastLane: React.FC<{at: number}> = ({at}) => {
               fontSize: 19,
               color: done ? theme.text : theme.dim,
               opacity: Math.min(1, p * 4),
-              boxShadow: done ? `0 0 ${12 * pass}px ${withAlpha(theme.ok, 0.6 * pass)}` : 'none',
+              boxShadow: done ? `0 0 ${12 * pass[i]}px ${withAlpha(theme.ok, 0.6 * pass[i])}` : 'none',
             }}
           >
             {nm}
@@ -466,7 +474,7 @@ export const P3ThreeGates: React.FC<{scene: SceneRange}> = ({scene}) => {
       <Sequence {...bA} name="3-A 事故快闪">
         <ArchifyRecap
           slug="gate-three-tier"
-          caption="单子到关前"
+          caption="事故起点"
           cues={[{chapterId: 'arrive', at: at('p3-01') - bA.from + flash1, durationInFrames: dur('p3-01') - flash1}]}
         />
         {/* p3-01 前段：指令卡→整盘删除命令单（deny 急闪），句尾让位给 arrive */}

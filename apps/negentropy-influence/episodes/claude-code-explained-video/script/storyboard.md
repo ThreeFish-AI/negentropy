@@ -5,7 +5,7 @@
 >
 > **本集视觉契约**（[theme.ts](../video/src/design/theme.ts)，与 [planning.md](./planning.md) §三一致）：
 > `core` 陶土橙 `#D97757`＝**接诊循环——全片恒定视觉锚〔M-001〕**：锁死描边色与绝对线宽，诊室圆环装置全片每次出场逐像素同形，只换周边标签 · `mech` 石青 `#64C4C0`＝**三层外设**（开单表／把关／规程节点——一切「长在循环外」的东西） · `deny` 红 `#EF6461`＝禁忌与拦截（硬拒／阻断／实验崩溃侧） · `dim` 灰＝签字问人与人肉段（有意见但要人拍板／疲惫往返） · `ok` 绿 `#7ED321`＝放行与机制在位瞬态（消融对照绿侧） · 医生／来诊者／过程数据一律无彩（`text` 白／`dim` 灰）——**装置才有颜色**。
-> 恒定空间契约（防〔X-001〕空间逆旁白）：**接诊循环恒居画面中央**（core 橙圆环〔M-001〕，全片锚位不变）；三层外设自**右缘**依次挂入（mech 青）；行数尺（102/135/180/232 四格进度条）沿**底部安全带**（y 880–920：archify 画框下缘与字幕避让带之间）恒驻、逐幕点亮一格——既不被 5-B 全屏画框遮盖、也不进长句字幕板区；禁忌表永远画在把关链最前且不可被覆盖（「翻不了案」的空间表达）；医生位左、科室门右，全片不换位。
+> 恒定空间契约（防〔X-001〕空间逆旁白）：**接诊循环恒居画面中央**（core 橙圆环〔M-001〕，全片锚位不变——同形可缩放：描边色/5px 线宽/刻度绝对值锁死，直径随镜适配 280–340）；三层外设自**右缘**依次挂入（mech 青）；行数尺（102/135/180/232 四格进度条）落**底部安全带**（y 880–920：archify 画框下缘与字幕避让带之间）——生命周期：0-D 首现 102／1-G 复亮／2-C 点 135／**P3·P4 两幕不携尺**（第三格 180 +关、第四格 232 +节点 首亮在 5-B 四版对账逐章复现）／5-B 全景 0→4 逐章重点亮／6-A 全亮——既不被 5-B 全屏画框遮盖、也不进长句字幕板区；禁忌表永远画在把关链最前且不可被覆盖（「翻不了案」的空间表达）；医生位左、科室门右，全片不换位。
 >
 > **画面纪律**：画面文字只放关键词／数字／标签（≤6 字），不复述口播（RSI-007，刻意定格处在该行注 `caption-dup-ok:` 豁免）；英文标识符只进角标（`messages`／`tool_use`／`tool_result`／`stop_reason`／`DENY_LIST`／`HOOKS` 等，口播零英文——例外仅 Harness 与 AI）；三处拆源码引语带归属角标「对外拆解口径」；顶部安全带 y<56 由章节条占用，画面内容 y≥56 起；画面零信源站标识、零他集标题（P6 系列身份卡五层层板为系列统一装置、沿既有先例）。
 > **3D／Lottie 裁定（Stage ⑥ 定）**：本集**不启用** 3D 层栈与 Lottie（规避 ISSUE-202 headless ANGLE 挂死族）；装置全部原生 SVG＋运动层；P6 系列身份卡复用 five-layer 图集承载。
@@ -38,9 +38,9 @@
 | 镜 | 句区间 | 画面 | 动效 |
 | --- | --- | --- | --- |
 | 0-A | p0-01..03 | 开场设问：聊天框两侧定格（左用户敲字／右模型回复一段建议）；p0-03「白纸」隐喻——一张白纸卡从聊天框飘落、定格压短关键词「一张白纸 · 全忘」（`dim`，非逐字复述）；角标 `llm(messages)` | 聊天框双侧错峰淡入 `useStagger`；白纸卡飘落定格 `useEnter:fall`（scene 自定义白纸装置，压短形态）；`@stagger` `@enter:fall` |
-| 0-B | p0-04..06 | 人肉往返 ·**archify full**：human-relay 章 `manual-full`+`talk-only` · p0-05 句中段让位 ·**archify full**：human-relay （talk-only） · p0-06 金句回落——自制金句卡衬线体「说完了 · 活还是你的」（压短形态）caption-dup-ok: 金句卡定格记忆点，主字压短非逐字；角标 `chat` | archify 全屏回放主控（两章同实例连播自动抑制）；金句卡 QuoteCard 衬线定格（components 承担者，散文点名，不产生 token） |
-| 0-C | p0-07..11 | **诊室定场（母题定妆）**：自制诊室全景首现——中央接诊循环圆环（core 橙〔M-001〕锁线宽，五步位刻度暂虚）、左上病历本槽位（下方常驻字条 `病历本 = 唯一凭据 · 每轮全量重读`，随病历本组淡入）、左医生位（无彩剪影，位上标签 `医生 · 模型`）、右科室门；「Harness」字卡挂门楣；p0-10 句让位 ·**archify full**：human-relay 章 `loop-takes-over` | 诊室四件依次入场 `useStagger`（循环母题随组淡入定妆，core 橙恒定线宽）；Harness 字卡钉位 pop 入场（components 承担，散文点名）；p0-10 由 ArchifyRecap 主控；`@stagger` |
-| 0-D | p0-12..15 | 行数尺首现：底边四格进度条（第一格 `102` 点亮，其余虚影）；p0-14 三枚外设剪影（表／关／节点，mech 青）自右缘挂入循环右侧；p0-15 句让位 ·**archify full**：human-relay 章 `gap-preview`；角标 `102 行 · 教学版`（金句卡「三层外设」**裁定不落**：p0-15 全句窗让位给 gap-preview，集名主段定格已由 P6 系列身份卡承担——2026-10-02 评审回写） | 行数尺第一格计数点亮 `useCount`；三剪影右缘滑入与常驻微光由 PeripheralRow 内 `useStagger`＋`useBreathe` 承担（components 承担者，散文点名）；p0-15 由 ArchifyRecap 主控；`@count` |
+| 0-B | p0-04..06 | 人肉往返 ·**archify full**：human-relay 章 `manual-full`+`talk-only` · p0-05 句让位 ·**archify full**：human-relay （talk-only） · p0-06 金句回落——自制金句卡衬线体「说完了 · 活还是你的」（压短形态）caption-dup-ok: 金句卡定格记忆点，主字压短非逐字；角标 `chat` | archify 全屏回放主控（两章同实例连播自动抑制）；金句卡 QuoteCard 衬线定格（components 承担者，散文点名，不产生 token） |
+| 0-C | p0-07..11 | **诊室定场（母题定妆）**：自制诊室全景首现——中央接诊循环圆环（core 橙〔M-001〕锁线宽，五步位刻度暂虚）、左上病历本槽位（下方常驻字条 `病历本 = 唯一凭据 · 每轮全量重读`，随病历本组淡入）、左医生位（无彩剪影，位上标签 `医生 · 模型`）、右科室门；「Harness」字卡挂门楣；p0-10 句让位 ·**archify full**：human-relay 章 `loop-takes-over`（R10：诊室常驻件拆锚窗外两段——p0-10 全屏窗内诊室整体退场、p0-11 回场重放定妆＋Harness 挂牌随「这套程序叫 Harness」落位，3-F 嵌套 Sequence 范式） | 诊室四件依次入场 `useStagger`（循环母题随组淡入定妆，core 橙恒定线宽；回场段重放）；Harness 字卡钉位 pop 入场（components 承担，散文点名）；p0-10 由 ArchifyRecap 主控；`@stagger` |
+| 0-D | p0-12..15 | 行数尺首现：底边四格进度条（第一格 `102` 点亮，其余虚影）＋**102 大数字卡**（120px core 橙发光计数落点，CountCard）；p0-14 三枚外设剪影（表／关／节点，mech 青）自右缘挂入循环右侧；p0-15 句让位 ·**archify full**：human-relay 章 `gap-preview`；角标 `102 行 · 教学版`（金句卡「三层外设」**裁定不落**：p0-15 全句窗让位给 gap-preview，集名主段定格已由 P6 系列身份卡承担——2026-10-02 评审回写） | 102 大数字卡计数点亮 `useCount`＋落点脉冲 `useImpulse`（core）；底边尺带首格静态点亮（LineGauge lit=1，components 承担者，散文点名）；三剪影右缘滑入与常驻微光由 PeripheralRow 内 `useStagger`＋`useBreathe` 承担（components 承担者，散文点名）；p0-15 由 ArchifyRecap 主控；`@count` `@impulse` |
 
 ## P1 接诊循环（p1-01..26）→ `scenes/P1IntakeLoop.tsx`
 
@@ -91,8 +91,8 @@
 
 | 镜 | 句区间 | 画面 | 动效 |
 | --- | --- | --- | --- |
-| 5-A | p5-01..07 | 全链五工序：p5-01 句让位 ·**archify full**：preflight-chain 章 `full-chain`+`cheap-first`+`semantic-check`+`mid-gate`+`ask-last` · p5-02 句让位 （cheap-first） · p5-03 句让位 （semantic-check） · p5-04 句让位 （mid-gate） · p5-05 句让位 （ask-last） · p5-06 自制回落（「执行」车间门开启单据驶入小卡，`ok` 绿瞬态）· p5-07 回落金句卡「核对 · 自检 · 把关 · 都在签字前」衬线定格 caption-dup-ok: 工序名列举定格（标签组合非整句复述）；角标 `schema→validate→hooks→permission→run` | 同图五章连播（单实例内自动抑制）；车间门开启 `useSpring`；金句卡 QuoteCard；`@spring` |
-| 5-B | p5-08..13 | 四版对账：p5-08 自制行数尺全景（四格底边复现）→ p5-09 句让位 ·**archify full**：four-version-ledger 章 `v1-base`+`v2-table`+`v3-gates`+`v4-hooks`+`ledger` · p5-10 句让位 （v2-table） · p5-11 句让位 （v3-gates） · p5-12 句让位 （v4-hooks） · p5-13 句让位 （ledger）；角标 `执行行：只换过一次 · 教学版` | 行数尺四格同步点亮 `useCount`（随各章推进）；同图五章连播（单实例内自动抑制）；`@count` |
+| 5-A | p5-01..07 | 全链五工序：p5-01 句让位 ·**archify full**：preflight-chain 章 `full-chain`+`cheap-first`+`semantic-check`+`mid-gate`+`ask-last` · p5-02 句让位 （cheap-first） · p5-03 句让位 （semantic-check） · p5-04 句让位 （mid-gate） · p5-05 句让位 （ask-last） · p5-06 自制回落（「执行」车间门开启单据驶入小卡，`ok` 绿瞬态）· p5-07 回落金句卡「核对 · 自检 · 把关 · 都在签字前」衬线定格 caption-dup-ok: 工序名列举定格（标签组合非整句复述）；角标 `schema→validate→hooks→permission→run` | 同图五章连播（单实例内自动抑制）；车间门开启 `useSpring`；单据驶过门心 ok 放行瞬态 `useImpulse`；金句卡 QuoteCard；`@spring` `@impulse` |
+| 5-B | p5-08..13 | 四版对账：p5-08 引题大字「四版对账」＋自制行数尺全景（四格底边复现）→ p5-09 句让位 ·**archify full**：four-version-ledger 章 `v1-base`+`v2-table`+`v3-gates`+`v4-hooks`+`ledger` · p5-10 句让位 （v2-table） · p5-11 句让位 （v3-gates） · p5-12 句让位 （v4-hooks） · p5-13 句让位 （ledger）；角标 `执行行：只换过一次 · 教学版` | 引题大字入场 `useProgress`；行数尺四格同步点亮 `useCount`（随各章推进）；同图五章连播（单实例内自动抑制）；`@progress` `@count` |
 | 5-C | p5-14..16 | 方法论卡（自制）：两列对照「骨架：留／规模：砍」＋三组数字对（4↔27／1↔8／3↔一串工序）逐组点亮；金句卡「保骨架 · 砍规模」衬线定格 caption-dup-ok: 口播 p5-14 逐字子串（顿号→间隔号）、六字卡线刻意定格记忆点 | 两列对照 `useStagger`；三组数字对递进 `useCount`；金句卡 QuoteCard；`@stagger` `@count` |
 
 ## P6 收束（p6-01..10）→ `scenes/P6Finale.tsx`
@@ -101,4 +101,4 @@
 | --- | --- | --- | --- |
 | 6-A | p6-01..03 | 诊室全景收束：循环圆环恒定 core 橙缓转，三层外设（表／关／节点）依次亮 mech 青定格；行数尺四格全亮；p6-01 句让位 ·**archify full**：five-layer-dependency 章 `layer-flash`（系列五层层板、本集层点亮）；p6-03 三连「管它」排比自制小字条随节奏点亮；角标：Harness（画内呈现） | 三外设依次点亮与常驻微光由 PeripheralRow 内 `useStagger`＋`useBreathe` 承担（components 承担者，散文点名，同 0-D 口径——R9 撤无背书 token）；行数尺四格全亮 `useCount`；排比小字条随句节奏 `useReveal`；p6-01 由 ArchifyRecap 主控；`@count` `@reveal` |
 | 6-B | p6-04..08 | 分工定格：医生位与关卡分屏——开单动作（左，无彩）与放行闸（右，`ok` 绿徽章）各亮一次；关卡侧「放行」徽章恒亮、医生侧无徽章；p6-06..08 观看方法论两步卡「先找循环 → 再数挂件」（两步依次点亮）；金句卡「循环稳 · 外设全」衬线定格 caption-dup-ok: 金句卡为压短形态 | 分屏对切 `useStagger`；徽章点亮 `useImpulse`（ok）；两步卡递进 `useProgress`；金句卡 QuoteCard；`@stagger` `@impulse` `@progress` |
-| 6-C | p6-09..10 | 系列收束装置：five-layer 层板全亮定格 → 系列身份卡 → 下期预告卡（视觉层含本集主段「一个循环，三层外设」与下期主段「模型的视野是安排出来的」——规则 8 受检硬编码）→ 收尾渐黑窗口；p6-09 句让位 ·**archify full**：five-layer-dependency 章 `four-dark-zones`（四层还没开灯＝后续各层的留白预告；ISSUE-209 修复：L1 视角重派生） | 层板全亮 `useStagger`；身份卡→下期卡交替 `useEnter:fade`；渐黑由 P6 幕级 `useFadeOut` 承担（SceneFade 末幕不淡出，防双重渐黑）；p6-09 由 ArchifyRecap 主控；`@stagger` `@enter:fade` |
+| 6-C | p6-09..10 | 系列收束装置：five-layer 层板浮现定格（本集层点亮 · 下期层 mech 预告 · 余三层留白——与 four-dark-zones 留白语义互证）→ 系列身份卡 → 下期预告卡（视觉层含本集主段「一个循环，三层外设」与下期主段「模型的视野是安排出来的」——规则 8 受检硬编码）→ 收尾渐黑窗口；p6-09 句让位 ·**archify full**：five-layer-dependency 章 `four-dark-zones`（四层还没开灯＝后续各层的留白预告；ISSUE-209 修复：L1 视角重派生） | 层板入场 `useStagger`；下期层 mech 预告脉冲 `useImpulse`；身份卡→下期卡交替 `useEnter:fade`；渐黑由 P6 幕级 `useFadeOut` 承担（SceneFade 末幕不淡出，防双重渐黑）；p6-09 由 ArchifyRecap 主控；`@stagger` `@impulse` `@enter:fade` |

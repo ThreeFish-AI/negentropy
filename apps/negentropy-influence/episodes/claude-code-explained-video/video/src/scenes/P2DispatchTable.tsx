@@ -13,7 +13,7 @@ import {AbsoluteFill, Sequence} from 'remotion';
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Doctor, ExpBadge, LineGauge, MonoTag, ProvenanceTag, withAlpha} from '../components/clinic';
+import {Doctor, ExpBadge, LINE_GAUGE, LineGauge, MonoTag, ProvenanceTag, withAlpha} from '../components/clinic';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 import {
   DUR,
@@ -326,7 +326,8 @@ const FlipLine: React.FC<{at: number}> = ({at}) => {
 };
 
 const GaugeCell: React.FC<{at: number}> = ({at}) => {
-  const n = Math.round(useCount({from: 102, to: 135, at, dur: DUR.f6}));
+  // 102→135 由 LINE_GAUGE 数据面派生（R10：消硬编码副本，与尺带同源）
+  const n = Math.round(useCount({from: Number(LINE_GAUGE[0].label), to: Number(LINE_GAUGE[1].label), at, dur: DUR.f6}));
   const inP = useProgress(at, DUR.f3);
   return (
     <div style={{position: 'absolute', left: 684, top: 620, width: 190, textAlign: 'center', opacity: inP}}>
@@ -336,7 +337,7 @@ const GaugeCell: React.FC<{at: number}> = ({at}) => {
   );
 };
 
-// ── 2-D 破坏性实验封条卡＝ExpBadge lg 档（clinic 共享） ─────────────────────
+// ── 2-D 破坏性实验封条卡＝ExpBadge（clinic 共享） ─────────────────────
 
 // ── 2-E 多单与并行：左＝教学版按序串行（dim 排队）；右＝分批并行（mech 齐闪） ──
 
