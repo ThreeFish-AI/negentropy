@@ -3,7 +3,7 @@
  *  （pc2-failures 逐章：丢计划/淹没/全带/打架/即崩）→ 病根错位示意
  *  （看到的 ≠ 需要的）→ 全景首亮（pc2-panorama pan-loop）。
  *  空间契约：HarnessBadge 顶带下移 top:64；画面内容 y≥56 起；字幕带 bottom≥150。
- *  archify 全屏独占；0-D 三章背靠背后两章 lead={false}。
+ *  archify 全屏独占；0-D 三章实例内背靠背接力（enters 自动抑制后两章换章弹入；首章随 p0-09 空窗恢复入场）。
  */
 import React from 'react';
 import {AbsoluteFill, Sequence} from 'remotion';
@@ -130,7 +130,7 @@ export const P0Failures: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       <Sequence {...bD} name="0-D 全带·打架·即崩">
         <HarnessBadge style={BADGE_STYLE} />
-        {/* p0-09 为章前空窗句（失败三引入），三章背靠背：后两章 lead={false} */}
+        {/* p0-09 为章前空窗句（失败三引入）；三章实例内接力，enters 自动抑制后两章弹入 */}
         <ArchifyRecap slug="pc2-failures" caption="失败现场" cues={[
           {chapterId: 'fail-carry', at: at('p0-10') - bD.from, durationInFrames: dur('p0-10')},
           {chapterId: 'fail-clash', at: at('p0-11') - bD.from, durationInFrames: dur('p0-11'), fit: 'trim'},

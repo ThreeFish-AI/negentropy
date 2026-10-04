@@ -102,7 +102,7 @@
       "id": "claude-code-explained",
       "title": "Claude Code Harness Engineering",
       "sourceKind": "course",
-      "rule": "与自进化系列完全独立：两个系列的口播互不引用（校验器规则 1 跨系列全局生效），发布顺序与视觉契约各自独立（规则 2/3/4 按系列内判定）。信源为官方文档 + Anthropic 工程博客 + 开源课程仓库（站点 20 章/5 阶段只作组织骨架，观众层匿名化——规则 7），故 episode 用 source 字段（含 pinnedRef 与访问日期）而非 paper 字段——证据等级分层见各集 research/source-notes.md。",
+      "rule": "与自进化系列完全独立：两个系列的口播互不引用（校验器规则 1 跨系列全局生效），发布顺序与视觉契约各自独立（规则 2/3/4 按系列内判定）。信源为官方文档 + Anthropic 工程博客 + 开源课程仓库（站点 20 章/5 阶段只作组织骨架，观众层匿名化——规则 7），故 episode 用 source 字段（含 pinnedRef 与访问日期）而非 paper 字段——证据等级分层见各集 research/source-notes.md（C 型信源集例外：规划与协调集为 research/gl-notes.md）。",
       "episodes": [
         {
           "episode": 1,
@@ -147,7 +147,7 @@
             "accessed": "2026-08-22"
           },
           "status": "final-review",
-          "statusNote": "**v4 交付**（2026-10-04；v2 2026-10-02 C 型 176 信源完全重制含评审修复 15 处；v3 = badge 双绘 + 二轮评审 10 处重渲；v4 = 三轮评审修复 7 处重渲——5-B 红叉条/边界条关键词化（RSI-007 漏网×2，抽帧实证）、storyboard 组件清单与动效标注 as-built 对齐×6、gl-notes 穿透计数 74→73 三处连坐、附录 A 首登章节 §3→§4/§6/§7、cues.toml 契约软化+两块例外留痕、readme SSOT 伞述补 C 型例外；ep1 下期卡重渲债已登记其 statusNote 开放项）：13:20.73 = 800.7s @1080p30（24020 帧）；155 句 3428 字（254 口径）；story 档 65 块；archify 14 图 47 章逐章回放（锚定 30.3% · 密度 3.5/分 · 5 型 · 全屏独占）；内容+覆盖 FAIL 0（RSI-039 开篇 WARN 五集同款）· tsc/系列门 FAIL 0；归档 新题 v1–v4 + _captions×4（v4 字幕同 v3 逐字节；旧题 v1/v2/v3 原样保留；md5 源=档 014ab7d8）；开放项：扩窗 hold 定格 ≈4min（ISSUE-208 待拍板）；评审循环 R1/R2 画面文案修复 8 处未渲（渲染债随 v5 统一重渲，ISSUE-207 验收线）",
+          "statusNote": "**v4 交付**（2026-10-04；v2 2026-10-02 C 型 176 信源完全重制含评审修复 15 处；v3 = badge 双绘 + 二轮评审 10 处重渲；v4 = 三轮评审修复 7 处重渲——5-B 红叉条/边界条关键词化（RSI-007 漏网×2，抽帧实证）、storyboard 组件清单与动效标注 as-built 对齐×6、gl-notes 穿透计数 74→73 三处连坐、附录 A 首登章节 §3→§4/§6/§7、cues.toml 契约软化+两块例外留痕、readme SSOT 伞述补 C 型例外；ep1 下期卡重渲债已登记其 statusNote 开放项）：13:20.73 = 800.7s @1080p30（24020 帧）；155 句 3428 字（254 口径）；story 档 65 块；archify 14 图 47 章逐章回放（锚定 30.3% · 密度 3.5/分 · 5 型 · 全屏独占）；内容+覆盖 FAIL 0（RSI-039 开篇 WARN 五集同款）· tsc/系列门 FAIL 0；归档 新题 v1–v4 + _captions×4（v4 字幕同 v3 逐字节；旧题 v1/v2/v3 原样保留；md5 源=档 014ab7d8）；开放项：扩窗 hold 定格 ≈4min（ISSUE-208 待拍板）；评审循环 R1/R2/R5 画面文案修复 11 处未渲（渲染债 11 条 RD-1..11，随 v5 统一重渲，ISSUE-207 验收线）",
           "voice": "story + me-bright.wav"
         },
         {

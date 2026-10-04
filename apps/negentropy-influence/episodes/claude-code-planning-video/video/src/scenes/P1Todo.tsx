@@ -26,7 +26,7 @@ const FiveRoundWalk: React.FC<{at11: number; at12: number; at13: number}> = ({
   const p11 = useProgress(at11, 18);
   const p12 = useProgress(at12, 24);
   const p13 = useProgress(at13, 24);
-  const rounds = ['① 交计划', '② 改文件', '③ 跑测试', '④ 修失败', '⑤ 回看清单'];
+  const rounds = ['① 交计划', '② 改文件', '③ 跑测试', '④ 修失败', '⑤ 提醒回看'];
   const activeIdx = p13 > 0 ? 4 : p12 > 0 ? (p12 > 0.66 ? 3 : p12 > 0.33 ? 2 : 1) : p11 > 0 ? 0 : -1;
   const todos = [
     {label: '补注解', state: p13 > 0.5 ? 'done' : 'doing'},

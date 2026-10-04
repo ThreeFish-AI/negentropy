@@ -30,7 +30,6 @@
  *  Stage3D 的 style 在类型上就 Omit 掉了定位属性。
  */
 import React, {useMemo} from 'react';
-import {ThreeCanvas} from '@remotion/three';
 import * as THREE from 'three';
 import {theme} from '../design/theme';
 
@@ -49,23 +48,13 @@ import {theme} from '../design/theme';
  *  面在暗底上读不出来，棱线成了唯一可见物，四层叠加于是读成**一堆细线框**而不是
  *  「有内外之分的体」。壳与框的差别本就在「面是否可见」，所以面色必须自己拉开层次。
  *  自内向外变暗 = 越靠外越背光，符合「井」的朴素光感（仍是手绘梯度，非光照计算）。
- *  对 theme.text #F2F5FA 的对比度：#39435A 9.66 · #2E374B 11.45 · #242C3C 13.13 ·
- *  #1B212D 14.62 —— 全部远超「文字 on 面色 ≥ 7:1」的下限（本层无文字叠加，仅作余量）。
- *  ⚠️ 首版取 #232A36→#12161E（灰度 0.10–0.14），在 bg #0E1116 上几乎与背景同色，
- *  面根本读不出来 ⇒ 只剩棱线可见、整组读成线框堆。**面要被看见，必须与 bg 拉开**。 */
-export const SHELL_FACES = ['#39435A', '#2E374B', '#242C3C', '#1B212D'] as const;
+ *  ⚠️ 面要被看见，必须与 bg 拉开（首版灰度几乎同色、整组读成线框堆——git 历史可溯）。 */
+/* SHELL_FACES 壳面色组已随 P2SideDesk 重制退役（无消费方，git 历史可溯）。 */
 
 /** 插座井壁：比 panel 更暗一档 = 手绘的「凹进去」暗部。 */
 export const SOCKET_WALL = '#141922';
 
-/** 房屋轴测：全片静置角度，与既有 PlateSlab3D 同源。 */
-export const AXO = {pitch: -12, yaw: 8} as const;
-
-export const axoRotation = (o: {pitch?: number; yaw?: number} = {}): [number, number, number] => [
-  ((o.pitch ?? AXO.pitch) * Math.PI) / 180,
-  ((o.yaw ?? AXO.yaw) * Math.PI) / 180,
-  0,
-];
+/* axoRotation/AXO 已退役（无消费方，git 历史可溯）。 */
 
 /** 读色皮肤——「平面语义 → 3D 属性」的唯一载体。
  *  face 大面积**永不**用概念色（core/mech/deny）；概念色只走 edge。 */
@@ -88,23 +77,9 @@ export type SolidSkin = {
   noEdges?: boolean;
 };
 
-/** 世界约定（全片唯一）：正交 + zoom 1 ⇒ 1 世界单位 = 1 CSS px；原点在画布中心。
- *  相机全片零动画（宪法二）。
- *  ⚠️ style 在类型上就禁掉了定位属性——定位是调用点契约（ISSUE-177 教训一）。 */
-export const Stage3D: React.FC<{
-  width: number;
-  height: number;
-  style?: Omit<
-    React.CSSProperties,
-    'position' | 'inset' | 'top' | 'left' | 'right' | 'bottom' | 'width' | 'height'
-  >;
-  children?: React.ReactNode;
-}> = ({width, height, style, children}) => (
-  <ThreeCanvas width={width} height={height} orthographic camera={{position: [0, 0, 100], zoom: 1}} style={style}>
-    {/* 零光源（宪法三）：basic 材质不吃光，明暗全部来自手写面色梯度 */}
-    {children}
-  </ThreeCanvas>
-);
+/* Stage3D 画布已退役（P2SideDesk 重制后无消费方；世界约定/ISSUE-177 教训见头注，git 历史可溯）。
+ *  世界约定存档：正交 + zoom 1 ⇒ 1 世界单位 = 1 CSS px，原点画布中心，相机零动画（宪法二），
+ *  style 类型级禁定位属性（ISSUE-177 教训一）。 */
 
 /** 正面轮廓线顶点（矩形四角闭合）：edges 的单像素棱线在暗底不足以读作 2px 描边，
  *  故在正面再叠一圈 lineLoop 加权。 */
