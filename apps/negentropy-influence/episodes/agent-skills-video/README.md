@@ -1,6 +1,6 @@
 # 《刻意做小：Agent Skills 开放标准》科普视频工程
 
-> 交付状态：**v7 终渲待审（2026-10-04，八轮评审 13+10+3+4+7+17+10+2 条全修）**：13:07.7 @1080p30 · 124 句 3678 字 · archify 双图 16 章 20 cue（锚定 16.1%）· 机器门全绿（check/tsc/qa 全 FAIL 0）· 归档 `~/Documents/video/agent-infra/` v7 + `_captions/`。复现流水线见下。
+> 交付状态：**v8 终渲待审（2026-10-04，九轮评审 13+10+3+4+7+17+10+2+8 条全修）**：13:07.7 @1080p30 · 124 句 3678 字 · archify 双图 16 章 20 cue（锚定 16.1%）· 机器门全绿（check/tsc/qa 全 FAIL 0）· 归档 `~/Documents/video/agent-infra/` v8 + `_captions/`。复现流水线见下。
 
 ## 目录结构
 
@@ -30,7 +30,8 @@ uv run --no-project $T/scripts/pipeline.py --project $P check --check-scenes
 
 # ③ 配音（参数全部取自 pipeline.toml，勿在命令行另写 --style/--ref）
 uv run --no-project $T/scripts/pipeline.py --project $P tts --plan   # 排期对账
-uv run --no-project $T/scripts/pipeline.py --project $P tts          # 长跑，建议 nohup
+# ⚠️ 语速校准 df=1.15 必须显式（pipeline tts 不透传、story 预设内建 df=1.0；长跑建议 nohup）
+uv run --no-project $P/scripts/tts.py --duration-factor 1.15
 
 # ④ 渲染与体检（工具一律 ./node_modules/.bin/ 直调，防污染根 workspace）
 cd $P/video && pnpm install && ./node_modules/.bin/tsc --noEmit

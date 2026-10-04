@@ -127,7 +127,7 @@ export const SkillMenuCard: React.FC<{
               style={{
                 fontFamily: theme.mono,
                 fontSize: 14.5,
-                color: forged ? theme.danger : theme.conceptDeep,
+                color: forged ? (forgedP > 0.4 ? theme.danger : theme.conceptDeep) : theme.conceptDeep,
                 minWidth: 126,
                 textDecoration: gone > 0.6 ? 'line-through' : undefined,
               }}

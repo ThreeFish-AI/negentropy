@@ -9,9 +9,9 @@ import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
 import type {SceneRange} from '../types';
 import {beatWindow} from '../timing';
 import {theme} from '../design/theme';
-import {DUR, progress, useBreathe, usePushIn, useSpring, useStagger} from '../motion';
+import {DUR, progress, useBreathe, usePushIn, useShake, useSpring, useStagger} from '../motion';
 import {SceneTag} from '../components/motifs';
-import {CornerNote, Plaque, Stage} from '../components/e1-motifs';
+import {CornerNote, MENU_ROWS, Plaque, Stage} from '../components/e1-motifs';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 
 /** 0-A 目录树：`.agents/skills/` 下六个文件夹逐个落位（lab4 六夹具，与
@@ -20,7 +20,7 @@ const DirTree: React.FC<{fallAt: number; cardAt: number}> = ({fallAt, cardAt}) =
   const frame = useCurrentFrame();
   const st = useStagger(6, {at: fallAt, dur: DUR.f5, stride: 7});
   const cardP = progress(frame, cardAt, DUR.f4);
-  const dirs = ['shift-swap', 'report-merger', 'deploy-helper', 'pantry-inventory', 'legacy-notes', 'evil-craft'];
+  const dirs = MENU_ROWS.map((r) => r.id);  // 六夹具唯一事实源＝M-001 菜单卡（e1-motifs MENU_ROWS）
   return (
     <div style={{position: 'relative', width: 940, height: 560}}>
       {/* 根目录标签 */}
@@ -176,7 +176,8 @@ const TwoDeadEnds: React.FC<{guessAt: number; stuffAt: number; billAt: number; b
   const guessP = progress(frame, guessAt, DUR.f4);
   const stuffP = progress(frame, stuffAt, DUR.f6);
   const billP = progress(frame, billAt, billDur);
-  const shake = Math.sin(frame * 1.7) * 3 * (guessP > 0 ? 1 : 0);
+  // 手写 sin 摆动收编 frozen 层（同频 1.7/帧·同幅 3px，相位归零于 guessAt）
+  const shake = useShake({at: guessAt, amp: 3, freq: 1 / 1.7});
   return (
     <div style={{display: 'flex', flexDirection: 'column', gap: 44, width: 1080}}>
       {/* 路线一：猜 */}
@@ -329,7 +330,7 @@ const Flip: React.FC<{cardAt: number; doorAt: number}> = ({cardAt, doorAt}) => {
           transform: `translateY(${(1 - doorP) * 40 + (hover - 0.55) * -10 * doorP}px) rotate(${(1 - doorP) * -6}deg)`,
         }}
       >
-        <Plaque variant="door" title="?" sub="答案的前一半，钉在门牌上" />
+        <Plaque variant="door" title="?" sub="答案·前一半" />
       </div>
     </div>
   );
