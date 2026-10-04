@@ -17,6 +17,7 @@
 import React from 'react';
 import {Img, OffthreadVideo, Sequence, staticFile, useVideoConfig} from 'remotion';
 import {theme} from '../design/theme';
+import {SCREEN_INK} from './e1-motifs';
 import {DUR, useProgress, useSpring} from '../motion';
 
 /** 源片长与目标句窗不等长时的适配方式 */
@@ -117,7 +118,7 @@ export const ArchifyClip: React.FC<{
           height: BOX.h,
           borderRadius: 14,
           border: `3px solid ${theme.panelBorder}`,
-          background: '#0B0E13',
+          background: SCREEN_INK,
           overflow: 'hidden',
           opacity: enter,
           transform: `scale(${0.94 + 0.06 * enter})`,

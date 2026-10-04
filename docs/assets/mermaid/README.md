@@ -11,7 +11,7 @@
 > Horizon Context 精读、Context Layer 蓝图与 OpenViking 精读（下表 `cognitive-context/` 分节）、
 > `docs/research/agent-harness/` 的五层 Harness 精读、AI Native 手册精读（180）与 Hermes Agent 精读（190，下表 `agent-harness/` 分节）、
 > `docs/research/self-evolution/` 的 Dream-RSI 精读（下表 `self-evolution/` 分节）、
-> `docs/research/agent-infra/` 的 Agent Skills 规范精读与 Jev（System One 决策模型）精读（下表 `agent-infra/` 分节）。未纳入：其余 `docs/research/`（第三方调研）与
+> `docs/research/agent-infra/` 的 Agent Skills 规范精读（090/210/230 三代）与 Jev（System One 决策模型）精读（下表 `agent-infra/` 分节）。未纳入：其余 `docs/research/`（第三方调研）与
 > `docs/reference/cognizes/`（已退役遗产），**不在此管线**，原地保留渲染。
 
 ## 约定
@@ -69,11 +69,13 @@
 | [dream-rsi--behavior-adaptive](./self-evolution/dream-rsi--behavior-adaptive.mmd) | [144 §6](../../research/self-evolution/144-dream-rsi.md) | lifecycle | ✓ | done | 先省后探：110→50→回升与性能 0.427→1.898 |
 | [dream-rsi--unproven-list](./self-evolution/dream-rsi--unproven-list.mmd) | [144 §8](../../research/self-evolution/144-dream-rsi.md) | workflow | ✓ | done | 论文未证明五件事清单（panel+编号反枚举） |
 
-### agent-infra/（docs/research/agent-infra/ 的 Agent Skills 规范精读（090 + 重学 210）+ Jev 精读）
+### agent-infra/（docs/research/agent-infra/ 的 Agent Skills 规范精读（090 + 重学 210 + 三代 230）+ Jev 精读）
 
 | slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | [agent-skills--progressive-disclosure](./agent-infra/agent-skills--progressive-disclosure.mmd) | [090 §2](../../research/agent-infra/090-agent-skills-spec.md) | workflow | ✓ | done | 运行相：发现→解析→Tier 1 目录→Tier 2 激活→Tier 3 资源，四泳道阶梯 + 预算/激活/契约三卡 |
+| [agent-skills-std-lifecycle](./agent-infra/agent-skills-std-lifecycle.mmd) | [230 §4/§6](../../research/agent-infra/230-agent-skills-standard.md) | workflow | ✓ | done | 运行相（三代版）：发现双域→宽容装载→目录 tier1 常驻→激活 tier2 整读→执行 tier3 按需→压缩豁免；旁路=严格校验器与注入防御；三级账本/静默退化红线两卡 |
+| [agent-skills-std-dual-track](./agent-infra/agent-skills-std-dual-track.mmd) | [230 §8/§11](../../research/agent-infra/230-agent-skills-standard.md) | workflow | ✓ | done | 治理相（三代版）：守门哲学→规范面（唯一权威）→校验轨道严格/装载轨道宽容（同一官方两口径）→Claude Code 20 字段、claude.ai 六字段硬门、Codex .agents/skills+旁车→生态 46 家·51 条 PR；三轨分工/互操作锚点两卡 |
 | [jev--shared-read-isolated-branches](./agent-infra/jev--shared-read-isolated-branches.mmd) | [200 §4](../../research/agent-infra/200-jev-system-one-model.md) | dataflow | ✓ | done | 共享读 · 隔离问：state 只编码一次、题面附于前缀后、分支互不可见 → 概率 + confidence → 代码三档分流；多问近乎免费 / 隔离是真的 / 无跨题不变量三卡 |
 | [jev--calibration-territory](./agent-infra/jev--calibration-territory.mmd) | [200 §5](../../research/agent-infra/200-jev-system-one-model.md) | dataflow | ✓ | done | 校准的领地：RLCD 受训分布内可对账（ECE 0.031）→ 漂移后照报七成（密封集 ECE 0.220）/ 内在随机无基准 → 影子运行抽检 + 温度缩放重标 |
 | [agent-skills--package-and-validation](./agent-infra/agent-skills--package-and-validation.mmd) | [090 §3](../../research/agent-infra/090-agent-skills-spec.md) | architecture | ✓ | done | 作者相：技能包解剖 × skills-ref 三命令 × 规范↔实现 13 处分歧 |

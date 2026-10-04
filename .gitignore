@@ -317,3 +317,5 @@ apps/negentropy-influence/episodes/*/video/public/archify/*-end.png
 
 # guided-learn 最小原型的运行产物（docs/research/*/assets/*_lab.py 落盘目录）
 .lab_out/
+# lab4 起原型直接在 assets/ 下重建 fixtures/ 夹具（含注入载荷），同属运行产物
+docs/research/agent-infra/assets/fixtures/

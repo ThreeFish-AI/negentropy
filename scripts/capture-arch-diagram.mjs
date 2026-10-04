@@ -12,7 +12,7 @@
  * 设计要点（承自旗舰脚本的实测结论，详见 docs/.agents/doc-media-assets.md）：
  *   1. 静态图走产物内置 exportMenu（RASTER_SCALE=4 原生矢量栅格化），不用整页截图。
  *   2. 拦截导出 blob 必须「记录但透传」URL.createObjectURL，取最后一个 blob。
- *   3. PNG 实际尺寸必须等于 viewBox × 4（防半幅/空图），尺寸断言按每图 viewBox 动态计算。
+ *   3. PNG 实际尺寸双维 ≥3 倍且 4 对齐（防半幅/空图；导出画布含不对称边距，不要求与 viewBox 严格等比），尺寸断言按每图 viewBox 动态计算。
  *
  * 零 npm 依赖：CDP over WebSocket（Node 内置 WebSocket，需 Node >= 22）。
  */
@@ -249,7 +249,7 @@ async function main() {
     await new Promise((r) => setTimeout(r, 1500));
     const prep = await cdp.evalFn(PAGE_FNS.prepare);
     // exportMenu 的 RASTER_SCALE=4（导出器对宽 viewBox 有 4800px 上限，实际缩放可为 3×）：
-    // 断言「整数倍缩放 + 纵横比一致」防半幅/空图
+    // 断言「双维 ≥3 倍 + 4 对齐」防半幅/空图；导出画布含不对称边距，不要求与 viewBox 严格等比
     const vb = prep.viewBox;
     console.log(`[page] theme=${prep.theme} viewBox=${vb.width}×${vb.height} fonts=${prep.fontsStatus}`);
 
@@ -258,11 +258,10 @@ async function main() {
       if (now !== theme) throw new Error(`主题切换失败: 期望 ${theme} 实得 ${now}`);
       const r = await cdp.evalFn(PAGE_FNS.exportBlob, "png");
       const okDims = r.dims
-        && r.dims.width % Math.round(vb.width) === 0 && r.dims.height % Math.round(vb.height) === 0
-        && r.dims.width / vb.width === r.dims.height / vb.height
-        && r.dims.width / vb.width >= 3;
+        && r.dims.width % 4 === 0 && r.dims.height % 4 === 0
+        && r.dims.width >= vb.width * 3 && r.dims.height >= vb.height * 3;
       if (!okDims) {
-        throw new Error(`PNG 尺寸异常: ${JSON.stringify(r.dims)}（期望 viewBox ${vb.width}×${vb.height} 的 ≥3 整数倍等比）`);
+        throw new Error(`PNG 尺寸异常: ${JSON.stringify(r.dims)}（期望 viewBox ${vb.width}×${vb.height} 的 ≥3 倍且 4 对齐；现行导出器含不对称画布边距，不再要求与 viewBox 严格等比）`);
       }
       const file = path.join(outDir, `${opts.slug}-${theme}.png`);
       writeAtomic(file, Buffer.from(r.base64, "base64"));

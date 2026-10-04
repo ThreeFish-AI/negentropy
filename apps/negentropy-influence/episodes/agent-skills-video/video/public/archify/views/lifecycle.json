@@ -1,0 +1,50 @@
+[
+ {
+  "id": "lc-discover",
+  "label": "发现",
+  "focus": ["discover"],
+  "note": "双域扫描 · 同名项目压用户"
+ },
+ {
+  "id": "lc-load",
+  "label": "宽容装载",
+  "focus": ["loadp"],
+  "note": "坏 YAML 重试 · 名字不符警告照载"
+ },
+ {
+  "id": "lc-catalog",
+  "label": "目录常驻",
+  "focus": ["catalog"],
+  "note": "每技能一行 · 约 50–100 token"
+ },
+ {
+  "id": "lc-activate",
+  "label": "激活",
+  "focus": ["activate"],
+  "note": "模型自主比对 description · 整读正文"
+ },
+ {
+  "id": "lc-execute",
+  "label": "按需执行",
+  "focus": ["execute"],
+  "note": "资源用到才读 · tier3 按需"
+ },
+ {
+  "id": "lc-compact",
+  "label": "压缩保护",
+  "focus": ["compact"],
+  "note": "已激活正文豁免 · 激活去重"
+ },
+ {
+  "id": "lc-strict",
+  "label": "严格校验",
+  "focus": ["strict"],
+  "note": "六字段白名单 · 出厂检验非装载门"
+ },
+ {
+  "id": "lc-inject",
+  "label": "注入防御",
+  "focus": ["inject"],
+  "note": "name/description 转义 · location 不转义"
+ }
+]

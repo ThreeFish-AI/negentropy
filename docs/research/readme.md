@@ -77,6 +77,7 @@
 | [可观测性对比：Jaeger vs Langfuse](./agent-infra/100-agent-obser.md) | 生成式 AI 可观测性方案选型 |
 | [Jev 精读笔记](./agent-infra/200-jev-system-one-model.md) | TypeSafe「System One Model」四机制：闭合输出空间 × 共享读·隔离问 × 校准概率与 confidence（adapter 固定公式，读数≠概率）× 快慢分工；官方口径与第三方实测逐项对账（193.6× 复算仅 97.8×、校准领地：分布内 ECE 0.031 / 密封集 0.220）；含纯标准库原型 S1–S11 + B1–B5 破坏实验与 laya 复刻本地实测 |
 | [Jev ↔ negentropy 机制映射](./agent-infra/201-jev-mapping-negentropy.md) | 16 条映射（✅5/🔶9/⏸2）：真增量是四条纪律——解析失败应弃权而非注入默认值（proposer 对照 judge 静默 0 分）、矫正要有 counter、置信缺省方向（KG 缺省 1.0 叠 0.5 阈值=自动通过）、口头置信与启发式常数不可比；接入 Jev 本体暂缓 |
+| [Agent Skills 开放标准精读与通俗拆解（三代版）](./agent-infra/230-agent-skills-standard.md) | 新版 guided-learn 完全重读（钉 69ef37e9+三家客户端口径实测）：三级渐进披露记账、description 独扛路由与触发评测法、规范↔参考实现↔客户端六处分歧；配套 agent_skills_lab4.py（X1–X5 破坏实验） |
 
 ## 六、自进化与工具 · `self-evolution/`
 

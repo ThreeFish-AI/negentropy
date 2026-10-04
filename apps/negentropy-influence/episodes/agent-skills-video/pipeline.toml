@@ -9,11 +9,26 @@
 slug = "agent-skills-video"
 
 [narration]
-# TODO：按本集选题与语速预算填写。口径提示——280 字/分是**含停顿的等效**口径，
-# 裸按字数算会高估约 12% 的句容量，双口径门以 manifest 实测为准。
-# story 档实测语速 ~318 字/分（280 为 sunny 档含停顿口径）；窗取 series 上限 15.6，
-# 实测口径按 manifest 复核（首版 3852 字 → 12.1 分校准得出 318）。
-target_minutes = [13.0, 15.6]
+# 时长窗对齐系列惯例（旧 v2 成片 13:03 / E3 13:57）。
+# 语速校准（2026-10-01 实测）：story 档裸语速 349 字/分（+37% vs 机制默认 254），
+# duration-factor 1.15 → 实测等效 ~304 字/分；3678 字 ≈ 12.1 分纯语音 + ~0.8 分停顿
+# ≈ 12.9 分，窗内。tts 显式传 duration-factor（入缓存摘要=全片同速重录）。
+target_minutes = [12.5, 14.5]
+chars_per_min = 285
+
+[archify]
+# 230 精读伴生双图（C 型直通承接）。源图 = archify 3.0 产物（无 guided-views 模块，
+# 录制器不可直录）；本集用 scripts/patch-archify-html.py 从 docs 原件拷贝并注入
+# 精简 guidedViews 兼容层（组合 3.0 原生 focus.set/view.reveal/view.centerAt），
+# 落本集 html/——docs 原件（SSOT）不动。重跑注入器即幂等重建。
+html_dir = "apps/negentropy-influence/episodes/agent-skills-video/video/public/archify/html"
+html_pattern = "{slug}.html"
+forbid_inset = true
+min_diagrams = 2
+min_cues = 12
+min_cues_per_minute = 0.9
+min_diagram_types = 2
+min_anchor_ratio = 0.10
 
 [tts]
 engine = "indextts"
@@ -26,16 +41,3 @@ style = "story"
 # story 档（默认）＝段落演绎：同幕连续句按块合成、块间情绪由配音台本驱动。
 # 台本（可选）：script/narration.cues.toml——写稿阶段产出，见 $T/references/VOICE-CLONING.md §4.5。
 # 重制存量集（旧档 → story）须显式 --allow-voice-switch 并补写台本。
-
-[archify]
-# 19 图（17 新绘 + 2 复用 210 运行相/治理相），全部 agent-skills-- 前缀走约定；
-# 章节清单见 video/public/archify/views/。阈值为分镜实测（58 cue · 锚定 50.9% · 密度 4.2/分）
-# 下方 10–15% 回填；覆盖门 check 自动串联。
-html_dir = "docs/assets/architecture/agent-infra"
-html_pattern = "agent-skills--{slug}.html"
-forbid_inset = true
-min_diagrams = 16
-min_cues = 50
-min_cues_per_minute = 3.6
-min_diagram_types = 5
-min_anchor_ratio = 0.43

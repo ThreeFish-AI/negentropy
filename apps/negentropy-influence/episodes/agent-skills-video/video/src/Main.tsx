@@ -7,24 +7,24 @@ import {Subtitle} from './components/Subtitle';
 import {theme} from './design/theme';
 import {LangProvider} from './i18n';
 import {computeTimeline, SCENE_FADE_FRAMES} from './timing';
-import {P0} from './scenes/P0';
-import {P1} from './scenes/P1';
-import {P2} from './scenes/P2';
-import {P3} from './scenes/P3';
-import {P4} from './scenes/P4';
-import {P5} from './scenes/P5';
-import {P6} from './scenes/P6';
 import type {Lang} from './i18n';
 import type {ManifestItem, SceneRange} from './types';
+import {P0FortySix} from './scenes/P0FortySix';
+import {P1Doorplate} from './scenes/P1Doorplate';
+import {P2MenuLedger} from './scenes/P2MenuLedger';
+import {P3Signboard} from './scenes/P3Signboard';
+import {P4Gateway} from './scenes/P4Gateway';
+import {P5TwoTracks} from './scenes/P5TwoTracks';
+import {P6Deliberate} from './scenes/P6Deliberate';
 
 const SCENE_COMPONENTS: Record<string, React.FC<{scene: SceneRange}>> = {
-  P0,
-  P1,
-  P2,
-  P3,
-  P4,
-  P5,
-  P6,
+  P0: P0FortySix,
+  P1: P1Doorplate,
+  P2: P2MenuLedger,
+  P3: P3Signboard,
+  P4: P4Gateway,
+  P5: P5TwoTracks,
+  P6: P6Deliberate,
 };
 
 export type MainProps = {manifest: ManifestItem[]; lang?: Lang};
