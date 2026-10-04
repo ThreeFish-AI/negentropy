@@ -45,8 +45,9 @@ engine = "indextts"
 #   速重录。canonical 命令（自仓根执行；--with mutagen 同 tts.py 头注契约，缺它冷启
 #   首块合成即 ModuleNotFoundError，RSI-022）：
 #   uv run --no-project --with mutagen $P/scripts/tts.py \
-#     --engine indextts --ref $W/voices/me-bright.wav --expect-ref-sha1 54b699cce97f \
+#     --engine indextts --final-voice --ref $W/voices/me-bright.wav --expect-ref-sha1 54b699cce97f \
 #     --style story --duration-factor 1.15
+#   （--final-voice＝RSI-040 声音克隆具名授权，store_true 布尔旗标；缺它非 --plan 实跑硬失败 exit 2）
 ref = "voices/me-bright.wav"
 ref_sha1 = "54b699cce97f"
 style = "story"

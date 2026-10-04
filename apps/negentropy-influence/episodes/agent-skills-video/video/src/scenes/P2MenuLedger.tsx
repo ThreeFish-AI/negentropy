@@ -1290,7 +1290,8 @@ const MenuLedgerChrome: React.FC<{
   const clear = useProgress(redAt, redDur);
   const t2 = t2a + t2b;
   const t3 = t3raw * (1 - clear);
-  // archify 全屏窗：双装置 dimmed（窗边界取 DUR.f3 交叉淡化，同 ArchifyYield 口径）
+  // archify 全屏窗：双装置 dimmed（cover>0.4 阈值布尔硬跳——非 ArchifyYield 连续淡化口径，
+  // 双装置 opacity 单帧阶跃 1.0→0.45/0.35；v1–v11 QA 无闪烁瑕疵证据，v11 如实登记差异）
   const cover = Math.max(
     0,
     ...coverWins.map((c) =>
