@@ -8,7 +8,7 @@ description: "五层 harness 第二层的机制精读（机制章钉站点轨 67
 
 > **一句话本质**：它每一轮都把台面从头重读一遍——所以「看见什么」从来不是它自己说了算。
 
-> **信源与钉点**：本篇 M1–M5 的机制证据全部钉**站点轨** `67a9126`（s05 TodoWrite / s06 Subagent / s07 Skill Loading / s10 System Prompt / s11 Error Recovery；章→集归属与钉选的全系列唯一登记处见[系列信源地图](../../../apps/negentropy-influence/source-map/claude-code-explained.md)）；附录钉 **main** `0dcafa2a`（2026-08-27）。逐字引语与可调常数归[对应集 notes](../../../apps/negentropy-influence/episodes/claude-code-planning-video/research/source-notes.md)，本文只写机制不变式与顺序约束，参数一律不固化。**撞号纪律**：站点轨 s10/s11 与 main 轨、旧 12 课轨的同号章构成三轨三物高危区，涉两轨同号一律「轨道＋章全称」，禁止裸用编号。
+> **信源与钉点**：本篇 M1–M5 的机制证据全部钉**站点轨** `67a9126`（s05 TodoWrite / s06 Subagent / s07 Skill Loading / s10 System Prompt / s11 Error Recovery；章→集归属与钉选的全系列唯一登记处见[系列信源地图](../../../apps/negentropy-influence/source-map/claude-code-explained.md)）；附录钉 **main** `0dcafa2a`（2026-08-27）。逐字引语与可调常数归[对应集冻结件 gl-notes](../../../apps/negentropy-influence/episodes/claude-code-planning-video/research/gl-notes.md)，本文只写机制不变式与顺序约束，参数一律不固化。**撞号纪律**：站点轨 s10/s11 与 main 轨、旧 12 课轨的同号章构成三轨三物高危区，涉两轨同号一律「轨道＋章全称」，禁止裸用编号。
 
 ---
 
@@ -231,7 +231,7 @@ description: "五层 harness 第二层的机制精读（机制章钉站点轨 67
 
 ## 9. 官方文档对照（轨 C）
 
-> 收录范围：本维度的**硬分歧**与关键同构锚，与维度简报逐条对接；轨 C 全部 42 条【官】事实归[轨 C 事实集与对应集 notes](../../../apps/negentropy-influence/episodes/claude-code-planning-video/research/source-notes.md)，此处不重述。判定标准：官方现行文档与课程口径（含课程对闭源源码的分析）在同一问题上冲突才算分歧；教学版自陈的刻意简化不计入。
+> 收录范围：本维度的**硬分歧**与关键同构锚，与维度简报逐条对接；轨 C 全部 42 条【官】事实归轨 C 事实集（原对应集 source-notes 已随 2026-10 C 型重制移除、可溯集史；[gl-notes](../../../apps/negentropy-influence/episodes/claude-code-planning-video/research/gl-notes.md) 附录 B 为预留承接位），此处不重述。判定标准：官方现行文档与课程口径（含课程对闭源源码的分析）在同一问题上冲突才算分歧；教学版自陈的刻意简化不计入。
 
 | # | 课程口径（教学版／【三】源码分析） | 官方口径【官】 | 重写处置 |
 |:---|:---|:---|:---|

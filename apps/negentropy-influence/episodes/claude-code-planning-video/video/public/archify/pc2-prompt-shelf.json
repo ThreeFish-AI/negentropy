@@ -1,0 +1,94 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 14.44,
+ "total_wall_sec": 102.5,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "shelf-sections",
+   "label": "四段货架",
+   "index": 0,
+   "file": "pc2-prompt-shelf--shelf-sections.mp4",
+   "end_still": "pc2-prompt-shelf--shelf-sections-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 6.4,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.204,
+    3.307
+   ],
+   "beat_nodes": [
+    "seg-id",
+    "seg-tools",
+    "seg-ws",
+    "seg-mem"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 62.0
+  },
+  {
+   "id": "shelf-state",
+   "label": "只认真实状态",
+   "index": 1,
+   "file": "pc2-prompt-shelf--shelf-state.mp4",
+   "end_still": "pc2-prompt-shelf--shelf-state-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.52,
+   "beat_offsets_sec": [
+    0.0,
+    1.1,
+    2.201,
+    3.304
+   ],
+   "beat_nodes": [
+    "registry",
+    "cwd",
+    "memfile",
+    "statedict"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 66.0
+  },
+  {
+   "id": "shelf-split",
+   "label": "各段独立",
+   "index": 2,
+   "file": "pc2-prompt-shelf--shelf-split.mp4",
+   "end_still": "pc2-prompt-shelf--shelf-split-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.48,
+   "story_sec": 3.52,
+   "beat_offsets_sec": [
+    0.0,
+    1.601
+   ],
+   "beat_nodes": [
+    "seg-id",
+    "seg-tools"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 62.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/whitehorse/docs/assets/architecture/agent-harness/claude-code--pc2-prompt-shelf.html",
+ "slug": "pc2-prompt-shelf",
+ "type": "workflow"
+}

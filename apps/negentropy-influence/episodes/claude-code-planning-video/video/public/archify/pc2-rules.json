@@ -1,0 +1,146 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.48,
+ "story_sec": 55.08,
+ "total_wall_sec": 258.07,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "rule-position",
+   "label": "注入位置定生命周期",
+   "index": 0,
+   "file": "pc2-rules--rule-position.mp4",
+   "end_still": "pc2-rules--rule-position-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.48,
+   "story_sec": 19.68,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.204,
+    3.304
+   ],
+   "beat_nodes": [
+    "pos-system",
+    "pos-history",
+    "pos-sub",
+    "assemble"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 69.0
+  },
+  {
+   "id": "rule-state",
+   "label": "判定只认真实状态",
+   "index": 1,
+   "file": "pc2-rules--rule-state.mp4",
+   "end_still": "pc2-rules--rule-state-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.5,
+   "beat_offsets_sec": [
+    0.0,
+    1.101,
+    2.203,
+    3.304
+   ],
+   "beat_nodes": [
+    "sig-counter",
+    "sig-file",
+    "sig-error",
+    "loop-start"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 66.0
+  },
+  {
+   "id": "rule-lossy",
+   "label": "隔离是有损压缩",
+   "index": 2,
+   "file": "pc2-rules--rule-lossy.mp4",
+   "end_still": "pc2-rules--rule-lossy-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 21.83,
+   "beat_offsets_sec": [
+    0.0,
+    1.101,
+    2.202
+   ],
+   "beat_nodes": [
+    "dispatch",
+    "pos-sub",
+    "pos-history"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "rule-ledger",
+   "label": "恢复必须记账",
+   "index": 3,
+   "file": "pc2-rules--rule-ledger.mp4",
+   "end_still": "pc2-rules--rule-ledger-end.png",
+   "beats": 5,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 5.54,
+   "beat_offsets_sec": [
+    0.0,
+    1.101,
+    2.202,
+    3.304,
+    4.405
+   ],
+   "beat_nodes": [
+    "sig-error",
+    "led-spend",
+    "led-retry",
+    "led-out",
+    "led-broken"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 62.0
+  },
+  {
+   "id": "rule-structure",
+   "label": "结构防线优于嘱咐",
+   "index": 4,
+   "file": "pc2-rules--rule-structure.mp4",
+   "end_still": "pc2-rules--rule-structure-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.53,
+   "beat_offsets_sec": [
+    0.0,
+    1.101,
+    2.202
+   ],
+   "beat_nodes": [
+    "struct-tool",
+    "struct-word",
+    "dispatch"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 63.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/whitehorse/docs/assets/architecture/agent-harness/claude-code--pc2-rules.html",
+ "slug": "pc2-rules",
+ "type": "lifecycle"
+}

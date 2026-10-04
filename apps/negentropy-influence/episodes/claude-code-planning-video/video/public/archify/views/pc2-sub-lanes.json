@@ -1,0 +1,33 @@
+[
+ {
+  "id": "lanes-walk",
+  "label": "两轮调查",
+  "focus": [
+   "main",
+   "sub",
+   "hook",
+   "fs"
+  ],
+  "note": "派单后副台自跑两轮：先读 pyproject.toml，再看测试目录；每次调工具都照过事前钩子"
+ },
+ {
+  "id": "lanes-receipt",
+  "label": "一句结论回主线",
+  "focus": [
+   "sub",
+   "main",
+   "stream"
+  ],
+  "note": "只回最后一条消息的文本，中间过程全部丢弃；主线从 1 条变 2 条"
+ },
+ {
+  "id": "lanes-contrast",
+  "label": "不隔离的代价",
+  "focus": [
+   "sub",
+   "fs",
+   "stream"
+  ],
+  "note": "同一件事：两条 ↔ 十九条——不隔离时 8 轮子过程全写进主线"
+ }
+]

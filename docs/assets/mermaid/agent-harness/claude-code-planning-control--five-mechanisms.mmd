@@ -1,0 +1,16 @@
+%% source: docs/research/agent-harness/176-claude-code-planning-control-deep-read.md §2
+%% slug: claude-code-planning-control--five-mechanisms
+%% type: workflow
+%% derived: docs/assets/architecture/agent-harness/claude-code-planning-control--five-mechanisms.html
+flowchart TD
+    U["用户任务"] --> L0
+    subgraph LOOP["执行循环 · 骨架 s01→s20 结构不变"]
+        L0["① 循环开头<br/>M1 计数器满 3 轮注入 reminder"] --> L1["② 调用 LLM<br/>M5 分类恢复包裹这一步"]
+        L1 -->|"stop_reason = tool_use"| L2["③ 工具分发 TOOL_HANDLERS<br/>M2 task 在此派子代理"]
+        L2 --> L3["④ 结果追加回消息流<br/>M3 load_skill 全文经 tool_result 进场"]
+        L3 --> L0
+        L1 -->|"stop_reason ≠ tool_use"| E["退出循环"]
+    end
+    M4["M4 system prompt 组装<br/>状态没变命中缓存 · 记忆段看文件存在性"] -.每轮供给 L1.-> L1
+    L2 -->|"子代理：全新消息列表<br/>只回传一句结论"| SUB["子代理<br/>30 轮上限 · 无 task 防递归 · 钩子照跑"]
+    SUB -.结论一条回主线.-> L3

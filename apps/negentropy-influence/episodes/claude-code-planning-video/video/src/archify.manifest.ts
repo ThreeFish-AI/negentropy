@@ -24,996 +24,735 @@ export type ArchifyChapter = {
 export type ArchifyDiagram = {slug: string; type?: string; chapters: ArchifyChapter[]};
 
 export const ARCHIFY = {
-  "plan-panorama": {
-    "slug": "plan-panorama",
-    "type": "architecture",
+  "pc2-ablation-bar": {
+    "slug": "pc2-ablation-bar",
+    "type": "dataflow",
     "chapters": [
       {
-        "id": "desk-reread",
-        "label": "每轮从头读台面",
-        "file": "plan-panorama--desk-reread.mp4",
-        "endStill": "plan-panorama--desk-reread-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.36,
+        "id": "ablation-scale",
+        "label": "两种口径",
+        "file": "pc2-ablation-bar--ablation-scale.mp4",
+        "endStill": "pc2-ablation-bar--ablation-scale-end.png",
+        "beats": 2,
+        "leadSec": 0.52,
+        "storySec": 11.05,
         "beatNodes": [
-          "desk",
-          "read-sweep",
-          "five-devices"
+          "m-nums",
+          "e-nums"
         ]
       },
       {
-        "id": "five-devices",
-        "label": "五件东西总览",
-        "file": "plan-panorama--five-devices.mp4",
-        "endStill": "plan-panorama--five-devices-end.png",
+        "id": "ablation-ruling",
+        "label": "分开看",
+        "file": "pc2-ablation-bar--ablation-ruling.mp4",
+        "endStill": "pc2-ablation-bar--ablation-ruling-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.22,
+        "storySec": 8.68,
         "beatNodes": [
-          "desk",
-          "five-devices"
-        ]
-      },
-      {
-        "id": "tool-fade",
-        "label": "能力留 · 工具退",
-        "file": "plan-panorama--tool-fade.mp4",
-        "endStill": "plan-panorama--tool-fade-end.png",
-        "beats": 2,
-        "leadSec": 0.48,
-        "storySec": 3.22,
-        "beatNodes": [
-          "device-todo",
-          "fade-mark"
-        ]
-      },
-      {
-        "id": "question-return",
-        "label": "开头之问",
-        "file": "plan-panorama--question-return.mp4",
-        "endStill": "plan-panorama--question-return-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.22,
-        "beatNodes": [
-          "desk",
-          "question-mark"
-        ]
-      },
-      {
-        "id": "workshop-answers",
-        "label": "工坊的安排",
-        "file": "plan-panorama--workshop-answers.mp4",
-        "endStill": "plan-panorama--workshop-answers-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.34,
-        "beatNodes": [
-          "desk",
-          "five-devices",
-          "answer-glow"
-        ]
-      },
-      {
-        "id": "m1-pinned",
-        "label": "工序卡：钉回可见",
-        "file": "plan-panorama--m1-pinned.mp4",
-        "endStill": "plan-panorama--m1-pinned-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.26,
-        "beatNodes": [
-          "device-todo",
-          "desk"
-        ]
-      },
-      {
-        "id": "m2-isolated",
-        "label": "副台：隔走过程",
-        "file": "plan-panorama--m2-isolated.mp4",
-        "endStill": "plan-panorama--m2-isolated-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.22,
-        "beatNodes": [
-          "device-side",
-          "desk"
-        ]
-      },
-      {
-        "id": "m3-two-books",
-        "label": "抽屉：两笔账",
-        "file": "plan-panorama--m3-two-books.mp4",
-        "endStill": "plan-panorama--m3-two-books-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.24,
-        "beatNodes": [
-          "device-drawer",
-          "desk"
-        ]
-      },
-      {
-        "id": "m4-relaid",
-        "label": "垫纸：按状态重铺",
-        "file": "plan-panorama--m4-relaid.mp4",
-        "endStill": "plan-panorama--m4-relaid-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.23,
-        "beatNodes": [
-          "device-pad",
-          "desk"
-        ]
-      },
-      {
-        "id": "m5-protected",
-        "label": "补救梯：保住台面",
-        "file": "plan-panorama--m5-protected.mp4",
-        "endStill": "plan-panorama--m5-protected-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.25,
-        "beatNodes": [
-          "device-ladder",
-          "desk"
-        ]
-      },
-      {
-        "id": "visibility-only",
-        "label": "只改看得见什么",
-        "file": "plan-panorama--visibility-only.mp4",
-        "endStill": "plan-panorama--visibility-only-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.32,
-        "beatNodes": [
-          "five-devices",
-          "desk",
-          "visibility-beam"
+          "rule-direct",
+          "rule-attr"
         ]
       }
     ]
   },
-  "plan-prompt-cache": {
-    "slug": "plan-prompt-cache",
+  "pc2-backoff-scale": {
+    "slug": "pc2-backoff-scale",
+    "type": "dataflow",
+    "chapters": [
+      {
+        "id": "backoff-seq",
+        "label": "三连等",
+        "file": "pc2-backoff-scale--backoff-seq.mp4",
+        "endStill": "pc2-backoff-scale--backoff-seq-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.5,
+        "beatNodes": [
+          "wait-1",
+          "wait-2",
+          "wait-3",
+          "model-switch"
+        ]
+      },
+      {
+        "id": "backoff-jitter",
+        "label": "加一点抖动",
+        "file": "pc2-backoff-scale--backoff-jitter.mp4",
+        "endStill": "pc2-backoff-scale--backoff-jitter-end.png",
+        "beats": 1,
+        "leadSec": 0.44,
+        "storySec": 21.98,
+        "beatNodes": [
+          "jitter"
+        ]
+      }
+    ]
+  },
+  "pc2-failures": {
+    "slug": "pc2-failures",
     "type": "workflow",
     "chapters": [
       {
-        "id": "re-eval-per-turn",
-        "label": "回合后重算",
-        "file": "plan-prompt-cache--re-eval-per-turn.mp4",
-        "endStill": "plan-prompt-cache--re-eval-per-turn-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.24,
-        "beatNodes": [
-          "state-recompute",
-          "cache-hit"
-        ]
-      },
-      {
-        "id": "deterministic-key",
-        "label": "排序序列化作钥匙",
-        "file": "plan-prompt-cache--deterministic-key.mp4",
-        "endStill": "plan-prompt-cache--deterministic-key-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 5.86,
-        "beatNodes": [
-          "sorted-serialize",
-          "key-slot"
-        ]
-      },
-      {
-        "id": "no-builtin-hash",
-        "label": "不用自带哈希",
-        "file": "plan-prompt-cache--no-builtin-hash.mp4",
-        "endStill": "plan-prompt-cache--no-builtin-hash-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.32,
-        "beatNodes": [
-          "builtin-hash",
-          "crossed",
-          "list-dict"
-        ]
-      }
-    ]
-  },
-  "plan-prompt-sections": {
-    "slug": "plan-prompt-sections",
-    "type": "architecture",
-    "chapters": [
-      {
-        "id": "sectioned-define",
-        "label": "分段各改各的",
-        "file": "plan-prompt-sections--sectioned-define.mp4",
-        "endStill": "plan-prompt-sections--sectioned-define-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 4.16,
-        "beatNodes": [
-          "section-dict",
-          "topic-blocks"
-        ]
-      },
-      {
-        "id": "always-sections",
-        "label": "常铺三段",
-        "file": "plan-prompt-sections--always-sections.mp4",
-        "endStill": "plan-prompt-sections--always-sections-end.png",
-        "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 5.84,
-        "beatNodes": [
-          "sec-identity",
-          "sec-tools",
-          "sec-workdir",
-          "always-bus"
-        ]
-      },
-      {
-        "id": "conditional-memory",
-        "label": "记忆段看文件",
-        "file": "plan-prompt-sections--conditional-memory.mp4",
-        "endStill": "plan-prompt-sections--conditional-memory-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.36,
-        "beatNodes": [
-          "sec-memory",
-          "file-check",
-          "conditional-bus"
-        ]
-      }
-    ]
-  },
-  "plan-recovery-ladder": {
-    "slug": "plan-recovery-ladder",
-    "type": "lifecycle",
-    "chapters": [
-      {
-        "id": "ladder-mounted",
-        "label": "三级梯挂上传送带",
-        "file": "plan-recovery-ladder--ladder-mounted.mp4",
-        "endStill": "plan-recovery-ladder--ladder-mounted-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.31,
-        "beatNodes": [
-          "belt",
-          "ladder",
-          "three-levels"
-        ]
-      },
-      {
-        "id": "snap-truncated",
-        "label": "摔法一话被掐断",
-        "file": "plan-recovery-ladder--snap-truncated.mp4",
-        "endStill": "plan-recovery-ladder--snap-truncated-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.22,
-        "beatNodes": [
-          "level-truncation",
-          "half-sentence"
-        ]
-      },
-      {
-        "id": "snap-overflow",
-        "label": "摔法二台面撑爆",
-        "file": "plan-recovery-ladder--snap-overflow.mp4",
-        "endStill": "plan-recovery-ladder--snap-overflow-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.24,
-        "beatNodes": [
-          "level-overflow",
-          "desk-full"
-        ]
-      },
-      {
-        "id": "snap-transient",
-        "label": "摔法三外部抖动",
-        "file": "plan-recovery-ladder--snap-transient.mp4",
-        "endStill": "plan-recovery-ladder--snap-transient-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.23,
-        "beatNodes": [
-          "level-transient",
-          "shake-wave"
-        ]
-      },
-      {
-        "id": "three-catches",
-        "label": "三摔三接不同层",
-        "file": "plan-recovery-ladder--three-catches.mp4",
-        "endStill": "plan-recovery-ladder--three-catches-end.png",
+        "id": "fail-plan",
+        "label": "长任务丢计划",
+        "file": "pc2-failures--fail-plan.mp4",
+        "endStill": "pc2-failures--fail-plan-end.png",
         "beats": 3,
         "leadSec": 0.44,
         "storySec": 3.37,
         "beatNodes": [
-          "level-truncation",
-          "level-overflow",
-          "level-transient"
+          "task",
+          "msgs",
+          "f1"
         ]
       },
       {
-        "id": "layer-split",
-        "label": "里层重试外层兜",
-        "file": "plan-recovery-ladder--layer-split.mp4",
-        "endStill": "plan-recovery-ladder--layer-split-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.22,
-        "beatNodes": [
-          "inner-retry",
-          "outer-catch"
-        ]
-      },
-      {
-        "id": "truncation-last",
-        "label": "截断最晚判断",
-        "file": "plan-recovery-ladder--truncation-last.mp4",
-        "endStill": "plan-recovery-ladder--truncation-last-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.24,
-        "beatNodes": [
-          "stop-reason",
-          "response-first"
-        ]
-      },
-      {
-        "id": "compact-then-retry",
-        "label": "应急压缩清台",
-        "file": "plan-recovery-ladder--compact-then-retry.mp4",
-        "endStill": "plan-recovery-ladder--compact-then-retry-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.33,
-        "beatNodes": [
-          "level-overflow",
-          "compact-wave",
-          "retry-loop"
-        ]
-      },
-      {
-        "id": "compact-once-gate",
-        "label": "一次性闸 · 只压一次",
-        "file": "plan-recovery-ladder--compact-once-gate.mp4",
-        "endStill": "plan-recovery-ladder--compact-once-gate-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.26,
-        "beatNodes": [
-          "one-shot-gate",
-          "locked"
-        ]
-      },
-      {
-        "id": "give-up-oversize",
-        "label": "再压也不变小",
-        "file": "plan-recovery-ladder--give-up-oversize.mp4",
-        "endStill": "plan-recovery-ladder--give-up-oversize-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.22,
-        "beatNodes": [
-          "give-up",
-          "still-oversize"
-        ]
-      },
-      {
-        "id": "backoff-with-jitter",
-        "label": "越等越久掺随机",
-        "file": "plan-recovery-ladder--backoff-with-jitter.mp4",
-        "endStill": "plan-recovery-ladder--backoff-with-jitter-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.35,
-        "beatNodes": [
-          "level-transient",
-          "backoff-timeline",
-          "jitter-dots"
-        ]
-      },
-      {
-        "id": "jitter-anti-avalanche",
-        "label": "打散同刻重试",
-        "file": "plan-recovery-ladder--jitter-anti-avalanche.mp4",
-        "endStill": "plan-recovery-ladder--jitter-anti-avalanche-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.22,
-        "beatNodes": [
-          "jitter-dots",
-          "spread-clock"
-        ]
-      },
-      {
-        "id": "official-ten-retries",
-        "label": "官方最多十次",
-        "file": "plan-recovery-ladder--official-ten-retries.mp4",
-        "endStill": "plan-recovery-ladder--official-ten-retries-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.23,
-        "beatNodes": [
-          "cap-ten",
-          "backoff-timeline"
-        ]
-      },
-      {
-        "id": "fallback-chain",
-        "label": "备用切换与清零",
-        "file": "plan-recovery-ladder--fallback-chain.mp4",
-        "endStill": "plan-recovery-ladder--fallback-chain-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.25,
-        "beatNodes": [
-          "fallback-model",
-          "counter-reset"
-        ]
-      },
-      {
-        "id": "exit-protocol",
-        "label": "救不回也有收场",
-        "file": "plan-recovery-ladder--exit-protocol.mp4",
-        "endStill": "plan-recovery-ladder--exit-protocol-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.32,
-        "beatNodes": [
-          "log-line",
-          "write-back",
-          "exit-door"
-        ]
-      }
-    ]
-  },
-  "plan-side-desk": {
-    "slug": "plan-side-desk",
-    "type": "architecture",
-    "chapters": [
-      {
-        "id": "three-borders",
-        "label": "三条边界划清",
-        "file": "plan-side-desk--three-borders.mp4",
-        "endStill": "plan-side-desk--three-borders-end.png",
-        "beats": 3,
-        "leadSec": 0.48,
-        "storySec": 3.33,
-        "beatNodes": [
-          "side-desk",
-          "main-desk",
-          "border-frame"
-        ]
-      },
-      {
-        "id": "border-world",
-        "label": "隔对话不隔世界",
-        "file": "plan-side-desk--border-world.mp4",
-        "endStill": "plan-side-desk--border-world-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.33,
-        "beatNodes": [
-          "shared-workdir",
-          "file-lands",
-          "cmd-lands"
-        ]
-      },
-      {
-        "id": "border-gate",
-        "label": "隔台面不隔门禁",
-        "file": "plan-side-desk--border-gate.mp4",
-        "endStill": "plan-side-desk--border-gate-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 6.32,
-        "beatNodes": [
-          "gate",
-          "tool-call",
-          "deny-reason"
-        ]
-      },
-      {
-        "id": "no-sub-desk",
-        "label": "副台无副台工具",
-        "file": "plan-side-desk--no-sub-desk.mp4",
-        "endStill": "plan-side-desk--no-sub-desk-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.36,
-        "beatNodes": [
-          "side-desk",
-          "tool-belt",
-          "no-task-slot"
-        ]
-      },
-      {
-        "id": "recursion-capability",
-        "label": "能力里防递归",
-        "file": "plan-side-desk--recursion-capability.mp4",
-        "endStill": "plan-side-desk--recursion-capability-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.25,
-        "beatNodes": [
-          "tool-belt",
-          "capability-note"
-        ]
-      }
-    ]
-  },
-  "plan-side-guards": {
-    "slug": "plan-side-guards",
-    "type": "lifecycle",
-    "chapters": [
-      {
-        "id": "turn-cap",
-        "label": "轮数有上限",
-        "file": "plan-side-guards--turn-cap.mp4",
-        "endStill": "plan-side-guards--turn-cap-end.png",
+        "id": "fail-flood",
+        "label": "过程淹没主线",
+        "file": "pc2-failures--fail-flood.mp4",
+        "endStill": "pc2-failures--fail-flood-end.png",
         "beats": 2,
         "leadSec": 0.44,
         "storySec": 3.21,
         "beatNodes": [
-          "turn-meter",
-          "cap-line"
+          "toolres",
+          "f2"
         ]
       },
       {
-        "id": "backward-scan",
-        "label": "倒序找最近一段话",
-        "file": "plan-side-guards--backward-scan.mp4",
-        "endStill": "plan-side-guards--backward-scan-end.png",
+        "id": "fail-carry",
+        "label": "知识全带太贵",
+        "file": "pc2-failures--fail-carry.mp4",
+        "endStill": "pc2-failures--fail-carry-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.27,
+        "beatNodes": [
+          "pack",
+          "f3"
+        ]
+      },
+      {
+        "id": "fail-clash",
+        "label": "指令堆积打架",
+        "file": "pc2-failures--fail-clash.mp4",
+        "endStill": "pc2-failures--fail-clash-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 29.97,
+        "beatNodes": [
+          "pack",
+          "f4"
+        ]
+      },
+      {
+        "id": "fail-crash",
+        "label": "故障即崩",
+        "file": "pc2-failures--fail-crash.mp4",
+        "endStill": "pc2-failures--fail-crash-end.png",
+        "beats": 2,
+        "leadSec": 0.48,
+        "storySec": 20.99,
+        "beatNodes": [
+          "call",
+          "f5"
+        ]
+      }
+    ]
+  },
+  "pc2-panorama": {
+    "slug": "pc2-panorama",
+    "type": "workflow",
+    "chapters": [
+      {
+        "id": "pan-loop",
+        "label": "全景总览 · 循环四步",
+        "file": "pc2-panorama--pan-loop.mp4",
+        "endStill": "pc2-panorama--pan-loop-end.png",
+        "beats": 5,
+        "leadSec": 0.44,
+        "storySec": 8.51,
+        "beatNodes": [
+          "u",
+          "l0",
+          "l1",
+          "l2",
+          "l3"
+        ]
+      },
+      {
+        "id": "pan-m1",
+        "label": "挂点① 唠叨计数器",
+        "file": "pc2-panorama--pan-m1.mp4",
+        "endStill": "pc2-panorama--pan-m1-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.34,
+        "beatNodes": [
+          "l0",
+          "m1"
+        ]
+      },
+      {
+        "id": "pan-m2",
+        "label": "挂点② 副台派单",
+        "file": "pc2-panorama--pan-m2.mp4",
+        "endStill": "pc2-panorama--pan-m2-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.31,
+        "beatNodes": [
+          "l2",
+          "sub"
+        ]
+      },
+      {
+        "id": "pan-m3",
+        "label": "挂点③ 技能进场",
+        "file": "pc2-panorama--pan-m3.mp4",
+        "endStill": "pc2-panorama--pan-m3-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.27,
+        "beatNodes": [
+          "l3",
+          "m3"
+        ]
+      },
+      {
+        "id": "pan-m4",
+        "label": "挂点④ 指令组装",
+        "file": "pc2-panorama--pan-m4.mp4",
+        "endStill": "pc2-panorama--pan-m4-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.24,
+        "beatNodes": [
+          "m4",
+          "l1"
+        ]
+      }
+    ]
+  },
+  "pc2-prompt-cache": {
+    "slug": "pc2-prompt-cache",
+    "type": "dataflow",
+    "chapters": [
+      {
+        "id": "cache-hit",
+        "label": "状态没变就复用",
+        "file": "pc2-prompt-cache--cache-hit.mp4",
+        "endStill": "pc2-prompt-cache--cache-hit-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.46,
+        "beatNodes": [
+          "assemble",
+          "cache",
+          "prompt",
+          "memfile"
+        ]
+      },
+      {
+        "id": "cache-fingerprint",
+        "label": "拼串做键",
+        "file": "pc2-prompt-cache--cache-fingerprint.mp4",
+        "endStill": "pc2-prompt-cache--cache-fingerprint-end.png",
+        "beats": 5,
+        "leadSec": 0.44,
+        "storySec": 5.83,
+        "beatNodes": [
+          "statedict",
+          "key",
+          "tools",
+          "cwd",
+          "memfile"
+        ]
+      },
+      {
+        "id": "cache-dirty",
+        "label": "键被污染",
+        "file": "pc2-prompt-cache--cache-dirty.mp4",
+        "endStill": "pc2-prompt-cache--cache-dirty-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.35,
+        "storySec": 14.7,
         "beatNodes": [
-          "history",
-          "backward-arrow",
-          "nearest-text"
+          "dirty",
+          "key",
+          "cache"
+        ]
+      }
+    ]
+  },
+  "pc2-prompt-shelf": {
+    "slug": "pc2-prompt-shelf",
+    "type": "workflow",
+    "chapters": [
+      {
+        "id": "shelf-sections",
+        "label": "四段货架",
+        "file": "pc2-prompt-shelf--shelf-sections.mp4",
+        "endStill": "pc2-prompt-shelf--shelf-sections-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 6.4,
+        "beatNodes": [
+          "seg-id",
+          "seg-tools",
+          "seg-ws",
+          "seg-mem"
         ]
       },
       {
-        "id": "same-shape",
-        "label": "两条路同一形态",
-        "file": "plan-side-guards--same-shape.mp4",
-        "endStill": "plan-side-guards--same-shape-end.png",
+        "id": "shelf-state",
+        "label": "只认真实状态",
+        "file": "pc2-prompt-shelf--shelf-state.mp4",
+        "endStill": "pc2-prompt-shelf--shelf-state-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.52,
+        "beatNodes": [
+          "registry",
+          "cwd",
+          "memfile",
+          "statedict"
+        ]
+      },
+      {
+        "id": "shelf-split",
+        "label": "各段独立",
+        "file": "pc2-prompt-shelf--shelf-split.mp4",
+        "endStill": "pc2-prompt-shelf--shelf-split-end.png",
+        "beats": 2,
+        "leadSec": 0.48,
+        "storySec": 3.52,
+        "beatNodes": [
+          "seg-id",
+          "seg-tools"
+        ]
+      }
+    ]
+  },
+  "pc2-recovery-ledger": {
+    "slug": "pc2-recovery-ledger",
+    "type": "lifecycle",
+    "chapters": [
+      {
+        "id": "ledger-book",
+        "label": "五项记账",
+        "file": "pc2-recovery-ledger--ledger-book.mp4",
+        "endStill": "pc2-recovery-ledger--ledger-book-end.png",
+        "beats": 5,
+        "leadSec": 0.44,
+        "storySec": 9.23,
+        "beatNodes": [
+          "led-upgrade",
+          "led-continue",
+          "led-compact",
+          "led-overload",
+          "led-model"
+        ]
+      },
+      {
+        "id": "ledger-ablation",
+        "label": "拆掉记账",
+        "file": "pc2-recovery-ledger--ledger-ablation.mp4",
+        "endStill": "pc2-recovery-ledger--ledger-ablation-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.36,
+        "storySec": 4.17,
         "beatNodes": [
-          "receipt-a",
-          "receipt-b",
-          "same-shape"
+          "led-compact",
+          "exit-grace",
+          "runaway"
         ]
       },
       {
-        "id": "receipt-blind",
-        "label": "回执不写干没干完",
-        "file": "plan-side-guards--receipt-blind.mp4",
-        "endStill": "plan-side-guards--receipt-blind-end.png",
+        "id": "ledger-ruling",
+        "label": "不记账会吃掉病人",
+        "file": "pc2-recovery-ledger--ledger-ruling.mp4",
+        "endStill": "pc2-recovery-ledger--ledger-ruling-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 13.4,
+        "beatNodes": [
+          "overlong",
+          "runaway"
+        ]
+      }
+    ]
+  },
+  "pc2-rules": {
+    "slug": "pc2-rules",
+    "type": "lifecycle",
+    "chapters": [
+      {
+        "id": "rule-position",
+        "label": "注入位置定生命周期",
+        "file": "pc2-rules--rule-position.mp4",
+        "endStill": "pc2-rules--rule-position-end.png",
+        "beats": 4,
+        "leadSec": 0.48,
+        "storySec": 19.68,
+        "beatNodes": [
+          "pos-system",
+          "pos-history",
+          "pos-sub",
+          "assemble"
+        ]
+      },
+      {
+        "id": "rule-state",
+        "label": "判定只认真实状态",
+        "file": "pc2-rules--rule-state.mp4",
+        "endStill": "pc2-rules--rule-state-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.5,
+        "beatNodes": [
+          "sig-counter",
+          "sig-file",
+          "sig-error",
+          "loop-start"
+        ]
+      },
+      {
+        "id": "rule-lossy",
+        "label": "隔离是有损压缩",
+        "file": "pc2-rules--rule-lossy.mp4",
+        "endStill": "pc2-rules--rule-lossy-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 21.83,
+        "beatNodes": [
+          "dispatch",
+          "pos-sub",
+          "pos-history"
+        ]
+      },
+      {
+        "id": "rule-ledger",
+        "label": "恢复必须记账",
+        "file": "pc2-rules--rule-ledger.mp4",
+        "endStill": "pc2-rules--rule-ledger-end.png",
+        "beats": 5,
+        "leadSec": 0.44,
+        "storySec": 5.54,
+        "beatNodes": [
+          "sig-error",
+          "led-spend",
+          "led-retry",
+          "led-out",
+          "led-broken"
+        ]
+      },
+      {
+        "id": "rule-structure",
+        "label": "结构防线优于嘱咐",
+        "file": "pc2-rules--rule-structure.mp4",
+        "endStill": "pc2-rules--rule-structure-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.53,
+        "beatNodes": [
+          "struct-tool",
+          "struct-word",
+          "dispatch"
+        ]
+      }
+    ]
+  },
+  "pc2-skill-cost": {
+    "slug": "pc2-skill-cost",
+    "type": "dataflow",
+    "chapters": [
+      {
+        "id": "cost-ablation",
+        "label": "一百二十八 → 五千九百八十一",
+        "file": "pc2-skill-cost--cost-ablation.mp4",
+        "endStill": "pc2-skill-cost--cost-ablation-end.png",
         "beats": 2,
         "leadSec": 0.44,
         "storySec": 3.23,
         "beatNodes": [
-          "receipt",
-          "blind-spot"
+          "catalog",
+          "ablation"
+        ]
+      },
+      {
+        "id": "cost-ruling",
+        "label": "常驻的只能是索引",
+        "file": "pc2-skill-cost--cost-ruling.mp4",
+        "endStill": "pc2-skill-cost--cost-ruling-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.33,
+        "beatNodes": [
+          "catalog",
+          "fulltext"
         ]
       }
     ]
   },
-  "plan-skill-layers": {
-    "slug": "plan-skill-layers",
-    "type": "dataflow",
+  "pc2-skill-levels": {
+    "slug": "pc2-skill-levels",
+    "type": "architecture",
     "chapters": [
       {
-        "id": "drawer-labels",
-        "label": "抽屉贴标签",
-        "file": "plan-skill-layers--drawer-labels.mp4",
-        "endStill": "plan-skill-layers--drawer-labels-end.png",
+        "id": "levels-two",
+        "label": "两级结构",
+        "file": "pc2-skill-levels--levels-two.mp4",
+        "endStill": "pc2-skill-levels--levels-two-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.33,
+        "storySec": 4.58,
         "beatNodes": [
-          "cabinet",
-          "drawer",
-          "label"
-        ]
-      },
-      {
-        "id": "manual-inside",
-        "label": "手册躺抽屉里",
-        "file": "plan-skill-layers--manual-inside.mp4",
-        "endStill": "plan-skill-layers--manual-inside-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.24,
-        "beatNodes": [
-          "drawer",
+          "catalog",
+          "loader",
           "manual"
         ]
       },
       {
-        "id": "cheap-catalog",
-        "label": "标签常驻垫纸",
-        "file": "plan-skill-layers--cheap-catalog.mp4",
-        "endStill": "plan-skill-layers--cheap-catalog-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.33,
-        "beatNodes": [
-          "labels-strip",
-          "system-prompt",
-          "cheap-mark"
-        ]
-      },
-      {
-        "id": "costly-fulltext",
-        "label": "手册按需上台面",
-        "file": "plan-skill-layers--costly-fulltext.mp4",
-        "endStill": "plan-skill-layers--costly-fulltext-end.png",
-        "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.45,
-        "beatNodes": [
-          "manual",
-          "lift-path",
-          "desk-surface",
-          "costly-mark"
-        ]
-      },
-      {
-        "id": "split-in-time",
-        "label": "知道与读到拆开",
-        "file": "plan-skill-layers--split-in-time.mp4",
-        "endStill": "plan-skill-layers--split-in-time-end.png",
-        "beats": 3,
-        "leadSec": 0.48,
-        "storySec": 3.33,
-        "beatNodes": [
-          "labels-strip",
-          "manual",
-          "time-split"
-        ]
-      }
-    ]
-  },
-  "plan-skill-lifespan": {
-    "slug": "plan-skill-lifespan",
-    "type": "lifecycle",
-    "chapters": [
-      {
-        "id": "lifespan-split",
-        "label": "两层寿命分岔",
-        "file": "plan-skill-lifespan--lifespan-split.mp4",
-        "endStill": "plan-skill-lifespan--lifespan-split-end.png",
-        "beats": 2,
-        "leadSec": 0.6,
-        "storySec": 3.26,
-        "beatNodes": [
-          "label-track",
-          "manual-track"
-        ]
-      },
-      {
-        "id": "manual-in-history",
-        "label": "手册随历史走",
-        "file": "plan-skill-lifespan--manual-in-history.mp4",
-        "endStill": "plan-skill-lifespan--manual-in-history-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.24,
-        "beatNodes": [
-          "tool-result",
-          "history-flow"
-        ]
-      },
-      {
-        "id": "compact-sweeps",
-        "label": "清台时逃不掉",
-        "file": "plan-skill-lifespan--compact-sweeps.mp4",
-        "endStill": "plan-skill-lifespan--compact-sweeps-end.png",
+        "id": "levels-cost",
+        "label": "两级成本",
+        "file": "pc2-skill-levels--levels-cost.mp4",
+        "endStill": "pc2-skill-levels--levels-cost-end.png",
         "beats": 2,
         "leadSec": 0.44,
         "storySec": 3.26,
         "beatNodes": [
-          "compact-wave",
+          "catalog",
           "manual"
         ]
       },
       {
-        "id": "label-stays",
-        "label": "标签每轮都在",
-        "file": "plan-skill-lifespan--label-stays.mp4",
-        "endStill": "plan-skill-lifespan--label-stays-end.png",
+        "id": "levels-lifecycle",
+        "label": "两种命运",
+        "file": "pc2-skill-levels--levels-lifecycle.mp4",
+        "endStill": "pc2-skill-levels--levels-lifecycle-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.24,
+        "storySec": 12.75,
         "beatNodes": [
-          "labels-strip",
-          "system-prompt"
-        ]
-      },
-      {
-        "id": "re-paste-budget",
-        "label": "重贴留头有封顶",
-        "file": "plan-skill-lifespan--re-paste-budget.mp4",
-        "endStill": "plan-skill-lifespan--re-paste-budget-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.78,
-        "beatNodes": [
-          "re-paste",
-          "cap-mark"
-        ]
-      },
-      {
-        "id": "pair-not-either",
-        "label": "配套不是二选一",
-        "file": "plan-skill-lifespan--pair-not-either.mp4",
-        "endStill": "plan-skill-lifespan--pair-not-either-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.33,
-        "beatNodes": [
-          "load-on-demand",
-          "cleanup",
-          "pair-bond"
+          "catalog",
+          "history"
         ]
       }
     ]
   },
-  "plan-skill-registry": {
-    "slug": "plan-skill-registry",
-    "type": "workflow",
+  "pc2-sub-guard": {
+    "slug": "pc2-sub-guard",
+    "type": "architecture",
     "chapters": [
       {
-        "id": "name-only",
-        "label": "只按名字查册",
-        "file": "plan-skill-registry--name-only.mp4",
-        "endStill": "plan-skill-registry--name-only-end.png",
+        "id": "guard-three",
+        "label": "隔离三不",
+        "file": "pc2-sub-guard--guard-three.mp4",
+        "endStill": "pc2-sub-guard--guard-three-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 12.98,
+        "beatNodes": [
+          "sub",
+          "hook",
+          "fs"
+        ]
+      },
+      {
+        "id": "guard-notask",
+        "label": "工具表无 task",
+        "file": "pc2-sub-guard--guard-notask.mp4",
+        "endStill": "pc2-sub-guard--guard-notask-end.png",
+        "beats": 1,
+        "leadSec": 0.44,
+        "storySec": 5.65,
+        "beatNodes": [
+          "tools"
+        ]
+      },
+      {
+        "id": "guard-fallback",
+        "label": "三十轮上限",
+        "file": "pc2-sub-guard--guard-fallback.mp4",
+        "endStill": "pc2-sub-guard--guard-fallback-end.png",
         "beats": 2,
         "leadSec": 0.44,
         "storySec": 3.22,
         "beatNodes": [
-          "name-input",
-          "registry"
-        ]
-      },
-      {
-        "id": "startup-scan",
-        "label": "启动扫描登记",
-        "file": "plan-skill-registry--startup-scan.mp4",
-        "endStill": "plan-skill-registry--startup-scan-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.34,
-        "beatNodes": [
-          "cabinet",
-          "scan-beam",
-          "registry"
-        ]
-      },
-      {
-        "id": "name-for-fulltext",
-        "label": "以名取全文",
-        "file": "plan-skill-registry--name-for-fulltext.mp4",
-        "endStill": "plan-skill-registry--name-for-fulltext-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.37,
-        "beatNodes": [
-          "name-input",
-          "registry",
-          "manual-out"
-        ]
-      },
-      {
-        "id": "no-path-to-forge",
-        "label": "没有路径可拼",
-        "file": "plan-skill-registry--no-path-to-forge.mp4",
-        "endStill": "plan-skill-registry--no-path-to-forge-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.36,
-        "beatNodes": [
-          "registry",
-          "no-path-branch",
-          "blocked-path"
-        ]
-      },
-      {
-        "id": "designed-away",
-        "label": "顺带消掉非补丁",
-        "file": "plan-skill-registry--designed-away.mp4",
-        "endStill": "plan-skill-registry--designed-away-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.23,
-        "beatNodes": [
-          "design-note",
-          "registry"
+          "cap",
+          "pick"
         ]
       }
     ]
   },
-  "plan-todo-states": {
-    "slug": "plan-todo-states",
-    "type": "lifecycle",
-    "chapters": [
-      {
-        "id": "three-states",
-        "label": "三态各配各图标",
-        "file": "plan-todo-states--three-states.mp4",
-        "endStill": "plan-todo-states--three-states-end.png",
-        "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.42,
-        "beatNodes": [
-          "state-pending",
-          "state-progress",
-          "state-done",
-          "terminal-icons"
-        ]
-      }
-    ]
-  },
-  "plan-todo-swap": {
-    "slug": "plan-todo-swap",
-    "type": "workflow",
-    "chapters": [
-      {
-        "id": "whole-swap",
-        "label": "整张换新无补丁",
-        "file": "plan-todo-swap--whole-swap.mp4",
-        "endStill": "plan-todo-swap--whole-swap-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.36,
-        "beatNodes": [
-          "old-card",
-          "new-card",
-          "replace-arrow"
-        ]
-      },
-      {
-        "id": "validate-first",
-        "label": "验货不过整单废",
-        "file": "plan-todo-swap--validate-first.mp4",
-        "endStill": "plan-todo-swap--validate-first-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.35,
-        "beatNodes": [
-          "checklist",
-          "validate-step",
-          "fail-x"
-        ]
-      },
-      {
-        "id": "no-half-card",
-        "label": "失败不留半张卡",
-        "file": "plan-todo-swap--no-half-card.mp4",
-        "endStill": "plan-todo-swap--no-half-card-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.35,
-        "beatNodes": [
-          "fail-x",
-          "old-card",
-          "state-unchanged"
-        ]
-      },
-      {
-        "id": "nag-counter",
-        "label": "计数递增递条子",
-        "file": "plan-todo-swap--nag-counter.mp4",
-        "endStill": "plan-todo-swap--nag-counter-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.33,
-        "beatNodes": [
-          "counter",
-          "reminder-note",
-          "user-voice"
-        ]
-      },
-      {
-        "id": "reset-on-send",
-        "label": "一发即归零",
-        "file": "plan-todo-swap--reset-on-send.mp4",
-        "endStill": "plan-todo-swap--reset-on-send-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.35,
-        "beatNodes": [
-          "reminder-note",
-          "counter",
-          "reset-zero"
-        ]
-      }
-    ]
-  },
-  "plan-truncation-order": {
-    "slug": "plan-truncation-order",
+  "pc2-sub-lanes": {
+    "slug": "pc2-sub-lanes",
     "type": "sequence",
     "chapters": [
       {
-        "id": "raise-budget",
-        "label": "先抬一大截预算",
-        "file": "plan-truncation-order--raise-budget.mp4",
-        "endStill": "plan-truncation-order--raise-budget-end.png",
-        "beats": 2,
+        "id": "lanes-walk",
+        "label": "两轮调查",
+        "file": "pc2-sub-lanes--lanes-walk.mp4",
+        "endStill": "pc2-sub-lanes--lanes-walk-end.png",
+        "beats": 4,
         "leadSec": 0.44,
-        "storySec": 3.23,
+        "storySec": 4.9,
         "beatNodes": [
-          "loop",
-          "budget-raise"
+          "main",
+          "sub",
+          "hook",
+          "fs"
         ]
       },
       {
-        "id": "resend-verbatim",
-        "label": "原样重发不落账",
-        "file": "plan-truncation-order--resend-verbatim.mp4",
-        "endStill": "plan-truncation-order--resend-verbatim-end.png",
+        "id": "lanes-receipt",
+        "label": "一句结论回主线",
+        "file": "pc2-sub-lanes--lanes-receipt.mp4",
+        "endStill": "pc2-sub-lanes--lanes-receipt-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.31,
+        "storySec": 24.04,
         "beatNodes": [
-          "budget-raise",
-          "api",
-          "messages"
+          "sub",
+          "main",
+          "stream"
         ]
       },
       {
-        "id": "judge-before-write",
-        "label": "判断抢在落笔前",
-        "file": "plan-truncation-order--judge-before-write.mp4",
-        "endStill": "plan-truncation-order--judge-before-write-end.png",
+        "id": "lanes-contrast",
+        "label": "不隔离的代价",
+        "file": "pc2-sub-lanes--lanes-contrast.mp4",
+        "endStill": "pc2-sub-lanes--lanes-contrast-end.png",
         "beats": 3,
         "leadSec": 0.44,
         "storySec": 3.32,
         "beatNodes": [
-          "loop",
-          "judge-step",
-          "messages"
+          "sub",
+          "fs",
+          "stream"
         ]
-      },
+      }
+    ]
+  },
+  "pc2-todo-nag": {
+    "slug": "pc2-todo-nag",
+    "type": "lifecycle",
+    "chapters": [
       {
-        "id": "order-is-correctness",
-        "label": "顺序即正确性",
-        "file": "plan-truncation-order--order-is-correctness.mp4",
-        "endStill": "plan-truncation-order--order-is-correctness-end.png",
+        "id": "nag-device",
+        "label": "三态工序卡",
+        "file": "pc2-todo-nag--nag-device.mp4",
+        "endStill": "pc2-todo-nag--nag-device-end.png",
         "beats": 3,
         "leadSec": 0.44,
         "storySec": 3.33,
         "beatNodes": [
-          "messages",
-          "api",
-          "judge-step"
+          "td-pending",
+          "td-progress",
+          "td-done"
         ]
       },
       {
-        "id": "continuation-capped",
-        "label": "续写次数有限",
-        "file": "plan-truncation-order--continuation-capped.mp4",
-        "endStill": "plan-truncation-order--continuation-capped-end.png",
+        "id": "nag-count",
+        "label": "计数器爬格",
+        "file": "pc2-todo-nag--nag-count.mp4",
+        "endStill": "pc2-todo-nag--nag-count-end.png",
+        "beats": 4,
+        "leadSec": 0.48,
+        "storySec": 11.3,
+        "beatNodes": [
+          "ct-clear",
+          "ct-1",
+          "ct-2",
+          "ct-3"
+        ]
+      },
+      {
+        "id": "nag-fire",
+        "label": "满三注入",
+        "file": "pc2-todo-nag--nag-fire.mp4",
+        "endStill": "pc2-todo-nag--nag-fire-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.36,
+        "storySec": 3.35,
         "beatNodes": [
-          "messages",
-          "continuation-note",
-          "api"
+          "ct-3",
+          "rm-msg",
+          "ct-clear"
+        ]
+      },
+      {
+        "id": "nag-ablate",
+        "label": "拆掉清零",
+        "file": "pc2-todo-nag--nag-ablate.mp4",
+        "endStill": "pc2-todo-nag--nag-ablate-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.41,
+        "beatNodes": [
+          "td-done",
+          "ab-keep",
+          "ab-drop"
+        ]
+      }
+    ]
+  },
+  "pc2-triage-map": {
+    "slug": "pc2-triage-map",
+    "type": "workflow",
+    "chapters": [
+      {
+        "id": "triage-mount",
+        "label": "包住调用步",
+        "file": "pc2-triage-map--triage-mount.mp4",
+        "endStill": "pc2-triage-map--triage-mount-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 16.87,
+        "beatNodes": [
+          "call",
+          "gate",
+          "ledger"
+        ]
+      },
+      {
+        "id": "triage-trunc",
+        "label": "输出截断",
+        "file": "pc2-triage-map--triage-trunc.mp4",
+        "endStill": "pc2-triage-map--triage-trunc-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.25,
+        "beatNodes": [
+          "raiscap",
+          "resume"
+        ]
+      },
+      {
+        "id": "triage-overflow",
+        "label": "上下文超限",
+        "file": "pc2-triage-map--triage-overflow.mp4",
+        "endStill": "pc2-triage-map--triage-overflow-end.png",
+        "beats": 1,
+        "leadSec": 0.44,
+        "storySec": 3.22,
+        "beatNodes": [
+          "compact"
+        ]
+      },
+      {
+        "id": "triage-transient",
+        "label": "限流与过载",
+        "file": "pc2-triage-map--triage-transient.mp4",
+        "endStill": "pc2-triage-map--triage-transient-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.26,
+        "beatNodes": [
+          "backoff",
+          "failover"
         ]
       }
     ]

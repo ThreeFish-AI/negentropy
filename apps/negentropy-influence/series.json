@@ -132,8 +132,8 @@
           "episode": 2,
           "slug": "claude-code-planning-video",
           "path": "episodes/claude-code-planning-video",
-          "title": "规划与协调：模型的视野是安排出来的",
-          "topic": "规划与协调：谁替它安排视野",
+          "title": "规划与协调：视野错位的五种修正手法",
+          "topic": "规划与协调：视野错位怎么修",
           "cardSub": "规划与协调 · 视野",
           "accents": [
             "#9C90EE"
@@ -147,7 +147,7 @@
             "accessed": "2026-08-22"
           },
           "status": "final-review",
-          "statusNote": "**v2 交付**（2026-09-30 重渲，含两轮评审修复 14+16 处；v1 2026-09-29 初渲）原 v1 口径（2026-09-29）：14:12.2 = 852s @1080p30（25566 帧复算）；169 句 3603 字（254 口径直写零减脂）；story 档（44 块 cues + seed 4242）纯语音 13.17 分；archify 12 图 68 章逐章回放（state→lifecycle 词表映射 2 图）；机器门全绿 + 目检修复 P6 系列题字与第五层层板叠压（qa --check 盲区——全分辨率目检抓出，标语 top 改栈几何推导）；归档 v1 + _captions",
+          "statusNote": "**v3 交付**（2026-10-04；v2 2026-10-02 C 型 176 信源完全重制含评审修复 15 处；v3 = badge 双绘修复 + 二轮评审修复 10 处重渲）：13:20.73 = 800.7s @1080p30；155 句 3428 字（254 口径）；story 档 65 块；archify 14 图 47 章逐章回放（锚定 30.3% · 密度 3.5/分 · 5 型 · 全屏独占）；内容+覆盖 FAIL 0（内容门 1 条 RSI-039 开篇 WARN 为 skill 后加规则五集同款）· 七幕 QA FAIL 0（尾幕指纹 WARN 像素 diff 判假阳性）；归档 新题 v1/v2/v3 + _captions×3（v3 字幕同 v2；旧题 v1/v2/v3 原样保留）；开放项：扩窗 hold 定格 ≈4min（ISSUE-208 待拍板）",
           "voice": "story + me-bright.wav"
         },
         {

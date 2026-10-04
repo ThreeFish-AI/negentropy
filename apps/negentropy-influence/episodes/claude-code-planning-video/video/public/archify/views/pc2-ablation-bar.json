@@ -1,0 +1,20 @@
+[
+ {
+  "id": "ablation-scale",
+  "label": "两种口径",
+  "focus": [
+   "m-nums",
+   "e-nums"
+  ],
+  "note": "退化倍数是拆装实测；篇幅估算只当量级参考"
+ },
+ {
+  "id": "ablation-ruling",
+  "label": "分开看",
+  "focus": [
+   "rule-direct",
+   "rule-attr"
+  ],
+  "note": "实测直接断言；估算带归属"
+ }
+]

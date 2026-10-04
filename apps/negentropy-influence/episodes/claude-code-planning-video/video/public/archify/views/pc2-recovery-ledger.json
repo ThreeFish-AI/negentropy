@@ -1,0 +1,33 @@
+[
+ {
+  "id": "ledger-book",
+  "label": "五项记账",
+  "focus": [
+   "led-upgrade",
+   "led-continue",
+   "led-compact",
+   "led-overload",
+   "led-model"
+  ],
+  "note": "升级、续写、压缩、过载、模型五项状态，每一项都在回答这一招还剩几次"
+ },
+ {
+  "id": "ledger-ablation",
+  "label": "拆掉记账",
+  "focus": [
+   "led-compact",
+   "exit-grace",
+   "runaway"
+  ],
+  "note": "同样连续八次超限：记账时压缩一次止损退出；拆掉后反复压缩八次"
+ },
+ {
+  "id": "ledger-ruling",
+  "label": "不记账会吃掉病人",
+  "focus": [
+   "overlong",
+   "runaway"
+  ],
+  "note": "恢复机制反复消费自己的病人：每压一次都在丢消息，上限才是止损线"
+ }
+]

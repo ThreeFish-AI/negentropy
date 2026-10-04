@@ -12,8 +12,6 @@ slug = "claude-code-planning-video"
 # TODO：按本集选题与语速预算填写。口径提示——280 字/分是**含停顿的等效**口径，
 # 裸按字数算会高估约 12% 的句容量，双口径门以 manifest 实测为准。
 target_minutes = [13.0, 14.6]
-# 本系列实测口径（ep1 CP1 校准 2026-09-30）：story 档含停顿等效 ≈254 字/分。
-chars_per_min = 254
 
 [tts]
 engine = "indextts"
@@ -28,8 +26,8 @@ style = "story"
 # 重制存量集（旧档 → story）须显式 --allow-voice-switch 并补写台本。
 
 [archify]
-# 覆盖门硬值（对齐 jev 基准）：锚定率 / cue 密度 / 图型数下限；全屏独占三分法。
-# 图集预算在 Stage ② 策划时按本集内容定稿（~8–14 图 / ≥5 型）。
+# 覆盖门硬值（系列级，对齐 ep1）：锚定率 / cue 密度 / 图型数下限；全屏独占三分法。
+# 图集预算在 Stage ② 策划时定稿（~12 图 / ≥5 型，新前缀 pc2-）。
 html_dir = "docs/assets/architecture/agent-harness"
 html_pattern = "claude-code--{slug}.html"
 min_anchor_ratio = 0.30

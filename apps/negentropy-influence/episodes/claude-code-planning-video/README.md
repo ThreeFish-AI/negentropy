@@ -1,6 +1,9 @@
-# 《规划与协调：模型的视野是安排出来的》科普视频工程
+# 《规划与协调：视野错位的五种修正手法》科普视频工程
 
-> 交付状态：**v1 已交付**（2026-10-01，14:12.2 @1080p30（total_duration_in_frames 复算），归档 ~/Documents/video/claude-code-explained/ v1 + _captions）。发布顺序见 [../../series.json](../../series.json)（工作区根）。
+> 交付状态：**v3 已交付**（2026-10-04；v2 2026-10-02 C 型 176 信源完全重制含评审修复 15 处；v3 = badge 双绘修复 + 二轮评审修复 10 处重渲）：13:20.73 = 800.7s @1080p30 · 155 句 3428 字 · archify 14 图 47 章逐章回放（锚定 30.3% · 密度 3.5/分 · 5 型全屏独占）· 内容+覆盖门 FAIL 0（内容门 1 条 RSI-039 开篇句式 WARN 为 skill 侧后加规则、系列五集同款）· 七幕 QA FAIL 0（尾幕 1 条指纹 WARN 经像素 diff 定谳假阳性：字幕带 meanΔ 10.5/maxΔ 253）· 归档 `~/Documents/video/claude-code-explained/` 新题 v1/v2/v3 + `_captions`×3（v3 字幕与 v2 逐字节同）。已知开放项：扩窗 cue 集体落 hold 定格 ≈4 分钟（ISSUE-208，编排级三选一待拍板）。
+> 信源：[research/gl-notes.md](./research/gl-notes.md)（C 型冻结快照：176 精读 + 附录 A 类比登记表 + 附录 C 穿透 74 断言零 FAIL + lab 复算）；台账 [research/sources.toml](./research/sources.toml)（钉 `67a9126c`，verify FAIL 0）；发布顺序见 [../../series.json](../../series.json)。
+>
+> 复现流水线：`build → check → tts → render → qa --check → render --final → captions → deliver`（入口 `uv run --no-project scripts/pipeline.py --project . <cmd>`，机制见 to-video skill）。
 
 ## 目录结构
 

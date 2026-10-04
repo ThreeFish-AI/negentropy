@@ -1,0 +1,56 @@
+[
+ {
+  "id": "rule-position",
+  "label": "注入位置定生命周期",
+  "focus": [
+   "pos-system",
+   "pos-history",
+   "pos-sub",
+   "assemble"
+  ],
+  "note": "同一段信息：进指令区每轮常驻、可被缓存摊薄；进消息流随历史携带、会被压缩裁剪；进子代理当场丢弃——先选位置，再谈内容"
+ },
+ {
+  "id": "rule-state",
+  "label": "判定只认真实状态",
+  "focus": [
+   "sig-counter",
+   "sig-file",
+   "sig-error",
+   "loop-start"
+  ],
+  "note": "提醒看计数器、记忆段看文件存在性、恢复看错误类别；信号全部来自可查状态，从不在消息文本里搜关键词"
+ },
+ {
+  "id": "rule-lossy",
+  "label": "隔离是有损压缩",
+  "focus": [
+   "dispatch",
+   "pos-sub",
+   "pos-history"
+  ],
+  "note": "整个子过程压成一句结论：30 个文件、60 轮追踪，主线只多一条摘要；实测对照，隔离 2 条 ↔ 拆掉 19 条"
+ },
+ {
+  "id": "rule-ledger",
+  "label": "恢复必须记账",
+  "focus": [
+   "sig-error",
+   "led-spend",
+   "led-retry",
+   "led-out",
+   "led-broken"
+  ],
+  "note": "升级一次、续写三次、压缩一次、退避十次，每种恢复都是消耗品；账本记用过没有，用尽就退"
+ },
+ {
+  "id": "rule-structure",
+  "label": "结构防线优于嘱咐",
+  "focus": [
+   "struct-tool",
+   "struct-word",
+   "dispatch"
+  ],
+  "note": "真正拦住递归的是子代理工具表里没有 task；指令里那句「别委派」只是双保险——约束做进结构，不依赖措辞的运气"
+ }
+]

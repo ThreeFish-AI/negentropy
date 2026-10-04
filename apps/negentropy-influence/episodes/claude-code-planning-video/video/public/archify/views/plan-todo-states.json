@@ -1,8 +1,0 @@
-[
- {
-  "id": "three-states",
-  "label": "三态各配各图标",
-  "focus": ["state-pending", "state-progress", "state-done", "terminal-icons"],
-  "note": "每条待办只有三种状态：待办（空格）→ 进行中（▸）→ 已完成（✓），终端图标各配各的，状态取值封闭。"
- }
-]

@@ -1,0 +1,20 @@
+[
+ {
+  "id": "cost-ablation",
+  "label": "一百二十八 → 五千九百八十一",
+  "focus": [
+   "catalog",
+   "ablation"
+  ],
+  "note": "全文塞进指令区，约四十七倍且每轮都带"
+ },
+ {
+  "id": "cost-ruling",
+  "label": "常驻的只能是索引",
+  "focus": [
+   "catalog",
+   "fulltext"
+  ],
+  "note": "知识本体按需进场：索引常驻，全文只在调用的那轮作工具结果"
+ }
+]

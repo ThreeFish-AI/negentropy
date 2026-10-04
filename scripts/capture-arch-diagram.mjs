@@ -249,7 +249,7 @@ async function main() {
     await new Promise((r) => setTimeout(r, 1500));
     const prep = await cdp.evalFn(PAGE_FNS.prepare);
     // exportMenu 的 RASTER_SCALE=4（导出器对宽 viewBox 有 4800px 上限，实际缩放可为 3×）：
-    // 断言「整数倍缩放 + 纵横比一致」防半幅/空图
+    // 断言「完整包含 viewBox ≥3× 且两轴缩放同量级」防半幅/空图
     const vb = prep.viewBox;
     console.log(`[page] theme=${prep.theme} viewBox=${vb.width}×${vb.height} fonts=${prep.fontsStatus}`);
 
@@ -257,12 +257,15 @@ async function main() {
       const now = await cdp.evalFn(PAGE_FNS.setTheme, theme);
       if (now !== theme) throw new Error(`主题切换失败: 期望 ${theme} 实得 ${now}`);
       const r = await cdp.evalFn(PAGE_FNS.exportBlob, "png");
+      // 2026-10 漂移修复：新版 archify 导出器栅格化「内容并集 + 48px padding」（可含结论卡），
+      // 不再恰为 viewBox 整数倍——放宽为「完整包含 viewBox ≥3× + 两轴缩放同量级」，防半幅/空图意图不变。
+      const scaleW = r.dims && r.dims.width / vb.width;
+      const scaleH = r.dims && r.dims.height / vb.height;
       const okDims = r.dims
-        && r.dims.width % Math.round(vb.width) === 0 && r.dims.height % Math.round(vb.height) === 0
-        && r.dims.width / vb.width === r.dims.height / vb.height
-        && r.dims.width / vb.width >= 3;
+        && scaleW >= 3 && scaleH >= 3
+        && Math.abs(scaleW - scaleH) / Math.min(scaleW, scaleH) <= 0.5;
       if (!okDims) {
-        throw new Error(`PNG 尺寸异常: ${JSON.stringify(r.dims)}（期望 viewBox ${vb.width}×${vb.height} 的 ≥3 整数倍等比）`);
+        throw new Error(`PNG 尺寸异常: ${JSON.stringify(r.dims)}（期望完整包含 viewBox ${vb.width}×${vb.height} 且两轴缩放 ≥3×、比例偏差 ≤50%）`);
       }
       const file = path.join(outDir, `${opts.slug}-${theme}.png`);
       writeAtomic(file, Buffer.from(r.base64, "base64"));

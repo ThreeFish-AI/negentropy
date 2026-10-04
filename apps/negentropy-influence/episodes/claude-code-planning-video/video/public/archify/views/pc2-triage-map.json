@@ -1,0 +1,38 @@
+[
+ {
+  "id": "triage-mount",
+  "label": "包住调用步",
+  "focus": [
+   "call",
+   "gate",
+   "ledger"
+  ],
+  "note": "恢复逻辑包在模型调用外层：结果先过「成功没有」这道闸，失败按错误类别就地分流，账本随调用记账。"
+ },
+ {
+  "id": "triage-trunc",
+  "label": "输出截断",
+  "focus": [
+   "raiscap",
+   "resume"
+  ],
+  "note": "第一次不存半截，先把上限从八千提到六万四原样重发；仍截断才存半截续写，至多三次，用尽退出。"
+ },
+ {
+  "id": "triage-overflow",
+  "label": "上下文超限",
+  "focus": [
+   "compact"
+  ],
+  "note": "应急压缩只保留最后五条消息；只允许压缩一次，压缩后仍超限即退出，再压也不会更小。"
+ },
+ {
+  "id": "triage-transient",
+  "label": "限流与过载",
+  "focus": [
+   "backoff",
+   "failover"
+  ],
+  "note": "指数退避半秒起逐次翻倍，至多十次，加抖动避免同一秒集体重试；连续三次过载即换备用模型。"
+ }
+]
