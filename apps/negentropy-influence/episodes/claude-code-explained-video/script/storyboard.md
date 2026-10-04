@@ -37,10 +37,10 @@
 
 | 镜 | 句区间 | 画面 | 动效 |
 | --- | --- | --- | --- |
-| 0-A | p0-01..03 | 开场设问：聊天框两侧定格（左用户敲字／右模型回复一段建议）；p0-03「白纸」隐喻——一张白纸卡从聊天框飘落、定格压短关键词「一张白纸 · 全忘」（`dim`，非逐字复述）；角标 `llm(messages)` | 聊天框双侧淡入 `useEnter:fade`；白纸卡飘落定格 `useEnter:fall`（scene 自定义白纸装置，压短形态）；`@enter:fade` `@enter:fall` |
+| 0-A | p0-01..03 | 开场设问：聊天框两侧定格（左用户敲字／右模型回复一段建议）；p0-03「白纸」隐喻——一张白纸卡从聊天框飘落、定格压短关键词「一张白纸 · 全忘」（`dim`，非逐字复述）；角标 `llm(messages)` | 聊天框双侧错峰淡入 `useStagger`；白纸卡飘落定格 `useEnter:fall`（scene 自定义白纸装置，压短形态）；`@stagger` `@enter:fall` |
 | 0-B | p0-04..06 | 人肉往返 ·**archify full**：human-relay 章 `manual-full`+`talk-only` · p0-05 句中段让位 ·**archify full**：human-relay （talk-only） · p0-06 金句回落——自制金句卡衬线体「说完了 · 活还是你的」（压短形态）caption-dup-ok: 金句卡定格记忆点，主字压短非逐字；角标 `chat` | archify 全屏回放主控（两章同实例连播自动抑制）；金句卡 QuoteCard 衬线定格（components 承担者，散文点名，不产生 token） |
 | 0-C | p0-07..11 | **诊室定场（母题定妆）**：自制诊室全景首现——中央接诊循环圆环（core 橙〔M-001〕锁线宽，五步位刻度暂虚）、左上病历本槽位（下方常驻字条 `病历本 = 唯一凭据 · 每轮全量重读`，随病历本组淡入）、左医生位（无彩剪影，位上标签 `医生 · 模型`）、右科室门；「Harness」字卡挂门楣；p0-10 句让位 ·**archify full**：human-relay 章 `loop-takes-over` | 诊室四件依次入场 `useStagger`（循环母题随组淡入定妆，core 橙恒定线宽）；Harness 字卡钉位 `useEnter:pop`；p0-10 由 ArchifyRecap 主控；`@stagger` `@enter:pop` |
-| 0-D | p0-12..15 | 行数尺首现：底边四格进度条（第一格 `102` 点亮，其余虚影）；p0-14 三枚外设剪影（表／关／节点，mech 青）自右缘挂入循环右侧；p0-15 句让位 ·**archify full**：human-relay 章 `gap-preview`；角标 `102 行 · 教学版`（金句卡「三层外设」**裁定不落**：p0-15 全句窗让位给 gap-preview，集名主段定格已由 P6 系列身份卡承担——2026-10-02 评审回写） | 行数尺第一格计数点亮 `useCount`；三剪影右缘滑入 `useEnter:slideR`；常驻微光由 PeripheralRow 内 `useBreathe` 承担（components 承担者，散文点名）；p0-15 由 ArchifyRecap 主控；`@count` `@enter:slideR` |
+| 0-D | p0-12..15 | 行数尺首现：底边四格进度条（第一格 `102` 点亮，其余虚影）；p0-14 三枚外设剪影（表／关／节点，mech 青）自右缘挂入循环右侧；p0-15 句让位 ·**archify full**：human-relay 章 `gap-preview`；角标 `102 行 · 教学版`（金句卡「三层外设」**裁定不落**：p0-15 全句窗让位给 gap-preview，集名主段定格已由 P6 系列身份卡承担——2026-10-02 评审回写） | 行数尺第一格计数点亮 `useCount`；三剪影右缘滑入与常驻微光由 PeripheralRow 内 `useStagger`＋`useBreathe` 承担（components 承担者，散文点名）；p0-15 由 ArchifyRecap 主控；`@count` |
 
 ## P1 接诊循环（p1-01..26）→ `scenes/P1IntakeLoop.tsx`
 
@@ -85,7 +85,7 @@
 | 4-C | p4-12..16 | 三值语义：p4-12 句让位 ·**archify full**：hookresult-tri 章 `tri-overview`+`first-wins`+`false-trap` · p4-13 自制回落（空槽→下一个箭头小卡）· p4-14 句让位 （first-wins） · p4-15 句让位 （false-trap） · p4-16 回落自制陷阱警示条（「空不空 ≠ 真不真」mono 条，`deny` 红下划线）；角标 `None / not None`（中文注） | 同图三章连播（单实例内自动抑制）；p4-13 小卡 `useEnter:pop`；警示条下划线 `useDraw`（deny）；`@enter:pop` `@draw` |
 | 4-D | p4-17..19 | 实验 4：自制封条卡（「破坏性实验 · 4」）→ p4-17 句尾让位 ·**archify full**：hookresult-tri 章 `flip-zero-tools`+`flip-stop-hijack` · p4-18 句让位 （flip-stop-hijack） · p4-19 回落自制金句卡「空不空 · 共享的契约」衬线定格 caption-dup-ok: 压短记忆点非逐字（components 承担，散文点名）；角标 `0 工具`／`轮次封顶` | 封条卡 `useEnter:fall`；同图两章连播（单实例内自动抑制）；`@enter:fall` |
 | 4-E | p4-20..25 | 双保险：p4-20 句让位 ·**archify full**：stop-guard 章 `recall-loop`+`cap-100`+`guard-flag`+`guard-cap8`+`stop-clean` · p4-21 句让位 （cap-100） · p4-22 自制回落（「真实产品 · 双保险」过渡小卡）· p4-23 句让位 （guard-flag） · p4-24 句让位 （guard-cap8） · p4-25 句让位 （stop-clean）；角标 `stopHookActive`（中文注）／`官方：连续 8 次硬停` | 同图五章穿插连播（单实例内自动抑制）；过渡小卡 `useEnter:pop`；`@enter:pop` |
-| 4-F | p4-26..27 | 规模对账卡（自制）：三格数字并列——教学版 `4` ↔ 拆解口径 `27` ↔ 官方文档今天 `33`（第三格带日期戳角标）；背景节点墙剪影绵延淡出；角标 `2026-09 官方口径` | 三格数字递进点亮 `useCount`＋`useStagger`；节点墙淡出 `useEnter:fade`；`@count` `@stagger` `@enter:fade` |
+| 4-F | p4-26..27 | 规模对账卡（自制）：三格数字并列——教学版 `4` ↔ 拆解口径 `27` ↔ 官方文档今天 `33`（第三格带日期戳角标）；背景节点墙剪影绵延淡出；角标 `2026-09 官方口径` | 三格数字递进点亮 `useCount`＋`useStagger`；节点墙入场 `useProgress`、压暗淡出 `useDim`；`@count` `@stagger` `@progress` `@dim` |
 
 ## P5 一单走全程（p5-01..16）→ `scenes/P5Preflight.tsx`
 
