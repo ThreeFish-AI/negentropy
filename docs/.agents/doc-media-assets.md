@@ -82,7 +82,7 @@
   **不用整页截图**——页面内的图受 reader 宽度上限约束，整页截图有效像素远低于内置导出。
 - 拦截导出 blob 必须「记录但**透传**」`URL.createObjectURL`：`rasterize()` 会先为中间态 SVG 建一次
   objectURL，吞掉它会让中间态 `Image` 永远 load 不了、导出**静默失败**。取 `seen[seen.length-1]`。
-- PNG 实际尺寸必须等于 svg `viewBox × 4`（尺寸断言按每图 viewBox 动态计算，防半幅/空图）。
+- PNG 须完整包含 viewBox 且两轴缩放 ≥3×、比例偏差 ≤50%（新导出器按「标题行 + 画布卡」镶边栅格化，不再恰为 viewBox 整数倍；断言按每图 viewBox 动态计算，防半幅/空图）。
 
 旗舰采集脚本（`capture-arch-media.mjs`）的关键事实（改脚本前必读）：
 

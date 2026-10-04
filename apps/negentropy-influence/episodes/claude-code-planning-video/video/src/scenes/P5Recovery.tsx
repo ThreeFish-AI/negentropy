@@ -24,9 +24,9 @@ const PrinterAnalogy: React.FC<{at04: number; at05: number; at06: number}> = ({a
   const noBlind = useProgress(at05, DUR.f5);
   const edge = useProgress(at06, DUR.f5);
   const rows = [
-    {sym: '没墨', fix: '换墨盒再打', color: 'mech'},
-    {sym: '卡纸', fix: '抽纸重打', color: 'mech'},
-    {sym: '连续断电', fix: '换备用机', color: 'danger'},
+    {sym: '没墨', fix: '换墨盒', color: 'mech'},
+    {sym: '卡纸', fix: '抽纸', color: 'mech'},
+    {sym: '断电×N', fix: '备用机', color: 'danger'},
   ] as const;
   const tone = (k: string) => (k === 'danger' ? theme.danger : k === 'mech' ? theme.mech : theme.dim);
   return (

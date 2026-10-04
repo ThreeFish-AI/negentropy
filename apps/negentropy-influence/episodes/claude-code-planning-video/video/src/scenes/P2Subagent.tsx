@@ -36,7 +36,7 @@ const ConsultantAnalogy: React.FC<{at06: number; at07: number; at08: number}> = 
           }}
         >
           <div style={{fontFamily: theme.sans, fontSize: 19, color: theme.dim, letterSpacing: 3}}>
-            {'外包顾问 · 自带笔记本'}
+            {'顾问 · 过程自记'}
           </div>
           <div style={{fontFamily: theme.serif, fontSize: 27, color: theme.text, marginTop: 8}}>
             {'过程记自己的，不占你的台面'}
@@ -53,7 +53,7 @@ const ConsultantAnalogy: React.FC<{at06: number; at07: number; at08: number}> = 
           }}
         >
           <div style={{fontFamily: theme.sans, fontSize: 19, color: theme.dim, letterSpacing: 3}}>
-            {'交付 · 只交一页'}
+            {'交付 · 一页为限'}
           </div>
           <div style={{fontFamily: theme.serif, fontSize: 25, color: theme.mech, marginTop: 6}}>
             {'一句结论回主线'}

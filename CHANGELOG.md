@@ -4,7 +4,7 @@
 
 ## [Unreleased]
 ### Added
-### 「规划与协调」集 v4 交付：三轮评审修复 8 处重渲（2026-10-04）
+### 「规划与协调」集 v4 交付：三轮评审修复 7 处重渲（2026-10-04）
 
 - **v4 = 三轮评审（本地 DiffComment 8 条全收）**：5-B 红叉条「断电 ≠ 猛按」+ 类比边界条关键词对化（RSI-007 漏网 ×2，成片抽帧实证画面/字幕单层承载）；storyboard 公共组件清单与 0-E/1-D/3-C/4-G/6-B 动效标注 as-built 对齐（`@draw`/`@travel`/`@flowDash`/`@enter:rise` 未实装降级留痕）+ P0Failures 头注同步；gl-notes 附录 C 穿透计数 74→73（常量 26 + 站点 37 含 1 UNRESOLVED + 抽样 10）三处连坐（README/CHANGELOG）；附录 A 首登章节 §3→§4/§6/§7；cues.toml 契约软化（beat 对齐例外须块前留痕）+ p2-03/p3-08 两块留痕；docs/research/readme SSOT 伞述补 C 型集例外；ep1 下期卡重渲债登记 series.json ep1 statusNote 开放项（ISSUE-207 验收线）
 - 终渲 24020 帧归档 v4 + _captions×4（字幕与 v3 逐字节同；md5 源=档 014ab7d8 复核命中）；tsc / 内容门 / archify 覆盖门 / check_series 全 FAIL 0

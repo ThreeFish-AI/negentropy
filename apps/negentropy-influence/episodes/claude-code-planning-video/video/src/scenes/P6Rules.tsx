@@ -23,8 +23,8 @@ const SeriesFinale: React.FC<{span: number; atCards: number}> = ({span, atCards}
   const items = useStagger(3, {at: atCards, dur: DUR.f4, stride: DUR.f2});
   const keep = useFadeOut(span, {frames: 36});
   const sources = [
-    '官方文档 · code.claude.com（取数 2026-10）',
-    'Anthropic Engineering 博客',
+    '公开教程 · 逐章对照取证',
+    '配套开源代码 · 固定提交实测',
     '第三方源码分析（片中已逐处标注）',
     '画面数字 · 实测与估算分开标注',
   ];

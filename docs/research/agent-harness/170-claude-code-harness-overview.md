@@ -97,7 +97,7 @@ description: "以课程双轨一手材料（仓库 main 17 章 @ 0dcafa2a / 站�
 
 > [!IMPORTANT] **本组不是口播取证源**
 >
-> 科普视频各集的逐章取证、原文引语、可调参数与生产版对照（含轨 C 官方事实集全量），归各集 `research/source-notes.md`；章→集归属、钉选与三轨撞号防御，只登记在[系列信源地图](../../../apps/negentropy-influence/source-map/claude-code-explained.md)。
+> 科普视频各集的逐章取证、原文引语、可调参数与生产版对照（含轨 C 官方事实集全量），归各集 `research/source-notes.md`（C 型信源集为例外：如规划与协调集已改 `research/gl-notes.md`）；章→集归属、钉选与三轨撞号防御，只登记在[系列信源地图](../../../apps/negentropy-influence/source-map/claude-code-explained.md)。
 > **除「main 轨独有两章」与本文最小原型实测外，本组任何断言若与各集 source-notes 冲突，一律以 notes 为准。**
 
 ## 5. 本组不得重述的事实（SSOT 边界）

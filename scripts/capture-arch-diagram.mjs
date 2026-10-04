@@ -257,7 +257,7 @@ async function main() {
       const now = await cdp.evalFn(PAGE_FNS.setTheme, theme);
       if (now !== theme) throw new Error(`主题切换失败: 期望 ${theme} 实得 ${now}`);
       const r = await cdp.evalFn(PAGE_FNS.exportBlob, "png");
-      // 2026-10 漂移修复：新版 archify 导出器栅格化「内容并集 + 48px padding」（可含结论卡），
+      // 2026-10 漂移修复：新版 archify 导出器按「标题行 + 画布卡」镶边栅格化（viewBox + 卡内边距 24×2 + 页边距 28×2 = 每轴 +104px，纵轴再加标题行），
       // 不再恰为 viewBox 整数倍——放宽为「完整包含 viewBox ≥3× + 两轴缩放同量级」，防半幅/空图意图不变。
       const scaleW = r.dims && r.dims.width / vb.width;
       const scaleH = r.dims && r.dims.height / vb.height;

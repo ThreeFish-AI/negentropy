@@ -52,7 +52,7 @@ const MenuAnalogy: React.FC<{at04: number; at05: number; at06: number}> = ({at04
         {/* 拍二：时令菜看货（记忆段） */}
         <div style={{opacity: (p1[1] ?? 0) * p2, marginBottom: 18}}>
           <div style={{fontFamily: theme.sans, fontSize: 19, color: theme.dim, letterSpacing: 3}}>
-            {'时令 · 看有没有货'}
+            {'时令 · 看货'}
           </div>
           <div
             style={{
@@ -69,7 +69,7 @@ const MenuAnalogy: React.FC<{at04: number; at05: number; at06: number}> = ({at04
         {/* 拍三：昨天那页复用（缓存）——「这就是缓存」为 p4-05 结尾逐字口播 */}
         <div style={{opacity: p2}}>
           <div style={{fontFamily: theme.sans, fontSize: 19, color: theme.dim, letterSpacing: 3}}>
-            {'食材没变 · 直接用昨天那页'}
+            {'没变 · 复用昨页'}
           </div>
           <div
             style={{
