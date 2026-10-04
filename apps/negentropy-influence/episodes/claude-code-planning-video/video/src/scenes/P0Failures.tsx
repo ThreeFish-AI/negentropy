@@ -76,7 +76,7 @@ const MisalignRow: React.FC = () => {
           ))}
         </div>
         <div style={{fontFamily: theme.sans, fontSize: 22, color: theme.dim, letterSpacing: 4, margin: '34px 0 18px'}}>
-          {'它此刻需要的'}
+          {'需要的'}
         </div>
         <div style={{display: 'flex', gap: 20, opacity: inNeed, transform: `translateX(${(1 - inNeed) * 48}px)`}}>
           {need.map((t, i) => (

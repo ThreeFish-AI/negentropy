@@ -63,8 +63,8 @@ const ConsultantAnalogy: React.FC<{at06: number; at07: number; at08: number}> = 
       {/* 拍三：门禁卡 + 共享盘（权限与产物共用） */}
       <div style={{position: 'absolute', left: 1060, top: 270, width: 560, opacity: p2}}>
         {[
-          {k: '刷的是公司门禁卡', v: '安全检查照跑'},
-          {k: '交付物留在共享盘', v: '文件改动保留'},
+          {k: '公司门禁卡', v: '安全检查照跑'},
+          {k: '共享盘 · 交付物', v: '文件改动保留'},
         ].map((r) => (
           <div
             key={r.k}

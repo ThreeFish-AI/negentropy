@@ -11,6 +11,8 @@
 
 归档清单（sha256 前 16 位）：
 
+| 文件 | sha256 | 字节 |
+|---|---|---|
 | `s05_todo_write/README.md.txt` | 92f4fa9f54ba2a56… | 6736 B |
 | `s05_todo_write/code.py` | 118dac9e16090b86… | 12588 B |
 | `s06_subagent/README.md.txt` | c67db30314ee57c1… | 9511 B |

@@ -68,7 +68,7 @@ const SkillWalk: React.FC<{at08: number; at10: number; at11: number}> = ({at08, 
       {/* 右：消息流——手册整本落入 */}
       <div style={{position: 'absolute', left: 1150, top: 300, width: 480, opacity: enter}}>
         <div style={{fontFamily: theme.sans, fontSize: 19, color: theme.dim, letterSpacing: 3, marginBottom: 14}}>
-          {'消息流 · 这一轮才付全价'}
+          {'消息流 · 按轮全价'}
         </div>
         <div
           style={{
@@ -84,7 +84,7 @@ const SkillWalk: React.FC<{at08: number; at10: number; at11: number}> = ({at08, 
         >
           {'《SQL 规范》全文'}
           <div style={{fontFamily: theme.sans, fontSize: 17, color: theme.dim, marginTop: 10}}>
-            {'约两千 token · 随历史携带'}
+            {'约两千 token（教程作者估算） · 随历史携带'}
           </div>
         </div>
       </div>

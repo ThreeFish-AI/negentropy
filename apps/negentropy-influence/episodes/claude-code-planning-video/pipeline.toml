@@ -27,7 +27,7 @@ style = "story"
 
 [archify]
 # 覆盖门硬值（系列级，对齐 ep1）：锚定率 / cue 密度 / 图型数下限；全屏独占三分法。
-# 图集预算在 Stage ② 策划时定稿（~12 图 / ≥5 型，新前缀 pc2-）。
+# 图集预算在 Stage ② 策划时定稿（14 图 / ≥5 型，前缀 pc2-）。
 html_dir = "docs/assets/architecture/agent-harness"
 html_pattern = "claude-code--{slug}.html"
 min_anchor_ratio = 0.30
