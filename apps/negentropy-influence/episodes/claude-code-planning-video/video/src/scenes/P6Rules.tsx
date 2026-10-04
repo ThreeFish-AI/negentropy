@@ -20,7 +20,7 @@ const BADGE_STYLE: React.CSSProperties = {top: 64};
  *  标题主段 = check_series 规则 8 受检硬编码（改标题先改 series.json 再同步此串）。 */
 const SeriesFinale: React.FC<{span: number; atCards: number}> = ({span, atCards}) => {
   const cards = useProgress(atCards, DUR.f5);
-  const items = useStagger(4, {at: atCards, dur: DUR.f4, stride: DUR.f2});
+  const items = useStagger(3, {at: atCards, dur: DUR.f4, stride: DUR.f2});
   const keep = useFadeOut(span, {frames: 36});
   const sources = [
     '官方文档 · code.claude.com（取数 2026-10）',
@@ -163,10 +163,10 @@ export const P6Rules: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       <Sequence {...bA} name="6-A 五规律快板">
         <ArchifyRecap slug="pc2-rules" caption="五条规律" cues={[
-          {chapterId: 'rule-position', at: at('p6-02') - bA.from, durationInFrames: dur('p6-02')},
+          {chapterId: 'rule-position', at: at('p6-02') - bA.from, durationInFrames: dur('p6-02'), fit: 'trim'},
           {chapterId: 'rule-state', at: at('p6-03') - bA.from, durationInFrames: dur('p6-03')},
-          {chapterId: 'rule-lossy', at: at('p6-04') - bA.from, durationInFrames: dur('p6-04')},
-          {chapterId: 'rule-ledger', at: at('p6-05') - bA.from, durationInFrames: dur('p6-05')},
+          {chapterId: 'rule-lossy', at: at('p6-04') - bA.from, durationInFrames: dur('p6-04'), fit: 'trim'},
+          {chapterId: 'rule-ledger', at: at('p6-05') - bA.from, durationInFrames: dur('p6-05'), fit: 'trim'},
           {chapterId: 'rule-structure', at: at('p6-06') - bA.from, durationInFrames: dur('p6-06')},
         ]} />
       </Sequence>
@@ -178,7 +178,7 @@ export const P6Rules: React.FC<{scene: SceneRange}> = ({scene}) => {
       <Sequence {...bC} name="6-C 护栏与口径">
         <GuardCard out={at('p6-13') - bC.from - DUR.f4} />
         <ArchifyRecap slug="pc2-ablation-bar" caption="数字口径" cues={[
-          {chapterId: 'ablation-scale', at: at('p6-13') - bC.from, durationInFrames: dur('p6-13')},
+          {chapterId: 'ablation-scale', at: at('p6-13') - bC.from, durationInFrames: dur('p6-13'), fit: 'trim'},
           {chapterId: 'ablation-ruling', at: at('p6-14') - bC.from, durationInFrames: dur('p6-14') + dur('p6-14b')},
         ]} />
       </Sequence>

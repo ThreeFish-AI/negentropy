@@ -17,7 +17,8 @@ import {useProgress} from '../motion';
 const BADGE_STYLE: React.CSSProperties = {top: 64};
 
 /** 1-D 走查装置：五轮轮转（交计划→改文件→跑测试→修失败→提醒回看）+ 工序卡三态迁移。
- *  时点全由句边界推导：p1-11 交计划 / p1-12 三轮推进 / p1-13 提醒回看标完成。 */
+ *  时点全由句边界推导：p1-11 交计划 / p1-12 三轮推进 / p1-13 提醒回看标完成。
+ *  rel(beat,'p1-11') 驱动第一轮首次点亮——此前整条轮转带 0.4 惰性预览、无高亮。 */
 const FiveRoundWalk: React.FC<{at11: number; at12: number; at13: number}> = ({
   at11, at12, at13,
 }) => {
@@ -26,7 +27,7 @@ const FiveRoundWalk: React.FC<{at11: number; at12: number; at13: number}> = ({
   const p12 = useProgress(at12, 24);
   const p13 = useProgress(at13, 24);
   const rounds = ['① 交计划', '② 改文件', '③ 跑测试', '④ 修失败', '⑤ 回看清单'];
-  const activeIdx = p13 > 0 ? 4 : p12 > 0 ? (p12 > 0.66 ? 3 : p12 > 0.33 ? 2 : 1) : 0;
+  const activeIdx = p13 > 0 ? 4 : p12 > 0 ? (p12 > 0.66 ? 3 : p12 > 0.33 ? 2 : 1) : p11 > 0 ? 0 : -1;
   const todos = [
     {label: '类型注解', state: p13 > 0.5 ? 'done' : 'doing'},
     {label: '加注释', state: 'todo'},
@@ -207,7 +208,8 @@ export const P1Todo: React.FC<{scene: SceneRange}> = ({scene}) => {
       <HarnessBadge style={BADGE_STYLE} />
 
       <Sequence {...bA} name="1-A 挂点①回照">
-        <ArchifyRecap slug="pc2-panorama" caption="挂点① · 唠叨计数器" cues={[
+        {/* 幕界背靠背：0-F pan-loop 末帧紧接本实例首帧（gap=0），lead={false} 抑制重放入场弹簧 */}
+        <ArchifyRecap slug="pc2-panorama" caption="挂点① · 唠叨计数器" lead={false} cues={[
           {chapterId: 'pan-m1', at: at('p1-01') - bA.from, durationInFrames: dur('p1-01') + dur('p1-02')},
         ]} />
       </Sequence>

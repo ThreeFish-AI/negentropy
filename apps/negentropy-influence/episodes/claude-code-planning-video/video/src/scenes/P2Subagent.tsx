@@ -219,7 +219,7 @@ export const P2Subagent: React.FC<{scene: SceneRange}> = ({scene}) => {
         {/* 跨图背靠背（2-D guard-fallback 尾→本章首章）：lead={false}；三章随句接力 */}
         <ArchifyRecap slug="pc2-sub-lanes" caption="主线与副台" lead={false} cues={[
           {chapterId: 'lanes-walk', at: at('p2-15') - bE.from, durationInFrames: dur('p2-15') + dur('p2-16')},
-          {chapterId: 'lanes-receipt', at: at('p2-17') - bE.from, durationInFrames: dur('p2-17')},
+          {chapterId: 'lanes-receipt', at: at('p2-17') - bE.from, durationInFrames: dur('p2-17'), fit: 'trim'},
           {chapterId: 'lanes-contrast', at: at('p2-18') - bE.from, durationInFrames: dur('p2-18') + dur('p2-19')},
         ]} />
       </Sequence>

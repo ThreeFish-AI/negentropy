@@ -16,11 +16,12 @@ import {DUR, useProgress, useStagger} from '../motion';
 
 const BADGE_STYLE: React.CSSProperties = {top: 64};
 
-/** 5-B 修打印机三拍：没墨换墨盒 / 卡纸抽纸 / 断电换备用机——登记表类比带失配句角标 */
+/** 5-B 修打印机三拍：没墨换墨盒 / 卡纸抽纸 / 断电换备用机——登记表类比带失配句角标。
+ *  锚位对齐口播（p5-04 三例并念 → stagger(3)；红叉条=p5-05 逐字；类比边界条=p5-06）。 */
 const PrinterAnalogy: React.FC<{at04: number; at05: number; at06: number}> = ({at04, at05, at06}) => {
-  const cases = useStagger(2, {at: at04, dur: DUR.f4, stride: DUR.f3});
-  const p3 = useProgress(at05, DUR.f5);
-  const noBlind = useProgress(at06, DUR.f5);
+  const cases = useStagger(3, {at: at04, dur: DUR.f4, stride: DUR.f3});
+  const noBlind = useProgress(at05, DUR.f5);
+  const edge = useProgress(at06, DUR.f5);
   const rows = [
     {sym: '没墨', fix: '换墨盒再打', color: 'mech'},
     {sym: '卡纸', fix: '抽纸重打', color: 'mech'},
@@ -31,7 +32,7 @@ const PrinterAnalogy: React.FC<{at04: number; at05: number; at06: number}> = ({a
     <AbsoluteFill style={{pointerEvents: 'none'}}>
       <div style={{position: 'absolute', left: 480, top: 250, width: 960}}>
         {rows.map((r, i) => {
-          const vis = i < 2 ? (cases[i] ?? 0) : p3;
+          const vis = cases[i] ?? 0;
           return (
             <div
               key={r.sym}
@@ -80,11 +81,11 @@ const PrinterAnalogy: React.FC<{at04: number; at05: number; at06: number}> = ({a
           bottom: 170,
           width: 1920,
           textAlign: 'center',
-          opacity: noBlind,
           fontFamily: theme.sans,
           fontSize: 19,
           color: theme.dim,
           letterSpacing: 2,
+          opacity: edge,
         }}
       >
         {'类比边界：打印机靠人分诊，这里靠代码自动分诊；记账要回工程术语'}
@@ -194,7 +195,7 @@ export const P5Recovery: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap slug="pc2-recovery-ledger" caption="恢复账本" lead={false} cues={[
           {chapterId: 'ledger-book', at: at('p5-17') - bG.from, durationInFrames: dur('p5-17') + dur('p5-18')},
           {chapterId: 'ledger-ablation', at: at('p5-19') - bG.from, durationInFrames: dur('p5-19') + dur('p5-20')},
-          {chapterId: 'ledger-ruling', at: at('p5-21') - bG.from, durationInFrames: dur('p5-21')},
+          {chapterId: 'ledger-ruling', at: at('p5-21') - bG.from, durationInFrames: dur('p5-21'), fit: 'trim'},
         ]} />
       </Sequence>
 

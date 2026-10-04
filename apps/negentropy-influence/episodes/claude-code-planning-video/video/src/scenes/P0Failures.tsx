@@ -133,8 +133,8 @@ export const P0Failures: React.FC<{scene: SceneRange}> = ({scene}) => {
         {/* p0-09 为章前空窗句（失败三引入），三章背靠背：后两章 lead={false} */}
         <ArchifyRecap slug="pc2-failures" caption="失败现场" cues={[
           {chapterId: 'fail-carry', at: at('p0-10') - bD.from, durationInFrames: dur('p0-10')},
-          {chapterId: 'fail-clash', at: at('p0-11') - bD.from, durationInFrames: dur('p0-11')},
-          {chapterId: 'fail-crash', at: at('p0-12') - bD.from, durationInFrames: dur('p0-12')},
+          {chapterId: 'fail-clash', at: at('p0-11') - bD.from, durationInFrames: dur('p0-11'), fit: 'trim'},
+          {chapterId: 'fail-crash', at: at('p0-12') - bD.from, durationInFrames: dur('p0-12'), fit: 'trim'},
         ]} />
       </Sequence>
 

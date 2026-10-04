@@ -41,7 +41,7 @@
 
 > 角标：TodoWrite / Subagent / Skill Loading / System Prompt / Error Recovery（装置名对应五挂点）
 
-## P1 计划回视野
+## P1 计划回到视野
 
 > 画面：全景图回照挂点①高亮后放大；工序卡钉上台面边（三态渲染）；计数器刻度环；类型注解任务五轮走查；拆清零消融对比（红/绿）。回溯：§3 M1；D1
 

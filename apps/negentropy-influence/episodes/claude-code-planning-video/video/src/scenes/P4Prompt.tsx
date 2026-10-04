@@ -15,11 +15,12 @@ import {DUR, useProgress, useStagger} from '../motion';
 
 const BADGE_STYLE: React.CSSProperties = {top: 64};
 
-/** 4-B 每日菜单三拍：招牌菜恒印 / 时令菜看货 / 昨天那页复用（=缓存）——登记表类比带失配句角标 */
+/** 4-B 每日菜单三拍：招牌菜恒印 / 时令菜看货 / 昨天那页复用（=缓存）——登记表类比带失配句角标。
+ *  锚位对齐口播：拍三「这就是缓存」=p4-05 结尾逐字 → 锚 at05；失配句角标=p4-06。 */
 const MenuAnalogy: React.FC<{at04: number; at05: number; at06: number}> = ({at04, at05, at06}) => {
   const p1 = useStagger(2, {at: at04, dur: DUR.f4, stride: DUR.f2});
-  const p2 = useProgress(at05, DUR.f5);
-  const p3 = useProgress(at06, DUR.f5);
+  const p2 = useProgress(at05, DUR.f5); // 拍二记忆段点亮与拍三缓存复用同锚 p4-05
+  const edge = useProgress(at06, DUR.f5);
   return (
     <AbsoluteFill style={{pointerEvents: 'none'}}>
       {/* 菜单页主体 */}
@@ -65,8 +66,8 @@ const MenuAnalogy: React.FC<{at04: number; at05: number; at06: number}> = ({at04
             {'记忆段（文件在才印）'}
           </div>
         </div>
-        {/* 拍三：昨天那页复用（缓存） */}
-        <div style={{opacity: p3}}>
+        {/* 拍三：昨天那页复用（缓存）——「这就是缓存」为 p4-05 结尾逐字口播 */}
+        <div style={{opacity: p2}}>
           <div style={{fontFamily: theme.sans, fontSize: 19, color: theme.dim, letterSpacing: 3}}>
             {'食材没变 · 直接用昨天那页'}
           </div>
@@ -94,11 +95,11 @@ const MenuAnalogy: React.FC<{at04: number; at05: number; at06: number}> = ({at04
           bottom: 170,
           width: 1920,
           textAlign: 'center',
-          opacity: p3,
           fontFamily: theme.sans,
           fontSize: 19,
           color: theme.dim,
           letterSpacing: 2,
+          opacity: edge,
         }}
       >
         {'类比边界 · 不含 分段维护 / 服务端缓存'}
@@ -172,7 +173,8 @@ export const P4Prompt: React.FC<{scene: SceneRange}> = ({scene}) => {
       <HarnessBadge style={BADGE_STYLE} />
 
       <Sequence {...bA} name="4-A 挂点④回照">
-        <ArchifyRecap slug="pc2-panorama" caption="挂点④ · 指令组装" cues={[
+        {/* 幕界背靠背：3-E cost-ruling 末帧紧接本实例首帧（gap=0），lead={false} 抑制重放入场弹簧 */}
+        <ArchifyRecap slug="pc2-panorama" caption="挂点④ · 指令组装" lead={false} cues={[
           {chapterId: 'pan-m4', at: at('p4-01') - bA.from, durationInFrames: dur('p4-01') + dur('p4-02') + dur('p4-03')},
         ]} />
       </Sequence>
@@ -183,7 +185,7 @@ export const P4Prompt: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       <Sequence {...bC} name="4-C 货架三章">
         <ArchifyRecap slug="pc2-prompt-shelf" caption="垫纸的拼法" cues={[
-          {chapterId: 'shelf-sections', at: at('p4-07') - bC.from, durationInFrames: dur('p4-07')},
+          {chapterId: 'shelf-sections', at: at('p4-07') - bC.from, durationInFrames: dur('p4-07'), fit: 'trim'},
           {chapterId: 'shelf-state', at: at('p4-08') - bC.from, durationInFrames: dur('p4-08') + dur('p4-09')},
           {chapterId: 'shelf-split', at: at('p4-09b') - bC.from, durationInFrames: dur('p4-09b')},
         ]} />
