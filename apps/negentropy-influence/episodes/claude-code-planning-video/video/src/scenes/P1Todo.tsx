@@ -29,9 +29,9 @@ const FiveRoundWalk: React.FC<{at11: number; at12: number; at13: number}> = ({
   const rounds = ['① 交计划', '② 改文件', '③ 跑测试', '④ 修失败', '⑤ 回看清单'];
   const activeIdx = p13 > 0 ? 4 : p12 > 0 ? (p12 > 0.66 ? 3 : p12 > 0.33 ? 2 : 1) : p11 > 0 ? 0 : -1;
   const todos = [
-    {label: '类型注解', state: p13 > 0.5 ? 'done' : 'doing'},
+    {label: '补注解', state: p13 > 0.5 ? 'done' : 'doing'},
     {label: '加注释', state: 'todo'},
-    {label: '入口守卫', state: 'todo'},
+    {label: '设守卫', state: 'todo'},
   ];
   return (
     <AbsoluteFill style={{pointerEvents: 'none'}}>

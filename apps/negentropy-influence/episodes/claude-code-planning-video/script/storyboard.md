@@ -102,7 +102,7 @@
 |---|---|---|---|
 | 6-A | p6-01..06 | ·**archify full**：pc2-rules `rule-position` + `rule-state` + `rule-lossy` + `rule-ledger` + `rule-structure`（五条接力） | 全屏逐章回放（金句条快板；as-built：p6-01 为规律引入句，章前空窗有意保留，cue 自 p6-02 起） |
 | 6-B | p6-07..10d | 争议双栏：全新上下文（正确）↔ 缓存友好前缀（成本），天平意象；第二对取舍两行 | 双栏 stagger 淡入（as-built：`@enter:rise` 未实装） |
-| 6-C | p6-11..14b | 护栏卡三行（教学发明/无对照实验/估算口径）；·**archify full**：pc2-ablation-bar `ablation-scale` + `ablation-ruling`（接力，p6-13/p6-14 锚） | 卡片浮现；全屏逐章回放 |
+| 6-C | p6-11..14b | 护栏卡三行（教学设定/缺对照组/只是口径；as-built：原文与口播 4 连字同窗复述，R5 关键词化）；·**archify full**：pc2-ablation-bar `ablation-scale` + `ablation-ruling`（接力，p6-13/p6-14 锚） | 卡片浮现；全屏逐章回放 |
 | 6-D | p6-15..17 | 系列身份卡（五层栈缩略，本层点亮）+ 下期卡（下期标题主段「会丢的和不能丢的」）+ 信源卡四行；工坊灯牌收暗 | `@stagger` 卡组；`@fadeout` 收暗（红线四：末 beat 总时长推导渐黑） |
 
 ## 字幕规范

@@ -23,7 +23,7 @@
 - **archify 3.0 桥接层**：guided-views 容器 + Archify.guidedViews 播放器 + 脉动保帧 CSS（冒烟 capture_fps 62），14 图 showcase 四门全绿；旧 plan-* 12 图 36 文件孤儿清除（grep 零引用）
 - TTS story 档 65 块（12 轮自愈续跑完成）；tts_resume 旗标位次序坑（--max-restarts 须在 `--` 前）实测记录
 - pre-commit：trailing-whitespace/end-of-file-fixer 豁免扩至 docs/assets/architecture/（archify 回执 canonical 字节防剥，E2 前科同款）
-- **v2 评审修复 15 处重渲**（七幕 QA FAIL 0 + 四组抽帧判据：镜界闪灭曲线平坦化 / 0-A badge 带 17→25.5 揭示恢复 / p2-13b 空台 3.4%→5.7% 回场 / 护栏卡中心 std 19.7 在场）：跨实例背靠背 `lead={false}` 补挂 11 处（契约入注释）；guard-notask 窗补 `dur('p2-13b')` 消 4.5s 空台；RSI-007 边缘逃逸四处关键词化；6-C 护栏卡实装（Panel+stagger+接手前渐隐）；P0 场景级 badge 撤除（badgeIn 交叉揭示恢复）；5-H `@breathe` 错相连续呼吸 + 0-E `@pushIn`/2-B `@enter:slide` 入场补装；死导入六枚与 motifs 死代码 660→27 行裁剪；storyboard 预算表 6 锚句对齐实现；manifest 重生成补 3 图 type；package.json 正名（原误抄兄弟集）；172 双死链改指 gl-notes（轨 C 42 条集史去向如实注明）；_captions v1 缺口回填
+- **v2 评审修复 15 处重渲**（七幕 QA FAIL 0 + 四组抽帧判据：镜界闪灭曲线平坦化 / 0-A badge 带 17→25.5 揭示恢复 / p2-13b 空台 3.4%→5.7% 回场 / 护栏卡中心 std 19.7 在场）：跨实例背靠背 `lead={false}` 补挂 11 处（契约入注释）；guard-notask 窗补 `dur('p2-13b')` 消 4.5s 空台；RSI-007 边缘逃逸四处关键词化；6-C 护栏卡实装（Panel+stagger+接手前渐隐）；P0 场景级 badge 撤除（badgeIn 交叉揭示恢复）；5-H `@breathe` 错相连续呼吸 + 0-E `@pushIn`/2-B `@enter:slide` 入场补装；死导入六枚与 motifs 死代码 702→28 行裁剪；storyboard 预算表 6 锚句对齐实现；manifest 重生成补 3 图 type；package.json 正名（原误抄兄弟集）；172 双死链改指 gl-notes（轨 C 42 条集史去向如实注明）；_captions v1 缺口回填
 
 ### Claude Code Harness Engineering 系列 5 集完全重制交付（2026-09-28..30）
 

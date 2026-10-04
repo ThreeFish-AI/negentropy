@@ -86,9 +86,9 @@ const GuardCard: React.FC<{out: number}> = ({out}) => {
       <div style={{position: 'absolute', left: 0, top: 360, width: 1920, display: 'flex', justifyContent: 'center', opacity: 1 - fade}}>
         <Panel style={{padding: '30px 52px', display: 'flex', flexDirection: 'column', gap: 26}}>
           {[
-            {k: '三轮提醒', v: '教学发明'},
-            {k: '完成率', v: '无对照实验'},
-            {k: '篇幅估算', v: '只是口径'},
+            {k: '提醒 · 三轮', v: '教学设定'},
+            {k: '完成率', v: '缺对照组'},
+            {k: '篇幅数字', v: '只是口径'},
           ].map((r, i) => (
             <div key={r.v} style={{display: 'flex', alignItems: 'baseline', gap: 22, opacity: rows[i] ?? 0, transform: `translateY(${(1 - (rows[i] ?? 0)) * 16}px)`}}>
               <div style={{fontFamily: theme.sans, fontSize: 21, color: theme.dim, letterSpacing: 3}}>{r.k}</div>
@@ -109,8 +109,8 @@ const ControversyCols: React.FC<{at07: number; at10b: number}> = ({at07, at10b})
     <AbsoluteFill style={{pointerEvents: 'none'}}>
       <div style={{position: 'absolute', left: 230, top: 270, display: 'flex', gap: 60}}>
         {[
-          {t: '教学版', s: '全新上下文', why: '图的是正确', tone: theme.mech},
-          {t: '真实产品侧', s: '缓存友好前缀', why: '图的是成本（教程作者源码分析）', tone: theme.core},
+          {t: '教学版', s: '全新开局', why: '求正确', tone: theme.mech},
+          {t: '产品实战侧', s: '缓存型前缀', why: '求成本（教程作者源码分析）', tone: theme.core},
         ].map((c, i) => (
           <div
             key={c.s}
@@ -130,16 +130,16 @@ const ControversyCols: React.FC<{at07: number; at10b: number}> = ({at07, at10b})
         ))}
       </div>
       <div style={{position: 'absolute', left: 0, top: 560, width: 1920, textAlign: 'center', opacity: cols[1] ?? 0, fontFamily: theme.sans, fontSize: 22, color: theme.dim}}>
-        {'两派账本不同 · 都对'}
+        {'两本账 · 谁都对'}
       </div>
       <div style={{position: 'absolute', left: 380, top: 680, width: 1160, opacity: pair2}}>
-        {['消息流 · 省钱 · 会被裁', '常驻指令区 · 稳定 · 花钱'].map((t) => (
+        {['省 token · 但会被截断', '常驻区 · 稳 · 每轮付费'].map((t) => (
           <div key={t} style={{fontFamily: theme.serif, fontSize: 24, color: theme.text, textAlign: 'center', lineHeight: 2.1}}>
             {t}
           </div>
         ))}
         <div style={{fontFamily: theme.sans, fontSize: 19, color: theme.dim, textAlign: 'center', marginTop: 8}}>
-          {'按使用频率分档'}
+          {'按调用频次分档'}
         </div>
       </div>
     </AbsoluteFill>

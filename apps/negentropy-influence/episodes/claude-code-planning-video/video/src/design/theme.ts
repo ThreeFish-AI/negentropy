@@ -44,8 +44,9 @@ export const theme = {
   // 对比度实测（对 bg #0E1116）：#9C90EE=6.88:1 · #7A72C4=4.53:1（qa --check-theme 复验）。
   core: '#D97757',
   coreDeep: '#B45A3C',
-  // deny（系列档 #EF6461，3D 层/HarnessStack 读）与 danger（UI 档 #FF5C5C）是
-  // 两个 token：拒绝语义场景一律走 deny，勿混用（2026-09-30 评审对账）
+  // deny（系列档 #EF6461，3D 层/HarnessStack 读）与 danger（#FF5C5C，分镜契约
+  // 「警示红=拆解/故障侧」）是两个 token：3D/栈层拒绝语义走 deny，场景级拆解/故障
+  // 警示走 danger（如 5-B 红叉条），勿混用（2026-09-30 对账 · 2026-10-05 消歧）
   deny: '#EF6461',
   mech: '#9C90EE',
   mechDeep: '#7A72C4',

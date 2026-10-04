@@ -133,7 +133,7 @@ export const P3Skills: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       <Sequence {...bE} name="3-E 消融与结论">
         {/* 跨图背靠背（3-D levels-lifecycle 尾→本章首章）：lead={false} */}
-        <ArchifyRecap slug="pc2-skill-cost" caption="拆掉两级" lead={false} cues={[
+        <ArchifyRecap slug="pc2-skill-cost" caption="两级消融" lead={false} cues={[
           {chapterId: 'cost-ablation', at: at('p3-15') - bE.from, durationInFrames: dur('p3-15') + dur('p3-16') + dur('p3-17')},
           {chapterId: 'cost-ruling', at: at('p3-18') - bE.from, durationInFrames: dur('p3-18') + dur('p3-19')},
         ]} />
