@@ -22,7 +22,7 @@ const DirTree: React.FC<{fallAt: number; cardAt: number}> = ({fallAt, cardAt}) =
   const cardP = progress(frame, cardAt, DUR.f4);
   const dirs = MENU_ROWS.map((r) => r.id);  // 六夹具唯一事实源＝M-001 菜单卡（e1-motifs MENU_ROWS）
   return (
-    <div style={{position: 'relative', width: 940, height: 560}}>
+    <div style={{position: 'relative', width: 940}}>  {/* 高度随内容（与 6-D 同机位形态；旧竖排 560 定高致树干悬空） */}
       {/* 根目录标签 */}
       <div
         style={{

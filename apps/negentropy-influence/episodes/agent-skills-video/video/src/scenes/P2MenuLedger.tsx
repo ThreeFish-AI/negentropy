@@ -1329,6 +1329,7 @@ const MenuLedgerChrome: React.FC<{
             transform: `rotate(-9deg) scale(${1.9 - 0.9 * stampS})`,
             zIndex: 41,
             pointerEvents: 'none',
+            background: `${theme.bg}d9`,  /* 底板对齐 P3「独扛路由」章语言（透明底致章字与行名叠成乱字） */
           }}
         >
           不撤桌

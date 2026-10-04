@@ -1,6 +1,6 @@
 # 《刻意做小：Agent Skills 开放标准》科普视频工程
 
-> 交付状态：**v8 终渲待审（2026-10-04，九轮评审 13+10+3+4+7+17+10+2+8 条全修）**：13:07.7 @1080p30 · 124 句 3678 字 · archify 双图 16 章 20 cue（锚定 16.1%）· 机器门全绿（check/tsc/qa 全 FAIL 0）· 归档 `~/Documents/video/agent-infra/` v8 + `_captions/`。复现流水线见下。
+> 交付状态：**v9 终渲待审（2026-10-04，十轮评审 13+10+3+4+7+17+10+2+8+6 条全修）**：13:07.7 @1080p30 · 124 句 3678 字 · archify 双图 16 章 20 cue（锚定 16.1%）· 机器门全绿（check/tsc/qa 全 FAIL 0）· 归档 `~/Documents/video/agent-infra/` v9 + `_captions/`。复现流水线见下。
 
 ## 目录结构
 
@@ -21,7 +21,7 @@
 # 在工作区内执行。$T/$W/$P/$V 的定义见 to-video skill 的 references/PIPELINE.md 路径变量约定（唯一定义处）
 P=$W/episodes/agent-skills-video
 
-# ① 信源核验（B 型信源；A 型论文集跳过）
+# ① 信源核验（C 型信源＝gl-notes 精读产物；A 型论文集跳过）
 uv run --no-project $T/scripts/source_ledger.py --project $P verify
 
 # ② 逐字稿派生 + 内容门（分镜覆盖性 / 时长预算双口径 / 淡入不变式）
