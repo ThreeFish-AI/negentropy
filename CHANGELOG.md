@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 ### Added
+### 「规划与协调」集 v5 交付：评审循环 45 处修复 + ISSUE-208 方案 a 重渲（2026-10-05）
+
+- **v5 = 自主评审收敛循环 R1-R6（10 lens/轮 × 对抗核验 × 全量清扫）45 处修复 + ISSUE-208 方案 a**：RSI-007 逃门全量清扫（35 壳裁决：24 修 + 11 豁免判例——D12 已修集/分镜钉定/规则 8 契约/跨镜预告/归属角标/词表名词/Sequence name）；登记面真值连坐（v4 真值五面、三轮评审处数 8→7、motifs 702→28、钉点日期 07-29 三面）；骨架承重注释恢复（verify_skeleton 指纹归位）+ solids-3d 死导出裁剪；as-built 留痕补齐（0-D/6-A 空窗双面、2-C 角标引文、退役组件注释）；SSOT 边界 C 型例外四面（170/knowledge-map/readme/source-map）；gl-notes 登记块 S3 拆分 + panorama 拓扑收敛；theme deny/danger 注释消歧；package.json 漂移指纹复核更新
+- **ISSUE-208 方案 a**（作者拍板）：HoldRevive 唤活装置 21 条重灾区（窗>8s 且 rate<0.5，净 hold 241s）全接入，53 条要点文案同窗 LCS ≤3 自证；扩窗失明门侧修复回馈 to-video skill（未动）
+- 终渲 24020 帧归档 v5 + _captions×5（字幕与 v4 逐字节同，口播零改动）；md5 源=档 b6cc9d94；成片时间戳 ≥ 最后修复提交（ISSUE-207 验收线）；tsc / 内容门 / archify 覆盖门 / check_series / 骨架门全 FAIL 0；QA FAIL 0（尾幕指纹 WARN 假阳性判例）
+
 ### 「规划与协调」集 v4 交付：三轮评审修复 7 处重渲（2026-10-04）
 
 - **v4 = 三轮评审（本地 DiffComment 8 条全收）**：5-B 红叉条「断电 ≠ 猛按」+ 类比边界条关键词对化（RSI-007 漏网 ×2，成片抽帧实证画面/字幕单层承载）；storyboard 公共组件清单与 0-E/1-D/3-C/4-G/6-B 动效标注 as-built 对齐（`@draw`/`@travel`/`@flowDash`/`@enter:rise` 未实装降级留痕）+ P0Failures 头注同步；gl-notes 附录 C 穿透计数 74→73（常量 26 + 站点 37 含 1 UNRESOLVED + 抽样 10）三处连坐（README/CHANGELOG）；附录 A 首登章节 §3→§4/§6/§7；cues.toml 契约软化（beat 对齐例外须块前留痕）+ p2-03/p3-08 两块留痕；docs/research/readme SSOT 伞述补 C 型集例外；ep1 下期卡重渲债登记 series.json ep1 statusNote 开放项（ISSUE-207 验收线）
