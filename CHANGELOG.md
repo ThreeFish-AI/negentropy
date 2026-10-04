@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 ### Added
+### 「规划与协调」集 v3 交付：二轮评审修复 10 处 + badge 双绘修复重渲（2026-10-04）
+
+- **v3 = 611ff33c1（badge 双绘：删 11 处镜内实例 + P0 四镜补挂）+ 二轮评审修复 10 处**：5-B 打印机三拍句锚对齐（stagger(3)@p5-04 / 红叉条 p5-05 / 边界条 p5-06）、4-B「这就是缓存」徽章锚 p4-05、幕界背靠背 `lead={false}`×2（1-A/4-A，gap=0 接续点）、1-D p11 死参接线（p1-11 前惰性预览、随句点亮兑现 storyboard rel 承诺）、9 条 trim cue 补显式 `fit:'trim'` 留痕、SeriesFinale stagger(4→3)、P1 幕标题统一「计划回到视野」（build 派生同步）、lottie 死依赖清除、theme deny/danger 注释复原两 token 裁定
+- 四组修复抽帧像素实证（1-D 惰性↔点亮 / 4-B 徽章 192 绿px / 5-B 三拍+红叉在场）；tsc / motion 15 门 / 内容+覆盖门 FAIL 0；七幕 QA FAIL 0（尾幕 1 条指纹 WARN 像素 diff 定谳假阳性：字幕带 meanΔ 10.5）；归档 v3 + _captions×3（字幕与 v2 逐字节同；md5 源=档复核 28e05db3）
+- ISSUE-208 登记：47 cue 中 29 条多句扩窗落 hold 定格 ≈242-265s（~30% 片长，nag-ablate 单条 21s 像素实证）——编排级三选一待拍板（拆原生装置/重录加拍/接受关账），check_archify 对扩窗结构性失明建议回馈 to-video skill
+
 ### 「规划与协调」集 C 型信源完全重制 v1 交付（2026-10-02，C 型 GL 信源首例）
 
 - [「规划与协调」集（C 型重制 v2，换题）](apps/negentropy-influence/episodes/claude-code-planning-video/README.md) **13:20.73 · 155 句 3428 字 · 14 图 47 章逐章回放（锚定 30.3% · 密度 3.5/分 · 5 型全屏独占）**，归档 `~/Documents/video/claude-code-explained/` 新题 v1+v2 + `_captions`（旧题《模型的视野是安排出来的》v1/v2 原样保留）
