@@ -19,7 +19,7 @@ import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {LineGauge, MonoTag, QuoteCard, withAlpha} from '../components/clinic';
 import {ArchifyRecap} from '../components/ArchifyRecap';
-import {DUR, useCount, useEnter, useImpulse, useProgress, useSpring, useStagger} from '../motion';
+import {DUR, useCount, useImpulse, useProgress, useSpring, useStagger} from '../motion';
 
 // ── 5-A 末道工序：执行门（p5-06） ───────────────────────────────────────
 
@@ -57,7 +57,7 @@ const DoorExec: React.FC<{at: number}> = ({at}) => {
           height: 300,
           boxSizing: 'border-box',
           overflow: 'hidden',
-          background: 'theme.bgDeep',
+          background: theme.bgDeep,
           border: `3px solid ${theme.mech}`,
           borderRadius: 12,
           boxShadow: `0 0 ${26 * pass}px ${withAlpha(theme.ok, 0.55 * pass)}`,
@@ -108,7 +108,7 @@ const DoorExec: React.FC<{at: number}> = ({at}) => {
               width: 190,
               height: 300,
               boxSizing: 'border-box',
-              background: '#171C26',
+              background: theme.panel,
               border: `2px solid ${withAlpha(theme.mech, 0.8)}`,
               transform: `translateX(${(i === 0 ? -1 : 1) * open * 186}px)`,
             }}

@@ -7,10 +7,12 @@
  *  （复制适配、不做跨集 import——复用边界见 references/PIPELINE.md §四）。
  *
  *  刻意**不进模板**的是创作性母题（Terminal / LoopRing / DispatchTable /
- *  GateRouter / SlotRing）：它们承载各集的叙事隐喻，属于每集的创作产物。
- *  需要时从仍持有完整母题目录的分集副本复制对应段落后裁剪、追加到本文件
- *  （如 claude-code-memory-video 的 motifs.tsx——本集重制后 motifs 已收敛
- *  为 chrome 种子，创作母题不再在此）；母题目录与适用场景见 references/08 的母题表。
+ *  GateRouter）：它们承载各集的叙事隐喻，属于每集的创作产物。（R9 注：旧名单
+ *  的 SlotRing 已随本集重制删除、任何分集均无实现，需要时从 git 历史恢复或重绘。）
+ *  需要时从持有母题的分集副本复制对应段落后裁剪、追加到本文件（如
+ *  claude-code-memory-video 的 motifs.tsx 持有上述四母题——本集重制后 motifs
+ *  已收敛为 chrome 种子，创作母题不再在此）；母题目录与适用场景见 references/08
+ *  的母题表（SlotRing 清单同步属跨仓 to-video 事务）。
  */
 import React from 'react';
 import {interpolate, spring, useCurrentFrame, useVideoConfig} from 'remotion';

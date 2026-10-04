@@ -113,7 +113,7 @@ export const Doctor: React.FC<{x: number; y: number; scale?: number; opacity?: n
 export const Ledger: React.FC<{x: number; y: number; scale?: number}> = ({x, y, scale = 1}) => (
   <div style={{position: 'absolute', left: x, top: y, transform: `scale(${scale})`}}>
     <svg width={210} height={150} viewBox="0 0 210 150">
-      <rect x={10} y={8} width={190} height={134} rx={8} fill="#171C26" stroke={theme.panelBorder} strokeWidth={2} />
+      <rect x={10} y={8} width={190} height={134} rx={8} fill={theme.panel} stroke={theme.panelBorder} strokeWidth={2} />
       <line x1={105} y1={8} x2={105} y2={142} stroke={theme.panelBorder} strokeWidth={2} />
       <text x={58} y={34} textAnchor="middle" fontFamily={theme.sans} fontSize={16} fill={theme.dim}>
         {'问方'}
@@ -136,7 +136,7 @@ export const Ledger: React.FC<{x: number; y: number; scale?: number}> = ({x, y, 
 export const DeptGate: React.FC<{x: number; y: number; lit?: boolean}> = ({x, y, lit = false}) => (
   <div style={{position: 'absolute', left: x, top: y}}>
     <svg width={150} height={210} viewBox="0 0 150 210">
-      <rect x={14} y={10} width={122} height={190} rx={6} fill="#171C26" stroke={lit ? theme.mech : withAlpha(theme.mech, 0.5)} strokeWidth={3} />
+      <rect x={14} y={10} width={122} height={190} rx={6} fill={theme.panel} stroke={lit ? theme.mech : withAlpha(theme.mech, 0.5)} strokeWidth={3} />
       <text x={75} y={112} textAnchor="middle" fontFamily={theme.sans} fontSize={20} fill={lit ? theme.mech : theme.dim}>
         {'科室'}
       </text>
@@ -156,7 +156,7 @@ export const HarnessPlate: React.FC<{x: number; y: number; at?: number}> = ({x, 
         top: y,
         ...e,
         padding: '6px 22px',
-        background: '#171C26',
+        background: theme.panel,
         border: `2px solid ${withAlpha(theme.core, 0.75)}`,
         borderRadius: 6,
         fontFamily: theme.mono,
@@ -192,7 +192,7 @@ export const LineGauge: React.FC<{lit: number}> = ({lit}) => (
           style={{
             flex: 1,
             padding: '4px 12px',
-            background: '#171C26',
+            background: theme.panel,
             border: `2px solid ${on ? theme.core : withAlpha(theme.dim, 0.28)}`,
             borderRadius: 6,
             display: 'flex',
@@ -237,7 +237,7 @@ export const PeripheralRow: React.FC<{x: number; y: number; lit?: number; at?: n
               width: 128,
               padding: '14px 0',
               textAlign: 'center',
-              background: '#171C26',
+              background: theme.panel,
               border: `2px solid ${on ? theme.mech : withAlpha(theme.mech, 0.35)}`,
               borderRadius: 8,
               opacity: p1 * (on ? breathe : 1),
@@ -271,7 +271,7 @@ export const QuoteCard: React.FC<{
         width,
         ...e,
         padding: '26px 36px',
-        background: withAlpha('#0E1116', 0.92),
+        background: withAlpha(theme.bg, 0.92),
         border: `2px solid ${withAlpha(theme.core, 0.55)}`,
         borderRadius: 10,
         fontFamily: theme.serif,

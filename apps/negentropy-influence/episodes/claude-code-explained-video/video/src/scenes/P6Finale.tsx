@@ -51,7 +51,7 @@ const SeriesBoard: React.FC<{at: number; nextHint?: boolean}> = ({at, nextHint =
               gap: 18,
               padding: '12px 24px',
               marginBottom: 14,
-              background: active ? withAlpha(theme.core, 0.1) : '#171C26',
+              background: active ? withAlpha(theme.core, 0.1) : theme.panel,
               border: `2px solid ${active ? theme.core : next ? withAlpha(theme.mech, 0.35 + 0.25 * nextGlow) : withAlpha(theme.dim, 0.25)}`,
               borderRadius: 8,
             }}
@@ -95,7 +95,7 @@ const TwoStep: React.FC<{at: number}> = ({at}) => {
             opacity: s.p,
             transform: `translateY(${(1 - s.p) * 16}px)`,
             padding: '14px 34px',
-            background: '#171C26',
+            background: theme.panel,
             border: `2px solid ${i === 0 ? withAlpha(theme.core, 0.7) : withAlpha(theme.mech, 0.7)}`,
             borderRadius: 10,
             fontFamily: theme.sans,
@@ -145,7 +145,7 @@ const SplitScreen: React.FC<{at: number}> = ({at}) => {
           width: 300,
           padding: '26px 0',
           textAlign: 'center',
-          background: '#171C26',
+          background: theme.panel,
           border: `3px solid ${theme.mech}`,
           borderRadius: 12,
           opacity: enters[1],
@@ -218,7 +218,7 @@ export const P6Finale: React.FC<{scene: SceneRange}> = ({scene}) => {
               top: 700,
               width: 340,
               padding: '10px 16px',
-              background: '#171C26',
+              background: theme.panel,
               border: `2px solid ${withAlpha(theme.mech, 0.6)}`,
               borderRadius: 8,
               fontFamily: theme.sans,
@@ -244,7 +244,9 @@ export const P6Finale: React.FC<{scene: SceneRange}> = ({scene}) => {
       <Sequence {...bB} name="6-B 分工与方法论">
         <SplitScreen at={at('p6-04') - bB.from} />
         <TwoStep at={at('p6-06') - bB.from} />
-        <QuoteCard x={560} y={820} at={at('p6-08') - bB.from} width={800}>
+        {/* y=730 对齐 P5 5-C 最低先例（底缘 852）：R9 修复原 y=820 底缘 942
+            伸进 [920,948) 字幕缓冲带、与 p6-08 满字号字幕板顶 942.6 贴合 */}
+        <QuoteCard x={560} y={730} at={at('p6-08') - bB.from} width={800}>
           {'循环稳 · 外设全'}
         </QuoteCard>
       </Sequence>

@@ -116,6 +116,18 @@ const WorseNote: React.FC<{at: number}> = ({at}) => {
 
 // ── 4-B 四点位挂载（p4-05..11） ─────────────────────────────────────────
 
+/** 4-B/4-E 共用 mono 角标 chip（R9 合一：原 MountCard/GuardCard 两份逐字节副本；
+ *  4-F 日期戳为 2px 紧凑档——小格密度变体，就地登记） */
+const MONO_CHIP: React.CSSProperties = {
+  display: 'inline-block',
+  padding: '3px 10px',
+  border: `1.5px solid ${withAlpha(theme.dim, 0.5)}`,
+  borderRadius: 5,
+  fontFamily: theme.mono,
+  fontSize: 14,
+  color: theme.dim,
+};
+
 /** p4-06 空窗回落：第一个点位（提交后）小卡——窗=本句，勿越 p4-07 cue 窗 */
 const MountCard: React.FC<{at: number}> = ({at}) => {
   const e = useEnter('pop', {at, dur: DUR.f4});
@@ -137,18 +149,7 @@ const MountCard: React.FC<{at: number}> = ({at}) => {
         <div style={{fontFamily: theme.sans, fontSize: 20, color: theme.dim, marginTop: 8}}>
           {'进医生之前'}
         </div>
-        <div
-          style={{
-            marginTop: 12,
-            display: 'inline-block',
-            padding: '3px 10px',
-            border: `1.5px solid ${withAlpha(theme.dim, 0.5)}`,
-            borderRadius: 5,
-            fontFamily: theme.mono,
-            fontSize: 14,
-            color: theme.dim,
-          }}
-        >
+        <div style={{marginTop: 12, ...MONO_CHIP}}>
           {'UserPromptSubmit'}
         </div>
       </div>
@@ -156,9 +157,11 @@ const MountCard: React.FC<{at: number}> = ({at}) => {
   );
 };
 
-/** 四向节点座：环体四方 mech 插座（提交后/执行前/执行后/结诊时，英文落角标位） */
+/** 四向节点座：环体四方 mech 插座（提交后/执行前/执行后/结诊时，英文落角标位）。
+ *  上座 y=214：按三座 20–24px 对称净距口径重推（环 bbox 顶 300 − 座高 66 − 净距 20；
+ *  R9 修复：原 y=232 底缘 ≈298 压住环顶「进」刻度上弧） */
 const SEATS = [
-  {zh: '提交后', id: 'UserPromptSubmit', x: 878, y: 232},
+  {zh: '提交后', id: 'UserPromptSubmit', x: 878, y: 214},
   {zh: '执行前', id: 'PreToolUse', x: 1130, y: 428},
   {zh: '执行后', id: 'PostToolUse', x: 878, y: 624},
   {zh: '结诊时', id: 'Stop', x: 626, y: 428},
@@ -360,15 +363,7 @@ const ReadTags: React.FC<{at: number}> = ({at}) => {
 /** p4-22 空窗回落：真实产品 · 双保险过渡小卡（两道保险名目落角标位；窗=本句） */
 const GuardCard: React.FC<{at: number}> = ({at}) => {
   const e = useEnter('pop', {at, dur: DUR.f4});
-  const chip: React.CSSProperties = {
-    display: 'inline-block',
-    padding: '3px 10px',
-    border: `1.5px solid ${withAlpha(theme.dim, 0.5)}`,
-    borderRadius: 5,
-    fontFamily: theme.mono,
-    fontSize: 14,
-    color: theme.dim,
-  };
+  const chip = MONO_CHIP;
   return (
     <div style={{position: 'absolute', left: 660, top: 360, width: 600, ...e, textAlign: 'center'}}>
       <div
@@ -470,11 +465,15 @@ const ScaleLedger: React.FC<{at: number; atMore: number}> = ({at, atMore}) => {
       </div>
       <div
         style={{
+          // R9 修复：原 left:330 魔数使行中心 ≈982–1022 右偏离 960 中轴；
+          // 改与上方节点墙同法（left:0 + width:1920 + flex 居中）
           position: 'absolute',
-          left: 330,
+          left: 0,
+          width: 1920,
           top: 420,
           display: 'flex',
           alignItems: 'center',
+          justifyContent: 'center',
           gap: 26,
         }}
       >
@@ -506,15 +505,11 @@ const ScaleLedger: React.FC<{at: number; atMore: number}> = ({at, atMore}) => {
               </div>
               {i === 2 && (
                 <div style={{marginTop: 6}}>
+                  {/* MONO_CHIP 的 2px 紧凑档（小格密度变体，刻意分档登记） */}
                   <span
                     style={{
-                      display: 'inline-block',
+                      ...MONO_CHIP,
                       padding: '2px 10px',
-                      border: `1.5px solid ${withAlpha(theme.dim, 0.5)}`,
-                      borderRadius: 5,
-                      fontFamily: theme.mono,
-                      fontSize: 14,
-                      color: theme.dim,
                     }}
                   >
                     {'2026-09'}

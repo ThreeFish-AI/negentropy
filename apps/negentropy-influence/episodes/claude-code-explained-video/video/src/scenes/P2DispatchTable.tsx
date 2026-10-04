@@ -85,7 +85,7 @@ const IntentSwap: React.FC<{at: number}> = ({at}) => {
           top: 236,
           width: 380,
           padding: '18px 24px',
-          background: 'theme.bgDeep',
+          background: theme.bgDeep,
           border: `2px solid ${theme.panelBorder}`,
           borderRadius: 10,
           opacity: cards[1],
@@ -239,7 +239,7 @@ const RegistryBook: React.FC<{atOpen: number; atReg: number; atFive: number}> = 
           transformOrigin: 'left center',
           transform: `perspective(1300px) rotateY(${-165 * open}deg)`,
           backfaceVisibility: 'hidden',
-          background: 'theme.bgDeep',
+          background: theme.bgDeep,
           border: `2px solid ${withAlpha(theme.mech, 0.5)}`,
           borderRadius: 10,
           display: 'flex',
@@ -256,9 +256,11 @@ const RegistryBook: React.FC<{atOpen: number; atReg: number; atFive: number}> = 
 // ── 2-C 执行行翻转：写死调用 → 查表（spring 翻面＋mech 下划线）＋135 计数 ────
 
 const FlipLine: React.FC<{at: number}> = ({at}) => {
-  const s = useSpring('settle', {at, dur: DUR.f5});
+  // R9 修复：翻面弹簧让位入场（原同锚 at=0——fade 7 帧内弹簧已过 90°，
+  // 写死版正面从未以可读亮度呈现，见 2026-10-04 评审 F16）
+  const s = useSpring('settle', {at: at + DUR.f4, dur: DUR.f5});
   const inP = useProgress(at, DUR.f4); // 承 archify 全屏窗的硬切缓入
-  const under = useProgress(at + DUR.f5 - 3, DUR.f4); // effects 通道不吃弹簧（铁律③）
+  const under = useProgress(at + DUR.f4 + DUR.f5 - 3, DUR.f4); // effects 通道不吃弹簧（铁律③）
   return (
     <div style={{position: 'absolute', left: 560, top: 320, width: 800, height: 200, perspective: 1500, opacity: inP}}>
       <div
@@ -275,7 +277,7 @@ const FlipLine: React.FC<{at: number}> = ({at}) => {
             position: 'absolute',
             inset: 0,
             backfaceVisibility: 'hidden',
-            background: 'theme.bgDeep',
+            background: theme.bgDeep,
             border: `2px solid ${theme.panelBorder}`,
             borderRadius: 10,
             display: 'flex',
@@ -294,7 +296,7 @@ const FlipLine: React.FC<{at: number}> = ({at}) => {
             inset: 0,
             backfaceVisibility: 'hidden',
             transform: 'rotateY(180deg)',
-            background: 'theme.bgDeep',
+            background: theme.bgDeep,
             border: `2px solid ${withAlpha(theme.mech, 0.7)}`,
             borderRadius: 10,
             display: 'flex',
@@ -396,7 +398,7 @@ const SerialParallel: React.FC<{atCards: number; atQueue: number; atFlash: numbe
                 width: 170,
                 padding: '10px 0',
                 textAlign: 'center',
-                background: 'theme.bgDeep',
+                background: theme.bgDeep,
                 border: `2px solid ${withAlpha(theme.dim, 0.55)}`,
                 borderRadius: 7,
                 fontFamily: theme.sans,
@@ -435,7 +437,7 @@ const SerialParallel: React.FC<{atCards: number; atQueue: number; atFlash: numbe
               width: 168,
               padding: '12px 0',
               textAlign: 'center',
-              background: 'theme.bgDeep',
+              background: theme.bgDeep,
               border: `2px solid ${theme.mech}`,
               borderRadius: 7,
               fontFamily: theme.sans,
@@ -461,7 +463,7 @@ const SerialParallel: React.FC<{atCards: number; atQueue: number; atFlash: numbe
               width: 168,
               padding: '12px 0',
               textAlign: 'center',
-              background: 'theme.bgDeep',
+              background: theme.bgDeep,
               border: `2px solid ${withAlpha(theme.dim, 0.4)}`,
               borderRadius: 7,
               fontFamily: theme.sans,

@@ -377,7 +377,7 @@ const FaxStack: React.FC<{atPages: number; atStamp: number}> = ({atPages, atStam
           opacity: slotIn,
         }}
       >
-        <div style={{position: 'absolute', left: 24, top: 26, width: 292, height: 8, borderRadius: 4, background: 'theme.bgDeep'}} />
+        <div style={{position: 'absolute', left: 24, top: 26, width: 292, height: 8, borderRadius: 4, background: theme.bgDeep}} />
       </div>
       {pages.map((p, i) => (
         <div
@@ -388,7 +388,7 @@ const FaxStack: React.FC<{atPages: number; atStamp: number}> = ({atPages, atStam
             top: 250 + i * 46,
             width: 296,
             height: 130,
-            background: withAlpha('#F2F5FA', 0.05),
+            background: withAlpha(theme.text, 0.05),
             border: `2px solid ${withAlpha(theme.dim, 0.4)}`,
             borderRadius: 4,
             opacity: p,
@@ -603,7 +603,7 @@ const CmdCard: React.FC<{at: number}> = ({at}) => {
         width: 560,
         opacity: inP,
         transform: `translateY(${(1 - tilt) * 22}px) rotate(${2.2 * tilt}deg)`,
-        background: 'theme.bgDeep',
+        background: theme.bgDeep,
         border: `2px solid ${theme.panelBorder}`,
         borderRadius: 10,
         padding: '14px 20px 18px',
@@ -771,7 +771,7 @@ export const P1IntakeLoop: React.FC<{scene: SceneRange}> = ({scene}) => {
         <Sequence durationInFrames={seal16} name="1-E 实验封条">
           <ExpBadge x={742} y={408} at={2} n={1} />
         </Sequence>
-        {/* p1-19 回落：双轨小卡（旧页/新码两卡对切） */}
+        {/* p1-19 回落：双轨小卡（旧判据/新判据两卡对切） */}
         <Sequence from={at('p1-19') - bE.from} durationInFrames={dur('p1-19')} name="1-E 双轨小卡">
           <DualTrack at={2} />
         </Sequence>

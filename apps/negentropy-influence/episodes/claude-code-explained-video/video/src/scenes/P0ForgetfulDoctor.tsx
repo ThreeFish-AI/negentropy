@@ -47,7 +47,7 @@ const ChatDuo: React.FC<{atChat: number; atPaper: number}> = ({atChat, atPaper})
             opacity: enters[i],
             transform: `translateY(${(1 - enters[i]) * 24}px)`,
             padding: '18px 24px',
-            background: '#171C26',
+            background: theme.panel,
             border: `2px solid ${withAlpha(s.tone, 0.5)}`,
             borderRadius: 10,
             fontFamily: theme.sans,
@@ -67,7 +67,7 @@ const ChatDuo: React.FC<{atChat: number; atPaper: number}> = ({atChat, atPaper})
           top: 560,
           width: 380,
           padding: '16px 22px',
-          background: withAlpha('#F2F5FA', 0.06),
+          background: withAlpha(theme.text, 0.06),
           border: `2px dashed ${withAlpha(theme.dim, 0.55)}`,
           borderRadius: 6,
           fontFamily: theme.serif,
@@ -141,10 +141,11 @@ export const P0ForgetfulDoctor: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       <Sequence {...bC} name="0-C 诊室定妆">
         <ClinicFirstLook atEnter={2} atPlate={at('p0-11') - bC.from} />
-        {/* p0-10 句让位：循环接手一瞥（与 0-B 实例隔幕，独立实例恢复入场） */}
+        {/* p0-10 句让位：循环接手一瞥（与 0-B 实例隔幕，独立实例恢复入场）。
+            caption=实例角色（R9 修复：原与章 label「循环接手」逐字同串双绘） */}
         <ArchifyRecap
           slug="human-relay"
-          caption="循环接手"
+          caption="程序接管"
           cues={[{chapterId: 'loop-takes-over', at: at('p0-10') - bC.from, durationInFrames: dur('p0-10')}]}
         />
       </Sequence>
@@ -153,10 +154,10 @@ export const P0ForgetfulDoctor: React.FC<{scene: SceneRange}> = ({scene}) => {
         <CountCard at={2} to={102} />
         <LineGauge lit={1} />
         <PeripheralRow x={1140} y={430} lit={3} at={at('p0-14') - bD.from} />
-        {/* p0-15 句让位：差距预告一瞥 */}
+        {/* p0-15 句让位：差距预告一瞥（caption=实例角色，R9 修复同串双绘） */}
         <ArchifyRecap
           slug="human-relay"
-          caption="差距预告"
+          caption="差距在哪"
           cues={[{chapterId: 'gap-preview', at: at('p0-15') - bD.from, durationInFrames: dur('p0-15')}]}
         />
         <MonoTag x={246} y={64} at={at('p0-12') - bD.from}>{'102 行 · 教学版'}</MonoTag>
