@@ -162,6 +162,7 @@ export const P6Rules: React.FC<{scene: SceneRange}> = ({scene}) => {
       <HarnessBadge style={BADGE_STYLE} />
 
       <Sequence {...bA} name="6-A 五规律快板">
+        {/* p6-01 为规律引入句（章前空窗 ~3.9s 有意保留）：五章与 p6-02..06 一一对应，rule-position 19.7s 前扩须裁 64%——as-built 留痕 */}
         <ArchifyRecap slug="pc2-rules" caption="五条规律" cues={[
           {chapterId: 'rule-position', at: at('p6-02') - bA.from, durationInFrames: dur('p6-02'), fit: 'trim'},
           {chapterId: 'rule-state', at: at('p6-03') - bA.from, durationInFrames: dur('p6-03')},

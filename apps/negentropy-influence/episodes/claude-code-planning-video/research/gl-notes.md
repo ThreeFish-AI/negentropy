@@ -5,12 +5,14 @@
 > - **原始信源**（B 型，摘自 GL sources.md 信源表，指纹台账见本集 `sources.toml`）：
 >   - S0 站点五页 learn.shareai.run/zh/{s05,s06,s07,s10,s11}（site 轨，GL 取数 2026-09-30；快照字节 `source-archive/67a9126/site/`）
 >   - S1 源码仓 shareAI-lab/learn-claude-code @ `67a9126c`（repo 轨，钉点分支 fix/s08-s20-sync-frontmatter-parser；五节字节 `source-archive/67a9126/`）
->   - S3–S8 理论锚点（Lost in the middle / tar pit / Simon / ROC / Saltzer-Schroeder 等，仅作理论引用非事实面）
+>   - S2 前置六节快照（GL 伴生 `sources.md` 信源表 S2；弧线四数对账用，字节在 `.temp/lcc-planning-lab/sources/pre_s0x.html`）
+>   - S3 anthropics/claude-code 公开仓实测存档（`src` 404 探针，事实面，正文 [9] 之据）
+>   - S4–S8 理论锚点（Lost in the middle / tar pit / Simon / ROC / Saltzer-Schroeder 等，仅作理论引用非事实面）
 > - **伴生资产**（GL 直通承接）：`.temp/lcc-planning-lab/{analogy.md, sources.md, repo/, sources/, experiments_raw_*.log}`（类比登记表已合入附录 A）
 > - **证据定级**：GL 对原始信源的转述按 B 型 ≤【二】级；正文【课程转述】=【三】级（口播须归属句）；`planning_control_lab.py` 实测经本集复算（附录 C）——对应数字可按【一】级（本集复算）引用
 > - **鲜度**：本集复核 2026-10-02（见附录 C 鲜度小节）
 > - **链接适配**：正文自 docs/research/agent-harness/ 迁入本集后，§2 资产三链接的相对层级已改写为自 research/ 出发（内容零改动，仅路径层级）
-> - **archify 全景图**：GL 产出的 docs 版 HTML（claude-code-planning-control--five-mechanisms.html）无引导章节标记，不能逐章录制；本集全景按既有决策以同一 `.mmd` 内容源重产带章节视频版（`pc2-panorama`），节点拓扑与正文 §2 同源
+> - **archify 全景图**：GL 产出的 docs 版 HTML（claude-code-planning-control--five-mechanisms.html）无引导章节标记，不能逐章录制；本集全景按既有决策以同一 `.mmd` 内容源重产带章节视频版（`pc2-panorama`；as-built 简化：执行循环折为 `pan-loop` 一章 + M1–M4 挂点四章，M5 恢复挂点在本集 P5 幕以 triage-map 独立展开）
 
 # Learn Claude Code「规划与协调」五节 精读与通俗拆解
 
