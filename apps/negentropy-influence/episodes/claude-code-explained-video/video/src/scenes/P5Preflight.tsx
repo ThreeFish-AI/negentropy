@@ -57,7 +57,7 @@ const DoorExec: React.FC<{at: number}> = ({at}) => {
           height: 300,
           boxSizing: 'border-box',
           overflow: 'hidden',
-          background: '#0B0E13',
+          background: 'theme.bgDeep',
           border: `3px solid ${theme.mech}`,
           borderRadius: 12,
           boxShadow: `0 0 ${26 * pass}px ${withAlpha(theme.ok, 0.55 * pass)}`,

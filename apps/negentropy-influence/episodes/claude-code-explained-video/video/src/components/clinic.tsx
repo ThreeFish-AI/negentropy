@@ -32,7 +32,9 @@ export const LoopRing: React.FC<{
   const breath = useBreathe({period: 150, amp: 0.08, base: 0.92});
   const r = size / 2;
   const c = 2 * Math.PI * r;
-  const ticks = ['调', '落', '判', '执', '回'];
+  // 五步刻度＝诊室词表首字（进诊/落账/收单/执行/回喂，同 P1 LOOP_STEPS 的 SSOT；
+  // 2026-10-04 评审：原机械词表「调/判」与口播位 1/3 错位已对齐）
+  const ticks = ['进', '落', '收', '执', '回'];
   return (
     <div style={{position: 'absolute', left: x, top: y, width: size, height: size}}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
@@ -108,21 +110,16 @@ export const Doctor: React.FC<{x: number; y: number; scale?: number; opacity?: n
 );
 
 /** 病历本（唯一凭据，dim 灰册页 + mech 青书签线） */
-export const Ledger: React.FC<{x: number; y: number; scale?: number; open?: boolean}> = ({
-  x,
-  y,
-  scale = 1,
-  open = true,
-}) => (
+export const Ledger: React.FC<{x: number; y: number; scale?: number}> = ({x, y, scale = 1}) => (
   <div style={{position: 'absolute', left: x, top: y, transform: `scale(${scale})`}}>
     <svg width={210} height={150} viewBox="0 0 210 150">
       <rect x={10} y={8} width={190} height={134} rx={8} fill="#171C26" stroke={theme.panelBorder} strokeWidth={2} />
       <line x1={105} y1={8} x2={105} y2={142} stroke={theme.panelBorder} strokeWidth={2} />
       <text x={58} y={34} textAnchor="middle" fontFamily={theme.sans} fontSize={16} fill={theme.dim}>
-        {open ? '问方' : ''}
+        {'问方'}
       </text>
       <text x={156} y={34} textAnchor="middle" fontFamily={theme.sans} fontSize={16} fill={theme.dim}>
-        {open ? '答方' : ''}
+        {'答方'}
       </text>
       {[0, 1, 2].map((i) => (
         <React.Fragment key={i}>
@@ -185,8 +182,8 @@ export const LINE_GAUGE: {label: string; sub: string}[] = [
   {label: '232', sub: '+节点'},
 ];
 
-export const LineGauge: React.FC<{lit: number; y?: number}> = ({lit, y = 880}) => (
-  <div style={{position: 'absolute', left: 240, top: y, width: 1440, display: 'flex', gap: 18}}>
+export const LineGauge: React.FC<{lit: number}> = ({lit}) => (
+  <div style={{position: 'absolute', left: 240, top: 880, width: 1440, display: 'flex', gap: 18}}>
     {LINE_GAUGE.map((g, i) => {
       const on = i < lit;
       return (
@@ -290,19 +287,13 @@ export const QuoteCard: React.FC<{
 };
 
 /** 破坏性实验封条卡（mono 徽标，实验编号唯一变量）。
- *  size 单一事实源：md＝与其它自制件并存的窄窗小徽标（24px 档）；lg＝自制段主画面
- *  放大档（27px 档）——同构「封条卡→句尾让位」节拍（徽标独占自制段）恒用 lg＋(742,408)
- *  （2026-10-03 评审：4-D 原混用 md 已对齐）。收敛自 P1/P2 各自复制的 SealCard
- *  （2026-10-02 评审：三实现两规格 → 一处两档）。 */
-export const ExpBadge: React.FC<{x: number; y: number; at: number; n: number; size?: 'md' | 'lg'}> = ({
-  x,
-  y,
-  at,
-  n,
-  size = 'md',
-}) => {
-  const lg = size === 'lg';
-  const e = useEnter('fall', {at, dur: DUR.f4, dist: lg ? 90 : 30});
+ *  自制段主画面放大档（27px 档）——同构「封条卡→句尾让位」节拍（徽标独占自制段）
+ *  恒用 (742,408)（2026-10-03 评审：4-D 原混用 md 已对齐；2026-10-04 评审：md 档
+ *  零消费删除，仅存单档）。收敛自 P1/P2 各自复制的 SealCard（2026-10-02 评审：
+ *  三实现两规格 → 一处两档）。P2 2-F 埋雷预告卡同签名边框、字号/字体/背景 alpha
+ *  分档，语义不同属登记变体非副本（2026-10-04 评审登记）。 */
+export const ExpBadge: React.FC<{x: number; y: number; at: number; n: number}> = ({x, y, at, n}) => {
+  const e = useEnter('fall', {at, dur: DUR.f4, dist: 90});
   return (
     <div
       style={{
@@ -310,14 +301,14 @@ export const ExpBadge: React.FC<{x: number; y: number; at: number; n: number; si
         left: x,
         top: y,
         ...e,
-        padding: lg ? '12px 32px' : '10px 26px',
+        padding: '12px 32px',
         background: withAlpha(theme.deny, 0.12),
-        border: `${lg ? 2.5 : 2}px dashed ${withAlpha(theme.deny, lg ? 0.85 : 0.8)}`,
-        borderRadius: lg ? 10 : 8,
+        border: `2.5px dashed ${withAlpha(theme.deny, 0.85)}`,
+        borderRadius: 10,
         fontFamily: theme.mono,
-        fontSize: lg ? 27 : 24,
+        fontSize: 27,
         color: theme.deny,
-        letterSpacing: lg ? 3 : 2,
+        letterSpacing: 3,
       }}
     >
       {`破坏性实验 · ${n}`}

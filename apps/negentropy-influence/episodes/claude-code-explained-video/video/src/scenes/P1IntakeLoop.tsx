@@ -279,7 +279,9 @@ const StopDial: React.FC<{at: number}> = ({at}) => {
   const inP = useProgress(at, DUR.f4);
   const s = useSpring('settle', {at: at + 3, dur: DUR.f5});
   const sw = useProgress(at + 3, DUR.f5); // effects 通道不吃弹簧（铁律③）
-  const knobX = 712 + 420 * s;
+  // 拨杆行程贴合轨道两端（700..1220、knob 宽 30）：s=0 左缘贴左端、s=1 右缘贴右端
+  // （2026-10-04 评审：原 712+420 终位悬停轨道末端前 73px 已对齐）
+  const knobX = 715 + 490 * s;
   // 判据两态对照的「迟到方」：stop_reason 打叉后淡出（对照下方常亮的 内容块）
   const strikeIn = useProgress(at + 2, DUR.f3);
   const strikeOut = 1 - useProgress(at + 34, DUR.f4);
@@ -375,7 +377,7 @@ const FaxStack: React.FC<{atPages: number; atStamp: number}> = ({atPages, atStam
           opacity: slotIn,
         }}
       >
-        <div style={{position: 'absolute', left: 24, top: 26, width: 292, height: 8, borderRadius: 4, background: '#0B0E13'}} />
+        <div style={{position: 'absolute', left: 24, top: 26, width: 292, height: 8, borderRadius: 4, background: 'theme.bgDeep'}} />
       </div>
       {pages.map((p, i) => (
         <div
@@ -601,7 +603,7 @@ const CmdCard: React.FC<{at: number}> = ({at}) => {
         width: 560,
         opacity: inP,
         transform: `translateY(${(1 - tilt) * 22}px) rotate(${2.2 * tilt}deg)`,
-        background: '#0B0E13',
+        background: 'theme.bgDeep',
         border: `2px solid ${theme.panelBorder}`,
         borderRadius: 10,
         padding: '14px 20px 18px',
@@ -767,7 +769,7 @@ export const P1IntakeLoop: React.FC<{scene: SceneRange}> = ({scene}) => {
         />
         {/* p1-16 前半：实验封条卡（句尾让位给 stop-late） */}
         <Sequence durationInFrames={seal16} name="1-E 实验封条">
-          <ExpBadge x={742} y={408} at={2} n={1} size="lg" />
+          <ExpBadge x={742} y={408} at={2} n={1} />
         </Sequence>
         {/* p1-19 回落：双轨小卡（旧页/新码两卡对切） */}
         <Sequence from={at('p1-19') - bE.from} durationInFrames={dur('p1-19')} name="1-E 双轨小卡">

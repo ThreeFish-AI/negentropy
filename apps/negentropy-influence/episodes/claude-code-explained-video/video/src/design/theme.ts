@@ -37,4 +37,9 @@ export const theme = {
   core: '#D97757',
   mech: '#64C4C0',
   deny: '#EF6461',
+
+  // ── 本集私有扩展 ──
+  // bgDeep=ArchifyClip 画框内衬色（与冻结件 ArchifyClip.tsx 同值，跨集件不可改导出）：
+  // 场景自制件需与画框同底时读这里，不再裸拷贝 hex（2026-10-04 评审：11 处收敛）。
+  bgDeep: '#0B0E13',
 } as const;

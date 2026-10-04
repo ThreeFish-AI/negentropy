@@ -481,7 +481,9 @@ const ScaleLedger: React.FC<{at: number; atMore: number}> = ({at, atMore}) => {
         {SCALE_CELLS.map((c, i) => (
           <React.Fragment key={c.label}>
             {i > 0 && (
-              <div style={{fontFamily: theme.mono, fontSize: 40, color: theme.dim}}>{'↔'}</div>
+              // 分隔随右侧格入场（对照 P5 MethodCard 的 rows[i] 门控口径；
+              // 2026-10-04 评审：原恒显致 beat 头两枚 ↔ 孤立悬浮已门控）
+              <div style={{fontFamily: theme.mono, fontSize: 40, color: theme.dim, opacity: enters[i]}}>{'↔'}</div>
             )}
             <div
               style={{
@@ -608,7 +610,7 @@ export const P4HookNodes: React.FC<{scene: SceneRange}> = ({scene}) => {
           pickFit 会落 trim 档＝原速播＋裁尾，属预期兜底） */}
       <Sequence {...bD} name="4-D 实验4 反转">
         <Sequence from={at('p4-17') - bD.from} durationInFrames={dur('p4-17')}>
-          <ExpBadge x={742} y={408} at={2} n={4} size="lg" />
+          <ExpBadge x={742} y={408} at={2} n={4} />
         </Sequence>
         <ArchifyRecap
           slug="hookresult-tri"

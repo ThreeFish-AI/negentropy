@@ -85,7 +85,7 @@ const IntentSwap: React.FC<{at: number}> = ({at}) => {
           top: 236,
           width: 380,
           padding: '18px 24px',
-          background: '#0B0E13',
+          background: 'theme.bgDeep',
           border: `2px solid ${theme.panelBorder}`,
           borderRadius: 10,
           opacity: cards[1],
@@ -95,7 +95,7 @@ const IntentSwap: React.FC<{at: number}> = ({at}) => {
         <div style={{fontFamily: theme.sans, fontSize: 19, color: theme.dim}}>{'拼出来的命令'}</div>
         <div style={{marginTop: 8, fontFamily: theme.mono, fontSize: 21, color: theme.text}}>{'cat docs/notes.md'}</div>
       </div>
-      <svg width={230} height={120} style={{position: 'absolute', left: 850, top: 258}}>
+      <svg width={246} height={120} style={{position: 'absolute', left: 850, top: 258}}>
         <path
           d="M4 60 C 50 10, 110 110, 150 60 S 210 10, 226 60"
           fill="none"
@@ -239,7 +239,7 @@ const RegistryBook: React.FC<{atOpen: number; atReg: number; atFive: number}> = 
           transformOrigin: 'left center',
           transform: `perspective(1300px) rotateY(${-165 * open}deg)`,
           backfaceVisibility: 'hidden',
-          background: '#10141C',
+          background: 'theme.bgDeep',
           border: `2px solid ${withAlpha(theme.mech, 0.5)}`,
           borderRadius: 10,
           display: 'flex',
@@ -275,7 +275,7 @@ const FlipLine: React.FC<{at: number}> = ({at}) => {
             position: 'absolute',
             inset: 0,
             backfaceVisibility: 'hidden',
-            background: '#0B0E13',
+            background: 'theme.bgDeep',
             border: `2px solid ${theme.panelBorder}`,
             borderRadius: 10,
             display: 'flex',
@@ -294,7 +294,7 @@ const FlipLine: React.FC<{at: number}> = ({at}) => {
             inset: 0,
             backfaceVisibility: 'hidden',
             transform: 'rotateY(180deg)',
-            background: '#0B0E13',
+            background: 'theme.bgDeep',
             border: `2px solid ${withAlpha(theme.mech, 0.7)}`,
             borderRadius: 10,
             display: 'flex',
@@ -396,7 +396,7 @@ const SerialParallel: React.FC<{atCards: number; atQueue: number; atFlash: numbe
                 width: 170,
                 padding: '10px 0',
                 textAlign: 'center',
-                background: '#0B0E13',
+                background: 'theme.bgDeep',
                 border: `2px solid ${withAlpha(theme.dim, 0.55)}`,
                 borderRadius: 7,
                 fontFamily: theme.sans,
@@ -435,7 +435,7 @@ const SerialParallel: React.FC<{atCards: number; atQueue: number; atFlash: numbe
               width: 168,
               padding: '12px 0',
               textAlign: 'center',
-              background: '#0B0E13',
+              background: 'theme.bgDeep',
               border: `2px solid ${theme.mech}`,
               borderRadius: 7,
               fontFamily: theme.sans,
@@ -461,7 +461,7 @@ const SerialParallel: React.FC<{atCards: number; atQueue: number; atFlash: numbe
               width: 168,
               padding: '12px 0',
               textAlign: 'center',
-              background: '#0B0E13',
+              background: 'theme.bgDeep',
               border: `2px solid ${withAlpha(theme.dim, 0.4)}`,
               borderRadius: 7,
               fontFamily: theme.sans,
@@ -675,7 +675,7 @@ export const P2DispatchTable: React.FC<{scene: SceneRange}> = ({scene}) => {
         />
         {/* p2-11 前半：实验封条卡（句尾让位给 unknown-in） */}
         <Sequence durationInFrames={seal11} name="2-D 实验封条">
-          <ExpBadge x={742} y={408} at={2} n={2} size="lg" />
+          <ExpBadge x={742} y={408} at={2} n={2} />
           <MonoTag x={748} y={300} at={6}>{'KeyError vs Unknown'}</MonoTag>
         </Sequence>
       </Sequence>
