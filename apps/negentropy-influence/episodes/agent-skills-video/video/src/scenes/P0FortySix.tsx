@@ -164,6 +164,12 @@ const PainSplit: React.FC<{listAt: number; viewAt: number; gridAt: number}> = ({
   );
 };
 
+/** 账单爬升区间：20 → 60,000 token ＝ 20 份正文 × 约 3000 token 的**示意估算**
+ *  （230 §4「本篇推断示意算式」，3000 为取值于规范建议上限内的示意值——非实测；
+ *  口径登记见 research/number-reconciliation.md「口播可用性」，画面须带示意角标）。 */
+const BILL_FROM = 20;
+const BILL_TO = 60000;
+
 /** 0-D 两条老路：上「猜」（抖动问号+虚线结果）；下「塞手册」（开场白格阵
  *  填满变暗、指令色块互相挤压）+ 账单跳涨。 */
 const TwoDeadEnds: React.FC<{guessAt: number; stuffAt: number; billAt: number; billDur: number}> = ({
@@ -276,9 +282,9 @@ const TwoDeadEnds: React.FC<{guessAt: number; stuffAt: number; billAt: number; b
             color: theme.danger,
           }}
         >
-          {Math.round(20 + billP * 2140)}
+          {(BILL_FROM + Math.round(billP * (BILL_TO - BILL_FROM))).toLocaleString('en-US')}
         </span>
-        <span style={{fontSize: 15, color: theme.dim}}>token ↑ 还在涨</span>
+        <span style={{fontSize: 15, color: theme.dim}}>token（示意）↑ 还在涨</span>
       </div>
     </div>
   );
@@ -391,6 +397,8 @@ export const P0FortySix: React.FC<{scene: SceneRange}> = ({scene}) => {
             billAt={at('p0-10') - bD.from}
             billDur={dur('p0-10')}
           />
+          {/* 示意口径角标（同 0-B 取数角标位）：6 万＝230 §4 推断示意算式，非实测 */}
+          <CornerNote text="示意估算 · 20 份正文 × 约 3000 token（非实测）" y={898} x={60} />
         </Stage>
       </Sequence>
 
