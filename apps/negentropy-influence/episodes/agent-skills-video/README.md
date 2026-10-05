@@ -1,6 +1,6 @@
-# 《刻意做小：Agent Skills 开放标准》科普视频工程
+# 《Agent Skills 开放标准》科普视频工程
 
-> 交付状态：**v10 终渲待审（2026-10-05，十三轮评审全修 + v14 遗留项落地：0-D 账单示意化）**：13:07.7 @1080p30 · 124 句 3678 字 · archify 双图 16 章 20 cue（锚定 16.1%）· 机器门全绿（check/tsc/qa 全 FAIL 0）· 归档 `~/Documents/video/agent-infra/` v10 + `_captions/`。复现流水线见下。
+> 交付状态：**脚手架已生成，内容待撰写**。发布顺序见 [../../series.json](../../series.json)（工作区根）。
 
 ## 目录结构
 
@@ -21,19 +21,16 @@
 # 在工作区内执行。$T/$W/$P/$V 的定义见 to-video skill 的 references/PIPELINE.md 路径变量约定（唯一定义处）
 P=$W/episodes/agent-skills-video
 
-# ① 信源核验（C 型信源＝gl-notes 精读产物；A 型论文集跳过）
+# ① 信源核验（B 型信源；A 型论文集跳过）
 uv run --no-project $T/scripts/source_ledger.py --project $P verify
 
 # ② 逐字稿派生 + 内容门（分镜覆盖性 / 时长预算双口径 / 淡入不变式）
 uv run --no-project $T/scripts/pipeline.py --project $P build
 uv run --no-project $T/scripts/pipeline.py --project $P check --check-scenes
 
-# ③ 配音（直呼集侧薄包装 tts.py——它不读 pipeline.toml，参数全部显式；勿经 pipeline tts，df 不透传）
-uv run --no-project $T/scripts/pipeline.py --project $P tts --plan   # 排期对账（--plan 免授权门）
-# 终稿合成 canonical 命令（RSI-040：--final-voice 为克隆具名授权，缺它硬失败；RSI-022：--with mutagen 必带；长跑建议 nohup）
-uv run --no-project --with mutagen $P/scripts/tts.py \
-  --engine indextts --final-voice --ref $W/voices/me-bright.wav --expect-ref-sha1 54b699cce97f \
-  --style story --duration-factor 1.15
+# ③ 配音（参数全部取自 pipeline.toml，勿在命令行另写 --style/--ref）
+uv run --no-project $T/scripts/pipeline.py --project $P tts --plan   # 排期对账
+uv run --no-project $T/scripts/pipeline.py --project $P tts          # 长跑，建议 nohup
 
 # ④ 渲染与体检（工具一律 ./node_modules/.bin/ 直调，防污染根 workspace）
 cd $P/video && pnpm install && ./node_modules/.bin/tsc --noEmit

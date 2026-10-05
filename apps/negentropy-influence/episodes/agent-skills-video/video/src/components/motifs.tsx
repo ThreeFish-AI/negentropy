@@ -8,8 +8,9 @@
  *
  *  刻意**不进模板**的是创作性母题（Terminal / LoopRing / DispatchTable /
  *  GateRouter / SlotRing）：它们承载各集的叙事隐喻，属于每集的创作产物。
- *  需要时从 claude-code-explained-video 的 motifs.tsx 复制对应段落后裁剪、
- *  追加到本文件；母题目录与适用场景见 references/08 的母题表。
+ *  需要时从仍持有完整母题目录的分集副本复制对应段落后裁剪、追加到本文件
+ *  （如 claude-code-memory-video 的 motifs.tsx；母题持有者随各集重制迁移，
+ *  以 references/08 母题表的出处列为准）。
  */
 import React from 'react';
 import {interpolate, spring, useCurrentFrame, useVideoConfig} from 'remotion';

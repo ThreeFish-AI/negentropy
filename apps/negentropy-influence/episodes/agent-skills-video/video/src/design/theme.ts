@@ -31,11 +31,9 @@ export const theme = {
   sans: "'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', sans-serif",
   mono: "'SF Mono', 'Menlo', 'JetBrains Mono', monospace",
 
-  // ── 本集概念色（刻意做小篇，2026-10-01 定稿）──
-  // 账本金=三级记账/账本数字/目录常驻行（经济学核心）；
-  // 门牌靛=身份与路由信号（name/description、门牌、招牌、目录行文字）；
-  // 年检紫=制度与治理面（规范、校验、分歧表、守门哲学）。
-  concept: '#F2B33D',
-  conceptDeep: '#6D8BFF',
-  deny: '#A88BE8',
+  // ── 本集概念色（占位＝series.json accents 三色直挂，过 check_series 规则4 登记门；
+  // Stage ② 视觉契约定稿后按语义重命名并复核 ≥4.5:1 对比度）──
+  gold: '#F2B33D',
+  indigo: '#6D8BFF',
+  violet: '#A88BE8',
 } as const;

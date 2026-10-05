@@ -191,11 +191,11 @@ reason = "V3D：angle 后端（同 EP1 条目）"
 [[skeleton.drift]]
 episode = "agent-skills-video"
 path = "video/pnpm-workspace.yaml"
-fingerprint = "0e62d7e2af2a"
-reason = "remotion 全家桶追新 4.0.529→4.0.532（2026-10-01）时 pnpm 12.2 自动追加 minimumReleaseAgeExclude 清单（30 个 @remotion/* + remotion 本体共 31 行精确版本），其余段与模板逐字一致；撤销条件=模板吸收该机制或回退 4.0.529"
+fingerprint = "a414005bd403"
+reason = "remotion 全家桶追新 4.0.529→4.0.533（2026-10-06，210 换代重制建集时整组追新，npm view 4.0.533 为当日最新）时 pnpm 12.2 自动追加 minimumReleaseAgeExclude 清单（30 个 @remotion/* + remotion 本体共 31 行精确版本），其余段与模板逐字一致；撤销条件=模板吸收该机制或回退 4.0.529"
 
 [[skeleton.drift]]
 episode = "agent-skills-video"
 path = "video/package.json"
-fingerprint = "6f4f4de6d61d"
-reason = "remotion 全家桶 4.0.529→4.0.532（2026-10-01 同 major 整组追新，npm view 4.0.532 为当日最新）；verify_skeleton 当期未点名本文件，此条为版本基线留痕。structured 档：指纹口径=结构化归一 md5[:12]（2026-10-02 评审修正，原登记值非本文件任何口径的指纹）"
+fingerprint = "2ca436199aee"
+reason = "remotion 全家桶 4.0.529→4.0.533（2026-10-06 同 major 整组追新，npm view 4.0.533 为当日最新）；verify_skeleton 当期未点名本文件，此条为版本基线留痕。structured 档：指纹口径=结构化归一 md5[:12]（2026-10-02 评审修正，原登记值非本文件任何口径的指纹）"

@@ -7,43 +7,41 @@ packages: []
 # 与 `pnpm approve-builds esbuild --yes` 实际写入的形态逐字一致——勿改回旧键名。
 allowBuilds:
   esbuild: true
-# remotion 4.0.532 整组豁免最低发布年龄门（minimumReleaseAge）：锁版像素级复现优先，
-# 组内版本经整集实机验证，不参与「发布满 N 天才可解」的新鲜度约束。
-minimumReleaseAgeExclude:
-  - '@remotion/bundler@4.0.532'
-  - '@remotion/canvas@4.0.532'
-  - '@remotion/captions@4.0.532'
-  - '@remotion/cli@4.0.532'
-  - '@remotion/codemods@4.0.532'
-  - '@remotion/compositor-darwin-arm64@4.0.532'
-  - '@remotion/compositor-darwin-x64@4.0.532'
-  - '@remotion/compositor-linux-arm64-gnu@4.0.532'
-  - '@remotion/compositor-linux-arm64-musl@4.0.532'
-  - '@remotion/compositor-linux-x64-gnu@4.0.532'
-  - '@remotion/compositor-linux-x64-musl@4.0.532'
-  - '@remotion/compositor-win32-x64-msvc@4.0.532'
-  - '@remotion/elevenlabs@4.0.532'
-  - '@remotion/layout-utils@4.0.532'
-  - '@remotion/licensing@4.0.532'
-  - '@remotion/media-parser@4.0.532'
-  - '@remotion/media-utils@4.0.532'
-  - '@remotion/media@4.0.532'
-  - '@remotion/openai-whisper@4.0.532'
-  - '@remotion/paths@4.0.532'
-  - '@remotion/player@4.0.532'
-  - '@remotion/renderer@4.0.532'
-  - '@remotion/streaming@4.0.532'
-  - '@remotion/studio-protocol@4.0.532'
-  - '@remotion/studio-server@4.0.532'
-  - '@remotion/studio-shared@4.0.532'
-  - '@remotion/studio@4.0.532'
-  - '@remotion/timeline-utils@4.0.532'
-  - '@remotion/web-renderer@4.0.532'
-  - '@remotion/zod-types@4.0.532'
-  - remotion@4.0.532
 # 传递依赖的安全补丁地板（本工程无直接依赖漂移，故只落在 override 层）。
 # GHSA-2883-xcg3-v3hh (high)：js-yaml < 4.3.2 的 maxTotalMergeKeys 对空 merge 源不限流
 # 致 CPU 耗尽。本工程经 cosmiconfig@8.3.6 传递引入，父包声明 ^4.1.0；限 <5 避免 major
 # 跳跃——无上界时 pnpm 会解到 5.x。与仓库根 pnpm-workspace.yaml 同口径。
+minimumReleaseAgeExclude:
+  - '@remotion/bundler@4.0.533'
+  - '@remotion/captions@4.0.533'
+  - '@remotion/cli@4.0.533'
+  - '@remotion/codemods@4.0.533'
+  - '@remotion/compositor-darwin-arm64@4.0.533'
+  - '@remotion/compositor-darwin-x64@4.0.533'
+  - '@remotion/compositor-linux-arm64-gnu@4.0.533'
+  - '@remotion/compositor-linux-arm64-musl@4.0.533'
+  - '@remotion/compositor-linux-x64-gnu@4.0.533'
+  - '@remotion/compositor-linux-x64-musl@4.0.533'
+  - '@remotion/compositor-win32-x64-msvc@4.0.533'
+  - '@remotion/elevenlabs@4.0.533'
+  - '@remotion/layout-utils@4.0.533'
+  - '@remotion/licensing@4.0.533'
+  - '@remotion/media-parser@4.0.533'
+  - '@remotion/media-utils@4.0.533'
+  - '@remotion/media@4.0.533'
+  - '@remotion/openai-whisper@4.0.533'
+  - '@remotion/paths@4.0.533'
+  - '@remotion/player@4.0.533'
+  - '@remotion/renderer@4.0.533'
+  - '@remotion/sdk@4.0.533'
+  - '@remotion/streaming@4.0.533'
+  - '@remotion/studio-protocol@4.0.533'
+  - '@remotion/studio-server@4.0.533'
+  - '@remotion/studio-shared@4.0.533'
+  - '@remotion/studio@4.0.533'
+  - '@remotion/timeline-utils@4.0.533'
+  - '@remotion/web-renderer@4.0.533'
+  - '@remotion/zod-types@4.0.533'
+  - remotion@4.0.533
 overrides:
   js-yaml: '>=4.3.2 <5.0.0'

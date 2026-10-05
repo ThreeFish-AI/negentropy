@@ -9,51 +9,27 @@
 slug = "agent-skills-video"
 
 [narration]
-# 时长窗对齐系列惯例（旧 v2 成片 13:03 / E3 13:57）。
-# 语速校准（2026-10-01 实测）：story 档裸语速 349 字/分（+37% vs 机制默认 254），
-# duration-factor 1.15 → 实测等效 ~304 字/分；3678 字 ≈ 12.1 分纯语音 + ~0.8 分停顿
-# ≈ 12.9 分，窗内。tts 显式传 duration-factor（入缓存摘要=全片同速重录）。
-target_minutes = [12.5, 14.5]
-chars_per_min = 285
-
-[archify]
-# 230 精读伴生双图（C 型直通承接）。源图 = archify 3.0 产物（无 guided-views 模块，
-# 录制器不可直录）；本集用 scripts/patch-archify-html.py 从 docs 原件拷贝并注入
-# 精简 guidedViews 兼容层（组合 3.0 原生 focus.set/view.reveal/view.centerAt），
-# 落本集 html/——docs 原件（SSOT）不动。重跑注入器即幂等重建。
-html_dir = "apps/negentropy-influence/episodes/agent-skills-video/video/public/archify/html"
-html_pattern = "{slug}.html"
-forbid_inset = true
-# 覆盖门分两组登记（成片实测：20 cue / ≈1.53 cue 每分 / 锚定 16.1% / 双图均 workflow 泳道型 / 16 章）：
-# ① cue 派生三门（min_cues/min_cues_per_minute/min_anchor_ratio）＝scaffold 保守地板，
-#    较实测低 38–41%，吸收分镜期 cue 数不确定余量；兄弟集惯例为实测 −10~15% 回填，本集未做。
-# ② 图数/图型两门＝零余量贴实测（min_diagrams=2 与双图实测持平；min_diagram_types=1：
-#    两图经 mermaid SSOT/README/HTML 泳道语义三源定谳均为 workflow 型——v11 前 sidecar
-#    孤票「lifecycle」系录制 --type 落盘误值，v13 四源归一并降门 2→1，原门值 2 靠假登记
-#    撑起属结构性失真）。收紧须携成片实测数字同改。
-min_diagrams = 2
-min_cues = 12
-min_cues_per_minute = 0.9
-min_diagram_types = 1
-min_anchor_ratio = 0.10
+# 210 重学版换代重制（2026-10-06）：目标窗 11.5–13.5 分（210 内容量评估，较旧版 13:07 略收）。
+# chars_per_min 显式覆写 280（含停顿等效口径）：本集 edge 草声一档到底（用户拍板），
+# [tts].style=story 锚点的 254 系克隆档整集实测口径、对 edge 不适用——config.resolve
+# 显式 toml 恒优先；首轮 TTS 后按 RSI-021 以 manifest 实测复算，偏差>3% 回写本校准值。
+target_minutes = [11.5, 13.5]
+chars_per_min = 280
 
 [tts]
-engine = "indextts"
-# TODO：选定样本与风格。样本路径**工作区根相对**；ref_sha1 取 12 位（同 tts.py 口径），
-# 用 `uv run --no-project $T/scripts/refs.py list` 查当前清单。
-# ⚠️ 风格预设的 alpha 是在**特定选段**上标定的，换选段即失效（见 $V/refs.toml）。
-# ⚠️ 语速校准 df=1.15（[narration] 注）：skill schema 无此键、pipeline tts 不透传、
-#   story 预设内建 df=1.0——复现/重配必须直呼集侧薄包装显式带值。tts.py 不读本文件，
-#   engine/ref/style 也须显式（缺失即 edge/None/neutral 假档）；df 入缓存摘要=全片同
-#   速重录。canonical 命令（自仓根执行；--with mutagen 同 tts.py 头注契约，缺它冷启
-#   首块合成即 ModuleNotFoundError，RSI-022）：
-#   uv run --no-project --with mutagen $P/scripts/tts.py \
-#     --engine indextts --final-voice --ref $W/voices/me-bright.wav --expect-ref-sha1 54b699cce97f \
-#     --style story --duration-factor 1.15
-#   （--final-voice＝RSI-040 声音克隆具名授权，store_true 布尔旗标；缺它非 --plan 实跑硬失败 exit 2）
-ref = "voices/me-bright.wav"
-ref_sha1 = "54b699cce97f"
+# 两档策略（RSI-034）：制作期 edge 草声（免费、秒级、需联网、免样本）；
+# 整集评审通过后由用户显式触发用 IndexTTS-2.5 + 本人声音重配（references/07 §重配）。
+engine = "edge"
+# 终声档锚点：edge 期间不参与合成，仅作预算门估算口径（story=254 字/分）
+# 与重配预置；重配时把 engine 改 "indextts" 并补下方两项即生效。
 style = "story"
+# TODO（重配前补齐，非建集前置）：样本路径**工作区根相对**；ref_sha1 取 12 位
+# （同 tts.py 口径），用 `uv run --no-project $T/scripts/refs.py list` 查当前清单。
+# ⚠️ 风格预设的 alpha 是在**特定选段**上标定的，换选段即失效（见 $V/refs.toml）。
+#ref = "voices/me-bright.wav"
+#ref_sha1 = "TODOTODOTODO"
 # story 档（默认）＝段落演绎：同幕连续句按块合成、块间情绪由配音台本驱动。
 # 台本（可选）：script/narration.cues.toml——写稿阶段产出，见 $T/references/VOICE-CLONING.md §4.5。
-# 重制存量集（旧档 → story）须显式 --allow-voice-switch 并补写台本。
+# 重配（引擎/风格/样本任一变化＝整集重录）须显式 --allow-voice-switch；首次上 story 补写台本。
+# 实跑（非 --plan）另须 --final-voice：本人显式点名的具名授权（RSI-040 人为触发，
+# 见 references/07-tts-voice.md）——agent 不得主动建议升档，其余一律 edge 草声。
