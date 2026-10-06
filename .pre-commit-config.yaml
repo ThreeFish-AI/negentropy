@@ -55,7 +55,7 @@ repos:
 
       # ── Python: negentropy-influence 的工作区与每集脚本（科普视频） ────────
       # 与 negentropy 同一 ruff 修订版；此前仅覆盖 apps/negentropy/，管线脚本无 lint 门。
-      # pipeline/ 已于 2026-09 外置为 to-video skill（机制脚本随 skill 仓自行 lint），
+      # pipeline/ 已于 2026-09 外置为 vibe-video skill（机制脚本随 skill 仓自行 lint），
       # 本门改护 scripts/（工作区级薄包装）与 episodes/*/scripts/（分集薄包装）。
       # episodes/*/scripts/ 在 2026-09-19 纳入：该目录原先只有三个薄包装，自
       # archify_lead / archify_manifest / check_archify 起有了真实逻辑，必须同门。
@@ -156,9 +156,9 @@ repos:
   # ⚠️ files: 写错是**静默**失效（钩子直接跳过、不报错），entry 写错才会响。
   #    改动本条后须验证：暂存一处子项目内改动，确认钩子 Passed 而非 Skipped。
   #    knowledge-map 与 CHANGELOG 亦须在列 —— 两份宿主文档链接进工作区内容
-  #    （受检面由工作区 to-video.toml 的 project_globs 声明），只改它们的提交
+  #    （受检面由工作区 vibe-video.toml 的 project_globs 声明），只改它们的提交
   #    必须能触发本钩子。
-  # 依赖已安装的 to-video skill：entry 为工作区薄包装（转发 skill 解析器），
+  # 依赖已安装的 vibe-video skill：entry 为工作区薄包装（转发 skill 解析器），
   #    skill 缺失时大声失败并打印安装指令，不会静默跳过。
   - repo: local
     hooks:

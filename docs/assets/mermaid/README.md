@@ -241,7 +241,7 @@
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | [perceives-readme--five-layers](./apps/perceives-readme--five-layers.mmd) | apps/negentropy-perceives/README.md | architecture | ✓ | done | fix: Round 1 diagnostics: mcp→engines 自动路 |
 
-> 迁出注记（2026-09-21）：influence--pipeline-layers / voice-cloning--architecture / indextts--synthesis-flow / indextts--reference-audio 四图已随科普视频流水线机制外置删除（源文档迁入 [to-video 技能](https://github.com/ThreeFish-AI/to-video) 仓），对应 .mmd/HTML/PNG 资产同步移除。
+> 迁出注记（2026-09-21）：influence--pipeline-layers / voice-cloning--architecture / indextts--synthesis-flow / indextts--reference-audio 四图已随科普视频流水线机制外置删除（源文档迁入 [vibe-video 技能](https://github.com/ThreeFish-AI/vibe-video) 仓），对应 .mmd/HTML/PNG 资产同步移除。
 
 ### agents/（docs/.agents/ 巡检与决策文档）
 
