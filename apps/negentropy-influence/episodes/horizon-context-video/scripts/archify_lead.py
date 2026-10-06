@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""薄包装：转发到 to-video skill 公共管线的 archify_lead.py。
+"""薄包装：转发到 vibe-video skill 公共管线的 archify_lead.py。
 
 实现收敛于技能仓单一事实源（2026-09 二次抽取迁入）；本文件仅保留原
 CLI 契约（场记板白闪实测回写 lead_sec，工程根直跑形态）。
 
-skill 解析：TO_VIDEO_HOME → ~/.claude/skills/to-video → ~/.agents/skills/to-video，
+skill 解析：VIBE_VIDEO_HOME → ~/.claude/skills/vibe-video → ~/.agents/skills/vibe-video，
 全部未命中即**大声退出**并打印安装指令——静默跳过是被禁止的失效形态。
 """
 
@@ -19,11 +19,11 @@ from pathlib import Path
 def _skill_scripts() -> Path:
     """定位 skill 的 scripts 目录；找不到即大声退出。"""
     candidates = []
-    if env := os.environ.get("TO_VIDEO_HOME"):
+    if env := os.environ.get("VIBE_VIDEO_HOME"):
         candidates.append(Path(env).expanduser())
     candidates += [
-        Path.home() / ".claude" / "skills" / "to-video",
-        Path.home() / ".agents" / "skills" / "to-video",
+        Path.home() / ".claude" / "skills" / "vibe-video",
+        Path.home() / ".agents" / "skills" / "vibe-video",
     ]
     for c in candidates:
         p = c / "scripts"
@@ -32,10 +32,10 @@ def _skill_scripts() -> Path:
             return p
     listed = "\n  ".join(str(c) for c in candidates)
     sys.exit(
-        "找不到 to-video skill（按序尝试：\n  " + listed + "\n）。\n"
-        "  安装：git clone https://github.com/ThreeFish-AI/to-video <目录>\n"
-        "        ln -s <目录> ~/.claude/skills/to-video"
-        "   # 或设 TO_VIDEO_HOME=<目录>"
+        "找不到 vibe-video skill（按序尝试：\n  " + listed + "\n）。\n"
+        "  安装：git clone https://github.com/ThreeFish-AI/vibe-video <目录>\n"
+        "        ln -s <目录> ~/.claude/skills/vibe-video"
+        "   # 或设 VIBE_VIDEO_HOME=<目录>"
     )
 
 
