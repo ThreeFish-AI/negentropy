@@ -46,22 +46,22 @@ export type IntroOverride = {activeIndex: number; mech: string};
 /** 片头总长：timing.json leadInSec(23.5) × fps(30)。overridable 档直读，不动 frozen timing.ts。 */
 export const INTRO_FRAMES = Math.round(constants.leadInSec * constants.fps);
 
-// ── 时序表（帧 @30fps；口播 12 帧起播；新音频总长 21.984s）───────────────
+// ── 时序表（帧 @30fps；口播 12 帧起播；IndexTTS 2.5 音频总长约 20.6s）───
 /** 三句口播边界按 TTS 静音带实测对齐（silencedetect -35dB/0.3s，起播偏移 +12 帧）；
  *  改文案重合成后须重测并只改本表。 */
 const T = {
   audioAt: 12,
   ringDrawAt: 8,
   ringTextAt: 28,
-  sub1: {in: 20, out: 296},
-  lineAt: 296,
-  stationsAt: 308,
-  layersCountAt: 314,
-  sub2: {in: 296, out: 555},
-  pushAt: 555,
-  cardAt: 560,
-  dotsAt: 566,
-  sub3: {in: 555},
+  sub1: {in: 20, out: 258},
+  lineAt: 258,
+  stationsAt: 270,
+  layersCountAt: 276,
+  sub2: {in: 267, out: 512},
+  pushAt: 512,
+  cardAt: 517,
+  dotsAt: 523,
+  sub3: {in: 522},
   fadeFrames: 14,
 } as const;
 
