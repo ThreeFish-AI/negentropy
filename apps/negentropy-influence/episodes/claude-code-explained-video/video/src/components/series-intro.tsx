@@ -53,11 +53,13 @@ const T = {
   audioAt: 12,
   ringDrawAt: 8,
   ringTextAt: 28,
-  sub1: {in: 20, out: 258},
+  sub1a: {in: 20, out: 194},
+  sub1b: {in: 188, out: 258},
   lineAt: 258,
   stationsAt: 270,
   layersCountAt: 276,
-  sub2: {in: 267, out: 512},
+  sub2a: {in: 267, out: 440},
+  sub2b: {in: 434, out: 512},
   pushAt: 512,
   cardAt: 517,
   dotsAt: 523,
@@ -82,26 +84,38 @@ const cardLeft = (activeIndex: number): number => Math.max(600, Math.min(station
 // ── 口播字幕（文本与 TTS 台本逐字一致；显示层剥句尾「。」对齐系列字幕风格——
 //    同 Subtitle.tsx 2026-09-14 起 zh 剥句尾口径）。文案定性不念绝对数字
 //    （系列数字纪律：口播不引绝对行数/活数据——见 ep1 source-notes ②），
-//    三段字幕与片头音轨逐字一致。 ────────────────────────────────────────────
+//    五段显示窗口与片头音轨逐字一致；长句按语义边界切换，不改变口播内容。 ─────
 const SUBS = [
-  '本系列视频从 Harness Engineering 的视角，讲清 Claude Code 如何从一个简单循环，逐步进化为一套完整的工程体系。',
-  '接下来，我们将依次拆解五种核心机制：工具与执行、规划与协调、记忆管理、并发，以及多 Agent。',
+  '本系列视频从 Harness Engineering 的视角，讲清 Claude Code 如何从一个简单循环，',
+  '逐步进化为一套完整的工程体系。',
+  '接下来，我们将依次拆解五种核心机制：工具与执行、规划与协调、',
+  '记忆管理、并发，以及多 Agent。',
   '机制层层递进，工程体系持续进化。',
 ] as const;
 
 /** zh 显示层剥句尾句号（系列字幕风格；en 文案无句号问题，届时不剥） */
 const stripZhPeriod = (s: string): string => s.replace(/。+$/, '');
 
-/** 三段口播字幕：底部衬线卡，逐段切换（第三段定格至全局渐出）。
+/** 五段口播字幕：长句按语义切成单行片段，片段之间交叉切换。
  *  hooks 全在顶层；map 内只做纯组合（铁律：map 内禁 hooks）。 */
 const IntroSubs: React.FC = () => {
-  const in1 = useProgress(T.sub1.in, DUR.f5);
-  const out1 = useProgress(T.sub1.out, DUR.f5);
-  const in2 = useProgress(T.sub2.in, DUR.f5);
-  const out2 = useProgress(T.sub2.out, DUR.f5);
+  const in1a = useProgress(T.sub1a.in, DUR.f5);
+  const out1a = useProgress(T.sub1a.out, DUR.f5);
+  const in1b = useProgress(T.sub1b.in, DUR.f5);
+  const out1b = useProgress(T.sub1b.out, DUR.f5);
+  const in2a = useProgress(T.sub2a.in, DUR.f5);
+  const out2a = useProgress(T.sub2a.out, DUR.f5);
+  const in2b = useProgress(T.sub2b.in, DUR.f5);
+  const out2b = useProgress(T.sub2b.out, DUR.f5);
   const in3 = useProgress(T.sub3.in, DUR.f5);
   const out3 = useProgress(INTRO_FRAMES - T.fadeFrames - DUR.f5, DUR.f5);
-  const ops = [in1 * (1 - out1), in2 * (1 - out2), in3 * (1 - out3)];
+  const ops = [
+    in1a * (1 - out1a),
+    in1b * (1 - out1b),
+    in2a * (1 - out2a),
+    in2b * (1 - out2b),
+    in3 * (1 - out3),
+  ];
   return (
     <AbsoluteFill>
       {SUBS.map((text, i) => (
@@ -119,7 +133,7 @@ const IntroSubs: React.FC = () => {
             lineHeight: 1.35,
             color: theme.text,
             letterSpacing: 2,
-            overflowWrap: 'break-word',
+            whiteSpace: 'nowrap',
             opacity: ops[i],
             textShadow: `0 2px 24px ${withAlpha(theme.bg, 0.8)}`,
           }}
