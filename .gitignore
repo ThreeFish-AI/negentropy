@@ -321,3 +321,4 @@ apps/negentropy-influence/episodes/*/video/public/archify/*-end.png
 docs/research/agent-infra/assets/fixtures/
 # E1 lab4 六份运行日志例外入仓：gl-notes 台账按一级证据登记并建仓内链接（research/ 白名单，v8 评审修复）
 !apps/negentropy-influence/episodes/agent-skills-video/research/*.log
+apps/negentropy-influence/episodes/agent-skills-video/video/public/archify/html/

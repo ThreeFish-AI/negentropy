@@ -31,9 +31,11 @@ export const theme = {
   sans: "'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', sans-serif",
   mono: "'SF Mono', 'Menlo', 'JetBrains Mono', monospace",
 
-  // ── 本集概念色（占位＝series.json accents 三色直挂，过 check_series 规则4 登记门；
-  // Stage ② 视觉契约定稿后按语义重命名并复核 ≥4.5:1 对比度）──
-  gold: '#F2B33D',
-  indigo: '#6D8BFF',
-  violet: '#A88BE8',
+  // ── 本集概念色（planning.md §3 视觉契约；对 bg #0E1116 对比度实测）──
+  // 目录金＝三级渐进披露/成本账本（10.17:1；目录卡描边、账本数字、恒定母题〔M-001〕线色）
+  ledger: '#F2B33D',
+  // 路由靛＝语义路由/命中信号（6.11:1；description 高亮、命中脉冲）
+  route: '#6D8BFF',
+  // 治理紫＝多客户端/生态治理（6.78:1；客户端阵列、PR 战线、争议牌）
+  gov: '#A88BE8',
 } as const;

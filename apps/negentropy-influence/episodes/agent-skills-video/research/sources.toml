@@ -1,0 +1,156 @@
+# 非论文信源清单（可复现取证链，工具：$T/scripts/source_ledger.py）
+#
+# kind=repo 指向固定 commit，raw 指纹漂移即 FAIL（说明 URL 里的 ref 不是不可变引用）。
+# kind=site 指向线上页面，只对剥标签归一后的正文比对指纹，漂移报 WARN（去复核笔记）。
+# text_sha256 是判据；raw_sha256 仅供 repo 类硬校验与人工核对。
+
+
+[spec-mdx]
+url = "https://raw.githubusercontent.com/agentskills/agentskills/69ef37e9424c0a7ea9dd2293b559e43ec8176379/docs/specification.mdx"
+kind = "repo"
+pinned_ref = "69ef37e9424c0a7ea9dd2293b559e43ec8176379"
+accessed = "2026-09-30"
+raw_sha256 = "b9079c0c10b7930e"
+text_sha256 = "8a731b1f3798efe5"
+bytes = 7166
+lines = 247
+via = "pinned commit, CC-BY-4.0"
+
+[quickstart-mdx]
+url = "https://raw.githubusercontent.com/agentskills/agentskills/69ef37e9424c0a7ea9dd2293b559e43ec8176379/docs/skill-creation/quickstart.mdx"
+kind = "repo"
+pinned_ref = "69ef37e9424c0a7ea9dd2293b559e43ec8176379"
+accessed = "2026-09-30"
+raw_sha256 = "a6614e814e19fb50"
+text_sha256 = "34a662a6aff4e9c7"
+bytes = 3844
+lines = 80
+via = "pinned commit, CC-BY-4.0"
+
+[guide-client]
+url = "https://raw.githubusercontent.com/agentskills/agentskills/69ef37e9424c0a7ea9dd2293b559e43ec8176379/docs/client-implementation/adding-skills-support.mdx"
+kind = "repo"
+pinned_ref = "69ef37e9424c0a7ea9dd2293b559e43ec8176379"
+accessed = "2026-09-30"
+raw_sha256 = "e1a788f858766f4b"
+text_sha256 = "e445d216546f07fd"
+bytes = 20254
+lines = 335
+via = "pinned commit, CC-BY-4.0"
+
+[guide-best-practices]
+url = "https://raw.githubusercontent.com/agentskills/agentskills/69ef37e9424c0a7ea9dd2293b559e43ec8176379/docs/skill-creation/best-practices.mdx"
+kind = "repo"
+pinned_ref = "69ef37e9424c0a7ea9dd2293b559e43ec8176379"
+accessed = "2026-09-30"
+raw_sha256 = "a729bc1d746366ec"
+text_sha256 = "124e83b4fd86baab"
+bytes = 14608
+lines = 275
+via = "pinned commit, CC-BY-4.0"
+
+[guide-descriptions]
+url = "https://raw.githubusercontent.com/agentskills/agentskills/69ef37e9424c0a7ea9dd2293b559e43ec8176379/docs/skill-creation/optimizing-descriptions.mdx"
+kind = "repo"
+pinned_ref = "69ef37e9424c0a7ea9dd2293b559e43ec8176379"
+accessed = "2026-09-30"
+raw_sha256 = "5d6f72364f819399"
+text_sha256 = "57bbf83179d81b5a"
+bytes = 13151
+lines = 193
+via = "pinned commit, CC-BY-4.0"
+
+[skills-ref-validator]
+url = "https://raw.githubusercontent.com/agentskills/agentskills/69ef37e9424c0a7ea9dd2293b559e43ec8176379/skills-ref/src/skills_ref/validator.py"
+kind = "repo"
+pinned_ref = "69ef37e9424c0a7ea9dd2293b559e43ec8176379"
+accessed = "2026-09-30"
+raw_sha256 = "b5ee3d8537c83c95"
+text_sha256 = "dfad958e15043d25"
+bytes = 5154
+lines = 177
+via = "pinned commit, Apache-2.0; 六字段白名单锚点"
+
+[skills-ref-prompt]
+url = "https://raw.githubusercontent.com/agentskills/agentskills/69ef37e9424c0a7ea9dd2293b559e43ec8176379/skills-ref/src/skills_ref/prompt.py"
+kind = "repo"
+pinned_ref = "69ef37e9424c0a7ea9dd2293b559e43ec8176379"
+accessed = "2026-09-30"
+raw_sha256 = "8ed90a61685b8405"
+text_sha256 = "3c6b6bb0977519a9"
+bytes = 1724
+lines = 58
+via = "pinned commit, Apache-2.0; XML 转义锚点"
+
+[agentskills-spec-site]
+url = "https://agentskills.io/specification"
+kind = "site"
+accessed = "2026-09-30"
+raw_sha256 = "8e5d074abb7c83ba"
+text_sha256 = "5ae3a105a462f946"
+bytes = 445380
+lines = 390
+via = "Mintlify 站点实况；GL 2026-09-30 探针与仓 HEAD 一致"
+
+[cc-skills-doc]
+url = "https://code.claude.com/docs/en/skills"
+kind = "site"
+accessed = "2026-09-30"
+raw_sha256 = "d9c4e133e961e54c"
+text_sha256 = "08984979b795e674"
+bytes = 1174887
+lines = 2216
+via = "Claude Code 官方文档（厂商自述，另注）"
+
+[codex-skills-doc]
+url = "https://developers.openai.com/codex/skills/"
+kind = "site"
+accessed = "2026-09-30"
+raw_sha256 = "e0d7ff0deb440afe"
+text_sha256 = "955cddb95ea21cce"
+bytes = 400835
+lines = 2168
+via = "OpenAI Codex 官方文档（厂商自述，另注）"
+
+[evaluating-skills-mdx]
+url = "https://raw.githubusercontent.com/agentskills/agentskills/69ef37e9424c0a7ea9dd2293b559e43ec8176379/docs/skill-creation/evaluating-skills.mdx"
+kind = "repo"
+pinned_ref = "69ef37e9424c0a7ea9dd2293b559e43ec8176379"
+accessed = "2026-10-06"
+raw_sha256 = "20e53ee9085966bb"
+text_sha256 = "4d7ac52fbc8a6750"
+bytes = 16755
+lines = 298
+via = "pinned commit, CC-BY-4.0"
+
+[using-scripts-mdx]
+url = "https://raw.githubusercontent.com/agentskills/agentskills/69ef37e9424c0a7ea9dd2293b559e43ec8176379/docs/skill-creation/using-scripts.mdx"
+kind = "repo"
+pinned_ref = "69ef37e9424c0a7ea9dd2293b559e43ec8176379"
+accessed = "2026-10-06"
+raw_sha256 = "064185783e0f848a"
+text_sha256 = "eeecc317e4d438ae"
+bytes = 12405
+lines = 298
+via = "pinned commit, CC-BY-4.0"
+
+[gemini-cli-skills-doc]
+url = "https://raw.githubusercontent.com/google-gemini/gemini-cli/778da08ee1ec3c3cee2e77014af7fcfa33a915ec/docs/cli/skills.md"
+kind = "repo"
+pinned_ref = "778da08ee1ec3c3cee2e77014af7fcfa33a915ec"
+accessed = "2026-10-06"
+raw_sha256 = "51e8573ef4c068db"
+text_sha256 = "07b7777c698ca561"
+bytes = 5740
+lines = 141
+via = "pinned commit, Apache-2.0；该路径末次提交 2026-04-30"
+
+[vscode-skills-doc]
+url = "https://code.visualstudio.com/docs/agent-customization/agent-skills"
+kind = "site"
+accessed = "2026-10-06"
+raw_sha256 = "98159e69f7bb7811"
+text_sha256 = "add5834a5e8756b6"
+bytes = 149299
+lines = 2286
+via = "SSG 预渲染（正文全在 HTML 内实测）；GL 2026-09-26 取数用 /docs/copilot/customization/agent-skills，现 301→/docs/agent-customization/agent-skills"

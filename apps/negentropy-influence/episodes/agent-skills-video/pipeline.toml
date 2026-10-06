@@ -16,6 +16,33 @@ slug = "agent-skills-video"
 target_minutes = [11.5, 13.5]
 chars_per_min = 280
 
+[archify]
+# 210 伴生双图（C 型直通承接，GL 原生章集镜像 + P4 生态补章 ge-eco，见 views/*.json）。
+# 源图 = archify 3.0 产物（无 guided-views 模块，录制器不可直录）；本集用
+# scripts/patch-archify-html.py 从 docs 原件拷贝并注入精简兼容层（组合原生
+# focus.set/view.reveal/view.centerAt），落本集 html/——docs 原件（SSOT）不动；
+# 拷贝件中原件自带的 GL 章容器剥除，views/*.json 为录制章集唯一事实源。
+html_dir = "apps/negentropy-influence/episodes/agent-skills-video/video/public/archify/html"
+html_pattern = "{slug}.html"
+forbid_inset = true
+# 覆盖门分两组登记（成片实测：12 cue / ≈0.98 cue 每分 / 锚定 8.5% / 图型 2 种
+# （workflow+architecture）/ 9 章全启用）：
+# ① cue 派生门＝实测 −15~20% 回填（min_anchor_ratio 0.07 vs 实测 8.5%；min_cues 10 vs
+#    实测 12；min_cues_per_minute 0.8 vs 实测 0.98），吸收 QA 轮 cue 微调余量；
+# ② 图数/图型门＝保守地板（min_diagrams=2 与双图持平为本集结构事实；min_diagram_types=1
+#    较实测 2 种留一档余量——v13 旧集教训：门值贴实测零余量属结构性失真）。
+# exempt_scenes：P0 钩子幕 / P6 收束幕无 archify 锚为设计口径（RSI-039 首镜定式 +
+# 〔M-001〕终态回扣），按门要求显式登记；max_unanchored_run 20（实测最长 18，
+# p3-04..p4-03 为 X1 消融/16.9× 标尺/预算门等装置密集段，句句有非字幕可见元素，
+# ISSUE-188 覆盖自检按镜目检保证）。
+exempt_scenes = ["P0", "P6"]
+min_diagrams = 2
+min_cues = 10
+min_cues_per_minute = 0.8
+min_diagram_types = 1
+min_anchor_ratio = 0.07
+max_unanchored_run = 20
+
 [tts]
 # 两档策略（RSI-034）：制作期 edge 草声（免费、秒级、需联网、免样本）；
 # 整集评审通过后由用户显式触发用 IndexTTS-2.5 + 本人声音重配（references/07 §重配）。

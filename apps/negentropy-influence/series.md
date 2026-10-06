@@ -58,6 +58,6 @@
 
 | #   | 作品 | 一句话主题 | 视觉契约（主色） | 信源 | 状态 |
 | --- | --- | --- | --- | --- | --- |
-| 1   | [《Agent Skills 开放标准》](./episodes/agent-skills-video/README.md) | Agent Skills：目录常驻、正文按需的领域知识打包开放标准 | 账本金/门牌靛/年检紫（换代中沿用） | 210 重学版精读（C 型）@ 本分支 + agentskills/agentskills @ `69ef37e9`，2026-09-26 | **换代重制进行中**（2026-10-06 建集：210 重学版信源 · edge 草声 · 旧 v10《刻意做小》退役归档） |
+| 1   | [《目录常驻，正文按需：Agent Skills 开放标准》](./episodes/agent-skills-video/README.md) | Agent Skills：目录常驻、正文按需的领域知识打包开放标准 | 目录金/路由靛/治理紫（② 视觉契约） | 210 重学版精读（C 型）@ 本分支 + agentskills/agentskills @ `69ef37e9`，2026-09-26 | **换代重制进行中**（2026-10-06 建集：210 重学版信源 · H4 钩子拍板 · edge 草声 · 旧 v10《刻意做小》退役归档） |
 | 2   | [《只填格的判读员：Jev 决策模型》](./episodes/jev-decision-model-video/README.md) | Jev：小判断的交付方式怎么变 | 格黄/柱青/闸品 | 200 精读 + 原型 + laya 复刻 @ `40bf690` + TypeSafe 官方/adapter/kev/laya/nibzard 钉提交，2026-09-26 | **v1 终渲待审**（14.2 分 · story 配音 · archify 13 图 54 章 · 归档 ~/Documents/video） |
 | 3   | [《没有海关的港口：Skills 的签名、分发与版本战争》](./episodes/skills-supply-chain-video/README.md) | Agent Skills：签名/分发/版本三战场 | 关税橙/检疫绿 | 220/221 供应链精读 @ `9284cce2c` + agentskills @ `69ef37e9` + MCP SEP-2640 @ `b0b3272f`，2026-09-27 | **成片交付 v1**（13:57 · 20 图 79 cue · 锚定 78.2% · 归档 ~/Documents/video） |
