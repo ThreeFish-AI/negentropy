@@ -34,7 +34,7 @@
 
 | 镜 | 句区间 | 画面 | 动效 |
 | --- | --- | --- | --- |
-| 0-A（3D） | p0-01 | HarnessStackP0 3D 五层栈自底向上落板（components/harness-stack.tsx 承担）→ 本集层「工具与执行」点亮呼吸两次 → 其余层压暗待缩退；主问题字卡居中「凭什么敢」（≤6 字形态），「敢」字 `deny` 红点睛；角标 `while True`（预告） | 栈落板/呼吸在 HarnessStackP0 内；「敢」字红点一次性强调由 scene 字卡调用 `useImpulse`；`@impulse` |
+| 0-A | p0-01 | 开场直入（片头改版：五层栈落板职责已由系列片头 components/series-intro.tsx 吸收，压 leadIn 时段）——常驻条 Badge（`top:64`）淡入；主问题字卡居中「凭什么敢」（≤6 字形态），「敢」字 `deny` 红点睛；角标 `while True`（预告） | Badge 淡入 `useProgress`；「敢」字红点一次性强调由 scene 字卡调用 `useImpulse`；`@impulse` |
 | 0-B | p0-02..04 | 无循环世界分屏：左＝师傅剪影（`text` 白，无彩）吐出一条命令即摊手停住；右＝人工回路——用户剪影（`dim` 灰人色）跑命令、贴输出的往复箭头；角标 `cat`、终端往复 | 左右屏自两侧滑入由 scene 分屏壳调用 `useEnter`；人工回路箭头行进虚线 `useFlowDash`（`dim`）；`@enter:slideL` `@enter:slideR` `@flowDash` |
 | 0-C | p0-05..07 | 「人肉循环」字卡淡出，`while True` 字卡（mono 角标放大）落下把「人」换下场；循环三拍微缩首现（motifs.LoopRing 环形，`core` 橙恒定描边——M-001 首锚）；p0-06 句让位 archify 全景一瞥 ·**archify full**：execution-panorama 章 `belt-lap` | 字卡下落 `useEnter:fall`；LoopRing 描线/光点在 motifs 内（不产生 token）；p0-06 由 ArchifyRecap 主控（本镜 scene 侧仅字卡动效）；`@enter:fall` |
 | 0-D | p0-08..13 | 三债三卡并列：安全债卡（`deny` 红）／能力债卡、扩展债卡（`mech` 青）；循环体膨胀滚屏——日志/约束一行行叠进 while True 框体；危险命令卡闪现（`rm -rf`，`deny`，不口播）；角标 `while True` | 三卡依次入场 `useStagger`；膨胀滚屏逐行流出 `useReveal`；危险卡红闪 `useImpulse`（decay 态包络）；`@stagger` `@reveal` `@impulse` |

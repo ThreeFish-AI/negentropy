@@ -4,17 +4,14 @@
  *   0-C execution-panorama/belt-lap@p0-06（全景一瞥，默认 lead）
  *   0-E five-layer-dependency/layer-preview@p0-15（悬念立碑一闪，默认 lead）
  *
- *  ★ 0-A 的 3D 五层栈由 components/harness-stack.tsx 的 HarnessStackP0 承担
- *    （落板/本集层呼吸/缩退全在其内）；scene 侧只补主问题字卡与角标。
- *  ★ Badge 顶边带冲突处理：frozen ChapterProgress 占 y14–42，HarnessStackP0 内置
- *    交叉淡入的常驻条钉在 top:12（EP1 发布时形态）——本集各幕 Badge 已定案下移
- *    top:64（见 P1/P2 BADGE_STYLE 注释）。故 0-A 在 crossAt 处把整个
- *    HarnessStackP0 包一层 5 帧淡杀（内置 top:12 条在可见前归零），同时以同拍
- *    淡入本幕自己的 top:64 Badge，完成位置迁移且零双影（shared 组件不改的
- *    调用点侧解法）。
+ *  ★ 0-A 开场（系列片头改版，2026-10-06）：五层栈落板职责已由片头
+ *    components/series-intro.tsx 吸收（压 leadIn 时段的独立片头）——本镜
+ *    简化为常驻条 Badge 直接淡入 + 主问题字卡直入（HarnessStackP0/落板
+ *    迁移历史见 git log；Badge 顶边带 conflict 处理随落板一并退役）。
  *  ★ 恒定空间契约自此幕生效：内核（LoopRing，core 橙恒描边〔M-001〕）恒居左中
  *    锚位 RING = (330, 540)；装置（mech 青）自右缘挂入（0-E 三剪影）。
- *  ★ 0-B 是「无循环世界」——刻意不出现 LoopRing（循环尚不存在）。
+ *  ★ 0-B 是「无循环世界」——刻意不出现 LoopRing（循环尚不存在）；片头环
+ *    已在交棒拍整体渐出，不与此设定冲突。
  */
 import React from 'react';
 import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
@@ -23,7 +20,7 @@ import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {QuoteCard} from '../components/cards';
 import {Footnote, LoopRing, Panel, SceneTag, Terminal} from '../components/motifs';
-import {HarnessBadge, HarnessStackP0, harnessStackCrossAt} from '../components/harness-stack';
+import {HarnessBadge} from '../components/harness-stack';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 import {ArchifyYield} from '../components/ArchifyYield';
 import {
@@ -78,21 +75,16 @@ const QuoteScrim: React.FC<{children: React.ReactNode}> = ({children}) => {
   return <AbsoluteFill style={{background: withAlpha(theme.bg, 0.88 * o)}}>{children}</AbsoluteFill>;
 };
 
-// ── 0-A 五层栈开卷 + 主问题字卡 ──────────────────────────────────────────
+// ── 0-A 开场：Badge 直入 + 主问题字卡 ────────────────────────────────────
 
-/** 开卷：3D 栈落板/呼吸/缩退在 HarnessStackP0；本组件只管「凭什么敢」字卡、
- *  Badge 位置迁移（见文件头）与 while True 预告角标。 */
+/** 开卷（片头改版简化版）：五层展示已在系列片头完成，本镜只管常驻条 Badge 淡入、
+ *  「凭什么敢」主问题字卡与 while True 预告角标，直入正片叙事。 */
 const OpeningStack: React.FC<{durA: number}> = ({durA}) => {
-  // 缩退锚：句内 60% 处（栈高亮+两次呼吸约 65 帧完成，先于缩退；句长实测 ≥4s）
-  const recedeAt = Math.max(70, Math.round(durA * 0.6));
-  const crossAt = harnessStackCrossAt(recedeAt);
-  // 内置 top:12 常驻条可见前的整层淡杀（f3：比内置 8 帧交叉快，残影峰值 ~0.15 后归零）
-  const kill = useProgress(crossAt, DUR.f3);
-  // 同拍淡入 top:64 的本集 Badge（帧数对齐内置交叉 8 帧）
-  const badgeIn = useProgress(crossAt, 8);
+  // 常驻条：片头渐出后直接淡入（f3 起手 + f4 时长，早于字卡）
+  const badgeIn = useProgress(DUR.f3, DUR.f4);
 
-  // 主问题字卡：栈呼吸收束后进场，句尾自淡出（SceneFade 只管幕间）
-  const atCard = Math.round(durA * 0.38);
+  // 主问题字卡：开镜即起手（不再等栈呼吸），句尾自淡出（SceneFade 只管幕间）
+  const atCard = DUR.f4;
   const cardIn = useProgress(atCard, DUR.f5);
   const cardOut = useProgress(durA - DUR.f5, DUR.f5);
   // 「敢」字 deny 红点睛：一次性强调（sin 包络自衰减）
@@ -100,9 +92,6 @@ const OpeningStack: React.FC<{durA: number}> = ({durA}) => {
 
   return (
     <AbsoluteFill style={{pointerEvents: 'none'}}>
-      <div style={{opacity: 1 - kill}}>
-        <HarnessStackP0 recedeAt={recedeAt} />
-      </div>
       <HarnessBadge style={{...BADGE_STYLE, opacity: badgeIn}} />
 
       {/* 主问题字卡（≤6 字形态；「敢」字红点睛） */}
@@ -618,7 +607,7 @@ export const P0HumanLoop: React.FC<{scene: SceneRange}> = ({scene}) => {
 
   return (
     <AbsoluteFill>
-      <Sequence {...bA} name="0-A 五层栈开卷（3D）">
+      <Sequence {...bA} name="0-A 开场字卡（Badge 直入）">
         <SceneTag chapter="Human Loop" tagline="人肉循环" />
         <OpeningStack durA={bA.durationInFrames} />
       </Sequence>

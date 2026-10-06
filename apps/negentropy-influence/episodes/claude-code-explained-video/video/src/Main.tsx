@@ -1,5 +1,5 @@
 import React from 'react';
-import {AbsoluteFill, Sequence} from 'remotion';
+import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
 import {ChapterProgress} from './components/ChapterProgress';
 import {NarrationAudio} from './components/NarrationAudio';
 import {SceneFade} from './components/SceneFade';
@@ -7,6 +7,7 @@ import {Subtitle} from './components/Subtitle';
 import {theme} from './design/theme';
 import {LangProvider} from './i18n';
 import {P0HumanLoop} from './scenes/P0HumanLoop';
+import {INTRO_FRAMES, SeriesIntro} from './components/series-intro';
 import {P1LoopVerify} from './scenes/P1LoopVerify';
 import {P2ToolRegistry} from './scenes/P2ToolRegistry';
 import {P3ThreeGates} from './scenes/P3ThreeGates';
@@ -31,12 +32,21 @@ export type MainProps = {manifest: ManifestItem[]; lang?: Lang};
 
 export const Main: React.FC<MainProps> = ({manifest, lang}) => {
   const {timed, scenes, totalDurationInFrames} = computeTimeline(manifest);
+  // 章节条片头静默：frozen ChapterProgress 恒从 frame 0 挂载（自带 FADE_IN 12 帧早已完成），
+  // 片头期以调用点侧 wrapper 压到 0、片头交棒后 12 帧淡入（不动 frozen 组件本体）
+  const frame = useCurrentFrame();
+  const chromeIn = Math.min(1, Math.max(0, (frame - INTRO_FRAMES) / 12));
   return (
     <AbsoluteFill style={{background: theme.bg}}>
       {/* 语言 context 包全树：NarrationAudio/Subtitle/ChapterProgress/场景组件经
           useLang 取语言；缺省 zh ⇒ 既有集渲染逐像素不变（provider 零 DOM 输出）。
           挂载行落在 regioned 归一化保留区（同 ChapterProgress 先例，测试锚）。 */}
       <LangProvider lang={lang}>
+        {/* 系列片头《一个循环》：压扩展 leadIn 时段（0..INTRO_FRAMES），正片 P0 自 leadIn 起。
+            片头口播为独立音轨（不入 narration manifest）——见 components/series-intro.tsx 头注。 */}
+        <Sequence from={0} durationInFrames={INTRO_FRAMES} name="Intro">
+          <SeriesIntro />
+        </Sequence>
         {scenes.map((sc, i) => {
           const SceneComp = SCENE_COMPONENTS[sc.scene];
           if (!SceneComp) {
@@ -58,8 +68,11 @@ export const Main: React.FC<MainProps> = ({manifest, lang}) => {
         })}
         <NarrationAudio timed={timed} />
         <Subtitle timed={timed} />
-        {/* 顶部分段章节进度条：chapters.json（build_narration 派生）为空时自渲染 null */}
-        <ChapterProgress scenes={scenes} totalDurationInFrames={totalDurationInFrames} />
+        {/* 顶部分段章节进度条：chapters.json（build_narration 派生）为空时自渲染 null；
+            片头期静默（见上 chromeIn） */}
+        <AbsoluteFill style={{opacity: chromeIn, pointerEvents: 'none'}}>
+          <ChapterProgress scenes={scenes} totalDurationInFrames={totalDurationInFrames} />
+        </AbsoluteFill>
       </LangProvider>
     </AbsoluteFill>
   );
