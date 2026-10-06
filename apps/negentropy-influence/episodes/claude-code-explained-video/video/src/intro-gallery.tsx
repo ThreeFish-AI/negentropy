@@ -2,9 +2,9 @@
  *  不经 Root.tsx，对既有 Composition 零影响）。
  *
  * 用法（在 video/ 目录，.bin 直调防污染根 workspace）——每集变体拍 3 定格帧
- * （--frame=300：进度点 stagger 全亮（246+4×4+5=267 起），且早于 316 帧字幕淡出）：
+ * （--frame=620：进度点 stagger 已全亮，且处于片头第三拍中段）：
  *   ./node_modules/.bin/remotion still src/intro-gallery.tsx IntroEp1 \
- *       out/intro-ep1.png --frame=300
+ *       out/intro-ep1.png --frame=620
  *
  * mech 色为本文件字面量（series.json 五集 accents 实占值；dev 工具面口径同
  * MotionGallery——不读各集 theme，评审面独立声明）。层名/标题仍读 series-layers.json。

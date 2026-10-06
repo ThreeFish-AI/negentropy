@@ -1,16 +1,16 @@
 /** 系列片头《一个循环》（seeded 档，五集同构复制——与 harness-stack.tsx 同模式）。
  *
- *  系列统一开场：压在扩展 leadIn 时段（timing.json leadInSec=11.4 → 342 帧），
- *  口播为独立音轨（public/audio/series-intro-zh.mp3，story 档 me-bright，
- *  定性文案实测 9.18s）——不入 narration.md 单一事实源、不动 beatWindow 锚定，
+ *  系列统一开场：压在扩展 leadIn 时段（timing.json leadInSec=23.5 → 705 帧），
+ *  口播为独立音轨（public/audio/series-intro-zh.mp3；当前预览音轨需与下方 T 表同步），
+ *  不入 narration.md 单一事实源、不动 beatWindow 锚定，
  *  「序号只存在于视觉层与 series.json」的系列 rule 精神不打折（口播五集
  *  完全相同、无层名/序号/集名，发布顺序变更零 TTS 代价）。
  *
- *  四拍（帧窗为 342 帧口播对位，字幕文案与口播逐字一致、定性不念绝对数字）：
- *   1 循环点亮 0-106   环描线生长 + 环心 while True 逐字打出；字幕「一个循环……」
- *   2 时间线生长 106-236 主线自环缘向右生长，五站点错峰点亮（三态描边）；右下 1→5 层计数
- *   3 本集定格 236-328  推近当前站 → 本集标题卡（series-layers.json 派生）+ 五颗进度点
- *   4 交棒 328-342      整体渐出至 bg（正片 P0 首镜黑场直入；EP1 0-B「无循环世界」
+ *  四拍（帧窗为 705 帧口播对位，字幕文案与口播逐字一致、定性不念绝对数字）：
+ *   1 循环点亮 0-296   环描线生长 + 环心 while True 逐字打出；字幕点题 Claude Code 与 Harness Engineering
+ *   2 时间线生长 296-555 主线自环缘向右生长，五站点错峰点亮（三态描边）；右下 1→5 种机制计数
+ *   3 本集定格 555-691  推近当前站 → 本集标题卡（series-layers.json 派生）+ 五颗进度点
+ *   4 交棒 691-705      整体渐出至 bg（正片 P0 首镜黑场直入；EP1 0-B「无循环世界」
  *                       叙事不被片头环残留破坏——片头=预告片语义）
  *
  *  逐集差异三处（全部数据驱动零手写）：
@@ -43,26 +43,25 @@ import {ACTIVE_INDEX, LAYERS} from './harness-stack';
 /** 五集变体评审覆盖（IntroGallery 传入；缺省读本集 series-layers.json + theme.mech）。 */
 export type IntroOverride = {activeIndex: number; mech: string};
 
-/** 片头总长：timing.json leadInSec(11.4) × fps(30)。overridable 档直读，不动 frozen timing.ts。 */
+/** 片头总长：timing.json leadInSec(23.5) × fps(30)。overridable 档直读，不动 frozen timing.ts。 */
 export const INTRO_FRAMES = Math.round(constants.leadInSec * constants.fps);
 
-// ── 时序表（帧 @30fps；口播 12 帧起播、定性文案实测 9.18s → 12-287.5）──────
-/** 三句口播边界按 TTS 静音带实测对齐（silencedetect -35dB/0.3s，起播偏移 +12 帧）：
- *  句 1/2 静音带 89.6-102.4（取 92 切字幕）、句 2/3 静音带 226.1-237.8
- *  （取 226 切字幕、238 进句 3，句 3 语音起点 237.8）；改文案重合成后须重测并只改本表。 */
+// ── 时序表（帧 @30fps；口播 12 帧起播；新音频总长 21.984s）───────────────
+/** 三句口播边界按 TTS 静音带实测对齐（silencedetect -35dB/0.3s，起播偏移 +12 帧）；
+ *  改文案重合成后须重测并只改本表。 */
 const T = {
   audioAt: 12,
   ringDrawAt: 8,
   ringTextAt: 28,
-  sub1: {in: 20, out: 92},
-  lineAt: 106,
-  stationsAt: 118,
-  layersCountAt: 124,
-  sub2: {in: 106, out: 226},
-  pushAt: 236,
-  cardAt: 240,
-  dotsAt: 246,
-  sub3: {in: 238},
+  sub1: {in: 20, out: 296},
+  lineAt: 296,
+  stationsAt: 308,
+  layersCountAt: 314,
+  sub2: {in: 296, out: 555},
+  pushAt: 555,
+  cardAt: 560,
+  dotsAt: 566,
+  sub3: {in: 555},
   fadeFrames: 14,
 } as const;
 
@@ -83,11 +82,11 @@ const cardLeft = (activeIndex: number): number => Math.max(600, Math.min(station
 // ── 口播字幕（文本与 TTS 台本逐字一致；显示层剥句尾「。」对齐系列字幕风格——
 //    同 Subtitle.tsx 2026-09-14 起 zh 剥句尾口径）。文案定性不念绝对数字
 //    （系列数字纪律：口播不引绝对行数/活数据——见 ep1 source-notes ②），
-//    「通宵不打烊的工坊」呼应 EP2-5 工坊世界观三句咒语。 ─────────────────────
+//    三段字幕与片头音轨逐字一致。 ────────────────────────────────────────────
 const SUBS = [
-  '一个循环，就能在你机器上动手。',
-  '五层装置一层层挂上去，长成一间通宵不打烊的工坊。',
-  '循环，还是那一个。',
+  '本系列视频从 Harness Engineering 的视角，讲清 Claude Code 如何从一个简单循环，逐步进化为一套完整的工程体系。',
+  '接下来，我们将依次拆解五种核心机制：工具与执行、规划与协调、记忆管理、并发，以及多 Agent。',
+  '机制层层递进，工程体系持续进化。',
 ] as const;
 
 /** zh 显示层剥句尾句号（系列字幕风格；en 文案无句号问题，届时不剥） */
@@ -110,15 +109,17 @@ const IntroSubs: React.FC = () => {
           key={`sub${i}`}
           style={{
             position: 'absolute',
-            left: 0,
-            top: 862,
-            width: 1920,
+            left: 90,
+            top: 806,
+            width: 1740,
             textAlign: 'center',
             fontFamily: theme.serif,
             fontSize: 42,
             fontWeight: 600,
+            lineHeight: 1.35,
             color: theme.text,
             letterSpacing: 2,
+            overflowWrap: 'break-word',
             opacity: ops[i],
             textShadow: `0 2px 24px ${withAlpha(theme.bg, 0.8)}`,
           }}
@@ -202,7 +203,7 @@ const Stations: React.FC<{stationIn: number[]; activeNameOut: number; activeInde
   );
 };
 
-/** 图形层主体：拍 1 环+while True / 拍 2 线+站点+层数计数 / 拍 3 推近+标题卡+进度点。 */
+/** 图形层主体：拍 1 环+while True / 拍 2 线+站点+机制计数 / 拍 3 推近+标题卡+进度点。 */
 const IntroArt: React.FC<{override?: IntroOverride}> = ({override}) => {
   // 逐集差异变量（缺省读本集 series-layers.json + theme.mech；gallery 传 override）
   const activeIndex = override?.activeIndex ?? ACTIVE_INDEX;
@@ -211,7 +212,7 @@ const IntroArt: React.FC<{override?: IntroOverride}> = ({override}) => {
   const activeX = stationX(activeIndex - 1);
   const cardL = cardLeft(activeIndex);
   // 拍 1：环描线 + 起转 + 环心 while True（75 帧/圈，与正片巡游同节律）
-  // 环描线 47 帧 ≈1.6s（时长标尺外显式帧数：与口播首句「一个循环」同拍收束）
+  // 环描线 47 帧 ≈1.6s（时长标尺外显式帧数：先建立循环视觉锚点）
   const ringDraw = useProgress(T.ringDrawAt, 47, 'decelerate');
   const spin = useProgress(0, INTRO_FRAMES, 'linear');
   const laps = spin * (INTRO_FRAMES / 75);
@@ -220,12 +221,12 @@ const IntroArt: React.FC<{override?: IntroOverride}> = ({override}) => {
   const ringTextIn = useProgress(T.ringTextAt - DUR.f3, DUR.f3);
   const ringTextOut = useProgress(T.lineAt - DUR.f4, DUR.f4);
 
-  // 拍 2：主线生长 + 五站点错峰 + 层数计数
+  // 拍 2：主线生长 + 五站点错峰 + 机制计数
   // 主线生长 45 帧 ≈1.5s（显式帧数：句 2 起拍铺满，给站点错峰留窗）
   const lineGrow = useProgress(T.lineAt, 45, 'decelerate');
-  // stride 10（v1 目检修正：22 时 frame 200 仅亮 3 站，赶不上口播「五层装置」）
+  // stride 10（五种核心机制沿主线依次点亮）
   const stationIn = useStagger(LAYERS.length, {at: T.stationsAt, stride: 10, dur: DUR.f4});
-  // 层数计数 70 帧：124 起滚、194 落定 5（站点全亮 165=118+4×10+7 后）——结构数字（series-layers 五层），非活数据
+  // 机制计数 70 帧：314 起滚、384 落定 5——结构数字（series-layers 五种机制），非活数据
   const countLayers = useCount({from: 1, to: 5, at: T.layersCountAt, dur: 70, ease: 'decelerate'});
   const counterIn = useProgress(T.layersCountAt - DUR.f3, DUR.f4);
 
@@ -236,7 +237,7 @@ const IntroArt: React.FC<{override?: IntroOverride}> = ({override}) => {
   const activeNameOut = useProgress(T.cardAt, DUR.f4);
   // 连线描线 20 帧（显式帧数：略短于 DUR.f6=21，与标题卡 rise 同拍收束不拖尾）
   const linkDraw = useDraw(T.cardAt, 20);
-  // 五颗点 stride 4 快闪错峰：246+4×4+5=267 全亮（gallery --frame=300 拍帧依据）
+  // 五颗点 stride 4 快闪错峰：566+4×4+5=591 全亮（第三拍中段完成）。
   const dotsIn = useStagger(LAYERS.length, {at: T.dotsAt, stride: 4, dur: DUR.f3});
 
   return (
@@ -295,7 +296,7 @@ const IntroArt: React.FC<{override?: IntroOverride}> = ({override}) => {
         </g>
       </svg>
 
-      {/* 拍 2 层数计数：右下（1→5 层，与五站点错峰联动；结构数字非活数据） */}
+      {/* 拍 2 机制计数：右下（1→5 种机制，与五站点错峰联动；结构数字非活数据） */}
       <div
         style={{
           position: 'absolute',
@@ -307,7 +308,7 @@ const IntroArt: React.FC<{override?: IntroOverride}> = ({override}) => {
           opacity: counterIn,
         }}
       >
-        <div style={{fontSize: 44, fontWeight: 700, color: theme.text}}>{`${Math.round(countLayers)} 层`}</div>
+        <div style={{fontSize: 44, fontWeight: 700, color: theme.text}}>{`${Math.round(countLayers)} 种机制`}</div>
         <div style={{fontSize: 24, color: theme.dim, marginTop: 4}}>{'1 个循环 · 不变'}</div>
       </div>
 
