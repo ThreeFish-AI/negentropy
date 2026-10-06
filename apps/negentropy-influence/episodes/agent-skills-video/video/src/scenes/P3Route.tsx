@@ -8,7 +8,7 @@ import {beatWindow} from '../timing';
 import {theme} from '../design/theme';
 import {DUR, progress, useDraw, useEnter, useStagger} from '../motion';
 import {SceneTag} from '../components/motifs';
-import {GoldenCard} from '../components/as-motifs';
+import {GoldenCard, Stage} from '../components/as-motifs';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 
 /** 3-A：目录递交模型剪影（窗外）；p3-03 全屏窗重播激活章（跨幕非邻接复用）。 */
@@ -212,8 +212,12 @@ export const P3Route: React.FC<{scene: SceneRange}> = ({scene}) => {
     <AbsoluteFill>
       <Sequence {...bA} name="3-A 路由交出">
         <SceneTag chapter="P3" tagline="一句话的路由" accent={theme.route} />
+        <Stage>
         <Handover handAt={at('p3-01') - bA.from} />
-        <ArchifyRecap
+
+        </Stage>
+
+<ArchifyRecap
           slug="disclosure"
           caption="模型自主比对 description"
           cues={[
@@ -223,19 +227,31 @@ export const P3Route: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
       <Sequence {...bB} name="3-B 哑火与抢戏">
         <SceneTag chapter="P3" tagline="一句话的路由" accent={theme.route} />
+        <Stage>
         <TwoDoors doorAt={at('p3-06') - bB.from} costAt={at('p3-08') - bB.from} />
+        </Stage>
+
+
       </Sequence>
       <Sequence {...bC} name="3-C 三法则阶梯">
         <SceneTag chapter="P3" tagline="一句话的路由" accent={theme.route} />
+        <Stage>
         <ThreeRules
           step1At={at('p3-10') - bC.from}
           step2At={at('p3-12') - bC.from}
           step3At={at('p3-14') - bC.from}
         />
+        </Stage>
+
+
       </Sequence>
       <Sequence {...bD} name="3-D 关键词反噬">
         <SceneTag chapter="P3" tagline="一句话的路由" accent={theme.route} />
+        <Stage>
         <KeywordFlood floodAt={at('p3-16') - bD.from} closeAt={at('p3-18') - bD.from} />
+        </Stage>
+
+
       </Sequence>
     </AbsoluteFill>
   );

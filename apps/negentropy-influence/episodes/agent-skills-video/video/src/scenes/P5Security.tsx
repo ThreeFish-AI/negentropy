@@ -8,7 +8,7 @@ import {beatWindow} from '../timing';
 import {theme} from '../design/theme';
 import {DUR, useDim, useEnter, useImpulse, useProgress, useReveal, useShake, useStagger} from '../motion';
 import {SceneTag} from '../components/motifs';
-import {AblationPanel} from '../components/as-motifs';
+import {AblationPanel, Stage} from '../components/as-motifs';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 
 /** 5-A：大模型阅读 SKILL.md（文字流→指令流）vs 机器码无人阅读对比卡。 */
@@ -217,21 +217,33 @@ export const P5Security: React.FC<{scene: SceneRange}> = ({scene}) => {
     <AbsoluteFill>
       <Sequence {...bA} name="5-A 本质问题">
         <SceneTag chapter="P5" tagline="被解释的文本" accent={theme.gov} />
+        <Stage>
         <Essence flowAt={at('p5-02') - bA.from} injectTagAt={at('p5-07') - bA.from} />
+        </Stage>
+
+
       </Sequence>
       <Sequence {...bB} name="5-B X4 注入消融">
         <SceneTag chapter="P5" tagline="被解释的文本" accent={theme.gov} />
+        <Stage>
         <X4Injection
           seepAt={at('p5-08') - bB.from}
           leakAt={at('p5-09') - bB.from}
           stampAt={at('p5-10') - bB.from}
           shieldAt={at('p5-12') - bB.from}
         />
+        </Stage>
+
+
       </Sequence>
       <Sequence {...bC} name="5-C 确认门与真空">
         <SceneTag chapter="P5" tagline="被解释的文本" accent={theme.gov} />
+        <Stage>
         <TrustGate cardAt={at('p5-15') - bC.from} restAt={at('p5-16') - bC.from} />
-        <ArchifyRecap
+
+        </Stage>
+
+<ArchifyRecap
           slug="governance"
           caption="留白区 · 信任真空与确认门"
           cues={[

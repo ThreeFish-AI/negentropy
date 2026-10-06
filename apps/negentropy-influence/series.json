@@ -322,8 +322,8 @@
             "license": "CC-BY-4.0（文档）/ Apache-2.0（代码）；本仓精读为内部文档",
             "accessed": "2026-09-26"
           },
-          "status": "draft",
-          "statusNote": "210 重学版换代重制进行中（2026-10-06 建集）：信源 230→210 原位换代（该集第 2 次换代），旧 v10《刻意做小》整集退役（git 历史与 ~/Documents/video 归档保留）；骨架重建 + remotion 全家桶 4.0.529→4.0.533 同 major 整组追新（drift 两指纹按新口径重登）；配音按用户拍板 edge 草声一档到底（RSI-040 克隆轨全程不启用），写稿预算 280 字/分（显式覆写，story 锚点 254 系克隆档实测口径不适用）；Stage ①–⑩ 流水线推进中，本条目随终渲交付换代",
+          "status": "ready",
+          "statusNote": "210 重学版换代重制成片交付（2026-10-06，第 2 次原位换代：230《刻意做小》→ 210《目录常驻，正文按需》，旧版 git 历史与 ~/Documents/video 归档保留）：12:55.3 = 23,259 帧 @30fps / 1920×1080（142 句 3406 字，edge 草声一档到底——用户拍板，纯语音 12.07 分实测 282 字/分 vs 280 口径偏差 0.7% 免校准）；七幕 33 镜 · archify 双图 10 章 12 cue（锚定 8.5% · 密度 0.9/分 · 图型 2 种 workflow+architecture · GL 原生章集镜像 + ge-eco/gl-guide 两分镜期新增章 + dl-rewrite 不进正片）· 12 处全屏独占窗；取证链：gl-notes 210 冻结快照 @63ce3d925 + sources 14 条 verify FAIL 0 + lab2 五实验复算日志×6 全命中 + number-reconciliation 24 行（21 命中/0 偏差/2 转述/1 时点值，39,222 逐位修正）；④ 双子代理校验 RISKY=0/REWRITE=0 + ⑤ 三轮成文优化（18+5 REWRITE 全修、豁免 5 项留痕）+ ⑨ 修复轮三类缺陷（Stage 塌顶全局修复 27 镜/transform 容器块效应结构换向/useFadeOut 组件层全局帧致 6-D 整镜隐形下沉 beat 局部）；机制门全绿：build/check--check-scenes（内容门+archify 覆盖门）/check_series（规则5 死链 4 处修复）/tsc/qa 全幕+尾幕 FAIL 0（WARN 1=p1-21/24 静态终态采样指纹，目检排除冻帧）；门值按实测 -15~20% 回填 + exempt_scenes P0/P6 + max_unanchored_run 20 装置密集段留痕；归档 v1（md5 fc8603e4abcf，源=归档复核）+ _captions/（srt md5 16ef85cad114 恒等）",
           "voice": "edge 草声（制作终声一档到底）"
         },
         {

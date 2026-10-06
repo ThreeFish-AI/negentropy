@@ -20,7 +20,7 @@ import {
   useStagger,
 } from '../motion';
 import {SceneTag} from '../components/motifs';
-import {AblationPanel} from '../components/as-motifs';
+import {AblationPanel, Stage} from '../components/as-motifs';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 
 /** 4-A：46 格客户端墙（8×6 网格点亮 46，余灰空位）+ 取数角标。 */
@@ -331,12 +331,20 @@ export const P4Governance: React.FC<{scene: SceneRange}> = ({scene}) => {
     <AbsoluteFill>
       <Sequence {...bA} name="4-A 46 家阵列">
         <SceneTag chapter="P4" tagline="46 家的默契与分歧" accent={theme.gov} />
+        <Stage>
         <BadgeWall lightAt={at('p4-02') - bA.from} />
+        </Stage>
+
+
       </Sequence>
       <Sequence {...bB} name="4-B 三家分叉">
         <SceneTag chapter="P4" tagline="46 家的默契与分歧" accent={theme.gov} />
+        <Stage>
         <PathFork forkAt={at('p4-07') - bB.from} stampAt={at('p4-08') - bB.from} />
-        <ArchifyRecap
+
+        </Stage>
+
+<ArchifyRecap
           slug="governance"
           caption="生态层 · 三家实现分叉"
           cues={[
@@ -347,12 +355,20 @@ export const P4Governance: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
       <Sequence {...bC} name="4-C X5 遮蔽消融">
         <SceneTag chapter="P4" tagline="46 家的默契与分歧" accent={theme.gov} />
+        <Stage>
         <X5Shadow bellAt={at('p4-10') - bC.from} veilAt={at('p4-11') - bC.from} />
+        </Stage>
+
+
       </Sequence>
       <Sequence {...bD} name="4-D X2 严格宽容">
         <SceneTag chapter="P4" tagline="46 家的默契与分歧" accent={theme.gov} />
+        <Stage>
         <X2StrictLenient verdictAt={at('p4-15') - bD.from} gapAt={at('p4-17') - bD.from} />
-        <ArchifyRecap
+
+        </Stage>
+
+<ArchifyRecap
           slug="governance"
           caption="指南层 · 宽容校验"
           cues={[
@@ -362,14 +378,19 @@ export const P4Governance: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
       <Sequence {...bE} name="4-E X3 布尔翻转">
         <SceneTag chapter="P4" tagline="46 家的默契与分歧" accent={theme.gov} />
+        <Stage>
         <X3BoolFlip
           writeAt={at('p4-20') - bE.from}
           readAt={at('p4-21') - bE.from}
           onAt={at('p4-22') - bE.from}
         />
+        </Stage>
+
+
       </Sequence>
       <Sequence {...bF} name="4-F PR 悬案">
         <SceneTag chapter="P4" tagline="46 家的默契与分歧" accent={theme.gov} />
+        <Stage>
         <div
           style={{
             ...close,
@@ -394,7 +415,10 @@ export const P4Governance: React.FC<{scene: SceneRange}> = ({scene}) => {
             生态先行 · 条文追认
           </span>
         </div>
-        <ArchifyRecap
+
+        </Stage>
+
+<ArchifyRecap
           slug="governance"
           caption="治理悬案 · 开放提案"
           cues={[

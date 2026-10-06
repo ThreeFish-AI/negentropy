@@ -10,6 +10,25 @@ import {useCurrentFrame} from 'remotion';
 import {theme} from '../design/theme';
 import {DUR, progress, useBreathe} from '../motion';
 
+/** 居中舞台：全幕内容的唯一落位容器——垂直水平居中、顶部章节条（y<56）与
+ *  底部字幕带（药丸底缘 y≈1026）双避让。所有流式装置必须经它落位，防塌顶。 */
+export const Stage: React.FC<{children: React.ReactNode}> = ({children}) => (
+  <div
+    style={{
+      position: 'absolute',
+      inset: 0,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexDirection: 'column',
+      paddingTop: 40,
+      paddingBottom: 150,
+    }}
+  >
+    {children}
+  </div>
+);
+
 /** 〔M-001〕目录索引卡：全片恒定视觉锚——金描边、圆角卡，卡面恒两行
  *  （name 行 + description 行），跨幕同形出场只换周边标签。 */
 export const CatalogCard: React.FC<{

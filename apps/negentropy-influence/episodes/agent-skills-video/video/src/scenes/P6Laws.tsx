@@ -9,7 +9,7 @@ import {beatWindow} from '../timing';
 import {theme} from '../design/theme';
 import {DUR, useCount, useDim, useEnter, useFadeOut, useStagger} from '../motion';
 import {SceneTag} from '../components/motifs';
-import {CatalogCard} from '../components/as-motifs';
+import {CatalogCard, Stage} from '../components/as-motifs';
 
 /** 6-A：五规律卡连翻 → 收拢一枚「管得少 → 被接受」。 */
 const FiveLaws: React.FC<{cardsAt: number; foldAt: number}> = ({cardsAt, foldAt}) => {
@@ -149,47 +149,74 @@ export const P6Laws: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bB = w('p6-05', 'p6-08');
   const bC = w('p6-09', 'p6-12');
   const bD = w('p6-13', 'p6-15');
-  // 红线四：渐黑窗口从末 beat 总时长推导（勿用末句时长）
-  const fade = useFadeOut(bD.durationInFrames, {frames: 42});
-  const repo = useCount({at: at('p6-15') - bD.from, dur: DUR.f4, to: 5});
   return (
     <AbsoluteFill>
       <Sequence {...bA} name="6-A 五规律">
         <SceneTag chapter="P6" tagline="规律、争议与边界" accent={theme.ledger} />
-        <FiveLaws cardsAt={at('p6-02') - bA.from} foldAt={at('p6-04') - bA.from} />
+        <Stage>
+        <FiveLaws cardsAt={at('p6-01') - bA.from} foldAt={at('p6-04') - bA.from} />
+        </Stage>
+
+
       </Sequence>
       <Sequence {...bB} name="6-B 三争议">
         <SceneTag chapter="P6" tagline="规律、争议与边界" accent={theme.ledger} />
-        <Disputes boardAt={at('p6-06') - bB.from} veilAt={at('p6-08') - bB.from} />
+        <Stage>
+        <Disputes boardAt={at('p6-05') - bB.from} veilAt={at('p6-08') - bB.from} />
+        </Stage>
+
+
       </Sequence>
       <Sequence {...bC} name="6-C 边界护栏">
         <SceneTag chapter="P6" tagline="规律、争议与边界" accent={theme.ledger} />
+        <Stage>
         <Guardrails railsAt={at('p6-10') - bC.from} />
+        </Stage>
+
+
       </Sequence>
       <Sequence {...bD} name="6-D 回扣收尾">
         <SceneTag chapter="P6" tagline="规律、争议与边界" accent={theme.ledger} />
-        <div style={{opacity: fade}}>
-          <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 38}}>
-            <FinalCard />
-            <div
-              style={{
-                border: `1.5px solid ${theme.panelBorder}`,
-                borderRadius: 999,
-                padding: '10px 24px',
-                fontSize: 15.5,
-                color: theme.dim,
-                background: theme.panel,
-              }}
-            >
-              实验室 · lab2 五场破坏性实验 × 完整脚本 · 仓库可复现
-            </div>
-            <div style={{fontFamily: theme.mono, fontSize: 15, color: theme.dim, opacity: 0.75}}>
-              {Math.round(repo)} / 5 · X1–X5
-            </div>
-          </div>
-        </div>
+        <Stage>
+        <FinalBeat durationInFrames={bD.durationInFrames} labAt={at('p6-15') - bD.from} />
+        </Stage>
+
+
       </Sequence>
     </AbsoluteFill>
+  );
+};
+
+/** 6-D 内容体：useFadeOut 必须在 Sequence 内取 beat 局部帧——组件层调用吃全局帧，
+ *  progress 恒 1 → fade 恒 0（2026-10-06 三渲实测整镜隐形缺陷）。 */
+const FinalBeat: React.FC<{durationInFrames: number; labAt: number}> = ({
+  durationInFrames,
+  labAt,
+}) => {
+  // 红线四：渐黑窗口从末 beat 总时长推导（勿用末句时长）
+  const fade = useFadeOut(durationInFrames, {frames: 42});
+  const repo = useCount({at: labAt, dur: DUR.f4, to: 5});
+  return (
+    <div style={{opacity: fade}}>
+      <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 38}}>
+        <FinalCard />
+        <div
+          style={{
+            border: `1.5px solid ${theme.panelBorder}`,
+            borderRadius: 999,
+            padding: '10px 24px',
+            fontSize: 15.5,
+            color: theme.dim,
+            background: theme.panel,
+          }}
+        >
+          实验室 · lab2 五场破坏性实验 × 完整脚本 · 仓库可复现
+        </div>
+        <div style={{fontFamily: theme.mono, fontSize: 15, color: theme.dim, opacity: 0.75}}>
+          {Math.round(repo)} / 5 · X1–X5
+        </div>
+      </div>
+    </div>
   );
 };
 

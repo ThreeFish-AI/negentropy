@@ -19,7 +19,7 @@ import {
   useStagger,
 } from '../motion';
 import {SceneTag} from '../components/motifs';
-import {BalanceBars, CatalogCard, GoldenCard} from '../components/as-motifs';
+import {BalanceBars, CatalogCard, GoldenCard, Stage} from '../components/as-motifs';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 
 /** 2-A：目录卡落地 pdf-report 摘要行（窗外）；p2-04 全屏窗看台账常驻章。 */
@@ -289,8 +289,12 @@ export const P2Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
     <AbsoluteFill>
       <Sequence {...bA} name="2-A 目录常驻">
         <SceneTag chapter="P2" tagline="三级账本" accent={theme.ledger} />
+        <Stage>
         <CatalogLanding landAt={at('p2-05') - bA.from} rentAt={at('p2-06') - bA.from} />
-        <ArchifyRecap
+
+        </Stage>
+
+<ArchifyRecap
           slug="disclosure"
           caption="台账常驻 · 每技能一行"
           cues={[
@@ -300,8 +304,12 @@ export const P2Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
       <Sequence {...bB} name="2-B 正文整载">
         <SceneTag chapter="P2" tagline="三级账本" accent={theme.ledger} />
+        <Stage>
         <HitPulse askAt={at('p2-07') - bB.from} hitAt={at('p2-08') - bB.from} />
-        <ArchifyRecap
+
+        </Stage>
+
+<ArchifyRecap
           slug="disclosure"
           caption="语义路由命中 · 整载正文"
           cues={[
@@ -311,8 +319,12 @@ export const P2Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
       <Sequence {...bC} name="2-C 按需调阅">
         <SceneTag chapter="P2" tagline="三级账本" accent={theme.ledger} />
+        <Stage>
         <TierGrid tiersAt={at('p2-12') - bC.from} closeAt={at('p2-14') - bC.from} />
-        <ArchifyRecap
+
+        </Stage>
+
+<ArchifyRecap
           slug="disclosure"
           caption="模型解释指令 · 资源按需"
           cues={[
@@ -322,18 +334,26 @@ export const P2Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
       <Sequence {...bD} name="2-D 十六点九倍">
         <SceneTag chapter="P2" tagline="三级账本" accent={theme.ledger} />
+        <Stage>
         <div style={{transform: push}}>
           <ScaleBattle raceAt={at('p2-15') - bD.from} multAt={at('p2-17b') - bD.from} />
         </div>
+        </Stage>
+
+
       </Sequence>
       <Sequence {...bE} name="2-E 预算门">
         <SceneTag chapter="P2" tagline="三级账本" accent={theme.ledger} />
+        <Stage>
         <BudgetGate
           barAt={at('p2-21') - bE.from}
           rulerAt={at('p2-22') - bE.from}
           badgeAt={at('p2-23') - bE.from}
         />
-        <ArchifyRecap
+
+        </Stage>
+
+<ArchifyRecap
           slug="governance"
           caption="规范层 · 建议与上限"
           cues={[

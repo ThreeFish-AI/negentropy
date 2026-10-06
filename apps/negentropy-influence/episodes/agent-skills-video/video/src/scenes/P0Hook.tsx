@@ -20,7 +20,7 @@ import {
   useStagger,
 } from '../motion';
 import {SceneTag} from '../components/motifs';
-import {CatalogCard, GoldenCard} from '../components/as-motifs';
+import {CatalogCard, GoldenCard, Stage} from '../components/as-motifs';
 
 /** 0-A 钩子卡：卡片 3D 翻入（第一秒冲击）→「开放规范」金印 → 问题气泡。 */
 const HookCard: React.FC<{cardAt: number; sealAt: number; askAt: number}> = ({
@@ -34,7 +34,7 @@ const HookCard: React.FC<{cardAt: number; sealAt: number; askAt: number}> = ({
   return (
     <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 34}}>
       <div style={{position: 'relative'}}>
-        <CatalogCard enter={card} breathe width={620} scale={1.06} />
+        <CatalogCard enter={card} breathe width={620} scale={1.06} nameText={'a-skill'} descText={'把一件事做对的完整说明'}/>
         <div
           style={{
             position: 'absolute',
@@ -275,29 +275,37 @@ export const P0Hook: React.FC<{scene: SceneRange}> = ({scene}) => {
     <AbsoluteFill>
       <Sequence {...bA} name="0-A 钩子卡">
         <SceneTag chapter="P0" tagline="挤爆的开场白" accent={theme.ledger} />
+        <Stage>
         <HookCard
           cardAt={at('p0-01') - bA.from}
           sealAt={at('p0-02') - bA.from}
           askAt={at('p0-03') - bA.from}
         />
+        </Stage>
       </Sequence>
       <Sequence {...bB} name="0-B 两难分栏">
         <SceneTag chapter="P0" tagline="挤爆的开场白" accent={theme.ledger} />
-        <div style={{transform: push}}>
-          <DilemmaSplit
-            leftAt={at('p0-04') - bB.from}
-            crossAt={at('p0-08') - bB.from}
-            stackAt={at('p0-09') - bB.from}
-          />
-        </div>
+        <Stage>
+          <div style={{transform: push}}>
+            <DilemmaSplit
+              leftAt={at('p0-04') - bB.from}
+              crossAt={at('p0-08') - bB.from}
+              stackAt={at('p0-09') - bB.from}
+            />
+          </div>
+        </Stage>
       </Sequence>
       <Sequence {...bC} name="0-C 示意账">
         <SceneTag chapter="P0" tagline="挤爆的开场白" accent={theme.ledger} />
+        <Stage>
         <EstimateMath factorsAt={at('p0-10b') - bC.from} sumAt={at('p0-10c') - bC.from} />
+        </Stage>
       </Sequence>
       <Sequence {...bD} name="0-D 安装成本循环">
         <SceneTag chapter="P0" tagline="挤爆的开场白" accent={theme.ledger} />
+        <Stage>
         <RecurringCost loopAt={at('p0-11') - bD.from} gridAt={at('p0-12') - bD.from} />
+        </Stage>
       </Sequence>
       <Sequence {...bE} name="0-E 第三条路">
         <SceneTag chapter="P0" tagline="挤爆的开场白" accent={theme.ledger} />

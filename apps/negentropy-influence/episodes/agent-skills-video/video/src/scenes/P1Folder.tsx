@@ -20,7 +20,7 @@ import {
   useStagger,
 } from '../motion';
 import {SceneTag} from '../components/motifs';
-import {AblationPanel, GoldenCard, WalkTerm} from '../components/as-motifs';
+import {AblationPanel, GoldenCard, WalkTerm, Stage} from '../components/as-motifs';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 
 const FIELDS = [
@@ -413,13 +413,17 @@ export const P1Folder: React.FC<{scene: SceneRange}> = ({scene}) => {
     <AbsoluteFill>
       <Sequence {...bA} name="1-A 格式契约">
         <SceneTag chapter="P1" tagline="一个文件夹的答案" accent={theme.route} />
+        <Stage>
         <FieldCards
           openAt={at('p1-01') - bA.from}
           cardAt={at('p1-03') - bA.from}
           optAt={at('p1-07') - bA.from}
         />
         {/* p1-07 全屏独占：规范层三格（六字段封闭集/建议/留白） */}
-        <ArchifyRecap
+
+        </Stage>
+
+<ArchifyRecap
           slug="governance"
           caption="规范层 · 六字段封闭集"
           cues={[
@@ -429,26 +433,38 @@ export const P1Folder: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
       <Sequence {...bB} name="1-B 正文与子目录">
         <SceneTag chapter="P1" tagline="一个文件夹的答案" accent={theme.route} />
+        <Stage>
         <BodyAndDirs
           bodyAt={at('p1-08') - bB.from}
           dirsAt={at('p1-09') - bB.from}
           idAt={at('p1-10') - bB.from}
         />
+        </Stage>
+
+
       </Sequence>
       <Sequence {...bC} name="1-C 走查 pdf-report">
         <SceneTag chapter="P1" tagline="一个文件夹的答案" accent={theme.route} />
+        <Stage>
         <Walkthrough
           startAt={at('p1-11') - bC.from}
           descAt={at('p1-13') - bC.from}
           halfAt={at('p1-14') - bC.from}
           doneAt={at('p1-15b') - bC.from}
         />
+        </Stage>
+
+
       </Sequence>
       <Sequence {...bD} name="1-D 治理智慧">
         <SceneTag chapter="P1" tagline="一个文件夹的答案" accent={theme.route} />
+        <Stage>
         <Governance lockAt={at('p1-16') - bD.from} gitAt={at('p1-19') - bD.from} />
         {/* p1-18 全屏独占：发现/解析/作用域链 */}
-        <ArchifyRecap
+
+        </Stage>
+
+<ArchifyRecap
           slug="disclosure"
           caption="发现 · 解析 · 作用域"
           cues={[
@@ -458,6 +474,7 @@ export const P1Folder: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
       <Sequence {...bE} name="1-E X1 消融">
         <SceneTag chapter="P1" tagline="一个文件夹的答案" accent={theme.route} />
+        <Stage>
         <div style={{position: 'relative'}}>
           <X1Ablation
             splitAt={at('p1-21') - bE.from}
@@ -477,6 +494,9 @@ export const P1Folder: React.FC<{scene: SceneRange}> = ({scene}) => {
             {Math.round(count10)} 技能 · 2 项漂移
           </div>
         </div>
+        </Stage>
+
+
       </Sequence>
     </AbsoluteFill>
   );
