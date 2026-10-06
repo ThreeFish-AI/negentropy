@@ -28,7 +28,7 @@
 | 11 | execution-panorama（**复用**：主仓既有 `claude-code-tooling--execution-panorama.html`，guided-views 为空——录制前按本集 views 回填章节、focus 对齐既有节点语义） | lifecycle | P0 一闪（p0-06）＋P5 全景对账（p5-12..16） | 6 |
 | 12 | five-layer-dependency（**复用**：主仓既有 `claude-code-harness--five-layer-dependency.html`，同上回填） | architecture | P0 立碑一闪（p0-15）＋P6 收束（p6-01..05, p6-17..18） | 6 |
 
-> 型多样性＝lifecycle×3 / workflow×3 / dataflow×3 / state×1 / architecture×2 ＝ 5 型 ≥ 5（sidecar 顶层 `type` 录制时按本表落盘）；复用图与 `html_pattern` 不匹配，已在此显式登记。P0/P6 归 3D 系列装置（HarnessStack）＋上表 11/12 两张收束图。
+> 型多样性＝lifecycle×3 / workflow×3 / dataflow×3 / state×1 / architecture×2 ＝ 5 型 ≥ 5（sidecar 顶层 `type` 录制时按本表落盘）；复用图与 `html_pattern` 不匹配，已在此显式登记。P0 归系列片头（series-intro.tsx）＋上表 11/12 复用图（片头改版 2026-10-06：五层栈落板退役）；P6 归 3D 系列装置（HarnessStack）＋上表 11/12 两张收束图。
 
 ## P0 人肉循环（p0-01..16）→ `scenes/P0HumanLoop.tsx`
 
@@ -118,7 +118,7 @@
 
 | 幕 | 组件 | 装置重心 |
 | --- | --- | --- |
-| P0 人肉循环 | `scenes/P0HumanLoop.tsx` | HarnessStackP0（3D）、分屏、三债卡、悬念立碑＋金句卡 |
+| P0 人肉循环 | `scenes/P0HumanLoop.tsx` | 开场字卡（Badge 直入；五层栈落板已由 series-intro.tsx 吸收）、分屏、三债卡、悬念立碑＋金句卡 |
 | P1 循环与验活 | `scenes/P1LoopVerify.tsx` | 3D 转轮一现→LoopRing 母题（M-001）、验活分屏、判据对撞、引语卡 |
 | P2 工具号码簿 | `scenes/P2ToolRegistry.tsx` | DispatchTable、围墙装置、实测对账条 |
 | P3 三道门禁 | `scenes/P3ThreeGates.tsx` | GateRouter 母题、危险品名册、官方次序条、倒置假想卡、回执卡 |

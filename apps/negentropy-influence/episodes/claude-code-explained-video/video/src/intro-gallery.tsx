@@ -1,9 +1,10 @@
 /** IntroGallery——系列片头五集变体评审面（独立 Remotion 入口，仿 MotionGallery，
  *  不经 Root.tsx，对既有 Composition 零影响）。
  *
- * 用法（在 video/ 目录，.bin 直调防污染根 workspace）——每集变体拍 3 定格帧（--frame=290）：
+ * 用法（在 video/ 目录，.bin 直调防污染根 workspace）——每集变体拍 3 定格帧
+ * （--frame=300：进度点 stagger 全亮（246+4×4+5=267 起），且早于 316 帧字幕淡出）：
  *   ./node_modules/.bin/remotion still src/intro-gallery.tsx IntroEp1 \
- *       out/intro-ep1.png --frame=290
+ *       out/intro-ep1.png --frame=300
  *
  * mech 色为本文件字面量（series.json 五集 accents 实占值；dev 工具面口径同
  * MotionGallery——不读各集 theme，评审面独立声明）。层名/标题仍读 series-layers.json。
@@ -11,7 +12,7 @@
 import React from 'react';
 import {Composition, registerRoot} from 'remotion';
 import constants from './timing.json';
-import {SeriesIntro} from './components/series-intro';
+import {INTRO_FRAMES, SeriesIntro} from './components/series-intro';
 
 /** 五集变体：activeIndex 1-5 × 各集 mech 色（EP1 青/EP2 紫/EP3 绿/EP4 蓝/EP5 金）。 */
 const VARIANTS = [
@@ -32,7 +33,7 @@ const Root: React.FC = () => (
         width={1920}
         height={1080}
         fps={constants.fps}
-        durationInFrames={Math.round(constants.leadInSec * constants.fps)}
+        durationInFrames={INTRO_FRAMES}
         defaultProps={{override: v}}
       />
     ))}

@@ -55,7 +55,10 @@ export const Main: React.FC<MainProps> = ({manifest, lang}) => {
           return (
             <Sequence key={sc.scene} from={sc.from} durationInFrames={sc.durationInFrames} name={sc.scene}>
               {/* 幕间呼吸淡入淡出：只花幕间既有静默，from/总时长零改动；首幕不淡入、
-                  末幕不淡出（尾幕渐黑由 P6 从末 beat 推导，叠加成双重渐黑） */}
+                  末幕不淡出（尾幕渐黑由 P6 从末 beat 推导，叠加成双重渐黑）。
+                  首幕不淡入的现行依据（片头改版 2026-10-06）：leadIn 时段已是
+                  series-intro 片头（非旧 0.6s 黑场），片头自带交棒渐出，首幕再
+                  fadeIn 会双重渐出——frozen SceneFade 头注的 0.6s 口径已过期 */}
               <SceneFade
                 durationInFrames={sc.durationInFrames}
                 fadeIn={i === 0 ? 0 : SCENE_FADE_FRAMES}

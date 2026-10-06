@@ -191,5 +191,5 @@ reason = "V3D：angle 后端（同 EP1 条目）"
 [[skeleton.drift]]
 episode = "claude-code-explained-video"
 path = "video/src/Main.tsx"
-fingerprint = "ef576374c0d2"
-reason = "系列片头《一个循环》（2026-10-06，五集样板先行）：Main.tsx 挂 SeriesIntro Sequence（from=0 压扩展 leadIn）+ frozen ChapterProgress 调用点侧 wrapper（片头期静默、交棒后 12 帧淡入——不动 frozen 本体）。撤销条件=片头铺开五集时 Main.tsx 同构复制到其余四集（挂载块五集同字节），届时本条转为系列级同形、删除本条"
+fingerprint = "78664c3010fd"
+reason = "系列片头《一个循环》（2026-10-06，五集样板先行）：Main.tsx 挂 SeriesIntro Sequence（from=0 压扩展 leadIn）+ frozen ChapterProgress 调用点侧 wrapper（片头期静默、交棒后 12 帧淡入——不动 frozen 本体）。en 待办登记：片头 zh-only（音轨 series-intro-zh.mp3 + zh 字幕），en 交付前须补 en 文案与 series-intro-en.mp3，届时 en 渲染才不带 zh 音轨。撤销条件=片头铺开五集时 Main.tsx 同构复制到其余四集（挂载块五集同字节），届时本条转为系列级同形、删除本条"
