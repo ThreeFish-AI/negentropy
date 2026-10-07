@@ -26,7 +26,7 @@
             "date": "2026-06"
           },
           "status": "ready",
-          "statusNote": "v3 已完成：内容校准（187 句，25 改写 + 8 新增）+ sunny-steady 全片重配 + 终渲 14:01；源码含未重渲改动（P3 Figure 8 格阵落格校准，见 PR 说明），发布前须重渲",
+          "statusNote": "v3 已完成：内容校准（187 句，25 改写 + 8 新增）+ sunny-steady 全片重配 + 终渲 14:01；源码含未重渲改动（P3 Figure 8 格阵落格校准，见 PR 说明；p1-07 改写去 Harness 中译，须重配该句），发布前须重渲",
           "voice": "sunny-steady + me-bright.wav（2026-08 重录决策）"
         },
         {
@@ -102,7 +102,7 @@
       "id": "claude-code-explained",
       "title": "Claude Code Harness Engineering",
       "sourceKind": "course",
-      "rule": "与自进化系列完全独立：两个系列的口播互不引用（校验器规则 1 跨系列全局生效），发布顺序与视觉契约各自独立（规则 2/3/4 按系列内判定）。信源为官方文档 + Anthropic 工程博客 + 开源课程仓库（站点 20 章/5 阶段只作组织骨架，观众层匿名化——规则 7），故 episode 用 source 字段（含 pinnedRef 与访问日期）而非 paper 字段——证据等级分层见各集 research/source-notes.md。",
+      "rule": "与自进化系列完全独立：两个系列的口播互不引用（校验器规则 1 跨系列全局生效），发布顺序与视觉契约各自独立（规则 2/3/4 按系列内判定）。信源为官方文档 + Anthropic 工程博客 + 开源课程仓库（站点 20 章/5 阶段只作组织骨架，观众层匿名化——规则 7），故 episode 用 source 字段（含 pinnedRef 与访问日期）而非 paper 字段——证据等级分层见各集 research/gl-notes.md 冻结登记。",
       "episodes": [
         {
           "episode": 1,
@@ -125,7 +125,7 @@
             "accessed": "2026-10-07"
           },
           "status": "script-review",
-          "statusNote": "剧本 v3 待审（2026-10-07）：planning/narration/storyboard 全新换代，C 型信源=171 新精读（guided-learn 2026-10-07）；159 句 3685 字 7 幕 27 镜（build 口径 14.5 分落窗）；build/pre-tts/内容门三绿 + source_ledger 15 条 FAIL 0；场景/TTS/图集未动，跨代红门见 ISSUE-210；main 钉换 ce8f9f18（自 0dcafa2a 无机制级变更）；旧 source-notes/cues 清理、archive 重建为 ce8f9f1/",
+          "statusNote": "剧本 v3 待审（2026-10-07）：planning/narration/storyboard 全新换代，C 型信源=171 新精读（guided-learn 2026-10-07）；159 句 3692 字 7 幕 27 镜（build 口径 14.5 分落窗）；build/pre-tts/内容门三绿 + source_ledger 15 条 FAIL 0；场景/TTS/图集未动，跨代红门见 ISSUE-210；main 钉换 ce8f9f18（自 0dcafa2a 无机制级变更）；旧 source-notes/cues 清理、archive 重建为 ce8f9f1/",
           "voice": "story + me-bright.wav"
         },
         {
@@ -169,7 +169,7 @@
             "accessed": "2026-10-07"
           },
           "status": "script-review",
-          "statusNote": "剧本 v3 待审（2026-10-07）：C 型信源=173 新精读（双轨：站点主轨+main s08 演进彩蛋）；160 句 3603 字 7 幕 32 镜（14.2 分落窗）；三门绿 + source_ledger 13 条 FAIL 0；场景/TTS/图集未动（ISSUE-210）；archive 增 ce8f9f1/ 双轨对照",
+          "statusNote": "剧本 v3 待审（2026-10-07）：C 型信源=173 新精读（双轨：站点主轨+main s08 演进彩蛋）；160 句 3642 字 7 幕 32 镜（14.3 分落窗）；三门绿 + source_ledger 13 条 FAIL 0；场景/TTS/图集未动（ISSUE-210）；archive 增 ce8f9f1/ 双轨对照",
           "voice": "story + me-bright.wav"
         },
         {
