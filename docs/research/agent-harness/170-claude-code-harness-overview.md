@@ -11,7 +11,7 @@ description: "课程双轨一手材料（仓库 main 17 章 @ ce8f9f18 / 站点 
 > - 课程仓库 main 轨（17 章整合版）：[shareAI-lab/learn-claude-code](https://github.com/shareAI-lab/learn-claude-code) @ [`ce8f9f18`](https://github.com/shareAI-lab/learn-claude-code/tree/ce8f9f186058939da54c9d6fead78dfb5d0fd6c3)（2026-09-28），License **MIT**——① 层机制钉点与 main 轨独有两章
 > - 课程站点（20 章修订）：[Learn Claude Code](https://learn.shareai.run/zh/s01/)，内容与分支 @ `67a9126c`（2026-07-29）逐节对账一致（2026-10-07 复核 20/20）——②–⑤ 层机制钉点；逐集钉选理由见[系列信源地图](../../../apps/negentropy-influence/source-map/claude-code-explained.md)
 > - Anthropic 官方文档（产品现状口径）：[code.claude.com/docs](https://code.claude.com/docs)，各篇按缺口补读、实抓快照（2026-10-07）
-> - **本组的五个分篇（171–175）为 guided-learn《精读与通俗拆解》产物**（2026-10-07 全新首读，防污染重写：不承接旧版精读的任何叙述，一切结论从钉点材料重新推导）；每篇配套纯标准库原型 `assets/lcc_<part>_lab.py`（`--selftest` 自证 + 破坏性实验实测退化）。旧版总类比叙事（工坊剧场角色台账）随本轮换代废止，各篇类比就地局部准入、随文声明失配边界，不设总类比剧场
+> - **本组的五个分篇（171–175）为 guided-learn《精读与通俗拆解》产物**（2026-10-07 全新首读，防污染重写：不承接旧版精读的任何叙述，一切结论从钉点材料重新推导）；每篇配套纯标准库原型 `assets/lcc_<part>_lab.py`（`--selftest` 自证 + 破坏性实验实测退化）。旧版总类比叙事（角色台账剧场）随本轮换代废止，各篇类比就地局部准入、随文声明失配边界，不设总类比剧场
 
 **一句话定位**：这门课程用 Python 从一百余行的最小循环逐章长成千行级的整合 harness，每章只加一个机制——而它真正证明的事情只有一件：**从头到尾，循环没有变过**。让模型能在你机器上动手的，不是更聪明的模型，是循环外面一层层挂上去的 harness。
 
@@ -23,9 +23,9 @@ description: "课程双轨一手材料（仓库 main 17 章 @ ce8f9f18 / 站点 
 
 五层不是并列的功能清单，是一条**每一层都在偿还上一层欠下的债**的链子：
 
-![五层工坊叙事依赖图（前代存量）：五个分层（执行/规划/记忆/时机/协作）串成一条主链，各层节点为传送带、工序卡·副台、收台四步·登记簿、自动清洗槽·定时钟、排工板·派工单等工坊物件，层间箭头标注「偿还」并写明各层接手的问题（活一多就忘了要干什么、台面一定会满、有些活很慢，有些没人按开始、一个人只有一双手），收束节点写着「机制很多，循环一个」](../../assets/architecture/agent-harness/claude-code-harness--five-layer-dependency-dark.png)
+![五层依赖图（前代存量·旧叙事版）：五个分层（执行/规划/记忆/时机/协作）串成一条主链，各层节点沿用换代前的隐喻命名，层间箭头标注「偿还」并写明各层接手的问题（活多易忘目标、上下文一定会满、有些活很慢、有些没人按开始、一个人只有一双手），收束节点写着「机制很多，循环一个」](../../assets/architecture/agent-harness/claude-code-harness--five-layer-dependency-dark.png)
 
-> 前代存量图（2026-10-07 换代前口径，新产出不回溯）：图面沿用旧版工坊叙事术语（传送带、台面等），按层间依赖拓扑读即可。
+> 前代存量图（2026-10-07 换代前口径，新产出不回溯）：图面沿用换代前的旧叙事命名，按层间依赖拓扑读即可。
 > 图源（可 diff 文本）：[`claude-code-harness--five-layer-dependency.mmd`](../../assets/mermaid/agent-harness/claude-code-harness--five-layer-dependency.mmd) · 交互版（下载到本地打开）：[`claude-code-harness--five-layer-dependency.html`](../../assets/architecture/agent-harness/claude-code-harness--five-layer-dependency.html)
 
 读法：**每一层的存在理由，都写在上一层的失败里**。跳过任何一层去看下一层，都会觉得后者是过度设计。
@@ -70,9 +70,9 @@ description: "课程双轨一手材料（仓库 main 17 章 @ ce8f9f18 / 站点 
 
 ## 5. main 轨独有的两章：视频未取材的净增量
 
-课程仓库 main 有两章不在站点 20 章修订内，[系列信源地图](../../../apps/negentropy-influence/source-map/claude-code-explained.md)已登记其不被任何一集取材——即科普视频五个作品均未以它们为信源。它们没有任何一集持有，**因此本组是它们的唯一事实源**（唯一豁免：参数在两篇附录写全）：
+课程仓库 main 有两章不在站点 20 章修订内，[系列信源地图](../../../apps/negentropy-influence/source-map/claude-code-explained.md)已登记其不被任何一集取材——即科普视频五个作品均未以它们为信源。它们没有任何一集持有，**因此本组是它们的唯一事实源**（唯一豁免：参数与官方对位在本节末与 §7 写全）：
 
-| 目录（main 轨全称） | 文件 | 落位（机制、常量与行数实测的唯一落点＝附录） |
+| 目录（main 轨全称） | 文件 | 落位（机制概述见各篇附录；常量与官方对位的唯一落点＝本文 §7） |
 |:---|:---|:---|
 | `s16_workflow_runtime` | `code.py` / `README.zh.md` | [④ 并发与时机 · 附录](./174-claude-code-concurrency.md)——全仓唯一的事件循环扇出并发：有屏障／无屏障两原语、journal 断点续跑 |
 | `s17_goal_loop` | `code.py` / `README.zh.md` | [② 规划与协调 · 附录](./172-claude-code-planning-coordination.md)——给循环装目标闸门：终止原因建模为互斥的一等状态 |
@@ -113,7 +113,7 @@ description: "课程双轨一手材料（仓库 main 17 章 @ ce8f9f18 / 站点 
 | 队友运行时、收件箱与协议握手 | [Routine 多 Agent 归因](../../concepts/subsystems/040-routine-multi-agent-faculty.md)（一核五翼 Faculty 编排） | 🔶 值得落地（本仓无对等的消费式收件箱，也无带类型校验与幂等的请求／响应协议；注意官方侧整套班组机制仍戴 experimental 标签） |
 | **目标闸门把「达成／判定不可能／超上限」做成互斥的一等状态**（main 轨 `s17_goal_loop`） | 本仓 `engine/routine/decision.py` 的 `decide()`：成功判定以**标量分数阈值**为主，Judge 显式判 pass 需经 `accept_verdict_pass` 开关旁路才被接受 | 🔶 **值得落地**，且对位证据已从课程内部升为官方——见下 |
 
-> 最后一行是这组精读对本仓最有价值的一条。课程的目标闸门把**终止原因**建模为互斥的一等状态（达成／判定不可能／连续阻断超限／出错／先等后台完成），而本仓把「成功」压在一个可比较的分数阈值上——当评分尺度与阈值不可达时，一个实际已经收敛的任务会落进「无进展」分支。本仓已用开关与分数容差带做了局部对冲；课程的做法提示了一个更上游的选项：**让判定先分类，再打分**。换钉复核带来一处**官方强对位**【官】：Claude Code 产品 Stop 钩子的防死循环上限（`stop_hook_active` 字段＋连续八次续轮后覆盖下一次阻断）及其环境变量 `CLAUDE_CODE_STOP_HOOK_BLOCK_CAP`，与 s17 的常量 `DEFAULT_STOP_HOOK_BLOCK_CAP = 8` **同名同值**——goal loop 不是虚构练习，它是产品 Stop 钩子机制的教学镜像（详见[② · 附录](./172-claude-code-planning-coordination.md)）。
+> 最后一行是这组精读对本仓最有价值的一条。课程的目标闸门把**终止原因**建模为互斥的一等状态（达成／判定不可能／连续阻断超限／出错／先等后台完成），而本仓把「成功」压在一个可比较的分数阈值上——当评分尺度与阈值不可达时，一个实际已经收敛的任务会落进「无进展」分支。本仓已用开关与分数容差带做了局部对冲；课程的做法提示了一个更上游的选项：**让判定先分类，再打分**。换钉复核带来一处**官方强对位**【官】：Claude Code 产品 Stop 钩子的防死循环上限（`stop_hook_active` 字段＋连续八次续轮后覆盖下一次阻断）及其环境变量 `CLAUDE_CODE_STOP_HOOK_BLOCK_CAP`，与 s17 的常量 `DEFAULT_STOP_HOOK_BLOCK_CAP = 8` **同名同值**——goal loop 不是虚构练习，它是产品 Stop 钩子机制的教学镜像。
 
 ## 8. 动手实验室
 

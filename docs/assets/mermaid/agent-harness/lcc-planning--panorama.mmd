@@ -18,7 +18,7 @@ flowchart LR
         MCP["MCP 连接状态"]
     end
 
-    subgraph ASSEMBLE["s10 System Prompt 组装<br/>（台面）"]
+    subgraph ASSEMBLE["s10 System Prompt 组装<br/>（汇合层）"]
         direction TB
         SP["分段拼装 PROMPT_SECTIONS<br/>identity · tools · workspace · memory<br/>稳定时复用缓存"]
         MSGQ["messages 对话列表"]

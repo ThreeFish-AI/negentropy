@@ -63,51 +63,6 @@ description: "「不等它」与「没人按开始也照跑」两种时间机制
 
 其中「后台任务」和「cron 调度」不是并列的两件事，而是同一条注入通道的两个源头：前者往后续轮次里放的是「命令完成了」的结果事件，后者在无轮可搭时专门拉起一轮、放进去的是一条新任务。这句话是全文最重要的一张对照表，记住它，后面所有细节都挂得上。
 
-```mermaid
-flowchart LR
-    subgraph S1["后台任务链 · 命令级并发（不等它）"]
-        direction TB
-        M["模型 tool_use<br/>bash + run_in_background"]
-        D{"判定：显式参数优先<br/>站点轨另有关键词兜底"}
-        BG["daemon 线程执行<br/>登记表 bg_id → running"]
-        PH["占位 tool_result<br/>调用编号当场闭合"]
-        NT["完成 → 收集通知<br/>task_notification 带任务编号"]
-        SYNC["同步执行<br/>结果直接回填"]
-        M --> D
-        D -->|"是"| BG
-        D -->|"否"| SYNC
-        BG --- PH
-        BG -.->|"跑完改状态"| NT
-    end
-    subgraph S2["定时调度链 · 回合级并发（没人按开始也照跑）"]
-        direction TB
-        JOB["CronJob 定义<br/>cron · prompt · recurring · durable"]
-        DISK[("durable 落盘<br/>.scheduled_tasks.json<br/>只存定义，不存节拍")]
-        SCH["调度线程 · 每秒对表<br/>带日期分钟标记去重"]
-        Q[("cron_queue")]
-        QP["交付线程 · 0.2s 巡检<br/>空闲锁 agent_lock"]
-        INJ2["注入 [Scheduled] prompt<br/>主动拉起一轮"]
-        JOB --> SCH
-        DISK -.->|"重启恢复定义"| JOB
-        JOB -.->|"durable 写盘"| DISK
-        SCH --> Q
-        Q --> QP
-        QP --> INJ2
-    end
-    LOOP["对话循环 Agent Loop<br/>一轮 = 模型输出 + 工具执行 + 结果回填"]
-    NT -.->|"借道后续轮次捎回"| LOOP
-    INJ2 -->|"无轮可续时主动拉起"| LOOP
-    classDef lane1 fill:#0d3b66,stroke:#4da3ff,stroke-width:2px,color:#e8f2ff
-    classDef lane2 fill:#3b2a5d,stroke:#b695ff,stroke-width:2px,color:#f0eaff
-    classDef hub fill:#0f4d3a,stroke:#3ddc97,stroke-width:3px,color:#e6fff4
-    classDef store fill:#4d3b0f,stroke:#ffd166,stroke-width:2px,color:#fff8e0
-    class M,D,BG,PH,NT,SYNC lane1
-    class JOB,SCH,QP,INJ2 lane2
-    class LOOP hub
-    class Q,DISK store
-    style S1 fill:#0a1e33,stroke:#4da3ff,stroke-width:1px,color:#cfe6ff
-    style S2 fill:#1e1433,stroke:#b695ff,stroke-width:1px,color:#e5dcff
-```
 *图 1 · 两种时间机制汇入同一条对话循环：后台任务借道后续轮次捎回结果，cron 在无轮可续时由交付线程主动拉起一轮。图源：[lcc-concurrency--panorama.mmd](../../assets/mermaid/agent-harness/lcc-concurrency--panorama.mmd)。*
 ![并发全景：后台任务与定时调度两种时间机制汇入同一条对话循环](../../assets/architecture/agent-harness/lcc-concurrency--panorama-dark.png)
 
@@ -166,7 +121,7 @@ bg_lifecycle: {'turn1_placeholder': 'bg_0001', 'notification_turn': 'turn2', 'du
 
 每个定时任务是一个 `CronJob`：表达式（cron）、触发时注入的指令（prompt）、是否周期（recurring）、是否持久（durable）[1], [3]。表达式是 Unix 世界用了五十年的五段式：分钟、小时、日、月、星期，支持 `*`、`*/N`、`N`、`N-M`、`N,M`。写法示例：`0 9 * * *` 每天 9:00，`*/5 * * * *` 每 5 分钟，`0 9 * * 1-5` 工作日 9:00 [1]。
 
-匹配语义里埋着一个反直觉的坑：**日位与星期位同时写了具体值时，命中任意一个就算到点（OR），不是直觉以为的「且」**；其余字段（分钟、小时、月）仍是全部满足。像会员日规则。「每月 15 号或每逢周五」打折，日历的两种写法任一命中就是特殊日。这个比方到此为止：它只覆盖「日 × 星期」这一对，分钟、小时、月仍是「且」，不能外推。走一个具体例子（表达式 `0 9 15 * 5`，即 9:00 且「15 号或周五」）：2026-03-13 是周五但不是 15 号 → 命中，触发；2026-03-18 是周三但是 15 号 → 命中，触发；2026-03-16 是周一且是 16 号 → 两者都不中，不触发。这是经典定时实现 vixie-cron 确立的标准语义（五段式表达式在 Unix 世界已用了五十年），教学两轨与官方文档一致 [1], [3], [5]。
+匹配语义里埋着一个反直觉的坑：**日位与星期位同时写了具体值时，命中任意一个就算到点（OR），不是直觉以为的「且」**；其余字段（分钟、小时、月）仍是全部满足。像会员日规则。「每月 15 号或每逢周五」打折，日历的两种写法任一命中就是特殊日。这个比方到此为止：它只覆盖「日 × 星期」这一对，分钟、小时、月仍是「且」，不能外推。走一个具体例子（表达式 `0 9 15 * 5`，即 9:00 且「15 号或周五」）：2026-03-13 是周五但不是 15 号 → 命中，触发；2026-03-15 是周日且恰好 15 号 → 命中，触发；2026-03-16 是周一且是 16 号 → 两者都不中，不触发。这是经典定时实现 vixie-cron 确立的标准语义（五段式表达式在 Unix 世界已用了五十年），教学两轨与官方文档一致 [1], [3], [5]。
 
 注册前还有一道校验：字段数量、取值范围不合法的表达式直接拒绝，从磁盘加载持久化任务时同样跳过非法条目；一个坏任务不该拖垮调度器 [1], [3]。
 

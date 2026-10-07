@@ -57,7 +57,7 @@ description: "双轨钉点（站点轨 67a9126c / main 轨 ce8f9f18）的全貌�
 
 连续 3 轮没更新待办清单，系统就往对话里塞一条提醒——这个不到二十行的机制，是整门课「规划」的起点。
 
-机制本身分两半。前一半是 `todo_write` 工具：模型传入一个带状态的清单，每条内容标 pending、in_progress、completed 三态之一；系统把清单存进进程内存，并把渲染后的文本（`[ ]` / `[>]` / `[x]` 逐行）作为 tool_result 回填。后一半是 nag reminder：循环里维护一个 `rounds_since_todo` 计数器，本轮工具调用里出现了 todo_write 就清零，否则加一；计数到 3，下一次调用模型前往 messages 追加一条 `<reminder>Update your todos.</reminder>`，然后再清零。整个工具没有任何执行能力：读不了文件，跑不了命令。课程的判断写得很直白：它增加的不是执行能力，是规划能力[1]。
+机制本身分两半。前一半是 `todo_write` 工具：模型传入一个带状态的清单，每条内容标 pending、in_progress、completed 三态之一；系统把清单存进进程内存，并把渲染后的文本（`[ ]` / `[▸]` / `[✓]` 逐行）作为 tool_result 回填。后一半是 nag reminder：循环里维护一个 `rounds_since_todo` 计数器，本轮工具调用里出现了 todo_write 就清零，否则加一；计数到 3，下一次调用模型前往 messages 追加一条 `<reminder>Update your todos.</reminder>`，然后再清零。整个工具没有任何执行能力：读不了文件，跑不了命令。课程的判断写得很直白：它增加的不是执行能力，是规划能力[1]。
 
 拿课程自己的任务走一遍单步状态。输入：「把所有 Python 文件改成 snake_case，然后跑测试，修好失败」，计划拆三步：重命名、跑测试、写报告。
 

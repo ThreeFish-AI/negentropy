@@ -494,7 +494,7 @@ def main():
     global BREAK
     ap = argparse.ArgumentParser()
     ap.add_argument("--selftest", action="store_true")
-    ap.add_argument("--break", dest="brk")
+    ap.add_argument("--break", dest="brk", choices=["no-minute-dedupe", "no-agent-lock", "slow-poll", "reuse-tool-use-id", "heuristic-only", "dateless-marker"])
     args = ap.parse_args()
     BREAK = args.brk
     sandbox_dir("common")
