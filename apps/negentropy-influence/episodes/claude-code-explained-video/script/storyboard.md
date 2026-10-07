@@ -126,7 +126,7 @@
 | P5 上件前扫码 | `scenes/P5CheckChain.tsx` | 成本排序条、安全不变量三连卡、全景对账 |
 | P6 收束 | `scenes/P6OneLoop.tsx` | HarnessStackP6（3D）、分工双人卡、开放天平、系列身份卡/下期卡 |
 
-公共组件清单：`Subtitle`（frozen）· `ChapterProgress`（顶部章节条，y<56）· `SceneTag`（top:64）· `QuoteCard`／`FadeUp`／`Pill`（cards.tsx，金句卡衬线体）· `Panel`／`Terminal`／`CodeCard`／`NumberedCard`／`Counter`／`Footnote`（motifs.tsx）· 母题四件：`LoopRing`（传送带，M-001 恒定）／`DispatchTable`（号码簿）／`GateRouter`（三闸门）／`SlotRing`（插线口）· `HarnessStackP0`／`HarnessStackP6`／`HarnessBadge`（harness-stack.tsx，P1–P6 常驻顶边条 chip 档）· `Stage3D`／`Slab3D`／`Rim3D`（solids-3d.tsx，P1 转轮一现）· `LottieEmphasis`（plug-pulse——**本集 headless ANGLE 实渲已通过并成片 v1**，重渲边界与退役判据见 issue.md ISSUE-202）· `ArchifyRecap`（archify cue 载体，frozen 共享——Stage ⑧ 接入；一章锚一句，跨实例背靠背后挂实例 `lead={false}`）。
+公共组件清单：`Subtitle`（frozen）· `ChapterProgress`（顶部章节条，y<56）· `SceneTag`（top:64）· `QuoteCard`／`FadeUp`／`Pill`（cards.tsx，金句卡衬线体）· `Panel`／`Terminal`／`CodeCard`／`NumberedCard`／`Counter`／`Footnote`（motifs.tsx）· 母题四件：`LoopRing`（传送带，M-001 恒定）／`DispatchTable`（号码簿）／`GateRouter`（三闸门）／`SlotRing`（插线口）· `HarnessStackP0`（0-A 落板已退役——2026-10-06 片头改版，本集无调用点，去留决策见 harness-stack.tsx 头注）／`HarnessStackP6`／`HarnessBadge`（harness-stack.tsx，P1–P6 常驻顶边条 chip 档）· `Stage3D`／`Slab3D`／`Rim3D`（solids-3d.tsx，P1 转轮一现）· `LottieEmphasis`（plug-pulse——**本集 headless ANGLE 实渲已通过并成片 v1**，重渲边界与退役判据见 issue.md ISSUE-202）· `ArchifyRecap`（archify cue 载体，frozen 共享——Stage ⑧ 接入；一章锚一句，跨实例背靠背后挂实例 `lead={false}`）。
 
 ## 自检对账（Stage ⑥ 收口）
 

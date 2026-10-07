@@ -4,22 +4,23 @@
  *  口播为独立音轨（public/audio/series-intro-zh.mp3；当前预览音轨需与下方 T 表同步），
  *  不入 narration.md 单一事实源、不动 beatWindow 锚定，
  *  「序号只存在于视觉层与 series.json」的系列 rule 精神不打折（口播五集
- *  完全相同、无层名/序号/集名，发布顺序变更零 TTS 代价）。
+ *  完全相同、无序号词/集名——五机制目录点名＝预告片语义的内容词，非层序标识；
+ *  发布顺序变更零 TTS 代价）。
  *
  *  六拍（帧窗为 705 帧口播对位，字幕文案与口播逐字一致、定性不念绝对数字）：
- *   1a 取景 8-112      Harness 四角取景框合拢 + 扫描线检视（口播「视角」——Harness 表征：
+ *   1a 取景 8-103      Harness 四角取景框合拢 + 扫描线检视（口播「视角」——Harness 表征：
  *                      认知装置在幕 1，结构表征即幕 2 被点亮的体系本身）
- *   1b 主角 112-140    Claude Code 星形（M-002）屏心弹入 + 扫光（口播「讲清 Claude Code」词起≈113）
- *   1c 化归 140-185    星形收缩坐枢 + 环描线 + while True 逐字（口播「简单循环」词起≈157）
- *   1d 预显 185-300    取景框扩幅消隐 + 幽灵蓝图主线/五幽灵站（口播「工程体系」词起≈229）
- *   2  展开与点名 300-515 实心主线 + 蓄能流光 + 五站词级点火（念到哪个机制名哪站点火，
+ *   1b 主角 103-131    Claude Code 星形（M-002）屏心弹入 + 扫光（口播「讲清 Claude Code」词起≈104）
+ *   1c 化归 131-170    星形收缩坐枢 + 环描线 + while True 逐字（口播「简单循环」词起≈142）
+ *   1d 预显 170-284    取景框扩幅消隐 + 幽灵蓝图主线/五幽灵站（口播「工程体系」词起≈216）
+ *   2  展开与点名 284-467 实心主线 + 蓄能流光 + 五站词级点火（念到哪个机制名哪站点火，
  *                      回声扩张环同步把循环边界扩至恰好穿过该站点）
- *   3  本集定格 515-691 推近本集站（core→mech 授色）+ 标题卡 + 五颗进度点（句三 515-586 陪跑）
+ *   3  本集定格 467-691 推近本集站（core→mech 授色）+ 标题卡 + 五颗进度点（句三 467-538 陪跑）
  *   4  交棒 691-705    整体渐出至 bg（正片 P0 首镜黑场直入；EP1 0-B「无循环世界」
  *                      叙事不被片头环残留破坏——片头=预告片语义）
  *
  *  逐集差异三处（全部数据驱动零手写）：
- *   - 五站点火后停在 activeIndex 站（512 起 core→mech 授色 + 呼吸放大）
+ *   - 五站点火后停在 activeIndex 站（T.mechGrantAt 起 core→mech 授色 + 呼吸放大）
  *   - mech 色渗入（授色站描边/光晕/编号/标题卡）
  *   - 标题卡 + 五颗集号进度点点亮到第 N 颗
  *
@@ -27,9 +28,9 @@
  *    uv run --no-project ~/.claude/skills/vibe-video/scripts/tts_sample.py \
  *      --ref <工作区>/voices/me-bright.wav --style story --seed 4242 \
  *      --text '<NARRATION 全文>' --out-dir <repo>/.temp/voice-samples
- *    → 产物拷贝为 public/audio/series-intro-zh.mp3（IndexTTS 2.5 story 档，现 take 19.67s）。
+ *    → 产物拷贝为 public/audio/series-intro-zh.mp3（IndexTTS 2.5 story 档，现 take 18.08s）。
  *
- *  双语：第一版 zh 固定文案（en 音轨+文案交付时补，登记于 to-video.toml drift）。
+ *  双语：第一版 zh 固定文案（en 音轨+文案交付时补，登记于 vibe-video.toml drift）。
  */
 import React from 'react';
 import {AbsoluteFill, Audio, Sequence, staticFile, useCurrentFrame} from 'remotion';
@@ -59,39 +60,40 @@ export type IntroOverride = {activeIndex: number; mech: string};
 /** 片头总长：timing.json leadInSec(23.5) × fps(30)。overridable 档直读，不动 frozen timing.ts。 */
 export const INTRO_FRAMES = Math.round(constants.leadInSec * constants.fps);
 
-// ── 时序表（帧 @30fps；口播 12 帧起播；IndexTTS 2.5 音频总长 19.67s/590 帧）───
+// ── 时序表（帧 @30fps；口播 12 帧起播；IndexTTS 2.5 音频总长 18.08s/542 帧）───
 /** 全部边界按 TTS 静音带实测对齐（句级 silencedetect -35dB/0.3s、词级 -30dB/0.10
  *  三阈值一致口径；起播偏移 +12 帧；点火识别点=词首+4 帧非对称吸收误差；
- *  「多 Agent」词首为段内插值（0.34s「以及」后），唯一非实测锚）。
- *  改文案重合成后须重测并只改本表。 */
+ *  五站词首全部由顿号间隙实测（含「多 Agent」——现 take 该处间隙可测，旧插值锚退役）。
+ *  改文案重合成后须重测并只改本表，并人工核对 check_series ORDINAL_WORDS
+ *  禁词表（顺序词门只扫 narration.md，不覆盖本组件字面量）。 */
 const T = {
   audioAt: 12,
-  // 幕 1 视角与主体（句一 22-255）
-  bracketsAt: 8, // 取景框四臂合拢（stride 4/dur 7 → 8..40 全位，「视角」词前）
-  scanAt: 48, // 扫描线起（52 帧扫完 ≈1.7s，时长标尺外显式帧数；句二起 103 前收）
-  iconAt: 112, // 星形屏心弹入（flyIn+snap 12f；「Claude Code」词起 113，扫光 128）
-  iconDockAt: 140, // 星形收缩坐枢起（settleSoft 24f，时长标尺外显式帧数；「如何从一个简单循环」段）
-  ringDrawAt: 148, // 环描线起（47 帧 ≈1.6s：时长标尺外显式帧数，「简单循环」词起 157 陪跑）
-  ringTextAt: 165, // while True 逐字（cps 14，10 字符 21 帧打完）
-  frameOpenAt: 185, // 取景框扩 ×2.6 消隐起（28f accelerate——缩框不缩镜头；「逐步进化」词起）
-  ghostLineAt: 225, // 幽灵主线揭示（14f；「工程体系」词起 ≈229）
-  ghostStationsAt: 231, // 五幽灵站错峰（stride 4/dur 5 → 252 全位）
-  // 幕 2 体系展开与点名（句二 261-496）
-  lineAt: 300, // 实心主线生长（45 帧 ≈1.5s，时长标尺外显式帧数；「拆解」词起）
-  flowAt: 345, // 蓄能流光起（行进虚线通电待命）
-  igniteAt: [356, 391, 426, 452, 486], // 五站词级点火（词首 352/387/422/448/482 + 4）
-  // 幕 3 本集定格 + 幕 4 交棒（句三 515-586；定格hold至 691）
-  pushAt: 515, // 推近当前站（句三起点）
-  mechGrantAt: 515, // 本集站 core→mech 授色（12f crossfade——五站皆 core 系列之物，唯本站 mech 本集之物）
-  cardAt: 520, // 标题卡起
-  dotsAt: 526, // 五颗进度点错峰：526+4×4+5=547 全亮
+  // 幕 1 视角与主体（句一 22-234）
+  bracketsAt: 8, // 取景框四臂合拢（stride 4/dur 7 → 8..27 全位；34..39 夹紧脉冲，≈40 settle，「视角」词前）
+  scanAt: 39, // 扫描线起（52 帧扫完 ≈1.7s，时长标尺外显式帧数；91 扫完、96 全隐，下段字幕词首 94 交接）
+  iconAt: 103, // 星形屏心弹入（flyIn+snap 12f；「Claude Code」词起≈104，扫光 119）
+  iconDockAt: 131, // 星形收缩坐枢起（settleSoft 24f，时长标尺外显式帧数；「如何从一个简单循环」段）
+  ringDrawAt: 133, // 环描线起（47 帧 ≈1.6s：时长标尺外显式帧数，「简单循环」词起≈142 陪跑）
+  ringTextAt: 150, // while True 逐字（cps 14，10 字符 21 帧打完）
+  frameOpenAt: 170, // 取景框扩 ×2.6 消隐起（28f accelerate——缩框不缩镜头；「逐步进化」词起 170）
+  ghostLineAt: 212, // 幽灵主线揭示（14f；「工程体系」词起 ≈216）
+  ghostStationsAt: 218, // 五幽灵站错峰（stride 4/dur 5 → 239 全位）
+  // 幕 2 体系展开与点名（句二 248-455）
+  lineAt: 284, // 实心主线生长（45 帧 ≈1.5s，时长标尺外显式帧数；「拆解」词起≈287）
+  flowAt: 329, // 蓄能流光起（行进虚线通电待命）
+  igniteAt: [332, 365, 399, 420, 438], // 五站词级点火（词首 328/361/395/416/434 + 4）
+  // 幕 3 本集定格 + 幕 4 交棒（句三 467-538；定格hold至 691）
+  pushAt: 467, // 推近当前站（句三起点）
+  mechGrantAt: 467, // 本集站 core→mech 授色（12f crossfade——五站皆 core 系列之物，唯本站 mech 本集之物）
+  cardAt: 472, // 标题卡起
+  dotsAt: 478, // 五颗进度点错峰：478+4×4+5=499 全亮
   // 字幕六行（长句按语义切分；in=词首-4 先行、out=下段 in+6 交叉）
-  sub1a: {in: 18, out: 105},
-  sub1b: {in: 99, out: 187},
-  sub1c: {in: 181, out: 263},
-  sub2a: {in: 257, out: 354},
-  sub2b: {in: 348, out: 517},
-  sub3: {in: 511},
+  sub1a: {in: 18, out: 96},
+  sub1b: {in: 90, out: 172},
+  sub1c: {in: 166, out: 250},
+  sub2a: {in: 244, out: 330},
+  sub2b: {in: 324, out: 469},
+  sub3: {in: 463},
   fadeFrames: 14,
 } as const;
 
@@ -129,7 +131,7 @@ const STAR_DOCK_SIZE = 76;
 /** 带标点三句全文 = 字幕 SUBS 六行的母本（显示层切分点去标点，join 后≠本串，
  *  重配音一律按本串逐字合成——B-0 台本合同，改文案先改这里）。 */
 const NARRATION =
-  '本系列视频从 Harness Engineering 的视角，讲清 Claude Code 如何从一个简单循环，' +
+  '这套视频从 Harness Engineering 的视角，讲清 Claude Code 如何从一个简单循环，' +
   '逐步进化为一套完整的工程体系。接下来，我们将依次拆解五种核心机制：' +
   '工具与执行、规划与协调、记忆管理、并发，以及多 Agent。机制层层递进，工程体系持续进化。';
 
@@ -137,7 +139,7 @@ const NARRATION =
 //    文案定性不念绝对数字（系列数字纪律：口播不引绝对行数/活数据——见 ep1
 //    source-notes ②），六段显示窗口与片头音轨逐字一致。
 const SUBS = [
-  '本系列视频从 Harness Engineering 的视角',
+  '这套视频从 Harness Engineering 的视角',
   '讲清 Claude Code 如何从一个简单循环',
   '逐步进化为一套完整的工程体系',
   '接下来，我们将依次拆解五种核心机制',
@@ -426,7 +428,7 @@ const IntroArt: React.FC<{override?: IntroOverride}> = ({override}) => {
   const activeNameOut = useProgress(T.cardAt, DUR.f4);
   // 连线描线 20 帧（显式帧数：略短于 DUR.f6=21，与标题卡 rise 同拍收束不拖尾）
   const linkDraw = useDraw(T.cardAt, 20);
-  // 五颗点 stride 4 快闪错峰：523+4×4+5=544 全亮（幕 3 中段完成）
+  // 五颗点 stride 4 快闪错峰：478+4×4+5=499 全亮（幕 3 中段完成）
   const dotsIn = useStagger(LAYERS.length, {at: T.dotsAt, stride: 4, dur: DUR.f3});
 
   return (
@@ -527,25 +529,8 @@ const IntroArt: React.FC<{override?: IntroOverride}> = ({override}) => {
         <g clipPath="url(#intro-ghost-reveal)" opacity={ghostVis * (1 - lineGrow)}>
           <line x1={LINE.x1} y1={LINE.y} x2={LINE.x2} y2={LINE.y} stroke={theme.dim} strokeWidth={2} strokeDasharray="6 6" />
         </g>
-        {/* 幕 1d 五幽灵站：虚描占位（幕 2 点火时随本站消隐——视觉由 Stations 双圈层接管） */}
-        {LAYERS.map((l) => {
-          const i = l.index - 1;
-          const g = ghostIn[i] * (1 - igniteIn[i]);
-          return (
-            <circle
-              key={`ghost${l.index}`}
-              cx={0}
-              cy={0}
-              r={9}
-              fill="none"
-              stroke={theme.dim}
-              strokeWidth={2}
-              strokeDasharray="4 4"
-              opacity={0.55 * g}
-              transform={`translate(${stationX(i)}, ${LINE.y}) scale(${0.7 + 0.3 * ghostIn[i]})`}
-            />
-          );
-        })}
+        {/* 幕 1d 五幽灵站虚描圈由 Stations 双圈层独立承担（同几何同时序，此处不再叠绘第二层——
+            双层合成不透明度会到 ~0.80，超出声明的 dim 0.55 幽灵态） */}
 
         {/* 幕 2a 实心主线（pathLength 归一化描线，同 Monument strike 技法） */}
         <line
