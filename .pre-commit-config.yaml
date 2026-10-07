@@ -34,7 +34,8 @@ repos:
       - id: check-toml
       - id: check-merge-conflict
       - id: check-added-large-files
-        args: [--maxkb=1024]
+        # 上限 1280：archify 3.0 全景 PNG 为内容并集 3.3× 栅格化，纵向大图（如 lcc-tooling 1090×1354）天然超 1024
+        args: [--maxkb=1280]
 
   # ── Python: apps/negentropy ──────────────────────────────────────────────
   # 使用官方 ruff-pre-commit 集成（版本与 pyproject.toml 中 ruff>=0.14.14 对齐）
