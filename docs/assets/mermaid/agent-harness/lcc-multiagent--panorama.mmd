@@ -1,0 +1,39 @@
+%% source: docs/research/agent-harness/175-claude-code-multi-agent-platform.md
+%% slug: lcc-multiagent--panorama
+%% type: flowchart
+%% derived: Learn Claude Code 多 Agent 平台（站点轨 s12/s15-s20 + main 轨）全貌
+flowchart TB
+    subgraph LEAD["Lead：主循环（同一个 while True）"]
+        direction TB
+        IN["用户目标 / 队友事件唤醒"] --> SYS["system prompt + 工具池组装"]
+        SYS --> LLM["LLM"]
+        LLM --> DISPATCH{"响应里有 tool_use？"}
+        DISPATCH -- "否" --> STOP["返回用户 / 等下一事件"]
+        DISPATCH -- "是" --> TOOLS["工具执行（hooks + 权限在前）"]
+        TOOLS --> LLM
+    end
+
+    subgraph FAC["六类朴素设施（全部落在文件系统上）"]
+        direction LR
+        BOARD["任务板<br/>.tasks/*.json<br/>blockedBy + owner"]
+        INBOX["收件箱<br/>.mailboxes/*.jsonl<br/>读即消费"]
+        PROTO["协议登记表<br/>request_id + 类型校验<br/>+ 状态防重"]
+        WT["worktree 施工面<br/>任务绑定目录<br/>有改动拒删"]
+        POOL["外部工具池<br/>mcp__server__tool<br/>连接后重建"]
+    end
+
+    subgraph MATES["持久队友（各自的循环）"]
+        direction TB
+        W["WORK：inbox → LLM → 工具"] --> IDLE["IDLE：轮询 inbox + 扫任务板"]
+        IDLE -- "消息 / 抢到任务" --> W
+        IDLE -- "60s 无新活（教学版）<br/>或收到 shutdown_request" --> SD["SHUTDOWN：回 summary"]
+    end
+
+    TOOLS -->|"create/claim/complete"| BOARD
+    TOOLS -->|"spawn / send"| MATES
+    TOOLS -->|"connect_mcp"| POOL
+    LEAD -->|"request_shutdown / review_plan（带编号）"| PROTO
+    MATES -->|"result / 请求 / 回复（写收件箱）"| INBOX
+    INBOX -->|"统一消费入口：先对号改协议状态，再注入对话"| LEAD
+    BOARD -->|"can_start / 解锁报告"| MATES
+    MATES -->|"认领带 worktree 的任务 → cwd 切换"| WT
