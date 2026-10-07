@@ -4988,7 +4988,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     <!-- Main Diagram -->
     <div class="diagram-container" data-detail-level="read"
          data-preset-badge-editorial-plate="ARCHIFY / 图版 04">
-      <svg viewBox="0 0 1100 758" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-preset="classic" data-quality-profile="showcase" data-reader-fit="intrinsic-height" data-reader-min-text="7.5" data-reader-primary-text="14">
+      <svg viewBox="0 0 1130 758" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-preset="classic" data-quality-profile="showcase" data-reader-fit="intrinsic-height" data-reader-min-text="7.5" data-reader-primary-text="14">
         <title id="archify-diagram-title">Learn Claude Code 记忆管理全景</title>
         <desc id="archify-diagram-description">两套咬合的机制：会话内压缩管线 + 跨会话持久记忆（双轨钉点：站点 67a9126c / main ce8f9f18）</desc>
         <!-- Definitions -->
@@ -5014,7 +5014,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <rect width="100%" height="100%" fill="url(#grid)" />
 
         <!-- Boundaries (behind everything) -->
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="0" data-composition-frame-label="上下文压缩 · 会话内（s08_context_compact，两轨并陈）" x="510" y="10" width="550" height="680" rx="12" class="c-region" stroke-width="1"/>
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="0" data-composition-frame-label="上下文压缩 · 会话内（s08_context_compact，两轨并陈）" x="510" y="10" width="580" height="680" rx="12" class="c-region" stroke-width="1"/>
 
         <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="1" data-composition-frame-label="磁盘 · 不参与压缩（一切裁剪先留档）" x="790" y="422" width="260" height="230" rx="12" class="c-region" stroke-width="1"/>
 
@@ -5050,8 +5050,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <path data-edge-from="B5" data-edge-to="LOOP" data-edge-label="摘要消息回注（压缩必丢细节）" data-edge-key="6" data-edge-id="b5-loop" data-composition-points="540,618;343,618;343,323;502,323;502,136;379,136;379,112" data-composition-crossover="halo" data-composition-independent="true" d="M 540 618 L 351 618 Q 343 618 343 610 L 343 331 Q 343 323 351 323 L 494 323 Q 502 323 502 315 L 502 144 Q 502 136 494 136 L 387 136 Q 379 136 379 128 L 379 112" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
         </g>
         <g data-graph-role="automatic-crossover" style="--step:7">
-          <path data-graph-role="automatic-crossover-underlay" d="M 925 296 L 925 164 Q 925 156 917 156 L 680 156 Q 672 156 672 148 L 672 132" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="RX" data-edge-to="B1" data-edge-label="413 后重进管线" data-edge-key="7" data-edge-id="rx-b1" data-composition-points="925,296;925,156;672,156;672,132" data-composition-crossover="halo" data-composition-independent="true" d="M 925 296 L 925 164 Q 925 156 917 156 L 680 156 Q 672 156 672 148 L 672 132" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
+          <path data-graph-role="automatic-crossover-underlay" d="M 940 296 L 940 164 Q 940 156 932 156 L 680 156 Q 672 156 672 148 L 672 132" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="RX" data-edge-to="B1" data-edge-label="prompt_too_long 后重进管线" data-edge-key="7" data-edge-id="rx-b1" data-composition-points="940,296;940,156;672,156;672,132" data-composition-crossover="halo" data-composition-independent="true" d="M 940 296 L 940 164 Q 940 156 932 156 L 680 156 Q 672 156 672 148 L 672 132" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
         </g>
         <g data-graph-role="automatic-crossover" style="--step:8">
           <path data-graph-role="automatic-crossover-underlay" d="M 790 220 L 806 220 Q 814 220 814 228 L 814 392 Q 814 400 806 400 L 804 400 Q 796 400 796 408 L 796 476 Q 796 484 804 484 L 820 484" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
@@ -5171,16 +5171,16 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <text data-detail="fine" x="665" y="662" class="t-backend" font-size="7" text-anchor="middle">失败 3 次熔断</text>
         </g>
 
-        <g id="node-RX" data-node-id="RX" data-node-label="应急 reactive_compact" tabindex="0" role="button" aria-label="聚焦应急 reactive_compact，API 413：保最近 5 条＋摘要较早段；重试 1 次, 上下文压缩 · 会话内（s08_context_compact，两轨并陈）" aria-pressed="false" data-node-kind="security" data-node-sublabel="API 413：保最近 5 条＋摘要较早段；重试 1 次" data-node-context="上下文压缩 · 会话内（s08_context_compact，两轨并陈）">
-          <title>应急 reactive_compact · API 413：保最近 5 条＋摘要较早段；重试 1 次 · 上下文压缩 · 会话内（s08_context_compact，两轨并陈）</title>
-          <rect x="820" y="296" width="210" height="104" rx="6" class="c-mask"/>
-          <rect x="820" y="296" width="210" height="104" rx="6" class="c-security" stroke-width="1.5"/>
+        <g id="node-RX" data-node-id="RX" data-node-label="应急 reactive_compact" tabindex="0" role="button" aria-label="聚焦应急 reactive_compact，prompt_too_long：保最近 5 条＋摘要较早段；重试 1 次, 上下文压缩 · 会话内（s08_context_compact，两轨并陈）" aria-pressed="false" data-node-kind="security" data-node-sublabel="prompt_too_long：保最近 5 条＋摘要较早段；重试 1 次" data-node-context="上下文压缩 · 会话内（s08_context_compact，两轨并陈）">
+          <title>应急 reactive_compact · prompt_too_long：保最近 5 条＋摘要较早段；重试 1 次 · 上下文压缩 · 会话内（s08_context_compact，两轨并陈）</title>
+          <rect x="820" y="296" width="240" height="104" rx="6" class="c-mask"/>
+          <rect x="820" y="296" width="240" height="104" rx="6" class="c-security" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(826 302) scale(0.6875)">
             <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
             <path d="m5.8 8 1.5 1.5 3-3"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="925" y="346" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">应急 reactive_compact</text>
-        <text data-detail="context" x="925" y="362" class="t-muted" font-size="7.8" text-anchor="middle">API 413：保最近 5 条＋摘要较早段；重试 1 次</text>
+          <text data-node-label="" data-detail-anchor="" x="940" y="346" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">应急 reactive_compact</text>
+        <text data-detail="context" x="940" y="362" class="t-muted" font-size="7.5" text-anchor="middle">prompt_too_long：保最近 5 条＋摘要较早段；重试 1 次</text>
         </g>
 
         <g id="node-TR" data-node-id="TR" data-node-label=".transcripts/" tabindex="0" role="button" aria-label="聚焦.transcripts/，完整历史留档（B2/B5/RX 写入）, 磁盘 · 不参与压缩（一切裁剪先留档）" aria-pressed="false" data-node-kind="database" data-node-sublabel="完整历史留档（B2/B5/RX 写入）" data-node-context="磁盘 · 不参与压缩（一切裁剪先留档）">
@@ -5279,13 +5279,13 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <rect x="369.3" y="598" width="144.4" height="14" rx="3" class="c-mask"/>
           <text x="441.5" y="608" class="t-edge-default" font-size="8" text-anchor="middle">摘要消息回注（压缩必丢细节）</text>
         </g>
-        <g data-detail="context" data-edge-from="RX" data-edge-to="B1" data-edge-label="413 后重进管线" data-edge-key="7" data-edge-id="rx-b1">
-          <rect x="759.9" y="136" width="77.2" height="14" rx="3" class="c-mask"/>
-          <text x="798.5" y="146" class="t-edge-dashed" font-size="8" text-anchor="middle">413 后重进管线</text>
+        <g data-detail="context" data-edge-from="RX" data-edge-to="B1" data-edge-label="prompt_too_long 后重进管线" data-edge-key="7" data-edge-id="rx-b1">
+          <rect x="738.6" y="136" width="134.8" height="14" rx="3" class="c-mask"/>
+          <text x="806" y="146" class="t-edge-dashed" font-size="8" text-anchor="middle">prompt_too_long 后重进管线</text>
         </g>
         <g data-detail="context" data-edge-from="B2" data-edge-to="TR" data-edge-label="留档（B2/B5/RX 共写）" data-edge-key="8" data-edge-id="b2-tr">
-          <rect x="679.2" y="435" width="110.8" height="14" rx="3" class="c-mask"/>
-          <text x="734.6" y="445" class="t-edge-dashed" font-size="8" text-anchor="middle">留档（B2/B5/RX 共写）</text>
+          <rect x="820" y="258" width="110.8" height="14" rx="3" class="c-mask"/>
+          <text x="875.4" y="268" class="t-edge-dashed" font-size="8" text-anchor="middle">留档（B2/B5/RX 共写）</text>
         </g>
 
         <g data-detail="context" data-edge-from="B3" data-edge-to="TO" data-edge-label="落盘（B1/B3/B4 共写）" data-edge-key="10" data-edge-id="b3-to">
@@ -5559,8 +5559,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <ul>
           <li>切口保护：snip 切口遇 tool_use/tool_result 配对自动退位</li>
           <li>熔断：compact_history 连续失败 3 次即停；reactive 重试上限 1 次</li>
-          <li>应急 reactive_compact 只在 API 413 后触发，比全量摘要温和</li>
-          <li>reactive 由 API prompt_too_long（413）触发；整理门控：24h / 5 会话 / 文件锁</li>
+          <li>应急 reactive_compact 只在 prompt_too_long 后触发，比全量摘要温和</li>
+          <li>reactive 由 API 报 prompt_too_long 触发；整理门控：24h / 5 会话 / 文件锁</li>
           <li>active_request 与摘要消息分离；transcript 全文留档供摘要与回查</li>
         </ul>
       </div>

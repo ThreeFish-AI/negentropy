@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "a44af221-467f-4e6a-8de9-acc3373f71c9",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/doha-v2/.temp/archify-build/arch-lcc-planning-panorama/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/doha-v2/docs/assets/architecture/agent-harness/lcc-planning--panorama.html",
+  "specification": {
+    "sha256": "1f0c6ef2897b074a9ae5ebf104b0dea41a3c901b14f0344857d31469e074ca9d",
+    "bytes": 7697
+  },
+  "artifact": {
+    "sha256": "d66fb0fb488494181f0019256f9254151527deb824f6c16bd5b65055153b59d3",
+    "bytes": 769844
+  }
+}

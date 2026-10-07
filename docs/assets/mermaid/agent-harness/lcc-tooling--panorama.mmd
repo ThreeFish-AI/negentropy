@@ -1,6 +1,6 @@
 %% source: docs/research/agent-harness/171-claude-code-tooling-execution.md（§2 全貌解剖）
 %% slug: lcc-tooling--panorama
-%% type: flowchart
+%% type: architecture
 %% derived: 首次绘制（2026-10-07，guided-learn 首次精读）
 flowchart TD
     subgraph LOOP["循环本体 · s01 Agent Loop"]
@@ -27,7 +27,7 @@ flowchart TD
 
     TR --> LLM
     CRIT -- "没有" --> STOP["Stop 钩子"]
-    STOP -- "返回内容（仅一次）" --> LLM
+    STOP -- "注入 user 消息续跑" --> LLM
     STOP -- "返回空" --> DONE["循环退出"]
 
     subgraph PROD["生产保护层 · CC 源码与官方文档"]

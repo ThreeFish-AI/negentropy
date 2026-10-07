@@ -38,10 +38,10 @@
 | slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | [lcc-tooling--panorama](./agent-harness/lcc-tooling--panorama.mmd) | [171 工具与执行 §2](../../research/agent-harness/171-claude-code-tooling-execution.md) | architecture | ✓ | done | 主循环+分发+三闸门+钩子全貌（2026-10-07 guided-learn 换代首批） |
-| [lcc-planning--panorama](./agent-harness/lcc-planning--panorama.mmd) | [172 规划与协调 §2](../../research/agent-harness/172-claude-code-planning-coordination.md) | architecture | ✓ | done | 五装置与「每轮看到什么」（2026-10-07 换代） |
+| [lcc-planning--panorama](./agent-harness/lcc-planning--panorama.mmd) | [172 规划与协调 文末（附录后）](../../research/agent-harness/172-claude-code-planning-coordination.md) | architecture | ✓ | done | 五装置与「每轮看到什么」（2026-10-07 换代） |
 | [lcc-memory--panorama](./agent-harness/lcc-memory--panorama.mmd) | [173 记忆管理 §2](../../research/agent-harness/173-claude-code-memory-management.md) | architecture | ✓ | done | 压缩管线+磁盘留档+记忆四件套咬合（2026-10-07 换代） |
 | [lcc-concurrency--panorama](./agent-harness/lcc-concurrency--panorama.mmd) | [174 并发与时机 §2](../../research/agent-harness/174-claude-code-concurrency.md) | architecture | ✓ | done | 后台/定时双泳道汇入循环（2026-10-07 换代） |
-| [lcc-multiagent--panorama](./agent-harness/lcc-multiagent--panorama.mmd) | [175 多 Agent 平台 §2](../../research/agent-harness/175-claude-code-multi-agent-platform.md) | architecture | ✓ | done | 七设施一循环收束（2026-10-07 换代） |
+| [lcc-multiagent--panorama](./agent-harness/lcc-multiagent--panorama.mmd) | [175 多 Agent 平台 §2](../../research/agent-harness/175-claude-code-multi-agent-platform.md) | architecture | ✓ | done | 六设施一循环收束（2026-10-07 换代） |
 | [claude-code-harness--five-layer-dependency](./agent-harness/claude-code-harness--five-layer-dependency.mmd) | [170 总览 §1](../../research/agent-harness/170-claude-code-harness-overview.md) | workflow | ✓ | done | 五层依赖链总览（trace 动画）；随分部首批入库；2026-10-07 换代后仍被 170 §1 引用 |
 | [claude-code-memory--memory-panorama](./agent-harness/claude-code-memory--memory-panorama.mmd) | [173 记忆层 §2](../../research/agent-harness/173-claude-code-memory-management.md) | workflow | ✓ | done | 旧版（171–175 2026-10-07 换代前）；仍为 ep3 视频图源 |
 | [claude-code-tooling--execution-panorama](./agent-harness/claude-code-tooling--execution-panorama.mmd) | [171 执行层 §2](../../research/agent-harness/171-claude-code-tooling-execution.md) | workflow | ✓ | done | 旧版（换代前）；仍为 ep1 视频图源 |

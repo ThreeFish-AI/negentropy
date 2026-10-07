@@ -5075,7 +5075,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <path data-edge-from="CRIT" data-edge-to="STOP" data-edge-label="没有" data-edge-key="18" data-edge-id="crit-stop" data-composition-points="810,380;860,380;860,446;60,446;60,216;150,216" d="M 810 380 L 852 380 Q 860 380 860 388 L 860 438 Q 860 446 852 446 L 68 446 Q 60 446 60 438 L 60 224 Q 60 216 68 216 L 150 216" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
         <g data-graph-role="automatic-crossover" style="--step:19">
           <path data-graph-role="automatic-crossover-underlay" d="M 225 252 L 225 318 Q 225 326 233 326 L 826 326 Q 834 326 834 318 L 834 276 Q 834 268 826 268 L 810 268" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="STOP" data-edge-to="LLM" data-edge-label="返回内容（仅一次）" data-edge-key="19" data-edge-id="stop-llm" data-composition-points="225,252;225,326;834,326;834,268;810,268" data-composition-crossover="halo" data-composition-independent="true" d="M 225 252 L 225 318 Q 225 326 233 326 L 826 326 Q 834 326 834 318 L 834 276 Q 834 268 826 268 L 810 268" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+          <path data-edge-from="STOP" data-edge-to="LLM" data-edge-label="注入 user 消息续跑" data-edge-key="19" data-edge-id="stop-llm" data-composition-points="225,252;225,326;834,326;834,268;810,268" data-composition-crossover="halo" data-composition-independent="true" d="M 225 252 L 225 318 Q 225 326 233 326 L 826 326 Q 834 326 834 318 L 834 276 Q 834 268 826 268 L 810 268" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
         </g>
         <g data-graph-role="automatic-crossover" style="--step:20">
           <path data-graph-role="automatic-crossover-underlay" d="M 225 180 L 225 175.5 Q 225 171 229.5 171 L 248 171 Q 256 171 256 163 L 256 163 Q 256 155 248 155 L 244.5 155 Q 240 155 240 150.5 L 240 146" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
@@ -5342,9 +5342,9 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <rect x="845" y="393" width="30" height="14" rx="3" class="c-mask"/>
           <text x="860" y="403" class="t-edge-default" font-size="8" text-anchor="middle">没有</text>
         </g>
-        <g data-detail="context" data-edge-from="STOP" data-edge-to="LLM" data-edge-label="返回内容（仅一次）" data-edge-key="19" data-edge-id="stop-llm">
+        <g data-detail="context" data-edge-from="STOP" data-edge-to="LLM" data-edge-label="注入 user 消息续跑" data-edge-key="19" data-edge-id="stop-llm">
           <rect x="481.3" y="306" width="96.39999999999999" height="14" rx="3" class="c-mask"/>
-          <text x="529.5" y="316" class="t-edge-default" font-size="8" text-anchor="middle">返回内容（仅一次）</text>
+          <text x="529.5" y="316" class="t-edge-default" font-size="8" text-anchor="middle">注入 user 消息续跑</text>
         </g>
         <g data-detail="context" data-edge-from="STOP" data-edge-to="DONE" data-edge-label="返回空" data-edge-key="20" data-edge-id="stop-done">
           <rect x="221.1" y="151" width="38.8" height="14" rx="3" class="c-mask"/>

@@ -1,6 +1,6 @@
 %% source: docs/research/agent-harness/173-claude-code-memory-management.md §2
 %% slug: lcc-memory--panorama
-%% type: flowchart
+%% type: architecture
 %% derived: docs/assets/architecture/agent-harness/lcc-memory--panorama.html
 flowchart TB
     classDef mech fill:#16324f,stroke:#4a9eff,color:#dcebff
@@ -44,7 +44,7 @@ flowchart TB
     B5 -->|"摘要消息<br/>（压缩必丢细节）"| LOOP
     B2 & B5 & RX -.->|"留档"| TR
     B1 & B3 & B4 -.->|"落盘"| TO
-    RX -.->|"API 413 后"| B1
+    RX -.->|"prompt_too_long 后"| B1
     LOOP -->|"stop（无工具调用）"| M3
     M2 -->|"召回正文注入"| LOOP
     M3 --> M4

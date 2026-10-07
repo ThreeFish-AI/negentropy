@@ -1,9 +1,9 @@
 %% source: docs/research/agent-harness/172-claude-code-planning-coordination.md
 %% slug: lcc-planning--panorama
-%% type: flowchart
+%% type: architecture
 %% derived: 五装置经三通道汇入「每轮可见文本」的全貌（s05/s06/s07/s10/s11 + main s15 集成位）
 flowchart LR
-    subgraph DEV["五个装置（规划与协调）"]
+    subgraph DEV["四个装置（规划与协调）"]
         direction TB
         TODO["s05 TodoWrite<br/>计划外显 + nag reminder<br/>3 轮未更新即提醒"]
         SUB["s06 Subagent<br/>全新 messages[]<br/>只回结论·过程丢弃"]
