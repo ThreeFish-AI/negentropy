@@ -1,7 +1,7 @@
 ---
 sidebar_position: 5
 title: "精读：Learn Claude Code「并发」——Background Tasks 与 Cron Scheduler"
-description: "「不等它」与「没人按开始也照跑」两种时间机制的全貌解剖：占位回执+通知注入、调度/队列/交付/消费四层解耦、durable 定义与节拍分离；五条底层规律（配对/判定权/队列/持久化/交付语义）、两个核心争议（启发式判定、至少一次交付）、五次破坏性实验实测退化（60 倍重复入队、回合穿插 9 次、漏 3/5 分钟等），双轨（站点 s13/s14 ↔ main s11/s12）差异并陈与官方文档对账"
+description: "「不等它」与「没人按开始也照跑」两种时间机制的全貌解剖：占位回执+通知注入、调度/队列/交付/消费四层解耦、durable 定义与节拍分离；五条底层规律（配对/判定权/队列/持久化/交付语义）、两个核心争议（启发式判定、至少一次交付）、五次破坏性实验实测退化（60 倍重复入队、回合穿插 9 次、漏 3/5 分钟等），双轨（站点 s13_background_tasks / s14_cron_scheduler ↔ main s11_background_tasks / s12_cron_scheduler）差异并陈与官方文档对账"
 ---
 
 # 精读：Learn Claude Code「并发」——Background Tasks 与 Cron Scheduler

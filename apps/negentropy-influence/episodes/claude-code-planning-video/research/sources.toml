@@ -255,7 +255,7 @@ raw_sha256 = "e24ee72b8c06b907"
 text_sha256 = "1eb6652c005bec64"
 bytes = 128018
 lines = 3326
-via = "pinned commit, MIT; 附录 C.2 穿透抽查依据（main 轨 s15 对照取值）"
+via = "pinned commit, MIT; 附录 C.2 穿透抽查依据（main 轨 s15_integrated_harness 对照取值）"
 
 [s17m-readme]
 url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/ce8f9f186058939da54c9d6fead78dfb5d0fd6c3/s17_goal_loop/README.zh.md"

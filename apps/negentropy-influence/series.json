@@ -147,7 +147,7 @@
             "accessed": "2026-10-07"
           },
           "status": "script-review",
-          "statusNote": "剧本 v3 待审（2026-10-07）：C 型信源=172 新精读；147 句 3560 字 7 幕 28 镜（14.0 分落窗）；三门绿 + source_ledger 28 条 FAIL 0；场景/TTS/图集未动（ISSUE-210）；钩子 H1/标题候选 4 项待人工复核",
+          "statusNote": "剧本 v3 待审（2026-10-07）：C 型信源=172 新精读；147 句 3561 字 7 幕 28 镜（14.0 分落窗）；三门绿 + source_ledger 28 条 FAIL 0；场景/TTS/图集未动（ISSUE-210）；钩子 H1/标题候选 4 项待人工复核",
           "voice": "story + me-bright.wav"
         },
         {
