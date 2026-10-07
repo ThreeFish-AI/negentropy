@@ -12,7 +12,8 @@
  *   1b 主角 112-140    Claude Code 星形（M-002）屏心弹入 + 扫光（口播「讲清 Claude Code」词起≈113）
  *   1c 化归 140-185    星形收缩坐枢 + 环描线 + while True 逐字（口播「简单循环」词起≈157）
  *   1d 预显 185-300    取景框扩幅消隐 + 幽灵蓝图主线/五幽灵站（口播「工程体系」词起≈229）
- *   2  展开与点名 300-515 实心主线 + 蓄能流光 + 五站词级点火（念到哪个机制名哪站点火）
+ *   2  展开与点名 300-515 实心主线 + 蓄能流光 + 五站词级点火（念到哪个机制名哪站点火，
+ *                      回声扩张环同步把循环边界扩至恰好穿过该站点）
  *   3  本集定格 515-691 推近本集站（core→mech 授色）+ 标题卡 + 五颗进度点（句三 515-586 陪跑）
  *   4  交棒 691-705    整体渐出至 bg（正片 P0 首镜黑场直入；EP1 0-B「无循环世界」
  *                      叙事不被片头环残留破坏——片头=预告片语义）
@@ -113,6 +114,9 @@ const CORNERS = [
 const LINE = {x1: RING_CX + RING_R + 14, y: 540, x2: 1790} as const;
 const STATION_XS = [760, 1000, 1240, 1480, 1720] as const;
 const stationX = (i: number): number => STATION_XS[i];
+
+/** 回声扩张环半径档：环心到各站距离（圆周恰好穿过站点中心）——循环边界递进够到被点名机制。 */
+const ECHO_R = STATION_XS.map((x) => x - RING_CX);
 
 /** 标题卡位置：随当前站平移并钳在画面内（600..1280，卡宽 600）。 */
 const cardLeft = (activeIndex: number): number => Math.max(600, Math.min(stationX(activeIndex - 1) - 300, 1280));
@@ -399,6 +403,20 @@ const IntroArt: React.FC<{override?: IntroOverride}> = ({override}) => {
   const litPulse = T.igniteAt.map((at) => Math.sin(Math.PI * clamp01((frame - at) / 9)));
   const litCount = Math.round(igniteIn.reduce((a, v) => a + v, 0));
   const counterIn = useProgress(T.igniteAt[0] - DUR.f3, DUR.f4);
+  // 幕 2c 回声扩张环：点火 k 时半径 soft 生长至恰好穿过站点 k（240px 级大位移，
+  // 18 帧时长标尺外显式；顺序 lerp 折叠=单调递进，推近前随流光收）
+  const growIn = [
+    useProgress(T.igniteAt[0], 18, 'decelerate'),
+    useProgress(T.igniteAt[1], 18, 'decelerate'),
+    useProgress(T.igniteAt[2], 18, 'decelerate'),
+    useProgress(T.igniteAt[3], 18, 'decelerate'),
+    useProgress(T.igniteAt[4], 18, 'decelerate'),
+  ];
+  let echoR = RING_R;
+  ECHO_R.forEach((r, k) => {
+    echoR += (r - echoR) * growIn[k];
+  });
+  const echoVis = useProgress(T.igniteAt[0], DUR.f4) * (1 - useProgress(T.pushAt, DUR.f5));
 
   // 幕 3：推近当前站 + 本集站授色 + 标题卡 + 进度点
   const push = usePushIn(T.pushAt, {scale: 0.05, dur: DUR.f5});
@@ -487,6 +505,18 @@ const IntroArt: React.FC<{override?: IntroOverride}> = ({override}) => {
 
         {/* 环巡游光点（自制门控版）：随环描线起亮，沿环 75 帧/圈巡游至交棒 */}
         <circle cx={dotX} cy={dotY} r={11} fill={theme.core} opacity={ringDraw} />
+
+        {/* 幕 2c 回声扩张环：薄 core 弧自环心扩张，圆周恰好穿过被点名站点——
+            「机制层层递进」的空间化（循环边界=体系势力范围）；主环恒定不动〔M-001 不变量〕 */}
+        <circle
+          cx={RING_CX}
+          cy={RING.top + RING.size / 2}
+          r={echoR}
+          fill="none"
+          stroke={theme.core}
+          strokeWidth={2.5}
+          opacity={0.55 * echoVis}
+        />
 
         {/* 幕 1d 幽灵主线：dim 虚线，clip 矩形自左揭示；实线生长时整体消隐 */}
         <defs>
