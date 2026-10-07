@@ -37,10 +37,15 @@
 
 | slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| [claude-code-harness--five-layer-dependency](./agent-harness/claude-code-harness--five-layer-dependency.mmd) | [170 总览 §1](../../research/agent-harness/170-claude-code-harness-overview.md) | workflow | ✓ | done | 五层依赖链总览（trace 动画）；随分部首批入库 |
-| [claude-code-memory--memory-panorama](./agent-harness/claude-code-memory--memory-panorama.mmd) | [173 记忆层 §2](../../research/agent-harness/173-claude-code-memory-management.md) | workflow | ✓ | done | 收台四步与登记簿双链互不包含（trace 动画） |
-| [claude-code-tooling--execution-panorama](./agent-harness/claude-code-tooling--execution-panorama.mmd) | [171 执行层 §2](../../research/agent-harness/171-claude-code-tooling-execution.md) | workflow | ✓ | done | 一圈主链 + 号码簿旁支 + 收工支路（trace 动画） |
-| [claude-code-concurrency--timing-panorama](./agent-harness/claude-code-concurrency--timing-panorama.mmd) | [174 时机层 §2](../../research/agent-harness/174-claude-code-concurrency.md) | workflow | ✓ | done | 后台/通知/定时三支路汇回下一轮（trace 动画） |
+| [lcc-tooling--panorama](./agent-harness/lcc-tooling--panorama.mmd) | [171 工具与执行 §2](../../research/agent-harness/171-claude-code-tooling-execution.md) | architecture | ✓ | done | 主循环+分发+三闸门+钩子全貌（2026-10-07 guided-learn 换代首批） |
+| [lcc-planning--panorama](./agent-harness/lcc-planning--panorama.mmd) | [172 规划与协调 §2](../../research/agent-harness/172-claude-code-planning-coordination.md) | architecture | ✓ | done | 五装置与「每轮看到什么」（2026-10-07 换代） |
+| [lcc-memory--panorama](./agent-harness/lcc-memory--panorama.mmd) | [173 记忆管理 §2](../../research/agent-harness/173-claude-code-memory-management.md) | architecture | ✓ | done | 压缩管线+磁盘留档+记忆四件套咬合（2026-10-07 换代） |
+| [lcc-concurrency--panorama](./agent-harness/lcc-concurrency--panorama.mmd) | [174 并发与时机 §2](../../research/agent-harness/174-claude-code-concurrency.md) | architecture | ✓ | done | 后台/定时双泳道汇入循环（2026-10-07 换代） |
+| [lcc-multiagent--panorama](./agent-harness/lcc-multiagent--panorama.mmd) | [175 多 Agent 平台 §2](../../research/agent-harness/175-claude-code-multi-agent-platform.md) | architecture | ✓ | done | 七设施一循环收束（2026-10-07 换代） |
+| [claude-code-harness--five-layer-dependency](./agent-harness/claude-code-harness--five-layer-dependency.mmd) | [170 总览 §1](../../research/agent-harness/170-claude-code-harness-overview.md) | workflow | ✓ | done | 五层依赖链总览（trace 动画）；随分部首批入库；2026-10-07 换代后仍被 170 §1 引用 |
+| [claude-code-memory--memory-panorama](./agent-harness/claude-code-memory--memory-panorama.mmd) | [173 记忆层 §2](../../research/agent-harness/173-claude-code-memory-management.md) | workflow | ✓ | done | 旧版（171–175 2026-10-07 换代前）；仍为 ep3 视频图源 |
+| [claude-code-tooling--execution-panorama](./agent-harness/claude-code-tooling--execution-panorama.mmd) | [171 执行层 §2](../../research/agent-harness/171-claude-code-tooling-execution.md) | workflow | ✓ | done | 旧版（换代前）；仍为 ep1 视频图源 |
+| [claude-code-concurrency--timing-panorama](./agent-harness/claude-code-concurrency--timing-panorama.mmd) | [174 时机层 §2](../../research/agent-harness/174-claude-code-concurrency.md) | workflow | ✓ | done | 旧版（换代前）；仍为 ep4 视频图源 |
 | [claude-code-planning--planning-panorama](./agent-harness/claude-code-planning--planning-panorama.mmd) | [172 规划层 §2](../../research/agent-harness/172-claude-code-planning-coordination.md) | workflow | ✓ | done | 垫纸每轮重装配主链 + 副台/手册/补救梯旁支（trace 动画） |
 | [claude-code-multiagent--collab-panorama](./agent-harness/claude-code-multiagent--collab-panorama.mmd) | [175 协作层 §2](../../research/agent-harness/175-claude-code-multi-agent-platform.md) | workflow | ✓ | done | 排工板/收件格/班次/隔间四组物件汇入同一循环（trace 动画） |
 | [ai-native--handbook-panorama](./agent-harness/ai-native--handbook-panorama.mmd) | [180 AI Native 手册 §1](../../research/agent-harness/180-ai-native-handbook.md) | dataflow | ✓ | done | 三案例共同观察 → 五挑战 → 四层基础设施 → 可靠交付；组织配套虚线直达（非基础设施） |
