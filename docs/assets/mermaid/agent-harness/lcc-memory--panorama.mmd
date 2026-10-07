@@ -1,0 +1,50 @@
+%% source: docs/research/agent-harness/173-claude-code-memory-management.md §2
+%% slug: lcc-memory--panorama
+%% type: flowchart
+%% derived: docs/assets/architecture/agent-harness/lcc-memory--panorama.html
+flowchart TB
+    classDef mech fill:#16324f,stroke:#4a9eff,color:#dcebff
+    classDef disk fill:#3d2f1a,stroke:#ffb84d,color:#ffe8c2
+    classDef mem fill:#1a3a2a,stroke:#4ade80,color:#dcffe8
+    classDef guard fill:#3d1a2a,stroke:#ff7ab0,color:#ffdcec
+    classDef api fill:#2a2a3d,stroke:#b0a8ff,color:#eae6ff
+
+    U["用户请求<br/>active_request 单独携带"]:::api
+    LOOP["Agent Loop<br/>每轮调模型前过一次管线"]:::mech
+
+    subgraph COMPACT["上下文压缩 · 会话内（站点轨/main 轨 s08_context_compact）"]
+        direction TB
+        B1["① tool_result_budget<br/>最新一批结果总量>200K 字符<br/>最大且>30K 者落盘+2000 预览"]:::mech
+        B2["② snip_compact<br/>消息>50 条：头 3+尾 46+归档标记<br/>切口遇 tool_use/tool_result 配对退位"]:::guard
+        B3["③ micro_compact（仅超 50K 时）<br/>已读结果保最近 3 条<br/>更旧者先落盘再替换为带路径占位<br/>未读结果豁免"]:::mech
+        B4["④ fit_tool_results<br/>未读批次仍超限：<br/>最大者落盘+1000 预览"]:::mech
+        B5["⑤ compact_history（唯一 1 API）<br/>transcript 留档→事实性摘要<br/>active_request 与摘要分离<br/>连续失败 3 次熔断"]:::mech
+        RX["应急 reactive_compact<br/>API 报 prompt_too_long：<br/>保最近 5 条原始消息+摘要较早段<br/>重试上限 1 次"]:::guard
+        B1 --> B2 --> B3 --> B4 --> B5
+    end
+
+    subgraph DISK["磁盘 · 不参与压缩"]
+        TR[".transcripts/ 完整历史留档"]:::disk
+        TO[".task_outputs/tool-results/<br/>大结果原文（可按路径取回）"]:::disk
+    end
+
+    subgraph MEMORY["持久记忆 · 跨会话（站点轨/main 轨 s09_memory）"]
+        direction TB
+        M1["存储<br/>一个记忆一个 .md<br/>frontmatter: name/description/type<br/>MEMORY.md 一行一链做索引"]:::mem
+        M2["召回<br/>side-query 选≤5 条（关键词降级）<br/>索引进 system（前缀稳定）<br/>正文进当前 user turn（20K 预算）"]:::mem
+        M3["提取 · 回合结束触发<br/>scope=persistent 才入库<br/>临时标记拒绝 · 重复拒绝"]:::guard
+        M4["整理 · 文件数≥10 触发<br/>合并去重 · 快照回滚原子替换<br/>（CC 版：24h/5 会话/文件锁四层门控）"]:::mem
+        M1 --> M2
+        M3 --> M1
+        M4 --> M1
+    end
+
+    U --> LOOP
+    LOOP -->|"每轮 prepare()"| B1
+    B5 -->|"摘要消息<br/>（压缩必丢细节）"| LOOP
+    B2 & B5 & RX -.->|"留档"| TR
+    B1 & B3 & B4 -.->|"落盘"| TO
+    RX -.->|"API 413 后"| B1
+    LOOP -->|"stop（无工具调用）"| M3
+    M2 -->|"召回正文注入"| LOOP
+    M3 --> M4
