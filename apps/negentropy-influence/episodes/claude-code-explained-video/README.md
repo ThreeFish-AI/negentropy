@@ -1,5 +1,6 @@
 # 《工具与执行：一个循环，三层装置》科普视频工程
 
+> 剧本 v3 待审（2026-10-07）：planning/narration/storyboard 已换代（C 型信源=171 新精读），场景/TTS/图集未动。
 > 交付状态：**v1 已交付**（2026-09-30，14:02.6 @1080p30（total_duration_in_frames 复算），归档 ~/Documents/video/claude-code-explained/ v1 + _captions）。发布顺序见 [../../series.json](../../series.json)（工作区根）。
 
 ## 目录结构
