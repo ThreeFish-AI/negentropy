@@ -4980,7 +4980,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <div class="pulse-dot"></div>
         <h1>Learn Claude Code 规划与协调全景</h1>
       </div>
-      <p class="subtitle">五装置经三通道汇入「每轮可见文本」的全貌（s05/s06/s07/s10/s11）</p>
+      <p class="subtitle">五装置经三通道汇入「每轮可见文本」的全貌</p>
     </div>
 
 
@@ -4990,7 +4990,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
          data-preset-badge-editorial-plate="ARCHIFY / 图版 04">
       <svg viewBox="0 0 1138 832" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-preset="classic" data-quality-profile="showcase" data-reader-fit="intrinsic-height" data-reader-min-text="7.5" data-reader-primary-text="14">
         <title id="archify-diagram-title">Learn Claude Code 规划与协调全景</title>
-        <desc id="archify-diagram-description">五装置经三通道汇入「每轮可见文本」的全貌（s05/s06/s07/s10/s11）</desc>
+        <desc id="archify-diagram-description">五装置经三通道汇入「每轮可见文本」的全貌</desc>
         <!-- Definitions -->
         <defs>
           <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
@@ -5016,24 +5016,30 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <!-- Boundaries (behind everything) -->
         <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="0" data-composition-frame-label="四个装置（规划与协调）" x="112" y="190" width="260" height="574" rx="12" class="c-region" stroke-width="1"/>
 
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="1" data-composition-frame-label="s10 System Prompt 组装 · 台面" x="488" y="60" width="270" height="344" rx="12" class="c-region" stroke-width="1"/>
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="1" data-composition-frame-label="运行时真实状态" x="420" y="460" width="380" height="220" rx="12" class="c-region" stroke-width="1"/>
 
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="2" data-composition-frame-label="运行时真实状态" x="420" y="460" width="380" height="220" rx="12" class="c-region" stroke-width="1"/>
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="2" data-composition-frame-label="s10 System Prompt 组装（汇合层）" x="488" y="60" width="270" height="344" rx="12" class="c-region" stroke-width="1"/>
 
         <!-- Connection paths (before components for correct z-order) -->
         <g data-graph-role="automatic-crossover" style="--step:0">
-          <path data-graph-role="automatic-crossover-underlay" d="M 342 258 L 422 258 Q 430 258 430 250 L 430 143 Q 430 135 438 135 L 518 135" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="todo" data-edge-to="msgq" data-edge-label="计划清单 + 提醒" data-edge-key="0" data-edge-id="todo-msgq" data-composition-points="342,258;430,258;430,135;518,135" data-composition-crossover="halo" data-composition-independent="true" d="M 342 258 L 422 258 Q 430 258 430 250 L 430 143 Q 430 135 438 135 L 518 135" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+          <path data-graph-role="automatic-crossover-underlay" d="M 342 258 L 422 258 Q 430 258 430 250 L 430 136 Q 430 128 438 128 L 518 128" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="todo" data-edge-to="msgq" data-edge-label="清单渲染 → tool_result · 提醒 → user 消息" data-edge-key="0" data-edge-id="todo-msgq" data-composition-points="342,258;430,258;430,128;518,128" data-composition-crossover="halo" data-composition-independent="true" d="M 342 258 L 422 258 Q 430 258 430 250 L 430 136 Q 430 128 438 128 L 518 128" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
         </g>
-        <path data-edge-from="sub" data-edge-to="msgq" data-edge-label="结论→tool_result" data-edge-key="1" data-edge-id="sub-msgq" data-composition-points="342,358;466,358;466,142;518,142" d="M 342 358 L 458 358 Q 466 358 466 350 L 466 150 Q 466 142 474 142 L 518 142" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <g data-graph-role="automatic-crossover" style="--step:1">
+          <path data-graph-role="automatic-crossover-underlay" d="M 342 358 L 486 358 Q 494 358 494 350 L 494 150 Q 494 142 502 142 L 518 142" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="sub" data-edge-to="msgq" data-edge-label="结论 → tool_result" data-edge-key="1" data-edge-id="sub-msgq" data-composition-points="342,358;494,358;494,142;518,142" data-composition-crossover="halo" data-composition-independent="true" d="M 342 358 L 486 358 Q 494 358 494 350 L 494 150 Q 494 142 502 142 L 518 142" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        </g>
         <g data-graph-role="automatic-crossover" style="--step:2">
-          <path data-graph-role="automatic-crossover-underlay" d="M 342 478 L 486 478 Q 494 478 494 470 L 494 157 Q 494 149 502 149 L 518 149" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="skill" data-edge-to="msgq" data-edge-label="全文→tool_result" data-edge-key="2" data-edge-id="skill-msgq" data-composition-points="342,478;494,478;494,149;518,149" data-composition-crossover="halo" data-composition-independent="true" d="M 342 478 L 486 478 Q 494 478 494 470 L 494 157 Q 494 149 502 149 L 518 149" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-        </g>
-        <path data-edge-from="skill" data-edge-to="sp" data-edge-label="目录→system prompt" data-edge-key="3" data-edge-id="skill-sp" data-composition-points="342,478;500,478;500,332;518,332" d="M 342 478 L 492 478 Q 500 478 500 470 L 500 340 Q 500 332 508 332 L 518 332" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-        <g data-graph-role="automatic-crossover" style="--step:4">
           <path data-graph-role="automatic-crossover-underlay" d="M 142 358 L 102 358" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="sub" data-edge-to="x" data-edge-key="4" data-edge-id="sub-x" data-composition-points="142,358;102,358" data-composition-crossover="halo" data-composition-independent="true" d="M 142 358 L 102 358" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
+          <path data-edge-from="sub" data-edge-to="drop" data-edge-key="2" data-edge-id="sub-drop" data-composition-points="142,358;102,358" data-composition-crossover="halo" data-composition-independent="true" d="M 142 358 L 102 358" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
+        </g>
+        <g data-graph-role="automatic-crossover" style="--step:3">
+          <path data-graph-role="automatic-crossover-underlay" d="M 342 485 L 587 485 Q 595 485 595 477 L 595 384" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="skill" data-edge-to="sp" data-edge-label="目录 → system prompt" data-edge-key="3" data-edge-id="skill-sp" data-composition-points="342,485;595,485;595,384" data-composition-crossover="halo" data-composition-independent="true" d="M 342 485 L 587 485 Q 595 485 595 477 L 595 384" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        </g>
+        <g data-graph-role="automatic-crossover" style="--step:4">
+          <path data-graph-role="automatic-crossover-underlay" d="M 342 471 L 472 471 Q 480 471 480 463 L 480 164 Q 480 156 488 156 L 518 156" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="skill" data-edge-to="msgq" data-edge-label="全文 → tool_result" data-edge-key="4" data-edge-id="skill-msgq" data-composition-points="342,471;480,471;480,156;518,156" data-composition-crossover="halo" data-composition-independent="true" d="M 342 471 L 472 471 Q 480 471 480 463 L 480 164 Q 480 156 488 156 L 518 156" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
         </g>
         <g data-graph-role="automatic-crossover" style="--step:5">
           <path data-graph-role="automatic-crossover-underlay" d="M 512.5 490 L 512.5 445 Q 512.5 437 520.5 437 L 601 437 Q 609 437 609 429 L 609 384" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
@@ -5048,143 +5054,130 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <path data-edge-from="mcp" data-edge-to="sp" data-edge-key="7" data-edge-id="mcp-sp" data-composition-points="590.5,590;590.5,487;623,487;623,384" data-composition-crossover="halo" data-composition-independent="true" d="M 590.5 590 L 590.5 495 Q 590.5 487 598.5 487 L 615 487 Q 623 487 623 479 L 623 384" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
         </g>
         <g data-graph-role="automatic-crossover" style="--step:8">
-          <path data-graph-role="automatic-crossover-underlay" d="M 728 142 L 745 142 Q 753 142 753 150 L 753 230 Q 753 238 761 238 L 778 238" fill="none" stroke="var(--mask)" stroke-width="5.8" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="msgq" data-edge-to="model" data-edge-key="8" data-edge-id="msgq-model" data-composition-points="728,142;753,142;753,238;778,238" data-composition-crossover="halo" data-composition-independent="true" d="M 728 142 L 745 142 Q 753 142 753 150 L 753 230 Q 753 238 761 238 L 778 238" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+          <path data-graph-role="automatic-crossover-underlay" d="M 728 332 L 745 332 Q 753 332 753 324 L 753 282.05 Q 753 274.05 761 274.05 L 778 274.05" fill="none" stroke="var(--mask)" stroke-width="5.8" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="sp" data-edge-to="model" data-edge-key="8" data-edge-id="sp-model" data-composition-points="728,332;753,332;753,274.05;778,274.05" data-composition-crossover="halo" data-composition-independent="true" d="M 728 332 L 745 332 Q 753 332 753 324 L 753 282.05 Q 753 274.05 761 274.05 L 778 274.05" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
         </g>
         <g data-graph-role="automatic-crossover" style="--step:9">
-          <path data-graph-role="automatic-crossover-underlay" d="M 728 332 L 745 332 Q 753 332 753 324 L 753 262.1 Q 753 254.1 761 254.1 L 778 254.1" fill="none" stroke="var(--mask)" stroke-width="5.8" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="sp" data-edge-to="model" data-edge-key="9" data-edge-id="sp-model" data-composition-points="728,332;753,332;753,254.1;778,254.1" data-composition-crossover="halo" data-composition-independent="true" d="M 728 332 L 745 332 Q 753 332 753 324 L 753 262.1 Q 753 254.1 761 254.1 L 778 254.1" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+          <path data-graph-role="automatic-crossover-underlay" d="M 728 150.05 L 745 150.05 Q 753 150.05 753 158.05 L 753 223 Q 753 231 761 231 L 778 231" fill="none" stroke="var(--mask)" stroke-width="5.8" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="msgq" data-edge-to="model" data-edge-key="9" data-edge-id="msgq-model" data-composition-points="728,150.05;753,150.05;753,231;778,231" data-composition-crossover="halo" data-composition-independent="true" d="M 728 150.05 L 745 150.05 Q 753 150.05 753 158.05 L 753 223 Q 753 231 761 231 L 778 231" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
         </g>
         <g data-graph-role="automatic-crossover" style="--step:10">
           <path data-graph-role="automatic-crossover-underlay" d="M 342 702 L 845 702 Q 853 702 853 694 L 853 310" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
           <path data-edge-from="recov" data-edge-to="model" data-edge-label="包住 LLM 调用 · 恢复后 continue" data-edge-key="10" data-edge-id="recov-model" data-composition-points="342,702;853,702;853,310" data-composition-crossover="halo" data-composition-independent="true" d="M 342 702 L 845 702 Q 853 702 853 694 L 853 310" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
         </g>
         <g data-graph-role="automatic-crossover" style="--step:11">
-          <path data-graph-role="automatic-crossover-underlay" d="M 853 180 L 853 164 Q 853 156 861 156 L 936 156 Q 944 156 944 148 L 944 128 Q 944 120 952 120 L 968 120" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="model" data-edge-to="work" data-edge-label="tool_use" data-edge-key="11" data-edge-id="model-work" data-composition-points="853,180;853,156;944,156;944,120;968,120" data-composition-crossover="halo" data-composition-independent="true" d="M 853 180 L 853 164 Q 853 156 861 156 L 936 156 Q 944 156 944 148 L 944 128 Q 944 120 952 120 L 968 120" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+          <path data-graph-role="automatic-crossover-underlay" d="M 928 245 L 940 245 Q 948 245 948 237 L 948 136.05 Q 948 128.05 956 128.05 L 968 128.05" fill="none" stroke="var(--mask)" stroke-width="5.8" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="model" data-edge-to="work" data-edge-label="tool_use" data-edge-key="11" data-edge-id="model-work" data-composition-points="928,245;948,245;948,128.05;968,128.05" data-composition-crossover="halo" data-composition-independent="true" d="M 928 245 L 940 245 Q 948 245 948 237 L 948 136.05 Q 948 128.05 956 128.05 L 968 128.05" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
         </g>
-        <path data-edge-from="work" data-edge-to="msgq" data-edge-label="tool_result 回填" data-edge-key="12" data-edge-id="work-msgq" data-composition-points="1033,70;1033,32;623,32;623,90" d="M 1033 70 L 1033 40 Q 1033 32 1025 32 L 631 32 Q 623 32 623 40 L 623 90" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <g data-graph-role="automatic-crossover" style="--step:12">
+          <path data-graph-role="automatic-crossover-underlay" d="M 968 113 L 856 113 Q 848 113 848 121 L 848 127 Q 848 135 840 135 L 728 135" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="work" data-edge-to="msgq" data-edge-label="tool_result 回填" data-edge-key="12" data-edge-id="work-msgq" data-composition-points="968,113;848,113;848,135;728,135" data-composition-crossover="halo" data-composition-independent="true" d="M 968 113 L 856 113 Q 848 113 848 121 L 848 127 Q 848 135 840 135 L 728 135" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        </g>
 
         <!-- Components -->
-        <g id="node-x" data-node-id="x" data-node-label="✕" tabindex="0" role="button" aria-label="聚焦✕，中间过程丢弃, 架构组件" aria-pressed="false" data-node-kind="external" data-node-sublabel="中间过程丢弃" data-node-context="架构组件">
-          <title>✕ · 中间过程丢弃 · 架构组件</title>
-          <rect x="10" y="328" width="92" height="60" rx="6" class="c-mask"/>
-          <rect x="10" y="328" width="92" height="60" rx="6" class="c-external" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(16 334) scale(0.6875)">
-            <rect x="2.5" y="5" width="8.5" height="8" rx="1.5"/>
-            <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="56" y="356" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">✕</text>
-        <text data-detail="context" x="56" y="372" class="t-muted" font-size="9" text-anchor="middle">中间过程丢弃</text>
-        </g>
-
-        <g id="node-todo" data-node-id="todo" data-node-label="s05 TodoWrite" tabindex="0" role="button" aria-label="聚焦s05 TodoWrite，计划外显；3 轮未更新即提醒, 四个装置（规划与协调）" aria-pressed="false" data-node-kind="backend" data-node-sublabel="计划外显；3 轮未更新即提醒" data-node-context="四个装置（规划与协调）">
-          <title>s05 TodoWrite · 计划外显；3 轮未更新即提醒 · 四个装置（规划与协调）</title>
+        <g id="node-todo" data-node-id="todo" data-node-label="s05 TodoWrite" tabindex="0" role="button" aria-label="聚焦s05 TodoWrite，计划外显 + nag reminder · 3 轮未更新即提醒, 四个装置（规划与协调）" aria-pressed="false" data-node-kind="backend" data-node-sublabel="计划外显 + nag reminder · 3 轮未更新即提醒" data-node-context="四个装置（规划与协调）">
+          <title>s05 TodoWrite · 计划外显 + nag reminder · 3 轮未更新即提醒 · 四个装置（规划与协调）</title>
           <rect x="142" y="220" width="200" height="76" rx="6" class="c-mask"/>
           <rect x="142" y="220" width="200" height="76" rx="6" class="c-backend" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(148 226) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
           <text data-node-label="" data-detail-anchor="" x="242" y="256" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">s05 TodoWrite</text>
-        <text data-detail="context" x="242" y="272" class="t-muted" font-size="9" text-anchor="middle">计划外显；3 轮未更新即提醒</text>
+        <text data-detail="context" x="242" y="272" class="t-muted" font-size="7.6" text-anchor="middle">计划外显 + nag reminder · 3 轮未更新即提醒</text>
         </g>
 
-        <g id="node-sub" data-node-id="sub" data-node-label="s06 Subagent" tabindex="0" role="button" aria-label="聚焦s06 Subagent，全新 messages[]；只回结论, 四个装置（规划与协调）" aria-pressed="false" data-node-kind="backend" data-node-sublabel="全新 messages[]；只回结论" data-node-context="四个装置（规划与协调）">
-          <title>s06 Subagent · 全新 messages[]；只回结论 · 四个装置（规划与协调）</title>
+        <g id="node-sub" data-node-id="sub" data-node-label="s06 Subagent" tabindex="0" role="button" aria-label="聚焦s06 Subagent，全新 messages[] · 只回结论，过程丢弃, 四个装置（规划与协调）" aria-pressed="false" data-node-kind="backend" data-node-sublabel="全新 messages[] · 只回结论，过程丢弃" data-node-context="四个装置（规划与协调）">
+          <title>s06 Subagent · 全新 messages[] · 只回结论，过程丢弃 · 四个装置（规划与协调）</title>
           <rect x="142" y="320" width="200" height="76" rx="6" class="c-mask"/>
           <rect x="142" y="320" width="200" height="76" rx="6" class="c-backend" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(148 326) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
           <text data-node-label="" data-detail-anchor="" x="242" y="356" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">s06 Subagent</text>
-        <text data-detail="context" x="242" y="372" class="t-muted" font-size="9" text-anchor="middle">全新 messages[]；只回结论</text>
+        <text data-detail="context" x="242" y="372" class="t-muted" font-size="8.8" text-anchor="middle">全新 messages[] · 只回结论，过程丢弃</text>
         </g>
 
-        <g id="node-skill" data-node-id="skill" data-node-label="s07 Skill Loading" tabindex="0" role="button" aria-label="聚焦s07 Skill Loading，目录常驻 · 全文按需, 四个装置（规划与协调）" aria-pressed="false" data-node-kind="backend" data-node-sublabel="目录常驻 · 全文按需" data-node-context="四个装置（规划与协调）">
-          <title>s07 Skill Loading · 目录常驻 · 全文按需 · 四个装置（规划与协调）</title>
+        <g id="node-skill" data-node-id="skill" data-node-label="s07 Skill Loading" tabindex="0" role="button" aria-label="聚焦s07 Skill Loading，目录常驻 · 全文按需（~100 vs ~2000 tokens）, 四个装置（规划与协调）" aria-pressed="false" data-node-kind="backend" data-node-sublabel="目录常驻 · 全文按需（~100 vs ~2000 tokens）" data-node-context="四个装置（规划与协调）">
+          <title>s07 Skill Loading · 目录常驻 · 全文按需（~100 vs ~2000 tokens） · 四个装置（规划与协调）</title>
           <rect x="142" y="440" width="200" height="76" rx="6" class="c-mask"/>
           <rect x="142" y="440" width="200" height="76" rx="6" class="c-backend" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(148 446) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
           <text data-node-label="" data-detail-anchor="" x="242" y="476" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">s07 Skill Loading</text>
-        <text data-detail="context" x="242" y="492" class="t-muted" font-size="9" text-anchor="middle">目录常驻 · 全文按需</text>
+        <text data-detail="context" x="242" y="492" class="t-muted" font-size="7.4" text-anchor="middle">目录常驻 · 全文按需（~100 vs ~2000 tokens）</text>
         </g>
 
-        <g id="node-recov" data-node-id="recov" data-node-label="s11 Error Recovery" tabindex="0" role="button" aria-label="聚焦s11 Error Recovery，截断→升额度·超限→压缩·瞬态→退避, 四个装置（规划与协调）" aria-pressed="false" data-node-kind="backend" data-node-sublabel="截断→升额度·超限→压缩·瞬态→退避" data-node-context="四个装置（规划与协调）">
-          <title>s11 Error Recovery · 截断→升额度·超限→压缩·瞬态→退避 · 四个装置（规划与协调）</title>
+        <g id="node-recov" data-node-id="recov" data-node-label="s11 Error Recovery" tabindex="0" role="button" aria-label="聚焦s11 Error Recovery，截断/超限/瞬态 三路 · 各有上界, 四个装置（规划与协调）" aria-pressed="false" data-node-kind="security" data-node-sublabel="截断/超限/瞬态 三路 · 各有上界" data-node-context="四个装置（规划与协调）">
+          <title>s11 Error Recovery · 截断/超限/瞬态 三路 · 各有上界 · 四个装置（规划与协调）</title>
           <rect x="142" y="660" width="200" height="84" rx="6" class="c-mask"/>
-          <rect x="142" y="660" width="200" height="84" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(148 666) scale(0.6875)">
-            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
+          <rect x="142" y="660" width="200" height="84" rx="6" class="c-security" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(148 666) scale(0.6875)">
+            <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
+            <path d="m5.8 8 1.5 1.5 3-3"/>
           </g>
           <text data-node-label="" data-detail-anchor="" x="242" y="700" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">s11 Error Recovery</text>
-        <text data-detail="context" x="242" y="716" class="t-muted" font-size="9" text-anchor="middle">截断→升额度·超限→压缩·瞬态→退避</text>
+        <text data-detail="context" x="242" y="716" class="t-muted" font-size="9" text-anchor="middle">截断/超限/瞬态 三路 · 各有上界</text>
         </g>
 
-        <g id="node-msgq" data-node-id="msgq" data-node-label="messages 对话列表" tabindex="0" role="button" aria-label="聚焦messages 对话列表，tool_result / user 消息的落点, s10 System Prompt 组装 · 台面" aria-pressed="false" data-node-kind="database" data-node-sublabel="tool_result / user 消息的落点" data-node-context="s10 System Prompt 组装 · 台面">
-          <title>messages 对话列表 · tool_result / user 消息的落点 · s10 System Prompt 组装 · 台面</title>
-          <rect x="518" y="90" width="210" height="104" rx="6" class="c-mask"/>
-          <rect x="518" y="90" width="210" height="104" rx="6" class="c-database" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(524 96) scale(0.6875)">
-            <ellipse cx="8" cy="4" rx="5" ry="2"/>
-            <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="623" y="140" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">messages 对话列表</text>
-        <text data-detail="context" x="623" y="156" class="t-muted" font-size="9" text-anchor="middle">tool_result / user 消息的落点</text>
-        </g>
-
-        <g id="node-sp" data-node-id="sp" data-node-label="s10 分段拼装" tabindex="0" role="button" aria-label="聚焦s10 分段拼装，identity·tools·workspace·memory, s10 System Prompt 组装 · 台面" aria-pressed="false" data-node-kind="database" data-node-sublabel="identity·tools·workspace·memory" data-node-context="s10 System Prompt 组装 · 台面">
-          <title>s10 分段拼装 · identity·tools·workspace·memory · s10 System Prompt 组装 · 台面</title>
-          <rect x="518" y="280" width="210" height="104" rx="6" class="c-mask"/>
-          <rect x="518" y="280" width="210" height="104" rx="6" class="c-database" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(524 286) scale(0.6875)">
-            <ellipse cx="8" cy="4" rx="5" ry="2"/>
-            <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="623" y="330" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">s10 分段拼装</text>
-        <text data-detail="context" x="623" y="346" class="t-muted" font-size="9" text-anchor="middle">identity·tools·workspace·memory</text>
-        </g>
-
-        <g id="node-tools" data-node-id="tools" data-node-label="工具表" tabindex="0" role="button" aria-label="聚焦工具表，enabled_tools, 运行时真实状态" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="enabled_tools" data-node-context="运行时真实状态">
+        <g id="node-tools" data-node-id="tools" data-node-label="工具表" tabindex="0" role="button" aria-label="聚焦工具表，enabled_tools, 运行时真实状态" aria-pressed="false" data-node-kind="database" data-node-sublabel="enabled_tools" data-node-context="运行时真实状态">
           <title>工具表 · enabled_tools · 运行时真实状态</title>
           <rect x="450" y="490" width="125" height="70" rx="6" class="c-mask"/>
-          <rect x="450" y="490" width="125" height="70" rx="6" class="c-frontend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="frontend" class="semantic-sigil s-frontend" transform="translate(456 496) scale(0.6875)">
-            <rect x="2" y="3" width="12" height="10" rx="2"/>
-            <path d="M2 6.5h12"/>
-            <circle cx="4.1" cy="4.8" r=".7" class="sigil-fill"/>
-            <circle cx="6.3" cy="4.8" r=".7" class="sigil-fill"/>
+          <rect x="450" y="490" width="125" height="70" rx="6" class="c-database" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(456 496) scale(0.6875)">
+            <ellipse cx="8" cy="4" rx="5" ry="2"/>
+            <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
           </g>
           <text data-node-label="" data-detail-anchor="" x="512.5" y="523" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">工具表</text>
         <text data-detail="context" x="512.5" y="539" class="t-muted" font-size="9" text-anchor="middle">enabled_tools</text>
         </g>
 
-        <g id="node-memfile" data-node-id="memfile" data-node-label="记忆文件" tabindex="0" role="button" aria-label="聚焦记忆文件，MEMORY.md, 运行时真实状态" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="MEMORY.md" data-node-context="运行时真实状态">
+        <g id="node-memfile" data-node-id="memfile" data-node-label="记忆文件" tabindex="0" role="button" aria-label="聚焦记忆文件，MEMORY.md, 运行时真实状态" aria-pressed="false" data-node-kind="database" data-node-sublabel="MEMORY.md" data-node-context="运行时真实状态">
           <title>记忆文件 · MEMORY.md · 运行时真实状态</title>
           <rect x="645" y="490" width="125" height="70" rx="6" class="c-mask"/>
-          <rect x="645" y="490" width="125" height="70" rx="6" class="c-frontend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="frontend" class="semantic-sigil s-frontend" transform="translate(651 496) scale(0.6875)">
-            <rect x="2" y="3" width="12" height="10" rx="2"/>
-            <path d="M2 6.5h12"/>
-            <circle cx="4.1" cy="4.8" r=".7" class="sigil-fill"/>
-            <circle cx="6.3" cy="4.8" r=".7" class="sigil-fill"/>
+          <rect x="645" y="490" width="125" height="70" rx="6" class="c-database" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(651 496) scale(0.6875)">
+            <ellipse cx="8" cy="4" rx="5" ry="2"/>
+            <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
           </g>
           <text data-node-label="" data-detail-anchor="" x="707.5" y="523" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">记忆文件</text>
         <text data-detail="context" x="707.5" y="539" class="t-muted" font-size="9" text-anchor="middle">MEMORY.md</text>
         </g>
 
-        <g id="node-mcp" data-node-id="mcp" data-node-label="MCP 连接状态" tabindex="0" role="button" aria-label="聚焦MCP 连接状态，运行时真实状态" aria-pressed="false" data-node-kind="frontend" data-node-context="运行时真实状态">
-          <title>MCP 连接状态 · 运行时真实状态</title>
+        <g id="node-mcp" data-node-id="mcp" data-node-label="MCP 连接状态" tabindex="0" role="button" aria-label="聚焦MCP 连接状态，connected servers, 运行时真实状态" aria-pressed="false" data-node-kind="cloud" data-node-sublabel="connected servers" data-node-context="运行时真实状态">
+          <title>MCP 连接状态 · connected servers · 运行时真实状态</title>
           <rect x="528" y="590" width="125" height="70" rx="6" class="c-mask"/>
-          <rect x="528" y="590" width="125" height="70" rx="6" class="c-frontend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="frontend" class="semantic-sigil s-frontend" transform="translate(534 596) scale(0.6875)">
-            <rect x="2" y="3" width="12" height="10" rx="2"/>
-            <path d="M2 6.5h12"/>
-            <circle cx="4.1" cy="4.8" r=".7" class="sigil-fill"/>
-            <circle cx="6.3" cy="4.8" r=".7" class="sigil-fill"/>
+          <rect x="528" y="590" width="125" height="70" rx="6" class="c-cloud" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="cloud" class="semantic-sigil s-cloud" transform="translate(534 596) scale(0.6875)">
+            <path d="M4.3 12.5h7.3a2.4 2.4 0 0 0 .2-4.8 4 4 0 0 0-7.5-1.3A3.1 3.1 0 0 0 4.3 12.5Z"/>
           </g>
-          <text data-node-label="" x="590.5" y="629" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">MCP 连接状态</text>
+          <text data-node-label="" data-detail-anchor="" x="590.5" y="623" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">MCP 连接状态</text>
+        <text data-detail="context" x="590.5" y="639" class="t-muted" font-size="9" text-anchor="middle">connected servers</text>
+        </g>
+
+        <g id="node-sp" data-node-id="sp" data-node-label="分段拼装 PROMPT_SECTIONS" tabindex="0" role="button" aria-label="聚焦分段拼装 PROMPT_SECTIONS，identity·tools·workspace·memory · 复用缓存, s10 System Prompt 组装（汇合层）" aria-pressed="false" data-node-kind="backend" data-node-sublabel="identity·tools·workspace·memory · 复用缓存" data-node-context="s10 System Prompt 组装（汇合层）">
+          <title>分段拼装 PROMPT_SECTIONS · identity·tools·workspace·memory · 复用缓存 · s10 System Prompt 组装（汇合层）</title>
+          <rect x="518" y="280" width="210" height="104" rx="6" class="c-mask"/>
+          <rect x="518" y="280" width="210" height="104" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(524 286) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="623" y="330" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">分段拼装 PROMPT_SECTIONS</text>
+        <text data-detail="context" x="623" y="346" class="t-muted" font-size="8" text-anchor="middle">identity·tools·workspace·memory · 复用缓存</text>
+        </g>
+
+        <g id="node-msgq" data-node-id="msgq" data-node-label="messages 对话列表" tabindex="0" role="button" aria-label="聚焦messages 对话列表，tool_result / user 消息的落点, s10 System Prompt 组装（汇合层）" aria-pressed="false" data-node-kind="messagebus" data-node-sublabel="tool_result / user 消息的落点" data-node-context="s10 System Prompt 组装（汇合层）">
+          <title>messages 对话列表 · tool_result / user 消息的落点 · s10 System Prompt 组装（汇合层）</title>
+          <rect x="518" y="90" width="210" height="104" rx="6" class="c-mask"/>
+          <rect x="518" y="90" width="210" height="104" rx="6" class="c-messagebus" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="messagebus" class="semantic-sigil s-messagebus" transform="translate(524 96) scale(0.6875)">
+            <path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"/>
+            <circle cx="5" cy="4.5" r="1" class="sigil-fill"/>
+            <circle cx="10.5" cy="8" r="1" class="sigil-fill"/>
+            <circle cx="7" cy="11.5" r="1" class="sigil-fill"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="623" y="140" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">messages 对话列表</text>
+        <text data-detail="context" x="623" y="156" class="t-muted" font-size="9" text-anchor="middle">tool_result / user 消息的落点</text>
         </g>
 
         <g id="node-model" data-node-id="model" data-node-label="模型" tabindex="0" role="button" aria-label="聚焦模型，每轮只看当轮可见文本, 架构组件" aria-pressed="false" data-node-kind="security" data-node-sublabel="每轮只看当轮可见文本" data-node-context="架构组件">
@@ -5211,24 +5204,36 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <text data-detail="context" x="1033" y="134" class="t-muted" font-size="9" text-anchor="middle">文件系统副作用共享</text>
         </g>
 
-        <!-- Connection labels -->
-        <g data-detail="context" data-edge-from="todo" data-edge-to="msgq" data-edge-label="计划清单 + 提醒" data-edge-key="0" data-edge-id="todo-msgq">
-          <rect x="342" y="189.5" width="82" height="14" rx="3" class="c-mask"/>
-          <text x="383" y="199.5" class="t-edge-default" font-size="8" text-anchor="middle">计划清单 + 提醒</text>
-        </g>
-        <g data-detail="context" data-edge-from="sub" data-edge-to="msgq" data-edge-label="结论→tool_result" data-edge-key="1" data-edge-id="sub-msgq">
-          <rect x="360.6" y="338" width="86.8" height="14" rx="3" class="c-mask"/>
-          <text x="404" y="348" class="t-edge-default" font-size="8" text-anchor="middle">结论→tool_result</text>
-        </g>
-        <g data-detail="context" data-edge-from="skill" data-edge-to="msgq" data-edge-label="全文→tool_result" data-edge-key="2" data-edge-id="skill-msgq">
-          <rect x="374.6" y="450" width="86.8" height="14" rx="3" class="c-mask"/>
-          <text x="418" y="460" class="t-edge-default" font-size="8" text-anchor="middle">全文→tool_result</text>
-        </g>
-        <g data-detail="context" data-edge-from="skill" data-edge-to="sp" data-edge-label="目录→system prompt" data-edge-key="3" data-edge-id="skill-sp">
-          <rect x="506.00000000000006" y="398" width="96.39999999999999" height="14" rx="3" class="c-mask"/>
-          <text x="554.2" y="408" class="t-edge-default" font-size="8" text-anchor="middle">目录→system prompt</text>
+        <g id="node-drop" data-node-id="drop" data-node-label="丢弃" tabindex="0" role="button" aria-label="聚焦丢弃，中间过程不回传, 架构组件" aria-pressed="false" data-node-kind="external" data-node-sublabel="中间过程不回传" data-node-context="架构组件">
+          <title>丢弃 · 中间过程不回传 · 架构组件</title>
+          <rect x="10" y="328" width="92" height="60" rx="6" class="c-mask"/>
+          <rect x="10" y="328" width="92" height="60" rx="6" class="c-external" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(16 334) scale(0.6875)">
+            <rect x="2.5" y="5" width="8.5" height="8" rx="1.5"/>
+            <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="56" y="356" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">丢弃</text>
+        <text data-detail="context" x="56" y="372" class="t-muted" font-size="9" text-anchor="middle">中间过程不回传</text>
         </g>
 
+        <!-- Connection labels -->
+        <g data-detail="context" data-edge-from="todo" data-edge-to="msgq" data-edge-label="清单渲染 → tool_result · 提醒 → user 消息" data-edge-key="0" data-edge-id="todo-msgq">
+          <rect x="217.20000000000005" y="153.5" width="206.79999999999998" height="14" rx="3" class="c-mask"/>
+          <text x="320.6" y="163.5" class="t-edge-default" font-size="8" text-anchor="middle">清单渲染 → tool_result · 提醒 → user 消息</text>
+        </g>
+        <g data-detail="context" data-edge-from="sub" data-edge-to="msgq" data-edge-label="结论 → tool_result" data-edge-key="1" data-edge-id="sub-msgq">
+          <rect x="369.8" y="338" width="96.39999999999999" height="14" rx="3" class="c-mask"/>
+          <text x="418" y="348" class="t-edge-default" font-size="8" text-anchor="middle">结论 → tool_result</text>
+        </g>
+
+        <g data-detail="context" data-edge-from="skill" data-edge-to="sp" data-edge-label="目录 → system prompt" data-edge-key="3" data-edge-id="skill-sp">
+          <rect x="350.5" y="447" width="106" height="14" rx="3" class="c-mask"/>
+          <text x="403.5" y="457" class="t-edge-default" font-size="8" text-anchor="middle">目录 → system prompt</text>
+        </g>
+        <g data-detail="context" data-edge-from="skill" data-edge-to="msgq" data-edge-label="全文 → tool_result" data-edge-key="4" data-edge-id="skill-msgq">
+          <rect x="377.6" y="306.5" width="96.39999999999999" height="14" rx="3" class="c-mask"/>
+          <text x="425.8" y="316.5" class="t-edge-dashed" font-size="8" text-anchor="middle">全文 → tool_result</text>
+        </g>
 
 
 
@@ -5239,12 +5244,12 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <text x="853" y="496" class="t-edge-dashed" font-size="8" text-anchor="middle">包住 LLM 调用 · 恢复后 continue</text>
         </g>
         <g data-detail="context" data-edge-from="model" data-edge-to="work" data-edge-label="tool_use" data-edge-key="11" data-edge-id="model-work">
-          <rect x="874.3" y="136" width="48.4" height="14" rx="3" class="c-mask"/>
-          <text x="898.5" y="146" class="t-edge-default" font-size="8" text-anchor="middle">tool_use</text>
+          <rect x="954" y="179.525" width="48.4" height="14" rx="3" class="c-mask"/>
+          <text x="978.2" y="189.525" class="t-edge-emphasis" font-size="8" text-anchor="middle">tool_use</text>
         </g>
         <g data-detail="context" data-edge-from="work" data-edge-to="msgq" data-edge-label="tool_result 回填" data-edge-key="12" data-edge-id="work-msgq">
-          <rect x="784.6" y="12" width="86.8" height="14" rx="3" class="c-mask"/>
-          <text x="828" y="22" class="t-edge-default" font-size="8" text-anchor="middle">tool_result 回填</text>
+          <rect x="804.6" y="104" width="86.8" height="14" rx="3" class="c-mask"/>
+          <text x="848" y="114" class="t-edge-default" font-size="8" text-anchor="middle">tool_result 回填</text>
         </g>
 
         <!-- Boundary labels (foreground masks keep routes out of titles) -->
@@ -5253,38 +5258,42 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <text data-boundary-label="" x="120" y="213" class="t-cloud" font-size="9" font-weight="600">四个装置（规划与协调）</text>
         </g>
 
-        <g data-graph-role="structural-frame-label" data-composition-frame-id="1" data-composition-frame-kind="region" data-composition-frame-label="s10 System Prompt 组装 · 台面">
-          <rect data-graph-role="structural-frame-label-mask" x="492" y="70" width="166.6" height="16" rx="3" class="c-mask"/>
-          <text data-boundary-label="" x="496" y="83" class="t-cloud" font-size="9" font-weight="600">s10 System Prompt 组装 · 台面</text>
-        </g>
-
-        <g data-graph-role="structural-frame-label" data-composition-frame-id="2" data-composition-frame-kind="region" data-composition-frame-label="运行时真实状态">
+        <g data-graph-role="structural-frame-label" data-composition-frame-id="1" data-composition-frame-kind="region" data-composition-frame-label="运行时真实状态">
           <rect data-graph-role="structural-frame-label-mask" x="424" y="470" width="85.6" height="16" rx="3" class="c-mask"/>
           <text data-boundary-label="" x="428" y="483" class="t-cloud" font-size="9" font-weight="600">运行时真实状态</text>
+        </g>
+
+        <g data-graph-role="structural-frame-label" data-composition-frame-id="2" data-composition-frame-kind="region" data-composition-frame-label="s10 System Prompt 组装（汇合层）">
+          <rect data-graph-role="structural-frame-label-mask" x="492" y="70" width="182.79999999999998" height="16" rx="3" class="c-mask"/>
+          <text data-boundary-label="" x="496" y="83" class="t-cloud" font-size="9" font-weight="600">s10 System Prompt 组装（汇合层）</text>
         </g>
 
         <!-- Legend -->
         <g data-legend="" data-legend-bridge="">
           <text x="40" y="796" class="t-primary" font-size="12" font-weight="650">图例</text>
-          <g data-legend-semantic-kind="frontend" data-legend-kind="frontend" data-legend-label="运行时真实状态" data-legend-x="40" data-legend-baseline="816" data-legend-width="113">
-            <rect x="40" y="807" width="16" height="10" rx="2.5" class="c-frontend" stroke-width="1"/>
-            <text x="62" y="816" class="t-muted" font-size="10" font-weight="500">运行时真实状态</text>
+          <g data-legend-semantic-kind="backend" data-legend-kind="backend" data-legend-label="后端" data-legend-x="40" data-legend-baseline="816" data-legend-width="63">
+            <rect x="40" y="807" width="16" height="10" rx="2.5" class="c-backend" stroke-width="1"/>
+            <text x="62" y="816" class="t-muted" font-size="10" font-weight="500">后端</text>
           </g>
-          <g data-legend-semantic-kind="backend" data-legend-kind="backend" data-legend-label="装置（执行机构）" data-legend-x="175" data-legend-baseline="816" data-legend-width="123">
-            <rect x="175" y="807" width="16" height="10" rx="2.5" class="c-backend" stroke-width="1"/>
-            <text x="197" y="816" class="t-muted" font-size="10" font-weight="500">装置（执行机构）</text>
+          <g data-legend-semantic-kind="database" data-legend-kind="database" data-legend-label="数据库" data-legend-x="125" data-legend-baseline="816" data-legend-width="73">
+            <rect x="125" y="807" width="16" height="10" rx="2.5" class="c-database" stroke-width="1"/>
+            <text x="147" y="816" class="t-muted" font-size="10" font-weight="500">数据库</text>
           </g>
-          <g data-legend-semantic-kind="database" data-legend-kind="database" data-legend-label="组装台面（s10）" data-legend-x="320" data-legend-baseline="816" data-legend-width="118">
-            <rect x="320" y="807" width="16" height="10" rx="2.5" class="c-database" stroke-width="1"/>
-            <text x="342" y="816" class="t-muted" font-size="10" font-weight="500">组装台面（s10）</text>
+          <g data-legend-semantic-kind="cloud" data-legend-kind="cloud" data-legend-label="云服务" data-legend-x="220" data-legend-baseline="816" data-legend-width="73">
+            <rect x="220" y="807" width="16" height="10" rx="2.5" class="c-cloud" stroke-width="1"/>
+            <text x="242" y="816" class="t-muted" font-size="10" font-weight="500">云服务</text>
           </g>
-          <g data-legend-semantic-kind="security" data-legend-kind="security" data-legend-label="模型 · 因果核心" data-legend-x="460" data-legend-baseline="816" data-legend-width="118">
-            <rect x="460" y="807" width="16" height="10" rx="2.5" class="c-security" stroke-width="1"/>
-            <text x="482" y="816" class="t-muted" font-size="10" font-weight="500">模型 · 因果核心</text>
+          <g data-legend-semantic-kind="security" data-legend-kind="security" data-legend-label="安全" data-legend-x="315" data-legend-baseline="816" data-legend-width="63">
+            <rect x="315" y="807" width="16" height="10" rx="2.5" class="c-security" stroke-width="1"/>
+            <text x="337" y="816" class="t-muted" font-size="10" font-weight="500">安全</text>
           </g>
-          <g data-legend-semantic-kind="external" data-legend-kind="external" data-legend-label="工具执行 / 丢弃" data-legend-x="600" data-legend-baseline="816" data-legend-width="118">
-            <rect x="600" y="807" width="16" height="10" rx="2.5" class="c-external" stroke-width="1"/>
-            <text x="622" y="816" class="t-muted" font-size="10" font-weight="500">工具执行 / 丢弃</text>
+          <g data-legend-semantic-kind="messagebus" data-legend-kind="messagebus" data-legend-label="消息总线" data-legend-x="400" data-legend-baseline="816" data-legend-width="83">
+            <rect x="400" y="807" width="16" height="10" rx="2.5" class="c-messagebus" stroke-width="1"/>
+            <text x="422" y="816" class="t-muted" font-size="10" font-weight="500">消息总线</text>
+          </g>
+          <g data-legend-semantic-kind="external" data-legend-kind="external" data-legend-label="外部系统" data-legend-x="505" data-legend-baseline="816" data-legend-width="83">
+            <rect x="505" y="807" width="16" height="10" rx="2.5" class="c-external" stroke-width="1"/>
+            <text x="527" y="816" class="t-muted" font-size="10" font-weight="500">外部系统</text>
           </g>
         </g>
       </svg>
@@ -5465,37 +5474,23 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     <div class="cards">
       <div class="card">
         <div class="card-header">
-          <div class="card-dot emerald"></div>
-          <h3>可见性即影响力</h3>
-        </div>
-        <ul>
-          <li>四个装置经「每轮可见文本」作用于模型，第五装置 s10 组装即该通道本身，别无旁路</li>
-          <li>s05 清单渲染进 tool_result；nag 提醒走 user 消息（3 轮未更新触发）</li>
-          <li>s06 子代理拿全新 messages[]，只回结论，中间过程丢弃</li>
-        </ul>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
           <div class="card-dot cyan"></div>
-          <h3>常驻与按需分层</h3>
+          <h3>三通道汇入</h3>
         </div>
         <ul>
-          <li>s07 目录常驻 ~100 tokens，全文按需 ~2000 tokens</li>
-          <li>s10 分段拼装 PROMPT_SECTIONS：identity · tools · workspace · memory，稳定时复用缓存</li>
-          <li>段加载看运行时状态——工具表 / 记忆文件 / MCP 连接，不看话术</li>
+          <li>系统提示 / 对话列表 / 工具表三条通道共同决定每轮可见文本</li>
+          <li>四个装置各自只作用于其中一条或两条通道</li>
         </ul>
       </div>
 
       <div class="card">
         <div class="card-header">
           <div class="card-dot rose"></div>
-          <h3>恢复分类且有界</h3>
+          <h3>读图要点</h3>
         </div>
         <ul>
-          <li>s11 包住 LLM 调用本身，恢复后 continue</li>
-          <li>截断→升额度 · 超限→压缩 · 瞬态→退避＋抖动，各有上界</li>
-          <li>工具执行的文件系统副作用，主 / 子代理共享</li>
+          <li>s10 组装即汇合层：分段按运行时状态挑选拼装</li>
+          <li>Subagent 中间过程丢弃，唯一出口是一句结论</li>
         </ul>
       </div>
     </div>

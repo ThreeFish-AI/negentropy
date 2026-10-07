@@ -23,9 +23,8 @@ description: "课程双轨一手材料（仓库 main 17 章 @ ce8f9f18 / 站点 
 
 五层不是并列的功能清单，是一条**每一层都在偿还上一层欠下的债**的链子：
 
-![五层依赖图（前代存量·旧叙事版）：五个分层（执行/规划/记忆/时机/协作）串成一条主链，各层节点沿用换代前的隐喻命名，层间箭头标注「偿还」并写明各层接手的问题（活多易忘目标、上下文一定会满、有些活很慢、有些没人按开始、一个人只有一双手），收束节点写着「机制很多，循环一个」](../../assets/architecture/agent-harness/claude-code-harness--five-layer-dependency-dark.png)
+![五层依赖图：五个分层（执行/规划/记忆/时机/协作）自上而下，每层两件机制装置（Agent Loop 主循环与权限闸门/清单与子代理/上下文压缩与持久记忆文件/后台任务与 cron/文件系统协作设施），层间箭头写明上层暴露、下层接住的问题（上下文变长目标被稀释、可见文本有上限、调用有快慢与到点无人触发、单 Agent 并行度有限），收束于「机制很多，循环一个」](../../assets/architecture/agent-harness/claude-code-harness--five-layer-dependency-dark.png)
 
-> 前代存量图（2026-10-07 换代前口径，新产出不回溯）：图面沿用换代前的旧叙事命名，按层间依赖拓扑读即可。
 > 图源（可 diff 文本）：[`claude-code-harness--five-layer-dependency.mmd`](../../assets/mermaid/agent-harness/claude-code-harness--five-layer-dependency.mmd) · 交互版（下载到本地打开）：[`claude-code-harness--five-layer-dependency.html`](../../assets/architecture/agent-harness/claude-code-harness--five-layer-dependency.html)
 
 读法：**每一层的存在理由，都写在上一层的失败里**。跳过任何一层去看下一层，都会觉得后者是过度设计。

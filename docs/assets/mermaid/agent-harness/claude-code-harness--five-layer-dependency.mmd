@@ -1,25 +1,24 @@
 %% source: docs/research/agent-harness/170-claude-code-harness-overview.md §1
 %% slug: claude-code-harness--five-layer-dependency
-%% type: workflow
-%% derived: docs/assets/architecture/agent-harness/claude-code-harness--five-layer-dependency.html
+%% type: architecture
+%% derived: 五层依赖链（每层的存在理由写在上一层的失败里）；2026-10-07 工程直陈重绘，隐喻词全数退场
 flowchart TD
     subgraph L1["① 执行层 · 让模型能动手"]
-        A1["传送带<br/>一个循环"] --> A2["三道门禁<br/>+ 一排插线口"]
+        A1["Agent Loop 主循环<br/>模型发调用 · 结果回喂"] --> A2["权限闸门 + 工具挂点<br/>三道判据 · 查表分发"]
     end
     subgraph L2["② 规划层 · 安排它的视野"]
-        B1["工序卡 · 副台"] --> B2["按需取用的手册<br/>+ 每轮重铺的垫纸"]
+        B1["清单与子代理<br/>TodoWrite 外显 · Subagent 隔离"] --> B2["知识按需 + 提示组装<br/>技能两档加载 · 按状态拼装"]
     end
     subgraph L3["③ 记忆层 · 腾地方与留底"]
-        C1["收台四步<br/>（会丢的）"] --> C2["登记簿<br/>（不能丢的）"]
+        C1["上下文压缩<br/>预算内裁剪 · 会丢的"] --> C2["持久记忆文件<br/>磁盘留档 · 不能丢的"]
     end
     subgraph L4["④ 时机层 · 把时间还回来"]
-        D1["自动清洗槽 · 叫号器"] --> D2["墙上的定时钟"]
+        D1["后台任务 + 通知注入<br/>慢命令不挡路 · 结果回轮"] --> D2["cron 定时调度<br/>到点自起一轮 · 无人也跑"]
     end
     subgraph L5["⑤ 协作层 · 从一个到一群"]
-        E1["排工板 · 收件格"] --> E2["派工单 · 各自的隔间"]
+        E1["文件系统协作设施<br/>任务板 · 收件箱 · worktree · 工具池"] --> F["机制很多，循环一个<br/>五层挂回同一条对话循环"]
     end
-    A2 -- "活一多就忘了要干什么" --> L2
-    B2 -- "台面一定会满" --> L3
-    C2 -- "有些活很慢，有些没人按开始" --> L4
-    D2 -- "一个人只有一双手" --> L5
-    L5 --> F["机制很多，循环一个"]
+    A2 -- "上下文变长，早期目标被稀释" --> B1
+    B2 -- "每轮可见文本有长度上限" --> C1
+    C2 -- "调用有快慢 · 到点无人触发" --> D1
+    D2 -- "单 Agent 并行度有限" --> E1

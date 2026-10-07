@@ -8,7 +8,7 @@ flowchart LR
         TODO["s05 TodoWrite<br/>计划外显 + nag reminder<br/>3 轮未更新即提醒"]
         SUB["s06 Subagent<br/>全新 messages[]<br/>只回结论·过程丢弃"]
         SKILL["s07 Skill Loading<br/>目录常驻 · 全文按需<br/>~100 vs ~2000 tokens"]
-        RECOV["s11 Error Recovery<br/>截断→升额度 · 超限→压缩<br/>瞬态→退避+抖动（各有上界）"]
+        RECOV["s11 Error Recovery<br/>截断/超限/瞬态 三路 · 各有上界"]
     end
 
     subgraph STATE["运行时真实状态"]
@@ -20,7 +20,7 @@ flowchart LR
 
     subgraph ASSEMBLE["s10 System Prompt 组装<br/>（汇合层）"]
         direction TB
-        SP["分段拼装 PROMPT_SECTIONS<br/>identity · tools · workspace · memory<br/>稳定时复用缓存"]
+        SP["分段拼装 PROMPT_SECTIONS<br/>identity·tools·workspace·memory · 复用缓存"]
         MSGQ["messages 对话列表"]
     end
 
@@ -29,7 +29,7 @@ flowchart LR
 
     TODO -- "清单渲染 → tool_result<br/>提醒 → user 消息" --> MSGQ
     SUB -- "结论 → tool_result" --> MSGQ
-    SUB -. "中间过程丢弃" .-> X["✕"]
+    SUB -. "中间过程丢弃" .-> X["丢弃<br/>中间过程不回传"]
     SKILL -- "目录 → system prompt" --> SP
     SKILL -- "全文 → tool_result" --> MSGQ
     TOOLS --> SP
