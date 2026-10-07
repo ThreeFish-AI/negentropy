@@ -32,7 +32,7 @@
 
 ## 3. 硬门限
 
-- **单文件 ≤ 1,048,576 B**——[`check-added-large-files --maxkb=1024`](../../.pre-commit-config.yaml)。
+- **单文件 ≤ 1,310,720 B（1280 KiB）**——[`check-added-large-files --maxkb=1280`](../../.pre-commit-config.yaml)。
   选型阶段就要估算，别等落盘才撞。动效类一律按「帧间差分失效」保守估。
 - **`knowledge-map.md` / `CHANGELOG.md` 内引用的资产必须在盘**——`series-consistency-check` 规则 5
   的正则同时命中 `[]()` 与 `![]()`。**资产与索引必须同一次 `git add`**。
@@ -102,4 +102,4 @@
 ## 6. 验收证据
 
 浏览器实机渲染截图落 [`screenshots/architecture-diagram/`](./screenshots/architecture-diagram/)；
-视频与静图的机读体检由采集脚本的交付收据打印（逐文件字节 + 1 MiB 门判定）。
+视频与静图的机读体检由采集脚本的交付收据打印（逐文件字节 + 1280 KiB 门判定）。

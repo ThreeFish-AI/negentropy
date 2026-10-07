@@ -4344,7 +4344,7 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **后续防范**：改共享冻结件（Archify 三件/Subtitle/i18n 系）的 PR 须登记「波及集清单+重渲待办」，交付登记以成片时间戳 ≥ 修复提交为验收线。
 - **同类问题影响**：未来任何共享件变更同理；RSI 侧（vibe-video #24）已把纯底色段门入仓，重渲后可自动拦截空段回归。
 
-## ISSUE-209 剧本换代中间态的已知红门与恢复条件（2026-10-07，开放——场景轮收口）
+## ISSUE-210 剧本换代中间态的已知红门与恢复条件（2026-10-07，开放——场景轮收口）
 
 - **表因**：claude-code-explained 五集换代表意（planning/narration/storyboard 全新重写、旧场景代码不动）后，两类机器门必红：① `check_archify_coverage`（旧场景 cue 锚旧句 id，新 storyboard 不挂 cue 只写图意与预定图 slug）；② `check_script --check-scenes`（旧场景 `at()/dur()` 引用的句 id 集已不存在）。另：旧 `script/narration.cues.toml`（4 集）随换稿删除，TTS 轮重配前 pre-tts 预算门走「未生成跳过」路径。
 - **根因**：vibe-video 的门假设「脚本层与场景/音频层同代」；跨代中间态（剧本新、场景旧）是该假设的盲区。

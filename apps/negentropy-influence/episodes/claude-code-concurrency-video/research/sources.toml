@@ -69,7 +69,7 @@ bytes = 87494
 lines = 294
 via = "站点实况（174 站点轨组织骨架对照）"
 
-[s11-readme-main]
+[main-s11-readme]
 url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/ce8f9f186058939da54c9d6fead78dfb5d0fd6c3/s11_background_tasks/README.zh.md"
 kind = "repo"
 pinned_ref = "ce8f9f186058939da54c9d6fead78dfb5d0fd6c3"
@@ -80,7 +80,7 @@ bytes = 6882
 lines = 178
 via = "pinned commit, MIT; main 轨对照（判定收敛）"
 
-[s11-code-main]
+[main-s11-code]
 url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/ce8f9f186058939da54c9d6fead78dfb5d0fd6c3/s11_background_tasks/code.py"
 kind = "repo"
 pinned_ref = "ce8f9f186058939da54c9d6fead78dfb5d0fd6c3"
@@ -91,7 +91,7 @@ bytes = 17723
 lines = 542
 via = "pinned commit, MIT; C.2 穿透抽查依据"
 
-[s12-readme-main]
+[main-s12-readme]
 url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/ce8f9f186058939da54c9d6fead78dfb5d0fd6c3/s12_cron_scheduler/README.zh.md"
 kind = "repo"
 pinned_ref = "ce8f9f186058939da54c9d6fead78dfb5d0fd6c3"
@@ -102,7 +102,7 @@ bytes = 5846
 lines = 153
 via = "pinned commit, MIT; main 轨对照（至少一次交付）"
 
-[s12-code-main]
+[main-s12-code]
 url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/ce8f9f186058939da54c9d6fead78dfb5d0fd6c3/s12_cron_scheduler/code.py"
 kind = "repo"
 pinned_ref = "ce8f9f186058939da54c9d6fead78dfb5d0fd6c3"
@@ -113,7 +113,7 @@ bytes = 25439
 lines = 790
 via = "pinned commit, MIT; C.2 穿透抽查依据"
 
-[s16-readme-main]
+[main-s16-readme]
 url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/ce8f9f186058939da54c9d6fead78dfb5d0fd6c3/s16_workflow_runtime/README.zh.md"
 kind = "repo"
 pinned_ref = "ce8f9f186058939da54c9d6fead78dfb5d0fd6c3"

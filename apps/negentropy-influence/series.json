@@ -125,7 +125,7 @@
             "accessed": "2026-10-07"
           },
           "status": "script-review",
-          "statusNote": "剧本 v3 待审（2026-10-07）：planning/narration/storyboard 全新换代，C 型信源=171 新精读（guided-learn 2026-10-07）；159 句 3685 字 7 幕 27 镜（build 口径 14.5 分落窗）；build/pre-tts/内容门三绿；场景/TTS/图集未动，跨代红门见 ISSUE-209；main 钉换 ce8f9f18（自 0dcafa2a 无机制级变更）；旧 source-notes/cues 清理、archive 重建为 ce8f9f1/",
+          "statusNote": "剧本 v3 待审（2026-10-07）：planning/narration/storyboard 全新换代，C 型信源=171 新精读（guided-learn 2026-10-07）；159 句 3685 字 7 幕 27 镜（build 口径 14.5 分落窗）；build/pre-tts/内容门三绿 + source_ledger 15 条 FAIL 0；场景/TTS/图集未动，跨代红门见 ISSUE-210；main 钉换 ce8f9f18（自 0dcafa2a 无机制级变更）；旧 source-notes/cues 清理、archive 重建为 ce8f9f1/",
           "voice": "story + me-bright.wav"
         },
         {
@@ -147,7 +147,7 @@
             "accessed": "2026-10-07"
           },
           "status": "script-review",
-          "statusNote": "剧本 v3 待审（2026-10-07）：C 型信源=172 新精读；147 句 3560 字 7 幕 28 镜（14.0 分落窗）；三门绿 + source_ledger 23 条 FAIL 0；场景/TTS/图集未动（ISSUE-209）；钩子 H1/标题候选 4 项待人工复核",
+          "statusNote": "剧本 v3 待审（2026-10-07）：C 型信源=172 新精读；147 句 3560 字 7 幕 28 镜（14.0 分落窗）；三门绿 + source_ledger 28 条 FAIL 0；场景/TTS/图集未动（ISSUE-210）；钩子 H1/标题候选 4 项待人工复核",
           "voice": "story + me-bright.wav"
         },
         {
@@ -169,7 +169,7 @@
             "accessed": "2026-10-07"
           },
           "status": "script-review",
-          "statusNote": "剧本 v3 待审（2026-10-07）：C 型信源=173 新精读（双轨：站点主轨+main s08 演进彩蛋）；160 句 3603 字 7 幕 32 镜（14.2 分落窗）；三门绿；场景/TTS/图集未动（ISSUE-209）；archive 增 ce8f9f1/ 双轨对照",
+          "statusNote": "剧本 v3 待审（2026-10-07）：C 型信源=173 新精读（双轨：站点主轨+main s08 演进彩蛋）；160 句 3603 字 7 幕 32 镜（14.2 分落窗）；三门绿 + source_ledger 13 条 FAIL 0；场景/TTS/图集未动（ISSUE-210）；archive 增 ce8f9f1/ 双轨对照",
           "voice": "story + me-bright.wav"
         },
         {
@@ -192,7 +192,7 @@
             "accessed": "2026-10-07"
           },
           "status": "script-review",
-          "statusNote": "剧本 v3 待审（2026-10-07）：C 型信源=174 新精读；178 句 3596 字 7 幕 36 镜（14.2 分落窗）；三门绿 + source_ledger 17 条 FAIL 0；抖动双口径（官方 30 分钟/半间隔 vs 站点考古 10%/15 分钟）穿透回源；场景/TTS/图集未动（ISSUE-209）",
+          "statusNote": "剧本 v3 待审（2026-10-07）：C 型信源=174 新精读；178 句 3594 字 7 幕 36 镜（14.1 分落窗）；三门绿 + source_ledger 17 条 FAIL 0；抖动双口径（官方 30 分钟/半间隔 vs 站点考古 10%/15 分钟）穿透回源；场景/TTS/图集未动（ISSUE-210）",
           "voice": "story + me-bright.wav"
         },
         {
@@ -214,7 +214,7 @@
             "accessed": "2026-10-07"
           },
           "status": "script-review",
-          "statusNote": "剧本 v3 待审（2026-10-07）：C 型信源=175 新精读（站点七章主+main 四章对照）；143 句 3586 字 7 幕 37 镜（14.1 分落窗）；三门绿 + source_ledger 33 条 FAIL 0；终集收束（五层回看+系列金句+完结语、无下期卡）；场景/TTS/图集未动（ISSUE-209）",
+          "statusNote": "剧本 v3 待审（2026-10-07）：C 型信源=175 新精读（站点七章主+main 四章对照）；143 句 3586 字 7 幕 37 镜（14.1 分落窗）；三门绿 + source_ledger 33 条 FAIL 0；终集收束（五层回看+系列金句+完结语、无下期卡）；场景/TTS/图集未动（ISSUE-210）",
           "voice": "story + me-bright.wav"
         }
       ]

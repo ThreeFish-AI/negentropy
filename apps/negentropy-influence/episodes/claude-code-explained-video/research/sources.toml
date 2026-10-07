@@ -132,3 +132,33 @@ text_sha256 = "213cc53568f96038"
 bytes = 71867
 lines = 351
 via = "站点实况（171 站点轨组织骨架对照）"
+
+[doc-tool-use-overview]
+url = "https://platform.claude.com/docs/en/build-with-claude/tool-use/overview"
+kind = "site"
+accessed = "2026-10-07"
+raw_sha256 = "e877259ce9048c94"
+text_sha256 = "21857ee7dad8ee75"
+bytes = 902616
+lines = 118
+via = "官方补读（171 参考 [2]；循环回喂语义与配对协议）"
+
+[doc-hooks]
+url = "https://code.claude.com/docs/en/hooks"
+kind = "site"
+accessed = "2026-10-07"
+raw_sha256 = "f0174bbac17a0ce0"
+text_sha256 = "e94e8e51a9cb0cfa"
+bytes = 2945175
+lines = 3841
+via = "官方补读（171 参考 [3]；33 个 hook 事件清单与 deny 优先不变式）"
+
+[doc-permissions]
+url = "https://code.claude.com/docs/en/permissions"
+kind = "site"
+accessed = "2026-10-07"
+raw_sha256 = "ceedaf93d72aa945"
+text_sha256 = "806ef7cb323efc33"
+bytes = 790570
+lines = 1904
+via = "官方补读（171 参考 [4]；权限规则由代码执行与六种权限模式）"

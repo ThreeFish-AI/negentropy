@@ -36,7 +36,7 @@ siteBase = "https://learn.shareai.run/zh"
 # 复验一致，5 分组前提稳固，站点钉不变。
 [[pin]]
 ref = "ce8f9f186058939da54c9d6fead78dfb5d0fd6c3"
-date = "2026-08-27"
+date = "2026-09-28"
 label = "仓库 main（17 章整合版）"
 readmeFile = "README.zh.md"
 codeFile = "code.py"

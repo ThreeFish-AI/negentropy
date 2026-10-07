@@ -2,23 +2,17 @@
 #
 # 本集 C 型信源 = gl-notes.md（冻结自 docs/research/agent-harness/172 精读）；本清单登记其
 # 原始信源指纹。站点轨 67a9126c（s05/s06/s07/s10/s11）= 本篇机制主体钉点；main 轨
-# ce8f9f18（s05–s07 对照 + s15_integrated_harness）= 对照必读。章→集归属唯一登记处：
+# ce8f9f18（s05–s07 对照 + s15_integrated_harness + s17_goal_loop 附录对照）= 对照必读。章→集归属唯一登记处：
 # ../../source-map/claude-code-explained.md（撞号防御见同目录 chapter 说明，引用一律「轨名+目录名」）。
 # kind=repo 指向固定 commit，raw 指纹漂移即 FAIL（说明 URL 里的 ref 不是不可变引用）。
 # kind=site 只对剥标签归一后的正文比对指纹，漂移报 WARN（去复核笔记）。
 # text_sha256 是判据；raw_sha256 仅供 repo 类硬校验与人工核对。sha256 算法、取数 2026-10-07。
 
-# 非论文信源清单（可复现取证链，工具：$T/scripts/source_ledger.py）
-#
-# kind=repo 指向固定 commit，raw 指纹漂移即 FAIL（说明 URL 里的 ref 不是不可变引用）。
-# kind=site 指向线上页面，只对剥标签归一后的正文比对指纹，漂移报 WARN（去复核笔记）。
-# text_sha256 是判据；raw_sha256 仅供 repo 类硬校验与人工核对。
-
 
 [s05-readme]
-url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c/s05_todo_write/README.md"
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s05_todo_write/README.md"
 kind = "repo"
-pinned_ref = "67a9126c"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
 accessed = "2026-10-07"
 raw_sha256 = "92f4fa9f54ba2a56"
 text_sha256 = "5dd71b7d40fe43d1"
@@ -27,9 +21,9 @@ lines = 158
 via = "pinned commit, MIT; 站点轨（本集主信源，README.md 中文默认）"
 
 [s05-code]
-url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c/s05_todo_write/code.py"
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s05_todo_write/code.py"
 kind = "repo"
-pinned_ref = "67a9126c"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
 accessed = "2026-10-07"
 raw_sha256 = "118dac9e16090b86"
 text_sha256 = "489d072254bf3758"
@@ -48,9 +42,9 @@ lines = 146
 via = "站点实况（172 站点轨组织骨架；页快照 .temp/lcc-refresh/site/）"
 
 [s06-readme]
-url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c/s06_subagent/README.md"
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s06_subagent/README.md"
 kind = "repo"
-pinned_ref = "67a9126c"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
 accessed = "2026-10-07"
 raw_sha256 = "c67db30314ee57c1"
 text_sha256 = "781cdfd1d0916339"
@@ -59,9 +53,9 @@ lines = 193
 via = "pinned commit, MIT; 站点轨（本集主信源，README.md 中文默认）"
 
 [s06-code]
-url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c/s06_subagent/code.py"
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s06_subagent/code.py"
 kind = "repo"
-pinned_ref = "67a9126c"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
 accessed = "2026-10-07"
 raw_sha256 = "2e32b9791c1308f9"
 text_sha256 = "8bdb647e246c42be"
@@ -80,9 +74,9 @@ lines = 236
 via = "站点实况（172 站点轨组织骨架；页快照 .temp/lcc-refresh/site/）"
 
 [s07-readme]
-url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c/s07_skill_loading/README.md"
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s07_skill_loading/README.md"
 kind = "repo"
-pinned_ref = "67a9126c"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
 accessed = "2026-10-07"
 raw_sha256 = "304bfc987dccc3a4"
 text_sha256 = "272b7cd29aebf77f"
@@ -91,9 +85,9 @@ lines = 182
 via = "pinned commit, MIT; 站点轨（本集主信源，README.md 中文默认）"
 
 [s07-code]
-url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c/s07_skill_loading/code.py"
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s07_skill_loading/code.py"
 kind = "repo"
-pinned_ref = "67a9126c"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
 accessed = "2026-10-07"
 raw_sha256 = "82ff856cbe43bcfa"
 text_sha256 = "a9b93f7964049bd5"
@@ -112,9 +106,9 @@ lines = 222
 via = "站点实况（172 站点轨组织骨架；页快照 .temp/lcc-refresh/site/）"
 
 [s10-readme]
-url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c/s10_system_prompt/README.md"
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s10_system_prompt/README.md"
 kind = "repo"
-pinned_ref = "67a9126c"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
 accessed = "2026-10-07"
 raw_sha256 = "dc371732be160b36"
 text_sha256 = "d1ebfe020a4fa065"
@@ -123,9 +117,9 @@ lines = 255
 via = "pinned commit, MIT; 站点轨（本集主信源，README.md 中文默认）"
 
 [s10-code]
-url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c/s10_system_prompt/code.py"
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s10_system_prompt/code.py"
 kind = "repo"
-pinned_ref = "67a9126c"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
 accessed = "2026-10-07"
 raw_sha256 = "05e0888550029fdd"
 text_sha256 = "e9bcb497aebe392c"
@@ -144,9 +138,9 @@ lines = 266
 via = "站点实况（172 站点轨组织骨架；页快照 .temp/lcc-refresh/site/）"
 
 [s11-readme]
-url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c/s11_error_recovery/README.md"
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s11_error_recovery/README.md"
 kind = "repo"
-pinned_ref = "67a9126c"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
 accessed = "2026-10-07"
 raw_sha256 = "6a30a8811fac86f4"
 text_sha256 = "1da188f91b5708e7"
@@ -155,9 +149,9 @@ lines = 277
 via = "pinned commit, MIT; 站点轨（本集主信源，README.md 中文默认）"
 
 [s11-code]
-url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c/s11_error_recovery/code.py"
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s11_error_recovery/code.py"
 kind = "repo"
-pinned_ref = "67a9126c"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
 accessed = "2026-10-07"
 raw_sha256 = "7c1a4bed40a88226"
 text_sha256 = "a36b456ffd9da029"
@@ -262,3 +256,55 @@ text_sha256 = "1eb6652c005bec64"
 bytes = 128018
 lines = 3326
 via = "pinned commit, MIT; 附录 C.2 穿透抽查依据（main 轨 s15 对照取值）"
+
+[s17m-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/ce8f9f186058939da54c9d6fead78dfb5d0fd6c3/s17_goal_loop/README.zh.md"
+kind = "repo"
+pinned_ref = "ce8f9f186058939da54c9d6fead78dfb5d0fd6c3"
+accessed = "2026-10-07"
+raw_sha256 = "3b65a0ff23bb6548"
+text_sha256 = "b0313ff4b78ac234"
+bytes = 9054
+lines = 233
+via = "pinned commit, MIT; main 轨对照（附录 s17_goal_loop 对照章）"
+
+[s17m-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/ce8f9f186058939da54c9d6fead78dfb5d0fd6c3/s17_goal_loop/code.py"
+kind = "repo"
+pinned_ref = "ce8f9f186058939da54c9d6fead78dfb5d0fd6c3"
+accessed = "2026-10-07"
+raw_sha256 = "ecce68f327aef9b5"
+text_sha256 = "0be6c8fcb16f030d"
+bytes = 30835
+lines = 903
+via = "pinned commit, MIT; 附录 s17_goal_loop 对照章"
+
+[doc-sub-agents]
+url = "https://code.claude.com/docs/en/sub-agents"
+kind = "site"
+accessed = "2026-10-07"
+raw_sha256 = "3ec1e7cf66ea8404"
+text_sha256 = "b4d53a4eee3caa85"
+bytes = 1266685
+lines = 2390
+via = "官方补读（172 参考 [2]；子代理上下文与 15000 tokens 告警线）"
+
+[doc-skills]
+url = "https://code.claude.com/docs/en/skills"
+kind = "site"
+accessed = "2026-10-07"
+raw_sha256 = "7067c322abaa36a5"
+text_sha256 = "1cf2289f569c36cb"
+bytes = 1193078
+lines = 2230
+via = "官方补读（172 参考 [3]；skill 清单 ~1% 上下文与 1536 字符截断）"
+
+[doc-todo-tracking]
+url = "https://code.claude.com/docs/en/agent-sdk/todo-tracking"
+kind = "site"
+accessed = "2026-10-07"
+raw_sha256 = "63c4138128ca1f53"
+text_sha256 = "1a2f87596ecfce22"
+bytes = 697732
+lines = 1812
+via = "官方补读（172 参考 [4]；任务工具默认开关）"

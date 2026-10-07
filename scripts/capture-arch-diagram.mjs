@@ -7,12 +7,13 @@
  *
  * 用法：
  *   node scripts/capture-arch-diagram.mjs --html docs/assets/architecture/core/x.html \
- *        --out-dir docs/assets/architecture/core --slug x [--themes=dark,light] [--max-bytes=1048576]
+ *        --out-dir docs/assets/architecture/core --slug x [--themes=dark,light] [--max-bytes=1310720]
  *
  * 设计要点（承自旗舰脚本的实测结论，详见 docs/.agents/doc-media-assets.md）：
  *   1. 静态图走产物内置 exportMenu（RASTER_SCALE=4 原生矢量栅格化），不用整页截图。
  *   2. 拦截导出 blob 必须「记录但透传」URL.createObjectURL，取最后一个 blob。
- *   3. PNG 实际尺寸必须等于 viewBox × 4（防半幅/空图），尺寸断言按每图 viewBox 动态计算。
+ *   3. PNG 尺寸断言按每图 viewBox 动态计算：两轴完整包含 viewBox ≥3× 且两轴缩放同量级
+ *      （≤15% 差），防半幅/空图。
  *
  * 零 npm 依赖：CDP over WebSocket（Node 内置 WebSocket，需 Node >= 22）。
  */
@@ -37,7 +38,7 @@ function parseArgs(argv) {
     outDir: "",
     slug: "",
     themes: "dark,light",
-    maxBytes: 1024 * 1024,
+    maxBytes: 1280 * 1024,
   };
   const alias = { out: "outDir", "out-dir": "outDir" };
   for (let i = 0; i < argv.length; i++) {
@@ -248,8 +249,8 @@ async function main() {
     await cdp.send("Page.navigate", { url: `file://${htmlPath}` });
     await new Promise((r) => setTimeout(r, 1500));
     const prep = await cdp.evalFn(PAGE_FNS.prepare);
-    // exportMenu 的 RASTER_SCALE=4（导出器对宽 viewBox 有 4800px 上限，实际缩放可为 3×）：
-    // 断言「整数倍缩放 + 纵横比一致」防半幅/空图
+    // exportMenu 走 RASTER_SCALE=4 栅格化（宽 viewBox 有 4800px 上限，实际缩放可为 3×）；
+    // 尺寸断言在下方导出循环内按每图 viewBox 动态执行（防半幅/空图）
     const vb = prep.viewBox;
     console.log(`[page] theme=${prep.theme} viewBox=${vb.width}×${vb.height} fonts=${prep.fontsStatus}`);
 

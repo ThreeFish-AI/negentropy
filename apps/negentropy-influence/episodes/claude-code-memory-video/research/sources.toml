@@ -112,3 +112,33 @@ text_sha256 = "c7d8d6c1f52830f8"
 bytes = 27544
 lines = 784
 via = "pinned commit, MIT; C.2 穿透抽查依据（main 轨门控五重检查/原子整理回滚/路径防御）"
+
+[doc-memory]
+url = "https://code.claude.com/docs/en/memory"
+kind = "site"
+accessed = "2026-10-07"
+raw_sha256 = "07c8e010b5726821"
+text_sha256 = "786e7138b853f60f"
+bytes = 777253
+lines = 1837
+via = "官方补读（173 参考 [2]；记忆分层与索引/正文分离口径）"
+
+[doc-context-window]
+url = "https://code.claude.com/docs/en/context-window"
+kind = "site"
+accessed = "2026-10-07"
+raw_sha256 = "1739a09fd5aecb09"
+text_sha256 = "c265deca4fcc5286"
+bytes = 462799
+lines = 1518
+via = "官方补读（173 参考 [3]；压缩幸存表与技能重注入限额）"
+
+[doc-how-claude-code-works]
+url = "https://code.claude.com/docs/en/how-claude-code-works"
+kind = "site"
+accessed = "2026-10-07"
+raw_sha256 = "3d698e19a043cd77"
+text_sha256 = "a3bb37fce71442df"
+bytes = 526913
+lines = 1613
+via = "官方补读（173 参考 [4]；逼近上限先清工具输出、压缩后重建）"
