@@ -1,10 +1,11 @@
 /** IntroGallery——系列片头五集变体评审面（独立 Remotion 入口，仿 MotionGallery，
  *  不经 Root.tsx，对既有 Composition 零影响）。
  *
- * 用法（在 video/ 目录，.bin 直调防污染根 workspace）——每集变体拍 3 定格帧
- * （--frame=620：进度点 stagger 已全亮，且处于片头第三拍中段）：
+ * 用法（在 video/ 目录，.bin 直调防污染根 workspace）——评审帧组按拍选取
+ * （v2 六拍：取景 27 / 星形主角 130 / 化归环心 200 / 幽灵蓝图 256 / 词级点火 420 /
+ * 定格中段 560——进度点 544 全亮、授色后、交棒前）：
  *   ./node_modules/.bin/remotion still src/intro-gallery.tsx IntroEp1 \
- *       out/intro-ep1.png --frame=620
+ *       out/intro-ep1-f420.png --frame=420
  *
  * mech 色为本文件字面量（series.json 五集 accents 实占值；dev 工具面口径同
  * MotionGallery——不读各集 theme，评审面独立声明）。层名/标题仍读 series-layers.json。
