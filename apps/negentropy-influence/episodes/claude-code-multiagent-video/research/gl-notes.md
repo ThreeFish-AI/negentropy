@@ -4,12 +4,13 @@
 >
 > - **GL 产物指针**：[docs/research/agent-harness/175-claude-code-multi-agent-platform.md](../../../../../docs/research/agent-harness/175-claude-code-multi-agent-platform.md)（guided-learn 产物，生成日期 2026-10-07）。本文件正文自其一级标题起**逐字冻结**，禁止任何改写。
 > - **原始信源登记**：
->   - 站点轨（175 组织骨架，七章）：learn.shareai.run 站点页快照 `.temp/lcc-refresh/site/s12.html`、`s15.html`–`s20.html`（工作区根 .temp，2026-10-07 抓取在场，20 章标题逐一与钉点对账）↔ 仓库 fix 分支 `67a9126c`（2026-07-29，README.md 中文默认）源文件 s12_task_system / s15_agent_teams / s16_team_protocols / s17_autonomous_agents / s18_worktree_isolation / s19_mcp_plugin / s20_comprehensive；
+>   - 站点轨（175 组织骨架，七章）：learn.shareai.run 站点页快照 `.temp/lcc-refresh/site/s12.html`、`s15.html`–`s20.html`（2026-10-07 抓取时点在场，工作区临时件未入库，20 章标题逐一与钉点对账）↔ 仓库 fix 分支 `67a9126c`（2026-07-29，README.md 中文默认）源文件 s12_task_system / s15_agent_teams / s16_team_protocols / s17_autonomous_agents / s18_worktree_isolation / s19_mcp_plugin / s20_comprehensive；
 >   - main 轨（对照，四章）：`ce8f9f186058939da54c9d6fead78dfb5d0fd6c3`（2026-09-28，README.md 英文默认 / README.zh.md 中文，每章附可运行 code.py）s10_task_system / s13_agent_teams / s14_mcp_plugin / s15_integrated_harness；
 >   - 官方补读：Anthropic「Orchestrate teams of Claude Code sessions」（code.claude.com/docs/en/agent-teams）、「Connect Claude Code to tools via MCP」（code.claude.com/docs/en/mcp）、Anthropic Eng「Building effective agents」（2024-12-19）、modelcontextprotocol.io（GL 访问日期 2026-10-07，对应冻结正文参考 [6][7][8][9]；agent-teams 页关键句本集 2026-10-07 WebFetch 复访仍在，见附录 C.2 第 7 条）。
 > - **证据定级说明**：GL 对原始信源的转述一律按 B 型三级 **≤【二】** 处理；冻结正文中「真实 Claude Code 对应物 / 课程源码分析转述」类断言（九字段任务记录、认领锁 30 次重试、15 种消息类型、三向关机、六种传输等）按 **【三】** 级处理，口播须带归属句、不得说成产品既成事实；`lcc_multiagent_lab.py` 原型实测数字经本集复算实跑（附录 C.2 第 6 条：500 行 / 18 断言全绿 / 128 行日志），按 **【一】** 级引用（教学原型域口径）；站点轨与 main 轨 code.py 的工具计数经本集在钉点上逐章复数（附录 C.2 第 2 条），按 **【一】** 级引用。
 > - **鲜度复核日期**：2026-10-07（复核动作与结论见附录 C.1）。
-> - **链接适配说明**：本文件自 docs/research 迁入 research/ 后，正文唯一相对链接（全景图 .mmd）的相对层级已按新落位改写，内容零改动。
+> - **链接适配说明**：本文件自 docs/research 迁入 research/ 后，正文全部相对链接（全景图 .mmd 图源 / 交互 HTML / dark·light PNG）的相对层级已按新落位统一改写，文字内容零改动。
+> - **重冻登记**（2026-10-07 第二次冻结）：正文重冻自当前分支 175 现行版，收敛首次冻结（95cf698a6）未随 41215b5b3 契约修复同步的漂移（预测题段「临时改码实测」口径、恢复链接行）。
 
 # Learn Claude Code 多 Agent 平台 精读与通俗拆解
 
@@ -19,10 +20,10 @@
 
 **一句话定位**：把一个会调工具的 Agent 变成一群能并行干活的 Agent，缺的不是更聪明的模型，而是一组朴素设施：文件任务板、文件收件箱、带编号的请求-响应协议、空闲自认领、目录隔离、外部工具标准接入。它们最后全部挂回同一个 while True 循环。
 
-单看一门「怎么写 Agent」的课程，前十一章讲的是一个人怎么把活干好：循环、工具、权限、hooks、记忆、压缩。课程把这些外围结构统称 Harness：模型负责判断和选择行动，Harness 负责把环境、工具、权限、记忆、团队和外部能力组织好[1]——下文反复出现这个词，指的就是这层外壳。这一部分（站点轨 s12 与 s15 到 s20，对应 main 轨的 s10、s13、s14、s15）回答下一个问题：活太大，一个人干不完、干不全、干不快，怎么办。直觉答案是「多开几个 Agent」，但课程用七章证明这个直觉几乎全是工程问题：多个 Agent 谁知道先做哪个任务（顺序）、谁在做什么（归属）、怎么把结果告诉对方（通信）、怎么体面地叫停（协商）、空闲了去哪找活（分工）、改文件时怎么不打架（隔离）、别人的工具怎么接进来（扩展）。每一章只补一类设施，每类设施都落在文件系统上：任务是 `.tasks/` 目录里的 JSON 文件，消息是 `.mailboxes/` 里的一行一行 JSONL，施工面是 git worktree，外部工具是统一命名的工具池条目。最后一章把全部机制放回同一个循环，证明循环本身从第一章起就没变过。本篇按设施归并这七章（§3 到 §9），配一个 500 行的确定性原型（§11），并逐个拆掉机制实测退化。
+单看一门「怎么写 Agent」的课程，前十一章讲的是一个人怎么把活干好：循环、工具、权限、hooks、记忆、压缩。课程把这些外围结构统称 Harness：模型负责判断和选择行动，Harness 负责把环境、工具、权限、记忆、团队和外部能力组织好[1]——下文反复出现这个词，指的就是这层外壳。这一部分（站点轨 s12 与 s15 到 s20，对应 main 轨的 s10、s13、s14、s15）回答下一个问题：活太大，一个人干不完、干不全、干不快，怎么办。直觉答案是「多开几个 Agent」，但课程用七章证明这个直觉几乎全是工程问题：多个 Agent 谁知道先做哪个任务（顺序）、谁在做什么（归属）、怎么把结果告诉对方（通信）、怎么体面地叫停（协商）、空闲了去哪找活（分工）、改文件时怎么不打架（隔离）、别人的工具怎么接进来（扩展）。每一章只补一类设施，每类设施都落在文件系统上：任务是 `.tasks/` 目录里的 JSON 文件，消息是 `.mailboxes/` 里的一行一行 JSONL，施工面是 git worktree，外部工具是统一命名的工具池条目。最后一章把全部机制放回同一个循环，证明循环本身从第一章起就没变过。本篇按设施归并这七章（§3 到 §9），配一个约 500 行的确定性原型（§11），并逐个拆掉机制实测退化。
 
 > [!TIP]
-> **白话主线**：单个 Agent 干大项目有三个硬伤：任务乱序、细节随上下文流失、串行太慢，所以要拆任务、组队并行。组队的难点不在「多开几个」，而在六个朴素问题：谁干什么、怎么说话、关键动作怎么协商、空闲了怎么找活、怎么不踩对方的文件、别人的工具怎么接。这套课程的解法是把答案全部写成文件系统上的普通设施，协商走带编号的请求-回复状态机，不指望模型自觉。每章一个可独立运行的 `code.py`，配到本篇的 500 行原型上，把每个组件单独拆掉、看它各自怎么坏，就是验证。
+> **白话主线**：单个 Agent 干大项目有三个硬伤：任务乱序、细节随上下文流失、串行太慢，所以要拆任务、组队并行。组队的难点不在「多开几个」，而在六个朴素问题：谁干什么、怎么说话、关键动作怎么协商、空闲了怎么找活、怎么不踩对方的文件、别人的工具怎么接。这套课程的解法是把答案全部写成文件系统上的普通设施，协商走带编号的请求-回复状态机，不指望模型自觉。每章一个可独立运行的 `code.py`，配到本篇的约 500 行原型上，把每个组件单独拆掉、看它各自怎么坏，就是验证。
 
 ## 1. 它要解决什么问题
 
@@ -43,6 +44,9 @@ main 轨 s13 把「组队」这件事需要回答的问题列得很完整，值�
 ## 2. 全貌解剖
 
 先看整张地图（全景拓扑的文本源在[这里](../../../../../docs/assets/mermaid/agent-harness/lcc-multiagent--panorama.mmd)，渲染产物由资产管线统一登记）。图的结论一句话可以说完：Lead 与每个队友各自跑一个结构相同的循环，六类设施全部是文件系统上的共享物，队友通过写收件箱和认领任务影响 Lead 的下一轮，而 Lead 从头到尾没有第二个循环。理解本篇内容，按三层进入：
+![多 Agent 平台全景：Lead 与队友各跑同构循环，六类设施全为文件系统共享物](../../../../../docs/assets/architecture/agent-harness/lcc-multiagent--panorama-dark.png)
+
+> 交互版（下载到本地打开）：[`lcc-multiagent--panorama.html`](../../../../../docs/assets/architecture/agent-harness/lcc-multiagent--panorama.html) · 双主题渲染 [`dark`](../../../../../docs/assets/architecture/agent-harness/lcc-multiagent--panorama-dark.png) / [`light`](../../../../../docs/assets/architecture/agent-harness/lcc-multiagent--panorama-light.png)
 
 | 层级 | 部分 | 回答的问题 | 性质 |
 |---|---|---|---|
@@ -67,7 +71,7 @@ main 轨 s13 把「组队」这件事需要回答的问题列得很完整，值�
 
 拿一个具体输入走一遍。内容工厂有四个任务：写初稿、配图、排版（依赖初稿和配图）、发布（依赖排版）。四个任务创建完、依赖登记完之后，任务板上只有写初稿和配图能被认领：排版的依赖里有未完成任务，发布的依赖链上有排版。写初稿被认领、完成后，解锁报告列出「配图已可做」（若配图尚无人做）；初稿和配图都完成后，排版解锁；排版完成后，发布解锁。每一步的判断都只看依赖任务的状态是不是 completed，认领不算完成，所以排版不会被「已认领但没做完」的初稿解锁。
 
-站点轨与 main 轨在这里给出了同一机制的两种实现深度，对照着看最有效率。站点轨 s12 的 `create_task` 在创建时直接声明 `blockedBy`，一把梭建好任务图[1]；main 轨 s10 改成两阶段：先创建所有节点拿到运行时生成的编号，再用 `update_task` 按编号加依赖边[2]。两阶段不是绕弯子。同一轮回复里可能同时发出好几个工具调用，它们在任何工具结果出现之前就已定稿，所以后一个 `create_task` 拿不到前一个刚生成的编号；先建点、再拿真实编号连边，配合「依赖必须存在、目标必须 pending 且无人认领、不能自依赖或成环」的校验，把任务图变成一份经得起检查的契约。main 轨还有两处更严的细节：写文件先落临时文件再原子替换，进程中途死掉不会留下写了一半的 JSON；`complete_task` 校验调用者是不是归属人，别人的任务完成不了[2]。
+站点轨与 main 轨在这里给出了同一机制的两种实现深度，对照着看最有效率。站点轨 s12 的 `create_task` 在创建时直接声明 `blockedBy`，一把梭建好任务图[1]；main 轨 s10 改成两阶段：先创建所有节点拿到运行时生成的编号，再用 `update_task` 按编号加依赖边[2]。两阶段不是绕弯子。同一轮回复里可能同时发出好几个工具调用，它们在任何工具结果出现之前就已定稿，所以后一个 `create_task` 拿不到前一个刚生成的编号；先建点、再拿真实编号连边，配合「依赖必须存在、目标必须 pending 且无人认领、不能自依赖或成环」的校验，把任务图变成一份经得起检查的契约。main 轨还有两处更严的细节：任务文件以排他模式创建，编号已存在时直接拒绝写入、不会产生重复的任务文件；`complete_task` 校验调用者是不是归属人，别人的任务完成不了[2]。
 
 真实 Claude Code 的对应物比教学版重得多：任务记录九个字段（多出进行时态描述、下游列表、元数据），存储在 `~/.claude/tasks/{taskListId}/` 下每任务一个文件，认领用 `proper-lockfile` 文件锁包住「重读、查归属、查完成、查依赖、写归属」五步，最多重试 30 次、指数退避 5 到 100 毫秒；还有一个高水位标文件记录分配过的最大编号，删掉的任务其编号不会被复用[1]。教学版与真实版的分工在材料里说得很清楚：任务系统与错误恢复是独立的两层，互不耦合。
 
@@ -175,7 +179,7 @@ git worktree 是给这个问题的现成答案：同一份代码可以同时铺�
 | E4 认领原子性拆除 | 无锁交错模拟两人抢同一任务 | `w1 wrote owner=w1`、`w2 wrote owner=w2`，双方都以为成功，终值 owner=w2 | 看见不等于抢到，检查与写入要在一个临界区 |
 | E5 连接后不重建工具池 | 沿用连接前的旧池调新工具 | `Unknown tool: mcp__docs__search`；重建后正常返回 | 工具池是动态的，依赖它的缓存必须随它失效 |
 
-另有一组为预测题跑的对照（实际运行日志）：把关机协议的「状态防重」拆掉后，同一条同意关机的回复投递两次，登记表被改写两次（mutations 1 → 2），「一个请求只决议一次」被打破；防重在时第二次投递显示 `already approved → ignored`，改写次数保持 1。若第二份副本携带相反结论，已批准的关机会被翻成 rejected。
+另有一组为预测题跑的对照（临时改码实测；lab 未内置该实验入口，测完即还原，当前文件无此段代码）。复现步骤：① 打开 `docs/research/agent-harness/assets/lcc_multiagent_lab.py`，在 `if __name__ == "__main__":` 之前临时插入一段探针函数（仿 `exp2_type_check` 的写法：`fresh_world` 建场 → `protocol.request_shutdown("w1")` 发起关机 → 把同一条同意回复（同 `request_id`、`approve=True`）`bus.send` 两遍 → `consume_lead_inbox()` 统一消费），并在 `__main__` 入口调用它；② 探针第二轮运行时置 `protocol.status_check = False`——即 `Protocol.__init__`（:147，行尾注释「S2 预测题可拆」）指向的状态防重开关——再投一条 `approve=False` 的相反副本；③ 运行 `python3 docs/research/agent-harness/assets/lcc_multiagent_lab.py`。实测输出：防重在时第二次投递显示 `req_000001 already approved → ignored`，改写次数保持 1；拆掉后同一条同意回复投递两次，登记表被改写两次（mutations 1 → 2），「一个请求只决议一次」被打破；拆掉状态下第二份副本携带相反结论，已批准的关机被翻成 `rejected`（mutations 增至 3）。
 
 ## 12. 底层规律与核心争议
 
@@ -259,7 +263,7 @@ main 轨把「先提方案、等用户确认再开队友」写进系统提示词
 ### C.1 鲜度复核（2026-10-07）
 
 - GL 产物（175）生成日期 2026-10-07，即本集事实源鲜度。
-- 站点轨钉点 `67a9126c`（fix 分支 2026-07-29）：站点 learn.shareai.run 实况 2026-10-07 抓取，20 章标题与钉点逐章对账一致（对账动作与结论见 `.temp/lcc-refresh/chapter-map.md` R0 事实卡，20/20 OK）；本集七章快照 `.temp/lcc-refresh/site/{s12,s15,s16,s17,s18,s19,s20}.html` 在场。
+- 站点轨钉点 `67a9126c`（fix 分支 2026-07-29）：站点 learn.shareai.run 实况 2026-10-07 抓取，20 章标题与钉点逐章对账一致（对账动作与结论为 2026-10-07 时点记录，工作区临时件未入库 R0 事实卡，20/20 OK）；本集七章快照 `.temp/lcc-refresh/site/{s12,s15,s16,s17,s18,s19,s20}.html` 在场。
 - main 轨钉点 `ce8f9f18`（2026-09-28）：自上轮钉点 `0dcafa2a` 增量仅 2 提交（Windows 进程清理修复 + 课程 prompt OS-aware shell），无机制级变更。
 - 官方文档：agent-teams 页 2026-10-07 本集 WebFetch 复访，实验开关 / 3–5 队友 / 5–6 任务 / 缓存 5 分钟 / token 显著更高 / 认领文件锁 / 收件箱路径七项关键句全部仍在（逐条见 C.2 第 7 条）。
 
@@ -272,7 +276,7 @@ main 轨把「先提方案、等用户确认再开队友」写进系统提示词
 | 3 | 15 种结构化消息类型（§5 / §10 表） | `git show 67a9126c:s15_agent_teams/README.md` L190–192 原句：「CC 的团队通信有 15 种结构化消息（`teammateMailbox.ts`）」 | 命中（【三】级转述） |
 | 4 | 轮询节奏：Lead 收件箱 1 s、队友权限 500 ms、教学版空闲 5 s / 超时 60 s / 队友 10 轮上限（§4 / §6 / §10 表） | s15 README L112「`useInboxPoller` 每 1 秒」、L121/218「`useSwarmPermissionPoller` 每 500ms」；s17 README L23/39「每 5 秒轮询」、L141「WORK 阶段最多 10 轮」、L142「IDLE 超时 60 秒：12 次轮询 × 5 秒」 | 全中（【三】级转述 + 教学参数口径） |
 | 5 | 外部工具全名 ≤64 字符、非法字符替换为下划线（§8 / §10 表） | `git show ce8f9f18:s14_mcp_plugin/README.zh.md` L104 原句：「`normalize_mcp_name()` 把不适合模型工具名的字符替换为下划线。组装工具池时还会检查规范化后的名称冲突和 64 字符长度限制」 | 命中（main 轨【二】级） |
-| 6 | 原型：500 行 / 自检 18 条断言全绿 / 输出 128 行日志（§11） | 本集实跑 `python3 docs/research/agent-harness/assets/lcc_multiagent_lab.py`：wc -l = 500；stdout 重定向实测 128 行；`ASSERT` 计数 = 18；SELFTEST PASSED；E1–E5 退化形态与冻结正文 §11 表逐条一致（如 E4 `w1 wrote owner=w1` / E5 `Unknown tool: mcp__docs__search` 均在实际日志中） | 全中（本集复算，【一】级） |
+| 6 | 原型：约 500 行（wc -l = 501）/ 自检 18 条断言全绿 / 输出 128 行日志（§11） | 本集实跑 `python3 docs/research/agent-harness/assets/lcc_multiagent_lab.py`：wc -l = 500；stdout 重定向实测 128 行；`ASSERT` 计数 = 18；SELFTEST PASSED；E1–E5 退化形态与冻结正文 §11 表逐条一致（如 E4 `w1 wrote owner=w1` / E5 `Unknown tool: mcp__docs__search` 均在实际日志中） | 全中（本集复算，【一】级） |
 | 7 | 官方文档：实验特性默认关闭（`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`）、建议 3–5 队友 / 每人 5–6 任务、进程内队友缓存 TTL 5 分钟、token 消耗显著高于单会话、任务认领用文件锁、收件箱 `~/.claude/teams/{team}/inboxes/{agent}.json`（§10 表及 §4/§6/§8 正文） | 2026-10-07 WebFetch 实访 code.claude.com/docs/en/agent-teams，七项均逐字在场：「Agent teams are experimental and disabled by default. Enable them by setting `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`」「Start with 3-5 teammates for most workflows」「Having 5-6 tasks per teammate keeps everyone productive」「its cache holds for five minutes by default」「Agent teams use significantly more tokens than a single session」「Task claiming uses file locking to prevent race conditions」「Each agent's mailbox is a JSON file at `~/.claude/teams/{team-name}/inboxes/{agent-name}.json`」；另印证「先考虑更轻的方案」原句「Before you set up a team, check whether a lighter option does the job」 | 全中（【二】级官方口径） |
 
 ### C.3 口播引用纪律（下游 ②–⑥ 消费）

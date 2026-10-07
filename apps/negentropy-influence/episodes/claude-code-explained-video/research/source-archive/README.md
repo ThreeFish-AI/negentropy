@@ -5,7 +5,7 @@
 | 上游项目 | shareAI-lab/learn-claude-code（"Bash is all you need" 教学仓） |
 | 仓库 URL | https://github.com/shareAI-lab/learn-claude-code |
 | 许可 | MIT（`LICENSE` 为同一固定提交下许可文件的字节副本） |
-| 固定提交 | `ce8f9f186058939da54c9d6fead78dfb5d0fd6c3`（仓库 main（17 章版），提交日 2026-09-28；自上轮钉 `0dcafa2a` 增量仅 2 提交、无机制级变更，见 .temp/lcc-refresh/chapter-map.md） |
+| 固定提交 | `ce8f9f186058939da54c9d6fead78dfb5d0fd6c3`（仓库 main（17 章版），提交日 2026-09-28；自上轮钉 `0dcafa2a` 增量仅 2 提交、无机制级变更——2026-10-07 逐章对账时点结论） |
 | 取数日期 | 2026-10-07（剧本 v3 换代重归档；本集 C 型信源 = gl-notes.md，冻结自 docs/research/agent-harness/171 精读） |
 | 指纹台账 | 同目录 `../sources.toml`（本轮 `source_ledger.py fetch` 逐条登记于新钉点；系列地图钉值同步属编排者层） |
 

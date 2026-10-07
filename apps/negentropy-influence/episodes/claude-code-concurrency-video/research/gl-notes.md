@@ -4,12 +4,13 @@
 >
 > - **GL 产物指针**：[docs/research/agent-harness/174-claude-code-concurrency.md](../../../../../docs/research/agent-harness/174-claude-code-concurrency.md)（guided-learn 产物，生成日期 2026-10-07）。本文件正文自其一级标题起**逐字冻结**，禁止任何改写。
 > - **原始信源登记**：
->   - 站点轨（174 组织骨架，机制主体）：learn.shareai.run 站点页快照 `.temp/lcc-refresh/site/s13.html`–`s14.html`（工作区根 .temp，2026-10-07 抓取在场）↔ 仓库 fix 分支 `67a9126c`（2026-07-29，README.md 中文默认）`s13_background_tasks` / `s14_cron_scheduler` 源文件；
+>   - 站点轨（174 组织骨架，机制主体）：learn.shareai.run 站点页快照 `.temp/lcc-refresh/site/s13.html`–`s14.html`（2026-10-07 抓取时点在场，工作区临时件未入库）↔ 仓库 fix 分支 `67a9126c`（2026-07-29，README.md 中文默认）`s13_background_tasks` / `s14_cron_scheduler` 源文件；
 >   - main 轨（对照）：`ce8f9f186058939da54c9d6fead78dfb5d0fd6c3`（2026-09-28，README.md 英文默认 / README.zh.md 中文，每章附可运行 code.py）`s11_background_tasks` / `s12_cron_scheduler`；附录对照章 `s16_workflow_runtime` 同钉点；
 >   - 官方补读：Anthropic「Run prompts on a schedule」「Automate work with routines」「Schedule recurring tasks in Claude Code Desktop」「Tools reference」「Interactive mode」「Run Claude Code programmatically」（GL 访问日期 2026-10-07，对应冻结正文参考 [5]–[10]）。
 > - **证据定级说明**：GL 对原始信源的转述一律按 B 型三级 **≤【二】** 处理；冻结正文中标「源码考古 / 课程对 CC 源码的分析」的断言按 **【三】** 级处理，口播须带归属句、不得说成产品既成事实；`lcc_concurrency_lab.py` 原型实测数字经本集复算（附录 C.2 第 7–9 条），按 **【一】** 级引用。
 > - **鲜度复核日期**：2026-10-07（复核动作与结论见附录 C.1）。
-> - **链接适配说明**：本文件自 docs/research 迁入 research/ 后，正文唯一相对链接（全景图 .mmd）的相对层级已按新落位改写，内容零改动。
+> - **链接适配说明**：本文件自 docs/research 迁入 research/ 后，正文全部相对链接（全景图 .mmd 图源 / 交互 HTML / dark·light PNG）的相对层级已按新落位统一改写，文字内容零改动。
+> - **重冻登记**（2026-10-07 第二次冻结）：正文重冻自当前分支 174 现行版，收敛首次冻结（30e6b9ecc）未随 41215b5b3 契约修复同步的漂移（走查例日期 2026-03-15、出版商名 O'Reilly、恢复链接行）。
 
 # 精读：Learn Claude Code「并发」——Background Tasks 与 Cron Scheduler
 
@@ -70,52 +71,10 @@
 
 其中「后台任务」和「cron 调度」不是并列的两件事，而是同一条注入通道的两个源头：前者往后续轮次里放的是「命令完成了」的结果事件，后者在无轮可搭时专门拉起一轮、放进去的是一条新任务。这句话是全文最重要的一张对照表，记住它，后面所有细节都挂得上。
 
-```mermaid
-flowchart LR
-    subgraph S1["后台任务链 · 命令级并发（不等它）"]
-        direction TB
-        M["模型 tool_use<br/>bash + run_in_background"]
-        D{"判定：显式参数优先<br/>站点轨另有关键词兜底"}
-        BG["daemon 线程执行<br/>登记表 bg_id → running"]
-        PH["占位 tool_result<br/>调用编号当场闭合"]
-        NT["完成 → 收集通知<br/>task_notification 带任务编号"]
-        SYNC["同步执行<br/>结果直接回填"]
-        M --> D
-        D -->|"是"| BG
-        D -->|"否"| SYNC
-        BG --- PH
-        BG -.->|"跑完改状态"| NT
-    end
-    subgraph S2["定时调度链 · 回合级并发（没人按开始也照跑）"]
-        direction TB
-        JOB["CronJob 定义<br/>cron · prompt · recurring · durable"]
-        DISK[("durable 落盘<br/>.scheduled_tasks.json<br/>只存定义，不存节拍")]
-        SCH["调度线程 · 每秒对表<br/>带日期分钟标记去重"]
-        Q[("cron_queue")]
-        QP["交付线程 · 0.2s 巡检<br/>空闲锁 agent_lock"]
-        INJ2["注入 [Scheduled] prompt<br/>主动拉起一轮"]
-        JOB --> SCH
-        DISK -.->|"重启恢复定义"| JOB
-        JOB -.->|"durable 写盘"| DISK
-        SCH --> Q
-        Q --> QP
-        QP --> INJ2
-    end
-    LOOP["对话循环 Agent Loop<br/>一轮 = 模型输出 + 工具执行 + 结果回填"]
-    NT -.->|"借道后续轮次捎回"| LOOP
-    INJ2 -->|"无轮可续时主动拉起"| LOOP
-    classDef lane1 fill:#0d3b66,stroke:#4da3ff,stroke-width:2px,color:#e8f2ff
-    classDef lane2 fill:#3b2a5d,stroke:#b695ff,stroke-width:2px,color:#f0eaff
-    classDef hub fill:#0f4d3a,stroke:#3ddc97,stroke-width:3px,color:#e6fff4
-    classDef store fill:#4d3b0f,stroke:#ffd166,stroke-width:2px,color:#fff8e0
-    class M,D,BG,PH,NT,SYNC lane1
-    class JOB,SCH,QP,INJ2 lane2
-    class LOOP hub
-    class Q,DISK store
-    style S1 fill:#0a1e33,stroke:#4da3ff,stroke-width:1px,color:#cfe6ff
-    style S2 fill:#1e1433,stroke:#b695ff,stroke-width:1px,color:#e5dcff
-```
 *图 1 · 两种时间机制汇入同一条对话循环：后台任务借道后续轮次捎回结果，cron 在无轮可续时由交付线程主动拉起一轮。图源：[lcc-concurrency--panorama.mmd](../../../../../docs/assets/mermaid/agent-harness/lcc-concurrency--panorama.mmd)。*
+![并发全景：后台任务与定时调度两种时间机制汇入同一条对话循环](../../../../../docs/assets/architecture/agent-harness/lcc-concurrency--panorama-dark.png)
+
+> 交互版（下载到本地打开）：[`lcc-concurrency--panorama.html`](../../../../../docs/assets/architecture/agent-harness/lcc-concurrency--panorama.html) · 双主题渲染 [`dark`](../../../../../docs/assets/architecture/agent-harness/lcc-concurrency--panorama-dark.png) / [`light`](../../../../../docs/assets/architecture/agent-harness/lcc-concurrency--panorama-light.png)
 
 **哪些最值得关注？** 按价值排序：① 占位回执与通知注入，两轨与真实产品共有的协议骨架；② cron 四层解耦与空闲交付；③ durable 边界，课程专门设了警示的最易误解点；④ 判定权从关键词猜测到显式参数的演化（双轨差异揭示的真实设计教训）；⑤ main 轨补上的失败路径（模型失败回滚重入队、原子写盘即先写临时文件再整体替换、至少一次交付）。
 
@@ -170,7 +129,7 @@ bg_lifecycle: {'turn1_placeholder': 'bg_0001', 'notification_turn': 'turn2', 'du
 
 每个定时任务是一个 `CronJob`：表达式（cron）、触发时注入的指令（prompt）、是否周期（recurring）、是否持久（durable）[1], [3]。表达式是 Unix 世界用了五十年的五段式：分钟、小时、日、月、星期，支持 `*`、`*/N`、`N`、`N-M`、`N,M`。写法示例：`0 9 * * *` 每天 9:00，`*/5 * * * *` 每 5 分钟，`0 9 * * 1-5` 工作日 9:00 [1]。
 
-匹配语义里埋着一个反直觉的坑：**日位与星期位同时写了具体值时，命中任意一个就算到点（OR），不是直觉以为的「且」**；其余字段（分钟、小时、月）仍是全部满足。像会员日规则。「每月 15 号或每逢周五」打折，日历的两种写法任一命中就是特殊日。这个比方到此为止：它只覆盖「日 × 星期」这一对，分钟、小时、月仍是「且」，不能外推。走一个具体例子（表达式 `0 9 15 * 5`，即 9:00 且「15 号或周五」）：2026-03-13 是周五但不是 15 号 → 命中，触发；2026-03-18 是周三但是 15 号 → 命中，触发；2026-03-16 是周一且是 16 号 → 两者都不中，不触发。这是经典定时实现 vixie-cron 确立的标准语义（五段式表达式在 Unix 世界已用了五十年），教学两轨与官方文档一致 [1], [3], [5]。
+匹配语义里埋着一个反直觉的坑：**日位与星期位同时写了具体值时，命中任意一个就算到点（OR），不是直觉以为的「且」**；其余字段（分钟、小时、月）仍是全部满足。像会员日规则。「每月 15 号或每逢周五」打折，日历的两种写法任一命中就是特殊日。这个比方到此为止：它只覆盖「日 × 星期」这一对，分钟、小时、月仍是「且」，不能外推。走一个具体例子（表达式 `0 9 15 * 5`，即 9:00 且「15 号或周五」）：2026-03-13 是周五但不是 15 号 → 命中，触发；2026-03-15 是周日且恰好 15 号 → 命中，触发；2026-03-16 是周一且是 16 号 → 两者都不中，不触发。这是经典定时实现 vixie-cron 确立的标准语义（五段式表达式在 Unix 世界已用了五十年），教学两轨与官方文档一致 [1], [3], [5]。
 
 注册前还有一道校验：字段数量、取值范围不合法的表达式直接拒绝，从磁盘加载持久化任务时同样跳过非法条目；一个坏任务不该拖垮调度器 [1], [3]。
 
@@ -288,7 +247,7 @@ durable 持久化保存的是任务定义，不是那个每秒看表的节拍器
 
 ### 规律 5：无人值守交付宁可重试不可静默丢失（交付语义维）
 
-到点已入队的任务，崩溃重启后宁可再交付一次，也不悄悄丢掉；代价是任务必须容忍重复执行。main 轨显式选择「至少一次」并持久化待交付状态 [3]；官方会话级实现对过期一次性任务宁弃不留 [5]，同一维度上的两种真实选择，见争议二。理论锚点：消息交付语义（at-least-once 对 at-most-once；M. Kleppmann, *Designing Data-Intensive Applications*. Sebastopol, CA, USA: O'Reilly Media, 2017, ch. 8 的「恰好一次与幂等性」讨论）。
+到点已入队的任务，崩溃重启后宁可再交付一次，也不悄悄丢掉；代价是任务必须容忍重复执行。main 轨显式选择「至少一次」并持久化待交付状态 [3]；官方会话级实现对过期一次性任务宁弃不留 [5]，同一维度上的两种真实选择，见争议二。理论锚点：消息交付语义（at-least-once 对 at-most-once；M. Kleppmann, *Designing Data-Intensive Applications*. Sebastopol, CA, USA: O'Reilly, 2017, ch. 8 的「恰好一次与幂等性」讨论）。
 
 ### 争议 1：该不该用关键词启发式猜「慢」
 
@@ -334,9 +293,6 @@ durable 持久化保存的是任务定义，不是那个每秒看表的节拍器
 ## 附录：main 轨 s16_workflow_runtime 对照
 
 并发这门课在 main 轨还有第三种形态：s16_workflow_runtime 的「事件循环扇出式并发」。它不改对话循环，而是在工具池里加一个 `Workflow` 工具：模型一次调用，背后由保存好的可信脚本编排多次子 agent 调用。`parallel()` 是等齐屏障，所有任务并行跑完一起收；`pipeline()` 不等齐，每个条目独立走完各阶段，A 在第 3 阶段时 B 可能还在第 1 阶段。中间结果存变量不进对话历史，每步调用写进磁盘 journal，断了就用调用内容的稳定哈希续跑，没改过的调用直接吃缓存 [4]。与本文两种机制的对照：后台任务并发的是**命令**（子进程/线程），cron 并发的是**回合**（错开时间点），workflow 并发的是**子 agent**（事件循环上的扇出）。三种并发各在一层，互不替代。本篇不展开，见 main 轨 s16_workflow_runtime 原文 [4]。
-
-
----
 
 ## 附录 A · 类比登记表（本集口播类比唯一准入清单）
 

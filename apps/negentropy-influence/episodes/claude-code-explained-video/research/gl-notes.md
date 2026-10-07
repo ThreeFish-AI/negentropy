@@ -4,12 +4,13 @@
 >
 > - **GL 产物指针**：[docs/research/agent-harness/171-claude-code-tooling-execution.md](../../../../../docs/research/agent-harness/171-claude-code-tooling-execution.md)（guided-learn 产物，生成日期 2026-10-07）。本文件正文自其一级标题起**逐字冻结**，禁止任何改写。
 > - **原始信源登记**：
->   - 站点轨（171 组织骨架）：learn.shareai.run 站点页快照 `.temp/lcc-refresh/site/s01.html`–`s04.html`（工作区根 .temp，2026-10-07 抓取在场）↔ 仓库 fix 分支 `67a9126c`（2026-07-29，README.md 中文默认）源文件；
+>   - 站点轨（171 组织骨架）：learn.shareai.run 站点页快照 `.temp/lcc-refresh/site/s01.html`–`s04.html`（2026-10-07 抓取时点在场，工作区临时件未入库）↔ 仓库 fix 分支 `67a9126c`（2026-07-29，README.md 中文默认）源文件；
 >   - main 轨（对照）：`ce8f9f186058939da54c9d6fead78dfb5d0fd6c3`（2026-09-28，README.md 英文默认 / README.zh.md 中文，每章附可运行 code.py）；
 >   - 官方文档补读：Anthropic「Tool use overview」「Hooks reference」「Configure permissions」（GL 访问日期 2026-10-07，对应冻结正文参考 [2][3][4]）。
 > - **证据定级说明**：GL 对原始信源的转述一律按 B 型三级 **≤【二】** 处理；冻结正文中标「材料（对 CC 源码）的核查 / 课程转述 / 源码分析」的断言按 **【三】** 级处理，口播须带归属句、不得说成产品既成事实；`lcc_tooling_lab.py` 原型实测数字经本集复算（附录 C.2 第 7、8 条），按 **【一】** 级引用。
 > - **鲜度复核日期**：2026-10-07（复核动作与结论见附录 C.1）。
-> - **链接适配说明**：本文件自 docs/research 迁入 research/ 后，正文唯一相对链接（全景图 .mmd）的相对层级已按新落位改写，内容零改动。
+> - **链接适配说明**：本文件自 docs/research 迁入 research/ 后，正文全部相对链接（全景图 .mmd 图源 / 交互 HTML / dark·light PNG）的相对层级已按新落位统一改写，文字内容零改动。
+> - **重冻登记**（2026-10-07 第二次冻结）：正文重冻自当前分支 171 现行版，收敛首次冻结（dd45c3cd5）未随 41215b5b3 契约修复同步的漂移（恢复被删除的全景图 PNG/交互版链接行；链接层级对齐 41215b5b3 统一口径）。
 
 # 精读：Learn Claude Code「工具与执行」
 
@@ -40,6 +41,9 @@ s01 的开场白把这个痛点写得极准：你问模型「帮我读取下我�
 ## 2. 全貌解剖
 
 先给全景图（图源 [lcc-tooling--panorama.mmd](../../../../../docs/assets/mermaid/agent-harness/lcc-tooling--panorama.mmd)）。一句话读图：蓝色循环本体是唯一不变的骨架，绿色与琥珀色的裁决执行管线挂在判据之下、以 tool_result 配对回喂闭环，紫色生产保护层用虚线各自守护一个骨架节点。
+![工具与执行全景：蓝色循环本体为不变骨架，裁决执行管线以 tool_result 配对回喂闭环，紫色生产保护层以虚线守护骨架节点](../../../../../docs/assets/architecture/agent-harness/lcc-tooling--panorama-dark.png)
+
+> 交互版（下载到本地打开）：[`lcc-tooling--panorama.html`](../../../../../docs/assets/architecture/agent-harness/lcc-tooling--panorama.html) · 双主题渲染 [`dark`](../../../../../docs/assets/architecture/agent-harness/lcc-tooling--panorama-dark.png) / [`light`](../../../../../docs/assets/architecture/agent-harness/lcc-tooling--panorama-light.png)
 
 | 层级 | 部分 | 回答的问题 | 性质 |
 |---|---|---|---|
@@ -270,12 +274,9 @@ turns 10/10 · stop_continued 1
 - [9] G. Hohpe and B. Woolf, *Enterprise Integration Patterns: Designing, Building, and Deploying Messaging Solutions*. Boston, MA, USA: Addison-Wesley, 2003.
 - [10] J. H. Saltzer, D. P. Reed, and D. D. Clark, "End-to-end arguments in system design," *ACM Trans. Comput. Syst.*, vol. 2, no. 4, pp. 277–288, Nov. 1984.
 
-
----
-
 ## 附录 A · 类比登记表（本集口播类比唯一准入清单）
 
-> 提取自冻结正文全部类比性表述（2026-10-07 编制）。口径：一物一喻，1–3 句点亮即切回机制画面，失配边界句随行；未登记类比不进口播。带 ※ 号条目因系列口径卡口播红线（禁工坊系词汇）**不进口播**，仅留登记备查。
+> 提取自冻结正文全部类比性表述（2026-10-07 编制）。口径：一物一喻，1–3 句点亮即切回机制画面，失配边界句随行；未登记类比不进口播。带 ※ 号条目因系列口径卡口播红线（禁旧版隐喻系词汇）**不进口播**，仅留登记备查。
 
 | # | 类比物 | 对应机制 | 失配边界句 | 出处节号 |
 |---|---|---|---|---|
@@ -289,7 +290,7 @@ turns 10/10 · stop_continued 1
 | 8 ※ | 循环只喊号 | 循环体只剩事件触发，干活的名单全在注册表 | 拟人直陈，无外部物映射，无失配面 | §1 表、§6.2 |
 | 9 | 泥球 | 复杂度压进核心的后果：核心变成无人敢动的泥球 | 泥球喻指耦合僵化而非物理堆积；正解是把保护外挂回判据点，不是清扫核心 | §9.1 规律 5 |
 
-※ 两条的禁用依据：系列口径卡「视觉母题禁工坊系」词表含「插线口」「叫号器」，插座/喊号同族意象不进口播；口播改工程直陈（「循环只负责触发事件」「检查逻辑挂到固定事件上」）。
+※ 两条的禁用依据：系列口径卡「视觉母题禁旧版隐喻系」词表含「插线口」「叫号器」，插座/喊号同族意象不进口播；口播改工程直陈（「循环只负责触发事件」「检查逻辑挂到固定事件上」）。
 
 ## 附录 C · 穿透明细
 

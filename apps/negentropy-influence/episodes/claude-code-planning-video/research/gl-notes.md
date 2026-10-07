@@ -4,12 +4,13 @@
 >
 > - **GL 产物指针**：[docs/research/agent-harness/172-claude-code-planning-coordination.md](../../../../../docs/research/agent-harness/172-claude-code-planning-coordination.md)（guided-learn 产物，生成日期 2026-10-07）。本文件正文自其一级标题起**逐字冻结**，禁止任何改写。
 > - **原始信源登记**：
->   - 站点轨（本篇机制主体钉点）：learn.shareai.run 站点页快照 `.temp/lcc-refresh/site/s05.html` / `s06.html` / `s07.html` / `s10.html` / `s11.html`（工作区根 .temp，2026-10-07 抓取在场）↔ 仓库 fix 分支钉点 `67a9126c`（2026-07-29，README.md 中文默认）五章源文件：s05_todo_write / s06_subagent / s07_skill_loading / s10_system_prompt / s11_error_recovery（字节副本见同目录 `source-archive/67a9126/`）；
+>   - 站点轨（本篇机制主体钉点）：learn.shareai.run 站点页快照 `.temp/lcc-refresh/site/s05.html` / `s06.html` / `s07.html` / `s10.html` / `s11.html`（2026-10-07 抓取时点在场，工作区临时件未入库）↔ 仓库 fix 分支钉点 `67a9126c`（2026-07-29，README.md 中文默认）五章源文件：s05_todo_write / s06_subagent / s07_skill_loading / s10_system_prompt / s11_error_recovery（字节副本见同目录 `source-archive/67a9126/`）；
 >   - main 轨（对照必读）：`ce8f9f186058939da54c9d6fead78dfb5d0fd6c3`（2026-09-28，README.md 英文默认 / README.zh.md 中文）：s05–s07 同名同目录对照 + s15_integrated_harness（system prompt 组装与错误恢复的 main 轨所在）；s17_goal_loop 作附录级对照；
 >   - 官方文档补读：Anthropic「Create custom subagents」「Extend Claude with skills」「Track todos (Agent SDK)」（GL 访问日期 2026-10-07，对应冻结正文参考 [2][3][4]）。
 > - **证据定级说明**：GL 对原始信源的转述一律按 B 型三级 **≤【二】** 处理；冻结正文中标「课程深读」「材料（对 CC 源码）的核查」的断言按 **【三】** 级处理，口播须带归属句、不得说成产品既成事实；`lcc_planning_lab.py` 原型实测数字经本集复算（附录 C.2），按 **【一】** 级引用（mock 域口径，正文 §9 自认「数字不构成对真实模型行为的复现」）。
 > - **鲜度复核日期**：2026-10-07（复核动作与结论见附录 C.1）。
-> - **链接适配说明**：本文件自 docs/research 迁入 research/ 后，正文末尾两条相对链接（全景图 .mmd、原型 .py）的相对层级已按新落位改写，内容零改动。
+> - **链接适配说明**：本文件自 docs/research 迁入 research/ 后，正文全部相对链接（全景图 .mmd 图源 / 交互 HTML / dark·light PNG、原型脚本）的相对层级已按新落位统一改写，文字内容零改动。
+> - **重冻登记**（2026-10-07 第二次冻结）：正文重冻自当前分支 172 现行版，收敛首次冻结（d5edd6dca）未随 41215b5b3 契约修复同步的漂移（--episode B 口径、E5 白等 175.6s、机制-行号速查表刷新、恢复链接行）。
 
 # 精读：Learn Claude Code 规划与协调
 
@@ -65,7 +66,7 @@
 
 连续 3 轮没更新待办清单，系统就往对话里塞一条提醒——这个不到二十行的机制，是整门课「规划」的起点。
 
-机制本身分两半。前一半是 `todo_write` 工具：模型传入一个带状态的清单，每条内容标 pending、in_progress、completed 三态之一；系统把清单存进进程内存，并把渲染后的文本（`[ ]` / `[>]` / `[x]` 逐行）作为 tool_result 回填。后一半是 nag reminder：循环里维护一个 `rounds_since_todo` 计数器，本轮工具调用里出现了 todo_write 就清零，否则加一；计数到 3，下一次调用模型前往 messages 追加一条 `<reminder>Update your todos.</reminder>`，然后再清零。整个工具没有任何执行能力：读不了文件，跑不了命令。课程的判断写得很直白：它增加的不是执行能力，是规划能力[1]。
+机制本身分两半。前一半是 `todo_write` 工具：模型传入一个带状态的清单，每条内容标 pending、in_progress、completed 三态之一；系统把清单存进进程内存，并把渲染后的文本（`[ ]` / `[▸]` / `[✓]` 逐行）作为 tool_result 回填。后一半是 nag reminder：循环里维护一个 `rounds_since_todo` 计数器，本轮工具调用里出现了 todo_write 就清零，否则加一；计数到 3，下一次调用模型前往 messages 追加一条 `<reminder>Update your todos.</reminder>`，然后再清零。整个工具没有任何执行能力：读不了文件，跑不了命令。课程的判断写得很直白：它增加的不是执行能力，是规划能力[1]。
 
 拿课程自己的任务走一遍单步状态。输入：「把所有 Python 文件改成 snake_case，然后跑测试，修好失败」，计划拆三步：重命名、跑测试、写报告。
 
@@ -118,7 +119,7 @@ t3  子代理收尾，返回一句："Scanned 6 files: testing framework is pyte
 t4  主对话里只多两条：task 的 tool_use 和这句结论的 tool_result
 ```
 
-实测数字（实际运行日志，`--episode 2`）：主代理自己读 6 份文件，主对话 14 条、2626 字符；派子代理，主对话 4 条、147 字符，子代理内部 15 条、2617 字符自生自灭。把「只回摘要」改成「回传全部子历史」，主对话涨到 16 条、2649 字符，约 18 倍——子代理存在的意义被这个改动原样抹掉。
+实测数字（实际运行日志，`--episode B`，direct 对照）：主代理自己读 6 份文件，主对话 14 条、2626 字符；派子代理，主对话 4 条、147 字符，子代理内部 15 条、2617 字符自生自灭。把「只回摘要」改成「回传全部子历史」，主对话涨到 16 条、2649 字符，约 18 倍——子代理存在的意义被这个改动原样抹掉。
 
 课程深读给出的真实 CC 对照，信息量比教学版大得多[1]。真实实现有三种执行模式：Normal（全新上下文）、Fork、General-purpose。其中 Fork 模式不创建全新上下文，而是构造与父对话**字节级一致**的缓存前缀（system prompt、tools、model、messages 前缀、thinking 配置五件必须完全相同），目的是让 API 层的 prompt cache 命中（对话前缀完全一致时，API 端不必重算这部分，省钱省时）。隔离与缓存效率是一对真实的权衡，教学版只展示最干净的一端。隔离的粒度也不是铁板一块：文件读取状态（readFileState）从父代理克隆以避免重复读同一文件，权限弹窗以 bubble 模式冒泡回父终端审批。官方文档从使用侧印证了独立上下文这一核心：「子代理在它自己的上下文窗口里干活，只返回摘要」，且各自持有定制的系统提示、受限的工具集与独立的权限；自建子代理（不含内置那批）的描述合计超过 15,000 tokens 时启动会告警，提示把细节移进各自的系统提示[2]。描述常驻、正文按需，这与 §5 的两级加载是同一个经济学。
 
@@ -172,7 +173,7 @@ s11_error_recovery 把 LLM（即大模型）调用包进 try/except（先试、�
   retry 3: 429 wait 2.14s (clock 3.7s)
 ```
 
-三次瞬态错误共消耗 3.7 秒虚拟等待后成功，模型未切换。换成三次连续 529：第三次触发切换，`"switched": true, "model": "model-backup"`。超限路径：压缩一次、messages 从 9 条收到 6 条后重试成功。截断路径：先升 8K→64K（messages 保持 1 条不变），再连续续写 3 次后收尾。破坏实验（`--experiment 5`）把分类恢复改成一刀切重试，prompt_too_long 也当瞬态原样重发：10 次重试全部撞墙，白等 173.7 秒虚拟时间后以失败告终，而分类路径 0 秒压缩即恢复。超限是容量错误，重试不减小请求规模，只会把时间烧光。
+三次瞬态错误共消耗 3.7 秒虚拟等待后成功，模型未切换。换成三次连续 529：第三次触发切换，`"switched": true, "model": "model-backup"`。超限路径：压缩一次、messages 从 9 条收到 6 条后重试成功。截断路径：先升 8K→64K（messages 保持 1 条不变），再连续续写 3 次后收尾。破坏实验（`--experiment 5`）把分类恢复改成一刀切重试，prompt_too_long 也当瞬态原样重发：10 次重试全部撞墙，白等 175.6 秒虚拟时间后以失败告终，而分类路径 0 秒压缩即恢复。超限是容量错误，重试不减小请求规模，只会把时间烧光。
 
 真实 CC 的对照把这套骨架拉宽到十几个量级[1]：每轮 LLM 调用后有十几种 reason/transition（教学版只展开最常见的五种），退避公式的指数从 attempt-1 起算。续写提示原文多了「把剩余工作拆小」一句。流式路径（模型边生成边返回的传输方式）中可恢复的错误在 streaming 期间被暂扣不展示、结束后才进入恢复判断，token budget 的续写有「连续 3 次增量小于 500 即判停止」的边际收益检测。main 轨 s15_integrated_harness 的取值则是另一档：升级额度 8K→16K（不是 64K）、瞬态重试上限 3 次（不是 10）、连续 529 两次即切换（不是 3 次）。reactive compact 前先把完整对话存档到 `.transcripts/` 再裁剪，且压缩摘要尽力调用 LLM 生成、失败才降级为一句占位说明[1]。同一门课程的两轨给出两组不同的参数，这本身就是 §10 争议三的直接证据。
 
@@ -207,14 +208,14 @@ python3 lcc_planning_lab.py --experiment 1  # 破坏性实验（1-5）
 
 | 机制 | 实现单元 | 行号 |
 | --- | --- | --- |
-| M1 TodoWrite | render_todos / run_todo_write | 60 / 66 |
-| M1 mock 决策 | MockModel.next_action（可见文本驱动） | 100 |
-| M1 场景与 nag | episode_a | 141 |
-| M2 子代理 | spawn_subagent / permission_hook | 196 / 188 |
-| M3 两级加载 | scan_skills / catalog_lines / load_skill | 243 / 249 / 253 |
-| M4 组装 | update_context / assemble / get_system_prompt | 284 / 289 / 300 |
-| M5 恢复 | retry_delay / episode_e / episode_e_tokens | 332 / 337 / 379 |
-| 教学参数 | 常量区（NAG_THRESHOLD 等） | 22-33 |
+| M1 TodoWrite | render_todos / run_todo_write | 63 / 69 |
+| M1 mock 决策 | MockModel.next_action（可见文本驱动） | 114 |
+| M1 场景与 nag | episode_a | 144 |
+| M2 子代理 | spawn_subagent / permission_hook | 199 / 191 |
+| M3 两级加载 | scan_skills / catalog_lines / load_skill | 246 / 252 / 256 |
+| M4 组装 | update_context / assemble / get_system_prompt | 287 / 292 / 303 |
+| M5 恢复 | retry_delay / episode_e / episode_e_tokens | 335 / 342 / 384 |
+| 教学参数 | 常量区（NAG_THRESHOLD 等） | 25-37 |
 
 五次破坏性实验，每次只拆一个组件、改完真跑（实测退化摘录，完整日志见 `--experiment N` 输出）：
 
@@ -224,7 +225,7 @@ python3 lcc_planning_lab.py --experiment 1  # 破坏性实验（1-5）
 | E2 | 子代理改回传全部子历史 | 主对话 4 条/147 字符 → 16 条/2649 字符（18.0 倍） | 只回结论是主对话上下文的存亡线 |
 | E3 | 技能全文全量拼进 system prompt | 三轮总输入 3059 → 25323 字符（8.3 倍，随轮数放大） | 常驻内容按每轮计费，不用进目录不进正文 |
 | E4 | 组装判据改关键词猜测 | 闲聊提及 memory 即误注入空记忆段（false positive 0→1） | 段加载看状态不看话术 |
-| E5 | 分类恢复改一刀切重试 | prompt_too_long 重试 10 次全撞墙、白等 173.7s 虚拟时间（对照压缩一次 0s 恢复） | 容量错误重试无效，要先减规模 |
+| E5 | 分类恢复改一刀切重试 | prompt_too_long 重试 10 次全撞墙、白等 175.6s 虚拟时间（对照压缩一次 0s 恢复） | 容量错误重试无效，要先减规模 |
 
 原型只证明机制逻辑按上述描述运作；mock 模型的注意力窗口、吸收窗口是教学建模，数字不构成对真实模型行为的复现。
 
@@ -289,17 +290,18 @@ main 轨的收尾章 s17_goal_loop 回答的是另一个问题：Agent 说「做
 ---
 
 *图源：本篇全景拓扑见 [lcc-planning--panorama.mmd](../../../../../docs/assets/mermaid/agent-harness/lcc-planning--panorama.mmd)（五个装置在「每轮可见文本」三个通道上的汇合关系；交互版与双主题渲染由资产管线统一产出）。原型：[lcc_planning_lab.py](../../../../../docs/research/agent-harness/assets/lcc_planning_lab.py)。*
+![规划与协调全景：五个装置在「每轮可见文本」的三个通道上汇合](../../../../../docs/assets/architecture/agent-harness/lcc-planning--panorama-dark.png)
 
----
+> 交互版（下载到本地打开）：[`lcc-planning--panorama.html`](../../../../../docs/assets/architecture/agent-harness/lcc-planning--panorama.html) · 双主题渲染 [`dark`](../../../../../docs/assets/architecture/agent-harness/lcc-planning--panorama-dark.png) / [`light`](../../../../../docs/assets/architecture/agent-harness/lcc-planning--panorama-light.png)
 
 ## 附录 A · 类比登记表（本集口播类比唯一准入清单）
 
-> 提取自冻结正文全部类比性表述（2026-10-07 编制）。口径：一物一喻，1–3 句点亮即切回机制画面，失配边界句随行；未登记类比不进口播。带 ※ 号条目因系列口径卡口播红线（禁工坊系词汇，词表含「台面」）**不进口播**，仅留登记备查。
+> 提取自冻结正文全部类比性表述（2026-10-07 编制）。口径：一物一喻，1–3 句点亮即切回机制画面，失配边界句随行；未登记类比不进口播。带 ※ 号条目因系列口径卡口播红线（禁旧版隐喻系词汇，词表含「台面」）**不进口播**，仅留登记备查。
 
 | # | 类比物 | 对应机制 | 失配边界句 | 出处节号 |
 |---|---|---|---|---|
 | 1 | 聊天群刷屏 | 长对话中早期目标被稀释：记录里还在，但新消息不断堆上来，注意力只落在最新一段 | 人可以主动回翻并重新重视旧约定；模型对早期内容的注意力权重随长度摊薄，没有「翻回去加重」的动作，所以才需要外围装置把关键信息重新摆回眼前 | §1 |
-| 2 ※ | 组装台面 | system prompt 按状态拼段、messages 由对话推进、工具表由注册决定——三通道在 s10 组装处汇合；恢复机制保证出错轮次不把整张台面掀翻 | 原文未单独给失配边界（结构性直陈）；※ 禁用依据：口径卡工坊系词表含「台面」，口播改工程直陈（「汇合层」「拼装层」） | §2 |
+| 2 ※ | 组装台面 | system prompt 按状态拼段、messages 由对话推进、工具表由注册决定——三通道在 s10 组装处汇合；恢复机制保证出错轮次不把整张台面掀翻 | 原文未单独给失配边界（结构性直陈）；※ 禁用依据：口径卡旧版隐喻系词表含「台面」，口播改工程直陈（「汇合层」「拼装层」） | §2 |
 | 3 | 会议室与主会场共用白板 | Subagent：给子任务单独开一间会议室，谈完只把结论带回主会场 | 「两间会议室共用同一块白板」是机制本体不是失配：工作目录副作用主代理立刻可见，丢弃的是对话不是工作成果 | §4 |
 | 4 | 提示欠了一屁股债 | 硬编码一行字符串的系统提示：加一个能力就多一段，换项目整段重写，新旧指令打架 | 原文未给显式失配句；欠债可分期偿还，这里的重构是把提示拆段一次迁到按状态拼装，口播 1 句点亮即收 | §6 |
 | 5 | 写死的手稿 → 运行时拼装的配置 | 系统提示从静态整段进化为按 context 分段拼装 | 原文为直陈式对照（「手稿/配置」），非展开比喻；口播作 1 句对照使用，不展开喻体 | §6 |
@@ -327,12 +329,12 @@ main 轨的收尾章 s17_goal_loop 回答的是另一个问题：Agent 说「做
 5. **「s10 四段 PROMPT_SECTIONS（identity/tools/workspace/memory）+ json.dumps(context, sort_keys=True) 缓存键、不用内置 hash()」** → `git show 67a9126c:s10_system_prompt/code.py`：`:42` `PROMPT_SECTIONS = {"identity": ...}`、`:51–60` identity 恒载 + tools/workspace 按 context + memory 按 `MEMORY.md` 存在且有内容、`:73–78` 「Cache wrapper … json.dumps for deterministic serialization, not Python's hash()」→ **吻合，【一】级**。
 6. **「s11 三路径取值：8K→64K、续写 ≤3、压缩 1 次、min(500×2^attempt, 32000) 毫秒 + 0–25% 抖动、重试 ≤10、529×3 切换」** → `git show 67a9126c:s11_error_recovery/code.py`：`:52–53` `ESCALATED_MAX_TOKENS = 64000` / `DEFAULT_MAX_TOKENS = 8000`、`:11` 「continuation prompt (max 3)」、`:12` 「reactive compact -> retry (once)」、`:55–57` `MAX_RETRIES = 10` / `BASE_DELAY_MS = 500` / `MAX_CONSECUTIVE_529 = 3`、`:177–178` `min(BASE_DELAY_MS * (2 ** attempt), 32000)` + `jitter = random.uniform(0, base * 0.25)`、`:175–176` Retry-After 优先 → **逐项吻合，【一】级**。
 7. **「main 轨 s15 对照取值：升级 8K→16K、连续 529 两次即切换、reactive compact 前存档 .transcripts/」** → `git show ce8f9f18:s15_integrated_harness/code.py`：`:68–69` `DEFAULT_MAX_TOKENS = 8000` / `ESCALATED_MAX_TOKENS = 16000`、`:71` `MAX_CONSECUTIVE_529 = 2`、`:65` `TRANSCRIPT_DIR = WORKDIR / ".transcripts"`、`:2193–2200` compact 前存档 + 压缩摘要尽力调 LLM 生成 → **吻合，【一】级**。
-8. **「原型全部日志数字」** → 本集实跑 `python3 docs/research/agent-harness/assets/lcc_planning_lab.py --selftest / --episode A / --episode E / --experiment 1–5`：episode A（turns 11、steps 3/3、reminders 1、drift 0、messages 23、chars 821）、E1（2/3 步、漂移 0→7、收尾 False）、E2（4 条/147 字符 → 16 条/2649 字符，约 18.0 倍）、E3（system 281→8370、总输入 3059→25323，8.3 倍）、E4（false positive 0→1）、E5（一刀切 10 次全撞墙、白等 173.7s；分类路径压缩一次 0s 恢复）、episode E（529/529/429 → attempts 4、clock 3.7s；三连 529 触发切换；token 路径 8000→64000、续写 3/3）→ **逐项复现，升【一】级**。
-9. **不可本地回源项登记** → 「Fork 五组件字节级一致」「readFileState 克隆」「permissionMode bubble」「三层缓存与 SYSTEM_PROMPT_DYNAMIC_BOUNDARY」「20-30KB / ~150 字符」「十几种 reason/transition」「续写提示多一句」「流式暂扣」「边际收益检测」：课程深读对 CC 源码的论断、只给文件名与行号、未附源码 commit 版本（冻结正文 §11.3 自认无法逐条核实到源）→ **恒【三】级，口播必带归属句**；「15,000 tokens 子代理描述告警线」「description+when_to_use 截断 1,536 字符」「清单 ~1% 上下文 / 上限 8000 字符」「较新模型默认不启用任务工具 / CLAUDE_CODE_ENABLE_TASKS」：官方文档（GL 访问 2026-10-07）→ **【二】级，口播带「官方文档」+日期口径**。
+8. **「原型全部日志数字」** → 本集实跑 `python3 docs/research/agent-harness/assets/lcc_planning_lab.py --selftest / --episode A / --episode E / --experiment 1–5`：episode A（turns 11、steps 3/3、reminders 1、drift 0、messages 23、chars 821）、E1（2/3 步、漂移 0→7、收尾 False）、E2（4 条/147 字符 → 16 条/2649 字符，约 18.0 倍）、E3（system 281→8370、总输入 3059→25323，8.3 倍）、E4（false positive 0→1）、E5（一刀切 10 次全撞墙、白等 175.6s；分类路径压缩一次 0s 恢复）、episode E（529/529/429 → attempts 4、clock 3.7s；三连 529 触发切换；token 路径 8000→64000、续写 3/3）→ **逐项复现，升【一】级**。
+9. **不可本地回源项登记** → 「Fork 五组件字节级一致」「readFileState 克隆」「permissionMode bubble」「三层缓存与 SYSTEM_PROMPT_DYNAMIC_BOUNDARY」「20-30KB / ~150 字符」「十几种 reason/transition」「续写提示多一句」「流式暂扣」「边际收益检测」「清单 ~1% 上下文 / 上限 8000 字符」（官方文档无此数，出自 s07 深读）：课程深读对 CC 源码的论断、只给文件名与行号、未附源码 commit 版本（冻结正文 §11.3 自认无法逐条核实到源）→ **恒【三】级，口播必带归属句**；「15,000 tokens 子代理描述告警线」「description+when_to_use 截断 1,536 字符」「较新模型默认不启用任务工具 / CLAUDE_CODE_ENABLE_TASKS」：官方文档（GL 访问 2026-10-07）→ **【二】级，口播带「官方文档」+日期口径**。
 
 ### C.3 口播引用纪律（从 C.2 导出）
 
-- **可【一】级直断言**（钉点实测或本集复算，数字均带「教学版/原型」限定）：nag 阈值 3 轮与计数器清零逻辑；提醒以新 user 消息注入（站点轨）/ 追加进 tool results（main 轨）；清单至多 20 条、单条 in_progress（main 轨）；子代理五件工具、递归一层、权限钩子照过；6500 行（2000+1500+3000）；s10 四段与缓存键做法；8K→64K、续写 ≤3、压缩 1 次、500ms×2^n 封顶 32s + 0–25% 抖动、重试 ≤10、529×3 切换（站点轨取值）；main 轨 16K、529×2；原型全部日志数字（episode A 11 轮 3/3、E1 漂移 0→7、E2 18.0 倍、E3 8.3 倍、E4 误注入 0→1、E5 白等 173.7s 对照 0s、episode E 3.7s 恢复）。
-- **须带归属句（【三】级）**：Fork 字节级一致缓存前缀、readFileState 克隆、权限冒泡、三层缓存与动态边界、20-30KB vs ~150 字符、十几种 transition——统一归属语式「拆过 Claude Code 源码的课程作者核查过」；「~100 / ~2000 tokens per skill」是课程估计值，口播须带「课程自己的估计」口径。
-- **须带日期口径（【二】级）**：15,000 tokens 告警线、1,536 字符截断、清单 ~1% 上下文（上限 8000 字符）、「较新的模型默认不启用任务工具」与任务工具开关（官方文档，截至 2026-10-07）；「子代理在它自己的上下文窗口里干活，只返回摘要」为官方文档直述，可用「官方文档明说」句式断言。
+- **可【一】级直断言**（钉点实测或本集复算，数字均带「教学版/原型」限定）：nag 阈值 3 轮与计数器清零逻辑；提醒以新 user 消息注入（站点轨）/ 追加进 tool results（main 轨）；清单至多 20 条、单条 in_progress（main 轨）；子代理五件工具、递归一层、权限钩子照过；6500 行（2000+1500+3000）；s10 四段与缓存键做法；8K→64K、续写 ≤3、压缩 1 次、500ms×2^n 封顶 32s + 0–25% 抖动、重试 ≤10、529×3 切换（站点轨取值）；main 轨 16K、529×2；原型全部日志数字（episode A 11 轮 3/3、E1 漂移 0→7、E2 18.0 倍、E3 8.3 倍、E4 误注入 0→1、E5 白等 175.6s 对照 0s、episode E 3.7s 恢复）。
+- **须带归属句（【三】级）**：Fork 字节级一致缓存前缀、readFileState 克隆、权限冒泡、三层缓存与动态边界、20-30KB vs ~150 字符、十几种 transition、清单 ~1% 上下文（上限 8000 字符，s07 深读口径）——统一归属语式「拆过 Claude Code 源码的课程作者核查过」；「~100 / ~2000 tokens per skill」是课程估计值，口播须带「课程自己的估计」口径。
+- **须带日期口径（【二】级）**：15,000 tokens 告警线、1,536 字符截断、「较新的模型默认不启用任务工具」与任务工具开关（官方文档，截至 2026-10-07）；「子代理在它自己的上下文窗口里干活，只返回摘要」为官方文档直述，可用「官方文档明说」句式断言。
 - **不进口播**：「长任务不跑偏」的量化收益（材料与官方均无对照实验，§11.2）；教学数字对真实 CC 行为的代表性（§11.1：教学设定无实验支撑）；「30 轮上限防失控」的效果（§11.5 未验证）；课程深读源码论断不得说成产品既成事实；star 数、章节数等活数据。

@@ -39,7 +39,7 @@ raw_sha256 = "a412b7eee5948071"
 text_sha256 = "d4967c3a6690d07f"
 bytes = 60709
 lines = 146
-via = "站点实况（172 站点轨组织骨架；页快照 .temp/lcc-refresh/site/）"
+via = "站点实况（172 站点轨组织骨架；页快照 2026-10-07 抓取（工作区临时件未入库；原路径 .temp/lcc-refresh/site/）"
 
 [s06-readme]
 url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s06_subagent/README.md"
@@ -71,7 +71,7 @@ raw_sha256 = "f73b509cd83671d0"
 text_sha256 = "5485fb25c5a7b75c"
 bytes = 65334
 lines = 236
-via = "站点实况（172 站点轨组织骨架；页快照 .temp/lcc-refresh/site/）"
+via = "站点实况（172 站点轨组织骨架；页快照 2026-10-07 抓取（工作区临时件未入库；原路径 .temp/lcc-refresh/site/）"
 
 [s07-readme]
 url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s07_skill_loading/README.md"
@@ -103,7 +103,7 @@ raw_sha256 = "41b64ba94eb69c7f"
 text_sha256 = "9e3ffa1b6ec6622e"
 bytes = 65779
 lines = 222
-via = "站点实况（172 站点轨组织骨架；页快照 .temp/lcc-refresh/site/）"
+via = "站点实况（172 站点轨组织骨架；页快照 2026-10-07 抓取（工作区临时件未入库；原路径 .temp/lcc-refresh/site/）"
 
 [s10-readme]
 url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s10_system_prompt/README.md"
@@ -135,7 +135,7 @@ raw_sha256 = "d5a5e8a3c3df61c4"
 text_sha256 = "98e21a327954ee17"
 bytes = 65283
 lines = 266
-via = "站点实况（172 站点轨组织骨架；页快照 .temp/lcc-refresh/site/）"
+via = "站点实况（172 站点轨组织骨架；页快照 2026-10-07 抓取（工作区临时件未入库；原路径 .temp/lcc-refresh/site/）"
 
 [s11-readme]
 url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s11_error_recovery/README.md"
@@ -167,7 +167,7 @@ raw_sha256 = "8567c9997071b3ac"
 text_sha256 = "77e6afc501af27f9"
 bytes = 71179
 lines = 360
-via = "站点实况（172 站点轨组织骨架；页快照 .temp/lcc-refresh/site/）"
+via = "站点实况（172 站点轨组织骨架；页快照 2026-10-07 抓取（工作区临时件未入库；原路径 .temp/lcc-refresh/site/）"
 
 [s05m-readme]
 url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/ce8f9f186058939da54c9d6fead78dfb5d0fd6c3/s05_todo_write/README.zh.md"
