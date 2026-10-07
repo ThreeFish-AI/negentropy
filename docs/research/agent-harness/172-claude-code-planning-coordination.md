@@ -110,7 +110,7 @@ t3  子代理收尾，返回一句："Scanned 6 files: testing framework is pyte
 t4  主对话里只多两条：task 的 tool_use 和这句结论的 tool_result
 ```
 
-实测数字（实际运行日志，`--episode 2`）：主代理自己读 6 份文件，主对话 14 条、2626 字符；派子代理，主对话 4 条、147 字符，子代理内部 15 条、2617 字符自生自灭。把「只回摘要」改成「回传全部子历史」，主对话涨到 16 条、2649 字符，约 18 倍——子代理存在的意义被这个改动原样抹掉。
+实测数字（实际运行日志，`--episode B`，direct 对照）：主代理自己读 6 份文件，主对话 14 条、2626 字符；派子代理，主对话 4 条、147 字符，子代理内部 15 条、2617 字符自生自灭。把「只回摘要」改成「回传全部子历史」，主对话涨到 16 条、2649 字符，约 18 倍——子代理存在的意义被这个改动原样抹掉。
 
 课程深读给出的真实 CC 对照，信息量比教学版大得多[1]。真实实现有三种执行模式：Normal（全新上下文）、Fork、General-purpose。其中 Fork 模式不创建全新上下文，而是构造与父对话**字节级一致**的缓存前缀（system prompt、tools、model、messages 前缀、thinking 配置五件必须完全相同），目的是让 API 层的 prompt cache 命中（对话前缀完全一致时，API 端不必重算这部分，省钱省时）。隔离与缓存效率是一对真实的权衡，教学版只展示最干净的一端。隔离的粒度也不是铁板一块：文件读取状态（readFileState）从父代理克隆以避免重复读同一文件，权限弹窗以 bubble 模式冒泡回父终端审批。官方文档从使用侧印证了独立上下文这一核心：「子代理在它自己的上下文窗口里干活，只返回摘要」，且各自持有定制的系统提示、受限的工具集与独立的权限；自建子代理（不含内置那批）的描述合计超过 15,000 tokens 时启动会告警，提示把细节移进各自的系统提示[2]。描述常驻、正文按需，这与 §5 的两级加载是同一个经济学。
 
@@ -164,7 +164,7 @@ s11_error_recovery 把 LLM（即大模型）调用包进 try/except（先试、�
   retry 3: 429 wait 2.14s (clock 3.7s)
 ```
 
-三次瞬态错误共消耗 3.7 秒虚拟等待后成功，模型未切换。换成三次连续 529：第三次触发切换，`"switched": true, "model": "model-backup"`。超限路径：压缩一次、messages 从 9 条收到 6 条后重试成功。截断路径：先升 8K→64K（messages 保持 1 条不变），再连续续写 3 次后收尾。破坏实验（`--experiment 5`）把分类恢复改成一刀切重试，prompt_too_long 也当瞬态原样重发：10 次重试全部撞墙，白等 173.7 秒虚拟时间后以失败告终，而分类路径 0 秒压缩即恢复。超限是容量错误，重试不减小请求规模，只会把时间烧光。
+三次瞬态错误共消耗 3.7 秒虚拟等待后成功，模型未切换。换成三次连续 529：第三次触发切换，`"switched": true, "model": "model-backup"`。超限路径：压缩一次、messages 从 9 条收到 6 条后重试成功。截断路径：先升 8K→64K（messages 保持 1 条不变），再连续续写 3 次后收尾。破坏实验（`--experiment 5`）把分类恢复改成一刀切重试，prompt_too_long 也当瞬态原样重发：10 次重试全部撞墙，白等 175.6 秒虚拟时间后以失败告终，而分类路径 0 秒压缩即恢复。超限是容量错误，重试不减小请求规模，只会把时间烧光。
 
 真实 CC 的对照把这套骨架拉宽到十几个量级[1]：每轮 LLM 调用后有十几种 reason/transition（教学版只展开最常见的五种），退避公式的指数从 attempt-1 起算。续写提示原文多了「把剩余工作拆小」一句。流式路径（模型边生成边返回的传输方式）中可恢复的错误在 streaming 期间被暂扣不展示、结束后才进入恢复判断，token budget 的续写有「连续 3 次增量小于 500 即判停止」的边际收益检测。main 轨 s15_integrated_harness 的取值则是另一档：升级额度 8K→16K（不是 64K）、瞬态重试上限 3 次（不是 10）、连续 529 两次即切换（不是 3 次）。reactive compact 前先把完整对话存档到 `.transcripts/` 再裁剪，且压缩摘要尽力调用 LLM 生成、失败才降级为一句占位说明[1]。同一门课程的两轨给出两组不同的参数，这本身就是 §10 争议三的直接证据。
 
@@ -199,14 +199,14 @@ python3 lcc_planning_lab.py --experiment 1  # 破坏性实验（1-5）
 
 | 机制 | 实现单元 | 行号 |
 | --- | --- | --- |
-| M1 TodoWrite | render_todos / run_todo_write | 60 / 66 |
-| M1 mock 决策 | MockModel.next_action（可见文本驱动） | 100 |
-| M1 场景与 nag | episode_a | 141 |
-| M2 子代理 | spawn_subagent / permission_hook | 196 / 188 |
-| M3 两级加载 | scan_skills / catalog_lines / load_skill | 243 / 249 / 253 |
-| M4 组装 | update_context / assemble / get_system_prompt | 284 / 289 / 300 |
-| M5 恢复 | retry_delay / episode_e / episode_e_tokens | 332 / 337 / 379 |
-| 教学参数 | 常量区（NAG_THRESHOLD 等） | 22-33 |
+| M1 TodoWrite | render_todos / run_todo_write | 63 / 69 |
+| M1 mock 决策 | MockModel.next_action（可见文本驱动） | 114 |
+| M1 场景与 nag | episode_a | 144 |
+| M2 子代理 | spawn_subagent / permission_hook | 199 / 191 |
+| M3 两级加载 | scan_skills / catalog_lines / load_skill | 246 / 252 / 256 |
+| M4 组装 | update_context / assemble / get_system_prompt | 287 / 292 / 303 |
+| M5 恢复 | retry_delay / episode_e / episode_e_tokens | 335 / 342 / 384 |
+| 教学参数 | 常量区（NAG_THRESHOLD 等） | 25-37 |
 
 五次破坏性实验，每次只拆一个组件、改完真跑（实测退化摘录，完整日志见 `--experiment N` 输出）：
 
@@ -216,7 +216,7 @@ python3 lcc_planning_lab.py --experiment 1  # 破坏性实验（1-5）
 | E2 | 子代理改回传全部子历史 | 主对话 4 条/147 字符 → 16 条/2649 字符（18.0 倍） | 只回结论是主对话上下文的存亡线 |
 | E3 | 技能全文全量拼进 system prompt | 三轮总输入 3059 → 25323 字符（8.3 倍，随轮数放大） | 常驻内容按每轮计费，不用进目录不进正文 |
 | E4 | 组装判据改关键词猜测 | 闲聊提及 memory 即误注入空记忆段（false positive 0→1） | 段加载看状态不看话术 |
-| E5 | 分类恢复改一刀切重试 | prompt_too_long 重试 10 次全撞墙、白等 173.7s 虚拟时间（对照压缩一次 0s 恢复） | 容量错误重试无效，要先减规模 |
+| E5 | 分类恢复改一刀切重试 | prompt_too_long 重试 10 次全撞墙、白等 175.6s 虚拟时间（对照压缩一次 0s 恢复） | 容量错误重试无效，要先减规模 |
 
 原型只证明机制逻辑按上述描述运作；mock 模型的注意力窗口、吸收窗口是教学建模，数字不构成对真实模型行为的复现。
 
@@ -280,7 +280,7 @@ main 轨的收尾章 s17_goal_loop 回答的是另一个问题：Agent 说「做
 
 ---
 
-*图源：本篇全景拓扑见 [lcc-planning--panorama.mmd](../../../../assets/mermaid/agent-harness/lcc-planning--panorama.mmd)（五个装置在「每轮可见文本」三个通道上的汇合关系；交互版与双主题渲染由资产管线统一产出）。原型：[lcc_planning_lab.py](./assets/lcc_planning_lab.py)。*
-![规划与协调全景：五个装置在「每轮可见文本」的三个通道上汇合](../../../assets/architecture/agent-harness/lcc-planning--panorama-dark.png)
+*图源：本篇全景拓扑见 [lcc-planning--panorama.mmd](../../assets/mermaid/agent-harness/lcc-planning--panorama.mmd)（五个装置在「每轮可见文本」三个通道上的汇合关系；交互版与双主题渲染由资产管线统一产出）。原型：[lcc_planning_lab.py](./assets/lcc_planning_lab.py)。*
+![规划与协调全景：五个装置在「每轮可见文本」的三个通道上汇合](../../assets/architecture/agent-harness/lcc-planning--panorama-dark.png)
 
-> 交互版（下载到本地打开）：[`lcc-planning--panorama.html`](../../../assets/architecture/agent-harness/lcc-planning--panorama.html) · 双主题渲染 [`dark`](../../../assets/architecture/agent-harness/lcc-planning--panorama-dark.png) / [`light`](../../../assets/architecture/agent-harness/lcc-planning--panorama-light.png)
+> 交互版（下载到本地打开）：[`lcc-planning--panorama.html`](../../assets/architecture/agent-harness/lcc-planning--panorama.html) · 双主题渲染 [`dark`](../../assets/architecture/agent-harness/lcc-planning--panorama-dark.png) / [`light`](../../assets/architecture/agent-harness/lcc-planning--panorama-light.png)

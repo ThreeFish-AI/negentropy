@@ -11,7 +11,7 @@ description: "课程双轨一手材料（仓库 main 17 章 @ ce8f9f18 / 站点 
 > - 课程仓库 main 轨（17 章整合版）：[shareAI-lab/learn-claude-code](https://github.com/shareAI-lab/learn-claude-code) @ [`ce8f9f18`](https://github.com/shareAI-lab/learn-claude-code/tree/ce8f9f186058939da54c9d6fead78dfb5d0fd6c3)（2026-09-28），License **MIT**——① 层机制钉点与 main 轨独有两章
 > - 课程站点（20 章修订）：[Learn Claude Code](https://learn.shareai.run/zh/s01/)，内容与分支 @ `67a9126c`（2026-07-29）逐节对账一致（2026-10-07 复核 20/20）——②–⑤ 层机制钉点；逐集钉选理由见[系列信源地图](../../../apps/negentropy-influence/source-map/claude-code-explained.md)
 > - Anthropic 官方文档（产品现状口径）：[code.claude.com/docs](https://code.claude.com/docs)，各篇按缺口补读、实抓快照（2026-10-07）
-> - **本组的五个分篇（171–175）为 guided-learn《精读与通俗拆解》产物**（2026-10-07 全新首读，防污染重写：不承接旧版精读的任何叙述，一切结论从钉点材料重新推导）；每篇配套纯标准库原型 `assets/lcc_<part>_lab.py`（`--selftest` 自证 + 破坏性实验实测退化）。旧版总类比叙事（工坊剧场角色台账）随本轮换代废止，各篇类比一律以其附录《类比登记表》局部准入为准
+> - **本组的五个分篇（171–175）为 guided-learn《精读与通俗拆解》产物**（2026-10-07 全新首读，防污染重写：不承接旧版精读的任何叙述，一切结论从钉点材料重新推导）；每篇配套纯标准库原型 `assets/lcc_<part>_lab.py`（`--selftest` 自证 + 破坏性实验实测退化）。旧版总类比叙事（工坊剧场角色台账）随本轮换代废止，各篇类比就地局部准入、随文声明失配边界，不设总类比剧场
 
 **一句话定位**：这门课程用 Python 从一百余行的最小循环逐章长成千行级的整合 harness，每章只加一个机制——而它真正证明的事情只有一件：**从头到尾，循环没有变过**。让模型能在你机器上动手的，不是更聪明的模型，是循环外面一层层挂上去的 harness。
 
@@ -23,8 +23,9 @@ description: "课程双轨一手材料（仓库 main 17 章 @ ce8f9f18 / 站点 
 
 五层不是并列的功能清单，是一条**每一层都在偿还上一层欠下的债**的链子：
 
-![Harness 五层依赖链：五个分层自左向右串成一条主链，每层下方挂着它从上一层接手的那个问题（目标漂移、上下文会满、慢活无人触发、单人吞吐天花板），层间箭头标注「偿还」；收束节点写着「机制很多，循环一个」](../../assets/architecture/agent-harness/claude-code-harness--five-layer-dependency-dark.png)
+![五层工坊叙事依赖图（前代存量）：五个分层（执行/规划/记忆/时机/协作）串成一条主链，各层节点为传送带、工序卡·副台、收台四步·登记簿、自动清洗槽·定时钟、排工板·派工单等工坊物件，层间箭头标注「偿还」并写明各层接手的问题（活一多就忘了要干什么、台面一定会满、有些活很慢，有些没人按开始、一个人只有一双手），收束节点写着「机制很多，循环一个」](../../assets/architecture/agent-harness/claude-code-harness--five-layer-dependency-dark.png)
 
+> 前代存量图（2026-10-07 换代前口径，新产出不回溯）：图面沿用旧版工坊叙事术语（传送带、台面等），按层间依赖拓扑读即可。
 > 图源（可 diff 文本）：[`claude-code-harness--five-layer-dependency.mmd`](../../assets/mermaid/agent-harness/claude-code-harness--five-layer-dependency.mmd) · 交互版（下载到本地打开）：[`claude-code-harness--five-layer-dependency.html`](../../assets/architecture/agent-harness/claude-code-harness--five-layer-dependency.html)
 
 读法：**每一层的存在理由，都写在上一层的失败里**。跳过任何一层去看下一层，都会觉得后者是过度设计。
@@ -39,7 +40,7 @@ description: "课程双轨一手材料（仓库 main 17 章 @ ce8f9f18 / 站点 
 | [④ 并发与时机](./174-claude-code-concurrency.md) | 站点 `67a9126c`（附录 main） | 后台任务 · 定时调度 | 所谓后台没有平行宇宙，只是「不等它」；而有些活连按开始的人都不要 |
 | [⑤ 多 Agent 平台](./175-claude-code-multi-agent-platform.md) | 站点 `67a9126c`（main 对照并陈） | 任务图 · 团队 · 协议 · 自治 · 隔离 · MCP | 把「多 Agent」拆开，全是朴素物件；而循环还是那一个 |
 
-每篇各配一张全貌全景图（`lcc-<part>--panorama` 四件套：`.mmd` 图源 / 交互 HTML / dark·light PNG，位于 [docs/assets/mermaid/agent-harness/](../../../assets/mermaid/agent-harness/) 与 [docs/assets/architecture/agent-harness/](../../../assets/architecture/agent-harness/)）。哪一篇钉哪个提交的全系列登记处是[系列信源地图](../../../apps/negentropy-influence/source-map/claude-code-explained.md)。
+每篇各配一张全貌全景图（`lcc-<part>--panorama` 四件套：`.mmd` 图源 / 交互 HTML / dark·light PNG，位于 [docs/assets/mermaid/agent-harness/](../../assets/mermaid/agent-harness/) 与 [docs/assets/architecture/agent-harness/](../../assets/architecture/agent-harness/)）。哪一篇钉哪个提交的全系列登记处是[系列信源地图](../../../apps/negentropy-influence/source-map/claude-code-explained.md)。
 
 ## 3. 证据分级（全组纪律）
 

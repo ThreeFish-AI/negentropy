@@ -11,12 +11,12 @@ mock 或脚本化序列替代。无随机数、固定样本序列——同一命
 原型以 main 轨语义为基线（seen/unseen、可恢复占位、active_request 分离、
 scope 门控、整理回滚），站点轨差异（死占位、pre_compress 快照）在对照实验里出现。
 
-机制 → 实现单元速查（行号以本文件为准，见 --selftest 输出的速查表）：
+机制 → 实现单元速查（行号级对照见精读笔记 173 §6 动手实验室）：
   M1 四步管线与顺序       prepare()
   M2 配对不变式与切口保护 _has_tool_use/_is_tool_result/validate_pairing/snip_compact
   M3 seen/unseen 可恢复占位 unseen_positions/micro_compact/persist_before_replace
   M4 未读溢出 fit         fit_tool_results
-  M5 摘要与应急           compact_history/reactive_compact（熔断在 run_agent_step）
+  M5 摘要与应急           compact_history/reactive_compact（熔断语义见 173 笔记 §3.5）
   M6 记忆存储与索引       MemoryStore.write/rebuild_index
   M7 选择性召回           select_relevant_memories（LLM mock + 关键词降级）
   M8 写入门控             should_store_memory/extract_memories
@@ -36,6 +36,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import sys
 import tempfile
@@ -51,11 +52,11 @@ TOOL_BATCH_CHAR_LIMIT = 200_000      # 单批 tool_result 总量预算
 LARGE_RESULT_CHAR_LIMIT = 30_000     # 单条结果超过此长度才落盘
 KEEP_RECENT_RESULTS = 3              # 已读结果保留条数
 KEEP_RECENT_MESSAGES = 5             # reactive 保留的原始消息条数
-SUMMARY_INPUT_CHAR_LIMIT = 80_000
-MAX_CONSECUTIVE_COMPACT_FAILURES = 3  # 熔断器
-MAX_REACTIVE_RETRIES = 1
+SUMMARY_INPUT_CHAR_LIMIT = 80_000    # main 轨对照常量（本文件不接线）
+MAX_CONSECUTIVE_COMPACT_FAILURES = 3  # 熔断器；main 轨对照常量（本文件不接线）
+MAX_REACTIVE_RETRIES = 1             # main 轨对照常量（本文件不接线）
 PLACEHOLDER_MIN_CHARS = 120          # ≤120 字符的结果不值得替换
-CONSOLIDATE_THRESHOLD = 10           # 记忆文件数阈值
+CONSOLIDATE_THRESHOLD = 10           # main 轨对照常量（本文件不接线）
 RECALL_CHAR_LIMIT = 20_000           # 召回正文总预算
 MEMORY_TYPES = ("user", "feedback", "project", "reference")
 TEMPORARY_MARKERS = (
@@ -695,7 +696,7 @@ def selftest(root: Path) -> bool:
     errors = validate_pairing(unguarded)
     check("unguarded produces orphan", len(errors) >= 1, f"errors={errors[:1]}")
 
-    # S4 reactive + 熔断语义（模拟 API 拒绝一次）
+    # S4 reactive compact（模拟 API 拒绝一次）
     lab.say("S4 reactive compact")
     react = reactive_compact(lab, sample_trap(), "修复 circular import")
     check("reactive keeps tail + summary head", react[0]["content"].startswith("[Reactive compact]")
@@ -894,7 +895,13 @@ def main() -> int:
                                                "no_memory_gate", "no_rollback"])
     parser.add_argument("--scenario", choices=["t4", "t5"])
     args = parser.parse_args()
-    root = Path(SANDBOX) if SANDBOX else Path(tempfile.gettempdir()) / "lcc-lab-sandbox"
+    env_root = os.environ.get("LCC_LAB_ROOT")      # 沙箱重定向（docstring 登记）
+    if SANDBOX:
+        root = Path(SANDBOX)
+    elif env_root:
+        root = Path(env_root)
+    else:
+        root = Path(tempfile.gettempdir()) / "lcc-lab-sandbox"
     if args.selftest:
         ok = selftest(root)
         print("SELFTEST PASSED ✔" if ok else "SELFTEST FAILED ✘")

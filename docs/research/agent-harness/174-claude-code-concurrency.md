@@ -108,10 +108,10 @@ flowchart LR
     style S1 fill:#0a1e33,stroke:#4da3ff,stroke-width:1px,color:#cfe6ff
     style S2 fill:#1e1433,stroke:#b695ff,stroke-width:1px,color:#e5dcff
 ```
-*图 1 · 两种时间机制汇入同一条对话循环：后台任务借道后续轮次捎回结果，cron 在无轮可续时由交付线程主动拉起一轮。图源：[lcc-concurrency--panorama.mmd](../../../assets/mermaid/agent-harness/lcc-concurrency--panorama.mmd)。*
-![并发全景：后台任务与定时调度两种时间机制汇入同一条对话循环](../../../assets/architecture/agent-harness/lcc-concurrency--panorama-dark.png)
+*图 1 · 两种时间机制汇入同一条对话循环：后台任务借道后续轮次捎回结果，cron 在无轮可续时由交付线程主动拉起一轮。图源：[lcc-concurrency--panorama.mmd](../../assets/mermaid/agent-harness/lcc-concurrency--panorama.mmd)。*
+![并发全景：后台任务与定时调度两种时间机制汇入同一条对话循环](../../assets/architecture/agent-harness/lcc-concurrency--panorama-dark.png)
 
-> 交互版（下载到本地打开）：[`lcc-concurrency--panorama.html`](../../../assets/architecture/agent-harness/lcc-concurrency--panorama.html) · 双主题渲染 [`dark`](../../../assets/architecture/agent-harness/lcc-concurrency--panorama-dark.png) / [`light`](../../../assets/architecture/agent-harness/lcc-concurrency--panorama-light.png)
+> 交互版（下载到本地打开）：[`lcc-concurrency--panorama.html`](../../assets/architecture/agent-harness/lcc-concurrency--panorama.html) · 双主题渲染 [`dark`](../../assets/architecture/agent-harness/lcc-concurrency--panorama-dark.png) / [`light`](../../assets/architecture/agent-harness/lcc-concurrency--panorama-light.png)
 
 **哪些最值得关注？** 按价值排序：① 占位回执与通知注入，两轨与真实产品共有的协议骨架；② cron 四层解耦与空闲交付；③ durable 边界，课程专门设了警示的最易误解点；④ 判定权从关键词猜测到显式参数的演化（双轨差异揭示的真实设计教训）；⑤ main 轨补上的失败路径（模型失败回滚重入队、原子写盘即先写临时文件再整体替换、至少一次交付）。
 

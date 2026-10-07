@@ -32,10 +32,10 @@ s01 的开场白把这个痛点写得极准：你问模型「帮我读取下我�
 
 ## 2. 全貌解剖
 
-先给全景图（图源 [lcc-tooling--panorama.mmd](../../../../assets/mermaid/agent-harness/lcc-tooling--panorama.mmd)）。一句话读图：蓝色循环本体是唯一不变的骨架，绿色与琥珀色的裁决执行管线挂在判据之下、以 tool_result 配对回喂闭环，紫色生产保护层用虚线各自守护一个骨架节点。
-![工具与执行全景：蓝色循环本体为不变骨架，裁决执行管线以 tool_result 配对回喂闭环，紫色生产保护层以虚线守护骨架节点](../../../assets/architecture/agent-harness/lcc-tooling--panorama-dark.png)
+先给全景图（图源 [lcc-tooling--panorama.mmd](../../assets/mermaid/agent-harness/lcc-tooling--panorama.mmd)）。一句话读图：蓝色循环本体是唯一不变的骨架，绿色与琥珀色的裁决执行管线挂在判据之下、以 tool_result 配对回喂闭环，紫色生产保护层用虚线各自守护一个骨架节点。
+![工具与执行全景：蓝色循环本体为不变骨架，裁决执行管线以 tool_result 配对回喂闭环，紫色生产保护层以虚线守护骨架节点](../../assets/architecture/agent-harness/lcc-tooling--panorama-dark.png)
 
-> 交互版（下载到本地打开）：[`lcc-tooling--panorama.html`](../../../assets/architecture/agent-harness/lcc-tooling--panorama.html) · 双主题渲染 [`dark`](../../../assets/architecture/agent-harness/lcc-tooling--panorama-dark.png) / [`light`](../../../assets/architecture/agent-harness/lcc-tooling--panorama-light.png)
+> 交互版（下载到本地打开）：[`lcc-tooling--panorama.html`](../../assets/architecture/agent-harness/lcc-tooling--panorama.html) · 双主题渲染 [`dark`](../../assets/architecture/agent-harness/lcc-tooling--panorama-dark.png) / [`light`](../../assets/architecture/agent-harness/lcc-tooling--panorama-light.png)
 
 | 层级 | 部分 | 回答的问题 | 性质 |
 |---|---|---|---|

@@ -267,7 +267,7 @@ def simulate_concurrent_claims(store: TaskStore, task_id: str, a: str, b: str,
 
 def normalize_mcp_name(name: str) -> str:
     """材料规则：非 [a-zA-Z0-9_-] 一律替换为下划线。"""
-    return "".join(ch if ch.isalnum() or ch in "_-" else "_" for ch in name)
+    return "".join(ch if (ch.isascii() and ch.isalnum()) or ch in "_-" else "_" for ch in name)
 
 class MCPClient:
     def __init__(self, name: str, tools: dict[str, str]):
@@ -485,8 +485,9 @@ def selftest(sandbox_root: Path) -> int:
     check("E5 不重建：新工具调不到（退化）", e5["stale_miss"])
     check("E5 重建后：可调", e5["fresh_ok"])
 
-    dump = sandbox("A") / "final_tasks.json"
-    dump.write_text(json.dumps({t.id: asdict(t) for t in TaskStore(sandbox("A")).list()}, indent=2))
+    board = {t.id: asdict(t) for t in TaskStore(sandbox_root / "A").list()}  # 快照在先：A 沙箱不再重建
+    dump = sandbox("serialize") / "final_tasks.json"
+    dump.write_text(json.dumps(board, indent=2))
     log(f"  [serialize] {dump}")
 
     if failures:

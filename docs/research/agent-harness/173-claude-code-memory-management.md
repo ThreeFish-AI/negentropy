@@ -71,10 +71,10 @@ Agent（能自己调工具干活的 AI 助手）跑着跑着不动了。手里�
 CC 源码逐函数对照 + 官方文档行为印证 + 原型 selftest 与五次破坏性实验
 ```
 
-全景拓扑的图源见 [lcc-memory--panorama.mmd](../../../../assets/mermaid/agent-harness/lcc-memory--panorama.mmd)。用文字说清这张图的结论：压缩侧是一条「预算→裁剪→缩短→兜底落盘→摘要」的固定主链，应急路径挂在 API 报错之后，所有破坏性动作都以磁盘上的 transcript 与落盘文件为恢复后盾；记忆侧是「存储→召回→提取→整理」的四件套小闭环，提取在回合结束触发，召回正文在下一轮注入；两套机制通过「压缩丢细节、记忆补细节」咬合，互不替代。
-![记忆管理全景：压缩管线主链+磁盘留档后盾+记忆四件套闭环的咬合](../../../assets/architecture/agent-harness/lcc-memory--panorama-dark.png)
+全景拓扑的图源见 [lcc-memory--panorama.mmd](../../assets/mermaid/agent-harness/lcc-memory--panorama.mmd)。用文字说清这张图的结论：压缩侧是一条「预算→裁剪→缩短→兜底落盘→摘要」的固定主链，应急路径挂在 API 报错之后，所有破坏性动作都以磁盘上的 transcript 与落盘文件为恢复后盾；记忆侧是「存储→召回→提取→整理」的四件套小闭环，提取在回合结束触发，召回正文在下一轮注入；两套机制通过「压缩丢细节、记忆补细节」咬合，互不替代。
+![记忆管理全景：压缩管线主链+磁盘留档后盾+记忆四件套闭环的咬合](../../assets/architecture/agent-harness/lcc-memory--panorama-dark.png)
 
-> 交互版（下载到本地打开）：[`lcc-memory--panorama.html`](../../../assets/architecture/agent-harness/lcc-memory--panorama.html) · 双主题渲染 [`dark`](../../../assets/architecture/agent-harness/lcc-memory--panorama-dark.png) / [`light`](../../../assets/architecture/agent-harness/lcc-memory--panorama-light.png)
+> 交互版（下载到本地打开）：[`lcc-memory--panorama.html`](../../assets/architecture/agent-harness/lcc-memory--panorama.html) · 双主题渲染 [`dark`](../../assets/architecture/agent-harness/lcc-memory--panorama-dark.png) / [`light`](../../assets/architecture/agent-harness/lcc-memory--panorama-light.png)
 
 基础层与学习焦点的排序：配对约束和注入位置是基础，读到哪节用到哪节。最值得按顺序关注的是五件事：管线顺序的设计（为什么落盘必须在缩短之前，全篇最反直觉的工程决策）、配对保护与批次闭合（同一协议约束的两个化身）、main 轨的 seen/unseen 演进（站点轨到 main 轨最大的机制级变化）、记忆的索引常驻与正文按需（与 s07 技能加载结构相同的检索设计）、写入门控与整理原子性（记忆库的卫生制度）。
 
@@ -265,7 +265,7 @@ CC 把整理过程叫 Dream，触发不是「数量够了就合并」而是四�
 | 5 个 / 5,000 token | 压缩后重读文件数与单文件上限；超限只回路径引用 | 官方文档 [3] | 官方幸存表的恢复条款 |
 | 5,000 / 25,000 token | 技能重注入的单技能 / 总限额（最旧先丢） | 官方文档 [3] | 官方幸存表的技能条款 |
 
-原型实测的数字单列一组（均为实际运行日志）：T4 走查约 63K 字符压到 16155；selftest 20 项断言全绿、两次运行 diff 为零（确定性成立）；五次破坏性实验的退化数据见 §6 表格。要说明的是，原型只证明机制逻辑按描述运作，数字与材料不同属正常，不据此评判材料。
+原型实测的数字单列一组（均为实际运行日志）：T4 走查约 63K 字符压到 16155；selftest 21 项断言全绿、两次运行 diff 为零（确定性成立）；五次破坏性实验的退化数据见 §6 表格。要说明的是，原型只证明机制逻辑按描述运作，数字与材料不同属正常，不据此评判材料。
 
 ## 6. 动手实验室
 
@@ -273,7 +273,7 @@ CC 把整理过程叫 Dream，触发不是「数量够了就合并」而是四�
 
 ```bash
 cd docs/research/agent-harness/assets
-python3 lcc_memory_lab.py --selftest            # 20 项断言全绿
+python3 lcc_memory_lab.py --selftest            # 21 项断言全绿
 python3 lcc_memory_lab.py --sabotage order_swap # 任一破坏性实验
 python3 lcc_memory_lab.py --scenario t4         # §3.4 的走查输入
 ```
@@ -282,20 +282,20 @@ python3 lcc_memory_lab.py --scenario t4         # §3.4 的走查输入
 
 | 机制 | 函数 | 行号 |
 | --- | --- | --- |
-| 配对校验（API 模拟） | `validate_pairing` | 111 |
-| 落盘与预览 | `persist_output` / `persisted_preview` | 130 / 157 |
-| 未读位置判定 | `unseen_positions` | 162 |
-| 第一步 大结果落盘 | `tool_result_budget` | 185 |
-| transcript 留档 | `write_transcript` | 205 |
-| 第二步 中段裁剪 | `snip_compact` | 214 |
-| 第三步 已读缩短 | `micro_compact` | 232 |
-| 未读溢出兜底 | `fit_tool_results` | 255 |
-| 摘要与应急 | `summarize_history_mock` / `compact_history` / `reactive_compact` | 272 / 293 / 300 |
-| 管线总装 | `prepare` | 310 |
-| 记忆存储 | `MemoryStore` | 374 |
-| 选择性召回 | `select_relevant_memories` / `load_memories` | 412 / 434 |
-| 写入门控 | `should_store_memory` / `extract_memories` | 449 / 478 |
-| 原子整理 | `consolidate` | 495 |
+| 配对校验（API 模拟） | `validate_pairing` | 112 |
+| 落盘与预览 | `persist_output` / `persisted_preview` | 131 / 158 |
+| 未读位置判定 | `unseen_positions` | 163 |
+| 第一步 大结果落盘 | `tool_result_budget` | 186 |
+| transcript 留档 | `write_transcript` | 206 |
+| 第二步 中段裁剪 | `snip_compact` | 215 |
+| 第三步 已读缩短 | `micro_compact` | 233 |
+| 未读溢出兜底 | `fit_tool_results` | 256 |
+| 摘要与应急 | `summarize_history_mock` / `compact_history` / `reactive_compact` | 273 / 294 / 301 |
+| 管线总装 | `prepare` | 311 |
+| 记忆存储 | `MemoryStore` | 375 |
+| 选择性召回 | `select_relevant_memories` / `load_memories` | 413 / 435 |
+| 写入门控 | `should_store_memory` / `extract_memories` | 450 / 479 |
+| 原子整理 | `consolidate` | 496 |
 
 五次破坏性实验，每次只拆一个组件，全部真跑（实际运行日志，`--sabotage` 各子命令）：
 

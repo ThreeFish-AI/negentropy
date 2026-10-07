@@ -325,6 +325,7 @@ def sc_heuristic_misfire():
     wrong = should_run_background("bash", {"command": "grep install notes.txt"})
     right = should_run_background("bash", {"command": "grep install notes.txt",
                                            "run_in_background": False})
+    assert wrong is True and right is True, (wrong, right)   # 两路都误判：显式 False 压不住关键词
     return {"keyword_misfire_without_flag": wrong,
             "keyword_misfire_with_explicit_false": right,
             "note": "站点轨：显式 False 压不住关键词兜底 → 仍判后台（误判演示）"}
@@ -354,8 +355,8 @@ def sc_explicit_only():
 def sc_cron_or():
     cases = [
         ("0 9 13 * 5", datetime(2026, 10, 13, 9, 0), True),   # 周二但 13 号
-        ("0 9 13 * 5", datetime(2026, 10, 14, 9, 0), False),  # 周三 15 号
-        ("0 9 13 * 5", datetime(2026, 10, 16, 9, 0), True),   # 周五 20 号
+        ("0 9 13 * 5", datetime(2026, 10, 14, 9, 0), False),  # 周三 14 号
+        ("0 9 13 * 5", datetime(2026, 10, 16, 9, 0), True),   # 周五 16 号
         ("0 9 13 * 5", datetime(2026, 10, 16, 9, 5), False),  # 分钟不匹配
         ("*/2 * * * *", datetime(2026, 10, 13, 9, 2), True),
         ("0 9 * * 1-5", datetime(2026, 10, 11, 9, 0), False), # 周日
@@ -475,6 +476,10 @@ def sc_agent_lock_interleave():
         with AGENT_LOCK:
             session[:] = [f"U{i+1}" for i in range(5)] + [f"S{i+1}" for i in range(5)]
     switches = sum(1 for a, b in zip(session, session[1:]) if a[0] != b[0])
+    if BREAK == "no-agent-lock":                # 破坏：两回合逐位交错 → 交替序、9 次切换
+        assert "".join(session) == "U1S1U2S2U3S3U4S4U5S5" and switches == 9, (session, switches)
+    else:                                       # 持锁：串行 → 用户轮整体在前、仅 1 次切换
+        assert "".join(session) == "U1U2U3U4U5S1S2S3S4S5" and switches == 1, (session, switches)
     return {"session_order": "".join(session), "turn_switches": switches}
 
 SCENARIOS = [("bg_lifecycle", sc_bg_lifecycle), ("heuristic_misfire", sc_heuristic_misfire),

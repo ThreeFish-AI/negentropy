@@ -17,6 +17,9 @@ from __future__ import annotations
 import argparse
 import json
 import random
+import shutil
+import tempfile
+from pathlib import Path
 
 # ── 全局参数（对齐材料的教学数字） ──
 NAG_THRESHOLD = 3             # site/s05：连续 3 轮未调 todo_write → 注入 reminder
@@ -329,8 +332,10 @@ def episode_d(keyword_mode=False):
     return res
 
 # ══ M5 Error Recovery：分类有界恢复 ══
-def retry_delay(attempt, jitter_rng=None):
+def retry_delay(attempt, jitter_rng=None, retry_after_ms=None):
     """指数退避 + 抖动：min(500×2^n, 32000)ms + U(0, 25%)，优先 Retry-After。"""
+    if retry_after_ms is not None:                # 服务器返回 Retry-After 时优先采用
+        return retry_after_ms / 1000
     base = min(BASE_DELAY_MS * (2 ** attempt), 32000) / 1000
     return base + (jitter_rng or rng).uniform(0, base * 0.25)
 
@@ -503,8 +508,12 @@ def selftest():
     # 破坏实验逐项
     for n in (1, 2, 3, 4, 5):
         run_experiment(n)
-    with open("lcc_planning_lab_result.json", "w", encoding="utf-8") as f:
+    sandbox = Path(tempfile.gettempdir()) / "lcc-plab-sandbox"  # 固定沙箱：不污染调用方 CWD
+    shutil.rmtree(sandbox, ignore_errors=True)                  # 每次运行前整体重建
+    sandbox.mkdir(parents=True)
+    with open(sandbox / "lcc_planning_lab_result.json", "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=1, default=str)
+    print(f"result -> {sandbox / 'lcc_planning_lab_result.json'}")
     print("\nSELFTEST PASSED ✔")
 
 EPISODES = {"A": episode_a, "B": episode_b, "C": episode_c, "D": episode_d}

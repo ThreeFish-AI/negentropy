@@ -35,10 +35,10 @@ main 轨 s13 把「组队」这件事需要回答的问题列得很完整，值�
 
 ## 2. 全貌解剖
 
-先看整张地图（全景拓扑的文本源在[这里](../../../../assets/mermaid/agent-harness/lcc-multiagent--panorama.mmd)，渲染产物由资产管线统一登记）。图的结论一句话可以说完：Lead 与每个队友各自跑一个结构相同的循环，六类设施全部是文件系统上的共享物，队友通过写收件箱和认领任务影响 Lead 的下一轮，而 Lead 从头到尾没有第二个循环。理解本篇内容，按三层进入：
-![多 Agent 平台全景：Lead 与队友各跑同构循环，六类设施全为文件系统共享物](../../../assets/architecture/agent-harness/lcc-multiagent--panorama-dark.png)
+先看整张地图（全景拓扑的文本源在[这里](../../assets/mermaid/agent-harness/lcc-multiagent--panorama.mmd)，渲染产物由资产管线统一登记）。图的结论一句话可以说完：Lead 与每个队友各自跑一个结构相同的循环，六类设施全部是文件系统上的共享物，队友通过写收件箱和认领任务影响 Lead 的下一轮，而 Lead 从头到尾没有第二个循环。理解本篇内容，按三层进入：
+![多 Agent 平台全景：Lead 与队友各跑同构循环，六类设施全为文件系统共享物](../../assets/architecture/agent-harness/lcc-multiagent--panorama-dark.png)
 
-> 交互版（下载到本地打开）：[`lcc-multiagent--panorama.html`](../../../assets/architecture/agent-harness/lcc-multiagent--panorama.html) · 双主题渲染 [`dark`](../../../assets/architecture/agent-harness/lcc-multiagent--panorama-dark.png) / [`light`](../../../assets/architecture/agent-harness/lcc-multiagent--panorama-light.png)
+> 交互版（下载到本地打开）：[`lcc-multiagent--panorama.html`](../../assets/architecture/agent-harness/lcc-multiagent--panorama.html) · 双主题渲染 [`dark`](../../assets/architecture/agent-harness/lcc-multiagent--panorama-dark.png) / [`light`](../../assets/architecture/agent-harness/lcc-multiagent--panorama-light.png)
 
 | 层级 | 部分 | 回答的问题 | 性质 |
 |---|---|---|---|
@@ -171,7 +171,7 @@ git worktree 是给这个问题的现成答案：同一份代码可以同时铺�
 | E4 认领原子性拆除 | 无锁交错模拟两人抢同一任务 | `w1 wrote owner=w1`、`w2 wrote owner=w2`，双方都以为成功，终值 owner=w2 | 看见不等于抢到，检查与写入要在一个临界区 |
 | E5 连接后不重建工具池 | 沿用连接前的旧池调新工具 | `Unknown tool: mcp__docs__search`；重建后正常返回 | 工具池是动态的，依赖它的缓存必须随它失效 |
 
-另有一组为预测题跑的对照（实际运行日志）：把关机协议的「状态防重」拆掉后，同一条同意关机的回复投递两次，登记表被改写两次（mutations 1 → 2），「一个请求只决议一次」被打破；防重在时第二次投递显示 `already approved → ignored`，改写次数保持 1。若第二份副本携带相反结论，已批准的关机会被翻成 rejected。
+另有一组为预测题跑的对照（临时改码实测；lab 未内置该实验入口，测完即还原，当前文件无此段代码）。复现步骤：① 打开 `docs/research/agent-harness/assets/lcc_multiagent_lab.py`，在 `if __name__ == "__main__":` 之前临时插入一段探针函数（仿 `exp2_type_check` 的写法：`fresh_world` 建场 → `protocol.request_shutdown("w1")` 发起关机 → 把同一条同意回复（同 `request_id`、`approve=True`）`bus.send` 两遍 → `consume_lead_inbox()` 统一消费），并在 `__main__` 入口调用它；② 探针第二轮运行时置 `protocol.status_check = False`——即 `Protocol.__init__`（:147，行尾注释「S2 预测题可拆」）指向的状态防重开关——再投一条 `approve=False` 的相反副本；③ 运行 `python3 docs/research/agent-harness/assets/lcc_multiagent_lab.py`。实测输出：防重在时第二次投递显示 `req_000001 already approved → ignored`，改写次数保持 1；拆掉后同一条同意回复投递两次，登记表被改写两次（mutations 1 → 2），「一个请求只决议一次」被打破；拆掉状态下第二份副本携带相反结论，已批准的关机被翻成 `rejected`（mutations 增至 3）。
 
 ## 12. 底层规律与核心争议
 
