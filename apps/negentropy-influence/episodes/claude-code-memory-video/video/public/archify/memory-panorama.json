@@ -1,0 +1,196 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 32.06,
+ "total_wall_sec": 119.55,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "evolved-hint",
+   "label": "占位符带上地址",
+   "index": 0,
+   "file": "memory-panorama--evolved-hint.mp4",
+   "end_still": "memory-panorama--evolved-hint-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "evolve",
+    "micro"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "roads-closed",
+   "label": "路一条条堵上",
+   "index": 1,
+   "file": "memory-panorama--roads-closed.mp4",
+   "end_still": "memory-panorama--roads-closed-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.209
+   ],
+   "beat_nodes": [
+    "evolve",
+    "micro",
+    "spill"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "answer-panorama",
+   "label": "现在能答了",
+   "index": 2,
+   "file": "memory-panorama--answer-panorama.mp4",
+   "end_still": "memory-panorama--answer-panorama-end.png",
+   "beats": 7,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 7.76,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.208,
+    3.311,
+    4.417,
+    5.522,
+    6.625
+   ],
+   "beat_nodes": [
+    "spill",
+    "trim",
+    "micro",
+    "digest",
+    "select",
+    "extract",
+    "night"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "lossy-side",
+   "label": "会丢的那套",
+   "index": 3,
+   "file": "memory-panorama--lossy-side.mp4",
+   "end_still": "memory-panorama--lossy-side-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.45,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.209,
+    3.314
+   ],
+   "beat_nodes": [
+    "spill",
+    "trim",
+    "micro",
+    "digest"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "ledger-side",
+   "label": "不能丢的那套",
+   "index": 4,
+   "file": "memory-panorama--ledger-side.mp4",
+   "end_still": "memory-panorama--ledger-side-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.37,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.208
+   ],
+   "beat_nodes": [
+    "select",
+    "extract",
+    "night"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "two-clamps",
+   "label": "两处咬合",
+   "index": 5,
+   "file": "memory-panorama--two-clamps.mp4",
+   "end_still": "memory-panorama--two-clamps-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "extract",
+    "model"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "vow-cashed",
+   "label": "立碑兑现",
+   "index": 6,
+   "file": "memory-panorama--vow-cashed.mp4",
+   "end_still": "memory-panorama--vow-cashed-end.png",
+   "beats": 6,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 6.66,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.208,
+    3.312,
+    4.417,
+    5.521
+   ],
+   "beat_nodes": [
+    "spill",
+    "trim",
+    "micro",
+    "digest",
+    "select",
+    "extract"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code-memory--memory-panorama.html",
+ "slug": "memory-panorama",
+ "type": "architecture"
+}

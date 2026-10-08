@@ -6,30 +6,25 @@
 
 《Learn Claude Code》课程有**两轨现行修订 + 一轨历史遗产**，章号不共用（撞号防御见
 第二节）。哪一章归哪一集、哪一集钉哪个提交，**全系列只在本目录登记**；各集
-`research/source-notes.md` 只链接本文，永不重述——重述即第二事实源，两轨章号错位时必然漂移。
+各集 `research/gl-notes.md` 冻结登记只链接本文取信源钉，章→集归属永不重述——重述即第二事实源，两轨章号错位时必然漂移。
 
 ## 一、修订分叉（为什么双钉）
 
 | 轨 | 修订 | 章 | 中文章名 | 提交 |
 |---|---|---|---|---|
 | 站点 `learn.shareai.run/zh` | 2026-07 修订 | **20 章** | `README.md` | `67a9126c`（2026-07-29，分支 `fix/s08-s20-sync-frontmatter-parser`，站点内容与该分支逐字一致；**2026-09-28 线上复验未动**） |
-| 仓库 `main` | 2026-08 整合 | **17 章** | `README.zh.md` | `0dcafa2a`（2026-08-27；2026-09-27 重钉——旧钉 `f9e8b280` 后 25 提交，唯一机制级变更为 s08 压缩管线，余为 UTF-8/递归 glob 机械修复）；`ce8f9f18`（2026-09-28，取数日 HEAD——ep3 重制重钉） |
+| 仓库 `main` | 2026-08 整合 | **17 章** | `README.zh.md` | `ce8f9f18`（2026-09-28；2026-10-07 重钉——旧钉 `0dcafa2a` 后 2 提交：Windows s11/s15 进程清理修复 + 课程 prompt 增加 OS-aware shell 上下文，无机制级变更） |
 | 旧 12 课轨（历史遗产） | 仓库 `docs/` + `agents/` | 12 课 | 三语 markdown | 两钉上均在，属最老一层，**仅作考古对照，禁止引用**（本仓两处旧引用已于 2026-09-28 消歧） |
 
 这是 ISSUE-165「站点 LOC 复算不出」的真正根因：**站点整站是课程的旧修订**，页面上
 的数字与旁边的代码本就不是同一时刻的产物。双钉因此不是技术巧合，而是逐集的内容决策：
 
-- **ep2/ep4/ep5 钉 `67a9126c`**：用户的五大分组（工具与执行 / 规划与协调 / 记忆管理 /
+- **ep2–ep5 钉 `67a9126c`**：用户的五大分组（工具与执行 / 规划与协调 / 记忆管理 /
   并发 / 多 Agent 平台）正是站点 20 章版的 `LAYERS`，只在该修订下成立；
-- **ep1 钉 main 新头（`0dcafa2a`）**：其核心记忆点「看内容块别信停止标记」正依赖
+- **ep1 钉 main 新头（`ce8f9f18`）**：其核心记忆点「看内容块别信停止标记」正依赖
   main 比站点新——站点的「深入 CC 源码」把「教学版看 stop_reason」当作与产品的差异
   来讲，而 main 已把判据改成内容块。钉站点轨会让这条对比失去靶子（2026-09-27 重钉
   随重调研同步，s03 新增的破坏性命令词正则是 ep1 复核增量）。
-- **ep3 重制换钉 main `ce8f9f18`（2026-10-02）**：ep3 完全重制、逐字稿重录，规则 5
-  「已交付集钉不动」的前提（稿冻在录音时刻）不再成立；新钉与 docs 精读
-  [176](../../../docs/research/agent-harness/176-learn-claude-code-memory.md)（本集
-  C 型信源）同钉，s08/s09 以 main 最新形态取证（条件化 micro / fit_tool_results /
-  占位符幂等在站点轨均无）。站点两页仍作 B 轨叙事与「深潜 CC 源码」【三】级证据源。
 
 耐久性：`67a9126c` 在未合并分支上（分支被强推/删除则 raw URL 失效）。
 `source_ledger.py verify` 会在 raw 指纹漂移时 FAIL 报警，台账已登记全指纹
@@ -71,9 +66,9 @@ s18–s20 仅存在于站点轨；main 无 s18+。**s01/s02 是唯一三轨同�
 
 | 集 | 工程 | 层（站点分组） | 章节 | 钉 |
 |---|---|---|---|---|
-| 1 | [claude-code-explained-video](../episodes/claude-code-explained-video/README.md) | 工具与执行 | s01 · s02 · s03 · s04 | `0dcafa2a` |
+| 1 | [claude-code-explained-video](../episodes/claude-code-explained-video/README.md) | 工具与执行 | s01 · s02 · s03 · s04 | `ce8f9f18` |
 | 2 | [claude-code-planning-video](../episodes/claude-code-planning-video/README.md) | 规划与协调 | s05 · s06 · s07 · s10 · s11 | `67a9126c` |
-| 3 | [claude-code-memory-video](../episodes/claude-code-memory-video/README.md) | 记忆管理 | s08 · s09 | `ce8f9f18`（2026-10-02 重制换钉） |
+| 3 | [claude-code-memory-video](../episodes/claude-code-memory-video/README.md) | 记忆管理 | s08 · s09 | `67a9126c` |
 | 4 | [claude-code-concurrency-video](../episodes/claude-code-concurrency-video/README.md) | 并发 | s13 · s14 | `67a9126c` |
 | 5 | [claude-code-multiagent-video](../episodes/claude-code-multiagent-video/README.md) | 多 Agent 平台 | s12 · s15 · s16 · s17 · s18 · s19 · s20 | `67a9126c` |
 
@@ -98,8 +93,6 @@ s20 不作 ep5 的普通章节、作终幕收束装置（一整轮七步传送�
 | s20 Comprehensive | `s15_integrated_harness` | 对应并被扩写（diff ~218 行；main 增量 = s08 新压缩管线 + s13 加固语义回灌） |
 | —— | `s16_workflow_runtime` | main 新增，本系列不覆盖（精读归 174 附录） |
 | —— | `s17_goal_loop` | main 新增，本系列不覆盖（精读归 172 附录） |
-
-> **docs 侧分工（2026-10-01 立，2026-10-02 修订）**：`docs/research/agent-harness/176-learn-claude-code-memory.md` 是 s08/s09 的 guided-learn 完全重读（钉 main `ce8f9f18` + 站点页 2026-09-30 抓取 + 官方文档当日交叉），属 docs 精读层、未继承 170–175。ep3 完全重制（2026-10-02）起，176 升格为该集 **C 型信源**（冻结快照落 `research/gl-notes.md`），ep3 钉随之迁至 `ce8f9f18`；其余已交付集的钉默认不动（见规则 5），视频取证仍以各集事实源为准。
 
 ## 五、维护规则
 

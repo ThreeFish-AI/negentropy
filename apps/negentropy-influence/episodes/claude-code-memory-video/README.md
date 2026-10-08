@@ -1,27 +1,28 @@
-# 《记忆管理：一张草稿纸和一本卡片册》科普视频工程
+# 《记忆管理：会丢的和不能丢的》科普视频工程
 
-> 交付状态：**v5 已交付**（2026-10-03，二轮评审 9 项修复后重渲——6-D 三例回看 cue 收缩后实例间各隔 20 帧句隙＝空窗态，删两处 lead={false} 恢复入场弹簧（still 描边带判据实证：22114/22251 与 22006 同签名＝画框近零透明起步、22140 正对照全显）/prefix-hit 显式 fit:'trim' 留痕（rate 1.43、bill 拍取舍入注）/帧数登记 off-by-one 修正 23,670→23,671 五处连坐（JS 舍入实算＝ffprobe 实测 23,671 帧＝789.03s，唯一半值句 p1-11；storyboard 789.00s 与 pipeline 帧口径同步）/P1 三格入场注释纠偏（slideL 实为自左滑入，画面维持不改）/planning 禁用词表「裁中段」移出并加限定/theme 死 token concept 清除/harness-stack 注释 as-built 收敛三处＋裸挂须覆写注/motifs 死导出 ease 清除/storyboard·planning deny 括注改 danger；789.03s 不变·帧数 23,671，mdls/ffprobe 对账，归档 v5 + _captions）。**v4 已交付**（2026-10-03，收官评审 15 项修复后重渲——check_script 金句卡 caption-dup-ok 豁免注（站红 FAIL 归零）/6-D 五规律卡翻页重锚（三条规律回看 cue 收缩到语音段、~20 帧句隙让给翻卡，卡 2–4 弹簧与高亮不再被整句吞没；still 三点实证 22080/22100/22440）/four-steps 章 storySec 按录制产物封顶 3.72s（45 章唯一超产物项）/P0 头注 fit 复核回填/8-x→6-x 与「前镜 4-A」注释纠偏/断言计数 35 两索引（knowledge-map·readme）/gl-notes 复算记录与冻结点日期戳/v1 时长 789.08→789.03 三处连坐（mdls 实测 789.034）/readme SSOT source-notes 例外句/narration 英文枚举补 bug·K/planning 终稿回写注/ep2 pipeline 13.37 实测回填/_captions 版本目录补档（本集 v3/v4 + ep2 v3；v1/v2 时点字幕无档可考）；173 死链改指 gl-notes/176 §9.3→§9.2 与 137 浮动注记/两图 mmd 回写 HTML 文案同构/P0 0-B 装置接缝精确句窗（886·1098 帧像素实证）/motifs·theme 死代码清除/memory_lab T8b 降级断言 35 checks/destruct 实验4 独立 root/pipeline 注释终声口径/CHANGELOG 与 storyboard 口径；13.15 分 = 789.03s @1080p30，帧数不变 23,671（v5 轮核准；原记 23,670 系 floor 误推），归档 ~/Documents/video/claude-code-explained/ v4 + _captions；v3 = 789.03s 三轮 16 项、v2 = 789.03s 二轮 13 项、v1 = 789.03s 2026-10-02，均见归档/git 历史）。C 型信源=docs 精读 176（钉 ce8f9f18）。发布顺序见 [../../series.json](../../series.json)（工作区根）。
+> **剧本 v3 待审（2026-10-07）**：planning / narration / storyboard 已换代（C 型信源 = `research/gl-notes.md`，冻结自 docs/research/agent-harness/173 新精读；双轨钉点 站点轨 `67a9126c` + main 轨 `ce8f9f18`），`video/src/chapters.json` 由 build 再生；场景代码 / TTS 音轨 / archify 图集未动（旧 cue 与新句 id 的错位属预期，场景轮统一重写）。
+> 交付状态：**v1 已交付**（2026-10-01，14:13.3 @1080p30（total_duration_in_frames 复算），归档 ~/Documents/video/claude-code-explained/ v1 + _captions）。发布顺序见 [../../series.json](../../series.json)（工作区根）。
 
 ## 目录结构
 
 | 路径 | 说明 |
 |---|---|
-| `research/` | Stage ① 取证产物：全部口播断言须可回溯至此（C 型：[gl-notes.md](./research/gl-notes.md) 正文=[176 精读](../../../../docs/research/agent-harness/176-learn-claude-code-memory.md) 冻结快照 + 附录 A 类比登记表 + 附录 B 穿透记录） |
+| `research/` | Stage ① 取证产物：全部口播断言须可回溯至此 |
 | `script/planning.md` | Stage ② 策划案（六节齐，含本集视觉契约） |
 | `script/narration.md` | Stage ③ 逐字稿 **★单一事实源**（勿改 narration.json） |
 | `script/storyboard.md` | Stage ⑥ 分镜表（镜号 ↔ 句 id 区间 ↔ 画面 ↔ 动效） |
-| `scripts/*.py` | 薄包装 → to-video skill 的 scripts/（解析器定位，保 CLI 契约） |
+| `scripts/*.py` | 薄包装 → vibe-video skill 的 scripts/（解析器定位，保 CLI 契约） |
 | `video/` | Remotion 独立 pnpm 工程（嵌套 workspace 自锚隔离） |
 | `out/` | 渲染产物（gitignored） |
-| `pipeline.toml` | 本集可执行参数的唯一来源（字段表见 [to-video skill 的 references/PIPELINE.md](https://github.com/ThreeFish-AI/to-video/blob/main/references/PIPELINE.md)） |
+| `pipeline.toml` | 本集可执行参数的唯一来源（字段表见 [vibe-video skill 的 references/PIPELINE.md](https://github.com/ThreeFish-AI/vibe-video/blob/main/references/PIPELINE.md)） |
 
 ## 复现流水线
 
 ```bash
-# 在工作区内执行。$T/$W/$P/$V 的定义见 to-video skill 的 references/PIPELINE.md 路径变量约定（唯一定义处）
+# 在工作区内执行。$T/$W/$P/$V 的定义见 vibe-video skill 的 references/PIPELINE.md 路径变量约定（唯一定义处）
 P=$W/episodes/claude-code-memory-video
 
-# ① 信源核验（C 型信源=docs 精读 176 冻结快照 research/gl-notes.md；活源台账 6 条 @ce8f9f18）
+# ① 信源核验（B 型信源；A 型论文集跳过）
 uv run --no-project $T/scripts/source_ledger.py --project $P verify
 
 # ② 逐字稿派生 + 内容门（分镜覆盖性 / 时长预算双口径 / 淡入不变式）
@@ -41,7 +42,7 @@ uv run --no-project $T/scripts/pipeline.py --project $P qa --video out/draft.mp4
 # ⑤ 交付
 uv run --no-project $T/scripts/pipeline.py --project $P captions
 uv run --no-project $T/scripts/pipeline.py --project $P render --final
-# 交付归档（可选；根 = --root 一次性 或 env TO_VIDEO_DELIVER_ROOT 持久，机器属性不进 toml）
+# 交付归档（可选；根 = --root 一次性 或 env VIBE_VIDEO_DELIVER_ROOT 持久，机器属性不进 toml）
 uv run --no-project $T/scripts/pipeline.py --project $P deliver
 ```
 
@@ -50,7 +51,7 @@ uv run --no-project $T/scripts/pipeline.py --project $P deliver
 - 逐字稿只改 `script/narration.md`；`narration.json` / `manifest.json` 是派生物。
 - 时序常数只在 `video/src/timing.json`（timing.ts 与 Python 侧 timeline.py 共读）。
 - **口播永不出现他集标题与集数序号**——顺序只在视觉层与 series.json（`check_series.py` 执法）。
-- 骨架冻结档位见 [to-video skill 的 skeleton.toml](https://github.com/ThreeFish-AI/to-video/blob/main/assets/video-skeleton/skeleton.toml)；
+- 骨架冻结档位见 [vibe-video skill 的 skeleton.toml](https://github.com/ThreeFish-AI/vibe-video/blob/main/assets/video-skeleton/skeleton.toml)；
   改动前先跑 `uv run --no-project $T/scripts/verify_skeleton.py`。
 
 ## 许可

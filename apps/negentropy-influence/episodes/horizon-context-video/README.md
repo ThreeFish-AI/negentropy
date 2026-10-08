@@ -35,7 +35,7 @@ Context Layer 系列首集。信源为本仓 [Snowflake Horizon Context 精读�
 ## 复现
 
 ```bash
-# 工作区根执行。$T/$W/$P/$V 的定义见 to-video skill 的 pipeline/README.md（唯一定义处：https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/README.md）
+# 工作区根执行。$T/$W/$P/$V 的定义见 vibe-video skill 的 pipeline/README.md（唯一定义处：https://github.com/ThreeFish-AI/vibe-video/blob/main/pipeline/README.md）
 P=$W/episodes/horizon-context-video
 
 # ① 信源核验

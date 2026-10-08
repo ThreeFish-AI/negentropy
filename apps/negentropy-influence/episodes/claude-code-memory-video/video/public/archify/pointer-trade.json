@@ -1,0 +1,151 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 19.48,
+ "total_wall_sec": 90.33,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "batch-account",
+   "label": "只算最新一批",
+   "index": 0,
+   "file": "pointer-trade--batch-account.mp4",
+   "end_still": "pointer-trade--batch-account-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.605
+   ],
+   "beat_nodes": [
+    "latest-batch",
+    "budget-check"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 48.0
+  },
+  {
+   "id": "size-queue",
+   "label": "按大小排队",
+   "index": 1,
+   "file": "pointer-trade--size-queue.mp4",
+   "end_still": "pointer-trade--size-queue-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.605
+   ],
+   "beat_nodes": [
+    "size-sort",
+    "disk-vault"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 48.0
+  },
+  {
+   "id": "parcel-tag",
+   "label": "包裹标签",
+   "index": 2,
+   "file": "pointer-trade--parcel-tag.mp4",
+   "end_still": "pointer-trade--parcel-tag-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.606
+   ],
+   "beat_nodes": [
+    "parcel-tag",
+    "preview-block"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 49.0
+  },
+  {
+   "id": "full-on-disk",
+   "label": "全文在磁盘",
+   "index": 3,
+   "file": "pointer-trade--full-on-disk.mp4",
+   "end_still": "pointer-trade--full-on-disk-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "disk-vault",
+    "parcel-tag"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "slide-and-flatten",
+   "label": "滑出即压扁",
+   "index": 4,
+   "file": "pointer-trade--slide-and-flatten.mp4",
+   "end_still": "pointer-trade--slide-and-flatten-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.33,
+   "beat_offsets_sec": [
+    0.0,
+    1.107,
+    2.212
+   ],
+   "beat_nodes": [
+    "recent-window",
+    "old-result",
+    "generic-hint"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 49.0
+  },
+  {
+   "id": "hint-no-address",
+   "label": "提示不带地址",
+   "index": 5,
+   "file": "pointer-trade--hint-no-address.mp4",
+   "end_still": "pointer-trade--hint-no-address-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.21,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "generic-hint",
+    "parcel-tag"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--pointer-trade.html",
+ "slug": "pointer-trade",
+ "type": "dataflow"
+}

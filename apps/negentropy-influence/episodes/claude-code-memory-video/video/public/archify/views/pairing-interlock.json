@@ -1,1 +1,0 @@
-[{"id":"paired-ok","label":"编号互锁常态","focus":["assistant","tool","validator"],"note":"tool_use 与 tool_result 同编号成对：调用、出菜、回传，整单送检一次通过。"},{"id":"torn-reject","label":"拆散即黑单","focus":["validator","assistant"],"note":"裁剪留调用删结果，编号01 断链：接口校验每请求必查，黑单整单作废。"},{"id":"retreat-fix","label":"切点回退整对越过","focus":["assistant","validator"],"note":"裁剪切点回退到整对边界外：编号01 整对保留或整对越过，互锁恢复放行。"}]

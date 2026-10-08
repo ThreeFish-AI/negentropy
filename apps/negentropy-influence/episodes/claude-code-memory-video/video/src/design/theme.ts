@@ -31,16 +31,21 @@ export const theme = {
   sans: "'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', sans-serif",
   mono: "'SF Mono', 'Menlo', 'JetBrains Mono', monospace",
 
-  // ── 本集概念色（重制种子；Stage ② 复核对比度）──
-  // 维度色苔绿 #A9C46C 由系列语义键 mech 承载（见下），不设独立 concept token。
-  // accent=账单/成本金（P4 缓存经济学强调）——系列「金=强调」语义族
-  // （与 ep4 #EFB13C / ep5 #D9B36B 同族各持独立 hex，2026-10-03 评审定夺：
-  // 换独立金并登记 series.json accents，撞色门/已用色表不再双盲）。
-  accent: '#F0C244',
+  // ── 本集概念色（重制种子：沿用系列维度色系，Stage ② 策划时终定并复算对比度）──
+  // 语义：绿=记忆
+  concept: '#A9C46C',
+  conceptDeep: '#7A9448',
+  accent: '#7FB2E0',
 
-  // ── 系列语义键（HarnessStack/motifs 消费）──
-  // core = 循环内核：**全系列恒定 #D97757**；mech = 本集维度色（苔绿）。
+  // ── 系列语义键（V3D 3D 层读；HarnessStack/motifs 消费）──
+  // core = 循环内核：**全系列恒定 #D97757**（「循环始终不变」主线的视觉锚）；
+  // mech/mechDeep = 挂在内核外的机制：**每集维度色**（本集 #A9C46C）——
+  // 「循环不变、机制每集不同」的语义分工。deny 复用 danger（拒绝/危险唯一语义）。
+  // mechDeep #7A9448 = storyboard 视觉契约值（登记簿内页／面板描边／装置暗态），
+  // 覆写 scaffold 残留 #7FA050——对比度复算走 qa_frames --check-theme。
   core: '#D97757',
+  coreDeep: '#B45A3C',
+  deny: '#EF6461', // 拒绝/危险唯一语义（3D 层读；与 danger 同源）
   mech: '#A9C46C',
-  mechDeep: '#87A24E',
+  mechDeep: '#7A9448',
 } as const;

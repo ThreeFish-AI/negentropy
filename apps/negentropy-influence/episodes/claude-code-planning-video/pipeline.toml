@@ -1,5 +1,5 @@
 # 本集可执行参数的**唯一来源**（ISSUE-161：可执行参数不落散文文档，README 只引用配置）。
-# 编排入口：uv run --no-project $T/scripts/pipeline.py --project $P <cmd>（$T/$W/$P/$V 见 to-video skill 的 references/PIPELINE.md）
+# 编排入口：uv run --no-project $T/scripts/pipeline.py --project $P <cmd>（$T/$W/$P/$V 见 vibe-video skill 的 references/PIPELINE.md）
 #
 # 只写**本集偏离**：机制常数（chars_per_min / lang / draft_scale / draft_jpeg_quality）
 # 的默认值在 skill 仓 scripts/config.py，不要抄回这里。字段表见 skill 的
@@ -8,12 +8,10 @@
 [episode]
 slug = "claude-code-planning-video"
 
-# B 档覆写（换题重渲 2026-10-02，同 ep3 参数）：本轮 me-bright 实测 324 字/分（纯语音），
-# 12.3 分低于窗下限——句隙 0.32→0.68/幕隙 0.9→1.2/尾 2→3 拉至 13.36 分落窗（预估；终渲实测 mdls 802.452s = 13.37 分，登记四处同口径。决策记录住此，timing.json 保持纯 JSON）。
 [narration]
 # TODO：按本集选题与语速预算填写。口径提示——280 字/分是**含停顿的等效**口径，
 # 裸按字数算会高估约 12% 的句容量，双口径门以 manifest 实测为准。
-target_minutes = [13.0, 14.6]
+target_minutes = [13.0, 15.5]  # 2026-10-08 系列片头铺开：预算窗改含片头口径（leadIn 23.5s；原 [13.0, 14.6] 为无片头窗，E3 复算 14.603 已越界）
 # 本系列实测口径（ep1 CP1 校准 2026-09-30）：story 档含停顿等效 ≈254 字/分。
 chars_per_min = 254
 

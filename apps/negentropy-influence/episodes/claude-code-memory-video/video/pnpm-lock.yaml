@@ -20,6 +20,9 @@ importers:
       '@remotion/layout-utils':
         specifier: 4.0.529
         version: 4.0.529
+      '@remotion/lottie':
+        specifier: 4.0.529
+        version: 4.0.529(lottie-web@5.13.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@remotion/media':
         specifier: 4.0.529
         version: 4.0.529(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -35,6 +38,9 @@ importers:
       '@types/three':
         specifier: 0.186.0
         version: 0.186.0
+      lottie-web:
+        specifier: 5.13.0
+        version: 5.13.0
       react:
         specifier: ^19.0.0
         version: 19.2.8
@@ -454,6 +460,13 @@ packages:
 
   '@remotion/licensing@4.0.529':
     resolution: {integrity: sha512-+hVV68ouCdjeNGKQOdDueH1OZej5biXGXLr9ADdiJr7MEl5l9mWPHa2Z9z45TwBHihMe5wKOQ5fmXHc+TBOjBg==}
+
+  '@remotion/lottie@4.0.529':
+    resolution: {integrity: sha512-GkVq0gKWz2QGhP9kmdOG6zQ/yu7HfFLcUhMgZxHeR8V2G/pGE7EG4uzspb38fY05VENKZ+W7uA36U0FExt/fNg==}
+    peerDependencies:
+      lottie-web: ^5
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
 
   '@remotion/media-parser@4.0.529':
     resolution: {integrity: sha512-HGIm6dRtNRmGZbFZUy2/3EIWI0LW11l46qlAQs5fqQ6h24Cp+HqAfzNE05J75Hbv/2JYD+e1f5EPU/WKqykzzA==}
@@ -1086,6 +1099,9 @@ packages:
   loader-runner@4.3.2:
     resolution: {integrity: sha512-DFEqQ3ihfS9blba08cLfYf1NRAIEm+dDjic073DRDc3/JspI/8wYmtDsHwd3+4hwvdxSK7PGaElfTmm0awWJ4w==}
     engines: {node: '>=6.11.5'}
+
+  lottie-web@5.13.0:
+    resolution: {integrity: sha512-+gfBXl6sxXMPe8tKQm7qzLnUy5DUPJPKIyRHwtpCpyUEYjHYRJC/5gjUvdkuO2c3JllrPtHXH5UJJK8LRYl5yQ==}
 
   lower-case@2.0.2:
     resolution: {integrity: sha512-7fm3l3NAF9WfN6W3JOmf5drwpVqX78JtoGJ3A6W0a6ZnldM41w2fV5D490psKFTpMds8TJse/eHLFFsNHHjHgg==}
@@ -1907,6 +1923,13 @@ snapshots:
 
   '@remotion/licensing@4.0.529': {}
 
+  '@remotion/lottie@4.0.529(lottie-web@5.13.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
+    dependencies:
+      lottie-web: 5.13.0
+      react: 19.2.8
+      react-dom: 19.2.8(react@19.2.8)
+      remotion: 4.0.529(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+
   '@remotion/media-parser@4.0.529': {}
 
   '@remotion/media-utils@4.0.529(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
@@ -2619,6 +2642,8 @@ snapshots:
   lines-and-columns@1.2.4: {}
 
   loader-runner@4.3.2: {}
+
+  lottie-web@5.13.0: {}
 
   lower-case@2.0.2:
     dependencies:

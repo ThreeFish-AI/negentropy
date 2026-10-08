@@ -1,0 +1,174 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 22.87,
+ "total_wall_sec": 105.02,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "two-tracks",
+   "label": "两层递送",
+   "index": 0,
+   "file": "two-layer-loading--two-tracks.mp4",
+   "end_still": "two-layer-loading--two-tracks-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0,
+    1.602
+   ],
+   "beat_nodes": [
+    "system-prefix",
+    "user-turn"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "index-resident",
+   "label": "扉页常驻垫纸",
+   "index": 1,
+   "file": "two-layer-loading--index-resident.mp4",
+   "end_still": "two-layer-loading--index-resident-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "index-resident",
+    "system-prefix"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "body-on-demand",
+   "label": "正文按需进当前轮",
+   "index": 2,
+   "file": "two-layer-loading--body-on-demand.mp4",
+   "end_still": "two-layer-loading--body-on-demand-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.33,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.208
+   ],
+   "beat_nodes": [
+    "selector",
+    "inject-copy",
+    "user-turn"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "copy-not-pollute",
+   "label": "拼的是拷贝",
+   "index": 3,
+   "file": "two-layer-loading--copy-not-pollute.mp4",
+   "end_still": "two-layer-loading--copy-not-pollute-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "inject-copy",
+    "dialog-ledger"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "cache-stakes",
+   "label": "前缀一动全白算",
+   "index": 4,
+   "file": "two-layer-loading--cache-stakes.mp4",
+   "end_still": "two-layer-loading--cache-stakes-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.36,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.207
+   ],
+   "beat_nodes": [
+    "cache-zone",
+    "system-prefix",
+    "user-turn"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "side-query",
+   "label": "目录员旁路",
+   "index": 5,
+   "file": "two-layer-loading--side-query.mp4",
+   "end_still": "two-layer-loading--side-query-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.602
+   ],
+   "beat_nodes": [
+    "side-query",
+    "selector"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "model-not-vectors",
+   "label": "模型选不相似度",
+   "index": 6,
+   "file": "two-layer-loading--model-not-vectors.mp4",
+   "end_still": "two-layer-loading--model-not-vectors-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "selector",
+    "model-pick"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--two-layer-loading.html",
+ "slug": "two-layer-loading",
+ "type": "sequence"
+}

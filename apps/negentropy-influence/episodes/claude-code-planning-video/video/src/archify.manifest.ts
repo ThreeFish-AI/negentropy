@@ -1,4 +1,4 @@
-// 本文件由 to-video skill 的 scripts/archify_manifest.py 从 public/archify/*.json 生成——请勿手改。
+// 本文件由 vibe-video skill 的 scripts/archify_manifest.py 从 public/archify/*.json 生成——请勿手改。
 // 数据来源：scripts/record_archify.py --mode chapter（逐章录制）
 //         + scripts/archify_lead.py（场记板白闪测定真实 leadSec）。
 
@@ -35,7 +35,7 @@ export const ARCHIFY = {
         "endStill": "plan-panorama--desk-reread-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.33,
+        "storySec": 3.36,
         "beatNodes": [
           "desk",
           "read-sweep",
@@ -49,7 +49,7 @@ export const ARCHIFY = {
         "endStill": "plan-panorama--five-devices-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.24,
+        "storySec": 3.22,
         "beatNodes": [
           "desk",
           "five-devices"
@@ -61,7 +61,7 @@ export const ARCHIFY = {
         "file": "plan-panorama--tool-fade.mp4",
         "endStill": "plan-panorama--tool-fade-end.png",
         "beats": 2,
-        "leadSec": 0.44,
+        "leadSec": 0.48,
         "storySec": 3.22,
         "beatNodes": [
           "device-todo",
@@ -75,7 +75,7 @@ export const ARCHIFY = {
         "endStill": "plan-panorama--question-return-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.26,
+        "storySec": 3.22,
         "beatNodes": [
           "desk",
           "question-mark"
@@ -88,7 +88,7 @@ export const ARCHIFY = {
         "endStill": "plan-panorama--workshop-answers-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.32,
+        "storySec": 3.34,
         "beatNodes": [
           "desk",
           "five-devices",
@@ -102,7 +102,7 @@ export const ARCHIFY = {
         "endStill": "plan-panorama--m1-pinned-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.24,
+        "storySec": 3.26,
         "beatNodes": [
           "device-todo",
           "desk"
@@ -115,7 +115,7 @@ export const ARCHIFY = {
         "endStill": "plan-panorama--m2-isolated-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.25,
+        "storySec": 3.22,
         "beatNodes": [
           "device-side",
           "desk"
@@ -128,7 +128,7 @@ export const ARCHIFY = {
         "endStill": "plan-panorama--m3-two-books-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.22,
+        "storySec": 3.24,
         "beatNodes": [
           "device-drawer",
           "desk"
@@ -141,7 +141,7 @@ export const ARCHIFY = {
         "endStill": "plan-panorama--m4-relaid-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.24,
+        "storySec": 3.23,
         "beatNodes": [
           "device-pad",
           "desk"
@@ -154,7 +154,7 @@ export const ARCHIFY = {
         "endStill": "plan-panorama--m5-protected-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.24,
+        "storySec": 3.25,
         "beatNodes": [
           "device-ladder",
           "desk"
@@ -167,7 +167,7 @@ export const ARCHIFY = {
         "endStill": "plan-panorama--visibility-only-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.35,
+        "storySec": 3.32,
         "beatNodes": [
           "five-devices",
           "desk",
@@ -187,7 +187,7 @@ export const ARCHIFY = {
         "endStill": "plan-prompt-cache--re-eval-per-turn-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.22,
+        "storySec": 3.24,
         "beatNodes": [
           "state-recompute",
           "cache-hit"
@@ -200,7 +200,7 @@ export const ARCHIFY = {
         "endStill": "plan-prompt-cache--deterministic-key-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.23,
+        "storySec": 5.86,
         "beatNodes": [
           "sorted-serialize",
           "key-slot"
@@ -233,7 +233,7 @@ export const ARCHIFY = {
         "endStill": "plan-prompt-sections--sectioned-define-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.22,
+        "storySec": 4.16,
         "beatNodes": [
           "section-dict",
           "topic-blocks"
@@ -246,7 +246,7 @@ export const ARCHIFY = {
         "endStill": "plan-prompt-sections--always-sections-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.43,
+        "storySec": 5.84,
         "beatNodes": [
           "sec-identity",
           "sec-tools",
@@ -281,7 +281,7 @@ export const ARCHIFY = {
         "endStill": "plan-recovery-ladder--ladder-mounted-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.32,
+        "storySec": 3.31,
         "beatNodes": [
           "belt",
           "ladder",
@@ -295,7 +295,7 @@ export const ARCHIFY = {
         "endStill": "plan-recovery-ladder--snap-truncated-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.25,
+        "storySec": 3.22,
         "beatNodes": [
           "level-truncation",
           "half-sentence"
@@ -308,7 +308,7 @@ export const ARCHIFY = {
         "endStill": "plan-recovery-ladder--snap-overflow-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.22,
+        "storySec": 3.24,
         "beatNodes": [
           "level-overflow",
           "desk-full"
@@ -321,7 +321,7 @@ export const ARCHIFY = {
         "endStill": "plan-recovery-ladder--snap-transient-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.24,
+        "storySec": 3.23,
         "beatNodes": [
           "level-transient",
           "shake-wave"
@@ -334,7 +334,7 @@ export const ARCHIFY = {
         "endStill": "plan-recovery-ladder--three-catches-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.36,
+        "storySec": 3.37,
         "beatNodes": [
           "level-truncation",
           "level-overflow",
@@ -348,7 +348,7 @@ export const ARCHIFY = {
         "endStill": "plan-recovery-ladder--layer-split-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.24,
+        "storySec": 3.22,
         "beatNodes": [
           "inner-retry",
           "outer-catch"
@@ -361,7 +361,7 @@ export const ARCHIFY = {
         "endStill": "plan-recovery-ladder--truncation-last-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.25,
+        "storySec": 3.24,
         "beatNodes": [
           "stop-reason",
           "response-first"
@@ -374,7 +374,7 @@ export const ARCHIFY = {
         "endStill": "plan-recovery-ladder--compact-then-retry-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.35,
+        "storySec": 3.33,
         "beatNodes": [
           "level-overflow",
           "compact-wave",
@@ -388,7 +388,7 @@ export const ARCHIFY = {
         "endStill": "plan-recovery-ladder--compact-once-gate-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.22,
+        "storySec": 3.26,
         "beatNodes": [
           "one-shot-gate",
           "locked"
@@ -401,7 +401,7 @@ export const ARCHIFY = {
         "endStill": "plan-recovery-ladder--give-up-oversize-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.23,
+        "storySec": 3.22,
         "beatNodes": [
           "give-up",
           "still-oversize"
@@ -414,7 +414,7 @@ export const ARCHIFY = {
         "endStill": "plan-recovery-ladder--backoff-with-jitter-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.34,
+        "storySec": 3.35,
         "beatNodes": [
           "level-transient",
           "backoff-timeline",
@@ -428,7 +428,7 @@ export const ARCHIFY = {
         "endStill": "plan-recovery-ladder--jitter-anti-avalanche-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.24,
+        "storySec": 3.22,
         "beatNodes": [
           "jitter-dots",
           "spread-clock"
@@ -454,7 +454,7 @@ export const ARCHIFY = {
         "endStill": "plan-recovery-ladder--fallback-chain-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.21,
+        "storySec": 3.25,
         "beatNodes": [
           "fallback-model",
           "counter-reset"
@@ -467,7 +467,7 @@ export const ARCHIFY = {
         "endStill": "plan-recovery-ladder--exit-protocol-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.33,
+        "storySec": 3.32,
         "beatNodes": [
           "log-line",
           "write-back",
@@ -486,7 +486,7 @@ export const ARCHIFY = {
         "file": "plan-side-desk--three-borders.mp4",
         "endStill": "plan-side-desk--three-borders-end.png",
         "beats": 3,
-        "leadSec": 0.44,
+        "leadSec": 0.48,
         "storySec": 3.33,
         "beatNodes": [
           "side-desk",
@@ -501,7 +501,7 @@ export const ARCHIFY = {
         "endStill": "plan-side-desk--border-world-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.35,
+        "storySec": 3.33,
         "beatNodes": [
           "shared-workdir",
           "file-lands",
@@ -515,7 +515,7 @@ export const ARCHIFY = {
         "endStill": "plan-side-desk--border-gate-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.34,
+        "storySec": 6.32,
         "beatNodes": [
           "gate",
           "tool-call",
@@ -543,7 +543,7 @@ export const ARCHIFY = {
         "endStill": "plan-side-desk--recursion-capability-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.23,
+        "storySec": 3.25,
         "beatNodes": [
           "tool-belt",
           "capability-note"
@@ -562,7 +562,7 @@ export const ARCHIFY = {
         "endStill": "plan-side-guards--turn-cap-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.27,
+        "storySec": 3.21,
         "beatNodes": [
           "turn-meter",
           "cap-line"
@@ -575,7 +575,7 @@ export const ARCHIFY = {
         "endStill": "plan-side-guards--backward-scan-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.33,
+        "storySec": 3.35,
         "beatNodes": [
           "history",
           "backward-arrow",
@@ -588,8 +588,8 @@ export const ARCHIFY = {
         "file": "plan-side-guards--same-shape.mp4",
         "endStill": "plan-side-guards--same-shape-end.png",
         "beats": 3,
-        "leadSec": 0.48,
-        "storySec": 3.35,
+        "leadSec": 0.44,
+        "storySec": 3.36,
         "beatNodes": [
           "receipt-a",
           "receipt-b",
@@ -622,7 +622,7 @@ export const ARCHIFY = {
         "endStill": "plan-skill-layers--drawer-labels-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.34,
+        "storySec": 3.33,
         "beatNodes": [
           "cabinet",
           "drawer",
@@ -636,7 +636,7 @@ export const ARCHIFY = {
         "endStill": "plan-skill-layers--manual-inside-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.23,
+        "storySec": 3.24,
         "beatNodes": [
           "drawer",
           "manual"
@@ -663,7 +663,7 @@ export const ARCHIFY = {
         "endStill": "plan-skill-layers--costly-fulltext-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.43,
+        "storySec": 4.45,
         "beatNodes": [
           "manual",
           "lift-path",
@@ -677,7 +677,7 @@ export const ARCHIFY = {
         "file": "plan-skill-layers--split-in-time.mp4",
         "endStill": "plan-skill-layers--split-in-time-end.png",
         "beats": 3,
-        "leadSec": 0.44,
+        "leadSec": 0.48,
         "storySec": 3.33,
         "beatNodes": [
           "labels-strip",
@@ -697,7 +697,7 @@ export const ARCHIFY = {
         "file": "plan-skill-lifespan--lifespan-split.mp4",
         "endStill": "plan-skill-lifespan--lifespan-split-end.png",
         "beats": 2,
-        "leadSec": 0.44,
+        "leadSec": 0.6,
         "storySec": 3.26,
         "beatNodes": [
           "label-track",
@@ -737,7 +737,7 @@ export const ARCHIFY = {
         "endStill": "plan-skill-lifespan--label-stays-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.22,
+        "storySec": 3.24,
         "beatNodes": [
           "labels-strip",
           "system-prompt"
@@ -749,8 +749,8 @@ export const ARCHIFY = {
         "file": "plan-skill-lifespan--re-paste-budget.mp4",
         "endStill": "plan-skill-lifespan--re-paste-budget-end.png",
         "beats": 2,
-        "leadSec": 0.48,
-        "storySec": 3.23,
+        "leadSec": 0.44,
+        "storySec": 3.78,
         "beatNodes": [
           "re-paste",
           "cap-mark"
@@ -763,7 +763,7 @@ export const ARCHIFY = {
         "endStill": "plan-skill-lifespan--pair-not-either-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.32,
+        "storySec": 3.33,
         "beatNodes": [
           "load-on-demand",
           "cleanup",
@@ -783,7 +783,7 @@ export const ARCHIFY = {
         "endStill": "plan-skill-registry--name-only-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.26,
+        "storySec": 3.22,
         "beatNodes": [
           "name-input",
           "registry"
@@ -796,7 +796,7 @@ export const ARCHIFY = {
         "endStill": "plan-skill-registry--startup-scan-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.35,
+        "storySec": 3.34,
         "beatNodes": [
           "cabinet",
           "scan-beam",
@@ -810,7 +810,7 @@ export const ARCHIFY = {
         "endStill": "plan-skill-registry--name-for-fulltext-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.35,
+        "storySec": 3.37,
         "beatNodes": [
           "name-input",
           "registry",
@@ -824,7 +824,7 @@ export const ARCHIFY = {
         "endStill": "plan-skill-registry--no-path-to-forge-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.34,
+        "storySec": 3.36,
         "beatNodes": [
           "registry",
           "no-path-branch",
@@ -838,7 +838,7 @@ export const ARCHIFY = {
         "endStill": "plan-skill-registry--designed-away-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.25,
+        "storySec": 3.23,
         "beatNodes": [
           "design-note",
           "registry"
@@ -857,7 +857,7 @@ export const ARCHIFY = {
         "endStill": "plan-todo-states--three-states-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.46,
+        "storySec": 4.42,
         "beatNodes": [
           "state-pending",
           "state-progress",
@@ -892,7 +892,7 @@ export const ARCHIFY = {
         "endStill": "plan-todo-swap--validate-first-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.34,
+        "storySec": 3.35,
         "beatNodes": [
           "checklist",
           "validate-step",
@@ -906,7 +906,7 @@ export const ARCHIFY = {
         "endStill": "plan-todo-swap--no-half-card-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.33,
+        "storySec": 3.35,
         "beatNodes": [
           "fail-x",
           "old-card",
@@ -920,7 +920,7 @@ export const ARCHIFY = {
         "endStill": "plan-todo-swap--nag-counter-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.35,
+        "storySec": 3.33,
         "beatNodes": [
           "counter",
           "reminder-note",
@@ -934,7 +934,7 @@ export const ARCHIFY = {
         "endStill": "plan-todo-swap--reset-on-send-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.37,
+        "storySec": 3.35,
         "beatNodes": [
           "reminder-note",
           "counter",
@@ -954,7 +954,7 @@ export const ARCHIFY = {
         "endStill": "plan-truncation-order--raise-budget-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.25,
+        "storySec": 3.23,
         "beatNodes": [
           "loop",
           "budget-raise"
@@ -967,7 +967,7 @@ export const ARCHIFY = {
         "endStill": "plan-truncation-order--resend-verbatim-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.34,
+        "storySec": 3.31,
         "beatNodes": [
           "budget-raise",
           "api",
@@ -981,7 +981,7 @@ export const ARCHIFY = {
         "endStill": "plan-truncation-order--judge-before-write-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.33,
+        "storySec": 3.32,
         "beatNodes": [
           "loop",
           "judge-step",
@@ -995,7 +995,7 @@ export const ARCHIFY = {
         "endStill": "plan-truncation-order--order-is-correctness-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.35,
+        "storySec": 3.33,
         "beatNodes": [
           "messages",
           "api",
@@ -1009,7 +1009,7 @@ export const ARCHIFY = {
         "endStill": "plan-truncation-order--continuation-capped-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.32,
+        "storySec": 3.36,
         "beatNodes": [
           "messages",
           "continuation-note",

@@ -1,5 +1,5 @@
 # 本集可执行参数的**唯一来源**（ISSUE-161：可执行参数不落散文文档，README 只引用配置）。
-# 编排入口：uv run --no-project $T/scripts/pipeline.py --project $P <cmd>（$T/$W/$P/$V 见 to-video skill 的 references/PIPELINE.md）
+# 编排入口：uv run --no-project $T/scripts/pipeline.py --project $P <cmd>（$T/$W/$P/$V 见 vibe-video skill 的 references/PIPELINE.md）
 #
 # 只写**本集偏离**：机制常数（chars_per_min / lang / draft_scale / draft_jpeg_quality）
 # 的默认值在 skill 仓 scripts/config.py，不要抄回这里。字段表见 skill 的
@@ -9,34 +9,27 @@
 slug = "claude-code-memory-video"
 
 [narration]
-# TODO：按本集选题与语速预算填写。口径提示——280 字/分是**含停顿的等效**口径
-# （挂 story 终声档锚点时默认层为 254，见 config.STYLE_CHARS_PER_MIN），
-# 双口径门以 manifest 实测为准。
-target_minutes = [13.0, 14.6]
-# 本集实测口径（ep3 me-bright 终声 2026-10-02 校准，RSI-021 回写）：含时距等效 ≈281 字/分。
-# B 档覆写行使（timing.json，本集首例）：me-bright 纯语音实测 324 字/分，254 预算口径偏快——
-# 不改稿不重合成，句隙 0.32→0.68/幕隙 0.9→1.2/尾静默 2→3 拉至 13.15 分落窗（实测 23,671 帧 = 789.03s，帧/mdls 两腿汇合；决策记录住此，timing.json 保持纯 JSON）。
-chars_per_min = 281
+# TODO：按本集选题与语速预算填写。口径提示——280 字/分是**含停顿的等效**口径，
+# 裸按字数算会高估约 12% 的句容量，双口径门以 manifest 实测为准。
+target_minutes = [13.0, 15.5]  # 2026-10-08 系列片头铺开：预算窗改含片头口径（leadIn 23.5s；原 [13.0, 14.6] 为无片头窗，E3 复算 14.603 已越界）
+# 本系列实测口径（ep1 CP1 校准 2026-09-30）：story 档含停顿等效 ≈254 字/分。
+chars_per_min = 254
 
 [tts]
-# 两档策略（RSI-034）：制作期 edge 草声（免费、秒级、需联网、免样本）；
-# 整集评审通过后由用户显式触发用 IndexTTS-2.5 + 本人声音重配（references/07 §重配）。
 engine = "indextts"
-# 终声档锚点：edge 期间不参与合成，仅作预算门估算口径（story=254 字/分）
-# 与重配预置；me-bright 重配已于 2026-10-02 落定（engine/style/ref/ref_sha1 均为终声态）。
-style = "story"
-# 样本路径**工作区根相对**；ref_sha1 取 12 位（同 tts.py 口径），
-# 清单用 `uv run --no-project $T/scripts/refs.py list` 查。
+# TODO：选定样本与风格。样本路径**工作区根相对**；ref_sha1 取 12 位（同 tts.py 口径），
+# 用 `uv run --no-project $T/scripts/refs.py list` 查当前清单。
 # ⚠️ 风格预设的 alpha 是在**特定选段**上标定的，换选段即失效（见 $V/refs.toml）。
 ref = "voices/me-bright.wav"
 ref_sha1 = "54b699cce97f"
+style = "story"
 # story 档（默认）＝段落演绎：同幕连续句按块合成、块间情绪由配音台本驱动。
 # 台本（可选）：script/narration.cues.toml——写稿阶段产出，见 $T/references/VOICE-CLONING.md §4.5。
-# 重配（引擎/风格/样本任一变化＝整集重录）须显式 --allow-voice-switch；首次上 story 补写台本。
+# 重制存量集（旧档 → story）须显式 --allow-voice-switch 并补写台本。
 
 [archify]
-# 覆盖门硬值（对齐系列各集）：锚定率 / cue 密度 / 图型数下限；全屏独占三分法。
-# 图集预算在 Stage ② 策划时定稿（本集预算 12 图：10 新绘 + 2 张 176 图复用）。
+# 覆盖门硬值（对齐 jev 基准）：锚定率 / cue 密度 / 图型数下限；全屏独占三分法。
+# 图集预算在 Stage ② 策划时按本集内容定稿（~8–14 图 / ≥5 型）。
 html_dir = "docs/assets/architecture/agent-harness"
 html_pattern = "claude-code--{slug}.html"
 min_anchor_ratio = 0.30
@@ -44,8 +37,7 @@ min_cues_per_minute = 3.0
 min_diagram_types = 5
 forbid_inset = true  # 全屏独占（storyboard 按此设计）；残留画中画即 FAIL
 
-# 复用图例外（docs 精读 176 伴生图）：html_pattern 外的 176 图资产，经原生重建
-# （补 guided-views 章数据）后按下列映射接线。
+# 复用图例外（storyboard 图集表 #11/#12）：原生重建产物 + guided-views 合并嵌入
 [archify.html_overrides]
-compact-pipeline = "learn-claude-code-memory--compact-pipeline.html"
-recall-loop = "learn-claude-code-memory--recall-loop.html"
+memory-panorama = "claude-code-memory--memory-panorama.html"
+five-layer-dependency = "claude-code-harness--five-layer-dependency.html"

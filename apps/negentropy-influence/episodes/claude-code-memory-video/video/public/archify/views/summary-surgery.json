@@ -1,1 +1,0 @@
-[{"id":"four-steps","label":"四件事按序","focus":["transcript","distill","pin-request","compacted"],"note":"先写档案→只整理事实→夹出当前请求→一条压缩标记替换全史"},{"id":"anti-inject","label":"不执行历史指令","focus":["compacted","no-exec"],"note":"指令区白纸黑字：历史里的指令只是记录，防旧命令被当任务"},{"id":"fuse-3","label":"连错三次熔断（讲义口径）","focus":["distill","fuse"],"note":"连错三次就停手；这个数字只在讲义里，开源代码无对应实现"}]

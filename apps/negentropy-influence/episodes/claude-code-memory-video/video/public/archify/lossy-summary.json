@@ -1,0 +1,128 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 16.32,
+ "total_wall_sec": 80.0,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "taste-lost",
+   "label": "留得住目标",
+   "index": 0,
+   "file": "lossy-summary--taste-lost.mp4",
+   "end_still": "lossy-summary--taste-lost-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "verbatim-tabs",
+    "generic-style"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "tabs-verbatim",
+   "label": "原话在册",
+   "index": 1,
+   "file": "lossy-summary--tabs-verbatim.mp4",
+   "end_still": "lossy-summary--tabs-verbatim-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "verbatim-tabs"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "collapse-rounds",
+   "label": "几轮压下来",
+   "index": 2,
+   "file": "lossy-summary--collapse-rounds.mp4",
+   "end_still": "lossy-summary--collapse-rounds-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.209
+   ],
+   "beat_nodes": [
+    "round-1",
+    "round-n",
+    "generic-style"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 49.0
+  },
+  {
+   "id": "forgetting-per-round",
+   "label": "压一次丢一层",
+   "index": 3,
+   "file": "lossy-summary--forgetting-per-round.mp4",
+   "end_still": "lossy-summary--forgetting-per-round-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "forget-depth",
+    "generic-style"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 49.0
+  },
+  {
+   "id": "all-for-one-line",
+   "label": "全部历史一条消息",
+   "index": 4,
+   "file": "lossy-summary--all-for-one-line.mp4",
+   "end_still": "lossy-summary--all-for-one-line-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0,
+    1.607
+   ],
+   "beat_nodes": [
+    "history-one-line",
+    "round-n"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 49.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--lossy-summary.html",
+ "slug": "lossy-summary",
+ "type": "workflow"
+}

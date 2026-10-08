@@ -2,8 +2,8 @@
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 49.03,
- "total_wall_sec": 265.18,
+ "story_sec": 49.01,
+ "total_wall_sec": 201.68,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -17,11 +17,11 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.32,
+   "story_sec": 3.31,
    "beat_offsets_sec": [
     0.0,
-    1.103,
-    2.207
+    1.101,
+    2.204
    ],
    "beat_nodes": [
     "belt",
@@ -40,10 +40,10 @@
    "beats": 2,
    "dwell_ms": 1600,
    "lead_sec": 0.44,
-   "story_sec": 3.25,
+   "story_sec": 3.22,
    "beat_offsets_sec": [
     0.0,
-    1.603
+    1.602
    ],
    "beat_nodes": [
     "level-truncation",
@@ -61,10 +61,10 @@
    "beats": 2,
    "dwell_ms": 1600,
    "lead_sec": 0.44,
-   "story_sec": 3.22,
+   "story_sec": 3.24,
    "beat_offsets_sec": [
     0.0,
-    1.604
+    1.603
    ],
    "beat_nodes": [
     "level-overflow",
@@ -82,10 +82,10 @@
    "beats": 2,
    "dwell_ms": 1600,
    "lead_sec": 0.44,
-   "story_sec": 3.24,
+   "story_sec": 3.23,
    "beat_offsets_sec": [
     0.0,
-    1.605
+    1.603
    ],
    "beat_nodes": [
     "level-transient",
@@ -103,11 +103,11 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.36,
+   "story_sec": 3.37,
    "beat_offsets_sec": [
     0.0,
-    1.104,
-    2.206
+    1.103,
+    2.207
    ],
    "beat_nodes": [
     "level-truncation",
@@ -126,10 +126,10 @@
    "beats": 2,
    "dwell_ms": 1600,
    "lead_sec": 0.44,
-   "story_sec": 3.24,
+   "story_sec": 3.22,
    "beat_offsets_sec": [
     0.0,
-    1.603
+    1.605
    ],
    "beat_nodes": [
     "inner-retry",
@@ -147,10 +147,10 @@
    "beats": 2,
    "dwell_ms": 1600,
    "lead_sec": 0.44,
-   "story_sec": 3.25,
+   "story_sec": 3.24,
    "beat_offsets_sec": [
     0.0,
-    1.603
+    1.605
    ],
    "beat_nodes": [
     "stop-reason",
@@ -168,11 +168,11 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.35,
+   "story_sec": 3.33,
    "beat_offsets_sec": [
     0.0,
-    1.104,
-    2.208
+    1.102,
+    2.207
    ],
    "beat_nodes": [
     "level-overflow",
@@ -180,7 +180,7 @@
     "retry-loop"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 27.0
+   "capture_fps": 26.0
   },
   {
    "id": "compact-once-gate",
@@ -191,7 +191,7 @@
    "beats": 2,
    "dwell_ms": 1600,
    "lead_sec": 0.44,
-   "story_sec": 3.22,
+   "story_sec": 3.26,
    "beat_offsets_sec": [
     0.0,
     1.604
@@ -212,10 +212,10 @@
    "beats": 2,
    "dwell_ms": 1600,
    "lead_sec": 0.44,
-   "story_sec": 3.23,
+   "story_sec": 3.22,
    "beat_offsets_sec": [
     0.0,
-    1.604
+    1.603
    ],
    "beat_nodes": [
     "give-up",
@@ -233,7 +233,7 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.34,
+   "story_sec": 3.35,
    "beat_offsets_sec": [
     0.0,
     1.104,
@@ -245,7 +245,7 @@
     "jitter-dots"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 27.0
+   "capture_fps": 26.0
   },
   {
    "id": "jitter-anti-avalanche",
@@ -256,10 +256,10 @@
    "beats": 2,
    "dwell_ms": 1600,
    "lead_sec": 0.44,
-   "story_sec": 3.24,
+   "story_sec": 3.22,
    "beat_offsets_sec": [
     0.0,
-    1.604
+    1.605
    ],
    "beat_nodes": [
     "jitter-dots",
@@ -280,7 +280,7 @@
    "story_sec": 3.23,
    "beat_offsets_sec": [
     0.0,
-    1.602
+    1.605
    ],
    "beat_nodes": [
     "cap-ten",
@@ -298,10 +298,10 @@
    "beats": 2,
    "dwell_ms": 1600,
    "lead_sec": 0.44,
-   "story_sec": 3.21,
+   "story_sec": 3.25,
    "beat_offsets_sec": [
     0.0,
-    1.603
+    1.605
    ],
    "beat_nodes": [
     "fallback-model",
@@ -319,11 +319,11 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.33,
+   "story_sec": 3.32,
    "beat_offsets_sec": [
     0.0,
-    1.105,
-    2.208
+    1.102,
+    2.206
    ],
    "beat_nodes": [
     "log-line",
@@ -342,7 +342,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/managua-v1/docs/assets/architecture/agent-harness/claude-code--plan-recovery-ladder.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--plan-recovery-ladder.html",
  "slug": "plan-recovery-ladder",
  "type": "lifecycle"
 }

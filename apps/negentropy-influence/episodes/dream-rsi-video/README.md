@@ -3,7 +3,7 @@
 > 交付状态：**v2 终渲待审**（2026-09-23，顶部章节进度条版）——时长复算式：**= 18926 帧 @30fps = 630.87s = 10 分 30.87 秒**（含尾静默；
 > ffprobe Duration 00:10:30.87 与复算逐位吻合）。120 句 / 2989 字 / 估算 10.7 分（字数口径），实测 10.5 分（含时距口径）。
 > archify 混合形态：16 图 / 61 章 / 50 cue，锚定 41.7%（P0 纯 Remotion 豁免）；草渲 QA FAIL 0（含 beat-heads / last-n / 主题对比度三色 ≥11:1）。
-> v2 增量：同步 to-video「顶部进度条分代」（Main 挂载 + frozen ChapterProgress + build 派生 chapters.json 七幕标签），骨架漂移门未登记漂移 2→0；成片归档 `~/Documents/video/self-evolution/`。
+> v2 增量：同步 vibe-video「顶部进度条分代」（Main 挂载 + frozen ChapterProgress + build 派生 chapters.json 七幕标签），骨架漂移门未登记漂移 2→0；成片归档 `~/Documents/video/self-evolution/`。
 > 发布顺序见 [../../series.json](../../series.json)（工作区根）。
 
 ## 目录结构
@@ -14,15 +14,15 @@
 | `script/planning.md` | Stage ② 策划案（六节齐，含本集视觉契约） |
 | `script/narration.md` | Stage ③ 逐字稿 **★单一事实源**（勿改 narration.json） |
 | `script/storyboard.md` | Stage ⑤ 分镜表（镜号 ↔ 句 id 区间 ↔ 画面 ↔ 动效） |
-| `scripts/*.py` | 薄包装 → to-video skill 的 pipeline/scripts/（解析器定位，保 CLI 契约） |
+| `scripts/*.py` | 薄包装 → vibe-video skill 的 pipeline/scripts/（解析器定位，保 CLI 契约） |
 | `video/` | Remotion 独立 pnpm 工程（嵌套 workspace 自锚隔离） |
 | `out/` | 渲染产物（gitignored） |
-| `pipeline.toml` | 本集可执行参数的唯一来源（字段表见 [to-video skill 的 pipeline/README.md](https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/README.md)） |
+| `pipeline.toml` | 本集可执行参数的唯一来源（字段表见 [vibe-video skill 的 pipeline/README.md](https://github.com/ThreeFish-AI/vibe-video/blob/main/pipeline/README.md)） |
 
 ## 复现流水线
 
 ```bash
-# 在工作区内执行。$T/$W/$P/$V 的定义见 to-video skill 的 pipeline/README.md 路径变量约定（唯一定义处）
+# 在工作区内执行。$T/$W/$P/$V 的定义见 vibe-video skill 的 pipeline/README.md 路径变量约定（唯一定义处）
 P=$W/episodes/dream-rsi-video
 
 # ① A 型论文集：paper-notes.md 即事实源（arXiv HTML v1 分章并行提取 + 原型复跑一级证据；本地冻结 PDF 已 gitignore）
@@ -57,7 +57,7 @@ uv run --no-project $T/pipeline/scripts/pipeline.py --project $P render --final
 - 逐字稿只改 `script/narration.md`；`narration.json` / `manifest.json` 是派生物。
 - 时序常数只在 `video/src/timing.json`（timing.ts 与 Python 侧 timeline.py 共读）。
 - **口播永不出现他集标题与集数序号**——顺序只在视觉层与 series.json（`check_series.py` 执法）。
-- 骨架冻结档位见 [to-video skill 的 skeleton.toml](https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/templates/video-skeleton/skeleton.toml)；
+- 骨架冻结档位见 [vibe-video skill 的 skeleton.toml](https://github.com/ThreeFish-AI/vibe-video/blob/main/pipeline/templates/video-skeleton/skeleton.toml)；
   改动前先跑 `uv run --no-project $T/pipeline/scripts/verify_skeleton.py`。
 
 ## 许可

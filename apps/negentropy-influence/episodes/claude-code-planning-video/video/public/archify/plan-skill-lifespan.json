@@ -1,9 +1,9 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.44,
- "story_sec": 19.53,
- "total_wall_sec": 108.99,
+ "lead_sec": 0.6,
+ "story_sec": 20.11,
+ "total_wall_sec": 143.87,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -16,11 +16,11 @@
    "end_still": "plan-skill-lifespan--lifespan-split-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 0.44,
+   "lead_sec": 0.6,
    "story_sec": 3.26,
    "beat_offsets_sec": [
     0.0,
-    1.604
+    1.602
    ],
    "beat_nodes": [
     "label-track",
@@ -41,7 +41,7 @@
    "story_sec": 3.24,
    "beat_offsets_sec": [
     0.0,
-    1.605
+    1.602
    ],
    "beat_nodes": [
     "tool-result",
@@ -69,7 +69,7 @@
     "manual"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 49.0
+   "capture_fps": 48.0
   },
   {
    "id": "label-stays",
@@ -80,10 +80,10 @@
    "beats": 2,
    "dwell_ms": 1600,
    "lead_sec": 0.44,
-   "story_sec": 3.22,
+   "story_sec": 3.24,
    "beat_offsets_sec": [
     0.0,
-    1.603
+    1.604
    ],
    "beat_nodes": [
     "labels-strip",
@@ -100,8 +100,8 @@
    "end_still": "plan-skill-lifespan--re-paste-budget-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 0.48,
-   "story_sec": 3.23,
+   "lead_sec": 0.44,
+   "story_sec": 3.78,
    "beat_offsets_sec": [
     0.0,
     1.605
@@ -111,7 +111,7 @@
     "cap-mark"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 49.0
+   "capture_fps": 47.0
   },
   {
    "id": "pair-not-either",
@@ -122,11 +122,11 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.32,
+   "story_sec": 3.33,
    "beat_offsets_sec": [
     0.0,
-    1.105,
-    2.209
+    1.103,
+    2.207
    ],
    "beat_nodes": [
     "load-on-demand",
@@ -134,7 +134,7 @@
     "pair-bond"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 49.0
+   "capture_fps": 48.0
   }
  ],
  "capture": {
@@ -145,7 +145,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/managua-v1/docs/assets/architecture/agent-harness/claude-code--plan-skill-lifespan.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--plan-skill-lifespan.html",
  "slug": "plan-skill-lifespan",
  "type": "lifecycle"
 }

@@ -1,0 +1,9 @@
+[
+ {"id": "evolved-hint", "label": "占位符带上地址", "focus": ["evolve", "micro"], "note": "演进彩蛋：新版占位符带上磁盘地址，指针再被压缩也认得出自己。focus 对齐主仓 claude-code-memory--memory-panorama.html 既有节点语义，录制前回填 guided-views。"},
+ {"id": "roads-closed", "label": "路一条条堵上", "focus": ["evolve", "micro", "spill"], "note": "带地址、先存再压、掐口不二刀——台面上找不到原文的路一条条被堵上（照单记下，不谈因果）。"},
+ {"id": "answer-panorama", "label": "现在能答了", "focus": ["spill", "trim", "micro", "digest", "select", "extract", "night"], "note": "回到开头的问题，全景展开——会丢的收台四步与不能丢的登记簿一图合观。"},
+ {"id": "lossy-side", "label": "会丢的那套", "focus": ["spill", "trim", "micro", "digest"], "note": "收台四步：用有损换无限——便宜先跑、配对不拆，丢也丢得有章法。"},
+ {"id": "ledger-side", "label": "不能丢的那套", "focus": ["select", "extract", "night"], "note": "登记簿一册：用磁盘换窗口——不参与压缩、不随会话清空、写权收在工坊。"},
+ {"id": "two-clamps", "label": "两处咬合", "focus": ["extract", "model"], "note": "写入取压缩前快照，压缩后从磁盘把该拿的拿回来——两套机制在两端咬合。"},
+ {"id": "vow-cashed", "label": "立碑兑现", "focus": ["spill", "trim", "micro", "digest", "select", "extract"], "note": "记忆不是一个功能，是两套咬合的机制——开头立的碑到这里兑现（终态）。"}
+]

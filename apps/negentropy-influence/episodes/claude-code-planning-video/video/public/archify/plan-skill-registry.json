@@ -2,8 +2,8 @@
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 16.55,
- "total_wall_sec": 90.29,
+ "story_sec": 16.52,
+ "total_wall_sec": 118.05,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -17,10 +17,10 @@
    "beats": 2,
    "dwell_ms": 1600,
    "lead_sec": 0.44,
-   "story_sec": 3.26,
+   "story_sec": 3.22,
    "beat_offsets_sec": [
     0.0,
-    1.606
+    1.602
    ],
    "beat_nodes": [
     "name-input",
@@ -38,11 +38,11 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.35,
+   "story_sec": 3.34,
    "beat_offsets_sec": [
     0.0,
-    1.103,
-    2.205
+    1.105,
+    2.208
    ],
    "beat_nodes": [
     "cabinet",
@@ -61,11 +61,11 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.35,
+   "story_sec": 3.37,
    "beat_offsets_sec": [
     0.0,
     1.105,
-    2.21
+    2.208
    ],
    "beat_nodes": [
     "name-input",
@@ -73,7 +73,7 @@
     "manual-out"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 49.0
+   "capture_fps": 52.0
   },
   {
    "id": "no-path-to-forge",
@@ -84,11 +84,11 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.34,
+   "story_sec": 3.36,
    "beat_offsets_sec": [
     0.0,
-    1.104,
-    2.211
+    1.102,
+    2.204
    ],
    "beat_nodes": [
     "registry",
@@ -107,10 +107,10 @@
    "beats": 2,
    "dwell_ms": 1600,
    "lead_sec": 0.44,
-   "story_sec": 3.25,
+   "story_sec": 3.23,
    "beat_offsets_sec": [
     0.0,
-    1.603
+    1.604
    ],
    "beat_nodes": [
     "design-note",
@@ -128,7 +128,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/managua-v1/docs/assets/architecture/agent-harness/claude-code--plan-skill-registry.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--plan-skill-registry.html",
  "slug": "plan-skill-registry",
  "type": "workflow"
 }
