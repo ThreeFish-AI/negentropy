@@ -1,5 +1,5 @@
 ---
-sidebar_position: 8
+sidebar_position: 9
 title: "AI Native 手册 ↔ negentropy 机制映射"
 description: "《AI Native 研发范式实践手册》企业级 Harness 十七条机制对照本仓 Routine / 知识库 / 工具 / 权限 / 可观测的实现：✅ 8 / 🔶 3 / ⏸ 6，真增量集中在凭据边界、授权第三态与生产门控对象三处"
 ---
