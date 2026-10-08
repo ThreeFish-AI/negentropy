@@ -425,3 +425,143 @@ export const LodgeMap: React.FC<{
 };
 
 export {ease};
+
+// ─────────────────────────────────────────────────────── 系列片头用 LoopRing
+// 自系列种子移植（主干 #1190，origin/feature/1.x.x 同文件「母题 2」段原样）：
+// series-intro.tsx（五集孪生副本，本轮入库未挂载）import 本母题，tsc 全量编译
+// 需要它在场；本集正片使用 CorridorRing（楼喻裁剪版），两者并存互不干扰。
+// 片头挂载与逐集裁剪留待下轮重制（vibe-video.toml drift 条同注）。
+export type RingNode = {label: string; angle: number};
+
+/** 环上四个节点的固定角度（12 点起顺时针）——各幕一致，位置即语义 */
+export const RING_NODES: RingNode[] = [
+  {label: '问模型', angle: -90},
+  {label: '看回答', angle: 0},
+  {label: '执行工具', angle: 90},
+  {label: '填回结果', angle: 180},
+];
+
+const polar = (cx: number, cy: number, r: number, deg: number) => {
+  const rad = (deg * Math.PI) / 180;
+  return {x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad)};
+};
+
+/**
+ * 全片恒定的环形循环。
+ * - `draw` 0→1 描线进度；`dotProgress` 光点沿环位置（0–1，undefined 则不显示）
+ * - `activeNode` 高亮某节点（石青脉冲）；`exitPull` 光点滑出到「停机」出口的比例
+ * - `nodeLabels` 覆写节点文案（P5 执行节点翻牌用）
+ */
+export const LoopRing: React.FC<{
+  size?: number;
+  draw?: number;
+  dotProgress?: number;
+  activeNode?: number;
+  exitPull?: number;
+  dimNodes?: boolean;
+  nodeLabels?: string[];
+  showExit?: boolean;
+  /** 节点文案。size < 260 时必须关掉——0°/180° 两侧的标签会在小尺寸下互相压字 */
+  showLabels?: boolean;
+}> = ({
+  size = 460,
+  draw = 1,
+  dotProgress,
+  activeNode,
+  exitPull = 0,
+  dimNodes = false,
+  nodeLabels,
+  showExit = true,
+  showLabels,
+}) => {
+  const labelsOn = showLabels ?? size >= 260;
+  const frame = useCurrentFrame();
+  const cx = size / 2;
+  const cy = size / 2;
+  const r = size / 2 - 46;
+  const pulse = 0.55 + 0.45 * Math.sin(frame / 5);
+
+  // 光点位置：沿环 + 可选地向右侧「停机」出口外拉
+  const dot = dotProgress === undefined ? null : polar(cx, cy, r, -90 + dotProgress * 360);
+  const exitX = dot ? dot.x + exitPull * (size - cx + 90) : 0;
+  const exitY = dot ? dot.y + exitPull * -18 : 0;
+
+  return (
+    <svg width={size} height={size} style={{overflow: 'visible'}}>
+      {/* 环本体：pathLength 归一化描线（红线三：不与像素 dasharray 混用） */}
+      <circle
+        cx={cx}
+        cy={cy}
+        r={r}
+        fill="none"
+        stroke={theme.core}
+        strokeWidth={RING_STROKE}
+        strokeLinecap="round"
+        pathLength={1}
+        strokeDasharray={1}
+        strokeDashoffset={1 - Math.max(0, Math.min(1, draw))}
+        transform={`rotate(-90 ${cx} ${cy})`}
+      />
+      {showExit ? (
+        <line
+          x1={cx + r}
+          y1={cy}
+          x2={cx + r + 78}
+          y2={cy - 14}
+          stroke={theme.core}
+          strokeWidth={RING_STROKE - 2}
+          strokeDasharray="8 8"
+          opacity={0.5 * draw}
+        />
+      ) : null}
+      {RING_NODES.map((n, i) => {
+        const p = polar(cx, cy, r, n.angle);
+        const on = activeNode === i;
+        const o = draw > 0.85 ? 1 : 0;
+        return (
+          <g key={n.label} opacity={o}>
+            <circle
+              cx={p.x}
+              cy={p.y}
+              r={on ? 16 + 5 * pulse : 13}
+              fill={theme.bg}
+              stroke={on ? theme.mech : theme.core}
+              strokeWidth={4}
+              opacity={dimNodes && !on ? 0.4 : 1}
+            />
+            {labelsOn ? (
+              <text
+                x={p.x}
+                y={p.y + (n.angle === 90 ? 46 : n.angle === -90 ? -28 : 6)}
+                textAnchor={n.angle === 0 ? 'start' : n.angle === 180 ? 'end' : 'middle'}
+                dx={n.angle === 0 ? 26 : n.angle === 180 ? -26 : 0}
+                fontFamily={theme.sans}
+                fontSize={24}
+                fontWeight={600}
+                fill={on ? theme.mech : dimNodes ? theme.dim : theme.text}
+              >
+                {nodeLabels?.[i] ?? n.label}
+              </text>
+            ) : null}
+          </g>
+        );
+      })}
+      {dot ? (
+        <circle
+          cx={exitPull > 0 ? exitX : dot.x}
+          cy={exitPull > 0 ? exitY : dot.y}
+          r={11}
+          fill={theme.core}
+          opacity={exitPull > 0.9 ? 0.5 : 1}
+        />
+      ) : null}
+    </svg>
+  );
+};
+
+/** 环的匀速巡游进度（周期 secPerLap 秒），供各幕共用同一节律 */
+export const useRingDot = (secPerLap = 2.5, offset = 0) => {
+  const frame = useCurrentFrame();
+  const {fps} = useVideoConfig();
+  return ((frame - offset) / (fps * secPerLap)) % 1;
+};

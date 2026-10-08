@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """ep5 专用：给 archify 3.0 出的图注入精简 guidedViews 兼容层（E1 范式泛化，RSI-038）。
 
-背景：to-video 录制器（record_archify.py）硬依赖 Archify.guidedViews 五 API
+背景：vibe-video（前名 to-video）录制器（record_archify.py）硬依赖 Archify.guidedViews 五 API
 （count/activate/active/playCurrent/isPlaying）；archify 3.0 移除了该模块。
 本脚本不修改 docs/ 的 canonical 原件（SSOT），拷贝到本集 html/ 后注入：
   ① <script id="archify-guided-views-data"> 容器（章表 = views/<slug>.json 内容）

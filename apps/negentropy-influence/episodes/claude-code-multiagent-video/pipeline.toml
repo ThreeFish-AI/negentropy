@@ -1,5 +1,5 @@
 # 本集可执行参数的**唯一来源**（ISSUE-161：可执行参数不落散文文档，README 只引用配置）。
-# 编排入口：uv run --no-project $T/scripts/pipeline.py --project $P <cmd>（$T/$W/$P/$V 见 to-video skill 的 references/PIPELINE.md）
+# 编排入口：uv run --no-project $T/scripts/pipeline.py --project $P <cmd>（$T/$W/$P/$V 见 vibe-video skill 的 references/PIPELINE.md）
 #
 # 只写**本集偏离**：机制常数（chars_per_min / lang / draft_scale / draft_jpeg_quality）
 # 的默认值在 skill 仓 scripts/config.py，不要抄回这里。字段表见 skill 的
@@ -12,7 +12,10 @@ slug = "claude-code-multiagent-video"
 # 语速锚：edge（zh-CN-YunxiNeural +4%）实测口径 ≈278 字/分
 # （ep3 重制 edge 草声实测：3688 字 → 13.25 分）；本集 edge 即终声，
 # 首轮 tts 后按 RSI-021 复核，偏差 >3% 回写本值。
-target_minutes = [13.0, 14.6]
+# 2026-10-08 合并主干：窗口上沿 14.6→15.5 对齐系列含片头口径——本代成片未挂片头，
+# 实测 25734 帧 = 14.297 分、估算 4015 字 ÷ 278 = 14.44 分双双落窗；未来挂片头
+# （leadInSec 0.6→23.5s）实测约 14.68 分将超原 14.6 上界，15.5 恰好容纳。
+target_minutes = [13.0, 15.5]
 chars_per_min = 278
 
 [tts]
