@@ -1,0 +1,138 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "workflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/.temp/archify/workflow-cron-dom-dow-or-fig/candidate.json",
+    "sha256": "80b064745ed2e41367c6637f3e85160078a3dec8b56f997c3fe0d8c8bd987c96",
+    "bytes": 7189
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/docs/assets/architecture/agent-harness/claude-code--cron-dom-dow-or.html",
+    "sha256": "860c7ca21977123be33745e56ea696c49158ab3cde4752de948523483b92ad49",
+    "bytes": 760041
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/docs/assets/architecture/agent-harness/claude-code--cron-dom-dow-or.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/docs/assets/architecture/agent-harness/claude-code--cron-dom-dow-or.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/docs/assets/architecture/agent-harness/claude-code--cron-dom-dow-or.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 2049,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "routesOverSuggestedBends": 3,
+      "routesOverSuggestedStretch": 1
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [],
+      "detours": [
+        {
+          "relationship": {
+            "id": "e-dow-or",
+            "from": "f-dow",
+            "to": "or-gate",
+            "label": "",
+            "collectionIndex": 2,
+            "artifactIndex": 3
+          },
+          "bends": 3,
+          "stretch": 1
+        },
+        {
+          "relationship": {
+            "id": "e-hour-and",
+            "from": "f-hour",
+            "to": "and-gate",
+            "label": "",
+            "collectionIndex": 3,
+            "artifactIndex": 4
+          },
+          "bends": 3,
+          "stretch": 1.057,
+          "directCorridorBlockers": [
+            {
+              "id": "f-month",
+              "label": "月",
+              "box": [
+                320,
+                238,
+                132,
+                52
+              ]
+            }
+          ]
+        },
+        {
+          "relationship": {
+            "id": "e-min-and",
+            "from": "f-min",
+            "to": "and-gate",
+            "label": "",
+            "collectionIndex": 9,
+            "artifactIndex": 10
+          },
+          "bends": 2,
+          "stretch": 2.359,
+          "directCorridorBlockers": [
+            {
+              "id": "f-hour",
+              "label": "时",
+              "box": [
+                320,
+                162,
+                132,
+                52
+              ]
+            },
+            {
+              "id": "f-month",
+              "label": "月",
+              "box": [
+                320,
+                238,
+                132,
+                52
+              ]
+            }
+          ]
+        },
+        {
+          "relationship": {
+            "id": "e-month-and",
+            "from": "f-month",
+            "to": "and-gate",
+            "label": "",
+            "collectionIndex": 10,
+            "artifactIndex": 11
+          },
+          "bends": 3,
+          "stretch": 1.063
+        }
+      ],
+      "truncated": false
+    },
+    "hints": [
+      "f-dow → or-gate needs 3 bends: move node f-dow or or-gate so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "f-month → and-gate needs 3 bends: move node f-month or and-gate so they share a row or column with matching centers, or sit diagonally with a clear corner."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

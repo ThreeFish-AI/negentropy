@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "0987ea6e-3858-4b0f-96c3-705784605e9f",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/.temp/archify/workflow-cron-dom-dow-or-fig/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/docs/assets/architecture/agent-harness/claude-code--cron-dom-dow-or.html",
+  "specification": {
+    "sha256": "80b064745ed2e41367c6637f3e85160078a3dec8b56f997c3fe0d8c8bd987c96",
+    "bytes": 7189
+  },
+  "artifact": {
+    "sha256": "860c7ca21977123be33745e56ea696c49158ab3cde4752de948523483b92ad49",
+    "bytes": 760041
+  }
+}

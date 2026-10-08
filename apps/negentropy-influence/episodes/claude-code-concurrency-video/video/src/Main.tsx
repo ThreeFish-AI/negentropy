@@ -6,26 +6,26 @@ import {SceneFade} from './components/SceneFade';
 import {Subtitle} from './components/Subtitle';
 import {theme} from './design/theme';
 import {LangProvider} from './i18n';
-import {P0TwoTimes} from './scenes/P0TwoTimes';
-import {P1Background} from './scenes/P1Background';
-import {P2Notify} from './scenes/P2Notify';
-import {P3Apprentice} from './scenes/P3Apprentice';
-import {P4Clock} from './scenes/P4Clock';
-import {P5Durable} from './scenes/P5Durable';
-import {P6OneBelt} from './scenes/P6OneBelt';
+import {P0TwoWaits} from './scenes/P0TwoWaits';
+import {P1RootAndSpecs} from './scenes/P1RootAndSpecs';
+import {P2OneReceipt} from './scenes/P2OneReceipt';
+import {P3FourLayerClock} from './scenes/P3FourLayerClock';
+import {P4DiskNotAlive} from './scenes/P4DiskNotAlive';
+import {P5AblationLab} from './scenes/P5AblationLab';
+import {P6ReconRules} from './scenes/P6ReconRules';
 import {INTRO_FRAMES, SeriesIntro} from './components/series-intro';
 import {computeTimeline, SCENE_FADE_FRAMES} from './timing';
 import type {Lang} from './i18n';
 import type {ManifestItem, SceneRange} from './types';
 
 const SCENE_COMPONENTS: Record<string, React.FC<{scene: SceneRange}>> = {
-  P0: P0TwoTimes,
-  P1: P1Background,
-  P2: P2Notify,
-  P3: P3Apprentice,
-  P4: P4Clock,
-  P5: P5Durable,
-  P6: P6OneBelt,
+  P0: P0TwoWaits,
+  P1: P1RootAndSpecs,
+  P2: P2OneReceipt,
+  P3: P3FourLayerClock,
+  P4: P4DiskNotAlive,
+  P5: P5AblationLab,
+  P6: P6ReconRules,
 };
 
 export type MainProps = {manifest: ManifestItem[]; lang?: Lang};

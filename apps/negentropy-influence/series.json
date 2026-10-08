@@ -176,9 +176,9 @@
           "episode": 4,
           "slug": "claude-code-concurrency-video",
           "path": "episodes/claude-code-concurrency-video",
-          "title": "并发：谁来按下开始",
+          "title": "并发与调度：一张回执和四层钟",
           "topic": "并发与调度：谁替它看表",
-          "cardSub": "并发 · 时机",
+          "cardSub": "并发 · 调度",
           "accents": [
             "#7FB2E0",
             "#EFB13C"
@@ -192,8 +192,8 @@
             "accessed": "2026-10-07"
           },
           "status": "script-review",
-          "statusNote": "剧本 v3 待审（2026-10-07）：C 型信源=174 新精读；178 句 3594 字 7 幕 36 镜（14.1 分落窗）；三门绿 + source_ledger 17 条 FAIL 0；抖动双口径（官方 30 分钟/半间隔 vs 站点考古 10%/15 分钟）穿透回源；场景/TTS/图集未动（ISSUE-211）；2026-10-08 系列片头铺开：series-intro 组件副本+挂载块（归一化指纹 78664c3010fd）+leadIn 23.5（片头 705 帧前置）；时长预算窗改 [13.0,15.5] 含片头口径（+22.9s）；0-A 已让位改造（退役 HarnessStackP0，Badge 直入，2026-10-08）；成片待重渲（补跑 TTS 后统一批次），见 ISSUE-209",
-          "voice": "story + me-bright.wav"
+          "statusNote": "剧本 v3 待审（2026-10-07）：C 型信源=174 新精读；178 句 3594 字 7 幕 36 镜（14.1 分落窗）；三门绿 + source_ledger 17 条 FAIL 0；抖动双口径（官方 30 分钟/半间隔 vs 站点考古 10%/15 分钟）穿透回源；场景/TTS/图集未动（ISSUE-211）；2026-10-08 系列片头铺开：series-intro 组件副本+挂载块（归一化指纹 78664c3010fd）+leadIn 23.5（片头 705 帧前置）；时长预算窗改 [13.0,15.5] 含片头口径（+22.9s）；0-A 已让位改造（退役 HarnessStackP0，Badge 直入，2026-10-08）；成片待重渲（补跑 TTS 后统一批次），；**合并态（2026-10-08 merge feature/1.x.x）**：场景为 guided-learn-v2 完全重制代（P0TwoWaits…P6ReconRules 七幕，2026-10-03 v1 交付+四轮评审修复在档），TTS=edge 草声已落（旧代稿），0-A 让位由片头+新 P0 结构天然成立；v3 定稿后的场景轮/TTS/重渲批次见 ISSUE-209",
+          "voice": "edge 草声 zh-CN-YunxiNeural（升档待触发）"
         },
         {
           "episode": 5,

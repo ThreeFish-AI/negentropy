@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "d015edf1-8017-4a66-845c-40c8d6794d13",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/.temp/archify/architecture-spec-two-promises-fig/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/docs/assets/architecture/agent-harness/claude-code--spec-two-promises.html",
+  "specification": {
+    "sha256": "ee61e0f59da7871a6b3dd4f5a03766cb4a9bfa172acafb2add46f831c2aa699a",
+    "bytes": 2912
+  },
+  "artifact": {
+    "sha256": "ba92086de622fdd2199197f3224394d952c82608faeb239f3be24c252204f2b6",
+    "bytes": 759436
+  }
+}

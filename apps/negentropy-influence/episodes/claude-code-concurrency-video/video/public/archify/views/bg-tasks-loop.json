@@ -1,0 +1,26 @@
+[
+ {
+  "id": "gate-dispatch",
+  "label": "双闸分派",
+  "focus": ["model", "gate", "bg", "sync"],
+  "note": "P2 第二拍（p2-05..09）：第一道看后台参数拨杆，第二道十一个慢关键词兜底，显式说不要也挡不住。"
+ },
+ {
+  "id": "placeholder-hand",
+  "label": "占位回执三件事",
+  "focus": ["gate", "bg", "placeholder", "cont"],
+  "note": "P2 第三拍（p2-10..15）：交后台流水线、发四位编号入加锁登记表、立刻回占位回执，师傅转头干别的。"
+ },
+ {
+  "id": "notify-merge",
+  "label": "通知合流一条消息",
+  "focus": ["bg", "collect", "read"],
+  "note": "P2 第四拍（p2-16..22）：主循环每轮顺手查登记表，通知与当轮工具结果合进同一条消息——这就是叫号器。"
+ },
+ {
+  "id": "two-round-script",
+  "label": "两回合剧本",
+  "focus": ["gate", "bg", "placeholder", "cont", "collect", "read"],
+  "note": "P2 第五拍（p2-23..30）：第一回合发起安装丢后台回占位；第二回合读配置文件，安装通知与文件内容同框。"
+ }
+]

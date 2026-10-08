@@ -108,7 +108,8 @@
 
 ## 九、Agent Harness 工程 · `agent-harness/`
 
-> 一手材料：① 170–175 以 Learn Claude Code 课程站点修订与 [shareAI-lab/learn-claude-code](https://github.com/shareAI-lab/learn-claude-code) 仓库 main 整合版（MIT，固定提交取证：main `ce8f9f18` / 站点 `67a9126c`，2026-10-07 换钉）与 Anthropic 官方文档（code.claude.com，轨 C 产品现状口径）为信源；② 180–181 以阿里巴巴《AI Native 研发范式实践手册》（2026-09，68 页）为信源；③ 190–191 以 [NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent) 固定提交 `068db016`（MIT）与其官方文档站为信源。
+> 一手材料：① 170–175 以 Learn Claude Code 课程站点修订与 [shareAI-lab/learn-claude-code](https://github.com/shareAI-lab/learn-claude-code) 仓库 main 整合版（MIT，固定提交取证：main `ce8f9f18` / 站点 `67a9126c`，2026-10-07 换钉）与 Anthropic 官方文档（code.claude.com，轨 C 产品现状口径）为信源；② 180–181 以阿里巴巴《AI Native 研发范式实践手册》（2026-09，68 页）为信源；③ 190–191 以 [NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent) 固定提交 `068db016`（MIT）与其官方文档站为信源。④ 176 是 s13/s14「并发」两节的独立重学篇，以站点轨源文件固定提交 `67a9126c`（main 平行轨 `ce8f9f18` 对照）与 Anthropic 官方文档为信源，不继承 170–175 的叙事与结论。
+
 >
 > **SSOT 边界（170–175）**：逐章原文引语、可调参数、生产版行号与口播判据在科普视频工程各集 `research/gl-notes.md`（冻结登记 + 附录 C 穿透明细）；章→集归属与固定提交选择只登记在[系列信源地图](../../apps/negentropy-influence/source-map/claude-code-explained.md)。本分部只做**跨层综观、main 轨净增量与本仓机制对位**，冲突一律以上述两处为准。
 
@@ -124,6 +125,7 @@
 | [AI Native 手册 ↔ negentropy 机制映射](./agent-harness/181-ai-native-mapping-negentropy.md) | 十七条机制对照（✅8 / 🔶3 / ⏸6）：闭环骨架已同构，真增量为凭据边界（占位值 + 出站注入）、授权第三态 Challenge 与生产门控对象，均绑定「触达生产或不可信代码」触发条件暂缓 |
 | [精读：Nous Research Hermes Agent](./agent-harness/190-hermes-agent.md) | 自学习闭环 Harness 视角：缓存优先的三段式提示装配（会话内唯一计划内断点是压缩）、有界常驻记忆（2200/1375 字符）+ 按需技能两级记忆、交付后旁路 review 自写技能（分派侧白名单 · 先读后写 · 署名保护）+ Curator 只归档不删除、FTS5 零 LLM 会话检索 + 工具组不拆的四阶段压缩、委派/定时/命令守卫的受控扩张；五条规律（缓存/容量/写回/历史/边界）、三个争议、21 处文档↔代码漂移与「无学习效果评测」的批判性边界，配套原型六次破坏性实验与两张 archify 图 |
 | [Hermes Agent ↔ negentropy 机制映射](./agent-harness/191-hermes-agent-mapping-negentropy.md) | 十六条机制对照（✅4 / 🔶6 / ⏸6）：真增量=交互式对话零压缩（未启用 ADK 原生 EventsCompactionConfig）、记忆写入与注入两端无防注入、历史会话不可检索；取证副产物=中文关键词检索失效（english tsvector 整段汉字单 token，ISSUE-196）、审批门只接线两个工具（ISSUE-197）与 0001 RFC 的 Hermes 口径校正；运行中自写技能按争议一暂缓 |
+| [Learn Claude Code 并发与调度重学精读](./agent-harness/176-claude-code-concurrency-relearn.md) | s13 后台任务 × s14 定时调度的**独立重学篇**（最新版 guided-learn，零继承旧篇）：占位回执守住「一次调用配一个结果」的协议名额、通知由主循环每轮收集后以新消息身份回注；cron 四层解耦（判时/队列/非阻塞交付/执行）与三道保险；教学版三处边界实测（后台复用 120 秒超时、摘要截 200 字、通知未转义）；官方文档逐项对账（印证清单 + 抖动上限硬分歧 + 超时自动转后台三路径）；确定性原型 + 五次破坏性实验 + 两张 archify 图 |
 
 ---
 

@@ -33,7 +33,7 @@
 | 1   | [《工具与执行：一个循环，三层装置》](./episodes/claude-code-explained-video/README.md) | 循环不变式与三层挂载装置 | core #D97757 恒定/mech 石青 | 站点 s01–s04 钉 main `ce8f9f18`（MIT）＋官方文档轨 C；台账 15 条 audit FAIL 0 | 🟡 **剧本 v3 待审**（2026-10-07 信源换代）｜前代 v1 成片 14:02.6 · 164 句 · 12 图 65 章 |
 | 2   | [《规划与协调：模型的视野是安排出来的》](./episodes/claude-code-planning-video/README.md) | 五件安排台面的装置 | mech 鸢紫 #9C90EE | s05–s07·s10·s11 @ `67a9126c` ＋轨 C | 🟡 **剧本 v3 待审**（2026-10-07 信源换代）｜前代 v1 成片 14:12.2 · 12 图 68 章 |
 | 3   | [《记忆管理：会丢的和不能丢的》](./episodes/claude-code-memory-video/README.md) | 两套咬合的机制 | mech 苔绿 #A9C46C | s08·s09 @ `67a9126c` ＋轨 C（main 演进彩蛋） | 🟡 **剧本 v3 待审**（2026-10-07 信源换代）｜前代 v1 成片 14:13.3 · 12 图 62 章 |
-| 4   | [《并发：谁来按下开始》](./episodes/claude-code-concurrency-video/README.md) | 后台不等＋定时钟自动 | mech 霜蓝 #7FB2E0 | s13·s14 @ `67a9126c` ＋轨 C | 🟡 **剧本 v3 待审**（2026-10-07 信源换代）｜前代 v1 成片 14:10.8 · 12 图 59 章 |
+| 4   | [《并发与调度：一张回执和四层钟》](./episodes/claude-code-concurrency-video/README.md) | 一张回执＋四层钟 | mech 霜蓝 #7FB2E0 | C 型信源＝174 新精读（v3 换代） | 🟡 **剧本 v3 待审**（2026-10-07 信源换代）｜前代＝本分支完全重制 v1 交付（14:26.8 · 149 句 · 13 图 47 章 · edge 草声）＋系列片头挂载已接 |
 | 5   | [《多 Agent 平台：从一个到一群》](./episodes/claude-code-multiagent-video/README.md) | 从一个到一群的五物件 | mech 协作金 #D9B36B | s12·s15–s20 @ `67a9126c` ＋轨 C 八校准 | 🟡 **剧本 v3 待审**（2026-10-07 信源换代·终集收束）｜前代 v1 成片 13:42.8 · 13 图 67 章 |
 
 > 章节→集归属与**站点/仓库修订分叉**（站点为 20 章旧修订、仓库 main 已整合为 17 章，故双钉）：

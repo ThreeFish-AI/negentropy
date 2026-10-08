@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "sequence",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/.temp/archify/sequence-two-round-script-fig/candidate.json",
+    "sha256": "221bf8eb21489831a53301c2ac00561e9437516e21c376e8e8fcf6b6f3181303",
+    "bytes": 2848
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/docs/assets/architecture/agent-harness/claude-code--two-round-script.html",
+    "sha256": "4c1bfda93f7d96628348ad35bb7c9451348dc17a5849267d0edffc654a6462a7",
+    "bytes": 752421
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/docs/assets/architecture/agent-harness/claude-code--two-round-script.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/docs/assets/architecture/agent-harness/claude-code--two-round-script.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/docs/assets/architecture/agent-harness/claude-code--two-round-script.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 2077
+}

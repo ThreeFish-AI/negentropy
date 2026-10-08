@@ -16,7 +16,7 @@
  *    约 7 帧再由衬线记忆点接管，ep1 AnswerQuote 同款口径；工单点名的收束前
  *    P6 金句卡即此——主字压短「两套咬合的机制」，重合 7 字 < 10 安全线）。
  *  ★ 6-D 系列身份卡/下期卡：标题主段是 check_series 规则 8 的受检硬编码——
- *    本集「会丢的和不能丢的」＋下集「谁来按下开始」（改标题先改 series.json
+ *    本集「会丢的和不能丢的」＋下集「一张回执和四层钟」（改标题先改 series.json
  *    再同步此串）；层名/下期层名走 series-layers.json 数据（NEXT_LAYER）。
  *  ★ 工坊地图开灯口径：lit = 层 index ≤ 本集——口播 p6-19「两个区没开灯」的
  *    画面契约（published 数据在生产中段尚未就位；发布时两口径收敛同值）。
@@ -561,7 +561,7 @@ const SeriesCards: React.FC<{at20: number}> = ({at20}) => {
           <div style={{fontFamily: theme.sans, fontSize: 21, color: theme.dim, letterSpacing: 2}}>
             {`下期 · ${NEXT_LAYER?.layer ?? ''}`}
           </div>
-          <div style={{fontFamily: theme.serif, fontSize: 34, color: theme.text, marginTop: 8}}>{'谁来按下开始'}</div>
+          <div style={{fontFamily: theme.serif, fontSize: 34, color: theme.text, marginTop: 8}}>{'一张回执和四层钟'}</div>
         </div>
       </div>
     </>

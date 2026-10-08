@@ -1,0 +1,20 @@
+[
+  {
+    "id": "pair-rule",
+    "label": "一次调用一个结果",
+    "focus": ["shifu", "mainloop", "slot"],
+    "note": "服务 P2 首拍配对语义：编号 0001 的调用、占用、回执三连。"
+  },
+  {
+    "id": "reject-second",
+    "label": "补发被弹开",
+    "focus": ["shifu", "slot"],
+    "note": "服务 P2 对比段：第二个结果无处安放，名额弹回。"
+  },
+  {
+    "id": "notify-new-msg",
+    "label": "真结果走新消息",
+    "focus": ["pipeline", "mainloop", "shifu"],
+    "note": "服务 P2 收束段：后台跑完走新消息，不占名额、不改订单（叫号器）。"
+  }
+]

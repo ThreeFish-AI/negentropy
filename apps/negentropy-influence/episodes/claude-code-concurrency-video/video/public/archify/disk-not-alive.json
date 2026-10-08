@@ -1,0 +1,99 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 14.43,
+ "total_wall_sec": 64.74,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "two-lives",
+   "label": "两档·内存与磁盘",
+   "index": 0,
+   "file": "disk-not-alive--two-lives.mp4",
+   "end_still": "disk-not-alive--two-lives-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "register",
+    "in-memory",
+    "persist-file"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 62.0
+  },
+  {
+   "id": "shutdown",
+   "label": "一关就停 vs 文件仍亮",
+   "index": 1,
+   "file": "disk-not-alive--shutdown.mp4",
+   "end_still": "disk-not-alive--shutdown-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.37,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "shutdown",
+    "gone",
+    "file-alive"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 62.0
+  },
+  {
+   "id": "restore",
+   "label": "重启恢复·补一次",
+   "index": 2,
+   "file": "disk-not-alive--restore.mp4",
+   "end_still": "disk-not-alive--restore-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.45,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "load-restore",
+    "catch-up",
+    "list-only",
+    "exceptions-gone"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 62.0
+  },
+  {
+   "id": "escape-routes",
+   "label": "无人值守三条路",
+   "index": 3,
+   "file": "disk-not-alive--escape-routes.mp4",
+   "end_still": "disk-not-alive--escape-routes-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "persist-file",
+    "load-restore"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 62.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/apps/negentropy-influence/episodes/claude-code-concurrency-video/video/public/archify/html/disk-not-alive.html",
+ "slug": "disk-not-alive",
+ "type": "lifecycle"
+}

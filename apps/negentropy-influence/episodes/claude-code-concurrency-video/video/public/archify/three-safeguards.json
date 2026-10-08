@@ -1,0 +1,77 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 9.68,
+ "total_wall_sec": 47.04,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "mark-date",
+   "label": "保险一·带日期记号",
+   "index": 0,
+   "file": "three-safeguards--mark-date.mp4",
+   "end_still": "three-safeguards--mark-date-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "dated-mark",
+    "fire"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 62.0
+  },
+  {
+   "id": "per-task-guard",
+   "label": "保险二·单任务兜错",
+   "index": 1,
+   "file": "three-safeguards--per-task-guard.mp4",
+   "end_still": "three-safeguards--per-task-guard-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "guard-error",
+    "tick"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "double-check",
+   "label": "保险三·双重校验",
+   "index": 2,
+   "file": "three-safeguards--double-check.mp4",
+   "end_still": "three-safeguards--double-check-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "reject-invalid",
+    "skip-bad-save"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 62.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/apps/negentropy-influence/episodes/claude-code-concurrency-video/video/public/archify/html/three-safeguards.html",
+ "slug": "three-safeguards",
+ "type": "lifecycle"
+}

@@ -1,0 +1,20 @@
+[
+  {
+    "id": "mark-date",
+    "label": "保险一·带日期记号",
+    "focus": ["dated-mark", "fire"],
+    "note": "服务 3-E 幕 p3-18..19：到点先记「日期+时刻」再触发，不重不漏，次日不被昨日挡。"
+  },
+  {
+    "id": "per-task-guard",
+    "label": "保险二·单任务兜错",
+    "focus": ["guard-error", "tick"],
+    "note": "服务 3-E 幕 p3-20..21：坏任务崩只记自己的错，兜错后回到判时，流水线继续活。"
+  },
+  {
+    "id": "double-check",
+    "label": "保险三·双重校验",
+    "focus": ["reject-invalid", "skip-bad-save"],
+    "note": "服务 3-E 幕 p3-22..23：注册时非法表达式可读报错，加载时坏存档跳过该条，拖不垮启动。"
+  }
+]

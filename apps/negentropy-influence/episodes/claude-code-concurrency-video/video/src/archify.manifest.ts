@@ -24,875 +24,741 @@ export type ArchifyChapter = {
 export type ArchifyDiagram = {slug: string; type?: string; chapters: ArchifyChapter[]};
 
 export const ARCHIFY = {
-  "apprentice-watch": {
-    "slug": "apprentice-watch",
-    "type": "workflow",
-    "chapters": [
-      {
-        "id": "teach-zero",
-        "label": "教学版零落地",
-        "file": "apprentice-watch--teach-zero.mp4",
-        "endStill": "apprentice-watch--teach-zero-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.22,
-        "beatNodes": [
-          "teach-page",
-          "empty"
-        ]
-      },
-      {
-        "id": "watch-only",
-        "label": "只看不动手",
-        "file": "apprentice-watch--watch-only.mp4",
-        "endStill": "apprentice-watch--watch-only-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.26,
-        "beatNodes": [
-          "apprentice",
-          "sink-row"
-        ]
-      },
-      {
-        "id": "growth-not-age",
-        "label": "增量非时长",
-        "file": "apprentice-watch--growth-not-age.mp4",
-        "endStill": "apprentice-watch--growth-not-age-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.22,
-        "beatNodes": [
-          "output-meter",
-          "clock-x"
-        ]
-      },
-      {
-        "id": "forty-five-sec",
-        "label": "四十五秒凑近",
-        "file": "apprentice-watch--forty-five-sec.mp4",
-        "endStill": "apprentice-watch--forty-five-sec-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.23,
-        "beatNodes": [
-          "output-meter",
-          "threshold-45"
-        ]
-      },
-      {
-        "id": "yn-sniff",
-        "label": "停在问话上",
-        "file": "apprentice-watch--yn-sniff.mp4",
-        "endStill": "apprentice-watch--yn-sniff-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.23,
-        "beatNodes": [
-          "prompt-yn",
-          "wait-key"
-        ]
-      },
-      {
-        "id": "side-model-slip",
-        "label": "小模型写字条",
-        "file": "apprentice-watch--side-model-slip.mp4",
-        "endStill": "apprentice-watch--side-model-slip-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.36,
-        "beatNodes": [
-          "slip",
-          "side-model",
-          "main-stream"
-        ]
-      },
-      {
-        "id": "official-monitor",
-        "label": "官方监视工具",
-        "file": "apprentice-watch--official-monitor.mp4",
-        "endStill": "apprentice-watch--official-monitor-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.35,
-        "beatNodes": [
-          "monitor-tool",
-          "stream-rows",
-          "timeout-collect"
-        ]
-      }
-    ]
-  },
-  "bg-board-and-lock": {
-    "slug": "bg-board-and-lock",
+  "ablation-panel": {
+    "slug": "ablation-panel",
     "type": "architecture",
     "chapters": [
       {
-        "id": "registry-board",
-        "label": "登记板三栏",
-        "file": "bg-board-and-lock--registry-board.mp4",
-        "endStill": "bg-board-and-lock--registry-board-end.png",
-        "beats": 4,
+        "id": "bench-open",
+        "label": "实验台·五开关",
+        "file": "ablation-panel--bench-open.mp4",
+        "endStill": "ablation-panel--bench-open-end.png",
+        "beats": 6,
         "leadSec": 0.44,
-        "storySec": 4.46,
+        "storySec": 6.65,
         "beatNodes": [
-          "registry",
-          "id-col",
-          "cmd-col",
-          "status-col"
+          "machine",
+          "sw-guard",
+          "sw-date",
+          "sw-or",
+          "sw-lock",
+          "sw-heuristic"
         ]
       },
       {
-        "id": "daemon-thread",
-        "label": "独立线程",
-        "file": "bg-board-and-lock--daemon-thread.mp4",
-        "endStill": "bg-board-and-lock--daemon-thread-end.png",
-        "beats": 3,
+        "id": "kill-thread",
+        "label": "拆兜错·线程死",
+        "file": "ablation-panel--kill-thread.mp4",
+        "endStill": "ablation-panel--kill-thread-end.png",
+        "beats": 1,
         "leadSec": 0.44,
-        "storySec": 3.32,
+        "storySec": 3.24,
         "beatNodes": [
-          "worker-thread",
-          "registry",
-          "belt-core"
+          "sw-guard"
         ]
       },
       {
-        "id": "lock-critical",
-        "label": "一把锁",
-        "file": "bg-board-and-lock--lock-critical.mp4",
-        "endStill": "bg-board-and-lock--lock-critical-end.png",
-        "beats": 3,
-        "leadSec": 0.48,
-        "storySec": 3.34,
+        "id": "silent-miss",
+        "label": "改且·静默漏",
+        "file": "ablation-panel--silent-miss.mp4",
+        "endStill": "ablation-panel--silent-miss-end.png",
+        "beats": 1,
+        "leadSec": 0.44,
+        "storySec": 3.24,
         "beatNodes": [
-          "lock",
-          "master-side",
-          "sink-side"
+          "sw-or"
         ]
       },
       {
-        "id": "lock-before-write",
-        "label": "先立锁再动手",
-        "file": "bg-board-and-lock--lock-before-write.mp4",
-        "endStill": "bg-board-and-lock--lock-before-write-end.png",
+        "id": "burn-wait",
+        "label": "拔兜底·干等六百秒",
+        "file": "ablation-panel--burn-wait.mp4",
+        "endStill": "ablation-panel--burn-wait-end.png",
+        "beats": 1,
+        "leadSec": 0.44,
+        "storySec": 3.26,
+        "beatNodes": [
+          "sw-heuristic"
+        ]
+      },
+      {
+        "id": "date-slip",
+        "label": "拆记号·次日哑火",
+        "file": "ablation-panel--date-slip.mp4",
+        "endStill": "ablation-panel--date-slip-end.png",
         "beats": 2,
         "leadSec": 0.44,
         "storySec": 3.23,
         "beatNodes": [
-          "lock",
-          "registry"
-        ]
-      }
-    ]
-  },
-  "bg-placeholder-receipt": {
-    "slug": "bg-placeholder-receipt",
-    "type": "sequence",
-    "chapters": [
-      {
-        "id": "sink-in-trade",
-        "label": "活进槽换什么",
-        "file": "bg-placeholder-receipt--sink-in-trade.mp4",
-        "endStill": "bg-placeholder-receipt--sink-in-trade-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.32,
-        "beatNodes": [
-          "master",
-          "sink",
-          "return-lane"
+          "sw-date",
+          "machine"
         ]
       },
       {
-        "id": "ticket-first",
-        "label": "号牌当场返回",
-        "file": "bg-placeholder-receipt--ticket-first.mp4",
-        "endStill": "bg-placeholder-receipt--ticket-first-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.33,
-        "beatNodes": [
-          "sink",
-          "ticket",
-          "master"
-        ]
-      },
-      {
-        "id": "belt-unpaused",
-        "label": "带一拍不停",
-        "file": "bg-placeholder-receipt--belt-unpaused.mp4",
-        "endStill": "bg-placeholder-receipt--belt-unpaused-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.26,
-        "beatNodes": [
-          "belt-core",
-          "sink"
-        ]
-      },
-      {
-        "id": "four-digit-id",
-        "label": "四位编号",
-        "file": "bg-placeholder-receipt--four-digit-id.mp4",
-        "endStill": "bg-placeholder-receipt--four-digit-id-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.26,
-        "beatNodes": [
-          "ticket",
-          "bg-id-0001"
-        ]
-      }
-    ]
-  },
-  "bg-two-verdicts": {
-    "slug": "bg-two-verdicts",
-    "type": "workflow",
-    "chapters": [
-      {
-        "id": "two-roads",
-        "label": "判定分两级",
-        "file": "bg-two-verdicts--two-roads.mp4",
-        "endStill": "bg-two-verdicts--two-roads-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.32,
-        "beatNodes": [
-          "verdict-node",
-          "sync-lane",
-          "bg-lane"
-        ]
-      },
-      {
-        "id": "explicit-switch",
-        "label": "主路显式开关",
-        "file": "bg-two-verdicts--explicit-switch.mp4",
-        "endStill": "bg-two-verdicts--explicit-switch-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.24,
-        "beatNodes": [
-          "checkbox-on",
-          "bg-lane"
-        ]
-      },
-      {
-        "id": "keyword-fallback",
-        "label": "关键词兜底",
-        "file": "bg-two-verdicts--keyword-fallback.mp4",
-        "endStill": "bg-two-verdicts--keyword-fallback-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.33,
-        "beatNodes": [
-          "keyword-scan",
-          "slow-guess",
-          "bg-lane"
-        ]
-      },
-      {
-        "id": "primary-vs-fallback",
-        "label": "主次定死",
-        "file": "bg-two-verdicts--primary-vs-fallback.mp4",
-        "endStill": "bg-two-verdicts--primary-vs-fallback-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.35,
-        "beatNodes": [
-          "verdict-node",
-          "checkbox-on",
-          "keyword-scan"
-        ]
-      }
-    ]
-  },
-  "clock-bad-jobs": {
-    "slug": "clock-bad-jobs",
-    "type": "lifecycle",
-    "chapters": [
-      {
-        "id": "validate-first",
-        "label": "注册先验表",
-        "file": "clock-bad-jobs--validate-first.mp4",
-        "endStill": "clock-bad-jobs--validate-first-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.22,
-        "beatNodes": [
-          "validate",
-          "reject"
-        ]
-      },
-      {
-        "id": "quarantine-bad",
-        "label": "单独兜住",
-        "file": "clock-bad-jobs--quarantine-bad.mp4",
-        "endStill": "clock-bad-jobs--quarantine-bad-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.36,
-        "beatNodes": [
-          "runtime-error",
-          "quarantine",
-          "wall-clock"
-        ]
-      },
-      {
-        "id": "fire-and-delete",
-        "label": "响完即删",
-        "file": "clock-bad-jobs--fire-and-delete.mp4",
-        "endStill": "clock-bad-jobs--fire-and-delete-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.36,
-        "beatNodes": [
-          "one-shot",
-          "delete",
-          "recurring"
-        ]
-      }
-    ]
-  },
-  "clock-dedupe": {
-    "slug": "clock-dedupe",
-    "type": "dataflow",
-    "chapters": [
-      {
-        "id": "sixty-glances",
-        "label": "六十来次表",
-        "file": "clock-dedupe--sixty-glances.mp4",
-        "endStill": "clock-dedupe--sixty-glances-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.36,
-        "beatNodes": [
-          "second-hand",
-          "minute-cell",
-          "repeat-fire"
-        ]
-      },
-      {
-        "id": "date-plus-minute",
-        "label": "日期加时分",
-        "file": "clock-dedupe--date-plus-minute.mp4",
-        "endStill": "clock-dedupe--date-plus-minute-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.34,
-        "beatNodes": [
-          "minute-marker",
-          "date-field",
-          "time-field"
-        ]
-      },
-      {
-        "id": "hhmm-trap",
-        "label": "只记时分的错",
-        "file": "clock-dedupe--hhmm-trap.mp4",
-        "endStill": "clock-dedupe--hhmm-trap-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.21,
-        "beatNodes": [
-          "minute-marker",
-          "next-day-miss"
-        ]
-      },
-      {
-        "id": "one-key-two-errors",
-        "label": "一键挡两错",
-        "file": "clock-dedupe--one-key-two-errors.mp4",
-        "endStill": "clock-dedupe--one-key-two-errors-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.33,
-        "beatNodes": [
-          "minute-marker",
-          "repeat-fire",
-          "next-day-miss"
-        ]
-      }
-    ]
-  },
-  "clock-four-layers": {
-    "slug": "clock-four-layers",
-    "type": "architecture",
-    "chapters": [
-      {
-        "id": "clock-blind",
-        "label": "钟不认识师傅",
-        "file": "clock-four-layers--clock-blind.mp4",
-        "endStill": "clock-four-layers--clock-blind-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.37,
-        "beatNodes": [
-          "wall-clock",
-          "master-silhouette",
-          "back-to-back"
-        ]
-      },
-      {
-        "id": "four-roles",
-        "label": "四层各一事",
-        "file": "clock-four-layers--four-roles.mp4",
-        "endStill": "clock-four-layers--four-roles-end.png",
-        "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.46,
-        "beatNodes": [
-          "layer-clock",
-          "layer-slot",
-          "layer-sentry",
-          "layer-belt"
-        ]
-      },
-      {
-        "id": "tick-keeper",
-        "label": "第一层判时",
-        "file": "clock-four-layers--tick-keeper.mp4",
-        "endStill": "clock-four-layers--tick-keeper-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.24,
-        "beatNodes": [
-          "wall-clock",
-          "layer-clock"
-        ]
-      },
-      {
-        "id": "slot-keeper",
-        "label": "第二层存条",
-        "file": "clock-four-layers--slot-keeper.mp4",
-        "endStill": "clock-four-layers--slot-keeper-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.23,
-        "beatNodes": [
-          "entry-slot",
-          "layer-slot"
-        ]
-      },
-      {
-        "id": "lock-is-state",
-        "label": "锁即状态",
-        "file": "clock-four-layers--lock-is-state.mp4",
-        "endStill": "clock-four-layers--lock-is-state-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.25,
-        "beatNodes": [
-          "layer-sentry",
-          "agent-lock"
-        ]
-      },
-      {
-        "id": "same-stream",
-        "label": "同一条流",
-        "file": "clock-four-layers--same-stream.mp4",
-        "endStill": "clock-four-layers--same-stream-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.22,
-        "beatNodes": [
-          "layer-belt",
-          "messages-stream"
-        ]
-      }
-    ]
-  },
-  "durable-lifecycle": {
-    "slug": "durable-lifecycle",
-    "type": "lifecycle",
-    "chapters": [
-      {
-        "id": "alarm-not-fires",
-        "label": "存的是闹钟",
-        "file": "durable-lifecycle--alarm-not-fires.mp4",
-        "endStill": "durable-lifecycle--alarm-not-fires-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.34,
-        "beatNodes": [
-          "disk-file",
-          "alarm-def",
-          "missed-fires-x"
-        ]
-      },
-      {
-        "id": "definition-on-disk",
-        "label": "盘上只有定义",
-        "file": "durable-lifecycle--definition-on-disk.mp4",
-        "endStill": "durable-lifecycle--definition-on-disk-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.35,
-        "beatNodes": [
-          "disk-file",
-          "time-field",
-          "action-field"
-        ]
-      },
-      {
-        "id": "restart-from-now",
-        "label": "从当下看起",
-        "file": "durable-lifecycle--restart-from-now.mp4",
-        "endStill": "durable-lifecycle--restart-from-now-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.35,
-        "beatNodes": [
-          "restart",
-          "clock-remount",
-          "missed-grey"
-        ]
-      },
-      {
-        "id": "boundary-verbatim",
-        "label": "边界原话",
-        "file": "durable-lifecycle--boundary-verbatim.mp4",
-        "endStill": "durable-lifecycle--boundary-verbatim-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.25,
-        "beatNodes": [
-          "quote-card",
-          "system-cron"
-        ]
-      },
-      {
-        "id": "no-catchup",
-        "label": "不按次数补",
-        "file": "durable-lifecycle--no-catchup.mp4",
-        "endStill": "durable-lifecycle--no-catchup-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.25,
-        "beatNodes": [
-          "idle-catchup-once",
-          "missed-grey"
-        ]
-      }
-    ]
-  },
-  "notify-merge": {
-    "slug": "notify-merge",
-    "type": "dataflow",
-    "chapters": [
-      {
-        "id": "delivery-when",
-        "label": "何时送到",
-        "file": "notify-merge--delivery-when.mp4",
-        "endStill": "notify-merge--delivery-when-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.22,
-        "beatNodes": [
-          "call-board",
-          "master"
-        ]
-      },
-      {
-        "id": "ride-along",
-        "label": "搭顺风车",
-        "file": "notify-merge--ride-along.mp4",
-        "endStill": "notify-merge--ride-along-end.png",
-        "beats": 3,
-        "leadSec": 0.48,
-        "storySec": 3.32,
-        "beatNodes": [
-          "notification-slip",
-          "tool-result",
-          "merge-node"
-        ]
-      },
-      {
-        "id": "passive-board",
-        "label": "等人路过",
-        "file": "notify-merge--passive-board.mp4",
-        "endStill": "notify-merge--passive-board-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.24,
-        "beatNodes": [
-          "call-board",
-          "tag"
-        ]
-      },
-      {
-        "id": "next-lap-glance",
-        "label": "下趟看见",
-        "file": "notify-merge--next-lap-glance.mp4",
-        "endStill": "notify-merge--next-lap-glance-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.33,
-        "beatNodes": [
-          "master",
-          "call-board",
-          "tag"
-        ]
-      },
-      {
-        "id": "closing-loss",
-        "label": "打烊即永失",
-        "file": "notify-merge--closing-loss.mp4",
-        "endStill": "notify-merge--closing-loss-end.png",
+        "id": "timeout-crash",
+        "label": "两处照写翻车",
+        "file": "ablation-panel--timeout-crash.mp4",
+        "endStill": "ablation-panel--timeout-crash-end.png",
         "beats": 2,
         "leadSec": 0.44,
         "storySec": 3.27,
         "beatNodes": [
-          "call-board",
-          "dim-fade"
+          "sw-heuristic",
+          "machine"
         ]
       }
     ]
   },
-  "notify-protocol": {
-    "slug": "notify-protocol",
-    "type": "lifecycle",
+  "bg-tasks-loop": {
+    "slug": "bg-tasks-loop",
+    "type": "workflow",
     "chapters": [
       {
-        "id": "hang-the-tag",
-        "label": "只挂牌不拍肩",
-        "file": "notify-protocol--hang-the-tag.mp4",
-        "endStill": "notify-protocol--hang-the-tag-end.png",
-        "beats": 3,
+        "id": "gate-dispatch",
+        "label": "双闸分派",
+        "file": "bg-tasks-loop--gate-dispatch.mp4",
+        "endStill": "bg-tasks-loop--gate-dispatch-end.png",
+        "beats": 4,
         "leadSec": 0.44,
-        "storySec": 3.37,
+        "storySec": 4.46,
         "beatNodes": [
-          "sink",
-          "call-board",
-          "tag"
+          "model",
+          "gate",
+          "bg",
+          "sync"
         ]
       },
       {
-        "id": "one-to-one",
-        "label": "一问一答",
-        "file": "notify-protocol--one-to-one.mp4",
-        "endStill": "notify-protocol--one-to-one-end.png",
-        "beats": 2,
+        "id": "placeholder-hand",
+        "label": "占位回执三件事",
+        "file": "bg-tasks-loop--placeholder-hand.mp4",
+        "endStill": "bg-tasks-loop--placeholder-hand-end.png",
+        "beats": 4,
         "leadSec": 0.44,
-        "storySec": 3.22,
+        "storySec": 4.43,
         "beatNodes": [
-          "tool-use",
-          "tool-result"
+          "gate",
+          "bg",
+          "placeholder",
+          "cont"
         ]
       },
       {
-        "id": "receipt-spent",
-        "label": "回执已交过",
-        "file": "notify-protocol--receipt-spent.mp4",
-        "endStill": "notify-protocol--receipt-spent-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.24,
-        "beatNodes": [
-          "tool-result",
-          "ticket"
-        ]
-      },
-      {
-        "id": "no-second-receipt",
-        "label": "不能补发",
-        "file": "notify-protocol--no-second-receipt.mp4",
-        "endStill": "notify-protocol--no-second-receipt-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.25,
-        "beatNodes": [
-          "tool-use",
-          "x-mark"
-        ]
-      },
-      {
-        "id": "own-doorway",
-        "label": "另立门户",
-        "file": "notify-protocol--own-doorway.mp4",
-        "endStill": "notify-protocol--own-doorway-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.21,
-        "beatNodes": [
-          "task-notification",
-          "call-board"
-        ]
-      }
-    ]
-  },
-  "schedule-three-tiers": {
-    "slug": "schedule-three-tiers",
-    "type": "architecture",
-    "chapters": [
-      {
-        "id": "three-tiers",
-        "label": "三档阶梯",
-        "file": "schedule-three-tiers--three-tiers.mp4",
-        "endStill": "schedule-three-tiers--three-tiers-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.36,
-        "beatNodes": [
-          "tier-loop",
-          "tier-desktop",
-          "tier-cloud"
-        ]
-      },
-      {
-        "id": "session-loop",
-        "label": "会话内最快",
-        "file": "schedule-three-tiers--session-loop.mp4",
-        "endStill": "schedule-three-tiers--session-loop-end.png",
-        "beats": 2,
-        "leadSec": 0.48,
-        "storySec": 3.24,
-        "beatNodes": [
-          "tier-loop",
-          "loop-cmd"
-        ]
-      },
-      {
-        "id": "desktop-tier",
-        "label": "桌面档",
-        "file": "schedule-three-tiers--desktop-tier.mp4",
-        "endStill": "schedule-three-tiers--desktop-tier-end.png",
+        "id": "notify-merge",
+        "label": "通知合流一条消息",
+        "file": "bg-tasks-loop--notify-merge.mp4",
+        "endStill": "bg-tasks-loop--notify-merge-end.png",
         "beats": 3,
         "leadSec": 0.44,
         "storySec": 3.35,
         "beatNodes": [
-          "tier-desktop",
-          "min-1min",
-          "survive-restart"
+          "bg",
+          "collect",
+          "read"
         ]
       },
       {
-        "id": "cloud-tier",
-        "label": "云端档",
-        "file": "schedule-three-tiers--cloud-tier.mp4",
-        "endStill": "schedule-three-tiers--cloud-tier-end.png",
-        "beats": 2,
+        "id": "two-round-script",
+        "label": "两回合剧本",
+        "file": "bg-tasks-loop--two-round-script.mp4",
+        "endStill": "bg-tasks-loop--two-round-script-end.png",
+        "beats": 6,
         "leadSec": 0.44,
-        "storySec": 3.24,
+        "storySec": 6.66,
         "beatNodes": [
-          "tier-cloud",
-          "no-session"
-        ]
-      },
-      {
-        "id": "same-edge-two-ways",
-        "label": "同界两走法",
-        "file": "schedule-three-tiers--same-edge-two-ways.mp4",
-        "endStill": "schedule-three-tiers--same-edge-two-ways-end.png",
-        "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.42,
-        "beatNodes": [
-          "boundary-line",
-          "tier-loop",
-          "tier-desktop",
-          "tier-cloud"
+          "gate",
+          "bg",
+          "placeholder",
+          "cont",
+          "collect",
+          "read"
         ]
       }
     ]
   },
-  "timing-panorama": {
-    "slug": "timing-panorama",
-    "type": "architecture",
+  "cron-dom-dow-or": {
+    "slug": "cron-dom-dow-or",
+    "type": "workflow",
     "chapters": [
       {
-        "id": "two-kinds-of-time",
-        "label": "两种时间（预告）",
-        "file": "timing-panorama--two-kinds-of-time.mp4",
-        "endStill": "timing-panorama--two-kinds-of-time-end.png",
-        "beats": 3,
+        "id": "five-fields",
+        "label": "五段·分时日月星期",
+        "file": "cron-dom-dow-or--five-fields.mp4",
+        "endStill": "cron-dom-dow-or--five-fields-end.png",
+        "beats": 6,
         "leadSec": 0.44,
-        "storySec": 3.32,
+        "storySec": 6.63,
         "beatNodes": [
-          "belt-core",
-          "slow-lane",
-          "due-lane"
+          "expr-in",
+          "f-min",
+          "f-hour",
+          "f-dom",
+          "f-month",
+          "f-dow"
         ]
       },
       {
-        "id": "two-devices-lit",
-        "label": "两装置点亮",
-        "file": "timing-panorama--two-devices-lit.mp4",
-        "endStill": "timing-panorama--two-devices-lit-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.23,
-        "beatNodes": [
-          "bg-branch",
-          "clock-branch"
-        ]
-      },
-      {
-        "id": "panorama-live",
-        "label": "全景在动带仍一条",
-        "file": "timing-panorama--panorama-live.mp4",
-        "endStill": "timing-panorama--panorama-live-end.png",
-        "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.45,
-        "beatNodes": [
-          "bg-branch",
-          "notify-lane",
-          "clock-branch",
-          "belt-core"
-        ]
-      },
-      {
-        "id": "serial-trays",
-        "label": "托盘串行",
-        "file": "timing-panorama--serial-trays.mp4",
-        "endStill": "timing-panorama--serial-trays-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.24,
-        "beatNodes": [
-          "tray-queue",
-          "belt-core"
-        ]
-      },
-      {
-        "id": "threads-not-tools",
-        "label": "线程不执行工具",
-        "file": "timing-panorama--threads-not-tools.mp4",
-        "endStill": "timing-panorama--threads-not-tools-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.33,
-        "beatNodes": [
-          "worker-thread",
-          "scheduler-thread",
-          "delivery-thread"
-        ]
-      },
-      {
-        "id": "one-belt-close",
-        "label": "一条带收束",
-        "file": "timing-panorama--one-belt-close.mp4",
-        "endStill": "timing-panorama--one-belt-close-end.png",
+        "id": "and-or",
+        "label": "三段全中·这对任一",
+        "file": "cron-dom-dow-or--and-or.mp4",
+        "endStill": "cron-dom-dow-or--and-or-end.png",
         "beats": 3,
         "leadSec": 0.44,
         "storySec": 3.34,
         "beatNodes": [
-          "belt-core",
-          "bg-branch",
-          "clock-branch"
+          "and-gate",
+          "or-gate",
+          "fire"
         ]
       },
       {
-        "id": "where-waiting-goes",
-        "label": "等待放哪里",
-        "file": "timing-panorama--where-waiting-goes.mp4",
-        "endStill": "timing-panorama--where-waiting-goes-end.png",
+        "id": "both-ways",
+        "label": "9·28 与每月一号都响",
+        "file": "cron-dom-dow-or--both-ways.mp4",
+        "endStill": "cron-dom-dow-or--both-ways-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.34,
+        "beatNodes": [
+          "ex-928",
+          "ex-month1",
+          "or-gate"
+        ]
+      }
+    ]
+  },
+  "cron-four-layers": {
+    "slug": "cron-four-layers",
+    "type": "workflow",
+    "chapters": [
+      {
+        "id": "four-roles",
+        "label": "四层各司其职",
+        "file": "cron-four-layers--four-roles.mp4",
+        "endStill": "cron-four-layers--four-roles-end.png",
+        "beats": 5,
+        "leadSec": 0.44,
+        "storySec": 5.55,
+        "beatNodes": [
+          "ticker",
+          "queue",
+          "lock",
+          "inject",
+          "work"
+        ]
+      },
+      {
+        "id": "yield-loop",
+        "label": "让行回环",
+        "file": "cron-four-layers--yield-loop.mp4",
+        "endStill": "cron-four-layers--yield-loop-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.26,
+        "beatNodes": [
+          "lock",
+          "queue"
+        ]
+      },
+      {
+        "id": "full-cycle",
+        "label": "全周期走查",
+        "file": "cron-four-layers--full-cycle.mp4",
+        "endStill": "cron-four-layers--full-cycle-end.png",
+        "beats": 6,
+        "leadSec": 0.44,
+        "storySec": 6.68,
+        "beatNodes": [
+          "disk",
+          "ticker",
+          "queue",
+          "lock",
+          "inject",
+          "work"
+        ]
+      },
+      {
+        "id": "durable-side",
+        "label": "存档旁挂",
+        "file": "cron-four-layers--durable-side.mp4",
+        "endStill": "cron-four-layers--durable-side-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.25,
+        "beatNodes": [
+          "disk",
+          "ticker"
+        ]
+      }
+    ]
+  },
+  "disk-not-alive": {
+    "slug": "disk-not-alive",
+    "type": "lifecycle",
+    "chapters": [
+      {
+        "id": "two-lives",
+        "label": "两档·内存与磁盘",
+        "file": "disk-not-alive--two-lives.mp4",
+        "endStill": "disk-not-alive--two-lives-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.35,
+        "beatNodes": [
+          "register",
+          "in-memory",
+          "persist-file"
+        ]
+      },
+      {
+        "id": "shutdown",
+        "label": "一关就停 vs 文件仍亮",
+        "file": "disk-not-alive--shutdown.mp4",
+        "endStill": "disk-not-alive--shutdown-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.37,
+        "beatNodes": [
+          "shutdown",
+          "gone",
+          "file-alive"
+        ]
+      },
+      {
+        "id": "restore",
+        "label": "重启恢复·补一次",
+        "file": "disk-not-alive--restore.mp4",
+        "endStill": "disk-not-alive--restore-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.45,
+        "beatNodes": [
+          "load-restore",
+          "catch-up",
+          "list-only",
+          "exceptions-gone"
+        ]
+      },
+      {
+        "id": "escape-routes",
+        "label": "无人值守三条路",
+        "file": "disk-not-alive--escape-routes.mp4",
+        "endStill": "disk-not-alive--escape-routes-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.26,
+        "beatNodes": [
+          "persist-file",
+          "load-restore"
+        ]
+      }
+    ]
+  },
+  "dispatch-two-gates": {
+    "slug": "dispatch-two-gates",
+    "type": "workflow",
+    "chapters": [
+      {
+        "id": "gate-one",
+        "label": "第一道·拨杆",
+        "file": "dispatch-two-gates--gate-one.mp4",
+        "endStill": "dispatch-two-gates--gate-one-end.png",
         "beats": 3,
         "leadSec": 0.44,
         "storySec": 3.36,
         "beatNodes": [
-          "wait-handoff",
-          "start-trigger",
+          "cmd-in",
+          "gate-explicit",
+          "bg-out"
+        ]
+      },
+      {
+        "id": "gate-two",
+        "label": "第二道·筛网",
+        "file": "dispatch-two-gates--gate-two.mp4",
+        "endStill": "dispatch-two-gates--gate-two-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.46,
+        "beatNodes": [
+          "gate-explicit",
+          "gate-heuristic",
+          "bg-out",
+          "sync-out"
+        ]
+      },
+      {
+        "id": "false-slip",
+        "label": "说不要也拦不住",
+        "file": "dispatch-two-gates--false-slip.mp4",
+        "endStill": "dispatch-two-gates--false-slip-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.35,
+        "beatNodes": [
+          "note-false",
+          "gate-heuristic",
+          "bg-out"
+        ]
+      }
+    ]
+  },
+  "knock-walk-away": {
+    "slug": "knock-walk-away",
+    "type": "sequence",
+    "chapters": [
+      {
+        "id": "loop-wake",
+        "label": "六行循环",
+        "file": "knock-walk-away--loop-wake.mp4",
+        "endStill": "knock-walk-away--loop-wake-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.23,
+        "beatNodes": [
+          "pipeline",
+          "queue"
+        ]
+      },
+      {
+        "id": "door-busy",
+        "label": "敲门·有动静·走开",
+        "file": "knock-walk-away--door-busy.mp4",
+        "endStill": "knock-walk-away--door-busy-end.png",
+        "beats": 3,
+        "leadSec": 0.48,
+        "storySec": 3.36,
+        "beatNodes": [
+          "pipeline",
+          "lock",
+          "queue"
+        ]
+      },
+      {
+        "id": "door-open",
+        "label": "门开·再确认·执行",
+        "file": "knock-walk-away--door-open.mp4",
+        "endStill": "knock-walk-away--door-open-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.24,
+        "beatNodes": [
+          "lock",
+          "master"
+        ]
+      }
+    ]
+  },
+  "one-call-one-receipt": {
+    "slug": "one-call-one-receipt",
+    "type": "sequence",
+    "chapters": [
+      {
+        "id": "pair-rule",
+        "label": "一次调用一个结果",
+        "file": "one-call-one-receipt--pair-rule.mp4",
+        "endStill": "one-call-one-receipt--pair-rule-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.35,
+        "beatNodes": [
+          "shifu",
+          "mainloop",
+          "slot"
+        ]
+      },
+      {
+        "id": "reject-second",
+        "label": "补发被弹开",
+        "file": "one-call-one-receipt--reject-second.mp4",
+        "endStill": "one-call-one-receipt--reject-second-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.25,
+        "beatNodes": [
+          "shifu",
+          "slot"
+        ]
+      },
+      {
+        "id": "notify-new-msg",
+        "label": "真结果走新消息",
+        "file": "one-call-one-receipt--notify-new-msg.mp4",
+        "endStill": "one-call-one-receipt--notify-new-msg-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.36,
+        "beatNodes": [
+          "pipeline",
+          "mainloop",
+          "shifu"
+        ]
+      }
+    ]
+  },
+  "recon-verdicts": {
+    "slug": "recon-verdicts",
+    "type": "dataflow",
+    "chapters": [
+      {
+        "id": "green-list",
+        "label": "获印证",
+        "file": "recon-verdicts--green-list.mp4",
+        "endStill": "recon-verdicts--green-list-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.35,
+        "beatNodes": [
+          "teach-src",
+          "recon",
+          "verdict-green"
+        ]
+      },
+      {
+        "id": "red-jitter",
+        "label": "硬分歧·抖动",
+        "file": "recon-verdicts--red-jitter.mp4",
+        "endStill": "recon-verdicts--red-jitter-end.png",
+        "beats": 1,
+        "leadSec": 0.44,
+        "storySec": 3.23,
+        "beatNodes": [
+          "verdict-red"
+        ]
+      },
+      {
+        "id": "gray-extra",
+        "label": "教学没讲的三条路",
+        "file": "recon-verdicts--gray-extra.mp4",
+        "endStill": "recon-verdicts--gray-extra-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.26,
+        "beatNodes": [
+          "verdict-gray",
+          "apprentice"
+        ]
+      }
+    ]
+  },
+  "spec-two-promises": {
+    "slug": "spec-two-promises",
+    "type": "architecture",
+    "chapters": [
+      {
+        "id": "spec-one",
+        "label": "规格一·异步回来",
+        "file": "spec-two-promises--spec-one.mp4",
+        "endStill": "spec-two-promises--spec-one-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.35,
+        "beatNodes": [
+          "sink",
+          "receipt",
+          "bell"
+        ]
+      },
+      {
+        "id": "spec-two",
+        "label": "规格二·定时解耦",
+        "file": "spec-two-promises--spec-two.mp4",
+        "endStill": "spec-two-promises--spec-two-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.35,
+        "beatNodes": [
+          "clock",
+          "ledger",
+          "lock"
+        ]
+      },
+      {
+        "id": "two-devices",
+        "label": "两台装置登场",
+        "file": "spec-two-promises--two-devices.mp4",
+        "endStill": "spec-two-promises--two-devices-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.22,
+        "beatNodes": [
+          "sink",
+          "clock"
+        ]
+      },
+      {
+        "id": "map-back",
+        "label": "全片地图",
+        "file": "spec-two-promises--map-back.mp4",
+        "endStill": "spec-two-promises--map-back-end.png",
+        "beats": 7,
+        "leadSec": 0.44,
+        "storySec": 7.75,
+        "beatNodes": [
+          "belt",
+          "sink",
+          "receipt",
+          "bell",
+          "clock",
+          "ledger",
+          "lock"
+        ]
+      }
+    ]
+  },
+  "three-safeguards": {
+    "slug": "three-safeguards",
+    "type": "lifecycle",
+    "chapters": [
+      {
+        "id": "mark-date",
+        "label": "保险一·带日期记号",
+        "file": "three-safeguards--mark-date.mp4",
+        "endStill": "three-safeguards--mark-date-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.23,
+        "beatNodes": [
+          "dated-mark",
+          "fire"
+        ]
+      },
+      {
+        "id": "per-task-guard",
+        "label": "保险二·单任务兜错",
+        "file": "three-safeguards--per-task-guard.mp4",
+        "endStill": "three-safeguards--per-task-guard-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.23,
+        "beatNodes": [
+          "guard-error",
+          "tick"
+        ]
+      },
+      {
+        "id": "double-check",
+        "label": "保险三·双重校验",
+        "file": "three-safeguards--double-check.mp4",
+        "endStill": "three-safeguards--double-check-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.22,
+        "beatNodes": [
+          "reject-invalid",
+          "skip-bad-save"
+        ]
+      }
+    ]
+  },
+  "two-round-script": {
+    "slug": "two-round-script",
+    "type": "sequence",
+    "chapters": [
+      {
+        "id": "turn-one",
+        "label": "第一回合·占位",
+        "file": "two-round-script--turn-one.mp4",
+        "endStill": "two-round-script--turn-one-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.36,
+        "beatNodes": [
+          "shifu",
+          "mainloop",
+          "pipeline"
+        ]
+      },
+      {
+        "id": "turn-two",
+        "label": "第二回合·同框",
+        "file": "two-round-script--turn-two.mp4",
+        "endStill": "two-round-script--turn-two-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.47,
+        "beatNodes": [
+          "shifu",
+          "mainloop",
+          "pipeline",
+          "config"
+        ]
+      },
+      {
+        "id": "zero-wait",
+        "label": "零干等",
+        "file": "two-round-script--zero-wait.mp4",
+        "endStill": "two-round-script--zero-wait-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.32,
+        "beatNodes": [
+          "shifu",
+          "pipeline",
+          "config"
+        ]
+      }
+    ]
+  },
+  "two-waiting-deaths": {
+    "slug": "two-waiting-deaths",
+    "type": "workflow",
+    "chapters": [
+      {
+        "id": "belt-anatomy",
+        "label": "传送带一问一答",
+        "file": "two-waiting-deaths--belt-anatomy.mp4",
+        "endStill": "two-waiting-deaths--belt-anatomy-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.39,
+        "beatNodes": [
+          "ask",
+          "belt-core",
+          "fast-cmd"
+        ]
+      },
+      {
+        "id": "slow-death",
+        "label": "慢活堵路",
+        "file": "two-waiting-deaths--slow-death.mp4",
+        "endStill": "two-waiting-deaths--slow-death-end.png",
+        "beats": 5,
+        "leadSec": 0.44,
+        "storySec": 5.58,
+        "beatNodes": [
+          "belt-core",
+          "slow-cmd",
+          "stall",
+          "idle",
+          "billing"
+        ]
+      },
+      {
+        "id": "manual-death",
+        "label": "到点没人推",
+        "file": "two-waiting-deaths--manual-death.mp4",
+        "endStill": "two-waiting-deaths--manual-death-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.35,
+        "beatNodes": [
+          "manual",
+          "calendar",
+          "no-push"
+        ]
+      },
+      {
+        "id": "one-root",
+        "label": "一个病根两种表现",
+        "file": "two-waiting-deaths--one-root.mp4",
+        "endStill": "two-waiting-deaths--one-root-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.35,
+        "beatNodes": [
+          "stall",
+          "no-push",
           "belt-core"
         ]
       }
