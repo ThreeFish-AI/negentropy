@@ -57,11 +57,12 @@
 | 2   | [《给 AI 发一张工卡：Agent 上下文层蓝图》](./episodes/context-layer-video/README.md) | Context Layer：蓝图怎么复刻    | 钢蓝/工业橙/校准绿            | 013 蓝图完全重铸版 + 011 + lab/mcp 原型 @ `a77c65822`，2026-09-29                        | **v2 终渲待审**（14:02 · 机务工卡剧场 · 13 图 76 章 71 cue · 锚定 36.8%） |
 | 3   | [《给 AI 一座图书馆：OpenViking 上下文数据库》](./episodes/openviking-video/README.md) | OpenViking：文件系统范式怎么做上下文 | 玫红/薄荷绿/长春花蓝        | 014 精读笔记 + 015 映射 + openviking_lab @ `348d8797`，2026-09-24                          | **v1 终渲待审**（10:37 · archify 9 图 54 cue 回放）          |
 
-## Agent 基础设施系列（doc 型 · 1 集）
+## Agent 基础设施系列（doc 型 · 3 集）
 
 信源为本仓 `docs/research/agent-infra/` 精读笔记与最小原型（B 型 · 固定提交取证），并直接取证上游开放标准的固定提交（规范、指南与参考实现源码）；本仓实现的映射结论不进正片。系列纪律同前（口播互不引用、无集数序号）。
 
 | #   | 作品 | 一句话主题 | 视觉契约（主色） | 信源 | 状态 |
 | --- | --- | --- | --- | --- | --- |
-| 1   | [《经验淬炼成手册：Agent 的轻量蒸馏与按需装配》](./episodes/agent-skills-video/README.md) | Agent Skills：经验怎么交给 AI | 玫瑰焰/矢车菊蓝/兰花紫 | 090 精读 + 最小原型 @ `80b456fb` + agentskills/agentskills @ `69ef37e9`，2026-09-23 | **v1 终渲待审**（15:25 · archify 12 图 58 章 · 归档 ~/Documents/video） |
+| 1   | [《目录常驻，正文按需：Agent Skills 开放标准》](./episodes/agent-skills-video/README.md) | Agent Skills：目录常驻、正文按需的领域知识打包开放标准 | 目录金/路由靛/治理紫 | 210 重学版精读（C 型）@ 本分支 + agentskills/agentskills @ `69ef37e9`，2026-09-26 | **成片交付 v1**（12:55 · edge 草声 · 双图 10 章 12 cue · 锚定 8.5% · lab2 五实验复算 · 归档 ~/Documents/video） |
 | 2   | [《只填格的判读员：Jev 决策模型》](./episodes/jev-decision-model-video/README.md) | Jev：小判断的交付方式怎么变 | 格黄/柱青/闸品 | 200 精读 + 原型 + laya 复刻 @ `40bf690` + TypeSafe 官方/adapter/kev/laya/nibzard 钉提交，2026-09-26 | **v1 终渲待审**（14.2 分 · story 配音 · archify 13 图 54 章 · 归档 ~/Documents/video） |
+| 3   | [《没有海关的港口：Skills 的签名、分发与版本战争》](./episodes/skills-supply-chain-video/README.md) | Agent Skills：签名/分发/版本三战场 | 关税橙/检疫绿 | 220/221 供应链精读 @ `9284cce2c` + agentskills @ `69ef37e9` + MCP SEP-2640 @ `b0b3272f`，2026-09-27 | **成片交付 v1**（13:57 · 20 图 79 cue · 锚定 78.2% · 归档 ~/Documents/video） |

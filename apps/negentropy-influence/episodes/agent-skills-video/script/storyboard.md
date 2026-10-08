@@ -1,89 +1,83 @@
-# 分镜表（storyboard.md）
+# Stage ⑥ 分镜表 ——《目录常驻，正文按需：Agent Skills 开放标准》
 
-> 句 id 与 `narration.md`（★SSOT）逐句对齐；各镜时长以 audio manifest 实测为准（`at()/dur()` 均按句 id 推导，禁写死帧数）。
-> 色板（theme.ts 契约）：引航青 `#45DFFF`=港口/规范/台账系统面 · 货签粉 `#FF7A9E`=集装箱/知识/内容面 · 警示金 `#FFC85C`=悬案/留白 · danger 红仅攻击瞬间 · ok 绿仅验证瞬间。
-> 空间语义恒定：纵深=港口平面；左=堆场（存量），右=泊位/作业台（使用中）；「进入上下文」永远向右。〔M-001〕集装箱母题全片同形（粉描边恒定线宽）；〔M-003〕持续陈述配可停驻终态。
-> 画面文字一律关键词锚点（≤6 字短语），禁整句复述口播（复述门）。
+> **句 id 对齐 SSOT**：本表句区间以 `script/narration.md`（v3 候选，142 句）为准，`build` 派生 `narration.json`；时长以 TTS `manifest.json` 实测为准。
+> **色彩契约**（theme.ts 定稿，跨幕严格用色）：目录金 `#F2B33D`（三级披露/成本账本/目录卡描边〔M-001〕恒定线色）· 路由靛 `#6D8BFF`（语义路由/description 高亮/命中脉冲）· 治理紫 `#A88BE8`（客户端阵列/PR 战线/争议牌）；消融固定语义色：红 `#FF5C5C`＝拆掉后/退化侧，绿 `#7ED321`＝机制在位/拦截侧；金句卡衬线体。
+> **空间语义**：左＝规范/标准侧，右＝客户端/用户侧；装载流向（目录→正文→资源）永远自上而下；全屏独占期间场景装置让位（图外无叠画）。
+> **画面文字不复述口播**：画面只放关键词锚点（≤6 字）+ 数字 + 结构标签，叙述留给口播与字幕。
+> **archify 章集**：9 章已录（`video/public/archify/`，lead 0.520s/章）；本集 12 处全屏独占窗（9 章全启用，gl-three/gl-guide 各两幕复用——跨幕非邻接），锚句唯一、无同锚双 cue；`dl-rewrite` 章不进正片（压缩豁免未进口播，planning 取舍）；P0/P6 为无锚装置幕（exempt_scenes，钩子定式与收束幕不挂图）。
+> 母题装置：〔M-001〕目录索引卡（金描边恒定锚，跨幕同形出场，仅换周边标签）·〔M-003〕终态陈述配停驻画面。
 
-## P0 四十六家就范（p0-01..13，镜 0-A..0-E）
+## P0 挤爆的开场白
 
-| 镜 | 句区间 | 画面 | 动效 |
-| --- | --- | --- | --- |
-| 0-A | p0-01..02 | **反常捐赠**：2025 年份戳 + 「开放标准」牌匾从 Anthropic 港务大楼递出（关键词：2025 / 捐出） ·**archify full**：port-46-adoption 章 `pa-open`（p0-01） | 牌匾 useSpring 递出；年份戳 useImpulse；`@spring` `@impulse` |
-| 0-B | p0-03..04 | **牌桌亮灯**：夜港全景，四家招牌（OpenAI/Google/微软/Cursor）先亮，随后 46 盏港灯次第点亮 ·**archify full**：port-46-adoption 章 `pa-harbor`（p0-03）+ `pa-table`（p0-04） | 灯组 useStagger 波次点亮后保持〔M-003〕；末帧停驻全亮终态；`@stagger` |
-| 0-C | p0-05..07 | **悬念三连**：文件夹图标→单文件→「247 行」计数器，三个「没有」标签逐个盖章（无版本号/无日志/无安全章节）（关键词：247 行 / 三个没有） | 计数器 useCount 滚到 247；印章 useImpulse 连盖；`@count` `@impulse` |
-| 0-D | p0-08..10 | **规矩之困**：白板上三张便签（报销单/评审口径/PDF 三个坑）悬浮在 AI 头像上方，抓取失败手势（关键词：团队规矩） | 便签 useStagger 浮现；AI 头像微摇头 useSpring；`@stagger` `@spring` |
-| 0-E | p0-11..13 | **两条老路**：左船雾中盲航（引航青雾）翻沉 / 右船超载（警示金）压舱进水；旁挂数字翻牌「20×3000≈60000」 ·**archify full**：two-old-roads 章 `or-two`（p0-11）+ `or-guess`（p0-12）+ `or-stuff`（p0-12a）+ `or-ledger`（p0-13） | 双船对照 useProgress 同步下沉；翻牌 useCount；`@progress` `@count` |
+| 镜 | 句区间 | 画面 | 动效 | Visual Lock |
+|---|---|---|---|---|
+| 0-A 钩子卡 | p0-01..03 | 深底中央目录索引卡（金描边〔M-001〕首秀）：卡面仅两行 name+description；p0-02 卡角盖「开放规范」金印；p0-03 卡下浮出问题气泡「团队的规矩从哪来？」 | 卡片 `@enter:fall` 3D 翻入（第一秒高反差）；金印 `@impulse`；气泡 `@pushIn` | 参考：theme.ledger 描边；保持：单主体居中、卡面只有两行字段、字幕安全区上方；禁止：首镜出现第二组文字卡、静止文字无动效 |
+| 0-B 两难分栏 | p0-04..09 | 左右天平：左栏「自由发挥」——AI 输出纸带飘出红色叉印与「编造」标签；右栏「全塞开场白」——说明书墙逐册堆高、压弯底部进度条；p0-06 两枚换机/换人小图标在栏间循环 | 叉印 `@stagger`；说明书墙 `@stack` 逐册堆高；图标 `@travel` 循环 | 保持：红叉仅 danger 色、墙为灰阶说明书脊；禁止：两栏同时满强度动效 |
+| 0-C 示意账 | p0-10..10c | 账本算式条：`20 份 × 约 3000 token` 两因数格相乘，积数格 useCount 爬升至 60,000；右上角标「示意估算 · 推断演示（非实测）」；p0-10c 积数格旁浮出「token＝AI 读字计费单位」注释签 | 因数格 `@reveal`；积数 `@count` 爬升；注释签 `@pushIn` | 保持：60,000 千分位逗号、角标常驻右上、单位「token」不缩写；禁止：算式行出现在字幕带高度 |
+| 0-D 安装成本循环 | p0-11..13 | 说明书墙外套环形箭头（每圈＝一次新会话重付）；右侧注意力格阵 8×6 随圈数逐列变灰 | 环形箭头 `@flowDash` 循环；格阵 `@dim` 逐列 | 保持：格阵灰阶均匀、箭头单色 ledger 金；禁止：格阵闪烁 |
+| 0-E 第三条路 | p0-14..15 | p0-14 衬线金句卡「知识备着，不占地方？」（左上，与右下目录卡对角呼应）；p0-15 金句卡收起，「开放规范」印鉴落定于桌面居中 | 金句卡 `@pushIn`；印鉴 `@impulse` 落定；接 `@fade` 换幕 | 保持：衬线体金句、对角构图；禁止：金句逐字复述口播（关键词形态） |
 
-## P1 一个文件夹的标准（p1-01..12，镜 1-A..1-G）
+## P1 一个文件夹的答案
 
-| 镜 | 句区间 | 画面 | 动效 |
-| --- | --- | --- | --- |
-| 1-A | p1-01..03 | **箱体解剖**：集装箱母题〔M-001〕展开爆炸图——箱体→SKILL.md→六格角件卡（name/description 两格高亮，其余四格灰） ·**archify full**：box-anatomy 章 `ba-box`（p1-01）+ `ba-corner`（p1-02）+ `ba-name`（p1-03） | 爆炸图 useSpring 分层展开；两格高亮 useImpulse；`@spring` `@impulse` |
-| 1-B | p1-04..06 | **登记处**：无注册中心（虚线打叉的中央大楼）→ 文件夹抽屉即登记处，箱号铭牌=抽屉标签逐字对齐 ·**archify full**：identity-registry 章 `ir-nocenter`（p1-04）+ `ir-deal`（p1-06） | 铭牌滑入槽位 useSpring 对齐卡口「咔」一下；`@spring` |
-| 1-C | p1-07..08b2 | **正文与附件**：正文区自由书写动画 + 三层附件抽屉（scripts/references/assets）推入箱体；「规范不管」印章 ·**archify full**：box-anatomy 章 `ba-body`（p1-07）+ `ba-extra`（p1-08a） | 抽屉 useStagger 推入；印章 useImpulse；`@stagger` `@impulse` |
-| 1-D | p1-08c..08e | **工艺一：长出来**：真实任务工作台——AI 干活、人纠偏、便签「不用库X会踩坑」飞入箱内 gotchas 节 ·**archify full**：craft-real-tasks 章 `cr-grow`（p1-08c）+ `cr-gotchas`（p1-08e） | 便签 useSpring 飞入并钉住；`@spring` |
-| 1-E | p1-08f..08g | **工艺二：跑了再改**：循环箭头（写→跑→改）转动；天平一侧「模型已会」清空、一侧「它不知道」加重（关键词：跑了再改 / 会的别写） ·**archify full**：craft-real-tasks 章 `cr-rerun`（p1-08f）+ `cr-lean`（p1-08g） | 循环 useProgress 旋转；天平 useSpring 倾斜；`@progress` `@spring` |
-| 1-F | p1-09..10 | **治理宪法**：ISO 会议室场景，条文卡「Keep the format small」引号卡（引航青）+ 中文要点副标（关键词：格式要小 / 真实痛点） | 条文卡 useDraw 描边显字；`@draw` |
-| 1-G | p1-11..12 | **三处留白**：箱体图三块区域虚线化并打金色问号——放哪/谁查/航线（关键词：三处留白） | 三块 useStagger 虚线化+问号 useImpulse；〔M-003〕终态停驻；`@stagger` `@impulse` |
+| 镜 | 句区间 | 画面 | 动效 | Visual Lock |
+|---|---|---|---|---|
+| 1-A 六字段卡贴 | p1-01..07 | 左半：文件夹图标展开露出 SKILL.md；六格属性卡贴依次钉上（name/description 靛蓝高亮「必填」，四格灰显盖「可选」章）。p1-07 全屏独占：**archify full**：governance 章 `gl-three`（规范层三格：六字段封闭集/建议/留白） | 卡贴 `@stagger`；「可选」章 `@impulse`；章节回放 `@draw` | 保持：必填仅两格用 route 靛、章为灰阶；禁止：四格用契约色、窗内叠画场景装置 |
+| 1-B 正文与子目录 | p1-08..10 | 正文滚动条自由生长；右侧三枚虚影目录（脚本/参考/资源，虚线框）；p1-10 金句卡「路径即身份」+文件夹标签与 name 字段金线互锁 | 滚动条 `@grow`；虚影 `@breathe`；金线 `@draw` | 保持：虚线框不落色、金线 ledger；禁止：子目录实心化 |
+| 1-C 走查 pdf-report | p1-11..15b | 终端走查（Animated State Trace）：mkdir 出文件夹 → SKILL.md 打字机逐字打出两行元数据 → 描述行追加「纯文本提取请用内置工具」→ scripts/ 下解析脚本图标落位；p1-15b 绿章「技能就绪」 | 打字机 `@type`；脚本 `@enter:fall`；绿章 `@impulse` | 参考：pdf-report 命名贯穿 P2/P3 复用；保持：终端等宽字体、四步时序与句界对齐；禁止：跳步或回滚 |
+| 1-D 治理智慧 | p1-16..19 | 门牌互锁全景（文件夹名↔name 同色金线三点互锁）；p1-18 全屏独占：**archify full**：disclosure 章 `dl-discover`（发现/解析/作用域遮蔽链）；p1-19 Git 流水带横贯（clone→安装） | 互锁线 `@draw`；章节回放 `@draw`；流水带 `@flowDash` | 保持：互锁三点全亮才算「锁」态；禁止：窗内门牌残留 |
+| 1-E X1 消融 | p1-20..24 | 左右同屏消融：右绿「优先级在位」两客户端对同一目录树解析一致（对勾成对）；左红「拆掉优先级」10 技能格阵中 2 格分叉为版本 A/B 双徽章、底部红章「不可复现」 | 格阵 `@reveal`；分叉格 `@shake`；红章 `@impulse` | 保持：分叉恰 2 格、徽章 A/B 异色；禁止：绿侧出现分叉 |
 
-## P2 台账与提箱（p2-01..12，镜 2-A..2-F）
+## P2 三级账本
 
-| 镜 | 句区间 | 画面 | 动效 |
-| --- | --- | --- | --- |
-| 2-A | p2-01..04 | **台账墙**：调度室场景，台账墙逐行点亮（每行=箱号+一句货签，引航青单像素行〔M-001〕）；右侧泊位保持空 ·**archify full**：disclosure-lifecycle 章 `dl-discover`（p2-01）+ `dl-catalog`（p2-03） | 台账行 useStagger 点亮〔M-003〕；「~100 token/行」角标 useCount；`@stagger` `@count` |
-| 2-B | p2-05..08f | **提箱开箱**：匹配的台账行高亮→吊臂把对应集装箱〔M-001〕从左堆场吊往右作业台→整册指导书摊开；隔层按需抽拉 ·**archify full**：disclosure-lifecycle 章 `dl-activate`（p2-05）+ `dl-tier3`（p2-06）+ `dl-rewrite`（p2-08） | 吊臂 useProgress 平移；摊开 useSpring；隔层 useStagger；`@progress` `@spring` `@stagger` |
-| 2-C | p2-08a..08c | **软预算**：正文区标尺 5000 token/500 行（警示金虚线）+ 参考文件分册 +「一层深」单跳路径示意（关键词：软预算 / 一层深） | 标尺 useDraw；分册 useSpring 弹出；越界试探被弹回；`@draw` `@spring` |
-| 2-D | p2-09..10 | **数字翻牌**：左右账柱 39,222 vs 2,321（自建玩具角标）；「≈17×」横幅 ·**archify full**：budget-flipboard 章 `bf-toy`（p2-09）+ `bf-times`（p2-10） | 账柱 useCount 对向生长；横幅 useSpring 压入；`@count` `@spring` |
-| 2-E | p2-11..12 | **对岸同款**：对岸港口（OpenAI 旗）调度室同款台账墙，标尺「≤2% 或 8000 字符」（归属角标：OpenAI 文档口径）；两港隔海相望 ·**archify full**：budget-flipboard 章 `bf-openai`（p2-11） | 双港同款台账 useStagger 镜像点亮；标尺 useDraw；`@stagger` `@draw` |
-| 2-F | p2-12a..12c | **脚本家规**：箱内脚本舱——版本号钉死动画；四条家规牌（不问交互/报错说人话/结构化/能空跑）（关键词：钉版本 / 四条家规） ·**archify full**：script-craft 章 `sc-pin`（p2-12a）+ `sc-rules`（p2-12b） | 版本钉 useImpulse；家规牌 useStagger；`@impulse` `@stagger` |
+| 镜 | 句区间 | 画面 | 动效 | Visual Lock |
+|---|---|---|---|---|
+| 2-A 目录常驻 | p2-01..06 | p2-04 全屏独占：**archify full**：disclosure 章 `dl-catalog`（台账常驻·每技能一行）；窗外 pdf-report 摘要行落进目录卡（一行金字）+金句卡「这行摘要＝全部房租」 | 章节回放 `@draw`；摘要行 `@enter`；金句 `@pushIn` | 保持：摘要行单行不折行；禁止：窗前后叠画 |
+| 2-B 正文整载 | p2-07..09 | p2-09 全屏独占：**archify full**：disclosure 章 `dl-activate`（route→activate 逐节点点亮）；窗外用户问句气泡「帮我拆这份 PDF 报表」→目录卡命中脉冲 | 章节回放 `@draw`；气泡 `@enter`；脉冲 `@impulse` | 保持：命中脉冲 route 靛单色；禁止：脉冲早于锚句 |
+| 2-C 按需调阅 | p2-10..14 | p2-11 全屏独占：**archify full**：disclosure 章 `dl-tier3`（interpret→resources）；窗外三级独立格阵（三级三列互不连通）+p2-14 金句卡「安装成本→使用成本」 | 章节回放 `@draw`；格阵 `@reveal`；金句 `@pushIn` | 保持：三列间无连线；禁止：窗内格阵抢画 |
+| 2-D 十六点九倍 | p2-15..19 | 双柱标尺（基线虚线锚定）：左柱爬至 39,222（灰），右柱停 2,321（ledger 金），中缝弹出「16.9×」；p2-18 刀刃句定格 | 双柱 `@count` 竞速爬升；倍率 `@pop` | 保持：39,222/2,321 千分位、左灰右金、基线虚线不断；禁止：两柱同色 |
+| 2-E 预算门 | p2-20..23 | OpenAI 面板：上下文横条（标注「单次可读长度」）+2% 金窄条；8000 字符标尺落下截短一条超长 description；p2-23 三枚客户端徽章同举「共识」；p2-21 全屏独占：**archify full**：governance 章 `gl-three`（建议/上限格） | 横条 `@reveal`；窄条 `@pushIn`；标尺 `@enter:fall`；徽章 `@stagger` | 保持：2% 窄条比例真实（≤1/20 宽）；禁止：徽章用契约三色 |
 
-## P3 货签决定生死（p3-01..11，镜 3-A..3-E）
+## P3 一句话的路由
 
-| 镜 | 句区间 | 画面 | 动效 |
-| --- | --- | --- | --- |
-| 3-A | p3-01..04 | **好签差签**：两张货签并排（粉）——左「清洗 CSV：做什么+何时用」亮绿勾、右「帮忙处理文档」蒙灰无勾；分拣员视线从右签滑过不停留 ·**archify full**：label-good-bad 章 `lb-pair`（p3-02）+ `lb-silent`（p3-04） | 左签 useImpulse 亮起；右签降饱和〔M-002〕以静写闷——无强调动效；`@impulse` |
-| 3-B | p3-05..06 | **何时用**：货签放大镜下「何时用」子句高亮；用户气泡「这表看着乱」→ 清洗签被勾中（关键词：何时用 / 没说关键词） ·**archify full**：label-good-bad 章 `lb-intent`（p3-06） | 气泡 useSpring 浮起→连线勾中 useImpulse；`@spring` `@impulse` |
-| 3-C | p3-07..08 | **近失配**：靶纸三环——中心「正解：表格编辑」、近环「差一点：改个表格」命中清洗签边界、外环「无关：天气」剔除 ·**archify full**：routing-eval-protocol 章 `re-nearmiss`（p3-08） | 近环弹着点 useImpulse；外环淡出；`@impulse` |
-| 3-D | p3-08a | **别写满**：货签膨胀成大杂烩被 2% 标尺弹回（呼应 2-E）；随后收缩成精炼版过关（关键词：别写满） | 膨胀 useSpring 回弹；`@spring` |
-| 3-E | p3-09..11 | **一套卷子**：考卷摊开——20 题三遍演算纸→触发率分数条；六四分档（练/考）；「最优≠最后」两版货签对比冠军非终版 ·**archify full**：routing-eval-protocol 章 `re-protocol`（p3-09）+ `re-holdout`（p3-10）+ `re-interview`（p3-11） | 卷面 useStagger 铺开；分数条 useCount；冠军标 useImpulse；`@stagger` `@count` `@impulse` |
+| 镜 | 句区间 | 画面 | 动效 | Visual Lock |
+|---|---|---|---|---|
+| 3-A 路由交出 | p3-01..04 | p3-03 全屏独占：**archify full**：disclosure 章 `dl-activate`（章重播，跨幕非邻接复用）；窗外 p3-01/02 目录卡递交给模型剪影 | 章节回放 `@draw`；递交 `@travel` | 保持：重播章窗与 P2 窗画面一致（同章同演）；禁止：两窗间无过渡直切 |
+| 3-B 哑火与抢戏 | p3-05..08 | 双态门：左「哑火」门半掩、客人剪影径直走过（灰）；右「抢戏」门大开、随便什么问句都被拉进去跑（靛蓝过度激活）；p3-08 双代价徽章「白费调用/带偏答案」 | 剪影 `@travel` ×2；徽章 `@stagger` | 保持：哑火侧无任何脉冲、抢戏侧脉冲过密；禁止：两侧共用一个门 |
+| 3-C 三法则阶梯 | p3-09..15 | 三级阶梯逐级搭起：①命令口吻示例卡（「当用户想要解析结构化报表时使用」句式框）②近失配负例卡（pdf-report 描述行「纯文本提取请用内置工具」下划线高亮）③评测分栏：20 张请求卡洗牌→6:4 训练/验证双栏 | 阶梯 `@stagger`；下划线 `@draw`；卡洗牌 `@travel`；分栏 `@reveal` | 保持：6:4 比例格数真实（12:8 或近似）；禁止：阶梯缺级 |
+| 3-D 关键词反噬 | p3-16..18 | 招牌被关键词字块逐层涂满（遮挡店名）；下方注意力波形随涂抹变钝（振幅衰减）；p3-18 金句卡「一根字符串的路由」 | 字块 `@stagger` 堆叠；波形 `@decay`；金句 `@pushIn` | 保持：字块灰阶不抢色、波形单调衰减；禁止：字块用契约三色 |
 
-## P4 四个港口四种章程（p4-01..11，镜 4-A..4-F）
+## P4 46 家的默契与分歧
 
-| 镜 | 句区间 | 画面 | 动效 |
-| --- | --- | --- | --- |
-| 4-A | p4-01..02 | **对账开场+模范生**：审计台灯亮起；四联卡第一格 Gemini 港——章程牌「仅两格必填」+ 海关岗亭绿灯 ·**archify full**：four-ports-charter 章 `fp-quartet`（p4-01）+ `fp-ports`（p4-02） | 岗亭灯 useImpulse 亮绿（ok 色）；`@impulse` |
-| 4-B | p4-03..04 | **私货与通吃**：第二格 Claude Code 港——章程牌挂 10+ 扩展字段标签微微超宽；第四格 VS Code 港三道门全开（关键词：私货字段 / 三套全认） ·**archify full**：four-ports-charter 章 `fp-ports`（p4-03，章内含 CC/VS Code 画像） | 扩展标签 useStagger 外溢；三道门 useSpring 齐开；`@stagger` `@spring` |
-| 4-C | p4-05a..05b | **堆场混战**：四港堆场地图——.agents/.claude/自专属三种路牌交错；.agents 路牌最终四港通用高亮（关键词：点agents / 事实锚点） ·**archify full**：four-ports-charter 章 `fp-paths`（p4-05b，章内含堆场与锚点） | 路牌 useStagger 交错亮；.agents 全线贯通 useDraw；`@stagger` `@draw` |
-| 4-D | p4-06..08 | **宽容之门**：验关台——name 不匹配的箱子亮黄警告牌仍放行（黄=warn）；门禁计数器「严格拒 4 / 宽容进 12」（自建实测角标） ·**archify full**：lenient-vs-strict 章 `ls-warnload`（p4-06）+ `ls-x2`（p4-08） | 警告牌 useImpulse 后闸门 useSpring 抬杆放行；计数器 useCount；`@impulse` `@spring` `@count` |
-| 4-E | p4-08a..08d | **双跑盲评**：同单两跑（带箱/不带箱）产物进遮幕裁判席；断言清单逐条勾选；成本收益两栏记账（关键词：双跑 / 盲评 / 断言） ·**archify full**：eval-twin-runs 章 `et-blind`（p4-08a）+ `et-assert`（p4-08d） | 遮幕 useSpring 落下；勾选 useStagger；账本 useCount；`@spring` `@stagger` `@count` |
-| 4-F | p4-09..11 | **验箱师与真空**：对照表 13 条红叉（自建复核角标）；签名栏四家全空——唯独 Gemini 岗亭那盏绿灯回闪（呼应 4-A） ·**archify full**：four-ports-charter 章 `fp-ref`（p4-09）+ `fp-vacuum`（p4-10） | 红叉 useStagger 连打；空签名栏 useDraw 描空；绿灯 useImpulse 回闪；`@stagger` `@draw` `@impulse` |
+| 镜 | 句区间 | 画面 | 动效 | Visual Lock |
+|---|---|---|---|---|
+| 4-A 46 家阵列 | p4-01..03 | 客户端徽章墙 8×6（46 格亮+18 格空位灰），角标「官方 Showcase · 取数 2026-09」；p4-01b 问句气泡「真都一样？」 | 徽章 `@stagger` 点亮；气泡 `@pushIn` | 保持：亮格恰 46、角标常驻；禁止：空位格着色 |
+| 4-B 三家分叉 | p4-04..06 | p4-04 全屏独占：**archify full**：governance 章 `ge-eco`（gemini/claudecode/openai 三节点）；窗外四家徽章名条（Claude Code/Codex/Gemini CLI/VS Code Copilot）灰阶排开 | 章节回放 `@draw`；徽章条 `@stagger` | 保持：徽章用官方命名、不造 logo；禁止：窗外着色抢画 |
+| 4-B2 路径分叉 | p4-07..08 | p4-07 全屏独占：**archify full**：governance 章 `gl-guide`（发现路径约定）；窗外 p4-08 三条目录路径分叉图+「只定底线」紫章 | 章节回放 `@draw`；分叉 `@branch`；紫章 `@impulse` | 保持：三条路径文案与代码一致；禁止：紫章早于锚句 | 章节回放 `@draw`；分叉 `@branch`；紫章 `@impulse` | 保持：三家徽章各按官方命名、不造 logo；禁止：窗内路径图残留 |
+| 4-C X5 遮蔽消融 | p4-09..12 | 左右消融：右绿「警告在位」覆盖发生时警铃弹出；左红「拆掉警告」同名两目录行叠压、覆盖静默生效、用户视角蒙黑幕（知情权盲区） | 警铃 `@impulse`；叠压 `@travel`；黑幕 `@dim` | 保持：黑幕仅左栏、恰 1 处覆盖；禁止：右栏蒙黑 |
+| 4-D X2 严格宽容 | p4-13..18 | 12 技能格双栏对比：严格侧 4 格红叉（其中 1 格标签「为别家写」）→底部缺口动画 33%；宽容侧 12 格全绿；p4-15 全屏独占：**archify full**：governance 章 `gl-guide`（宽容校验 warn&load） | 红叉 `@stagger`；缺口 `@grow`；全绿 `@reveal` | 保持：红叉恰 4、缺口比例≈1/3、全绿无叉；禁止：红叉蔓延到宽容侧 |
+| 4-E X3 布尔翻转 | p4-19..22 | 元数据键值对特写（等宽字）：写入 `enabled: true` → 读出文字「false」→客户端判定框「有值＝真」→被禁用技能的绿灯误亮 | 键值 `@type`；判定框 `@pop`；绿灯 `@impulse` | 保持：true/「false」字面逐字一致；禁止：绿灯改红 |
+| 4-F PR 悬案 | p4-23..25 | p4-23 全屏独占：**archify full**：governance 章 `gl-verdict`（pr254/573/546 三提案节点）；窗外「生态先跑 · 条文追认」八字收束签 | 章节回放 `@draw`；收束签 `@pushIn` | 保持：提案编号与图内一致；禁止：窗外加第二组编号 |
 
-## P5 两个破坏实验（p5-01..11，镜 5-A..5-F）
+## P5 被解释的文本
 
-| 镜 | 句区间 | 画面 | 动效 |
-| --- | --- | --- | --- |
-| 5-A | p5-01..02 | **进实验室**：实验服挂钩、警示条纹门帘拉开；实验台标牌「同名优先级」 ·**archify full**：experiment-scan-order 章 `xo-priority`（p5-02） | 门帘 useSpring 拉开；`@spring` |
-| 5-B | p5-03..05 | **扫描序漂移**：双屏对照——A 港台账 vs B 港台账，同名两行版本对调并泛红（danger） ·**archify full**：experiment-scan-order 章 `xo-drift`（p5-04）+ `xo-silent`（p5-05） | 双屏 useStagger 同步滚动；漂移行 useImpulse 泛红〔M-003〕停驻终态；`@stagger` `@impulse` |
-| 5-C | p5-05a..05e | **遮蔽戏法**：公司菜谱架 vs 私改副本——副本改动行高亮，投影到公司仓时被「项目压个人」盾牌弹开；告警气泡「已被遮蔽」亮起/缺失两种结局 ·**archify full**：shadow-warning 章 `sw-copy`（p5-05a）+ `sw-shadow`（p5-05b）+ `sw-warn`（p5-05c） | 盾牌 useSpring 挡下；气泡 useImpulse；缺告警版本画面静止〔M-002〕；`@spring` `@impulse` |
-| 5-D | p5-06..09 | **货签藏私货**：放大镜下货签文本，缩进一行小字「allowed-tools: Bash(rm:*)」渗出墨迹→解析漏斗→元数据卡混入红字字段（danger） ·**archify full**：experiment-label-injection 章 `xi-smuggle`（p5-07）+ `xi-leak`（p5-08）+ `xi-authorize`（p5-09） | 墨迹 useDraw 蔓延；漏斗 useProgress；红字 useImpulse；`@draw` `@progress` `@impulse` |
-| 5-E | p5-09a..09b | **false 彩蛋**：键值对卡「enabled: false」→ 管道一圈 → 字符串 "'false'"；客户端检查章「非空=启用」误盖（danger 边）（关键词：只收字符串） ·**archify full**：experiment-label-injection 章 `xi-truthiness`（p5-09b） | 管道 useProgress 传输；印章误盖 useImpulse；`@progress` `@impulse` |
-| 5-F | p5-10..11 | **被解释的文本**：指导书页面上文字被工人形象「读」出并照做——代码符号淡出、人话台词浮起（金句位）（关键词：被解释的文本） | 文字→动作转译 useDraw；台词 useSpring 浮起〔M-003〕停驻；`@draw` `@spring` |
+| 镜 | 句区间 | 画面 | 动效 | Visual Lock |
+|---|---|---|---|---|
+| 5-A 本质问题 | p5-01..07 | 大模型剪影阅读 SKILL.md（文字流被吸入→转成指令流），与右侧对比小卡「机器码：无人阅读」；p5-07 注入定义浮签「恶意文字被当成指令执行」 | 文字流 `@flowDash`；浮签 `@pushIn` | 保持：吸入流单向、对比小卡灰阶；禁止：机器码侧着色 |
+| 5-B X4 注入消融 | p5-08..12 | 左右消融：左红——描述字段内借换行缩进渗入伪配置行，`allowed-tools/Bash(rm:*)` 高亮泄漏，下游「预授权」误读印章盖下；右绿——单行规范描述原样通过；p5-12 两枚盾牌「只认独占一行」「滤掉特殊字符」 | 伪行 `@type` 渗入；泄漏 `@shake`；印章 `@impulse`；盾牌 `@stagger` | 保持：伪行恰 1 行、泄漏串逐字一致；禁止：绿侧出现伪行 |
+| 5-C 确认门与真空 | p5-13..16 | p5-13 全屏独占：**archify full**：governance 章 `gl-algo`（留白区+确认门）；窗外 p5-15 确认界面小卡（名字/用途/目录三行）；p5-16 其余客户端灰幕「默认信任」 | 章节回放 `@draw`；小卡 `@reveal`；灰幕 `@dim` | 保持：小卡恰三行、灰幕仅盖非 Gemini 侧；禁止：灰幕盖全屏 |
 
-## P6 留白处的战争（p6-01..13，镜 6-A..6-F）
+## P6 规律、争议与边界
 
-| 镜 | 句区间 | 画面 | 动效 |
-| --- | --- | --- | --- |
-| 6-A | p6-01..04 | **摊牌**：三处留白（呼应 1-G）从虚线问号变成金边卷宗；「管得越少，越多人肯用」算法卡 ·**archify full**：governance-layers 章 `gl-three`（p6-02）+ `gl-algo`（p6-04） | 问号→卷宗 useSpring 翻转；算法卡 useDraw；`@spring` `@draw` |
-| 6-B | p6-05..06 | **悬案卷宗堆**：分发提案卷宗盖「停摆 7 个月」日期章（2026-03→09）；两份对冲提案背靠背卡死（关键词：停摆 7 个月 / 对冲） ·**archify full**：pending-wars 章 `pw-stall`（p6-05）+ `pw-clash`（p6-06） | 日期章 useImpulse；对冲卡 useSpring 顶牛抖动后僵持；`@impulse` `@spring` |
-| 6-C | p6-07 | **互通先落地**：三卷宗中「互操作」卷宗被最先抽走归档（关键词：最先落地） ·**archify full**：pending-wars 章 `pw-interop`（p6-07） | 抽卷 useProgress；`@progress` |
-| 6-D | p6-08..08b | **集装箱史押韵**：时间线 1956 卡车→ISO 箱体→…→CSI 海关协作（事故标记）→2026 押韵箭头折向本格式（关键词：1956 / 事故倒逼） ·**archify full**：box-history-rhyme 章 `hr-mclean`（p6-08a）+ `hr-csi`（p6-08b） | 时间线 useDraw 延伸；押韵箭头 useSpring 折转；`@draw` `@spring` |
-| 6-E | p6-09..11 | **边界收束**：「先事实后条文」牌；清单卡三行——保证什么/靠什么好用/靠什么可信（关键词：先事实后条文） ·**archify full**：box-history-rhyme 章 `hr-rhyme`（p6-09）+ `gl-verdict`（p6-10） | 三行卡 useStagger 逐行定格〔M-003〕；`@stagger` |
-| 6-F | p6-12..13 | **收尾**：金句衬线卡（一个文件夹/一份说明/一行货签）→ 下期卡 → 信源卡渐黑（信源：agentskills.io @69ef37e9 / 本仓 210·211 / 自建实测原型） | 金句卡 useSpring 压入；信源卡 useFadeOut 渐黑（末 beat 分镜标「渐黑」）；`@spring` `@fadeOut` |
+| 镜 | 句区间 | 画面 | 动效 | Visual Lock |
+|---|---|---|---|---|
+| 6-A 五规律 | p6-01..04 | 五张规律卡连翻（身份文件系统/按使用付费/语义路由/被解释的文本/互操作优先），p6-04 五卡收拢为一枚「管得少 → 被接受」 | 卡 `@stagger` 翻转；收拢 `@travel` | 保持：卡面仅关键词；禁止：五卡同色 |
+| 6-B 三争议 | p6-05..08 | 两块争议牌竖起：「自主 vs 点名」（下挂双通道并立小图）与「信任真空」（黑幕框）；p6-08 黑幕加粗 | 牌 `@enter:rise`；黑幕 `@dim` | 保持：争议牌治理紫描边；禁止：给争议下结论的视觉暗示 |
+| 6-C 边界护栏 | p6-09..12 | 五枚护栏卡横排（无权威基准/无严格对照/名单≠深度/防线脆弱/演进未验），逐枚落卡 | 护栏 `@stagger` 落卡 | 保持：护栏灰阶+danger 描边；禁止：护栏卡用契约三色 |
+| 6-D 回扣收尾 | p6-13..15 | 目录索引卡终态回归（〔M-003〕金线呼吸停驻），卡面「目录常驻 · 正文按需」八字；右下角实验指引签「lab2 · 五实验可复现」；整幅 `@fade` 渐黑 | 金线 `@breathe`；指引签 `@pushIn`；渐黑 `@fade` | 保持：终态卡与 0-A 同形同描边（〔M-001〕逐像素一致）；禁止：尾幕新增主体 |
 
-## 实现映射
+## 字幕与实现映射
 
-- scenes/P0..P6.tsx ↔ 上表七幕；SCENE_COMPONENTS 注册顺序 P0→P6；chapters.json 由 build 派生（勿手改）。
-- archify 资产 19 图（17 新绘 + 2 复用 210 运行相/治理相；box-anatomy 合并为 5 章契约，cue 总数 56）：`agent-skills--` 前缀入 `docs/assets/architecture/agent-infra/`；views 章节清单 = 上表各 `章 id`；cue 全部经 `<ArchifyRecap>`（`at('句id')` 锚定、`dur('句id')` 单参取长、背靠背后挂实例 `lead={false}`）。
-- 动效 hook 全部走 `src/motion/hooks.ts` frozen 层；装置类（翻牌/账柱/靶纸/双屏/放大镜/时间线）在 `src/components/devices.tsx` 新写；集装箱/台账行母题在 `src/components/motifs.tsx`。
-- 字幕规范：单行 ≤26 字（两行 35 字上限内），关键词锚点不整句上屏。
+- **字幕**：底部单行、一句一条，与配音同步（frozen Subtitle 渲染层剥句尾句号）；字幕带顶缘 y≈1026，全片装置底缘让位（P0-D 格阵、P2-D 标尺基线等底缘 ≥1026）。
+- **顶部章节条**：y<56 由章节条占用，各幕画面 y≥56 起；幕标题即 `## Pn` 名（章节条标签）。
+- **组件映射**：P0→P0Hook.tsx；P1→P1Folder.tsx；P2→P2Ledger.tsx；P3→P3Route.tsx；P4→P4Governance.tsx；P5→P5Security.tsx；P6→P6Laws.tsx。公共装置：`CatalogCard`（目录索引卡〔M-001〕）、`BalanceBars`（双柱标尺）、`AblationPanel`（左右消融框）、`WalkTerm`（终端走查）、`GoldenCard`（衬线金句卡）、`BadgeWall`（客户端徽章墙）。
+- **archify 接线**：cue 落 `<ArchifyRecap>`（diagram/章/锚句/fit 缺省），窗内 forbid_inset；跨实例背靠背（含镜界无 sceneGap 接缝）后挂实例 `lead={false}`，空窗 >2 帧恢复默认 lead。

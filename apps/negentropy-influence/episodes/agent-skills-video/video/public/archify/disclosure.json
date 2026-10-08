@@ -1,0 +1,113 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.52,
+ "story_sec": 16.34,
+ "total_wall_sec": 75.74,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "dl-discover",
+   "label": "发现与解析",
+   "index": 0,
+   "file": "disclosure--dl-discover.mp4",
+   "end_still": "disclosure--dl-discover-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.52,
+   "story_sec": 3.38,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "discover",
+    "parse",
+    "resolve"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "dl-catalog",
+   "label": "台账常驻",
+   "index": 1,
+   "file": "disclosure--dl-catalog.mp4",
+   "end_still": "disclosure--dl-catalog-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.52,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "catalog"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "dl-activate",
+   "label": "提箱整载",
+   "index": 2,
+   "file": "disclosure--dl-activate.mp4",
+   "end_still": "disclosure--dl-activate-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.52,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "route",
+    "activate"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "dl-tier3",
+   "label": "隔层按需",
+   "index": 3,
+   "file": "disclosure--dl-tier3.mp4",
+   "end_still": "disclosure--dl-tier3-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.48,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "interpret",
+    "resources"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "dl-rewrite",
+   "label": "改写账本",
+   "index": 4,
+   "file": "disclosure--dl-rewrite.mp4",
+   "end_still": "disclosure--dl-rewrite-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.52,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "exempt",
+    "dedupe"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/vancouver-v3/apps/negentropy-influence/episodes/agent-skills-video/video/public/archify/html/disclosure.html",
+ "slug": "disclosure",
+ "type": "workflow"
+}

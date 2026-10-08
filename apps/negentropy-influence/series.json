@@ -306,24 +306,25 @@
           "episode": 1,
           "slug": "agent-skills-video",
           "path": "episodes/agent-skills-video",
-          "title": "知识的集装箱：Agent Skills 开放标准",
-          "topic": "Agent Skills：一个文件夹怎么成了行业标准",
-          "cardSub": "开放标准 · 知识打包",
+          "title": "目录常驻，正文按需：Agent Skills 开放标准",
+          "topic": "Agent Skills：目录常驻、正文按需的领域知识打包开放标准",
+          "cardSub": "开放标准 · 渐进披露",
           "accents": [
-            "#45DFFF",
-            "#FF7A9E"
+            "#F2B33D",
+            "#6D8BFF",
+            "#A88BE8"
           ],
           "source": {
-            "title": "Agent Skills 重学精读 + 最小原型（docs/research/agent-infra/210 @ 72a657351）+ 上游规范与参考实现",
+            "title": "Agent Skills 开放规范精读笔记·重学版（docs/research/agent-infra/210 @ 本分支，C 型信源；210 成文 f7af5ee88，冻结锚随 Stage ① gl-notes 登记）+ agentskills/agentskills 规范仓 @ 69ef37e9 + 官方指南 6 篇 + 四家客户端实测口径",
             "site": "https://agentskills.io/specification",
             "repo": "https://github.com/agentskills/agentskills",
             "pinnedRef": "69ef37e9",
             "license": "CC-BY-4.0（文档）/ Apache-2.0（代码）；本仓精读为内部文档",
             "accessed": "2026-09-26"
           },
-          "status": "final-review",
-          "statusNote": "v1 终渲待审（2026-09-28）：13:03.4 = 23502 帧 @30fps / 1920×1080（119 句 4191 字，复算式与 mdls 逐位一致）；七幕 41 镜 · archify 19 图（17 新绘 + 2 复用 210）63 章 64 cue 逐章回放 · 锚定 53.8% · 图型 5 · 密度 4.9/分 · 最长无锚 6 句；信源 24 条（210/211/lab2 @72a657351 + 上游 @69ef37e9 + 生态四家 + PR 三提案）；story 段落演绎档（24 块相邻换情绪 + 表演标点，服务自愈重启一次）；④ RISKY=0 REWRITE=0 + ⑤ 成文优化 15 处（评审 7.5/10 起）；机器门全绿：check_series/build/check/--check-scenes/check_archify/复述门/tsc/qa --check 尾幕/beat-heads/WCAG(11.9:1) 全 FAIL 0 + 亮度扫描 102 帧零暗段 + 目视 7 帧；外挂字幕已交付 _captions/；旧 v1《经验淬炼成手册》成片保留归档",
-          "voice": "story 段落演绎档 + me-bright.wav"
+          "status": "ready",
+          "statusNote": "210 重学版换代重制成片交付（2026-10-06，第 2 次原位换代：230《刻意做小》→ 210《目录常驻，正文按需》，旧版 git 历史与 ~/Documents/video 归档保留）：12:55.3 = 23,259 帧 @30fps / 1920×1080（142 句 3406 字，edge 草声一档到底——用户拍板，纯语音 12.07 分实测 282 字/分 vs 280 口径偏差 0.7% 免校准）；七幕 33 镜 · archify 双图 10 章 12 cue（锚定 8.5% · 密度 0.9/分 · 图型 2 种 workflow+architecture · GL 原生章集镜像 + ge-eco/gl-guide 两分镜期新增章 + dl-rewrite 不进正片）· 12 处全屏独占窗；取证链：gl-notes 210 冻结快照 @63ce3d925 + sources 14 条 verify FAIL 0 + lab2 五实验复算日志×6 全命中 + number-reconciliation 24 行（21 命中/0 偏差/2 转述/1 时点值，39,222 逐位修正）；④ 双子代理校验 RISKY=0/REWRITE=0 + ⑤ 三轮成文优化（18+5 REWRITE 全修、豁免 5 项留痕）+ ⑨ 修复轮三类缺陷（Stage 塌顶全局修复 27 镜/transform 容器块效应结构换向/useFadeOut 组件层全局帧致 6-D 整镜隐形下沉 beat 局部）；机制门全绿：build/check--check-scenes（内容门+archify 覆盖门）/check_series（规则5 死链 4 处修复）/tsc/qa 全幕+尾幕 FAIL 0（WARN 1=p1-21/24 静态终态采样指纹，目检排除冻帧）；门值按实测 -15~20% 回填 + exempt_scenes P0/P6 + max_unanchored_run 20 装置密集段留痕；归档 v1（md5 fc8603e4abcf，源=归档复核）+ _captions/（srt md5 16ef85cad114 恒等）",
+          "voice": "edge 草声（制作终声一档到底）"
         },
         {
           "episode": 2,

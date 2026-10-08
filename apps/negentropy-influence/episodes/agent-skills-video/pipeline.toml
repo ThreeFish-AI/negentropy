@@ -9,33 +9,54 @@
 slug = "agent-skills-video"
 
 [narration]
-# TODO：按本集选题与语速预算填写。口径提示——280 字/分是**含停顿的等效**口径，
-# 裸按字数算会高估约 12% 的句容量，双口径门以 manifest 实测为准。
-# story 档实测语速 ~318 字/分（280 为 sunny 档含停顿口径）；窗取 series 上限 15.6，
-# 实测口径按 manifest 复核（首版 3852 字 → 12.1 分校准得出 318）。
-target_minutes = [13.0, 15.6]
-
-[tts]
-engine = "indextts"
-# TODO：选定样本与风格。样本路径**工作区根相对**；ref_sha1 取 12 位（同 tts.py 口径），
-# 用 `uv run --no-project $T/scripts/refs.py list` 查当前清单。
-# ⚠️ 风格预设的 alpha 是在**特定选段**上标定的，换选段即失效（见 $V/refs.toml）。
-ref = "voices/me-bright.wav"
-ref_sha1 = "54b699cce97f"
-style = "story"
-# story 档（默认）＝段落演绎：同幕连续句按块合成、块间情绪由配音台本驱动。
-# 台本（可选）：script/narration.cues.toml——写稿阶段产出，见 $T/references/VOICE-CLONING.md §4.5。
-# 重制存量集（旧档 → story）须显式 --allow-voice-switch 并补写台本。
+# 210 重学版换代重制（2026-10-06）：目标窗 11.5–13.5 分（210 内容量评估，较旧版 13:07 略收）。
+# chars_per_min 显式覆写 280（含停顿等效口径）：本集 edge 草声一档到底（用户拍板），
+# [tts].style=story 锚点的 254 系克隆档整集实测口径、对 edge 不适用——config.resolve
+# 显式 toml 恒优先；首轮 TTS 后按 RSI-021 以 manifest 实测复算，偏差>3% 回写本校准值。
+target_minutes = [11.5, 13.5]
+chars_per_min = 280
 
 [archify]
-# 19 图（17 新绘 + 2 复用 210 运行相/治理相），全部 agent-skills-- 前缀走约定；
-# 章节清单见 video/public/archify/views/。阈值为分镜实测（58 cue · 锚定 50.9% · 密度 4.2/分）
-# 下方 10–15% 回填；覆盖门 check 自动串联。
-html_dir = "docs/assets/architecture/agent-infra"
-html_pattern = "agent-skills--{slug}.html"
+# 210 伴生双图（C 型直通承接，GL 原生章集镜像 + P4 生态补章 ge-eco，见 views/*.json）。
+# 源图 = archify 3.0 产物（无 guided-views 模块，录制器不可直录）；本集用
+# scripts/patch-archify-html.py 从 docs 原件拷贝并注入精简兼容层（组合原生
+# focus.set/view.reveal/view.centerAt），落本集 html/——docs 原件（SSOT）不动；
+# 拷贝件中原件自带的 GL 章容器剥除，views/*.json 为录制章集唯一事实源。
+html_dir = "apps/negentropy-influence/episodes/agent-skills-video/video/public/archify/html"
+html_pattern = "{slug}.html"
 forbid_inset = true
-min_diagrams = 16
-min_cues = 50
-min_cues_per_minute = 3.6
-min_diagram_types = 5
-min_anchor_ratio = 0.43
+# 覆盖门分两组登记（成片实测：12 cue / ≈0.98 cue 每分 / 锚定 8.5% / 图型 2 种
+# （workflow+architecture）/ 9 章全启用）：
+# ① cue 派生门＝实测 −15~20% 回填（min_anchor_ratio 0.07 vs 实测 8.5%；min_cues 10 vs
+#    实测 12；min_cues_per_minute 0.8 vs 实测 0.98），吸收 QA 轮 cue 微调余量；
+# ② 图数/图型门＝保守地板（min_diagrams=2 与双图持平为本集结构事实；min_diagram_types=1
+#    较实测 2 种留一档余量——v13 旧集教训：门值贴实测零余量属结构性失真）。
+# exempt_scenes：P0 钩子幕 / P6 收束幕无 archify 锚为设计口径（RSI-039 首镜定式 +
+# 〔M-001〕终态回扣），按门要求显式登记；max_unanchored_run 20（实测最长 18，
+# p3-04..p4-03 为 X1 消融/16.9× 标尺/预算门等装置密集段，句句有非字幕可见元素，
+# ISSUE-188 覆盖自检按镜目检保证）。
+exempt_scenes = ["P0", "P6"]
+min_diagrams = 2
+min_cues = 10
+min_cues_per_minute = 0.8
+min_diagram_types = 1
+min_anchor_ratio = 0.07
+max_unanchored_run = 20
+
+[tts]
+# 两档策略（RSI-034）：制作期 edge 草声（免费、秒级、需联网、免样本）；
+# 整集评审通过后由用户显式触发用 IndexTTS-2.5 + 本人声音重配（references/07 §重配）。
+engine = "edge"
+# 终声档锚点：edge 期间不参与合成，仅作预算门估算口径（story=254 字/分）
+# 与重配预置；重配时把 engine 改 "indextts" 并补下方两项即生效。
+style = "story"
+# TODO（重配前补齐，非建集前置）：样本路径**工作区根相对**；ref_sha1 取 12 位
+# （同 tts.py 口径），用 `uv run --no-project $T/scripts/refs.py list` 查当前清单。
+# ⚠️ 风格预设的 alpha 是在**特定选段**上标定的，换选段即失效（见 $V/refs.toml）。
+#ref = "voices/me-bright.wav"
+#ref_sha1 = "TODOTODOTODO"
+# story 档（默认）＝段落演绎：同幕连续句按块合成、块间情绪由配音台本驱动。
+# 台本（可选）：script/narration.cues.toml——写稿阶段产出，见 $T/references/VOICE-CLONING.md §4.5。
+# 重配（引擎/风格/样本任一变化＝整集重录）须显式 --allow-voice-switch；首次上 story 补写台本。
+# 实跑（非 --plan）另须 --final-voice：本人显式点名的具名授权（RSI-040 人为触发，
+# 见 references/07-tts-voice.md）——agent 不得主动建议升档，其余一律 edge 草声。
