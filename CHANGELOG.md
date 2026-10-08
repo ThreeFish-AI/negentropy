@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 ### Added
+### ep2 统一开场换题重制段 PreparedIntro 组件（2026-10-08）
+
+- **贴板换题独立渲染入口**（[intro-combo.tsx](apps/negentropy-influence/episodes/claude-code-planning-video/video/src/intro-combo.tsx)，不进 Main 正片）：统一开场.mp4（机器本地 `public/intro/intro-source.mp4` 铺底，ISSUE-210 登记制口径不入库）播放之上，在原片标题推近窗口（~5.5s 起 6 帧淡入）叠半透明暗底 + backdrop blur + 白色角括线贴板，板内渲染本集标题两行；组级缩放复刻实测原文字线性拟合（720p w(t)=57.88t−204.68，归一到 t=10s 终态 1.0），贴板 900×340 终态盖住原装配 804×303 及早期中心漂移边距；双行标题字号自适应求解 `fitTitleSize`（L2 长行以 textWidth 宽度硬约束、经 `@remotion/layout-utils` 的 `fitText` 真实测量定字号——口径同 Subtitle.tsx；L1 短行封顶 1.6×L2，原装配实测 ≈1.41、放宽至 1.6 防失衡）。产物 `out/intro-prepared.mp4` 与正片同参，供 `scripts/assemble_intro.py` 拼接归档 v6（拼接脚本待建）。**标题登记面级联**（2026-10-08 [ep2](apps/negentropy-influence/episodes/claude-code-planning-video/README.md) 换题定稿——用户钉版新题、候选 A–D 作废）：series.json title/topic + statusNote 追加定稿、series.md、knowledge-map、本集 README 与 package.json description、五集 series-layers.json（含 ep1 next）、ep1 下期卡 P6OneLoop 与本集身份卡 P6Arranged——check_series 规则 8 双 FAIL 归零；贴板两行标题改由本集 series-layers.json 数据派生（口径同 series-intro.tsx 标题卡），planning.md §0 同步定稿口径。
+
 ### 媒体固定资产登记制：默认不入库，登记才入库（2026-10-08）
 
 - **登记表 + 校验器 + 通用忽略段**三件套（[ISSUE-210](docs/.agents/issue.md)）：音/视频媒体与动图（mp3/mp4/wav/m4a/aac/flac/ogg/opus/webm/mov/mkv/avi/gif）全仓默认不入 Git；公共固定资产先在 `scripts/media-assets.toml` 登记（path/sha256/bytes/reason），`scripts/check_media_assets.py --sync` 按登记表重放 .gitignore 白名单块（对每个登记路径跑 `git check-ignore` 实测放行，闭合目录级忽略陷阱），`--check` 校验「已入库 ⊆ 登记表、指纹一致、白名单生效、触发覆盖完整」并 pre-commit/CI 双挂。红绿闭环实测四条：默认 add 被挡 / -f 强加被钩子拦 / 篡改已登记文件被指纹拦 / 各集副本目录级忽略仍生效。零散忽略行收敛进通用段；首批登记架构故事片 mp4/gif（存量合规化）与 CC 系列片头音轨种子 mp3（合成产物随仓分发，克隆源样本仍不入库）。
