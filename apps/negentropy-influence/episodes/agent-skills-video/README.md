@@ -10,7 +10,7 @@
 | `script/planning.md` | Stage ② 策划案（六节齐 + 钩子候选矩阵 ★H4 拍板记录） |
 | `script/narration.md` | Stage ③ 逐字稿 **★单一事实源**（v3，142 句；勿改 narration.json） |
 | `script/storyboard.md` | Stage ⑥ 分镜表（33 镜 ↔ 句区间 ↔ 画面 ↔ 动效 ↔ Visual Lock） |
-| `scripts/*.py` | 薄包装 → to-video skill 的 scripts/（解析器定位，保 CLI 契约）；`patch-archify-html.py` 为本集专用注入器 |
+| `scripts/*.py` | 薄包装 → vibe-video skill 的 scripts/（解析器定位，保 CLI 契约）；`patch-archify-html.py` 为本集专用注入器 |
 | `video/` | Remotion 独立 pnpm 工程（嵌套 workspace 自锚隔离；remotion 4.0.533） |
 | `out/` | 渲染产物（gitignored） |
 | `pipeline.toml` | 本集可执行参数的唯一来源（含 [archify] 覆盖门实测回填注释） |
@@ -18,7 +18,7 @@
 ## 复现流水线
 
 ```bash
-# 在工作区内执行。$T/$W/$P 见 to-video skill 的 references/PIPELINE.md 路径变量约定
+# 在工作区内执行。$T/$W/$P 见 vibe-video skill 的 references/PIPELINE.md 路径变量约定
 P=$W/episodes/agent-skills-video
 
 # ① 信源核验（C 型：gl-notes 冻结 + 活信源台账 verify）
@@ -46,7 +46,7 @@ uv run --no-project $T/scripts/pipeline.py --project $P qa --video out/draft.mp4
 # ⑤ 交付
 uv run --no-project $T/scripts/pipeline.py --project $P captions
 uv run --no-project $T/scripts/pipeline.py --project $P render --final
-uv run --no-project $T/scripts/pipeline.py --project $P deliver --dry-run   # 核名后实投（TO_VIDEO_DELIVER_ROOT）
+uv run --no-project $T/scripts/pipeline.py --project $P deliver --dry-run   # 核名后实投（VIBE_VIDEO_DELIVER_ROOT）
 ```
 
 ## 内容修改守则
@@ -56,7 +56,7 @@ uv run --no-project $T/scripts/pipeline.py --project $P deliver --dry-run   # �
 - **口播永不出现他集标题与集数序号**——顺序只在视觉层与 [series.json](../../series.json)（`check_series.py` 执法）。
 - archify 章集：`video/public/archify/views/*.json` 是录制章集**唯一事实源**（patcher 会剥除 docs 原件自带的 GL 章容器，防同名遮蔽）；改章后须重录对应图并重跑 lead+manifest。
 - 示意算式（6 万 token）与实测账本（16.9×）分属两体系：画面须带「示意估算」角标，不得并排比较（对账表口径）。
-- 骨架冻结档位见 [to-video skill 的 skeleton.toml](https://github.com/ThreeFish-AI/to-video/blob/main/assets/video-skeleton/skeleton.toml)；改动前先跑 `uv run --no-project $T/scripts/verify_skeleton.py`。
+- 骨架冻结档位见 [vibe-video skill 的 skeleton.toml](https://github.com/ThreeFish-AI/vibe-video/blob/main/assets/video-skeleton/skeleton.toml)；改动前先跑 `uv run --no-project $T/scripts/verify_skeleton.py`。
 
 ## 许可
 

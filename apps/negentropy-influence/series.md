@@ -1,14 +1,14 @@
 # 科普视频作品总览
 
 > 机读 SSOT：[series.json](./series.json)（顶层 `seriesList[]`，多系列并列）。顺序变更只改它 + 视觉层；
-> 口播永不携带序号，校验器 [check_series.py](https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/scripts/check_series.py) 保证散文/组件与清单一致。
+> 口播永不携带序号，校验器 [check_series.py](https://github.com/ThreeFish-AI/vibe-video/blob/main/pipeline/scripts/check_series.py) 保证散文/组件与清单一致。
 >
 > **多系列执法语义**：反串线（规则 1）**跨系列全局生效**——两个系列各自独立成片，口播互不引用；
 > 顺序类规则（2/3/4）**按系列内判定**——不同系列的发布顺序互相无关，`episode` 的 `1..N`
 > 连续性也只在系列内成立。
 
-制作统一走[公共管线](https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/README.md)（九阶段）；配音经 IndexTTS-2.5 本人音色克隆
-（样本指纹见 [voices/refs.toml](./voices/refs.toml)，手册 [VOICE-CLONING.md](https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/VOICE-CLONING.md)）。
+制作统一走[公共管线](https://github.com/ThreeFish-AI/vibe-video/blob/main/pipeline/README.md)（九阶段）；配音经 IndexTTS-2.5 本人音色克隆
+（样本指纹见 [voices/refs.toml](./voices/refs.toml)，手册 [VOICE-CLONING.md](https://github.com/ThreeFish-AI/vibe-video/blob/main/pipeline/VOICE-CLONING.md)）。
 
 ## 自进化系列（论文型选题）
 
@@ -30,17 +30,22 @@
 
 | #   | 作品                                                                                  | 一句话主题                    | 视觉契约（主色）                         | 信源                                                                                              | 状态                                                                        |
 | --- | ------------------------------------------------------------------------------------- | ----------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| 1   | [《工具与执行：一个循环，三层装置》](./episodes/claude-code-explained-video/README.md) | 循环不变式与三层挂载装置 | core #D97757 恒定/mech 石青 | 站点 s01–s04 钉 main `0dcafa2`（MIT）＋官方文档轨 C；台账 12 条 audit FAIL 0 | ✅ **完全重制 v1 交付**（14:02.6 · 164 句 · 12 图 65 章 · 归档 v1+_captions） |
-| 2   | [《规划与协调：模型的视野是安排出来的》](./episodes/claude-code-planning-video/README.md) | 五件安排台面的装置 | mech 鸢紫 #9C90EE | s05–s07·s10·s11 @ `67a9126c` ＋轨 C | ✅ **完全重制 v1 交付**（14:12.2 · 169 句 · 12 图 68 章 · 目检修复 P6 叠压） |
-| 3   | [《记忆管理：会丢的和不能丢的》](./episodes/claude-code-memory-video/README.md) | 两套咬合的机制 | mech 苔绿 #A9C46C | s08·s09 @ `67a9126c` ＋轨 C（main 演进彩蛋） | ✅ **完全重制 v1 交付**（14:13.3 · 163 句 · 12 图 62 章） |
-| 4   | [《并发：谁来按下开始》](./episodes/claude-code-concurrency-video/README.md) | 后台不等＋定时钟自动 | mech 霜蓝 #7FB2E0 | s13·s14 @ `67a9126c` ＋轨 C | ✅ **完全重制 v1 交付**（14:10.8 · 170 句 · 12 图 59 章 · Lottie 根因修复） |
-| 5   | [《多 Agent 平台：从一个到一群》](./episodes/claude-code-multiagent-video/README.md) | 从一个到一群的五物件 | mech 协作金 #D9B36B | s12·s15–s20 @ `67a9126c` ＋轨 C 八校准 | ✅ **完全重制 v1 交付**（13:42.8 · 149 句 · 13 图 67 章 · 终集收束） |
+| 1   | [《工具与执行：一个循环，三层装置》](./episodes/claude-code-explained-video/README.md) | 循环不变式与三层挂载装置 | core #D97757 恒定/mech 石青 | 站点 s01–s04 钉 main `ce8f9f18`（MIT）＋官方文档轨 C；台账 15 条 audit FAIL 0 | 🟡 **剧本 v3 待审**（2026-10-07 信源换代）｜前代 v1 成片 14:02.6 · 164 句 · 12 图 65 章 |
+| 2   | [《规划与协调：模型的视野是安排出来的》](./episodes/claude-code-planning-video/README.md) | 五件安排台面的装置 | mech 鸢紫 #9C90EE | s05–s07·s10·s11 @ `67a9126c` ＋轨 C | 🟡 **剧本 v3 待审**（2026-10-07 信源换代）｜前代 v1 成片 14:12.2 · 12 图 68 章 |
+| 3   | [《记忆管理：会丢的和不能丢的》](./episodes/claude-code-memory-video/README.md) | 两套咬合的机制 | mech 苔绿 #A9C46C | s08·s09 @ `67a9126c` ＋轨 C（main 演进彩蛋） | 🟡 **剧本 v3 待审**（2026-10-07 信源换代）｜前代 v1 成片 14:13.3 · 12 图 62 章 |
+| 4   | [《并发：谁来按下开始》](./episodes/claude-code-concurrency-video/README.md) | 后台不等＋定时钟自动 | mech 霜蓝 #7FB2E0 | s13·s14 @ `67a9126c` ＋轨 C | 🟡 **剧本 v3 待审**（2026-10-07 信源换代）｜前代 v1 成片 14:10.8 · 12 图 59 章 |
+| 5   | [《多 Agent 平台：从一个到一群》](./episodes/claude-code-multiagent-video/README.md) | 从一个到一群的五物件 | mech 协作金 #D9B36B | s12·s15–s20 @ `67a9126c` ＋轨 C 八校准 | 🟡 **剧本 v3 待审**（2026-10-07 信源换代·终集收束）｜前代 v1 成片 13:42.8 · 13 图 67 章 |
 
 > 章节→集归属与**站点/仓库修订分叉**（站点为 20 章旧修订、仓库 main 已整合为 17 章，故双钉）：
 > 系列级登记见 [source-map/claude-code-explained.md](./source-map/claude-code-explained.md)。
 
 **系列纪律**：各集独立成片，口播互不引用、不出现集数序号——顺序只存在于本清单与片尾视觉卡片，
 发布顺序变更的 TTS 代价恒为零。
+
+**系列片头《一个循环》**（2026-10-06 上线、2026-10-08 独立化并铺开五集）：约 23.5s 统一开场（口播
+为独立音轨不入各集 narration，逐集差异=本集 mech 授色与本集站定格，全数据驱动）；种子与同步纪律见
+[series-assets/claude-code-explained/intro/README.md](./series-assets/claude-code-explained/intro/README.md)，
+台账见 [ISSUE-209](../../docs/.agents/issue.md)。
 
 ## Context Layer · 上下文层系列（doc 型 · 3 集）
 

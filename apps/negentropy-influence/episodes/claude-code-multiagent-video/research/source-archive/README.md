@@ -6,8 +6,9 @@
 | 仓库 URL | https://github.com/shareAI-lab/learn-claude-code |
 | 许可 | MIT（`LICENSE` 为同一固定提交下许可文件的字节副本） |
 | 固定提交 | `67a9126c6435a8654ba7a6f68c0fd2130f00a462`（站点同源修订（20 章版，分支 fix/s08-s20-sync-frontmatter-parser），提交日 2026-07-29） |
-| 取数日期 | 2026-09-28（完全重调研归档） |
-| 指纹台账 | 同目录 `../sources.toml`（`source_ledger.py sync` 派生，audit FAIL 0） |
+| 归档范围 | 站点轨 s12_task_system / s15_agent_teams / s16_team_protocols / s17_autonomous_agents / s18_worktree_isolation / s19_mcp_plugin / s20_comprehensive 七章（README.md 中文默认 + code.py）；main 轨对照章（s10_task_system / s13_agent_teams / s14_mcp_plugin / s15_integrated_harness @ `ce8f9f18`）只登台账指纹、不建归档 |
+| 取数日期 | 2026-10-07（剧本 v3 换代重归档） |
+| 指纹台账 | 同目录 `../sources.toml`（`source_ledger.py fetch` 逐条登记：站点轨七章主条目 + main 轨四章对照 + 官方补读；`verify` 见 research/gl-notes.md 附录 C） |
 
 章→集归属与钉选不在此重述：唯一登记处为系列信源地图
 [../../../../source-map/claude-code-explained.md](../../../../source-map/claude-code-explained.md)。
