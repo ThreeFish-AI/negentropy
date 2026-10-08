@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """cc_tools_lab.py — Learn Claude Code「工具与执行」（s01–s04）最小原型（纯标准库）。
 
-配套笔记：docs/research/agent-harness/171-claude-code-tooling-execution.md §8。
+对照笔记：docs/research/agent-harness/171-claude-code-tooling-execution.md §3–§6 机制口径（其 §8 正本原型为 lcc_tooling_lab.py；本脚本为 2026-10-01 精读轮补充资产，未内嵌换代版正文）。
 对照材料：课程站点 learn.shareai.run/zh/s01–s04（2026-09-30 快照）+
 shareAI-lab/learn-claude-code main @ ce8f9f18（MIT）。
 
@@ -53,6 +53,8 @@ class VFS:
                 del self.files[p]
             return f"removed {len(removed)} entries under {t}"
         if tokens[:1] == ["cat"]:
+            if len(tokens) < 2:
+                return "cat: missing operand"
             f = self.resolve(tokens[1])
             return self.files.get(f, f"cat: {f}: No such file")
         if tokens[:1] == ["ls"]:
@@ -297,7 +299,7 @@ def selftest():
     out = "\n".join(log)
     print(out)
     from pathlib import Path
-    out_dir = Path(__file__).resolve().parent / ".lab_out"   # 与 cc_harness_lab/ai_native_lab 同口径：产物落脚本旁
+    out_dir = Path(__file__).resolve().parent / ".lab_out"   # 与 ai_native_lab 同口径：产物落脚本旁
     out_dir.mkdir(exist_ok=True)
     # 断言：正常路径（写/读放行）、陷阱路径（sudo 拒绝）、边缘路径（rm 规则命中问用户且 y）
     assert any("GATE2->3" in l and "ALLOW" in l for l in log), "规则命中应问用户"
@@ -462,8 +464,8 @@ def exp5():
 
 # --------- 预测题实跑 ---------
 def pred_t4():
-    """T4 同构走查：write_file(工作区内) + bash(rm -rf ./tmp/build-cache)，命令与笔记 §5/§6 对账。"""
-    print("== T4 走查实跑 ==")
+    """同构走查（--pred t4）：write_file(工作区内) + bash(rm -rf ./tmp/build-cache)，按笔记 §5 三闸门语义实测。"""
+    print("== t4 走查实跑 ==")
     log: list[str] = []
     vfs = VFS({"/workspace/tmp/build-cache/one.txt": "1", "/workspace/tmp/build-cache/two.txt": "2"})
     VFS._current = vfs
@@ -480,8 +482,8 @@ def pred_t4():
 
 
 def pred_t5():
-    """T5 预测：拒绝表删掉 sudo 后，sudo chmod 777 走哪条路。"""
-    print("== T5 预测实跑（DENY_LIST 先删 sudo） ==")
+    """预测走查（--pred t5）：拒绝表删掉 sudo 后，sudo chmod 777 走哪条路。"""
+    print("== t5 预测实跑（DENY_LIST 先删 sudo） ==")
     global DENY_LIST
     orig = list(DENY_LIST)
     DENY_LIST = [d for d in DENY_LIST if d != "sudo"]
@@ -504,8 +506,8 @@ def pred_t5():
 
 
 def pred_gates():
-    """§5 分路表五条命令逐条过闸（教学版三闸门语义实测）。"""
-    print("== §5 分路表五条命令逐条过闸 ==")
+    """五条代表性命令逐条过闸（教学版三闸门语义实测，语义对照笔记 §5）。"""
+    print("== 五条代表性命令逐条过闸 ==")
     vfs = VFS({"/workspace/README.md": "x", "/tmp/cache": "y", "/workspace/tmp/build-cache": "z", "/etc/hosts": "h"})
     VFS._current = vfs
     for command in ["rm -rf /", "rm -rf /tmp/cache", "rm -rf ./tmp/build-cache", "sudo ls", "cat /etc/hosts"]:

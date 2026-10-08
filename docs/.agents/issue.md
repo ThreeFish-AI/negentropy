@@ -4333,6 +4333,7 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **表因**：`video/public/archify/checkchain-order.json` chapters[1] capture_fps=17.0，五集其余 59 图全部 ≥23；check_archify 仅 WARN 不拦门。
 - **根因**：录制期负载瞬时退化（ISSUE-201 同期建图批次），CDP 档补帧合成 CFR25 掩盖了低采集率。
 - **处理方式**：随 ep1 完全重制（新题《工具与执行：一个循环，三层外设》）失效关闭——checkchain-order 图已整体退役删除（新图集 13 新绘＋five-layer 复用），重录待办不再适用；CHANGELOG 同批登记「ISSUE-206 的 ep1 侧随重制关闭」。
+- **合并追记（2026-10-08）**：主干 #1189 剧本 v3 只换代剧本、场景/图集未动——合并整树对齐后 `video/public/archify/checkchain-order.json`（scan-claim 章 capture_fps=17.0）随 v1 场景集原样回座并被 manifest 挂载，「整体退役删除」仅适用于 2026-10-02 重制态与外部归档 v1；fps 复核义务移交 v3 场景轮换新图集时一并重验。
 - **后续防范**：录制后对 capture_fps 做「min ≥18」门（当前仅 WARN）；重录前先单帧 still 判别资源态。
 - **同类问题影响**：仅此一章；五集其余图帧率健康。
 
@@ -4399,8 +4400,9 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **后续防范**：archify 升版后先跑一张探针图过采集脚本再批量出图；「导出尺寸契约」属于脚本与工具间的隐性接口，升级核对面应包含它。
 - **同类问题影响**：所有计划用 archify 3.x 新绘/重绘的 docs/assets/architecture 图。
 - **追加（2026-10-01）**：3.0.0 产出 HTML 另含行尾空格（loop-mounted-layers 实测 15 处，2.17 无），trailing-whitespace 钩子剥空格会使 finalize/delivery 回执 sha256 与入库文件失配（仓惯例要求一致，bg-board-and-lock 2.17 实证 MATCH）。处置：pre-commit 的 trailing-whitespace/end-of-file-fixer 对 docs/assets/architecture/ 增加豁免（与 source-archive/ 同理：冻结产物保指纹，经用户确认）。
+- **追加（2026-10-08，review-once R1）**：`claude-code--intake-loop` 为已登记偏差——R10（c7e0e111b）为修 five-steps 章标签「调·判→进·收」直接编辑已 finalize 的 html（-9 字节，835125→835116），delivery/finalize/finalize-summary 三回执 6 处 artifact 指纹停留旧值（898a6e0f…）。内容修正优先保留；`.archify` 会话 candidate 仍为修正前词表，直接重出会回退修正，回执待该图下次 deliver/finalize 一并重出——重出前回执对账巡检按本条对 intake-loop 豁免（全仓 37 套带 delivery 回执图集，其余 36 套 MATCH）。
 
-## ISSUE-213 ep1 P6 复用图 five-layer-dependency 章节集误用记忆集视角：finale 亮错层（2026-10-02，开放；2026-10-08 合并主干时编号撞车自 209 顺延；待办须按主干 #1189 剧本换代 v3 的场景轮语境复核——旧场景已重构，重录对象以 v3 场景轮产出为准）
+## ISSUE-213 ep1 P6 复用图 five-layer-dependency 章节集误用记忆集视角：finale 亮错层（2026-10-02，开放；2026-10-08 合并主干时编号撞车自 209 顺延；待办须按主干 #1189 剧本换代 v3 的场景轮语境复核——2026-10-08 合并整树对齐后重制场景已删除、v1 场景集原样回座（five-layer views 亦为 v1 原状，缺陷态不在当前树），下列待办锚点（6-A/6-C 章、P6Finale、P0ForgetfulDoctor.tsx 等）均为已弃用重制实现的文件，重录对象以 v3 场景轮产出为准）
 
 - **表因**：ep1 完全重制把复用图 `five-layer-dependency` 的 views/录制 sidecar/manifest 三处章节集整体拷贝自记忆集（claude-code-memory-video）：`layer-flash` label「记忆层一闪」、focus=[layer-3, layer-2, layer-4]、note 自述「本集视角＝五层链第三层」；`two-dark-zones` 只留 L4/L5 暗区（ep3 已播三集的状态）。成片 final.mp4 p6-01 窗抽帧实证：左下章节标题「记忆层一闪」、扫光落在规划/记忆/时机层，L1（工具与执行）不在焦点集。
 - **根因**：five-layer HTML 是系列共享底座，但 guided-views 的 focus/label 是**每集视角的派生物**——「复用 html_overrides」被误执行成「连别集的叙事视角章节一起拷贝」。旧版 ep1 对同一 HTML 自派生过 layer-1 视角章节（layer-preview focus=[layer-1,2,3]、four-dark-zones focus=[layer-2..5]），证明重派生才是既有做法；重制时旧章集被删、新章集直接取自 ep3，评审对账 storyboard（6-A「本集层点亮」/6-C「后续各层」）才暴露。
