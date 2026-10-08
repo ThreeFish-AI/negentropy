@@ -4349,5 +4349,5 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **表因**：原片头只强调循环与工坊意象，没有直接点题 Claude Code 与 Harness Engineering；替换为系列总述后，长句超出原 11.4 秒 lead-in，旧字幕切点也不再成立。
 - **根因**：系列片头文案写在 `series-intro.tsx`，音轨是独立生成物，缺少与片头时序一起复核的单一变更入口。
 - **处理方式**：更新三段字幕为 Claude Code / Harness Engineering / 五种核心机制的统一定稿；`timing.json` 的 lead-in 调整为 23.5 秒，按新音轨静音带重排三段切点，并将字幕容器移入安全带；片头音频作为 ignored 派生物按 edge 草声参数重生成，终声版本需另行显式重配。后续收敛：8700277df 将三段长句细化为六段单行语义切换（切点改词首-4 先行、下段 in+6 交叉锚定，`series-intro.tsx` SUBS 现为 sub1a/1b/1c/2a/2b/sub3 六段）；2026-10-07 评审轮按系列禁词表（`check_series` ORDINAL_WORDS）将口播首词「本系列视频」修订为「这套视频」，重合成 edge 草声（take 18.08s）并按静音带重排 T 表。
-- **后续防范**：片头改稿必须同步核对音轨时长、静音带、字幕安全带和视觉拍点；生成音频后先做句级时序验收，再进入 Remotion 渲染。片头口播不入 narration SSOT，顺序词门（`check_series` 规则1 ORDINAL_WORDS）只扫 narration.md、不覆盖组件内 NARRATION/SUBS 字面量——片头改稿须人工按禁词表核对（「本系列」漏网即此盲区实证；机器门扩面待 skill 侧扩规则1受检面）。
+- **后续防范**：片头改稿必须同步核对音轨时长、静音带、字幕安全带和视觉拍点；生成音频后先做句级时序验收，再进入 Remotion 渲染。片头口播不入 narration SSOT，顺序词门（`check_series` 规则1 ORDINAL_WORDS）只扫 narration.md、不覆盖组件内 NARRATION/SUBS 字面量——片头改稿须人工按禁词表核对（「本系列」漏网即此盲区实证；机器门扩面已于 2026-10-08 回馈 skill 侧——[vibe-video PR #42](https://github.com/ThreeFish-AI/vibe-video/pull/42) 以 RSI-050 扩规则1受检面至 NARRATION/SUBS 容器字面量，并以 RSI-051 将片头资产契约与静音带 T 表方法论成册；本事故的六段字幕化收敛亦经 RSI-049 先行入册）。
 - **同类问题影响**：所有独立挂载音轨的系列片头、预告和品牌声画组件都可能出现文案、字幕与音轨三方漂移。
