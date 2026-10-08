@@ -132,8 +132,8 @@
           "episode": 2,
           "slug": "claude-code-planning-video",
           "path": "episodes/claude-code-planning-video",
-          "title": "规划与协调：模型的视野是安排出来的",
-          "topic": "规划与协调：谁替它安排视野",
+          "title": "规划与协调：视野错位的五种修正手法",
+          "topic": "规划与协调：视野错位怎么修",
           "cardSub": "规划与协调 · 视野",
           "accents": [
             "#9C90EE"
@@ -147,7 +147,7 @@
             "accessed": "2026-10-07"
           },
           "status": "script-review",
-          "statusNote": "剧本 v3 待审（2026-10-07）：C 型信源=172 新精读；147 句 3561 字 7 幕 28 镜（14.0 分落窗）；三门绿 + source_ledger 28 条 FAIL 0；场景/TTS/图集未动（ISSUE-211）；钩子 H1/标题候选 4 项待人工复核；2026-10-08 系列片头铺开：series-intro 组件副本+挂载块（归一化指纹 78664c3010fd）+leadIn 23.5（片头 705 帧前置）；时长预算窗改 [13.0,15.5] 含片头口径（+22.9s）；0-A 已让位改造（退役 HarnessStackP0，Badge 直入，2026-10-08）；成片待重渲（补跑 TTS 后统一批次），见 ISSUE-209",
+          "statusNote": "剧本 v3 待审（2026-10-07）：C 型信源=172 新精读；147 句 3561 字 7 幕 28 镜（14.0 分落窗）；三门绿 + source_ledger 28 条 FAIL 0；场景/TTS/图集未动（ISSUE-211）；钩子 H1/标题候选 4 项待人工复核；2026-10-08 系列片头铺开：series-intro 组件副本+挂载块（归一化指纹 78664c3010fd）+leadIn 23.5（片头 705 帧前置）；时长预算窗改 [13.0,15.5] 含片头口径（+22.9s）；0-A 已让位改造（退役 HarnessStackP0，Badge 直入，2026-10-08）；成片待重渲（补跑 TTS 后统一批次），见 ISSUE-209；2026-10-08 标题定稿《规划与协调：视野错位的五种修正手法》（用户钉版，v6 换题片头拍板）——候选 A–D 作废、钩子 H1 仍待审，13 处登记面已级联（规则 8 双 FAIL 归零）",
           "voice": "story + me-bright.wav"
         },
         {
