@@ -1,0 +1,57 @@
+%% source: docs/research/agent-harness/171-claude-code-tooling-execution.md（§2 全貌解剖）
+%% slug: lcc-tooling--panorama
+%% type: architecture
+%% derived: 首次绘制（2026-10-07，guided-learn 首次精读）
+flowchart TD
+    subgraph LOOP["循环本体 · s01 Agent Loop"]
+        direction TB
+        P["用户输入"] --> UPS["UserPromptSubmit 钩子"]
+        UPS --> LLM["调用模型（附工具定义）"]
+        LLM --> CRIT{"回答里出现工具调用块？"}
+    end
+
+    subgraph SAFE["裁决与执行 · s03 Permission + s04 Hooks"]
+        direction TB
+        CRIT -- "有（needsFollowUp）" --> PRE["PreToolUse 钩子"]
+        PRE --> G1{"闸门 1：硬拒绝表"}
+        G1 -- "命中" --> DENY["拒绝结果回喂模型"]
+        G1 -- "未命中" --> G2{"闸门 2：规则匹配"}
+        G2 -- "未命中" --> RUN["TOOL_HANDLERS 查表执行"]
+        G2 -- "命中" --> G3{"闸门 3：用户审批"}
+        G3 -- "拒绝" --> DENY
+        G3 -- "允许" --> RUN
+        RUN --> POST["PostToolUse 钩子"]
+        DENY --> TR
+        POST --> TR["tool_result 按 tool_use_id 配对"]
+    end
+
+    TR --> LLM
+    CRIT -- "没有" --> STOP["Stop 钩子"]
+    STOP -- "注入 user 消息续跑" --> LLM
+    STOP -- "返回空" --> DONE["循环退出"]
+
+    subgraph PROD["生产保护层 · CC 源码与官方文档"]
+        direction TB
+        NF["needsFollowUp：流式下认内容块，不认 stop_reason 字段"]
+        PT["partitionToolCalls：连续批，安全批并发、写操作串行"]
+        CLS["auto 分类器：结合上下文自动审批"]
+        INV["不变式：hook 的 allow 压不过 deny/ask 规则"]
+        SHA["stopHookActive：防 Stop 续跑死循环"]
+    end
+
+    NF -.守护.-> CRIT
+    PT -.守护.-> RUN
+    CLS -.替换.-> G3
+    INV -.约束.-> PRE
+    SHA -.约束.-> STOP
+
+    classDef loopnode fill:#1f6feb,stroke:#79c0ff,color:#ffffff
+    classDef safenode fill:#238636,stroke:#7ee787,color:#ffffff
+    classDef gatenode fill:#9e6a03,stroke:#e3b341,color:#ffffff
+    classDef prodnode fill:#8957e5,stroke:#d2a8ff,color:#ffffff
+    classDef endnode fill:#6e7681,stroke:#c9d1d9,color:#ffffff
+    class P,UPS,LLM,CRIT loopnode
+    class PRE,POST,TR,RUN safenode
+    class G1,G2,G3,DENY gatenode
+    class STOP,DONE endnode
+    class NF,PT,CLS,INV,SHA prodnode

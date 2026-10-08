@@ -5,10 +5,11 @@
  *   0-D two-devices-lit@p0-17（全图二闪·两支路点亮态；与首闪隔 12 句空窗，
  *     画框已卸载 ⇒ 默认入场，lead={false} 会全不透明一帧瞬现——ArchifyRecap 契约）
  *
- *  ★ 0-A 的 3D 五层栈由 components/harness-stack.tsx 的 HarnessStackP0 承担
- *    （落板/本集层呼吸/缩退全在其内）；scene 侧只补工坊描线（useDraw）、传送带
- *    底盘首现与 Badge 位置迁移（内置 top:12 条在 crossAt 前整层淡杀、同拍淡入
- *    本幕 top:64 条——EP1 先例的调用点侧解法）。
+ *  ★ 0-A 开场（系列片头铺开，2026-10-08，沿 ep1 先例 0fed97ec5）：五层栈落板/
+ *    本集层点亮职责已由系列片头 components/series-intro.tsx 吸收（压 leadIn 时段）——
+ *    scene 侧补工坊描线（useDraw）、传送带底盘首现与常驻条 Badge（BADGE_STYLE
+ *    top:64）直接淡入；HarnessStackP0 退役（Badge 位置迁移随落板一并退役，
+ *    「压暗舞台作栈背景」亦随之去除）。
  *  ★ 恒定空间契约自此幕生效：传送带（LoopRing，core 橙恒描边〔M-001〕）恒居
  *    左中锚位 RING=(330,540)；装置族自右缘（后台线）/上缘（定时线）挂入
  *    （0-D 双剪影：滚筒右缘、钟盘上缘，双线分轨）。
@@ -22,7 +23,7 @@ import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {Footnote, LoopRing, Panel, SceneTag} from '../components/motifs';
-import {HarnessBadge, HarnessStackP0, harnessStackCrossAt} from '../components/harness-stack';
+import {HarnessBadge} from '../components/harness-stack';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 import {ArchifyYield} from '../components/ArchifyYield';
 import {
@@ -71,29 +72,17 @@ const Person: React.FC<{x: number; y: number; color: string; scale?: number; opa
   </svg>
 );
 
-// ── 0-A 工坊开卷：描线 + 底盘首现 + Harness 落板 ─────────────────────────
+// ── 0-A 工坊开卷：描线 + 底盘首现 + 常驻条 Badge 直入 ─────────────────────
 
-/** Harness 落板（p0-03 起挂载）：栈编排在 HarnessStackP0 内；此处只做 Badge
- *  位置迁移——内置 top:12 常驻条在 crossAt 前整层淡杀，同拍淡入本幕 top:64 条。 */
-const RECEDE_AT = 70; // 落板 39f + 两轮呼吸 30f 后缩退（组件内节奏，显式帧数留档）
-
-const StackReveal: React.FC = () => {
-  const crossAt = harnessStackCrossAt(RECEDE_AT);
-  const kill = useProgress(crossAt, DUR.f3);
-  const badgeIn = useProgress(crossAt, 8);
-  return (
-    <AbsoluteFill style={{pointerEvents: 'none'}}>
-      <div style={{opacity: 1 - kill}}>
-        <HarnessStackP0 recedeAt={RECEDE_AT} />
-      </div>
-      <HarnessBadge style={{...BADGE_STYLE, opacity: badgeIn}} />
-    </AbsoluteFill>
-  );
+/** 常驻条 Badge：片头渐出后直接淡入（f3 起手 + f4 时长，早于工坊描线）。 */
+const BadgeIn: React.FC = () => {
+  const badgeIn = useProgress(DUR.f3, DUR.f4);
+  return <HarnessBadge style={{...BADGE_STYLE, opacity: badgeIn}} />;
 };
 
 /** 工坊舞台：轮廓描线生长（通宵不打烊灯牌）→ 师傅剪影立于带侧 → 传送带底盘
- *  首现（core 橙恒转，〔M-001〕首锚）；p0-03 起压暗让位给 Harness 落板。 */
-const WorkshopStage: React.FC<{at02: number; at03: number; span: number}> = ({at02, at03, span}) => {
+ *  首现（core 橙恒转，〔M-001〕首锚）；全程保持满亮度（原 p0-03 起压暗作栈背景已随栈退役）。 */
+const WorkshopStage: React.FC<{at02: number; span: number}> = ({at02, span}) => {
   // 工坊大轮廓描线：beat 级动作（约 1.5s），落时长标尺外保留显式帧数（铁律④）
   const outline = useDraw(4, 46);
   const lampIn = useProgress(52, DUR.f4);
@@ -101,13 +90,10 @@ const WorkshopStage: React.FC<{at02: number; at03: number; span: number}> = ({at
   // 底盘描线与首圈巡游：draw 期光点骑在描线头上，此后匀速绕行
   const ringDraw = useProgress(at02 + 4, 46, 'decelerate');
   const laps = useProgress(0, Math.max(1, span), 'linear') * (span / LAP_FRAMES);
-  // p0-03「行话叫 Harness」：舞台压暗 65% 作栈的背景
-  const stageDim = useProgress(at03, DUR.f5);
-  const o = 1 - 0.65 * stageDim;
 
   return (
     <AbsoluteFill style={{pointerEvents: 'none'}}>
-      <svg width={1920} height={1080} style={{position: 'absolute', left: 0, top: 0, opacity: o}}>
+      <svg width={1920} height={1080} style={{position: 'absolute', left: 0, top: 0}}>
         <path
           d="M110 730 L110 262 L1500 262 L1500 730"
           fill="none"
@@ -118,22 +104,20 @@ const WorkshopStage: React.FC<{at02: number; at03: number; span: number}> = ({at
         />
       </svg>
       {/* 通宵不打烊灯牌（dim） */}
-      <div style={{position: 'absolute', left: 1330, top: 292, opacity: o * lampIn}}>
+      <div style={{position: 'absolute', left: 1330, top: 292, opacity: lampIn}}>
         <Panel style={{padding: '8px 18px', display: 'flex', gap: 10, alignItems: 'baseline'}}>
           <span style={{fontFamily: theme.mono, fontSize: 24, color: theme.dim}}>{'24h'}</span>
           <span style={{fontFamily: theme.sans, fontSize: 20, color: theme.dim}}>{'不打烊'}</span>
         </Panel>
       </div>
       {/* 传送带底盘首现（core 橙恒转——本集恒定主视觉的「底」） */}
-      <div style={{position: 'absolute', left: RING.left, top: RING.top, opacity: o}}>
+      <div style={{position: 'absolute', left: RING.left, top: RING.top}}>
         <LoopRing size={RING.size} draw={ringDraw} dotProgress={ringDraw + laps} showLabels={false} />
       </div>
       {/* 师傅剪影立于带侧（text 白无彩） */}
-      <Person x={512} y={550} color={theme.text} opacity={0.92 * o * personIn} />
-      {/* 角标 while True（分镜 0-A 声明；随舞台压暗、p0-04 cue 窗内随 yield 让位） */}
-      <div style={{opacity: o}}>
-        <Footnote delay={10}>{'while True'}</Footnote>
-      </div>
+      <Person x={512} y={550} color={theme.text} opacity={0.92 * personIn} />
+      {/* 角标 while True（分镜 0-A 声明；p0-04 cue 窗内随 yield 让位） */}
+      <Footnote delay={10}>{'while True'}</Footnote>
     </AbsoluteFill>
   );
 };
@@ -570,16 +554,14 @@ export const P0TwoTimes: React.FC<{scene: SceneRange}> = ({scene}) => {
 
   return (
     <AbsoluteFill>
-      <Sequence {...bA} name="0-A 工坊开卷（3D）">
+      <Sequence {...bA} name="0-A 工坊开卷（Badge 直入）">
         <SceneTag chapter="Two Times" tagline="两类时间" />
-        {/* 可见岛 p0-01..03（工坊/底盘/栈）；窗 = 本镜 1 条 cue 窗 */}
+        {/* 可见岛 p0-01..03（工坊/底盘）；窗 = 本镜 1 条 cue 窗 */}
         <ArchifyYield cues={[{at: at('p0-04') - bA.from, durationInFrames: dur('p0-04')}]}>
-          <WorkshopStage at02={at('p0-02') - bA.from} at03={at('p0-03') - bA.from} span={bA.durationInFrames} />
+          <WorkshopStage at02={at('p0-02') - bA.from} span={bA.durationInFrames} />
         </ArchifyYield>
-        {/* p0-03 起栈落板（含 Badge 位置迁移），延伸到镜尾 */}
-        <Sequence from={at('p0-03') - bA.from} name="0-A Harness 落板">
-          <StackReveal />
-        </Sequence>
+        {/* 常驻条 Badge 直接淡入，延伸到镜尾 */}
+        <BadgeIn />
         {/* cue 1/2：timing-panorama/two-kinds-of-time（全图首闪·预告态；本镜首图 → 默认入场） */}
         <ArchifyRecap
           slug="timing-panorama"

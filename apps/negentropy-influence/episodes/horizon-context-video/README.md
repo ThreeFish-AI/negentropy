@@ -31,7 +31,7 @@ Context Layer 系列第 1 集。Snowflake Horizon Context（受治理上下文�
 ```
 research/     gl-notes 冻结快照 · sources.toml 台账 · 穿透报告 · selftest 复算 · GL 台账冻结归档
 script/       planning（六节）· narration v2（156 句）· cues.toml（story 台本）· storyboard v3（66 镜）· verification（④⑤ 报告）
-scripts/      build_narration / tts / qa_frames 薄包装（转发 to-video skill）
+scripts/      build_narration / tts / qa_frames 薄包装（转发 vibe-video skill）
 video/        Remotion 工程：scenes 八幕 · components 装置层 13 件+archify 消费端 · motion（frozen）
               public/archify/ 47 图 sidecar+views（mp4/end.png 派生物 gitignored）
 out/          渲染产物（gitignored）
@@ -40,7 +40,7 @@ out/          渲染产物（gitignored）
 ## 复现流水线
 
 ```bash
-# 全链（to-video skill · 十阶段）
+# 全链（vibe-video skill · 十阶段）
 uv run --no-project $T/scripts/pipeline.py --project apps/negentropy-influence/episodes/horizon-context-video \
   build && check            # ③④ 内容层（覆盖门自动串联）
 uv run --no-project --with playwright $T/scripts/record_archify_all.py --project <P>   # ⑥' 逐章录制
@@ -75,7 +75,7 @@ uv run --no-project $T/scripts/pipeline.py --project <P> render --final && capti
 | 图例 | 67 图 156 cue 83.4% | 47 图 106 cue 67.9%（剧场词图 10+ 张退役） |
 | ⑧ 装置 | devices.tsx 剧场母图 | 装置层 13 件（定义卡母题/红绿消融/基线标尺…） |
 
-## C 型首例偏差记录（to-video 01 §C）
+## C 型首例偏差记录（vibe-video 01 §C）
 
 1. **链接落位平移**：gl-notes 冻结正文 51 处相对链接按新落位机械改写指回仓内目标（内容零变更）。
 2. **archify 3.0 代际差**：当前 archify viewer 已移除 guided-views 模块——five-laws 新图无法被录制器

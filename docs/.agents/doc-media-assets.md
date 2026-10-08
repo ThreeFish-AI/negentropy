@@ -32,7 +32,7 @@
 
 ## 3. 硬门限
 
-- **单文件 ≤ 1,048,576 B**——[`check-added-large-files --maxkb=1024`](../../.pre-commit-config.yaml)。
+- **单文件 ≤ 1,310,720 B（1280 KiB）**——[`check-added-large-files --maxkb=1280`](../../.pre-commit-config.yaml)。
   选型阶段就要估算，别等落盘才撞。动效类一律按「帧间差分失效」保守估。
 - **`knowledge-map.md` / `CHANGELOG.md` 内引用的资产必须在盘**——`series-consistency-check` 规则 5
   的正则同时命中 `[]()` 与 `![]()`。**资产与索引必须同一次 `git add`**。
@@ -82,7 +82,7 @@
   **不用整页截图**——页面内的图受 reader 宽度上限约束，整页截图有效像素远低于内置导出。
 - 拦截导出 blob 必须「记录但**透传**」`URL.createObjectURL`：`rasterize()` 会先为中间态 SVG 建一次
   objectURL，吞掉它会让中间态 `Image` 永远 load 不了、导出**静默失败**。取 `seen[seen.length-1]`。
-- PNG 实际尺寸必须等于 svg `viewBox × 4`（尺寸断言按每图 viewBox 动态计算，防半幅/空图）。
+- PNG 尺寸断言按每图 viewBox 动态计算（archify 3.0 导出为「内容并集 + padding」，非 viewBox 整数倍）：两轴完整包含 viewBox ≥3× 且两轴缩放同量级（≤15% 差），防半幅/空图。
 
 旗舰采集脚本（`capture-arch-media.mjs`）的关键事实（改脚本前必读）：
 
@@ -102,4 +102,4 @@
 ## 6. 验收证据
 
 浏览器实机渲染截图落 [`screenshots/architecture-diagram/`](./screenshots/architecture-diagram/)；
-视频与静图的机读体检由采集脚本的交付收据打印（逐文件字节 + 1 MiB 门判定）。
+视频与静图的机读体检由采集脚本的交付收据打印（逐文件字节 + 1280 KiB 门判定）。
