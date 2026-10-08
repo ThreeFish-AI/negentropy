@@ -2,8 +2,8 @@
  *  不经 Root.tsx，对既有 Composition 零影响）。
  *
  * 用法（在 video/ 目录，.bin 直调防污染根 workspace）——评审帧组按拍选取
- * （v2 六拍：取景 27 / 星形主角 130 / 化归环心 200 / 幽灵蓝图 256 / 词级点火 412 /
- * 定格中段 560——进度点 499 全亮、授色后、交棒前）：
+ * （v2 七拍：装裱合拢 27 / 基准踩「视角」88 / 星形飞行中 140 / 对象归位 180 /
+ * 幽灵蓝图 256 / 词级点火 420 / 定格中段 560——进度点 499 全亮、授色后、交棒前）：
  *   ./node_modules/.bin/remotion still src/intro-gallery.tsx IntroEp1 \
  *       out/intro-ep1-f412.png --frame=412
  *

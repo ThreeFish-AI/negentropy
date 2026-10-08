@@ -8,8 +8,10 @@
  *  发布顺序变更零 TTS 代价）。
  *
  *  六拍（帧窗为 705 帧口播对位，字幕文案与口播逐字一致、定性不念绝对数字）：
- *   1a 取景 8-103      Harness 四角取景框合拢 + 扫描线检视（口播「视角」——Harness 表征：
- *                      认知装置在幕 1，结构表征即幕 2 被点亮的体系本身）
+ *   1a 装裱 8-103      Harness 图纸装裱（视角的制图本义）：四角合拢→图框边线补全 + 右下标题栏
+ *                      纹理（口播「这套视频从 Harness Engineering」）；中心线（点划线）钉在
+ *                      环心＝先立参照；基准符号 A 踩「视角」词落位（词窗 78-88 实测）。
+ *                      Harness 表征：认知装置在幕 1，结构表征即幕 2 被点亮的体系本身
  *   1b 主角 103-131    Claude Code 星形（M-002）屏心弹入 + 扫光（口播「讲清 Claude Code」词起≈104）
  *   1c 化归 131-170    星形收缩坐枢 + 环描线 + while True 逐字（口播「简单循环」词起≈142）
  *   1d 预显 170-284    取景框扩幅消隐 + 幽灵蓝图主线/五幽灵站（口播「工程体系」词起≈216）
@@ -70,7 +72,12 @@ const T = {
   audioAt: 12,
   // 幕 1 视角与主体（句一 22-234）
   bracketsAt: 8, // 取景框四臂合拢（stride 4/dur 7 → 8..27 全位；34..39 夹紧脉冲，≈40 settle，「视角」词前）
-  scanAt: 39, // 扫描线起（52 帧扫完 ≈1.7s，时长标尺外显式帧数；91 扫完、96 全隐，下段字幕词首 94 交接）
+  borderAt: 40, // 图框边线补全（四边并发 14f——四角合拢后图纸装裱完成）
+  titleAt: 58, // 标题栏格子纹理淡入（stride 3/dur 7；字段系列恒定不写集号——「序号只在视觉层」）
+  centerHAt: 52, // 中心线·水平 clip 揭示（18f；点划线钉在环心——先立参照再画对象）
+  centerVAt: 56, // 中心线·垂直 clip 揭示（18f）
+  datumAt: 80, // 基准符号落位（「视角」词窗 78-88 实测、词尾带起 87.6；pop 弹入+引线+交点针位）
+  centerOutAt: 168, // 中心线退役（环描线将成、对象已定义——辅助线擦除 12f）
   iconAt: 103, // 星形屏心弹入（flyIn+snap 12f；「Claude Code」词起≈104，扫光 119）
   iconDockAt: 131, // 星形收缩坐枢起（settleSoft 24f，时长标尺外显式帧数；「如何从一个简单循环」段）
   ringDrawAt: 133, // 环描线起（47 帧 ≈1.6s：时长标尺外显式帧数，「简单循环」词起≈142 陪跑）
@@ -103,7 +110,7 @@ const RING = {size: 380, left: 230, top: 350} as const;
 const RING_CX = RING.left + RING.size / 2;
 const RING_R = RING.size / 2 - 46;
 
-/** Harness 取景框：环 bbox 外扩 56/34（环心严格居中）；四角 L 臂 60px、dim 2.5px。 */
+/** Harness 图框（装裱语义）：环 bbox 外扩 56/34（环心严格居中）；四角 L 臂 60px、dim 2.5px。 */
 const FRAME = {x1: 174, y1: 316, x2: 666, y2: 764, arm: 60} as const;
 const CORNERS = [
   {x: FRAME.x1, y: FRAME.y1, dx: -1, dy: -1},
@@ -111,6 +118,20 @@ const CORNERS = [
   {x: FRAME.x1, y: FRAME.y2, dx: -1, dy: 1},
   {x: FRAME.x2, y: FRAME.y2, dx: 1, dy: 1},
 ] as const;
+
+/** 标题栏：图框右下角 2×2 格（纹理层口径——9px/低对比，按制图惯例而非可读信息；
+ *  字段系列恒定不写集号——「序号只在视觉层」纪律）。 */
+const TITLE_BLOCK = {x: 526, y: 724, w: 140, h: 40, mx: 596, my: 744} as const;
+const TITLE_TEXTS = [
+  {s: 'HARNESS ENG.', x: TITLE_BLOCK.x + 6, y: TITLE_BLOCK.my - 5},
+  {s: 'SCALE 1:1', x: TITLE_BLOCK.mx + 6, y: TITLE_BLOCK.my - 5},
+  {s: 'SHT 1 / 1', x: TITLE_BLOCK.x + 6, y: TITLE_BLOCK.y + TITLE_BLOCK.h - 6},
+  {s: 'REV A', x: TITLE_BLOCK.mx + 6, y: TITLE_BLOCK.y + TITLE_BLOCK.h - 6},
+] as const;
+
+/** 基准符号（GD&T datum）：方框 A 弹入于交点右上，引线描至中心线交点旁——
+ *  基准=一切测量与评价的出发参照，「视角」的制图本义；交点即星形坐枢位（基准预测、对象归位）。 */
+const DATUM = {bx: 474, by: 402, size: 24, lx1: 474, ly1: 426, lx2: 428, ly2: 532} as const;
 
 /** Timeline 主线：自环右缘向右，y=540；五站点等距。 */
 const LINE = {x1: RING_CX + RING_R + 14, y: 540, x2: 1790} as const;
@@ -361,9 +382,16 @@ const IntroArt: React.FC<{override?: IntroOverride}> = ({override}) => {
   // 幕 1a：取景框四臂合拢 + 夹紧脉冲（「视角」词同步入场）
   const bracketIn = useStagger(4, {at: T.bracketsAt, stride: 4, dur: DUR.f4});
   const clampPulse = useImpulse({at: T.bracketsAt + 26, dur: 5, peak: 6});
-  // 幕 1a 尾：扫描线检视（52 帧匀速下扫，纯 y 插值）
-  const scanMove = useProgress(T.scanAt, 52, 'linear');
-  const scanVis = useProgress(T.scanAt, DUR.f3) * (1 - useProgress(T.scanAt + 52, DUR.f3));
+  // 幕 1a 制图装裱：图框边线补全 + 中心线首笔（点划线钉在环心——先立参照）+ 标题栏纹理
+  const borderP = useProgress(T.borderAt, 14, 'decelerate');
+  const centerHP = useProgress(T.centerHAt, 18, 'linear');
+  const centerVP = useProgress(T.centerVAt, 18, 'linear');
+  const centerFade = useProgress(T.centerOutAt, DUR.f5);
+  const titleCells = useStagger(4, {at: T.titleAt, stride: 3, dur: DUR.f4});
+  // 幕 1a 基准落位：方框 A 踩「视角」词弹入 + 引线描至交点旁 + 交点针位十字脉冲
+  const datumIn = useEnter('pop', {at: T.datumAt, dur: DUR.f4});
+  const leaderP = useProgress(T.datumAt + 2, 8, 'linear');
+  const pinPulse = useImpulse({at: T.datumAt + 7, dur: 5, peak: 1});
   // 幕 1b：星形屏心弹入（flyIn+snap：3.8% 可见过冲=落定脆感）+ 落定后扫光 + 常驻光晕
   const starEnter = useEnter('flyIn', {at: T.iconAt, dur: DUR.f5, springPreset: 'snap'});
   const starSweep = useProgress(T.iconAt + 16, DUR.f5, 'linear');
@@ -475,10 +503,10 @@ const IntroArt: React.FC<{override?: IntroOverride}> = ({override}) => {
         <StarGlyph size={STAR_STAGE} glow={starGlow} sweep={starSweep} />
       </div>
 
-      {/* 图形 SVG：取景框+扫描（幕 1a）/ 幽灵蓝图（幕 1d）/ 主线+流光+站点（幕 2/3） */}
+      {/* 图形 SVG：图纸装裱+中心线+基准（幕 1a）/ 幽灵蓝图（幕 1d）/ 主线+流光+站点（幕 2/3） */}
       <svg width={1920} height={1080} style={{position: 'absolute', inset: 0}}>
-        {/* 幕 1a Harness 取景框：四臂沿对角合拢 + 夹紧脉冲；幕 1d 扩 ×2.6 消隐
-            （自环心 origin——缩框不缩镜头，3D 宪法二「转物体不动相机」的 2D 同构） */}
+        {/* 幕 1a Harness 图纸装裱：四角合拢+夹紧脉冲 → 图框边线补全 + 标题栏纹理 + 基准落位；
+            幕 1d 扩 ×2.6 消隐（自环心 origin——缩框不缩镜头，3D 宪法二的 2D 同构） */}
         <g
           opacity={1 - frameOpen}
           transform={`translate(${RING_CX}, ${RING.top + RING.size / 2}) scale(${1 + 1.6 * frameOpen}) translate(${-RING_CX}, ${-(RING.top + RING.size / 2)})`}
@@ -493,17 +521,120 @@ const IntroArt: React.FC<{override?: IntroOverride}> = ({override}) => {
               <line x1={c.x} y1={c.y} x2={c.x} y2={c.y - c.dy * FRAME.arm} stroke={theme.dim} strokeWidth={2.5} strokeLinecap="round" />
             </g>
           ))}
+          {/* 图框边线补全：四边并发顺时针描线（pathLength 归一化——实线无像素 dasharray 冲突） */}
+          {(
+            [
+              {x1: FRAME.x1, y1: FRAME.y1, x2: FRAME.x2, y2: FRAME.y1},
+              {x1: FRAME.x2, y1: FRAME.y1, x2: FRAME.x2, y2: FRAME.y2},
+              {x1: FRAME.x2, y1: FRAME.y2, x2: FRAME.x1, y2: FRAME.y2},
+              {x1: FRAME.x1, y1: FRAME.y2, x2: FRAME.x1, y2: FRAME.y1},
+            ] as const
+          ).map((e, i) => (
+            <line
+              key={`edge${i}`}
+              x1={e.x1}
+              y1={e.y1}
+              x2={e.x2}
+              y2={e.y2}
+              stroke={theme.dim}
+              strokeWidth={1}
+              opacity={0.7}
+              pathLength={1}
+              strokeDasharray={1}
+              strokeDashoffset={1 - borderP}
+            />
+          ))}
+          {/* 标题栏：2×2 格 + 系列恒定字段（9px 低对比——制图惯例的质感层，非可读信息） */}
+          <rect
+            x={TITLE_BLOCK.x}
+            y={TITLE_BLOCK.y}
+            width={TITLE_BLOCK.w}
+            height={TITLE_BLOCK.h}
+            fill="none"
+            stroke={theme.dim}
+            strokeWidth={1}
+            opacity={0.8}
+          />
+          <line x1={TITLE_BLOCK.mx} y1={TITLE_BLOCK.y} x2={TITLE_BLOCK.mx} y2={TITLE_BLOCK.y + TITLE_BLOCK.h} stroke={theme.dim} strokeWidth={1} opacity={0.8} />
+          <line x1={TITLE_BLOCK.x} y1={TITLE_BLOCK.my} x2={TITLE_BLOCK.x + TITLE_BLOCK.w} y2={TITLE_BLOCK.my} stroke={theme.dim} strokeWidth={1} opacity={0.8} />
+          {TITLE_TEXTS.map((t, i) => (
+            <text key={t.s} x={t.x} y={t.y} fontFamily={theme.mono} fontSize={9} fill={theme.dim} opacity={titleCells[i] * 0.8}>
+              {t.s}
+            </text>
+          ))}
+          {/* 基准符号：方框 A 踩「视角」词弹入（绕框心缩放）+ 引线描至交点旁——
+              GD&T datum＝一切测量的出发参照，「视角」的制图本义 */}
+          <g
+            opacity={datumIn.opacity}
+            transform={`translate(${DATUM.bx + DATUM.size / 2}, ${DATUM.by + DATUM.size / 2}) ${datumIn.transform} translate(${-(DATUM.bx + DATUM.size / 2)}, ${-(DATUM.by + DATUM.size / 2)})`}
+          >
+            <rect x={DATUM.bx} y={DATUM.by} width={DATUM.size} height={DATUM.size} fill="none" stroke={theme.core} strokeWidth={2} />
+            <text
+              x={DATUM.bx + DATUM.size / 2}
+              y={DATUM.by + DATUM.size / 2 + 5}
+              textAnchor="middle"
+              fontFamily={theme.mono}
+              fontSize={14}
+              fontWeight={700}
+              fill={theme.core}
+            >
+              A
+            </text>
+            <line
+              x1={DATUM.lx1}
+              y1={DATUM.ly1}
+              x2={DATUM.lx2}
+              y2={DATUM.ly2}
+              stroke={theme.dim}
+              strokeWidth={1.2}
+              pathLength={1}
+              strokeDasharray={1}
+              strokeDashoffset={1 - leaderP}
+            />
+          </g>
         </g>
-        {/* 幕 1a 尾扫描线：空台架被「检视」 */}
-        <line
-          x1={FRAME.x1}
-          y1={FRAME.y1 + (FRAME.y2 - FRAME.y1) * scanMove}
-          x2={FRAME.x2}
-          y2={FRAME.y1 + (FRAME.y2 - FRAME.y1) * scanMove}
-          stroke={theme.dim}
-          strokeWidth={1.5}
-          opacity={scanVis}
-        />
+        {/* 中心线（点划线）：水平/垂直 clip 揭示，交叉于环心＝星形坐枢位（基准预测、对象归位）；
+            环描线将成时辅助线擦除（中心线与像素 dasharray 正交——用 clip 揭示，红线三） */}
+        <defs>
+          <clipPath id="intro-center-h">
+            <rect x={FRAME.x1} y={RING.top + RING.size / 2 - 2} width={(FRAME.x2 - FRAME.x1) * centerHP} height={4} />
+          </clipPath>
+          <clipPath id="intro-center-v">
+            <rect x={RING_CX - 2} y={FRAME.y1} width={4} height={(FRAME.y2 - FRAME.y1) * centerVP} />
+          </clipPath>
+        </defs>
+        <g opacity={(1 - centerFade) * 0.75}>
+          <line
+            x1={FRAME.x1}
+            y1={RING.top + RING.size / 2}
+            x2={FRAME.x2}
+            y2={RING.top + RING.size / 2}
+            stroke={theme.dim}
+            strokeWidth={1.2}
+            strokeDasharray="16 5 3 5"
+            clipPath="url(#intro-center-h)"
+          />
+          <line x1={RING_CX} y1={FRAME.y1} x2={RING_CX} y2={FRAME.y2} stroke={theme.dim} strokeWidth={1.2} strokeDasharray="16 5 3 5" clipPath="url(#intro-center-v)" />
+        </g>
+        {/* 基准针位十字：引线到位后驻留于交点（星形入位后被其覆盖——「对象归位于基准」） */}
+        <g opacity={leaderP * (1 - frameOpen)}>
+          <line
+            x1={RING_CX - 5 - 4 * pinPulse}
+            y1={RING.top + RING.size / 2}
+            x2={RING_CX + 5 + 4 * pinPulse}
+            y2={RING.top + RING.size / 2}
+            stroke={theme.core}
+            strokeWidth={1.5}
+          />
+          <line
+            x1={RING_CX}
+            y1={RING.top + RING.size / 2 - 5 - 4 * pinPulse}
+            x2={RING_CX}
+            y2={RING.top + RING.size / 2 + 5 + 4 * pinPulse}
+            stroke={theme.core}
+            strokeWidth={1.5}
+          />
+        </g>
 
         {/* 环巡游光点（自制门控版）：随环描线起亮，沿环 75 帧/圈巡游至交棒 */}
         <circle cx={dotX} cy={dotY} r={11} fill={theme.core} opacity={ringDraw} />
