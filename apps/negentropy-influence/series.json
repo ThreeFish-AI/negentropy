@@ -4,7 +4,7 @@
       "id": "self-evolution",
       "title": "自进化系列科普视频",
       "sourceKind": "paper",
-      "rule": "各集独立成片。口播文本严禁出现其他集标题、集数序号或「上一集/上期/第 N 集」等顺序词；序号只存在于视觉层与本文件，据此保证发布顺序变更的 TTS 代价为零（「下期再见」一类顺序无关的收尾语不受此限）。校验器：to-video skill 的 pipeline/scripts/check_series.py（工作区根锚定）。",
+      "rule": "各集独立成片。口播文本严禁出现其他集标题、集数序号或「上一集/上期/第 N 集」等顺序词；序号只存在于视觉层与本文件，据此保证发布顺序变更的 TTS 代价为零（「下期再见」一类顺序无关的收尾语不受此限）。校验器：vibe-video skill 的 pipeline/scripts/check_series.py（工作区根锚定）。",
       "episodes": [
         {
           "episode": 1,
@@ -223,7 +223,7 @@
       "id": "context-layer",
       "title": "Context Layer · 上下文层系列",
       "sourceKind": "doc",
-      "rule": "各集独立成片。口播文本严禁出现其他集标题、集数序号或「上一集/上期/第 N 集」等顺序词；序号只存在于视觉层与本文件，据此保证发布顺序变更的 TTS 代价为零（「下期再见」一类顺序无关的收尾语不受此限）。校验器：to-video skill 的 pipeline/scripts/check_series.py（工作区根锚定）。信源为本仓研究文档族（B 型 · 仓内固定提交）：前两集 = Horizon Context 精读笔记 011 + Context Layer 蓝图 013 + 最小原型（上游 Snowflake 官方页不直接取证、只经精读笔记的 IEEE 引用链间接可溯）；第三集 = OpenViking 精读笔记 014 + 机制映射 015 + openviking_lab 原型（上游 volcengine/OpenViking 官方页与代码仓不直接取证、只经 014 的 path:line 锚点链间接可溯）。",
+      "rule": "各集独立成片。口播文本严禁出现其他集标题、集数序号或「上一集/上期/第 N 集」等顺序词；序号只存在于视觉层与本文件，据此保证发布顺序变更的 TTS 代价为零（「下期再见」一类顺序无关的收尾语不受此限）。校验器：vibe-video skill 的 pipeline/scripts/check_series.py（工作区根锚定）。信源为本仓研究文档族（B 型 · 仓内固定提交）：前两集 = Horizon Context 精读笔记 011 + Context Layer 蓝图 013 + 最小原型（上游 Snowflake 官方页不直接取证、只经精读笔记的 IEEE 引用链间接可溯）；第三集 = OpenViking 精读笔记 014 + 机制映射 015 + openviking_lab 原型（上游 volcengine/OpenViking 官方页与代码仓不直接取证、只经 014 的 path:line 锚点链间接可溯）。",
       "episodes": [
         {
           "episode": 1,
@@ -300,7 +300,7 @@
       "id": "agent-infra",
       "title": "Agent 基础设施系列",
       "sourceKind": "doc",
-      "rule": "各集独立成片。口播文本严禁出现其他集标题、集数序号或「上一集/上期/第 N 集」等顺序词；序号只存在于视觉层与本文件，据此保证发布顺序变更的 TTS 代价为零（「下期再见」一类顺序无关的收尾语不受此限）。校验器：to-video skill 的 pipeline/scripts/check_series.py（工作区根锚定）。信源为本仓 docs/research/agent-infra/ 精读笔记与最小原型（B 型 · 仓内固定提交），并直接取证上游开放标准的固定提交（规范、指南与参考实现源码）；本仓实现的映射结论不进正片。",
+      "rule": "各集独立成片。口播文本严禁出现其他集标题、集数序号或「上一集/上期/第 N 集」等顺序词；序号只存在于视觉层与本文件，据此保证发布顺序变更的 TTS 代价为零（「下期再见」一类顺序无关的收尾语不受此限）。校验器：vibe-video skill 的 pipeline/scripts/check_series.py（工作区根锚定）。信源为本仓 docs/research/agent-infra/ 精读笔记与最小原型（B 型 · 仓内固定提交），并直接取证上游开放标准的固定提交（规范、指南与参考实现源码）；本仓实现的映射结论不进正片。",
       "episodes": [
         {
           "episode": 1,

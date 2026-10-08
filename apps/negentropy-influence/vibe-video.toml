@@ -21,7 +21,7 @@ course_series_ids = ["claude-code-explained"]
 # （无身份卡），对其执法是假报——装置在哪个系列落地，规则就管到哪。
 next_card_series_ids = ["claude-code-explained"]
 
-# ── 骨架合法偏离登记(to-video 2.0.0 起登记面住工作区,RSI-010)─────────────
+# ── 骨架合法偏离登记(vibe-video 2.0.0 起登记面住工作区,RSI-010)─────────────
 # 自 skill 1.x assets/video-skeleton/skeleton.toml 原样搬迁(表名加 skeleton.
 # 前缀;npmrc-inert-key 代随 .npmrc 退出受门作废未搬)。格式说明与档位语义见
 # skill 仓 assets/video-skeleton/skeleton.toml;指纹取法:verify_skeleton.py 报告。

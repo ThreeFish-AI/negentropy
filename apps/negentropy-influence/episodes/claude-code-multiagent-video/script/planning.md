@@ -2,7 +2,7 @@
 
 > 事实源（一切口播断言的回溯终点）：[research/source-notes.md](../research/source-notes.md)（B 型·单一事实源，钉 站点轨 67a9126（本集七章 s12/s15/s16/s17/s18/s19/s20）／官方文档 code.claude.com@2026-09-28；main@0dcafa2 仅作「演进注记」对照，凡引以本钉为准）。
 > 叙事蓝本：[175 精读章](../../../../../docs/research/agent-harness/175-claude-code-multi-agent-platform.md)（M1–M7 机制叙事＋轨 C 对照 8 条硬校准＋批判边界五条）。类比 SSOT：[170 §2 角色台账](../../../../../docs/research/agent-harness/170-claude-code-harness-overview.md)（通宵工坊剧场·全篇单射，**零新增角色**；制作期输入 `.temp/learn-cc-lab/analogy-plan.md` 与 `.temp/learn-cc-lab/dims/multiagent-brief.md` 不作持久引用）。
-> 六节节名按 to-video skill 的 references/02-planning.md 规格；第 0 节为本次重制的拟题决策附加节。视觉契约落点：[theme.ts](../video/src/design/theme.ts)（本集维度色金已落位 seed）；系列装置数据源：[series-layers.json](../video/src/series-layers.json)（**next=null——终集无下期卡**）；可执行参数：[pipeline.toml](../pipeline.toml)（chars_per_min=254）。
+> 六节节名按 vibe-video skill 的 references/02-planning.md 规格；第 0 节为本次重制的拟题决策附加节。视觉契约落点：[theme.ts](../video/src/design/theme.ts)（本集维度色金已落位 seed）；系列装置数据源：[series-layers.json](../video/src/series-layers.json)（**next=null——终集无下期卡**）；可执行参数：[pipeline.toml](../pipeline.toml)（chars_per_min=254）。
 
 ## 0. 标题定案
 
