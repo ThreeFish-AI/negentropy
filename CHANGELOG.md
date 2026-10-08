@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 ### Added
+### CC 系列统一片头《一个循环》：上线、导演级升级与独立化铺开（2026-10-06..08）
+
+- **系列片头上线与演进**（v1 样板 11 个 Intro commits）：约 23.5s 统一开场——GD&T 制图装裱开卷、Claude Code 星形徽记（M-002）入场化归于循环环（M-001）、五机制站点词级点火（IndexTTS 静音带实测 T 表对位）与回声扩张环、本集站 mech 授色定格+五颗集号进度点交棒；口播为独立音轨（story 档 seed 4242）不入各集 narration，逐集差异全数据驱动（`IntroOverride`），符合「序号只在视觉层」系列纪律。评审收敛记：禁词表改写重配音（take 18.08s）、六段字幕单行语义切换、幽灵站虚描圈单层化、基准标注随主角入场退役（[ISSUE-208](docs/.agents/issue.md)）。
+- **片头独立化 + 五集铺开**（[ISSUE-209](docs/.agents/issue.md)）：组件种子迁 [series-assets/claude-code-explained/intro/](apps/negentropy-influence/series-assets/claude-code-explained/intro/README.md)（README 契约层不复制台本正文防第二事实源）；**六路径逐字节孪生门**（种子+五集副本入 `check_twin_files.py` TWIN_GROUPS，pre-commit+CI 双挂）把 seeded 复制纪律从人工升格为机器执法；五集挂载块同字节（Main.tsx 整文件移植、归一化指纹统一 `78664c3010fd`，vibe-video.toml 五条同指纹 drift 登记）；时长预算窗改 `[13.0, 15.5]` 含片头口径。五集成片待重渲（硬前置=E2–E5 逐集 0-A 让位改造，消除与片头的双开场重复），en 交付存在 skill 预检机械阻断——详见 ISSUE-209 待办。
+
 ### Claude Code Harness Engineering 系列 5 集完全重制交付（2026-09-28..30）
 
 - **系列完全重制 v1 交付**：基于重写的 170–175 精读与新钉双轨（main `0dcafa2`/站点 `67a9126c`）+ 官方文档轨 C，五集全部同 slug rm→scaffold 重来。成片归档 `~/Documents/video/claude-code-explained/` v1×5 + `_captions/{srt,vtt}`×5：

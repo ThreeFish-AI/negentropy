@@ -19,6 +19,7 @@ apps/negentropy-influence/
 ├── series.json         # 发布顺序 SSOT（机读，顶层 seriesList[]）
 ├── series.md           # 作品总览（人读）
 ├── source-map/         # 多集系列的章节→集归属信源地图
+├── series-assets/      # 系列级资产种子（如 CC 系列片头 intro/；与五集副本逐字节孪生，check_twin_files 执法）
 ├── voices/             # 参考音色样本（gitignored 生物特征；refs.toml 只存指纹）= $V
 ├── vibe-video.toml     # 工作区机制配置（check_series 受检面与系列 id 集）
 ├── scripts/            # 工作区级薄包装（check_series.py / pipeline.py → skill 解析器）
