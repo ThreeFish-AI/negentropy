@@ -10,7 +10,8 @@
  *  六拍（帧窗为 705 帧口播对位，字幕文案与口播逐字一致、定性不念绝对数字）：
  *   1a 装裱 8-103      Harness 图纸装裱（视角的制图本义）：四角合拢→图框边线补全 + 右下标题栏
  *                      纹理（口播「这套视频从 Harness Engineering」）；中心线（点划线）钉在
- *                      环心＝先立参照；基准符号 A 踩「视角」词落位（词窗 78-88 实测）。
+ *                      环心＝先立参照；基准符号 A 踩「视角」词落位（词窗 78-88 实测；
+ *                      主角入场随退——标签先撤、针位留至归位）。
  *                      Harness 表征：认知装置在幕 1，结构表征即幕 2 被点亮的体系本身
  *   1b 主角 103-131    Claude Code 星形（M-002）屏心弹入 + 扫光（口播「讲清 Claude Code」词起≈104）
  *   1c 化归 131-170    星形收缩坐枢 + 环描线 + while True 逐字（口播「简单循环」词起≈142）
@@ -388,8 +389,10 @@ const IntroArt: React.FC<{override?: IntroOverride}> = ({override}) => {
   const centerVP = useProgress(T.centerVAt, 18, 'linear');
   const centerFade = useProgress(T.centerOutAt, DUR.f5);
   const titleCells = useStagger(4, {at: T.titleAt, stride: 3, dur: DUR.f4});
-  // 幕 1a 基准落位：方框 A 踩「视角」词弹入 + 引线描至交点旁 + 交点针位十字脉冲
+  // 幕 1a 基准落位：方框 A 踩「视角」词弹入 + 引线描至交点旁 + 交点针位十字脉冲；
+  // 标注（框+引线）随主角入场同拍退役——参照文档先撤、针位留至星形归位
   const datumIn = useEnter('pop', {at: T.datumAt, dur: DUR.f4});
+  const datumOut = useProgress(T.iconAt, DUR.f5);
   const leaderP = useProgress(T.datumAt + 2, 8, 'linear');
   const pinPulse = useImpulse({at: T.datumAt + 7, dur: 5, peak: 1});
   // 幕 1b：星形屏心弹入（flyIn+snap：3.8% 可见过冲=落定脆感）+ 落定后扫光 + 常驻光晕
@@ -563,9 +566,10 @@ const IntroArt: React.FC<{override?: IntroOverride}> = ({override}) => {
             </text>
           ))}
           {/* 基准符号：方框 A 踩「视角」词弹入（绕框心缩放）+ 引线描至交点旁——
-              GD&T datum＝一切测量的出发参照，「视角」的制图本义 */}
+              GD&T datum＝一切测量的出发参照，「视角」的制图本义；
+              主角入场（iconAt）同拍淡出：标签退役、针位十字留场至归位 */}
           <g
-            opacity={datumIn.opacity}
+            opacity={datumIn.opacity * (1 - datumOut)}
             transform={`translate(${DATUM.bx + DATUM.size / 2}, ${DATUM.by + DATUM.size / 2}) ${datumIn.transform} translate(${-(DATUM.bx + DATUM.size / 2)}, ${-(DATUM.by + DATUM.size / 2)})`}
           >
             <rect x={DATUM.bx} y={DATUM.by} width={DATUM.size} height={DATUM.size} fill="none" stroke={theme.core} strokeWidth={2} />
