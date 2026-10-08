@@ -61,7 +61,7 @@
 
 注：seed 里 `accent=#64C4C0` 为第一集维度青的残留，本集画面一律不用（防与 mech 金撞义）；2D 辅色一律走 dim／ok／deny 底座键，Stage ⑧ 前清理或改派并留三处决策记录。恒定空间契约（防〔X-001〕逆旁白）：传送带恒居左中锚位（core 橙），协作物件自右缘／上缘挂入（mech 金），「加机制」动效不触碰内核；金句卡衬线体；code.py 实景只进角标与引语卡（mono 等宽），不进口播。
 
-**3D 视觉语言（@remotion/three 路线，控制面积）**：P0 与 P6 用 3D 层板（HarnessStack）作系列装置——P0 五层栈落板→多 Agent 平台层点亮呼吸→缩退顶边常驻条（HarnessBadge，P1–P6）；P6 p6 档放大＋**终集特款：五层全亮**。正文幕（P1–P5）以 2D＋archify 全屏独占为主，3D 母题点缀限两处（P1 排工板卡片磁吸 solids-3d 一现／P4 隔间推拉门 LottieEmphasis，Stage ⑥ 定稿）。理由：ISSUE-177/180/182 三缺陷模式集中在 3D 段，控制 3D 面积＝控制回归面；正文信息密度由 archify 承担（forbid_inset=true）。
+**3D 视觉语言（@remotion/three 路线，控制面积）**：P6 用 3D 层板（HarnessStack）作系列装置——p6 档放大＋**终集特款：五层全亮**（P0 开场五层栈落板已随系列片头铺开 2026-10-08 退役——五层展示职责迁入 series-intro.tsx，常驻条 HarnessBadge 改自 0-A 直入，P1–P6 常驻）。正文幕（P1–P5）以 2D＋archify 全屏独占为主，3D 母题点缀限两处（P1 排工板卡片磁吸 solids-3d 一现／P4 隔间推拉门 LottieEmphasis，Stage ⑥ 定稿）。理由：ISSUE-177/180/182 三缺陷模式集中在 3D 段，控制 3D 面积＝控制回归面；正文信息密度由 archify 承担（forbid_inset=true）。
 
 **系列横切装置**：顶边常驻条（HarnessBadge chip 档，层短名走 series-layers.json）＋ P6 系列身份卡——**终集特款**：五层身份卡全亮、系列总收束句字卡（「机制很多，循环一个」）、**下期卡整体去掉**（series-layers.json `next=null`；规则 8 仅对账本集身份卡标题主段）；口播收尾用完结语气（「后会有期」），不出现「第一季／完结篇／最后一集」类顺序词。
 

@@ -50,7 +50,7 @@
 恒定空间契约（防〔X-001〕空间逆旁白）：**传送带恒居画面左中锚位**（core 橙恒转底盘——本集恒定主视觉的「底」）；时机装置自右缘／上缘挂入（mech 蓝），「接管时间」的动效永远表现为装置在动而传送带不停（甩活瞬间仅托盘离带、带速不变）；师傅剪影（text 白无彩）立于带侧。金句卡衬线体（theme.serif）；代码实景只进画面角标与实景卡（mono 等宽＋引语卡引语态），不进口播。
 
 **3D 视觉语言（@remotion/three 路线，控制面积）**：
-- **P0 与 P6 用 3D 层板（HarnessStack）作系列装置**：P0 五层栈落板→并发层点亮呼吸→缩退为顶边常驻条（HarnessBadge，P1–P6）；P6 p6 档放大收束。
+- **P6 用 3D 层板（HarnessStack）作系列装置**：p6 档放大收束（P0 开场五层栈落板已随系列片头铺开 2026-10-08 退役——五层展示职责迁入 series-intro.tsx，常驻条 HarnessBadge 改自 0-A 直入，P1–P6 常驻）。
 - 正文幕（P1–P5）以 2D＋archify 全屏独占为主，3D 母题点缀限两处（候选：P1 清洗槽滚筒 solids-3d／P4 定时针摆 LottieEmphasis·clock-swing；Stage ⑥ 定）。理由同 ep1：ISSUE-177（chip 塌缩重叠）／180（同色面 3D 只剩棱线）／182（层序只对 z 一维）全部集中在 3D 段——**控制 3D 面积＝控制回归面**。
 
 **系列横切装置**：顶边常驻条（HarnessBadge chip 档，层短名走 series-layers.json 数据）＋ P6 系列身份卡与下期卡（标题主段走规则 8 受检硬编码，数据对账 series-layers.json ↔ series.json；下期＝多 Agent 平台维度，仅视觉层，口播只说「下期」）。

@@ -36,7 +36,7 @@
 
 | 镜 | 句区间 | 画面 | 动效 |
 | --- | --- | --- | --- |
-| 0-A（3D） | p0-01..05 | HarnessStackP0 3D 五层栈自底向上落板（components/harness-stack.tsx 承担）→ 本集层「规划与协调」点亮呼吸两次 → 缩退为顶边常驻条（HarnessBadge，P1–P6 常驻）；主问题字卡居中「谁定的」（≤6 字形态），「谁」字 `mech` 紫点睛；**中央台面首现**（coreDeep 描边大矩形〔M-001 立锚〕，全片恒定主视觉，本镜后永不换位）；底盘 LoopRing 传送带慢转（`core` 橙恒定线宽）；角标 `context window` | 栈落板/呼吸/缩退在 HarnessStackP0 内；台面描线生长 scene 装置 `useDraw`；「谁」字紫点睛一次性强调 `useImpulse`；`@draw` `@impulse` |
+| 0-A | p0-01..05 | 开场直入（系列片头铺开 2026-10-08：五层栈落板/本集层点亮职责已由系列片头 components/series-intro.tsx 吸收，压 leadIn 时段；HarnessStackP0 在本集退役）——常驻条 Badge（`top:64`，HarnessBadge，P1–P6 常驻）淡入；主问题字卡居中「谁定的」（≤6 字形态），「谁」字 `mech` 紫点睛；**中央台面首现**（coreDeep 描边大矩形〔M-001 立锚〕，全片恒定主视觉，本镜后永不换位）；底盘 LoopRing 传送带慢转（`core` 橙恒定线宽）；角标 `context window` | Badge 直入 `useProgress`；台面描线生长 scene 装置 `useDraw`；「谁」字紫点睛一次性强调 `useImpulse`；`@draw` `@impulse` |
 | 0-B | p0-06..07 | 师傅剪影（`text` 白，无彩）立于台面后侧；每轮开工「从头读」动效——视线扫描线自左向右扫过台面内容物（dim 虚线）；p0-07 句让位——全景图左半一瞥（台面＋读扫主轴） ·**archify full**：plan-panorama 章 `desk-reread` · 读毕回落自制扫描线收尾 | 剪影淡入 `useEnter:fade`；扫描线行进 `useFlowDash`（`dim`）；p0-07 由 ArchifyRecap 主控；`@enter:fade` `@flowDash` |
 | 0-C | p0-08..12 | 四坑四联卡快闪：坑一「摊薄」（嘱托行逐条变淡）／坑二「长住」（文件图标堆进台面）／坑三「全付」（三大部头压上垫纸角）／坑四「白干」（末卡 `deny` 红脉冲＋程序窗格熄火图形）——四坑全落在中央台面的内容物上，台面框体恒静〔M-001〕 | 四卡依次入场 `useStagger`；台面内容物逐件恶化 `useReveal`；末卡红闪 `useImpulse`（decay 态包络，`deny`）；`@stagger` `@reveal` `@impulse` |
 | 0-D | p0-13..16 | 立碑：「更聪明的师傅」字卡划线否掉 → 五装置预告剪影自右缘挂入（`mech` 紫 ×5：卡／副台／抽屉／垫纸／梯，作用于台面内容物、不触碰装置形体）；金句卡衬线预告态「看见什么 · 不由它」（压短形态）caption-dup-ok: 金句卡定格记忆点，主字已压短非逐字 · p0-15 句让位——全景图五装置总览一闪 ·**archify full**：plan-panorama 章 `five-devices` · 角标 `Harness` | 划线否掉 `useProgress`（decelerate）；五剪影右缘滑入 `useEnter:slideR`＋常驻辉光 `useBreathe`（`mech`）；金句卡 QuoteCard；p0-15 由 ArchifyRecap 主控；`@progress` `@enter:slideR` `@breathe` |
@@ -115,7 +115,7 @@
 
 | 幕 | 组件 | 装置重心 |
 | --- | --- | --- |
-| P0 每轮从头读 | `scenes/P0FreshRead.tsx` | HarnessStackP0（3D）、主问题字卡、中央台面立锚（DeskPlane）、四坑四联卡、立碑＋金句卡预告态 |
+| P0 每轮从头读 | `scenes/P0FreshRead.tsx` | 常驻条 Badge 直入、主问题字卡、中央台面立锚（DeskPlane）、四坑四联卡、立碑＋金句卡预告态 |
 | P1 工序卡 | `scenes/P1TodoCard.tsx` | 工序卡钉入（台面恒静）、三连否图标阵、D1 对撞卡、开关翻转、计划模式锚卡 |
 | P2 副台与回执 | `scenes/P2SideDesk.tsx` | solids-3d 副台一现、回执仪式（ReceiptPaper）、D2 对撞卡、官方双边界两联卡 |
 | P3 抽屉与手册 | `scenes/P3SkillDrawers.tsx` | 反例滚屏＋付费刻度、官方延伸双例小卡（中段三镜全屏图集承载） |
