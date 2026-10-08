@@ -1,0 +1,138 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 18.73,
+ "total_wall_sec": 79.83,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "two-step-signup",
+   "label": "注册两步",
+   "index": 0,
+   "file": "registry-contract--two-step-signup.mp4",
+   "end_still": "registry-contract--two-step-signup-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.33,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.206
+   ],
+   "beat_nodes": [
+    "signup-flow",
+    "schema-card",
+    "handler-def"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 48.0
+  },
+  {
+   "id": "hidden-third-boom",
+   "label": "第三处暗契约",
+   "index": 1,
+   "file": "registry-contract--hidden-third-boom.mp4",
+   "end_still": "registry-contract--hidden-third-boom-end.png",
+   "beats": 5,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 5.56,
+   "beat_offsets_sec": [
+    0.0,
+    1.107,
+    2.209,
+    3.315,
+    4.421
+   ],
+   "beat_nodes": [
+    "schema-card",
+    "handler-def",
+    "kwarg-unpack",
+    "name-mismatch",
+    "runtime-boom"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 49.0
+  },
+  {
+   "id": "unknown-fallback",
+   "label": "查不到不崩",
+   "index": 2,
+   "file": "registry-contract--unknown-fallback.mp4",
+   "end_still": "registry-contract--unknown-fallback-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "unknown-name",
+    "fallback-string"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 48.0
+  },
+  {
+   "id": "per-tool-try",
+   "label": "每台机器自己兜故障",
+   "index": 3,
+   "file": "registry-contract--per-tool-try.mp4",
+   "end_still": "registry-contract--per-tool-try-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "try-except",
+    "error-note"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 49.0
+  },
+  {
+   "id": "loop-immune",
+   "label": "伤不到循环分毫",
+   "index": 4,
+   "file": "registry-contract--loop-immune.mp4",
+   "end_still": "registry-contract--loop-immune-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.34,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.208
+   ],
+   "beat_nodes": [
+    "try-except",
+    "error-note",
+    "shielded-loop"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 50.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--registry-contract.html",
+ "slug": "registry-contract",
+ "type": "dataflow"
+}

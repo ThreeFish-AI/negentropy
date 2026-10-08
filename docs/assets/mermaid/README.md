@@ -18,6 +18,9 @@
 
 - **修改一张图**：只改对应 `.mmd` → 用 archify 从新文本重新生成 HTML（整体替换，严禁手改 HTML）→
   跑采集脚本再生 PNG → 三者同一次提交。
+- **`<slug>-notes.md` 侧车**（`lcc-*--panorama-notes.md` 家族，2026-10-07 换代首批引入）：建图期图意
+  说明，供编排者统一渲染 archify 四件套消费（部分被各集 storyboard 引为设计底稿）；与 `.mmd` 同源
+  维护——图意变更时先改 notes 与 `.mmd` 再走上述重渲流程，随四件套同一次提交。
 - **`.mmd` 文件头**：`%% source / %% slug / %% type / %% derived` 溯源注释；头注释之后是
   从原文档逐字节抽取的 mermaid 体（携带 `%% fix:` 行的图例外，其体为修正后文本）。
 - **源文档锚点**：以 § 章号 + 机制/实验稳定键（如 `§2 M1`、`D5`、`B4`）为准，**不记行号**——
@@ -37,13 +40,18 @@
 
 | slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| [claude-code-harness--five-layer-dependency](./agent-harness/claude-code-harness--five-layer-dependency.mmd) | [170 总览 §1](../../research/agent-harness/170-claude-code-harness-overview.md) | workflow | ✓ | done | 五层依赖链总览（trace 动画）；随分部首批入库 |
-| [claude-code-memory--memory-panorama](./agent-harness/claude-code-memory--memory-panorama.mmd) | [173 记忆层 §2](../../research/agent-harness/173-claude-code-memory-management.md) | workflow | ✓ | done | 收台四步与登记簿双链互不包含（trace 动画） |
-| [claude-code-tooling--loop-mounted-layers](./agent-harness/claude-code-tooling--loop-mounted-layers.mmd) | [171 工具与执行 §2](../../research/agent-harness/171-claude-code-tooling-execution.md) | architecture | ✓ | done | 循环内核＋三挂件全景（171 重写配套新图；archify 3.0.0 figure 导出与采集脚本的 4× 断言暂不兼容，PNG 经 SVG 导出×4 栅格化的 lab 变体采集，脚本见交付说明） |
-| [claude-code-tooling--execution-panorama](./agent-harness/claude-code-tooling--execution-panorama.mmd) | [171 执行层 §2（历史锚·冻结 @ d9cfd636d）](https://github.com/ThreeFish-AI/negentropy/blob/d9cfd636d4e9c87430f60471b11ef4c771637e06/docs/research/agent-harness/171-claude-code-tooling-execution.md) | workflow | ✓ | frozen | 已交付视频（claude-code-explained 系列）的判例锚——171 于 2026-10-01 换代重写后不再内嵌本图，资产按冻结产物保留，源锚钉换代前版本 `d9cfd636d`（origin/feature/1.x.x 祖先，久存可达） |
-| [claude-code-concurrency--timing-panorama](./agent-harness/claude-code-concurrency--timing-panorama.mmd) | [174 时机层 §2](../../research/agent-harness/174-claude-code-concurrency.md) | workflow | ✓ | done | 后台/通知/定时三支路汇回下一轮（trace 动画） |
-| [claude-code-planning--planning-panorama](./agent-harness/claude-code-planning--planning-panorama.mmd) | [172 规划层 §2](../../research/agent-harness/172-claude-code-planning-coordination.md) | workflow | ✓ | done | 垫纸每轮重装配主链 + 副台/手册/补救梯旁支（trace 动画） |
-| [claude-code-multiagent--collab-panorama](./agent-harness/claude-code-multiagent--collab-panorama.mmd) | [175 协作层 §2](../../research/agent-harness/175-claude-code-multi-agent-platform.md) | workflow | ✓ | done | 排工板/收件格/班次/隔间四组物件汇入同一循环（trace 动画） |
+| [lcc-tooling--panorama](./agent-harness/lcc-tooling--panorama.mmd) | [171 工具与执行 §2](../../research/agent-harness/171-claude-code-tooling-execution.md) | architecture | ✓ | done | 主循环+分发+三闸门+钩子全貌（2026-10-07 guided-learn 换代首批） |
+| [claude-code-tooling--loop-mounted-layers](./agent-harness/claude-code-tooling--loop-mounted-layers.mmd) | [171 工具与执行 §2（补充图·未内嵌正文）](../../research/agent-harness/171-claude-code-tooling-execution.md) | architecture | ✓ | done | 循环内核＋三挂件全景（2026-10-01 精读轮配套；主干 171 换代版未内嵌，作补充视角保留；ISSUE-212 archify 3.0.0 采集口径实录） |
+| [lcc-planning--panorama](./agent-harness/lcc-planning--panorama.mmd) | [172 规划与协调 文末（附录后）](../../research/agent-harness/172-claude-code-planning-coordination.md) | architecture | ✓ | done | 五装置与「每轮看到什么」；2026-10-07 重绘工程直陈版（汇合层口径） |
+| [lcc-memory--panorama](./agent-harness/lcc-memory--panorama.mmd) | [173 记忆管理 §2](../../research/agent-harness/173-claude-code-memory-management.md) | architecture | ✓ | done | 压缩管线+磁盘留档+记忆四件套咬合（2026-10-07 换代） |
+| [lcc-concurrency--panorama](./agent-harness/lcc-concurrency--panorama.mmd) | [174 并发与时机 §2](../../research/agent-harness/174-claude-code-concurrency.md) | architecture | ✓ | done | 后台/定时双泳道汇入循环（2026-10-07 换代） |
+| [lcc-multiagent--panorama](./agent-harness/lcc-multiagent--panorama.mmd) | [175 多 Agent 平台 §2](../../research/agent-harness/175-claude-code-multi-agent-platform.md) | architecture | ✓ | done | 六设施一循环收束（2026-10-07 换代） |
+| [claude-code-harness--five-layer-dependency](./agent-harness/claude-code-harness--five-layer-dependency.mmd) | [170 总览 §1](../../research/agent-harness/170-claude-code-harness-overview.md) | architecture | ✓ | done | 五层依赖链总览（trace 动画）；2026-10-07 工程直陈重绘（architecture，隐喻词退场） |
+| [claude-code-memory--memory-panorama](./agent-harness/claude-code-memory--memory-panorama.mmd) | [173 记忆层 §2](../../research/agent-harness/173-claude-code-memory-management.md) | workflow | ✓ | done | 旧版（171–175 2026-10-07 换代前）；仍为 ep3 视频图源 |
+| [claude-code-tooling--execution-panorama](./agent-harness/claude-code-tooling--execution-panorama.mmd) | [171 执行层 §2](../../research/agent-harness/171-claude-code-tooling-execution.md) | workflow | ✓ | done | 旧版（换代前）；仍为 ep1 视频图源 |
+| [claude-code-concurrency--timing-panorama](./agent-harness/claude-code-concurrency--timing-panorama.mmd) | [174 时机层 §2](../../research/agent-harness/174-claude-code-concurrency.md) | workflow | ✓ | done | 旧版（换代前）；仍为 ep4 视频图源 |
+| [claude-code-planning--planning-panorama](./agent-harness/claude-code-planning--planning-panorama.mmd) | [172 前代全景（换代前嵌于旧 §2）](../../research/agent-harness/172-claude-code-planning-coordination.md) | workflow | ✓ | done | 旧版（换代前）；仍为 ep2 视频图源；垫纸每轮重装配主链 + 手册与补救梯旁支（trace 动画） |
+| [claude-code-multiagent--collab-panorama](./agent-harness/claude-code-multiagent--collab-panorama.mmd) | [175 前代全景（换代前嵌于旧 §2）](../../research/agent-harness/175-claude-code-multi-agent-platform.md) | workflow | ✓ | done | 旧版（换代前）；仍为 ep5 视频图源；任务板/收件箱/班次/隔间四组设施汇入同一循环（trace 动画） |
 | [ai-native--handbook-panorama](./agent-harness/ai-native--handbook-panorama.mmd) | [180 AI Native 手册 §1](../../research/agent-harness/180-ai-native-handbook.md) | dataflow | ✓ | done | 三案例共同观察 → 五挑战 → 四层基础设施 → 可靠交付；组织配套虚线直达（非基础设施） |
 | [ai-native--harness-control-loop](./agent-harness/ai-native--harness-control-loop.mmd) | [180 AI Native 手册 §2](../../research/agent-harness/180-ai-native-handbook.md) | workflow | ✓ | done | 三泳道（模型 / 确定性控制面 / 资源与证据）U 形闭环：PEP⇄PDP → 凭证代理 → 生产变更经 Guardrail 三态门控，Trajectory 旁路 |
 | [hermes-agent--turn-loop](./agent-harness/hermes-agent--turn-loop.mmd) | [190 Hermes Agent §2/§3](../../research/agent-harness/190-hermes-agent.md) | workflow | ✓ | done | 三泳道（主循环 / 压缩 / 持久层）：三段式提示只装配一次，超阈值压缩→重建提示为唯一计划内断点，逐条落盘 state.db（trace 动画；新创作，无原文 mermaid 块） |
@@ -242,7 +250,7 @@
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | [perceives-readme--five-layers](./apps/perceives-readme--five-layers.mmd) | apps/negentropy-perceives/README.md | architecture | ✓ | done | fix: Round 1 diagnostics: mcp→engines 自动路 |
 
-> 迁出注记（2026-09-21）：influence--pipeline-layers / voice-cloning--architecture / indextts--synthesis-flow / indextts--reference-audio 四图已随科普视频流水线机制外置删除（源文档迁入 [to-video 技能](https://github.com/ThreeFish-AI/to-video) 仓），对应 .mmd/HTML/PNG 资产同步移除。
+> 迁出注记（2026-09-21）：influence--pipeline-layers / voice-cloning--architecture / indextts--synthesis-flow / indextts--reference-audio 四图已随科普视频流水线机制外置删除（源文档迁入 [vibe-video 技能](https://github.com/ThreeFish-AI/vibe-video) 仓），对应 .mmd/HTML/PNG 资产同步移除。
 
 ### agents/（docs/.agents/ 巡检与决策文档）
 

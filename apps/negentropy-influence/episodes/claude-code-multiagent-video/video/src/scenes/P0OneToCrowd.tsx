@@ -5,11 +5,12 @@
  *   0-C collab-panorama/one-to-many@p0-12（从一个到一群；空窗一句后，默认入场）
  *   0-C five-layer-dependency/series-vow@p0-15（系列立碑一闪＋章尾金句小卡；默认入场）
  *
- *  ★ 0-A 的 3D 五层栈由 components/harness-stack.tsx 的 HarnessStackP0 承担
- *    （落板 / 本集层「多 Agent 平台」呼吸 / 缩退全在其内，不产生 token）；
- *    scene 侧只补主问题字卡与「多 Agent」预告角标。
- *  ★ Badge 顶边带冲突处理与 EP1 同法：frozen ChapterProgress 占 y14–42，内置
- *    常驻条钉在 top:12——crossAt 处 5 帧淡杀内置条、同拍淡入本幕 top:64 Badge。
+ *  ★ 0-A 开场（系列片头铺开，2026-10-08，沿 ep1 先例 0fed97ec5）：五层栈落板/
+ *    本集层「多 Agent 平台」点亮职责已由系列片头 components/series-intro.tsx 吸收
+ *    （压 leadIn 时段）——scene 侧补常驻条 Badge 直接淡入、主问题字卡与「多 Agent」
+ *    预告角标；HarnessStackP0 退役（Badge 顶边带冲突处理随落板一并退役）。
+ *  ★ p0-04「前面亮灯的几个区」的指代由常驻条承接：片头末段本集站定格、前四站为已播
+ *    实心态，Badge 直入后条带即那五个 chip，「前面亮灯的几个区」仍有物可指。
  *  ★ 恒定空间契约自此幕生效：传送带母题（LoopRing，core 橙恒定描边〔M-001〕）恒居
  *    左中锚位 RING（0-C 起）；五物件剪影按工坊分区自右缘／上缘挂入（环形预告位，
  *    不触碰锚位）。
@@ -24,7 +25,7 @@ import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {Footnote, LoopRing, Panel, SceneTag} from '../components/motifs';
-import {HarnessBadge, HarnessStackP0, harnessStackCrossAt} from '../components/harness-stack';
+import {HarnessBadge} from '../components/harness-stack';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 import {ArchifyYield} from '../components/ArchifyYield';
 import {
@@ -72,18 +73,13 @@ const Person: React.FC<{x: number; y: number; color: string; scale?: number; opa
   </svg>
 );
 
-// ── 0-A 五层栈开卷 + 主问题字卡 ──────────────────────────────────────────
+// ── 0-A 开场：Badge 直入 + 主问题字卡 ────────────────────────────────────
 
-/** 开卷：3D 栈落板/本集层呼吸/缩退在 HarnessStackP0；本组件只管主问题字卡
- *  （「一个人」三字 mech 金点睛）、「多 Agent」预告角标与 Badge 位置迁移。 */
-const OpeningStack: React.FC<{at04: number; at05: number; durA: number}> = ({at04, at05, durA}) => {
-  // 缩退锚：p0-04 起句「前面亮灯的几个区」前一个 token——缩退在该句内完成，
-  // 常驻条（条带即那几个区）随即接管系列身份
-  const recedeAt = Math.max(70, at04 - DUR.f5);
-  const crossAt = harnessStackCrossAt(recedeAt);
-  // 内置 top:12 常驻条可见前的整层淡杀 + 同拍淡入 top:64 本集 Badge（零双影）
-  const kill = useProgress(crossAt, DUR.f3);
-  const badgeIn = useProgress(crossAt, 8);
+/** 开卷（片头铺开简化版）：五层展示已在系列片头完成，本组件管常驻条 Badge 淡入、
+ *  主问题字卡（「一个人」三字 mech 金点睛）与「多 Agent」预告角标。 */
+const OpeningStack: React.FC<{at05: number; durA: number}> = ({at05, durA}) => {
+  // 常驻条：片头渐出后直接淡入（f3 起手 + f4 时长）；p0-04 前已就位，供「前面亮灯的几个区」指代
+  const badgeIn = useProgress(DUR.f3, DUR.f4);
 
   // 主问题字卡：p0-05 问句落地，句尾自淡出（SceneFade 只管幕间）
   const cardIn = useProgress(at05 + DUR.f2, DUR.f5);
@@ -93,9 +89,6 @@ const OpeningStack: React.FC<{at04: number; at05: number; durA: number}> = ({at0
 
   return (
     <AbsoluteFill style={{pointerEvents: 'none'}}>
-      <div style={{opacity: 1 - kill}}>
-        <HarnessStackP0 recedeAt={recedeAt} />
-      </div>
       <HarnessBadge style={{...BADGE_STYLE, opacity: badgeIn}} />
 
       {/* 主问题字卡（≤6 字形态；「一个人」三字 mech 金点睛） */}
@@ -571,13 +564,9 @@ export const P0OneToCrowd: React.FC<{scene: SceneRange}> = ({scene}) => {
 
   return (
     <AbsoluteFill>
-      <Sequence {...bA} name="0-A 五层栈开卷（3D）">
+      <Sequence {...bA} name="0-A 开场字卡（Badge 直入）">
         <SceneTag chapter="One to Many" tagline="一个到一群" />
-        <OpeningStack
-          at04={at('p0-04') - bA.from}
-          at05={at('p0-05') - bA.from}
-          durA={bA.durationInFrames}
-        />
+        <OpeningStack at05={at('p0-05') - bA.from} durA={bA.durationInFrames} />
       </Sequence>
 
       <Sequence {...bB} name="0-B 台面溢出">

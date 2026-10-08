@@ -1,575 +1,701 @@
-/** P3 三重把关（p3-01..26，6 镜 13 cue）——分镜 3-A…3-F。
+/** P3 三道门禁（p3-01..29，8 镜 12 cue）——分镜 3-A…3-H。
  *
- *  ★ 事故快闪（清理项目 → 整盘删除单递到科室门口，deny 急闪）→ 三重把关主体
- *    （禁忌表硬拒 / 规则 / 问人签字默认拒 / 皆空默认直行道）→ 铁律「翻不了案」。
- *  ★ 实验 3 调序（一个 y 就放行 → 4 文件清零，金句「次序 · 就是机制」）→ 字面匹配
- *    两面性（过拦连坐 / 漏拦逃逸＋作者自认＋词边界补丁）→ 生产版对照（放行的永远是
- *    关卡，不是开单的医生）。
- *  archify 全屏独占：gate-three-tier 五章（arrive 承事故快闪句尾让位；3-B 四章一实例，
- *    default-pass 经 p3-07/08 空窗后恢复入场）＋gate-order-ablation 四章（3-D 三章承 3-C
- *    normal-first 镜界背靠背 → lead={false}）＋gate-four-result 四章一实例连播。
+ *  叙事链：安全债到期（引语卡回放）→ 三道闸门（three-gates）→ 危险品按词辨认 →
+ *  官方次序条（deny→ask→allow 首中即决）→ 倒置假想＋金句 → 拆墙双联画
+ *  （fence-to-intercom）→ 拒绝回执（denied-receipt）→ 产品面速览。
+ *  空间契约：装置自右缘挂入（mech），不触碰左中 core 内核锚位；三道门次序
+ *  锁死永不换位——焊死门 deny／规则门 mech／对讲机 dim。
+ *  archify 两图全屏独占：3-B 的 p3-03 装置预览与 3-G 的 p3-24 引子卡经
+ *  ArchifyYield 让位；3-F/3-G 尾段无自制装置共存，直接整镜回放。
  */
 import React from 'react';
 import {AbsoluteFill, Sequence} from 'remotion';
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {DeptGate, Doctor, MonoTag, QuoteCard, ProvenanceTag, withAlpha} from '../components/clinic';
+import {Footnote, GateRouter, NumberedCard, Panel, SceneTag} from '../components/motifs';
+import {QuoteCard} from '../components/cards';
+import {HarnessBadge} from '../components/harness-stack';
 import {ArchifyRecap} from '../components/ArchifyRecap';
+import {ArchifyYield} from '../components/ArchifyYield';
 import {
   DUR,
   clamp01,
+  useBreathe,
+  useDim,
   useEnter,
-  useFlowDash,
   useImpulse,
   useProgress,
   useReveal,
+  useShake,
   useSpring,
   useStagger,
 } from '../motion';
 
-// ── 3-A 事故快闪：指令卡 → 整盘删除命令单（rm 字样，deny 急闪） ─────────────
+// ── 本幕通用 ────────────────────────────────────────────────────────────
 
-const IncidentFlash: React.FC<{at: number}> = ({at}) => {
-  const cards = useStagger(2, {at, stride: 9, dur: DUR.f4});
-  const flash = useImpulse({at: at + 24, dur: DUR.f4, peak: 1});
-  return (
-    <>
-      <div
-        style={{
-          position: 'absolute',
-          left: 470,
-          top: 400,
-          width: 360,
-          padding: '16px 24px',
-          background: theme.panel,
-          border: `2px solid ${withAlpha(theme.dim, 0.5)}`,
-          borderRadius: 10,
-          opacity: cards[0],
-          transform: `translateY(${(1 - cards[0]) * 14}px)`,
-        }}
-      >
-        <div style={{fontFamily: theme.sans, fontSize: 18, color: theme.dim}}>{'指令'}</div>
-        <div style={{marginTop: 8, fontFamily: theme.sans, fontSize: 25, color: theme.text}}>{'清理一下项目'}</div>
-      </div>
-      <DeptGate x={1210} y={300} />
-      <div
-        style={{
-          position: 'absolute',
-          left: 1040,
-          top: 420,
-          width: 320,
-          padding: '14px 22px',
-          background: withAlpha(theme.deny, 0.1),
-          border: `2.5px solid ${theme.deny}`,
-          borderRadius: 10,
-          boxShadow: `0 0 ${20 * flash}px ${withAlpha(theme.deny, 0.75 * flash)}`,
-          transform: `scale(${1 + 0.05 * flash})`,
-          opacity: cards[1],
-        }}
-      >
-        <div style={{fontFamily: theme.sans, fontSize: 18, color: theme.deny}}>{'命令单'}</div>
-        <div style={{marginTop: 8, fontFamily: theme.mono, fontSize: 27, color: theme.deny}}>{'rm -rf /'}</div>
-        <div style={{marginTop: 6, fontFamily: theme.sans, fontSize: 16, color: theme.dim}}>{'整盘删除'}</div>
-      </div>
-    </>
-  );
-};
+/** 常驻系列条定位：顶边 y<56 归 frozen ChapterProgress，Badge 下移到 SceneTag
+ *  同行（P1–P6 同值，Integrate 统一核对）。 */
+const BADGE_STYLE: React.CSSProperties = {top: 64};
 
-// ── 3-A 三层筛剪影：自右缘旋入（mech） ─────────────────────────────────────
+// ── 3-A 债到期卡（p3-01..02） ────────────────────────────────────────────
 
-const SieveStack: React.FC<{at: number}> = ({at}) => {
-  const e0 = useEnter('slideR', {at, dist: 170, dur: DUR.f5});
-  const e1 = useEnter('slideR', {at: at + 8, dist: 170, dur: DUR.f5});
-  const e2 = useEnter('slideR', {at: at + 16, dist: 170, dur: DUR.f5});
-  const enters = [e0, e1, e2];
-  return (
-    <>
-      <div style={{position: 'absolute', left: 1330, top: 258, width: 360, textAlign: 'center', fontFamily: theme.sans, fontSize: 21, color: theme.mech, opacity: e0.opacity}}>
-        {'三重把关'}
-      </div>
-      {[0, 1, 2].map((i) => (
-        <div
-          key={i}
-          style={{
-            position: 'absolute',
-            left: 1330,
-            top: 300 + i * 128,
-            ...enters[i],
-            width: 360,
-            height: 92,
-            background: withAlpha(theme.mech, 0.07),
-            border: `2px solid ${withAlpha(theme.mech, 0.75)}`,
-            borderRadius: 10,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 14,
-            padding: '0 20px',
-          }}
-        >
-          <span style={{fontFamily: theme.mono, fontSize: 18, color: theme.mech}}>{`0${i + 1}`}</span>
-          <svg width={250} height={54}>
-            {[0, 1, 2, 3, 4].map((k) => (
-              <line
-                key={k}
-                x1={8 + k * 50}
-                y1={8}
-                x2={8 + k * 50}
-                y2={46}
-                stroke={withAlpha(theme.mech, 0.55)}
-                strokeWidth={4}
-                strokeLinecap="round"
-              />
-            ))}
-          </svg>
-        </div>
-      ))}
-    </>
-  );
-};
-
-// ── 3-B 皆空默认直行道：单据列队过闸（ok 绿瞬态） ───────────────────────────
-
-const FastLane: React.FC<{at: number}> = ({at}) => {
-  const queue = useStagger(3, {at, stride: 26, dur: DUR.f6});
-  // 逐卡放行绿闪（R10 修复：原单发 at+40 魔数与三卡过闸时刻全不重合）——
-  // 卡 i 翻绿帧 = stagger 起点 [2,28,54]（at=2 起、stride 26）+ eased 0.62 ≈ +5.4
-  // （DUR.f6=21 帧 standard 贝塞尔）：[7, 33, 59]，闪窗跨翻绿点前 2 帧
-  const pass0 = useImpulse({at: at + 7, dur: DUR.f4, peak: 1});
-  const pass1 = useImpulse({at: at + 33, dur: DUR.f4, peak: 1});
-  const pass2 = useImpulse({at: at + 59, dur: DUR.f4, peak: 1});
-  const pass = [pass0, pass1, pass2];
-  const gateIn = useProgress(at, DUR.f4);
-  const names = ['查看', '列目录', '日常单'];
-  return (
-    <>
-      {/* 闸柱三根（DENY→RULES→ASK） */}
-      <div style={{position: 'absolute', left: 800, top: 330, opacity: gateIn}}>
-        {[0, 1, 2].map((i) => (
-          <div
-            key={i}
-            style={{
-              position: 'absolute',
-              left: i * 46,
-              top: 0,
-              width: 14,
-              // 高 250：盖住第三行卡（行 3 顶 528+卡高≈51=底 579，R10 修复原
-              // 220 底 550 使「日常单」下半段从闸体外穿过）
-              height: 250,
-              borderRadius: 7,
-              background: theme.panel,
-              border: `2px solid ${withAlpha(theme.dim, 0.55)}`,
-            }}
-          />
-        ))}
-        <div style={{position: 'absolute', left: -58, top: -44, width: 260, textAlign: 'center', fontFamily: theme.mono, fontSize: 16, color: theme.dim}}>
-          {'DENY→RULES→ASK'}
-        </div>
-      </div>
-      {names.map((nm, i) => {
-        const p = queue[i];
-        const done = p > 0.62;
-        return (
-          <div
-            key={nm}
-            style={{
-              position: 'absolute',
-              left: 240 + p * 1120,
-              top: 396 + i * 66,
-              width: 170,
-              padding: '10px 0',
-              textAlign: 'center',
-              background: theme.bgDeep,
-              border: `2px solid ${done ? withAlpha(theme.ok, 0.8) : withAlpha(theme.dim, 0.55)}`,
-              borderRadius: 7,
-              fontFamily: theme.sans,
-              fontSize: 19,
-              color: done ? theme.text : theme.dim,
-              opacity: Math.min(1, p * 4),
-              boxShadow: done ? `0 0 ${12 * pass[i]}px ${withAlpha(theme.ok, 0.6 * pass[i])}` : 'none',
-            }}
-          >
-            {nm}
-            {done ? (
-              <span style={{marginLeft: 8, color: theme.ok}}>{'✓'}</span>
-            ) : null}
-          </div>
-        );
-      })}
-      <div style={{position: 'absolute', left: 760, top: 606, width: 400, textAlign: 'center', fontFamily: theme.sans, fontSize: 20, color: theme.dim, opacity: gateIn}}>
-        {'皆空 · 直行'}
-      </div>
-    </>
-  );
-};
-
-// ── 3-C 禁忌铁律：禁忌表＋「翻不了案」封条章压顶（deny） ────────────────────
-
-const IronRuleCard: React.FC<{at: number}> = ({at}) => {
-  const inP = useProgress(at, DUR.f4);
-  const stamp = useEnter('fall', {at: at + 12, dur: DUR.f4, dist: 130});
-  const quake = useSpring('snap', {at: at + 20, dur: DUR.f5});
-  const rows = ['整盘删除', '冒充管理员', '格式化'];
-  return (
-    <div style={{position: 'absolute', inset: 0, opacity: inP}}>
-      <div
-        style={{
-          position: 'absolute',
-          left: 740,
-          top: 300,
-          width: 440,
-          padding: '20px 28px',
-          background: theme.panel,
-          border: `2px solid ${withAlpha(theme.deny, 0.55)}`,
-          borderLeft: `6px solid ${theme.deny}`,
-          borderRadius: 10,
-          transform: `translateY(${-4 * Math.sin(Math.PI * quake)}px)`,
-        }}
-      >
-        <div style={{fontFamily: theme.sans, fontSize: 23, color: theme.text}}>{'禁忌表'}</div>
-        {rows.map((rw) => (
-          <div
-            key={rw}
-            style={{marginTop: 14, display: 'flex', alignItems: 'center', gap: 12, fontFamily: theme.mono, fontSize: 19, color: theme.dim}}
-          >
-            <span style={{color: theme.deny}}>{'✗'}</span>
-            {rw}
-          </div>
-        ))}
-      </div>
-      {/* 封条章：盖下＋压纸震颤（spring 微幅） */}
-      <div
-        style={{
-          position: 'absolute',
-          left: 1030,
-          top: 236,
-          ...stamp,
-          transform: `${stamp.transform} rotate(-12deg)`,
-          padding: '10px 22px',
-          background: withAlpha(theme.deny, 0.16),
-          border: `3px double ${theme.deny}`,
-          borderRadius: 8,
-          fontFamily: theme.serif,
-          fontSize: 27,
-          color: theme.deny,
-          letterSpacing: 4,
-        }}
-      >
-        {'翻不了案'}
-      </div>
-      <MonoTag x={876} y={192} at={at + 4}>{'顺序=机制'}</MonoTag>
-    </div>
-  );
-};
-
-// ── 3-E 字面匹配两面性：过拦（连坐划线）/ 漏拦（变体逃逸）＋自认引语＋词边界补丁 ──
-
-const OverUnder: React.FC<{at: number; atStrike: number; atQuote: number; atPatch: number}> = ({
-  at,
-  atStrike,
-  atQuote,
-  atPatch,
-}) => {
-  const panelsIn = useProgress(at, DUR.f5);
-  const strike = useProgress(atStrike, DUR.f6);
-  const flow = useFlowDash({dash: 12, gap: 16, period: 34});
-  const quoteIn = useProgress(atQuote, DUR.f3);
-  const quote = useReveal('示意 · 不是安全边界', {at: atQuote + 4, cps: 9});
-  const patchIn = useProgress(atPatch, DUR.f4);
-  const patchHot = useImpulse({at: atPatch, dur: DUR.f5, peak: 1});
-  const paths = ['/data/logs', '/home/u/tmp', '/var/cache/x'];
-  const variants = ['命令变体', '套层展开'];
-  return (
-    <>
-      {/* 左：过拦（绝对路径逐条划掉——deny 连坐线） */}
-      <div
-        style={{
-          position: 'absolute',
-          left: 170,
-          top: 170,
-          width: 720,
-          height: 330,
-          background: theme.panel,
-          border: `2px solid ${theme.panelBorder}`,
-          borderRadius: 12,
-          opacity: panelsIn,
-        }}
-      >
-        <div style={{padding: '16px 24px', fontFamily: theme.sans, fontSize: 22, color: theme.dim}}>{'过拦 · 宁可错拦'}</div>
-        {paths.map((pp, i) => {
-          const w = clamp01(strike * 3 - i);
-          return (
-            <div key={pp} style={{position: 'absolute', left: 40, top: 86 + i * 74, width: 620}}>
-              <span style={{fontFamily: theme.mono, fontSize: 21, color: theme.dim}}>{pp}</span>
-              <div style={{position: 'absolute', left: 0, top: 14, width: 240 * w, height: 3.5, background: theme.deny, borderRadius: 2}} />
-            </div>
-          );
-        })}
-      </div>
-      {/* 右：漏拦（两条小字逃逸箭头绕过筛子——dim 行进虚线） */}
-      <div
-        style={{
-          position: 'absolute',
-          left: 1030,
-          top: 170,
-          width: 720,
-          height: 330,
-          background: theme.panel,
-          border: `2px solid ${theme.panelBorder}`,
-          borderRadius: 12,
-          opacity: panelsIn,
-        }}
-      >
-        <div style={{padding: '16px 24px', fontFamily: theme.sans, fontSize: 22, color: theme.dim}}>{'漏拦 · 可能放过'}</div>
-        <svg width={130} height={150} style={{position: 'absolute', left: 300, top: 96}}>
-          {[0, 1, 2].map((i) => (
-            <line key={i} x1={16} y1={30 + i * 44} x2={114} y2={30 + i * 44} stroke={withAlpha(theme.mech, 0.7)} strokeWidth={5} strokeLinecap="round" />
-          ))}
-        </svg>
-        {variants.map((v, i) => (
-          <div
-            key={v}
-            style={{
-              position: 'absolute',
-              left: 60,
-              top: 110 + i * 92,
-              width: 150,
-              padding: '8px 0',
-              textAlign: 'center',
-              background: theme.bgDeep,
-              border: `2px solid ${withAlpha(theme.dim, 0.5)}`,
-              borderRadius: 7,
-              fontFamily: theme.sans,
-              fontSize: 18,
-              color: theme.dim,
-            }}
-          >
-            {v}
-          </div>
-        ))}
-        <svg width={330} height={230} style={{position: 'absolute', left: 200, top: 70}}>
-          <path d="M8 60 C 120 20, 200 40, 320 22" fill="none" stroke={theme.dim} strokeWidth={3} {...flow} />
-          <path d="M8 160 C 120 200, 200 180, 320 198" fill="none" stroke={theme.dim} strokeWidth={3} {...flow} />
-        </svg>
-      </div>
-      {/* 作者自认引语（mono 逐字） */}
-      <div style={{position: 'absolute', left: 560, top: 556, width: 800, opacity: quoteIn}}>
-        <span style={{fontFamily: theme.serif, fontSize: 44, color: theme.panelBorder}}>{'“'}</span>
-        <span style={{fontFamily: theme.mono, fontSize: 28, color: theme.text}}>{quote}</span>
-        <span style={{fontFamily: theme.serif, fontSize: 44, color: theme.panelBorder}}>{'”'}</span>
-        <div style={{marginTop: 12, fontFamily: theme.sans, fontSize: 18, color: theme.dim}}>{'教学版作者自认'}</div>
-      </div>
-      {/* 词边界补丁小卡（mech 点亮，归属注「规则层补丁」） */}
-      <div
-        style={{
-          position: 'absolute',
-          left: 1400,
-          top: 640,
-          width: 300,
-          opacity: patchIn,
-          transform: `scale(${1 + 0.05 * patchHot})`,
-          padding: '14px 20px',
-          background: withAlpha(theme.mech, 0.08),
-          border: `2px solid ${theme.mech}`,
-          borderRadius: 10,
-          boxShadow: `0 0 ${16 * patchHot}px ${withAlpha(theme.mech, 0.55 * patchHot)}`,
-        }}
-      >
-        <div style={{fontFamily: theme.sans, fontSize: 24, color: theme.mech}}>{'词边界'}</div>
-        <div style={{marginTop: 8, fontFamily: theme.sans, fontSize: 17, color: theme.dim}}>{'规则层补丁'}</div>
-      </div>
-      <MonoTag x={876} y={126} at={atPatch}>{'词边界正则'}</MonoTag>
-    </>
-  );
-};
-
-// ── 3-F 过渡小卡 + 放行权收束（关卡徽章 ok vs 医生无徽章 dim） ───────────────
-
-const ThickCard: React.FC<{at: number}> = ({at}) => {
-  const e = useEnter('pop', {at, dur: DUR.f4, springPreset: 'settle'});
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        left: 660,
-        top: 420,
-        ...e,
-        width: 600,
-        textAlign: 'center',
-        fontFamily: theme.serif,
-        fontSize: 34,
-        color: theme.text,
-        letterSpacing: 3,
-      }}
-    >
-      {'真实产品里 · 厚得多'}
-    </div>
-  );
-};
-
-const BadgeSplit: React.FC<{at: number}> = ({at}) => {
-  const inP = useProgress(at, DUR.f4);
-  const hot = useImpulse({at: at + 5, dur: DUR.f5, peak: 1});
-  return (
-    <div style={{position: 'absolute', inset: 0, opacity: inP}}>
-      <Doctor x={330} y={280} scale={0.82} opacity={0.62} />
-      <div style={{position: 'absolute', left: 270, top: 440, width: 220, textAlign: 'center', fontFamily: theme.sans, fontSize: 21, color: theme.dim}}>
-        {'医生 · 开单'}
-      </div>
-      <div
-        style={{
-          position: 'absolute',
-          left: 1150,
-          top: 300,
-          width: 320,
-          padding: '24px 0',
-          textAlign: 'center',
-          background: theme.panel,
-          border: `3px solid ${theme.mech}`,
-          borderRadius: 12,
-        }}
-      >
-        <div style={{fontFamily: theme.sans, fontSize: 28, color: theme.mech}}>{'关卡'}</div>
-        <div
-          style={{
-            display: 'inline-block',
-            marginTop: 12,
-            padding: '4px 20px',
-            borderRadius: 999,
-            background: withAlpha(theme.ok, 0.15),
-            border: `2px solid ${theme.ok}`,
-            fontFamily: theme.sans,
-            fontSize: 21,
-            color: theme.ok,
-            transform: `scale(${1 + 0.08 * hot})`,
-            boxShadow: `0 0 ${16 * hot}px ${withAlpha(theme.ok, 0.6 * hot)}`,
-          }}
-        >
-          {'放行'}
-        </div>
-      </div>
-      <ProvenanceTag x={600} y={640} at={at + 6} text={'对外拆解口径'} />
-      <ProvenanceTag x={880} y={640} at={at + 8} text={'官方分层口径'} />
-    </div>
-  );
-};
-
-// ── 幕组装 ─────────────────────────────────────────────────────────────────
-
-export const P3ThreeGates: React.FC<{scene: SceneRange}> = ({scene}) => {
-  const w = (fromId: string, toId?: string) => beatWindow(scene.sentences, scene.from, fromId, toId);
-  const at = (id: string) => w(id).from;
-  const dur = (id: string) => w(id).durationInFrames;
-  const bA = w('p3-01', 'p3-03');
-  const bB = w('p3-04', 'p3-09');
-  const bC = w('p3-10', 'p3-11');
-  const bD = w('p3-12', 'p3-15');
-  const bE = w('p3-16', 'p3-20');
-  const bF = w('p3-21', 'p3-26');
-  // p3-01 前段给事故快闪卡（句尾让位给 arrive），帧数由句窗推导
-  const flash1 = Math.round(dur('p3-01') * 0.55);
+const DebtDue: React.FC<{atWarn: number}> = ({atWarn}) => {
+  // 到期脉冲：sin 包络一次冲击，deny 辉光随包络涨落后归零
+  const pulse = useImpulse({at: 4, dur: DUR.f6, peak: 1});
+  const card = useEnter('rise', {at: 2, dur: DUR.f5, dist: 34, restBottom: 640});
+  // 上一版末尾警告（p2-27「不归它管」）引语回放：mono 逐字流出
+  const warn = useReveal('safe_path ∄ bash', {at: atWarn + 4, cps: 9});
 
   return (
     <AbsoluteFill>
-      <Sequence {...bA} name="3-A 事故快闪">
-        <ArchifyRecap
-          slug="gate-three-tier"
-          caption="事故起点"
-          cues={[{chapterId: 'arrive', at: at('p3-01') - bA.from + flash1, durationInFrames: dur('p3-01') - flash1}]}
-        />
-        {/* p3-01 前段：指令卡→整盘删除命令单（deny 急闪），句尾让位给 arrive */}
-        <Sequence durationInFrames={flash1} name="3-A 事故快闪卡">
-          <IncidentFlash at={2} />
-        </Sequence>
-        {/* p3-02..03 回落：三层筛剪影自右缘旋入 */}
-        <Sequence from={at('p3-02') - bA.from} name="3-A 三层筛旋入">
-          <SieveStack at={2} />
-        </Sequence>
+      <div style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, ...card}}>
+        <div style={{position: 'absolute', left: 560, top: 330}}>
+          <Panel
+            accent={theme.deny}
+            style={{
+              width: 800,
+              boxSizing: 'border-box',
+              padding: '34px 40px',
+              boxShadow: `0 0 ${44 * pulse}px ${theme.deny}`,
+            }}
+          >
+            <div style={{display: 'flex', alignItems: 'baseline', gap: 20}}>
+              <span style={{fontFamily: theme.mono, fontSize: 24, color: theme.dim}}>{'#2'}</span>
+              <span style={{fontFamily: theme.serif, fontSize: 60, fontWeight: 700, color: theme.deny}}>
+                {'安全债'}
+              </span>
+              <span
+                style={{
+                  fontFamily: theme.sans,
+                  fontSize: 28,
+                  color: theme.bg,
+                  background: theme.deny,
+                  borderRadius: 8,
+                  padding: '4px 14px',
+                }}
+              >
+                {'到期'}
+              </span>
+            </div>
+          </Panel>
+        </div>
+        {/* 引语卡：上一版末尾的警告原句（口播回指已删，画面代言） */}
+        <div style={{position: 'absolute', left: 620, top: 560}}>
+          <Panel style={{width: 680, boxSizing: 'border-box', padding: '18px 28px'}}>
+            <span style={{fontFamily: theme.serif, fontSize: 44, color: theme.panelBorder}}>{'“'}</span>
+            <span style={{fontFamily: theme.mono, fontSize: 30, color: theme.dim, whiteSpace: 'pre'}}>
+              {warn}
+            </span>
+            <span style={{fontFamily: theme.mono, fontSize: 24, color: theme.panelBorder}}>{'▍'}</span>
+          </Panel>
+        </div>
+      </div>
+      <Footnote delay={atWarn + 4}>{'bash 不受 safe_path 保护'}</Footnote>
+    </AbsoluteFill>
+  );
+};
+
+// ── 3-B p3-03 空窗句：三道门禁装置推入（archify 接管前的一现） ──────────
+
+const GatesSneak: React.FC = () => {
+  const wrap = useEnter('rise', {at: 0, dur: DUR.f5, dist: 40, restBottom: 720});
+  const drops = useStagger(3, {at: 2, stride: 5, dur: DUR.f4});
+  const dot = useProgress(2 + 2 * 5 + DUR.f4 + 4, DUR.f5);
+  return (
+    <AbsoluteFill>
+      <div style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, ...wrap}}>
+        <div
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: 236,
+            width: 1920,
+            textAlign: 'center',
+            fontFamily: theme.sans,
+            fontSize: 48,
+            fontWeight: 700,
+            color: theme.text,
+          }}
+        >
+          {'三道门禁'}
+        </div>
+        {/* 母题 GateRouter：闸门落下 + 请求光点被第一道（焊死门）拦下 */}
+        <div style={{position: 'absolute', left: 400, top: 400}}>
+          <GateRouter gates={drops} travel={dot} blockedBy={0} />
+        </div>
+      </div>
+      <Footnote delay={2 + 2 * 5 + DUR.f4}>{'check_permission()'}</Footnote>
+    </AbsoluteFill>
+  );
+};
+
+// ── 3-C 危险品名册：按词辨认（p3-11..12） ───────────────────────────────
+
+const ROSTER_CMD = 'rm -rf dist';
+const ROSTER_CPS = 10;
+
+const WordRoster: React.FC<{atContrast: number}> = ({atContrast}) => {
+  const title = useProgress(2, DUR.f4);
+  const card = useEnter('fade', {at: 6, dur: DUR.f5});
+  const typed = useReveal(ROSTER_CMD, {at: 10, cps: ROSTER_CPS});
+  // 命令位的「删字」打满即命中：`rm` 两字 → 由 cps 推导，不写死帧数
+  const hitAt = 10 + Math.ceil((2 / ROSTER_CPS) * 30);
+  const hit = useImpulse({at: hitAt, dur: DUR.f6});
+  const hitSet = useProgress(hitAt, DUR.f3);
+  // 对照行：词内含 del 的 model / delimiter 灰置不报
+  const contrast = useEnter('rise', {at: atContrast, dur: DUR.f5, dist: 24, restBottom: 660});
+  const contrastDim = useDim({at: atContrast + DUR.f5, to: 0.35, dur: DUR.f5});
+
+  const cmd = typed.slice(0, 2);
+  const rest = typed.slice(2);
+
+  return (
+    <AbsoluteFill>
+      <div
+        style={{
+          position: 'absolute',
+          left: 0,
+          top: 190,
+          width: 1920,
+          textAlign: 'center',
+          fontFamily: theme.serif,
+          fontSize: 48,
+          fontWeight: 700,
+          opacity: title,
+        }}
+      >
+        <span style={{color: theme.deny}}>{'按词'}</span>
+        <span style={{color: theme.dim}}>{' · '}</span>
+        <span style={{color: theme.dim}}>{'不按串'}</span>
+      </div>
+
+      <div style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, ...card}}>
+        <div style={{position: 'absolute', left: 420, top: 310}}>
+          <Panel style={{width: 1080, boxSizing: 'border-box', padding: '26px 34px'}}>
+            <div style={{fontFamily: theme.mono, fontSize: 40, whiteSpace: 'pre'}}>
+              <span style={{color: theme.core}}>{'$ '}</span>
+              <span
+                style={{
+                  color: hitSet > 0.5 ? theme.bg : theme.deny,
+                  background: hitSet > 0.5 ? theme.deny : 'transparent',
+                  borderRadius: 6,
+                  padding: '2px 8px',
+                  boxShadow: hitSet > 0.5 ? `0 0 ${26 * hit}px ${theme.deny}` : 'none',
+                }}
+              >
+                {cmd}
+              </span>
+              <span style={{color: theme.text}}>{rest}</span>
+            </div>
+            <div style={{fontFamily: theme.sans, fontSize: 22, color: theme.dim, marginTop: 10}}>
+              {'命令位 · 命中'}
+            </div>
+          </Panel>
+        </div>
+
+        {/* 对照行：变量名 / 参数词只含「del」子串，不站在命令位 → 灰置不报 */}
+        <div style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, opacity: contrast.opacity, transform: contrast.transform}}>
+          <div style={{position: 'absolute', left: 420, top: 560, display: 'flex', alignItems: 'center', gap: 24}}>
+            <span style={{fontFamily: theme.sans, fontSize: 26, color: theme.dim, opacity: contrastDim}}>
+              {'对照'}
+            </span>
+            {['model', 'delimiter'].map((w) => (
+              <span
+                key={w}
+                style={{
+                  fontFamily: theme.mono,
+                  fontSize: 32,
+                  color: theme.dim,
+                  opacity: contrastDim,
+                  border: `2px dotted ${theme.panelBorder}`,
+                  borderRadius: 8,
+                  padding: '6px 16px',
+                }}
+              >
+                {w}
+              </span>
+            ))}
+            <span style={{fontFamily: theme.sans, fontSize: 26, color: theme.dim, opacity: contrastDim}}>
+              {'词内含 del · 不报'}
+            </span>
+          </div>
+        </div>
+      </div>
+      <Footnote delay={10}>{'DESTRUCTIVE_COMMAND_WORD'}</Footnote>
+    </AbsoluteFill>
+  );
+};
+
+// ── 3-D 官方对齐卡：次序条 + 开洞反例（p3-14..16） ───────────────────────
+
+const ORDER_SEGS = [
+  {zh: '拒绝', en: 'deny', color: theme.deny},
+  {zh: '询问', en: 'ask', color: theme.dim},
+  {zh: '放行', en: 'allow', color: theme.ok},
+] as const;
+
+const OfficialOrder: React.FC<{atHole: number}> = ({atHole}) => {
+  const doc = useEnter('fade', {at: 2, dur: DUR.f5});
+  const lit = useStagger(ORDER_SEGS.length, {at: 8, stride: 14, dur: DUR.f5});
+  // 首中即决：打点钉在第一段（求值从左起，第一个命中就定案）
+  const pinAt = 8 + 14 + DUR.f5;
+  const pin = useImpulse({at: pinAt, dur: DUR.f6});
+  // 反例：Bash(aws *) 想在拒绝上开洞 → 划掉 + 抖动（decay 归零）
+  const strike = useProgress(atHole, DUR.f5);
+  const shake = useShake({at: atHole, amp: 6, decay: true, dur: DUR.f6});
+  const holeLabel = useProgress(atHole + DUR.f4, DUR.f4);
+
+  return (
+    <AbsoluteFill>
+      <div style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, ...doc}}>
+        {/* 官方文档页样（零信源标识：只有「官方文档」页眉） */}
+        <div style={{position: 'absolute', left: 460, top: 200}}>
+          <Panel style={{width: 1000, boxSizing: 'border-box', padding: '24px 36px'}}>
+            <div style={{display: 'flex', alignItems: 'center', gap: 14, paddingBottom: 12, borderBottom: `2px solid ${theme.panelBorder}`}}>
+              <span style={{fontFamily: theme.sans, fontSize: 24, color: theme.dim}}>{'官方文档'}</span>
+              <span style={{fontFamily: theme.mono, fontSize: 20, color: theme.panelBorder}}>{'permissions'}</span>
+            </div>
+            <div style={{display: 'flex', alignItems: 'center', gap: 18, marginTop: 24}}>
+              {ORDER_SEGS.map((s, i) => (
+                <React.Fragment key={s.en}>
+                  {i > 0 ? (
+                    <span style={{fontFamily: theme.mono, fontSize: 30, color: theme.panelBorder, opacity: lit[i]}}>
+                      {'→'}
+                    </span>
+                  ) : null}
+                  <div
+                    style={{
+                      width: 240,
+                      textAlign: 'center',
+                      padding: '16px 0',
+                      borderRadius: 12,
+                      border: `2px solid ${lit[i] > 0.5 ? s.color : theme.panelBorder}`,
+                      background: i === 0 && lit[i] > 0.5 ? theme.panel : 'transparent',
+                      opacity: 0.45 + 0.55 * lit[i],
+                    }}
+                  >
+                    <div style={{fontFamily: theme.sans, fontSize: 36, fontWeight: 700, color: lit[i] > 0.5 ? s.color : theme.dim}}>
+                      {s.zh}
+                    </div>
+                    <div style={{fontFamily: theme.mono, fontSize: 20, color: theme.dim, marginTop: 4}}>{s.en}</div>
+                  </div>
+                </React.Fragment>
+              ))}
+            </div>
+            {/* 首中即决打点：钉在「拒绝」段上方 */}
+            <div
+              style={{
+                position: 'absolute',
+                left: 66,
+                top: 118,
+                fontFamily: theme.sans,
+                fontSize: 24,
+                color: theme.deny,
+                opacity: 0.4 + 0.6 * pin,
+                textShadow: `0 0 ${14 * pin}px ${theme.deny}`,
+              }}
+            >
+              {'▼ 首中即决'}
+            </div>
+          </Panel>
+        </div>
+
+        {/* 反例卡：具体放行想在拒绝上开洞 → 被划掉 */}
+        <div style={{position: 'absolute', left: 610, top: 620, transform: `translateX(${shake}px)`}}>
+          <Panel accent={theme.deny} style={{width: 700, boxSizing: 'border-box', padding: '22px 30px'}}>
+            <div style={{position: 'relative', display: 'inline-block'}}>
+              <span style={{fontFamily: theme.mono, fontSize: 36, color: theme.text}}>
+                {'Bash(aws *)  →  allow'}
+              </span>
+              <div
+                style={{
+                  position: 'absolute',
+                  left: -6,
+                  top: 30,
+                  height: 4,
+                  width: 560 * strike,
+                  background: theme.deny,
+                  borderRadius: 2,
+                }}
+              />
+            </div>
+            <div style={{fontFamily: theme.sans, fontSize: 24, color: theme.deny, marginTop: 12, opacity: holeLabel}}>
+              {'放行 不能在拒绝上开洞'}
+            </div>
+          </Panel>
+        </div>
+      </div>
+      <Footnote delay={8}>{'deny → ask → allow · 首中即决'}</Footnote>
+    </AbsoluteFill>
+  );
+};
+
+// ── 3-E 闸门倒置假想卡（p3-17..18） ──────────────────────────────────────
+
+/** 倒置条三 chip 的原始 / 倒置 x（px）——「放行」挪到最前 */
+const INVERT_X = [480, 820, 1160] as const;
+const INVERT_SWAP = [1160, 820, 480] as const;
+
+const InvertedGates: React.FC<{atFlip: number; atEscape: number; atRevert: number; atQuote: number}> = ({
+  atFlip,
+  atEscape,
+  atRevert,
+  atQuote,
+}) => {
+  // 弹转（snap 过冲钳在 1：chip 不冲出行程，过冲感交给回正的第二段弹簧）
+  const flip = Math.min(1, useSpring('snap', {at: atFlip, dur: DUR.f6}));
+  const revert = Math.min(1, useSpring('settle', {at: atRevert, dur: DUR.f6}));
+  const factor = flip * (1 - revert);
+  // 拒绝表上的命令（deny 点）穿过挪到最前的「放行」被放走
+  const escape = useProgress(atEscape, DUR.f6, 'accelerate');
+  const escapeAt = atEscape + DUR.f6;
+  const flash = useImpulse({at: escapeAt, dur: DUR.f6});
+  const shake = useShake({at: escapeAt, amp: 7, decay: true, dur: DUR.f6});
+  const hint = useProgress(atFlip + DUR.f5, DUR.f4);
+
+  const chip = (i: number) => {
+    const s = ORDER_SEGS[i];
+    const x = INVERT_X[i] + (INVERT_SWAP[i] - INVERT_X[i]) * factor;
+    return (
+      <div
+        key={s.en}
+        style={{
+          position: 'absolute',
+          left: x,
+          top: 420,
+          width: 260,
+          textAlign: 'center',
+          padding: '20px 0',
+          borderRadius: 12,
+          border: `3px solid ${s.color}`,
+          background: theme.panel,
+          opacity: i === 2 ? 0.55 + 0.45 * factor : 1,
+        }}
+      >
+        <div style={{fontFamily: theme.sans, fontSize: 38, fontWeight: 700, color: s.color}}>{s.zh}</div>
+        <div style={{fontFamily: theme.mono, fontSize: 20, color: theme.dim, marginTop: 2}}>{s.en}</div>
+      </div>
+    );
+  };
+
+  return (
+    <AbsoluteFill>
+      <div
+        style={{
+          position: 'absolute',
+          left: 0,
+          top: 240,
+          width: 1920,
+          textAlign: 'center',
+          fontFamily: theme.sans,
+          fontSize: 44,
+          fontWeight: 700,
+          color: theme.dim,
+          opacity: hint,
+        }}
+      >
+        {'次序倒过来 ？'}
+      </div>
+      <div style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, transform: `translateX(${shake}px)`}}>
+        {INVERT_X.map((_, i) => chip(i))}
+        {/* 被放走的危险命令：deny 点从左侧穿过「放行」扬长而去（透明度随行程淡入，无硬门） */}
+        <svg width={1920} height={1080} style={{position: 'absolute', left: 0, top: 0}}>
+          <circle
+            cx={380 + (1500 - 380) * escape}
+            cy={486}
+            r={14}
+            fill={theme.deny}
+            opacity={escape}
+          />
+          {/* 放走红闪：一次性冲击的扩散环 */}
+          <circle cx={380 + (1500 - 380) * escape} cy={486} r={14 + 26 * flash} fill="none" stroke={theme.deny} strokeWidth={4} opacity={flash} />
+          <text
+            x={1548}
+            y={494}
+            fontFamily={theme.sans}
+            fontSize={26}
+            fontWeight={700}
+            fill={theme.deny}
+            opacity={clamp01((escape - 0.9) * 10)}
+          >
+            {'放走'}
+          </text>
+        </svg>
+      </div>
+      {/* 回正后的金句定格（M-003 终态：句中点抽帧仍可读出） */}
+      <Sequence from={atQuote} layout="none">
+        <div style={{position: 'absolute', left: 360, top: 640, width: 1200, height: 200}}>
+          <QuoteCard zh="铁门 · 永在对讲机前" />
+        </div>
+      </Sequence>
+      <Footnote delay={atFlip}>{'deny → ask → allow'}</Footnote>
+    </AbsoluteFill>
+  );
+};
+
+// ── 3-G p3-24 引子：回执卡概念（2D 小字） ────────────────────────────────
+
+const ReceiptIntro: React.FC = () => {
+  const card = useEnter('fade', {at: 2, dur: DUR.f5});
+  return (
+    <AbsoluteFill>
+      <div style={{position: 'absolute', left: 760, top: 420, ...card}}>
+        {/* 收据形态：上沿锯齿（radial 渐变的 dashed 呈现省略，用 dashed 边即可读） */}
+        <Panel
+          accent={theme.dim}
+          style={{
+            width: 400,
+            boxSizing: 'border-box',
+            padding: '20px 28px',
+            borderStyle: 'dashed',
+            textAlign: 'center',
+          }}
+        >
+          <div style={{fontFamily: theme.serif, fontSize: 44, fontWeight: 700, color: theme.text}}>{'回执'}</div>
+          <div style={{fontFamily: theme.mono, fontSize: 22, color: theme.dim, marginTop: 8}}>{'tool_result'}</div>
+        </Panel>
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+// ── 3-G p3-26..28 回落：被拒回灌对话列表 + 分工伏笔 ─────────────────────
+
+const RECEIPT_ROWS = [
+  {role: 'user', text: '清理项目', color: theme.dim},
+  {role: 'assistant', text: 'tool_use · bash', color: theme.text},
+  {role: 'tool_result', text: 'Permission denied.', color: theme.deny},
+] as const;
+
+const ReceiptFallback: React.FC<{atSplit: number}> = ({atSplit}) => {
+  const list = useEnter('rise', {at: 2, dur: DUR.f5, dist: 36, restBottom: 700});
+  const rows = useStagger(RECEIPT_ROWS.length, {at: 2 + DUR.f5, stride: 10, dur: DUR.f4});
+  const master = useEnter('fade', {at: 8, dur: DUR.f5});
+  // 工坊门常驻呼吸（mech）：分工伏笔「门禁 · 工坊执行」
+  const doorIn = useProgress(atSplit, DUR.f5);
+  const breathe = useBreathe({period: 60, base: 0.55, amp: 0.45});
+  const splitTag = useProgress(atSplit + DUR.f4, DUR.f4);
+
+  return (
+    <AbsoluteFill>
+      {/* 对话列表（滚动追加感：整卡升起 + 逐条落账） */}
+      <div style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, ...list}}>
+        <div style={{position: 'absolute', left: 860, top: 240}}>
+          <Panel style={{width: 640, boxSizing: 'border-box', padding: '20px 26px'}}>
+            <div style={{fontFamily: theme.mono, fontSize: 20, color: theme.dim, paddingBottom: 10, borderBottom: `2px solid ${theme.panelBorder}`}}>
+              {'messages'}
+            </div>
+            {RECEIPT_ROWS.map((r, i) => (
+              <div
+                key={r.role}
+                style={{
+                  marginTop: 12,
+                  padding: '10px 14px',
+                  borderRadius: 8,
+                  borderLeft: `4px solid ${r.color}`,
+                  background: r.role === 'tool_result' ? theme.panel : 'transparent',
+                  opacity: rows[i],
+                  transform: `translateY(${(1 - rows[i]) * 14}px)`,
+                }}
+              >
+                <span style={{fontFamily: theme.mono, fontSize: 20, color: theme.dim}}>{`[${r.role}]  `}</span>
+                <span style={{fontFamily: theme.mono, fontSize: 24, color: r.color}}>{r.text}</span>
+              </div>
+            ))}
+          </Panel>
+        </div>
+      </div>
+
+      {/* 师傅看得见自己被拒（text 白，无彩） */}
+      <div style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, ...master}}>
+        <svg width={200} height={240} style={{position: 'absolute', left: 620, top: 330}}>
+          <circle cx={100} cy={44} r={34} fill={theme.text} opacity={0.9} />
+          <path d="M20 240 Q20 96 100 88 Q180 96 180 240 Z" fill={theme.text} opacity={0.9} />
+        </svg>
+        <div
+          style={{
+            position: 'absolute',
+            left: 560,
+            top: 590,
+            width: 200,
+            textAlign: 'center',
+            fontFamily: theme.sans,
+            fontSize: 24,
+            color: theme.dim,
+          }}
+        >
+          {'看得见'}
+        </div>
+      </div>
+
+      {/* 工坊门（mech 描边）+ 分工伏笔题词 */}
+      <div style={{position: 'absolute', left: 220, top: 300, opacity: doorIn}}>
+        <div
+          style={{
+            width: 170,
+            height: 280,
+            borderRadius: '14px 14px 0 0',
+            border: `4px solid ${theme.mech}`,
+            borderBottom: 'none',
+            background: theme.panel,
+            boxShadow: `0 0 ${22 * breathe}px ${theme.mech}`,
+            position: 'relative',
+          }}
+        >
+          <div style={{position: 'absolute', right: 18, top: 128, width: 12, height: 12, borderRadius: 999, background: theme.mech, opacity: breathe}} />
+          <div style={{position: 'absolute', left: 24, top: 40, width: 100, height: 2, background: theme.mechDeep}} />
+          <div style={{position: 'absolute', left: 24, top: 200, width: 100, height: 2, background: theme.mechDeep}} />
+        </div>
+        <div
+          style={{
+            marginTop: 18,
+            width: 170,
+            textAlign: 'center',
+            fontFamily: theme.serif,
+            fontSize: 30,
+            fontWeight: 700,
+            color: theme.mech,
+            opacity: splitTag,
+          }}
+        >
+          {'门禁 · 工坊执行'}
+        </div>
+      </div>
+      <Footnote delay={2 + DUR.f5 + 2 * 10}>{'tool_result: Permission denied.'}</Footnote>
+    </AbsoluteFill>
+  );
+};
+
+// ── 3-H 产品面速览（p3-29） ──────────────────────────────────────────────
+
+const ProductGlance: React.FC = () => {
+  const cards = useStagger(2, {at: 4, stride: 8, dur: DUR.f4});
+  return (
+    <AbsoluteFill>
+      <div style={{position: 'absolute', left: 460, top: 420, display: 'flex', gap: 80}}>
+        <div style={{opacity: cards[0], transform: `translateY(${(1 - cards[0]) * 18}px)`}}>
+          <NumberedCard index={1} label={'默认免批'} sub={'cwd read'} active={cards[0] > 0.5} width={420} />
+        </div>
+        <div style={{opacity: cards[1], transform: `translateY(${(1 - cards[1]) * 18}px)`}}>
+          <NumberedCard index={2} label={'模式多档'} sub={'Shift+Tab'} active={cards[1] > 0.5} width={420} />
+        </div>
+      </div>
+      <Footnote delay={4}>{'Shift+Tab'}</Footnote>
+    </AbsoluteFill>
+  );
+};
+
+// ── 幕组装 ──────────────────────────────────────────────────────────────
+
+export const P3ThreeGates: React.FC<{scene: SceneRange}> = ({scene}) => {
+  const w = (fromId: string, toId?: string) => beatWindow(scene.sentences, scene.from, fromId, toId);
+  // at() = 时点锚（某句起始帧）；dur() = 与 at 对称的单句取长（cue 窗必须落在同一句 id 上）
+  const at = (id: string) => w(id).from;
+  const dur = (id: string) => w(id).durationInFrames;
+
+  const bA = w('p3-01', 'p3-02');
+  const bB = w('p3-03', 'p3-09');
+  const bC = w('p3-11', 'p3-12');
+  const bD = w('p3-14', 'p3-16');
+  const bE = w('p3-17', 'p3-18');
+  const bF = w('p3-19', 'p3-23');
+  const bG = w('p3-24', 'p3-28');
+  const bH = w('p3-29');
+
+  return (
+    <AbsoluteFill>
+      <HarnessBadge style={BADGE_STYLE} />
+
+      <Sequence {...bA} name="3-A 安全债到期">
+        <SceneTag chapter="Permission Gates" tagline="三道门禁" />
+        <DebtDue atWarn={at('p3-02') - bA.from} />
       </Sequence>
 
-      <Sequence {...bB} name="3-B 三重把关">
-        {/* 同图四章一实例：前三章窗窗相邻自动背靠背；default-pass 经 p3-07/08
-            空窗后由实例内空窗判定恢复入场 */}
-        <ArchifyRecap
-          slug="gate-three-tier"
-          caption="三重把关"
+      <Sequence {...bB} name="3-B 三道门禁">
+        {/* 可见岛 p3-03；窗 = 本镜 6 条 cue 窗 */}
+        <ArchifyYield
           cues={[
-            {chapterId: 'hard-deny', at: at('p3-04') - bB.from, durationInFrames: dur('p3-04')},
-            {chapterId: 'rule-hit', at: at('p3-05') - bB.from, durationInFrames: dur('p3-05')},
-            {chapterId: 'ask-sign', at: at('p3-06') - bB.from, durationInFrames: dur('p3-06')},
-            {chapterId: 'default-pass', at: at('p3-09') - bB.from, durationInFrames: dur('p3-09')},
+            {at: at('p3-04') - bB.from, durationInFrames: dur('p3-04')},
+            {at: at('p3-05') - bB.from, durationInFrames: dur('p3-05')},
+            {at: at('p3-06') - bB.from, durationInFrames: dur('p3-06')},
+            {at: at('p3-07') - bB.from, durationInFrames: dur('p3-07')},
+            {at: at('p3-08') - bB.from, durationInFrames: dur('p3-08')},
+            {at: at('p3-09') - bB.from, durationInFrames: dur('p3-09')},
+          ]}
+        >
+          {/* 多挂 f3 帧：让位淡出盖满后再卸载 */}
+          <Sequence durationInFrames={dur('p3-03') + DUR.f3}>
+            <GatesSneak />
+          </Sequence>
+        </ArchifyYield>
+        {/* 前镜（2-E 围墙）无图 → 首章默认入场；章内背靠背自动抑制换章弹入 */}
+        <ArchifyRecap
+          slug="three-gates"
+          caption="三道门禁"
+          cues={[
+            {chapterId: 'welded-gate', at: at('p3-04') - bB.from, durationInFrames: dur('p3-04')},
+            {chapterId: 'bash-scope', at: at('p3-05') - bB.from, durationInFrames: dur('p3-05')},
+            {chapterId: 'rule-gate', at: at('p3-06') - bB.from, durationInFrames: dur('p3-06')},
+            {chapterId: 'intercom-gate', at: at('p3-07') - bB.from, durationInFrames: dur('p3-07')},
+            {chapterId: 'order-locked', at: at('p3-08') - bB.from, durationInFrames: dur('p3-08')},
+            {chapterId: 'one-line-join', at: at('p3-09') - bB.from, durationInFrames: dur('p3-09')},
           ]}
         />
-        {/* p3-07..08 回落：皆空默认直行道（单据列队过闸，ok 绿瞬态） */}
-        <Sequence from={at('p3-07') - bB.from} durationInFrames={at('p3-09') - at('p3-07')} name="3-B 直行道">
-          <FastLane at={2} />
-        </Sequence>
       </Sequence>
 
-      <Sequence {...bC} name="3-C 铁律卡">
-        {/* p3-10 回落：禁忌表＋封条章盖下＋压纸震颤 */}
-        <Sequence durationInFrames={at('p3-11') - bC.from} name="3-C 禁忌铁律">
-          <IronRuleCard at={2} />
-        </Sequence>
-        {/* p3-11 句让位：正常序基准一瞥 */}
-        <ArchifyRecap
-          slug="gate-order-ablation"
-          caption="正常序基准"
-          cues={[{chapterId: 'normal-first', at: at('p3-11') - bC.from, durationInFrames: dur('p3-11')}]}
+      <Sequence {...bC} name="3-C 危险品名册">
+        <WordRoster atContrast={at('p3-12') - bC.from} />
+      </Sequence>
+
+      <Sequence {...bD} name="3-D 官方次序条">
+        <OfficialOrder atHole={at('p3-16') - bD.from} />
+      </Sequence>
+
+      <Sequence {...bE} name="3-E 倒置假想与金句">
+        <InvertedGates
+          atFlip={at('p3-17') - bE.from + 4}
+          atEscape={at('p3-17') - bE.from + Math.round(dur('p3-17') * 0.45)}
+          atRevert={at('p3-18') - bE.from + 2}
+          atQuote={at('p3-18') - bE.from + Math.round(dur('p3-18') * 0.5)}
         />
       </Sequence>
 
-      <Sequence {...bD} name="3-D 实验3调序">
-        {/* 承 3-C normal-first 镜界背靠背（p3-11 窗尽接 p3-12）→ lead={false}；
-            同图三章连播一实例（窗窗相邻自动背靠背） */}
+      <Sequence {...bF} name="3-F 拆墙双联画">
+        {/* 3-E 自制装置隔开两实例 → 默认入场；五句五接力无空窗 */}
         <ArchifyRecap
-          slug="gate-order-ablation"
-          caption="调序实验"
-          lead={false}
+          slug="fence-to-intercom"
+          caption="拆墙换门"
           cues={[
-            {chapterId: 'reorder-early', at: at('p3-12') - bD.from, durationInFrames: dur('p3-12')},
-            {chapterId: 'one-y-pass', at: at('p3-13') - bD.from, durationInFrames: dur('p3-13')},
-            {chapterId: 'wipe-zero', at: at('p3-14') - bD.from, durationInFrames: dur('p3-14')},
+            {chapterId: 'quiet-big-day', at: at('p3-19') - bF.from, durationInFrames: dur('p3-19')},
+            {chapterId: 'fence-removed', at: at('p3-20') - bF.from, durationInFrames: dur('p3-20')},
+            {chapterId: 'downgrade-ask', at: at('p3-21') - bF.from, durationInFrames: dur('p3-21')},
+            {chapterId: 'wall-to-intercom', at: at('p3-22') - bF.from, durationInFrames: dur('p3-22')},
+            {chapterId: 'net-effect', at: at('p3-23') - bF.from, durationInFrames: dur('p3-23')},
           ]}
         />
-        {/* p3-15 回落：金句卡（QuoteCard 为 components 承担者，不产生 scene 动效 token） */}
-        <Sequence from={at('p3-15') - bD.from} name="3-D 次序金句">
-          <QuoteCard x={560} y={380} at={2} width={800}>
-            {'次序 · 就是机制'}
-          </QuoteCard>
-          <MonoTag x={848} y={560} at={8}>{'4 文件 → 0'}</MonoTag>
-        </Sequence>
       </Sequence>
 
-      <Sequence {...bE} name="3-E 两面性">
-        <OverUnder
-          at={at('p3-16') - bE.from}
-          atStrike={at('p3-17') - bE.from}
-          atQuote={at('p3-19') - bE.from}
-          atPatch={at('p3-20') - bE.from}
-        />
-      </Sequence>
-
-      <Sequence {...bF} name="3-F 生产版对照">
-        {/* p3-21 自制过渡小卡 */}
-        <Sequence durationInFrames={at('p3-22') - bF.from} name="3-F 厚得多过渡">
-          <ThickCard at={2} />
-        </Sequence>
-        {/* 同图四章一实例连播 */}
+      <Sequence {...bG} name="3-G 拒绝回执">
+        {/* 可见岛 p3-24；窗 = 本镜 1 条 cue 窗 */}
+        <ArchifyYield cues={[{at: at('p3-25') - bG.from, durationInFrames: dur('p3-25')}]}>
+          <Sequence durationInFrames={dur('p3-24') + DUR.f3}>
+            <ReceiptIntro />
+          </Sequence>
+        </ArchifyYield>
+        {/* 3-F net-effect（p3-23）与本章隔 p3-24 空窗句 → 独立实例默认入场 */}
         <ArchifyRecap
-          slug="gate-four-result"
-          caption="生产版把关"
-          cues={[
-            {chapterId: 'four-states', at: at('p3-22') - bF.from, durationInFrames: dur('p3-22')},
-            {chapterId: 'eight-sources', at: at('p3-23') - bF.from, durationInFrames: dur('p3-23')},
-            {chapterId: 'classifier', at: at('p3-24') - bF.from, durationInFrames: dur('p3-24')},
-            {chapterId: 'fallback-human', at: at('p3-25') - bF.from, durationInFrames: dur('p3-25')},
-          ]}
+          slug="fence-to-intercom"
+          caption="拆墙换门"
+          cues={[{chapterId: 'denied-receipt', at: at('p3-25') - bG.from, durationInFrames: dur('p3-25')}]}
         />
-        {/* p3-26 回落：放行权收束（关卡徽章 vs 医生位） */}
-        <Sequence from={at('p3-26') - bF.from} name="3-F 放行权收束">
-          <BadgeSplit at={2} />
+        <Sequence from={at('p3-26') - bG.from} name="3-G 回落：看得见被拒">
+          <ReceiptFallback atSplit={at('p3-27') - at('p3-26')} />
         </Sequence>
+      </Sequence>
+
+      <Sequence {...bH} name="3-H 产品面速览">
+        <ProductGlance />
       </Sequence>
     </AbsoluteFill>
   );

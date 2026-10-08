@@ -1,5 +1,5 @@
 # 本集可执行参数的**唯一来源**（ISSUE-161：可执行参数不落散文文档，README 只引用配置）。
-# 编排入口：uv run --no-project $T/scripts/pipeline.py --project $P <cmd>（$T/$W/$P/$V 见 to-video skill 的 references/PIPELINE.md）
+# 编排入口：uv run --no-project $T/scripts/pipeline.py --project $P <cmd>（$T/$W/$P/$V 见 vibe-video skill 的 references/PIPELINE.md）
 #
 # 只写**本集偏离**：机制常数（chars_per_min / lang / draft_scale / draft_jpeg_quality）
 # 的默认值在 skill 仓 scripts/config.py，不要抄回这里。字段表见 skill 的
@@ -9,30 +9,16 @@
 slug = "claude-code-explained-video"
 
 [narration]
-target_minutes = [13.0, 14.6]
-# 本集实测校准（2026-10-02，ISSUE-203 纪律）：df=1.24 慢速档全片含停顿口径
-# 3326 字 / 13.3 分 = 250 字/分；估算门按实测收敛（默认 280 高估句容量）。
-chars_per_min = 250
-
-[archify]
-# 覆盖门硬值（对齐系列既有基准）：锚定率 / cue 密度 / 图型数下限；全屏独占三分法。
-# 图集预算在 Stage ② 策划时按本集内容定稿（~10–13 图 / ≥5 型）。
-html_dir = "docs/assets/architecture/agent-harness"
-html_pattern = "claude-code--{slug}.html"
-min_anchor_ratio = 0.30
-min_cues_per_minute = 3.0
-min_diagram_types = 5
-forbid_inset = true  # 全屏独占（storyboard 按此设计）；残留画中画即 FAIL
-
-# 复用图例外（P6 系列身份卡）：系列级五层身份装置，沿用既有 guided-views
-[archify.html_overrides]
-five-layer-dependency = "claude-code-harness--five-layer-dependency.html"
+# TODO：按本集选题与语速预算填写。口径提示——280 字/分是**含停顿的等效**口径，
+# 裸按字数算会高估约 12% 的句容量，双口径门以 manifest 实测为准。
+target_minutes = [13.0, 15.5]  # 2026-10-08 系列片头铺开：预算窗改含片头口径（leadIn 23.5s；原 [13.0, 14.6] 为无片头窗，E3 复算 14.603 已越界）
+# 本集实测校准（2026-09-29 CP1）：story 档 32 句样段实测 274 字/分纯语音口径，
+# 含停顿等效 ≈ 254 字/分（纯语音 869s+停顿 68s 外推 3961 字=15.62 分超窗）；
+# 默认 280 会让估算门高估约 10%，与 manifest 实测口径背离——按实测收敛。
+chars_per_min = 254
 
 [tts]
 engine = "indextts"
-# ⚠️ 本集以 --duration-factor 1.24 录制（R11 口径收口：df 不在 pipeline.toml/编排器
-# 承载通道内，story 预设 1.0——重录须直调 $T/scripts/tts.py 显式 --duration-factor 1.24，
-# 机器级 store 按 digest 保留 1.24 版本可回收；否则缓存全失配回落 1.0，实测时长门 FAIL）。
 # TODO：选定样本与风格。样本路径**工作区根相对**；ref_sha1 取 12 位（同 tts.py 口径），
 # 用 `uv run --no-project $T/scripts/refs.py list` 查当前清单。
 # ⚠️ 风格预设的 alpha 是在**特定选段**上标定的，换选段即失效（见 $V/refs.toml）。
@@ -42,3 +28,18 @@ style = "story"
 # story 档（默认）＝段落演绎：同幕连续句按块合成、块间情绪由配音台本驱动。
 # 台本（可选）：script/narration.cues.toml——写稿阶段产出，见 $T/references/VOICE-CLONING.md §4.5。
 # 重制存量集（旧档 → story）须显式 --allow-voice-switch 并补写台本。
+
+[archify]
+# 覆盖门硬值（对齐 jev 基准）：锚定率 / cue 密度 / 图型数下限；全屏独占三分法。
+# 图集预算在 Stage ② 策划时按本集内容定稿（~8–14 图 / ≥5 型）。
+html_dir = "docs/assets/architecture/agent-harness"
+html_pattern = "claude-code--{slug}.html"
+min_anchor_ratio = 0.30
+min_cues_per_minute = 3.0
+min_diagram_types = 5
+forbid_inset = true  # 全屏独占（storyboard 按此设计）；残留画中画即 FAIL
+
+# 复用图例外（分镜图集表 #11/#12）：slug → 既有 docs 产物（guided-views 已回填）
+[archify.html_overrides]
+execution-panorama = "claude-code-tooling--execution-panorama.html"
+five-layer-dependency = "claude-code-harness--five-layer-dependency.html"

@@ -31,16 +31,20 @@ export const theme = {
   sans: "'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', sans-serif",
   mono: "'SF Mono', 'Menlo', 'JetBrains Mono', monospace",
 
-  // ── 本集概念色（重制沿用本集系列位三色，语义按新叙事契约）──
-  // core=接诊循环（全片恒定的母题色）｜mech=三层外设（表/关/节点）
-  // deny=禁忌与拦截。深度轴映射，非枚举色；对比度经 qa_frames --check-theme 实测。
-  core: '#D97757',
-  mech: '#64C4C0',
-  deny: '#EF6461',
+  // ── 本集概念色（重制种子：沿用系列维度色系，Stage ② 策划时终定并复算对比度）──
+  // 语义：陶土橙=执行/工具；青=模型侧；红=危险门
+  concept: '#D97757',
+  conceptDeep: '#B45A3C',
+  accent: '#EF6461',
+  model: '#64C4C0',
 
-  // ── 本集私有扩展 ──
-  // bgDeep=ArchifyClip 画框内衬色（与冻结件 ArchifyClip.tsx 同值，跨集件不可改导出）：
-  // 场景自制件需与画框同底时读这里，不再裸拷贝 hex（2026-10-04 评审：12 处收敛，
-  // 含 P2 翻卡背面 #10141C 归一；R9 补修：首轮替换误留引号致常量零读取，已去引号）。
-  bgDeep: '#0B0E13',
+  // ── 系列语义键（V3D 3D 层读；HarnessStack/motifs 消费）──
+  // core = 循环内核：**全系列恒定 #D97757**（「循环始终不变」主线的视觉锚）；
+  // mech/mechDeep = 挂在内核外的机制：**每集维度色**（本集 #64C4C0）——
+  // 「循环不变、机制每集不同」的语义分工。deny 复用 danger（拒绝/危险唯一语义）。
+  core: '#D97757',
+  coreDeep: '#B45A3C',
+  deny: '#EF6461', // 拒绝/危险唯一语义（3D 层读；与 danger 同源）
+  mech: '#64C4C0',
+  mechDeep: '#4A8F8B',
 } as const;

@@ -15,7 +15,7 @@
 # ep2–ep5 钉站点同源修订（用户 5 分组只在该修订下成立）。
 #
 # ── 本文件是 chapter→episode 映射的唯一住所 ─────────────────────────────────
-# 各集 research/source-notes.md 只链接 ../source-map/claude-code-explained.md，
+# 各集 research/gl-notes.md 冻结登记只链接 ../source-map/claude-code-explained.md 取信源钉，
 # **永不重述**章号归属与钉选——重述即第二事实源，两轨章号错位时必然漂移。
 #
 # 用法：
@@ -29,19 +29,15 @@ license = "MIT"
 siteBase = "https://learn.shareai.run/zh"
 
 # 双钉：两轨修订不同，逐集选择（此处显式登记，是全系列唯一一处）。
-# 2026-09-27 重钉（完全重调研）：main f9e8b28 → 0dcafa2（2026-08-27，25 提交）——
+# 2026-10-07 重钉（换代精读）：main 0dcafa2a → ce8f9f18（2026-09-28，2 提交，无机制级变更）；前史：2026-09-27 f9e8b28 → 0dcafa2（25 提交）——
 # 唯一机制级变更是 s08_context_compact（micro_compact 条件化 + fit_tool_results +
 # 占位符路径越界校验 + snip 幂等保护），另 s03 增破坏性命令词正则；其余为跨章
 # UTF-8/递归 glob 机械修复。站点轨分支 HEAD 未动（67a9126c），线上 s08 页逐字
 # 复验一致，5 分组前提稳固，站点钉不变。
-# 2026-10-01 重钉（ep1 完全重制）：main 0dcafa2 → ce8f9f18（2026-09-28，仅 2 提交
-# #586/#587）——s01–s04 各章 code.py 净增 +9/10 行（OS-aware shell context，README
-# 未动，无机制级变更）；重钉对齐 171 号精读所读轨（精读/逐字稿/code.py:NN 锚点
-# 同树可复算，两钉 LOC 已差 9–10 行/章，沿用旧钉即双倍重验）。站点钉不变。
 [[pin]]
 ref = "ce8f9f186058939da54c9d6fead78dfb5d0fd6c3"
 date = "2026-09-28"
-label = "仓库 main（17 章整合版 · 171 精读轨）"
+label = "仓库 main（17 章整合版）"
 readmeFile = "README.zh.md"
 codeFile = "code.py"
 episodes = [1]

@@ -1,6 +1,7 @@
-# 《工具与执行：一个循环，三层外设》科普视频工程
+# 《工具与执行：一个循环，三层装置》科普视频工程
 
-> 交付状态：**v1 已交付（2026-10-02）**——13:17.0 = 797s @1080p30 · 141 句 3326 字 · story 档 df=1.24 · archify 14 图 67 章（13 新绘＋five-layer 复用；cue 62 · 锚定 44% · 5 型）· 机器门 check_series/check_script FAIL 0 · 覆盖门 FAIL 0 / WARN 3（2 条叙事重组 by-design ＋ 1 条 verdict 跨图同名章解析限制——stop-reason-race 与 lookup-failure 各有 `verdict` 章，覆盖门 token 全局匹配下双镜声明必剩一条错位 WARN，根治须章改名重录）+ 目检过。归档 `~/Documents/video/claude-code-explained/` v1 + `_captions/`（旧《三层装置》v1/v2 原位保留，本集为完全重制替换）。发布顺序见 [../../series.json](../../series.json)（工作区根）。
+> 剧本 v3 待审（2026-10-07）：planning/narration/storyboard 已换代（C 型信源=171 新精读），场景/TTS/图集未动。
+> 交付状态：**v1 已交付**（2026-09-30，14:02.6 @1080p30（total_duration_in_frames 复算），归档 ~/Documents/video/claude-code-explained/ v1 + _captions）。发布顺序见 [../../series.json](../../series.json)（工作区根）。
 
 ## 目录结构
 
@@ -10,15 +11,15 @@
 | `script/planning.md` | Stage ② 策划案（六节齐，含本集视觉契约） |
 | `script/narration.md` | Stage ③ 逐字稿 **★单一事实源**（勿改 narration.json） |
 | `script/storyboard.md` | Stage ⑥ 分镜表（镜号 ↔ 句 id 区间 ↔ 画面 ↔ 动效） |
-| `scripts/*.py` | 薄包装 → to-video skill 的 scripts/（解析器定位，保 CLI 契约） |
+| `scripts/*.py` | 薄包装 → vibe-video skill 的 scripts/（解析器定位，保 CLI 契约） |
 | `video/` | Remotion 独立 pnpm 工程（嵌套 workspace 自锚隔离） |
 | `out/` | 渲染产物（gitignored） |
-| `pipeline.toml` | 本集可执行参数的唯一来源（字段表见 [to-video skill 的 references/PIPELINE.md](https://github.com/ThreeFish-AI/to-video/blob/main/references/PIPELINE.md)） |
+| `pipeline.toml` | 本集可执行参数的唯一来源（字段表见 [vibe-video skill 的 references/PIPELINE.md](https://github.com/ThreeFish-AI/vibe-video/blob/main/references/PIPELINE.md)） |
 
 ## 复现流水线
 
 ```bash
-# 在工作区内执行。$T/$W/$P/$V 的定义见 to-video skill 的 references/PIPELINE.md 路径变量约定（唯一定义处）
+# 在工作区内执行。$T/$W/$P/$V 的定义见 vibe-video skill 的 references/PIPELINE.md 路径变量约定（唯一定义处）
 P=$W/episodes/claude-code-explained-video
 
 # ① 信源核验（B 型信源；A 型论文集跳过）
@@ -29,8 +30,6 @@ uv run --no-project $T/scripts/pipeline.py --project $P build
 uv run --no-project $T/scripts/pipeline.py --project $P check --check-scenes
 
 # ③ 配音（参数全部取自 pipeline.toml，勿在命令行另写 --style/--ref）
-#    ⚠️ 例外：本集 df=1.24 不走编排器——重录须直调 `uv run --no-project $T/scripts/tts.py --project $P --duration-factor 1.24`
-#    （story 预设 1.0；编排器不透传该参数，见 pipeline.toml [tts] 注记。store 按 digest 保留 1.24 版本可回收）
 uv run --no-project $T/scripts/pipeline.py --project $P tts --plan   # 排期对账
 uv run --no-project $T/scripts/pipeline.py --project $P tts          # 长跑，建议 nohup
 
@@ -43,7 +42,7 @@ uv run --no-project $T/scripts/pipeline.py --project $P qa --video out/draft.mp4
 # ⑤ 交付
 uv run --no-project $T/scripts/pipeline.py --project $P captions
 uv run --no-project $T/scripts/pipeline.py --project $P render --final
-# 交付归档（可选；根 = --root 一次性 或 env TO_VIDEO_DELIVER_ROOT 持久，机器属性不进 toml）
+# 交付归档（可选；根 = --root 一次性 或 env VIBE_VIDEO_DELIVER_ROOT 持久，机器属性不进 toml）
 uv run --no-project $T/scripts/pipeline.py --project $P deliver
 ```
 
@@ -52,7 +51,7 @@ uv run --no-project $T/scripts/pipeline.py --project $P deliver
 - 逐字稿只改 `script/narration.md`；`narration.json` / `manifest.json` 是派生物。
 - 时序常数只在 `video/src/timing.json`（timing.ts 与 Python 侧 timeline.py 共读）。
 - **口播永不出现他集标题与集数序号**——顺序只在视觉层与 series.json（`check_series.py` 执法）。
-- 骨架冻结档位见 [to-video skill 的 skeleton.toml](https://github.com/ThreeFish-AI/to-video/blob/main/assets/video-skeleton/skeleton.toml)；
+- 骨架冻结档位见 [vibe-video skill 的 skeleton.toml](https://github.com/ThreeFish-AI/vibe-video/blob/main/assets/video-skeleton/skeleton.toml)；
   改动前先跑 `uv run --no-project $T/scripts/verify_skeleton.py`。
 
 ## 许可

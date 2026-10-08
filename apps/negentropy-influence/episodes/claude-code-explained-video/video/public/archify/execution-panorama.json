@@ -1,0 +1,177 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.48,
+ "story_sec": 29.89,
+ "total_wall_sec": 111.07,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "belt-lap",
+   "label": "工具执行一圈",
+   "index": 0,
+   "file": "execution-panorama--belt-lap.mp4",
+   "end_still": "execution-panorama--belt-lap-end.png",
+   "beats": 5,
+   "dwell_ms": 1100,
+   "lead_sec": 0.48,
+   "story_sec": 5.52,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.205,
+    3.307,
+    4.41
+   ],
+   "beat_nodes": [
+    "belt",
+    "verify",
+    "gates",
+    "execute",
+    "feed-back"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 28.0
+  },
+  {
+   "id": "recount",
+   "label": "回头对账",
+   "index": 1,
+   "file": "execution-panorama--recount.mp4",
+   "end_still": "execution-panorama--recount-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.45,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.205,
+    3.309
+   ],
+   "beat_nodes": [
+    "belt",
+    "debt-capability",
+    "debt-security",
+    "debt-extension"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "debt-ledger",
+   "label": "三债各归其位",
+   "index": 2,
+   "file": "execution-panorama--debt-ledger.mp4",
+   "end_still": "execution-panorama--debt-ledger-end.png",
+   "beats": 6,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 6.66,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.205,
+    3.307,
+    4.41,
+    5.512
+   ],
+   "beat_nodes": [
+    "debt-capability",
+    "registry-port",
+    "debt-security",
+    "gate-port",
+    "debt-extension",
+    "hook-port"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "device-per-chapter",
+   "label": "每章都在加装置",
+   "index": 3,
+   "file": "execution-panorama--device-per-chapter.mp4",
+   "end_still": "execution-panorama--device-per-chapter-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.47,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.206,
+    3.309
+   ],
+   "beat_nodes": [
+    "registry-port",
+    "gate-port",
+    "hook-port",
+    "belt"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "skeleton-verbatim",
+   "label": "骨架逐字没变",
+   "index": 4,
+   "file": "execution-panorama--skeleton-verbatim.mp4",
+   "end_still": "execution-panorama--skeleton-verbatim-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [
+    0.0,
+    1.602
+   ],
+   "beat_nodes": [
+    "skeleton",
+    "belt"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "vow-cashed",
+   "label": "立碑兑现",
+   "index": 5,
+   "file": "execution-panorama--vow-cashed.mp4",
+   "end_still": "execution-panorama--vow-cashed-end.png",
+   "beats": 5,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 5.53,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.205,
+    3.307,
+    4.411
+   ],
+   "beat_nodes": [
+    "vow-stone",
+    "belt",
+    "registry-port",
+    "gate-port",
+    "hook-port"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code-tooling--execution-panorama.html",
+ "slug": "execution-panorama",
+ "type": "lifecycle"
+}

@@ -11,37 +11,5 @@ allowBuilds:
 # GHSA-2883-xcg3-v3hh (high)：js-yaml < 4.3.2 的 maxTotalMergeKeys 对空 merge 源不限流
 # 致 CPU 耗尽。本工程经 cosmiconfig@8.3.6 传递引入，父包声明 ^4.1.0；限 <5 避免 major
 # 跳跃——无上界时 pnpm 会解到 5.x。与仓库根 pnpm-workspace.yaml 同口径。
-minimumReleaseAgeExclude:
-  - '@remotion/bundler@4.0.532'
-  - '@remotion/canvas@4.0.532'
-  - '@remotion/captions@4.0.532'
-  - '@remotion/cli@4.0.532'
-  - '@remotion/codemods@4.0.532'
-  - '@remotion/compositor-darwin-arm64@4.0.532'
-  - '@remotion/compositor-darwin-x64@4.0.532'
-  - '@remotion/compositor-linux-arm64-gnu@4.0.532'
-  - '@remotion/compositor-linux-arm64-musl@4.0.532'
-  - '@remotion/compositor-linux-x64-gnu@4.0.532'
-  - '@remotion/compositor-linux-x64-musl@4.0.532'
-  - '@remotion/compositor-win32-x64-msvc@4.0.532'
-  - '@remotion/elevenlabs@4.0.532'
-  - '@remotion/layout-utils@4.0.532'
-  - '@remotion/licensing@4.0.532'
-  - '@remotion/media-parser@4.0.532'
-  - '@remotion/media-utils@4.0.532'
-  - '@remotion/media@4.0.532'
-  - '@remotion/openai-whisper@4.0.532'
-  - '@remotion/paths@4.0.532'
-  - '@remotion/player@4.0.532'
-  - '@remotion/renderer@4.0.532'
-  - '@remotion/streaming@4.0.532'
-  - '@remotion/studio-protocol@4.0.532'
-  - '@remotion/studio-server@4.0.532'
-  - '@remotion/studio-shared@4.0.532'
-  - '@remotion/studio@4.0.532'
-  - '@remotion/timeline-utils@4.0.532'
-  - '@remotion/web-renderer@4.0.532'
-  - '@remotion/zod-types@4.0.532'
-  - remotion@4.0.532
 overrides:
   js-yaml: '>=4.3.2 <5.0.0'
