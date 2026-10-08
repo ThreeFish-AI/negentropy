@@ -42,6 +42,11 @@
 **系列纪律**：各集独立成片，口播互不引用、不出现集数序号——顺序只存在于本清单与片尾视觉卡片，
 发布顺序变更的 TTS 代价恒为零。
 
+**系列片头《一个循环》**（2026-10-06 上线、2026-10-08 独立化并铺开五集）：约 23.5s 统一开场（口播
+为独立音轨不入各集 narration，逐集差异=本集 mech 授色与本集站定格，全数据驱动）；种子与同步纪律见
+[series-assets/claude-code-explained/intro/README.md](./series-assets/claude-code-explained/intro/README.md)，
+台账见 [ISSUE-209](../../docs/.agents/issue.md)。
+
 ## Context Layer · 上下文层系列（doc 型 · 3 集）
 
 信源为本仓研究文档族（B 型 · 固定提交取证）：前两集上游 Snowflake 官方页不直接取证、只经 011 精读笔记的 IEEE 引用链间接可溯；第三集上游 volcengine/OpenViking 官方页与代码仓不直接取证、只经 014 精读笔记的 `path:line@14a7b81` 锚点链间接可溯。系列纪律同前（口播互不引用、无集数序号）。

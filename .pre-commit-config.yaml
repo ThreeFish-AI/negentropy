@@ -148,7 +148,22 @@ repos:
         name: Twin files consistency
         language: system
         entry: uv run --no-project scripts/check_twin_files.py
-        files: ^(scripts/check_twin_files\.py|apps/negentropy-wiki/src/components/markdown/remark-math-sanitize\.ts|apps/negentropy-ui/utils/remark-math-sanitize\.ts)$
+        files: ^(scripts/check_twin_files\.py|apps/negentropy-wiki/src/components/markdown/remark-math-sanitize\.ts|apps/negentropy-ui/utils/remark-math-sanitize\.ts|apps/negentropy-influence/series-assets/claude-code-explained/intro/series-intro\.tsx|apps/negentropy-influence/episodes/claude-code-explained-video/video/src/components/series-intro\.tsx|apps/negentropy-influence/episodes/claude-code-planning-video/video/src/components/series-intro\.tsx|apps/negentropy-influence/episodes/claude-code-memory-video/video/src/components/series-intro\.tsx|apps/negentropy-influence/episodes/claude-code-concurrency-video/video/src/components/series-intro\.tsx|apps/negentropy-influence/episodes/claude-code-multiagent-video/video/src/components/series-intro\.tsx)$
+        pass_filenames: false
+
+  # ── 媒体固定资产登记制（默认不入库，登记才入库） ─────────────────────────
+  # 登记表=scripts/media-assets.toml（唯一事实源）；白名单由
+  # check_media_assets.py --sync 重放进 .gitignore。钩子校验：
+  # 已入库媒体 ⊆ 登记表、指纹一致、白名单放行实测生效、触发覆盖完整。
+  # ⚠️ 新增/更换登记项后须同步扩本钩子 files 正则与 CI workflow paths
+  #    （--check 的 trigger-coverage 自检会点名漏配）。
+  - repo: local
+    hooks:
+      - id: media-assets-consistency
+        name: Media assets consistency
+        language: system
+        entry: uv run --no-project scripts/check_media_assets.py --check
+        files: ^(scripts/media-assets\.toml|scripts/check_media_assets\.py|\.gitignore|docs/assets/architecture/core/negentropy-architecture-story\.mp4|docs/assets/architecture/core/negentropy-architecture-story\.gif|apps/negentropy-influence/series-assets/claude-code-explained/intro/series-intro-zh\.mp3)$
         pass_filenames: false
 
   # ── 科普视频系列一致性（series.json 执法） ───────────────────────────────
