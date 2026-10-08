@@ -312,6 +312,10 @@ apps/negentropy-influence/voices/*
 # PNG 不在媒体默认忽略口径内）
 apps/negentropy-influence/episodes/*/video/public/archify/*-end.png
 
+# archify CLI 在 cwd 落下的根级候选件（candidate.json；成品 HTML 为 SSOT）。
+# 建图轮中间产物，历史零提交（ISSUE-149「候选产物误入库」同类兜底）；跨 worktree 同模式。
+.archify/
+
 # ── 全仓媒体默认忽略（2026-10-08 登记制）──────────────────────────────────
 # 音/视频媒体与动图一律默认不入 Git；确属公共固定资产的，先在
 # scripts/media-assets.toml 登记（path/sha256/bytes/reason），再跑
