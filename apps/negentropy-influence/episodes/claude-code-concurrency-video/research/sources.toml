@@ -9,152 +9,177 @@
 url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s13_background_tasks/README.md"
 kind = "repo"
 pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
-accessed = "2026-10-02"
+accessed = "2026-10-07"
 raw_sha256 = "752eee73ced127ea"
 text_sha256 = "fd65fc7f95134c81"
 bytes = 11410
 lines = 261
-via = "pinned commit, MIT"
+via = "pinned commit, MIT; 站点轨主（174 组织骨架）"
 
 [s13-code]
 url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s13_background_tasks/code.py"
 kind = "repo"
 pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
-accessed = "2026-10-02"
+accessed = "2026-10-07"
 raw_sha256 = "cd68265f806cdedb"
 text_sha256 = "e78bd3165cd0813f"
 bytes = 17212
 lines = 480
-via = "pinned commit, MIT; LOC 实测依据"
+via = "pinned commit, MIT; C.2 穿透抽查依据"
 
 [s13-site]
 url = "https://learn.shareai.run/zh/s13/"
 kind = "site"
-accessed = "2026-10-02"
+accessed = "2026-10-07"
 raw_sha256 = "f6f9e70f7ce472ac"
 text_sha256 = "b7cc79aa0644826d"
 bytes = 71444
 lines = 258
+via = "站点实况（174 站点轨组织骨架对照）"
 
 [s14-readme]
 url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s14_cron_scheduler/README.md"
 kind = "repo"
 pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
-accessed = "2026-10-02"
+accessed = "2026-10-07"
 raw_sha256 = "0ef9b157e69f5feb"
 text_sha256 = "2304f4002d56d17d"
 bytes = 12241
 lines = 305
-via = "pinned commit, MIT"
+via = "pinned commit, MIT; 站点轨主（174 组织骨架）"
 
 [s14-code]
 url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s14_cron_scheduler/code.py"
 kind = "repo"
 pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
-accessed = "2026-10-02"
+accessed = "2026-10-07"
 raw_sha256 = "5edd9d0d55d60cdd"
 text_sha256 = "0b412918794a3b12"
 bytes = 28577
 lines = 804
-via = "pinned commit, MIT; LOC 实测依据"
+via = "pinned commit, MIT; C.2 穿透抽查依据"
 
 [s14-site]
 url = "https://learn.shareai.run/zh/s14/"
 kind = "site"
-accessed = "2026-10-02"
+accessed = "2026-10-07"
 raw_sha256 = "6081e1cfb20982f4"
 text_sha256 = "2165920cb96917b6"
 bytes = 87494
 lines = 294
-
-[off-scheduled-tasks]
-url = "https://code.claude.com/docs/en/scheduled-tasks.md"
-kind = "site"
-accessed = "2026-10-02"
-raw_sha256 = "bd61138121e36e5e"
-text_sha256 = "346b8318d0649071"
-bytes = 15378
-lines = 217
-via = "官方文档 .md 静态端点"
-
-[off-env-vars]
-url = "https://code.claude.com/docs/en/env-vars.md"
-kind = "site"
-accessed = "2026-10-02"
-raw_sha256 = "12c0610fffce0e67"
-text_sha256 = "ca8eb70a856a1b09"
-bytes = 158790
-lines = 553
-via = "官方文档 .md 静态端点"
-
-[off-tools-reference]
-url = "https://code.claude.com/docs/en/tools-reference.md"
-kind = "site"
-accessed = "2026-10-02"
-raw_sha256 = "ef0e0d896cb541ec"
-text_sha256 = "24a077a66051cbf4"
-bytes = 76230
-lines = 661
-via = "官方文档 .md 静态端点"
-
-[off-routines]
-url = "https://code.claude.com/docs/en/routines.md"
-kind = "site"
-accessed = "2026-10-02"
-raw_sha256 = "2d0407cd8ef576e3"
-text_sha256 = "bece148dcb804223"
-bytes = 35742
-lines = 427
-via = "官方文档 .md 静态端点"
-
-[off-interactive-mode]
-url = "https://code.claude.com/docs/en/interactive-mode.md"
-kind = "site"
-accessed = "2026-10-02"
-raw_sha256 = "5a47b88a40a74f2a"
-text_sha256 = "81c6963bb5aa970b"
-bytes = 67662
-lines = 779
-via = "官方文档 .md 静态端点"
-
-[off-tooluse-overview]
-url = "https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview.md"
-kind = "site"
-accessed = "2026-10-02"
-raw_sha256 = "6de69c6b2f1b2fb5"
-text_sha256 = "76224f883cac5440"
-bytes = 39227
-lines = 911
-via = "官方文档 .md 静态端点"
+via = "站点实况（174 站点轨组织骨架对照）"
 
 [main-s11-readme]
-url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/ce8f9f186058939da54c9d6fead78dfb5d0fd6c3/s11_background_tasks/README.md"
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/ce8f9f186058939da54c9d6fead78dfb5d0fd6c3/s11_background_tasks/README.zh.md"
 kind = "repo"
 pinned_ref = "ce8f9f186058939da54c9d6fead78dfb5d0fd6c3"
-accessed = "2026-10-02"
-raw_sha256 = "eaac859e963538a7"
-text_sha256 = "d19cd0d18a075b0b"
-bytes = 7395
+accessed = "2026-10-07"
+raw_sha256 = "33508a7a0ef6c279"
+text_sha256 = "cb120c83099af996"
+bytes = 6882
 lines = 178
-via = "pinned commit, MIT"
+via = "pinned commit, MIT; main 轨对照（判定收敛）"
+
+[main-s11-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/ce8f9f186058939da54c9d6fead78dfb5d0fd6c3/s11_background_tasks/code.py"
+kind = "repo"
+pinned_ref = "ce8f9f186058939da54c9d6fead78dfb5d0fd6c3"
+accessed = "2026-10-07"
+raw_sha256 = "2942a4adccf981a5"
+text_sha256 = "71d340e18dcd058b"
+bytes = 17723
+lines = 542
+via = "pinned commit, MIT; C.2 穿透抽查依据"
 
 [main-s12-readme]
-url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/ce8f9f186058939da54c9d6fead78dfb5d0fd6c3/s12_cron_scheduler/README.md"
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/ce8f9f186058939da54c9d6fead78dfb5d0fd6c3/s12_cron_scheduler/README.zh.md"
 kind = "repo"
 pinned_ref = "ce8f9f186058939da54c9d6fead78dfb5d0fd6c3"
-accessed = "2026-10-02"
-raw_sha256 = "ece56ede2d2cf1d3"
-text_sha256 = "d303b0420b85c3ff"
-bytes = 6245
+accessed = "2026-10-07"
+raw_sha256 = "46a20944c8ebf04a"
+text_sha256 = "58cf70109e4a7675"
+bytes = 5846
 lines = 153
-via = "pinned commit, MIT"
+via = "pinned commit, MIT; main 轨对照（至少一次交付）"
 
-[off-handle-tool-calls]
-url = "https://platform.claude.com/docs/en/agents-and-tools/tool-use/handle-tool-calls.md"
+[main-s12-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/ce8f9f186058939da54c9d6fead78dfb5d0fd6c3/s12_cron_scheduler/code.py"
+kind = "repo"
+pinned_ref = "ce8f9f186058939da54c9d6fead78dfb5d0fd6c3"
+accessed = "2026-10-07"
+raw_sha256 = "51302e94bb5b05f4"
+text_sha256 = "7254965b95476836"
+bytes = 25439
+lines = 790
+via = "pinned commit, MIT; C.2 穿透抽查依据"
+
+[main-s16-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/ce8f9f186058939da54c9d6fead78dfb5d0fd6c3/s16_workflow_runtime/README.zh.md"
+kind = "repo"
+pinned_ref = "ce8f9f186058939da54c9d6fead78dfb5d0fd6c3"
+accessed = "2026-10-07"
+raw_sha256 = "2d2524b1f4c7367b"
+text_sha256 = "aa43410f0fa52a6a"
+bytes = 14043
+lines = 245
+via = "pinned commit, MIT; 174 附录 s16_workflow_runtime 对照章"
+
+[doc-scheduled-tasks]
+url = "https://code.claude.com/docs/en/scheduled-tasks"
 kind = "site"
-accessed = "2026-10-02"
-raw_sha256 = "7d66a22a28ed3ff4"
-text_sha256 = "565e6f180e8c3590"
-bytes = 13436
-lines = 281
-via = "官方文档 .md 静态端点（O15 配对语义规范性原文增量补证）"
+accessed = "2026-10-07"
+raw_sha256 = "b953130d91febdd1"
+text_sha256 = "4b43500e95146799"
+bytes = 539886
+lines = 1583
+via = "官方补读（174 参考 [5]；【二】级口径）"
+
+[doc-routines]
+url = "https://code.claude.com/docs/en/routines"
+kind = "site"
+accessed = "2026-10-07"
+raw_sha256 = "a31ee33cd688f914"
+text_sha256 = "bc624f55d251c167"
+bytes = 596035
+lines = 1652
+via = "官方补读（174 参考 [6]；边界对照）"
+
+[doc-desktop-scheduled]
+url = "https://code.claude.com/docs/en/desktop-scheduled-tasks"
+kind = "site"
+accessed = "2026-10-07"
+raw_sha256 = "32c49ca923b87a91"
+text_sha256 = "f829249b6c7880a8"
+bytes = 432657
+lines = 1530
+via = "官方补读（174 参考 [7]；catch-up 策略）"
+
+[doc-tools-reference]
+url = "https://code.claude.com/docs/en/tools-reference"
+kind = "site"
+accessed = "2026-10-07"
+raw_sha256 = "1de68d5bcf3cc9c2"
+text_sha256 = "bc08c2149742ae38"
+bytes = 712863
+lines = 1908
+via = "官方补读（174 参考 [8]；后台时限）"
+
+[doc-interactive-mode]
+url = "https://code.claude.com/docs/en/interactive-mode"
+kind = "site"
+accessed = "2026-10-07"
+raw_sha256 = "12d22384e55b1267"
+text_sha256 = "36657815a19673f6"
+bytes = 798872
+lines = 1913
+via = "官方补读（174 参考 [9]；输出上限）"
+
+[doc-headless]
+url = "https://code.claude.com/docs/en/headless"
+kind = "site"
+accessed = "2026-10-07"
+raw_sha256 = "ca202c2b6721f0f6"
+text_sha256 = "bb76687f6eeeec11"
+bytes = 687477
+lines = 1679
+via = "官方补读（174 参考 [10]；退出回收）"

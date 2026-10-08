@@ -13,7 +13,7 @@ Worlds》的六个核心机制：
   6. 策略改进与选择：policy-development（脚本化修订）+ argmax 选择，
      候选集包含当前策略 ⇒ V* ≥ V⁰ 防回退下界。
 
-玩具域：配方工坊（五个方向的确定性「市场评分」轨迹）。discovery agent 为
+玩具域：配方集（五个方向的确定性「市场评分」轨迹）。discovery agent 为
 脚本化 mock（按分支轨迹出分），policy-development agent 为脚本化修订——
 真实系统中两者是 LLM，本原型验证的是**机制**而非模型能力。
 
