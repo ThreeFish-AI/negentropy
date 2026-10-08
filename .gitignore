@@ -298,6 +298,13 @@ apps/negentropy-influence/episodes/**/*.mp4
 apps/negentropy-influence/episodes/**/*.mp3
 apps/negentropy-influence/episodes/**/*.wav
 
+# 系列级资产目录（apps/negentropy-influence/series-assets/<series>/）：
+# 音频产物与分集同性质——克隆音轨属生物特征信息且环境相关，绝不入库；
+# 组件种子与 README（文档）正常入库。系列片头 mp3 的放置/校验步骤见
+# series-assets/claude-code-explained/intro/README.md。
+apps/negentropy-influence/series-assets/**/*.mp3
+apps/negentropy-influence/series-assets/**/*.wav
+
 # 声音克隆参考样本（apps/negentropy-influence/voices/，2026-09 随 skill 外置
 # 迁至工作区顶层）：个人声音属生物特征信息，绝不入库。目录级忽略 + 白名单例外
 # （README 与 refs.toml 指纹清单——后者只存哈希与生成参数，不含音频字节），
