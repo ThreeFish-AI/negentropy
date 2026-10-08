@@ -4382,3 +4382,10 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **处理方式**（2026-10-08，本 PR）：**媒体固定资产登记制**三件套——①登记表 `scripts/media-assets.toml`（唯一事实源：path/sha256/bytes/reason/added）；②校验器 `scripts/check_media_assets.py`（`--sync` 按登记表重放 .gitignore 白名单块并对每个登记路径跑 `git check-ignore` 实测放行——闭合「目录级忽略挡住 `!` 否定、git 不再下探」的规则文本陷阱；`--check` 校验已入库媒体 ⊆ 登记表、指纹一致、白名单生效、触发覆盖完整，pre-commit/CI 双挂）；③ .gitignore 收敛为「全仓通用媒体默认忽略段（mp3/mp4/wav/m4a/aac/flac/ogg/opus/webm/mov/mkv/avi/gif）+ 生成式白名单块」，删除被覆盖的零散行（episodes mp3/mp4/wav、series-assets mp3/wav、archify webm/mp4），保留目录级行（`episodes/*/video/public/audio/` 额外管 manifest.json/.sha；archify `*-end.png` 不在媒体口径内）。红绿闭环实测：未登记 mp3 默认 add 被挡、-f 强加被 --check 拦、篡改已登记 mp4 被指纹拦、各集副本 mp3 目录级忽略仍生效。首批登记 3 项：架构故事片 mp4/gif（存量合规化）、片头音轨种子 mp3（合成产物随仓分发；克隆源样本 voices/ 仍不入库——生物特征源与合成产物的口径分界）。破坏性验证的临时件（fake mp3/篡改备份）均已清理。
 - **后续防范**：新增/更换媒体一律先登记再 `--sync` 再 add；更换文件须同步更新登记表 sha256/bytes（钩子按指纹对账）；新增登记项后须同步扩 pre-commit files 正则与 CI paths（`--check` 自检点名漏配）。
 - **同类问题影响**：一切「默认排除某类文件、例外需登记」的仓级策略（如未来 LFS 化、图片资产收紧）可直接复用「登记表 SSOT + sync 重放白名单 + check 对账 + 触发覆盖自检」四件套形态。
+## ISSUE-211 剧本换代中间态的已知红门与恢复条件（2026-10-07，开放——场景轮收口）
+
+- **表因**：claude-code-explained 五集换代表意（planning/narration/storyboard 全新重写、旧场景代码不动）后，两类机器门必红：① `check_archify_coverage`（旧场景 cue 锚旧句 id，新 storyboard 不挂 cue 只写图意与预定图 slug）；② `check_script --check-scenes`（旧场景 `at()/dur()` 引用的句 id 集已不存在）。另：旧 `script/narration.cues.toml`（4 集）随换稿删除，TTS 轮重配前 pre-tts 预算门走「未生成跳过」路径。
+- **根因**：vibe-video 的门假设「脚本层与场景/音频层同代」；跨代中间态（剧本新、场景旧）是该假设的盲区。
+- **处理方式**：本轮以 `pipeline.py build` + `check_script.py --pre-tts` + `check_script.py`（默认）+ pre-commit `check_series`（8 规则）四绿为交付门；两类已知红门登记于此、明确不跑。storyboard 的「archify 对接说明」节保留预定图 slug 清单作为场景轮的建图工作清单。
+- **后续防范（恢复条件=场景轮）**：场景轮重写场景代码 + 按预定 slug 建视频版 archify 图并挂 cue 后，恢复 `pipeline.py check` 全量（自动串联覆盖门）与 `--check-scenes`；届时本条目转已闭。PR #1185（ThreeFish-AI/negentropy：176 四件套 + ep2 v5）与本轮新产物同域冲突（ep2 `research/gl-notes.md` 同名新增、`source-notes.md` 同名删除），处置为 close as superseded（2026-10-07 评审修复轮执行关闭）——其评审循环经验已沉淀于 vibe-video skill 与本仓 issue 史。
+- **同类问题影响**：未来任何「只换剧本不动场景」的迭代轮同此口径；若 skill 侧未来增加「跨代中间态」的显式模式（如 storyboard 标记 `scenes-pending`），可把本登记升级为机器执法。

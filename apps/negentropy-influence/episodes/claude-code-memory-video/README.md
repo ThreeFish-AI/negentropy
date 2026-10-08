@@ -1,5 +1,6 @@
 # 《记忆管理：会丢的和不能丢的》科普视频工程
 
+> **剧本 v3 待审（2026-10-07）**：planning / narration / storyboard 已换代（C 型信源 = `research/gl-notes.md`，冻结自 docs/research/agent-harness/173 新精读；双轨钉点 站点轨 `67a9126c` + main 轨 `ce8f9f18`），`video/src/chapters.json` 由 build 再生；场景代码 / TTS 音轨 / archify 图集未动（旧 cue 与新句 id 的错位属预期，场景轮统一重写）。
 > 交付状态：**v1 已交付**（2026-10-01，14:13.3 @1080p30（total_duration_in_frames 复算），归档 ~/Documents/video/claude-code-explained/ v1 + _captions）。发布顺序见 [../../series.json](../../series.json)（工作区根）。
 
 ## 目录结构

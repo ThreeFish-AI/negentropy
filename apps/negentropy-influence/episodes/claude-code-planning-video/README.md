@@ -1,5 +1,6 @@
 # 《规划与协调：模型的视野是安排出来的》科普视频工程
 
+> **剧本 v3 待审（2026-10-07）**：planning/narration/storyboard 已换代（C 型信源 = [research/gl-notes.md](research/gl-notes.md)，冻结自 docs/research/agent-harness/172 新精读），场景/TTS/图集未动（v1 音轨与画面仍为旧版配套，复映前须走 TTS→场景→渲染轮）。
 > 交付状态：**v1 已交付**（2026-10-01，14:12.2 @1080p30（total_duration_in_frames 复算），归档 ~/Documents/video/claude-code-explained/ v1 + _captions）。发布顺序见 [../../series.json](../../series.json)（工作区根）。
 
 ## 目录结构

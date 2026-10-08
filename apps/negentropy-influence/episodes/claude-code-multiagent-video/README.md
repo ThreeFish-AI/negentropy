@@ -1,5 +1,7 @@
 # 《多 Agent 平台：从一个到一群》科普视频工程
 
+> **剧本 v3 待审（2026-10-07）**：策划案 / 逐字稿 / 分镜表已按 C 型信源（`research/gl-notes.md`，冻结自 175 新精读）完全重写，待人工复核（标题候选与钩子选定见 `script/planning.md` §0/§2）。本轮到分镜为止：TTS / 渲染 / 场景代码 / archify 建图均未动；旧 `narration.cues.toml` 已删（TTS 轮重写）；默认 check 的 4 处覆盖门 FAIL 为 v1 场景 cue 跨代错位，场景轮消除。
+
 > 交付状态：**v1 已交付**（2026-10-02，13:42.8 @1080p30（total_duration_in_frames 复算），归档 ~/Documents/video/claude-code-explained/ v1 + _captions）。发布顺序见 [../../series.json](../../series.json)（工作区根）。
 
 ## 目录结构

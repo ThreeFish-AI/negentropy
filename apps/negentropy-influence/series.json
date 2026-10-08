@@ -26,7 +26,7 @@
             "date": "2026-06"
           },
           "status": "ready",
-          "statusNote": "v3 已完成：内容校准（187 句，25 改写 + 8 新增）+ sunny-steady 全片重配 + 终渲 14:01；源码含未重渲改动（P3 Figure 8 格阵落格校准，见 PR 说明），发布前须重渲",
+          "statusNote": "v3 已完成：内容校准（187 句，25 改写 + 8 新增）+ sunny-steady 全片重配 + 终渲 14:01；源码含未重渲改动（P3 Figure 8 格阵落格校准，见 PR 说明；p1-07 改写去 Harness 中译，须重配该句），发布前须重渲",
           "voice": "sunny-steady + me-bright.wav（2026-08 重录决策）"
         },
         {
@@ -102,7 +102,7 @@
       "id": "claude-code-explained",
       "title": "Claude Code Harness Engineering",
       "sourceKind": "course",
-      "rule": "与自进化系列完全独立：两个系列的口播互不引用（校验器规则 1 跨系列全局生效），发布顺序与视觉契约各自独立（规则 2/3/4 按系列内判定）。信源为官方文档 + Anthropic 工程博客 + 开源课程仓库（站点 20 章/5 阶段只作组织骨架，观众层匿名化——规则 7），故 episode 用 source 字段（含 pinnedRef 与访问日期）而非 paper 字段——证据等级分层见各集 research/source-notes.md。",
+      "rule": "与自进化系列完全独立：两个系列的口播互不引用（校验器规则 1 跨系列全局生效），发布顺序与视觉契约各自独立（规则 2/3/4 按系列内判定）。信源为官方文档 + Anthropic 工程博客 + 开源课程仓库（站点 20 章/5 阶段只作组织骨架，观众层匿名化——规则 7），故 episode 用 source 字段（含 pinnedRef 与访问日期）而非 paper 字段——证据等级分层见各集 research/gl-notes.md 冻结登记。",
       "episodes": [
         {
           "episode": 1,
@@ -120,12 +120,12 @@
             "title": "Learn Claude Code · 工具与执行（s01 Agent Loop / s02 Tool Use / s03 Permission / s04 Hooks）",
             "site": "https://learn.shareai.run/zh/s01/",
             "repo": "https://github.com/shareAI-lab/learn-claude-code",
-            "pinnedRef": "0dcafa2ae053a1ddd6a72f265431104b08a5aa13",
+            "pinnedRef": "ce8f9f186058939da54c9d6fead78dfb5d0fd6c3",
             "license": "MIT",
-            "accessed": "2026-09-27"
+            "accessed": "2026-10-07"
           },
-          "status": "final-review",
-          "statusNote": "完全重制 v1 交付（2026-09-30）：14:02.6 = 843s @1080p30（时长窗 [13.0,14.6] 实测落窗；843s=25279 帧复算）；164 句 3644 字（CP1 实测 274 字/分校准 chars_per_min=254 后减脂 317 字）；story 档配音（me-bright 克隆 + 43 块 cues 台本 + seed 4242）；archify 12 图（10 新绘+2 复用重建）65 章逐章回放（cue 64 · 锚定 39.0% · 5 型 · 密度 4.6/分）；机器门全绿：check_series/build/check--check-scenes FAIL 0（2 豁免 WARN 金句卡）/tsc 零错/motion 测试/qa --check FAIL 0/亮度带扫描零近黑段/全分辨率目检翻案无缺陷；归档 ~/Documents/video/claude-code-explained/ v1 + _captions；2026-10-08 片头独立化：组件种子迁 series-assets/claude-code-explained/intro/（六路径孪生门执法），本集副本化零行为变化；成片仍待重渲（不含片头与 v2.1 后续改动，正片 TTS 批亦落后现稿）——重渲批次口径见 ISSUE-209",
+          "status": "script-review",
+          "statusNote": "剧本 v3 待审（2026-10-07）：planning/narration/storyboard 全新换代，C 型信源=171 新精读（guided-learn 2026-10-07）；159 句 3692 字 7 幕 27 镜（build 口径 14.5 分落窗）；build/pre-tts/内容门三绿 + source_ledger 15 条 FAIL 0；场景/TTS/图集未动，跨代红门见 ISSUE-211；main 钉换 ce8f9f18（自 0dcafa2a 无机制级变更）；旧 source-notes/cues 清理、archive 重建为 ce8f9f1/；2026-10-08 片头独立化：组件种子迁 series-assets/claude-code-explained/intro/（六路径孪生门执法），本集副本化零行为变化；成片仍待重渲（不含片头与 v2.1 后续改动，正片 TTS 批亦落后现稿）——重渲批次口径见 ISSUE-209",
           "voice": "story + me-bright.wav"
         },
         {
@@ -144,10 +144,10 @@
             "repo": "https://github.com/shareAI-lab/learn-claude-code",
             "pinnedRef": "67a9126c6435a8654ba7a6f68c0fd2130f00a462",
             "license": "MIT",
-            "accessed": "2026-08-22"
+            "accessed": "2026-10-07"
           },
-          "status": "final-review",
-          "statusNote": "**v2 交付**（2026-09-30 重渲，含两轮评审修复 14+16 处；v1 2026-09-29 初渲）原 v1 口径（2026-09-29）：14:12.2 = 852s @1080p30（25566 帧复算）；169 句 3603 字（254 口径直写零减脂）；story 档（44 块 cues + seed 4242）纯语音 13.17 分；archify 12 图 68 章逐章回放（state→lifecycle 词表映射 2 图）；机器门全绿 + 目检修复 P6 系列题字与第五层层板叠压（qa --check 盲区——全分辨率目检抓出，标语 top 改栈几何推导）；归档 v1 + _captions；2026-10-08 系列片头铺开：series-intro 组件副本+挂载块（归一化指纹 78664c3010fd）+leadIn 23.5（片头 705 帧前置）；时长预算窗改 [13.0,15.5] 含片头口径（+22.9s）；0-A 已让位改造（退役 HarnessStackP0，Badge 直入，2026-10-08）；成片待重渲（补跑 TTS 后统一批次），见 ISSUE-209",
+          "status": "script-review",
+          "statusNote": "剧本 v3 待审（2026-10-07）：C 型信源=172 新精读；147 句 3561 字 7 幕 28 镜（14.0 分落窗）；三门绿 + source_ledger 28 条 FAIL 0；场景/TTS/图集未动（ISSUE-211）；钩子 H1/标题候选 4 项待人工复核；2026-10-08 系列片头铺开：series-intro 组件副本+挂载块（归一化指纹 78664c3010fd）+leadIn 23.5（片头 705 帧前置）；时长预算窗改 [13.0,15.5] 含片头口径（+22.9s）；0-A 已让位改造（退役 HarnessStackP0，Badge 直入，2026-10-08）；成片待重渲（补跑 TTS 后统一批次），见 ISSUE-209",
           "voice": "story + me-bright.wav"
         },
         {
@@ -166,10 +166,10 @@
             "repo": "https://github.com/shareAI-lab/learn-claude-code",
             "pinnedRef": "67a9126c6435a8654ba7a6f68c0fd2130f00a462",
             "license": "MIT",
-            "accessed": "2026-08-22"
+            "accessed": "2026-10-07"
           },
-          "status": "final-review",
-          "statusNote": "**v2 交付**（2026-09-30 重渲，含两轮评审修复 14+16 处；v1 2026-09-29 初渲）原 v1 口径（2026-09-29）：14:13.3 = 853s @1080p30（25598 帧复算）；163 句 3644 字（254 实测口径直写零减脂）；story 档（seed 4242 · 无配音台本——自动分段默认情绪向量，见 issue.md ISSUE-204）；archify 12 图 62 章逐章回放（含 memory-panorama/five-layer 复用原生重建，锚定 38%）；双轨口径干净（站点轨叙事+main 彩蛋）；机器门全绿：check FAIL 0（3 豁免 WARN 金句卡）/tsc/motion 15:15/qa FAIL 0/亮度带零近黑/目检过（半分辨率疑似贴边经判例排除）；归档 v1 + _captions；2026-10-08 系列片头铺开：series-intro 组件副本+挂载块（归一化指纹 78664c3010fd）+leadIn 23.5（片头 705 帧前置）；时长预算窗改 [13.0,15.5] 含片头口径（+22.9s）；0-A 已让位改造（退役 HarnessStackP0，Badge 直入，2026-10-08）；成片待重渲（补跑 TTS 后统一批次），见 ISSUE-209",
+          "status": "script-review",
+          "statusNote": "剧本 v3 待审（2026-10-07）：C 型信源=173 新精读（双轨：站点主轨+main s08 演进彩蛋）；160 句 3642 字 7 幕 32 镜（14.3 分落窗）；三门绿 + source_ledger 13 条 FAIL 0；场景/TTS/图集未动（ISSUE-211）；archive 增 ce8f9f1/ 双轨对照；2026-10-08 系列片头铺开：series-intro 组件副本+挂载块（归一化指纹 78664c3010fd）+leadIn 23.5（片头 705 帧前置）；时长预算窗改 [13.0,15.5] 含片头口径（+22.9s）；0-A 已让位改造（退役 HarnessStackP0，Badge 直入，2026-10-08）；成片待重渲（补跑 TTS 后统一批次），见 ISSUE-209",
           "voice": "story + me-bright.wav"
         },
         {
@@ -189,10 +189,10 @@
             "repo": "https://github.com/shareAI-lab/learn-claude-code",
             "pinnedRef": "67a9126c6435a8654ba7a6f68c0fd2130f00a462",
             "license": "MIT",
-            "accessed": "2026-08-22"
+            "accessed": "2026-10-07"
           },
-          "status": "final-review",
-          "statusNote": "**v2 交付**（2026-09-30 重渲，含两轮评审修复 14+16 处；v1 2026-09-30 初渲）原 v1 口径（2026-09-30）：14:10.8 @1080p30（25523 帧复算）；170 句 3613 字；story 档 43 块 cues；archify 12 图 59 章（两张 3.0.0 漏网图经锁定版 2.17 重建）；**渲染五连崩根因=Lottie clock-swing 在 headless ANGLE 确定性挂死 delayRender**——换原生 PendulumGlyph（衰减正弦摆）根治；集成期抓出并补齐 P1/P2 半场缺失（108s 纯黑屏）；机器门全绿+目检过；归档 v1+_captions；2026-10-08 系列片头铺开：series-intro 组件副本+挂载块（归一化指纹 78664c3010fd）+leadIn 23.5（片头 705 帧前置）；时长预算窗改 [13.0,15.5] 含片头口径（+22.9s）；0-A 已让位改造（退役 HarnessStackP0，Badge 直入，2026-10-08）；成片待重渲（补跑 TTS 后统一批次），见 ISSUE-209",
+          "status": "script-review",
+          "statusNote": "剧本 v3 待审（2026-10-07）：C 型信源=174 新精读；178 句 3594 字 7 幕 36 镜（14.1 分落窗）；三门绿 + source_ledger 17 条 FAIL 0；抖动双口径（官方 30 分钟/半间隔 vs 站点考古 10%/15 分钟）穿透回源；场景/TTS/图集未动（ISSUE-211）；2026-10-08 系列片头铺开：series-intro 组件副本+挂载块（归一化指纹 78664c3010fd）+leadIn 23.5（片头 705 帧前置）；时长预算窗改 [13.0,15.5] 含片头口径（+22.9s）；0-A 已让位改造（退役 HarnessStackP0，Badge 直入，2026-10-08）；成片待重渲（补跑 TTS 后统一批次），见 ISSUE-209",
           "voice": "story + me-bright.wav"
         },
         {
@@ -211,10 +211,10 @@
             "repo": "https://github.com/shareAI-lab/learn-claude-code",
             "pinnedRef": "67a9126c6435a8654ba7a6f68c0fd2130f00a462",
             "license": "MIT",
-            "accessed": "2026-08-22"
+            "accessed": "2026-10-07"
           },
-          "status": "final-review",
-          "statusNote": "**v2 交付**（2026-09-30 重渲，含两轮评审修复 14+16 处；v1 2026-09-30 初渲）原 v1 口径（2026-09-30 终集）：13:42.8 @1080p30（24683 帧复算）；149 句 3622 字；story 档 38 块 cues；archify 13 图 67 章（collab-panorama/five-layer 复用重建，five-layer 三集合并 11 章）；终集装置全落位（五层身份卡全亮/系列金句卡/两种身份入场费曼遗产句/无下期卡完结语气）；**door-lock Lottie 同款挂死**→原生 LockStrike 根治；轨 C 八校准全片贯彻；机器门全绿+目检过；归档 v1+_captions；2026-10-08 系列片头铺开：series-intro 组件副本+挂载块（归一化指纹 78664c3010fd）+leadIn 23.5（片头 705 帧前置）；时长预算窗改 [13.0,15.5] 含片头口径（+22.9s）；0-A 已让位改造（退役 HarnessStackP0，Badge 直入，2026-10-08）；成片待重渲（补跑 TTS 后统一批次），见 ISSUE-209",
+          "status": "script-review",
+          "statusNote": "剧本 v3 待审（2026-10-07）：C 型信源=175 新精读（站点七章主+main 四章对照）；143 句 3586 字 7 幕 37 镜（14.1 分落窗）；三门绿 + source_ledger 33 条 FAIL 0；终集收束（五层回看+系列金句+完结语、无下期卡）；场景/TTS/图集未动（ISSUE-211）；2026-10-08 系列片头铺开：series-intro 组件副本+挂载块（归一化指纹 78664c3010fd）+leadIn 23.5（片头 705 帧前置）；时长预算窗改 [13.0,15.5] 含片头口径（+22.9s）；0-A 已让位改造（退役 HarnessStackP0，Badge 直入，2026-10-08）；成片待重渲（补跑 TTS 后统一批次），见 ISSUE-209",
           "voice": "story + me-bright.wav"
         }
       ]
