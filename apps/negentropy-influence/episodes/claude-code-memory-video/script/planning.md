@@ -55,7 +55,7 @@
 恒定空间契约（防〔X-001〕空间逆旁白）：台面恒居画面左中锚位（core 橙）；会丢的机制（收台动作）从上缘压入、向下腾位；不能丢的登记簿从右缘挂入（mech 绿）；「腾位」与「登记」两组动效互不侵入对方锚区；金句卡衬线体（theme.serif）；占位符/标签原文（`Re-run if needed`、`MEMORY.md` 等）只进画面角标与引语卡（mono 等宽引语态），不进口播。
 
 **3D 视觉语言（@remotion/three 路线，控面积）**：
-- **P0 与 P6 用 3D 层板（HarnessStack）作系列装置**：P0 开场五层栈落板→记忆层点亮呼吸→缩退为顶边常驻条（HarnessBadge，P1–P6）；P6 p6 档放大收尾。
+- **P6 用 3D 层板（HarnessStack）作系列装置**：p6 档放大收尾（P0 开场五层栈落板已随系列片头铺开 2026-10-08 退役——五层展示职责迁入 series-intro.tsx，常驻条 HarnessBadge 改自 0-A 直入，P1–P6 常驻）。
 - **正文幕（P1–P5）以 2D＋archify 全屏独占为主**，3D 母题点缀限两处——P1 台面堆高（solids 堆叠母题一现）、P4 扉页翻页脉冲（LottieEmphasis·page-flip）。
 - 理由沿 ep1 判例：ISSUE-177／180／182 三个缺陷模式全部集中在 3D 段——**控制 3D 面积＝控制回归面**；正文信息密度由 archify 承担（forbid_inset=true，全屏独占三分法）。
 

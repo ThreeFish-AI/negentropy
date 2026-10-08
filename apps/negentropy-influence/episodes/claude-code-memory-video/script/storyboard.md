@@ -42,7 +42,7 @@
 
 | 镜 | 句区间 | 画面 | 动效 |
 | --- | --- | --- | --- |
-| 0-A（3D） | p0-01..04 | HarnessStackP0 3D 五层栈自底向上落板（components/harness-stack.tsx 承担）→ 本集层「记忆层」点亮呼吸两次 → 其余层压暗待缩退为顶边常驻条（HarnessBadge，P1–P6 沿用）；工坊灯调暗——师傅剪影（`text` 白无彩）撂下工具、离场步态；主问题字卡居中「它还记得什么」（问句形态，问号 `deny` 红点睛）；角标 `session end` | 栈落板／呼吸／缩退在 HarnessStackP0 内（不产生 token）；字卡落下 `useEnter:fall`；灯暗随 p0-02 句推进 `useDim`；问号红点一次性 `useImpulse`；`@enter:fall` `@dim` `@impulse` |
+| 0-A | p0-01..04 | 开场直入（系列片头铺开 2026-10-08：五层栈落板/记忆层点亮职责已由系列片头 components/series-intro.tsx 吸收，压 leadIn 时段；HarnessStackP0 在本集退役）——常驻条 Badge（`top:64`，HarnessBadge，P1–P6 沿用）淡入；工坊灯调暗——师傅剪影（`text` 白无彩）撂下工具、离场步态；主问题字卡居中「它还记得什么」（问句形态，问号 `deny` 红点睛）；角标 `session end` | Badge 直入 `useProgress`；字卡落下 `useEnter:fall`；灯暗随 p0-02 句推进 `useDim`；问号红点一次性 `useImpulse`；`@enter:fall` `@dim` `@impulse` |
 | 0-B | p0-05..09 | 台面堆满：motifs.BenchTop 台面母题首现（`core` 橙恒定描边〔M-001〕，恒左中锚位）——文件页／命令输出条／回复气泡自上缘压入逐层堆高（会丢侧动效自上缘）；红色印章「提示太长」盖在台面右上（`deny`）；p0-08 大输出条横占整幅台面；数字角标 `tool_result ≤ 500KB`；角标 `messages`、`prompt_too_long` | 堆叠逐层压入 `useStagger`；印章盖下 `useEnter:fall`＋红闪 `useImpulse`（p0-07 拒收句）；大输出条铺满 `useProgress`；`@stagger` `@enter:fall` `@impulse` `@progress` |
 | 0-C | p0-10..13 | 两本账预告：收台剪影（题词「会丢的」）与登记簿剪影（题词「不能丢的」）自右缘挂入（`mech` 绿 ×2，不触碰左中 core 台面锚位）；p0-12 让位系列栈图一闪；p0-13 回落——碑卡衬线定格「记忆不是一个功能」（悬念态，右下小字「等两本账翻完」） ·**archify full**：five-layer-dependency 章 `layer-flash` | 两剪影滑入 `useEnter:slideR`＋常驻辉光 `useBreathe`（`mech`）；碑卡定格终态〔M-003〕；`@enter:slideR` `@breathe` |
 
@@ -119,7 +119,7 @@
 
 | 幕 | 组件 | 装置重心 |
 | --- | --- | --- |
-| P0 打烊清台 | `scenes/P0NightClosing.tsx` | HarnessStackP0（3D）、BenchTop 台面母题首现（M-001）、拒收印章、两本账剪影＋碑卡 |
+| P0 打烊清台 | `scenes/P0NightClosing.tsx` | 常驻条 Badge 直入、BenchTop 台面母题首现（M-001）、拒收印章、两本账剪影＋碑卡 |
 | P1 收台四步 | `scenes/P1Compaction.tsx` | solids-3d 台面堆高一现、四层速览卡、常量打码卡、顺序金句卡 |
 | P2 指针换空间 | `scenes/P2PointerSpace.tsx` | 顺序对撞卡、找不到的路演示、占位符引语卡、尺子卡、官方对照卡 |
 | P3 压缩即遗忘 | `scenes/P3Forgetting.tsx` | 存档≠记忆双物卡、根因金句卡、保留面清单卡、登记簿剪影挂入 |

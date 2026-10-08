@@ -35,7 +35,7 @@
 
 | 镜 | 句区间 | 画面 | 动效 |
 |---|---|---|---|
-| 0-A（3D） | p0-01..05 | HarnessStackP0 3D 五层栈自底向上落板（components/harness-stack.tsx 承担）→ 第五层「多 Agent 平台」点亮呼吸两次 → 其余层压暗待缩退；主问题字卡居中「一个人」（≤6 字形态，「一个人」三字 mech 金点睛）；角标 `多 Agent`（预告） | 栈落板与层呼吸在 HarnessStackP0 内；「一个人」金点睛一次性强调由 scene 字卡调用 `useImpulse`；`@impulse` |
+| 0-A | p0-01..05 | 开场直入（系列片头铺开 2026-10-08：五层栈落板/第五层点亮职责已由系列片头 components/series-intro.tsx 吸收，压 leadIn 时段；HarnessStackP0 在本集退役）——常驻条 Badge（`top:64`，HarnessBadge，P1–P6 常驻）淡入，供 p0-04「前面亮灯的几个区」指代；主问题字卡居中「一个人」（≤6 字形态，「一个人」三字 mech 金点睛）；角标 `多 Agent`（预告） | Badge 直入 `useProgress`；「一个人」金点睛一次性强调由 scene 字卡调用 `useImpulse`；`@impulse` |
 | 0-B | p0-06..10 | 台面溢出装置——师傅台面（`coreDeep` 矩形）物件堆叠滑落，「重构整个后端」字卡拆四色子活卡（角标 `auth`／`db`／`route`／`test`）；三重困境三行推进（台面摆不下／一双手串行／待办断电即失）；p0-10 让位 ·**archify full**：board-vs-todo 章 `todo-vanishes` | 子活卡四色弹入 `useStagger`；物件滑落抖动 `useShake`（decay）；串行箭头依次推进 `useProgress`；p0-10 由 ArchifyRecap 主控（空窗后首现实例默认入场）；`@stagger` `@shake` `@progress` |
 | 0-C | p0-11..15 | 悬念立碑——「更聪明的师傅」字卡划掉 → 五物件剪影自右缘点亮（mech 金 ×5，工坊分区环形预告位，不触碰左中 core 传送带锚位）；p0-12 让位 ·**archify full**：collab-panorama 章 `one-to-many`；p0-13..14 回落五物件剪影逐件挂标签（板／格子／班次／隔间／插口，各 ≤2 字）；p0-15 再让位 ·**archify full**：five-layer-dependency 章 `series-vow`（章尾金句衬线小卡「还是那一条」定格） | 划线否掉 `useProgress`（decelerate）；五剪影右缘滑入 `useEnter:slideR` + 常驻辉光 `useBreathe`（mech）；两处全屏回放由 ArchifyRecap 主控（跨实例接缝入场纪律见头部）；`@progress` `@enter:slideR` `@breathe` |
 
@@ -108,7 +108,7 @@
 
 | 幕 | 组件 | 装置重心 |
 |---|---|---|
-| P0 一个到一群 | `scenes/P0OneToCrowd.tsx` | HarnessStackP0（3D 落板＋层点亮）、台面溢出装置、五物件剪影立碑 |
+| P0 一个到一群 | `scenes/P0OneToCrowd.tsx` | 常驻条 Badge 直入、台面溢出装置、五物件剪影立碑 |
 | P1 排工板 | `scenes/P1TaskBoard.tsx` | TaskBoard 母题＋3D 磁吸一现（solids-3d）、自陈／官方引语卡、金句卡 |
 | P2 收件格与派工单 | `scenes/P2MailboxProtocol.tsx` | 对照卡组（临时工 vs 常驻／工具单对开）、副台渐变卡、冒泡链路图 |
 | P3 班次 | `scenes/P3ShiftAutonomy.tsx` | 过载翻转装置、双向卡、复活装置、两数法对照卡 |

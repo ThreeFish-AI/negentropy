@@ -28,13 +28,13 @@
 | 11 | execution-panorama（**复用**：主仓既有 `claude-code-tooling--execution-panorama.html`，guided-views 为空——录制前按本集 views 回填章节、focus 对齐既有节点语义） | lifecycle | P0 一闪（p0-06）＋P5 全景对账（p5-12..16） | 6 |
 | 12 | five-layer-dependency（**复用**：主仓既有 `claude-code-harness--five-layer-dependency.html`，同上回填） | architecture | P0 立碑一闪（p0-15）＋P6 收束（p6-01..05, p6-17..18） | 6 |
 
-> 型多样性＝lifecycle×3 / workflow×3 / dataflow×3 / state×1 / architecture×2 ＝ 5 型 ≥ 5（sidecar 顶层 `type` 录制时按本表落盘）；复用图与 `html_pattern` 不匹配，已在此显式登记。P0/P6 归 3D 系列装置（HarnessStack）＋上表 11/12 两张收束图。
+> 型多样性＝lifecycle×3 / workflow×3 / dataflow×3 / state×1 / architecture×2 ＝ 5 型 ≥ 5（sidecar 顶层 `type` 录制时按本表落盘）；复用图与 `html_pattern` 不匹配，已在此显式登记。P0 归系列片头（series-intro.tsx）＋上表 11/12 复用图（片头改版 2026-10-06：五层栈落板退役）；P6 归 3D 系列装置（HarnessStack）＋上表 11/12 两张收束图。
 
 ## P0 人肉循环（p0-01..16）→ `scenes/P0HumanLoop.tsx`
 
 | 镜 | 句区间 | 画面 | 动效 |
 | --- | --- | --- | --- |
-| 0-A（3D） | p0-01 | HarnessStackP0 3D 五层栈自底向上落板（components/harness-stack.tsx 承担）→ 本集层「工具与执行」点亮呼吸两次 → 其余层压暗待缩退；主问题字卡居中「凭什么敢」（≤6 字形态），「敢」字 `deny` 红点睛；角标 `while True`（预告） | 栈落板/呼吸在 HarnessStackP0 内；「敢」字红点一次性强调由 scene 字卡调用 `useImpulse`；`@impulse` |
+| 0-A | p0-01 | 开场直入（片头改版：五层栈落板职责已由系列片头 components/series-intro.tsx 吸收，压 leadIn 时段）——常驻条 Badge（`top:64`）淡入；主问题字卡居中「凭什么敢」（≤6 字形态），「敢」字 `deny` 红点睛；角标 `while True`（预告） | Badge 淡入 `useProgress`；「敢」字红点一次性强调由 scene 字卡调用 `useImpulse`；`@impulse` |
 | 0-B | p0-02..04 | 无循环世界分屏：左＝师傅剪影（`text` 白，无彩）吐出一条命令即摊手停住；右＝人工回路——用户剪影（`dim` 灰人色）跑命令、贴输出的往复箭头；角标 `cat`、终端往复 | 左右屏自两侧滑入由 scene 分屏壳调用 `useEnter`；人工回路箭头行进虚线 `useFlowDash`（`dim`）；`@enter:slideL` `@enter:slideR` `@flowDash` |
 | 0-C | p0-05..07 | 「人肉循环」字卡淡出，`while True` 字卡（mono 角标放大）落下把「人」换下场；循环三拍微缩首现（motifs.LoopRing 环形，`core` 橙恒定描边——M-001 首锚）；p0-06 句让位 archify 全景一瞥 ·**archify full**：execution-panorama 章 `belt-lap` | 字卡下落 `useEnter:fall`；LoopRing 描线/光点在 motifs 内（不产生 token）；p0-06 由 ArchifyRecap 主控（本镜 scene 侧仅字卡动效）；`@enter:fall` |
 | 0-D | p0-08..13 | 三债三卡并列：安全债卡（`deny` 红）／能力债卡、扩展债卡（`mech` 青）；循环体膨胀滚屏——日志/约束一行行叠进 while True 框体；危险命令卡闪现（`rm -rf`，`deny`，不口播）；角标 `while True` | 三卡依次入场 `useStagger`；膨胀滚屏逐行流出 `useReveal`；危险卡红闪 `useImpulse`（decay 态包络）；`@stagger` `@reveal` `@impulse` |
@@ -118,7 +118,7 @@
 
 | 幕 | 组件 | 装置重心 |
 | --- | --- | --- |
-| P0 人肉循环 | `scenes/P0HumanLoop.tsx` | HarnessStackP0（3D）、分屏、三债卡、悬念立碑＋金句卡 |
+| P0 人肉循环 | `scenes/P0HumanLoop.tsx` | 开场字卡（Badge 直入；五层栈落板已由 series-intro.tsx 吸收）、分屏、三债卡、悬念立碑＋金句卡 |
 | P1 循环与验活 | `scenes/P1LoopVerify.tsx` | 3D 转轮一现→LoopRing 母题（M-001）、验活分屏、判据对撞、引语卡 |
 | P2 工具号码簿 | `scenes/P2ToolRegistry.tsx` | DispatchTable、围墙装置、实测对账条 |
 | P3 三道门禁 | `scenes/P3ThreeGates.tsx` | GateRouter 母题、危险品名册、官方次序条、倒置假想卡、回执卡 |
@@ -126,7 +126,7 @@
 | P5 上件前扫码 | `scenes/P5CheckChain.tsx` | 成本排序条、安全不变量三连卡、全景对账 |
 | P6 收束 | `scenes/P6OneLoop.tsx` | HarnessStackP6（3D）、分工双人卡、开放天平、系列身份卡/下期卡 |
 
-公共组件清单：`Subtitle`（frozen）· `ChapterProgress`（顶部章节条，y<56）· `SceneTag`（top:64）· `QuoteCard`／`FadeUp`／`Pill`（cards.tsx，金句卡衬线体）· `Panel`／`Terminal`／`CodeCard`／`NumberedCard`／`Counter`／`Footnote`（motifs.tsx）· 母题四件：`LoopRing`（传送带，M-001 恒定）／`DispatchTable`（号码簿）／`GateRouter`（三闸门）／`SlotRing`（插线口）· `HarnessStackP0`／`HarnessStackP6`／`HarnessBadge`（harness-stack.tsx，P1–P6 常驻顶边条 chip 档）· `Stage3D`／`Slab3D`／`Rim3D`（solids-3d.tsx，P1 转轮一现）· `LottieEmphasis`（plug-pulse——**本集 headless ANGLE 实渲已通过并成片 v1**，重渲边界与退役判据见 issue.md ISSUE-202）· `ArchifyRecap`（archify cue 载体，frozen 共享——Stage ⑧ 接入；一章锚一句，跨实例背靠背后挂实例 `lead={false}`）。
+公共组件清单：`Subtitle`（frozen）· `ChapterProgress`（顶部章节条，y<56）· `SceneTag`（top:64）· `QuoteCard`／`FadeUp`／`Pill`（cards.tsx，金句卡衬线体）· `Panel`／`Terminal`／`CodeCard`／`NumberedCard`／`Counter`／`Footnote`（motifs.tsx）· 母题四件：`LoopRing`（传送带，M-001 恒定）／`DispatchTable`（号码簿）／`GateRouter`（三闸门）／`SlotRing`（插线口）· `HarnessStackP0`（0-A 落板已退役——2026-10-06 片头改版，本集无调用点，去留决策见 harness-stack.tsx 头注）／`HarnessStackP6`／`HarnessBadge`（harness-stack.tsx，P1–P6 常驻顶边条 chip 档）· `Stage3D`／`Slab3D`／`Rim3D`（solids-3d.tsx，P1 转轮一现）· `LottieEmphasis`（plug-pulse——**本集 headless ANGLE 实渲已通过并成片 v1**，重渲边界与退役判据见 issue.md ISSUE-202）· `ArchifyRecap`（archify cue 载体，frozen 共享——Stage ⑧ 接入；一章锚一句，跨实例背靠背后挂实例 `lead={false}`）。
 
 ## 自检对账（Stage ⑥ 收口）
 

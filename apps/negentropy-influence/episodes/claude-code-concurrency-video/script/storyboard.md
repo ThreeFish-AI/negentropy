@@ -34,7 +34,7 @@
 
 | 镜 | 句区间 | 画面 | 动效 |
 | --- | --- | --- | --- |
-| 0-A（3D） | p0-01..04 | HarnessStackP0 3D 五层栈自底向上落板（components/harness-stack.tsx 承担）→ 本集层「并发」点亮呼吸两次 → 压暗缩退为顶边常驻条（HarnessBadge，P1–P6）；工坊轮廓描线生长（通宵不打烊灯牌，dim）；师傅剪影（text 白无彩）立于带侧；传送带母题首现（motifs.LoopRing，core 橙恒转底盘〔M-001〕——本集恒定主视觉的「底」）；p0-04 让位——全图首闪（预告态，两条时间支路虚位不展开） ·**archify full**：timing-panorama 章 `two-kinds-of-time` · 角标 `while True` | 栈落板/层呼吸/缩退在 HarnessStackP0 内；工坊描线由 scene 调用 `useDraw`；p0-04 由 ArchifyRecap 主控（本镜 scene 侧仅描线）；`@draw` |
+| 0-A | p0-01..04 | 开场直入（系列片头铺开 2026-10-08：五层栈落板/并发层点亮职责已由系列片头 components/series-intro.tsx 吸收，压 leadIn 时段；HarnessStackP0 在本集退役，工坊不再压暗作栈背景）——常驻条 Badge（`top:64`，HarnessBadge，P1–P6）淡入；工坊轮廓描线生长（通宵不打烊灯牌，dim）；师傅剪影（text 白无彩）立于带侧；传送带母题首现（motifs.LoopRing，core 橙恒转底盘〔M-001〕——本集恒定主视觉的「底」）；p0-04 让位——全图首闪（预告态，两条时间支路虚位不展开） ·**archify full**：timing-panorama 章 `two-kinds-of-time` · 角标 `while True` | Badge 直入 `useProgress`；工坊描线由 scene 调用 `useDraw`；p0-04 由 ArchifyRecap 主控（本镜 scene 侧仅描线）；`@draw` |
 | 0-B | p0-05..10 | 慢活卡带：传送带（core 橙左中锚位）停等——巨型包裹（mech 蓝线框）压带，带面静止；师傅剪影干站带侧（text 白）；计时器数字滚涨（dim 灰＝人色时间）；计费条随秒匀速累积（dim）；p0-10 记忆点小字卡「白烧的钱」（deny 红点睛「白烧」）；角标 `pip install`、`npm run build`（不口播） | 巨型包裹落带 `useEnter:fall`；计时器滚涨 `useCount`；计费条匀速累积 `useProgress`（linear）——p0-07..09 以静写闷〔M-002〕：停等段零强调脉冲；「白烧」deny 点睛 `useImpulse`；`@enter:fall` `@count` `@progress` `@impulse` |
 | 0-C | p0-11..14 | 到点的活：日历墙（上缘 mech 蓝刻度网格）＋九点整刻度高亮点亮；空台面（师傅剪影缺席，空无一人）；「你说一句 · 它动一下」对白气泡（dim 灰人色）；漏触发示意——日历翻页一天过去、九点再亮但带上无活；角标 `0 9 * * *`（预告，不口播） | 九点刻度点亮 `useImpulse`（一次性）；日历翻页 `useProgress`；空台面留白呼吸 `useBreathe`（dim 低频）；`@impulse` `@progress` `@breathe` |
 | 0-D | p0-15..18 | 悬念立碑：主问题字卡双联对开（「等不等？」「谁按开始？」，mech 蓝点睛「等」「按」二字——落 p0-15 立碑句）→「更快的机器」「更多的工坊」字卡双双划掉（dim 划线）→ 两装置预告剪影自右缘点亮（mech 蓝 ×2：清洗槽滚筒轮廓／定时钟盘轮廓）＋全图二闪（两支路点亮态） ·**archify full**：timing-panorama 章 `two-devices-lit` · p0-18 金句预埋小卡（衬线体预告态「没有平行宇宙」） caption-dup-ok: 金句预埋小卡，主字压短非逐字 · 角标 `run_in_background`、`cron`（预告态） | 双联字卡对开 `useEnter:slideL`＋`useEnter:slideR`；划掉 `useProgress`（decelerate）；装置剪影右缘滑入 `useEnter:slideR`＋常驻辉光 `useBreathe`（mech）；预埋小卡衬线定格〔M-003〕；p0-17 由 ArchifyRecap 主控；`@enter:slideL` `@enter:slideR` `@progress` `@breathe` |
@@ -107,7 +107,7 @@
 
 | 幕 | 组件 | 装置重心 |
 | --- | --- | --- |
-| P0 两类时间 | `scenes/P0TwoTimes.tsx` | HarnessStackP0（3D）、慢活卡带＋计费条、日历墙、主问题双联字卡、装置预告剪影＋金句预埋小卡 |
+| P0 两类时间 | `scenes/P0TwoTimes.tsx` | 常驻条 Badge 直入、慢活卡带＋计费条、日历墙、主问题双联字卡、装置预告剪影＋金句预埋小卡 |
 | P1 自动清洗槽 | `scenes/P1Background.tsx`＋`P1Boundary.tsx` | 3D 清洗槽滚筒一现（solids-3d）、号牌弹出＋金句卡、登记板剪影、边界三联卡、官方对照四连卡 |
 | P2 叫号器 | `scenes/P2Notify.tsx`＋`P2Official.tsx` | 挂牌板首现、三态徽标＋推人通路卡、诚实注分栏卡 |
 | P3 学徒的字条 | `scenes/P3Apprentice.tsx` | 清洗槽群＋卡死槽位（deny）、学徒剪影＋归属引语卡、小字条＋旁路箭头、监视工具流式视图 |
@@ -125,4 +125,4 @@
 - 单调性：各图章按锚句顺序正向播放无逆序（timing-panorama 跨幕 P0→P5→P6 七章锚句 p0-04→p6-13 单调；apprentice-watch 三镜接力 p3-02→p3-14 序内；clock-four-layers 三镜接力 p4-10→p4-21 序内）。
 - 档位标注：20 处（均在画面列，`·` 段与角标 token 隔离），章 token 59 个逐一可解析到 views id。
 - `@动词` 全部为 motion/hooks.ts 实存模型：enter:fall／enter:fade／enter:pop／enter:rise／enter:slideL／enter:slideR／stagger／reveal／progress／breathe／draw／count／impulse／dim／flowDash／spring／travel／fadeOut。
-- 金句卡三张（p1-17／p6-05／p6-08，压短形态＋caption-dup-ok 留痕）＋金句预埋小卡一张（p0-18）；3D 镜 P0/P6 两处＋正文 3D/Lottie 点缀两处（P1 滚筒、P4 钟摆），3D 回归面受控。
+- 金句卡三张（p1-17／p6-05／p6-08，压短形态＋caption-dup-ok 留痕）＋金句预埋小卡一张（p0-18）；3D 镜仅 P6 一处（P0 栈落板已随系列片头铺开退役）＋正文 3D/Lottie 点缀两处（P1 滚筒、P4 钟摆），3D 回归面受控。

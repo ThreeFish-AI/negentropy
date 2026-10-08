@@ -49,7 +49,7 @@
 恒定空间契约（防〔X-001〕空间逆旁白）：**台面恒居画面中央**（coreDeep 描边大矩形——本集恒定主视觉，继承 ep1「内核左中」锚位法并换主角：执行层的锚是循环，本层的锚是台面）；五装置自右缘／上缘依次挂入（mech 紫），「安排台面」的动效永远作用于台面内容物（增／删／换），不触碰装置自身形体；师傅剪影（text 白无彩）立于台面后侧。金句卡衬线体（theme.serif）；代码实景只进画面角标与实景卡（mono 等宽＋引语卡引语态），不进口播。
 
 **3D 视觉语言（@remotion/three 路线，控制面积）**：
-- **P0 与 P6 用 3D 层板（HarnessStack）作系列装置**：P0 五层栈落板→规划与协调层点亮呼吸→缩退为顶边常驻条（HarnessBadge，P1–P6）；P6 p6 档放大收束。
+- **P6 用 3D 层板（HarnessStack）作系列装置**：p6 档放大收束（P0 开场五层栈落板已随系列片头铺开 2026-10-08 退役——五层展示职责迁入 series-intro.tsx，常驻条 HarnessBadge 改自 0-A 直入，P1–P6 常驻）。
 - **正文幕（P1–P5）以 2D＋archify 全屏独占为主**，3D 母题点缀限两处（候选：P2 副台升起 solids-3d／P5 补救梯展开 LottieEmphasis·ladder-unfurl；Stage ⑥ 定）。理由同 ep1：ISSUE-177（chip 塌缩重叠）／180（同色面 3D 只剩棱线）／182（层序只对 z 一维）全部集中在 3D 段——**控制 3D 面积＝控制回归面**。
 
 **系列横切装置**：顶边常驻条（HarnessBadge chip 档，层短名走 series-layers.json 数据）＋ P6 系列身份卡与下期卡（标题主段走规则 8 受检硬编码，数据对账 series-layers.json ↔ series.json；下期＝记忆管理维度）。

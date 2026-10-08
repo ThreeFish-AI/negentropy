@@ -4,12 +4,11 @@
  *   0-B desk-reread@p0-07（全景左半一瞥：台面＋读扫主轴；本片首图 → 默认入场）
  *   0-D five-devices@p0-15（五装置总览一闪；距前 cue 空窗 7 句 → 默认入场）
  *
- *  ★ 0-A 的 3D 五层栈由 components/harness-stack.tsx 的 HarnessStackP0 承担
- *    （落板/本集层「规划与协调」呼吸/缩退全在其内）；scene 侧补主问题字卡、
- *    中央台面立锚（DeskPlane 首现，useDraw 描线生长）与底盘传送带慢转。
- *  ★ Badge 顶边带冲突处理（沿 ep1 先例）：frozen ChapterProgress 占 y14–42，
- *    HarnessStackP0 内置交叉淡入的常驻条钉在 top:12——在 crossAt 处把整个
- *    HarnessStackP0 包 5 帧淡杀，同拍淡入本集 top:64 Badge（零双影的调用点侧解法）。
+ *  ★ 0-A 开场（系列片头铺开，2026-10-08，沿 ep1 先例 0fed97ec5）：五层栈落板/
+ *    本集层点亮职责已由系列片头 components/series-intro.tsx 吸收（压 leadIn 时段）——
+ *    本镜简化为常驻条 Badge 直接淡入 + 主问题字卡 + 中央台面立锚（DeskPlane 首现，
+ *    useDraw 描线生长）+ 底盘传送带慢转；HarnessStackP0 退役（Badge 顶边带冲突
+ *    处理随落板一并退役）。
  *  ★ 恒定空间契约自此幕生效：台面（DeskPlane，coreDeep 描边大矩形〔M-001〕）
  *    恒居画面中央（DESK 几何，motifs.tsx SSOT），本镜后永不换位；五装置剪影
  *    自台面右缘挂入（0-D）。「安排台面」的动效只作用于台面内容物。
@@ -23,7 +22,7 @@ import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {QuoteCard} from '../components/cards';
 import {DESK, DeskPlane, Footnote, LoopRing, Panel, SceneTag} from '../components/motifs';
-import {HarnessBadge, HarnessStackP0, harnessStackCrossAt} from '../components/harness-stack';
+import {HarnessBadge} from '../components/harness-stack';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 import {ArchifyYield} from '../components/ArchifyYield';
 import {
@@ -151,22 +150,17 @@ const MandateCard: React.FC<{inP: number; rowO?: readonly number[]}> = ({inP, ro
   </div>
 );
 
-// ── 0-A 五层栈开卷 + 台面立锚 ────────────────────────────────────────────
+// ── 0-A 开场：Badge 直入 + 主问题字卡 + 台面立锚 ──────────────────────────
 
-/** 开卷：3D 栈落板/本集层呼吸/缩退在 HarnessStackP0；本组件管主问题字卡
- *  （「谁」mech 紫点睛）、台面首现描线（useDraw）与底盘传送带慢转。 */
-const OpeningScene: React.FC<{dur01: number; at02: number; at05: number}> = ({
-  dur01,
-  at02,
-  at05,
-}) => {
+/** 开卷（片头铺开简化版）：五层展示已在系列片头完成，本组件管常驻条 Badge 淡入、
+ *  主问题字卡（「谁」mech 紫点睛）、台面首现描线（useDraw）与底盘传送带慢转。 */
+const OpeningScene: React.FC<{at02: number; at05: number}> = ({at02, at05}) => {
   const frame = useCurrentFrame();
-  // 栈缩退锚：p0-02「场景请出来」句起不久（栈呼吸已收束）——场景接管画面
-  const recedeAt = Math.max(70, at02 + DUR.f3);
-  const crossAt = harnessStackCrossAt(recedeAt);
-  // 内置 top:12 常驻条可见前的整层淡杀（f3 快于内置 8 帧交叉，零双影）
-  const kill = useProgress(crossAt, DUR.f3);
-  const badgeIn = useProgress(crossAt, 8);
+  // 常驻条：片头渐出后直接淡入（f3 起手 + f4 时长，早于字卡）
+  const badgeIn = useProgress(DUR.f3, DUR.f4);
+  // 台面接管锚：p0-02「场景请出来」句起不久——原栈缩退点的语义继承（台面描线/嘱托卡
+  // 的相对节奏沿用，仅去掉栈落板的等待）
+  const recedeAt = at02 + DUR.f3;
 
   // 台面立锚：大矩形描线生长（~1.4s beat 级动作，时长标尺外保留显式帧数——同 ep1
   // 环首现先例）。useDraw 产 pathLength 归一化三元组，DeskPlane 吃数值进度——
@@ -175,8 +169,8 @@ const OpeningScene: React.FC<{dur01: number; at02: number; at05: number}> = ({
   const deskDraw = 1 - useDraw(deskAt, 42).strokeDashoffset;
   const deskFill = useProgress(deskAt + 42, DUR.f4);
 
-  // 主问题字卡：p0-01 后半进场（栈呼吸收束后），p0-05 传送带起转时退场
-  const atCard = Math.max(56, Math.round(dur01 * 0.55));
+  // 主问题字卡：开镜即起手（不再等栈呼吸；句长内留足阅读时间），p0-05 传送带起转时退场
+  const atCard = DUR.f4;
   const cardIn = useProgress(atCard, DUR.f5);
   const cardOut = useProgress(at05 - DUR.f5, DUR.f5);
   // 「谁」字 mech 紫点睛：一次性强调（sin 包络自衰减）
@@ -193,9 +187,6 @@ const OpeningScene: React.FC<{dur01: number; at02: number; at05: number}> = ({
 
   return (
     <AbsoluteFill style={{pointerEvents: 'none'}}>
-      <div style={{opacity: 1 - kill}}>
-        <HarnessStackP0 recedeAt={recedeAt} />
-      </div>
       <HarnessBadge style={{...BADGE_STYLE, opacity: badgeIn}} />
 
       {/* 底盘传送带（环在台面框体之下）：LoopRing core 橙恒定线宽〔M-001〕 */}
@@ -670,13 +661,9 @@ export const P0Reread: React.FC<{scene: SceneRange}> = ({scene}) => {
 
   return (
     <AbsoluteFill>
-      <Sequence {...bA} name="0-A 五层栈开卷＋台面立锚（3D）">
+      <Sequence {...bA} name="0-A 开场字卡＋台面立锚（Badge 直入）">
         <SceneTag chapter="Fresh Read" tagline="每轮从头读" />
-        <OpeningScene
-          dur01={dur('p0-01')}
-          at02={at('p0-02') - bA.from}
-          at05={at('p0-05') - bA.from}
-        />
+        <OpeningScene at02={at('p0-02') - bA.from} at05={at('p0-05') - bA.from} />
       </Sequence>
 
       <Sequence {...bB} name="0-B 师傅从头读">

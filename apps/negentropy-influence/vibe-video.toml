@@ -187,3 +187,33 @@ episode = "claude-code-multiagent-video"
 path = "video/remotion.config.ts"
 fingerprint = "cdc1b4788cca"
 reason = "V3D：angle 后端（同 EP1 条目）"
+
+[[skeleton.drift]]
+episode = "claude-code-explained-video"
+path = "video/src/Main.tsx"
+fingerprint = "78664c3010fd"
+reason = "系列片头《一个循环》（2026-10-06 样板、2026-10-08 五集铺开）：Main.tsx 挂 SeriesIntro Sequence（from=0 压扩展 leadIn）+ frozen ChapterProgress 调用点侧 wrapper（片头期静默、交棒后 12 帧淡入——不动 frozen 本体）。五集挂载块同字节（归一化指纹同为本值，见下方四条同款登记）；组件种子=series-assets/claude-code-explained/intro/（六路径孪生门 series-intro-seed 执法）。en 待办：片头 zh-only（音轨 series-intro-zh.mp3 + zh 字幕），en 交付前须补 en 文案与 series-intro-en.mp3；另存在机械阻断——pipeline.py 非主语言渲染预检 check_skeleton_for_lang 直比 Main.tsx 归一化指纹与 skill 模板、不读本登记，铺开态下 en render 预检 FAIL，en 交付前置=skill 侧修预检（ISSUE-209）。撤销条件=skill 模板吸纳片头挂载点或片头退役时，五条同款登记齐撤"
+
+[[skeleton.drift]]
+episode = "claude-code-planning-video"
+path = "video/src/Main.tsx"
+fingerprint = "78664c3010fd"
+reason = "系列片头《一个循环》铺开（2026-10-08）：挂载块自 E1 整文件移植（场景 import/注册表外五集同字节），leadInSec=23.5。同款登记说明与撤销条件见 EP1 条目"
+
+[[skeleton.drift]]
+episode = "claude-code-memory-video"
+path = "video/src/Main.tsx"
+fingerprint = "78664c3010fd"
+reason = "系列片头《一个循环》铺开（2026-10-08）：挂载块自 E1 整文件移植（场景 import/注册表外五集同字节），leadInSec=23.5。同款登记说明与撤销条件见 EP1 条目"
+
+[[skeleton.drift]]
+episode = "claude-code-concurrency-video"
+path = "video/src/Main.tsx"
+fingerprint = "78664c3010fd"
+reason = "系列片头《一个循环》铺开（2026-10-08）：挂载块自 E1 整文件移植（场景 import/注册表外五集同字节），leadInSec=23.5。同款登记说明与撤销条件见 EP1 条目"
+
+[[skeleton.drift]]
+episode = "claude-code-multiagent-video"
+path = "video/src/Main.tsx"
+fingerprint = "78664c3010fd"
+reason = "系列片头《一个循环》铺开（2026-10-08）：挂载块自 E1 整文件移植（场景 import/注册表外五集同字节），leadInSec=23.5。同款登记说明与撤销条件见 EP1 条目"
