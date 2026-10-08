@@ -4365,10 +4365,11 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
   - drift 登记：**不删 E1 条目**——verify_skeleton I2 对全部系列执法且豁免只认逐集 drift/generation，「铺开后转系列级同形删条」的旧预写在机制上不成立（只读仿真证实删条即 STALE）；改为五条同指纹 `78664c3010fd` 登记，撤销条件改写为「skill 模板吸纳片头挂载点或片头退役时五条齐撤」；
   - E1 `harness-stack.tsx` 头注「留档待五集铺开后统一决策去留」决策落地：五集保留——E1 供 LAYERS 数据源（片头消费），E2–E5 让位改造前仍用 HarnessStackP0 开场。
 - **后续防范与待办**：
-  1. **五集重渲统一批次（名单=五集全量——E1 归档成片 09-30 亦不含 10-06 片头，「零重渲」仅指本次迁移不新增陈旧）硬前置 = E2–E5 逐集 0-A 让位改造**：退役 HarnessStackP0 五层栈落板 + storyboard/narration 画面备注同步（E1 先例 commit `0fed97ec5`）——铺开态成片是「片头五站定格→P0 再五层栈落板」双开场重复（四集 P0 头注实证仍挂 HarnessStackP0），不改造即重渲=渲两遍；
+  1. **五集重渲统一批次名单=五集全量**（E1 归档成片 09-30 亦不含 10-06 片头，「零重渲」仅指本次迁移不新增陈旧）；其硬前置「E2–E5 逐集 0-A 让位改造」**已于 2026-10-08 在本 PR 内完成**（沿 E1 先例 `0fed97ec5`：退役 HarnessStackP0 + 常驻条 Badge 直入 + storyboard/narration/planning 三处备注同步；E2 台面立锚节奏继承原缩退锚、E3 工坊场景去栈同拍起、E4 舞台去除「压暗作栈背景」恒满亮度、E5 `at04` 参数随栈缩退锚一并移除且 p0-04「前面亮灯的几个区」改由常驻条承接）。四集 tsc 零错误、`check_script --check-scenes` 无新增 FAIL、remotion still 抽帧目检四集开场均无五层栈残留；**未做**时序精调（各镜起手帧沿用 `DUR.f3/f4` 直入口径，未逐句对拍——重渲 QA 阶段抽句界帧复核）；
   2. E1 正片 TTS 批落后现稿（manifest 164 句 vs 磁盘 141 mp3、v2.1 减脂残留 8 句）与片头终声重配（现 take 为 edge 草声口径，ISSUE-208）并入同批；E5 同类陈旧亦已实测——全部现存工作区（tbilisi/ep5-multiagent-remake 等）的 manifest 均缺 narration 现稿 19 句（p0-13..15、p2-20..32、p4-19..21），直接渲染 P0 即 `beatWindow: 未找到句 id p0-11..p0-15` 抛错（本次抽帧以临时占位补齐验证后还原原件）——E2–E5 重渲前须逐集核对 manifest↔narration 句 id 对齐，缺句先补跑 TTS；
   3. **en 机械阻断**：skill `pipeline.py` 的 `check_skeleton_for_lang` 对非主语言渲染直比 Main.tsx 归一化指纹与 skill 模板、不读 drift 登记——铺开态五集 en render 预检全 FAIL；en 交付前置=skill 侧修预检（认可 drift 登记或模板吸纳挂载点），已双登记于 vibe-video.toml EP1 条目 reason 与本条；
-  4. mp3 与 manifest.json 均为 gitignored 本地渲染前置件（管线无存在性预检，缺失=渲染期 Audio 加载失败或 metadata fetch 挂起）：新 worktree 重渲前按种子 README 校验 mp3 md5 并放置；本 worktree 验证用 manifest 自生产工作区拷入（E2←managua-v1、E5←tbilisi，10-02/03 生产批）；
+  4. **既有缺陷（非本 PR 引入）**：常驻条 `HarnessBadge` 的 chip 文字在 1920 宽下折行（「工具与执\n行」「规划与协\n调」「多 Agent\n平台」），E2 改造前对照帧（f1100）同样存在，`HarnessBadge` 实现五集字节一致——独立处理（候选：chip 加 `whiteSpace: nowrap` 并复核 5 chip 总宽，改 harness-stack.tsx 属 seeded 件须五集同步）；
+  4b. mp3 与 manifest.json 均为 gitignored 本地渲染前置件（管线无存在性预检，缺失=渲染期 Audio 加载失败或 metadata fetch 挂起）：新 worktree 重渲前按种子 README 校验 mp3 md5 并放置；本 worktree 验证用 manifest 自生产工作区拷入（E2←managua-v1、E5←tbilisi，10-02/03 生产批）；
   5. srt 首条 cue 自 ~23.5s 起而片头六行字幕烧录在帧里不入 srt——五集同口径（E1 现状已然），平台 CC 观众无法以文本复制片头台词，如需覆盖再议；
   6. RSI-057（规则7 受检面扩 components/）设计约束：必须采容器锚（NARRATION/SUBS）方向，禁全量 components/ glob——五副本内 9 处注释「站点」（五机制站点轨道语义，非课程站点标识）×全量 glob=45 条假报；
   7. skill PR #42 合入前须修订两处：SERIES-INTRO §一.4 复制源头改「系列种子目录+同字节孪生门」（原文「首集 components/、复制后自由演进」与本实现互斥——harness-stack 三分漂移即自由演进实证）；§四 en 登记面改「宿主 Main.tsx drift reason 或 statusNote」（片头组件不在任何受门档位，为其登记 drift 会让 verify_skeleton 载入即 sys.exit）。
