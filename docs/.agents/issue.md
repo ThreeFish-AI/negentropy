@@ -4369,8 +4369,16 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
   2. E1 正片 TTS 批落后现稿（manifest 164 句 vs 磁盘 141 mp3、v2.1 减脂残留 8 句）与片头终声重配（现 take 为 edge 草声口径，ISSUE-208）并入同批；E5 同类陈旧亦已实测——全部现存工作区（tbilisi/ep5-multiagent-remake 等）的 manifest 均缺 narration 现稿 19 句（p0-13..15、p2-20..32、p4-19..21），直接渲染 P0 即 `beatWindow: 未找到句 id p0-11..p0-15` 抛错（本次抽帧以临时占位补齐验证后还原原件）——E2–E5 重渲前须逐集核对 manifest↔narration 句 id 对齐，缺句先补跑 TTS；
   3. **en 机械阻断**：skill `pipeline.py` 的 `check_skeleton_for_lang` 对非主语言渲染直比 Main.tsx 归一化指纹与 skill 模板、不读 drift 登记——铺开态五集 en render 预检全 FAIL；en 交付前置=skill 侧修预检（认可 drift 登记或模板吸纳挂载点），已双登记于 vibe-video.toml EP1 条目 reason 与本条；
   4. **既有缺陷（非本 PR 引入）**：常驻条 `HarnessBadge` 的 chip 文字在 1920 宽下折行（「工具与执\n行」「规划与协\n调」「多 Agent\n平台」），E2 改造前对照帧（f1100）同样存在，`HarnessBadge` 实现五集字节一致——独立处理（候选：chip 加 `whiteSpace: nowrap` 并复核 5 chip 总宽，改 harness-stack.tsx 属 seeded 件须五集同步）；
-  4b. mp3 与 manifest.json 均为 gitignored 本地渲染前置件（管线无存在性预检，缺失=渲染期 Audio 加载失败或 metadata fetch 挂起）：新 worktree 重渲前按种子 README 校验 mp3 md5 并放置；本 worktree 验证用 manifest 自生产工作区拷入（E2←managua-v1、E5←tbilisi，10-02/03 生产批）；
+  4b. 各集 `video/public/audio/` 下的 mp3 副本与 manifest.json 仍为 gitignored 本地渲染前置件（管线无存在性预检）：新 worktree 重渲前从种子副本拷入 mp3（sha256 对账 `scripts/media-assets.toml`）并核对 manifest↔narration 句 id。教训：2026-10-08 验证期间曾把别的工作区的旧 manifest 拷入本 worktree（E2/E5），其过时实测值让 pre-TTS 门误报「E2 时长 12.7 分超窗」——本地产物跨工作区拷贝前必须先核对它与现稿的真实关系；
   5. srt 首条 cue 自 ~23.5s 起而片头六行字幕烧录在帧里不入 srt——五集同口径（E1 现状已然），平台 CC 观众无法以文本复制片头台词，如需覆盖再议；
   6. RSI-057（规则7 受检面扩 components/）设计约束：必须采容器锚（NARRATION/SUBS）方向，禁全量 components/ glob——五副本内 9 处注释「站点」（五机制站点轨道语义，非课程站点标识）×全量 glob=45 条假报；
   7. skill PR #42 合入前须修订两处：SERIES-INTRO §一.4 复制源头改「系列种子目录+同字节孪生门」（原文「首集 components/、复制后自由演进」与本实现互斥——harness-stack 三分漂移即自由演进实证）；§四 en 登记面改「宿主 Main.tsx drift reason 或 statusNote」（片头组件不在任何受门档位，为其登记 drift 会让 verify_skeleton 载入即 sys.exit）。
 - **同类问题影响**：未来任何系列的片头/预告/品牌声画组件——先建 series-assets 种子+孪生门再铺开；skill 侧长期机制化候选（scaffold 系列资产播种通路、时长预算窗不含系列片头口径、预检认可 drift 登记）。
+
+## ISSUE-210 媒体产物散状忽略规则漏斗：入库决策无登记面（2026-10-08）
+
+- **表因**：媒体文件的入库与否散在 .gitignore 的按路径逐段枚举里（episodes 音频、series-assets、archify webm/mp4 三处各自为政），新目录新格式每处都要补行、漏行即静默漏网；用户决策片头音轨等公共固定媒体资产直接入库时，「哪些媒体在库里、为什么在、被替换了怎么办」无任何登记面与对账机制。
+- **根因**：忽略规则只表达「不忽略什么」，不承载「为什么入库、指纹是什么、谁批准的」——入库决策缺少单一事实源。
+- **处理方式**（2026-10-08，本 PR）：**媒体固定资产登记制**三件套——①登记表 `scripts/media-assets.toml`（唯一事实源：path/sha256/bytes/reason/added）；②校验器 `scripts/check_media_assets.py`（`--sync` 按登记表重放 .gitignore 白名单块并对每个登记路径跑 `git check-ignore` 实测放行——闭合「目录级忽略挡住 `!` 否定、git 不再下探」的规则文本陷阱；`--check` 校验已入库媒体 ⊆ 登记表、指纹一致、白名单生效、触发覆盖完整，pre-commit/CI 双挂）；③ .gitignore 收敛为「全仓通用媒体默认忽略段（mp3/mp4/wav/m4a/aac/flac/ogg/opus/webm/mov/mkv/avi/gif）+ 生成式白名单块」，删除被覆盖的零散行（episodes mp3/mp4/wav、series-assets mp3/wav、archify webm/mp4），保留目录级行（`episodes/*/video/public/audio/` 额外管 manifest.json/.sha；archify `*-end.png` 不在媒体口径内）。红绿闭环实测：未登记 mp3 默认 add 被挡、-f 强加被 --check 拦、篡改已登记 mp4 被指纹拦、各集副本 mp3 目录级忽略仍生效。首批登记 3 项：架构故事片 mp4/gif（存量合规化）、片头音轨种子 mp3（合成产物随仓分发；克隆源样本 voices/ 仍不入库——生物特征源与合成产物的口径分界）。破坏性验证的临时件（fake mp3/篡改备份）均已清理。
+- **后续防范**：新增/更换媒体一律先登记再 `--sync` 再 add；更换文件须同步更新登记表 sha256/bytes（钩子按指纹对账）；新增登记项后须同步扩 pre-commit files 正则与 CI paths（`--check` 自检点名漏配）。
+- **同类问题影响**：一切「默认排除某类文件、例外需登记」的仓级策略（如未来 LFS 化、图片资产收紧）可直接复用「登记表 SSOT + sync 重放白名单 + check 对账 + 触发覆盖自检」四件套形态。

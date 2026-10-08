@@ -22,15 +22,18 @@ NARRATION/SUBS/T 表三容器是口播与帧位 SSOT）——本 README 只写�
   缺省读本集 `theme.mech` 与 `series-layers.json` 的 `activeIndex`，后者由
   build_narration 从工作区 `series.json` 派生），单改某一集副本即孪生门红
 
-## 音轨（gitignored 本地资产）
+## 音轨
 
-- 各集 `video/public/audio/series-intro-zh.mp3`（`staticFile` 路径契约）；
-  目录 gitignored，不随 clone 迁移，**新 worktree 重渲前必须放置**
-- 当前 take 指纹：md5 `bcd481979c352b681cb97fa77867361f`。管线对该文件无
-  存在性预检，缺失即渲染期 Audio 加载失败或静默缺声——重渲前置检查：
-  `md5 -q <集>/video/public/audio/series-intro-zh.mp3` 须等于上述指纹
+- **种子音轨已入 Git**（2026-10-08 登记制）：本目录 `series-intro-zh.mp3`
+  登记于 `scripts/media-assets.toml`（sha256 对账，pre-commit/CI 双挂）——
+  合成产物随仓分发，换机/新 clone 无需重跑 TTS 即可渲片头。克隆**源样本**
+  （`voices/`）仍不入库（生物特征源）。
+- 各集 `video/public/audio/series-intro-zh.mp3`（`staticFile` 路径契约）仍为
+  **本地放置件**（目录 gitignored）：新 worktree 重渲前从种子副本拷入，
+  校验其 sha256 与登记表一致
+- 管线对各集副本无存在性预检，缺失即渲染期 Audio 加载失败或静默缺声
 - 重配流程（换文案/终声）：见组件头注配方，改后须按 SERIES-INTRO 改稿五同步
-  检查单对账并更新本指纹
+  检查单对账，更新登记表 sha256/bytes 并重跑 `--sync`
 
 ## 挂载契约（五集同形）
 

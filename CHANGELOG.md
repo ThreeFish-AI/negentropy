@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 ### Added
+### 媒体固定资产登记制：默认不入库，登记才入库（2026-10-08）
+
+- **登记表 + 校验器 + 通用忽略段**三件套（[ISSUE-210](docs/.agents/issue.md)）：音/视频媒体与动图（mp3/mp4/wav/m4a/aac/flac/ogg/opus/webm/mov/mkv/avi/gif）全仓默认不入 Git；公共固定资产先在 `scripts/media-assets.toml` 登记（path/sha256/bytes/reason），`scripts/check_media_assets.py --sync` 按登记表重放 .gitignore 白名单块（对每个登记路径跑 `git check-ignore` 实测放行，闭合目录级忽略陷阱），`--check` 校验「已入库 ⊆ 登记表、指纹一致、白名单生效、触发覆盖完整」并 pre-commit/CI 双挂。红绿闭环实测四条：默认 add 被挡 / -f 强加被钩子拦 / 篡改已登记文件被指纹拦 / 各集副本目录级忽略仍生效。零散忽略行收敛进通用段；首批登记架构故事片 mp4/gif（存量合规化）与 CC 系列片头音轨种子 mp3（合成产物随仓分发，克隆源样本仍不入库）。
+
 ### CC 系列统一片头《一个循环》：上线、导演级升级与独立化铺开（2026-10-06..08）
 
 - **系列片头上线与演进**（v1 样板 11 个 Intro commits）：约 23.5s 统一开场——GD&T 制图装裱开卷、Claude Code 星形徽记（M-002）入场化归于循环环（M-001）、五机制站点词级点火（IndexTTS 静音带实测 T 表对位）与回声扩张环、本集站 mech 授色定格+五颗集号进度点交棒；口播为独立音轨（story 档 seed 4242）不入各集 narration，逐集差异全数据驱动（`IntroOverride`），符合「序号只在视觉层」系列纪律。评审收敛记：禁词表改写重配音（take 18.08s）、六段字幕单行语义切换、幽灵站虚描圈单层化、基准标注随主角入场退役（[ISSUE-208](docs/.agents/issue.md)）。
