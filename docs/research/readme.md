@@ -110,7 +110,7 @@
 
 > 一手材料：① 170–175 以 Learn Claude Code 课程站点修订与 [shareAI-lab/learn-claude-code](https://github.com/shareAI-lab/learn-claude-code) 仓库 main 整合版（MIT，固定提交取证：main `ce8f9f18` / 站点 `67a9126c`，2026-10-07 换钉）与 Anthropic 官方文档（code.claude.com，轨 C 产品现状口径）为信源；② 180–181 以阿里巴巴《AI Native 研发范式实践手册》（2026-09，68 页）为信源；③ 190–191 以 [NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent) 固定提交 `068db016`（MIT）与其官方文档站为信源。
 >
-> **SSOT 边界（170–175）**：逐章原文引语、可调参数、生产版行号与口播判据在科普视频工程各集 `research/gl-notes.md`（冻结登记 + 附录 C 穿透明细）；章→集归属与固定提交选择只登记在[系列信源地图](../../apps/negentropy-influence/source-map/claude-code-explained.md)。本分部只做**跨层综观、main 轨净增量与本仓机制对位**，冲突一律以上述两处为准。
+> **SSOT 边界（170–175）**：逐章原文引语、可调参数、生产版行号与口播判据在科普视频工程各集 `research/gl-notes.md`（冻结登记 + 附录 C 穿透明细；ep5 例外：其 gl-notes 为 2026-10-07 换代前 175 的冻结快照——成片 v2 取证口径）；章→集归属与固定提交选择只登记在[系列信源地图](../../apps/negentropy-influence/source-map/claude-code-explained.md)。本分部只做**跨层综观、main 轨净增量与本仓机制对位**，冲突一律以上述两处为准。
 
 | 文档 | 主旨 |
 |:---|:---|

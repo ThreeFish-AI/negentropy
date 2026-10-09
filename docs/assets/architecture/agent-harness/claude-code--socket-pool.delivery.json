@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "70af7b24-d370-4287-b6c4-92605ab42ef5",
+  "status": "current",
+  "command": "deliver",
+  "type": "dataflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/.archify/dataflow-socket-pool-20261003-003558/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code--socket-pool.html",
+  "specification": {
+    "sha256": "16f96b3c19020019c4cc7739525d16a9d6ebb282a3a7bd5f5a24d5b137934104",
+    "bytes": 6045
+  },
+  "artifact": {
+    "sha256": "abdfde3fc6c3f409c066f53ac513d977f66eb897d4667abfa956bfdcd585c127",
+    "bytes": 767608
+  }
+}

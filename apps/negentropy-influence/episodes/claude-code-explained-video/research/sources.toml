@@ -162,3 +162,91 @@ text_sha256 = "806ef7cb323efc33"
 bytes = 790570
 lines = 1904
 via = "官方补读（171 参考 [4]；权限规则由代码执行与六种权限模式）"
+
+[s01f-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s01_agent_loop/README.md"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-10-09"
+raw_sha256 = "1b52271434d051cc"
+text_sha256 = "66fe13c7d82a296b"
+bytes = 7710
+lines = 207
+via = "pinned commit, MIT; 站点轨对照（fix 分支=冻结件组织骨架，C.2 穿透主依据字节归档）"
+
+[s01f-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s01_agent_loop/code.py"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-10-09"
+raw_sha256 = "f0bed0e007fd4ab5"
+text_sha256 = "593cdf223c1ba257"
+bytes = 4740
+lines = 137
+via = "pinned commit, MIT; 站点轨对照（fix 分支）；C.2 穿透主依据字节归档"
+
+[s02f-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s02_tool_use/README.md"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-10-09"
+raw_sha256 = "68a645eaf607e72e"
+text_sha256 = "af792d57fc838f22"
+bytes = 8198
+lines = 222
+via = "pinned commit, MIT; 站点轨对照（fix 分支=冻结件组织骨架，C.2 穿透主依据字节归档）"
+
+[s02f-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s02_tool_use/code.py"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-10-09"
+raw_sha256 = "c2f55dba14b1e9f7"
+text_sha256 = "d87f1b6072720835"
+bytes = 8342
+lines = 190
+via = "pinned commit, MIT; 站点轨对照（fix 分支）；C.2 穿透主依据字节归档"
+
+[s03f-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s03_permission/README.md"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-10-09"
+raw_sha256 = "ef8836baa58b203d"
+text_sha256 = "b08c0cf168e1552f"
+bytes = 9687
+lines = 232
+via = "pinned commit, MIT; 站点轨对照（fix 分支=冻结件组织骨架，C.2 穿透主依据字节归档）"
+
+[s03f-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s03_permission/code.py"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-10-09"
+raw_sha256 = "f4dc41b91caa2706"
+text_sha256 = "e0ba208949c83a0b"
+bytes = 9846
+lines = 244
+via = "pinned commit, MIT; 站点轨对照（fix 分支）；C.2 穿透主依据字节归档"
+
+[s04f-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s04_hooks/README.md"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-10-09"
+raw_sha256 = "cbdcc9e97e17aec2"
+text_sha256 = "0db16face2278578"
+bytes = 11575
+lines = 283
+via = "pinned commit, MIT; 站点轨对照（fix 分支=冻结件组织骨架，C.2 穿透主依据字节归档）"
+
+[s04f-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s04_hooks/code.py"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-10-09"
+raw_sha256 = "95cdc67a7d788192"
+text_sha256 = "23de09d42f7bd0fb"
+bytes = 12871
+lines = 288
+via = "pinned commit, MIT; 站点轨对照（fix 分支）；C.2 穿透主依据字节归档"

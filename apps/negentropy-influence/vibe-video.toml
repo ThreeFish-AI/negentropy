@@ -179,8 +179,14 @@ reason = "V3D：angle 后端（同 EP1 条目）"
 [[skeleton.drift]]
 episode = "claude-code-multiagent-video"
 path = "video/package.json"
-fingerprint = "bdfea44ecd31"
-reason = "V3D 3D 遗产接线（2026-09-28，同 EP1 条目）"
+fingerprint = "639be7f7420c"
+reason = "V3D 3D 遗产接线（2026-09-28，同 EP1 条目）；ep5 完全重制退役 lottie 残留依赖（2026-10-03，structured 档依赖集变化，指纹随更）"
+
+[[skeleton.drift]]
+episode = "claude-code-multiagent-video"
+path = "video/src/components/ChapterProgress.tsx"
+fingerprint = "ead4b18ce81f"
+reason = "ep5 完全重制 v2（2026-10-02..03）：七幕章集适配与 SceneTag 迁位（top:112）后 as-built 头注矫正，重制轮内组件自由演进。撤销条件=下轮重制对齐模板或随片头挂载轮统一刷新"
 
 [[skeleton.drift]]
 episode = "claude-code-multiagent-video"
@@ -208,12 +214,6 @@ reason = "系列片头《一个循环》铺开（2026-10-08）：挂载块自 E1
 
 [[skeleton.drift]]
 episode = "claude-code-concurrency-video"
-path = "video/src/Main.tsx"
-fingerprint = "78664c3010fd"
-reason = "系列片头《一个循环》铺开（2026-10-08）：挂载块自 E1 整文件移植（场景 import/注册表外五集同字节），leadInSec=23.5。同款登记说明与撤销条件见 EP1 条目"
-
-[[skeleton.drift]]
-episode = "claude-code-multiagent-video"
 path = "video/src/Main.tsx"
 fingerprint = "78664c3010fd"
 reason = "系列片头《一个循环》铺开（2026-10-08）：挂载块自 E1 整文件移植（场景 import/注册表外五集同字节），leadInSec=23.5。同款登记说明与撤销条件见 EP1 条目"

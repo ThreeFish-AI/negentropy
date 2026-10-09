@@ -1,0 +1,40 @@
+[
+ {
+  "id": "ledger",
+  "label": "中央账本",
+  "focus": [
+   "repo-ledger",
+   "history",
+   "commit"
+  ],
+  "note": "整栋楼共用的账本：改动历史都记在里面，提交=记账。"
+ },
+ {
+  "id": "branches",
+  "label": "各改各的线",
+  "focus": [
+   "branch-line",
+   "room-1",
+   "room-2",
+   "room-3"
+  ],
+  "note": "分支=独立线；门牌房=同一账本挂出的多个工作目录。"
+ },
+ {
+  "id": "bind",
+  "label": "房号绑定",
+  "focus": [
+   "bind-field",
+   "task-card"
+  ],
+  "note": "卡上加「房号」字段：只写字段、不改状态，活还是待办等人领。"
+ },
+ {
+  "id": "namecheck",
+  "label": "名字校验",
+  "focus": [
+   "name-check"
+  ],
+  "note": "开房前名字过校验，防拿名字当跳板写出房外。"
+ }
+]

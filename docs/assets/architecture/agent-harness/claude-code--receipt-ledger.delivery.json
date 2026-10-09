@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "d12bfdc3-d60f-402e-a3f5-a568b93ad32c",
+  "status": "current",
+  "command": "deliver",
+  "type": "sequence",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/.archify/sequence-receipt-ledger-20261003-003550/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code--receipt-ledger.html",
+  "specification": {
+    "sha256": "ea712fd26430871f13e9f4ba9091c3f4fda84727531660786a284bcee80058b6",
+    "bytes": 5207
+  },
+  "artifact": {
+    "sha256": "43289fa049c21e6ca57c2d75cd7d68ceb94b7cbed3203e8dd45f14fe90908059",
+    "bytes": 758934
+  }
+}

@@ -1,0 +1,141 @@
+# story 配音台本（Stage ⑦ 前置预置，2026-10-03）
+# 说明：本集本轮以 edge 终声交付，edge 不消费本台本；此文件为用户后续人工触发
+# IndexTTS-2.5 + me-bright 重配（story 档）预置——升档时零前置直接长跑。
+# 块界沿 ⑤ 定稿的 40 beats（beat 首句恒为块起点），长 beat 内按故事弧再分块（落档上限 ≤5 句/≤150 字——P0/P1 铺陈段情绪弧优先于粒度，重配时可再细拆）。
+# 情绪弧：P0 悬念铺陈 → P1-P5 机制讲解（宣叙 calm ↔ 消融警示 afraid 交替）→ P6 终考揭示 → 完结释然。
+
+# ── P0 失忆的楼 ──
+[block.p0-01]
+emo = "surprised:0.22"
+[block.p0-04]
+emo = "melancholic:0.16"
+[block.p0-08]
+emo = "calm:0.12"
+
+# ── P1 任务墙 ──
+[block.p1-01]
+emo = "happy:0.14"
+[block.p1-06]
+emo = "calm:0.12"
+[block.p1-08]
+emo = "calm:0.10"
+[block.p1-11]
+emo = "surprised:0.10"
+[block.p1-15]
+emo = "calm:0.10"
+[block.p1-17]
+emo = "afraid:0.20"
+[block.p1-21]
+emo = "afraid:0.24"
+
+# ── P2 递话口 ──
+[block.p2-01]
+emo = "happy:0.12"
+[block.p2-04]
+emo = "calm:0.10"
+[block.p2-07]
+emo = "calm:0.12"
+[block.p2-09]
+emo = "calm:0.10"
+[block.p2-11]
+emo = "surprised:0.10"
+[block.p2-14]
+emo = "calm:0.12"
+[block.p2-16]
+emo = "afraid:0.18"
+[block.p2-18]
+emo = "calm:0.10"
+
+# ── P3 回执簿与值班钟 ──
+[block.p3-01]
+emo = "calm:0.10"
+[block.p3-04]
+emo = "calm:0.10"
+[block.p3-07]
+emo = "surprised:0.12"
+[block.p3-10]
+emo = "afraid:0.22"
+[block.p3-13]
+emo = "melancholic:0.14"
+[block.p3-15]
+emo = "calm:0.10"
+[block.p3-17]
+emo = "calm:0.14"
+[block.p3-20]
+emo = "afraid:0.18"
+[block.p3-22]
+emo = "surprised:0.10"
+
+# ── P4 门牌房 ──
+[block.p4-01]
+emo = "happy:0.12"
+[block.p4-04]
+emo = "calm:0.10"
+[block.p4-07]
+emo = "calm:0.10"
+[block.p4-09]
+emo = "melancholic:0.12"
+[block.p4-12]
+emo = "calm:0.12"
+[block.p4-14]
+emo = "calm:0.14"
+[block.p4-17]
+emo = "calm:0.10"
+
+# ── P5 认证插座 ──
+[block.p5-01]
+emo = "happy:0.12"
+[block.p5-03]
+emo = "calm:0.10"
+[block.p5-05]
+emo = "surprised:0.10"
+[block.p5-08]
+emo = "melancholic:0.12"
+[block.p5-10]
+emo = "afraid:0.16"
+[block.p5-13]
+emo = "calm:0.12"
+
+# ── P6 环形走廊 ──
+[block.p6-01]
+emo = "surprised:0.18"
+[block.p6-04]
+emo = "calm:0.10"
+[block.p6-07]
+emo = "calm:0.12"
+[block.p6-08a]
+emo = "surprised:0.10"
+[block.p6-08c]
+emo = "happy:0.12"
+[block.p6-10]
+emo = "calm:0.14"
+[block.p6-12]
+emo = "surprised:0.12"
+[block.p6-15]
+emo = "happy:0.14"
+[block.p6-17]
+emo = "calm:0.10"
+[block.p6-19]
+emo = "surprised:0.14"
+[block.p6-21]
+emo = "happy:0.12"
+[block.p6-22]
+emo = "calm:0.14"
+[block.p6-25]
+emo = "melancholic:0.14"
+[block.p6-27]
+emo = "calm:0.12"
+[block.p6-29]
+emo = "melancholic:0.18"
+
+# ── [say] 表演标点（只改标点，去标点后与正文全等；数字内标点为正文字符不动）──
+[say]
+p0-01 = "这是一栋通宵亮灯的小楼……里面每一位师傅，手艺都是顶尖的，却，谁也记不住昨天。"
+p0-07 = "活多到要一班组人的时候——计划，放在，谁手里？"
+p1-25 = "守卫挡得住明抢，挡不住，同一瞬间。"
+p3-17 = "口里躺着关机请求，立即回执退出——指令，永远，排在发现的活前面。"
+p4-15 = "有改动，拒拆——这五个字，是留给未来自己的，救命索。"
+p5-12 = "图新鲜，就不吃缓存——这是这一段，亲手付的账。"
+p6-11 = "看的是回答里，实际出现没出现工具调用块——看单子，不看嘴。"
+p6-27 = "天快亮了，回到开场那个问题——计划，放在，谁手里？"
+p6-31 = "机制很多，循环一个……这栋楼教了一整夜的事，就这一句。"

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "86379db0-a5ab-498e-946d-65ad90e07ef5",
+  "status": "current",
+  "command": "deliver",
+  "type": "dataflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/.archify/dataflow-claim-guards-break-20261003-003512/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code--claim-guards-break.html",
+  "specification": {
+    "sha256": "cd6a41448d103511ab24772161ed0373fea02e9c6d65bbeb726183fddc0eda9e",
+    "bytes": 6254
+  },
+  "artifact": {
+    "sha256": "1e78a99d70dc1c35b93ce4616226c7fbf4d654c68082f76c0fe7d1ee089bd830",
+    "bytes": 761472
+  }
+}

@@ -312,6 +312,9 @@ apps/negentropy-influence/voices/*
 # PNG 不在媒体默认忽略口径内）
 apps/negentropy-influence/episodes/*/video/public/archify/*-end.png
 
+# archify 3.0 技能的工作目录（按图型+时间戳建 session，候选/采集草稿；
+# 交付物=docs/assets/architecture 的 canonical HTML + 仓内 sidecar，工作目录不入库）
+.archify/
 # ── 全仓媒体默认忽略（2026-10-08 登记制）──────────────────────────────────
 # 音/视频媒体与动图一律默认不入 Git；确属公共固定资产的，先在
 # scripts/media-assets.toml 登记（path/sha256/bytes/reason），再跑

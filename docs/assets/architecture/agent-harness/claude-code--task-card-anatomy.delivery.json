@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "9134a9af-9805-466f-89fb-52c6fbb7b96b",
+  "status": "current",
+  "command": "deliver",
+  "type": "lifecycle",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/.archify/lifecycle-task-card-anatomy-20261003-003512/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code--task-card-anatomy.html",
+  "specification": {
+    "sha256": "de06724446619d29a828ec1d08b54e34357e813f5174fc62504bf564c9930eda",
+    "bytes": 5896
+  },
+  "artifact": {
+    "sha256": "5660f8a66bb5d468c6bf64be2c3fd6de45377b48124362d17849065efcf5937e",
+    "bytes": 763916
+  }
+}

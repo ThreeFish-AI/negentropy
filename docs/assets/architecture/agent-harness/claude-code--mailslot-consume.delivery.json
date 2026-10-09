@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "4d52dab8-aebd-48ca-a23a-5010fba70672",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/.archify/workflow-mailslot-consume-20261003-003550/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code--mailslot-consume.html",
+  "specification": {
+    "sha256": "0100c56f8ebf897db3d47fe6f27266639e48b76b30413fecc2c76328990275b1",
+    "bytes": 5445
+  },
+  "artifact": {
+    "sha256": "25a713e17d0f2336ee2f42d85d596b8698b99be468c90fb42b94aff5c0a47bed",
+    "bytes": 765910
+  }
+}

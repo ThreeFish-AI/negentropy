@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "02b7cf5f-1681-451e-b222-6f4a4a2389cb",
+  "status": "current",
+  "command": "deliver",
+  "type": "sequence",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/.archify/sequence-claim-race-window-20261003-003550/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code--claim-race-window.html",
+  "specification": {
+    "sha256": "6502b0b9cc51b2729b0ca633ee5e9d9ab0bb4ba4db3904ac181051947c9a3af2",
+    "bytes": 3052
+  },
+  "artifact": {
+    "sha256": "01e743baea3e1e43506bdecd99523edb5839895339fc0ee88b5ea7e6b1e1eb29",
+    "bytes": 750198
+  }
+}

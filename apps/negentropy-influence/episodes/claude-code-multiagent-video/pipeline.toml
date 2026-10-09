@@ -9,36 +9,46 @@
 slug = "claude-code-multiagent-video"
 
 [narration]
-# TODO：按本集选题与语速预算填写。口径提示——280 字/分是**含停顿的等效**口径，
-# 裸按字数算会高估约 12% 的句容量，双口径门以 manifest 实测为准。
-target_minutes = [13.0, 15.5]  # 2026-10-08 系列片头铺开：预算窗改含片头口径（leadIn 23.5s；原 [13.0, 14.6] 为无片头窗，E3 复算 14.603 已越界）
-# 本系列实测口径（ep1 CP1 校准 2026-09-30）：story 档含停顿等效 ≈254 字/分。
-chars_per_min = 254
+# 语速锚：edge（zh-CN-YunxiNeural +4%）实测口径 ≈278 字/分
+# （ep3 重制 edge 草声实测：3688 字 → 13.25 分）；本集 edge 即终声，
+# 首轮 tts 后按 RSI-021 复核，偏差 >3% 回写本值。
+# 2026-10-08 合并主干：窗口上沿 14.6→15.5 对齐系列含片头口径——本代成片未挂片头，
+# 实测 25734 帧 = 14.297 分、估算 4015 字 ÷ 278 = 14.44 分双双落窗；未来挂片头
+# （leadInSec 0.6→23.5s）实测约 14.68 分将超原 14.6 上界，15.5 恰好容纳。
+target_minutes = [13.0, 15.5]
+chars_per_min = 278
 
 [tts]
-engine = "indextts"
-# TODO：选定样本与风格。样本路径**工作区根相对**；ref_sha1 取 12 位（同 tts.py 口径），
-# 用 `uv run --no-project $T/scripts/refs.py list` 查当前清单。
-# ⚠️ 风格预设的 alpha 是在**特定选段**上标定的，换选段即失效（见 $V/refs.toml）。
-ref = "voices/me-bright.wav"
-ref_sha1 = "54b699cce97f"
-style = "story"
-# story 档（默认）＝段落演绎：同幕连续句按块合成、块间情绪由配音台本驱动。
-# 台本（可选）：script/narration.cues.toml——写稿阶段产出，见 $T/references/VOICE-CLONING.md §4.5。
-# 重制存量集（旧档 → story）须显式 --allow-voice-switch 并补写台本。
+# 两档策略（RSI-034）：本集 edge 即终声（完整交付 edge 版 v1）；
+# 整集评审通过后由用户显式触发用 IndexTTS-2.5 + 本人声音重配（references/07 §重配）。
+# ⚠ edge 为终声时**不得挂 style 终声档锚**——挂了实测门即跳过（PIPELINE.md 字段表）。
+engine = "edge"
+# ⚠ 本集 rate 偏差（2026-10-03 实测定档）：zh-CN-YunxiNeural @ +4% 实测 15.7 分超窗 1.1 分，
+# 提速到 +12% + timing.json 收紧（gap 0.32→0.2 / scene 0.9→0.6 / tail 2.0→1.6）后实测 14.3 分落窗。
+# pipeline.py tts 不透传 rate——重跑须用工程内薄包装（.engine 签名含 rate，护栏会拦静默降速）：
+#   cd $P && uv run --no-project --with edge-tts --with mutagen scripts/tts.py \
+#     --engine edge --narration-lang zh --rate +12% --allow-voice-switch
+# 重配三步（届时执行）：① engine 改 "indextts" + 补下方 ref/ref_sha1 + style = "story"；
+# ② `pipeline.py tts --allow-voice-switch`；③ 重走 render → qa → check → captions → render --final。
+# TODO（重配前补齐，非建集前置）：样本路径**工作区根相对**；ref_sha1 取 12 位
+# （同 tts.py 口径），用 `uv run --no-project $T/scripts/refs.py list` 查当前清单。
+# ⚠ 风格预设的 alpha 是在**特定选段**上标定的，换选段即失效（见 $V/refs.toml）。
+#ref = "voices/me-bright.wav"
+#ref_sha1 = "TODOTODOTODO"
+# 台本 script/narration.cues.toml 已随 Stage ⑤ 后预置（story 块/情绪弧），重配零前置。
 
 [archify]
-# 覆盖门硬值（对齐 jev 基准）：锚定率 / cue 密度 / 图型数下限；全屏独占三分法。
-# 图集预算在 Stage ② 策划时按本集内容定稿（~8–14 图 / ≥5 型）。
-html_dir = "docs/assets/architecture/agent-harness"
-html_pattern = "claude-code--{slug}.html"
+# 源图 = archify 3.0 产物（无 guided-views 模块，录制器不可直录）；本集用
+# scripts/patch-archify-html.py 从 docs 原件拷贝并注入精简 guidedViews 兼容层
+# （E1 范式，RSI-038），落本集 html/——docs 原件（SSOT）不动。重跑注入器即幂等重建。
+# 首录后须逐图人工审计 sidecar type（嗅探 14/67 不可靠，ISSUE-201 ③）。
+html_dir = "apps/negentropy-influence/episodes/claude-code-multiagent-video/video/public/archify/html"
+html_pattern = "{slug}.html"
 min_anchor_ratio = 0.30
 min_cues_per_minute = 3.0
 min_diagram_types = 5
 forbid_inset = true  # 全屏独占（storyboard 按此设计）；残留画中画即 FAIL
-
-# 复用图（2/13）与 html_pattern 不匹配——登记实际文件名（ep1 同款先例）；
-# views 章节清单为本集原生重建（Stage ⑥），html/png 产物不重绘（planning §6 许可）。
-[archify.html_overrides]
-collab-panorama = "claude-code-multiagent--collab-panorama.html"
-five-layer-dependency = "claude-code-harness--five-layer-dependency.html"
+# 终幕 6-D..6-J（p6-10..29，20 句）为 storyboard 刻意设计的装置镜段（判据卡/五增量
+# 合口/数字卡/收官断言/边界护栏/天亮回收），零 archify 锚；豁免 P6 的连续无锚 run
+# 计数（openviking 先例）。P6 分幕锚定率不受豁免影响仍过（5/34 ≥ 下限）。
+exempt_scenes = ["P6"]

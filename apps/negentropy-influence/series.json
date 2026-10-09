@@ -102,8 +102,7 @@
       "id": "claude-code-explained",
       "title": "Claude Code Harness Engineering",
       "sourceKind": "course",
-      "rule": "与自进化系列完全独立：两个系列的口播互不引用（校验器规则 1 跨系列全局生效），发布顺序与视觉契约各自独立（规则 2/3/4 按系列内判定）。信源为官方文档 + Anthropic 工程博客 + 开源课程仓库（站点 20 章/5 阶段只作组织骨架，观众层匿名化——规则 7），故 episode 用 source 字段（含 pinnedRef 与访问日期）而非 paper 字段——证据等级分层见各集 research/gl-notes.md 冻结登记。",
-      "episodes": [
+      "rule": "与自进化系列完全独立：两个系列的口播互不引用（校验器规则 1 跨系列全局生效），发布顺序与视觉契约各自独立（规则 2/3/4 按系列内判定）。信源为官方文档 + Anthropic 工程博客 + 开源课程仓库（站点 20 章/5 阶段只作组织骨架，观众层匿名化——规则 7），故 episode 用 source 字段（含 pinnedRef 与访问日期）而非 paper 字段——证据等级分层见各集 research/gl-notes.md 冻结登记（ep5 例外：其 gl-notes 为 2026-10-07 换代前 175 的冻结快照——成片 v2 取证口径）。",      "episodes": [
         {
           "episode": 1,
           "slug": "claude-code-explained-video",
@@ -199,7 +198,7 @@
           "episode": 5,
           "slug": "claude-code-multiagent-video",
           "path": "episodes/claude-code-multiagent-video",
-          "title": "多 Agent 平台：从一个到一群",
+          "title": "多 Agent 平台：七件设施，一条走廊",
           "topic": "多 Agent 协作：谁持有计划",
           "cardSub": "多 Agent 平台 · 协作",
           "accents": [
@@ -211,12 +210,11 @@
             "repo": "https://github.com/shareAI-lab/learn-claude-code",
             "pinnedRef": "67a9126c6435a8654ba7a6f68c0fd2130f00a462",
             "license": "MIT",
-            "accessed": "2026-10-07"
+            "accessed": "2026-10-02"
           },
-          "status": "script-review",
-          "statusNote": "剧本 v3 待审（2026-10-07）：C 型信源=175 新精读（站点七章主+main 四章对照）；143 句 3586 字 7 幕 37 镜（14.1 分落窗）；三门绿 + source_ledger 33 条 FAIL 0；终集收束（五层回看+系列金句+完结语、无下期卡）；场景/TTS/图集未动（ISSUE-211）；2026-10-08 系列片头铺开：series-intro 组件副本+挂载块（归一化指纹 78664c3010fd）+leadIn 23.5（片头 705 帧前置）；时长预算窗改 [13.0,15.5] 含片头口径（+22.9s）；0-A 已让位改造（退役 HarnessStackP0，Badge 直入，2026-10-08）；成片待重渲（补跑 TTS 后统一批次），见 ISSUE-209",
-          "voice": "story + me-bright.wav"
-        }
+          "status": "final-review",
+          "statusNote": "**v2 交付**（2026-10-03 评审修复轮重渲：9 commits 80 项修复全入片——P0 金句卡衬底/楼顶小檐成形/KeyCard 退场/慢活走查空窗/P2 Footnote 归属入片/P4 循环轨道净空/footer 贴口播/P6 回流环净空/P5 工具数口径/P3 章名统一/P1 sin 收敛/归档分叉终收口等，交付物对齐 HEAD（md5 复核）；v1 同日初渲=修复前构建）：14:17.8 = 857.8s @1080p30（25734 帧复算=mdls 857.812s 双源一致，纯视觉零时序变更）；147 句 4015 字（278 口径直写）；edge 终声（zh-CN-YunxiNeural @+12%，实测 4015÷14.3=280.8 字/分校准偏差 1%）；archify 14 图（12 新绘+collab-panorama/five-layer 复用）49 章逐章回放（49 cue · 锚定 33.3% · 3.4/分 · 5 型 · lead 49/49 实测）；六组破坏实验全入片（B1/B2+B2v/B3/B4/B5/t5race 红绿消融）；机器门全绿：check_series/build/check --check-scenes --check-motion/覆盖门/check_archify/tsc/motion 15:15/qa 五项（草渲+全分辨率终渲双遍）/WCAG/末帧渐黑零亮残留；归档 v2 + _captions（v1 原样保留，v2 已按 17:37 三轮重建构建覆盖重归档（md5 556d253d 与渲染产物字节一致））；C 型=175 冻结快照 @0ecf6527c；indextts me-bright 重配待用户人工触发（cues 台本已预置）；2026-10-08 合并主干：175 已换代（本片仍以换代前快照取证）；series-intro 副本入库未挂载（孪生门过、leadIn 仍 0.6s），挂载与 [13.0,15.5] 含片头口径留待下轮重制",
+          "voice": "edge + zh-CN-YunxiNeural（+12%）"        }
       ]
     },
     {
