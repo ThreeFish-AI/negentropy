@@ -8,7 +8,7 @@ Stage ① C 型信源 · guided-learn 精读产物冻结快照（本集唯一事
   台账级登记见 $R/.temp/horizon-context-lab/sources.md（S0–S64，含每源等级/横向核查/快照 sha256，
   GL 取数日期一律 2026-09-30）；页面快照归档 $R/.temp/horizon-context-lab/sources/（74 份）。
 - 本集复算声明（证据升级）：lab/mcp 双 selftest 于 2026-10-01 重跑，与 2026-09-30 基线
-  逐字节一致（证据见 research/selftest-{lab,mcp}-2026-10-01.txt）⇒ 011 §2/§14 内置实测日志升【一】。
+  逐字节一致（证据见 research/selftest-{lab,mcp}-2026-10-01.txt）⇒ 011 §2/§6 内置实测日志升【一】（原引 §14，011 章号 2026-10-09 重排后为 §6）。
 - 证据定级：GL 对官方页面的转述按【二】（站点正文）/【三】（厂商自报数字）/【四】（第三方）；
   【三】【四】口播前 3 句内必须归属句。活数据不进口播。
 - 锚点回溯链：口播断言 → 本文件 §章号稳定键 → 正文内 [n] IEEE 指针 → S# 快照。
@@ -68,7 +68,7 @@ description: "Snowflake Horizon Context 精读与通俗拆解（冻结版；设�
 >
 > **章号即稳定键**：§5–§9 与 §16 系历史章节重组后腾空的逻辑编号，**已封存、勿复用**——8+ 张 archify 成片与 013 蓝图以「011 §10/§11/§12」等编号回指本篇；新增内容续用 §19+ 或并入既有章节。机制词表 M1–M7、实验键 D1–D10、场景键 A/B/C/E/T 与 013 蓝图、配套原型共用，同为稳定键。
 
-配套产物：[Context Layer 基础设施设计蓝图](../../../../../docs/research/cognitive-context/013-context-layer-blueprint.md) · [Horizon Context ↔ negentropy 机制映射报告](../../../../../docs/research/cognitive-context/012-horizon-context-mapping-negentropy.md)。
+配套产物：[Context Layer 基础设施设计蓝图](../../../../../docs/research/cognitive-context/013-context-layer-blueprint.md) · Horizon Context ↔ negentropy 机制映射报告（012；冻结后 2026-10-09 已删除，映射由 013 状态表承载）。
 
 ---
 
@@ -494,7 +494,7 @@ uv run --no-project python docs/research/cognitive-context/assets/horizon_contex
 
 ## 18. 与本仓的关联
 
-- **机制映射**：[Horizon Context ↔ negentropy 机制映射报告](../../../../../docs/research/cognitive-context/012-horizon-context-mapping-negentropy.md)（16 条锚点核验）。
+- **机制映射**：012 映射报告（16 条锚点核验；冻结后 2026-10-09 已删除，映射由 013 状态表承载）。
 - **设计蓝图**：[Context Layer 技术蓝图](../../../../../docs/research/cognitive-context/013-context-layer-blueprint.md)——以 Agent 运行时上下文为第一性对象的设计 SSOT；本篇（011）承载 Horizon 全量机制载荷（冻结），013 承载设计与判定。
 - **配套原型**：[`assets/horizon_context_lab.py`](../../../../../docs/research/cognitive-context/assets/horizon_context_lab.py)（七机制 + 场景矩阵 + 十次破坏实验）· [`assets/horizon_context_mcp.py`](../../../../../docs/research/cognitive-context/assets/horizon_context_mcp.py)（MCP 服务原型，T1–T8）。
 - **配套科普**：M1–M7 各一张 archify 动效工程图 + §1/§3/§4 总览图随文内嵌（共 15 张，交互版 HTML 可下载本地打开）。
@@ -606,7 +606,7 @@ uv run --no-project python docs/research/cognitive-context/assets/horizon_contex
 - 鲜度复核 2026-10-01（最小抽核 2 源 + ledger WARN 面待记）：
   1. **Semantic Studio 状态翻转（唯一实质发现）**：release notes new-features-2026 实况页出现
      "Sep 30, 2026: Semantic Studio (General availability)" 新条目（09-30 快照 S27 内仅有 2026-08-26
-     Preview 条目）⇒ 011 §4.2/§15 的「两说并存（Preview/私预）」已被该条目解决为 **GA**。
+     Preview 条目）⇒ 011 §4.2/§8 的「两说并存（Preview/私预）」已被该条目解决为 **GA**（原引 §15，011 章号 2026-10-09 重排后为 §8）。
      口播处置：若提及 Semantic Studio，按「截至 2026-10-01 官方 release notes 已标 GA」+时点归属；
      不确定语态（两说）表述作废。
   2. Apache clutch ossie（S21）：Committers 13 / PPMC 7 与笔记一致，无翻转。

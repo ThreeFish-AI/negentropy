@@ -431,7 +431,7 @@ def compile_query(view: SemanticView, metric_name: str, dims=None, role="analyst
 
 
 # ---------------------------------------------------------------------------
-# §11 检索排序 + §10 冲突隔离 · 目录与信任信号（Catalog/rank/freshness）
+# §3.2 检索排序 + §3.1 冲突隔离 · 目录与信任信号（Catalog/rank/freshness）
 # ---------------------------------------------------------------------------
 
 @dataclass
@@ -516,7 +516,7 @@ class Catalog:
 
 
 # ---------------------------------------------------------------------------
-# M3 检索层过滤 + M4 应答锚定 · resolve 与 mock agent（消费 §11 排序）
+# M3 检索层过滤 + M4 应答锚定 · resolve 与 mock agent（消费 §3.2 排序）
 # ---------------------------------------------------------------------------
 
 @dataclass
@@ -548,7 +548,7 @@ def resolve(catalog: Catalog, views, question: str, role: str,
     if not top:
         pkg.warnings.append("no_context_found")
         return pkg
-    # ---- 冲突浮出：CONFLICT 卡片，不给数字（§10 冲突纪律的核心）----
+    # ---- 冲突浮出：CONFLICT 卡片，不给数字（§3.1 冲突纪律的核心）----
     if top[0][1].status == "conflict":
         pkg.needs_adjudication = True
         pkg.conflict_card = [{"name": e.name, "source": e.source,
@@ -630,7 +630,7 @@ def mock_agent(catalog: Catalog, pkg: ContextPackage, question: str, role: str,
 
 
 # ---------------------------------------------------------------------------
-# §10 富化 · eval 自纠环（金标准问答 → 修正理解 → 重排）
+# §3.1 富化 · eval 自纠环（金标准问答 → 修正理解 → 重排）
 # ---------------------------------------------------------------------------
 
 def eval_loop(catalog: Catalog, views, gold):

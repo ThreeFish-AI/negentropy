@@ -4,9 +4,9 @@ title: "Context Layer 技术蓝图：Agent 系统的上下文供给与治理"
 description: "Agents 系统 Context Layer 设计 SSOT：三轴蓝图（五源对象 × 五正交层 × CGAVE 生命周期）× 失效模式驱动 × 四范本机制矩阵（Horizon M1–M7 / OpenViking / Claude Code / Hermes）× 业界格局 × 供给面威胁模型 × negentropy 实例化总装 × 双轨演进路线"
 ---
 
-> **定位**：Agents 系统 Context Layer 的**设计蓝图 SSOT**——以 Agent 运行时上下文为第一性对象（instruction / memory / knowledge / tools+skills / session 五源），回答「怎么供给、怎么治理、怎么激活、怎么验证、怎么进化」。**文档族分工**：**013（本文）= 设计与判定**（规格、状态、决策、路线）；[011 精读笔记](./011-horizon-context.md) = Horizon **全量机制载荷**（冻结——机制详解、实证、时间线；§5–§9 与 §16 系重组腾空编号、已封存勿复用，新增续 §19+）；[012](./012-horizon-context-mapping-negentropy.md) = 锚点核验快照（结论已并入 §11）；[014](./014-openviking.md)/[015](./015-openviking-mapping-negentropy.md) = OpenViking 精读与映射（会话记忆路线范本）。`concepts/design/context-layer.md` 已于 2026-09-21 删除并入本文。
+> **定位**：Agents 系统 Context Layer 的**设计蓝图 SSOT**——以 Agent 运行时上下文为第一性对象（instruction / memory / knowledge / tools+skills / session 五源），回答「怎么供给、怎么治理、怎么激活、怎么验证、怎么进化」。**文档族分工**：**013（本文）= 设计与判定**（规格、状态、决策、路线）；[011 精读笔记](./011-horizon-context.md) = Horizon **全量机制载荷**（冻结——机制详解、实证、时间线；章号 2026-10-09 重排为连续 §1–§10，三专章并入 §3 为 §3.1–§3.3，旧→新映射见 011 编号契约）；[014](./014-openviking.md)/[015](./015-openviking-mapping-negentropy.md) = OpenViking 精读与映射（会话记忆路线范本）。`concepts/design/context-layer.md` 已于 2026-09-21 删除并入本文。
 >
-> **编号稳定键**：M1–M7（Horizon 机制词表）· D1–D10（**Horizon lab 破坏实验**；015/ISSUE-195 另有一套无关的取证漂移编号 D1–D8，本文凡引后者必冠「015-」前缀，两套互不相干）· ADR-1/2/3（既有决策）+ **ADR-4/5/6（本版新增）** · CGAVE（Collect→Govern→Activate→Verify→Evolve 生命周期键）· P0–P3 · Phase 1–3 · #1–#16（映射表）。**2026-09-27 完全重铸**：旧版 §0–§16 编号退役封存勿复用；外部引用以本版 §0–§15 为准（同批入链已更新）。011 §10/§11/§12 三专章在本文落点 §6/§8/§7。
+> **编号稳定键**：M1–M7（Horizon 机制词表）· D1–D10（**Horizon lab 破坏实验**；015/ISSUE-195 另有一套无关的取证漂移编号 D1–D8，本文凡引后者必冠「015-」前缀，两套互不相干）· ADR-1/2/3（既有决策）+ **ADR-4/5/6（本版新增）** · CGAVE（Collect→Govern→Activate→Verify→Evolve 生命周期键）· P0–P3 · Phase 1–3 · #1–#16（映射表）。**2026-09-27 完全重铸**：旧版 §0–§16 编号退役封存勿复用；外部引用以本版 §0–§15 为准（同批入链已更新）。011 §3.1/§3.2/§3.3 三专章在本文落点 §6/§8/§7。
 
 ## 0. 为什么需要：Agent 在自信地错
 
@@ -95,9 +95,9 @@ description: "Agents 系统 Context Layer 设计 SSOT：三轴蓝图（五源对
 | :--- | :--- | :--- |
 | §4 对象层 | M1 | definitions registry ✅；三字段纪律 / verified QA 🔶 |
 | §5 目录层 | M5 + 四层信号 | 三视图 + 信任归一 🔶；CJK 分词缺口（ISSUE-196） |
-| §6 富化层 | 011 §10 | patrol/Judge 闭环 ✅；冲突浮出面 / 会话巩固断链 🔶 |
+| §6 富化层 | 011 §3.1 | patrol/Judge 闭环 ✅；冲突浮出面 / 会话巩固断链 🔶 |
 | §7 治理层 | M2/M3/M6/M7 | scoped∩accessible ✅；ContextGuard / 策略对象化 / 身份天花板 🔶 |
-| §8 激活层 | M4 + 011 §11/§12 | L1 披露 ✅、L2·L3 🔶（ISSUE-194）；Router/统一检索 🔶 |
+| §8 激活层 | M4 + 011 §3.2/§3.3 | L1 披露 ✅、L2·L3 🔶（ISSUE-194）；Router/统一检索 🔶 |
 
 ![五层×机制×实例脊柱图。](../../assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map-dark.png)
 
@@ -134,7 +134,7 @@ Collect 汇聚五源元数据、血缘与行为信号；Govern 把口径、可�
 
 语义视图这本规章手册是同一册子的两半：**前半「口径单点」**——权威规章只印一本（五段式 `TABLES/RELATIONSHIPS/FACTS/DIMENSIONS/METRICS`），注册期过结构校验门（FK 指向键列、禁循环、跨粒度嵌套声明等——非法结构注册期被拒不进运行时，D6）；**后半「查询期重算」**——手册本身就是计算器：翻到哪条规章当场按底层原始凭证套算，不存冻结数字。为什么两半合一：**声明唯一与计算正确是两条可各自独立失效的底线**（Looker 对称聚合可显式关闭、dbt 遇 fan-out 拒答、Cube 无匹配回退底表——定义层已商品化，**差异化全在执行半边**）。四条聚合保障的因果（D1/D2/D3/D7 逐一实测，详 011 §2 M1）：先聚后连（fan trap：\$100 订单因关联 3 条事件被 join 放大成 \$300）、distinct 数集合不数行、derived 先聚后除、半可加末快照（`NON ADDITIVE BY`——正是 §9 的 477 vs 48 机制）。
 
-**字段五设计**（agent 检索面）：`SYNONYMS`（别名是受治理上下文）、`AI_VERIFIED_QUERIES`（人工核验问答对，§8 主角）、`AI_SQL_GENERATION/QUESTION_CATEGORIZATION`（提示词内嵌定义、随定义治理）、`PRIVATE|PUBLIC`、`NON ADDITIVE BY`。行业实践：对象格式对齐 Apache Ossie YAML（50+ 组织，携带是今日唯一现实通道、保真度边界见 011 §12）。
+**字段五设计**（agent 检索面）：`SYNONYMS`（别名是受治理上下文）、`AI_VERIFIED_QUERIES`（人工核验问答对，§8 主角）、`AI_SQL_GENERATION/QUESTION_CATEGORIZATION`（提示词内嵌定义、随定义治理）、`PRIVATE|PUBLIC`、`NON ADDITIVE BY`。行业实践：对象格式对齐 Apache Ossie YAML（50+ 组织，携带是今日唯一现实通道、保真度边界见 011 §3.3）。
 
 ### 4.2 设计 · 通用对象模型与 Core Block 三问
 
@@ -208,7 +208,7 @@ version: 12
 
 ## 6. 富化层：双轨编纂与冲突契约
 
-### 6.1 机制 · 双轨富化（详解 011 §10）
+### 6.1 机制 · 双轨富化（详解 011 §3.1）
 
 专家手写规章权威但覆盖不动长尾——Snowflake 内部实测全司 9,685 张表人工语义视图覆盖 **<5%**（虚线；Autopilot GA 之后的现态，证明显式轨道单独不闭合供给缺口，不是 Autopilot 无价值）。两条轨道：**显式**（Autopilot：现成报表与历史问答起草规章草案，候选过验证门）与**隐式**（Cortex Sense：从查询习惯提炼暗知识，「只摄取元数据与使用模式，不碰数据行」——隐私边界句可直接沿用）。三层纪律：①eval 自纠环；②**冲突强制浮出人工**——起草规章与民间口径打架时系统绝不准自作主张：CONFLICT 卡片并列两定义、无数值、拒答待裁，**禁按 popularity 自动选**（D4 实测：自动选让错误口径胜出）；③governed 权重压倒推断。
 
@@ -293,7 +293,7 @@ version: 12
 
 ### 8.2 检索是正确性的前置环节
 
-三条证据立论（详 011 §11）：Spider 2.0 建错表（§0）；检索增强+重排把 top-20 检索失败率相对降 49%→67%（Anthropic contextual retrieval，虚线；口径 1−recall@20，5.7%→2.9%→1.9%，2024 数字只作机制有效性证据）；结构化记忆管理在 240 条消息会话保留 99.6% 关键信息 vs 无管理 54.3%（arXiv 2603.13110，实线）。机制面：四因子信号排序（relevance/authority/popularity/freshness——权威压过声量）+ top-k 硬约束 + rerank 末级信噪比闸门（初检 top-150→rerank→top-20；「更多上下文≠更好」与 attention budget 互证）。与 M4 的类目边界：VQR 候选集全部人工核验（错误面窄）故晋级验证锚定；通用检索候选集是全目录（错误面宽）——**候选集性质之别**。
+三条证据立论（详 011 §3.2）：Spider 2.0 建错表（§0）；检索增强+重排把 top-20 检索失败率相对降 49%→67%（Anthropic contextual retrieval，虚线；口径 1−recall@20，5.7%→2.9%→1.9%，2024 数字只作机制有效性证据）；结构化记忆管理在 240 条消息会话保留 99.6% 关键信息 vs 无管理 54.3%（arXiv 2603.13110，实线）。机制面：四因子信号排序（relevance/authority/popularity/freshness——权威压过声量）+ top-k 硬约束 + rerank 末级信噪比闸门（初检 top-150→rerank→top-20；「更多上下文≠更好」与 attention budget 互证）。与 M4 的类目边界：VQR 候选集全部人工核验（错误面窄）故晋级验证锚定；通用检索候选集是全目录（错误面宽）——**候选集性质之别**。
 
 ### 8.3 M4 验证锚定与 resolve 契约
 
@@ -385,13 +385,13 @@ version: 12
 | 4 | M1 重算（§4） | 无（非指标栈） | ⏸ |
 | 5 | M2 策略（§7） | accessible 过滤（非策略对象；来源仍 app_name 兜底） | 🔶 |
 | 6 | M3 双层（§7） | 检索过滤有；Guard 不存在（engine/context/ 无此目录） | 🔶 |
-| 7 | 011 §10 自纠环（§6） | patrol/Judge 全链（锚定版：证据先行+轨迹一致） | ✅ 同构 |
-| 8 | 011 §10 冲突裁决（§6） | 胜者规则静默收敛、无显式裁决面 | 🔶 |
-| 9 | 011 §11 top-k（§8） | **L1 ✅ / L2·L3 🔶（ISSUE-194：三件工具从未挂载，模型驱动激活不可达；显式注入三路可达）** | 🔶（旧表 ✅ 系漂移，本行即校正） |
+| 7 | 011 §3.1 自纠环（§6） | patrol/Judge 全链（锚定版：证据先行+轨迹一致） | ✅ 同构 |
+| 8 | 011 §3.1 冲突裁决（§6） | 胜者规则静默收敛、无显式裁决面 | 🔶 |
+| 9 | 011 §3.2 top-k（§8） | **L1 ✅ / L2·L3 🔶（ISSUE-194：三件工具从未挂载，模型驱动激活不可达；显式注入三路可达）** | 🔶（旧表 ✅ 系漂移，本行即校正） |
 | 10 | M4 验证问答 | done 文档未沉淀问答对 | 🔶 |
-| 11 | 011 §11 四因子 | 归一未实现；缺 staleness | 🔶 |
-| 12 | 011 §12 Ossie | 无 | ⏸ |
-| 13 | 011 §12 MCP | 方向相反（客户端） | 🔶 供给面 |
+| 11 | 011 §3.2 四因子 | 归一未实现；缺 staleness | 🔶 |
+| 12 | 011 §3.3 Ossie | 无 | ⏸ |
+| 13 | 011 §3.3 MCP | 方向相反（客户端） | 🔶 供给面 |
 | 14 | M5 血缘 | 执行史≠依赖图 | ⏸ |
 | 15 | M6 身份 | agent_type 有（preset 元数据）、天花板无 | 🔶 |
 | 16 | M7 标签 | 无分类策略链 | ⏸ |
@@ -430,7 +430,7 @@ uv run --no-project python docs/research/cognitive-context/assets/horizon_contex
 uv run --no-project python docs/research/cognitive-context/assets/horizon_context_mcp.py --selftest
 ```
 
-十次破坏性实验速查（每个只改一个 flag；机制→代码行号速查与完整输出见 011 §14）：D1 fan trap（440 vs 200）· D2 distinct（[6,1,2]）· D3 半可加（[11,6,7]）· D4 冲突自动选（错误口径胜出）· D5 拆执行面（泄露）· D6 跳过校验（垃圾入库）· D7 derived（122.22）· D8 ghost 入账 · D9 快照天花板（越权窗口）· D10 标签映射断链（明文出楼）。心得：每个组件单拎不神奇，拆掉任何一个都有具体可复现的坏法——判别「工程组合创新」成色的试金石。
+十次破坏性实验速查（每个只改一个 flag；机制→代码行号速查与完整输出见 011 §6）：D1 fan trap（440 vs 200）· D2 distinct（[6,1,2]）· D3 半可加（[11,6,7]）· D4 冲突自动选（错误口径胜出）· D5 拆执行面（泄露）· D6 跳过校验（垃圾入库）· D7 derived（122.22）· D8 ghost 入账 · D9 快照天花板（越权窗口）· D10 标签映射断链（明文出楼）。心得：每个组件单拎不神奇，拆掉任何一个都有具体可复现的坏法——判别「工程组合创新」成色的试金石。
 
 ### 12.3 生产护栏
 

@@ -79,5 +79,5 @@ description: "OpenViking（volcengine 上下文数据库，钉点 14a7b81）与�
 
 ## 交叉引用
 
-- [OpenViking 精读笔记](./014-openviking.md)（机制载荷与证据分级）· [Context Layer 蓝图](./013-context-layer-blueprint.md)（三轴 SSOT，2026-09-27 重铸）· [Horizon ↔ negentropy 映射](./012-horizon-context-mapping-negentropy.md)（同为「材料机制 ↔ 本仓」先例）
+- [OpenViking 精读笔记](./014-openviking.md)（机制载荷与证据分级）· [Context Layer 蓝图](./013-context-layer-blueprint.md)（三轴 SSOT，2026-09-27 重铸；其 negentropy 实例化映射表为「材料机制 ↔ 本仓」先例）
 - ISSUE-194（expand_skill 未挂载）见 [issue.md](../../.agents/issue.md)；本报告 D1–D8 已按精读流程登记为 ISSUE-195。

@@ -24,7 +24,7 @@ Context Layer 系列第 1 集。Snowflake Horizon Context（受治理上下文�
 - 原型双 selftest 复算 2026-10-01 与基线逐字节一致（升【一】级证据）：`research/selftest-*-2026-10-01.txt`
 - 穿透抽查 126 条断言零 MISS：`research/penetration-report.md` + `penetration-claims.json`
 - 信源台账 71 条（3 repo 钉 192ae6ca9 + 68 site）：`research/sources.toml` · verify FAIL 0
-- 勘误登记：011 §19「200:3」系官方例与 lab 实测混编，本集口播采用 lab 实测 200:5（gl-notes 附录 B）
+- 勘误登记：011 §7「200:3」系官方例与 lab 实测混编，本集口播采用 lab 实测 200:5（gl-notes 附录 B；011 章号已于 2026-10-09 重排，登记时点为旧号 §19）
 
 ## 目录
 

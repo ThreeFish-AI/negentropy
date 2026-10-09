@@ -59,7 +59,7 @@ description: "《AI Native 研发范式实践手册》企业级 Harness 十七�
 - **#2**：与手册「UNKNOWN 不当 PASS」同构，门控超时或失败都不会误判为成功。原型 D3 实测了违反这一点的代价：撞上监控故障的批次被照常恢复发布。
 - **#9**：`ToolStatsDaily` 已有 `success_count` / `error_count`，可以直接产出手册 p42 要求的「长期低成功率能力」清单。命中率需要「本该选哪个工具」的标注数据，成本高，暂不纳入。
 - **#11**：这正是手册 p45 点名「最常见也最危险」的形态。原型 D5 实测：出站拦截即使守住，令牌仍会经构建日志泄露。本仓的前提不同：单用户本机部署，CC 本身就是用户的代理，所以判为暂缓。落地路径现成：已有 coding-proxy，届时由它注入凭证，子进程只留占位值。
-- **#12**：与 [012 映射 #15](../cognitive-context/012-horizon-context-mapping-negentropy.md) 是同一缺口（代理会话权限天花板），沿用其 🔶 判定与落地时机，不重复立项。
+- **#12**：与原 012 映射 #15（代理会话权限天花板）是同一缺口，沿用其 🔶 判定与落地时机，不重复立项（012 已于 2026-10-09 删除，16 条映射由 013 状态表承载）。
 - **#15**：推断 verdict 本身合理，它保证决策层总有合法输入。但它抹掉了「这一轮评估其实没读懂」的信号，属于 UNKNOWN 被静默转写。
 - **#17**：这是既定设计取舍，不是遗漏。CC 以最大权限运行，Routine 的不变量由 workspace 机制保障，不靠禁用工具（[PR #998](https://github.com/ThreeFish-AI/negentropy/pull/998)）。手册的硬拦截针对的是触达生产的 Agent，二者的前提不同。
 
@@ -85,5 +85,5 @@ description: "《AI Native 研发范式实践手册》企业级 Harness 十七�
 
 - [180 精读笔记](./180-ai-native-handbook.md)：规律 R1–R5 与破坏性实验 D1–D6。
 - [170 五层 Harness 总览](./170-claude-code-harness-overview.md)：循环本体的机制对位。
-- [012 Horizon 映射](../cognitive-context/012-horizon-context-mapping-negentropy.md)：代理会话权限天花板（#15）。
+- 原 012 Horizon 映射（2026-10-09 删除，判定并入 013 状态表）：代理会话权限天花板（#15）。
 - [039 Routine 系统](../../concepts/subsystems/039-the-routine-system.md)：闭环与决策的现役设计。
