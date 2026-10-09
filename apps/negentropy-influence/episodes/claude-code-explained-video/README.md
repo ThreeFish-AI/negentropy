@@ -54,6 +54,23 @@ uv run --no-project $T/scripts/pipeline.py --project $P deliver
 - 骨架冻结档位见 [vibe-video skill 的 skeleton.toml](https://github.com/ThreeFish-AI/vibe-video/blob/main/assets/video-skeleton/skeleton.toml)；
   改动前先跑 `uv run --no-project $T/scripts/verify_skeleton.py`。
 
+## 建图轮（Stage ⑥/⑧）archify 对账清单（2026-10-09 登记）
+
+> archify 承接方式 = repo 级 `docs/assets/architecture/agent-harness/` SSOT 链接直取（.mmd 图源 / 交互 HTML / dark·light PNG），**不设 `archify-html/` 实体拷贝**——skill 契约条文与系列实践的该分叉已在 skill 仓 RSI 台账登记。建图轮启动前逐项对账：
+
+1. **图集取舍**：v3 storyboard 图集表为 6 个 `tooling-*` 新 slug（本轮「图未建」）；`video/public/archify/views/` 现存 12 个上一代（#1179）旧 slug——按 v3 表决定清理或复用，取舍结论写回 storyboard 图集表。
+2. **html_overrides 对齐**：`pipeline.toml [archify.html_overrides]` 注释仍指上一代分镜条目 #11/#12（v3 分镜无此条目号）——映射改指 v3 条目，或删除并在注释中对齐 v3 图集表口径。
+3. **GL 全景承接**：冻结件所载全景 `lcc-tooling--panorama.html` 系 GL 换代产物、无 guided-views 数据**不可直录**；`views/` 中可录旧图 `claude-code-tooling--execution-panorama.html` 与冻结全景**非同一张图**。路线二选一：按 storyboard 既定「以 GL notes 为底稿新建 tooling-panorama」，或按 ep5 已验证范式注入 guidedViews 兼容层（RSI-038）。
+
+## 进⑦（TTS）鲜度门（2026-10-09 登记）
+
+> 冻结口径「截至 2026-10-07」随审校期推进须复核；录音后改口播成本剧增（ISSUE-162 前科）。**⑥→⑦ 之间必跑**：
+
+1. `doc-hooks`：hook 不变式句「Deny and ask rules are still evaluated regardless of what the hook returns」在场；事件计数与口播口径对账——2026-10-09 抽验：事件清单已明显超过 33 个快照口径（InstructionsLoaded / UserPromptExpansion / MessageDisplay / PostToolUseFailure / PermissionRequest 等新增），「三十三个」趋势化（「三十多个」）待②审校拍板。
+2. `doc-permissions`：「Permission rules are enforced by Claude Code, not by the model」句在场（2026-10-09 微调形态，原「not the model」）；六种权限模式齐。
+3. `doc-tool-use-overview`：`stop_reason: tool_use` 与 `tool_result` 配对语义未变。
+4. 方法：`uv run --no-project $T/scripts/source_ledger.py --project $P verify`——任一 doc-* WARN 即抓 `research/source-archive/doc-snapshots-<日期>/` 快照做定点比对，结论与日期回填 gl-notes.md 附录 C.1。
+
 ## 许可
 
 源论文/文档版权归原作者；本工程仅为解读与再创作，画面与口播为原创。
