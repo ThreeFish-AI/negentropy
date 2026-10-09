@@ -1,32 +1,31 @@
-%%source: docs/research/cognitive-context/013-context-layer-blueprint.md §0 为什么需要：Agent 在自信地错（八失效模式 × 堵住它的层·机制）
+%%source: docs/research/cognitive-context/013-context-layer-blueprint.md §1 失效模式登记簿：九簇总账（九簇证据厚度与接线态总览）
 %%slug: cognitive-context/context-layer--failure-map
 %%type: architecture
-%%derived: archify architecture v1, authored fresh (左八失效右四层、映射边=验收面；§6 富化层的源水位刷新职责折入 F2→L5 边标签，故图内四层)
-flowchart LR
-    subgraph FAILS["八个不可自愈的失效模式（实证见 §0 表）"]
-        direction TB
-        F1["口径打架<br/>$14.2M vs $12.8M"]
-        F2["过期供给<br/>自信地错（staleness）"]
-        F3["检索割裂<br/>通道互不知情 · CJK 失效"]
-        F4["权限穿透<br/>外挂治理标准死法"]
-        F5["代理越权<br/>借用户全权"]
-        F6["未验证断言<br/>477 vs 48"]
-        F7["供给面投毒<br/>技能生态恶意面"]
-        F8["静默退化<br/>激活悬空 · context rot"]
+%%derived: archify architecture v2, authored fresh（v1 八失效×四层映射退役；新构型＝登记簿九簇蛇形主链穿过三条证据厚度带，簇节点标徽构成与接线态，as-of b2fbb51f5）
+flowchart TB
+    subgraph T1["厚证据带 · 实心实验＋独立实测托底"]
+        direction LR
+        C1["§1.1 口径簇<br/>口径散落→对账崩塌 · 虚1＋实心1<br/>接线态：部分（422 门在）"]
+        C2["§1.2 执行簇<br/>fan trap／半可加／双计 · 实心4＋虚1<br/>接线态：未启（#4 非指标栈）"]
+        C3["§1.3 门禁簇<br/>策略绕过／越权窗口 · 实心4＋虚3＋混2<br/>接线态：部分→断（ISSUE-197）"]
     end
-    subgraph LAYERS["四正交层的堵截机制（富化层源水位折入 F2→L5 边）"]
-        direction TB
-        L4["§4 对象层<br/>M1 口径单点"]
-        L5["§5 目录层<br/>staleness · 信任归一"]
-        L7["§7 治理层<br/>M2/M3 · M6 · 威胁模型"]
-        L8["§8 激活层<br/>统一骨架 ADR-2 · M4 锚定 · 预算"]
+    subgraph T2["混合证据带 · 第三方实线＋本仓一手实心"]
+        direction RL
+        C4["§1.4 验证簇<br/>governance≠verification · 实线1＋虚2＋混1<br/>接线态：部分／未立（#10）"]
+        C5["§1.5 供给簇<br/>覆盖率天花板／CJK 失效 · 实线2＋实心1＋虚3<br/>接线态：部分／断（ISSUE-196）"]
+        C6["§1.6 运行时簇<br/>工具饱和／分片迷失 · 实线4＋虚1<br/>接线态：部分／未启（#18）"]
+        C7["§1.7 接线簇<br/>装配面名实分离 · 实心4（随 commit 过期）<br/>接线态：断（登记即执法面）"]
     end
-    F1 -->|M1 口径单点| L4
-    F2 -->|staleness+源水位| L5
-    F3 -->|统一骨架+归一| L5
-    F3 -->|ADR-2 统一检索| L8
-    F4 -->|M2/M3 双层防线| L7
-    F5 -->|M6 权限天花板| L7
-    F6 -->|M4 验证锚定| L8
-    F7 -->|供给面威胁模型| L7
-    F8 -->|预算分配+可观测| L8
+    subgraph T3["薄证据带 · 单锚实线→厂商调研全虚线"]
+        direction LR
+        C8["§1.8 记忆安全簇<br/>intent legitimation／投毒 · 实线3<br/>接线态：未启／断（#20）"]
+        C9["§1.9 组织运营簇<br/>ownership 真空／信念断层 · 虚线3（二手重建）<br/>接线态：—（组织面基线）"]
+    end
+    C1 --> C2
+    C2 --> C3
+    C3 --> C4
+    C4 --> C5
+    C5 --> C6
+    C6 --> C7
+    C7 --> C8
+    C8 --> C9

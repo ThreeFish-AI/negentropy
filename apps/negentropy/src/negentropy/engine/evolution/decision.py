@@ -4,7 +4,7 @@
 与编排副作用（DB / LLM 调用）正交解耦。所有阈值均为硬编码常量（非模型自律），
 参数由调用方显式注入——纯函数边界：decision 不读 settings。
 
-晋升判据（对齐蓝图 §4.4 在线信号融合 / §9.2 自动回滚）：
+晋升判据（对齐蓝图 §8.5 进化杠杆在线信号（013 2026-10-10 版；原 §4.4） / §8.5 自动回滚（013 2026-10-10 版；原 §9.2））：
 - shadow 通过：候选 ``zero_hit_rate`` 相对基线退化 ≤ ``ZERO_HIT_REGRESSION_MAX``
   AND ``helpful_ratio`` 改进 ≥ ``HELPFUL_RATIO_MIN_IMPROVEMENT`` AND 两桶样本量各 ≥ ``MIN_SAMPLE_N``；
 - canary promote：在线 ``zero_hit_rate`` 不退化 AND ``helpful_ratio`` 不下降（门槛比 shadow 宽），
@@ -103,7 +103,7 @@ class _MetricsView(Protocol):
 
 
 def clamp_weight(w: float) -> float:
-    """硬上下界 clamp（防极端，对齐蓝图 §9.6 安全不变量）。"""
+    """硬上下界 clamp（防极端，对齐蓝图 §8.5 判定守卫安全不变量（013 2026-10-10 版；原 §9.6））。"""
     return max(WEIGHT_LOWER_BOUND, min(WEIGHT_UPPER_BOUND, round(w, 4)))
 
 

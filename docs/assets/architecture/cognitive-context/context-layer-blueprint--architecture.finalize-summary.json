@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/architecture-context-layer-blueprint--architecture-20261010-004348/candidate.json",
+    "sha256": "0d552e59eef92306fffc804ba3b22c113c62ef922df32b968c769073a49cb92a",
+    "bytes": 9912
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.html",
+    "sha256": "42e4e3c464897e32919d09019206f30bbc76d2e45f0fdf57dea359adc9bb370c",
+    "bytes": 779264
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 2211,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "resolvedCrossovers": 2,
+      "routesOverSuggestedBends": 3,
+      "routesOverSuggestedStretch": 2
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [
+        {
+          "left": {
+            "id": "seamM3Retr",
+            "from": "chipM3",
+            "to": "axisRetrieval",
+            "label": "",
+            "collectionIndex": 4,
+            "artifactIndex": 5
+          },
+          "right": {
+            "id": "seamM4Comp",
+            "from": "chipM4",
+            "to": "axisCompounding",
+            "label": "",
+            "collectionIndex": 6,
+            "artifactIndex": 7
+          },
+          "point": [
+            685,
+            451
+          ]
+        },
+        {
+          "left": {
+            "id": "seamM4Retr",
+            "from": "chipM4",
+            "to": "axisRetrieval",
+            "label": "",
+            "collectionIndex": 5,
+            "artifactIndex": 6
+          },
+          "right": {
+            "id": "seamM4Comp",
+            "from": "chipM4",
+            "to": "axisCompounding",
+            "label": "",
+            "collectionIndex": 6,
+            "artifactIndex": 7
+          },
+          "point": [
+            696,
+            490
+          ],
+          "sharedNode": "chipM4"
+        }
+      ],
+      "detours": [
+        {
+          "relationship": {
+            "id": "seamM4Retr",
+            "from": "chipM4",
+            "to": "axisRetrieval",
+            "label": "",
+            "collectionIndex": 5,
+            "artifactIndex": 6
+          },
+          "bends": 4,
+          "stretch": 1.41
+        },
+        {
+          "relationship": {
+            "id": "seamM4Comp",
+            "from": "chipM4",
+            "to": "axisCompounding",
+            "label": "",
+            "collectionIndex": 6,
+            "artifactIndex": 7
+          },
+          "bends": 4,
+          "stretch": 3.76
+        },
+        {
+          "relationship": {
+            "id": "seamM7Auth",
+            "from": "chipM7",
+            "to": "axisAuth",
+            "label": "",
+            "collectionIndex": 8,
+            "artifactIndex": 9
+          },
+          "bends": 3,
+          "stretch": 1
+        }
+      ],
+      "truncated": false
+    },
+    "hints": [
+      "chipM1M5 has 2 relationships facing its left side, which fits 1 ports: make that side at least 46px, or move some of those neighbours so they face another side of chipM1M5.",
+      "chipM3 has 2 relationships facing its left side, which fits 1 ports: make that side at least 46px, or move some of those neighbours so they face another side of chipM3.",
+      "chipM4 has 2 relationships facing its left side, which fits 1 ports: make that side at least 46px, or move some of those neighbours so they face another side of chipM4.",
+      "chipM3 → axisRetrieval crosses chipM4 → axisCompounding: move the node of whichever is a branch, return, or second entrance to the other side of the main path, so that relationship runs through an empty corridor.",
+      "chipM4 → axisRetrieval and chipM4 → axisCompounding cross next to chipM4: move node axisRetrieval or axisCompounding so the two reach chipM4 from different sides (for example one level with it, one directly above or below it).",
+      "chipM4 → axisRetrieval needs 4 bends: move node chipM4 or axisRetrieval so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "chipM4 → axisCompounding needs 4 bends: move node chipM4 or axisCompounding so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "chipM7 → axisAuth needs 3 bends: move node chipM7 or axisAuth so they share a row or column with matching centers, or sit diagonally with a clear corner."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

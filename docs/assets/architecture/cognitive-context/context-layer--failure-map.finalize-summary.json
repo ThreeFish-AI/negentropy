@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/architecture-context-layer--failure-map-20261010-003320/candidate.json",
+    "sha256": "1b7b9c1d81ca710c7e1ee781abfcbe30f91035e4a09ef87417d33299b140e77a",
+    "bytes": 6513
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
+    "sha256": "dae51864ec358000bbeed6d92ad9dcbb00b9dc331aa8e3ab7f8011ae832d1680",
+    "bytes": 765089
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 2200
+}

@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "dataflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/dataflow-context-layer-blueprint--first-class-object-20261010-003244/candidate.json",
+    "sha256": "9a9f6ca4440d14c90e3991cd786de5e6df174f2e172dc777e948247846f105f2",
+    "bytes": 5558
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--first-class-object.html",
+    "sha256": "35b973ed316458b05a140a4033bd7937c01ce6dc6909953ad452d9e95cb1e7e2",
+    "bytes": 760780
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--first-class-object.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--first-class-object.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--first-class-object.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 2446
+}

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "19232077-b491-45b5-8fa1-92713b806044",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/architecture-context-layer-blueprint--architecture-20261010-004348/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.html",
+  "specification": {
+    "sha256": "0d552e59eef92306fffc804ba3b22c113c62ef922df32b968c769073a49cb92a",
+    "bytes": 9912
+  },
+  "artifact": {
+    "sha256": "42e4e3c464897e32919d09019206f30bbc76d2e45f0fdf57dea359adc9bb370c",
+    "bytes": 779264
+  }
+}

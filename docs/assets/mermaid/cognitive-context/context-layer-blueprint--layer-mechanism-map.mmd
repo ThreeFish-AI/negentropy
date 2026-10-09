@@ -1,39 +1,37 @@
-%%source: docs/research/cognitive-context/013-context-layer-blueprint.md §3.1 spine：层 × 机制 × 实例的总映射（结构轴五列；as-of 2026-09-27 @57987b28b 重核）
+%%source: docs/research/cognitive-context/013-context-layer-blueprint.md §3.3 机制＝接缝组合（M1–M7 轴向量矩阵：五轴为列、机制挂接缝）
 %%slug: cognitive-context/context-layer-blueprint--layer-mechanism-map
 %%type: architecture
-%%derived: archify architecture v1, authored fresh (五列×上下两排+生命周期链+映射边)
+%%derived: archify architecture v2, authored fresh（v1 五层×机制-实例对退役；新构型＝结构面五轴主链＋M1–M7 按轴向量挂接缝，M2/M6 单轴全落权威，无全轴机制、无落不进轴的机制）
 flowchart LR
-    subgraph OBJ["§4 对象层 · 规章手册"]
-        direction TB
-        OM["M1 口径单点×查询期重算<br/>五段式 + 校验门 · 聚合四保障<br/>🏷️ M4 字段在此"]
-        OI["definitions registry ✅<br/>4 类 SSOT · 422 门 · 物化 ✅（default-on）<br/>三字段纪律 🔶"]
-        OM -->|机制↔实例| OI
+    subgraph SPINE["结构面五轴（§3.2 正交判据：换 X 不动 Y）"]
+        direction LR
+        A1["资产轴 §4<br/>经营什么：语境资产 · 专属坏法 D6"]
+        A2["权威轴 §5<br/>真值 · 执法点 · 身份 · D5/D9/D8"]
+        A3["装配轴 §6<br/>进窗什么 · 预算与压缩 · 配对拆裂"]
+        A4["检索轴 §7<br/>候选 · 排序 · 截断 · ISSUE-196"]
+        A5["复利轴 §8<br/>变好并守住不变量 · D10/ISSUE-195"]
     end
-    subgraph CAT["§5 目录层 · 索引总账"]
-        direction TB
-        CM["M5 血缘 + 四层信号<br/>External Lineage · S/O/S/B<br/>🏷️ M5 归位非降格"]
-        CI["三视图+信任归一 🔶<br/>CJK 分词缺口（ISSUE-196）"]
-        CM -->|机制↔实例| CI
-    end
-    subgraph ENR["§6 富化层 · 双轨编纂"]
-        direction TB
-        EM["011 §3.1 双轨富化（专章）<br/>Autopilot · Sense · eval 自纠环"]
-        EI["patrol/Judge ✅（锚定版）<br/>冲突浮出 🔶 · 会话巩固断链 🔶（ISSUE-195）"]
-        EM -->|机制↔实例| EI
-    end
-    subgraph GOV["§7 治理层 · 承重墙风控"]
-        direction TB
-        GM["M2/M3/M7/M6 四机构<br/>闸机·承重墙·贴标·工牌 + 威胁模型"]
-        GI["交集过滤 ✅ · Guard 不存在 ⏸<br/>身份天花板 🔶 · 供给面 🔶"]
-        GM -->|机制↔实例| GI
-    end
-    subgraph ACT["§8 激活层 · 预算与验证"]
-        direction TB
-        AM["M4 验证锚定 · 011 §3.2/§3.3<br/>VQR 出示 · 四因子排序 · MCP/Ossie<br/>🏷️ M4 出示在此"]
-        AI["L1 ✅ · L2·L3 🔶（ISSUE-194）<br/>双通道统一 🔶（ADR-2 方案）"]
-        AM -->|机制↔实例| AI
-    end
-    OM -->|登记入账| CM
-    CM -->|富化养护| EM
-    EM -->|治理管控| GM
-    GM -->|受控供给| AM
+    M1["M1 语义视图<br/>资产×权威×装配"]
+    M5["M5 列级血缘<br/>资产×权威"]
+    M2["M2 行列级策略<br/>权威（单轴）"]
+    M4["M4 VQR 验证锚定<br/>检索×复利"]
+    M3["M3 语义级治理<br/>权威×检索"]
+    M6["M6 Agent 身份<br/>权威（单轴）"]
+    M7["M7 分类标签<br/>复利×权威"]
+    A1 -.- A2
+    A2 -.- A3
+    A3 -.- A4
+    A4 -.- A5
+    M1 -->|五段式对象| A1
+    M1 -->|唯一权威定义＋注册门| A2
+    M1 -->|查询期现算| A3
+    M5 -->|经营对象入账| A1
+    M5 -->|三道闸真值门| A2
+    M2 -->|强制力＝求值点| A2
+    M4 -->|候选集性质| A4
+    M4 -->|题库沉淀重验| A5
+    M3 -->|候选层过滤·体验| A4
+    M3 -->|引擎执法·底线| A2
+    M6 -->|三问只在求值点| A2
+    M7 -->|自动供给回路| A5
+    M7 -->|映射闸显式分开| A2

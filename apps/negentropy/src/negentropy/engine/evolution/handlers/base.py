@@ -1,6 +1,6 @@
 """TargetHandler —— 按 target_kind 分派的进化面抽象基类。
 
-设计动机（综述 §7 meta-layer + 蓝图 §10 注记「第二面接入时再抽 TargetHandler 基类一次到位」）：
+设计动机（综述 §7 meta-layer + 蓝图 §8.5 注记（013 新版；原 §10）「第二面接入时再抽 TargetHandler 基类一次到位」）：
 原 ``orchestrator`` 把 retrieval 面的 shadow/canary/promote/rollback/spawn 硬编码为方法；
 本抽象把这些收敛为 per-target_kind 的 handler 接口，orchestrator 退化为「reap + 按类分派 +
 遍历 spawn」的薄编排层。第二面（skill_template）接入只需新增 handler 子类，零改动 orchestrator。

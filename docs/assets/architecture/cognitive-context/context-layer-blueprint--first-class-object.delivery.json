@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "e81edcd2-b01b-402f-89fb-d0dddc3ae502",
+  "status": "current",
+  "command": "deliver",
+  "type": "dataflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/dataflow-context-layer-blueprint--first-class-object-20261010-003244/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--first-class-object.html",
+  "specification": {
+    "sha256": "9a9f6ca4440d14c90e3991cd786de5e6df174f2e172dc777e948247846f105f2",
+    "bytes": 5558
+  },
+  "artifact": {
+    "sha256": "35b973ed316458b05a140a4033bd7937c01ce6dc6909953ad452d9e95cb1e7e2",
+    "bytes": 760780
+  }
+}

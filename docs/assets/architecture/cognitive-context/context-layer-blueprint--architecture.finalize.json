@@ -1,0 +1,1070 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "architecture",
+  "quality": "showcase",
+  "startedAt": "2026-10-09T16:45:10.972Z",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/architecture-context-layer-blueprint--architecture-20261010-004348/candidate.json",
+    "sha256": "0d552e59eef92306fffc804ba3b22c113c62ef922df32b968c769073a49cb92a",
+    "bytes": 9912
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.html",
+    "sha256": "42e4e3c464897e32919d09019206f30bbc76d2e45f0fdf57dea359adc9bb370c",
+    "bytes": 779264
+  },
+  "stages": {
+    "validate": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": null,
+      "execution": "embedded-in-deliver",
+      "command": [
+        "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
+        "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
+        "deliver",
+        "architecture",
+        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/architecture-context-layer-blueprint--architecture-20261010-004348/candidate.json",
+        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.html",
+        "--quality",
+        "showcase",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "ok": true,
+        "command": "validate",
+        "specification": {
+          "sha256": "0d552e59eef92306fffc804ba3b22c113c62ef922df32b968c769073a49cb92a",
+          "bytes": 9912
+        },
+        "validation": {
+          "checksPassed": 9,
+          "checkCount": 9,
+          "compositionProfile": "showcase",
+          "compositionStatus": "pass",
+          "errors": 0,
+          "warnings": 0
+        }
+      }
+    },
+    "deliver": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 409,
+      "command": [
+        "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
+        "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
+        "deliver",
+        "architecture",
+        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/architecture-context-layer-blueprint--architecture-20261010-004348/candidate.json",
+        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.html",
+        "--quality",
+        "showcase",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "receiptId": "19232077-b491-45b5-8fa1-92713b806044",
+        "ok": true,
+        "command": "deliver",
+        "type": "architecture",
+        "input": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/architecture-context-layer-blueprint--architecture-20261010-004348/candidate.json",
+        "output": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.html",
+        "specification": {
+          "sha256": "0d552e59eef92306fffc804ba3b22c113c62ef922df32b968c769073a49cb92a",
+          "bytes": 9912
+        },
+        "artifact": {
+          "sha256": "42e4e3c464897e32919d09019206f30bbc76d2e45f0fdf57dea359adc9bb370c",
+          "bytes": 779264
+        },
+        "validation": {
+          "checksPassed": 9,
+          "checkCount": 9,
+          "compositionProfile": "showcase",
+          "compositionStatus": "pass",
+          "errors": 0,
+          "warnings": 0
+        }
+      }
+    },
+    "check": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 96,
+      "command": [
+        "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
+        "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
+        "check",
+        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.html",
+        "--require-provenance"
+      ],
+      "receipt": {
+        "ok": true,
+        "file": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.html",
+        "artifact": {
+          "sha256": "42e4e3c464897e32919d09019206f30bbc76d2e45f0fdf57dea359adc9bb370c",
+          "bytes": 779264
+        },
+        "checks": [
+          {
+            "name": "single_svg",
+            "ok": true,
+            "details": [
+              "found 1 <svg> block(s)"
+            ]
+          },
+          {
+            "name": "finite_svg",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "orthogonal_arrows",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "label_route_clearance",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "relationship_crossings",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "relationship_corridors",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "container_border_runs",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "route_rhythm",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "legend_clearance",
+            "ok": true,
+            "details": []
+          }
+        ],
+        "composition": {
+          "schemaVersion": 1,
+          "profile": "showcase",
+          "status": "pass",
+          "summary": {
+            "errors": 0,
+            "warnings": 0
+          },
+          "metrics": {
+            "properCrossings": 0,
+            "resolvedCrossovers": 2,
+            "ambiguousCorridors": 0,
+            "arrowheadCollisions": 0,
+            "containerBorderRuns": 0,
+            "labelRouteClearanceIssues": 0,
+            "labelCanvasOverflowIssues": 0,
+            "minLabelRouteClearance": 29.6,
+            "desktopReadabilityIssues": 0,
+            "viewportHeightIssues": 0,
+            "minProjectedNodeTextPx": 7.499999999999999,
+            "maxBends": 4,
+            "routesOverSuggestedBends": 3,
+            "maxStretch": 3.76,
+            "routesOverSuggestedStretch": 2,
+            "minSegmentPx": 16,
+            "minInteriorSegmentPx": 16,
+            "shortSegmentCount": 0,
+            "shortEndpointSegmentCount": 0,
+            "shortInteriorSegmentCount": 0,
+            "microSegmentCount": 0
+          },
+          "suggestedLimits": {
+            "bendsPerRelationship": 2,
+            "stretch": 1.35,
+            "segmentPx": 16,
+            "microSegmentPx": 8
+          },
+          "routeReview": {
+            "crossings": [
+              {
+                "left": {
+                  "id": "seamM3Retr",
+                  "from": "chipM3",
+                  "to": "axisRetrieval",
+                  "label": "",
+                  "collectionIndex": 4,
+                  "artifactIndex": 5
+                },
+                "right": {
+                  "id": "seamM4Comp",
+                  "from": "chipM4",
+                  "to": "axisCompounding",
+                  "label": "",
+                  "collectionIndex": 6,
+                  "artifactIndex": 7
+                },
+                "point": [
+                  685,
+                  451
+                ]
+              },
+              {
+                "left": {
+                  "id": "seamM4Retr",
+                  "from": "chipM4",
+                  "to": "axisRetrieval",
+                  "label": "",
+                  "collectionIndex": 5,
+                  "artifactIndex": 6
+                },
+                "right": {
+                  "id": "seamM4Comp",
+                  "from": "chipM4",
+                  "to": "axisCompounding",
+                  "label": "",
+                  "collectionIndex": 6,
+                  "artifactIndex": 7
+                },
+                "point": [
+                  696,
+                  490
+                ],
+                "sharedNode": "chipM4"
+              }
+            ],
+            "crowdedSides": [
+              {
+                "node": "chipM1M5",
+                "label": "M1 语义视图·M5 血缘",
+                "side": "left",
+                "relationships": 2,
+                "sidePx": 42,
+                "neededPx": 46
+              },
+              {
+                "node": "chipM3",
+                "label": "M3 语义级治理",
+                "side": "left",
+                "relationships": 2,
+                "sidePx": 42,
+                "neededPx": 46
+              },
+              {
+                "node": "chipM4",
+                "label": "M4 VQR 验证锚定",
+                "side": "left",
+                "relationships": 2,
+                "sidePx": 42,
+                "neededPx": 46
+              }
+            ],
+            "detours": [
+              {
+                "relationship": {
+                  "id": "seamM4Retr",
+                  "from": "chipM4",
+                  "to": "axisRetrieval",
+                  "label": "",
+                  "collectionIndex": 5,
+                  "artifactIndex": 6
+                },
+                "bends": 4,
+                "stretch": 1.41
+              },
+              {
+                "relationship": {
+                  "id": "seamM4Comp",
+                  "from": "chipM4",
+                  "to": "axisCompounding",
+                  "label": "",
+                  "collectionIndex": 6,
+                  "artifactIndex": 7
+                },
+                "bends": 4,
+                "stretch": 3.76
+              },
+              {
+                "relationship": {
+                  "id": "seamM7Auth",
+                  "from": "chipM7",
+                  "to": "axisAuth",
+                  "label": "",
+                  "collectionIndex": 8,
+                  "artifactIndex": 9
+                },
+                "bends": 3,
+                "stretch": 1
+              }
+            ]
+          },
+          "leadingSpace": {
+            "measured": true,
+            "emptyTopPx": 86,
+            "emptyTopRatio": 0.116,
+            "occupiedTop": 86,
+            "viewBoxTop": 0,
+            "canvasHeight": 742,
+            "typicalNodeHeight": 48,
+            "reviewSuggested": false
+          },
+          "desktopReadability": {
+            "budgetBasis": "recognized-declared-wide",
+            "readerContract": "declared-wide-v1",
+            "availableDiagramWidth": 1153.1249999999998,
+            "actualBudgetPx": 1153.1249999999998,
+            "actualReaderWidth": 1183.1249999999998,
+            "desiredReaderWidth": 1183.1249999999998,
+            "viewportCap": 1376,
+            "limit": "source-size",
+            "requestedTargetPx": 7.5,
+            "requestedTargetMet": false,
+            "hardFloorPx": 6,
+            "hardFloorMet": true,
+            "minimumOwner": {
+              "kind": "boundary",
+              "id": null
+            },
+            "minimumSourceTextPx": 7.8048780487804885,
+            "minimumProjectedTextPx": 7.499999999999999,
+            "semanticTextCount": 39
+          },
+          "issues": []
+        },
+        "provenance": "current",
+        "deliveryReceiptId": "19232077-b491-45b5-8fa1-92713b806044"
+      }
+    },
+    "browser-check": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 1273,
+      "command": [
+        "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
+        "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
+        "browser-check",
+        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.html",
+        "--json",
+        "--require-provenance"
+      ],
+      "execution": "in-process",
+      "receipt": {
+        "schemaVersion": 1,
+        "ok": true,
+        "command": "browser-check",
+        "evidenceKind": "automated-browser",
+        "status": "pass",
+        "visualReview": "not-requested",
+        "provenance": "current",
+        "deliveryReceiptId": "19232077-b491-45b5-8fa1-92713b806044",
+        "artifact": {
+          "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.html",
+          "sha256": "42e4e3c464897e32919d09019206f30bbc76d2e45f0fdf57dea359adc9bb370c",
+          "bytes": 779264
+        },
+        "state": {
+          "detail": "read",
+          "motion": "still"
+        },
+        "chrome": {
+          "status": "available",
+          "executable": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+        },
+        "diagnostics": [],
+        "containment": {
+          "status": "pass",
+          "policy": "fit-or-reader-declared-readable-vertical-scroll",
+          "viewports": [
+            {
+              "width": 1440,
+              "height": 900,
+              "theme": "light",
+              "innerWidth": 1440,
+              "innerHeight": 900,
+              "scrollWidth": 1440,
+              "scrollHeight": 900,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1195,
+              "diagramWidth": 1165,
+              "pageComposition": {
+                "bodyPaddingPx": 12,
+                "headerPx": 78,
+                "diagramChromePx": 78,
+                "svgPx": 720,
+                "cardsPx": 0,
+                "viewBoxHeight": 742
+              },
+              "viewBoxWidth": 1200,
+              "minimumProjectedNodeTextPx": 7.577235772357724,
+              "minimumProjectedNonEdgeTextPx": 7.577235772357724,
+              "minimumProjectedEdgeTextPx": 7.766666666666667,
+              "minimumProjectedNodeText": "时间面 · 六段两环，G1–G7 钉段间转换（§9）",
+              "minimumProjectedNodeTextDetail": "boundary",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "boundary",
+                "id": null
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 1600,
+              "height": 1000,
+              "theme": "light",
+              "innerWidth": 1600,
+              "innerHeight": 1000,
+              "scrollWidth": 1600,
+              "scrollHeight": 1000,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1250,
+              "diagramWidth": 1220,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 86,
+                "diagramChromePx": 84,
+                "svgPx": 754,
+                "cardsPx": 0,
+                "viewBoxHeight": 742
+              },
+              "viewBoxWidth": 1200,
+              "minimumProjectedNodeTextPx": 7.8048780487804885,
+              "minimumProjectedNonEdgeTextPx": 7.8048780487804885,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "时间面 · 六段两环，G1–G7 钉段间转换（§9）",
+              "minimumProjectedNodeTextDetail": "boundary",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "boundary",
+                "id": null
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 1920,
+              "height": 1080,
+              "theme": "light",
+              "innerWidth": 1920,
+              "innerHeight": 1080,
+              "scrollWidth": 1920,
+              "scrollHeight": 1080,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1379,
+              "diagramWidth": 1349,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 86,
+                "diagramChromePx": 84,
+                "svgPx": 834,
+                "cardsPx": 0,
+                "viewBoxHeight": 742
+              },
+              "viewBoxWidth": 1200,
+              "minimumProjectedNodeTextPx": 7.8048780487804885,
+              "minimumProjectedNonEdgeTextPx": 7.8048780487804885,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "时间面 · 六段两环，G1–G7 钉段间转换（§9）",
+              "minimumProjectedNodeTextDetail": "boundary",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "boundary",
+                "id": null
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 2048,
+              "height": 1320,
+              "theme": "light",
+              "innerWidth": 2048,
+              "innerHeight": 1320,
+              "scrollWidth": 2048,
+              "scrollHeight": 1320,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1758,
+              "diagramWidth": 1708,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 94,
+                "diagramChromePx": 94,
+                "svgPx": 1056,
+                "cardsPx": 0,
+                "viewBoxHeight": 742
+              },
+              "viewBoxWidth": 1200,
+              "minimumProjectedNodeTextPx": 7.8048780487804885,
+              "minimumProjectedNonEdgeTextPx": 7.8048780487804885,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "时间面 · 六段两环，G1–G7 钉段间转换（§9）",
+              "minimumProjectedNodeTextDetail": "boundary",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "boundary",
+                "id": null
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 44,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            }
+          ]
+        },
+        "themeStates": {
+          "status": "pass",
+          "viewports": [
+            {
+              "width": 1440,
+              "height": 900,
+              "requestedTheme": "light",
+              "resolvedTheme": "light",
+              "ok": true
+            },
+            {
+              "width": 1600,
+              "height": 1000,
+              "requestedTheme": "light",
+              "resolvedTheme": "light",
+              "ok": true
+            },
+            {
+              "width": 1920,
+              "height": 1080,
+              "requestedTheme": "light",
+              "resolvedTheme": "light",
+              "ok": true
+            },
+            {
+              "width": 2048,
+              "height": 1320,
+              "requestedTheme": "light",
+              "resolvedTheme": "light",
+              "ok": true
+            },
+            {
+              "width": 1440,
+              "height": 900,
+              "requestedTheme": "dark",
+              "resolvedTheme": "dark",
+              "ok": true
+            },
+            {
+              "width": 2048,
+              "height": 1320,
+              "requestedTheme": "dark",
+              "resolvedTheme": "dark",
+              "ok": true
+            }
+          ]
+        },
+        "readability": {
+          "status": "pass",
+          "minimumProjectedNodeTextPx": 6,
+          "viewports": [
+            {
+              "width": 1440,
+              "height": 900,
+              "theme": "light",
+              "innerWidth": 1440,
+              "innerHeight": 900,
+              "scrollWidth": 1440,
+              "scrollHeight": 900,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1195,
+              "diagramWidth": 1165,
+              "pageComposition": {
+                "bodyPaddingPx": 12,
+                "headerPx": 78,
+                "diagramChromePx": 78,
+                "svgPx": 720,
+                "cardsPx": 0,
+                "viewBoxHeight": 742
+              },
+              "viewBoxWidth": 1200,
+              "minimumProjectedNodeTextPx": 7.577235772357724,
+              "minimumProjectedNonEdgeTextPx": 7.577235772357724,
+              "minimumProjectedEdgeTextPx": 7.766666666666667,
+              "minimumProjectedNodeText": "时间面 · 六段两环，G1–G7 钉段间转换（§9）",
+              "minimumProjectedNodeTextDetail": "boundary",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "boundary",
+                "id": null
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 1600,
+              "height": 1000,
+              "theme": "light",
+              "innerWidth": 1600,
+              "innerHeight": 1000,
+              "scrollWidth": 1600,
+              "scrollHeight": 1000,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1250,
+              "diagramWidth": 1220,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 86,
+                "diagramChromePx": 84,
+                "svgPx": 754,
+                "cardsPx": 0,
+                "viewBoxHeight": 742
+              },
+              "viewBoxWidth": 1200,
+              "minimumProjectedNodeTextPx": 7.8048780487804885,
+              "minimumProjectedNonEdgeTextPx": 7.8048780487804885,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "时间面 · 六段两环，G1–G7 钉段间转换（§9）",
+              "minimumProjectedNodeTextDetail": "boundary",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "boundary",
+                "id": null
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 1920,
+              "height": 1080,
+              "theme": "light",
+              "innerWidth": 1920,
+              "innerHeight": 1080,
+              "scrollWidth": 1920,
+              "scrollHeight": 1080,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1379,
+              "diagramWidth": 1349,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 86,
+                "diagramChromePx": 84,
+                "svgPx": 834,
+                "cardsPx": 0,
+                "viewBoxHeight": 742
+              },
+              "viewBoxWidth": 1200,
+              "minimumProjectedNodeTextPx": 7.8048780487804885,
+              "minimumProjectedNonEdgeTextPx": 7.8048780487804885,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "时间面 · 六段两环，G1–G7 钉段间转换（§9）",
+              "minimumProjectedNodeTextDetail": "boundary",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "boundary",
+                "id": null
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 2048,
+              "height": 1320,
+              "theme": "light",
+              "innerWidth": 2048,
+              "innerHeight": 1320,
+              "scrollWidth": 2048,
+              "scrollHeight": 1320,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1758,
+              "diagramWidth": 1708,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 94,
+                "diagramChromePx": 94,
+                "svgPx": 1056,
+                "cardsPx": 0,
+                "viewBoxHeight": 742
+              },
+              "viewBoxWidth": 1200,
+              "minimumProjectedNodeTextPx": 7.8048780487804885,
+              "minimumProjectedNonEdgeTextPx": 7.8048780487804885,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "时间面 · 六段两环，G1–G7 钉段间转换（§9）",
+              "minimumProjectedNodeTextDetail": "boundary",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "boundary",
+                "id": null
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 44,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            }
+          ]
+        },
+        "viewerChrome": {
+          "status": "pass",
+          "viewports": [
+            {
+              "width": 1440,
+              "height": 900,
+              "theme": "light",
+              "innerWidth": 1440,
+              "innerHeight": 900,
+              "scrollWidth": 1440,
+              "scrollHeight": 900,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1195,
+              "diagramWidth": 1165,
+              "pageComposition": {
+                "bodyPaddingPx": 12,
+                "headerPx": 78,
+                "diagramChromePx": 78,
+                "svgPx": 720,
+                "cardsPx": 0,
+                "viewBoxHeight": 742
+              },
+              "viewBoxWidth": 1200,
+              "minimumProjectedNodeTextPx": 7.577235772357724,
+              "minimumProjectedNonEdgeTextPx": 7.577235772357724,
+              "minimumProjectedEdgeTextPx": 7.766666666666667,
+              "minimumProjectedNodeText": "时间面 · 六段两环，G1–G7 钉段间转换（§9）",
+              "minimumProjectedNodeTextDetail": "boundary",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "boundary",
+                "id": null
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 1600,
+              "height": 1000,
+              "theme": "light",
+              "innerWidth": 1600,
+              "innerHeight": 1000,
+              "scrollWidth": 1600,
+              "scrollHeight": 1000,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1250,
+              "diagramWidth": 1220,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 86,
+                "diagramChromePx": 84,
+                "svgPx": 754,
+                "cardsPx": 0,
+                "viewBoxHeight": 742
+              },
+              "viewBoxWidth": 1200,
+              "minimumProjectedNodeTextPx": 7.8048780487804885,
+              "minimumProjectedNonEdgeTextPx": 7.8048780487804885,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "时间面 · 六段两环，G1–G7 钉段间转换（§9）",
+              "minimumProjectedNodeTextDetail": "boundary",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "boundary",
+                "id": null
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 1920,
+              "height": 1080,
+              "theme": "light",
+              "innerWidth": 1920,
+              "innerHeight": 1080,
+              "scrollWidth": 1920,
+              "scrollHeight": 1080,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1379,
+              "diagramWidth": 1349,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 86,
+                "diagramChromePx": 84,
+                "svgPx": 834,
+                "cardsPx": 0,
+                "viewBoxHeight": 742
+              },
+              "viewBoxWidth": 1200,
+              "minimumProjectedNodeTextPx": 7.8048780487804885,
+              "minimumProjectedNonEdgeTextPx": 7.8048780487804885,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "时间面 · 六段两环，G1–G7 钉段间转换（§9）",
+              "minimumProjectedNodeTextDetail": "boundary",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "boundary",
+                "id": null
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 2048,
+              "height": 1320,
+              "theme": "light",
+              "innerWidth": 2048,
+              "innerHeight": 1320,
+              "scrollWidth": 2048,
+              "scrollHeight": 1320,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1758,
+              "diagramWidth": 1708,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 94,
+                "diagramChromePx": 94,
+                "svgPx": 1056,
+                "cardsPx": 0,
+                "viewBoxHeight": 742
+              },
+              "viewBoxWidth": 1200,
+              "minimumProjectedNodeTextPx": 7.8048780487804885,
+              "minimumProjectedNonEdgeTextPx": 7.8048780487804885,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "时间面 · 六段两环，G1–G7 钉段间转换（§9）",
+              "minimumProjectedNodeTextDetail": "boundary",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "boundary",
+                "id": null
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 44,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            }
+          ]
+        },
+        "captures": {
+          "status": "not-requested",
+          "screenshots": [],
+          "contactSheet": null
+        },
+        "sidecars": {
+          "receipt": "context-layer-blueprint--architecture.browser-check.json",
+          "files": []
+        }
+      }
+    }
+  },
+  "diagnostics": [],
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "finishedAt": "2026-10-09T16:45:13.183Z",
+  "durationMs": 2211
+}

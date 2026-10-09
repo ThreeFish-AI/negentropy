@@ -73,7 +73,7 @@ from negentropy.models.skill import Skill, SkillVersion
 
 logger = get_logger("negentropy.engine.evolution.skill")
 
-# prompt_template 有界变异约束（对齐蓝图 §5.3 Decagon 4x 压缩经验）
+# prompt_template 有界变异约束（对齐蓝图 §6.4 压缩分级 Decagon 4x 经验注（013 2026-10-10 版；原 §5.3））
 _PROMPT_MAX_CHARS = 1500
 _MAX_FAIL_CASES_IN_PROMPT = 5
 _MAX_RECENT_NEGATIVES = 5

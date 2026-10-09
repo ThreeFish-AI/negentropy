@@ -1,0 +1,961 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "architecture",
+  "quality": "showcase",
+  "startedAt": "2026-10-09T16:34:15.636Z",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/architecture-context-layer--failure-map-20261010-003320/candidate.json",
+    "sha256": "1b7b9c1d81ca710c7e1ee781abfcbe30f91035e4a09ef87417d33299b140e77a",
+    "bytes": 6513
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
+    "sha256": "dae51864ec358000bbeed6d92ad9dcbb00b9dc331aa8e3ab7f8011ae832d1680",
+    "bytes": 765089
+  },
+  "stages": {
+    "validate": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": null,
+      "execution": "embedded-in-deliver",
+      "command": [
+        "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
+        "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
+        "deliver",
+        "architecture",
+        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/architecture-context-layer--failure-map-20261010-003320/candidate.json",
+        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
+        "--quality",
+        "showcase",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "ok": true,
+        "command": "validate",
+        "specification": {
+          "sha256": "1b7b9c1d81ca710c7e1ee781abfcbe30f91035e4a09ef87417d33299b140e77a",
+          "bytes": 6513
+        },
+        "validation": {
+          "checksPassed": 9,
+          "checkCount": 9,
+          "compositionProfile": "showcase",
+          "compositionStatus": "pass",
+          "errors": 0,
+          "warnings": 0
+        }
+      }
+    },
+    "deliver": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 428,
+      "command": [
+        "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
+        "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
+        "deliver",
+        "architecture",
+        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/architecture-context-layer--failure-map-20261010-003320/candidate.json",
+        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
+        "--quality",
+        "showcase",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "receiptId": "bef31e20-edc3-4aa8-8c6f-d40bf8ea9566",
+        "ok": true,
+        "command": "deliver",
+        "type": "architecture",
+        "input": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/architecture-context-layer--failure-map-20261010-003320/candidate.json",
+        "output": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
+        "specification": {
+          "sha256": "1b7b9c1d81ca710c7e1ee781abfcbe30f91035e4a09ef87417d33299b140e77a",
+          "bytes": 6513
+        },
+        "artifact": {
+          "sha256": "dae51864ec358000bbeed6d92ad9dcbb00b9dc331aa8e3ab7f8011ae832d1680",
+          "bytes": 765089
+        },
+        "validation": {
+          "checksPassed": 9,
+          "checkCount": 9,
+          "compositionProfile": "showcase",
+          "compositionStatus": "pass",
+          "errors": 0,
+          "warnings": 0
+        }
+      }
+    },
+    "check": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 87,
+      "command": [
+        "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
+        "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
+        "check",
+        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
+        "--require-provenance"
+      ],
+      "receipt": {
+        "ok": true,
+        "file": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
+        "artifact": {
+          "sha256": "dae51864ec358000bbeed6d92ad9dcbb00b9dc331aa8e3ab7f8011ae832d1680",
+          "bytes": 765089
+        },
+        "checks": [
+          {
+            "name": "single_svg",
+            "ok": true,
+            "details": [
+              "found 1 <svg> block(s)"
+            ]
+          },
+          {
+            "name": "finite_svg",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "orthogonal_arrows",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "label_route_clearance",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "relationship_crossings",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "relationship_corridors",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "container_border_runs",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "route_rhythm",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "legend_clearance",
+            "ok": true,
+            "details": []
+          }
+        ],
+        "composition": {
+          "schemaVersion": 1,
+          "profile": "showcase",
+          "status": "pass",
+          "summary": {
+            "errors": 0,
+            "warnings": 0
+          },
+          "metrics": {
+            "properCrossings": 0,
+            "resolvedCrossovers": 0,
+            "ambiguousCorridors": 0,
+            "arrowheadCollisions": 0,
+            "containerBorderRuns": 0,
+            "labelRouteClearanceIssues": 0,
+            "labelCanvasOverflowIssues": 0,
+            "minLabelRouteClearance": null,
+            "desktopReadabilityIssues": 0,
+            "viewportHeightIssues": 0,
+            "minProjectedNodeTextPx": 7.5,
+            "maxBends": 0,
+            "routesOverSuggestedBends": 0,
+            "maxStretch": 1,
+            "routesOverSuggestedStretch": 0,
+            "minSegmentPx": 34,
+            "minInteriorSegmentPx": null,
+            "shortSegmentCount": 0,
+            "shortEndpointSegmentCount": 0,
+            "shortInteriorSegmentCount": 0,
+            "microSegmentCount": 0
+          },
+          "suggestedLimits": {
+            "bendsPerRelationship": 2,
+            "stretch": 1.35,
+            "segmentPx": 16,
+            "microSegmentPx": 8
+          },
+          "routeReview": {
+            "crossings": [],
+            "detours": []
+          },
+          "leadingSpace": {
+            "measured": true,
+            "emptyTopPx": 80,
+            "emptyTopRatio": 0.109,
+            "occupiedTop": 80,
+            "viewBoxTop": 0,
+            "canvasHeight": 732,
+            "typicalNodeHeight": 86,
+            "reviewSuggested": false
+          },
+          "desktopReadability": {
+            "budgetBasis": "recognized-declared-wide",
+            "readerContract": "declared-wide-v1",
+            "availableDiagramWidth": 1061.8902439024391,
+            "actualBudgetPx": 1061.8902439024391,
+            "actualReaderWidth": 1091.8902439024391,
+            "desiredReaderWidth": 1091.8902439024391,
+            "viewportCap": 1376,
+            "limit": "source-size",
+            "requestedTargetPx": 7.5,
+            "requestedTargetMet": true,
+            "hardFloorPx": 6,
+            "hardFloorMet": true,
+            "minimumOwner": {
+              "kind": "node",
+              "id": "c5_gongji"
+            },
+            "minimumSourceTextPx": 8.2,
+            "minimumProjectedTextPx": 7.5,
+            "semanticTextCount": 21
+          },
+          "issues": []
+        },
+        "provenance": "current",
+        "deliveryReceiptId": "bef31e20-edc3-4aa8-8c6f-d40bf8ea9566"
+      }
+    },
+    "browser-check": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 1230,
+      "command": [
+        "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
+        "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
+        "browser-check",
+        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
+        "--json",
+        "--require-provenance"
+      ],
+      "execution": "in-process",
+      "receipt": {
+        "schemaVersion": 1,
+        "ok": true,
+        "command": "browser-check",
+        "evidenceKind": "automated-browser",
+        "status": "pass",
+        "visualReview": "not-requested",
+        "provenance": "current",
+        "deliveryReceiptId": "bef31e20-edc3-4aa8-8c6f-d40bf8ea9566",
+        "artifact": {
+          "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
+          "sha256": "dae51864ec358000bbeed6d92ad9dcbb00b9dc331aa8e3ab7f8011ae832d1680",
+          "bytes": 765089
+        },
+        "state": {
+          "detail": "read",
+          "motion": "still"
+        },
+        "chrome": {
+          "status": "available",
+          "executable": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+        },
+        "diagnostics": [],
+        "containment": {
+          "status": "pass",
+          "policy": "fit-or-reader-declared-readable-vertical-scroll",
+          "viewports": [
+            {
+              "width": 1440,
+              "height": 900,
+              "theme": "light",
+              "innerWidth": 1440,
+              "innerHeight": 900,
+              "scrollWidth": 1440,
+              "scrollHeight": 900,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1213,
+              "diagramWidth": 1183,
+              "pageComposition": {
+                "bodyPaddingPx": 12,
+                "headerPx": 52,
+                "diagramChromePx": 78,
+                "svgPx": 746,
+                "cardsPx": 0,
+                "viewBoxHeight": 732
+              },
+              "viewBoxWidth": 1161,
+              "minimumProjectedNodeTextPx": 8.2,
+              "minimumProjectedNonEdgeTextPx": 8.2,
+              "minimumProjectedEdgeTextPx": null,
+              "minimumProjectedNodeText": "覆盖率天花板／CJK 失效 · 实线2＋实心1＋虚3",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "c5_gongji"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 1600,
+              "height": 1000,
+              "theme": "light",
+              "innerWidth": 1600,
+              "innerHeight": 1000,
+              "scrollWidth": 1600,
+              "scrollHeight": 1000,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1267,
+              "diagramWidth": 1237,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 60,
+                "diagramChromePx": 84,
+                "svgPx": 780,
+                "cardsPx": 0,
+                "viewBoxHeight": 732
+              },
+              "viewBoxWidth": 1161,
+              "minimumProjectedNodeTextPx": 8.2,
+              "minimumProjectedNonEdgeTextPx": 8.2,
+              "minimumProjectedEdgeTextPx": null,
+              "minimumProjectedNodeText": "覆盖率天花板／CJK 失效 · 实线2＋实心1＋虚3",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "c5_gongji"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 1920,
+              "height": 1080,
+              "theme": "light",
+              "innerWidth": 1920,
+              "innerHeight": 1080,
+              "scrollWidth": 1920,
+              "scrollHeight": 1080,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1394,
+              "diagramWidth": 1364,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 60,
+                "diagramChromePx": 84,
+                "svgPx": 860,
+                "cardsPx": 0,
+                "viewBoxHeight": 732
+              },
+              "viewBoxWidth": 1161,
+              "minimumProjectedNodeTextPx": 8.2,
+              "minimumProjectedNonEdgeTextPx": 8.2,
+              "minimumProjectedEdgeTextPx": null,
+              "minimumProjectedNodeText": "覆盖率天花板／CJK 失效 · 实线2＋实心1＋虚3",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "c5_gongji"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 2048,
+              "height": 1320,
+              "theme": "light",
+              "innerWidth": 2048,
+              "innerHeight": 1320,
+              "scrollWidth": 2048,
+              "scrollHeight": 1320,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1766,
+              "diagramWidth": 1716,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 68,
+                "diagramChromePx": 94,
+                "svgPx": 1082,
+                "cardsPx": 0,
+                "viewBoxHeight": 732
+              },
+              "viewBoxWidth": 1161,
+              "minimumProjectedNodeTextPx": 8.2,
+              "minimumProjectedNonEdgeTextPx": 8.2,
+              "minimumProjectedEdgeTextPx": null,
+              "minimumProjectedNodeText": "覆盖率天花板／CJK 失效 · 实线2＋实心1＋虚3",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "c5_gongji"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 44,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            }
+          ]
+        },
+        "themeStates": {
+          "status": "pass",
+          "viewports": [
+            {
+              "width": 1440,
+              "height": 900,
+              "requestedTheme": "light",
+              "resolvedTheme": "light",
+              "ok": true
+            },
+            {
+              "width": 1600,
+              "height": 1000,
+              "requestedTheme": "light",
+              "resolvedTheme": "light",
+              "ok": true
+            },
+            {
+              "width": 1920,
+              "height": 1080,
+              "requestedTheme": "light",
+              "resolvedTheme": "light",
+              "ok": true
+            },
+            {
+              "width": 2048,
+              "height": 1320,
+              "requestedTheme": "light",
+              "resolvedTheme": "light",
+              "ok": true
+            },
+            {
+              "width": 1440,
+              "height": 900,
+              "requestedTheme": "dark",
+              "resolvedTheme": "dark",
+              "ok": true
+            },
+            {
+              "width": 2048,
+              "height": 1320,
+              "requestedTheme": "dark",
+              "resolvedTheme": "dark",
+              "ok": true
+            }
+          ]
+        },
+        "readability": {
+          "status": "pass",
+          "minimumProjectedNodeTextPx": 6,
+          "viewports": [
+            {
+              "width": 1440,
+              "height": 900,
+              "theme": "light",
+              "innerWidth": 1440,
+              "innerHeight": 900,
+              "scrollWidth": 1440,
+              "scrollHeight": 900,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1213,
+              "diagramWidth": 1183,
+              "pageComposition": {
+                "bodyPaddingPx": 12,
+                "headerPx": 52,
+                "diagramChromePx": 78,
+                "svgPx": 746,
+                "cardsPx": 0,
+                "viewBoxHeight": 732
+              },
+              "viewBoxWidth": 1161,
+              "minimumProjectedNodeTextPx": 8.2,
+              "minimumProjectedNonEdgeTextPx": 8.2,
+              "minimumProjectedEdgeTextPx": null,
+              "minimumProjectedNodeText": "覆盖率天花板／CJK 失效 · 实线2＋实心1＋虚3",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "c5_gongji"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 1600,
+              "height": 1000,
+              "theme": "light",
+              "innerWidth": 1600,
+              "innerHeight": 1000,
+              "scrollWidth": 1600,
+              "scrollHeight": 1000,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1267,
+              "diagramWidth": 1237,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 60,
+                "diagramChromePx": 84,
+                "svgPx": 780,
+                "cardsPx": 0,
+                "viewBoxHeight": 732
+              },
+              "viewBoxWidth": 1161,
+              "minimumProjectedNodeTextPx": 8.2,
+              "minimumProjectedNonEdgeTextPx": 8.2,
+              "minimumProjectedEdgeTextPx": null,
+              "minimumProjectedNodeText": "覆盖率天花板／CJK 失效 · 实线2＋实心1＋虚3",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "c5_gongji"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 1920,
+              "height": 1080,
+              "theme": "light",
+              "innerWidth": 1920,
+              "innerHeight": 1080,
+              "scrollWidth": 1920,
+              "scrollHeight": 1080,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1394,
+              "diagramWidth": 1364,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 60,
+                "diagramChromePx": 84,
+                "svgPx": 860,
+                "cardsPx": 0,
+                "viewBoxHeight": 732
+              },
+              "viewBoxWidth": 1161,
+              "minimumProjectedNodeTextPx": 8.2,
+              "minimumProjectedNonEdgeTextPx": 8.2,
+              "minimumProjectedEdgeTextPx": null,
+              "minimumProjectedNodeText": "覆盖率天花板／CJK 失效 · 实线2＋实心1＋虚3",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "c5_gongji"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 2048,
+              "height": 1320,
+              "theme": "light",
+              "innerWidth": 2048,
+              "innerHeight": 1320,
+              "scrollWidth": 2048,
+              "scrollHeight": 1320,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1766,
+              "diagramWidth": 1716,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 68,
+                "diagramChromePx": 94,
+                "svgPx": 1082,
+                "cardsPx": 0,
+                "viewBoxHeight": 732
+              },
+              "viewBoxWidth": 1161,
+              "minimumProjectedNodeTextPx": 8.2,
+              "minimumProjectedNonEdgeTextPx": 8.2,
+              "minimumProjectedEdgeTextPx": null,
+              "minimumProjectedNodeText": "覆盖率天花板／CJK 失效 · 实线2＋实心1＋虚3",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "c5_gongji"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 44,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            }
+          ]
+        },
+        "viewerChrome": {
+          "status": "pass",
+          "viewports": [
+            {
+              "width": 1440,
+              "height": 900,
+              "theme": "light",
+              "innerWidth": 1440,
+              "innerHeight": 900,
+              "scrollWidth": 1440,
+              "scrollHeight": 900,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1213,
+              "diagramWidth": 1183,
+              "pageComposition": {
+                "bodyPaddingPx": 12,
+                "headerPx": 52,
+                "diagramChromePx": 78,
+                "svgPx": 746,
+                "cardsPx": 0,
+                "viewBoxHeight": 732
+              },
+              "viewBoxWidth": 1161,
+              "minimumProjectedNodeTextPx": 8.2,
+              "minimumProjectedNonEdgeTextPx": 8.2,
+              "minimumProjectedEdgeTextPx": null,
+              "minimumProjectedNodeText": "覆盖率天花板／CJK 失效 · 实线2＋实心1＋虚3",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "c5_gongji"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 1600,
+              "height": 1000,
+              "theme": "light",
+              "innerWidth": 1600,
+              "innerHeight": 1000,
+              "scrollWidth": 1600,
+              "scrollHeight": 1000,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1267,
+              "diagramWidth": 1237,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 60,
+                "diagramChromePx": 84,
+                "svgPx": 780,
+                "cardsPx": 0,
+                "viewBoxHeight": 732
+              },
+              "viewBoxWidth": 1161,
+              "minimumProjectedNodeTextPx": 8.2,
+              "minimumProjectedNonEdgeTextPx": 8.2,
+              "minimumProjectedEdgeTextPx": null,
+              "minimumProjectedNodeText": "覆盖率天花板／CJK 失效 · 实线2＋实心1＋虚3",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "c5_gongji"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 1920,
+              "height": 1080,
+              "theme": "light",
+              "innerWidth": 1920,
+              "innerHeight": 1080,
+              "scrollWidth": 1920,
+              "scrollHeight": 1080,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1394,
+              "diagramWidth": 1364,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 60,
+                "diagramChromePx": 84,
+                "svgPx": 860,
+                "cardsPx": 0,
+                "viewBoxHeight": 732
+              },
+              "viewBoxWidth": 1161,
+              "minimumProjectedNodeTextPx": 8.2,
+              "minimumProjectedNonEdgeTextPx": 8.2,
+              "minimumProjectedEdgeTextPx": null,
+              "minimumProjectedNodeText": "覆盖率天花板／CJK 失效 · 实线2＋实心1＋虚3",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "c5_gongji"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 2048,
+              "height": 1320,
+              "theme": "light",
+              "innerWidth": 2048,
+              "innerHeight": 1320,
+              "scrollWidth": 2048,
+              "scrollHeight": 1320,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1766,
+              "diagramWidth": 1716,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 68,
+                "diagramChromePx": 94,
+                "svgPx": 1082,
+                "cardsPx": 0,
+                "viewBoxHeight": 732
+              },
+              "viewBoxWidth": 1161,
+              "minimumProjectedNodeTextPx": 8.2,
+              "minimumProjectedNonEdgeTextPx": 8.2,
+              "minimumProjectedEdgeTextPx": null,
+              "minimumProjectedNodeText": "覆盖率天花板／CJK 失效 · 实线2＋实心1＋虚3",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "c5_gongji"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 44,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            }
+          ]
+        },
+        "captures": {
+          "status": "not-requested",
+          "screenshots": [],
+          "contactSheet": null
+        },
+        "sidecars": {
+          "receipt": "context-layer--failure-map.browser-check.json",
+          "files": []
+        }
+      }
+    }
+  },
+  "diagnostics": [],
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "finishedAt": "2026-10-09T16:34:17.836Z",
+  "durationMs": 2200
+}
