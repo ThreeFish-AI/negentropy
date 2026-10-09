@@ -4,6 +4,9 @@
 
 ## [Unreleased]
 ### Added
+### Learn Claude Code 五集笔记层 LLM 单名化：术语统一 + gl-notes 第四次重冻（2026-10-09）
+
+- **同概念多名收敛**（[ISSUE-214](docs/.agents/issue.md)）：171–175 六篇 SSOT（含 170 规则句）凡特指大语言模型一律只写 LLM，首现随注全称「LLM（大语言模型）」；三类例外保留原样并登记（课程原话引文、小模型权限分类器、线程/进程模型等非 LLM 复合概念）；脚本化统一 113 行级变更（保护跨度 + 计数断言 + 行数不变），五集 [gl-notes](apps/negentropy-influence/episodes/claude-code-explained-video/research/gl-notes.md) 同步第四次重冻（五对冻结段与 SSOT 链接改写后逐字节一致），[readme](docs/research/readme.md) 索引转引同步；口播层按两层口径不动；4 独立盲审 3 条 Finding 全采纳（gloss 空格、175 逐字引文回退、172 断句歧义）。遗留：四个 panorama 图源内「模型」字样随下次 archify deliver 重录处理。
 ### Learn Claude Code ① 工具与执行 guided-learn 精读轮（2026-10-01；171 主体已由主干换代版承接）
 
 - **本 PR 收窄为工程登记与补充资产**：2026-10-01 以 /guided-learn 首次精读协议完成的 171 重写（站点 2026-09-30 快照 + main `ce8f9f18` + 官方三轨、源稿对账 36 断言全绿、外行四测出闸）在同日主干 #1189 的五部分换代（2026-10-07 钉点、成套 `lcc_tooling_lab.py` + `lcc-<part>--panorama`）面前让位——合并时 171/170/readme/knowledge-map 取主干版。本 PR 保留的增量：① [ISSUE-212](docs/.agents/issue.md)（原 208，编号撞车顺延）：archify 3.0.0 figure 导出与采集脚本 4× 断言不兼容 + 3.0.0 HTML 行尾空格致回执指纹漂移——pre-commit 对 `docs/assets/architecture/` 增加空白钩子豁免（与 `source-archive/` 同理，经用户确认）；② 补充资产 [cc_tools_lab.py](docs/research/agent-harness/assets/cc_tools_lab.py)（纯标准库原型，`--selftest` + 5 破坏性实验）与 [loop-mounted-layers 图四件套（.mmd/HTML/dark·light PNG）](docs/assets/mermaid/agent-harness/claude-code-tooling--loop-mounted-layers.mmd)（主干 171 未内嵌，作另一视角补充保留，经用户确认）；③ [ISSUE-213](docs/.agents/issue.md)（原 209，ep1 five-layer 视角误用，编号顺延）。

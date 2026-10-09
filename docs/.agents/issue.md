@@ -4409,3 +4409,12 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **待办**：① 按 L1 视角重写 `video/public/archify/views/five-layer-dependency.json`（6-A 章 focus=[layer-1,±相邻]、label 去「记忆」；6-C 章改四层留白 focus=[dim-zones, layer-2..5]）；② 空闲机 `record_archify.py --only five-layer-dependency` 重录三章并重生成 manifest；③ P6Finale cue chapterId 随新章名同步；④ 重渲 + 三源时长对账 + 重新归档 v1（与 ISSUE-207 重渲列车合并）；⑤ 同批捎带 P0 0-C 病历本 stagger 修复（2026-10-02 评审 #8 已改源码、成片未含，见 P0ForgetfulDoctor.tsx 评审注记）。
 - **后续防范**：复用图（html_overrides）接入新集时，views/label 必须按本集视角重派生，禁止跨集拷贝 sidecar；覆盖门/录制前加一条「章 label 与本集身份一致」的人工核对项（机器门无法判视角）。
 - **同类问题影响**：检查其余四集对 five-layer-dependency 的章节引用——ep2–ep5 各自 sidecar 均为当集视角派生（ep3 即正主），无同形态；未来任何跨集复用图同理。
+
+## ISSUE-214 五集笔记层同概念多名：特指大语言模型的「模型/大模型」与 LLM 混用（2026-10-09，已修；本轮随 LLM 单名化统一收敛）
+
+- **表因**：Learn Claude Code 五篇 guided-learn 产物（171–175）及五个 gl-notes 冻结件中，特指大语言模型的名称混用——0196c35e8 的 171 全篇术语精调只覆盖了 ep①（统一后仍残 7 处「模型」），172–175 从未随同口径（「模型」各 63/42/42/32 处、LLM 仅 1–8 处）；171 L11「一句话定位」首现用「模型」而定义（「大模型（下称 LLM）」）在下一段才出现（用户评审评论直接命中此句）；173 L30 已有「LLM（大语言模型）」gloss 但首现仍在 L13 的「模型」。
+- **根因**：术语统一是**逐篇独立**完成的（171 精调与 172–175 生成不同轮），缺少系列级的单一规则正本与残留门——每个概念没有唯一授权写法，漂移必然在「没被同一轮精调扫过的篇目」上复发。全局 `~/.agents/docs/terminology-specifications.md` 术语正负清单亦无 LLM 行，属制度性缺口（已建议补录，待用户授权后另行处理）。
+- **处理**（2026-10-09，本工作区）：规则正本落 [170「怎么读这组笔记·术语口径」](../research/agent-harness/170-claude-code-harness-overview.md)——凡特指大语言模型一律只写 LLM（首现随注全称「LLM（大语言模型）」，其余冗余注释删除）；三类不改写并保留原样：①课程原话引文（171「信任模型」、175 L132 课程 s20 结语「模型负责判断和行动选择」——盲审两抓课程源码确证原话）、②非主 LLM 的模型实体（171「小模型」权限分类器）、③非 LLM 复合概念与标识符（174「线程模型/进程模型」6 处、英文原文、代码标识符）。脚本化统一 6 篇 SSOT（113 行级变更，`re.sub` + 保护跨度 + 计数断言，行数不变），五集 gl-notes 第四次重冻（前置/后置断言：冻结段 == 链接改写(SSOT) 逐字节一致，五对全绿），`docs/research/readme.md:119` 索引转引同步。口播层（narration/planning/storyboard）按既定两层口径不动（2026-10-09 用户确认：口播恒用「模型」，TTS 英文例外清单仅 Claude Code + Harness）。
+- **盲审 Finding 及采纳**（4 独立只读代理）：gloss 插入后全角括号多空格（5 篇同病，脚本时序 bug 已修）；175 L132 逐字引文被改（回退）；172 L60「调用 LLM 前往 messages」断句歧义（改「调用 LLM 之前，往」，原文同构遗留顺带打磨）。173 审查员曾把 gloss 空格判为「姊妹文件同款口径」，被 174 审查员以「全角标点除外 + 全文一致性」判据推翻——多代理独立审查的价值正在于此。
+- **后续防范**：新增 guided-learn 篇目或重冻 gl-notes 时，以 170 术语口径为正本跑残留 grep（`grep -o 模型 <file>` 减去例外清单应为 0）；口播/笔记两层口径的分界照旧记于各 gl-notes 头部。**遗留待办**：四个 `lcc-*--panorama.mmd` 图源内的「模型」字样未动——改图源触发 archify 重录与回执指纹漂移（~45 min），随下次 deliver 一并处理。
+- **同类问题影响**：本仓其余 GL 系列文档（horizon/procedural-graph/self-evolution 等精读产物）未按本口径扫描，如需统一应单独立项（各系列类比登记/冻结态不同，不能照搬本轮映射）；全局 terminology-specifications.md 补 LLM 行后，所有项目的文档评审才有一致判据。
