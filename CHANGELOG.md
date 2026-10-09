@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 ### Added
+### 011 精读笔记版本史清零：正文只留现行态快照（2026-10-09，含 013 涟漪同步）
+
+- **[011 精读笔记](docs/research/cognitive-context/011-horizon-context.md) 编号契约去变更记录化**：删除「旧号→新号换算表」与重排迁移说明段（空置号沿革 / `%% fix:` 换算策略 / pin 版冻结快照旧号策略），契约句收敛为现行态——「编号为连续 §1–§10 + 机制词表 M1–M7、实验键 D1–D10、场景键 A/B/C/E/T 稳定键」；§10 机制映射行去「映射报告已于 2026-10-09 删除」事件注记与 @commit 钉，改为现行态指针。涟漪同步：[013 蓝图](docs/research/cognitive-context/013-context-layer-blueprint.md) 文档族分工句去重排事件与「旧→新映射见 011 编号契约」死指针、「已于 2026-09-21 删除」去日期保事实。版本变更信息此后仅由 Git 承载；gl-notes 冻结快照与 .mmd `%% fix` 溯源注释不在本次清理范围。
+
 ### 媒体固定资产登记制：默认不入库，登记才入库（2026-10-08）
 
 - **登记表 + 校验器 + 通用忽略段**三件套（[ISSUE-210](docs/.agents/issue.md)）：音/视频媒体与动图（mp3/mp4/wav/m4a/aac/flac/ogg/opus/webm/mov/mkv/avi/gif）全仓默认不入 Git；公共固定资产先在 `scripts/media-assets.toml` 登记（path/sha256/bytes/reason），`scripts/check_media_assets.py --sync` 按登记表重放 .gitignore 白名单块（对每个登记路径跑 `git check-ignore` 实测放行，闭合目录级忽略陷阱），`--check` 校验「已入库 ⊆ 登记表、指纹一致、白名单生效、触发覆盖完整」并 pre-commit/CI 双挂。红绿闭环实测四条：默认 add 被挡 / -f 强加被钩子拦 / 篡改已登记文件被指纹拦 / 各集副本目录级忽略仍生效。零散忽略行收敛进通用段；首批登记架构故事片 mp4/gif（存量合规化）与 CC 系列片头音轨种子 mp3（合成产物随仓分发，克隆源样本仍不入库）。

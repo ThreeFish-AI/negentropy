@@ -44,14 +44,7 @@ description: "Snowflake Horizon Context 精读与通俗拆解（冻结版；设�
 > | 证据与实验 | §5 关键实证数据 · §6 动手实验室 | 数字纪律 + 玩具域原型 |
 > | 规律与收束 | §7 底层规律与核心争议 · §8 适用边界 · §9 自测套件 · §10 本仓关联 | 规律、红线、自测、关联 |
 >
-> **章号即序号，键即键**：现行编号为连续 §1–§10（2026-10-09 重排生效），是全仓引用的唯一现行口径；重排前旧号一律退役勿复用，历史文本按其写作时点的旧号理解，换算见下表。
->
-> | 旧号（≤2026-10-08 旧口径） | 新号（2026-10-09 起） |
-> | :-- | :-- |
-> | §10 / §11 / §12 三专章（上下文供给与富化 / 检索与发现 / 生态与出口） | §3.1 / §3.2 / §3.3（挂靠 §3） |
-> | §13 · §14 · §19 · §15 · §17 · §18 | §5 · §6 · §7 · §8 · §9 · §10 |
->
-> 旧 §1–§4 与新号同位不变；重排前旧口径中 §5–§9 与 §16 曾系更早重组腾空的空置号（旧口径下封存勿复用），本次重排起 §5–§9 由新内容占用、§16 继续空置。`%% fix:` 等带日期注释随重排统一换算为新号，历史时点由日期戳承载；pin 版冻结快照（如分集 gl-notes）正文保留写作时点旧号，注解式换算除外。机制词表 M1–M7、实验键 D1–D10、场景键 A/B/C/E/T 与 013 蓝图、配套原型共用，同为稳定键。
+> **章号即序号，键即键**：编号为连续 §1–§10，是全仓引用的唯一口径；机制词表 M1–M7、实验键 D1–D10、场景键 A/B/C/E/T 与 013 蓝图、配套原型共用，同为稳定键。
 
 配套产物：[Context Layer 基础设施设计蓝图](./013-context-layer-blueprint.md)。
 
@@ -479,7 +472,7 @@ uv run --no-project python docs/research/cognitive-context/assets/horizon_contex
 
 ## 10. 与本仓的关联
 
-- **机制映射**：原《Horizon Context ↔ negentropy 机制映射报告》（16 条锚点核验）已于 2026-10-09 删除；其 16 条映射由 [Context Layer 蓝图状态表](./013-context-layer-blueprint.md)（as-of 2026-09-27 @57987b28b 重核版）承载。
+- **机制映射**：16 条 Horizon ↔ negentropy 机制映射由 [Context Layer 蓝图状态表](./013-context-layer-blueprint.md) 承载。
 - **设计蓝图**：[Context Layer 技术蓝图](./013-context-layer-blueprint.md)——以 Agent 运行时上下文为第一性对象的设计 SSOT；本篇（011）承载 Horizon 全量机制载荷（冻结），013 承载设计与判定。
 - **配套原型**：[`assets/horizon_context_lab.py`](./assets/horizon_context_lab.py)（七机制 + 场景矩阵 + 十次破坏实验）· [`assets/horizon_context_mcp.py`](./assets/horizon_context_mcp.py)（MCP 服务原型，T1–T8）。
 - **配套科普**：M1–M7 各一张 archify 动效工程图 + §1/§3/§4 总览图随文内嵌（共 15 张，交互版 HTML 可下载本地打开）。
@@ -506,7 +499,7 @@ uv run --no-project python docs/research/cognitive-context/assets/horizon_contex
 
 [9] Atlan, "Snowflake Horizon Context," "Snowflake Horizon 101," *atlan.com*, 2026（目录厂商，利害已标）. [Online]. Available: https://atlan.com/know/snowflake/snowflake-horizon-context/
 
-[10] X. Dey, *Semantic Data Modeling*, 2001（纸质，distinct 计数理论的经典出处，沿用前代核验）.
+[10] X. Dey, *Semantic Data Modeling*, 2001（纸质，distinct 计数理论的经典出处）.
 
 [11] Snowflake, "Snowflake Delivers Semantic View Autopilot as the Foundation for Trusted, Scalable, Enterprise-Ready AI," *Press Release*, Feb. 3, 2026; Snowflake Documentation, "Semantic View Autopilot," *docs.snowflake.com*, 2026. [Online]. Available: https://www.snowflake.com/en/news/press-releases/snowflake-delivers-semantic-view-autopilot-as-the-foundation-for-trusted-scalable-enterprise-ready-AI/; https://docs.snowflake.com/en/user-guide/views-semantic/autopilot
 

@@ -4,7 +4,7 @@ title: "Context Layer 技术蓝图：Agent 系统的上下文供给与治理"
 description: "Agents 系统 Context Layer 设计 SSOT：三轴蓝图（五源对象 × 五正交层 × CGAVE 生命周期）× 失效模式驱动 × 四范本机制矩阵（Horizon M1–M7 / OpenViking / Claude Code / Hermes）× 业界格局 × 供给面威胁模型 × negentropy 实例化总装 × 双轨演进路线"
 ---
 
-> **定位**：Agents 系统 Context Layer 的**设计蓝图 SSOT**——以 Agent 运行时上下文为第一性对象（instruction / memory / knowledge / tools+skills / session 五源），回答「怎么供给、怎么治理、怎么激活、怎么验证、怎么进化」。**文档族分工**：**013（本文）= 设计与判定**（规格、状态、决策、路线）；[011 精读笔记](./011-horizon-context.md) = Horizon **全量机制载荷**（冻结——机制详解、实证、时间线；章号 2026-10-09 重排为连续 §1–§10，三专章并入 §3 为 §3.1–§3.3，旧→新映射见 011 编号契约）；[014](./014-openviking.md)/[015](./015-openviking-mapping-negentropy.md) = OpenViking 精读与映射（会话记忆路线范本）。`concepts/design/context-layer.md` 已于 2026-09-21 删除并入本文。
+> **定位**：Agents 系统 Context Layer 的**设计蓝图 SSOT**——以 Agent 运行时上下文为第一性对象（instruction / memory / knowledge / tools+skills / session 五源），回答「怎么供给、怎么治理、怎么激活、怎么验证、怎么进化」。**文档族分工**：**013（本文）= 设计与判定**（规格、状态、决策、路线）；[011 精读笔记](./011-horizon-context.md) = Horizon **全量机制载荷**（冻结——机制详解、实证、时间线；章号为连续 §1–§10，三专章挂靠 §3 为 §3.1–§3.3）；[014](./014-openviking.md)/[015](./015-openviking-mapping-negentropy.md) = OpenViking 精读与映射（会话记忆路线范本）。`concepts/design/context-layer.md` 内容已并入本文。
 >
 > **编号稳定键**：M1–M7（Horizon 机制词表）· D1–D10（**Horizon lab 破坏实验**；015/ISSUE-195 另有一套无关的取证漂移编号 D1–D8，本文凡引后者必冠「015-」前缀，两套互不相干）· ADR-1/2/3（既有决策）+ **ADR-4/5/6（本版新增）** · CGAVE（Collect→Govern→Activate→Verify→Evolve 生命周期键）· P0–P3 · Phase 1–3 · #1–#16（映射表）。**2026-09-27 完全重铸**：旧版 §0–§16 编号退役封存勿复用；外部引用以本版 §0–§15 为准（同批入链已更新）。011 §3.1/§3.2/§3.3 三专章在本文落点 §6/§8/§7。
 
