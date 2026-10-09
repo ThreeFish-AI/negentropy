@@ -4,7 +4,7 @@
 # ── 站点↔仓库修订分叉（全系列唯一登记处，各集 notes 只链接不重述） ─────────────
 # 课程信源在 2026-07/08 出现**双轨修订**，两轨的章号不共用：
 #   · 站点（siteBase）= **20 章版**：内容与仓库分支 fix/s08-s20-sync-frontmatter-parser
-#     @ 67a9126c（2026-07-28）逐字一致，中文文件名是 README.md；
+#     @ 67a9126c（2026-07-29）逐字一致，中文文件名是 README.md；
 #   · 仓库 main @ f9e8b28（2026-08-18）已**整合为 17 章**：中文章名 README.zh.md，
 #     s10_system_prompt/s11_error_recovery 并入 s15_integrated_harness，
 #     s16_team_protocols/s17_autonomous_agents/s18_worktree_isolation 并入 s13_agent_teams，
