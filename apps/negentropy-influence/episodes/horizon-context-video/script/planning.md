@@ -1,4 +1,4 @@
-# 策划案 ·《拆解 Horizon Context：含义怎么治理、答案怎么可信》（完全重制版）
+# 策划案 ·《拆解 Horizon Context：Context 怎么治理，结果怎么验证》（完全重制版）
 
 > Stage ② 产物。信源：`research/gl-notes.md`（C 型冻结快照 = guided-learn gen2 精读笔记 @192ae6ca9，
 > 2026-09-30 信源实况；原型 selftest 复算 2026-10-01 全等升【一】）。锚点一律 §+稳定键。

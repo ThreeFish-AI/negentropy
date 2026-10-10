@@ -1,11 +1,11 @@
-# 拆解 Horizon Context：含义怎么治理、答案怎么可信（完全重制版）
+# 拆解 Horizon Context：Context 怎么治理，结果怎么验证（完全重制版）
 
 Context Layer 系列第 1 集。Snowflake Horizon Context（受治理上下文层）的精读拆解：七个承重机制
 （语义视图双不变量 / 行列级策略 / 语义级治理 / 验证锚定 VQR / 列级血缘 / Agent Identity / 分类纳管）
 逐件「讲机制 + 走查 + 拆掉一次」——零跨域剧场，gen2 白话直讲教学法（C 型信源直通承接）。
 
 > **交付状态 v2 终渲待审**（2026-10-02，评审 H 轮）：15:05.90 = 27177 帧 @30fps · 1920×1080（ffprobe 视频流 27177 帧与帧复算一致）· 97.1MB；
-> 归档 `~/Documents/video/context-layer/拆解 Horizon Context：含义怎么治理、答案怎么可信 v2.mp4` + `v2_captions/`（v1 存档保留）。
+> 归档 `~/Documents/video/context-layer/拆解 Horizon Context：Context 怎么治理，结果怎么验证 v2.mp4` + `v2_captions/`（v1 存档保留）。
 
 ## 结构
 
