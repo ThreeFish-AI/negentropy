@@ -5,16 +5,16 @@
   "status": "pass",
   "type": "dataflow",
   "quality": "showcase",
-  "startedAt": "2026-10-09T16:35:30.040Z",
+  "startedAt": "2026-10-10T11:49:25.026Z",
   "specification": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/dataflow-context-layer-blueprint--first-class-object-20261010-003244/candidate.json",
-    "sha256": "9a9f6ca4440d14c90e3991cd786de5e6df174f2e172dc777e948247846f105f2",
-    "bytes": 5558
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/dataflow-context-layer-blueprint--first-class-object-20261010-194814/candidate.json",
+    "sha256": "6486c31fa7ca48f44ca0c336fec77082938e1128f81b497005de2a422c993fc1",
+    "bytes": 5576
   },
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--first-class-object.html",
-    "sha256": "35b973ed316458b05a140a4033bd7937c01ce6dc6909953ad452d9e95cb1e7e2",
-    "bytes": 760780
+    "sha256": "d06af1537b39bf95bf2a6f88e6ff7e86801cc50ee2a1727836246f7401a87c33",
+    "bytes": 760818
   },
   "stages": {
     "validate": {
@@ -27,7 +27,7 @@
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "deliver",
         "dataflow",
-        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/dataflow-context-layer-blueprint--first-class-object-20261010-003244/candidate.json",
+        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/dataflow-context-layer-blueprint--first-class-object-20261010-194814/candidate.json",
         "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--first-class-object.html",
         "--quality",
         "showcase",
@@ -38,8 +38,8 @@
         "ok": true,
         "command": "validate",
         "specification": {
-          "sha256": "9a9f6ca4440d14c90e3991cd786de5e6df174f2e172dc777e948247846f105f2",
-          "bytes": 5558
+          "sha256": "6486c31fa7ca48f44ca0c336fec77082938e1128f81b497005de2a422c993fc1",
+          "bytes": 5576
         },
         "validation": {
           "checksPassed": 9,
@@ -54,13 +54,13 @@
     "deliver": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 395,
+      "durationMs": 410,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "deliver",
         "dataflow",
-        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/dataflow-context-layer-blueprint--first-class-object-20261010-003244/candidate.json",
+        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/dataflow-context-layer-blueprint--first-class-object-20261010-194814/candidate.json",
         "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--first-class-object.html",
         "--quality",
         "showcase",
@@ -68,19 +68,19 @@
       ],
       "receipt": {
         "schemaVersion": 1,
-        "receiptId": "e81edcd2-b01b-402f-89fb-d0dddc3ae502",
+        "receiptId": "b01dc96f-2476-4733-bf48-2ae036cac091",
         "ok": true,
         "command": "deliver",
         "type": "dataflow",
-        "input": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/dataflow-context-layer-blueprint--first-class-object-20261010-003244/candidate.json",
+        "input": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/dataflow-context-layer-blueprint--first-class-object-20261010-194814/candidate.json",
         "output": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--first-class-object.html",
         "specification": {
-          "sha256": "9a9f6ca4440d14c90e3991cd786de5e6df174f2e172dc777e948247846f105f2",
-          "bytes": 5558
+          "sha256": "6486c31fa7ca48f44ca0c336fec77082938e1128f81b497005de2a422c993fc1",
+          "bytes": 5576
         },
         "artifact": {
-          "sha256": "35b973ed316458b05a140a4033bd7937c01ce6dc6909953ad452d9e95cb1e7e2",
-          "bytes": 760780
+          "sha256": "d06af1537b39bf95bf2a6f88e6ff7e86801cc50ee2a1727836246f7401a87c33",
+          "bytes": 760818
         },
         "validation": {
           "checksPassed": 9,
@@ -95,7 +95,7 @@
     "check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 116,
+      "durationMs": 181,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
@@ -107,8 +107,8 @@
         "ok": true,
         "file": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--first-class-object.html",
         "artifact": {
-          "sha256": "35b973ed316458b05a140a4033bd7937c01ce6dc6909953ad452d9e95cb1e7e2",
-          "bytes": 760780
+          "sha256": "d06af1537b39bf95bf2a6f88e6ff7e86801cc50ee2a1727836246f7401a87c33",
+          "bytes": 760818
         },
         "checks": [
           {
@@ -225,13 +225,13 @@
           "issues": []
         },
         "provenance": "current",
-        "deliveryReceiptId": "e81edcd2-b01b-402f-89fb-d0dddc3ae502"
+        "deliveryReceiptId": "b01dc96f-2476-4733-bf48-2ae036cac091"
       }
     },
     "browser-check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 1459,
+      "durationMs": 1554,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
@@ -249,11 +249,11 @@
         "status": "pass",
         "visualReview": "not-requested",
         "provenance": "current",
-        "deliveryReceiptId": "e81edcd2-b01b-402f-89fb-d0dddc3ae502",
+        "deliveryReceiptId": "b01dc96f-2476-4733-bf48-2ae036cac091",
         "artifact": {
           "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--first-class-object.html",
-          "sha256": "35b973ed316458b05a140a4033bd7937c01ce6dc6909953ad452d9e95cb1e7e2",
-          "bytes": 760780
+          "sha256": "d06af1537b39bf95bf2a6f88e6ff7e86801cc50ee2a1727836246f7401a87c33",
+          "bytes": 760818
         },
         "state": {
           "detail": "read",
@@ -334,13 +334,13 @@
               "readerOverflow": null,
               "readerFit": null,
               "ok": true,
-              "readerWidth": 1204,
-              "diagramWidth": 1174,
+              "readerWidth": 1170,
+              "diagramWidth": 1140,
               "pageComposition": {
                 "bodyPaddingPx": 64,
-                "headerPx": 86,
+                "headerPx": 107,
                 "diagramChromePx": 84,
-                "svgPx": 754,
+                "svgPx": 733,
                 "cardsPx": 0,
                 "viewBoxHeight": 694
               },
@@ -587,13 +587,13 @@
               "readerOverflow": null,
               "readerFit": null,
               "ok": true,
-              "readerWidth": 1204,
-              "diagramWidth": 1174,
+              "readerWidth": 1170,
+              "diagramWidth": 1140,
               "pageComposition": {
                 "bodyPaddingPx": 64,
-                "headerPx": 86,
+                "headerPx": 107,
                 "diagramChromePx": 84,
-                "svgPx": 754,
+                "svgPx": 733,
                 "cardsPx": 0,
                 "viewBoxHeight": 694
               },
@@ -792,13 +792,13 @@
               "readerOverflow": null,
               "readerFit": null,
               "ok": true,
-              "readerWidth": 1204,
-              "diagramWidth": 1174,
+              "readerWidth": 1170,
+              "diagramWidth": 1140,
               "pageComposition": {
                 "bodyPaddingPx": 64,
-                "headerPx": 86,
+                "headerPx": 107,
                 "diagramChromePx": 84,
-                "svgPx": 754,
+                "svgPx": 733,
                 "cardsPx": 0,
                 "viewBoxHeight": 694
               },
@@ -947,6 +947,6 @@
     "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--first-class-object.browser-check.json"
   },
   "visualReview": "not-requested",
-  "finishedAt": "2026-10-09T16:35:32.487Z",
-  "durationMs": 2446
+  "finishedAt": "2026-10-10T11:49:27.541Z",
+  "durationMs": 2515
 }

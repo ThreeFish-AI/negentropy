@@ -54,14 +54,14 @@ description: "OpenViking（volcengine 上下文数据库，钉点 14a7b81）与�
 | --- | --- | --- |
 | §4 对象层 | 九类记忆只是另一种分面 | 无新增缺口 |
 | §5 目录层 | M-a 副本式 = ADR-1 的反面教材 | **强化 ADR-1**：统一指针格式随 §5.3 一并定 |
-| §6 富化层 | M-d 提炼是富化层的「供给入口」 | **新增真缺口**：对话路径供给入口断开（#7），重铸版 013 已并入巩固三件套设计（2026-09-27 版 §6.2；2026-10-10 版 §8.2） |
+| §6 富化层 | M-d 提炼是富化层的「供给入口」 | **新增真缺口**：对话路径供给入口断开（#7），013 已并入巩固三件套设计（§8.2） |
 | §7 治理层 | memory_diff / .done | 新增 🔶：巩固 diff 落 `result` 字段（#9）、会话水位（#10） |
-| §8 激活层 | M-c 递归 / M-e 轨迹 | **校正 #9 状态行**：已销账（2026-09-27 重铸版 013 §11.5：L1 ✅ / L2·L3 🔶 ISSUE-194；2026-10-10 版承载于 §12.4）；§8.5「自动注入通道 = `ContextAssembler.assemble()`」宿主更正亦已落地（013 §8.4，见 D1） |
+| §8 激活层 | M-c 递归 / M-e 轨迹 | **校正 #9 状态行**：已销账（013 §12.4：L1 ✅ / L2·L3 🔶 ISSUE-194）；§8.5「自动注入通道 = `ContextAssembler.assemble()`」宿主更正亦已落地（013 §8.4，见 D1） |
 
 ## 落地建议汇总
 
 - **做**（绑定 #7 一批，建议独立 PR，先于 013 Phase 1）：① 会话巩固触发器 + `consolidation_jobs` 消费者 + 水位（#7/#10）；② 巩固 diff 写 `result` 并接 UI（#9）；③ 修 D3 `force_refresh` 签名并改源水位判据（#3）。
-- **写**（一句话成本）：④ 013 旧版 §12.7 #9 状态行校正 + §8.5 宿主更正（D1/D7）——**已销账（2026-09-27，013 完全重铸落地）**（历史动作记录；对应 2026-10-10 版新锚：#9 行＝§12.4、宿主更正＝§6.5）；⑤ 本报告登记进 issue.md（D2/D3/D6）。
+- **写**（一句话成本）：④ 013 #9 状态行校正 + 宿主更正（D1/D7）——**已销账**（现行锚：#9 行＝013 §12.4、宿主更正＝013 §6.5）；⑤ 本报告登记进 issue.md（D2/D3/D6）。
 - **暂缓**（写明触发条件）：#1（013 三视图落地时）、#4（ADR-2 统一检索后）、#5（目录深度 ≥3 且评测出现选错目录类失败）、#8-LLM 档（模糊带误判被反馈证实）、#13（ISSUE-194 修复后 proposer 仍无证据）。
 
 ## 取证副产物：本仓漂移与风险清单
@@ -74,7 +74,7 @@ description: "OpenViking（volcengine 上下文数据库，钉点 14a7b81）与�
 | D4 | 文档漂移 | ConflictResolver docstring 称三阶段检测（key/embedding/LLM），实现只有按 fact_type 的规则 | `ng/engine/governance/conflict_resolver.py:6` 对照 `:110` | 高估冲突检测能力 |
 | D5 | 写路径分叉 | `save_to_memory` 直写 `embedding=None`：不去重、无 PII 检测、不写审计，且全仓无 embedding 回填 | `ng/agents/tools/internalization.py:72` | 这些行对 vector/hybrid 与 DedupMerge 不可见 |
 | D6 | 授权风险 | `_fetch_memory` 按 UUID 读 Memory，不校验 user/app | `ng/agents/tools/skill_resources.py:167` | 当前因工具未挂载不可达；**ISSUE-194 方案 (a) 落地前必须先修**，否则成为跨用户读取通道 |
-| D7 | 状态表失真 | 013 旧版 §12.7 #9「L1/L2/L3 ✅」与 ISSUE-194 结论矛盾 | 013 §11.5 #9 行（2026-09-27 完全重铸后旧行号 :436；2026-10-10 再铸后＝§12.4 失效，以 § 锚为准） | 已回写闭环（重铸版口径：L1 ✅ / L2·L3 🔶） |
+| D7 | 状态表失真 | 013 曾载 #9 行「L1/L2/L3 ✅」与 ISSUE-194 结论矛盾 | 013 §12.4 #9 行 | 已回写闭环（口径：L1 ✅ / L2·L3 🔶） |
 | D8 | 部分接线 | memory_pipeline_prompt 进化面只有 fact extractor 读取；summarizer/reflection 仍用硬编码 prompt | `ng/engine/evolution/weights.py:91` | 这两个 scope 的晋升在运行时是 no-op |
 
 ## 交叉引用

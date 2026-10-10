@@ -6,11 +6,11 @@
   "status": "pass",
   "visualReview": "not-requested",
   "provenance": "current",
-  "deliveryReceiptId": "e81edcd2-b01b-402f-89fb-d0dddc3ae502",
+  "deliveryReceiptId": "b01dc96f-2476-4733-bf48-2ae036cac091",
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--first-class-object.html",
-    "sha256": "35b973ed316458b05a140a4033bd7937c01ce6dc6909953ad452d9e95cb1e7e2",
-    "bytes": 760780
+    "sha256": "d06af1537b39bf95bf2a6f88e6ff7e86801cc50ee2a1727836246f7401a87c33",
+    "bytes": 760818
   },
   "state": {
     "detail": "read",
@@ -91,13 +91,13 @@
         "readerOverflow": null,
         "readerFit": null,
         "ok": true,
-        "readerWidth": 1204,
-        "diagramWidth": 1174,
+        "readerWidth": 1170,
+        "diagramWidth": 1140,
         "pageComposition": {
           "bodyPaddingPx": 64,
-          "headerPx": 86,
+          "headerPx": 107,
           "diagramChromePx": 84,
-          "svgPx": 754,
+          "svgPx": 733,
           "cardsPx": 0,
           "viewBoxHeight": 694
         },
@@ -344,13 +344,13 @@
         "readerOverflow": null,
         "readerFit": null,
         "ok": true,
-        "readerWidth": 1204,
-        "diagramWidth": 1174,
+        "readerWidth": 1170,
+        "diagramWidth": 1140,
         "pageComposition": {
           "bodyPaddingPx": 64,
-          "headerPx": 86,
+          "headerPx": 107,
           "diagramChromePx": 84,
-          "svgPx": 754,
+          "svgPx": 733,
           "cardsPx": 0,
           "viewBoxHeight": 694
         },
@@ -549,13 +549,13 @@
         "readerOverflow": null,
         "readerFit": null,
         "ok": true,
-        "readerWidth": 1204,
-        "diagramWidth": 1174,
+        "readerWidth": 1170,
+        "diagramWidth": 1140,
         "pageComposition": {
           "bodyPaddingPx": 64,
-          "headerPx": 86,
+          "headerPx": 107,
           "diagramChromePx": 84,
-          "svgPx": 754,
+          "svgPx": 733,
           "cardsPx": 0,
           "viewBoxHeight": 694
         },
