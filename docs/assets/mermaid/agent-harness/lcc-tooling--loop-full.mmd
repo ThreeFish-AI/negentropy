@@ -1,0 +1,32 @@
+%% source: docs/research/agent-harness/171-claude-code-tooling-execution.md（§3 Agent Loop · 渐进图 L1）
+%% slug: lcc-tooling--loop-full
+%% type: architecture
+%% derived: 渐进披露系列（2026-10-10）：循环本体完整化——两信号判据、Stop 续跑、tool_result 回喂闭环
+flowchart TD
+    subgraph LOOP["循环本体 · s01 Agent Loop"]
+        direction TB
+        P["用户输入"] --> UPS["UserPromptSubmit 钩子"]
+        UPS --> LLM["调用模型（附工具定义）"]
+        LLM --> CRIT{"回答里出现工具调用块？"}
+        CRIT -- "有" --> EXEC["程序执行工具（§4 展开）"]
+        EXEC --> TR["tool_result 按 tool_use_id 配对回喂"]
+        TR --> LLM
+        CRIT -- "没有" --> STOP["Stop 钩子"]
+        STOP -- "注入 user 消息续跑" --> LLM
+        STOP -- "返回空" --> DONE["循环退出"]
+    end
+
+    TOOLS["Tool Use（§4）"]
+    PERM["Permission（§5）"]
+    HOOKS["Hooks（§6）"]
+
+    EXEC -. "§4" .-> TOOLS
+    EXEC -. "§5" .-> PERM
+    LOOP -. "§6" .-> HOOKS
+
+    classDef loopnode fill:#1f6feb,stroke:#79c0ff,color:#ffffff
+    classDef endnode fill:#6e7681,stroke:#c9d1d9,color:#ffffff
+    classDef placeholder fill:#30363d,stroke:#8b949e,color:#e6edf3,stroke-dasharray: 5 5
+    class P,UPS,LLM,CRIT,EXEC,TR loopnode
+    class STOP,DONE endnode
+    class TOOLS,PERM,HOOKS placeholder
