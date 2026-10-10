@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="generator" content="archify 3.0.0">
   <meta name="archify-reader-contract" content="declared-wide-v1">
-  <title>Learn Claude Code 工具与执行全景</title>
+  <title>工具与执行全景：一个主循环，一条主干</title>
   <script>
     // Resolve the theme before first paint so light-preference users don't
     // see a dark flash. The toolbar script below re-applies with UI state.
@@ -2980,7 +2980,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       body { background: #ffffff !important; padding: 0; }
       .container { max-width: none; }
       .toolbar, .diagram-nav, .focus-chip, .archify-toast, .no-print { display: none !important; }
-
+      
       .diagram-container, .card { box-shadow: none; border-color: #e2e8f0; }
       .diagram-container { --archify-nav-reserve: 0px !important; }
       html[data-preset="signal-flow"] .diagram-container,
@@ -3902,24 +3902,24 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       .route-journey-controls button { min-height: 2.75rem; }
       .route-probe-status { padding: 0.05rem 0.48rem 0.38rem; }
       .route-probe-node { max-width: 7.5rem; }
-
-
-
-
-
-
-
-
-
-
-
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
       html[data-embed="true"][data-share-playback="true"] .diagram-container {
         padding-top: 4.25rem;
       }
       html[data-embed="true"][data-share-moment="true"] .diagram-container {
         padding-top: 4.25rem;
       }
-
+      
       .cards {
         grid-template-columns: 1fr;
         margin-top: 1rem;
@@ -3962,7 +3962,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         text-overflow: ellipsis;
         white-space: nowrap;
       }
-
+      
       html[data-present="true"]:not([data-embed="true"]) .diagram-container { padding: 0.5rem 0.5rem 3.75rem; }
       html[data-present="true"]:not([data-embed="true"]) .diagram-container[data-wide-diagram="true"] > svg {
         width: 720px;
@@ -4842,7 +4842,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       .semantic-lens,
       .diagram-guide,
       .overview-map-live { animation: none !important; }
-
+      
       .intent-trace-flow {
         animation: none !important;
         stroke-dasharray: none;
@@ -4978,9 +4978,9 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
            data-preset-badge-blueprint="蓝图 / 修订 01"
            data-preset-badge-editorial="编辑风格 / 现场笔记">
         <div class="pulse-dot"></div>
-        <h1>Learn Claude Code 工具与执行全景</h1>
+        <h1>工具与执行全景：一个主循环，一条主干</h1>
       </div>
-      <p class="subtitle">一个主循环 × 三闸门裁决管线 × 生产保护层（s01–s04）</p>
+      <p class="subtitle">终态（§6 之后）：主循环一圈走到底——徽标标出各机制挂在哪个节点上；生产保护层是节点徽标，不另起子图</p>
     </div>
 
 
@@ -4988,9 +4988,9 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     <!-- Main Diagram -->
     <div class="diagram-container" data-detail-level="read"
          data-preset-badge-editorial-plate="ARCHIFY / 图版 04">
-      <svg viewBox="0 0 1090 1354" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-preset="classic" data-quality-profile="showcase" data-reader-fit="intrinsic-height" data-reader-min-text="7.5" data-reader-primary-text="14">
-        <title id="archify-diagram-title">Learn Claude Code 工具与执行全景</title>
-        <desc id="archify-diagram-description">一个主循环 × 三闸门裁决管线 × 生产保护层（s01–s04）</desc>
+      <svg viewBox="0 0 1124 408" data-layout-contract="readable-v2" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-preset="classic" data-quality-profile="showcase">
+        <title id="archify-diagram-title">工具与执行全景：一个主循环，一条主干</title>
+        <desc id="archify-diagram-description">终态（§6 之后）：主循环一圈走到底——徽标标出各机制挂在哪个节点上；生产保护层是节点徽标，不另起子图</desc>
         <!-- Definitions -->
         <defs>
           <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
@@ -5013,375 +5013,232 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <!-- Background Grid -->
         <rect width="100%" height="100%" fill="url(#grid)" />
 
-        <!-- Boundaries (behind everything) -->
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="0" data-composition-frame-label="循环本体 · s01 Agent Loop" x="590" y="10" width="250" height="426" rx="12" class="c-region" stroke-width="1"/>
+        <!-- Swimlanes -->
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-0" x="40" y="52" width="1056" height="106" rx="10" class="c-lane" stroke-width="1"/>
+        <text x="54" y="74" class="t-dim" font-size="10" font-weight="600">01 / 主循环（s01）</text>
 
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="1" data-composition-frame-label="裁决与执行 · s03 Permission + s04 Hooks" x="590" y="436" width="450" height="762" rx="12" class="c-region" stroke-width="1"/>
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-1" x="40" y="178" width="1056" height="106" rx="10" class="c-lane" stroke-width="1"/>
+        <text x="54" y="200" class="t-dim" font-size="10" font-weight="600">02 / 裁决与执行（s03 + s04）</text>
 
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="2" data-composition-frame-label="生产保护层 · CC 源码与官方文档" x="0" y="318" width="550" height="930" rx="12" class="c-region" stroke-width="1"/>
+        <!-- Phase headers -->
+        <line x1="57" y1="35" x2="678" y2="35" class="a-default" stroke-width="1.1"/>
+        <rect x="57" y="27" width="621" height="16" rx="4" class="c-mask"/>
+        <text x="367.5" y="39" class="t-muted" font-size="8" font-weight="600" text-anchor="middle">输入与判据</text>
+        <line x1="780" y1="35" x2="1053.8" y2="35" class="a-emphasis" stroke-width="1.1"/>
+        <rect x="780" y="27" width="273.79999999999995" height="16" rx="4" class="c-mask"/>
+        <text x="916.9" y="39" class="t-backend" font-size="8" font-weight="600" text-anchor="middle">裁决·执行·回喂</text>
 
-        <!-- Connection paths (before components for correct z-order) -->
-        <g data-graph-role="automatic-crossover" style="--step:0">
-          <path data-graph-role="automatic-crossover-underlay" d="M 710 96 L 710 136" fill="none" stroke="var(--mask)" stroke-width="5.8" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="P" data-edge-to="UPS" data-edge-key="0" data-edge-id="p-ups" data-composition-points="710,96;710,136" data-composition-crossover="halo" data-composition-independent="true" d="M 710 96 L 710 136" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        </g>
-        <g data-graph-role="automatic-crossover" style="--step:1">
-          <path data-graph-role="automatic-crossover-underlay" d="M 710 192 L 710 232" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="UPS" data-edge-to="LLM" data-edge-key="1" data-edge-id="ups-llm" data-composition-points="710,192;710,232" data-composition-crossover="halo" data-composition-independent="true" d="M 710 192 L 710 232" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-        </g>
-        <g data-graph-role="automatic-crossover" style="--step:2">
-          <path data-graph-role="automatic-crossover-underlay" d="M 715 304 L 715 344" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="LLM" data-edge-to="CRIT" data-edge-key="2" data-edge-id="llm-crit" data-composition-points="715,304;715,344" data-composition-crossover="halo" data-composition-independent="true" d="M 715 304 L 715 344" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-        </g>
-        <g data-graph-role="automatic-crossover" style="--step:3">
-          <path data-graph-role="automatic-crossover-underlay" d="M 715 416 L 715 466" fill="none" stroke="var(--mask)" stroke-width="5.8" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="CRIT" data-edge-to="PRE" data-edge-label="有" data-edge-key="3" data-edge-id="crit-pre" data-composition-points="715,416;715,466" data-composition-crossover="halo" data-composition-independent="true" d="M 715 416 L 715 466" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        </g>
-        <g data-graph-role="automatic-crossover" style="--step:4">
-          <path data-graph-role="automatic-crossover-underlay" d="M 710 530 L 710 574" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="PRE" data-edge-to="G1" data-edge-key="4" data-edge-id="pre-g1" data-composition-points="710,530;710,574" data-composition-crossover="halo" data-composition-independent="true" d="M 710 530 L 710 574" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-        </g>
-        <g data-graph-role="automatic-crossover" style="--step:5">
-          <path data-graph-role="automatic-crossover-underlay" d="M 710 630 L 710 682" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="G1" data-edge-to="G2" data-edge-label="未命中" data-edge-key="5" data-edge-id="g1-g2" data-composition-points="710,630;710,682" data-composition-crossover="halo" data-composition-independent="true" d="M 710 630 L 710 682" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-        </g>
-        <g data-graph-role="automatic-crossover" style="--step:6">
-          <path data-graph-role="automatic-crossover-underlay" d="M 710 738 L 710 790" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="G2" data-edge-to="G3" data-edge-label="命中" data-edge-key="6" data-edge-id="g2-g3" data-composition-points="710,738;710,790" data-composition-crossover="halo" data-composition-independent="true" d="M 710 738 L 710 790" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-        </g>
-        <g data-graph-role="automatic-crossover" style="--step:7">
-          <path data-graph-role="automatic-crossover-underlay" d="M 710 854 L 710 894" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="G3" data-edge-to="RUN" data-edge-label="允许" data-edge-key="7" data-edge-id="g3-run" data-composition-points="710,854;710,894" data-composition-crossover="halo" data-composition-independent="true" d="M 710 854 L 710 894" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-        </g>
-        <g data-graph-role="automatic-crossover" style="--step:8">
-          <path data-graph-role="automatic-crossover-underlay" d="M 710 958 L 710 1002" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="RUN" data-edge-to="POST" data-edge-key="8" data-edge-id="run-post" data-composition-points="710,958;710,1002" data-composition-crossover="halo" data-composition-independent="true" d="M 710 958 L 710 1002" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-        </g>
-        <g data-graph-role="automatic-crossover" style="--step:9">
-          <path data-graph-role="automatic-crossover-underlay" d="M 710 1058 L 710 1106" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="POST" data-edge-to="TR" data-edge-key="9" data-edge-id="post-tr" data-composition-points="710,1058;710,1106" data-composition-crossover="halo" data-composition-independent="true" d="M 710 1058 L 710 1106" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-        </g>
-        <path data-edge-from="TR" data-edge-to="LLM" data-edge-key="10" data-edge-id="tr-llm" data-composition-points="720,1178;720,1286;1050,1286;1050,268;810,268" d="M 720 1178 L 720 1278 Q 720 1286 728 1286 L 1042 1286 Q 1050 1286 1050 1278 L 1050 276 Q 1050 268 1042 268 L 810 268" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="G2" data-edge-to="RUN" data-edge-label="未命中" data-edge-key="11" data-edge-id="g2-run" data-composition-points="800,710;840,710;840,926;800,926" d="M 800 710 L 832 710 Q 840 710 840 718 L 840 918 Q 840 926 832 926 L 800 926" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="G1" data-edge-to="DENY" data-edge-label="命中 / 拒绝" data-edge-key="12" data-edge-id="g1-deny" data-composition-points="800,602;945,602;945,694" d="M 800 602 L 937 602 Q 945 602 945 610 L 945 694" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-        <g data-graph-role="automatic-crossover" style="--step:13">
-          <path data-graph-role="automatic-crossover-underlay" d="M 520 380 L 620 380" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="NF" data-edge-to="CRIT" data-edge-key="13" data-edge-id="nf-crit" data-composition-points="520,380;620,380" data-composition-crossover="halo" data-composition-independent="true" d="M 520 380 L 620 380" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
-        </g>
-        <path data-edge-from="SHA" data-edge-to="STOP" data-edge-key="14" data-edge-id="sha-stop" data-composition-points="210,488;322,488;322,216;300,216" d="M 210 488 L 314 488 Q 322 488 322 480 L 322 224 Q 322 216 314 216 L 300 216" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
-        <path data-edge-from="INV" data-edge-to="PRE" data-edge-key="15" data-edge-id="inv-pre" data-composition-points="210,760;250,760;250,498;620,498" d="M 210 760 L 242 760 Q 250 760 250 752 L 250 506 Q 250 498 258 498 L 620 498" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
-        <path data-edge-from="CLS" data-edge-to="G3" data-edge-key="16" data-edge-id="cls-g3" data-composition-points="210,1084;275,1084;275,822;620,822" d="M 210 1084 L 267 1084 Q 275 1084 275 1076 L 275 830 Q 275 822 283 822 L 620 822" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
-        <path data-edge-from="PT" data-edge-to="RUN" data-edge-key="17" data-edge-id="pt-run" data-composition-points="210,1184;300,1184;300,926;620,926" d="M 210 1184 L 292 1184 Q 300 1184 300 1176 L 300 934 Q 300 926 308 926 L 620 926" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
-        <path data-edge-from="CRIT" data-edge-to="STOP" data-edge-label="没有" data-edge-key="18" data-edge-id="crit-stop" data-composition-points="810,380;860,380;860,446;60,446;60,216;150,216" d="M 810 380 L 852 380 Q 860 380 860 388 L 860 438 Q 860 446 852 446 L 68 446 Q 60 446 60 438 L 60 224 Q 60 216 68 216 L 150 216" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-        <g data-graph-role="automatic-crossover" style="--step:19">
-          <path data-graph-role="automatic-crossover-underlay" d="M 225 252 L 225 318 Q 225 326 233 326 L 826 326 Q 834 326 834 318 L 834 276 Q 834 268 826 268 L 810 268" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="STOP" data-edge-to="LLM" data-edge-label="注入 user 消息续跑" data-edge-key="19" data-edge-id="stop-llm" data-composition-points="225,252;225,326;834,326;834,268;810,268" data-composition-crossover="halo" data-composition-independent="true" d="M 225 252 L 225 318 Q 225 326 233 326 L 826 326 Q 834 326 834 318 L 834 276 Q 834 268 826 268 L 810 268" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-        </g>
-        <g data-graph-role="automatic-crossover" style="--step:20">
-          <path data-graph-role="automatic-crossover-underlay" d="M 225 180 L 225 175.5 Q 225 171 229.5 171 L 248 171 Q 256 171 256 163 L 256 163 Q 256 155 248 155 L 244.5 155 Q 240 155 240 150.5 L 240 146" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="STOP" data-edge-to="DONE" data-edge-label="返回空" data-edge-key="20" data-edge-id="stop-done" data-composition-points="225,180;225,171;256,171;256,155;240,155;240,146" data-composition-crossover="halo" data-composition-independent="true" d="M 225 180 L 225 175.5 Q 225 171 229.5 171 L 248 171 Q 256 171 256 163 L 256 163 Q 256 155 248 155 L 244.5 155 Q 240 155 240 150.5 L 240 146" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-        </g>
-        <path data-edge-from="DENY" data-edge-to="TR" data-edge-key="21" data-edge-id="deny-tr" data-composition-points="945,766;945,1266;560,1266;560,1142;620,1142" d="M 945 766 L 945 1258 Q 945 1266 937 1266 L 568 1266 Q 560 1266 560 1258 L 560 1150 Q 560 1142 568 1142 L 620 1142" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <!-- Workflow groups -->
 
-        <!-- Components -->
-        <g id="node-P" data-node-id="P" data-node-label="用户输入" tabindex="0" role="button" aria-label="聚焦用户输入，新一轮输入, 循环本体 · s01 Agent Loop" aria-pressed="false" data-node-kind="external" data-node-sublabel="新一轮输入" data-node-context="循环本体 · s01 Agent Loop">
-          <title>用户输入 · 新一轮输入 · 循环本体 · s01 Agent Loop</title>
-          <rect x="620" y="40" width="180" height="56" rx="6" class="c-mask"/>
-          <rect x="620" y="40" width="180" height="56" rx="6" class="c-external" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(626 46) scale(0.6875)">
+
+        <!-- Edge paths -->
+        <path data-edge-from="crit" data-edge-to="stop" data-edge-label="没有" data-edge-key="0" data-edge-id="b1" data-composition-routing="workflow-v2-auto" data-edge-role="branch" data-composition-points="708,120;746,120" d="M 708 120 L 746 120" class="a-dashed" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
+        <path data-edge-from="stop" data-edge-to="done" data-edge-label="返回空" data-edge-key="1" data-edge-id="b2" data-composition-routing="workflow-v2-auto" data-edge-role="" data-composition-points="906,120;952.8,120" d="M 906 120 L 952.8 120" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="ask" data-edge-to="ups" data-edge-key="2" data-edge-id="m1" data-composition-routing="workflow-v2-auto" data-edge-role="" data-composition-points="158,120;186,120" d="M 158 120 L 186 120" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="ups" data-edge-to="llm" data-edge-key="3" data-edge-id="m2" data-composition-routing="workflow-v2-auto" data-edge-role="" data-composition-points="326,120;375,120" d="M 326 120 L 375 120" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="llm" data-edge-to="crit" data-edge-key="4" data-edge-id="m3" data-composition-routing="workflow-v2-auto" data-edge-role="" data-composition-points="503,120;556,120" d="M 503 120 L 556 120" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="crit" data-edge-to="pre" data-edge-label="有" data-edge-key="5" data-edge-id="m4" data-composition-routing="workflow-v2-auto" data-edge-role="branch" data-composition-points="708,132;724,132;724,168;256,168;256,212" d="M 708 132 L 724 132 L 724 168 L 256 168 L 256 212" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="pre" data-edge-to="g123" data-edge-key="6" data-edge-id="m5" data-composition-routing="workflow-v2-auto" data-edge-role="" data-composition-points="331,246;359,246" d="M 331 246 L 359 246" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="g123" data-edge-to="run" data-edge-label="放行" data-edge-key="7" data-edge-id="m6" data-composition-routing="workflow-v2-auto" data-edge-role="" data-composition-points="519,246;557,246" d="M 519 246 L 557 246" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="run" data-edge-to="post" data-edge-key="8" data-edge-id="m7" data-composition-routing="workflow-v2-auto" data-edge-role="" data-composition-points="707,246;761,246" d="M 707 246 L 761 246" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="post" data-edge-to="tr" data-edge-key="9" data-edge-id="m8" data-composition-routing="workflow-v2-auto" data-edge-role="" data-composition-points="891,246;927.8,246" d="M 891 246 L 927.8 246" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="tr" data-edge-to="llm" data-edge-label="回喂·接着想下一步" data-edge-key="10" data-edge-id="m9" data-composition-routing="workflow-v2-auto" data-edge-role="return" data-composition-points="1087.8,246;1108,246;1108,78;439,78;439,94" d="M 1087.8 246 L 1108 246 L 1108 78 L 439 78 L 439 94" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+
+        <!-- Nodes -->
+        <g id="node-ask" data-node-id="ask" data-node-label="用户输入" tabindex="0" role="button" aria-label="聚焦用户输入，新一轮输入, 主循环（s01） › 输入与判据" aria-pressed="false" data-node-kind="external" data-node-sublabel="新一轮输入" data-node-context="主循环（s01） › 输入与判据">
+          <title>用户输入 · 新一轮输入 · 主循环（s01） › 输入与判据</title>
+          <rect x="48" y="94" width="110" height="52" rx="6" class="c-mask"/>
+          <rect x="48" y="94" width="110" height="52" rx="6" class="c-external" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(54 100) scale(0.6875)">
             <rect x="2.5" y="5" width="8.5" height="8" rx="1.5"/>
             <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="710" y="66" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">用户输入</text>
-        <text data-detail="context" x="710" y="82" class="t-muted" font-size="9" text-anchor="middle">新一轮输入</text>
+          <text data-node-label="" data-detail-anchor="" x="103" y="115" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">用户输入</text>
+          <text data-detail="context" x="103" y="132" class="t-muted" font-size="8" text-anchor="middle">新一轮输入</text>
         </g>
 
-        <g id="node-UPS" data-node-id="UPS" data-node-label="UserPromptSubmit" tabindex="0" role="button" aria-label="聚焦UserPromptSubmit，输入级钩子, 循环本体 · s01 Agent Loop" aria-pressed="false" data-node-kind="backend" data-node-sublabel="输入级钩子" data-node-context="循环本体 · s01 Agent Loop">
-          <title>UserPromptSubmit · 输入级钩子 · 循环本体 · s01 Agent Loop</title>
-          <rect x="620" y="136" width="180" height="56" rx="6" class="c-mask"/>
-          <rect x="620" y="136" width="180" height="56" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(626 142) scale(0.6875)">
+        <g id="node-ups" data-node-id="ups" data-node-label="UserPromptSubmit" tabindex="0" role="button" aria-label="聚焦UserPromptSubmit，输入级钩子, 主循环（s01） › 输入与判据" aria-pressed="false" data-node-kind="messagebus" data-node-sublabel="输入级钩子" data-node-tag="§6 钩子" data-node-context="主循环（s01） › 输入与判据">
+          <title>UserPromptSubmit · 输入级钩子 · 主循环（s01） › 输入与判据 · §6 钩子</title>
+          <rect x="186" y="86" width="140" height="68" rx="6" class="c-mask"/>
+          <rect x="186" y="86" width="140" height="68" rx="6" class="c-messagebus" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="messagebus" class="semantic-sigil s-messagebus" transform="translate(192 92) scale(0.6875)">
+            <path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"/>
+            <circle cx="5" cy="4.5" r="1" class="sigil-fill"/>
+            <circle cx="10.5" cy="8" r="1" class="sigil-fill"/>
+            <circle cx="7" cy="11.5" r="1" class="sigil-fill"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="257.8" y="107" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">UserPromptSubmit</text>
+          <text data-detail="context" x="256" y="124" class="t-muted" font-size="8" text-anchor="middle">输入级钩子</text>
+        <text data-detail="fine" x="256" y="142" class="t-messagebus" font-size="7" text-anchor="middle">§6 钩子</text>
+        </g>
+
+        <g id="node-llm" data-node-id="llm" data-node-label="调用模型" tabindex="0" role="button" aria-label="聚焦调用模型，附全部工具定义, 主循环（s01） › 输入与判据" aria-pressed="false" data-node-kind="backend" data-node-sublabel="附全部工具定义" data-node-context="主循环（s01） › 输入与判据">
+          <title>调用模型 · 附全部工具定义 · 主循环（s01） › 输入与判据</title>
+          <rect x="375" y="94" width="128" height="52" rx="6" class="c-mask"/>
+          <rect x="375" y="94" width="128" height="52" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(381 100) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="710" y="162" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">UserPromptSubmit</text>
-        <text data-detail="context" x="710" y="178" class="t-muted" font-size="9" text-anchor="middle">输入级钩子</text>
+          <text data-node-label="" data-detail-anchor="" x="439" y="115" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">调用模型</text>
+          <text data-detail="context" x="439" y="132" class="t-muted" font-size="8" text-anchor="middle">附全部工具定义</text>
         </g>
 
-        <g id="node-LLM" data-node-id="LLM" data-node-label="调用模型" tabindex="0" role="button" aria-label="聚焦调用模型，附全部工具定义, 循环本体 · s01 Agent Loop" aria-pressed="false" data-node-kind="backend" data-node-sublabel="附全部工具定义" data-node-context="循环本体 · s01 Agent Loop">
-          <title>调用模型 · 附全部工具定义 · 循环本体 · s01 Agent Loop</title>
-          <rect x="620" y="232" width="190" height="72" rx="6" class="c-mask"/>
-          <rect x="620" y="232" width="190" height="72" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(626 238) scale(0.6875)">
+        <g id="node-crit" data-node-id="crit" data-node-label="有工具调用块？" tabindex="0" role="button" aria-label="聚焦有工具调用块？，判据, 主循环（s01） › 输入与判据" aria-pressed="false" data-node-kind="backend" data-node-sublabel="判据" data-node-tag="needsFollowUp·认内容块" data-node-context="主循环（s01） › 输入与判据">
+          <title>有工具调用块？ · 判据 · 主循环（s01） › 输入与判据 · needsFollowUp·认内容块</title>
+          <rect x="556" y="86" width="152" height="68" rx="6" class="c-mask"/>
+          <rect x="556" y="86" width="152" height="68" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(562 92) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="715" y="266" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">调用模型</text>
-        <text data-detail="context" x="715" y="282" class="t-muted" font-size="9" text-anchor="middle">附全部工具定义</text>
+          <text data-node-label="" data-detail-anchor="" x="632" y="107" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">有工具调用块？</text>
+          <text data-detail="context" x="632" y="124" class="t-muted" font-size="8" text-anchor="middle">判据</text>
+        <text data-detail="fine" x="632" y="142" class="t-backend" font-size="7" text-anchor="middle">needsFollowUp·认内容块</text>
         </g>
 
-        <g id="node-CRIT" data-node-id="CRIT" data-node-label="出现工具调用块？" tabindex="0" role="button" aria-label="聚焦出现工具调用块？，needsFollowUp 判据, 循环本体 · s01 Agent Loop" aria-pressed="false" data-node-kind="backend" data-node-sublabel="needsFollowUp 判据" data-node-context="循环本体 · s01 Agent Loop">
-          <title>出现工具调用块？ · needsFollowUp 判据 · 循环本体 · s01 Agent Loop</title>
-          <rect x="620" y="344" width="190" height="72" rx="6" class="c-mask"/>
-          <rect x="620" y="344" width="190" height="72" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(626 350) scale(0.6875)">
-            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
+        <g id="node-stop" data-node-id="stop" data-node-label="Stop 钩子" tabindex="0" role="button" aria-label="聚焦Stop 钩子，没有→续跑或退出, 主循环（s01） › 裁决·执行·回喂" aria-pressed="false" data-node-kind="messagebus" data-node-sublabel="没有→续跑或退出" data-node-tag="stopHookActive 防死循环" data-node-context="主循环（s01） › 裁决·执行·回喂">
+          <title>Stop 钩子 · 没有→续跑或退出 · 主循环（s01） › 裁决·执行·回喂 · stopHookActive 防死循环</title>
+          <rect x="746" y="86" width="160" height="68" rx="6" class="c-mask"/>
+          <rect x="746" y="86" width="160" height="68" rx="6" class="c-messagebus" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="messagebus" class="semantic-sigil s-messagebus" transform="translate(752 92) scale(0.6875)">
+            <path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"/>
+            <circle cx="5" cy="4.5" r="1" class="sigil-fill"/>
+            <circle cx="10.5" cy="8" r="1" class="sigil-fill"/>
+            <circle cx="7" cy="11.5" r="1" class="sigil-fill"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="715" y="378" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">出现工具调用块？</text>
-        <text data-detail="context" x="715" y="394" class="t-muted" font-size="9" text-anchor="middle">needsFollowUp 判据</text>
+          <text data-node-label="" data-detail-anchor="" x="826" y="107" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Stop 钩子</text>
+          <text data-detail="context" x="826" y="124" class="t-muted" font-size="8" text-anchor="middle">没有→续跑或退出</text>
+        <text data-detail="fine" x="826" y="142" class="t-messagebus" font-size="7" text-anchor="middle">stopHookActive 防死循环</text>
         </g>
 
-        <g id="node-PRE" data-node-id="PRE" data-node-label="PreToolUse 钩子" tabindex="0" role="button" aria-label="聚焦PreToolUse 钩子，先于闸门，可否决, 裁决与执行 · s03 Permission + s04 Hooks" aria-pressed="false" data-node-kind="backend" data-node-sublabel="先于闸门，可否决" data-node-context="裁决与执行 · s03 Permission + s04 Hooks">
-          <title>PreToolUse 钩子 · 先于闸门，可否决 · 裁决与执行 · s03 Permission + s04 Hooks</title>
-          <rect x="620" y="466" width="180" height="64" rx="6" class="c-mask"/>
-          <rect x="620" y="466" width="180" height="64" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(626 472) scale(0.6875)">
-            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="710" y="496" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">PreToolUse 钩子</text>
-        <text data-detail="context" x="710" y="512" class="t-muted" font-size="9" text-anchor="middle">先于闸门，可否决</text>
-        </g>
-
-        <g id="node-G1" data-node-id="G1" data-node-label="闸门 1：硬拒绝表" tabindex="0" role="button" aria-label="聚焦闸门 1：硬拒绝表，内置硬编码拒绝, 裁决与执行 · s03 Permission + s04 Hooks" aria-pressed="false" data-node-kind="security" data-node-sublabel="内置硬编码拒绝" data-node-context="裁决与执行 · s03 Permission + s04 Hooks">
-          <title>闸门 1：硬拒绝表 · 内置硬编码拒绝 · 裁决与执行 · s03 Permission + s04 Hooks</title>
-          <rect x="620" y="574" width="180" height="56" rx="6" class="c-mask"/>
-          <rect x="620" y="574" width="180" height="56" rx="6" class="c-security" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(626 580) scale(0.6875)">
-            <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
-            <path d="m5.8 8 1.5 1.5 3-3"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="710" y="600" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">闸门 1：硬拒绝表</text>
-        <text data-detail="context" x="710" y="616" class="t-muted" font-size="9" text-anchor="middle">内置硬编码拒绝</text>
-        </g>
-
-        <g id="node-G2" data-node-id="G2" data-node-label="闸门 2：规则匹配" tabindex="0" role="button" aria-label="聚焦闸门 2：规则匹配，allow / deny / ask, 裁决与执行 · s03 Permission + s04 Hooks" aria-pressed="false" data-node-kind="security" data-node-sublabel="allow / deny / ask" data-node-context="裁决与执行 · s03 Permission + s04 Hooks">
-          <title>闸门 2：规则匹配 · allow / deny / ask · 裁决与执行 · s03 Permission + s04 Hooks</title>
-          <rect x="620" y="682" width="180" height="56" rx="6" class="c-mask"/>
-          <rect x="620" y="682" width="180" height="56" rx="6" class="c-security" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(626 688) scale(0.6875)">
-            <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
-            <path d="m5.8 8 1.5 1.5 3-3"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="710" y="708" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">闸门 2：规则匹配</text>
-        <text data-detail="context" x="710" y="724" class="t-muted" font-size="9" text-anchor="middle">allow / deny / ask</text>
-        </g>
-
-        <g id="node-G3" data-node-id="G3" data-node-label="闸门 3：用户审批" tabindex="0" role="button" aria-label="聚焦闸门 3：用户审批，命中 ask 才弹审批, 裁决与执行 · s03 Permission + s04 Hooks" aria-pressed="false" data-node-kind="security" data-node-sublabel="命中 ask 才弹审批" data-node-context="裁决与执行 · s03 Permission + s04 Hooks">
-          <title>闸门 3：用户审批 · 命中 ask 才弹审批 · 裁决与执行 · s03 Permission + s04 Hooks</title>
-          <rect x="620" y="790" width="180" height="64" rx="6" class="c-mask"/>
-          <rect x="620" y="790" width="180" height="64" rx="6" class="c-security" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(626 796) scale(0.6875)">
-            <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
-            <path d="m5.8 8 1.5 1.5 3-3"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="710" y="820" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">闸门 3：用户审批</text>
-        <text data-detail="context" x="710" y="836" class="t-muted" font-size="9" text-anchor="middle">命中 ask 才弹审批</text>
-        </g>
-
-        <g id="node-RUN" data-node-id="RUN" data-node-label="执行工具" tabindex="0" role="button" aria-label="聚焦执行工具，TOOL_HANDLERS 查表, 裁决与执行 · s03 Permission + s04 Hooks" aria-pressed="false" data-node-kind="backend" data-node-sublabel="TOOL_HANDLERS 查表" data-node-context="裁决与执行 · s03 Permission + s04 Hooks">
-          <title>执行工具 · TOOL_HANDLERS 查表 · 裁决与执行 · s03 Permission + s04 Hooks</title>
-          <rect x="620" y="894" width="180" height="64" rx="6" class="c-mask"/>
-          <rect x="620" y="894" width="180" height="64" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(626 900) scale(0.6875)">
-            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="710" y="924" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">执行工具</text>
-        <text data-detail="context" x="710" y="940" class="t-muted" font-size="9" text-anchor="middle">TOOL_HANDLERS 查表</text>
-        </g>
-
-        <g id="node-POST" data-node-id="POST" data-node-label="PostToolUse 钩子" tabindex="0" role="button" aria-label="聚焦PostToolUse 钩子，执行后立即触发, 裁决与执行 · s03 Permission + s04 Hooks" aria-pressed="false" data-node-kind="backend" data-node-sublabel="执行后立即触发" data-node-context="裁决与执行 · s03 Permission + s04 Hooks">
-          <title>PostToolUse 钩子 · 执行后立即触发 · 裁决与执行 · s03 Permission + s04 Hooks</title>
-          <rect x="620" y="1002" width="180" height="56" rx="6" class="c-mask"/>
-          <rect x="620" y="1002" width="180" height="56" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(626 1008) scale(0.6875)">
-            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="710" y="1028" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">PostToolUse 钩子</text>
-        <text data-detail="context" x="710" y="1044" class="t-muted" font-size="9" text-anchor="middle">执行后立即触发</text>
-        </g>
-
-        <g id="node-TR" data-node-id="TR" data-node-label="tool_result 配对" tabindex="0" role="button" aria-label="聚焦tool_result 配对，按 tool_use_id 对号, 裁决与执行 · s03 Permission + s04 Hooks" aria-pressed="false" data-node-kind="backend" data-node-sublabel="按 tool_use_id 对号" data-node-context="裁决与执行 · s03 Permission + s04 Hooks">
-          <title>tool_result 配对 · 按 tool_use_id 对号 · 裁决与执行 · s03 Permission + s04 Hooks</title>
-          <rect x="620" y="1106" width="200" height="72" rx="6" class="c-mask"/>
-          <rect x="620" y="1106" width="200" height="72" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(626 1112) scale(0.6875)">
-            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="720" y="1140" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">tool_result 配对</text>
-        <text data-detail="context" x="720" y="1156" class="t-muted" font-size="9" text-anchor="middle">按 tool_use_id 对号</text>
-        </g>
-
-        <g id="node-STOP" data-node-id="STOP" data-node-label="Stop 钩子" tabindex="0" role="button" aria-label="聚焦Stop 钩子，无工具调用才触发, 架构组件" aria-pressed="false" data-node-kind="backend" data-node-sublabel="无工具调用才触发" data-node-context="架构组件">
-          <title>Stop 钩子 · 无工具调用才触发 · 架构组件</title>
-          <rect x="150" y="180" width="150" height="72" rx="6" class="c-mask"/>
-          <rect x="150" y="180" width="150" height="72" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(156 186) scale(0.6875)">
-            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="225" y="214" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Stop 钩子</text>
-        <text data-detail="context" x="225" y="230" class="t-muted" font-size="9" text-anchor="middle">无工具调用才触发</text>
-        </g>
-
-        <g id="node-DONE" data-node-id="DONE" data-node-label="循环退出" tabindex="0" role="button" aria-label="聚焦循环退出，会话交回用户, 架构组件" aria-pressed="false" data-node-kind="external" data-node-sublabel="会话交回用户" data-node-context="架构组件">
-          <title>循环退出 · 会话交回用户 · 架构组件</title>
-          <rect x="180" y="90" width="120" height="56" rx="6" class="c-mask"/>
-          <rect x="180" y="90" width="120" height="56" rx="6" class="c-external" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(186 96) scale(0.6875)">
+        <g id="node-done" data-node-id="done" data-node-label="循环退出" tabindex="0" role="button" aria-label="聚焦循环退出，交回用户, 主循环（s01） › 裁决·执行·回喂" aria-pressed="false" data-node-kind="external" data-node-sublabel="交回用户" data-node-context="主循环（s01） › 裁决·执行·回喂">
+          <title>循环退出 · 交回用户 · 主循环（s01） › 裁决·执行·回喂</title>
+          <rect x="952.8" y="94" width="110" height="52" rx="6" class="c-mask"/>
+          <rect x="952.8" y="94" width="110" height="52" rx="6" class="c-external" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(958.8 100) scale(0.6875)">
             <rect x="2.5" y="5" width="8.5" height="8" rx="1.5"/>
             <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="240" y="116" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">循环退出</text>
-        <text data-detail="context" x="240" y="132" class="t-muted" font-size="9" text-anchor="middle">会话交回用户</text>
+          <text data-node-label="" data-detail-anchor="" x="1007.8" y="115" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">循环退出</text>
+          <text data-detail="context" x="1007.8" y="132" class="t-muted" font-size="8" text-anchor="middle">交回用户</text>
         </g>
 
-        <g id="node-DENY" data-node-id="DENY" data-node-label="拒绝结果" tabindex="0" role="button" aria-label="聚焦拒绝结果，闸门 1/3 拒绝, 裁决与执行 · s03 Permission + s04 Hooks" aria-pressed="false" data-node-kind="security" data-node-sublabel="闸门 1/3 拒绝" data-node-context="裁决与执行 · s03 Permission + s04 Hooks">
-          <title>拒绝结果 · 闸门 1/3 拒绝 · 裁决与执行 · s03 Permission + s04 Hooks</title>
-          <rect x="880" y="694" width="130" height="72" rx="6" class="c-mask"/>
-          <rect x="880" y="694" width="130" height="72" rx="6" class="c-security" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(886 700) scale(0.6875)">
+        <g id="node-pre" data-node-id="pre" data-node-label="PreToolUse" tabindex="0" role="button" aria-label="聚焦PreToolUse，先于闸门·可否决, 裁决与执行（s03 + s04） › 输入与判据" aria-pressed="false" data-node-kind="messagebus" data-node-sublabel="先于闸门·可否决" data-node-tag="不变式：allow 压不过 deny" data-node-context="裁决与执行（s03 + s04） › 输入与判据">
+          <title>PreToolUse · 先于闸门·可否决 · 裁决与执行（s03 + s04） › 输入与判据 · 不变式：allow 压不过 deny</title>
+          <rect x="181" y="212" width="150" height="68" rx="6" class="c-mask"/>
+          <rect x="181" y="212" width="150" height="68" rx="6" class="c-messagebus" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="messagebus" class="semantic-sigil s-messagebus" transform="translate(187 218) scale(0.6875)">
+            <path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"/>
+            <circle cx="5" cy="4.5" r="1" class="sigil-fill"/>
+            <circle cx="10.5" cy="8" r="1" class="sigil-fill"/>
+            <circle cx="7" cy="11.5" r="1" class="sigil-fill"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="256" y="233" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">PreToolUse</text>
+          <text data-detail="context" x="256" y="250" class="t-muted" font-size="8" text-anchor="middle">先于闸门·可否决</text>
+        <text data-detail="fine" x="256" y="268" class="t-messagebus" font-size="7" text-anchor="middle">不变式：allow 压不过 deny</text>
+        </g>
+
+        <g id="node-g123" data-node-id="g123" data-node-label="三道闸门" tabindex="0" role="button" aria-label="聚焦三道闸门，硬拒绝→规则→审批, 裁决与执行（s03 + s04） › 输入与判据" aria-pressed="false" data-node-kind="security" data-node-sublabel="硬拒绝→规则→审批" data-node-tag="auto 分类器替换闸门 3" data-node-context="裁决与执行（s03 + s04） › 输入与判据">
+          <title>三道闸门 · 硬拒绝→规则→审批 · 裁决与执行（s03 + s04） › 输入与判据 · auto 分类器替换闸门 3</title>
+          <rect x="359" y="212" width="160" height="68" rx="6" class="c-mask"/>
+          <rect x="359" y="212" width="160" height="68" rx="6" class="c-security" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(365 218) scale(0.6875)">
             <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
             <path d="m5.8 8 1.5 1.5 3-3"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="945" y="728" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">拒绝结果</text>
-        <text data-detail="context" x="945" y="744" class="t-muted" font-size="9" text-anchor="middle">闸门 1/3 拒绝</text>
+          <text data-node-label="" data-detail-anchor="" x="439" y="233" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">三道闸门</text>
+          <text data-detail="context" x="439" y="250" class="t-muted" font-size="8" text-anchor="middle">硬拒绝→规则→审批</text>
+        <text data-detail="fine" x="439" y="268" class="t-security" font-size="7" text-anchor="middle">auto 分类器替换闸门 3</text>
         </g>
 
-        <g id="node-SHA" data-node-id="SHA" data-node-label="stopHookActive" tabindex="0" role="button" aria-label="聚焦stopHookActive，防 Stop 续跑死循环, 生产保护层 · CC 源码与官方文档" aria-pressed="false" data-node-kind="security" data-node-sublabel="防 Stop 续跑死循环" data-node-context="生产保护层 · CC 源码与官方文档">
-          <title>stopHookActive · 防 Stop 续跑死循环 · 生产保护层 · CC 源码与官方文档</title>
-          <rect x="30" y="460" width="180" height="56" rx="6" class="c-mask"/>
-          <rect x="30" y="460" width="180" height="56" rx="6" class="c-security" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(36 466) scale(0.6875)">
-            <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
-            <path d="m5.8 8 1.5 1.5 3-3"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="120" y="486" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">stopHookActive</text>
-        <text data-detail="context" x="120" y="502" class="t-muted" font-size="9" text-anchor="middle">防 Stop 续跑死循环</text>
-        </g>
-
-        <g id="node-NF" data-node-id="NF" data-node-label="needsFollowUp" tabindex="0" role="button" aria-label="聚焦needsFollowUp，认内容块，不认 stop_reason, 生产保护层 · CC 源码与官方文档" aria-pressed="false" data-node-kind="backend" data-node-sublabel="认内容块，不认 stop_reason" data-node-context="生产保护层 · CC 源码与官方文档">
-          <title>needsFollowUp · 认内容块，不认 stop_reason · 生产保护层 · CC 源码与官方文档</title>
-          <rect x="340" y="348" width="180" height="64" rx="6" class="c-mask"/>
-          <rect x="340" y="348" width="180" height="64" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(346 354) scale(0.6875)">
+        <g id="node-run" data-node-id="run" data-node-label="查表执行" tabindex="0" role="button" aria-label="聚焦查表执行，TOOL_HANDLERS, 裁决与执行（s03 + s04） › 输入与判据" aria-pressed="false" data-node-kind="backend" data-node-sublabel="TOOL_HANDLERS" data-node-tag="partitionToolCalls" data-node-context="裁决与执行（s03 + s04） › 输入与判据">
+          <title>查表执行 · TOOL_HANDLERS · 裁决与执行（s03 + s04） › 输入与判据 · partitionToolCalls</title>
+          <rect x="557" y="212" width="150" height="68" rx="6" class="c-mask"/>
+          <rect x="557" y="212" width="150" height="68" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(563 218) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="430" y="378" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">needsFollowUp</text>
-        <text data-detail="context" x="430" y="394" class="t-muted" font-size="9" text-anchor="middle">认内容块，不认 stop_reason</text>
+          <text data-node-label="" data-detail-anchor="" x="632" y="233" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">查表执行</text>
+          <text data-detail="context" x="632" y="250" class="t-muted" font-size="8" text-anchor="middle">TOOL_HANDLERS</text>
+        <text data-detail="fine" x="632" y="268" class="t-backend" font-size="7" text-anchor="middle">partitionToolCalls</text>
         </g>
 
-        <g id="node-INV" data-node-id="INV" data-node-label="不变式" tabindex="0" role="button" aria-label="聚焦不变式，allow 压不过 deny/ask, 生产保护层 · CC 源码与官方文档" aria-pressed="false" data-node-kind="security" data-node-sublabel="allow 压不过 deny/ask" data-node-context="生产保护层 · CC 源码与官方文档">
-          <title>不变式 · allow 压不过 deny/ask · 生产保护层 · CC 源码与官方文档</title>
-          <rect x="30" y="716" width="180" height="88" rx="6" class="c-mask"/>
-          <rect x="30" y="716" width="180" height="88" rx="6" class="c-security" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(36 722) scale(0.6875)">
-            <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
-            <path d="m5.8 8 1.5 1.5 3-3"/>
+        <g id="node-post" data-node-id="post" data-node-label="PostToolUse" tabindex="0" role="button" aria-label="聚焦PostToolUse，执行后钩子, 裁决与执行（s03 + s04） › 裁决·执行·回喂" aria-pressed="false" data-node-kind="messagebus" data-node-sublabel="执行后钩子" data-node-context="裁决与执行（s03 + s04） › 裁决·执行·回喂">
+          <title>PostToolUse · 执行后钩子 · 裁决与执行（s03 + s04） › 裁决·执行·回喂</title>
+          <rect x="761" y="220" width="130" height="52" rx="6" class="c-mask"/>
+          <rect x="761" y="220" width="130" height="52" rx="6" class="c-messagebus" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="messagebus" class="semantic-sigil s-messagebus" transform="translate(767 226) scale(0.6875)">
+            <path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"/>
+            <circle cx="5" cy="4.5" r="1" class="sigil-fill"/>
+            <circle cx="10.5" cy="8" r="1" class="sigil-fill"/>
+            <circle cx="7" cy="11.5" r="1" class="sigil-fill"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="120" y="758" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">不变式</text>
-        <text data-detail="context" x="120" y="774" class="t-muted" font-size="9" text-anchor="middle">allow 压不过 deny/ask</text>
+          <text data-node-label="" data-detail-anchor="" x="826" y="241" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">PostToolUse</text>
+          <text data-detail="context" x="826" y="258" class="t-muted" font-size="8" text-anchor="middle">执行后钩子</text>
         </g>
 
-        <g id="node-CLS" data-node-id="CLS" data-node-label="auto 分类器" tabindex="0" role="button" aria-label="聚焦auto 分类器，替换闸门 3：上下文足则自动批, 生产保护层 · CC 源码与官方文档" aria-pressed="false" data-node-kind="backend" data-node-sublabel="替换闸门 3：上下文足则自动批" data-node-context="生产保护层 · CC 源码与官方文档">
-          <title>auto 分类器 · 替换闸门 3：上下文足则自动批 · 生产保护层 · CC 源码与官方文档</title>
-          <rect x="30" y="1040" width="180" height="88" rx="6" class="c-mask"/>
-          <rect x="30" y="1040" width="180" height="88" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(36 1046) scale(0.6875)">
-            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
+        <g id="node-tr" data-node-id="tr" data-node-label="tool_result 配对" tabindex="0" role="button" aria-label="聚焦tool_result 配对，按 tool_use_id 回喂, 裁决与执行（s03 + s04） › 裁决·执行·回喂" aria-pressed="false" data-node-kind="database" data-node-sublabel="按 tool_use_id 回喂" data-node-tag="拒绝结果同样回喂" data-node-context="裁决与执行（s03 + s04） › 裁决·执行·回喂">
+          <title>tool_result 配对 · 按 tool_use_id 回喂 · 裁决与执行（s03 + s04） › 裁决·执行·回喂 · 拒绝结果同样回喂</title>
+          <rect x="927.8" y="212" width="160" height="68" rx="6" class="c-mask"/>
+          <rect x="927.8" y="212" width="160" height="68" rx="6" class="c-database" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(933.8 218) scale(0.6875)">
+            <ellipse cx="8" cy="4" rx="5" ry="2"/>
+            <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="120" y="1082" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">auto 分类器</text>
-        <text data-detail="context" x="120" y="1098" class="t-muted" font-size="9" text-anchor="middle">替换闸门 3：上下文足则自动批</text>
+          <text data-node-label="" data-detail-anchor="" x="1007.8" y="233" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">tool_result 配对</text>
+          <text data-detail="context" x="1007.8" y="250" class="t-muted" font-size="8" text-anchor="middle">按 tool_use_id 回喂</text>
+        <text data-detail="fine" x="1007.8" y="268" class="t-database" font-size="7" text-anchor="middle">拒绝结果同样回喂</text>
         </g>
 
-        <g id="node-PT" data-node-id="PT" data-node-label="partitionToolCalls" tabindex="0" role="button" aria-label="聚焦partitionToolCalls，安全批并发，写操作串行, 生产保护层 · CC 源码与官方文档" aria-pressed="false" data-node-kind="backend" data-node-sublabel="安全批并发，写操作串行" data-node-context="生产保护层 · CC 源码与官方文档">
-          <title>partitionToolCalls · 安全批并发，写操作串行 · 生产保护层 · CC 源码与官方文档</title>
-          <rect x="30" y="1140" width="180" height="88" rx="6" class="c-mask"/>
-          <rect x="30" y="1140" width="180" height="88" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(36 1146) scale(0.6875)">
-            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="120" y="1182" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">partitionToolCalls</text>
-        <text data-detail="context" x="120" y="1198" class="t-muted" font-size="9" text-anchor="middle">安全批并发，写操作串行</text>
+        <!-- Edge labels -->
+        <g data-detail="context" data-edge-from="crit" data-edge-to="stop" data-edge-label="没有" data-edge-key="0" data-edge-id="b1">
+          <rect x="712" y="100" width="30" height="14" rx="3" class="c-mask"/>
+          <text x="727" y="110" class="t-edge-dashed" font-size="8" text-anchor="middle">没有</text>
         </g>
-
-        <!-- Connection labels -->
-
-
-
-        <g data-detail="context" data-edge-from="CRIT" data-edge-to="PRE" data-edge-label="有" data-edge-key="3" data-edge-id="crit-pre">
-          <rect x="679" y="421.5" width="30" height="14" rx="3" class="c-mask"/>
-          <text x="694" y="431.5" class="t-edge-emphasis" font-size="8" text-anchor="middle">有</text>
-        </g>
-
-        <g data-detail="context" data-edge-from="G1" data-edge-to="G2" data-edge-label="未命中" data-edge-key="5" data-edge-id="g1-g2">
-          <rect x="665.2" y="649" width="38.8" height="14" rx="3" class="c-mask"/>
-          <text x="684.6" y="659" class="t-edge-default" font-size="8" text-anchor="middle">未命中</text>
-        </g>
-        <g data-detail="context" data-edge-from="G2" data-edge-to="G3" data-edge-label="命中" data-edge-key="6" data-edge-id="g2-g3">
-          <rect x="674" y="757" width="30" height="14" rx="3" class="c-mask"/>
-          <text x="689" y="767" class="t-edge-default" font-size="8" text-anchor="middle">命中</text>
-        </g>
-        <g data-detail="context" data-edge-from="G3" data-edge-to="RUN" data-edge-label="允许" data-edge-key="7" data-edge-id="g3-run">
-          <rect x="674" y="867" width="30" height="14" rx="3" class="c-mask"/>
-          <text x="689" y="877" class="t-edge-default" font-size="8" text-anchor="middle">允许</text>
+        <g data-detail="context" data-edge-from="stop" data-edge-to="done" data-edge-label="返回空" data-edge-key="1" data-edge-id="b2">
+          <rect x="910" y="100" width="38.8" height="14" rx="3" class="c-mask"/>
+          <text x="929.4" y="110" class="t-edge-default" font-size="8" text-anchor="middle">返回空</text>
         </g>
 
 
 
-        <g data-detail="context" data-edge-from="G2" data-edge-to="RUN" data-edge-label="未命中" data-edge-key="11" data-edge-id="g2-run">
-          <rect x="820.6" y="798" width="38.8" height="14" rx="3" class="c-mask"/>
-          <text x="840" y="808" class="t-edge-default" font-size="8" text-anchor="middle">未命中</text>
-        </g>
-        <g data-detail="context" data-edge-from="G1" data-edge-to="DENY" data-edge-label="命中 / 拒绝" data-edge-key="12" data-edge-id="g1-deny">
-          <rect x="913.6" y="628" width="62.8" height="14" rx="3" class="c-mask"/>
-          <text x="945" y="638" class="t-edge-default" font-size="8" text-anchor="middle">命中 / 拒绝</text>
+        <g data-detail="context" data-edge-from="crit" data-edge-to="pre" data-edge-label="有" data-edge-key="5" data-edge-id="m4">
+          <rect x="475" y="148" width="30" height="14" rx="3" class="c-mask"/>
+          <text x="490" y="158" class="t-edge-emphasis" font-size="8" text-anchor="middle">有</text>
         </g>
 
-
-
-
-
-        <g data-detail="context" data-edge-from="CRIT" data-edge-to="STOP" data-edge-label="没有" data-edge-key="18" data-edge-id="crit-stop">
-          <rect x="845" y="393" width="30" height="14" rx="3" class="c-mask"/>
-          <text x="860" y="403" class="t-edge-default" font-size="8" text-anchor="middle">没有</text>
-        </g>
-        <g data-detail="context" data-edge-from="STOP" data-edge-to="LLM" data-edge-label="注入 user 消息续跑" data-edge-key="19" data-edge-id="stop-llm">
-          <rect x="481.3" y="306" width="96.39999999999999" height="14" rx="3" class="c-mask"/>
-          <text x="529.5" y="316" class="t-edge-default" font-size="8" text-anchor="middle">注入 user 消息续跑</text>
-        </g>
-        <g data-detail="context" data-edge-from="STOP" data-edge-to="DONE" data-edge-label="返回空" data-edge-key="20" data-edge-id="stop-done">
-          <rect x="221.1" y="151" width="38.8" height="14" rx="3" class="c-mask"/>
-          <text x="240.5" y="161" class="t-edge-default" font-size="8" text-anchor="middle">返回空</text>
+        <g data-detail="context" data-edge-from="g123" data-edge-to="run" data-edge-label="放行" data-edge-key="7" data-edge-id="m6">
+          <rect x="523" y="226" width="30" height="14" rx="3" class="c-mask"/>
+          <text x="538" y="236" class="t-edge-emphasis" font-size="8" text-anchor="middle">放行</text>
         </g>
 
 
-        <!-- Boundary labels (foreground masks keep routes out of titles) -->
-        <g data-graph-role="structural-frame-label" data-composition-frame-id="0" data-composition-frame-kind="region" data-composition-frame-label="循环本体 · s01 Agent Loop">
-          <rect data-graph-role="structural-frame-label-mask" x="594" y="20" width="145" height="16" rx="3" class="c-mask"/>
-          <text data-boundary-label="" x="598" y="33" class="t-cloud" font-size="9" font-weight="600">循环本体 · s01 Agent Loop</text>
-        </g>
-
-        <g data-graph-role="structural-frame-label" data-composition-frame-id="1" data-composition-frame-kind="region" data-composition-frame-label="裁决与执行 · s03 Permission + s04 Hooks">
-          <rect data-graph-role="structural-frame-label-mask" x="594" y="446" width="220.6" height="16" rx="3" class="c-mask"/>
-          <text data-boundary-label="" x="598" y="459" class="t-cloud" font-size="9" font-weight="600">裁决与执行 · s03 Permission + s04 Hooks</text>
-        </g>
-
-        <g data-graph-role="structural-frame-label" data-composition-frame-id="2" data-composition-frame-kind="region" data-composition-frame-label="生产保护层 · CC 源码与官方文档">
-          <rect data-graph-role="structural-frame-label-mask" x="4" y="328" width="172" height="16" rx="3" class="c-mask"/>
-          <text data-boundary-label="" x="8" y="341" class="t-cloud" font-size="9" font-weight="600">生产保护层 · CC 源码与官方文档</text>
+        <g data-detail="context" data-edge-from="tr" data-edge-to="llm" data-edge-label="回喂·接着想下一步" data-edge-key="10" data-edge-id="m9">
+          <rect x="727.7" y="58" width="91.6" height="14" rx="3" class="c-mask"/>
+          <text x="773.5" y="68" class="t-edge-emphasis" font-size="8" text-anchor="middle">回喂·接着想下一步</text>
         </g>
 
         <!-- Legend -->
         <g data-legend="" data-legend-bridge="">
-          <text x="40" y="1318" class="t-primary" font-size="12" font-weight="650">图例</text>
-          <g data-legend-semantic-kind="backend" data-legend-kind="backend" data-legend-label="后端" data-legend-x="40" data-legend-baseline="1338" data-legend-width="63">
-            <rect x="40" y="1329" width="16" height="10" rx="2.5" class="c-backend" stroke-width="1"/>
-            <text x="62" y="1338" class="t-muted" font-size="10" font-weight="500">后端</text>
+          <text x="20" y="308" class="t-primary" font-size="12" font-weight="650">图例</text>
+          <g data-legend-semantic-kind="backend" data-legend-kind="backend" data-legend-label="Agent 逻辑" data-legend-x="20" data-legend-baseline="328" data-legend-width="87">
+            <rect x="20" y="320" width="14" height="9" rx="2" class="c-backend" stroke-width="1"/>
+            <text x="42" y="328" class="t-muted" font-size="7.5" font-weight="500">Agent 逻辑</text>
           </g>
-          <g data-legend-semantic-kind="security" data-legend-kind="security" data-legend-label="安全" data-legend-x="125" data-legend-baseline="1338" data-legend-width="63">
-            <rect x="125" y="1329" width="16" height="10" rx="2.5" class="c-security" stroke-width="1"/>
-            <text x="147" y="1338" class="t-muted" font-size="10" font-weight="500">安全</text>
+          <g data-legend-semantic-kind="security" data-legend-kind="security" data-legend-label="策略" data-legend-x="114" data-legend-baseline="328" data-legend-width="61">
+            <rect x="114" y="320" width="14" height="9" rx="2" class="c-security" stroke-width="1"/>
+            <text x="136" y="328" class="t-muted" font-size="7.5" font-weight="500">策略</text>
           </g>
-          <g data-legend-semantic-kind="external" data-legend-kind="external" data-legend-label="外部系统" data-legend-x="210" data-legend-baseline="1338" data-legend-width="83">
-            <rect x="210" y="1329" width="16" height="10" rx="2.5" class="c-external" stroke-width="1"/>
-            <text x="232" y="1338" class="t-muted" font-size="10" font-weight="500">外部系统</text>
+          <g data-legend-semantic-kind="messagebus" data-legend-kind="messagebus" data-legend-label="工具操作" data-legend-x="182" data-legend-baseline="328" data-legend-width="78">
+            <rect x="182" y="320" width="14" height="9" rx="2" class="c-messagebus" stroke-width="1"/>
+            <text x="204" y="328" class="t-muted" font-size="7.5" font-weight="500">工具操作</text>
+          </g>
+          <g data-legend-semantic-kind="database" data-legend-kind="database" data-legend-label="上下文 / 追踪" data-legend-x="267" data-legend-baseline="328" data-legend-width="100">
+            <rect x="267" y="320" width="14" height="9" rx="2" class="c-database" stroke-width="1"/>
+            <text x="289" y="328" class="t-muted" font-size="7.5" font-weight="500">上下文 / 追踪</text>
+          </g>
+          <g data-legend-semantic-kind="external" data-legend-kind="external" data-legend-label="外部系统" data-legend-x="374" data-legend-baseline="328" data-legend-width="78">
+            <rect x="374" y="320" width="14" height="9" rx="2" class="c-external" stroke-width="1"/>
+            <text x="396" y="328" class="t-muted" font-size="7.5" font-weight="500">外部系统</text>
           </g>
         </g>
       </svg>
@@ -5560,41 +5417,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     </div>
     <!-- Info Cards -->
     <div class="cards">
-      <div class="card">
-        <div class="card-header">
-          <div class="card-dot cyan"></div>
-          <h3>循环本体</h3>
-        </div>
-        <ul>
-          <li>从 s01 到 s20 一行不改：能力全部外挂在循环之外</li>
-          <li>教学 30 行与生产 1729 行共享同一骨架，差别全在保护层</li>
-          <li>UserPromptSubmit 在调用模型前改写输入；Stop 决定续跑或退出</li>
-        </ul>
-      </div>
 
-      <div class="card">
-        <div class="card-header">
-          <div class="card-dot emerald"></div>
-          <h3>裁决与执行</h3>
-        </div>
-        <ul>
-          <li>PreToolUse → 三闸门 → 查表执行 → PostToolUse 单向管线</li>
-          <li>拒绝结果与执行结果汇入同一条 tool_result 配对回喂</li>
-          <li>TOOL_HANDLERS 查表分发：新增工具即插即用</li>
-        </ul>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          <div class="card-dot rose"></div>
-          <h3>防线不对称</h3>
-        </div>
-        <ul>
-          <li>允许需要各方一致，拒绝只要一方摇头</li>
-          <li>不变式：hook 的 allow 压不过 deny/ask 规则</li>
-          <li>needsFollowUp 流式判据认内容块，不认 stop_reason 字段</li>
-        </ul>
-      </div>
     </div>
     <nav class="node-outline no-print" id="node-outline" hidden aria-labelledby="node-outline-title">
       <div class="node-outline-head">

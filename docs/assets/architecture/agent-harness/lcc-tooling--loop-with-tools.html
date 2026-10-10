@@ -4988,7 +4988,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     <!-- Main Diagram -->
     <div class="diagram-container" data-detail-level="read"
          data-preset-badge-editorial-plate="ARCHIFY / 图版 04">
-      <svg viewBox="0 0 997 408" data-layout-contract="readable-v2" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-preset="classic" data-quality-profile="showcase">
+      <svg viewBox="0 0 1009 408" data-layout-contract="readable-v2" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-preset="classic" data-quality-profile="showcase">
         <title id="archify-diagram-title">工具与执行：查表分发进场</title>
         <desc id="archify-diagram-description">渐进图 L2（§4 之后）：执行节点展开为 TOOL_HANDLERS 查表，加一个工具只加两行</desc>
         <!-- Definitions -->
@@ -5035,9 +5035,10 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 
 
         <!-- Edge paths -->
-        <path data-edge-from="think" data-edge-to="run" data-edge-label="有工具调用块" data-edge-key="0" data-edge-id="t1" data-composition-routing="workflow-v2-auto" data-edge-role="" data-composition-points="188,120;263.6,120" d="M 188 120 L 263.6 120" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="run" data-edge-to="safe" data-edge-label="文件工具先过校验" data-edge-key="1" data-edge-id="t2" data-composition-routing="workflow-v2-auto" data-edge-role="branch" data-composition-points="347.6,154;347.6,212" d="M 347.6 154 L 347.6 212" class="a-dashed" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
-        <path data-edge-from="run" data-edge-to="feed" data-edge-label="执行结果" data-edge-key="2" data-edge-id="t3" data-composition-routing="workflow-v2-auto" data-edge-role="" data-composition-points="431.6,120;488,120" d="M 431.6 120 L 488 120" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="feed" data-edge-to="think" data-edge-label="回喂·接着想下一步" data-edge-key="0" data-edge-id="rb" data-composition-routing="workflow-v2-auto" data-edge-role="return" data-composition-points="563,154;563,174;118,174;118,154" d="M 563 154 L 563 174 L 118 174 L 118 154" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="think" data-edge-to="run" data-edge-label="有工具调用块" data-edge-key="1" data-edge-id="t1" data-composition-routing="workflow-v2-auto" data-edge-role="" data-composition-points="188,120;263.6,120" d="M 188 120 L 263.6 120" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="run" data-edge-to="safe" data-edge-label="文件工具先过校验" data-edge-key="2" data-edge-id="t2" data-composition-routing="workflow-v2-auto" data-edge-role="branch" data-composition-points="347.6,86;347.6,70;993,70;993,246;423.6,246" d="M 347.6 86 L 347.6 70 L 993 70 L 993 246 L 423.6 246" class="a-dashed" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
+        <path data-edge-from="run" data-edge-to="feed" data-edge-label="执行结果" data-edge-key="3" data-edge-id="t3" data-composition-routing="workflow-v2-auto" data-edge-role="" data-composition-points="431.6,120;488,120" d="M 431.6 120 L 488 120" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
 
         <!-- Nodes -->
         <g id="node-think" data-node-id="think" data-node-label="调用模型" tabindex="0" role="button" aria-label="聚焦调用模型，回答里出现工具调用块, 循环主链（s01–s02） › 判据" aria-pressed="false" data-node-kind="backend" data-node-sublabel="回答里出现工具调用块" data-node-tag="只决策·不执行" data-node-context="循环主链（s01–s02） › 判据">
@@ -5064,8 +5065,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <text data-detail="fine" x="347.6" y="145.9" class="t-backend" font-size="7" text-anchor="middle">加工具=加一行</text>
         </g>
 
-        <g id="node-feed" data-node-id="feed" data-node-label="tool_result 回喂" tabindex="0" role="button" aria-label="聚焦tool_result 回喂，按 tool_use_id 配对, 循环主链（s01–s02） › 回喂" aria-pressed="false" data-node-kind="database" data-node-sublabel="按 tool_use_id 配对" data-node-tag="回·LLM 想下一步" data-node-context="循环主链（s01–s02） › 回喂">
-          <title>tool_result 回喂 · 按 tool_use_id 配对 · 循环主链（s01–s02） › 回喂 · 回·LLM 想下一步</title>
+        <g id="node-feed" data-node-id="feed" data-node-label="tool_result 回喂" tabindex="0" role="button" aria-label="聚焦tool_result 回喂，按 tool_use_id 配对, 循环主链（s01–s02） › 回喂" aria-pressed="false" data-node-kind="database" data-node-sublabel="按 tool_use_id 配对" data-node-tag="结果交还 LLM" data-node-context="循环主链（s01–s02） › 回喂">
+          <title>tool_result 回喂 · 按 tool_use_id 配对 · 循环主链（s01–s02） › 回喂 · 结果交还 LLM</title>
           <rect x="488" y="86" width="150" height="68" rx="6" class="c-mask"/>
           <rect x="488" y="86" width="150" height="68" rx="6" class="c-database" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(494 92) scale(0.6875)">
@@ -5074,7 +5075,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           </g>
           <text data-node-label="" data-detail-anchor="" x="563" y="107" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">tool_result 回喂</text>
           <text data-detail="context" x="563" y="124" class="t-muted" font-size="8" text-anchor="middle">按 tool_use_id 配对</text>
-        <text data-detail="fine" x="563" y="142" class="t-database" font-size="7" text-anchor="middle">回·LLM 想下一步</text>
+        <text data-detail="fine" x="563" y="142" class="t-database" font-size="7" text-anchor="middle">结果交还 LLM</text>
         </g>
 
         <g id="node-safe" data-node-id="safe" data-node-label="safe_path 校验" tabindex="0" role="button" aria-label="聚焦safe_path 校验，路径必须落在工作目录内, 文件安全边界 › 查表分发" aria-pressed="false" data-node-kind="security" data-node-sublabel="路径必须落在工作目录内" data-node-tag="越界直接报错" data-node-context="文件安全边界 › 查表分发">
@@ -5091,15 +5092,19 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         </g>
 
         <!-- Edge labels -->
-        <g data-detail="context" data-edge-from="think" data-edge-to="run" data-edge-label="有工具调用块" data-edge-key="0" data-edge-id="t1">
+        <g data-detail="context" data-edge-from="feed" data-edge-to="think" data-edge-label="回喂·接着想下一步" data-edge-key="0" data-edge-id="rb">
+          <rect x="294.7" y="154" width="91.6" height="14" rx="3" class="c-mask"/>
+          <text x="340.5" y="164" class="t-edge-emphasis" font-size="8" text-anchor="middle">回喂·接着想下一步</text>
+        </g>
+        <g data-detail="context" data-edge-from="think" data-edge-to="run" data-edge-label="有工具调用块" data-edge-key="1" data-edge-id="t1">
           <rect x="192" y="100" width="67.6" height="14" rx="3" class="c-mask"/>
           <text x="225.8" y="110" class="t-edge-emphasis" font-size="8" text-anchor="middle">有工具调用块</text>
         </g>
-        <g data-detail="context" data-edge-from="run" data-edge-to="safe" data-edge-label="文件工具先过校验" data-edge-key="1" data-edge-id="t2">
-          <rect x="304.20000000000005" y="173" width="86.8" height="14" rx="3" class="c-mask"/>
-          <text x="347.6" y="183" class="t-edge-dashed" font-size="8" text-anchor="middle">文件工具先过校验</text>
+        <g data-detail="context" data-edge-from="run" data-edge-to="safe" data-edge-label="文件工具先过校验" data-edge-key="2" data-edge-id="t2">
+          <rect x="626.9" y="50" width="86.8" height="14" rx="3" class="c-mask"/>
+          <text x="670.3" y="60" class="t-edge-dashed" font-size="8" text-anchor="middle">文件工具先过校验</text>
         </g>
-        <g data-detail="context" data-edge-from="run" data-edge-to="feed" data-edge-label="执行结果" data-edge-key="2" data-edge-id="t3">
+        <g data-detail="context" data-edge-from="run" data-edge-to="feed" data-edge-label="执行结果" data-edge-key="3" data-edge-id="t3">
           <rect x="435.6" y="100" width="48.4" height="14" rx="3" class="c-mask"/>
           <text x="459.8" y="110" class="t-edge-emphasis" font-size="8" text-anchor="middle">执行结果</text>
         </g>

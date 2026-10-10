@@ -31,8 +31,8 @@ description: "把会思考的 LLM 变成会动手的 Agent：一个回喂工具�
 
 ## 2. 全貌解剖
 
-先看一张最小的图（图源 [lcc-tooling--loop-simple.mmd](../../assets/mermaid/agent-harness/lcc-tooling--loop-simple.mmd)）。它只有循环主干：你提一个要求，LLM 想下一步；要动工具，程序就替它执行、把结果交还；不想动，就直接交出结果。三个灰色虚线框——Tool Use、Permission、Hooks——是后续章节的挂载点，现在不用看懂。
-![工具与执行 · 渐进图 L0：核心循环主干与三个待挂载机制（Tool Use / Permission / Hooks）](../../assets/architecture/agent-harness/lcc-tooling--loop-simple-dark.png)
+先看一张最小的图（图源 [lcc-tooling--loop-simple.mmd](../../assets/mermaid/agent-harness/lcc-tooling--loop-simple.mmd)）。它只有一圈主循环：你提一个要求，LLM 想下一步；要动工具，程序就替它执行、把结果交还，LLM 再接着想；不用动了，就交出结果。三个节点上的彩色徽标（§4 / §5 / §6）标明后续章节要把什么挂在哪里，现在不用看懂。
+![工具与执行 · 渐进图 L0：核心主循环一圈走到底，节点徽标标出 §4 / §5 / §6 的挂载点](../../assets/architecture/agent-harness/lcc-tooling--loop-simple-dark.png)
 
 > 交互版（下载到本地打开）：[`lcc-tooling--loop-simple.html`](../../assets/architecture/agent-harness/lcc-tooling--loop-simple.html) · 双主题渲染 [`dark`](../../assets/architecture/agent-harness/lcc-tooling--loop-simple-dark.png) / [`light`](../../assets/architecture/agent-harness/lcc-tooling--loop-simple-light.png)
 
@@ -187,8 +187,8 @@ turns 10/10 · stop_continued 1
 
 生产版里有两条保险最值得细看。其一是不变式（无论走哪条路都不许违反的规则）：**Hook 说 allow，也压不过设置里的 deny / ask 规则**，官方文档原文是「Deny and ask rules are still evaluated regardless of what the hook returns」[3]。允许要各方一致，拒绝只要一方摇头；任何一个来源，包括用户自己写的 Hook，都不能单方面放行被禁的操作。其二是 stopHookActive：Stop Hook 的阻塞错误会让循环带着标志重入，后续迭代看到这个标志，就不再触发 Stop Hook，避免「LLM 自纠、Hook 再报错、LLM 再自纠」无限转下去。此外，PostToolUse 还有一条优雅停机通道：返回阻止续跑的标志时，循环平静退出，算完成而非崩溃。
 
-**图进度 · 终态**——最后一块挂载完毕：三道闸门降格为挂在 PreToolUse 下的普通回调（§6.2 的核心手法），PostToolUse 与 Stop 接管执行后与退出前；虚线的生产保护层（needsFollowUp、分类器、不变式等）各守护一个骨架节点。对照 §2 的 L0 简图，四次增强的每一步都应该能对上——如果哪一块对不上，回到对应章节再读一遍。
-![工具与执行全景（终态）：蓝色循环本体为不变骨架，裁决执行 Pipeline 以 tool_result 配对回喂闭环，紫色生产保护层以虚线守护骨架节点](../../assets/architecture/agent-harness/lcc-tooling--panorama-dark.png)
+**图进度 · 终态**——最后一块挂载完毕：一条主循环从「用户输入」一圈走到底，工具调用经 PreToolUse、三道闸门、查表执行、PostToolUse 回到 LLM；生产保护层的几个机制（needsFollowUp、auto 分类器、不变式、partitionToolCalls、stopHookActive）不再另起一层，直接以徽标标在它们守护的节点上。对照 §2 的 L0 简图，四次增强的每一步都应该能对上——如果哪一块对不上，回到对应章节再读一遍。
+![工具与执行全景（终态）：一个主循环一圈走到底，节点徽标标出生产保护机制](../../assets/architecture/agent-harness/lcc-tooling--panorama-dark.png)
 
 > 交互版（下载到本地打开）：[`lcc-tooling--panorama.html`](../../assets/architecture/agent-harness/lcc-tooling--panorama.html) · 双主题渲染 [`dark`](../../assets/architecture/agent-harness/lcc-tooling--panorama-dark.png) / [`light`](../../assets/architecture/agent-harness/lcc-tooling--panorama-light.png)
 

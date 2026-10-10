@@ -259,14 +259,15 @@ async function main() {
       if (now !== theme) throw new Error(`主题切换失败: 期望 ${theme} 实得 ${now}`);
       const r = await cdp.evalFn(PAGE_FNS.exportBlob, "png");
       // archify 3.0 导出为「内容并集 + padding」，不再是 viewBox 整数倍：
-      // 断言放宽为「两轴分别完整包含 viewBox ≥3×」+「两轴缩放同量级（≤25% 差）」。
-      // 25%：小 viewBox 图（如 ~1000×558 渐进图）的并集 padding 纵横比失真可达 ~16%，
-      // 15% 阈值误杀（2026-10-10，lcc-tooling 渐进四图实测；ISSUE-212 同族根因）。
+      // 断言放宽为「两轴分别完整包含 viewBox ≥3×」+「两轴缩放同量级（≤40% 差）」。
+      // 40%：并集 padding 为固定像素量，小/扁 viewBox 图纵横比失真被放大——~1000×558 图实测
+      // 16.1%、单行主链 1046×282 实测 32.6%；「两轴均 ≥3×」才是防半幅/空图的硬判，
+      // 同量级阈值只拦极端畸形（2026-10-10，lcc-tooling 渐进图实测；ISSUE-212 同族根因）。
       const sx = r.dims ? r.dims.width / vb.width : 0;
       const sy = r.dims ? r.dims.height / vb.height : 0;
       const okDims = r.dims
         && sx >= 3 && sy >= 3
-        && Math.abs(sx - sy) / Math.max(sx, sy) <= 0.25;
+        && Math.abs(sx - sy) / Math.max(sx, sy) <= 0.40;
       if (!okDims) {
         throw new Error(`PNG 尺寸异常: ${JSON.stringify(r.dims)}（期望 viewBox ${vb.width}×${vb.height} 的 ≥3× 完整包含且两轴缩放同量级）`);
       }
