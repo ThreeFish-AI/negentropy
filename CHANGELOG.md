@@ -4,6 +4,17 @@
 
 ## [Unreleased]
 ### Added
+### Learn Claude Code 五集笔记层 LLM 单名化：术语统一 + gl-notes 第四次重冻（2026-10-09）
+
+- **同概念多名收敛**（[ISSUE-214](docs/.agents/issue.md)）：171–175 六篇 SSOT（含 170 规则句）凡特指大语言模型一律只写 LLM，首现随注全称「LLM（大语言模型）」；三类例外保留原样并登记（课程原话引文、小模型权限分类器、线程/进程模型等非 LLM 复合概念）；脚本化统一 113 行级变更（保护跨度 + 计数断言 + 行数不变），五集 [gl-notes](apps/negentropy-influence/episodes/claude-code-explained-video/research/gl-notes.md) 同步第四次重冻（五对冻结段与 SSOT 链接改写后逐字节一致），[readme](docs/research/readme.md) 索引转引同步；口播层按两层口径不动；4 独立盲审 3 条 Finding 全采纳（gloss 空格、175 逐字引文回退、172 断句歧义）。遗留：四个 panorama 图源内「模型」字样随下次 archify deliver 重录处理。
+### Learn Claude Code ① 工具与执行 guided-learn 精读轮（2026-10-01；171 主体已由主干换代版承接）
+
+- **本 PR 收窄为工程登记与补充资产**：2026-10-01 以 /guided-learn 首次精读协议完成的 171 重写（站点 2026-09-30 快照 + main `ce8f9f18` + 官方三轨、源稿对账 36 断言全绿、外行四测出闸）在同日主干 #1189 的五部分换代（2026-10-07 钉点、成套 `lcc_tooling_lab.py` + `lcc-<part>--panorama`）面前让位——合并时 171/170/readme/knowledge-map 取主干版。本 PR 保留的增量：① [ISSUE-212](docs/.agents/issue.md)（原 208，编号撞车顺延）：archify 3.0.0 figure 导出与采集脚本 4× 断言不兼容 + 3.0.0 HTML 行尾空格致回执指纹漂移——pre-commit 对 `docs/assets/architecture/` 增加空白钩子豁免（与 `source-archive/` 同理，经用户确认）；② 补充资产 [cc_tools_lab.py](docs/research/agent-harness/assets/cc_tools_lab.py)（纯标准库原型，`--selftest` + 5 破坏性实验）与 [loop-mounted-layers 图四件套（.mmd/HTML/dark·light PNG）](docs/assets/mermaid/agent-harness/claude-code-tooling--loop-mounted-layers.mmd)（主干 171 未内嵌，作另一视角补充保留，经用户确认）；③ [ISSUE-213](docs/.agents/issue.md)（原 209，ep1 five-layer 视角误用，编号顺延）。
+
+### Claude Code Harness Engineering 第 1 集完全重制交付（急诊接诊循环全新叙事包装，2026-10-01..02）
+
+- **第 1 集同 slug 清场重建**（[apps/negentropy-influence/episodes/claude-code-explained-video](apps/negentropy-influence/episodes/claude-code-explained-video/README.md)）：以 171 号全新精读为事实底座（重钉 main `ce8f9f18`，台账 12 条 audit/verify FAIL 0 + 95 条断言逐章引语台账），**弃工坊剧场世界观**改用「急诊接诊循环」视觉母题（无状态医生/病历本/开单表/三重把关/规程节点；破坏实验一律代码语言陈述、零伤亡映射）。逐字稿 141 句 3326 字（④ 双重校验 141 句全判级 + 必改 14 条全落：删无中生有的「允许清单」层、「三步注册」归两笔、实验 4 封顶口径 50 轮、分类器表述归锚；⑤ 成文 31 处句 id 零增删）；story 档配音 me-bright + 55 块 cues（tts 自动分段 +2；p5-14 拆块已入台本待下次 TTS 生效）（**df=1.24 慢速档**——⑤ 短促句式裸跑 332 字/分致 10.9 分超窗，duration_factor 调回系列语速口径，实测 250 字/分覆写）；archify 14 图（13 新绘 + five-layer 复用，锁定版 2.17.0-dev.1 建 .temp checkout 四门全 pass + 四轮口径返修）67 章逐章回放（cue 62 · 锚定 44% · 5 型 · 密度 4.7/分 · capture_fps 最低 18.0）；七幕场景原生 SVG（P0/P6 主笔 + P1–P5 双代理并行）；机器门全绿 + 全片抽样 8 帧/末秒逐帧目检过。13:17.0 = 797s @1080p30（ffprobe 双源一致）；归档 `~/Documents/video/claude-code-explained/` v1 + _captions（旧《三层装置》v1/v2 原位保留）。ISSUE-206 的 ep1 侧随重制关闭（2026-10-08 合并主干后 v1 场景集回座、缺陷态回归树中，复核义务移交 v3 场景轮，详见 ISSUE-206 合并追记）。
+
 ### 媒体固定资产登记制：默认不入库，登记才入库（2026-10-08）
 
 - **登记表 + 校验器 + 通用忽略段**三件套（[ISSUE-210](docs/.agents/issue.md)）：音/视频媒体与动图（mp3/mp4/wav/m4a/aac/flac/ogg/opus/webm/mov/mkv/avi/gif）全仓默认不入 Git；公共固定资产先在 `scripts/media-assets.toml` 登记（path/sha256/bytes/reason），`scripts/check_media_assets.py --sync` 按登记表重放 .gitignore 白名单块（对每个登记路径跑 `git check-ignore` 实测放行，闭合目录级忽略陷阱），`--check` 校验「已入库 ⊆ 登记表、指纹一致、白名单生效、触发覆盖完整」并 pre-commit/CI 双挂。红绿闭环实测四条：默认 add 被挡 / -f 强加被钩子拦 / 篡改已登记文件被指纹拦 / 各集副本目录级忽略仍生效。零散忽略行收敛进通用段；首批登记架构故事片 mp4/gif（存量合规化）与 CC 系列片头音轨种子 mp3（合成产物随仓分发，克隆源样本仍不入库）。

@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "workflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/.archify/workflow-panorama-main-loop-20261010-102028/candidate.json",
+    "sha256": "3404064cb31fe0c87810307042e753acafd66d3687a5452a653fd2246f2b0360",
+    "bytes": 4054
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--panorama.html",
+    "sha256": "f3ec26eafb7a49ceee5e5ebc26c0f160ed3e4080b16eb314d7023df2cbbfac87",
+    "bytes": 762513
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--panorama.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--panorama.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--panorama.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 1935,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "routesOverSuggestedBends": 2
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [],
+      "detours": [
+        {
+          "relationship": {
+            "id": "m4",
+            "from": "crit",
+            "to": "pre",
+            "label": "有",
+            "collectionIndex": 5,
+            "artifactIndex": 6
+          },
+          "bends": 3,
+          "stretch": 1.06
+        },
+        {
+          "relationship": {
+            "id": "m9",
+            "from": "tr",
+            "to": "llm",
+            "label": "回喂·接着想下一步",
+            "collectionIndex": 10,
+            "artifactIndex": 11
+          },
+          "bends": 3,
+          "stretch": 1.09
+        }
+      ],
+      "truncated": false
+    },
+    "hints": [
+      "crit → pre needs 3 bends: move node crit or pre so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "tr → llm needs 3 bends: move node tr or llm so they share a row or column with matching centers, or sit diagonally with a clear corner."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

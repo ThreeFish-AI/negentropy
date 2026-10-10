@@ -41,6 +41,7 @@
 | slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | [lcc-tooling--panorama](./agent-harness/lcc-tooling--panorama.mmd) | [171 工具与执行 §2](../../research/agent-harness/171-claude-code-tooling-execution.md) | architecture | ✓ | done | 主循环+分发+三闸门+钩子全貌（2026-10-07 guided-learn 换代首批） |
+| [claude-code-tooling--loop-mounted-layers](./agent-harness/claude-code-tooling--loop-mounted-layers.mmd) | [171 工具与执行 §2（补充图·未内嵌正文）](../../research/agent-harness/171-claude-code-tooling-execution.md) | architecture | ✓ | done | 循环内核＋三挂件全景（2026-10-01 精读轮配套；主干 171 换代版未内嵌，作补充视角保留；ISSUE-212 archify 3.0.0 采集口径实录） |
 | [lcc-planning--panorama](./agent-harness/lcc-planning--panorama.mmd) | [172 规划与协调 文末（附录后）](../../research/agent-harness/172-claude-code-planning-coordination.md) | architecture | ✓ | done | 五装置与「每轮看到什么」；2026-10-07 重绘工程直陈版（汇合层口径） |
 | [lcc-memory--panorama](./agent-harness/lcc-memory--panorama.mmd) | [173 记忆管理 §2](../../research/agent-harness/173-claude-code-memory-management.md) | architecture | ✓ | done | 压缩管线+磁盘留档+记忆四件套咬合（2026-10-07 换代） |
 | [lcc-concurrency--panorama](./agent-harness/lcc-concurrency--panorama.mmd) | [174 并发与时机 §2](../../research/agent-harness/174-claude-code-concurrency.md) | architecture | ✓ | done | 后台/定时双泳道汇入循环（2026-10-07 换代） |

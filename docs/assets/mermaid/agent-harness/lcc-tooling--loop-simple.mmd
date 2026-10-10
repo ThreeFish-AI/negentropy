@@ -1,0 +1,29 @@
+%% source: docs/research/agent-harness/171-claude-code-tooling-execution.md（§2 全貌解剖 · 渐进图 L0）
+%% slug: lcc-tooling--loop-simple
+%% type: architecture
+%% derived: 渐进披露系列首图（2026-10-10，开篇防过载改造：白话主干 + 三个机制占位，§3–§6 逐章细化）
+flowchart TD
+    subgraph LOOP["核心循环 · Agent Loop（§3 展开）"]
+        direction TB
+        IN["你提一个要求"] --> THINK["LLM 想下一步"]
+        THINK --> Q{"要动用工具吗？"}
+        Q -- "要" --> ACT["程序替它执行"]
+        ACT --> FEED["结果交还 LLM"]
+        FEED --> THINK
+        Q -- "不用了" --> DONE["交出最终结果"]
+    end
+
+    TOOLS["Tool Use：更多专用工具（§4）"]
+    PERM["Permission：动手前的闸门（§5）"]
+    HOOKS["Hooks：扩展挂点（§6）"]
+
+    THINK -. "§4 展开" .-> TOOLS
+    ACT -. "§5 展开" .-> PERM
+    LOOP -. "§6 展开" .-> HOOKS
+
+    classDef loopnode fill:#1f6feb,stroke:#79c0ff,color:#ffffff
+    classDef endnode fill:#6e7681,stroke:#c9d1d9,color:#ffffff
+    classDef placeholder fill:#30363d,stroke:#8b949e,color:#e6edf3,stroke-dasharray: 5 5
+    class IN,THINK,Q,ACT,FEED loopnode
+    class DONE endnode
+    class TOOLS,PERM,HOOKS placeholder

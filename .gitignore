@@ -263,6 +263,9 @@ apps/negentropy-ui/.yarn/*
 .temp/
 .playwright-mcp/
 
+# archify 3.x 会话暂存（candidate/spec JSON；交付回执已记 sha256，HTML data-* 可逆推）
+.archify/
+
 # Playwright auth artifacts (browser session reuse) — see docs/agents/browser-validation.md
 apps/negentropy-ui/.auth/
 apps/negentropy-ui/.userdata/

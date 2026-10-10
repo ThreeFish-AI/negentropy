@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "76828065-fad9-4071-8474-3132b7ff811a",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/.archify/workflow-loop-full-20261010-093248/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--loop-full.html",
+  "specification": {
+    "sha256": "eb606a56719ebf1229ad6e1395973ca5fa74aa9ae07ce7b2df5c8a30287c2444",
+    "bytes": 3359
+  },
+  "artifact": {
+    "sha256": "95f4bd7ac4860503d867b274296bee28d9915373f4bd23fe6cdb140417386fa7",
+    "bytes": 757548
+  }
+}

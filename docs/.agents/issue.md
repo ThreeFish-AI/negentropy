@@ -4328,11 +4328,12 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **后续防范**：幕内「全局收尾层」（渐黑/完结语/水印类）必须悬于该幕所有 Sequence 之后——评审清单加一条「收尾层层级对账」；**跨 Sequence 移动带 hooks 的层时，`useCurrentFrame` 语境随宿主变，窗口类 hooks 必须与消费点同语境**（组件化而非内联搬运）；目检必抽末 1 秒（亮度门盲区）。
 - **同类问题影响**：五集其余 P6 已逐一核过（渐黑窗均取整镜时长、无同形态）；ep1–ep4 末镜顶层无满亮常驻卡。
 
-## ISSUE-206 ep1 checkchain-order 图 scan-claim 章录制帧率 17.0 < 18（2026-09-30，开放）
+## ISSUE-206 ep1 checkchain-order 图 scan-claim 章录制帧率 17.0 < 18（2026-09-30，随 ep1 重制失效关闭 2026-10-02）
 
 - **表因**：`video/public/archify/checkchain-order.json` chapters[1] capture_fps=17.0，五集其余 59 图全部 ≥23；check_archify 仅 WARN 不拦门。
 - **根因**：录制期负载瞬时退化（ISSUE-201 同期建图批次），CDP 档补帧合成 CFR25 掩盖了低采集率。
-- **处理方式（待办）**：空闲机 `record_archify.py --only checkchain-order --force` 重录（先按惯例排除负载瞬时假 FAIL），再重渲引用该章的幕并重新归档。
+- **处理方式**：随 ep1 完全重制（新题《工具与执行：一个循环，三层外设》）失效关闭——checkchain-order 图已整体退役删除（新图集 13 新绘＋five-layer 复用），重录待办不再适用；CHANGELOG 同批登记「ISSUE-206 的 ep1 侧随重制关闭」。
+- **合并追记（2026-10-08）**：主干 #1189 剧本 v3 只换代剧本、场景/图集未动——合并整树对齐后 `video/public/archify/checkchain-order.json`（scan-claim 章 capture_fps=17.0）随 v1 场景集原样回座并被 manifest 挂载，「整体退役删除」仅适用于 2026-10-02 重制态与外部归档 v1；fps 复核义务移交 v3 场景轮换新图集时一并重验。
 - **后续防范**：录制后对 capture_fps 做「min ≥18」门（当前仅 WARN）；重录前先单帧 still 判别资源态。
 - **同类问题影响**：仅此一章；五集其余图帧率健康。
 
@@ -4389,3 +4390,31 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **处理方式**：本轮以 `pipeline.py build` + `check_script.py --pre-tts` + `check_script.py`（默认）+ pre-commit `check_series`（8 规则）四绿为交付门；两类已知红门登记于此、明确不跑。storyboard 的「archify 对接说明」节保留预定图 slug 清单作为场景轮的建图工作清单。
 - **后续防范（恢复条件=场景轮）**：场景轮重写场景代码 + 按预定 slug 建视频版 archify 图并挂 cue 后，恢复 `pipeline.py check` 全量（自动串联覆盖门）与 `--check-scenes`；届时本条目转已闭。PR #1185（ThreeFish-AI/negentropy：176 四件套 + ep2 v5）与本轮新产物同域冲突（ep2 `research/gl-notes.md` 同名新增、`source-notes.md` 同名删除），处置为 close as superseded（2026-10-07 评审修复轮执行关闭）——其评审循环经验已沉淀于 vibe-video skill 与本仓 issue 史。
 - **同类问题影响**：未来任何「只换剧本不动场景」的迭代轮同此口径；若 skill 侧未来增加「跨代中间态」的显式模式（如 storyboard 标记 `scenes-pending`），可把本登记升级为机器执法。
+
+## ISSUE-212 archify 3.0.0 figure 导出与 capture-arch-diagram.mjs 4× 断言不兼容（2026-10-01，开放；2026-10-08 合并主干时编号撞车自 208 顺延）
+
+- **表因**：用已装 archify 3.0.0 产出新图后，`node scripts/capture-arch-diagram.mjs` 恒 FATAL「PNG 尺寸异常」——导出 PNG = viewBox + 恒定图框边距（FIGURE_CARD_PADDING=24 ×2 + 标题头 ~50，实测 viewBox 1204×548 → 导出 1308×702，×4 后非整数倍），而脚本断言严格等于 viewBox×4（为 archify ≤2.x 的 authored-height 无图框导出所写）。仓内既有全部 PNG（five-layer/hermes/execution-panorama 等）均为旧版 archify 产的精确 4×。
+- **根因**：archify 3.0.0 的 PNG 导出走 `figureLayout()`（serializeSvg figure:true）：把 svg 包进带标题头与卡片衬底的「图版」再栅格化，导出区域 ≠ svg viewBox；采集脚本的完整性断言未随之演进。另注：workflow 型（readable-v2 布局契约）即便补 meta.viewBox 得到 authored-height，figure 边距依旧存在；且 workflow 型在全仓资产中从未有成功采集先例。
+- **处理方式（本次）**：不改仓脚本（冻结契约），lab 侧写采集变体 `.temp/<lab>/capture-fig.mjs`——走 exportMenu 的 `svg-dark`/`svg-light` 纯 SVG 导出（无图框），页内按 viewBox×4 栅格化，双主题、尺寸断言与原子写对齐仓脚本口径；新图 `claude-code-tooling--loop-mounted-layers` 双 PNG 即此产出（4816×2192 = 1204×548×4）。
+- **待办**：capture-arch-diagram.mjs 增加 archify 3.x 模式（按 figureLayout 实测边距推导期望尺寸，或直接切 SVG 导出×N 栅格化路径），否则 3.0.0 产的新图全部无法走仓管线。
+- **后续防范**：archify 升版后先跑一张探针图过采集脚本再批量出图；「导出尺寸契约」属于脚本与工具间的隐性接口，升级核对面应包含它。
+- **同类问题影响**：所有计划用 archify 3.x 新绘/重绘的 docs/assets/architecture 图。
+- **追加（2026-10-01）**：3.0.0 产出 HTML 另含行尾空格（loop-mounted-layers 实测 15 处，2.17 无），trailing-whitespace 钩子剥空格会使 finalize/delivery 回执 sha256 与入库文件失配（仓惯例要求一致，bg-board-and-lock 2.17 实证 MATCH）。处置：pre-commit 的 trailing-whitespace/end-of-file-fixer 对 docs/assets/architecture/ 增加豁免（与 source-archive/ 同理：冻结产物保指纹，经用户确认）。
+- **追加（2026-10-08，review-once R1）**：`claude-code--intake-loop` 为已登记偏差——R10（c7e0e111b）为修 five-steps 章标签「调·判→进·收」直接编辑已 finalize 的 html（-9 字节，835125→835116），delivery/finalize/finalize-summary 三回执 6 处 artifact 指纹停留旧值（898a6e0f…）。内容修正优先保留；`.archify` 会话 candidate 仍为修正前词表，直接重出会回退修正，回执待该图下次 deliver/finalize 一并重出——重出前回执对账巡检按本条对 intake-loop 豁免（全仓 37 套带 delivery 回执图集，其余 36 套 MATCH）。
+
+## ISSUE-213 ep1 P6 复用图 five-layer-dependency 章节集误用记忆集视角：finale 亮错层（2026-10-02，开放；2026-10-08 合并主干时编号撞车自 209 顺延；待办须按主干 #1189 剧本换代 v3 的场景轮语境复核——2026-10-08 合并整树对齐后重制场景已删除、v1 场景集原样回座（five-layer views 亦为 v1 原状，缺陷态不在当前树），下列待办锚点（6-A/6-C 章、P6Finale、P0ForgetfulDoctor.tsx 等）均为已弃用重制实现的文件，重录对象以 v3 场景轮产出为准）
+
+- **表因**：ep1 完全重制把复用图 `five-layer-dependency` 的 views/录制 sidecar/manifest 三处章节集整体拷贝自记忆集（claude-code-memory-video）：`layer-flash` label「记忆层一闪」、focus=[layer-3, layer-2, layer-4]、note 自述「本集视角＝五层链第三层」；`two-dark-zones` 只留 L4/L5 暗区（ep3 已播三集的状态）。成片 final.mp4 p6-01 窗抽帧实证：左下章节标题「记忆层一闪」、扫光落在规划/记忆/时机层，L1（工具与执行）不在焦点集。
+- **根因**：five-layer HTML 是系列共享底座，但 guided-views 的 focus/label 是**每集视角的派生物**——「复用 html_overrides」被误执行成「连别集的叙事视角章节一起拷贝」。旧版 ep1 对同一 HTML 自派生过 layer-1 视角章节（layer-preview focus=[layer-1,2,3]、four-dark-zones focus=[layer-2..5]），证明重派生才是既有做法；重制时旧章集被删、新章集直接取自 ep3，评审对账 storyboard（6-A「本集层点亮」/6-C「后续各层」）才暴露。
+- **待办**：① 按 L1 视角重写 `video/public/archify/views/five-layer-dependency.json`（6-A 章 focus=[layer-1,±相邻]、label 去「记忆」；6-C 章改四层留白 focus=[dim-zones, layer-2..5]）；② 空闲机 `record_archify.py --only five-layer-dependency` 重录三章并重生成 manifest；③ P6Finale cue chapterId 随新章名同步；④ 重渲 + 三源时长对账 + 重新归档 v1（与 ISSUE-207 重渲列车合并）；⑤ 同批捎带 P0 0-C 病历本 stagger 修复（2026-10-02 评审 #8 已改源码、成片未含，见 P0ForgetfulDoctor.tsx 评审注记）。
+- **后续防范**：复用图（html_overrides）接入新集时，views/label 必须按本集视角重派生，禁止跨集拷贝 sidecar；覆盖门/录制前加一条「章 label 与本集身份一致」的人工核对项（机器门无法判视角）。
+- **同类问题影响**：检查其余四集对 five-layer-dependency 的章节引用——ep2–ep5 各自 sidecar 均为当集视角派生（ep3 即正主），无同形态；未来任何跨集复用图同理。
+
+## ISSUE-214 五集笔记层同概念多名：特指大语言模型的「模型/大模型」与 LLM 混用（2026-10-09，已修；本轮随 LLM 单名化统一收敛）
+
+- **表因**：Learn Claude Code 五篇 guided-learn 产物（171–175）及五个 gl-notes 冻结件中，特指大语言模型的名称混用——0196c35e8 的 171 全篇术语精调只覆盖了 ep①（统一后仍残 7 处「模型」），172–175 从未随同口径（「模型」各 63/42/42/32 处、LLM 仅 1–8 处）；171 L11「一句话定位」首现用「模型」而定义（「大模型（下称 LLM）」）在下一段才出现（用户评审评论直接命中此句）；173 L30 已有「LLM（大语言模型）」gloss 但首现仍在 L13 的「模型」。
+- **根因**：术语统一是**逐篇独立**完成的（171 精调与 172–175 生成不同轮），缺少系列级的单一规则正本与残留门——每个概念没有唯一授权写法，漂移必然在「没被同一轮精调扫过的篇目」上复发。全局 `~/.agents/docs/terminology-specifications.md` 术语正负清单亦无 LLM 行，属制度性缺口（已建议补录，待用户授权后另行处理）。
+- **处理**（2026-10-09，本工作区）：规则正本落 [170「怎么读这组笔记·术语口径」](../research/agent-harness/170-claude-code-harness-overview.md)——凡特指大语言模型一律只写 LLM（首现随注全称「LLM（大语言模型）」，其余冗余注释删除）；三类不改写并保留原样：①课程原话引文（171「信任模型」、175 L132 课程 s20 结语「模型负责判断和行动选择」——盲审两抓课程源码确证原话）、②非主 LLM 的模型实体（171「小模型」权限分类器）、③非 LLM 复合概念与标识符（174「线程模型/进程模型」6 处、英文原文、代码标识符）。脚本化统一 6 篇 SSOT（113 行级变更，`re.sub` + 保护跨度 + 计数断言，行数不变），五集 gl-notes 第四次重冻（前置/后置断言：冻结段 == 链接改写(SSOT) 逐字节一致，五对全绿），`docs/research/readme.md:119` 索引转引同步。口播层（narration/planning/storyboard）按既定两层口径不动（2026-10-09 用户确认：口播恒用「模型」，TTS 英文例外清单仅 Claude Code + Harness）。
+- **盲审 Finding 及采纳**（4 独立只读代理）：gloss 插入后全角括号多空格（5 篇同病，脚本时序 bug 已修）；175 L132 逐字引文被改（回退）；172 L60「调用 LLM 前往 messages」断句歧义（改「调用 LLM 之前，往」，原文同构遗留顺带打磨）。173 审查员曾把 gloss 空格判为「姊妹文件同款口径」，被 174 审查员以「全角标点除外 + 全文一致性」判据推翻——多代理独立审查的价值正在于此。
+- **后续防范**：新增 guided-learn 篇目或重冻 gl-notes 时，以 170 术语口径为正本跑残留 grep（`grep -o 模型 <file>` 减去例外清单应为 0）；口播/笔记两层口径的分界照旧记于各 gl-notes 头部。**遗留待办**：四个 `lcc-*--panorama.mmd` 图源内的「模型」字样未动——改图源触发 archify 重录与回执指纹漂移（~45 min），随下次 deliver 一并处理。
+- **同类问题影响**：本仓其余 GL 系列文档（horizon/procedural-graph/self-evolution 等精读产物）未按本口径扫描，如需统一应单独立项（各系列类比登记/冻结态不同，不能照搬本轮映射）；全局 terminology-specifications.md 补 LLM 行后，所有项目的文档评审才有一致判据。

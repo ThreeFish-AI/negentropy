@@ -1,0 +1,1156 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "workflow",
+  "quality": "showcase",
+  "startedAt": "2026-10-10T02:15:10.160Z",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/.archify/workflow-loop-simple-20261010-092855/candidate.json",
+    "sha256": "d186ca45636dbefb298f73b832c1423cae6c1488c6a72057260cb21a1c111f91",
+    "bytes": 2424
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--loop-simple.html",
+    "sha256": "c2fe7b5f03a2947d3689619928d116a82bf48192773426014a101169f604b56e",
+    "bytes": 750802
+  },
+  "stages": {
+    "validate": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": null,
+      "execution": "embedded-in-deliver",
+      "command": [
+        "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
+        "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
+        "deliver",
+        "workflow",
+        "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/.archify/workflow-loop-simple-20261010-092855/candidate.json",
+        "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--loop-simple.html",
+        "--quality",
+        "showcase",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "ok": true,
+        "command": "validate",
+        "specification": {
+          "sha256": "d186ca45636dbefb298f73b832c1423cae6c1488c6a72057260cb21a1c111f91",
+          "bytes": 2424
+        },
+        "validation": {
+          "checksPassed": 9,
+          "checkCount": 9,
+          "compositionProfile": "showcase",
+          "compositionStatus": "pass",
+          "errors": 0,
+          "warnings": 0
+        }
+      }
+    },
+    "deliver": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 558,
+      "command": [
+        "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
+        "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
+        "deliver",
+        "workflow",
+        "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/.archify/workflow-loop-simple-20261010-092855/candidate.json",
+        "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--loop-simple.html",
+        "--quality",
+        "showcase",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "receiptId": "b06e5f0b-4bd4-4223-92b0-9f371dc665f5",
+        "ok": true,
+        "command": "deliver",
+        "type": "workflow",
+        "input": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/.archify/workflow-loop-simple-20261010-092855/candidate.json",
+        "output": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--loop-simple.html",
+        "specification": {
+          "sha256": "d186ca45636dbefb298f73b832c1423cae6c1488c6a72057260cb21a1c111f91",
+          "bytes": 2424
+        },
+        "artifact": {
+          "sha256": "c2fe7b5f03a2947d3689619928d116a82bf48192773426014a101169f604b56e",
+          "bytes": 750802
+        },
+        "validation": {
+          "checksPassed": 9,
+          "checkCount": 9,
+          "compositionProfile": "showcase",
+          "compositionStatus": "pass",
+          "errors": 0,
+          "warnings": 0
+        }
+      }
+    },
+    "check": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 94,
+      "command": [
+        "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
+        "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
+        "check",
+        "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--loop-simple.html",
+        "--require-provenance"
+      ],
+      "receipt": {
+        "ok": true,
+        "file": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--loop-simple.html",
+        "artifact": {
+          "sha256": "c2fe7b5f03a2947d3689619928d116a82bf48192773426014a101169f604b56e",
+          "bytes": 750802
+        },
+        "checks": [
+          {
+            "name": "single_svg",
+            "ok": true,
+            "details": [
+              "found 1 <svg> block(s)"
+            ]
+          },
+          {
+            "name": "finite_svg",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "orthogonal_arrows",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "label_route_clearance",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "relationship_crossings",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "relationship_corridors",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "container_border_runs",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "route_rhythm",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "legend_clearance",
+            "ok": true,
+            "details": []
+          }
+        ],
+        "composition": {
+          "schemaVersion": 1,
+          "profile": "showcase",
+          "status": "pass",
+          "summary": {
+            "errors": 0,
+            "warnings": 0
+          },
+          "metrics": {
+            "properCrossings": 0,
+            "resolvedCrossovers": 0,
+            "ambiguousCorridors": 0,
+            "arrowheadCollisions": 0,
+            "containerBorderRuns": 0,
+            "labelRouteClearanceIssues": 0,
+            "labelCanvasOverflowIssues": 0,
+            "minLabelRouteClearance": 30,
+            "desktopReadabilityIssues": 0,
+            "viewportHeightIssues": 0,
+            "minProjectedNodeTextPx": 6.490439770554493,
+            "maxBends": 2,
+            "routesOverSuggestedBends": 0,
+            "maxStretch": 1.081,
+            "routesOverSuggestedStretch": 0,
+            "minSegmentPx": 16,
+            "minInteriorSegmentPx": 394,
+            "shortSegmentCount": 0,
+            "shortEndpointSegmentCount": 0,
+            "shortInteriorSegmentCount": 0,
+            "microSegmentCount": 0
+          },
+          "suggestedLimits": {
+            "bendsPerRelationship": 2,
+            "stretch": 1.35,
+            "segmentPx": 16,
+            "microSegmentPx": 8
+          },
+          "routeReview": {
+            "crossings": [],
+            "detours": []
+          },
+          "leadingSpace": {
+            "measured": false,
+            "reviewSuggested": false
+          },
+          "desktopReadability": {
+            "budgetBasis": "legacy-930",
+            "readerContract": "declared-wide-v1",
+            "availableDiagramWidth": 930,
+            "actualBudgetPx": 930,
+            "limit": "legacy",
+            "requestedTargetPx": null,
+            "requestedTargetMet": null,
+            "hardFloorPx": 6,
+            "hardFloorMet": true,
+            "minimumOwner": {
+              "kind": "node",
+              "id": "ask"
+            },
+            "minimumSourceTextPx": 7.3,
+            "minimumProjectedTextPx": 6.490439770554493,
+            "semanticTextCount": 13
+          },
+          "issues": []
+        },
+        "provenance": "current",
+        "deliveryReceiptId": "b06e5f0b-4bd4-4223-92b0-9f371dc665f5"
+      }
+    },
+    "browser-check": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 920,
+      "command": [
+        "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
+        "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
+        "browser-check",
+        "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--loop-simple.html",
+        "--json",
+        "--require-provenance"
+      ],
+      "execution": "in-process",
+      "receipt": {
+        "schemaVersion": 1,
+        "ok": true,
+        "command": "browser-check",
+        "evidenceKind": "automated-browser",
+        "status": "pass",
+        "visualReview": "not-requested",
+        "provenance": "current",
+        "deliveryReceiptId": "b06e5f0b-4bd4-4223-92b0-9f371dc665f5",
+        "artifact": {
+          "path": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--loop-simple.html",
+          "sha256": "c2fe7b5f03a2947d3689619928d116a82bf48192773426014a101169f604b56e",
+          "bytes": 750802
+        },
+        "state": {
+          "detail": "read",
+          "motion": "still"
+        },
+        "chrome": {
+          "status": "available",
+          "executable": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+        },
+        "diagnostics": [],
+        "containment": {
+          "status": "pass",
+          "policy": "fit-or-reader-declared-readable-vertical-scroll",
+          "viewports": [
+            {
+              "width": 1440,
+              "height": 900,
+              "theme": "light",
+              "innerWidth": 1440,
+              "innerHeight": 900,
+              "scrollWidth": 1440,
+              "scrollHeight": 900,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": null,
+              "ok": true,
+              "readerWidth": 1376,
+              "diagramWidth": 1346,
+              "pageComposition": {
+                "bodyPaddingPx": 12,
+                "headerPx": 78,
+                "diagramChromePx": 78,
+                "svgPx": 363,
+                "cardsPx": 0,
+                "viewBoxHeight": 282
+              },
+              "viewBoxWidth": 1046,
+              "workflowLanes": [
+                {
+                  "frameId": "lane-0",
+                  "heightPx": 136,
+                  "nodeCount": 5,
+                  "nodeIds": [
+                    "ask",
+                    "think",
+                    "act",
+                    "feed",
+                    "done"
+                  ],
+                  "nodeSpanPx": 88,
+                  "spaceAboveNodesPx": 44,
+                  "spaceBelowNodesPx": 5
+                }
+              ],
+              "minimumProjectedNodeTextPx": 7.3,
+              "minimumProjectedNonEdgeTextPx": 7.3,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "购物清单：加一行牛奶、念一遍清单",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "ask"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 1600,
+              "height": 1000,
+              "theme": "light",
+              "innerWidth": 1600,
+              "innerHeight": 1000,
+              "scrollWidth": 1600,
+              "scrollHeight": 1000,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": null,
+              "ok": true,
+              "readerWidth": 1536,
+              "diagramWidth": 1506,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 86,
+                "diagramChromePx": 84,
+                "svgPx": 406,
+                "cardsPx": 0,
+                "viewBoxHeight": 282
+              },
+              "viewBoxWidth": 1046,
+              "workflowLanes": [
+                {
+                  "frameId": "lane-0",
+                  "heightPx": 153,
+                  "nodeCount": 5,
+                  "nodeIds": [
+                    "ask",
+                    "think",
+                    "act",
+                    "feed",
+                    "done"
+                  ],
+                  "nodeSpanPx": 98,
+                  "spaceAboveNodesPx": 49,
+                  "spaceBelowNodesPx": 6
+                }
+              ],
+              "minimumProjectedNodeTextPx": 7.3,
+              "minimumProjectedNonEdgeTextPx": 7.3,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "购物清单：加一行牛奶、念一遍清单",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "ask"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 1920,
+              "height": 1080,
+              "theme": "light",
+              "innerWidth": 1920,
+              "innerHeight": 1080,
+              "scrollWidth": 1920,
+              "scrollHeight": 1080,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": null,
+              "ok": true,
+              "readerWidth": 1856,
+              "diagramWidth": 1826,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 86,
+                "diagramChromePx": 84,
+                "svgPx": 492,
+                "cardsPx": 0,
+                "viewBoxHeight": 282
+              },
+              "viewBoxWidth": 1046,
+              "workflowLanes": [
+                {
+                  "frameId": "lane-0",
+                  "heightPx": 185,
+                  "nodeCount": 5,
+                  "nodeIds": [
+                    "ask",
+                    "think",
+                    "act",
+                    "feed",
+                    "done"
+                  ],
+                  "nodeSpanPx": 119,
+                  "spaceAboveNodesPx": 59,
+                  "spaceBelowNodesPx": 7
+                }
+              ],
+              "minimumProjectedNodeTextPx": 7.3,
+              "minimumProjectedNonEdgeTextPx": 7.3,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "购物清单：加一行牛奶、念一遍清单",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "ask"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 2048,
+              "height": 1320,
+              "theme": "light",
+              "innerWidth": 2048,
+              "innerHeight": 1320,
+              "scrollWidth": 2048,
+              "scrollHeight": 1320,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": null,
+              "ok": true,
+              "readerWidth": 1920,
+              "diagramWidth": 1870,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 94,
+                "diagramChromePx": 94,
+                "svgPx": 504,
+                "cardsPx": 0,
+                "viewBoxHeight": 282
+              },
+              "viewBoxWidth": 1046,
+              "workflowLanes": [
+                {
+                  "frameId": "lane-0",
+                  "heightPx": 189,
+                  "nodeCount": 5,
+                  "nodeIds": [
+                    "ask",
+                    "think",
+                    "act",
+                    "feed",
+                    "done"
+                  ],
+                  "nodeSpanPx": 122,
+                  "spaceAboveNodesPx": 61,
+                  "spaceBelowNodesPx": 7
+                }
+              ],
+              "minimumProjectedNodeTextPx": 7.3,
+              "minimumProjectedNonEdgeTextPx": 7.3,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "购物清单：加一行牛奶、念一遍清单",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "ask"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 44,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            }
+          ]
+        },
+        "themeStates": {
+          "status": "pass",
+          "viewports": [
+            {
+              "width": 1440,
+              "height": 900,
+              "requestedTheme": "light",
+              "resolvedTheme": "light",
+              "ok": true
+            },
+            {
+              "width": 1600,
+              "height": 1000,
+              "requestedTheme": "light",
+              "resolvedTheme": "light",
+              "ok": true
+            },
+            {
+              "width": 1920,
+              "height": 1080,
+              "requestedTheme": "light",
+              "resolvedTheme": "light",
+              "ok": true
+            },
+            {
+              "width": 2048,
+              "height": 1320,
+              "requestedTheme": "light",
+              "resolvedTheme": "light",
+              "ok": true
+            },
+            {
+              "width": 1440,
+              "height": 900,
+              "requestedTheme": "dark",
+              "resolvedTheme": "dark",
+              "ok": true
+            },
+            {
+              "width": 2048,
+              "height": 1320,
+              "requestedTheme": "dark",
+              "resolvedTheme": "dark",
+              "ok": true
+            }
+          ]
+        },
+        "readability": {
+          "status": "pass",
+          "minimumProjectedNodeTextPx": 6,
+          "viewports": [
+            {
+              "width": 1440,
+              "height": 900,
+              "theme": "light",
+              "innerWidth": 1440,
+              "innerHeight": 900,
+              "scrollWidth": 1440,
+              "scrollHeight": 900,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": null,
+              "ok": true,
+              "readerWidth": 1376,
+              "diagramWidth": 1346,
+              "pageComposition": {
+                "bodyPaddingPx": 12,
+                "headerPx": 78,
+                "diagramChromePx": 78,
+                "svgPx": 363,
+                "cardsPx": 0,
+                "viewBoxHeight": 282
+              },
+              "viewBoxWidth": 1046,
+              "workflowLanes": [
+                {
+                  "frameId": "lane-0",
+                  "heightPx": 136,
+                  "nodeCount": 5,
+                  "nodeIds": [
+                    "ask",
+                    "think",
+                    "act",
+                    "feed",
+                    "done"
+                  ],
+                  "nodeSpanPx": 88,
+                  "spaceAboveNodesPx": 44,
+                  "spaceBelowNodesPx": 5
+                }
+              ],
+              "minimumProjectedNodeTextPx": 7.3,
+              "minimumProjectedNonEdgeTextPx": 7.3,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "购物清单：加一行牛奶、念一遍清单",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "ask"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 1600,
+              "height": 1000,
+              "theme": "light",
+              "innerWidth": 1600,
+              "innerHeight": 1000,
+              "scrollWidth": 1600,
+              "scrollHeight": 1000,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": null,
+              "ok": true,
+              "readerWidth": 1536,
+              "diagramWidth": 1506,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 86,
+                "diagramChromePx": 84,
+                "svgPx": 406,
+                "cardsPx": 0,
+                "viewBoxHeight": 282
+              },
+              "viewBoxWidth": 1046,
+              "workflowLanes": [
+                {
+                  "frameId": "lane-0",
+                  "heightPx": 153,
+                  "nodeCount": 5,
+                  "nodeIds": [
+                    "ask",
+                    "think",
+                    "act",
+                    "feed",
+                    "done"
+                  ],
+                  "nodeSpanPx": 98,
+                  "spaceAboveNodesPx": 49,
+                  "spaceBelowNodesPx": 6
+                }
+              ],
+              "minimumProjectedNodeTextPx": 7.3,
+              "minimumProjectedNonEdgeTextPx": 7.3,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "购物清单：加一行牛奶、念一遍清单",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "ask"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 1920,
+              "height": 1080,
+              "theme": "light",
+              "innerWidth": 1920,
+              "innerHeight": 1080,
+              "scrollWidth": 1920,
+              "scrollHeight": 1080,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": null,
+              "ok": true,
+              "readerWidth": 1856,
+              "diagramWidth": 1826,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 86,
+                "diagramChromePx": 84,
+                "svgPx": 492,
+                "cardsPx": 0,
+                "viewBoxHeight": 282
+              },
+              "viewBoxWidth": 1046,
+              "workflowLanes": [
+                {
+                  "frameId": "lane-0",
+                  "heightPx": 185,
+                  "nodeCount": 5,
+                  "nodeIds": [
+                    "ask",
+                    "think",
+                    "act",
+                    "feed",
+                    "done"
+                  ],
+                  "nodeSpanPx": 119,
+                  "spaceAboveNodesPx": 59,
+                  "spaceBelowNodesPx": 7
+                }
+              ],
+              "minimumProjectedNodeTextPx": 7.3,
+              "minimumProjectedNonEdgeTextPx": 7.3,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "购物清单：加一行牛奶、念一遍清单",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "ask"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 2048,
+              "height": 1320,
+              "theme": "light",
+              "innerWidth": 2048,
+              "innerHeight": 1320,
+              "scrollWidth": 2048,
+              "scrollHeight": 1320,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": null,
+              "ok": true,
+              "readerWidth": 1920,
+              "diagramWidth": 1870,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 94,
+                "diagramChromePx": 94,
+                "svgPx": 504,
+                "cardsPx": 0,
+                "viewBoxHeight": 282
+              },
+              "viewBoxWidth": 1046,
+              "workflowLanes": [
+                {
+                  "frameId": "lane-0",
+                  "heightPx": 189,
+                  "nodeCount": 5,
+                  "nodeIds": [
+                    "ask",
+                    "think",
+                    "act",
+                    "feed",
+                    "done"
+                  ],
+                  "nodeSpanPx": 122,
+                  "spaceAboveNodesPx": 61,
+                  "spaceBelowNodesPx": 7
+                }
+              ],
+              "minimumProjectedNodeTextPx": 7.3,
+              "minimumProjectedNonEdgeTextPx": 7.3,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "购物清单：加一行牛奶、念一遍清单",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "ask"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 44,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            }
+          ]
+        },
+        "viewerChrome": {
+          "status": "pass",
+          "viewports": [
+            {
+              "width": 1440,
+              "height": 900,
+              "theme": "light",
+              "innerWidth": 1440,
+              "innerHeight": 900,
+              "scrollWidth": 1440,
+              "scrollHeight": 900,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": null,
+              "ok": true,
+              "readerWidth": 1376,
+              "diagramWidth": 1346,
+              "pageComposition": {
+                "bodyPaddingPx": 12,
+                "headerPx": 78,
+                "diagramChromePx": 78,
+                "svgPx": 363,
+                "cardsPx": 0,
+                "viewBoxHeight": 282
+              },
+              "viewBoxWidth": 1046,
+              "workflowLanes": [
+                {
+                  "frameId": "lane-0",
+                  "heightPx": 136,
+                  "nodeCount": 5,
+                  "nodeIds": [
+                    "ask",
+                    "think",
+                    "act",
+                    "feed",
+                    "done"
+                  ],
+                  "nodeSpanPx": 88,
+                  "spaceAboveNodesPx": 44,
+                  "spaceBelowNodesPx": 5
+                }
+              ],
+              "minimumProjectedNodeTextPx": 7.3,
+              "minimumProjectedNonEdgeTextPx": 7.3,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "购物清单：加一行牛奶、念一遍清单",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "ask"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 1600,
+              "height": 1000,
+              "theme": "light",
+              "innerWidth": 1600,
+              "innerHeight": 1000,
+              "scrollWidth": 1600,
+              "scrollHeight": 1000,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": null,
+              "ok": true,
+              "readerWidth": 1536,
+              "diagramWidth": 1506,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 86,
+                "diagramChromePx": 84,
+                "svgPx": 406,
+                "cardsPx": 0,
+                "viewBoxHeight": 282
+              },
+              "viewBoxWidth": 1046,
+              "workflowLanes": [
+                {
+                  "frameId": "lane-0",
+                  "heightPx": 153,
+                  "nodeCount": 5,
+                  "nodeIds": [
+                    "ask",
+                    "think",
+                    "act",
+                    "feed",
+                    "done"
+                  ],
+                  "nodeSpanPx": 98,
+                  "spaceAboveNodesPx": 49,
+                  "spaceBelowNodesPx": 6
+                }
+              ],
+              "minimumProjectedNodeTextPx": 7.3,
+              "minimumProjectedNonEdgeTextPx": 7.3,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "购物清单：加一行牛奶、念一遍清单",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "ask"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 1920,
+              "height": 1080,
+              "theme": "light",
+              "innerWidth": 1920,
+              "innerHeight": 1080,
+              "scrollWidth": 1920,
+              "scrollHeight": 1080,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": null,
+              "ok": true,
+              "readerWidth": 1856,
+              "diagramWidth": 1826,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 86,
+                "diagramChromePx": 84,
+                "svgPx": 492,
+                "cardsPx": 0,
+                "viewBoxHeight": 282
+              },
+              "viewBoxWidth": 1046,
+              "workflowLanes": [
+                {
+                  "frameId": "lane-0",
+                  "heightPx": 185,
+                  "nodeCount": 5,
+                  "nodeIds": [
+                    "ask",
+                    "think",
+                    "act",
+                    "feed",
+                    "done"
+                  ],
+                  "nodeSpanPx": 119,
+                  "spaceAboveNodesPx": 59,
+                  "spaceBelowNodesPx": 7
+                }
+              ],
+              "minimumProjectedNodeTextPx": 7.3,
+              "minimumProjectedNonEdgeTextPx": 7.3,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "购物清单：加一行牛奶、念一遍清单",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "ask"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 2048,
+              "height": 1320,
+              "theme": "light",
+              "innerWidth": 2048,
+              "innerHeight": 1320,
+              "scrollWidth": 2048,
+              "scrollHeight": 1320,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": null,
+              "ok": true,
+              "readerWidth": 1920,
+              "diagramWidth": 1870,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 94,
+                "diagramChromePx": 94,
+                "svgPx": 504,
+                "cardsPx": 0,
+                "viewBoxHeight": 282
+              },
+              "viewBoxWidth": 1046,
+              "workflowLanes": [
+                {
+                  "frameId": "lane-0",
+                  "heightPx": 189,
+                  "nodeCount": 5,
+                  "nodeIds": [
+                    "ask",
+                    "think",
+                    "act",
+                    "feed",
+                    "done"
+                  ],
+                  "nodeSpanPx": 122,
+                  "spaceAboveNodesPx": 61,
+                  "spaceBelowNodesPx": 7
+                }
+              ],
+              "minimumProjectedNodeTextPx": 7.3,
+              "minimumProjectedNonEdgeTextPx": 7.3,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "购物清单：加一行牛奶、念一遍清单",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "ask"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 44,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            }
+          ]
+        },
+        "captures": {
+          "status": "not-requested",
+          "screenshots": [],
+          "contactSheet": null
+        },
+        "sidecars": {
+          "receipt": "lcc-tooling--loop-simple.browser-check.json",
+          "files": []
+        }
+      }
+    }
+  },
+  "diagnostics": [],
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--loop-simple.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--loop-simple.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--loop-simple.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "finishedAt": "2026-10-10T02:15:12.107Z",
+  "durationMs": 1947
+}

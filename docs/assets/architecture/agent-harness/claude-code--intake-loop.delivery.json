@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "8ba5eada-114b-4604-8961-316a6bce36de",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/.archify/architecture-intake-loop-20261001-pilot/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/claude-code--intake-loop.html",
+  "specification": {
+    "sha256": "dc95c079a91d6f43fd5e9ffb6e48f36cf96a96da135702452a438cb3e2929360",
+    "bytes": 2791
+  },
+  "artifact": {
+    "sha256": "898a6e0f5a5217c9715aab123709b6d0fa62e869960ca16c868ec644ba8a00e3",
+    "bytes": 835125
+  }
+}

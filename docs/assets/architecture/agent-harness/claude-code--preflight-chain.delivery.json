@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "bc5e1d6f-5b18-4ef1-8b24-d7d8ee324b6f",
+  "status": "current",
+  "command": "deliver",
+  "type": "sequence",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/.archify/sequence-preflight-chain-1836/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/claude-code--preflight-chain.html",
+  "specification": {
+    "sha256": "185f4214654df4fc30aa04e8acaef95021d4a1eb97ee94ecbc30504e533f8d49",
+    "bytes": 5875
+  },
+  "artifact": {
+    "sha256": "fe8d887e707c5f946921dc089211b75ba3eabafcd6d7666b332182d103368414",
+    "bytes": 836112
+  }
+}
