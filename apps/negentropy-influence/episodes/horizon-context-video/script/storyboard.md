@@ -1,110 +1,142 @@
-# 分镜：《拆解 Horizon Context：功能、治理、安全与开放性》v3
+# 分镜表：《拆解 Horizon Context：Context 怎么治理，结果怎么验证》（v3）
 
-> 逐字稿 SSOT：[narration.md](./narration.md)（句 id 即本表的定位锚）；视觉契约见 [planning.md](./planning.md) §三。
-> 一镜（beat）= 2–8 句连续句子共享同一主画面；句区间必须**覆盖本幕每一句**（`check_script.py` 强制）。
-> 色名对应 [../video/src/design/theme.ts](../video/src/design/theme.ts)：`manual` 琥珀金（手册/核准资产）·
-> `engine` 青碧（引擎/计算纪律/门禁）· `dig` 淡紫（隐式挖掘/自纠）· `danger` 警示红（错误数字/泄露）。
-> **镜号必须与 `scenes/*.tsx` 里内嵌 `<Sequence name="N-X">` 保持规范对应**；动效列 `@动词` 对应 motion 模型（hooks.ts）。
-> **`@动词` 的判据**：当且仅当**本镜 `<Sequence>` 内、由本幕 `scenes/P*.tsx` 自身定义的装置**调用了该 `useXxx(`。
-> `check_motion` 只按**幕级**粒度比对（`P4*` 任一处调用即满足全幕），本表按更严的**镜级**维护——装置在镜间搬家或退役时，
-> 幕级门会沉默，镜级登记不会。`components/` 内的 hook（`ArchifyClip` 画框弹入 / `devices.tsx` 的 PillarHUD、
-> EvidenceBadge、MechZoom、NumberClash / `CodeWalk`）与 `window.ts` 的纯函数 `progress()` **一律不产生 token**
-> （门不扫 `components/`，写了门也证实不了——同幕他处恰有同 verb 时还会幕级假通过），但**必须在散文里点名承担者**。
-> 括注 `（本镜无动效 hook）` 的准确含义是「本镜内、由本幕 scene 文件定义的装置无 `useXxx(` 调用」，
-> **不等于本镜静止**——纯图主控镜正在播 `OffthreadVideo`、画框还带入场弹簧。
-> ⚠️ 动效列**禁照搬画面列那套 `archify` + `full`/`inset` 字面标注**：`check_archify_coverage` 的 `ANN_COUNT_RE` 扫全文、
-> 而解析数只取画面列，多一处命中即 **FAIL**。同理禁写 `@archify` 之类非动词表标记（会触发「不在词表」WARN）。
->
-> **v3 母题（三层视觉语法）**：
-> ① **母图层** —— 受治理带教大厦纵剖面 + 七格承重列 HUD（常驻角落，讲完一个机制点亮一根柱子）；
-> ② **装置层** —— 24 个可被拆坏的机械装置，每个**演三遍：正演一次、拆一次、坏给你看**；
-> ③ **证据层** —— 代码走廊（CodeWalk + TerminalLog 滚真实 selftest 输出）、**archify 工程图逐章回放**
->    （`ArchifyRecap`，一章锚一句）、四级证据角标（【一】原型实测 /【二】官方机制 /【三】厂商自报 /【四】第三方复现）。
->
-> ⚠️ **非 beat 用途禁写 `w('句id')` 字面形态**：`check_script` 的 `SCENE_CALL_RE` 只认字面量，
-> 写字面量会把「取某句时长给 cue 定长」的镜内叠加层登记成镜区间，恒定刷出几十条
-> 「未在分镜表中登记」。各 scene 里用与 `at` 对称的 `dur('句id')` 辅助函数取长即可绕开
-> （2026-09-19 实测 WARN 28 → 0）。判定基线因此收紧为：**FAIL 0 + WARN 0**，出现任何 WARN 都是真漂移。
->
-> archify 档位：**full** = 整屏主控回放（v4 全屏独占——archify 播放期不与自制装置同屏，装置由 ArchifyYield 按 cue 窗淡出让位或挪窗外子窗；inset 画中画档已退役，覆盖门 forbid_inset 锁死）。章节 id 见
-> [../video/public/archify/views/](../video/public/archify/views/)，每章时长 = 拍数 × max(1100ms, 3200ms/拍数)。
+> 句 id 与 narration.md（v2，156 句）对齐；时长以音频 manifest 实测为准。
+> **本集视觉契约**：金 `#E8C06A`=「同一份定义」口径主线（语义视图/指标/定义卡母题）· 紫 `#C9A0FF`=治理与身份层（策略/Agent Identity/血缘账本）· 青 `#5CBFB0`=验证锚定与对账（核准题库/证据分级/收口）；底座 `#0E1116` 系；danger `#FF5C5C` 仅破坏实验崩溃侧；ok `#7ED321` 仅机制在位拦截侧。
+> 三层语法：master=「同一份定义单」母题（恒定视觉锚〔M-001〕：金描边 2px 全片同形——P0 空卡座缺席 → P2 注册 → P3 挂策略扣件 → P4 签名盖章位 → P7 满屏回照）· device=机制装置（术语卡/状态走查/红绿消融/动态标尺/护栏卡）· evidence=三级证据徽（虚线=厂商自报/实线=第三方/实心=本仓复算）+ 全屏图例回放。
+> 画面列标注 `·` 加粗图例回放格式（图名+章 id）为覆盖门输入；表头与散文一律写「全屏独占/画中画」，不写覆盖门计数字面量。
+> B 类复用图（剧场词命中、图零改动、画面列目标域收束）：本片未选用任何剧场词命中图——A/C 类退役 10+ 张（amnesia-intern/rented-brilliant/cipher-translate/sticky-notes-to-manual/blueprint-foundation/governance-demolition/next-episode-blueprint/hearing-showdown/water-pipe-ledger/wrong-page-failure 等）不进本分镜。
 
-## P0 钥匙给了，还是答错（p0-01..10）
+## P0 三个症状一个病根（p0-01..p0-16，16 句）
 
-| 镜  | 句区间    | 画面                                                          | 动效                                                      |
-| --- | --------- | ------------------------------------------------------------- | ----------------------------------------------------------- |
-| 0-A | p0-01..03 | 终端问答：AI 自信吐数打勾 → 勾翻红叉；角标【三】厂商自报基线 ·**archify full**：裸库基线 章 `whole-key`+`blind-wrong`+`baseline-two`| archify 全屏回放主控：章内拍脉冲 + 换章弹入由 ArchifyClip 承担；【三】角标淡入在 devices.tsx EvidenceBadge 内（本镜无动效 hook）|
-| 0-B | p0-04..06 | **乱码列名墙**：整屏物理列名滚入，一列染 `manual` 金 + 角标 `amt_ttl_pre_dsc` ·**archify full**：双基线证据链 章 `two-benchmarks` ·**archify full**：密文对译 章 `not-model-dumb`+`cipher-wall` | archify 全屏回放主控：章内拍脉冲 + 换章弹入由 ArchifyClip 承担（本镜无动效 hook）|
-| 0-C | p0-07..08 | 净收入文档裂成三张算法卡对撞 → 金句「缺的不是智能，是含义」 ·**archify full**：口径打架 章 `three-dashboards` ·**archify full**：密文对译 章 `letters-not-meaning` | archify 全屏回放主控：章内拍脉冲 + 换章弹入由 ArchifyClip 承担（本镜无动效 hook）|
-| 0-D | p0-09..10 | 片名卡：青碧细线生长 + 主标题                                 | 细线 draw；标题 spring ；`@draw` `@spring`|
+| 镜 | 句区间 | 画面 | 动效 |
+|---|---|---|---|
+| 0-A 对峙 | p0-01 | master：深底开场，两个巨大数字缓入对峙（金 1420 万 / 紫 1280 万），中缝一道裂缝光 | 数字缓入+裂缝光呼吸〔M-003〕`@enter:rise` |
+| 0-B 两个数 | p0-02..03 | evidence：·**archify full**：caliber-clash 章 `three-dashboards`；证据徽（虚线·厂商自报）角标 | 图回放（全屏独占，句界切章） |
+| 0-C 归因 | p0-04..05 | master：数字坍缩为一张**空卡座**（定义卡母题首现——卡不在场，座上积灰光）；「收入该怎么算？」浮标；·**archify full**：caliber-clash 章 `twenty-algorithms`@p0-05 | 数字坍缩动画；空座呼吸微光；图回放 |
+| 0-D 裸问 | p0-06..07 | evidence：·**archify full**：bare-key-baseline 章 `blind-wrong`+`baseline-two`；两级证据徽（虚线×2：自报/转述） | 图回放（两章分句接力） |
+| 0-E 密码列 | p0-08..09 | device：字符流瀑布（amt_ttl_pre_dsc 逐字符滚过），「折前总金额」释义卡从底部顶开；·**archify full**：bare-key-baseline 章 `whole-key`@p0-09 | 打字机揭示`@reveal`；释义卡`@enter:pop`；图回放 |
+| 0-F 穿透 | p0-10..12 | evidence：·**archify full**：injection-threat 章 `badge-question`@p0-10+`master-key`@p0-11；problem-to-mechanisms 章 `encircle-pierce`@p0-12 | 图回放三章接力；钥匙贯穿脉冲`@impulse` |
+| 0-G 病历 | p0-13 | evidence：·**archify full**：problem-to-mechanisms 章 `cause-chain`；三症状→三病灶链点亮 | 图回放（因果链逐节亮） |
+| 0-H 定位 | p0-14..16 | evidence：·**archify full**：problem-to-mechanisms 章 `answer-ledger`@p0-14+`engine-cast`@p0-15+`downgraded-lane`@p0-16；随后片名卡（金/紫/青三色描边定契约） | 图回放三章接力；片名卡三色划入`@enter:slide` |
 
-## P1 每天重新入职的天才（p1-01..25）
+## P1 七机制地图（p1-01..p1-10，10 句）
 
-| 镜  | 句区间    | 画面                                                                                             | 动效                                                                 |
-| --- | --------- | -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| 1-A | p1-01..07 | **失忆实习生记忆条**：周一至周五五根记忆柱，各自在两句边界之间匀速攒满、到自己的清零句（p1-03..07）3 帧抹平；右侧点题「每天推门上班，记忆全部清零」 ·**archify full**：失忆实习生 章 `daily-reset`+`dark-guess` ·**archify full**：七机制×十次拆坏 章 `three-lesions` | 记忆柱纯 progress 攒满 + 句边界抹平（清零点=句边界，无 use 模型）|
-| 1-B | p1-08..15 | **三病灶裂纹**：大厦立面裂三道缝（口径打架 / 定义漂移 / 门禁穿透）·**archify full**：病因链 章 `cause-chain`+`encircle-pierce` ·**archify full**：口径打架 章 `twenty-algorithms`+`owners-clash` ·**archify full**：病因链 章 `cause-chain`+`encircle-pierce` ·**archify full**：外挂词典漂移 章 `dict-outside`+`schema-changed`+`stale-manual` | archify 全屏回放主控：章内拍脉冲 + 换章弹入由 ArchifyClip 承担（本镜无动效 hook）|
-| 1-C | p1-16..21 | 命名帧「Horizon Context」+ 官方三句递进阶梯（英文原句进角标）·**archify full**：病因链 章 `engine-cast`/`answer-ledger`/`downgraded-lane`；背景三阶段演进时间轴 ·**archify full**：病因链 章 `engine-cast`+`answer-ledger`+`downgraded-lane` ·**archify full**：官方三句递进 章 `guess-only`+`native-act`+`governed-trust` | archify 全屏回放主控：章内拍脉冲 + 换章弹入由 ArchifyClip 承担（本镜无动效 hook）|
-| 1-D | p1-22..24 | **带教大厦剖面母图展开**：基座七套受治理安防装备依次弹出 ·**archify full**：组件全景 章 `caliber-spine`+`consumer-feed` | archify 全屏回放主控：章内拍脉冲 + 换章弹入由 ArchifyClip 承担（本镜无动效 hook）|
-| 1-E | p1-25     | 七格承重列 HUD 首次点亮 + 终端角标「lab · selftest ✔」预告代码实景 ·**archify full**：七机制×十次拆坏 章 `ten-teardowns` | HUD 首次出场整体淡入（PillarHUD lit=0 全灭态，淡入在 devices.tsx 内）；主文案静态、由 ArchifyYield 让位 archify 回放（本镜无动效 hook）|
+| 镜 | 句区间 | 画面 | 动效 |
+|---|---|---|---|
+| 1-A 四层信号 | p1-01..03 | device：四问卡横排（有什么/正在发生/什么意思/怎么用），同一列 `amt_ttl_pre_dsc` 依次落入四卡；角标 Structural/Operational/Semantic/Behavioral | 四卡错峰亮`@stagger`；列名字符在四卡间巡游`@travel` |
+| 1-B 八层栈 | p1-04..05 | device：八层矩阵自底向上垒起（底座→出口），当前层金描边高亮；·**archify full**：component-panorama 章 `caliber-spine` 收束确认 | 逐层落板（层落=translateY+透明度）；全景图收 |
+| 1-C 承重七件 | p1-06..07 | evidence：·**archify full**：component-panorama 章 `reserved-supply`@p1-07+`consumer-feed`@p1-06；承重七格金描边/供给出口降饱和对照 | 图回放两章接力（承重格脉冲点亮`@breathe`） |
+| 1-D 拆解宣言 | p1-08..10 | evidence：·**archify full**：mechanism-experiment-matrix 章 `three-lesions`+`ten-teardowns`；结尾定义卡母题推近（准备注册转场） | 图回放两章接力；卡片推近`@pushIn` |
 
-## P2 规章手册：只印一本且当场套算（p2-01..36）
+## P2 口径与现算（p2-01..p2-28，27 句，无 p2-17）
 
-| 镜  | 句区间      | 画面                                                                                                              | 动效                                                          |
-| --- | ----------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| 2-A | p2-01..04   | **五段式抽屉柜**：琥珀金《规章手册》的五个抽屉（TABLES 核准账本 / RELATIONSHIPS 勾稽路径 / FACTS 原始凭证量 / DIMENSIONS 切片维度 / METRICS 官方指标）逐格亮出 ·**archify full**：三阶段演进 章 `stage-objects` ·**archify full**：声明执行 章 `declare` ·**archify full**：便利贴收拢成手册 章 `first-mechanism`+`scattered-notes` | archify 全屏回放主控：章内拍脉冲 + 换章弹入由 ArchifyClip 承担（本镜无动效 hook）|
-| 2-B | p2-05..08   | **注册校验门**：坏「关系卡」推向门被弹回盖拒收章 ·**代码走廊①** `validate_view` + 终端 `✗ relationship bad` ·**archify full**：声明执行 章 `gate` ·**archify full**：坏定义注册生死簿 章 `strict-gate`+`nonkey-rejected`+`no-runtime-risk` | archify 全屏回放主控：章内拍脉冲 + 换章弹入由 ArchifyClip 承担；【一】角标淡入在 devices.tsx EvidenceBadge 内（本镜无动效 hook）|
-| 2-C | p2-09..09b  | **双保险锁**：手册封面两把锁（声明锁 / 计算锁）；拧开计算锁 → 文字一字未改、数字 200 跳 440 变红 ·**archify full**：声明执行 章 `recompute` ·**archify full**：手册是算式不是结论 章 `declare-execute-split` | archify 全屏回放主控：章内拍脉冲 + 换章弹入由 ArchifyClip 承担（本镜无动效 hook）|
-| 2-D | p2-10..13   | 宽表死数字（🧊 冻住的数）vs 只存算式、临机现算（⚙️）：左右静态对照卡，字幕推进为节拍 ·**archify full**：临机现算 章 `frozen-widetable`+`formula-only`+`grain-recompute` | archify 全屏回放主控：章内拍脉冲 + 换章弹入由 ArchifyClip 承担（本镜无动效 hook）|
-| 2-E | p2-14..20   | **复印机陷阱**：$100 订单进复印机 → 三张副本 → 求和器滚 $300 爆红；解法「先聚后联」合体；终端 `440 vs 200` ·**archify full**：复印机陷阱 章 `copy-inflate`+`aggregate-first`+`measured-440` ·**archify full**：事件扇出 章 `hundred-three`+`join-disaster` ·**archify full**：计算纪律四条总纲 章 `agg-before-join` | 副本 stagger 逐张推入；求和 count 100→300 + impulse 爆红；p2-15..20 由 ArchifyYield 让位 archify；【一】角标淡入在 devices.tsx EvidenceBadge 内 ；`@stagger` `@count` `@impulse`|
-| 2-F | p2-21..26   | 去重集合圈收束（6 vs 3）·**班级平均分天平**：先除后加 122 幽灵飘散 vs 先聚后除 108 落盘 ·**archify full**：去重安全 章 `set-vs-rows` ·**archify full**：平均的平均 章 `wrong-avg-of-avg`+`measured-122-108` ·**archify full**：计算纪律四条总纲 章 `dedup-count`+`divide-after-agg` | 去重对撞卡由 devices.tsx NumberClash 左右错峰推入；天平 spring 倾斜；122 幽灵 progress 淡隐（非 useDim） ；`@spring` `@progress`|
-| 2-G | p2-27..31   | **末快照时间闸**：七格余额「求和」堆叠爆红 24 vs「末快照」只亮 7；买家/推荐人双路径分岔显式声明 ·**archify full**：末快照 章 `semi-additive`+`snapshot-vs-sum` ·**archify full**：关系消歧 章 `two-paths` ·**archify full**：计算纪律四条总纲 章 `semi-additive` | 七根天数条按纯函数 progress 逐根起高（无 use 模型）；24 vs 7 对撞卡在 devices.tsx NumberClash 内（本镜无动效 hook）|
-| 2-H | p2-32..36   | 题眼金句卡「语法完全正确，分析可能彻底错误」→ 规章手册徽章落位，HUD 第一柱点亮 ·**archify full**：语法 × 业务 章 `syntax-pass`+`business-fail` ·**archify full**：多入口一个答案 章 `single-point-bind`+`whoever-asks` ·**archify full**：第一道防线按死两病灶 章 `sealed-off` | archify 全屏回放主控：章内拍脉冲 + 换章弹入由 ArchifyClip 承担；第一柱点亮在 devices.tsx PillarHUD 内（本镜无动效 hook）|
+| 镜 | 句区间 | 画面 | 动效 |
+|---|---|---|---|
+| 2-A 术语卡 | p2-01..02 | device：术语卡三连（语义视图/主键外键/粒度），白话同位语小字；角标 Semantic View/PK/FK/Grain | 三卡错峰`@stagger` |
+| 2-B 两条底线 | p2-03..05 | evidence：·**archify full**：formula-vs-total 章 `declare-execute-split`@p2-03+declaration-execution 章 `declare`@p2-04；**定义卡母题正式注册**（金描边点亮+五段式角标 TABLES→…→METRICS 逐段刻度） | 图回放两章接力；注册落印`@enter:fall`+金描边描画`@draw` |
+| 2-C 校验门 | p2-06 | evidence：·**archify full**：definition-registration 章 `strict-gate` | 图回放（闸门落锁`@spring`） |
+| 2-D 现算与旧账 | p2-07..10 | evidence：·**archify full**：declaration-execution 章 `switch-divergence`@p2-08+on-demand-recompute 章 `formula-only`@p2-09+`frozen-widetable`@p2-10；证据徽（虚线·厂商自报 <5% of 9,685） | 图回放三章接力（旧账蒙尘→现算刷新） |
+| 2-E 发票复印 | p2-11..13 | evidence：·**archify full**：calc-discipline-matrix 章 `agg-before-join`@p2-11+fan-trap 章 `copy-inflate`@p2-12+`aggregate-first`@p2-13；红路径/绿路径分叉强调 | 图回放三章接力（红绿对比`@flowDash`） |
+| 2-F 平均的平均 | p2-14..15 | evidence：·**archify full**：calc-discipline-matrix 章 `divide-after-agg`@p2-14+mean-of-means 章 `wrong-avg-of-avg`@p2-15 | 图回放两章接力（16 vs 4.8 数字对撞） |
+| 2-G 半可加 | p2-16 | evidence：·**archify full**：last-snapshot-gate 章 `semi-additive` | 图回放（500+500≠1000） |
+| 2-H Ann 走查 | p2-18..22 | device：**Animated State Trace 签名镜**——Ann 三张订单卡进入引擎，本表聚合收敛一行（300），事件表全程灰置；右半屏朴素路径六行复制（600）翻红；证据徽（实心·本仓复算）；·**archify full**：event-fanout 章 `hundred-three`@p2-21+fan-trap 章 `measured-440`@p2-22 | 状态逐拍变换`@travel`+`@count`（300/600 翻牌）；两路对比高亮；图回放两章接力 |
+| 2-I 拆门消融 | p2-23..24 | device：**红绿消融同屏**（p2-23 主画面）——左红：外键指向非键列、垃圾定义入库；右绿：注册期拦截 + 拦截日志（referenced column is not PRIMARY KEY）；证据徽（实心）；·**archify full**：definition-registration 章 `nonkey-rejected`@p2-24 | 左右同屏`@stagger`；红侧崩溃链路`@flowDash`；图回放 |
+| 2-J 物化与收口 | p2-25..28 | device：**Baseline-Anchored Bar**——59×–91× 动态增长条（`useCount`）+ 基线标尺与工况角标（TPC-DS 4 查询 · 359GB→120MB · 虚线徽）；·**archify full**：on-demand-recompute 章 `grain-recompute`@p2-26；p2-28 金句卡（衬线体）：「SQL 合法 ≠ 答案对」 | 增长条`@count`；金句卡`@enter:pop`+微光〔M-003〕 |
 
-## P3 承重墙上的闸机：逐页验放与双层防线（p3-01..26）
+## P3 规则与执法（p3-01..p3-21，21 句）
 
-| 镜  | 句区间       | 画面                                                                                                          | 动效                                                        |
-| --- | ------------ | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| 3-A | p3-01..04    | **母图推近**至各层电梯厅验放闸 + M2/M3 两块机制名牌 ·**archify full**：行列级策略 章 `perpage` ·**逐页验放扫描仪**正演一次：扫描线横扫、逐行亮「实时核验 · 放行」 ·**archify full**：三阶段演进 章 `stage-governed-enrich` ·**archify full**：查询瞬间逐页验放 章 `instant-inspection` | 推镜匀速与母图辉光在 devices.tsx MechZoom 内；两块机制名牌弹入在 motifs.tsx NumberedCard 内；扫描仪已退役、p3-03/04 转 archify 主控（本镜无动效 hook）|
-| 3-B | p3-05..08    | 机密页翻黑打码、越权行整条抽走；**代理识别灯**变色后切更严脱敏口径 ·**archify full**：章 `family`+`agentface` ·**archify full**：行列级策略 章 `family`+`agentface` ·**archify full**：查询瞬间逐页验放 章 `agent-recognized` | archify 全屏回放主控：章内拍脉冲 + 换章弹入由 ArchifyClip 承担（本镜无动效 hook）|
-| 3-C | p3-09..13    | 草坪「请勿踩踏」木牌（小人轻松翻越）vs 焊入承重墙的实体闸机，人/系统/AI 合流过同一执法点 ·**archify full**：语义级治理 章 `sign-vs-wall`+`governed-path` ·**archify full**：三流合一执法点 章 `sign-vs-wall`+`shared-checkpoint` | 木牌 spring 立起 → 被绕过时 shake 一击（decay）+ progress 压暗倾倒；承重墙 spring 长高 ；`@spring` `@shake` `@progress`|
-| 3-D | p3-13a..13c  | **两种坏法对照台**：左=规则被拆（人看到明文）/ 右=闸机挪到大堂外（受限口径静默溜出）·**出门行李标签**：策略标签随数据箱出楼 ·**archify full**：治理破坏台 章 `remove-mask`+`wrong-placement` ·**archify full**：开放互操作 章 `portable` | archify 全屏回放主控：章内拍脉冲 + 换章弹入由 ArchifyClip 承担（本镜无动效 hook）|
-| 3-E | p3-14..18    | **双层防线剖面**：前台抽走机密词条（体验层）→ 实习生猜名强行发起 → 承重墙红灯拦下（执行层） ·**archify full**：语义级治理 章 `two-layer-defense` ·**archify full**：猜名强查拦截 章 `guessed-name`+`impenetrable` | 第一层 progress 压暗（只是藏起来）；第二层 impulse 强调脉冲；绕行撞墙与红灯由 archify 回放承担；【一】角标淡入在 devices.tsx EvidenceBadge 内 ；`@progress` `@impulse`|
-| 3-F | p3-19..22    | **代码走廊②** `compile_query` RBAC 分支 + 终端 `leak == blocked`；拆闸反事实 `[90, 560]` 泄露卡闪烁 ·**archify full**：治理破坏台 章 `rbac-ablation` ·**archify full**：猜名强查拦截 章 `intercepted` ·**archify full**：藏起来不等于拦得住 章 `teardown-leak`+`hide-not-block` | archify 全屏回放主控：章内拍脉冲 + 换章弹入由 ArchifyClip 承担；【一】角标淡入在 devices.tsx EvidenceBadge 内（本镜无动效 hook）|
-| 3-G | p3-23..26    | 编译期安全锁扣合；收束金句「语义层绝不成绕开安全的后门」·**archify full**：语义级治理 章 `绕行仍被拦截`；HUD 第二三柱点亮 ·**archify full**：编译那一秒的拦截 章 `ux-vs-lifeline`+`no-backdoor`+`compile-second` ·**archify full**：语义级治理 章 `bypass-intercepted` | archify 全屏回放主控：章内拍脉冲 + 换章弹入由 ArchifyClip 承担；第二三柱点亮在 devices.tsx PillarHUD 内（本镜无动效 hook）|
+| 镜 | 句区间 | 画面 | 动效 |
+|---|---|---|---|
+| 3-A 谁可见 | p3-01 | master：定义卡居中，四周探出多双「眼睛」图标（人/报表/Agent 轮廓） | 眼睛错峰睁亮`@stagger` |
+| 3-B 术语四连 | p3-02 | evidence：·**archify full**：row-column-policy 章 `perpage`；四策略术语卡（掩码/行访问/聚合约束/投影限制） | 图回放+四卡`@stagger` |
+| 3-C 挂载位置 | p3-03..04 | evidence：·**archify full**：row-column-policy 章 `family`+query-time-policy 章 `instant-inspection` | 图回放两图接力（tag 绑定→查询期求值） |
+| 3-D 两细节 | p3-05..06 | evidence：·**archify full**：multi-entry-single-truth 章 `single-point-bind`+`whoever-asks`；定义卡母题：**策略挂扣件扣上（紫）** | 图回放两章接力；扣件落位`@spring` |
+| 3-E Agent 开关 | p3-07..09 | evidence：·**archify full**：query-time-policy 章 `agent-recognized`@p3-08+row-column-policy 章 `agentface`@p3-09；同屏上下对照：人工=明文 / Agent=星号 | 图回放两章接力；星号遮罩扫过`@reveal` |
+| 3-F 走查 | p3-10..12 | device：实习生查手机号四步状态走查（请求→命中策略→按主人规则判定→带星号出引擎）；步骤指示灯逐亮 | 状态流转`@travel`；指示灯`@stagger` |
+| 3-G 拆执行层 | p3-13..14 | device：**红绿消融同屏**——左红：[90,560] 明文泄露；右绿：blocked；证据徽（实心）；·**archify full**：hidden-vs-blocked 章 `teardown-leak`@p3-13+`hide-not-block`@p3-14 | 泄露数字翻牌`@count`（红）；绿侧拦截墙落锁`@spring`；图回放两章接力 |
+| 3-H 执法位置 | p3-15..17 | evidence：·**archify full**：engine-governance 章 `sign-vs-wall`@p3-16+`governed-path`@p3-17；外挂拓扑（两系统对账，虚线抖动）vs 内嵌拓扑（引擎一跳） | 图回放两章接力（外挂抖动=漂移感） |
+| 3-I 双层防线 | p3-18..19 | evidence：·**archify full**：forced-query-intercept 章 `guessed-name`@p3-18+engine-governance 章 `two-layer-defense`@p3-19 | 图回放两章接力 |
+| 3-J 规律金句 | p3-20..21 | device：金句卡（衬线体）「强制力来自执行点」+ 检验三连问角标；定义卡母题短暂回照 | 金句卡`@enter:pop`；回照微光`@breathe` |
 
-## P4 盖章底稿与全楼台账：答对与对账（p4-01..28）
+## P4 背书与血缘（p4-01..p4-22，22 句，无 p4-03）
 
-| 镜  | 句区间      | 画面                                                                                                       | 动效                                                          |
-| --- | ----------- | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| 4-A | p4-01..04   | **引用错手册**：手册金色发光完全正确，实习生却翻到错误那一页照算，答案变红；第四大机制徽章压入 ·**archify full**：选错页失效 章 `right-book-wrong-page`+`two-branches` ·**archify full**：自动巡航闭环 章 `inputs` ·**archify full**：落地的两个挑战 章 `challenge-one` | archify 全屏回放主控：章内拍脉冲 + 换章弹入由 ArchifyClip 承担（本镜无动效 hook）|
-| 4-B | p4-05..09   | **盖章底稿 + 对账双栏**：核准题库底稿落「已核准」圆章（verified_by / verified_at），右栏按底稿公式重算三个月对账行逐行亮勾 ·**archify full**：应答验证 章 `hit-reconcile`+`miss-fallback` ·**archify full**：自动巡航闭环 章 `valgate`+`loop` ·**archify full**：核准条目的一生 章 `signed-stamped` | archify 全屏回放主控：章内拍脉冲 + 换章弹入由 ArchifyClip 承担（本镜无动效 hook）|
-| 4-C | p4-09a      | **半堵墙**：验证缺口只砌了下半截，上半截是空的（事后评分不在楼内），镜头在缺口停留| 下半截砖 progress 淡入砌起、上半截恒留虚线空位（本镜无 archify 窗，装置独占） ；`@progress`|
-| 4-D | p4-10..14   | **母图推近**至地下机房台账层 + 挑战提问卡 → 数据跨系统流转管网图 → **全息管道台账**落桌翻开，每根水管挂流向标签，末句解析门落下弹回虚构对象 ·**archify full**：血缘台账 章 `engine-lane` ·**archify full**：落地的两个挑战 章 `challenge-two` ·**archify full**：全楼水管台账 章 `fifth-mechanism`+`drop-to-drop`+`not-wastepaper` | archify 全屏回放主控：章内拍脉冲 + 换章弹入由 ArchifyClip 承担（本镜无动效 hook）|
-| 4-E | p4-14a..18  | **入账三道闸**依次亮灯（权限 / 完成态 / 对象可解析），虚构流水第三道被弹回 ·**代码走廊③** `ingest_external_lineage` + 终端 D8；拆闸后虚构边混入闪红 ·**archify full**：血缘台账 章 `ingest-lane` ·**archify full**：虚构流水入账生死 章 `fake-event`+`rejected`+`gate-removed`+`ledger-detached` | archify 全屏回放主控：章内拍脉冲 + 换章弹入由 ArchifyClip 承担；【一】角标淡入在 devices.tsx EvidenceBadge 内（本镜无动效 hook）|
-| 4-F | p4-19..24   | **逆流溯源**：🔦 探照灯意象 + 「顺着台账三秒定位源头 / 谁生产、谁清洗、AI 何时引用哪一列」文案卡 ·**archify full**：双柱信任 章 `two-pillars` ·**archify full**：三阶段演进 章 `stage-ecosystem` ·**archify full**：逆流溯源 章 `living-ledger`+`three-seconds` ·**archify full**：信任的事前事中事后 章 `before-during`+`after-audit` | archify 全屏回放主控：章内拍脉冲 + 换章弹入由 ArchifyClip 承担（本镜无动效 hook）|
-| 4-G | p4-25..28   | 答错有拦截 / 答对有底稿 / 有疑问翻账本——信任资产四方印鉴收束；HUD 第四五柱点亮 ·**archify full**：双柱信任 章 `three-seals` ·**archify full**：四因子称重 章 `topk` | 金句卡静态，让位由 ArchifyYield 纯函数 progress 交叉淡化；第四五柱点亮在 devices.tsx PillarHUD 内（本镜无动效 hook）|
+| 镜 | 句区间 | 画面 | 动效 |
+|---|---|---|---|
+| 4-A 失效面 | p4-01..02 | evidence：·**archify full**：valid-sql-wrong-answer 章 `syntax-pass`+`business-fail`；语法绿灯/答案红灯对照 | 图回放两章接力 |
+| 4-B 核准题库 | p4-04..05 | evidence：·**archify full**：one-checkpoint 章 `sign-vs-checkpoint`@p4-04+vqr-lifecycle 章 `signed-stamped`@p4-05；**定义卡母题：签名盖章位（青）**；四要素卡（题/查询/验证人/日期） | 图回放两章接力；盖章落印`@enter:fall`+青色印记脉冲 |
+| 4-C 命中短路 | p4-06..08 | evidence：·**archify full**：resolve-activation 章 `hit-reconcile`@p4-07+one-checkpoint 章 `shared-checkpoint`@p4-06 | 图回放两章接力（命中路由亮线`@flowDash`） |
+| 4-D 对账走查 | p4-09..10 | device：题库返回 200/150/300 与引擎重算并排滚动对账，逐月打勾；证据徽（实心·本仓复算） | 双列计数`@count`；对勾错峰`@stagger` |
+| 4-E 三条出路 | p4-11..14 | evidence：·**archify full**：resolve-activation 章 `miss-fallback`+`outside-eval`；代价角标（至多 4 次 / 超 20 条拖慢 · 虚线徽·官方文档） | 图回放两章接力 |
+| 4-F 血缘账本 | p4-15..17 | evidence：·**archify full**：lineage-ledger 章 `engine-lane`@p4-16+`ledger-and-blind`@p4-17；列级边逐条入账；角标 OpenLineage | 图回放两章接力（边生长`@draw`） |
+| 4-G 三道闸 | p4-17b..19 | evidence：·**archify full**：lineage-ledger 章 `ingest-lane`@p4-17b+ghost-edge-pollution 章 `rejected`@p4-18+upstream-traceback 章 `three-seconds`@p4-19；闸门三连（鉴权/可解析/对象可解析） | 图回放三章接力（闸门逐道落锁`@spring`） |
+| 4-H 拆闸消融 | p4-20..22 | device：**红绿消融同屏**——左红：虚构边 ghost 入账污染；右绿：三道全拒；证据徽（实心）；·**archify full**：ghost-edge-pollution 章 `fake-event`@p4-20+`gate-removed`@p4-21 + upstream-traceback 章 `living-ledger`@p4-22 | 图回放三章接力；红侧幽灵边闪烁`@breathe` |
 
-## P5 专用工牌与自动贴标：代理风控与敏捷纳管（p5-01..32）
+## P5 身份与纳管（p5-01..p5-23，23 句）
 
-| 镜  | 句区间      | 画面                                                                                                    | 动效                                                        |
-| --- | ----------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| 5-A | p5-01..04   | **母图推近**至大门发牌处 + 发牌提问卡 → 万能钥匙被注入抖裂、七道锁逐一弹开 → 实习生挂上动态发光**专用工牌**与两条铁律 ·**archify full**：Agent Identity 章 `ceiling` ·**archify full**：万能钥匙威胁 章 `badge-question`+`master-key` ·**archify full**：权限交集 章 `two-iron-rules` | archify 全屏回放主控：章内拍脉冲 + 换章弹入由 ArchifyClip 承担（本镜无动效 hook）|
-| 5-B | p5-05..08   | **权限交集环**：带教人环 ∩ 代理岗位环收窄成工牌形；「并集」版本被打叉；刷卡审计芯片点亮 ·**archify full**：章 `audit` ·**archify full**：Agent Identity 章 `audit` | 双环 spring 入场 → progress 收窄成工牌透镜（decelerate，铺满 p5-06 整句）→ 机密文案 progress 点亮 + impulse 弹一下 + breathe 常驻辉光 ；`@spring` `@progress` `@impulse` `@breathe`|
-| 5-C | p5-08a      | 回指 P3 的代理识别灯：前面闸机认出的代理，认的就是这张工牌 ·**archify full**：章 `strict` ·**archify full**：Agent Identity 章 `strict` | archify 全屏回放主控：章内拍脉冲 + 换章弹入由 ArchifyClip 承担（本镜无动效 hook）|
-| 5-D | p5-09..15   | **双钟对照**：左「快照式工牌」钟（危险色）⛔ 停在会话开始、回收后翻 🕐 仍持权；右「实时天花板」钟（绿色）🕐 持续求值、回收后翻 ⛔ 刷卡即拒；中间「越权窗口」阴影区随 p5-13 张开 ·**代码走廊④** 天花板实时求值 + 终端 D9 ·**archify full**：Agent Identity 章 `snapshot-vs-live` ·**archify full**：权限回收的两种命运 章 `realtime-ceiling`+`static-snapshot`+`ten-minutes` ·**archify full**：零越权窗口时序 章 `experiment-risk`+`dynamic-intersect`+`zero-window` | archify 全屏回放主控：章内拍脉冲 + 换章弹入由 ArchifyClip 承担；【一】角标淡入在 devices.tsx EvidenceBadge 内（本镜无动效 hook）|
-| 5-E | p5-16..20   | **母图推近**至装卸货码头贴标层 + 进楼考验双条对比（涌入 vs 人工登记，差额即未纳管缺口）→ **贴标流水线**：新文件循环滑过扫描探针，**淡紫**密级标签（按文案区分密级）精准贴上，联动承重墙闸机 ·**archify full**：纳管缺口 章 `tag-driven` ·**archify full**：贴标即联动闸机 章 `intake-test`+`seventh-mechanism`+`auto-linkage` ·**archify full**：纳管洪峰 章 `flood-vs-manual` | archify 全屏回放主控：章内拍脉冲 + 换章弹入由 ArchifyClip 承担（本镜无动效 hook）|
-| 5-F | p5-21..25   | **断链最后一环**：发现→标记→执行 第三环断开，手机号明文从断口滑出大楼 ·**代码走廊⑤** 标签映射 + 终端 D10；补齐映射后绿线接通 ·**archify full**：章 `honest-limit`+`未映射显式缺口` ·**archify full**：开放互操作 章 `feedback` ·**archify full**：纳管缺口 章 `honest-limit`+`explicit-gap` | 三环 stagger 逐块亮出（第三环 danger 断口）；明文出楼行 progress 浮出；代码走廊与终端行在 CodeWalk 内逐行 ；`@stagger` `@progress`|
-| 5-G | p5-26..30   | 七格承重列 HUD 全亮合拢 ·**听证会空白卡**：两个同名定义对峙、数字栏刻意留白等人裁决；对照组按热度自动选让错误口径胜出染红 ·**archify full**：汇聚富化激活 ·**archify full**：组件全景 章 `reserved-supply` ·**archify full**：多数派近道 章 `popularity-wins` ·**archify full**：汇聚富化激活 章 `activate`+`enrich` ·**archify full**：语义打架开听证会 章 `open-hearing` | archify 全屏回放主控：章内拍脉冲 + 换章弹入由 ArchifyClip 承担；七柱全亮由镜外常驻 PillarHUD 按纯函数 progress 逐格起高（devices.tsx）（本镜无动效 hook）|
-| 5-H | p5-31..32   | 前台**四因子称重天平** + 标准 MCP 插头接入大厦；体系运转全景 ·**archify full**：四因子排序 + 开放互操作 ·**archify full**：开放互操作 章 `socket` ·**archify full**：四因子称重 章 `factors` | archify 全屏回放主控：章内拍脉冲 + 换章弹入由 ArchifyClip 承担；HUD 承 5-G 镜外常驻实例不重挂（本镜无动效 hook）|
+| 镜 | 句区间 | 画面 | 动效 |
+|---|---|---|---|
+| 5-A 假设改写 | p5-01..03 | master：提问者剪影从「人」渐变为「Agent」，钥匙串越挂越多；金句浮标「不该拿着你全部的钥匙」 | 剪影渐变+钥匙串抖落`@enter:fall` |
+| 5-B 识别 | p5-04..05 | evidence：·**archify full**：agent-identity 章 `audit`；四入口标记 + 审计链（授权→执行→对象）点亮 | 图回放（链路逐节亮`@flowDash`） |
+| 5-C 天花板 | p5-06..07 | evidence：·**archify full**：agent-identity 章 `ceiling`+`strict`；角标 Restricted Session Scope | 图回放两章接力（天花板压下`@spring`） |
+| 5-D 交集 | p5-08..09 | evidence：·**archify full**：venn-intersection 章 `two-iron-rules`@p5-08+zero-window-sequence 章 `dynamic-intersect`@p5-09；用户权限∩天花板，交集区金亮、只减不增箭头 | 图回放两章接力（交集区脉冲`@impulse`） |
+| 5-E 时间线走查 | p5-10..11 | device：十分钟时间轴（10:00 设顶/10:02 开会话/10:05 回收/10:06 拒绝），事件点逐个落位、10:06 交集塌缩为空；证据徽（实线·第三方实测）；·**archify full**：zero-window-sequence 章 `experiment-risk`@p5-10+revocation-timeline 章 `realtime-ceiling`@p5-11 | 时间轴游标推进；交集塌缩动画；图回放两章接力 |
+| 5-F 拆天花板 | p5-12..14 | device：**红绿消融同屏**——左红：快照冻结、回收后仍持权（越权窗口红区展开）；右绿：实时求值即刻失效；证据徽（实心）；·**archify full**：agent-identity 章 `snapshot-vs-live`@p5-12+revocation-timeline 章 `static-snapshot`@p5-13 + zero-window-sequence 章 `zero-window`@p5-14 | 图回放三章接力；红区窗口扩张`@count` |
+| 5-G 焦虑 | p5-15..16 | master：数据表网格持续新增（+phone/+ssn 浮起），人工标签员图标追不上（渐疲）;分类引擎扫描波次扫过；·**archify full**：classification-tagging 章 `honest-limit`@p5-16 | 网格增殖动画；扫描波`@flowDash`；图回放 |
+| 5-H 四步纳管 | p5-17..18 | evidence：·**archify full**：tag-gate-linkage 章 `seventh-mechanism`@p5-17+classification-tagging 章 `tag-driven`@p5-18；夜里新表→扫描→打标→次日打码四步走查 | 图回放两章接力（四步灯逐亮） |
+| 5-I 映射闸 | p5-19..20 | evidence：·**archify full**：tag-gate-linkage 章 `intake-test`；「机器管发现，人管定规」对章卡；一次性映射桥接动画 | 图回放；桥接线描画`@draw` |
+| 5-J 拆映射 | p5-21..23 | device：**红绿消融同屏**——左红：已贴系统标签仍明文出楼（裸奔警示）；右绿：映射在位自动打码；证据徽（实心）；·**archify full**：classification-tagging 章 `explicit-gap`@p5-22 | 图回放；明文/星号对照扫过`@reveal` |
 
-## P6 它没证明什么：理性收口与批判性边界（p6-01..24）
+## P6 供给与生态（p6-01..p6-18，18 句）
 
-| 镜  | 句区间      | 画面                                                                                                  | 动效                                                          |
-| --- | ----------- | ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| 6-A | p6-01..06   | **五道警示栅栏**升起，第一道压暗：厂商自报八成六 vs 独立复测两成出头（角标【三】/【二】） ·**archify full**：证据分级 章 `vendor-claim`+`not-industry-norm`| 五条栅栏 stagger 逐条立起（第一条转实线红、其余虚线半暗，为样式分支非 useDim）；【三】角标淡入在 devices.tsx EvidenceBadge 内；p6-05/06 由 ArchifyYield 让位 archify ；`@stagger`|
-| 6-B | p6-07..09   | 第二道压暗（预览期落地鸿沟）+ 第三道压暗（安全周界限于楼内，数据出楼治理失效） ·**archify full**：落地鸿沟 章 `preview-band` ·**archify full**：安全周界 章 `inside-effective`+`outside-void`| archify 全屏回放主控：章内拍脉冲 + 换章弹入由 ArchifyClip 承担（本镜无动效 hook）|
-| 6-C | p6-10..16   | **地基塌方剖面**（与母图同一张）：楼上图纸金色合法、七柱全亮，地基已塌陷；**477 vs 48** 对撞裂开；第四道高亮 ·**archify full**：上游塌方 章 `day-pack-collapse`+`legal-but-wrong`+`measured-477-48` ·**archify full**：治理合法≠计算正确 章 `fourth-boundary`+`third-party-critique`+`upstream-collapse` ·**archify full**：图纸合法救不了塌方地基 章 `blueprint-vs-foundation` | archify 全屏回放主控：章内拍脉冲 + 换章弹入由 ArchifyClip 承担；【四】角标淡入在 devices.tsx EvidenceBadge 内（本镜无动效 hook）|
-| 6-D | p6-17       | 第五道压暗：五道警示栅栏整队立起（均已压暗态），第五道「多数人踩出来的近道依然可能是错的——习惯不等于真理」| 栅栏 stagger 立起 ；`@stagger`|
-| 6-E | p6-19..22   | **租来的聪明**：机器人（🤖）头顶光环，一根电源线 draw 出悬空连出（p6-21）；拔线（p6-22）→ 光环/电源线熄灭，题眼金句上屏（p6-20） ·**archify full**：四因子称重 章 `signals` ·**archify full**：归因天平 章 `not-the-brain`+`cast-into-infra` ·**archify full**：租来的聪明 章 `rented-to-owned` | archify 全屏回放主控：章内拍脉冲 + 换章弹入由 ArchifyClip 承担（本镜无动效 hook）|
-| 6-F | p6-23..24   | 下期钩子（上下文层蓝图展开）+ 信源卡（pinned commit / 笔记 / 原型代码 / **67 张 archify 工程图拼版背景**）+ 全屏平缓**渐黑** ·**archify full**：下期蓝图 章 `self-build` | 信源卡四行 stagger 浮现；全镜 fadeOut 渐黑（末 90 帧，窗取整镜时长）；下期蓝图由 archify 回放承担 ；`@stagger` `@fadeOut`|
+| 镜 | 句区间 | 画面 | 动效 |
+|---|---|---|---|
+| 6-A 三动词 | p6-01..02 | evidence：·**archify full**：collect-enrich-activate 章 `collect`@p6-01+`activate`@p6-02 | 图回放两章接力 |
+| 6-B 缺口 | p6-03..05 | device：9,685 格表海（暗格），金亮格不足 5%（虚线徽）；两条生产线传送带展开；·**archify full**：dictionary-drift 章 `stale-manual`@p6-03+autopilot-loop 章 `valgate`@p6-04+`inputs`@p6-05 | 表海滚动；亮格占比计量`@count`；图回放三章接力 |
+| 6-C 隐式轨 | p6-06..07 | evidence：·**archify full**：four-factor-ranking 章 `factors`+`signals`；角标 Cortex Sense（私预） | 图回放两章接力（四因子天平） |
+| 6-D 冲突裁决 | p6-08..09 | device：CONFLICT 卡阵列（几十种「日活」定义卡互相推挤），裁决章卡浮出人工裁决印章 | 卡阵推挤抖动`@enter:pop`；印章落`@enter:fall` |
+| 6-E 拆给热度 | p6-10..11 | device：**红绿消融同屏**——左红：声量柱 200 vs 5，错误口径碾压（角标 200:5 inferred vs governed）；右绿：冲突浮出人工裁决；证据徽（实心）；·**archify full**：majority-shortcut 章 `popularity-wins`@p6-11 | 声量柱对决`@count`；「习惯≠真理」金句浮出 |
+| 6-F 检索 | p6-12 | evidence：·**archify full**：four-factor-ranking 章 `topk`；增益角标（0.22→0.59 · 虚线徽·自报） | 图回放（排序漏斗收缩） |
+| 6-G 出口三路 | p6-13..15 | evidence：·**archify full**：open-interop 章 `portable`+`feedback`+`socket`；p6-15 证据徽（实线·第三方指出：非等值关系静默丢弃） | 图回放三章接力（导出桥断点闪红`@impulse`） |
+| 6-H 演进 | p6-16..18 | evidence：·**archify full**：evolution-timeline 章 `stage-objects`+`stage-governed-enrich`+`stage-ecosystem`；金句卡「没有对象化的开放＝换个格式分发混乱」 | 图回放三章接力（里程碑快闪）；金句卡`@enter:pop` |
+
+## P7 规律与边界（p7-01..p7-19，19 句，无 p7-09）
+
+| 镜 | 句区间 | 画面 | 动效 |
+|---|---|---|---|
+| 7-A 冷水 | p7-01..02 | evidence：三级证据徽墙（虚线/实线/实心图例回照全片数字来源）；·**archify full**：dual-baseline-evidence 章 `two-benchmarks`@p7-01+evidence-grading 章 `vendor-claim`@p7-02 | 徽墙错峰亮`@stagger`；图回放两章接力；冷水色温转冷 |
+| 7-B 读表纪律 | p7-03 | evidence：·**archify full**：evidence-grading 章 `vendor-claim`@p7-03；角标「谁测的/什么条件/截至何时」三连章 | 图回放；三问角标错峰`@stagger` |
+| 7-C 治理≠验证 | p7-04..06 | evidence：·**archify full**：grain-collapse 章 `day-pack-collapse`@p7-04+`legal-but-wrong`@p7-05+govern-vs-verify 章 `upstream-collapse`@p7-06；477 vs 48 断崖对比（实线徽·typedef 转述） | 图回放三章接力（断崖下坠`@count`） |
+| 7-D 玩具复现 | p7-07..08 | device：两天各记两笔（2+2）vs 去重（3）小算式走查；证据徽（实心）；·**archify full**：grain-collapse 章 `measured-477-48`@p7-07 + govern-vs-verify 章 `third-party-critique`@p7-08 | 算式逐笔落位`@count`；图回放两章接力 |
+| 7-E 边界 | p7-10..12b | device：**边界护栏卡**三栏（引擎内=有效 / 出楼=承诺清零 / 转换层=另一层责任）；·**archify full**：perimeter-loss 章 `inside-effective`@p7-10+`outside-void`@p7-11+evidence-grading 章 `not-industry-norm`@p7-12（dbt 争议=非行业常态） | 护栏卡三栏错峰`@stagger`；图回放三章接力 |
+| 7-F 五规律 | p7-13..16 | device：原生五卡逐句点亮（①执行半边/②执行点/③双保险/④冲突浮出·人工裁决/⑤三件套——panel 底+编号反枚举、激活金描边微光；five-laws 图转为 docs 研究资产不进片）；**定义卡母题满屏回照收束**（历次形态叠影） | 五卡`@stagger`错峰落位+逐句金描边点亮；叠影淡入`@enter:fade` |
+| 7-G 自测三问 | p7-17..18 | device：三问卡竖排（定义复制了吗？/策略在哪层求值？/验证交付了什么？）；·**archify full**：three-claims-stack 章 `guess-only`@p7-17+`governed-trust`@p7-18 | 三问卡逐张翻面`@reveal`；图回放两章接力 |
+| 7-H 收尾 | p7-19 | master：三问卡收拢入定义卡母题，卡片翻转亮出三色描边定格；尾幕渐黑（从末 beat 时长推导）+片尾字幕 | 收拢定格`@pushIn`；渐黑窗口（不写死帧数） |
+
+## 字幕规范
+
+底部单行、一句一条、与配音同步（frozen Subtitle 烧录；zh 恒单行 30px）。画面文字只放关键词/数字/标签/结构，不复述口播整句（刻意复述处注 `caption-dup-ok:` 豁免）。
+
+## 实现映射
+
+| 幕 | 组件 | 公共件 |
+|---|---|---|
+| P0 | `P0Symptoms.tsx` | 定义卡母题 `DefinitionCard`（金描边恒定锚）、证据徽 `EvidenceBadge`（虚/实/实心三态）、数字对撞台 |
+| P1 | `P1Map.tsx` | 四问卡、八层栈 `LayerStack`、术语卡 `TermCard` |
+| P2 | `P2Caliber.tsx` | Ann 走查 `StateTrace`、红绿消融 `AblationPair`、动态标尺 `BaselineBar`（useCount）、金句卡 `QuoteCard` |
+| P3 | `P3Policy.tsx` | AblationPair、走查步骤灯 |
+| P4 | `P4Ledger.tsx` | 对账双列 `ReconcileCols`、AblationPair |
+| P5 | `P5Identity.tsx` | 时间轴 `RevocationClock`、韦恩交集、AblationPair |
+| P6 | `P6Supply.tsx` | 表海 `TableSea`、声量柱、CONFLICT 卡阵 |
+| P7 | `P7Laws.tsx` | 护栏卡 `GuardrailCard`、三问卡、证据徽墙 |
+
+archify 消费端：`ArchifyClip/ArchifyRecap/ArchifyYield` 从 E2（context-layer-video，当代骨架同源）复制适配；全屏独占 1298×730，`forbid_inset` 生效无画中画。
+
+## 新图清单（建图工单）
+
+- `horizon-context--five-laws`（dataflow）：五规律总卡四章——**docs 研究资产**（archify 3.0 viewer 已移除 guidedViews 模块、录制器无法消费，视频侧改原生五卡实现，见 P7Laws.tsx；HTML/回执存档于 docs/assets/architecture/cognitive-context/，未内嵌 011 正文——内嵌需走冻结件回写与 PNG 采集管线，留作后续独立任务）。
+- 备选未建：ann-walkthrough（Animated State Trace 由场景原生实现更优）、boundary-guardrail（护栏卡由场景原生实现）。
+
+## 覆盖门预期（首轮实测后回填定稿）
+
+- 实际在用图 47 张（终值回填；A 类直用，零剧场词命中）；cue 密集锚定见画面列（一章↔一句，同锚句零重复）；跨实例背靠背处场景代码须 `lead={false}`。
+- sidecar type 词表按录制器 `--type` 五值回填（architecture/workflow/sequence/dataflow/lifecycle）。

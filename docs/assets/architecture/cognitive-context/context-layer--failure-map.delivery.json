@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "bef31e20-edc3-4aa8-8c6f-d40bf8ea9566",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/architecture-context-layer--failure-map-20261010-003320/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
+  "specification": {
+    "sha256": "1b7b9c1d81ca710c7e1ee781abfcbe30f91035e4a09ef87417d33299b140e77a",
+    "bytes": 6513
+  },
+  "artifact": {
+    "sha256": "dae51864ec358000bbeed6d92ad9dcbb00b9dc331aa8e3ab7f8011ae832d1680",
+    "bytes": 765089
+  }
+}

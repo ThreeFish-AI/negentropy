@@ -1,13 +1,23 @@
-%%source: docs/research/cognitive-context/013-context-layer-blueprint.md §3.3 时间轴：CGAVE 流水线（取代旧三相 Collect→Enrich→Activate，Govern 织入全程、Verify/Evolve 显式补环）
+%%source: docs/research/cognitive-context/013-context-layer-blueprint.md §9 时间面：生命周期六段两环（概览 §3.4；G1–G7 判据句 §9.5）
 %%slug: cognitive-context/context-layer--lifecycle
-%%type: dataflow
-%%derived: archify dataflow v2, redesigned from v1 collect-phase（三源汇入+富化+三出口 → 五段大回路；v1 见 git 史）
-graph LR
-    C1["Collect 采集<br/>五源汇聚 · 元数据/血缘/行为信号"] --> G1["Govern 治理<br/>口径单点 · 可见性 · 注入纪律"]
-    G1 --> A1["Activate 激活<br/>预算分配 · 渐进披露 · 双通道"]
-    A1 --> V1["Verify 验证<br/>应答锚定 · 可观测 · eval"]
-    V1 --> E1["Evolve 进化<br/>双轨富化 · 自纠环 · 冲突裁决"]
-    E1 -.->|"错误修正回灌 · 复利"| C1
-    C1 -.->|"治理织入全程"| A1
-    SRC["五源<br/>instruction · memory · knowledge<br/>tools+skills · session"] --> C1
-    V1 --> OUT["交付：预算内最小高信号集"]
+%%type: lifecycle
+%%derived: archify lifecycle v1（首制 lifecycle 版式），由 dataflow v2 CGAVE 五段单程重绘为六段两环——验证环/进化环一等化、G 法则钉段间转换；旧图见 git 史
+stateDiagram-v2
+    direction LR
+    L1 : L1 采集纳管｜出身有出处 · 过闸入账
+    L2 : L2 铸形裁决｜机器发现 · 人类定规
+    L3 : L3 装配执法｜每轮重装 · 实时求值
+    L4 : L4 应答锚定｜三条出路 · 无静默瞎猜
+    L5 : L5 沉淀回灌｜短期→长期 · 三件在线
+    L6 : L6 衰减退役｜显式退役有账 · 降权不清退
+    L1 --> L2
+    L2 --> L3
+    L3 --> L4
+    L4 --> L5
+    L5 --> L6
+    L4 --> L2 : 验证环 · 修定义
+    L4 --> L6 : 验证环 · 检出腐化
+    L5 --> L2 : 进化环 · 回灌新对象
+    note right of L3 : G1 执法点绑定
+    note right of L2 : G3 裁决不自动化
+    note right of L6 : G6 死要有葬礼

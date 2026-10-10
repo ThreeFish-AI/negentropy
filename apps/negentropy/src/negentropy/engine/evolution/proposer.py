@@ -6,7 +6,7 @@
 
 设计要点（与 reflection 的差异）：
 - **无 pattern fallback**：进化提案无合理模板兜底——LLM 失败/解析失败一律返回 None
-  （宁可不提不乱提，对齐蓝图 §9.6 进化提案治理）；
+  （宁可不提不乱提，对齐蓝图 §8.5 进化提案治理（013 2026-10-10 版；原 §9.6））；
 - **bounded mutation**：semantic_weight 单步 ≤ ``WEIGHT_MAX_STEP``、硬上下界 [0.3,0.9]，
   模型输出经 ``clamp_weight`` 后偏差过大视为失控→丢弃；
 - **keyword_weight 强制归一**：``1 - semantic_weight``，不信任模型输出；

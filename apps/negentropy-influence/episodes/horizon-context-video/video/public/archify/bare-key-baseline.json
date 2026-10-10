@@ -2,8 +2,8 @@
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 11.07,
- "total_wall_sec": 61.87,
+ "story_sec": 11.64,
+ "total_wall_sec": 128.34,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -17,11 +17,11 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.36,
+   "story_sec": 3.35,
    "beat_offsets_sec": [
     0.0,
-    1.104,
-    2.208
+    1.102,
+    2.206
    ],
    "beat_nodes": [
     "keyHandover",
@@ -29,7 +29,7 @@
     "rawTable"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 20.0
+   "capture_fps": 26.0
   },
   {
    "id": "blind-wrong",
@@ -39,18 +39,18 @@
    "end_still": "bare-key-baseline--blind-wrong-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 0.44,
-   "story_sec": 3.26,
+   "lead_sec": 0.48,
+   "story_sec": 3.24,
    "beat_offsets_sec": [
     0.0,
-    1.603
+    1.604
    ],
    "beat_nodes": [
     "rawTable",
     "wrongAnswer"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 20.0
+   "capture_fps": 27.0
   },
   {
    "id": "baseline-two",
@@ -61,12 +61,12 @@
    "beats": 4,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 4.45,
+   "story_sec": 5.05,
    "beat_offsets_sec": [
     0.0,
     1.103,
-    2.207,
-    3.31
+    2.206,
+    3.309
    ],
    "beat_nodes": [
     "wrongAnswer",
@@ -75,7 +75,7 @@
     "sameOrder"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 21.0
+   "capture_fps": 29.0
   }
  ],
  "capture": {
@@ -86,7 +86,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/tripoli-v4/docs/assets/architecture/cognitive-context/horizon-context--bare-key-baseline.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/horizon-context--bare-key-baseline.html",
  "slug": "bare-key-baseline",
  "type": "workflow"
 }

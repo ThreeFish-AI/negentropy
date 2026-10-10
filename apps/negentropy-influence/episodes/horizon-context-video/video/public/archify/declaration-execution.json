@@ -2,8 +2,8 @@
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 17.74,
- "total_wall_sec": 103.5,
+ "story_sec": 9.99,
+ "total_wall_sec": 91.96,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -17,13 +17,13 @@
    "beats": 5,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 5.53,
+   "story_sec": 5.55,
    "beat_offsets_sec": [
     0.0,
     1.104,
-    2.206,
-    3.311,
-    4.416
+    2.208,
+    3.312,
+    4.415
    ],
    "beat_nodes": [
     "tables",
@@ -33,37 +33,14 @@
     "fivePart"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 19.0
+   "capture_fps": 32.0
   },
   {
-   "id": "gate",
-   "label": "注册期结构校验门",
+   "id": "switch-divergence",
+   "label": "执行开关分化",
    "index": 1,
-   "file": "declaration-execution--gate.mp4",
-   "end_still": "declaration-execution--gate-end.png",
-   "beats": 3,
-   "dwell_ms": 1100,
-   "lead_sec": 0.44,
-   "story_sec": 3.35,
-   "beat_offsets_sec": [
-    0.0,
-    1.104,
-    2.206
-   ],
-   "beat_nodes": [
-    "fivePart",
-    "gate",
-    "reject"
-   ],
-   "measured_fps": 25.0,
-   "capture_fps": 21.0
-  },
-  {
-   "id": "recompute",
-   "label": "查询期按 grain 重算",
-   "index": 2,
-   "file": "declaration-execution--recompute.mp4",
-   "end_still": "declaration-execution--recompute-end.png",
+   "file": "declaration-execution--switch-divergence.mp4",
+   "end_still": "declaration-execution--switch-divergence-end.png",
    "beats": 4,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
@@ -71,33 +48,8 @@
    "beat_offsets_sec": [
     0.0,
     1.104,
-    2.207,
-    3.311
-   ],
-   "beat_nodes": [
-    "rbac",
-    "agg",
-    "result",
-    "denied"
-   ],
-   "measured_fps": 25.0,
-   "capture_fps": 22.0
-  },
-  {
-   "id": "switch-divergence",
-   "label": "执行开关分化",
-   "index": 3,
-   "file": "declaration-execution--switch-divergence.mp4",
-   "end_still": "declaration-execution--switch-divergence-end.png",
-   "beats": 4,
-   "dwell_ms": 1100,
-   "lead_sec": 0.44,
-   "story_sec": 4.42,
-   "beat_offsets_sec": [
-    0.0,
-    1.105,
-    2.209,
-    3.312
+    2.206,
+    3.309
    ],
    "beat_nodes": [
     "fivePart",
@@ -106,7 +58,7 @@
     "result"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 21.0
+   "capture_fps": 27.0
   }
  ],
  "capture": {
@@ -117,7 +69,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/tripoli-v4/docs/assets/architecture/cognitive-context/horizon-context--declaration-execution.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/horizon-context--declaration-execution.html",
  "slug": "declaration-execution",
  "type": "workflow"
 }

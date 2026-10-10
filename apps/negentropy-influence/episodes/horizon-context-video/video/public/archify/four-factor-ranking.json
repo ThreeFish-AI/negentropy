@@ -1,9 +1,9 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.44,
- "story_sec": 13.39,
- "total_wall_sec": 73.33,
+ "lead_sec": 0.56,
+ "story_sec": 13.36,
+ "total_wall_sec": 148.18,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -16,12 +16,12 @@
    "end_still": "four-factor-ranking--topk-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 0.44,
-   "story_sec": 3.35,
+   "lead_sec": 0.56,
+   "story_sec": 3.38,
    "beat_offsets_sec": [
     0.0,
-    1.107,
-    2.21
+    1.109,
+    2.214
    ],
    "beat_nodes": [
     "score",
@@ -29,7 +29,7 @@
     "topk"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 39.0
+   "capture_fps": 49.0
   },
   {
    "id": "factors",
@@ -40,12 +40,12 @@
    "beats": 4,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 4.46,
+   "story_sec": 4.44,
    "beat_offsets_sec": [
     0.0,
-    1.103,
+    1.105,
     2.209,
-    3.314
+    3.311
    ],
    "beat_nodes": [
     "rel",
@@ -54,7 +54,7 @@
     "fre"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 25.0
+   "capture_fps": 27.0
   },
   {
    "id": "signals",
@@ -65,13 +65,13 @@
    "beats": 5,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 5.58,
+   "story_sec": 5.54,
    "beat_offsets_sec": [
     0.0,
-    1.105,
-    2.21,
-    3.315,
-    4.419
+    1.103,
+    2.207,
+    3.31,
+    4.412
    ],
    "beat_nodes": [
     "q",
@@ -81,7 +81,7 @@
     "tm"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 21.0
+   "capture_fps": 27.0
   }
  ],
  "capture": {
@@ -92,7 +92,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/tripoli-v4/docs/assets/architecture/cognitive-context/horizon-context--four-factor-ranking.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/horizon-context--four-factor-ranking.html",
  "slug": "four-factor-ranking",
  "type": "dataflow"
 }

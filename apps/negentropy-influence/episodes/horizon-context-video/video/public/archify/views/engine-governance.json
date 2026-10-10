@@ -30,15 +30,5 @@
    "out"
   ],
   "note": "检索层藏机密词条护体验，执行层焊死承重墙兜底——猜名强查也在第二层被拦。"
- },
- {
-  "id": "bypass-intercepted",
-  "label": "绕行仍被拦截",
-  "focus": [
-   "cal",
-   "byp",
-   "ax"
-  ],
-  "note": "绕过语义层直查物理底表，引擎策略仍拦截为 AccessDenied。"
  }
 ]

@@ -1,34 +1,42 @@
-%%source: docs/research/cognitive-context/013-context-layer-blueprint.md §3 总体架构：三轴蓝图（ADR-4 对象轴×结构轴×时间轴正交）
+%%source: docs/research/cognitive-context/013-context-layer-blueprint.md §3 总纲：三面蓝图（§3.1 三面各自承重 / §3.3 机制＝接缝 / §3.4 六段两环）
 %%slug: cognitive-context/context-layer-blueprint--architecture
 %%type: architecture
-%%derived: archify architecture v2, redesigned from v1 (五正交层单轴 → 三轴正交；v1 见 git 史)
+%%derived: archify architecture v3, redesigned from v2（三轴顺序链 → 三面独立承重：验收面登记簿九簇 × 结构面五轴+M1–M7 接缝挂件 × 时间面 L1–L6 六段+验证环/进化环两回边；v2 见 git 史）
 flowchart TB
-    subgraph OBJAXIS["对象轴 · 五源（ADR-5）——经营什么"]
-        direction LR
-        O1["instruction"]
-        O2["memory"]
-        O3["knowledge"]
-        O4["tools+skills"]
-        O5["session"]
+    subgraph FACE1["验收面 · 防住什么坏法（§1）"]
+        REG["失效登记簿<br/>九簇 × 42 行 × 六列"]
     end
-    subgraph STRAXIS["结构轴 · 五正交层（§4–§8）——怎么组织"]
-        direction LR
-        L1["§4 对象层<br/>放什么"]
-        L2["§5 目录层<br/>怎么找"]
-        L3["§6 富化层<br/>怎么养"]
-        L4["§7 治理层<br/>怎么信"]
-        L5["§8 激活层<br/>怎么用"]
+    subgraph FACE2["结构面 · 五轴正交，机制挂接缝（§4–§8）"]
+        direction TB
+        A1["资产 Asset<br/>§4 经营什么"]
+        A2["权威 Authority<br/>§5 真值在哪·执法点"]
+        A3["装配 Assembly<br/>§6 这轮进窗什么"]
+        A4["检索 Retrieval<br/>§7 候选怎么来"]
+        A5["复利 Compounding<br/>§8 怎么越用越好"]
+        M15["M1 语义视图·M5 血缘<br/>资产×权威×装配"]
+        M26["M2 行列级策略·M6 身份<br/>单轴全落权威"]
+        M3["M3 语义级治理<br/>权威×检索"]
+        M4["M4 VQR 验证锚定<br/>检索×复利"]
+        M7["M7 分类标签<br/>复利×权威"]
+        M15 --- A1
+        M15 --- A2
+        M26 --- A2
+        M3 --- A2
+        M3 --- A4
+        M4 --- A4
+        M4 --- A5
+        M7 --- A5
+        M7 --- A2
     end
-    subgraph TIMEAXIS["时间轴 · CGAVE 生命周期（§3.3）——怎么流动"]
-        direction LR
-        T1["Collect<br/>采集"]
-        T2["Govern<br/>治理"]
-        T3["Activate<br/>激活"]
-        T4["Verify<br/>验证"]
-        T5["Evolve<br/>进化"]
-        T1 --> T2 --> T3 --> T4 --> T5
-        T5 -.->|"反馈回路"| T1
+    subgraph FACE3["时间面 · 六段两环，G1–G7 钉段间转换（§9）"]
+        direction TB
+        L1["L1 采集纳管<br/>出身有出处"]
+        L2["L2 铸形裁决<br/>人类定规"]
+        L3["L3 装配执法<br/>每轮重装"]
+        L4["L4 应答锚定<br/>三条出路"]
+        L5["L5 沉淀回灌<br/>短期→长期"]
+        L6["L6 衰减退役<br/>死要有葬礼"]
+        L1 --> L2 --> L3 --> L4 --> L5 --> L6
+        L4 -.->|"验证环"| L2
+        L5 -.->|"进化环"| L2
     end
-    OBJAXIS -->|"各源对象入层"| STRAXIS
-    STRAXIS -->|"各层机制随时间运转"| TIMEAXIS
-    TIMEAXIS -->|"失效模式表（§0）= 三轴验收面"| V["✅ 验收：预算内最小高信号集<br/>且可信、可溯源、可进化"]

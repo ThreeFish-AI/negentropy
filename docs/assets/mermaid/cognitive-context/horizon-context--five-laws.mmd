@@ -1,0 +1,18 @@
+%%source: docs/research/cognitive-context/011-horizon-context.md §7 底层规律与核心争议（规律 1–5，稳定键）
+%%slug: cognitive-context/horizon-context--five-laws
+%%type: dataflow
+%%derived: archify dataflow v2, authored fresh（2026-10-01 视频重制新图；candidate 冻结于 .temp/archify-dataflow-five-laws-20261001）
+%% fix: (2026-10-01 E1 重制 P7 新图) 五规律总卡：病根（口径散落/执行算错）→ 执行半边（规律①定义层商品化·差异化在执行 + 规律②强制力来自执行点）→ 双保险（规律③注册校验×查询重算独立 + 规律④冲突浮出人工裁决，反面=多数派投票 200:5 碾压）→ 三件套（规律⑤声明×背书×审计缺一不可，477 vs 48）；四章对应 narration p7-13..16 一章一句
+flowchart LR
+    scatteredDefs["📤 口径散落<br/>各消费者自带副本"] -.->|"收口径后同质化"| commodityLayer["☁️ 定义层已商品化<br/>声明每家都会写"]
+    silentWrong["📤 执行算错<br/>合法 SQL 错数"] -->|"解药在执行"| executionHalf["⚙️ 执行半边<br/>差异化全部在此"]
+    commodityLayer -->|"差异化转移"| executionHalf
+    executionHalf -->|"强制力落点"| enforcementPoint["🛡️ 执行点<br/>强制力来自求值处"]
+    enforcementPoint -->|"保险一"| registerGate["🛡️ 注册期校验<br/>拦非法结构入库"]
+    enforcementPoint -->|"保险二"| queryRecompute["⚙️ 查询期重算<br/>不存成数现算"]
+    majorityTrap["📤 多数派投票<br/>习惯不等于真理"] -.->|"反面：200:5 碾压"| conflictSurface["📮 冲突浮出<br/>几十种口径摆上台面"]
+    conflictSurface -->|"裁决权留给人"| humanVerdict["👤 人工裁决<br/>不投票"]
+    humanVerdict -->|"裁决后入库"| governed["🗄️ 声明<br/>受治理定义对象"]
+    governed -->|"×声明"| trustedAnswer["⚙️ 可信答案<br/>三件缺一即塌"]
+    endorsed["👤 背书<br/>人签问答对复用"] -->|"×背书"| trustedAnswer
+    audited["🗄️ 审计<br/>血缘+身份可追"] -->|"×审计"| trustedAnswer

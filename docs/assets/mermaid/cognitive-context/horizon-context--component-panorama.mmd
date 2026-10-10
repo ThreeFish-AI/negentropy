@@ -2,7 +2,7 @@
 %%slug: cognitive-context/horizon-context--component-panorama
 %%type: architecture
 %%derived: archify architecture v1, authored from source mermaid
-%% fix: (2026-09-17 重评选) 五簇重划为重评选后口径：① 口径与应答（M1/M4）/ 治理执法（M2/M3/M6/M7）/ 账本（M5）为承重三簇，供给与出口（§10–§12 降级区）一簇；② Agent Identity 与 External Lineage 从「基座角色」升正式成员（M6/M5）；③ 新增行列级策略（M2）与分类标签（M7）节点；④ 出口安检随 §12 归降级簇；⑤ 检索排序（原 M5/M6）归 §11 降级簇；⑥ %%source 重锚 L88-L127；⑦ %%type/%%derived 随渲染器切换改为 architecture（dataflow 行上限装不下 7 节点降级簇）
+%% fix: (2026-09-17 重评选) 五簇重划为重评选后口径：① 口径与应答（M1/M4）/ 治理执法（M2/M3/M6/M7）/ 账本（M5）为承重三簇，供给与出口（§3.1–§3.3 降级区）一簇；② Agent Identity 与 External Lineage 从「基座角色」升正式成员（M6/M5）；③ 新增行列级策略（M2）与分类标签（M7）节点；④ 出口安检随 §3.3 归降级簇；⑤ 检索排序（原 M5/M6）归 §3.2 降级簇；⑥ %%source 重锚 L88-L127；⑦ %%type/%%derived 随渲染器切换改为 architecture（dataflow 行上限装不下 7 节点降级簇）
 flowchart LR
     subgraph "口径与应答（M1 / M4）· 答对的根"
         SV["📦 Semantic Views<br/>五段式 · 校验门 · 按 grain 现算（M1）"]
@@ -17,14 +17,14 @@ flowchart LR
     subgraph "账本（M5）· 事后可对账"
         EL["🕸️ 端到端列级血缘<br/>引擎沉淀 + OpenLineage 摄取（M5）"]
     end
-    subgraph "供给与出口（§10–§12）· 降级保留区"
-        AP["🏗️ Autopilot / Metadata Connectors<br/>days → minutes · Wave 1 五连接器（§10）"]
-        CS["🔍 Cortex Sense<br/>隐式挖掘 · 私预（§10）"]
-        US["🧭 Universal / Cortex Search<br/>混合检索 + R·A·P·F 四因子（§11）"]
-        OSS["📜 Ossie（原 OSI）<br/>跨平台语义互导 · 50+ 组织（§12）"]
-        MCP["🔌 Snowflake 官方 MCP Server<br/>标准受控工具面（§12 · 第一顺位晋级候选）"]
-        ADA["🏭 Automatic Data Agents<br/>Marketplace 一键生成 SV + Agent（§12）"]
-        GRD["🛂 出口安检<br/>Guardrails / AI_REDACT（§12）"]
+    subgraph "供给与出口（§3.1–§3.3）· 降级保留区"
+        AP["🏗️ Autopilot / Metadata Connectors<br/>days → minutes · Wave 1 五连接器（§3.1）"]
+        CS["🔍 Cortex Sense<br/>隐式挖掘 · 私预（§3.1）"]
+        US["🧭 Universal / Cortex Search<br/>混合检索 + R·A·P·F 四因子（§3.2）"]
+        OSS["📜 Ossie（原 OSI）<br/>跨平台语义互导 · 50+ 组织（§3.3）"]
+        MCP["🔌 Snowflake 官方 MCP Server<br/>标准受控工具面（§3.3 · 第一顺位晋级候选）"]
+        ADA["🏭 Automatic Data Agents<br/>Marketplace 一键生成 SV + Agent（§3.3）"]
+        GRD["🛂 出口安检<br/>Guardrails / AI_REDACT（§3.3）"]
     end
     subgraph "消费端"
         AGENTS["🤖 官方 Agent 矩阵<br/>CoCo / CoWork / Cortex Agents"]

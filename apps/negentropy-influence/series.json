@@ -229,8 +229,8 @@
           "episode": 1,
           "slug": "horizon-context-video",
           "path": "episodes/horizon-context-video",
-          "title": "拆解 Horizon Context：功能、治理、安全与开放性",
-          "topic": "Horizon Context：含义怎么治理",
+          "title": "拆解 Horizon Context：Context 怎么治理，结果怎么验证",
+          "topic": "Horizon Context：Context 怎么治理",
           "cardSub": "上下文层 · 治理",
           "accents": [
             "#E8C06A",
@@ -238,15 +238,15 @@
             "#C9A0FF"
           ],
           "source": {
-            "title": "Snowflake Horizon Context 精读笔记 + 最小原型实验室（docs/research/cognitive-context/）",
+            "title": "Snowflake Horizon Context 精读与通俗拆解（guided-learn gen2 冻结版）+ 最小原型实验室（selftest 复算）",
             "repo": "https://github.com/ThreeFish-AI/negentropy",
-            "pinnedRef": "097076ebedd3",
+            "pinnedRef": "192ae6ca95db",
             "license": "本仓内部文档",
-            "accessed": "2026-09-19"
+            "accessed": "2026-10-01"
           },
           "status": "final-review",
-          "statusNote": "v5 终渲待审（2026-09-20，动效图例扩产+高清重制，口播零改动）：15:11.63 = 27349 帧 @30fps / 1920×1080（音频复用 v4，时长不变）；187 句 4256 字 45 镜；archify 工程图 33 张 86 章逐章高清录制（cdp JPEG q100 @DSF2 → h264 CRF16 @2560×1440 · CFR25，绕开 Playwright 硬编码 VP8@1Mbps），73 个 cue 进片（v4 为 14 图 43 章 29 cue），覆盖率 15.5%→39.0%、P0/P6 结束整幕零锚、D1–D10 实证全部有图，rate 预演 变速铺满 40 · 冻结补足 31 · 裁切 2；inset 画框 460×259→640×360 且全 16 个 inset 镜逐帧像素审计零侵入。新增 19 张严格锚定逐字稿的工程图 + 既有图增补 4 章。覆盖度自动阈门上线：check_archify_coverage.py 句级锚定率/丰富度地板/分镜声明↔cue 双向对账，pipeline.py check 自动串联，本集阈值定稿 28 图/58 cue/30%/70%。验收：check_script FAIL 0；check_archify FAIL 0（WARN 2 = 留档图未落镜）；覆盖门 FAIL 0 · WARN 3（有意保留）；tsc 绿；信源 pin 097076eb 不变。",
-          "voice": "sunny-steady + me-bright.wav"
+          "statusNote": "完全重制 v2 终渲待审（2026-10-02，011 gen2 C 型信源·story 档·零跨域剧场；评审 H 轮）：15:05.90 = 27177 帧 @30fps · 1920×1080（ffprobe 视频流帧数与帧复算一致）；156 句 4562 字 story 段落演绎（71 块情绪标记，实测校准 302 字/分含时距；H 轮 p2-21/22 口播对齐画面实例数字重录）；八幕 66 镜；archify 47 图 104 章逐章录制 106 cue · 锚定 67.9% · 7.0 cue/分 · 5 图型；换场交界逐帧亮度实测无断层；check_series/覆盖门/tsc/qa --check 全 FAIL 0；交付 ~/Documents/video/context-layer/拆解 Horizon Context：Context 怎么治理，结果怎么验证 v2.mp4（97.1MB，v1 存档保留）",
+          "voice": "story 段落演绎（me-bright 系 + cues.toml 台本）"
         },
         {
           "episode": 2,

@@ -231,7 +231,7 @@ description: "把 Agent Skills 开放规范的 13 条机制对照本仓三套 sk
 - [Skills 设计](../../concepts/design/skills.md) §2 对照表「模板按需（Layer 2）」「资源文件挂载（Layer 3）」两行与 §3.2 首条（已加校正指针）；
 - [172 规划与协调 §11](../agent-harness/172-claude-code-planning-coordination.md)「技能两层加载」行（已加校正指针）；
 - [skills-advanced.md](../../concepts/user-guide/skills-advanced.md) 与 [skills-paper-hunter.md](../../concepts/user-guide/skills-paper-hunter.md) 中「LLM 自主调用 `expand_skill`」的流程描述；
-- [012 Horizon Context 映射](../cognitive-context/012-horizon-context-mapping-negentropy.md) #9 与 [013 Context Layer 蓝图](../cognitive-context/013-context-layer-blueprint.md) 状态表（重铸版 §11.5 #9 行已校正口径：L1 ✅ / L2·L3 🔶 ISSUE-194，2026-09-27）。
+- 原 012 Horizon Context 映射（该文已删除）#9 与 [013 Context Layer 蓝图](../cognitive-context/013-context-layer-blueprint.md) 状态表 §12.4 #9 行（口径：L1 ✅ / L2·L3 🔶 ISSUE-194）。
 
 M4 落地方案 (a) 后，这些表述将**自动重新成立**；选 (b) 则须同步改写。为避免与 M4 决策打架，本次只在设计 SSOT 与 172 两处加校正指针，其余登记于 [ISSUE-194](../../.agents/issue.md) 统一处理。
 
@@ -242,5 +242,5 @@ M4 落地方案 (a) 后，这些表述将**自动重新成立**；选 (b) 则须
 - 相关映射：
   - [141 Skill 进化闭环](../self-evolution/141-skills-evolution-and-si-measurement.md)：R6-b 在线门受 M4 牵连。
   - [172 规划与协调](../agent-harness/172-claude-code-planning-coordination.md)：技能渐进披露的教学实现。
-  - [012 Horizon Context 映射](../cognitive-context/012-horizon-context-mapping-negentropy.md)：Definition Registry 与 materializer 的「定义即查即用」。
+  - 原 012 Horizon Context 映射（2026-10-09 删除，判定并入 013 状态表）：Definition Registry 与 materializer 的「定义即查即用」。
 - 问题登记：[ISSUE-194](../../.agents/issue.md)。

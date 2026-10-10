@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "cd79349b-4951-4660-9d21-a12c1eefba2d",
+  "status": "current",
+  "command": "deliver",
+  "type": "lifecycle",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/lifecycle-context-layer--lifecycle-20261010-003106/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--lifecycle.html",
+  "specification": {
+    "sha256": "8e9e59c48241e642c4cfee93e5720ca1474907d88f43effbeadad9585d6e1c70",
+    "bytes": 3873
+  },
+  "artifact": {
+    "sha256": "f5c5b11db33d9749eeb4780ffdfe7edca399d18e1f3b1a1619de6d0e9cef18bc",
+    "bytes": 759046
+  }
+}

@@ -275,7 +275,7 @@ uv run --no-project python docs/research/cognitive-context/assets/openviking_lab
 
 ## 14. 与本仓的关联
 
-机制 ↔ negentropy 的 13 条映射（✅4 / 🔶5 / ⏸4）、最大真增量（会话→记忆触发断链修复）与本仓 8 处取证发现见 [OpenViking ↔ negentropy 机制映射报告](./015-openviking-mapping-negentropy.md)；设计蓝图层面对位见 [013 Context Layer 蓝图](./013-context-layer-blueprint.md) §4–§8（2026-09-27 重铸版）；渐进披露的规范侧先例见 [Agent Skills 规范精读](../agent-infra/090-agent-skills-spec.md)。
+机制 ↔ negentropy 的 13 条映射（✅4 / 🔶5 / ⏸4）、最大真增量（会话→记忆触发断链修复）与本仓 8 处取证发现见 [OpenViking ↔ negentropy 机制映射报告](./015-openviking-mapping-negentropy.md)；设计蓝图层面对位见 [013 Context Layer 蓝图](./013-context-layer-blueprint.md) §4–§8；渐进披露的规范侧先例见 [Agent Skills 规范精读](../agent-infra/090-agent-skills-spec.md)。
 
 ## 附录 A · 费曼考评实录
 

@@ -29,7 +29,7 @@ import sys
 from horizon_context_lab import (CATALOG, POP_CAP, PRIVATE_ALLOWED, VIEWS,
                                   AccessDenied, AmbiguousJoinPath,
                                   ConflictingDefinitionError, compile_query,
-                                  freshness, resolve)
+                                  find_view_for_metric, freshness, resolve)
 
 PROTOCOL = "2025-06-18"
 SERVER_INFO = {"name": "horizon-context-lab", "version": "0.1.0"}
@@ -74,13 +74,6 @@ TOOLS = [
 _FEEDBACK_STEP = 50
 
 
-def _find_metric_view(metric: str):
-    for v in VIEWS:
-        if any(m.name == metric for m in v.metrics):
-            return v
-    return None
-
-
 def _entry_private(e) -> bool:
     """governed 条目的可见性取自其 backing 指标声明（inferred 无此语义，恒可见）。"""
     if e.source != "governed" or not e.view:
@@ -120,7 +113,7 @@ def _t_resolve(args):
 
 
 def _t_compile(args):
-    view = _find_metric_view(args["metric"])
+    view = find_view_for_metric(VIEWS, args["metric"])
     if view is None:
         raise KeyError(f"unknown metric: {args['metric']}")
     result = compile_query(view, args["metric"], dims=args.get("dims", []),

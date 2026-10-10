@@ -19,14 +19,5 @@
    "vqr"
   ],
   "note": "无效查询丢弃，有效者铸成语义视图与验证问答。"
- },
- {
-  "id": "loop",
-  "label": "激活与反馈回流",
-  "focus": [
-   "consume",
-   "vqr"
-  ],
-  "note": "使用反馈回流为 Suggestions 候选。"
  }
 ]

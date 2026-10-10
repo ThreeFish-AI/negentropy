@@ -79,7 +79,7 @@ Hermes 的头号卖点「运行中自写技能」按[争议一](./190-hermes-age
 - **建议**：
   - 复用 ADK 原生 `EventsCompactionConfig`，不自造压缩器。
   - 验收加一条原型 D3 同款断言：压缩后不存在孤儿 `function_response`。
-  - 时机：绑定下一次交互式长会话稳定性工作，或 [013 Phase 1](../cognitive-context/013-context-layer-blueprint.md)，二者取先。
+  - 时机：绑定下一次交互式长会话稳定性工作，或 [013 前置项排序（§14.3）](../cognitive-context/013-context-layer-blueprint.md)，二者取先。
 
 ### M3 记忆链路两端防注入（🔶 做）
 
@@ -129,7 +129,7 @@ Hermes 的头号卖点「运行中自写技能」按[争议一](./190-hermes-age
 
 - **Hermes 怎么做**：`MEMORY.md` / `USER.md` 由 Agent 用 add / replace / remove 自编，硬上限 2200 / 1375 字符，写满必须合并。
 - **本仓现状**：`MemoryCoreBlock`（`internalization.py:250`）具备「常驻、按作用域分块」的形态；上下文装配给记忆 30% 预算（`context_assembler.py:38`）。但核心块只能经 REST `/core-blocks` 写入（`engine/api.py:1206`，直接调 `core_block_service`）；`core_block_replace` 工具函数（`memory_tools.py:236`）全仓零调用方，也不在 Agent 工具注册表里（`registry.py:64`）。
-- **建议**：先**写**清楚，暂不开放。在 013 蓝图的记忆层补一句设计取舍：核心块由谁写、上限多少、写满怎么办。——**已销账（2026-09-27：013 §4.2 Core Block 三问，完全重铸版）**是否开放给 Agent，等 M3 防注入落地之后再议——开放可自编的常驻记忆而没有写入扫描，等于给注入开一条常驻通道。成本约一段文档。
+- **建议**：先**写**清楚，暂不开放。在 013 蓝图的记忆层补一句设计取舍：核心块由谁写、上限多少、写满怎么办。——**已销账（013 §4.3 Core Block 三问）**是否开放给 Agent，等 M3 防注入落地之后再议——开放可自编的常驻记忆而没有写入扫描，等于给注入开一条常驻通道。成本约一段文档。
 
 ### M1 缓存优先装配（⏸）
 
@@ -169,7 +169,7 @@ Hermes 的头号卖点「运行中自写技能」按[争议一](./190-hermes-age
   4. M9：事件文本全文索引 + 只读会话检索工具，结果按 thread 去重。时机：ISSUE-195 方案评审同场决定，前置 M10。
   5. ISSUE-197：把审批覆盖面与文档对齐——要么为清单内工具补接线，要么收窄清单与用户指南的说法。时机：下一次触及 approval 的 PR。
 - **写**：
-  - M2：013 记忆层补「核心块由谁写、上限、写满策略」的设计取舍，约一段。——已销账（013 §4.2，2026-09-27）
+  - M2：013 记忆层补「核心块由谁写、上限、写满策略」的设计取舍，约一段。——已销账（013 §4.3）
   - 本次同批：校正 [0001 RFC](../../concepts/design/0001-conversation-architecture-refactor.md) 的 Hermes 口径（见下节）。
 - **暂缓**：
   - M1：启用提供方前缀缓存时。
@@ -191,5 +191,5 @@ Hermes 的头号卖点「运行中自写技能」按[争议一](./190-hermes-age
   - [181 AI Native 手册映射](./181-ai-native-mapping-negentropy.md)：命令硬拦截、凭据边界。
   - [091 Agent Skills 映射](../agent-infra/091-agent-skills-mapping-negentropy.md)：目录注入防护、`expand_skill`。
   - [015 OpenViking 映射](../cognitive-context/015-openviking-mapping-negentropy.md)：会话两阶段提交、ISSUE-195。
-- 蓝图：[013 Context Layer 技术蓝图：Agent 系统的上下文供给与治理](../cognitive-context/013-context-layer-blueprint.md)（2026-09-27 完全重铸版）。
+- 蓝图：[013 Context Layer 技术蓝图：Agent 系统的上下文供给与治理](../cognitive-context/013-context-layer-blueprint.md)。
 - 进化路线：[130 自进化 Agents Team](../self-evolution/130-self-evolving-agents-team.md) · [141 Skill 进化闭环](../self-evolution/141-skills-evolution-and-si-measurement.md)。
