@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "b4c44f06-b451-45c2-a8a5-f4c7ba8103c5",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/.archify/workflow-loop-with-gates-20261010-093728/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--loop-with-gates.html",
+  "specification": {
+    "sha256": "303c6f4c5b066730be71a218ab5e30266948bb715f9fed8712e85b325a17fd71",
+    "bytes": 2588
+  },
+  "artifact": {
+    "sha256": "927c3e3da46d4f5c54a5de74f6f6dd7b15f3ab6de006014085915742bc01d6cf",
+    "bytes": 753529
+  }
+}

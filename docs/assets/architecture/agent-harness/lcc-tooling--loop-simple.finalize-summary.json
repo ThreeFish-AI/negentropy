@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "workflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/.archify/workflow-loop-simple-20261010-092855/candidate.json",
+    "sha256": "d186ca45636dbefb298f73b832c1423cae6c1488c6a72057260cb21a1c111f91",
+    "bytes": 2424
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--loop-simple.html",
+    "sha256": "c2fe7b5f03a2947d3689619928d116a82bf48192773426014a101169f604b56e",
+    "bytes": 750802
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--loop-simple.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--loop-simple.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--loop-simple.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 1947
+}
