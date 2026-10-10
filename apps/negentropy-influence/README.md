@@ -1,10 +1,11 @@
 # negentropy-influence
 
-> 知识影响力**内容工作区**：四个系列 15 集动效图解科普视频的成片工程。机制的十阶段流水线（信源精读→策划→逐字稿→双重校验→成文优化→分镜→TTS→Remotion→草渲 QA→终渲交付）已外置为公开 skill [vibe-video](https://github.com/ThreeFish-AI/vibe-video)（MIT，2026-10 前名 to-video），本目录只承载内容。
+> 知识影响力**内容工作区**：四个系列 15 集动效图解科普视频的成片工程（`episodes/`），以及真人实拍视频项目（`live/`）。机制的十阶段流水线（信源精读→策划→逐字稿→双重校验→成文优化→分镜→TTS→Remotion→草渲 QA→终渲交付）已外置为公开 skill [vibe-video](https://github.com/ThreeFish-AI/vibe-video)（MIT，2026-10 前名 to-video），本目录只承载内容。
 
 内容清单：
 
 - **episodes/**：每集一个 `<slug>-video/` 工程（research/ script/ scripts/ video/），各自发布；
+- **live/**：真人实拍视频项目（每个项目一个目录，research/ script/ production/ out/）。只借用 vibe-video ①–⑥ 文字阶段契约，生产层是实拍 + 剪辑，因此**不登记 series.json**、不走 TTS / Remotion / 骨架门；系列一致性门仍扫描其 Markdown 死链；
 - **series.json / series.md**：发布顺序 SSOT（机读 seriesList[] + 人读总览），由系列一致性门执法；
 - **source-map/**：多集系列的章节→集归属信源地图（source_ledger.py 的 sync/audit 消费它）；
 - **voices/**：参考音色指纹清单（refs.toml 只存哈希与生成参数，不含音频字节）。
@@ -23,7 +24,8 @@ apps/negentropy-influence/
 ├── voices/             # 参考音色样本（gitignored 生物特征；refs.toml 只存指纹）= $V
 ├── vibe-video.toml     # 工作区机制配置（check_series 受检面与系列 id 集）
 ├── scripts/            # 工作区级薄包装（check_series.py / pipeline.py → skill 解析器）
-└── episodes/           # 每集一个 <slug>-video 工程（research/ script/ scripts/ video/）
+├── episodes/           # 每集一个 <slug>-video 工程（research/ script/ scripts/ video/）
+└── live/               # 真人实拍项目（research/ script/ production/ out/；不登记 series.json）
 ```
 
 ## 如何迭代
