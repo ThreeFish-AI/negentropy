@@ -11,7 +11,7 @@
 | [research/fact-ledger.md](./research/fact-ledger.md) | 事实底账 ★口播断言唯一回溯源（官方规格/评测/系统问题/换货流程/亲历五区 + ⚖️ 官网复核裁决 + 批判缺口裁决表） | ① 取证 |
 | [research/craft-notes.md](./research/craft-notes.md) | 编导/拍摄/剪辑技法调研笔记（84 条，含证据与备选） | ① 取证 |
 | [script/planning.md](./script/planning.md) | 策划案：定位/钩子矩阵★/旁白人格/串联表/术语降落/分幕结构/视觉契约 | ② 策划 |
-| [script/narration.md](./script/narration.md) | 逐字稿 ★单一事实源（v2；句 id 全下游引用锚） | ③ 逐字稿 |
+| [script/narration.md](./script/narration.md) | 逐字稿 ★单一事实源（v2.3 用户校准版；句 id 全下游引用锚） | ③ 逐字稿 |
 | [script/verification.md](./script/verification.md) | 双重校验报告（claim 四级台账 + 红线执法 + 易懂性） | ④ 校验 |
 | [script/vo-direction.md](./script/vo-direction.md) | 人声台本（故事块情绪导引，替代 TTS cues） | ⑤ 衍生 |
 | [script/storyboard.md](./script/storyboard.md) | 分镜表（实拍六列 + 一次性镜头清单 + 实现映射） | ⑥ 分镜 |
@@ -27,13 +27,14 @@
 |---|---|
 | 2026-10-10 | 文字包 v1 全链完成：①②③④⑤⑥ + 拍摄/剪辑方案；调研底座 = 8 代理 Workflow（160 facts）+ 双版编导方案对拍 + 官网逐字复核 |
 | 2026-10-10 | 独立事实审计 9 条 RISKY 全处置（含备份机制纠正/出厂版本框架/锚点补录 S10/S11）；独立成文盲审 3 条 REWRITE 清零（P4 更名「复查与体检」）；终检全绿：21 beat 合规、64 句 1370 字 ≈ 5:04、句 id 三文档全覆盖。**narration v2.2 进入用户审阅** |
-| — | 待办：用户审阅（含 8 处 ⟨TBD⟩ 实拍回填 + 4 项亲历确认：重启/掉线次数、寄回时序、客服记录清单）→ 实拍（Day0/Day1–4/DayN）→ 回填重跑④ → 剪辑 → 成片 |
+| 2026-10-10 | **用户人工校准 narration v2.3**（12 句：频次口径/「没有 eSIM 卡」/官网客服换新/换货为完整零售彩盒/14 天退换期等）；全量下游对齐 8 份文档 + 连带改写 p0-02/p2-03 与 P2 幕名「第二只盒子」；补录底账 S12/S13 与 F78（官网 14 天原文）——见 verification.md G 节 |
+| — | 待办：用户审阅（6 处 ⟨TBD⟩ 实拍回填 + 亲历确认：寄回时序、客服记录截图清单）→ 实拍（Day0/Day1–4/DayN）→ 回填重跑④ → 剪辑 → 成片 |
 
 ## 生产管线复现
 
 ```
 文字包：fact-ledger → planning → narration(v1) → verification(RISKY=0) → 成文优化(v2) → vo-direction + storyboard → redlines/shooting-plan/shotlist/editing-plan
-两段式定稿点（8 处 ⟨TBD⟩，见 redlines 附录）：实拍回填 → 重跑 verification → 补录 VO
+两段式定稿点（6 处 ⟨TBD⟩ + 3 处实拍验证项，见 redlines 附录）：实拍回填 → 重跑 verification → 补录 VO
 拍摄：Day0 开箱日（一次性镜头链）→ Day1–4 使用日记 → DayN 收尾
 剪辑：editing-plan §1–6 → 成片 QA 核对单 → 交付（B站烧录硬字幕 + YouTube 描述区声明块）
 ```
