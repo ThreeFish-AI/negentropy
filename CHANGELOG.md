@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 ### Added
+### Agent Skills 精读合并：210 并入 230，单一现行版（2026-10-12）
+
+- **合并**：[230 精读](docs/research/agent-infra/230-agent-skills-standard.md) 吸收 210 重学版全部独有载荷后成为唯一现行版，210 文件删除（全文经 git 历史可溯）：新增四家客户端对照表（Gemini CLI/VS Code 实测口径与 [6][7] 引用）、lab2 四项补充实验入 §10（作用域优先级漂移/metadata 强转翻转/朴素解析器伪字段注入/遮蔽告警剥离）、#520 vs #573 与 UTF-8 三 PR 排队证据入争议 2、注入防御题入 §13、新增 §14 与本仓关联；
+- **数据勘误随合并落地**：210 的「互操作面损失 33%」实为分母混用（13 条样本严格口径拒 4，其中 1 条宽容口径亦拒，宽容能装而严格不收为 3/12=25%）；「16.9×（39,222 vs 2,321）」在 lab2 无此模式、真实出处是 090 一代 B1 玩具域数字，两者均不带入现行版；
+- **改链与溯源**：090/211/220/221/knowledge-map/mermaid 登记/series 元数据/成片 README 全部改指 230 或 gl-notes 冻结快照，4 个 `.mmd` 文件头 `%% source:` 同步改指冻结取数；`check_series` 规则 5 死链门保持 FAIL 0；
+- 已知未同步项：E1/E3 成片内的 33% 与 16.9× 数字按交付冻结不回改（gl-notes 快照口径），如需对齐须走重渲。
+
 ### 媒体固定资产登记制：默认不入库，登记才入库（2026-10-08）
 
 - **登记表 + 校验器 + 通用忽略段**三件套（[ISSUE-210](docs/.agents/issue.md)）：音/视频媒体与动图（mp3/mp4/wav/m4a/aac/flac/ogg/opus/webm/mov/mkv/avi/gif）全仓默认不入 Git；公共固定资产先在 `scripts/media-assets.toml` 登记（path/sha256/bytes/reason），`scripts/check_media_assets.py --sync` 按登记表重放 .gitignore 白名单块（对每个登记路径跑 `git check-ignore` 实测放行，闭合目录级忽略陷阱），`--check` 校验「已入库 ⊆ 登记表、指纹一致、白名单生效、触发覆盖完整」并 pre-commit/CI 双挂。红绿闭环实测四条：默认 add 被挡 / -f 强加被钩子拦 / 篡改已登记文件被指纹拦 / 各集副本目录级忽略仍生效。零散忽略行收敛进通用段；首批登记架构故事片 mp4/gif（存量合规化）与 CC 系列片头音轨种子 mp3（合成产物随仓分发，克隆源样本仍不入库）。

@@ -6,7 +6,7 @@ description: "220 供应链精读的双向落地：映射总表 A（六机制 �
 
 # Agent Skills 供应链 ↔ negentropy/E3 叙事锚点
 
-> 姊妹篇 [220-skills-supply-chain.md](./220-skills-supply-chain.md)（供应链精读本体）；剧场前篇 [210](./210-agent-skills-open-standard.md)/[211](./211-agent-skills-mapping-negentropy.md)（格式层）。本篇所有仓内行号均为 `rg -n` 于本 worktree 实测（2026-09-28），非推测。
+> 姊妹篇 [220-skills-supply-chain.md](./220-skills-supply-chain.md)（供应链精读本体）；格式层前篇 [230](./230-agent-skills-standard.md)/[211](./211-agent-skills-mapping-negentropy.md)。本篇所有仓内行号均为 `rg -n` 于本 worktree 实测（2026-09-28），非推测。
 
 ## 结论先行
 
@@ -18,7 +18,7 @@ description: "220 供应链精读的双向落地：映射总表 A（六机制 �
 
 | # | 220 机制 | 本仓锚点（实测） | 判定 | 说明 |
 | --- | --- | --- | --- | --- |
-| A1 | 注入层完整性/签名校验（220 §7） | `apps/negentropy/src/negentropy/agents/skills_injector.py:342`（`format_skills_block`）：全文 `rg "digest\|sha256\|hashlib\|signature\|verify_signature\|checksum"` **零命中**；正文经 Jinja2 沙箱渲染、渲染失败 fail-soft 返回原文 | ⏸ | description/模板注入零校验，与上游客户端同构（210 §7 基线）；信任判定完全依赖 DB 内部信任域 |
+| A1 | 注入层完整性/签名校验（220 §7） | `apps/negentropy/src/negentropy/agents/skills_injector.py:342`（`format_skills_block`）：全文 `rg "digest\|sha256\|hashlib\|signature\|verify_signature\|checksum"` **零命中**；正文经 Jinja2 沙箱渲染、渲染失败 fail-soft 返回原文 | ⏸ | description/模板注入零校验，与上游客户端同构（230 §6 基线）；信任判定完全依赖 DB 内部信任域 |
 | A2 | 物化外部资源时的传输校验（220 §3） | `apps/negentropy/src/negentropy/agents/definitions/harness_materializer.py`：校验词与网络下载词（`requests./httpx/urlopen/urlretrieve/download`）**双零命中**；物化路径 DB（kind=harness_skill）→ `.agent/skills/<key>/SKILL.md`，fail-soft | ✅ | 无外部资源下载面=无传输完整性攻击面；这是「没接外部分发」的幸运而非「验了」的设计——接入外部源之日即 A1 同款缺口 |
 | A3 | 版本/校验存储位（220 §5） | `apps/negentropy/src/negentropy/db/migrations/versions/0095_create_definitions_registry.py:59-60`：`version String(50) nullable` / `checksum String(64) nullable` 两列齐备 | 🔶 | 槽位在（比上游 SKILL.md 六字段更进一步）；语义用没用看 A4/A5 |
 | A4 | semver 槽位闲置（220 §5「编号牌」） | `apps/negentropy/src/negentropy/db/migrations/versions/0098_seed_harness_skill_definitions.py:889`（`checksum = hashlib.sha256(source.encode()).hexdigest()`）、`:896`（`"version": None  # harness SKILL.md 无 version 字段`） | ⏸ | digest 有、semver 无——上游生态结构（220 §5）的仓内镜像；definitions SSOT 架构（见 MEMORY/0095-0099）继承上游同款留白 |
@@ -31,7 +31,7 @@ description: "220 供应链精读的双向落地：映射总表 A（六机制 �
 
 | 幕 | 220 章节 | lab3 | 上屏关键数字与归属 |
 | --- | --- | --- | --- |
-| 一｜欠条与判词 | §1 + §10 | — | 46 家客户端（showcase 源码清点 @69ef37e9）vs 0 家验签（210 四家实测基线）；247 行规范 8 词干唯一命中 L133 "De-SIGN-ed"（grep 复验 @69ef37e9，2026-09-28）；issue #358 判词「npm 八年/PyPI 压缩/这里六个月」（2026-05，作者自报） |
+| 一｜欠条与判词 | §1 + §10 | — | 46 家客户端（showcase 源码清点 @69ef37e9）vs 0 家验签（230 四家实测基线）；247 行规范 8 词干唯一命中 L133 "De-SIGN-ed"（grep 复验 @69ef37e9，2026-09-28）；issue #358 判词「npm 八年/PyPI 压缩/这里六个月」（2026-05，作者自报） |
 | 二｜公示栏与铅封 | §3 | E-01 / E-02 | 双仓双帽（RFC PR#8 2026-03-23 合入 @1bd11679 → 次日 #254）；digest=`sha256:{64 小写hex}`；Vercel 双闸 50MB/1000 文件（wellknown.ts）；curl 三连 @2026-09-27：supabase index 活（URL 直钉 Releases v0.1.8）/ cloudflare.com 404 / schemas.agentskills.io DNS 000 |
 | 三｜封条的法庭 | §4 | E-01（锁步竞态机制镜头） | pja-ant「同信任域+footgun」（P254:4117431773，Anthropic 员工，2026-03-24）；sigstore 2022 / npm provenance 2023-04-19 GA / PyPI trusted publishing 15 分钟 token；TomeVault **187,976 行 @2026-07 manifest（文件实例含 fork，自报口径）**；contextlock=「原型/新开源实现」措辞（禁「已出货」） |
 | 四｜海关还没建 | §7 | E-03 / E-04 / E-06 | Snyk 76/3,984（**厂商自报 @2026-02-05**，36.82%/13.4%/91% 同源）；USENIX 157/98,380、4.03 漏洞均值（arXiv 2602.06547）；MalSkillBench 86.3% 假前置依赖（arXiv 2606.07131）；ClawHavoc 1,184=二手转述降级提及；npm skills 月下载 29,823,552（官方统计 **2026-08-27~09-25 窗口、含 CI/bot**）；Gemini 确认门=代码级（write.toml:63-67 默认 ask_user / :96-108 无 TTY deny） |
@@ -53,6 +53,6 @@ description: "220 供应链精读的双向落地：映射总表 A（六机制 �
 ## 交叉引用
 
 - 精读本体：[220-skills-supply-chain.md](./220-skills-supply-chain.md)（§3–§8 六机制、§9 五规律三争议、§10 数字表、§11 实验室）
-- 格式层前篇：[210](./210-agent-skills-open-standard.md) / [211](./211-agent-skills-mapping-negentropy.md)（含 ISSUE-194 expand_skill 激活层悬空——A1 注入层判定的事实底座之一）
+- 格式层前篇：[230](./230-agent-skills-standard.md) / [211](./211-agent-skills-mapping-negentropy.md)（含 ISSUE-194 expand_skill 激活层悬空——A1 注入层判定的事实底座之一）
 - 视频制片 SSOT：[.context/e3-blueprint.md](../../../.context/e3-blueprint.md)（七幕大纲 A2、信源卫生 A3/A4、备播与 48h 复核规则）
 - 本仓 DB 载体机制：definitions 表 SSOT 架构见 migrations 0095–0099（A3–A6 锚点源文件）

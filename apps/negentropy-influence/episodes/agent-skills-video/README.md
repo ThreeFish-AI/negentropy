@@ -1,6 +1,6 @@
 # 《目录常驻，正文按需：Agent Skills 开放标准》科普视频工程
 
-> 交付状态：**v1 成片交付（2026-10-06，210 重学版换代重制）**：12:55.3 @1080p30 · 23,259 帧 · 142 句 3406 字 · edge 草声一档到底（用户拍板，实测 282 字/分）· archify 双图 10 章 12 cue（锚定 8.5%）· 机器门全绿（build/check--check-scenes/check_series/tsc/qa 全 FAIL 0）· 归档 `~/Documents/video/agent-infra/` v1（md5 fc8603e4abcf）+ `_captions/`。信源：[210 重学版精读](../../../../docs/research/agent-infra/210-agent-skills-open-standard.md)（C 型）。复现流水线见下。
+> 交付状态：**v1 成片交付（2026-10-06 换代重制）**：12:55.3 @1080p30 · 23,259 帧 · 142 句 3406 字 · edge 草声一档到底（用户拍板，实测 282 字/分）· archify 双图 10 章 12 cue（锚定 8.5%）· 机器门全绿（build/check--check-scenes/check_series/tsc/qa 全 FAIL 0）· 归档 `~/Documents/video/agent-infra/` v1（md5 fc8603e4abcf）+ `_captions/`。信源：[精读冻结快照 research/gl-notes.md](./research/gl-notes.md)（C 型；原文档已并入 [230 现行精读](../../../../docs/research/agent-infra/230-agent-skills-standard.md)）。复现流水线见下。
 
 ## 目录结构
 

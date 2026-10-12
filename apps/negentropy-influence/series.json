@@ -315,7 +315,7 @@
             "#A88BE8"
           ],
           "source": {
-            "title": "Agent Skills 开放规范精读笔记·重学版（docs/research/agent-infra/210 @ 本分支，C 型信源；210 成文 f7af5ee88，冻结锚随 Stage ① gl-notes 登记）+ agentskills/agentskills 规范仓 @ 69ef37e9 + 官方指南 6 篇 + 四家客户端实测口径",
+            "title": "Agent Skills 开放规范精读（C 型信源；原文档 docs/research/agent-infra/210 @ f7af5ee88 已并入 230，冻结锚随 Stage ① gl-notes 登记）+ agentskills/agentskills 规范仓 @ 69ef37e9 + 官方指南 6 篇 + 四家客户端实测口径",
             "site": "https://agentskills.io/specification",
             "repo": "https://github.com/agentskills/agentskills",
             "pinnedRef": "69ef37e9",
