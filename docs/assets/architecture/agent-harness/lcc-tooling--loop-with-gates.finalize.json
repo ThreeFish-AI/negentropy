@@ -3,18 +3,18 @@
   "ok": true,
   "command": "finalize",
   "status": "pass",
-  "type": "workflow",
+  "type": "architecture",
   "quality": "showcase",
-  "startedAt": "2026-10-10T02:19:14.267Z",
+  "startedAt": "2026-10-12T14:13:14.278Z",
   "specification": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/.archify/workflow-loop-with-gates-20261010-093728/candidate.json",
-    "sha256": "303c6f4c5b066730be71a218ab5e30266948bb715f9fed8712e85b325a17fd71",
-    "bytes": 2588
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/diagrams/lcc-tooling--loop-with-gates/lcc-tooling--loop-with-gates.json",
+    "sha256": "6aa34479a7602fcca9c9060a347e24b56d88de0c8bf1cbcdde73fdba561cfeec",
+    "bytes": 3214
   },
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--loop-with-gates.html",
-    "sha256": "927c3e3da46d4f5c54a5de74f6f6dd7b15f3ab6de006014085915742bc01d6cf",
-    "bytes": 753529
+    "sha256": "9b85199c1127464a4c401de4ad4982ad3b834bc2e3f4c97a2c8c5f0c9bb88469",
+    "bytes": 753120
   },
   "stages": {
     "validate": {
@@ -26,8 +26,8 @@
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "deliver",
-        "workflow",
-        "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/.archify/workflow-loop-with-gates-20261010-093728/candidate.json",
+        "architecture",
+        "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/diagrams/lcc-tooling--loop-with-gates/lcc-tooling--loop-with-gates.json",
         "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--loop-with-gates.html",
         "--quality",
         "showcase",
@@ -38,8 +38,8 @@
         "ok": true,
         "command": "validate",
         "specification": {
-          "sha256": "303c6f4c5b066730be71a218ab5e30266948bb715f9fed8712e85b325a17fd71",
-          "bytes": 2588
+          "sha256": "6aa34479a7602fcca9c9060a347e24b56d88de0c8bf1cbcdde73fdba561cfeec",
+          "bytes": 3214
         },
         "validation": {
           "checksPassed": 9,
@@ -54,13 +54,13 @@
     "deliver": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 504,
+      "durationMs": 380,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "deliver",
-        "workflow",
-        "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/.archify/workflow-loop-with-gates-20261010-093728/candidate.json",
+        "architecture",
+        "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/diagrams/lcc-tooling--loop-with-gates/lcc-tooling--loop-with-gates.json",
         "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--loop-with-gates.html",
         "--quality",
         "showcase",
@@ -68,19 +68,19 @@
       ],
       "receipt": {
         "schemaVersion": 1,
-        "receiptId": "b4c44f06-b451-45c2-a8a5-f4c7ba8103c5",
+        "receiptId": "9e270403-6767-4da1-b8b4-d8cbdc35c5d1",
         "ok": true,
         "command": "deliver",
-        "type": "workflow",
-        "input": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/.archify/workflow-loop-with-gates-20261010-093728/candidate.json",
+        "type": "architecture",
+        "input": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/diagrams/lcc-tooling--loop-with-gates/lcc-tooling--loop-with-gates.json",
         "output": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--loop-with-gates.html",
         "specification": {
-          "sha256": "303c6f4c5b066730be71a218ab5e30266948bb715f9fed8712e85b325a17fd71",
-          "bytes": 2588
+          "sha256": "6aa34479a7602fcca9c9060a347e24b56d88de0c8bf1cbcdde73fdba561cfeec",
+          "bytes": 3214
         },
         "artifact": {
-          "sha256": "927c3e3da46d4f5c54a5de74f6f6dd7b15f3ab6de006014085915742bc01d6cf",
-          "bytes": 753529
+          "sha256": "9b85199c1127464a4c401de4ad4982ad3b834bc2e3f4c97a2c8c5f0c9bb88469",
+          "bytes": 753120
         },
         "validation": {
           "checksPassed": 9,
@@ -95,7 +95,7 @@
     "check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 84,
+      "durationMs": 85,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
@@ -107,8 +107,8 @@
         "ok": true,
         "file": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--loop-with-gates.html",
         "artifact": {
-          "sha256": "927c3e3da46d4f5c54a5de74f6f6dd7b15f3ab6de006014085915742bc01d6cf",
-          "bytes": 753529
+          "sha256": "9b85199c1127464a4c401de4ad4982ad3b834bc2e3f4c97a2c8c5f0c9bb88469",
+          "bytes": 753120
         },
         "checks": [
           {
@@ -175,16 +175,16 @@
             "containerBorderRuns": 0,
             "labelRouteClearanceIssues": 0,
             "labelCanvasOverflowIssues": 0,
-            "minLabelRouteClearance": 34,
+            "minLabelRouteClearance": 78.1,
             "desktopReadabilityIssues": 0,
             "viewportHeightIssues": 0,
-            "minProjectedNodeTextPx": 6.625111308993767,
-            "maxBends": 2,
+            "minProjectedNodeTextPx": 7.5,
+            "maxBends": 1,
             "routesOverSuggestedBends": 0,
-            "maxStretch": 1.043,
+            "maxStretch": 1,
             "routesOverSuggestedStretch": 0,
-            "minSegmentPx": 20,
-            "minInteriorSegmentPx": 929.8,
+            "minSegmentPx": 44,
+            "minInteriorSegmentPx": null,
             "shortSegmentCount": 0,
             "shortEndpointSegmentCount": 0,
             "shortInteriorSegmentCount": 0,
@@ -201,37 +201,48 @@
             "detours": []
           },
           "leadingSpace": {
-            "measured": false,
+            "measured": true,
+            "emptyTopPx": 40,
+            "emptyTopRatio": 0.097,
+            "occupiedTop": 40,
+            "viewBoxTop": 0,
+            "canvasHeight": 412,
+            "typicalNodeHeight": 64,
             "reviewSuggested": false
           },
           "desktopReadability": {
-            "budgetBasis": "legacy-930",
+            "budgetBasis": "recognized-declared-wide",
             "readerContract": "declared-wide-v1",
-            "availableDiagramWidth": 930,
-            "actualBudgetPx": 930,
-            "limit": "legacy",
-            "requestedTargetPx": null,
-            "requestedTargetMet": null,
+            "availableDiagramWidth": 1125,
+            "actualBudgetPx": 1125,
+            "actualReaderWidth": 1155,
+            "desiredReaderWidth": 1155,
+            "viewportCap": 1376,
+            "limit": "source-size",
+            "requestedTargetPx": 7.5,
+            "requestedTargetMet": true,
             "hardFloorPx": 6,
             "hardFloorMet": true,
             "minimumOwner": {
-              "kind": "node",
-              "id": "think"
+              "kind": "edge",
+              "id": "g1e",
+              "from": "think",
+              "to": "g1"
             },
             "minimumSourceTextPx": 8,
-            "minimumProjectedTextPx": 6.625111308993767,
+            "minimumProjectedTextPx": 7.5,
             "semanticTextCount": 18
           },
           "issues": []
         },
         "provenance": "current",
-        "deliveryReceiptId": "b4c44f06-b451-45c2-a8a5-f4c7ba8103c5"
+        "deliveryReceiptId": "9e270403-6767-4da1-b8b4-d8cbdc35c5d1"
       }
     },
     "browser-check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 890,
+      "durationMs": 933,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
@@ -249,11 +260,11 @@
         "status": "pass",
         "visualReview": "not-requested",
         "provenance": "current",
-        "deliveryReceiptId": "b4c44f06-b451-45c2-a8a5-f4c7ba8103c5",
+        "deliveryReceiptId": "9e270403-6767-4da1-b8b4-d8cbdc35c5d1",
         "artifact": {
           "path": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--loop-with-gates.html",
-          "sha256": "927c3e3da46d4f5c54a5de74f6f6dd7b15f3ab6de006014085915742bc01d6cf",
-          "bytes": 753529
+          "sha256": "9b85199c1127464a4c401de4ad4982ad3b834bc2e3f4c97a2c8c5f0c9bb88469",
+          "bytes": 753120
         },
         "state": {
           "detail": "read",
@@ -282,7 +293,7 @@
               "overflowDisposition": "contained",
               "readerLayout": "adaptive",
               "readerOverflow": null,
-              "readerFit": null,
+              "readerFit": "intrinsic-height",
               "ok": true,
               "readerWidth": 1376,
               "diagramWidth": 1346,
@@ -290,37 +301,21 @@
                 "bodyPaddingPx": 12,
                 "headerPx": 78,
                 "diagramChromePx": 78,
-                "svgPx": 338,
+                "svgPx": 462,
                 "cardsPx": 0,
-                "viewBoxHeight": 282
+                "viewBoxHeight": 412
               },
-              "viewBoxWidth": 1123,
-              "workflowLanes": [
-                {
-                  "frameId": "lane-0",
-                  "heightPx": 127,
-                  "nodeCount": 6,
-                  "nodeIds": [
-                    "think",
-                    "g1",
-                    "g2",
-                    "g3",
-                    "run",
-                    "feed"
-                  ],
-                  "nodeSpanPx": 81,
-                  "spaceAboveNodesPx": 41,
-                  "spaceBelowNodesPx": 5
-                }
-              ],
+              "viewBoxWidth": 1200,
               "minimumProjectedNodeTextPx": 8,
-              "minimumProjectedNonEdgeTextPx": 8,
+              "minimumProjectedNonEdgeTextPx": 9,
               "minimumProjectedEdgeTextPx": 8,
               "minimumProjectedNodeText": "有工具调用块",
-              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextDetail": "edge",
               "minimumProjectedNodeTextOwner": {
-                "kind": "node",
-                "id": "think"
+                "kind": "edge",
+                "id": "g1e",
+                "from": "think",
+                "to": "g1"
               },
               "minimumRequiredNodeTextPx": 6,
               "readabilityOk": true,
@@ -350,7 +345,7 @@
               "overflowDisposition": "contained",
               "readerLayout": "adaptive",
               "readerOverflow": null,
-              "readerFit": null,
+              "readerFit": "intrinsic-height",
               "ok": true,
               "readerWidth": 1536,
               "diagramWidth": 1506,
@@ -358,37 +353,21 @@
                 "bodyPaddingPx": 64,
                 "headerPx": 86,
                 "diagramChromePx": 84,
-                "svgPx": 378,
+                "svgPx": 517,
                 "cardsPx": 0,
-                "viewBoxHeight": 282
+                "viewBoxHeight": 412
               },
-              "viewBoxWidth": 1123,
-              "workflowLanes": [
-                {
-                  "frameId": "lane-0",
-                  "heightPx": 142,
-                  "nodeCount": 6,
-                  "nodeIds": [
-                    "think",
-                    "g1",
-                    "g2",
-                    "g3",
-                    "run",
-                    "feed"
-                  ],
-                  "nodeSpanPx": 91,
-                  "spaceAboveNodesPx": 46,
-                  "spaceBelowNodesPx": 5
-                }
-              ],
+              "viewBoxWidth": 1200,
               "minimumProjectedNodeTextPx": 8,
-              "minimumProjectedNonEdgeTextPx": 8,
+              "minimumProjectedNonEdgeTextPx": 9,
               "minimumProjectedEdgeTextPx": 8,
               "minimumProjectedNodeText": "有工具调用块",
-              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextDetail": "edge",
               "minimumProjectedNodeTextOwner": {
-                "kind": "node",
-                "id": "think"
+                "kind": "edge",
+                "id": "g1e",
+                "from": "think",
+                "to": "g1"
               },
               "minimumRequiredNodeTextPx": 6,
               "readabilityOk": true,
@@ -418,7 +397,7 @@
               "overflowDisposition": "contained",
               "readerLayout": "adaptive",
               "readerOverflow": null,
-              "readerFit": null,
+              "readerFit": "intrinsic-height",
               "ok": true,
               "readerWidth": 1856,
               "diagramWidth": 1826,
@@ -426,37 +405,21 @@
                 "bodyPaddingPx": 64,
                 "headerPx": 86,
                 "diagramChromePx": 84,
-                "svgPx": 459,
+                "svgPx": 627,
                 "cardsPx": 0,
-                "viewBoxHeight": 282
+                "viewBoxHeight": 412
               },
-              "viewBoxWidth": 1123,
-              "workflowLanes": [
-                {
-                  "frameId": "lane-0",
-                  "heightPx": 172,
-                  "nodeCount": 6,
-                  "nodeIds": [
-                    "think",
-                    "g1",
-                    "g2",
-                    "g3",
-                    "run",
-                    "feed"
-                  ],
-                  "nodeSpanPx": 111,
-                  "spaceAboveNodesPx": 55,
-                  "spaceBelowNodesPx": 7
-                }
-              ],
+              "viewBoxWidth": 1200,
               "minimumProjectedNodeTextPx": 8,
-              "minimumProjectedNonEdgeTextPx": 8,
+              "minimumProjectedNonEdgeTextPx": 9,
               "minimumProjectedEdgeTextPx": 8,
               "minimumProjectedNodeText": "有工具调用块",
-              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextDetail": "edge",
               "minimumProjectedNodeTextOwner": {
-                "kind": "node",
-                "id": "think"
+                "kind": "edge",
+                "id": "g1e",
+                "from": "think",
+                "to": "g1"
               },
               "minimumRequiredNodeTextPx": 6,
               "readabilityOk": true,
@@ -486,7 +449,7 @@
               "overflowDisposition": "contained",
               "readerLayout": "adaptive",
               "readerOverflow": null,
-              "readerFit": null,
+              "readerFit": "intrinsic-height",
               "ok": true,
               "readerWidth": 1920,
               "diagramWidth": 1870,
@@ -494,37 +457,21 @@
                 "bodyPaddingPx": 64,
                 "headerPx": 94,
                 "diagramChromePx": 94,
-                "svgPx": 470,
+                "svgPx": 642,
                 "cardsPx": 0,
-                "viewBoxHeight": 282
+                "viewBoxHeight": 412
               },
-              "viewBoxWidth": 1123,
-              "workflowLanes": [
-                {
-                  "frameId": "lane-0",
-                  "heightPx": 177,
-                  "nodeCount": 6,
-                  "nodeIds": [
-                    "think",
-                    "g1",
-                    "g2",
-                    "g3",
-                    "run",
-                    "feed"
-                  ],
-                  "nodeSpanPx": 113,
-                  "spaceAboveNodesPx": 57,
-                  "spaceBelowNodesPx": 7
-                }
-              ],
+              "viewBoxWidth": 1200,
               "minimumProjectedNodeTextPx": 8,
-              "minimumProjectedNonEdgeTextPx": 8,
+              "minimumProjectedNonEdgeTextPx": 9,
               "minimumProjectedEdgeTextPx": 8,
               "minimumProjectedNodeText": "有工具调用块",
-              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextDetail": "edge",
               "minimumProjectedNodeTextOwner": {
-                "kind": "node",
-                "id": "think"
+                "kind": "edge",
+                "id": "g1e",
+                "from": "think",
+                "to": "g1"
               },
               "minimumRequiredNodeTextPx": 6,
               "readabilityOk": true,
@@ -607,7 +554,7 @@
               "overflowDisposition": "contained",
               "readerLayout": "adaptive",
               "readerOverflow": null,
-              "readerFit": null,
+              "readerFit": "intrinsic-height",
               "ok": true,
               "readerWidth": 1376,
               "diagramWidth": 1346,
@@ -615,37 +562,21 @@
                 "bodyPaddingPx": 12,
                 "headerPx": 78,
                 "diagramChromePx": 78,
-                "svgPx": 338,
+                "svgPx": 462,
                 "cardsPx": 0,
-                "viewBoxHeight": 282
+                "viewBoxHeight": 412
               },
-              "viewBoxWidth": 1123,
-              "workflowLanes": [
-                {
-                  "frameId": "lane-0",
-                  "heightPx": 127,
-                  "nodeCount": 6,
-                  "nodeIds": [
-                    "think",
-                    "g1",
-                    "g2",
-                    "g3",
-                    "run",
-                    "feed"
-                  ],
-                  "nodeSpanPx": 81,
-                  "spaceAboveNodesPx": 41,
-                  "spaceBelowNodesPx": 5
-                }
-              ],
+              "viewBoxWidth": 1200,
               "minimumProjectedNodeTextPx": 8,
-              "minimumProjectedNonEdgeTextPx": 8,
+              "minimumProjectedNonEdgeTextPx": 9,
               "minimumProjectedEdgeTextPx": 8,
               "minimumProjectedNodeText": "有工具调用块",
-              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextDetail": "edge",
               "minimumProjectedNodeTextOwner": {
-                "kind": "node",
-                "id": "think"
+                "kind": "edge",
+                "id": "g1e",
+                "from": "think",
+                "to": "g1"
               },
               "minimumRequiredNodeTextPx": 6,
               "readabilityOk": true,
@@ -675,7 +606,7 @@
               "overflowDisposition": "contained",
               "readerLayout": "adaptive",
               "readerOverflow": null,
-              "readerFit": null,
+              "readerFit": "intrinsic-height",
               "ok": true,
               "readerWidth": 1536,
               "diagramWidth": 1506,
@@ -683,37 +614,21 @@
                 "bodyPaddingPx": 64,
                 "headerPx": 86,
                 "diagramChromePx": 84,
-                "svgPx": 378,
+                "svgPx": 517,
                 "cardsPx": 0,
-                "viewBoxHeight": 282
+                "viewBoxHeight": 412
               },
-              "viewBoxWidth": 1123,
-              "workflowLanes": [
-                {
-                  "frameId": "lane-0",
-                  "heightPx": 142,
-                  "nodeCount": 6,
-                  "nodeIds": [
-                    "think",
-                    "g1",
-                    "g2",
-                    "g3",
-                    "run",
-                    "feed"
-                  ],
-                  "nodeSpanPx": 91,
-                  "spaceAboveNodesPx": 46,
-                  "spaceBelowNodesPx": 5
-                }
-              ],
+              "viewBoxWidth": 1200,
               "minimumProjectedNodeTextPx": 8,
-              "minimumProjectedNonEdgeTextPx": 8,
+              "minimumProjectedNonEdgeTextPx": 9,
               "minimumProjectedEdgeTextPx": 8,
               "minimumProjectedNodeText": "有工具调用块",
-              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextDetail": "edge",
               "minimumProjectedNodeTextOwner": {
-                "kind": "node",
-                "id": "think"
+                "kind": "edge",
+                "id": "g1e",
+                "from": "think",
+                "to": "g1"
               },
               "minimumRequiredNodeTextPx": 6,
               "readabilityOk": true,
@@ -743,7 +658,7 @@
               "overflowDisposition": "contained",
               "readerLayout": "adaptive",
               "readerOverflow": null,
-              "readerFit": null,
+              "readerFit": "intrinsic-height",
               "ok": true,
               "readerWidth": 1856,
               "diagramWidth": 1826,
@@ -751,37 +666,21 @@
                 "bodyPaddingPx": 64,
                 "headerPx": 86,
                 "diagramChromePx": 84,
-                "svgPx": 459,
+                "svgPx": 627,
                 "cardsPx": 0,
-                "viewBoxHeight": 282
+                "viewBoxHeight": 412
               },
-              "viewBoxWidth": 1123,
-              "workflowLanes": [
-                {
-                  "frameId": "lane-0",
-                  "heightPx": 172,
-                  "nodeCount": 6,
-                  "nodeIds": [
-                    "think",
-                    "g1",
-                    "g2",
-                    "g3",
-                    "run",
-                    "feed"
-                  ],
-                  "nodeSpanPx": 111,
-                  "spaceAboveNodesPx": 55,
-                  "spaceBelowNodesPx": 7
-                }
-              ],
+              "viewBoxWidth": 1200,
               "minimumProjectedNodeTextPx": 8,
-              "minimumProjectedNonEdgeTextPx": 8,
+              "minimumProjectedNonEdgeTextPx": 9,
               "minimumProjectedEdgeTextPx": 8,
               "minimumProjectedNodeText": "有工具调用块",
-              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextDetail": "edge",
               "minimumProjectedNodeTextOwner": {
-                "kind": "node",
-                "id": "think"
+                "kind": "edge",
+                "id": "g1e",
+                "from": "think",
+                "to": "g1"
               },
               "minimumRequiredNodeTextPx": 6,
               "readabilityOk": true,
@@ -811,7 +710,7 @@
               "overflowDisposition": "contained",
               "readerLayout": "adaptive",
               "readerOverflow": null,
-              "readerFit": null,
+              "readerFit": "intrinsic-height",
               "ok": true,
               "readerWidth": 1920,
               "diagramWidth": 1870,
@@ -819,37 +718,21 @@
                 "bodyPaddingPx": 64,
                 "headerPx": 94,
                 "diagramChromePx": 94,
-                "svgPx": 470,
+                "svgPx": 642,
                 "cardsPx": 0,
-                "viewBoxHeight": 282
+                "viewBoxHeight": 412
               },
-              "viewBoxWidth": 1123,
-              "workflowLanes": [
-                {
-                  "frameId": "lane-0",
-                  "heightPx": 177,
-                  "nodeCount": 6,
-                  "nodeIds": [
-                    "think",
-                    "g1",
-                    "g2",
-                    "g3",
-                    "run",
-                    "feed"
-                  ],
-                  "nodeSpanPx": 113,
-                  "spaceAboveNodesPx": 57,
-                  "spaceBelowNodesPx": 7
-                }
-              ],
+              "viewBoxWidth": 1200,
               "minimumProjectedNodeTextPx": 8,
-              "minimumProjectedNonEdgeTextPx": 8,
+              "minimumProjectedNonEdgeTextPx": 9,
               "minimumProjectedEdgeTextPx": 8,
               "minimumProjectedNodeText": "有工具调用块",
-              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextDetail": "edge",
               "minimumProjectedNodeTextOwner": {
-                "kind": "node",
-                "id": "think"
+                "kind": "edge",
+                "id": "g1e",
+                "from": "think",
+                "to": "g1"
               },
               "minimumRequiredNodeTextPx": 6,
               "readabilityOk": true,
@@ -884,7 +767,7 @@
               "overflowDisposition": "contained",
               "readerLayout": "adaptive",
               "readerOverflow": null,
-              "readerFit": null,
+              "readerFit": "intrinsic-height",
               "ok": true,
               "readerWidth": 1376,
               "diagramWidth": 1346,
@@ -892,37 +775,21 @@
                 "bodyPaddingPx": 12,
                 "headerPx": 78,
                 "diagramChromePx": 78,
-                "svgPx": 338,
+                "svgPx": 462,
                 "cardsPx": 0,
-                "viewBoxHeight": 282
+                "viewBoxHeight": 412
               },
-              "viewBoxWidth": 1123,
-              "workflowLanes": [
-                {
-                  "frameId": "lane-0",
-                  "heightPx": 127,
-                  "nodeCount": 6,
-                  "nodeIds": [
-                    "think",
-                    "g1",
-                    "g2",
-                    "g3",
-                    "run",
-                    "feed"
-                  ],
-                  "nodeSpanPx": 81,
-                  "spaceAboveNodesPx": 41,
-                  "spaceBelowNodesPx": 5
-                }
-              ],
+              "viewBoxWidth": 1200,
               "minimumProjectedNodeTextPx": 8,
-              "minimumProjectedNonEdgeTextPx": 8,
+              "minimumProjectedNonEdgeTextPx": 9,
               "minimumProjectedEdgeTextPx": 8,
               "minimumProjectedNodeText": "有工具调用块",
-              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextDetail": "edge",
               "minimumProjectedNodeTextOwner": {
-                "kind": "node",
-                "id": "think"
+                "kind": "edge",
+                "id": "g1e",
+                "from": "think",
+                "to": "g1"
               },
               "minimumRequiredNodeTextPx": 6,
               "readabilityOk": true,
@@ -952,7 +819,7 @@
               "overflowDisposition": "contained",
               "readerLayout": "adaptive",
               "readerOverflow": null,
-              "readerFit": null,
+              "readerFit": "intrinsic-height",
               "ok": true,
               "readerWidth": 1536,
               "diagramWidth": 1506,
@@ -960,37 +827,21 @@
                 "bodyPaddingPx": 64,
                 "headerPx": 86,
                 "diagramChromePx": 84,
-                "svgPx": 378,
+                "svgPx": 517,
                 "cardsPx": 0,
-                "viewBoxHeight": 282
+                "viewBoxHeight": 412
               },
-              "viewBoxWidth": 1123,
-              "workflowLanes": [
-                {
-                  "frameId": "lane-0",
-                  "heightPx": 142,
-                  "nodeCount": 6,
-                  "nodeIds": [
-                    "think",
-                    "g1",
-                    "g2",
-                    "g3",
-                    "run",
-                    "feed"
-                  ],
-                  "nodeSpanPx": 91,
-                  "spaceAboveNodesPx": 46,
-                  "spaceBelowNodesPx": 5
-                }
-              ],
+              "viewBoxWidth": 1200,
               "minimumProjectedNodeTextPx": 8,
-              "minimumProjectedNonEdgeTextPx": 8,
+              "minimumProjectedNonEdgeTextPx": 9,
               "minimumProjectedEdgeTextPx": 8,
               "minimumProjectedNodeText": "有工具调用块",
-              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextDetail": "edge",
               "minimumProjectedNodeTextOwner": {
-                "kind": "node",
-                "id": "think"
+                "kind": "edge",
+                "id": "g1e",
+                "from": "think",
+                "to": "g1"
               },
               "minimumRequiredNodeTextPx": 6,
               "readabilityOk": true,
@@ -1020,7 +871,7 @@
               "overflowDisposition": "contained",
               "readerLayout": "adaptive",
               "readerOverflow": null,
-              "readerFit": null,
+              "readerFit": "intrinsic-height",
               "ok": true,
               "readerWidth": 1856,
               "diagramWidth": 1826,
@@ -1028,37 +879,21 @@
                 "bodyPaddingPx": 64,
                 "headerPx": 86,
                 "diagramChromePx": 84,
-                "svgPx": 459,
+                "svgPx": 627,
                 "cardsPx": 0,
-                "viewBoxHeight": 282
+                "viewBoxHeight": 412
               },
-              "viewBoxWidth": 1123,
-              "workflowLanes": [
-                {
-                  "frameId": "lane-0",
-                  "heightPx": 172,
-                  "nodeCount": 6,
-                  "nodeIds": [
-                    "think",
-                    "g1",
-                    "g2",
-                    "g3",
-                    "run",
-                    "feed"
-                  ],
-                  "nodeSpanPx": 111,
-                  "spaceAboveNodesPx": 55,
-                  "spaceBelowNodesPx": 7
-                }
-              ],
+              "viewBoxWidth": 1200,
               "minimumProjectedNodeTextPx": 8,
-              "minimumProjectedNonEdgeTextPx": 8,
+              "minimumProjectedNonEdgeTextPx": 9,
               "minimumProjectedEdgeTextPx": 8,
               "minimumProjectedNodeText": "有工具调用块",
-              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextDetail": "edge",
               "minimumProjectedNodeTextOwner": {
-                "kind": "node",
-                "id": "think"
+                "kind": "edge",
+                "id": "g1e",
+                "from": "think",
+                "to": "g1"
               },
               "minimumRequiredNodeTextPx": 6,
               "readabilityOk": true,
@@ -1088,7 +923,7 @@
               "overflowDisposition": "contained",
               "readerLayout": "adaptive",
               "readerOverflow": null,
-              "readerFit": null,
+              "readerFit": "intrinsic-height",
               "ok": true,
               "readerWidth": 1920,
               "diagramWidth": 1870,
@@ -1096,37 +931,21 @@
                 "bodyPaddingPx": 64,
                 "headerPx": 94,
                 "diagramChromePx": 94,
-                "svgPx": 470,
+                "svgPx": 642,
                 "cardsPx": 0,
-                "viewBoxHeight": 282
+                "viewBoxHeight": 412
               },
-              "viewBoxWidth": 1123,
-              "workflowLanes": [
-                {
-                  "frameId": "lane-0",
-                  "heightPx": 177,
-                  "nodeCount": 6,
-                  "nodeIds": [
-                    "think",
-                    "g1",
-                    "g2",
-                    "g3",
-                    "run",
-                    "feed"
-                  ],
-                  "nodeSpanPx": 113,
-                  "spaceAboveNodesPx": 57,
-                  "spaceBelowNodesPx": 7
-                }
-              ],
+              "viewBoxWidth": 1200,
               "minimumProjectedNodeTextPx": 8,
-              "minimumProjectedNonEdgeTextPx": 8,
+              "minimumProjectedNonEdgeTextPx": 9,
               "minimumProjectedEdgeTextPx": 8,
               "minimumProjectedNodeText": "有工具调用块",
-              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextDetail": "edge",
               "minimumProjectedNodeTextOwner": {
-                "kind": "node",
-                "id": "think"
+                "kind": "edge",
+                "id": "g1e",
+                "from": "think",
+                "to": "g1"
               },
               "minimumRequiredNodeTextPx": 6,
               "readabilityOk": true,
@@ -1163,6 +982,6 @@
     "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--loop-with-gates.browser-check.json"
   },
   "visualReview": "not-requested",
-  "finishedAt": "2026-10-10T02:19:16.119Z",
-  "durationMs": 1851
+  "finishedAt": "2026-10-12T14:13:16.037Z",
+  "durationMs": 1759
 }

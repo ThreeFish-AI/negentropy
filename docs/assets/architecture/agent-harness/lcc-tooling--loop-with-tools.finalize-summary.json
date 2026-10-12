@@ -3,17 +3,17 @@
   "ok": true,
   "command": "finalize",
   "status": "pass",
-  "type": "workflow",
+  "type": "architecture",
   "quality": "showcase",
   "specification": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/.archify/workflow-loop-with-tools-20261010-093728/candidate.json",
-    "sha256": "06ffc1fd58f7939cb028e71523066623dce5f95542429102062a08468e3d7ef6",
-    "bytes": 2250
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/diagrams/lcc-tooling--loop-with-tools/lcc-tooling--loop-with-tools.json",
+    "sha256": "e711da7ba61e47c8d5cfc1fbd0dccd9530c07bb0416fff7fb1713344fd419a9e",
+    "bytes": 2582
   },
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--loop-with-tools.html",
-    "sha256": "3acd5df43b084e24781051b4e3b5f87d4e4b5801ee5d417371c74b1e580c3533",
-    "bytes": 749755
+    "sha256": "73b7fdab1818417b49085cf711a91ccb308f0ab2a297cb5944e77e2371e01fba",
+    "bytes": 748907
   },
   "gates": {
     "validate": "pass",
@@ -33,35 +33,5 @@
     "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--loop-with-tools.browser-check.json"
   },
   "visualReview": "not-requested",
-  "durationMs": 1679,
-  "visualReviewRecommendation": {
-    "action": "inspect-route-readability",
-    "signals": {
-      "routesOverSuggestedBends": 1,
-      "routesOverSuggestedStretch": 1
-    },
-    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
-    "affectedRoutes": {
-      "crossings": [],
-      "detours": [
-        {
-          "relationship": {
-            "id": "t2",
-            "from": "run",
-            "to": "safe",
-            "label": "文件工具先过校验",
-            "collectionIndex": 2,
-            "artifactIndex": 3
-          },
-          "bends": 3,
-          "stretch": 5.961
-        }
-      ],
-      "truncated": false
-    },
-    "hints": [
-      "run → safe needs 3 bends: move node run or safe so they share a row or column with matching centers, or sit diagonally with a clear corner."
-    ],
-    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
-  }
+  "durationMs": 1820
 }

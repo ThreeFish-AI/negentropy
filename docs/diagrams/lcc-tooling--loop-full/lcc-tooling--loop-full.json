@@ -1,0 +1,233 @@
+{
+ "schema_version": 1,
+ "diagram_type": "architecture",
+ "meta": {
+  "title": "工具与执行：循环本体完整图",
+  "subtitle": "渐进图 L1（§3 之后）：两信号判据、Stop 续跑与 tool_result 回喂闭环",
+  "locale": "zh-CN",
+  "quality_profile": "showcase",
+  "output": "docs/assets/architecture/agent-harness/lcc-tooling--loop-full.html",
+  "legend": {
+   "mode": "auto",
+   "entries": {
+    "backend": {
+     "label": "Agent 逻辑"
+    },
+    "security": {
+     "label": "策略"
+    },
+    "messagebus": {
+     "label": "Hook"
+    },
+    "database": {
+     "label": "上下文 / 追踪"
+    },
+    "external": {
+     "label": "外部系统"
+    }
+   }
+  }
+ },
+ "layout": {
+  "mode": "grid",
+  "origin": [
+   40,
+   40
+  ],
+  "cols": 6,
+  "cellW": 150,
+  "cellH": 64,
+  "gapX": 44,
+  "gapY": 56
+ },
+ "components": [
+  {
+   "id": "ask",
+   "type": "external",
+   "label": "用户输入",
+   "row": 0,
+   "col": 0,
+   "size": [
+    150,
+    64
+   ],
+   "sublabel": "首条 user 消息"
+  },
+  {
+   "id": "ups",
+   "type": "messagebus",
+   "label": "UserPromptSubmit",
+   "row": 0,
+   "col": 1,
+   "size": [
+    150,
+    64
+   ],
+   "sublabel": "输入后·进模型前",
+   "tag": "注入上下文"
+  },
+  {
+   "id": "think",
+   "type": "backend",
+   "label": "调用模型",
+   "row": 0,
+   "col": 2,
+   "size": [
+    150,
+    64
+   ],
+   "sublabel": "附全量工具定义",
+   "tag": "只决策·不执行"
+  },
+  {
+   "id": "act",
+   "type": "backend",
+   "label": "程序执行工具",
+   "row": 1,
+   "col": 3,
+   "size": [
+    150,
+    64
+   ],
+   "sublabel": "§4 展开为查表分发",
+   "tag": "§4"
+  },
+  {
+   "id": "feed",
+   "type": "database",
+   "label": "tool_result 回喂",
+   "row": 2,
+   "col": 2,
+   "size": [
+    150,
+    64
+   ],
+   "sublabel": "按 tool_use_id 配对·以 user 消息追加"
+  },
+  {
+   "id": "stop",
+   "type": "messagebus",
+   "label": "Stop",
+   "row": 0,
+   "col": 4,
+   "size": [
+    150,
+    64
+   ],
+   "sublabel": "返回空才真退出·非 None 注入续跑",
+   "tag": "非 None 可续跑"
+  },
+  {
+   "id": "done",
+   "type": "external",
+   "label": "循环退出",
+   "row": 0,
+   "col": 5,
+   "size": [
+    150,
+    64
+   ],
+   "sublabel": "交出最终结果"
+  },
+  {
+   "id": "tools",
+   "type": "external",
+   "label": "Tool Use",
+   "row": 1,
+   "col": 5,
+   "size": [
+    150,
+    64
+   ],
+   "sublabel": "查表分发",
+   "tag": "§4"
+  }
+ ],
+ "connections": [
+  {
+   "id": "f1",
+   "from": "ask",
+   "to": "ups",
+   "variant": "emphasis",
+   "fromSide": "right",
+   "toSide": "left"
+  },
+  {
+   "id": "f2",
+   "from": "ups",
+   "to": "think",
+   "variant": "emphasis",
+   "fromSide": "right",
+   "toSide": "left"
+  },
+  {
+   "id": "f3",
+   "from": "think",
+   "to": "act",
+   "label": "有工具调用块",
+   "variant": "emphasis",
+   "fromSide": "right",
+   "toSide": "top",
+   "labelSegment": 1
+  },
+  {
+   "id": "f4",
+   "from": "act",
+   "to": "feed",
+   "label": "执行结果",
+   "variant": "emphasis",
+   "fromSide": "bottom",
+   "toSide": "right",
+   "via": [
+    [
+     697.0,
+     312.0
+    ]
+   ]
+  },
+  {
+   "id": "f5",
+   "from": "feed",
+   "to": "think",
+   "label": "回喂·接着想下一步",
+   "variant": "emphasis",
+   "fromSide": "top",
+   "toSide": "bottom",
+   "labelAt": [
+    503.0,
+    195.0
+   ]
+  },
+  {
+   "id": "f6",
+   "from": "think",
+   "to": "stop",
+   "label": "没有工具调用块",
+   "variant": "dashed",
+   "fromSide": "right",
+   "toSide": "left"
+  },
+  {
+   "id": "f8",
+   "from": "stop",
+   "to": "done",
+   "label": "返回空",
+   "variant": "dashed",
+   "fromSide": "right",
+   "toSide": "left",
+   "labelAt": [
+    988.0,
+    59.0
+   ]
+  },
+  {
+   "id": "f9",
+   "from": "act",
+   "to": "tools",
+   "label": "§4",
+   "variant": "dashed",
+   "fromSide": "right",
+   "toSide": "left"
+  }
+ ]
+}

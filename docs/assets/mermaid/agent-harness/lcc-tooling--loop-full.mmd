@@ -1,32 +1,14 @@
 %% source: docs/research/agent-harness/171-claude-code-tooling-execution.md（§3 Agent Loop · 渐进图 L1）
 %% slug: lcc-tooling--loop-full
 %% type: architecture
-%% derived: 渐进披露系列（2026-10-10）：循环本体完整化——两信号判据、Stop 续跑、tool_result 回喂闭环
-flowchart TD
-    subgraph LOOP["循环本体 · s01 Agent Loop"]
-        direction TB
-        P["用户输入"] --> UPS["UserPromptSubmit 钩子"]
-        UPS --> LLM["调用模型（附工具定义）"]
-        LLM --> CRIT{"回答里出现工具调用块？"}
-        CRIT -- "有" --> EXEC["程序执行工具（§4 展开）"]
-        EXEC --> TR["tool_result 按 tool_use_id 配对回喂"]
-        TR --> LLM
-        CRIT -- "没有" --> STOP["Stop 钩子"]
-        STOP -- "注入 user 消息续跑" --> LLM
-        STOP -- "返回空" --> DONE["循环退出"]
-    end
-
-    TOOLS["Tool Use（§4）"]
-    PERM["Permission（§5）"]
-    HOOKS["Hooks（§6）"]
-
-    EXEC -. "§4" .-> TOOLS
-    EXEC -. "§5" .-> PERM
-    LOOP -. "§6" .-> HOOKS
-
-    classDef loopnode fill:#1f6feb,stroke:#79c0ff,color:#ffffff
-    classDef endnode fill:#6e7681,stroke:#c9d1d9,color:#ffffff
-    classDef placeholder fill:#30363d,stroke:#8b949e,color:#e6edf3,stroke-dasharray: 5 5
-    class P,UPS,LLM,CRIT,EXEC,TR loopnode
-    class STOP,DONE endnode
-    class TOOLS,PERM,HOOKS placeholder
+%% derived: 渐进披露系列（2026-10-10）：循环本体完整化——两信号判据、Stop 续跑、tool_result 回喂闭环；2026-10-12 视觉优化轮——五图统一顺时针回环网格，节点/边/文案与前版逐字一致
+%% grid: think=(r0,c2) act=(r1,c3) tools=(r1,c5) feed=(r2,c2)；槽位跨级不变（tools 与终态查表执行同格），详见 docs/diagrams/lcc-tooling--loop-full/lcc-tooling--loop-full.json
+flowchart LR
+    ASK["用户输入<br/>首条 user 消息"] --> UPS["UserPromptSubmit<br/>输入后·进模型前<br/>注入上下文"]
+    UPS --> THINK["调用模型<br/>附全量工具定义<br/>只决策·不执行"]
+    THINK -- "有工具调用块" --> ACT["程序执行工具<br/>§4 展开为查表分发<br/>§4"]
+    ACT -- "执行结果" --> FEED["tool_result 回喂<br/>按 tool_use_id 配对·以 user 消息追加"]
+    FEED -- "回喂·接着想下一步" --> THINK
+    THINK -. "没有工具调用块" .-> STOP["Stop<br/>返回空才真退出·非 None 注入续跑<br/>非 None 可续跑"]
+    STOP -. "返回空" .-> DONE["循环退出<br/>交出最终结果"]
+    ACT -. "§4" .-> TOOLS["Tool Use<br/>查表分发<br/>§4"]

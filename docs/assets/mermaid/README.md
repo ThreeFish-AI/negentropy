@@ -40,7 +40,11 @@
 
 | slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| [lcc-tooling--panorama](./agent-harness/lcc-tooling--panorama.mmd) | [171 工具与执行 §2](../../research/agent-harness/171-claude-code-tooling-execution.md) | architecture | ✓ | done | 主循环+分发+三闸门+钩子全貌（2026-10-07 guided-learn 换代首批） |
+| [lcc-tooling--panorama](./agent-harness/lcc-tooling--panorama.mmd) | [171 工具与执行 §6 末](../../research/agent-harness/171-claude-code-tooling-execution.md) | architecture | ✓ | done | 主循环+分发+三闸门+钩子全貌（2026-10-07 guided-learn 换代首批）；2026-10-12 与 L0–L3 统一顺时针回环网格 |
+| [lcc-tooling--loop-simple](./agent-harness/lcc-tooling--loop-simple.mmd) | [171 工具与执行 §2](../../research/agent-harness/171-claude-code-tooling-execution.md) | architecture | ✓ | done | 渐进图 L0：白话主循环一圈（§4/§5/§6 徽标占位）；网格骨架与终态同幅 |
+| [lcc-tooling--loop-full](./agent-harness/lcc-tooling--loop-full.mmd) | [171 工具与执行 §3](../../research/agent-harness/171-claude-code-tooling-execution.md) | architecture | ✓ | done | 渐进图 L1：循环本体完整化（两信号判据、Stop 续跑、回喂闭环） |
+| [lcc-tooling--loop-with-tools](./agent-harness/lcc-tooling--loop-with-tools.mmd) | [171 工具与执行 §4](../../research/agent-harness/171-claude-code-tooling-execution.md) | architecture | ✓ | done | 渐进图 L2：查表分发 + safe_path 边界（safe_path 在执行链首斜下方） |
+| [lcc-tooling--loop-with-gates](./agent-harness/lcc-tooling--loop-with-gates.mmd) | [171 工具与执行 §5](../../research/agent-harness/171-claude-code-tooling-execution.md) | architecture | ✓ | done | 渐进图 L3：三道闸门插进执行之前（拒绝回喂经 tag 承载） |
 | [claude-code-tooling--loop-mounted-layers](./agent-harness/claude-code-tooling--loop-mounted-layers.mmd) | [171 工具与执行 §2（补充图·未内嵌正文）](../../research/agent-harness/171-claude-code-tooling-execution.md) | architecture | ✓ | done | 循环内核＋三挂件全景（2026-10-01 精读轮配套；主干 171 换代版未内嵌，作补充视角保留；ISSUE-212 archify 3.0.0 采集口径实录） |
 | [lcc-planning--panorama](./agent-harness/lcc-planning--panorama.mmd) | [172 规划与协调 文末（附录后）](../../research/agent-harness/172-claude-code-planning-coordination.md) | architecture | ✓ | done | 五装置与「每轮看到什么」；2026-10-07 重绘工程直陈版（汇合层口径） |
 | [lcc-memory--panorama](./agent-harness/lcc-memory--panorama.mmd) | [173 记忆管理 §2](../../research/agent-harness/173-claude-code-memory-management.md) | architecture | ✓ | done | 压缩管线+磁盘留档+记忆四件套咬合（2026-10-07 换代） |

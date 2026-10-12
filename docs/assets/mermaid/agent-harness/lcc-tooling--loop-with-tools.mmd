@@ -1,34 +1,11 @@
 %% source: docs/research/agent-harness/171-claude-code-tooling-execution.md（§4 Tool Use · 渐进图 L2）
 %% slug: lcc-tooling--loop-with-tools
 %% type: architecture
-%% derived: 渐进披露系列（2026-10-10）：执行节点展开为 TOOL_HANDLERS 查表分发（+safe_path 工作区边界）
-flowchart TD
-    subgraph LOOP["循环本体 · s01 Agent Loop"]
-        direction TB
-        P["用户输入"] --> UPS["UserPromptSubmit 钩子"]
-        UPS --> LLM["调用模型（附工具定义）"]
-        LLM --> CRIT{"回答里出现工具调用块？"}
-        CRIT -- "有" --> RUN["TOOL_HANDLERS 查表执行"]
-        RUN --> TR["tool_result 按 tool_use_id 配对回喂"]
-        TR --> LLM
-        CRIT -- "没有" --> STOP["Stop 钩子"]
-        STOP -- "注入 user 消息续跑" --> LLM
-        STOP -- "返回空" --> DONE["循环退出"]
-    end
-
-    SAFE["文件工具：safe_path 工作区边界"]
-    PERM["Permission：动手前的闸门（§5）"]
-    HOOKS["Hooks：扩展挂点（§6）"]
-
-    RUN -. "执行前校验" .-> SAFE
-    RUN -. "§5 展开" .-> PERM
-    LOOP -. "§6 展开" .-> HOOKS
-
-    classDef loopnode fill:#1f6feb,stroke:#79c0ff,color:#ffffff
-    classDef safenode fill:#238636,stroke:#7ee787,color:#ffffff
-    classDef endnode fill:#6e7681,stroke:#c9d1d9,color:#ffffff
-    classDef placeholder fill:#30363d,stroke:#8b949e,color:#e6edf3,stroke-dasharray: 5 5
-    class P,UPS,LLM,CRIT,RUN,TR loopnode
-    class SAFE safenode
-    class STOP,DONE endnode
-    class PERM,HOOKS placeholder
+%% derived: 渐进披露系列（2026-10-10）：执行节点展开为 TOOL_HANDLERS 查表分发（+safe_path 工作区边界）；2026-10-12 视觉优化轮——五图统一顺时针回环网格，safe_path 置于执行链首斜下方，节点/边/文案与前版逐字一致
+%% grid: think=(r0,c2) run=(r1,c3) safe=(r2,c4) feed=(r2,c2)；槽位跨级不变，详见 docs/diagrams/lcc-tooling--loop-with-tools/lcc-tooling--loop-with-tools.json
+flowchart LR
+    THINK["调用模型<br/>回答里出现工具调用块<br/>只决策·不执行"]
+    THINK -- "有工具调用块" --> RUN["TOOL_HANDLERS 查表执行<br/>按 block.name 分发<br/>加工具=加一行"]
+    RUN -. "文件工具先过校验" .-> SAFE["safe_path 校验<br/>路径必须落在工作目录内<br/>越界直接报错"]
+    RUN -- "执行结果" --> FEED["tool_result 回喂<br/>按 tool_use_id 配对<br/>结果交还 LLM"]
+    FEED -- "回喂·接着想下一步" --> THINK

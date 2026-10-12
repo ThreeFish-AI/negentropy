@@ -3,18 +3,18 @@
   "ok": true,
   "command": "finalize",
   "status": "pass",
-  "type": "workflow",
+  "type": "architecture",
   "quality": "showcase",
-  "startedAt": "2026-10-10T02:19:10.404Z",
+  "startedAt": "2026-10-12T14:13:10.470Z",
   "specification": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/.archify/workflow-loop-full-20261010-093248/candidate.json",
-    "sha256": "eb606a56719ebf1229ad6e1395973ca5fa74aa9ae07ce7b2df5c8a30287c2444",
-    "bytes": 3359
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/diagrams/lcc-tooling--loop-full/lcc-tooling--loop-full.json",
+    "sha256": "3f24902d3a5897d381da54627149e6e9f49d5491fad9793f2892d3d2097228ea",
+    "bytes": 3835
   },
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--loop-full.html",
-    "sha256": "95f4bd7ac4860503d867b274296bee28d9915373f4bd23fe6cdb140417386fa7",
-    "bytes": 757548
+    "sha256": "906828faee71220f6de54c5ead969a33d95f0fe86679b0860e50f06338af01b7",
+    "bytes": 757257
   },
   "stages": {
     "validate": {
@@ -26,8 +26,8 @@
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "deliver",
-        "workflow",
-        "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/.archify/workflow-loop-full-20261010-093248/candidate.json",
+        "architecture",
+        "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/diagrams/lcc-tooling--loop-full/lcc-tooling--loop-full.json",
         "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--loop-full.html",
         "--quality",
         "showcase",
@@ -38,8 +38,8 @@
         "ok": true,
         "command": "validate",
         "specification": {
-          "sha256": "eb606a56719ebf1229ad6e1395973ca5fa74aa9ae07ce7b2df5c8a30287c2444",
-          "bytes": 3359
+          "sha256": "3f24902d3a5897d381da54627149e6e9f49d5491fad9793f2892d3d2097228ea",
+          "bytes": 3835
         },
         "validation": {
           "checksPassed": 9,
@@ -54,13 +54,13 @@
     "deliver": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 516,
+      "durationMs": 380,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "deliver",
-        "workflow",
-        "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/.archify/workflow-loop-full-20261010-093248/candidate.json",
+        "architecture",
+        "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/diagrams/lcc-tooling--loop-full/lcc-tooling--loop-full.json",
         "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--loop-full.html",
         "--quality",
         "showcase",
@@ -68,19 +68,19 @@
       ],
       "receipt": {
         "schemaVersion": 1,
-        "receiptId": "76828065-fad9-4071-8474-3132b7ff811a",
+        "receiptId": "ec11e6d6-8bee-4833-a7d3-1a0f7ce97684",
         "ok": true,
         "command": "deliver",
-        "type": "workflow",
-        "input": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/.archify/workflow-loop-full-20261010-093248/candidate.json",
+        "type": "architecture",
+        "input": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/diagrams/lcc-tooling--loop-full/lcc-tooling--loop-full.json",
         "output": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--loop-full.html",
         "specification": {
-          "sha256": "eb606a56719ebf1229ad6e1395973ca5fa74aa9ae07ce7b2df5c8a30287c2444",
-          "bytes": 3359
+          "sha256": "3f24902d3a5897d381da54627149e6e9f49d5491fad9793f2892d3d2097228ea",
+          "bytes": 3835
         },
         "artifact": {
-          "sha256": "95f4bd7ac4860503d867b274296bee28d9915373f4bd23fe6cdb140417386fa7",
-          "bytes": 757548
+          "sha256": "906828faee71220f6de54c5ead969a33d95f0fe86679b0860e50f06338af01b7",
+          "bytes": 757257
         },
         "validation": {
           "checksPassed": 9,
@@ -95,7 +95,7 @@
     "check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 196,
+      "durationMs": 94,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
@@ -107,8 +107,8 @@
         "ok": true,
         "file": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--loop-full.html",
         "artifact": {
-          "sha256": "95f4bd7ac4860503d867b274296bee28d9915373f4bd23fe6cdb140417386fa7",
-          "bytes": 757548
+          "sha256": "906828faee71220f6de54c5ead969a33d95f0fe86679b0860e50f06338af01b7",
+          "bytes": 757257
         },
         "checks": [
           {
@@ -175,16 +175,16 @@
             "containerBorderRuns": 0,
             "labelRouteClearanceIssues": 0,
             "labelCanvasOverflowIssues": 0,
-            "minLabelRouteClearance": 30,
+            "minLabelRouteClearance": 21,
             "desktopReadabilityIssues": 0,
             "viewportHeightIssues": 0,
-            "minProjectedNodeTextPx": 6.668604651162791,
-            "maxBends": 3,
-            "routesOverSuggestedBends": 1,
-            "maxStretch": 1.101,
+            "minProjectedNodeTextPx": 6.5,
+            "maxBends": 1,
+            "routesOverSuggestedBends": 0,
+            "maxStretch": 1,
             "routesOverSuggestedStretch": 0,
-            "minSegmentPx": 16,
-            "minInteriorSegmentPx": 120,
+            "minSegmentPx": 44,
+            "minInteriorSegmentPx": null,
             "shortSegmentCount": 0,
             "shortEndpointSegmentCount": 0,
             "shortInteriorSegmentCount": 0,
@@ -198,53 +198,49 @@
           },
           "routeReview": {
             "crossings": [],
-            "detours": [
-              {
-                "relationship": {
-                  "id": "f6",
-                  "from": "think",
-                  "to": "stop",
-                  "label": "没有工具调用块",
-                  "collectionIndex": 5,
-                  "artifactIndex": 6
-                },
-                "bends": 3,
-                "stretch": 1.101
-              }
-            ]
+            "detours": []
           },
           "leadingSpace": {
-            "measured": false,
+            "measured": true,
+            "emptyTopPx": 40,
+            "emptyTopRatio": 0.097,
+            "occupiedTop": 40,
+            "viewBoxTop": 0,
+            "canvasHeight": 412,
+            "typicalNodeHeight": 64,
             "reviewSuggested": false
           },
           "desktopReadability": {
-            "budgetBasis": "legacy-930",
+            "budgetBasis": "recognized-declared-wide",
             "readerContract": "declared-wide-v1",
-            "availableDiagramWidth": 930,
-            "actualBudgetPx": 930,
-            "limit": "legacy",
-            "requestedTargetPx": null,
-            "requestedTargetMet": null,
+            "availableDiagramWidth": 1200,
+            "actualBudgetPx": 1200,
+            "actualReaderWidth": 1230,
+            "desiredReaderWidth": 1230,
+            "viewportCap": 1376,
+            "limit": "source-size",
+            "requestedTargetPx": 7.5,
+            "requestedTargetMet": false,
             "hardFloorPx": 6,
             "hardFloorMet": true,
             "minimumOwner": {
               "kind": "node",
               "id": "feed"
             },
-            "minimumSourceTextPx": 7.4,
-            "minimumProjectedTextPx": 6.668604651162791,
+            "minimumSourceTextPx": 6.5,
+            "minimumProjectedTextPx": 6.5,
             "semanticTextCount": 22
           },
           "issues": []
         },
         "provenance": "current",
-        "deliveryReceiptId": "76828065-fad9-4071-8474-3132b7ff811a"
+        "deliveryReceiptId": "ec11e6d6-8bee-4833-a7d3-1a0f7ce97684"
       }
     },
     "browser-check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 958,
+      "durationMs": 911,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
@@ -262,11 +258,11 @@
         "status": "pass",
         "visualReview": "not-requested",
         "provenance": "current",
-        "deliveryReceiptId": "76828065-fad9-4071-8474-3132b7ff811a",
+        "deliveryReceiptId": "ec11e6d6-8bee-4833-a7d3-1a0f7ce97684",
         "artifact": {
           "path": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--loop-full.html",
-          "sha256": "95f4bd7ac4860503d867b274296bee28d9915373f4bd23fe6cdb140417386fa7",
-          "bytes": 757548
+          "sha256": "906828faee71220f6de54c5ead969a33d95f0fe86679b0860e50f06338af01b7",
+          "bytes": 757257
         },
         "state": {
           "detail": "read",
@@ -295,7 +291,7 @@
               "overflowDisposition": "contained",
               "readerLayout": "adaptive",
               "readerOverflow": null,
-              "readerFit": null,
+              "readerFit": "intrinsic-height",
               "ok": true,
               "readerWidth": 1376,
               "diagramWidth": 1346,
@@ -303,53 +299,13 @@
                 "bodyPaddingPx": 12,
                 "headerPx": 78,
                 "diagramChromePx": 78,
-                "svgPx": 696,
+                "svgPx": 462,
                 "cardsPx": 0,
-                "viewBoxHeight": 534
+                "viewBoxHeight": 412
               },
-              "viewBoxWidth": 1032,
-              "workflowLanes": [
-                {
-                  "frameId": "lane-0",
-                  "heightPx": 138,
-                  "nodeCount": 4,
-                  "nodeIds": [
-                    "ask",
-                    "ups",
-                    "think",
-                    "done"
-                  ],
-                  "nodeSpanPx": 89,
-                  "spaceAboveNodesPx": 44,
-                  "spaceBelowNodesPx": 5
-                },
-                {
-                  "frameId": "lane-1",
-                  "heightPx": 138,
-                  "nodeCount": 2,
-                  "nodeIds": [
-                    "feed",
-                    "stop"
-                  ],
-                  "nodeSpanPx": 89,
-                  "spaceAboveNodesPx": 44,
-                  "spaceBelowNodesPx": 5
-                },
-                {
-                  "frameId": "lane-2",
-                  "heightPx": 138,
-                  "nodeCount": 2,
-                  "nodeIds": [
-                    "act",
-                    "tools"
-                  ],
-                  "nodeSpanPx": 89,
-                  "spaceAboveNodesPx": 44,
-                  "spaceBelowNodesPx": 5
-                }
-              ],
-              "minimumProjectedNodeTextPx": 7.4,
-              "minimumProjectedNonEdgeTextPx": 7.4,
+              "viewBoxWidth": 1200,
+              "minimumProjectedNodeTextPx": 6.5,
+              "minimumProjectedNonEdgeTextPx": 6.5,
               "minimumProjectedEdgeTextPx": 8,
               "minimumProjectedNodeText": "按 tool_use_id 配对·以 user 消息追加",
               "minimumProjectedNodeTextDetail": "context",
@@ -385,61 +341,21 @@
               "overflowDisposition": "contained",
               "readerLayout": "adaptive",
               "readerOverflow": null,
-              "readerFit": null,
+              "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1488,
-              "diagramWidth": 1458,
+              "readerWidth": 1536,
+              "diagramWidth": 1506,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 86,
                 "diagramChromePx": 84,
-                "svgPx": 754,
+                "svgPx": 517,
                 "cardsPx": 0,
-                "viewBoxHeight": 534
+                "viewBoxHeight": 412
               },
-              "viewBoxWidth": 1032,
-              "workflowLanes": [
-                {
-                  "frameId": "lane-0",
-                  "heightPx": 150,
-                  "nodeCount": 4,
-                  "nodeIds": [
-                    "ask",
-                    "ups",
-                    "think",
-                    "done"
-                  ],
-                  "nodeSpanPx": 96,
-                  "spaceAboveNodesPx": 48,
-                  "spaceBelowNodesPx": 6
-                },
-                {
-                  "frameId": "lane-1",
-                  "heightPx": 150,
-                  "nodeCount": 2,
-                  "nodeIds": [
-                    "feed",
-                    "stop"
-                  ],
-                  "nodeSpanPx": 96,
-                  "spaceAboveNodesPx": 48,
-                  "spaceBelowNodesPx": 6
-                },
-                {
-                  "frameId": "lane-2",
-                  "heightPx": 150,
-                  "nodeCount": 2,
-                  "nodeIds": [
-                    "act",
-                    "tools"
-                  ],
-                  "nodeSpanPx": 96,
-                  "spaceAboveNodesPx": 48,
-                  "spaceBelowNodesPx": 6
-                }
-              ],
-              "minimumProjectedNodeTextPx": 7.4,
-              "minimumProjectedNonEdgeTextPx": 7.4,
+              "viewBoxWidth": 1200,
+              "minimumProjectedNodeTextPx": 6.5,
+              "minimumProjectedNonEdgeTextPx": 6.5,
               "minimumProjectedEdgeTextPx": 8,
               "minimumProjectedNodeText": "按 tool_use_id 配对·以 user 消息追加",
               "minimumProjectedNodeTextDetail": "context",
@@ -475,61 +391,21 @@
               "overflowDisposition": "contained",
               "readerLayout": "adaptive",
               "readerOverflow": null,
-              "readerFit": null,
+              "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1642,
-              "diagramWidth": 1612,
+              "readerWidth": 1856,
+              "diagramWidth": 1826,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 86,
                 "diagramChromePx": 84,
-                "svgPx": 834,
+                "svgPx": 627,
                 "cardsPx": 0,
-                "viewBoxHeight": 534
+                "viewBoxHeight": 412
               },
-              "viewBoxWidth": 1032,
-              "workflowLanes": [
-                {
-                  "frameId": "lane-0",
-                  "heightPx": 166,
-                  "nodeCount": 4,
-                  "nodeIds": [
-                    "ask",
-                    "ups",
-                    "think",
-                    "done"
-                  ],
-                  "nodeSpanPx": 106,
-                  "spaceAboveNodesPx": 53,
-                  "spaceBelowNodesPx": 6
-                },
-                {
-                  "frameId": "lane-1",
-                  "heightPx": 166,
-                  "nodeCount": 2,
-                  "nodeIds": [
-                    "feed",
-                    "stop"
-                  ],
-                  "nodeSpanPx": 106,
-                  "spaceAboveNodesPx": 53,
-                  "spaceBelowNodesPx": 6
-                },
-                {
-                  "frameId": "lane-2",
-                  "heightPx": 166,
-                  "nodeCount": 2,
-                  "nodeIds": [
-                    "act",
-                    "tools"
-                  ],
-                  "nodeSpanPx": 106,
-                  "spaceAboveNodesPx": 53,
-                  "spaceBelowNodesPx": 6
-                }
-              ],
-              "minimumProjectedNodeTextPx": 7.4,
-              "minimumProjectedNonEdgeTextPx": 7.4,
+              "viewBoxWidth": 1200,
+              "minimumProjectedNodeTextPx": 6.5,
+              "minimumProjectedNonEdgeTextPx": 6.5,
               "minimumProjectedEdgeTextPx": 8,
               "minimumProjectedNodeText": "按 tool_use_id 配对·以 user 消息追加",
               "minimumProjectedNodeTextDetail": "context",
@@ -565,7 +441,7 @@
               "overflowDisposition": "contained",
               "readerLayout": "adaptive",
               "readerOverflow": null,
-              "readerFit": null,
+              "readerFit": "intrinsic-height",
               "ok": true,
               "readerWidth": 1920,
               "diagramWidth": 1870,
@@ -573,53 +449,13 @@
                 "bodyPaddingPx": 64,
                 "headerPx": 94,
                 "diagramChromePx": 94,
-                "svgPx": 968,
+                "svgPx": 642,
                 "cardsPx": 0,
-                "viewBoxHeight": 534
+                "viewBoxHeight": 412
               },
-              "viewBoxWidth": 1032,
-              "workflowLanes": [
-                {
-                  "frameId": "lane-0",
-                  "heightPx": 192,
-                  "nodeCount": 4,
-                  "nodeIds": [
-                    "ask",
-                    "ups",
-                    "think",
-                    "done"
-                  ],
-                  "nodeSpanPx": 123,
-                  "spaceAboveNodesPx": 62,
-                  "spaceBelowNodesPx": 7
-                },
-                {
-                  "frameId": "lane-1",
-                  "heightPx": 192,
-                  "nodeCount": 2,
-                  "nodeIds": [
-                    "feed",
-                    "stop"
-                  ],
-                  "nodeSpanPx": 123,
-                  "spaceAboveNodesPx": 62,
-                  "spaceBelowNodesPx": 7
-                },
-                {
-                  "frameId": "lane-2",
-                  "heightPx": 192,
-                  "nodeCount": 2,
-                  "nodeIds": [
-                    "act",
-                    "tools"
-                  ],
-                  "nodeSpanPx": 123,
-                  "spaceAboveNodesPx": 62,
-                  "spaceBelowNodesPx": 7
-                }
-              ],
-              "minimumProjectedNodeTextPx": 7.4,
-              "minimumProjectedNonEdgeTextPx": 7.4,
+              "viewBoxWidth": 1200,
+              "minimumProjectedNodeTextPx": 6.5,
+              "minimumProjectedNonEdgeTextPx": 6.5,
               "minimumProjectedEdgeTextPx": 8,
               "minimumProjectedNodeText": "按 tool_use_id 配对·以 user 消息追加",
               "minimumProjectedNodeTextDetail": "context",
@@ -708,7 +544,7 @@
               "overflowDisposition": "contained",
               "readerLayout": "adaptive",
               "readerOverflow": null,
-              "readerFit": null,
+              "readerFit": "intrinsic-height",
               "ok": true,
               "readerWidth": 1376,
               "diagramWidth": 1346,
@@ -716,53 +552,13 @@
                 "bodyPaddingPx": 12,
                 "headerPx": 78,
                 "diagramChromePx": 78,
-                "svgPx": 696,
+                "svgPx": 462,
                 "cardsPx": 0,
-                "viewBoxHeight": 534
+                "viewBoxHeight": 412
               },
-              "viewBoxWidth": 1032,
-              "workflowLanes": [
-                {
-                  "frameId": "lane-0",
-                  "heightPx": 138,
-                  "nodeCount": 4,
-                  "nodeIds": [
-                    "ask",
-                    "ups",
-                    "think",
-                    "done"
-                  ],
-                  "nodeSpanPx": 89,
-                  "spaceAboveNodesPx": 44,
-                  "spaceBelowNodesPx": 5
-                },
-                {
-                  "frameId": "lane-1",
-                  "heightPx": 138,
-                  "nodeCount": 2,
-                  "nodeIds": [
-                    "feed",
-                    "stop"
-                  ],
-                  "nodeSpanPx": 89,
-                  "spaceAboveNodesPx": 44,
-                  "spaceBelowNodesPx": 5
-                },
-                {
-                  "frameId": "lane-2",
-                  "heightPx": 138,
-                  "nodeCount": 2,
-                  "nodeIds": [
-                    "act",
-                    "tools"
-                  ],
-                  "nodeSpanPx": 89,
-                  "spaceAboveNodesPx": 44,
-                  "spaceBelowNodesPx": 5
-                }
-              ],
-              "minimumProjectedNodeTextPx": 7.4,
-              "minimumProjectedNonEdgeTextPx": 7.4,
+              "viewBoxWidth": 1200,
+              "minimumProjectedNodeTextPx": 6.5,
+              "minimumProjectedNonEdgeTextPx": 6.5,
               "minimumProjectedEdgeTextPx": 8,
               "minimumProjectedNodeText": "按 tool_use_id 配对·以 user 消息追加",
               "minimumProjectedNodeTextDetail": "context",
@@ -798,61 +594,21 @@
               "overflowDisposition": "contained",
               "readerLayout": "adaptive",
               "readerOverflow": null,
-              "readerFit": null,
+              "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1488,
-              "diagramWidth": 1458,
+              "readerWidth": 1536,
+              "diagramWidth": 1506,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 86,
                 "diagramChromePx": 84,
-                "svgPx": 754,
+                "svgPx": 517,
                 "cardsPx": 0,
-                "viewBoxHeight": 534
+                "viewBoxHeight": 412
               },
-              "viewBoxWidth": 1032,
-              "workflowLanes": [
-                {
-                  "frameId": "lane-0",
-                  "heightPx": 150,
-                  "nodeCount": 4,
-                  "nodeIds": [
-                    "ask",
-                    "ups",
-                    "think",
-                    "done"
-                  ],
-                  "nodeSpanPx": 96,
-                  "spaceAboveNodesPx": 48,
-                  "spaceBelowNodesPx": 6
-                },
-                {
-                  "frameId": "lane-1",
-                  "heightPx": 150,
-                  "nodeCount": 2,
-                  "nodeIds": [
-                    "feed",
-                    "stop"
-                  ],
-                  "nodeSpanPx": 96,
-                  "spaceAboveNodesPx": 48,
-                  "spaceBelowNodesPx": 6
-                },
-                {
-                  "frameId": "lane-2",
-                  "heightPx": 150,
-                  "nodeCount": 2,
-                  "nodeIds": [
-                    "act",
-                    "tools"
-                  ],
-                  "nodeSpanPx": 96,
-                  "spaceAboveNodesPx": 48,
-                  "spaceBelowNodesPx": 6
-                }
-              ],
-              "minimumProjectedNodeTextPx": 7.4,
-              "minimumProjectedNonEdgeTextPx": 7.4,
+              "viewBoxWidth": 1200,
+              "minimumProjectedNodeTextPx": 6.5,
+              "minimumProjectedNonEdgeTextPx": 6.5,
               "minimumProjectedEdgeTextPx": 8,
               "minimumProjectedNodeText": "按 tool_use_id 配对·以 user 消息追加",
               "minimumProjectedNodeTextDetail": "context",
@@ -888,61 +644,21 @@
               "overflowDisposition": "contained",
               "readerLayout": "adaptive",
               "readerOverflow": null,
-              "readerFit": null,
+              "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1642,
-              "diagramWidth": 1612,
+              "readerWidth": 1856,
+              "diagramWidth": 1826,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 86,
                 "diagramChromePx": 84,
-                "svgPx": 834,
+                "svgPx": 627,
                 "cardsPx": 0,
-                "viewBoxHeight": 534
+                "viewBoxHeight": 412
               },
-              "viewBoxWidth": 1032,
-              "workflowLanes": [
-                {
-                  "frameId": "lane-0",
-                  "heightPx": 166,
-                  "nodeCount": 4,
-                  "nodeIds": [
-                    "ask",
-                    "ups",
-                    "think",
-                    "done"
-                  ],
-                  "nodeSpanPx": 106,
-                  "spaceAboveNodesPx": 53,
-                  "spaceBelowNodesPx": 6
-                },
-                {
-                  "frameId": "lane-1",
-                  "heightPx": 166,
-                  "nodeCount": 2,
-                  "nodeIds": [
-                    "feed",
-                    "stop"
-                  ],
-                  "nodeSpanPx": 106,
-                  "spaceAboveNodesPx": 53,
-                  "spaceBelowNodesPx": 6
-                },
-                {
-                  "frameId": "lane-2",
-                  "heightPx": 166,
-                  "nodeCount": 2,
-                  "nodeIds": [
-                    "act",
-                    "tools"
-                  ],
-                  "nodeSpanPx": 106,
-                  "spaceAboveNodesPx": 53,
-                  "spaceBelowNodesPx": 6
-                }
-              ],
-              "minimumProjectedNodeTextPx": 7.4,
-              "minimumProjectedNonEdgeTextPx": 7.4,
+              "viewBoxWidth": 1200,
+              "minimumProjectedNodeTextPx": 6.5,
+              "minimumProjectedNonEdgeTextPx": 6.5,
               "minimumProjectedEdgeTextPx": 8,
               "minimumProjectedNodeText": "按 tool_use_id 配对·以 user 消息追加",
               "minimumProjectedNodeTextDetail": "context",
@@ -978,7 +694,7 @@
               "overflowDisposition": "contained",
               "readerLayout": "adaptive",
               "readerOverflow": null,
-              "readerFit": null,
+              "readerFit": "intrinsic-height",
               "ok": true,
               "readerWidth": 1920,
               "diagramWidth": 1870,
@@ -986,53 +702,13 @@
                 "bodyPaddingPx": 64,
                 "headerPx": 94,
                 "diagramChromePx": 94,
-                "svgPx": 968,
+                "svgPx": 642,
                 "cardsPx": 0,
-                "viewBoxHeight": 534
+                "viewBoxHeight": 412
               },
-              "viewBoxWidth": 1032,
-              "workflowLanes": [
-                {
-                  "frameId": "lane-0",
-                  "heightPx": 192,
-                  "nodeCount": 4,
-                  "nodeIds": [
-                    "ask",
-                    "ups",
-                    "think",
-                    "done"
-                  ],
-                  "nodeSpanPx": 123,
-                  "spaceAboveNodesPx": 62,
-                  "spaceBelowNodesPx": 7
-                },
-                {
-                  "frameId": "lane-1",
-                  "heightPx": 192,
-                  "nodeCount": 2,
-                  "nodeIds": [
-                    "feed",
-                    "stop"
-                  ],
-                  "nodeSpanPx": 123,
-                  "spaceAboveNodesPx": 62,
-                  "spaceBelowNodesPx": 7
-                },
-                {
-                  "frameId": "lane-2",
-                  "heightPx": 192,
-                  "nodeCount": 2,
-                  "nodeIds": [
-                    "act",
-                    "tools"
-                  ],
-                  "nodeSpanPx": 123,
-                  "spaceAboveNodesPx": 62,
-                  "spaceBelowNodesPx": 7
-                }
-              ],
-              "minimumProjectedNodeTextPx": 7.4,
-              "minimumProjectedNonEdgeTextPx": 7.4,
+              "viewBoxWidth": 1200,
+              "minimumProjectedNodeTextPx": 6.5,
+              "minimumProjectedNonEdgeTextPx": 6.5,
               "minimumProjectedEdgeTextPx": 8,
               "minimumProjectedNodeText": "按 tool_use_id 配对·以 user 消息追加",
               "minimumProjectedNodeTextDetail": "context",
@@ -1073,7 +749,7 @@
               "overflowDisposition": "contained",
               "readerLayout": "adaptive",
               "readerOverflow": null,
-              "readerFit": null,
+              "readerFit": "intrinsic-height",
               "ok": true,
               "readerWidth": 1376,
               "diagramWidth": 1346,
@@ -1081,53 +757,13 @@
                 "bodyPaddingPx": 12,
                 "headerPx": 78,
                 "diagramChromePx": 78,
-                "svgPx": 696,
+                "svgPx": 462,
                 "cardsPx": 0,
-                "viewBoxHeight": 534
+                "viewBoxHeight": 412
               },
-              "viewBoxWidth": 1032,
-              "workflowLanes": [
-                {
-                  "frameId": "lane-0",
-                  "heightPx": 138,
-                  "nodeCount": 4,
-                  "nodeIds": [
-                    "ask",
-                    "ups",
-                    "think",
-                    "done"
-                  ],
-                  "nodeSpanPx": 89,
-                  "spaceAboveNodesPx": 44,
-                  "spaceBelowNodesPx": 5
-                },
-                {
-                  "frameId": "lane-1",
-                  "heightPx": 138,
-                  "nodeCount": 2,
-                  "nodeIds": [
-                    "feed",
-                    "stop"
-                  ],
-                  "nodeSpanPx": 89,
-                  "spaceAboveNodesPx": 44,
-                  "spaceBelowNodesPx": 5
-                },
-                {
-                  "frameId": "lane-2",
-                  "heightPx": 138,
-                  "nodeCount": 2,
-                  "nodeIds": [
-                    "act",
-                    "tools"
-                  ],
-                  "nodeSpanPx": 89,
-                  "spaceAboveNodesPx": 44,
-                  "spaceBelowNodesPx": 5
-                }
-              ],
-              "minimumProjectedNodeTextPx": 7.4,
-              "minimumProjectedNonEdgeTextPx": 7.4,
+              "viewBoxWidth": 1200,
+              "minimumProjectedNodeTextPx": 6.5,
+              "minimumProjectedNonEdgeTextPx": 6.5,
               "minimumProjectedEdgeTextPx": 8,
               "minimumProjectedNodeText": "按 tool_use_id 配对·以 user 消息追加",
               "minimumProjectedNodeTextDetail": "context",
@@ -1163,61 +799,21 @@
               "overflowDisposition": "contained",
               "readerLayout": "adaptive",
               "readerOverflow": null,
-              "readerFit": null,
+              "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1488,
-              "diagramWidth": 1458,
+              "readerWidth": 1536,
+              "diagramWidth": 1506,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 86,
                 "diagramChromePx": 84,
-                "svgPx": 754,
+                "svgPx": 517,
                 "cardsPx": 0,
-                "viewBoxHeight": 534
+                "viewBoxHeight": 412
               },
-              "viewBoxWidth": 1032,
-              "workflowLanes": [
-                {
-                  "frameId": "lane-0",
-                  "heightPx": 150,
-                  "nodeCount": 4,
-                  "nodeIds": [
-                    "ask",
-                    "ups",
-                    "think",
-                    "done"
-                  ],
-                  "nodeSpanPx": 96,
-                  "spaceAboveNodesPx": 48,
-                  "spaceBelowNodesPx": 6
-                },
-                {
-                  "frameId": "lane-1",
-                  "heightPx": 150,
-                  "nodeCount": 2,
-                  "nodeIds": [
-                    "feed",
-                    "stop"
-                  ],
-                  "nodeSpanPx": 96,
-                  "spaceAboveNodesPx": 48,
-                  "spaceBelowNodesPx": 6
-                },
-                {
-                  "frameId": "lane-2",
-                  "heightPx": 150,
-                  "nodeCount": 2,
-                  "nodeIds": [
-                    "act",
-                    "tools"
-                  ],
-                  "nodeSpanPx": 96,
-                  "spaceAboveNodesPx": 48,
-                  "spaceBelowNodesPx": 6
-                }
-              ],
-              "minimumProjectedNodeTextPx": 7.4,
-              "minimumProjectedNonEdgeTextPx": 7.4,
+              "viewBoxWidth": 1200,
+              "minimumProjectedNodeTextPx": 6.5,
+              "minimumProjectedNonEdgeTextPx": 6.5,
               "minimumProjectedEdgeTextPx": 8,
               "minimumProjectedNodeText": "按 tool_use_id 配对·以 user 消息追加",
               "minimumProjectedNodeTextDetail": "context",
@@ -1253,61 +849,21 @@
               "overflowDisposition": "contained",
               "readerLayout": "adaptive",
               "readerOverflow": null,
-              "readerFit": null,
+              "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1642,
-              "diagramWidth": 1612,
+              "readerWidth": 1856,
+              "diagramWidth": 1826,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 86,
                 "diagramChromePx": 84,
-                "svgPx": 834,
+                "svgPx": 627,
                 "cardsPx": 0,
-                "viewBoxHeight": 534
+                "viewBoxHeight": 412
               },
-              "viewBoxWidth": 1032,
-              "workflowLanes": [
-                {
-                  "frameId": "lane-0",
-                  "heightPx": 166,
-                  "nodeCount": 4,
-                  "nodeIds": [
-                    "ask",
-                    "ups",
-                    "think",
-                    "done"
-                  ],
-                  "nodeSpanPx": 106,
-                  "spaceAboveNodesPx": 53,
-                  "spaceBelowNodesPx": 6
-                },
-                {
-                  "frameId": "lane-1",
-                  "heightPx": 166,
-                  "nodeCount": 2,
-                  "nodeIds": [
-                    "feed",
-                    "stop"
-                  ],
-                  "nodeSpanPx": 106,
-                  "spaceAboveNodesPx": 53,
-                  "spaceBelowNodesPx": 6
-                },
-                {
-                  "frameId": "lane-2",
-                  "heightPx": 166,
-                  "nodeCount": 2,
-                  "nodeIds": [
-                    "act",
-                    "tools"
-                  ],
-                  "nodeSpanPx": 106,
-                  "spaceAboveNodesPx": 53,
-                  "spaceBelowNodesPx": 6
-                }
-              ],
-              "minimumProjectedNodeTextPx": 7.4,
-              "minimumProjectedNonEdgeTextPx": 7.4,
+              "viewBoxWidth": 1200,
+              "minimumProjectedNodeTextPx": 6.5,
+              "minimumProjectedNonEdgeTextPx": 6.5,
               "minimumProjectedEdgeTextPx": 8,
               "minimumProjectedNodeText": "按 tool_use_id 配对·以 user 消息追加",
               "minimumProjectedNodeTextDetail": "context",
@@ -1343,7 +899,7 @@
               "overflowDisposition": "contained",
               "readerLayout": "adaptive",
               "readerOverflow": null,
-              "readerFit": null,
+              "readerFit": "intrinsic-height",
               "ok": true,
               "readerWidth": 1920,
               "diagramWidth": 1870,
@@ -1351,53 +907,13 @@
                 "bodyPaddingPx": 64,
                 "headerPx": 94,
                 "diagramChromePx": 94,
-                "svgPx": 968,
+                "svgPx": 642,
                 "cardsPx": 0,
-                "viewBoxHeight": 534
+                "viewBoxHeight": 412
               },
-              "viewBoxWidth": 1032,
-              "workflowLanes": [
-                {
-                  "frameId": "lane-0",
-                  "heightPx": 192,
-                  "nodeCount": 4,
-                  "nodeIds": [
-                    "ask",
-                    "ups",
-                    "think",
-                    "done"
-                  ],
-                  "nodeSpanPx": 123,
-                  "spaceAboveNodesPx": 62,
-                  "spaceBelowNodesPx": 7
-                },
-                {
-                  "frameId": "lane-1",
-                  "heightPx": 192,
-                  "nodeCount": 2,
-                  "nodeIds": [
-                    "feed",
-                    "stop"
-                  ],
-                  "nodeSpanPx": 123,
-                  "spaceAboveNodesPx": 62,
-                  "spaceBelowNodesPx": 7
-                },
-                {
-                  "frameId": "lane-2",
-                  "heightPx": 192,
-                  "nodeCount": 2,
-                  "nodeIds": [
-                    "act",
-                    "tools"
-                  ],
-                  "nodeSpanPx": 123,
-                  "spaceAboveNodesPx": 62,
-                  "spaceBelowNodesPx": 7
-                }
-              ],
-              "minimumProjectedNodeTextPx": 7.4,
-              "minimumProjectedNonEdgeTextPx": 7.4,
+              "viewBoxWidth": 1200,
+              "minimumProjectedNodeTextPx": 6.5,
+              "minimumProjectedNonEdgeTextPx": 6.5,
               "minimumProjectedEdgeTextPx": 8,
               "minimumProjectedNodeText": "按 tool_use_id 配对·以 user 消息追加",
               "minimumProjectedNodeTextDetail": "context",
@@ -1440,6 +956,6 @@
     "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--loop-full.browser-check.json"
   },
   "visualReview": "not-requested",
-  "finishedAt": "2026-10-10T02:19:12.373Z",
-  "durationMs": 1968
+  "finishedAt": "2026-10-12T14:13:12.249Z",
+  "durationMs": 1779
 }

@@ -4988,7 +4988,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     <!-- Main Diagram -->
     <div class="diagram-container" data-detail-level="read"
          data-preset-badge-editorial-plate="ARCHIFY / 图版 04">
-      <svg viewBox="0 0 1046 282" data-layout-contract="readable-v2" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-preset="classic" data-quality-profile="showcase">
+      <svg viewBox="0 0 1200 412" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-preset="classic" data-quality-profile="showcase" data-reader-fit="intrinsic-height" data-reader-min-text="7.5" data-reader-primary-text="14">
         <title id="archify-diagram-title">工具与执行：先看这个循环</title>
         <desc id="archify-diagram-description">渐进图 L0：先看主循环——三个彩色徽标（§4/§5/§6）是后续章节的挂载点</desc>
         <!-- Definitions -->
@@ -5013,123 +5013,123 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <!-- Background Grid -->
         <rect width="100%" height="100%" fill="url(#grid)" />
 
-        <!-- Swimlanes -->
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-0" x="40" y="52" width="990" height="106" rx="10" class="c-lane" stroke-width="1"/>
-        <text x="54" y="74" class="t-dim" font-size="10" font-weight="600">01 / 核心循环（Agent Loop）</text>
-
-        <!-- Phase headers -->
-        <line x1="77" y1="35" x2="169" y2="35" class="a-default" stroke-width="1.1"/>
-        <rect x="77" y="27" width="92" height="16" rx="4" class="c-mask"/>
-        <text x="123" y="39" class="t-muted" font-size="8" font-weight="600" text-anchor="middle">输入</text>
-        <line x1="255" y1="35" x2="741" y2="35" class="a-emphasis" stroke-width="1.1"/>
-        <rect x="255" y="27" width="486" height="16" rx="4" class="c-mask"/>
-        <text x="498" y="39" class="t-backend" font-size="8" font-weight="600" text-anchor="middle">循环主干：想 → 做 → 回喂 → 再想</text>
-        <line x1="806" y1="35" x2="898" y2="35" class="a-default" stroke-width="1.1"/>
-        <rect x="806" y="27" width="92" height="16" rx="4" class="c-mask"/>
-        <text x="852" y="39" class="t-muted" font-size="8" font-weight="600" text-anchor="middle">输出</text>
-
-        <!-- Workflow groups -->
+        <!-- Boundaries (behind everything) -->
 
 
-        <!-- Edge paths -->
-        <path data-edge-from="ask" data-edge-to="think" data-edge-key="0" data-edge-id="e1" data-composition-routing="workflow-v2-auto" data-edge-role="" data-composition-points="198,120;226,120" d="M 198 120 L 226 120" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="think" data-edge-to="act" data-edge-label="要动用工具" data-edge-key="1" data-edge-id="e2" data-composition-routing="workflow-v2-auto" data-edge-role="" data-composition-points="376,120;442,120" d="M 376 120 L 442 120" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="act" data-edge-to="feed" data-edge-key="2" data-edge-id="e3" data-composition-routing="workflow-v2-auto" data-edge-role="" data-composition-points="592,120;620,120" d="M 592 120 L 620 120" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="feed" data-edge-to="think" data-edge-label="回喂·接着想下一步" data-edge-key="3" data-edge-id="e4" data-composition-routing="workflow-v2-auto" data-edge-role="return" data-composition-points="695,86;695,70;301,70;301,86" d="M 695 86 L 695 70 L 301 70 L 301 86" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="think" data-edge-to="done" data-edge-label="不用了" data-edge-key="4" data-edge-id="e5" data-composition-routing="workflow-v2-auto" data-edge-role="branch" data-composition-points="301,154;301,174;852,174;852,146" d="M 301 154 L 301 174 L 852 174 L 852 146" class="a-dashed" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
+        <!-- Connection paths (before components for correct z-order) -->
+        <g data-graph-role="automatic-crossover" style="--step:0">
+          <path data-graph-role="automatic-crossover-underlay" d="M 190 72 L 428 72" fill="none" stroke="var(--mask)" stroke-width="5.8" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="ask" data-edge-to="think" data-edge-key="0" data-edge-id="e1" data-composition-points="190,72;428,72" data-composition-crossover="halo" data-composition-independent="true" d="M 190 72 L 428 72" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        </g>
+        <g data-graph-role="automatic-crossover" style="--step:1">
+          <path data-graph-role="automatic-crossover-underlay" d="M 578 80.05 L 689 80.05 Q 697 80.05 697 88.05 L 697 160" fill="none" stroke="var(--mask)" stroke-width="5.8" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="think" data-edge-to="act" data-edge-label="要动用工具" data-edge-key="1" data-edge-id="e2" data-composition-points="578,80.05;697,80.05;697,160" data-composition-crossover="halo" data-composition-independent="true" d="M 578 80.05 L 689 80.05 Q 697 80.05 697 88.05 L 697 160" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        </g>
+        <path data-edge-from="act" data-edge-to="feed" data-edge-key="2" data-edge-id="e3" data-composition-points="697,224;697,312;578,312" d="M 697 224 L 697 304 Q 697 312 689 312 L 578 312" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <g data-graph-role="automatic-crossover" style="--step:3">
+          <path data-graph-role="automatic-crossover-underlay" d="M 578 65 L 1010 65" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="think" data-edge-to="done" data-edge-label="不用了" data-edge-key="3" data-edge-id="e5" data-composition-points="578,65;1010,65" data-composition-crossover="halo" data-composition-independent="true" d="M 578 65 L 1010 65" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
+        </g>
+        <g data-graph-role="automatic-crossover" style="--step:4">
+          <path data-graph-role="automatic-crossover-underlay" d="M 503 280 L 503 104" fill="none" stroke="var(--mask)" stroke-width="5.8" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="feed" data-edge-to="think" data-edge-label="回喂·接着想下一步" data-edge-key="4" data-edge-id="e4" data-composition-points="503,280;503,104" data-composition-crossover="halo" d="M 503 280 L 503 104" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        </g>
 
-        <!-- Nodes -->
-        <g id="node-ask" data-node-id="ask" data-node-label="你提一个要求" tabindex="0" role="button" aria-label="聚焦你提一个要求，购物清单：加一行牛奶、念一遍清单, 核心循环（Agent Loop） › 输入" aria-pressed="false" data-node-kind="external" data-node-sublabel="购物清单：加一行牛奶、念一遍清单" data-node-context="核心循环（Agent Loop） › 输入">
-          <title>你提一个要求 · 购物清单：加一行牛奶、念一遍清单 · 核心循环（Agent Loop） › 输入</title>
-          <rect x="48" y="94" width="150" height="52" rx="6" class="c-mask"/>
-          <rect x="48" y="94" width="150" height="52" rx="6" class="c-external" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(54 100) scale(0.6875)">
+        <!-- Components -->
+        <g id="node-ask" data-node-id="ask" data-node-label="你提一个要求" tabindex="0" role="button" aria-label="聚焦你提一个要求，购物清单：加一行牛奶、念一遍清单, 架构组件" aria-pressed="false" data-node-kind="external" data-node-sublabel="购物清单：加一行牛奶、念一遍清单" data-node-context="架构组件">
+          <title>你提一个要求 · 购物清单：加一行牛奶、念一遍清单 · 架构组件</title>
+          <rect x="40" y="40" width="150" height="64" rx="6" class="c-mask"/>
+          <rect x="40" y="40" width="150" height="64" rx="6" class="c-external" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(46 46) scale(0.6875)">
             <rect x="2.5" y="5" width="8.5" height="8" rx="1.5"/>
             <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="123" y="115" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">你提一个要求</text>
-          <text data-detail="context" x="123" y="132" class="t-muted" font-size="7.3" text-anchor="middle">购物清单：加一行牛奶、念一遍清单</text>
+          <text data-node-label="" data-detail-anchor="" x="115" y="70" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">你提一个要求</text>
+        <text data-detail="context" x="115" y="86" class="t-muted" font-size="7.3" text-anchor="middle">购物清单：加一行牛奶、念一遍清单</text>
         </g>
 
-        <g id="node-think" data-node-id="think" data-node-label="LLM 想下一步" tabindex="0" role="button" aria-label="聚焦LLM 想下一步，会思考·没手脚, 核心循环（Agent Loop） › 循环主干：想 → 做 → 回喂 → 再想" aria-pressed="false" data-node-kind="backend" data-node-sublabel="会思考·没手脚" data-node-tag="§4 更多专用工具" data-node-context="核心循环（Agent Loop） › 循环主干：想 → 做 → 回喂 → 再想">
-          <title>LLM 想下一步 · 会思考·没手脚 · 核心循环（Agent Loop） › 循环主干：想 → 做 → 回喂 → 再想 · §4 更多专用工具</title>
-          <rect x="226" y="86" width="150" height="68" rx="6" class="c-mask"/>
-          <rect x="226" y="86" width="150" height="68" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(232 92) scale(0.6875)">
+        <g id="node-think" data-node-id="think" data-node-label="LLM 想下一步" tabindex="0" role="button" aria-label="聚焦LLM 想下一步，会思考·没手脚, 架构组件" aria-pressed="false" data-node-kind="backend" data-node-sublabel="会思考·没手脚" data-node-tag="§4 更多专用工具" data-node-context="架构组件">
+          <title>LLM 想下一步 · 会思考·没手脚 · 架构组件 · §4 更多专用工具</title>
+          <rect x="428" y="40" width="150" height="64" rx="6" class="c-mask"/>
+          <rect x="428" y="40" width="150" height="64" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(434 46) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="301" y="107" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">LLM 想下一步</text>
-          <text data-detail="context" x="301" y="124" class="t-muted" font-size="8" text-anchor="middle">会思考·没手脚</text>
-        <text data-detail="fine" x="301" y="142" class="t-backend" font-size="7" text-anchor="middle">§4 更多专用工具</text>
+          <text data-node-label="" data-detail-anchor="" x="503" y="70" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">LLM 想下一步</text>
+        <text data-detail="context" x="503" y="86" class="t-muted" font-size="9" text-anchor="middle">会思考·没手脚</text>
+        <text data-detail="fine" x="503" y="96" class="t-backend" font-size="7" text-anchor="middle">§4 更多专用工具</text>
         </g>
 
-        <g id="node-act" data-node-id="act" data-node-label="程序替它执行" tabindex="0" role="button" aria-label="聚焦程序替它执行，动文件·跑命令·看结果, 核心循环（Agent Loop） › 循环主干：想 → 做 → 回喂 → 再想" aria-pressed="false" data-node-kind="backend" data-node-sublabel="动文件·跑命令·看结果" data-node-tag="§5 动手前设闸门" data-node-context="核心循环（Agent Loop） › 循环主干：想 → 做 → 回喂 → 再想">
-          <title>程序替它执行 · 动文件·跑命令·看结果 · 核心循环（Agent Loop） › 循环主干：想 → 做 → 回喂 → 再想 · §5 动手前设闸门</title>
-          <rect x="442" y="86" width="150" height="68" rx="6" class="c-mask"/>
-          <rect x="442" y="86" width="150" height="68" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(448 92) scale(0.6875)">
+        <g id="node-act" data-node-id="act" data-node-label="程序替它执行" tabindex="0" role="button" aria-label="聚焦程序替它执行，动文件·跑命令·看结果, 架构组件" aria-pressed="false" data-node-kind="backend" data-node-sublabel="动文件·跑命令·看结果" data-node-tag="§5 动手前设闸门" data-node-context="架构组件">
+          <title>程序替它执行 · 动文件·跑命令·看结果 · 架构组件 · §5 动手前设闸门</title>
+          <rect x="622" y="160" width="150" height="64" rx="6" class="c-mask"/>
+          <rect x="622" y="160" width="150" height="64" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(628 166) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="517" y="107" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">程序替它执行</text>
-          <text data-detail="context" x="517" y="124" class="t-muted" font-size="8" text-anchor="middle">动文件·跑命令·看结果</text>
-        <text data-detail="fine" x="517" y="142" class="t-backend" font-size="7" text-anchor="middle">§5 动手前设闸门</text>
+          <text data-node-label="" data-detail-anchor="" x="697" y="190" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">程序替它执行</text>
+        <text data-detail="context" x="697" y="206" class="t-muted" font-size="9" text-anchor="middle">动文件·跑命令·看结果</text>
+        <text data-detail="fine" x="697" y="216" class="t-backend" font-size="7" text-anchor="middle">§5 动手前设闸门</text>
         </g>
 
-        <g id="node-feed" data-node-id="feed" data-node-label="结果回喂" tabindex="0" role="button" aria-label="聚焦结果回喂，执行结果以新消息追加, 核心循环（Agent Loop） › 循环主干：想 → 做 → 回喂 → 再想" aria-pressed="false" data-node-kind="database" data-node-sublabel="执行结果以新消息追加" data-node-tag="§6 扩展挂点" data-node-context="核心循环（Agent Loop） › 循环主干：想 → 做 → 回喂 → 再想">
-          <title>结果回喂 · 执行结果以新消息追加 · 核心循环（Agent Loop） › 循环主干：想 → 做 → 回喂 → 再想 · §6 扩展挂点</title>
-          <rect x="620" y="86" width="150" height="68" rx="6" class="c-mask"/>
-          <rect x="620" y="86" width="150" height="68" rx="6" class="c-database" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(626 92) scale(0.6875)">
+        <g id="node-feed" data-node-id="feed" data-node-label="结果回喂" tabindex="0" role="button" aria-label="聚焦结果回喂，执行结果以新消息追加, 架构组件" aria-pressed="false" data-node-kind="database" data-node-sublabel="执行结果以新消息追加" data-node-tag="§6 扩展挂点" data-node-context="架构组件">
+          <title>结果回喂 · 执行结果以新消息追加 · 架构组件 · §6 扩展挂点</title>
+          <rect x="428" y="280" width="150" height="64" rx="6" class="c-mask"/>
+          <rect x="428" y="280" width="150" height="64" rx="6" class="c-database" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(434 286) scale(0.6875)">
             <ellipse cx="8" cy="4" rx="5" ry="2"/>
             <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="695" y="107" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">结果回喂</text>
-          <text data-detail="context" x="695" y="124" class="t-muted" font-size="8" text-anchor="middle">执行结果以新消息追加</text>
-        <text data-detail="fine" x="695" y="142" class="t-database" font-size="7" text-anchor="middle">§6 扩展挂点</text>
+          <text data-node-label="" data-detail-anchor="" x="503" y="310" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">结果回喂</text>
+        <text data-detail="context" x="503" y="326" class="t-muted" font-size="9" text-anchor="middle">执行结果以新消息追加</text>
+        <text data-detail="fine" x="503" y="336" class="t-database" font-size="7" text-anchor="middle">§6 扩展挂点</text>
         </g>
 
-        <g id="node-done" data-node-id="done" data-node-label="交出最终结果" tabindex="0" role="button" aria-label="聚焦交出最终结果，回答里不再有工具调用, 核心循环（Agent Loop） › 输出" aria-pressed="false" data-node-kind="external" data-node-sublabel="回答里不再有工具调用" data-node-context="核心循环（Agent Loop） › 输出">
-          <title>交出最终结果 · 回答里不再有工具调用 · 核心循环（Agent Loop） › 输出</title>
-          <rect x="778" y="94" width="148" height="52" rx="6" class="c-mask"/>
-          <rect x="778" y="94" width="148" height="52" rx="6" class="c-external" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(784 100) scale(0.6875)">
+        <g id="node-done" data-node-id="done" data-node-label="交出最终结果" tabindex="0" role="button" aria-label="聚焦交出最终结果，回答里不再有工具调用, 架构组件" aria-pressed="false" data-node-kind="external" data-node-sublabel="回答里不再有工具调用" data-node-context="架构组件">
+          <title>交出最终结果 · 回答里不再有工具调用 · 架构组件</title>
+          <rect x="1010" y="40" width="150" height="64" rx="6" class="c-mask"/>
+          <rect x="1010" y="40" width="150" height="64" rx="6" class="c-external" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(1016 46) scale(0.6875)">
             <rect x="2.5" y="5" width="8.5" height="8" rx="1.5"/>
             <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="852" y="115" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">交出最终结果</text>
-          <text data-detail="context" x="852" y="132" class="t-muted" font-size="8" text-anchor="middle">回答里不再有工具调用</text>
+          <text data-node-label="" data-detail-anchor="" x="1085" y="70" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">交出最终结果</text>
+        <text data-detail="context" x="1085" y="86" class="t-muted" font-size="9" text-anchor="middle">回答里不再有工具调用</text>
         </g>
 
-        <!-- Edge labels -->
+        <!-- Connection labels -->
 
         <g data-detail="context" data-edge-from="think" data-edge-to="act" data-edge-label="要动用工具" data-edge-key="1" data-edge-id="e2">
-          <rect x="380" y="100" width="58" height="14" rx="3" class="c-mask"/>
-          <text x="409" y="110" class="t-edge-emphasis" font-size="8" text-anchor="middle">要动用工具</text>
+          <rect x="668" y="100.025" width="58" height="14" rx="3" class="c-mask"/>
+          <text x="697" y="110.025" class="t-edge-emphasis" font-size="8" text-anchor="middle">要动用工具</text>
         </g>
 
-        <g data-detail="context" data-edge-from="feed" data-edge-to="think" data-edge-label="回喂·接着想下一步" data-edge-key="3" data-edge-id="e4">
-          <rect x="452.2" y="50" width="91.6" height="14" rx="3" class="c-mask"/>
-          <text x="498" y="60" class="t-edge-emphasis" font-size="8" text-anchor="middle">回喂·接着想下一步</text>
+        <g data-detail="context" data-edge-from="think" data-edge-to="done" data-edge-label="不用了" data-edge-key="3" data-edge-id="e5">
+          <rect x="774.6" y="45" width="38.8" height="14" rx="3" class="c-mask"/>
+          <text x="794" y="55" class="t-edge-dashed" font-size="8" text-anchor="middle">不用了</text>
         </g>
-        <g data-detail="context" data-edge-from="think" data-edge-to="done" data-edge-label="不用了" data-edge-key="4" data-edge-id="e5">
-          <rect x="557.1" y="154" width="38.8" height="14" rx="3" class="c-mask"/>
-          <text x="576.5" y="164" class="t-edge-dashed" font-size="8" text-anchor="middle">不用了</text>
+        <g data-detail="context" data-edge-from="feed" data-edge-to="think" data-edge-label="回喂·接着想下一步" data-edge-key="4" data-edge-id="e4">
+          <rect x="457.2" y="185" width="91.6" height="14" rx="3" class="c-mask"/>
+          <text x="503" y="195" class="t-edge-emphasis" font-size="8" text-anchor="middle">回喂·接着想下一步</text>
         </g>
+
+        <!-- Boundary labels (foreground masks keep routes out of titles) -->
+
 
         <!-- Legend -->
         <g data-legend="" data-legend-bridge="">
-          <text x="20" y="182" class="t-primary" font-size="12" font-weight="650">图例</text>
-          <g data-legend-semantic-kind="backend" data-legend-kind="backend" data-legend-label="Agent 逻辑" data-legend-x="20" data-legend-baseline="202" data-legend-width="87">
-            <rect x="20" y="194" width="14" height="9" rx="2" class="c-backend" stroke-width="1"/>
-            <text x="42" y="202" class="t-muted" font-size="7.5" font-weight="500">Agent 逻辑</text>
+          <text x="40" y="376" class="t-primary" font-size="12" font-weight="650">图例</text>
+          <g data-legend-semantic-kind="backend" data-legend-kind="backend" data-legend-label="Agent 逻辑" data-legend-x="40" data-legend-baseline="396" data-legend-width="93">
+            <rect x="40" y="387" width="16" height="10" rx="2.5" class="c-backend" stroke-width="1"/>
+            <text x="62" y="396" class="t-muted" font-size="10" font-weight="500">Agent 逻辑</text>
           </g>
-          <g data-legend-semantic-kind="database" data-legend-kind="database" data-legend-label="上下文 / 追踪" data-legend-x="114" data-legend-baseline="202" data-legend-width="100">
-            <rect x="114" y="194" width="14" height="9" rx="2" class="c-database" stroke-width="1"/>
-            <text x="136" y="202" class="t-muted" font-size="7.5" font-weight="500">上下文 / 追踪</text>
+          <g data-legend-semantic-kind="database" data-legend-kind="database" data-legend-label="上下文 / 追踪" data-legend-x="155" data-legend-baseline="396" data-legend-width="108">
+            <rect x="155" y="387" width="16" height="10" rx="2.5" class="c-database" stroke-width="1"/>
+            <text x="177" y="396" class="t-muted" font-size="10" font-weight="500">上下文 / 追踪</text>
           </g>
-          <g data-legend-semantic-kind="external" data-legend-kind="external" data-legend-label="外部系统" data-legend-x="221" data-legend-baseline="202" data-legend-width="78">
-            <rect x="221" y="194" width="14" height="9" rx="2" class="c-external" stroke-width="1"/>
-            <text x="243" y="202" class="t-muted" font-size="7.5" font-weight="500">外部系统</text>
+          <g data-legend-semantic-kind="external" data-legend-kind="external" data-legend-label="外部系统" data-legend-x="285" data-legend-baseline="396" data-legend-width="83">
+            <rect x="285" y="387" width="16" height="10" rx="2.5" class="c-external" stroke-width="1"/>
+            <text x="307" y="396" class="t-muted" font-size="10" font-weight="500">外部系统</text>
           </g>
         </g>
       </svg>

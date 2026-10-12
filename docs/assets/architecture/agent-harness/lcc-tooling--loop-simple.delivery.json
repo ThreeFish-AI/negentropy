@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
-  "receiptId": "b06e5f0b-4bd4-4223-92b0-9f371dc665f5",
+  "receiptId": "2bfdf677-7d7a-49bf-af1e-83cdfb943c2e",
   "status": "current",
   "command": "deliver",
-  "type": "workflow",
-  "input": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/.archify/workflow-loop-simple-20261010-092855/candidate.json",
+  "type": "architecture",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/diagrams/lcc-tooling--loop-simple/lcc-tooling--loop-simple.json",
   "output": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--loop-simple.html",
   "specification": {
-    "sha256": "d186ca45636dbefb298f73b832c1423cae6c1488c6a72057260cb21a1c111f91",
-    "bytes": 2424
+    "sha256": "277a31122f41e4a678a25bccc32208018d4c046f8ff6f32e02a3b9252c3c1ec3",
+    "bytes": 2803
   },
   "artifact": {
-    "sha256": "c2fe7b5f03a2947d3689619928d116a82bf48192773426014a101169f604b56e",
-    "bytes": 750802
+    "sha256": "bd9af87314c7a3e65549d04be0ce1d251f664655bea6be472d12df3bf5634245",
+    "bytes": 750144
   }
 }

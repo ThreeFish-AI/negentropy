@@ -6,11 +6,11 @@
   "status": "pass",
   "visualReview": "not-requested",
   "provenance": "current",
-  "deliveryReceiptId": "05b86c60-16d2-467f-9814-c04a7292dbbf",
+  "deliveryReceiptId": "acb29e9c-6daa-4cb6-a8ba-e3d7e37339dd",
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--loop-with-tools.html",
-    "sha256": "3acd5df43b084e24781051b4e3b5f87d4e4b5801ee5d417371c74b1e580c3533",
-    "bytes": 749755
+    "sha256": "73b7fdab1818417b49085cf711a91ccb308f0ab2a297cb5944e77e2371e01fba",
+    "bytes": 748907
   },
   "state": {
     "detail": "read",
@@ -39,7 +39,9 @@
         "overflowDisposition": "contained",
         "readerLayout": "adaptive",
         "readerOverflow": null,
-        "readerFit": null,
+        "readerFit": "authored-height",
+        "diagramType": "architecture",
+        "documentScrollUnclipped": true,
         "ok": true,
         "readerWidth": 1376,
         "diagramWidth": 1346,
@@ -47,45 +49,21 @@
           "bodyPaddingPx": 12,
           "headerPx": 78,
           "diagramChromePx": 78,
-          "svgPx": 544,
+          "svgPx": 462,
           "cardsPx": 0,
-          "viewBoxHeight": 408
+          "viewBoxHeight": 412
         },
-        "viewBoxWidth": 1009,
-        "workflowLanes": [
-          {
-            "frameId": "lane-0",
-            "heightPx": 141,
-            "nodeCount": 3,
-            "nodeIds": [
-              "think",
-              "run",
-              "feed"
-            ],
-            "nodeSpanPx": 91,
-            "spaceAboveNodesPx": 45,
-            "spaceBelowNodesPx": 5
-          },
-          {
-            "frameId": "lane-1",
-            "heightPx": 141,
-            "nodeCount": 1,
-            "nodeIds": [
-              "safe"
-            ],
-            "nodeSpanPx": 91,
-            "spaceAboveNodesPx": 45,
-            "spaceBelowNodesPx": 5
-          }
-        ],
+        "viewBoxWidth": 1200,
         "minimumProjectedNodeTextPx": 8,
-        "minimumProjectedNonEdgeTextPx": 8,
+        "minimumProjectedNonEdgeTextPx": 9,
         "minimumProjectedEdgeTextPx": 8,
-        "minimumProjectedNodeText": "回答里出现工具调用块",
-        "minimumProjectedNodeTextDetail": "context",
+        "minimumProjectedNodeText": "有工具调用块",
+        "minimumProjectedNodeTextDetail": "edge",
         "minimumProjectedNodeTextOwner": {
-          "kind": "node",
-          "id": "think"
+          "kind": "edge",
+          "id": "t1",
+          "from": "think",
+          "to": "run"
         },
         "minimumRequiredNodeTextPx": 6,
         "readabilityOk": true,
@@ -115,7 +93,9 @@
         "overflowDisposition": "contained",
         "readerLayout": "adaptive",
         "readerOverflow": null,
-        "readerFit": null,
+        "readerFit": "authored-height",
+        "diagramType": "architecture",
+        "documentScrollUnclipped": true,
         "ok": true,
         "readerWidth": 1536,
         "diagramWidth": 1506,
@@ -123,45 +103,21 @@
           "bodyPaddingPx": 64,
           "headerPx": 86,
           "diagramChromePx": 84,
-          "svgPx": 609,
+          "svgPx": 517,
           "cardsPx": 0,
-          "viewBoxHeight": 408
+          "viewBoxHeight": 412
         },
-        "viewBoxWidth": 1009,
-        "workflowLanes": [
-          {
-            "frameId": "lane-0",
-            "heightPx": 158,
-            "nodeCount": 3,
-            "nodeIds": [
-              "think",
-              "run",
-              "feed"
-            ],
-            "nodeSpanPx": 101,
-            "spaceAboveNodesPx": 51,
-            "spaceBelowNodesPx": 6
-          },
-          {
-            "frameId": "lane-1",
-            "heightPx": 158,
-            "nodeCount": 1,
-            "nodeIds": [
-              "safe"
-            ],
-            "nodeSpanPx": 101,
-            "spaceAboveNodesPx": 51,
-            "spaceBelowNodesPx": 6
-          }
-        ],
+        "viewBoxWidth": 1200,
         "minimumProjectedNodeTextPx": 8,
-        "minimumProjectedNonEdgeTextPx": 8,
+        "minimumProjectedNonEdgeTextPx": 9,
         "minimumProjectedEdgeTextPx": 8,
-        "minimumProjectedNodeText": "回答里出现工具调用块",
-        "minimumProjectedNodeTextDetail": "context",
+        "minimumProjectedNodeText": "有工具调用块",
+        "minimumProjectedNodeTextDetail": "edge",
         "minimumProjectedNodeTextOwner": {
-          "kind": "node",
-          "id": "think"
+          "kind": "edge",
+          "id": "t1",
+          "from": "think",
+          "to": "run"
         },
         "minimumRequiredNodeTextPx": 6,
         "readabilityOk": true,
@@ -191,7 +147,9 @@
         "overflowDisposition": "contained",
         "readerLayout": "adaptive",
         "readerOverflow": null,
-        "readerFit": null,
+        "readerFit": "authored-height",
+        "diagramType": "architecture",
+        "documentScrollUnclipped": true,
         "ok": true,
         "readerWidth": 1856,
         "diagramWidth": 1826,
@@ -199,45 +157,21 @@
           "bodyPaddingPx": 64,
           "headerPx": 86,
           "diagramChromePx": 84,
-          "svgPx": 738,
+          "svgPx": 627,
           "cardsPx": 0,
-          "viewBoxHeight": 408
+          "viewBoxHeight": 412
         },
-        "viewBoxWidth": 1009,
-        "workflowLanes": [
-          {
-            "frameId": "lane-0",
-            "heightPx": 192,
-            "nodeCount": 3,
-            "nodeIds": [
-              "think",
-              "run",
-              "feed"
-            ],
-            "nodeSpanPx": 123,
-            "spaceAboveNodesPx": 62,
-            "spaceBelowNodesPx": 7
-          },
-          {
-            "frameId": "lane-1",
-            "heightPx": 192,
-            "nodeCount": 1,
-            "nodeIds": [
-              "safe"
-            ],
-            "nodeSpanPx": 123,
-            "spaceAboveNodesPx": 62,
-            "spaceBelowNodesPx": 7
-          }
-        ],
+        "viewBoxWidth": 1200,
         "minimumProjectedNodeTextPx": 8,
-        "minimumProjectedNonEdgeTextPx": 8,
+        "minimumProjectedNonEdgeTextPx": 9,
         "minimumProjectedEdgeTextPx": 8,
-        "minimumProjectedNodeText": "回答里出现工具调用块",
-        "minimumProjectedNodeTextDetail": "context",
+        "minimumProjectedNodeText": "有工具调用块",
+        "minimumProjectedNodeTextDetail": "edge",
         "minimumProjectedNodeTextOwner": {
-          "kind": "node",
-          "id": "think"
+          "kind": "edge",
+          "id": "t1",
+          "from": "think",
+          "to": "run"
         },
         "minimumRequiredNodeTextPx": 6,
         "readabilityOk": true,
@@ -267,7 +201,9 @@
         "overflowDisposition": "contained",
         "readerLayout": "adaptive",
         "readerOverflow": null,
-        "readerFit": null,
+        "readerFit": "authored-height",
+        "diagramType": "architecture",
+        "documentScrollUnclipped": true,
         "ok": true,
         "readerWidth": 1920,
         "diagramWidth": 1870,
@@ -275,45 +211,21 @@
           "bodyPaddingPx": 64,
           "headerPx": 94,
           "diagramChromePx": 94,
-          "svgPx": 756,
+          "svgPx": 642,
           "cardsPx": 0,
-          "viewBoxHeight": 408
+          "viewBoxHeight": 412
         },
-        "viewBoxWidth": 1009,
-        "workflowLanes": [
-          {
-            "frameId": "lane-0",
-            "heightPx": 196,
-            "nodeCount": 3,
-            "nodeIds": [
-              "think",
-              "run",
-              "feed"
-            ],
-            "nodeSpanPx": 126,
-            "spaceAboveNodesPx": 63,
-            "spaceBelowNodesPx": 7
-          },
-          {
-            "frameId": "lane-1",
-            "heightPx": 196,
-            "nodeCount": 1,
-            "nodeIds": [
-              "safe"
-            ],
-            "nodeSpanPx": 126,
-            "spaceAboveNodesPx": 63,
-            "spaceBelowNodesPx": 7
-          }
-        ],
+        "viewBoxWidth": 1200,
         "minimumProjectedNodeTextPx": 8,
-        "minimumProjectedNonEdgeTextPx": 8,
+        "minimumProjectedNonEdgeTextPx": 9,
         "minimumProjectedEdgeTextPx": 8,
-        "minimumProjectedNodeText": "回答里出现工具调用块",
-        "minimumProjectedNodeTextDetail": "context",
+        "minimumProjectedNodeText": "有工具调用块",
+        "minimumProjectedNodeTextDetail": "edge",
         "minimumProjectedNodeTextOwner": {
-          "kind": "node",
-          "id": "think"
+          "kind": "edge",
+          "id": "t1",
+          "from": "think",
+          "to": "run"
         },
         "minimumRequiredNodeTextPx": 6,
         "readabilityOk": true,
@@ -396,7 +308,9 @@
         "overflowDisposition": "contained",
         "readerLayout": "adaptive",
         "readerOverflow": null,
-        "readerFit": null,
+        "readerFit": "authored-height",
+        "diagramType": "architecture",
+        "documentScrollUnclipped": true,
         "ok": true,
         "readerWidth": 1376,
         "diagramWidth": 1346,
@@ -404,45 +318,21 @@
           "bodyPaddingPx": 12,
           "headerPx": 78,
           "diagramChromePx": 78,
-          "svgPx": 544,
+          "svgPx": 462,
           "cardsPx": 0,
-          "viewBoxHeight": 408
+          "viewBoxHeight": 412
         },
-        "viewBoxWidth": 1009,
-        "workflowLanes": [
-          {
-            "frameId": "lane-0",
-            "heightPx": 141,
-            "nodeCount": 3,
-            "nodeIds": [
-              "think",
-              "run",
-              "feed"
-            ],
-            "nodeSpanPx": 91,
-            "spaceAboveNodesPx": 45,
-            "spaceBelowNodesPx": 5
-          },
-          {
-            "frameId": "lane-1",
-            "heightPx": 141,
-            "nodeCount": 1,
-            "nodeIds": [
-              "safe"
-            ],
-            "nodeSpanPx": 91,
-            "spaceAboveNodesPx": 45,
-            "spaceBelowNodesPx": 5
-          }
-        ],
+        "viewBoxWidth": 1200,
         "minimumProjectedNodeTextPx": 8,
-        "minimumProjectedNonEdgeTextPx": 8,
+        "minimumProjectedNonEdgeTextPx": 9,
         "minimumProjectedEdgeTextPx": 8,
-        "minimumProjectedNodeText": "回答里出现工具调用块",
-        "minimumProjectedNodeTextDetail": "context",
+        "minimumProjectedNodeText": "有工具调用块",
+        "minimumProjectedNodeTextDetail": "edge",
         "minimumProjectedNodeTextOwner": {
-          "kind": "node",
-          "id": "think"
+          "kind": "edge",
+          "id": "t1",
+          "from": "think",
+          "to": "run"
         },
         "minimumRequiredNodeTextPx": 6,
         "readabilityOk": true,
@@ -472,7 +362,9 @@
         "overflowDisposition": "contained",
         "readerLayout": "adaptive",
         "readerOverflow": null,
-        "readerFit": null,
+        "readerFit": "authored-height",
+        "diagramType": "architecture",
+        "documentScrollUnclipped": true,
         "ok": true,
         "readerWidth": 1536,
         "diagramWidth": 1506,
@@ -480,45 +372,21 @@
           "bodyPaddingPx": 64,
           "headerPx": 86,
           "diagramChromePx": 84,
-          "svgPx": 609,
+          "svgPx": 517,
           "cardsPx": 0,
-          "viewBoxHeight": 408
+          "viewBoxHeight": 412
         },
-        "viewBoxWidth": 1009,
-        "workflowLanes": [
-          {
-            "frameId": "lane-0",
-            "heightPx": 158,
-            "nodeCount": 3,
-            "nodeIds": [
-              "think",
-              "run",
-              "feed"
-            ],
-            "nodeSpanPx": 101,
-            "spaceAboveNodesPx": 51,
-            "spaceBelowNodesPx": 6
-          },
-          {
-            "frameId": "lane-1",
-            "heightPx": 158,
-            "nodeCount": 1,
-            "nodeIds": [
-              "safe"
-            ],
-            "nodeSpanPx": 101,
-            "spaceAboveNodesPx": 51,
-            "spaceBelowNodesPx": 6
-          }
-        ],
+        "viewBoxWidth": 1200,
         "minimumProjectedNodeTextPx": 8,
-        "minimumProjectedNonEdgeTextPx": 8,
+        "minimumProjectedNonEdgeTextPx": 9,
         "minimumProjectedEdgeTextPx": 8,
-        "minimumProjectedNodeText": "回答里出现工具调用块",
-        "minimumProjectedNodeTextDetail": "context",
+        "minimumProjectedNodeText": "有工具调用块",
+        "minimumProjectedNodeTextDetail": "edge",
         "minimumProjectedNodeTextOwner": {
-          "kind": "node",
-          "id": "think"
+          "kind": "edge",
+          "id": "t1",
+          "from": "think",
+          "to": "run"
         },
         "minimumRequiredNodeTextPx": 6,
         "readabilityOk": true,
@@ -548,7 +416,9 @@
         "overflowDisposition": "contained",
         "readerLayout": "adaptive",
         "readerOverflow": null,
-        "readerFit": null,
+        "readerFit": "authored-height",
+        "diagramType": "architecture",
+        "documentScrollUnclipped": true,
         "ok": true,
         "readerWidth": 1856,
         "diagramWidth": 1826,
@@ -556,45 +426,21 @@
           "bodyPaddingPx": 64,
           "headerPx": 86,
           "diagramChromePx": 84,
-          "svgPx": 738,
+          "svgPx": 627,
           "cardsPx": 0,
-          "viewBoxHeight": 408
+          "viewBoxHeight": 412
         },
-        "viewBoxWidth": 1009,
-        "workflowLanes": [
-          {
-            "frameId": "lane-0",
-            "heightPx": 192,
-            "nodeCount": 3,
-            "nodeIds": [
-              "think",
-              "run",
-              "feed"
-            ],
-            "nodeSpanPx": 123,
-            "spaceAboveNodesPx": 62,
-            "spaceBelowNodesPx": 7
-          },
-          {
-            "frameId": "lane-1",
-            "heightPx": 192,
-            "nodeCount": 1,
-            "nodeIds": [
-              "safe"
-            ],
-            "nodeSpanPx": 123,
-            "spaceAboveNodesPx": 62,
-            "spaceBelowNodesPx": 7
-          }
-        ],
+        "viewBoxWidth": 1200,
         "minimumProjectedNodeTextPx": 8,
-        "minimumProjectedNonEdgeTextPx": 8,
+        "minimumProjectedNonEdgeTextPx": 9,
         "minimumProjectedEdgeTextPx": 8,
-        "minimumProjectedNodeText": "回答里出现工具调用块",
-        "minimumProjectedNodeTextDetail": "context",
+        "minimumProjectedNodeText": "有工具调用块",
+        "minimumProjectedNodeTextDetail": "edge",
         "minimumProjectedNodeTextOwner": {
-          "kind": "node",
-          "id": "think"
+          "kind": "edge",
+          "id": "t1",
+          "from": "think",
+          "to": "run"
         },
         "minimumRequiredNodeTextPx": 6,
         "readabilityOk": true,
@@ -624,7 +470,9 @@
         "overflowDisposition": "contained",
         "readerLayout": "adaptive",
         "readerOverflow": null,
-        "readerFit": null,
+        "readerFit": "authored-height",
+        "diagramType": "architecture",
+        "documentScrollUnclipped": true,
         "ok": true,
         "readerWidth": 1920,
         "diagramWidth": 1870,
@@ -632,45 +480,21 @@
           "bodyPaddingPx": 64,
           "headerPx": 94,
           "diagramChromePx": 94,
-          "svgPx": 756,
+          "svgPx": 642,
           "cardsPx": 0,
-          "viewBoxHeight": 408
+          "viewBoxHeight": 412
         },
-        "viewBoxWidth": 1009,
-        "workflowLanes": [
-          {
-            "frameId": "lane-0",
-            "heightPx": 196,
-            "nodeCount": 3,
-            "nodeIds": [
-              "think",
-              "run",
-              "feed"
-            ],
-            "nodeSpanPx": 126,
-            "spaceAboveNodesPx": 63,
-            "spaceBelowNodesPx": 7
-          },
-          {
-            "frameId": "lane-1",
-            "heightPx": 196,
-            "nodeCount": 1,
-            "nodeIds": [
-              "safe"
-            ],
-            "nodeSpanPx": 126,
-            "spaceAboveNodesPx": 63,
-            "spaceBelowNodesPx": 7
-          }
-        ],
+        "viewBoxWidth": 1200,
         "minimumProjectedNodeTextPx": 8,
-        "minimumProjectedNonEdgeTextPx": 8,
+        "minimumProjectedNonEdgeTextPx": 9,
         "minimumProjectedEdgeTextPx": 8,
-        "minimumProjectedNodeText": "回答里出现工具调用块",
-        "minimumProjectedNodeTextDetail": "context",
+        "minimumProjectedNodeText": "有工具调用块",
+        "minimumProjectedNodeTextDetail": "edge",
         "minimumProjectedNodeTextOwner": {
-          "kind": "node",
-          "id": "think"
+          "kind": "edge",
+          "id": "t1",
+          "from": "think",
+          "to": "run"
         },
         "minimumRequiredNodeTextPx": 6,
         "readabilityOk": true,
@@ -705,7 +529,9 @@
         "overflowDisposition": "contained",
         "readerLayout": "adaptive",
         "readerOverflow": null,
-        "readerFit": null,
+        "readerFit": "authored-height",
+        "diagramType": "architecture",
+        "documentScrollUnclipped": true,
         "ok": true,
         "readerWidth": 1376,
         "diagramWidth": 1346,
@@ -713,45 +539,21 @@
           "bodyPaddingPx": 12,
           "headerPx": 78,
           "diagramChromePx": 78,
-          "svgPx": 544,
+          "svgPx": 462,
           "cardsPx": 0,
-          "viewBoxHeight": 408
+          "viewBoxHeight": 412
         },
-        "viewBoxWidth": 1009,
-        "workflowLanes": [
-          {
-            "frameId": "lane-0",
-            "heightPx": 141,
-            "nodeCount": 3,
-            "nodeIds": [
-              "think",
-              "run",
-              "feed"
-            ],
-            "nodeSpanPx": 91,
-            "spaceAboveNodesPx": 45,
-            "spaceBelowNodesPx": 5
-          },
-          {
-            "frameId": "lane-1",
-            "heightPx": 141,
-            "nodeCount": 1,
-            "nodeIds": [
-              "safe"
-            ],
-            "nodeSpanPx": 91,
-            "spaceAboveNodesPx": 45,
-            "spaceBelowNodesPx": 5
-          }
-        ],
+        "viewBoxWidth": 1200,
         "minimumProjectedNodeTextPx": 8,
-        "minimumProjectedNonEdgeTextPx": 8,
+        "minimumProjectedNonEdgeTextPx": 9,
         "minimumProjectedEdgeTextPx": 8,
-        "minimumProjectedNodeText": "回答里出现工具调用块",
-        "minimumProjectedNodeTextDetail": "context",
+        "minimumProjectedNodeText": "有工具调用块",
+        "minimumProjectedNodeTextDetail": "edge",
         "minimumProjectedNodeTextOwner": {
-          "kind": "node",
-          "id": "think"
+          "kind": "edge",
+          "id": "t1",
+          "from": "think",
+          "to": "run"
         },
         "minimumRequiredNodeTextPx": 6,
         "readabilityOk": true,
@@ -781,7 +583,9 @@
         "overflowDisposition": "contained",
         "readerLayout": "adaptive",
         "readerOverflow": null,
-        "readerFit": null,
+        "readerFit": "authored-height",
+        "diagramType": "architecture",
+        "documentScrollUnclipped": true,
         "ok": true,
         "readerWidth": 1536,
         "diagramWidth": 1506,
@@ -789,45 +593,21 @@
           "bodyPaddingPx": 64,
           "headerPx": 86,
           "diagramChromePx": 84,
-          "svgPx": 609,
+          "svgPx": 517,
           "cardsPx": 0,
-          "viewBoxHeight": 408
+          "viewBoxHeight": 412
         },
-        "viewBoxWidth": 1009,
-        "workflowLanes": [
-          {
-            "frameId": "lane-0",
-            "heightPx": 158,
-            "nodeCount": 3,
-            "nodeIds": [
-              "think",
-              "run",
-              "feed"
-            ],
-            "nodeSpanPx": 101,
-            "spaceAboveNodesPx": 51,
-            "spaceBelowNodesPx": 6
-          },
-          {
-            "frameId": "lane-1",
-            "heightPx": 158,
-            "nodeCount": 1,
-            "nodeIds": [
-              "safe"
-            ],
-            "nodeSpanPx": 101,
-            "spaceAboveNodesPx": 51,
-            "spaceBelowNodesPx": 6
-          }
-        ],
+        "viewBoxWidth": 1200,
         "minimumProjectedNodeTextPx": 8,
-        "minimumProjectedNonEdgeTextPx": 8,
+        "minimumProjectedNonEdgeTextPx": 9,
         "minimumProjectedEdgeTextPx": 8,
-        "minimumProjectedNodeText": "回答里出现工具调用块",
-        "minimumProjectedNodeTextDetail": "context",
+        "minimumProjectedNodeText": "有工具调用块",
+        "minimumProjectedNodeTextDetail": "edge",
         "minimumProjectedNodeTextOwner": {
-          "kind": "node",
-          "id": "think"
+          "kind": "edge",
+          "id": "t1",
+          "from": "think",
+          "to": "run"
         },
         "minimumRequiredNodeTextPx": 6,
         "readabilityOk": true,
@@ -857,7 +637,9 @@
         "overflowDisposition": "contained",
         "readerLayout": "adaptive",
         "readerOverflow": null,
-        "readerFit": null,
+        "readerFit": "authored-height",
+        "diagramType": "architecture",
+        "documentScrollUnclipped": true,
         "ok": true,
         "readerWidth": 1856,
         "diagramWidth": 1826,
@@ -865,45 +647,21 @@
           "bodyPaddingPx": 64,
           "headerPx": 86,
           "diagramChromePx": 84,
-          "svgPx": 738,
+          "svgPx": 627,
           "cardsPx": 0,
-          "viewBoxHeight": 408
+          "viewBoxHeight": 412
         },
-        "viewBoxWidth": 1009,
-        "workflowLanes": [
-          {
-            "frameId": "lane-0",
-            "heightPx": 192,
-            "nodeCount": 3,
-            "nodeIds": [
-              "think",
-              "run",
-              "feed"
-            ],
-            "nodeSpanPx": 123,
-            "spaceAboveNodesPx": 62,
-            "spaceBelowNodesPx": 7
-          },
-          {
-            "frameId": "lane-1",
-            "heightPx": 192,
-            "nodeCount": 1,
-            "nodeIds": [
-              "safe"
-            ],
-            "nodeSpanPx": 123,
-            "spaceAboveNodesPx": 62,
-            "spaceBelowNodesPx": 7
-          }
-        ],
+        "viewBoxWidth": 1200,
         "minimumProjectedNodeTextPx": 8,
-        "minimumProjectedNonEdgeTextPx": 8,
+        "minimumProjectedNonEdgeTextPx": 9,
         "minimumProjectedEdgeTextPx": 8,
-        "minimumProjectedNodeText": "回答里出现工具调用块",
-        "minimumProjectedNodeTextDetail": "context",
+        "minimumProjectedNodeText": "有工具调用块",
+        "minimumProjectedNodeTextDetail": "edge",
         "minimumProjectedNodeTextOwner": {
-          "kind": "node",
-          "id": "think"
+          "kind": "edge",
+          "id": "t1",
+          "from": "think",
+          "to": "run"
         },
         "minimumRequiredNodeTextPx": 6,
         "readabilityOk": true,
@@ -933,7 +691,9 @@
         "overflowDisposition": "contained",
         "readerLayout": "adaptive",
         "readerOverflow": null,
-        "readerFit": null,
+        "readerFit": "authored-height",
+        "diagramType": "architecture",
+        "documentScrollUnclipped": true,
         "ok": true,
         "readerWidth": 1920,
         "diagramWidth": 1870,
@@ -941,45 +701,21 @@
           "bodyPaddingPx": 64,
           "headerPx": 94,
           "diagramChromePx": 94,
-          "svgPx": 756,
+          "svgPx": 642,
           "cardsPx": 0,
-          "viewBoxHeight": 408
+          "viewBoxHeight": 412
         },
-        "viewBoxWidth": 1009,
-        "workflowLanes": [
-          {
-            "frameId": "lane-0",
-            "heightPx": 196,
-            "nodeCount": 3,
-            "nodeIds": [
-              "think",
-              "run",
-              "feed"
-            ],
-            "nodeSpanPx": 126,
-            "spaceAboveNodesPx": 63,
-            "spaceBelowNodesPx": 7
-          },
-          {
-            "frameId": "lane-1",
-            "heightPx": 196,
-            "nodeCount": 1,
-            "nodeIds": [
-              "safe"
-            ],
-            "nodeSpanPx": 126,
-            "spaceAboveNodesPx": 63,
-            "spaceBelowNodesPx": 7
-          }
-        ],
+        "viewBoxWidth": 1200,
         "minimumProjectedNodeTextPx": 8,
-        "minimumProjectedNonEdgeTextPx": 8,
+        "minimumProjectedNonEdgeTextPx": 9,
         "minimumProjectedEdgeTextPx": 8,
-        "minimumProjectedNodeText": "回答里出现工具调用块",
-        "minimumProjectedNodeTextDetail": "context",
+        "minimumProjectedNodeText": "有工具调用块",
+        "minimumProjectedNodeTextDetail": "edge",
         "minimumProjectedNodeTextOwner": {
-          "kind": "node",
-          "id": "think"
+          "kind": "edge",
+          "id": "t1",
+          "from": "think",
+          "to": "run"
         },
         "minimumRequiredNodeTextPx": 6,
         "readabilityOk": true,
