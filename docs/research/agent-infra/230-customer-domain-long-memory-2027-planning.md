@@ -55,6 +55,10 @@ description: "Context Layer 客户域（tenant / user 两级主体）长期记�
 
 **读写路径（目标态）**
 
+![客户域长期记忆读写路径（目标态）：写路径为会话提交管线（会话结束 → 压缩与归档 → 事实抽取 → LLM 去重决策 → memory_diff → add-memory 审计），读路径为检索注入管线（主体前缀检索 → RRF 融合与信任重排 → Guard 裁决 → 预算裁剪 → ContextBundle），写读同源](../../assets/architecture/agent-infra/customer-memory--rw-pipeline-dark.png)
+
+> 图源（可 diff 文本）：[`customer-memory--rw-pipeline.mmd`](../../assets/mermaid/agent-infra/customer-memory--rw-pipeline.mmd) · 交互版：[`customer-memory--rw-pipeline.html`](../../assets/architecture/agent-infra/customer-memory--rw-pipeline.html)
+
 | 路径 | 步骤 |
 |---|---|
 | 写 | 会话结束 → 压缩与归档 → 抽取 → 向量预筛相似项 → LLM 决策 skip / create / merge / delete → 生成 `memory_diff` → `add-memory` 写入 MB 并审计 |

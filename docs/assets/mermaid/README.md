@@ -77,7 +77,7 @@
 | [dream-rsi--behavior-adaptive](./self-evolution/dream-rsi--behavior-adaptive.mmd) | [144 §6](../../research/self-evolution/144-dream-rsi.md) | lifecycle | ✓ | done | 先省后探：110→50→回升与性能 0.427→1.898 |
 | [dream-rsi--unproven-list](./self-evolution/dream-rsi--unproven-list.mmd) | [144 §8](../../research/self-evolution/144-dream-rsi.md) | workflow | ✓ | done | 论文未证明五件事清单（panel+编号反枚举） |
 
-### agent-infra/（docs/research/agent-infra/ 的 Agent Skills 规范精读（090 + 重学 210）+ Jev 精读）
+### agent-infra/（docs/research/agent-infra/ 的 Agent Skills 规范精读（090 + 重学 210）+ Jev 精读 + 客户域 Memory 规划（230））
 
 | slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -89,6 +89,7 @@
 | [agent-skills--governance-layers](./agent-infra/agent-skills-governance-layers.mmd) | [210 §3/§8/§9](../../research/agent-infra/210-agent-skills-open-standard.md) | architecture | ✓ | done | 治理相（重学版）：规范 MUST/建议/留白 × 指南层 × 生态四家抽样 × 48 PR 悬案三行网格 |
 | [supply-chain--ious-route](./agent-infra/supply-chain-ious-route.mmd) | [220 §9](../../research/agent-infra/220-skills-supply-chain.md) | workflow | ✓ | done | 三张欠条兑付路线：签名/分发/版本三泳道并行回收+PR 状态橡皮章（E3 精读首绘） |
 | [supply-chain--dual-harbor](./agent-infra/supply-chain-dual-harbor.mmd) | [220 §2/§6](../../research/agent-infra/220-skills-supply-chain.md) | architecture | ✓ | done | 双港区对照：agentskills 冻结 49 天 vs MCP ext-skills 81 天 Final + jonathanhefner 人事桥 + #546 报关单（E3 精读首绘） |
+| [customer-memory--rw-pipeline](./agent-infra/customer-memory--rw-pipeline.mmd) | [230 §二/§四](../../research/agent-infra/230-customer-domain-long-memory-2027-planning.md) | workflow | ✓ | done | 客户域记忆读写目标态：写链 session_end→归档→抽取→LLM 去重决策→memory_diff→add-memory 审计；读链主体前缀检索→RRF 信任重排→Guard→预算裁剪→ContextBundle，写读同源 |
 | [agent-skills--port-46-adoption](./agent-infra/agent-skills-port-46-adoption.mmd) | [分镜 0-A/0-B](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | workflow | ✓ | done | 生态采纳全景（视频 E1 重绘）：2025 捐出→竞对全接→整张牌桌（视频 E1 重绘新绘） |
 | [agent-skills--two-old-roads](./agent-infra/agent-skills-two-old-roads.mmd) | [分镜 0-E](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | workflow | ✓ | done | 两条老路死法：盲航/超载/成本函数之问双泳道（视频 E1 重绘新绘） |
 | [agent-skills--box-anatomy](./agent-infra/agent-skills-box-anatomy.mmd) | [分镜 1-A/1-C](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | architecture | ✓ | done | 技能包解剖：箱体/角件六字段/箱号=登记名/正文附件/选填验箱五章（视频 E1 重绘新绘） |
