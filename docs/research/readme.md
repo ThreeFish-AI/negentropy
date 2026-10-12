@@ -77,6 +77,7 @@
 | [可观测性对比：Jaeger vs Langfuse](./agent-infra/100-agent-obser.md) | 生成式 AI 可观测性方案选型 |
 | [Jev 精读笔记](./agent-infra/200-jev-system-one-model.md) | TypeSafe「System One Model」四机制：闭合输出空间 × 共享读·隔离问 × 校准概率与 confidence（adapter 固定公式，读数≠概率）× 快慢分工；官方口径与第三方实测逐项对账（193.6× 复算仅 97.8×、校准领地：分布内 ECE 0.031 / 密封集 0.220）；含纯标准库原型 S1–S11 + B1–B5 破坏实验与 laya 复刻本地实测 |
 | [Jev ↔ negentropy 机制映射](./agent-infra/201-jev-mapping-negentropy.md) | 16 条映射（✅5/🔶9/⏸2）：真增量是四条纪律——解析失败应弃权而非注入默认值（proposer 对照 judge 静默 0 分）、矫正要有 counter、置信缺省方向（KG 缺省 1.0 叠 0.5 阈值=自动通过）、口头置信与启发式常数不可比；接入 Jev 本体暂缓 |
+| [客户域 Agent Long Memory · 2027 产品规划](./agent-infra/230-customer-domain-long-memory-2027-planning.md) | Context Layer 客户域（tenant / user 两级）长期记忆的年度产品规划：5 条能力线 × 18 个功能点（写入沉淀 / 治理合规 / 读取注入 / 可见可改与运营 / 评估与扩展），含用户场景、验收标准、Gate-0 + 四个季度里程碑、成功指标与待决策项；不含人力与成本估算 |
 
 ## 六、自进化与工具 · `self-evolution/`
 
