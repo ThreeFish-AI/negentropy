@@ -1,4 +1,4 @@
-# 分镜表：《拆解 Horizon Context：Context 怎么治理，结果怎么验证》（v3）
+# 分镜表：《拆解 Snowflake Horizon Context：怎么治理 Agent Context？怎么验证 Agent 交付结果？》（v3）
 
 > 句 id 与 narration.md（v2，156 句）对齐；时长以音频 manifest 实测为准。
 > **本集视觉契约**：金 `#E8C06A`=「同一份定义」口径主线（语义视图/指标/定义卡母题）· 紫 `#C9A0FF`=治理与身份层（策略/Agent Identity/血缘账本）· 青 `#5CBFB0`=验证锚定与对账（核准题库/证据分级/收口）；底座 `#0E1116` 系；danger `#FF5C5C` 仅破坏实验崩溃侧；ok `#7ED321` 仅机制在位拦截侧。

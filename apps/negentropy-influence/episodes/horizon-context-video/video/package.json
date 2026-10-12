@@ -1,7 +1,7 @@
 {
   "name": "horizon-context-video",
   "private": true,
-  "description": "《拆解 Horizon Context：Context 怎么治理，结果怎么验证》科普视频 Remotion 工程",
+  "description": "《拆解 Snowflake Horizon Context：怎么治理 Agent Context？怎么验证 Agent 交付结果？》科普视频 Remotion 工程",
   "scripts": {
     "dev": "remotion studio",
     "typecheck": "tsc --noEmit",
