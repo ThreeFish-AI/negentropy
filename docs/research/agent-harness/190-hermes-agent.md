@@ -157,7 +157,7 @@ M5 受控扩张：委派 / cron / 命令守卫各自设硬上限
 
 **程序性技能**：
 
-- 形态：`~/.hermes/skills/<category>/<name>/SKILL.md`，可带 `references/`、`templates/`、`scripts/`、`assets/`，兼容 [agentskills.io 规范](../agent-infra/090-agent-skills-spec.md)。
+- 形态：`~/.hermes/skills/<category>/<name>/SKILL.md`，可带 `references/`、`templates/`、`scripts/`、`assets/`，兼容 [agentskills.io 规范](../agent-infra/230-agent-skills-standard.md)。
 - 渐进披露：提示里只有目录，由 `skills_list` 列出、`skill_view` 按需加载正文。
 - **目录不设条数上限**：`agent/prompt_builder.py:1353` 注释是「NEVER drop entries」，描述截到 57 字加省略号（`agent/skill_utils.py:775`）。
 - 结论：常驻部分有两块。小本有硬上限；目录没有上限，只能靠 Curator 回收（§5）。
@@ -493,7 +493,7 @@ uv run --no-project python docs/research/agent-harness/assets/hermes_lab.py --br
   - [170 Claude Code 五层 Harness 总览](./170-claude-code-harness-overview.md)：技能渐进披露见 [172](./172-claude-code-planning-coordination.md)，收台与持久记忆见 [173](./173-claude-code-memory-management.md)。
   - [180 AI Native 手册](./180-ai-native-handbook.md)：企业级控制面。
 - 相邻研究：
-  - [090 Agent Skills 开放规范](../agent-infra/090-agent-skills-spec.md)：Hermes 技能目录兼容该规范。
+  - [230 Agent Skills 开放标准精读](../agent-infra/230-agent-skills-standard.md)：Hermes 技能目录兼容该规范。
   - [014 OpenViking](../cognitive-context/014-openviking.md)：Hermes 自带 openviking 记忆提供者插件。
   - [130 自进化 Agents](../self-evolution/130-self-evolving-agents-team.md) 与 [144 Dream-RSI](../self-evolution/144-dream-rsi.md)：争议一的门控派。
 

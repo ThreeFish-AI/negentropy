@@ -70,10 +70,9 @@
 | [Agent Sandbox 综述](./agent-infra/080-agent-sandbox.md) | 五大技术路线正交剖析 |
 | [Agent Sandbox 正交分析](./agent-infra/081-agent-sandbox.md) | Microsandbox / Wasmtime / Firecracker / Vertex |
 | [Agent Sandbox 信任架构深度研究](./agent-infra/082-agent-sandbox.md) | 微虚拟机到托管式执行环境 |
-| [Agent Skills 开放规范精读](./agent-infra/090-agent-skills-spec.md) | agentskills.io 规范（固定提交 `69ef37e9`）：目录即技能包、name 借文件系统拿唯一性、description 独扛触发、三级渐进披露的上下文成本结构；skills-ref 参考实现与规范 13 处分歧（6 处经真实参考实现复现），含最小原型与五次破坏性实验 |
 | [可观测性对比：Jaeger vs Langfuse](./agent-infra/100-agent-obser.md) | 生成式 AI 可观测性方案选型 |
 | [Jev 精读笔记](./agent-infra/200-jev-system-one-model.md) | TypeSafe「System One Model」四机制：闭合输出空间 × 共享读·隔离问 × 校准概率与 confidence（adapter 固定公式，读数≠概率）× 快慢分工；官方口径与第三方实测逐项对账（193.6× 复算仅 97.8×、校准领地：分布内 ECE 0.031 / 密封集 0.220）；含纯标准库原型 S1–S11 + B1–B5 破坏实验与 laya 复刻本地实测 |
-| [Agent Skills 开放标准精读与通俗拆解](./agent-infra/230-agent-skills-standard.md) | agentskills.io 精读（钉 69ef37e9 + 四家客户端口径实测）：三级渐进披露记账、description 独扛路由与触发评测法、规范↔参考实现↔客户端六处分歧、四家对照表；配套 agent_skills_lab4.py（X1–X5）与 agent_skills_lab2.py（补充 X1/X3/X4/X5）两组破坏实验 |
+| [Agent Skills 开放标准精读与通俗拆解](./agent-infra/230-agent-skills-standard.md) | agentskills.io 精读（钉 69ef37e9 + 四家客户端口径实测）：三级渐进披露记账、description 独扛路由与触发评测法、规范↔参考实现↔客户端十三处分歧、四家对照表；配套 agent_skills_lab4.py（X1–X5）与 agent_skills_lab2.py（补充 X1/X3/X4/X5）两组破坏实验 |
 | [客户域 Agent Long Memory · 2027 产品规划](./agent-infra/230-customer-domain-long-memory-2027-planning.md) | Context Layer 客户域（tenant / user 两级）长期记忆的年度产品规划：5 条能力线 × 18 个功能点（写入沉淀 / 治理合规 / 读取注入 / 可见可改与运营 / 评估与扩展），含用户场景、验收标准、Gate-0 + 四个季度里程碑、成功指标与待决策项；不含人力与成本估算 |
 
 ## 六、自进化与工具 · `self-evolution/`

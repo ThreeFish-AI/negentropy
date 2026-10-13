@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 ### Added
+### Agent Skills 格式层精读合并：090 并入 230（2026-10-13）
+
+- **合并**：一代格式层精读 090（527 行，历史版本）并入 [230 现行精读](docs/research/agent-infra/230-agent-skills-standard.md)后删除（全文经 git 历史可溯）；供应链续篇 [220](docs/research/agent-infra/220-skills-supply-chain.md) 是不同主题（分发/签名/版本，230 §12 已将其划为 Out-of-Scope），保留不动。吸收内容：§8 规范↔参考实现分歧表由 6 行扩为 13 行并加「实证」列（含 4 处真实 skills-ref 实跑复现：CJK 名称放行、frontmatter 非行锚定切分、逗号 allowed-tools 不校验、`to-prompt` 坏文件整体失败）、一代原型 B3（description 超长目录 +255%）与 B4（切分静默失败）实验行、B5 的 location 顺序延伸推演、RFC 9413「virtuous intolerance」锚点、规范未定义项清单、自触发的结构性弱点、目录规模上限批判；
+- **不带入**：手册柜总类比与费曼考评实录（现行规约禁总类比、实录留 lab）、B1 的 16.9×（玩具域，沿上轮裁决）、090 的五规律与争议 3（供应链信任属 220 主题）；
+- **改链**：mapping-negentropy 四处、knowledge-map（删 090 条目，一代原型信息并入 230 条目）、research/readme、issue.md ISSUE-194、190 Hermes、mermaid 登记两行（090 系两图改指 230 §3/§4，图文件不动）；分歧计数「六处」改「十三处」同步三处索引。
+
 ### 机制映射合并：10 份映射文档并入单一汇总（2026-10-13）
 
 - **合并**：docs/research 下 10 份「X ↔ negentropy 机制映射」（合计 1040 行）并入 [mapping-negentropy.md](docs/research/mapping-negentropy.md) 单一文档，按五个域组织（认知与上下文 HZ/OV、Skills SK、Jev JV、自进化 PG/DR、Agent Harness AN/HM），文首含前缀登记表、跨域结论与统一落地 backlog；10 份原文件删除（全文经 git 历史可溯）。091 与 211 取并集去重（211 的 12 条为底，091 未被承接且仍成立的 M10/M11/M13 独立保留，四桶审计落 `.temp/mapping-merge/`）；221 的映射表（SK-A1–A6）并入，B/C 两节（E3 叙事锚点与数字时效卡）迁至 `apps/negentropy-influence/episodes/skills-supply-chain-video/research/narrative-anchors.md`；

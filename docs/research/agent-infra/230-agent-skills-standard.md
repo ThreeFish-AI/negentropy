@@ -1,7 +1,7 @@
 ---
 sidebar_position: 8
 title: "Agent Skills 开放标准精读与通俗拆解"
-description: "以 agentskills.io 全站 9 页 + 规范仓钉点 69ef37e9（2026-08-09 冻结，站点实况与 HEAD 一致）+ skills-ref 参考实现源码级通读 + Claude Code/Codex/Gemini CLI/VS Code 四家客户端官方口径实测为信源的完全重读：一个刻意做小的知识打包标准（文件夹+SKILL.md 六字段）如何用「目录常驻一行、激活才付正文、资源按需再付」的三级记账换来电生态；五条底层规律（成本按使用付费/一根字符串的路由/身份借文件系统/被解释的文本/互操作压倒完备）× 三个争议（严格 vs 宽容双轨/关门哲学与 51 条 PR/互操作约定与私有目录）；规范↔参考实现↔客户端三方六处分歧逐条锚定；配套两个纯标准库原型：agent_skills_lab4.py（469 行，12 assert 全绿，X1–X5：身份漂移技能静默蒸发/严格门当装载门装载面 -1/6/目录注入 0→1/资源预载常驻 +13%/压缩保护拆除策略静默丢失）与 agent_skills_lab2.py（354 行，补充 X1/X3/X4/X5：作用域优先级/metadata 强转翻转/朴素解析器下的伪字段注入/遮蔽告警剥离）"
+description: "以 agentskills.io 全站 9 页 + 规范仓钉点 69ef37e9（2026-08-09 冻结，站点实况与 HEAD 一致）+ skills-ref 参考实现源码级通读 + Claude Code/Codex/Gemini CLI/VS Code 四家客户端官方口径实测为信源的完全重读：一个刻意做小的知识打包标准（文件夹+SKILL.md 六字段）如何用「目录常驻一行、激活才付正文、资源按需再付」的三级记账换来电生态；五条底层规律（成本按使用付费/一根字符串的路由/身份借文件系统/被解释的文本/互操作压倒完备）× 三个争议（严格 vs 宽容双轨/关门哲学与 51 条 PR/互操作约定与私有目录）；规范↔参考实现↔客户端三方十三处分歧逐条锚定；配套两个主要纯标准库原型（另有一代原型 agent_skills_lab.py 补 B3/B4 两项实验）：agent_skills_lab4.py（469 行，12 assert 全绿，X1–X5：身份漂移技能静默蒸发/严格门当装载门装载面 -1/6/目录注入 0→1/资源预载常驻 +13%/压缩保护拆除策略静默丢失）与 agent_skills_lab2.py（354 行，补充 X1/X3/X4/X5：作用域优先级/metadata 强转翻转/朴素解析器下的伪字段注入/遮蔽告警剥离）"
 ---
 
 # Agent Skills 开放标准精读与通俗拆解
@@ -13,7 +13,7 @@ description: "以 agentskills.io 全站 9 页 + 规范仓钉点 69ef37e9（2026-
 **SCQA 导读**（按「背景—冲突—问题—答案」展开）。共识：模型越来越能干，通用知识几乎不缺。痛点：但「按你家的规矩把活干对」的工序知识（团队约定、工具链细节、踩过的坑）每次会话都要重新交代：让模型自己猜不可靠，把手册全塞进开场白又贵，而且塞得越多指令彼此稀释越笨。问题：能不能把这类知识做成一个标准包裹，让任何工具都能装、装很多也不贵、换工具还能继续用？回答：能，这就是 Agent Skills。§3 讲包裹的形状与身份，§4 讲装载的记账方式（本格式的经济学核心），§5 讲「什么时候用」这一句话怎么写怎么测，§6–§7 讲客户端怎么用包裹、包裹里怎么带工具，§8 讲官方给出的校验器与规范、指南之间的口径分歧，§10 是可以亲手重跑与再拆的实验室，§14 指向本仓的落地对照。
 
 > [!TIP]
-> **白话主线**：模型缺的不是聪明而是「你家怎么干活」的工序知识；这类知识写成标准化的技能包（文件夹+一份说明书），客户端启动时只给每个包登记一行目录（约百 token），任务对上号才整份读入、用到附带文件才去读。常驻的只有目录，用多少付多少。格式小到只有六个约定字段、不管分发不管信任，连竞争对手都愿意采纳（46 家登记）；规范仓自带参考实现可以校验包裹，本篇用两个纯标准库原型复刻了全链路，并逐个拆核心约束，实测拆掉会坏什么。
+> **白话主线**：模型缺的不是聪明而是「你家怎么干活」的工序知识；这类知识写成标准化的技能包（文件夹+一份说明书），客户端启动时只给每个包登记一行目录（约百 token），任务对上号才整份读入、用到附带文件才去读。常驻的只有目录，用多少付多少。格式小到只有六个约定字段、不管分发不管信任，连竞争对手都愿意采纳（46 家登记）；规范仓自带参考实现可以校验包裹，本篇用两个主要的纯标准库原型复刻了全链路（一代原型另补两项实验），并逐个拆核心约束，实测拆掉会坏什么。
 
 ## 1. 它要解决什么问题
 
@@ -99,7 +99,7 @@ Agent Skills 给出的设计规格：
 
 实现指南（建议层，非规范）给出五步生命周期 [1]。**发现**：至少扫两个作用域，项目级（随仓库走）与用户级（跨项目），每域同时扫客户端私有目录与 `.agents/skills/` 约定目录；同名时项目级压用户级、并告警；实用细节包括跳过 `.git`/`node_modules`、设合理扫描边界（指南举例：深度 4–6 层、约 2000 个目录）；项目级技能可能来自不可信仓库，指南建议挂信任门。**解析**：frontmatter 提取后按宽容原则装载：名字与目录不符或超长→警告照载；description 缺失或 YAML 完全不可解析→跳过并记日志；坏 YAML（典型如未加引号的冒号）建议包裹引号重试。**披露**：目录块用 XML/JSON/列表皆可，量级同 §4 三级表；被禁用/被权限拒绝/退出模型激活的技能应整条隐藏而非「列出再拦截」；一个技能都没有时应整块省略（空目录块会让模型困惑）。**激活**：两通道，模型用普通文件读工具直接读 `SKILL.md`，或客户端注册专用激活工具（可控制返回内容、加结构化包裹标签、枚举约束技能名防幻觉、做权限与埋点）；用户侧应有 `/技能名` 式显式调用；返回全文或去 frontmatter 的正文皆可（多数实现剥头）；技能目录应加入权限白名单，否则读附带文件每一步都弹确认框。**长会话管理**：压缩豁免（§4）+ 激活去重 + 可选的子代理委派（复杂技能放独立会话跑，回传摘要）。
 
-「模型自主调用」与「用户点名调用」是同一套激活双通道上的取舍：自主调用靠 description 概率命中，点名调用百分之百确定。有的客户端把这个选择交给技能作者：VS Code 的 `disable-model-invocation: true` 让技能只能经斜杠命令手动调用，`user-invocable: false` 则让技能不出现在 `/` 菜单、只供模型调用；Claude Code 同样有 `disable-model-invocation` [3][7]。
+「模型自主调用」与「用户点名调用」是同一套激活双通道上的取舍：自主调用靠 description 概率命中，点名调用百分之百确定。有的客户端把这个选择交给技能作者：VS Code 的 `disable-model-invocation: true` 让技能只能经斜杠命令手动调用，`user-invocable: false` 则让技能不出现在 `/` 菜单、只供模型调用；Claude Code 同样有 `disable-model-invocation` [3][7]。自触发一侧还有两个结构性弱点：指南鼓励「pushy」的描述措辞，误触发与诱导之间的形式边界规范没有定义；且自触发的失败是静默的，技能合规却永远不被触发时没有任何报错。这类标记本身不在规范六字段内，严格校验会把它拒之门外（见 §8 分歧 1 的实证）。
 
 `.agents/skills/` 的地位值得单说：指南称它「已成为广泛采纳的跨客户端约定」，规范本身不管技能放哪，但扫这个目录意味着别家客户端装的技能自动可见 [1]。实测口径是**不对称**的：Codex 原生只用 `.agents/skills`（项目链 CWD→仓库根 + 用户 `$HOME` + 管理员 `/etc/codex/skills` + 系统内置四级）[4]；Gemini CLI 与 VS Code 也扫 `.agents/skills` [6][7]；但发起方自家的 Claude Code 文档列的是自家一整套位置体系：`.claude/skills`（企业/个人/项目/嵌套）、插件内 `skills/` 目录、claude.ai 账号同步，全文未提 `.agents/skills` [3]。互操作实际靠「别人多扫我」（指南也称一些实现会兼容扫描 `.claude/skills`）达成，而非统一路径。四家的实测口径并排如下（2026-10-12 复核）：
 
@@ -114,7 +114,7 @@ Agent Skills 给出的设计规格：
 
 ## 7. 资源层与脚本：包裹里的工具怎么带
 
-先说引用纪律：`SKILL.md` 里引用文件一律用相对技能根目录的路径，且**保持一层深**（`references/REFERENCE.md` 可以，`references/a/b/c.md` 再被 `b.md` 引用的长链不建议）。模型按需读文件时，浅引用意味着确定的一跳 [1]。
+先说引用纪律：`SKILL.md` 里引用文件一律用相对技能根目录的路径，且**保持一层深**（`references/REFERENCE.md` 可以，`references/a/b/c.md` 再被 `b.md` 引用的长链不建议）。模型按需读文件时，浅引用意味着确定的一跳 [1]。规范与指南另有几处刻意留白，工程上会咬人：文本编码与换行符（UTF-8 / BOM / CRLF）、YAML 版本与子集、「一层深」指引用链深度还是目录深度、脚本的工作目录口径，均未定义 [1]。
 
 **一次性命令**：现成工具直接引用（规范建议钉版本、声明前置），六大通道各配一句示例：`uvx`/`pipx`（Python 包隔离执行）、`npx`/`bunx`（npm）、`deno run npm:`（带权限旗标）、`go run pkg@version` [1]。**自含脚本**：把可复用逻辑放进 `scripts/` 并内联声明依赖：Python 用 PEP 723 的 `# /// script` 块配 `uv run`，Deno 的 `npm:`/`jsr:` 导入天然自含，Bun 自动装包，Ruby 用 `bundler/inline` [1]。
 
@@ -124,20 +124,29 @@ Agent Skills 给出的设计规格：
 
 ## 8. 校验与双轨：同一官方面孔的严格面与宽容面
 
-规范指定 `skills-ref validate` 为官方校验入口：检查 frontmatter 合法与命名约定 [1]。参考实现（解析器 strictyaml、六字段白名单、Unicode 身份规则、NFKC 目录名比对）自带三命令：`validate` / `read-properties` / `to-prompt`（生成 `<available_skills>` 目录块）[2]。像交警路面执法与车辆年检的关系：客户端装载是路面执法，车牌样式不对、车长超标，警告一句照放行，先保路上通（技能能用）；官方校验器是年检，多一个没登记的字段就打回，保的是「这车完全合规」（格式纯净）。两轨服务的目标不同，并行不悖；且年检是自愿的：校验器打回的技能，宽容客户端照样能跑，两轨没有强制联动。
+规范指定 `skills-ref validate` 为官方校验入口：检查 frontmatter 合法与命名约定 [1]。参考实现（解析器 strictyaml、六字段白名单、Unicode 身份规则、NFKC 目录名比对）自带三命令：`validate` / `read-properties` / `to-prompt`（生成 `<available_skills>` 目录块）[2]。参考实现与规范已在时间上分叉：`skills-ref/src/` 最后一次改动停在 2025-12-18，同日起规范文件又有 19 次提交 [2]。像交警路面执法与车辆年检的关系：客户端装载是路面执法，车牌样式不对、车长超标，警告一句照放行，先保路上通（技能能用）；官方校验器是年检，多一个没登记的字段就打回，保的是「这车完全合规」（格式纯净）。两轨服务的目标不同，并行不悖；且年检是自愿的：校验器打回的技能，宽容客户端照样能跑，两轨没有强制联动。
 
 重读源码后锚定的**规范↔参考实现↔客户端三方分歧**（全部可在钉点源码定位）：
 
-| # | 分歧 | 规范/指南口径 | 另一面口径 |
-| --- | --- | --- | --- |
-| 1 | 未知字段 | 规范字段表未禁止第七个字段；指南建议宽容装载 | 校验器六字段白名单，多余字段一律报错 [2]；claude.ai 上传/打包同样只收六字段、多一键硬错 [3]；而 Claude Code 本地收 **20 个字段**（规范 6 + 扩展 14）[3]；VS Code 另认 `argument-hint`、`user-invocable`、`disable-model-invocation`、`context` [7] |
-| 2 | 文件名大小写 | 指南扫描口径「名为 exactly `SKILL.md` 的目录」[1] | 参考实现大写优先、兼收小写 `skill.md`（`find_skill_md`）[2] |
-| 3 | 空目录块 | 指南：无技能时应整块省略 [1] | `to_prompt` 空列表仍输出空 `<available_skills>` 块 [2] |
-| 4 | 注入面 | 指南未提目录块的转义要求 | `to_prompt` 对 name/description 做 `html.escape`（转义），**location 字段不转义**，路径含特殊字符的注入面留给客户端 [2] |
-| 5 | 归一化 | 规范未提 Unicode 归一 | 校验器对 name 与目录名做 NFKC 归一后再比对 [2] |
-| 6 | 必填字段 | 规范：name 与 description 必填 [1] | Claude Code：name 可选（默认取目录名）、description 仅「推荐」（缺省取正文第一行）[3] |
+表中行号记号均以钉点提交 `69ef37e9` 为准：`S:` 指 [specification.mdx](https://github.com/agentskills/agentskills/blob/69ef37e9424c0a7ea9dd2293b559e43ec8176379/docs/specification.mdx)，`G:` 指客户端实现指南 [adding-skills-support.mdx](https://github.com/agentskills/agentskills/blob/69ef37e9424c0a7ea9dd2293b559e43ec8176379/docs/client-implementation/adding-skills-support.mdx)，`V:` / `P:` / `T:` 分别指 skills-ref 的 [validator.py](https://github.com/agentskills/agentskills/blob/69ef37e9424c0a7ea9dd2293b559e43ec8176379/skills-ref/src/skills_ref/validator.py) / [parser.py](https://github.com/agentskills/agentskills/blob/69ef37e9424c0a7ea9dd2293b559e43ec8176379/skills-ref/src/skills_ref/parser.py) / [prompt.py](https://github.com/agentskills/agentskills/blob/69ef37e9424c0a7ea9dd2293b559e43ec8176379/skills-ref/src/skills_ref/prompt.py)。
 
-分歧 1 是三个争议（§11）的实证底座：同一厂商在「上传面」收六字段、在「本地面」收二十字段，恰好演示了规范面与扩展面的边界怎么画。分歧 4 的注入面有两层要分开看：目录块拼接处靠转义拦截（主组实验 lab4·X3，§10）；frontmatter 解析处，若解析器是按行切分的朴素实现，缩进的伪字段会混进元数据（补充实验 lab2·X4，只对朴素解析器成立，换成参考实现用的 strictyaml 直接抛 `ScannerError`）。
+| # | 分歧 | 规范/指南口径 | 另一面口径（参考实现/客户端） | 实证 |
+| --- | --- | --- | --- | --- |
+| 1 | 未知字段 | 规范字段表未禁止第七个字段；指南建议宽容装载，还引用了规范未定义的 `disable-model-invocation`（`G:226`） | 校验器六字段白名单报错、`read-properties` 静默丢弃（`V:104-115` / `P:105-112`）；claude.ai 上传/打包只收六字段、多一键硬错 [3]；Claude Code 本地收 **20 个字段**（规范 6 + 扩展 14）[3]；VS Code 另认 `argument-hint`、`user-invocable`、`disable-model-invocation`、`context` [7] | ✅ 真实 skills-ref：`extra-field` 探针被 validate 报 Unexpected fields，同一文件 read-properties 却放行 |
+| 2 | 文件名大小写 | 指南扫描口径「名为 exactly `SKILL.md` 的目录」[1] | 参考实现大写优先、兼收小写 `skill.md`（`find_skill_md`）[2] | — |
+| 3 | 空目录块 | 指南：无技能时应整块省略 [1] | `to_prompt` 空列表仍输出空 `<available_skills>` 块（`T:32-33`）[2] | — |
+| 4 | 注入面 | 指南未提目录块的转义要求 | `to_prompt` 对 name/description 做 `html.escape`（转义），**location 字段不转义**，路径含特殊字符的注入面留给客户端 [2] | lab4·X3 实测伪造条目 |
+| 5 | 归一化与计数 | 规范未提 Unicode 归一 | 校验器先 strip 再 NFKC 归一后比对与计长（`V:37`）[2] | — |
+| 6 | 必填字段 | 规范：name 与 description 必填 [1] | Claude Code：name 可选（默认取目录名）、description 仅「推荐」（缺省取正文第一行）[3] | — |
+| 7 | 名称字符集 | 规范写「unicode lowercase alphanumeric」却括注 `a-z` `0-9`，自身歧义（`S:62`） | skills-ref 用 `isalnum()` 口径，放行 CJK 与西里尔字母（`V:54`）[2] | ✅ 真实 skills-ref：目录名「技能」→ Valid |
+| 8 | compatibility 下限 | 若提供须 1–500 字符（`S:126`） | skills-ref 只查上限（`V:95`）[2] | — |
+| 9 | metadata / allowed-tools | metadata 为 string→string 映射；allowed-tools 为空格分隔（`S:163-172`） | skills-ref 对 metadata 值强转 `str()`（`P:61-62`）；allowed-tools 语法完全不校验 [2] | ✅ 逗号分隔的 allowed-tools validate 一字未报；本仓 11 个技能全部 Valid（10 个逗号分隔） |
+| 10 | frontmatter 切分 | 指南口径「opening `---` … closing `---`」按行配对（`G:111`） | skills-ref 用 `split("---", 2)`，非行锚定（`P:45`）[2] | ✅ `md-tables` 探针：description 是合法的引号串、值内含 `---`；真实 `skills-ref validate` 报 `Invalid YAML in frontmatter: while scanning a quoted scalar … found unexpected end of stream`，即被从值中间切断 |
+| 11 | YAML 子集 | 未规定 YAML 版本与子集 | strictyaml 拒 flow style、锚点等 | — |
+| 12 | validate 覆盖面 | 规范称其检查「frontmatter … follows all naming conventions」（`S:247`） | 不查正文行数、引用深度、被引用文件是否存在 [2] | ✅ 本仓 11 个技能全部 Valid（含 10 个逗号分隔 allowed-tools） |
+| 13 | 坏文件影响面 | 指南：YAML 不可解析则跳过该技能并记日志（`G:135`） | `to-prompt` 遇任一坏文件整体失败，合法技能也不输出 [2] | ✅ `to-prompt code-review md-tables` → exit=1 |
+
+分歧 1 是三个争议（§11）的实证底座：同一厂商在「上传面」收六字段、在「本地面」收二十字段，恰好演示了规范面与扩展面的边界怎么画。分歧 4 的注入面有两层要分开看：目录块拼接处靠转义拦截（主组实验 lab4·X3，§10）；frontmatter 解析处，若解析器是按行切分的朴素实现，缩进的伪字段会混进元数据（补充实验 lab2·X4，只对朴素解析器成立，换成参考实现用的 strictyaml 直接抛 `ScannerError`）。一代原型对此做了进一步推演：若目录按指南模板把 `location` 放在 `description` 之后，伪造条目会继承恶意技能真实的 SKILL.md 路径，读文件激活下模型会照路径去读；专用工具激活若做了 name 枚举约束（`G:254-256`）则伪造名被拒，这正是枚举约束的安全价值（推演经核对成立，未实测真实模型）。
 
 ![Agent Skills 双轨治理面（治理相）](../../assets/architecture/agent-infra/agent-skills-std-dual-track-dark.png)
 
@@ -162,7 +171,7 @@ Agent Skills 给出的设计规格：
 
 ## 10. 动手实验室
 
-两个原型都是纯标准库、确定性，「模型」由关键词匹配器替身，回答的是机制自洽而非模型聪明；token 为 chars/4 近似口径。
+三个原型（主组 lab4、补充组 lab2、一代原型 lab）都是纯标准库、确定性，「模型」由关键词匹配器替身，回答的是机制自洽而非模型聪明；token 为 chars/4 近似口径。
 
 **主组：[agent_skills_lab4.py](./assets/agent_skills_lab4.py)**（469 行）。复刻全链路：发现（项目/用户双域、同名项目压用户、宽容装载、目录名身份）→ 目录块（XML、转义）→ 激活（整读正文、去重）→ 按需资源 → 压缩保护，外加镜像 skills-ref 的严格校验器（六字段白名单、Unicode 身份、NFKC）。
 
@@ -184,7 +193,7 @@ uv run --no-project python ../docs/research/agent-infra/assets/agent_skills_lab2
 
 lab2 行号速查：`parse_frontmatter` L76 · `validate_spec`（严格口径）L106 · `validate_lenient`（宽容口径）L134 · `resolve_scopes`（作用域解析）L148 · `build_catalog` L172 · `route` L180 · `simulate` L195 · `break_x` L213 · `selftest` L287 · `audit_repo` L320。
 
-破坏性实验（改什么 / 实测看到什么 / 教训）：
+破坏性实验（改什么 / 实测看到什么 / 教训；`lab·Bn` 行来自一代原型 [agent_skills_lab.py](./assets/agent_skills_lab.py)，纯标准库 474 行，仍在 `assets/` 可复现：`--selftest`、`--break B1..B5`、`--audit-repo`）：
 
 | 脚本·实验 | 改了什么 | 实测退化（实际运行日志） | 教训 |
 | --- | --- | --- | --- |
@@ -197,6 +206,8 @@ lab2 行号速查：`parse_frontmatter` L76 · `validate_spec`（严格口径）
 | lab2·X3 metadata 值强转 | 解析端把 `enabled: false` 经 `str()` 强转 | 客户端 `bool('false') == True`，被禁用的技能被判为启用 | string→string 的约束让「类型即语义」的配置在往返后翻转 |
 | lab2·X4 description 伪字段 | description 内嵌缩进的 `allowed-tools: Bash(rm:*)` | 按行切分的朴素解析器：注入文本进入 frontmatter 区、`Bash(rm:*)` 泄漏进字段，若客户端把 `allowed-tools` 当预授权读，恶意预授权经 description 通道成立。strictyaml 与 PyYAML 解析同一载荷均抛 `ScannerError` | 结论只对朴素解析器成立；解析层用成熟 YAML 解析器、目录块层转义（lab4·X3），两层各管一段 |
 | lab2·X5 去遮蔽告警 | 保留同名遮蔽但不记告警日志 | 有效目录仍 10 项、功能不变，但 1 处遮蔽对用户不可见 | 事故形态是知情权丢失而非数据丢失：「agent 用的是哪一版」成了静默分歧 |
+| lab·B3 拆 description 上限（一代原型） | 1024 字符校验拆除 | 12,159 字符描述放行，目录 1,206 → 4,285 tokens（**+255%**），单条 = 其余 20 条之和的 2.4× | 硬上限守护的是 Tier 1 的常驻成本，一条超长描述就能让目录成本翻几倍 |
+| lab·B4 拆行锚定切分（一代原型） | 解析换成 skills-ref 式 `split("---", 2)`；复现：`--break B4` | 值内含 `---` 的技能解析失败被跳过，相关任务得到 None，能力静默消失（这是原型仿写 skills-ref 切分的后果；真实 skills-ref 的输出见分歧 10） | 解析器的边界假设就是格式的隐形规范；该缺陷在真实 skills-ref 上复现（分歧 10） |
 
 ## 11. 底层规律与核心争议
 
@@ -212,7 +223,7 @@ lab2 行号速查：`parse_frontmatter` L76 · `validate_spec`（严格口径）
 
 **规律 5 · 互操作压倒完备**（互操作＝各家产品彼此直接通用）：标准刻意只钉六字段与目录形状，分发/信任/版本/执行留白，每个新要求都是所有实现方的永久成本 [1]。演示：CONTRIBUTING 的关门哲学（「加易删难…拿不准宁可不加」）[1]；同厂商两面：claude.ai 收六字段、本地收二十 [3]；反面：若规范强制统一目录路径，固守私有路径的客户端即无法合规。
 
-**争议 1 · 严格还是宽容**：装载方怕「装不上」（连通性），校验方怕「悄悄烂」（纯净度），同一官方两面下注（校验器白名单 [2] vs 指南宽容装载 [1] vs Claude Code 二十字段 [3]）。lab2 的 13 条样本里，严格口径多拒了 3 条宽容能装的技能（宽容可载的 25%），算是这道取舍的一个量级参照，不是生态统计。本质是互操作纯净度与现实兼容性的连续谱选址，标准自己未裁决。
+**争议 1 · 严格还是宽容**：装载方怕「装不上」（连通性），校验方怕「悄悄烂」（纯净度），同一官方两面下注（校验器白名单 [2] vs 指南宽容装载 [1] vs Claude Code 二十字段 [3]）。lab2 的 13 条样本里，严格口径多拒了 3 条宽容能装的技能（宽容可载的 25%），算是这道取舍的一个量级参照，不是生态统计。本质是互操作纯净度与现实兼容性的连续谱选址，标准自己未裁决。工程上可对冲（作者侧严格校验 + 客户端宽容加载 + 诊断必须可见）而无法消除；IAB 在 RFC 9413 对这类争论的立场是：静默容忍错误输入会随时间侵蚀互操作性，可更新的实现应走向「virtuous intolerance」[8]。
 
 **争议 2 · 关门哲学与功能排队**：复杂度成本全体承担、收益提案方独享（账本不对称）；「51 条 PR」指排队待合并的公开修改建议，官方「宁缺」的代价是功能以客户端私有扩展的形式旁路生长（Claude 的 model/hooks/context、Codex 的 openai.yaml 策略文件 [3][4]），长期反噬互操作面。main 冻结 52 天而 51 条 PR 排队是实证 [5]，其中连 `allowed-tools` 该是字符串还是数组都有两条方向相反的 PR 在等（#520、#573），读文件时按 UTF-8 解码的修复（#343、#386、#558）自 2026 年 4 月起排了三次仍未合并 [5]。这是一种治理形态的代价，而它能否撑住复杂分发协议的演进，材料没有答案。
 
@@ -224,7 +235,7 @@ lab2 行号速查：`parse_frontmatter` L76 · `validate_spec`（严格口径）
 
 **材料没有证明的事**：
 1. 「46 家支持」是自报登记：有「今日即可发现并执行」门槛与 logo 审核 [1]，但无第三方复核各家的实际兼容深度。
-2. 三级 token 口径（~50–100、<5000）是规范/指南的估算与建议值，材料未给实测方法或跨模型实测数据 [1]；本篇的 chars/4 账本与 lab2 的 9.9 倍只证明方向。
+2. 三级 token 口径（~50–100、<5000）是规范/指南的估算与建议值，材料未给实测方法或跨模型实测数据 [1]；本篇的 chars/4 账本与 lab2 的 9.9 倍只证明方向。目录本身的规模上限也未被讨论：指南的论证锚点在「20 个技能」量级，到数百个时 Tier 1 常驻成本会重新成为瓶颈，规范没有目录预算或检索式披露的设计。
 3. 「description 路由有效」未提供跨客户端触发一致性的实测证据；指南明言把判断交给模型、不做触发器 [1]，但「模型判断为何足够可靠」无依据；Codex 超预算截短描述 [4] 进一步引入口径差。
 4. 「跨产品复用」的实际程度未证明：同名冲突各家自裁（指南建议项目压用户 [1]；Codex 同名不合并双列 [4]；Gemini CLI 按工作区>用户>扩展>内置取高 [6]）、扩展字段互不兼容（六字段 [2] vs 二十字段 [3]）、描述可能被截断 [4]，同一技能包在不同客户端行为可能不同。
 5. 信任与完整性基本缺席：指南仅「考虑信任门」「审阅 allowed-tools」两处建议级文字 [1][3]；四家客户端文档中 Gemini CLI 写明激活时弹确认界面 [6]，VS Code 仅建议用前自行审阅共享技能 [7]，四家均未提及签名或完整性校验，材料也未证明任何一家有。确认界面是用户同意流程，不等于内容校验。
@@ -249,3 +260,4 @@ lab2 行号速查：`parse_frontmatter` L76 · `validate_spec`（严格口径）
 - [5] GitHub, "Repository metadata and commit history for agentskills/agentskills," GitHub REST API and git clone @ `69ef37e9`, snapshot Sep. 30, 2026. [Online]. Available: https://api.github.com/repos/agentskills/agentskills
 - [6] Google, "Agent Skills," Gemini CLI documentation, `docs/cli/skills.md`, GitHub repository `google-gemini/gemini-cli`. [Online]. Available: https://github.com/google-gemini/gemini-cli/blob/main/docs/cli/skills.md (accessed Oct. 12, 2026)
 - [7] Microsoft, "Use Agent Skills in VS Code," Visual Studio Code documentation. [Online]. Available: https://code.visualstudio.com/docs/agent-customization/agent-skills (accessed Oct. 12, 2026)
+- [8] M. Thomson and D. Schinazi, "Maintaining Robust Protocols," RFC 9413, IAB, Jun. 2023. [Online]. Available: https://www.rfc-editor.org/rfc/rfc9413.html
