@@ -14,7 +14,7 @@ description: "arXiv:2609.09153 精读：程序性知识外置为带 condition/gu
 
 **怎么读这篇笔记**：每个机制都按「类比 → 机制 → 原型实景」三拍走。实景全部取自配套最小原型 [`assets/pg_lab.py`](./assets/pg_lab.py)（fetch → validate → fix → submit / abort 玩具域，纯标准库约 500 行，已随笔记入库；破坏性实验复现见 [§6 实验室](#6-动手实验室把机制亲手拆坏三次)）；所有代码与日志均为实际运行输出。
 
-配套产物：[PG ↔ negentropy 机制映射报告](./143-pg-mapping-negentropy.md)。
+配套产物：[PG ↔ negentropy 机制映射报告](../mapping-negentropy.md)。
 
 ---
 
@@ -215,7 +215,7 @@ Round 5 REJECT(结构性) [cycle-recheck]：存在环；验证 rollout 跳过
 
 ## 9. 与本仓的关联
 
-- 机制级对照（验证门 ↔ evolution 门控、拒绝记忆 ↔ 巡检失败记忆、平局接受 ↔ 金丝雀零改进容忍）详见 [PG ↔ negentropy 机制映射报告](./143-pg-mapping-negentropy.md)。
+- 机制级对照（验证门 ↔ evolution 门控、拒绝记忆 ↔ 巡检失败记忆、平局接受 ↔ 金丝雀零改进容忍）详见 [PG ↔ negentropy 机制映射报告](../mapping-negentropy.md)。
 - 本仓已有的自进化设计（遥测→评测→提案→验证→门控发布闭环、GEPA/ACE 进化算子、Golden Set 双轨评测、金丝雀发布）见 [自进化 Agents Team 方案](../../concepts/design/self-evolving-agents.md)——PG 可视为该方案在「程序性知识表示层」的一个具体化样本。
 
 ## 参考

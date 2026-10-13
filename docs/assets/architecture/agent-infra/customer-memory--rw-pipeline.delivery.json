@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "fb2215d8-141d-4e69-bd76-b2b4c95ac27c",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/albuquerque-v2/.archify/workflow-customer-memory--rw-pipeline-20261012-181758/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/albuquerque-v2/docs/assets/architecture/agent-infra/customer-memory--rw-pipeline.html",
+  "specification": {
+    "sha256": "f3578f0fdfc6c3e9e136885e3217480a1bfb610cc346416dba2f3b24d67267b5",
+    "bytes": 7130
+  },
+  "artifact": {
+    "sha256": "53e75d4fe7f4cdf9a9d2aceea786f540dbdc3bbf905b469884ac10002fde1fc0",
+    "bytes": 772743
+  }
+}

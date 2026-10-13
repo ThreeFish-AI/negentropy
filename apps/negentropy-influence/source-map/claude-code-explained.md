@@ -128,7 +128,7 @@ ep5 于 2026-10-02 **换题完全重制**（《多 Agent 平台：七件设施�
 | ep4 并发 | 工坊 / 清洗槽 / 滚筒 / 钟盘 |
 | ep5 多 Agent | 走廊（集名意象；细目见其 planning 差异纪律行） |
 
-执法：词表挂入 check_series 属 RSI 候选（见 negentropy ISSUE-212），落地前各集④校验按本节逐词 grep。
+执法：词表挂入 check_series 属 RSI 候选（见 negentropy ISSUE-213），落地前各集④校验按本节逐词 grep。
 
 ## 七、系列片头口播锚定（2026-10-09 登记）
 
