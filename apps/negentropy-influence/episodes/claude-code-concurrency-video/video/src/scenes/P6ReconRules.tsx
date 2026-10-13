@@ -682,7 +682,7 @@ const NextCard: React.FC<{at: number}> = ({at}) => {
         <HarnessStackP6 at={at + 4} nextBreathAt={at + 18} />
       </div>
             {/* 规则 8：下期卡标题字面量与 series.json 逐字同步（去前缀段，判例同 ep3） */}
-      <div style={{fontFamily: theme.serif, fontSize: 24, fontWeight: 600, color: theme.mech, marginTop: 8, paddingLeft: 4}}>{'从一个到一群'}</div>
+      <div style={{fontFamily: theme.serif, fontSize: 24, fontWeight: 600, color: theme.mech, marginTop: 8, paddingLeft: 4}}>{'七件设施，一条走廊'}</div>
 {NEXT_LAYER ? (
         <div style={{fontFamily: theme.mono, fontSize: 14, color: theme.dim, marginTop: 6, paddingLeft: 4}}>{NEXT_LAYER.layer}</div>
       ) : null}

@@ -24,49 +24,124 @@ export type ArchifyChapter = {
 export type ArchifyDiagram = {slug: string; type?: string; chapters: ArchifyChapter[]};
 
 export const ARCHIFY = {
-  "board-vs-todo": {
-    "slug": "board-vs-todo",
-    "type": "architecture",
+  "claim-guards-break": {
+    "slug": "claim-guards-break",
+    "type": "dataflow",
     "chapters": [
       {
-        "id": "todo-vanishes",
-        "label": "待办断电即失",
-        "file": "board-vs-todo--todo-vanishes.mp4",
-        "endStill": "board-vs-todo--todo-vanishes-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.33,
+        "id": "three-gates",
+        "label": "三守卫",
+        "file": "claim-guards-break--three-gates.mp4",
+        "endStill": "claim-guards-break--three-gates-end.png",
+        "beats": 5,
+        "leadSec": 1.0,
+        "storySec": 5.54,
         "beatNodes": [
-          "session-todo",
-          "power-off",
-          "vanish"
+          "scan",
+          "g-status",
+          "g-owner",
+          "g-deps",
+          "write-name"
         ]
       },
       {
-        "id": "two-layers",
-        "label": "两层账本",
-        "file": "board-vs-todo--two-layers.mp4",
-        "endStill": "board-vs-todo--two-layers-end.png",
+        "id": "b1",
+        "label": "拆守卫三",
+        "file": "claim-guards-break--b1.mp4",
+        "endStill": "claim-guards-break--b1-end.png",
+        "beats": 2,
+        "leadSec": 0.52,
+        "storySec": 3.26,
+        "beatNodes": [
+          "b1-lane",
+          "g-deps"
+        ]
+      },
+      {
+        "id": "b2-b2v",
+        "label": "拆守卫一二",
+        "file": "claim-guards-break--b2-b2v.mp4",
+        "endStill": "claim-guards-break--b2-b2v-end.png",
+        "beats": 4,
+        "leadSec": 0.52,
+        "storySec": 4.46,
+        "beatNodes": [
+          "b2-lane",
+          "b2v-lane",
+          "g-owner",
+          "g-status"
+        ]
+      },
+      {
+        "id": "ok",
+        "label": "对照：在位",
+        "file": "claim-guards-break--ok.mp4",
+        "endStill": "claim-guards-break--ok-end.png",
+        "beats": 2,
+        "leadSec": 0.52,
+        "storySec": 3.22,
+        "beatNodes": [
+          "ok-lane",
+          "reject"
+        ]
+      }
+    ]
+  },
+  "claim-race-window": {
+    "slug": "claim-race-window",
+    "type": "sequence",
+    "chapters": [
+      {
+        "id": "two-lifelines",
+        "label": "双生命线",
+        "file": "claim-race-window--two-lifelines.mp4",
+        "endStill": "claim-race-window--two-lifelines-end.png",
         "beats": 2,
         "leadSec": 0.44,
         "storySec": 3.23,
         "beatNodes": [
-          "session-todo",
-          "task-graph"
+          "alice",
+          "bob"
         ]
       },
       {
-        "id": "crash-resume",
-        "label": "重扫即恢复",
-        "file": "board-vs-todo--crash-resume.mp4",
-        "endStill": "board-vs-todo--crash-resume-end.png",
+        "id": "interleaved",
+        "label": "交错检查",
+        "file": "claim-race-window--interleaved.mp4",
+        "endStill": "claim-race-window--interleaved-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.24,
+        "beatNodes": [
+          "alice",
+          "bob"
+        ]
+      },
+      {
+        "id": "overwrite",
+        "label": "落笔重叠",
+        "file": "claim-race-window--overwrite.mp4",
+        "endStill": "claim-race-window--overwrite-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.25,
+        "beatNodes": [
+          "bob",
+          "board"
+        ]
+      },
+      {
+        "id": "window",
+        "label": "竞争窗口",
+        "file": "claim-race-window--window.mp4",
+        "endStill": "claim-race-window--window-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.35,
+        "storySec": 3.37,
         "beatNodes": [
-          "disk-dir",
-          "rescan",
-          "progress-back"
+          "alice",
+          "bob",
+          "board"
         ]
       }
     ]
@@ -76,201 +151,179 @@ export const ARCHIFY = {
     "type": "dataflow",
     "chapters": [
       {
-        "id": "one-to-many",
-        "label": "从一个到一群",
-        "file": "collab-panorama--one-to-many.mp4",
-        "endStill": "collab-panorama--one-to-many-end.png",
+        "id": "four-prep",
+        "label": "调模型前四道准备",
+        "file": "collab-panorama--four-prep.mp4",
+        "endStill": "collab-panorama--four-prep-end.png",
         "beats": 4,
-        "leadSec": 0.48,
-        "storySec": 4.44,
+        "leadSec": 0.44,
+        "storySec": 4.42,
         "beatNodes": [
-          "loop",
-          "wait",
-          "shift",
-          "tools"
+          "input",
+          "inject",
+          "compact",
+          "assemble"
         ]
       },
       {
-        "id": "mech-homecoming",
-        "label": "机制归位",
-        "file": "collab-panorama--mech-homecoming.mp4",
-        "endStill": "collab-panorama--mech-homecoming-end.png",
-        "beats": 10,
-        "leadSec": 0.36,
-        "storySec": 11.38,
+        "id": "llm-judge",
+        "label": "单岔口判据",
+        "file": "collab-panorama--llm-judge.mp4",
+        "endStill": "collab-panorama--llm-judge-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.27,
         "beatNodes": [
-          "post",
-          "claim",
-          "fetch",
-          "match",
-          "worktree",
-          "wait",
+          "llm",
+          "decide"
+        ]
+      },
+      {
+        "id": "dispatch",
+        "label": "权限与三分发",
+        "file": "collab-panorama--dispatch.mp4",
+        "endStill": "collab-panorama--dispatch-end.png",
+        "beats": 4,
+        "leadSec": 0.44,
+        "storySec": 4.46,
+        "beatNodes": [
           "gate",
-          "shift",
-          "tools",
-          "loop"
+          "dispatch",
+          "writeback",
+          "stop"
         ]
       },
       {
-        "id": "tool-belt-27",
-        "label": "二十七件工具",
-        "file": "collab-panorama--tool-belt-27.mp4",
-        "endStill": "collab-panorama--tool-belt-27-end.png",
+        "id": "externals",
+        "label": "循环外的外部状态",
+        "file": "collab-panorama--externals.mp4",
+        "endStill": "collab-panorama--externals-end.png",
         "beats": 2,
         "leadSec": 0.44,
         "storySec": 3.22,
         "beatNodes": [
-          "tools",
-          "loop"
-        ]
-      },
-      {
-        "id": "identity-message",
-        "label": "身份一：注入的消息",
-        "file": "collab-panorama--identity-message.mp4",
-        "endStill": "collab-panorama--identity-message-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.33,
-        "beatNodes": [
-          "fetch",
-          "wait",
-          "loop"
-        ]
-      },
-      {
-        "id": "identity-tool",
-        "label": "身份二：架上的工具",
-        "file": "collab-panorama--identity-tool.mp4",
-        "endStill": "collab-panorama--identity-tool-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.34,
-        "beatNodes": [
-          "tools",
-          "claim",
-          "gate"
-        ]
-      },
-      {
-        "id": "no-branch",
-        "label": "没单开分支",
-        "file": "collab-panorama--no-branch.mp4",
-        "endStill": "collab-panorama--no-branch-end.png",
-        "beats": 1,
-        "leadSec": 0.44,
-        "storySec": 3.21,
-        "beatNodes": [
-          "loop"
-        ]
-      },
-      {
-        "id": "gate-three-beats",
-        "label": "计划门三拍",
-        "file": "collab-panorama--gate-three-beats.mp4",
-        "endStill": "collab-panorama--gate-three-beats-end.png",
-        "beats": 2,
-        "leadSec": 0.48,
-        "storySec": 3.25,
-        "beatNodes": [
-          "gate",
-          "loop"
-        ]
-      },
-      {
-        "id": "all-lit-map",
-        "label": "工坊地图全亮",
-        "file": "collab-panorama--all-lit-map.mp4",
-        "endStill": "collab-panorama--all-lit-map-end.png",
-        "beats": 10,
-        "leadSec": 0.44,
-        "storySec": 11.54,
-        "beatNodes": [
-          "post",
-          "claim",
-          "fetch",
-          "match",
-          "worktree",
-          "wait",
-          "gate",
-          "shift",
-          "tools",
-          "loop"
+          "background",
+          "shared"
         ]
       }
     ]
   },
-  "dependency-unlock": {
-    "slug": "dependency-unlock",
+  "dependency-failclosed": {
+    "slug": "dependency-failclosed",
     "type": "workflow",
     "chapters": [
       {
-        "id": "gate-before-start",
-        "label": "依赖坎",
-        "file": "dependency-unlock--gate-before-start.mp4",
-        "endStill": "dependency-unlock--gate-before-start-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.35,
+        "id": "four-cards",
+        "label": "四卡上墙",
+        "file": "dependency-failclosed--four-cards.mp4",
+        "endStill": "dependency-failclosed--four-cards-end.png",
+        "beats": 4,
+        "leadSec": 0.48,
+        "storySec": 4.42,
         "beatNodes": [
-          "deps-check",
-          "upstream",
-          "downstream"
+          "t-build",
+          "t-api",
+          "t-test",
+          "t-doc"
         ]
       },
       {
-        "id": "missing-blocked",
-        "label": "缺失即被挡",
-        "file": "dependency-unlock--missing-blocked.mp4",
-        "endStill": "dependency-unlock--missing-blocked-end.png",
+        "id": "walkthrough",
+        "label": "走查",
+        "file": "dependency-failclosed--walkthrough.mp4",
+        "endStill": "dependency-failclosed--walkthrough-end.png",
+        "beats": 3,
+        "leadSec": 0.52,
+        "storySec": 3.37,
+        "beatNodes": [
+          "guard",
+          "t-build",
+          "unlock"
+        ]
+      },
+      {
+        "id": "blocked",
+        "label": "被阻塞",
+        "file": "dependency-failclosed--blocked.mp4",
+        "endStill": "dependency-failclosed--blocked-end.png",
         "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.23,
+        "leadSec": 0.48,
+        "storySec": 3.22,
         "beatNodes": [
-          "missing-dep",
-          "blocked"
+          "t-test",
+          "guard"
         ]
       },
       {
-        "id": "bad-premise",
-        "label": "坏前提不放行",
-        "file": "dependency-unlock--bad-premise.mp4",
-        "endStill": "dependency-unlock--bad-premise-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.43,
+        "id": "failclosed",
+        "label": "失败关闭",
+        "file": "dependency-failclosed--failclosed.mp4",
+        "endStill": "dependency-failclosed--failclosed-end.png",
+        "beats": 2,
+        "leadSec": 0.52,
+        "storySec": 3.25,
         "beatNodes": [
-          "missing-dep",
-          "blocked",
-          "gate"
+          "ghost-ref",
+          "guard"
+        ]
+      }
+    ]
+  },
+  "duty-clock-loop": {
+    "slug": "duty-clock-loop",
+    "type": "lifecycle",
+    "chapters": [
+      {
+        "id": "three-states",
+        "label": "三态节奏",
+        "file": "duty-clock-loop--three-states.mp4",
+        "endStill": "duty-clock-loop--three-states-end.png",
+        "beats": 3,
+        "leadSec": 0.52,
+        "storySec": 3.33,
+        "beatNodes": [
+          "work",
+          "idle",
+          "shutdown"
         ]
       },
       {
-        "id": "unlock-broadcast",
-        "label": "解锁即播报",
-        "file": "dependency-unlock--unlock-broadcast.mp4",
-        "endStill": "dependency-unlock--unlock-broadcast-end.png",
+        "id": "tick-order",
+        "label": "先口后墙",
+        "file": "duty-clock-loop--tick-order.mp4",
+        "endStill": "duty-clock-loop--tick-order-end.png",
         "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 4.08,
+        "leadSec": 0.52,
+        "storySec": 3.37,
         "beatNodes": [
-          "completed",
-          "unlocked",
-          "broadcast"
+          "tick",
+          "look-slot",
+          "look-wall"
         ]
       },
       {
-        "id": "lag-livelock",
-        "label": "忘结单活锁",
-        "file": "dependency-unlock--lag-livelock.mp4",
-        "endStill": "dependency-unlock--lag-livelock-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.38,
+        "id": "timeout",
+        "label": "超时收工",
+        "file": "duty-clock-loop--timeout.mp4",
+        "endStill": "duty-clock-loop--timeout-end.png",
+        "beats": 2,
+        "leadSec": 0.52,
+        "storySec": 3.24,
         "beatNodes": [
-          "done-unmarked",
-          "waiting",
-          "loop-edge"
+          "timeout",
+          "shutdown"
+        ]
+      },
+      {
+        "id": "b5",
+        "label": "拆超时",
+        "file": "duty-clock-loop--b5.mp4",
+        "endStill": "duty-clock-loop--b5-end.png",
+        "beats": 1,
+        "leadSec": 0.52,
+        "storySec": 3.25,
+        "beatNodes": [
+          "b5-spin"
         ]
       }
     ]
@@ -280,26 +333,13 @@ export const ARCHIFY = {
     "type": "architecture",
     "chapters": [
       {
-        "id": "series-vow",
-        "label": "系列立碑一闪",
-        "file": "five-layer-dependency--series-vow.mp4",
-        "endStill": "five-layer-dependency--series-vow-end.png",
-        "beats": 2,
-        "leadSec": 0.48,
-        "storySec": 3.24,
-        "beatNodes": [
-          "loop-core",
-          "layer-5"
-        ]
-      },
-      {
         "id": "five-lit-finale",
         "label": "五层全亮",
         "file": "five-layer-dependency--five-lit-finale.mp4",
         "endStill": "five-layer-dependency--five-lit-finale-end.png",
         "beats": 6,
         "leadSec": 0.44,
-        "storySec": 6.64,
+        "storySec": 6.65,
         "beatNodes": [
           "loop-core",
           "layer-1",
@@ -311,736 +351,438 @@ export const ARCHIFY = {
       }
     ]
   },
-  "idle-claim-loop": {
-    "slug": "idle-claim-loop",
-    "type": "dataflow",
+  "mailslot-consume": {
+    "slug": "mailslot-consume",
+    "type": "workflow",
     "chapters": [
       {
-        "id": "three-conditions",
-        "label": "三条件合取",
-        "file": "idle-claim-loop--three-conditions.mp4",
-        "endStill": "idle-claim-loop--three-conditions-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.33,
-        "beatNodes": [
-          "pending",
-          "no-owner",
-          "deps-done"
-        ]
-      },
-      {
-        "id": "conj-check",
-        "label": "三条全中",
-        "file": "idle-claim-loop--conj-check.mp4",
-        "endStill": "idle-claim-loop--conj-check-end.png",
+        "id": "append",
+        "label": "追加一行",
+        "file": "mailslot-consume--append.mp4",
+        "endStill": "mailslot-consume--append-end.png",
         "beats": 4,
         "leadSec": 0.44,
         "storySec": 4.46,
         "beatNodes": [
-          "cond-a",
-          "cond-b",
-          "cond-c",
-          "claim"
-        ]
-      },
-      {
-        "id": "deps-read",
-        "label": "有依赖不算不合格",
-        "file": "idle-claim-loop--deps-read.mp4",
-        "endStill": "idle-claim-loop--deps-read-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.24,
-        "beatNodes": [
-          "deps-list",
-          "readable"
-        ]
-      },
-      {
-        "id": "blocked-only",
-        "label": "只看被挡",
-        "file": "idle-claim-loop--blocked-only.mp4",
-        "endStill": "idle-claim-loop--blocked-only-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.35,
-        "beatNodes": [
-          "uncompleted-dep",
-          "blocked",
-          "free"
-        ]
-      },
-      {
-        "id": "verify-receipt",
-        "label": "验回执",
-        "file": "idle-claim-loop--verify-receipt.mp4",
-        "endStill": "idle-claim-loop--verify-receipt-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.33,
-        "beatNodes": [
-          "claim-call",
-          "receipt",
-          "inject"
-        ]
-      },
-      {
-        "id": "lead-two-jobs",
-        "label": "领队两件事",
-        "file": "idle-claim-loop--lead-two-jobs.mp4",
-        "endStill": "idle-claim-loop--lead-two-jobs-end.png",
-        "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.47,
-        "beatNodes": [
-          "lead",
-          "create",
-          "launch",
-          "no-assign"
-        ]
-      }
-    ]
-  },
-  "mailbox-consume": {
-    "slug": "mailbox-consume",
-    "type": "workflow",
-    "chapters": [
-      {
-        "id": "inbox-per-seat",
-        "label": "门口收件格",
-        "file": "mailbox-consume--inbox-per-seat.mp4",
-        "endStill": "mailbox-consume--inbox-per-seat-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.27,
-        "beatNodes": [
-          "seat",
-          "inbox-slot"
-        ]
-      },
-      {
-        "id": "jsonl-append",
-        "label": "添一行即投递",
-        "file": "mailbox-consume--jsonl-append.mp4",
-        "endStill": "mailbox-consume--jsonl-append-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.23,
-        "beatNodes": [
+          "sender",
+          "slot-door",
           "inbox-file",
-          "append-line"
+          "append"
         ]
       },
       {
-        "id": "take-all-clear",
-        "label": "整摞拿走",
-        "file": "mailbox-consume--take-all-clear.mp4",
-        "endStill": "mailbox-consume--take-all-clear-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.34,
-        "beatNodes": [
-          "inbox-file",
-          "consume",
-          "emptied"
-        ]
-      },
-      {
-        "id": "peek-probe",
-        "label": "只看不取",
-        "file": "mailbox-consume--peek-probe.mp4",
-        "endStill": "mailbox-consume--peek-probe-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.22,
-        "beatNodes": [
-          "peek",
-          "inbox-slot"
-        ]
-      },
-      {
-        "id": "host-polling",
-        "label": "工坊替他盯",
-        "file": "mailbox-consume--host-polling.mp4",
-        "endStill": "mailbox-consume--host-polling-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.32,
-        "beatNodes": [
-          "poller",
-          "event-queue",
-          "wake"
-        ]
-      }
-    ]
-  },
-  "mcp-toolpool": {
-    "slug": "mcp-toolpool",
-    "type": "dataflow",
-    "chapters": [
-      {
-        "id": "standard-socket",
-        "label": "标准协议",
-        "file": "mcp-toolpool--standard-socket.mp4",
-        "endStill": "mcp-toolpool--standard-socket-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.23,
-        "beatNodes": [
-          "mcp-socket",
-          "external"
-        ]
-      },
-      {
-        "id": "connect-discover",
-        "label": "连接发现两步",
-        "file": "mcp-toolpool--connect-discover.mp4",
-        "endStill": "mcp-toolpool--connect-discover-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.26,
-        "beatNodes": [
-          "connect",
-          "tools-list"
-        ]
-      },
-      {
-        "id": "namespace-rename",
-        "label": "统一重新起名",
-        "file": "mcp-toolpool--namespace-rename.mp4",
-        "endStill": "mcp-toolpool--namespace-rename-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.34,
-        "beatNodes": [
-          "tool",
-          "prefix",
-          "renamed"
-        ]
-      },
-      {
-        "id": "no-collision",
-        "label": "互不冲撞",
-        "file": "mcp-toolpool--no-collision.mp4",
-        "endStill": "mcp-toolpool--no-collision-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.35,
-        "beatNodes": [
-          "sanitize",
-          "name-a",
-          "name-b"
-        ]
-      },
-      {
-        "id": "rebuild-each-round",
-        "label": "每轮重装",
-        "file": "mcp-toolpool--rebuild-each-round.mp4",
-        "endStill": "mcp-toolpool--rebuild-each-round-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.35,
-        "beatNodes": [
-          "pool",
-          "assemble",
-          "round"
-        ]
-      },
-      {
-        "id": "new-machine-next-round",
-        "label": "下一轮自然可用",
-        "file": "mcp-toolpool--new-machine-next-round.mp4",
-        "endStill": "mcp-toolpool--new-machine-next-round-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.32,
-        "beatNodes": [
-          "new-machine",
-          "pool",
-          "loop"
-        ]
-      },
-      {
-        "id": "stale-list-miss",
-        "label": "旧清单叫空",
-        "file": "mcp-toolpool--stale-list-miss.mp4",
-        "endStill": "mcp-toolpool--stale-list-miss-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.32,
-        "beatNodes": [
-          "cache-list",
-          "call",
-          "miss"
-        ]
-      }
-    ]
-  },
-  "protocol-fsm": {
-    "slug": "protocol-fsm",
-    "type": "lifecycle",
-    "chapters": [
-      {
-        "id": "one-fsm-two-protocols",
-        "label": "一套机制两协议",
-        "file": "protocol-fsm--one-fsm-two-protocols.mp4",
-        "endStill": "protocol-fsm--one-fsm-two-protocols-end.png",
+        "id": "take-all",
+        "label": "整摞取走",
+        "file": "mailslot-consume--take-all.mp4",
+        "endStill": "mailslot-consume--take-all-end.png",
         "beats": 3,
         "leadSec": 0.44,
         "storySec": 3.38,
         "beatNodes": [
-          "fsm",
-          "shutdown",
-          "plan-approval"
+          "take-all",
+          "peek",
+          "inbox-file"
         ]
       },
       {
-        "id": "plan-handshake",
-        "label": "计划递单",
-        "file": "protocol-fsm--plan-handshake.mp4",
-        "endStill": "protocol-fsm--plan-handshake-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.35,
-        "beatNodes": [
-          "submit-plan",
-          "pending",
-          "response"
-        ]
-      },
-      {
-        "id": "not-a-gate",
-        "label": "不是代码层的门",
-        "file": "protocol-fsm--not-a-gate.mp4",
-        "endStill": "protocol-fsm--not-a-gate-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.24,
-        "beatNodes": [
-          "request",
-          "note-gate"
-        ]
-      },
-      {
-        "id": "self-discipline",
-        "label": "靠自觉",
-        "file": "protocol-fsm--self-discipline.mp4",
-        "endStill": "protocol-fsm--self-discipline-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.23,
-        "beatNodes": [
-          "waiting",
-          "agent"
-        ]
-      }
-    ]
-  },
-  "protocol-roundtrip": {
-    "slug": "protocol-roundtrip",
-    "type": "sequence",
-    "chapters": [
-      {
-        "id": "two-copies",
-        "label": "一式两份",
-        "file": "protocol-roundtrip--two-copies.mp4",
-        "endStill": "protocol-roundtrip--two-copies-end.png",
-        "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.41,
-        "beatNodes": [
-          "lead",
-          "teammate",
-          "slip-a",
-          "slip-b"
-        ]
-      },
-      {
-        "id": "id-roundtrip",
-        "label": "编号往返",
-        "file": "protocol-roundtrip--id-roundtrip.mp4",
-        "endStill": "protocol-roundtrip--id-roundtrip-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.35,
-        "beatNodes": [
-          "request-id",
-          "out",
-          "back"
-        ]
-      },
-      {
-        "id": "three-checks",
-        "label": "三道验证",
-        "file": "protocol-roundtrip--three-checks.mp4",
-        "endStill": "protocol-roundtrip--three-checks-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.35,
-        "beatNodes": [
-          "check-id",
-          "check-type",
-          "check-open"
-        ]
-      },
-      {
-        "id": "stale-immune",
-        "label": "结案免疫",
-        "file": "protocol-roundtrip--stale-immune.mp4",
-        "endStill": "protocol-roundtrip--stale-immune-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.33,
-        "beatNodes": [
-          "closed-slip",
-          "dup-reply",
-          "reject"
-        ]
-      },
-      {
-        "id": "route-before-return",
-        "label": "先翻账再交消息",
-        "file": "protocol-roundtrip--route-before-return.mp4",
-        "endStill": "protocol-roundtrip--route-before-return-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.35,
-        "beatNodes": [
-          "protocol-ledger",
-          "inbox",
-          "lead"
-        ]
-      }
-    ]
-  },
-  "shift-three-beats": {
-    "slug": "shift-three-beats",
-    "type": "lifecycle",
-    "chapters": [
-      {
-        "id": "three-beats",
-        "label": "三拍班次",
-        "file": "shift-three-beats--three-beats.mp4",
-        "endStill": "shift-three-beats--three-beats-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.34,
-        "beatNodes": [
-          "work",
-          "idle",
-          "shutdown"
-        ]
-      },
-      {
-        "id": "work-cap",
-        "label": "轮数上限",
-        "file": "shift-three-beats--work-cap.mp4",
-        "endStill": "shift-three-beats--work-cap-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.24,
-        "beatNodes": [
-          "work",
-          "turns-counter"
-        ]
-      },
-      {
-        "id": "idle-order",
-        "label": "先格子后板",
-        "file": "shift-three-beats--idle-order.mp4",
-        "endStill": "shift-three-beats--idle-order-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.32,
-        "beatNodes": [
-          "inbox",
-          "board",
-          "poll-arrow"
-        ]
-      },
-      {
-        "id": "instruction-first",
-        "label": "指令在前",
-        "file": "shift-three-beats--instruction-first.mp4",
-        "endStill": "shift-three-beats--instruction-first-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.33,
-        "beatNodes": [
-          "inbox",
-          "shutdown-request",
-          "priority"
-        ]
-      },
-      {
-        "id": "timeout-leave",
-        "label": "超时下班",
-        "file": "shift-three-beats--timeout-leave.mp4",
-        "endStill": "shift-three-beats--timeout-leave-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.34,
-        "beatNodes": [
-          "idle",
-          "timeout",
-          "summary-slip"
-        ]
-      },
-      {
-        "id": "no-fixed-timeout",
-        "label": "产品不赶人",
-        "file": "shift-three-beats--no-fixed-timeout.mp4",
-        "endStill": "shift-three-beats--no-fixed-timeout-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.22,
-        "beatNodes": [
-          "idle",
-          "manual-shutdown"
-        ]
-      },
-      {
-        "id": "done-two-ways",
-        "label": "报信两数法",
-        "file": "shift-three-beats--done-two-ways.mp4",
-        "endStill": "shift-three-beats--done-two-ways-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.26,
-        "beatNodes": [
-          "result-message",
-          "idle-notification"
-        ]
-      }
-    ]
-  },
-  "task-board": {
-    "slug": "task-board",
-    "type": "lifecycle",
-    "chapters": [
-      {
-        "id": "file-per-task",
-        "label": "一文件一活",
-        "file": "task-board--file-per-task.mp4",
-        "endStill": "task-board--file-per-task-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.22,
-        "beatNodes": [
-          "task-file",
-          "board"
-        ]
-      },
-      {
-        "id": "six-fields",
-        "label": "六字段齐活",
-        "file": "task-board--six-fields.mp4",
-        "endStill": "task-board--six-fields-end.png",
-        "beats": 6,
-        "leadSec": 0.44,
-        "storySec": 6.68,
-        "beatNodes": [
-          "id-field",
-          "title-field",
-          "desc-field",
-          "status-field",
-          "owner-field",
-          "deps-field"
-        ]
-      },
-      {
-        "id": "three-states",
-        "label": "三态两动作",
-        "file": "task-board--three-states.mp4",
-        "endStill": "task-board--three-states-end.png",
-        "beats": 5,
-        "leadSec": 0.44,
-        "storySec": 5.57,
-        "beatNodes": [
-          "pending",
-          "in-progress",
-          "completed",
-          "claim",
-          "complete"
-        ]
-      },
-      {
-        "id": "claim-owner",
-        "label": "认领写归属",
-        "file": "task-board--claim-owner.mp4",
-        "endStill": "task-board--claim-owner-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.37,
-        "beatNodes": [
-          "claim",
-          "owner-field",
-          "file-lock"
-        ]
-      }
-    ]
-  },
-  "worktree-bind": {
-    "slug": "worktree-bind",
-    "type": "architecture",
-    "chapters": [
-      {
-        "id": "booth-per-task",
-        "label": "带门牌隔间",
-        "file": "worktree-bind--booth-per-task.mp4",
-        "endStill": "worktree-bind--booth-per-task-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.34,
-        "beatNodes": [
-          "main-repo",
-          "booth",
-          "nameplate"
-        ]
-      },
-      {
-        "id": "copies-branches",
-        "label": "副本各挂分支",
-        "file": "worktree-bind--copies-branches.mp4",
-        "endStill": "worktree-bind--copies-branches-end.png",
-        "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.47,
-        "beatNodes": [
-          "worktree-a",
-          "branch-a",
-          "worktree-b",
-          "branch-b"
-        ]
-      },
-      {
-        "id": "id-rope",
-        "label": "编号绳",
-        "file": "worktree-bind--id-rope.mp4",
-        "endStill": "worktree-bind--id-rope-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.33,
-        "beatNodes": [
-          "task-card",
-          "rope",
-          "booth"
-        ]
-      },
-      {
-        "id": "bind-no-status",
-        "label": "绑定不改状态",
-        "file": "worktree-bind--bind-no-status.mp4",
-        "endStill": "worktree-bind--bind-no-status-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.23,
-        "beatNodes": [
-          "bind-record",
-          "pending"
-        ]
-      },
-      {
-        "id": "pre-arrange",
-        "label": "提前备料",
-        "file": "worktree-bind--pre-arrange.mp4",
-        "endStill": "worktree-bind--pre-arrange-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.36,
-        "beatNodes": [
-          "board",
-          "booths",
-          "prepare"
-        ]
-      },
-      {
-        "id": "auto-switch",
-        "label": "认领即切目录",
-        "file": "worktree-bind--auto-switch.mp4",
-        "endStill": "worktree-bind--auto-switch-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.32,
-        "beatNodes": [
-          "claim",
-          "cwd-switch",
-          "public-area"
-        ]
-      }
-    ]
-  },
-  "worktree-teardown": {
-    "slug": "worktree-teardown",
-    "type": "lifecycle",
-    "chapters": [
-      {
-        "id": "default-keep",
-        "label": "默认不拆",
-        "file": "worktree-teardown--default-keep.mp4",
-        "endStill": "worktree-teardown--default-keep-end.png",
+        "id": "wake",
+        "label": "楼替人盯口",
+        "file": "mailslot-consume--wake.mp4",
+        "endStill": "mailslot-consume--wake-end.png",
         "beats": 2,
         "leadSec": 0.44,
         "storySec": 3.25,
         "beatNodes": [
-          "remove-call",
-          "refuse"
+          "wake",
+          "queue-merge"
         ]
       },
       {
-        "id": "dirty-refuse",
-        "label": "有账拒绝",
-        "file": "worktree-teardown--dirty-refuse.mp4",
-        "endStill": "worktree-teardown--dirty-refuse-end.png",
-        "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.35,
-        "beatNodes": [
-          "uncommitted",
-          "unpushed",
-          "refuse"
-        ]
-      },
-      {
-        "id": "unknown-refuse",
-        "label": "查不动也拒",
-        "file": "worktree-teardown--unknown-refuse.mp4",
-        "endStill": "worktree-teardown--unknown-refuse-end.png",
+        "id": "b3",
+        "label": "拆消费语义",
+        "file": "mailslot-consume--b3.mp4",
+        "endStill": "mailslot-consume--b3-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.22,
+        "storySec": 3.28,
         "beatNodes": [
-          "status-unknown",
-          "refuse"
+          "b3-loop",
+          "ok-lane"
         ]
-      },
+      }
+    ]
+  },
+  "receipt-fsm": {
+    "slug": "receipt-fsm",
+    "type": "lifecycle",
+    "chapters": [
       {
-        "id": "discard-with-branch",
-        "label": "强删连分支",
-        "file": "worktree-teardown--discard-with-branch.mp4",
-        "endStill": "worktree-teardown--discard-with-branch-end.png",
-        "beats": 3,
+        "id": "approve-reject",
+        "label": "一套状态机",
+        "file": "receipt-fsm--approve-reject.mp4",
+        "endStill": "receipt-fsm--approve-reject-end.png",
+        "beats": 4,
         "leadSec": 0.44,
-        "storySec": 3.34,
+        "storySec": 4.45,
         "beatNodes": [
-          "discard",
-          "branch",
-          "gone"
+          "pending",
+          "approved",
+          "rejected",
+          "type-check"
         ]
-      },
+      }
+    ]
+  },
+  "receipt-ledger": {
+    "slug": "receipt-ledger",
+    "type": "sequence",
+    "chapters": [
       {
-        "id": "keep-for-review",
-        "label": "保留等审",
-        "file": "worktree-teardown--keep-for-review.mp4",
-        "endStill": "worktree-teardown--keep-for-review-end.png",
+        "id": "roundtrip",
+        "label": "单号往返",
+        "file": "receipt-ledger--roundtrip.mp4",
+        "endStill": "receipt-ledger--roundtrip-end.png",
         "beats": 3,
         "leadSec": 0.44,
         "storySec": 3.33,
         "beatNodes": [
-          "keep",
-          "branch",
-          "review"
+          "requester",
+          "responder",
+          "ledger-book"
+        ]
+      },
+      {
+        "id": "three-checks",
+        "label": "三道核验",
+        "file": "receipt-ledger--three-checks.mp4",
+        "endStill": "receipt-ledger--three-checks-end.png",
+        "beats": 3,
+        "leadSec": 0.44,
+        "storySec": 3.37,
+        "beatNodes": [
+          "v-id",
+          "v-type",
+          "v-pending"
+        ]
+      },
+      {
+        "id": "settle",
+        "label": "销账",
+        "file": "receipt-ledger--settle.mp4",
+        "endStill": "receipt-ledger--settle-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.24,
+        "beatNodes": [
+          "ledger-book",
+          "requester"
+        ]
+      },
+      {
+        "id": "b4",
+        "label": "拆核验",
+        "file": "receipt-ledger--b4.mp4",
+        "endStill": "receipt-ledger--b4-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.26,
+        "beatNodes": [
+          "responder",
+          "ledger-book"
+        ]
+      }
+    ]
+  },
+  "room-ledger-bind": {
+    "slug": "room-ledger-bind",
+    "type": "architecture",
+    "chapters": [
+      {
+        "id": "ledger",
+        "label": "中央账本",
+        "file": "room-ledger-bind--ledger.mp4",
+        "endStill": "room-ledger-bind--ledger-end.png",
+        "beats": 3,
+        "leadSec": 0.48,
+        "storySec": 3.35,
+        "beatNodes": [
+          "repo-ledger",
+          "history",
+          "commit"
+        ]
+      },
+      {
+        "id": "branches",
+        "label": "各改各的线",
+        "file": "room-ledger-bind--branches.mp4",
+        "endStill": "room-ledger-bind--branches-end.png",
+        "beats": 4,
+        "leadSec": 0.52,
+        "storySec": 4.43,
+        "beatNodes": [
+          "branch-line",
+          "room-1",
+          "room-2",
+          "room-3"
+        ]
+      },
+      {
+        "id": "bind",
+        "label": "房号绑定",
+        "file": "room-ledger-bind--bind.mp4",
+        "endStill": "room-ledger-bind--bind-end.png",
+        "beats": 2,
+        "leadSec": 0.48,
+        "storySec": 3.23,
+        "beatNodes": [
+          "bind-field",
+          "task-card"
+        ]
+      },
+      {
+        "id": "namecheck",
+        "label": "名字校验",
+        "file": "room-ledger-bind--namecheck.mp4",
+        "endStill": "room-ledger-bind--namecheck-end.png",
+        "beats": 1,
+        "leadSec": 0.52,
+        "storySec": 3.25,
+        "beatNodes": [
+          "name-check"
+        ]
+      }
+    ]
+  },
+  "room-teardown": {
+    "slug": "room-teardown",
+    "type": "lifecycle",
+    "chapters": [
+      {
+        "id": "entry",
+        "label": "默认不拆",
+        "file": "room-teardown--entry.mp4",
+        "endStill": "room-teardown--entry-end.png",
+        "beats": 2,
+        "leadSec": 0.52,
+        "storySec": 3.23,
+        "beatNodes": [
+          "teardown-entry",
+          "count-check"
+        ]
+      },
+      {
+        "id": "refuse",
+        "label": "拒拆",
+        "file": "room-teardown--refuse.mp4",
+        "endStill": "room-teardown--refuse-end.png",
+        "beats": 3,
+        "leadSec": 0.52,
+        "storySec": 3.35,
+        "beatNodes": [
+          "dirty",
+          "unknown",
+          "refuse"
+        ]
+      },
+      {
+        "id": "force-keep",
+        "label": "强删或保留",
+        "file": "room-teardown--force-keep.mp4",
+        "endStill": "room-teardown--force-keep-end.png",
+        "beats": 2,
+        "leadSec": 0.48,
+        "storySec": 3.23,
+        "beatNodes": [
+          "force-del",
+          "keep"
+        ]
+      },
+      {
+        "id": "audit",
+        "label": "事件日志",
+        "file": "room-teardown--audit.mp4",
+        "endStill": "room-teardown--audit-end.png",
+        "beats": 1,
+        "leadSec": 0.52,
+        "storySec": 3.24,
+        "beatNodes": [
+          "audit-log"
+        ]
+      }
+    ]
+  },
+  "seven-artifacts": {
+    "slug": "seven-artifacts",
+    "type": "architecture",
+    "chapters": [
+      {
+        "id": "overview",
+        "label": "一栋小楼总览",
+        "file": "seven-artifacts--overview.mp4",
+        "endStill": "seven-artifacts--overview-end.png",
+        "beats": 3,
+        "leadSec": 0.52,
+        "storySec": 3.34,
+        "beatNodes": [
+          "building",
+          "masters",
+          "captain"
+        ]
+      },
+      {
+        "id": "public-five",
+        "label": "楼下五设施",
+        "file": "seven-artifacts--public-five.mp4",
+        "endStill": "seven-artifacts--public-five-end.png",
+        "beats": 6,
+        "leadSec": 0.52,
+        "storySec": 6.63,
+        "beatNodes": [
+          "floor-public",
+          "wall",
+          "slot",
+          "ledger",
+          "clock",
+          "socket"
+        ]
+      },
+      {
+        "id": "private-rooms",
+        "label": "楼上房带",
+        "file": "seven-artifacts--private-rooms.mp4",
+        "endStill": "seven-artifacts--private-rooms-end.png",
+        "beats": 2,
+        "leadSec": 0.48,
+        "storySec": 3.25,
+        "beatNodes": [
+          "floor-private",
+          "rooms"
+        ]
+      },
+      {
+        "id": "corridor",
+        "label": "第七件：走廊",
+        "file": "seven-artifacts--corridor.mp4",
+        "endStill": "seven-artifacts--corridor-end.png",
+        "beats": 1,
+        "leadSec": 0.52,
+        "storySec": 3.23,
+        "beatNodes": [
+          "corridor"
+        ]
+      }
+    ]
+  },
+  "socket-pool": {
+    "slug": "socket-pool",
+    "type": "dataflow",
+    "chapters": [
+      {
+        "id": "connect-discover",
+        "label": "连接与发现",
+        "file": "socket-pool--connect-discover.mp4",
+        "endStill": "socket-pool--connect-discover-end.png",
+        "beats": 4,
+        "leadSec": 0.48,
+        "storySec": 4.42,
+        "beatNodes": [
+          "ext-docs",
+          "ext-deploy",
+          "connect",
+          "discover"
+        ]
+      },
+      {
+        "id": "prefix",
+        "label": "挂牌防撞",
+        "file": "socket-pool--prefix.mp4",
+        "endStill": "socket-pool--prefix-end.png",
+        "beats": 5,
+        "leadSec": 0.48,
+        "storySec": 5.54,
+        "beatNodes": [
+          "prefix-rule",
+          "tool-docs",
+          "tool-status",
+          "tool-trigger",
+          "pool"
+        ]
+      },
+      {
+        "id": "rebuild",
+        "label": "每轮重组",
+        "file": "socket-pool--rebuild.mp4",
+        "endStill": "socket-pool--rebuild-end.png",
+        "beats": 2,
+        "leadSec": 0.52,
+        "storySec": 3.22,
+        "beatNodes": [
+          "rebuild",
+          "pool"
+        ]
+      },
+      {
+        "id": "stale",
+        "label": "旧清单叫空",
+        "file": "socket-pool--stale.mp4",
+        "endStill": "socket-pool--stale-end.png",
+        "beats": 2,
+        "leadSec": 0.48,
+        "storySec": 3.22,
+        "beatNodes": [
+          "stale-call",
+          "cache-note"
+        ]
+      }
+    ]
+  },
+  "task-card-anatomy": {
+    "slug": "task-card-anatomy",
+    "type": "lifecycle",
+    "chapters": [
+      {
+        "id": "card-fields",
+        "label": "六字段",
+        "file": "task-card-anatomy--card-fields.mp4",
+        "endStill": "task-card-anatomy--card-fields-end.png",
+        "beats": 7,
+        "leadSec": 0.52,
+        "storySec": 7.75,
+        "beatNodes": [
+          "card",
+          "f-id",
+          "f-title",
+          "f-desc",
+          "f-status",
+          "f-owner",
+          "f-blockedby"
+        ]
+      },
+      {
+        "id": "three-states",
+        "label": "三态",
+        "file": "task-card-anatomy--three-states.mp4",
+        "endStill": "task-card-anatomy--three-states-end.png",
+        "beats": 3,
+        "leadSec": 0.52,
+        "storySec": 3.35,
+        "beatNodes": [
+          "st-pending",
+          "st-progress",
+          "st-done"
+        ]
+      },
+      {
+        "id": "two-actions",
+        "label": "两动作",
+        "file": "task-card-anatomy--two-actions.mp4",
+        "endStill": "task-card-anatomy--two-actions-end.png",
+        "beats": 2,
+        "leadSec": 0.52,
+        "storySec": 3.23,
+        "beatNodes": [
+          "act-claim",
+          "act-complete"
         ]
       }
     ]

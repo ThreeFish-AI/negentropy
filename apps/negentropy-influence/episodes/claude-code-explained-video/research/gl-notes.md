@@ -2,15 +2,15 @@
 
 > **冻结登记**（2026-10-07 · vibe-video Stage ① C 型流程）
 >
-> - **GL 产物指针**：[docs/research/agent-harness/171-claude-code-tooling-execution.md](../../../../../docs/research/agent-harness/171-claude-code-tooling-execution.md)（guided-learn 产物，生成日期 2026-10-07）。本文件正文自其一级标题起**逐字冻结**，禁止任何改写。
-> - **原始信源登记**：
->   - 站点轨（171 组织骨架）：learn.shareai.run 站点页快照 `.temp/lcc-refresh/site/s01.html`–`s04.html`（2026-10-07 抓取时点在场，工作区临时件未入库）↔ 仓库 fix 分支 `67a9126c`（2026-07-29，README.md 中文默认）源文件；
->   - main 轨（对照）：`ce8f9f186058939da54c9d6fead78dfb5d0fd6c3`（2026-09-28，README.md 英文默认 / README.zh.md 中文，每章附可运行 code.py）；
->   - 官方文档补读：Anthropic「Tool use overview」「Hooks reference」「Configure permissions」（GL 访问日期 2026-10-07，对应冻结正文参考 [2][3][4]）。
+> - **GL 产物指针**：[docs/research/agent-harness/171-claude-code-tooling-execution.md](../../../../../docs/research/agent-harness/171-claude-code-tooling-execution.md)（guided-learn 产物，生成日期 2026-10-07）。本文件正文自其一级标题起**逐字冻结**，禁止任何改写。**冻结真值锚：`41215b5b3`**（2026-10-07 契约修复版；复核形态 `git show 41215b5b3:docs/research/agent-harness/171-claude-code-tooling-execution.md`——与本冻结正文仅 11 行声明内适配差异：6 行 frontmatter 剥离 + 3 处链接层级 + 空行，2026-10-09 实测）。
+> - **原始信源登记**（均 B 型：在线文档/仓库；钉选决策与修订分叉叙事见[系列信源地图](../../../source-map/claude-code-explained.md)——章→集归属与钉值全系列唯一登记处）：
+>   - 站点轨（171 组织骨架，B 型）：learn.shareai.run 站点页快照 `.temp/lcc-refresh/site/s01.html`–`s04.html`（2026-10-07 抓取时点在场，工作区临时件未入库；台账 `s01-site`–`s04-site` 指纹存证，快照已随 .temp 清理、替代复核锚见 C.1 注）↔ 仓库 fix 分支 `67a9126c`（2026-07-29，README.md 中文默认）源文件——字节归档 `research/source-archive/67a9126c/`、台账 `s01f-`–`s04f-` 条目（2026-10-09 补登）；
+>   - main 轨（对照，B 型）：`ce8f9f186058939da54c9d6fead78dfb5d0fd6c3`（2026-09-28，README.md 英文默认 / README.zh.md 中文，每章附可运行 code.py）——字节归档 `research/source-archive/ce8f9f1/`（LICENSE + 出处表齐备）、台账 `s01-`–`s04-` 条目；
+>   - 官方文档补读（B 型·site）：Anthropic「Tool use overview」「Hooks reference」「Configure permissions」（GL 访问日期 2026-10-07，对应冻结正文参考 [2][3][4]）——台账 `doc-tool-use-overview` / `doc-hooks` / `doc-permissions` 指纹存证（无字节副本，计数复核走 README 鲜度门）。
 > - **证据定级说明**：GL 对原始信源的转述一律按 B 型三级 **≤【二】** 处理；冻结正文中标「材料（对 CC 源码）的核查 / 课程转述 / 源码分析」的断言按 **【三】** 级处理，口播须带归属句、不得说成产品既成事实；`lcc_tooling_lab.py` 原型实测数字经本集复算（附录 C.2 第 7、8 条），按 **【一】** 级引用。
 > - **鲜度复核日期**：2026-10-07（复核动作与结论见附录 C.1）。
 > - **链接适配说明**：本文件自 docs/research 迁入 research/ 后，正文全部相对链接（全景图 .mmd 图源 / 交互 HTML / dark·light PNG）的相对层级已按新落位统一改写，文字内容零改动。
-> - **重冻登记**（2026-10-07 第二次冻结）：正文重冻自当前分支 171 现行版，收敛首次冻结（dd45c3cd5）未随 41215b5b3 契约修复同步的漂移（恢复被删除的全景图 PNG/交互版链接行；链接层级对齐 41215b5b3 统一口径）。
+> - **重冻登记**（2026-10-07 第二次冻结）：正文重冻自当前分支 171 现行版，收敛首次冻结（dd45c3cd5）未随 41215b5b3 契约修复同步的漂移（恢复被删除的全景图 PNG/交互版链接行；链接层级对齐 41215b5b3 统一口径）。2026-10-09 注：主干合并版（`10cfdc028`）含冻结后的一轮文案精调（模型→LLM、钩子→Hook、管线→Pipeline 等，差 234 行），事实面零漂移（§7 数字表与 §8 实验表逐项一致；唯一措辞级修正见附录 C.5 勘误），冻结件不追改。
 
 # 精读：Learn Claude Code「工具与执行」
 
@@ -276,7 +276,9 @@ turns 10/10 · stop_continued 1
 
 ## 附录 A · 类比登记表（本集口播类比唯一准入清单）
 
-> 提取自冻结正文全部类比性表述（2026-10-07 编制）。口径：一物一喻，1–3 句点亮即切回机制画面，失配边界句随行；未登记类比不进口播。带 ※ 号条目因系列口径卡口播红线（禁旧版隐喻系词汇）**不进口播**，仅留登记备查。
+> 口径：一物一喻，1–3 句点亮即切回机制画面，失配边界句随行；**未登记类比不进口播**。带 ※ 号条目因系列口播红线（禁旧版隐喻系词汇）**不进口播**，仅留登记备查。
+> **收录判定标准**（2026-10-09 补订）：明喻与物象映射句计入类比物——有「像/仿佛/当作」修辞，或以外部事物承载机制语义且在口播展开画面者；单短语身体拟人（「手」「腿」「挂点」等通行措辞）与定义性说明（「参数说明书」释 schema、「口子」释 bash）不计类比物，随冻结正文 diction 自由使用。
+> **编制来源声明**（2026-10-09 补记）：#1–#9 为 2026-10-07 自冻结正文逐节提取编制；上游 guided-learn 伴生 analogy.md 的承接动作当时未留记录（.temp 沙箱已按期清理、不可复算）；#10–#12 为 2026-10-09 逐句对账 narration 实际用喻后的补登。后续各集冻结时应在本节登记「上游 analogy.md：在场已承接 / 不在场」。
 
 | # | 类比物 | 对应机制 | 失配边界句 | 出处节号 |
 |---|---|---|---|---|
@@ -289,8 +291,11 @@ turns 10/10 · stop_continued 1
 | 7 ※ | 墙面插座 | 钩子注册表：循环与固定事件装修时就位，回调插上就用，不用拆墙布线 | 插座只供电、没有返回值控制流；钩子的返回值能拦工具、能续循环 | §6.2 |
 | 8 ※ | 循环只喊号 | 循环体只剩事件触发，干活的名单全在注册表 | 拟人直陈，无外部物映射，无失配面 | §1 表、§6.2 |
 | 9 | 泥球 | 复杂度压进核心的后果：核心变成无人敢动的泥球 | 泥球喻指耦合僵化而非物理堆积；正解是把保护外挂回判据点，不是清扫核心 | §9.1 规律 5 |
+| 10 | 打字机逐字到达 | 流式响应内容块先于收尾字段可见（§3.4 判据之争） | 打字机有预存完整底稿、逐字只是呈现节奏；流式是生成即输出、无底稿。此喻只解释「内容渐次可见」，「字段滞后于内容」的判据语义由 #3 火警接警承担 | §3.4；补登 2026-10-09（口播 p2-21 已用） |
+| 11 | 一条沟 | 「会写命令」与「会做事」之间的执行-观察缺口（§3.1） | 沟是静态间隔、可原地填平；这里的缺口要靠整条回路动态弥合，模型自身永远跨不过去 | §3.1；补登 2026-10-09（口播 p2-02 已用） |
+| 12 | 四件套收束：腿·手·胆·挂点 | 回喂给腿（执行与观察）、查表给手（能力）、闸门给胆（敢用）、挂点给空间（扩展）——§1 四项规格的收束措辞 | 「胆」喻指敢用的保证来自边界而非勇气：模型照旧会尝试危险动作，拦它的是代码；腿/手/挂点为冻结正文通行 diction，非新喻 | §1、§9.1；补登 2026-10-09（口播 p3-28 铺垫、p6-02 收束） |
 
-※ 两条的禁用依据：系列口径卡「视觉母题禁旧版隐喻系」词表含「插线口」「叫号器」，插座/喊号同族意象不进口播；口播改工程直陈（「循环只负责触发事件」「检查逻辑挂到固定事件上」）。
+※ 两条的禁用依据：[系列口播词表 SSOT](../../../source-map/claude-code-explained.md)（§六，禁旧版隐喻系 + 五集域词）含「插线口」「叫号器」，插座/喊号同族意象不进口播；口播改工程直陈（「循环只负责触发事件」「检查逻辑挂到固定事件上」）。
 
 ## 附录 C · 穿透明细
 
@@ -298,26 +303,60 @@ turns 10/10 · stop_continued 1
 
 | 动作 | 结果 |
 |---|---|
-| 本地 clone `/Users/cm.huang/Documents/projects/aurelius/learn-claude-code` 验证两钉点 | `git cat-file -t ce8f9f186058939da54c9d6fead78dfb5d0fd6c3` 与 `67a9126c` 均为 commit，在场；clone HEAD（`5dfe67f`）已高于 main 轨钉点——取证一律 `git show <钉点>:<path>`，不受 HEAD 漂移影响 |
-| 站点快照在场核验 | `.temp/lcc-refresh/site/s01.html`–`s04.html` + `README.md` 均在；`s01.html` 含 `stop_reason` 8 处，与站点轨判据一致 |
+| 本地 clone `/Users/cm.huang/Documents/projects/aurelius/learn-claude-code` 验证两钉点 | `git cat-file -t ce8f9f186058939da54c9d6fead78dfb5d0fd6c3` 与 `67a9126c` 均为 commit，在场；clone HEAD（`5dfe67f`）为 fork（ThreeFish-AI）main 旧尖（2026-04-08），**落后并分叉于**两钉点约 6 个月，upstream refs 已另抓取（`upstream/main`=ce8f9f18、fix 分支=67a9126）——读工作树会拿到比钉点陈旧的字节，取证一律 `git show <钉点>:<path>`（2026-10-09 复核修正拓扑描述：原记「HEAD 已高于钉点」方向有误；纪律本身合规——C.2 与台账全量钉点取证、零 HEAD 引用） |
+| 站点快照在场核验 | `.temp/lcc-refresh/site/s01.html`–`s04.html` + `README.md` 均在；`s01.html` 含 `stop_reason` 8 处，与站点轨判据一致（2026-10-09 注：快照属 `.temp` 已按期清理，本行复核请改用 clone `git show 67a9126c:s01_agent_loop/README.md`——站点同源修订字节，判据表述在场） |
 | GL 产物日期 | 生成日期 2026-10-07 = 本集冻结日，同日零漂移 |
 | 结论 | 事实源鲜度成立。口播中涉官方文档现状的断言一律带「截至 2026-10-07」日期口径 |
+| 2026-10-09 补验（Stage ① 优化轮） | ①穿透矩阵补全：数字断言 8 项落档 C.2 #10–#14、非数字抽样 10 条新设 C.4、材料层代穿透吻合落档 C.2 #9；②官方页 WARN 裁决（verify 三条 WARN 的定点比对，快照归档 `source-archive/doc-snapshots-20261009/`）：hook 不变式引文逐字在场；权限句微调为「…not **by** the model」（一词之差、语义不变，中文口径「权限规则由 Claude Code 执行、不由模型执行」成立）；六种权限模式全在场；tool_use / stop_reason / tool_result 配对语义在场；**hook 事件清单较 33 个快照口径明显增长**（InstructionsLoaded / UserPromptExpansion / MessageDisplay / PostToolUseFailure / PermissionRequest 等在场）——「三十三个」属 2026-10-07 快照口径，趋势化（「三十多个」）决策移交②审校 |
+| 台账回执（2026-10-09） | `source_ledger.py verify`：受检 23 · FAIL 0 · WARN 3（即上行已裁决的三条官方页）；`audit --episode 1`：期望 12 在册 12 · FAIL 0（含新增 `s01f-`–`s04f-` 八条站点轨条目） |
 
 ### C.2 数字穿透抽查（断言 → 出处字节 → 结论；2026-10-07 实测）
 
 1. **「1 → 5 个工具 = 2 处改动」** → `git show ce8f9f18:s02_tool_use/code.py`：`TOOLS` 数组 5 条定义（bash / read_file / write_file / edit_file / glob，:138–147），`TOOL_HANDLERS` 字典 5 行映射（:153 起），循环执行为一行查表 `handler = TOOL_HANDLERS.get(block.name)`（:180–181）→ **吻合，【一】级（main 轨文件实测）**。
 2. **「站点轨判据 = stop_reason；main 轨改为内容块（提交 168fff8）」** → 站点轨 `git show 67a9126c:s01_agent_loop/code.py` :96 `if response.stop_reason != "tool_use": return`；main 轨 `git show ce8f9f18:s01_agent_loop/code.py` :107–110 `tool_calls = [block for block in response.content if block.type == "tool_use"]` + `if not tool_calls: return`；`git show --stat 168fff8` = 「Fix empty tool-use response handling」（2026-08-15，改 `s01_agent_loop/code.py` 28 行）→ **吻合，【一】级**。
-3. **「教学版 agent_loop 约 30 行」** → 站点轨 s01 `code.py` :85–111，函数体 27 行（含注释与空行）→ 「约 30 行 / 三十行」口径成立，【一】级；口播写法带「教学版」限定。
+3. **「教学版 agent_loop 约 30 行」** → 站点轨 s01 `code.py` :85–113，函数体 29 行（含注释与空行；2026-10-09 复核修正端点：回喂 user 消息的 `messages.append` 在 :113、其上 :112 为回喂注释，原记 :85–111/27 行漏计收尾两行）→ 「约 30 行 / 三十行」口径成立，【一】级；口播写法带「教学版」限定。
 4. **「闸门 1 硬拒绝表 7 条」** → 两轨 s03 `code.py`（`67a9126c`:142 / `ce8f9f18`:156）逐字一致：`DENY_LIST = ["rm -rf /", "sudo", "shutdown", "reboot", "mkfs", "dd if=", "> /dev/sda"]` → 7 条吻合（正文「重定向裸设备」即 `> /dev/sda`），【一】级。同屏印证 main 轨 `DESTRUCTIVE_COMMAND_WORD` 词边界正则（`ce8f9f18`:166–168），即 §9.2 争议 1 所述课程第三步。
 5. **「s04 四个事件」** → `git show 67a9126c:s04_hooks/code.py` :154 `HOOKS = {"UserPromptSubmit": [], "PreToolUse": [], "PostToolUse": [], "Stop": []}`，:172 注释「s03 check_permission() logic moved here」印证权限检查降格为 PreToolUse 回调 → **吻合，【一】级**。
-6. **「教学输出截断 50000 字符、max_tokens 8000」** → 站点轨 s01 `code.py` :77 `return out[:50000]`、:91 `max_tokens=8000` → **吻合，【一】级**。
+6. **「教学输出截断 50000 字符、max_tokens 8000」** → 站点轨 s01 `code.py` :77 `return out[:50000]`、:89 `max_tokens=8000`（2026-10-09 复核修正：原记 :91，字面实在 :89）→ **吻合，【一】级**。
 7. **「原型基线 turns 10/10 · executed 7 · denied 2 · asked 2 · pairing_errors 0 · checkpoints 5/5」** → 本集实跑 `python3 docs/research/agent-harness/assets/lcc_tooling_lab.py --selftest`：基线行逐项复现；另复现 `partition_tool_calls` 输出 `[['read_file','read_file','glob'],['bash'],['read_file']]`（三批切分，印证 §4.4 分区算法示例）→ **本集复算成立，升【一】级**。
 8. **「五路破坏性实验实测退化」** → 同次 selftest：实验 1 turns 8/10、executed 5；实验 2 pairing_errors 2；实验 3 deny_listed_executed 1；实验 4 outside_writes 1、asked 0；实验 5 stop_continued 0、turns 8/10；`--t5` 复现 Stop 钩子日志（session used 8 / 9 tool results、注入 1 条 user 消息、循环源码零改动）→ **逐项吻合，升【一】级**。
-9. **不可本地回源项登记** → 1729 行（query.ts）、27 个 hook 事件、14 字段 HookResult、8 个权限规则来源、五步验证管线：材料作者对 CC 源码的单方核查、未锁定所查 CC 版本号 → **恒【三】级，口播必带归属句**；33 个 hook 事件、六种权限模式：官方文档 2026-10-07 快照口径 → **【二】级，口播带「截至 2026-10-07 官方文档」**。
+9. **CC 源码层断言分级登记**（2026-10-09 复核拆为两层）→
+   - **CC 源码层不可本地回源**：1729 行（query.ts）、27 个 hook 事件、14 字段 HookResult、8 个权限规则来源、五步验证管线、State 对象十个字段、四种裁决值（allow/deny/ask/passthrough）、读文件工具结果上限无穷大——材料作者对 CC 源码的单方核查、未锁定所查 CC 版本号 → **恒【三】级，口播必带归属句**；
+   - **材料层已穿透吻合（2026-10-09 代验）**：上列断言的承载原文均在本地 clone 站点轨 README「深入 CC 源码」折叠区在场且逐项吻合——1729 行与 stop_reason 流式不可靠 s01 README:151、State 十字段 s01 README:170、「复杂字段皆保护」s01 README:203、27 个事件 s04 README:230、14 字段 s04 README:246、8 来源 s03 README:195、isDestructive 纯展示 s03 README:212、五步验证 s02 README:202、读文件 Infinity s02 README:218、四种裁决值 s03 README:170/191——GL→材料转述零失真；材料层可作二级锚，不改变 CC 源码层【三】定级；
+   - **官方文档口径**：33 个 hook 事件、六种权限模式：官方文档 2026-10-07 快照口径 → **【二】级，口播带「截至 2026-10-07 官方文档」**（快照仅存台账指纹、无字节副本，计数离线不可复核——见 C.1 注与 README 鲜度门）。
+
+**2026-10-09 复核补穿透**（数字断言全量化对账，此前 8 项无记录项本次落档）：
+
+10. **「闸门 2 教学版三种关键词（rm、> /etc/、chmod 777）」** → `git show 67a9126c:s03_permission/code.py` :157 与 `ce8f9f18` 归档 s03 `code.py` :181：`["rm ", "> /etc/", "chmod 777"]` 逐字在场 → **吻合，【一】级**。
+11. **「循环五步骤」（§3.2）** → 站点轨 s01 `code.py` :85–113 结构逐句在场（:89 带 `tools=TOOLS` 调用、:96 查 `stop_reason`、:113 结果以 user 角色回喂）→ **吻合，【一】级**。
+12. **「原型 452 行 + §8 机制速查 15 个行号锚」** → 本地实测 `wc -l` = 452；:43/:69/:116–123/:125/:132/:178/:181/:199/:225/:231/:242/:255/:300/:360 逐一对 `lcc_tooling_lab.py` 吻合（:360 为 `def selftest`，exps 表在其内 :385）→ **吻合，【一】级（本集复算）**。
+13. **「后面 16 章」（§2）** → `git ls-tree ce8f9f18` 顶层 s01–s17 共 17 章，s01 后恰 16 章 → **吻合，【一】级**（课程结构数字，去站点化纪律下不进口播）。
+14. **「官方新增 6 个 hook 事件（33−27）」（§6.4）** → 官方页仅存指纹无字节副本，离线不可复核 → **维持【二】级**，随 C.1 鲜度门复核。
 
 ### C.3 口播引用纪律（从 C.2 导出）
 
-- **可【一】级直断言**（钉点实测或本集复算）：教学版循环约 30 行；1 → 5 个工具 = 2 处改动；硬拒绝表 7 条；钩子四事件；教学版截断 50000 字符；原型全部日志数字（基线 turns 10/10、executed 7、denied 2、asked 2、checkpoints 5/5；实验退化 8/10 与 executed 5、pairing_errors 2、deny_listed_executed 1、outside_writes 1、stop_continued 0）。
+- **可【一】级直断言**（钉点实测或本集复算）：教学版循环约 30 行；1 → 5 个工具 = 2 处改动；硬拒绝表 7 条；钩子四事件；教学版截断 50000 字符；原型全部日志数字（基线 turns 10/10、executed 7、denied 2、asked 2、checkpoints 5/5；实验退化 8/10 与 executed 5、pairing_errors 2、deny_listed_executed 1、outside_writes 1、stop_continued 0）；闸门 2 教学版三种关键词（rm / > /etc/ / chmod 777）；循环五步骤（进消息 → 带工具调用 → 查信号 → 执行 → user 角色回喂）——后两项 2026-10-09 补穿透并入（C.2 #10/#11）。
 - **须带归属句（【三】级）**：1729 行、27 个事件、14 字段、8 个来源、五步管线——统一归属语式「拆过 Claude Code 源码的作者数过」；「后面所有章节都叠在这个循环上」是课程的结构性主张（§11.5），口播以系列走查句式呈现（「这一集里的每次演进，核心循环一行不改」）。
 - **须带日期口径（【二】级）**：33 个 hook 事件、六种权限模式（官方文档截至 2026-10-07）；「权限规则由 Claude Code 执行、不由模型执行」为官方文档直述（冻结正文参考 [4]），可用「官方文档明说」句式断言。
 - **不进口播**：auto 分类器准确率与误放行率（无数字）；连续批并发的吞吐收益（无实测）；star 数、章节数等活数据；闸门与正则的防御力（无攻防实测，§11.2）。
+
+### C.4 非数字断言抽样（10 条 · 2026-10-09 首次执行）
+
+> 契约口径「非数字断言抽 10 条」此前未执行，本轮补齐；抽样面 = 因果 / 归属 / 对比 / 机制类断言，证据源与定级口径同 C.2。锚点均为 2026-10-09 本地实测（clone 钉点 `git show` / 归档字节 grep）。
+
+| # | 断言（冻结正文） | 锚点实测 | 定级与口播纪律 |
+|---|---|---|---|
+| 1 | 权限规则由 Claude Code 执行、不由模型执行（§5.1） | 官方权限文档直述（参考 [4]；台账 `doc-permissions` 指纹 2026-10-07） | 【二】·「官方文档明说」句式 |
+| 2 | 钩子 allow 压不过 deny/ask 规则（§6.4 不变式） | 官方 hooks 文档直述「Deny and ask rules are still evaluated regardless of what the hook returns」（参考 [3]；台账 `doc-hooks` 指纹） | 【二】·官方原文直引 |
+| 3 | isDestructive 纯界面展示、不参与裁决（§5.4） | s03 README:212（材料引 `Tool.ts:405-406`） | 【三】·归属句；材料层吻合 |
+| 4 | TaskCreate 改状态但每次写不同文件、可并发（§4.4） | s02 README:183（材料核查表行） | 【三】·归属句；材料层吻合 |
+| 5 | 每个工具调用过五步验证管线（§4.4） | s02 README:202（材料引 `toolExecution.ts`） | 【三】·归属句；材料层吻合 |
+| 6 | 读文件结果上限无穷大，防落盘自触发循环（§4.4） | s02 README:218（材料核查「FileRead 特殊——设为 Infinity」） | 【三】·归属句；材料层吻合 |
+| 7 | stop_reason 流式不可靠、CC 用 needsFollowUp 标志（§3.4） | s01 README:151（材料引 CC 源码注释） | 【三】·归属句；材料层吻合 |
+| 8 | stopHookActive 防「自纠-报错」死循环（§6.4） | s04 README:266/268（材料引 `query.ts:212,1300`） | 【三】·归属句；材料层吻合 |
+| 9 | s02 的 safe_path 硬界在 s03 教学代码未保留，越界改由闸门 2/3 裁决（§5.2） | 两轨 s03 `code.py` grep `safe_path` 计数 0 / 0 | 【一】·钉点实测 |
+| 10 | 教学版自认「简单字符串匹配不是可靠安全机制，命令变体和 shell 展开可能绕过」（§5.2） | s03 README:42 原话在场（「教学示意：……」括注） | 【一】·钉点实测逐字 |
+
+### C.5 勘误登记（冻结正文不改，口径以此为准）
+
+- **§9.2 争议 1 首项「模拟放行」**：为上游已修正的旧表述——现行 171（主干 `10cfdc028`，2026-10-08）已改为「『接受编辑』预检」，与本冻结件 §5.4 及附录 A #6 的「接受编辑 → 白名单 → 分类器 → 连续拒绝回退人工」一致，「模拟放行」系全篇孤例旧值。冻结纪律禁改正文、不重冻；⑤⑥ 复用该段素材时以 §5.4 / A#6 机制名为准。2026-10-09 实测：冻结件 :238 全仓唯一命中，planning / narration / storyboard 零命中。

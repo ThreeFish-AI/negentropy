@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "lifecycle",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/.archify/lifecycle-receipt-fsm-20261003-003550/candidate.json",
+    "sha256": "f8973048caaf8139bb64d8f08aab75fe3034dfb634bb7ed6a53d726c30e0bedc",
+    "bytes": 4292
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code--receipt-fsm.html",
+    "sha256": "187cc8effcf83e7e00cb62db6e35d98d516d15e8fea1e3a63eaec4217f8cf762",
+    "bytes": 760173
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code--receipt-fsm.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code--receipt-fsm.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code--receipt-fsm.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 1927,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "routesOverSuggestedStretch": 1
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [],
+      "detours": [
+        {
+          "relationship": {
+            "id": "t-dup-self",
+            "from": "dup",
+            "to": "dup",
+            "label": "已决不再改",
+            "collectionIndex": 6,
+            "artifactIndex": 7
+          },
+          "bends": 2,
+          "stretch": 5.25
+        }
+      ],
+      "truncated": false
+    },
+    "hints": [
+      "dup → dup needs 2 bends: move node dup or dup so they share a row or column with matching centers, or sit diagonally with a clear corner."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}
