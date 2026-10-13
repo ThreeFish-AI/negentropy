@@ -4,9 +4,25 @@ title: "Context Layer 技术蓝图：Agent 系统的上下文供给与治理"
 description: "Agents 系统 Context Layer 设计 SSOT：三面蓝图（失效登记簿九簇 × 资产/权威/装配/检索/复利五轴 × 生命周期六段两环 G1–G7）× 机制=接缝组合 × 四范本矩阵（Horizon M1–M7 / OpenViking / Claude Code / Hermes·Jev）× 供给面威胁模型 × negentropy 16+4 映射总装 × 修复序×轴依赖序路线"
 ---
 
-> **定位**：Agents 系统 Context Layer 的设计蓝图 SSOT——回答「怎么供给、怎么治理、怎么装配、怎么验证、怎么进化」。文档族分工：013（本文）=设计 SSOT（规格、决策、路线）；[011 精读笔记](./011-horizon-context.md)=Horizon 全量机制载荷（连续 §1–§10）；[014](./014-openviking.md)/[015](./015-openviking-mapping-negentropy.md)=OpenViking 精读与映射。
+> **定位**：Agents 系统 Context Layer 的设计蓝图 SSOT
 >
-> **编号稳定键**：M1–M7（Horizon 机制词表）· D1–D10（破坏实验键）· A/B/C/E/T（场景键）与 011、配套原型共用，只引不重定义；L1–L6（生命周期段）· G1–G7（治理落位法则）· 五轴名为本文键；ADR-1/2/3/5/6 见 §3.6；#1–#20 指 §12.4 映射表行。外部引用以本文 §1–§14 为准。
+> 回答 Agent 中 Context「怎么供给、怎么治理、怎么装配、怎么验证、怎么进化」。
+>
+> 文档族分工：
+>
+> - 013（本文）=设计 SSOT（规格、决策、路线）；
+> - [011 精读笔记](./011-horizon-context.md)=Horizon 全量机制载荷（连续 §1–§10）；
+> - [014](./014-openviking.md)/[015](./015-openviking-mapping-negentropy.md)=OpenViking 精读与映射。
+>
+> **编号稳定键**：
+>
+> - M1–M7（Horizon 机制词表）
+> - D1–D10（破坏实验键）
+> - A/B/C/E/T（场景键）
+> - L1–L6（生命周期段）
+> - G1–G7（治理落位法则）
+> - 五轴名为本文键
+> - ADR-1/2/3/5/6
 
 ## 1. 失效模式登记簿：九簇总账
 
