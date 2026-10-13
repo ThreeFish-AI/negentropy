@@ -5,6 +5,11 @@
 ## [Unreleased]
 ### Added
 
+### 013 蓝图去元内容化：评判与多状态登记措辞移出正文（2026-10-13）
+
+- **[013 蓝图](docs/research/cognitive-context/013-context-layer-blueprint.md) 只留 Context Layer 主题内容（1304→1176 行）**：删除 §0「判定面总则」与散布各章的三级证据徽、as-of Stamp、接线态/判定/状态列、销账/写面/做面协议、转引处置表与证据表（原 §13.1/§13.2）、§3.5 旧结构换算、§10.4 证据时效条、§11.4 状态注记；§0.3 的失败形态优先、反事实存在性、绕开测试三条纪律收成 §1 开头「验收观」。§1 九簇 42 行改为四列（失效形态/证据锚/堵住机制/验收判据），本仓整体现状由 §12.4 映射表承载，其余章节仅在各自事实行内保留「本仓现状」说明；§13 前移为「动手实验室与官方护栏」（13.1/13.2），§1–§12、§14 章号不变；五组高频数字的限定保留在引用行内。
+- **联动**：`context-layer--failure-map` 图改立意为「九簇失效形态总览」并重生成（html/PNG/回执）；`context-layer-blueprint--architecture` 图「六列」改「四列」并重生成；readme、knowledge-map、mermaid 台账与两张复用图的 `%%source` 头同步去 Stamp 措辞。
+
 ### 013 Context Layer 蓝图完全重铸：三面蓝图换代（2026-10-10）
 
 - **[013 蓝图](docs/research/cognitive-context/013-context-layer-blueprint.md) 换代重写（542→1303 行）**：guided-learn 禁读推导（推导代理不见旧稿、交叉互审判零锚定泄漏）+ 事后四桶对账（A–J 十类主干零静默丢失，6 处丢失/5 处存疑全部处置）。**结构换代**：旧三轴（五源×五层×CGAVE）→ 三面蓝图——验收面（失效登记簿九簇 42 行×证据锚×徽×机制×判据×接线态六列）、结构面（资产/权威/装配/检索/复利五轴+机制＝接缝组合的 M1–M7 轴向量矩阵）、时间面（生命周期六段 L1–L6+验证环/进化环两一等环+G1–G7 治理落位法则）；四机构隐喻/样板间/CGAVE/五层口诀有据退役，旧版 §0–§15 封存。**证据面换代**：五条转引全部一手核验升级（arXiv 2411.15399/2505.06120/2603.13110/2601.17887/FinanceBench 2311.11944 + USENIX 2602.06547 补档）且限定随行（46/19＝单查询动机示例、−39%＝15 LLM×6 任务均分含能力/不可靠分解、99.6/54.3＝240-msg 细分、+15.8~243.7%＝intent legitimation 非注入、19%＝共享单库最差档）；Redis n=1000/Gartner 60% 如实标注不可升级、Redis 73% 退役（快照零命中有记录死亡）；as-of 双轨（本仓=b2fbb51f5、外部=探针日期）。**范本重锚**：四范本矩阵 Claude Code 行换代到 171–175 gen-2026-10-07（五层依赖链+四级证据分级+lcc 原型族）；OpenViking 行加活跃演进注（@14a7b81 后 ~870 提交含 Gateway 更名）。**本仓判定面**：16+4 映射表形态升级（轴向量+生命周期段+执行点+接线态列）全量重核（57987b28b→b2fbb51f5 仅 1 docstring 提交、判定无一过期）；新增接线三态（存在/接线/在线）与登记簿入账协议。**图资产**：新 1（first-class-object）+重绘 4（architecture v3 三面/failure-map 九簇/lifecycle 六段两环/layer-mechanism-map 轴向量）+微改 3（mcp-threat-model+intent legitimation/industry-landscape+Forrester 双阵营/object-lifecycle+retired 终态）+复用重锚 3；三图退役存档（five-sources/runtime-layering/dual-track-roadmap——视频管线仍引用故不删除）。**入站核销**：33 行文档引用+7 处生产代码注释（上轮重铸漏网的退役旧号）全量对账，§4.4 机械层 STALE 清零；knowledge-map/issue.md/readme/015/191 同步。**质量闸**：三批 Checker 122 行对账+返工 7 行复判（COUNTS 归零）+增量 Checker 4/4；保真核对全绿（INV 0/0/FENCE/HEDGE/CLEAN PROSE/ANCHOR）；盲评 2 判官×3 章成稿全胜；外行四测（闭卷诊断力验证/开卷带锚全对/听知主线复述覆盖）+外行补阙 4 处。配套：两个原型 selftest 只跑不改复跑全绿；lab 全记录在 .temp（不入库）。
