@@ -116,29 +116,33 @@ export const GoldenCard: React.FC<{
 );
 
 /** 左右消融框（Counterfactual Ablation Contrast）：左红＝拆掉后/退化侧，
- *  右绿＝机制在位/拦截侧；标题条 + 内容插槽。 */
+ *  右绿＝机制在位/拦截侧；标题条 + 内容插槽 + 可选跨两列底注。 */
 export const AblationPanel: React.FC<{
   leftTitle: string;
   rightTitle: string;
   children: React.ReactNode[];
+  footer?: React.ReactNode;
   width?: number;
   height?: number;
-}> = ({leftTitle, rightTitle, children, width = 780, height = 420}) => {
+}> = ({leftTitle, rightTitle, children, footer, width = 780, height = 420}) => {
   const half = {width: width / 2 - 14, height, borderRadius: 12, padding: '18px 20px'};
   return (
-    <div style={{display: 'flex', gap: 28}}>
-      <div style={{...half, background: theme.panel, border: `1.5px solid ${theme.danger}55`}}>
-        <div style={{fontSize: 15, color: theme.danger, letterSpacing: 2, marginBottom: 12}}>
-          ✗ {leftTitle}
+    <div style={{display: 'flex', flexDirection: 'column', gap: 14}}>
+      <div style={{display: 'flex', gap: 28}}>
+        <div style={{...half, background: theme.panel, border: `1.5px solid ${theme.danger}55`}}>
+          <div style={{fontSize: 15, color: theme.danger, letterSpacing: 2, marginBottom: 12}}>
+            ✗ {leftTitle}
+          </div>
+          {children[0]}
         </div>
-        {children[0]}
-      </div>
-      <div style={{...half, background: theme.panel, border: `1.5px solid ${theme.ok}55`}}>
-        <div style={{fontSize: 15, color: theme.ok, letterSpacing: 2, marginBottom: 12}}>
-          ✓ {rightTitle}
+        <div style={{...half, background: theme.panel, border: `1.5px solid ${theme.ok}55`}}>
+          <div style={{fontSize: 15, color: theme.ok, letterSpacing: 2, marginBottom: 12}}>
+            ✓ {rightTitle}
+          </div>
+          {children[1]}
         </div>
-        {children[1]}
       </div>
+      {footer}
     </div>
   );
 };

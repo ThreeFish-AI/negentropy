@@ -269,8 +269,6 @@ export const P0Hook: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bC = w('p0-10', 'p0-10c');
   const bD = w('p0-11', 'p0-13');
   const bE = w('p0-14', 'p0-15');
-  const push = usePushIn(at('p0-14'));
-  const askCard = useEnter('pop', {at: at('p0-14') - bE.from, dur: DUR.f5, springPreset: 'snap'});
   return (
     <AbsoluteFill>
       <Sequence {...bA} name="0-A 钩子卡">
@@ -286,13 +284,13 @@ export const P0Hook: React.FC<{scene: SceneRange}> = ({scene}) => {
       <Sequence {...bB} name="0-B 两难分栏">
         <SceneTag chapter="P0" tagline="挤爆的开场白" accent={theme.ledger} />
         <Stage>
-          <div style={{transform: push}}>
+          <BeatPush at={at('p0-04') - bB.from}>
             <DilemmaSplit
               leftAt={at('p0-04') - bB.from}
               crossAt={at('p0-08') - bB.from}
               stackAt={at('p0-09') - bB.from}
             />
-          </div>
+          </BeatPush>
         </Stage>
       </Sequence>
       <Sequence {...bC} name="0-C 示意账">
@@ -309,17 +307,21 @@ export const P0Hook: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
       <Sequence {...bE} name="0-E 第三条路">
         <SceneTag chapter="P0" tagline="挤爆的开场白" accent={theme.ledger} />
-        <ThirdRoad sealAt={at('p0-15') - bE.from} cardStyle={askCard} />
+        <ThirdRoad sealAt={at('p0-15') - bE.from} cardAt={at('p0-14') - bE.from} />
       </Sequence>
     </AbsoluteFill>
   );
 };
 
+/** beat 内推镜包装：usePushIn 在 beat Sequence 内求值，锚为 beat 局部帧。 */
+const BeatPush: React.FC<{at: number; children: React.ReactNode}> = ({at, children}) => {
+  const push = usePushIn(at);
+  return <div style={{transform: push}}>{children}</div>;
+};
+
 /** 0-E：问句金句卡（p0-14 起）→ p0-15 金句退场、全幅「开放规范」印鉴落定。 */
-const ThirdRoad: React.FC<{sealAt: number; cardStyle: {opacity: number; transform: string}}> = ({
-  sealAt,
-  cardStyle,
-}) => {
+const ThirdRoad: React.FC<{sealAt: number; cardAt: number}> = ({sealAt, cardAt}) => {
+  const cardStyle = useEnter('pop', {at: cardAt, dur: DUR.f5, springPreset: 'snap'});
   const fade = useProgress(sealAt, DUR.f5); // 金句随印鉴退场
   const sealP = useProgress(sealAt + DUR.f3, DUR.f5, 'decelerate');
   return (

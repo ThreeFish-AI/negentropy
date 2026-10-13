@@ -1,7 +1,7 @@
 ---
 sidebar_position: 10
 title: "机制映射汇总：研究文献 ↔ negentropy"
-description: "十篇研究文献与 negentropy 本仓实现的机制映射汇总，按五个域组织：认知与上下文（Horizon、OpenViking）、Agent 基础设施 Skills（Agent Skills 规范与供应链）、Agent 基础设施 Jev、自进化（Procedural Graph、Dream-RSI）、Agent Harness（AI Native 手册、Hermes）。每域给出核验基线、映射总表（✅ 已对齐 / 🔶 值得落地 / ⏸ 暂缓）、逐条说明与落地建议；文首有跨域结论与统一落地 backlog。锚点均为各域核验基线时点的 grep 实测，只分析不改码。"
+description: "九篇研究文献与 negentropy 本仓实现的机制映射汇总，按五个域组织：认知与上下文（Horizon、OpenViking）、Agent 基础设施 Skills（Agent Skills 规范与供应链）、Agent 基础设施 Jev、自进化（Procedural Graph、Dream-RSI）、Agent Harness（AI Native 手册、Hermes）。每域给出核验基线、映射总表（✅ 已对齐 / 🔶 值得落地 / ⏸ 暂缓）、逐条说明与落地建议；文首有跨域结论与统一落地 backlog。锚点均为各域核验基线时点的 grep 实测，只分析不改码。"
 ---
 
 # 机制映射汇总：研究文献 ↔ negentropy
@@ -39,7 +39,7 @@ description: "十篇研究文献与 negentropy 本仓实现的机制映射汇总
 | OV-7 | 会话→记忆触发：巩固触发器 + consolidation_jobs 消费者 + 水位，独立 PR 先于 013 Phase 1 | ISSUE-195 |
 | OV-9 | 巩固 diff 审计：审计面接 UI，merge loser 可追溯 | ISSUE-195 |
 | OV-10 | 幂等水位：threads.metadata.consolidated_at_event_seq，与 OV-7 同 PR | ISSUE-195 |
-| --- | --- | --- |
+| OV-3 | 修 OV-D3 `force_refresh` 签名并改源水位判据，独立 PR 先于 013 Phase 1 | ISSUE-195 |
 | SK-M3 + SK-M5 | `expand_skill` 挂载 TOOL_REGISTRY + 目录块行级清洗，同一 PR，先做 (a)/(b) 二选一决策 | ISSUE-194 |
 | SK-M14/M15/M19 | 写入链路规范校验：name 正则、description ≤1024 拒换行、盘上合规单测 | ISSUE-194 |
 | SK-M20 | 翻译物化 frontmatter 改 `yaml.safe_dump`，一行 | — |
@@ -68,13 +68,13 @@ description: "十篇研究文献与 negentropy 本仓实现的机制映射汇总
 | SK-M8 | 校验断言补「allowed-tools 空格分隔」；设计文档区分 `required_tools` 与 `allowed-tools` |
 | SK-M18 | `harness_materializer.py:4` 头注释校正 |
 | SK-M15 | 3 个缺「何时用」的技能补 description 子句 |
+| SK-M20 | registry 解析 YAML 错误详情透传 422（做半项 `yaml.safe_dump` 见做表） |
 | SK 漂移清单 | 「模型驱动激活已实现」表述随 SK-M3 修复订正 |
 | JV-1 / JV-10 / JV-7 / JV-12 | 枚举姿势 ADR、confidence 量纲分组注记、plan_reviewer 污染注记、rerank 纯排序语义注记 |
 | PG-M3 / DR-M1 | 自进化方案补「报告返回态」纪律；补「元级评估重放化」候选方向与触发条件 |
 | HZ-1 / HZ-5 | 蓝图对象层章交叉引用 synonyms/instructions/verified-QA 字段；治理实例化补策略对象化 |
-| OV-D2 / OV-D3 / OV-D6 | 取证漂移：ContextAssembler 通道表述订正、force_refresh 签名修复、_fetch_memory 用户校验（先于巩固上线） | ISSUE-195 |
+| OV-D6 | 取证漂移：_fetch_memory 用户校验登记（先于巩固上线，ISSUE-195；OV-D1 通道表述订正已销账、OV-D2 修复由做表 OV-7 承载） |
 | AN-9 | `ToolStatsDaily` 聚合查询产出低成功率能力清单，接入巡检报告 |
-| HM-M2 | 记忆写入端威胁模式表 + 注入端数据声明，绑定 SK-M5 同批 | ISSUE-195 |
 
 ### 暂缓（触发条件见各域节）
 
@@ -237,7 +237,7 @@ Horizon 的 16 条映射为 ✅4 / 🔶8（含部分对齐 1）/ ⏸4：骨架�
 
 **写**（一句话成本）：
 
-- OV-D1/OV-D7：013 §12.7 #9 状态行校正 + §8.5 宿主更正，**已销账（2026-09-27，013 完全重铸落地）**。
+- OV-D1/OV-D7：013 旧版 §12.7 #9 状态行校正 + §8.5 宿主更正，**已销账（2026-09-27，013 完全重铸落地为 §11.5/§8.4）**。
 - OV-D2/OV-D3/OV-D6：登记进 issue.md。
 
 **暂缓**（写明触发条件）：
@@ -258,7 +258,7 @@ OV 对 [013 Context Layer 蓝图](./cognitive-context/013-context-layer-blueprin
 | §5 目录层 | M-a 副本式 = ADR-1 的反面教材 | **强化 ADR-1**：统一指针格式随 §5.3 一并定 |
 | §6 富化层 | M-d 提炼是富化层的「供给入口」 | **新增真缺口**：对话路径供给入口断开（OV-7），重铸版 013 §6.2 已并入巩固三件套设计（2026-09-27） |
 | §7 治理层 | memory_diff / .done | 新增 🔶：巩固 diff 落 `result` 字段（OV-9）、会话水位（OV-10） |
-| §8 激活层 | M-c 递归 / M-e 轨迹 | **校正 013 §12.7 #9 状态行**：已销账（2026-09-27 重铸版 013 §11.5：L1 ✅ / L2·L3 🔶 ISSUE-194）；§8.5「自动注入通道 = `ContextAssembler.assemble()`」宿主更正亦已落地（013 §8.4，见 OV-D1） |
+| §8 激活层 | M-c 递归 / M-e 轨迹 | **校正 013 旧版 §12.7 #9 状态行**：已销账（2026-09-27 重铸落地为 §11.5：L1 ✅ / L2·L3 🔶 ISSUE-194）；旧版 §8.5「自动注入通道 = `ContextAssembler.assemble()`」宿主更正亦已落地（现行 §8.4，见 OV-D1） |
 
 ### OV 取证副产物
 
@@ -272,7 +272,7 @@ OV-D1 至 OV-D8 为取证时发现的本仓漂移与风险，已按精读流程�
 | OV-D4 | 文档漂移 | ConflictResolver docstring 称三阶段检测（key/embedding/LLM），实现只有按 fact_type 的规则 | `ng/engine/governance/conflict_resolver.py:6` 对照 `:110` | 高估冲突检测能力 |
 | OV-D5 | 写路径分叉 | `save_to_memory` 直写 `embedding=None`：不去重、无 PII 检测、不写审计，且全仓无 embedding 回填 | `ng/agents/tools/internalization.py:72` | 这些行对 vector/hybrid 与 DedupMerge 不可见 |
 | OV-D6 | 授权风险 | `_fetch_memory` 按 UUID 读 Memory，不校验 user/app | `ng/agents/tools/skill_resources.py:167` | 当前因工具未挂载不可达；**ISSUE-194 方案 (a) 落地前必须先修**，否则成为跨用户读取通道 |
-| OV-D7 | 状态表失真 | 013 §12.7 #9「L1/L2/L3 ✅」与 ISSUE-194 结论矛盾 | 013 §11.5 #9 行（2026-09-27 完全重铸后旧行号 :436 失效，以 § 锚为准） | 已回写闭环（重铸版口径：L1 ✅ / L2·L3 🔶） |
+| OV-D7 | 状态表失真 | 013 旧版 §12.7 #9「L1/L2/L3 ✅」与 ISSUE-194 结论矛盾 | 013 §11.5 #9 行（2026-09-27 完全重铸后旧行号 :436 失效，以 § 锚为准） | 已回写闭环（重铸版口径：L1 ✅ / L2·L3 🔶） |
 | OV-D8 | 部分接线 | memory_pipeline_prompt 进化面只有 fact extractor 读取；summarizer/reflection 仍用硬编码 prompt | `ng/engine/evolution/weights.py:91` | 这两个 scope 的晋升在运行时是 no-op |
 
 ## Agent 基础设施：Skills
@@ -300,7 +300,7 @@ OV-D1 至 OV-D8 为取证时发现的本仓漂移与风险，已按精读流程�
 | SK-M6 | 宽容加载 fail-soft（client guide：warn & load，deliberately relaxes） | `enforcement_mode="warning"` 默认；任何异常记录警告并跳过该条，不冒泡 | `agents/skills_injector.py:93`、`:117-118` | ✅ |
 | SK-M7 | 多作用域遮蔽 + shadowed 告警（client guide Step 1） | DB-first 单源解析（skills 表/definitions 表），无盘上多作用域扫描——遮蔽场景结构性不存在 | `db/migrations/versions/0098_seed_harness_skill_definitions.py:888`（DB 即唯一作用域） | ⏸（触发条件：引入盘上技能源或多租户技能库时须实现 project>user + 告警） |
 | SK-M8 | allowed-tools 空格分隔（spec，实验性） | 物化链提取 allowed-tools 入盘 frontmatter；但 CC CLI 调用层 `--allowed-tools` 是**逗号** join——同一概念两种语法分层并存 | `agents/definitions/harness_materializer.py:53` / `engine/claude_code/service.py:1025` / `db/migrations/versions/0026_skill_enforcement_and_resources.py:12`（enforcement 对应 Anthropic Skills allowed-tools） | 🔶 写 |
-| SK-M9 | 技能内容豁免上下文压缩（client guide Step 5） | 本仓交互式对话零压缩（Hermes 精读已证），无压缩器即无豁免需求 | `docs/research/agent-harness/190/191`（对话零压缩结论） | ⏸（触发条件：引入上下文压缩/摘要层时必须同步实现豁免标记，否则技能静默降级） |
+| SK-M9 | 技能内容豁免上下文压缩（client guide Step 5） | 本仓交互式对话零压缩（Hermes 精读已证），无压缩器即无豁免需求 | 本文 HM-M11（对话零压缩结论） | ⏸（触发条件：引入上下文压缩/摘要层时必须同步实现豁免标记，否则技能静默降级） |
 | SK-M10 | disable-model-invocation / 用户显式点名（生态扩展字段） | 无此开关；Layer 1 目录恒注入 | `agents/skills_injector.py:342`（无开关参数） | ⏸（YAGNI：单 owner 场景无确定性触发诉求） |
 | SK-M11 | 描述/技能质量用 eval 驱动迭代（optimizing-descriptions / evaluating-skills） | 技能进化：离线 EvalSuite holdout 零回归门 + visible_results_query 结构性排除 holdout（防 Goodhart）+ 无绑定 EvalSuite → reject | `engine/evolution/handlers/skill.py:7-15`、`:351` | ✅（形态不同、机理同构：离线验证优于在线噪声，与指南「trigger rate 协议」同一纪律） |
 | SK-M12 | metadata 是私货唯一正门（spec §metadata） | definitions 表 schema 专列承载（content/typing 等），私货不走 SKILL.md metadata 字段 | `db/migrations/versions/0098_seed_harness_skill_definitions.py:888`（仅提取三键）/ `agents/definitions/harness_materializer.py:53` | ✅（DB schema 即正门，强于规范层的弱约定） |
@@ -356,7 +356,7 @@ OV-D1 至 OV-D8 为取证时发现的本仓漂移与风险，已按精读流程�
 
 **SK-M14 name 约束（🔶 做）。** 规范给出五条约束（`S:58-65`）；原型 B2 实测拔掉「等于目录名」后，身份由扫描顺序决定。本仓现状：盘上 11/11 合规，`--audit-repo` 与真实 skills-ref 均通过（0098 种子令 `key = frontmatter name`）；但写入链路全程不校验格式：harness 校验器只查非空（[`harness_materializer.py:41-47`](../../apps/negentropy/src/negentropy/agents/definitions/harness_materializer.py)）、`SkillCreate.name: str` 无约束（[`skills_api.py:43`](../../apps/negentropy/src/negentropy/interface/skills_api.py)）、DB 列是 `String(255)`、UI 的 Name 输入框只有 `required`（[`SkillFormDrawer.tsx:313-321`](../../apps/negentropy-ui/app/interface/skills/_components/SkillFormDrawer.tsx)）。materializer 按 definitions 的 key 建目录而 name 来自 frontmatter，种子之后的编辑可使两者漂移，一旦漂移盘上就出现「目录名 ≠ name」，即原型 B2 的前提；规范的命名约束在本仓只是种子时碰巧满足，没有被强制执行。建议：在 `harness_skill` 校验器补规范五条并加 `key == name` 断言；`skills_api` 的 name 用同一正则约束（`^[a-z0-9]+(-[a-z0-9]+)*$`，≤64）；UI 加 `pattern` 与 `maxLength`。时机：下一次触碰 skills / definitions 写入链路的 PR；已有数据先只读审计再决定是否迁移，禁止直接改名（改名会断开 Agent 的 skill 引用）。
 
-**SK-M15 description 约束与写法（🔶 做）。** 规范要求 1–1024 字符、写「做什么 + 何时用」；原型 B3 实测一条 12,159 字符的描述让目录常驻成本 +255%。本仓现状：盘上 3/11（doc-review / doc-translator / heartfelt）缺「何时用」子句，属 230 §5 所说的「合规却难触发」；运行时 `skills.description` 是无上限 `Text`（[`models/skill.py:29`](../../apps/negentropy/src/negentropy/models/skill.py)），`format_skills_block` 原样全量注入（[`skills_injector.py:353-355`](../../apps/negentropy/src/negentropy/agents/skills_injector.py)）；`is_global` 技能被注入每一个 Agent（[`skills_injector.py:486-530`](../../apps/negentropy/src/negentropy/agents/skills_injector.py)），任何一条全局技能描述膨胀都会乘以 Agent 数量。建议：写入侧加 1024 上限，与 SK-M5 同一批校验器落地；3 个缺「何时用」的技能补子句，改 DB 定义源、走 definitions 编辑，不直接改盘上文件。时机：与 SK-M14 同 PR。
+**SK-M15 description 约束与写法（🔶 做）。** 规范要求 1–1024 字符、写「做什么 + 何时用」；原型 B3 实测一条 12,159 字符的描述让目录常驻成本 +255%。本仓现状：盘上 3/11（doc-review / doc-translator / heartfelt）缺「何时用」子句，属 230 §6 所说的「合规却难触发」；运行时 `skills.description` 是无上限 `Text`（[`models/skill.py:29`](../../apps/negentropy/src/negentropy/models/skill.py)），`format_skills_block` 原样全量注入（[`skills_injector.py:353-355`](../../apps/negentropy/src/negentropy/agents/skills_injector.py)）；`is_global` 技能被注入每一个 Agent（[`skills_injector.py:486-530`](../../apps/negentropy/src/negentropy/agents/skills_injector.py)），任何一条全局技能描述膨胀都会乘以 Agent 数量。建议：写入侧加 1024 上限，与 SK-M5 同一批校验器落地；3 个缺「何时用」的技能补子句，改 DB 定义源、走 definitions 编辑，不直接改盘上文件。时机：与 SK-M14 同 PR。
 
 **SK-M16 Tier 2 结构化包裹与显式注入（✅）。** 指南要求专用激活工具以标签包裹技能内容、便于压缩时识别（`G:274-302`），用户或 harness 可绕过模型直接注入（`G:258-262`）。本仓现状：`format_skill_invocation` 用 Jinja2 沙箱 + `StrictUndefined` 渲染并包进 `<skill name=…>`（[`skills_injector.py:361-384`](../../apps/negentropy/src/negentropy/agents/skills_injector.py)）；三条显式注入路径真实可达：REST `POST /skills/{id}/invoke`（[`skills_api.py:825`](../../apps/negentropy/src/negentropy/interface/skills_api.py)）、调度器（[`skill_scheduler.py:94`](../../apps/negentropy/src/negentropy/agents/skill_scheduler.py)）、翻译服务（[`translation/service.py:344-355`](../../apps/negentropy/src/negentropy/knowledge/translation/service.py)）。差异：翻译路径在任务消息里嵌入完整模板，同时又往 workdir 物化同一技能（`service.py:202`），Claude Code 子进程若再自行激活，同一份指令会进上下文两次；指南建议去重（`G:327-329`），但 docstring 已声明物化是 fail-soft 的冗余兜底，风险低。建议：维持；如观察到重复注入的 token 成本，再在子进程侧去重。
 

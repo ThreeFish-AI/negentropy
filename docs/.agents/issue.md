@@ -4389,3 +4389,11 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **处理方式**：本轮以 `pipeline.py build` + `check_script.py --pre-tts` + `check_script.py`（默认）+ pre-commit `check_series`（8 规则）四绿为交付门；两类已知红门登记于此、明确不跑。storyboard 的「archify 对接说明」节保留预定图 slug 清单作为场景轮的建图工作清单。
 - **后续防范（恢复条件=场景轮）**：场景轮重写场景代码 + 按预定 slug 建视频版 archify 图并挂 cue 后，恢复 `pipeline.py check` 全量（自动串联覆盖门）与 `--check-scenes`；届时本条目转已闭。PR #1185（ThreeFish-AI/negentropy：176 四件套 + ep2 v5）与本轮新产物同域冲突（ep2 `research/gl-notes.md` 同名新增、`source-notes.md` 同名删除），处置为 close as superseded（2026-10-07 评审修复轮执行关闭）——其评审循环经验已沉淀于 vibe-video skill 与本仓 issue 史。
 - **同类问题影响**：未来任何「只换剧本不动场景」的迭代轮同此口径；若 skill 侧未来增加「跨代中间态」的显式模式（如 storyboard 标记 `scenes-pending`），可把本登记升级为机器执法。
+
+## ISSUE-212 E1 场景层 hook 帧上下文错配：4 处入场动画丢失、1 处死样式、2 处死参数与消融面板 footer 不可见（2026-10-13，已修码待 v2 重渲吸收）
+
+- **表因**：PR #1181 重写的 E1 场景中，`P0Hook/P1Folder/P2Ledger/P4Governance` 四处在**场景层组件体**调用 motion hook（`useEnter/useCount/usePushIn`，坐标系=场景局部帧），却传入 **beat 局部锚**（`at(id) - bX.from`，beat 首句锚=0）。beat Sequence 挂载时（场景帧≫锚点）progress 恒钳终态。
+- **影响清单**（v1 成片已固化，按交付冻结不回改）：① P0Hook `askCard` 锚=0 → 0-E 问句金句卡瞬现；② P1Folder `count10` 锚=290 → 1-E「10 技能 · 2 项漂移」静态终值；③ P2Ledger `push` 锚=0 → 2-D 全程静态 scale(1.06)；④ P4Governance `close` 锚=342 → 4-F 章戳瞬现；⑤ P0Hook `push`（场景锚包 0-B）恒 scale(1) 死样式；⑥ P1Folder `idAt/gitAt` 声明传参未使用（GoldenCard/Git 流水带从拍首常驻）；⑦ `AblationPanel` 只渲 `children[0..1]`，X5Shadow 第三个 child（「1 处覆盖悄悄生效 🔔」行）静默丢弃。
+- **根因**：`beatWindow` 返回场景局部帧坐标，hook 求值坐标系由「组件挂在哪层 Sequence」决定；场景层求值+beat 局部锚=恒错配。tsc 与既有机器门均无法拦截（类型全合法、门只查 cue 锚与帧覆盖）。
+- **处理方式**：hook 移入 beat Sequence 内组件求值（对齐 P3Route/P5Security/P6Laws 既有范式）：P0Hook `ThirdRoad` 改收 `cardAt` 内部求值 + 新增 `BeatPush`（0-B 拍首锚 p0-04）；P1Folder `GoldenCard` 接 `enter`（idAt 生效）、`Governance` 加 `dashOn` 门控（gitAt 生效）、计数徽标提取 `DriftBadge`；P2Ledger 新增 `BeatPush`；P4Governance 章戳提取 `CaseStamp`；`AblationPanel` 加 `footer` prop 承载第三行。tsc/单测通过；**未重渲**（用户裁决 2026-10-13），缺陷表现以 v1 交付冻结，v2 重制时自然吸收。
+- **后续防范**：motion hook 一律在 beat Sequence 内的组件里调用，锚传 beat 局部帧；场景层只算 `w()/at()` 窗口并以 prop 下传。可在评审清单加「场景层 hook 调用」检查项；QA 抽帧对「入场型装置」抽 beat 首帧比对（瞬现=progress 恒 1 的指纹）。

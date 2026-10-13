@@ -10,7 +10,7 @@ description: "固定提交 068db016 的全貌解剖：缓存优先的三段式�
 >
 > - 代码：[`NousResearch/hermes-agent`](https://github.com/NousResearch/hermes-agent) 固定提交 [`068db016`](https://github.com/NousResearch/hermes-agent/tree/068db016fbfb3e9b44169de154781908f91bceae)（2026-09-24，`main`；最近 release `v2026.9.21` = v0.21.4；MIT）。
 > - 文档：官方站 [Features Overview](https://hermes-agent.nousresearch.com/docs/user-guide/features/overview) 及其链接的 user-guide / developer-guide 页（2026-09-24 抓取）。
-> - 配套最小原型：[`assets/hermes_lab.py`](./assets/hermes_lab.py)（纯标准库，`--selftest` 秒级）；机制映射见 [191](../mapping-negentropy.md)。
+> - 配套最小原型：[`assets/hermes_lab.py`](./assets/hermes_lab.py)（纯标准库，`--selftest` 秒级）；机制映射见[机制映射汇总](../mapping-negentropy.md)（原 191，已并入）。
 
 **一句话定位**：Hermes 给通用 Agent 装了一条**经验写回通道**。每次交付之后，它在旁路复盘：可复用的做法写成按需加载的技能，少量关键事实写进有硬上限的常驻记忆。所有写回都服从一条更高的约束：**会话内系统提示字节稳定，唯一计划内的断点是上下文压缩**。
 
@@ -488,7 +488,7 @@ uv run --no-project python docs/research/agent-harness/assets/hermes_lab.py --br
 
 ## 15. 与本仓的关联
 
-- 机制映射报告：[191 Hermes Agent ↔ negentropy](../mapping-negentropy.md)。
+- 机制映射报告：[机制映射汇总](../mapping-negentropy.md)（原 191 Hermes Agent ↔ negentropy，已并入）。
 - 同分部：
   - [170 Claude Code 五层 Harness 总览](./170-claude-code-harness-overview.md)：技能渐进披露见 [172](./172-claude-code-planning-coordination.md)，收台与持久记忆见 [173](./173-claude-code-memory-management.md)。
   - [180 AI Native 手册](./180-ai-native-handbook.md)：企业级控制面。

@@ -18,10 +18,10 @@
 | 目录常驻 ~50–100 Token/项 | §4 ASCII 图、§10 表 | adding-skills-support.mdx@钉:L24（tier-1 表行「~50-100 tokens per skill」）、L184（「roughly 50-100 tokens」） | 官方 client 指南推荐指标 | 命中 |
 | 正文 <5000 Token / <500 行 | §4 ASCII 图、§10 表 | adding-skills-support.mdx@钉:L25（tier-2「<5000 tokens (recommended)」）；best-practices.mdx@钉:L88（「under 500 lines and 5,000 tokens」） | 官方编写指南推荐上限 | 命中 |
 | OpenAI 元数据目录 ≤2% 或 8000 字符，超限自动裁剪描述 | §4、§10 表 | codex 新页（learn.chatgpt.com/docs/build-skills，旧 URL 308 跳转）字节 :828「at most 2% of the model's context window, or 8,000 characters when the context window is unknown」+「shortens skill descriptions first」 | 厂商生产环境规则（活页复核） | 命中（页面已迁移，断言在新页仍成立，见附记①） |
-| 20 技能全载 39,222 vs 目录 2,321 Token（16.9×） | §4「原型实景测算」、§10 表、§12-1 | **lab2 无此模式**（`--selftest`/`--break`/`--audit-repo` 三模式输出均无 39,222/2,321）；算术自洽：39222/2321=16.90 | GL 侧工程实测、本集未复算 | 转述【二级】 |
+| 20 技能全载 39,222 vs 目录 2,321 Token（16.9×） | §4「原型实景测算」、§10 表、§12-1 | **lab2 无此模式**（`--selftest`/`--break`/`--audit-repo` 三模式输出均无 39,222/2,321）；算术自洽：39222/2321=16.90 | 上游精读转述（勘误定谳出处：一代原型 lab·B1 玩具域；现行 lab 复跑 baseline 2,414 vs broken 39,318=16.3×，与转述 2,321/39,222=16.9× 差额属夹具代际）、本集未复算 | 转述【二级】 |
 | X1 同名不同版漂移 2 项 ={'release-notes','same-scope-dupe'} | §3 实景日志 | [lab2-break-X1.log](./lab2-break-X1.log)（detail 与 gl-notes L98–99 逐字一致） | 本集破坏性实验复算 | 命中 |
 | X1 §10 表「2/10 技能漂移」 | §10 表 | lab2-selftest.json：effective 10 项、drift 2 项 | 有效目录分母 10 | 命中 |
-| X2 严格拒载 4/12（extra-field/name-mismatch/long-name/empty-desc）、宽容 12 全载、互操作损失 33% | §6 实景日志、§10 表 | [lab2-break-X2.log](./lab2-break-X2.log)（4 只拒载名单逐字一致，4/12=33.3%） | 本集复算 | 命中 |
+| X2 严格拒载 4/12（extra-field/name-mismatch/long-name/empty-desc）、宽容 12 全载、互操作损失 33% | §6 实景日志、§10 表 | [lab2-break-X2.log](./lab2-break-X2.log)（4 只拒载名单逐字一致，4/12=33.3%） | 本集复算 | 命中（「互操作损失」口径勘误见附记 4） |
 | X3 `bool('false') == True` | §8 实景日志、§10 表 | [lab2-break-X3.log](./lab2-break-X3.log)（逐字一致） | 本集复算 | 命中 |
 | X4 description 伪字段泄漏 allowed-tools/Bash(rm:*) = True | §7 实景日志、§10 表 | [lab2-break-X4.log](./lab2-break-X4.log)（注入进入 frontmatter=True、泄漏=True） | 本集复算 | 命中 |
 | X5 有效目录 10 项、1 处遮蔽静默 | §6 实景日志、§10 表 | [lab2-break-X5.log](./lab2-break-X5.log)（10 项/1 处） | 本集复算 | 命中 |
@@ -45,3 +45,4 @@
 1. **codex-skills-doc（既有条目，verify WARN 非 FAIL）**：`developers.openai.com/codex/skills/` 现 308 双跳转至 `learn.chatgpt.com/docs/build-skills`。新页「2% 或 8,000 characters」断言仍在（字节 :828）。既有 10 条指纹按纪律未改写。
 2. **cc-skills-doc（既有条目，verify WARN 非 FAIL）**：正文自 2026-09-30 后已变；「10+ 私有扩展字段」断言在 2026-10-06 新页复核仍成立（实测 14 个）。
 3. **vscode-skills-doc（新录条目）**：gl-notes 引用的 `/docs/copilot/customization/agent-skills` 已 301 改版至 `/docs/agent-customization/agent-skills`（SSG 预渲染实测成立）；台账按新规范 URL 登记并在 `via` 注明跳转链，gl-notes L13/L321 的旧 URL 属时点引用，Stage ② 改稿时留意。
+4. **互操作损失口径（勘误，随精读合并落地）**：X2 行「互操作损失 33%（4/12）」沿用 gl-notes/210 的分母混用口径——严格拒载 4 条中 1 条（empty-desc）宽容口径亦拒，宽容能装而严格不收实为 3/12=**25%**（lab2-selftest.json strict 9/lenient 12 同证）；lab2 日志的 4/12 拒载名单本身无误。现行 canon 见 230 §9/§10（争议 1 §11 同口径）与 knowledge-map；成片 p4-17「损失三分之一」按交付冻结保留。渲染源同批冻结：P4Governance.tsx X2StrictLenient 计数器 `to: 33` 与 4-D「互操作面 −33%」标签待 v2 重制时随 p4-17 口播改稿一并更新（单独改画面数字会与冻结口播失配）。

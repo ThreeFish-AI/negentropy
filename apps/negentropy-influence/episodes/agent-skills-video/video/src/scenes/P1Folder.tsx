@@ -188,7 +188,11 @@ const BodyAndDirs: React.FC<{bodyAt: number; dirsAt: number; idAt: number}> = ({
           </div>
         ))}
       </div>
-      <GoldenCard lines={['路径即身份']} width={300} />
+      <GoldenCard
+        lines={['路径即身份']}
+        width={300}
+        enter={useEnter('rise', {at: idAt, dur: DUR.f5, springPreset: 'settle'})}
+      />
     </div>
   );
 };
@@ -258,6 +262,8 @@ const Walkthrough: React.FC<{
 const Governance: React.FC<{lockAt: number; gitAt: number}> = ({lockAt, gitAt}) => {
   const lock = useDraw(lockAt, DUR.f6);
   const dash = useFlowDash({period: 36});
+  const frame = useCurrentFrame();
+  const dashOn = frame >= gitAt; // Git 流水带按 p1-19 锚点起流
   return (
     <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 46}}>
       <div style={{display: 'flex', alignItems: 'center', gap: 34}}>
@@ -309,6 +315,7 @@ const Governance: React.FC<{lockAt: number; gitAt: number}> = ({lockAt, gitAt}) 
           fontFamily: theme.mono,
           fontSize: 17,
           color: theme.dim,
+          opacity: dashOn ? 1 : 0,
         }}
       >
         <span>git clone</span>
@@ -326,6 +333,25 @@ const Governance: React.FC<{lockAt: number; gitAt: number}> = ({lockAt, gitAt}) 
         </svg>
         <span style={{color: theme.ok}}>克隆即安装</span>
       </div>
+    </div>
+  );
+};
+
+/** 1-E 右上漂移计数徽标：useCount 在 beat Sequence 内求值，锚为 beat 局部帧。 */
+const DriftBadge: React.FC<{at: number}> = ({at}) => {
+  const count = useCount({at, dur: DUR.f5, to: 10});
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        right: 40,
+        top: -40,
+        fontFamily: theme.mono,
+        fontSize: 30,
+        color: theme.danger,
+      }}
+    >
+      {Math.round(count)} 技能 · 2 项漂移
     </div>
   );
 };
@@ -408,7 +434,6 @@ export const P1Folder: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bC = w('p1-11', 'p1-15b');
   const bD = w('p1-16', 'p1-19');
   const bE = w('p1-20', 'p1-24');
-  const count10 = useCount({at: at('p1-22') - bE.from, dur: DUR.f5, to: 10});
   return (
     <AbsoluteFill>
       <Sequence {...bA} name="1-A 格式契约">
@@ -481,18 +506,7 @@ export const P1Folder: React.FC<{scene: SceneRange}> = ({scene}) => {
             chaosAt={at('p1-22') - bE.from}
             stampAt={at('p1-24') - bE.from}
           />
-          <div
-            style={{
-              position: 'absolute',
-              right: 40,
-              top: -40,
-              fontFamily: theme.mono,
-              fontSize: 30,
-              color: theme.danger,
-            }}
-          >
-            {Math.round(count10)} 技能 · 2 项漂移
-          </div>
+          <DriftBadge at={at('p1-22') - bE.from} />
         </div>
         </Stage>
 

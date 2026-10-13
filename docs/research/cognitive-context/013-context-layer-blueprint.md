@@ -4,9 +4,9 @@ title: "Context Layer 技术蓝图：Agent 系统的上下文供给与治理"
 description: "Agents 系统 Context Layer 设计 SSOT：三轴蓝图（五源对象 × 五正交层 × CGAVE 生命周期）× 失效模式驱动 × 四范本机制矩阵（Horizon M1–M7 / OpenViking / Claude Code / Hermes）× 业界格局 × 供给面威胁模型 × negentropy 实例化总装 × 双轨演进路线"
 ---
 
-> **定位**：Agents 系统 Context Layer 的**设计蓝图 SSOT**——以 Agent 运行时上下文为第一性对象（instruction / memory / knowledge / tools+skills / session 五源），回答「怎么供给、怎么治理、怎么激活、怎么验证、怎么进化」。**文档族分工**：**013（本文）= 设计与判定**（规格、状态、决策、路线）；[011 精读笔记](./011-horizon-context.md) = Horizon **全量机制载荷**（冻结——机制详解、实证、时间线；§5–§9 与 §16 系重组腾空编号、已封存勿复用，新增续 §19+）；[012](../mapping-negentropy.md) = 锚点核验快照（结论已并入 §11）；[014](./014-openviking.md)/[015](../mapping-negentropy.md) = OpenViking 精读与映射（会话记忆路线范本）。`concepts/design/context-layer.md` 已于 2026-09-21 删除并入本文。
+> **定位**：Agents 系统 Context Layer 的**设计蓝图 SSOT**——以 Agent 运行时上下文为第一性对象（instruction / memory / knowledge / tools+skills / session 五源），回答「怎么供给、怎么治理、怎么激活、怎么验证、怎么进化」。**文档族分工**：**013（本文）= 设计与判定**（规格、状态、决策、路线）；[011 精读笔记](./011-horizon-context.md) = Horizon **全量机制载荷**（冻结——机制详解、实证、时间线；§5–§9 与 §16 系重组腾空编号、已封存勿复用，新增续 §19+）；[012](../mapping-negentropy.md) = 锚点核验快照（结论已并入 §11）；[014](./014-openviking.md) = OpenViking 精读（会话记忆路线范本；015 映射已并入[机制映射汇总](../mapping-negentropy.md) OV 域）。`concepts/design/context-layer.md` 已于 2026-09-21 删除并入本文。
 >
-> **编号稳定键**：M1–M7（Horizon 机制词表）· D1–D10（**Horizon lab 破坏实验**；015/ISSUE-195 另有一套无关的取证漂移编号 D1–D8，本文凡引后者必冠「015-」前缀，两套互不相干）· ADR-1/2/3（既有决策）+ **ADR-4/5/6（本版新增）** · CGAVE（Collect→Govern→Activate→Verify→Evolve 生命周期键）· P0–P3 · Phase 1–3 · #1–#16（映射表）。**2026-09-27 完全重铸**：旧版 §0–§16 编号退役封存勿复用；外部引用以本版 §0–§15 为准（同批入链已更新）。011 §10/§11/§12 三专章在本文落点 §6/§8/§7。
+> **编号稳定键**：M1–M7（Horizon 机制词表）· D1–D10（**Horizon lab 破坏实验**；015 映射（已并入[机制映射汇总](../mapping-negentropy.md) OV 域）/ISSUE-195 另有一套无关的取证漂移编号 OV-D1–D8，本文凡引后者冠「OV-」前缀，两套互不相干）· ADR-1/2/3（既有决策）+ **ADR-4/5/6（本版新增）** · CGAVE（Collect→Govern→Activate→Verify→Evolve 生命周期键）· P0–P3 · Phase 1–3 · #1–#16（映射表）。**2026-09-27 完全重铸**：旧版 §0–§16 编号退役封存勿复用；外部引用以本版 §0–§15 为准（同批入链已更新）。011 §10/§11/§12 三专章在本文落点 §6/§8/§7。
 
 ## 0. 为什么需要：Agent 在自信地错
 
@@ -110,9 +110,9 @@ description: "Agents 系统 Context Layer 设计 SSOT：三轴蓝图（五源对
 | 范本 | 承重贡献 | 一句定位 | 详解 |
 | :--- | :--- | :--- | :--- |
 | **Snowflake Horizon Context** | 治理与验证的机制词表（M1–M7）；「含义层执法」「验证锚定」「权限天花板」 | 把 Catalog 从资产登记簿升维为「理解系统」（*"a working model of your entire business"*） | [011](./011-horizon-context.md)（冻结） |
-| **OpenViking** | 会话记忆一等公民；L0/L1 渐进摘要与新鲜度冒泡；会话两阶段提交与确定性身份记忆提炼 | 把资源/记忆/技能装进一棵可寻址目录树的上下文数据库 | [014](./014-openviking.md)/[015](../mapping-negentropy.md) |
+| **OpenViking** | 会话记忆一等公民；L0/L1 渐进摘要与新鲜度冒泡；会话两阶段提交与确定性身份记忆提炼 | 把资源/记忆/技能装进一棵可寻址目录树的上下文数据库 | [014](./014-openviking.md)（015 映射已并入[机制映射汇总](../mapping-negentropy.md)） |
 | **Claude Code**（教学课程仓逆向） | 运行时装配纪律：每轮重装配、谓词驱动、渐进披露两层寿命、压缩四步、写权收归 harness、信任边界段、subagent 隔离 | 「每一轮都把台面从头重读一遍——看见什么从来不是模型自己说了算」 | [170–175](../agent-harness/170-claude-code-harness-overview.md)（三级证据：闭源分析须带归属） |
-| **Hermes / Jev** | 装配的缓存经济学（三段式+唯一断点）；供给两端防注入；零 LLM 原文检索；置信量纲与弃权语义 | "Built once per session and reused across turns (only context compression triggers a rebuild)" | [190/191](../agent-harness/190-hermes-agent.md)、[200/201](../agent-infra/200-jev-system-one-model.md) |
+| **Hermes / Jev** | 装配的缓存经济学（三段式+唯一断点）；供给两端防注入；零 LLM 原文检索；置信量纲与弃权语义 | "Built once per session and reused across turns (only context compression triggers a rebuild)" | [190](../agent-harness/190-hermes-agent.md)、[200](../agent-infra/200-jev-system-one-model.md)（191/201 映射已并入[机制映射汇总](../mapping-negentropy.md)） |
 
 Horizon 演进三阶段一句各（详锚 011 §4.2）：①语义对象化（定义+校验门铸成受治理对象）→ ②治理内嵌与双轨富化（策略下沉、Autopilot/Sense、2026-06-02 定名）→ ③生态开放（Ossie 入 Apache、外部血缘、出厂附件）。次序启示：**先造对象（定义+校验门）→ 再装治理与富化 → 最后开生态**——本蓝图双轨路线（§15）同序。
 
@@ -156,7 +156,7 @@ version: 12
 
 三条字段纪律：①**synonyms 必填意识**——无别名即检索面隐形；②**instructions 随对象走**——指令随定义分发才能随定义治理，写死 prompt 等于治理外开第二个口径源；③**verified Q&A 带溯源**——谁核的、何时核的随对象携带。结构校验门同 §4.1：非法结构注册期被拒不进运行时。
 
-> **常驻记忆对象的设计取舍（Core Block 三问，承接 HM-M2）**：①**由谁写**——三路：Agent 自编辑（`core_block_replace` 工具，`updated_by="agent_self_edit"`）、管理端 REST、append 追加；**开放 Agent 自编必须后置于写入防注入**——「开放可自编的常驻记忆而没有写入扫描，等于给注入开一条常驻通道」（本仓 191 映射报告的判语，非 Hermes 原文；core_block_replace 当前零调用方，如实标注）。②**上限多少**——存储级单块 2048 token（介于普通段落 256 与 Letta 4000 之间的显式选位，防单块主导窗口）+ 组装级记忆预算 30% 硬帽两级预算。③**写满怎么办**——按 token 比例 ×0.95 截断并标 `metadata.truncated` 留痕，**不拒写、不静默**。两级预算 + 截断留痕是「常驻内容不挤占检索内容」的可复用范式。（锚：`core_block_service.py` 设计取舍段、`memory-integration.md §4`、025 §5.1 λ 表 core=0.0 不衰减。）
+> **常驻记忆对象的设计取舍（Core Block 三问，承接 HM-M2）**：①**由谁写**——三路：Agent 自编辑（`core_block_replace` 工具，`updated_by="agent_self_edit"`）、管理端 REST、append 追加；**开放 Agent 自编必须后置于写入防注入**——「开放可自编的常驻记忆而没有写入扫描，等于给注入开一条常驻通道」（本仓机制映射汇总 HM 域的判语，原 191 映射报告，非 Hermes 原文；core_block_replace 当前零调用方，如实标注）。②**上限多少**——存储级单块 2048 token（介于普通段落 256 与 Letta 4000 之间的显式选位，防单块主导窗口）+ 组装级记忆预算 30% 硬帽两级预算。③**写满怎么办**——按 token 比例 ×0.95 截断并标 `metadata.truncated` 留痕，**不拒写、不静默**。两级预算 + 截断留痕是「常驻内容不挤占检索内容」的可复用范式。（锚：`core_block_service.py` 设计取舍段、`memory-integration.md §4`、025 §5.1 λ 表 core=0.0 不衰减。）
 
 #### 4.2.1 Data Contract
 
@@ -172,7 +172,7 @@ version: 12
 | synonyms/instructions/verified QA 三字段纪律 | 🔶 #1 | `definitions.meta` JSONB 可承载、无纪律 |
 | 声明式聚合纪律 | ⏸ #4 | 触发：出现「派生口径」类资产 |
 
-判定：definitions 表已是 4 类定义 SSOT（与 semantic view 元数据对象同构——**「DB 为源、盘为投影」**：整段源文本入库+编辑器维护+注册期 422 门，盘上文件是幂等生成物）。差异在字段面：Horizon 把 agent 检索面做成对象字段，本仓 meta 可承载但无纪律。物化只写不删——定义禁用后盘上旧目录残留（091 M13 已知缺口）。
+判定：definitions 表已是 4 类定义 SSOT（与 semantic view 元数据对象同构——**「DB 为源、盘为投影」**：整段源文本入库+编辑器维护+注册期 422 门，盘上文件是幂等生成物）。差异在字段面：Horizon 把 agent 检索面做成对象字段，本仓 meta 可承载但无纪律。物化只写不删——定义禁用后盘上旧目录残留（SK-M22，机制映射汇总）。
 
 ![对象生命周期：draft→governed；冲突浮出裁决；superseded。](../../assets/architecture/cognitive-context/context-layer-blueprint--object-lifecycle-dark.png)
 
@@ -186,7 +186,7 @@ version: 12
 
 ### 5.2 设计 · 逻辑视图、四层信号与信任归一
 
-**ADR-1（保留）：Context Catalog 用 PostgreSQL VIEW 实现，不新建物理表。** 元数据已存 PG，新表=副本=Split-Brain 引信；引用一律轻量指针；Horizon Catalog 本身也是元信息层。OpenViking 对照：viking:// 的寻址语法可借鉴（scope 前缀推导类型、确定性 ID、位置即语义），但其副本式 AGFS 存储与 ADR-1 正面冲突——**只取格式不取存储**（015 结论）。
+**ADR-1（保留）：Context Catalog 用 PostgreSQL VIEW 实现，不新建物理表。** 元数据已存 PG，新表=副本=Split-Brain 引信；引用一律轻量指针；Horizon Catalog 本身也是元信息层。OpenViking 对照：viking:// 的寻址语法可借鉴（scope 前缀推导类型、确定性 ID、位置即语义），但其副本式 AGFS 存储与 ADR-1 正面冲突——**只取格式不取存储**（OV-1，机制映射汇总）。
 
 信任归一（未落地，三纪律 #11）：①authority 区分 governed/inferred；②popularity log1p 有界（防多数派错误放大——排序侧反模式与 §6.1 冲突裁决纪律同根：D4 实测被 500 条查询使用的错误 join 压过 3 条的正确模式）；③freshness 单一 staleness 口径。**归一层不发明新信号，做 per-source 标准化**——五源现成信号清单：Memory=retention/importance/access_count；Fact/KG/canonical=confidence+valid_from/valid_until+supersede 链；KG=PageRank+社区+证据支持；KB=retrieval_count+is_enabled+quality（现多 NULL）；Tools=成功率/延迟；Skills=active_version/visibility。跨源 freshness 语义不对称是归一层最硬的设计题：KG 有双时态 as_of、Memory 仅 last_accessed_at 非 bi-temporal、KB 连 last_accessed_at 都没有。
 
@@ -220,7 +220,7 @@ version: 12
 2. **consumer 消费者**——`FOR UPDATE SKIP LOCKED` 出队执行 `_simple_consolidate`（表与部分索引已存在，迁移 0043/0044）；
 3. **watermark 水位**——`threads.metadata.consolidated_at_event_seq`（同构 `title_generated_at_event_seq`），**提交点最后写**（OpenViking `.done` 语义：两步都成功才落水位，防至少一次投递下事件卡重复——B6 实测）。
 
-巩固 diff 写 `consolidation_jobs.result` 并接 UI 消费方（否则是摆设）。二阶风险：每会话新增一次 embedding+LLM 提取须 Δ/T 封顶；单 uvicorn worker 下消费者须是异步限流后台任务；巩固后 preload 检索噪声观察 `memory_retrieval_logs`。配套修复：015-D3 `force_refresh=True` 因签名无此参数抛 TypeError 被静默吞掉——把 24h TTL 换成源水位判据（OpenViking 新鲜度冒泡同构：子项 L0 digest 未变即 NOOP、pending 比例达阈值才刷新）。
+巩固 diff 写 `consolidation_jobs.result` 并接 UI 消费方（否则是摆设）。二阶风险：每会话新增一次 embedding+LLM 提取须 Δ/T 封顶；单 uvicorn worker 下消费者须是异步限流后台任务；巩固后 preload 检索噪声观察 `memory_retrieval_logs`。配套修复：OV-D3 `force_refresh=True` 因签名无此参数抛 TypeError 被静默吞掉——把 24h TTL 换成源水位判据（OpenViking 新鲜度冒泡同构：子项 L0 digest 未变即 NOOP、pending 比例达阈值才刷新）。
 
 记忆合并的身份判据（OpenViking 照鉴）：**相似只提名候选，同一性由 schema 身份字段裁决**——URI 由身份字段确定性生成，「是否同一条记忆」降维成「文件名是否相同」；OpenViking 实验室 B3 实测拆掉身份判据后三次来访落三张矛盾卡。按 memory_type 定合并算子（events/trajectories 只增不改——宁可重复不可错并；experiences replace+supersedes）。本仓阈值去重（cos≥0.85/0.90）为主干、LLM 裁决只值得用于模糊带 0.80–0.90。
 
@@ -284,10 +284,10 @@ version: 12
 
 > **ADR-6：上下文供给是成本结构决策。** 五个旋钮（按「窗口免费后是否仍承重」分两类：注意力质量类——①②的预算与披露语义、检索质量——恒承重，因 context rot 是注意力架构属性；成本类——④缓存排序与③的省钱动机——随单价消失而失效；设计按前者对齐）：
 > 1. **预算分配**——本仓 ContextAssembler 三段 30% memory/50% history/20% system（标注「借鉴 Claude Code POST_COMPACT_TOKEN_BUDGET」）+ Core Block 30% 硬帽 + Reflection 50% 预留；Horizon 整视图 ~100K token guideline（超限被剪枝、延迟与质量双伤）；工具集是预算面（bloated tool sets 是常见失败——Llama 3.1 8B 在 16k 窗口挂 46 个工具失败、19 个成功，arXiv 2411.15399 经 Splunk 转引，实线）。
-> 2. **渐进披露**——L1 目录常驻（预算受控）+ L2 正文按需 + L3 资源挂载；**两层寿命不同**（正文会被压缩清掉、目录不会——「已激活≠仍在场」，须配重激活）；成本按使用数计价而非装机数（方向性实测 16.9×，chars/4 近似口径只证方向）；一条膨胀描述令目录 +255%（skills 规范一代原型 lab·B3，230 §10）——描述长度上限守护常驻面。
+> 2. **渐进披露**——L1 目录常驻（预算受控）+ L2 正文按需 + L3 资源挂载；**两层寿命不同**（正文会被压缩清掉、目录不会——「已激活≠仍在场」，须配重激活）；成本按使用数计价而非装机数（方向性实测 16.9×，chars/4 近似口径只证方向；出处为一代原型 lab·B1 玩具域数字，实验同型，脚本 agent_skills_lab.py 在仓 assets；现行口径 9.9× 见 230 §9）；一条膨胀描述令目录 +255%（skills 规范一代原型 lab·B3，230 §10）——描述长度上限守护常驻面。
 > 3. **JIT vs 预取的显式决策边界**——静态约定与规范 up-front（CLAUDE.md 朴素入窗）、大体量事实 JIT（轻量标识符+运行时加载器，「引用元数据本身是行为信号」）；小知识库 <200K token（约 500 页）直接全量入窗配 prompt caching（延迟 >2x、成本至多 −90%，Anthropic 口径）。
 > 4. **缓存友好排序**——会变的排在不变的后面、缓存断点卡中间（Claude Code 全局断点卡在最后一个内置工具之后——闭源分析口径，社区转述）；启用前缀缓存之日，检索记忆须移到用户消息侧或按会话冻结（Hermes 三载体接力：对话记录→压缩重建→新会话快照，写回永不随写随见但永不丢失）。
-> 5. **压缩分级**——零模型调用的结构操作在前、模型调用殿后（Claude Code 四步：按预算落盘→掐中段→占位符化→整体摘要；「裁剪可以丢内容不能丢结构」tool_use/tool_result 配对不拆；「大结果先落盘再占位符化」）；压缩谱系七策略（Trimming/Summarization/Tagging/Sliding Window/Semantic Filter/层次化笔记/QA 对压缩）；**本仓交互式对话零压缩**（num_recent_events 零调用方，191 M11 🔶 最高优先——引入压缩层时技能内容须同步豁免标记，丢失即静默降级）。
+> 5. **压缩分级**——零模型调用的结构操作在前、模型调用殿后（Claude Code 四步：按预算落盘→掐中段→占位符化→整体摘要；「裁剪可以丢内容不能丢结构」tool_use/tool_result 配对不拆；「大结果先落盘再占位符化」）；压缩谱系七策略（Trimming/Summarization/Tagging/Sliding Window/Semantic Filter/层次化笔记/QA 对压缩）；**本仓交互式对话零压缩**（num_recent_events 零调用方，HM-M11 🔶 最高优先——引入压缩层时技能内容须同步豁免标记，丢失即静默降级）。
 
 每轮装配是**一次预算分配决策**——进入窗口的每个 token 都有机会成本。装配纪律两条（Claude Code 范本）：**谓词驱动**（段落取舍判据是可观察运行时事实——记忆索引文件存在且非空才铺记忆段、MCP 已连才铺外接段——「装配依据是事实，不是文本」）；**装配序不变式**（先处置会丢的历史治理→再叠不能丢的记忆供给→最后装能力面工具+提示，三者同频每轮重算）。
 
@@ -304,7 +304,7 @@ version: 12
 > **ADR-2（保留）：升级 HybridPlanner 为统一检索骨架，不新建 Router 类**——它已具备正确架构（Intent→并行种子→图扩展→RRF），Memory 作第 4 路种子源是增量扩展（接入面已就绪：search_memory 返回 clamp [0,1] 的 relevance_score 可映射 Candidate rank；缺的只有 `memory_enabled` 开关位与构造器注入槽）。
 > **ADR-3（保留）：收敛语义**——自动通道给接地摘要（轻量必出）、按需通道给深度检索（显式触发），共享归一信任排名。
 
-> [!WARNING] **宿主更正（ISSUE-195 D1 销账，2026-09-27 实心核验）**：旧版本把 `ContextAssembler.assemble()` 写成「自动注入通道」——**该函数生产调用为 0**（全仓唯一调用点是单测）。生产请求期上下文的真实装配面是 root_agent **五挂点**（instruction provider / before_model_callback / tools / telemetry callbacks / sub_agents），记忆注入的真实通道是 **NegentropyPreloadMemoryTool**（每轮以用户消息为 query 检索、top_k=5、4000 字符预算、渲染 `<RELEVANT_MEMORIES>` 块注入 system instruction）；KG 摘要近乎不可达（仅知识库 0 命中的回退分支触发）。60s TTL 三元组缓存（`subagent:<name>` 单行供 model+instruction+tools 三 resolver，负命中也缓存）+ 代码硬编码回退是「永不阻塞请求」的 fail-soft 家族设计——**代价是治理旁路面**（DB 故障与未配置下游不可区分、DB 层版本/禁用位在回退态失效），显式登记为已实装的权衡而非缺陷。assemble() 作为「按 token 预算供给的完整参考实现」保留（其 Core Block/Reflection/预算设计仍为 ADR-6 依据），但状态表按「设计存在 ≠ 已接线」口径如实标注。
+> [!WARNING] **宿主更正（ISSUE-195 OV-D1 销账，2026-09-27 实心核验）**：旧版本把 `ContextAssembler.assemble()` 写成「自动注入通道」——**该函数生产调用为 0**（全仓唯一调用点是单测）。生产请求期上下文的真实装配面是 root_agent **五挂点**（instruction provider / before_model_callback / tools / telemetry callbacks / sub_agents），记忆注入的真实通道是 **NegentropyPreloadMemoryTool**（每轮以用户消息为 query 检索、top_k=5、4000 字符预算、渲染 `<RELEVANT_MEMORIES>` 块注入 system instruction）；KG 摘要近乎不可达（仅知识库 0 命中的回退分支触发）。60s TTL 三元组缓存（`subagent:<name>` 单行供 model+instruction+tools 三 resolver，负命中也缓存）+ 代码硬编码回退是「永不阻塞请求」的 fail-soft 家族设计——**代价是治理旁路面**（DB 故障与未配置下游不可区分、DB 层版本/禁用位在回退态失效），显式登记为已实装的权衡而非缺陷。assemble() 作为「按 token 预算供给的完整参考实现」保留（其 Core Block/Reflection/预算设计仍为 ADR-6 依据），但状态表按「设计存在 ≠ 已接线」口径如实标注。
 
 ![装配经济学与统一激活：双通道经融合排名与出口守卫注入 LLM。](../../assets/architecture/cognitive-context/context-layer--assembly-economics-dark.png)
 
@@ -332,7 +332,7 @@ version: 12
 
 核心论断（保留）：**不从零造上下文引擎，而是把已有子系统收敛到一个治理织物（Context Fabric）之下**——五系部的上下文信号已分散存在、被各自组装，缺的不是原料，是统一的治理与编排层。各系部位置：Engine=调度中枢；Perception+KB/KG=最大供源；Internalization+Memory=记忆供源；Contemplation=eval 消费方；Action+Tools=工具信号供源；Influence=出口消费端；definitions/Skills=对象层载体（✅）。
 
-### 11.1 五源注入点现状（015-D1 修正版）
+### 11.1 五源注入点现状（OV-D1 修正版）
 
 运行期上下文由**九路来源分散装配**：身份（instruction provider）/Skills（双路注入互斥）/Tools（toolset+schema）/Model（resolver+ContextVar）/记忆（preload 工具）/会话状态（state）/定义 SSOT（graph-from-DB 工厂）/偏好/引用协议。三缺口（以 §8.4 宿主更正为 SSOT）：①检索未统一（Planner 无 Memory 种子源）；②双通道割裂（无 KB 接地）；③信任未归一（§5.3 未落地）。后果：过期记忆作答、幻觉、排名失效。
 
@@ -398,7 +398,7 @@ version: 12
 
 **新增本仓特有判定行**（非 Horizon 映射，源自 Hermes/OpenViking 映射的真增量）：17 会话→记忆链路=断链（ISSUE-195，修复设计 §6.2）🔶；18 交互式对话压缩=零（HM-M11，最高优先 🔶）；19 CJK 检索腿=失效（ISSUE-196 §5.2）🔶；20 记忆两端防注入=缺（写入端零扫描+注入块头无数据声明，**先于巩固上线**）🔶。
 
-**做**：①会话巩固三件套+OV-D3 修复（独立 PR 先于 Phase 1，ISSUE-195 建议）②Guard 随 Phase 2 ③验证问答绑 patrol done ④信任归一三纪律 ⑤身份归因。**写**（本版已销账）：⑥#9 状态行校正+§8.4 宿主更正（ISSUE-195 ④）⑦Core Block 三问（HM-M2）⑧CJK 口径（ISSUE-196）⑨会话巩固设计（015 §6）。**暂缓**（带触发）：⑩#4 ⑪#12 ⑫隐式挖掘 ⑬#14 ⑭#16 ⑮L2/L3 挂载（随 ISSUE-194 方案 (a)，前置先修 015-D6 跨用户读取通道）。
+**做**：①会话巩固三件套+OV-D3 修复（独立 PR 先于 Phase 1，ISSUE-195 建议）②Guard 随 Phase 2 ③验证问答绑 patrol done ④信任归一三纪律 ⑤身份归因。**写**（本版已销账）：⑥#9 状态行校正+§8.4 宿主更正（ISSUE-195 ④）⑦Core Block 三问（HM-M2）⑧CJK 口径（ISSUE-196）⑨会话巩固设计（本蓝图 §6.2，OV 蓝图对位）。**暂缓**（带触发）：⑩#4 ⑪#12 ⑫隐式挖掘 ⑬#14 ⑭#16 ⑮L2/L3 挂载（随 ISSUE-194 方案 (a)，前置先修 OV-D6 跨用户读取通道）。
 
 ## 12. 实证数字与动手实验室
 
@@ -444,7 +444,7 @@ uv run --no-project python docs/research/cognitive-context/assets/horizon_contex
 4. **governance ≠ verification**——§9 全节；M4 只交付一半。
 5. **排序可能放大多数派错误**——popularity 权重下的错误 join 压制正确模式（D4）；per-role 未交付。
 6. **供给面安检有缝**——sample values 不脱敏；隐形字符/伪字段注入实测成立；「无外部下载面=安全」是幸运非设计。
-7. **方法论边界**——四范本中 Claude Code 侧证据为教学课程仓逆向（三级分级：固定提交实测/官方文档/闭源分析，引用带归属）；OpenViking 基准口径陷阱（单一 judge、无消融、算术错误复算 −22.8%→−15.3%）；Jev 官方倍数复算仅 97.8×（宣称 193.6×）；本仓 16.9× 等 chars/4 近似口径只证方向。
+7. **方法论边界**——四范本中 Claude Code 侧证据为教学课程仓逆向（三级分级：固定提交实测/官方文档/闭源分析，引用带归属）；OpenViking 基准口径陷阱（单一 judge、无消融、算术错误复算 −22.8%→−15.3%）；Jev 官方倍数复算仅 97.8×（宣称 193.6×）；本仓 16.9×（出处同上：一代原型 lab·B1，现行口径 9.9× 见 230 §9）等 chars/4 近似口径只证方向。
 8. **厂商源时效**——Redis/Atlan/Splunk/MCP 生态数字按 48h 复核线（221 先例）；MCP 2025-06 前资料中 server-initiated 流程已全部过时（MRTR 取代）。
 
 边界索引：§1 范围外 · §4.2.1 契约锁在执行层 · §5 UNION 周界与 CJK 口径 · §6 修含义不修数据 · §7.2 引擎周界与信任域 · §8.4 宿主更正 · §9 治理≠验证 · §10 eval 腐化。
@@ -466,7 +466,7 @@ uv run --no-project python docs/research/cognitive-context/assets/horizon_contex
 | 七机制原型 + MCP stdio | P0 | — | ✅ 全绿 |
 | CRUD+resolve+四工具+RBAC+审计 | P1 | 复用 definitions | 🔶 |
 | 三视图+信任归一 | P2 前置 | Phase 1 ①② | 🔶 |
-| 会话巩固三件套+D3 修复 | — | **Phase 1 前置（独立 PR，先于 Phase 1 批次）** | 🔶（本版新增前置位） |
+| 会话巩固三件套+OV-D3 修复 | — | **Phase 1 前置（独立 PR，先于 Phase 1 批次）** | 🔶（本版新增前置位） |
 | Memory 入 Planner | — | Phase 1 ③ | 🔶 |
 | 接地+Guard+context_strategy | P2 | Phase 2 | 🔶 |
 | verified QA+冲突浮出+反馈 | P2 | Phase 2 | 🔶 |
@@ -533,7 +533,7 @@ uv run --no-project python docs/research/cognitive-context/assets/horizon_contex
 
 [23] NousResearch, "hermes-agent," @068db016. https://github.com/NousResearch/hermes-agent
 
-[24] TypeSafe, "Introducing System One Models and Jev," 2026（精读详见 200/201）. https://typesafe.ai/blog/introducing-system-one-models-and-jev
+[24] TypeSafe, "Introducing System One Models and Jev," 2026（精读详见 200）. https://typesafe.ai/blog/introducing-system-one-models-and-jev
 
 [25] Gartner, "D&A Predicts," 2025–2026.（付费墙，转引）
 

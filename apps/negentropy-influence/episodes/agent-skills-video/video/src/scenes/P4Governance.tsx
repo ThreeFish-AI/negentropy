@@ -190,13 +190,20 @@ const X5Shadow: React.FC<{bellAt: number; veilAt: number}> = ({bellAt, veilAt}) 
     </div>
   );
   return (
-    <AblationPanel leftTitle="拆掉覆盖警告（X5）" rightTitle="警告在位" width={900} height={230}>
+    <AblationPanel
+      leftTitle="拆掉覆盖警告（X5）"
+      rightTitle="警告在位"
+      width={900}
+      height={230}
+      footer={
+        <div style={{fontSize: 15, color: theme.dim}}>
+          有效技能一个没少：<span style={{color: theme.text}}>1 处覆盖悄悄生效</span>
+          <span style={{marginLeft: 14, color: theme.ok, opacity: bell > 0 ? 1 : 0.4}}>🔔</span>
+        </div>
+      }
+    >
       {pair(false)}
       {pair(true)}
-      <div style={{fontSize: 15, color: theme.dim}}>
-        有效技能一个没少：<span style={{color: theme.text}}>1 处覆盖悄悄生效</span>
-        <span style={{marginLeft: 14, color: theme.ok, opacity: bell > 0 ? 1 : 0.4}}>🔔</span>
-      </div>
     </AblationPanel>
   );
 };
@@ -316,6 +323,37 @@ const X3BoolFlip: React.FC<{writeAt: number; readAt: number; onAt: number}> = ({
   );
 };
 
+/** 4-F 悬案章戳：useEnter 在 beat Sequence 内求值，锚为 beat 局部帧。 */
+const CaseStamp: React.FC<{at: number}> = ({at}) => {
+  const close = useEnter('pop', {at, dur: DUR.f5, springPreset: 'snap'});
+  return (
+    <div
+      style={{
+        ...close,
+        position: 'absolute',
+        left: '50%',
+        bottom: 170,
+        transform: `${close.transform} translateX(-50%)`,
+        whiteSpace: 'nowrap',
+      }}
+    >
+      <span
+        style={{
+          border: `1.5px solid ${theme.gov}77`,
+          borderRadius: 999,
+          padding: '12px 30px',
+          fontFamily: theme.serif,
+          fontSize: 24,
+          color: theme.gov,
+          background: theme.panel,
+        }}
+      >
+        生态先行 · 条文追认
+      </span>
+    </div>
+  );
+};
+
 export const P4Governance: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (a: string, b?: string) => beatWindow(scene.sentences, scene.from, a, b);
   const at = (id: string) => w(id).from;
@@ -326,7 +364,6 @@ export const P4Governance: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bD = w('p4-13', 'p4-18');
   const bE = w('p4-19', 'p4-22');
   const bF = w('p4-23', 'p4-25');
-  const close = useEnter('pop', {at: at('p4-25') - bF.from, dur: DUR.f5, springPreset: 'snap'});
   return (
     <AbsoluteFill>
       <Sequence {...bA} name="4-A 46 家阵列">
@@ -391,30 +428,7 @@ export const P4Governance: React.FC<{scene: SceneRange}> = ({scene}) => {
       <Sequence {...bF} name="4-F PR 悬案">
         <SceneTag chapter="P4" tagline="46 家的默契与分歧" accent={theme.gov} />
         <Stage>
-        <div
-          style={{
-            ...close,
-            position: 'absolute',
-            left: '50%',
-            bottom: 170,
-            transform: `${close.transform} translateX(-50%)`,
-            whiteSpace: 'nowrap',
-          }}
-        >
-          <span
-            style={{
-              border: `1.5px solid ${theme.gov}77`,
-              borderRadius: 999,
-              padding: '12px 30px',
-              fontFamily: theme.serif,
-              fontSize: 24,
-              color: theme.gov,
-              background: theme.panel,
-            }}
-          >
-            生态先行 · 条文追认
-          </span>
-        </div>
+        <CaseStamp at={at('p4-25') - bF.from} />
 
         </Stage>
 

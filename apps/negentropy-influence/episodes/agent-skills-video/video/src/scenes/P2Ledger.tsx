@@ -275,6 +275,12 @@ const BudgetGate: React.FC<{barAt: number; rulerAt: number; badgeAt: number}> = 
   );
 };
 
+/** beat 内推镜包装：usePushIn 在 beat Sequence 内求值，锚为 beat 局部帧。 */
+const BeatPush: React.FC<{at: number; children: React.ReactNode}> = ({at, children}) => {
+  const push = usePushIn(at);
+  return <div style={{transform: push}}>{children}</div>;
+};
+
 export const P2Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (a: string, b?: string) => beatWindow(scene.sentences, scene.from, a, b);
   const at = (id: string) => w(id).from;
@@ -284,7 +290,6 @@ export const P2Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bC = w('p2-10', 'p2-14');
   const bD = w('p2-15', 'p2-19');
   const bE = w('p2-20', 'p2-23');
-  const push = usePushIn(at('p2-15') - bD.from);
   return (
     <AbsoluteFill>
       <Sequence {...bA} name="2-A 目录常驻">
@@ -335,9 +340,9 @@ export const P2Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
       <Sequence {...bD} name="2-D 十六点九倍">
         <SceneTag chapter="P2" tagline="三级账本" accent={theme.ledger} />
         <Stage>
-        <div style={{transform: push}}>
+        <BeatPush at={at('p2-15') - bD.from}>
           <ScaleBattle raceAt={at('p2-15') - bD.from} multAt={at('p2-17b') - bD.from} />
-        </div>
+        </BeatPush>
         </Stage>
 
 

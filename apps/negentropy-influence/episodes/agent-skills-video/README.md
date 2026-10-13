@@ -55,7 +55,7 @@ uv run --no-project $T/scripts/pipeline.py --project $P deliver --dry-run   # �
 - 时序常数只在 `video/src/timing.json`；本集概念色（目录金/路由靛/治理紫）只在 `video/src/design/theme.ts`。
 - **口播永不出现他集标题与集数序号**——顺序只在视觉层与 [series.json](../../series.json)（`check_series.py` 执法）。
 - archify 章集：`video/public/archify/views/*.json` 是录制章集**唯一事实源**（patcher 会剥除 docs 原件自带的 GL 章容器，防同名遮蔽）；改章后须重录对应图并重跑 lead+manifest。
-- 示意算式（6 万 token）与实测账本（16.9×）分属两体系：画面须带「示意估算」角标，不得并排比较（对账表口径）。
+- 示意算式（6 万 token）与转述账本（16.9×，一代原型 B1 玩具域出处，成片冻结）分属两体系：画面须带「示意估算」角标，不得并排比较（对账表口径）。
 - 骨架冻结档位见 [vibe-video skill 的 skeleton.toml](https://github.com/ThreeFish-AI/vibe-video/blob/main/assets/video-skeleton/skeleton.toml)；改动前先跑 `uv run --no-project $T/scripts/verify_skeleton.py`。
 
 ## 许可
