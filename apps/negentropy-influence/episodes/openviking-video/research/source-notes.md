@@ -4,7 +4,7 @@
 >
 > **信源轨（B 型 · 仓内固定提交 @ `348d8797`，2026-09-24）**
 > - **A 轨 · 精读笔记**：[014-openviking.md](../../../../../docs/research/cognitive-context/014-openviking.md)（钉点副本 [source-archive/348d879/](./source-archive/348d879/)）——机制载荷、代码实值、证据分级、批判边界。上游 volcengine/OpenViking（钉点 `14a7b81`，AGPL-3.0）**不直接取证**，只经 014 的 `path:line` 锚点链间接可溯（系列规则）。
-> - **B 轨 · 机制映射**：[015-openviking-mapping-negentropy.md](../../../../../docs/research/cognitive-context/015-openviking-mapping-negentropy.md)——本仓视角的 13 条对照（本集结尾「我们该学什么」的依据）。
+> - **B 轨 · 机制映射**：[机制映射汇总·认知与上下文 OV](../../../../../docs/research/mapping-negentropy.md)——本仓视角的 13 条对照（本集结尾「我们该学什么」的依据）。
 > - **C 轨 · 原型实测**：[openviking_lab.py](../../../../../docs/research/cognitive-context/assets/openviking_lab.py)，`--selftest` 与 `--break B1..B6` 本 worktree 复跑全绿（2026-09-24）。
 >
 > **证据四级**：【一】原型实测可复跑 / 【二】本仓精读笔记的讲法（其上游锚点均在钉点代码实测）/ 【三】厂商自报基准或官方口径（口播**必须**带归属语）/ 【四】第三方分析（本集不用）。

@@ -1,0 +1,33 @@
+{
+ "effective": [
+  "colon-trap",
+  "csv-report",
+  "extra-field",
+  "inject-desc",
+  "long-name-along-name-along-name-along-name-along-name-along-name-along-name-along-name-a",
+  "release-notes",
+  "same-scope-dupe",
+  "totally-different",
+  "typed-meta",
+  "vague-desc"
+ ],
+ "shadowed": [
+  [
+   "release-notes",
+   "user",
+   "release-notes",
+   "project"
+  ]
+ ],
+ "catalog_tokens_approx": 228,
+ "bodies_tokens_approx": 2261,
+ "strict_loadable": 9,
+ "lenient_loadable": 12,
+ "break_log": [
+  "[X1] 拆除 project>user 优先级（纯按扫描序解析） -> 客户端A(字典序) 与 客户端B(目录长度序) 同名不同版的技能 2 项：{'release-notes': ('project', 'user'), 'same-scope-dupe': ('project', 'project2')} —— 同一任务两家加载不同版本，行为跨客户端不可复现（identity 由扫描顺序决定）",
+  "[X2] 规范口径严格校验（封闭集+全 MUST） -> 12 只技能中严格口径拒载 4 只（['extra-field', 'name-mismatch', 'long-name-along-name-along-name-along-name-along-name-along-name-along-name-along-name-a', 'empty-desc']），宽容口径全数可载 12 只 —— 严格门把『为别人客户端写的技能』整体拒之门外，互操作面损失 33%",
+  "[X3] metadata 值经 str() 强转（规范 string→string 的解析端实现） -> 作者写 enabled: false；解析后得到字符串 'false'；客户端 bool('false') == True —— 被禁用的技能被判定为启用。强转让『类型即语义』的配置在跨端往返后翻转",
+  "[X4] description 内嵌『缩进伪字段』通过宽容解析混入元数据 -> 注入文本进入 frontmatter 区=True；解析后 allowed-tools/Bash(rm:*) 泄漏进字段=True —— 若客户端把 allowed-tools 当预授权读，恶意预授权经由 description 通道成立（转义/行锚定缺失的实测代价）",
+  "[X5] 保留遮蔽但去掉告警日志（客户端指南的 Log a warning 不做） -> 有效目录仍为 10 项（功能不变），但 1 处遮蔽对用户不可见：『agent 用的是哪一版』成为静默分歧 —— 事故形态是知情权丢失而非数据丢失"
+ ]
+}
