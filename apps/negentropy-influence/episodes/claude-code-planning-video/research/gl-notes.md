@@ -11,7 +11,8 @@
 > - **鲜度复核日期**：2026-10-07（复核动作与结论见附录 C.1）。
 > - **链接适配说明**：本文件自 docs/research 迁入 research/ 后，正文全部相对链接（全景图 .mmd 图源 / 交互 HTML / dark·light PNG、原型脚本）的相对层级已按新落位统一改写，文字内容零改动。
 > - **正文同步说明**（2026-10-08）：随 172 现行版修复同步重冻（恢复预算表行与地图坐标行的 main s15_integrated_harness 章全称），正文仍与 GL 产物逐字一致。
-> - **重冻登记**（2026-10-07 第二次冻结）：正文重冻自当前分支 172 现行版，收敛首次冻结（d5edd6dca）未随 41215b5b3 契约修复同步的漂移（--episode B 口径、E5 白等 175.6s、机制-行号速查表刷新、恢复链接行）。
+> - **重冻登记**（2026-10-07 第二次冻结）
+> - **重冻登记**（2026-10-09 第三次冻结 · Stage① 评审轮 F01）：正文随 172 现行版修复同步重冻——TodoWrite 回填形态按轨归属（站点轨 tool_result 只回「Updated N tasks」计数、渲染仅打印终端；主轨 TodoManager 返回渲染清单本身），§2 汇合句加主轨限定、§3「两轨差异」补记第四处（回填形态）。除该三处事实修正外，正文与 GL 产物仍逐字一致（证据锚见附录 C.2 第 10 条）。：正文重冻自当前分支 172 现行版，收敛首次冻结（d5edd6dca）未随 41215b5b3 契约修复同步的漂移（--episode B 口径、E5 白等 175.6s、机制-行号速查表刷新、恢复链接行）。
 
 # 精读：Learn Claude Code 规划与协调
 
@@ -42,7 +43,7 @@
 
 ## 2. 全貌：五个装置与「每轮看到什么」
 
-五个装置不是并列的散件。s10_system_prompt 讲的组装是台面：system prompt 按 context 拼段、messages 由对话推进、工具表由注册决定，三个通道都在这里汇合。其余四个装置的产出，最终都经这三个通道之一进入模型视野：todo 的渲染文本和 skill 全文走 tool_result 回填，reminder 走 user 消息注入，子代理的结论作为一个工具结果回来；恢复机制则保证出错的轮次不把整张台面掀翻。main 轨 s15_integrated_harness 把这个汇合关系摆得最清楚：一条 `while True` 循环里，压缩管线、记忆与技能目录、MCP 状态（MCP＝外接工具服务，连上以后它的工具进工具表）先汇进 system prompt 组装。LLM 调用包着恢复逻辑，工具执行前后挂着 hook，tool_result 与后台任务通知回填 messages 再进下一轮[1]。
+五个装置不是并列的散件。s10_system_prompt 讲的组装是台面：system prompt 按 context 拼段、messages 由对话推进、工具表由注册决定，三个通道都在这里汇合。其余四个装置的产出，最终都经这三个通道之一进入模型视野：todo 的渲染文本（主轨形态，站点轨只回更新计数——见 §3 差异四）和 skill 全文走 tool_result 回填，reminder 走 user 消息注入，子代理的结论作为一个工具结果回来；恢复机制则保证出错的轮次不把整张台面掀翻。main 轨 s15_integrated_harness 把这个汇合关系摆得最清楚：一条 `while True` 循环里，压缩管线、记忆与技能目录、MCP 状态（MCP＝外接工具服务，连上以后它的工具进工具表）先汇进 system prompt 组装。LLM 调用包着恢复逻辑，工具执行前后挂着 hook，tool_result 与后台任务通知回填 messages 再进下一轮[1]。
 
 分层看，读者的注意力应该这样分配：
 
@@ -67,7 +68,7 @@
 
 连续 3 轮没更新待办清单，系统就往对话里塞一条提醒——这个不到二十行的机制，是整门课「规划」的起点。
 
-机制本身分两半。前一半是 `todo_write` 工具：模型传入一个带状态的清单，每条内容标 pending、in_progress、completed 三态之一；系统把清单存进进程内存，并把渲染后的文本（`[ ]` / `[▸]` / `[✓]` 逐行）作为 tool_result 回填。后一半是 nag reminder：循环里维护一个 `rounds_since_todo` 计数器，本轮工具调用里出现了 todo_write 就清零，否则加一；计数到 3，下一次调用模型前往 messages 追加一条 `<reminder>Update your todos.</reminder>`，然后再清零。整个工具没有任何执行能力：读不了文件，跑不了命令。课程的判断写得很直白：它增加的不是执行能力，是规划能力[1]。
+机制本身分两半。前一半是 `todo_write` 工具：模型传入一个带状态的清单，每条内容标 pending、in_progress、completed 三态之一；系统把清单存进进程内存。回填形态两轨不同：站点轨的 tool_result 只回一句「Updated N tasks」计数，渲染后的清单文本仅打印到终端[1]；主轨的 TodoManager 返回渲染后的清单（`[ ]` / `[▸]` / `[✓]` 逐行）作为 tool_result 进对话[1]。本节的走查与原型（episode A）取主轨形态。后一半是 nag reminder：循环里维护一个 `rounds_since_todo` 计数器，本轮工具调用里出现了 todo_write 就清零，否则加一；计数到 3，下一次调用模型前往 messages 追加一条 `<reminder>Update your todos.</reminder>`，然后再清零。整个工具没有任何执行能力：读不了文件，跑不了命令。课程的判断写得很直白：它增加的不是执行能力，是规划能力[1]。
 
 拿课程自己的任务走一遍单步状态。输入：「把所有 Python 文件改成 snake_case，然后跑测试，修好失败」，计划拆三步：重命名、跑测试、写报告。
 
@@ -100,7 +101,7 @@ t9-t11  执行 step3、更新、收尾
 
 拆掉 reminder 再跑同一任务（`--experiment 1`）：吸收窗口一过，清单文本已经出了可见区，模型进入漂移：完成 2/3 步，7 个重复的格式化动作，轮数耗尽也没能收尾。提醒不是客套，是把计划顶回可见区的唯一外力。把阈值本身当变量再跑两组（实际运行日志）：阈值 1 时提醒出现 6 次、对话多 5 条消息（28 对 23），任务照常完成——计划跟得更紧，代价是对话更啰嗦；阈值 999 时提醒 0 次、完成 2/3 步、漂移动作 7 个、未能收尾，与拆掉提醒的实测逐项相同。
 
-两轨差异有三处，都在细节而不在机理。其一，注入点：站点轨 s05_todo_write 把 reminder 作为**新的 user 消息**插入下一轮 LLM 调用前；main 轨 s05_todo_write 则把 reminder 文本**追加到第三轮的 tool results 里**，不新增消息条目。同一意图，两种通道。其二，校验：main 轨的 TodoManager 限制清单至多 20 条、只允许一条 in_progress、字符串输入走 JSON/字面量解析而不碰 eval（一个会执行字符串内容的函数）；站点轨只校验三态合法。其三（也最有意思）：课程自己声明这个「固定 3 轮」是教学设定，CC 源码里没有对应的固定轮数逻辑，真实实现更接近「3 个以上 todo 全部完成、但没有 verification 项时」才追加验证提示[1]。官方文档的口径还能再推一步：v2.1.268 起，较新的模型默认根本不启用任务工具，「更新的模型不需要书面待办清单也能做多步任务」；在提供这套工具的模型上，默认给的是四个 Task 工具，设 `CLAUDE_CODE_ENABLE_TASKS=0` 这个环境变量开关才换成 TodoWrite 单工具形态[4]。一个装置的教学形态、真实形态与官方姿态三者不同，这本身就是 §10 争议一的素材。
+两轨差异有四处，前三处在细节而在机理之外，第四处则直接决定计划文本进不进模型视野。其一，注入点：站点轨 s05_todo_write 把 reminder 作为**新的 user 消息**插入下一轮 LLM 调用前；main 轨 s05_todo_write 则把 reminder 文本**追加到第三轮的 tool results 里**，不新增消息条目。同一意图，两种通道。其二，校验：main 轨的 TodoManager 限制清单至多 20 条、只允许一条 in_progress、字符串输入走 JSON/字面量解析而不碰 eval（一个会执行字符串内容的函数）；站点轨只校验三态合法。其三（也最有意思）：课程自己声明这个「固定 3 轮」是教学设定，CC 源码里没有对应的固定轮数逻辑，真实实现更接近「3 个以上 todo 全部完成、但没有 verification 项时」才追加验证提示[1]。官方文档的口径还能再推一步：v2.1.268 起，较新的模型默认根本不启用任务工具，「更新的模型不需要书面待办清单也能做多步任务」；在提供这套工具的模型上，默认给的是四个 Task 工具，设 `CLAUDE_CODE_ENABLE_TASKS=0` 这个环境变量开关才换成 TodoWrite 单工具形态[4]。其四，回填形态：站点轨的 tool_result 只回「Updated N tasks」计数、渲染仅打印终端；主轨返回渲染清单本身（本节首段已按此归属）。前三处换个写法机制照转，这一处不一样——在站点轨里，清单文本进对话只剩两处着床：模型自己发起 todo_write 的那次输入，与 reminder 注入；「渲染回填」是主轨与原型的形态。一个装置的教学形态、真实形态与官方姿态三者不同，这本身就是 §10 争议一的素材。
 
 ## 4. Subagent：过程隔离，只回结论
 
@@ -320,6 +321,7 @@ main 轨的收尾章 s17_goal_loop 回答的是另一个问题：Agent 说「做
 | 站点快照在场核验 | `.temp/lcc-refresh/site/s05.html` / `s06.html` / `s07.html` / `s10.html` / `s11.html` 均在（章号映射事实卡 2026-10-07 实测：站点 20 页与钉点逐章小节标题对账 20/20） |
 | GL 产物日期 | 172 生成日期 2026-10-07 = 本集冻结日，同日零漂移；172 自述「截至 2026-10-07 复核：上游 main 等于钉点（钉点即最新）」 |
 | 结论 | 事实源鲜度成立。口播中涉官方文档现状的断言一律带「截至 2026-10-07」日期口径 |
+| 漂移复核（2026-10-08 · source_ledger verify WARN 2 处置） | doc-sub-agents / doc-skills 两页 text sha 自取数日漂移，但 C.3【二】级断言（15,000 tokens 告警线、1,536 字符截断、正文按需加载、子代理只回摘要）经现页实抓逐字在场——断言未失效，accessed 维持 2026-10-07 不动，「截至」口径仍真 |
 
 ### C.2 数字穿透抽查（断言 → 出处字节 → 结论；2026-10-07 实测，`git show <钉点>:<path>`）
 
@@ -332,10 +334,12 @@ main 轨的收尾章 s17_goal_loop 回答的是另一个问题：Agent 说「做
 7. **「main 轨 s15_integrated_harness 对照取值：升级 8K→16K、连续 529 两次即切换、reactive compact 前存档 .transcripts/」** → `git show ce8f9f18:s15_integrated_harness/code.py`：`:68–69` `DEFAULT_MAX_TOKENS = 8000` / `ESCALATED_MAX_TOKENS = 16000`、`:71` `MAX_CONSECUTIVE_529 = 2`、`:65` `TRANSCRIPT_DIR = WORKDIR / ".transcripts"`、`:2193–2200` compact 前存档 + 压缩摘要尽力调 LLM 生成 → **吻合，【一】级**。
 8. **「原型全部日志数字」** → 本集实跑 `python3 docs/research/agent-harness/assets/lcc_planning_lab.py --selftest / --episode A / --episode E / --experiment 1–5`：episode A（turns 11、steps 3/3、reminders 1、drift 0、messages 23、chars 821）、E1（2/3 步、漂移 0→7、收尾 False）、E2（4 条/147 字符 → 16 条/2649 字符，约 18.0 倍）、E3（system 281→8370、总输入 3059→25323，8.3 倍）、E4（false positive 0→1）、E5（一刀切 10 次全撞墙、白等 175.6s；分类路径压缩一次 0s 恢复）、episode E（529/529/429 → attempts 4、clock 3.7s；三连 529 触发切换；token 路径 8000→64000、续写 3/3）→ **逐项复现，升【一】级**。
 9. **不可本地回源项登记** → 「Fork 五组件字节级一致」「readFileState 克隆」「permissionMode bubble」「三层缓存与 SYSTEM_PROMPT_DYNAMIC_BOUNDARY」「20-30KB / ~150 字符」「十几种 reason/transition」「续写提示多一句」「流式暂扣」「边际收益检测」「清单 ~1% 上下文 / 上限 8000 字符」（官方文档无此数，出自 s07 深读）：课程深读对 CC 源码的论断、只给文件名与行号、未附源码 commit 版本（冻结正文 §11.3 自认无法逐条核实到源）→ **恒【三】级，口播必带归属句**；「15,000 tokens 子代理描述告警线」「description+when_to_use 截断 1,536 字符」「较新模型默认不启用任务工具 / CLAUDE_CODE_ENABLE_TASKS」：官方文档（GL 访问 2026-10-07）→ **【二】级，口播带「官方文档」+日期口径**。
+10. **「站点轨 todo_write 回填仅计数、渲染上终端；主轨返回渲染清单」**（F01 修复句，2026-10-09 增登） → 站点轨 `67a9126c:s05_todo_write/code.py`（归档字节同）：`:150-154` 渲染 lines 仅 `print("\n".join(lines))`、`:155` `return f"Updated {len(CURRENT_TODOS)} tasks"`、`:278-279` 该返回值 append 为 tool_result content；main 轨 `ce8f9f18:s05_todo_write/code.py`：`:160` `TodoManager.update` 末行 `return self.render()` → **逐项吻合，【一】级（双轨钉点实测）**。
+11. **评审轮穿透补登（F02，2026-10-09；断言一直在场、登记此前缺）** → 站点轨：s06 `code.py:212` `for _ in range(30):  # safety limit`（子代理轮数上限）；s11 `code.py:240-241` 「trimming to last 5 messages」/`tail = messages[-5:]`（reactive compact 保尾部 5 条）；s05 `README.md.txt:17-19`（改 3 文件、测试 2 失败、十步做完 1-3 步即兴发挥）与 s06 `README.md.txt:15`（读 30 文件、聊 60 轮、120 条）课程叙事例数 → **【一】级（钉点正文实测）**。main 轨 `ce8f9f18:s15_integrated_harness/code.py`：`:70` `MAX_RETRIES = 3`（瞬态重试上限 3 次）、`:803-846` 七键 PROMPT_SECTIONS 每轮拼接 → **【一】级**。真实 CC 深读三项：s11 `README.md.txt:235` 退避指数 attempt-1 起算、s07 `README.md.txt:147-151` 技能来源十类、s10 `README.md.txt:212-216` mcp_instructions 唯一易失 section → **课程深读转述，恒【三】级**。原型阈值实验：`--selftest` A_thr1（提醒 6 次、消息 28 条）与 A_thr999（2/3 步、漂移 7、收尾 False）与 §3 正文逐项吻合 → **【一】级（原型复算）**。
 
 ### C.3 口播引用纪律（从 C.2 导出）
 
-- **可【一】级直断言**（钉点实测或本集复算，数字均带「教学版/原型」限定）：nag 阈值 3 轮与计数器清零逻辑；提醒以新 user 消息注入（站点轨）/ 追加进 tool results（main 轨）；清单至多 20 条、单条 in_progress（main 轨）；子代理五件工具、递归一层、权限钩子照过；6500 行（2000+1500+3000）；s10 四段与缓存键做法；8K→64K、续写 ≤3、压缩 1 次、500ms×2^n 封顶 32s + 0–25% 抖动、重试 ≤10、529×3 切换（站点轨取值）；main 轨 16K、529×2；原型全部日志数字（episode A 11 轮 3/3、E1 漂移 0→7、E2 18.0 倍、E3 8.3 倍、E4 误注入 0→1、E5 白等 175.6s 对照 0s、episode E 3.7s 恢复）。
-- **须带归属句（【三】级）**：Fork 字节级一致缓存前缀、readFileState 克隆、权限冒泡、三层缓存与动态边界、20-30KB vs ~150 字符、十几种 transition、清单 ~1% 上下文（上限 8000 字符，s07 深读口径）——统一归属语式「拆过 Claude Code 源码的作者核查过」；「~100 / ~2000 tokens per skill」是课程估计值，口播须带「作者的量级估计」口径。
+- **可【一】级直断言**（钉点实测或本集复算，数字均带「教学版/原型」限定）：nag 阈值 3 轮与计数器清零逻辑；提醒以新 user 消息注入（站点轨）/ 追加进 tool results（main 轨）；清单至多 20 条、单条 in_progress（main 轨）；子代理五件工具、递归一层、权限钩子照过；6500 行（2000+1500+3000）；s10 四段与缓存键做法；8K→64K、续写 ≤3、压缩 1 次、500ms×2^n 封顶 32s + 0–25% 抖动、重试 ≤10、529×3 切换（站点轨取值）；main 轨 16K、529×2；原型全部日志数字（episode A 11 轮 3/3、E1 漂移 0→7、E2 18.0 倍、E3 8.3 倍、E4 误注入 0→1、E5 白等 175.6s 对照 0s、episode E 3.7s 恢复）；评审轮补登（2026-10-09）：站点轨 todo_write 回填仅「Updated N tasks」计数、渲染仅打印终端，主轨 TodoManager 返回渲染清单（§3 差异四）；子代理轮数上限 30、reactive compact 保尾部 5 条、main 轨 s15 瞬态重试上限 3 次与七段每轮重建；阈值 1/999 两组实测数。
+- **须带归属句（【三】级）**：Fork 字节级一致缓存前缀、readFileState 克隆、权限冒泡、三层缓存与动态边界、20-30KB vs ~150 字符、十几种 transition、清单 ~1% 上下文（上限 8000 字符，s07 深读口径）——统一归属语式「拆过 Claude Code 源码的作者核查过」；「~100 / ~2000 tokens per skill」是课程估计值，口播须带「作者的量级估计」口径；评审轮补登恒【三】：退避指数 attempt-1 起算、技能来源十类、mcp_instructions 唯一易失 section（课程深读）。
 - **须带日期口径（【二】级）**：15,000 tokens 告警线、1,536 字符截断、「较新的模型默认不启用任务工具」与任务工具开关（官方文档，截至 2026-10-07）；「子代理在它自己的上下文窗口里干活，只返回摘要」为官方文档直述，可用「官方文档明说」句式断言。
 - **不进口播**：「长任务不跑偏」的量化收益（材料与官方均无对照实验，§11.2）；教学数字对真实 CC 行为的代表性（§11.1：教学设定无实验支撑）；「30 轮上限防失控」的效果（§11.5 未验证）；课程深读源码论断不得说成产品既成事实；star 数、章节数等活数据。
