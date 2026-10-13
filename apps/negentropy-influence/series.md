@@ -31,10 +31,12 @@
 | #   | 作品                                                                                  | 一句话主题                    | 视觉契约（主色）                         | 信源                                                                                              | 状态                                                                        |
 | --- | ------------------------------------------------------------------------------------- | ----------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
 | 1   | [《工具与执行：一个循环，三层装置》](./episodes/claude-code-explained-video/README.md) | 循环不变式与三层挂载装置 | core #D97757 恒定/mech 石青 | 站点 s01–s04 钉 main `ce8f9f18`（MIT）＋官方文档轨 C；台账 15 条 audit FAIL 0 | 🟡 **剧本 v3 待审**（2026-10-07 信源换代）｜前代 v1 成片 14:02.6 · 164 句 · 12 图 65 章 |
-| 2   | [《规划与协调：模型的视野是安排出来的》](./episodes/claude-code-planning-video/README.md) | 五件安排台面的装置 | mech 鸢紫 #9C90EE | s05–s07·s10·s11 @ `67a9126c` ＋轨 C | 🟡 **剧本 v3 待审**（2026-10-07 信源换代）｜前代 v1 成片 14:12.2 · 12 图 68 章 |
+| 2   | [《规划与协调：视野错位的五种修正手法》](./episodes/claude-code-planning-video/README.md) | 五件安排台面的装置 | mech 鸢紫 #9C90EE | s05–s07·s10·s11 @ `67a9126c` ＋轨 C | 🟡 **剧本 v3 待审**（2026-10-07 信源换代）｜前代 v1 成片 14:12.2 · 12 图 68 章 |
 | 3   | [《记忆管理：会丢的和不能丢的》](./episodes/claude-code-memory-video/README.md) | 两套咬合的机制 | mech 苔绿 #A9C46C | s08·s09 @ `67a9126c` ＋轨 C（main 演进彩蛋） | 🟡 **剧本 v3 待审**（2026-10-07 信源换代）｜前代 v1 成片 14:13.3 · 12 图 62 章 |
-| 4   | [《并发：谁来按下开始》](./episodes/claude-code-concurrency-video/README.md) | 后台不等＋定时钟自动 | mech 霜蓝 #7FB2E0 | s13·s14 @ `67a9126c` ＋轨 C | 🟡 **剧本 v3 待审**（2026-10-07 信源换代）｜前代 v1 成片 14:10.8 · 12 图 59 章 |
+| 4   | [《并发与调度：一张回执和四层钟》](./episodes/claude-code-concurrency-video/README.md) | 一张回执＋四层钟 | mech 霜蓝 #7FB2E0 | C 型信源＝174 新精读（v3 换代） | 🟡 **剧本 v3 待审**（2026-10-07 信源换代）｜前代＝本分支完全重制 v1 交付（14:26.8 · 149 句 · 13 图 47 章 · edge 草声）＋系列片头挂载已接 |
 | 5   | [《多 Agent 平台：从一个到一群》](./episodes/claude-code-multiagent-video/README.md) | 从一个到一群的五物件 | mech 协作金 #D9B36B | s12·s15–s20 @ `67a9126c` ＋轨 C 八校准 | 🟡 **剧本 v3 待审**（2026-10-07 信源换代·终集收束）｜前代 v1 成片 13:42.8 · 13 图 67 章 |
+| 4   | [《并发：谁来按下开始》](./episodes/claude-code-concurrency-video/README.md) | 后台不等＋定时钟自动 | mech 霜蓝 #7FB2E0 | s13·s14 @ `67a9126c` ＋轨 C | 🟡 **剧本 v3 待审**（2026-10-07 信源换代）｜前代 v1 成片 14:10.8 · 12 图 59 章 |
+| 5   | [《多 Agent 平台：七件设施，一条走廊》](./episodes/claude-code-multiagent-video/README.md) | 七件设施与一条走廊（终集） | mech 协作金 #D9B36B | s12·s15–s20 @ `67a9126c`（C 型=175 冻结快照） | ✅ **换题重制 v2 交付**（edge 终声版 14:17.8 · 147 句 4015 字 · 14 图 49 章 · 六实验入片 · 评审修复 9 commits 80 项入片 · indextts 重配待触发） |
 
 > 章节→集归属与**站点/仓库修订分叉**（站点为 20 章旧修订、仓库 main 已整合为 17 章，故双钉）：
 > 系列级登记见 [source-map/claude-code-explained.md](./source-map/claude-code-explained.md)。
@@ -57,11 +59,12 @@
 | 2   | [《给 AI 发一张工卡：Agent 上下文层蓝图》](./episodes/context-layer-video/README.md) | Context Layer：蓝图怎么复刻    | 钢蓝/工业橙/校准绿            | 013 蓝图完全重铸版 + 011 + lab/mcp 原型 @ `a77c65822`，2026-09-29                        | **v2 终渲待审**（14:02 · 机务工卡剧场 · 13 图 76 章 71 cue · 锚定 36.8%） |
 | 3   | [《给 AI 一座图书馆：OpenViking 上下文数据库》](./episodes/openviking-video/README.md) | OpenViking：文件系统范式怎么做上下文 | 玫红/薄荷绿/长春花蓝        | 014 精读笔记 + 015 映射 + openviking_lab @ `348d8797`，2026-09-24                          | **v1 终渲待审**（10:37 · archify 9 图 54 cue 回放）          |
 
-## Agent 基础设施系列（doc 型 · 1 集）
+## Agent 基础设施系列（doc 型 · 3 集）
 
 信源为本仓 `docs/research/agent-infra/` 精读笔记与最小原型（B 型 · 固定提交取证），并直接取证上游开放标准的固定提交（规范、指南与参考实现源码）；本仓实现的映射结论不进正片。系列纪律同前（口播互不引用、无集数序号）。
 
 | #   | 作品 | 一句话主题 | 视觉契约（主色） | 信源 | 状态 |
 | --- | --- | --- | --- | --- | --- |
-| 1   | [《经验淬炼成手册：Agent 的轻量蒸馏与按需装配》](./episodes/agent-skills-video/README.md) | Agent Skills：经验怎么交给 AI | 玫瑰焰/矢车菊蓝/兰花紫 | 090 精读 + 最小原型 @ `80b456fb` + agentskills/agentskills @ `69ef37e9`，2026-09-23 | **v1 终渲待审**（15:25 · archify 12 图 58 章 · 归档 ~/Documents/video） |
+| 1   | [《目录常驻，正文按需：Agent Skills 开放标准》](./episodes/agent-skills-video/README.md) | Agent Skills：目录常驻、正文按需的领域知识打包开放标准 | 目录金/路由靛/治理紫 | 精读（C 型）@ 本分支（原 210 已并入 230）+ agentskills/agentskills @ `69ef37e9`，2026-09-26 | **成片交付 v1**（12:55 · edge 草声 · 双图 10 章 12 cue · 锚定 8.5% · lab2 五实验复算 · 归档 ~/Documents/video） |
 | 2   | [《只填格的判读员：Jev 决策模型》](./episodes/jev-decision-model-video/README.md) | Jev：小判断的交付方式怎么变 | 格黄/柱青/闸品 | 200 精读 + 原型 + laya 复刻 @ `40bf690` + TypeSafe 官方/adapter/kev/laya/nibzard 钉提交，2026-09-26 | **v1 终渲待审**（14.2 分 · story 配音 · archify 13 图 54 章 · 归档 ~/Documents/video） |
+| 3   | [《没有海关的港口：Skills 的签名、分发与版本战争》](./episodes/skills-supply-chain-video/README.md) | Agent Skills：签名/分发/版本三战场 | 关税橙/检疫绿 | 220/221 供应链精读 @ `9284cce2c` + agentskills @ `69ef37e9` + MCP SEP-2640 @ `b0b3272f`，2026-09-27 | **成片交付 v1**（13:57 · 20 图 79 cue · 锚定 78.2% · 归档 ~/Documents/video） |

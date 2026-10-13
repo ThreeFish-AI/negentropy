@@ -12,7 +12,7 @@ description: "Agents 系统 Context Layer 设计 SSOT：三面蓝图（失效登
 >
 > - 013（本文）=设计 SSOT（规格、决策、路线）；
 > - [011 精读笔记](./011-horizon-context.md)=Horizon 全量机制载荷（连续 §1–§10）；
-> - [014](./014-openviking.md)/[015](./015-openviking-mapping-negentropy.md)=OpenViking 精读与映射。
+> - [014](./014-openviking.md)=OpenViking 精读；015 映射已并入[机制映射汇总](../mapping-negentropy.md) OV 域。
 >
 > **编号稳定键**：
 >
@@ -119,7 +119,7 @@ description: "Agents 系统 Context Layer 设计 SSOT：三面蓝图（失效登
 | 装配面名实分离：机制命名存在、运行时不存在 | assemble() 生产调用 0；ContextGuard 目录不存在；HybridPlanner memory 种子未接、memory_enabled 零命中；unified_search 自述简化无 RRF；context_strategy 全仓零代码命中 | 装机对账由 §12.4 承载，对账结论以负发现＋正锚并立（root_agent 五挂点、NegentropyPreloadMemoryTool 每轮注入、60s TTL fail-soft 家族及其治理旁路面代价，§6/§12） | 蓝图每个机制可指认生产路径或如实标未启（grep 对账，随蓝图修订重跑） |
 | 技能三级披露的 L2/L3 激活悬空：L1 目录指示调用的工具从未挂载，模型驱动激活不可达 | ISSUE-194；expand_skill 等三件不在 TOOL_REGISTRY、五翼零挂载、仅 __init__.py 导出 | ISSUE-194 待办（挂载/收回）＋挂载对账门：凡 prompt 写死工具名处须有「目录声明工具名 ∈ Agent 实挂工具名」同构集成测试 | 挂载对账同构测试进 CI（机器门） |
 | 会话巩固断链：会话→长期记忆零转化 | ISSUE-195；add_session_to_memory 生产调用方 0；consolidation_jobs 只入队无消费者；水位列全仓零命中 | ISSUE-195 待办：三件套 trigger/consumer/watermark（复用 title_inspector 水位范式；提交点最后写水位） | 三件齐备且水位重放不重复（机器门）——回路「在线」判定标准 |
-| 物化只写不删：定义禁用后盘上旧目录残留，无退役路径 | harness_materializer.py:114-134 只写；全文件无 unlink/rmtree/delete——091 M13 缺口 | 死亡段立规（§9 L6/G6「死要有葬礼」）：物化回收与出生登记成对 | 定义禁用后盘上投影同步回收（机器门） |
+| 物化只写不删：定义禁用后盘上旧目录残留，无退役路径 | harness_materializer.py:114-134 只写；全文件无 unlink/rmtree/delete——SK-M22 缺口 | 死亡段立规（§9 L6/G6「死要有葬礼」）：物化回收与出生登记成对 | 定义禁用后盘上投影同步回收（机器门） |
 
 ### 1.8 记忆安全簇：记忆不是中立组件
 
@@ -211,7 +211,7 @@ Atlan 官方 guide 给出五层口径（厂商营销内容、导向自家产品�
 
 ### 2.5 研究范围
 
-- **定义域**：Agent 运行时上下文的供给与治理之设计判定。文档族分工：本篇（013）=设计 SSOT；[011](./011-horizon-context.md)=Horizon 机制载荷；[014](./014-openviking.md)/[015](./015-openviking-mapping-negentropy.md)=OpenViking 精读与映射；010=理论输入。
+- **定义域**：Agent 运行时上下文的供给与治理之设计判定。文档族分工：本篇（013）=设计 SSOT；[011](./011-horizon-context.md)=Horizon 机制载荷；[014](./014-openviking.md)=OpenViking 精读；015 映射已并入[机制映射汇总](../mapping-negentropy.md) OV 域；010=理论输入。
 - **成立工况**：多源上下文（instruction / memory / knowledge / tools+skills / session 五类投影，见 §3.5 投影表）、LLM Agent 运行时、本仓 PostgreSQL 栈。
 - **Out-of-Scope**：identity resolution（多源身份归并）；长期记忆引擎本体（宿主承担）；替代各子系统检索算法（做统一路由与归一，不重写算法）；数据平面与训练；上游转换层的 grain 决策权（属 dbt 一侧）。
 
@@ -368,7 +368,7 @@ version: 12
 
 ### 4.3 常驻记忆对象的设计取舍：Core Block 三问
 
-记忆资产里最特殊的一类是常驻画像块（Core Block）——它每轮在场、直接影响窗口构成，其设计取舍必须先答三问（承接 [191](../agent-harness/191-hermes-agent-mapping-negentropy.md) M2）：
+记忆资产里最特殊的一类是常驻画像块（Core Block）——它每轮在场、直接影响窗口构成，其设计取舍必须先答三问（承接 [机制映射汇总](../mapping-negentropy.md) HM-M2）：
 
 1. **由谁写**——三条写入路径：Agent 自编辑（`core_block_replace` 工具，`updated_by="agent_self_edit"`）、管理端 REST、append 追加。开放 Agent 自编必须后置于写入防注入之后——「开放可自编的常驻记忆而没有写入扫描，等于给注入开一条常驻通道」（本仓 191 映射报告的判语，非 Hermes 原文；`core_block_replace` 当前零调用方，调用仅在定义模块 `engine/tools/memory_tools.py:236` 内部）。
 2. **上限多少**——两级预算：存储级单块 2048 token（`MAX_BLOCK_TOKENS = 2048`，[core_block_service.py](../../../apps/negentropy/src/negentropy/engine/adapters/postgres/core_block_service.py) `:36`；显式选位在普通段落 256 与 Letta 4000 之间，防单块主导窗口）+ 组装级记忆预算 30% 硬帽（`_DEFAULT_MEMORY_RATIO = 0.3`，[context_assembler.py](../../../apps/negentropy/src/negentropy/engine/adapters/postgres/context_assembler.py) 预算常量段）。
@@ -388,7 +388,7 @@ version: 12
 
 ### 4.5 ADR-1：目录是引用层，不是第二存储
 
-**ADR-1：Context Catalog 用 PostgreSQL VIEW 实现，不新建物理表。** 元数据已在 PG 内，新建物理表等于制造副本，两边各自演化即 Split-Brain；引用一律轻量指针；Horizon Catalog 本身也是元信息层（011 §4.1）。OpenViking 对照：`viking://` 的寻址语法可借鉴（scope 前缀推导类型、确定性 ID、位置即语义），但其副本式 AGFS 存储与 ADR-1 正面冲突——只取格式、不取存储（[015](./015-openviking-mapping-negentropy.md) 结论）。本仓实况：三视图（`context_catalog_unified` / `context_trust_signals` / `context_access_log`）至今未落地——迁移目录与主代码零命中；信任信号的归一设计落 §7，映射总表落 §12。
+**ADR-1：Context Catalog 用 PostgreSQL VIEW 实现，不新建物理表。** 元数据已在 PG 内，新建物理表等于制造副本，两边各自演化即 Split-Brain；引用一律轻量指针；Horizon Catalog 本身也是元信息层（011 §4.1）。OpenViking 对照：`viking://` 的寻址语法可借鉴（scope 前缀推导类型、确定性 ID、位置即语义），但其副本式 AGFS 存储与 ADR-1 正面冲突——只取格式、不取存储（[机制映射汇总](../mapping-negentropy.md) OV-1 结论）。本仓实况：三视图（`context_catalog_unified` / `context_trust_signals` / `context_access_log`）至今未落地——迁移目录与主代码零命中；信任信号的归一设计落 §7，映射总表落 §12。
 
 ### 4.6 本仓实例化：definitions registry
 
@@ -503,7 +503,7 @@ M6 给出 Agent 身份的第二层：会话权限天花板 = 用户 RBAC ∩ Res
 
 两层寿命不同，是渐进披露最容易被漏掉的属性：正文进场后不是 system prompt 的一部分，而是对话历史的一部分，后续每一轮都在场，直到被压缩、截断或会话结束清出；目录则常驻不随压缩消失——「已激活 ≠ 仍在场」，须配重激活。官方幸存表把恢复制度化：压缩后按预算重读最近改过的文件（至多 5 个、每个 5,000 token）、按限额重注入技能正文（单技能 5,000 / 总 25,000 token，最旧先丢，官方文档）。「按需加载解决了不该提前带的不要带，压缩解决该丢的怎么丢」——两级加载与 §6.4 是同一经济学的两半。
 
-常驻面的守护有本仓实测支撑（[090 技能规范实验室](../agent-infra/090-agent-skills-spec.md)）：渐进披露会话账本 2,321 vs 全量预载 39,222 tokens（16.9×，chars/4 近似口径只证方向；破坏实验 B1 同构复测 16.3×）；一条 12,159 字符的膨胀描述令目录从 1,206 涨到 4,285 tokens（+255%，单条等于其余 20 条之和的 2.4×，B3）——描述长度上限守护常驻面。进化面同守此界：本仓 prompt_template 有界变异约束即按「Decagon 4x 压缩经验：精炼优先」设界（[`engine/evolution/handlers/skill.py`](../../../apps/negentropy/src/negentropy/engine/evolution/handlers/skill.py):76/:233，厂商工程经验转述）。
+常驻面的守护有本仓实测支撑（[230 技能规范精读](../agent-infra/230-agent-skills-standard.md)，090 一代已并入）：渐进披露会话账本 2,321 vs 全量预载 39,222 tokens（16.9×，chars/4 近似口径只证方向；破坏实验 B1 同构复测 16.3×）；一条 12,159 字符的膨胀描述令目录从 1,206 涨到 4,285 tokens（+255%，单条等于其余 20 条之和的 2.4×，B3）——描述长度上限守护常驻面。进化面同守此界：本仓 prompt_template 有界变异约束即按「Decagon 4x 压缩经验：精炼优先」设界（[`engine/evolution/handlers/skill.py`](../../../apps/negentropy/src/negentropy/engine/evolution/handlers/skill.py):76/:233，厂商工程经验转述）。
 
 JIT 与预取的决策边界要显式声明，不要默认：静态约定与规范 up-front 入窗（如 CLAUDE.md 朴素入窗）、大体量事实走 JIT（轻量标识符 + 运行时加载器——引用元数据本身是行为信号，模型调用加载器这个动作已携带意图）；小知识库 <200K token（约 500 页）直接全量入窗并配 prompt caching（延迟 >2x、成本至多 −90%，Anthropic 口径）。判定依据只有一条：被用到的前提概率 × 每轮携带成本。
 
@@ -560,7 +560,7 @@ JIT 与预取的决策边界要显式声明，不要默认：静态约定与规�
 
 60s TTL fail-soft 家族与它的代价：`subagent:<name>` 单行 60s TTL 缓存同时供 model + instruction + tools 三个 resolver（负命中也缓存；Agent PATCH 时 `invalidate_cache(prefix="subagent:")` 一并失效），叠加代码内硬编码回退，设计目标是「永不阻塞请求」。代价是治理旁路面：DB 故障与未配置在下游不可区分、DB 层版本 / 禁用位在回退态失效——已实装的权衡，显式登记而非缺陷（[`_dynamic_instruction.py`](../../../apps/negentropy/src/negentropy/agents/_dynamic_instruction.py):8-9、[`_dynamic_tools.py`](../../../apps/negentropy/src/negentropy/agents/_dynamic_tools.py):4-5）。
 
-参考实现与零压缩，两个口径分开记。其一，`assemble()` 作为「按 token 预算供给的完整参考实现」保留：三段 30% memory / 50% history / 20% system（文件头标注「借鉴 Claude Code POST_COMPACT_TOKEN_BUDGET」）、Core Block 从 memory 段预留且上限 30%、Reflection 预留 50%（[`context_assembler.py`](../../../apps/negentropy/src/negentropy/engine/adapters/postgres/context_assembler.py):39-40/:108-120）——它是 ADR-6 预算带的本仓依据，设计存在、尚未接入生产路径（详 §12）。其二，交互式对话当前零压缩：`num_recent_events` 过滤分支存在（[`session_service.py`](../../../apps/negentropy/src/negentropy/engine/adapters/postgres/session_service.py):146-159）但无任何生产调用方传入该 config——每轮全量装载会话历史（191 M11，16+4 表 #18；修复优先级与 §12.5 待办对齐——§14.1 修复序前三项按对信任面伤害降序，#18 未入前三项、待办开放登记在 §12.5 ⑥；巩固前置的最高优先以 §14.1 第一项为准）；引入压缩层时技能内容须同步豁免标记，丢失即静默降级。
+参考实现与零压缩，两个口径分开记。其一，`assemble()` 作为「按 token 预算供给的完整参考实现」保留：三段 30% memory / 50% history / 20% system（文件头标注「借鉴 Claude Code POST_COMPACT_TOKEN_BUDGET」）、Core Block 从 memory 段预留且上限 30%、Reflection 预留 50%（[`context_assembler.py`](../../../apps/negentropy/src/negentropy/engine/adapters/postgres/context_assembler.py):39-40/:108-120）——它是 ADR-6 预算带的本仓依据，设计存在、尚未接入生产路径（详 §12）。其二，交互式对话当前零压缩：`num_recent_events` 过滤分支存在（[`session_service.py`](../../../apps/negentropy/src/negentropy/engine/adapters/postgres/session_service.py):146-159）但无任何生产调用方传入该 config——每轮全量装载会话历史（HM-M11，16+4 表 #18；修复优先级与 §12.5 待办对齐——§14.1 修复序前三项按对信任面伤害降序，#18 未入前三项、待办开放登记在 §12.5 ⑥；巩固前置的最高优先以 §14.1 第一项为准）；引入压缩层时技能内容须同步豁免标记，丢失即静默降级。
 
 ![每轮装配是一次预算分配：时序四档与压缩阶梯决定谁进窗口、以什么形态在场；检索双通道经融合排名与出口守卫接续（§7）](../../assets/architecture/cognitive-context/context-layer--assembly-economics-dark.png)
 
@@ -670,9 +670,9 @@ subagent 探查隔离是候选集供给的一种形态：探查类污染（大�
 
 1. **trigger 触发器**——「事件水位差 ≥Δ 且会话空闲 ≥T」选中候选会话（与 `title_generated_at_event_seq` 同构）；
 2. **consumer 消费者**——`FOR UPDATE SKIP LOCKED` 出队执行 `_simple_consolidate`（`consolidation_jobs` 表与部分索引已存在，迁移 0043/0044，无需新建）；
-3. **watermark 水位线**——`threads.metadata.consolidated_at_event_seq`，提交点最后写：两步都成功才落水位。这是 OpenViking `.done` 的提交点语义（[014](./014-openviking.md) §6）：至少一次投递下，没有提交点的事件会被重复提炼——实测 B6 拆掉 `.done` 后一条事件落两张卡（「上线了支付服务 v2」与「…（复述）」并存，014 配套原型实测）；水位只记「到哪了」不记「做了什么」，重跑靠内容去重兜底（[015](./015-openviking-mapping-negentropy.md) §6）。
+3. **watermark 水位线**——`threads.metadata.consolidated_at_event_seq`，提交点最后写：两步都成功才落水位。这是 OpenViking `.done` 的提交点语义（[014](./014-openviking.md) §6）：至少一次投递下，没有提交点的事件会被重复提炼——实测 B6 拆掉 `.done` 后一条事件落两张卡（「上线了支付服务 v2」与「…（复述）」并存，014 配套原型实测）；水位只记「到哪了」不记「做了什么」，重跑靠内容去重兜底（[机制映射汇总](../mapping-negentropy.md) OV 域 §6）。
 
-巩固 diff 落 `consolidation_jobs.result` 并接 UI 消费方，否则产出无人看。二阶风险三条：每会话新增一次 embedding+LLM 提取，须用 Δ/T 封顶；本仓单 uvicorn worker，消费者必须是异步限流后台任务；巩固后 preload 检索噪声须观察 `memory_retrieval_logs`。配套修复一并做：015-D3 的 `force_refresh=True` 因目标函数签名无此参数抛 TypeError 且被静默吞掉——把 24h TTL 换成源水位判据（OpenViking 新鲜度冒泡同构：子项 L0 digest 未变即 NOOP，pending 比例达阈值才刷新）。
+巩固 diff 落 `consolidation_jobs.result` 并接 UI 消费方，否则产出无人看。二阶风险三条：每会话新增一次 embedding+LLM 提取，须用 Δ/T 封顶；本仓单 uvicorn worker，消费者必须是异步限流后台任务；巩固后 preload 检索噪声须观察 `memory_retrieval_logs`。配套修复一并做：OV-D3 的 `force_refresh=True` 因目标函数签名无此参数抛 TypeError 且被静默吞掉——把 24h TTL 换成源水位判据（OpenViking 新鲜度冒泡同构：子项 L0 digest 未变即 NOOP，pending 比例达阈值才刷新）。
 
 > [!WARNING] **「修复设计已给出」不是「回路已在线」**
 > ISSUE-195 的修复设计（断链登记、三件套落位）已给出；待办（消费者、水位、UI 消费方）全部未动工。读 §8.2 不得把「设计已给出」读成「回路已闭合」；任何新回路上线前，按三在线律逐件核到生产调用方那一层——「函数存在 ≠ 链路存在」是 ISSUE-194/195 共同的教训。
@@ -747,7 +747,7 @@ Collect → Enrich → Activate（[011](./011-horizon-context.md) §3）是当�
 | L3 装配执法 | 合法对象在目录、调用者身份已知 | 当轮窗口合规且预算内：策略已求值、内容每轮重建 | 越权明文出楼（D5）；快照权限形成越权窗口（D9）；装配时固化成品、源变而窗口不知 | D5/D9 + M1 重算半边（011 M1） |
 | L4 应答锚定 | 装配完成的查询路径 | 三出路之一：题库短路/引擎现算/显式告警 | 静默瞎猜回归——错误答案以正常形态输出，无告警面 | A1/A1b、C1 |
 | L5 沉淀回灌 | 会话与行为信号已落账（事件水位） | 新受治理资产，或显式不沉淀 | 回路断在生产路径外：记忆供给停滞、会话价值不积累 | ISSUE-195 |
-| L6 衰减退役 | 对象失势（衰减/口径变更/禁用） | 显式退役有账（superseded/清理/重验） | 永生对象：盘上残留、悬空挂载、题库锚定过时答案 | 091 M13/ISSUE-194 + 011 M4 红线 |
+| L6 衰减退役 | 对象失势（衰减/口径变更/禁用） | 显式退役有账（superseded/清理/重验） | 永生对象：盘上残留、悬空挂载、题库锚定过时答案 | SK-M22/ISSUE-194 + 011 M4 红线 |
 
 表后读法：六行反事实没有一行是「效果变差」级别的诉苦，每行都是可复现的具体坏法——这是反事实存在性律在段级的落地（机制级 D1–D10 见 [011](./011-horizon-context.md) §6）。逐段展开如下，各段只讲段级增量，机制细节回指 §4–§8。
 
@@ -783,7 +783,7 @@ CE2 式 5–7 的对偶选择（M_s 按时间权重高选、M_l 恰要求时间�
 
 | 失效 | 形态 | 锚 |
 | :-- | :-- | :-- |
-| 物化只写不删 | 定义禁用/删除后盘上旧目录残留；`_write_to_disk` 幂等写入（:129-131 跳过已存在），全文件无 unlink/rmtree/delete | [`harness_materializer.py:114-134`](../../../apps/negentropy/src/negentropy/agents/definitions/harness_materializer.py) · [091](../agent-infra/091-agent-skills-mapping-negentropy.md) M13 |
+| 物化只写不删 | 定义禁用/删除后盘上旧目录残留；`_write_to_disk` 幂等写入（:129-131 跳过已存在），全文件无 unlink/rmtree/delete | [`harness_materializer.py:114-134`](../../../apps/negentropy/src/negentropy/agents/definitions/harness_materializer.py) · [机制映射汇总](../mapping-negentropy.md) SK-M22 |
 | 挂载收回双向悬空 | 目录末行指令承诺 expand_skill 激活路径，三件工具从未进 TOOL_REGISTRY、任何 Agent 未持有；(a) 挂载/(b) 收回承诺均未落地 | ISSUE-194 |
 | 题库重验无触发 | 口径变更后 VQR 不重验，锚定住的是过时答案——有警示、无机制 | [011](./011-horizon-context.md) M4 红线（开放面） |
 
@@ -832,7 +832,7 @@ Claude Code 的五层 Harness 是这套嵌套尺度上现成的可对位结构�
 | G3 裁决权不自动化 | 冲突浮出人工裁决，不按热度投票 | 谁裁决？凡「机器判断→组织规则」的转换，必须能指出人工关口在哪 | L2 冲突裁决与 M7 映射闸、§8.4 | 011 规律 4 × D4 热度 200:5 × D10 |
 | G4 治理-验证分落位 | 治理管定义对与执法住，验证管结果对 | 验证锚挂哪段？没有独立验证面，477 vs 48 形态的错数无检出路径 | L4 锚定 + 验证环 | 477 vs 48（§10.1）+ 011 §8 第 4 条 |
 | G5 指针不副本 | 持久层存指针，装配每用重建 | 副本从哪生根？凡「复制到消费端缓存作答」即违例 | L3 装配、L1 载体（ADR-1） | M3 不复制不缓存（官方宣称）× Atlan artifacts 运行时引用 × CC 每轮重装配（170–175 课程实测） |
-| G6 死要有葬礼 | 无退役机制的目录必然腐化，降权只延缓、不清退 | 葬礼在哪？出生登记与退役路径必须成对出现 | L6 全段 | arXiv 2510.26493 :830/:916 × 091 M13/ISSUE-194 × 011 M4 重验红线 |
+| G6 死要有葬礼 | 无退役机制的目录必然腐化，降权只延缓、不清退 | 葬礼在哪？出生登记与退役路径必须成对出现 | L6 全段 | arXiv 2510.26493 :830/:916 × SK-M22/ISSUE-194 × 011 M4 重验红线 |
 | G7 闭环可观测 | 回路可观测才可治理 | 回执在哪？触发器/消费者/水位三件 + 决策归因，缺一即不可判在线 | 两环全段、§8.1 三在线律 | ISSUE-195 × evolution REASON 归因常量（decision.py:30-41） |
 
 表后读法：G1–G7 不是新发明的美德清单——每条都能对回 011 的规律、D 实验或本仓实证（锚列）。它们做的事，是把章末总结式的规律升格为钉在段间转换上的横切不变量：段的验收判据（§9.2）答「这段坏会怎样」，法则的判据句答「整条转换链上闸在哪、谁裁决、死了有没有账」。16+4 映射表（§12）为每行增「生命周期段+执行点」两列，就是按这套法则对账的表级落地。
@@ -866,7 +866,7 @@ Claude Code 的五层 Harness 是这套嵌套尺度上现成的可对位结构�
 
 如实承认边界：编译期推导计算合法性尚无成熟方案，以 eval 环兜底，不假装解决（对策概括命名：compiler in the loop）。
 
-### 10.3 置信纪律三句（Jev 口径同构，[200/201](../agent-infra/200-jev-system-one-model.md) 承载）
+### 10.3 置信纪律三句（Jev 口径同构，[200](../agent-infra/200-jev-system-one-model.md) 承载）
 
 1. 量纲分组：供给面每个置信字段须声明来源量纲——LLM 口头、正则常数、启发式常数不可比，聚合前必须分组；
 2. 缺省向低置信：字段缺失不得自动高置信。本仓实测反例：KG 抽取 confidence 缺省 1.0 叠加 0.5 阈值，等于字段缺失自动满置信通过——**方向反了**；
@@ -928,9 +928,9 @@ Claude Code 的五层 Harness 是这套嵌套尺度上现成的可对位结构�
 | 范本 | 承重贡献 | 一句定位 | 详解 |
 | :-- | :-- | :-- | :-- |
 | Snowflake Horizon Context | 治理与验证的机制词表 M1–M7（[011](./011-horizon-context.md)） | 把 Catalog 从资产登记簿升维为业务的 working model | [011](./011-horizon-context.md) |
-| OpenViking | 会话记忆一等公民；L0/L1 渐进摘要与新鲜度冒泡；会话两阶段提交与确定性身份记忆提炼 | 把资源/记忆/技能装进一棵可寻址目录树的上下文数据库 | [014](./014-openviking.md)/[015](./015-openviking-mapping-negentropy.md) |
+| OpenViking | 会话记忆一等公民；L0/L1 渐进摘要与新鲜度冒泡；会话两阶段提交与确定性身份记忆提炼 | 把资源/记忆/技能装进一棵可寻址目录树的上下文数据库 | [014](./014-openviking.md)（015 映射已并入[机制映射汇总](../mapping-negentropy.md) OV 域） |
 | Claude Code | 运行时装配纪律：五层依赖链（执行/规划/记忆/时机/协作）；每轮重装配、谓词驱动、渐进披露两级预算、四步压缩、写权收归 Harness、信任边界段、subagent 隔离 | 每一轮都把台面从头重读一遍——看见什么从来不是模型自己说了算 | [170–175](../agent-harness/170-claude-code-harness-overview.md) |
-| Hermes · Jev | 装配的缓存经济学（三段式+唯一断点）；供给两端防注入；零 LLM 原文检索；置信量纲与弃权语义 | Built once per session and reused across turns（only context compression triggers a rebuild） | [190/191](../agent-harness/190-hermes-agent.md)、[200/201](../agent-infra/200-jev-system-one-model.md) |
+| Hermes · Jev | 装配的缓存经济学（三段式+唯一断点）；供给两端防注入；零 LLM 原文检索；置信量纲与弃权语义 | Built once per session and reused across turns（only context compression triggers a rebuild） | [190](../agent-harness/190-hermes-agent.md)（191 映射已并入[机制映射汇总](../mapping-negentropy.md) HM 域）、[200](../agent-infra/200-jev-system-one-model.md) |
 
 读法：四范本不是竞品对比，是四份互补的机制载荷——Horizon 给治理与验证词表、OpenViking 给会话记忆与身份判据、Claude Code 给装配纪律、Hermes/Jev 给缓存经济学与置信语义；本仓蓝图在每个轴上分别向不同范本对齐。
 
@@ -1015,7 +1015,7 @@ Redis State of Context Engineering 2026 落地页（厂商调研页，n=1000 页
 | 15 | M6 身份 | agent_type 有（preset 元数据）、天花板无 | 权威 | L3 执行期 | `agent_factory.py`；permissions*.py 零 agent_type 引用 |
 | 16 | M7 标签 | 无分类策略链 | 复利×权威 | L1 | — |
 | 17 | 会话→记忆链路（本仓特有） | 断链：生产调用 0、队列零消费者、水位列零命中（ISSUE-195） | 复利 | L5 沉淀回灌 | 定义 `memory_service.py:84` · 仅入队 `handlers/memory_automation.py:173-192` |
-| 18 | 交互式对话压缩（本仓特有） | 零（num_recent_events 零调用方，191 M11）；优先级口径见 §6.5/§12.5（修复序前三项未收录） | 装配 | L3（轮内时间尺度） | — |
+| 18 | 交互式对话压缩（本仓特有） | 零（num_recent_events 零调用方，HM-M11）；优先级口径见 §6.5/§12.5（修复序前三项未收录） | 装配 | L3（轮内时间尺度） | — |
 | 19 | CJK 检索腿（本仓特有） | 失效：english tsvector 单 token（ISSUE-196） | 检索 | L3 | migration 0047 · KB 0001 · `repository.py:841/:848` |
 | 20 | 记忆两端防注入（本仓特有） | 缺：写入端零扫描+注入块头无数据声明（先于巩固上线） | 权威 | L1/L5 | — |
 
@@ -1023,8 +1023,8 @@ Redis State of Context Engineering 2026 落地页（厂商调研页，n=1000 页
 
 ### 12.5 待办与四 ISSUE 现状
 
-- 待办（开放——代码落地，ISSUE 承载）：①会话巩固三件套＋015-D3 修复（独立 PR 先行），且写入端防注入扫描先于其上线（时序约束，§5.5）；②ContextGuard；③验证问答绑 patrol done；④信任归一三纪律；⑤身份归因；⑥交互式对话压缩层（#18/191 M11：num_recent_events 接生产调用方，引入时技能内容同步豁免标记——丢失即静默降级，§6.5）。
-- 暂缓（带触发）：M1 重算（非指标栈）、Ossie、隐式挖掘、M5 血缘图、M7 标签链、L2/L3 挂载（随 ISSUE-194 方案 (a)，前置先修 015-D6 跨用户读取通道）。
+- 待办（开放——代码落地，ISSUE 承载）：①会话巩固三件套＋OV-D3 修复（独立 PR 先行），且写入端防注入扫描先于其上线（时序约束，§5.5）；②ContextGuard；③验证问答绑 patrol done；④信任归一三纪律；⑤身份归因；⑥交互式对话压缩层（#18/HM-M11：num_recent_events 接生产调用方，引入时技能内容同步豁免标记——丢失即静默降级，§6.5）。
+- 暂缓（带触发）：M1 重算（非指标栈）、Ossie、隐式挖掘、M5 血缘图、M7 标签链、L2/L3 挂载（随 ISSUE-194 方案 (a)，前置先修 OV-D6 跨用户读取通道）。
 
 四 ISSUE 现状（全开放）：ISSUE-194——三件工具从未进 TOOL_REGISTRY、五翼零持有，L1 目录末行仍写死 expand_skill 调用，挂载/收回双向承诺均未落地；ISSUE-195——add_session_to_memory 生产调用 0、consolidation_jobs 零消费者、水位列全仓零命中；ISSUE-196——english tsvector 配置原样（migration 0047/KB 0001/查询 `repository.py:841/:848`）、修复迁移零命中，三候选待评审；ISSUE-197——should_request_approval 非测试调用仍仅 2 处（`ingest.py:119`、`paper.py:343`）、invoke_claude_code 不在 HIGH_RISK_TOOLS，统一 before_tool_callback 拦截未落地。
 
@@ -1116,9 +1116,9 @@ known-answer 评测四原则（与上表 eval 行配套）：①考题＝业务�
 
 修复不是按价值排序，是按「不修时持续产生的信任伤害」降序——三类失败形态各对应一步：
 
-1. 断边先接（ISSUE-195）：给 consolidation_jobs 接消费者、补 threads.metadata 水位列（trigger/consumer/watermark 三件套＋015-D3 修复，独立 PR 先行，且写入端防注入扫描先于其上线——时序约束，§5.5/§14.3 WARNING；设计承载 §8）。伤害最大的是这种形态——回路不存在而系统表象正常，记忆供给停滞且不可观测（复利三在线律三件缺二）；每一段没有沉淀的会话都是静默丢失的供给。
+1. 断边先接（ISSUE-195）：给 consolidation_jobs 接消费者、补 threads.metadata 水位列（trigger/consumer/watermark 三件套＋OV-D3 修复，独立 PR 先行，且写入端防注入扫描先于其上线——时序约束，§5.5/§14.3 WARNING；设计承载 §8）。伤害最大的是这种形态——回路不存在而系统表象正常，记忆供给停滞且不可观测（复利三在线律三件缺二）；每一段没有沉淀的会话都是静默丢失的供给。
 2. 执法点统一（ISSUE-197）：把审批收进单一 before_tool_callback 拦截位、收窄 HIGH_RISK 清单。装饰闸（存在但不接线）比没有闸更糟——「有审批」的记录制造虚假安全感，事后审计还无法分辨。
-3. 死亡段立规（materializer 回收 + ISSUE-194 收回侧）：物化只写不删（`harness_materializer.py:114-134` 全文件无删除路径，091 M13）与挂载的单向承诺同族——永生对象让目录与磁盘慢性漂移，对应 G6（死要有葬礼）。
+3. 死亡段立规（materializer 回收 + ISSUE-194 收回侧）：物化只写不删（`harness_materializer.py:114-134` 全文件无删除路径，SK-M22）与挂载的单向承诺同族——永生对象让目录与磁盘慢性漂移，对应 G6（死要有葬礼）。
 
 三步的共同点：都不是新能力，是把已宣告的承诺接完——这也是它们排在一切新能力之前的原因。
 
@@ -1128,9 +1128,9 @@ known-answer 评测四原则（与上表 eval 行配套）：①考题＝业务�
 
 ### 14.3 前置项排序与交付形态注记
 
-前置项排序（191:82 所引「013 前置项排序…二者取先」即本节）实质是：凡被其他项依赖的项排前（会话巩固独立 PR 先行、目录与归一随后），与修复序×轴依赖序同向。交付形态一句注记：对象层落 PostgreSQL、装配面以单进程 stdio/HTTP MCP server 起步——「可独立部署」的兑现形态即此；零依赖种子原型已交付，实验室与日志由 §13.1 承载。
+前置项排序（机制映射汇总 HM 域所引「013 前置项排序…二者取先」即本节）实质是：凡被其他项依赖的项排前（会话巩固独立 PR 先行、目录与归一随后），与修复序×轴依赖序同向。交付形态一句注记：对象层落 PostgreSQL、装配面以单进程 stdio/HTTP MCP server 起步——「可独立部署」的兑现形态即此；零依赖种子原型已交付，实验室与日志由 §13.1 承载。
 
-> [!WARNING] **巩固消费者上线前必须先修写入端防注入**（映射表 #20：写入端零扫描+注入块头无数据声明）。时序约束反了，等于给注入开一条经巩固进入长期记忆的常驻通道；修复序第一项因此是「会话巩固三件套＋015-D3 修复（独立 PR 先行），且写入端防注入扫描先于其上线」整体交付，不是单独把消费者接上。
+> [!WARNING] **巩固消费者上线前必须先修写入端防注入**（映射表 #20：写入端零扫描+注入块头无数据声明）。时序约束反了，等于给注入开一条经巩固进入长期记忆的常驻通道；修复序第一项因此是「会话巩固三件套＋OV-D3 修复（独立 PR 先行），且写入端防注入扫描先于其上线」整体交付，不是单独把消费者接上。
 
 ### 14.4 能力 × 验证
 
@@ -1140,7 +1140,7 @@ known-answer 评测四原则（与上表 eval 行配套）：①考题＝业务�
 | :-- | :-- |
 | 七机制原型 + MCP stdio（两脚本） | 两条 selftest 命令（§13.1 运行日志，SELFTEST PASSED ✔） |
 | definitions CRUD / 422 门 / 物化 | registry 422 create/update 双路；物化幂等重渲染 |
-| 会话巩固三件套 + 015-D3 修复（前置项，最高优先） | 巩固幂等（水位重放不重复）；Δ/T 封顶；消费者异步限流 |
+| 会话巩固三件套 + OV-D3 修复（前置项，最高优先） | 巩固幂等（水位重放不重复）；Δ/T 封顶；消费者异步限流 |
 | 记忆写入端防注入扫描（先于巩固） | 空上下文平凡通过、非空必扫；注入块头带数据声明 |
 | 三视图 + 信任归一（未落地） | 信任分∈[0,1]；归一只做 per-source 标准化 |
 | Memory 入 Planner（memory_enabled） | 默认关既有测试全过；开则返 memory+KB+KG 三源 |
@@ -1148,7 +1148,7 @@ known-answer 评测四原则（与上表 eval 行配套）：①考题＝业务�
 | verified QA + 冲突浮出 + 反馈 | done 沉淀问答对；命中短路与引擎重算对账一致；CONFLICT 卡无数值拒答 |
 | 审批执法点统一（ISSUE-197） | 单一 before_tool_callback 拦截；HIGH_RISK 清单收窄 |
 | 身份归因（agent_type→审计） | Agent 访问可归因到调用链（待办⑤） |
-| 交互式对话压缩层（#18/191 M11） | num_recent_events 接生产调用方；技能内容同步豁免标记（待办⑥） |
+| 交互式对话压缩层（#18/HM-M11） | num_recent_events 接生产调用方；技能内容同步豁免标记（待办⑥） |
 | CJK 检索腿修复（ISSUE-196 三候选） | 中文子串用例单独断言（#19；候选见 §7.5） |
 | 死亡段立规（materializer 回收 + ISSUE-194 收回） | 禁用定义后盘上目录回收；挂载/收回双向机器可验 |
 | Universal Search + 溯源 + per-role（部分落地或暂缓） | opt-in 端点；async 不阻塞；chunks 补 last_accessed_at；溯源日志 append-only |
@@ -1189,4 +1189,4 @@ known-answer 评测四原则（与上表 eval 行配套）：①考题＝业务�
 - volcengine, "OpenViking," @14a7b812（2026-09-23）. https://github.com/volcengine/OpenViking
 - NousResearch, "hermes-agent," @068db016（2026-09-20）. https://github.com/NousResearch/hermes-agent
 
-Snowflake 官方文档与博客、dbt 基准、Spider 2.0 等 33 条共用参考见 [011 §参考](./011-horizon-context.md)；仓内深潜见 [025/026/035/036/037](../../concepts/subsystems/025-the-memory-system.md) 与 [170–175](../agent-harness/170-claude-code-harness-overview.md)、[190/191](../agent-harness/190-hermes-agent.md)、[200/201](../agent-infra/200-jev-system-one-model.md)。
+Snowflake 官方文档与博客、dbt 基准、Spider 2.0 等 33 条共用参考见 [011 §参考](./011-horizon-context.md)；仓内深潜见 [025/026/035/036/037](../../concepts/subsystems/025-the-memory-system.md) 与 [170–175](../agent-harness/170-claude-code-harness-overview.md)、[190](../agent-harness/190-hermes-agent.md)（191 映射已并入[机制映射汇总](../mapping-negentropy.md) HM 域）、[200](../agent-infra/200-jev-system-one-model.md)。

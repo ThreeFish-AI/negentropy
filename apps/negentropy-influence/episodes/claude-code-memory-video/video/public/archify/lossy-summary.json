@@ -2,8 +2,8 @@
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 16.32,
- "total_wall_sec": 80.0,
+ "story_sec": 16.26,
+ "total_wall_sec": 71.49,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -17,7 +17,7 @@
    "beats": 2,
    "dwell_ms": 1600,
    "lead_sec": 0.44,
-   "story_sec": 3.24,
+   "story_sec": 3.22,
    "beat_offsets_sec": [
     0.0,
     1.603
@@ -38,7 +38,7 @@
    "beats": 1,
    "dwell_ms": 3200,
    "lead_sec": 0.44,
-   "story_sec": 3.24,
+   "story_sec": 3.2,
    "beat_offsets_sec": [
     0.0
    ],
@@ -57,11 +57,11 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.35,
+   "story_sec": 3.34,
    "beat_offsets_sec": [
     0.0,
     1.105,
-    2.209
+    2.21
    ],
    "beat_nodes": [
     "round-1",
@@ -80,10 +80,10 @@
    "beats": 2,
    "dwell_ms": 1600,
    "lead_sec": 0.44,
-   "story_sec": 3.25,
+   "story_sec": 3.26,
    "beat_offsets_sec": [
     0.0,
-    1.604
+    1.605
    ],
    "beat_nodes": [
     "forget-depth",
@@ -122,7 +122,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--lossy-summary.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/docs/assets/architecture/agent-harness/claude-code--lossy-summary.html",
  "slug": "lossy-summary",
  "type": "workflow"
 }

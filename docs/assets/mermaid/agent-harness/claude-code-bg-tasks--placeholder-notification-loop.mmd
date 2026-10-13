@@ -1,0 +1,14 @@
+%% source: docs/research/agent-harness/176-claude-code-concurrency-relearn.md §3
+%% slug: claude-code-bg-tasks--placeholder-notification-loop
+%% type: workflow
+%% derived: docs/assets/architecture/agent-harness/claude-code-bg-tasks--placeholder-notification-loop.html
+flowchart LR
+    M["模型发起 bash 调用"] --> G{"should_run_background<br/>双闸分派"}
+    G -- "显式 run_in_background=true<br/>或启发式命中慢关键词" --> B["后台执行<br/>daemon 线程 + bg_0001 状态字典"]
+    G -- "快命令" --> S["同步执行<br/>立即返回结果"]
+    B --> P["占位 tool_result<br/>「bg_0001 已启动」"]
+    P --> C["模型继续做别的<br/>（读文件等快操作）"]
+    S --> C
+    B -- "跑完写入结果字典" --> N["收集已完成任务"]
+    N --> I["task_notification 注入<br/>与当轮结果合入同一条 user 消息"]
+    I --> R["下一轮模型读到通知"]

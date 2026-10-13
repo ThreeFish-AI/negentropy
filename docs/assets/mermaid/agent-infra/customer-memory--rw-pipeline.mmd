@@ -1,0 +1,24 @@
+%% source: docs/research/agent-infra/230-customer-domain-long-memory-2027-planning.md §二「读写路径（目标态）」与 §四 W1 / R1
+%% slug: customer-memory--rw-pipeline
+%% type: workflow
+%% derived: docs/assets/architecture/agent-infra/customer-memory--rw-pipeline.html
+flowchart LR
+    subgraph W[写路径 · 会话提交]
+        direction LR
+        S1["会话结束<br/>session_end 触发"] --> S2["压缩与归档<br/>摘要 + 事件流"]
+        S2 --> S3["事实抽取<br/>向量预筛相似项"]
+        S3 --> S4{"LLM 去重决策<br/>skip / create / merge / delete"}
+        S4 -->|非 skip| S5["生成 memory_diff<br/>op · uri · content · evidence"]
+        S5 --> W1[("add-memory 写入<br/>唯一写接口")]
+        W1 --> AUD[("审计与 Retention<br/>memory_diff 可查可回放")]
+    end
+    subgraph R[读路径 · 检索与注入]
+        direction LR
+        R1["请求携带主体<br/>网关注入主体"] --> R2[("主体前缀内检索<br/>Push 摘要 / Pull 展开")]
+        R2 --> R3["RRF 融合与重排<br/>时间感知信任分"]
+        R3 --> R4{"Guard 裁决<br/>作用域 · 效力 · PII"}
+        R4 -->|越界 / PII| DRP["剔除与覆盖<br/>dropped / overrides"]
+        R4 -->|通过| CMP["预算裁剪<br/>只裁参考材料"]
+        CMP --> R6["ContextBundle<br/>uri@version · 弱依据"]
+    end
+    W1 -.写读同源.-> R2

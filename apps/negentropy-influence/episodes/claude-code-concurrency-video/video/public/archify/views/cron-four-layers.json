@@ -1,0 +1,26 @@
+[
+ {
+  "id": "four-roles",
+  "label": "四层各司其职",
+  "focus": ["ticker", "queue", "lock", "inject", "work"],
+  "note": "P3 首拍（p3-01..09）：判时流水线每秒看表、队列只记账、交付流水线看两头、师傅取活开工——医院四联画。"
+ },
+ {
+  "id": "yield-loop",
+  "label": "让行回环",
+  "focus": ["lock", "queue"],
+  "note": "P3 第五拍（p3-24..28）：抢不到锁就走开，零点二秒再来，抢到还要再确认队列——敲门走开。"
+ },
+ {
+  "id": "full-cycle",
+  "label": "全周期走查",
+  "focus": ["disk", "ticker", "queue", "lock", "inject", "work"],
+  "note": "P3 收拍（p3-29..31）：启动恢复存档、两分钟后判时命中、见空闲注入定时消息——全程没人碰键盘。"
+ },
+ {
+  "id": "durable-side",
+  "label": "存档旁挂",
+  "focus": ["disk", "ticker"],
+  "note": "P4 引子（p4-01..04）：durable 只是把任务定义写进磁盘，调度器仍活在进程里。"
+ }
+]

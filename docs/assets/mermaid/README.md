@@ -9,9 +9,9 @@
 > **范围**：按**文档**而非目录界定。已纳入：现役系统文档（`docs/concepts/`、`docs/reference/{perceives,wiki}/`、根与 i18n README、
 > `apps/` README、`docs/.agents/` 巡检文档），以及已走完本管线的研究文献——`docs/research/cognitive-context/` 的
 > Horizon Context 精读、Context Layer 蓝图与 OpenViking 精读（下表 `cognitive-context/` 分节）、
-> `docs/research/agent-harness/` 的五层 Harness 精读、AI Native 手册精读（180）与 Hermes Agent 精读（190，下表 `agent-harness/` 分节）、
+> `docs/research/agent-harness/` 的五层 Harness 精读、并发独立重学（176）、AI Native 手册精读（180）与 Hermes Agent 精读（190，下表 `agent-harness/` 分节）、
 > `docs/research/self-evolution/` 的 Dream-RSI 精读（下表 `self-evolution/` 分节）、
-> `docs/research/agent-infra/` 的 Agent Skills 规范精读与 Jev（System One 决策模型）精读（下表 `agent-infra/` 分节）。未纳入：其余 `docs/research/`（第三方调研）与
+> `docs/research/agent-infra/` 的 Agent Skills 规范精读（230）与 Jev（System One 决策模型）精读（下表 `agent-infra/` 分节）。未纳入：其余 `docs/research/`（第三方调研）与
 > `docs/reference/cognizes/`（已退役遗产），**不在此管线**，原地保留渲染。
 
 ## 约定
@@ -36,7 +36,7 @@
 
 > 各分类行由对应重绘波次登记；`产物` 列 ✓ = html + dark/light PNG 已入库。
 
-### agent-harness/（Learn Claude Code 五层精读 · AI Native 手册精读 · Hermes Agent 精读）
+### agent-harness/（Learn Claude Code 五层精读 · 并发重学（176） · AI Native 手册精读 · Hermes Agent 精读）
 
 | slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -55,6 +55,8 @@
 | [ai-native--harness-control-loop](./agent-harness/ai-native--harness-control-loop.mmd) | [180 AI Native 手册 §2](../../research/agent-harness/180-ai-native-handbook.md) | workflow | ✓ | done | 三泳道（模型 / 确定性控制面 / 资源与证据）U 形闭环：PEP⇄PDP → 凭证代理 → 生产变更经 Guardrail 三态门控，Trajectory 旁路 |
 | [hermes-agent--turn-loop](./agent-harness/hermes-agent--turn-loop.mmd) | [190 Hermes Agent §2/§3](../../research/agent-harness/190-hermes-agent.md) | workflow | ✓ | done | 三泳道（主循环 / 压缩 / 持久层）：三段式提示只装配一次，超阈值压缩→重建提示为唯一计划内断点，逐条落盘 state.db（trace 动画；新创作，无原文 mermaid 块） |
 | [hermes-agent--learning-loop](./agent-harness/hermes-agent--learning-loop.mmd) | [190 Hermes Agent §2/§5](../../research/agent-harness/190-hermes-agent.md) | workflow | ✓ | done | 三泳道（前台 / 后台 review / 技能库与 Curator）：交付后分叉 → 分派侧白名单（越界得拒绝回执）→ skill_manage 记署名 → 下次会话进目录（trace 动画；新创作，无原文 mermaid 块） |
+| [claude-code-bg-tasks--placeholder-notification-loop](./agent-harness/claude-code-bg-tasks--placeholder-notification-loop.mmd) | [176 并发重学 §3](../../research/agent-harness/176-claude-code-concurrency-relearn.md) | workflow | ✓ | done | 三泳道（对话流 / 主循环 / 执行路径）：双闸分派 → 占位回执守住协议名额，后台执行经结果字典以通知回流下一轮（独立重学篇；新创作，无原文 mermaid 块） |
+| [claude-code-cron--four-layer-decoupling](./agent-harness/claude-code-cron--four-layer-decoupling.mmd) | [176 并发重学 §4](../../research/agent-harness/176-claude-code-concurrency-relearn.md) | workflow | ✓ | done | 四泳道（判时 / 缓冲交付 / 执行 / 持久化）：判时→队列→非阻塞抢锁→消费注入，让行回环与 durable 往返旁挂（独立重学篇；新创作，无原文 mermaid 块） |
 
 ### self-evolution/（docs/research/self-evolution/ 的 Dream-RSI 精读）
 
@@ -77,18 +79,21 @@
 | [dream-rsi--behavior-adaptive](./self-evolution/dream-rsi--behavior-adaptive.mmd) | [144 §6](../../research/self-evolution/144-dream-rsi.md) | lifecycle | ✓ | done | 先省后探：110→50→回升与性能 0.427→1.898 |
 | [dream-rsi--unproven-list](./self-evolution/dream-rsi--unproven-list.mmd) | [144 §8](../../research/self-evolution/144-dream-rsi.md) | workflow | ✓ | done | 论文未证明五件事清单（panel+编号反枚举） |
 
-### agent-infra/（docs/research/agent-infra/ 的 Agent Skills 规范精读（090 + 重学 210）+ Jev 精读）
+### agent-infra/（docs/research/agent-infra/ 的 Agent Skills 规范精读（230）+ 客户域 Memory 规划（230）+ Jev 精读）
 
 | slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| [agent-skills--progressive-disclosure](./agent-infra/agent-skills--progressive-disclosure.mmd) | [090 §2](../../research/agent-infra/090-agent-skills-spec.md) | workflow | ✓ | done | 运行相：发现→解析→Tier 1 目录→Tier 2 激活→Tier 3 资源，四泳道阶梯 + 预算/激活/契约三卡 |
+| [agent-skills--progressive-disclosure](./agent-infra/agent-skills--progressive-disclosure.mmd) | [230 §4](../../research/agent-infra/230-agent-skills-standard.md) | workflow | ✓ | done | 运行相：发现→解析→Tier 1 目录→Tier 2 激活→Tier 3 资源，四泳道阶梯 + 预算/激活/契约三卡 |
+| [agent-skills-std-lifecycle](./agent-infra/agent-skills-std-lifecycle.mmd) | [230 §4/§6](../../research/agent-infra/230-agent-skills-standard.md) | workflow | ✓ | done | 运行相（三代版）：发现双域→宽容装载→目录 tier1 常驻→激活 tier2 整读→执行 tier3 按需→压缩豁免；旁路=严格校验器与注入防御；三级账本/静默退化红线两卡 |
+| [agent-skills-std-dual-track](./agent-infra/agent-skills-std-dual-track.mmd) | [230 §8/§11](../../research/agent-infra/230-agent-skills-standard.md) | workflow | ✓ | done | 治理相（三代版）：守门哲学→规范面（唯一权威）→校验轨道严格/装载轨道宽容（同一官方两口径）→Claude Code 20 字段、claude.ai 六字段硬门、Codex .agents/skills+旁车→生态 46 家·51 条 PR；三轨分工/互操作锚点两卡 |
 | [jev--shared-read-isolated-branches](./agent-infra/jev--shared-read-isolated-branches.mmd) | [200 §4](../../research/agent-infra/200-jev-system-one-model.md) | dataflow | ✓ | done | 共享读 · 隔离问：state 只编码一次、题面附于前缀后、分支互不可见 → 概率 + confidence → 代码三档分流；多问近乎免费 / 隔离是真的 / 无跨题不变量三卡 |
 | [jev--calibration-territory](./agent-infra/jev--calibration-territory.mmd) | [200 §5](../../research/agent-infra/200-jev-system-one-model.md) | dataflow | ✓ | done | 校准的领地：RLCD 受训分布内可对账（ECE 0.031）→ 漂移后照报七成（密封集 ECE 0.220）/ 内在随机无基准 → 影子运行抽检 + 温度缩放重标 |
-| [agent-skills--package-and-validation](./agent-infra/agent-skills--package-and-validation.mmd) | [090 §3](../../research/agent-infra/090-agent-skills-spec.md) | architecture | ✓ | done | 作者相：技能包解剖 × skills-ref 三命令 × 规范↔实现 13 处分歧 |
-| [agent-skills--disclosure-lifecycle](./agent-infra/agent-skills-disclosure-lifecycle.mmd) | [210 §4/§6](../../research/agent-infra/210-agent-skills-open-standard.md) | workflow | ✓ | done | 运行相（重学版）：发现→宽容解析→作用域→台账常驻→语义路由→整载→解释执行 + 压缩豁免/激活去重守护 |
-| [agent-skills--governance-layers](./agent-infra/agent-skills-governance-layers.mmd) | [210 §3/§8/§9](../../research/agent-infra/210-agent-skills-open-standard.md) | architecture | ✓ | done | 治理相（重学版）：规范 MUST/建议/留白 × 指南层 × 生态四家抽样 × 48 PR 悬案三行网格 |
+| [agent-skills--package-and-validation](./agent-infra/agent-skills--package-and-validation.mmd) | [230 §3/§8](../../research/agent-infra/230-agent-skills-standard.md) | architecture | ✓ | done | 作者相：技能包解剖 × skills-ref 三命令 × 规范↔实现 13 处分歧 |
+| [agent-skills--disclosure-lifecycle](./agent-infra/agent-skills-disclosure-lifecycle.mmd) | [E1 成片冻结快照 §4/§6](../../../apps/negentropy-influence/episodes/agent-skills-video/research/gl-notes.md) | workflow | ✓ | done | 运行相（E1 成片版）：发现→宽容解析→作用域→台账常驻→语义路由→整载→解释执行 + 压缩豁免/激活去重守护 |
+| [agent-skills--governance-layers](./agent-infra/agent-skills-governance-layers.mmd) | [E1 成片冻结快照 §3/§8/§9](../../../apps/negentropy-influence/episodes/agent-skills-video/research/gl-notes.md) | architecture | ✓ | done | 治理相（E1 成片版）：规范 MUST/建议/留白 × 指南层 × 生态四家抽样 × 48 PR 悬案三行网格 |
 | [supply-chain--ious-route](./agent-infra/supply-chain-ious-route.mmd) | [220 §9](../../research/agent-infra/220-skills-supply-chain.md) | workflow | ✓ | done | 三张欠条兑付路线：签名/分发/版本三泳道并行回收+PR 状态橡皮章（E3 精读首绘） |
 | [supply-chain--dual-harbor](./agent-infra/supply-chain-dual-harbor.mmd) | [220 §2/§6](../../research/agent-infra/220-skills-supply-chain.md) | architecture | ✓ | done | 双港区对照：agentskills 冻结 49 天 vs MCP ext-skills 81 天 Final + jonathanhefner 人事桥 + #546 报关单（E3 精读首绘） |
+| [customer-memory--rw-pipeline](./agent-infra/customer-memory--rw-pipeline.mmd) | [230 §二/§四](../../research/agent-infra/230-customer-domain-long-memory-2027-planning.md) | workflow | ✓ | done | 客户域记忆读写目标态：写链 session_end→归档→抽取→LLM 去重决策→memory_diff→add-memory 审计；读链主体前缀检索→RRF 信任重排→Guard→预算裁剪→ContextBundle，写读同源 |
 | [agent-skills--port-46-adoption](./agent-infra/agent-skills-port-46-adoption.mmd) | [分镜 0-A/0-B](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | workflow | ✓ | done | 生态采纳全景（视频 E1 重绘）：2025 捐出→竞对全接→整张牌桌（视频 E1 重绘新绘） |
 | [agent-skills--two-old-roads](./agent-infra/agent-skills-two-old-roads.mmd) | [分镜 0-E](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | workflow | ✓ | done | 两条老路死法：盲航/超载/成本函数之问双泳道（视频 E1 重绘新绘） |
 | [agent-skills--box-anatomy](./agent-infra/agent-skills-box-anatomy.mmd) | [分镜 1-A/1-C](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | architecture | ✓ | done | 技能包解剖：箱体/角件六字段/箱号=登记名/正文附件/选填验箱五章（视频 E1 重绘新绘） |

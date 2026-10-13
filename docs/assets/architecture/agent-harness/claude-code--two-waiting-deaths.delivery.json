@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "6605e385-a5da-4057-bfab-9a262a2447bd",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/.temp/archify/workflow-two-waiting-deaths-probe/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/docs/assets/architecture/agent-harness/claude-code--two-waiting-deaths.html",
+  "specification": {
+    "sha256": "58a2f92811d05ecbafff409f8aa4aa08653e315553df8eaee5fa2db5507fc43e",
+    "bytes": 4914
+  },
+  "artifact": {
+    "sha256": "ce1013c22542ce5d5d4092742907d7675b7ecc8e90f26ba2e445ce97ca5e78c0",
+    "bytes": 762877
+  }
+}

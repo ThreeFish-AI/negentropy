@@ -1,0 +1,38 @@
+[
+ {
+  "id": "entry",
+  "label": "默认不拆",
+  "focus": [
+   "teardown-entry",
+   "count-check"
+  ],
+  "note": "干完了，拆房？默认答案是：不拆；拆前先清点。"
+ },
+ {
+  "id": "refuse",
+  "label": "拒拆",
+  "focus": [
+   "dirty",
+   "unknown",
+   "refuse"
+  ],
+  "note": "有改动拒拆；查不动也拒拆——宁可误拦，不可误删。"
+ },
+ {
+  "id": "force-keep",
+  "label": "强删或保留",
+  "focus": [
+   "force-del",
+   "keep"
+  ],
+  "note": "明说「丢弃」才强删连分支；想留就保留等人审。"
+ },
+ {
+  "id": "audit",
+  "label": "事件日志",
+  "focus": [
+   "audit-log"
+  ],
+  "note": "开房拆房各记一行：谁、何时、动了哪间。"
+ }
+]

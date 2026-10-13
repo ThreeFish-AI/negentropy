@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "e8edc453-9873-45cd-99e6-d9a4b00bc3af",
+  "status": "current",
+  "command": "deliver",
+  "type": "sequence",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/.temp/archify/sequence-knock-walk-away-fig/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/docs/assets/architecture/agent-harness/claude-code--knock-walk-away.html",
+  "specification": {
+    "sha256": "87d486192307efb6b9c93e23abf9d9b6069921e9a09e491669a2c00ccf8d4316",
+    "bytes": 3504
+  },
+  "artifact": {
+    "sha256": "33dca068974dc61bb6ed8d7d4e349a374a2075910f9d7705b9f52b40def3c408",
+    "bytes": 753893
+  }
+}

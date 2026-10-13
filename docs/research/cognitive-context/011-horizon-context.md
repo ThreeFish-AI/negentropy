@@ -46,7 +46,7 @@ description: "Snowflake Horizon Context 精读与通俗拆解（冻结版；设�
 >
 > **章号即序号，键即键**：编号为连续 §1–§10，是全仓引用的唯一口径；机制词表 M1–M7、实验键 D1–D10、场景键 A/B/C/E/T 与 013 蓝图、配套原型共用，同为稳定键。
 
-配套产物：[Context Layer 基础设施设计蓝图](./013-context-layer-blueprint.md)。
+配套产物：[Context Layer 基础设施设计蓝图](./013-context-layer-blueprint.md) · [Horizon Context ↔ negentropy 机制映射报告](../mapping-negentropy.md)。
 
 ---
 

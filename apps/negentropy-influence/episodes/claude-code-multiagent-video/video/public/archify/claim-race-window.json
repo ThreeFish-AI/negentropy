@@ -1,0 +1,96 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 13.09,
+ "total_wall_sec": 58.61,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "two-lifelines",
+   "label": "双生命线",
+   "index": 0,
+   "file": "claim-race-window--two-lifelines.mp4",
+   "end_still": "claim-race-window--two-lifelines-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "alice",
+    "bob"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "interleaved",
+   "label": "交错检查",
+   "index": 1,
+   "file": "claim-race-window--interleaved.mp4",
+   "end_still": "claim-race-window--interleaved-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "alice",
+    "bob"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 62.0
+  },
+  {
+   "id": "overwrite",
+   "label": "落笔重叠",
+   "index": 2,
+   "file": "claim-race-window--overwrite.mp4",
+   "end_still": "claim-race-window--overwrite-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "bob",
+    "board"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "window",
+   "label": "竞争窗口",
+   "index": 3,
+   "file": "claim-race-window--window.mp4",
+   "end_still": "claim-race-window--window-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.37,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "alice",
+    "bob",
+    "board"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 62.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/apps/negentropy-influence/episodes/claude-code-multiagent-video/video/public/archify/html/claim-race-window.html",
+ "slug": "claim-race-window",
+ "type": "sequence"
+}

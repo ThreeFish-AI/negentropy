@@ -1,0 +1,25 @@
+%% source: docs/research/agent-infra/210-agent-skills-open-standard.md §4/§6
+%% slug: agent-skills-disclosure-lifecycle
+%% type: workflow
+%% derived: 2026-09-26 重学版首绘
+flowchart LR
+    subgraph S1["① 发现 Discovery"]
+        A1["技能目录<br/>.agents/skills 等约定"] --> A2["宽容解析<br/>warn & load"]
+        A2 --> A3["作用域解析<br/>project 覆盖 user<br/>+ 遮蔽告警"]
+    end
+    subgraph S2["② 披露 Catalog ~50-100 token/技能"]
+        B1["船期表台账<br/>name + description 常驻"]
+    end
+    subgraph S3["③ 激活 Activation"]
+        C1["模型语义路由<br/>或 /slash 点名"] --> C2["整载正文<br/>&lt;5000 token 建议"]
+    end
+    subgraph S4["④ 执行 Execution"]
+        D1["模型解释正文指令"] --> D2["tier-3 资源按需<br/>scripts/references/assets"]
+    end
+    subgraph S5["⑤ 生命周期 Lifecycle"]
+        E1["压缩豁免保护"] --- E2["激活去重"]
+    end
+    A3 --> B1
+    B1 -->|"任务匹配"| C1
+    C2 --> D1
+    D2 --> E1

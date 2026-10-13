@@ -1,6 +1,6 @@
 # 《给 AI 一座图书馆：OpenViking 上下文数据库》科普视频工程
 
-> Context Layer 系列第 3 集（doc 型）。信源 = 本仓 [014 OpenViking 精读笔记](../../../../docs/research/cognitive-context/014-openviking.md) + [015 机制映射](../../../../docs/research/cognitive-context/015-openviking-mapping-negentropy.md) + [openviking_lab.py](../../../../docs/research/cognitive-context/assets/openviking_lab.py)，钉 `348d8797`（上游 volcengine/OpenViking 不直接取证）；视觉契约 玫红/薄荷绿/长春花蓝；archify 图集 `openviking--` 前缀 9 张（2 张随 014 入库 + 7 张本集专用，views/ 37 章）。**交付状态**：v1 终渲待审——成片 10:37（1920×1080@30，39.4MB），归档 `~/Documents/video/context-layer/给 AI 一座图书馆：OpenViking 上下文数据库 v1.mp4`，内容门/覆盖门/七幕 QA 全部 FAIL 0 WARN 0。发布顺序见 [../../series.json](../../series.json)（工作区根）。
+> Context Layer 系列第 3 集（doc 型）。信源 = 本仓 [014 OpenViking 精读笔记](../../../../docs/research/cognitive-context/014-openviking.md) + [015 机制映射](../../../../docs/research/mapping-negentropy.md) + [openviking_lab.py](../../../../docs/research/cognitive-context/assets/openviking_lab.py)，钉 `348d8797`（上游 volcengine/OpenViking 不直接取证）；视觉契约 玫红/薄荷绿/长春花蓝；archify 图集 `openviking--` 前缀 9 张（2 张随 014 入库 + 7 张本集专用，views/ 37 章）。**交付状态**：v1 终渲待审——成片 10:37（1920×1080@30，39.4MB），归档 `~/Documents/video/context-layer/给 AI 一座图书馆：OpenViking 上下文数据库 v1.mp4`，内容门/覆盖门/七幕 QA 全部 FAIL 0 WARN 0。发布顺序见 [../../series.json](../../series.json)（工作区根）。
 
 ## 目录结构
 
