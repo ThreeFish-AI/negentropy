@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "4273074b-0074-4b46-a0aa-81c74e8f0825",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/.archify/workflow-dependency-failclosed-20261003-003512/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code--dependency-failclosed.html",
+  "specification": {
+    "sha256": "e6489962beee8a9520de3662c85926346758f3bab8a142651419e5ff140a876f",
+    "bytes": 5236
+  },
+  "artifact": {
+    "sha256": "f5e7e8c6192b4677d06e23eed6a40f376cab3be316cfb66266927c1057e92233",
+    "bytes": 755802
+  }
+}

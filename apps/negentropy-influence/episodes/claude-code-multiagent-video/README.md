@@ -1,8 +1,8 @@
-# 《多 Agent 平台：从一个到一群》科普视频工程
+# 《多 Agent 平台：七件设施，一条走廊》科普视频工程
 
-> **剧本 v3 待审（2026-10-07）**：策划案 / 逐字稿 / 分镜表已按 C 型信源（`research/gl-notes.md`，冻结自 175 新精读）完全重写，待人工复核（标题候选与钩子选定见 `script/planning.md` §0/§2）。本轮到分镜为止：TTS / 渲染 / 场景代码 / archify 建图均未动；旧 `narration.cues.toml` 已删（TTS 轮重写）；默认 check 的 4 处覆盖门 FAIL 为 v1 场景 cue 跨代错位，场景轮消除。
+> 交付状态：**完全重制 v2 交付（edge 终声版，2026-10-03）**：14:17.8 = 857.8s @1080p30（25734 帧复算=mdls 双源一致）；147 句 4015 字；archify 14 图 49 章逐章回放（锚定 33.3%·5 型）；六组破坏实验全入片；机器门全绿（草渲+全分辨率终渲双遍 QA）；v2 = 评审修复轮 9 commits 80 项修复全入片重渲（v1 同日初渲=修复前构建，时长口径不变 857.812s；17:37 三轮重建——二轮 12 项＋三轮 7 项：P2 Footnote 归属入片/P4 循环轨道净空/footer 贴口播/呼吸收敛约定/P6 回流环下移 32px 净空（抽帧实证环顶弧出卡底带）/P5 工具数口径「+1·再+2·合计 3」/P3 章名统一「回执簿与值班钟」/P1 手写 sin 收敛 useBreathe（2π·9 等值零视觉差）/归档分叉终收口（12:36 旧构建曾被误留、16:38 重建未落盘——本轮 17:37 构建覆盖归档 md5 556d253d 复核））；归档 `~/Documents/video/claude-code-explained/多 Agent 平台：七件设施，一条走廊 v2.mp4` + `_captions`（v1 与上一代《从一个到一群》v1/v2 均原样保留）。C 型信源 = [175 冻结快照](./research/gl-notes.md)（换代前版本，冻结至 `0ecf6527c`；主干现行 175 已于 2026-10-07 换代重写）。本轮 edge 终声（zh-CN-YunxiNeural +12%）；**indextts me-bright 重配待用户人工触发**（cues 台本 55 块已预置，升档三步见 pipeline.toml 注释）。发布顺序见 [../../series.json](../../series.json)（工作区根）。
 
-> 交付状态：**v1 已交付**（2026-10-02，13:42.8 @1080p30（total_duration_in_frames 复算），归档 ~/Documents/video/claude-code-explained/ v1 + _captions）。发布顺序见 [../../series.json](../../series.json)（工作区根）。
+> 2026-10-08 合并主干注记：研究侧 SSOT（170/175）已于 2026-10-07 换代重写（主干 `10cfdc028`）；本片取证口径 = 换代前 175 冻结快照（[research/gl-notes.md](./research/gl-notes.md)，冻结至 `0ecf6527c`）。系列片头《一个循环》组件副本已随主干 #1190 入库（`video/src/components/series-intro.tsx`，孪生门执法）但本轮未挂载（`leadInSec` 维持 0.6s、时间线零平移），挂载与含片头预算口径留待下轮重制。
 
 ## 目录结构
 

@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/.temp/archify/architecture-spec-two-promises-fig/candidate.json",
+    "sha256": "ee61e0f59da7871a6b3dd4f5a03766cb4a9bfa172acafb2add46f831c2aa699a",
+    "bytes": 2912
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/docs/assets/architecture/agent-harness/claude-code--spec-two-promises.html",
+    "sha256": "ba92086de622fdd2199197f3224394d952c82608faeb239f3be24c252204f2b6",
+    "bytes": 759436
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/docs/assets/architecture/agent-harness/claude-code--spec-two-promises.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/docs/assets/architecture/agent-harness/claude-code--spec-two-promises.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/docs/assets/architecture/agent-harness/claude-code--spec-two-promises.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 2231
+}

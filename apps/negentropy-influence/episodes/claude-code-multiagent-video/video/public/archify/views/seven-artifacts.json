@@ -1,0 +1,42 @@
+[
+ {
+  "id": "overview",
+  "label": "一栋小楼总览",
+  "focus": [
+   "building",
+   "masters",
+   "captain"
+  ],
+  "note": "失忆的师傅们住进一栋两层小楼：楼下公共设施、楼上私人房，楼心一条环形走廊。"
+ },
+ {
+  "id": "public-five",
+  "label": "楼下五设施",
+  "focus": [
+   "floor-public",
+   "wall",
+   "slot",
+   "ledger",
+   "clock",
+   "socket"
+  ],
+  "note": "任务墙、递话口、回执簿、值班钟、认证插座——公共制度层。"
+ },
+ {
+  "id": "private-rooms",
+  "label": "楼上房带",
+  "focus": [
+   "floor-private",
+   "rooms"
+  ],
+  "note": "门牌房：各改各的目录，私人地盘层。"
+ },
+ {
+  "id": "corridor",
+  "label": "第七件：走廊",
+  "focus": [
+   "corridor"
+  ],
+  "note": "环形走廊绕楼一圈，谁干活都得走——从亮灯到天亮，一步没改过。"
+ }
+]

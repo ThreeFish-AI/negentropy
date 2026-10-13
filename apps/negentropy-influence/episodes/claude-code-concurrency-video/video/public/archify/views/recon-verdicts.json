@@ -1,0 +1,20 @@
+[
+  {
+    "id": "green-list",
+    "label": "获印证",
+    "focus": ["teach-src", "recon", "verdict-green"],
+    "note": "服务 6-A（p6-01..02）：教学版主张过对账桌逐项核对——三件套·50 个/会话·7 天过期·每秒检查低优先级回合间，四项全勾绿。"
+  },
+  {
+    "id": "red-jitter",
+    "label": "硬分歧·抖动",
+    "focus": ["verdict-red"],
+    "note": "服务 6-B（p6-03..06）：同一个抖动上限两口径对峙——教学侧 10%·15 分钟封顶 vs 官方侧 30 分钟·间隔之半，闭源无法裁决以官方为准。"
+  },
+  {
+    "id": "gray-extra",
+    "label": "教学没讲的三条路",
+    "focus": ["verdict-gray", "apprentice"],
+    "note": "服务 6-C+6-D（p6-07..14）：官方在册、教学未讲的灰新增——后台化三条路与 5 GB 熔断护栏；学徒旁挂桌角只看不动手，转述 45 秒 watchdog。"
+  }
+]

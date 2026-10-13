@@ -1,6 +1,6 @@
-# 《并发：谁来按下开始》科普视频工程
+# 《并发与调度：一张回执和四层钟》科普视频工程
 
-> **剧本 v3 待审**（2026-10-07）：策划案 / 逐字稿 / 分镜表已按 C 型信源 = `research/gl-notes.md`（冻结自 docs/research/agent-harness/174 新精读）完全重写（178 句 36 镜，字数 3594 落 3400–3600 窗）；标题候选与钩子选定待人工复核（见 `script/planning.md` §0/§2）。本轮到分镜为止：不涉 TTS / 渲染 / 场景代码 / archify 建图；`video/` 下旧代场景与 archify cue 未动，`pipeline.py check` 中 archify 覆盖门按跨代红门豁免（旧 cue 锚旧句 id 属预期红，场景轮重写时消解）。
+> **v4 重走中（2026-10-09）**：本集自 Stage ① 起重走——C 型信源切换为 `docs/research/agent-harness/176-claude-code-concurrency-relearn.md`（s13×s14 独立重学精读，优化轮回源补证后重冻入 `research/gl-notes.md`）；`script/` 下 v3 三件（planning/narration/storyboard，基于已废止的 174 版冻结件）降级为参考草稿，不作事实源，② 重写时覆盖。`video/` 旧代场景与 archify cue 未动，ISSUE-211 跨代红门口径沿用（四绿门交付、场景轮恢复全量 check）。
 > 交付状态：**v1 已交付**（2026-10-02，14:10.8 @1080p30（total_duration_in_frames 复算），归档 ~/Documents/video/claude-code-explained/ v1 + _captions）。发布顺序见 [../../series.json](../../series.json)（工作区根）。
 
 ## 目录结构

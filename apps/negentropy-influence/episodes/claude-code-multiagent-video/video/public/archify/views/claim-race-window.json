@@ -1,0 +1,39 @@
+[
+ {
+  "id": "two-lifelines",
+  "label": "双生命线",
+  "focus": [
+   "alice",
+   "bob"
+  ],
+  "note": "两位师傅同一瞬间扫墙。"
+ },
+ {
+  "id": "interleaved",
+  "label": "交错检查",
+  "focus": [
+   "alice",
+   "bob"
+  ],
+  "note": "两人都按旧墙通过了检查。"
+ },
+ {
+  "id": "overwrite",
+  "label": "落笔重叠",
+  "focus": [
+   "bob",
+   "board"
+  ],
+  "note": "后写的盖掉先写的，终态归后写者。"
+ },
+ {
+  "id": "window",
+  "label": "竞争窗口",
+  "focus": [
+   "alice",
+   "bob",
+   "board"
+  ],
+  "note": "检查与写名两步之间没有锁——守卫挡得住明抢，挡不住同一瞬间。"
+ }
+]

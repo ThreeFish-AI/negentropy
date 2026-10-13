@@ -31,19 +31,10 @@ export const theme = {
   sans: "'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', sans-serif",
   mono: "'SF Mono', 'Menlo', 'JetBrains Mono', monospace",
 
-  // ── 本集概念色（重制种子：沿用系列维度色系，Stage ② 策划时终定并复算对比度）──
-  // 语义：金=协作
-  concept: '#D9B36B',
-  conceptDeep: '#B08F47',
-  accent: '#64C4C0',
-
-  // ── 系列语义键（V3D 3D 层读；HarnessStack/motifs 消费）──
-  // core = 循环内核：**全系列恒定 #D97757**（「循环始终不变」主线的视觉锚）；
-  // mech/mechDeep = 挂在内核外的机制：**每集维度色**（本集 #D9B36B）——
-  // 「循环不变、机制每集不同」的语义分工。deny 复用 danger（拒绝/危险唯一语义）。
-  core: '#D97757',
-  coreDeep: '#B45A3C',
-  deny: '#EF6461', // 拒绝/危险唯一语义（3D 层读；与 danger 同源）
-  mech: '#D9B36B',
-  mechDeep: '#B08F47',
+  // ── 本集概念色（planning §3 色彩契约）──
+  accent: '#D9B36B', // 赭金——系列槽位色（规则 4 登记值）：七件设施 / 公共制度维度
+  concept: '#D97757', // core 橙——环形走廊 = 循环（系列五层锚〔M-001〕的本集换装）
+  core: '#D97757', // 系列五层栈恒定色（harness-stack 消费；与 concept 同值异名——语义各归）
+  mech: '#D9B36B', // 机械/维度色（P6 数字卡消费：BUILTIN_TOOLS 计数/点名高亮/双档口径色点；=accent 赭金，本集维度。身份卡棱线走 core）
+  mechDeep: '#A8823F', // 深赭——私人房层 / 账本线 / 3D 面色梯度（仅装饰线与填充，不作正文文本色）
 } as const;

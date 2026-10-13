@@ -16,22 +16,22 @@
   {
    "index": 3,
    "layer": "记忆管理",
-   "title": "记忆管理：会丢的和不能丢的",
+   "title": "记忆管理：一张草稿纸和一本卡片册",
    "published": false
   },
   {
    "index": 4,
    "layer": "并发",
-   "title": "并发：谁来按下开始",
+   "title": "并发与调度：一张回执和四层钟",
    "published": false
   },
   {
    "index": 5,
    "layer": "多 Agent 平台",
-   "title": "多 Agent 平台：从一个到一群",
+   "title": "多 Agent 平台：七件设施，一条走廊",
    "published": false
   }
  ],
  "activeIndex": 4,
- "next": "多 Agent 平台：从一个到一群"
+ "next": "多 Agent 平台：七件设施，一条走廊"
 }

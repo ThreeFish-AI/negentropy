@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "e7afd010-3270-4f49-9c90-dd6cce4c94d5",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/.temp/archify/workflow-dispatch-two-gates-fig/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/docs/assets/architecture/agent-harness/claude-code--dispatch-two-gates.html",
+  "specification": {
+    "sha256": "4ddce921dbe3dd1900e2af8e002ae56edb7bb1fdb527f5f4ca06d7e5fd3df224",
+    "bytes": 3700
+  },
+  "artifact": {
+    "sha256": "0550f87f6c57fa0db82b645b94864735e484588e72dfb8b244516ccedaf42de0",
+    "bytes": 752597
+  }
+}

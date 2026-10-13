@@ -14,7 +14,7 @@ type Chapter = {scene: string; title: string; i18n?: Record<string, string>};
 const CHAPTERS = chaptersJson as Chapter[];
 
 /* ── 几何带 SSOT：整带收在 y<56 ─────────────────────────────────────────────
- * 依据 references/08 顶部横条实测：各幕内容最早 y=56 起、SceneTag 在 top:64——
+ * 依据 references/08 顶部横条实测：各幕内容最早 y=56 起、SceneTag 在 top:112——
  *  y<56 是本设计系统已验证的零碰撞常驻带（底部字幕安全带的顶部对偶）。 */
 const MARGIN_X = 4; // 近贴屏幕左右边框，仅留一条竖线宽度的呼吸
 const STRIP_W = 1920 - MARGIN_X * 2;

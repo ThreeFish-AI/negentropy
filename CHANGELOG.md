@@ -80,18 +80,49 @@
   - **两张 archify 图入管线**：`agent-skills-std-lifecycle`（运行相）与 `agent-skills-std-dual-track`（治理相），finalize 四门全绿、双主题 PNG 采集、mermaid README 登记
   - **验收链**：源稿对账 28 行（独立 Checker，返工 5 句复判全过、46+55 处摘录机器校验命中）；盲评 6:0 成稿全胜；外行四测四项通过（闭卷 24 题先验可答→补 3 道材料特有数字题闭合诊断力；听知按工程档案口径主线复述全覆盖 + 二线术语记已知局限）；保真核对 INV PASS 全程维持
 - **修复**：`scripts/capture-arch-diagram.mjs` PNG 尺寸断言与现行 archify 导出器不匹配（导出画布含不对称边距，严格 viewBox 等比断言对新采集恒挂）——放宽为「≥3 倍且 4 对齐」并保留防半幅/空图意图
+### 175 多 Agent 平台新一代精读重制（2026-10-01）
 
+- 用新版 guided-learn 六阶段自治流水线对 learn-claude-code「多 Agent 平台」七章（站点轨 s12/s15–s20 @ `67a9126c`）完全重做并[原位重写 ⑤](docs/research/agent-harness/175-claude-code-multi-agent-platform.md)：以「七样共享物件挂回同一条循环」为纲（任务板/信箱/编号握手/空闲自取/工作树/MCP 插座/收官集成），含章际诚实边界（s16 无执行门控→s20 真门、钉点版自动认领不切工具目录）与官方文档三处对照（agent teams 实验性默认关、四任务工具取代旧待办、mcp__ 命名同规则）；Checker 源稿对账 32+4 行全绿、盲评双判官三章全胜、外行四测四项通过（听知记 1 项已知局限，验收由 LLM 代理完成）
+- 随稿入库：[multiagent_lab.py](docs/research/agent-harness/assets/multiagent_lab.py) 纯标准库确定性原型（34 断言自检 + B1–B5 六组拆守卫实验 + 交错窗口演示，日志逐字可复刻）；全景图 archify 3.0 重绘三件套（[.mmd](docs/assets/mermaid/agent-harness/claude-code-multiagent--collab-panorama.mmd)/HTML/双主题 PNG）；[研究文献索引](docs/research/readme.md)与[知识索引](docs/.agents/knowledge-map.md)登记同步
+
+### Claude Code Harness Engineering 系列第 4 集并发完全重制交付（2026-10-03）
+
+- **ep4《并发与调度》完全重制交付**（新题全称见 series.json SSOT）（C 型信源=176 独立重学冻结，骨架 A 拆机实验室，14:26.8 @1080p30，edge 草声版）：11 张新绘 archify 图（五型齐）+ 176 两图复用直通，47 章 47 cue 全屏独占（评审修复四：P6 同章倒带合并单实例 48→47），覆盖门 31.5%/3.25 每分；43 条数字穿透 + 双重校验 79 项闭合；ep3 下期卡同步新题并连坐重渲。
+
+### Learn Claude Code 并发与调度独立重学精读（176，2026-10-01）
+
+- **Learn Claude Code「并发」两节独立重学精读入仓（docs/research/agent-harness/ 176）**：以最新版 /guided-learn（`cc1aa47`）对站点轨 s13 Background Tasks × s14 Cron Scheduler 做**零继承**的全新精读（不读不引 170–175 与系列 source-notes；源文件钉 `67a9126c`，与 fix/s18 分支四文件字节一致实测，main 平行轨 `ce8f9f18` 对照注记）——[176 精读笔记](docs/research/agent-harness/176-claude-code-concurrency-relearn.md)：占位回执守住「一次调用配一个结果」的协议名额、通知由主循环每轮收集后以新消息身份回注；cron 四层解耦（判时/队列/非阻塞交付/执行）与三道保险；durable 的进程内前提与官方三档替代；官方文档逐项对账（印证清单 + **抖动上限硬分歧**：课程 10%/15 分钟 vs 官方 30 分钟或区间之半 + 超时自动转后台三路径的 120 秒血缘）；教学版三处边界实测（后台路径复用 120 秒超时→开篇「十分钟例子」实际跑不完、通知摘要截 200 字、通知未转义）。配套原型 [cc_async_scheduling_lab.py](docs/research/agent-harness/assets/cc_async_scheduling_lab.py)（纯标准库确定性仿真，`--selftest` + e1–e5 五次破坏性实验）与两张 archify 图（`claude-code-bg-tasks--placeholder-notification-loop` / `claude-code-cron--four-layer-decoupling`，入 mermaid 管线）。质量闸：源稿对账两轮全新 Checker（29 行，4 行返工改正后 COUNTS 全 0、REFS 9/9）；成文盲评双判官一致判成稿胜；外行四测（LLM 代理）暴露并修复一处**类比失配**（「日历打卡」暗示记号累积，而代码每任务只留最近一次——原型实跑证伪后转直讲）。
 ### Claude Code Harness Engineering 系列 5 集完全重制交付（2026-09-28..30）
 
 - **系列完全重制 v1 交付**：基于重写的 170–175 精读与新钉双轨（main `0dcafa2`/站点 `67a9126c`）+ 官方文档轨 C，五集全部同 slug rm→scaffold 重来。成片归档 `~/Documents/video/claude-code-explained/` v1×5 + `_captions/{srt,vtt}`×5：
   1. [《工具与执行：一个循环，三层装置》](apps/negentropy-influence/episodes/claude-code-explained-video/README.md) 14:02.6 · 164 句 3644 字（254 字/分实测校准口径直写）· 12 图 65 章 · story 档 43 块 cues
   2. [《规划与协调：模型的视野是安排出来的》](apps/negentropy-influence/episodes/claude-code-planning-video/README.md) 14:12.2 · 169 句 · 12 图 68 章（P6 叠压目检修复）
-  3. [《记忆管理：会丢的和不能丢的》](apps/negentropy-influence/episodes/claude-code-memory-video/README.md) 14:13.3 · 163 句 · 12 图 62 章（双轨口径：站点轨叙事+main 演进彩蛋）
+  3. [《记忆管理：会丢的和不能丢的》](apps/negentropy-influence/episodes/claude-code-memory-video/README.md) 14:13.3 · 163 句 · 12 图 62 章（双轨口径：站点轨叙事+main 演进彩蛋；2026-10-02 已换题完全重制为《记忆管理：一张草稿纸和一本卡片册》，见下节）
   4. [《并发：谁来按下开始》](apps/negentropy-influence/episodes/claude-code-concurrency-video/README.md) 14:10.8 · 170 句 · 12 图 59 章（**Lottie clock-swing headless ANGLE 确定性挂死根因修复**＝原生 PendulumGlyph；半场缺失 108s 黑屏集成期抓出补齐）
   5. [《多 Agent 平台：从一个到一群》](apps/negentropy-influence/episodes/claude-code-multiagent-video/README.md)（终集）13:42.8 · 149 句 · 13 图 67 章（door-lock 同款 Lottie 根治=原生 LockStrike；轨 C 八校准全片贯彻；五层身份卡全亮+系列金句收束）
 - 全系列机器门全绿：check_series/build/check--check-scenes/tsc/motion/qa--check FAIL 0 + 亮度带扫描零近黑段 + 全分辨率目检（半分辨率误报翻案×2、真缺陷×2）
 - archify 图面新增 55 张、复用既有 4 张（五集在用 59 张；ep1–ep5 各用 12/12/12/12/13 图次、含跨集复用，五型覆盖；3.0.0 版本陷阱两漏网图锁定版 2.17 重建）
 
+### ep5《多 Agent 平台：七件设施，一条走廊》换题完全重制 v1 交付（edge 终声版，2026-10-03）
+
+- cc 系列终集换代重制（继 ep1/ep2/ep3 后本波收官）：同 slug 原位重置换题，《从一个到一群》工厂车间叙事全弃，改「一栋楼的公共制度」楼宇动线域全新七幕（失忆的楼/任务墙/递话口/回执簿与值班钟/门牌房/认证插座/环形走廊终考）——**走廊=第七件设施**，标题下半句悬念 P0 埋 P6 兑现，主线单问「计划放在谁手里」首次正面闭环
+- C 型信源换代：175 冻结快照 @`0ecf6527c` 直接成片（钉 `67a9126c` 不换；附录 A 类比登记表一物一喻 + 附录 B 复算与穿透：34 断言+六组实验逐字复现、s18 两处源码事实增量补证）；147 句 4015 字（278 edge 口径直写）；RSI-039 钩子矩阵★1 落地；**六组破坏实验全入片**（B1/B2+B2v/B3/B4/B5/t5race 红绿消融——系列首例）；三段「缺口→P6 合口」伏笔线
+- **edge 终声**（zh-CN-YunxiNeural @+12% 定档 + timing B 档收紧）：实测 14:17.8=857.8s 落窗 [13.0,14.6]（25734 帧复算=mdls 双源一致；+4% 时 15.7 超窗的定档过程与 .engine 签名护栏实录见 pipeline.toml 注释）；cues 台本 55 块预置——indextts me-bright 重配待用户人工触发即升档
+- archify 3.0 产线 12 新图+2 复用=14 图 49 章逐章回放（锚定 33.3%·3.4/分·5 型·lead 49/49 实测；RSI-038 兼容层注入器 E1 范式泛化，锚契约 14/14 零缺——sequence 消息锚不可聚焦的机制约束已按实情改锚 participant）；七幕 43 镜场景（CorridorRing〔M-001〕core 橙 6px 恒定走廊锚/LodgeMap 换幕高亮坐标装置/终集五层全亮身份卡）
+- 机器门全绿：check_series/build/check --check-scenes --check-motion/覆盖门/check_archify/tsc/motion 15:15/qa 五项双遍（草渲+全分辨率终渲）/WCAG/末帧渐黑零亮残留（ISSUE-205 协议）；目检修复 1 处（合口徽章侵字幕安全带，栈几何推导定位）；归档 v1 + _captions（新题另起 v1，旧题 v1/v2 原样保留）
+- 涟漪：series.json/series.md 换题+交付态、四兄弟集 series-layers.json、ep4 下期卡副题、source-map 换注重制、knowledge-map 175 行成片注记
+
+### ep5《七件设施，一条走廊》v2 评审修复轮交付（2026-10-03）
+
+- **交付物对齐 HEAD（分叉收口）**：v1 归档停在修复前构建（02:21 渲，其后 6 轮修复提交未入片）；v2 重渲重归档=6 commits 60 项修复全入片，时长口径不变（14:17.8=857.812s·25734 帧，纯视觉修复零时序变更）；归档 `v2.mp4`+`_captions`（v1 与旧题各版原样保留）
+- 末轮 9 项：P0 p0-07 主问题金句卡补装置压暗衬底（抽帧实证叠印消除——6-J 回收伏笔帧可读性）/P0 楼顶小檐 svg overflow:visible（原被根视口裁至 2px，檐 15px 外挑成形）/注入器 `--only` 取值校验（typo·空串·带空格 FAIL 退出，防静默空转）+自检先行通过才落盘/planning「6 型→5 型」与「恢复梯子四级→三级+并入注记」as-built 回填/P6 头注正名 BUILTIN_TOOLS 实名序/research readme·170-overview 四处「各集 source-notes」补 ⑤ ep5=gl-notes 例外（消取证链断点）
+- 机器门复检全绿：tsc/check_series FAIL 0/内容门+覆盖门 FAIL 0·WARN 0/草渲 qa（P0 全幕+尾幕渐黑）FAIL 0·WARN 0/终渲 qa FAIL 0/注入器全量重跑字节级幂等
+- **二轮修复（12 项）+分叉终收口**：上轮 P2 Footnote 归属画面字修复未随重渲入片（16:36 渲早于 13:20 提交——抽帧实证归档 v2 仍显旧文案「（画面注）」），本轮 12 项全修后 16:38 全分辨率重建重归档（857.812s 口径不变）——P2 footer reveal 锚改接 p2-19 贴口播（抽帧实证 318.8s 逐字至「逐条」）/P4 循环轨道圆心下移净空 37px（抽帧实证压字消除）/P6 两处手写 sin 收敛 useBreathe（period=2πK 等值）+BlankPanorama 死 frame 清理/LodgeMap「?」圈线宽归 RING_STROKE 常量/NEXT_LAYER 越界约定与 published 派生口径注明（published=status=="ready" 如实派生，不改）/theme.mech 消费链注记矫正/P0 两处注释 as-built 矫正（最右窗下·59px）/注入器三处解析纳管 failures+assert 门改 if（python -O 防剥离）/multiagent_lab 删 role 死属性（selftest 34 断言全绿）；机器门复检：tsc/check_series FAIL 0/check --check-scenes --check-motion FAIL 0·WARN 0/注入器字节级幂等/末帧渐黑零亮残留；交付文书三处升 8 commits 73 项口径
+- **三轮修复（7 项）+分叉真收口（评审轮发现 16:38 重建从未落盘）**：归档 v2 停在 12:36 旧构建（md5 6de2ff7d）而 16:38 渲染产物（d4f5e69f）滞留 out/ 未归档——本轮 17:37 全分辨率重建（含三轮全部修复，857.812s 口径不变 25734 帧）覆盖归档并 md5 复核（556d253d 源=归档字节一致）；修复明细：P6 准备区回流环 cy 420→452 三处联动（useTravel/circle/label y 508→524，抽帧实证 721.0s 环顶弧 y374-377 横穿卡底带→y406-409 净空 8px，P4 同款口径注释入注）/P5 走查卡 sub「查文档 · +3 件」→「+1 · 再 +2 · 合计 3 件」（口播句内数字归属对齐）/P3 SceneTag tagline「回执簿·值班钟」→「回执簿与值班钟」（七幕章名唯一双口径，chapters.json 同源）/P1 RaceQuote 手写 sin 收敛 useBreathe（period=2π·9 严格等值，全片帧数值证明最大偏差 2.3e-13=blur 5.9e-12px 视觉零差）/ArchifyClip 护栏①与 ChapterProgress 头注两处 as-built 注释矫正（SceneTag 迁位 top:112 后旧坐标清除，横向避让口径入注）/series.md 第 5 集行 60→73→80 项口径同步（终轮漏更补齐）；机器门复检：tsc 零错/check_series FAIL 0（5 WARN 为兄弟集既有）/check --check-scenes --check-motion+内容门+覆盖门 FAIL 0·WARN 0
+
+### 《记忆管理》ep3 完全重制交付（换题重制：C 型信源首例）
+
+- **《记忆管理：一张草稿纸和一本卡片册》ep3 完全重制 v4 交付**（[apps/negentropy-influence/episodes/claude-code-memory-video](apps/negentropy-influence/episodes/claude-code-memory-video/README.md)）：换题重制（旧《会丢的和不能丢的》v1/v2 已归档）+ ep2 换题涟漪 v3 重渲（下期卡新题 + me-bright 重合成 + 换机全量重建，802.5s = 13.37 分，series.md/README 同步）。**C 型信源首例**——docs 精读 [176](docs/research/agent-harness/176-learn-claude-code-memory.md) 冻结快照（research/gl-notes.md）+ 类比登记表承接（一物一喻五喻带失配拦截）+ 数字断言全量穿透 `code.py@ce8f9f18`（附录 B）；信源地图三钉（ep3 换钉 main `ce8f9f18` 与 176 同钉）。13.15 分 = 789.03s @1080p30 三源对账落窗 · 139 句 3688 字；me-bright story 终声（46 块+cues 台本；tab×3/token×2 CMU 标注 ASR 实证；实测 324 字/分 → timing.json **B 档覆写首例**句隙 0.32→0.68 拉窗 + 实测口径 281 字/分 RSI-021 回写）；archify 12 图（10 新绘+2 张 176 图经锁定版 2.17 原生重建补 guided-views）45 章 48 cue（锚定 34.5%·密度 3.7/分·5 型）；**全貌坐标装置（Map-First Anchor）**三分卡+七幕双问闭环；质量闸：四维策划评审 17 findings 全落 + ④A/B 双重校验（7 RISKY/REWRITE 修复）+ ⑤成文 REWRITE=0 + 全 139 句中点空屏扫描 0（P1 七句空屏用图章 hold 盖满）+ 全分辨率终审；剧集 10 图入 docs/assets/architecture 为 canonical HTML 快照（PNG 双主题件系精读图 deliver 路径产物，剧集图逐章录制路径不产、全仓无文档消费者）。归档 `~/Documents/video/claude-code-explained/` v5 + `_captions`（2026-10-03 二轮评审 9 项修复后重渲 = 789.03s、帧数 23,671：6-D 回看 cue 空窗删两处 lead={false} 恢复入场（still 描边带实证 22114/22251）/prefix-hit 显式 fit=trim 留痕/帧数登记 off-by-one 五处连坐 23,670→23,671（JS 舍入＝ffprobe 实测，storyboard 789.00s·pipeline 帧口径同步）/slideL·harness-stack 注释 as-built/planning「裁中段」限定/theme·motifs 死代码/deny→danger 括注；此前收官评审 15 项后重渲 = 789.03s、帧数不变：check_script 金句卡豁免注归零/6-D 五规律卡句隙翻页（回看 cue 收缩到语音段）/four-steps storySec 封顶 3.72/口径级联 12 项（断言 35 两索引/gl-notes 日期戳/v1 时长 789.03 三处/SSOT 例外/英文枚举/planning 回写/ep2 13.37/_captions 补档）；此前 v3 = 三轮 16 项、173 双处死链改指 gl-notes/176 §9.3→§9.2·137 浮动注记·断言 35/两图 mmd 回写 HTML 同构/P0 0-B 接缝精确句窗 886·1098 帧像素实证/motifs·theme 死代码/memory_lab T8b/destruct 实验4 独立 root/pipeline 注释口径；v2 = 二轮 13 项、v1 = 2026-10-02 首交付，均 789.03s·帧数不变，见归档/git 历史）
 ### Learn Claude Code 五层 Harness 精读完全重调研重写（170–175 六篇原位重写）
 
 - **Learn Claude Code 五层 Harness 精读完全重调研重写**（[docs/research/agent-harness/170–175](docs/research/agent-harness/170-claude-code-harness-overview.md)）：以 /guided-learn + /preening-substrate 完全重做——重钉双轨（main `f9e8b280`→`0dcafa2a` 2026-08-27，25 提交章级变更矩阵；站点轨 `67a9126c` 线上复验未动）+ 新增**轨 C 官方文档**（code.claude.com，185 条【官】事实/21 硬分歧，补 ISSUE-178/179 根因缺口）。六篇结构换血不换骨：证据纪律升四级（+【官】）、每篇新增「官方文档对照」节（worktree 官方硬阻断不可关闭、计划审批官方自动批准、权限冒泡、Agent teams 实验性开关、官方无 microcompact 术语等）、173 双轨叙事（站点轨占位符不携指针 vs main `0dcafa2a` 四项机制级修复——**V1/V2 实测证明旧研究两个原生缺陷已被课程独立修复**，D2/D6 升「两道 vs 三道保险」双口径）、172 附录新发现 goal loop 与官方 `CLAUDE_CODE_STOP_HOOK_BLOCK_CAP` 同名同值强对位。撞号防御三轨对照表迁入系列信源地图（全仓唯一展开层）；025/context_assembler 旧 12 课轨引用消歧办结。质量闸：29+5+5+6 代理编排（取证/综合/证伪/重写）、独立证伪 270 条断言 267 PASS（4 条转写级失配修复）、费曼三维考评首轮全绿、熵审计 51 负债四桶处置、跨文档 grep 门 + 全量链接零死链；五张 panorama 图 mermaid 源同步更新并重渲染。
