@@ -1,5 +1,5 @@
 ---
-sidebar_position: 9
+sidebar_position: 10
 title: "精读：Nous Research Hermes Agent（自学习闭环 Harness）"
 description: "固定提交 068db016 的全貌解剖：缓存优先的三段式提示装配、有界常驻记忆 + 按需技能两级记忆、交付后旁路 review 自写技能 + Curator 只归档不删除、FTS5 零 LLM 会话检索 + 结构不变式压缩、委派/定时/命令守卫的受控扩张；五条底层规律、三个核心争议、21 处文档↔代码漂移、双 Agent 费曼实录，配套最小原型六次破坏性实验"
 ---
