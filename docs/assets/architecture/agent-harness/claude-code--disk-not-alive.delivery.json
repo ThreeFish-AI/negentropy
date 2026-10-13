@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "ca11c704-9816-4937-833a-cab1ba1873df",
+  "status": "current",
+  "command": "deliver",
+  "type": "lifecycle",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/.temp/archify/lifecycle-disk-not-alive-fig/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/docs/assets/architecture/agent-harness/claude-code--disk-not-alive.html",
+  "specification": {
+    "sha256": "f75bd211cc8d86fbbcfa813cca501aefb75830a2fa9cb482b9245d2ff0b0dd6f",
+    "bytes": 3408
+  },
+  "artifact": {
+    "sha256": "4c58f3858a40a3d44e80919c80346e0d32b5168629fb8e66be2be8f622faf8d9",
+    "bytes": 763190
+  }
+}

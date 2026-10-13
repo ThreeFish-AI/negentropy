@@ -103,7 +103,7 @@
 
 ## 九、Agent Harness 工程 · `agent-harness/`
 
-> 一手材料：① 170–175 以 Learn Claude Code 课程站点修订与 [shareAI-lab/learn-claude-code](https://github.com/shareAI-lab/learn-claude-code) 仓库 main 整合版（MIT，固定提交取证：main `ce8f9f18` / 站点 `67a9126c`，2026-10-07 换钉）与 Anthropic 官方文档（code.claude.com，轨 C 产品现状口径）为信源；② 180 以阿里巴巴《AI Native 研发范式实践手册》（2026-09，68 页）为信源；③ 190 以 [NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent) 固定提交 `068db016`（MIT）与其官方文档站为信源。
+> 一手材料：① 170–175 以 Learn Claude Code 课程站点修订与 [shareAI-lab/learn-claude-code](https://github.com/shareAI-lab/learn-claude-code) 仓库 main 整合版（MIT，固定提交取证：main `ce8f9f18` / 站点 `67a9126c`，2026-10-07 换钉）与 Anthropic 官方文档（code.claude.com，轨 C 产品现状口径）为信源；② 180 以阿里巴巴《AI Native 研发范式实践手册》（2026-09，68 页）为信源；③ 190 以 [NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent) 固定提交 `068db016`（MIT）与其官方文档站为信源。④ 176 是 s13/s14「并发」两节的独立重学篇，以站点轨源文件固定提交 `67a9126c`（main 平行轨 `ce8f9f18` 对照）与 Anthropic 官方文档为信源，不继承 170–175 的叙事与结论。
 >
 > **SSOT 边界（170–175）**：逐章原文引语、可调参数、生产版行号与口播判据在科普视频工程各集 `research/gl-notes.md`（冻结登记 + 附录 C 穿透明细；ep5 例外：其 gl-notes 为 2026-10-07 换代前 175 的冻结快照——成片 v2 取证口径）；章→集归属与固定提交选择只登记在[系列信源地图](../../apps/negentropy-influence/source-map/claude-code-explained.md)。本分部只做**跨层综观、main 轨净增量与本仓机制对位**，冲突一律以上述两处为准。
 
@@ -117,6 +117,7 @@
 | [⑤ 多 Agent 平台](./agent-harness/175-claude-code-multi-agent-platform.md) | 文件任务板、消费式收件箱、带编号的请求-响应协议、空闲自认领、任务绑定 worktree、外部工具发现-命名-组装，最后全部挂回同一个循环（「机制很多、循环一个」）；五条底层规律、三个核心争议，配套约 500 行确定性原型与五组破坏性实验实测退化 |
 | [精读：AI Native 研发范式实践手册](./agent-harness/180-ai-native-handbook.md) | 企业级 Harness 视角：三案例 → 五挑战 → 四层基础设施（Harness / 运行环境 / 可信安全 / 可观测）的全貌解剖、五条底层规律（模型提意图·确定性系统决策 / 证据先于结论 / 权限逐级收敛 / 结论绑定现场·不确定即拒 / 环境与知识是第一类上下文）、两个核心争议与批判性边界五条（含度量示例 SQL 多对多扇出实测复现）；≤2000 字精炼版，配套原型六次破坏性实验 |
 | [精读：Nous Research Hermes Agent](./agent-harness/190-hermes-agent.md) | 自学习闭环 Harness 视角：缓存优先的三段式提示装配（会话内唯一计划内断点是压缩）、有界常驻记忆（2200/1375 字符）+ 按需技能两级记忆、交付后旁路 review 自写技能（分派侧白名单 · 先读后写 · 署名保护）+ Curator 只归档不删除、FTS5 零 LLM 会话检索 + 工具组不拆的四阶段压缩、委派/定时/命令守卫的受控扩张；五条规律（缓存/容量/写回/历史/边界）、三个争议、21 处文档↔代码漂移与「无学习效果评测」的批判性边界，配套原型六次破坏性实验与两张 archify 图 |
+| [Learn Claude Code 并发与调度重学精读](./agent-harness/176-claude-code-concurrency-relearn.md) | s13 后台任务 × s14 定时调度的**独立重学篇**（最新版 guided-learn，零继承旧篇）：占位回执守住「一次调用配一个结果」的协议名额、通知由主循环每轮收集后以新消息身份回注；cron 四层解耦（判时/队列/非阻塞交付/执行）与三道保险；教学版三处边界实测（后台复用 120 秒超时、摘要截 200 字、通知未转义）；官方文档逐项对账（印证清单 + 抖动上限硬分歧 + 超时自动转后台三路径）；确定性原型 + 五次破坏性实验 + 两张 archify 图 |
 
 ---
 

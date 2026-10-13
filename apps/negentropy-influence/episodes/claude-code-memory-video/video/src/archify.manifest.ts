@@ -35,7 +35,7 @@ export const ARCHIFY = {
         "endStill": "compact-entries--entries-overview-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.46,
+        "storySec": 4.45,
         "beatNodes": [
           "entry-sign",
           "auto-precheck",
@@ -50,7 +50,7 @@ export const ARCHIFY = {
         "endStill": "compact-entries--auto-gate-end.png",
         "beats": 1,
         "leadSec": 0.44,
-        "storySec": 3.21,
+        "storySec": 3.23,
         "beatNodes": [
           "auto-precheck"
         ]
@@ -74,7 +74,7 @@ export const ARCHIFY = {
         "endStill": "compact-entries--rescue-lane-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.25,
+        "storySec": 3.24,
         "beatNodes": [
           "rescue-lane",
           "reject-stamp"
@@ -87,7 +87,7 @@ export const ARCHIFY = {
         "endStill": "compact-entries--tail-five-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.25,
+        "storySec": 3.23,
         "beatNodes": [
           "tail-guard",
           "rescue-lane"
@@ -100,7 +100,7 @@ export const ARCHIFY = {
         "endStill": "compact-entries--once-only-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.26,
+        "storySec": 3.23,
         "beatNodes": [
           "retry-limit",
           "rescue-lane"
@@ -119,7 +119,7 @@ export const ARCHIFY = {
         "endStill": "compact-pipeline--four-layers-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.45,
+        "storySec": 4.47,
         "beatNodes": [
           "snip-lane",
           "micro-lane",
@@ -134,7 +134,7 @@ export const ARCHIFY = {
         "endStill": "compact-pipeline--cost-ladder-end.png",
         "beats": 5,
         "leadSec": 0.44,
-        "storySec": 5.56,
+        "storySec": 5.53,
         "beatNodes": [
           "cost-column",
           "snip-lane",
@@ -149,8 +149,8 @@ export const ARCHIFY = {
         "file": "compact-pipeline--text-vs-llm.mp4",
         "endStill": "compact-pipeline--text-vs-llm-end.png",
         "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.43,
+        "leadSec": 0.48,
+        "storySec": 4.47,
         "beatNodes": [
           "snip-lane",
           "micro-lane",
@@ -165,7 +165,7 @@ export const ARCHIFY = {
         "endStill": "compact-pipeline--one-llm-call-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.26,
+        "storySec": 3.24,
         "beatNodes": [
           "digest-lane",
           "cost-column"
@@ -178,7 +178,7 @@ export const ARCHIFY = {
         "endStill": "compact-pipeline--teach-vs-real-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.22,
+        "storySec": 3.24,
         "beatNodes": [
           "teach-numbering",
           "real-flow"
@@ -227,7 +227,7 @@ export const ARCHIFY = {
         "endStill": "five-layer-dependency--read-two-books-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.36,
+        "storySec": 3.32,
         "beatNodes": [
           "loop-core",
           "layer-3",
@@ -241,7 +241,7 @@ export const ARCHIFY = {
         "endStill": "five-layer-dependency--two-dark-zones-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.35,
+        "storySec": 3.32,
         "beatNodes": [
           "dim-zones",
           "layer-4",
@@ -261,7 +261,7 @@ export const ARCHIFY = {
         "endStill": "four-memory-types--four-questions-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.44,
+        "storySec": 4.42,
         "beatNodes": [
           "q-who",
           "q-how",
@@ -275,8 +275,8 @@ export const ARCHIFY = {
         "file": "four-memory-types--who-and-how.mp4",
         "endStill": "four-memory-types--who-and-how-end.png",
         "beats": 4,
-        "leadSec": 0.48,
-        "storySec": 4.43,
+        "leadSec": 0.44,
+        "storySec": 4.44,
         "beatNodes": [
           "q-who",
           "type-user",
@@ -291,7 +291,7 @@ export const ARCHIFY = {
         "endStill": "four-memory-types--what-and-where-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.44,
+        "storySec": 4.47,
         "beatNodes": [
           "q-what",
           "type-project",
@@ -312,7 +312,7 @@ export const ARCHIFY = {
         "endStill": "lossy-summary--taste-lost-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.24,
+        "storySec": 3.22,
         "beatNodes": [
           "verbatim-tabs",
           "generic-style"
@@ -325,7 +325,7 @@ export const ARCHIFY = {
         "endStill": "lossy-summary--tabs-verbatim-end.png",
         "beats": 1,
         "leadSec": 0.44,
-        "storySec": 3.24,
+        "storySec": 3.2,
         "beatNodes": [
           "verbatim-tabs"
         ]
@@ -337,7 +337,7 @@ export const ARCHIFY = {
         "endStill": "lossy-summary--collapse-rounds-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.35,
+        "storySec": 3.34,
         "beatNodes": [
           "round-1",
           "round-n",
@@ -351,7 +351,7 @@ export const ARCHIFY = {
         "endStill": "lossy-summary--forgetting-per-round-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.25,
+        "storySec": 3.26,
         "beatNodes": [
           "forget-depth",
           "generic-style"
@@ -383,7 +383,7 @@ export const ARCHIFY = {
         "endStill": "memory-ledger--not-handwritten-end.png",
         "beats": 1,
         "leadSec": 0.44,
-        "storySec": 3.22,
+        "storySec": 3.24,
         "beatNodes": [
           "index-page"
         ]
@@ -409,7 +409,7 @@ export const ARCHIFY = {
         "endStill": "memory-ledger--derived-vs-source-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.26,
+        "storySec": 3.22,
         "beatNodes": [
           "index-page",
           "file-source"
@@ -441,7 +441,7 @@ export const ARCHIFY = {
         "file": "memory-panorama--evolved-hint.mp4",
         "endStill": "memory-panorama--evolved-hint-end.png",
         "beats": 2,
-        "leadSec": 0.44,
+        "leadSec": 0.48,
         "storySec": 3.22,
         "beatNodes": [
           "evolve",
@@ -469,7 +469,7 @@ export const ARCHIFY = {
         "endStill": "memory-panorama--answer-panorama-end.png",
         "beats": 7,
         "leadSec": 0.44,
-        "storySec": 7.76,
+        "storySec": 7.75,
         "beatNodes": [
           "spill",
           "trim",
@@ -487,7 +487,7 @@ export const ARCHIFY = {
         "endStill": "memory-panorama--lossy-side-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.45,
+        "storySec": 4.47,
         "beatNodes": [
           "spill",
           "trim",
@@ -502,7 +502,7 @@ export const ARCHIFY = {
         "endStill": "memory-panorama--ledger-side-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.37,
+        "storySec": 3.35,
         "beatNodes": [
           "select",
           "extract",
@@ -516,7 +516,7 @@ export const ARCHIFY = {
         "endStill": "memory-panorama--two-clamps-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.25,
+        "storySec": 3.26,
         "beatNodes": [
           "extract",
           "model"
@@ -529,7 +529,7 @@ export const ARCHIFY = {
         "endStill": "memory-panorama--vow-cashed-end.png",
         "beats": 6,
         "leadSec": 0.44,
-        "storySec": 6.66,
+        "storySec": 6.64,
         "beatNodes": [
           "spill",
           "trim",
@@ -552,7 +552,7 @@ export const ARCHIFY = {
         "endStill": "night-shift--threshold-in-end.png",
         "beats": 1,
         "leadSec": 0.44,
-        "storySec": 3.22,
+        "storySec": 3.25,
         "beatNodes": [
           "threshold-gate"
         ]
@@ -592,7 +592,7 @@ export const ARCHIFY = {
         "endStill": "night-shift--outside-deleted-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.23,
+        "storySec": 3.25,
         "beatNodes": [
           "reverse-gate",
           "delete-all"
@@ -605,7 +605,7 @@ export const ARCHIFY = {
         "endStill": "night-shift--stuck-paradox-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.25,
+        "storySec": 3.22,
         "beatNodes": [
           "reverse-gate",
           "threshold-gate"
@@ -624,7 +624,7 @@ export const ARCHIFY = {
         "endStill": "pair-guard--pair-rule-end.png",
         "beats": 1,
         "leadSec": 0.44,
-        "storySec": 3.23,
+        "storySec": 3.25,
         "beatNodes": [
           "pair-bond"
         ]
@@ -636,7 +636,7 @@ export const ARCHIFY = {
         "endStill": "pair-guard--pair-bound-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.33,
+        "storySec": 3.36,
         "beatNodes": [
           "request-card",
           "result-card",
@@ -650,7 +650,7 @@ export const ARCHIFY = {
         "endStill": "pair-guard--orphan-rejected-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.26,
+        "storySec": 3.25,
         "beatNodes": [
           "orphan-result",
           "reject-stamp"
@@ -663,7 +663,7 @@ export const ARCHIFY = {
         "endStill": "pair-guard--cut-yields-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.36,
+        "storySec": 3.32,
         "beatNodes": [
           "cut-point-a",
           "cut-point-b",
@@ -677,7 +677,7 @@ export const ARCHIFY = {
         "endStill": "pair-guard--content-vs-structure-end.png",
         "beats": 4,
         "leadSec": 0.44,
-        "storySec": 4.42,
+        "storySec": 4.46,
         "beatNodes": [
           "invariant",
           "pair-bond",
@@ -698,7 +698,7 @@ export const ARCHIFY = {
         "endStill": "pointer-trade--batch-account-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.23,
+        "storySec": 3.21,
         "beatNodes": [
           "latest-batch",
           "budget-check"
@@ -724,7 +724,7 @@ export const ARCHIFY = {
         "endStill": "pointer-trade--parcel-tag-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.23,
+        "storySec": 3.24,
         "beatNodes": [
           "parcel-tag",
           "preview-block"
@@ -737,7 +737,7 @@ export const ARCHIFY = {
         "endStill": "pointer-trade--full-on-disk-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.25,
+        "storySec": 3.24,
         "beatNodes": [
           "disk-vault",
           "parcel-tag"
@@ -750,7 +750,7 @@ export const ARCHIFY = {
         "endStill": "pointer-trade--slide-and-flatten-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.33,
+        "storySec": 3.32,
         "beatNodes": [
           "recent-window",
           "old-result",
@@ -764,7 +764,7 @@ export const ARCHIFY = {
         "endStill": "pointer-trade--hint-no-address-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.21,
+        "storySec": 3.25,
         "beatNodes": [
           "generic-hint",
           "parcel-tag"
@@ -783,7 +783,7 @@ export const ARCHIFY = {
         "endStill": "stop-extraction--stop-moment-end.png",
         "beats": 1,
         "leadSec": 0.44,
-        "storySec": 3.26,
+        "storySec": 3.24,
         "beatNodes": [
           "stop-moment"
         ]
@@ -807,8 +807,8 @@ export const ARCHIFY = {
         "file": "stop-extraction--side-extract.mp4",
         "endStill": "stop-extraction--side-extract-end.png",
         "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.23,
+        "leadSec": 0.48,
+        "storySec": 3.25,
         "beatNodes": [
           "bypass-open",
           "candidate-extract"
@@ -821,7 +821,7 @@ export const ARCHIFY = {
         "endStill": "stop-extraction--dedupe-first-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.26,
+        "storySec": 3.24,
         "beatNodes": [
           "existing-list",
           "candidate-extract"
@@ -834,7 +834,7 @@ export const ARCHIFY = {
         "endStill": "stop-extraction--strong-signals-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.23,
+        "storySec": 3.25,
         "beatNodes": [
           "signal-strong",
           "candidate-extract"
@@ -853,7 +853,7 @@ export const ARCHIFY = {
         "endStill": "two-layer-loading--two-tracks-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.25,
+        "storySec": 3.23,
         "beatNodes": [
           "system-prefix",
           "user-turn"
@@ -866,7 +866,7 @@ export const ARCHIFY = {
         "endStill": "two-layer-loading--index-resident-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.23,
+        "storySec": 3.26,
         "beatNodes": [
           "index-resident",
           "system-prefix"
@@ -893,7 +893,7 @@ export const ARCHIFY = {
         "endStill": "two-layer-loading--copy-not-pollute-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.22,
+        "storySec": 3.25,
         "beatNodes": [
           "inject-copy",
           "dialog-ledger"
@@ -906,7 +906,7 @@ export const ARCHIFY = {
         "endStill": "two-layer-loading--cache-stakes-end.png",
         "beats": 3,
         "leadSec": 0.44,
-        "storySec": 3.36,
+        "storySec": 3.34,
         "beatNodes": [
           "cache-zone",
           "system-prefix",
@@ -920,7 +920,7 @@ export const ARCHIFY = {
         "endStill": "two-layer-loading--side-query-end.png",
         "beats": 2,
         "leadSec": 0.44,
-        "storySec": 3.23,
+        "storySec": 3.26,
         "beatNodes": [
           "side-query",
           "selector"

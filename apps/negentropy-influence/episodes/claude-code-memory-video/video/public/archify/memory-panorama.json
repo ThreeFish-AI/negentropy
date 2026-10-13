@@ -1,9 +1,9 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.44,
- "story_sec": 32.06,
- "total_wall_sec": 119.55,
+ "lead_sec": 0.48,
+ "story_sec": 32.04,
+ "total_wall_sec": 110.52,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -16,11 +16,11 @@
    "end_still": "memory-panorama--evolved-hint-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 0.44,
+   "lead_sec": 0.48,
    "story_sec": 3.22,
    "beat_offsets_sec": [
     0.0,
-    1.603
+    1.604
    ],
    "beat_nodes": [
     "evolve",
@@ -41,8 +41,8 @@
    "story_sec": 3.35,
    "beat_offsets_sec": [
     0.0,
-    1.105,
-    2.209
+    1.104,
+    2.207
    ],
    "beat_nodes": [
     "evolve",
@@ -61,15 +61,15 @@
    "beats": 7,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 7.76,
+   "story_sec": 7.75,
    "beat_offsets_sec": [
     0.0,
-    1.104,
-    2.208,
-    3.311,
+    1.103,
+    2.207,
+    3.312,
     4.417,
     5.522,
-    6.625
+    6.626
    ],
    "beat_nodes": [
     "spill",
@@ -92,12 +92,12 @@
    "beats": 4,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 4.45,
+   "story_sec": 4.47,
    "beat_offsets_sec": [
     0.0,
-    1.105,
-    2.209,
-    3.314
+    1.104,
+    2.208,
+    3.313
    ],
    "beat_nodes": [
     "spill",
@@ -106,7 +106,7 @@
     "digest"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 26.0
+   "capture_fps": 27.0
   },
   {
    "id": "ledger-side",
@@ -117,11 +117,11 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.37,
+   "story_sec": 3.35,
    "beat_offsets_sec": [
     0.0,
-    1.103,
-    2.208
+    1.104,
+    2.207
    ],
    "beat_nodes": [
     "select",
@@ -140,10 +140,10 @@
    "beats": 2,
    "dwell_ms": 1600,
    "lead_sec": 0.44,
-   "story_sec": 3.25,
+   "story_sec": 3.26,
    "beat_offsets_sec": [
     0.0,
-    1.604
+    1.605
    ],
    "beat_nodes": [
     "extract",
@@ -161,14 +161,14 @@
    "beats": 6,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 6.66,
+   "story_sec": 6.64,
    "beat_offsets_sec": [
     0.0,
-    1.103,
-    2.208,
-    3.312,
-    4.417,
-    5.521
+    1.104,
+    2.209,
+    3.313,
+    4.418,
+    5.524
    ],
    "beat_nodes": [
     "spill",
@@ -190,7 +190,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code-memory--memory-panorama.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/docs/assets/architecture/agent-harness/claude-code-memory--memory-panorama.html",
  "slug": "memory-panorama",
  "type": "architecture"
 }

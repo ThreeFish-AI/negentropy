@@ -1,0 +1,21 @@
+%% source: docs/research/agent-harness/176-claude-code-concurrency-relearn.md §4
+%% slug: claude-code-cron--four-layer-decoupling
+%% type: workflow
+%% derived: docs/assets/architecture/agent-harness/claude-code-cron--four-layer-decoupling.html
+flowchart LR
+    subgraph SCHED["① Scheduler 判时线程（daemon · 每秒）"]
+        T["cron_matches 判时<br/>带日期去重记号 / 单任务兜错 / 注册与加载校验"]
+    end
+    subgraph DELIVER["③ Queue Processor 交付线程（0.2 秒轮询）"]
+        L{"agent_lock<br/>非阻塞抢锁"}
+    end
+    T -- "到点入队" --> Q["② cron_queue<br/>只记账不执行"]
+    Q --> L
+    L -- "抢到锁＝Agent 空闲" --> C4["④ Consumer：agent_loop<br/>注入 [Scheduled] 前缀消息"]
+    L -- "抢不到＝Agent 忙" -.->|让行，下轮再看| Q
+    C4 --> EX["模型像收到用户消息一样执行"]
+    subgraph STORE["持久化（可选）"]
+        D[("durable 任务定义<br/>.scheduled_tasks.json")]
+    end
+    D -- "启动时加载恢复<br/>（跳过非法）" --> T
+    C4 -.->|"一次性任务触发后删除"| D

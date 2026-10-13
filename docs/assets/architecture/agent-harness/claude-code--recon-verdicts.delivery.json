@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "35b0cec7-f6af-43d5-a37d-09cd30f6f567",
+  "status": "current",
+  "command": "deliver",
+  "type": "dataflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/.temp/archify/dataflow-recon-verdicts-fig/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/docs/assets/architecture/agent-harness/claude-code--recon-verdicts.html",
+  "specification": {
+    "sha256": "fcce914f87b5b4c1340b7810eb3624a1fcc226b3e7b1faa0a0e1711c7e9095e4",
+    "bytes": 4042
+  },
+  "artifact": {
+    "sha256": "9919c05abc533da894260dfe7e97c16eae5c6b2693e8fc51a186480ad4f59b2d",
+    "bytes": 759422
+  }
+}

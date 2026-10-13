@@ -147,12 +147,12 @@ via = "官方补读（174 参考 [6]；边界对照）"
 [doc-desktop-scheduled]
 url = "https://code.claude.com/docs/en/desktop-scheduled-tasks"
 kind = "site"
-accessed = "2026-10-07"
-raw_sha256 = "32c49ca923b87a91"
+accessed = "2026-10-09"
+raw_sha256 = "c91e6cbc73af031c"
 text_sha256 = "f829249b6c7880a8"
-bytes = 432657
+bytes = 432848
 lines = 1530
-via = "官方补读（174 参考 [7]；catch-up 策略）"
+via = "官方补读（174 参考[7]；本轮重抓：catch-up 补跑语义裁决）"
 
 [doc-tools-reference]
 url = "https://code.claude.com/docs/en/tools-reference"
@@ -177,9 +177,29 @@ via = "官方补读（174 参考 [9]；输出上限）"
 [doc-headless]
 url = "https://code.claude.com/docs/en/headless"
 kind = "site"
-accessed = "2026-10-07"
-raw_sha256 = "ca202c2b6721f0f6"
-text_sha256 = "bb76687f6eeeec11"
-bytes = 687477
-lines = 1679
-via = "官方补读（174 参考 [10]；退出回收）"
+accessed = "2026-10-09"
+raw_sha256 = "e807f5459ab42b49"
+text_sha256 = "2f97345b886c91c2"
+bytes = 695952
+lines = 1695
+via = "官方补读（174 参考[10]；本轮重抓：退出回收时限裁决）"
+
+[doc-env-vars]
+url = "https://code.claude.com/docs/en/env-vars"
+kind = "site"
+accessed = "2026-10-09"
+raw_sha256 = "a9358feca2d1d448"
+text_sha256 = "9122886774f2f007"
+bytes = 961730
+lines = 1583
+via = "官方补读（176 参考[4]；冲突①裁决实抓：CLAUDE_CODE_MAX_TOOL_USE_CONCURRENCY 在册）"
+
+[doc-tool-use-overview]
+url = "https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview"
+kind = "site"
+accessed = "2026-10-09"
+raw_sha256 = "1033a98f0eecd209"
+text_sha256 = "bf3cb904c5657c48"
+bytes = 913665
+lines = 118
+via = "官方补读（176 参考[8]；配对语义协议依据）"
