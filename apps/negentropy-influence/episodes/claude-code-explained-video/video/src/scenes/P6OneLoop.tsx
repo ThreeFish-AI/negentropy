@@ -13,7 +13,7 @@
  *    该句同窗锚 one-loop 章（全屏独占），金句卡故以衬底 scrim 叠在 cue 窗后段定格
  *    ——先让画框入场约 7 帧，再由衬线记忆点接管；刻意不进 ArchifyYield。
  *  ★ 6-D 系列身份卡/下期卡：标题主段是 check_series 规则 8 的受检硬编码——
- *    本集「一个循环，三层装置」＋下集「模型的视野是安排出来的」（改标题先改
+ *    本集「一个循环，三层装置」＋下集「视野错位的五种修正手法」（改标题先改
  *    series.json 再同步此串）；层名/下期层名走 series-layers.json 数据（NEXT_LAYER）。
  *  ★ 空间契约：6-A/6-D 为系列装置镜（3D 栈/工坊地图居中），6-B/6-C 卡片对称分置。
  */
@@ -639,7 +639,7 @@ const SeriesCards: React.FC<{at20: number}> = ({at20}) => {
             {`下期 · ${NEXT_LAYER?.layer ?? ''}`}
           </div>
           <div style={{fontFamily: theme.serif, fontSize: 34, color: theme.text, marginTop: 8}}>
-            {'模型的视野是安排出来的'}
+            {'视野错位的五种修正手法'}
           </div>
         </div>
       </div>

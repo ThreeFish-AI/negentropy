@@ -7,6 +7,8 @@
 # kind=repo 指向固定 commit，raw 指纹漂移即 FAIL（说明 URL 里的 ref 不是不可变引用）。
 # kind=site 只对剥标签归一后的正文比对指纹，漂移报 WARN（去复核笔记）。
 # text_sha256 是判据；raw_sha256 仅供 repo 类硬校验与人工核对。sha256 算法、取数 2026-10-07。
+# 冻结正文参考 [5]–[9]（4 篇 DOI 论文 + 1 篇 AWS 工程博客）为文献性信源（DOI 冻结/稳定存档），
+# 不属活信源、不入本台账——台账覆盖面 = gl-notes 原始信源中的活 URL 部分。
 
 
 [s05-readme]
