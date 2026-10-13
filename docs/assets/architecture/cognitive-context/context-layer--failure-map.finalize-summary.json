@@ -7,13 +7,13 @@
   "quality": "showcase",
   "specification": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/architecture-context-layer--failure-map-20261010-003320/candidate.json",
-    "sha256": "1b7b9c1d81ca710c7e1ee781abfcbe30f91035e4a09ef87417d33299b140e77a",
-    "bytes": 6513
+    "sha256": "5b3ea0a8799f93944ee510ef082e1a73b2aefef2e01a0892916fa077226bcac4",
+    "bytes": 6486
   },
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
-    "sha256": "dae51864ec358000bbeed6d92ad9dcbb00b9dc331aa8e3ab7f8011ae832d1680",
-    "bytes": 765089
+    "sha256": "e5238cd5798187673cabe3930cc53ee30e384082fa1ee98db16c3bf5fc923a8d",
+    "bytes": 765362
   },
   "gates": {
     "validate": "pass",
@@ -33,5 +33,5 @@
     "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.browser-check.json"
   },
   "visualReview": "not-requested",
-  "durationMs": 2200
+  "durationMs": 2040
 }

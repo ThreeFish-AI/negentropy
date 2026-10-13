@@ -5,16 +5,16 @@
   "status": "pass",
   "type": "architecture",
   "quality": "showcase",
-  "startedAt": "2026-10-09T16:34:15.636Z",
+  "startedAt": "2026-10-13T06:55:40.486Z",
   "specification": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/architecture-context-layer--failure-map-20261010-003320/candidate.json",
-    "sha256": "1b7b9c1d81ca710c7e1ee781abfcbe30f91035e4a09ef87417d33299b140e77a",
-    "bytes": 6513
+    "sha256": "5b3ea0a8799f93944ee510ef082e1a73b2aefef2e01a0892916fa077226bcac4",
+    "bytes": 6486
   },
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
-    "sha256": "dae51864ec358000bbeed6d92ad9dcbb00b9dc331aa8e3ab7f8011ae832d1680",
-    "bytes": 765089
+    "sha256": "e5238cd5798187673cabe3930cc53ee30e384082fa1ee98db16c3bf5fc923a8d",
+    "bytes": 765362
   },
   "stages": {
     "validate": {
@@ -38,8 +38,8 @@
         "ok": true,
         "command": "validate",
         "specification": {
-          "sha256": "1b7b9c1d81ca710c7e1ee781abfcbe30f91035e4a09ef87417d33299b140e77a",
-          "bytes": 6513
+          "sha256": "5b3ea0a8799f93944ee510ef082e1a73b2aefef2e01a0892916fa077226bcac4",
+          "bytes": 6486
         },
         "validation": {
           "checksPassed": 9,
@@ -54,7 +54,7 @@
     "deliver": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 428,
+      "durationMs": 372,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
@@ -68,19 +68,19 @@
       ],
       "receipt": {
         "schemaVersion": 1,
-        "receiptId": "bef31e20-edc3-4aa8-8c6f-d40bf8ea9566",
+        "receiptId": "ca07fd59-68f5-4e92-8917-ff217f17ca7a",
         "ok": true,
         "command": "deliver",
         "type": "architecture",
         "input": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/architecture-context-layer--failure-map-20261010-003320/candidate.json",
         "output": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
         "specification": {
-          "sha256": "1b7b9c1d81ca710c7e1ee781abfcbe30f91035e4a09ef87417d33299b140e77a",
-          "bytes": 6513
+          "sha256": "5b3ea0a8799f93944ee510ef082e1a73b2aefef2e01a0892916fa077226bcac4",
+          "bytes": 6486
         },
         "artifact": {
-          "sha256": "dae51864ec358000bbeed6d92ad9dcbb00b9dc331aa8e3ab7f8011ae832d1680",
-          "bytes": 765089
+          "sha256": "e5238cd5798187673cabe3930cc53ee30e384082fa1ee98db16c3bf5fc923a8d",
+          "bytes": 765362
         },
         "validation": {
           "checksPassed": 9,
@@ -95,7 +95,7 @@
     "check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 87,
+      "durationMs": 85,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
@@ -107,8 +107,8 @@
         "ok": true,
         "file": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
         "artifact": {
-          "sha256": "dae51864ec358000bbeed6d92ad9dcbb00b9dc331aa8e3ab7f8011ae832d1680",
-          "bytes": 765089
+          "sha256": "e5238cd5798187673cabe3930cc53ee30e384082fa1ee98db16c3bf5fc923a8d",
+          "bytes": 765362
         },
         "checks": [
           {
@@ -178,7 +178,7 @@
             "minLabelRouteClearance": null,
             "desktopReadabilityIssues": 0,
             "viewportHeightIssues": 0,
-            "minProjectedNodeTextPx": 7.5,
+            "minProjectedNodeTextPx": 7.500000000000001,
             "maxBends": 0,
             "routesOverSuggestedBends": 0,
             "maxStretch": 1,
@@ -213,10 +213,10 @@
           "desktopReadability": {
             "budgetBasis": "recognized-declared-wide",
             "readerContract": "declared-wide-v1",
-            "availableDiagramWidth": 1061.8902439024391,
-            "actualBudgetPx": 1061.8902439024391,
-            "actualReaderWidth": 1091.8902439024391,
-            "desiredReaderWidth": 1091.8902439024391,
+            "availableDiagramWidth": 1036.607142857143,
+            "actualBudgetPx": 1036.607142857143,
+            "actualReaderWidth": 1066.607142857143,
+            "desiredReaderWidth": 1066.607142857143,
             "viewportCap": 1376,
             "limit": "source-size",
             "requestedTargetPx": 7.5,
@@ -225,22 +225,22 @@
             "hardFloorMet": true,
             "minimumOwner": {
               "kind": "node",
-              "id": "c5_gongji"
+              "id": "c7_jiexian"
             },
-            "minimumSourceTextPx": 8.2,
-            "minimumProjectedTextPx": 7.5,
+            "minimumSourceTextPx": 8.4,
+            "minimumProjectedTextPx": 7.500000000000001,
             "semanticTextCount": 21
           },
           "issues": []
         },
         "provenance": "current",
-        "deliveryReceiptId": "bef31e20-edc3-4aa8-8c6f-d40bf8ea9566"
+        "deliveryReceiptId": "ca07fd59-68f5-4e92-8917-ff217f17ca7a"
       }
     },
     "browser-check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 1230,
+      "durationMs": 1202,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
@@ -258,11 +258,11 @@
         "status": "pass",
         "visualReview": "not-requested",
         "provenance": "current",
-        "deliveryReceiptId": "bef31e20-edc3-4aa8-8c6f-d40bf8ea9566",
+        "deliveryReceiptId": "ca07fd59-68f5-4e92-8917-ff217f17ca7a",
         "artifact": {
           "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
-          "sha256": "dae51864ec358000bbeed6d92ad9dcbb00b9dc331aa8e3ab7f8011ae832d1680",
-          "bytes": 765089
+          "sha256": "e5238cd5798187673cabe3930cc53ee30e384082fa1ee98db16c3bf5fc923a8d",
+          "bytes": 765362
         },
         "state": {
           "detail": "read",
@@ -304,14 +304,14 @@
                 "viewBoxHeight": 732
               },
               "viewBoxWidth": 1161,
-              "minimumProjectedNodeTextPx": 8.2,
-              "minimumProjectedNonEdgeTextPx": 8.2,
+              "minimumProjectedNodeTextPx": 8.4,
+              "minimumProjectedNonEdgeTextPx": 8.4,
               "minimumProjectedEdgeTextPx": null,
-              "minimumProjectedNodeText": "覆盖率天花板／CJK 失效 · 实线2＋实心1＋虚3",
+              "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
-                "id": "c5_gongji"
+                "id": "c7_jiexian"
               },
               "minimumRequiredNodeTextPx": 6,
               "readabilityOk": true,
@@ -354,14 +354,14 @@
                 "viewBoxHeight": 732
               },
               "viewBoxWidth": 1161,
-              "minimumProjectedNodeTextPx": 8.2,
-              "minimumProjectedNonEdgeTextPx": 8.2,
+              "minimumProjectedNodeTextPx": 8.4,
+              "minimumProjectedNonEdgeTextPx": 8.4,
               "minimumProjectedEdgeTextPx": null,
-              "minimumProjectedNodeText": "覆盖率天花板／CJK 失效 · 实线2＋实心1＋虚3",
+              "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
-                "id": "c5_gongji"
+                "id": "c7_jiexian"
               },
               "minimumRequiredNodeTextPx": 6,
               "readabilityOk": true,
@@ -404,14 +404,14 @@
                 "viewBoxHeight": 732
               },
               "viewBoxWidth": 1161,
-              "minimumProjectedNodeTextPx": 8.2,
-              "minimumProjectedNonEdgeTextPx": 8.2,
+              "minimumProjectedNodeTextPx": 8.4,
+              "minimumProjectedNonEdgeTextPx": 8.4,
               "minimumProjectedEdgeTextPx": null,
-              "minimumProjectedNodeText": "覆盖率天花板／CJK 失效 · 实线2＋实心1＋虚3",
+              "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
-                "id": "c5_gongji"
+                "id": "c7_jiexian"
               },
               "minimumRequiredNodeTextPx": 6,
               "readabilityOk": true,
@@ -454,14 +454,14 @@
                 "viewBoxHeight": 732
               },
               "viewBoxWidth": 1161,
-              "minimumProjectedNodeTextPx": 8.2,
-              "minimumProjectedNonEdgeTextPx": 8.2,
+              "minimumProjectedNodeTextPx": 8.4,
+              "minimumProjectedNonEdgeTextPx": 8.4,
               "minimumProjectedEdgeTextPx": null,
-              "minimumProjectedNodeText": "覆盖率天花板／CJK 失效 · 实线2＋实心1＋虚3",
+              "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
-                "id": "c5_gongji"
+                "id": "c7_jiexian"
               },
               "minimumRequiredNodeTextPx": 6,
               "readabilityOk": true,
@@ -557,14 +557,14 @@
                 "viewBoxHeight": 732
               },
               "viewBoxWidth": 1161,
-              "minimumProjectedNodeTextPx": 8.2,
-              "minimumProjectedNonEdgeTextPx": 8.2,
+              "minimumProjectedNodeTextPx": 8.4,
+              "minimumProjectedNonEdgeTextPx": 8.4,
               "minimumProjectedEdgeTextPx": null,
-              "minimumProjectedNodeText": "覆盖率天花板／CJK 失效 · 实线2＋实心1＋虚3",
+              "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
-                "id": "c5_gongji"
+                "id": "c7_jiexian"
               },
               "minimumRequiredNodeTextPx": 6,
               "readabilityOk": true,
@@ -607,14 +607,14 @@
                 "viewBoxHeight": 732
               },
               "viewBoxWidth": 1161,
-              "minimumProjectedNodeTextPx": 8.2,
-              "minimumProjectedNonEdgeTextPx": 8.2,
+              "minimumProjectedNodeTextPx": 8.4,
+              "minimumProjectedNonEdgeTextPx": 8.4,
               "minimumProjectedEdgeTextPx": null,
-              "minimumProjectedNodeText": "覆盖率天花板／CJK 失效 · 实线2＋实心1＋虚3",
+              "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
-                "id": "c5_gongji"
+                "id": "c7_jiexian"
               },
               "minimumRequiredNodeTextPx": 6,
               "readabilityOk": true,
@@ -657,14 +657,14 @@
                 "viewBoxHeight": 732
               },
               "viewBoxWidth": 1161,
-              "minimumProjectedNodeTextPx": 8.2,
-              "minimumProjectedNonEdgeTextPx": 8.2,
+              "minimumProjectedNodeTextPx": 8.4,
+              "minimumProjectedNonEdgeTextPx": 8.4,
               "minimumProjectedEdgeTextPx": null,
-              "minimumProjectedNodeText": "覆盖率天花板／CJK 失效 · 实线2＋实心1＋虚3",
+              "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
-                "id": "c5_gongji"
+                "id": "c7_jiexian"
               },
               "minimumRequiredNodeTextPx": 6,
               "readabilityOk": true,
@@ -707,14 +707,14 @@
                 "viewBoxHeight": 732
               },
               "viewBoxWidth": 1161,
-              "minimumProjectedNodeTextPx": 8.2,
-              "minimumProjectedNonEdgeTextPx": 8.2,
+              "minimumProjectedNodeTextPx": 8.4,
+              "minimumProjectedNonEdgeTextPx": 8.4,
               "minimumProjectedEdgeTextPx": null,
-              "minimumProjectedNodeText": "覆盖率天花板／CJK 失效 · 实线2＋实心1＋虚3",
+              "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
-                "id": "c5_gongji"
+                "id": "c7_jiexian"
               },
               "minimumRequiredNodeTextPx": 6,
               "readabilityOk": true,
@@ -762,14 +762,14 @@
                 "viewBoxHeight": 732
               },
               "viewBoxWidth": 1161,
-              "minimumProjectedNodeTextPx": 8.2,
-              "minimumProjectedNonEdgeTextPx": 8.2,
+              "minimumProjectedNodeTextPx": 8.4,
+              "minimumProjectedNonEdgeTextPx": 8.4,
               "minimumProjectedEdgeTextPx": null,
-              "minimumProjectedNodeText": "覆盖率天花板／CJK 失效 · 实线2＋实心1＋虚3",
+              "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
-                "id": "c5_gongji"
+                "id": "c7_jiexian"
               },
               "minimumRequiredNodeTextPx": 6,
               "readabilityOk": true,
@@ -812,14 +812,14 @@
                 "viewBoxHeight": 732
               },
               "viewBoxWidth": 1161,
-              "minimumProjectedNodeTextPx": 8.2,
-              "minimumProjectedNonEdgeTextPx": 8.2,
+              "minimumProjectedNodeTextPx": 8.4,
+              "minimumProjectedNonEdgeTextPx": 8.4,
               "minimumProjectedEdgeTextPx": null,
-              "minimumProjectedNodeText": "覆盖率天花板／CJK 失效 · 实线2＋实心1＋虚3",
+              "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
-                "id": "c5_gongji"
+                "id": "c7_jiexian"
               },
               "minimumRequiredNodeTextPx": 6,
               "readabilityOk": true,
@@ -862,14 +862,14 @@
                 "viewBoxHeight": 732
               },
               "viewBoxWidth": 1161,
-              "minimumProjectedNodeTextPx": 8.2,
-              "minimumProjectedNonEdgeTextPx": 8.2,
+              "minimumProjectedNodeTextPx": 8.4,
+              "minimumProjectedNonEdgeTextPx": 8.4,
               "minimumProjectedEdgeTextPx": null,
-              "minimumProjectedNodeText": "覆盖率天花板／CJK 失效 · 实线2＋实心1＋虚3",
+              "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
-                "id": "c5_gongji"
+                "id": "c7_jiexian"
               },
               "minimumRequiredNodeTextPx": 6,
               "readabilityOk": true,
@@ -912,14 +912,14 @@
                 "viewBoxHeight": 732
               },
               "viewBoxWidth": 1161,
-              "minimumProjectedNodeTextPx": 8.2,
-              "minimumProjectedNonEdgeTextPx": 8.2,
+              "minimumProjectedNodeTextPx": 8.4,
+              "minimumProjectedNonEdgeTextPx": 8.4,
               "minimumProjectedEdgeTextPx": null,
-              "minimumProjectedNodeText": "覆盖率天花板／CJK 失效 · 实线2＋实心1＋虚3",
+              "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
-                "id": "c5_gongji"
+                "id": "c7_jiexian"
               },
               "minimumRequiredNodeTextPx": 6,
               "readabilityOk": true,
@@ -956,6 +956,6 @@
     "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.browser-check.json"
   },
   "visualReview": "not-requested",
-  "finishedAt": "2026-10-09T16:34:17.836Z",
-  "durationMs": 2200
+  "finishedAt": "2026-10-13T06:55:42.527Z",
+  "durationMs": 2040
 }
