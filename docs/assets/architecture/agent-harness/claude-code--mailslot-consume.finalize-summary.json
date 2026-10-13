@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "workflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/.archify/workflow-mailslot-consume-20261003-003550/candidate.json",
+    "sha256": "0100c56f8ebf897db3d47fe6f27266639e48b76b30413fecc2c76328990275b1",
+    "bytes": 5445
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code--mailslot-consume.html",
+    "sha256": "25a713e17d0f2336ee2f42d85d596b8698b99be468c90fb42b94aff5c0a47bed",
+    "bytes": 765910
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code--mailslot-consume.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code--mailslot-consume.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code--mailslot-consume.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 2128,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "routesOverSuggestedStretch": 1
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [],
+      "detours": [
+        {
+          "relationship": {
+            "id": "e-take-ok",
+            "from": "take-all",
+            "to": "ok-lane",
+            "label": "消费在位",
+            "collectionIndex": 8,
+            "artifactIndex": 9
+          },
+          "bends": 2,
+          "stretch": 2.938
+        }
+      ],
+      "truncated": false
+    },
+    "hints": [
+      "take-all → ok-lane needs 2 bends: move node take-all or ok-lane so they share a row or column with matching centers, or sit diagonally with a clear corner."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

@@ -1,0 +1,95 @@
+{
+  "schema": 2,
+  "mode": "chapter",
+  "lead_sec": 0.52,
+  "story_sec": 13.05,
+  "total_wall_sec": 57.36,
+  "started_playback": true,
+  "clapper_found": true,
+  "measured_fps": 25.0,
+  "chapters": [
+    {
+      "id": "entry",
+      "label": "默认不拆",
+      "index": 0,
+      "file": "room-teardown--entry.mp4",
+      "end_still": "room-teardown--entry-end.png",
+      "beats": 2,
+      "dwell_ms": 1600,
+      "lead_sec": 0.52,
+      "story_sec": 3.23,
+      "beat_offsets_sec": [],
+      "beat_nodes": [
+        "teardown-entry",
+        "count-check"
+      ],
+      "measured_fps": 25.0,
+      "capture_fps": 61.0
+    },
+    {
+      "id": "refuse",
+      "label": "拒拆",
+      "index": 1,
+      "file": "room-teardown--refuse.mp4",
+      "end_still": "room-teardown--refuse-end.png",
+      "beats": 3,
+      "dwell_ms": 1100,
+      "lead_sec": 0.52,
+      "story_sec": 3.35,
+      "beat_offsets_sec": [],
+      "beat_nodes": [
+        "dirty",
+        "unknown",
+        "refuse"
+      ],
+      "measured_fps": 25.0,
+      "capture_fps": 61.0
+    },
+    {
+      "id": "force-keep",
+      "label": "强删或保留",
+      "index": 2,
+      "file": "room-teardown--force-keep.mp4",
+      "end_still": "room-teardown--force-keep-end.png",
+      "beats": 2,
+      "dwell_ms": 1600,
+      "lead_sec": 0.48,
+      "story_sec": 3.23,
+      "beat_offsets_sec": [],
+      "beat_nodes": [
+        "force-del",
+        "keep"
+      ],
+      "measured_fps": 25.0,
+      "capture_fps": 61.0
+    },
+    {
+      "id": "audit",
+      "label": "事件日志",
+      "index": 3,
+      "file": "room-teardown--audit.mp4",
+      "end_still": "room-teardown--audit-end.png",
+      "beats": 1,
+      "dwell_ms": 3200,
+      "lead_sec": 0.52,
+      "story_sec": 3.24,
+      "beat_offsets_sec": [],
+      "beat_nodes": [
+        "audit-log"
+      ],
+      "measured_fps": 25.0,
+      "capture_fps": 61.0
+    }
+  ],
+  "capture": {
+    "mode": "cdp",
+    "scale": 2,
+    "encoder": "h264",
+    "crf": 16,
+    "fps": 25,
+    "out_h": 1440
+  },
+  "source": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/apps/negentropy-influence/episodes/claude-code-multiagent-video/video/public/archify/html/room-teardown.html",
+  "slug": "room-teardown",
+  "type": "lifecycle"
+}

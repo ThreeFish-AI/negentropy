@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "7aae6db1-015a-40f4-b52e-ad6f11323857",
+  "status": "current",
+  "command": "deliver",
+  "type": "lifecycle",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/.archify/lifecycle-receipt-fsm-20261003-003550/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code--receipt-fsm.html",
+  "specification": {
+    "sha256": "f8973048caaf8139bb64d8f08aab75fe3034dfb634bb7ed6a53d726c30e0bedc",
+    "bytes": 4292
+  },
+  "artifact": {
+    "sha256": "187cc8effcf83e7e00cb62db6e35d98d516d15e8fea1e3a63eaec4217f8cf762",
+    "bytes": 760173
+  }
+}
