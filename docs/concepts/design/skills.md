@@ -62,7 +62,7 @@ LLM Agent 的可控性与可扩展性，从根本上是**上下文工程**问题
 
 ### 3.2 Phase 2 增强（本 PR）
 
-> ⚠️ **校正（2026-09-23）**：`expand_skill` / `list_available_skills` / `fetch_skill_resource` 已实现，但**从未挂载**到任何 Agent（未进 `TOOL_REGISTRY`），模型驱动的 Layer 2/3 激活当前不可达；生效的只有 REST invoke、调度器、翻译服务等显式注入路径。详见 [Agent Skills ↔ negentropy 机制映射 M4](../../research/agent-infra/091-agent-skills-mapping-negentropy.md)。
+> ⚠️ **校正（2026-09-23）**：`expand_skill` / `list_available_skills` / `fetch_skill_resource` 已实现，但**从未挂载**到任何 Agent（未进 `TOOL_REGISTRY`），模型驱动的 Layer 2/3 激活当前不可达；生效的只有 REST invoke、调度器、翻译服务等显式注入路径。详见 [机制映射汇总·Skills 的 SK-M3](../../research/mapping-negentropy.md)。
 
 - **Layer 2 按需展开（P0）**：
   - `agents/tools/skill_registry.py:expand_skill(name, vars)`：ADK 内置工具，LLM 决定使用某 Skill 时调用即得到 Jinja2 渲染后的完整 prompt_template；

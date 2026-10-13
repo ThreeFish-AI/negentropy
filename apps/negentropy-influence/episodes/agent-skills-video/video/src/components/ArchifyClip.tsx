@@ -19,6 +19,9 @@ import {Img, OffthreadVideo, Sequence, staticFile, useVideoConfig} from 'remotio
 import {theme} from '../design/theme';
 import {DUR, useProgress, useSpring} from '../motion';
 
+/** 画框描边色（自旧集 e1-motifs.SCREEN_INK 等值移植：深于 bg 一档的墨色） */
+const SCREEN_INK = '#0B0E13';
+
 /** 源片长与目标句窗不等长时的适配方式 */
 export type ArchifyFit =
   | 'stretch' // 变速铺满：playbackRate = 源秒 / 窗秒（限 [0.7, 1.35]）
@@ -117,7 +120,7 @@ export const ArchifyClip: React.FC<{
           height: BOX.h,
           borderRadius: 14,
           border: `3px solid ${theme.panelBorder}`,
-          background: '#0B0E13',
+          background: SCREEN_INK,
           overflow: 'hidden',
           opacity: enter,
           transform: `scale(${0.94 + 0.06 * enter})`,

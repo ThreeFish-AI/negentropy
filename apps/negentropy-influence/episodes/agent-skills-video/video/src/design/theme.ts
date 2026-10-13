@@ -31,9 +31,11 @@ export const theme = {
   sans: "'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', sans-serif",
   mono: "'SF Mono', 'Menlo', 'JetBrains Mono', monospace",
 
-  // ── 本集概念色（知识的港口剧场，2026-09-26 定稿）──
-  // 引航青=港口/台账/规范层；货签粉=知识箱/内容物；警示金=边界与悬案。
-  concept: '#45DFFF',
-  conceptDeep: '#FF7A9E',
-  deny: '#FFC85C',
+  // ── 本集概念色（planning.md §3 视觉契约；对 bg #0E1116 对比度实测）──
+  // 目录金＝三级渐进披露/成本账本（10.17:1；目录卡描边、账本数字、恒定母题〔M-001〕线色）
+  ledger: '#F2B33D',
+  // 路由靛＝语义路由/命中信号（6.11:1；description 高亮、命中脉冲）
+  route: '#6D8BFF',
+  // 治理紫＝多客户端/生态治理（6.78:1；客户端阵列、PR 战线、争议牌）
+  gov: '#A88BE8',
 } as const;

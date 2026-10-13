@@ -1,0 +1,21 @@
+%% source: docs/research/agent-infra/230-agent-skills-standard.md §8 校验与双轨 + §11 争议
+%% slug: agent-skills-std-dual-track
+%% type: workflow
+%% derived: archify 重绘（fresh authorship），登记于 docs/assets/mermaid/README.md
+flowchart LR
+  spec["规范面（唯一权威）<br/>六字段 + 文件夹形状 + 渐进披露<br/>specification.mdx"]
+  val["校验轨道（严格）<br/>skills-ref 白名单：多余字段打回<br/>to-prompt 生成目录块（转义）"]
+  guide["装载轨道（宽容）<br/>指南四例：警告照载保连通<br/>空目录块整块省略"]
+  ext1["扩展面 A：Claude Code<br/>本地收 20 字段（6 规范+14 扩展）<br/>.claude/skills 系"]
+  ext2["扩展面 B：claude.ai 上传/打包<br/>只收六字段，多一键硬错"]
+  ext3["扩展面 C：Codex<br/>.agents/skills 原生 + openai.yaml 旁车<br/>目录预算 2%/8000 字符"]
+  eco["生态登记：46 家客户端<br/>门槛=今日即可发现并执行"]
+  gate["守门哲学：加易删难<br/>拿不准就不加 · 51 条 open PR 排队"]
+  spec --> val
+  spec --> guide
+  val -.同一官方·两套口径.-> guide
+  guide --> ext1
+  ext2 -.同厂商两面.-> ext1
+  guide --> ext3
+  spec --> eco
+  gate -.裁决所有入口.-> spec

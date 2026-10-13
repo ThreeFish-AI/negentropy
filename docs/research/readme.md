@@ -1,6 +1,6 @@
 # 研究文献总览
 
-> Negentropy 技术调研索引。调研按「认知 → 框架 → 存储 → 图谱 → 执行 → 进化」六段论归档，逐层递进（其中「认知与上下文」与「自进化与工具」两段兼收领域材料精读、对本仓的机制映射与由此派生的可复刻蓝图），另设独立主题分组（量化与投资科学、视频与动效生产、Agent Harness 工程）；本页为各主题分组的阅读入口。
+> Negentropy 技术调研索引。调研按「认知 → 框架 → 存储 → 图谱 → 执行 → 进化」六段论归档，逐层递进（其中「认知与上下文」与「自进化与工具」两段兼收领域材料精读、对本仓的机制映射与由此派生的可复刻蓝图），另设独立主题分组（量化与投资科学、视频与动效生产、Agent Harness 工程）；本页为各主题分组的阅读入口。各篇精读对本仓的机制映射收拢在单一文档：[机制映射汇总：研究文献 ↔ negentropy](./mapping-negentropy.md)（按域给映射总表、逐条说明与统一落地 backlog）。
 
 ---
 
@@ -11,10 +11,8 @@
 | [智能认知增强](./cognitive-context/000-cognitive-enhancement.md) | Agentic 认知增强总览与理论基线 |
 | [Context Engineering 通俗全解](./cognitive-context/010-context-engineering.md) | 上下文工程主流框架与论文精解 |
 | [Snowflake Horizon Context 精读笔记](./cognitive-context/011-horizon-context.md) | 产业范本精读：三阶段演进全景（语义对象化→治理内嵌→生态开放）+ 重评选校准后七机制 M1–M7（语义视图口径单点×查询期重算 / 查询期行列级访问策略 / 语义级治理执行 / 应答层验证锚定 / 端到端列级血缘 / Agent Identity / 分类与标签驱动策略传播）+ 富化/检索/互操作三专章保留（降级理由与重评触发器随文）+ 实证数字与批判性边界，含随笔记入库的 M1–M7 最小原型（十次破坏性实验）与 MCP 服务原型，M1–M7 各配一张 archify 动效工程图，§1 另配病因链与机制对位总览图、§2 另配组件全景与演进时间线两张总览图，§10–§12 降级章四张沿用（共十四张，trace 动画） |
-| [Horizon Context ↔ negentropy 机制映射](./cognitive-context/012-horizon-context-mapping-negentropy.md) | 16 条机制逐条对照本仓 definitions registry / patrol-Judge / skills_injector / Catalog（✅ 已对齐 4 · 🔶 值得落地 8 含部分对齐 1 · ⏸ 暂缓 4；2026-09-17 随 M 集重评选重审，新晋四机制补映射），锚点均经代码核验 |
-| [Context Layer 技术蓝图：Agent 系统的上下文供给与治理](./cognitive-context/013-context-layer-blueprint.md) | **设计蓝图 SSOT（2026-09-27 完全重铸，542 行）**：三轴蓝图（ADR-4/5 五源对象 × 五正交层 × CGAVE 生命周期）× 八失效模式验收面 × 四范本矩阵（Horizon M1–M7 / OpenViking / Claude Code / Hermes·Jev）+ 业界格局与供给面威胁模型 + 装配经济学（ADR-6）+ negentropy 实例化总装（16+4 条映射 as-of @57987b28b 重核；ISSUE-195④/196/191 M2/015 §6 五路回写销账落地）+ 双轨演进；三级证据徽逐数字定级 |
+| [Context Layer 技术蓝图：Agent 系统的上下文供给与治理](./cognitive-context/013-context-layer-blueprint.md) | **设计蓝图 SSOT（2026-09-27 完全重铸，542 行）**：三轴蓝图（ADR-4/5 五源对象 × 五正交层 × CGAVE 生命周期）× 八失效模式验收面 × 四范本矩阵（Horizon M1–M7 / OpenViking / Claude Code / Hermes·Jev）+ 业界格局与供给面威胁模型 + 装配经济学（ADR-6）+ negentropy 实例化总装（16+4 条映射 as-of @57987b28b 重核；ISSUE-195④/196/HM-M2/013 §6.2 五路回写销账落地）+ 双轨演进；三级证据徽逐数字定级 |
 | [OpenViking 精读笔记](./cognitive-context/014-openviking.md) | volcengine 上下文数据库精读（钉点 `14a7b81`，AGPL-3.0）：viking:// 文件系统范式统一资源/记忆/技能、目录级 L0/L1/L2 sidecar 自底向上生成与新鲜度冒泡（256/4000 字符、L0 从 L1 裁出零 LLM、10% 判据）、两档检索（find 固定平铺 / search+rerank 目录递归、α=1.0）、会话两阶段提交与确定性身份记忆提炼（`.done` 提交点、add_only 只增）；代码实值裁决文档旧口径 8 组、厂商基准证据分级（LoCoMo 24.20%→82.08% 全自报、单轮 RAG 66.87%<LightRAG 76.00% 反例、ClawWork 算术错）、五条底层规律与三个争议、双 Agent 费曼对抗实录；含编目/检索两相 archify 图与 clean-room 最小原型（`--selftest` + 六次破坏性实验） |
-| [OpenViking ↔ negentropy 机制映射](./cognitive-context/015-openviking-mapping-negentropy.md) | 13 条机制对照本仓记忆/上下文子系统（✅4 · 🔶5 · ⏸4）：最大真增量 = M-d 会话两阶段提交对准「交互式对话→长期记忆」断链（`add_session_to_memory` 零调用方、`consolidation_jobs` 只入队无消费者）；M-a 副本式 URI 与 013 ADR-1 冲突只取寻址不取存储；取证副产物 8 处本仓漂移（D1–D8，ISSUE-195）与 AGPL 引入约束 |
 
 > 本仓**内部**的实施入口（定位声明 + 章节指针 + 实施状态）原为 `docs/concepts/design/context-layer.md`：设计正文已于 2026-09-20 全量并入上方蓝图，该页于 2026-09-21 删除——013 自此为单一事实源。
 
@@ -72,11 +70,10 @@
 | [Agent Sandbox 综述](./agent-infra/080-agent-sandbox.md) | 五大技术路线正交剖析 |
 | [Agent Sandbox 正交分析](./agent-infra/081-agent-sandbox.md) | Microsandbox / Wasmtime / Firecracker / Vertex |
 | [Agent Sandbox 信任架构深度研究](./agent-infra/082-agent-sandbox.md) | 微虚拟机到托管式执行环境 |
-| [Agent Skills 开放规范精读](./agent-infra/090-agent-skills-spec.md) | agentskills.io 规范（固定提交 `69ef37e9`）：目录即技能包、name 借文件系统拿唯一性、description 独扛触发、三级渐进披露的上下文成本结构；skills-ref 参考实现与规范 13 处分歧（6 处经真实参考实现复现），含最小原型与五次破坏性实验 |
-| [Agent Skills ↔ negentropy 机制映射](./agent-infra/091-agent-skills-mapping-negentropy.md) | 13 条机制对照本仓三套 skill 载体：盘上 11 技能全合规、结构化包裹与同名优先级已对齐；头号发现为 Layer 1 指示的 `expand_skill` 从未挂载（连带 R6-b 在线 canary 门恒被跳过），name/description 规范校验与目录注入防护等 9 条值得落地 |
 | [可观测性对比：Jaeger vs Langfuse](./agent-infra/100-agent-obser.md) | 生成式 AI 可观测性方案选型 |
 | [Jev 精读笔记](./agent-infra/200-jev-system-one-model.md) | TypeSafe「System One Model」四机制：闭合输出空间 × 共享读·隔离问 × 校准概率与 confidence（adapter 固定公式，读数≠概率）× 快慢分工；官方口径与第三方实测逐项对账（193.6× 复算仅 97.8×、校准领地：分布内 ECE 0.031 / 密封集 0.220）；含纯标准库原型 S1–S11 + B1–B5 破坏实验与 laya 复刻本地实测 |
-| [Jev ↔ negentropy 机制映射](./agent-infra/201-jev-mapping-negentropy.md) | 16 条映射（✅5/🔶9/⏸2）：真增量是四条纪律——解析失败应弃权而非注入默认值（proposer 对照 judge 静默 0 分）、矫正要有 counter、置信缺省方向（KG 缺省 1.0 叠 0.5 阈值=自动通过）、口头置信与启发式常数不可比；接入 Jev 本体暂缓 |
+| [Agent Skills 开放标准精读与通俗拆解](./agent-infra/230-agent-skills-standard.md) | agentskills.io 精读（钉 69ef37e9 + 四家客户端口径实测）：三级渐进披露记账、description 独扛路由与触发评测法、规范↔参考实现↔客户端十三处分歧、四家对照表；配套 agent_skills_lab4.py（X1–X5）与 agent_skills_lab2.py（补充 X1/X3/X4/X5）两组破坏实验 |
+| [客户域 Agent Long Memory · 2027 产品规划](./agent-infra/230-customer-domain-long-memory-2027-planning.md) | Context Layer 客户域（tenant / user 两级）长期记忆的年度产品规划：5 条能力线 × 18 个功能点（写入沉淀 / 治理合规 / 读取注入 / 可见可改与运营 / 评估与扩展），含用户场景、验收标准、Gate-0 + 四个季度里程碑、成功指标与待决策项；不含人力与成本估算 |
 
 ## 六、自进化与工具 · `self-evolution/`
 
@@ -88,9 +85,7 @@
 | [经验时代的自驱迭代进化智能体](./self-evolution/140-experience-era-self-improvement.md) | 88 页综述精读 + Routine 闭环诊断 |
 | [Skill 进化闭环 × 自我改进评测](./self-evolution/141-skills-evolution-and-si-measurement.md) | Skills 三阶段进化 + SI 六目标度量 |
 | [Procedural Graph 论文精读](./self-evolution/142-procedural-graphs.md) | arXiv:2609.09153：程序性知识外置为带 condition/guidance/pitfalls 属性的有向图 + 邻域定位软指导 + 过验证门的自进化，含最小原型与破坏性实验 |
-| [PG ↔ negentropy 机制映射](./self-evolution/143-pg-mapping-negentropy.md) | 五条机制对照本仓 Routine / 巡检 / evolution 门控：验证门平局接受与报告纪律已对齐，编辑级拒绝记忆值得落地，边属性按 YAGNI 暂缓 |
 | [Dream-RSI 论文精读](./self-evolution/144-dream-rsi.md) | arXiv:2609.14858：发现历史即重放模拟器、离线「做梦」确定性重放评估改进探索策略、argmax 含当前策略防回退、只改策略层不动底座，含最小原型与五次破坏性实验 |
-| [Dream-RSI ↔ negentropy 机制映射](./self-evolution/145-dream-rsi-mapping-negentropy.md) | 六条机制对照本仓 evolution / routine / eval 体系：候选包含保证与策略层分离已同构、Judge 锚定方向一致，历史重放模拟器按 YAGNI 暂缓并绑定触发条件，语义注入的 over-constrain 边界须知 |
 
 ## 七、量化与投资科学 · `quant-finance/`
 
@@ -108,8 +103,7 @@
 
 ## 九、Agent Harness 工程 · `agent-harness/`
 
-> 一手材料：① 170–175 以 Learn Claude Code 课程站点修订与 [shareAI-lab/learn-claude-code](https://github.com/shareAI-lab/learn-claude-code) 仓库 main 整合版（MIT，固定提交取证：main `ce8f9f18` / 站点 `67a9126c`，2026-10-07 换钉）与 Anthropic 官方文档（code.claude.com，轨 C 产品现状口径）为信源；② 180–181 以阿里巴巴《AI Native 研发范式实践手册》（2026-09，68 页）为信源；③ 190–191 以 [NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent) 固定提交 `068db016`（MIT）与其官方文档站为信源。④ 176 是 s13/s14「并发」两节的独立重学篇，以站点轨源文件固定提交 `67a9126c`（main 平行轨 `ce8f9f18` 对照）与 Anthropic 官方文档为信源，不继承 170–175 的叙事与结论。
-
+> 一手材料：① 170–175 以 Learn Claude Code 课程站点修订与 [shareAI-lab/learn-claude-code](https://github.com/shareAI-lab/learn-claude-code) 仓库 main 整合版（MIT，固定提交取证：main `ce8f9f18` / 站点 `67a9126c`，2026-10-07 换钉）与 Anthropic 官方文档（code.claude.com，轨 C 产品现状口径）为信源；② 180 以阿里巴巴《AI Native 研发范式实践手册》（2026-09，68 页）为信源；③ 190 以 [NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent) 固定提交 `068db016`（MIT）与其官方文档站为信源。④ 176 是 s13/s14「并发」两节的独立重学篇，以站点轨源文件固定提交 `67a9126c`（main 平行轨 `ce8f9f18` 对照）与 Anthropic 官方文档为信源，不继承 170–175 的叙事与结论。
 >
 > **SSOT 边界（170–175）**：逐章原文引语、可调参数、生产版行号与口播判据在科普视频工程各集 `research/gl-notes.md`（冻结登记 + 附录 C 穿透明细）；章→集归属与固定提交选择只登记在[系列信源地图](../../apps/negentropy-influence/source-map/claude-code-explained.md)。本分部只做**跨层综观、main 轨净增量与本仓机制对位**，冲突一律以上述两处为准。
 
@@ -122,9 +116,7 @@
 | [④ 并发与时机](./agent-harness/174-claude-code-concurrency.md) | 「不等它」与「没人按开始也照跑」两种时间机制：占位回执＋通知注入、调度/队列/交付/消费四层解耦、durable 定义跨重启与节拍随进程分离；五次破坏性实验实测退化（60 倍重复入队、回合穿插 9 次等），双轨（站点 s13_background_tasks / s14_cron_scheduler ↔ main s11_background_tasks / s12_cron_scheduler / s16_workflow_runtime @ ce8f9f18）差异并陈与官方文档对账 |
 | [⑤ 多 Agent 平台](./agent-harness/175-claude-code-multi-agent-platform.md) | 文件任务板、消费式收件箱、带编号的请求-响应协议、空闲自认领、任务绑定 worktree、外部工具发现-命名-组装，最后全部挂回同一个循环（「机制很多、循环一个」）；五条底层规律、三个核心争议，配套约 500 行确定性原型与五组破坏性实验实测退化 |
 | [精读：AI Native 研发范式实践手册](./agent-harness/180-ai-native-handbook.md) | 企业级 Harness 视角：三案例 → 五挑战 → 四层基础设施（Harness / 运行环境 / 可信安全 / 可观测）的全貌解剖、五条底层规律（模型提意图·确定性系统决策 / 证据先于结论 / 权限逐级收敛 / 结论绑定现场·不确定即拒 / 环境与知识是第一类上下文）、两个核心争议与批判性边界五条（含度量示例 SQL 多对多扇出实测复现）；≤2000 字精炼版，配套原型六次破坏性实验 |
-| [AI Native 手册 ↔ negentropy 机制映射](./agent-harness/181-ai-native-mapping-negentropy.md) | 十七条机制对照（✅8 / 🔶3 / ⏸6）：闭环骨架已同构，真增量为凭据边界（占位值 + 出站注入）、授权第三态 Challenge 与生产门控对象，均绑定「触达生产或不可信代码」触发条件暂缓 |
 | [精读：Nous Research Hermes Agent](./agent-harness/190-hermes-agent.md) | 自学习闭环 Harness 视角：缓存优先的三段式提示装配（会话内唯一计划内断点是压缩）、有界常驻记忆（2200/1375 字符）+ 按需技能两级记忆、交付后旁路 review 自写技能（分派侧白名单 · 先读后写 · 署名保护）+ Curator 只归档不删除、FTS5 零 LLM 会话检索 + 工具组不拆的四阶段压缩、委派/定时/命令守卫的受控扩张；五条规律（缓存/容量/写回/历史/边界）、三个争议、21 处文档↔代码漂移与「无学习效果评测」的批判性边界，配套原型六次破坏性实验与两张 archify 图 |
-| [Hermes Agent ↔ negentropy 机制映射](./agent-harness/191-hermes-agent-mapping-negentropy.md) | 十六条机制对照（✅4 / 🔶6 / ⏸6）：真增量=交互式对话零压缩（未启用 ADK 原生 EventsCompactionConfig）、记忆写入与注入两端无防注入、历史会话不可检索；取证副产物=中文关键词检索失效（english tsvector 整段汉字单 token，ISSUE-196）、审批门只接线两个工具（ISSUE-197）与 0001 RFC 的 Hermes 口径校正；运行中自写技能按争议一暂缓 |
 | [Learn Claude Code 并发与调度重学精读](./agent-harness/176-claude-code-concurrency-relearn.md) | s13 后台任务 × s14 定时调度的**独立重学篇**（最新版 guided-learn，零继承旧篇）：占位回执守住「一次调用配一个结果」的协议名额、通知由主循环每轮收集后以新消息身份回注；cron 四层解耦（判时/队列/非阻塞交付/执行）与三道保险；教学版三处边界实测（后台复用 120 秒超时、摘要截 200 字、通知未转义）；官方文档逐项对账（印证清单 + 抖动上限硬分歧 + 超时自动转后台三路径）；确定性原型 + 五次破坏性实验 + 两张 archify 图 |
 
 ---
