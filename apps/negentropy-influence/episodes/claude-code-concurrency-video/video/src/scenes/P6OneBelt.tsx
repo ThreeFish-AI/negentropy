@@ -7,7 +7,7 @@
  *  ★ 6-A 的 3D 栈放大由 components/harness-stack.tsx 的 HarnessStackP6 承担；
  *    系列题字压栈底——top 由栈几何推导：310 + 5×56 + 4×8 = 622，3D 底边下探
  *    实测更深，安全距 +82 → 704（ep2 教训：写死 650 会与第五层 3D 底边叠压）。
- *  ★ 6-C 身份卡标题主段「谁来按下开始」／下期卡「从一个到一群」是 check_series
+ *  ★ 6-C 身份卡标题主段「谁来按下开始」／下期卡「七件设施，一条走廊」是 check_series
  *    规则 8 的受检硬编码（改标题先改 series.json 再同步此串）；层短名走
  *    series-layers.json 数据（NEXT_LAYER）。工坊地图开灯口径：lit = 层 index ≤
  *    本集（口播 p6-14「只剩最后一个区没亮灯」的画面契约），末区 dim 呼吸不亮。
@@ -525,7 +525,7 @@ const SeriesCards: React.FC<{at14: number; at16: number}> = ({at14, at16}) => {
             {`下期 · ${NEXT_LAYER?.layer ?? ''}`}
           </div>
           <div style={{fontFamily: theme.serif, fontSize: 34, color: theme.text, marginTop: 8}}>
-            {'从一个到一群'}
+            {'七件设施，一条走廊'}
           </div>
         </div>
       </div>

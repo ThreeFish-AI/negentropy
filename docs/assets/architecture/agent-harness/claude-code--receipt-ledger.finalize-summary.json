@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "sequence",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/.archify/sequence-receipt-ledger-20261003-003550/candidate.json",
+    "sha256": "ea712fd26430871f13e9f4ba9091c3f4fda84727531660786a284bcee80058b6",
+    "bytes": 5207
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code--receipt-ledger.html",
+    "sha256": "43289fa049c21e6ca57c2d75cd7d68ceb94b7cbed3203e8dd45f14fe90908059",
+    "bytes": 758934
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code--receipt-ledger.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code--receipt-ledger.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code--receipt-ledger.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 1850
+}

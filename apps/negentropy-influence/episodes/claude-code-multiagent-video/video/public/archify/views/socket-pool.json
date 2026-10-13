@@ -1,0 +1,43 @@
+[
+ {
+  "id": "connect-discover",
+  "label": "连接与发现",
+  "focus": [
+   "ext-docs",
+   "ext-deploy",
+   "connect",
+   "discover"
+  ],
+  "note": "插座两步：连上后外部服务报出工具清单。"
+ },
+ {
+  "id": "prefix",
+  "label": "挂牌防撞",
+  "focus": [
+   "prefix-rule",
+   "tool-docs",
+   "tool-status",
+   "tool-trigger",
+   "pool"
+  ],
+  "note": "进池一律挂牌改名：服务名__工具名，同叫「查」也不相撞。"
+ },
+ {
+  "id": "rebuild",
+  "label": "每轮重组",
+  "focus": [
+   "rebuild",
+   "pool"
+  ],
+  "note": "一有连接立刻再组一次——图新鲜，就不吃缓存。"
+ },
+ {
+  "id": "stale",
+  "label": "旧清单叫空",
+  "focus": [
+   "stale-call",
+   "cache-note"
+  ],
+  "note": "缓存里是旧清单：按旧名单叫新工具，叫一个空。"
+ }
+]

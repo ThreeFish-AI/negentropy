@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "lifecycle",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/.archify/lifecycle-task-card-anatomy-20261003-003512/candidate.json",
+    "sha256": "de06724446619d29a828ec1d08b54e34357e813f5174fc62504bf564c9930eda",
+    "bytes": 5896
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code--task-card-anatomy.html",
+    "sha256": "5660f8a66bb5d468c6bf64be2c3fd6de45377b48124362d17849065efcf5937e",
+    "bytes": 763916
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code--task-card-anatomy.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code--task-card-anatomy.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code--task-card-anatomy.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 1872,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "routesOverSuggestedBends": 2,
+      "routesOverSuggestedStretch": 1
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [],
+      "detours": [
+        {
+          "relationship": {
+            "id": "belong-title",
+            "from": "f-title",
+            "to": "card",
+            "label": "",
+            "collectionIndex": 5,
+            "artifactIndex": 6
+          },
+          "bends": 2,
+          "stretch": 1.448,
+          "directCorridorBlockers": [
+            {
+              "id": "f-id",
+              "label": "编号",
+              "box": [
+                264,
+                56,
+                140,
+                64
+              ]
+            }
+          ]
+        },
+        {
+          "relationship": {
+            "id": "belong-owner",
+            "from": "f-owner",
+            "to": "card",
+            "label": "",
+            "collectionIndex": 8,
+            "artifactIndex": 9
+          },
+          "bends": 3,
+          "stretch": 1
+        },
+        {
+          "relationship": {
+            "id": "belong-blockedby",
+            "from": "f-blockedby",
+            "to": "card",
+            "label": "",
+            "collectionIndex": 9,
+            "artifactIndex": 10
+          },
+          "bends": 3,
+          "stretch": 1
+        }
+      ],
+      "truncated": false
+    },
+    "hints": [
+      "f-owner → card needs 3 bends: move node f-owner or card so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "f-blockedby → card needs 3 bends: move node f-blockedby or card so they share a row or column with matching centers, or sit diagonally with a clear corner."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}
