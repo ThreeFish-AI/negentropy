@@ -36,10 +36,10 @@ description: "九篇研究文献与 negentropy 本仓实现的机制映射汇总
 
 | 条目 | 内容 | 关联 |
 | --- | --- | --- |
-| OV-7 | 会话→记忆触发：巩固触发器 + consolidation_jobs 消费者 + 水位，独立 PR 先于 013 Phase 1 | ISSUE-195 |
+| OV-7 | 会话→记忆触发：巩固触发器 + consolidation_jobs 消费者 + 水位，独立 PR 先于 013 修复序首批（§14.1；原 Phase 1） | ISSUE-195 |
 | OV-9 | 巩固 diff 审计：审计面接 UI，merge loser 可追溯 | ISSUE-195 |
 | OV-10 | 幂等水位：threads.metadata.consolidated_at_event_seq，与 OV-7 同 PR | ISSUE-195 |
-| OV-3 | 修 OV-D3 `force_refresh` 签名并改源水位判据，独立 PR 先于 013 Phase 1 | ISSUE-195 |
+| OV-3 | 修 OV-D3 `force_refresh` 签名并改源水位判据，独立 PR 先于 013 修复序首批（§14.1；原 Phase 1） | ISSUE-195 |
 | SK-M3 + SK-M5 | `expand_skill` 挂载 TOOL_REGISTRY + 目录块行级清洗，同一 PR，先做 (a)/(b) 二选一决策 | ISSUE-194 |
 | SK-M14/M15/M19 | 写入链路规范校验：name 正则、description ≤1024 拒换行、盘上合规单测 | ISSUE-194 |
 | SK-M20 | 翻译物化 frontmatter 改 `yaml.safe_dump`，一行 | — |
@@ -54,7 +54,7 @@ description: "九篇研究文献与 negentropy 本仓实现的机制映射汇总
 | HM-M10 | 中文关键词检索修复（CJK 分词），绑 hybrid search 触碰 | ISSUE-196 |
 | HM-M9 | 事件全文索引 + 只读会话检索，ISSUE-195 评审同场决定 | ISSUE-195 |
 | HM-M14 | 审批覆盖面与文档对齐（补接线或收窄清单） | ISSUE-197 |
-| HZ-6 | ContextGuard 出口守卫随蓝图 Phase 2 落地 | — |
+| HZ-6 | ContextGuard 出口守卫随 013 §14.4 能力行落地（原 Phase 2） | — |
 | HZ-10 | 验证问答资产沉淀（绑 patrol done 文档） | — |
 | HZ-11 | 信任归一实现（authority 分层 + log1p + 单一 staleness） | — |
 | HZ-15 | 守卫上下文纳入调用方身份 | — |
@@ -109,12 +109,12 @@ Horizon 的 16 条映射为 ✅4 / 🔶8（含部分对齐 1）/ ⏸4：骨架�
 | HZ-3 | M1 定义激活物化（semantic view 即查即用） | harness_materializer：DB SSOT → `.agent/skills/<key>/SKILL.md` 渲染 | [`harness_materializer.py:137`](../../apps/negentropy/src/negentropy/agents/definitions/harness_materializer.py)（materialize_all） | ✅ 已对齐 |
 | HZ-4 | M1 查询期重算（agg-before-join/distinct/derived/半可加） | 无对应（本仓非数据指标栈） | — | ⏸ 暂缓（YAGNI） |
 | HZ-5 | M2 查询期行列级访问策略（策略对象 + 执行面强制） | API 层鉴权 + `accessible_corpus_ids` 过滤（非独立策略对象） | [`hybrid_planner.py:189`](../../apps/negentropy/src/negentropy/agents/tools/hybrid_planner.py) · [`hybrid_planner.py:223`](../../apps/negentropy/src/negentropy/agents/tools/hybrid_planner.py) | 🔶 值得落地 |
-| HZ-6 | M3 语义级治理执行（双层防线：检索过滤+执行拒绝） | RBAC 检索过滤已有（`scoped & accessible`）；出口守卫 ContextGuard 仅在方案中 | [`hybrid_planner.py:322`](../../apps/negentropy/src/negentropy/agents/tools/hybrid_planner.py)（_seed_retrieval）· 方案 [`013 §7.3`](./cognitive-context/013-context-layer-blueprint.md) | 🔶 值得落地 |
+| HZ-6 | M3 语义级治理执行（双层防线：检索过滤+执行拒绝） | RBAC 检索过滤已有（`scoped & accessible`）；出口守卫 ContextGuard 仅在方案中 | [`hybrid_planner.py:322`](../../apps/negentropy/src/negentropy/agents/tools/hybrid_planner.py)（_seed_retrieval）· 方案 [`013 §14`](./cognitive-context/013-context-layer-blueprint.md)（ContextGuard 能力行；2026-10-10 版节号；原注 §7.3） | 🔶 值得落地 |
 | HZ-7 | §10 富化 eval 自纠环（金标准问答→修正理解→重排） | patrol/Judge 巡检闭环：评分→终态沉淀→失败记忆→reconcile | [`evaluator.py:188`](../../apps/negentropy/src/negentropy/engine/routine/evaluator.py)（RoutineEvaluator）· [`pdf_fidelity_patrol.py:655`](../../apps/negentropy/src/negentropy/engine/schedulers/handlers/pdf_fidelity_patrol.py) | ✅ 已对齐（机制同构） |
 | HZ-8 | §10 富化 冲突浮出人工裁决（CONFLICT 卡片，不许自动选） | 无显式对应（patrol_memory 有 unfixable 记忆，但无「同名定义冲突→人工裁决」面） | [`patrol_memory.py:42`](../../apps/negentropy/src/negentropy/engine/routine/patrol_memory.py) TAG 常量群 | 🔶 值得落地 |
 | HZ-9 | §11 检索激活（top-k 上下文包：定义+指令+验证问答） | 三层渐进披露：L1 描述常驻 / L2 模板按需 / L3 资源挂载 | [`skills_injector.py:342`](../../apps/negentropy/src/negentropy/agents/skills_injector.py)（format_skills_block）· [`context_assembler.py:43`](../../apps/negentropy/src/negentropy/engine/adapters/postgres/context_assembler.py) | ✅ 已对齐 |
 | HZ-10 | M4 应答层验证锚定（AI_VERIFIED_QUERIES + VERIFIED_BY/AT 溯源） | 无对应（巡检通过的文档未沉淀为「验证问答对」资产） | — | 🔶 值得落地 |
-| HZ-11 | §11 四因子信号排序（R/A/P/F） | 信任归一公式已设计未实现；缺 freshness 单一 staleness | [`013 §5.2`](./cognitive-context/013-context-layer-blueprint.md)（检索轴信任归一；2026-10-10 版节号）· Memory 缺口见 013 §11.3 | 🔶 值得落地 |
+| HZ-11 | §11 四因子信号排序（R/A/P/F） | 信任归一公式已设计未实现；缺 freshness 单一 staleness | [`013 §7.2`](./cognitive-context/013-context-layer-blueprint.md)（检索轴信任归一；2026-10-10 版节号；原注 §5.2）· Memory 缺口见 013 §12.3（Memory 行「无单一 staleness」） | 🔶 值得落地 |
 | HZ-12 | §12 生态 Ossie YAML 互操作 | 无对应 | — | ⏸ 暂缓（YAGNI） |
 | HZ-13 | §12 生态 MCP 激活面（对外供给外部 agent） | 方向相反：本仓是 MCP **客户端**（perceives 经 McpClientService 接入） | [`mcp_client.py:307`](../../apps/negentropy/src/negentropy/interface/mcp_client.py)（McpClientService） | 🔶 值得落地（供给面） |
 | HZ-14 | M5 端到端列级血缘（引擎沉淀 + OpenLineage 摄取） | 无对应（routine 执行史是运行日志，非资产依赖图） | — | ⏸ 暂缓（YAGNI） |
@@ -151,7 +151,7 @@ Horizon 的 16 条映射为 ✅4 / 🔶8（含部分对齐 1）/ ⏸4：骨架�
 
 **HZ-5 行列级策略（🔶，新晋机制）**。Horizon 把可见性规则铸成 schema 级**策略对象**在查询期强制；本仓的等价物是 `accessible_corpus_ids` 传入检索管线过滤（作用等同行访问策略的行级过滤），但它是**调用约定而非策略对象**，策略与代码耦合、无独立生命周期。建议：Context Layer 落地时把「谁能看哪些 corpus/定义」提升为带版本与审计的策略资产。
 
-**HZ-6 双层治理（🔶）**。Horizon 的关键论点是检索层过滤只是体验、执行层拒绝才是治理。本仓 HybridPlanner 已做 `scoped & accessible` 过滤（第一层），但「代码回退路径必经的出口守卫」尚停留在 013 §7.3 方案的 ContextGuard（第二层）。建议随 013 §15 Phase 2 落地，勿降级为可选检查。
+**HZ-6 双层治理（🔶）**。Horizon 的关键论点是检索层过滤只是体验、执行层拒绝才是治理。本仓 HybridPlanner 已做 `scoped & accessible` 过滤（第一层），但「代码回退路径必经的出口守卫」尚停留在 013 §14 方案的 ContextGuard（第二层；2026-10-10 版节号；原注 §7.3）。建议随 013 §14 Phase 2（原注 §15）落地，勿降级为可选检查。
 
 **HZ-7 自纠环（✅，机制同构）**。patrol/Judge 的「评分→终态→失败记忆→reconcile」与 Cortex Sense 的「eval 错配→修正理解→重排」机制同构（✅ 部分）。
 
@@ -169,7 +169,7 @@ Horizon 的 16 条映射为 ✅4 / 🔶8（含部分对齐 1）/ ⏸4：骨架�
 
 **HZ-14 血缘（⏸，新晋机制）**。本仓 grep 全仓无 lineage 实现；routine/巡检的执行史是运行日志（谁跑了什么），不是资产依赖图（什么派生自什么）。触发条件：当出现「定义/文档资产间的派生关系图」需求（如定义变更影响面分析、跨文档口径溯源）时，优先引入「写入时自动沉淀依赖边」的引擎副产品模式，而非事后扫描。
 
-**HZ-15 Agent Identity（🔶，新晋机制）**。本仓 `agent_type`/`_agent_type` 是 **preset 描述元数据**（区分 routine agent 类型），不是 Horizon M6 的「代理会话身份」，后者守护的是**代理代表用户行事时的权限天花板与归因审计**。本仓引擎任务以服务身份运行（权限天然收束），但用户触发的 agent 会话（如 ad-hoc 工具调用链）无「会话权限=用户权限∩代理允许面」的显式契约。建议：Context Layer Phase 2 的 ContextGuard 设计中把「调用方身份（人/代理/服务）」纳入守卫上下文，归因写入审计日志。
+**HZ-15 Agent Identity（🔶，新晋机制）**。本仓 `agent_type`/`_agent_type` 是 **preset 描述元数据**（区分 routine agent 类型），不是 Horizon M6 的「代理会话身份」，后者守护的是**代理代表用户行事时的权限天花板与归因审计**。本仓引擎任务以服务身份运行（权限天然收束），但用户触发的 agent 会话（如 ad-hoc 工具调用链）无「会话权限=用户权限∩代理允许面」的显式契约。建议：013 §14.4 ContextGuard 设计（原 Phase 2）中把「调用方身份（人/代理/服务）」纳入守卫上下文，归因写入审计日志。
 
 **HZ-16 分类标签（⏸，新晋机制）**。本仓定义资产暂无敏感分级需求（非数据资产栈）。触发条件：当 definitions 出现「哪些定义可对外供给、哪些仅内部」的规模化治理需求时，先做「标签字段纪律」（definitions.meta 承载），再考虑自动分类。
 
@@ -187,7 +187,7 @@ Horizon 的 16 条映射为 ✅4 / 🔶8（含部分对齐 1）/ ⏸4：骨架�
 
 **OV-5 目录递归（⏸）**。需要一棵「语义化的深层目录树」。本仓记忆扁平、KB 目录是人工组织、`navigation` 意图只返回 corpus 列表，现在引入递归等于先造树再检索，YAGNI。**触发**：检索评测出现「建错目录/选错 corpus」类失败占比显著，或 catalog 深度 ≥3 且 Agent 需要按目录浏览。OpenViking 的两条实测教训（014 §4.2：默认部署不触发递归；α=1.0 后层级只影响可达性不影响排序）是引入前必读的反例。
 
-**OV-6 同步归档（✅）**。`events.sequence_num` 全局序 + `append_event` 同步落库，与 Phase 1「归档是事实」等价。
+**OV-6 同步归档（✅）**。`events.sequence_num` 全局序 + `append_event` 同步落库，与「归档是事实」主张（原 013 Phase 1 口径）等价。
 
 **OV-7 会话→记忆触发（🔶，OV 内最高优先）**。断链修复而非新特性。最小方案：① 复用 inspector 范式选「事件水位差 ≥Δ 且空闲 ≥T」的会话；② 入队 `consolidation_jobs`（表与部分索引已存在，迁移 0043/0044）；③ 消费者 `FOR UPDATE SKIP LOCKED` 取任务执行 `_simple_consolidate`，成功推进水位。零新表。二阶风险：每会话新增一次 embedding + LLM 提取（用 Δ、T 封顶）；单 uvicorn worker 下消费者必须是异步限流后台任务；巩固后 preload 检索到更多 episodic 行，需观察 `memory_retrieval_logs` 噪声率。
 
@@ -209,7 +209,7 @@ Horizon 的 16 条映射为 ✅4 / 🔶8（含部分对齐 1）/ ⏸4：骨架�
 
 **做**（绑时机）：
 
-- HZ-6：ContextGuard 出口守卫随 013 §15 Phase 2 落地，两路径（含代码回退）必经。
+- HZ-6：ContextGuard 出口守卫随 013 §14.4 ContextGuard 能力行（2026-10-10 版节号；原注 §15 Phase 2）落地，两路径（含代码回退）必经。
 - HZ-10：验证问答资产。绑 patrol 终态 done 的文档，沉淀「问题→锚点→验证人/时间」问答对，agent 预载短路。
 - HZ-11：信任归一实现，采纳 authority 分层 + log1p 有界 + 单一 staleness 三纪律。
 - HZ-15：守卫上下文纳入调用方身份。ContextGuard 设计时把「人/代理/服务」身份纳入归因审计。
@@ -217,7 +217,7 @@ Horizon 的 16 条映射为 ✅4 / 🔶8（含部分对齐 1）/ ⏸4：骨架�
 **写**（一句话成本）：
 
 - HZ-1：在 013 对象层章（§4.2 通用对象模型）交叉引用 HZ-1 的 synonyms/instructions/verified-QA 字段设计，详细设计由[蓝图](./cognitive-context/013-context-layer-blueprint.md)对象层章承载。
-- HZ-5：在 013 §7.3 治理实例化补「策略对象化」建议，把 accessible_corpus_ids 从调用约定升为带版本策略资产。
+- HZ-5：在 013 §4.6 本仓实例化补「策略对象化」建议（2026-10-10 版节号；原注 §7.3），把 accessible_corpus_ids 从调用约定升为带版本策略资产。
 
 **暂缓**（写明触发条件）：
 
@@ -229,7 +229,7 @@ Horizon 的 16 条映射为 ✅4 / 🔶8（含部分对齐 1）/ ⏸4：骨架�
 
 **OpenViking**
 
-**做**（绑定 OV-7 一批，建议独立 PR，先于 013 Phase 1）：
+**做**（绑定 OV-7 一批，建议独立 PR，先于 013 修复序首批（§14.1；原 Phase 1））：
 
 - OV-7/OV-10：会话巩固触发器 + `consolidation_jobs` 消费者 + 水位。
 - OV-9：巩固 diff 写 `result` 并接 UI。
@@ -741,7 +741,7 @@ AI Native 手册的 17 条映射为 ✅8 / 🔶3 / ⏸6，真增量集中在凭�
 - **建议**：
   - 复用 ADK 原生 `EventsCompactionConfig`，不自造压缩器。
   - 验收加一条原型 D3 同款断言：压缩后不存在孤儿 `function_response`。
-  - 时机：绑定下一次交互式长会话稳定性工作，或 [013 Phase 1](./cognitive-context/013-context-layer-blueprint.md)，二者取先。
+  - 时机：绑定下一次交互式长会话稳定性工作，或 [013 §14.3 前置项排序](./cognitive-context/013-context-layer-blueprint.md)（原 Phase 1），二者取先。
 
 **HM-M12 隔离委派（⏸）**。`transfer_to_agent`（`agent.py:126-130`）把控制权交给子 Faculty，子 Faculty 在同一会话上下文里继续工作，而不是「新上下文执行、只回摘要」。触发条件：出现需要并行扇出子任务的场景。届时优先评估 ADK 原生的 AgentTool 形态，并照 Hermes 的子代理禁用清单来限权：禁记忆写、禁再委派、禁直接找用户。
 
@@ -759,7 +759,7 @@ AI Native 手册的 17 条映射为 ✅8 / 🔶3 / ⏸6，真增量集中在凭�
 
 - **做**
   - **AN-15**：下次修改 `evaluator.py` 解析逻辑时，为推断出的 verdict 加 `verdict_inferred` 审计标记，并计入「连续评估失败」。
-  - **AN-12**：沿用 HZ-15 的时机，在 Context Layer Phase 2 的 ContextGuard 中纳入「调用方身份」。
+  - **AN-12**：沿用 HZ-15 的时机，在 013 §14.4 ContextGuard（原 Phase 2）中纳入「调用方身份」。
 - **写**
   - **AN-9**：一条 `ToolStatsDaily` 聚合查询，产出「近 30 天成功率 <50% 的能力」清单，接入巡检报告。成本约 1 个查询函数。
 - **暂缓**（写明触发条件）
@@ -771,7 +771,7 @@ AI Native 手册的 17 条映射为 ✅8 / 🔶3 / ⏸6，真增量集中在凭�
 **Hermes**
 
 - **做**
-  1. HM-M11：交互式对话启用 ADK 原生 `EventsCompactionConfig`，验收加「无孤儿 function_response」断言。时机：下一次长会话稳定性工作或 013 Phase 1，二者取先。
+  1. HM-M11：交互式对话启用 ADK 原生 `EventsCompactionConfig`，验收加「无孤儿 function_response」断言。时机：下一次长会话稳定性工作或 013 §14.3 前置项排序（原 Phase 1），二者取先。
   2. HM-M3：记忆写入过威胁模式表，注入块头补数据声明。时机：与 SK-M5 目录注入防护同批，先于 ISSUE-195 巩固上线。
   3. HM-M10：修中文关键词检索（ISSUE-196）。时机：下一次触及 hybrid search 的 PR。
   4. HM-M9：事件文本全文索引 + 只读会话检索工具，结果按 thread 去重。时机：ISSUE-195 方案评审同场决定，前置 HM-M10。

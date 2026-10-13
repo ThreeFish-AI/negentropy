@@ -370,7 +370,7 @@ version: 12
 
 记忆资产里最特殊的一类是常驻画像块（Core Block）——它每轮在场、直接影响窗口构成，其设计取舍必须先答三问（承接 [机制映射汇总](../mapping-negentropy.md) HM-M2）：
 
-1. **由谁写**——三条写入路径：Agent 自编辑（`core_block_replace` 工具，`updated_by="agent_self_edit"`）、管理端 REST、append 追加。开放 Agent 自编必须后置于写入防注入之后——「开放可自编的常驻记忆而没有写入扫描，等于给注入开一条常驻通道」（本仓 191 映射报告的判语，非 Hermes 原文；`core_block_replace` 当前零调用方，调用仅在定义模块 `engine/tools/memory_tools.py:236` 内部）。
+1. **由谁写**——三条写入路径：Agent 自编辑（`core_block_replace` 工具，`updated_by="agent_self_edit"`）、管理端 REST、append 追加。开放 Agent 自编必须后置于写入防注入之后——「开放可自编的常驻记忆而没有写入扫描，等于给注入开一条常驻通道」（机制映射汇总 HM 域的判语（原 191，已并入），非 Hermes 原文；`core_block_replace` 当前零调用方，调用仅在定义模块 `engine/tools/memory_tools.py:236` 内部）。
 2. **上限多少**——两级预算：存储级单块 2048 token（`MAX_BLOCK_TOKENS = 2048`，[core_block_service.py](../../../apps/negentropy/src/negentropy/engine/adapters/postgres/core_block_service.py) `:36`；显式选位在普通段落 256 与 Letta 4000 之间，防单块主导窗口）+ 组装级记忆预算 30% 硬帽（`_DEFAULT_MEMORY_RATIO = 0.3`，[context_assembler.py](../../../apps/negentropy/src/negentropy/engine/adapters/postgres/context_assembler.py) 预算常量段）。
 3. **写满怎么办**——按 token 比例 ×0.95 截断并标 `metadata.truncated` 留痕（core_block_service.py `:77-83`），不拒写、不静默。
 
