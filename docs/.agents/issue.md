@@ -4230,9 +4230,10 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **同批取证发现的 7 处漂移**（详表见[机制映射汇总](../research/mapping-negentropy.md)「OV 取证副产物」）：D1 `ContextAssembler.assemble()` 只有单测调用，013 §6.5 宿主更正 / 025 §6.3 曾把它写成「自动注入通道」（实际生产读取仅 `get_memory_summary()` 回退）；D3 SummarizeStep 传 `force_refresh=True` 因 `get_or_generate_summary` 签名无此参数抛 TypeError 被降级吞掉（`summarize_step.py:40` vs `memory_summarizer.py:93`），强制刷新从未生效且摘要是 24h TTL 不感知源变化；D4 ConflictResolver docstring 宣称三阶段检测、实现只有规则；D5 `save_to_memory` 直写 `embedding=None` 不去重不审计且无回填，对 vector/hybrid 不可见；D6 `_fetch_memory` 按 UUID 读 Memory 不校验 user/app（`agents/tools/skill_resources.py:167`）——**ISSUE-194 方案 (a) 挂载前必须先修**，否则成为跨用户读取通道；D7 013 旧版 §12.7 #9「L1/L2/L3 ✅」与 ISSUE-194 结论矛盾待回写（2026-10-10 版＝§12.4 承载）；D8 memory_pipeline_prompt 进化面只有 fact extractor 消费，summarizer/reflection 晋升是运行时 no-op。
 - **处理方式**（本次只分析不改码，落地建议见[机制映射汇总](../research/mapping-negentropy.md)「HZ 与 OV 落地建议」）：
   1. **做**（建议独立 PR，先于 013 Phase 1）：会话巩固触发器（复用 `title_inspector` 的「事件水位差 ≥Δ 且空闲 ≥T」范式）+ `consolidation_jobs` 消费者（`FOR UPDATE SKIP LOCKED` 执行 `_simple_consolidate`）+ `threads.metadata.consolidated_at_event_seq` 水位；巩固 diff 写 `consolidation_jobs.result` 并接 UI `/memory/audit`；修 D3 签名并把 TTL 换成源水位判据。零新表。
-  2. **写**：013 #9 状态行校正（§12.4）与宿主更正（D1/D7，§6.5）；025 §4.1/§4.3 与事实不符处回写。——**013/015 侧已销账（现行锚：013 §12.4 #9 校正、§6.5 宿主更正、§8.2 会话巩固三件套并入、汇总文档 OV 蓝图对位表同步；「做」面仍开放）。025 §4.1/§4.3 回写未做仍开放**（2026-09-28 评审发现销账口径过早并收窄：025 在重铸分支零改动，其 §4.1 仍把 add_session_to_memory→consolidation_jobs 写成在跑链路）
-  3. **暂缓**：M-a 统一 URI（与 013 ADR-1 冲突，只取寻址不取存储）、typed query、目录递归（YAGNI 触发条件见 015）。
+  2. **写**：013 #9 状态行校正（§12.4）与宿主更正（D1/D7，§6.5）；025 §4.1/§4.3 与事实不符处回写。——**013/015 侧已销账（现行锚：013 §12.4 #9 校正、§6.5 宿主更正、§8.2 会话巩固三件套并入、汇总文档 OV 蓝图对位表同步（发现源登记另见同汇总「OV 取证副产物」）；「做」面仍开放）。025 §4.1/§4.3 回写未做仍开放**（2026-09-28 评审发现销账口径过早并收窄：025 在重铸分支零改动，其 §4.1 仍把 add_session_to_memory→consolidation_jobs 写成在跑链路）
+  3. **暂缓**：M-a 统一 URI（与 013 ADR-1 冲突，只取寻址不取存储）、typed query、目录递归（YAGNI 触发条件见[机制映射汇总](../research/mapping-negentropy.md) OV-5）。
 - **后续防范**：文档把链路标 ✅ 前须核到「调用方/消费者存在」这一层（与 ISSUE-194 同款断言纪律：函数存在 ≠ 链路存在）；「队列表」类设计须与消费者同一 PR 落地，否则只入队的表是 silent no-op 的温床。
+- **锚点体例注记（2026-10-14）**：生产代码注释中的「013 2026-10-10 版；原注 §N.N」为改锚前旧注释引数的存档——「原注」指向注释自身历史（部分号出自 `docs/concepts/design/self-evolving-agents.md` 设计文档、部分为更早 013 代），非退役版 013 文档节号，回查以现行锚为准。
 
 ## ISSUE-196 中文关键词检索失效：memories 与知识库的 tsvector 用 english 配置，整段汉字被切成单个 token，tsvector 关键词腿对中文子串全部落空（2026-09-24）
 
