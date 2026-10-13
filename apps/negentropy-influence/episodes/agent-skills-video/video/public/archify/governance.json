@@ -1,0 +1,117 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.52,
+ "story_sec": 16.58,
+ "total_wall_sec": 74.84,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "gl-three",
+   "label": "三层治理",
+   "index": 0,
+   "file": "governance--gl-three.mp4",
+   "end_still": "governance--gl-three-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.52,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "must",
+    "advise",
+    "blank"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "gl-guide",
+   "label": "指南层",
+   "index": 1,
+   "file": "governance--gl-guide.mp4",
+   "end_still": "governance--gl-guide-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.52,
+   "story_sec": 3.32,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "guide-discover",
+    "guide-lenient",
+    "guide-trust"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "gl-algo",
+   "label": "极简算法",
+   "index": 2,
+   "file": "governance--gl-algo.mp4",
+   "end_still": "governance--gl-algo-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.48,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "blank",
+    "guide-trust"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "gl-verdict",
+   "label": "判词",
+   "index": 3,
+   "file": "governance--gl-verdict.mp4",
+   "end_still": "governance--gl-verdict-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.48,
+   "story_sec": 3.32,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "pr254",
+    "pr573",
+    "pr546"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "ge-eco",
+   "label": "生态分叉",
+   "index": 4,
+   "file": "governance--ge-eco.mp4",
+   "end_still": "governance--ge-eco-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.52,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "gemini",
+    "claudecode",
+    "openai"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/vancouver-v3/apps/negentropy-influence/episodes/agent-skills-video/video/public/archify/html/governance.html",
+ "slug": "governance",
+ "type": "architecture"
+}

@@ -1,0 +1,33 @@
+%% source: docs/research/agent-infra/210-agent-skills-open-standard.md §3/§8/§9
+%% slug: agent-skills-governance-layers
+%% type: architecture
+%% derived: 2026-09-26 重学版首绘
+flowchart TB
+    subgraph L1["规范层 specification.mdx（247 行·刻意极小）"]
+        R1["MUST：六字段封闭集<br/>name=目录名等互操作地基"]
+        R2["建议：&lt;5000 token 正文<br/>一层深引用"]
+        R3["留白：分发·信任·执行<br/>（各端主权区）"]
+    end
+    subgraph L2["指南层 client guide（非规范）"]
+        G1["发现路径约定 .agents/skills"]
+        G2["宽容校验 warn &amp; load"]
+        G3["激活确认·压缩保护<br/>（Consider 级）"]
+    end
+    subgraph L3["生态层 46 家客户端"]
+        E1["Gemini CLI：最贴规范<br/>唯一默认确认门"]
+        E2["Claude Code：私货字段 10+"]
+        E3["OpenAI：openai.yaml 旁路<br/>元数据 ≤2% 窗口"]
+    end
+    subgraph P["治理悬案 48 open PR"]
+        P1["#254 分发规范停摆 7 个月"]
+        P2["#573 vs #520 字段松紧对冲"]
+        P3["#546 MCP 命名空间互操作"]
+    end
+    R1 -.->|"约束最硬"| G2
+    R3 -.->|"外部性下放"| G3
+    G1 --> E1
+    G2 --> E2
+    G3 --> E1
+    P1 -.-> R3
+    P2 -.-> R1
+    P3 -.-> R2
