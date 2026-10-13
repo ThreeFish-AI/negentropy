@@ -1,51 +1,30 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.48,
- "story_sec": 9.88,
- "total_wall_sec": 69.53,
+ "lead_sec": 0.44,
+ "story_sec": 6.65,
+ "total_wall_sec": 16.14,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
  "chapters": [
   {
-   "id": "series-vow",
-   "label": "系列立碑一闪",
-   "index": 0,
-   "file": "five-layer-dependency--series-vow.mp4",
-   "end_still": "five-layer-dependency--series-vow-end.png",
-   "beats": 2,
-   "dwell_ms": 1600,
-   "lead_sec": 0.48,
-   "story_sec": 3.24,
-   "beat_offsets_sec": [
-    0.0,
-    1.605
-   ],
-   "beat_nodes": [
-    "loop-core",
-    "layer-5"
-   ],
-   "measured_fps": 25.0,
-   "capture_fps": 26.0
-  },
-  {
    "id": "five-lit-finale",
    "label": "五层全亮",
-   "index": 1,
+   "index": 0,
    "file": "five-layer-dependency--five-lit-finale.mp4",
    "end_still": "five-layer-dependency--five-lit-finale-end.png",
    "beats": 6,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 6.64,
+   "story_sec": 6.65,
    "beat_offsets_sec": [
     0.0,
-    1.105,
-    2.209,
+    1.104,
+    2.21,
     3.314,
     4.417,
-    5.523
+    5.522
    ],
    "beat_nodes": [
     "loop-core",
@@ -67,7 +46,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code-harness--five-layer-dependency.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/apps/negentropy-influence/episodes/claude-code-multiagent-video/video/public/archify/html/five-layer-dependency.html",
  "slug": "five-layer-dependency",
  "type": "architecture"
 }

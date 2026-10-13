@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "sequence",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/.archify/sequence-claim-race-window-20261003-003550/candidate.json",
+    "sha256": "6502b0b9cc51b2729b0ca633ee5e9d9ab0bb4ba4db3904ac181051947c9a3af2",
+    "bytes": 3052
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code--claim-race-window.html",
+    "sha256": "01e743baea3e1e43506bdecd99523edb5839895339fc0ee88b5ea7e6b1e1eb29",
+    "bytes": 750198
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code--claim-race-window.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code--claim-race-window.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code--claim-race-window.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 1670
+}

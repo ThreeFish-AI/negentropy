@@ -1,0 +1,43 @@
+[
+ {
+  "id": "three-gates",
+  "label": "三守卫",
+  "focus": [
+   "scan",
+   "g-status",
+   "g-owner",
+   "g-deps",
+   "write-name"
+  ],
+  "note": "待办？无主？前置全清？三闸串联，全过才写名。"
+ },
+ {
+  "id": "b1",
+  "label": "拆守卫三",
+  "focus": [
+   "b1-lane",
+   "g-deps"
+  ],
+  "note": "恒真放行：打地基未完，盖楼被领走。"
+ },
+ {
+  "id": "b2-b2v",
+  "label": "拆守卫一二",
+  "focus": [
+   "b2-lane",
+   "b2v-lane",
+   "g-owner",
+   "g-status"
+  ],
+  "note": "占坑被顶占；完成品被重开。"
+ },
+ {
+  "id": "ok",
+  "label": "对照：在位",
+  "focus": [
+   "ok-lane",
+   "reject"
+  ],
+  "note": "守卫在位：正常拦截。"
+ }
+]

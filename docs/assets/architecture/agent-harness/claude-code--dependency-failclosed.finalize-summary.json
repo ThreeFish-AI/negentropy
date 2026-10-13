@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "workflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/.archify/workflow-dependency-failclosed-20261003-003512/candidate.json",
+    "sha256": "e6489962beee8a9520de3662c85926346758f3bab8a142651419e5ff140a876f",
+    "bytes": 5236
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code--dependency-failclosed.html",
+    "sha256": "f5e7e8c6192b4677d06e23eed6a40f376cab3be316cfb66266927c1057e92233",
+    "bytes": 755802
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code--dependency-failclosed.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code--dependency-failclosed.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code--dependency-failclosed.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 1860,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "routesOverSuggestedBends": 2,
+      "routesOverSuggestedStretch": 1
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [],
+      "detours": [
+        {
+          "relationship": {
+            "id": "build-done",
+            "from": "t-build",
+            "to": "unlock",
+            "label": "完成",
+            "collectionIndex": 0,
+            "artifactIndex": 1
+          },
+          "bends": 4,
+          "stretch": 1.105
+        },
+        {
+          "relationship": {
+            "id": "guard-ghost",
+            "from": "guard",
+            "to": "ghost-ref",
+            "label": "查无此编号",
+            "collectionIndex": 5,
+            "artifactIndex": 6
+          },
+          "bends": 4,
+          "stretch": 3.157
+        }
+      ],
+      "truncated": false
+    },
+    "hints": [
+      "t-build → unlock needs 4 bends: move node t-build or unlock so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "guard → ghost-ref needs 4 bends: move node guard or ghost-ref so they share a row or column with matching centers, or sit diagonally with a clear corner."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}
