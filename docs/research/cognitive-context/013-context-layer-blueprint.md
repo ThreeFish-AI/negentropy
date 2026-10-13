@@ -4,7 +4,7 @@ title: "Context Layer 技术蓝图：Agent 系统的上下文供给与治理"
 description: "Agents 系统 Context Layer 设计 SSOT：三轴蓝图（五源对象 × 五正交层 × CGAVE 生命周期）× 失效模式驱动 × 四范本机制矩阵（Horizon M1–M7 / OpenViking / Claude Code / Hermes）× 业界格局 × 供给面威胁模型 × negentropy 实例化总装 × 双轨演进路线"
 ---
 
-> **定位**：Agents 系统 Context Layer 的**设计蓝图 SSOT**——以 Agent 运行时上下文为第一性对象（instruction / memory / knowledge / tools+skills / session 五源），回答「怎么供给、怎么治理、怎么激活、怎么验证、怎么进化」。**文档族分工**：**013（本文）= 设计与判定**（规格、状态、决策、路线）；[011 精读笔记](./011-horizon-context.md) = Horizon **全量机制载荷**（冻结——机制详解、实证、时间线；§5–§9 与 §16 系重组腾空编号、已封存勿复用，新增续 §19+）；[012](./012-horizon-context-mapping-negentropy.md) = 锚点核验快照（结论已并入 §11）；[014](./014-openviking.md)/[015](./015-openviking-mapping-negentropy.md) = OpenViking 精读与映射（会话记忆路线范本）。`concepts/design/context-layer.md` 已于 2026-09-21 删除并入本文。
+> **定位**：Agents 系统 Context Layer 的**设计蓝图 SSOT**——以 Agent 运行时上下文为第一性对象（instruction / memory / knowledge / tools+skills / session 五源），回答「怎么供给、怎么治理、怎么激活、怎么验证、怎么进化」。**文档族分工**：**013（本文）= 设计与判定**（规格、状态、决策、路线）；[011 精读笔记](./011-horizon-context.md) = Horizon **全量机制载荷**（冻结——机制详解、实证、时间线；§5–§9 与 §16 系重组腾空编号、已封存勿复用，新增续 §19+）；[012](../mapping-negentropy.md) = 锚点核验快照（结论已并入 §11）；[014](./014-openviking.md)/[015](../mapping-negentropy.md) = OpenViking 精读与映射（会话记忆路线范本）。`concepts/design/context-layer.md` 已于 2026-09-21 删除并入本文。
 >
 > **编号稳定键**：M1–M7（Horizon 机制词表）· D1–D10（**Horizon lab 破坏实验**；015/ISSUE-195 另有一套无关的取证漂移编号 D1–D8，本文凡引后者必冠「015-」前缀，两套互不相干）· ADR-1/2/3（既有决策）+ **ADR-4/5/6（本版新增）** · CGAVE（Collect→Govern→Activate→Verify→Evolve 生命周期键）· P0–P3 · Phase 1–3 · #1–#16（映射表）。**2026-09-27 完全重铸**：旧版 §0–§16 编号退役封存勿复用；外部引用以本版 §0–§15 为准（同批入链已更新）。011 §10/§11/§12 三专章在本文落点 §6/§8/§7。
 
@@ -110,7 +110,7 @@ description: "Agents 系统 Context Layer 设计 SSOT：三轴蓝图（五源对
 | 范本 | 承重贡献 | 一句定位 | 详解 |
 | :--- | :--- | :--- | :--- |
 | **Snowflake Horizon Context** | 治理与验证的机制词表（M1–M7）；「含义层执法」「验证锚定」「权限天花板」 | 把 Catalog 从资产登记簿升维为「理解系统」（*"a working model of your entire business"*） | [011](./011-horizon-context.md)（冻结） |
-| **OpenViking** | 会话记忆一等公民；L0/L1 渐进摘要与新鲜度冒泡；会话两阶段提交与确定性身份记忆提炼 | 把资源/记忆/技能装进一棵可寻址目录树的上下文数据库 | [014](./014-openviking.md)/[015](./015-openviking-mapping-negentropy.md) |
+| **OpenViking** | 会话记忆一等公民；L0/L1 渐进摘要与新鲜度冒泡；会话两阶段提交与确定性身份记忆提炼 | 把资源/记忆/技能装进一棵可寻址目录树的上下文数据库 | [014](./014-openviking.md)/[015](../mapping-negentropy.md) |
 | **Claude Code**（教学课程仓逆向） | 运行时装配纪律：每轮重装配、谓词驱动、渐进披露两层寿命、压缩四步、写权收归 harness、信任边界段、subagent 隔离 | 「每一轮都把台面从头重读一遍——看见什么从来不是模型自己说了算」 | [170–175](../agent-harness/170-claude-code-harness-overview.md)（三级证据：闭源分析须带归属） |
 | **Hermes / Jev** | 装配的缓存经济学（三段式+唯一断点）；供给两端防注入；零 LLM 原文检索；置信量纲与弃权语义 | "Built once per session and reused across turns (only context compression triggers a rebuild)" | [190/191](../agent-harness/190-hermes-agent.md)、[200/201](../agent-infra/200-jev-system-one-model.md) |
 
@@ -156,7 +156,7 @@ version: 12
 
 三条字段纪律：①**synonyms 必填意识**——无别名即检索面隐形；②**instructions 随对象走**——指令随定义分发才能随定义治理，写死 prompt 等于治理外开第二个口径源；③**verified Q&A 带溯源**——谁核的、何时核的随对象携带。结构校验门同 §4.1：非法结构注册期被拒不进运行时。
 
-> **常驻记忆对象的设计取舍（Core Block 三问，承接 191 M2）**：①**由谁写**——三路：Agent 自编辑（`core_block_replace` 工具，`updated_by="agent_self_edit"`）、管理端 REST、append 追加；**开放 Agent 自编必须后置于写入防注入**——「开放可自编的常驻记忆而没有写入扫描，等于给注入开一条常驻通道」（本仓 191 映射报告的判语，非 Hermes 原文；core_block_replace 当前零调用方，如实标注）。②**上限多少**——存储级单块 2048 token（介于普通段落 256 与 Letta 4000 之间的显式选位，防单块主导窗口）+ 组装级记忆预算 30% 硬帽两级预算。③**写满怎么办**——按 token 比例 ×0.95 截断并标 `metadata.truncated` 留痕，**不拒写、不静默**。两级预算 + 截断留痕是「常驻内容不挤占检索内容」的可复用范式。（锚：`core_block_service.py` 设计取舍段、`memory-integration.md §4`、025 §5.1 λ 表 core=0.0 不衰减。）
+> **常驻记忆对象的设计取舍（Core Block 三问，承接 HM-M2）**：①**由谁写**——三路：Agent 自编辑（`core_block_replace` 工具，`updated_by="agent_self_edit"`）、管理端 REST、append 追加；**开放 Agent 自编必须后置于写入防注入**——「开放可自编的常驻记忆而没有写入扫描，等于给注入开一条常驻通道」（本仓 191 映射报告的判语，非 Hermes 原文；core_block_replace 当前零调用方，如实标注）。②**上限多少**——存储级单块 2048 token（介于普通段落 256 与 Letta 4000 之间的显式选位，防单块主导窗口）+ 组装级记忆预算 30% 硬帽两级预算。③**写满怎么办**——按 token 比例 ×0.95 截断并标 `metadata.truncated` 留痕，**不拒写、不静默**。两级预算 + 截断留痕是「常驻内容不挤占检索内容」的可复用范式。（锚：`core_block_service.py` 设计取舍段、`memory-integration.md §4`、025 §5.1 λ 表 core=0.0 不衰减。）
 
 #### 4.2.1 Data Contract
 
@@ -212,7 +212,7 @@ version: 12
 
 专家手写规章权威但覆盖不动长尾——Snowflake 内部实测全司 9,685 张表人工语义视图覆盖 **<5%**（虚线；Autopilot GA 之后的现态，证明显式轨道单独不闭合供给缺口，不是 Autopilot 无价值）。两条轨道：**显式**（Autopilot：现成报表与历史问答起草规章草案，候选过验证门）与**隐式**（Cortex Sense：从查询习惯提炼暗知识，「只摄取元数据与使用模式，不碰数据行」——隐私边界句可直接沿用）。三层纪律：①eval 自纠环；②**冲突强制浮出人工**——起草规章与民间口径打架时系统绝不准自作主张：CONFLICT 卡片并列两定义、无数值、拒答待裁，**禁按 popularity 自动选**（D4 实测：自动选让错误口径胜出）；③governed 权重压倒推断。
 
-### 6.2 设计 · 会话巩固三件套（015 §6 + ISSUE-195 销账）
+### 6.2 设计 · 会话巩固三件套（OV 蓝图对位 + ISSUE-195 销账）
 
 会话是五源中唯一**自己产生新上下文**的源——「会话→长期记忆」链路是富化层的供给入口。本仓实测断链：`add_session_to_memory` **零调用方**（含 ADK Runner 与 UI/BFF 逐一核验）、`consolidation_jobs` 只入队无消费者（ISSUE-195，实心）。修复设计（零新表，复用 title_inspector 范式）：
 
@@ -396,9 +396,9 @@ version: 12
 | 15 | M6 身份 | agent_type 有（preset 元数据）、天花板无 | 🔶 |
 | 16 | M7 标签 | 无分类策略链 | ⏸ |
 
-**新增本仓特有判定行**（非 Horizon 映射，源自 Hermes/OpenViking 映射的真增量）：17 会话→记忆链路=断链（ISSUE-195，修复设计 §6.2）🔶；18 交互式对话压缩=零（191 M11，最高优先 🔶）；19 CJK 检索腿=失效（ISSUE-196 §5.2）🔶；20 记忆两端防注入=缺（写入端零扫描+注入块头无数据声明，**先于巩固上线**）🔶。
+**新增本仓特有判定行**（非 Horizon 映射，源自 Hermes/OpenViking 映射的真增量）：17 会话→记忆链路=断链（ISSUE-195，修复设计 §6.2）🔶；18 交互式对话压缩=零（HM-M11，最高优先 🔶）；19 CJK 检索腿=失效（ISSUE-196 §5.2）🔶；20 记忆两端防注入=缺（写入端零扫描+注入块头无数据声明，**先于巩固上线**）🔶。
 
-**做**：①会话巩固三件套+D3 修复（独立 PR 先于 Phase 1，ISSUE-195 建议）②Guard 随 Phase 2 ③验证问答绑 patrol done ④信任归一三纪律 ⑤身份归因。**写**（本版已销账）：⑥#9 状态行校正+§8.4 宿主更正（ISSUE-195 ④）⑦Core Block 三问（191 M2）⑧CJK 口径（ISSUE-196）⑨会话巩固设计（015 §6）。**暂缓**（带触发）：⑩#4 ⑪#12 ⑫隐式挖掘 ⑬#14 ⑭#16 ⑮L2/L3 挂载（随 ISSUE-194 方案 (a)，前置先修 015-D6 跨用户读取通道）。
+**做**：①会话巩固三件套+OV-D3 修复（独立 PR 先于 Phase 1，ISSUE-195 建议）②Guard 随 Phase 2 ③验证问答绑 patrol done ④信任归一三纪律 ⑤身份归因。**写**（本版已销账）：⑥#9 状态行校正+§8.4 宿主更正（ISSUE-195 ④）⑦Core Block 三问（HM-M2）⑧CJK 口径（ISSUE-196）⑨会话巩固设计（015 §6）。**暂缓**（带触发）：⑩#4 ⑪#12 ⑫隐式挖掘 ⑬#14 ⑭#16 ⑮L2/L3 挂载（随 ISSUE-194 方案 (a)，前置先修 015-D6 跨用户读取通道）。
 
 ## 12. 实证数字与动手实验室
 

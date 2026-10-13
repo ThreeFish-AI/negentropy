@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 ### Added
+### 机制映射合并：10 份映射文档并入单一汇总（2026-10-13）
+
+- **合并**：docs/research 下 10 份「X ↔ negentropy 机制映射」（合计 1040 行）并入 [mapping-negentropy.md](docs/research/mapping-negentropy.md) 单一文档，按五个域组织（认知与上下文 HZ/OV、Skills SK、Jev JV、自进化 PG/DR、Agent Harness AN/HM），文首含前缀登记表、跨域结论与统一落地 backlog；10 份原文件删除（全文经 git 历史可溯）。091 与 211 取并集去重（211 的 12 条为底，091 未被承接且仍成立的 M10/M11/M13 独立保留，四桶审计落 `.temp/mapping-merge/`）；221 的映射表（SK-A1–A6）并入，B/C 两节（E3 叙事锚点与数字时效卡）迁至 `apps/negentropy-influence/episodes/skills-supply-chain-video/research/narrative-anchors.md`；
+- **改链**：issue.md（ISSUE-194~198 的 13 处链接与节指针，含修正「201 §D3/D4/D6」悬空引用——该清单在 201 前代版本 `fb56e7c78`，重写时移除，现指向该提交）、knowledge-map 10 行、research/readme（删 8 行映射行加汇总入口）、090/011/013/014/142/144/180/190/200/220/230×2/skills 设计文档、openviking 与 agent-skills 视频工作区活链接、三个目录分类 description；条目编号统一加域前缀（如 091-M4→SK-M3、191-M11→HM-M11），跨域引用不再依赖文件名；
+- **验证**：manifest 保真门（10 份的表行数、✅/🔶/⏸ 分布、锚点集、URL/哈希/日期逐项守恒）、旧文件名与旧节指针全仓终扫仅剩冻结取证面、check_series FAIL 0、相对链接批量校验零死链、wiki build_docs_pack 干跑通过。
+
 ### Agent Skills 精读合并：210 并入 230，单一现行版（2026-10-12）
 
 - **合并**：[230 精读](docs/research/agent-infra/230-agent-skills-standard.md) 吸收 210 重学版全部独有载荷后成为唯一现行版，210 文件删除（全文经 git 历史可溯）：新增四家客户端对照表（Gemini CLI/VS Code 实测口径与 [6][7] 引用）、lab2 四项补充实验入 §10（作用域优先级漂移/metadata 强转翻转/朴素解析器伪字段注入/遮蔽告警剥离）、#520 vs #573 与 UTF-8 三 PR 排队证据入争议 2、注入防御题入 §13、新增 §14 与本仓关联；

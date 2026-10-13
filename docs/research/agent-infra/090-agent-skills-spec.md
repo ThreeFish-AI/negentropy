@@ -6,7 +6,7 @@ description: "agentskills.io 规范精读（固定提交 69ef37e9）：目录即
 
 # Agent Skills 开放规范精读笔记
 > [!NOTE]
-> 2026-09-26 起的同题换代笔记见 [230 现行精读](./230-agent-skills-standard.md) 与 [211 映射](./211-agent-skills-mapping-negentropy.md)（四家客户端实测 / 两组实验 / 生态与 PR 动向增量）；本文为历史版本，结论仍有效、不随后续修订。
+> 2026-09-26 起的同题换代笔记见 [230 现行精读](./230-agent-skills-standard.md) 与 [211 映射](../mapping-negentropy.md)（四家客户端实测 / 两组实验 / 生态与 PR 动向增量）；本文为历史版本，结论仍有效、不随后续修订。
 
 
 > [Agent Skills, "Specification," agentskills.io, 2026. [Online]. Available: https://agentskills.io/specification](https://agentskills.io/specification)。源码与参考实现 [agentskills/agentskills](https://github.com/agentskills/agentskills)，固定提交 [`69ef37e9`](https://github.com/agentskills/agentskills/tree/69ef37e9424c0a7ea9dd2293b559e43ec8176379)（2026-08-09），代码 Apache-2.0、文档 CC-BY-4.0。格式最初由 Anthropic 开发，后作为开放标准发布（`home.mdx`「Open development」节）。
@@ -18,7 +18,7 @@ description: "agentskills.io 规范精读（固定提交 69ef37e9）：目录即
 **怎么读这篇笔记**：
 - **三拍结构**：每个机制按「类比 → 机制 → 原型实景」走。
 - **原型**：实景取自配套最小原型 [`assets/agent_skills_lab.py`](./assets/agent_skills_lab.py)。它是纯标准库、474 行的确定性原型，已随笔记入库：`--selftest` 秒级跑完，`--break B1..B5` 复现破坏性实验，`--audit-repo` 只读审计本仓技能。文中所有日志均为实际运行输出。
-- **配套产物**：[Agent Skills ↔ negentropy 机制映射报告](./091-agent-skills-mapping-negentropy.md)。
+- **配套产物**：[机制映射汇总·Skills](../mapping-negentropy.md)。
 - **引用记号**：
   - `S:行号` 指 [specification.mdx](https://github.com/agentskills/agentskills/blob/69ef37e9424c0a7ea9dd2293b559e43ec8176379/docs/specification.mdx)。
   - `G:行号` 指 [客户端实现指南 adding-skills-support.mdx](https://github.com/agentskills/agentskills/blob/69ef37e9424c0a7ea9dd2293b559e43ec8176379/docs/client-implementation/adding-skills-support.mdx)。
@@ -389,7 +389,7 @@ uv run --no-project python docs/research/agent-infra/assets/agent_skills_lab.py 
 ```
 合计 11：校验通过 11，缺「何时用」 3，逗号分隔 allowed-tools 10，带可选目录 0
 ```
-逐项对照与处置建议见 [091 映射报告](./091-agent-skills-mapping-negentropy.md)。
+逐项对照与处置建议见 [机制映射汇总·Skills](../mapping-negentropy.md)。
 
 > 原型位于 `docs/research/agent-infra/assets/`，已随笔记入库（沿 [142](../self-evolution/142-procedural-graphs.md) / [144](../self-evolution/144-dream-rsi.md) 先例）；真实 skills-ref 探针位于 `.context/`（gitignored），可按 §3 命令复刻。
 
@@ -500,11 +500,11 @@ Mentor 对三个薄弱点分别补课：
 
 1. **成本题**：你的团队有 120 个技能，平均描述 400 字符（英文），平均正文 300 行。估算每会话的 Tier 1 固定开销，再估算一次典型任务激活 2 个技能后的总开销；装机数翻到 500 时，哪一级先成为瓶颈？请写出你的 token 换算假设。——考核点：§4 的成本结构，以及 §10 边界 2。
 2. **反事实题**：如果规范删掉「`name` 必须等于目录名」，改为「`name` 全局唯一，由注册表分配」，§6 的五条规律里哪条会被改写？这会让 Agent Skills 更像哪一类系统（包管理器？域名系统？），「Keep the format small」要付出什么代价？——考核点：规律 2 与争议 3 的对冲关系。
-3. **迁移题**：本仓的技能目录块写成 `- {name}: {description}` 的逐行列表，并提示模型调用 `expand_skill(name)`。结合 §4 的「目录—激活契约」与 §9 的 B5，检查这个设计在注入防护和激活路径上各还缺什么。——考核点：从规范到自家系统的映射能力，可对照 [091 映射报告](./091-agent-skills-mapping-negentropy.md) 的 M3 / M4。
+3. **迁移题**：本仓的技能目录块写成 `- {name}: {description}` 的逐行列表，并提示模型调用 `expand_skill(name)`。结合 §4 的「目录—激活契约」与 §9 的 B5，检查这个设计在注入防护和激活路径上各还缺什么。——考核点：从规范到自家系统的映射能力，可对照 [机制映射汇总·Skills](../mapping-negentropy.md) 的 SK-M15 / SK-M3。
 
 ## 13. 与本仓的关联
 
-- [Agent Skills ↔ negentropy 机制映射报告](./091-agent-skills-mapping-negentropy.md)：12 条机制对照本仓三套「skill」实现（运行时 `skills` 表 / Definition Registry `harness_skill` 物化 / 翻译 workdir 物化）。头号发现是 Layer 1 目录指示调用 `expand_skill`，而该工具**从未挂载**到任何 Agent。
+- [机制映射汇总·Skills](../mapping-negentropy.md)：22 条机制对照本仓三套「skill」实现（运行时 `skills` 表 / Definition Registry `harness_skill` 物化 / 翻译 workdir 物化）。头号发现是 Layer 1 目录指示调用 `expand_skill`，而该工具**从未挂载**到任何 Agent（SK-M3，ISSUE-194）。
 - [Skills 模块设计](../../concepts/design/skills.md)：本仓 Skills 的设计 SSOT（DB-first、三层披露、`enforcement_mode`）。
 - 谱系：
   - [172 Claude Code 规划与协调](../agent-harness/172-claude-code-planning-coordination.md) 的「技能渐进披露」讲的是教学实现的两层加载。

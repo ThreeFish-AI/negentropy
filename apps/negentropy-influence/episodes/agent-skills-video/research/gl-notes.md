@@ -307,7 +307,7 @@ long-name / empty-desc），宽容口径全数可载 12 只 —— 严格门把�
 
 ## 14. 与本仓的关联
 
-本篇精读针对 Agent Skills 开放规范的原理与实现差异进行了系统性解剖。针对本仓库（negentropy/vancouver-v3）自身技能架构的落地对齐分析、历史遗留 Issue 复核以及针对 X4 注入防护的落地建议，请参阅随附的机制映射报告：[211-agent-skills-mapping-negentropy.md](../../../../../docs/research/agent-infra/211-agent-skills-mapping-negentropy.md)。
+本篇精读针对 Agent Skills 开放规范的原理与实现差异进行了系统性解剖。针对本仓库（negentropy/vancouver-v3）自身技能架构的落地对齐分析、历史遗留 Issue 复核以及针对 X4 注入防护的落地建议，请参阅随附的机制映射报告：[机制映射汇总·Skills](../../../../../docs/research/mapping-negentropy.md)。
 
 ---
 

@@ -10,7 +10,7 @@ description: "固定提交 068db016 的全貌解剖：缓存优先的三段式�
 >
 > - 代码：[`NousResearch/hermes-agent`](https://github.com/NousResearch/hermes-agent) 固定提交 [`068db016`](https://github.com/NousResearch/hermes-agent/tree/068db016fbfb3e9b44169de154781908f91bceae)（2026-09-24，`main`；最近 release `v2026.9.21` = v0.21.4；MIT）。
 > - 文档：官方站 [Features Overview](https://hermes-agent.nousresearch.com/docs/user-guide/features/overview) 及其链接的 user-guide / developer-guide 页（2026-09-24 抓取）。
-> - 配套最小原型：[`assets/hermes_lab.py`](./assets/hermes_lab.py)（纯标准库，`--selftest` 秒级）；机制映射见 [191](./191-hermes-agent-mapping-negentropy.md)。
+> - 配套最小原型：[`assets/hermes_lab.py`](./assets/hermes_lab.py)（纯标准库，`--selftest` 秒级）；机制映射见 [191](../mapping-negentropy.md)。
 
 **一句话定位**：Hermes 给通用 Agent 装了一条**经验写回通道**。每次交付之后，它在旁路复盘：可复用的做法写成按需加载的技能，少量关键事实写进有硬上限的常驻记忆。所有写回都服从一条更高的约束：**会话内系统提示字节稳定，唯一计划内的断点是上下文压缩**。
 
@@ -375,7 +375,7 @@ D3 揭示两道独立保险：对齐保住信息，清洗保住 API 不报错。
   - 每轮按当前问题检索记忆、注入提示，相关性更高，却每轮断前缀。
   - 缓存优先便宜、快、可复现，却让会中新事实只能暂住在对话记录里。
   - Hermes 选了缓存优先，连 micro-compaction 都默认关，理由是每轮改前缀的代价可能超过它省下的。
-- **难以克服吗**：属于**成本结构的连续谱选址**，取决于提供方的缓存定价与会话长度。本仓当前站在相关性一侧，见 [191 M1](./191-hermes-agent-mapping-negentropy.md)。
+- **难以克服吗**：属于**成本结构的连续谱选址**，取决于提供方的缓存定价与会话长度。本仓当前站在相关性一侧，见 [机制映射汇总·HM-M1](../mapping-negentropy.md)。
 
 ## 10. 关键实证数字（证据分级）
 
@@ -488,7 +488,7 @@ uv run --no-project python docs/research/agent-harness/assets/hermes_lab.py --br
 
 ## 15. 与本仓的关联
 
-- 机制映射报告：[191 Hermes Agent ↔ negentropy](./191-hermes-agent-mapping-negentropy.md)。
+- 机制映射报告：[191 Hermes Agent ↔ negentropy](../mapping-negentropy.md)。
 - 同分部：
   - [170 Claude Code 五层 Harness 总览](./170-claude-code-harness-overview.md)：技能渐进披露见 [172](./172-claude-code-planning-coordination.md)，收台与持久记忆见 [173](./173-claude-code-memory-management.md)。
   - [180 AI Native 手册](./180-ai-native-handbook.md)：企业级控制面。

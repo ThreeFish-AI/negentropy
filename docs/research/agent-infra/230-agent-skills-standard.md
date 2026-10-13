@@ -238,7 +238,7 @@ lab2 行号速查：`parse_frontmatter` L76 · `validate_spec`（严格口径）
 
 ## 14. 与本仓的关联
 
-本篇讲标准本身；本仓（negentropy）自身技能架构的落地对照、ISSUE-194（`expand_skill` 悬空）复核与目录注入面的修法建议见 [211 机制映射](./211-agent-skills-mapping-negentropy.md)。标准留白的供应链问题（签名、分发、版本）见 [220 供应链精读](./220-skills-supply-chain.md)。
+本篇讲标准本身；本仓（negentropy）自身技能架构的落地对照、ISSUE-194（`expand_skill` 悬空）复核与目录注入面的修法建议见 [211 机制映射](../mapping-negentropy.md)。标准留白的供应链问题（签名、分发、版本）见 [220 供应链精读](./220-skills-supply-chain.md)。
 
 ## 参考（IEEE）
 

@@ -185,7 +185,7 @@ description: "Context Layer 客户域（tenant / user 两级主体）长期记�
 **本仓可借鉴的参照实现**（同一代码库的 Memory 子系统，仅借鉴设计）：
 
 - [记忆子系统 SoT](../../concepts/subsystems/025-the-memory-system.md)：五因子衰减、ADR、与 Mem0 / Cognee / Zep / Letta 的横向对比；[记忆白皮书](../../concepts/subsystems/026-memory-whitepaper.md)。
-- [Context Layer 技术蓝图](../cognitive-context/013-context-layer-blueprint.md)、[OpenViking 精读](../cognitive-context/014-openviking.md) 与[机制映射](../cognitive-context/015-openviking-mapping-negentropy.md)：会话两阶段提交与分级上下文。
+- [Context Layer 技术蓝图](../cognitive-context/013-context-layer-blueprint.md)、[OpenViking 精读](../cognitive-context/014-openviking.md) 与[机制映射](../mapping-negentropy.md)：会话两阶段提交与分级上下文。
 - [自进化 Agents Team 调研](../self-evolution/130-self-evolving-agents-team.md)：记忆治理与去重决策范式。
 - [`conflict_resolver.py`](../../../apps/negentropy/src/negentropy/engine/governance/conflict_resolver.py)（AGM 冲突检测，supersede / merge / keep_both）→ V2；[`memory.py`](../../../apps/negentropy/src/negentropy/engine/governance/memory.py)（审计、版本、保留策略）→ G2、R2；[`consolidation/pipeline/`](../../../apps/negentropy/src/negentropy/engine/consolidation/pipeline)（巩固管线）→ W4；[`memory_tools.py`](../../../apps/negentropy/src/negentropy/engine/tools/memory_tools.py)（自编辑工具）→ R1。
 
