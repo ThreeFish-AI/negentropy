@@ -4209,11 +4209,11 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 
 ## ISSUE-194 Skills 激活层悬空：Layer 1 目录指示调用的 expand_skill 从未挂载，连带 R6-b 在线 canary 门恒被跳过（2026-09-23）
 
-- **表因**：[Agent Skills 规范精读](../research/agent-infra/090-agent-skills-spec.md) 做本仓映射时发现，`format_skills_block` 在每个注入技能的 Agent 目录末行写死「To use a skill, call expand_skill(name) to retrieve its full template.」（`agents/skills_injector.py:357`），但 Agent 树内没有任何 Agent 持有该工具；多份文档（Skills 设计 §2/§3.2、172 §11、012 #9、013 状态表、skills-advanced / skills-paper-hunter 用户指南）却把「LLM 自主调用 expand_skill」写成已实现。
+- **表因**：[Agent Skills 规范精读](../research/agent-infra/230-agent-skills-standard.md)（当时的一代精读 090 现已并入其内）做本仓映射时发现，`format_skills_block` 在每个注入技能的 Agent 目录末行写死「To use a skill, call expand_skill(name) to retrieve its full template.」（`agents/skills_injector.py:357`），但 Agent 树内没有任何 Agent 持有该工具；多份文档（Skills 设计 §2/§3.2、172 §11、HZ-9、013 状态表、skills-advanced / skills-paper-hunter 用户指南）却把「LLM 自主调用 expand_skill」写成已实现。
 - **根因**：Phase 2（#459）实现了 `expand_skill` / `list_available_skills` / `fetch_skill_resource` 三件工具并在 `agents/tools/__init__.py:28-29` 导出，但**从未登记进 `TOOL_REGISTRY`**（`agents/tools/registry.py:64-92`）。六翼 `NegentropyToolset` 先按白名单过滤（`_dynamic_tools.py:121`）、再经 `TOOL_REGISTRY.get()` 解析（`registry.py:129`），根 Agent 仅挂 `log_activity` + `preload_memory_tool`（`agent.py:248`）。`git log -S "expand_skill"` 在 faculties / agent.py / registry.py / `_dynamic_tools.py` 上零命中，说明从未绑定过。「目录承诺的激活路径」与「实际挂载的工具」之间**没有任何机器门禁**，所以缺口能在 Phase 2 → Phase 3 → 进化闭环（#1038）多轮迭代中一直隐身。
 - **二阶影响**：Skill 进化 R6-b runtime canary 在线 error-rate 门以窗口内 `expand_skill` 真实调用（`tool_invocations`）为样本（`engine/evolution/handlers/skill.py:428-480`）。样本不足 `SKILL_RUNTIME_CANARY_MIN_SAMPLES = 10` 时返回 `hold`（`engine/evolution/decision.py:282`、`:444-445`）。调用恒为 0，所以**在线门恒被跳过**，技能晋升实际只由离线复评门裁决。
 - **处理方式**（本次只分析不改码）：
-  1. 在 [091 映射报告 M4](../research/agent-infra/091-agent-skills-mapping-negentropy.md) 给出二选一方案：(a) 兑现契约，三件工具入 `TOOL_REGISTRY` 并挂载到消费 Layer 1 的 Agent，`name` 参数按可见技能枚举约束，无技能则不出目录、不注册工具；(b) 收回承诺，删 Layer 1 末行指令，在 141 与设计文档中注明 R6-b 在线门不可用。
+  1. 在 [机制映射汇总的 SK-M3](../research/mapping-negentropy.md) 给出二选一方案：(a) 兑现契约，三件工具入 `TOOL_REGISTRY` 并挂载到消费 Layer 1 的 Agent，`name` 参数按可见技能枚举约束，无技能则不出目录、不注册工具；(b) 收回承诺，删 Layer 1 末行指令，在 141 与设计文档中注明 R6-b 在线门不可用。
   2. 在设计 SSOT（`docs/concepts/design/skills.md` §3.2 与 §2 表）和 172 §11 加校正指针。其余文档的表述在方案 (a) 落地后会自动重新成立，暂不改写，以免与 M4 决策打架。
 - **后续防范**：
   1. **契约即门禁**：落地 (a) 时补集成测试，断言「目录声明的激活工具名 ∈ 该 Agent 实际挂载的工具名」。凡 prompt 里写死工具名的地方，都应有同构断言。
@@ -4221,22 +4221,22 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **同类问题影响与注意事项**：
   1. `fetch_skill_resource`（Layer 3）同样未挂载，typed resources 只能经 REST / 调度器间接生效。
   2. 其他在 system prompt 里点名工具的注入器（如引用协议、记忆提示）可能有同类「承诺—挂载」漂移，可按上述断言模式排查。
-  3. 选方案 (a) 时须同步评估 `is_global` 技能注入所有 Agent 的描述体量，以及目录注入防护（091 M3 / M5）：挂载后目录不再只是展示，会变成真实的调用入口。
+  3. 选方案 (a) 时须同步评估 `is_global` 技能注入所有 Agent 的描述体量，以及目录注入防护（SK-M15 / SK-M5）：挂载后目录不再只是展示，会变成真实的调用入口。
 
 ## ISSUE-195 交互式对话 → 长期记忆链路断开 + 映射取证牵出的 7 处漂移：add_session_to_memory 零调用方、consolidation_jobs 只入队无消费者、force_refresh 被 TypeError 吞掉（2026-09-24）
 
-- **表因**：[OpenViking 精读映射](../research/cognitive-context/015-openviking-mapping-negentropy.md) 对齐 M-d「会话两阶段提交」时发现：本仓交互式对话的内容**不会自动沉淀为长期记忆**——`add_session_to_memory`（`engine/adapters/postgres/memory_service.py:84`）在全仓（含 UI/BFF）没有任何调用方；ADK Runner 也不会自动调用（venv 内 `google/adk/runners.py` 零引用），唯一暴露路径 `PATCH /apps/{a}/users/{u}/memory`（`google/adk/cli/api_server.py:1428`）本仓 UI 未调用。
+- **表因**：[机制映射汇总的 OV 域](../research/mapping-negentropy.md) 对齐 M-d「会话两阶段提交」时发现：本仓交互式对话的内容**不会自动沉淀为长期记忆**——`add_session_to_memory`（`engine/adapters/postgres/memory_service.py:84`）在全仓（含 UI/BFF）没有任何调用方；ADK Runner 也不会自动调用（venv 内 `google/adk/runners.py` 零引用），唯一暴露路径 `PATCH /apps/{a}/users/{u}/memory`（`google/adk/cli/api_server.py:1428`）本仓 UI 未调用。
 - **根因**：富化层在对话路径上没有「供给入口」。`consolidation_jobs` 表（迁移 0043/0044）由调度 handler 调 SQL `trigger_maintenance_consolidation` 入队（`schedulers/handlers/memory_automation.py:173`），但**全仓无消费者**——`fast_replay` / `deep_refection` 两种任务类型从未被生产过（025 §4.3 描述与事实不符）；`create_postgres_memory_service(consolidation_worker=None)` 默认不注入 worker（`engine/factories/memory.py:104`）。Routine 路径有 fire-and-forget 提炼（`orchestrator.py:1393`）佐证断链是「交互式独有」。对比先例：OpenViking 把「会话→记忆」做成 Phase 1 同步归档 + Phase 2 异步提炼 + `.done` 水位的显式提交链，缺口在其设计里有直接对位物。
-- **同批取证发现的 7 处漂移**（详表见 015 §5）：D1 `ContextAssembler.assemble()` 只有单测调用，013 §8.5 / 025 §6.3 把它写成「自动注入通道」（实际生产读取仅 `get_memory_summary()` 回退）；D3 SummarizeStep 传 `force_refresh=True` 因 `get_or_generate_summary` 签名无此参数抛 TypeError 被降级吞掉（`summarize_step.py:40` vs `memory_summarizer.py:93`），强制刷新从未生效且摘要是 24h TTL 不感知源变化；D4 ConflictResolver docstring 宣称三阶段检测、实现只有规则；D5 `save_to_memory` 直写 `embedding=None` 不去重不审计且无回填，对 vector/hybrid 不可见；D6 `_fetch_memory` 按 UUID 读 Memory 不校验 user/app（`agents/tools/skill_resources.py:167`）——**ISSUE-194 方案 (a) 挂载前必须先修**，否则成为跨用户读取通道；D7 013 §12.7 #9「L1/L2/L3 ✅」与 ISSUE-194 结论矛盾待回写；D8 memory_pipeline_prompt 进化面只有 fact extractor 消费，summarizer/reflection 晋升是运行时 no-op。
-- **处理方式**（本次只分析不改码，落地建议见 015 §落地建议汇总）：
+- **同批取证发现的 7 处漂移**（详表见汇总文档「OV 取证副产物」）：D1 `ContextAssembler.assemble()` 只有单测调用，013 §8.5 / 025 §6.3 把它写成「自动注入通道」（实际生产读取仅 `get_memory_summary()` 回退）；D3 SummarizeStep 传 `force_refresh=True` 因 `get_or_generate_summary` 签名无此参数抛 TypeError 被降级吞掉（`summarize_step.py:40` vs `memory_summarizer.py:93`），强制刷新从未生效且摘要是 24h TTL 不感知源变化；D4 ConflictResolver docstring 宣称三阶段检测、实现只有规则；D5 `save_to_memory` 直写 `embedding=None` 不去重不审计且无回填，对 vector/hybrid 不可见；D6 `_fetch_memory` 按 UUID 读 Memory 不校验 user/app（`agents/tools/skill_resources.py:167`）——**ISSUE-194 方案 (a) 挂载前必须先修**，否则成为跨用户读取通道；D7 013 §12.7 #9「L1/L2/L3 ✅」与 ISSUE-194 结论矛盾待回写；D8 memory_pipeline_prompt 进化面只有 fact extractor 消费，summarizer/reflection 晋升是运行时 no-op。
+- **处理方式**（本次只分析不改码，落地建议见汇总文档「OV 落地建议」）：
   1. **做**（建议独立 PR，先于 013 Phase 1）：会话巩固触发器（复用 `title_inspector` 的「事件水位差 ≥Δ 且空闲 ≥T」范式）+ `consolidation_jobs` 消费者（`FOR UPDATE SKIP LOCKED` 执行 `_simple_consolidate`）+ `threads.metadata.consolidated_at_event_seq` 水位；巩固 diff 写 `consolidation_jobs.result` 并接 UI `/memory/audit`；修 D3 签名并把 TTL 换成源水位判据。零新表。
-  2. **写**：013 §12.7 #9 状态行校正（L1 ✅ / L2·L3 🔶 ISSUE-194）与 §8.5 宿主更正（D1/D7）；025 §4.1/§4.3 与事实不符处回写。——**013/015 侧已销账（2026-09-27：013 完全重铸落地——§11.5 #9 校正、§8.4 宿主更正、§6.2 会话巩固三件套并入、015 §6 对位表同步；「做」面仍开放）。025 §4.1/§4.3 回写未做仍开放**（2026-09-28 评审发现销账口径过早并收窄：025 在重铸分支零改动，其 §4.1 仍把 add_session_to_memory→consolidation_jobs 写成在跑链路）
+  2. **写**：013 §12.7 #9 状态行校正（L1 ✅ / L2·L3 🔶 ISSUE-194）与 §8.5 宿主更正（D1/D7）；025 §4.1/§4.3 与事实不符处回写。——**013/015 侧已销账（2026-09-27：013 完全重铸落地——§11.5 #9 校正、§8.4 宿主更正、§6.2 会话巩固三件套并入、OV 蓝图对位表同步；「做」面仍开放）。025 §4.1/§4.3 回写未做仍开放**（2026-09-28 评审发现销账口径过早并收窄：025 在重铸分支零改动，其 §4.1 仍把 add_session_to_memory→consolidation_jobs 写成在跑链路）
   3. **暂缓**：M-a 统一 URI（与 013 ADR-1 冲突，只取寻址不取存储）、typed query、目录递归（YAGNI 触发条件见 015）。
 - **后续防范**：文档把链路标 ✅ 前须核到「调用方/消费者存在」这一层（与 ISSUE-194 同款断言纪律：函数存在 ≠ 链路存在）；「队列表」类设计须与消费者同一 PR 落地，否则只入队的表是 silent no-op 的温床。
 
 ## ISSUE-196 中文关键词检索失效：memories 与知识库的 tsvector 用 english 配置，整段汉字被切成单个 token，tsvector 关键词腿对中文子串全部落空（2026-09-24）
 
-- **表因**：[Hermes Agent 精读映射](../research/agent-harness/191-hermes-agent-mapping-negentropy.md) 对齐 M10「CJK 分词索引」时发现：Hermes 为中文专门建了 `cjk_unicode61` bigram 与 trigram 两套 FTS5 索引，而本仓混合检索的关键词腿对中文几乎不起作用。本机 PostgreSQL 16.14 只读实测：`to_tsvector('english','用户偏好先给结论，少铺垫')` → `'少铺垫':2 '用户偏好先给结论':1`；以 `plainto_tsquery('english','先给结论')` 匹配为 `f`，只有整段原串 `'用户偏好先给结论'` 才为 `t`。
+- **表因**：[机制映射汇总的 HM-M10](../research/mapping-negentropy.md) 对齐 M10「CJK 分词索引」时发现：Hermes 为中文专门建了 `cjk_unicode61` bigram 与 trigram 两套 FTS5 索引，而本仓混合检索的关键词腿对中文几乎不起作用。本机 PostgreSQL 16.14 只读实测：`to_tsvector('english','用户偏好先给结论，少铺垫')` → `'少铺垫':2 '用户偏好先给结论':1`；以 `plainto_tsquery('english','先给结论')` 匹配为 `f`，只有整段原串 `'用户偏好先给结论'` 才为 `t`。
 - **根因**：迁移 `0047_memory_hybrid_search_function.py` 的触发器写死 `to_tsvector('english', content)`（`:58`，回填 `:89`），`negentropy.hybrid_search()` 与 `_keyword_search` 用 `plainto_tsquery('english', …)`（`:146`/`:151`、`engine/adapters/postgres/memory_service.py:1255`/`:1260`）；知识库的 `search_vector` 由 `0001_init_schema.py:914` 的 `tsvector_update_trigger(search_vector, 'pg_catalog.english', content)` 生成，查询同款（`knowledge/retrieval/repository.py:841`/`:848`）。PG 默认解析器把连续的非 ASCII 字母序列当成一个 word token，`english` 词典对中文不做切分。源头：0047 以 `docs/reference/cognizes/engine/schema/perception_schema.sql` 为权威定义移植，该文件本身即 `english` 口径（`:86`/`:199`），移植时未针对中文调整。
 - **影响**：中文内容的混合检索实际退化为纯向量检索，BM25 融合权重对中文空转。记忆检索在无 embedding 时回退到 `ILIKE '%query%'`（`memory_service.py:808`/`:1290`），中文子串尚能命中；知识库检索没有这层回退，是真正的全量失效。另外，精确词（人名、项目代号、报错原文的中文部分）召回依赖向量相似度，稳定性差。英文与中英混排中的英文词不受影响（`'deploy the static site to CDN' @@ 'deploying site'` 为 `t`）。
 - **处理方式**（本次只登记不改码，方案另行评审）：
@@ -4247,25 +4247,25 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 
 ## ISSUE-197 审批门只接线两个工具：HIGH_RISK_TOOLS 与用户指南高估了审批覆盖面，能跑主机 Bash 的 invoke_claude_code 不在清单内（2026-09-24）
 
-- **表因**：[Hermes Agent 精读映射](../research/agent-harness/191-hermes-agent-mapping-negentropy.md) M14 对照 Hermes 命令守卫时，独立 Verifier 核验发现 181 #17 的前提「本仓没有通用 shell」已不成立；顺藤核查审批链路后发现覆盖面远小于清单与文档所述。
+- **表因**：[机制映射汇总的 HM-M14](../research/mapping-negentropy.md) 对照 Hermes 命令守卫时，独立 Verifier 核验发现 AN-17 的前提「本仓没有通用 shell」已不成立；顺藤核查审批链路后发现覆盖面远小于清单与文档所述。
 - **根因**：`agents/approval.py:46-61` 的 `HIGH_RISK_TOOLS` 只是一张判定表，审批并非统一拦截——`should_request_approval` 全仓只有 `agents/tools/ingest.py:119`（`ingest_to_corpus`）与 `agents/tools/paper.py:343`（`ingest_paper`）两处调用；root agent 的 `before_tool_callback`（`agents/agent.py:239`）只做工具遥测（`engine/observability/tool_telemetry.py:90`）。于是清单内的 `save_to_memory`、`execute_code`、`write_file`、`publish_content`、`send_notification` 在任何策略下都不弹审批，`shell_command`/`send_email` 在全仓并无对应工具。`invoke_claude_code`（`agents/tools/claude_code.py:23`）默认向 Claude Code 开放 `Bash,Read,Write,Edit,Glob,Grep` 并在主机 cwd 运行（权限由 CC 自身 `permission_mode`，默认 auto），却不在清单内。
 - **文档漂移**：用户指南 `docs/concepts/user-guide/chat-essentials.md` 称 `always` 模式「任何工具调用前都弹审批 modal」，实际只作用于上述两个已接线工具；同段「其他高风险工具待后续迭代接入」一句如实，但清单本身未标注接线状态。
 - **处理方式**（本次只登记不改码）：
   1. **做**（下一次触及 approval 的 PR）：二选一并与文档同 PR 落地——① 以 ADK `before_tool_callback` 统一拦截 `HIGH_RISK_TOOLS`，让清单即覆盖面；② 收窄清单至已接线工具，并把 `always` 模式的说明改为如实描述。
-  2. **决策**：`invoke_claude_code` 是否纳入审批或命令级硬拦截，维持与 181 #17「CC 最大权限」一致的既定取舍，待产品决策，不在本 Issue 内默认改动。
+  2. **决策**：`invoke_claude_code` 是否纳入审批或命令级硬拦截，维持与 AN-17「CC 最大权限」一致的既定取舍，待产品决策，不在本 Issue 内默认改动。
 - **后续防范**：安全类「清单」必须与「执行点」同处或有覆盖测试（断言清单内每个工具在 `per_tool` 策略下确实触发审批）；文档描述审批覆盖面时以执行点为准，而非以判定表为准。
 ## ISSUE-198 LLM 结构化决策点缺「闭合输出空间」纪律 + 3 个未注册 task key 与死配置：自动作答不校验选项成员、Judge/PlanReviewer 解析失败静默降 0 分、global_search 哨兵漏入 reduce（2026-09-24）
 
-- **表因**：[Jev 精读映射](../research/agent-infra/201-jev-mapping-negentropy.md) 对齐「闭合输出空间」机制时发现：本仓让 LLM 做小判断（分类/路由/打分/是非）的路径，答案空间都没有闭合——输出是自由 JSON，经 `loads_lenient` 宽松解析，失败返回 `{}` 由调用方静默填默认值。
+- **表因**：[机制映射汇总的 JV 域](../research/mapping-negentropy.md) 对齐「闭合输出空间」机制时发现：本仓让 LLM 做小判断（分类/路由/打分/是非）的路径，答案空间都没有闭合——输出是自由 JSON，经 `loads_lenient` 宽松解析，失败返回 `{}` 由调用方静默填默认值。
 - **根因**：判断类调用被塞进生成通道，且**解析失败与模型真实低分不可区分**：① `claude_code/service.py:1192,1199` 的 prompt 两次要求「回答必须是选项之一」，代码却从不校验成员，非 `answers` 格式原样返回（`:1246-1248`）；② Judge `_parse` 得 `{}` 后 `data.get("score", 0)` 合成 0 分 + `stalled`（`evaluator.py:546-558`）、PlanReviewer 同理合成 `refine`（`plan_reviewer.py:237-248`）——「模型打了 0 分」与「输出被截断」在下游完全同貌；③ `global_search` map prompt 让模型说「无相关信息」（`global_search.py:51`），过滤器只丢空串（`:200-201`），哨兵随证据进 reduce（`:431-435`）。对照先例：TypeSafe adapter 对同类 LLM 基线做逐请求 schema 校验 + 纠正重试；本仓 `LocalReranker` 已有「不生成、只打分」的正确形态。
-- **同批取证的配置类问题**：① `routine.auto_answer` / `routine.memory_extract` / `eval.execute` 三个 task key 在用但未注册（静默回落默认模型；`config/routine.py:187,279` 注释却称走 registry；`task_models_api.py:150-151` 拒绑未知 key）；② `auto_answer_model` / `auto_answer_timeout_seconds` 死配置（`config/routine.py:185-189` 无人读取，调用点硬编码 `timeout=30.0`）；③ ingestion planner 未钉温度、继承 0.7；④ `issue.md` 存在两个 `## ISSUE-128` 标题（`:3076`、`:3119`）。另 3 处文档-实现漂移见 201 §D3/D4/D6。
-- **处理方式**（本次只分析不改码，落地建议见 201 §落地建议）：
+- **同批取证的配置类问题**：① `routine.auto_answer` / `routine.memory_extract` / `eval.execute` 三个 task key 在用但未注册（静默回落默认模型；`config/routine.py:187,279` 注释却称走 registry；`task_models_api.py:150-151` 拒绑未知 key）；② `auto_answer_model` / `auto_answer_timeout_seconds` 死配置（`config/routine.py:185-189` 无人读取，调用点硬编码 `timeout=30.0`）；③ ingestion planner 未钉温度、继承 0.7；④ `issue.md` 存在两个 `## ISSUE-128` 标题（`:3076`、`:3119`）。另 3 处文档-实现漂移（global_search docstring 承诺置信度、意图 boost「+10%」对代码 0.15、`entity_resolver._borderline_high` 死字段）见 Jev 映射前代版本的取证副产物 D3/D4/D6（提交 `fb56e7c78`）。
+- **处理方式**（本次只分析不改码，落地建议见汇总文档「JV 落地建议」）：
   1. **做**（合并为一个小 PR）：自动作答成员校验 + 纠正重试 + 兜底；`_parse` 对 `{}` 返回显式解析失败信号交现有重试环；`global_search` 过滤「无相关信息」哨兵。
   2. **做**（配置）：三个 task key 入 `task_registry` 或移除死键；`auto_answer_model`/`timeout` 接通或删除。
   3. **写**：结构化输出约定（哪些决策必须闭合、失败信号必须显式、枚举校验成员）。
 - **后续防范**：给 LLM 的「选择题」必须由代码闭合答案空间（enum 成员校验），不能只写在 prompt 里；「解析失败」必须有区别于「模型低分」的显式信号；task key 先注册再使用（`task_models_api` 的注册校验与静默回落的 resolver 之间存在空转区）。
 
-- **独立复核（2026-09-26，Jev 精读全新重做后的映射）**：在不读本条的隔离条件下重新取证，[201](../research/agent-infra/201-jev-mapping-negentropy.md) 独立复现了上述三点（自动作答非 JSON 分支原样放行、judge/plan_reviewer 解析矫正零日志、三个在用未注册 task key），并新增两处同族问题：① KG 抽取 `confidence` 缺省 1.0 且不 clamp（`knowledge/graph/extractors.py:972`），叠加 `min_entity_confidence` 默认 0.5（`knowledge/types.py:784`、`knowledge/graph/service.py:725-726`）⇒ 字段缺失即以满置信自动通过门槛——缺省方向与「缺省即低集中度」相反；② LLM 口头置信（fact 缺省 0.7 / KG 缺省 1.0）、正则兜底常数（0.5/0.6）与手定启发式常数（0.3–0.85）同列存储并被 `quality.py` 均值与路由门控同样消费，量纲不可比。另：离线 eval 在 judge 不可用时 `score=0.0` 计入均值与通过率（`engine/eval/runner.py:990-997`），与 ①/② 同属「失败伪装成低分」。处理与防范沿用本条三档建议，新增两项已并入 201「做 / 写」档（KG 缺省改向需注意存量回填）。
+- **独立复核（2026-09-26，Jev 精读全新重做后的映射）**：在不读本条的隔离条件下重新取证，[机制映射汇总的 JV 域](../research/mapping-negentropy.md) 独立复现了上述三点（自动作答非 JSON 分支原样放行、judge/plan_reviewer 解析矫正零日志、三个在用未注册 task key），并新增两处同族问题：① KG 抽取 `confidence` 缺省 1.0 且不 clamp（`knowledge/graph/extractors.py:972`），叠加 `min_entity_confidence` 默认 0.5（`knowledge/types.py:784`、`knowledge/graph/service.py:725-726`）⇒ 字段缺失即以满置信自动通过门槛——缺省方向与「缺省即低集中度」相反；② LLM 口头置信（fact 缺省 0.7 / KG 缺省 1.0）、正则兜底常数（0.5/0.6）与手定启发式常数（0.3–0.85）同列存储并被 `quality.py` 均值与路由门控同样消费，量纲不可比。另：离线 eval 在 judge 不可用时 `score=0.0` 计入均值与通过率（`engine/eval/runner.py:990-997`），与 ①/② 同属「失败伪装成低分」。处理与防范沿用本条三档建议，新增两项已并入 201「做 / 写」档（KG 缺省改向需注意存量回填）。
 
 ## ISSUE-199 jev 集画面文字逐字复述口播，与烧录字幕叠成两层（2026-09-24）
 
@@ -4418,3 +4418,11 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **盲审 Finding 及采纳**（4 独立只读代理）：gloss 插入后全角括号多空格（5 篇同病，脚本时序 bug 已修）；175 L132 逐字引文被改（回退）；172 L60「调用 LLM 前往 messages」断句歧义（改「调用 LLM 之前，往」，原文同构遗留顺带打磨）。173 审查员曾把 gloss 空格判为「姊妹文件同款口径」，被 174 审查员以「全角标点除外 + 全文一致性」判据推翻——多代理独立审查的价值正在于此。
 - **后续防范**：新增 guided-learn 篇目或重冻 gl-notes 时，以 170 术语口径为正本跑残留 grep（`grep -o 模型 <file>` 减去例外清单应为 0）；口播/笔记两层口径的分界照旧记于各 gl-notes 头部。**遗留待办**：四个 `lcc-*--panorama.mmd` 图源内的「模型」字样未动——改图源触发 archify 重录与回执指纹漂移（~45 min），随下次 deliver 一并处理。
 - **同类问题影响**：本仓其余 GL 系列文档（horizon/procedural-graph/self-evolution 等精读产物）未按本口径扫描，如需统一应单独立项（各系列类比登记/冻结态不同，不能照搬本轮映射）；全局 terminology-specifications.md 补 LLM 行后，所有项目的文档评审才有一致判据。
+
+## ISSUE-215 E1 场景层 hook 帧上下文错配：4 处入场动画丢失、1 处死样式、2 处死参数与消融面板 footer 不可见（2026-10-13，已修码待 v2 重渲吸收；2026-10-13 合并时编号撞车自 212 顺延——本侧 212 已被 archify 3.0.0 采集口径条目占用）
+
+- **表因**：PR #1181 重写的 E1 场景中，`P0Hook/P1Folder/P2Ledger/P4Governance` 四处在**场景层组件体**调用 motion hook（`useEnter/useCount/usePushIn`，坐标系=场景局部帧），却传入 **beat 局部锚**（`at(id) - bX.from`，beat 首句锚=0）。beat Sequence 挂载时（场景帧≫锚点）progress 恒钳终态。
+- **影响清单**（v1 成片已固化，按交付冻结不回改）：① P0Hook `askCard` 锚=0 → 0-E 问句金句卡瞬现；② P1Folder `count10` 锚=290 → 1-E「10 技能 · 2 项漂移」静态终值；③ P2Ledger `push` 锚=0 → 2-D 全程静态 scale(1.06)；④ P4Governance `close` 锚=342 → 4-F 章戳瞬现；⑤ P0Hook `push`（场景锚包 0-B）恒 scale(1) 死样式；⑥ P1Folder `idAt/gitAt` 声明传参未使用（GoldenCard/Git 流水带从拍首常驻）；⑦ `AblationPanel` 只渲 `children[0..1]`，X5Shadow 第三个 child（「1 处覆盖悄悄生效 🔔」行）静默丢弃。
+- **根因**：`beatWindow` 返回场景局部帧坐标，hook 求值坐标系由「组件挂在哪层 Sequence」决定；场景层求值+beat 局部锚=恒错配。tsc 与既有机器门均无法拦截（类型全合法、门只查 cue 锚与帧覆盖）。
+- **处理方式**：hook 移入 beat Sequence 内组件求值（对齐 P3Route/P5Security/P6Laws 既有范式）：P0Hook `ThirdRoad` 改收 `cardAt` 内部求值 + 新增 `BeatPush`（0-B 拍首锚 p0-04）；P1Folder `GoldenCard` 接 `enter`（idAt 生效）、`Governance` 加 `dashOn` 门控（gitAt 生效）、计数徽标提取 `DriftBadge`；P2Ledger 新增 `BeatPush`；P4Governance 章戳提取 `CaseStamp`；`AblationPanel` 加 `footer` prop 承载第三行。tsc/单测通过；**未重渲**（用户裁决 2026-10-13），缺陷表现以 v1 交付冻结，v2 重制时自然吸收。
+- **后续防范**：motion hook 一律在 beat Sequence 内的组件里调用，锚传 beat 局部帧；场景层只算 `w()/at()` 窗口并以 prop 下传。可在评审清单加「场景层 hook 调用」检查项；QA 抽帧对「入场型装置」抽 beat 首帧比对（瞬现=progress 恒 1 的指纹）。

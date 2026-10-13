@@ -36,7 +36,7 @@ description: "Snowflake Horizon Context 精读档案（冻结版；设计 SSOT �
 >
 > **章号即稳定键**：§5–§9 与 §16 系章节重组与过程内容裁撤后腾空的逻辑编号，**已封存、勿复用**——8+ 张 archify 成片与 013 蓝图以「011 §10/§11/§12」等编号回指本篇；新增内容续用 §19+ 或并入既有章节。
 
-配套产物：[Context Layer 基础设施设计蓝图](./013-context-layer-blueprint.md) · [Horizon Context ↔ negentropy 机制映射报告](./012-horizon-context-mapping-negentropy.md)。
+配套产物：[Context Layer 基础设施设计蓝图](./013-context-layer-blueprint.md) · [Horizon Context ↔ negentropy 机制映射报告](../mapping-negentropy.md)。
 
 ---
 
@@ -704,7 +704,7 @@ uv run --no-project python docs/research/cognitive-context/assets/horizon_contex
 
 ## 18. 与本仓的关联
 
-- 机制级对照（definitions registry ↔ context objects、patrol/Judge ↔ eval 自纠环、三层渐进披露 ↔ verified query 分发等 16 条）见 [Horizon Context ↔ negentropy 机制映射报告](./012-horizon-context-mapping-negentropy.md)。
+- 机制级对照（definitions registry ↔ context objects、patrol/Judge ↔ eval 自纠环、三层渐进披露 ↔ verified query 分发等 16 条）见 [Horizon Context ↔ negentropy 机制映射报告](../mapping-negentropy.md)。
 - 本仓的上下文治理织物方案（Collect/Enrich/Activate 三相 × 四信号层 × Context Catalog/Router/Guard）与通用可复刻基础设施的架构设计，同见 [Context Layer 技术蓝图与方案](./013-context-layer-blueprint.md)（原 `concepts/design/context-layer.md` 已于 2026-09-21 并入其中）。
 - Snowflake 数据云调研中的 Horizon Catalog 章节见 [研究文档 §D7](../retrieval-storage/034-snowflake-data-cloud.md)。
 

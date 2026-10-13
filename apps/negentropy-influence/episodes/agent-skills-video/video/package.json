@@ -1,20 +1,22 @@
 {
   "name": "agent-skills-video",
   "private": true,
-  "description": "《知识的集装箱：Agent Skills 开放标准》科普视频 Remotion 工程",
+  "description": "《Agent Skills 开放标准》科普视频 Remotion 工程",
   "scripts": {
     "dev": "remotion studio",
+    "test:visual": "node --test tests/unit/visual.test.ts",
     "typecheck": "tsc --noEmit",
     "render": "remotion render Main ../out/final.mp4",
     "render:draft": "remotion render Main ../out/draft.mp4 --scale=0.5 --jpeg-quality=60"
   },
   "dependencies": {
-    "@remotion/cli": "^4.0.0",
-    "@remotion/layout-utils": "4.0.512",
-    "@remotion/media": "4.0.512",
+    "@remotion/cli": "4.0.533",
+    "@remotion/layout-utils": "4.0.533",
+    "@remotion/media": "4.0.533",
+    "@remotion/paths": "4.0.533",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "remotion": "^4.0.0"
+    "remotion": "4.0.533"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",
