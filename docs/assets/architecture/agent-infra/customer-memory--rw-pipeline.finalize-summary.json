@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "workflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/albuquerque-v2/.archify/workflow-customer-memory--rw-pipeline-20261012-181758/candidate.json",
+    "sha256": "f3578f0fdfc6c3e9e136885e3217480a1bfb610cc346416dba2f3b24d67267b5",
+    "bytes": 7130
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/albuquerque-v2/docs/assets/architecture/agent-infra/customer-memory--rw-pipeline.html",
+    "sha256": "53e75d4fe7f4cdf9a9d2aceea786f540dbdc3bbf905b469884ac10002fde1fc0",
+    "bytes": 772743
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/albuquerque-v2/docs/assets/architecture/agent-infra/customer-memory--rw-pipeline.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/albuquerque-v2/docs/assets/architecture/agent-infra/customer-memory--rw-pipeline.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/albuquerque-v2/docs/assets/architecture/agent-infra/customer-memory--rw-pipeline.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 3221
+}

@@ -1,0 +1,51 @@
+[
+ {
+  "id": "gl-three",
+  "label": "三层治理",
+  "focus": [
+   "must",
+   "advise",
+   "blank"
+  ],
+  "note": "MUST 喂互操作 · 建议管预算 · 留白放主权"
+ },
+ {
+  "id": "gl-guide",
+  "label": "指南层",
+  "focus": [
+   "guide-discover",
+   "guide-lenient",
+   "guide-trust"
+  ],
+  "note": "发现路径约定 · 宽容校验 · 激活确认（分镜期新增章，同 ge-eco 口径）"
+ },
+ {
+  "id": "gl-algo",
+  "label": "极简算法",
+  "focus": [
+   "blank",
+   "guide-trust"
+  ],
+  "note": "管得越少，越多人肯用——留白换生态"
+ },
+ {
+  "id": "gl-verdict",
+  "label": "判词",
+  "focus": [
+   "pr254",
+   "pr573",
+   "pr546"
+  ],
+  "note": "先成事实，后补条文"
+ },
+ {
+  "id": "ge-eco",
+  "label": "生态分叉",
+  "focus": [
+   "gemini",
+   "claudecode",
+   "openai"
+  ],
+  "note": "四家实现分叉 · P4 生态镜专用（分镜期新增，GL 原生章集之外仅此一章）"
+ }
+]

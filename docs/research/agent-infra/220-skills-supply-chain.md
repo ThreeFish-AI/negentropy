@@ -6,11 +6,11 @@ description: "以 agentskills 规范仓 @69ef37e9 + PR #254/#380 楼层证据 + 
 
 # Agent Skills 供应链战场精读笔记
 
-> [agentskills, "Agent Skills Specification," agentskills.io, 2026](https://agentskills.io/specification) · 规范仓 [agentskills/agentskills](https://github.com/agentskills/agentskills) 钉点 `69ef37e9`（2026-08-09，此后至 2026-09-27 零提交，冻结第 49 天）· 分发提案 [PR #254](https://github.com/agentskills/agentskills/pull/254)（open·dirty，2026-03-16 开）· 版本化提案 [PR #380](https://github.com/agentskills/agentskills/pull/380)（open，2026-05-13 开）· MCP 侧规范 SSOT [modelcontextprotocol/ext-skills](https://github.com/modelcontextprotocol/ext-skills) 钉点 `b0b3272f`（2026-09-24；SEP-2640 于 2026-09-13 投票合并 Final）· Cloudflare RFC 第三钉 [cloudflare/agent-skills-discovery-rfc](https://github.com/cloudflare/agent-skills-discovery-rfc) @`1bd11679`（2026-03-24，文本冻结）· 客户端源码 [google-gemini/gemini-cli](https://github.com/google-gemini/gemini-cli) @v0.61.x。系列上一篇 [210](./210-agent-skills-open-standard.md)（同一港口剧场讲格式；本篇讲**分发、签名、版本**三件被规范刻意留白的港口基础设施）。
+> [agentskills, "Agent Skills Specification," agentskills.io, 2026](https://agentskills.io/specification) · 规范仓 [agentskills/agentskills](https://github.com/agentskills/agentskills) 钉点 `69ef37e9`（2026-08-09，此后至 2026-09-27 零提交，冻结第 49 天）· 分发提案 [PR #254](https://github.com/agentskills/agentskills/pull/254)（open·dirty，2026-03-16 开）· 版本化提案 [PR #380](https://github.com/agentskills/agentskills/pull/380)（open，2026-05-13 开）· MCP 侧规范 SSOT [modelcontextprotocol/ext-skills](https://github.com/modelcontextprotocol/ext-skills) 钉点 `b0b3272f`（2026-09-24；SEP-2640 于 2026-09-13 投票合并 Final）· Cloudflare RFC 第三钉 [cloudflare/agent-skills-discovery-rfc](https://github.com/cloudflare/agent-skills-discovery-rfc) @`1bd11679`（2026-03-24，文本冻结）· 客户端源码 [google-gemini/gemini-cli](https://github.com/google-gemini/gemini-cli) @v0.61.x。系列上一篇 [230](./230-agent-skills-standard.md)（格式层精读；本篇讲**分发、签名、版本**三件被规范刻意留白的港口基础设施）。
 
-**一句话定位**：Agent Skills 的格式标准化跑赢了信任标准化——46 家客户端互认箱体（官网 showcase 源码清点 @69ef37e9），其中被逐家实测的四家头部（Gemini/Claude Code/OpenAI/VS Code，210 §7）**无一验签**——注意「46 家清点」与「四家实测」是两个口径，后者不外推前者；分发、签名、版本三件「海关设施」全被规范留白，社区在 PR 评论区、隔壁 MCP 港区和野生市场里，用六个月手工重演了包管理器界三十年长出的机制（舱单 digest、签名 sidecar、透明见证、semver、lockfile）。
+**一句话定位**：Agent Skills 的格式标准化跑赢了信任标准化——46 家客户端互认箱体（官网 showcase 源码清点 @69ef37e9），其中被逐家实测的四家头部（Gemini/Claude Code/OpenAI/VS Code，230 §6）**无一验签**——注意「46 家清点」与「四家实测」是两个口径，后者不外推前者；分发、签名、版本三件「海关设施」全被规范留白，社区在 PR 评论区、隔壁 MCP 港区和野生市场里，用六个月手工重演了包管理器界三十年长出的机制（舱单 digest、签名 sidecar、透明见证、semver、lockfile）。
 
-**总类比：知识的港口·海关篇**（剧场延续 210；基础角色沿用，本篇登记海关侧新角色——完整单射映射以此表为唯一事实源）：
+**总类比：知识的港口·海关篇**（本篇自立剧场，完整单射映射以此表为唯一事实源）：
 
 > [!TIP]
 > | 技术实体 | 港口角色 | 同构依据 |
@@ -34,7 +34,7 @@ description: "以 agentskills 规范仓 @69ef37e9 + PR #254/#380 楼层证据 + 
 
 ## 1. 它要解决什么问题
 
-210 讲清了箱体：一个文件夹 + 一个 SKILL.md，46 家港口互认。但**集装箱进了港，海关还没建**：
+230 讲清了箱体：一个文件夹 + 一个 SKILL.md，46 家港口互认。但**集装箱进了港，海关还没建**：
 
 - 规范 247 行里，8 个安全词干（secur/trust/sign/integrit/malicious/verif/safety/risk，大小写敏感）**唯一一处命中是 L133 的单词 "Designed"**（`sign` 藏在 De-**sign**-ed 里；specification.mdx grep 复验 @69ef37e9，2026-09-27）——签名条款藏在一个单词的肚子里。
 - 三个签名/信任 RFC（#247 签名块 / #358 provenance / #418 供应链指引）全部关闭，维护者 jonathanhefner 定调：「deciding whether a skill is safe is outside the scope of the spec… attestation is better solved at the distribution layer」（issue #418，2026-06-30）——而那个「分发层」的唯一提案 #254 停摆至今。
@@ -180,7 +180,7 @@ description: "以 agentskills 规范仓 @69ef37e9 + PR #254/#380 楼层证据 + 
 | E-05 版本双门 | 写死 3 commit 仍是 1.0.0 / 省略 3 commit 跳 aaa→ccc | lab3 实测（mock computed version） |
 | E-06 typosquat | 错拼双装、0 告警、digest 双合法 | lab3 实测 |
 | 规范安全词 | 247 行、8 词干唯一命中 L133 "Designed"（sign 藏于 De-sign-ed） | grep 复验 @69ef37e9（2026-09-27） |
-| 生态信任真空 | 46 家客户端 vs 0 家验签 | showcase 源码清点 @69ef37e9 / 四家实测基线（210 §7） |
+| 生态信任真空 | 46 家客户端 vs 0 家验签 | showcase 源码清点 @69ef37e9 / 四家实测基线（230 §6） |
 | Snyk ToxicSkills | 3,984 扫描 → 76 恶意 / 13.4% CRITICAL / 36.82% 有问题 | 厂商自报 @2026-02-05 |
 | USENIX'26 | 98,380 扫描 → 157 恶意 / 4.03 漏洞每恶意技能 / 过半单一行为者 | arXiv 2602.06547 |
 | MalSkillBench | 野生 703 样本 86.3% 假前置依赖冒充 | arXiv 2606.07131 |
@@ -220,7 +220,7 @@ description: "以 agentskills 规范仓 @69ef37e9 + PR #254/#380 楼层证据 + 
 
 ## 15. 与本仓的关联
 
-机制→negentropy 代码的 grep 实测映射（skills_injector/harness_materializer/definitions 表版本语义）见 [221-skills-supply-chain-mapping.md](./221-skills-supply-chain-mapping.md)；本篇同时是 E3 视频蓝图的直接信源（七幕↔章节逐幕对表亦在 221）。上一篇 [210](./210-agent-skills-open-standard.md)（格式层精读）；E1 成片结尾的三张欠条（怎么签名/怎么分发/怎么管版本）在本篇 §3–§6 逐一兑付对账。可跟踪三信号：#254 合并与否 / #380 解冻与否 / 任一客户端首发签名校验或第一个要求 provenance 的 skill registry。
+机制→negentropy 代码的 grep 实测映射（skills_injector/harness_materializer/definitions 表版本语义）见 [机制映射汇总的 Skills 域](../mapping-negentropy.md)（`SK-A1`–`SK-A6`）；本篇同时是 E3 视频蓝图的直接信源（七幕↔章节逐幕对表在[本集叙事锚点](../../../apps/negentropy-influence/episodes/skills-supply-chain-video/research/narrative-anchors.md)）。上一篇 [230](./230-agent-skills-standard.md)（格式层精读）；E1 成片结尾的三张欠条（怎么签名/怎么分发/怎么管版本）在本篇 §3–§6 逐一兑付对账。可跟踪三信号：#254 合并与否 / #380 解冻与否 / 任一客户端首发签名校验或第一个要求 provenance 的 skill registry。
 
 ## 参考（IEEE）
 

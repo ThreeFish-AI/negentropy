@@ -217,3 +217,15 @@ episode = "claude-code-multiagent-video"
 path = "video/src/Main.tsx"
 fingerprint = "78664c3010fd"
 reason = "系列片头《一个循环》铺开（2026-10-08）：挂载块自 E1 整文件移植（场景 import/注册表外五集同字节），leadInSec=23.5。同款登记说明与撤销条件见 EP1 条目"
+
+[[skeleton.drift]]
+episode = "agent-skills-video"
+path = "video/pnpm-workspace.yaml"
+fingerprint = "a414005bd403"
+reason = "remotion 全家桶追新 4.0.529→4.0.533（2026-10-06，210 换代重制建集时整组追新，npm view 4.0.533 为当日最新）时 pnpm 12.2 自动追加 minimumReleaseAgeExclude 清单（30 个 @remotion/* + remotion 本体共 31 行精确版本），其余段与模板逐字一致；撤销条件=模板吸收该机制或回退 4.0.529"
+
+[[skeleton.drift]]
+episode = "agent-skills-video"
+path = "video/package.json"
+fingerprint = "2ca436199aee"
+reason = "remotion 全家桶 4.0.529→4.0.533（2026-10-06 同 major 整组追新，npm view 4.0.533 为当日最新）；verify_skeleton 当期未点名本文件，此条为版本基线留痕。structured 档：指纹口径=结构化归一 md5[:12]（2026-10-02 评审修正，原登记值非本文件任何口径的指纹）"

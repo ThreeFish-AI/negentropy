@@ -9,7 +9,7 @@ description: "三案例 → 五挑战 → 四层基础设施的全貌解剖；�
 > [!NOTE] **核心精读范围**
 >
 > - 许晓斌（主编）等，《AI Native 研发范式实践手册》，阿里巴巴（「阿里技术」公众号发布），2026 年 9 月。全 68 页通读；页码为手册印刷页码，PDF 不入库。
-> - 配套最小原型：[`assets/ai_native_lab.py`](./assets/ai_native_lab.py)（纯标准库，`--selftest` 秒级）；机制映射见 [181](./181-ai-native-mapping-negentropy.md)。
+> - 配套最小原型：[`assets/ai_native_lab.py`](./assets/ai_native_lab.py)（纯标准库，`--selftest` 秒级）；机制映射见[机制映射汇总](../mapping-negentropy.md)（原 181，已并入）。
 
 **一句话定位**：模型已会写代码，交付却卡在代码之外。手册的解法是一层**确定性控制面**：模型只提意图，程序判定放行，证据判定完成。
 
@@ -135,7 +135,7 @@ description: "三案例 → 五挑战 → 四层基础设施的全貌解剖；�
 
 ## 9. 关联与参考
 
-逐条映射见 [181](./181-ai-native-mapping-negentropy.md)；Harness 循环逐层精读见 [170](./170-claude-code-harness-overview.md)。
+逐条映射见[机制映射汇总](../mapping-negentropy.md)（原 181，已并入）；Harness 循环逐层精读见 [170](./170-claude-code-harness-overview.md)。
 
 [1] J. H. Saltzer and M. D. Schroeder, "The protection of information in computer systems," *Proc. IEEE*, vol. 63, no. 9, pp. 1278–1308, 1975.
 [2] S. Rose et al., "Zero trust architecture," NIST SP 800-207, 2020.
