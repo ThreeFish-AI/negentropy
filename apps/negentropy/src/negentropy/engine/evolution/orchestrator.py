@@ -12,7 +12,7 @@
 部分唯一索引兜底（每 target_ref 至多一个非终态提案）。
 
 **TargetHandler 抽象**（综述 §7 meta-layer + 蓝图 §8.5 第 7 面 context_strategy
-「接入时再抽」（013 新版；原 §10））：原 retrieval 硬编码
+插槽设计（013 2026-10-10 版；原注 §10）——新面接入按插槽扩展）：原 retrieval 硬编码
 逻辑迁入 ``handlers/retrieval.py``；orchestrator 退化为薄分派层。第二面（skill_template）接入
 只需 ``_handlers`` 注册一个新 handler。
 

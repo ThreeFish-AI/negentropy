@@ -472,7 +472,7 @@ uv run --no-project python docs/research/cognitive-context/assets/horizon_contex
 
 ## 10. 与本仓的关联
 
-- **机制映射**：16 条 Horizon ↔ negentropy 机制映射由 [Context Layer 蓝图状态表](./013-context-layer-blueprint.md) 承载。
+- **机制映射**：16 条 Horizon ↔ negentropy 机制映射由 [013 16+4 映射表](./013-context-layer-blueprint.md) 承载（2026-10-10 全量重核 @b2fbb51f5）。
 - **设计蓝图**：[Context Layer 技术蓝图](./013-context-layer-blueprint.md)——以 Agent 运行时上下文为第一性对象的设计 SSOT；本篇（011）承载 Horizon 全量机制载荷（冻结），013 承载设计与判定。
 - **配套原型**：[`assets/horizon_context_lab.py`](./assets/horizon_context_lab.py)（七机制 + 场景矩阵 + 十次破坏实验）· [`assets/horizon_context_mcp.py`](./assets/horizon_context_mcp.py)（MCP 服务原型，T1–T8）。
 - **配套科普**：M1–M7 各一张 archify 动效工程图 + §1/§3/§4 总览图随文内嵌（共 15 张，交互版 HTML 可下载本地打开）。

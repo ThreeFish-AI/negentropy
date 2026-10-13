@@ -614,3 +614,6 @@ uv run --no-project python docs/research/cognitive-context/assets/horizon_contex
   「500 条压过 3 条」是官方 Sense 博客示例（§10/§15-5①，【三】），本仓 lab 实测为 inferred popularity=200
   vs governed popularity=5（register_view 对受治理条目恒置 5，lab.py:489/:842），**正确比值为 200:5**。
   本集口播采用本仓实测口径（200:5）。
+- **勘误登记（2026-10-13，review-once 锚点扫除发现，制片期不回写正文）**：正文 :71/:497 两处「映射由
+  013 状态表承载」的「状态表」称谓已随 2026-10-10 蓝图换代退役——写入时（2026-10-09）该称谓尚现行，
+  失效由次日换代引入；现行 013 承载体为 §12.4「机制 ↔ 本仓 16+4 映射表」，读正文两处时按此对应。
