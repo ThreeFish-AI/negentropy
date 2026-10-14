@@ -2,8 +2,8 @@
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 18.87,
- "total_wall_sec": 85.64,
+ "story_sec": 18.86,
+ "total_wall_sec": 131.65,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -17,12 +17,12 @@
    "beats": 4,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 4.46,
+   "story_sec": 4.44,
    "beat_offsets_sec": [
     0.0,
-    1.103,
-    2.208,
-    3.31
+    1.102,
+    2.205,
+    3.308
    ],
    "beat_nodes": [
     "ap",
@@ -31,7 +31,7 @@
     "pol"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 20.0
+   "capture_fps": 27.0
   },
   {
    "id": "consumer-feed",
@@ -41,15 +41,15 @@
    "end_still": "component-panorama--consumer-feed-end.png",
    "beats": 6,
    "dwell_ms": 1100,
-   "lead_sec": 0.44,
-   "story_sec": 6.64,
+   "lead_sec": 0.4,
+   "story_sec": 6.65,
    "beat_offsets_sec": [
     0.0,
-    1.103,
-    2.206,
-    3.309,
-    4.413,
-    5.517
+    1.104,
+    2.207,
+    3.312,
+    4.417,
+    5.521
    ],
    "beat_nodes": [
     "vqr",
@@ -60,7 +60,7 @@
     "agents"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 21.0
+   "capture_fps": 28.0
   },
   {
    "id": "reserved-supply",
@@ -70,16 +70,16 @@
    "end_still": "component-panorama--reserved-supply-end.png",
    "beats": 7,
    "dwell_ms": 1100,
-   "lead_sec": 0.44,
+   "lead_sec": 0.32,
    "story_sec": 7.77,
    "beat_offsets_sec": [
     0.0,
     1.104,
-    2.208,
-    3.313,
-    4.418,
-    5.521,
-    6.623
+    2.207,
+    3.309,
+    4.412,
+    5.516,
+    6.618
    ],
    "beat_nodes": [
     "ap",
@@ -91,7 +91,7 @@
     "grd"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 21.0
+   "capture_fps": 27.0
   }
  ],
  "capture": {
@@ -102,7 +102,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/tripoli-v4/docs/assets/architecture/cognitive-context/horizon-context--component-panorama.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/horizon-context--component-panorama.html",
  "slug": "component-panorama",
  "type": "architecture"
 }

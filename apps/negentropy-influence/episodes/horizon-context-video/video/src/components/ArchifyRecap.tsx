@@ -27,6 +27,10 @@ export type ArchifyCue = {
   durationInFrames: number;
   /** 省略则按 rate 自动选：∈[0.7,1.35] → stretch；偏小 → hold；偏大 → trim */
   fit?: ArchifyFit;
+  /** 窗末自淡出帧数（默认 0 不淡出）。仅用于「画框→装置」换场：接棒装置首帧
+   *  全透明（rise/stagger 从 0 起），画框硬卸载会留 ~1 帧空底——接棒装置提前
+   *  同样帧数入场，与本淡出交叉淡化。背靠背续链章勿传（连续换章不淡出）。 */
+  exitFrames?: number;
 };
 
 /** 自动挡：先算 rate，越界就换到不变速的档位，避免把画面拉成糖浆或快放。
@@ -91,6 +95,7 @@ export const ArchifyRecap: React.FC<{
               caption={caption}
               chapterLabel={ch.label}
               lead={lead && enters}
+              exitFrames={cue.exitFrames}
             />
           </Sequence>
         );

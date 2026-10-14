@@ -1,34 +1,23 @@
-%%source: docs/research/cognitive-context/013-context-layer-blueprint.md §2 业界格局与判据（2026-09 快照）
+%%source: docs/research/cognitive-context/013-context-layer-blueprint.md §11 业界格局、范本与组织面（Forrester 双阵营与两场判词增补）
 %%slug: cognitive-context/context-layer-blueprint--industry-landscape
 %%type: architecture
-%%derived: archify architecture v1, authored from source mermaid
-flowchart TB
-    subgraph "平台内嵌路线：治理在引擎内"
-        SF["Snowflake Horizon Context<br/>语义视图 + 治理引擎一体"]
-        DBX["Databricks UC<br/>metric views + Genie Ontology"]
-        MF["Microsoft Fabric IQ<br/>语义模型 + Ontology 动作写回"]
-        LKR["Google Looker<br/>LookML headless 化"]
+%%derived: archify architecture v2, 四路线谱系重排＋Palantir 收敛＋Forrester 双阵营与「传输之战 vs 含义之战」判词（对齐 013 §11 重铸稿）
+flowchart LR
+    subgraph SPEC["治理落位谱系 · 执行点律：先问治理求值发生在哪一层"]
+        R1["平台内嵌｜治理在引擎内<br/>Databricks UC+Genie · Fabric IQ · Looker · AWS Context"]
+        R2["定义即代码｜治理在转换层<br/>dbt MetricFlow · YAML 版本化＋PR 评审（并入 Fivetran）"]
+        R3["📍 独立可执行层｜治理在 SQL 生成前（本蓝图落位）<br/>Cube · AtScale · Colrows 编译期铸死（谱系最右）"]
+        R4["跨系统元数据平面｜只描述不执行<br/>Atlan · Alation · DataHub"]
     end
-    subgraph "定义即代码：治理在转换层"
-        DBT["dbt MetricFlow<br/>Git/PR 治理 · Ossie 参考实现"]
+    PLTR["🏛️ Palantir Ontology（异类）<br/>semantic 描述世界＋kinetic 做动作 · decision lineage 贯穿"]
+    CONV["🎯 收敛：治理往 SQL 生成之前挪<br/>四条路线与 Palantir 同向 · 事后扫描可被 CTE 绕过"]
+    subgraph CAMPS["Forrester 双阵营（2026-08-20 一手）"]
+        C1["阵营一 · 平台阵营<br/>平台 / 商业应用厂商＋超大规模云"]
+        C2["阵营二 · 通用目的阵营<br/>图数据库 / 目录 / 元数据 / 语义层 / 湖池"]
     end
-    subgraph "独立可执行层：治理在 SQL 生成前"
-        CUBE["Cube<br/>编译期治理 · 开源"]
-        ATS["AtScale<br/>消费端 XMLA 桥"]
-        BP["📍 本蓝图<br/>可独立部署 · MCP 供给"]
-    end
-    subgraph "跨系统元数据平面：治理在目录平面"
-        ATL["Atlan / Alation / DataHub<br/>100+ 连接器的 context 平面"]
-    end
-    PLTR["🏛️ Palantir Ontology<br/>语义 + 受治理动作（kinetic）"]
-    AG["🤖 Agent / BI / 应用<br/>同一份定义消费"]
-    GAP["📊 2026-09 落地断层<br/>97% 相信 · 4% 建成（Redis）<br/>传输之战 vs 含义之战：预算投含义侧"]
-    SF -->|"引擎内强制执行"| AG
-    DBT -->|"Semantic Layer API"| AG
-    BP -->|"MCP 供给面（本方案）"| AG
-    ATL -->|"context 供给"| AG
-    PLTR -->|"本体 + 动作消费"| AG
-    ATS -.->|"读语义定义 → 服务 BI"| SF
-    BP -.->|"Ossie YAML 互导"| DBT
-    ATL -.->|"联邦互读"| SF
-    GAP -.-> |"所有权真空 · shared ownership"| AG
+    R1 -.-> CONV
+    R2 -.-> CONV
+    R3 -.-> CONV
+    R4 -.-> CONV
+    PLTR -.-> CONV
+    C1 -->|"对垒：语义层归属"| C2

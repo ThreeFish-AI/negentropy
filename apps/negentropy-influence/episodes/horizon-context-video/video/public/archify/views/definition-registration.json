@@ -19,15 +19,5 @@
    "rejected"
   ],
   "note": "代码里故意把关联指向普通非键列——被拦下。"
- },
- {
-  "id": "no-runtime-risk",
-  "label": "注册期进不去",
-  "focus": [
-   "rejected",
-   "registered",
-   "runtime"
-  ],
-  "note": "不好的定义注册期就进不去，不留运行时隐患。"
  }
 ]

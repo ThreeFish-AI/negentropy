@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "eb1c1109-ecb6-47f0-a2c6-215494654d1b",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/architecture-context-layer-blueprint--industry-landscape-20261010-002916/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--industry-landscape.html",
+  "specification": {
+    "sha256": "dc6e41468b98888a8d8167aeb50049f89a559d2f47762a04a4297de9813f59ce",
+    "bytes": 5420
+  },
+  "artifact": {
+    "sha256": "4c1f539b5b0bb77210d0420e27a05d87caf4b51f78aae1080b3c981850df6980",
+    "bytes": 759885
+  }
+}

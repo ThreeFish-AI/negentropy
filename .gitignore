@@ -355,3 +355,5 @@ apps/negentropy-influence/episodes/agent-skills-video/video/public/archify/html/
 !docs/assets/architecture/core/negentropy-architecture-story.gif
 !apps/negentropy-influence/series-assets/claude-code-explained/intro/series-intro-zh.mp3
 # END media-allowlist
+# archify 图表创作工作区（candidate 与修复中间态；正式产物在 docs/assets）
+.archify/

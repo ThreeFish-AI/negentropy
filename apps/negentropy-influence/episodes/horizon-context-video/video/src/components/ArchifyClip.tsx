@@ -15,9 +15,9 @@
  *  覆盖门 forbid_inset 锁死防回退。
  */
 import React from 'react';
-import {Img, OffthreadVideo, Sequence, staticFile, useVideoConfig} from 'remotion';
+import {Img, OffthreadVideo, Sequence, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
 import {theme} from '../design/theme';
-import {DUR, useProgress, useSpring} from '../motion';
+import {DUR, progress, useProgress, useSpring} from '../motion';
 
 /** 源片长与目标句窗不等长时的适配方式 */
 export type ArchifyFit =
@@ -32,8 +32,9 @@ const RATE_MAX = 1.35;
  *  ① 顶 150 ≥ 135：SceneTag（y 40–110，副题最长 13 字右缘 ~358 与框左缘横向重叠）
  *     只能靠纵向避让——top < 135 会切副题（2026-09-19 实测 top=60 切角标副题）；
  *  ② 底边 880 < SAFE_TOP_Y(920)：字幕带安全带（SUBTITLE_BAND_PX=160 同源）；
- *  ③ 框宽 1298 左缘 311 > PillarHUD 右缘 ~274：HUD 在全屏窗内**仍可见**（左下角
- *     常驻件不是图例，是母图层叙事锚），放大 h 会先吃掉这 37px 余量（h=770 即触线）。
+ *  ③ 框外左下/两侧已无常驻件（PillarHUD 随 v4 重制删除）：工卡/装置仅在无 cue
+ *     窗口入场，或经 ArchifyYield 淡出/被画框遮盖（见各场景避让约定）——放大 h 的
+ *     现实约束收敛回①②；若重引需与 cue 窗共存的常驻件，须先重列此表。
  *  image-rendering 刻意不设置：1440 源在 16:9 框内高质量降采样走 Skia
  *  mipmap 路径；pixelated/crisp-edges 是最近邻，会把降采样变锯齿。 */
 const BOX = {h: 730, top: 150} as const;
@@ -58,6 +59,8 @@ export const ArchifyClip: React.FC<{
   /** 是否做入场弹簧与角标淡入。连续换章（背靠背）应传 false 避免每章都弹像卡顿；
    *  首段与空窗后重现的段应传 true，否则整框以全不透明一帧瞬现 */
   lead?: boolean;
+  /** 窗末自淡出帧数（默认 0 不淡出）——「画框→装置」换场用，见 ArchifyRecap.ArchifyCue */
+  exitFrames?: number;
   /** rate 越界时抛错（默认 true）——暴露编排失衡，而不是静默变形 */
   strictRate?: boolean;
 }> = ({
@@ -70,9 +73,11 @@ export const ArchifyClip: React.FC<{
   caption,
   chapterLabel,
   lead = true,
+  exitFrames = 0,
   strictRate = true,
 }) => {
   const {fps} = useVideoConfig();
+  const frame = useCurrentFrame();
   // effects 走时长+缓动，spatial 走弹簧（运动层铁律③）
   const win = useSpring('settle', {at: 2, dur: DUR.f5});
   const label = useProgress(10, DUR.f4);
@@ -95,6 +100,8 @@ export const ArchifyClip: React.FC<{
 
   const w = Math.round((BOX.h * 16) / 9);
   const enter = lead ? win : 1;
+  // 窗末自淡出（0 = 关闭）：与接棒装置的提前入场交叉，消「硬卸载 + 装置首帧全透明」空底
+  const exitO = exitFrames > 0 ? 1 - progress(frame, spanInFrames - exitFrames, exitFrames) : 1;
   // 右下角标在整个 ArchifyRecap 内恒定：非首章不能再从 0 淡入，否则每次换章
   // 闪断约 17 帧（label 起点 10 帧 + f4 7 帧）。左下章节小标题逐章换文案，保留淡入。
   const captionO = lead ? label : 1;
@@ -119,7 +126,7 @@ export const ArchifyClip: React.FC<{
           border: `3px solid ${theme.panelBorder}`,
           background: '#0B0E13',
           overflow: 'hidden',
-          opacity: enter,
+          opacity: enter * exitO,
           transform: `scale(${0.94 + 0.06 * enter})`,
         }}
       >
@@ -128,7 +135,9 @@ export const ArchifyClip: React.FC<{
             src={staticFile(`archify/${file}`)}
             muted
             playbackRate={rate}
-            trimBefore={Math.round(leadSec * fps)}
+            // +1 帧：trimBefore 边界帧会解码到场记板白闪的末帧（openviking-video 3-C 实测单帧 255 亮度），
+            // 多跳一帧落在故事首帧（亮度 ≈25），视觉上无可感时移
+            trimBefore={Math.round(leadSec * fps) + 1}
             style={{width: '100%', height: '100%', objectFit: 'contain'}}
           />
         </Sequence>

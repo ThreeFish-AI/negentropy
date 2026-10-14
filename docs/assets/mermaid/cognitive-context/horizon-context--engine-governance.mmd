@@ -2,7 +2,7 @@
 %%slug: cognitive-context/horizon-context--engine-governance
 %%type: workflow
 %%derived: archify workflow v2, authored from source mermaid
-%% fix: (2026-09-17 重评选) 原 M3 一拆为三后的拓扑面：① 出口安检（Guardrails/AI_REDACT）节点移出（降为 §12 小节，另见姊妹图 open-interop）；② 中心节点改为「语义定义与策略同体」拓扑（defined-once-enforced-everywhere · 不复制缓存）；③ 行列级策略执行细节归 M2 姊妹图 row-column-policy；④ %%source 重锚 L297-L325
+%% fix: (2026-09-17 重评选) 原 M3 一拆为三后的拓扑面：① 出口安检（Guardrails/AI_REDACT）节点移出（降为 §3.3 小节，另见姊妹图 open-interop）；② 中心节点改为「语义定义与策略同体」拓扑（defined-once-enforced-everywhere · 不复制缓存）；③ 行列级策略执行细节归 M2 姊妹图 row-column-policy；④ %%source 重锚 L297-L325
 flowchart LR
     CAL["🧑‍💼 人 / BI / AI Agent<br/>同一套 RBAC · 无 AI 专用配置"] --> FLT["检索层过滤（体验）<br/>PRIVATE 资产不下发"]
     CAL -.->|"绕过语义层"| BYP["🚪 直查物理底表"]

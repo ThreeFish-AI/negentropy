@@ -2,32 +2,32 @@
 %%slug: cognitive-context/horizon-context--evolution-timeline
 %%type: dataflow
 %%derived: archify dataflow v1, authored from source mermaid
-%% fix: (2026-09-17 重评选) ① 全部里程碑卡 M 锚点按重评选后口径重标（M1 双不变量 / M2-M3 拆分 / M4 验证锚定 / M5 血缘 / M6 AgentID / 降级区 §10-§12）；② MS2 GA 归属修正（查询 GA=9.25 版 2025-08，非 Summit）；③ MS11 Agent Identity 升 M6 锚；④ 新增 MS14（2026-09 生态加码：CoWork Automations GA · AI Gateway 预览 · Ossie Power BI 转换器）；⑤ %%source 重锚 L128-L190
+%% fix: (2026-09-17 重评选) ① 全部里程碑卡 M 锚点按重评选后口径重标（M1 双不变量 / M2-M3 拆分 / M4 验证锚定 / M5 血缘 / M6 AgentID / 降级区 §3.1-§3.3）；② MS2 GA 归属修正（查询 GA=9.25 版 2025-08，非 Summit）；③ MS11 Agent Identity 升 M6 锚；④ 新增 MS14（2026-09 生态加码：CoWork Automations GA · AI Gateway 预览 · Ossie Power BI 转换器）；⑤ %%source 重锚 L128-L190
 flowchart TD
     subgraph "阶段一 · 语义对象化 2024-02 → 2025-08"
-        MS1["🔎 Universal / Cortex Search<br/>2024-02-20 → 08-08 · 检索基准（§11）"]
+        MS1["🔎 Universal / Cortex Search<br/>2024-02-20 → 08-08 · 检索基准（§3.2）"]
         MS2["📦 Semantic Views GA<br/>2025-04 预览 → 08 查询 GA · 9.25 版（M1）"]
     end
     subgraph "阶段二 · 通道成形 2025-09 → 11"
-        MS3["📜 OSI 倡议创立<br/>2025-09-23 · 17 家厂商（§12）"]
-        MS4["🔌 MCP GA + 管理面就绪<br/>2025-10 → 11 · Snowsight/MCP GA（§12）"]
-        MS5["🗄️ 收购 Select Star<br/>2025-11-24 · 元数据摄取入囊（§10）"]
+        MS3["📜 OSI 倡议创立<br/>2025-09-23 · 17 家厂商（§3.3）"]
+        MS4["🔌 MCP GA + 管理面就绪<br/>2025-10 → 11 · Snowsight/MCP GA（§3.3）"]
+        MS5["🗄️ 收购 Select Star<br/>2025-11-24 · 元数据摄取入囊（§3.1）"]
     end
     subgraph "阶段二 · 富化加速 2025-12 → 2026-02"
-        MS6["🛡️ VQR 预览 + AI_REDACT GA<br/>2025-12-02 / 12-08（M4 / §12）"]
+        MS6["🛡️ VQR 预览 + AI_REDACT GA<br/>2025-12-02 / 12-08（M4 / §3.3）"]
         MS7A["📝 提示词内嵌 + Lineage 预览<br/>2026-01 · AI 语法 · External Lineage（M1 / M5）"]
-        MS7B["📜 OSI v1 定稿<br/>2026-01 · 33 家联盟 · Databricks（§12）"]
-        MS8["🏗️ Autopilot GA + Cortex Code<br/>2026-02-03 · days → minutes（§10）"]
+        MS7B["📜 OSI v1 定稿<br/>2026-01 · 33 家联盟 · Databricks（§3.3）"]
+        MS8["🏗️ Autopilot GA + Cortex Code<br/>2026-02-03 · days → minutes（§3.1）"]
     end
     subgraph "阶段二 · 治理成熟 2026-03 → 06"
         MS9["⚙️ standard SQL 查询 GA<br/>2026-03 · 半可加性 · USING 语法（M1）"]
-        MS10["✅ VQR 进 DDL + Guardrails GA<br/>2026-04 · 验证问答一等资产（M4 / §12）"]
+        MS10["✅ VQR 进 DDL + Guardrails GA<br/>2026-04 · 验证问答一等资产（M4 / §3.3）"]
         MS11["🏛️ Summit 整体发布<br/>2026-06-02 · 定名 · Agent Identity GA（M6）"]
     end
     subgraph "阶段三 · 生态开放 2026-06-30 → 至今"
-        MS12["🔍 Sense + Apache Ossie<br/>2026-06-30 → 07 · Sense 私预 · 入 Apache 06-22（§10 / §12）"]
+        MS12["🔍 Sense + Apache Ossie<br/>2026-06-30 → 07 · Sense 私预 · 入 Apache 06-22（§3.1 / §3.3）"]
         MS13["🕸️ 全域血缘 GA + 权限天花板<br/>2026-08 → 09 · Power BI · Lineage GA · RSS GA（M5 / M6）"]
-        MS14["🚀 生态持续加码<br/>2026-09 · CoWork Automations GA · AI Gateway 预览 · Ossie PBI 转换器（§12）"]
+        MS14["🚀 生态持续加码<br/>2026-09 · CoWork Automations GA · AI Gateway 预览 · Ossie PBI 转换器（§3.3）"]
     end
     MS1 -->|"检索仅是起点 · 含义须成对象"| MS2
     MS2 -->|"算得准 → 守得住"| MS3

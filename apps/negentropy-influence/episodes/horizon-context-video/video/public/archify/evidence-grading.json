@@ -2,8 +2,8 @@
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 8.87,
- "total_wall_sec": 53.35,
+ "story_sec": 8.85,
+ "total_wall_sec": 115.36,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -17,7 +17,7 @@
    "beats": 4,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 4.45,
+   "story_sec": 4.43,
    "beat_offsets_sec": [
     0.0,
     1.104,
@@ -31,7 +31,7 @@
     "retestGap"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 20.0
+   "capture_fps": 30.0
   },
   {
    "id": "not-industry-norm",
@@ -46,8 +46,8 @@
    "beat_offsets_sec": [
     0.0,
     1.104,
-    2.208,
-    3.31
+    2.206,
+    3.308
    ],
    "beat_nodes": [
     "vendorClaim",
@@ -56,7 +56,7 @@
     "verdictNorm"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 21.0
+   "capture_fps": 27.0
   }
  ],
  "capture": {
@@ -67,7 +67,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/tripoli-v4/docs/assets/architecture/cognitive-context/horizon-context--evidence-grading.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/horizon-context--evidence-grading.html",
  "slug": "evidence-grading",
  "type": "workflow"
 }

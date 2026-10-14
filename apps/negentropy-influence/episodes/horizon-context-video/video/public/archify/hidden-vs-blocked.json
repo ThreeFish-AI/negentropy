@@ -2,8 +2,8 @@
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 7.81,
- "total_wall_sec": 30.49,
+ "story_sec": 7.74,
+ "total_wall_sec": 107.07,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -17,11 +17,11 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.36,
+   "story_sec": 3.32,
    "beat_offsets_sec": [
     0.0,
-    1.104,
-    2.207
+    1.103,
+    2.206
    ],
    "beat_nodes": [
     "internQuery",
@@ -29,7 +29,7 @@
     "leakOutcome"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 22.0
+   "capture_fps": 26.0
   },
   {
    "id": "hide-not-block",
@@ -40,12 +40,12 @@
    "beats": 4,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 4.45,
+   "story_sec": 4.42,
    "beat_offsets_sec": [
     0.0,
     1.104,
-    2.208,
-    3.31
+    2.207,
+    3.311
    ],
    "beat_nodes": [
     "hideSeal",
@@ -54,7 +54,7 @@
     "blockedOutcome"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 22.0
+   "capture_fps": 27.0
   }
  ],
  "capture": {
@@ -65,7 +65,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/tripoli-v4/docs/assets/architecture/cognitive-context/horizon-context--hidden-vs-blocked.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/horizon-context--hidden-vs-blocked.html",
  "slug": "hidden-vs-blocked",
  "type": "workflow"
 }
