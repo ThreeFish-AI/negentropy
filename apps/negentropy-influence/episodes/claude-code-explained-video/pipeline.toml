@@ -18,7 +18,9 @@ target_minutes = [13.0, 15.5]  # 2026-10-08 系列片头铺开：预算窗改含
 chars_per_min = 254
 
 [tts]
-engine = "indextts"
+# 草声期（2026-10-14）：改稿/场景轮停在 edge 草声（RSI-034）；正式克隆声升档时
+# 改回 indextts 并按 07 规格走 --allow-voice-switch + 本人显式授权
+engine = "edge"
 # TODO：选定样本与风格。样本路径**工作区根相对**；ref_sha1 取 12 位（同 tts.py 口径），
 # 用 `uv run --no-project $T/scripts/refs.py list` 查当前清单。
 # ⚠️ 风格预设的 alpha 是在**特定选段**上标定的，换选段即失效（见 $V/refs.toml）。
