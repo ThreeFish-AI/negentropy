@@ -31,7 +31,6 @@ reason = "双语渲染分代（2026-09-24，RSI-004）：Root/NarrationAudio/Sub
 episodes = [
   "dream-rsi-video",
   "experience-era-agents-video",
-  "horizon-context-video",
   "openviking-video",
   "self-evolving-coding-agents-video",
   "self-improving-agents-video",
@@ -50,11 +49,6 @@ episode = "self-improving-agents-video"
 path = "video/src/components/cards.tsx"
 fingerprint = "4bba8c190f21"
 reason = "多一个 ChapterCard（39 行），仅本集 P2Brain.tsx 使用；迁出至 components/chapter.tsx 后可撤销本条"
-[[skeleton.drift]]
-episode = "horizon-context-video"
-path = "video/src/components/cards.tsx"
-fingerprint = "缺失"
-reason = "v6 全屏独占改造（2026-09-20，ISSUE-190）：QuoteCard 系金句卡由 archify 图整镜接管，卡片层整文件退役；同系列与其余集仍在用，模板保留。撤销条件=本集重新需要卡片层时从模板复制回来（届时指纹即失配，须更新本条）"
 [[skeleton.drift]]
 episode = "experience-era-agents-video"
 path = "video/src/components/Subtitle.tsx"
@@ -95,8 +89,8 @@ reason = "顶部进度条分代（2026-09-22）：模板 Main.tsx 新增 Chapter
 [[skeleton.drift]]
 episode = "horizon-context-video"
 path = "video/src/Main.tsx"
-fingerprint = "179be60ed605"
-reason = "顶部进度条分代（2026-09-22）：模板 Main.tsx 新增 ChapterProgress 挂载；本集为已发布成片，源码保持发布态。撤销条件=按 vibe-video.toml [[skeleton.generation]] bilingual-i18n 整组同步（Main + ChapterProgress + Subtitle + Root + NarrationAudio + i18n.tsx，拷齐再 tsc --noEmit），并重跑 build 派生 chapters.json；同步后从 generation roster 删除本集并撤销本条"
+fingerprint = "6b9875eace5c"
+reason = "完全重制（2026-10-02）：八幕集末幕为 P7，模板注释「尾幕渐黑由 P6…」按本集语义改写作 P7，另有 import 块后一空行；渲染语义与模板一致。撤销条件=模板注释中性化后本集对齐模板（届时指纹失配须更新本条）"
 [[skeleton.drift]]
 episode = "experience-era-agents-video"
 path = "video/src/components/ChapterProgress.tsx"
@@ -109,11 +103,6 @@ fingerprint = "缺失"
 reason = "顶部进度条分代（2026-09-22）：新 frozen 文件本集尚无（旧脚手架期产物）；Main 未挂载故不影响既有渲染。撤销条件=按 vibe-video.toml [[skeleton.generation]] bilingual-i18n 整组同步（Main + ChapterProgress + Subtitle + Root + NarrationAudio + i18n.tsx，拷齐再 tsc --noEmit），并重跑 build 派生 chapters.json；同步后从 generation roster 删除本集并撤销本条"
 [[skeleton.drift]]
 episode = "self-evolving-coding-agents-video"
-path = "video/src/components/ChapterProgress.tsx"
-fingerprint = "缺失"
-reason = "顶部进度条分代（2026-09-22）：新 frozen 文件本集尚无（旧脚手架期产物）；Main 未挂载故不影响既有渲染。撤销条件=按 vibe-video.toml [[skeleton.generation]] bilingual-i18n 整组同步（Main + ChapterProgress + Subtitle + Root + NarrationAudio + i18n.tsx，拷齐再 tsc --noEmit），并重跑 build 派生 chapters.json；同步后从 generation roster 删除本集并撤销本条"
-[[skeleton.drift]]
-episode = "horizon-context-video"
 path = "video/src/components/ChapterProgress.tsx"
 fingerprint = "缺失"
 reason = "顶部进度条分代（2026-09-22）：新 frozen 文件本集尚无（旧脚手架期产物）；Main 未挂载故不影响既有渲染。撤销条件=按 vibe-video.toml [[skeleton.generation]] bilingual-i18n 整组同步（Main + ChapterProgress + Subtitle + Root + NarrationAudio + i18n.tsx，拷齐再 tsc --noEmit），并重跑 build 派生 chapters.json；同步后从 generation roster 删除本集并撤销本条"

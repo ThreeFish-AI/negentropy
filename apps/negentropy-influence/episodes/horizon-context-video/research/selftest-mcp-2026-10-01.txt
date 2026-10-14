@@ -1,0 +1,16 @@
+========================================================================
+Horizon Context MCP 服务原型 · stdio JSON-RPC 全链路自测
+========================================================================
+  [PASS] T1: initialize 握手回显 + notification 无响应
+  [PASS] T1b: 不支持版本 → 回应自身支持版 2025-06-18（不回显）
+  [PASS] T2: tools/list 四工具齐全
+  [PASS] T2b: list RBAC 过滤: PRIVATE 指标对 intern 不下发（governed revenue 隐藏、legacy 同名仍可见）；analyst 全量（intern 8 条 / analyst 9 条）
+  [PASS] T3: resolve_context: {'name': 'spend', 'score': 0.73, 'source': 'inferred'} + ['no_governed_coverage']
+  [PASS] T4: compile_metric: [200,150,300]
+  [PASS] T5: 引擎层 RBAC 经 MCP 仍生效: plan is a PRIVATE fact
+  [PASS] T6: 行为反馈闭环: feedback down 后 'sales' 解析 governed → legacy（popularity 参与排序）
+  [PASS] T6b: feedback up 恢复 governed 优先
+  [PASS] T7: 未知方法 → -32601
+  [PASS] T8: 子进程 stdio 往返: 2 响应行, active_customers=[3, 1, 2]
+========================================================================
+SELFTEST PASSED ✔

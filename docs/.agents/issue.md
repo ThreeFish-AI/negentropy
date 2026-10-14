@@ -4209,7 +4209,7 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 
 ## ISSUE-194 Skills 激活层悬空：Layer 1 目录指示调用的 expand_skill 从未挂载，连带 R6-b 在线 canary 门恒被跳过（2026-09-23）
 
-- **表因**：[Agent Skills 规范精读](../research/agent-infra/230-agent-skills-standard.md)（当时的一代精读 090 现已并入其内）做本仓映射时发现，`format_skills_block` 在每个注入技能的 Agent 目录末行写死「To use a skill, call expand_skill(name) to retrieve its full template.」（`agents/skills_injector.py:357`），但 Agent 树内没有任何 Agent 持有该工具；多份文档（Skills 设计 §2/§3.2、172 §11、HZ-9、013 状态表、skills-advanced / skills-paper-hunter 用户指南）却把「LLM 自主调用 expand_skill」写成已实现。
+- **表因**：[Agent Skills 规范精读](../research/agent-infra/230-agent-skills-standard.md)（当时的一代精读 090 现已并入其内）做本仓映射时发现，`format_skills_block` 在每个注入技能的 Agent 目录末行写死「To use a skill, call expand_skill(name) to retrieve its full template.」（`agents/skills_injector.py:357`），但 Agent 树内没有任何 Agent 持有该工具；多份文档（Skills 设计 §2/§3.2、172 §11、HZ-9、013 §12.4 16+4 映射表、skills-advanced / skills-paper-hunter 用户指南）却把「LLM 自主调用 expand_skill」写成已实现。
 - **根因**：Phase 2（#459）实现了 `expand_skill` / `list_available_skills` / `fetch_skill_resource` 三件工具并在 `agents/tools/__init__.py:28-29` 导出，但**从未登记进 `TOOL_REGISTRY`**（`agents/tools/registry.py:64-92`）。六翼 `NegentropyToolset` 先按白名单过滤（`_dynamic_tools.py:121`）、再经 `TOOL_REGISTRY.get()` 解析（`registry.py:129`），根 Agent 仅挂 `log_activity` + `preload_memory_tool`（`agent.py:248`）。`git log -S "expand_skill"` 在 faculties / agent.py / registry.py / `_dynamic_tools.py` 上零命中，说明从未绑定过。「目录承诺的激活路径」与「实际挂载的工具」之间**没有任何机器门禁**，所以缺口能在 Phase 2 → Phase 3 → 进化闭环（#1038）多轮迭代中一直隐身。
 - **二阶影响**：Skill 进化 R6-b runtime canary 在线 error-rate 门以窗口内 `expand_skill` 真实调用（`tool_invocations`）为样本（`engine/evolution/handlers/skill.py:428-480`）。样本不足 `SKILL_RUNTIME_CANARY_MIN_SAMPLES = 10` 时返回 `hold`（`engine/evolution/decision.py:282`、`:444-445`）。调用恒为 0，所以**在线门恒被跳过**，技能晋升实际只由离线复评门裁决。
 - **处理方式**（本次只分析不改码）：
@@ -4227,12 +4227,13 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 
 - **表因**：[机制映射汇总的 OV 域](../research/mapping-negentropy.md) 对齐 M-d「会话两阶段提交」时发现：本仓交互式对话的内容**不会自动沉淀为长期记忆**——`add_session_to_memory`（`engine/adapters/postgres/memory_service.py:84`）在全仓（含 UI/BFF）没有任何调用方；ADK Runner 也不会自动调用（venv 内 `google/adk/runners.py` 零引用），唯一暴露路径 `PATCH /apps/{a}/users/{u}/memory`（`google/adk/cli/api_server.py:1428`）本仓 UI 未调用。
 - **根因**：富化层在对话路径上没有「供给入口」。`consolidation_jobs` 表（迁移 0043/0044）由调度 handler 调 SQL `trigger_maintenance_consolidation` 入队（`schedulers/handlers/memory_automation.py:173`），但**全仓无消费者**——`fast_replay` / `deep_refection` 两种任务类型从未被生产过（025 §4.3 描述与事实不符）；`create_postgres_memory_service(consolidation_worker=None)` 默认不注入 worker（`engine/factories/memory.py:104`）。Routine 路径有 fire-and-forget 提炼（`orchestrator.py:1393`）佐证断链是「交互式独有」。对比先例：OpenViking 把「会话→记忆」做成 Phase 1 同步归档 + Phase 2 异步提炼 + `.done` 水位的显式提交链，缺口在其设计里有直接对位物。
-- **同批取证发现的 7 处漂移**（详表见汇总文档「OV 取证副产物」）：D1 `ContextAssembler.assemble()` 只有单测调用，013 §8.5 / 025 §6.3 把它写成「自动注入通道」（实际生产读取仅 `get_memory_summary()` 回退）；D3 SummarizeStep 传 `force_refresh=True` 因 `get_or_generate_summary` 签名无此参数抛 TypeError 被降级吞掉（`summarize_step.py:40` vs `memory_summarizer.py:93`），强制刷新从未生效且摘要是 24h TTL 不感知源变化；D4 ConflictResolver docstring 宣称三阶段检测、实现只有规则；D5 `save_to_memory` 直写 `embedding=None` 不去重不审计且无回填，对 vector/hybrid 不可见；D6 `_fetch_memory` 按 UUID 读 Memory 不校验 user/app（`agents/tools/skill_resources.py:167`）——**ISSUE-194 方案 (a) 挂载前必须先修**，否则成为跨用户读取通道；D7 013 §12.7 #9「L1/L2/L3 ✅」与 ISSUE-194 结论矛盾待回写；D8 memory_pipeline_prompt 进化面只有 fact extractor 消费，summarizer/reflection 晋升是运行时 no-op。
-- **处理方式**（本次只分析不改码，落地建议见汇总文档「OV 落地建议」）：
+- **同批取证发现的 7 处漂移**（详表见[机制映射汇总](../research/mapping-negentropy.md)「OV 取证副产物」）：D1 `ContextAssembler.assemble()` 只有单测调用，013 §6.5 宿主更正 / 025 §6.3 曾把它写成「自动注入通道」（实际生产读取仅 `get_memory_summary()` 回退）；D3 SummarizeStep 传 `force_refresh=True` 因 `get_or_generate_summary` 签名无此参数抛 TypeError 被降级吞掉（`summarize_step.py:40` vs `memory_summarizer.py:93`），强制刷新从未生效且摘要是 24h TTL 不感知源变化；D4 ConflictResolver docstring 宣称三阶段检测、实现只有规则；D5 `save_to_memory` 直写 `embedding=None` 不去重不审计且无回填，对 vector/hybrid 不可见；D6 `_fetch_memory` 按 UUID 读 Memory 不校验 user/app（`agents/tools/skill_resources.py:167`）——**ISSUE-194 方案 (a) 挂载前必须先修**，否则成为跨用户读取通道；D7 013 旧版 §12.7 #9「L1/L2/L3 ✅」与 ISSUE-194 结论矛盾待回写（2026-10-10 版＝§12.4 承载）；D8 memory_pipeline_prompt 进化面只有 fact extractor 消费，summarizer/reflection 晋升是运行时 no-op。
+- **处理方式**（本次只分析不改码，落地建议见[机制映射汇总](../research/mapping-negentropy.md)「HZ 与 OV 落地建议」）：
   1. **做**（建议独立 PR，先于 013 Phase 1）：会话巩固触发器（复用 `title_inspector` 的「事件水位差 ≥Δ 且空闲 ≥T」范式）+ `consolidation_jobs` 消费者（`FOR UPDATE SKIP LOCKED` 执行 `_simple_consolidate`）+ `threads.metadata.consolidated_at_event_seq` 水位；巩固 diff 写 `consolidation_jobs.result` 并接 UI `/memory/audit`；修 D3 签名并把 TTL 换成源水位判据。零新表。
-  2. **写**：013 §12.7 #9 状态行校正（L1 ✅ / L2·L3 🔶 ISSUE-194）与 §8.5 宿主更正（D1/D7）；025 §4.1/§4.3 与事实不符处回写。——**013/015 侧已销账（2026-09-27：013 完全重铸落地——§11.5 #9 校正、§8.4 宿主更正、§6.2 会话巩固三件套并入、OV 蓝图对位表同步；「做」面仍开放）。025 §4.1/§4.3 回写未做仍开放**（2026-09-28 评审发现销账口径过早并收窄：025 在重铸分支零改动，其 §4.1 仍把 add_session_to_memory→consolidation_jobs 写成在跑链路）
-  3. **暂缓**：M-a 统一 URI（与 013 ADR-1 冲突，只取寻址不取存储）、typed query、目录递归（YAGNI 触发条件见 015）。
+  2. **写**：013 #9 状态行校正（§12.4）与宿主更正（D1/D7，§6.5）；025 §4.1/§4.3 与事实不符处回写。——**013/015 侧已销账（现行锚：013 §12.4 #9 校正、§6.5 宿主更正、§8.2 会话巩固三件套并入、汇总文档 OV 蓝图对位表同步（发现源登记另见同汇总「OV 取证副产物」）；「做」面仍开放）。025 §4.1/§4.3 回写未做仍开放**（2026-09-28 评审发现销账口径过早并收窄：025 在重铸分支零改动，其 §4.1 仍把 add_session_to_memory→consolidation_jobs 写成在跑链路）
+  3. **暂缓**：M-a 统一 URI（与 013 ADR-1 冲突，只取寻址不取存储）、typed query、目录递归（YAGNI 触发条件见[机制映射汇总](../research/mapping-negentropy.md) OV-5）。
 - **后续防范**：文档把链路标 ✅ 前须核到「调用方/消费者存在」这一层（与 ISSUE-194 同款断言纪律：函数存在 ≠ 链路存在）；「队列表」类设计须与消费者同一 PR 落地，否则只入队的表是 silent no-op 的温床。
+- **锚点体例注记（2026-10-14）**：生产代码注释中的「013 2026-10-10 版；原注 §N.N」为改锚前旧注释引数的存档——「原注」指向注释自身历史（部分号出自 `docs/concepts/design/self-evolving-agents.md` 设计文档、部分为更早 013 代），非退役版 013 文档节号，回查以现行锚为准。
 
 ## ISSUE-196 中文关键词检索失效：memories 与知识库的 tsvector 用 english 配置，整段汉字被切成单个 token，tsvector 关键词腿对中文子串全部落空（2026-09-24）
 
@@ -4241,7 +4242,7 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **影响**：中文内容的混合检索实际退化为纯向量检索，BM25 融合权重对中文空转。记忆检索在无 embedding 时回退到 `ILIKE '%query%'`（`memory_service.py:808`/`:1290`），中文子串尚能命中；知识库检索没有这层回退，是真正的全量失效。另外，精确词（人名、项目代号、报错原文的中文部分）召回依赖向量相似度，稳定性差。英文与中英混排中的英文词不受影响（`'deploy the static site to CDN' @@ 'deploying site'` 为 `t`）。
 - **处理方式**（本次只登记不改码，方案另行评审）：
   1. **做**（下一次触及 hybrid search 的 PR）：候选 ① `pg_trgm` / `pg_bigm` 三元或二元组索引；② 入库时做 CJK bigram 预切分写入 `simple` 配置的独立 tsvector 列；③ 查询侧对纯 CJK 查询路由到 trigram / LIKE 回退（Hermes 同款三级回退）。选型前须在 PG16/17/18 上核扩展可用性（本机多版本漂移经验）。
-  2. **写**：013 蓝图检索层补一句「关键词腿对 CJK 的分词口径」。——**已销账（2026-09-27：013 完全重铸 §5.2 WARNING 落地口径与三候选；「做」面仍开放）**
+  2. **写**：013 蓝图检索层补一句「关键词腿对 CJK 的分词口径」。——**已销账（013 §7.5 CJK 失效登记与三候选；「做」面仍开放）**
   3. **验收**：固定中文样本集上「子串关键词命中率」从 0 提升，且不回退英文 BM25 排序。
 - **后续防范**：从英文语料项目移植检索 schema 时，把「分词配置 × 目标语言」列为显式核对项；混合检索的回归测试须含中文子串用例，并单独断言 tsvector 腿的命中——否则关键词腿失效会被向量腿或 `ILIKE` 回退掩盖、测试恒绿。
 

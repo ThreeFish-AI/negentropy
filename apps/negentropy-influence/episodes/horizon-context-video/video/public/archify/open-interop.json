@@ -2,8 +2,8 @@
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 12.2,
- "total_wall_sec": 79.37,
+ "story_sec": 12.26,
+ "total_wall_sec": 156.3,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -17,12 +17,12 @@
    "beats": 4,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 4.43,
+   "story_sec": 4.46,
    "beat_offsets_sec": [
     0.0,
-    1.106,
-    2.212,
-    3.315
+    1.105,
+    2.209,
+    3.313
    ],
    "beat_nodes": [
     "oss",
@@ -31,7 +31,7 @@
     "dbt"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 35.0
+   "capture_fps": 49.0
   },
   {
    "id": "feedback",
@@ -42,11 +42,11 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.33,
+   "story_sec": 3.35,
    "beat_offsets_sec": [
     0.0,
-    1.104,
-    2.209
+    1.105,
+    2.208
    ],
    "beat_nodes": [
     "fb",
@@ -54,7 +54,7 @@
     "ada"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 41.0
+   "capture_fps": 49.0
   },
   {
    "id": "socket",
@@ -65,12 +65,12 @@
    "beats": 4,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 4.44,
+   "story_sec": 4.45,
    "beat_offsets_sec": [
     0.0,
-    1.108,
-    2.212,
-    3.316
+    1.106,
+    2.211,
+    3.315
    ],
    "beat_nodes": [
     "sv",
@@ -79,7 +79,7 @@
     "rbx"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 39.0
+   "capture_fps": 48.0
   }
  ],
  "capture": {
@@ -90,7 +90,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/tripoli-v4/docs/assets/architecture/cognitive-context/horizon-context--open-interop.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/horizon-context--open-interop.html",
  "slug": "open-interop",
  "type": "architecture"
 }

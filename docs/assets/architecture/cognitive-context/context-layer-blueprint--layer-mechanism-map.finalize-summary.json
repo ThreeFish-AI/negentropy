@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/architecture-context-layer-blueprint--layer-mechanism-map-20261010-003427/candidate.json",
+    "sha256": "8dfe703223e78f063b79e063859258b5f95b1f8a108fec14b78e26db2b1cbfa0",
+    "bytes": 6305
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.html",
+    "sha256": "3e699927892756db977883e1014317d76f199e78d86721c8b650a60301ebc993",
+    "bytes": 775201
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 2120,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "resolvedCrossovers": 3
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [
+        {
+          "left": {
+            "from": "m1_semantic_view",
+            "to": "axis_asset",
+            "label": "五段式对象",
+            "collectionIndex": 4,
+            "artifactIndex": 5
+          },
+          "right": {
+            "from": "m5_lineage",
+            "to": "axis_asset",
+            "label": "经营对象入账",
+            "collectionIndex": 7,
+            "artifactIndex": 8
+          },
+          "point": [
+            152,
+            408
+          ],
+          "sharedNode": "axis_asset"
+        },
+        {
+          "left": {
+            "from": "m3_semantic_gov",
+            "to": "axis_authority",
+            "label": "引擎执法·底线",
+            "collectionIndex": 12,
+            "artifactIndex": 13
+          },
+          "right": {
+            "from": "m7_tagging",
+            "to": "axis_authority",
+            "label": "映射闸显式分开",
+            "collectionIndex": 15,
+            "artifactIndex": 16
+          },
+          "point": [
+            598,
+            607
+          ],
+          "sharedNode": "axis_authority"
+        },
+        {
+          "left": {
+            "from": "m3_semantic_gov",
+            "to": "axis_retrieval",
+            "label": "候选层过滤·体验",
+            "collectionIndex": 13,
+            "artifactIndex": 14
+          },
+          "right": {
+            "from": "m7_tagging",
+            "to": "axis_authority",
+            "label": "映射闸显式分开",
+            "collectionIndex": 15,
+            "artifactIndex": 16
+          },
+          "point": [
+            612,
+            607
+          ]
+        }
+      ],
+      "detours": [],
+      "truncated": false
+    },
+    "hints": [
+      "m1_semantic_view → axis_asset and m5_lineage → axis_asset cross next to axis_asset: move node m1_semantic_view or m5_lineage so the two reach axis_asset from different sides (for example one level with it, one directly above or below it).",
+      "m3_semantic_gov → axis_authority and m7_tagging → axis_authority cross next to axis_authority: move node m3_semantic_gov or m7_tagging so the two reach axis_authority from different sides (for example one level with it, one directly above or below it).",
+      "m3_semantic_gov → axis_retrieval crosses m7_tagging → axis_authority: move the node of whichever is a branch, return, or second entrance to the other side of the main path, so that relationship runs through an empty corridor."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

@@ -1,30 +1,32 @@
-%%source: docs/research/cognitive-context/013-context-layer-blueprint.md §7.2 供给面威胁模型（+MCP 2026-07-28 硬化注记）
+%%source: docs/research/cognitive-context/013-context-layer-blueprint.md §5.4–§5.5 供给面威胁模型与记忆供给面（intent legitimation 增补）
 %%slug: cognitive-context/context-layer-blueprint--mcp-threat-model
 %%type: architecture
-%%derived: archify architecture v1, authored from source mermaid
+%%derived: archify architecture v2, 六威胁重排＋intent legitimation 行与「写入端扫描先于巩固上线」时序注（对齐 013 §5.4–§5.5 重铸稿）
 flowchart LR
-    subgraph "外部客户端环境"
-        AG["外部 Agent 客户端<br/>Claude / Cursor / 自研"]
-        CON["🔐 per-client consent<br/>OAuth 最小 scopes"]
-        TT["☠️ token 透传窃取"]
+    subgraph EXT["外部客户端环境"]
+        TT["☠️ token 透传窃取<br/>受众绑定 RFC 8707 · 令牌不跨源复用"]
+        AG["外部 Agent 客户端<br/>Claude / Cursor / 自研宿主"]
     end
-    subgraph "Context Layer 供给边界（安全边界）"
-        MCP["🔌 MCP 供给面<br/>list / resolve / compile / feedback<br/>2026-07-28：无状态核心 · 每请求自描述"]
-        CG{"🛡️ 编译期治理门<br/>RBAC 于 SQL 生成前评估<br/>token 受众绑定三连禁令"}
-        TP["☠️ 工具描述投毒<br/>tool poisoning / rug pull"]
-        TI["☠️ 响应内指令注入"]
-        TD["☠️ confused deputy<br/>server 以自身权限执行"]
+    subgraph SUP["Context Layer 供给边界（安全边界）"]
+        MCP["MCP 供给面<br/>list / resolve / compile · 无状态核心"]
+        CG{"🛡️ 编译期治理门<br/>RBAC 于 SQL 生成前评估 · 凭证绑定校验"}
     end
-    subgraph "数据与执行平面"
-        EX["⚙️ 受治理执行<br/>egress 白名单"]
-        DA[("🗄️ 数据平面<br/>仓库 / 向量库")]
+    subgraph DAT["数据与执行平面"]
+        EX["⚙️ 受治理执行<br/>egress 白名单 · 爆炸半径隔离"]
+        DA[("🗄️ 数据平面<br/>仓库 / 向量库 / 常驻记忆")]
     end
-    CON --> AG
+    TP["☠️ 描述投毒<br/>自述不可信输入 · 哈希钉住＋注册期评审"]
+    HS["☠️ 状态句柄冒充<br/>持有句柄 ≠ 认证 · 绑 verified-token"]
+    INJ["☠️ 间接注入<br/>信任边界段 · 写入端扫描先于巩固上线"]
+    CD["☠️ confused deputy<br/>每客户端同意 · redirect 匹配＋强确认"]
+    LG["☠️ 良性记忆偏置（intent legitimation · 非注入）<br/>读取端检测-反思＋增益评估双指标"]
     TT -.-> AG
-    AG -->|"tools/call（SSE）"| MCP
+    AG -->|"tools/call"| MCP
     TP -.-> MCP
-    TI -.-> MCP
-    TD -.-> CG
-    MCP --> CG
-    CG -->|"破坏性动作 · 强确认"| EX
-    EX --> DA
+    HS -.-> CG
+    INJ -.-> MCP
+    CD -.-> CG
+    MCP -->|"compile"| CG
+    CG -->|"强确认后执行"| EX
+    EX -->|"受治理查询"| DA
+    LG -.->|"读取端偏置意图推断"| DA

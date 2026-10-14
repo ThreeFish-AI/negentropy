@@ -1,9 +1,9 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.44,
- "story_sec": 6.64,
- "total_wall_sec": 43.25,
+ "lead_sec": 0.48,
+ "story_sec": 7.4,
+ "total_wall_sec": 188.9,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -16,8 +16,8 @@
    "end_still": "valid-sql-wrong-answer--syntax-pass-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 0.44,
-   "story_sec": 3.37,
+   "lead_sec": 0.48,
+   "story_sec": 3.36,
    "beat_offsets_sec": [
     0.0,
     1.107,
@@ -29,7 +29,7 @@
     "disciplineGuard"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 33.0
+   "capture_fps": 48.0
   },
   {
    "id": "business-fail",
@@ -39,11 +39,11 @@
    "end_still": "valid-sql-wrong-answer--business-fail-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 0.44,
-   "story_sec": 3.27,
+   "lead_sec": 0.48,
+   "story_sec": 4.04,
    "beat_offsets_sec": [
     0.0,
-    1.605
+    1.608
    ],
    "beat_nodes": [
     "bizFail",
@@ -61,7 +61,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/tripoli-v4/docs/assets/architecture/cognitive-context/horizon-context--valid-sql-wrong-answer.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/horizon-context--valid-sql-wrong-answer.html",
  "slug": "valid-sql-wrong-answer",
  "type": "workflow"
 }

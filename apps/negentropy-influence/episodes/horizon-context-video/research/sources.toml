@@ -1,4 +1,4 @@
-# 非论文信源清单（可复现取证链，工具：$R/source_ledger.py）
+# 非论文信源清单（可复现取证链，工具：$T/scripts/source_ledger.py）
 #
 # kind=repo 指向固定 commit，raw 指纹漂移即 FAIL（说明 URL 里的 ref 不是不可变引用）。
 # kind=site 指向线上页面，只对剥标签归一后的正文比对指纹，漂移报 WARN（去复核笔记）。
@@ -6,34 +6,714 @@
 
 
 [paper-note]
-url = "https://raw.githubusercontent.com/ThreeFish-AI/negentropy/097076ebedd35a5dcba9076eaab0df57a48206f6/docs/research/cognitive-context/011-horizon-context.md"
+url = "https://raw.githubusercontent.com/ThreeFish-AI/negentropy/192ae6ca95db9702a890d65d1ef0a4a9341b6f5f/docs/research/cognitive-context/011-horizon-context.md"
 kind = "repo"
-pinned_ref = "097076ebedd35a5dcba9076eaab0df57a48206f6"
-accessed = "2026-09-19"
-raw_sha256 = "3146c2ce3dc27cc6"
-text_sha256 = "3576d129856cecaf"
-bytes = 108702
-lines = 797
-via = "pinned commit, 本仓内部文档（2026-09-17 重评选后版本）"
+pinned_ref = "192ae6ca95db9702a890d65d1ef0a4a9341b6f5f"
+accessed = "2026-10-01"
+raw_sha256 = "761aa2334de2e146"
+text_sha256 = "bce989600a098b8a"
+bytes = 90776
+lines = 548
+via = "pinned commit, gen2 冻结版精读笔记（gl-notes 冻结母本）"
 
 [lab-prototype]
-url = "https://raw.githubusercontent.com/ThreeFish-AI/negentropy/097076ebedd35a5dcba9076eaab0df57a48206f6/docs/research/cognitive-context/assets/horizon_context_lab.py"
+url = "https://raw.githubusercontent.com/ThreeFish-AI/negentropy/192ae6ca95db9702a890d65d1ef0a4a9341b6f5f/docs/research/cognitive-context/assets/horizon_context_lab.py"
 kind = "repo"
-pinned_ref = "097076ebedd35a5dcba9076eaab0df57a48206f6"
-accessed = "2026-09-19"
-raw_sha256 = "cd83e85d0cd338a6"
-text_sha256 = "c5509cc4f851cf6d"
-bytes = 59251
-lines = 1195
-via = "pinned commit, 最小原型实验室"
+pinned_ref = "192ae6ca95db9702a890d65d1ef0a4a9341b6f5f"
+accessed = "2026-10-01"
+raw_sha256 = "10be94e499711eed"
+text_sha256 = "3a149311971aaa2e"
+bytes = 59512
+lines = 1198
+via = "pinned commit, 最小原型实验室（selftest 复算 2026-10-01 全等）"
 
 [mcp-prototype]
-url = "https://raw.githubusercontent.com/ThreeFish-AI/negentropy/097076ebedd35a5dcba9076eaab0df57a48206f6/docs/research/cognitive-context/assets/horizon_context_mcp.py"
+url = "https://raw.githubusercontent.com/ThreeFish-AI/negentropy/192ae6ca95db9702a890d65d1ef0a4a9341b6f5f/docs/research/cognitive-context/assets/horizon_context_mcp.py"
 kind = "repo"
-pinned_ref = "097076ebedd35a5dcba9076eaab0df57a48206f6"
-accessed = "2026-09-19"
-raw_sha256 = "e4769832a2734829"
-text_sha256 = "580f1e0b604d196e"
-bytes = 15827
-lines = 328
-via = "pinned commit, MCP 服务原型"
+pinned_ref = "192ae6ca95db9702a890d65d1ef0a4a9341b6f5f"
+accessed = "2026-10-01"
+raw_sha256 = "4c7167f600b1b51d"
+text_sha256 = "15d3c44c2b5ff6a9"
+bytes = 15711
+lines = 321
+via = "pinned commit, MCP 服务原型（selftest 复算 2026-10-01 全等）"
+
+[site-horizon-context]
+url = "https://www.snowflake.com/en/product/features/horizon-context/"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "62c0248f39d21b36"
+text_sha256 = "e6fa03e9a1523532"
+bytes = 832346
+lines = 1866
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-governed-context]
+url = "https://www.snowflake.com/en/blog/horizon-context-governed-context/"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "d75d2bcf1f0ceabb"
+text_sha256 = "58326dcd4a34a3fb"
+bytes = 557268
+lines = 1860
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-the-enterprise]
+url = "https://www.snowflake.com/en/news/press-releases/snowflake-advances-trusted-ai-with-snowflake-horizon-catalog-centralizing-governance-context-and-security-across-the-enterprise/"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "334249919b15fa77"
+text_sha256 = "b8418d6e748bc5f4"
+bytes = 516029
+lines = 1847
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-semantic-overview]
+url = "https://docs.snowflake.com/en/user-guide/views-semantic/overview"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "f32278f6a3c9a4da"
+text_sha256 = "c8eadb62d3b778a3"
+bytes = 810290
+lines = 198
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-semantic-view]
+url = "https://docs.snowflake.com/en/sql-reference/sql/create-semantic-view"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "76d4b66ccda0b7bd"
+text_sha256 = "b855e2cb808fae92"
+bytes = 995562
+lines = 392
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-validation-rules]
+url = "https://docs.snowflake.com/en/user-guide/views-semantic/validation-rules"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "27eb6d7feb43a77f"
+text_sha256 = "dae36d56fa36259a"
+bytes = 825213
+lines = 266
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-semantic-materializations]
+url = "https://docs.snowflake.com/en/user-guide/views-semantic/materializations"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "4f3143233099ca31"
+text_sha256 = "0fd9b5f2393d5e08"
+bytes = 950944
+lines = 430
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-external-lineage]
+url = "https://docs.snowflake.com/en/user-guide/external-lineage"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "aa1331bff2575cee"
+text_sha256 = "22be547c77089331"
+bytes = 976880
+lines = 566
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-snowsight-lineage]
+url = "https://docs.snowflake.com/en/user-guide/ui-snowsight-lineage"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "697e670eff13867f"
+text_sha256 = "ef08892781ebda8b"
+bytes = 860522
+lines = 353
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-snowflake-horizon]
+url = "https://docs.snowflake.com/en/user-guide/snowflake-horizon"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "0e4be1670e1b78e1"
+text_sha256 = "24229fce4de82164"
+bytes = 784972
+lines = 63
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-grounded-context]
+url = "https://www.snowflake.com/en/blog/enterprise-ai-agents-grounded-context/"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "3f2ce0d784ed938d"
+text_sha256 = "3f8a46ab5ca7f138"
+bytes = 561082
+lines = 1804
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-semantic-views]
+url = "https://www.snowflake.com/en/blog/engineering/why-we-need-semantic-views/"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "477fd97108ca77e0"
+text_sha256 = "92144577e68ad7ed"
+bytes = 592260
+lines = 2231
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-interchange-initiative]
+url = "https://www.snowflake.com/en/news/press-releases/snowflake-salesforce-dbt-labs-and-more-revolutionize-data-readiness-for-ai-with-open-semantic-interchange-initiative/"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "78e248c3c76ee064"
+text_sha256 = "d626bc4df1444550"
+bytes = 499765
+lines = 1830
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-clutch-ossie]
+url = "https://incubator.apache.org/clutch/ossie.html"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "da3f4c7f79917d55"
+text_sha256 = "68b202a8c7ebb154"
+bytes = 12893
+lines = 295
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-specs-finalized]
+url = "https://www.snowflake.com/en/blog/open-semantic-interchanges-specs-finalized/"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "056d604d22c5773a"
+text_sha256 = "2242ed93042509cd"
+bytes = 538676
+lines = 1798
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-interchange-incubator]
+url = "https://www.snowflake.com/en/blog/apache-ossie-open-semantic-interchange-incubator/"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "d8c750bb9ed9ba2a"
+text_sha256 = "eb29ec81637bfb83"
+bytes = 535342
+lines = 1808
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-layer-explained]
+url = "https://www.typedef.ai/blog/what-is-horizon-context-snowflakes-governed-context-layer-explained"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "a760411fe18c28a6"
+text_sha256 = "5b7ddd51d47e6d54"
+bytes = 90697
+lines = 154
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-horizon-context-2]
+url = "https://atlan.com/know/snowflake/snowflake-horizon-context/"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "7c3f56082229b6ee"
+text_sha256 = "166fcd2213343725"
+bytes = 244743
+lines = 1352
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-horizon-101]
+url = "https://atlan.com/know/data-governance/snowflake-horizon-101/"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "e1b08518a47c7285"
+text_sha256 = "048fe1bc86ac6b43"
+bytes = 247657
+lines = 1390
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-semantic-autopilot]
+url = "https://docs.snowflake.com/en/user-guide/views-semantic/autopilot"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "12638d9ed471ec9c"
+text_sha256 = "02ef8e4a760b4eff"
+bytes = 822046
+lines = 251
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-ready-ai]
+url = "https://www.snowflake.com/en/news/press-releases/snowflake-delivers-semantic-view-autopilot-as-the-foundation-for-trusted-scalable-enterprise-ready-AI/"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "6c7d2819b4ed0815"
+text_sha256 = "260a637033231afb"
+bytes = 509070
+lines = 1827
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-query-repository]
+url = "https://docs.snowflake.com/en/user-guide/views-semantic/verified-query-repository"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "42a69a018fa677c6"
+text_sha256 = "f72c6c762794b016"
+bytes = 810063
+lines = 149
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-analyst-optimization]
+url = "https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-analyst/analyst-optimization"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "7253061dce4c14aa"
+text_sha256 = "d49bd4ba257f4908"
+bytes = 790296
+lines = 66
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-agents-mcp]
+url = "https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agents-mcp"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "41c00e78b8c60ca0"
+text_sha256 = "729e45b294720fbd"
+bytes = 1084584
+lines = 776
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-practices-modeling]
+url = "https://docs.snowflake.com/en/user-guide/views-semantic/best-practices-modeling"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "b2728e44b9c54cbf"
+text_sha256 = "737732dfe058a767"
+bytes = 829385
+lines = 222
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-practices-dev]
+url = "https://docs.snowflake.com/en/user-guide/views-semantic/best-practices-dev"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "56a1bf30bc6ab1ad"
+text_sha256 = "0dcf80770e8ac332"
+bytes = 906821
+lines = 421
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-enterprise-ai]
+url = "https://www.snowflake.com/en/engineering-blog/cortex-search-and-retrieval-enterprise-ai/"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "1297b0d673663462"
+text_sha256 = "600f37de48d1d2e0"
+bytes = 562992
+lines = 1866
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-work-agent]
+url = "https://www.snowflake.com/en/blog/snowflake-cowork-personal-work-agent/"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "aaa592512a0a970c"
+text_sha256 = "cf954ee488e3e679"
+bytes = 571125
+lines = 1853
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-select-star]
+url = "https://www.snowflake.com/en/blog/snowflake-acquire-select-star/"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "391859bc5caaf852"
+text_sha256 = "c43e32ac86783137"
+bytes = 522873
+lines = 1768
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-data-agents]
+url = "https://docs.snowflake.com/en/collaboration/auto-generated-data-agents"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "9439ec2129046728"
+text_sha256 = "9ccdae2e2a940007"
+bytes = 851895
+lines = 303
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-symmetric-aggregates]
+url = "https://docs.cloud.google.com/looker/docs/reference/param-explore-symmetric-aggregates"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "22bdddb48879f4ea"
+text_sha256 = "ea07619fab79bf06"
+bytes = 167003
+lines = 4928
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-looker-lookml]
+url = "https://honeydew.ai/blog/dbt-semantic-layer-vs-looker-lookml/"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "2fcb6f7901fb0b76"
+text_sha256 = "e273dfb19543806c"
+bytes = 68740
+lines = 444
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-pre-aggregations]
+url = "https://docs.cube.dev/docs/pre-aggregations/matching-pre-aggregations"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "44c8b10042b92279"
+text_sha256 = "ce5ffb89b633c5b9"
+bytes = 387945
+lines = 311
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-layer-metricflow]
+url = "https://datus.ai/blog/dbt-semantic-layer-metricflow/"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "11bc60944ad461a5"
+text_sha256 = "67a281ac8a63b1ee"
+bytes = 39798
+lines = 211
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-native-semantics]
+url = "https://datus.ai/blog/osi-vs-warehouse-native-semantics/"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "5aee4e53f1ea3d9f"
+text_sha256 = "8d94fab0438d56fa"
+bytes = 47718
+lines = 195
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-2606-31041]
+url = "https://arxiv.org/abs/2606.31041"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "b8aa7287a9fc5cce"
+text_sha256 = "e4089635bab5a1c5"
+bytes = 42004
+lines = 627
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-sql-2026]
+url = "https://docs.getdbt.com/blog/semantic-layer-vs-text-to-sql-2026"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "eac1b1039b843689"
+text_sha256 = "381021fde7b1aa5a"
+bytes = 49765
+lines = 168
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-session-scope]
+url = "https://docs.snowflake.com/en/user-guide/restricted-session-scope"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "1f587b81974105b8"
+text_sha256 = "5649712eca7e9cda"
+bytes = 928207
+lines = 436
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-agent-identity]
+url = "https://docs.snowflake.com/en/user-guide/agent-identity"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "0520b8b311d206d2"
+text_sha256 = "6cff3007f117677f"
+bytes = 827415
+lines = 139
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-classify-intro]
+url = "https://docs.snowflake.com/en/user-guide/classify-intro"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "c128f67c7f5c7bce"
+text_sha256 = "2a516f3e422ad5fb"
+bytes = 838652
+lines = 219
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-masking-policies]
+url = "https://docs.snowflake.com/en/user-guide/tag-based-masking-policies"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "9bd056f1783d0bc1"
+text_sha256 = "7d8d3b3d1d752263"
+bytes = 1033164
+lines = 772
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-ddm-intro]
+url = "https://docs.snowflake.com/en/user-guide/security-column-ddm-intro"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "0e962c23dd9ab91d"
+text_sha256 = "d79e11f9b212095f"
+bytes = 841643
+lines = 88
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-mcp-governance]
+url = "https://www.snowflake.com/en/blog/enterprise-ai-security-agentic-mcp-governance/"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "e43aab840b853864"
+text_sha256 = "f1f56f0613f31cb3"
+bytes = 552633
+lines = 1846
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-aggregation-policies]
+url = "https://docs.snowflake.com/en/user-guide/aggregation-policies"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "274648d2fc706b0a"
+text_sha256 = "50c840e294c84ef6"
+bytes = 982586
+lines = 530
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-projection-policies]
+url = "https://docs.snowflake.com/en/user-guide/projection-policies"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "648572389d48715e"
+text_sha256 = "55780bd76f28f921"
+bytes = 1001284
+lines = 565
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-permission-limit]
+url = "https://dev.classmethod.jp/en/articles/snowflake-restricted-session-scope-coco-permission-limit/"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "9e39b8fb87edf5b1"
+text_sha256 = "ccea283160166243"
+bytes = 949754
+lines = 632
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-mosaicosiimport-htm]
+url = "https://www2.strategy.com/producthelp/Current/Mosaic/en-us/Content/mosaic_osi_import.htm"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "6eae6d65c1d07650"
+text_sha256 = "3d324cd92d7c8992"
+bytes = 153956
+lines = 1640
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-september-2026]
+url = "https://dremio.com/blog/state-of-the-open-lakehouse-september-2026/"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "0dc6477777d1d00d"
+text_sha256 = "1258fdfa10dd1056"
+bytes = 675714
+lines = 3104
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-github-io]
+url = "https://spider2-sql.github.io/"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "3cd4bb95ed0f2d9d"
+text_sha256 = "b07e2765b7ec4109"
+bytes = 98873
+lines = 2291
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-accuracy-cliff]
+url = "https://colrows.com/blogs/text-to-sql-accuracy-cliff/"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "8277ecb4f14f1f85"
+text_sha256 = "5aacf65e272914bd"
+bytes = 78209
+lines = 667
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-contextual-retrieval]
+url = "https://www.anthropic.com/engineering/contextual-retrieval"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "27bd36c999fccc1e"
+text_sha256 = "38ef03ca58c64a5c"
+bytes = 199850
+lines = 9
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-innovation-globally]
+url = "https://www.glean.com/press/glean-raises-150m-series-f-at-7-2b-valuation-to-accelerate-enterprise-ai-agent-innovation-globally"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "93b1545023d682f0"
+text_sha256 = "fd4cbf1704fd1dc3"
+bytes = 570176
+lines = 3697
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-nine-months]
+url = "https://www.glean.com/press/glean-surpasses-200m-in-arr-for-enterprise-ai-doubling-revenue-in-nine-months"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "4d22b6214aab52cc"
+text_sha256 = "bb78275a2a217029"
+bytes = 570300
+lines = 3697
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-views-materializations]
+url = "https://www.snowflake.com/en/blog/engineering/accelerating-semantic-views-materializations/"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "2ad4dabdba3ea2c8"
+text_sha256 = "f58623b2d8da5cc2"
+bytes = 533891
+lines = 1820
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-apache-org]
+url = "https://ossie.apache.org/"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "ee15e76e9196d569"
+text_sha256 = "4c5e1eb5d7efec7b"
+bytes = 42800
+lines = 1221
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-apache-ossie]
+url = "https://github.com/apache/ossie"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "9d160d53ea3493ef"
+text_sha256 = "e62d365969e6ecfb"
+bytes = 308720
+lines = 992
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-before-acting]
+url = "https://www.ataccama.com/news/ataccama-brings-data-trust-to-apache-ossie-enabling-ai-agents-to-verify-data-quality-before-acting"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "545a42ffae8d88dd"
+text_sha256 = "f59483adb006a0d6"
+bytes = 188377
+lines = 137
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-new-features]
+url = "https://docs.snowflake.com/en/release-notes/new-features"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "5536956e3d4927f0"
+text_sha256 = "3c2b24f7c33dc71d"
+bytes = 727320
+lines = 190
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-features-2025]
+url = "https://docs.snowflake.com/en/release-notes/new-features-2025"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "9868000186fef6b0"
+text_sha256 = "943da26ac9a80751"
+bytes = 929295
+lines = 1451
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-features-2026]
+url = "https://docs.snowflake.com/en/release-notes/new-features-2026"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "39e8aa4fbc0bd8ce"
+text_sha256 = "39a447a14488f1ff"
+bytes = 892818
+lines = 966
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-releases-2026]
+url = "https://docs.snowflake.com/en/release-notes/feature-releases-2026"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "a5f0219f97182a5d"
+text_sha256 = "3bcb2f5299ffe6e7"
+bytes = 987221
+lines = 425
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-lineage-ga]
+url = "https://docs.snowflake.com/en/release-notes/2026/other/2026-09-03-external-lineage-ga"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "497f60f7128ce2ec"
+text_sha256 = "884347670f365b0a"
+bytes = 690456
+lines = 47
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-agent-lineage]
+url = "https://docs.snowflake.com/en/release-notes/2026/other/2026-09-02-cortex-agent-lineage"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "d2d0bf9d347a13c2"
+text_sha256 = "5b27fbd89cc12ae2"
+bytes = 685676
+lines = 28
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-public-preview]
+url = "https://docs.snowflake.com/en/release-notes/2026/other/2026-09-10-iceberg-scan-plan-api-public-preview"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "ea34095b99e4f1e2"
+text_sha256 = "033e3fec0c548e32"
+bytes = 685166
+lines = 22
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-temporary-objects]
+url = "https://docs.snowflake.com/en/release-notes/2026/other/2026-09-21-lineage-temporary-objects"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "eb8b177e1c973a12"
+text_sha256 = "981dd9f0be7df62c"
+bytes = 686980
+lines = 30
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-view-ga]
+url = "https://docs.snowflake.com/en/release-notes/2026/other/2026-09-30-dcm-define-semantic-view-ga"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "2fc179b3771a348c"
+text_sha256 = "66dc4ef6de8e3034"
+bytes = 685254
+lines = 22
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-policy-preview]
+url = "https://docs.snowflake.com/en/release-notes/2026/other/2026-09-30-dcm-attach-masking-policy-preview"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "3b44647a4efe9006"
+text_sha256 = "f186f6c927c1a2c3"
+bytes = 685325
+lines = 22
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"
+
+[site-column-intro]
+url = "https://docs.snowflake.com/en/user-guide/security-column-intro"
+kind = "site"
+accessed = "2026-10-01"
+raw_sha256 = "21f3b88e4cc9aecd"
+text_sha256 = "1e9b0c715bc0bcf1"
+bytes = 1116230
+lines = 857
+via = "C 型承接 GL 台账（取数 2026-09-30，快照见 .temp/horizon-context-lab/sources/）"

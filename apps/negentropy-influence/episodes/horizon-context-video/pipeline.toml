@@ -1,56 +1,43 @@
 # 本集可执行参数的**唯一来源**（ISSUE-161：可执行参数不落散文文档，README 只引用配置）。
-# 编排入口：uv run --no-project $T/pipeline/scripts/pipeline.py --project $P <cmd>（$T/$P 定义见 skill 的 pipeline/README.md：https://github.com/ThreeFish-AI/vibe-video/blob/main/pipeline/README.md）
+# 编排入口：uv run --no-project $T/scripts/pipeline.py --project $P <cmd>（$T/$W/$P/$V 见 vibe-video skill 的 references/PIPELINE.md）
 #
 # 只写**本集偏离**：机制常数（chars_per_min / lang / draft_scale / draft_jpeg_quality）
-# 的默认值在 skill 的 pipeline/scripts/config.py，不要抄回这里。字段表见 skill 的 pipeline/README.md，
-# 跑 `pipeline.py doctor` 可打印带来源标注的生效配置全表。
+# 的默认值在 skill 仓 scripts/config.py，不要抄回这里。字段表见 skill 的
+# references/PIPELINE.md，跑 `pipeline.py doctor` 可打印带来源标注的生效配置全表。
 
 [episode]
 slug = "horizon-context-video"
 
 [narration]
-# 口径提示——280 字/分是**含停顿的等效**口径，双口径门以 manifest 实测为准。
-# 本集放宽上限到 15.4（2026-09-19）：逐字稿为讲透 M1–M7 补齐了七处缺失不变量
-# （M1 双不变量 / M2-M3 正交性 / M4 已交付的一半 / M5 三道闸 / M6 回指 / M7 映射），
-# 内容量本身上去了，不是口径问题。
-# 实测成片 15:11.63（27349 帧）：纯语音 843.7s + 停顿与片头尾 67.9s，语速 303 字/分。
-# 估算 15.2 分与实测差 0.1% —— 280 这个含停顿等效口径对本稿是准的。
-target_minutes = [13.0, 15.4]
+# 首轮 TTS 实测校准（2026-10-02）：story 块合成消除块内句间停顿，含时距全片 15.1 分 ⇒ 等效 302 字/分
+# （非 story 集假设的 254）。窗按实测中心 ±1.2 收敛；chars_per_min 回写实测值供后续集估算参照。
+target_minutes = [14.0, 16.3]
+chars_per_min = 302
 
 [tts]
 engine = "indextts"
 # TODO：选定样本与风格。样本路径**工作区根相对**；ref_sha1 取 12 位（同 tts.py 口径），
-# 用 `uv run --no-project $T/pipeline/scripts/refs.py list` 查当前清单。
-# ⚠️ 风格预设的 alpha 是在**特定选段**上标定的，换选段即失效（见 voices/refs.toml）。
+# 用 `uv run --no-project $T/scripts/refs.py list` 查当前清单。
+# ⚠️ 风格预设的 alpha 是在**特定选段**上标定的，换选段即失效（见 $V/refs.toml）。
 ref = "voices/me-bright.wav"
 ref_sha1 = "54b699cce97f"
-style = "sunny-steady"
+style = "story"
+# story 档（默认）＝段落演绎：同幕连续句按块合成、块间情绪由配音台本驱动。
+# 台本（可选）：script/narration.cues.toml——写稿阶段产出，见 $T/references/VOICE-CLONING.md §4.5。
+# 重制存量集（旧档 → story）须显式 --allow-voice-switch 并补写台本。
 
 [archify]
-# v6 扩产定稿（2026-09-20，数字来自覆盖门输出回填）：33 图 → 67 图（2.03×）、
-# 86 章 → 162 章、73 cue → 156 cue（2.14×）、锚定率 39.0% → 83.4%、cue 密度 5.4 →
-# 10.3/分、图型 4 → 5 种（lifecycle 0→7 补空白）、最长无锚 7 → 4 句；inset 画中画
-# 退役（全屏独占切换，forbid_inset 锁死）。各幕锚定：P0 8/10 · P1 19/24 · P2 33/37 ·
-# P3 24/29 · P4 27/30 · P5 28/34 · P6 17/23。
-# 阈值即验收声明：低于此线说明图例覆盖回退，覆盖门直接红。
-min_diagrams = 66
-min_cues = 146
-min_anchor_ratio = 0.60
-min_chapter_ratio = 0.70
-# 覆盖度：最长连续无锚句（实测 4）；分幕锚定率（实测最差幕 74%）
-max_unanchored_run = 6
-min_scene_anchor_ratio = 0.45
-# 丰富度：cue 密度（实测 10.3/分）；图型多样性（实测 5 种）
-min_cues_per_minute = 9.0
-min_diagram_types = 4
-# 布局：全屏切换集禁画中画回退
-forbid_inset = true
-# 源图是仓内 docs 既有图集而非 skill 新默认 archify-html/，显式覆写以保住旧语义
-#（record_archify_all.py 以此目录为 slug→源图的基准，走错目录即整集无图可录）。
+# 图集 SSOT 覆写：本集图例沿用仓级资产（011 gen2 精读 + 历次视频扩产），不另建 $W/archify-html/。
+# 阈值按 Stage ⑥ 分镜定稿实测回填（2026-10-01，先红后绿留证 .temp/coverage-gate-calibration.md）：
+# 设计值 44 图 / 109 cue / 69.9% 锚定 / 6.09 cue 每分 / 5 型 / 最长无锚 4。
 html_dir = "docs/assets/architecture/cognitive-context"
-# 重录（record_archify_all.py）：slug → 交付工程图的映射。约定优先 + 例外表。
-# 67 张里 66 张守 horizon-context--<slug>.html；唯一例外 next-episode-blueprint 的
-# 源图是上一集的 architecture 图，且文件名派生的 slug（architecture）与产物名对不上，
-# 驱动命中例外表时会自动补 --slug 保住 next-episode-blueprint--*.mp4 的命名。
 html_pattern = "horizon-context--{slug}.html"
-html_overrides = { next-episode-blueprint = "context-layer-blueprint--architecture.html" }
+min_diagrams = 40
+min_cues = 104
+min_anchor_ratio = 0.55
+min_chapter_ratio = 0.55
+min_scene_anchor_ratio = 0.35
+max_unanchored_run = 5
+min_cues_per_minute = 5.8
+min_diagram_types = 5
+forbid_inset = true
