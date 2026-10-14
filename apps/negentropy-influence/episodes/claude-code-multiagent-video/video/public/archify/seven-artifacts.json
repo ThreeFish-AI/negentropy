@@ -1,0 +1,99 @@
+{
+  "schema": 2,
+  "mode": "chapter",
+  "lead_sec": 0.52,
+  "story_sec": 16.45,
+  "total_wall_sec": 59.75,
+  "started_playback": true,
+  "clapper_found": true,
+  "measured_fps": 25.0,
+  "chapters": [
+    {
+      "id": "overview",
+      "label": "一栋小楼总览",
+      "index": 0,
+      "file": "seven-artifacts--overview.mp4",
+      "end_still": "seven-artifacts--overview-end.png",
+      "beats": 3,
+      "dwell_ms": 1100,
+      "lead_sec": 0.52,
+      "story_sec": 3.34,
+      "beat_offsets_sec": [],
+      "beat_nodes": [
+        "building",
+        "masters",
+        "captain"
+      ],
+      "measured_fps": 25.0,
+      "capture_fps": 61.0
+    },
+    {
+      "id": "public-five",
+      "label": "楼下五设施",
+      "index": 1,
+      "file": "seven-artifacts--public-five.mp4",
+      "end_still": "seven-artifacts--public-five-end.png",
+      "beats": 6,
+      "dwell_ms": 1100,
+      "lead_sec": 0.52,
+      "story_sec": 6.63,
+      "beat_offsets_sec": [],
+      "beat_nodes": [
+        "floor-public",
+        "wall",
+        "slot",
+        "ledger",
+        "clock",
+        "socket"
+      ],
+      "measured_fps": 25.0,
+      "capture_fps": 61.0
+    },
+    {
+      "id": "private-rooms",
+      "label": "楼上房带",
+      "index": 2,
+      "file": "seven-artifacts--private-rooms.mp4",
+      "end_still": "seven-artifacts--private-rooms-end.png",
+      "beats": 2,
+      "dwell_ms": 1600,
+      "lead_sec": 0.48,
+      "story_sec": 3.25,
+      "beat_offsets_sec": [],
+      "beat_nodes": [
+        "floor-private",
+        "rooms"
+      ],
+      "measured_fps": 25.0,
+      "capture_fps": 61.0
+    },
+    {
+      "id": "corridor",
+      "label": "第七件：走廊",
+      "index": 3,
+      "file": "seven-artifacts--corridor.mp4",
+      "end_still": "seven-artifacts--corridor-end.png",
+      "beats": 1,
+      "dwell_ms": 3200,
+      "lead_sec": 0.52,
+      "story_sec": 3.23,
+      "beat_offsets_sec": [],
+      "beat_nodes": [
+        "corridor"
+      ],
+      "measured_fps": 25.0,
+      "capture_fps": 61.0
+    }
+  ],
+  "capture": {
+    "mode": "cdp",
+    "scale": 2,
+    "encoder": "h264",
+    "crf": 16,
+    "fps": 25,
+    "out_h": 1440
+  },
+  "source": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/apps/negentropy-influence/episodes/claude-code-multiagent-video/video/public/archify/html/seven-artifacts.html",
+  "slug": "seven-artifacts",
+  "type": "architecture"
+}

@@ -3,15 +3,10 @@
  *  cue 清单（1）：
  *   0-C five-layer-dependency/layer-flash@p0-12（立碑一闪；本片首个 archify 实例 → 默认 lead）
  *
- *  ★ 0-A 的 3D 五层栈由 components/harness-stack.tsx 的 HarnessStackP0 承担
- *    （落板/记忆层点亮呼吸/缩退全在其内）；scene 侧只补灯暗、师傅离场、
- *    主问题字卡与角标。
- *  ★ Badge 顶边带冲突处理：frozen ChapterProgress 占 y14–42，HarnessStackP0 内置
- *    交叉淡入的常驻条钉在 top:12（EP1 发布时形态）——本集各幕 Badge 已定案下移
- *    top:64（BADGE_STYLE，Integrate 统一核对）。故 0-A 在 crossAt 处把整个
- *    HarnessStackP0 包一层 5 帧淡杀（内置 top:12 条在可见前归零），同时以同拍
- *    淡入本幕自己的 top:64 Badge，完成位置迁移且零双影（shared 组件不改的
- *    调用点侧解法，与 EP1 P0 同款）。
+ *  ★ 0-A 开场（系列片头铺开，2026-10-08，沿 ep1 先例 0fed97ec5）：五层栈落板/
+ *    记忆层点亮职责已由系列片头 components/series-intro.tsx 吸收（压 leadIn 时段）——
+ *    scene 侧补灯暗、师傅离场、主问题字卡与角标，常驻条 Badge（BADGE_STYLE top:64）
+ *    直接淡入；HarnessStackP0 退役（Badge 顶边带冲突处理随落板一并退役）。
  *  ★ 恒定空间契约自此幕生效：台面（BenchTop，core 橙恒定描边+绝对线宽〔M-001〕）
  *    恒居左中锚位 BENCH = (96, 588)；「会丢的」堆叠动效自上缘压入、向下腾位；
  *    「不能丢的」登记簿自右缘挂入（mech）——两组动效互不侵入对方锚区。
@@ -26,7 +21,7 @@ import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {QuoteCard} from '../components/cards';
 import {Footnote, Panel, SceneTag} from '../components/motifs';
-import {HarnessBadge, HarnessStackP0, harnessStackCrossAt} from '../components/harness-stack';
+import {HarnessBadge} from '../components/harness-stack';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 import {ArchifyYield} from '../components/ArchifyYield';
 import {DUR, clamp01, useBreathe, useDim, useEnter, useImpulse, useProgress, useStagger} from '../motion';
@@ -88,23 +83,18 @@ const Wrench: React.FC<{opacity?: number}> = ({opacity = 1}) => (
   </svg>
 );
 
-/** 开卷：3D 栈落板/记忆层呼吸/缩退在 HarnessStackP0；本组件只管工坊夜收工
- *  （灯暗 useDim / 师傅撂下工具离场 / 主问题字卡 useEnter:fall）与 Badge 迁移。 */
+/** 开卷（片头铺开简化版）：五层展示已在系列片头完成，本组件管工坊夜收工
+ *  （灯暗 useDim / 师傅撂下工具离场 / 主问题字卡 useEnter:fall）与常驻条 Badge 淡入。 */
 const OpeningNight: React.FC<{durA: number; at02: number; at03: number; at04: number}> = ({
   durA,
   at02,
   at03,
   at04,
 }) => {
-  // 缩退锚：句内 60% 处（栈高亮+两次呼吸约 65 帧完成，先于缩退；句长实测 ≥4s）
-  const recedeAt = Math.max(70, Math.round(durA * 0.6));
-  const crossAt = harnessStackCrossAt(recedeAt);
-  // 内置 top:12 常驻条可见前的整层淡杀（f3：比内置 8 帧交叉快，残影峰值 ~0.15 后归零）
-  const kill = useProgress(crossAt, DUR.f3);
-  // 同拍淡入 top:64 的本集 Badge（帧数对齐内置交叉 8 帧）
-  const badgeIn = useProgress(crossAt, 8);
+  // 常驻条：片头渐出后直接淡入（f3 起手 + f4 时长，早于工坊场景）
+  const badgeIn = useProgress(DUR.f3, DUR.f4);
 
-  // 工坊场景进场（栈落板同拍，师傅在右侧干活）
+  // 工坊场景进场（开镜即起，师傅在右侧干活）
   const sceneIn = useProgress(2, DUR.f4);
   // 灯暗（p0-02「把工坊的灯调暗了看」）：全幅压暗叠层，字卡与其后 chrome 不吃暗
   const dimK = useDim({at: at02 + 4, to: 0, dur: DUR.f5});
@@ -120,10 +110,6 @@ const OpeningNight: React.FC<{durA: number; at02: number; at03: number; at04: nu
 
   return (
     <AbsoluteFill style={{pointerEvents: 'none'}}>
-      <div style={{opacity: 1 - kill}}>
-        <HarnessStackP0 recedeAt={recedeAt} />
-      </div>
-
       {/* 工坊夜收工：地板线 + 师傅（text 白无彩）撂下工具、走出画面 */}
       <svg width={1920} height={1080} style={{position: 'absolute', left: 0, top: 0, opacity: sceneIn}}>
         <line x1={980} y1={842} x2={1860} y2={842} stroke={theme.panelBorder} strokeWidth={4} opacity={0.9} />
@@ -133,7 +119,7 @@ const OpeningNight: React.FC<{durA: number; at02: number; at03: number; at04: nu
         <Wrench />
       </div>
 
-      {/* 灯暗叠层（压栈与师傅，不压 chrome 与字卡） */}
+      {/* 灯暗叠层（压师傅与地板，不压 chrome 与字卡） */}
       <AbsoluteFill style={{background: '#000', opacity: 0.42 * (1 - dimK)}} />
 
       <HarnessBadge style={{...BADGE_STYLE, opacity: badgeIn}} />

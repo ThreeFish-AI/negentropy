@@ -1,0 +1,43 @@
+========================================================================
+Horizon Context 最小原型实验室 · M1-M7 机制自洽验证
+确定性基准: REF_DATE=2026-09-12  POP_CAP=500  排序权重 R/A/P/F = 0.4/0.3/0.2/0.1
+========================================================================
+  [PASS] V0: 演示视图结构校验通过（错误清单应为空）: []
+— A 正常路径 —
+  [PASS] A1: verified 短路重放 + 溯源: verified_query {'2026-01': 200, '2026-02': 150, '2026-03': 300} by ( data_governance = data-team@acme.com )
+  [PASS] A1b: 引擎重算 == 验证答案（对账一致）: [200, 150, 300]
+  [PASS] A2: aov derived 先聚后除: 月 [66.67, 150.0, 150.0] / 总 108.33
+  [PASS] A3: distinct 跨 join 安全: 正常 [3, 1, 2]；fan-join 下 SUM=440 而 distinct 仍 [3, 1, 2]；月格相加 6 ≠ 总体重算 5
+  [PASS] A4: USING 消歧: buyer [40, 50, 60, 250, 250] / referrer [100, 250] / 省略 via → AmbiguousJoinPath
+— B 陷阱路径（引擎保障 vs 朴素 join-then-agg）—
+  [PASS] B1: fan trap: 引擎 Jan=200 vs 朴素 Jan=440（o1 的 3 条事件把 $100 变 $300）
+  [PASS] B2: average of averages: 先聚后除 108.33 vs 月均值的均值 122.22
+  [PASS] B3: 拆 distinct: 退化为数事件行 [6, 1, 2]（对照 [3,1,2]）
+  [PASS] B4: NON ADDITIVE: 末快照 [5,6,7] vs 求和 [11,6,7]；全期 7 vs 24
+— C 边缘路径 —
+  [PASS] C1: 新表无 SV: inferred 条目胜出 + 警告 ['no_governed_coverage']；覆盖 4/5 表
+  [PASS] C2: RBAC 双层: 检索层对 intern 过滤 plan 建议（["dim_filtered (PRIVATE): ['plan']"]，降级总量 {(): 650}）；直闯执行层 → AccessDenied（引擎是最后防线）
+  [PASS] C3: 冲突浮出: CONFLICT 卡片 [('governed', 'count_distinct(orders.customer_id)'), ('inferred', 'count(events.id) by total')]（无数值）；agent 拒答；compile → ConflictingDefinitionError
+  [PASS] C3b: 人工裁决（governed 胜）后恢复: [3, 1, 2]
+  [PASS] C4: 自纠环: 错配前 top1=active_users（sum(dau)=[11,6,7] 错）→ 补 synonym + 调信号 → top1=active_customers（count_distinct=[3,1,2] 对）
+  [PASS] C5: freshness 隔离: 'sales' → governed revenue(fresh=0.96) 压过 legacy(0.00): [('revenue', 'governed', 0.854), ('revenue', 'legacy', 0.826)]
+— E 重评审晋级机制（血缘账本 / 代理身份 / 分类标签）—
+  [PASS] E1: 列级血缘同账本: 引擎沉淀 orders.total→sales_sv.metric:revenue（derived aov 展开记底层 order_count 边）；OpenLineage 摄取 app_db.users.tier→customers.plan（origin 各异、账本唯一）
+  [PASS] E1b: 摄取三道闸: 非 COMPLETE / 对象不可解析 / 无 INGEST 权限 → 整事件拒绝 ['rejected', 'rejected', 'rejected']（账本零污染）
+  [PASS] E2: 代理身份: 会话权限=用户∩代理面 ['select:orders', 'use:sales_sv']（只减不增）；审计 agent_type=assistant；IS_AGENT_ACTIVATED 下 select:customers 被拒（用户本人可查）
+  [PASS] E2b: 天花板实时性: 回收 select:orders 后，既有会话判定即刻失去、其余权限不受牵连（查询期实时求值，无快照过期窗口）
+  [PASS] E3: 分类标签: 漂移新列 phone/ssn 自动分类→pii→MASK_FULL（无需人工登记）；plan→BUSINESS_INFO 未映射=显式缺口（掩码不可直绑系统标签，须先配一次性映射）
+— D 破坏性实验（每次只拆一个机制，改动=一个 flag/一行）—
+  [PASS] D1: 拆 agg-before-join → Jan 440（对照 200）
+  [PASS] D2: 拆 distinct 安全 → [6,1,2]（对照 [3,1,2]）
+  [PASS] D3: 拆 NON ADDITIVE → [11,6,7]（对照 [5,6,7]）
+  [PASS] D4: 冲突改 auto_popularity → 推断层(count events) 胜出 [6,1,2]（对照 [3,1,2]）—— 477 vs 48 事故的玩具版
+  [PASS] D5: 拆 RBAC → intern 按 plan 拿到 [90,560]（泄露发生）；装回 → blocked
+  [PASS] D6: 拆结构校验（relationship 指向非键列）→ relationship bad: referenced column customers.plan is not PRIMARY KEY/UNIQUE—— 无门则垃圾定义静默入库（行数失控的注册期引信）
+  [PASS] D7: 拆 derived 先聚后除 → 122.22（对照 108.33）
+  [PASS] D8: 拆血缘解析闸 → 虚构对象入账（raw.y→ghost.x）——账本与真实数据流脱钩，事后对账从此不可信
+  [PASS] D9: 拆权限天花板（快照冻结）→ 回收后旧会话仍持 select:orders（越权窗口）；对照：同时创建的天花板会话判定时实时求值，同一时刻立即失去——不存在「上次办的工牌还能用」的窗口
+  [PASS] D10: 拆标签映射（只分类不绑策略）→ phone 已贴系统标签仍明文出楼——发现→标记→执行 链条断在最后一环
+========================================================================
+目录: 9 条（governed 视图覆盖 4/5 表）
+SELFTEST PASSED ✔

@@ -79,7 +79,7 @@ flowchart LR
     style J fill:#2E4210,stroke:#A3E635,color:#fff
 ```
 
-- 公共脚本收敛于 [to-video skill pipeline/](https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/README.md)（本工程 scripts/ 为薄包装）。
+- 公共脚本收敛于 [vibe-video skill pipeline/](https://github.com/ThreeFish-AI/vibe-video/blob/main/pipeline/README.md)（本工程 scripts/ 为薄包装）。
 - 同步机制：每句一段 MP3；Remotion `calculateMetadata` 读 manifest 自动计算时间轴——改稿后重跑 build→tts→render；archify 素材经 manifest（章→帧偏移）由 ArchifyRecap 逐章锚句回放。
 - 质量门：逐字稿定稿前过双重校验（真实性回溯 + 易懂性评审，两个独立子代理）；草渲后逐幕抽帧目检 + archify 接缝成对抽帧。
 

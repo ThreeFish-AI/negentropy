@@ -1,4 +1,4 @@
-// 本文件由 to-video skill 的 scripts/archify_manifest.py 从 public/archify/*.json 生成——请勿手改。
+// 本文件由 vibe-video skill 的 scripts/archify_manifest.py 从 public/archify/*.json 生成——请勿手改。
 // 数据来源：scripts/record_archify.py --mode chapter（逐章录制）
 //         + scripts/archify_lead.py（场记板白闪测定真实 leadSec）。
 

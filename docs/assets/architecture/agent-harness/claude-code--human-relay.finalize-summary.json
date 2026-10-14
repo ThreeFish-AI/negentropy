@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "workflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/.archify/workflow-human-relay-1835/candidate.json",
+    "sha256": "e05796be2a0cef8450462393611fa95889b50021bb2160a81cd450d149c4878f",
+    "bytes": 6785
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/claude-code--human-relay.html",
+    "sha256": "7b93e7fdfac49b0450fce6c036f97a7176e77d00c03a5cfc687459e4dd017d50",
+    "bytes": 850342
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/claude-code--human-relay.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/claude-code--human-relay.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/claude-code--human-relay.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 7077,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "routesOverSuggestedBends": 2,
+      "routesOverSuggestedStretch": 4
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [],
+      "detours": [
+        {
+          "relationship": {
+            "id": "e10",
+            "from": "c_doctor",
+            "to": "x_table",
+            "label": "开单要查表",
+            "collectionIndex": 1,
+            "artifactIndex": 2
+          },
+          "bends": 2,
+          "stretch": 1.781
+        },
+        {
+          "relationship": {
+            "id": "e11",
+            "from": "c_desk",
+            "to": "x_gate",
+            "label": "执行前把一道关",
+            "collectionIndex": 2,
+            "artifactIndex": 3
+          },
+          "bends": 3,
+          "stretch": 1.369
+        },
+        {
+          "relationship": {
+            "id": "e12",
+            "from": "c_desk",
+            "to": "x_hook",
+            "label": "转交点位挂规程",
+            "collectionIndex": 3,
+            "artifactIndex": 4
+          },
+          "bends": 4,
+          "stretch": 6.029
+        },
+        {
+          "relationship": {
+            "id": "e9",
+            "from": "c_desk",
+            "to": "c_ledger",
+            "label": "报告贴回 tool_result",
+            "collectionIndex": 11,
+            "artifactIndex": 12
+          },
+          "bends": 2,
+          "stretch": 7.073,
+          "directCorridorBlockers": [
+            {
+              "id": "c_doctor",
+              "label": "医生 · 模型",
+              "box": [
+                383,
+                437,
+                168,
+                52
+              ]
+            }
+          ]
+        }
+      ],
+      "truncated": false
+    },
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

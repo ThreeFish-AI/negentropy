@@ -9,15 +9,18 @@
 > **范围**：按**文档**而非目录界定。已纳入：现役系统文档（`docs/concepts/`、`docs/reference/{perceives,wiki}/`、根与 i18n README、
 > `apps/` README、`docs/.agents/` 巡检文档），以及已走完本管线的研究文献——`docs/research/cognitive-context/` 的
 > Horizon Context 精读、Context Layer 蓝图与 OpenViking 精读（下表 `cognitive-context/` 分节）、
-> `docs/research/agent-harness/` 的五层 Harness 精读、AI Native 手册精读（180）与 Hermes Agent 精读（190，下表 `agent-harness/` 分节）、
+> `docs/research/agent-harness/` 的五层 Harness 精读、并发独立重学（176）、AI Native 手册精读（180）与 Hermes Agent 精读（190，下表 `agent-harness/` 分节）、
 > `docs/research/self-evolution/` 的 Dream-RSI 精读（下表 `self-evolution/` 分节）、
-> `docs/research/agent-infra/` 的 Agent Skills 规范精读与 Jev（System One 决策模型）精读（下表 `agent-infra/` 分节）。未纳入：其余 `docs/research/`（第三方调研）与
+> `docs/research/agent-infra/` 的 Agent Skills 规范精读（230）与 Jev（System One 决策模型）精读（下表 `agent-infra/` 分节）。未纳入：其余 `docs/research/`（第三方调研）与
 > `docs/reference/cognizes/`（已退役遗产），**不在此管线**，原地保留渲染。
 
 ## 约定
 
 - **修改一张图**：只改对应 `.mmd` → 用 archify 从新文本重新生成 HTML（整体替换，严禁手改 HTML）→
   跑采集脚本再生 PNG → 三者同一次提交。
+- **`<slug>-notes.md` 侧车**（`lcc-*--panorama-notes.md` 家族，2026-10-07 换代首批引入）：建图期图意
+  说明，供编排者统一渲染 archify 四件套消费（部分被各集 storyboard 引为设计底稿）；与 `.mmd` 同源
+  维护——图意变更时先改 notes 与 `.mmd` 再走上述重渲流程，随四件套同一次提交。
 - **`.mmd` 文件头**：`%% source / %% slug / %% type / %% derived` 溯源注释；头注释之后是
   从原文档逐字节抽取的 mermaid 体（携带 `%% fix:` 行的图例外，其体为修正后文本）。
 - **源文档锚点**：以 § 章号 + 机制/实验稳定键（如 `§2 M1`、`D5`、`B4`）为准，**不记行号**——
@@ -33,20 +36,32 @@
 
 > 各分类行由对应重绘波次登记；`产物` 列 ✓ = html + dark/light PNG 已入库。
 
-### agent-harness/（Learn Claude Code 五层精读 · AI Native 手册精读 · Hermes Agent 精读）
+### agent-harness/（Learn Claude Code 五层精读 · 并发重学（176） · AI Native 手册精读 · Hermes Agent 精读）
 
 | slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| [claude-code-harness--five-layer-dependency](./agent-harness/claude-code-harness--five-layer-dependency.mmd) | [170 总览 §1](../../research/agent-harness/170-claude-code-harness-overview.md) | workflow | ✓ | done | 五层依赖链总览（trace 动画）；随分部首批入库 |
-| [claude-code-memory--memory-panorama](./agent-harness/claude-code-memory--memory-panorama.mmd) | [173 记忆层 §2](../../research/agent-harness/173-claude-code-memory-management.md) | workflow | ✓ | done | 收台四步与登记簿双链互不包含（trace 动画） |
-| [claude-code-tooling--execution-panorama](./agent-harness/claude-code-tooling--execution-panorama.mmd) | [171 执行层 §2](../../research/agent-harness/171-claude-code-tooling-execution.md) | workflow | ✓ | done | 一圈主链 + 号码簿旁支 + 收工支路（trace 动画） |
-| [claude-code-concurrency--timing-panorama](./agent-harness/claude-code-concurrency--timing-panorama.mmd) | [174 时机层 §2](../../research/agent-harness/174-claude-code-concurrency.md) | workflow | ✓ | done | 后台/通知/定时三支路汇回下一轮（trace 动画） |
-| [claude-code-planning--planning-panorama](./agent-harness/claude-code-planning--planning-panorama.mmd) | [172 规划层 §2](../../research/agent-harness/172-claude-code-planning-coordination.md) | workflow | ✓ | done | 垫纸每轮重装配主链 + 副台/手册/补救梯旁支（trace 动画） |
-| [claude-code-multiagent--collab-panorama](./agent-harness/claude-code-multiagent--collab-panorama.mmd) | [175 多 Agent 平台 §2](../../research/agent-harness/175-claude-code-multi-agent-platform.md) | workflow | ✓ | done | 全部机制挂回同一条循环：四道准备→模型调用→有无工具调用块分岔→权限拦截→分发回填；后台慢任务与共享文件（任务板·信箱·工作树）在循环外（2026-10-01 随 175 完全重制重绘，archify 3.0） |
+| [lcc-tooling--panorama](./agent-harness/lcc-tooling--panorama.mmd) | [171 工具与执行 §6 末](../../research/agent-harness/171-claude-code-tooling-execution.md) | architecture | ✓ | done | 主循环+分发+三闸门+钩子全貌（2026-10-07 guided-learn 换代首批）；2026-10-12 与 L0–L3 统一顺时针回环网格 |
+| [lcc-tooling--loop-simple](./agent-harness/lcc-tooling--loop-simple.mmd) | [171 工具与执行 §2](../../research/agent-harness/171-claude-code-tooling-execution.md) | architecture | ✓ | done | 渐进图 L0：白话主循环一圈（§4/§5/§6 徽标占位）；网格骨架与终态同幅 |
+| [lcc-tooling--loop-full](./agent-harness/lcc-tooling--loop-full.mmd) | [171 工具与执行 §3](../../research/agent-harness/171-claude-code-tooling-execution.md) | architecture | ✓ | done | 渐进图 L1：循环本体完整化（两信号判据、Stop 续跑、回喂闭环） |
+| [lcc-tooling--loop-with-tools](./agent-harness/lcc-tooling--loop-with-tools.mmd) | [171 工具与执行 §4](../../research/agent-harness/171-claude-code-tooling-execution.md) | architecture | ✓ | done | 渐进图 L2：查表分发 + safe_path 边界（safe_path 在执行链首斜下方） |
+| [lcc-tooling--loop-with-gates](./agent-harness/lcc-tooling--loop-with-gates.mmd) | [171 工具与执行 §5](../../research/agent-harness/171-claude-code-tooling-execution.md) | architecture | ✓ | done | 渐进图 L3：三道闸门插进执行之前（拒绝回喂经 tag 承载） |
+| [claude-code-tooling--loop-mounted-layers](./agent-harness/claude-code-tooling--loop-mounted-layers.mmd) | [171 工具与执行 §2（补充图·未内嵌正文）](../../research/agent-harness/171-claude-code-tooling-execution.md) | architecture | ✓ | done | 循环内核＋三挂件全景（2026-10-01 精读轮配套；主干 171 换代版未内嵌，作补充视角保留；ISSUE-212 archify 3.0.0 采集口径实录） |
+| [lcc-planning--panorama](./agent-harness/lcc-planning--panorama.mmd) | [172 规划与协调 文末（附录后）](../../research/agent-harness/172-claude-code-planning-coordination.md) | architecture | ✓ | done | 五装置与「每轮看到什么」；2026-10-07 重绘工程直陈版（汇合层口径） |
+| [lcc-memory--panorama](./agent-harness/lcc-memory--panorama.mmd) | [173 记忆管理 §2](../../research/agent-harness/173-claude-code-memory-management.md) | architecture | ✓ | done | 压缩管线+磁盘留档+记忆四件套咬合（2026-10-07 换代） |
+| [lcc-concurrency--panorama](./agent-harness/lcc-concurrency--panorama.mmd) | [174 并发与时机 §2](../../research/agent-harness/174-claude-code-concurrency.md) | architecture | ✓ | done | 后台/定时双泳道汇入循环（2026-10-07 换代） |
+| [lcc-multiagent--panorama](./agent-harness/lcc-multiagent--panorama.mmd) | [175 多 Agent 平台 §2](../../research/agent-harness/175-claude-code-multi-agent-platform.md) | architecture | ✓ | done | 六设施一循环收束（2026-10-07 换代） |
+| [claude-code-harness--five-layer-dependency](./agent-harness/claude-code-harness--five-layer-dependency.mmd) | [170 总览 §1](../../research/agent-harness/170-claude-code-harness-overview.md) | architecture | ✓ | done | 五层依赖链总览（trace 动画）；2026-10-07 工程直陈重绘（architecture，隐喻词退场） |
+| [claude-code-memory--memory-panorama](./agent-harness/claude-code-memory--memory-panorama.mmd) | [173 记忆层 §2](../../research/agent-harness/173-claude-code-memory-management.md) | workflow | ✓ | done | 旧版（171–175 2026-10-07 换代前）；仍为 ep3 视频图源 |
+| [claude-code-tooling--execution-panorama](./agent-harness/claude-code-tooling--execution-panorama.mmd) | [171 执行层 §2](../../research/agent-harness/171-claude-code-tooling-execution.md) | workflow | ✓ | done | 旧版（换代前）；仍为 ep1 视频图源 |
+| [claude-code-concurrency--timing-panorama](./agent-harness/claude-code-concurrency--timing-panorama.mmd) | [174 时机层 §2](../../research/agent-harness/174-claude-code-concurrency.md) | workflow | ✓ | done | 旧版（换代前）；仍为 ep4 视频图源 |
+| [claude-code-planning--planning-panorama](./agent-harness/claude-code-planning--planning-panorama.mmd) | [172 前代全景（换代前嵌于旧 §2）](../../research/agent-harness/172-claude-code-planning-coordination.md) | workflow | ✓ | done | 旧版（换代前）；仍为 ep2 视频图源；垫纸每轮重装配主链 + 手册与补救梯旁支（trace 动画） |
+| [claude-code-multiagent--collab-panorama](./agent-harness/claude-code-multiagent--collab-panorama.mmd) | [175 多 Agent 平台 §2（补充图·未内嵌正文）](../../research/agent-harness/175-claude-code-multi-agent-platform.md) | workflow | ✓ | done | 全部机制挂回同一条循环：四道准备→模型调用→有无工具调用块分岔→权限拦截→分发回填；后台慢任务与共享文件（任务板·信箱·工作树）在循环外（2026-10-01 精读轮配套，archify 3.0 重绘；主干 175 换代版未内嵌，作补充视角保留；仍为 ep5 视频图源） |
 | [ai-native--handbook-panorama](./agent-harness/ai-native--handbook-panorama.mmd) | [180 AI Native 手册 §1](../../research/agent-harness/180-ai-native-handbook.md) | dataflow | ✓ | done | 三案例共同观察 → 五挑战 → 四层基础设施 → 可靠交付；组织配套虚线直达（非基础设施） |
 | [ai-native--harness-control-loop](./agent-harness/ai-native--harness-control-loop.mmd) | [180 AI Native 手册 §2](../../research/agent-harness/180-ai-native-handbook.md) | workflow | ✓ | done | 三泳道（模型 / 确定性控制面 / 资源与证据）U 形闭环：PEP⇄PDP → 凭证代理 → 生产变更经 Guardrail 三态门控，Trajectory 旁路 |
 | [hermes-agent--turn-loop](./agent-harness/hermes-agent--turn-loop.mmd) | [190 Hermes Agent §2/§3](../../research/agent-harness/190-hermes-agent.md) | workflow | ✓ | done | 三泳道（主循环 / 压缩 / 持久层）：三段式提示只装配一次，超阈值压缩→重建提示为唯一计划内断点，逐条落盘 state.db（trace 动画；新创作，无原文 mermaid 块） |
 | [hermes-agent--learning-loop](./agent-harness/hermes-agent--learning-loop.mmd) | [190 Hermes Agent §2/§5](../../research/agent-harness/190-hermes-agent.md) | workflow | ✓ | done | 三泳道（前台 / 后台 review / 技能库与 Curator）：交付后分叉 → 分派侧白名单（越界得拒绝回执）→ skill_manage 记署名 → 下次会话进目录（trace 动画；新创作，无原文 mermaid 块） |
+| [claude-code-bg-tasks--placeholder-notification-loop](./agent-harness/claude-code-bg-tasks--placeholder-notification-loop.mmd) | [176 并发重学 §3](../../research/agent-harness/176-claude-code-concurrency-relearn.md) | workflow | ✓ | done | 三泳道（对话流 / 主循环 / 执行路径）：双闸分派 → 占位回执守住协议名额，后台执行经结果字典以通知回流下一轮（独立重学篇；新创作，无原文 mermaid 块） |
+| [claude-code-cron--four-layer-decoupling](./agent-harness/claude-code-cron--four-layer-decoupling.mmd) | [176 并发重学 §4](../../research/agent-harness/176-claude-code-concurrency-relearn.md) | workflow | ✓ | done | 四泳道（判时 / 缓冲交付 / 执行 / 持久化）：判时→队列→非阻塞抢锁→消费注入，让行回环与 durable 往返旁挂（独立重学篇；新创作，无原文 mermaid 块） |
 
 ### self-evolution/（docs/research/self-evolution/ 的 Dream-RSI 精读）
 
@@ -69,18 +84,21 @@
 | [dream-rsi--behavior-adaptive](./self-evolution/dream-rsi--behavior-adaptive.mmd) | [144 §6](../../research/self-evolution/144-dream-rsi.md) | lifecycle | ✓ | done | 先省后探：110→50→回升与性能 0.427→1.898 |
 | [dream-rsi--unproven-list](./self-evolution/dream-rsi--unproven-list.mmd) | [144 §8](../../research/self-evolution/144-dream-rsi.md) | workflow | ✓ | done | 论文未证明五件事清单（panel+编号反枚举） |
 
-### agent-infra/（docs/research/agent-infra/ 的 Agent Skills 规范精读（090 + 重学 210）+ Jev 精读）
+### agent-infra/（docs/research/agent-infra/ 的 Agent Skills 规范精读（230）+ 客户域 Memory 规划（230）+ Jev 精读）
 
 | slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| [agent-skills--progressive-disclosure](./agent-infra/agent-skills--progressive-disclosure.mmd) | [090 §2](../../research/agent-infra/090-agent-skills-spec.md) | workflow | ✓ | done | 运行相：发现→解析→Tier 1 目录→Tier 2 激活→Tier 3 资源，四泳道阶梯 + 预算/激活/契约三卡 |
+| [agent-skills--progressive-disclosure](./agent-infra/agent-skills--progressive-disclosure.mmd) | [230 §4](../../research/agent-infra/230-agent-skills-standard.md) | workflow | ✓ | done | 运行相：发现→解析→Tier 1 目录→Tier 2 激活→Tier 3 资源，四泳道阶梯 + 预算/激活/契约三卡 |
+| [agent-skills-std-lifecycle](./agent-infra/agent-skills-std-lifecycle.mmd) | [230 §4/§6](../../research/agent-infra/230-agent-skills-standard.md) | workflow | ✓ | done | 运行相（三代版）：发现双域→宽容装载→目录 tier1 常驻→激活 tier2 整读→执行 tier3 按需→压缩豁免；旁路=严格校验器与注入防御；三级账本/静默退化红线两卡 |
+| [agent-skills-std-dual-track](./agent-infra/agent-skills-std-dual-track.mmd) | [230 §8/§11](../../research/agent-infra/230-agent-skills-standard.md) | workflow | ✓ | done | 治理相（三代版）：守门哲学→规范面（唯一权威）→校验轨道严格/装载轨道宽容（同一官方两口径）→Claude Code 20 字段、claude.ai 六字段硬门、Codex .agents/skills+旁车→生态 46 家·51 条 PR；三轨分工/互操作锚点两卡 |
 | [jev--shared-read-isolated-branches](./agent-infra/jev--shared-read-isolated-branches.mmd) | [200 §4](../../research/agent-infra/200-jev-system-one-model.md) | dataflow | ✓ | done | 共享读 · 隔离问：state 只编码一次、题面附于前缀后、分支互不可见 → 概率 + confidence → 代码三档分流；多问近乎免费 / 隔离是真的 / 无跨题不变量三卡 |
 | [jev--calibration-territory](./agent-infra/jev--calibration-territory.mmd) | [200 §5](../../research/agent-infra/200-jev-system-one-model.md) | dataflow | ✓ | done | 校准的领地：RLCD 受训分布内可对账（ECE 0.031）→ 漂移后照报七成（密封集 ECE 0.220）/ 内在随机无基准 → 影子运行抽检 + 温度缩放重标 |
-| [agent-skills--package-and-validation](./agent-infra/agent-skills--package-and-validation.mmd) | [090 §3](../../research/agent-infra/090-agent-skills-spec.md) | architecture | ✓ | done | 作者相：技能包解剖 × skills-ref 三命令 × 规范↔实现 13 处分歧 |
-| [agent-skills--disclosure-lifecycle](./agent-infra/agent-skills-disclosure-lifecycle.mmd) | [210 §4/§6](../../research/agent-infra/210-agent-skills-open-standard.md) | workflow | ✓ | done | 运行相（重学版）：发现→宽容解析→作用域→台账常驻→语义路由→整载→解释执行 + 压缩豁免/激活去重守护 |
-| [agent-skills--governance-layers](./agent-infra/agent-skills-governance-layers.mmd) | [210 §3/§8/§9](../../research/agent-infra/210-agent-skills-open-standard.md) | architecture | ✓ | done | 治理相（重学版）：规范 MUST/建议/留白 × 指南层 × 生态四家抽样 × 48 PR 悬案三行网格 |
+| [agent-skills--package-and-validation](./agent-infra/agent-skills--package-and-validation.mmd) | [230 §3/§8](../../research/agent-infra/230-agent-skills-standard.md) | architecture | ✓ | done | 作者相：技能包解剖 × skills-ref 三命令 × 规范↔实现 13 处分歧 |
+| [agent-skills--disclosure-lifecycle](./agent-infra/agent-skills-disclosure-lifecycle.mmd) | [E1 成片冻结快照 §4/§6](../../../apps/negentropy-influence/episodes/agent-skills-video/research/gl-notes.md) | workflow | ✓ | done | 运行相（E1 成片版）：发现→宽容解析→作用域→台账常驻→语义路由→整载→解释执行 + 压缩豁免/激活去重守护 |
+| [agent-skills--governance-layers](./agent-infra/agent-skills-governance-layers.mmd) | [E1 成片冻结快照 §3/§8/§9](../../../apps/negentropy-influence/episodes/agent-skills-video/research/gl-notes.md) | architecture | ✓ | done | 治理相（E1 成片版）：规范 MUST/建议/留白 × 指南层 × 生态四家抽样 × 48 PR 悬案三行网格 |
 | [supply-chain--ious-route](./agent-infra/supply-chain-ious-route.mmd) | [220 §9](../../research/agent-infra/220-skills-supply-chain.md) | workflow | ✓ | done | 三张欠条兑付路线：签名/分发/版本三泳道并行回收+PR 状态橡皮章（E3 精读首绘） |
 | [supply-chain--dual-harbor](./agent-infra/supply-chain-dual-harbor.mmd) | [220 §2/§6](../../research/agent-infra/220-skills-supply-chain.md) | architecture | ✓ | done | 双港区对照：agentskills 冻结 49 天 vs MCP ext-skills 81 天 Final + jonathanhefner 人事桥 + #546 报关单（E3 精读首绘） |
+| [customer-memory--rw-pipeline](./agent-infra/customer-memory--rw-pipeline.mmd) | [230 §二/§四](../../research/agent-infra/230-customer-domain-long-memory-2027-planning.md) | workflow | ✓ | done | 客户域记忆读写目标态：写链 session_end→归档→抽取→LLM 去重决策→memory_diff→add-memory 审计；读链主体前缀检索→RRF 信任重排→Guard→预算裁剪→ContextBundle，写读同源 |
 | [agent-skills--port-46-adoption](./agent-infra/agent-skills-port-46-adoption.mmd) | [分镜 0-A/0-B](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | workflow | ✓ | done | 生态采纳全景（视频 E1 重绘）：2025 捐出→竞对全接→整张牌桌（视频 E1 重绘新绘） |
 | [agent-skills--two-old-roads](./agent-infra/agent-skills-two-old-roads.mmd) | [分镜 0-E](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | workflow | ✓ | done | 两条老路死法：盲航/超载/成本函数之问双泳道（视频 E1 重绘新绘） |
 | [agent-skills--box-anatomy](./agent-infra/agent-skills-box-anatomy.mmd) | [分镜 1-A/1-C](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | architecture | ✓ | done | 技能包解剖：箱体/角件六字段/箱号=登记名/正文附件/选填验箱五章（视频 E1 重绘新绘） |
@@ -241,7 +259,7 @@
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | [perceives-readme--five-layers](./apps/perceives-readme--five-layers.mmd) | apps/negentropy-perceives/README.md | architecture | ✓ | done | fix: Round 1 diagnostics: mcp→engines 自动路 |
 
-> 迁出注记（2026-09-21）：influence--pipeline-layers / voice-cloning--architecture / indextts--synthesis-flow / indextts--reference-audio 四图已随科普视频流水线机制外置删除（源文档迁入 [to-video 技能](https://github.com/ThreeFish-AI/to-video) 仓），对应 .mmd/HTML/PNG 资产同步移除。
+> 迁出注记（2026-09-21）：influence--pipeline-layers / voice-cloning--architecture / indextts--synthesis-flow / indextts--reference-audio 四图已随科普视频流水线机制外置删除（源文档迁入 [vibe-video 技能](https://github.com/ThreeFish-AI/vibe-video) 仓），对应 .mmd/HTML/PNG 资产同步移除。
 
 ### agents/（docs/.agents/ 巡检与决策文档）
 
@@ -257,28 +275,29 @@
 
 | slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| [context-layer--failure-map](./cognitive-context/context-layer--failure-map.mmd) | cognitive-context/013-context-layer-blueprint.md §0 为什么需要（八失效模式×堵截机制） | architecture | ✓ | done | 新增：左八失效右四层堵截（§6 富化层源水位折入 F2→L5 边）、映射边=验收面；97/4 等实证锚入节点 |
-| [context-layer--five-sources](./cognitive-context/context-layer--five-sources.mmd) | cognitive-context/013-context-layer-blueprint.md §1 术语与范围（ADR-5 五源分类法） | architecture | ✓ | done | 新增：五源×信任信号×治理面三段式；归一层不发明新信号 |
-| [context-layer-blueprint--industry-landscape](./cognitive-context/context-layer-blueprint--industry-landscape.mmd) | cognitive-context/013-context-layer-blueprint.md §2 业界格局与判据 | architecture | ✓ | done | 更新：+2026-09 落地断层节点（97/4·传输vs含义）；四路线保留 |
-| [context-layer-blueprint--architecture](./cognitive-context/context-layer-blueprint--architecture.mmd) | cognitive-context/013-context-layer-blueprint.md §3 总体架构：三轴蓝图（ADR-4） | architecture | ✓ | done | 重设计：五正交层单轴→三轴正交（五源×五层×CGAVE）+验收节点 |
-| [context-layer-blueprint--layer-mechanism-map](./cognitive-context/context-layer-blueprint--layer-mechanism-map.mmd) | cognitive-context/013-context-layer-blueprint.md §3.1 spine 总映射 | architecture | ✓ | done | 重锚：as-of 2026-09-27 状态刷新（L2·L3🔶/巩固断链/Guard 不存在） |
-| [context-layer--lifecycle](./cognitive-context/context-layer--lifecycle.mmd) | cognitive-context/013-context-layer-blueprint.md §3.3 时间轴：CGAVE 流水线 | dataflow | ✓ | done | 改名重设计（原 collect-phase）：三相→五段大回路，Govern 织入/Verify·Evolve 补环 |
-| [context-layer-blueprint--object-lifecycle](./cognitive-context/context-layer-blueprint--object-lifecycle.mmd) | cognitive-context/013-context-layer-blueprint.md §4.2–§4.3 通用对象模型 | lifecycle | ✓ | done | 保留重锚（状态机语义不变） |
-| [context-layer-blueprint--mcp-threat-model](./cognitive-context/context-layer-blueprint--mcp-threat-model.mmd) | cognitive-context/013-context-layer-blueprint.md §7.2 供给面威胁模型 | architecture | ✓ | done | 更新：+MCP 2026-07-28 硬化注记（无状态核心/token 三连禁令） |
-| [context-layer--assembly-economics](./cognitive-context/context-layer--assembly-economics.mmd) | cognitive-context/013-context-layer-blueprint.md §8.4 装配经济学与双通道（ADR-6） | workflow | ✓ | done | 改名重设计（原 assembler-planner）：五旋钮+双通道统一+出口守卫 |
-| [context-layer--injection-points](./cognitive-context/context-layer--injection-points.mmd) | cognitive-context/013-context-layer-blueprint.md §11.1 五源注入点现状 | workflow | ✓ | done | 改名重设计（原 request-injection）：D1 宿主更正版——九路×五挂点×assemble() 未接线 |
-| [context-layer--runtime-layering](./cognitive-context/context-layer--runtime-layering.mmd) | cognitive-context/013-context-layer-blueprint.md §11.2 运行时分层与四信号 | architecture | ✓ | done | 更新：三相→CGAVE 五段内环；五子系统→PG 拓扑保留 |
-| [context-layer--evolution-levers](./cognitive-context/context-layer--evolution-levers.mmd) | cognitive-context/013-context-layer-blueprint.md §11.4 进化杠杆 | architecture | ✓ | done | 重锚：6+1 杠杆与状态机（context_strategy 仍提案 @57987b28b） |
-| [context-layer-blueprint--dual-track-roadmap](./cognitive-context/context-layer-blueprint--dual-track-roadmap.mmd) | cognitive-context/013-context-layer-blueprint.md §15 双轨演进路线 | architecture | ✓ | done | 更新：会话巩固三件套=Phase 1 前置（独立 PR） |
-| [horizon-context--problem-to-mechanisms](./cognitive-context/horizon-context--problem-to-mechanisms.mmd) | cognitive-context/011-horizon-context.md §1 | dataflow | ✓ | done | 病因链与机制对位：三症状（对账崩塌/裸问准确率/密码列名）收于「语义无人治理」判词 → 三病灶 → M1（口径单点）/M2·M3·M6（治理执法）对位封堵（§10 富化回补长尾）→ M4 应答锚定与 §11–§12 送达；机制节点三合一（机制名/设计规格/类比装备），§15 边界由结论卡承载；2026-09-18 随合并按新 M 集重制 |
-| [horizon-context--three-stage-governance](./cognitive-context/horizon-context--three-stage-governance.mmd) | cognitive-context/011-horizon-context.md §3 三阶段治理 | dataflow | ✓ | done | 三阶段治理骨架：三路并列汇聚 → Horizon Catalog 脊柱 → 三路并列富化 → AI-ready 上下文脊柱 → 三面并列激活；节点副标注成熟度与承重/降级锚点（M1·M5 / §10–§12），结论卡载「三阶段是供给不是承重」与本轮未采纳的校准；2026-09-21 抽源重制，原块三条串行链按 %% fix 修正为并列 |
-| [horizon-context--collect-enrich-activate](./cognitive-context/horizon-context--collect-enrich-activate.mmd) | cognitive-context/011-horizon-context.md §10 供给富化 | dataflow | ✓ | done | 三段流水线：三源并列汇入目录 → 显式/隐式双轨（冲突浮出人工裁决）→ 四因子排序 → 三类消费者；2026-09-17 重评选后随 §10 嵌入 |
+| [context-layer--failure-map](./cognitive-context/context-layer--failure-map.mmd) | cognitive-context/013-context-layer-blueprint.md §1 失效模式登记簿 | architecture | ✓ | done | 九簇蛇形主链×三条问题带；sublabel=代表坏法+行数、tag=主要堵法；三卡：九簇×五轴对位/绕开测试/复利三在线律 |
+| [context-layer--five-sources](./cognitive-context/context-layer--five-sources.mmd) | 已退役（013 无正文挂点——五源为资产轴子集投影；视频管线 pipeline.toml 仍引用本图 HTML，资产保留） | architecture | ✓ | retired | 退役：投影关系见 013 §4 五源投影注记 |
+| [context-layer-blueprint--industry-landscape](./cognitive-context/context-layer-blueprint--industry-landscape.mmd) | cognitive-context/013-context-layer-blueprint.md §11.1 描述还是执行（2026-10-10 微改重锚） | architecture | ✓ | done | 微改：四路线谱系+Palantir 异类收敛「治理往 SQL 生成之前挪」；+Forrester 双阵营与传输vs含义判词、Gartner 60% projection 带口径注 |
+| [context-layer-blueprint--first-class-object](./cognitive-context/context-layer-blueprint--first-class-object.mmd) | cognitive-context/013-context-layer-blueprint.md §2 第一性对象与分析单元（式2/式3/式4 与三症状三病灶） | dataflow | ✓ | done | 新增：ℰ→E_rel→Char→C→(C,𝒯)→f_context 装配事务主链；三症状挂事务内部、八算子作加工位；验收以事务为最小单元入卡 |
+| [context-layer-blueprint--architecture](./cognitive-context/context-layer-blueprint--architecture.mmd) | cognitive-context/013-context-layer-blueprint.md §3 总纲：三面蓝图（§3.1 三面承重/§3.3 机制＝接缝/§3.4 六段两环） | architecture | ✓ | done | v3 重设计：三轴顺序链→三面独立承重（验收面九簇×结构面五轴+M1–M7 接缝挂件×时间面六段两环回边；v2 见 git 史） |
+| [context-layer-blueprint--layer-mechanism-map](./cognitive-context/context-layer-blueprint--layer-mechanism-map.mmd) | cognitive-context/013-context-layer-blueprint.md §3.3 机制＝接缝组合（2026-10-10 重绘） | architecture | ✓ | done | 重绘：层×机制→五轴虚线主链（各轴挂专属坏法锚）+M1–M7 按轴向量挂接缝（M2/M6 单轴独色全落权威）；无全轴/无落不进轴两否定判词入卡 |
+| [context-layer--lifecycle](./cognitive-context/context-layer--lifecycle.mmd) | cognitive-context/013-context-layer-blueprint.md §9 时间面：生命周期六段两环 | lifecycle | ✓ | done | 重绘：CGAVE 五段单程→六段两环（L1–L6 主轴 + 验证环 L4→L2/L6、进化环 L5→L2 一等化；G 法则钉段间转换，嵌套时间尺度入卡） |
+| [context-layer-blueprint--object-lifecycle](./cognitive-context/context-layer-blueprint--object-lifecycle.mmd) | cognitive-context/013-context-layer-blueprint.md §9.2 L6 衰减退役与 §4 资产轴 | lifecycle | ✓ | done | 微改：增 retired 显式退役终态；两级死亡两口径（轮内可恢复 vs 目录级有账）入结论卡 |
+| [context-layer-blueprint--mcp-threat-model](./cognitive-context/context-layer-blueprint--mcp-threat-model.mmd) | cognitive-context/013-context-layer-blueprint.md §5.4–§5.5 供给面威胁模型（2026-10-10 微改重锚） | architecture | ✓ | done | 微改：+intent legitimation 单列记忆面新威胁（非注入）+写入端扫描先于巩固时序注；六威胁×拦截位一一对应 |
+| [context-layer--assembly-economics](./cognitive-context/context-layer--assembly-economics.mmd) | cognitive-context/013-context-layer-blueprint.md §6 装配轴（2026-10-10 复用重锚） | workflow | ✓ | done | 复用图（拓扑未变）：五旋钮+双通道统一+出口守卫；正文经 170–175 新代口径重写 |
+| [context-layer--injection-points](./cognitive-context/context-layer--injection-points.mmd) | cognitive-context/013-context-layer-blueprint.md §12.1 五源注入点实况 | workflow | ✓ | done | 复用图：九路×五挂点×assemble() 未接线 |
+| [context-layer--runtime-layering](./cognitive-context/context-layer--runtime-layering.mmd) | 已退役（2026-10-10 013 重铸后无正文挂点；资产三件套保留存档） | architecture | ✓ | retired | 退役：§12.2 四信号表以表格承载；CGAVE 已由六段两环取代 |
+| [context-layer--evolution-levers](./cognitive-context/context-layer--evolution-levers.mmd) | cognitive-context/013-context-layer-blueprint.md §8.5 进化杠杆 | architecture | ✓ | done | 复用图：6+1 杠杆与 8 态状态机（context_strategy 仅为提案、代码零命中） |
+| [context-layer-blueprint--dual-track-roadmap](./cognitive-context/context-layer-blueprint--dual-track-roadmap.mmd) | 已退役（2026-10-10 013 重铸后无正文挂点——双轨表由修复序×轴依赖序取代；视频管线 pipeline.toml 仍引用本图 HTML，资产保留） | architecture | ✓ | retired | 退役：新路线见 §14 |
+| [horizon-context--problem-to-mechanisms](./cognitive-context/horizon-context--problem-to-mechanisms.mmd) | cognitive-context/011-horizon-context.md §1 | dataflow | ✓ | done | 病因链与机制对位：三症状（对账崩塌/裸问准确率/密码列名）收于「语义无人治理」判词 → 三病灶 → M1（口径单点）/M2·M3·M6（治理执法）对位封堵（§3.1 富化回补长尾）→ M4 应答锚定与 §3.2–§3.3 送达；机制节点三合一（机制名/设计规格/类比装备），§8 边界由结论卡承载；2026-09-18 随合并按新 M 集重制 |
+| [horizon-context--three-stage-governance](./cognitive-context/horizon-context--three-stage-governance.mmd) | cognitive-context/011-horizon-context.md §3 三阶段治理 | dataflow | ✓ | done | 三阶段治理骨架：三路并列汇聚 → Horizon Catalog 脊柱 → 三路并列富化 → AI-ready 上下文脊柱 → 三面并列激活；节点副标注成熟度与承重/降级锚点（M1·M5 / §3.1–§3.3），结论卡载「三阶段是供给不是承重」与本轮未采纳的校准；2026-09-21 抽源重制，原块三条串行链按 %% fix 修正为并列 |
+| [horizon-context--collect-enrich-activate](./cognitive-context/horizon-context--collect-enrich-activate.mmd) | cognitive-context/011-horizon-context.md §3.1 供给富化 | dataflow | ✓ | done | 三段流水线：三源并列汇入目录 → 显式/隐式双轨（冲突浮出人工裁决）→ 四因子排序 → 三类消费者；2026-09-17 重评选后随 §3.1 嵌入 |
 | [horizon-context--declaration-execution](./cognitive-context/horizon-context--declaration-execution.mmd) | cognitive-context/011-horizon-context.md §2 M1 语义视图 | workflow | ✓ | done | 双不变量：声明相（口径单点：五段式+结构校验门）→ 执行相（查询期重算：RBAC + 策略 A 聚合）；2026-09-17 重评选 M1+M2 合并后重制 |
-| [horizon-context--autopilot-loop](./cognitive-context/horizon-context--autopilot-loop.mmd) | cognitive-context/011-horizon-context.md §10 富化 | workflow | ✓ | done | Autopilot 创作闭环：六路输入面 → 验证门（无效即弃）→ SV+VQR 受治理入库 → 激活 → 反馈回流 Suggestions；trace 动效版 |
-| [horizon-context--engine-governance](./cognitive-context/horizon-context--engine-governance.mmd) | cognitive-context/011-horizon-context.md §2 M3 语义级治理 | workflow | ✓ | done | 语义级治理拓扑：定义与策略同体（defined-once-enforced-everywhere）+ 双层防线（检索过滤=体验/执行拒绝=底线）；2026-09-17 重评选一拆为三后重制（出口安检移 §12） |
+| [horizon-context--autopilot-loop](./cognitive-context/horizon-context--autopilot-loop.mmd) | cognitive-context/011-horizon-context.md §3.1 富化 | workflow | ✓ | done | Autopilot 创作闭环：六路输入面 → 验证门（无效即弃）→ SV+VQR 受治理入库 → 激活 → 反馈回流 Suggestions；trace 动效版 |
+| [horizon-context--engine-governance](./cognitive-context/horizon-context--engine-governance.mmd) | cognitive-context/011-horizon-context.md §2 M3 语义级治理 | workflow | ✓ | done | 语义级治理拓扑：定义与策略同体（defined-once-enforced-everywhere）+ 双层防线（检索过滤=体验/执行拒绝=底线）；2026-09-17 重评选一拆为三后重制（出口安检移 §3.3） |
 | [horizon-context--resolve-activation](./cognitive-context/horizon-context--resolve-activation.mmd) | cognitive-context/011-horizon-context.md §2 M4 验证锚定 | sequence | ✓ | done | 应答层验证锚定时序：VQR 相似路由 → 以已验证 SQL 为生成依据 + 对账重算 / 未命中标「未经核准」/ no_governed_coverage 警告 + 评测闭环墙外边界；2026-09-17 重评选升格后重制 |
-| [horizon-context--four-factor-ranking](./cognitive-context/horizon-context--four-factor-ranking.mmd) | cognitive-context/011-horizon-context.md §11 检索 | dataflow | ✓ | done | 四因子排序数据流：五路信号 → R/A/P/F 四因子 → 加权合成 + 显式 tie-break → top-k；trace 动效版 |
-| [horizon-context--open-interop](./cognitive-context/horizon-context--open-interop.mmd) | cognitive-context/011-horizon-context.md §12 生态 | architecture | ✓ | done | 开放互操作双路径：Ossie/SYSTEM$ 静态互通（已交付转换器）+ MCP/OAuth 运行时受控供给 + Automatic Data Agents 生态分发，反馈回流 popularity；trace 动效版 |
+| [horizon-context--four-factor-ranking](./cognitive-context/horizon-context--four-factor-ranking.mmd) | cognitive-context/011-horizon-context.md §3.2 检索 | dataflow | ✓ | done | 四因子排序数据流：五路信号 → R/A/P/F 四因子 → 加权合成 + 显式 tie-break → top-k；trace 动效版 |
+| [horizon-context--open-interop](./cognitive-context/horizon-context--open-interop.mmd) | cognitive-context/011-horizon-context.md §3.3 生态 | architecture | ✓ | done | 开放互操作双路径：Ossie/SYSTEM$ 静态互通（已交付转换器）+ MCP/OAuth 运行时受控供给 + Automatic Data Agents 生态分发，反馈回流 popularity；trace 动效版 |
 | [horizon-context--component-panorama](./cognitive-context/horizon-context--component-panorama.mmd) | cognitive-context/011-horizon-context.md §4.1 组件全景 | architecture | ✓ | done | 组件全景：组件按重评选后四簇（口径与应答/治理执法/账本/供给与出口降级区+消费端）分段，机制锚点入节点；2026-09-17 重评选后重制（dataflow 行上限装不下 7 节点降级簇，改 architecture 渲染器） |
 | [horizon-context--evolution-timeline](./cognitive-context/horizon-context--evolution-timeline.mmd) | cognitive-context/011-horizon-context.md §4.2 演进时间线 | dataflow | ✓ | done | 三阶段演进时间线：14 里程碑排入五段泳道，机制锚点按重评选后口径重标（含 MS14 2026-09 生态加码）；2026-09-17 重评选后重制 |
 | [horizon-context--row-column-policy](./cognitive-context/horizon-context--row-column-policy.mmd) | cognitive-context/011-horizon-context.md §2 M2 行列级策略 | workflow | ✓ | done | 查询期行列级访问策略：masking/row access/aggregation/projection 四策略对象 + 策略所有者角色求值 + IS_AGENT_ACTIVATED 严拒面 + tag-based 衔接 M7；2026-09-17 重评选 M3 拆分后新增 |

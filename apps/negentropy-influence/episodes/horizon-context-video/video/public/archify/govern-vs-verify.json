@@ -2,41 +2,16 @@
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 11.11,
- "total_wall_sec": 71.78,
+ "story_sec": 6.72,
+ "total_wall_sec": 76.13,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
  "chapters": [
   {
-   "id": "fourth-boundary",
-   "label": "第四条最重要",
-   "index": 0,
-   "file": "govern-vs-verify--fourth-boundary.mp4",
-   "end_still": "govern-vs-verify--fourth-boundary-end.png",
-   "beats": 4,
-   "dwell_ms": 1100,
-   "lead_sec": 0.44,
-   "story_sec": 4.42,
-   "beat_offsets_sec": [
-    0.0,
-    1.107,
-    2.213,
-    3.316
-   ],
-   "beat_nodes": [
-    "nonAdditiveBy",
-    "lineageLog",
-    "govStamp",
-    "wrongResult"
-   ],
-   "measured_fps": 25.0,
-   "capture_fps": 31.0
-  },
-  {
    "id": "third-party-critique",
    "label": "第三方批判",
-   "index": 1,
+   "index": 0,
    "file": "govern-vs-verify--third-party-critique.mp4",
    "end_still": "govern-vs-verify--third-party-critique-end.png",
    "beats": 3,
@@ -46,7 +21,7 @@
    "beat_offsets_sec": [
     0.0,
     1.108,
-    2.214
+    2.212
    ],
    "beat_nodes": [
     "thirdPartyCritique",
@@ -54,22 +29,22 @@
     "wrongResult"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 36.0
+   "capture_fps": 49.0
   },
   {
    "id": "upstream-collapse",
    "label": "上游提前汇总塌陷",
-   "index": 2,
+   "index": 1,
    "file": "govern-vs-verify--upstream-collapse.mp4",
    "end_still": "govern-vs-verify--upstream-collapse-end.png",
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.35,
+   "story_sec": 3.38,
    "beat_offsets_sec": [
     0.0,
-    1.106,
-    2.21
+    1.107,
+    2.212
    ],
    "beat_nodes": [
     "rawDetail",
@@ -77,7 +52,7 @@
     "semanticView"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 43.0
+   "capture_fps": 49.0
   }
  ],
  "capture": {
@@ -88,7 +63,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/tripoli-v4/docs/assets/architecture/cognitive-context/horizon-context--govern-vs-verify.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/horizon-context--govern-vs-verify.html",
  "slug": "govern-vs-verify",
  "type": "architecture"
 }

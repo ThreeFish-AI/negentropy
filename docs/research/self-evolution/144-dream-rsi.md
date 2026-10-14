@@ -12,7 +12,7 @@ description: "arXiv:2609.14858 精读：把累积发现历史当重放模拟器�
 
 **总类比**：一支寻宝探险队和一张越铺越大的航拍地图沙盘。探险队每趟真实进山（**在线推演**，贵且慢）都留下完整的路线与收获台账（**发现树**）；把历趟台账钉在沙盘上（**历史池 → 重放模拟器**），领队就能对着沙盘兵棋推演「当初若先走 B 山谷、三队并行、到五百米就撤会怎样」（**做梦**）——翻旧账免费，重走一遍烧钱。被评估和改进的从来不是宝物，而是**领队的选路章程**（探索策略，一段可执行代码）；每趟回来由幕僚长照推演结果改章程（**policy-development agent**），候选名单里永远保留现任章程，改不动就不换（**V\*≥V⁰ 防回退下界**），然后带着新章程再进山（**递归闭环**）。
 
-**怎么读这篇笔记**：每个机制按「类比 → 机制 → 原型实景」三拍走。实景全部取自配套最小原型 [`assets/dream_rsi_lab.py`](./assets/dream_rsi_lab.py)（配方工坊玩具域，纯标准库 489 行，已随笔记入库；`--selftest` 秒级，`--break D1..D5` 复现破坏性实验）；所有代码与日志均为实际运行输出。配套产物：[Dream-RSI ↔ negentropy 机制映射报告](./145-dream-rsi-mapping-negentropy.md)。前序同域精读：[142 Procedural Graph](./142-procedural-graphs.md)（对象级知识外置自进化）——Dream-RSI 是它的元级对偶：不改「怎么做」的知识，改「怎么探索」的策略。
+**怎么读这篇笔记**：每个机制按「类比 → 机制 → 原型实景」三拍走。实景全部取自配套最小原型 [`assets/dream_rsi_lab.py`](./assets/dream_rsi_lab.py)（配方玩具域，纯标准库 489 行，已随笔记入库；`--selftest` 秒级，`--break D1..D5` 复现破坏性实验）；所有代码与日志均为实际运行输出。配套产物：[Dream-RSI ↔ negentropy 机制映射报告](../mapping-negentropy.md)。前序同域精读：[142 Procedural Graph](./142-procedural-graphs.md)（对象级知识外置自进化）——Dream-RSI 是它的元级对偶：不改「怎么做」的知识，改「怎么探索」的策略。
 
 ---
 
@@ -210,11 +210,11 @@ Mentor 对三个薄弱点分别实施「世界观微类比点醒 + 第一性因�
 
 1. **口径题**：Dream-RSI 宣称的 162× 节省，其分子分母各是什么统计口径？如果 SimpleTES 的一次 generation 内部包含多次模型调用，这个倍数会怎么变？——考核点：§6 第一行的口径纪律。
 2. **反事实题**：若把重放目标的并行度奖励从 β₂·N/max(1,k) 改为 β₂·|C|_max（每轮批大小的最大值），学到的策略会有什么系统性变化？哪个真实世界成本被错误定价了？——考核点：V 三分量各自「管什么」的第一性理解（可对照 D2 实测）。
-3. **迁移题**：本仓的 patrol Judge 每轮独立重打分、无历史锚点（±振荡）；Dream-RSI 的重放评估是有历史锚点的极端形式。两者的中间形态是什么？给 negentropy 设计一个「用执行历史锚定 Judge 评分」的最小机制，说明它落在 Dream-RSI 保真度光谱的哪一段、牺牲了什么。——考核点：从论文机制到自家系统的映射能力（可对照 [145 映射报告](./145-dream-rsi-mapping-negentropy.md) M2）。
+3. **迁移题**：本仓的 patrol Judge 每轮独立重打分、无历史锚点（±振荡）；Dream-RSI 的重放评估是有历史锚点的极端形式。两者的中间形态是什么？给 negentropy 设计一个「用执行历史锚定 Judge 评分」的最小机制，说明它落在 Dream-RSI 保真度光谱的哪一段、牺牲了什么。——考核点：从论文机制到自家系统的映射能力（可对照 [机制映射汇总·自进化域（原 145，已并入）](../mapping-negentropy.md) M2）。
 
 ## 11. 与本仓的关联
 
-- [Dream-RSI ↔ negentropy 机制映射报告](./145-dream-rsi-mapping-negentropy.md)：六条机制对照本仓 evolution / routine / eval 体系（含「历史即重放模拟器」对本仓 140 号诊断的 Judge 锚定问题的极强形式回应）。
+- [Dream-RSI ↔ negentropy 机制映射报告](../mapping-negentropy.md)：六条机制对照本仓 evolution / routine / eval 体系（含「历史即重放模拟器」对本仓 140 号诊断的 Judge 锚定问题的极强形式回应）。
 - 前序：[142 Procedural Graph](./142-procedural-graphs.md) 改的是「怎么做」的对象级知识；Dream-RSI 改的是「怎么探索」的元级策略——两者恰好构成自进化系统的正交两轴。
 - 谱系：[130 自进化 Agents Team 调研](./130-self-evolving-agents-team.md)（AlphaEvolve / GEPA 谱系）与 [140 经验时代综述](./140-experience-era-self-improvement.md)（经验基础设施）是本文的直接上游语境。
 

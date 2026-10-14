@@ -1,0 +1,41 @@
+[
+ {
+  "id": "four-cards",
+  "label": "四卡上墙",
+  "focus": [
+   "t-build",
+   "t-api",
+   "t-test",
+   "t-doc"
+  ],
+  "note": "建库表/写接口/写测试/写文档四张卡与前置依赖边。"
+ },
+ {
+  "id": "walkthrough",
+  "label": "走查",
+  "focus": [
+   "guard",
+   "t-build",
+   "unlock"
+  ],
+  "note": "认领建库表三关全过→完成→播报解锁。"
+ },
+ {
+  "id": "blocked",
+  "label": "被阻塞",
+  "focus": [
+   "t-test",
+   "guard"
+  ],
+  "note": "写接口没完成，写测试被拒。"
+ },
+ {
+  "id": "failclosed",
+  "label": "失败关闭",
+  "focus": [
+   "ghost-ref",
+   "guard"
+  ],
+  "note": "引用不存在的编号，按「还没完成」处理——宁可不放行，也不崩溃。"
+ }
+]

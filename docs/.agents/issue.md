@@ -3529,9 +3529,9 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 
 ## ISSUE-161 科普视频管线配置漂移：分集 README 复现命令与推荐位分叉，照跑即作废整集声纹缓存（2026-08-19）
 
-- **表因**：三集 README 的复现命令写 `--style passionate --ref …/me-1.wav`，而 [VOICE-CLONING.md](https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/VOICE-CLONING.md) §5 推荐位已迁至 `sunny`/`sunny-steady` + `me-bright.wav`（PR #1107）——文档间口径分叉且无任何机制提示。
+- **表因**：三集 README 的复现命令写 `--style passionate --ref …/me-1.wav`，而 [VOICE-CLONING.md](https://github.com/ThreeFish-AI/vibe-video/blob/main/pipeline/VOICE-CLONING.md) §5 推荐位已迁至 `sunny`/`sunny-steady` + `me-bright.wav`（PR #1107）——文档间口径分叉且无任何机制提示。
 - **根因**：**无分集声明式配置**。可执行参数以复制粘贴形式散落三份 README，推荐位一迁移，旧命令全部变成「合法但错误」——`{id}.mp3` 单槽位 + 摘要含 style/ref_sha1（tts.py `digest_indextts`），照旧命令跑会把整集克隆音频静默改写成 deprecated 风格（179–228 句、数小时级返工）。
-- **处理方式**：① 每集新增 `pipeline.toml`（episode/narration/tts/render 四节）作为可执行参数唯一来源，README 只留 `pipeline.py tts` 一行；② `pipeline.py` 编排入口从配置装配参数并自动带 `--expect-ref-sha1` 指纹硬校验；③ 新增 `.engine` 音色签名标记 + `--allow-voice-switch` 显式放行（含 `--plan` 路径前置，排期阶段即拦截误重录）；④ `refs.py` + `voices/refs.toml` 指纹清单（只存哈希与生成参数，.gitignore 白名单例外放行）。见 [pipeline README](https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/README.md)。
+- **处理方式**：① 每集新增 `pipeline.toml`（episode/narration/tts/render 四节）作为可执行参数唯一来源，README 只留 `pipeline.py tts` 一行；② `pipeline.py` 编排入口从配置装配参数并自动带 `--expect-ref-sha1` 指纹硬校验；③ 新增 `.engine` 音色签名标记 + `--allow-voice-switch` 显式放行（含 `--plan` 路径前置，排期阶段即拦截误重录）；④ `refs.py` + `voices/refs.toml` 指纹清单（只存哈希与生成参数，.gitignore 白名单例外放行）。见 [pipeline README](https://github.com/ThreeFish-AI/vibe-video/blob/main/pipeline/README.md)。
 - **后续防范**：**可执行参数不落散文文档，文档只引用配置**。任何「文档里手写命令行参数」的流水线都有同款漂移面；评审时见到 README/文档内联长命令行（含风格/样本/版本等会变参数）应要求收敛到声明式配置。
 - **同类影响与注意**：本类漂移在「推荐位会迁移」的领域（模型档位、样本、API 版本）必然复发；修复时务必同时上「拦截层」（签名/指纹硬失败）而不只改文档——文档改对了，下一次迁移照样分叉。
 
@@ -3556,7 +3556,7 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **根因**：**「排版约定 × TN 规则」的隐式耦合**，而非任何一方单独的缺陷。逐字稿有「数字与汉字之间加空格」的排版习惯（`88 页`/`15 分钟`/`16.2 个百分点`），这一约定对绝大多数场景无害；但 macOS 上实际的中文归一化引擎是 **wetext**（`~/tools/index-tts/indextts/utils/front.py:116-142` 按 platform 分叉，Linux 才走 `tn.chinese.normalizer`），其 date/year 规则要求**数字与「年」字面相邻**，插入空格后该规则失配、回落到 cardinal（基数）读法。实测空格敏感性矩阵里**只有 4 位年份这一条被击穿**：`6 月`/`20 日`/`88 页`/`47.6%`/`第 3 章`/`1.2 节`/`0.5~1.0 秒`/`9:30` 加不加空格结果一致且全部正确。另注：中文**不走** NeMo（`infer_v2_5.py:703-707` 是 if/elif，只有 ja/es 走 `nemo_tn`），此前若按 NeMo 排查等于查一条死路径。
 - **处理方式**：① 三集 `narration.md`（唯一维护处）共 8 句去掉数字与「年」之间的空格，重跑 `build_narration.py`；② `check_script.py` 新增 `READING_TRAPS` 成门，把**实测确认会读错**的 7 类写法固化为 FAIL/WARN（4 位年份带空格、三段版本号 `2.5.1`→「二.五点一」、连字符区间 `3-5 倍`→「三减五倍」、`±3%`→「百分之正负三」、`10x`→「十x」、整句无汉字→路由到英文归一化、`1080P`→「一千零八十P」WARN）；③ 每条规则都在 `test_check_script.py` 里配正反例，**反例组同等重要**——本轮调研初稿把 `0.5~1.0 秒` 与 `9:30` 也列为错误，实测证明它们其实正确（`零点五到一点零秒`/`九点三十分`），凭直觉扩大清单会造成误伤。
 - **后续防范**：**给外部引擎的文本，任何排版约定都要过一遍该引擎的真实行为探针，不能凭直觉列禁写清单**。归一化是**幂等**的（预写成汉字读法后再过一遍结果不变），故此类修复可逐句增量做、无需一次性全量改写、也不需要关 `text_normalization` 开关（关掉反而会丢失 `%`/小数/量词这些**已经正确**的能力）。加规则前先跑探针拿到「错读证据」，再把证据写进规则消息里——`READING_TRAPS` 的每条 message 都带实测输出。
-- **同类问题影响与注意**：① 生产若迁 Linux，归一化引擎换成 `tn.chinese.normalizer`，**必须在 Linux 上重跑同一组空格矩阵**确认行为一致；② 修复会改写这 8 句音频（每处少 2–3 个音节、约 −0.4~0.7 s），**牵动 beat 时长与片尾渐黑窗口**（同族踩坑：渐黑窗口须用 beat 时长而非末句时长），故重合成须按集排期、`pipeline.py tts --plan` 确认只有这几句 miss、重渲后 `qa_frames.py --last-n 6 --check` 复检尾幕；③ 本轮同时发现上游有一整套发音标注能力（`<行|HANG2>`）可治多音字，已接通并成门，见 [INDEXTTS-2.5-ADVANCED.md](https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/INDEXTTS-2.5-ADVANCED.md) 与 [PRON-GLOSSARY.md](https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/PRON-GLOSSARY.md)。
+- **同类问题影响与注意**：① 生产若迁 Linux，归一化引擎换成 `tn.chinese.normalizer`，**必须在 Linux 上重跑同一组空格矩阵**确认行为一致；② 修复会改写这 8 句音频（每处少 2–3 个音节、约 −0.4~0.7 s），**牵动 beat 时长与片尾渐黑窗口**（同族踩坑：渐黑窗口须用 beat 时长而非末句时长），故重合成须按集排期、`pipeline.py tts --plan` 确认只有这几句 miss、重渲后 `qa_frames.py --last-n 6 --check` 复检尾幕；③ 本轮同时发现上游有一整套发音标注能力（`<行|HANG2>`）可治多音字，已接通并成门，见 [INDEXTTS-2.5-ADVANCED.md](https://github.com/ThreeFish-AI/vibe-video/blob/main/pipeline/INDEXTTS-2.5-ADVANCED.md) 与 [PRON-GLOSSARY.md](https://github.com/ThreeFish-AI/vibe-video/blob/main/pipeline/PRON-GLOSSARY.md)。
 
 ## ISSUE-165 站点标注的规模数字与固定提交实测复算不一致（102/135/180/232 vs 141/191/241/255）（2026-08-21）
 
@@ -3569,14 +3569,14 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **后续防范**：
   1. **凡引用他方标注的规模数字（行数/条目数/参数量），必须在固定版本上自己复算一遍，并写明口径**；复算不上就降级为趋势表述——「复算不出」本身就是「该数字已陈旧」的证据，不是自己算错了。
   2. **散文与代码的新鲜度要分别评估**：同一个信源的不同部分（文案 / 代码 / 图）改版节奏不同，不能因为「取自同一个站点」就认为同龄。
-  3. 双轨取证（站点叙事 + 仓库固定提交）应作为**文档/代码型选题的默认姿势**，规格见 [skills/01-source-extraction.md](https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/skills/01-source-extraction.md) B 型大节。
+  3. 双轨取证（站点叙事 + 仓库固定提交）应作为**文档/代码型选题的默认姿势**，规格见 [skills/01-source-extraction.md](https://github.com/ThreeFish-AI/vibe-video/blob/main/pipeline/skills/01-source-extraction.md) B 型大节。
 
 ## ISSUE-166 `ERR_PNPM_IGNORED_BUILDS` 在 esbuild 上是无害噪声——不要为消音改动跨集冻结文件（2026-08-21）
 
 - **表因**：新建 `apps/negentropy-influence/episodes/claude-code-explained-video/video` 后首次 `pnpm install --ignore-workspace`（pnpm 11.17.0）报 `[WARN] The "pnpm" field in package.json is no longer read` + `[ERR_PNPM_IGNORED_BUILDS] Ignored build scripts: esbuild@0.28.1`，与 [ISSUE-076](#issue-076-pnpm-v11-升级后-pnpm-install-报-err_pnpm_ignored_builds--packagejsonpnpmoverrides-静默失效2026-05-08) 同源（四集视频工程的 `package.json#pnpm.onlyBuiltDependencies` 都是 v10 写法）。
 - **误判与纠正**：起初判定为「首个卡点」，依次尝试 `.npmrc` 的 `only-built-dependencies[]=esbuild`（v11 不读）、`--allow-build` 旗标（11.17 无此旗标）、本地 `pnpm-workspace.yaml` + `allowBuilds`（能消掉报错，但需去掉 `ignore-workspace=true`，否则连本目录的 workspace 文件一起被忽略）。**随后做端到端验证才发现方向错了**：旧写法下 `@esbuild/darwin-arm64` 平台包与二进制**本来就落地**（它是 optionalDependency，不依赖 postinstall），`esbuild.transform()` 正常、既有集 `remotion bundle` 跑到 100% 并产出 `build/`。
 - **根因**：`ERR_PNPM_IGNORED_BUILDS` 只表示「postinstall 被跳过」，**不等于「依赖不可用」**。是否有害取决于该包的 postinstall 是否**承载功能**：esbuild 的 postinstall 只做校验/链接，平台二进制走 optionalDependencies 分发，故跳过无实际后果；而 ISSUE-076 里的 `sharp` / `unrs-resolver` 才是真正依赖 postinstall 的。
-- **处理方式**：**撤销全部修改**，把 `.npmrc` 恢复到与另外三集逐字节一致（md5 四集相同），只在 [pipeline/README.md](https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/README.md) 新集脚手架清单里留一条说明：这条提示已实测无害、刻意不消音。
+- **处理方式**：**撤销全部修改**，把 `.npmrc` 恢复到与另外三集逐字节一致（md5 四集相同），只在 [pipeline/README.md](https://github.com/ThreeFish-AI/vibe-video/blob/main/pipeline/README.md) 新集脚手架清单里留一条说明：这条提示已实测无害、刻意不消音。
 - **后续防范**：
   1. **报错不等于故障——先做端到端验证再动手修**。为消掉一条无害提示而改动「A 档跨集冻结文件」，代价是给隔离基线引入一处纯噪声差异，比那条提示本身更贵。
   2. 判据可复用：遇 `ERR_PNPM_IGNORED_BUILDS`，先查该包的平台二进制是否走 optionalDependencies（走 = 大概率无害），再查功能是否真的可用（`require` + 实际调用 + 端到端构建）。
@@ -3627,7 +3627,7 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
   ① **CPU 竞争**：`sysctl -n vm.loadavg` 实测 10+（编辑器 + 会话 + 浏览器 + TTS），
   `pmset -g therm` **零告警**。慢是排队慢，**产物无损**，正确处置是「重排期或停掉别的活」；
   ② **热节流**：负载不高却仍慢、或有热告警。那才需要中止并按
-  [INDEXTTS-2.5-ADVANCED §6.5](https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/INDEXTTS-2.5-ADVANCED.md) 验证环境。
+  [INDEXTTS-2.5-ADVANCED §6.5](https://github.com/ThreeFish-AI/vibe-video/blob/main/pipeline/INDEXTTS-2.5-ADVANCED.md) 验证环境。
   更根本的一点：**基线 1.868 s/char 取自机器空闲时的长跑**——分母的前置条件没写在判据旁边，
   于是「日常有人用这台机器」这种常态被读成了异常。
 - **处置**：`tts_progress.py` 的越阈文案改为**先分因后处置**（打印 loadavg / therm 两条自检指令与两条分支结论）；
@@ -3729,7 +3729,7 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **处置**：① 四集 `source-archive/` 各放上游**同一固定提交**下的 `LICENSE` 字节副本
   （sha256 `204ff5ee…`，随文记录以便日后复核取的是哪一版）+ `README.md` 出处表
   （上游项目/仓库/许可/固定提交/取数日期/指纹台账位置，章节归属只链接地图不重述）；
-  ② [skills/01](https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/skills/01-source-extraction.md) §多章批量取证
+  ② [skills/01](https://github.com/ThreeFish-AI/vibe-video/blob/main/pipeline/skills/01-source-extraction.md) §多章批量取证
   增第 4 步「归档即分发，许可声明必须随副本落地」，并写明**这是单一事实源纪律的唯一显式例外**——
   各集工程目录是可被单独取出、单独交付的单位，声明收敛到系列级一处，取出单集时就会丢；
   ③ 上游无许可文件或不允许再分发时**不建归档**，只留台账指纹并在 source-notes 记明理由；
@@ -3811,7 +3811,7 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
      工程钉成它自己的 workspace 根。实测：带不带 `--ignore-workspace`，根 lockfile 均零变更，
      嵌套工程正常生成 22 行单文档 lockfile（不含 packageManagerDependencies，故 8 份既有
      lockfile 无需改动）。该文件已登记进
-     [`skeleton.toml`](https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/templates/video-skeleton/skeleton.toml)
+     [`skeleton.toml`](https://github.com/ThreeFish-AI/vibe-video/blob/main/pipeline/templates/video-skeleton/skeleton.toml)
      的 `frozen` 清单受漂移门执法（受门 17→18 文件）；`scaffold.py` 用 `rglob` 全量复制，新集自动继承。
   3. 顺带消除两处**第二事实源**：[`docker/frontend/Dockerfile`](../../docker/frontend/Dockerfile) 与
      [`docker/wiki/Dockerfile`](../../docker/wiki/Dockerfile) 原为 `corepack prepare pnpm@latest
@@ -3842,7 +3842,7 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
   1. **升级包管理器后，第一个要验的不是"能不能装"，而是"lockfile 还是不是原来那个 lockfile"**。
      本次 `git status` 只显示"pnpm-lock.yaml modified"——与预期中的变更同名，于是被一眼放过；
      真正该做的是 `git diff --stat` 看量级、并核对 `overrides` / `importers` 等结构性锚点仍在。
-     [`pipeline/README.md`](https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/README.md) 早有"装完检查根
+     [`pipeline/README.md`](https://github.com/ThreeFish-AI/vibe-video/blob/main/pipeline/README.md) 早有"装完检查根
      lockfile 零变更"的纪律，说明这个危险区**此前已被识别**，只是 v12 把"偶尔"变成了"必然"。
   2. **`latest` dist-tag 未切换＝上游自己说"还不建议默认"**。本次是在 `latest` 仍指向 11.25.0 时
      抢升（12.0.0 发布 6 天内已迭代到 12.2.1），属知情决策；后续同类升级须显式核对
@@ -3931,7 +3931,7 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **后续防范**：
   1. **3D 是 `--check` 的完全盲区**（它只看黑帧/冻帧/字幕带侵入/对比度），本例三轮修复全靠 `remotion still` 逐帧目视。3D 改动的验收成本主要在目视，排期时按「每轮出图 4–5s + 判读」计。
   2. **`zIndex:-1` 会让 3D 画布沉到同容器所有兄弟节点之后**（本例壳整个消失）。z 层级属调用点契约，不写进原语。
-  3. 规格已公共化到 [skills/06 「3D 点缀」节](https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/skills/06-remotion-implementation.md)（三条宪法 + 读色契约 + 构造经验 + 验收），EP2–5 采纳 3D 前先读。
+  3. 规格已公共化到 [skills/06 「3D 点缀」节](https://github.com/ThreeFish-AI/vibe-video/blob/main/pipeline/skills/06-remotion-implementation.md)（三条宪法 + 读色契约 + 构造经验 + 验收），EP2–5 采纳 3D 前先读。
 - **同类问题影响**：任何「嵌套容器 / 井 / 盒」类 3D 表达；`Socket3D` 的井壁同样按实心板 + 遮挡构造。
 
 ## ISSUE-181 两个渲染进程并发写同一 mp4 → 索引损坏，抽帧 seek 全部落回第 0 帧，伪造出 52 条 WARN（2026-09-06）
@@ -4181,21 +4181,21 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 
 ---
 
-## ISSUE-193 科普视频流水线机制外置为公开 skill（to-video）：机制/内容分仓与存量口径迁移（2026-09-21）
+## ISSUE-193 科普视频流水线机制外置为公开 skill（vibe-video）：机制/内容分仓与存量口径迁移（2026-09-21）
 
 - **表因**：`apps/negentropy-influence` 内机制（`pipeline/` 全树 + `.agent/skills/science-video-pipeline` 路由壳）与内容（`episodes/`、`series.json`、`source-map/`、`voices/`）同居一仓——机制每次演进都要挤本仓发布列车，而它对任何「论文/文档/代码 → 科普视频」工作区通用，本仓只是第一个消费者；反之本仓的内容交付节奏也被机制的 lint/依赖面牵连。
 - **根因**：机制与内容的变更节奏不同源。机制是可独立发版的公共基建（应有自己的仓、自己的测试与版本），内容是随本仓 `series.json` 发布顺序走的交付物；同居一仓时二者在 uv workspace 边界、pre-commit files 锚定、依赖扫描面上互相耦合——「复制适配不做共享包」的隔离只做到了集与集之间，没做到仓与仓之间。
 - **处理方式**：
-  1. **机制外置抽取**：`pipeline/` 全树与路由壳迁入公开 skill 仓 [to-video](https://github.com/ThreeFish-AI/to-video)（MIT），实测全绿后发布，安装于 `~/.claude/skills/to-video`；本仓收敛为内容工作区（`.influence-root` 哨兵，skill 兼容识别）。
+  1. **机制外置抽取**：`pipeline/` 全树与路由壳迁入公开 skill 仓 [vibe-video](https://github.com/ThreeFish-AI/vibe-video)（MIT），实测全绿后发布，安装于 `~/.claude/skills/vibe-video`；本仓收敛为内容工作区（`.influence-root` 哨兵，skill 兼容识别）。
   2. **包装器解析器化**：全 10 集 34 个集侧脚本（30 薄包装 + horizon-context 4 件 archify 辅助）不再内嵌机制，改转发 skill 解析器执行。
   3. **voices 迁工作区根**：`pipeline/voices/` → `voices/`，`tts.ref` 口径改为工作区根相对；缓存摘要内容寻址（只含字节 sha1 不含路径），存量句缓存零失效。
-  4. **钩子 skill 依赖**：pre-commit 两 ruff 钩子与 series-consistency-check 改锚工作区包装器（`apps/negentropy-influence/scripts/`），依赖已安装的 to-video skill，缺席即大声失败而非静默跳过。
+  4. **钩子 skill 依赖**：pre-commit 两 ruff 钩子与 series-consistency-check 改锚工作区包装器（`apps/negentropy-influence/scripts/`），依赖已安装的 vibe-video skill，缺席即大声失败而非静默跳过。
   5. **11/11 陈述刷新**：Definitions Registry 物化口径 11/12 → 11/11（`science-video-pipeline` 随外置删除，盘上 11 个 SKILL.md 已全部入库）；对应两图（`core/framework--engine-interior`、`design/skills--management-ui`）的 HTML/PNG 重生成须走 archify 管线，作为具名跟进项登记在此——在此之前 `framework.md` 内嵌 PNG 仍显示 11/12，勿手改 HTML。
-  6. **受检面声明化**：check_series 的工程级受检面（规则 2/3/5 扫 knowledge-map 与 CHANGELOG）改由工作区根 `to-video.toml` 的 `[check_series] project_globs` 声明，语义不变。
+  6. **受检面声明化**：check_series 的工程级受检面（规则 2/3/5 扫 knowledge-map 与 CHANGELOG）改由工作区根 `vibe-video.toml` 的 `[check_series] project_globs` 声明，语义不变。
 - **后续防范**：
   1. **既有 checkout 升级后的 voices 搬迁**：gitignored 的参考音频不随 git 走——若旧 `pipeline/voices/` 下存在 `.wav`，须先 `mv` 到工作区根 `voices/` 再跑 TTS（否则按新口径找不到样本、整集重合成）；**全程严禁 `git clean -xdf`**（同 PR #1111 搬迁纪律）。
-  2. **钩子的 skill 依赖是显式前置**：新环境 clone 本仓后须先安装 to-video skill 再跑 pre-commit；缺席是大声失败，不许为「让钩子过」降级为静默跳过。
-  3. **引用口径**：文档新增对机制的引用一律写 skill 仓 GitHub 绝对 URL（`https://github.com/ThreeFish-AI/to-video/blob/main/<skill 内路径>`），不再写仓内相对路径——机制文件已不在本仓，相对链必死。
+  2. **钩子的 skill 依赖是显式前置**：新环境 clone 本仓后须先安装 vibe-video skill 再跑 pre-commit；缺席是大声失败，不许为「让钩子过」降级为静默跳过。
+  3. **引用口径**：文档新增对机制的引用一律写 skill 仓 GitHub 绝对 URL（`https://github.com/ThreeFish-AI/vibe-video/blob/main/<skill 内路径>`），不再写仓内相对路径——机制文件已不在本仓，相对链必死。
 - **同类问题影响与注意事项**：
   1. **HTML/PNG 重生成跟进项（具名登记）**：`docs/assets/mermaid/core/framework--engine-interior.mmd` 与 `docs/assets/mermaid/design/skills--management-ui.mmd` 标签已改 11/11，对应交互 HTML 与双主题 PNG 尚未重生成（须走 archify 管线 + capture 重采，勿手改）；在此之前两图产物与 `.mmd` 口径暂时不一致。
   2. **接受的残留**：分集冻结档 `.tsx` 内指向已迁文档的注释按原样保留——改动会触发 `verify_skeleton` 指纹漂移门、迫使全系列重登记，以「注释陈旧」换「指纹稳定」是本轮显式决策，勿顺手清。
@@ -4209,11 +4209,11 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 
 ## ISSUE-194 Skills 激活层悬空：Layer 1 目录指示调用的 expand_skill 从未挂载，连带 R6-b 在线 canary 门恒被跳过（2026-09-23）
 
-- **表因**：[Agent Skills 规范精读](../research/agent-infra/090-agent-skills-spec.md) 做本仓映射时发现，`format_skills_block` 在每个注入技能的 Agent 目录末行写死「To use a skill, call expand_skill(name) to retrieve its full template.」（`agents/skills_injector.py:357`），但 Agent 树内没有任何 Agent 持有该工具；多份文档（Skills 设计 §2/§3.2、172 §11、012 #9、013 状态表、skills-advanced / skills-paper-hunter 用户指南）却把「LLM 自主调用 expand_skill」写成已实现。
+- **表因**：[Agent Skills 规范精读](../research/agent-infra/230-agent-skills-standard.md)（当时的一代精读 090 现已并入其内）做本仓映射时发现，`format_skills_block` 在每个注入技能的 Agent 目录末行写死「To use a skill, call expand_skill(name) to retrieve its full template.」（`agents/skills_injector.py:357`），但 Agent 树内没有任何 Agent 持有该工具；多份文档（Skills 设计 §2/§3.2、172 §11、HZ-9、013 §12.4 16+4 映射表、skills-advanced / skills-paper-hunter 用户指南）却把「LLM 自主调用 expand_skill」写成已实现。
 - **根因**：Phase 2（#459）实现了 `expand_skill` / `list_available_skills` / `fetch_skill_resource` 三件工具并在 `agents/tools/__init__.py:28-29` 导出，但**从未登记进 `TOOL_REGISTRY`**（`agents/tools/registry.py:64-92`）。六翼 `NegentropyToolset` 先按白名单过滤（`_dynamic_tools.py:121`）、再经 `TOOL_REGISTRY.get()` 解析（`registry.py:129`），根 Agent 仅挂 `log_activity` + `preload_memory_tool`（`agent.py:248`）。`git log -S "expand_skill"` 在 faculties / agent.py / registry.py / `_dynamic_tools.py` 上零命中，说明从未绑定过。「目录承诺的激活路径」与「实际挂载的工具」之间**没有任何机器门禁**，所以缺口能在 Phase 2 → Phase 3 → 进化闭环（#1038）多轮迭代中一直隐身。
 - **二阶影响**：Skill 进化 R6-b runtime canary 在线 error-rate 门以窗口内 `expand_skill` 真实调用（`tool_invocations`）为样本（`engine/evolution/handlers/skill.py:428-480`）。样本不足 `SKILL_RUNTIME_CANARY_MIN_SAMPLES = 10` 时返回 `hold`（`engine/evolution/decision.py:282`、`:444-445`）。调用恒为 0，所以**在线门恒被跳过**，技能晋升实际只由离线复评门裁决。
 - **处理方式**（本次只分析不改码）：
-  1. 在 [091 映射报告 M4](../research/agent-infra/091-agent-skills-mapping-negentropy.md) 给出二选一方案：(a) 兑现契约，三件工具入 `TOOL_REGISTRY` 并挂载到消费 Layer 1 的 Agent，`name` 参数按可见技能枚举约束，无技能则不出目录、不注册工具；(b) 收回承诺，删 Layer 1 末行指令，在 141 与设计文档中注明 R6-b 在线门不可用。
+  1. 在 [机制映射汇总的 SK-M3](../research/mapping-negentropy.md) 给出二选一方案：(a) 兑现契约，三件工具入 `TOOL_REGISTRY` 并挂载到消费 Layer 1 的 Agent，`name` 参数按可见技能枚举约束，无技能则不出目录、不注册工具；(b) 收回承诺，删 Layer 1 末行指令，在 141 与设计文档中注明 R6-b 在线门不可用。
   2. 在设计 SSOT（`docs/concepts/design/skills.md` §3.2 与 §2 表）和 172 §11 加校正指针。其余文档的表述在方案 (a) 落地后会自动重新成立，暂不改写，以免与 M4 决策打架。
 - **后续防范**：
   1. **契约即门禁**：落地 (a) 时补集成测试，断言「目录声明的激活工具名 ∈ 该 Agent 实际挂载的工具名」。凡 prompt 里写死工具名的地方，都应有同构断言。
@@ -4221,78 +4221,79 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **同类问题影响与注意事项**：
   1. `fetch_skill_resource`（Layer 3）同样未挂载，typed resources 只能经 REST / 调度器间接生效。
   2. 其他在 system prompt 里点名工具的注入器（如引用协议、记忆提示）可能有同类「承诺—挂载」漂移，可按上述断言模式排查。
-  3. 选方案 (a) 时须同步评估 `is_global` 技能注入所有 Agent 的描述体量，以及目录注入防护（091 M3 / M5）：挂载后目录不再只是展示，会变成真实的调用入口。
+  3. 选方案 (a) 时须同步评估 `is_global` 技能注入所有 Agent 的描述体量，以及目录注入防护（SK-M15 / SK-M5）：挂载后目录不再只是展示，会变成真实的调用入口。
 
 ## ISSUE-195 交互式对话 → 长期记忆链路断开 + 映射取证牵出的 7 处漂移：add_session_to_memory 零调用方、consolidation_jobs 只入队无消费者、force_refresh 被 TypeError 吞掉（2026-09-24）
 
-- **表因**：[OpenViking 精读映射](../research/cognitive-context/015-openviking-mapping-negentropy.md) 对齐 M-d「会话两阶段提交」时发现：本仓交互式对话的内容**不会自动沉淀为长期记忆**——`add_session_to_memory`（`engine/adapters/postgres/memory_service.py:84`）在全仓（含 UI/BFF）没有任何调用方；ADK Runner 也不会自动调用（venv 内 `google/adk/runners.py` 零引用），唯一暴露路径 `PATCH /apps/{a}/users/{u}/memory`（`google/adk/cli/api_server.py:1428`）本仓 UI 未调用。
+- **表因**：[机制映射汇总的 OV 域](../research/mapping-negentropy.md) 对齐 M-d「会话两阶段提交」时发现：本仓交互式对话的内容**不会自动沉淀为长期记忆**——`add_session_to_memory`（`engine/adapters/postgres/memory_service.py:84`）在全仓（含 UI/BFF）没有任何调用方；ADK Runner 也不会自动调用（venv 内 `google/adk/runners.py` 零引用），唯一暴露路径 `PATCH /apps/{a}/users/{u}/memory`（`google/adk/cli/api_server.py:1428`）本仓 UI 未调用。
 - **根因**：富化层在对话路径上没有「供给入口」。`consolidation_jobs` 表（迁移 0043/0044）由调度 handler 调 SQL `trigger_maintenance_consolidation` 入队（`schedulers/handlers/memory_automation.py:173`），但**全仓无消费者**——`fast_replay` / `deep_refection` 两种任务类型从未被生产过（025 §4.3 描述与事实不符）；`create_postgres_memory_service(consolidation_worker=None)` 默认不注入 worker（`engine/factories/memory.py:104`）。Routine 路径有 fire-and-forget 提炼（`orchestrator.py:1393`）佐证断链是「交互式独有」。对比先例：OpenViking 把「会话→记忆」做成 Phase 1 同步归档 + Phase 2 异步提炼 + `.done` 水位的显式提交链，缺口在其设计里有直接对位物。
-- **同批取证发现的 7 处漂移**（详表见 015 §5）：D1 `ContextAssembler.assemble()` 只有单测调用，013 §8.5 / 025 §6.3 把它写成「自动注入通道」（实际生产读取仅 `get_memory_summary()` 回退）；D3 SummarizeStep 传 `force_refresh=True` 因 `get_or_generate_summary` 签名无此参数抛 TypeError 被降级吞掉（`summarize_step.py:40` vs `memory_summarizer.py:93`），强制刷新从未生效且摘要是 24h TTL 不感知源变化；D4 ConflictResolver docstring 宣称三阶段检测、实现只有规则；D5 `save_to_memory` 直写 `embedding=None` 不去重不审计且无回填，对 vector/hybrid 不可见；D6 `_fetch_memory` 按 UUID 读 Memory 不校验 user/app（`agents/tools/skill_resources.py:167`）——**ISSUE-194 方案 (a) 挂载前必须先修**，否则成为跨用户读取通道；D7 013 §12.7 #9「L1/L2/L3 ✅」与 ISSUE-194 结论矛盾待回写；D8 memory_pipeline_prompt 进化面只有 fact extractor 消费，summarizer/reflection 晋升是运行时 no-op。
-- **处理方式**（本次只分析不改码，落地建议见 015 §落地建议汇总）：
+- **同批取证发现的 7 处漂移**（详表见[机制映射汇总](../research/mapping-negentropy.md)「OV 取证副产物」）：D1 `ContextAssembler.assemble()` 只有单测调用，013 §6.5 宿主更正 / 025 §6.3 曾把它写成「自动注入通道」（实际生产读取仅 `get_memory_summary()` 回退）；D3 SummarizeStep 传 `force_refresh=True` 因 `get_or_generate_summary` 签名无此参数抛 TypeError 被降级吞掉（`summarize_step.py:40` vs `memory_summarizer.py:93`），强制刷新从未生效且摘要是 24h TTL 不感知源变化；D4 ConflictResolver docstring 宣称三阶段检测、实现只有规则；D5 `save_to_memory` 直写 `embedding=None` 不去重不审计且无回填，对 vector/hybrid 不可见；D6 `_fetch_memory` 按 UUID 读 Memory 不校验 user/app（`agents/tools/skill_resources.py:167`）——**ISSUE-194 方案 (a) 挂载前必须先修**，否则成为跨用户读取通道；D7 013 旧版 §12.7 #9「L1/L2/L3 ✅」与 ISSUE-194 结论矛盾待回写（2026-10-10 版＝§12.4 承载）；D8 memory_pipeline_prompt 进化面只有 fact extractor 消费，summarizer/reflection 晋升是运行时 no-op。
+- **处理方式**（本次只分析不改码，落地建议见[机制映射汇总](../research/mapping-negentropy.md)「HZ 与 OV 落地建议」）：
   1. **做**（建议独立 PR，先于 013 Phase 1）：会话巩固触发器（复用 `title_inspector` 的「事件水位差 ≥Δ 且空闲 ≥T」范式）+ `consolidation_jobs` 消费者（`FOR UPDATE SKIP LOCKED` 执行 `_simple_consolidate`）+ `threads.metadata.consolidated_at_event_seq` 水位；巩固 diff 写 `consolidation_jobs.result` 并接 UI `/memory/audit`；修 D3 签名并把 TTL 换成源水位判据。零新表。
-  2. **写**：013 §12.7 #9 状态行校正（L1 ✅ / L2·L3 🔶 ISSUE-194）与 §8.5 宿主更正（D1/D7）；025 §4.1/§4.3 与事实不符处回写。——**013/015 侧已销账（2026-09-27：013 完全重铸落地——§11.5 #9 校正、§8.4 宿主更正、§6.2 会话巩固三件套并入、015 §6 对位表同步；「做」面仍开放）。025 §4.1/§4.3 回写未做仍开放**（2026-09-28 评审发现销账口径过早并收窄：025 在重铸分支零改动，其 §4.1 仍把 add_session_to_memory→consolidation_jobs 写成在跑链路）
-  3. **暂缓**：M-a 统一 URI（与 013 ADR-1 冲突，只取寻址不取存储）、typed query、目录递归（YAGNI 触发条件见 015）。
+  2. **写**：013 #9 状态行校正（§12.4）与宿主更正（D1/D7，§6.5）；025 §4.1/§4.3 与事实不符处回写。——**013/015 侧已销账（现行锚：013 §12.4 #9 校正、§6.5 宿主更正、§8.2 会话巩固三件套并入、汇总文档 OV 蓝图对位表同步（发现源登记另见同汇总「OV 取证副产物」）；「做」面仍开放）。025 §4.1/§4.3 回写未做仍开放**（2026-09-28 评审发现销账口径过早并收窄：025 在重铸分支零改动，其 §4.1 仍把 add_session_to_memory→consolidation_jobs 写成在跑链路）
+  3. **暂缓**：M-a 统一 URI（与 013 ADR-1 冲突，只取寻址不取存储）、typed query、目录递归（YAGNI 触发条件见[机制映射汇总](../research/mapping-negentropy.md) OV-5）。
 - **后续防范**：文档把链路标 ✅ 前须核到「调用方/消费者存在」这一层（与 ISSUE-194 同款断言纪律：函数存在 ≠ 链路存在）；「队列表」类设计须与消费者同一 PR 落地，否则只入队的表是 silent no-op 的温床。
+- **锚点体例注记（2026-10-14）**：生产代码注释中的「013 2026-10-10 版；原注 §N.N」为改锚前旧注释引数的存档——「原注」指向注释自身历史（部分号出自 `docs/concepts/design/self-evolving-agents.md` 设计文档、部分为更早 013 代），非退役版 013 文档节号，回查以现行锚为准。
 
 ## ISSUE-196 中文关键词检索失效：memories 与知识库的 tsvector 用 english 配置，整段汉字被切成单个 token，tsvector 关键词腿对中文子串全部落空（2026-09-24）
 
-- **表因**：[Hermes Agent 精读映射](../research/agent-harness/191-hermes-agent-mapping-negentropy.md) 对齐 M10「CJK 分词索引」时发现：Hermes 为中文专门建了 `cjk_unicode61` bigram 与 trigram 两套 FTS5 索引，而本仓混合检索的关键词腿对中文几乎不起作用。本机 PostgreSQL 16.14 只读实测：`to_tsvector('english','用户偏好先给结论，少铺垫')` → `'少铺垫':2 '用户偏好先给结论':1`；以 `plainto_tsquery('english','先给结论')` 匹配为 `f`，只有整段原串 `'用户偏好先给结论'` 才为 `t`。
+- **表因**：[机制映射汇总的 HM-M10](../research/mapping-negentropy.md) 对齐 M10「CJK 分词索引」时发现：Hermes 为中文专门建了 `cjk_unicode61` bigram 与 trigram 两套 FTS5 索引，而本仓混合检索的关键词腿对中文几乎不起作用。本机 PostgreSQL 16.14 只读实测：`to_tsvector('english','用户偏好先给结论，少铺垫')` → `'少铺垫':2 '用户偏好先给结论':1`；以 `plainto_tsquery('english','先给结论')` 匹配为 `f`，只有整段原串 `'用户偏好先给结论'` 才为 `t`。
 - **根因**：迁移 `0047_memory_hybrid_search_function.py` 的触发器写死 `to_tsvector('english', content)`（`:58`，回填 `:89`），`negentropy.hybrid_search()` 与 `_keyword_search` 用 `plainto_tsquery('english', …)`（`:146`/`:151`、`engine/adapters/postgres/memory_service.py:1255`/`:1260`）；知识库的 `search_vector` 由 `0001_init_schema.py:914` 的 `tsvector_update_trigger(search_vector, 'pg_catalog.english', content)` 生成，查询同款（`knowledge/retrieval/repository.py:841`/`:848`）。PG 默认解析器把连续的非 ASCII 字母序列当成一个 word token，`english` 词典对中文不做切分。源头：0047 以 `docs/reference/cognizes/engine/schema/perception_schema.sql` 为权威定义移植，该文件本身即 `english` 口径（`:86`/`:199`），移植时未针对中文调整。
 - **影响**：中文内容的混合检索实际退化为纯向量检索，BM25 融合权重对中文空转。记忆检索在无 embedding 时回退到 `ILIKE '%query%'`（`memory_service.py:808`/`:1290`），中文子串尚能命中；知识库检索没有这层回退，是真正的全量失效。另外，精确词（人名、项目代号、报错原文的中文部分）召回依赖向量相似度，稳定性差。英文与中英混排中的英文词不受影响（`'deploy the static site to CDN' @@ 'deploying site'` 为 `t`）。
 - **处理方式**（本次只登记不改码，方案另行评审）：
   1. **做**（下一次触及 hybrid search 的 PR）：候选 ① `pg_trgm` / `pg_bigm` 三元或二元组索引；② 入库时做 CJK bigram 预切分写入 `simple` 配置的独立 tsvector 列；③ 查询侧对纯 CJK 查询路由到 trigram / LIKE 回退（Hermes 同款三级回退）。选型前须在 PG16/17/18 上核扩展可用性（本机多版本漂移经验）。
-  2. **写**：013 蓝图检索层补一句「关键词腿对 CJK 的分词口径」。——**已销账（2026-09-27：013 完全重铸 §5.2 WARNING 落地口径与三候选；「做」面仍开放）**
+  2. **写**：013 蓝图检索层补一句「关键词腿对 CJK 的分词口径」。——**已销账（013 §7.5 CJK 失效登记与三候选；「做」面仍开放）**
   3. **验收**：固定中文样本集上「子串关键词命中率」从 0 提升，且不回退英文 BM25 排序。
 - **后续防范**：从英文语料项目移植检索 schema 时，把「分词配置 × 目标语言」列为显式核对项；混合检索的回归测试须含中文子串用例，并单独断言 tsvector 腿的命中——否则关键词腿失效会被向量腿或 `ILIKE` 回退掩盖、测试恒绿。
 
 ## ISSUE-197 审批门只接线两个工具：HIGH_RISK_TOOLS 与用户指南高估了审批覆盖面，能跑主机 Bash 的 invoke_claude_code 不在清单内（2026-09-24）
 
-- **表因**：[Hermes Agent 精读映射](../research/agent-harness/191-hermes-agent-mapping-negentropy.md) M14 对照 Hermes 命令守卫时，独立 Verifier 核验发现 181 #17 的前提「本仓没有通用 shell」已不成立；顺藤核查审批链路后发现覆盖面远小于清单与文档所述。
+- **表因**：[机制映射汇总的 HM-M14](../research/mapping-negentropy.md) 对照 Hermes 命令守卫时，独立 Verifier 核验发现 AN-17 的前提「本仓没有通用 shell」已不成立；顺藤核查审批链路后发现覆盖面远小于清单与文档所述。
 - **根因**：`agents/approval.py:46-61` 的 `HIGH_RISK_TOOLS` 只是一张判定表，审批并非统一拦截——`should_request_approval` 全仓只有 `agents/tools/ingest.py:119`（`ingest_to_corpus`）与 `agents/tools/paper.py:343`（`ingest_paper`）两处调用；root agent 的 `before_tool_callback`（`agents/agent.py:239`）只做工具遥测（`engine/observability/tool_telemetry.py:90`）。于是清单内的 `save_to_memory`、`execute_code`、`write_file`、`publish_content`、`send_notification` 在任何策略下都不弹审批，`shell_command`/`send_email` 在全仓并无对应工具。`invoke_claude_code`（`agents/tools/claude_code.py:23`）默认向 Claude Code 开放 `Bash,Read,Write,Edit,Glob,Grep` 并在主机 cwd 运行（权限由 CC 自身 `permission_mode`，默认 auto），却不在清单内。
 - **文档漂移**：用户指南 `docs/concepts/user-guide/chat-essentials.md` 称 `always` 模式「任何工具调用前都弹审批 modal」，实际只作用于上述两个已接线工具；同段「其他高风险工具待后续迭代接入」一句如实，但清单本身未标注接线状态。
 - **处理方式**（本次只登记不改码）：
   1. **做**（下一次触及 approval 的 PR）：二选一并与文档同 PR 落地——① 以 ADK `before_tool_callback` 统一拦截 `HIGH_RISK_TOOLS`，让清单即覆盖面；② 收窄清单至已接线工具，并把 `always` 模式的说明改为如实描述。
-  2. **决策**：`invoke_claude_code` 是否纳入审批或命令级硬拦截，维持与 181 #17「CC 最大权限」一致的既定取舍，待产品决策，不在本 Issue 内默认改动。
+  2. **决策**：`invoke_claude_code` 是否纳入审批或命令级硬拦截，维持与 AN-17「CC 最大权限」一致的既定取舍，待产品决策，不在本 Issue 内默认改动。
 - **后续防范**：安全类「清单」必须与「执行点」同处或有覆盖测试（断言清单内每个工具在 `per_tool` 策略下确实触发审批）；文档描述审批覆盖面时以执行点为准，而非以判定表为准。
 ## ISSUE-198 LLM 结构化决策点缺「闭合输出空间」纪律 + 3 个未注册 task key 与死配置：自动作答不校验选项成员、Judge/PlanReviewer 解析失败静默降 0 分、global_search 哨兵漏入 reduce（2026-09-24）
 
-- **表因**：[Jev 精读映射](../research/agent-infra/201-jev-mapping-negentropy.md) 对齐「闭合输出空间」机制时发现：本仓让 LLM 做小判断（分类/路由/打分/是非）的路径，答案空间都没有闭合——输出是自由 JSON，经 `loads_lenient` 宽松解析，失败返回 `{}` 由调用方静默填默认值。
+- **表因**：[机制映射汇总的 JV 域](../research/mapping-negentropy.md) 对齐「闭合输出空间」机制时发现：本仓让 LLM 做小判断（分类/路由/打分/是非）的路径，答案空间都没有闭合——输出是自由 JSON，经 `loads_lenient` 宽松解析，失败返回 `{}` 由调用方静默填默认值。
 - **根因**：判断类调用被塞进生成通道，且**解析失败与模型真实低分不可区分**：① `claude_code/service.py:1192,1199` 的 prompt 两次要求「回答必须是选项之一」，代码却从不校验成员，非 `answers` 格式原样返回（`:1246-1248`）；② Judge `_parse` 得 `{}` 后 `data.get("score", 0)` 合成 0 分 + `stalled`（`evaluator.py:546-558`）、PlanReviewer 同理合成 `refine`（`plan_reviewer.py:237-248`）——「模型打了 0 分」与「输出被截断」在下游完全同貌；③ `global_search` map prompt 让模型说「无相关信息」（`global_search.py:51`），过滤器只丢空串（`:200-201`），哨兵随证据进 reduce（`:431-435`）。对照先例：TypeSafe adapter 对同类 LLM 基线做逐请求 schema 校验 + 纠正重试；本仓 `LocalReranker` 已有「不生成、只打分」的正确形态。
-- **同批取证的配置类问题**：① `routine.auto_answer` / `routine.memory_extract` / `eval.execute` 三个 task key 在用但未注册（静默回落默认模型；`config/routine.py:187,279` 注释却称走 registry；`task_models_api.py:150-151` 拒绑未知 key）；② `auto_answer_model` / `auto_answer_timeout_seconds` 死配置（`config/routine.py:185-189` 无人读取，调用点硬编码 `timeout=30.0`）；③ ingestion planner 未钉温度、继承 0.7；④ `issue.md` 存在两个 `## ISSUE-128` 标题（`:3076`、`:3119`）。另 3 处文档-实现漂移见 201 §D3/D4/D6。
-- **处理方式**（本次只分析不改码，落地建议见 201 §落地建议）：
+- **同批取证的配置类问题**：① `routine.auto_answer` / `routine.memory_extract` / `eval.execute` 三个 task key 在用但未注册（静默回落默认模型；`config/routine.py:187,279` 注释却称走 registry；`task_models_api.py:150-151` 拒绑未知 key）；② `auto_answer_model` / `auto_answer_timeout_seconds` 死配置（`config/routine.py:185-189` 无人读取，调用点硬编码 `timeout=30.0`）；③ ingestion planner 未钉温度、继承 0.7；④ `issue.md` 存在两个 `## ISSUE-128` 标题（`:3076`、`:3119`）。另 3 处文档-实现漂移（global_search docstring 承诺置信度、意图 boost「+10%」对代码 0.15、`entity_resolver._borderline_high` 死字段）见 Jev 映射前代版本的取证副产物 D3/D4/D6（提交 `fb56e7c78`）。
+- **处理方式**（本次只分析不改码，落地建议见汇总文档「JV 落地建议」）：
   1. **做**（合并为一个小 PR）：自动作答成员校验 + 纠正重试 + 兜底；`_parse` 对 `{}` 返回显式解析失败信号交现有重试环；`global_search` 过滤「无相关信息」哨兵。
   2. **做**（配置）：三个 task key 入 `task_registry` 或移除死键；`auto_answer_model`/`timeout` 接通或删除。
   3. **写**：结构化输出约定（哪些决策必须闭合、失败信号必须显式、枚举校验成员）。
 - **后续防范**：给 LLM 的「选择题」必须由代码闭合答案空间（enum 成员校验），不能只写在 prompt 里；「解析失败」必须有区别于「模型低分」的显式信号；task key 先注册再使用（`task_models_api` 的注册校验与静默回落的 resolver 之间存在空转区）。
 
-- **独立复核（2026-09-26，Jev 精读全新重做后的映射）**：在不读本条的隔离条件下重新取证，[201](../research/agent-infra/201-jev-mapping-negentropy.md) 独立复现了上述三点（自动作答非 JSON 分支原样放行、judge/plan_reviewer 解析矫正零日志、三个在用未注册 task key），并新增两处同族问题：① KG 抽取 `confidence` 缺省 1.0 且不 clamp（`knowledge/graph/extractors.py:972`），叠加 `min_entity_confidence` 默认 0.5（`knowledge/types.py:784`、`knowledge/graph/service.py:725-726`）⇒ 字段缺失即以满置信自动通过门槛——缺省方向与「缺省即低集中度」相反；② LLM 口头置信（fact 缺省 0.7 / KG 缺省 1.0）、正则兜底常数（0.5/0.6）与手定启发式常数（0.3–0.85）同列存储并被 `quality.py` 均值与路由门控同样消费，量纲不可比。另：离线 eval 在 judge 不可用时 `score=0.0` 计入均值与通过率（`engine/eval/runner.py:990-997`），与 ①/② 同属「失败伪装成低分」。处理与防范沿用本条三档建议，新增两项已并入 201「做 / 写」档（KG 缺省改向需注意存量回填）。
+- **独立复核（2026-09-26，Jev 精读全新重做后的映射）**：在不读本条的隔离条件下重新取证，[机制映射汇总的 JV 域](../research/mapping-negentropy.md) 独立复现了上述三点（自动作答非 JSON 分支原样放行、judge/plan_reviewer 解析矫正零日志、三个在用未注册 task key），并新增两处同族问题：① KG 抽取 `confidence` 缺省 1.0 且不 clamp（`knowledge/graph/extractors.py:972`），叠加 `min_entity_confidence` 默认 0.5（`knowledge/types.py:784`、`knowledge/graph/service.py:725-726`）⇒ 字段缺失即以满置信自动通过门槛——缺省方向与「缺省即低集中度」相反；② LLM 口头置信（fact 缺省 0.7 / KG 缺省 1.0）、正则兜底常数（0.5/0.6）与手定启发式常数（0.3–0.85）同列存储并被 `quality.py` 均值与路由门控同样消费，量纲不可比。另：离线 eval 在 judge 不可用时 `score=0.0` 计入均值与通过率（`engine/eval/runner.py:990-997`），与 ①/② 同属「失败伪装成低分」。处理与防范沿用本条三档建议，新增两项已并入 201「做 / 写」档（KG 缺省改向需注意存量回填）。
 
 ## ISSUE-199 jev 集画面文字逐字复述口播，与烧录字幕叠成两层（2026-09-24）
 
-- **表因**：jev-decision-model-video v2 成片中 9 处结论行 / 标题行与口播逐字相同（如 P0「每个 Agent 系统里，都塞满了各种小判断」），底部字幕又逐句显示同一句。缺陷本体与判据的唯一登记处是 to-video 台账 RSI-007（[ThreeFish-AI/to-video#14](https://github.com/ThreeFish-AI/to-video/pull/14)），本条只记内容侧处置。
+- **表因**：jev-decision-model-video v2 成片中 9 处结论行 / 标题行与口播逐字相同（如 P0「每个 Agent 系统里，都塞满了各种小判断」），底部字幕又逐句显示同一句。缺陷本体与判据的唯一登记处是 vibe-video 台账 RSI-007（[ThreeFish-AI/vibe-video#14](https://github.com/ThreeFish-AI/vibe-video/pull/14)），本条只记内容侧处置。
 - **处理方式**：9 处改为关键词 / 数字 / 结构锚点（字号位置不变，口播与时间轴不变）；`check_script` 复述门 FAIL 9 → 0、`pipeline check` 与 `tsc` 通过；终渲 26400 帧（14:40 @30fps），与 v2 逐帧对拍差异仅落在改动行（差异像素 ≤0.7%），尾幕自动体检 FAIL 0。
-- **同类问题影响**：其余 12 个已发布集共 76 处同类存量（明细见 to-video RSI-007），复述门现已缺省执法，下次重渲前须先修或逐处以 `caption-dup-ok: <理由>` 说明。
+- **同类问题影响**：其余 12 个已发布集共 76 处同类存量（明细见 vibe-video RSI-007），复述门现已缺省执法，下次重渲前须先修或逐处以 `caption-dup-ok: <理由>` 说明。
 
-## ISSUE-200 to-video skill 2.0.0 移除全部历史兼容面：influence 工作区包装器 / pre-commit 钩子 / tts-store 缓存 / skeleton 登记四线失效（2026-09-25）
+## ISSUE-200 vibe-video skill 2.0.0 移除全部历史兼容面：influence 工作区包装器 / pre-commit 钩子 / tts-store 缓存 / skeleton 登记四线失效（2026-09-25）
 
-- **表因**：to-video 技能仓（自本仓 `apps/negentropy-influence/pipeline/` 抽取）发版 2.0.0（[ThreeFish-AI/to-video#16](https://github.com/ThreeFish-AI/to-video/pull/16) 内 RSI-009，用户决策「本仓自行适配、skill 不留兼容」）：删除 `pipeline/` 目录（迁移桩 + `scripts → ../scripts` 软链 ABI）与 `pipeline/README.md`；工作区哨兵只认 `.to-video-root`（不再识别 `.influence-root`）；tts-store 只读 `TO_VIDEO_TTS_STORE`（删 `NE_TTS_STORE` 兼容名与旧默认目录回退）；`skeleton.toml` 清零 33 条 `[[drift]]`、2 组 `[[generation]]`、`baselineOf` 并删 `.npmrc` 占位；5 份薄包装解析函数探测路径 `<skill>/pipeline/scripts` → `<skill>/scripts`（frozen 字节变更）；阶段规格编号对齐（`06-tts-voice.md`/`07-remotion-implementation.md`）。破坏在已安装 clone（`~/.claude/skills/to-video` 软链指向 `~/Documents/projects/aurelius/to-video`）拉取 2.0.0 后生效。
-- **复现（本机实测 2026-09-25）**：`grep -rl 'pipeline" / "scripts' apps/negentropy-influence/{scripts,episodes/*/scripts}` 命中 **61 个文件**（14×tts/build_narration/qa_frames + 17 个 archify 类分集包装器 + 2 个工作区包装器），全部「找不到 to-video skill」；`.pre-commit-config.yaml` 的 `series-consistency-check` entry 走工作区包装器，触及 influence 的提交被拦；旧缓存 `~/Library/Application Support/negentropy-influence/tts-store`（65M / 1815 句，新目录不存在）回退删除后全 miss，重渲一集需重合成 2.5–3.5h；已发布集 README/pipeline.toml 的 GitHub blob 外链 42 处死链（15 处原已 404 + 27 处指向已删迁移桩）；skill 侧登记清零 + frozen 模板字节变更 ⇒ 旧集 `verify_skeleton.py --strict` 大面积 STALE/DRIFT 红。
+- **表因**：vibe-video 技能仓（自本仓 `apps/negentropy-influence/pipeline/` 抽取）发版 2.0.0（[ThreeFish-AI/vibe-video#16](https://github.com/ThreeFish-AI/vibe-video/pull/16) 内 RSI-009，用户决策「本仓自行适配、skill 不留兼容」）：删除 `pipeline/` 目录（迁移桩 + `scripts → ../scripts` 软链 ABI）与 `pipeline/README.md`；工作区哨兵只认 `.vibe-video-root`（不再识别 `.influence-root`）；tts-store 只读 `VIBE_VIDEO_TTS_STORE`（删 `NE_TTS_STORE` 兼容名与旧默认目录回退）；`skeleton.toml` 清零 33 条 `[[drift]]`、2 组 `[[generation]]`、`baselineOf` 并删 `.npmrc` 占位；5 份薄包装解析函数探测路径 `<skill>/pipeline/scripts` → `<skill>/scripts`（frozen 字节变更）；阶段规格编号对齐（`06-tts-voice.md`/`07-remotion-implementation.md`）。破坏在已安装 clone（`~/.claude/skills/vibe-video` 软链指向 `~/Documents/projects/aurelius/vibe-video`）拉取 2.0.0 后生效。
+- **复现（本机实测 2026-09-25）**：`grep -rl 'pipeline" / "scripts' apps/negentropy-influence/{scripts,episodes/*/scripts}` 命中 **61 个文件**（14×tts/build_narration/qa_frames + 17 个 archify 类分集包装器 + 2 个工作区包装器），全部「找不到 vibe-video skill」；`.pre-commit-config.yaml` 的 `series-consistency-check` entry 走工作区包装器，触及 influence 的提交被拦；旧缓存 `~/Library/Application Support/negentropy-influence/tts-store`（65M / 1815 句，新目录不存在）回退删除后全 miss，重渲一集需重合成 2.5–3.5h；已发布集 README/pipeline.toml 的 GitHub blob 外链 42 处死链（15 处原已 404 + 27 处指向已删迁移桩）；skill 侧登记清零 + frozen 模板字节变更 ⇒ 旧集 `verify_skeleton.py --strict` 大面积 STALE/DRIFT 红。
 - **根因**：机制抽取为独立 skill 后按 semver 独立演化，本仓作为唯一大版本消费方长期钉在 1.x 兼容面上；该兼容面对 skill 侧是单调维护成本（frozen 注释冻结、迁移桩、登记表携带本仓集名），其 2.0.0 决策把适配义务显式移回本仓（其台账 RSI-009 已记录推翻原「保留软链」方案的理由与本清单互链）。
 - **定性**：对制片操作阻断（包装器 / 钩子 / 缓存三线失效），修复动作机械、一次性；对已发布成片零影响（内容字节不动）。
 - **处理方式（第 1/2 步与骨架登记迁移已由 [#1175](https://github.com/ThreeFish-AI/negentropy/pull/1175) 落地，验收四项全过；第 3 步外链修正仍待办）**：
-  1. **做**：61 个包装器探测行批量替换 `pipeline" / "scripts"` → `scripts`——与 to-video 2.0.0 模板字节一致，frozen 同步与 `verify_skeleton` 对模板零漂移随之达成。
-  2. **做**：工作区根补空 `.to-video-root` 哨兵；`mv ~/Library/Application\ Support/negentropy-influence/tts-store ~/Library/Application\ Support/to-video/tts-store`（缓存零重合成迁移）。
+  1. **做**：61 个包装器探测行批量替换 `pipeline" / "scripts"` → `scripts`——与 vibe-video 2.0.0 模板字节一致，frozen 同步与 `verify_skeleton` 对模板零漂移随之达成。
+  2. **做**：工作区根补空 `.vibe-video-root` 哨兵；`mv ~/Library/Application\ Support/negentropy-influence/tts-store ~/Library/Application\ Support/vibe-video/tts-store`（缓存零重合成迁移）。
   3. **做（可选）**：已发布集 README/pipeline.toml 的 42 处 blob 外链批量改指 `references/…` 与 `assets/video-skeleton/skeleton.toml`。
   4. **验收**：任一集 `scripts/tts.py --help` 可跑；pre-commit 钩子 Passed 而非报「找不到 skill」；不改稿跑 `pipeline.py tts` 零重合成；不重渲的已发布集接受 `--strict` 红（或整组同步模板，同步后 rc=0）。
 - **后续防范**：skill 的 major 升级按依赖升级对待——升级前先过其 CHANGELOG Breaking 节；frozen 包装器是复制件，模板变更须整组同步并由 `verify_skeleton` 执法；内容侧集名不进机制仓的登记表（登记面随内容走——长期若需机器登记合法漂移，另立条目设计工作区侧登记）。
-- **同类问题影响**：conductor 的 5 个 influence worktree 同形态（pull 后同样处理或重建）；`~/Documents/projects/aurelius/to-video-e2e` 测试工作区重建即可；skill 侧真树回归语料（`TO_VIDEO_TEST_WORKSPACE`）在本条 1/2 步完成后恢复可用。
+- **同类问题影响**：conductor 的 5 个 influence worktree 同形态（pull 后同样处理或重建）；`~/Documents/projects/aurelius/vibe-video-e2e` 测试工作区重建即可；skill 侧真树回归语料（`VIBE_VIDEO_TEST_WORKSPACE`）在本条 1/2 步完成后恢复可用。
 
 ## ISSUE-201 archify 全局 3.0.0 删除 guided-views 模块致录制静默空转 + 建图代理两漏网模式（2026-09-30）
 
 - **表因**：ep4 建图批次两图产物缺 guided-views 嵌入——录制器空转不报错；ep2 三图漏 `claude-code--` 前缀（html_pattern 失配）、ep1 四图漏 sidecar type（图型多样性门 4<5）。
 - **根因**：全局 archify CLI 升级到 3.0.0 删除了 guided-views 模块——用全局 CLI 的建图产物天然无嵌入；建图代理对前缀/type 执行不稳定属提示工程面。
 - **处理方式**：锁定版 `.temp/archify-pinned-2.17.0-dev.1` 重 finalize；sidecar state→lifecycle 词表映射；建图提示词补三防。
-- **后续防范**：to-video 建议 `record_archify_all.py --dry-run` 前置校验 guided-views 非空+pattern 匹配+type 词表合法（三静默缺陷一个门拦）。
+- **后续防范**：vibe-video 建议 `record_archify_all.py --dry-run` 前置校验 guided-views 非空+pattern 匹配+type 词表合法（三静默缺陷一个门拦）。
 - **同类影响**：所有用全局 archify 的新建图都有此风险。
 
 ## ISSUE-202 @remotion/lottie 在 headless ANGLE 渲染确定性挂死 delayRender（ep4/ep5 双实证）（2026-09-30）
@@ -4302,13 +4303,14 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **处理方式**：换 Remotion 原生 SVG 组件（PendulumGlyph/LockStrike）；禁用法二分（100 帧段渲）实证定位。
 - **后续防范**：新 Lottie 资产入片前先跑 100 帧段渲冒烟；swap 耗尽时「随机崩」会掩盖确定性崩点——分段+禁用二分是分离手段。
 - **同类影响**：LottieEmphasis 的「渲染确定性」承诺在此环境有边界。
+- **退役注记（2026-10-03）**：ep4 并发重制已删尽 `public/lottie/` 资产并全片零 Lottie，`LottieEmphasis.tsx` 在该集转为零引用保留（五集字节一致冻结件，单删会破跨集指纹），`@remotion/lottie`/`lottie-web` 依赖随之冻结为死依赖——待系列级统一退役时一并移除组件与依赖。
 
-## ISSUE-203 to-video chars_per_min 默认 280 与 story 档实测 254 漂移致首轮必减脂（2026-09-30）
+## ISSUE-203 vibe-video chars_per_min 默认 280 与 story 档实测 254 漂移致首轮必减脂（2026-09-30）
 
 - **表因**：ep1 首轮 3961 字外推 15.62 分超窗，回 ③ 减脂 317 字；后续四集按 254 直写全部一次过窗。
 - **根因**：默认 280 是 sunny 档口径；story 档（块级情绪演绎）实测纯语音 274 字/分（含停顿等效 254）——档位语速差未被机制感知。
 - **处理方式**：五集 pipeline.toml 显式 `chars_per_min = 254`。
-- **后续防范**：to-video 建议按 tts.style 分档设定默认值，或首轮 TTS 后自动回写校准。
+- **后续防范**：vibe-video 建议按 tts.style 分档设定默认值，或首轮 TTS 后自动回写校准。
 - **同类影响**：story 档新集沿用 280 会重演「写完必减脂」。
 
 ## ISSUE-204 交付登记层系统性漂移：时长虚高×3 处 / 锚定率自矛盾 / 无源「43 块 cues」/ README 占位态×5 / _captions 归档缺口（2026-09-30）
@@ -4328,11 +4330,12 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **后续防范**：幕内「全局收尾层」（渐黑/完结语/水印类）必须悬于该幕所有 Sequence 之后——评审清单加一条「收尾层层级对账」；**跨 Sequence 移动带 hooks 的层时，`useCurrentFrame` 语境随宿主变，窗口类 hooks 必须与消费点同语境**（组件化而非内联搬运）；目检必抽末 1 秒（亮度门盲区）。
 - **同类问题影响**：五集其余 P6 已逐一核过（渐黑窗均取整镜时长、无同形态）；ep1–ep4 末镜顶层无满亮常驻卡。
 
-## ISSUE-206 ep1 checkchain-order 图 scan-claim 章录制帧率 17.0 < 18（2026-09-30，开放）
+## ISSUE-206 ep1 checkchain-order 图 scan-claim 章录制帧率 17.0 < 18（2026-09-30，随 ep1 重制失效关闭 2026-10-02）
 
 - **表因**：`video/public/archify/checkchain-order.json` chapters[1] capture_fps=17.0，五集其余 59 图全部 ≥23；check_archify 仅 WARN 不拦门。
 - **根因**：录制期负载瞬时退化（ISSUE-201 同期建图批次），CDP 档补帧合成 CFR25 掩盖了低采集率。
-- **处理方式（待办）**：空闲机 `record_archify.py --only checkchain-order --force` 重录（先按惯例排除负载瞬时假 FAIL），再重渲引用该章的幕并重新归档。
+- **处理方式**：随 ep1 完全重制（新题《工具与执行：一个循环，三层外设》）失效关闭——checkchain-order 图已整体退役删除（新图集 13 新绘＋five-layer 复用），重录待办不再适用；CHANGELOG 同批登记「ISSUE-206 的 ep1 侧随重制关闭」。
+- **合并追记（2026-10-08）**：主干 #1189 剧本 v3 只换代剧本、场景/图集未动——合并整树对齐后 `video/public/archify/checkchain-order.json`（scan-claim 章 capture_fps=17.0）随 v1 场景集原样回座并被 manifest 挂载，「整体退役删除」仅适用于 2026-10-02 重制态与外部归档 v1；fps 复核义务移交 v3 场景轮换新图集时一并重验。
 - **后续防范**：录制后对 capture_fps 做「min ≥18」门（当前仅 WARN）；重录前先单帧 still 判别资源态。
 - **同类问题影响**：仅此一章；五集其余图帧率健康。
 
@@ -4342,4 +4345,95 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **根因**：多集共享冻结件的修复天然使全系列成片陈旧，而重渲登记按「直接涉事集」窄登记——共享件波及面无对账机制。
 - **处理方式**：本批修码后五集全量重渲（render --final + captions + deliver，归档 v2），按 ISSUE-204 三源对账（mdls/mp4 实测/manifest 复算）后回填 statusNote 与 CHANGELOG。
 - **后续防范**：改共享冻结件（Archify 三件/Subtitle/i18n 系）的 PR 须登记「波及集清单+重渲待办」，交付登记以成片时间戳 ≥ 修复提交为验收线。
+- **同类问题影响**：未来任何共享件变更同理；RSI 侧（vibe-video #24）已把纯底色段门入仓，重渲后可自动拦截空段回归。
+
 - **同类问题影响**：未来任何共享件变更同理；RSI 侧（to-video #24）已把纯底色段门入仓，重渲后可自动拦截空段回归。
+
+## ISSUE-208 系列片头主题文案与字幕时序漂移（2026-10-06）
+
+- **表因**：原片头只强调循环与工坊意象，没有直接点题 Claude Code 与 Harness Engineering；替换为系列总述后，长句超出原 11.4 秒 lead-in，旧字幕切点也不再成立。
+- **根因**：系列片头文案写在 `series-intro.tsx`，音轨是独立生成物，缺少与片头时序一起复核的单一变更入口。
+- **处理方式**：更新三段字幕为 Claude Code / Harness Engineering / 五种核心机制的统一定稿；`timing.json` 的 lead-in 调整为 23.5 秒，按新音轨静音带重排三段切点，并将字幕容器移入安全带；片头音频作为 ignored 派生物按 edge 草声参数重生成，终声版本需另行显式重配。后续收敛：8700277df 将三段长句细化为六段单行语义切换（切点改词首-4 先行、下段 in+6 交叉锚定，`series-intro.tsx` SUBS 现为 sub1a/1b/1c/2a/2b/sub3 六段）；2026-10-07 评审轮按系列禁词表（`check_series` ORDINAL_WORDS）将口播首词「本系列视频」修订为「这套视频」，重合成 edge 草声（take 18.08s）并按静音带重排 T 表。
+- **后续防范**：片头改稿必须同步核对音轨时长、静音带、字幕安全带和视觉拍点；生成音频后先做句级时序验收，再进入 Remotion 渲染。片头口播不入 narration SSOT，顺序词门（`check_series` 规则1 ORDINAL_WORDS）只扫 narration.md、不覆盖组件内 NARRATION/SUBS 字面量——片头改稿须人工按禁词表核对（「本系列」漏网即此盲区实证；机器门扩面已于 2026-10-08 回馈 skill 侧——[vibe-video PR #42](https://github.com/ThreeFish-AI/vibe-video/pull/42) 以 RSI-050 扩规则1受检面至 NARRATION/SUBS 容器字面量，并以 RSI-051 将片头资产契约与静音带 T 表方法论成册；本事故的六段字幕化收敛亦经 RSI-049 先行入册）。
+- **同类问题影响**：所有独立挂载音轨的系列片头、预告和品牌声画组件都可能出现文案、字幕与音轨三方漂移。
+
+## ISSUE-209 系列片头耦合第一集：独立化为系列级种子并铺开五集（2026-10-08）
+
+- **表因**：系列统一片头《一个循环》的全部资产（788 行组件内含台本/T 表/字幕 SSOT、独立音轨、评审面 intro-gallery、Main.tsx 挂载块、leadInSec 时长合同）都住在第一集项目里；ISSUE-208 已实证该形态「缺单一变更入口」的病灶，五集铺开若无机制将退化为手工逐集改码。
+- **根因**：片头是系列级资产却寄居分集工程。skill 骨架「复制不共享」哲学要求每集 video/ 独立 pnpm install 可渲（禁止跨项目共享 TS 源，skeleton.toml 明文），但既有 seeded 同构复制约定（harness-stack.tsx 模式）无 canonical 种子、无机器门——五集 harness-stack md5 已三分漂移即人工纪律失守实证，「以哪份为准」全靠人记。
+- **处理方式**（2026-10-08，分支 ThreeFish-AI/claude-code-video-opening）：
+  - 系列级种子目录 `series-assets/claude-code-explained/intro/`：组件种子 + README 契约层（只写流程与指针，**不复制台本正文**防第二事实源；mp3 md5 与重渲前置校验、en 阻断、六路径同步纪律均入册）；
+  - 六路径逐字节孪生门：`scripts/check_twin_files.py` TWIN_GROUPS 新增 `series-intro-seed` 组（种子+五集副本），pre-commit 与 CI workflow 触发面同步扩——同字节纪律从人工升格为机器执法（登记表+双触发面三处齐改，脚本自带 trigger-coverage 自检）；
+  - E2–E5 铺开四件套（单 commit 原子落库纪律：组件副本与 leadInSec 拆开提交会产生 INTRO_FRAMES 静默截断的中间态）：`components/series-intro.tsx` 同字节副本；Main.tsx **整文件移植法**（以 E1 为基底仅替换场景 import 块与 SCENE_COMPONENTS 条目——归一化只剥这两面，五集归一化指纹统一 `78664c3010fd` 实测对账）；`timing.json` leadInSec 0.6→23.5；`pipeline.toml` target_minutes → `[13.0, 15.5]`（含片头口径：+687 帧后 E3 复算 14.603 已越原窗 [13.0,14.6] 上限 5 帧、E2 仅余 27 帧）；mp3 cp（md5 `bcd481979c352b681cb97fa77867361f`）；
+  - drift 登记：**不删 E1 条目**——verify_skeleton I2 对全部系列执法且豁免只认逐集 drift/generation，「铺开后转系列级同形删条」的旧预写在机制上不成立（只读仿真证实删条即 STALE）；改为五条同指纹 `78664c3010fd` 登记，撤销条件改写为「skill 模板吸纳片头挂载点或片头退役时五条齐撤」；
+  - E1 `harness-stack.tsx` 头注「留档待五集铺开后统一决策去留」决策落地：五集保留——E1 供 LAYERS 数据源（片头消费），E2–E5 让位改造前仍用 HarnessStackP0 开场。
+- **后续防范与待办**：
+  1. **五集重渲统一批次名单=五集全量**（E1 归档成片 09-30 亦不含 10-06 片头，「零重渲」仅指本次迁移不新增陈旧）；其硬前置「E2–E5 逐集 0-A 让位改造」**已于 2026-10-08 在本 PR 内完成**（沿 E1 先例 `0fed97ec5`：退役 HarnessStackP0 + 常驻条 Badge 直入 + storyboard/narration/planning 三处备注同步；E2 台面立锚节奏继承原缩退锚、E3 工坊场景去栈同拍起、E4 舞台去除「压暗作栈背景」恒满亮度、E5 `at04` 参数随栈缩退锚一并移除且 p0-04「前面亮灯的几个区」改由常驻条承接）。四集 tsc 零错误、`check_script --check-scenes` 无新增 FAIL、remotion still 抽帧目检四集开场均无五层栈残留；**未做**时序精调（各镜起手帧沿用 `DUR.f3/f4` 直入口径，未逐句对拍——重渲 QA 阶段抽句界帧复核）；
+  2. E1 正片 TTS 批落后现稿（manifest 164 句 vs 磁盘 141 mp3、v2.1 减脂残留 8 句）与片头终声重配（现 take 为 edge 草声口径，ISSUE-208）并入同批；E5 同类陈旧亦已实测——全部现存工作区（tbilisi/ep5-multiagent-remake 等）的 manifest 均缺 narration 现稿 19 句（p0-13..15、p2-20..32、p4-19..21），直接渲染 P0 即 `beatWindow: 未找到句 id p0-11..p0-15` 抛错（本次抽帧以临时占位补齐验证后还原原件）——E2–E5 重渲前须逐集核对 manifest↔narration 句 id 对齐，缺句先补跑 TTS；
+  3. **en 机械阻断**：skill `pipeline.py` 的 `check_skeleton_for_lang` 对非主语言渲染直比 Main.tsx 归一化指纹与 skill 模板、不读 drift 登记——铺开态五集 en render 预检全 FAIL；en 交付前置=skill 侧修预检（认可 drift 登记或模板吸纳挂载点），已双登记于 vibe-video.toml EP1 条目 reason 与本条；
+  4. **既有缺陷（非本 PR 引入）**：常驻条 `HarnessBadge` 的 chip 文字在 1920 宽下折行（「工具与执\n行」「规划与协\n调」「多 Agent\n平台」），E2 改造前对照帧（f1100）同样存在，`HarnessBadge` 实现五集字节一致——独立处理（候选：chip 加 `whiteSpace: nowrap` 并复核 5 chip 总宽，改 harness-stack.tsx 属 seeded 件须五集同步）；
+  4b. 各集 `video/public/audio/` 下的 mp3 副本与 manifest.json 仍为 gitignored 本地渲染前置件（管线无存在性预检）：新 worktree 重渲前从种子副本拷入 mp3（sha256 对账 `scripts/media-assets.toml`）并核对 manifest↔narration 句 id。教训：2026-10-08 验证期间曾把别的工作区的旧 manifest 拷入本 worktree（E2/E5），其过时实测值让 pre-TTS 门误报「E2 时长 12.7 分超窗」——本地产物跨工作区拷贝前必须先核对它与现稿的真实关系；
+  5. srt 首条 cue 自 ~23.5s 起而片头六行字幕烧录在帧里不入 srt——五集同口径（E1 现状已然），平台 CC 观众无法以文本复制片头台词，如需覆盖再议；
+  6. RSI-057（规则7 受检面扩 components/）设计约束：必须采容器锚（NARRATION/SUBS）方向，禁全量 components/ glob——五副本内 9 处注释「站点」（五机制站点轨道语义，非课程站点标识）×全量 glob=45 条假报；
+  7. skill PR #42 合入前须修订两处：SERIES-INTRO §一.4 复制源头改「系列种子目录+同字节孪生门」（原文「首集 components/、复制后自由演进」与本实现互斥——harness-stack 三分漂移即自由演进实证）；§四 en 登记面改「宿主 Main.tsx drift reason 或 statusNote」（片头组件不在任何受门档位，为其登记 drift 会让 verify_skeleton 载入即 sys.exit）。
+- **同类问题影响**：未来任何系列的片头/预告/品牌声画组件——先建 series-assets 种子+孪生门再铺开；skill 侧长期机制化候选（scaffold 系列资产播种通路、时长预算窗不含系列片头口径、预检认可 drift 登记）。
+
+## ISSUE-210 媒体产物散状忽略规则漏斗：入库决策无登记面（2026-10-08）
+
+- **表因**：媒体文件的入库与否散在 .gitignore 的按路径逐段枚举里（episodes 音频、series-assets、archify webm/mp4 三处各自为政），新目录新格式每处都要补行、漏行即静默漏网；用户决策片头音轨等公共固定媒体资产直接入库时，「哪些媒体在库里、为什么在、被替换了怎么办」无任何登记面与对账机制。
+- **根因**：忽略规则只表达「不忽略什么」，不承载「为什么入库、指纹是什么、谁批准的」——入库决策缺少单一事实源。
+- **处理方式**（2026-10-08，本 PR）：**媒体固定资产登记制**三件套——①登记表 `scripts/media-assets.toml`（唯一事实源：path/sha256/bytes/reason/added）；②校验器 `scripts/check_media_assets.py`（`--sync` 按登记表重放 .gitignore 白名单块并对每个登记路径跑 `git check-ignore` 实测放行——闭合「目录级忽略挡住 `!` 否定、git 不再下探」的规则文本陷阱；`--check` 校验已入库媒体 ⊆ 登记表、指纹一致、白名单生效、触发覆盖完整，pre-commit/CI 双挂）；③ .gitignore 收敛为「全仓通用媒体默认忽略段（mp3/mp4/wav/m4a/aac/flac/ogg/opus/webm/mov/mkv/avi/gif）+ 生成式白名单块」，删除被覆盖的零散行（episodes mp3/mp4/wav、series-assets mp3/wav、archify webm/mp4），保留目录级行（`episodes/*/video/public/audio/` 额外管 manifest.json/.sha；archify `*-end.png` 不在媒体口径内）。红绿闭环实测：未登记 mp3 默认 add 被挡、-f 强加被 --check 拦、篡改已登记 mp4 被指纹拦、各集副本 mp3 目录级忽略仍生效。首批登记 3 项：架构故事片 mp4/gif（存量合规化）、片头音轨种子 mp3（合成产物随仓分发；克隆源样本 voices/ 仍不入库——生物特征源与合成产物的口径分界）。破坏性验证的临时件（fake mp3/篡改备份）均已清理。
+- **后续防范**：新增/更换媒体一律先登记再 `--sync` 再 add；更换文件须同步更新登记表 sha256/bytes（钩子按指纹对账）；新增登记项后须同步扩 pre-commit files 正则与 CI paths（`--check` 自检点名漏配）。
+- **同类问题影响**：一切「默认排除某类文件、例外需登记」的仓级策略（如未来 LFS 化、图片资产收紧）可直接复用「登记表 SSOT + sync 重放白名单 + check 对账 + 触发覆盖自检」四件套形态。
+## ISSUE-211 剧本换代中间态的已知红门与恢复条件（2026-10-07，开放——场景轮收口）
+
+- **表因**：claude-code-explained 五集换代表意（planning/narration/storyboard 全新重写、旧场景代码不动）后，两类机器门必红：① `check_archify_coverage`（旧场景 cue 锚旧句 id，新 storyboard 不挂 cue 只写图意与预定图 slug）；② `check_script --check-scenes`（旧场景 `at()/dur()` 引用的句 id 集已不存在）。另：旧 `script/narration.cues.toml`（4 集）随换稿删除，TTS 轮重配前 pre-tts 预算门走「未生成跳过」路径。
+- **根因**：vibe-video 的门假设「脚本层与场景/音频层同代」；跨代中间态（剧本新、场景旧）是该假设的盲区。
+- **处理方式**：本轮以 `pipeline.py build` + `check_script.py --pre-tts` + `check_script.py`（默认）+ pre-commit `check_series`（8 规则）四绿为交付门；两类已知红门登记于此、明确不跑。storyboard 的「archify 对接说明」节保留预定图 slug 清单作为场景轮的建图工作清单。
+- **后续防范（恢复条件=场景轮）**：场景轮重写场景代码 + 按预定 slug 建视频版 archify 图并挂 cue 后，恢复 `pipeline.py check` 全量（自动串联覆盖门）与 `--check-scenes`；届时本条目转已闭。PR #1185（ThreeFish-AI/negentropy：176 四件套 + ep2 v5）与本轮新产物同域冲突（ep2 `research/gl-notes.md` 同名新增、`source-notes.md` 同名删除），处置为 close as superseded（2026-10-07 评审修复轮执行关闭）——其评审循环经验已沉淀于 vibe-video skill 与本仓 issue 史。
+- **同类问题影响**：未来任何「只换剧本不动场景」的迭代轮同此口径；若 skill 侧未来增加「跨代中间态」的显式模式（如 storyboard 标记 `scenes-pending`），可把本登记升级为机器执法。
+
+## ISSUE-212 archify 3.0.0 figure 导出与 capture-arch-diagram.mjs 4× 断言不兼容（2026-10-01，开放；2026-10-08 合并主干时编号撞车自 208 顺延）
+
+- **表因**：用已装 archify 3.0.0 产出新图后，`node scripts/capture-arch-diagram.mjs` 恒 FATAL「PNG 尺寸异常」——导出 PNG = viewBox + 恒定图框边距（FIGURE_CARD_PADDING=24 ×2 + 标题头 ~50，实测 viewBox 1204×548 → 导出 1308×702，×4 后非整数倍），而脚本断言严格等于 viewBox×4（为 archify ≤2.x 的 authored-height 无图框导出所写）。仓内既有全部 PNG（five-layer/hermes/execution-panorama 等）均为旧版 archify 产的精确 4×。
+- **根因**：archify 3.0.0 的 PNG 导出走 `figureLayout()`（serializeSvg figure:true）：把 svg 包进带标题头与卡片衬底的「图版」再栅格化，导出区域 ≠ svg viewBox；采集脚本的完整性断言未随之演进。另注：workflow 型（readable-v2 布局契约）即便补 meta.viewBox 得到 authored-height，figure 边距依旧存在；且 workflow 型在全仓资产中从未有成功采集先例。
+- **处理方式（本次）**：不改仓脚本（冻结契约），lab 侧写采集变体 `.temp/<lab>/capture-fig.mjs`——走 exportMenu 的 `svg-dark`/`svg-light` 纯 SVG 导出（无图框），页内按 viewBox×4 栅格化，双主题、尺寸断言与原子写对齐仓脚本口径；新图 `claude-code-tooling--loop-mounted-layers` 双 PNG 即此产出（4816×2192 = 1204×548×4）。
+- **待办**：capture-arch-diagram.mjs 增加 archify 3.x 模式（按 figureLayout 实测边距推导期望尺寸，或直接切 SVG 导出×N 栅格化路径），否则 3.0.0 产的新图全部无法走仓管线。
+- **后续防范**：archify 升版后先跑一张探针图过采集脚本再批量出图；「导出尺寸契约」属于脚本与工具间的隐性接口，升级核对面应包含它。
+- **同类问题影响**：所有计划用 archify 3.x 新绘/重绘的 docs/assets/architecture 图。
+- **追加（2026-10-01）**：3.0.0 产出 HTML 另含行尾空格（loop-mounted-layers 实测 15 处，2.17 无），trailing-whitespace 钩子剥空格会使 finalize/delivery 回执 sha256 与入库文件失配（仓惯例要求一致，bg-board-and-lock 2.17 实证 MATCH）。处置：pre-commit 的 trailing-whitespace/end-of-file-fixer 对 docs/assets/architecture/ 增加豁免（与 source-archive/ 同理：冻结产物保指纹，经用户确认）。
+- **追加（2026-10-08，review-once R1）**：`claude-code--intake-loop` 为已登记偏差——R10（c7e0e111b）为修 five-steps 章标签「调·判→进·收」直接编辑已 finalize 的 html（-9 字节，835125→835116），delivery/finalize/finalize-summary 三回执 6 处 artifact 指纹停留旧值（898a6e0f…）。内容修正优先保留；`.archify` 会话 candidate 仍为修正前词表，直接重出会回退修正，回执待该图下次 deliver/finalize 一并重出——重出前回执对账巡检按本条对 intake-loop 豁免（全仓 37 套带 delivery 回执图集，其余 36 套 MATCH）。
+
+## ISSUE-213 ep1 P6 复用图 five-layer-dependency 章节集误用记忆集视角：finale 亮错层（2026-10-02，开放；2026-10-08 合并主干时编号撞车自 209 顺延；待办须按主干 #1189 剧本换代 v3 的场景轮语境复核——2026-10-08 合并整树对齐后重制场景已删除、v1 场景集原样回座（five-layer views 亦为 v1 原状，缺陷态不在当前树），下列待办锚点（6-A/6-C 章、P6Finale、P0ForgetfulDoctor.tsx 等）均为已弃用重制实现的文件，重录对象以 v3 场景轮产出为准）
+
+- **表因**：ep1 完全重制把复用图 `five-layer-dependency` 的 views/录制 sidecar/manifest 三处章节集整体拷贝自记忆集（claude-code-memory-video）：`layer-flash` label「记忆层一闪」、focus=[layer-3, layer-2, layer-4]、note 自述「本集视角＝五层链第三层」；`two-dark-zones` 只留 L4/L5 暗区（ep3 已播三集的状态）。成片 final.mp4 p6-01 窗抽帧实证：左下章节标题「记忆层一闪」、扫光落在规划/记忆/时机层，L1（工具与执行）不在焦点集。
+- **根因**：five-layer HTML 是系列共享底座，但 guided-views 的 focus/label 是**每集视角的派生物**——「复用 html_overrides」被误执行成「连别集的叙事视角章节一起拷贝」。旧版 ep1 对同一 HTML 自派生过 layer-1 视角章节（layer-preview focus=[layer-1,2,3]、four-dark-zones focus=[layer-2..5]），证明重派生才是既有做法；重制时旧章集被删、新章集直接取自 ep3，评审对账 storyboard（6-A「本集层点亮」/6-C「后续各层」）才暴露。
+- **待办**：① 按 L1 视角重写 `video/public/archify/views/five-layer-dependency.json`（6-A 章 focus=[layer-1,±相邻]、label 去「记忆」；6-C 章改四层留白 focus=[dim-zones, layer-2..5]）；② 空闲机 `record_archify.py --only five-layer-dependency` 重录三章并重生成 manifest；③ P6Finale cue chapterId 随新章名同步；④ 重渲 + 三源时长对账 + 重新归档 v1（与 ISSUE-207 重渲列车合并）；⑤ 同批捎带 P0 0-C 病历本 stagger 修复（2026-10-02 评审 #8 已改源码、成片未含，见 P0ForgetfulDoctor.tsx 评审注记）。
+- **后续防范**：复用图（html_overrides）接入新集时，views/label 必须按本集视角重派生，禁止跨集拷贝 sidecar；覆盖门/录制前加一条「章 label 与本集身份一致」的人工核对项（机器门无法判视角）。
+- **同类问题影响**：检查其余四集对 five-layer-dependency 的章节引用——ep2–ep5 各自 sidecar 均为当集视角派生（ep3 即正主），无同形态；未来任何跨集复用图同理。
+
+## ISSUE-214 五集笔记层同概念多名：特指大语言模型的「模型/大模型」与 LLM 混用（2026-10-09，已修；本轮随 LLM 单名化统一收敛）
+
+- **表因**：Learn Claude Code 五篇 guided-learn 产物（171–175）及五个 gl-notes 冻结件中，特指大语言模型的名称混用——0196c35e8 的 171 全篇术语精调只覆盖了 ep①（统一后仍残 7 处「模型」），172–175 从未随同口径（「模型」各 63/42/42/32 处、LLM 仅 1–8 处）；171 L11「一句话定位」首现用「模型」而定义（「大模型（下称 LLM）」）在下一段才出现（用户评审评论直接命中此句）；173 L30 已有「LLM（大语言模型）」gloss 但首现仍在 L13 的「模型」。
+- **根因**：术语统一是**逐篇独立**完成的（171 精调与 172–175 生成不同轮），缺少系列级的单一规则正本与残留门——每个概念没有唯一授权写法，漂移必然在「没被同一轮精调扫过的篇目」上复发。全局 `~/.agents/docs/terminology-specifications.md` 术语正负清单亦无 LLM 行，属制度性缺口（已建议补录，待用户授权后另行处理）。
+- **处理**（2026-10-09，本工作区）：规则正本落 [170「怎么读这组笔记·术语口径」](../research/agent-harness/170-claude-code-harness-overview.md)——凡特指大语言模型一律只写 LLM（首现随注全称「LLM（大语言模型）」，其余冗余注释删除）；三类不改写并保留原样：①课程原话引文（171「信任模型」、175 L132 课程 s20 结语「模型负责判断和行动选择」——盲审两抓课程源码确证原话）、②非主 LLM 的模型实体（171「小模型」权限分类器）、③非 LLM 复合概念与标识符（174「线程模型/进程模型」6 处、英文原文、代码标识符）。脚本化统一 6 篇 SSOT（113 行级变更，`re.sub` + 保护跨度 + 计数断言，行数不变），五集 gl-notes 第四次重冻（前置/后置断言：冻结段 == 链接改写(SSOT) 逐字节一致，五对全绿），`docs/research/readme.md:119` 索引转引同步。口播层（narration/planning/storyboard）按既定两层口径不动（2026-10-09 用户确认：口播恒用「模型」，TTS 英文例外清单仅 Claude Code + Harness）。
+- **盲审 Finding 及采纳**（4 独立只读代理）：gloss 插入后全角括号多空格（5 篇同病，脚本时序 bug 已修）；175 L132 逐字引文被改（回退）；172 L60「调用 LLM 前往 messages」断句歧义（改「调用 LLM 之前，往」，原文同构遗留顺带打磨）。173 审查员曾把 gloss 空格判为「姊妹文件同款口径」，被 174 审查员以「全角标点除外 + 全文一致性」判据推翻——多代理独立审查的价值正在于此。
+- **后续防范**：新增 guided-learn 篇目或重冻 gl-notes 时，以 170 术语口径为正本跑残留 grep（`grep -o 模型 <file>` 减去例外清单应为 0）；口播/笔记两层口径的分界照旧记于各 gl-notes 头部。**遗留待办**：四个 `lcc-*--panorama.mmd` 图源内的「模型」字样未动——改图源触发 archify 重录与回执指纹漂移（~45 min），随下次 deliver 一并处理。
+- **同类问题影响**：本仓其余 GL 系列文档（horizon/procedural-graph/self-evolution 等精读产物）未按本口径扫描，如需统一应单独立项（各系列类比登记/冻结态不同，不能照搬本轮映射）；全局 terminology-specifications.md 补 LLM 行后，所有项目的文档评审才有一致判据。
+
+## ISSUE-215 E1 场景层 hook 帧上下文错配：4 处入场动画丢失、1 处死样式、2 处死参数与消融面板 footer 不可见（2026-10-13，已修码待 v2 重渲吸收；2026-10-13 合并时编号撞车自 212 顺延——本侧 212 已被 archify 3.0.0 采集口径条目占用）
+
+- **表因**：PR #1181 重写的 E1 场景中，`P0Hook/P1Folder/P2Ledger/P4Governance` 四处在**场景层组件体**调用 motion hook（`useEnter/useCount/usePushIn`，坐标系=场景局部帧），却传入 **beat 局部锚**（`at(id) - bX.from`，beat 首句锚=0）。beat Sequence 挂载时（场景帧≫锚点）progress 恒钳终态。
+- **影响清单**（v1 成片已固化，按交付冻结不回改）：① P0Hook `askCard` 锚=0 → 0-E 问句金句卡瞬现；② P1Folder `count10` 锚=290 → 1-E「10 技能 · 2 项漂移」静态终值；③ P2Ledger `push` 锚=0 → 2-D 全程静态 scale(1.06)；④ P4Governance `close` 锚=342 → 4-F 章戳瞬现；⑤ P0Hook `push`（场景锚包 0-B）恒 scale(1) 死样式；⑥ P1Folder `idAt/gitAt` 声明传参未使用（GoldenCard/Git 流水带从拍首常驻）；⑦ `AblationPanel` 只渲 `children[0..1]`，X5Shadow 第三个 child（「1 处覆盖悄悄生效 🔔」行）静默丢弃。
+- **根因**：`beatWindow` 返回场景局部帧坐标，hook 求值坐标系由「组件挂在哪层 Sequence」决定；场景层求值+beat 局部锚=恒错配。tsc 与既有机器门均无法拦截（类型全合法、门只查 cue 锚与帧覆盖）。
+- **处理方式**：hook 移入 beat Sequence 内组件求值（对齐 P3Route/P5Security/P6Laws 既有范式）：P0Hook `ThirdRoad` 改收 `cardAt` 内部求值 + 新增 `BeatPush`（0-B 拍首锚 p0-04）；P1Folder `GoldenCard` 接 `enter`（idAt 生效）、`Governance` 加 `dashOn` 门控（gitAt 生效）、计数徽标提取 `DriftBadge`；P2Ledger 新增 `BeatPush`；P4Governance 章戳提取 `CaseStamp`；`AblationPanel` 加 `footer` prop 承载第三行。tsc/单测通过；**未重渲**（用户裁决 2026-10-13），缺陷表现以 v1 交付冻结，v2 重制时自然吸收。
+- **后续防范**：motion hook 一律在 beat Sequence 内的组件里调用，锚传 beat 局部帧；场景层只算 `w()/at()` 窗口并以 prop 下传。可在评审清单加「场景层 hook 调用」检查项；QA 抽帧对「入场型装置」抽 beat 首帧比对（瞬现=progress 恒 1 的指纹）。
+
+## ISSUE-216 阶段①编制层系统性缺口：类比漏登进口播、穿透矩阵不满额、真值锚未钉（2026-10-09，E1 已修——横向待查；原编号 212，2026-10-13 主干内撞号自 212 顺延为 213，2026-10-14 并入本分支时再撞号——本侧 213 已被 ep1 复用图条目占用——二次顺延为 216）
+
+- **表因**：E1（claude-code-explained-video）阶段① C 型产物 gl-notes.md 经五维对抗审计（契约符合 / 穿透覆盖 / 漂移鲜度 / ①→②接口 / 补全批评）发现编制层缺口 20 项：P0——附录 A 类比登记表漏登「打字机」「一条沟」且 v3 逐字稿已进口播、「闸门给胆」系②新造未登记（「唯一准入清单」宣称被证伪）；P1——冻结真值锚未钉 commit（「逐字冻结」声明对不上主干现行、差 234 行文案精调）、数字穿透未达契约「全量」口径（8 项断言无 C.2 记录）、非数字断言「抽 10 条」零登记零转移、C.2 #9 定性止于 CC 源码层漏材料层穿透（learn-claude-code 各章 README「深入 CC 源码」折叠区可回源、实测代穿透零失真）、站点轨 s01–s04@67a9126c 全系列无台账无归档字节、进⑦鲜度门未登记、「系列口径卡」引用悬空（禁喻词表三处互不一致、五集域词零登记）、archify 承接形态与契约条文分叉（archify-html/ 全系列不存在、html_overrides 注释指向已不存在的分镜条目）；P2——A/B 型标签与归档指针缺失、gl-notes 未链接 source-map、.toml 头注日期自相矛盾、LICENSE 无 sha256、官方页仅指纹无字节副本、英文口播例外清单两套口径等。
+- **根因**：三层。① Stage ① 编制层（附录 A/C、冻结登记）**零机器门**——类比完备性、穿透覆盖矩阵、真值锚全靠人肉自律，审计员用 grep 即证伪其宣称；② C 型契约的「上游 analogy.md 承接」动作无可勾选记录，漏登的机制层根因不可追溯（.temp 沙箱清理后不可复算）；③ 跨集共享口径（禁喻词表/域词/片头）无 SSOT 落点，各集 planning 头注自行抄录必然漂移。
+- **处理方式**（2026-10-09 E1 全修；冻结正文零改动、全走编制层增量）：附录 A 补登 #10–#12 + 收录判定标准 + 编制来源声明；C.2 #9 拆双层口径 + 补穿透 #10–#14 + 修两处行号偏差（max_tokens :91→:89；agent_loop :85–111/27 行→:85–113/29 行）；新设 C.4 非数字抽样 10 条、C.5 勘误（§9.2「模拟放行」上游 10cfdc028 已修正为「『接受编辑』预检」）；头部钉真值锚 `41215b5b3` + B 型标签 + source-map 链接；C.1 修 HEAD 拓扑描述（实为 fork 旧尖、落后非领先）；`source_ledger.py fetch` 补登 `s01f-`–`s04f-` 八条 + `source-archive/67a9126c/` 字节归档（与台账指纹逐条对账一致）+ LICENSE sha256 入档；官方三页 2026-10-09 鲜度快照归档（`doc-snapshots-20261009/`：两句官方引文与六种权限模式成立、权限句微调为「not **by** the model」、**hook 事件清单已明显超过 33 个快照口径**——p5-21「三十三个」趋势化决策移交②审校）；source-map 新增 §六口播词表 SSOT（10 共通禁喻 + ep5 补充 + 「师傅」分歧登记 + 五集域词表）与 §七片头三句锚定；.toml 头注日期统一 2026-07-28→07-29（与 [[pin]] 块对齐，笔误级）；台账 `verify` FAIL 0/WARN 3（官方页漂移，已定点裁决）+ `audit --episode 1` FAIL 0。移交②审校清单：narration auto 链丢「接受编辑」首段（:204）、planning「五机制回看」应为四机制（:46/:73）、英文例外清单统一、p5-07「登记表」域词裁决、「三十三个」趋势化。
+- **后续防范**：ep2–ep4 与 E1 同日同流程冻结，缺陷类别疑似系列性复现——各集进入阶段①审校时按**横向抽查清单**首查四项：①头部真值 commit 钉没钉（ep2 头部已见同构缺陷「重冻自 172 现行版」未钉）；②附录 A 完整性（正文明喻 grep vs 登记表 + narration 用喻反查）；③C.2 覆盖矩阵（冻结正文数字断言集合 diff 已登记标题）；④C.1 描述类断言抽查（拓扑/日期类表述与实测对账）。五集附录 taxonomy 漂移（ep1–4「附录 A+C」无 B、ep5「附录 A+B」同名异义）随各集审校统一。
+- **RSI 候选（攒批回流 vibe-video 仓，本轮不动手）**：① Stage ① 最小机器门两条——「冻结正文数字断言集合 diff 附录 C.2 已登记标题」「附录 A 类比物词表 grep narration」（纯离线文本可实现，本轮已人肉代跑）；② C 型流程增「上游 analogy.md：在场已承接 / 不在场」勾选项；③ archify 承接条文修订（archify-html/ 实体拷贝条款 vs 五集 repo 级链接直取实践的全系列分叉）；④ `tests/test_source_map.py` 的 `VIBE_VIDEO_TEST_WORKSPACE` 门控在两仓 CI 均未设置——信源层执法无任何自动化路径；⑤ C 型验收句补「材料层穿透」（止步 CC 源码层【三】会漏掉 README 折叠区可回源的转述核验）。
+- **同类问题影响**：claude-code 五集全部 gl-notes 冻结件；未来一切 C 型（guided-learn 信源）分集；B 型 source-notes 的穿透矩阵纪律同参照。

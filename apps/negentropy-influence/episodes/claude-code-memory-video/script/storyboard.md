@@ -1,142 +1,107 @@
-# 分镜：记忆管理：会丢的和不能丢的（v1）
+# 分镜表：记忆管理（v3 · 剧本换代待审）
 
-> 逐字稿 SSOT：[narration.md](./narration.md)（163 句 v2——句 id 即本表定位锚，时序与 [narration.json](./narration.json) 逐句一致）；时长以 audio manifest 实测为准（规划 3,644 字 ≈ 14.3 分 @254 story 档实测口径，硬窗 [13.0, 14.6] 分）。
-> 一镜（beat）＝2–8 句连续句共享同一主画面，镜界逐条沿 ⑤ 成文优化已切好的空行 beat（本集 36 镜＝narration 36 个 beat 块一一对应，TTS 台本块与镜界天然对齐）；句区间覆盖本幕每一句、无交叠无遗漏（`check_script.py` 强制）；镜号与 `scenes/P*.tsx` 内嵌 `<Sequence name="N-X">` 规范对应。
->
-> **本集视觉契约**（[theme.ts](../video/src/design/theme.ts)，与 [planning.md](./planning.md) §三一致）：
-> `core` 陶土橙 `#D97757`＝台面／循环内核（压缩始终围绕它腾位）——**全系列恒定视觉锚〔M-001〕**：台面母题锁死描边色与绝对线宽，全片同形出场只换周边标签 · `coreDeep` `#B45A3C`＝台面深态（账目细节／压扁条的内面）· `mech` `#A9C46C`＝挂在台面之外的记忆机制（本集维度色·记忆绿：收台四步装置／取货条／登记簿／扉页／目录员／夜班）· `mechDeep` `#7A9448`＝机制深态（登记簿内页／面板描边／装置暗态）· `deny` `#EF6461`＝拒绝与危险唯一语义（API 拒收／找不到原文的路／反向门）· `dim` `#9AA7B8`＝人色（用户叮咛／转录存档／悬置判断——灰＝唯一无彩色的环节）· `ok` `#7ED321`＝确认瞬间瞬态（落盘完成／配对保全）· 师傅／用户／数据流一律无彩（`text` 白／`dim` 灰）——**装置才有颜色**。（theme.ts 种子内 `conceptDeep/mechDeep #7FA050` 系 scaffold 残留，Stage ⑧ 落本表契约值并过 `--check-theme` 复算——以本表与 planning §3 为准。）
-> 恒定空间契约（防〔X-001〕空间逆旁白）：台面恒居画面**左中锚位**（core 橙）；会丢的机制（收台动作）从**上缘**压入、向下腾位；不能丢的登记簿从**右缘**挂入（mech 绿）；「腾位」与「登记」两组动效互不侵入对方锚区；金句卡衬线体（`theme.serif`）；占位符／标签原文（`Re-run if needed`、`MEMORY.md` 等）只进画面角标与引语卡（mono 等宽引语态），不进口播。
->
-> **画面纪律**：画面文字只放关键词／数字／标签（≤6 字），不复述口播（RSI-007——金句卡主字均压短形态，逐字重合面 <10 字安全线内）；英文标识符只进角标；顶部安全带 y<56 由章节条占用，画面内容 y≥56 起，SceneTag 维持 top:64；【三】归属角标统一「开源项目作者 · 源码分析」，画面零信源站标识、零他集标题。
-> **archify 资产档位**：全屏独占（`forbid_inset`，无画中画）——播放期自制装置由 ArchifyYield 淡出让位或空窗句回落；章节数据＝录制 SSOT，见 [../video/public/archify/views/](../video/public/archify/views/)，每章时长＝拍数 × max(1100ms, 3200ms/拍数)；cue 纪律：一章锚一句（`at('句id')` + `dur('同句id')` 单参），同锚句双 cue 即 FAIL，跨实例背靠背后挂实例须 `lead={false}`。
-> ⚠️ 动效列与一切散文**禁写**画面列那套档位字面标注（覆盖门按全文计数断言，多一处命中即 FAIL）；`@动词` 只用 [motion/hooks.ts](../video/src/motion/hooks.ts) 实存模型，判据＝本镜 `<Sequence>` 内由本幕 scene 自身定义的装置调用了该 `useXxx(`（`components/` 内装置承担者一律散文点名，不产生 token）。
+> **对齐说明**：镜号句区间与 `narration.md`（v3）句 id 一一对应，全片 160 句 32 镜全覆盖；时长以音频 manifest 实测为准，本表只锁画面与动效。场景实现属下一轮（除 build 派生的 `video/src/chapters.json`（幕标题随新稿再生）外，本轮不动 `video/` 下任何文件）。
+> **视觉契约**（与 planning.md 一致）：深色底 `#0E1116`；苔绿 `#A9C46C` = 压缩管线/腾地方（本集主题色，恒定视觉锚〔M-001〕：四步管线主链全片同形出场，当前步高亮、其余步降暗）；暖琥珀 `#DCA85B` = 记忆四件套/跨会话账本（记忆卡、索引、门禁、回滚结构件）；银灰 `#9AA4B2` = 磁盘与留档层（路径标签、落盘抽屉、transcript 卷宗——凡「东西在盘上」的线索恒用此色）；警示红 `#FF5C5C` = 拒收/反例/崩溃路径；确认绿 `#7ED321` = 机制在位对照；金句卡衬线体；各幕画面内容 y≥56（顶部章节条安全带，SceneTag 维持 top:64）。
+> **字幕规范**：zh 字幕底部恒单行、默认一句一条并与配音同步；一句按设计宽度可能折行时在语义边界拆连续字幕窗口淡入淡出切换，禁止 CSS 自动换行或压字距硬塞。
 
-## 图集预算表（12 图＝10 新绘＋2 复用；5 型；62 章＝62 cue（章章有锚）；锚定率 62/163 ≈ 0.38 ≥ 0.30；密度 ≈4.3/分 ≥ 3.0——时长以 manifest 实测为准）
+## archify 对接说明（建图轮消费 · 本轮不建图）
 
-| # | slug（新绘落 `docs/assets/architecture/agent-harness/claude-code--<slug>.html`） | 型 | 服务幕/句段 | 章 |
-| --- | --- | --- | --- | --- |
-| 1 | compact-pipeline | workflow | P1 四层与顺序（p1-03..08） | 6 |
-| 2 | pair-guard | state | P1 配对铁律（p1-16..20） | 5 |
-| 3 | pointer-trade | dataflow | P2 搬仓库与占位符（p2-02..06, p2-08） | 6 |
-| 4 | compact-entries | lifecycle | P2 入口与应急（p2-17..19, p2-21..23） | 6 |
-| 5 | lossy-summary | state | P3 有损塌缩（p3-02..06）＋官方对照段教学版侧回放（p3-16） | 5 |
-| 6 | memory-ledger | architecture | P4 扉页派生重建（p4-06..09） | 4 |
-| 7 | four-memory-types | dataflow | P4 四问分型（p4-10..12） | 3 |
-| 8 | two-layer-loading | dataflow | P4 两层加载（p4-14..17, p4-20）＋目录员旁路（p4-24）＋挑选口径（p4-29） | 7 |
-| 9 | stop-extraction | workflow | P5 撂活抽取（p5-06..10） | 5 |
-| 10 | night-shift | lifecycle | P5 夜班整理（p5-15..22 择五锚） | 5 |
-| 11 | memory-panorama（**复用**：主仓既有 `claude-code-memory--memory-panorama.html`，guided-views 为空——录制前按本集 views 回填章节、focus 对齐既有节点语义） | lifecycle | P6 演进彩蛋（p6-03, p6-05）＋全景兑现（p6-08..14 择五锚） | 7 |
-| 12 | five-layer-dependency（**复用**：主仓既有 `claude-code-harness--five-layer-dependency.html`，同上回填） | architecture | P0 立碑一闪（p0-12）＋P6 读图收尾（p6-18..19） | 3 |
+以下为本集图集候选的图意登记，slug 沿本集主题命名（未来成品按 `claude-code--<slug>.html` 落 `docs/assets/architecture/agent-harness/`；`memory-panorama` 若沿用 pipeline.toml 既有复用图例外，建图轮对账后回填）。**图未建：本表不挂任何句级锚定标注、不引用具体 HTML 文件名**；建图完成后由场景轮逐镜回填句级 cue 与覆盖门对账。
 
-> 型多样性＝workflow×2 / state×2 / dataflow×3 / lifecycle×3 / architecture×2 ＝ 5 型 ≥ 5（sidecar 顶层 `type` 录制时按本表落盘）。复用图与 `html_pattern` 不匹配，在此显式登记，Stage ⑦ 录制前落 pipeline.toml 两行映射（本表即落点声明）：
->
-> ```
-> [archify.html_overrides]
-> memory-panorama = "claude-code-memory--memory-panorama.html"
-> five-layer-dependency = "claude-code-harness--five-layer-dependency.html"
-> ```
->
-> 两处 Stage ⑥ 裁定（覆盖门无锚 run ≤12 所需，语义同源故不另立图）：⑤号图尾章 `all-for-one-line` 锚 p3-16——「全部历史换一条消息」即该图塌缩终态，官方对照段回放教学版侧；⑧号图尾二章 `side-query`/`model-not-vectors`——目录员挑选是按需轨上游（p4-16「开工前挑出相关几页」同机制），归入两张 loading 图，目录员小剧场正文与零向量卡仍走 2D 回落。P0/P6 归 3D 系列装置（HarnessStack）＋上表 11/12 两张收束图。
+| slug | 图意（建图需求描述） | 预定落镜 |
+|---|---|---|
+| memory-panorama | 双岛全景母图：左岛「压缩管线」苔绿主链（落盘→裁剪→缩短→兜底落盘→摘要）+报错后的应急岔路，右岛「记忆账本」琥珀四节点闭环（存储→召回→提取→整理），中线咬合齿轮，一图读出「压缩丢、记忆补」的分工与咬合 | 1-A 首亮，各幕换岛高亮复用，6-A 回归 |
+| compact-pipeline | 四步管线执行序特写：主链各节点的「调用成本」标注（前三步零调用、摘要一步一次调用）、末节摘要的构造（留档→状态摘要→请求分离→替换消息）、旁挂批次闭合与应急岔路小闭环 | 4-A、4-D、4-E |
+| compact-budget | 批预算水位与落盘抽屉：最后一条 user 消息的多结果槽、二十万字符水位尺、三万单条线刻度、按大小降序的落盘次序与「路径＋两千字符预览」占位形态 | 2-B、2-C |
+| snip-compact | 消息长卷的裁切与缩短：五十条线、头三尾四十六保留区、中段归档卷宗与两代标记对照（报数版/带路径版）、已读最近三条保护区、已读/未读分界与三道保险、未读超大的兜底落盘 | 3-A、3-B、3-C、3-D、3-E |
+| memory-store | 记忆库结构：一记忆一文件卡（名字/描述/类型三字段）、四类型图例、索引列一行一链接、五重门禁闸门组、快照回滚整理台 | 5-B、5-E、5-F、5-G |
+| recall-inject | 召回两步流水与双层注入：清单（名字+描述）→轻量调用→编号选择（≤5）→正文加载（两万字符预算）；注入两层（索引进固定开头、正文进当前消息前）与身份声明 | 5-C、5-D |
 
-## P0 打烊清台（p0-01..13）→ `scenes/P0NightClosing.tsx`
+---
 
-| 镜 | 句区间 | 画面 | 动效 |
-| --- | --- | --- | --- |
-| 0-A（3D） | p0-01..04 | HarnessStackP0 3D 五层栈自底向上落板（components/harness-stack.tsx 承担）→ 本集层「记忆层」点亮呼吸两次 → 其余层压暗待缩退为顶边常驻条（HarnessBadge，P1–P6 沿用）；工坊灯调暗——师傅剪影（`text` 白无彩）撂下工具、离场步态；主问题字卡居中「它还记得什么」（问句形态，问号 `deny` 红点睛）；角标 `session end` | 栈落板／呼吸／缩退在 HarnessStackP0 内（不产生 token）；字卡落下 `useEnter:fall`；灯暗随 p0-02 句推进 `useDim`；问号红点一次性 `useImpulse`；`@enter:fall` `@dim` `@impulse` |
-| 0-B | p0-05..09 | 台面堆满：motifs.BenchTop 台面母题首现（`core` 橙恒定描边〔M-001〕，恒左中锚位）——文件页／命令输出条／回复气泡自上缘压入逐层堆高（会丢侧动效自上缘）；红色印章「提示太长」盖在台面右上（`deny`）；p0-08 大输出条横占整幅台面；数字角标 `tool_result ≤ 500KB`；角标 `messages`、`prompt_too_long` | 堆叠逐层压入 `useStagger`；印章盖下 `useEnter:fall`＋红闪 `useImpulse`（p0-07 拒收句）；大输出条铺满 `useProgress`；`@stagger` `@enter:fall` `@impulse` `@progress` |
-| 0-C | p0-10..13 | 两本账预告：收台剪影（题词「会丢的」）与登记簿剪影（题词「不能丢的」）自右缘挂入（`mech` 绿 ×2，不触碰左中 core 台面锚位）；p0-12 让位系列栈图一闪；p0-13 回落——碑卡衬线定格「记忆不是一个功能」（悬念态，右下小字「等两本账翻完」） ·**archify full**：five-layer-dependency 章 `layer-flash` | 两剪影滑入 `useEnter:slideR`＋常驻辉光 `useBreathe`（`mech`）；碑卡定格终态〔M-003〕；`@enter:slideR` `@breathe` |
+## P0 写满的草稿纸（组件 P0PaperJam）
 
-## P1 收台四步（p1-01..22）→ `scenes/P1Compaction.tsx`
+| 镜 | 句区间 | 画面 | 动效 | Visual Lock |
+|---|---|---|---|---|
+| 0-A | p0-01..p0-03 | 开篇首镜（视听合力定式）：一张暖纸色格位纸面居中，上行大字「用 tab 不用空格」；一枚苔绿压条自左向右碾过，下行浮出小一号灰字「用户有代码风格偏好」；纸缘一排工具图标带若隐若现 | p0-01 落字时上行原样写出，碾过动画把字迹压糊、下行摘要体浮出（字号差=信息损失可视化）一次即止；p0-03 图标带微亮 | 保持：双句同屏、上行字重恒大于下行、碾过动画仅一次；禁止：静止纯文字卡、第二主体抢焦、字幕区叠同文案 |
+| 0-B | p0-04..p0-07 | 草稿纸特写：文件页与命令输出块逐条盖到纸面格位上，纸下沿一根额度条同步耗尽；最后一格溢出时整页红闪、一枚「拒收」角标章落下 | 内容块按句落下堆积，额度条刻度递减；溢出帧红闪一次、纸面震一拍、印章钉住 | 保持：单主体纸面、额度条为唯一计量元素、红闪仅一次；禁止：纸外装饰元素、印章遮挡字幕区 |
+| 0-C | p0-08..p0-12 | 左右分屏预告：左半草稿纸侧一列四节管线小图标（苔绿），右半记忆卡墙（琥珀栅格），中线半透明齿轮连接；下方两行短语标签（会话内腾地方／会话外存细节） | 左列四节图标随句逐节点亮；右半卡墙翻起几张；「昨天教的今天全忘」句纸面翻页清空一闪；齿轮转半圈咬合后停 | 保持：左右分屏等宽、齿轮为唯一跨屏元素且停转、标签为短语非整句；禁止：齿轮持续旋转剧场化、右半抢主体（本集主线先左后右） |
 
-| 镜 | 句区间 | 画面 | 动效 |
-| --- | --- | --- | --- |
-| 1-A（3D 一现） | p1-01..06 | p1-01..02：3D 台面堆高一现（components/solids-3d.tsx 承担，planning §3 唯二 3D/Lottie 点缀之一）——物件立体堆叠逼满 → 收敛为 2D BenchTop 台面母题（`core` 橙恒线宽〔M-001〕）；收台工剪影上场（`mech`）；章标语字卡「上下文总会满」；p1-03 起让位收台管线图 ·**archify full**：compact-pipeline 章 `four-layers`+`cost-ladder`+`text-vs-llm`+`one-llm-call` · 角标 `context window` 由镜首段承担 | 3D 堆叠与收敛在 solids-3d 内（不产生 token）；收台工淡入 `useEnter:fade`；标语卡上浮 `useEnter:rise`；p1-03..06 由 ArchifyRecap 主控；`@enter:fade` `@enter:rise` |
-| 1-B | p1-07..10 | 讲课编号列（灰置 1–4）与实序列对撞；成本列 0/0/0/1 恒亮 ·**archify full**：compact-pipeline 章 `teach-vs-real`+`real-order` · p1-10 空窗回落：伏笔小条「顺序不能换 · 下一幕」（`dim` 描边） | 空窗句小条弹入 `useEnter:pop`；其余由 ArchifyRecap 主控（跨实例背靠背接 1-A，本镜 `lead={false}`）；`@enter:pop` |
-| 1-C | p1-11..15 | 四层速览小卡横排（2D）：裁中段（保头尾）／压条子（一行小字）／搬仓库（留取货条）／记录员（摘要卡），卡角标注讲课编号；每句点亮对应卡 · 角标 `[snipped N messages]` | 四卡依次入场 `useStagger`；每句对应卡强调一次 `useImpulse`（衰减包络）；`@stagger` `@impulse` |
-| 1-D | p1-16..20 | 工序卡与回单成对铁律 ·**archify full**：pair-guard 章 `pair-rule`+`pair-bound`+`orphan-rejected`+`cut-yields`+`content-vs-structure` · 五句五接力无空窗 · 角标 `tool_use ↔ tool_result` 由图内承担 | archify 全屏回放主控：章内拍脉冲＋换章弹入由 ArchifyRecap 承担（本镜无动效 hook） |
-| 1-E | p1-21..22 | 常量打码卡：触发条数／保留窗口／长度门三行数值全部打码（■■■），标签「随版本漂移」（`dim`）；下方恒亮行「顺序 · 铁律」（`mech` 描边） | 打码块依次落下 `useStagger`；恒亮行呼吸 `useBreathe`（`mech` 低频）；`@stagger` `@breathe` |
+## P1 全景坐标（组件 P1Panorama）
 
-## P2 指针换空间（p2-01..29）→ `scenes/P2PointerSpace.tsx`
+| 镜 | 句区间 | 画面 | 动效 | Visual Lock |
+|---|---|---|---|---|
+| 1-A | p1-01..p1-04 | 全景母图（图意同 memory-panorama）首次亮出：左岛苔绿管线主链、右岛琥珀账本闭环、中线齿轮；本幕两条地基标签钉在左岛基座（窗口上限／调用回执成对），一对「调用卡＋回执卡」小卡扣沿左岛边缘扣合 | 双岛先后浮现，两条地基标签随句落位；配对句时小卡扣扣合一次并高亮卡扣线 | 参考：[全景图设计底稿](../../../../../docs/assets/mermaid/agent-harness/lcc-memory--panorama-notes.md)；保持：双岛一左一右、齿轮居中、地基标签 ≤2 条短语；禁止：分区颜色串义、母图缩到不可读 |
+| 1-B | p1-05..p1-08 | 母图下方五条规格卡横排（便宜先跑／损失递增／配对不可拆／记忆兜住／库不能脏），每张一枚单色小图标 | 五卡随句逐张点亮成排；「便宜先跑」卡上小箭头从「不花调用」指向「花调用」闪一次（Map-First：规格层锚定） | 保持：五卡等宽等高、图标单色、卡片文字为短语；禁止：出现第六张卡、箭头方向反（X-001） |
+| 1-C | p1-09..p1-12 | 镜头推近左岛：管线主链节点依次亮起并标注四步名，末端「摘要」节点带计费脉冲样式；右岛保持轮廓降暗 | 主链自上游向末端流光一次，末端节点脉冲两下；末句镜头拉回全景，两岛同时呼吸一次（换幕锚） | 保持：主链节点顺序与口播四步一致、末端节点样式区别于前三步；禁止：右岛高亮抢焦（本幕讲压缩侧） |
 
-| 镜 | 句区间 | 画面 | 动效 |
-| --- | --- | --- | --- |
-| 2-A | p2-01..05 | p2-01 引子：镜头拉近——台面全景缩聚焦到「搬仓库」工位（2D 聚焦框收缩）；p2-02 起让位指针置换图 ·**archify full**：pointer-trade 章 `batch-account`+`size-queue`+`parcel-tag`+`full-on-disk` · 数字卡「预览 2000 字符」由图内承担 · 角标 `<persisted-output>` | 引子聚焦框收缩 `useProgress`（decelerate）；p2-02..05 由 ArchifyRecap 主控；`@progress` |
-| 2-B | p2-06..09 | p2-06 让位：旧条子滑出窗口压扁 ·**archify full**：pointer-trade 章 `slide-and-flatten`+`hint-no-address` · p2-07 空窗回落：占位符引语卡（mono 等宽引语态，整行 `[Earlier tool result compacted. Re-run if needed.]`）；p2-09 回落：判断小卡「可重放 ≠ 可归档」（两词对置，后段 `deny` 划掉） | 引语逐字流出 `useReveal`（mono）；判断小卡弹入 `useEnter:pop`；其余由 ArchifyRecap 主控（跨实例背靠背接 2-A，本镜 `lead={false}`）；`@reveal` `@enter:pop` |
-| 2-C | p2-10..12 | 顺序力学对撞卡（2D）：上路「先落盘 → 再压条」`ok` 绿勾放行 ／ 下路「先压条 → 再落盘」`deny` 红叉（标注「原文已没」）；金句卡衬线定格「先抄地址 · 再扔东西」（压短形态） · 角标 `顺序不能换` | 双路卡对开 `useEnter:slideL`＋`useEnter:slideR`；红叉抖动 `useShake`（decay）；绿勾一次性 `useImpulse`；金句卡 QuoteCard 终态〔M-003〕；`@enter:slideL` `@enter:slideR` `@shake` `@impulse` |
-| 2-D | p2-13..16 | 找不到的路演示（2D，「教学版」徽标置顶限定）：左＝台面——已落盘的大结果连同取货条一起滑出最近窗口 → 取货条压扁成无地址通用提示（`mech` 转 `dim`）；右＝磁盘仓库原件仍在（`dim` 灰置）；中缝断线（两段虚线不相连，`deny`「无路可达」标注） · 角标 `claim tag → generic hint` | 滑出 `useProgress`；取货条压扁 `useSpring`（局部帧）；断线描出 `useDraw`；「无路可达」红标闪 `useImpulse`（p2-16 句）；`@progress` `@spring` `@draw` `@impulse` |
-| 2-E | p2-17..20 | 压缩入口图 ·**archify full**：compact-entries 章 `entries-overview`+`auto-gate`+`manual-tool` · p2-20 空窗回落：开新一轮小卡——回执条落下、新一轮起跳线（`mech`） · 角标 `compact`、`/compact` | 空窗句小卡弹入 `useEnter:pop`；其余由 ArchifyRecap 主控；`@enter:pop` |
-| 2-F | p2-21..25 | 应急车道 ·**archify full**：compact-entries 章 `rescue-lane`+`tail-five`+`once-only` · p2-24..25 空窗回落：尺子不准小卡——字符数刻度尺（刻度密集）与真实占用曲线（上翘）错位，偏差带 `deny` 填充 · 角标 `estimate`、`[auto compact]`、`[reactive compact]` | 空窗句刻度滚动 `useCount`＋偏差带闪 `useImpulse`；其余由 ArchifyRecap 主控（空窗后重现，保持默认 lead）；`@count` `@impulse` |
-| 2-G | p2-26..29 | 官方对照卡（2D）：官方文档页样三行摘要（自动压缩确认／手动同机制／阈值可调）＋次序条「先清旧输出 → 再摘要」；子代理侧间小工位一闪（无收台工，题词「自己的台面」） · 角标 `subagent` | 官方卡三行逐条 `useStagger`；小工位淡入淡出 `useEnter:fade`；`@stagger` `@enter:fade` |
+## P2 红线与落盘（组件 P2Redline）
 
-## P3 压缩即遗忘（p3-01..20）→ `scenes/P3Forgetting.tsx`
+| 镜 | 句区间 | 画面 | 动效 | Visual Lock |
+|---|---|---|---|---|
+| 2-A | p2-01..p2-05 | 消息带横贯屏中：一条调用卡与其回执卡以卡扣相连高亮，剪刀图标悬停；下方左右消融对比条——左红「无保护切口」右绿「两步退位」 | 剪刀在回执卡后一刀切下（左半）：孤立回执卡闪烁、弹出 orphan 角标与「四百」判决章，配对计数 0→1；右绿侧切口自动退一格避开回执 | 保持：卡扣连接可见、红左绿右恒定、计数带基线刻度；禁止：绿侧切口失败、判决章压字幕区 |
+| 2-B | p2-06..p2-11 | 图意同 compact-budget：最后一条 user 消息展开为多格结果槽，右侧水位尺（二十万刻度＋三万单条线），屏右下银灰磁盘抽屉 | 结果块落槽、水位线上涨逼近刻度；规则句时单条线刻度以常量铭牌样式钉一次；抽屉半开待命 | 保持：水位尺双刻度可辨、抽屉银灰恒定、槽位空态可见；禁止：预览文字成段（只标签化） |
+| 2-C | p2-12..p2-19 | 走查实例（Animated Worked Example）：五块结果（8万/6万/3万/2万/1万 标签）排队站上水位尺，第六块 5K 落下触发超线红闪；8 万块滑入抽屉、原位留「路径＋预览」标签，水位回落至约 12.7 万；尾帧「这笔账」便签贴到屏角 | 每句推进一步：排队→超线→降序选择→落盘→水位回落→两小块完整保留；便签打勾一次定格 | 保持：六块标签数值全程可读、推进逐步可追、便签为屏角唯一成句元素（短语）；禁止：跳步、便签复述整句口播 |
 
-| 镜 | 句区间 | 画面 | 动效 |
-| --- | --- | --- | --- |
-| 3-A | p3-01..06 | p3-01 引子：账单卡「代价 · 到账」落下（`coreDeep`）；p3-02 起让位有损塌缩图 ·**archify full**：lossy-summary 章 `taste-lost`+`tabs-verbatim`+`collapse-rounds`+`forgetting-per-round` · 角标 `tabs, not spaces` → `style preference` 由图内承担 | 引子账单落下 `useEnter:fall`；其余由 ArchifyRecap 主控；`@enter:fall` |
-| 3-B | p3-07..10 | 存档≠记忆双物卡（2D）：左＝压缩前写盘的完整卷宗（`dim` 灰置，厚册形态）／右＝台面摘要（`core` 橙，薄卡）；中缝「无检索工具」断线（虚线中断，`deny` 叉标）；题词「存档 · 记忆」（对置） · 角标 `.transcripts/` | 双物对开 `useEnter:slideL`＋`useEnter:slideR`；断线描出 `useDraw`；叉标闪 `useImpulse`（p3-08 句）；终态停驻〔M-003〕；`@enter:slideL` `@enter:slideR` `@draw` `@impulse` |
-| 3-C | p3-11..13 | 根因金句卡（衬线）「没有持久状态」居中；背后新会话空台面——台面上全部物件淡出清空（BenchTop 母题保留，`core` 描边恒定〔M-001〕） · 角标 `stateless` | 金句卡上浮 `useEnter:rise`；台面物件淡出 `useProgress`；清空后静默一拍〔M-003〕；`@enter:rise` `@progress` |
-| 3-D | p3-14..18 | p3-14..15 官方对照卡（官方页样：全新窗口＋两机制跨会话）；p3-16 让位教学版丢弃面 ·**archify full**：lossy-summary 章 `all-for-one-line` · p3-17..18 回落：产品保留面清单卡五项逐条点亮（请求意图／关键概念／文件片段／错误与修法／待办，`mech` 描边） | 官方卡淡入 `useEnter:fade`；清单五项逐条 `useStagger`；p3-16 由 ArchifyRecap 主控；`@enter:fade` `@stagger` |
-| 3-E | p3-19..20 | 第二本账开张：登记簿剪影自右缘挂入（`mech`，常驻辉光；空间契约——不触碰左中台面锚区）；字卡「要有一层不丢的」；台面侧压暗让位 | 剪影滑入 `useEnter:slideR`＋辉光 `useBreathe`；字卡上浮 `useEnter:rise`；台面侧压暗 `useDim`；`@enter:slideR` `@breathe` `@enter:rise` `@dim` |
+## P3 裁与缩（组件 P3SnipMicro）
 
-## P4 登记簿与扉页（p4-01..32）→ `scenes/P4LedgerLoading.tsx`
+> Morph Continuity（1-C→3-A）：同一主体=左岛管线主链中的「裁剪」节点。起止态：1-C 末帧为母图缩览中的主链节点（带全图 context）→ 3-A 首帧为画面主体级的六十格消息长卷（节点图标退至角落）。中间态：镜头推近过程节点图标缩小让位、长卷自节点方向展开铺满，苔绿描边线宽逐帧不变。身份线索：苔绿主色＋节点角标全程保持（保两项）。何时不 morph：长卷展开出现栅格重绘抖动时回退硬切＋淡入。
 
-| 镜 | 句区间 | 画面 | 动效 |
-| --- | --- | --- | --- |
-| 4-A | p4-01..04 | 登记簿物件开张（2D）：motifs.LedgerBook 自右缘挂入（`mech`）；一文件一记忆卡——头部三行（名字／说明／类型）＋正文块；p4-03 同名合并动效：两张同名卡吸附合一（slug 角标点亮）；p4-04 台面侧对比压暗（登记簿在台面外） · 角标 `.memory/`、`name / description / type` | 登记簿滑入 `useEnter:slideR`；记忆卡展开 `useStagger`；同名合并 `useSpring`（局部帧）；台面压暗 `useDim`；`@enter:slideR` `@stagger` `@spring` `@dim` |
-| 4-B | p4-05..09 | p4-05 扉页物件引子：LottieEmphasis page-flip 翻页脉冲（components/LottieEmphasis.tsx，`mech`——planning §3 唯二 3D/Lottie 点缀之二）＋扉页目录行首现（一行一条）；p4-06 起让位登记簿结构图 ·**archify full**：memory-ledger 章 `not-handwritten`+`full-rebuild`+`derived-vs-source`+`index-cheap-files-precious` · 角标 `MEMORY.md` | 翻页脉冲在 LottieEmphasis 内（不产生 token）；扉页物件上浮 `useEnter:rise`；目录行逐条 `useReveal`；p4-06..09 由 ArchifyRecap 主控；`@enter:rise` `@reveal` |
-| 4-C | p4-10..12 | 四问分型图 ·**archify full**：four-memory-types 章 `four-questions`+`who-and-how`+`what-and-where` · 三句三接力无空窗 · 角标 `user / feedback / project / reference` 由图内承担 | archify 全屏回放主控（跨实例背靠背接 4-B，本镜 `lead={false}`；本镜无动效 hook） |
-| 4-D | p4-14..21 | 两层加载图 ·**archify full**：two-layer-loading 章 `two-tracks`+`index-resident`+`body-on-demand`+`copy-not-pollute`+`cache-stakes` · p4-18..19 空窗回落：缓存条（前缀锁定段＋命中打点动画）· p4-21 空窗回落：官方一句卡「垫纸之后 · 独立段落」（对置小卡） · 角标 `system prompt` / `user turn`、`<relevant_memories>` | 空窗句缓存命中打点 `useImpulse`＋官方卡淡入 `useEnter:fade`；其余由 ArchifyRecap 主控（跨实例背靠背接 4-C，本镜 `lead={false}`）；`@impulse` `@enter:fade` |
-| 4-E | p4-23..27 | p4-23 引子：目录员剪影上场（`dim` 灰置，题词「只看用户的话」预备）；p4-24 让位旁路调用图 ·**archify full**：two-layer-loading 章 `side-query` · p4-25..27 回落小剧场：目录员报序号（序号条 1–5，上限封顶）／工具噪声纸团被筛出（`deny` 淡出）／失败降级关键词（备用钥匙卡，`dim`） · 角标 `side-query`、`max 5`、`fallback` | 引子剪影淡入 `useEnter:fade`；回落小卡三连 `useStagger`；其余由 ArchifyRecap 主控（空窗后重现，保持默认 lead）；`@enter:fade` `@stagger` |
-| 4-F | p4-28..32 | p4-28 引子：grep 计数卡——终端行 `grep -r vector` 滚出计数归零（翻到 0 定格，`deny` 点睛）；p4-29 让位挑选口径图 ·**archify full**：two-layer-loading 章 `model-not-vectors` · p4-30..32 回落：【三】引语卡（mono 引语态，归属角标「开源项目作者 · 源码分析」）＋官方口径卡（只说标准文件工具） · 角标 `0 向量代码`、`Sonnet`、`standard file tools` | 计数滚动 `useCount`＋归零定格 `useImpulse`；引语逐字 `useReveal`；官方卡淡入 `useEnter:fade`；其余由 ArchifyRecap 主控（空窗后重现，保持默认 lead）；`@count` `@impulse` `@reveal` `@enter:fade` |
+| 镜 | 句区间 | 画面 | 动效 | Visual Lock |
+|---|---|---|---|---|
+| 3-A | p3-01..p3-06 | 图意同 snip-compact 前半：六十格消息长卷，头三格与尾部段亮起（保护区苔绿框），中段卷成归档卷宗落银灰架；标记特写两枚对举——旧版「裁掉 N 条」／新版「N 条·归档于〈路径〉」 | 长卷滚动、剪刀沿中段裁切、卷宗落架一次；两枚标记卡左右对举，新版路径以细线连到卷宗（指针感）点亮 | 保持：头三格与尾段高亮同色系但明度区分、两枚标记同屏对举、卷宗银灰；禁止：标记文字成段、中段直接消失无卷宗 |
+| 3-B | p3-07..p3-11 | 已读结果列（垂直消息条）：「最近三条」保护区苔绿框套住下部；更旧条目的长文本以灰色填充可视化；左侧三道保险铭牌纵列（先落盘／未读豁免／八成停） | 保护区框随句套上；「死占位」演示一次：灰块收缩为一行字并弹「重跑＝再付一次」小标；三道铭牌依次点亮 | 保持：保护区框唯一、三铭牌纵列不重叠；禁止：保护区外条目直接消失、铭牌抢主体 |
+| 3-C | p3-12..p3-18 | 模型回复游标在消息带上闪烁定位，其后新进结果带未读描边；一枚「货款已付」徽章挂在未读块上；包裹小图一闪（门口走廊＋承重线） | 游标定位→其后结果描边点亮；「货从没送到」句徽章变灰掉落半格；包裹小图 ≤2 秒即收，边界句时打「不管成本」小标后划掉 | 保持：游标唯一、未读描边与已读灰阶可辨、包裹图 ≤2 秒插曲；禁止：包裹图常驻剧场化、徽章坠出画面 |
+| 3-D | p3-19..p3-22 | 兜底小步：一块超大未读结果顶到额度线，画面转红调一档；登记（拍照定格一帧）后滑入银灰仓库，原位换「预览＋路径」标签 | 超大块顶线、红调脉冲一次；定格帧白光一闪；滑入仓库、标签落位 | 保持：红调仅一档且局限于顶线区域、仓库银灰；禁止：红调蔓延全屏、无登记直接消失 |
+| 3-E | p3-23..p3-26 | 走查判定板（Animated Worked Example）：八格结果（r1..r8 标签）单行排开逐格亮灯——占位（灰＋路径标）／完整（苔绿）／豁免（描边）／预览（银灰）；右侧字符计数条自 63K 下沉至 16155（Baseline-Anchored 计数） | 逐句逐格判定亮灯，每次替换步磁盘副本图标在屏角闪一次；计数条随步下沉定格 | 保持：八格单行可数、四态色互斥、计数带起点刻度；禁止：跳格、双态同格、计数条无基线 |
+| 3-F | p3-27..p3-32 | 消融对比（Counterfactual Ablation）：左红「死占位先跑」右绿「落盘先行」两条同款迷你管线；左：落盘计数 1→0、死占位碎块堆到 11 处（计数条）；右：完整落盘 1 份＋可恢复占位；尾帧金句短卡「顺序＝生死」 | 左侧管线步骤换位动画、计数递减、死占位碎块逐块堆积；右侧绿色一次通过；金句卡落定盖住对比区上半 | 保持：红左绿右恒定、两侧管线同构可对比、计数带基线；禁止：金句卡与字幕同文案、左侧只给结论不给堆积过程 |
 
-## P5 执笔与夜班（p5-01..32）→ `scenes/P5PenAndNight.tsx`
+## P4 最贵的一步（组件 P4Summarize）
 
-| 镜 | 句区间 | 画面 | 动效 |
-| --- | --- | --- | --- |
-| 5-A | p5-01..05 | 写权双人卡（2D）：左＝师傅剪影两手空空（`text` 白，手部特写无笔，题词「不能记 · 不能删」）／右＝工坊侧收尾工执笔（`mech`）；中缝六工具清单快闪翻页——翻遍无记忆读写项（末行空位 `deny` 虚框） · 角标 `bash / read / write / edit / glob / task` | 双人卡对开 `useEnter:slideL`＋`useEnter:slideR`；清单快闪 `useStagger`；空位虚框闪 `useImpulse`；`@enter:slideL` `@enter:slideR` `@stagger` `@impulse` |
-| 5-B | p5-06..10 | 撂活抽取图 ·**archify full**：stop-extraction 章 `stop-moment`+`no-new-call`+`side-extract`+`dedupe-first`+`strong-signals` · 五句五接力无空窗 · 角标 `stop & no tool_use`、`extract` 由图内承担 | archify 全屏回放主控（本镜无动效 hook） |
-| 5-C | p5-11..14 | 时间铰链卡（2D）：左＝台面已压扁（薄条形态，`coreDeep`）／右＝压缩前快照定格（完整原文页，`text` 白）；抽取箭头只指右侧（`mech` 单向）；题词「压缩管丢 · 记忆管存」 · 角标 `pre_compress` | 对开 `useEnter:slideL`＋`useEnter:slideR`；箭头行进 `useFlowDash`；左侧压扁 `useProgress`；终态停驻〔M-003〕；`@enter:slideL` `@enter:slideR` `@flowDash` `@progress` |
-| 5-D | p5-15..22 | 夜班整理图 ·**archify full**：night-shift 章 `threshold-in`+`rough-rewrite`+`reverse-gate`+`outside-deleted`+`stuck-paradox` · p5-16 空窗回落：职责清单小条（去重／合并矛盾／淘汰过时，`mech`）· p5-17 空窗回落：目录截断小条「目录截断 · 送出」（`text` 主字＋`catalog → model` 角标）· p5-19 空窗回落：警示条「无回滚 · 静默」（`deny` 描边，「教学版」徽标） · 角标 `threshold`、`consolidate` 由图内承担 | 空窗句小条弹入 `useEnter:pop`；其余由 ArchifyRecap 主控；`@enter:pop` |
-| 5-E | p5-23..30 | 【三】引语卡（mono 引语态，产品整理四道门：时间间隔／扫描节流／会话数量／文件锁；外号「做梦」标签）＋官方口径三连卡（读写主体说成模型／转录三十天清理·记忆豁免／压缩后从磁盘拿回·超大文件只剩路径） · 角标 `autoDream`、`Saved 2 memories`、`30 天豁免`、`Referenced file` | 引语逐字 `useReveal`；三连卡逐条 `useStagger`；豁免行一次性强调 `useImpulse`；`@reveal` `@stagger` `@impulse` |
-| 5-F | p5-31..32 | 双层分工一句卡（2D）：左＝跨会话记忆（LedgerBook 小图标，题词「管一辈子」）／右＝会话记忆（台面便签，题词「管这一场」）；下方小字「教学版未做 · 先记个名」（`dim`） · 角标 `session memory` | 对开 `useEnter:slideL`＋`useEnter:slideR`；小字淡入 `useEnter:fade`；`@enter:slideL` `@enter:slideR` `@enter:fade` |
+| 镜 | 句区间 | 画面 | 动效 | Visual Lock |
+|---|---|---|---|---|
+| 4-A | p4-01..p4-03 | 图意同 compact-pipeline：管线主链末端「摘要」节点放大占屏，节点旁调用计数器；前三步节点带「零调用」小标 | 前三步节点灰亮扫过（免费标识），末端节点金脉冲、计数器 0→1 跳动一次（全链唯一计费脉冲） | 保持：计数器为唯一计费元素、前三步零调用小标在场；禁止：其他节点出现计费视觉 |
+| 4-B | p4-04..p4-05 | 摘要前的两件事：历史长卷滑入银灰留档抽屉（留档）；一份「状态摘要」文稿生成中，五类信息清单（目标／决定／文件／剩余／约束）逐行落位 | 长卷归档动画；五类清单逐行点亮成清单卡 | 保持：五类清单为标签行、抽屉银灰；禁止：摘要文稿可读成正文 |
+| 4-C | p4-06..p4-09 | 请求分离 rationale：两枚「user 角色」标签分别挂在工具结果块与用户消息块上（视觉同色），一条混淆闪电虚线在两者间游移；分离动作把用户消息抽出，与摘要区明确隔开 | 角色标签同色对举→闪电游移一次（混淆风险）→抽取分离动画，隔板落位；末句压缩消息卡成型 | 保持：两枚角色标签同色同形（机制要点：同为 user）、隔板单一；禁止：隔板使用判定红绿（是结构不是对错） |
+| 4-D | p4-10..p4-15 | 消息解剖卡＋两道防线：上半段「当前请求」原文逐字保真高亮，下半段「摘要」缩排灰阶盖「仅供参考」戳，底部留档路径标签；右侧防线小图——注入句被「当事实整理，不执行」盾牌弹回，熔断计数三格点亮后保险丝断开（归属角标「源码分析」） | 解剖卡两段随句装配、盖章一次；注入句滑入摘要区被盾弹回一次；熔断三格逐格点亮、断开定格 | 保持：上下两段层级分明（字重＋灰阶双区分）、熔断数字带「源码分析」归属角标；禁止：摘要段可读成正文、熔断无归属角标 |
+| 4-E | p4-16..p4-18 | 应急岔路小图：主链旁支路接通；最近五条原文块亮起固位，更早段滑向摘要；重试计数一格 | 报错闪电一次→岔路亮起→五条块固位＋早期段压缩；重试格点亮后整图收 | 保持：岔路视觉弱于主链、五条块可数、重试格 ≤1；禁止：重试计数多格 |
+| 4-F | p4-19..p4-26 | 批次闭合对比小图：同轮多调用先补齐回执再压缩（绿）vs 不闭合（孤立回执闪烁＋重复写入图标 double，红）；生产对照条：教学管线与生产执行序按共有步骤对齐连线，两侧特有节点（生产 contextCollapse、教学兜底落盘）留无连线占位（归属角标）；官方文档页角标带「截至今年十月」 | 未闭合态红闪与 double 图标各一次、闭合态绿灯通过；对照条共有步骤逐一对齐连线；官方角标以引号＋日期形态浮现 | 保持：红绿对比仅在闭合小图内、对照条连线按共有步骤对应（特有节点不连线）、官方句带日期角标；禁止：生产常量给具体数字（材料未钉版本）、把源码分析说成官方口径 |
 
-## P6 两套机制（p6-01..21）→ `scenes/P6TwoBooks.tsx`
+## P5 记忆四件套（组件 P5MemoryStore）
 
-| 镜 | 句区间 | 画面 | 动效 |
-| --- | --- | --- | --- |
-| 6-A | p6-01..06 | 演进彩蛋：p6-01 转场小卡「后日谈」（`dim`）；p6-02 旧条子→新条子对照卡（上行旧占位提示无地址／下行新条子带磁盘地址，`mech` 高亮地址段）；p6-03 起让位演进图 ·**archify full**：memory-panorama 章 `evolved-hint`+`roads-closed` · p6-04 回落三枚小图标（指针认得自己／先存再压／掐口不二刀）· p6-06 回落「不宣称因果」提示条（`dim` 横条） · 角标 `[Earlier tool result saved at …]` | 转场卡淡入 `useEnter:fade`；对照卡弹入 `useEnter:pop`；三图标 `useStagger`；提示条淡入 `useEnter:fade`；p6-03/05 由 ArchifyRecap 主控（章间空窗回落）；`@enter:fade` `@enter:pop` `@stagger` |
-| 6-B（3D） | p6-07..14 | 回答主线：p6-07 HarnessStackP6 3D 栈重新放大居中（components/harness-stack.tsx 承担）；p6-08 起让位全景图 ·**archify full**：memory-panorama 章 `answer-panorama`+`lossy-side`+`ledger-side`+`two-clamps`+`vow-cashed` · p6-10 空窗回落 3D 栈收台侧标注（便宜先跑／配对不拆）· p6-12 空窗回落登记簿侧标注（写权在工坊）· p6-14 终态：碑兑现——全景两区合拢＋咬合两点高亮 | 3D 放大在 HarnessStackP6 内（不产生 token）；空窗标注浮现 `useEnter:fade`；其余由 ArchifyRecap 主控（空窗后重现，保持默认 lead）；`@enter:fade` |
-| 6-C | p6-15..17 | 开放问题天平卡（2D）：左盘「模型自选」（`mech`）／右盘「向量检索」（`dim`）；天平横梁悬停不落（刻意不停驻单侧）；题词「召回 · 没人量过」 · 角标 `recall: 未度量` | 对照卡对开 `useEnter:slideL`＋`useEnter:slideR`；天平悬停呼吸 `useBreathe`（`dim`，刻意不裁决）；`@enter:slideL` `@enter:slideR` `@breathe` |
-| 6-D（3D） | p6-18..21 | p6-18..19 让位读图法与未开灯两区 ·**archify full**：five-layer-dependency 章 `read-two-books`+`two-dark-zones` · p6-20..21 回落 3D：工坊地图两区暗态、系列身份卡（chip 档，标题主段受检硬编码——数据对账 series-layers.json ↔ series.json）＋下期卡（next 走 [series-layers.json](../video/src/series-layers.json)，规则 8 对账）＋工坊灯牌收暗渐黑 | 身份卡／下期卡浮现 `useStagger`；灯牌收暗全镜 `useFadeOut`（末 36 帧，窗取整镜时长）；两章由 ArchifyRecap 主控；`@stagger` `@fadeOut` |
+> Morph Continuity（0-C→5-A）：同一主体=琥珀记忆卡墙。起止态：0-C 为分屏右半的小卡墙（栅格约十数格）→ 5-A 为画面主体级卡墙（栅格满屏展开）。中间态：跨幕不复现，本集规定 5-A 首帧直接以「全景母图右岛放大」承接——卡墙自母图右岛生长铺满，栅格密度连续增加、琥珀色相与卡片圆角不变。身份线索：琥珀主色＋卡片栅格结构（保两项）。何时不 morph：若生长动画出现栅格重绘抖动，回退母图推近＋淡入。
 
-## 字幕规范
+| 镜 | 句区间 | 画面 | 动效 | Visual Lock |
+|---|---|---|---|---|
+| 5-A | p5-01..p5-03 | 全景母图缩至屏角，右岛放大展开为记忆卡墙＋索引列；左侧草稿纸翻页清空（新会话，视觉锚复现） | 翻页清空一次；卡墙自母图右岛方向生长铺满（Morph 见上）；索引列同步立起 | 保持：左纸右库构图、翻页仅一次、库区主色恒琥珀；禁止：库区使用苔绿主色（色义专属压缩侧） |
+| 5-B | p5-04..p5-07 | 单张记忆卡特写：名字／描述／类型三字段表单态落位；右侧四类型图例各一枚图标（用户／做事／项目／在哪找）；下方索引列追加一行 | 字段逐个落位；「用 tab」卡归入「用户」类型格（一次归类动画）；索引行追加并整列重建闪光 | 保持：卡片三字段标签化、四图例各一图标、索引行与卡片一对应；禁止：卡片正文成段、类型格多于四 |
+| 5-C | p5-08..p5-14 | 图意同 recall-inject 上半：清单卡（每条=名字＋描述一行）→轻量调用节点→编号选择徽章（≤5）→正文加载（两万字符预算条封顶）；左侧反面小图「全量塞开头」额度条爆表，划叉 | 反面小图先演被叉；清单滑入调用节点、编号回流勾选、预算条填充至封顶刻度；失败支路（关键词降级）以细线支路一闪 | 保持：两步主路径线粗、降级支路线细、预算条带封顶刻度；禁止：预算条溢出刻度、支路抢主路 |
+| 5-D | p5-15..p5-20 | 走查实例（Animated Worked Example）：新请求「帮我改下配置文件」进入；清单四条、编号勾选「用 tab」；正文注入当前消息前（注入位高亮）；双层注入小图（固定开头=索引恒定区／消息前=正文区）；身份声明铭牌 | 请求→清单→勾选→注入四拍推进；开场 0-A 的原句以「被救回」样式闪回一次（灰恢复全彩，与碾过动画同形反向）；铭牌短语落位 | 保持：注入位唯一高亮、闪回 ≤2 秒且与 0-A 动画同形、铭牌为短语；禁止：闪回常驻、双层小图两区混淆 |
+| 5-E | p5-21..p5-27 | 回合结束触发（对话流波纹平息）→候选卡流出→五重门禁闸门组（琥珀结构件）纵列：持久标／类型／字段／临时标记黑名单（「本次」「暂时」词条划掉）／查重比对（与既有卡叠影） | 波纹平息一次；候选卡逐道过闸，各闸给通过小标；黑名单词条逐个划掉 | 保持：五闸纵列完整、候选单一可追；禁止：闸门用红绿判定色（门禁是琥珀结构件，非消融对比） |
+| 5-F | p5-28..p5-31 | 反例消融（Counterfactual Ablation）：反例卡「这次不要创建文件」——左红「无门禁」卡直接入库并复制到多个会话格；右琥珀「门禁在位」卡在临时标记闸被拦回；计数条 3→5（红侧） | 反例句尝试复制到 ≤4 个会话格（红色扩散）；门禁态弹回一次；计数递增定格 | 保持：左红右琥珀（非绿——对照面是门禁在位而非实验对照）、计数带基线 3；禁止：复制格多于四、拦截用确认绿 |
+| 5-G | p5-32..p5-36 | 整理台（图意同 memory-store 尾）：卡墙全量取下→快照白光定格一帧→删旧写新批量位移→失败注入红闪在第一条→按快照回滚逐卡归位（五对五标签） | 快照定格、批量位移、红闪一次、回滚动画逐卡归位可追；「5=5」标签落定 | 保持：快照为单帧定格、回滚轨迹逐卡可数；禁止：回滚省略过程直接给结果 |
+| 5-H | p5-37..p5-42 | 拆回滚消融：左红「无回滚」库 2→0（卡片坠入碎纸口、索引列与卡墙错位）；右绿「回滚在位」稳态 5=5。尾拍 Dream 门控卡四格（二十四小时／扫描节流／五个会话／文件锁；归属角标「源码分析」） | 左侧坠落＋错位动画、右侧稳态呼吸；Dream 四格逐格点亮后收 | 保持：红左绿右、Dream 卡带源码分析归属角标；禁止：给 Dream 加官方口径角标、坠落无碎纸去向 |
 
-- 底部单行、一句一条（163 句＝163 条），与 `NarrationAudio` manifest 逐句同步；字号与安全带沿系列 frozen `Subtitle.tsx`，不另设。
-- zh 字幕恒单行不折行；超宽句由 Subtitle 内部缩放兜底。
-- 发音标注 `<行|HANG2>` 仅影响 TTS take（build 期已从字幕文本剥离），不影响字幕形态。
+## P6 规律与边界（组件 P6Closing）
 
-## 实现映射
+| 镜 | 句区间 | 画面 | 动效 | Visual Lock |
+|---|---|---|---|---|
+| 6-A | p6-01..p6-08 | 全景母图回归：双岛同时点亮后整图呼吸一次；金句卡（衬线体）自上落下盖住母图上半 | 双岛点亮与收束短语一一对应（咬合／排序／检索账／卫生）；金句卡落下时母图降为暗背景，〔M-003〕陈述态停留 | 保持：金句卡单句成卡（取 p6-05「不花调用的整理，永远排在要花的摘要前面」）、母图保持轮廓级可辨；禁止：金句卡与字幕同文案（不申请豁免） |
+| 6-B | p6-09..p6-12 | 边界护栏卡三张（灰底、无判定色边框）：无量化实验／玩具值与常量漂移／缓存无实测 | 三卡等距立起后整体后撤半档 | 保持：措辞为短语非整句、灰底无边框判定色；禁止：护栏卡用红绿（是「未证明」不是「对错」） |
+| 6-C | p6-13..p6-17 | 开放争议帧：两枚对峙徽章（模型判断／向量索引）＋中间问号＋一枚上行箭头指向「什么该被记住」留白；末帧下期卡（视觉层，文本读系列配置，读法不进口播） | 对峙徽章各闪一次、问号悬停脉动；下期卡最后单独亮约 1.5 秒收黑 | 保持：问号为唯一未决标记、下期卡为本镜唯一成句文字；禁止：结尾焦虑式红色告警、争议帧给出胜方 |
 
-| 幕 | 组件 | 装置重心 |
-| --- | --- | --- |
-| P0 打烊清台 | `scenes/P0NightClosing.tsx` | HarnessStackP0（3D）、BenchTop 台面母题首现（M-001）、拒收印章、两本账剪影＋碑卡 |
-| P1 收台四步 | `scenes/P1Compaction.tsx` | solids-3d 台面堆高一现、四层速览卡、常量打码卡、顺序金句卡 |
-| P2 指针换空间 | `scenes/P2PointerSpace.tsx` | 顺序对撞卡、找不到的路演示、占位符引语卡、尺子卡、官方对照卡 |
-| P3 压缩即遗忘 | `scenes/P3Forgetting.tsx` | 存档≠记忆双物卡、根因金句卡、保留面清单卡、登记簿剪影挂入 |
-| P4 登记簿与扉页 | `scenes/P4LedgerLoading.tsx` | LedgerBook 登记簿、一文件一记忆卡、LottieEmphasis page-flip、目录员小剧场、grep 归零卡 |
-| P5 执笔与夜班 | `scenes/P5PenAndNight.tsx` | 写权双人卡、时间铰链卡、四道门引语卡、官方三连卡、分工一句卡 |
-| P6 两套机制 | `scenes/P6TwoBooks.tsx` | HarnessStackP6（3D）、演进对照卡、开放天平、系列身份卡／下期卡 |
+---
 
-公共组件清单：`Subtitle`（frozen）· `ChapterProgress`（顶部章节条，y<56）· `SceneTag`（top:64）· `QuoteCard`／`FadeUp`／`Pill`（cards.tsx，金句卡衬线体）· `Panel`／`Terminal`／`CodeCard`／`NumberedCard`／`Counter`／`Footnote`（motifs.tsx）· 本集母题四件：`BenchTop`（台面，M-001 恒定 `core` 橙）／`LedgerBook`（登记簿）／`ClaimTag`（取货条·包裹标签）／`SideDesk`（目录员旁路小工位）· `HarnessStackP0`／`HarnessStackP6`／`HarnessBadge`（harness-stack.tsx，P1–P6 常驻顶边条 chip 档）· `Stage3D`／`Slab3D`／`Rim3D`（solids-3d.tsx，P1 台面堆高一现）· `LottieEmphasis`（page-flip——**本集 headless ANGLE 实渲已通过并成片 v1**，重渲边界与退役判据见 issue.md ISSUE-202）· `ArchifyRecap`（archify cue 载体，frozen 共享——Stage ⑧ 接入；一章锚一句，跨实例背靠背后挂实例 `lead={false}`）。
+## 实现映射（场景轮消费）
 
-金句卡三张（QuoteCard 衬线定格）：0-C 碑卡（悬念态）「记忆不是一个功能」· 2-C 顺序金句「先抄地址 · 再扔东西」· 3-C 根因金句「没有持久状态」——主字均压短形态，与口播逐字重合面 <10 字（RSI-007 安全线内）。
+| 幕 | 组件 | 备注 |
+|---|---|---|
+| P0 | `P0PaperJam` | 草稿纸三拍（碾字／堆满拒收／双屏预告）；接系列统一片头装置（leadInSec=23.5，口播 12 帧起播） |
+| P1 | `P1Panorama` | 全景母图容器（archify 母图或自绘双岛，建图轮定）＋规格卡排 |
+| P2 | `P2Redline` | 配对卡扣消融＋批预算水位尺＋走查 |
+| P3 | `P3SnipMicro` | 长卷裁切＋三道保险＋T4 判定板＋换序消融 |
+| P4 | `P4Summarize` | 计费脉冲＋消息解剖卡＋防线／应急／闭合＋生产对照条 |
+| P5 | `P5MemoryStore` | 卡墙＋召回流水＋五闸＋整理台＋双消融 |
+| P6 | `P6Closing` | 母图回归＋金句卡＋护栏卡＋争议帧＋下期卡（系列统一收尾装置） |
 
-## 自检对账（Stage ⑥ 收口）
-
-- 句覆盖：0-A p0-01 → 6-D p6-21，幕内镜区间首尾相接、跨幕无缝——36 镜 163/163 全覆盖无重叠、镜号唯一；36 镜与 narration.json 36 个 beatStart 块一一对应（跨删句号 p2-27／p4-13／p4-22／p5-28 的区间按 narration 实存句集取窗）。
-- 图集：12 图（10 新绘＋2 复用显式登记＋`html_overrides` 两行落点声明）· 5 型（workflow×2／state×2／dataflow×3／lifecycle×3／architecture×2）· 每图 3–7 章 · 62 章＝62 cue 计划（章章有锚，无废章）。
-- 锚定：62/163 ≈ 0.38 ≥ 0.30；分幕 P0 1/13 · P1 11/21 · P2 12/28 · P3 5/19 · P4 14/30 · P5 10/31 · P6 9/21——全部 ≥1 锚且 ≥5% 分幕比；最长连续无锚 run＝11（p0-01..11 与 p5-23..p6-02 两处）≤ 12，次长 9（p3-07..15、p3-17..p4-05 两处）。
-- 单调性：各图章按锚句顺序正向播放，无逆序（lossy-summary 尾章 `all-for-one-line` 锚 p3-16 归位序内；two-layer-loading 尾二章 `side-query` p4-24／`model-not-vectors` p4-29 序内；memory-panorama 尾章 `vow-cashed` 锚 p6-14 序内）。
-- 跨实例背靠背（后挂 `lead={false}`）清单：1-B（接 1-A）· 2-B（接 2-A）· 4-C（接 4-B）· 4-D（接 4-C）；空窗后重现保持默认 lead：2-F · 4-E · 4-F · 6-B。
-- `@动词` 全部为 motion/hooks.ts 实存模型：enter:fall／enter:rise／enter:fade／enter:pop／enter:slideL／enter:slideR／stagger／reveal／progress／spring／impulse／breathe／draw／count／flowDash／shake／dim／fadeOut。
-- 观众层匿名化抽检：画面零信源标识、零他集标题（下期卡数据走 series-layers.json，视觉层专属）；【三】归属角标统一「开源项目作者 · 源码分析」；英文标识符只进角标与引语卡。
+公共组件：金句卡、章节卡、字幕条、基线计数条（useCount）、红绿对比容器、银灰留档抽屉/卷宗、琥珀结构件（闸门/铭牌）、角标条。

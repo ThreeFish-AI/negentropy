@@ -9,60 +9,136 @@
 url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s08_context_compact/README.md"
 kind = "repo"
 pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
-accessed = "2026-09-28"
+accessed = "2026-10-07"
 raw_sha256 = "9687f76096c568ab"
 text_sha256 = "5aa4efee2ca96785"
 bytes = 15408
 lines = 310
-via = "pinned commit, MIT"
+via = "pinned commit, MIT; 站点轨主条目（中文默认 README）"
 
 [s08-code]
 url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s08_context_compact/code.py"
 kind = "repo"
 pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
-accessed = "2026-09-28"
+accessed = "2026-10-07"
 raw_sha256 = "468a558cd7d64438"
 text_sha256 = "ecd10f067a32c01a"
 bytes = 24947
 lines = 534
-via = "pinned commit, MIT; LOC 实测依据"
+via = "pinned commit, MIT; C.2 穿透抽查依据（站点轨四步管线常量）"
 
 [s08-site]
 url = "https://learn.shareai.run/zh/s08/"
 kind = "site"
-accessed = "2026-09-28"
+accessed = "2026-10-07"
 raw_sha256 = "1c1c7d535eebf5d4"
 text_sha256 = "7f727fdfea291ad1"
 bytes = 86347
 lines = 360
+via = "站点实况（173 站点轨组织骨架对照）"
 
 [s09-readme]
 url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s09_memory/README.md"
 kind = "repo"
 pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
-accessed = "2026-09-28"
+accessed = "2026-10-07"
 raw_sha256 = "ba8b85dc56db4ceb"
 text_sha256 = "5701fe69627b090a"
 bytes = 13736
 lines = 280
-via = "pinned commit, MIT"
+via = "pinned commit, MIT; 站点轨主条目（中文默认 README）"
 
 [s09-code]
 url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s09_memory/code.py"
 kind = "repo"
 pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
-accessed = "2026-09-28"
+accessed = "2026-10-07"
 raw_sha256 = "2ccbf9f0b4b1abd5"
 text_sha256 = "e62d905d2a5a1cf3"
 bytes = 27121
 lines = 655
-via = "pinned commit, MIT; LOC 实测依据"
+via = "pinned commit, MIT; C.2 穿透抽查依据（站点轨 pre_compress 快照）"
 
 [s09-site]
 url = "https://learn.shareai.run/zh/s09/"
 kind = "site"
-accessed = "2026-09-28"
+accessed = "2026-10-07"
 raw_sha256 = "7e1551645ce60a68"
 text_sha256 = "51645677896d6e3e"
 bytes = 86020
 lines = 341
+via = "站点实况（173 站点轨组织骨架对照）"
+
+[s08-main-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/ce8f9f186058939da54c9d6fead78dfb5d0fd6c3/s08_context_compact/README.md"
+kind = "repo"
+pinned_ref = "ce8f9f186058939da54c9d6fead78dfb5d0fd6c3"
+accessed = "2026-10-07"
+raw_sha256 = "bbe45fd0c1c13531"
+text_sha256 = "a545069d8d1e4e76"
+bytes = 14776
+lines = 342
+via = "pinned commit, MIT; main 轨演进条目（英文默认 README）"
+
+[s08-main-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/ce8f9f186058939da54c9d6fead78dfb5d0fd6c3/s08_context_compact/code.py"
+kind = "repo"
+pinned_ref = "ce8f9f186058939da54c9d6fead78dfb5d0fd6c3"
+accessed = "2026-10-07"
+raw_sha256 = "4eeedf2e3edeb526"
+text_sha256 = "7624531795911a82"
+bytes = 24096
+lines = 601
+via = "pinned commit, MIT; C.2 穿透抽查依据（main 轨 s08 机制级演进：占位符幂等/seen-unseen/压前落盘）"
+
+[s09-main-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/ce8f9f186058939da54c9d6fead78dfb5d0fd6c3/s09_memory/README.md"
+kind = "repo"
+pinned_ref = "ce8f9f186058939da54c9d6fead78dfb5d0fd6c3"
+accessed = "2026-10-07"
+raw_sha256 = "9dd803872c333fdf"
+text_sha256 = "294b803ca19f933f"
+bytes = 8631
+lines = 195
+via = "pinned commit, MIT; main 轨演进条目（英文默认 README）"
+
+[s09-main-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/ce8f9f186058939da54c9d6fead78dfb5d0fd6c3/s09_memory/code.py"
+kind = "repo"
+pinned_ref = "ce8f9f186058939da54c9d6fead78dfb5d0fd6c3"
+accessed = "2026-10-07"
+raw_sha256 = "b36a04297641b06a"
+text_sha256 = "c7d8d6c1f52830f8"
+bytes = 27544
+lines = 784
+via = "pinned commit, MIT; C.2 穿透抽查依据（main 轨门控五重检查/原子整理回滚/路径防御）"
+
+[doc-memory]
+url = "https://code.claude.com/docs/en/memory"
+kind = "site"
+accessed = "2026-10-07"
+raw_sha256 = "07c8e010b5726821"
+text_sha256 = "786e7138b853f60f"
+bytes = 777253
+lines = 1837
+via = "官方补读（173 参考 [2]；记忆分层与索引/正文分离口径）"
+
+[doc-context-window]
+url = "https://code.claude.com/docs/en/context-window"
+kind = "site"
+accessed = "2026-10-07"
+raw_sha256 = "1739a09fd5aecb09"
+text_sha256 = "c265deca4fcc5286"
+bytes = 462799
+lines = 1518
+via = "官方补读（173 参考 [3]；压缩幸存表与技能重注入限额）"
+
+[doc-how-claude-code-works]
+url = "https://code.claude.com/docs/en/how-claude-code-works"
+kind = "site"
+accessed = "2026-10-07"
+raw_sha256 = "3d698e19a043cd77"
+text_sha256 = "a3bb37fce71442df"
+bytes = 526913
+lines = 1613
+via = "官方补读（173 参考 [4]；逼近上限先清工具输出、压缩后重建）"

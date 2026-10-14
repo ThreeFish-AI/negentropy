@@ -26,13 +26,13 @@ SIDE = ROOT / "video" / "public" / "archify"
 
 
 def _skill_scripts() -> Path:
-    """定位 to-video skill 的 scripts（TO_VIDEO_HOME → 两处约定安装位）。"""
+    """定位 vibe-video skill 的 scripts（VIBE_VIDEO_HOME → 两处约定安装位）。"""
     candidates = []
-    if env := os.environ.get("TO_VIDEO_HOME"):
+    if env := os.environ.get("VIBE_VIDEO_HOME"):
         candidates.append(Path(env).expanduser())
     candidates += [
-        Path.home() / ".claude" / "skills" / "to-video",
-        Path.home() / ".agents" / "skills" / "to-video",
+        Path.home() / ".claude" / "skills" / "vibe-video",
+        Path.home() / ".agents" / "skills" / "vibe-video",
     ]
     for c in candidates:
         p = c / "scripts"
@@ -41,14 +41,14 @@ def _skill_scripts() -> Path:
             return p
     listed = "\n  ".join(str(c) for c in candidates)
     sys.exit(
-        "找不到 to-video skill（按序尝试：\n  " + listed + "\n）。\n"
-        "  安装：git clone https://github.com/ThreeFish-AI/to-video <目录>\n"
-        "        ln -s <目录> ~/.claude/skills/to-video"
-        "   # 或设 TO_VIDEO_HOME=<目录>"
+        "找不到 vibe-video skill（按序尝试：\n  " + listed + "\n）。\n"
+        "  安装：git clone https://github.com/ThreeFish-AI/vibe-video <目录>\n"
+        "        ln -s <目录> ~/.claude/skills/vibe-video"
+        "   # 或设 VIBE_VIDEO_HOME=<目录>"
     )
 
 
-R = _skill_scripts()  # 机制脚本随 to-video skill 安装（2026-09 机制外置）
+R = _skill_scripts()  # 机制脚本随 vibe-video skill 安装（2026-09 机制外置）
 
 #: 人工审定图型表（判型依据：交付 HTML 的 data-composition-frame-kind 指纹
 #: + legend 语义，2026-09-20 由产制链路调研定稿）。

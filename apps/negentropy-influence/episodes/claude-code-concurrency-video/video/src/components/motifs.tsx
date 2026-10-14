@@ -1,27 +1,24 @@
-/** 本集视觉母题库（每集独有；复用边界见 pipeline/README.md §四——
- *  Remotion 原语复制适配、不做跨集共享包）。
+/** chrome 层组件种子（seeded 档——scaffold 复制后完全自由，无门，随集演进）。
  *
- *  四个母题，对应 script/storyboard.md 反复出现的画面语言：
- *    Terminal      终端窗口 + 打字机（P0 痛点、P2 命令拼接、P5 回照）
- *    LoopRing      环形循环 —— 全片恒定视觉锚（P1…P5 共五次出现）
- *    DispatchTable 字典分发表（P2 工具分发、P4 时机注册表）
- *    GateRouter    闸门路由（P3 三道闸门）
+ *  本文件从《拆开 Claude Code》集（claude-code-explained-video）的 motifs.tsx
+ *  抽出**通用排版/标注机械**，只读底座 token（panel/panelBorder/text/dim +
+ *  字体三族）；概念色一律经 `accent` prop 由调用方注入。任何集的 theme.ts
+ *  底座都齐，故 scaffold 后无需改动即可 tsc 通过。随集演进时直接改本集副本
+ *  （复制适配、不做跨集 import——复用边界见 references/PIPELINE.md §四）。
  *
- *  ★ LoopRing 的不变量：`stroke` 恒为 theme.core、`strokeWidth` 恒为绝对像素
- *  （不随 size 缩放）。「循环始终不变」这个主题靠它被**看见**而不是被听说，
- *  故任何调用点都不得覆写这两个值——只允许改 size / 位置 / 节点高亮。
+ *  刻意**不进模板**的是创作性母题（Terminal / LoopRing / DispatchTable /
+ *  GateRouter / SlotRing）：它们承载各集的叙事隐喻，属于每集的创作产物。
+ *  需要时从 claude-code-explained-video 的 motifs.tsx 复制对应段落后裁剪、
+ *  追加到本文件；母题目录与适用场景见 references/08 的母题表。
  */
 import React from 'react';
 import {interpolate, spring, useCurrentFrame, useVideoConfig} from 'remotion';
 import {theme} from '../design/theme';
 
-/** 环线宽（绝对像素，全片恒定，勿随 size 缩放） */
-export const RING_STROKE = 6;
-
 /** 缓入缓出：用于描线与推进，避免线性运动的机械感 */
 const ease = (t: number) => (t < 0.5 ? 2 * t * t : 1 - (1 - t) * (1 - t) * 2);
 
-// ─────────────────────────────────────────────────────────── 通用容器
+// ─────────────────────────────────────────────────────────── chrome 组件
 
 export const Panel: React.FC<{
   style?: React.CSSProperties;
@@ -40,7 +37,7 @@ export const Panel: React.FC<{
   </div>
 );
 
-/** 底部角标——统一压在 bottom ≥ 150（避让字幕条，skills/06 红线二） */
+/** 底部角标——统一压在 bottom ≥ 150（避让字幕条，references/08 红线二） */
 export const Footnote: React.FC<{children: React.ReactNode; delay?: number}> = ({
   children,
   delay = 0,
@@ -69,14 +66,25 @@ export const Footnote: React.FC<{children: React.ReactNode; delay?: number}> = (
   );
 };
 
-/** 幕标题条：左上角章号 + 标语（角标性质，不进口播） */
-export const SceneTag: React.FC<{chapter: string; tagline: string}> = ({chapter, tagline}) => {
+/** 幕标题条：左上角章号 + 标语（角标性质，不进口播）。章号默认 text，
+ *  各集常换成本集概念色（ep1 即是 core）——这是 chrome 层少数的「随集演进」点 */
+export const SceneTag: React.FC<{
+  chapter: string;
+  tagline: string;
+  accent?: string;
+}> = ({chapter, tagline, accent}) => {
   const frame = useCurrentFrame();
   const o = interpolate(frame, [6, 24], [0, 1], {extrapolateRight: 'clamp'});
-  // 右上：左上角让位给常驻 HarnessBadge（系列身份栈缩退位，harness-stack.tsx）
   return (
-    <div style={{position: 'absolute', right: 72, top: 64, textAlign: 'right', opacity: o}}>
-      <div style={{fontFamily: theme.mono, fontSize: 26, color: theme.core, letterSpacing: 2}}>
+    <div style={{position: 'absolute', left: 72, top: 64, opacity: o}}>
+      <div
+        style={{
+          fontFamily: theme.mono,
+          fontSize: 26,
+          color: accent ?? theme.text,
+          letterSpacing: 2,
+        }}
+      >
         {chapter}
       </div>
       <div style={{fontFamily: theme.serif, fontSize: 22, color: theme.dim, marginTop: 6}}>
@@ -106,68 +114,185 @@ export const Counter: React.FC<{
   );
 };
 
-// ─────────────────────────────────────────────────────────── 母题 1：终端
-
-export type TermLine = {text: string; color?: string; delay: number; prompt?: string};
-
-/** 终端窗口 + 逐字打字机。cps = 每秒字数（帧驱动，可复现） */
-export const Terminal: React.FC<{
-  lines: TermLine[];
+/** 代码卡：逐行渲染（每行 framesPerLine 帧），可高亮/压暗指定行。
+ *  高亮行与行号辉光统一走 `accent`（默认 text）——各集传本集概念色 */
+export const CodeCard: React.FC<{
+  lines: string[];
+  framesPerLine?: number;
+  highlight?: number[];
+  dimOthers?: boolean;
   width?: number;
-  height?: number;
-  cps?: number;
-  /** 打完后光标是否停闪并变灰（P0「它停在那儿了」的落点） */
-  freezeCursorAt?: number;
-  title?: string;
-}> = ({lines, width = 1180, height = 470, cps = 26, freezeCursorAt, title = 'zsh'}) => {
+  showLineNumbers?: boolean;
+  glowLineNumbersAt?: number;
+  accent?: string;
+}> = ({
+  lines,
+  framesPerLine = 3,
+  highlight = [],
+  dimOthers = false,
+  width = 900,
+  showLineNumbers = true,
+  glowLineNumbersAt,
+  accent,
+}) => {
   const frame = useCurrentFrame();
-  const {fps} = useVideoConfig();
-  const frozen = freezeCursorAt !== undefined && frame >= freezeCursorAt;
-  const blink = frozen ? 0.35 : Math.floor((frame / fps) * 2) % 2 === 0 ? 1 : 0.15;
+  const hot = accent ?? theme.text;
+  const glow =
+    glowLineNumbersAt !== undefined
+      ? interpolate(frame - glowLineNumbersAt, [0, 8, 22], [0, 1, 0], {
+          extrapolateLeft: 'clamp',
+          extrapolateRight: 'clamp',
+        })
+      : 0;
   return (
-    <Panel style={{width, height, padding: 0, overflow: 'hidden'}}>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-          height: 44,
-          padding: '0 18px',
-          borderBottom: `2px solid ${theme.panelBorder}`,
-        }}
-      >
-        {[0, 1, 2].map((i) => (
+    <Panel accent={accent} style={{width, padding: '20px 24px'}}>
+      {lines.map((ln, i) => {
+        const shown = frame >= i * framesPerLine;
+        const isHot = highlight.includes(i);
+        return (
           <div
             key={i}
-            style={{width: 12, height: 12, borderRadius: 999, background: theme.panelBorder}}
-          />
-        ))}
-        <div style={{marginLeft: 10, fontFamily: theme.mono, fontSize: 20, color: theme.dim}}>
-          {title}
-        </div>
-      </div>
-      <div style={{padding: '22px 26px', fontFamily: theme.mono, fontSize: 27, lineHeight: 1.65}}>
-        {lines.map((ln, i) => {
-          const shown = Math.max(0, Math.floor(((frame - ln.delay) / fps) * cps));
-          if (shown <= 0) return null;
-          const isLast = i === lines.length - 1;
-          const done = shown >= ln.text.length;
-          return (
-            <div key={i} style={{color: ln.color ?? theme.text, whiteSpace: 'pre'}}>
-              {ln.prompt ? <span style={{color: theme.core}}>{ln.prompt} </span> : null}
-              {ln.text.slice(0, shown)}
-              {isLast && done ? (
-                <span style={{opacity: blink, color: frozen ? theme.dim : theme.core}}>▍</span>
-              ) : null}
-            </div>
-          );
-        })}
-      </div>
+            style={{
+              display: 'flex',
+              gap: 16,
+              fontFamily: theme.mono,
+              fontSize: 25,
+              lineHeight: 1.62,
+              opacity: shown ? (dimOthers && !isHot ? 0.4 : 1) : 0,
+              background: isHot ? `${hot}26` : 'transparent',
+              borderLeft: isHot ? `4px solid ${hot}` : '4px solid transparent',
+              paddingLeft: 8,
+              borderRadius: 5,
+            }}
+          >
+            {showLineNumbers ? (
+              <span
+                style={{
+                  width: 34,
+                  textAlign: 'right',
+                  color: glow > 0 ? hot : theme.panelBorder,
+                  textShadow: glow > 0 ? `0 0 ${10 * glow}px ${hot}` : 'none',
+                }}
+              >
+                {i + 1}
+              </span>
+            ) : null}
+            <span style={{color: theme.text, whiteSpace: 'pre'}}>{ln}</span>
+          </div>
+        );
+      })}
     </Panel>
   );
 };
 
-// ─────────────────────────────────────────────────────────── 母题 2：环形循环
+/** 反枚举原则的并列项：panel 底 + 编号，激活时才染色。
+ *  概念色经 `accent` 注入（默认 text 中性；各集传本集概念色） */
+export const NumberedCard: React.FC<{
+  index: number;
+  label: string;
+  active?: boolean;
+  sub?: string;
+  width?: number;
+  delay?: number;
+  accent?: string;
+}> = ({index, label, active = false, sub, width = 210, delay = 0, accent}) => {
+  const frame = useCurrentFrame();
+  const {fps} = useVideoConfig();
+  const enter = spring({frame: frame - delay, fps, config: {damping: 200}});
+  const on = accent ?? theme.text;
+  return (
+    <div
+      style={{
+        width,
+        opacity: enter,
+        transform: `translateY(${(1 - enter) * 26}px)`,
+      }}
+    >
+      <Panel
+        accent={active ? on : theme.panelBorder}
+        style={{padding: '16px 18px', minHeight: 104}}
+      >
+        <div
+          style={{
+            fontFamily: theme.mono,
+            fontSize: 22,
+            color: active ? on : theme.dim,
+          }}
+        >
+          {String(index).padStart(2, '0')}
+        </div>
+        <div
+          style={{
+            fontFamily: theme.sans,
+            fontSize: 27,
+            fontWeight: 600,
+            color: theme.text,
+            marginTop: 4,
+          }}
+        >
+          {label}
+        </div>
+        {sub ? (
+          <div style={{fontFamily: theme.mono, fontSize: 19, color: theme.dim, marginTop: 4}}>
+            {sub}
+          </div>
+        ) : null}
+      </Panel>
+    </div>
+  );
+};
+
+export {ease};
+
+// ── 本集恒定视觉锚：传送带母题（core 橙描边恒定〔M-001〕，跨镜色值线宽逐像素一致） ──
+
+/** #RRGGBB → #RRGGBBAA（透明度为本件常量，无需 clamp） */
+const withAlpha = (hex: string, a: number): string =>
+  `${hex}${Math.round(a * 255).toString(16).padStart(2, '0')}`;
+
+/** 抬升面板填充：panel（#171C26）的亮一档，底座无此 token，本件局部登记 */
+const PANEL_RAISED = '#1E2530';
+
+/** 传送带：横贯条带＋三个标签节点（开口→工具→结果）。全片多幕同形出场，只换周边标签。
+ *  dim 态＝带停摆（core 色降透明）。静态母题（评审修复：无 frame 参数——恒速
+ *  行进感由调用侧叠 useFlowDash 虚线层，见 P0 BeltLine；无随机）。 */
+export const BeltStrip: React.FC<{
+  x: number;
+  y: number;
+  width: number;
+  dim?: boolean;
+  labels?: [string, string, string];
+}> = ({x, y, width, dim = false, labels = ['开口', '工具', '结果']}) => {
+  // 评审修复：色一律读 theme token（core=系列恒定锚）；仅「抬升面板填充」为底座
+  // 无 token 的本件局部色，具名登记于此（#1E2530，panel 的亮一档）。
+  const core = theme.core;
+  const body = withAlpha(core, dim ? 0.28 : 0.16);
+  const edge = dim ? withAlpha(core, 0.55) : core;
+  return (
+    <svg width={width} height={96} viewBox={`0 0 ${width} 96`} style={{position: 'absolute', left: x, top: y, opacity: dim ? 0.65 : 1}}>
+      <rect x={2} y={40} width={width - 4} height={16} rx={8} fill={body} stroke={edge} strokeWidth={2.5} />
+      {labels.map((lb, i) => {
+        const nx = 40 + i * ((width - 160) / 2);
+        return (
+          <g key={lb} transform={`translate(${nx + i * 6}, 0)`}>
+            <rect x={0} y={22} width={64} height={52} rx={6} fill={dim ? theme.panel : PANEL_RAISED} stroke={edge} strokeWidth={1.6} />
+            <text x={32} y={53} textAnchor="middle" fontSize={17} fill={dim ? theme.dim : theme.text} fontFamily={theme.sans}>
+              {lb}
+            </text>
+          </g>
+        );
+      })}
+      <circle cx={14} cy={48} r={5} fill={edge} />
+      <circle cx={width - 14} cy={48} r={5} fill={edge} />
+    </svg>
+  );
+};
+
+// ─────────────────────────────────────────────────── 环形循环母题（系列片头《一个循环》回植——series-intro.tsx 唯一外部母题依赖）
+
+/** 环线宽（绝对像素，全片恒定，勿随 size 缩放） */
+export const RING_STROKE = 6;
+
 
 export type RingNode = {label: string; angle: number};
 
@@ -296,313 +421,3 @@ export const LoopRing: React.FC<{
     </svg>
   );
 };
-
-/** 环的匀速巡游进度（周期 secPerLap 秒），供各幕共用同一节律 */
-export const useRingDot = (secPerLap = 2.5, offset = 0) => {
-  const frame = useCurrentFrame();
-  const {fps} = useVideoConfig();
-  return ((frame - offset) / (fps * secPerLap)) % 1;
-};
-
-// ─────────────────────────────────────────────────────────── 母题 3：分发表
-
-export type DispatchRow = {key: string; value: string};
-
-/** 字典分发表：左键右值两列，命中行整行推入石青辉光 */
-export const DispatchTable: React.FC<{
-  rows: DispatchRow[];
-  rowDelay?: number;
-  /** 命中行下标（-1 不命中） */
-  hit?: number;
-  /** 末尾预留空槽（P2「多出一行空槽」） */
-  emptySlot?: boolean;
-  slotFilled?: boolean;
-  width?: number;
-  keyHeader?: string;
-  valueHeader?: string;
-}> = ({
-  rows,
-  rowDelay = 4,
-  hit = -1,
-  emptySlot = false,
-  slotFilled = false,
-  width = 720,
-  keyHeader = '工具名',
-  valueHeader = '处理函数',
-}) => {
-  const frame = useCurrentFrame();
-  return (
-    <Panel style={{width, padding: '18px 22px'}}>
-      <div
-        style={{
-          display: 'flex',
-          fontFamily: theme.sans,
-          fontSize: 22,
-          color: theme.dim,
-          paddingBottom: 12,
-          borderBottom: `2px solid ${theme.panelBorder}`,
-        }}
-      >
-        <div style={{flex: 1}}>{keyHeader}</div>
-        <div style={{flex: 1}}>{valueHeader}</div>
-      </div>
-      {rows.map((r, i) => {
-        const on = frame >= i * rowDelay;
-        const isHit = hit === i;
-        return (
-          <div
-            key={r.key}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              height: 54,
-              opacity: on ? 1 : 0,
-              background: isHit ? theme.mechDeep : 'transparent',
-              boxShadow: isHit ? `inset 0 0 0 2px ${theme.mech}` : 'none',
-              borderRadius: 8,
-              paddingLeft: 8,
-              fontFamily: theme.mono,
-              fontSize: 27,
-            }}
-          >
-            <div style={{flex: 1, color: isHit ? theme.mech : theme.text}}>{r.key}</div>
-            <div style={{flex: 1, color: isHit ? theme.mech : theme.dim}}>{r.value}</div>
-          </div>
-        );
-      })}
-      {emptySlot ? (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            height: 54,
-            marginTop: 4,
-            border: `2px dashed ${slotFilled ? theme.mech : theme.panelBorder}`,
-            borderRadius: 8,
-            paddingLeft: 8,
-            fontFamily: theme.mono,
-            fontSize: 27,
-            color: theme.mech,
-            opacity: slotFilled ? 1 : 0.6,
-          }}
-        >
-          <div style={{flex: 1}}>{slotFilled ? 'new_tool' : ''}</div>
-          <div style={{flex: 1}}>{slotFilled ? 'run_new' : ''}</div>
-        </div>
-      ) : null}
-    </Panel>
-  );
-};
-
-// ─────────────────────────────────────────────────────────── 母题 4：闸门路由
-
-/** 三道竖闸 + 请求光点。gates: 每道闸的落下进度 0–1；verdict 决定光点走向 */
-export const GateRouter: React.FC<{
-  gates: number[];
-  /** 请求推进进度 0–1（沿水平轴） */
-  travel: number;
-  /** 被第几道闸拦下（-1 = 全过） */
-  blockedBy?: number;
-  labels?: string[];
-  width?: number;
-  height?: number;
-}> = ({gates, travel, blockedBy = -1, labels = ['拒绝表', '规则匹配', '问你'], width = 1120, height = 330}) => {
-  const gateX = [0.3, 0.52, 0.74].map((f) => f * width);
-  const stopX = blockedBy >= 0 ? gateX[blockedBy] - 26 : width - 40;
-  const x = 60 + Math.min(travel, 1) * (stopX - 60);
-  const bounced = blockedBy >= 0 && travel >= 1;
-  const y = height / 2;
-  const colorOf = (i: number) => (i === 0 ? theme.deny : theme.mech);
-  return (
-    <svg width={width} height={height} style={{overflow: 'visible'}}>
-      <line x1={40} y1={y} x2={width - 20} y2={y} stroke={theme.panelBorder} strokeWidth={4} />
-      {gateX.map((gx, i) => {
-        const p = Math.max(0, Math.min(1, gates[i] ?? 0));
-        const h = 118 * ease(p);
-        return (
-          <g key={i} opacity={p > 0 ? 1 : 0}>
-            <rect
-              x={gx - 9}
-              y={y - h}
-              width={18}
-              height={h}
-              rx={5}
-              fill={i === 2 ? 'none' : colorOf(i)}
-              stroke={colorOf(i)}
-              strokeWidth={3}
-              strokeDasharray={i === 2 ? '9 7' : undefined}
-            />
-            <text
-              x={gx}
-              y={y - h - 18}
-              textAnchor="middle"
-              fontFamily={theme.sans}
-              fontSize={23}
-              fontWeight={600}
-              fill={colorOf(i)}
-            >
-              {labels[i]}
-            </text>
-            <text
-              x={gx}
-              y={y + 44}
-              textAnchor="middle"
-              fontFamily={theme.mono}
-              fontSize={20}
-              fill={theme.dim}
-            >
-              {i + 1}
-            </text>
-          </g>
-        );
-      })}
-      <circle
-        cx={bounced ? x - 34 : x}
-        cy={y}
-        r={13}
-        fill={blockedBy === 0 ? theme.deny : theme.core}
-        opacity={bounced && blockedBy === 0 ? 0.35 : 1}
-      />
-      {blockedBy < 0 && travel >= 1 ? (
-        <text
-          x={width - 20}
-          y={y - 26}
-          textAnchor="end"
-          fontFamily={theme.sans}
-          fontSize={24}
-          fontWeight={700}
-          fill={theme.core}
-        >
-          放行
-        </text>
-      ) : null}
-    </svg>
-  );
-};
-
-// ─────────────────────────────────────────────────────────── 代码卡
-
-/** 代码卡：逐行渲染（每行 framesPerLine 帧），可高亮/压暗指定行 */
-export const CodeCard: React.FC<{
-  lines: string[];
-  framesPerLine?: number;
-  highlight?: number[];
-  dimOthers?: boolean;
-  width?: number;
-  showLineNumbers?: boolean;
-  glowLineNumbersAt?: number;
-  accent?: string;
-}> = ({
-  lines,
-  framesPerLine = 3,
-  highlight = [],
-  dimOthers = false,
-  width = 900,
-  showLineNumbers = true,
-  glowLineNumbersAt,
-  accent,
-}) => {
-  const frame = useCurrentFrame();
-  const glow =
-    glowLineNumbersAt !== undefined
-      ? interpolate(frame - glowLineNumbersAt, [0, 8, 22], [0, 1, 0], {
-          extrapolateLeft: 'clamp',
-          extrapolateRight: 'clamp',
-        })
-      : 0;
-  return (
-    <Panel accent={accent} style={{width, padding: '20px 24px'}}>
-      {lines.map((ln, i) => {
-        const shown = frame >= i * framesPerLine;
-        const hot = highlight.includes(i);
-        return (
-          <div
-            key={i}
-            style={{
-              display: 'flex',
-              gap: 16,
-              fontFamily: theme.mono,
-              fontSize: 25,
-              lineHeight: 1.62,
-              opacity: shown ? (dimOthers && !hot ? 0.4 : 1) : 0,
-              background: hot ? theme.coreDeep : 'transparent',
-              borderLeft: hot ? `4px solid ${theme.mech}` : '4px solid transparent',
-              paddingLeft: 8,
-              borderRadius: 5,
-            }}
-          >
-            {showLineNumbers ? (
-              <span
-                style={{
-                  width: 34,
-                  textAlign: 'right',
-                  color: glow > 0 ? theme.core : theme.panelBorder,
-                  textShadow: glow > 0 ? `0 0 ${10 * glow}px ${theme.core}` : 'none',
-                }}
-              >
-                {i + 1}
-              </span>
-            ) : null}
-            <span style={{color: theme.text, whiteSpace: 'pre'}}>{ln}</span>
-          </div>
-        );
-      })}
-    </Panel>
-  );
-};
-
-/** 反枚举原则的并列项：panel 底 + 编号，激活时才染色 */
-export const NumberedCard: React.FC<{
-  index: number;
-  label: string;
-  active?: boolean;
-  sub?: string;
-  width?: number;
-  delay?: number;
-}> = ({index, label, active = false, sub, width = 210, delay = 0}) => {
-  const frame = useCurrentFrame();
-  const {fps} = useVideoConfig();
-  const enter = spring({frame: frame - delay, fps, config: {damping: 200}});
-  return (
-    <div
-      style={{
-        width,
-        opacity: enter,
-        transform: `translateY(${(1 - enter) * 26}px)`,
-      }}
-    >
-      <Panel
-        accent={active ? theme.mech : theme.panelBorder}
-        style={{padding: '16px 18px', minHeight: 104}}
-      >
-        <div
-          style={{
-            fontFamily: theme.mono,
-            fontSize: 22,
-            color: active ? theme.mech : theme.dim,
-          }}
-        >
-          {String(index).padStart(2, '0')}
-        </div>
-        <div
-          style={{
-            fontFamily: theme.sans,
-            fontSize: 27,
-            fontWeight: 600,
-            color: theme.text,
-            marginTop: 4,
-          }}
-        >
-          {label}
-        </div>
-        {sub ? (
-          <div style={{fontFamily: theme.mono, fontSize: 19, color: theme.dim, marginTop: 4}}>
-            {sub}
-          </div>
-        ) : null}
-      </Panel>
-    </div>
-  );
-};
-
-export {ease};

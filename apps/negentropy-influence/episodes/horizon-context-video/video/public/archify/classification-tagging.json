@@ -1,9 +1,9 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.44,
- "story_sec": 13.1,
- "total_wall_sec": 46.88,
+ "lead_sec": 0.48,
+ "story_sec": 13.16,
+ "total_wall_sec": 130.93,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -16,15 +16,15 @@
    "end_still": "classification-tagging--tag-driven-end.png",
    "beats": 6,
    "dwell_ms": 1100,
-   "lead_sec": 0.44,
-   "story_sec": 6.64,
+   "lead_sec": 0.48,
+   "story_sec": 6.65,
    "beat_offsets_sec": [
     0.0,
-    1.103,
-    2.206,
-    3.307,
-    4.41,
-    5.513
+    1.105,
+    2.209,
+    3.314,
+    4.418,
+    5.521
    ],
    "beat_nodes": [
     "new",
@@ -35,7 +35,7 @@
     "out"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 22.0
+   "capture_fps": 28.0
   },
   {
    "id": "honest-limit",
@@ -46,7 +46,7 @@
    "beats": 2,
    "dwell_ms": 1600,
    "lead_sec": 0.44,
-   "story_sec": 3.25,
+   "story_sec": 3.26,
    "beat_offsets_sec": [
     0.0,
     1.603
@@ -56,7 +56,7 @@
     "limit"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 23.0
+   "capture_fps": 27.0
   },
   {
    "id": "explicit-gap",
@@ -66,18 +66,18 @@
    "end_still": "classification-tagging--explicit-gap-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 0.44,
-   "story_sec": 3.21,
+   "lead_sec": 0.4,
+   "story_sec": 3.25,
    "beat_offsets_sec": [
     0.0,
-    1.602
+    1.604
    ],
    "beat_nodes": [
     "map",
     "gap"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 22.0
+   "capture_fps": 27.0
   }
  ],
  "capture": {
@@ -88,7 +88,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/tripoli-v4/docs/assets/architecture/cognitive-context/horizon-context--classification-tagging.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/horizon-context--classification-tagging.html",
  "slug": "classification-tagging",
  "type": "workflow"
 }

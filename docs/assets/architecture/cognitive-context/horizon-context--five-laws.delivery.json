@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "3728ee3e-9c6b-40bb-9a87-ec14cf92720c",
+  "status": "current",
+  "command": "deliver",
+  "type": "dataflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/dataflow-five-laws-20261001/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/horizon-context--five-laws.html",
+  "specification": {
+    "sha256": "73847421c1e57cbe51c0b4da40b1e0a7782383b2de7f9a6409fec1503c8af970",
+    "bytes": 9590
+  },
+  "artifact": {
+    "sha256": "2caaed4296343af8b0263d6fc27a6706355f7c713f6c444099dc12a2ad53cea0",
+    "bytes": 773813
+  }
+}

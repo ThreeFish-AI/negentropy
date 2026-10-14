@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "112791e6-9fb9-4fff-9ef2-545100b984bd",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/.archify/workflow-gate-order-ablation-1836/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/claude-code--gate-order-ablation.html",
+  "specification": {
+    "sha256": "c2be6673dc411f554bdebb439f49cce3713d6f8bbbb3aee1bc341df6f7511b73",
+    "bytes": 7114
+  },
+  "artifact": {
+    "sha256": "5b79914a957d6814d450af3261c71b0a49c16e053e7d9864198032c7cf704b49",
+    "bytes": 846220
+  }
+}

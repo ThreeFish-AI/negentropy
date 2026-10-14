@@ -51,6 +51,24 @@ TWIN_GROUPS: list[tuple[str, str, list[str]]] = [
             "apps/negentropy-ui/utils/remark-math-sanitize.ts",
         ],
     ),
+    (
+        "series-intro-seed",
+        (
+            "CC 系列片头《一个循环》跨五集 seeded 复制（skill 骨架「复制不共享」哲学："
+            "每集 video/ 须独立 pnpm install 可渲，共享 TS 源会把一集改动泄漏进已发布集）。"
+            "组件内含台本/T 表/字幕三容器 SSOT，单边漂移=已发布集静默分叉；首条路径为"
+            "series-assets canonical 种子（改动入口），逐集差异全数据驱动（IntroOverride），"
+            "禁止单改某一集副本。"
+        ),
+        [
+            "apps/negentropy-influence/series-assets/claude-code-explained/intro/series-intro.tsx",
+            "apps/negentropy-influence/episodes/claude-code-explained-video/video/src/components/series-intro.tsx",
+            "apps/negentropy-influence/episodes/claude-code-planning-video/video/src/components/series-intro.tsx",
+            "apps/negentropy-influence/episodes/claude-code-memory-video/video/src/components/series-intro.tsx",
+            "apps/negentropy-influence/episodes/claude-code-concurrency-video/video/src/components/series-intro.tsx",
+            "apps/negentropy-influence/episodes/claude-code-multiagent-video/video/src/components/series-intro.tsx",
+        ],
+    ),
 ]
 
 

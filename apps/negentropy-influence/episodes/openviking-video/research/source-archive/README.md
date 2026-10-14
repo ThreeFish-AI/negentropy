@@ -1,6 +1,6 @@
 # source-archive · 取证字节归档（pin `348d879`）
 
-钉在未合并分支的 raw URL 会随分支强推/删除而失效，本目录按 [B 型纪律](https://github.com/ThreeFish-AI/to-video/blob/main/pipeline/skills/01-source-extraction.md) 存档取证字节的完整副本。
+钉在未合并分支的 raw URL 会随分支强推/删除而失效，本目录按 [B 型纪律](https://github.com/ThreeFish-AI/vibe-video/blob/main/pipeline/skills/01-source-extraction.md) 存档取证字节的完整副本。
 
 | 项 | 值 |
 | --- | --- |

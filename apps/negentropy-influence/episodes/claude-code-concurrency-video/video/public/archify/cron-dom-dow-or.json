@@ -1,0 +1,83 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 13.31,
+ "total_wall_sec": 47.26,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "five-fields",
+   "label": "五段·分时日月星期",
+   "index": 0,
+   "file": "cron-dom-dow-or--five-fields.mp4",
+   "end_still": "cron-dom-dow-or--five-fields-end.png",
+   "beats": 6,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 6.63,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "expr-in",
+    "f-min",
+    "f-hour",
+    "f-dom",
+    "f-month",
+    "f-dow"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 62.0
+  },
+  {
+   "id": "and-or",
+   "label": "三段全中·这对任一",
+   "index": 1,
+   "file": "cron-dom-dow-or--and-or.mp4",
+   "end_still": "cron-dom-dow-or--and-or-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.34,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "and-gate",
+    "or-gate",
+    "fire"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 62.0
+  },
+  {
+   "id": "both-ways",
+   "label": "9·28 与每月一号都响",
+   "index": 2,
+   "file": "cron-dom-dow-or--both-ways.mp4",
+   "end_still": "cron-dom-dow-or--both-ways-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.34,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "ex-928",
+    "ex-month1",
+    "or-gate"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/apps/negentropy-influence/episodes/claude-code-concurrency-video/video/public/archify/html/cron-dom-dow-or.html",
+ "slug": "cron-dom-dow-or",
+ "type": "workflow"
+}

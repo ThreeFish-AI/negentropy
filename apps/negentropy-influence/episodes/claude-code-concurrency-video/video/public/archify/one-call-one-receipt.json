@@ -1,0 +1,79 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 9.96,
+ "total_wall_sec": 45.2,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "pair-rule",
+   "label": "一次调用一个结果",
+   "index": 0,
+   "file": "one-call-one-receipt--pair-rule.mp4",
+   "end_still": "one-call-one-receipt--pair-rule-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "shifu",
+    "mainloop",
+    "slot"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 62.0
+  },
+  {
+   "id": "reject-second",
+   "label": "补发被弹开",
+   "index": 1,
+   "file": "one-call-one-receipt--reject-second.mp4",
+   "end_still": "one-call-one-receipt--reject-second-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "shifu",
+    "slot"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "notify-new-msg",
+   "label": "真结果走新消息",
+   "index": 2,
+   "file": "one-call-one-receipt--notify-new-msg.mp4",
+   "end_still": "one-call-one-receipt--notify-new-msg-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.36,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "pipeline",
+    "mainloop",
+    "shifu"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/apps/negentropy-influence/episodes/claude-code-concurrency-video/video/public/archify/html/one-call-one-receipt.html",
+ "slug": "one-call-one-receipt",
+ "type": "sequence"
+}

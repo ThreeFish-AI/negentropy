@@ -1,30 +1,30 @@
 [
  {
   "scene": "P0",
-  "title": "一个到一群"
+  "title": "失忆的楼"
  },
  {
   "scene": "P1",
-  "title": "排工板"
+  "title": "任务墙"
  },
  {
   "scene": "P2",
-  "title": "收件格与派工单"
+  "title": "递话口"
  },
  {
   "scene": "P3",
-  "title": "班次"
+  "title": "回执簿与值班钟"
  },
  {
   "scene": "P4",
-  "title": "隔间"
+  "title": "门牌房"
  },
  {
   "scene": "P5",
-  "title": "插口"
+  "title": "认证插座"
  },
  {
   "scene": "P6",
-  "title": "收束"
+  "title": "环形走廊"
  }
 ]

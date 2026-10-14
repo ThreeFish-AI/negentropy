@@ -1,30 +1,30 @@
 [
  {
   "scene": "P0",
-  "title": "每轮从头读"
+  "title": "会干活之后"
  },
  {
   "scene": "P1",
-  "title": "工序卡"
+  "title": "每轮看到什么"
  },
  {
   "scene": "P2",
-  "title": "副台与回执"
+  "title": "计划顶回眼前"
  },
  {
   "scene": "P3",
-  "title": "抽屉与手册"
+  "title": "隔离与结论"
  },
  {
   "scene": "P4",
-  "title": "垫纸重铺"
+  "title": "知识按需"
  },
  {
   "scene": "P5",
-  "title": "补救梯"
+  "title": "分类恢复"
  },
  {
   "scene": "P6",
-  "title": "收束"
+  "title": "规律与边界"
  }
 ]

@@ -102,7 +102,7 @@ title: "架构设计方案 · 一核五翼总览"
 | **negentropy-perceives** (感知服务) | Python 3.13+, FastMCP                                                  | `uv`                        | [`src/`](../../apps/negentropy-perceives/src/)                            |
 | **negentropy-ui** (前端)   | Next.js 16<sup>[[8]](#ref8)</sup>, React 19, TypeScript, Tailwind CSS                         | `pnpm`                      | [`app/layout.tsx`](../../apps/negentropy-ui/app/layout.tsx)               |
 | **negentropy-wiki** (Wiki) | Next.js, TypeScript · 纯静态导出                                                              | `pnpm`                      | [`src/`](../../apps/negentropy-wiki/src/)                                 |
-| **negentropy-influence** (科普视频内容工作区) | Python · Remotion · IndexTTS 声音克隆（外部服务 `:8766`）                       | `uv`（工作区薄包装器）            | [`README.md`](../../apps/negentropy-influence/README.md)（内容工作区；机制外置为 [to-video 技能](https://github.com/ThreeFish-AI/to-video)，无常驻服务端口） |
+| **negentropy-influence** (科普视频内容工作区) | Python · Remotion · IndexTTS 声音克隆（外部服务 `:8766`）                       | `uv`（工作区薄包装器）            | [`README.md`](../../apps/negentropy-influence/README.md)（内容工作区；机制外置为 [vibe-video 技能](https://github.com/ThreeFish-AI/vibe-video)，无常驻服务端口） |
 | **agents-chat-core** (共享包) | TypeScript · AG-UI 协议层 + Mention 解析                                                      | `pnpm`（workspace:*）       | [`packages/agents-chat-core/`](../../packages/agents-chat-core/)（仅 negentropy-ui 消费；层边界契约对共享源码包的唯一豁免） |
 
 应用间仅通过网络契约（AG-UI / HTTP / MCP）或构建期静态产物协作，严禁源码互引。详见 [development.md](operations/development.md) §项目结构。
@@ -366,7 +366,7 @@ SequentialAgent(
 - **统一调度**（[`engine/schedulers/`](../../apps/negentropy/src/negentropy/engine/schedulers/)）：`AsyncScheduler` 以 5s 全局心跳驱动 13 个 handler（缓存预热、各类 inspector、工具统计等）；任务表以 `FOR UPDATE SKIP LOCKED` 抢占，`ExecutionBus` 向 UI 扇出 SSE 事件
 - **Routine 编排**（[`engine/routine/`](../../apps/negentropy/src/negentropy/engine/routine/)，20 模块）：`routine_inspector` 每 tick 驱动 orchestrator 的 REAP → EVAL → DISPATCH 三阶段；runner 以进程内 asyncio.Task + 信号量执行——这也是引擎坚持单进程单 worker 的架构原因
 - **Claude Code 执行体**（[`engine/claude_code/service.py`](../../apps/negentropy/src/negentropy/engine/claude_code/service.py)）：Routine 迭代的实际执行器是 Claude Code CLI；引擎另挂 [`/mcp/knowledge`](../../apps/negentropy/src/negentropy/knowledge/mcp_server.py) MCP 端点（streamable-HTTP）为其供给知识工具
-- **Definitions Registry**（migrations 0095–0099）：[`definitions`](../../apps/negentropy/src/negentropy/agents/definitions/registry.py) 表是 `skill_template` / `routine_preset` / `harness_skill` / `agent` 四类定义的 SSOT；`harness_materializer` 将 DB 渲染回 `.agent/skills/`，`agent_factory` 从 DB 构造 agent 图（`NE_AGENTS_FROM_DB` 默认开启）。盘上 11 个 SKILL.md 已全部入库（11/11；`science-video-pipeline` 已随流水线机制外置为 [to-video 技能](https://github.com/ThreeFish-AI/to-video) 删除）
+- **Definitions Registry**（migrations 0095–0099）：[`definitions`](../../apps/negentropy/src/negentropy/agents/definitions/registry.py) 表是 `skill_template` / `routine_preset` / `harness_skill` / `agent` 四类定义的 SSOT；`harness_materializer` 将 DB 渲染回 `.agent/skills/`，`agent_factory` 从 DB 构造 agent 图（`NE_AGENTS_FROM_DB` 默认开启）。盘上 11 个 SKILL.md 已全部入库（11/11；`science-video-pipeline` 已随流水线机制外置为 [vibe-video 技能](https://github.com/ThreeFish-AI/vibe-video) 删除）
 - **PDF 保真巡检**（`pdf_fidelity_patrol`，默认 600s interval）：起真实 wiki dev 环境 + Playwright 逐页对照源 PDF，经 perceives `:2992` 重转验证
 - **Evolution / Eval**：提案—金丝雀—裁决的自演化回路与攻击面评估
 

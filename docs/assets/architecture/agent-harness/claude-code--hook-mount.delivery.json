@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "f248288d-fa10-4ea6-9af4-efdc0280b656",
+  "status": "current",
+  "command": "deliver",
+  "type": "dataflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/.archify/dataflow-hook-mount-1827/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/claude-code--hook-mount.html",
+  "specification": {
+    "sha256": "9933af446b2808c3d4ac1ed47b86655ee1c4af987a3904b173ae4194d70bffc1",
+    "bytes": 7194
+  },
+  "artifact": {
+    "sha256": "184a99cbbda07ad32363a46ac84565823740634af99779f18c4ffa2f6176fdac",
+    "bytes": 843871
+  }
+}

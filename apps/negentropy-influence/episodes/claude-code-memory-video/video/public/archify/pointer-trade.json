@@ -2,8 +2,8 @@
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 19.48,
- "total_wall_sec": 90.33,
+ "story_sec": 19.49,
+ "total_wall_sec": 77.3,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -17,10 +17,10 @@
    "beats": 2,
    "dwell_ms": 1600,
    "lead_sec": 0.44,
-   "story_sec": 3.23,
+   "story_sec": 3.21,
    "beat_offsets_sec": [
     0.0,
-    1.605
+    1.607
    ],
    "beat_nodes": [
     "latest-batch",
@@ -41,7 +41,7 @@
    "story_sec": 3.23,
    "beat_offsets_sec": [
     0.0,
-    1.605
+    1.604
    ],
    "beat_nodes": [
     "size-sort",
@@ -59,17 +59,17 @@
    "beats": 2,
    "dwell_ms": 1600,
    "lead_sec": 0.44,
-   "story_sec": 3.23,
+   "story_sec": 3.24,
    "beat_offsets_sec": [
     0.0,
-    1.606
+    1.602
    ],
    "beat_nodes": [
     "parcel-tag",
     "preview-block"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 49.0
+   "capture_fps": 48.0
   },
   {
    "id": "full-on-disk",
@@ -80,10 +80,10 @@
    "beats": 2,
    "dwell_ms": 1600,
    "lead_sec": 0.44,
-   "story_sec": 3.25,
+   "story_sec": 3.24,
    "beat_offsets_sec": [
     0.0,
-    1.604
+    1.606
    ],
    "beat_nodes": [
     "disk-vault",
@@ -101,11 +101,11 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 3.33,
+   "story_sec": 3.32,
    "beat_offsets_sec": [
     0.0,
-    1.107,
-    2.212
+    1.103,
+    2.209
    ],
    "beat_nodes": [
     "recent-window",
@@ -124,10 +124,10 @@
    "beats": 2,
    "dwell_ms": 1600,
    "lead_sec": 0.44,
-   "story_sec": 3.21,
+   "story_sec": 3.25,
    "beat_offsets_sec": [
     0.0,
-    1.603
+    1.605
    ],
    "beat_nodes": [
     "generic-hint",
@@ -145,7 +145,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--pointer-trade.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/docs/assets/architecture/agent-harness/claude-code--pointer-trade.html",
  "slug": "pointer-trade",
  "type": "dataflow"
 }

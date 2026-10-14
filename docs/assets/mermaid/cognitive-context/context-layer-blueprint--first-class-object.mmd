@@ -1,0 +1,14 @@
+%%source: docs/research/cognitive-context/013-context-layer-blueprint.md §2 第一性对象与分析单元（式2 并集、式3/4 装配事务；三症状三病灶冻结口径）
+%%slug: cognitive-context/context-layer-blueprint--first-class-object
+%%type: dataflow
+%%derived: archify dataflow v1, authored fresh（新图：ℰ→E_rel→Char→C→(C,𝒯)→f_context 装配事务主链；三症状挂事务内部、八算子作加工位）
+%% fix: 2026-10-10 式3→式4 口径对齐正文 §2.4
+flowchart LR
+    ESPACE["实体空间 ℰ"] -->|"取相关子集"| EREL["相关子集 E_rel"]
+    EREL -->|"e ∈ E_rel"| CHAR["表征函数 Char<br/>式1 ℰ→𝒫(ℱ)"]
+    CHAR -->|"⋃ 并集 式2"| C["原始上下文 C"]
+    TASK["目标任务域 𝒯<br/>好坏＝任务相对量"] -->|"(C,𝒯)"| C
+    C -->|"实调用 式4"| TXN["装配事务 f_context<br/>实调用一次＝一次事务"]
+    OPS["八算子 φ₁…φ₈<br/>完备性核对表"] -->|"ℱ 组合"| TXN
+    TXN -->|"窗口定型"| ANSWER["窗口定型·应答<br/>本轮窗口内容"]
+    TXN -.->|"错装配进窗"| SYM["三症状<br/>口径/证据/越权 全部在事务内部"]

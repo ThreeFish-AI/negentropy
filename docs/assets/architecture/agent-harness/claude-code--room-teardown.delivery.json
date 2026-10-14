@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "5a16d8c5-c217-44b1-b8f1-be1c824f9098",
+  "status": "current",
+  "command": "deliver",
+  "type": "lifecycle",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/.archify/lifecycle-room-teardown-20261003-003558/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code--room-teardown.html",
+  "specification": {
+    "sha256": "0125f1f2f2c0e567954d5fb5fc5faa9f160663b7896c84e7f7cac206feddbf72",
+    "bytes": 4376
+  },
+  "artifact": {
+    "sha256": "b0c5866de98e390c48d511d4049843ab2f8e524799a1c80c1694ded8a9137e55",
+    "bytes": 766355
+  }
+}

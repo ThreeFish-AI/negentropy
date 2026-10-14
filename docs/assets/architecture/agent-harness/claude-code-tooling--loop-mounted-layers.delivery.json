@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "42d41dee-f98b-4441-ad9c-0dd82035a418",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/.archify/workflow-loop-mounted-layers-20260930-233955/candidate.arch.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/claude-code-tooling--loop-mounted-layers.html",
+  "specification": {
+    "sha256": "16cef4fa9165ca0698ad85cab72320fdc9985276f6bf89df013f2e006da0ee77",
+    "bytes": 5152
+  },
+  "artifact": {
+    "sha256": "30b7b3edcd4f36200dd4680faac5ac98e4309f0d0b15939415c7cf6f629df743",
+    "bytes": 761292
+  }
+}

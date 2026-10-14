@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "e7988b19-e158-44e1-80b6-91bf85e4b451",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/.archify/architecture-gate-four-result-1835/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/claude-code--gate-four-result.html",
+  "specification": {
+    "sha256": "8115fabab12e36304f7d8096b4149279009fb025bab7fab35ef0db4b307618db",
+    "bytes": 11344
+  },
+  "artifact": {
+    "sha256": "4117677fd15226f0dbf194483056a0a935627c4cb69754f6160bed44a7835f94",
+    "bytes": 868409
+  }
+}

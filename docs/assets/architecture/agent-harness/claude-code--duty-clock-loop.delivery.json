@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "cb7292ad-ae45-4094-8ba9-dd3458a387d5",
+  "status": "current",
+  "command": "deliver",
+  "type": "lifecycle",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/.archify/lifecycle-duty-clock-loop-20261003-003558/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code--duty-clock-loop.html",
+  "specification": {
+    "sha256": "3803ab752d74ce1a1862872e4cdf728d4439e645fdf8a497fcfe6b4100f64b68",
+    "bytes": 5603
+  },
+  "artifact": {
+    "sha256": "0873ef20dad4ce843971f44cee25ecd99bb156a906c301e26d53604ca199f0e9",
+    "bytes": 772425
+  }
+}

@@ -4,7 +4,7 @@
       "id": "self-evolution",
       "title": "自进化系列科普视频",
       "sourceKind": "paper",
-      "rule": "各集独立成片。口播文本严禁出现其他集标题、集数序号或「上一集/上期/第 N 集」等顺序词；序号只存在于视觉层与本文件，据此保证发布顺序变更的 TTS 代价为零（「下期再见」一类顺序无关的收尾语不受此限）。校验器：to-video skill 的 pipeline/scripts/check_series.py（工作区根锚定）。",
+      "rule": "各集独立成片。口播文本严禁出现其他集标题、集数序号或「上一集/上期/第 N 集」等顺序词；序号只存在于视觉层与本文件，据此保证发布顺序变更的 TTS 代价为零（「下期再见」一类顺序无关的收尾语不受此限）。校验器：vibe-video skill 的 pipeline/scripts/check_series.py（工作区根锚定）。",
       "episodes": [
         {
           "episode": 1,
@@ -26,7 +26,7 @@
             "date": "2026-06"
           },
           "status": "ready",
-          "statusNote": "v3 已完成：内容校准（187 句，25 改写 + 8 新增）+ sunny-steady 全片重配 + 终渲 14:01；源码含未重渲改动（P3 Figure 8 格阵落格校准，见 PR 说明），发布前须重渲",
+          "statusNote": "v3 已完成：内容校准（187 句，25 改写 + 8 新增）+ sunny-steady 全片重配 + 终渲 14:01；源码含未重渲改动（P3 Figure 8 格阵落格校准，见 PR 说明；p1-07 改写去 Harness 中译，须重配该句），发布前须重渲",
           "voice": "sunny-steady + me-bright.wav（2026-08 重录决策）"
         },
         {
@@ -102,8 +102,7 @@
       "id": "claude-code-explained",
       "title": "Claude Code Harness Engineering",
       "sourceKind": "course",
-      "rule": "与自进化系列完全独立：两个系列的口播互不引用（校验器规则 1 跨系列全局生效），发布顺序与视觉契约各自独立（规则 2/3/4 按系列内判定）。信源为官方文档 + Anthropic 工程博客 + 开源课程仓库（站点 20 章/5 阶段只作组织骨架，观众层匿名化——规则 7），故 episode 用 source 字段（含 pinnedRef 与访问日期）而非 paper 字段——证据等级分层见各集 research/source-notes.md。",
-      "episodes": [
+      "rule": "与自进化系列完全独立：两个系列的口播互不引用（校验器规则 1 跨系列全局生效），发布顺序与视觉契约各自独立（规则 2/3/4 按系列内判定）。信源为官方文档 + Anthropic 工程博客 + 开源课程仓库（站点 20 章/5 阶段只作组织骨架，观众层匿名化——规则 7），故 episode 用 source 字段（含 pinnedRef 与访问日期）而非 paper 字段——证据等级分层见各集 research/gl-notes.md 冻结登记（ep5 例外：其 gl-notes 为 2026-10-07 换代前 175 的冻结快照——成片 v2 取证口径）。",      "episodes": [
         {
           "episode": 1,
           "slug": "claude-code-explained-video",
@@ -120,20 +119,20 @@
             "title": "Learn Claude Code · 工具与执行（s01 Agent Loop / s02 Tool Use / s03 Permission / s04 Hooks）",
             "site": "https://learn.shareai.run/zh/s01/",
             "repo": "https://github.com/shareAI-lab/learn-claude-code",
-            "pinnedRef": "0dcafa2ae053a1ddd6a72f265431104b08a5aa13",
+            "pinnedRef": "ce8f9f186058939da54c9d6fead78dfb5d0fd6c3",
             "license": "MIT",
-            "accessed": "2026-09-27"
+            "accessed": "2026-10-07"
           },
-          "status": "final-review",
-          "statusNote": "完全重制 v1 交付（2026-09-30）：14:02.6 = 843s @1080p30（时长窗 [13.0,14.6] 实测落窗；843s=25279 帧复算）；164 句 3644 字（CP1 实测 274 字/分校准 chars_per_min=254 后减脂 317 字）；story 档配音（me-bright 克隆 + 43 块 cues 台本 + seed 4242）；archify 12 图（10 新绘+2 复用重建）65 章逐章回放（cue 64 · 锚定 39.0% · 5 型 · 密度 4.6/分）；机器门全绿：check_series/build/check--check-scenes FAIL 0（2 豁免 WARN 金句卡）/tsc 零错/motion 测试/qa --check FAIL 0/亮度带扫描零近黑段/全分辨率目检翻案无缺陷；归档 ~/Documents/video/claude-code-explained/ v1 + _captions",
+          "status": "script-review",
+          "statusNote": "剧本 v3 待审（2026-10-07）：planning/narration/storyboard 全新换代，C 型信源=171 新精读（guided-learn 2026-10-07）；159 句 3692 字 7 幕 27 镜（build 口径 14.5 分落窗）；build/pre-tts/内容门三绿 + source_ledger 15 条 FAIL 0；场景/TTS/图集未动，跨代红门见 ISSUE-211；main 钉换 ce8f9f18（自 0dcafa2a 无机制级变更）；旧 source-notes/cues 清理、archive 重建为 ce8f9f1/；2026-10-08 片头独立化：组件种子迁 series-assets/claude-code-explained/intro/（六路径孪生门执法），本集副本化零行为变化；成片仍待重渲（不含片头与 v2.1 后续改动，正片 TTS 批亦落后现稿）——重渲批次口径见 ISSUE-209",
           "voice": "story + me-bright.wav"
         },
         {
           "episode": 2,
           "slug": "claude-code-planning-video",
           "path": "episodes/claude-code-planning-video",
-          "title": "规划与协调：模型的视野是安排出来的",
-          "topic": "规划与协调：谁替它安排视野",
+          "title": "规划与协调：视野错位的五种修正手法",
+          "topic": "规划与协调：视野错位怎么修",
           "cardSub": "规划与协调 · 视野",
           "accents": [
             "#9C90EE"
@@ -144,10 +143,10 @@
             "repo": "https://github.com/shareAI-lab/learn-claude-code",
             "pinnedRef": "67a9126c6435a8654ba7a6f68c0fd2130f00a462",
             "license": "MIT",
-            "accessed": "2026-08-22"
+            "accessed": "2026-10-07"
           },
-          "status": "final-review",
-          "statusNote": "**v2 交付**（2026-09-30 重渲，含两轮评审修复 14+16 处；v1 2026-09-29 初渲）原 v1 口径（2026-09-29）：14:12.2 = 852s @1080p30（25566 帧复算）；169 句 3603 字（254 口径直写零减脂）；story 档（44 块 cues + seed 4242）纯语音 13.17 分；archify 12 图 68 章逐章回放（state→lifecycle 词表映射 2 图）；机器门全绿 + 目检修复 P6 系列题字与第五层层板叠压（qa --check 盲区——全分辨率目检抓出，标语 top 改栈几何推导）；归档 v1 + _captions",
+          "status": "script-review",
+          "statusNote": "剧本 v3 待审（2026-10-07）：C 型信源=172 新精读；147 句 3561 字 7 幕 28 镜（14.0 分落窗）；三门绿 + source_ledger 28 条 FAIL 0；场景/TTS/图集未动（ISSUE-211）；钩子 H1/标题候选 4 项待人工复核；2026-10-08 系列片头铺开：series-intro 组件副本+挂载块（归一化指纹 78664c3010fd）+leadIn 23.5（片头 705 帧前置）；时长预算窗改 [13.0,15.5] 含片头口径（+22.9s）；0-A 已让位改造（退役 HarnessStackP0，Badge 直入，2026-10-08）；成片待重渲（补跑 TTS 后统一批次），见 ISSUE-209；2026-10-08 标题定稿《规划与协调：视野错位的五种修正手法》（用户钉版，v6 换题片头拍板）——候选 A–D 作废、钩子 H1 仍待审，13 处登记面已级联（规则 8 双 FAIL 归零）",
           "voice": "story + me-bright.wav"
         },
         {
@@ -166,19 +165,19 @@
             "repo": "https://github.com/shareAI-lab/learn-claude-code",
             "pinnedRef": "67a9126c6435a8654ba7a6f68c0fd2130f00a462",
             "license": "MIT",
-            "accessed": "2026-08-22"
+            "accessed": "2026-10-07"
           },
-          "status": "final-review",
-          "statusNote": "**v2 交付**（2026-09-30 重渲，含两轮评审修复 14+16 处；v1 2026-09-29 初渲）原 v1 口径（2026-09-29）：14:13.3 = 853s @1080p30（25598 帧复算）；163 句 3644 字（254 实测口径直写零减脂）；story 档（seed 4242 · 无配音台本——自动分段默认情绪向量，见 issue.md ISSUE-204）；archify 12 图 62 章逐章回放（含 memory-panorama/five-layer 复用原生重建，锚定 38%）；双轨口径干净（站点轨叙事+main 彩蛋）；机器门全绿：check FAIL 0（3 豁免 WARN 金句卡）/tsc/motion 15:15/qa FAIL 0/亮度带零近黑/目检过（半分辨率疑似贴边经判例排除）；归档 v1 + _captions",
+          "status": "script-review",
+          "statusNote": "剧本 v3 待审（2026-10-07）：C 型信源=173 新精读（双轨：站点主轨+main s08 演进彩蛋）；160 句 3642 字 7 幕 32 镜（14.3 分落窗）；三门绿 + source_ledger 13 条 FAIL 0；场景/TTS/图集未动（ISSUE-211）；archive 增 ce8f9f1/ 双轨对照；2026-10-08 系列片头铺开：series-intro 组件副本+挂载块（归一化指纹 78664c3010fd）+leadIn 23.5（片头 705 帧前置）；时长预算窗改 [13.0,15.5] 含片头口径（+22.9s）；0-A 已让位改造（退役 HarnessStackP0，Badge 直入，2026-10-08）；成片待重渲（补跑 TTS 后统一批次），见 ISSUE-209",
           "voice": "story + me-bright.wav"
         },
         {
           "episode": 4,
           "slug": "claude-code-concurrency-video",
           "path": "episodes/claude-code-concurrency-video",
-          "title": "并发：谁来按下开始",
+          "title": "并发与调度：一张回执和四层钟",
           "topic": "并发与调度：谁替它看表",
-          "cardSub": "并发 · 时机",
+          "cardSub": "并发 · 调度",
           "accents": [
             "#7FB2E0",
             "#EFB13C"
@@ -189,17 +188,17 @@
             "repo": "https://github.com/shareAI-lab/learn-claude-code",
             "pinnedRef": "67a9126c6435a8654ba7a6f68c0fd2130f00a462",
             "license": "MIT",
-            "accessed": "2026-08-22"
+            "accessed": "2026-10-07"
           },
-          "status": "final-review",
-          "statusNote": "**v2 交付**（2026-09-30 重渲，含两轮评审修复 14+16 处；v1 2026-09-30 初渲）原 v1 口径（2026-09-30）：14:10.8 @1080p30（25523 帧复算）；170 句 3613 字；story 档 43 块 cues；archify 12 图 59 章（两张 3.0.0 漏网图经锁定版 2.17 重建）；**渲染五连崩根因=Lottie clock-swing 在 headless ANGLE 确定性挂死 delayRender**——换原生 PendulumGlyph（衰减正弦摆）根治；集成期抓出并补齐 P1/P2 半场缺失（108s 纯黑屏）；机器门全绿+目检过；归档 v1+_captions",
-          "voice": "story + me-bright.wav"
+          "status": "script-review",
+          "statusNote": "剧本 v3 待审（2026-10-07）：C 型信源=174 新精读；178 句 3594 字 7 幕 36 镜（14.1 分落窗）；三门绿 + source_ledger 17 条 FAIL 0；抖动双口径（官方 30 分钟/半间隔 vs 站点考古 10%/15 分钟）穿透回源；场景/TTS/图集未动（ISSUE-211）；2026-10-08 系列片头铺开：series-intro 组件副本+挂载块（归一化指纹 78664c3010fd）+leadIn 23.5（片头 705 帧前置）；时长预算窗改 [13.0,15.5] 含片头口径（+22.9s）；0-A 已让位改造（退役 HarnessStackP0，Badge 直入，2026-10-08）；成片待重渲（补跑 TTS 后统一批次），；**合并态（2026-10-08 merge feature/1.x.x）**：场景为 guided-learn-v2 完全重制代（P0TwoWaits…P6ReconRules 七幕，2026-10-03 v1 交付+四轮评审修复在档），TTS=edge 草声已落（旧代稿），0-A 让位由片头+新 P0 结构天然成立；v3 定稿后的场景轮/TTS/重渲批次见 ISSUE-209",
+          "voice": "edge 草声 zh-CN-YunxiNeural（升档待触发）"
         },
         {
           "episode": 5,
           "slug": "claude-code-multiagent-video",
           "path": "episodes/claude-code-multiagent-video",
-          "title": "多 Agent 平台：从一个到一群",
+          "title": "多 Agent 平台：七件设施，一条走廊",
           "topic": "多 Agent 协作：谁持有计划",
           "cardSub": "多 Agent 平台 · 协作",
           "accents": [
@@ -211,26 +210,25 @@
             "repo": "https://github.com/shareAI-lab/learn-claude-code",
             "pinnedRef": "67a9126c6435a8654ba7a6f68c0fd2130f00a462",
             "license": "MIT",
-            "accessed": "2026-08-22"
+            "accessed": "2026-10-02"
           },
           "status": "final-review",
-          "statusNote": "**v2 交付**（2026-09-30 重渲，含两轮评审修复 14+16 处；v1 2026-09-30 初渲）原 v1 口径（2026-09-30 终集）：13:42.8 @1080p30（24683 帧复算）；149 句 3622 字；story 档 38 块 cues；archify 13 图 67 章（collab-panorama/five-layer 复用重建，five-layer 三集合并 11 章）；终集装置全落位（五层身份卡全亮/系列金句卡/两种身份入场费曼遗产句/无下期卡完结语气）；**door-lock Lottie 同款挂死**→原生 LockStrike 根治；轨 C 八校准全片贯彻；机器门全绿+目检过；归档 v1+_captions",
-          "voice": "story + me-bright.wav"
-        }
+          "statusNote": "**v2 交付**（2026-10-03 评审修复轮重渲：9 commits 80 项修复全入片——P0 金句卡衬底/楼顶小檐成形/KeyCard 退场/慢活走查空窗/P2 Footnote 归属入片/P4 循环轨道净空/footer 贴口播/P6 回流环净空/P5 工具数口径/P3 章名统一/P1 sin 收敛/归档分叉终收口等，交付物对齐 HEAD（md5 复核）；v1 同日初渲=修复前构建）：14:17.8 = 857.8s @1080p30（25734 帧复算=mdls 857.812s 双源一致，纯视觉零时序变更）；147 句 4015 字（278 口径直写）；edge 终声（zh-CN-YunxiNeural @+12%，实测 4015÷14.3=280.8 字/分校准偏差 1%）；archify 14 图（12 新绘+collab-panorama/five-layer 复用）49 章逐章回放（49 cue · 锚定 33.3% · 3.4/分 · 5 型 · lead 49/49 实测）；六组破坏实验全入片（B1/B2+B2v/B3/B4/B5/t5race 红绿消融）；机器门全绿：check_series/build/check --check-scenes --check-motion/覆盖门/check_archify/tsc/motion 15:15/qa 五项（草渲+全分辨率终渲双遍）/WCAG/末帧渐黑零亮残留；归档 v2 + _captions（v1 原样保留，v2 已按 17:37 三轮重建构建覆盖重归档（md5 556d253d 与渲染产物字节一致））；C 型=175 冻结快照 @0ecf6527c；indextts me-bright 重配待用户人工触发（cues 台本已预置）；2026-10-08 合并主干：175 已换代（本片仍以换代前快照取证）；series-intro 副本入库未挂载（孪生门过、leadIn 仍 0.6s），挂载与 [13.0,15.5] 含片头口径留待下轮重制",
+          "voice": "edge + zh-CN-YunxiNeural（+12%）"        }
       ]
     },
     {
       "id": "context-layer",
       "title": "Context Layer · 上下文层系列",
       "sourceKind": "doc",
-      "rule": "各集独立成片。口播文本严禁出现其他集标题、集数序号或「上一集/上期/第 N 集」等顺序词；序号只存在于视觉层与本文件，据此保证发布顺序变更的 TTS 代价为零（「下期再见」一类顺序无关的收尾语不受此限）。校验器：to-video skill 的 pipeline/scripts/check_series.py（工作区根锚定）。信源为本仓研究文档族（B 型 · 仓内固定提交）：前两集 = Horizon Context 精读笔记 011 + Context Layer 蓝图 013 + 最小原型（上游 Snowflake 官方页不直接取证、只经精读笔记的 IEEE 引用链间接可溯）；第三集 = OpenViking 精读笔记 014 + 机制映射 015 + openviking_lab 原型（上游 volcengine/OpenViking 官方页与代码仓不直接取证、只经 014 的 path:line 锚点链间接可溯）。",
+      "rule": "各集独立成片。口播文本严禁出现其他集标题、集数序号或「上一集/上期/第 N 集」等顺序词；序号只存在于视觉层与本文件，据此保证发布顺序变更的 TTS 代价为零（「下期再见」一类顺序无关的收尾语不受此限）。校验器：vibe-video skill 的 pipeline/scripts/check_series.py（工作区根锚定）。信源为本仓研究文档族（B 型 · 仓内固定提交）：前两集 = Horizon Context 精读笔记 011 + Context Layer 蓝图 013 + 最小原型（上游 Snowflake 官方页不直接取证、只经精读笔记的 IEEE 引用链间接可溯）；第三集 = OpenViking 精读笔记 014 + 机制映射 015 + openviking_lab 原型（上游 volcengine/OpenViking 官方页与代码仓不直接取证、只经 014 的 path:line 锚点链间接可溯）。",
       "episodes": [
         {
           "episode": 1,
           "slug": "horizon-context-video",
           "path": "episodes/horizon-context-video",
-          "title": "拆解 Horizon Context：功能、治理、安全与开放性",
-          "topic": "Horizon Context：含义怎么治理",
+          "title": "拆解 Snowflake Horizon Context：怎么治理 Agent Context？怎么验证 Agent 交付结果？",
+          "topic": "Snowflake Horizon Context：怎么治理 Agent Context",
           "cardSub": "上下文层 · 治理",
           "accents": [
             "#E8C06A",
@@ -238,15 +236,15 @@
             "#C9A0FF"
           ],
           "source": {
-            "title": "Snowflake Horizon Context 精读笔记 + 最小原型实验室（docs/research/cognitive-context/）",
+            "title": "Snowflake Horizon Context 精读与通俗拆解（guided-learn gen2 冻结版）+ 最小原型实验室（selftest 复算）",
             "repo": "https://github.com/ThreeFish-AI/negentropy",
-            "pinnedRef": "097076ebedd3",
+            "pinnedRef": "192ae6ca95db",
             "license": "本仓内部文档",
-            "accessed": "2026-09-19"
+            "accessed": "2026-10-01"
           },
           "status": "final-review",
-          "statusNote": "v5 终渲待审（2026-09-20，动效图例扩产+高清重制，口播零改动）：15:11.63 = 27349 帧 @30fps / 1920×1080（音频复用 v4，时长不变）；187 句 4256 字 45 镜；archify 工程图 33 张 86 章逐章高清录制（cdp JPEG q100 @DSF2 → h264 CRF16 @2560×1440 · CFR25，绕开 Playwright 硬编码 VP8@1Mbps），73 个 cue 进片（v4 为 14 图 43 章 29 cue），覆盖率 15.5%→39.0%、P0/P6 结束整幕零锚、D1–D10 实证全部有图，rate 预演 变速铺满 40 · 冻结补足 31 · 裁切 2；inset 画框 460×259→640×360 且全 16 个 inset 镜逐帧像素审计零侵入。新增 19 张严格锚定逐字稿的工程图 + 既有图增补 4 章。覆盖度自动阈门上线：check_archify_coverage.py 句级锚定率/丰富度地板/分镜声明↔cue 双向对账，pipeline.py check 自动串联，本集阈值定稿 28 图/58 cue/30%/70%。验收：check_script FAIL 0；check_archify FAIL 0（WARN 2 = 留档图未落镜）；覆盖门 FAIL 0 · WARN 3（有意保留）；tsc 绿；信源 pin 097076eb 不变。",
-          "voice": "sunny-steady + me-bright.wav"
+          "statusNote": "完全重制 v2 终渲待审（2026-10-02，011 gen2 C 型信源·story 档·零跨域剧场；评审 H 轮）：15:05.90 = 27177 帧 @30fps · 1920×1080（ffprobe 视频流帧数与帧复算一致）；156 句 4562 字 story 段落演绎（71 块情绪标记，实测校准 302 字/分含时距；H 轮 p2-21/22 口播对齐画面实例数字重录）；八幕 66 镜；archify 47 图 104 章逐章录制 106 cue · 锚定 67.9% · 7.0 cue/分 · 5 图型；换场交界逐帧亮度实测无断层；check_series/覆盖门/tsc/qa --check 全 FAIL 0；交付 ~/Documents/video/context-layer/拆解 Snowflake Horizon Context：怎么治理 Agent Context？怎么验证 Agent 交付结果？ v2.mp4（97.1MB，v1 存档保留）",
+          "voice": "story 段落演绎（me-bright 系 + cues.toml 台本）"
         },
         {
           "episode": 2,
@@ -300,30 +298,31 @@
       "id": "agent-infra",
       "title": "Agent 基础设施系列",
       "sourceKind": "doc",
-      "rule": "各集独立成片。口播文本严禁出现其他集标题、集数序号或「上一集/上期/第 N 集」等顺序词；序号只存在于视觉层与本文件，据此保证发布顺序变更的 TTS 代价为零（「下期再见」一类顺序无关的收尾语不受此限）。校验器：to-video skill 的 pipeline/scripts/check_series.py（工作区根锚定）。信源为本仓 docs/research/agent-infra/ 精读笔记与最小原型（B 型 · 仓内固定提交），并直接取证上游开放标准的固定提交（规范、指南与参考实现源码）；本仓实现的映射结论不进正片。",
+      "rule": "各集独立成片。口播文本严禁出现其他集标题、集数序号或「上一集/上期/第 N 集」等顺序词；序号只存在于视觉层与本文件，据此保证发布顺序变更的 TTS 代价为零（「下期再见」一类顺序无关的收尾语不受此限）。校验器：vibe-video skill 的 pipeline/scripts/check_series.py（工作区根锚定）。信源为本仓 docs/research/agent-infra/ 精读笔记与最小原型（B 型 · 仓内固定提交），并直接取证上游开放标准的固定提交（规范、指南与参考实现源码）；本仓实现的映射结论不进正片。",
       "episodes": [
         {
           "episode": 1,
           "slug": "agent-skills-video",
           "path": "episodes/agent-skills-video",
-          "title": "知识的集装箱：Agent Skills 开放标准",
-          "topic": "Agent Skills：一个文件夹怎么成了行业标准",
-          "cardSub": "开放标准 · 知识打包",
+          "title": "目录常驻，正文按需：Agent Skills 开放标准",
+          "topic": "Agent Skills：目录常驻、正文按需的领域知识打包开放标准",
+          "cardSub": "开放标准 · 渐进披露",
           "accents": [
-            "#45DFFF",
-            "#FF7A9E"
+            "#F2B33D",
+            "#6D8BFF",
+            "#A88BE8"
           ],
           "source": {
-            "title": "Agent Skills 重学精读 + 最小原型（docs/research/agent-infra/210 @ 72a657351）+ 上游规范与参考实现",
+            "title": "Agent Skills 开放规范精读（C 型信源；原文档 docs/research/agent-infra/210 @ f7af5ee88 已并入 230，冻结锚随 Stage ① gl-notes 登记）+ agentskills/agentskills 规范仓 @ 69ef37e9 + 官方指南 6 篇 + 四家客户端实测口径",
             "site": "https://agentskills.io/specification",
             "repo": "https://github.com/agentskills/agentskills",
             "pinnedRef": "69ef37e9",
             "license": "CC-BY-4.0（文档）/ Apache-2.0（代码）；本仓精读为内部文档",
             "accessed": "2026-09-26"
           },
-          "status": "final-review",
-          "statusNote": "v1 终渲待审（2026-09-28）：13:03.4 = 23502 帧 @30fps / 1920×1080（119 句 4191 字，复算式与 mdls 逐位一致）；七幕 41 镜 · archify 19 图（17 新绘 + 2 复用 210）63 章 64 cue 逐章回放 · 锚定 53.8% · 图型 5 · 密度 4.9/分 · 最长无锚 6 句；信源 24 条（210/211/lab2 @72a657351 + 上游 @69ef37e9 + 生态四家 + PR 三提案）；story 段落演绎档（24 块相邻换情绪 + 表演标点，服务自愈重启一次）；④ RISKY=0 REWRITE=0 + ⑤ 成文优化 15 处（评审 7.5/10 起）；机器门全绿：check_series/build/check/--check-scenes/check_archify/复述门/tsc/qa --check 尾幕/beat-heads/WCAG(11.9:1) 全 FAIL 0 + 亮度扫描 102 帧零暗段 + 目视 7 帧；外挂字幕已交付 _captions/；旧 v1《经验淬炼成手册》成片保留归档",
-          "voice": "story 段落演绎档 + me-bright.wav"
+          "status": "ready",
+          "statusNote": "210 重学版换代重制成片交付（2026-10-06，第 2 次原位换代：230《刻意做小》→ 210《目录常驻，正文按需》，旧版 git 历史与 ~/Documents/video 归档保留）：12:55.3 = 23,259 帧 @30fps / 1920×1080（142 句 3406 字，edge 草声一档到底——用户拍板，纯语音 12.07 分实测 282 字/分 vs 280 口径偏差 0.7% 免校准）；七幕 33 镜 · archify 双图 10 章 12 cue（锚定 8.5% · 密度 0.9/分（÷成片 12.92 分） · 图型 2 种 workflow+architecture · GL 原生章集镜像 + ge-eco/gl-guide 两分镜期新增章 + dl-rewrite 不进正片）· 12 处全屏独占窗；取证链：gl-notes 210 冻结快照 @63ce3d925 + sources 14 条 verify FAIL 0 + lab2 五实验复算日志×6 全命中 + number-reconciliation 24 行（21 命中/0 偏差/2 转述/1 时点值，39,222 逐位修正）；④ 双子代理校验 RISKY=0/REWRITE=0 + ⑤ 三轮成文优化（18+5 REWRITE 全修、豁免 5 项留痕）+ ⑨ 修复轮三类缺陷（Stage 塌顶全局修复 27 镜/transform 容器块效应结构换向/useFadeOut 组件层全局帧致 6-D 整镜隐形下沉 beat 局部）；机制门全绿：build/check--check-scenes（内容门+archify 覆盖门）/check_series（规则5 死链 4 处修复）/tsc/qa 全幕+尾幕 FAIL 0（WARN 1=p1-21/24 静态终态采样指纹，目检排除冻帧）；门值按实测 -15~20% 回填 + exempt_scenes P0/P6 + max_unanchored_run 20 装置密集段留痕；归档 v1（md5 fc8603e4abcf，源=归档复核）+ _captions/（srt md5 16ef85cad114 恒等）；⑩ 评审轮修 8 处场景层 hook 帧上下文错配（4 处入场动画丢失/1 死样式/2 死参数/消融面板 footer 不可见，ISSUE-215（2026-10-13 合并撞号自 212 顺延））——已修码 tsc+单测通过，未重渲，缺陷表现按 v1 交付冻结、v2 重制吸收",
+          "voice": "edge 草声（制作终声一档到底）"
         },
         {
           "episode": 2,

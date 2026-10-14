@@ -1,0 +1,255 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/.archify/architecture-gate-four-result-1835/candidate.json",
+    "sha256": "8115fabab12e36304f7d8096b4149279009fb025bab7fab35ef0db4b307618db",
+    "bytes": 11344
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/claude-code--gate-four-result.html",
+    "sha256": "4117677fd15226f0dbf194483056a0a935627c4cb69754f6160bed44a7835f94",
+    "bytes": 868409
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/claude-code--gate-four-result.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/claude-code--gate-four-result.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/claude-code--gate-four-result.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 8839,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "resolvedCrossovers": 7,
+      "routesOverSuggestedBends": 4
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [
+        {
+          "left": {
+            "id": "c1",
+            "from": "intake",
+            "to": "merge",
+            "label": "进审",
+            "collectionIndex": 0,
+            "artifactIndex": 1
+          },
+          "right": {
+            "id": "c9",
+            "from": "src_inline",
+            "to": "merge",
+            "label": "",
+            "collectionIndex": 8,
+            "artifactIndex": 9
+          },
+          "point": [
+            530,
+            324
+          ]
+        },
+        {
+          "left": {
+            "id": "c11",
+            "from": "merge",
+            "to": "res_deny",
+            "label": "明令禁止",
+            "collectionIndex": 10,
+            "artifactIndex": 11
+          },
+          "right": {
+            "id": "c16",
+            "from": "classifier",
+            "to": "res_allow",
+            "label": "代批",
+            "collectionIndex": 15,
+            "artifactIndex": 16
+          },
+          "point": [
+            767,
+            292
+          ]
+        },
+        {
+          "left": {
+            "id": "c12",
+            "from": "merge",
+            "to": "res_ask",
+            "label": "要签字",
+            "collectionIndex": 11,
+            "artifactIndex": 12
+          },
+          "right": {
+            "id": "c13",
+            "from": "merge",
+            "to": "res_pass",
+            "label": "没说上话",
+            "collectionIndex": 12,
+            "artifactIndex": 13
+          },
+          "point": [
+            586,
+            324
+          ]
+        },
+        {
+          "left": {
+            "id": "c12",
+            "from": "merge",
+            "to": "res_ask",
+            "label": "要签字",
+            "collectionIndex": 11,
+            "artifactIndex": 12
+          },
+          "right": {
+            "id": "c16",
+            "from": "classifier",
+            "to": "res_allow",
+            "label": "代批",
+            "collectionIndex": 15,
+            "artifactIndex": 16
+          },
+          "point": [
+            767,
+            370
+          ]
+        },
+        {
+          "left": {
+            "id": "c13",
+            "from": "merge",
+            "to": "res_pass",
+            "label": "没说上话",
+            "collectionIndex": 12,
+            "artifactIndex": 13
+          },
+          "right": {
+            "id": "c16",
+            "from": "classifier",
+            "to": "res_allow",
+            "label": "代批",
+            "collectionIndex": 15,
+            "artifactIndex": 16
+          },
+          "point": [
+            746,
+            397
+          ]
+        },
+        {
+          "left": {
+            "id": "c13",
+            "from": "merge",
+            "to": "res_pass",
+            "label": "没说上话",
+            "collectionIndex": 12,
+            "artifactIndex": 13
+          },
+          "right": {
+            "id": "c18",
+            "from": "fallback",
+            "to": "res_ask",
+            "label": "回退人工",
+            "collectionIndex": 17,
+            "artifactIndex": 18
+          },
+          "point": [
+            746,
+            479
+          ]
+        },
+        {
+          "left": {
+            "id": "c15",
+            "from": "merge",
+            "to": "classifier",
+            "label": "自动模式·代审",
+            "collectionIndex": 14,
+            "artifactIndex": 15
+          },
+          "right": {
+            "id": "c16",
+            "from": "classifier",
+            "to": "res_allow",
+            "label": "代批",
+            "collectionIndex": 15,
+            "artifactIndex": 16
+          },
+          "point": [
+            574,
+            397
+          ]
+        }
+      ],
+      "detours": [
+        {
+          "relationship": {
+            "id": "c1",
+            "from": "intake",
+            "to": "merge",
+            "label": "进审",
+            "collectionIndex": 0,
+            "artifactIndex": 1
+          },
+          "bends": 3,
+          "stretch": 1
+        },
+        {
+          "relationship": {
+            "id": "c13",
+            "from": "merge",
+            "to": "res_pass",
+            "label": "没说上话",
+            "collectionIndex": 12,
+            "artifactIndex": 13
+          },
+          "bends": 3,
+          "stretch": 1
+        },
+        {
+          "relationship": {
+            "id": "c15",
+            "from": "merge",
+            "to": "classifier",
+            "label": "自动模式·代审",
+            "collectionIndex": 14,
+            "artifactIndex": 15
+          },
+          "bends": 4,
+          "stretch": 1.18
+        },
+        {
+          "relationship": {
+            "id": "c16",
+            "from": "classifier",
+            "to": "res_allow",
+            "label": "代批",
+            "collectionIndex": 15,
+            "artifactIndex": 16
+          },
+          "bends": 4,
+          "stretch": 1
+        }
+      ],
+      "truncated": false
+    },
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

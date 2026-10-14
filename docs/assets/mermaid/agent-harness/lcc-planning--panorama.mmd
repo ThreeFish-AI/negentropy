@@ -1,0 +1,53 @@
+%% source: docs/research/agent-harness/172-claude-code-planning-coordination.md
+%% slug: lcc-planning--panorama
+%% type: architecture
+%% derived: 五装置经三通道汇入「每轮可见文本」的全貌（s05_todo_write/s06_subagent/s07_skill_loading/s10_system_prompt/s11_error_recovery + main s15_integrated_harness 集成位）
+flowchart LR
+    subgraph DEV["四个装置（规划与协调）"]
+        direction TB
+        TODO["s05 TodoWrite<br/>计划外显 + nag reminder<br/>3 轮未更新即提醒"]
+        SUB["s06 Subagent<br/>全新 messages[]<br/>只回结论·过程丢弃"]
+        SKILL["s07 Skill Loading<br/>目录常驻 · 全文按需<br/>~100 vs ~2000 tokens"]
+        RECOV["s11 Error Recovery<br/>截断/超限/瞬态 三路 · 各有上界"]
+    end
+
+    subgraph STATE["运行时真实状态"]
+        direction TB
+        TOOLS["工具表 enabled_tools"]
+        MEMFILE["记忆文件 MEMORY.md"]
+        MCP["MCP 连接状态"]
+    end
+
+    subgraph ASSEMBLE["s10 System Prompt 组装<br/>（汇合层）"]
+        direction TB
+        SP["分段拼装 PROMPT_SECTIONS<br/>identity·tools·workspace·memory · 复用缓存"]
+        MSGQ["messages 对话列表"]
+    end
+
+    MODEL["🤖 模型<br/>每轮只看当轮可见文本"]
+    WORK["工具执行<br/>文件系统副作用共享"]
+
+    TODO -- "清单渲染 → tool_result<br/>提醒 → user 消息" --> MSGQ
+    SUB -- "结论 → tool_result" --> MSGQ
+    SUB -. "中间过程丢弃" .-> X["丢弃<br/>中间过程不回传"]
+    SKILL -- "目录 → system prompt" --> SP
+    SKILL -- "全文 → tool_result" --> MSGQ
+    TOOLS --> SP
+    MEMFILE --> SP
+    MCP --> SP
+    SP --> MODEL
+    MSGQ --> MODEL
+    RECOV -. "包住 LLM 调用<br/>恢复后 continue" .-> MODEL
+    MODEL -- "tool_use" --> WORK
+    WORK -- "tool_result 回填" --> MSGQ
+
+    classDef device fill:#2d5a3d,stroke:#4ade80,stroke-width:2px,color:#e8f5e9
+    classDef state fill:#1e3a5f,stroke:#60a5fa,stroke-width:1.5px,color:#dbeafe
+    classDef stage fill:#3b2f5e,stroke:#a78bfa,stroke-width:2px,color:#ede9fe
+    classDef core fill:#5e2f2f,stroke:#f87171,stroke-width:2.5px,color:#fee2e2
+    classDef plain fill:#2b2b2b,stroke:#9ca3af,stroke-width:1px,color:#e5e7eb
+    class TODO,SUB,SKILL,RECOV device
+    class TOOLS,MEMFILE,MCP state
+    class SP,MSGQ stage
+    class MODEL core
+    class WORK,X plain
