@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "ac5390bd-68a3-45fb-bc6c-3c186acf34e5",
+  "status": "current",
+  "command": "deliver",
+  "type": "lifecycle",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/.archify/lifecycle-gate-three-tier-1835/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/claude-code--gate-three-tier.html",
+  "specification": {
+    "sha256": "6c16ef71eeda81c3892567b29facce341ba64aee2d40a624ec6edc0f8739c731",
+    "bytes": 6089
+  },
+  "artifact": {
+    "sha256": "ce65e59d3cc7864b15d30f3c2b37b59cb1dfe64aeee58bcde448c60f610d7c41",
+    "bytes": 842842
+  }
+}

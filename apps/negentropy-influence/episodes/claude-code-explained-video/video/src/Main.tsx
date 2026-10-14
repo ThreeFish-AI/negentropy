@@ -6,7 +6,7 @@ import {SceneFade} from './components/SceneFade';
 import {Subtitle} from './components/Subtitle';
 import {theme} from './design/theme';
 import {LangProvider} from './i18n';
-import {P0HumanLoop} from './scenes/P0HumanLoop';
+import {P0ColdOpen} from './scenes/P0ColdOpen';
 import {INTRO_FRAMES, SeriesIntro} from './components/series-intro';
 import {P1LoopVerify} from './scenes/P1LoopVerify';
 import {P2ToolRegistry} from './scenes/P2ToolRegistry';
@@ -19,7 +19,7 @@ import type {Lang} from './i18n';
 import type {ManifestItem, SceneRange} from './types';
 
 const SCENE_COMPONENTS: Record<string, React.FC<{scene: SceneRange}>> = {
-  P0: P0HumanLoop,
+  P0: P0ColdOpen,
   P1: P1LoopVerify,
   P2: P2ToolRegistry,
   P3: P3ThreeGates,

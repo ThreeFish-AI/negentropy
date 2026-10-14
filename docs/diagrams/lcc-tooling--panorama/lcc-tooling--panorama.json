@@ -1,0 +1,299 @@
+{
+ "schema_version": 1,
+ "diagram_type": "architecture",
+ "meta": {
+  "title": "工具与执行全景：一个主循环，一条主干",
+  "subtitle": "终态（§6 之后）：主循环一圈走到底——徽标标出各机制挂在哪个节点上；生产保护层是节点徽标，不另起子图",
+  "locale": "zh-CN",
+  "quality_profile": "showcase",
+  "output": "docs/assets/architecture/agent-harness/lcc-tooling--panorama.html",
+  "legend": {
+   "mode": "auto",
+   "entries": {
+    "backend": {
+     "label": "Agent 逻辑"
+    },
+    "security": {
+     "label": "策略"
+    },
+    "messagebus": {
+     "label": "Hook"
+    },
+    "database": {
+     "label": "上下文 / 追踪"
+    },
+    "external": {
+     "label": "外部系统"
+    }
+   }
+  }
+ },
+ "layout": {
+  "mode": "grid",
+  "origin": [
+   40,
+   40
+  ],
+  "cols": 6,
+  "cellW": 150,
+  "cellH": 64,
+  "gapX": 44,
+  "gapY": 56
+ },
+ "components": [
+  {
+   "id": "ask",
+   "type": "external",
+   "label": "用户输入",
+   "row": 0,
+   "col": 0,
+   "size": [
+    150,
+    64
+   ],
+   "sublabel": "新一轮输入"
+  },
+  {
+   "id": "ups",
+   "type": "messagebus",
+   "label": "UserPromptSubmit",
+   "row": 0,
+   "col": 1,
+   "size": [
+    150,
+    64
+   ],
+   "sublabel": "输入级钩子",
+   "tag": "§6 钩子"
+  },
+  {
+   "id": "llm",
+   "type": "backend",
+   "label": "调用模型",
+   "row": 0,
+   "col": 2,
+   "size": [
+    150,
+    64
+   ],
+   "sublabel": "附全部工具定义"
+  },
+  {
+   "id": "crit",
+   "type": "backend",
+   "label": "有工具调用块？",
+   "row": 0,
+   "col": 3,
+   "size": [
+    150,
+    64
+   ],
+   "sublabel": "判据",
+   "tag": "needsFollowUp·认内容块"
+  },
+  {
+   "id": "stop",
+   "type": "messagebus",
+   "label": "Stop 钩子",
+   "row": 0,
+   "col": 4,
+   "size": [
+    150,
+    64
+   ],
+   "sublabel": "没有→续跑或退出",
+   "tag": "stopHookActive 防死循环"
+  },
+  {
+   "id": "done",
+   "type": "external",
+   "label": "循环退出",
+   "row": 0,
+   "col": 5,
+   "size": [
+    150,
+    64
+   ],
+   "sublabel": "交回用户"
+  },
+  {
+   "id": "pre",
+   "type": "messagebus",
+   "label": "PreToolUse",
+   "row": 1,
+   "col": 3,
+   "size": [
+    150,
+    64
+   ],
+   "sublabel": "先于闸门·可否决",
+   "tag": "不变式：allow 压不过 deny"
+  },
+  {
+   "id": "g123",
+   "type": "security",
+   "label": "三道闸门",
+   "row": 1,
+   "col": 4,
+   "size": [
+    150,
+    64
+   ],
+   "sublabel": "硬拒绝→规则→审批",
+   "tag": "auto 分类器替换闸门 3"
+  },
+  {
+   "id": "run",
+   "type": "backend",
+   "label": "查表执行",
+   "row": 1,
+   "col": 5,
+   "size": [
+    150,
+    64
+   ],
+   "sublabel": "TOOL_HANDLERS",
+   "tag": "partitionToolCalls"
+  },
+  {
+   "id": "post",
+   "type": "messagebus",
+   "label": "PostToolUse",
+   "row": 2,
+   "col": 5,
+   "size": [
+    150,
+    64
+   ],
+   "sublabel": "执行后钩子"
+  },
+  {
+   "id": "tr",
+   "type": "database",
+   "label": "tool_result 配对",
+   "row": 2,
+   "col": 2,
+   "size": [
+    150,
+    64
+   ],
+   "sublabel": "按 tool_use_id 回喂",
+   "tag": "拒绝结果同样回喂"
+  }
+ ],
+ "connections": [
+  {
+   "id": "m1",
+   "from": "ask",
+   "to": "ups",
+   "variant": "emphasis",
+   "fromSide": "right",
+   "toSide": "left"
+  },
+  {
+   "id": "m2",
+   "from": "ups",
+   "to": "llm",
+   "variant": "emphasis",
+   "fromSide": "right",
+   "toSide": "left"
+  },
+  {
+   "id": "m3",
+   "from": "llm",
+   "to": "crit",
+   "variant": "emphasis",
+   "fromSide": "right",
+   "toSide": "left"
+  },
+  {
+   "id": "m4",
+   "from": "crit",
+   "to": "pre",
+   "label": "有",
+   "variant": "emphasis",
+   "fromSide": "bottom",
+   "toSide": "top",
+   "labelAt": [
+    697.0,
+    135.0
+   ]
+  },
+  {
+   "id": "m5",
+   "from": "pre",
+   "to": "g123",
+   "variant": "emphasis",
+   "fromSide": "right",
+   "toSide": "left"
+  },
+  {
+   "id": "m6",
+   "from": "g123",
+   "to": "run",
+   "label": "放行",
+   "variant": "emphasis",
+   "fromSide": "right",
+   "toSide": "left",
+   "labelAt": [
+    988.0,
+    179.0
+   ]
+  },
+  {
+   "id": "m7",
+   "from": "run",
+   "to": "post",
+   "variant": "emphasis",
+   "fromSide": "bottom",
+   "toSide": "top"
+  },
+  {
+   "id": "m8",
+   "from": "post",
+   "to": "tr",
+   "variant": "emphasis",
+   "fromSide": "left",
+   "toSide": "right"
+  },
+  {
+   "id": "m9",
+   "from": "tr",
+   "to": "llm",
+   "label": "回喂·接着想下一步",
+   "variant": "emphasis",
+   "fromSide": "top",
+   "toSide": "bottom",
+   "labelAt": [
+    503.0,
+    195.0
+   ]
+  },
+  {
+   "id": "b1",
+   "from": "crit",
+   "to": "stop",
+   "label": "没有",
+   "variant": "dashed",
+   "fromSide": "right",
+   "toSide": "left",
+   "labelAt": [
+    794.0,
+    59.0
+   ]
+  },
+  {
+   "id": "b2",
+   "from": "stop",
+   "to": "done",
+   "label": "返回空",
+   "variant": "dashed",
+   "fromSide": "right",
+   "toSide": "left",
+   "labelAt": [
+    988.0,
+    59.0
+   ]
+  }
+ ]
+}

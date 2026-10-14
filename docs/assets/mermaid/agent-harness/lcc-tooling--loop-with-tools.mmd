@@ -1,0 +1,11 @@
+%% source: docs/research/agent-harness/171-claude-code-tooling-execution.md（§4 Tool Use · 渐进图 L2）
+%% slug: lcc-tooling--loop-with-tools
+%% type: architecture
+%% derived: 渐进披露系列（2026-10-10）：执行节点展开为 TOOL_HANDLERS 查表分发（+safe_path 工作区边界）；2026-10-12 视觉优化轮——五图统一顺时针回环网格，safe_path 置于执行链首斜下方，节点/边/文案与前版逐字一致
+%% grid: think=(r0,c2) run=(r1,c3) safe=(r2,c4) feed=(r2,c2)；槽位跨级不变，详见 docs/diagrams/lcc-tooling--loop-with-tools/lcc-tooling--loop-with-tools.json
+flowchart LR
+    THINK["调用模型<br/>回答里出现工具调用块<br/>只决策·不执行"]
+    THINK -- "有工具调用块" --> RUN["TOOL_HANDLERS 查表执行<br/>按 block.name 分发<br/>加工具=加一行"]
+    RUN -. "文件工具先过校验" .-> SAFE["safe_path 校验<br/>路径必须落在工作目录内<br/>越界直接报错"]
+    RUN -- "执行结果" --> FEED["tool_result 回喂<br/>按 tool_use_id 配对<br/>结果交还 LLM"]
+    FEED -- "回喂·接着想下一步" --> THINK

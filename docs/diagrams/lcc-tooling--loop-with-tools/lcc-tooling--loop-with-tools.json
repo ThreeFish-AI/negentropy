@@ -1,0 +1,150 @@
+{
+ "schema_version": 1,
+ "diagram_type": "architecture",
+ "meta": {
+  "title": "工具与执行：查表分发进场",
+  "subtitle": "渐进图 L2（§4 之后）：执行节点展开为 TOOL_HANDLERS 查表，加一个工具只加两行",
+  "locale": "zh-CN",
+  "quality_profile": "showcase",
+  "output": "docs/assets/architecture/agent-harness/lcc-tooling--loop-with-tools.html",
+  "legend": {
+   "mode": "auto",
+   "entries": {
+    "backend": {
+     "label": "Agent 逻辑"
+    },
+    "security": {
+     "label": "策略"
+    },
+    "messagebus": {
+     "label": "Hook"
+    },
+    "database": {
+     "label": "上下文 / 追踪"
+    },
+    "external": {
+     "label": "外部系统"
+    }
+   }
+  },
+  "viewBox": [
+   1200,
+   412
+  ]
+ },
+ "layout": {
+  "mode": "grid",
+  "origin": [
+   40,
+   40
+  ],
+  "cols": 6,
+  "cellW": 150,
+  "cellH": 64,
+  "gapX": 44,
+  "gapY": 56
+ },
+ "components": [
+  {
+   "id": "think",
+   "type": "backend",
+   "label": "调用模型",
+   "row": 0,
+   "col": 2,
+   "size": [
+    150,
+    64
+   ],
+   "sublabel": "回答里出现工具调用块",
+   "tag": "只决策·不执行"
+  },
+  {
+   "id": "run",
+   "type": "backend",
+   "label": "TOOL_HANDLERS 查表执行",
+   "row": 1,
+   "col": 3,
+   "size": [
+    150,
+    64
+   ],
+   "sublabel": "按 block.name 分发",
+   "tag": "加工具=加一行"
+  },
+  {
+   "id": "safe",
+   "type": "security",
+   "label": "safe_path 校验",
+   "row": 2,
+   "col": 4,
+   "size": [
+    150,
+    64
+   ],
+   "sublabel": "路径必须落在工作目录内",
+   "tag": "越界直接报错"
+  },
+  {
+   "id": "feed",
+   "type": "database",
+   "label": "tool_result 回喂",
+   "row": 2,
+   "col": 2,
+   "size": [
+    150,
+    64
+   ],
+   "sublabel": "按 tool_use_id 配对",
+   "tag": "结果交还 LLM"
+  }
+ ],
+ "connections": [
+  {
+   "id": "t1",
+   "from": "think",
+   "to": "run",
+   "label": "有工具调用块",
+   "variant": "emphasis",
+   "fromSide": "right",
+   "toSide": "top",
+   "labelSegment": 1
+  },
+  {
+   "id": "t2",
+   "from": "run",
+   "to": "safe",
+   "label": "文件工具先过校验",
+   "variant": "dashed",
+   "fromSide": "right",
+   "toSide": "top"
+  },
+  {
+   "id": "t3",
+   "from": "run",
+   "to": "feed",
+   "label": "执行结果",
+   "variant": "emphasis",
+   "fromSide": "bottom",
+   "toSide": "right",
+   "via": [
+    [
+     697.0,
+     312.0
+    ]
+   ]
+  },
+  {
+   "id": "rb",
+   "from": "feed",
+   "to": "think",
+   "label": "回喂·接着想下一步",
+   "variant": "emphasis",
+   "fromSide": "top",
+   "toSide": "bottom",
+   "labelAt": [
+    503.0,
+    195.0
+   ]
+  }
+ ]
+}

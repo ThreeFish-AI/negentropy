@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "1cc4c568-1b38-449f-a0f8-f4215cb260f6",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/.archify/workflow-human-relay-1835/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/claude-code--human-relay.html",
+  "specification": {
+    "sha256": "e05796be2a0cef8450462393611fa95889b50021bb2160a81cd450d149c4878f",
+    "bytes": 6785
+  },
+  "artifact": {
+    "sha256": "7b93e7fdfac49b0450fce6c036f97a7176e77d00c03a5cfc687459e4dd017d50",
+    "bytes": 850342
+  }
+}

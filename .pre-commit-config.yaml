@@ -23,7 +23,8 @@ repos:
       # source-archive/ 为按固定提交归档的第三方源码字节快照（ruff 门同理已避开），
       # 空白/末行钩子会剥尾随空格致指纹漂移（E2 s07 实录：12 字节被剥、sha256 失配）；
       # docs/assets/architecture/ 的 archify 产物同理——回执按渲染器原样输出记 sha256，
-      # 剥 90 字节行尾空白即与 finalize 四门回执失配（175 collab-panorama 实录）。
+      # 剥 90 字节行尾空白即与 finalize 四门回执失配（175 collab-panorama 实录；
+      # 3.0.0 起产出含行尾空格，ISSUE-212 实录同族）。
       # episodes 侧 video/public/archify/html/ 是从 canonical 原样拷贝的注入产物，
       # 同须豁免——否则入库被剥空白后，每次重跑 patch-archify-html.py 都产生
       # 13 文件 × 15 行纯空白 diff（ep5 实测 195 行噪音）

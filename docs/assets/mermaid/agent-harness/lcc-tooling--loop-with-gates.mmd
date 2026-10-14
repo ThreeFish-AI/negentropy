@@ -1,0 +1,14 @@
+%% source: docs/research/agent-harness/171-claude-code-tooling-execution.md（§5 Permission · 渐进图 L3）
+%% slug: lcc-tooling--loop-with-gates
+%% type: architecture
+%% derived: 渐进披露系列（2026-10-10）：执行前展开三道闸门链（硬拒绝 → 规则匹配 → 用户审批；拒绝结果经 tag 承载）；2026-10-12 视觉优化轮——五图统一顺时针回环网格，节点/边/文案与前版逐字一致
+%% note: PreToolUse 钩子为 §6 内容，本图未含——§6 终态图中闸门链将降格为挂在 PreToolUse 下的回调
+%% grid: think=(r0,c2) g1=(r1,c3) g2=(r1,c4) g3=(r1,c5) run=(r2,c5) feed=(r2,c2)；槽位跨级不变，详见 docs/diagrams/lcc-tooling--loop-with-gates/lcc-tooling--loop-with-gates.json
+flowchart LR
+    THINK["调用模型<br/>有工具调用块"]
+    THINK -- "有工具调用块" --> G1["闸门 1：硬拒绝表<br/>rm -rf / · sudo<br/>命中即拦"]
+    G1 -- "未命中" --> G2["闸门 2：规则匹配<br/>rm · > /etc/<br/>命中交闸门 3"]
+    G2 -- "命中" --> G3["闸门 3：用户审批<br/>打印原因·等 y/n<br/>拒绝则拒因回喂"]
+    G3 -- "允许" --> RUN["查表执行<br/>TOOL_HANDLERS"]
+    RUN -- "执行结果" --> FEED["tool_result 回喂<br/>按编号配对<br/>结果交还 LLM"]
+    FEED -- "回喂·接着想下一步" --> THINK
