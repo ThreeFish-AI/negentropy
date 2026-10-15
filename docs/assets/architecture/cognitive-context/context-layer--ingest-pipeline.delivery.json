@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "7d411791-b1c0-407a-8790-6f9c0fd19ff2",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/el-paso-v1/.archify/workflow-context-layer--ingest-pipeline-20261015-155535/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/el-paso-v1/docs/assets/architecture/cognitive-context/context-layer--ingest-pipeline.html",
+  "specification": {
+    "sha256": "bfbeb3cfe1e6f3203867973df330cf7a3410599e679d172990e7a198b9f75780",
+    "bytes": 8388
+  },
+  "artifact": {
+    "sha256": "29d810e0c99370b0bc3043e3fc2182cf5489beab75a139264d847dfbc567e0c7",
+    "bytes": 761021
+  }
+}

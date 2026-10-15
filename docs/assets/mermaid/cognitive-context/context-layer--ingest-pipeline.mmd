@@ -1,0 +1,14 @@
+%%source: docs/research/cognitive-context/013-context-layer-blueprint.md §4 资产轴章首（Context Engine 纳管管线目标态总览；机制锚 §4.2 治理字段 / §4.5 ADR-1 / §9.2 L1–L2）＋ docs/research/cognitive-context/014-openviking.md §2/§4 编目相（Parser 无 LLM、256/4000 实值、自底向上）＋ docs/research/agent-infra/230-customer-domain-long-memory-2027-planning.md §四 G2/§八 L0/L1/L2
+%%slug: cognitive-context/context-layer--ingest-pipeline
+%%type: workflow
+%%derived: archify workflow v2, authored fresh（新图：Ingest 登记指针 → Normalize 归一四件套·不调用 LLM → Classify 治理形态/所属域各五选一+效力/可见性/作用域 → Tier 异步分级 L0≤256/L1≤4000/L2 指针·自底向上聚合 → Tag/Index 信封+L0/L1 向量化+ctx:// URI；治理形态/所属域/摘要梯/信封/复核周期/ctx:// 为 Context Engine 设计新词）
+flowchart LR
+    ING["Ingest 登记指针<br/>源系统 · 路径 · Owner<br/>变更事件订阅"] ==> NRM["Normalize 归一<br/>Parser 四件套<br/>不调用 LLM"]
+    NRM --> CLS["Classify 分类<br/>治理形态 · 所属域<br/>各五选一"]
+    CLS --> TIER["Tier 分级<br/>自底向上聚合<br/>异步"]
+    TIER --> L0["L0 ≤256 字符"]
+    TIER --> L1["L1 ≤4000 字符"]
+    TIER --> L2["L2 指针<br/>指针不副本"]
+    L0 --> TAG["Tag/Index 打标与索引<br/>ctx:// URI · 信封"]
+    L1 --> TAG
+    L2 --> TAG

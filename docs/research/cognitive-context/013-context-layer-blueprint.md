@@ -322,6 +322,12 @@ Horizon 七个机制（M1–M7 的内容与实验键 D1–D10 定义于 [011](./
 
 结构面五轴的第一条回答「Context Layer 经营什么」——把 Agent 推理所需的每一类含义铸成受治理、可寻址、带出处的对象，让口径、可见性与验证信息随对象本身携带，而不是散落在各消费端各自复制。本章给出资产全集清单（§4.1）、对象字段纪律（§4.2）、常驻记忆对象的设计取舍（§4.3）、注册门实况（§4.4）、引用层决策 ADR-1（§4.5）与本仓对账表（§4.6）。
 
+资产轴的供给侧是一条纳管管线：素材经 Ingest 登记指针（锚 §9.2 L1「带出处入账」）→ Normalize 归一（Parser 四件套：章节路径 · 内容模块 · 多模态元素 · 摘要梯，不调用 LLM）→ Classify 分类（治理字段随对象落档，锚 §4.2）→ Tier 异步分级（L0 ≤256 / L1 ≤4000 字符 / L2 指针，目录级自底向上聚合）→ Tag/Index 打标与索引（信封 + L0/L1 向量化 + ctx:// URI）入册——与 [014 编目相](./014-openviking.md)（资源入库 → 切分 → 自底向上摘要 → 向量化）同构，产出的目录条目正是 §7 章首读路径 Retrieve 的取用对象，写读两图首尾相接。四处口径如实标注：其一，治理形态（五选一）、所属域（五选一）、摘要梯、信封、复核周期、ctx:// 为 Context Engine 设计新词，仓内与两篇引用文档均无枚举锚；其二，L0/L1 阈值为 014 实值（`parser_config` 的 256/4000 字符软上限），但 014 的 L1 摘要各调 1 次 LLM——本设计把摘要梯放进不调用 LLM 的 Normalize，是显式口径差异；其三，L2 指针与 ADR-1「目录是引用层」同律（G5 指针不副本）；其四，整条管线是目标态，注册门与目录实况见 §4.4/§4.6。
+
+![Context Engine 纳管管线（目标态）：素材经 Ingest 登记指针 → Normalize 归一四件套（不调用 LLM）→ Classify 治理字段分类 → Tier 异步分级（L0 ≤256 / L1 ≤4000 字符 / L2 指针，自底向上聚合）→ Tag/Index 打标与索引（信封 · 向量化 · ctx:// URI）入目录](../../assets/architecture/cognitive-context/context-layer--ingest-pipeline-dark.png)
+
+> 图源（可 diff 文本）：[`context-layer--ingest-pipeline.mmd`](../../assets/mermaid/cognitive-context/context-layer--ingest-pipeline.mmd) · 交互版（下载到本地打开）：[`context-layer--ingest-pipeline.html`](../../assets/architecture/cognitive-context/context-layer--ingest-pipeline.html) · archify 图源（candidate JSON）：[`context-layer--ingest-pipeline.json`](../../diagrams/context-layer--ingest-pipeline/context-layer--ingest-pipeline.json)
+
 ### 4.1 对象清单：资产全集与五源投影
 
 先立清单，再谈纪律。资产轴的经营对象共七类，前四类在本仓已有存储载体，后三类是设计位：
