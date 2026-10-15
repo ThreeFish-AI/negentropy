@@ -322,6 +322,12 @@ Horizon 七个机制（M1–M7 的内容与实验键 D1–D10 定义于 [011](./
 
 结构面五轴的第一条回答「Context Layer 经营什么」——把 Agent 推理所需的每一类含义铸成受治理、可寻址、带出处的对象，让口径、可见性与验证信息随对象本身携带，而不是散落在各消费端各自复制。本章给出资产全集清单（§4.1）、对象字段纪律（§4.2）、常驻记忆对象的设计取舍（§4.3）、注册门实况（§4.4）、引用层决策 ADR-1（§4.5）与本仓对账表（§4.6）。
 
+资产轴的供给侧是一条纳管管线：素材经 Ingest 登记指针（锚 §9.2 L1「带出处入账」）→ Normalize 归一（Parser 四件套：章节路径 · 内容模块 · 多模态元素 · 摘要梯，不调用 LLM）→ Classify 分类（治理字段随对象落档，锚 §4.2）→ Tier 异步分级（L0 ≤256 / L1 ≤4000 字符 / L2 指针，目录级自底向上聚合）→ Tag/Index 打标与索引（信封 + L0/L1 向量化 + ctx:// URI）入册——与 [014 编目相](./014-openviking.md)（资源入库 → 切分 → 自底向上摘要 → 向量化 → 新鲜度冒泡）的前四段同构，第 5 段新鲜度冒泡在本设计中无对应节点（新鲜度语义由 Ingest 的变更事件订阅与信封复核周期分摊），产出的目录条目正是 §7 章首读路径 Retrieve 的取用对象，写读两图首尾相接。四处口径如实标注：其一，治理形态（五选一）、所属域（五选一）、效力与作用域（作为 Classify 治理字段；§4.2 对象模型仅 visibility 有字段载体）、Parser 四件套的章节路径 · 内容模块 · 多模态元素 · 摘要梯（014 的 Parser 仅锚定「切分无 LLM」，四件套枚举为本设计自铸）、信封、复核周期、ctx:// 为 Context Engine 设计新词，仓内与两篇引用文档均无枚举锚；其二，L0/L1 阈值为 014 实值（`parser_config` 的 256/4000 字符软上限），但 014 的 L1 摘要各调 1 次 LLM——本设计把摘要梯放进不调用 LLM 的 Normalize，是显式口径差异；其三，L2 指针与 ADR-1「目录是引用层」同律（G5 指针不副本）；其四，整条管线是目标态，注册门与目录实况见 §4.4/§4.6。
+
+![Context Engine 纳管管线（目标态）：素材经 Ingest 登记指针 → Normalize 归一四件套（不调用 LLM）→ Classify 治理字段分类 → Tier 异步分级（L0 ≤256 / L1 ≤4000 字符 / L2 指针，自底向上聚合）→ Tag/Index 打标与索引（信封 · 向量化 · ctx:// URI）入目录](../../assets/architecture/cognitive-context/context-layer--ingest-pipeline-dark.png)
+
+> 图源（可 diff 文本）：[`context-layer--ingest-pipeline.mmd`](../../assets/mermaid/cognitive-context/context-layer--ingest-pipeline.mmd) · 交互版（下载到本地打开）：[`context-layer--ingest-pipeline.html`](../../assets/architecture/cognitive-context/context-layer--ingest-pipeline.html) · archify 图源（candidate JSON）：[`context-layer--ingest-pipeline.json`](../../diagrams/context-layer--ingest-pipeline/context-layer--ingest-pipeline.json)
+
 ### 4.1 对象清单：资产全集与五源投影
 
 先立清单，再谈纪律。资产轴的经营对象共七类，前四类在本仓已有存储载体，后三类是设计位：
@@ -569,6 +575,12 @@ JIT 与预取的决策边界要显式声明，不要默认：静态约定与规�
 ## 7. 检索轴（Retrieval Economics）：候选集供给、信任归一与统一骨架
 
 装配轴（§6）决定谁在何时进窗口；检索轴回答候选从哪来、以什么质量来——检索是正确性的前置环节：模型不换、只换上下文供给方式，成绩可以差出四倍以上（§7.1 FinanceBench 三档）。本轴五个判定点：候选集性质律与宽进严出（§7.1）、信任归一（§7.2）、统一骨架 ADR-2/ADR-3 与 RRF 落点对账（§7.3；RRF＝Reciprocal Rank Fusion，把多路检索结果按排名倒数的融合法——本仓真实落点与口径详 §7.3（三处引擎））、resolve 契约（§7.4）、CJK 失效登记（§7.5）。机制接缝上，本轴承接 M3（权威 × 检索：检索面过滤，详 §5）与 M4（检索 × 复利：验证问答的应答出示，本节），接缝定义详 §3。
+
+把本轴各判定点串成一条端到端读路径，就是下图的目标态总览：ContextRequest 经 ①Resolve（主体与可见性，锚 §5.3 权限天花板）→ ②Plan（意图与各域预算比，锚 §6 预算带、§7.3 ADR-2）→ ③Retrieve 双范式并行（锚 §7.1 宽进严出、§7.4 已验证查询）→ ④Fuse（RRF 融合与归一信任重排，锚 §7.2/§7.3）→ ⑤Guard 五项检查 → ⑥Compose（token 预算裁剪与排序）→ ⑦Emit 组装 ContextBundle——与 [230 客户域读链](../agent-infra/230-customer-domain-long-memory-2027-planning.md)（主体前缀检索 → RRF 信任重排 → Guard → 预算裁剪 → uri@version Bundle）同构。四处口径如实标注：其一，检索双范式的五类型（Facts / Instruction / Knowledge / Capability / Experience）是 Context Engine 的设计口径，**不是**本蓝图 §4.1 的五源投影（ADR-5 已把五源降为资产子集投影，勿混读）；其二，①段 Resolve 指入口的主体身份解析，与 §7.4 的 resolve 应答契约撞名不同义，②段 Plan 的产物 Context Pack 亦为设计新词——与同文 §7.4 的 ContextPackage（resolve 应答契约）、本仓巡检引擎的 ContextPack（`agent_inspection.py`）两处撞名均不同义；其三，Guard 与统一装配面是目标态——现状对账见 §12.4（`engine/context/` 不存在）与 §12.1（assemble() 生产调用 0）；其四，Guard 五项检查中可见性 / 作用域前缀 / 效力裁决 / PII 与 230 读链 Guard 枚举一致，「Instruction 越权」为该设计的增项——指令权先例在写路径侧（230 G4：记忆内容无指令权，不得被当作指令执行）。
+
+![Context Engine 读路径（目标态）：ContextRequest 经 ①Resolve 主体与可见性 → ②Plan 意图与预算 → ③Retrieve 双范式并行取用 → ④Fuse RRF 融合与归一信任重排 → ⑤Guard 五项引擎级检查点 → ⑥Compose 预算裁剪 → ⑦Emit 组装 ContextBundle（uri@version），越界项入 dropped/overrides 留痕](../../assets/architecture/cognitive-context/context-layer--read-pipeline-dark.png)
+
+> 图源（可 diff 文本）：[`context-layer--read-pipeline.mmd`](../../assets/mermaid/cognitive-context/context-layer--read-pipeline.mmd) · 交互版（下载到本地打开）：[`context-layer--read-pipeline.html`](../../assets/architecture/cognitive-context/context-layer--read-pipeline.html) · archify 图源（candidate JSON）：[`context-layer--read-pipeline.json`](../../diagrams/context-layer--read-pipeline/context-layer--read-pipeline.json)
 
 ### 7.1 候选集性质律与宽进严出
 

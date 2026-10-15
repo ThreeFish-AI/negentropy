@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "26a7f09e-2ffe-4b17-a4fb-3fb327e7899f",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/el-paso-v1/docs/diagrams/context-layer--read-pipeline/context-layer--read-pipeline.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/el-paso-v1/docs/assets/architecture/cognitive-context/context-layer--read-pipeline.html",
+  "specification": {
+    "sha256": "9c9edeaaf2c76126e78623c69b6ca618a6d6c3506afc48f27009e14ca5d947de",
+    "bytes": 8565
+  },
+  "artifact": {
+    "sha256": "b8c2065aed8090a0c9617e3cb836eeb142d81aebfe2db865ee048a2f583d82d1",
+    "bytes": 769307
+  }
+}

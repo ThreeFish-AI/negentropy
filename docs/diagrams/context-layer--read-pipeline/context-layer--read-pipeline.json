@@ -1,0 +1,132 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Context Engine 读路径（目标态）",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": "docs/assets/architecture/cognitive-context/context-layer--read-pipeline.html",
+    "repository": {
+      "url": "https://github.com/ThreeFish-AI/negentropy",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "3b9c869c63a1f74e41541bb5e36b2cdd257fec34"
+    }
+  },
+  "lanes": [
+    { "id": "runtime", "label": "Agent Runtime · 请求与产物" },
+    { "id": "engine", "label": "Context 引擎 · 七段主链" },
+    { "id": "audit", "label": "治理旁路 · 裁决留痕" }
+  ],
+  "groups": [
+    { "id": "retrieve_par", "label": "并行取用 · 按类型范式", "lane": "engine", "fromCol": 2, "toCol": 2 }
+  ],
+  "mainPath": ["req", "resolve", "plan", "retrieve_exact", "fuse", "guard", "compose", "bundle"],
+  "semanticChecks": {
+    "allowedRoots": ["req"],
+    "allowedTerminals": ["bundle", "dropped"],
+    "requiredEdges": [
+      { "from": "plan", "to": "retrieve_recall" },
+      { "from": "retrieve_recall", "to": "fuse" },
+      { "from": "guard", "to": "dropped" }
+    ]
+  },
+  "nodes": [
+    { "id": "req", "lane": "runtime", "col": 0, "type": "external", "label": "ContextRequest", "sublabel": "Agent Runtime 发起", "width": 124,
+      "sources": [
+        { "path": "docs/research/cognitive-context/013-context-layer-blueprint.md", "line": 198, "label": "§2.4 每轮装配事务" },
+        { "path": "docs/research/agent-infra/230-customer-domain-long-memory-2027-planning.md", "line": 56, "label": "§二 读写路径（目标态）" }
+      ] },
+    { "id": "resolve", "lane": "engine", "col": 0, "type": "backend", "label": "① Resolve 主体解析", "sublabel": "Tenant / User · 可见性边界", "width": 124,
+      "sources": [
+        { "path": "docs/research/cognitive-context/013-context-layer-blueprint.md", "line": 440, "label": "§5.3 权限天花板实时求值" },
+        { "path": "docs/research/agent-infra/230-customer-domain-long-memory-2027-planning.md", "line": 45, "label": "tenant / user 两级空间" }
+      ] },
+    { "id": "plan", "lane": "engine", "col": 1, "type": "backend", "label": "② Plan 意图与预算", "sublabel": "Context Pack · 各域预算比", "width": 124,
+      "sources": [
+        { "path": "docs/research/cognitive-context/013-context-layer-blueprint.md", "line": 485, "label": "§6 每轮预算分配" },
+        { "path": "docs/research/cognitive-context/013-context-layer-blueprint.md", "line": 619, "label": "ADR-2 Intent→并行种子" }
+      ] },
+    { "id": "retrieve_exact", "lane": "engine", "col": 2, "type": "database", "label": "③ Retrieve 精确查询", "sublabel": "Facts / Instruction", "width": 124, "yOffset": -80,
+      "sources": [
+        { "path": "docs/research/cognitive-context/013-context-layer-blueprint.md", "line": 641, "label": "§7.4 已验证查询" },
+        { "path": "docs/research/agent-infra/230-customer-domain-long-memory-2027-planning.md", "line": 65, "label": "§二 读路径" }
+      ] },
+    { "id": "retrieve_recall", "lane": "engine", "col": 2, "type": "database", "label": "③ Retrieve 召回范式", "sublabel": "目录定位 + 多路召回", "width": 124, "yOffset": 80,
+      "sources": [
+        { "path": "docs/research/cognitive-context/013-context-layer-blueprint.md", "line": 587, "label": "§7.1 宽进严出三段管线" },
+        { "path": "docs/research/cognitive-context/013-context-layer-blueprint.md", "line": 619, "label": "并行种子 + 图扩展" }
+      ] },
+    { "id": "fuse", "lane": "engine", "col": 3, "type": "backend", "label": "④ Fuse 融合重排", "sublabel": "RRF · 归一信任分", "width": 124,
+      "sources": [
+        { "path": "docs/research/cognitive-context/013-context-layer-blueprint.md", "line": 624, "label": "RRF 对分数尺度不敏感" },
+        { "path": "docs/research/cognitive-context/013-context-layer-blueprint.md", "line": 605, "label": "§7.2 信任分（设计未落地）" },
+        { "path": "docs/research/agent-infra/230-customer-domain-long-memory-2027-planning.md", "line": 65, "label": "RRF 融合与归一信任重排" }
+      ] },
+    { "id": "guard", "lane": "engine", "col": 4, "type": "security", "label": "⑤ Guard 检查点", "sublabel": "五项引擎级校验", "width": 124,
+      "sources": [
+        { "path": "docs/research/cognitive-context/013-context-layer-blueprint.md", "line": 1006, "label": "§12.4 Guard 不存在（现状）" },
+        { "path": "docs/research/cognitive-context/013-context-layer-blueprint.md", "line": 425, "label": "检索过滤在场·出口守卫缺" },
+        { "path": "docs/research/agent-infra/230-customer-domain-long-memory-2027-planning.md", "line": 65, "label": "Guard（可见性/作用域/效力/PII）" }
+      ] },
+    { "id": "dropped", "lane": "audit", "col": 4, "type": "security", "label": "dropped / overrides", "sublabel": "裁决留痕日志", "width": 124,
+      "sources": [
+        { "path": "docs/research/agent-infra/230-customer-domain-long-memory-2027-planning.md", "line": 65, "label": "读路径 · Guard 裁决" },
+        { "path": "docs/research/agent-infra/230-customer-domain-long-memory-2027-planning.md", "line": 112, "label": "V2 冲突落败写入 overrides" },
+        { "path": "docs/research/agent-infra/230-customer-domain-long-memory-2027-planning.md", "line": 113, "label": "V3 组装留痕 命中/剔除/覆盖" }
+      ] },
+    { "id": "compose", "lane": "engine", "col": 5, "type": "backend", "label": "⑥ Compose 预算裁剪", "sublabel": "token 裁剪与排序", "width": 124,
+      "sources": [
+        { "path": "docs/research/cognitive-context/013-context-layer-blueprint.md", "line": 485, "label": "§6 预算分配决策" },
+        { "path": "docs/research/agent-infra/230-customer-domain-long-memory-2027-planning.md", "line": 65, "label": "预算裁剪" }
+      ] },
+    { "id": "bundle", "lane": "runtime", "col": 5, "type": "frontend", "label": "⑦ Emit ContextBundle", "sublabel": "uri@version · 组装 Prompt", "width": 130,
+      "sources": [
+        { "path": "docs/research/agent-infra/230-customer-domain-long-memory-2027-planning.md", "line": 65, "label": "输出带 uri@version 的 Bundle" },
+        { "path": "docs/research/cognitive-context/013-context-layer-blueprint.md", "line": 639, "label": "§7.4 ContextPackage 契约" }
+      ] }
+  ],
+  "edges": [
+    { "id": "e_req", "from": "req", "to": "resolve", "label": "每轮装配", "variant": "emphasis" },
+    { "id": "e_intent", "from": "resolve", "to": "plan", "label": "意图判定" },
+    { "id": "e_exact", "from": "plan", "to": "retrieve_exact", "label": "精确范式" },
+    { "id": "e_recall", "from": "plan", "to": "retrieve_recall", "label": "召回范式", "role": "branch" },
+    { "id": "e_exact_fuse", "from": "retrieve_exact", "to": "fuse" },
+    { "id": "e_recall_fuse", "from": "retrieve_recall", "to": "fuse" },
+    { "id": "e_fuse", "from": "fuse", "to": "guard" },
+    { "id": "e_drop", "from": "guard", "to": "dropped", "label": "越界 / PII / 越权", "variant": "security", "role": "error" },
+    { "id": "e_pass", "from": "guard", "to": "compose", "label": "通过", "variant": "emphasis" },
+    { "id": "e_emit", "from": "compose", "to": "bundle", "label": "注入上下文", "variant": "emphasis" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "类型范式 · 五类上下文",
+      "items": [
+        "精确查询：Facts / Instruction——命中即用已验证条目，不走召回",
+        "召回范式：Knowledge / Capability / Experience——目录定位 + 多路向量/文本召回"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Guard 五项引擎级检查",
+      "items": [
+        "可见性校验（Visibility 边界）",
+        "作用域前缀校验",
+        "效力裁决（优先级链）",
+        "Instruction 越权",
+        "PII 检出"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "目标态口径",
+      "items": [
+        "Guard 与统一装配面现状未落地（013 §12.4：engine/context/ 不存在；§12.1：assemble() 生产调用 0）",
+        "五类型为 Context Engine 设计口径，非 013 五源投影（ADR-5）",
+        "Context Pack（②Plan 产物）为设计新词——与 §7.4 ContextPackage／巡检引擎 ContextPack 撞名不同义",
+        "ContextBundle 出口带 uri@version / dropped / overrides 日志，指针不副本"
+      ]
+    }
+  ]
+}
