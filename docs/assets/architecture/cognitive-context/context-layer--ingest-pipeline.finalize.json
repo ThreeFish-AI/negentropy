@@ -5,16 +5,16 @@
   "status": "pass",
   "type": "workflow",
   "quality": "showcase",
-  "startedAt": "2026-10-15T08:09:00.744Z",
+  "startedAt": "2026-10-15T12:19:19.594Z",
   "specification": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/el-paso-v1/.archify/workflow-context-layer--ingest-pipeline-20261015-155535/candidate.json",
-    "sha256": "bfbeb3cfe1e6f3203867973df330cf7a3410599e679d172990e7a198b9f75780",
-    "bytes": 8388
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/el-paso-v1/docs/diagrams/context-layer--ingest-pipeline/context-layer--ingest-pipeline.json",
+    "sha256": "635c9a7de210106cb86495d3c1a3fd6146e9eb68105865ea16895d059b4ddc69",
+    "bytes": 8588
   },
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/el-paso-v1/docs/assets/architecture/cognitive-context/context-layer--ingest-pipeline.html",
-    "sha256": "29d810e0c99370b0bc3043e3fc2182cf5489beab75a139264d847dfbc567e0c7",
-    "bytes": 761021
+    "sha256": "2c842cbb181eabd6a622ec1b6e5afd00bfcea7b6204d647852eab0b2dc298e8e",
+    "bytes": 761221
   },
   "stages": {
     "validate": {
@@ -27,7 +27,7 @@
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "deliver",
         "workflow",
-        "/Users/cm.huang/conductor/workspaces/negentropy/el-paso-v1/.archify/workflow-context-layer--ingest-pipeline-20261015-155535/candidate.json",
+        "/Users/cm.huang/conductor/workspaces/negentropy/el-paso-v1/docs/diagrams/context-layer--ingest-pipeline/context-layer--ingest-pipeline.json",
         "/Users/cm.huang/conductor/workspaces/negentropy/el-paso-v1/docs/assets/architecture/cognitive-context/context-layer--ingest-pipeline.html",
         "--quality",
         "showcase",
@@ -40,8 +40,8 @@
         "ok": true,
         "command": "validate",
         "specification": {
-          "sha256": "bfbeb3cfe1e6f3203867973df330cf7a3410599e679d172990e7a198b9f75780",
-          "bytes": 8388
+          "sha256": "635c9a7de210106cb86495d3c1a3fd6146e9eb68105865ea16895d059b4ddc69",
+          "bytes": 8588
         },
         "validation": {
           "checksPassed": 9,
@@ -56,13 +56,13 @@
     "deliver": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 1591,
+      "durationMs": 607,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "deliver",
         "workflow",
-        "/Users/cm.huang/conductor/workspaces/negentropy/el-paso-v1/.archify/workflow-context-layer--ingest-pipeline-20261015-155535/candidate.json",
+        "/Users/cm.huang/conductor/workspaces/negentropy/el-paso-v1/docs/diagrams/context-layer--ingest-pipeline/context-layer--ingest-pipeline.json",
         "/Users/cm.huang/conductor/workspaces/negentropy/el-paso-v1/docs/assets/architecture/cognitive-context/context-layer--ingest-pipeline.html",
         "--quality",
         "showcase",
@@ -72,19 +72,19 @@
       ],
       "receipt": {
         "schemaVersion": 1,
-        "receiptId": "7d411791-b1c0-407a-8790-6f9c0fd19ff2",
+        "receiptId": "934fffee-458b-466c-82a4-59f79be5b9ab",
         "ok": true,
         "command": "deliver",
         "type": "workflow",
-        "input": "/Users/cm.huang/conductor/workspaces/negentropy/el-paso-v1/.archify/workflow-context-layer--ingest-pipeline-20261015-155535/candidate.json",
+        "input": "/Users/cm.huang/conductor/workspaces/negentropy/el-paso-v1/docs/diagrams/context-layer--ingest-pipeline/context-layer--ingest-pipeline.json",
         "output": "/Users/cm.huang/conductor/workspaces/negentropy/el-paso-v1/docs/assets/architecture/cognitive-context/context-layer--ingest-pipeline.html",
         "specification": {
-          "sha256": "bfbeb3cfe1e6f3203867973df330cf7a3410599e679d172990e7a198b9f75780",
-          "bytes": 8388
+          "sha256": "635c9a7de210106cb86495d3c1a3fd6146e9eb68105865ea16895d059b4ddc69",
+          "bytes": 8588
         },
         "artifact": {
-          "sha256": "29d810e0c99370b0bc3043e3fc2182cf5489beab75a139264d847dfbc567e0c7",
-          "bytes": 761021
+          "sha256": "2c842cbb181eabd6a622ec1b6e5afd00bfcea7b6204d647852eab0b2dc298e8e",
+          "bytes": 761221
         },
         "validation": {
           "checksPassed": 9,
@@ -105,7 +105,7 @@
     "check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 206,
+      "durationMs": 80,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
@@ -117,8 +117,8 @@
         "ok": true,
         "file": "/Users/cm.huang/conductor/workspaces/negentropy/el-paso-v1/docs/assets/architecture/cognitive-context/context-layer--ingest-pipeline.html",
         "artifact": {
-          "sha256": "29d810e0c99370b0bc3043e3fc2182cf5489beab75a139264d847dfbc567e0c7",
-          "bytes": 761021
+          "sha256": "2c842cbb181eabd6a622ec1b6e5afd00bfcea7b6204d647852eab0b2dc298e8e",
+          "bytes": 761221
         },
         "checks": [
           {
@@ -235,13 +235,13 @@
           "issues": []
         },
         "provenance": "current",
-        "deliveryReceiptId": "7d411791-b1c0-407a-8790-6f9c0fd19ff2"
+        "deliveryReceiptId": "934fffee-458b-466c-82a4-59f79be5b9ab"
       }
     },
     "browser-check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 1443,
+      "durationMs": 1247,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
@@ -259,11 +259,11 @@
         "status": "pass",
         "visualReview": "not-requested",
         "provenance": "current",
-        "deliveryReceiptId": "7d411791-b1c0-407a-8790-6f9c0fd19ff2",
+        "deliveryReceiptId": "934fffee-458b-466c-82a4-59f79be5b9ab",
         "artifact": {
           "path": "/Users/cm.huang/conductor/workspaces/negentropy/el-paso-v1/docs/assets/architecture/cognitive-context/context-layer--ingest-pipeline.html",
-          "sha256": "29d810e0c99370b0bc3043e3fc2182cf5489beab75a139264d847dfbc567e0c7",
-          "bytes": 761021
+          "sha256": "2c842cbb181eabd6a622ec1b6e5afd00bfcea7b6204d647852eab0b2dc298e8e",
+          "bytes": 761221
         },
         "state": {
           "detail": "read",
@@ -1437,6 +1437,6 @@
     "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/el-paso-v1/docs/assets/architecture/cognitive-context/context-layer--ingest-pipeline.browser-check.json"
   },
   "visualReview": "not-requested",
-  "finishedAt": "2026-10-15T08:09:04.738Z",
-  "durationMs": 3994
+  "finishedAt": "2026-10-15T12:19:21.846Z",
+  "durationMs": 2251
 }

@@ -6,11 +6,11 @@
   "status": "pass",
   "visualReview": "not-requested",
   "provenance": "current",
-  "deliveryReceiptId": "7d411791-b1c0-407a-8790-6f9c0fd19ff2",
+  "deliveryReceiptId": "934fffee-458b-466c-82a4-59f79be5b9ab",
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/el-paso-v1/docs/assets/architecture/cognitive-context/context-layer--ingest-pipeline.html",
-    "sha256": "29d810e0c99370b0bc3043e3fc2182cf5489beab75a139264d847dfbc567e0c7",
-    "bytes": 761021
+    "sha256": "2c842cbb181eabd6a622ec1b6e5afd00bfcea7b6204d647852eab0b2dc298e8e",
+    "bytes": 761221
   },
   "state": {
     "detail": "read",

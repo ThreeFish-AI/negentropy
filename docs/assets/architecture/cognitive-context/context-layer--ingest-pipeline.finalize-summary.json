@@ -6,14 +6,14 @@
   "type": "workflow",
   "quality": "showcase",
   "specification": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/el-paso-v1/.archify/workflow-context-layer--ingest-pipeline-20261015-155535/candidate.json",
-    "sha256": "bfbeb3cfe1e6f3203867973df330cf7a3410599e679d172990e7a198b9f75780",
-    "bytes": 8388
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/el-paso-v1/docs/diagrams/context-layer--ingest-pipeline/context-layer--ingest-pipeline.json",
+    "sha256": "635c9a7de210106cb86495d3c1a3fd6146e9eb68105865ea16895d059b4ddc69",
+    "bytes": 8588
   },
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/el-paso-v1/docs/assets/architecture/cognitive-context/context-layer--ingest-pipeline.html",
-    "sha256": "29d810e0c99370b0bc3043e3fc2182cf5489beab75a139264d847dfbc567e0c7",
-    "bytes": 761021
+    "sha256": "2c842cbb181eabd6a622ec1b6e5afd00bfcea7b6204d647852eab0b2dc298e8e",
+    "bytes": 761221
   },
   "gates": {
     "validate": "pass",
@@ -33,5 +33,5 @@
     "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/el-paso-v1/docs/assets/architecture/cognitive-context/context-layer--ingest-pipeline.browser-check.json"
   },
   "visualReview": "not-requested",
-  "durationMs": 3994
+  "durationMs": 2251
 }

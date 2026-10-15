@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
-  "receiptId": "007ead2b-4a86-4fd9-b6b7-a64604d7e094",
+  "receiptId": "26a7f09e-2ffe-4b17-a4fb-3fb327e7899f",
   "status": "current",
   "command": "deliver",
   "type": "workflow",
-  "input": "/Users/cm.huang/conductor/workspaces/negentropy/el-paso-v1/.archify/workflow-context-layer--read-pipeline-20261015-151826/candidate.json",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/el-paso-v1/docs/diagrams/context-layer--read-pipeline/context-layer--read-pipeline.json",
   "output": "/Users/cm.huang/conductor/workspaces/negentropy/el-paso-v1/docs/assets/architecture/cognitive-context/context-layer--read-pipeline.html",
   "specification": {
-    "sha256": "ea60fbefc8cf926d65e27124130a3686881991f35f308dfc53b060d78a3c844e",
-    "bytes": 8231
+    "sha256": "9c9edeaaf2c76126e78623c69b6ca618a6d6c3506afc48f27009e14ca5d947de",
+    "bytes": 8565
   },
   "artifact": {
-    "sha256": "18fd9722cd8c2323c29f3c0a61e0d33c10b4d274a5a971cfadcf1c93d697d794",
-    "bytes": 768791
+    "sha256": "b8c2065aed8090a0c9617e3cb836eeb142d81aebfe2db865ee048a2f583d82d1",
+    "bytes": 769307
   }
 }
