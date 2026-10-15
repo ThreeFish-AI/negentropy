@@ -4437,3 +4437,13 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **后续防范**：ep2–ep4 与 E1 同日同流程冻结，缺陷类别疑似系列性复现——各集进入阶段①审校时按**横向抽查清单**首查四项：①头部真值 commit 钉没钉（ep2 头部已见同构缺陷「重冻自 172 现行版」未钉）；②附录 A 完整性（正文明喻 grep vs 登记表 + narration 用喻反查）；③C.2 覆盖矩阵（冻结正文数字断言集合 diff 已登记标题）；④C.1 描述类断言抽查（拓扑/日期类表述与实测对账）。五集附录 taxonomy 漂移（ep1–4「附录 A+C」无 B、ep5「附录 A+B」同名异义）随各集审校统一。
 - **RSI 候选（攒批回流 vibe-video 仓，本轮不动手）**：① Stage ① 最小机器门两条——「冻结正文数字断言集合 diff 附录 C.2 已登记标题」「附录 A 类比物词表 grep narration」（纯离线文本可实现，本轮已人肉代跑）；② C 型流程增「上游 analogy.md：在场已承接 / 不在场」勾选项；③ archify 承接条文修订（archify-html/ 实体拷贝条款 vs 五集 repo 级链接直取实践的全系列分叉）；④ `tests/test_source_map.py` 的 `VIBE_VIDEO_TEST_WORKSPACE` 门控在两仓 CI 均未设置——信源层执法无任何自动化路径；⑤ C 型验收句补「材料层穿透」（止步 CC 源码层【三】会漏掉 README 折叠区可回源的转述核验）。
 - **同类问题影响**：claude-code 五集全部 gl-notes 冻结件；未来一切 C 型（guided-learn 信源）分集；B 型 source-notes 的穿透矩阵纪律同参照。
+
+---
+
+## ISSUE-058 context-layer v3 重制四坑：录制器 slug 推导 / pipeline 相对路径 / pre-TTS 门自锁 / 主题门钝配对
+
+- **表因**：archify 全量录制时 `blueprint--*` 前缀六图全部失败（"sidecar 文件名须等于 slug：blueprint--architecture.json vs slug='architecture'"）；`pipeline.py --project episodes/context-layer-video` 报"缺少分集配置"却指向仓库根；改稿后 `pipeline.py tts` 被"manifest 与 narration.json 不一致——改稿后未重跑 tts" FAIL 挡死（要跑 tts 才能消的门被 tts 前置检查拦截，循环死锁）；`qa_frames.py --check-theme` 对 paperInk/terminalBg 报对比度 FAIL。
+- **根因**：① 录制器按源图文件名 `--` 末段推导 slug，`context-layer-blueprint--architecture.html` 被截成 `architecture`，与集侧 `blueprint--architecture` 命名错位——`[archify.html_overrides]` 的键才是 slug 唯一事实源，去掉 overrides 走 pattern 即触发；② `pipeline.py --project` 把相对路径按 git 仓库根解析而非 CWD/workspace（record_archify_all 则按哨兵向上搜，两者口径不同）；③ pre-TTS 前置门含 manifest 新鲜度检查，而该检查在 tts 入口先行执行，形成"需要 tts 产物才能过 tts 前置门"的自锁；④ 主题门把 theme.ts 全部 hex 对 theme.bg 一律配对，纸面墨（落纸面）/终端底（终端内表面）这类表面绑定色被误配页面底色。
+- **处理方式**：① toml 恢复 13→12 图 html_overrides 全显式钉 slug（值为本集 html/ 桥接副本文件名）；② --project 一律传绝对路径；③ 绕编排器直调分集薄包装 `cd $P && uv run --no-project --with edge-tts --with mutagen scripts/tts.py`（缺省即 edge，天然无 pre-TTS 门，README Quickstart 正路）；④ 记 WARN 不阻塞（五项体检才是草渲交付线），登记 RSI 候选建议主题门加表面色豁免清单。
+- **后续防范**：archify 集 slug 含 `--` 复合前缀时永远显式写 html_overrides（pattern 兜底只对单词 slug 安全）；skill 编排入口的路径参数全用绝对路径；改稿重配走分集薄包装而非编排入口；语义表面色（paper*/terminal*）不参与 vs-bg 对比度断言。
+- **同类问题影响**：所有 archify 3.0 桥接录制集（agent-skills 先例已用 overrides 钉 slug 但未记录根因）、所有 edge 草声集的改稿重配流程、所有含纸面/终端双表面色板的集的主题门读数。
