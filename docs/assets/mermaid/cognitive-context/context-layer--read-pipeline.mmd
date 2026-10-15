@@ -1,0 +1,15 @@
+%%source: docs/research/cognitive-context/013-context-layer-blueprint.md §7 章首（Context Engine 读路径目标态总览；机制锚 §2.4 装配事务 / §5.3 天花板 / §6 预算带 / §7.1–7.4 / §12.4 现状对账）＋ docs/research/agent-infra/230-customer-domain-long-memory-2027-planning.md §二读路径同构
+%%slug: cognitive-context/context-layer--read-pipeline
+%%type: workflow
+%%derived: archify workflow v2, authored fresh（新图：ContextRequest 经 ①Resolve 主体解析 → ②Plan 意图与预算 → ③Retrieve 双范式并行 → ④Fuse RRF 融合与归一信任重排 → ⑤Guard 五查 → ⑥Compose 预算裁剪 → ⑦Emit 组装 ContextBundle；dropped/overrides 治理旁路；五类型 Facts/Instruction/Knowledge/Capability/Experience 为 Context Engine 设计口径，非 013 五源投影 ADR-5）
+flowchart LR
+    REQ["ContextRequest<br/>Agent Runtime 发起"] ==>|"每轮装配"| RES["① Resolve 主体解析<br/>Tenant / User · 可见性边界"]
+    RES -->|"意图判定"| PLAN["② Plan 意图与预算<br/>Context Pack · 各域预算比"]
+    PLAN -->|"精确范式"| EX["③ Retrieve 精确查询<br/>Facts / Instruction"]
+    PLAN -.->|"召回范式"| RC["③ Retrieve 召回范式<br/>目录定位 + 多路召回"]
+    EX --> FUSE["④ Fuse 融合重排<br/>RRF · 归一信任分"]
+    RC --> FUSE
+    FUSE --> GUARD{"⑤ Guard 检查点<br/>五项引擎级校验"}
+    GUARD -.->|"越界 / PII / 越权"| DROP["dropped / overrides<br/>裁决留痕日志"]
+    GUARD ==>|"通过"| COMP["⑥ Compose 预算裁剪<br/>token 裁剪与排序"]
+    COMP ==>|"注入上下文"| BUNDLE["⑦ Emit ContextBundle<br/>uri@version · 组装 Prompt"]

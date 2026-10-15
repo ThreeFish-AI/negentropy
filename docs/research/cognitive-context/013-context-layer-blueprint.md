@@ -570,6 +570,12 @@ JIT 与预取的决策边界要显式声明，不要默认：静态约定与规�
 
 装配轴（§6）决定谁在何时进窗口；检索轴回答候选从哪来、以什么质量来——检索是正确性的前置环节：模型不换、只换上下文供给方式，成绩可以差出四倍以上（§7.1 FinanceBench 三档）。本轴五个判定点：候选集性质律与宽进严出（§7.1）、信任归一（§7.2）、统一骨架 ADR-2/ADR-3 与 RRF 落点对账（§7.3；RRF＝Reciprocal Rank Fusion，把多路检索结果按排名倒数的融合法——本仓真实落点与口径详 §7.3（三处引擎））、resolve 契约（§7.4）、CJK 失效登记（§7.5）。机制接缝上，本轴承接 M3（权威 × 检索：检索面过滤，详 §5）与 M4（检索 × 复利：验证问答的应答出示，本节），接缝定义详 §3。
 
+把本轴各判定点串成一条端到端读路径，就是下图的目标态总览：ContextRequest 经 ①Resolve（主体与可见性，锚 §5.3 权限天花板）→ ②Plan（意图与各域预算比，锚 §6 预算带、§7.3 ADR-2）→ ③Retrieve 双范式并行（锚 §7.1 宽进严出、§7.4 已验证查询）→ ④Fuse（RRF 融合与归一信任重排，锚 §7.2/§7.3）→ ⑤Guard 五项检查 → ⑥Compose（token 预算裁剪与排序）→ ⑦Emit 组装 ContextBundle——与 [230 客户域读链](../agent-infra/230-customer-domain-long-memory-2027-planning.md)（主体前缀检索 → RRF 信任重排 → Guard → 预算裁剪 → uri@version Bundle）同构。四处口径如实标注：其一，节点上的五类型（Facts / Instruction / Knowledge / Capability / Experience）是 Context Engine 的设计口径，**不是**本蓝图 §4.1 的五源投影（ADR-5 已把五源降为资产子集投影，勿混读）；其二，①段 Resolve 指入口的主体身份解析，与 §7.4 的 resolve 应答契约撞名不同义；其三，Guard 与统一装配面是目标态——现状对账见 §12.4（`engine/context/` 不存在、assemble() 生产调用 0）；其四，Guard 五项检查中可见性 / 作用域前缀 / 效力裁决 / PII 与 230 读链 Guard 枚举一致，「Instruction 越权」为该设计的增项——指令权先例在写路径侧（230 G4：记忆内容无指令权，不得被当作指令执行）。
+
+![Context Engine 读路径（目标态）：ContextRequest 经 ①Resolve 主体与可见性 → ②Plan 意图与预算 → ③Retrieve 双范式并行取用 → ④Fuse RRF 融合与归一信任重排 → ⑤Guard 五项引擎级检查点 → ⑥Compose 预算裁剪 → ⑦Emit 组装 ContextBundle（uri@version），越界项入 dropped/overrides 留痕](../../assets/architecture/cognitive-context/context-layer--read-pipeline-dark.png)
+
+> 图源（可 diff 文本）：[`context-layer--read-pipeline.mmd`](../../assets/mermaid/cognitive-context/context-layer--read-pipeline.mmd) · 交互版（下载到本地打开）：[`context-layer--read-pipeline.html`](../../assets/architecture/cognitive-context/context-layer--read-pipeline.html) · archify 图源（candidate JSON）：[`context-layer--read-pipeline.json`](../../diagrams/context-layer--read-pipeline/context-layer--read-pipeline.json)
+
 ### 7.1 候选集性质律与宽进严出
 
 候选集性质律：一条检索结果的可信上限由候选集性质决定，不由排序算法决定。VQR（M4，机制详解 [011 §2](./011-horizon-context.md)）的候选集全部人工核验过——错误面窄，故可作验证锚定、命中即采用已验证 SQL；通用检索的候选集是全目录——错误面宽，排序与过滤只是兜底。011 §3.2 同口径：检索的定位是候选集供给，它决定「哪些上下文被端到 Agent 面前」。两条路径在 resolve 契约分流（§7.4）。
