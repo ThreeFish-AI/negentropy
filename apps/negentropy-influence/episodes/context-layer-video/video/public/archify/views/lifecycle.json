@@ -1,56 +1,73 @@
 [
  {
-  "id": "lc-collect",
-  "label": "采集",
+  "id": "lc2-open",
+  "label": "六段两环总览",
   "focus": [
-   "sources",
-   "collect"
+   "l1",
+   "l2",
+   "l3",
+   "l4",
+   "l5",
+   "l6"
   ],
-  "note": "五源汇聚"
+  "note": "L1–L6 主轴纵贯对象一生，验证环与进化环两条回边让系统不退化"
  },
  {
-  "id": "lc-govern",
-  "label": "治理",
+  "id": "lc2-l1",
+  "label": "L1 采集纳管",
   "focus": [
-   "govern"
+   "l1"
   ],
-  "note": "口径·可见性·注入纪律"
+  "note": "出身有出处·过闸入账"
  },
  {
-  "id": "lc-activate",
-  "label": "激活",
+  "id": "lc2-l2",
+  "label": "L2 铸形裁决",
   "focus": [
-   "activate"
+   "l2"
   ],
-  "note": "预算·披露·双通道"
+  "note": "机器发现·人类定规"
  },
  {
-  "id": "lc-verify",
-  "label": "验证",
+  "id": "lc2-l3",
+  "label": "L3 装配执法",
   "focus": [
-   "verify"
+   "l3"
   ],
-  "note": "锚定·可观测"
+  "note": "每轮重装·实时求值"
  },
  {
-  "id": "lc-evolve",
-  "label": "进化",
+  "id": "lc2-l4",
+  "label": "L4 应答锚定",
   "focus": [
-   "evolve",
-   "delivery"
+   "l4"
   ],
-  "note": "回灌复利"
+  "note": "三条出路·无静默瞎猜"
  },
  {
-  "id": "lc-loop",
-  "label": "大回路",
+  "id": "lc2-l5",
+  "label": "L5 沉淀回灌",
   "focus": [
-   "collect",
-   "govern",
-   "activate",
-   "verify",
-   "evolve"
+   "l5"
   ],
-  "note": "CGAVE 首尾相接"
+  "note": "短期→长期·三件在线"
+ },
+ {
+  "id": "lc2-l6",
+  "label": "L6 衰减退役",
+  "focus": [
+   "l6"
+  ],
+  "note": "显式退役有账·降权不清退"
+ },
+ {
+  "id": "lc2-loops",
+  "label": "验证与进化环",
+  "focus": [
+   "l2",
+   "l4",
+   "l5"
+  ],
+  "note": "L4 应答回修定义、L5 用法沉淀成规，两环都落回 L2——断了就退化"
  }
 ]

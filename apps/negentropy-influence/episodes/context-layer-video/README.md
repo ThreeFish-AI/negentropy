@@ -1,6 +1,6 @@
 # 《给 AI 发一张工卡：Agent 上下文层蓝图》科普视频工程
 
-> 交付状态：**v2 终渲待审**（2026-09-29，14:02 @1080p30，第 4 轮评审修复 21 条后重渲，归档 ~/Documents/video/context-layer/）。发布顺序见 [../../series.json](../../series.json)（工作区根）。
+> 交付状态：**v3 换代重制·edge 草渲待审**（2026-10-16，26:27 @960×540 草渲档，013 三面重铸版信源对齐：三面×五轴×六段两环 + 读/纳管双管线；九幕「2+5+2」；v2 销账装置全实装）。终渲与交付待人工确认。发布顺序见 [../../series.json](../../series.json)（工作区根）。
 
 ## 目录结构
 
@@ -28,9 +28,14 @@ uv run --no-project $T/scripts/source_ledger.py --project $P verify
 uv run --no-project $T/scripts/pipeline.py --project $P build
 uv run --no-project $T/scripts/pipeline.py --project $P check --check-scenes
 
-# ③ 配音（参数全部取自 pipeline.toml，勿在命令行另写 --style/--ref）
-uv run --no-project $T/scripts/pipeline.py --project $P tts --plan   # 排期对账
-uv run --no-project $T/scripts/pipeline.py --project $P tts          # 长跑，建议 nohup
+# ②b archify 图集重建（换 worktree 必跑；源图=archify 3.0 无 guided-views，须先注入兼容层再录制）
+python3 $P/scripts/patch-archify-html.py                      # docs 原件 → 本集 html/ 桥接副本（SSOT 不动）
+uv run --with playwright python $T/scripts/record_archify_all.py --project $P   # 串行 ~30min
+uv run --no-project --with pillow $T/scripts/archify_lead.py --project $P      # 漏跑=白闪进片
+uv run --no-project $T/scripts/archify_manifest.py --project $P
+
+# ③ 配音（edge 草渲档；参数全部取自 pipeline.toml）
+uv run --no-project $T/scripts/pipeline.py --project $P tts          # 秒级；改稿后重配亦秒级
 
 # ④ 渲染与体检（工具一律 ./node_modules/.bin/ 直调，防污染根 workspace）
 cd $P/video && pnpm install && ./node_modules/.bin/tsc --noEmit

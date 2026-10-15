@@ -1,0 +1,54 @@
+[
+ {
+  "id": "ig-open",
+  "label": "总览",
+  "focus": [
+   "ingest",
+   "tag_index"
+  ],
+  "note": "三泳道五道关·首尾入目录"
+ },
+ {
+  "id": "ig-ingest",
+  "label": "Ingest 登记",
+  "focus": [
+   "ingest"
+  ],
+  "note": "登记指针不复制·出身有出处"
+ },
+ {
+  "id": "ig-normalize",
+  "label": "Normalize 归一",
+  "focus": [
+   "normalize"
+  ],
+  "note": "归一四件套·全程不调 LLM"
+ },
+ {
+  "id": "ig-classify",
+  "label": "Classify 分类",
+  "focus": [
+   "classify"
+  ],
+  "note": "治理字段落档·五选一"
+ },
+ {
+  "id": "ig-tier",
+  "label": "Tier 分级",
+  "focus": [
+   "tier",
+   "l0",
+   "l1",
+   "l2"
+  ],
+  "note": "L0≤256·L1≤4000·L2 指针"
+ },
+ {
+  "id": "ig-tag",
+  "label": "Tag/Index 入册",
+  "focus": [
+   "tag_index"
+  ],
+  "note": "信封·向量化·ctx:// 入目录"
+ }
+]

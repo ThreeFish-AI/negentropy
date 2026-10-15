@@ -1,71 +1,52 @@
 [
  {
-  "id": "tm-client",
-  "label": "客户端环境",
-  "focus": [
-   "con",
-   "agent"
-  ],
-  "note": "同意与令牌"
- },
- {
-  "id": "tm-poison",
-  "label": "描述投毒",
-  "focus": [
-   "tool-poison"
-  ],
-  "note": "自述不可信"
- },
- {
-  "id": "tm-inject",
-  "label": "间接注入",
-  "focus": [
-   "response-injection"
-  ],
-  "note": "响应内指令"
- },
- {
-  "id": "tm-deputy",
-  "label": "混淆代理",
-  "focus": [
-   "confused-deputy"
-  ],
-  "note": "借权执行"
- },
- {
-  "id": "tm-token",
-  "label": "令牌透传",
-  "focus": [
-   "token-theft"
-  ],
-  "note": "跨源窃取"
- },
- {
-  "id": "tm-gate",
-  "label": "治理门与执行",
-  "focus": [
-   "mcp",
-   "gate",
-   "execution",
-   "data-plane"
-  ],
-  "note": "编译期评估→受治理执行"
- },
- {
-  "id": "tm-full",
+  "id": "tm2-open",
   "label": "供给面全景",
   "focus": [
-   "con",
-   "agent",
-   "tool-poison",
-   "response-injection",
-   "confused-deputy",
+   "host-client",
+   "mcp-surface",
+   "compile-gate",
+   "governed-exec",
+   "data-plane",
    "token-theft",
-   "mcp",
-   "gate",
-   "execution",
+   "desc-poison",
+   "deputy",
+   "handle-spoof",
+   "injection",
+   "legitimation"
+  ],
+  "note": "六类威胁×五基建节点——威胁与拦截位一一对应"
+ },
+ {
+  "id": "tm2-surface",
+  "label": "供给边界",
+  "focus": [
+   "host-client",
+   "mcp-surface",
+   "compile-gate"
+  ],
+  "note": "宿主客户端·MCP 供给面·编译期闸门"
+ },
+ {
+  "id": "tm2-plane",
+  "label": "数据与执行",
+  "focus": [
+   "governed-exec",
    "data-plane"
   ],
-  "note": "三级链路全景"
+  "note": "受治理执行层·数据平面"
+ },
+ {
+  "id": "tm2-threats",
+  "label": "六类威胁",
+  "focus": [
+   "token-theft",
+   "desc-poison",
+   "deputy",
+   "handle-spoof",
+   "injection",
+   "legitimation"
+  ],
+  "note": "令牌窃取·描述投毒·混淆代理人·句柄仿冒·间接注入·意图合法化"
  }
 ]

@@ -1,55 +1,58 @@
 [
  {
-  "id": "ax-obj",
-  "label": "对象轴",
+  "id": "arc-facets",
+  "label": "三面各答一问",
   "focus": [
-   "src-instruction",
-   "src-memory",
-   "src-knowledge",
-   "src-tools",
-   "src-session"
+   "registry",
+   "axisAsset",
+   "axisAuth",
+   "axisAssembly",
+   "axisRetrieval",
+   "axisCompounding",
+   "stageL1",
+   "stageL2",
+   "stageL3",
+   "stageL4",
+   "stageL5",
+   "stageL6"
   ],
-  "note": "经营什么——五源"
+  "note": "验收面防住坏法·结构面五轴正交·时间面一生六段——一张蓝图答三个问题"
  },
  {
-  "id": "ax-struct",
-  "label": "结构轴",
+  "id": "arc-axes",
+  "label": "五轴与独立性",
   "focus": [
-   "layer-object",
-   "layer-catalog",
-   "layer-enrich",
-   "layer-govern",
-   "layer-activate"
+   "axisAsset",
+   "axisAuth",
+   "axisAssembly",
+   "axisRetrieval",
+   "axisCompounding"
   ],
-  "note": "怎么组织——五层"
+  "note": "五轴各答一题：经营什么/真值在哪/进窗什么/候选怎么来/越用越好，轴间独立演进"
  },
  {
-  "id": "ax-time",
-  "label": "时间轴",
+  "id": "arc-seams",
+  "label": "机制即接缝",
   "focus": [
-   "ph-collect",
-   "ph-govern",
-   "ph-activate",
-   "ph-verify",
-   "ph-evolve"
+   "chipM1M5",
+   "chipM2M6",
+   "chipM3",
+   "chipM4",
+   "chipM7"
   ],
-  "note": "怎么流动——CGAVE"
+  "note": "M1–M7 不新增轴、全挂两轴接缝：M2/M6 单落权威，其余跨轴组合"
  },
  {
-  "id": "ax-accept",
-  "label": "验收面",
+  "id": "arc-stages",
+  "label": "时间面六段",
   "focus": [
-   "layer-object",
-   "layer-catalog",
-   "layer-enrich",
-   "layer-govern",
-   "layer-activate",
-   "ph-collect",
-   "ph-govern",
-   "ph-activate",
-   "ph-verify",
-   "ph-evolve"
+   "stageL1",
+   "stageL2",
+   "stageL3",
+   "stageL4",
+   "stageL5",
+   "stageL6"
   ],
-  "note": "失效模式表=三轴验收"
+  "note": "L1 采集到 L6 退役的一生主轴，验证环与进化环两条回边详见生命周期图"
  }
 ]

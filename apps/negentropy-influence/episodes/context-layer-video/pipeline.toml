@@ -11,47 +11,46 @@ slug = "context-layer-video"
 [narration]
 # 口径提示——280 字/分是**含停顿的等效**口径，
 # 裸按字数算会高估约 12% 的句容量，双口径门以 manifest 实测为准。
-target_minutes = [13.0, 14.9]
+# v3 九幕 289 句实测 26.5 分钟（含时距）；窗口上沿 27.0 留 3 分钟余量到用户 30 分钟硬顶。
+target_minutes = [21.0, 27.0]
 
 [tts]
-engine = "indextts"
-# 样本路径**工作区根相对**；ref_sha1 取 12 位（同 tts.py 口径），
-# 用 `uv run --no-project $T/scripts/refs.py list` 查当前清单。
-# ⚠️ 风格预设的 alpha 是在**特定选段**上标定的，换选段即失效（见 $V/refs.toml）。
-ref = "voices/me-bright.wav"
-ref_sha1 = "54b699cce97f"
-style = "story"
-# story 档（默认）＝段落演绎：同幕连续句按块合成、块间情绪由配音台本驱动。
-# 台本（可选）：script/narration.cues.toml——写稿阶段产出，见 $T/references/VOICE-CLONING.md §4.5。
-# 重制存量集（旧档 → story）须显式 --allow-voice-switch 并补写台本。
+# v3（2026-10-15 用户指定）：edge 预置音色草渲——zh 缺省 zh-CN-YunxiNeural（+4%），
+# 秒级免样本。无 style 锚点＝实测时长门生效（edge 终声集口径，见 07-tts-voice.md）；
+# 可用克隆样本清单见工作区 voices/refs.toml（升档 indextts 属人工显式授权闸，不在本轮）。
+engine = "edge"
 
 [archify]
-# 13 图全部走 [archify.html_overrides] 显式映射（html_pattern 仅作兜底，当前无匹配对象）。
-# 阈值按分镜设计值（69 cue/36.5% 锚定/4.8 密度）留 10–15% 余量定稿；录制后以实测微调。
-html_dir = "docs/assets/architecture/cognitive-context"
-# pattern 已无匹配对象（13 图全部显式映射，slug 与视图文件名一致）
+# v3 图集 12 张（重录 4 / 新录 2 / 退役 4——含本片未引用的 industry-landscape / 存活 5，蓝图三面重铸配套）。
+# 源图 = archify 3.0 产物（无 guided-views 模块，录制器不可直录）；本集用
+# scripts/patch-archify-html.py 从 docs 原件拷贝并注入精简兼容层，落本集 html/——
+# docs 原件（SSOT）不动；views/*.json 为录制章集唯一事实源。
+# 12 图全部走 [archify.html_overrides] 显式钉 slug（html_pattern 仅作兜底，当前无匹配对象）：
+# 录制器按源图名「--」末段推导 slug，blueprint--* 长 slug 会被截成 architecture 等错位名，
+# overrides 键即本集 slug、值为 html/ 下桥接副本文件名。
+html_dir = "apps/negentropy-influence/episodes/context-layer-video/video/public/archify/html"
 html_pattern = "context-layer--{slug}.html"
-min_diagrams = 13
-min_cues = 62
+# 门限按 v3 分镜设计值（~78 cue / ~24 min ≈ 3.25 每分）留 8% 余量定稿；录制后以实测微调。
+min_diagrams = 12
+min_cues = 72
 min_anchor_ratio = 0.32
 min_chapter_ratio = 0.45
 min_scene_anchor_ratio = 0.06
 max_unanchored_run = 21
-min_cues_per_minute = 4.0
+min_cues_per_minute = 3.0
 min_diagram_types = 4
 forbid_inset = true
 
 [archify.html_overrides]
-"blueprint--architecture" = "context-layer-blueprint--architecture.html"
-"blueprint--dual-track-roadmap" = "context-layer-blueprint--dual-track-roadmap.html"
-"blueprint--industry-landscape" = "context-layer-blueprint--industry-landscape.html"
-"blueprint--layer-mechanism-map" = "context-layer-blueprint--layer-mechanism-map.html"
-"blueprint--mcp-threat-model" = "context-layer-blueprint--mcp-threat-model.html"
-"blueprint--object-lifecycle" = "context-layer-blueprint--object-lifecycle.html"
-failure-map = "context-layer--failure-map.html"
-five-sources = "context-layer--five-sources.html"
-lifecycle = "context-layer--lifecycle.html"
-assembly-economics = "context-layer--assembly-economics.html"
-injection-points = "context-layer--injection-points.html"
-runtime-layering = "context-layer--runtime-layering.html"
-evolution-levers = "context-layer--evolution-levers.html"
+"blueprint--architecture" = "blueprint--architecture.html"
+"blueprint--first-class-object" = "blueprint--first-class-object.html"
+"blueprint--layer-mechanism-map" = "blueprint--layer-mechanism-map.html"
+"blueprint--mcp-threat-model" = "blueprint--mcp-threat-model.html"
+"blueprint--object-lifecycle" = "blueprint--object-lifecycle.html"
+failure-map = "failure-map.html"
+lifecycle = "lifecycle.html"
+assembly-economics = "assembly-economics.html"
+injection-points = "injection-points.html"
+evolution-levers = "evolution-levers.html"
+read-pipeline = "read-pipeline.html"
+ingest-pipeline = "ingest-pipeline.html"
