@@ -5,15 +5,15 @@
   "status": "pass",
   "type": "architecture",
   "quality": "showcase",
-  "startedAt": "2026-10-16T05:01:10.004Z",
+  "startedAt": "2026-10-16T08:21:13.816Z",
   "specification": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer-blueprint--layer-mechanism-map/context-layer-blueprint--layer-mechanism-map.json",
-    "sha256": "77c66b02cff469fb8d147004f3dd2106a313844295c3de85cbd47572242d183d",
+    "sha256": "39b9f8411a304e27fc39e042dcff96983418c7fc97d6f854bf916505a65dc133",
     "bytes": 8083
   },
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.html",
-    "sha256": "e148b6938a094ae4f047803152e43517852fd73e165f8c059dd756c30190441e",
+    "sha256": "b85d8e0d17c3d35b873094713a1a839c0d552ce57415083ef4d9f65bef5387d0",
     "bytes": 775390
   },
   "stages": {
@@ -31,6 +31,8 @@
         "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.html",
         "--quality",
         "showcase",
+        "--repo-root",
+        "/Users/cm.huang/conductor/workspaces/negentropy/chisinau",
         "--json"
       ],
       "receipt": {
@@ -38,7 +40,7 @@
         "ok": true,
         "command": "validate",
         "specification": {
-          "sha256": "77c66b02cff469fb8d147004f3dd2106a313844295c3de85cbd47572242d183d",
+          "sha256": "39b9f8411a304e27fc39e042dcff96983418c7fc97d6f854bf916505a65dc133",
           "bytes": 8083
         },
         "validation": {
@@ -54,7 +56,7 @@
     "deliver": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 405,
+      "durationMs": 468,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
@@ -64,22 +66,24 @@
         "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.html",
         "--quality",
         "showcase",
+        "--repo-root",
+        "/Users/cm.huang/conductor/workspaces/negentropy/chisinau",
         "--json"
       ],
       "receipt": {
         "schemaVersion": 1,
-        "receiptId": "3363b5a7-278a-4ab4-8128-40745d4c2142",
+        "receiptId": "ab5bca65-6015-4989-ae31-2d75a0cf4129",
         "ok": true,
         "command": "deliver",
         "type": "architecture",
         "input": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer-blueprint--layer-mechanism-map/context-layer-blueprint--layer-mechanism-map.json",
         "output": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.html",
         "specification": {
-          "sha256": "77c66b02cff469fb8d147004f3dd2106a313844295c3de85cbd47572242d183d",
+          "sha256": "39b9f8411a304e27fc39e042dcff96983418c7fc97d6f854bf916505a65dc133",
           "bytes": 8083
         },
         "artifact": {
-          "sha256": "e148b6938a094ae4f047803152e43517852fd73e165f8c059dd756c30190441e",
+          "sha256": "b85d8e0d17c3d35b873094713a1a839c0d552ce57415083ef4d9f65bef5387d0",
           "bytes": 775390
         },
         "validation": {
@@ -95,7 +99,7 @@
     "check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 87,
+      "durationMs": 172,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
@@ -107,7 +111,7 @@
         "ok": true,
         "file": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.html",
         "artifact": {
-          "sha256": "e148b6938a094ae4f047803152e43517852fd73e165f8c059dd756c30190441e",
+          "sha256": "b85d8e0d17c3d35b873094713a1a839c0d552ce57415083ef4d9f65bef5387d0",
           "bytes": 775390
         },
         "checks": [
@@ -294,13 +298,13 @@
           "issues": []
         },
         "provenance": "current",
-        "deliveryReceiptId": "3363b5a7-278a-4ab4-8128-40745d4c2142"
+        "deliveryReceiptId": "ab5bca65-6015-4989-ae31-2d75a0cf4129"
       }
     },
     "browser-check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 1027,
+      "durationMs": 1048,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
@@ -318,10 +322,10 @@
         "status": "pass",
         "visualReview": "not-requested",
         "provenance": "current",
-        "deliveryReceiptId": "3363b5a7-278a-4ab4-8128-40745d4c2142",
+        "deliveryReceiptId": "ab5bca65-6015-4989-ae31-2d75a0cf4129",
         "artifact": {
           "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.html",
-          "sha256": "e148b6938a094ae4f047803152e43517852fd73e165f8c059dd756c30190441e",
+          "sha256": "b85d8e0d17c3d35b873094713a1a839c0d552ce57415083ef4d9f65bef5387d0",
           "bytes": 775390
         },
         "state": {
@@ -1016,6 +1020,6 @@
     "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.browser-check.json"
   },
   "visualReview": "not-requested",
-  "finishedAt": "2026-10-16T05:01:11.945Z",
-  "durationMs": 1940
+  "finishedAt": "2026-10-16T08:21:16.146Z",
+  "durationMs": 2329
 }

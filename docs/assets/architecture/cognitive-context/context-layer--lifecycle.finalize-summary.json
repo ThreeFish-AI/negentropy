@@ -7,12 +7,12 @@
   "quality": "showcase",
   "specification": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer--lifecycle/context-layer--lifecycle.json",
-    "sha256": "db29e703d894fff81e643452017d04faaa4381fb2fa6386dd259d060fcf81341",
+    "sha256": "9ecf0e1dc76755a93a2ddf883b7121fa03e8df3578ea87bbd8f21712d857542d",
     "bytes": 4950
   },
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--lifecycle.html",
-    "sha256": "fb4a64a676cdb3a1d9ff960555f9ea8d414320dff177bcdf471dea16c6bea53f",
+    "sha256": "18a0a9a91b3319eb06954c36704270bef0e7a3af75b5186b350a5674fa52e734",
     "bytes": 759250
   },
   "gates": {
@@ -33,7 +33,7 @@
     "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--lifecycle.browser-check.json"
   },
   "visualReview": "not-requested",
-  "durationMs": 2605,
+  "durationMs": 2048,
   "visualReviewRecommendation": {
     "action": "inspect-route-readability",
     "signals": {
