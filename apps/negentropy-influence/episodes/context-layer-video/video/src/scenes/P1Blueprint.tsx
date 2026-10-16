@@ -557,7 +557,7 @@ const AxisIndependence: React.FC<{a24: number; a25: number; a26: number; a27: nu
           检索轴 · 拆除
         </div>
         <div style={{position: 'absolute', left: gx - 4, top: FIVE_AXIS_GEOM.node.y + FIVE_AXIS_GEOM.node.h + 16, fontSize: 17, color: theme.danger, opacity: pulled}}>
-          坏法可复现 · 其余四轴补不上
+          失效可复现 · 其余四轴补不上
         </div>
       </div>
     </AbsoluteFill>

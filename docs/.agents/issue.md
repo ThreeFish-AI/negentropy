@@ -4457,3 +4457,14 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **处理方式**：蓝图按命名表（沉淀轴 Consolidation/会话权限上界/退役路径必备等）8 路改写 286 处直述 + 13 张配图标签同步重渲（candidate 反提取入库）；011/lab 共用术语同步；视频侧逐字稿 v6 重写（293 句零喻体 grep 0）、分镜 v4 重切（116 cue）、九幕场景与 8 个组件重写、登记面改题；④ 双重校验（含零类比门）与 ⑤ 成文优化重跑清零。
 - **后续防范**：规约条款变更时对「条款生效前开工」的在制集跑一次合规回检；类比/喻体词族在 SSOT（蓝图）层就应直述化，视频层只做翻译不做再创作；机械可检的喻体词表 grep 已入 ④B 零类比门。
 - **同类问题影响**：所有在 RSI-032 修订前建的集（jev 的剧场角色 SSOT、本集同批）与所有引用蓝图比喻命名的下游文档/图源；后续集的 planning 需带成本档位与钩子矩阵（本轮已补）。
+
+---
+
+## ISSUE-217 「坏法/堵」准行话词族跨面清零：文档/配图/三集脚本直述化与媒体面分叉登记
+
+- **表因**：用户指出 013 蓝图 §1 读法句（「先看坏法，再看谁来堵」）不像自然工程叙述，「坏法」「堵」两词业余，要求按「先看要解决什么问题，再看怎么解决、怎么验证真的解决了」句式全面整改。
+- **根因**：「坏法/堵住机制/堵法」是早期口癖准行话，ISSUE-059 去比喻轮清的是比喻喻体、未覆盖这类词族；同一词族在 SSOT 文档、配图标签（candidate/HTML/PNG）、mermaid README、三集分集脚本（narration/storyboard/planning/glossary/tsx 屏上字）多面复制，任一面单改都会留分叉。
+- **处理方式**：文档面 9 文件 40+ 处改「失效/失效形态/防护机制」（013 表头「堵住机制」→「防护机制」、读法句改自然句式；011/014/142/175/200/230/171/176 同族；030 堵车/173 包裹/176 门口等类比内物理义与 CHANGELOG/issue 台账豁免保留）；配图面 layer-mechanism-map 与 lifecycle 两 candidate 改签后 finalize 四门全过、capture-arch-diagram 重采 dark/light PNG、旧 browser-check 回执挪走重跑、节点拓扑零变动（3 处 resolvedCrossovers 系上轮既有 advisory）；governance-demolition/seal-off-caliber/mechanism-experiment-matrix/two-waiting-deaths 四个无 candidate 视频资产 HTML 按 grep 计数断言直改标签；分集面三集全改——context-layer 在产（narration 4 句等字数替换保 TTS 时序、tsx 屏上字等长、4 张 episode HTML 从已净 docs candidate 重出）、horizon-context 与 claude-code-multiagent 已交付集改文本。
+- **待收敛（媒体面，勿视为已完成）**：context-layer 的 p0-25/p1-13/p1-28/p8-25 四句重 TTS + audio/manifest.json 再生（IndexTTS 未起，勿手改带 durationSec 的 manifest）、archify 章节素材（views/清单/mp4/png）与 draft.mp4 随下一轮生产 pass 重渲；horizon-context-video 成片含旁白旧词与旧配图标签，成片重制待办。
+- **后续防范**：准行话词族（坏法/堵法类）与比喻喻体同属 SSOT 层直述化对象，去口癖轮应同时 grep 名词化行话；带 durationSec/sha 的派生清单（audio manifest、录制清单）只能由管线再生、严禁手改文本；改 candidate 后旧 browser-check 回执须挪走重跑（复认 ISSUE-059 轮同一坑）。
+- **同类问题影响**：其余分集（concurrency/memory/dream-rsi/jev/self-evolving 等）的「堵」命中均属类比层口语（堵门/撞墙/两条路都堵），按豁免边界不动；若后续扩面，须按「术语位改、类比位留」二分，且已交付集每改一句旁白即登记成片重制。

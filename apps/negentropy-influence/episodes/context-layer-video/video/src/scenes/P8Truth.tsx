@@ -16,7 +16,7 @@
  *   8-H 修复一二步（p8-17..20）：三步梯前两级 + 防注入前提角标 + 梯顶标题
  *   8-I 第三步（p8-21..22）：退役段立规特写 + 「不加新能力」结论条
  *   8-J 依赖序（p8-23..24）：轴依赖箭头链 + 三标（只增不改·带开关·出错降级）
- *   8-K 三错堵法（p8-25..28）：RequestCard 回中央（全 passed 终态）+ 三失效卡被
+ *   8-K 三错对策（p8-25..28）：RequestCard 回中央（全 passed 终态）+ 三失效卡被
  *       组件标签逐一覆盖（资产＋沉淀 / 检索 / 权威）
  *   8-L 差距复现（p8-29..31）：19/85 双条复现 + 97/4 并排 + 结论打字机
  *   8-M 终幕（p8-32..33）：arc-facets 锚 p8-32 → hold p8-33；三面标签归位 + 系列卡
@@ -166,7 +166,7 @@ export const P8Truth: React.FC<{scene: SceneRange}> = ({scene}) => {
         <AxisChain at={at('p8-23') - bJ.from} chipsAt={at('p8-24') - bJ.from} />
       </Sequence>
 
-      {/* 8-K 三错堵法：RequestCard 终态 + 三覆盖 */}
+      {/* 8-K 三错对策：RequestCard 终态 + 三覆盖 */}
       <Sequence from={bK.from} durationInFrames={bK.durationInFrames} name="8-K">
         <PlugTheThree
           at={at('p8-25') - bK.from}
