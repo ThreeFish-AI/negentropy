@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 ### Added
+### 013 蓝图去比喻整改 + Context Layer 第 2 集零类比重制（2026-10-16）
+
+- **[013 蓝图](docs/research/cognitive-context/013-context-layer-blueprint.md) 去比喻**：23 个自造比喻词族约 300 处 + 边界词族约 240 处全部改技术直述（复利轴→沉淀轴 Consolidation、机制=接缝组合→多轴组合、G2 两道独立保险→注册期与运行期校验互不替代、G6 死要有葬礼→退役路径必备、L1 出身有出处→每条记录带来源、L2 铸形裁决→校验与裁决、L5 沉淀回灌→沉淀与回写、三症状三病灶→三类失效现象与三个根因、权限天花板→会话权限上界、三道闸→三项入账校验、宽进严出→高召回初检→重排→top-k 截断、双轨→两条供给路径等）；9 处章节标题改名；业界术语与引文原词保留；数字多重集/链接/稳定键三重断言零漂移。**[011](docs/research/cognitive-context/011-horizon-context.md)** 共用术语 57 处同步；**lab 原型** 26 处输出字面量直述并重过 selftest；**13 张 Context Layer 配图**比喻标签全量直述、candidate 从 HTML 反提取全量入库 `docs/diagrams/`（8 张达成逐字节还原回路）并重渲（finalize 四门全过、节点拓扑坐标零变动；三张 2.17 遗留图边路由按 3.0 门重排）。
+- **[Context Layer 第 2 集](apps/negentropy-influence/episodes/context-layer-video/README.md) v4 零类比重制**：弃民航维修 MRO 剧场（违反对齐 guided-learn 类比硬律的「严禁贯穿全片剧场」条款），改为组件直讲——组件名 + 一句白话 + 贯穿请求「上季度华东区的重复购买率是多少？」三步走查；逐字稿 v6（293 句零喻体）、新标题《拆解 Agent Context Layer：上下文怎么供给、治理、装配》；archify 12 图 116 cue 重锚（锚定 39.6%）；分镜 v4 97 镜；恒定视觉锚 RequestCard、Map-First FiveAxisMap、读/纳管双管线真名走查（Resolve…Emit / Ingest…Tag·Index）。
+
 ### 013 蓝图各章开头同标准修复（2026-10-15）
 
 - **[013 蓝图](docs/research/cognitive-context/013-context-layer-blueprint.md) §2/§7/§12/§14 开头修复**（全章开头扫描后的重中病灶，§1 同一套标准）：§12 导言电报体键值对（「Engine=调度中枢；…」）改叙述句并补本仓系部框架，ISSUE 四件归位 §12.5 指针；§7 导言一句塞五判定点的嵌套括号拆开，RRF 释义独立成句并补「加权」；§2 双「本章」目录预告改章旨流，a16z/Atlan/Context Engineering 2.0 首现带口径，「总账」统一为「登记簿」；§14「最后收束：」提示语冒号删除。事实与数字不变；§6/§8/§9/§11 正面样本与五轴章骨架未动。

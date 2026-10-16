@@ -268,7 +268,7 @@
             "accessed": "2026-10-16"
           },
           "status": "final-review",
-          "statusNote": "v4 零类比重制·edge 草渲待审（2026-10-16，用户裁决弃 MRO 剧场全量直讲：组件名+白话+贯穿请求「上季度华东区重复购买率」三步法）：293 句·TTS 重配 25.23 分纯语音；九幕 97 镜·archify 12 图 116 cue·锚定 39.6%·40/63 章落镜；④ 真实性 3 路+易懂性（含零类比门）清零·⑤ REWRITE=0；恒定锚 RequestCard/Map-First FiveAxisMap/双管线真名走查（Resolve..Emit/Ingest..Tag·Index）",
+          "statusNote": "v4 零类比重制·edge 草渲待审（2026-10-16，013 去比喻版信源；用户裁决弃 MRO 剧场全量直讲——组件名+白话+贯穿请求「上季度华东区重复购买率」三步走查）：26:57.3 = 1617.3s 草渲 960×540@30fps（71.0MB，manifest 实测 27.0 分落 [21.0,27.0] 窗，30 分钟硬顶内）；293 句 edge 云希合成（④ 真实性 3 路 + 易懂性含零类比门清零、⑤ REWRITE=0）；九幕 97 镜·archify 12 图 63 章 116 cue·锚定 39.6%·密度 4.3/分·图型 4；RequestCard 恒定锚 + FiveAxisMap 五轴导航 + 读/纳管双管线真名走查（Resolve..Emit / Ingest..Tag·Index）；check/覆盖门/check_series/tsc/qa 十项体检 FAIL 0（尾幕+九幕逐幕；唯一 WARN：P6 p6-12 一帧装置擦字幕带，人审项）；终渲（1080p）/交付归档/indextts 升档待人工显式指令",
           "voice": "edge 云希（zh-CN-YunxiNeural +4%，草渲档）"
         },
         {
