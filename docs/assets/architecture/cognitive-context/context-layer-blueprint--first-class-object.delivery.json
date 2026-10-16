@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
-  "receiptId": "05a29da7-0418-4453-a1ea-e20989b8f1de",
+  "receiptId": "c412758c-5905-46e0-b7bd-75b9268b256f",
   "status": "current",
   "command": "deliver",
   "type": "dataflow",
   "input": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer-blueprint--first-class-object/context-layer-blueprint--first-class-object.json",
   "output": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--first-class-object.html",
   "specification": {
-    "sha256": "162b3d12c4993766edf07672cbf8eb98237d00eb8457f4b4155e8f67df2ccf53",
-    "bytes": 6164
+    "sha256": "d4adcbe420a1b93259fc6e3fb388692c0ad7cd022f7a463dd6586752fd26deaf",
+    "bytes": 6177
   },
   "artifact": {
-    "sha256": "f6804bd21f7829b101d35950abe7074f8a8cb2eb6e8a0b717332101686fb36b1",
-    "bytes": 760842
+    "sha256": "7a99fc70df19fd6c2504c755cdf0773382e8b1cee8f9e592f559fdfc842a3b05",
+    "bytes": 760894
   }
 }

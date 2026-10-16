@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
-  "receiptId": "524bbc68-eaaa-4e10-bb6f-4d157c72c5d5",
+  "receiptId": "c7271b87-aadc-4ade-87ea-0b58e5a3c086",
   "status": "current",
   "command": "deliver",
   "type": "architecture",
   "input": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer--failure-map/context-layer--failure-map.json",
   "output": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
   "specification": {
-    "sha256": "8014c02b9e186877f72941d93af58025dd7a76206bd7b8606b5d4d4511b82b00",
-    "bytes": 6674
+    "sha256": "3d9d7fb4720cd3ec1c733e0dcb18e088684f48e8d66083750392768b5575c5bd",
+    "bytes": 7257
   },
   "artifact": {
-    "sha256": "bd215ae16bf00d66ef5e4e07093891f5d59c778e6842165657eac8373dc1c393",
-    "bytes": 765707
+    "sha256": "6fe3f1a3d0824a8bcfcfb8d45ab7fed528a32d18fa58bea9746011396caaf980",
+    "bytes": 768641
   }
 }

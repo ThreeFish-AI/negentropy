@@ -5,16 +5,16 @@
   "status": "pass",
   "type": "architecture",
   "quality": "showcase",
-  "startedAt": "2026-10-16T05:00:58.749Z",
+  "startedAt": "2026-10-16T15:59:12.573Z",
   "specification": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer--failure-map/context-layer--failure-map.json",
-    "sha256": "8014c02b9e186877f72941d93af58025dd7a76206bd7b8606b5d4d4511b82b00",
-    "bytes": 6674
+    "sha256": "3d9d7fb4720cd3ec1c733e0dcb18e088684f48e8d66083750392768b5575c5bd",
+    "bytes": 7257
   },
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
-    "sha256": "bd215ae16bf00d66ef5e4e07093891f5d59c778e6842165657eac8373dc1c393",
-    "bytes": 765707
+    "sha256": "6fe3f1a3d0824a8bcfcfb8d45ab7fed528a32d18fa58bea9746011396caaf980",
+    "bytes": 768641
   },
   "stages": {
     "validate": {
@@ -31,6 +31,8 @@
         "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
         "--quality",
         "showcase",
+        "--repo-root",
+        "/Users/cm.huang/conductor/workspaces/negentropy/chisinau",
         "--json"
       ],
       "receipt": {
@@ -38,8 +40,8 @@
         "ok": true,
         "command": "validate",
         "specification": {
-          "sha256": "8014c02b9e186877f72941d93af58025dd7a76206bd7b8606b5d4d4511b82b00",
-          "bytes": 6674
+          "sha256": "3d9d7fb4720cd3ec1c733e0dcb18e088684f48e8d66083750392768b5575c5bd",
+          "bytes": 7257
         },
         "validation": {
           "checksPassed": 9,
@@ -54,7 +56,7 @@
     "deliver": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 446,
+      "durationMs": 426,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
@@ -64,23 +66,25 @@
         "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
         "--quality",
         "showcase",
+        "--repo-root",
+        "/Users/cm.huang/conductor/workspaces/negentropy/chisinau",
         "--json"
       ],
       "receipt": {
         "schemaVersion": 1,
-        "receiptId": "524bbc68-eaaa-4e10-bb6f-4d157c72c5d5",
+        "receiptId": "c7271b87-aadc-4ade-87ea-0b58e5a3c086",
         "ok": true,
         "command": "deliver",
         "type": "architecture",
         "input": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer--failure-map/context-layer--failure-map.json",
         "output": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
         "specification": {
-          "sha256": "8014c02b9e186877f72941d93af58025dd7a76206bd7b8606b5d4d4511b82b00",
-          "bytes": 6674
+          "sha256": "3d9d7fb4720cd3ec1c733e0dcb18e088684f48e8d66083750392768b5575c5bd",
+          "bytes": 7257
         },
         "artifact": {
-          "sha256": "bd215ae16bf00d66ef5e4e07093891f5d59c778e6842165657eac8373dc1c393",
-          "bytes": 765707
+          "sha256": "6fe3f1a3d0824a8bcfcfb8d45ab7fed528a32d18fa58bea9746011396caaf980",
+          "bytes": 768641
         },
         "validation": {
           "checksPassed": 9,
@@ -95,7 +99,7 @@
     "check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 80,
+      "durationMs": 172,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
@@ -107,8 +111,8 @@
         "ok": true,
         "file": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
         "artifact": {
-          "sha256": "bd215ae16bf00d66ef5e4e07093891f5d59c778e6842165657eac8373dc1c393",
-          "bytes": 765707
+          "sha256": "6fe3f1a3d0824a8bcfcfb8d45ab7fed528a32d18fa58bea9746011396caaf980",
+          "bytes": 768641
         },
         "checks": [
           {
@@ -213,10 +217,10 @@
           "desktopReadability": {
             "budgetBasis": "recognized-declared-wide",
             "readerContract": "declared-wide-v1",
-            "availableDiagramWidth": 1161,
-            "actualBudgetPx": 1161,
-            "actualReaderWidth": 1191,
-            "desiredReaderWidth": 1191,
+            "availableDiagramWidth": 1180,
+            "actualBudgetPx": 1180,
+            "actualReaderWidth": 1210,
+            "desiredReaderWidth": 1210,
             "viewportCap": 1376,
             "limit": "source-size",
             "requestedTargetPx": 7.5,
@@ -229,18 +233,18 @@
             },
             "minimumSourceTextPx": 6,
             "minimumProjectedTextPx": 6,
-            "semanticTextCount": 21
+            "semanticTextCount": 23
           },
           "issues": []
         },
         "provenance": "current",
-        "deliveryReceiptId": "524bbc68-eaaa-4e10-bb6f-4d157c72c5d5"
+        "deliveryReceiptId": "c7271b87-aadc-4ade-87ea-0b58e5a3c086"
       }
     },
     "browser-check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 1245,
+      "durationMs": 1305,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
@@ -258,11 +262,11 @@
         "status": "pass",
         "visualReview": "not-requested",
         "provenance": "current",
-        "deliveryReceiptId": "524bbc68-eaaa-4e10-bb6f-4d157c72c5d5",
+        "deliveryReceiptId": "c7271b87-aadc-4ade-87ea-0b58e5a3c086",
         "artifact": {
           "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
-          "sha256": "bd215ae16bf00d66ef5e4e07093891f5d59c778e6842165657eac8373dc1c393",
-          "bytes": 765707
+          "sha256": "6fe3f1a3d0824a8bcfcfb8d45ab7fed528a32d18fa58bea9746011396caaf980",
+          "bytes": 768641
         },
         "state": {
           "detail": "read",
@@ -293,8 +297,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1213,
-              "diagramWidth": 1183,
+              "readerWidth": 1233,
+              "diagramWidth": 1203,
               "pageComposition": {
                 "bodyPaddingPx": 12,
                 "headerPx": 52,
@@ -303,7 +307,7 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 732
               },
-              "viewBoxWidth": 1161,
+              "viewBoxWidth": 1180,
               "minimumProjectedNodeTextPx": 6,
               "minimumProjectedNonEdgeTextPx": 6,
               "minimumProjectedEdgeTextPx": null,
@@ -343,8 +347,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1267,
-              "diagramWidth": 1237,
+              "readerWidth": 1287,
+              "diagramWidth": 1257,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 60,
@@ -353,7 +357,7 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 732
               },
-              "viewBoxWidth": 1161,
+              "viewBoxWidth": 1180,
               "minimumProjectedNodeTextPx": 6,
               "minimumProjectedNonEdgeTextPx": 6,
               "minimumProjectedEdgeTextPx": null,
@@ -393,8 +397,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1394,
-              "diagramWidth": 1364,
+              "readerWidth": 1416,
+              "diagramWidth": 1386,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 60,
@@ -403,7 +407,7 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 732
               },
-              "viewBoxWidth": 1161,
+              "viewBoxWidth": 1180,
               "minimumProjectedNodeTextPx": 6,
               "minimumProjectedNonEdgeTextPx": 6,
               "minimumProjectedEdgeTextPx": null,
@@ -443,8 +447,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1766,
-              "diagramWidth": 1716,
+              "readerWidth": 1794,
+              "diagramWidth": 1744,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 68,
@@ -453,7 +457,7 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 732
               },
-              "viewBoxWidth": 1161,
+              "viewBoxWidth": 1180,
               "minimumProjectedNodeTextPx": 6,
               "minimumProjectedNonEdgeTextPx": 6,
               "minimumProjectedEdgeTextPx": null,
@@ -546,8 +550,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1213,
-              "diagramWidth": 1183,
+              "readerWidth": 1233,
+              "diagramWidth": 1203,
               "pageComposition": {
                 "bodyPaddingPx": 12,
                 "headerPx": 52,
@@ -556,7 +560,7 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 732
               },
-              "viewBoxWidth": 1161,
+              "viewBoxWidth": 1180,
               "minimumProjectedNodeTextPx": 6,
               "minimumProjectedNonEdgeTextPx": 6,
               "minimumProjectedEdgeTextPx": null,
@@ -596,8 +600,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1267,
-              "diagramWidth": 1237,
+              "readerWidth": 1287,
+              "diagramWidth": 1257,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 60,
@@ -606,7 +610,7 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 732
               },
-              "viewBoxWidth": 1161,
+              "viewBoxWidth": 1180,
               "minimumProjectedNodeTextPx": 6,
               "minimumProjectedNonEdgeTextPx": 6,
               "minimumProjectedEdgeTextPx": null,
@@ -646,8 +650,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1394,
-              "diagramWidth": 1364,
+              "readerWidth": 1416,
+              "diagramWidth": 1386,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 60,
@@ -656,7 +660,7 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 732
               },
-              "viewBoxWidth": 1161,
+              "viewBoxWidth": 1180,
               "minimumProjectedNodeTextPx": 6,
               "minimumProjectedNonEdgeTextPx": 6,
               "minimumProjectedEdgeTextPx": null,
@@ -696,8 +700,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1766,
-              "diagramWidth": 1716,
+              "readerWidth": 1794,
+              "diagramWidth": 1744,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 68,
@@ -706,7 +710,7 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 732
               },
-              "viewBoxWidth": 1161,
+              "viewBoxWidth": 1180,
               "minimumProjectedNodeTextPx": 6,
               "minimumProjectedNonEdgeTextPx": 6,
               "minimumProjectedEdgeTextPx": null,
@@ -751,8 +755,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1213,
-              "diagramWidth": 1183,
+              "readerWidth": 1233,
+              "diagramWidth": 1203,
               "pageComposition": {
                 "bodyPaddingPx": 12,
                 "headerPx": 52,
@@ -761,7 +765,7 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 732
               },
-              "viewBoxWidth": 1161,
+              "viewBoxWidth": 1180,
               "minimumProjectedNodeTextPx": 6,
               "minimumProjectedNonEdgeTextPx": 6,
               "minimumProjectedEdgeTextPx": null,
@@ -801,8 +805,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1267,
-              "diagramWidth": 1237,
+              "readerWidth": 1287,
+              "diagramWidth": 1257,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 60,
@@ -811,7 +815,7 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 732
               },
-              "viewBoxWidth": 1161,
+              "viewBoxWidth": 1180,
               "minimumProjectedNodeTextPx": 6,
               "minimumProjectedNonEdgeTextPx": 6,
               "minimumProjectedEdgeTextPx": null,
@@ -851,8 +855,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1394,
-              "diagramWidth": 1364,
+              "readerWidth": 1416,
+              "diagramWidth": 1386,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 60,
@@ -861,7 +865,7 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 732
               },
-              "viewBoxWidth": 1161,
+              "viewBoxWidth": 1180,
               "minimumProjectedNodeTextPx": 6,
               "minimumProjectedNonEdgeTextPx": 6,
               "minimumProjectedEdgeTextPx": null,
@@ -901,8 +905,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1766,
-              "diagramWidth": 1716,
+              "readerWidth": 1794,
+              "diagramWidth": 1744,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 68,
@@ -911,7 +915,7 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 732
               },
-              "viewBoxWidth": 1161,
+              "viewBoxWidth": 1180,
               "minimumProjectedNodeTextPx": 6,
               "minimumProjectedNonEdgeTextPx": 6,
               "minimumProjectedEdgeTextPx": null,
@@ -956,6 +960,6 @@
     "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--failure-map.browser-check.json"
   },
   "visualReview": "not-requested",
-  "finishedAt": "2026-10-16T05:01:00.888Z",
-  "durationMs": 2138
+  "finishedAt": "2026-10-16T15:59:14.860Z",
+  "durationMs": 2286
 }
