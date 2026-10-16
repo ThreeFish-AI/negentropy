@@ -1,7 +1,7 @@
 [
  {
   "id": "fm2-open",
-  "label": "九簇总览",
+  "label": "十簇总览",
   "focus": [
    "c1_koujing",
    "c2_zhixing",
@@ -11,9 +11,10 @@
    "c6_yunhangshi",
    "c7_jiexian",
    "c8_jiyi",
-   "c9_zuzhi"
+   "c9_zuzhi",
+   "c10_xiezuo"
   ],
-  "note": "九簇 × 42 行 × 四列——失效登记簿先于架构，防住哪些失效是验收面"
+  "note": "十簇 × 49 行 × 四列——失效登记簿先于架构，防住哪些失效是验收面"
  },
  {
   "id": "fm2-def",
@@ -38,11 +39,12 @@
  },
  {
   "id": "fm2-ends",
-  "label": "两端两簇",
+  "label": "末端三簇",
   "focus": [
    "c8_jiyi",
-   "c9_zuzhi"
+   "c9_zuzhi",
+   "c10_xiezuo"
   ],
-  "note": "记忆安全→组织落地：投毒两端防线与 owner 缺位"
+  "note": "记忆安全→组织落地→协作：投毒两端防线、owner 缺位与多代理共享"
  }
 ]

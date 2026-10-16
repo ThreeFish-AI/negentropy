@@ -11,7 +11,7 @@
  *   0-E 失效卡③（p0-17..20）：窗口内容列 + 手机号行明文滑入 + 橙边呼吸
  *       + RequestCard 缩于左上 + 「凭证继承」小标闪
  *   0-F 三错共性（p0-21..23）：三缩略卡收拢 + 判词条 + 97/4 比例条（RatioBars）+ 虚线徽
- *   0-G 登记成表（p0-24..27）：fm2-open 锚 p0-24 → hold 25/26/27；前景「九类四十二行」
+ *   0-G 登记成表（p0-24..27）：fm2-open 锚 p0-24 → hold 25/26/27；前景「十类四十九行」
  *       计数上翻 + 三卡飞落弧线 + 「逐层拆开」五轴导航条
  */
 import React from 'react';
@@ -120,7 +120,7 @@ export const P0Errors: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       {/* 0-G 登记成表：fm2-open 全章回放为底，前景计数 + 三卡飞落 + 五轴导航条 */}
       <Sequence from={bG.from} durationInFrames={bG.durationInFrames} name="0-G">
-        <ArchifyRecap slug="failure-map" caption="失效登记簿 · 九簇总览" cues={[
+        <ArchifyRecap slug="failure-map" caption="失效登记簿 · 十簇总览" cues={[
           {chapterId: 'fm2-open', at: at('p0-24') - bG.from, durationInFrames: dur('p0-24')},
           {chapterId: 'fm2-open', at: at('p0-25') - bG.from, durationInFrames: dur('p0-25'), fit: 'hold'},
           {chapterId: 'fm2-open', at: at('p0-26') - bG.from, durationInFrames: dur('p0-26'), fit: 'hold'},
@@ -504,7 +504,7 @@ const JudgeStrip: React.FC<{at: number}> = ({at}) => {
   );
 };
 
-/** 0-G 前景：九类四十二行计数上翻 + 三卡飞落弧线 + 逐层拆开导航条。 */
+/** 0-G 前景：十类四十九行计数上翻 + 三卡飞落弧线 + 逐层拆开导航条。 */
 const RegistryOverlay: React.FC<{countAt: number; dropAt: number; navAt: number}> = ({countAt, dropAt, navAt}) => {
   const f = useCurrentFrame();
   const count = useSpring('settle', {at: countAt, dur: 30});
@@ -522,7 +522,7 @@ const RegistryOverlay: React.FC<{countAt: number; dropAt: number; navAt: number}
       {/* 计数上翻 */}
       <div style={{position: 'absolute', top: 168, left: 0, right: 0, display: 'flex', justifyContent: 'center'}}>
         <div style={{padding: '10px 28px', border: `2px solid ${theme.concept}`, borderRadius: 10, background: withAlpha(theme.bg, 0.9), fontSize: 26, fontFamily: theme.mono, color: theme.concept}}>
-          九类 · {Math.round(42 * Math.min(1, count))} 行 · 每行四件事
+          十类 · {Math.round(49 * Math.min(1, count))} 行 · 每行四件事
         </div>
       </div>
       {/* 三卡飞落（二次贝塞尔弧线） */}
